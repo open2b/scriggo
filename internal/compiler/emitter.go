@@ -1007,12 +1007,16 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			if node.Else == nil { // TODO (Gianluca): can "then" and "else" be unified in some way?
 				endIfLabel := em.fb.newLabel()
 				em.fb.emitGoto(endIfLabel)
+				em.fb.enterScope()
 				em.emitNodes(node.Then.Nodes)
+				em.fb.exitScope()
 				em.fb.setLabelAddr(endIfLabel)
 			} else {
 				elseLabel := em.fb.newLabel()
 				em.fb.emitGoto(elseLabel)
+				em.fb.enterScope()
 				em.emitNodes(node.Then.Nodes)
+				em.fb.exitScope()
 				endIfLabel := em.fb.newLabel()
 				em.fb.emitGoto(endIfLabel)
 				em.fb.setLabelAddr(elseLabel)

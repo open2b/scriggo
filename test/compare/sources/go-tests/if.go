@@ -68,27 +68,26 @@ func main() {
 	}
 	assertequal(count, -1, "if else false")
 
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/208
-	// count = 0
-	// if t := 1; false {
-	// 	count = count + 1
-	// 	_ = t
-	// 	t := 7
-	// 	_ = t
-	// } else {
-	// 	count = count - t
-	// }
-	// assertequal(count, -1, "if else false var")
+	count = 0
+	if t := 1; false {
+		count = count + 1
+		_ = t
+		t := 7
+		_ = t
+	} else {
+		count = count - t
+	}
+	assertequal(count, -1, "if else false var")
 
-	// count = 0
-	// t := 1
-	// if false {
-	// 	count = count + 1
-	// 	t := 7
-	// 	_ = t
-	// } else {
-	// 	count = count - t
-	// }
-	// _ = t
-	// assertequal(count, -1, "if else false var outside")
+	count = 0
+	t := 1
+	if false {
+		count = count + 1
+		t := 7
+		_ = t
+	} else {
+		count = count - t
+	}
+	_ = t
+	assertequal(count, -1, "if else false var outside")
 }
