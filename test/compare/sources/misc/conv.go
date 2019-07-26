@@ -136,8 +136,20 @@ func main() {
 	assert(int64(f4) == 20, "float64 -> int64 (truncation towards zero)")
 	f5 := float64(-12.7)
 	assert(int64(f5) == -12, "float64 -> int64 (truncation towards zero)")
+	f6 := float64(12)
+	assert(uint64(f6) == 12, "float64 -> uint64")
+	f7 := float64(12.00000)
+	assert(uint64(f7) == 12, "float64 -> uint64")
+	f8 := float64(-20)
+	assert(uint64(f8) == 18446744073709551596, "float64 -> uint64")
+	f9 := float64(20.5)
+	assert(uint64(f9) == 20, "float64 -> uint64 (truncation towards zero)")
+	f10 := float64(-12.7)
+	assert(uint64(f10) == 18446744073709551604, "float64 -> uint64 (truncation towards zero)")
 
 	// 3.a Converting an integer to a floating-point number.
+	// TODO(Gianluca).
 
 	// 3.b. Converting a complex type to another complex type.
+	// TODO(Gianluca).
 }
