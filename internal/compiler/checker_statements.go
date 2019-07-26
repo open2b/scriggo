@@ -53,7 +53,7 @@ func (tc *typechecker) checkNodesInNewScopeError(nodes []ast.Node) error {
 	if err != nil {
 		return err
 	}
-	tc.removeCurrentScope()
+	tc.exitScope()
 	return nil
 }
 
@@ -61,7 +61,7 @@ func (tc *typechecker) checkNodesInNewScopeError(nodes []ast.Node) error {
 func (tc *typechecker) checkNodesInNewScope(nodes []ast.Node) {
 	tc.enterScope()
 	tc.checkNodes(nodes)
-	tc.removeCurrentScope()
+	tc.exitScope()
 }
 
 // checkNodesError calls checkNodes catching panics and returning their errors
@@ -212,7 +212,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				}
 				terminating = terminating && tc.terminating
 			}
-			tc.removeCurrentScope()
+			tc.exitScope()
 			tc.terminating = terminating
 
 		case *ast.For:
@@ -233,7 +233,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 			tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()
-			tc.removeCurrentScope()
+			tc.exitScope()
 			tc.terminating = node.Condition == nil && !tc.hasBreak[node]
 
 		case *ast.ForRange:
@@ -292,7 +292,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 			tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()
-			tc.removeCurrentScope()
+			tc.exitScope()
 			tc.terminating = !tc.hasBreak[node]
 
 		case *ast.Assignment:
@@ -394,7 +394,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				terminating = terminating && (tc.terminating || hasFallthrough)
 			}
 			tc.removeLastAncestor()
-			tc.removeCurrentScope()
+			tc.exitScope()
 			tc.terminating = terminating && !tc.hasBreak[node] && positionOfDefault != nil
 
 		case *ast.TypeSwitch:
@@ -470,11 +470,11 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					}
 				}
 				tc.checkNodes(cas.Body)
-				tc.removeCurrentScope()
+				tc.exitScope()
 				terminating = terminating && tc.terminating
 			}
 			tc.removeLastAncestor()
-			tc.removeCurrentScope()
+			tc.exitScope()
 			tc.terminating = terminating && !tc.hasBreak[node] && positionOfDefault != nil
 
 		case *ast.Select:
@@ -510,7 +510,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				terminating = terminating && tc.terminating
 			}
 			tc.removeLastAncestor()
-			tc.removeCurrentScope()
+			tc.exitScope()
 			tc.terminating = terminating && !tc.hasBreak[node]
 
 		case *ast.Const:

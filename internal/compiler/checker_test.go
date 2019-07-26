@@ -1411,7 +1411,7 @@ func TestCheckerStatements(t *testing.T) {
 			tc.scopes = append(tc.scopes, scope)
 			tc.enterScope()
 			tc.checkNodes(tree.Nodes)
-			tc.removeCurrentScope()
+			tc.exitScope()
 		}()
 	}
 }

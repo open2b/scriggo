@@ -610,7 +610,7 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 				return err
 			}
 			tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
-			tc.removeCurrentScope()
+			tc.exitScope()
 		case *ast.Const:
 			tc.checkAssignment(d)
 		case *ast.Var:

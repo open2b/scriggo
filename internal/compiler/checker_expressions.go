@@ -161,8 +161,8 @@ func (tc *typechecker) enterScope() {
 	tc.gotos = []string{}
 }
 
-// removeCurrentScope removes the current scope from the type checker.
-func (tc *typechecker) removeCurrentScope() {
+// exitScope removes the current scope from the type checker.
+func (tc *typechecker) exitScope() {
 	// Check if some variables declared in the closing scope are still unused.
 	if !tc.opts.AllowNotUsed {
 		unused := []struct {
@@ -816,7 +816,7 @@ func (tc *typechecker) typeof(expr ast.Expression) *TypeInfo {
 			}
 		}
 		tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
-		tc.removeCurrentScope()
+		tc.exitScope()
 		return &TypeInfo{Type: t.Type}
 
 	case *ast.Call:
