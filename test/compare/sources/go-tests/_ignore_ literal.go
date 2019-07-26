@@ -218,10 +218,10 @@ func main() {
 	var sj0 string = "日本語"
 	var sj1 string = "\u65e5\u672c\u8a9e"
 	var sj2 string = "\U000065e5\U0000672c\U00008a9e"
-	// var sj3 string = "\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e"
+	var sj3 string = "\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e"
 	assert(sj0 == sj1, "sj1")
 	assert(sj0 == sj2, "sj2")
-	// assert(sj0 == sj3, "sj3")
+	assert(sj0 == sj3, "sj3")
 
 	if nbad > 0 {
 		panic("literal failed")
