@@ -123,7 +123,7 @@ var stmtTests = []struct {
 }{
 
 	{
-		name: "Issue #208",
+		name: "https://github.com/open2b/scriggo/issues/208",
 		src: `package main
 
 		import "fmt"
@@ -183,7 +183,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #210",
+		name: "https://github.com/open2b/scriggo/issues/210",
 		src: `package main
 
 		import "fmt"
@@ -197,7 +197,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #215 (2)",
+		name: "https://github.com/open2b/scriggo/issues/215 (2)",
 		src: `package main
 
 		import "fmt"
@@ -210,7 +210,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #215",
+		name: "https://github.com/open2b/scriggo/issues/215",
 		src: `package main
 
 		import "fmt"
@@ -224,7 +224,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #99 (partial) (2)",
+		name: "https://github.com/open2b/scriggo/issues/99 (partial) (2)",
 		src: `package main
 
 		import "fmt"
@@ -239,7 +239,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #99 (partial)",
+		name: "https://github.com/open2b/scriggo/issues/99 (partial)",
 		src: `package main
 
 		var f = func() {}
@@ -307,7 +307,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #175",
+		name: "https://github.com/open2b/scriggo/issues/175",
 		src: `package main
 
 		func main() {
@@ -321,7 +321,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #176 (2)",
+		name: "https://github.com/open2b/scriggo/issues/176 (2)",
 		src: `package main
 
 		import (
@@ -340,7 +340,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #176",
+		name: "https://github.com/open2b/scriggo/issues/176",
 		src: `package main
 
 		import (
@@ -375,7 +375,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #188",
+		name: "https://github.com/open2b/scriggo/issues/188",
 		src: `package main
 
 		import "fmt"
@@ -390,7 +390,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #112",
+		name: "https://github.com/open2b/scriggo/issues/112",
 		src: `package main
 
 		import "fmt"
@@ -405,7 +405,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #186",
+		name: "https://github.com/open2b/scriggo/issues/186",
 		src: `package main
 
 		import "fmt"
@@ -420,7 +420,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #181",
+		name: "https://github.com/open2b/scriggo/issues/181",
 		src: `package main
 
 		import "fmt"
@@ -478,7 +478,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #174 (2)",
+		name: "https://github.com/open2b/scriggo/issues/174 (2)",
 		src: `package main
 
 		import "fmt"
@@ -509,7 +509,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #174",
+		name: "https://github.com/open2b/scriggo/issues/174",
 		src: `package main
 
 		import "fmt"
@@ -527,7 +527,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #132",
+		name: "https://github.com/open2b/scriggo/issues/132",
 		src: `package main
 
 		import "fmt"
@@ -693,7 +693,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #185 (3)",
+		name: "https://github.com/open2b/scriggo/issues/185 (3)",
 		src: `package main
 
 		import "fmt"
@@ -708,7 +708,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #185 (2)",
+		name: "https://github.com/open2b/scriggo/issues/185 (2)",
 		src: `package main
 
 		import "fmt"
@@ -723,7 +723,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #185",
+		name: "https://github.com/open2b/scriggo/issues/185",
 		src: `package main
 
 		import "fmt"
@@ -799,7 +799,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #179 - Part one",
+		name: "https://github.com/open2b/scriggo/issues/179 - Part one",
 		src: `package main
 
 		import "fmt"
@@ -813,7 +813,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #179 - Part two",
+		name: "https://github.com/open2b/scriggo/issues/179 - Part two",
 		src: `package main
 
 		import "fmt"
@@ -1213,7 +1213,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #171",
+		name: "https://github.com/open2b/scriggo/issues/171",
 		src: `package main
 
 		import "fmt"
@@ -1230,7 +1230,7 @@ var stmtTests = []struct {
 	},
 
 	{
-		name: "Issue #155",
+		name: "https://github.com/open2b/scriggo/issues/155",
 		src: `package main
 
 		import "fmt"
@@ -2449,7 +2449,7 @@ var stmtTests = []struct {
 		out: "func()",
 	},
 	{
-		name: "Issue #130",
+		name: "https://github.com/open2b/scriggo/issues/130",
 		src: `package main
 
 		import (
@@ -2695,7 +2695,7 @@ var stmtTests = []struct {
 		out: "/* not a comment */",
 	},
 	{
-		name: "Issue #57",
+		name: "https://github.com/open2b/scriggo/issues/57",
 		src: `package main
 
 		import "fmt"
@@ -2762,7 +2762,7 @@ var stmtTests = []struct {
 		out: "true false true"},
 
 	{
-		name: "Issue #113",
+		name: "https://github.com/open2b/scriggo/issues/113",
 		src: `package main
 
 		import (
@@ -2897,7 +2897,7 @@ var stmtTests = []struct {
 		out: "10\n"},
 
 	{
-		name: "Issue #78",
+		name: "https://github.com/open2b/scriggo/issues/78",
 		src: `package main
 
 		func main() {
@@ -3682,7 +3682,7 @@ var stmtTests = []struct {
 		out: "0 72,1 101,2 108,3 108,4 111,"},
 
 	{
-		name: "Issue #92",
+		name: "https://github.com/open2b/scriggo/issues/92",
 		src: `package main
 
 		import "fmt"
@@ -3976,7 +3976,7 @@ var stmtTests = []struct {
 		out: "a * b"},
 
 	{
-		name: "Issue #86",
+		name: "https://github.com/open2b/scriggo/issues/86",
 		src: `package main
 
 		import "fmt"
@@ -4094,7 +4094,7 @@ var stmtTests = []struct {
 		out: "fg"},
 
 	{
-		name: "Issue #76",
+		name: "https://github.com/open2b/scriggo/issues/76",
 		src: `package main
 
 		import "fmt"
@@ -4170,7 +4170,7 @@ var stmtTests = []struct {
 		out: "100"},
 
 	{
-		name: "Issue #67",
+		name: "https://github.com/open2b/scriggo/issues/67",
 		src: `package main
 
 		func f() {
@@ -4184,7 +4184,7 @@ var stmtTests = []struct {
 		out: ""},
 
 	{
-		name: "Issue #75",
+		name: "https://github.com/open2b/scriggo/issues/75",
 		src: `package main
 
 		import "fmt"
