@@ -22,6 +22,7 @@ const stackSize = 512
 var ErrOutOfMemory = errors.New("out of memory")
 
 var envType = reflect.TypeOf(&Env{})
+var sliceByteType = reflect.TypeOf([]byte{})
 
 type StackShift [4]int8
 
