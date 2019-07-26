@@ -45,6 +45,7 @@ var universe = typeCheckerScope{
 	"copy":        {t: &TypeInfo{Properties: PropertyPredeclared}},
 	"delete":      {t: &TypeInfo{Properties: PropertyPredeclared}},
 	"imag":        {t: &TypeInfo{Properties: PropertyPredeclared}},
+	"iota":        {t: &TypeInfo{Properties: PropertyPredeclared, Type: intType}},
 	"len":         {t: &TypeInfo{Properties: PropertyPredeclared}},
 	"make":        {t: &TypeInfo{Properties: PropertyPredeclared}},
 	"new":         {t: &TypeInfo{Properties: PropertyPredeclared}},
@@ -405,19 +406,21 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 		}
 	}
 
+	// Handle predeclared identifier "iota".
 	i, ok := tc.lookupScopes(ident.Name, false)
-	if !ok {
-		if ident.Name == "iota" && tc.iota >= 0 {
-			return &TypeInfo{
-				Constant:   int64Const(tc.iota),
-				Type:       intType,
-				Properties: PropertyUntyped,
-			}
+	if ok && i == universe["iota"].t && tc.iota >= 0 {
+		return &TypeInfo{
+			Constant:   int64Const(tc.iota),
+			Type:       intType,
+			Properties: PropertyUntyped,
 		}
-		// If identifiers is a ShowMacro identifier, first needs to check if
-		// ShowMacro contains a "or ignore" or "or todo" option. In such cases,
-		// error should not be returned, and function call should be removed
-		// from tree.
+	}
+
+	// If identifiers is a ShowMacro identifier, first needs to check if
+	// ShowMacro contains a "or ignore" or "or todo" option. In such cases,
+	// error should not be returned, and function call should be removed
+	// from tree.
+	if !ok {
 		// TODO(Gianluca): add support for "or todo" error when making a type
 		// checking with "todosNotAllowed" option.
 		for _, sm := range tc.showMacros {
