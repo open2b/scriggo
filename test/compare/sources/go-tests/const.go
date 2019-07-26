@@ -15,9 +15,8 @@ const (
 	c3div2  = 3 / 2
 	c1e3    = 1e3
 
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/199
-	// rsh1 = 1e100 >> 1000
-	// rsh2 = 1e302 >> 1000
+	rsh1 = 1e100 >> 1000
+	rsh2 = 1e302 >> 1000
 
 	ctrue  = true
 	cfalse = !ctrue
@@ -49,9 +48,8 @@ func ints() {
 	// assert(c3div2 == 1, "3/2")
 	assert(c1e3 == 1000, "c1e3 int")
 	assert(c1e3 == 1e3, "c1e3 float")
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/199
-	// assert(rsh1 == 0, "rsh1")
-	// assert(rsh2 == 9, "rsh2")
+	assert(rsh1 == 0, "rsh1")
+	assert(rsh2 == 9, "rsh2")
 
 	// verify that all (in range) are assignable as ints
 	var i int
