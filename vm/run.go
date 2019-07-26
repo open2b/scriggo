@@ -384,15 +384,34 @@ func (vm *VM) run() (uint32, bool) {
 			}
 		case OpConvertInt:
 			t := vm.fn.Types[uint8(b)]
+			v := vm.int(a)
 			switch t.Kind() {
 			case reflect.String:
-				vm.setString(c, reflect.ValueOf(vm.int(a)).Convert(t).String())
-			case reflect.Float64, reflect.Float32:
-				vm.setFloat(c, reflect.ValueOf(vm.int(a)).Convert(t).Float())
-			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-				vm.setInt(c, int64(reflect.ValueOf(vm.int(a)).Convert(t).Uint()))
-			default:
-				vm.setInt(c, reflect.ValueOf(vm.int(a)).Convert(t).Int())
+				vm.setString(c, string(v))
+			case reflect.Float32:
+				vm.setFloat(c, float64(float32(v)))
+			case reflect.Float64:
+				vm.setFloat(c, float64(v))
+			case reflect.Uint, reflect.Uintptr:
+				vm.setInt(c, int64(uint(v)))
+			case reflect.Uint8:
+				vm.setInt(c, int64(uint8(v)))
+			case reflect.Uint16:
+				vm.setInt(c, int64(uint16(v)))
+			case reflect.Uint32:
+				vm.setInt(c, int64(uint32(v)))
+			case reflect.Uint64:
+				vm.setInt(c, v)
+			case reflect.Int:
+				vm.setInt(c, int64(int(v)))
+			case reflect.Int8:
+				vm.setInt(c, int64(int8(v)))
+			case reflect.Int16:
+				vm.setInt(c, int64(int16(v)))
+			case reflect.Int32:
+				vm.setInt(c, int64(int32(v)))
+			case reflect.Int64:
+				vm.setInt(c, v)
 			}
 		case OpConvertUint:
 			t := vm.fn.Types[uint8(b)]
