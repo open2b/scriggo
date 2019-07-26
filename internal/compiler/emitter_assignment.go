@@ -132,10 +132,15 @@ func (em *emitter) assign(addresses []address, values []ast.Expression) {
 }
 
 // emitAssignmentNode emits the instructions for an assignment node.
+// TODO(Gianluca): add support for recursive assignment expressions (eg.
+// a[4][t].field[0]).
 func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
-	// TODO(Gianluca): add support for recursive assignment expressions (eg. a[4][t].field[0]).
-	switch node.Type {
-	case ast.AssignmentDeclaration:
+
+	// Emit declaration assignment.
+	//
+	//	left := right
+	//
+	if node.Type == ast.AssignmentDeclaration {
 		addresses := make([]address, len(node.Lhs))
 		for i, v := range node.Lhs {
 			if isBlankIdentifier(v) {
@@ -155,151 +160,85 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			}
 		}
 		em.assign(addresses, node.Rhs)
-	case ast.AssignmentSimple:
-		addresses := make([]address, len(node.Lhs))
-		for i, v := range node.Lhs {
-			switch v := v.(type) {
-			case *ast.Identifier:
-				if !isBlankIdentifier(v) {
-					staticType := em.ti(v).Type
-					if reg, ok := em.closureVarRefs[em.fb.fn][v.Name]; ok {
-						// TODO(Gianluca): reg is converted into an
-						// int8; should we change address to store
-						// int32/64?
-						addresses[i] = em.newAddress(addressClosureVariable, staticType, int8(reg), 0)
-					} else if index, ok := em.availableVarIndexes[em.pkg][v.Name]; ok {
-						// TODO(Gianluca): split index in 2 bytes, assigning first to reg1 and second to reg2.
-						addresses[i] = em.newAddress(addressClosureVariable, staticType, int8(index), 0)
-					} else if ti := em.ti(v); ti.IsPredefined() {
-						index := em.predVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, v.Name)
-						addresses[i] = em.newAddress(addressClosureVariable, staticType, int8(index), 0)
-					} else {
-						reg := em.fb.scopeLookup(v.Name)
-						addresses[i] = em.newAddress(addressRegister, staticType, reg, 0)
-					}
+		return
+	}
+
+	// Emit simple assignment.
+	//
+	//	left = right
+	//
+	addresses := make([]address, len(node.Lhs))
+	for i, v := range node.Lhs {
+		switch v := v.(type) {
+		case *ast.Identifier:
+			if !isBlankIdentifier(v) {
+				staticType := em.ti(v).Type
+				if reg, ok := em.closureVarRefs[em.fb.fn][v.Name]; ok {
+					// TODO(Gianluca): reg is converted into an
+					// int8; should we change address to store
+					// int32/64?
+					addresses[i] = em.newAddress(addressClosureVariable, staticType, int8(reg), 0)
+				} else if index, ok := em.availableVarIndexes[em.pkg][v.Name]; ok {
+					// TODO(Gianluca): split index in 2 bytes, assigning first to reg1 and second to reg2.
+					addresses[i] = em.newAddress(addressClosureVariable, staticType, int8(index), 0)
+				} else if ti := em.ti(v); ti.IsPredefined() {
+					index := em.predVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, v.Name)
+					addresses[i] = em.newAddress(addressClosureVariable, staticType, int8(index), 0)
 				} else {
-					addresses[i] = em.newAddress(addressBlank, reflect.Type(nil), 0, 0)
+					reg := em.fb.scopeLookup(v.Name)
+					addresses[i] = em.newAddress(addressRegister, staticType, reg, 0)
 				}
-			case *ast.Index:
-				exprType := em.ti(v.Expr).Type
-				expr := em.emitExpr(v.Expr, exprType)
-				indexType := em.ti(v.Index).Type
-				index := em.emitExpr(v.Index, indexType)
-				addrType := addressSliceIndex
-				if exprType.Kind() == reflect.Map {
-					addrType = addressMapIndex
-				}
-				addresses[i] = em.newAddress(addrType, exprType, expr, index)
-			case *ast.Selector:
-				if ident, ok := v.Expr.(*ast.Identifier); ok {
-					if varIndex, ok := em.availableVarIndexes[em.pkg][ident.Name+"."+v.Ident]; ok {
-						addresses[i] = em.newAddress(addressClosureVariable, em.ti(v).Type, int8(varIndex), 0)
-						break
-					}
-				}
-				if ti := em.ti(v); ti.IsPredefined() {
-					rv := ti.value.(reflect.Value)
-					index := em.predVarIndex(rv, ti.PredefPackageName, v.Ident)
-					addresses[i] = em.newAddress(addressClosureVariable, em.ti(v).Type, int8(index), 0)
+			} else {
+				addresses[i] = em.newAddress(addressBlank, reflect.Type(nil), 0, 0)
+			}
+		case *ast.Index:
+			exprType := em.ti(v.Expr).Type
+			expr := em.emitExpr(v.Expr, exprType)
+			indexType := em.ti(v.Index).Type
+			index := em.emitExpr(v.Index, indexType)
+			addrType := addressSliceIndex
+			if exprType.Kind() == reflect.Map {
+				addrType = addressMapIndex
+			}
+			addresses[i] = em.newAddress(addrType, exprType, expr, index)
+		case *ast.Selector:
+			if ident, ok := v.Expr.(*ast.Identifier); ok {
+				if varIndex, ok := em.availableVarIndexes[em.pkg][ident.Name+"."+v.Ident]; ok {
+					addresses[i] = em.newAddress(addressClosureVariable, em.ti(v).Type, int8(varIndex), 0)
 					break
 				}
-				typ := em.ti(v.Expr).Type
-				reg := em.emitExpr(v.Expr, typ)
-				field, _ := typ.FieldByName(v.Ident)
-				index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
-				addresses[i] = em.newAddress(addressStructSelector, field.Type, reg, index)
+			}
+			if ti := em.ti(v); ti.IsPredefined() {
+				rv := ti.value.(reflect.Value)
+				index := em.predVarIndex(rv, ti.PredefPackageName, v.Ident)
+				addresses[i] = em.newAddress(addressClosureVariable, em.ti(v).Type, int8(index), 0)
 				break
-			case *ast.UnaryOperator:
-				if v.Operator() != ast.OperatorMultiplication {
-					panic("bug: v.Operator() != ast.OperatorMultiplication") // TODO(Gianluca): remove.
-				}
-				switch expr := v.Expr.(type) {
-				case *ast.Identifier:
-					if em.fb.isVariable(expr.Name) {
-						reg := em.fb.scopeLookup(expr.Name)
-						typ := em.ti(expr).Type
-						addresses[i] = em.newAddress(addressPointerIndirection, typ, reg, 0)
-					} else {
-						panic("TODO(Gianluca): not implemented")
-					}
-				default:
+			}
+			typ := em.ti(v.Expr).Type
+			reg := em.emitExpr(v.Expr, typ)
+			field, _ := typ.FieldByName(v.Ident)
+			index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+			addresses[i] = em.newAddress(addressStructSelector, field.Type, reg, index)
+			break
+		case *ast.UnaryOperator:
+			if v.Operator() != ast.OperatorMultiplication {
+				panic("bug: v.Operator() != ast.OperatorMultiplication") // TODO(Gianluca): remove.
+			}
+			switch expr := v.Expr.(type) {
+			case *ast.Identifier:
+				if em.fb.isVariable(expr.Name) {
+					reg := em.fb.scopeLookup(expr.Name)
+					typ := em.ti(expr).Type
+					addresses[i] = em.newAddress(addressPointerIndirection, typ, reg, 0)
+				} else {
 					panic("TODO(Gianluca): not implemented")
 				}
 			default:
 				panic("TODO(Gianluca): not implemented")
 			}
-		}
-		em.assign(addresses, node.Rhs)
-	default:
-		var addr address
-		var value int8
-		var valueType reflect.Type
-		switch v := node.Lhs[0].(type) {
-		case *ast.Identifier:
-			// TODO(Gianluca): support predefined variables in other cases.
-			if ti := em.ti(v); ti.IsPredefined() {
-				rv := ti.value.(reflect.Value)
-				index := em.predVarIndex(rv, ti.PredefPackageName, v.Name)
-				addr = em.newAddress(addressClosureVariable, em.ti(v).Type, int8(index), 0)
-				staticType := em.ti(v).Type
-				valueType = ti.Type
-				value = em.emitExpr(v, staticType)
-			} else {
-				valueType = em.ti(v).Type
-				value = em.fb.scopeLookup(v.Name)
-				addr = em.newAddress(addressRegister, valueType, value, 0)
-			}
-		case *ast.Index:
-			exprType := em.ti(v.Expr).Type
-			expr := em.emitExpr(v.Expr, exprType)
-			index := em.emitExpr(v.Index, em.ti(v.Index).Type)
-			addrType := addressSliceIndex
-			if exprType.Kind() == reflect.Map {
-				addrType = addressMapIndex
-			}
-			addr = em.newAddress(addrType, exprType, expr, index)
-			valueType = exprType.Elem()
-			value = em.fb.newRegister(valueType.Kind())
-			em.fb.emitIndex(false, expr, index, value, exprType)
 		default:
 			panic("TODO(Gianluca): not implemented")
 		}
-		switch node.Type {
-		case ast.AssignmentIncrement:
-			em.fb.emitAdd(true, value, 1, value, valueType.Kind())
-		case ast.AssignmentDecrement:
-			em.fb.emitSub(true, value, 1, value, valueType.Kind())
-		default:
-			rightOp := em.emitExpr(node.Rhs[0], em.ti(node.Rhs[0]).Type)
-			switch node.Type {
-			case ast.AssignmentAddition:
-				if valueType.Kind() == reflect.String {
-					em.fb.emitConcat(value, rightOp, value)
-				} else {
-					em.fb.emitAdd(false, value, rightOp, value, valueType.Kind())
-				}
-			case ast.AssignmentSubtraction:
-				em.fb.emitSub(false, value, rightOp, value, valueType.Kind())
-			case ast.AssignmentMultiplication:
-				em.fb.emitMul(false, value, rightOp, value, valueType.Kind())
-			case ast.AssignmentDivision:
-				em.fb.emitDiv(false, value, rightOp, value, valueType.Kind())
-			case ast.AssignmentModulo:
-				em.fb.emitRem(false, value, rightOp, value, valueType.Kind())
-			case ast.AssignmentAnd:
-				em.fb.emitAnd(false, value, rightOp, value, valueType.Kind())
-			case ast.AssignmentOr:
-				em.fb.emitOr(false, value, rightOp, value, valueType.Kind())
-			case ast.AssignmentXor:
-				em.fb.emitXor(false, value, rightOp, value, valueType.Kind())
-			case ast.AssignmentAndNot:
-				em.fb.emitAndNot(false, value, rightOp, value, valueType.Kind())
-			case ast.AssignmentLeftShift:
-				em.fb.emitLeftShift(false, value, rightOp, value, valueType.Kind())
-			case ast.AssignmentRightShift:
-				em.fb.emitRightShift(false, value, rightOp, value, valueType.Kind())
-			}
-		}
-		addr.assign(false, value, valueType)
 	}
+	em.assign(addresses, node.Rhs)
 }
