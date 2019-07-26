@@ -281,6 +281,7 @@ var goContextTreeTests = []struct {
 			),
 		}, ast.ContextGo),
 	},
+	{"const ()", ast.NewTree("", []ast.Node{}, ast.ContextGo)},
 	{"const (\nA = 42\nB\n)\n", ast.NewTree("", []ast.Node{
 		ast.NewConst(
 			p(1, 1, 0, 17),

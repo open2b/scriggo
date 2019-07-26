@@ -123,6 +123,32 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Var declaration with ( .. ) without declarations inside parenthesis",
+		src: `package main
+
+		var ()
+		
+		func main() {
+		}
+		`,
+		out: ``,
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/205",
+		src: `package main
+
+		const ()
+		
+		func main() {
+		
+		}
+		`,
+
+		out: ``,
+	},
+
+	{
 		name: "https://github.com/open2b/scriggo/issues/201",
 		src: `package main
 

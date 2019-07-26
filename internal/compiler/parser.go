@@ -963,7 +963,9 @@ LABEL:
 				if tok.typ == tokenRightParenthesis {
 					tok = next(p.lex)
 					p.parseEndStatement(tok, tokenSemicolon)
-					prevNode.Pos().End = tok.pos.End
+					if prevNode != nil {
+						prevNode.Pos().End = tok.pos.End
+					}
 					break
 				}
 				prevNode = p.parseVarOrConst(tok, pos, decType)
