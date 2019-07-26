@@ -123,6 +123,41 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "https://github.com/open2b/scriggo/issues/201",
+		src: `package main
+
+		import "fmt"
+		
+		const (
+			c1 = 2
+			c2 = "str"
+		)
+		
+		func main() {
+			var v1 = c1
+			var v2 = c2
+			fmt.Print(v1, c1, v2, c2)
+		}
+		`,
+		out: `2 2strstr`,
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/201",
+		src: `package main
+
+		const (
+			c = 2
+		)
+		
+		func main() {
+			var f = c
+			_ = f
+		}`,
+		out: ``,
+	},
+
+	{
 		name: "https://github.com/open2b/scriggo/issues/208",
 		src: `package main
 
