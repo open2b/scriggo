@@ -1611,7 +1611,7 @@ func (vm *VM) run() (uint32, bool) {
 		case OpSubInt32, -OpSubInt32:
 			vm.setInt(c, int64(int32(vm.int(a)-vm.intk(b, op < 0))))
 		case OpSubFloat32, -OpSubFloat32:
-			vm.setFloat(c, float64(float32(float32(vm.float(a))-float32(vm.floatk(b, op < 0)))))
+			vm.setFloat(c, float64(float32(vm.float(a))-float32(vm.floatk(b, op < 0))))
 		case OpSubInt64:
 			vm.setInt(c, vm.int(a)-vm.int(b))
 		case -OpSubInt64:
@@ -1631,7 +1631,7 @@ func (vm *VM) run() (uint32, bool) {
 		case OpSubInvInt64, -OpSubInvInt64:
 			vm.setInt(c, vm.intk(b, op < 0)-vm.int(a))
 		case OpSubInvFloat32, -OpSubInvFloat32:
-			vm.setFloat(c, float64(float32(float32(vm.floatk(b, op < 0))-float32(vm.float(a)))))
+			vm.setFloat(c, float64(float32(vm.floatk(b, op < 0))-float32(vm.float(a))))
 		case OpSubInvFloat64:
 			vm.setFloat(c, vm.float(b)-vm.float(a))
 		case -OpSubInvFloat64:
