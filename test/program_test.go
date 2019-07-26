@@ -123,6 +123,21 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "https://github.com/open2b/scriggo/issues/216",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			for i := 0; i < 26; i++ {
+				c := string([]byte{byte(i) + 'a'})
+				fmt.Print(c)
+			}
+		}`,
+		out: `abcdefghijklmnopqrstuvwxyz`,
+	},
+
+	{
 		name: "Var declaration with ( .. ) without declarations inside parenthesis",
 		src: `package main
 
