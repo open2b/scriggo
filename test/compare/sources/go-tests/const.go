@@ -65,19 +65,19 @@ func ints() {
 
 	// verify that all are assignable as floats
 	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/201
-	// var f float64
+	var f float64
 	// f = c0
 	// assert(f == c0, "f == c0")
 	// f = cm1
 	// assert(f == cm1, "f == cm1")
-	// f = chuge
-	// assert(f == chuge, "f == chuge")
-	// f = chuge_1
-	// assert(f == chuge_1, "f == chuge_1")
-	// f = c1
-	// assert(f == c1, "f == c1")
-	// f = c3div2
-	// assert(f == c3div2, "f == c3div2")
+	f = chuge
+	assert(f == chuge, "f == chuge")
+	f = chuge_1
+	assert(f == chuge_1, "f == chuge_1")
+	f = c1
+	assert(f == c1, "f == c1")
+	f = c3div2
+	assert(f == c3div2, "f == c3div2")
 	// f = c1e3
 	// assert(f == c1e3, "f == c1e3")
 }
@@ -89,8 +89,7 @@ func floats() {
 	assert(fhuge+fm1+1 == fhuge, "fm1")
 	assert(f3div2 == 1.5, "3./2.")
 	assert(f1e3 == 1000, "f1e3 int")
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/202
-	// assert(f1e3 == 1.e3, "f1e3 float")
+	assert(f1e3 == 1.e3, "f1e3 float")
 
 	// verify that all (in range) are assignable as ints
 	var i int
