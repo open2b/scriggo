@@ -100,6 +100,9 @@ type parsing struct {
 	// Reports whether it is a template.
 	isTemplate bool
 
+	// Report whether it is a script.
+	isScript bool
+
 	// Reports whether it has an extend statement.
 	hasExtend bool
 
@@ -137,6 +140,7 @@ func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, err error)
 
 	var p = &parsing{
 		lex:       newLexer(src, ast.ContextGo),
+		isScript:  isScript,
 		ctx:       ast.ContextGo,
 		ancestors: []ast.Node{tree},
 	}
@@ -369,6 +373,10 @@ LABEL:
 	parent := p.ancestors[len(p.ancestors)-1]
 
 	switch s := parent.(type) {
+	case *ast.Tree:
+		if !p.isTemplate && !p.isScript && tok.typ != tokenPackage {
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expected 'package', found '%s'", tok)})
+		}
 	case *ast.Package:
 		switch tok.typ {
 		case tokenImport, tokenFunc, tokenVar, tokenConst, tokenType:
