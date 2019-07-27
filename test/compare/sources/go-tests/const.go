@@ -44,8 +44,7 @@ func ints() {
 	assert(chuge > chuge_1, "chuge")
 	assert(chuge_1+1 == chuge, "chuge 1")
 	assert(chuge+cm1+1 == chuge, "cm1")
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/200
-	// assert(c3div2 == 1, "3/2")
+	assert(c3div2 == 1, "3/2")
 	assert(c1e3 == 1000, "c1e3 int")
 	assert(c1e3 == 1e3, "c1e3 float")
 	assert(rsh1 == 0, "rsh1")
@@ -59,9 +58,8 @@ func ints() {
 	assert(i == cm1, "i == cm1")
 	i = c1
 	assert(i == c1, "i == c1")
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/200
-	// i = c3div2
-	// assert(i == c3div2, "i == c3div2")
+	i = c3div2
+	assert(i == c3div2, "i == c3div2")
 	i = c1e3
 	assert(i == c1e3, "i == c1e3")
 

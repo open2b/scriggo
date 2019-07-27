@@ -304,10 +304,7 @@ func (c1 int64Const) binaryOp(op ast.OperatorType, c2 constant) (constant, error
 		if n2 == 0 {
 			return nil, errDivisionByZero
 		}
-		if n1%n2 == 0 && !(n1 == minInt64 && n2 == -1) {
-			return n1 / n2, nil
-		}
-		return newRatConst(int64(n1), int64(n2)), nil
+		return n1 / n2, nil
 	case ast.OperatorModulo:
 		if n2 == 0 {
 			return nil, errDivisionByZero
@@ -490,7 +487,7 @@ func (c1 intConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error) 
 		if n2.i.Sign() == 0 {
 			return nil, errDivisionByZero
 		}
-		return newRatConst(0, 0).setFrac(n1.i, n2.i), nil
+		return intConst{i: new(big.Int).Quo(n1.i, n2.i)}, nil
 	case ast.OperatorModulo:
 		if n2.i.Sign() == 0 {
 			return nil, errDivisionByZero

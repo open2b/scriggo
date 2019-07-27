@@ -143,6 +143,10 @@ var checkerExprs = []struct {
 	{`12 | 9`, tiUntypedIntConst("13"), nil},
 	{`12 ^ 9`, tiUntypedIntConst("5"), nil},
 	{`12 &^ 9`, tiUntypedIntConst("4"), nil},
+	{`3 / 2`, tiUntypedIntConst("1"), nil},
+	{`3.0 / 2`, tiUntypedFloatConst("1.5"), nil},
+	{`3 / 2.0`, tiUntypedFloatConst("1.5"), nil},
+	{`3.0 / 2.0`, tiUntypedFloatConst("1.5"), nil},
 
 	// Operations ( typed + untyped ).
 	{`a && true`, tiBoolConst(true), map[string]*TypeInfo{"a": tiBoolConst(true)}},
