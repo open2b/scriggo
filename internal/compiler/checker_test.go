@@ -147,6 +147,8 @@ var checkerExprs = []struct {
 	{`3.0 / 2`, tiUntypedFloatConst("1.5"), nil},
 	{`3 / 2.0`, tiUntypedFloatConst("1.5"), nil},
 	{`3.0 / 2.0`, tiUntypedFloatConst("1.5"), nil},
+	{`3 % 2`, tiUntypedIntConst("1"), nil},
+	{`9223372036854775809 % 2`, tiUntypedIntConst("1"), nil},
 
 	// Operations ( typed + untyped ).
 	{`a && true`, tiBoolConst(true), map[string]*TypeInfo{"a": tiBoolConst(true)}},

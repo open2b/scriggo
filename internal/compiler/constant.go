@@ -492,7 +492,7 @@ func (c1 intConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error) 
 		if n2.i.Sign() == 0 {
 			return nil, errDivisionByZero
 		}
-		return newRatConst(0, 0).setFrac(n1.i, n2.i), nil
+		return intConst{i: new(big.Int).Rem(n1.i, n2.i)}, nil
 	case ast.OperatorAnd:
 		return intConst{i: new(big.Int).And(n1.i, n2.i)}, nil
 	case ast.OperatorOr:
