@@ -235,6 +235,8 @@ var checkerExprs = []struct {
 	{`a == "a"`, tiBoolConst(string("a") == "a"), map[string]*TypeInfo{"a": tiStringConst("a")}},
 	{`a == "b"`, tiBoolConst(string("a") == "b"), map[string]*TypeInfo{"a": tiStringConst("a")}},
 	{`a == 0`, tiUntypedBool(), map[string]*TypeInfo{"a": tiInt()}},
+	{`5 == interface{}(5)`, tiUntypedBool(), nil},
+	{`interface{}(5) == 5`, tiUntypedBool(), nil},
 
 	// Shifts.
 	{`1 << 1`, tiUntypedIntConst("2"), nil},

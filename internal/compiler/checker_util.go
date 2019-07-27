@@ -430,6 +430,12 @@ func removeEnvArg(typ reflect.Type, hasReceiver bool) reflect.Type {
 // represented as a value of type t2. t2 can not be an interface.
 func representedBy(t1 *TypeInfo, t2 reflect.Type) (constant, error) {
 	if t1.IsConstant() {
+		if t2.Kind() == reflect.Interface {
+			if t2.NumMethod() == 0 {
+				return nil, nil
+			}
+			return nil, fmt.Errorf("cannot convert %v (type %s) to type %s", t1.Constant, t1, t2)
+		}
 		c, err := t1.Constant.representedBy(t2)
 		if err != nil {
 			if err == errNotRepresentable {
