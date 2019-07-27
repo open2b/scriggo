@@ -369,7 +369,7 @@ func (c1 int64Const) representedBy(typ reflect.Type) (constant, error) {
 	case reflect.Float32, reflect.Complex64:
 		return float64Const(float32(c1)), nil
 	case reflect.Float64, reflect.Complex128:
-		return float64Const(c1), nil
+		return c1, nil
 	default:
 		return nil, errNotRepresentable
 	}
