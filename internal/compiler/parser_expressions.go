@@ -108,9 +108,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 	reuseLastToken := false
 
 	// canCompositeLiteral reports whether the currently parsed expression can
-	// be used as type in composite literals. For instance, "interface{}" is a
-	// type but cannot be used as type in composite literals, so
-	// canCompositeLiteral is false.
+	// be used as type in composite literals.
 	canCompositeLiteral := false
 
 	// Intermediate nodes of an expression tree are unary or binary operators
@@ -244,7 +242,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting }", tok)})
 			}
 			pos.End = tok.pos.End
-			operand = ast.NewIdentifier(pos, "interface{}")
+			operand = ast.NewInterface(pos)
 		case tokenFunc:
 			var node ast.Node
 			if mustBeType {
@@ -370,7 +368,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			}
 			if operand != nil {
 				switch operand.(type) {
-				case *ast.Identifier, *ast.MapType, *ast.ArrayType, *ast.SliceType,
+				case *ast.Identifier, *ast.Interface, *ast.MapType, *ast.ArrayType, *ast.SliceType,
 					*ast.ChanType, *ast.Selector, *ast.FuncType, *ast.StructType:
 				default:
 					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", operand)})

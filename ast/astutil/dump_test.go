@@ -121,6 +121,6 @@ func ExampleDump() {
 	// │    MapType (1:1) map[string][]interface{}
 	// │    │    Identifier (1:5) string
 	// │    │    SliceType (1:13) []interface{}
-	// │    │    │    Identifier (1:15) interface{}
+	// │    │    │    Interface (1:15) interface{}
 
 }

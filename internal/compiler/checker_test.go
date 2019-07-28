@@ -889,6 +889,11 @@ var checkerStmts = map[string]string{
 	`(&pointInt{0,0}).SetZ(10)`: `&pointInt literal.SetZ undefined (type *compiler.pointInt has no field or method SetZ)`, // TODO (Gianluca): 'pointInt literal' should be '(compiler.pointInt literal)'
 	`(pointInt{0,0}).SetZ(10)`:  `pointInt literal.SetZ undefined (type compiler.pointInt has no field or method SetZ)`,   // TODO (Gianluca): 'pointInt literal' should be '(compiler.pointInt literal)'
 
+	// Interfaces.
+	`_ = interface{}{}`:                 ok,
+	`_ = []interface{}{}`:               ok,
+	`_ = map[interface{}]interface{}{}`: ok,
+
 	// nil comparison
 	`_ = true == nil`: `cannot convert nil to type bool`,
 	`_ = 1 == nil`:    `cannot convert nil to type int`,
@@ -1901,7 +1906,7 @@ func tiIntChan(dir reflect.ChanDir) *TypeInfo { return &TypeInfo{Type: reflect.C
 
 // interface{} type info.
 
-func tiInterface() *TypeInfo { return &TypeInfo{Type: universe["interface{}"].t.Type} }
+func tiInterface() *TypeInfo { return &TypeInfo{Type: emptyInterfaceType} }
 
 func TestTypechecker_MaxIndex(t *testing.T) {
 	cases := map[string]int{

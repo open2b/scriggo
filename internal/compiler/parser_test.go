@@ -345,7 +345,7 @@ var goContextTreeTests = []struct {
 				ast.NewMapType(
 					p(1, 14, 13, 34),
 					ast.NewIdentifier(p(1, 18, 17, 22), "string"),
-					ast.NewIdentifier(p(1, 25, 24, 34), "interface{}"),
+					ast.NewInterface(p(1, 25, 24, 34)),
 				),
 				true,
 			),
@@ -1755,6 +1755,12 @@ func equals(n1, n2 ast.Node, p int) error {
 			if err != nil {
 				return err
 			}
+		}
+
+	case *ast.Interface:
+		_, ok := n2.(*ast.Interface)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 
 	case *ast.ArrayType:

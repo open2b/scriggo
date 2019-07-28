@@ -346,6 +346,8 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 	case *ast.Index:
 		deps := nodeDeps(n.Expr, scopes)
 		return append(deps, nodeDeps(n.Index, scopes)...)
+	case *ast.Interface:
+		return nil
 	case *ast.Label:
 		return nil
 	case *ast.MapType:

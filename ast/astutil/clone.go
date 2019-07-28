@@ -309,6 +309,8 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 			keyValues[i].Value = CloneExpression(kv.Value)
 		}
 		return ast.NewCompositeLiteral(ClonePosition(e.Pos()), CloneExpression(e.Type), keyValues)
+	case *ast.Interface:
+		return ast.NewInterface(ClonePosition(e.Pos()))
 	case *ast.Call:
 		var args = make([]ast.Expression, len(e.Args))
 		for i, arg := range e.Args {

@@ -472,14 +472,14 @@ var exprTests = []struct {
 		),
 	},
 	{`interface{}`,
-		ast.NewIdentifier(p(1, 1, 0, 10), "interface{}"),
+		ast.NewInterface(p(1, 1, 0, 10)),
 	},
 	{`[]interface{}{1,2,3}`,
 		ast.NewCompositeLiteral(
 			p(1, 14, 0, 19),
 			ast.NewSliceType(
 				p(1, 1, 0, 12),
-				ast.NewIdentifier(p(1, 3, 2, 12), "interface{}"),
+				ast.NewInterface(p(1, 3, 2, 12)),
 			),
 			[]ast.KeyValue{
 				{nil, ast.NewBasicLiteral(p(1, 15, 14, 14), ast.IntLiteral, "1")},
@@ -496,7 +496,7 @@ var exprTests = []struct {
 				ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"),
 				ast.NewCall(
 					p(1, 16, 4, 17),
-					ast.NewIdentifier(p(1, 5, 4, 14), "interface{}"),
+					ast.NewInterface(p(1, 5, 4, 14)),
 					[]ast.Expression{ast.NewBasicLiteral(p(1, 17, 16, 16), ast.IntLiteral, "2")}, false,
 				)),
 			ast.NewBasicLiteral(p(1, 22, 21, 21), ast.IntLiteral, "4"),

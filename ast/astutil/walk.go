@@ -276,7 +276,8 @@ func Walk(v Visitor, node ast.Node) {
 		*ast.ShowMacro,
 		*ast.Comment,
 		*ast.Text,
-		*ast.Placeholder:
+		*ast.Placeholder,
+		*ast.Interface:
 		// Nothing to do
 
 	default:

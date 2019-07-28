@@ -1045,6 +1045,20 @@ func (m *MapType) String() string {
 	return "map[" + m.KeyType.String() + "]" + m.ValueType.String()
 }
 
+// Interface node represents an interface type.
+type Interface struct {
+	expression
+	*Position // position in the source.
+}
+
+func NewInterface(pos *Position) *Interface {
+	return &Interface{expression{}, pos}
+}
+
+func (m *Interface) String() string {
+	return "interface{}"
+}
+
 // Call node represents a function call expression.
 type Call struct {
 	expression
