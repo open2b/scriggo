@@ -390,6 +390,7 @@ var checkerExprs = []struct {
 	{`string([]byte{1,2,3})`, tiString(), nil},
 	{`string([]rune{'a','b','c'})`, tiString(), nil},
 	{`(*int)(nil)`, tiIntPtr(), nil},
+	//{`interface{}(nil)`, &TypeInfo{Type: emptyInterfaceType}, nil}, TODO: fails with "unexpected untyped, expecting type interface {}"
 
 	// append
 	{`append([]byte{})`, tiByteSlice(), nil},
