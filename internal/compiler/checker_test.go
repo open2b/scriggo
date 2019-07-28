@@ -1927,12 +1927,9 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 }
 
 func TestTypechecker_IsAssignableTo(t *testing.T) {
-	stringType := universe["string"].t.Type
-	float64Type := universe["float64"].t.Type
 	intSliceType := reflect.TypeOf([]int{})
 	intChanType := reflect.TypeOf(make(chan int))
 	stringSliceType := reflect.TypeOf([]string{})
-	emptyInterfaceType := reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem()
 	weirdInterfaceType := reflect.TypeOf(&[]interface{ F() }{interface{ F() }(nil)}[0]).Elem()
 	byteType := reflect.TypeOf(byte(0))
 	type myInt int
