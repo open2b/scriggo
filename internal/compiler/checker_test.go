@@ -1387,14 +1387,13 @@ func (p *pointInt) SetX(newX int) {
 
 func TestCheckerStatements(t *testing.T) {
 	scope := typeCheckerScope{
-		"boolType":    {t: &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(definedBool(false))}},
-		"aString":     {t: &TypeInfo{Type: reflect.TypeOf(definedString(""))}},
-		"stringType":  {t: &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(definedString(""))}},
-		"aStringMap":  {t: &TypeInfo{Type: reflect.TypeOf(definedStringMap{})}},
-		"pointInt":    {t: &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(pointInt{})}},
-		"interface{}": {t: &TypeInfo{Type: reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem(), Properties: PropertyIsType}},
-		"aIntChan":    {t: &TypeInfo{Type: reflect.TypeOf(make(chan int))}},
-		"aSliceChan":  {t: &TypeInfo{Type: reflect.TypeOf(make(chan []int))}},
+		"boolType":   {t: &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(definedBool(false))}},
+		"aString":    {t: &TypeInfo{Type: reflect.TypeOf(definedString(""))}},
+		"stringType": {t: &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(definedString(""))}},
+		"aStringMap": {t: &TypeInfo{Type: reflect.TypeOf(definedStringMap{})}},
+		"pointInt":   {t: &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(pointInt{})}},
+		"aIntChan":   {t: &TypeInfo{Type: reflect.TypeOf(make(chan int))}},
+		"aSliceChan": {t: &TypeInfo{Type: reflect.TypeOf(make(chan []int))}},
 	}
 	for src, expectedError := range checkerStmts {
 		func() {
