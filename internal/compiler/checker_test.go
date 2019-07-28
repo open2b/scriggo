@@ -389,6 +389,7 @@ var checkerExprs = []struct {
 	{`[]rune(a)`, &TypeInfo{Type: reflect.SliceOf(int32Type)}, map[string]*TypeInfo{"a": tiString()}},
 	{`string([]byte{1,2,3})`, tiString(), nil},
 	{`string([]rune{'a','b','c'})`, tiString(), nil},
+	{`(*int)(nil)`, tiIntPtr(), nil},
 
 	// append
 	{`append([]byte{})`, tiByteSlice(), nil},

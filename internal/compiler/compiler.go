@@ -163,7 +163,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 			for _, d := range tree.Nodes[1:] {
 				if m, ok := d.(*ast.Macro); ok {
 					f := macroToFunc(m)
-					tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: tc.typeof(f.Type).Type}}
+					tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: tc.checkType(f.Type).Type}}
 				}
 			}
 			currentPath := tc.path

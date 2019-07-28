@@ -492,7 +492,7 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 				if _, ok := tc.filePackageBlock[f.Ident.Name]; ok {
 					return tc.errorf(f.Ident, "%s redeclared in this block", f.Ident.Name)
 				}
-				tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: tc.typeof(f.Type).Type}}
+				tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: tc.checkType(f.Type).Type}}
 			}
 		}
 	}

@@ -519,10 +519,9 @@ func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...inte
 	return err
 }
 
-// checkExpr returns the type info of expr. Returns an error if expr is a type
-// or a package.
+// checkExpr type checks an expression and returns its type info.
 func (tc *typechecker) checkExpr(expr ast.Expression) *TypeInfo {
-	ti := tc.typeof(expr)
+	ti := tc.typeof(expr, false)
 	if ti.IsType() {
 		panic(tc.errorf(expr, "type %s is not an expression", ti))
 	}
@@ -530,19 +529,9 @@ func (tc *typechecker) checkExpr(expr ast.Expression) *TypeInfo {
 	return ti
 }
 
-// checkType evaluates expr as a type and returns the type info. Returns an
-// error if expr is not an type.
+// checkType type checks a type and returns its type info.
 func (tc *typechecker) checkType(expr ast.Expression) *TypeInfo {
-	if ptr, ok := expr.(*ast.UnaryOperator); ok && ptr.Operator() == ast.OperatorMultiplication {
-		ti := tc.typeof(ptr.Expr)
-		if !ti.IsType() {
-			panic(tc.errorf(expr, "%s is not a type", expr))
-		}
-		newTi := &TypeInfo{Properties: PropertyIsType, Type: reflect.PtrTo(ti.Type)}
-		tc.typeInfos[expr] = newTi
-		return newTi
-	}
-	ti := tc.typeof(expr)
+	ti := tc.typeof(expr, true)
 	if !ti.IsType() {
 		panic(tc.errorf(expr, "%s is not a type", expr))
 	}
@@ -550,9 +539,21 @@ func (tc *typechecker) checkType(expr ast.Expression) *TypeInfo {
 	return ti
 }
 
-// typeof returns the type of expr. If expr is not an expression but a type,
-// returns the type.
-func (tc *typechecker) typeof(expr ast.Expression) *TypeInfo {
+// checkExprOrType type checks an expression or a type and returns its type
+// info.
+func (tc *typechecker) checkExprOrType(expr ast.Expression) *TypeInfo {
+	ti := tc.typeof(expr, true)
+	tc.typeInfos[expr] = ti
+	return ti
+}
+
+// typeof type checks an expression or type and returns its type info.
+// typeExpected reports whether a type is expected; it only affects error
+// messages.
+//
+// typeof cannot be called directly, use checkExpr, checkType or
+// checkExprOrType.
+func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo {
 
 	if isBlankIdentifier(expr) {
 		panic(tc.errorf(expr, "cannot use _ as value"))
@@ -590,7 +591,13 @@ func (tc *typechecker) typeof(expr ast.Expression) *TypeInfo {
 		panic("unexpected parenthesis")
 
 	case *ast.UnaryOperator:
-		t := tc.checkExpr(expr.Expr)
+		t := tc.checkExprOrType(expr.Expr)
+		if t.IsType() {
+			if expr.Op == ast.OperatorMultiplication {
+				return &TypeInfo{Properties: PropertyIsType, Type: reflect.PtrTo(t.Type)}
+			}
+			panic(tc.errorf(expr, "type %s is not an expression", t))
+		}
 		ti := &TypeInfo{
 			Type:       t.Type,
 			Properties: t.Properties & PropertyUntyped,
@@ -626,6 +633,9 @@ func (tc *typechecker) typeof(expr ast.Expression) *TypeInfo {
 				panic(tc.errorf(expr, "invalid indirect of nil"))
 			}
 			if k != reflect.Ptr {
+				if typeExpected {
+					panic(tc.errorf(expr, "%s is not a type", expr))
+				}
 				panic(tc.errorf(expr, "invalid indirect of %s (type %s)", expr.Expr, t))
 			}
 			ti.Type = t.Type.Elem()
@@ -991,9 +1001,7 @@ func (tc *typechecker) typeof(expr ast.Expression) *TypeInfo {
 				}
 			}
 		}
-		t := tc.typeof(expr.Expr)
-		tc.typeInfos[expr.Expr] = t
-		// t is a type.
+		t := tc.checkExprOrType(expr.Expr)
 		if t.IsType() {
 			method, _, ok := methodByName(t, expr.Ident)
 			if !ok {
@@ -1732,7 +1740,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		}
 	}
 
-	t := tc.typeof(expr.Func)
+	t := tc.checkExprOrType(expr.Func)
 
 	switch t.MethodType {
 	case MethodValueConcrete:
@@ -1740,8 +1748,6 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 	case MethodValueInterface:
 		t.MethodType = MethodCallInterface
 	}
-
-	tc.typeInfos[expr.Func] = t
 
 	// expr is a ShowMacro expression which is not defined and which has been
 	// marked as "to be ignored" or "to do".

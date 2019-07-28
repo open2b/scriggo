@@ -421,7 +421,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				}
 				for i, ex := range cas.Expressions {
 					expr := cas.Expressions[i]
-					t := tc.typeof(expr)
+					t := tc.checkExprOrType(expr)
 					if t.Nil() {
 						if positionOfNil != nil {
 							panic(tc.errorf(cas, "multiple nil cases in type switch (first at %s)", positionOfNil))
@@ -432,7 +432,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					if !t.IsType() {
 						panic(tc.errorf(cas, "%v (type %s) is not a type", expr, t.StringWithNumber(true)))
 					}
-					tc.typeInfos[expr] = t
 					// Check duplicate.
 					if pos, ok := positionOf[t.Type]; ok {
 						panic(tc.errorf(cas, "duplicate case %v in type switch\n\tprevious case at %s", ex, pos))
