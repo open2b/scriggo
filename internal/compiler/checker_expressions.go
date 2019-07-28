@@ -522,9 +522,6 @@ func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...inte
 // checkExpr returns the type info of expr. Returns an error if expr is a type
 // or a package.
 func (tc *typechecker) checkExpr(expr ast.Expression) *TypeInfo {
-	if isBlankIdentifier(expr) {
-		panic(tc.errorf(expr, "cannot use _ as value"))
-	}
 	ti := tc.typeof(expr)
 	if ti.IsType() {
 		panic(tc.errorf(expr, "type %s is not an expression", ti))
@@ -536,9 +533,6 @@ func (tc *typechecker) checkExpr(expr ast.Expression) *TypeInfo {
 // checkType evaluates expr as a type and returns the type info. Returns an
 // error if expr is not an type.
 func (tc *typechecker) checkType(expr ast.Expression) *TypeInfo {
-	if isBlankIdentifier(expr) {
-		panic(tc.errorf(expr, "cannot use _ as value"))
-	}
 	if ptr, ok := expr.(*ast.UnaryOperator); ok && ptr.Operator() == ast.OperatorMultiplication {
 		ti := tc.typeof(ptr.Expr)
 		if !ti.IsType() {
@@ -559,6 +553,10 @@ func (tc *typechecker) checkType(expr ast.Expression) *TypeInfo {
 // typeof returns the type of expr. If expr is not an expression but a type,
 // returns the type.
 func (tc *typechecker) typeof(expr ast.Expression) *TypeInfo {
+
+	if isBlankIdentifier(expr) {
+		panic(tc.errorf(expr, "cannot use _ as value"))
+	}
 
 	// TODO: remove double type check
 	ti := tc.typeInfos[expr]

@@ -1013,6 +1013,7 @@ var checkerStmts = map[string]string{
 	`a := 3; switch 0.0 { case a: }`:                   `invalid case a in switch on 0.0 (mismatched types int and float64)`, // Note that gc shows "0" and not "0.0".
 	`switch nil { }`:                                   `use of untyped nil`,
 	`switch _ { }`:                                     `cannot use _ as value`,
+	`switch { case _: }`:                               `cannot use _ as value`,
 	`var t boolType = false; switch t { case false: }`: ok,
 	`var t boolType = false; switch false { case t: }`: `invalid case t in switch on false (mismatched types compiler.definedBool and bool)`,
 	`switch { default:; default: }`:                    `multiple defaults in switch (first at 1:10)`,
@@ -1028,6 +1029,7 @@ var checkerStmts = map[string]string{
 	`i := interface{}(int(0)); switch i.(type) { case 2: case float64: }`:   `2 (type untyped number) is not a type`,
 	`i := 0; switch i.(type) { }`:                                           `cannot type switch on non-interface value i (type int)`,
 	`i := interface{}(int(0)); switch i.(type) { case nil: case nil: }`:     `multiple nil cases in type switch (first at 1:50)`,
+	`switch interface{}(0).(type) { case _: }`:                              `cannot use _ as value`,
 
 	// Select statements.
 	`select { }`:          ok,
@@ -1164,6 +1166,7 @@ var checkerStmts = map[string]string{
 	`a := []int{}; a()`:            `cannot call non-function a (type []int)`,
 	`f := func(a int) {} ; f(nil)`: `cannot use nil as type int in argument to f`,
 	// `nil.F()`:     `use of untyped nil`, // TODO
+	`_()`: `cannot use _ as value`,
 
 	// Variable declared and not used.
 	`a := 0; { _ = a }`:          ok,
