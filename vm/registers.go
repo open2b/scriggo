@@ -357,7 +357,11 @@ func (vm *VM) getIntoReflectValue(r int8, v reflect.Value, k bool) {
 		v.Set(array)
 	case reflect.Interface:
 		if g := vm.generalk(r, k); g == nil {
-			v.Set(nilInterface)
+			if t := v.Type(); t == emptyInterfaceType {
+				v.Set(emptyInterfaceNil)
+			} else {
+				v.Set(reflect.Zero(t))
+			}
 		} else {
 			v.Set(reflect.ValueOf(g))
 		}
