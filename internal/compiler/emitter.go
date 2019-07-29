@@ -1309,6 +1309,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 		return reg, false
 	}
+
 	switch expr := expr.(type) {
 
 	case *ast.BinaryOperator:
