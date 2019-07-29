@@ -431,7 +431,7 @@ func removeEnvArg(typ reflect.Type, hasReceiver bool) reflect.Type {
 func representedBy(t1 *TypeInfo, t2 reflect.Type) (constant, error) {
 	if t1.IsConstant() {
 		if t2.Kind() == reflect.Interface {
-			if t2.NumMethod() == 0 {
+			if t1.Type.Implements(t2) {
 				return nil, nil
 			}
 			return nil, fmt.Errorf("cannot convert %v (type %s) to type %s", t1.Constant, t1, t2)
