@@ -620,7 +620,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				panic(tc.errorf(node, "%s", err))
 			}
 			if tiv.Nil() {
-				tiv = typedNil(elemType)
+				tiv = nilOf(elemType)
 				tc.typeInfos[node.Value] = tiv
 			} else {
 				tiv.setValue(elemType)
@@ -787,7 +787,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 			panic(tc.errorf(node, "%s", err))
 		}
 		if ti.Nil() {
-			ti = typedNil(typ)
+			ti = nilOf(typ)
 			tc.typeInfos[x] = ti
 		} else {
 			ti.setValue(typ)

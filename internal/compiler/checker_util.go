@@ -452,9 +452,9 @@ func representedBy(t1 *TypeInfo, t2 reflect.Type) (constant, error) {
 	return nil, nil
 }
 
-// typedNil returns a new type info representing a 'typed nil', that is the zero
-// of type t.
-func typedNil(t reflect.Type) *TypeInfo {
+// nilOf returns a new type info representing a 'typed nil', that is the zero of
+// type t.
+func nilOf(t reflect.Type) *TypeInfo {
 	if t.Kind() == reflect.Interface {
 		return &TypeInfo{
 			Type:       t,

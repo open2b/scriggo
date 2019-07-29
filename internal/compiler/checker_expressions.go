@@ -884,7 +884,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 				panic(tc.errorf(expr, "%s", err))
 			}
 			if key.Nil() {
-				key = typedNil(t.Type.Key())
+				key = nilOf(t.Type.Key())
 				tc.typeInfos[expr.Index] = key
 			} else {
 				key.setValue(t.Type.Key())
@@ -1782,7 +1782,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			panic(tc.errorf(expr, "%s", err))
 		}
 		if arg.Nil() {
-			return []*TypeInfo{typedNil(t.Type)}, false, true
+			return []*TypeInfo{nilOf(t.Type)}, false, true
 		}
 		converted := &TypeInfo{Type: t.Type, Constant: c}
 		if c == nil {
@@ -1910,7 +1910,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			panic(tc.errorf(expr, "%s", err))
 		}
 		if a.Nil() {
-			a := typedNil(in)
+			a := nilOf(in)
 			tc.typeInfos[expr.Args[i]] = a
 		} else {
 			a.setValue(in)
@@ -2155,7 +2155,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				hasKey[key] = struct{}{}
 			}
 			if keyTi.Nil() {
-				keyTi = typedNil(keyType)
+				keyTi = nilOf(keyType)
 				tc.typeInfos[kv.Key] = keyTi
 			} else {
 				keyTi.setValue(keyType)
@@ -2173,7 +2173,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				panic(tc.errorf(node, "%s", err))
 			}
 			if valueTi.Nil() {
-				valueTi = typedNil(elemType)
+				valueTi = nilOf(elemType)
 				tc.typeInfos[kv.Value] = valueTi
 			} else {
 				valueTi.setValue(elemType)
