@@ -23,6 +23,7 @@ var ErrOutOfMemory = errors.New("out of memory")
 
 var envType = reflect.TypeOf(&Env{})
 var sliceByteType = reflect.TypeOf([]byte{})
+var nilInterface = reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
 
 type StackShift [4]int8
 
@@ -526,7 +527,6 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 						args[i].Set(vm.envArg)
 					case Interface:
 						if v := vm.general(1); v == nil {
-							nilInterface := reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
 							args[i].Set(nilInterface)
 						} else {
 							args[i].Set(reflect.ValueOf(v))
@@ -570,7 +570,6 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 						for j := 0; j < int(numVariadic); j++ {
 							v := vm.general(int8(j + 1))
 							if v == nil {
-								nilInterface := reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
 								slice.Index(j).Set(nilInterface)
 							} else {
 								slice.Index(j).Set(reflect.ValueOf(v))
