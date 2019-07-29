@@ -883,7 +883,12 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 				}
 				panic(tc.errorf(expr, "%s", err))
 			}
-			key.setValue(t.Type.Key())
+			if key.Nil() {
+				key = typedNil(t.Type.Key())
+				tc.typeInfos[expr.Index] = key
+			} else {
+				key.setValue(t.Type.Key())
+			}
 			return &TypeInfo{Type: t.Type.Elem()}
 		default:
 			panic(tc.errorf(expr, "invalid operation: %s (type %s does not support indexing)", expr, t.ShortString()))
@@ -2149,7 +2154,12 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				}
 				hasKey[key] = struct{}{}
 			}
-			keyTi.setValue(keyType)
+			if keyTi.Nil() {
+				keyTi = typedNil(keyType)
+				tc.typeInfos[kv.Key] = keyTi
+			} else {
+				keyTi.setValue(keyType)
+			}
 			var valueTi *TypeInfo
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
 				valueTi = tc.checkCompositeLiteral(cl, elemType)
@@ -2162,7 +2172,12 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				}
 				panic(tc.errorf(node, "%s", err))
 			}
-			valueTi.setValue(elemType)
+			if valueTi.Nil() {
+				valueTi = typedNil(elemType)
+				tc.typeInfos[kv.Value] = valueTi
+			} else {
+				valueTi.setValue(elemType)
+			}
 		}
 
 	}

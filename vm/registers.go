@@ -355,6 +355,12 @@ func (vm *VM) getIntoReflectValue(r int8, v reflect.Value, k bool) {
 		array := reflect.New(reflect.ArrayOf(slice.Len(), slice.Type().Elem())).Elem()
 		reflect.Copy(array, slice)
 		v.Set(array)
+	case reflect.Interface:
+		if g := vm.generalk(r, k); g == nil {
+			v.Set(nilInterface)
+		} else {
+			v.Set(reflect.ValueOf(g))
+		}
 	default:
 		v.Set(reflect.ValueOf(vm.generalk(r, k)))
 	}

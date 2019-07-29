@@ -129,6 +129,57 @@ var stmtTests = []struct {
 		import "fmt"
 		
 		func main() {
+			b := map[interface{}]interface{}{
+				nil: true,
+			}
+			if a, ok := b[nil]; ok {
+				_ = a
+				fmt.Print("ok")
+			} else {
+				fmt.Print("no")
+			}
+		}
+		`,
+		out: `ok`,
+	},
+
+	{
+		name: "map composite literal with nil as key",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			b := map[interface{}]interface{}{
+				nil: true,
+			}
+			fmt.Print(b)
+		}
+		`,
+		out: `map[<nil>:true]`,
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/100 - map composite literal with nil key",
+		src: `package main
+
+		func main() {
+			b := map[interface{}]interface{}{
+				nil: true,
+			}
+			_ = b
+		}
+		`,
+		out: ``,
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/100",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
 			_, err := fmt.Println()
 			fmt.Println(err)
 		}`,
