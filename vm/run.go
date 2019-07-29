@@ -611,6 +611,10 @@ func (vm *VM) run() (uint32, bool) {
 					cond = true
 				case []int:
 					cond = v == nil
+				case []string:
+					cond = v == nil
+				case []byte:
+					cond = v == nil
 				default:
 					cond = reflect.ValueOf(v).IsNil()
 				}
