@@ -1254,7 +1254,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		if reg == 0 {
 			return reg, false
 		}
-		if ti.value == nilInterface {
+		if ti.value == nil {
 			c := em.fb.makeGeneralConstant(nil)
 			em.changeRegister(true, c, reg, typ, dstType)
 			return reg, false
