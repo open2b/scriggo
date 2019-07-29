@@ -329,8 +329,8 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 			panic(tc.errorf(node, "%s in assignment", err))
 		}
 		if right.Nil() {
-			// Note that this does not change the type info associated to node
-			// 'right'; it just use a new type info inside this function.
+			// Note that this doesn't change the type info associated to node
+			// 'right'; it just uses a new type info inside this function.
 			right = typedNil(typ.Type)
 		} else {
 			right.setValue(typ.Type)
