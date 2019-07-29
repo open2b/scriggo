@@ -148,7 +148,16 @@ func main() {
 	assert(uint64(f10) == 18446744073709551604, "float64 -> uint64 (truncation towards zero)")
 
 	// 3.a Converting an integer to a floating-point number.
-	// TODO(Gianluca).
+	if1 := int64(20)
+	assert(float64(if1) == 20, "int64 -> float64")
+	if2 := int64(0)
+	assert(float64(if2) == 0, "int64 -> float64 (zero)")
+	if3 := int64(-100)
+	assert(float64(if3) == -100, "int64 -> float64 (negative)")
+	if4 := int8(4)
+	assert(float64(if4) == 4, "int8 -> float64")
+	if5 := int8(40)
+	assert(float32(if5) == 40, "int8 -> float32")
 
 	// 3.b. Converting a complex type to another complex type.
 	// TODO(Gianluca).
