@@ -464,7 +464,6 @@ func typedNil(t reflect.Type) *TypeInfo {
 	return &TypeInfo{
 		Type:       t,
 		value:      reflect.New(t).Elem().Interface(),
-		valueType:  t,
 		Properties: PropertyHasValue,
 	}
 }
