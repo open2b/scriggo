@@ -463,7 +463,7 @@ func nilOf(t reflect.Type) *TypeInfo {
 	}
 	return &TypeInfo{
 		Type:       t,
-		value:      reflect.New(t).Elem().Interface(),
+		value:      reflect.Zero(t).Interface(),
 		Properties: PropertyHasValue,
 	}
 }
