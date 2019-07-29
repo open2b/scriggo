@@ -1267,7 +1267,12 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			em.changeRegister(false, tmp, reg, typ, dstType)
 			return reg, false
 		case float64:
-			c := em.fb.makeFloatConstant(v)
+			var c int8
+			if typ.Kind() == reflect.Float32 {
+				c = em.fb.makeFloatConstant(float64(float32(v)))
+			} else {
+				c = em.fb.makeFloatConstant(v)
+			}
 			if sameRegType(typ.Kind(), dstType.Kind()) {
 				em.fb.emitLoadNumber(vm.TypeFloat, c, reg)
 				em.changeRegister(false, reg, reg, typ, dstType)

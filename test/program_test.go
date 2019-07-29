@@ -123,6 +123,36 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "https://github.com/open2b/scriggo/issues/223",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			var f1 float32 = 3.1
+			var f2 float32 = -3.1
+			fmt.Println(f1 == -f2)
+		}`,
+		out: "true\n",
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/223",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			var f1 float32 = 3.1
+			var f2 float32 = -3.1
+			fmt.Println(f1)
+			fmt.Println(f2)
+			fmt.Println(f2 == -f1)
+		}`,
+		out: "3.1\n-3.1\ntrue\n",
+	},
+
+	{
 		name: "https://github.com/open2b/scriggo/issues/143",
 		src: `package main
 
