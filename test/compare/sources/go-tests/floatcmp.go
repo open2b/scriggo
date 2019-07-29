@@ -56,7 +56,7 @@ var tests = []struct {
 	{"!(nan == f)", !(nan == f), true},
 	{"!(nan != f)", !(nan != f), false},
 
-	// TODO(Gianluca): enabling this lines panics the VM.
+	// TODO(Gianluca): enabling these lines panics the VM.
 
 	// {"!(nan < f)", !(nan < f), true},
 	// {"!(nan > f)", !(nan > f), true},
