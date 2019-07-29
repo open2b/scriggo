@@ -616,7 +616,12 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				}
 				panic(tc.errorf(node, "%s", err))
 			}
-			tiv.setValue(elemType)
+			if tiv.Nil() {
+				tiv = typedNil(elemType)
+				tc.typeInfos[node.Value] = tiv
+			} else {
+				tiv.setValue(elemType)
+			}
 
 		case *ast.UnaryOperator:
 			ti := tc.checkExpr(node)

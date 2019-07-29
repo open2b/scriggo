@@ -190,11 +190,6 @@ func (ti *TypeInfo) setValue(t reflect.Type) {
 		return
 	}
 	if ti.Nil() {
-		if typ.Kind() != reflect.Interface {
-			v := reflect.New(typ).Elem()
-			ti.value = v.Interface()
-			ti.valueType = typ
-			return
-		}
+		panic("bug: cannot call setValue on nil")
 	}
 }
