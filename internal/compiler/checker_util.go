@@ -459,6 +459,7 @@ func nilOf(t reflect.Type) *TypeInfo {
 		return &TypeInfo{
 			Type:       t,
 			Properties: PropertyHasValue,
+			value:      nil,
 		}
 	}
 	return &TypeInfo{

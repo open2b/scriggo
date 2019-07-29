@@ -125,7 +125,7 @@ var stmtTests = []struct {
 	{
 		name: "https://github.com/open2b/scriggo/issues/100",
 		src: `package main
-
+	
 		import "fmt"
 		
 		func main() {
@@ -146,7 +146,7 @@ var stmtTests = []struct {
 	{
 		name: "map composite literal with nil as key",
 		src: `package main
-
+	
 		import "fmt"
 		
 		func main() {
@@ -162,7 +162,7 @@ var stmtTests = []struct {
 	{
 		name: "https://github.com/open2b/scriggo/issues/100 - map composite literal with nil key",
 		src: `package main
-
+	
 		func main() {
 			b := map[interface{}]interface{}{
 				nil: true,
@@ -176,7 +176,7 @@ var stmtTests = []struct {
 	{
 		name: "https://github.com/open2b/scriggo/issues/100",
 		src: `package main
-
+	
 		import "fmt"
 		
 		func main() {
@@ -189,11 +189,11 @@ var stmtTests = []struct {
 	{
 		name: "https://github.com/open2b/scriggo/issues/100 - Nil: declaring a nil empty interface with var and explicitly assigning interface{}(nil) to it",
 		src: `package main
-
+	
 		import (
 			"fmt"
 		)
-
+	
 		func main() {
 			var i interface{} = interface{}(nil)
 			fmt.Printf("i: %v, type(i): %T", i, i)
@@ -205,7 +205,7 @@ var stmtTests = []struct {
 	{
 		name: "https://github.com/open2b/scriggo/issues/100",
 		src: `package main
-
+	
 		import (
 			"fmt"
 		)
@@ -220,7 +220,7 @@ var stmtTests = []struct {
 	{
 		name: "https://github.com/open2b/scriggo/issues/100",
 		src: `package main
-
+	
 		func main() {
 			var a = interface{}(nil)
 			switch a {
@@ -234,7 +234,7 @@ var stmtTests = []struct {
 	{
 		name: "https://github.com/open2b/scriggo/issues/100",
 		src: `package main
-
+	
 		func main() {
 			switch interface{}(nil) {
 			}
@@ -246,7 +246,7 @@ var stmtTests = []struct {
 	{
 		name: "comparing a nil interface with predeclared nil",
 		src: `package main
-
+	
 		import "fmt"
 		
 		func main() {
@@ -264,7 +264,7 @@ var stmtTests = []struct {
 	{
 		name: "var declaration with explicit interface type and no value",
 		src: `package main
-
+	
 		func main() {
 			var a interface{}
 			_ = a
@@ -276,7 +276,7 @@ var stmtTests = []struct {
 	{
 		name: "Predeclared nil as return value with type interface",
 		src: `package main
-
+	
 		import (
 			"fmt"
 		)
@@ -297,15 +297,15 @@ var stmtTests = []struct {
 	{
 		name: "Predeclared nil as function argument, where argument has type interface",
 		src: `package main
-
+	
 		import (
 			"fmt"
 		)
-
+	
 		func f(i interface{}) {
 			fmt.Println(i)
 		}
-
+	
 		func main() {
 			f(10)
 			f(nil)
@@ -317,7 +317,7 @@ var stmtTests = []struct {
 	{
 		name: "Comparison of a nil slice with the predeclared nil",
 		src: `package main
-
+	
 		import "fmt"
 		
 		func main() {
@@ -334,7 +334,7 @@ var stmtTests = []struct {
 	{
 		name: "Comparison of a (not nil) empty slice with the predeclared nil",
 		src: `package main
-
+	
 		import "fmt"
 		
 		func main() {
@@ -351,7 +351,7 @@ var stmtTests = []struct {
 	{
 		name: "Comparing the error returned from fmt.Println with the predeclared nil",
 		src: `package main
-
+	
 		import "fmt"
 		
 		func main() {
@@ -369,7 +369,7 @@ var stmtTests = []struct {
 	{
 		name: "https://github.com/open2b/scriggo/issues/177",
 		src: `package main
-
+	
 		import "fmt"
 		
 		func main() {
@@ -379,6 +379,36 @@ var stmtTests = []struct {
 			}
 		}`,
 		out: "\n",
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/223",
+		src: `package main
+	
+		import "fmt"
+		
+		func main() {
+			var f1 float32 = 3.1
+			var f2 float32 = -3.1
+			fmt.Println(f1 == -f2)
+		}`,
+		out: "true\n",
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/223",
+		src: `package main
+	
+		import "fmt"
+		
+		func main() {
+			var f1 float32 = 3.1
+			var f2 float32 = -3.1
+			fmt.Println(f1)
+			fmt.Println(f2)
+			fmt.Println(f2 == -f1)
+		}`,
+		out: "3.1\n-3.1\ntrue\n",
 	},
 
 	{
