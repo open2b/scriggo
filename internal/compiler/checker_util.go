@@ -451,13 +451,16 @@ func representedBy(t1 *TypeInfo, t2 reflect.Type) (constant, error) {
 	return nil, nil
 }
 
+// TODO(Gianluca): find a better way to create an unique value.
+var nilInterface = &[]int{}
+
 // typedNil returns a new type info representing a 'typed nil', that is the zero
 // of type t.
 func typedNil(t reflect.Type) *TypeInfo {
 	if t.Kind() == reflect.Interface {
 		return &TypeInfo{
 			Type:      t,
-			value:     reflect.New(t).Elem().Interface(),
+			value:     nilInterface,
 			valueType: t,
 		}
 	}

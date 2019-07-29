@@ -524,6 +524,14 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 						vm.fp[3]++
 					case Environment:
 						args[i].Set(vm.envArg)
+					case Interface:
+						if v := vm.general(1); v == nil {
+							nilInterface := reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
+							args[i].Set(nilInterface)
+						} else {
+							args[i].Set(reflect.ValueOf(v))
+						}
+						vm.fp[3]++
 					default:
 						args[i].Set(reflect.ValueOf(vm.general(1)))
 						vm.fp[3]++
@@ -557,6 +565,16 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 					case reflect.String:
 						for j := 0; j < int(numVariadic); j++ {
 							slice.Index(j).SetString(vm.string(int8(j + 1)))
+						}
+					case reflect.Interface:
+						for j := 0; j < int(numVariadic); j++ {
+							v := vm.general(int8(j + 1))
+							if v == nil {
+								nilInterface := reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
+								slice.Index(j).Set(nilInterface)
+							} else {
+								slice.Index(j).Set(reflect.ValueOf(v))
+							}
 						}
 					default:
 						for j := 0; j < int(numVariadic); j++ {

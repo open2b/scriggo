@@ -1907,8 +1907,9 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		if a.Nil() {
 			a := typedNil(in)
 			tc.typeInfos[expr.Args[i]] = a
+		} else {
+			a.setValue(in)
 		}
-		a.setValue(in)
 	}
 
 	numOut := t.Type.NumOut()

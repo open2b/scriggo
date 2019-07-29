@@ -123,6 +123,26 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Predeclared nil as function argument, where argument has type interface",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+
+		func f(i interface{}) {
+			fmt.Println(i)
+		}
+
+		func main() {
+			f(10)
+			f(nil)
+		}
+		`,
+		out: "10\n<nil>\n",
+	},
+
+	{
 		name: "Comparison of a nil slice with the predeclared nil",
 		src: `package main
 
