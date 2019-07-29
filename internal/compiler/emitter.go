@@ -2009,7 +2009,7 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 // emitted is always the "If" instruction.
 func (em *emitter) emitCondition(cond ast.Expression) {
 
-	if ti := em.ti(cond); ti != nil && ti.value != nil {
+	if ti := em.ti(cond); ti != nil && ti.HasValue() {
 		v1 := em.emitExpr(cond, ti.Type)
 		k2 := em.fb.makeIntConstant(1)
 		v2 := em.fb.newRegister(reflect.Bool)
