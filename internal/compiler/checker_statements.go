@@ -387,6 +387,9 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 							positionOf[value] = ex.Pos()
 						}
 					}
+					if t.Nil() {
+						panic("TODO: not implemented nil case in switch statements") // TODO(Gianluca): to implement.
+					}
 					t.setValue(typ)
 				}
 				tc.checkNodesInNewScope(cas.Body)
