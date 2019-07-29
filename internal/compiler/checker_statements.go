@@ -783,7 +783,12 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 			}
 			panic(tc.errorf(node, "%s", err))
 		}
-		ti.setValue(typ)
+		if ti.Nil() {
+			ti = typedNil(typ)
+			tc.typeInfos[x] = ti
+		} else {
+			ti.setValue(typ)
+		}
 	}
 
 	return
