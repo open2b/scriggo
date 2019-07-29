@@ -458,7 +458,7 @@ func typedNil(t reflect.Type) *TypeInfo {
 	if t.Kind() == reflect.Interface {
 		return &TypeInfo{
 			Type:       t,
-			Properties: PropertyPredeclared | PropertyUntyped | PropertyHasValue,
+			Properties: PropertyHasValue,
 		}
 	}
 	return &TypeInfo{
