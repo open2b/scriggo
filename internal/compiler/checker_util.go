@@ -326,7 +326,7 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 				ti := &TypeInfo{
 					Type:       removeEnvArg(methExpr.Type(), false),
 					value:      methExpr,
-					Properties: PropertyIsPredefined,
+					Properties: PropertyIsPredefined | PropertyHasValue,
 				}
 				return ti, receiverNoTransform, true
 			}
@@ -337,7 +337,7 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 			return &TypeInfo{
 				Type:       removeEnvArg(method.Type, true),
 				value:      method.Func,
-				Properties: PropertyIsPredefined,
+				Properties: PropertyIsPredefined | PropertyHasValue,
 			}, receiverNoTransform, true
 		}
 		return nil, receiverNoTransform, false
@@ -350,7 +350,7 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 				Type:       removeEnvArg(method.Type, true),
 				value:      name,
 				MethodType: MethodValueInterface,
-				Properties: PropertyIsPredefined,
+				Properties: PropertyIsPredefined | PropertyHasValue,
 			}
 			return ti, receiverNoTransform, true
 		}
@@ -364,7 +364,7 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 		ti := &TypeInfo{
 			Type:       removeEnvArg(method.Type(), false),
 			value:      methodExplicitRcvr.Func,
-			Properties: PropertyIsPredefined,
+			Properties: PropertyIsPredefined | PropertyHasValue,
 			MethodType: MethodValueConcrete,
 		}
 		// Checks if pointer is defined on T or *T when called on a *T receiver.
@@ -377,6 +377,7 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 				// Needs indirection: x.m -> (*x).m
 				ti.Type = removeEnvArg(reflect.Zero(t.Type).MethodByName(name).Type(), false)
 				ti.value = method.Func
+				ti.Properties |= PropertyHasValue
 				return ti, receiverAddIndirect, true
 			}
 		}
@@ -389,7 +390,7 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 			return &TypeInfo{
 				Type:       removeEnvArg(method.Type(), false),
 				value:      methodExplicitRcvr.Func,
-				Properties: PropertyIsPredefined,
+				Properties: PropertyIsPredefined | PropertyHasValue,
 				MethodType: MethodValueConcrete,
 			}, receiverAddAddress, true
 		}
@@ -431,7 +432,7 @@ func removeEnvArg(typ reflect.Type, hasReceiver bool) reflect.Type {
 func representedBy(t1 *TypeInfo, t2 reflect.Type) (constant, error) {
 	if t1.IsConstant() {
 		if t2.Kind() == reflect.Interface {
-			if t2.NumMethod() == 0 {
+			if t1.Type.Implements(t2) {
 				return nil, nil
 			}
 			return nil, fmt.Errorf("cannot convert %v (type %s) to type %s", t1.Constant, t1, t2)
@@ -462,12 +463,14 @@ func typedNil(t reflect.Type) *TypeInfo {
 			Type:      t,
 			value:     nilInterface,
 			valueType: t,
+			Properties: PropertyPredeclared | PropertyUntyped | PropertyHasValue,
 		}
 	}
 	return &TypeInfo{
-		Type:      t,
-		value:     reflect.New(t).Elem().Interface(),
-		valueType: t,
+		Type:       t,
+		value:      reflect.New(t).Elem().Interface(),
+		valueType:  t,
+		Properties: PropertyHasValue,
 	}
 }
 

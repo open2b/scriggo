@@ -33,7 +33,7 @@ func toTypeCheckerScope(gp predefinedPackage) typeCheckerScope {
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:              reflect.TypeOf(value).Elem(),
 				value:             reflect.ValueOf(value),
-				Properties:        PropertyAddressable | PropertyIsPredefined,
+				Properties:        PropertyAddressable | PropertyIsPredefined | PropertyHasValue,
 				PredefPackageName: gp.Name(),
 			}}
 			continue
@@ -43,7 +43,7 @@ func toTypeCheckerScope(gp predefinedPackage) typeCheckerScope {
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:              removeEnvArg(typ, false),
 				value:             reflect.ValueOf(value),
-				Properties:        PropertyIsPredefined,
+				Properties:        PropertyIsPredefined | PropertyHasValue,
 				PredefPackageName: gp.Name(),
 			}}
 			continue
@@ -557,13 +557,13 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 							tc.filePackageBlock[ident] = scopeElement{t: ti}
 						}
 					default:
-						tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage}}
+						tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue}}
 						tc.unusedImports[d.Ident.Name] = nil
 					}
 				}
 			} else {
 				if d.Ident == nil {
-					tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage}}
+					tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue}}
 					tc.unusedImports[importedPkg.Name] = nil
 				} else {
 					switch d.Ident.Name {
@@ -575,7 +575,7 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 							tc.filePackageBlock[ident] = scopeElement{t: ti}
 						}
 					default:
-						tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage}}
+						tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue}}
 						tc.unusedImports[d.Ident.Name] = nil
 					}
 				}

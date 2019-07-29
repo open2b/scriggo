@@ -19,6 +19,7 @@ const (
 	PropertyPredeclared                         // is predeclared
 	PropertyAddressable                         // is addressable
 	PropertyIsPredefined                        // is predefined
+	PropertyHasValue                            // has value
 )
 
 type TypeInfo struct {
@@ -151,6 +152,11 @@ func (ti *TypeInfo) IsUnsignedInteger() bool {
 	return reflect.Uint <= k && k <= reflect.Uintptr
 }
 
+// HasValue reports whether it has value.
+func (ti *TypeInfo) HasValue() bool {
+	return ti.Properties&PropertyHasValue != 0
+}
+
 // setValue sets ti value, whenever possible.
 // TODO(Gianluca): review this doc.
 func (ti *TypeInfo) setValue(t reflect.Type) {
@@ -187,6 +193,7 @@ func (ti *TypeInfo) setValue(t reflect.Type) {
 			ti.value = ti.Constant.string()
 		}
 		ti.valueType = typ
+		ti.Properties |= PropertyHasValue
 		return
 	}
 	if ti.Nil() {
