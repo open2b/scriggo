@@ -1205,7 +1205,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 	if allowK && !useGivenReg {
 		ti := em.ti(expr)
-		if ti.value != nil && !ti.IsPredefined() {
+		if ti.HasValue() && !ti.IsPredefined() {
 			switch v := ti.value.(type) {
 			case int64:
 				if kindToType(dstType.Kind()) == vm.TypeInt {
@@ -1249,7 +1249,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 	// 'changeRegister' may emit a Typify instruction to ensure that values are
 	// correctly converted.
 
-	if ti := em.ti(expr); ti != nil && ti.value != nil && !ti.IsPredefined() {
+	if ti := em.ti(expr); ti != nil && ti.HasValue() && !ti.IsPredefined() {
 		typ := ti.Type
 		if reg == 0 {
 			return reg, false
