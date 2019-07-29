@@ -303,6 +303,11 @@ func (builder *functionBuilder) addFunction(f *vm.Function) uint8 {
 
 // makeStringConstant makes a new string constant, returning it's index.
 func (builder *functionBuilder) makeStringConstant(c string) int8 {
+	for i, v := range builder.fn.Constants.String {
+		if c == v {
+			return int8(i)
+		}
+	}
 	r := len(builder.fn.Constants.String)
 	if r > 255 {
 		panic("string refs limit reached")
@@ -312,17 +317,22 @@ func (builder *functionBuilder) makeStringConstant(c string) int8 {
 }
 
 // makeGeneralConstant makes a new general constant, returning it's index.
-func (builder *functionBuilder) makeGeneralConstant(v interface{}) int8 {
+func (builder *functionBuilder) makeGeneralConstant(c interface{}) int8 {
 	r := len(builder.fn.Constants.General)
 	if r > 255 {
 		panic("general refs limit reached")
 	}
-	builder.fn.Constants.General = append(builder.fn.Constants.General, v)
+	builder.fn.Constants.General = append(builder.fn.Constants.General, c)
 	return int8(r)
 }
 
 // makeFloatConstant makes a new float constant, returning it's index.
 func (builder *functionBuilder) makeFloatConstant(c float64) int8 {
+	for i, v := range builder.fn.Constants.Float {
+		if c == v {
+			return int8(i)
+		}
+	}
 	r := len(builder.fn.Constants.Float)
 	if r > 255 {
 		panic("float refs limit reached")
@@ -333,6 +343,11 @@ func (builder *functionBuilder) makeFloatConstant(c float64) int8 {
 
 // makeIntConstant makes a new int constant, returning it's index.
 func (builder *functionBuilder) makeIntConstant(c int64) int8 {
+	for i, v := range builder.fn.Constants.Int {
+		if c == v {
+			return int8(i)
+		}
+	}
 	r := len(builder.fn.Constants.Int)
 	if r > 255 {
 		panic("int refs limit reached")
