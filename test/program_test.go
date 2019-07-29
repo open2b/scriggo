@@ -123,6 +123,76 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "https://github.com/open2b/scriggo/issues/100",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			_, err := fmt.Println()
+			fmt.Println(err)
+		}`,
+		out: "\n<nil>\n",
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/100 - Nil: declaring a nil empty interface with var and explicitly assigning interface{}(nil) to it",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+
+		func main() {
+			var i interface{} = interface{}(nil)
+			fmt.Printf("i: %v, type(i): %T", i, i)
+		}
+		`,
+		out: `i: <nil>, type(i): <nil>`,
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/100",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			a := interface{}(nil)
+			fmt.Print(a)
+		}`,
+		out: `<nil>`,
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/100",
+		src: `package main
+
+		func main() {
+			var a = interface{}(nil)
+			switch a {
+			}
+		}
+		
+		`,
+		out: ``,
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/100",
+		src: `package main
+
+		func main() {
+			switch interface{}(nil) {
+			}
+		}
+		`,
+		out: ``,
+	},
+
+	{
 		name: "comparing a nil interface with predeclared nil",
 		src: `package main
 
