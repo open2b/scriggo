@@ -15,13 +15,12 @@ func main() {
 	var m map[float32]*int
 	var c chan int
 
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/215
-	// i = nil
-	// f = nil
-	// s = nil
-	// m = nil
-	// c = nil
-	// i = nil
+	i = nil
+	f = nil
+	s = nil
+	m = nil
+	c = nil
+	i = nil
 
 	fmt.Print(i, f, s, m, c)
 	maptest()
