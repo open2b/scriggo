@@ -72,7 +72,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
 					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: declType.Type}
-					tc.typeInfos[n.Rhs[i]].setValue(declType.Type)
+					tc.typeInfos[n.Rhs[i]] = typedNil(declType.Type)
 				}
 			default:
 				for i := range n.Lhs {

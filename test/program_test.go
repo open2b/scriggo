@@ -123,6 +123,36 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "comparing a nil interface with predeclared nil",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			var a interface{}
+			if a == nil {
+				fmt.Print("is nil")
+			} else {
+				fmt.Print("is not nil")
+			}
+		}
+		`,
+		out: `is nil`,
+	},
+
+	{
+		name: "var declaration with explicit interface type and no value",
+		src: `package main
+
+		func main() {
+			var a interface{}
+			_ = a
+		}
+		`,
+		out: ``,
+	},
+
+	{
 		name: "Predeclared nil as return value with type interface",
 		src: `package main
 
