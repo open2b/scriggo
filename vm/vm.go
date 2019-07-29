@@ -568,8 +568,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 						}
 					case reflect.Interface:
 						for j := 0; j < int(numVariadic); j++ {
-							v := vm.general(int8(j + 1))
-							if v == nil {
+							if v := vm.general(int8(j + 1)); v == nil {
 								slice.Index(j).Set(nilInterface)
 							} else {
 								slice.Index(j).Set(reflect.ValueOf(v))
