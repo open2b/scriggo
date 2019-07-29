@@ -123,6 +123,73 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Comparison of a nil slice with the predeclared nil",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			if []int(nil) == nil {
+				fmt.Print("slice is nil")
+			} else {
+				fmt.Print("slice is not nil")
+			}
+		}
+		`,
+		out: `slice is nil`,
+	},
+
+	{
+		name: "Comparison of a (not nil) empty slice with the predeclared nil",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			if []int{} == nil {
+				fmt.Print("slice is nil")
+			} else {
+				fmt.Print("slice is not nil")
+			}
+		}
+		`,
+		out: "slice is not nil",
+	},
+
+	{
+		name: "Comparing the error returned from fmt.Println with the predeclared nil",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			_, err := fmt.Println()
+			if err != nil {
+				fmt.Print("error")
+			} else {
+				fmt.Print("no errors")
+			}
+		}
+		`,
+		out: "\nno errors",
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/177",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			_, err := fmt.Println()
+			if err != nil {
+				panic(err)
+			}
+		}`,
+		out: "\n",
+	},
+
+	{
 		name: "https://github.com/open2b/scriggo/issues/143",
 		src: `package main
 

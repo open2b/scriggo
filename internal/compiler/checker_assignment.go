@@ -328,7 +328,11 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 			}
 			panic(tc.errorf(node, "%s in assignment", err))
 		}
-		right.setValue(typ.Type)
+		if right.Nil() {
+			right = typedNil(typ.Type)
+		} else {
+			right.setValue(typ.Type)
+		}
 	}
 
 	// When declaring a variable, left side must be a name.

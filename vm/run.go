@@ -606,7 +606,14 @@ func (vm *VM) run() (uint32, bool) {
 			case ConditionOK, ConditionNotOK:
 				cond = vm.ok
 			case ConditionNil, ConditionNotNil:
-				cond = vm.general(a) == nil
+				switch v := vm.general(a).(type) {
+				case nil:
+					cond = true
+				case []int:
+					cond = v == nil
+				default:
+					cond = reflect.ValueOf(v).IsNil()
+				}
 			case ConditionEqual, ConditionNotEqual:
 				cond = vm.general(a) == vm.generalk(c, op < 0)
 			}
