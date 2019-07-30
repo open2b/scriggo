@@ -109,9 +109,9 @@ func main() {
 		print("-210e34 is ", -210e34, "\n")
 	}
 
-	// if !close(0.E1, 0, 1, 1) {
-	// 	print("0.E1 is ", 0.E1, "\n")
-	// }
+	if !close(0.E1, 0, 1, 1) {
+		print("0.E1 is ", 0.E1, "\n")
+	}
 	if !close(+10.e+2, 10, 1, 2) {
 		print("+10.e+2 is ", +10.e+2, "\n")
 	}
@@ -139,9 +139,9 @@ func main() {
 		print("-210.012e3 is ", -210.012e3, "\n")
 	}
 
-	// if !close(0.E+12, 0, 1, 0) {
-	// 	print("0.E+12 is ", 0.E+12, "\n")
-	// }
+	if !close(0.E+12, 0, 1, 0) {
+		print("0.E+12 is ", 0.E+12, "\n")
+	}
 	if !close(+10.e23, 10, 1, 23) {
 		print("+10.e23 is ", +10.e23, "\n")
 	}
@@ -169,9 +169,9 @@ func main() {
 		print("-210.012e33 is ", -210.012e33, "\n")
 	}
 
-	// if !close(0.E123, 0, 1, 123) {
-	// 	print("0.E123 is ", 0.E123, "\n")
-	// }
+	if !close(0.E123, 0, 1, 123) {
+		print("0.E123 is ", 0.E123, "\n")
+	}
 	if !close(+10.e+23, 10, 1, 23) {
 		print("+10.e+234 is ", +10.e+234, "\n")
 	}

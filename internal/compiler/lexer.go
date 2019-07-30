@@ -1103,34 +1103,28 @@ func (l *lexer) lexNumber() error {
 	var exponent bool
 	p := 0
 	base := 10
-	if l.src[0] == '0' && len(l.src) > 1 {
+	if c := l.src[0]; c == '0' && len(l.src) > 1 {
 		switch l.src[1] {
 		case '.':
-			p = 1
 		case 'x', 'X':
 			base = 16
 			p = 2
 		case 'o', 'O':
 			base = 8
 			p = 2
-		case '0', '1', '2', '3', '4', '5', '6', '7':
+		case '_', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 			base = 8
 			p = 1
-		case '8', '9':
-			p = 1
-		case '_':
-			p = 2
 		case 'b', 'B':
 			base = 2
 			p = 2
 		}
-	}
-	if p < len(l.src) && l.src[p] == '.' {
-		if base < 10 {
-			return l.errorf("invalid radix point in " + numberBaseName[base] + " literal")
+		if p < len(l.src) && l.src[p] == '_' {
+			p++
 		}
+	} else if c == '.' {
 		dot = true
-		p++
+		p = 1
 	}
 DIGITS:
 	for p < len(l.src) {
@@ -1214,7 +1208,11 @@ DIGITS:
 		}
 	case '_':
 		return l.errorf("'_' must separate successive digits")
-	case 'e', 'E', 'p', 'P', '+', '-':
+	case 'e', 'E':
+		if base != 16 {
+			return l.errorf("exponent has no digits")
+		}
+	case 'p', 'P', '+', '-':
 		return l.errorf("exponent has no digits")
 	}
 	imaginary := p < len(l.src) && l.src[p] == 'i'
