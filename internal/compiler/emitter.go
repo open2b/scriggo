@@ -1254,6 +1254,12 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		if reg == 0 {
 			return reg, false
 		}
+		// Handle nil values.
+		if ti.value == nil {
+			c := em.fb.makeGeneralConstant(nil)
+			em.changeRegister(true, c, reg, typ, dstType)
+			return reg, false
+		}
 		switch v := ti.value.(type) {
 		case int64:
 			c := em.fb.makeIntConstant(v)
@@ -2009,7 +2015,7 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 // emitted is always the "If" instruction.
 func (em *emitter) emitCondition(cond ast.Expression) {
 
-	if ti := em.ti(cond); ti != nil {
+	if ti := em.ti(cond); ti != nil && ti.HasValue() {
 		v1 := em.emitExpr(cond, ti.Type)
 		k2 := em.fb.makeIntConstant(1)
 		v2 := em.fb.newRegister(reflect.Bool)
@@ -2126,6 +2132,15 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 				em.fb.emitIf(k2, v1, condType, v2, kind)
 				return
 			}
+		}
+
+		if ti := em.ti(cond); ti != nil {
+			v1 := em.emitExpr(cond, ti.Type)
+			k2 := em.fb.makeIntConstant(1)
+			v2 := em.fb.newRegister(reflect.Bool)
+			em.fb.emitLoadNumber(vm.TypeInt, k2, v2)
+			em.fb.emitIf(false, v1, vm.ConditionEqual, v2, reflect.Bool)
+			return
 		}
 
 	default:

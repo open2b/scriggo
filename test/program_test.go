@@ -123,9 +123,268 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "https://github.com/open2b/scriggo/issues/100",
+		src: `package main
+	
+		import "fmt"
+		
+		func main() {
+			b := map[interface{}]interface{}{
+				nil: true,
+			}
+			if a, ok := b[nil]; ok {
+				_ = a
+				fmt.Print("ok")
+			} else {
+				fmt.Print("no")
+			}
+		}
+		`,
+		out: `ok`,
+	},
+
+	{
+		name: "map composite literal with nil as key",
+		src: `package main
+	
+		import "fmt"
+		
+		func main() {
+			b := map[interface{}]interface{}{
+				nil: true,
+			}
+			fmt.Print(b)
+		}
+		`,
+		out: `map[<nil>:true]`,
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/100 - map composite literal with nil key",
+		src: `package main
+	
+		func main() {
+			b := map[interface{}]interface{}{
+				nil: true,
+			}
+			_ = b
+		}
+		`,
+		out: ``,
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/100",
+		src: `package main
+	
+		import "fmt"
+		
+		func main() {
+			_, err := fmt.Println()
+			fmt.Println(err)
+		}`,
+		out: "\n<nil>\n",
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/100 - Nil: declaring a nil empty interface with var and explicitly assigning interface{}(nil) to it",
+		src: `package main
+	
+		import (
+			"fmt"
+		)
+	
+		func main() {
+			var i interface{} = interface{}(nil)
+			fmt.Printf("i: %v, type(i): %T", i, i)
+		}
+		`,
+		out: `i: <nil>, type(i): <nil>`,
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/100",
+		src: `package main
+	
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			a := interface{}(nil)
+			fmt.Print(a)
+		}`,
+		out: `<nil>`,
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/100",
+		src: `package main
+	
+		func main() {
+			var a = interface{}(nil)
+			switch a {
+			}
+		}
+		
+		`,
+		out: ``,
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/100",
+		src: `package main
+	
+		func main() {
+			switch interface{}(nil) {
+			}
+		}
+		`,
+		out: ``,
+	},
+
+	{
+		name: "comparing a nil interface with predeclared nil",
+		src: `package main
+	
+		import "fmt"
+		
+		func main() {
+			var a interface{}
+			if a == nil {
+				fmt.Print("is nil")
+			} else {
+				fmt.Print("is not nil")
+			}
+		}
+		`,
+		out: `is nil`,
+	},
+
+	{
+		name: "var declaration with explicit interface type and no value",
+		src: `package main
+	
+		func main() {
+			var a interface{}
+			_ = a
+		}
+		`,
+		out: ``,
+	},
+
+	{
+		name: "Predeclared nil as return value with type interface",
+		src: `package main
+	
+		import (
+			"fmt"
+		)
+		
+		func getNil() interface{} {
+			return nil
+		}
+		
+		func main() {
+			fmt.Println(getNil())
+			n := getNil()
+			fmt.Println(n)
+		}
+		`,
+		out: "<nil>\n<nil>\n",
+	},
+
+	{
+		name: "Predeclared nil as function argument, where argument has type interface",
+		src: `package main
+	
+		import (
+			"fmt"
+		)
+	
+		func f(i interface{}) {
+			fmt.Println(i)
+		}
+	
+		func main() {
+			f(10)
+			f(nil)
+		}
+		`,
+		out: "10\n<nil>\n",
+	},
+
+	{
+		name: "Comparison of a nil slice with the predeclared nil",
+		src: `package main
+	
+		import "fmt"
+		
+		func main() {
+			if []int(nil) == nil {
+				fmt.Print("slice is nil")
+			} else {
+				fmt.Print("slice is not nil")
+			}
+		}
+		`,
+		out: `slice is nil`,
+	},
+
+	{
+		name: "Comparison of a (not nil) empty slice with the predeclared nil",
+		src: `package main
+	
+		import "fmt"
+		
+		func main() {
+			if []int{} == nil {
+				fmt.Print("slice is nil")
+			} else {
+				fmt.Print("slice is not nil")
+			}
+		}
+		`,
+		out: "slice is not nil",
+	},
+
+	{
+		name: "Comparing the error returned from fmt.Println with the predeclared nil",
+		src: `package main
+	
+		import "fmt"
+		
+		func main() {
+			_, err := fmt.Println()
+			if err != nil {
+				fmt.Print("error")
+			} else {
+				fmt.Print("no errors")
+			}
+		}
+		`,
+		out: "\nno errors",
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/177",
+		src: `package main
+	
+		import "fmt"
+		
+		func main() {
+			_, err := fmt.Println()
+			if err != nil {
+				panic(err)
+			}
+		}`,
+		out: "\n",
+	},
+
+	{
 		name: "https://github.com/open2b/scriggo/issues/223",
 		src: `package main
-
+	
 		import "fmt"
 		
 		func main() {
@@ -139,7 +398,7 @@ var stmtTests = []struct {
 	{
 		name: "https://github.com/open2b/scriggo/issues/223",
 		src: `package main
-
+	
 		import "fmt"
 		
 		func main() {

@@ -15,18 +15,58 @@ func main() {
 	var m map[float32]*int
 	var c chan int
 
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/215
-	// i = nil
-	// f = nil
-	// s = nil
-	// m = nil
-	// c = nil
-	// i = nil
+	i = nil
+	f = nil
+	s = nil
+	m = nil
+	c = nil
+	i = nil
 
 	fmt.Print(i, f, s, m, c)
+
+	arraytest()
 	maptest()
 	slicetest()
 }
+
+// nil array pointer
+
+func arraytest() {
+	// TODO(Gianluca).
+	// var p *[10]int
+
+	// // Looping over indices is fine.
+	// s := 0
+	// for i := range p {
+	// 	s += i
+	// }
+	// if s != 45 {
+	// 	panic(s)
+	// }
+
+	// s = 0
+	// for i := 0; i < len(p); i++ {
+	// 	s += i
+	// }
+	// if s != 45 {
+	// 	panic(s)
+	// }
+
+
+	// // Looping over values is not.
+	// shouldPanic(func() {
+	// 	for i, v := range p {
+	// 		s += i + v
+	// 	}
+	// })
+
+	// shouldPanic(func() {
+	// 	for i := 0; i < len(p); i++ {
+	// 		s += p[i]
+	// 	}
+	// })
+}
+
 
 // nil map
 

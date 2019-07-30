@@ -387,6 +387,9 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 							positionOf[value] = ex.Pos()
 						}
 					}
+					if t.Nil() {
+						panic("TODO: not implemented nil case in switch statements") // TODO(Gianluca): to implement.
+					}
 					t.setValue(typ)
 				}
 				tc.checkNodesInNewScope(cas.Body)
@@ -616,7 +619,12 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				}
 				panic(tc.errorf(node, "%s", err))
 			}
-			tiv.setValue(elemType)
+			if tiv.Nil() {
+				tiv = nilOf(elemType)
+				tc.typeInfos[node.Value] = tiv
+			} else {
+				tiv.setValue(elemType)
+			}
 
 		case *ast.UnaryOperator:
 			ti := tc.checkExpr(node)
@@ -778,7 +786,12 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 			}
 			panic(tc.errorf(node, "%s", err))
 		}
-		ti.setValue(typ)
+		if ti.Nil() {
+			ti = nilOf(typ)
+			tc.typeInfos[x] = ti
+		} else {
+			ti.setValue(typ)
+		}
 	}
 
 	return

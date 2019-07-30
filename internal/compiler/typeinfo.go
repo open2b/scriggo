@@ -197,12 +197,6 @@ func (ti *TypeInfo) setValue(t reflect.Type) {
 		return
 	}
 	if ti.Nil() {
-		if typ.Kind() != reflect.Interface {
-			v := reflect.New(typ).Elem()
-			ti.value = v.Interface()
-			ti.Properties |= PropertyHasValue
-			ti.valueType = typ
-			return
-		}
+		panic("bug: cannot call method setValue on a type info representing the predeclared nil") // TODO(Gianluca): remove.
 	}
 }

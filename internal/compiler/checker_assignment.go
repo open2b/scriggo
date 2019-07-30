@@ -72,7 +72,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
 					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: declType.Type}
-					tc.typeInfos[n.Rhs[i]].setValue(declType.Type)
+					tc.typeInfos[n.Rhs[i]] = nilOf(declType.Type)
 				}
 			default:
 				for i := range n.Lhs {
@@ -300,7 +300,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 	//
 	if !isVariableDecl && !isConstDecl && right.Nil() {
 		left := tc.checkExpr(leftExpr)
-		right = typedNil(left.Type)
+		right = nilOf(left.Type)
 		tc.typeInfos[rightExpr] = right
 	}
 
@@ -309,7 +309,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 	//	var a []int = nil
 	//
 	if isVariableDecl && typ != nil && right.Nil() {
-		right = typedNil(typ.Type)
+		right = nilOf(typ.Type)
 		tc.typeInfos[rightExpr] = right
 	}
 
@@ -328,7 +328,13 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 			}
 			panic(tc.errorf(node, "%s in assignment", err))
 		}
-		right.setValue(typ.Type)
+		if right.Nil() {
+			// Note that this doesn't change the type info associated to node
+			// 'right'; it just uses a new type info inside this function.
+			right = nilOf(typ.Type)
+		} else {
+			right.setValue(typ.Type)
+		}
 	}
 
 	// When declaring a variable, left side must be a name.
