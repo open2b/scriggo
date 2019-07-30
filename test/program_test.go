@@ -123,6 +123,26 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "writing and reading on a channel on a for loop",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			ch := make(chan int, 4)
+			for i := 0; i < 4; i++ {
+				ch <- i
+			}
+			for i := 0; i < 4; i++ {
+				v := <-ch
+				fmt.Print(v)
+			}
+		}
+		`,
+		out: `0123`,
+	},
+
+	{
 		name: "struct field assignment with different register",
 		src: `package main
 
