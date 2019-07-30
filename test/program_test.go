@@ -121,6 +121,22 @@ var stmtTests = []struct {
 	err        interface{} // error.
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
+	{
+		name: "channel receiving statement",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			c := make(chan int, 1)
+			c <- 10
+			fmt.Print(len(c))
+			<-c
+			fmt.Print(len(c))
+		}
+		`,
+		out: `10`,
+	},
 
 	{
 		name: "reading from a channel on assignment (ok)",

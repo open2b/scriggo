@@ -1614,12 +1614,20 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 	case *ast.UnaryOperator:
 
-		// Receive operation on channels (expression).
+		// Receive operation on channels
+		//
+		//	v     = <- ch
+		//  v, ok = <- ch
+		//          <- ch
 		if expr.Operator() == ast.OperatorReceive {
 			chanType := em.ti(expr.Expr).Type
 			valueType := em.ti(expr).Type
+			chann := em.emitExpr(expr.Expr, chanType)
+			if reg == 0 {
+				em.fb.emitReceive(chann, 0, 0)
+				return reg, false
+			}
 			if sameRegType(valueType.Kind(), dstType.Kind()) {
-				chann := em.emitExpr(expr.Expr, chanType)
 				em.fb.emitReceive(chann, 0, reg)
 				return reg, false
 			}
