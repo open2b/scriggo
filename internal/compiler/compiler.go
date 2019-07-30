@@ -56,6 +56,10 @@ type predefinedPackage interface {
 	DeclarationNames() []string
 }
 
+// A Constant is used when importing predefined packages. The constant value can
+// be expressed using the value field if there is a Go predeclared type that can
+// represent it, else the literal field is used to keep the string
+// representation of it.
 type Constant struct {
 	value   interface{}
 	literal string
