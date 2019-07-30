@@ -541,7 +541,7 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Field
 		case OpField:
-			i := decodeFieldIndex(vm.fn.Constants.Int[b])
+			i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
 			v := reflect.ValueOf(vm.general(a)).FieldByIndex(i)
 			vm.setFromReflectValue(c, v)
 
@@ -1475,7 +1475,7 @@ func (vm *VM) run() (uint32, bool) {
 
 		// SetField
 		case OpSetField, -OpSetField:
-			i := decodeFieldIndex(vm.fn.Constants.Int[b])
+			i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
 			v := reflect.New(reflect.TypeOf(vm.general(c))).Elem()
 			vm.getIntoReflectValue(c, v, false)
 			vm.getIntoReflectValue(a, v.FieldByIndex(i), op < 0)

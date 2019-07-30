@@ -310,7 +310,7 @@ func (vm *VM) general(r int8) interface{} {
 
 func (vm *VM) generalk(r int8, k bool) interface{} {
 	if k {
-		return vm.fn.Constants.General[r]
+		return vm.fn.Constants.General[uint8(r)]
 	}
 	if r > 0 {
 		return vm.regs.general[vm.fp[3]+uint32(r)]
