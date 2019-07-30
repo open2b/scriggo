@@ -1549,15 +1549,18 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 					name := kv.Key.(*ast.Identifier).Name
 					field, _ := typ.FieldByName(name)
 					valueType := em.ti(kv.Value).Type
-					var value int8
 					if sameRegType(field.Type.Kind(), valueType.Kind()) {
-						value = em.emitExpr(kv.Value, valueType)
+						value := em.emitExpr(kv.Value, valueType)
+						fieldConstIndex := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+						em.fb.emitSetField(false, tmp, fieldConstIndex, value)
 					} else {
-						panic("TODO: not implemented") // TODO(Gianluca): to implement.
+						tmpValue := em.emitExpr(kv.Value, valueType)
+						value := em.fb.newRegister(field.Type.Kind())
+						em.changeRegister(false, tmpValue, value, valueType, field.Type)
+						fieldConstIndex := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+						em.fb.emitSetField(false, tmp, fieldConstIndex, value)
 					}
 					// TODO(Gianluca): use field "k" of SetField.
-					fieldConstIndex := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
-					em.fb.emitSetField(false, tmp, fieldConstIndex, value)
 				}
 			}
 			em.changeRegister(false, tmp, reg, tmpTyp, dstType)
