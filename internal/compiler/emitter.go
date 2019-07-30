@@ -369,7 +369,7 @@ func (em *emitter) prepareCallParameters(typ reflect.Type, args []ast.Expression
 		}
 	} else { // No-variadic function.
 		if numIn > 1 && len(args) == 1 { // f(g()), where f takes more than 1 argument.
-			regs, types := em.emitCall(args[0].(*ast.Call))
+			regs, types := em.emitCallNode(args[0].(*ast.Call))
 			for i := range regs {
 				dstType := typ.In(i)
 				reg := em.fb.newRegister(dstType.Kind())
@@ -426,9 +426,9 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 	return
 }
 
-// emitCall emits instructions for a function call. It returns the registers
-// and the reflect types of the returned values.
-func (em *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
+// emitCallNode emits instructions for a function call node. It returns the
+// registers and the reflect types of the returned values.
+func (em *emitter) emitCallNode(call *ast.Call) ([]int8, []reflect.Type) {
 
 	ti := em.ti(call.Func)
 	typ := ti.Type
@@ -1478,7 +1478,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 		// Function call.
 		em.fb.enterStack()
-		regs, types := em.emitCall(expr)
+		regs, types := em.emitCallNode(expr)
 		if reg != 0 {
 			em.changeRegister(false, regs[0], reg, types[0], dstType)
 		}
