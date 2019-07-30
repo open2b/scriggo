@@ -127,6 +127,22 @@ func (em *emitter) assign(addresses []address, values []ast.Expression) {
 			em.fb.emitMove(true, 0, ok, reflect.Bool)
 			addresses[0].assign(false, result, typ)
 			addresses[1].assign(false, ok, okType)
+		case *ast.UnaryOperator:
+			if valueExpr.Operator() == ast.OperatorReceive {
+				chanType := em.ti(valueExpr.Expr).Type
+				valueType := em.ti(valueExpr).Type
+				okType := addresses[1].staticType
+				chann := em.emitExpr(valueExpr.Expr, chanType)
+				ok := em.fb.newRegister(reflect.Bool)
+				value := em.fb.newRegister(valueType.Kind())
+				em.fb.emitReceive(chann, ok, value)
+				addresses[0].assign(false, value, valueType)
+				addresses[1].assign(false, ok, okType)
+			} else {
+				panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			}
+		default:
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		}
 	}
 }

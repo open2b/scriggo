@@ -123,6 +123,22 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "reading from a channel on assignment (ok)",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			ch := make(chan int, 4)
+			ch <- 42
+			v, ok := <-ch
+			fmt.Print(v, ok)
+		}
+		`,
+		out: `42 true`,
+	},
+
+	{
 		name: "writing and reading on a channel on a for loop",
 		src: `package main
 
