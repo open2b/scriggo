@@ -1020,13 +1020,11 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				endIfLabel := em.fb.newLabel()
 				em.fb.emitGoto(endIfLabel)
 				em.fb.setLabelAddr(elseLabel)
-				if node.Else != nil {
-					switch els := node.Else.(type) {
-					case *ast.If:
-						em.emitNodes([]ast.Node{els})
-					case *ast.Block:
-						em.emitNodes(els.Nodes)
-					}
+				switch els := node.Else.(type) {
+				case *ast.If:
+					em.emitNodes([]ast.Node{els})
+				case *ast.Block:
+					em.emitNodes(els.Nodes)
 				}
 				em.fb.setLabelAddr(endIfLabel)
 			}
