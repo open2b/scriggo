@@ -824,6 +824,7 @@ func (vm *VM) startGoroutine() bool {
 		return true
 	}
 	nvm := create(vm.env)
+	vm.pc++
 	off := vm.fn.Body[vm.pc]
 	copy(nvm.regs.int, vm.regs.int[vm.fp[0]+uint32(off.Op):vm.fp[0]+127])
 	copy(nvm.regs.float, vm.regs.float[vm.fp[1]+uint32(off.A):vm.fp[1]+127])

@@ -122,6 +122,24 @@ var stmtTests = []struct {
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "https://github.com/open2b/scriggo/issues/228",
+		src: `package main
+
+		import (
+			"fmt"
+			"time"
+		)
+		
+		func main() {
+			go func() {
+				fmt.Print("func literal")
+			}()
+			time.Sleep(1 * time.Millisecond)
+		}`,
+		out: "func literal",
+	},
+
+	{
 		name: "Function that send an element to a channel",
 		src: `package main
 
