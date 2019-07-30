@@ -824,7 +824,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				continue
 			}
 			if em.isPredeclaredBuiltinFunc(node.Call.Func) {
-				panic("TODO: not implemented") // TODO(Gianluca): to implement.
+				panic("TODO: https://github.com/open2b/scriggo/issues/233") // TODO(Gianluca): not implemented.
 			}
 			em.fb.enterStack()
 			_, _ = em.emitCallNode(node.Call, true)
