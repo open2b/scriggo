@@ -122,6 +122,46 @@ var stmtTests = []struct {
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Function that send an element to a channel",
+		src: `package main
+
+		import (
+			"fmt"
+			"time"
+		)
+		
+		func addInt(c chan int) {
+			time.Sleep(time.Millisecond)
+			c <- 42
+		}
+		
+		func main() {
+			ch := make(chan int, 10)
+			go addInt(ch)
+			fmt.Print("waiting")
+			fmt.Print(<-ch)
+		}`,
+		out: `waiting42`,
+	},
+
+	{
+		name: "Receiving from channel and putting result in a register with different kind",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			ch := make(chan int, 10)
+			ch <- 42
+			fmt.Print(<-ch)
+		}
+		`,
+		out: `42`,
+	},
+
+	{
 		name: "channel receiving statement",
 		src: `package main
 

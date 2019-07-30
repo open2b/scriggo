@@ -1614,7 +1614,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 	case *ast.UnaryOperator:
 
-		// Receive operation on channels
+		// Receive operation on channel.
 		//
 		//	v     = <- ch
 		//  v, ok = <- ch
@@ -1631,7 +1631,10 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				em.fb.emitReceive(chann, 0, reg)
 				return reg, false
 			}
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			tmp := em.fb.newRegister(valueType.Kind())
+			em.fb.emitReceive(chann, 0, tmp)
+			em.changeRegister(false, tmp, reg, valueType, dstType)
+			return reg, false
 		}
 
 		// Unary operation (negation) on a complex number.
