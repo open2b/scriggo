@@ -611,7 +611,7 @@ func registerKindToLabel(kind vm.Kind) string {
 	case vm.String:
 		return "s"
 	case vm.Unknown:
-		return "r"
+		return "?" // TODO(Gianluca): review.
 	default:
 		return "g"
 	}
