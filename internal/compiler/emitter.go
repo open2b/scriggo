@@ -1614,6 +1614,18 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 	case *ast.UnaryOperator:
 
+		// Receive operation on channels (expression).
+		if expr.Operator() == ast.OperatorReceive {
+			chanType := em.ti(expr.Expr).Type
+			valueType := em.ti(expr).Type
+			if sameRegType(valueType.Kind(), dstType.Kind()) {
+				chann := em.emitExpr(expr.Expr, chanType)
+				em.fb.emitReceive(chann, 0, reg)
+				return reg, false
+			}
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		}
+
 		// Unary operation (negation) on a complex number.
 		if exprType := em.ti(expr).Type; exprType.Kind() == reflect.Complex64 || exprType.Kind() == reflect.Complex128 {
 			if expr.Operator() != ast.OperatorSubtraction {
@@ -1707,13 +1719,6 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			em.changeRegister(false, tmp, reg, exprType, dstType)
 			em.fb.exitStack()
 
-		case ast.OperatorReceive:
-			if sameRegType(typ.Kind(), dstType.Kind()) {
-				chann := em.emitExpr(expr.Expr, exprType)
-				em.fb.emitReceive(chann, 0, reg)
-				return reg, false
-			}
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		default:
 			panic(fmt.Errorf("TODO: not implemented operator %s", expr.Operator()))
 		}
