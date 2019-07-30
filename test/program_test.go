@@ -121,6 +121,31 @@ var stmtTests = []struct {
 	err        interface{} // error.
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
+
+	{
+		name: "arguments of function in go statement must be evaluated immediately",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func arg() int {
+			fmt.Print("arg")
+			return 1
+		}
+		
+		func f(int) {}
+		
+		func main() {
+			fmt.Print("pre, ")
+			go f(arg())
+			fmt.Print(", post")
+		}
+		`,
+		out: `pre, arg, post`,
+	},
+
 	{
 		name: "https://github.com/open2b/scriggo/issues/228",
 		src: `package main
