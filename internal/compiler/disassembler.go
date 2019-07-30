@@ -439,7 +439,7 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 	case vm.OpReceive:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Bool, false)
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
+		s += " " + disassembleOperand(fn, c, vm.Unknown, false)
 	case vm.OpRecover:
 		if c != 0 {
 			s += " " + disassembleOperand(fn, c, vm.Interface, false)
