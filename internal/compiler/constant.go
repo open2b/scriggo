@@ -651,7 +651,7 @@ func (c1 float64Const) representedBy(typ reflect.Type) (constant, error) {
 		if f := float32(c1); !math.IsInf(float64(f), 0) {
 			return float64Const(f), nil
 		}
-		return nil, fmt.Errorf("constant %s overflow %s", c1, typ)
+		return nil, fmt.Errorf("constant %s overflows %s", c1, typ)
 	case reflect.Float64, reflect.Complex128:
 		return c1, nil
 	}
