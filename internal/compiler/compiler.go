@@ -10,23 +10,23 @@
 //
 // Parsing is done using
 //
-//	ParseTemplate(..)
-//	ParseProgram(..)
-//	ParseScript(..)
+//  ParseProgram(..)
+//  ParseScript(..)
+//  ParseTemplate(..)
 //
 // Typechecking
 //
 // When parsing is done, tree can be type-checked by:
 //
-// 	Typecheck(...)
+//  Typecheck(...)
 //
 // Emitting
 //
-// To emit a type-checked tree, use:
+// To emit a tree after it has been type checked, use:
 //
-//  EmitTemplate(..)
 //  EmitPackageMain(..)
 //  EmitScript(..)
+//  EmitTemplate(..)
 //
 package compiler
 
