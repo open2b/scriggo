@@ -1196,11 +1196,11 @@ func convertToConstant(value interface{}) constant {
 	return nil
 }
 
-// parseConstant parses a constant and if the parsing was successful returns
-// the constant kind and value. The string can be a basic literal, "true",
-// "false" or "a/b" where a and b are integers.
+// parseConstant parses a string s representing a constant and returns the
+// constant and its type. s can be a basic literal, "true", "false" or "a/b"
+// with a and b integers.
 //
-// If the string cannot be parsed, it returns the error strconv.ErrSyntax.
+// If the string s cannot be parsed, it returns the error strconv.ErrSyntax.
 func parseConstant(s string) (constant, reflect.Type, error) {
 	if len(s) == 0 {
 		return nil, nil, strconv.ErrSyntax
