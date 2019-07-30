@@ -634,7 +634,7 @@ func disassembleOperand(fn *vm.Function, op int8, kind vm.Kind, constant bool) s
 		case kind == vm.String:
 			return strconv.Quote(fn.Constants.String[uint8(op)])
 		case kind == vm.Unknown:
-			return "(unkown constant)"
+			return "?"
 		default:
 			v := fn.Constants.General[uint8(op)]
 			if v == nil {
