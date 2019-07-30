@@ -123,6 +123,61 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Calling a method defined on pointer on a non-pointer value",
+		src: `package main
+
+		import (
+			"bytes"
+			"fmt"
+		)
+
+		func main() {
+			b := *bytes.NewBuffer([]byte{97, 98, 99})
+			fmt.Printf("b has type %T", b)
+			l := b.Len()
+			fmt.Print(", l is ", l)
+		}
+		`,
+		out: `b has type bytes.Buffer, l is 3`,
+	},
+
+	{
+		name: "Method value (assignment and call)",
+		src: `package main
+
+		import (
+			"bytes"
+			"fmt"
+		)
+
+		func main() {
+			b := bytes.NewBuffer([]byte{97, 98, 99})
+			lenMethod := b.Len
+			l := lenMethod()
+			fmt.Print("l is ", l)
+		}
+		`,
+		out: "l is 3",
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/142",
+		src: `package main
+
+		import (
+			"bytes"
+			"fmt"
+		)
+		
+		func main() {
+			b := bytes.NewBufferString("message")
+			l := (*bytes.Buffer).Len(b)
+			fmt.Print("length of ", b, " is ", l)
+		}`,
+		out: "length of message is 7",
+	},
+
+	{
 		name: "https://github.com/open2b/scriggo/issues/100",
 		src: `package main
 	
