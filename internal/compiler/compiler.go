@@ -140,10 +140,14 @@ func (e *CheckingError) Error() string {
 // (program or template import/extend).
 // tree may be altered during the type checking.
 func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map[string]*PackageInfo, error) {
+
 	if opts.SyntaxType == 0 {
 		panic("unspecified syntax type")
 	}
+
 	deps := AnalyzeTree(tree, opts.SyntaxType)
+
+	// Type check a program.
 	if opts.SyntaxType == ProgramSyntax {
 		pkgInfos := map[string]*PackageInfo{}
 		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, packages, pkgInfos, opts)
@@ -152,6 +156,8 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 		}
 		return pkgInfos, nil
 	}
+
+	// Prepare type checking for scripts and templates.
 	tc := newTypechecker(tree.Path, opts)
 	if packages != nil {
 		main, err := packages.Load("main")
@@ -162,44 +168,55 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 			tc.scopes = append(tc.scopes, toTypeCheckerScope(main.(predefinedPackage)))
 		}
 	}
-	if opts.SyntaxType == TemplateSyntax {
-		if extends, ok := tree.Nodes[0].(*ast.Extends); ok {
-			for _, d := range tree.Nodes[1:] {
-				if m, ok := d.(*ast.Macro); ok {
-					f := macroToFunc(m)
-					tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: tc.checkType(f.Type).Type}}
-				}
+
+	// Type check a template page which extends another page.
+	if extends, ok := tree.Nodes[0].(*ast.Extends); ok {
+		// First: all macro definitions in extending pages are declared but not
+		// inizialized. This is necessary because the extended page can refer to
+		// macro defined in the extending one, but these macro can contain
+		// references to variables defined outside them.
+		for _, d := range tree.Nodes[1:] {
+			if m, ok := d.(*ast.Macro); ok {
+				f := macroToFunc(m)
+				tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: tc.checkType(f.Type).Type}}
 			}
-			currentPath := tc.path
-			tc.path = extends.Tree.Path
-			err := tc.checkNodesInNewScopeError(extends.Tree.Nodes)
-			if err != nil {
-				return nil, err
-			}
-			tc.path = currentPath
-			err = tc.templateToPackage(tree, tree.Path)
-			if err != nil {
-				return nil, err
-			}
-			pkgInfos := map[string]*PackageInfo{}
-			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, nil, pkgInfos, opts)
-			if err != nil {
-				return nil, err
-			}
-			mainPkgInfo := &PackageInfo{}
-			mainPkgInfo.IndirectVars = tc.indirectVars
-			mainPkgInfo.TypeInfos = tc.typeInfos
-			for _, pkgInfo := range pkgInfos {
-				for k, v := range pkgInfo.TypeInfos {
-					mainPkgInfo.TypeInfos[k] = v
-				}
-				for k, v := range pkgInfo.IndirectVars {
-					mainPkgInfo.IndirectVars[k] = v
-				}
-			}
-			return map[string]*PackageInfo{"main": mainPkgInfo}, nil
 		}
+		// Second: type check the extended page in a new scope.
+		currentPath := tc.path
+		tc.path = extends.Tree.Path
+		err := tc.checkNodesInNewScopeError(extends.Tree.Nodes)
+		if err != nil {
+			return nil, err
+		}
+		tc.path = currentPath
+		// Third: extending page is converted to a "package", that means that
+		// out of order initialization is allowed and only certain statements
+		// are permitted.
+		err = tc.templateToPackage(tree, tree.Path)
+		if err != nil {
+			return nil, err
+		}
+		pkgInfos := map[string]*PackageInfo{}
+		err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, nil, pkgInfos, opts)
+		if err != nil {
+			return nil, err
+		}
+		// Collect data from the type checker and return it.
+		mainPkgInfo := &PackageInfo{}
+		mainPkgInfo.IndirectVars = tc.indirectVars
+		mainPkgInfo.TypeInfos = tc.typeInfos
+		for _, pkgInfo := range pkgInfos {
+			for k, v := range pkgInfo.TypeInfos {
+				mainPkgInfo.TypeInfos[k] = v
+			}
+			for k, v := range pkgInfo.IndirectVars {
+				mainPkgInfo.IndirectVars[k] = v
+			}
+		}
+		return map[string]*PackageInfo{"main": mainPkgInfo}, nil
 	}
+
+	// Type check a template page or a script.
 	tc.predefinedPkgs = packages
 	err := tc.checkNodesInNewScopeError(tree.Nodes)
 	if err != nil {
