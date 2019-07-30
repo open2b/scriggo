@@ -803,41 +803,36 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			}
 			em.fb.emitContinue(em.rangeLabels[len(em.rangeLabels)-1][0])
 
-		case *ast.Defer, *ast.Go:
-			if def, ok := node.(*ast.Defer); ok {
-				if em.isPredeclaredBuiltinFunc(def.Call.Func) {
-					ident := def.Call.Func.(*ast.Identifier)
-					if ident.Name == "recover" {
-						continue
-					} else {
-						// TODO(Gianluca): builtins (except recover)
-						// must be incapsulated inside a function
-						// literal call when deferring (or starting
-						// a goroutine?). For example
-						//
-						//	defer copy(dst, src)
-						//
-						// should be compiled into
-						//
-						// 	defer func() {
-						// 		copy(dst, src)
-						// 	}()
-						//
-						panic("TODO(Gianluca): not implemented")
-					}
+		case *ast.Go:
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+
+		case *ast.Defer:
+			if em.isPredeclaredBuiltinFunc(node.Call.Func) {
+				ident := node.Call.Func.(*ast.Identifier)
+				if ident.Name == "recover" {
+					continue
+				} else {
+					// TODO(Gianluca): builtins (except recover)
+					// must be incapsulated inside a function
+					// literal call when deferring (or starting
+					// a goroutine?). For example
+					//
+					//	defer copy(dst, src)
+					//
+					// should be compiled into
+					//
+					// 	defer func() {
+					// 		copy(dst, src)
+					// 	}()
+					//
+					panic("TODO(Gianluca): not implemented")
 				}
 			}
 			fun := em.fb.newRegister(reflect.Func)
 			var fnNode ast.Expression
 			var args []ast.Expression
-			switch node := node.(type) {
-			case *ast.Defer:
-				fnNode = node.Call.Func
-				args = node.Call.Args
-			case *ast.Go:
-				fnNode = node.Call.Func
-				args = node.Call.Args
-			}
+			fnNode = node.Call.Func
+			args = node.Call.Args
 			funType := em.ti(fnNode).Type
 			em.emitExprR(fnNode, em.ti(fnNode).Type, fun)
 			offset := em.fb.currentStackShift()
@@ -849,13 +844,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			// and starting goroutines with no arguments and no return
 			// parameters.
 			argsShift := vm.StackShift{}
-			switch node.(type) {
-			case *ast.Defer:
-				em.fb.emitDefer(fun, vm.NoVariadic, offset, argsShift)
-			case *ast.Go:
-				// TODO(Gianluca):
-				em.fb.emitGo()
-			}
+			em.fb.emitDefer(fun, vm.NoVariadic, offset, argsShift)
 
 		case *ast.Import:
 			if em.isTemplate {
