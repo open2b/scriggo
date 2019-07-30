@@ -369,7 +369,7 @@ func (em *emitter) prepareCallParameters(typ reflect.Type, args []ast.Expression
 		}
 	} else { // No-variadic function.
 		if numIn > 1 && len(args) == 1 { // f(g()), where f takes more than 1 argument.
-			regs, types := em.emitCallNode(args[0].(*ast.Call))
+			regs, types := em.emitCallNode(args[0].(*ast.Call), false)
 			for i := range regs {
 				dstType := typ.In(i)
 				reg := em.fb.newRegister(dstType.Kind())
@@ -428,7 +428,7 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 
 // emitCallNode emits instructions for a function call node. It returns the
 // registers and the reflect types of the returned values.
-func (em *emitter) emitCallNode(call *ast.Call) ([]int8, []reflect.Type) {
+func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.Type) {
 
 	ti := em.ti(call.Func)
 	typ := ti.Type
@@ -450,6 +450,9 @@ func (em *emitter) emitCallNode(call *ast.Call) ([]int8, []reflect.Type) {
 		stackShift := em.fb.currentStackShift()
 		regs, types := em.prepareCallParameters(typ, call.Args, true, true)
 		// TODO(Gianluca): handle variadic method calls.
+		if goStmt {
+			em.fb.emitGo()
+		}
 		em.fb.emitCallIndirect(method, 0, stackShift)
 		return regs, types
 	}
@@ -470,6 +473,9 @@ func (em *emitter) emitCallNode(call *ast.Call) ([]int8, []reflect.Type) {
 			name = f.Ident
 		}
 		index := em.predFuncIndex(ti.value.(reflect.Value), ti.PredefPackageName, name)
+		if goStmt {
+			em.fb.emitGo()
+		}
 		if typ.IsVariadic() {
 			numVar := len(call.Args) - (typ.NumIn() - 1)
 			em.fb.emitCallPredefined(index, int8(numVar), stackShift)
@@ -485,6 +491,9 @@ func (em *emitter) emitCallNode(call *ast.Call) ([]int8, []reflect.Type) {
 			stackShift := em.fb.currentStackShift()
 			regs, types := em.prepareCallParameters(fn.Type, call.Args, false, false)
 			index := em.functionIndex(fn)
+			if goStmt {
+				em.fb.emitGo()
+			}
 			em.fb.emitCall(index, stackShift, call.Pos().Line)
 			return regs, types
 		}
@@ -497,6 +506,9 @@ func (em *emitter) emitCallNode(call *ast.Call) ([]int8, []reflect.Type) {
 				stackShift := em.fb.currentStackShift()
 				regs, types := em.prepareCallParameters(fun.Type, call.Args, false, false)
 				index := em.functionIndex(fun)
+				if goStmt {
+					em.fb.emitGo()
+				}
 				em.fb.emitCall(index, stackShift, call.Pos().Line)
 				return regs, types
 			}
@@ -510,6 +522,9 @@ func (em *emitter) emitCallNode(call *ast.Call) ([]int8, []reflect.Type) {
 	numVar := vm.NoVariadic
 	if typ.IsVariadic() {
 		numVar = len(call.Args) - (typ.NumIn() - 1)
+	}
+	if goStmt {
+		em.fb.emitGo()
 	}
 	em.fb.emitCallIndirect(reg, int8(numVar), stackShift)
 
@@ -804,7 +819,16 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.emitContinue(em.rangeLabels[len(em.rangeLabels)-1][0])
 
 		case *ast.Go:
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			if em.ti(node.Call.Func) == showMacroIgnoredTi {
+				// Nothing to do
+				continue
+			}
+			if em.isPredeclaredBuiltinFunc(node.Call.Func) {
+				panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			}
+			em.fb.enterStack()
+			_, _ = em.emitCallNode(node.Call, true)
+			em.fb.exitStack()
 
 		case *ast.Defer:
 			if em.isPredeclaredBuiltinFunc(node.Call.Func) {
@@ -1467,7 +1491,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 		// Function call.
 		em.fb.enterStack()
-		regs, types := em.emitCallNode(expr)
+		regs, types := em.emitCallNode(expr, false)
 		if reg != 0 {
 			em.changeRegister(false, regs[0], reg, types[0], dstType)
 		}

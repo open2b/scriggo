@@ -123,6 +123,44 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "go statement with package function",
+		src: `package main
+
+		import (
+			"fmt"
+			"time"
+		)
+		
+		func f() {
+			fmt.Print("package function")
+		}
+		
+		func main() {
+			go f()
+			time.Sleep(1 * time.Millisecond)
+		}
+		`,
+		out: "package function",
+	},
+
+	{
+		name: "go statement with predefined function",
+		src: `package main
+
+		import (
+			"fmt"
+			"time"
+		)
+		
+		func main() {
+			go fmt.Print("hello")
+			time.Sleep(1 * time.Millisecond)
+		}
+		`,
+		out: `hello`,
+	},
+
+	{
 		name: "Calling a method defined on pointer on a non-pointer value",
 		src: `package main
 
