@@ -13,14 +13,12 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
-	"time"
 
 	"scriggo"
 )
@@ -203,32 +201,43 @@ func main() {
 		if err != nil {
 			fatal(err)
 		}
+		if *verbose {
+			shortPath := strings.TrimPrefix(path, "sources/")
+			fmt.Printf("%s", shortPath)
+			for i := len(shortPath); i < 50; i++ {
+				fmt.Print(" ")
+			}
+		}
 		switch mode(src) {
+
 		case "skip":
 			continue
+
 		case "errcmp":
-			log.Printf("█ [DEBUG] █ not implemented errcmp") // TODO(Gianluca): remove.
-		case "ignore":
-			fmt.Println("ignoring file %s", path)
-			continue
-		case "compile":
-			log.Printf("█ [DEBUG] █ compile not supported") // TODO(Gianluca): remove.
-		case "run", "runcompare":
-			if *verbose {
-				fmt.Printf(strings.TrimPrefix(path, "sources"))
-			}
-			start := time.Now()
 			scriggoOut := runScriggoAndGetOutput(src)
-			if *verbose {
-				end := time.Now()
-				for i := len(path); i < 50; i++ {
-					fmt.Printf(" ")
-				}
-				fmt.Printf(" ok   %v", end.Sub(start))
-				fmt.Printf(" [%d%%]\n", int(math.Floor(float64(count)/float64(len(filepaths))*100)))
-			} else {
-				fmt.Printf("\r%d%% ", int(math.Floor(float64(count)/float64(len(filepaths))*100)))
+			goOut := runGoAndGetOutput(src)
+			if !scriggoOut.match(goOut) {
+				panic(fmt.Errorf("error on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut))
 			}
+			fmt.Println("errcmp")
+
+		case "ignore":
+			fmt.Println("ignored")
+			continue
+
+		case "compile":
+			_, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), &scriggo.LoadOptions{LimitMemorySize: true})
+			if err != nil {
+				panic(err.Error())
+			}
+			fmt.Println("compile")
+
+		case "run":
+			runScriggoAndGetOutput(src)
+			fmt.Println("run")
+
+		case "runcompare":
+			scriggoOut := runScriggoAndGetOutput(src)
 			goOut := runGoAndGetOutput(src)
 			if (scriggoOut.isErr() || goOut.isErr()) && !strings.Contains(path, "errors") {
 				fmt.Printf("\nTest %q returned an error, but source is not inside 'errors' directory\n", path)
@@ -242,6 +251,8 @@ func main() {
 			if !scriggoOut.match(goOut) {
 				panic(fmt.Errorf("error on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut))
 			}
+			fmt.Println("runcompare")
+
 		default:
 			panic(fmt.Errorf("file %s has no valid directives", path))
 		}
