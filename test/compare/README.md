@@ -1,7 +1,14 @@
 # Running tests
 
-1. Run `go generate` inside this package to populate file `packages.go`
-2. Build and run the executable. Use `-h` to see what options are available.
+From the command line:
+
+1. Move to current directory
+2. Run command `go generate`
+3. Run command `go build`
+4. Run command `./compare` (or `compare.exe` on Windows)
+
+Pass flag `-h` to the executable to see available options. You may whish to use the `-v` flag, which prints a verbose output.
+
 
 # Testing modes
 
