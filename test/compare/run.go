@@ -24,6 +24,7 @@ import (
 	"time"
 )
 
+// errorcheck executes the 'errorcheck' test on src.
 func errorcheck(src []byte) {
 	type stmt struct {
 		line string
@@ -252,49 +253,54 @@ func runGc(src []byte) output {
 	return parseOutputMessage(out)
 }
 
-const testsDir = "sources"
-
-func main() {
-
-	verbose := flag.Bool("v", false, "enable verbose output")
-	pattern := flag.String("p", "", "executes test whose path contains the given pattern")
-	flag.Parse()
-	testDirs, err := ioutil.ReadDir(testsDir)
-	if err != nil {
-		panic(err)
-	}
-	count := 0
-	maxPathLen := 0
+// getAllFilepaths returns a list of filepaths matching the given pattern.
+// If pattern is "", pattern matching is always assumed true.
+func getAllFilepaths(pattern string) []string {
+	const testsDir = "sources"
 	filepaths := []string{}
-	for _, dir := range testDirs {
-		if !dir.IsDir() {
-			panic(fmt.Errorf("%s is not a dir", dir))
-		}
-		files, err := ioutil.ReadDir(filepath.Join(testsDir, dir.Name()))
+	var re *regexp.Regexp
+	if pattern != "" {
+		re = regexp.MustCompile(pattern)
+	}
+	filepath.Walk(testsDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			panic(err)
 		}
-		for _, f := range files {
-			if !strings.HasSuffix(f.Name(), ".go") {
-				continue
+		if re != nil {
+			if !re.MatchString(path) {
+				return nil
 			}
-			path := filepath.Join(testsDir, dir.Name(), f.Name())
-			if *pattern != "" {
-				if !strings.Contains(path, *pattern) {
-					continue
-				}
-			}
+		}
+		if filepath.Ext(path) == ".go" {
 			filepaths = append(filepaths, path)
-			if len(path) > maxPathLen {
-				maxPathLen = len(path)
-			}
+		}
+		return nil
+	})
+	if len(filepaths) == 0 {
+		panic("specified pattern does not match any path")
+	}
+	return filepaths
+}
+
+func main() {
+
+	// Parse the command line arguments.
+	verbose := flag.Bool("v", false, "enable verbose output")
+	pattern := flag.String("p", "", "executes test whose path is matched by the given pattern. Regexp is supported, in the syntax of stdlib package 'regexp'")
+	flag.Parse()
+
+	// Get the list of all tests to run.
+	filepaths := getAllFilepaths(*pattern)
+
+	// Find the longest path in list: this is used later to format the output.
+	maxPathLen := 0
+	for _, fp := range filepaths {
+		if len(fp) > maxPathLen {
+			maxPathLen = len(fp)
 		}
 	}
 
-	if len(filepaths) == 0 {
-		panic("the specified pattern is not contained in any path")
-	}
-
+	count := 0
 	for _, path := range filepaths {
 		count++
 		src, err := ioutil.ReadFile(path)
