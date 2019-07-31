@@ -7,26 +7,19 @@
 
 Mode | Description
 ---|---
-`compile` | compile the source code using Scriggo and fails if it does not succeed.
-`errcmp` | compile the code and fails if it does not return an error of if error is different than the one returned by gc.
-`errorcheck` | compile the source code and check if errors indicated with `// ERROR` comments are reported by Scriggo.
+`compile` | compile the test, on fail return the error.
+`errcmp` | compile the test and fails if it does not return an error or if the error is different than the one returned by gc.
+`errorcheck` | compile the test and fail if the errors indicated with `// ERROR` comments are not returned by Scriggo.
 `ignore` | ignore the test. This is the preferred way to ignore a test (for example it cannot be run due to a bug). Note that an ignore directive can be put before any other directive, without the needing to remove them first.
-`run` | execute the code and fails if it does not succeed. Output is not checked.
-`runcmp` | execute the code and fails if it does not succeed or if output is different from the one of gc.
+`run` | run the test and fails if it does not succeed. Output is not checked.
+`runcmp` | run the code and fails if it does not succeed or if the output is different from the one of gc.
 `skip` | skip the test. This is for compatibility with gc tests, and should not be used to skip tests.
 
 # Go tests from https://github.com/golang/go/
 
 Directory `sources/github.com-golang-go` contains tests taken from
 [https://github.com/golang/go/tree/master/test](https://github.com/golang/go/tree/master/test).
-Such tests should be changed as little as possibile; the content of the
-directory can be updated from the upstream without any notice.
-
-If one of those tests fails, you can:
-
-1. add the `// ignore` directive at the top of the file
-2. remove the file
-3. comment the portion of the file which makes the test fail
+Such tests should be changed only when necessary to run the test with Scriggo successfully.
 
 ## License
 
