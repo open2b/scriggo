@@ -32,14 +32,12 @@ If you want, for example, test a source code with the mode **errorcheck**, the f
 
 Only one mode per test is supported.
 
-Mode | Description
+Mode | Expected behaviour
 ---|---
-**compile** | compile the test, on fail return the error.
-**errcmp** | compile the test and fails if it does not return an error or if the error is different than the one returned by gc.
-**errorcheck** | compile the test and fail if the errors indicated with `// ERROR` comments are not returned by Scriggo.
-**run** | run the test and fails if it does not succeed. Output is not checked.
-**runcmp** | run the code and fails if it does not succeed or if the output is different from the one of gc.
-**skip** | skip the test. This is for compatibility with gc tests, and should not be used to skip tests.
+**compile** | Fail if the test cannot be compiled.
+**errorcheck** | Fail if any error indicated in the `// ERROR` comments is not returned by the compiler
+**run** | Fail if the test panics or if the output doesn't match the one of gc.
+**skip** | Nothing. The test is skipped.
 
 # Go tests from https://github.com/golang/go/
 
