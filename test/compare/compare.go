@@ -24,6 +24,52 @@ import (
 	"time"
 )
 
+func errorcheck(src []byte) {
+	type stmt struct {
+		line string
+		err  *string
+	}
+	stmts := []stmt{}
+	errorLines := []int{}
+	for i, l := range strings.Split(string(src), "\n") {
+		if index := strings.Index(l, "// ERROR "); index != -1 {
+			err := l[index:]
+			err = strings.TrimPrefix(err, "// ERROR ")
+			err = strings.TrimPrefix(err, `"`)
+			err = strings.TrimSuffix(err, `"`)
+			stmts = append(stmts, stmt{line: l[:index], err: &err})
+			errorLines = append(errorLines, i)
+		} else {
+			stmts = append(stmts, stmt{line: l, err: nil})
+		}
+	}
+	if len(errorLines) == 0 {
+		panic("no // ERROR comments found")
+	}
+	for _, errorLine := range errorLines {
+		cleanSrc := &bytes.Buffer{}
+		var expectedErr string
+		for stmtLine, stmt := range stmts {
+			if stmt.err == nil {
+				cleanSrc.WriteString(stmt.line + "\n")
+			} else {
+				if stmtLine == errorLine {
+					expectedErr = *stmt.err
+					cleanSrc.WriteString(stmt.line + "\n")
+				}
+			}
+		}
+		out := runScriggo(cleanSrc.Bytes())
+		if !out.isErr() {
+			panic(fmt.Errorf("expected error %q, got %q", expectedErr, out.String()))
+		}
+		re := regexp.MustCompile(expectedErr)
+		if !re.MatchString(out.String()) {
+			panic(fmt.Errorf("error does not match:\n\n\texpecting:  %s\n\tgot:        %s", expectedErr, out.String()))
+		}
+	}
+}
+
 // mode reports the mode associated to src. If no modes are specified, an empty
 // string is returned.
 func mode(src []byte) string {
@@ -211,7 +257,7 @@ const testsDir = "sources"
 func main() {
 
 	verbose := flag.Bool("v", false, "enable verbose output")
-	pattern := flag.String("p", "", "only execute path that match pattern")
+	pattern := flag.String("p", "", "executes test whose path contains the given pattern")
 	flag.Parse()
 	testDirs, err := ioutil.ReadDir(testsDir)
 	if err != nil {
@@ -242,8 +288,7 @@ func main() {
 	}
 
 	if len(filepaths) == 0 {
-		fmt.Printf("warning: no matches for pattern %q\n", *pattern)
-		os.Exit(0)
+		panic("the specified pattern is not contained in any path")
 	}
 
 	for _, path := range filepaths {
@@ -275,8 +320,8 @@ func main() {
 
 		directive := mode(src)
 		switch directive {
-		case "errcheck":
-			panic("errcheck is currently not implemented")
+		case "errorcheck":
+			errorcheck(src)
 		case "skip", "ignore":
 		case "errcmp":
 			t.start()
@@ -296,7 +341,9 @@ func main() {
 				panic("Scriggo and gc returned two different errors" + outputDetails(scriggoOut, gcOut))
 			}
 		case "compile":
+			t.start()
 			_, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), &scriggo.LoadOptions{LimitMemorySize: true})
+			t.stop()
 			if err != nil {
 				panic(err.Error())
 			}
