@@ -1,4 +1,4 @@
-// ignore
+// skip
 
 
 // _Switch statements_ express conditionals across many

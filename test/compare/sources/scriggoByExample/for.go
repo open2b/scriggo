@@ -1,4 +1,4 @@
-// ignore
+// skip
 
 
 // `for` is Go's only looping construct. Here are

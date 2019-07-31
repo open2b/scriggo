@@ -1,4 +1,4 @@
-// ignore
+// skip
 
 
 // [_SHA1 hashes_](http://en.wikipedia.org/wiki/SHA-1) are

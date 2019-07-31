@@ -336,7 +336,8 @@ func main() {
 			t.start()
 			errorcheck(src)
 			t.stop()
-		case "skip", "ignore":
+		case "skip":
+			// Do nothing.
 		case "errcmp":
 			t.start()
 			scriggoOut := runScriggo(src)
@@ -391,12 +392,9 @@ func main() {
 
 		// Test is completed, print some output and go to next.
 		if *verbose {
-			switch directive {
-			case "ignore":
-				fmt.Println("[ ignored ]")
-			case "skip":
+			if directive == "skip" {
 				fmt.Println("[ skipped ]")
-			default:
+			} else {
 				fmt.Printf("ok     (%s)", directive)
 				for i := len(directive); i < 15; i++ {
 					fmt.Print(" ")

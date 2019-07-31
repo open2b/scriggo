@@ -1,4 +1,4 @@
-// ignore
+// skip
 
 
 // The standard library's `strings` package provides many

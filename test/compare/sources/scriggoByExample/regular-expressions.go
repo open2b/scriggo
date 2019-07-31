@@ -1,4 +1,4 @@
-// ignore
+// skip
 
 
 // Go offers built-in support for [regular expressions](http://en.wikipedia.org/wiki/Regular_expression).

@@ -10,7 +10,6 @@ Mode | Description
 `compile` | compile the test, on fail return the error.
 `errcmp` | compile the test and fails if it does not return an error or if the error is different than the one returned by gc.
 `errorcheck` | compile the test and fail if the errors indicated with `// ERROR` comments are not returned by Scriggo.
-`ignore` | ignore the test. This is the preferred way to ignore a test (for example it cannot be run due to a bug). Note that an ignore directive can be put before any other directive, without the needing to remove them first.
 `run` | run the test and fails if it does not succeed. Output is not checked.
 `runcmp` | run the code and fails if it does not succeed or if the output is different from the one of gc.
 `skip` | skip the test. This is for compatibility with gc tests, and should not be used to skip tests.

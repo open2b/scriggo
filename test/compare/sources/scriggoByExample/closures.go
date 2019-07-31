@@ -1,4 +1,4 @@
-// ignore
+// skip
 
 
 // Go supports [_anonymous functions_](http://en.wikipedia.org/wiki/Anonymous_function),
