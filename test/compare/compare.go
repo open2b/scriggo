@@ -183,9 +183,6 @@ func main() {
 				continue
 			}
 			path := filepath.Join(testsDir, dir.Name(), f.Name())
-			if strings.Contains(path, "_ignore_") {
-				continue
-			}
 			if *pattern != "" {
 				if !strings.Contains(path, *pattern) {
 					continue
@@ -205,6 +202,10 @@ func main() {
 		src, err := ioutil.ReadFile(path)
 		if err != nil {
 			fatal(err)
+		}
+		switch mode(src) {
+		case "ignore":
+			continue
 		}
 		if *verbose {
 			fmt.Printf(strings.TrimPrefix(path, "sources"))
