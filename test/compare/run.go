@@ -290,7 +290,12 @@ func main() {
 	// Parse the command line arguments.
 	verbose := flag.Bool("v", false, "enable verbose output")
 	pattern := flag.String("p", "", "executes test whose path is matched by the given pattern. Regexp is supported, in the syntax of stdlib package 'regexp'")
+	time := flag.Bool("t", false, "show time elapsed between the beginning and the ending of every test")
 	flag.Parse()
+
+	if *time && !*verbose {
+		panic("flag -t requires flag -v")
+	}
 
 	// Get the list of all tests to run.
 	filepaths := getAllFilepaths(*pattern)
@@ -399,7 +404,11 @@ func main() {
 				for i := len(directive); i < 15; i++ {
 					fmt.Print(" ")
 				}
-				fmt.Println(t.delta())
+				if *time {
+					fmt.Println(t.delta())
+				} else {
+					fmt.Println("")
+				}
 			}
 		}
 
