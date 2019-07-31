@@ -13,15 +13,33 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"scriggo"
+	"strconv"
 	"strings"
 	"sync"
-
-	"scriggo"
+	"time"
 )
+
+func mode(src []byte) string {
+	for _, l := range strings.Split(string(src), "\n") {
+		l = strings.TrimSpace(l)
+		if l == "" {
+			continue
+		}
+		if !strings.HasPrefix(l, "//") {
+			return ""
+		}
+		l = strings.TrimPrefix(l, "//")
+		l = strings.TrimSpace(l)
+		return l
+	}
+	panic("no directives found")
+}
 
 //go:generate scriggo embed -v -o packages.go
 var packages scriggo.Packages
@@ -30,6 +48,22 @@ type output struct {
 	path        string
 	column, row string
 	msg         string
+}
+
+type timer struct {
+	_start, _end time.Time
+}
+
+func (t *timer) start() {
+	t._start = time.Now()
+}
+
+func (t *timer) stop() {
+	t._end = time.Now()
+}
+
+func (t *timer) delta() string {
+	return fmt.Sprintf("%v", t._end.Sub(t._start))
 }
 
 func makeOutput(msg string) output {
@@ -201,43 +235,58 @@ func main() {
 		if err != nil {
 			fatal(err)
 		}
+
 		if *verbose {
+			perc := strconv.Itoa(int(math.Floor(float64(count) / float64(len(filepaths)) * 100)))
+			for i := len(perc); i < 3; i++ {
+				perc = " " + perc
+			}
+			perc = "[" + perc + "% ] "
+			fmt.Print(perc)
 			shortPath := strings.TrimPrefix(path, "sources/")
-			fmt.Printf("%s", shortPath)
+			fmt.Print(shortPath)
 			for i := len(shortPath); i < 50; i++ {
 				fmt.Print(" ")
 			}
 		}
-		switch mode(src) {
+
+		t := &timer{}
+
+		directive := mode(src)
+
+		switch directive {
+
+		case "errcheck":
+			panic("errcheck is currently not implemented")
 
 		case "skip":
-			continue
 
 		case "errcmp":
+			t.start()
 			scriggoOut := runScriggoAndGetOutput(src)
+			t.stop()
 			goOut := runGoAndGetOutput(src)
 			if !scriggoOut.match(goOut) {
 				panic(fmt.Errorf("error on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut))
 			}
-			fmt.Println("errcmp")
 
 		case "ignore":
-			fmt.Println("ignored")
-			continue
 
 		case "compile":
 			_, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), &scriggo.LoadOptions{LimitMemorySize: true})
 			if err != nil {
 				panic(err.Error())
 			}
-			fmt.Println("compile")
 
 		case "run":
+			t.start()
 			runScriggoAndGetOutput(src)
-			fmt.Println("run")
+			t.stop()
 
 		case "runcmp":
+			t.start()
 			scriggoOut := runScriggoAndGetOutput(src)
+			t.stop()
 			goOut := runGoAndGetOutput(src)
 			if (scriggoOut.isErr() || goOut.isErr()) && !strings.Contains(path, "errors") {
 				fmt.Printf("\nTest %q returned an error, but source is not inside 'errors' directory\n", path)
@@ -251,10 +300,22 @@ func main() {
 			if !scriggoOut.match(goOut) {
 				panic(fmt.Errorf("error on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut))
 			}
-			fmt.Println("runcmp")
 
 		default:
 			panic(fmt.Errorf("file %s has no valid directives", path))
+		}
+
+		switch directive {
+		case "ignore":
+			fmt.Println("[ ignored ]")
+		case "skip":
+			fmt.Println("[ skipped ]")
+		default:
+			fmt.Printf("ok     (%s)", directive)
+			for i := len(directive); i < 15; i++ {
+				fmt.Print(" ")
+			}
+			fmt.Println(t.delta())
 		}
 
 	}
