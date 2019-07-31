@@ -330,7 +330,9 @@ func main() {
 		directive := mode(src)
 		switch directive {
 		case "errorcheck":
+			t.start()
 			errorcheck(src)
+			t.stop()
 		case "skip", "ignore":
 		case "errcmp":
 			t.start()
