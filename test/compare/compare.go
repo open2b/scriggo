@@ -95,6 +95,7 @@ func (o output) String() string {
 // matchOutput reports whether two outputs are equal (i.e. if they are errors
 // then their errors must match, if not the output must match).
 func matchOutput(o, o2 output) bool {
+	// TODO(Gianluca): why column? Should it be row?
 	if o.column != o2.column {
 		return false
 	}
