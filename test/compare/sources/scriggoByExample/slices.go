@@ -1,4 +1,4 @@
-// runcompare
+// runcmp
 
 // _Slices_ are a key data type in Go, giving a more
 // powerful interface to sequences than arrays.

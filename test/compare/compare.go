@@ -236,7 +236,7 @@ func main() {
 			runScriggoAndGetOutput(src)
 			fmt.Println("run")
 
-		case "runcompare":
+		case "runcmp":
 			scriggoOut := runScriggoAndGetOutput(src)
 			goOut := runGoAndGetOutput(src)
 			if (scriggoOut.isErr() || goOut.isErr()) && !strings.Contains(path, "errors") {
@@ -251,7 +251,7 @@ func main() {
 			if !scriggoOut.match(goOut) {
 				panic(fmt.Errorf("error on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut))
 			}
-			fmt.Println("runcompare")
+			fmt.Println("runcmp")
 
 		default:
 			panic(fmt.Errorf("file %s has no valid directives", path))

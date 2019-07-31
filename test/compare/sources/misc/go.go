@@ -1,4 +1,4 @@
-// runcompare
+// runcmp
 
 package main
 
