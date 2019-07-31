@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"math"
 	"os"
 	"os/exec"
@@ -25,6 +24,8 @@ import (
 	"time"
 )
 
+// mode reports the mode associated to src. If no modes are specified, an empty
+// string is returned.
 func mode(src []byte) string {
 	for _, l := range strings.Split(string(src), "\n") {
 		l = strings.TrimSpace(l)
@@ -41,32 +42,69 @@ func mode(src []byte) string {
 	panic("no directives found")
 }
 
+// packages contains the predefined packages used in tests.
 //go:generate scriggo embed -v -o packages.go
 var packages scriggo.Packages
 
-type output struct {
-	path        string
-	column, row string
-	msg         string
-}
-
+// A timer returns the string representation of the time elapsed between two
+// events.
 type timer struct {
 	_start, _end time.Time
 }
 
+// start starts the timer.
 func (t *timer) start() {
 	t._start = time.Now()
 }
 
+// stop stops the timer. After calling stop is possible to call method delta.
 func (t *timer) stop() {
 	t._end = time.Now()
 }
 
+// delta return the string representation of the time elapsed between the call
+// to start to the call of stop.
 func (t *timer) delta() string {
 	return fmt.Sprintf("%v", t._end.Sub(t._start))
 }
 
-func makeOutput(msg string) output {
+// output represents the output of Scriggo or gc. output can represent either a
+// compilation error (syntax or type checking) or the output in case of success.
+type output struct {
+	path        string
+	column, row string // not error if both ""
+	msg         string
+}
+
+// match reports whether this error message matches another error message.
+func (o output) match(o2 output) bool {
+	if o.column != o2.column {
+		return false
+	}
+	if o.msg != o2.msg {
+		return false
+	}
+	return true
+}
+
+// isErr reports whether o is an error or not.
+func (o output) isErr() bool {
+	return o.column != "" && o.row != ""
+}
+
+func (o output) String() string {
+	if !o.isErr() {
+		return o.msg
+	}
+	path := o.path
+	if path == "" {
+		path = "[nopath]"
+	}
+	return path + ":" + o.column + ":" + o.row + " " + o.msg
+}
+
+// parseOutputMessage parses a Scriggo or gc output message.
+func parseOutputMessage(msg string) output {
 	r := regexp.MustCompile(`([\w\. ]*):(\d+):(\d+):\s(.*)`)
 	if !r.MatchString(msg) {
 		return output{msg: msg}
@@ -84,31 +122,7 @@ func makeOutput(msg string) output {
 	}
 }
 
-func (o output) match(o2 output) bool {
-	if o.column != o2.column {
-		return false
-	}
-	if o.msg != o2.msg {
-		return false
-	}
-	return true
-}
-
-func (o output) isErr() bool {
-	return o.column != "" && o.row != ""
-}
-
-func (o output) String() string {
-	if !o.isErr() {
-		return o.msg
-	}
-	path := o.path
-	if path == "" {
-		path = "[nopath]"
-	}
-	return path + ":" + o.column + ":" + o.row + " " + o.msg
-}
-
+// mainLoader is used to load the Scriggo source in function runScriggo.
 type mainLoader []byte
 
 func (b mainLoader) Load(path string) (interface{}, error) {
@@ -118,7 +132,8 @@ func (b mainLoader) Load(path string) (interface{}, error) {
 	return nil, nil
 }
 
-func runScriggoAndGetOutput(src []byte) output {
+// runScriggo runs a Go program using Scriggo and returns its output.
+func runScriggo(src []byte) output {
 	reader, writer, err := os.Pipe()
 	if err != nil {
 		panic(err)
@@ -141,21 +156,20 @@ func runScriggoAndGetOutput(src []byte) output {
 		out <- buf.String()
 	}()
 	wg.Wait()
-
 	program, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), &scriggo.LoadOptions{LimitMemorySize: true})
-
 	if err != nil {
-		return makeOutput(err.Error())
+		return parseOutputMessage(err.Error())
 	}
 	err = program.Run(&scriggo.RunOptions{MaxMemorySize: 1000000})
 	if err != nil {
-		return makeOutput(err.Error())
+		return parseOutputMessage(err.Error())
 	}
 	writer.Close()
-	return makeOutput(<-out)
+	return parseOutputMessage(<-out)
 }
 
-func runGoAndGetOutput(src []byte) output {
+// runGc runs a Go program using gc and returns its output.
+func runGc(src []byte) output {
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "scriggotesting")
 	if err != nil {
 		panic(err)
@@ -182,14 +196,10 @@ func runGoAndGetOutput(src []byte) output {
 	cmd.Stderr = &stderr
 	_ = cmd.Run()
 	out := stdout.String() + stderr.String()
-	return makeOutput(out)
+	return parseOutputMessage(out)
 }
 
 const testsDir = "sources"
-
-func fatal(a interface{}) {
-	log.Fatalf("fatal error: %s", a)
-}
 
 func main() {
 
@@ -198,17 +208,17 @@ func main() {
 	flag.Parse()
 	testDirs, err := ioutil.ReadDir(testsDir)
 	if err != nil {
-		fatal(err)
+		panic(err)
 	}
 	count := 0
 	filepaths := []string{}
 	for _, dir := range testDirs {
 		if !dir.IsDir() {
-			fatal(fmt.Errorf("%s is not a dir", dir))
+			panic(fmt.Errorf("%s is not a dir", dir))
 		}
 		files, err := ioutil.ReadDir(filepath.Join(testsDir, dir.Name()))
 		if err != nil {
-			fatal(err)
+			panic(err)
 		}
 		for _, f := range files {
 			if !strings.HasSuffix(f.Name(), ".go") {
@@ -233,7 +243,7 @@ func main() {
 		count++
 		src, err := ioutil.ReadFile(path)
 		if err != nil {
-			fatal(err)
+			panic(err)
 		}
 
 		if *verbose {
@@ -250,61 +260,57 @@ func main() {
 			}
 		}
 
+		// A timer is used to measure time that elapses during the execution of a given
+		// test. Note that timer should measure only time needed by Scriggo; any
+		// other elapsed time (eg. calling the gc compiler for the comparison
+		// output) is considered overhead and should no be included in counting.
 		t := &timer{}
 
 		directive := mode(src)
-
 		switch directive {
-
 		case "errcheck":
 			panic("errcheck is currently not implemented")
-
 		case "skip":
-
 		case "errcmp":
 			t.start()
-			scriggoOut := runScriggoAndGetOutput(src)
+			scriggoOut := runScriggo(src)
 			t.stop()
-			goOut := runGoAndGetOutput(src)
-			if !scriggoOut.match(goOut) {
-				panic(fmt.Errorf("error on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut))
+			gcOut := runGc(src)
+			if !scriggoOut.match(gcOut) {
+				panic(fmt.Errorf("error on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, gcOut, scriggoOut))
 			}
-
 		case "ignore":
-
 		case "compile":
 			_, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), &scriggo.LoadOptions{LimitMemorySize: true})
 			if err != nil {
 				panic(err.Error())
 			}
-
 		case "run":
 			t.start()
-			runScriggoAndGetOutput(src)
+			_ = runScriggo(src)
 			t.stop()
-
 		case "runcmp":
 			t.start()
-			scriggoOut := runScriggoAndGetOutput(src)
+			scriggoOut := runScriggo(src)
 			t.stop()
-			goOut := runGoAndGetOutput(src)
-			if (scriggoOut.isErr() || goOut.isErr()) && !strings.Contains(path, "errors") {
+			gcOut := runGc(src)
+			if (scriggoOut.isErr() || gcOut.isErr()) && !strings.Contains(path, "errors") {
 				fmt.Printf("\nTest %q returned an error, but source is not inside 'errors' directory\n", path)
-				fmt.Printf("\nERROR on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut)
+				fmt.Printf("\nERROR on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, gcOut, scriggoOut)
 				return
 			}
-			if !scriggoOut.isErr() && !goOut.isErr() && strings.Contains(path, "errors") {
+			if !scriggoOut.isErr() && !gcOut.isErr() && strings.Contains(path, "errors") {
 				fmt.Printf("\nTest %q should return error (is inside 'errors' dir), but it doesn't\n", path)
 				return
 			}
-			if !scriggoOut.match(goOut) {
-				panic(fmt.Errorf("error on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut))
+			if !scriggoOut.match(gcOut) {
+				panic(fmt.Errorf("error on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, gcOut, scriggoOut))
 			}
-
 		default:
 			panic(fmt.Errorf("file %s has no valid directives", path))
 		}
 
+		// Test is completed, print some output and go to next.
 		switch directive {
 		case "ignore":
 			fmt.Println("[ ignored ]")
