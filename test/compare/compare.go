@@ -264,6 +264,7 @@ func main() {
 		panic(err)
 	}
 	count := 0
+	maxPathLen := 0
 	filepaths := []string{}
 	for _, dir := range testDirs {
 		if !dir.IsDir() {
@@ -284,6 +285,9 @@ func main() {
 				}
 			}
 			filepaths = append(filepaths, path)
+			if len(path) > maxPathLen {
+				maxPathLen = len(path)
+			}
 		}
 	}
 
@@ -305,9 +309,8 @@ func main() {
 			}
 			perc = "[" + perc + "%  ] "
 			fmt.Print(perc)
-			shortPath := strings.TrimPrefix(path, "sources/")
-			fmt.Print(shortPath)
-			for i := len(shortPath); i < 50; i++ {
+			fmt.Print(path)
+			for i := len(path); i < maxPathLen+2; i++ {
 				fmt.Print(" ")
 			}
 		}
