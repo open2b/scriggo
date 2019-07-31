@@ -24,6 +24,14 @@ import (
 	"time"
 )
 
+// Some colors.
+const (
+	ColorInfo  = "\033[1;34m"
+	ColorBad   = "\033[1;31m"
+	ColorGood  = "\033[1;32m"
+	ColorReset = "\033[0m"
+)
+
 // errorcheck executes the 'errorcheck' test on src.
 func errorcheck(src []byte) {
 	type stmt struct {
@@ -290,11 +298,32 @@ func main() {
 	// Parse the command line arguments.
 	verbose := flag.Bool("v", false, "enable verbose output")
 	pattern := flag.String("p", "", "executes test whose path is matched by the given pattern. Regexp is supported, in the syntax of stdlib package 'regexp'")
-	time := flag.Bool("t", false, "show time elapsed between the beginning and the ending of every test")
+	time := flag.Bool("t", false, "show time elapsed between the beginning and the ending of every test. Require flag -v")
+	color := flag.Bool("c", false, "enable colored output. Output device must support ANSI escape sequences. Require flag -v")
+
+	defer func() {
+		if r := recover(); r != nil {
+			if *verbose {
+				if *color {
+					fmt.Print(ColorBad)
+				}
+				fmt.Print("\n\nPANIC!\n\n")
+				if *color {
+					fmt.Print(ColorReset)
+				}
+			}
+			panic(r)
+		}
+	}()
+
 	flag.Parse()
 
 	if *time && !*verbose {
 		panic("flag -t requires flag -v")
+	}
+
+	if *color && !*verbose {
+		panic("flag -c requires flag -v")
 	}
 
 	// Get the list of all tests to run.
@@ -317,12 +346,18 @@ func main() {
 		}
 
 		if *verbose {
+			if *color {
+				fmt.Print(ColorInfo)
+			}
 			perc := strconv.Itoa(int(math.Floor(float64(count) / float64(len(filepaths)) * 100)))
 			for i := len(perc); i < 4; i++ {
 				perc = " " + perc
 			}
 			perc = "[" + perc + "%  ] "
 			fmt.Print(perc)
+			if *color {
+				fmt.Print(ColorReset)
+			}
 			fmt.Print(path)
 			for i := len(path); i < maxPathLen+2; i++ {
 				fmt.Print(" ")
@@ -400,7 +435,11 @@ func main() {
 			if directive == "skip" {
 				fmt.Println("[ skipped ]")
 			} else {
-				fmt.Printf("ok     (%s)", directive)
+				if *color {
+					fmt.Printf(ColorGood+"ok"+ColorReset+"     (%s)", directive)
+				} else {
+					fmt.Printf("ok     (%s)", directive)
+				}
 				for i := len(directive); i < 15; i++ {
 					fmt.Print(" ")
 				}
@@ -415,6 +454,9 @@ func main() {
 	}
 
 	if *verbose {
+		if *color {
+			fmt.Print(ColorGood)
+		}
 		fmt.Print("done! (")
 		switch count {
 		case 1:
@@ -423,6 +465,9 @@ func main() {
 			fmt.Printf("%d tests executed", count)
 		}
 		fmt.Print(")\n")
+		if *color {
+			fmt.Print(ColorReset)
+		}
 	}
 
 }
