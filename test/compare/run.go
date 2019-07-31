@@ -79,6 +79,9 @@ func mode(src []byte) string {
 		if l == "" {
 			continue
 		}
+		if strings.HasPrefix(l, "//+build ignore") {
+			panic("//+build ignore is no longer supported; remove such line from source")
+		}
 		if !strings.HasPrefix(l, "//") {
 			return ""
 		}
