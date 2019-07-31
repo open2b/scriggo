@@ -35,10 +35,10 @@ Only one mode per test is supported.
 
 Mode | Expected behaviour
 ---|---
-**compile** | Fail if the test cannot be compiled.
-**errorcheck** | Fail if any error indicated in the `// ERROR` comments is not returned by the compiler
-**run** | Fail if the test panics or if the output doesn't match the one of gc.
-**skip** | Nothing. The test is skipped.
+**compile** | The test compiles successfully.
+**errorcheck** | For each row ending with a comment `// ERROR error message`, the compilation fails with the error message reported in the comment.
+**run** | The test compiles successfully and the standard output is the same as returned by gc.
+**skip** | The test is skipped.
 
 # Go tests from https://github.com/golang/go/
 
