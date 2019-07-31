@@ -76,17 +76,6 @@ type output struct {
 	msg         string
 }
 
-// match reports whether this error message matches another error message.
-func (o output) match(o2 output) bool {
-	if o.column != o2.column {
-		return false
-	}
-	if o.msg != o2.msg {
-		return false
-	}
-	return true
-}
-
 // isErr reports whether o is an error or not.
 func (o output) isErr() bool {
 	return o.column != "" && o.row != ""
@@ -101,6 +90,18 @@ func (o output) String() string {
 		path = "[nopath]"
 	}
 	return path + ":" + o.column + ":" + o.row + " " + o.msg
+}
+
+// matchOutput reports whether two outputs are equal (i.e. if they are errors
+// then their errors must match, if not the output must match).
+func matchOutput(o, o2 output) bool {
+	if o.column != o2.column {
+		return false
+	}
+	if o.msg != o2.msg {
+		return false
+	}
+	return true
 }
 
 // parseOutputMessage parses a Scriggo or gc output message.
@@ -120,6 +121,11 @@ func parseOutputMessage(msg string) output {
 		row:    row,
 		msg:    msg,
 	}
+}
+
+// outputDetails returns a string which compares scriggo and gc outputs.
+func outputDetails(scriggo, gc output) string {
+	return fmt.Sprintf("\n\n\t[Scriggo]: %s\n\t[gc]:      %s\n", scriggo, gc)
 }
 
 // mainLoader is used to load the Scriggo source in function runScriggo.
@@ -248,10 +254,10 @@ func main() {
 
 		if *verbose {
 			perc := strconv.Itoa(int(math.Floor(float64(count) / float64(len(filepaths)) * 100)))
-			for i := len(perc); i < 3; i++ {
+			for i := len(perc); i < 4; i++ {
 				perc = " " + perc
 			}
-			perc = "[" + perc + "% ] "
+			perc = "[" + perc + "%  ] "
 			fmt.Print(perc)
 			shortPath := strings.TrimPrefix(path, "sources/")
 			fmt.Print(shortPath)
@@ -270,16 +276,24 @@ func main() {
 		switch directive {
 		case "errcheck":
 			panic("errcheck is currently not implemented")
-		case "skip":
+		case "skip", "ignore":
 		case "errcmp":
 			t.start()
 			scriggoOut := runScriggo(src)
 			t.stop()
 			gcOut := runGc(src)
-			if !scriggoOut.match(gcOut) {
-				panic(fmt.Errorf("error on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, gcOut, scriggoOut))
+			if !scriggoOut.isErr() && !gcOut.isErr() {
+				panic("error expected, both Scriggo and gc succeed")
 			}
-		case "ignore":
+			if !scriggoOut.isErr() && gcOut.isErr() {
+				panic("gc returned an error (as it should), but Scriggo succeed" + outputDetails(scriggoOut, gcOut))
+			}
+			if scriggoOut.isErr() && !gcOut.isErr() {
+				panic("Scriggo returned an error (as it should), but gc succeed" + outputDetails(scriggoOut, gcOut))
+			}
+			if !matchOutput(scriggoOut, gcOut) {
+				panic("Scriggo and gc returned two different errors" + outputDetails(scriggoOut, gcOut))
+			}
 		case "compile":
 			_, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), &scriggo.LoadOptions{LimitMemorySize: true})
 			if err != nil {
@@ -294,45 +308,49 @@ func main() {
 			scriggoOut := runScriggo(src)
 			t.stop()
 			gcOut := runGc(src)
-			if (scriggoOut.isErr() || gcOut.isErr()) && !strings.Contains(path, "errors") {
-				fmt.Printf("\nTest %q returned an error, but source is not inside 'errors' directory\n", path)
-				fmt.Printf("\nERROR on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, gcOut, scriggoOut)
-				return
+			if scriggoOut.isErr() && gcOut.isErr() {
+				panic("expected succeed, but Scriggo and gc returned an error" + outputDetails(scriggoOut, gcOut))
 			}
-			if !scriggoOut.isErr() && !gcOut.isErr() && strings.Contains(path, "errors") {
-				fmt.Printf("\nTest %q should return error (is inside 'errors' dir), but it doesn't\n", path)
-				return
+			if scriggoOut.isErr() && !gcOut.isErr() {
+				panic("expected succeed, but Scriggo returned an error" + outputDetails(scriggoOut, gcOut))
 			}
-			if !scriggoOut.match(gcOut) {
-				panic(fmt.Errorf("error on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, gcOut, scriggoOut))
+			if !scriggoOut.isErr() && gcOut.isErr() {
+				panic("expected succeed, but gc returned an error" + outputDetails(scriggoOut, gcOut))
+			}
+			if !matchOutput(scriggoOut, gcOut) {
+				panic("Scriggo and gc returned two different outputs" + outputDetails(scriggoOut, gcOut))
 			}
 		default:
 			panic(fmt.Errorf("file %s has no valid directives", path))
 		}
 
 		// Test is completed, print some output and go to next.
-		switch directive {
-		case "ignore":
-			fmt.Println("[ ignored ]")
-		case "skip":
-			fmt.Println("[ skipped ]")
-		default:
-			fmt.Printf("ok     (%s)", directive)
-			for i := len(directive); i < 15; i++ {
-				fmt.Print(" ")
+		if *verbose {
+			switch directive {
+			case "ignore":
+				fmt.Println("[ ignored ]")
+			case "skip":
+				fmt.Println("[ skipped ]")
+			default:
+				fmt.Printf("ok     (%s)", directive)
+				for i := len(directive); i < 15; i++ {
+					fmt.Print(" ")
+				}
+				fmt.Println(t.delta())
 			}
-			fmt.Println(t.delta())
 		}
 
 	}
 
-	fmt.Print("done! (")
-	switch count {
-	case 1:
-		fmt.Print("1 test executed")
-	default:
-		fmt.Printf("%d tests executed", count)
+	if *verbose {
+		fmt.Print("done! (")
+		switch count {
+		case 1:
+			fmt.Print("1 test executed")
+		default:
+			fmt.Printf("%d tests executed", count)
+		}
+		fmt.Print(")\n")
 	}
-	fmt.Print(")\n")
 
 }
