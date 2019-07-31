@@ -1,6 +1,6 @@
 # Running tests
 
-To run the compare tests, run the followind commands in the `test/compare` directory:
+To run the compare tests, run the following commands in the `test/compare` directory:
 
 ```bash
 > go generate
