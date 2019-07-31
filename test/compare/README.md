@@ -17,7 +17,7 @@ Source code must specify a _testing mode_. See the section **Testing modes** for
 
 # Testing modes
 
-A testing mode can be specified using a comment at the very beginning of the test file.
+A testing mode can be specified using a comment at the first non-empty line of the test file.
 The syntax is the following:
 
 ```go
