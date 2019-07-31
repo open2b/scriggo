@@ -9,6 +9,10 @@ From the command line:
 
 Pass flag `-h` to the executable to see available options. You may whish to use the `-v` flag, which prints a verbose output.
 
+# Adding new tests
+
+A test consists in a text file containing source code, which can be put everywhere inside the directory `sources`.
+Source code must specify a _testing mode_. See the section **Testing modes** for more informations.
 
 # Testing modes
 
