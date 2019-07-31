@@ -38,7 +38,7 @@ Mode | Expected behaviour
 **compile** | The test compiles successfully.
 **errorcheck** | For each row ending with a comment `// ERROR error message`, the compilation fails with the error message reported in the comment.
 **run** | The test compiles and run successfully and the standard output is the same as returned by gc.
-**skip** | The test is skipped.
+**skip** | Nothing. The test is skipped.
 
 # Go tests from https://github.com/golang/go/
 
