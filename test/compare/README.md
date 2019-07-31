@@ -1,13 +1,14 @@
 # Running tests
 
-From the command line:
+To run the compare tests, run the followind commands in the `test/compare` directory:
 
-1. Move to current directory
-2. Run command `go generate`
-3. Run command `go build`
-4. Run command `./compare` (or `compare.exe` on Windows)
+```bash
+> go generate
+> go build
+> ./compare
+```
 
-Pass flag `-h` to the executable to see available options. You may whish to use the `-v` flag, which prints a verbose output.
+Run `./compare -h` to see the available options. You may whish to use the `-v` flag, which prints a verbose output.
 
 # Adding new tests
 
