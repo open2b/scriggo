@@ -1,6 +1,6 @@
 // ignore
 
-//+build ignore
+
 // `for` is Go's only looping construct. Here are
 // three basic types of `for` loops.
 

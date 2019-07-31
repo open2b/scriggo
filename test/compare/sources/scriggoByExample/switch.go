@@ -1,6 +1,6 @@
 // ignore
 
-//+build ignore
+
 // _Switch statements_ express conditionals across many
 // branches.
 

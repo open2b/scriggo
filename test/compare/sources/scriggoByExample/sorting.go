@@ -1,4 +1,4 @@
-//+build ignore
+
 // Go's `sort` package implements sorting for builtins
 // and user-defined types. We'll look at sorting for
 // builtins first.

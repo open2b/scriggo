@@ -1,4 +1,4 @@
-//+build ignore
+
 // Go supports
 // <a href="http://en.wikipedia.org/wiki/Recursion_(computer_science)"><em>recursive functions</em></a>.
 // Here's a classic factorial example.

@@ -1,4 +1,4 @@
-//+build ignore
+
 // [Environment variables](http://en.wikipedia.org/wiki/Environment_variable)
 // are a universal mechanism for [conveying configuration
 // information to Unix programs](http://www.12factor.net/config).

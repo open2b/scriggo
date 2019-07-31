@@ -1,4 +1,4 @@
-//+build ignore
+
 // _Functions_ are central in Go. We'll learn about
 // functions with a few different examples.
 
