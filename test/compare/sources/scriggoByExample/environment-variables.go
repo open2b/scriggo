@@ -1,3 +1,4 @@
+// runcompare
 
 // [Environment variables](http://en.wikipedia.org/wiki/Environment_variable)
 // are a universal mechanism for [conveying configuration

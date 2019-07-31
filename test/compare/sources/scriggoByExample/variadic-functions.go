@@ -1,4 +1,4 @@
-
+// runcompare
 
 // [_Variadic functions_](http://en.wikipedia.org/wiki/Variadic_function)
 // can be called with any number of trailing arguments.

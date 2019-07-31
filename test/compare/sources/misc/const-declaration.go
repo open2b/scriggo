@@ -1,4 +1,4 @@
-
+// runcompare
 
 package main
 

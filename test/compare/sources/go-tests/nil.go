@@ -1,4 +1,4 @@
-
+// run
 
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
@@ -52,7 +52,6 @@ func arraytest() {
 	// 	panic(s)
 	// }
 
-
 	// // Looping over values is not.
 	// shouldPanic(func() {
 	// 	for i, v := range p {
@@ -66,7 +65,6 @@ func arraytest() {
 	// 	}
 	// })
 }
-
 
 // nil map
 

@@ -204,37 +204,48 @@ func main() {
 			fatal(err)
 		}
 		switch mode(src) {
-		case "ignore":
+		case "skip":
 			continue
-		}
-		if *verbose {
-			fmt.Printf(strings.TrimPrefix(path, "sources"))
-		}
-		start := time.Now()
-		scriggoOut := runScriggoAndGetOutput(src)
-		if *verbose {
-			end := time.Now()
-			for i := len(path); i < 50; i++ {
-				fmt.Printf(" ")
+		case "errcmp":
+			log.Printf("█ [DEBUG] █ not implemented errcmp") // TODO(Gianluca): remove.
+		case "ignore":
+			fmt.Println("ignoring file %s", path)
+			continue
+		case "compile":
+			log.Printf("█ [DEBUG] █ compile not supported") // TODO(Gianluca): remove.
+		case "run", "runcompare":
+			if *verbose {
+				fmt.Printf(strings.TrimPrefix(path, "sources"))
 			}
-			fmt.Printf(" ok   %v", end.Sub(start))
-			fmt.Printf(" [%d%%]\n", int(math.Floor(float64(count)/float64(len(filepaths))*100)))
-		} else {
-			fmt.Printf("\r%d%% ", int(math.Floor(float64(count)/float64(len(filepaths))*100)))
+			start := time.Now()
+			scriggoOut := runScriggoAndGetOutput(src)
+			if *verbose {
+				end := time.Now()
+				for i := len(path); i < 50; i++ {
+					fmt.Printf(" ")
+				}
+				fmt.Printf(" ok   %v", end.Sub(start))
+				fmt.Printf(" [%d%%]\n", int(math.Floor(float64(count)/float64(len(filepaths))*100)))
+			} else {
+				fmt.Printf("\r%d%% ", int(math.Floor(float64(count)/float64(len(filepaths))*100)))
+			}
+			goOut := runGoAndGetOutput(src)
+			if (scriggoOut.isErr() || goOut.isErr()) && !strings.Contains(path, "errors") {
+				fmt.Printf("\nTest %q returned an error, but source is not inside 'errors' directory\n", path)
+				fmt.Printf("\nERROR on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut)
+				return
+			}
+			if !scriggoOut.isErr() && !goOut.isErr() && strings.Contains(path, "errors") {
+				fmt.Printf("\nTest %q should return error (is inside 'errors' dir), but it doesn't\n", path)
+				return
+			}
+			if !scriggoOut.match(goOut) {
+				panic(fmt.Errorf("error on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut))
+			}
+		default:
+			panic(fmt.Errorf("file %s has no valid directives", path))
 		}
-		goOut := runGoAndGetOutput(src)
-		if (scriggoOut.isErr() || goOut.isErr()) && !strings.Contains(path, "errors") {
-			fmt.Printf("\nTest %q returned an error, but source is not inside 'errors' directory\n", path)
-			fmt.Printf("\nERROR on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut)
-			return
-		}
-		if !scriggoOut.isErr() && !goOut.isErr() && strings.Contains(path, "errors") {
-			fmt.Printf("\nTest %q should return error (is inside 'errors' dir), but it doesn't\n", path)
-			return
-		}
-		if !scriggoOut.match(goOut) {
-			panic(fmt.Errorf("error on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut))
-		}
+
 	}
 
 	fmt.Print("done! (")

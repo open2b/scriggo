@@ -1,3 +1,5 @@
+// skip
+
 package main
 
 import (
@@ -11,7 +13,7 @@ func mode(src []byte) string {
 			continue
 		}
 		if !strings.HasPrefix(l, "//") {
-			panic("first non empty line should be a directive")
+			return ""
 		}
 		l = strings.TrimPrefix(l, "//")
 		l = strings.TrimSpace(l)

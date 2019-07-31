@@ -1,3 +1,4 @@
+// runcompare
 
 // Go provides built-in support for [base64
 // encoding/decoding](http://en.wikipedia.org/wiki/Base64).

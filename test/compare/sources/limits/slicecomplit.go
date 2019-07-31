@@ -1,7 +1,5 @@
 // ignore
 
-
-
 package main
 
 import "fmt"

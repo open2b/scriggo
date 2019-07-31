@@ -1,3 +1,4 @@
+// runcompare
 
 // Parsing numbers from strings is a basic but common task
 // in many programs; here's how to do it in Go.
