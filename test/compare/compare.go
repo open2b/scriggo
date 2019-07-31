@@ -352,7 +352,10 @@ func main() {
 			}
 		case "run":
 			t.start()
-			_ = runScriggo(src)
+			out := runScriggo(src)
+			if out.isErr() {
+				panic(fmt.Errorf("unexpected error %q", out.String()))
+			}
 			t.stop()
 		case "runcmp":
 			t.start()
