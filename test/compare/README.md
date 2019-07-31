@@ -9,7 +9,7 @@ Mode | Description
 ---|---
 `compile` | compile the source code using Scriggo and fails if it does not succeed.
 `errcmp` | compile the code and fails if it does not return an error of if error is different than the one returned by gc.
-`errorcheck` | TODO.
+`errorcheck` | compile the source code and check if errors indicated with `// ERROR` comments are reported by Scriggo.
 `ignore` | ignore the test. This is the preferred way to ignore a test (for example it cannot be run due to a bug). Note that an ignore directive can be put before any other directive, without the needing to remove them first.
 `run` | execute the code and fails if it does not succeed. Output is not checked.
 `runcmp` | execute the code and fails if it does not succeed or if output is different from the one of gc.
