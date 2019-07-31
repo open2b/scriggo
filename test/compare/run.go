@@ -460,9 +460,9 @@ func main() {
 		fmt.Print("done! (")
 		switch count {
 		case 1:
-			fmt.Print("1 test executed")
+			fmt.Print("1 test executed (or skipped)")
 		default:
-			fmt.Printf("%d tests executed", count)
+			fmt.Printf("%d tests executed (or skipped)", count)
 		}
 		fmt.Print(")\n")
 		if *color {
