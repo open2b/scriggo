@@ -246,8 +246,8 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				panic(tc.errorf(node, "cannot range over nil"))
 			}
 			ti.setValue(nil)
-			maxVars := 2
-			vars := node.Assignment.Lhs
+			maxLhs := 2
+			lhs := node.Assignment.Lhs
 			var typ1, typ2 reflect.Type
 			switch typ := ti.Type; typ.Kind() {
 			case reflect.Array, reflect.Slice:
@@ -270,24 +270,24 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					panic(tc.errorf(node.Assignment.Rhs[0], "invalid operation: range %s (receive from send-only type %s)", expr, ti.String()))
 				}
 				typ1 = typ.Elem()
-				maxVars = 1
+				maxLhs = 1
 			default:
 				panic(tc.errorf(node.Assignment.Rhs[0], "cannot range over %s (type %s)", expr, ti))
 			}
 			// Check variables.
-			if vars != nil {
-				if len(vars) > maxVars {
+			if lhs != nil {
+				if len(lhs) > maxLhs {
 					panic(tc.errorf(node, "too many variables in range"))
 				}
 				ti1 := &TypeInfo{Type: typ1, Properties: PropertyAddressable}
 				declaration := node.Assignment.Type == ast.AssignmentDeclaration
 				indexPh := ast.NewPlaceholder()
 				tc.typeInfos[indexPh] = ti1
-				tc.assign(node.Assignment, vars[0], indexPh, nil, declaration, false)
-				if len(vars) == 2 {
+				tc.assign(node.Assignment, lhs[0], indexPh, nil, declaration, false)
+				if len(lhs) == 2 {
 					valuePh := ast.NewPlaceholder()
 					tc.typeInfos[valuePh] = &TypeInfo{Type: typ2}
-					tc.assign(node.Assignment, vars[1], valuePh, nil, declaration, false)
+					tc.assign(node.Assignment, lhs[1], valuePh, nil, declaration, false)
 				}
 			}
 			tc.checkNodesInNewScope(node.Body)
