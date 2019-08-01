@@ -1,4 +1,4 @@
-// skip
+// skip : try to enable when https://github.com/open2b/scriggo/issues/99 is fixed
 
 // run
 
