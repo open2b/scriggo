@@ -89,6 +89,15 @@ func errorcheck(src []byte) {
 }
 
 // mode reports the mode associated to src.
+//
+// As a special case, the 'skip' comment can be followed by any sequence of
+// characters (after a whitespace character) that will be ignored. This is
+// useful to put an inline comment to the "skip" comment, explaining the reason
+// why a given test cannot be run. For example:
+//
+//  // skip because feature X is not supported
+//  // skip : enable when bug Y will be fixed
+//
 func mode(src []byte) string {
 	for _, l := range strings.Split(string(src), "\n") {
 		l = strings.TrimSpace(l)
@@ -103,6 +112,9 @@ func mode(src []byte) string {
 		}
 		l = strings.TrimPrefix(l, "//")
 		l = strings.TrimSpace(l)
+		if strings.HasPrefix(l, "skip ") {
+			return "skip"
+		}
 		return l
 	}
 	panic("no directives found")
