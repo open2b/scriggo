@@ -1357,7 +1357,7 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, decType toke
 		if len(exprs) == 0 {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 		}
-	case tokenIdentifier, tokenFunc, tokenMap, tokenLeftBrackets, tokenInterface, tokenMultiplication, tokenChan, tokenArrow:
+	case tokenIdentifier, tokenFunc, tokenMap, tokenLeftBrackets, tokenInterface, tokenMultiplication, tokenChan, tokenArrow, tokenStruct:
 		// var  a     int
 		// var  a, b  int
 		// var/const  a     int  =  ...

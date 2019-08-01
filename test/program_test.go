@@ -123,6 +123,18 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Var declaration with a struct type",
+		src: `package main
+
+		func main() {
+			var v struct{}
+			_ = v
+		}
+		`,
+		out: ``,
+	},
+
+	{
 		name: "arguments of function in go statement must be evaluated immediately",
 		src: `package main
 
