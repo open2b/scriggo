@@ -36,7 +36,7 @@ Only one mode per test is supported.
 Mode | Expected behaviour
 ---|---
 **skip** | Nothing. The test is skipped.
-**compile** | The test compiles successfully.
+**compile**, **build** | The test compiles successfully.
 **run** | The test compiles and runs successfully and the standard output is the same as returned by gc.
 **errorcheck** | For each row ending with a comment `// ERROR error message`, the compilation fails with the error message reported in the comment. Error message must be enclosed between **\`** characters or **\"** characters. While the former takes the error message as is, the latter support regular expression syntax. For instance, if the error message contains a **"** character, you can both enclose the error message in double quotes (escaping the character) or use the backtick without having to escape it.
 

@@ -389,7 +389,7 @@ func main() {
 		case "skip":
 			countSkipped++
 			// Do nothing.
-		case "compile":
+		case "compile", "build":
 			t.start()
 			_, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), &scriggo.LoadOptions{LimitMemorySize: true})
 			t.stop()
