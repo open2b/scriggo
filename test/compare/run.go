@@ -44,8 +44,17 @@ func errorcheck(src []byte) {
 		if index := strings.Index(l, "// ERROR "); index != -1 {
 			err := l[index:]
 			err = strings.TrimPrefix(err, "// ERROR ")
-			err = strings.TrimPrefix(err, `"`)
-			err = strings.TrimSuffix(err, `"`)
+			if strings.HasPrefix(err, `"`) && strings.HasSuffix(err, `"`) {
+				err = strings.TrimPrefix(err, `"`)
+				err = strings.TrimSuffix(err, `"`)
+			} else if strings.HasPrefix(err, "`") && strings.HasSuffix(err, "`") {
+				err = strings.TrimPrefix(err, "`")
+				err = strings.TrimSuffix(err, "`")
+				err = regexp.QuoteMeta(err)
+			} else {
+				panic(fmt.Errorf("expected error must be followed by a string encapsulated in backticks (`) or double quotation marks (\"): %s", err))
+			}
+
 			stmts = append(stmts, stmt{line: l[:index], err: &err})
 			errorLines = append(errorLines, i)
 		} else {
