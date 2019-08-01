@@ -123,6 +123,37 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "https://github.com/open2b/scriggo/issues/191",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			switch u := interface{}("test").(type) {
+			case string:
+				fmt.Print("string is: ")
+				fmt.Print(u)
+			}
+		}`,
+		out: `string is: test`,
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/191",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			switch u := interface{}(2).(type) {
+			case int:
+				fmt.Print(u * 2)
+			}
+		}`,
+		out: `4`,
+	},
+
+	{
 		name: "Var declaration with a struct type",
 		src: `package main
 

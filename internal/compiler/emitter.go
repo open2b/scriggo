@@ -1921,16 +1921,6 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 	typeAssertion := node.Assignment.Rhs[0].(*ast.TypeAssertion)
 	expr := em.emitExpr(typeAssertion.Expr, em.ti(typeAssertion.Expr).Type)
 
-	if len(node.Assignment.Lhs) == 1 {
-		n := ast.NewAssignment(
-			node.Assignment.Pos(),
-			[]ast.Expression{node.Assignment.Lhs[0]},
-			node.Assignment.Type,
-			[]ast.Expression{typeAssertion.Expr},
-		)
-		em.emitNodes([]ast.Node{n})
-	}
-
 	bodyLabels := make([]uint32, len(node.Cases))
 	endSwitchLabel := em.fb.newLabel()
 
@@ -1940,6 +1930,33 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 	for i, cas := range node.Cases {
 		bodyLabels[i] = em.fb.newLabel()
 		hasDefault = hasDefault || cas.Expressions == nil
+		if len(cas.Expressions) == 1 {
+			// If the type switch has an assignment, assign to the variable
+			// using the type of the case.
+			if len(node.Assignment.Lhs) == 1 {
+				ta := ast.NewTypeAssertion(nil, typeAssertion.Expr, cas.Expressions[0])
+				em.typeInfos[ta] = &TypeInfo{
+					Type: em.ti(cas.Expressions[0]).Type,
+				}
+				n := ast.NewAssignment(nil,
+					[]ast.Expression{node.Assignment.Lhs[0]},
+					node.Assignment.Type,
+					[]ast.Expression{ta},
+				)
+				em.emitNodes([]ast.Node{n})
+			}
+		} else {
+			// If the type switch has an assignment, assign to the variable
+			// keeping the type.
+			if len(node.Assignment.Lhs) == 1 {
+				n := ast.NewAssignment(nil,
+					[]ast.Expression{node.Assignment.Lhs[0]},
+					node.Assignment.Type,
+					[]ast.Expression{typeAssertion.Expr},
+				)
+				em.emitNodes([]ast.Node{n})
+			}
+		}
 		for _, caseExpr := range cas.Expressions {
 			if em.ti(caseExpr).Nil() {
 				panic("TODO(Gianluca): not implemented")
