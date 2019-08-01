@@ -1,5 +1,4 @@
-// skip
-
+// compile
 
 // _range_ iterates over elements in a variety of data
 // structures. Let's see how to use `range` with some

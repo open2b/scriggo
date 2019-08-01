@@ -1,5 +1,4 @@
-// skip
-
+// run
 
 // Go supports [_anonymous functions_](http://en.wikipedia.org/wiki/Anonymous_function),
 // which can form <a href="http://en.wikipedia.org/wiki/Closure_(computer_science)"><em>closures</em></a>.
