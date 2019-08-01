@@ -1,4 +1,4 @@
-// runcmp
+// run
 
 package main
 

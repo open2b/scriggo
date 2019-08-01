@@ -404,13 +404,6 @@ func main() {
 			}
 		case "run":
 			t.start()
-			out := runScriggo(src)
-			if out.isErr() {
-				panic(fmt.Errorf("unexpected error %q", out.String()))
-			}
-			t.stop()
-		case "runcmp":
-			t.start()
 			scriggoOut := runScriggo(src)
 			t.stop()
 			gcOut := runGc(src)

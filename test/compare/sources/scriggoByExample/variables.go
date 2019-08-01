@@ -1,4 +1,4 @@
-// runcmp
+// run
 
 // In Go, _variables_ are explicitly declared and used by
 // the compiler to e.g. check type-correctness of function
