@@ -1,4 +1,4 @@
-// skip
+// skip because statement 'select' is not enabled
 
 // run
 

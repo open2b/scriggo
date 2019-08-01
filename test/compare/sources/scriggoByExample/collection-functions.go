@@ -1,5 +1,4 @@
-// skip
-
+// skip : infinite loop
 
 // We often need our programs to perform operations on
 // collections of data, like selecting all items that

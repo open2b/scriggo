@@ -1,5 +1,4 @@
-// skip
-
+// skip : 'continue' panics index out of range https://github.com/open2b/scriggo/issues/178
 
 // `for` is Go's only looping construct. Here are
 // three basic types of `for` loops.

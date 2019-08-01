@@ -1,6 +1,4 @@
-// skip
-
-
+// skip : type definition.
 
 package main
 

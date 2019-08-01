@@ -1,5 +1,4 @@
-// skip
-
+// skip : reflect.Set: value of type *sha1.digest is not assignable to type []uint8
 
 // [_SHA1 hashes_](http://en.wikipedia.org/wiki/SHA-1) are
 // frequently used to compute short identities for binary

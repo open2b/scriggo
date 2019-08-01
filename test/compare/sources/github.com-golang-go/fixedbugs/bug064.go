@@ -1,4 +1,4 @@
-// skip
+// skip  TODO(Gianluca): what's the point of this test?
 
 // compile
 
