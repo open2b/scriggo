@@ -1,4 +1,6 @@
-//+build ignore
+// skip
+
+
 // We often need our programs to perform operations on
 // collections of data, like selecting all items that
 // satisfy a given predicate or mapping all items to a new

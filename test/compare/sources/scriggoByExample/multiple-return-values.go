@@ -1,4 +1,5 @@
-//+build ignore
+// run
+
 // Go has built-in support for _multiple return values_.
 // This feature is used often in idiomatic Go, for example
 // to return both result and error values from a function.

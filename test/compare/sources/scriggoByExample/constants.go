@@ -1,4 +1,6 @@
-//+build ignore
+// skip
+
+
 // Go supports _constants_ of character, string, boolean,
 // and numeric values.
 

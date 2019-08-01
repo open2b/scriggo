@@ -1,4 +1,4 @@
-//+build ignore
+// run
 
 // Copyright (c) 2009 The Go Authors. All rights reserved.
 
