@@ -1,4 +1,4 @@
-// skip
+// skip : panic: reflect: reflect.flag.mustBeAssignable using unaddressable value
 
 // run
 

@@ -1,6 +1,6 @@
-// skip
+// skip : taking the address of a closure variable is not supported
 
-
+// run
 
 package main
 

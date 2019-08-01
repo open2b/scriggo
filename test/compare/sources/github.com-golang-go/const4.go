@@ -1,4 +1,4 @@
-// skip
+// skip : struct is not supported as var type. See https://github.com/open2b/scriggo/issues/243.
 
 // run
 

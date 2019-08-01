@@ -1,6 +1,6 @@
-// skip
+// skip : segmentation fault on emitter.
 
-
+// run
 
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style

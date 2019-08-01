@@ -1,6 +1,6 @@
-// skip
+// skip : panic: interface conversion: interface {} is nil, not *vm.callable
 
-
+// run
 
 package main
 

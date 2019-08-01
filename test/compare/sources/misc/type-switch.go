@@ -1,6 +1,6 @@
-// skip
+// skip : type switch must be fixed. See https://github.com/open2b/scriggo/issues/191
 
-
+// run
 
 package main
 

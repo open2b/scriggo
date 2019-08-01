@@ -1,4 +1,6 @@
-// skip
+// skip : see issue https://github.com/open2b/scriggo/issues/232
+
+// run
 
 package main
 

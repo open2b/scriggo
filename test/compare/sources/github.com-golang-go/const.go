@@ -1,4 +1,4 @@
-// skip
+// skip : call of reflect.Value.Elem on zero Value
 
 // run
 

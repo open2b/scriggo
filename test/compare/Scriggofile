@@ -15,4 +15,5 @@ IMPORT sort
 IMPORT strconv
 IMPORT strings
 IMPORT time
+IMPORT unicode
 IMPORT unicode/utf8

@@ -1,4 +1,4 @@
-// skip
+// skip : type definition.
 
 // run
 
