@@ -1,6 +1,4 @@
-// skip
-
-// +build ignore
+// run
 
 package main
 
