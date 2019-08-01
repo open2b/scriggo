@@ -217,9 +217,17 @@ func (em *emitter) predFuncIndex(fn reflect.Value, predPkgName, name string) int
 	return index
 }
 
-// sameRegType reports whether k1 and k2 have the same type of register in
-// current implementation of the VM.
-func sameRegType(k1, k2 reflect.Kind) bool {
+// canEmitDirectly reports whether a value of kind k1 can be emitted directly
+// into a register of kind k2 without the needing of passing from an
+// intermediate register.
+//
+// The result of this function depends from the current implementation of the
+// VM.
+func canEmitDirectly(k1, k2 reflect.Kind) bool {
+	// Functions and arrays are handled as special cases in VM.
+	if k1 == reflect.Func || k2 == reflect.Func || k1 == reflect.Array || k2 == reflect.Array {
+		return false
+	}
 	return kindToType(k1) == kindToType(k2)
 }
 
