@@ -15,6 +15,8 @@ Run `./compare -h` to see the available options. You may whish to use the `-v` f
 A test consists in a text file containing source code, which can be put everywhere inside the directory `sources`.
 Source code must specify a _testing mode_. See the section **Testing modes** for more informations.
 
+**Warning**: when a new test is added or an existing one is modified, pay attention to not run formatting tools (as `go fmt`) on tests. Some of them test some special syntaxes that are changed by such tools.
+
 # Testing modes
 
 A testing mode can be specified using a comment at the first non-empty line of the test file.
