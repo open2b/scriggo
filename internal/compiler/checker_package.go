@@ -132,7 +132,7 @@ func detectConstantsLoop(consts []*ast.Const, deps PackageDeclsDeps) error {
 		path := []*ast.Identifier{c.Lhs[0]}
 		loopPath := checkDepsPath(path, deps)
 		if loopPath != nil {
-			msg := "constant definition loop\n"
+			msg := ":" + c.Pos().String() + ": constant definition loop\n"
 			for i := 0; i < len(loopPath)-1; i++ {
 				msg += "\t" + loopPath[i].Pos().String() + ": "
 				msg += loopPath[i].String() + " uses " + loopPath[i+1].String()
@@ -150,7 +150,7 @@ func detectVarsLoop(vars []*ast.Var, deps PackageDeclsDeps) error {
 			path := []*ast.Identifier{left}
 			loopPath := checkDepsPath(path, deps)
 			if loopPath != nil {
-				msg := "typechecking loop involving " + v.String() + "\n"
+				msg := ":" + left.Pos().String() + ": typechecking loop involving " + v.String() + "\n"
 				for _, p := range loopPath {
 					msg += "\t" + p.Pos().String() + ": " + p.String() + "\n"
 				}
@@ -169,7 +169,7 @@ func detectTypeLoop(types []*ast.TypeDeclaration, deps PackageDeclsDeps) error {
 		path := []*ast.Identifier{t.Identifier}
 		loopPath := checkDepsPath(path, deps)
 		if loopPath != nil {
-			msg := "invalid recursive type alias " + t.String() + "\n"
+			msg := ":" + t.Pos().String() + ": invalid recursive type alias " + t.String() + "\n"
 			for _, p := range loopPath {
 				msg += "\t" + p.Pos().String() + ": " + p.String() + "\n"
 			}
