@@ -79,8 +79,7 @@ func errorcheck(src []byte) {
 	}
 }
 
-// mode reports the mode associated to src. If no modes are specified, an empty
-// string is returned.
+// mode reports the mode associated to src.
 func mode(src []byte) string {
 	for _, l := range strings.Split(string(src), "\n") {
 		l = strings.TrimSpace(l)
@@ -337,9 +336,11 @@ func main() {
 		}
 	}
 
-	count := 0
+	countTotal := 0
+	countSkipped := 0
+
 	for _, path := range filepaths {
-		count++
+		countTotal++
 		src, err := ioutil.ReadFile(path)
 		if err != nil {
 			panic(err)
@@ -349,7 +350,7 @@ func main() {
 			if *color {
 				fmt.Print(ColorInfo)
 			}
-			perc := strconv.Itoa(int(math.Floor(float64(count) / float64(len(filepaths)) * 100)))
+			perc := strconv.Itoa(int(math.Floor(float64(countTotal) / float64(len(filepaths)) * 100)))
 			for i := len(perc); i < 4; i++ {
 				perc = " " + perc
 			}
@@ -377,6 +378,7 @@ func main() {
 			errorcheck(src)
 			t.stop()
 		case "skip":
+			countSkipped++
 			// Do nothing.
 		case "errcmp":
 			t.start()
@@ -423,7 +425,7 @@ func main() {
 			panic(fmt.Errorf("file %s has no valid directives", path))
 		}
 
-		// Test is completed, print some output and go to next.
+		// Test is completed, print some output and go to the next.
 		if *verbose {
 			if directive == "skip" {
 				fmt.Println("[ skipped ]")
@@ -450,14 +452,8 @@ func main() {
 		if *color {
 			fmt.Print(ColorGood)
 		}
-		fmt.Print("done! (")
-		switch count {
-		case 1:
-			fmt.Print("1 test executed (or skipped)")
-		default:
-			fmt.Printf("%d tests executed (or skipped)", count)
-		}
-		fmt.Print(")\n")
+		countExecuted := countTotal - countSkipped
+		fmt.Printf("done!   %d tests executed, %d tests skipped\n", countExecuted, countSkipped)
 		if *color {
 			fmt.Print(ColorReset)
 		}
