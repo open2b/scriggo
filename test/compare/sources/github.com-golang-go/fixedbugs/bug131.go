@@ -1,4 +1,4 @@
-// skip : assignment error is not reported
+// skip : assignment error is not reported https://github.com/open2b/scriggo/issues/249
 
 // errorcheck
 
