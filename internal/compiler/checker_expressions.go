@@ -208,9 +208,15 @@ func (tc *typechecker) lookupScopesElem(name string, justCurrentScope bool) (sco
 			return scopeElement{}, false
 		}
 	}
+	if len(tc.scopes) >= 1 && justCurrentScope {
+		return scopeElement{}, false
+	}
 	// Package + file block.
 	if elem, ok := tc.filePackageBlock[name]; ok {
 		return elem, true
+	}
+	if justCurrentScope {
+		return scopeElement{}, false
 	}
 	// Universe.
 	if elem, ok := tc.universe[name]; ok {
