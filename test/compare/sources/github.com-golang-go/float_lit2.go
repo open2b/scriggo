@@ -1,6 +1,4 @@
-// skip
-
-
+// skip constant 340282356779733660000000000000000000000 overflows float32
 
 // Copyright 2011 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
