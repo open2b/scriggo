@@ -44,6 +44,7 @@ func errorcheck(src []byte) {
 		if index := strings.Index(l, "// ERROR "); index != -1 {
 			err := l[index:]
 			err = strings.TrimPrefix(err, "// ERROR ")
+			err = strings.TrimSpace(err)
 			if strings.HasPrefix(err, `"`) && strings.HasSuffix(err, `"`) {
 				err = strings.TrimPrefix(err, `"`)
 				err = strings.TrimSuffix(err, `"`)
