@@ -123,6 +123,48 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "https://github.com/open2b/scriggo/issues/231",
+		src: `package main
+
+		import (
+			"fmt"
+			"time"
+		)
+		
+		func f(s string, i int, f float64, si []int) {
+			fmt.Print(s, i, f, si)
+		}
+		
+		func main() {
+			go f("str", 42, -45.120, []int{3, 4, 5})
+			time.Sleep(3*time.Millisecond)
+		}
+		`,
+		out: `str42 -45.12 [3 4 5]`,
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/231",
+		src: `package main
+
+		import (
+			"fmt"
+			"time"
+		)
+		
+		func f(i int) {
+			fmt.Print(i)
+		}
+		
+		func main() {
+			go f(42)
+			time.Sleep(3*time.Millisecond)
+		}
+		`,
+		out: "42",
+	},
+
+	{
 		name: "https://github.com/open2b/scriggo/issues/191",
 		src: `package main
 
