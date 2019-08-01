@@ -1,4 +1,4 @@
-// errcmp
+// errorcheck
 
 package main
 
@@ -9,7 +9,7 @@ import (
 func main() {
 	x := 1
 
-	x := 2
+	x := 2 // ERROR `no new variables on left side of :=`
 
 	fmt.Println(x)
 }

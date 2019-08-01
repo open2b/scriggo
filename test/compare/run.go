@@ -389,23 +389,6 @@ func main() {
 		case "skip":
 			countSkipped++
 			// Do nothing.
-		case "errcmp":
-			t.start()
-			scriggoOut := runScriggo(src)
-			t.stop()
-			gcOut := runGc(src)
-			if !scriggoOut.isErr() && !gcOut.isErr() {
-				panic("error expected, both Scriggo and gc succeed")
-			}
-			if !scriggoOut.isErr() && gcOut.isErr() {
-				panic("gc returned an error (as it should), but Scriggo succeed" + outputDetails(scriggoOut, gcOut))
-			}
-			if scriggoOut.isErr() && !gcOut.isErr() {
-				panic("Scriggo returned an error (as it should), but gc succeed" + outputDetails(scriggoOut, gcOut))
-			}
-			if !matchOutput(scriggoOut, gcOut) {
-				panic("Scriggo and gc returned two different errors" + outputDetails(scriggoOut, gcOut))
-			}
 		case "compile":
 			t.start()
 			_, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), &scriggo.LoadOptions{LimitMemorySize: true})
