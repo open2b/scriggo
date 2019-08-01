@@ -158,22 +158,10 @@ func (o output) String() string {
 	return path + ":" + o.column + ":" + o.row + " " + o.msg
 }
 
-// matchOutput reports whether two outputs are equal (i.e. if they are errors
-// then their errors must match, if not the output must match).
-func matchOutput(o, o2 output) bool {
-	// TODO(Gianluca): why column? Should it be row?
-	if o.column != o2.column {
-		return false
-	}
-	if o.msg != o2.msg {
-		return false
-	}
-	return true
-}
-
 // parseOutputMessage parses a Scriggo or gc output message.
 func parseOutputMessage(msg string) output {
 	r := regexp.MustCompile(`([\w\. ]*):(\d+):(\d+):\s(.*)`)
+	// Is not an error.
 	if !r.MatchString(msg) {
 		return output{msg: msg}
 	}
@@ -410,7 +398,7 @@ func main() {
 			if !scriggoOut.isErr() && gcOut.isErr() {
 				panic("expected succeed, but gc returned an error" + outputDetails(scriggoOut, gcOut))
 			}
-			if !matchOutput(scriggoOut, gcOut) {
+			if scriggoOut.msg != gcOut.msg {
 				panic("Scriggo and gc returned two different outputs" + outputDetails(scriggoOut, gcOut))
 			}
 		default:
