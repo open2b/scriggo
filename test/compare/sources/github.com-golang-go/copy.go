@@ -28,12 +28,12 @@ var output64 = make([]uint64, N)
 var inputS string
 var outputS = make([]uint8, N)
 
-type my8 = []uint8
-type my16 = []uint16
-type my32 = []uint32
-type my32b = []uint32
-type my64 = []uint64
-type myS = string
+type my8 []uint8
+type my16 []uint16
+type my32 []uint32
+type my32b []uint32
+type my64 []uint64
+type myS string
 
 func u8(i int) uint8 {
 	i = 'a' + i%26
