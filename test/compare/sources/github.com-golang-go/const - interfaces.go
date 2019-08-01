@@ -1,4 +1,4 @@
-// skip : segmentation fault on emitter.
+// skip : https://github.com/open2b/scriggo/issues/244
 
 // run
 
