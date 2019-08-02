@@ -131,14 +131,16 @@ func ParseScript(src io.Reader, loader PackageLoader, shebang bool) (*ast.Tree, 
 	packages := map[string]bool{}
 
 	// Load package main.
-	main, err := loader.Load("main")
-	if err != nil {
-		return nil, err
-	}
-	switch main.(type) {
-	case nil, predefinedPackage:
-	default:
-		return nil, fmt.Errorf("scriggo: unexpected type %T for package \"main\"", main)
+	if loader != nil {
+		main, err := loader.Load("main")
+		if err != nil {
+			return nil, err
+		}
+		switch main.(type) {
+		case nil, predefinedPackage:
+		default:
+			return nil, fmt.Errorf("scriggo: unexpected type %T for package \"main\"", main)
+		}
 	}
 
 	// Parse the source.
@@ -168,6 +170,9 @@ func ParseScript(src io.Reader, loader PackageLoader, shebang bool) (*ast.Tree, 
 			return nil, fmt.Errorf("invalid path %q at %s", imp.Path, imp.Pos())
 		}
 		// Load the package.
+		if loader == nil {
+			return nil, &SyntaxError{"", *(imp.Pos()), fmt.Errorf("cannot find package %q", imp.Path)}
+		}
 		pkg, err := loader.Load(imp.Path)
 		if err != nil {
 			return nil, err
