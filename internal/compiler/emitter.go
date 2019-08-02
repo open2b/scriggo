@@ -210,7 +210,6 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 	// Emit the package variables.
 	var initVarsFn *vm.Function
 	var initVarsFb *functionBuilder
-	pkgVarRegs := map[string]int8{}
 	for _, dec := range pkg.Declarations {
 		if n, ok := dec.(*ast.Var); ok {
 			// If the package has some variable declarations, a special "init"
@@ -227,6 +226,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 			}
 			em.fb = initVarsFb
 			addresses := make([]address, len(n.Lhs))
+			pkgVarRegs := map[string]int8{}
 			for i, v := range n.Lhs {
 				if isBlankIdentifier(v) {
 					addresses[i] = em.newAddress(addressBlank, reflect.Type(nil), 0, 0)
@@ -236,8 +236,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 					em.fb.bindVarReg(v.Name, varr)
 					addresses[i] = em.newAddress(addressRegister, staticType, varr, 0)
 					// Store the variable register. It will be used later to store
-					// initialized value inside the proper global index during
-					// the building of $initvars.
+					// initialized value inside the proper global index.
 					pkgVarRegs[v.Name] = varr
 					em.globals = append(em.globals, Global{Pkg: "main", Name: v.Name, Type: staticType})
 					em.availableVarIndexes[em.pkg][v.Name] = int16(len(em.globals) - 1)
@@ -245,6 +244,10 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 				}
 			}
 			em.assign(addresses, n.Rhs)
+			for name, reg := range pkgVarRegs {
+				index := em.availableVarIndexes[em.pkg][name]
+				em.fb.emitSetVar(false, reg, int(index))
+			}
 			em.fb = backupFb
 		}
 	}
@@ -285,16 +288,6 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 	}
 
 	if initVarsFn != nil {
-		// Global variables have been locally defined inside the "$initvars"
-		// function; their values must now be exported to be available
-		// globally.
-		backupFb := em.fb
-		em.fb = initVarsFb
-		for name, reg := range pkgVarRegs {
-			index := em.availableVarIndexes[em.pkg][name]
-			em.fb.emitSetVar(false, reg, int(index))
-		}
-		em.fb = backupFb
 		initVarsFb.exitScope()
 		initVarsFb.emitReturn()
 		initVarsFb.end()
