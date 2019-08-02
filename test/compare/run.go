@@ -292,16 +292,17 @@ func (b mainLoader) Load(path string) (interface{}, error) {
 	return nil, nil
 }
 
-// runScriggo runs a Go program using Scriggo and returns its output.
-func runScriggo(src []byte) output {
-	reader, writer, err := os.Pipe()
+// callCatchingStdout calls the given function, catching the standard output and
+// returning it as a string.
+func callCatchingStdout(f func()) string {
+	r, w, err := os.Pipe()
 	if err != nil {
 		panic(err)
 	}
-	backupStdout := os.Stdout
-	os.Stdout = writer
+	backup := os.Stdout
+	os.Stdout = w
 	defer func() {
-		os.Stdout = backupStdout
+		os.Stdout = backup
 	}()
 	out := make(chan string)
 	wg := new(sync.WaitGroup)
@@ -309,20 +310,28 @@ func runScriggo(src []byte) output {
 	go func() {
 		var buf bytes.Buffer
 		wg.Done()
-		io.Copy(&buf, reader)
+		io.Copy(&buf, r)
 		out <- buf.String()
 	}()
 	wg.Wait()
-	program, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), &scriggo.LoadOptions{LimitMemorySize: true})
+	f()
+	w.Close()
+	return <-out
+}
+
+// runScriggo runs a Go program using Scriggo and returns its output.
+func runScriggo(src []byte) output {
+	program, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), nil)
 	if err != nil {
 		return parseOutputMessage(err.Error())
 	}
-	err = program.Run(&scriggo.RunOptions{MaxMemorySize: 1000000})
+	stdout := callCatchingStdout(func() {
+		err = program.Run(nil)
+	})
 	if err != nil {
 		return parseOutputMessage(err.Error())
 	}
-	writer.Close()
-	return parseOutputMessage(<-out)
+	return parseOutputMessage(stdout)
 }
 
 // runGc runs a Go program using gc and returns its output.
