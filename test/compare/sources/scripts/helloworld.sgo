@@ -1,0 +1,5 @@
+// compile
+
+import "fmt"
+
+fmt.Println("Hello, World!")

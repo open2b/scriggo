@@ -321,7 +321,7 @@ func getAllFilepaths(pattern string) []string {
 				return nil
 			}
 		}
-		if filepath.Ext(path) == ".go" || filepath.Ext(path) == ".html" {
+		if filepath.Ext(path) == ".go" || filepath.Ext(path) == ".sgo" || filepath.Ext(path) == ".html" {
 			filepaths = append(filepaths, path)
 		}
 		return nil
@@ -412,6 +412,7 @@ func main() {
 		tim := &timer{}
 
 		ext := filepath.Ext(path)
+
 		directive := mode(src, ext)
 		switch ext {
 		case ".go":
@@ -452,6 +453,13 @@ func main() {
 			}
 		case ".sgo":
 			switch directive {
+			case "compile", "build":
+				tim.start()
+				_, err := scriggo.LoadScript(bytes.NewReader(src), packages, nil)
+				tim.stop()
+				if err != nil {
+					panic(err)
+				}
 			case "skip":
 				countSkipped++
 				// Do nothing.
@@ -462,10 +470,12 @@ func main() {
 			switch directive {
 			case "compile", "build":
 				r := template.MapReader{"/index.html": src}
+				tim.start()
 				_, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
 				if err != nil {
 					panic(err)
 				}
+				tim.stop()
 			case "render":
 				r := template.MapReader{"/index.html": src}
 				tim.start()
