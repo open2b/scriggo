@@ -1,5 +1,3 @@
-// skip https://github.com/open2b/scriggo/issues/245
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.
