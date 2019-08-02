@@ -46,15 +46,16 @@ If you want, for example, test a program source code with the mode **errorcheck*
 ```
 
 
-Mode | Expected behaviour | Supported extensions
+Mode | Supported extensions | Expected behaviour
 ---|---|---
-**skip** | Nothing. The test is skipped. Everything after the `skip` keyword is ignored. | `.go`, `.sgo`, `.html`
-**compile**, **build** | The test compiles successfully. | `.go`, `.sgo`, `.html`
-**run** | The test compiles and runs successfully; for programs the standard output is the same as returned by gc, for scripts the `print`/`println` output matches the content of the associated _golden file_ associated to the test (see below). | `.go`, `.sgo`
-**rundir** | The test inside the _dir-directory_ (see below) associated to the test compiles and runs successfully. | `.go`
-**errorcheck** | For each row ending with a comment `// ERROR error message`, the compilation fails with the error message reported in the comment. Error message must be enclosed between **\`** characters or **\"** characters. While the former takes the error message as is, the latter support regular expression syntax. For instance, if the error message contains a **"** character, you can both enclose the error message in double quotes (escaping the character) or use the backtick without having to escape it. | `.go`, `.sgo`, `.html`
-**render** | The test compiles and runs successfully and the rendered output is the same as the content of the _golden file_ associated to the test  (see below).  | `.html`
-**renderdir** | The test inside the _dir-directory_ (see below) associated to the test compiles and runs successfully and the rendered output is the same as the content of the _golden file_ associated to the test (see below).  | `.html`
+**skip** | `.go` <br> `.sgo` `.html` | Nothing. The test is skipped. Everything after the `skip` keyword is ignored.
+**compile**, **build** | `.go`, `.sgo`, `.html` | The test compiles successfully.
+**run** | `.go` | The test compiles and runs successfully; for programs the standard output is the same as returned by gc, for scripts the `print`/`println` output matches the content of the associated _golden file_ associated to the test (see below).
+**run** | `.sgo` | The test compiles and runs successfully; for programs the standard output is the same as returned by gc, for scripts the `print`/`println` output matches the content of the associated _golden file_ associated to the test (see below).
+**rundir** | `.go` | The test inside the _dir-directory_ (see below) associated to the test compiles and runs successfully.
+**errorcheck** | `.go`, `.sgo`, `.html` | For each row ending with a comment `// ERROR error message`, the compilation fails with the error message reported in the comment. Error message must be enclosed between **\`** characters or **\"** characters. While the former takes the error message as is, the latter support regular expression syntax. For instance, if the error message contains a **"** character, you can both enclose the error message in double quotes (escaping the character) or use the backtick without having to escape it. 
+**render**  | `.html` | The test compiles and runs successfully and the rendered output is the same as the content of the _golden file_ associated to the test  (see below).
+**renderdir**  | `.html` | The test inside the _dir-directory_ (see below) associated to the test compiles and runs successfully and the rendered output is the same as the content of the _golden file_ associated to the test (see below).
 
 
 - A **golden file** associated to a test is a text file with the same path as the test but with extension `.golden` instead of `.sgo` or `.html`.
