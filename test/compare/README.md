@@ -20,14 +20,20 @@ Source code must specify a _testing mode_. See the section **Testing modes** for
 # Testing modes
 
 A testing mode can be specified using a comment at the first non-empty line of the test file.
-The syntax is the following:
+The syntax for programs the the following:
 
 ```go
 // mode
 ```
 
+While templates can specify mode using the template comment syntax. Note that the line that specifies the mode cannot contain anything but the comment:
+
+```
+{# mode #}
+```
+
 Available modes are listed in the table below.
-If you want, for example, test a source code with the mode **errorcheck**, the first non-empty line of the file must be
+If you want, for example, test a program source code with the mode **errorcheck**, the first non-empty line of the file must be
 
 ```go
 // errorcheck
@@ -39,8 +45,9 @@ Mode | Expected behaviour
 ---|---
 **skip** | Nothing. The test is skipped.
 **compile**, **build** | The test compiles successfully.
-**run** | The test compiles and runs successfully and the standard output is the same as returned by gc.
+**run** | The test compiles and runs successfully and the standard output is the same as returned by gc. Not supported by templates.
 **errorcheck** | For each row ending with a comment `// ERROR error message`, the compilation fails with the error message reported in the comment. Error message must be enclosed between **\`** characters or **\"** characters. While the former takes the error message as is, the latter support regular expression syntax. For instance, if the error message contains a **"** character, you can both enclose the error message in double quotes (escaping the character) or use the backtick without having to escape it.
+**render** | The test compiles and runs successfully and the rendered output is the same as the content of the golden file associated to the test, that is a text file with the same path as the text but with extension `.golden` instead of `.html`. Supported only by templates.
 
 # Go tests from https://github.com/golang/go/
 
