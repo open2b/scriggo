@@ -120,7 +120,7 @@ func readMode(src []byte, ext string) string {
 				panic("//+build ignore is no longer supported; remove such line from source")
 			}
 			if !strings.HasPrefix(l, "//") {
-				return ""
+				continue
 			}
 			l = strings.TrimPrefix(l, "//")
 			l = strings.TrimSpace(l)
@@ -442,6 +442,8 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
+		case ".sgo.errorcheck":
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		case ".sgo.run":
 			t.start()
 			script, err := scriggo.LoadScript(bytes.NewReader(src), packages, nil)
