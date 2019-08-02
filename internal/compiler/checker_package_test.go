@@ -29,7 +29,7 @@ func TestInitializationLoop(t *testing.T) {
 			
 			var A = B
 			var B = A`,
-			":3:8: typechecking loop involving var A = B\n\t3:8: A\n\t3:12: B\n\t4:12: A\n",
+			"3:4: typechecking loop involving var A = B\n\t3:8: A\n\t3:12: B\n\t4:12: A\n",
 		},
 		"#3": {
 			`package main
@@ -37,7 +37,7 @@ func TestInitializationLoop(t *testing.T) {
 			const C1 = C2
 			const C2 = C3
 			const C3 = C1`,
-			":3:4: constant definition loop\n\t3:10: C1 uses C2\n\t3:15: C2 uses C3\n\t4:15: C3 uses C1\n",
+			"3:4: constant definition loop\n\t3:10: C1 uses C2\n\t3:15: C2 uses C3\n\t4:15: C3 uses C1\n",
 		},
 	}
 	for name, cas := range cases {

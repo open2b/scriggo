@@ -7,7 +7,6 @@
 package compiler
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 
@@ -127,18 +126,28 @@ func checkDepsPath(path []*ast.Identifier, deps PackageDeclsDeps) []*ast.Identif
 	return nil
 }
 
+// An initLoopError is a error representing an initialization loop.
+type initLoopError struct {
+	node ast.Node
+	msg  string
+}
+
+func (loopErr initLoopError) Error() string {
+	return loopErr.node.Pos().String() + ": " + loopErr.msg
+}
+
 func detectConstantsLoop(consts []*ast.Const, deps PackageDeclsDeps) error {
 	for _, c := range consts {
 		path := []*ast.Identifier{c.Lhs[0]}
 		loopPath := checkDepsPath(path, deps)
 		if loopPath != nil {
-			msg := ":" + c.Pos().String() + ": constant definition loop\n"
+			msg := "constant definition loop\n"
 			for i := 0; i < len(loopPath)-1; i++ {
 				msg += "\t" + loopPath[i].Pos().String() + ": "
 				msg += loopPath[i].String() + " uses " + loopPath[i+1].String()
 				msg += "\n"
 			}
-			return errors.New(msg)
+			return initLoopError{node: c, msg: msg}
 		}
 	}
 	return nil
@@ -150,11 +159,11 @@ func detectVarsLoop(vars []*ast.Var, deps PackageDeclsDeps) error {
 			path := []*ast.Identifier{left}
 			loopPath := checkDepsPath(path, deps)
 			if loopPath != nil {
-				msg := ":" + left.Pos().String() + ": typechecking loop involving " + v.String() + "\n"
+				msg := "typechecking loop involving " + v.String() + "\n"
 				for _, p := range loopPath {
 					msg += "\t" + p.Pos().String() + ": " + p.String() + "\n"
 				}
-				return errors.New(msg)
+				return initLoopError{node: v, msg: msg}
 			}
 		}
 	}
@@ -164,16 +173,16 @@ func detectVarsLoop(vars []*ast.Var, deps PackageDeclsDeps) error {
 func detectTypeLoop(types []*ast.TypeDeclaration, deps PackageDeclsDeps) error {
 	for _, t := range types {
 		if !t.IsAliasDeclaration {
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			panic("type definition currently not supported") // TODO(Gianluca): to implement.
 		}
 		path := []*ast.Identifier{t.Identifier}
 		loopPath := checkDepsPath(path, deps)
 		if loopPath != nil {
-			msg := ":" + t.Pos().String() + ": invalid recursive type alias " + t.String() + "\n"
+			msg := "invalid recursive type alias " + t.String() + "\n"
 			for _, p := range loopPath {
 				msg += "\t" + p.Pos().String() + ": " + p.String() + "\n"
 			}
-			return errors.New(msg)
+			return initLoopError{node: t, msg: msg}
 		}
 	}
 	return nil
@@ -461,7 +470,8 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 
 	err = sortDeclarations(packageNode, deps)
 	if err != nil {
-		return err
+		loopErr := err.(initLoopError)
+		return tc.errorf(loopErr.node, loopErr.msg)
 	}
 
 	// First: check all type declarations.
