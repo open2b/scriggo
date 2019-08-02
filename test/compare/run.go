@@ -442,6 +442,30 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
+		case ".sgo.run":
+			t.start()
+			script, err := scriggo.LoadScript(bytes.NewReader(src), packages, nil)
+			if err != nil {
+				panic(err)
+			}
+			sb := strings.Builder{}
+			print := func(arg interface{}) {
+				sb.WriteString(fmt.Sprintf("%v", arg))
+			}
+			err = script.Run(nil, &scriggo.RunOptions{PrintFunc: print})
+			if err != nil {
+				panic(err)
+			}
+			goldenPath := strings.TrimSuffix(path, ".sgo") + ".golden"
+			goldenData, err := ioutil.ReadFile(goldenPath)
+			if err != nil {
+				panic(err)
+			}
+			expected := strings.TrimSpace(string(goldenData))
+			got := strings.TrimSpace(sb.String())
+			if expected != got {
+				panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
+			}
 		case ".html.compile", ".html.build":
 			r := template.MapReader{"/index.html": src}
 			t.start()
