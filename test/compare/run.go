@@ -343,7 +343,7 @@ func getAllFilepaths(pattern string) []string {
 				return nil
 			}
 		}
-		if filepath.Ext(path) == ".go" || filepath.Ext(path) == ".sgo" || filepath.Ext(path) == ".html" {
+		if isTestPath(path) {
 			filepaths = append(filepaths, path)
 		}
 		return nil
@@ -496,8 +496,13 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-		case ".html.render":
-			r := template.MapReader{"/index.html": src}
+		case ".html.render", ".html.renderdir":
+			var r template.Reader
+			if mode == "render" {
+				r = template.MapReader{"/index.html": src}
+			} else {
+				r = template.DirReader(strings.TrimSuffix(path, ".html") + ".dir")
+			}
 			t.start()
 			templ, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
 			if err != nil {
