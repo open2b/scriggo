@@ -1,0 +1,24 @@
+// run
+
+import "fmt"
+
+count := 0
+for i := 0; i < 100; i++ {
+	count++
+}
+fmt.Println("count is ", count)
+if count > 50 {
+	fmt.Println("count is > 50")
+} else {
+	fmt.Println("count is <= 50")
+}
+var i = interface{}(432)
+switch i.(type) {
+case string:
+	fmt.Println("is a string")
+case int:
+	fmt.Println("is an int")
+}
+i2 := interface{}(-42)
+res := i.(int) - i2.(int)
+fmt.Println("res is", res)
