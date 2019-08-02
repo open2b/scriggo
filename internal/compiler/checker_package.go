@@ -188,7 +188,7 @@ func detectTypeLoop(types []*ast.TypeDeclaration, deps PackageDeclsDeps) error {
 	return nil
 }
 
-func sortDeclarations(pkg *ast.Package, deps PackageDeclsDeps) error {
+func sortDeclarations(pkg *ast.Package) error {
 	var extends *ast.Extends
 	types := []*ast.TypeDeclaration{}
 	consts := []*ast.Const{}
@@ -231,6 +231,7 @@ func sortDeclarations(pkg *ast.Package, deps PackageDeclsDeps) error {
 	}
 
 	// Removes from deps all non-global dependencies.
+	deps := AnalyzeTree(pkg)
 	for decl, ds := range deps {
 		newDs := []*ast.Identifier{}
 		for _, d := range ds {
@@ -452,7 +453,7 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports PackageLoader, pkgInfos map[string]*PackageInfo, opts CheckerOptions) (err error) {
+func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos map[string]*PackageInfo, opts CheckerOptions) (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -468,7 +469,7 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 
 	tc := newTypechecker(path, opts)
 
-	err = sortDeclarations(packageNode, deps)
+	err = sortDeclarations(packageNode)
 	if err != nil {
 		loopErr := err.(initLoopError)
 		return tc.errorf(loopErr.node, loopErr.msg)
@@ -538,12 +539,12 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 					if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
 						return tc.programImportError(d)
 					}
-					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, nil, pkgInfos, opts) // TODO(Gianluca): where are deps?
+					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, pkgInfos, opts) // TODO(Gianluca): where are deps?
 				} else {
 					if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
 						return tc.programImportError(d)
 					}
-					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, nil, pkgInfos, opts) // TODO(Gianluca): where are deps?
+					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, pkgInfos, opts) // TODO(Gianluca): where are deps?
 				}
 				importedPkg = pkgInfos[d.Tree.Path]
 				if err != nil {

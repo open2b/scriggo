@@ -139,7 +139,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					if node.Tree.Nodes[0].(*ast.Package).Name == "main" {
 						panic(tc.programImportError(node))
 					}
-					err = checkPackage(node.Tree.Nodes[0].(*ast.Package), node.Path, nil, nil, pkgInfos, tc.opts)
+					err = checkPackage(node.Tree.Nodes[0].(*ast.Package), node.Path, nil, pkgInfos, tc.opts)
 					if err != nil {
 						panic(err)
 					}

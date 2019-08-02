@@ -145,12 +145,10 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 		panic("unspecified syntax type")
 	}
 
-	deps := AnalyzeTree(tree, opts.SyntaxType)
-
 	// Type check a program.
 	if opts.SyntaxType == ProgramSyntax {
 		pkgInfos := map[string]*PackageInfo{}
-		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, packages, pkgInfos, opts)
+		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, packages, pkgInfos, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -197,7 +195,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 			return nil, err
 		}
 		pkgInfos := map[string]*PackageInfo{}
-		err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, nil, pkgInfos, opts)
+		err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, nil, pkgInfos, opts)
 		if err != nil {
 			return nil, err
 		}

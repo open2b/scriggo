@@ -8,6 +8,7 @@ package compiler
 
 import (
 	"reflect"
+	"scriggo/ast"
 	"sort"
 	"strconv"
 	"testing"
@@ -693,7 +694,7 @@ func TestDependencies(t *testing.T) {
 			if err != nil {
 				t.Fatalf("parsing error: %s", err)
 			}
-			got := AnalyzeTree(tree, ProgramSyntax)
+			got := AnalyzeTree(tree.Nodes[0].(*ast.Package))
 			gotIdentifiers := map[string][]string{}
 			for symbol, deps := range got {
 				if symbol.Name == "_" {

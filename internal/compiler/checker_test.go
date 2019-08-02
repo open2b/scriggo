@@ -2140,9 +2140,8 @@ func TestGotoLabels(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			deps := AnalyzeTree(tree, ProgramSyntax)
 			pkgInfos := map[string]*PackageInfo{}
-			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, nil, pkgInfos, CheckerOptions{SyntaxType: ProgramSyntax})
+			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, nil, pkgInfos, CheckerOptions{SyntaxType: ProgramSyntax})
 			switch {
 			case err == nil && cas.errorMsg == "":
 				// Ok.

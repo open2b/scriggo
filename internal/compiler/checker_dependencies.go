@@ -127,37 +127,18 @@ func (d deps) analyzeGlobalTypeDeclaration(td *ast.TypeDeclaration) {
 
 // AnalyzeTree analyzes tree returning a data structure holding all dependencies
 // informations.
-func AnalyzeTree(tree *ast.Tree, syntaxType SyntaxType) PackageDeclsDeps {
+func AnalyzeTree(pkg *ast.Package) PackageDeclsDeps {
 	d := deps{}
-	switch syntaxType {
-	case ProgramSyntax:
-		pkg := tree.Nodes[0].(*ast.Package)
-		for _, n := range pkg.Declarations {
-			switch n := n.(type) {
-			case *ast.Var:
-				d.analyzeGlobalVar(n)
-			case *ast.Const:
-				d.analyzeGlobalConst(n)
-			case *ast.Func:
-				d.analyzeGlobalFunc(n)
-			case *ast.TypeDeclaration:
-				d.analyzeGlobalTypeDeclaration(n)
-			}
-		}
-	case TemplateSyntax:
-		for _, n := range tree.Nodes {
-			switch n := n.(type) {
-			case *ast.Var:
-				d.analyzeGlobalVar(n)
-			case *ast.Const:
-				d.analyzeGlobalConst(n)
-			case *ast.Macro:
-				d.analyzeGlobalMacro(n)
-			case *ast.Assignment:
-				if n.Type == ast.AssignmentDeclaration {
-					d.analyzeGlobalDeclarationAssignment(n)
-				}
-			}
+	for _, n := range pkg.Declarations {
+		switch n := n.(type) {
+		case *ast.Var:
+			d.analyzeGlobalVar(n)
+		case *ast.Const:
+			d.analyzeGlobalConst(n)
+		case *ast.Func:
+			d.analyzeGlobalFunc(n)
+		case *ast.TypeDeclaration:
+			d.analyzeGlobalTypeDeclaration(n)
 		}
 	}
 	return PackageDeclsDeps(d)
