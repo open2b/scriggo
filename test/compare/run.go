@@ -91,6 +91,14 @@ func errorcheck(src []byte) {
 
 // mode reports the mode associated to src.
 //
+// Mode is specified in programs using a comment line (starting with "//"):
+//
+//  // mode
+//
+// templates must encapsulate mode in a line containing only a comment:
+//
+//  {# mode #}
+//
 // As a special case, the 'skip' comment can be followed by any sequence of
 // characters (after a whitespace character) that will be ignored. This is
 // useful to put an inline comment to the "skip" comment, explaining the reason
@@ -99,24 +107,45 @@ func errorcheck(src []byte) {
 //  // skip because feature X is not supported
 //  // skip : enable when bug Y will be fixed
 //
-func mode(src []byte) string {
-	for _, l := range strings.Split(string(src), "\n") {
-		l = strings.TrimSpace(l)
-		if l == "" {
-			continue
+func mode(src []byte, ext string) string {
+	switch ext {
+	case ".go":
+		for _, l := range strings.Split(string(src), "\n") {
+			l = strings.TrimSpace(l)
+			if l == "" {
+				continue
+			}
+			if strings.HasPrefix(l, "//+build ignore") {
+				panic("//+build ignore is no longer supported; remove such line from source")
+			}
+			if !strings.HasPrefix(l, "//") {
+				return ""
+			}
+			l = strings.TrimPrefix(l, "//")
+			l = strings.TrimSpace(l)
+			if strings.HasPrefix(l, "skip ") {
+				return "skip"
+			}
+			return l
 		}
-		if strings.HasPrefix(l, "//+build ignore") {
-			panic("//+build ignore is no longer supported; remove such line from source")
+	case ".html":
+		for _, l := range strings.Split(string(src), "\n") {
+			l = strings.TrimSpace(l)
+			if l == "" {
+				continue
+			}
+			if strings.HasPrefix(l, "{#") && strings.HasSuffix(l, "#}") {
+				l = strings.TrimPrefix(l, "{#")
+				l = strings.TrimSuffix(l, "#}")
+				l = strings.TrimSpace(l)
+				if strings.HasPrefix(l, "skip ") {
+					return "skip"
+				}
+				return l
+			}
 		}
-		if !strings.HasPrefix(l, "//") {
-			return ""
-		}
-		l = strings.TrimPrefix(l, "//")
-		l = strings.TrimSpace(l)
-		if strings.HasPrefix(l, "skip ") {
-			return "skip"
-		}
-		return l
+	default:
+		panic("unsupported extension " + ext)
 	}
 	panic("no directives found")
 }
@@ -291,7 +320,7 @@ func getAllFilepaths(pattern string) []string {
 				return nil
 			}
 		}
-		if filepath.Ext(path) == ".go" {
+		if filepath.Ext(path) == ".go" || filepath.Ext(path) == ".html" {
 			filepaths = append(filepaths, path)
 		}
 		return nil
@@ -381,41 +410,55 @@ func main() {
 		// output) is considered overhead and should no be included in counting.
 		t := &timer{}
 
-		directive := mode(src)
-		switch directive {
-		case "errorcheck":
-			t.start()
-			errorcheck(src)
-			t.stop()
-		case "skip":
-			countSkipped++
-			// Do nothing.
-		case "compile", "build":
-			t.start()
-			_, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), &scriggo.LoadOptions{LimitMemorySize: true})
-			t.stop()
-			if err != nil {
-				panic(err.Error())
+		ext := filepath.Ext(path)
+		directive := mode(src, ext)
+		switch ext {
+		case ".go":
+			switch directive {
+			case "errorcheck":
+				t.start()
+				errorcheck(src)
+				t.stop()
+			case "skip":
+				countSkipped++
+				// Do nothing.
+			case "compile", "build":
+				t.start()
+				_, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), &scriggo.LoadOptions{LimitMemorySize: true})
+				t.stop()
+				if err != nil {
+					panic(err.Error())
+				}
+			case "run":
+				t.start()
+				scriggoOut := runScriggo(src)
+				t.stop()
+				gcOut := runGc(src)
+				if scriggoOut.isErr() && gcOut.isErr() {
+					panic("expected succeed, but Scriggo and gc returned an error" + outputDetails(scriggoOut, gcOut))
+				}
+				if scriggoOut.isErr() && !gcOut.isErr() {
+					panic("expected succeed, but Scriggo returned an error" + outputDetails(scriggoOut, gcOut))
+				}
+				if !scriggoOut.isErr() && gcOut.isErr() {
+					panic("expected succeed, but gc returned an error" + outputDetails(scriggoOut, gcOut))
+				}
+				if scriggoOut.msg != gcOut.msg {
+					panic("Scriggo and gc returned two different outputs" + outputDetails(scriggoOut, gcOut))
+				}
+			default:
+				panic(fmt.Errorf("file %s has no valid directives", path))
 			}
-		case "run":
-			t.start()
-			scriggoOut := runScriggo(src)
-			t.stop()
-			gcOut := runGc(src)
-			if scriggoOut.isErr() && gcOut.isErr() {
-				panic("expected succeed, but Scriggo and gc returned an error" + outputDetails(scriggoOut, gcOut))
+		case ".html":
+			switch directive {
+			case "skip":
+				countSkipped++
+				// Do nothing.
+			default:
+				panic(fmt.Errorf("file %s has no valid directives", path))
 			}
-			if scriggoOut.isErr() && !gcOut.isErr() {
-				panic("expected succeed, but Scriggo returned an error" + outputDetails(scriggoOut, gcOut))
-			}
-			if !scriggoOut.isErr() && gcOut.isErr() {
-				panic("expected succeed, but gc returned an error" + outputDetails(scriggoOut, gcOut))
-			}
-			if scriggoOut.msg != gcOut.msg {
-				panic("Scriggo and gc returned two different outputs" + outputDetails(scriggoOut, gcOut))
-			}
-		default:
-			panic(fmt.Errorf("file %s has no valid directives", path))
+		case ".ext":
+			panic("unsupported file extension " + ext)
 		}
 
 		// Test is completed, print some output and go to the next.
