@@ -78,8 +78,8 @@ func errorcheck(src []byte, ext string) {
 				}
 			}
 		}
-		// Get output from program/script and check if it matches with expected
-		// error.
+		// Get output from program/script/templates and check if it matches with
+		// expected error.
 		var out string
 		switch ext {
 		case ".go":
@@ -90,6 +90,13 @@ func errorcheck(src []byte, ext string) {
 			out = ret.String()
 		case ".sgo":
 			_, err := scriggo.LoadScript(bytes.NewReader(src), packages, nil)
+			if err == nil {
+				panic(fmt.Errorf("expected error %q, got nothing", expectedErr))
+			}
+			out = err.Error()
+		case ".html":
+			r := template.MapReader{"/index.html": src}
+			_, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
 			if err == nil {
 				panic(fmt.Errorf("expected error %q, got nothing", expectedErr))
 			}
@@ -419,13 +426,8 @@ func main() {
 		ext := filepath.Ext(path)
 		mode := readMode(src, ext)
 		switch ext + "." + mode {
-		case ".go.errorcheck":
-			t.start()
-			errorcheck(src, ".go")
-			t.stop()
 		case ".go.skip", ".sgo.skip", ".html.skip":
 			countSkipped++
-			// Do nothing.
 		case ".go.compile", ".go.build":
 			t.start()
 			_, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), &scriggo.LoadOptions{LimitMemorySize: true})
@@ -457,9 +459,9 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-		case ".sgo.errorcheck":
+		case ".go.errorcheck", ".sgo.errorcheck", ".html.errorcheck":
 			t.start()
-			errorcheck(src, ".sgo")
+			errorcheck(src, ext)
 			t.stop()
 		case ".sgo.run":
 			t.start()
@@ -494,8 +496,6 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-		case ".html.errorcheck":
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		case ".html.render":
 			r := template.MapReader{"/index.html": src}
 			t.start()
