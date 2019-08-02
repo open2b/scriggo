@@ -456,6 +456,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
+			t.stop()
 			goldenPath := strings.TrimSuffix(path, ".sgo") + ".golden"
 			goldenData, err := ioutil.ReadFile(goldenPath)
 			if err != nil {
@@ -470,10 +471,10 @@ func main() {
 			r := template.MapReader{"/index.html": src}
 			t.start()
 			_, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
+			t.stop()
 			if err != nil {
 				panic(err)
 			}
-			t.stop()
 		case ".html.errorcheck":
 			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		case ".html.render":
@@ -483,9 +484,9 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			t.stop()
 			w := &bytes.Buffer{}
 			err = templ.Render(w, nil, nil)
+			t.stop()
 			if err != nil {
 				panic(err)
 			}
