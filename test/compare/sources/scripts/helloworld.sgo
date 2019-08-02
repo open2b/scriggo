@@ -1,3 +1,5 @@
 // run
 
-println("Hello, World!")
+import "fmt"
+
+fmt.Println("Hello, World!")

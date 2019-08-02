@@ -523,12 +523,9 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			// TODO(Gianluca): catch stdout, not print output.
-			sb := strings.Builder{}
-			print := func(arg interface{}) {
-				sb.WriteString(fmt.Sprintf("%v", arg))
-			}
-			err = script.Run(nil, &scriggo.RunOptions{PrintFunc: print})
+			stdout := callCatchingStdout(func() {
+				err = script.Run(nil, nil)
+			})
 			if err != nil {
 				panic(err)
 			}
@@ -539,7 +536,7 @@ func main() {
 				panic(err)
 			}
 			expected := strings.TrimSpace(string(goldenData))
-			got := strings.TrimSpace(sb.String())
+			got := strings.TrimSpace(stdout)
 			if expected != got {
 				panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
 			}
