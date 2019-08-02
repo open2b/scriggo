@@ -459,7 +459,26 @@ func main() {
 					panic(err)
 				}
 			case "render":
-				panic("TODO: not implemented") // TODO(Gianluca): to implement.
+				r := template.MapReader{"/index.html": src}
+				t, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
+				if err != nil {
+					panic(err)
+				}
+				w := &bytes.Buffer{}
+				err = t.Render(w, nil, nil)
+				if err != nil {
+					panic(err)
+				}
+				goldenPath := strings.TrimSuffix(path, ".html") + ".golden"
+				goldenData, err := ioutil.ReadFile(goldenPath)
+				if err != nil {
+					panic(err)
+				}
+				expected := strings.TrimSpace(string(goldenData))
+				got := strings.TrimSpace(w.String())
+				if expected != got {
+					panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
+				}
 			case "errorcheck":
 				panic("TODO: not implemented") // TODO(Gianluca): to implement.
 			case "skip":
