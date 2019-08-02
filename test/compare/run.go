@@ -517,6 +517,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
+			// TODO(Gianluca): catch stdout, not print output.
 			sb := strings.Builder{}
 			print := func(arg interface{}) {
 				sb.WriteString(fmt.Sprintf("%v", arg))
