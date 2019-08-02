@@ -285,6 +285,14 @@ func TestPackageOrdering(t *testing.T) {
 			`,
 			"T,v1,main,",
 		},
+		"https://github.com/open2b/scriggo/issues/254": {
+			`package pkg1
+
+			var Pkg1A = Pkg1B + 10
+			var Pkg1B = 43.122
+			`,
+			`Pkg1B,Pkg1A,`,
+		},
 	}
 	for name, cas := range cases {
 		t.Run(name, func(t *testing.T) {
