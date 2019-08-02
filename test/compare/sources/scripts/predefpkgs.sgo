@@ -1,0 +1,5 @@
+// run
+
+import "math"
+
+print(math.MaxInt8)
