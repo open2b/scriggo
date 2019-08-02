@@ -33,8 +33,11 @@ const (
 	ColorReset = "\033[0m"
 )
 
+// A dirLoader is a package loader used in tests which involve directories
+// containing Scriggo programs.
 type dirLoader string
 
+// Load implement interface scriggo.PackageLoader.
 func (dl dirLoader) Load(path string) (interface{}, error) {
 	if path == "main" {
 		main, err := ioutil.ReadFile(filepath.Join(string(dl), "main.go"))
