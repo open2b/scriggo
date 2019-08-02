@@ -299,12 +299,9 @@ func runScriggo(src []byte) output {
 		panic(err)
 	}
 	backupStdout := os.Stdout
-	backupStderr := os.Stderr
 	os.Stdout = writer
-	os.Stderr = writer
 	defer func() {
 		os.Stdout = backupStdout
-		os.Stderr = backupStderr
 	}()
 	out := make(chan string)
 	wg := new(sync.WaitGroup)
