@@ -117,7 +117,12 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			if !isNumeric(exprTi.Type.Kind()) {
 				panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", node, exprTi))
 			}
-			tc.mustBeAddressable(v)
+			if indexing, ok := v.(*ast.Index); ok {
+				mapIndexing := tc.typeInfos[indexing.Expr].Type.Kind() == reflect.Map
+				if !mapIndexing {
+					tc.mustBeAddressable(v)
+				}
+			}
 			// Convert the assignment node from ++ and -- to a simple
 			// assignment. This change has no effects on type checking but
 			// simplifies the emitting of assignment nodes.
