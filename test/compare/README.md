@@ -36,9 +36,9 @@ for **templates**:
 
 Note that in templates the line that specifies the mode cannot contain anything but the comment.
 
-# Available modes
+# Testing modes
 
-Available modes are listed in the table below.
+Testing modes are listed in the table below.
 If you want, for example, test a program source code with the mode **errorcheck**, the first non-empty line of the file must be
 
 ```
@@ -48,12 +48,12 @@ If you want, for example, test a program source code with the mode **errorcheck*
 
 Mode | Supported extensions | Expected behaviour
 ---|---|---
-**skip** | `.go` <br> `.sgo` `.html` | Nothing. The test is skipped. Everything after the `skip` keyword is ignored.
-**compile**, **build** | `.go`, `.sgo`, `.html` | The test compiles successfully.
-**run** | `.go` | The test compiles and runs successfully; for programs the standard output is the same as returned by gc, for scripts the `print`/`println` output matches the content of the associated _golden file_ associated to the test (see below).
-**run** | `.sgo` | The test compiles and runs successfully; for programs the standard output is the same as returned by gc, for scripts the `print`/`println` output matches the content of the associated _golden file_ associated to the test (see below).
+**skip** | `.go` <br> `.sgo` <br> `.html` | Nothing. The test is skipped. Everything after the `skip` keyword is ignored.
+**compile** <br> **build** | `.go` <br> `.sgo` <br> `.html` | The test compiles successfully.
+**run** | `.go` | The test compiles and runs successfully and the standard output is the same as the one returned by gc
+**run** | `.sgo` | The test compiles and runs successfully and the standard output matches the content of the  _golden file_ associated to the test (see below).
 **rundir** | `.go` | The test inside the _dir-directory_ (see below) associated to the test compiles and runs successfully.
-**errorcheck** | `.go`, `.sgo`, `.html` | For each row ending with a comment `// ERROR error message`, the compilation fails with the error message reported in the comment. Error message must be enclosed between **\`** characters or **\"** characters. While the former takes the error message as is, the latter support regular expression syntax. For instance, if the error message contains a **"** character, you can both enclose the error message in double quotes (escaping the character) or use the backtick without having to escape it. 
+**errorcheck** | `.go` <br> `.sgo` <br> `.html` | For each row ending with a comment `// ERROR error message`, the compilation fails with the error message reported in the comment. Error message must be enclosed between **\`** characters or **\"** characters. While the former takes the error message as is, the latter support regular expression syntax. For instance, if the error message contains a **"** character, you can both enclose the error message in double quotes (escaping the character) or use the backtick without having to escape it.
 **render**  | `.html` | The test compiles and runs successfully and the rendered output is the same as the content of the _golden file_ associated to the test  (see below).
 **renderdir**  | `.html` | The test inside the _dir-directory_ (see below) associated to the test compiles and runs successfully and the rendered output is the same as the content of the _golden file_ associated to the test (see below).
 
