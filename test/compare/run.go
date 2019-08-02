@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"scriggo"
+	"scriggo/template"
 	"strconv"
 	"strings"
 	"sync"
@@ -451,6 +452,16 @@ func main() {
 			}
 		case ".html":
 			switch directive {
+			case "compile", "build":
+				r := template.MapReader{"/index.html": src}
+				_, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
+				if err != nil {
+					panic(err)
+				}
+			case "render":
+				panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			case "errorcheck":
+				panic("TODO: not implemented") // TODO(Gianluca): to implement.
 			case "skip":
 				countSkipped++
 				// Do nothing.
