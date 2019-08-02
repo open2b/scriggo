@@ -1,0 +1,11 @@
+{# render #}
+
+{% macro M1 %}M1{% end macro %}
+
+{% macro M2(int, int) %}M2{% end macro %}
+
+{% macro M3(a string) %}called M3 with argument '{{ a }}'{% end macro %}
+
+{% show M1 %}
+{% show M2(20, 20) %}
+{% show M3("a string!") %}

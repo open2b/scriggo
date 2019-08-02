@@ -1,0 +1,3 @@
+// errorcheck
+
+var a = b // ERROR "undefined: b"

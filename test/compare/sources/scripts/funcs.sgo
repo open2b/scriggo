@@ -1,0 +1,11 @@
+// skip : cannot assign function to variable : https://github.com/open2b/scriggo/issues/99
+
+// run
+
+func f1() {}
+
+func f2(a int) {
+	print(a)
+}
+
+f2(42)

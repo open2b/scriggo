@@ -1,0 +1,5 @@
+// run
+
+import "fmt"
+
+fmt.Println("Hello, World!")

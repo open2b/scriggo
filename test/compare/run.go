@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"scriggo"
+	"scriggo/template"
 	"strconv"
 	"strings"
 	"sync"
@@ -32,8 +33,42 @@ const (
 	ColorReset = "\033[0m"
 )
 
+// A dirLoader is a package loader used in tests which involve directories
+// containing Scriggo programs.
+type dirLoader string
+
+// Load implement interface scriggo.PackageLoader.
+func (dl dirLoader) Load(path string) (interface{}, error) {
+	if path == "main" {
+		main, err := ioutil.ReadFile(filepath.Join(string(dl), "main.go"))
+		if err != nil {
+			panic(err)
+		}
+		return bytes.NewReader(main), nil
+	}
+	data, err := ioutil.ReadFile(filepath.Join(string(dl), path+".go"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return bytes.NewReader(data), nil
+}
+
+// isTestPath reports whether path is a valid test path.
+func isTestPath(path string) bool {
+	if filepath.Ext(path) != ".go" && filepath.Ext(path) != ".sgo" && filepath.Ext(path) != ".html" {
+		return false
+	}
+	if filepath.Ext(filepath.Dir(path)) == ".dir" {
+		return false
+	}
+	return true
+}
+
 // errorcheck executes the 'errorcheck' test on src.
-func errorcheck(src []byte) {
+func errorcheck(src []byte, ext string) {
 	type stmt struct {
 		line string
 		err  *string
@@ -55,7 +90,6 @@ func errorcheck(src []byte) {
 			} else {
 				panic(fmt.Errorf("expected error must be followed by a string encapsulated in backticks (`) or double quotation marks (\"): %s", err))
 			}
-
 			stmts = append(stmts, stmt{line: l[:index], err: &err})
 			errorLines = append(errorLines, i)
 		} else {
@@ -78,18 +112,49 @@ func errorcheck(src []byte) {
 				}
 			}
 		}
-		out := runScriggo(cleanSrc.Bytes())
-		if !out.isErr() {
-			panic(fmt.Errorf("expected error %q, got %q", expectedErr, out.String()))
+		// Get output from program/script/templates and check if it matches with
+		// expected error.
+		var out string
+		switch ext {
+		case ".go":
+			ret := runScriggo(cleanSrc.Bytes())
+			if !ret.isErr() {
+				panic(fmt.Errorf("expected error %q, got %q", expectedErr, ret.String()))
+			}
+			out = ret.String()
+		case ".sgo":
+			_, err := scriggo.LoadScript(bytes.NewReader(src), packages, nil)
+			if err == nil {
+				panic(fmt.Errorf("expected error %q, got nothing", expectedErr))
+			}
+			out = err.Error()
+		case ".html":
+			r := template.MapReader{"/index.html": src}
+			_, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
+			if err == nil {
+				panic(fmt.Errorf("expected error %q, got nothing", expectedErr))
+			}
+			out = err.Error()
+		default:
+			panic("errorcheck does not support extension " + ext)
 		}
 		re := regexp.MustCompile(expectedErr)
-		if !re.MatchString(out.String()) {
-			panic(fmt.Errorf("error does not match:\n\n\texpecting:  %s\n\tgot:        %s", expectedErr, out.String()))
+		if !re.MatchString(out) {
+			panic(fmt.Errorf("error does not match:\n\n\texpecting:  %s\n\tgot:        %s", expectedErr, out))
 		}
 	}
 }
 
-// mode reports the mode associated to src.
+// readMode reports the readMode associated to src.
+//
+// Mode is specified in programs and scripts using a comment line (starting with
+// "//"):
+//
+//  // readMode
+//
+// templates must encapsulate readMode in a line containing just a comment:
+//
+//  {# readMode #}
 //
 // As a special case, the 'skip' comment can be followed by any sequence of
 // characters (after a whitespace character) that will be ignored. This is
@@ -99,26 +164,47 @@ func errorcheck(src []byte) {
 //  // skip because feature X is not supported
 //  // skip : enable when bug Y will be fixed
 //
-func mode(src []byte) string {
-	for _, l := range strings.Split(string(src), "\n") {
-		l = strings.TrimSpace(l)
-		if l == "" {
-			continue
+func readMode(src []byte, ext string) string {
+	switch ext {
+	case ".go", ".sgo":
+		for _, l := range strings.Split(string(src), "\n") {
+			l = strings.TrimSpace(l)
+			if l == "" {
+				continue
+			}
+			if strings.HasPrefix(l, "//+build ignore") {
+				panic("//+build ignore is no longer supported; remove such line from source")
+			}
+			if !strings.HasPrefix(l, "//") {
+				continue
+			}
+			l = strings.TrimPrefix(l, "//")
+			l = strings.TrimSpace(l)
+			if strings.HasPrefix(l, "skip ") {
+				return "skip"
+			}
+			return l
 		}
-		if strings.HasPrefix(l, "//+build ignore") {
-			panic("//+build ignore is no longer supported; remove such line from source")
+	case ".html":
+		for _, l := range strings.Split(string(src), "\n") {
+			l = strings.TrimSpace(l)
+			if l == "" {
+				continue
+			}
+			if strings.HasPrefix(l, "{#") && strings.HasSuffix(l, "#}") {
+				l = strings.TrimPrefix(l, "{#")
+				l = strings.TrimSuffix(l, "#}")
+				l = strings.TrimSpace(l)
+				if strings.HasPrefix(l, "skip ") {
+					return "skip"
+				}
+				return l
+			}
 		}
-		if !strings.HasPrefix(l, "//") {
-			return ""
-		}
-		l = strings.TrimPrefix(l, "//")
-		l = strings.TrimSpace(l)
-		if strings.HasPrefix(l, "skip ") {
-			return "skip"
-		}
-		return l
+	default:
+		panic("unsupported extension " + ext)
 	}
-	panic("no directives found")
+	panic("mode not specified")
 }
 
 // packages contains the predefined packages used in tests.
@@ -206,19 +292,17 @@ func (b mainLoader) Load(path string) (interface{}, error) {
 	return nil, nil
 }
 
-// runScriggo runs a Go program using Scriggo and returns its output.
-func runScriggo(src []byte) output {
-	reader, writer, err := os.Pipe()
+// callCatchingStdout calls the given function, catching the standard output and
+// returning it as a string.
+func callCatchingStdout(f func()) string {
+	r, w, err := os.Pipe()
 	if err != nil {
 		panic(err)
 	}
-	backupStdout := os.Stdout
-	backupStderr := os.Stderr
-	os.Stdout = writer
-	os.Stderr = writer
+	backup := os.Stdout
+	os.Stdout = w
 	defer func() {
-		os.Stdout = backupStdout
-		os.Stderr = backupStderr
+		os.Stdout = backup
 	}()
 	out := make(chan string)
 	wg := new(sync.WaitGroup)
@@ -226,20 +310,28 @@ func runScriggo(src []byte) output {
 	go func() {
 		var buf bytes.Buffer
 		wg.Done()
-		io.Copy(&buf, reader)
+		io.Copy(&buf, r)
 		out <- buf.String()
 	}()
 	wg.Wait()
-	program, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), &scriggo.LoadOptions{LimitMemorySize: true})
+	f()
+	w.Close()
+	return <-out
+}
+
+// runScriggo runs a Go program using Scriggo and returns its output.
+func runScriggo(src []byte) output {
+	program, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), nil)
 	if err != nil {
 		return parseOutputMessage(err.Error())
 	}
-	err = program.Run(&scriggo.RunOptions{MaxMemorySize: 1000000})
+	stdout := callCatchingStdout(func() {
+		err = program.Run(nil)
+	})
 	if err != nil {
 		return parseOutputMessage(err.Error())
 	}
-	writer.Close()
-	return parseOutputMessage(<-out)
+	return parseOutputMessage(stdout)
 }
 
 // runGc runs a Go program using gc and returns its output.
@@ -291,7 +383,7 @@ func getAllFilepaths(pattern string) []string {
 				return nil
 			}
 		}
-		if filepath.Ext(path) == ".go" {
+		if isTestPath(path) {
 			filepaths = append(filepaths, path)
 		}
 		return nil
@@ -310,6 +402,14 @@ func main() {
 	time := flag.Bool("t", false, "show time elapsed between the beginning and the ending of every test. Require flag -v")
 	color := flag.Bool("c", false, "enable colored output. Output device must support ANSI escape sequences. Require flag -v")
 
+	flag.Parse()
+	if *time && !*verbose {
+		panic("flag -t requires flag -v")
+	}
+	if *color && !*verbose {
+		panic("flag -c requires flag -v")
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			if *verbose {
@@ -325,37 +425,21 @@ func main() {
 		}
 	}()
 
-	flag.Parse()
-
-	if *time && !*verbose {
-		panic("flag -t requires flag -v")
-	}
-
-	if *color && !*verbose {
-		panic("flag -c requires flag -v")
-	}
-
-	// Get the list of all tests to run.
 	filepaths := getAllFilepaths(*pattern)
-
-	// Find the longest path in list: this is used later to format the output.
 	maxPathLen := 0
 	for _, fp := range filepaths {
 		if len(fp) > maxPathLen {
 			maxPathLen = len(fp)
 		}
 	}
-
 	countTotal := 0
 	countSkipped := 0
-
 	for _, path := range filepaths {
 		countTotal++
 		src, err := ioutil.ReadFile(path)
 		if err != nil {
 			panic(err)
 		}
-
 		if *verbose {
 			if *color {
 				fmt.Print(ColorInfo)
@@ -374,30 +458,24 @@ func main() {
 				fmt.Print(" ")
 			}
 		}
-
 		// A timer is used to measure time that elapses during the execution of a given
 		// test. Note that timer should measure only time needed by Scriggo; any
 		// other elapsed time (eg. calling the gc compiler for the comparison
 		// output) is considered overhead and should no be included in counting.
 		t := &timer{}
-
-		directive := mode(src)
-		switch directive {
-		case "errorcheck":
-			t.start()
-			errorcheck(src)
-			t.stop()
-		case "skip":
+		ext := filepath.Ext(path)
+		mode := readMode(src, ext)
+		switch ext + "." + mode {
+		case ".go.skip", ".sgo.skip", ".html.skip":
 			countSkipped++
-			// Do nothing.
-		case "compile", "build":
+		case ".go.compile", ".go.build":
 			t.start()
 			_, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), &scriggo.LoadOptions{LimitMemorySize: true})
 			t.stop()
 			if err != nil {
 				panic(err.Error())
 			}
-		case "run":
+		case ".go.run":
 			t.start()
 			scriggoOut := runScriggo(src)
 			t.stop()
@@ -414,21 +492,105 @@ func main() {
 			if scriggoOut.msg != gcOut.msg {
 				panic("Scriggo and gc returned two different outputs" + outputDetails(scriggoOut, gcOut))
 			}
+		case ".go.rundir":
+			dirPath := strings.TrimSuffix(path, ".go") + ".dir"
+			if _, err := os.Stat(dirPath); err != nil {
+				panic(err)
+			}
+			dl := dirLoader(dirPath)
+			prog, err := scriggo.LoadProgram(scriggo.CombinedLoaders{dl, packages}, nil)
+			if err != nil {
+				panic(err)
+			}
+			err = prog.Run(nil)
+			if err != nil {
+				panic(err)
+			}
+		case ".sgo.compile", ".sgo.build":
+			t.start()
+			_, err := scriggo.LoadScript(bytes.NewReader(src), packages, nil)
+			t.stop()
+			if err != nil {
+				panic(err)
+			}
+		case ".go.errorcheck", ".sgo.errorcheck", ".html.errorcheck":
+			t.start()
+			errorcheck(src, ext)
+			t.stop()
+		case ".sgo.run":
+			t.start()
+			script, err := scriggo.LoadScript(bytes.NewReader(src), packages, nil)
+			if err != nil {
+				panic(err)
+			}
+			stdout := callCatchingStdout(func() {
+				err = script.Run(nil, nil)
+			})
+			if err != nil {
+				panic(err)
+			}
+			t.stop()
+			goldenPath := strings.TrimSuffix(path, ".sgo") + ".golden"
+			goldenData, err := ioutil.ReadFile(goldenPath)
+			if err != nil {
+				panic(err)
+			}
+			expected := strings.TrimSpace(string(goldenData))
+			got := strings.TrimSpace(stdout)
+			if expected != got {
+				panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
+			}
+		case ".html.compile", ".html.build":
+			r := template.MapReader{"/index.html": src}
+			t.start()
+			_, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
+			t.stop()
+			if err != nil {
+				panic(err)
+			}
+		case ".html.render", ".html.renderdir":
+			var r template.Reader
+			if mode == "render" {
+				r = template.MapReader{"/index.html": src}
+			} else {
+				r = template.DirReader(strings.TrimSuffix(path, ".html") + ".dir")
+			}
+			t.start()
+			templ, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
+			if err != nil {
+				panic(err)
+			}
+			w := &bytes.Buffer{}
+			err = templ.Render(w, nil, nil)
+			t.stop()
+			if err != nil {
+				panic(err)
+			}
+			goldenPath := strings.TrimSuffix(path, ".html") + ".golden"
+			goldenData, err := ioutil.ReadFile(goldenPath)
+			if err != nil {
+				panic(err)
+			}
+			expected := strings.TrimSpace(string(goldenData))
+			got := strings.TrimSpace(w.String())
+			if expected != got {
+				panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
+			}
 		default:
-			panic(fmt.Errorf("file %s has no valid directives", path))
+			panic(fmt.Errorf("unsupported mode '%s' for test with extension '%s'", mode, ext))
 		}
 
 		// Test is completed, print some output and go to the next.
 		if *verbose {
-			if directive == "skip" {
+			if mode == "skip" {
 				fmt.Println("[ skipped ]")
 			} else {
 				if *color {
-					fmt.Printf(ColorGood+"ok"+ColorReset+"     (%s)", directive)
+					fmt.Printf(ColorGood+"ok"+ColorReset+"     (%s)", mode)
 				} else {
-					fmt.Printf("ok     (%s)", directive)
+					fmt.Printf("ok     (%s)", mode)
 				}
-				for i := len(directive); i < 15; i++ {
+				for i := len(mode); i < 15; i++ {
 					fmt.Print(" ")
 				}
 				if *time {
@@ -440,7 +602,6 @@ func main() {
 		}
 
 	}
-
 	if *verbose {
 		if *color {
 			fmt.Print(ColorGood)

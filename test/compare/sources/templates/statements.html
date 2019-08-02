@@ -1,0 +1,15 @@
+{# render #}
+
+{% var count = 0 %}{% for i := 0; i < 100; i++ %}{% count++ %}{% end for %}
+count is {{ count }}
+{% if count > 50 %}count is > 50{% else %}count is <= 50{% end if %}
+{% var i = interface{}(432) %}
+{% switch i.(type) %}{% case string %}
+    is a string
+{% case int %}
+    is an int
+{% end switch %}
+
+{% i2 := interface{}(-42) %}
+{% res := i.(int) - i2.(int) %}
+res is {{ res }}
