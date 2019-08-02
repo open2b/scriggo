@@ -45,9 +45,9 @@ Mode | Expected behaviour | Supported extensions
 ---|---|---
 **skip** | Nothing. The test is skipped. | `.go`, `.sgo`, `.html`
 **compile**, **build** | The test compiles successfully. | `.go`, `.sgo`, `.html`
-**run** | The test compiles and runs successfully and the standard output is the same as returned by gc.| `.go`, `.sgo`
+**run** | The test compiles and runs successfully; for programs the standard output is the same as returned by gc, for scripts the `print`/`println` output matches the content of the associated golden file, that is a text file with the same path as the test but with extension `.golden` instead of `.sgo`. | `.go`, `.sgo`
 **errorcheck** | For each row ending with a comment `// ERROR error message`, the compilation fails with the error message reported in the comment. Error message must be enclosed between **\`** characters or **\"** characters. While the former takes the error message as is, the latter support regular expression syntax. For instance, if the error message contains a **"** character, you can both enclose the error message in double quotes (escaping the character) or use the backtick without having to escape it. | `.go`, `.sgo`, `.html`
-**render** | The test compiles and runs successfully and the rendered output is the same as the content of the golden file associated to the test, that is a text file with the same path as the text but with extension `.golden` instead of `.html`.  | `.html`
+**render** | The test compiles and runs successfully and the rendered output is the same as the content of the golden file associated to the test, that is a text file with the same path as the test but with extension `.golden` instead of `.html`.  | `.html`
 
 # Go tests from https://github.com/golang/go/
 
