@@ -498,13 +498,27 @@ func main() {
 				panic(err)
 			}
 			dl := dirLoader(dirPath)
+			t.start()
 			prog, err := scriggo.LoadProgram(scriggo.CombinedLoaders{dl, packages}, nil)
 			if err != nil {
 				panic(err)
 			}
-			err = prog.Run(nil)
+			stdout := callCatchingStdout(func() {
+				err = prog.Run(nil)
+			})
+			t.stop()
 			if err != nil {
 				panic(err)
+			}
+			goldenPath := strings.TrimSuffix(path, ".go") + ".golden"
+			goldenData, err := ioutil.ReadFile(goldenPath)
+			if err != nil {
+				panic(err)
+			}
+			expected := strings.TrimSpace(string(goldenData))
+			got := strings.TrimSpace(stdout)
+			if expected != got {
+				panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
 			}
 		case ".sgo.compile", ".sgo.build":
 			t.start()
