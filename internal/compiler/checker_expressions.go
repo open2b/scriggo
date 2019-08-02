@@ -905,6 +905,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		if t.Nil() {
 			panic(tc.errorf(expr, "use of untyped nil"))
 		}
+		t.setValue(nil)
 		kind := t.Type.Kind()
 		realType := t.Type
 		realKind := kind
