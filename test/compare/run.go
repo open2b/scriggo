@@ -474,6 +474,8 @@ func main() {
 				panic(err)
 			}
 			t.stop()
+		case ".html.errorcheck":
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		case ".html.render":
 			r := template.MapReader{"/index.html": src}
 			t.start()
