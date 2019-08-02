@@ -110,7 +110,7 @@ func errorcheck(src []byte) {
 //
 func mode(src []byte, ext string) string {
 	switch ext {
-	case ".go":
+	case ".go", ".sgo":
 		for _, l := range strings.Split(string(src), "\n") {
 			l = strings.TrimSpace(l)
 			if l == "" {
@@ -447,6 +447,14 @@ func main() {
 				if scriggoOut.msg != gcOut.msg {
 					panic("Scriggo and gc returned two different outputs" + outputDetails(scriggoOut, gcOut))
 				}
+			default:
+				panic(fmt.Errorf("file %s has no valid directives", path))
+			}
+		case ".sgo":
+			switch directive {
+			case "skip":
+				countSkipped++
+				// Do nothing.
 			default:
 				panic(fmt.Errorf("file %s has no valid directives", path))
 			}
