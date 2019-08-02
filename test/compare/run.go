@@ -33,6 +33,37 @@ const (
 	ColorReset = "\033[0m"
 )
 
+type dirLoader string
+
+func (dl dirLoader) Load(path string) (interface{}, error) {
+	if path == "main" {
+		main, err := ioutil.ReadFile(filepath.Join(string(dl), "main.go"))
+		if err != nil {
+			panic(err)
+		}
+		return bytes.NewReader(main), nil
+	}
+	data, err := ioutil.ReadFile(filepath.Join(string(dl), path+".go"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return bytes.NewReader(data), nil
+}
+
+// isTestPath reports whether path is a valid test path.
+func isTestPath(path string) bool {
+	if filepath.Ext(path) != ".go" && filepath.Ext(path) != ".sgo" && filepath.Ext(path) != ".html" {
+		return false
+	}
+	if filepath.Ext(filepath.Dir(path)) == ".dir" {
+		return false
+	}
+	return true
+}
+
 // errorcheck executes the 'errorcheck' test on src.
 func errorcheck(src []byte, ext string) {
 	type stmt struct {
@@ -451,6 +482,20 @@ func main() {
 			}
 			if scriggoOut.msg != gcOut.msg {
 				panic("Scriggo and gc returned two different outputs" + outputDetails(scriggoOut, gcOut))
+			}
+		case ".go.rundir":
+			dirPath := strings.TrimSuffix(path, ".go") + ".dir"
+			if _, err := os.Stat(dirPath); err != nil {
+				panic(err)
+			}
+			dl := dirLoader(dirPath)
+			prog, err := scriggo.LoadProgram(scriggo.CombinedLoaders{dl, packages}, nil)
+			if err != nil {
+				panic(err)
+			}
+			err = prog.Run(nil)
+			if err != nil {
+				panic(err)
 			}
 		case ".sgo.compile", ".sgo.build":
 			t.start()
