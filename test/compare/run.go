@@ -409,7 +409,7 @@ func main() {
 		// test. Note that timer should measure only time needed by Scriggo; any
 		// other elapsed time (eg. calling the gc compiler for the comparison
 		// output) is considered overhead and should no be included in counting.
-		t := &timer{}
+		tim := &timer{}
 
 		ext := filepath.Ext(path)
 		directive := mode(src, ext)
@@ -417,23 +417,23 @@ func main() {
 		case ".go":
 			switch directive {
 			case "errorcheck":
-				t.start()
+				tim.start()
 				errorcheck(src)
-				t.stop()
+				tim.stop()
 			case "skip":
 				countSkipped++
 				// Do nothing.
 			case "compile", "build":
-				t.start()
+				tim.start()
 				_, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), &scriggo.LoadOptions{LimitMemorySize: true})
-				t.stop()
+				tim.stop()
 				if err != nil {
 					panic(err.Error())
 				}
 			case "run":
-				t.start()
+				tim.start()
 				scriggoOut := runScriggo(src)
-				t.stop()
+				tim.stop()
 				gcOut := runGc(src)
 				if scriggoOut.isErr() && gcOut.isErr() {
 					panic("expected succeed, but Scriggo and gc returned an error" + outputDetails(scriggoOut, gcOut))
@@ -468,10 +468,12 @@ func main() {
 				}
 			case "render":
 				r := template.MapReader{"/index.html": src}
+				tim.start()
 				t, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
 				if err != nil {
 					panic(err)
 				}
+				tim.stop()
 				w := &bytes.Buffer{}
 				err = t.Render(w, nil, nil)
 				if err != nil {
@@ -513,7 +515,7 @@ func main() {
 					fmt.Print(" ")
 				}
 				if *time {
-					fmt.Println(t.delta())
+					fmt.Println(tim.delta())
 				} else {
 					fmt.Println("")
 				}
