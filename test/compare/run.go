@@ -34,7 +34,7 @@ const (
 )
 
 // errorcheck executes the 'errorcheck' test on src.
-func errorcheck(src []byte) {
+func errorcheck(src []byte, ext string) {
 	type stmt struct {
 		line string
 		err  *string
@@ -56,7 +56,6 @@ func errorcheck(src []byte) {
 			} else {
 				panic(fmt.Errorf("expected error must be followed by a string encapsulated in backticks (`) or double quotation marks (\"): %s", err))
 			}
-
 			stmts = append(stmts, stmt{line: l[:index], err: &err})
 			errorLines = append(errorLines, i)
 		} else {
@@ -79,24 +78,40 @@ func errorcheck(src []byte) {
 				}
 			}
 		}
-		out := runScriggo(cleanSrc.Bytes())
-		if !out.isErr() {
-			panic(fmt.Errorf("expected error %q, got %q", expectedErr, out.String()))
+		// Get output from program/script and check if it matches with expected
+		// error.
+		var out string
+		switch ext {
+		case ".go":
+			ret := runScriggo(cleanSrc.Bytes())
+			if !ret.isErr() {
+				panic(fmt.Errorf("expected error %q, got %q", expectedErr, ret.String()))
+			}
+			out = ret.String()
+		case ".sgo":
+			_, err := scriggo.LoadScript(bytes.NewReader(src), packages, nil)
+			if err == nil {
+				panic(fmt.Errorf("expected error %q, got nothing", expectedErr))
+			}
+			out = err.Error()
+		default:
+			panic("errorcheck does not support extension " + ext)
 		}
 		re := regexp.MustCompile(expectedErr)
-		if !re.MatchString(out.String()) {
-			panic(fmt.Errorf("error does not match:\n\n\texpecting:  %s\n\tgot:        %s", expectedErr, out.String()))
+		if !re.MatchString(out) {
+			panic(fmt.Errorf("error does not match:\n\n\texpecting:  %s\n\tgot:        %s", expectedErr, out))
 		}
 	}
 }
 
 // readMode reports the readMode associated to src.
 //
-// Mode is specified in programs using a comment line (starting with "//"):
+// Mode is specified in programs and scripts using a comment line (starting with
+// "//"):
 //
 //  // readMode
 //
-// templates must encapsulate readMode in a line containing only a comment:
+// templates must encapsulate readMode in a line containing just a comment:
 //
 //  {# readMode #}
 //
@@ -148,7 +163,7 @@ func readMode(src []byte, ext string) string {
 	default:
 		panic("unsupported extension " + ext)
 	}
-	panic("no mode comment found")
+	panic("mode not specified")
 }
 
 // packages contains the predefined packages used in tests.
@@ -406,7 +421,7 @@ func main() {
 		switch ext + "." + mode {
 		case ".go.errorcheck":
 			t.start()
-			errorcheck(src)
+			errorcheck(src, ".go")
 			t.stop()
 		case ".go.skip", ".sgo.skip", ".html.skip":
 			countSkipped++
@@ -443,7 +458,9 @@ func main() {
 				panic(err)
 			}
 		case ".sgo.errorcheck":
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			t.start()
+			errorcheck(src, ".sgo")
+			t.stop()
 		case ".sgo.run":
 			t.start()
 			script, err := scriggo.LoadScript(bytes.NewReader(src), packages, nil)
