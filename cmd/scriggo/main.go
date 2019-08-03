@@ -333,7 +333,7 @@ func embed(path string, flags buildFlags) (err error) {
 			err = out.Close()
 		}()
 	}
-	_, err = renderPackages(out, modDir, sf, goos, flags)
+	err = renderPackages(out, modDir, sf, goos, flags)
 
 	return err
 }
@@ -545,7 +545,7 @@ func build(cmd string, path string, flags buildFlags) error {
 		return err
 	}
 	defer fi.Close()
-	_, err = renderPackages(fi, dir, sf, goos, flags)
+	err = renderPackages(fi, dir, sf, goos, flags)
 	if err != nil {
 		return fmt.Errorf("scriggo: can't render packages: %s", err)
 	}

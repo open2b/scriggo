@@ -215,12 +215,9 @@ func Test_renderPackages(t *testing.T) {
 				}
 			}
 			b := bytes.Buffer{}
-			n, err := renderPackages(&b, "", c.sf, c.goos, buildFlags{})
+			err := renderPackages(&b, "", c.sf, c.goos, buildFlags{})
 			if err != nil {
 				t.Fatal(err)
-			}
-			if n == 0 {
-				t.Fatalf("no content generated")
 			}
 			got := _cleanOutput(b.String())
 			c.expected = _cleanOutput(c.expected)

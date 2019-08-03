@@ -14,9 +14,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
+	"text/template"
 
 	pkgs "golang.org/x/tools/go/packages"
 )
@@ -24,7 +26,7 @@ import (
 // renderPackages renders a Scriggofile. It also returns a boolean indicating
 // if the content contains packages. Ignores all main packages contained in
 // the Scriggofile.
-func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags buildFlags) (int, error) {
+func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags buildFlags) error {
 
 	type packageType struct {
 		name string
@@ -46,13 +48,13 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 
 	importReflect := false
 
-	explicitImports := []struct{ name, path string }{}
+	explicitImports := []struct{ Name, Path string }{}
 	for _, imp := range sf.imports {
 		uniqueName := uniquePackageName(imp.path)
 		if uniqueName != imp.path { // TODO: uniqueName should be compared to the package name and not to the package path.
-			explicitImports = append(explicitImports, struct{ name, path string }{uniqueName, imp.path})
+			explicitImports = append(explicitImports, struct{ Name, Path string }{uniqueName, imp.path})
 		} else {
-			explicitImports = append(explicitImports, struct{ name, path string }{"", imp.path})
+			explicitImports = append(explicitImports, struct{ Name, Path string }{"", imp.path})
 		}
 		if imp.path == "reflect" {
 			importReflect = true
@@ -66,10 +68,10 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 		}
 		pkgName, decls, refToImport, err := loadGoPackage(imp.path, dir, goos, flags, imp.including, imp.excluding)
 		if err != nil {
-			return 0, err
+			return err
 		}
 		if !refToImport {
-			explicitImports[len(explicitImports)-1].name = "_"
+			explicitImports[len(explicitImports)-1].Name = "_"
 		}
 		// No declarations at path: move on to next import path.
 		if len(decls) == 0 {
@@ -80,10 +82,10 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 			for name, decl := range decls {
 				newName := uncapitalize(name)
 				if newName == "main" || newName == "init" {
-					return 0, fmt.Errorf("%q is not a valid identifier: remove 'uncapitalized' or change declaration name in package %q", newName, imp.path)
+					return fmt.Errorf("%q is not a valid identifier: remove 'uncapitalized' or change declaration name in package %q", newName, imp.path)
 				}
 				if isGoKeyword(newName) {
-					return 0, fmt.Errorf("%q is not a valid identifier as it conflicts with Go keyword %q: remove 'uncapitalized' or change declaration name in package %q", newName, newName, imp.path)
+					return fmt.Errorf("%q is not a valid identifier as it conflicts with Go keyword %q: remove 'uncapitalized' or change declaration name in package %q", newName, newName, imp.path)
 				}
 				if isPredeclaredIdentifier(newName) {
 					if newName == "print" || newName == "println" {
@@ -91,7 +93,7 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 						//  'print' and 'println', shadowing is allowed. Else, an
 						//  error must be returned.
 					} else {
-						return 0, fmt.Errorf("%q is not a valid identifier as it conflicts with Go predeclared identifier %q: remove 'uncapitalized' or change declaration name in package %q", newName, newName, imp.path)
+						return fmt.Errorf("%q is not a valid identifier as it conflicts with Go predeclared identifier %q: remove 'uncapitalized' or change declaration name in package %q", newName, newName, imp.path)
 					}
 				}
 				tmp[newName] = decl
@@ -113,7 +115,7 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 			}
 			for name, decl := range decls {
 				if _, ok := packages["main"].decl[name]; ok {
-					return 0, fmt.Errorf("declaration name collision in package main: %q", name)
+					return fmt.Errorf("declaration name collision in package main: %q", name)
 				}
 				packages["main"].decl[name] = decl
 			}
@@ -125,7 +127,7 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 			}
 			for name, decl := range decls {
 				if _, ok := packages[path].decl[name]; ok {
-					return 0, fmt.Errorf("declaration name collision: %q in package %q", name, imp.path)
+					return fmt.Errorf("declaration name collision: %q in package %q", name, imp.path)
 				}
 				packages[path].decl[name] = decl
 				packages[path].name = pkgName
@@ -136,16 +138,15 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 	}
 
 	if w == nil {
-		return 0, nil
+		return nil
 	}
 
 	// If no packages have been declared, just return.
 	if len(packages) == 0 {
-		return 0, nil
+		return nil
 	}
 
 	// Render package content.
-	allPkgsContent := strings.Builder{}
 	paths := make([]string, 0, len(packages))
 	hasMain := false
 	for path := range packages {
@@ -159,14 +160,19 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 	if hasMain {
 		paths = append([]string{"main"}, paths...)
 	}
+	type declaration struct {
+		Name   string
+		Indent string
+		Value  string
+	}
+	allPkgsContent := make([]*struct {
+		Path, Name   string
+		Declarations []declaration
+	}, len(paths))
 	const spaces = "                              "
 	for i, path := range paths {
-		var out string
-		if i > 0 {
-			out = "\n\t\t"
-		}
 		pkg := packages[path]
-		declarations := strings.Builder{}
+		declarations := make([]declaration, len(pkg.decl))
 		names := make([]string, 0, len(pkg.decl))
 		var maxLen int
 		for name := range pkg.decl {
@@ -177,79 +183,82 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 		}
 		sort.Strings(names)
 		for j, name := range names {
-			if j > 0 {
-				declarations.WriteString("\n\t\t\t\t")
-			}
-			decl := pkg.decl[name]
-			declarations.WriteByte('"')
-			declarations.WriteString(name)
-			declarations.WriteString("\":")
+			var indent string
 			if n := maxLen - len(name) + 1; n <= len(spaces) {
-				declarations.WriteString(spaces[:n])
+				indent = spaces[:n]
 			} else {
-				declarations.WriteString(strings.Repeat(" ", n))
+				indent = strings.Repeat(" ", n)
 			}
-			declarations.WriteString(decl)
-			declarations.WriteString(",")
+			declarations[j] = declaration{
+				Name:   name,
+				Indent: indent,
+				Value:  pkg.decl[name],
+			}
 		}
-		out += `[path]: &MapPackage{
-			PkgName: [pkgName],
-			Declarations: map[string]interface{}{
-				[declarations]
-			},
-		},`
-		out = strings.Replace(out, "[path]", strconv.Quote(path), 1)
-		out = strings.Replace(out, "[pkgName]", strconv.Quote(pkg.name), 1)
-		out = strings.Replace(out, "[declarations]", declarations.String(), 1)
-		allPkgsContent.WriteString(out)
+		allPkgsContent[i] = &struct {
+			Path, Name   string
+			Declarations []declaration
+		}{
+			Path:         strconv.Quote(path),
+			Name:         strconv.Quote(pkg.name),
+			Declarations: declarations,
+		}
 	}
 
 	// TODO(Gianluca): package main must be first.
 
+	// TODO(Gianluca): (BUG) devel "gc" versions are currently not supported.
+
+	// TODO(Gianluca): sf.filepath must be validated before being inserted in a
+	//  comment: 1) check that contains only valid unicode characters 2) check that
+	//  does not contain any "newline" characters.
+
 	// Skeleton for a package group.
-	const pkgsSkeleton = `package [pkgName]
+	const pkgsSkeleton = `// Code generated by scriggo command. DO NOT EDIT.
+//+build {{.GOOS}},{{.BaseVersion}},!{{.NextGoVersion}}
+
+package {{.PkgName}}
 
 import (
-	[explicitImports]
+{{- range .ExplicitImports}}
+	{{if ne .Name ""}}{{.Name}} {{end}}"{{.Path}}"
+{{- end}}
 )
 
 import . "scriggo"
-[reflectImport]
+{{ if not .ImportReflect}}import "reflect"{{end}}
 
 func init() {
-	[variable] = Packages{
-		[pkgContent]
+	{{.Variable}} = Packages{
+	{{- range .PkgContent}}
+		{{.Path}}: &MapPackage{
+			PkgName: {{.Name}},
+			Declarations: map[string]interface{}{
+				{{- range .Declarations}}
+				"{{.Name}}":{{.Indent}}{{.Value}},
+				{{- end}}
+			},
+		},
+	{{- end}}
 	}
 }
 `
 
-	var reflectImport string
-	if !importReflect {
-		reflectImport = `import "reflect"`
+	pkgOutput := map[string]interface{}{
+		"GOOS":            goos,
+		"BaseVersion":     goBaseVersion(runtime.Version()),
+		"NextGoVersion":   nextGoVersion(runtime.Version()),
+		"PkgName":         sf.pkgName,
+		"ExplicitImports": explicitImports,
+		"ImportReflect":   importReflect,
+		"Variable":        sf.variable,
+		"PkgContent":      allPkgsContent,
 	}
 
-	explicitImportsString := ""
-	for i, imp := range explicitImports {
-		if i > 0 {
-			explicitImportsString += "\n\t"
-		}
-		if imp.name == "" {
-			explicitImportsString += `"` + imp.path + `"`
-		} else {
-			explicitImportsString += imp.name + ` "` + imp.path + `"`
-		}
-	}
+	t := template.Must(template.New("packages").Parse(pkgsSkeleton))
+	err := t.Execute(w, pkgOutput)
 
-	pkgOutput := strings.NewReplacer(
-		"[pkgName]", sf.pkgName,
-		"[explicitImports]", explicitImportsString,
-		"[reflectImport]", reflectImport,
-		"[variable]", sf.variable,
-		"[pkgContent]", allPkgsContent.String(),
-	).Replace(pkgsSkeleton)
-	pkgOutput = genHeader(goos) + pkgOutput
-
-	return io.WriteString(w, pkgOutput)
+	return err
 }
 
 // loadGoPackage loads the Go package with the given path and returns its name
