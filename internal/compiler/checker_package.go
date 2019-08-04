@@ -14,84 +14,66 @@ import (
 )
 
 func toTypeCheckerScope(gp predefinedPackage) typeCheckerScope {
+	pkgName := gp.Name()
 	declarations := gp.DeclarationNames()
 	s := make(typeCheckerScope, len(declarations))
 	for _, ident := range declarations {
 		value := gp.Lookup(ident)
-		// Importing a Go type.
+		// Import a type.
 		if t, ok := value.(reflect.Type); ok {
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:              t,
 				Properties:        PropertyIsType | PropertyIsPredefined,
-				PredefPackageName: gp.Name(),
+				PredefPackageName: pkgName,
 			}}
 			continue
 		}
-		// Importing a Go variable.
+		// Import a variable.
 		if reflect.TypeOf(value).Kind() == reflect.Ptr {
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:              reflect.TypeOf(value).Elem(),
 				value:             reflect.ValueOf(value),
 				Properties:        PropertyAddressable | PropertyIsPredefined | PropertyHasValue,
-				PredefPackageName: gp.Name(),
+				PredefPackageName: pkgName,
 			}}
 			continue
 		}
-		// Importing a Go global function.
+		// Import a function.
 		if typ := reflect.TypeOf(value); typ.Kind() == reflect.Func {
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:              removeEnvArg(typ, false),
 				value:             reflect.ValueOf(value),
 				Properties:        PropertyIsPredefined | PropertyHasValue,
-				PredefPackageName: gp.Name(),
+				PredefPackageName: pkgName,
 			}}
 			continue
 		}
-		// Importing a Go constant.
-		if c, ok := value.(Constant); ok {
-			s[ident] = scopeElement{t: checkConstant(c, gp.Name())}
+		// Import an untyped constant.
+		if c, ok := value.(UntypedConstant); ok {
+			constant, typ, err := parseConstant(string(c))
+			if err != nil {
+				panic(fmt.Errorf("scriggo: invalid untyped constant %q in package %s", c, gp.Name()))
+			}
+			s[ident] = scopeElement{t: &TypeInfo{
+				Type:              typ,
+				Properties:        PropertyUntyped,
+				Constant:          constant,
+				PredefPackageName: pkgName,
+			}}
 			continue
 		}
-		panic(fmt.Errorf("value of type %T used in declaration %q in package %q", value, ident, gp.Name()))
+		// Import a typed constant.
+		constant := convertToConstant(value)
+		if constant == nil {
+			panic(fmt.Errorf("scriggo: invalid constant value %v in package %s", value, pkgName))
+		}
+		s[ident] = scopeElement{t: &TypeInfo{
+			Type:              reflect.TypeOf(value),
+			Constant:          constant,
+			PredefPackageName: pkgName,
+		}}
 	}
 	return s
-}
-
-// checkConstant returns the TypeInfo of the constant c.
-func checkConstant(c Constant, pkgName string) *TypeInfo {
-	if c.value != nil {
-		typ := reflect.TypeOf(c.value)
-		constant := convertToConstant(c.value)
-		if constant == nil {
-			panic(fmt.Errorf("scriggo: invalid constant value %v in package %s", c.value, pkgName))
-		}
-		return &TypeInfo{
-			PredefPackageName: pkgName,
-			Type:              typ,
-			Constant:          constant,
-		}
-	}
-	constant, typ, err := parseConstant(c.literal)
-	if err != nil {
-		panic(fmt.Errorf("scriggo: invalid constant literal %q in package %s", c.literal, pkgName))
-	}
-	if c.typ != nil {
-		constant, _ = constant.representedBy(c.typ)
-		if constant == nil {
-			panic(fmt.Errorf("scriggo: invalid constant literal %q in package %s for type %s", c.literal, pkgName, c.typ))
-		}
-		return &TypeInfo{
-			PredefPackageName: pkgName,
-			Type:              c.typ,
-			Constant:          constant,
-		}
-	}
-	return &TypeInfo{
-		PredefPackageName: pkgName,
-		Properties:        PropertyUntyped,
-		Type:              typ,
-		Constant:          constant,
-	}
 }
 
 type PackageInfo struct {

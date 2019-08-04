@@ -28,44 +28,45 @@ func Test_renderPackages(t *testing.T) {
 			expected: `package test
 
 			import (
-				fmt "fmt"
+				"fmt"
 			)
 
 			import . "scriggo"
 			import "reflect"
 
 			func init() {
-				packages = Packages{
-					"custom/fmt/path": &MapPackage{
-						PkgName: "fmt",
-						Declarations: map[string]interface{}{
-							"Errorf":     fmt.Errorf,
-							"Formatter":  reflect.TypeOf(new(fmt.Formatter)).Elem(),
-							"Fprint":     fmt.Fprint,
-							"Fprintf":    fmt.Fprintf,
-							"Fprintln":   fmt.Fprintln,
-							"Fscan":      fmt.Fscan,
-							"Fscanf":     fmt.Fscanf,
-							"Fscanln":    fmt.Fscanln,
-							"GoStringer": reflect.TypeOf(new(fmt.GoStringer)).Elem(),
-							"Print":      fmt.Print,
-							"Printf":     fmt.Printf,
-							"Println":    fmt.Println,
-							"Scan":       fmt.Scan,
-							"ScanState":  reflect.TypeOf(new(fmt.ScanState)).Elem(),
-							"Scanf":      fmt.Scanf,
-							"Scanln":     fmt.Scanln,
-							"Scanner":    reflect.TypeOf(new(fmt.Scanner)).Elem(),
-							"Sprint":     fmt.Sprint,
-							"Sprintf":    fmt.Sprintf,
-							"Sprintln":   fmt.Sprintln,
-							"Sscan":      fmt.Sscan,
-							"Sscanf":     fmt.Sscanf,
-							"Sscanln":    fmt.Sscanln,
-							"State":      reflect.TypeOf(new(fmt.State)).Elem(),
-							"Stringer":   reflect.TypeOf(new(fmt.Stringer)).Elem(),
-						},
-					},
+				packages = make(Packages, 1)
+				var decs map[string]interface{}
+				// "custom/fmt/path"
+				decs = make(map[string]interface{}, 25)
+				decs["Errorf"] = fmt.Errorf
+				decs["Formatter"] = reflect.TypeOf((*fmt.Formatter)(nil)).Elem()
+				decs["Fprint"] = fmt.Fprint
+				decs["Fprintf"] = fmt.Fprintf
+				decs["Fprintln"] = fmt.Fprintln
+				decs["Fscan"] = fmt.Fscan
+				decs["Fscanf"] = fmt.Fscanf
+				decs["Fscanln"] = fmt.Fscanln
+				decs["GoStringer"] = reflect.TypeOf((*fmt.GoStringer)(nil)).Elem()
+				decs["Print"] = fmt.Print
+				decs["Printf"] = fmt.Printf
+				decs["Println"] = fmt.Println
+				decs["Scan"] = fmt.Scan
+				decs["ScanState"] = reflect.TypeOf((*fmt.ScanState)(nil)).Elem()
+				decs["Scanf"] = fmt.Scanf
+				decs["Scanln"] = fmt.Scanln
+				decs["Scanner"] = reflect.TypeOf((*fmt.Scanner)(nil)).Elem()
+				decs["Sprint"] = fmt.Sprint
+				decs["Sprintf"] = fmt.Sprintf
+				decs["Sprintln"] = fmt.Sprintln
+				decs["Sscan"] = fmt.Sscan
+				decs["Sscanf"] = fmt.Sscanf
+				decs["Sscanln"] = fmt.Sscanln
+				decs["State"] = reflect.TypeOf((*fmt.State)(nil)).Elem()
+				decs["Stringer"] = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
+				packages["custom/fmt/path"] = &MapPackage{
+					PkgName: "fmt",
+					Declarations: decs,
 				}
 			}`,
 		},
@@ -85,42 +86,42 @@ func Test_renderPackages(t *testing.T) {
 			import "reflect"
 
 			func init() {
-				packages = Packages{
-
-					"archive/tar": &MapPackage{
-						PkgName: "tar",
-						Declarations: map[string]interface{}{
-							"ErrFieldTooLong":    &tar.ErrFieldTooLong,
-							"ErrHeader":          &tar.ErrHeader,
-							"ErrWriteAfterClose": &tar.ErrWriteAfterClose,
-							"ErrWriteTooLong":    &tar.ErrWriteTooLong,
-							"FileInfoHeader":     tar.FileInfoHeader,
-							"Format":             reflect.TypeOf(new(tar.Format)).Elem(),
-							"FormatGNU":          ConstValue(tar.FormatGNU),
-							"FormatPAX":          ConstValue(tar.FormatPAX),
-							"FormatUSTAR":        ConstValue(tar.FormatUSTAR),
-							"FormatUnknown":      ConstValue(tar.FormatUnknown),
-							"Header":             reflect.TypeOf(tar.Header{}),
-							"NewReader":          tar.NewReader,
-							"NewWriter":          tar.NewWriter,
-							"Reader":             reflect.TypeOf(tar.Reader{}),
-							"TypeBlock":          ConstValue(tar.TypeBlock),
-							"TypeChar":           ConstValue(tar.TypeChar),
-							"TypeCont":           ConstValue(tar.TypeCont),
-							"TypeDir":            ConstValue(tar.TypeDir),
-							"TypeFifo":           ConstValue(tar.TypeFifo),
-							"TypeGNULongLink":    ConstValue(tar.TypeGNULongLink),
-							"TypeGNULongName":    ConstValue(tar.TypeGNULongName),
-							"TypeGNUSparse":      ConstValue(tar.TypeGNUSparse),
-							"TypeLink":           ConstValue(tar.TypeLink),
-							"TypeReg":            ConstValue(tar.TypeReg),
-							"TypeRegA":           ConstValue(tar.TypeRegA),
-							"TypeSymlink":        ConstValue(tar.TypeSymlink),
-							"TypeXGlobalHeader":  ConstValue(tar.TypeXGlobalHeader),
-							"TypeXHeader":        ConstValue(tar.TypeXHeader),
-							"Writer":             reflect.TypeOf(tar.Writer{}),
-						},
-					},
+				packages = make(Packages, 1)
+				var decs map[string]interface{}
+				// "archive/tar"
+				decs = make(map[string]interface{}, 29)
+				decs["ErrFieldTooLong"] = &tar.ErrFieldTooLong
+				decs["ErrHeader"] = &tar.ErrHeader
+				decs["ErrWriteAfterClose"] = &tar.ErrWriteAfterClose
+				decs["ErrWriteTooLong"] = &tar.ErrWriteTooLong
+				decs["FileInfoHeader"] = tar.FileInfoHeader
+				decs["Format"] = reflect.TypeOf((*tar.Format)(nil)).Elem()
+				decs["FormatGNU"] = tar.FormatGNU
+				decs["FormatPAX"] = tar.FormatPAX
+				decs["FormatUSTAR"] = tar.FormatUSTAR
+				decs["FormatUnknown"] = tar.FormatUnknown
+				decs["Header"] = reflect.TypeOf((*tar.Header)(nil)).Elem()
+				decs["NewReader"] = tar.NewReader
+				decs["NewWriter"] = tar.NewWriter
+				decs["Reader"] = reflect.TypeOf((*tar.Reader)(nil)).Elem()
+				decs["TypeBlock"] = UntypedConstant("52")
+				decs["TypeChar"] = UntypedConstant("51")
+				decs["TypeCont"] = UntypedConstant("55")
+				decs["TypeDir"] = UntypedConstant("53")
+				decs["TypeFifo"] = UntypedConstant("54")
+				decs["TypeGNULongLink"] = UntypedConstant("75")
+				decs["TypeGNULongName"] = UntypedConstant("76")
+				decs["TypeGNUSparse"] = UntypedConstant("83")
+				decs["TypeLink"] = UntypedConstant("49")
+				decs["TypeReg"] = UntypedConstant("48")
+				decs["TypeRegA"] = UntypedConstant("0")
+				decs["TypeSymlink"] = UntypedConstant("50")
+				decs["TypeXGlobalHeader"] = UntypedConstant("103")
+				decs["TypeXHeader"] = UntypedConstant("120")
+				decs["Writer"] = reflect.TypeOf((*tar.Writer)(nil)).Elem()
+				packages["archive/tar"] = &MapPackage{
+					PkgName: "tar",
+					Declarations: decs,
 				}
 			}`,
 		},
@@ -133,44 +134,45 @@ func Test_renderPackages(t *testing.T) {
 			expected: `package test
 
 			import (
-				fmt "fmt"
+				"fmt"
 			)
 
 			import . "scriggo"
 			import "reflect"
 
 			func init() {
-				packages = Packages{
-					"fmt": &MapPackage{
-						PkgName: "fmt",
-						Declarations: map[string]interface{}{
-							"Errorf":     fmt.Errorf,
-							"Formatter":  reflect.TypeOf(new(fmt.Formatter)).Elem(),
-							"Fprint":     fmt.Fprint,
-							"Fprintf":    fmt.Fprintf,
-							"Fprintln":   fmt.Fprintln,
-							"Fscan":      fmt.Fscan,
-							"Fscanf":     fmt.Fscanf,
-							"Fscanln":    fmt.Fscanln,
-							"GoStringer": reflect.TypeOf(new(fmt.GoStringer)).Elem(),
-							"Print":      fmt.Print,
-							"Printf":     fmt.Printf,
-							"Println":    fmt.Println,
-							"Scan":       fmt.Scan,
-							"ScanState":  reflect.TypeOf(new(fmt.ScanState)).Elem(),
-							"Scanf":      fmt.Scanf,
-							"Scanln":     fmt.Scanln,
-							"Scanner":    reflect.TypeOf(new(fmt.Scanner)).Elem(),
-							"Sprint":     fmt.Sprint,
-							"Sprintf":    fmt.Sprintf,
-							"Sprintln":   fmt.Sprintln,
-							"Sscan":      fmt.Sscan,
-							"Sscanf":     fmt.Sscanf,
-							"Sscanln":    fmt.Sscanln,
-							"State":      reflect.TypeOf(new(fmt.State)).Elem(),
-							"Stringer":   reflect.TypeOf(new(fmt.Stringer)).Elem(),
-						},
-					},
+				packages = make(Packages, 1)
+				var decs map[string]interface{}
+				// "fmt"
+				decs = make(map[string]interface{}, 25)
+				decs["Errorf"] = fmt.Errorf
+				decs["Formatter"] = reflect.TypeOf((*fmt.Formatter)(nil)).Elem()
+				decs["Fprint"] = fmt.Fprint
+				decs["Fprintf"] = fmt.Fprintf
+				decs["Fprintln"] = fmt.Fprintln
+				decs["Fscan"] = fmt.Fscan
+				decs["Fscanf"] = fmt.Fscanf
+				decs["Fscanln"] = fmt.Fscanln
+				decs["GoStringer"] = reflect.TypeOf((*fmt.GoStringer)(nil)).Elem()
+				decs["Print"] = fmt.Print
+				decs["Printf"] = fmt.Printf
+				decs["Println"] = fmt.Println
+				decs["Scan"] = fmt.Scan
+				decs["ScanState"] = reflect.TypeOf((*fmt.ScanState)(nil)).Elem()
+				decs["Scanf"] = fmt.Scanf
+				decs["Scanln"] = fmt.Scanln
+				decs["Scanner"] = reflect.TypeOf((*fmt.Scanner)(nil)).Elem()
+				decs["Sprint"] = fmt.Sprint
+				decs["Sprintf"] = fmt.Sprintf
+				decs["Sprintln"] = fmt.Sprintln
+				decs["Sscan"] = fmt.Sscan
+				decs["Sscanf"] = fmt.Sscanf
+				decs["Sscanln"] = fmt.Sscanln
+				decs["State"] = reflect.TypeOf((*fmt.State)(nil)).Elem()
+				decs["Stringer"] = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
+				packages["fmt"] = &MapPackage{
+					PkgName: "fmt",
+					Declarations: decs,
 				}
 			}`,
 		},
@@ -188,22 +190,23 @@ func Test_renderPackages(t *testing.T) {
 			expected: `package test
 
 			import (
-				fmt "fmt"
+				"fmt"
 			)
 
 			import . "scriggo"
+			import "reflect"
 
 			func init() {
-				packages = Packages{
-					"fmt": &MapPackage{
-						PkgName: "fmt",
-						Declarations: map[string]interface{}{
-							"Println": fmt.Println,
-						},
-					},
+				packages = make(Packages, 1)
+				var decs map[string]interface{}
+				// "fmt"
+				decs = make(map[string]interface{}, 1)
+				decs["Println"] = fmt.Println
+				packages["fmt"] = &MapPackage{
+					PkgName: "fmt",
+					Declarations: decs,
 				}
-			}
-			`,
+			}`,
 		},
 	}
 	for name, c := range cases {
@@ -254,30 +257,31 @@ func Test_parseGoPackage(t *testing.T) {
 			name: "fmt",
 			decls: map[string]string{
 				"Errorf":     "fmt.Errorf",
-				"Formatter":  "reflect.TypeOf(new(fmt.Formatter)).Elem()",
+				"Formatter":  "reflect.TypeOf((*fmt.Formatter)(nil)).Elem()",
 				"Fprint":     "fmt.Fprint",
 				"Fprintf":    "fmt.Fprintf",
 				"Fprintln":   "fmt.Fprintln",
 				"Fscan":      "fmt.Fscan",
 				"Fscanf":     "fmt.Fscanf",
 				"Fscanln":    "fmt.Fscanln",
-				"GoStringer": "reflect.TypeOf(new(fmt.GoStringer)).Elem()",
+				"GoStringer": "reflect.TypeOf((*fmt.GoStringer)(nil)).Elem()",
 				"Print":      "fmt.Print",
 				"Printf":     "fmt.Printf",
 				"Println":    "fmt.Println",
 				"Scan":       "fmt.Scan",
-				"ScanState":  "reflect.TypeOf(new(fmt.ScanState)).Elem()",
+				"ScanState":  "reflect.TypeOf((*fmt.ScanState)(nil)).Elem()",
 				"Scanf":      "fmt.Scanf",
 				"Scanln":     "fmt.Scanln",
-				"Scanner":    "reflect.TypeOf(new(fmt.Scanner)).Elem()",
+				"Scanner":    "reflect.TypeOf((*fmt.Scanner)(nil)).Elem()",
 				"Sprint":     "fmt.Sprint",
 				"Sprintf":    "fmt.Sprintf",
 				"Sprintln":   "fmt.Sprintln",
 				"Sscan":      "fmt.Sscan",
 				"Sscanf":     "fmt.Sscanf",
 				"Sscanln":    "fmt.Sscanln",
-				"State":      "reflect.TypeOf(new(fmt.State)).Elem()",
-				"Stringer":   "reflect.TypeOf(new(fmt.Stringer)).Elem()"},
+				"State":      "reflect.TypeOf((*fmt.State)(nil)).Elem()",
+				"Stringer":   "reflect.TypeOf((*fmt.Stringer)(nil)).Elem()",
+			},
 		},
 		"archive/tar": {
 			name: "tar",
@@ -287,30 +291,30 @@ func Test_parseGoPackage(t *testing.T) {
 				"ErrWriteAfterClose": "&tar.ErrWriteAfterClose",
 				"ErrWriteTooLong":    "&tar.ErrWriteTooLong",
 				"FileInfoHeader":     "tar.FileInfoHeader",
-				"Format":             "reflect.TypeOf(new(tar.Format)).Elem()",
-				"FormatGNU":          "ConstValue(tar.FormatGNU)",
-				"FormatPAX":          "ConstValue(tar.FormatPAX)",
-				"FormatUSTAR":        "ConstValue(tar.FormatUSTAR)",
-				"FormatUnknown":      "ConstValue(tar.FormatUnknown)",
-				"Header":             "reflect.TypeOf(tar.Header{})",
+				"Format":             "reflect.TypeOf((*tar.Format)(nil)).Elem()",
+				"FormatGNU":          "tar.FormatGNU",
+				"FormatPAX":          "tar.FormatPAX",
+				"FormatUSTAR":        "tar.FormatUSTAR",
+				"FormatUnknown":      "tar.FormatUnknown",
+				"Header":             "reflect.TypeOf((*tar.Header)(nil)).Elem()",
 				"NewReader":          "tar.NewReader",
 				"NewWriter":          "tar.NewWriter",
-				"Reader":             "reflect.TypeOf(tar.Reader{})",
-				"TypeBlock":          "ConstValue(tar.TypeBlock)",
-				"TypeChar":           "ConstValue(tar.TypeChar)",
-				"TypeCont":           "ConstValue(tar.TypeCont)",
-				"TypeDir":            "ConstValue(tar.TypeDir)",
-				"TypeFifo":           "ConstValue(tar.TypeFifo)",
-				"TypeGNULongLink":    "ConstValue(tar.TypeGNULongLink)",
-				"TypeGNULongName":    "ConstValue(tar.TypeGNULongName)",
-				"TypeGNUSparse":      "ConstValue(tar.TypeGNUSparse)",
-				"TypeLink":           "ConstValue(tar.TypeLink)",
-				"TypeReg":            "ConstValue(tar.TypeReg)",
-				"TypeRegA":           "ConstValue(tar.TypeRegA)",
-				"TypeSymlink":        "ConstValue(tar.TypeSymlink)",
-				"TypeXGlobalHeader":  "ConstValue(tar.TypeXGlobalHeader)",
-				"TypeXHeader":        "ConstValue(tar.TypeXHeader)",
-				"Writer":             "reflect.TypeOf(tar.Writer{})",
+				"Reader":             "reflect.TypeOf((*tar.Reader)(nil)).Elem()",
+				"TypeBlock":          "UntypedConstant(\"52\")",
+				"TypeChar":           "UntypedConstant(\"51\")",
+				"TypeCont":           "UntypedConstant(\"55\")",
+				"TypeDir":            "UntypedConstant(\"53\")",
+				"TypeFifo":           "UntypedConstant(\"54\")",
+				"TypeGNULongLink":    "UntypedConstant(\"75\")",
+				"TypeGNULongName":    "UntypedConstant(\"76\")",
+				"TypeGNUSparse":      "UntypedConstant(\"83\")",
+				"TypeLink":           "UntypedConstant(\"49\")",
+				"TypeReg":            "UntypedConstant(\"48\")",
+				"TypeRegA":           "UntypedConstant(\"0\")",
+				"TypeSymlink":        "UntypedConstant(\"50\")",
+				"TypeXGlobalHeader":  "UntypedConstant(\"103\")",
+				"TypeXHeader":        "UntypedConstant(\"120\")",
+				"Writer":             "reflect.TypeOf((*tar.Writer)(nil)).Elem()",
 			},
 		},
 	}

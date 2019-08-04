@@ -9,7 +9,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"go/constant"
 	"go/types"
 	"io"
 	"os"
@@ -17,7 +16,6 @@ import (
 	"runtime"
 	"sort"
 	"strconv"
-	"strings"
 	"text/template"
 
 	pkgs "golang.org/x/tools/go/packages"
@@ -161,44 +159,34 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 		paths = append([]string{"main"}, paths...)
 	}
 	type declaration struct {
-		Name   string
-		Indent string
-		Value  string
+		Name  string
+		Value string
 	}
 	allPkgsContent := make([]*struct {
+		Variable     string
 		Path, Name   string
 		Declarations []declaration
 	}, len(paths))
-	const spaces = "                              "
 	for i, path := range paths {
 		pkg := packages[path]
-		declarations := make([]declaration, len(pkg.decl))
 		names := make([]string, 0, len(pkg.decl))
-		var maxLen int
 		for name := range pkg.decl {
 			names = append(names, name)
-			if l := len(name); l > maxLen {
-				maxLen = l
-			}
 		}
 		sort.Strings(names)
+		declarations := make([]declaration, len(pkg.decl))
 		for j, name := range names {
-			var indent string
-			if n := maxLen - len(name) + 1; n <= len(spaces) {
-				indent = spaces[:n]
-			} else {
-				indent = strings.Repeat(" ", n)
-			}
 			declarations[j] = declaration{
-				Name:   name,
-				Indent: indent,
-				Value:  pkg.decl[name],
+				Name:  name,
+				Value: pkg.decl[name],
 			}
 		}
 		allPkgsContent[i] = &struct {
+			Variable     string
 			Path, Name   string
 			Declarations []declaration
 		}{
+			Variable:     sf.variable,
 			Path:         strconv.Quote(path),
 			Name:         strconv.Quote(pkg.name),
 			Declarations: declarations,
@@ -229,18 +217,21 @@ import . "scriggo"
 {{ if not .ImportReflect}}import "reflect"{{end}}
 
 func init() {
-	{{.Variable}} = Packages{
+	{{.Variable}} = make(Packages, {{len .PkgContent}})
+	var decs map[string]interface{}
+
 	{{- range .PkgContent}}
-		{{.Path}}: &MapPackage{
-			PkgName: {{.Name}},
-			Declarations: map[string]interface{}{
-				{{- range .Declarations}}
-				"{{.Name}}":{{.Indent}}{{.Value}},
-				{{- end}}
-			},
-		},
+	// {{.Path}}
+	decs = make(map[string]interface{}, {{len .Declarations}})
+	{{- range .Declarations}}
+	decs["{{.Name}}"] = {{.Value}}
 	{{- end}}
+	{{.Variable}}[{{.Path}}] = &MapPackage{
+		PkgName: {{.Name}},
+		Declarations: decs,
 	}
+
+	{{- end}}
 }
 `
 
@@ -342,6 +333,8 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 
 	name = packages[0].Name
 
+	numUntyped := 0
+
 	for _, v := range packages[0].TypesInfo.Defs {
 		// Include only exported names. Do not take into account whether the
 		// object is in a local (function) scope or not.
@@ -352,71 +345,32 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 		if v.Parent() == nil || v.Parent().Parent() != types.Universe {
 			continue
 		}
+		if !allowed(v.Name()) {
+			continue
+		}
 		switch v := v.(type) {
 		case *types.Const:
-			if !allowed(v.Name()) {
-				continue
-			}
-			switch v.Val().Kind() {
-			case constant.String, constant.Bool:
-				decl[v.Name()] = fmt.Sprintf("ConstValue(%s.%s)", pkgBase, v.Name())
-				refToImport = true
-				continue
-			case constant.Int:
-				// Most cases fall here.
-				if len(v.Val().ExactString()) < 7 {
-					decl[v.Name()] = fmt.Sprintf("ConstValue(%s.%s)", pkgBase, v.Name())
-					refToImport = true
-					continue
-				}
-			}
-			typ := v.Type().String()
-			if strings.HasPrefix(typ, "untyped ") {
-				typ = "nil"
+			t := v.Type()
+			if basic, ok := t.(*types.Basic); ok && basic.Info()&types.IsUntyped != 0 {
+				decl[v.Name()] = "UntypedConstant(" + strconv.Quote(v.Val().ExactString()) + ")"
+				numUntyped++
 			} else {
-				if strings.Contains(typ, ".") {
-					typ = pkgBase + filepath.Ext(typ)
-					refToImport = true
-				}
-				typ = fmt.Sprintf("reflect.TypeOf(new(%s)).Elem()", typ)
+				decl[v.Name()] = fmt.Sprintf("%s.%s", pkgBase, v.Name())
 			}
-			exact := v.Val().ExactString()
-			quoted := strconv.Quote(exact)
-			if v.Val().Kind() == constant.String && len(quoted) == len(exact)+4 {
-				quoted = "`" + exact + "`"
-			}
-			decl[v.Name()] = fmt.Sprintf("ConstLiteral(%v, %s)", typ, quoted)
 		case *types.Func:
-			if !allowed(v.Name()) {
-				continue
-			}
 			if v.Type().(*types.Signature).Recv() == nil {
 				decl[v.Name()] = fmt.Sprintf("%s.%s", pkgBase, v.Name())
-				refToImport = true
 			}
 		case *types.Var:
-			if !allowed(v.Name()) {
-				continue
-			}
 			if !v.Embedded() && !v.IsField() {
 				decl[v.Name()] = fmt.Sprintf("&%s.%s", pkgBase, v.Name())
-				refToImport = true
 			}
 		case *types.TypeName:
-			if !allowed(v.Name()) {
-				continue
-			}
-			if parts := strings.Split(v.String(), " "); len(parts) >= 3 {
-				if strings.HasPrefix(parts[2], "struct{") {
-					decl[v.Name()] = fmt.Sprintf("reflect.TypeOf(%s.%s{})", pkgBase, v.Name())
-					refToImport = true
-					continue
-				}
-			}
-			decl[v.Name()] = fmt.Sprintf("reflect.TypeOf(new(%s.%s)).Elem()", pkgBase, v.Name())
-			refToImport = true
+			decl[v.Name()] = fmt.Sprintf("reflect.TypeOf((*%s.%s)(nil)).Elem()", pkgBase, v.Name())
 		}
 	}
+
+	refToImport = len(decl) > numUntyped
 
 	return name, decl, refToImport, nil
 }

@@ -25,6 +25,9 @@ type LoadOptions struct {
 	AllowShebangLine bool // allow shebang line; only for scripts.
 }
 
+// UntypedConstant represents an untyped constant.
+type UntypedConstant = compiler.UntypedConstant
+
 // Package represents a predefined package.
 type Package interface {
 
@@ -41,21 +44,6 @@ type Package interface {
 
 	// DeclarationNames returns the exported declaration names in the package.
 	DeclarationNames() []string
-}
-
-type Constant = compiler.Constant
-
-// ConstLiteral returns a constant, given its type and its literal
-// representation, that can be used as a declaration in a predefined package.
-//
-// For untyped constants the type is nil.
-func ConstLiteral(typ reflect.Type, literal string) Constant {
-	return compiler.ConstLiteral(typ, literal)
-}
-
-// ConstValue returns a constant given its value.
-func ConstValue(v interface{}) Constant {
-	return compiler.ConstValue(v)
 }
 
 type Program struct {

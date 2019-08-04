@@ -37,7 +37,7 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 
 		const usage = "usage: %s [-S] [-mem 250K] [-time 50ms] [-trace] filename\n"
 
-		var packages scriggo.PackageLoader
+		var packages scriggo.Packages
 		var Main *scriggo.Package
 
 		type mainLoader []byte

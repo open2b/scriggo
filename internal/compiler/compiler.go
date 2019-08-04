@@ -38,6 +38,9 @@ import (
 	"scriggo/vm"
 )
 
+// UntypedConst represents an untyped constant.
+type UntypedConstant string
+
 // predefinedPackage represents a predefined package.
 type predefinedPackage interface {
 
@@ -54,29 +57,6 @@ type predefinedPackage interface {
 
 	// DeclarationNames returns the exported declaration names in the package.
 	DeclarationNames() []string
-}
-
-// A Constant is used when importing predefined packages. The constant value can
-// be expressed using the value field if there is a Go predeclared type that can
-// represent it, else the literal field is used to keep the string
-// representation of it.
-type Constant struct {
-	value   interface{}
-	literal string
-	typ     reflect.Type // nil for untyped constants.
-}
-
-// ConstLiteral returns a constant, given its type and its literal
-// representation, that can be used as a declaration in a predefined package.
-//
-// For untyped constants the type is nil.
-func ConstLiteral(typ reflect.Type, literal string) Constant {
-	return Constant{literal: literal, typ: typ}
-}
-
-// ConstValue returns a constant given its value.
-func ConstValue(v interface{}) Constant {
-	return Constant{value: v}
 }
 
 // PackageLoader is implemented by package loaders. Load returns a predefined
