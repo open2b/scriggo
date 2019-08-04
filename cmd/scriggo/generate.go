@@ -9,13 +9,16 @@ package main
 import (
 	"errors"
 	"fmt"
+	"go/constant"
 	"go/types"
 	"io"
+	"math/big"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
 	"strconv"
+	"strings"
 	"text/template"
 
 	pkgs "golang.org/x/tools/go/packages"
@@ -352,7 +355,19 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 		case *types.Const:
 			t := v.Type()
 			if basic, ok := t.(*types.Basic); ok && basic.Info()&types.IsUntyped != 0 {
-				decl[v.Name()] = "UntypedConstant(" + strconv.Quote(v.Val().ExactString()) + ")"
+				val := v.Val()
+				s := val.ExactString()
+				if val.Kind() == constant.Float && strings.Contains(s, "/") {
+					if rat, ok := new(big.Rat).SetString(s); ok {
+						s2 := rat.FloatString(512)
+						if rat2, ok := new(big.Rat).SetString(s2); ok && rat.Cmp(rat2) == 0 {
+							if f, ok := new(big.Float).SetPrec(512).SetString(s2); ok {
+								s = f.Text('g', -1)
+							}
+						}
+					}
+				}
+				decl[v.Name()] = "UntypedConstant(" + strconv.Quote(s) + ")"
 				numUntyped++
 			} else {
 				decl[v.Name()] = fmt.Sprintf("%s.%s", pkgBase, v.Name())
