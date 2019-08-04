@@ -47,7 +47,7 @@ Additional help topics:
 `
 
 const helpBuild = `
-usage: scriggo build [-f Scriggofile] [-v] [-x] [-work] [-o output] module
+usage: scriggo build [-f Scriggofile] [-w] [-v] [-x] [-work] [-o output] module
 
 Build compiles an interpreter for Scriggo programs, scripts and templates from
 a Scriggofile in a module.
@@ -96,6 +96,8 @@ Scriggofile of the module. For example:
 will build an interpreter named 'foo' or 'foo.exe' from the instructions in
 the file at 'boo.Scriggofile'.
 
+The -w flag omits the DWARF symbol table.
+
 The -v flag prints the imported packages as defined in the Scriggofile.
 
 The -x flag prints the executed commands.
@@ -111,7 +113,7 @@ See also: scriggo install and scriggo embed.
 `
 
 const helpInstall = `
-usage: scriggo install [-f Scriggofile] [-v] [-x] [-work] module
+usage: scriggo install [-f Scriggofile] [-w] [-v] [-x] [-work] module
 
 Install compiles and installs an interpreter for Scriggo programs, scripts
 and templates from a Scriggofile in a module.

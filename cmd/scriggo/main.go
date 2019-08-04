@@ -142,6 +142,7 @@ var commands = map[string]func(){
 		v := flag.Bool("v", false, "print the names of packages as the are imported.")
 		x := flag.Bool("x", false, "print the commands.")
 		o := flag.String("o", "", "output file.")
+		w := flag.Bool("w", false, "omit the DWARF symbol table.")
 		flag.Parse()
 		var path string
 		switch n := len(flag.Args()); n {
@@ -152,7 +153,7 @@ var commands = map[string]func(){
 			flag.Usage()
 			exitError(`bad number of arguments`)
 		}
-		err := build("build", path, buildFlags{f: *f, work: *work, v: *v, x: *x, o: *o})
+		err := build("build", path, buildFlags{f: *f, work: *work, v: *v, x: *x, o: *o, w: *w})
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -164,6 +165,7 @@ var commands = map[string]func(){
 		f := flag.String("f", "", "path of the Scriggofile.")
 		v := flag.Bool("v", false, "print the names of packages as the are imported.")
 		x := flag.Bool("x", false, "print the commands.")
+		w := flag.Bool("w", false, "omit the DWARF symbol table.")
 		flag.Parse()
 		var path string
 		switch n := len(flag.Args()); n {
@@ -174,7 +176,7 @@ var commands = map[string]func(){
 			flag.Usage()
 			exitError(`bad number of arguments`)
 		}
-		err := build("install", path, buildFlags{f: *f, work: *work, v: *v, x: *x})
+		err := build("install", path, buildFlags{f: *f, work: *work, v: *v, x: *x, w: *w})
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -339,8 +341,8 @@ func embed(path string, flags buildFlags) (err error) {
 }
 
 type buildFlags struct {
-	work, v, x bool
-	f, o       string
+	work, v, x, w bool
+	f, o          string
 }
 
 // build executes the commands "build" and "install".
@@ -581,6 +583,9 @@ func build(cmd string, path string, flags buildFlags) error {
 		}
 	} else {
 		args = []string{"install"}
+	}
+	if flags.w {
+		args = append(args, "-ldflags", "-w")
 	}
 	if flags.x {
 		_, _ = fmt.Fprint(os.Stderr, "go")
