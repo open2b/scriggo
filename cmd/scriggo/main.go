@@ -697,7 +697,7 @@ func execGoCommand(dir string, args ...string) (out io.Reader, err error) {
 
 // stdlibPaths contains the paths of the packages of the Go standard library
 // except the packages "database", "plugin", "testing", "runtime/cgo",
-// "syscall", "unsafe" and their sub packages.
+// "runtime/race",  "syscall", "unsafe" and their sub packages.
 var stdlibPaths = []string{
 	"archive/tar",
 	"archive/zip",
@@ -818,7 +818,6 @@ var stdlibPaths = []string{
 	"runtime",
 	"runtime/debug",
 	"runtime/pprof",
-	"runtime/race",
 	"runtime/trace",
 	"sort",
 	"strconv",
