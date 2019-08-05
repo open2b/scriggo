@@ -1371,6 +1371,15 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			em.fb.exitStack()
 			return reg, false
 		}
+
+		// Equality (or not-equality) checking with the predeclared identifier 'nil'.
+		if em.ti(expr.Expr1).Nil() || em.ti(expr.Expr2).Nil() {
+			em.changeRegister(true, 1, reg, boolType, dstType)
+			em.emitCondition(expr)
+			em.changeRegister(true, 0, reg, boolType, dstType)
+			return reg, false
+		}
+
 		// ==, !=, <, <=, >=, >, &&, ||, +, -, *, /, %, ^, &^, <<, >>.
 		exprType := em.ti(expr).Type
 		t1 := em.ti(expr.Expr1).Type
