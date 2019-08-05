@@ -2026,10 +2026,10 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 		bodyLabels[i] = em.fb.newLabel()
 		hasDefault = hasDefault || cas.Expressions == nil
 		for _, caseExpr := range cas.Expressions {
-			// y, ky := em.emitExprK(caseExpr, typ)
-			binOp := ast.NewBinaryOperator(nil, ast.OperatorNotEqual, node.Expr, caseExpr)
-			em.emitCondition(binOp)
-			// em.fb.emitIf(ky, expr, vm.ConditionNotEqual, y, typ.Kind()) // Condizione negata per poter concatenare gli if
+			y, ky := em.emitExprK(caseExpr, typ)
+			// binOp := ast.NewBinaryOperator(nil, ast.OperatorNotEqual, node.Expr, caseExpr)
+			// em.emitCondition(binOp)
+			em.fb.emitIf(ky, expr, vm.ConditionNotEqual, y, typ.Kind()) // Condizione negata per poter concatenare gli if
 			em.fb.emitGoto(bodyLabels[i])
 		}
 	}
@@ -2155,7 +2155,7 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
 				reflect.Float32, reflect.Float64,
-				reflect.String, reflect.Bool:
+				reflect.String:
 				v1 := em.emitExpr(cond.Expr1, t1)
 				v2, k2 := em.emitExprK(cond.Expr2, t2)
 				var condType vm.Condition
