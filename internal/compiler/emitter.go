@@ -2141,6 +2141,9 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 		}
 	}
 
+	// Binary operations that involves specific kinds of values that are
+	// optimized in the VM.
+	//
 	// if v1 == v2
 	// if v1 != v2
 	// if v1 <  v2
@@ -2151,33 +2154,23 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 		t1 := em.ti(cond.Expr1).Type
 		t2 := em.ti(cond.Expr2).Type
 		if t1.Kind() == t2.Kind() {
-			switch kind := t1.Kind(); kind {
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
-				reflect.Float32, reflect.Float64,
-				reflect.String:
+			if kind := t1.Kind(); reflect.Int <= kind && kind <= reflect.Float64 {
 				v1 := em.emitExpr(cond.Expr1, t1)
 				v2, k2 := em.emitExprK(cond.Expr2, t2)
-				var condType vm.Condition
-				switch cond.Operator() {
-				case ast.OperatorEqual:
-					condType = vm.ConditionEqual
-				case ast.OperatorNotEqual:
-					condType = vm.ConditionNotEqual
-				case ast.OperatorLess:
-					condType = vm.ConditionLess
-				case ast.OperatorLessOrEqual:
-					condType = vm.ConditionLessOrEqual
-				case ast.OperatorGreater:
-					condType = vm.ConditionGreater
-				case ast.OperatorGreaterOrEqual:
-					condType = vm.ConditionGreaterOrEqual
-				}
-				if reflect.Uint <= kind && kind <= reflect.Uintptr {
-					// Equality and not equality checks are not optimized for uints.
-					if condType == vm.ConditionEqual || condType == vm.ConditionNotEqual {
-						kind = reflect.Int
-					}
+				condType := map[ast.OperatorType]vm.Condition{
+					ast.OperatorEqual:          vm.ConditionEqual,
+					ast.OperatorNotEqual:       vm.ConditionNotEqual,
+					ast.OperatorLess:           vm.ConditionLess,
+					ast.OperatorLessOrEqual:    vm.ConditionLessOrEqual,
+					ast.OperatorGreater:        vm.ConditionGreater,
+					ast.OperatorGreaterOrEqual: vm.ConditionGreaterOrEqual,
+				}[cond.Operator()]
+				// Equality and not equality checks are not optimized for
+				// uints, so these kinds must use the instructions of
+				// integers.
+				if reflect.Uint <= kind && kind <= reflect.Uintptr && condType == vm.ConditionEqual || condType == vm.ConditionNotEqual {
+					em.fb.emitIf(k2, v1, condType, v2, reflect.Int)
+					return
 				}
 				em.fb.emitIf(k2, v1, condType, v2, kind)
 				return
