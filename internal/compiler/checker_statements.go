@@ -388,7 +388,8 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 						}
 					}
 					if t.Nil() {
-						panic("TODO: not implemented nil case in switch statements") // TODO(Gianluca): to implement.
+						t = nilOf(typ)
+						tc.typeInfos[ex] = t
 					}
 					t.setValue(typ)
 				}
