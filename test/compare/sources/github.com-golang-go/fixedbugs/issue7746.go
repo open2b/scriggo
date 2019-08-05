@@ -1,5 +1,7 @@
 // skip : infinite loop
 
+// do not run : infinite loop
+
 // errorcheck
 
 // Copyright 2015 The Go Authors. All rights reserved.

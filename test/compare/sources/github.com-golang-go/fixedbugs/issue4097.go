@@ -1,5 +1,7 @@
 // skip : constant depending on variable https://github.com/open2b/scriggo/issues/206
 
+// do not run : infinite loop
+
 // errorcheck
 
 // Copyright 2012 The Go Authors. All rights reserved.
