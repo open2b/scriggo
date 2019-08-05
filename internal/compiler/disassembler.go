@@ -336,6 +336,7 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		} else {
 			s += " " + disassembleOperand(fn, a, vm.Interface, false)
 			s += " " + conditionName[b]
+			s += " " + disassembleOperand(fn, c, vm.Interface, k)
 		}
 	case vm.OpIfInt, vm.OpIfUint:
 		s += " " + disassembleOperand(fn, a, vm.Int, false)

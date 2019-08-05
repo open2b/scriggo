@@ -1371,6 +1371,15 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			em.fb.exitStack()
 			return reg, false
 		}
+
+		// Equality (or not-equality) checking with the predeclared identifier 'nil'.
+		if em.ti(expr.Expr1).Nil() || em.ti(expr.Expr2).Nil() {
+			em.changeRegister(true, 1, reg, boolType, dstType)
+			em.emitCondition(expr)
+			em.changeRegister(true, 0, reg, boolType, dstType)
+			return reg, false
+		}
+
 		// ==, !=, <, <=, >=, >, &&, ||, +, -, *, /, %, ^, &^, <<, >>.
 		exprType := em.ti(expr).Type
 		t1 := em.ti(expr.Expr1).Type
@@ -2000,9 +2009,17 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 	var typ reflect.Type
 
 	if node.Expr == nil {
-		typ = reflect.TypeOf(false)
+		typ = boolType
 		expr = em.fb.newRegister(typ.Kind())
 		em.fb.emitMove(true, 1, expr, typ.Kind())
+		node.Expr = ast.NewIdentifier(nil, "true")
+		em.typeInfos[node.Expr] = &TypeInfo{
+			Constant:   boolConst(true),
+			Type:       boolType,
+			value:      int64(1), // true
+			valueType:  boolType,
+			Properties: PropertyUntyped | PropertyHasValue,
+		}
 	} else {
 		typ = em.ti(node.Expr).Type
 		expr = em.emitExpr(node.Expr, typ)
@@ -2018,8 +2035,11 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 		bodyLabels[i] = em.fb.newLabel()
 		hasDefault = hasDefault || cas.Expressions == nil
 		for _, caseExpr := range cas.Expressions {
-			y, ky := em.emitExprK(caseExpr, typ)
-			em.fb.emitIf(ky, expr, vm.ConditionNotEqual, y, typ.Kind()) // Condizione negata per poter concatenare gli if
+			binOp := ast.NewBinaryOperator(nil, ast.OperatorNotEqual, node.Expr, caseExpr)
+			em.typeInfos[binOp] = &TypeInfo{
+				Type: boolType,
+			}
+			em.emitCondition(binOp)
 			em.fb.emitGoto(bodyLabels[i])
 		}
 	}
@@ -2055,23 +2075,26 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 // emitted is always the "If" instruction.
 func (em *emitter) emitCondition(cond ast.Expression) {
 
+	// cond is a boolean constant. Given that the 'if' instruction requires a
+	// binary operation as condition, any boolean constant expressions 'b' is
+	// converted to 'b == true'.
 	if ti := em.ti(cond); ti != nil && ti.HasValue() {
+		if ti.Type.Kind() != reflect.Bool {
+			panic("bug: expected a boolean constant") // TODO(Gianluca): remove.
+		}
 		v1 := em.emitExpr(cond, ti.Type)
-		k2 := em.fb.makeIntConstant(1)
+		k2 := em.fb.makeIntConstant(1) // true
 		v2 := em.fb.newRegister(reflect.Bool)
 		em.fb.emitLoadNumber(vm.TypeInt, k2, v2)
-		em.fb.emitIf(false, v1, vm.ConditionEqual, v2, reflect.Bool)
+		em.fb.emitIf(false, v1, vm.ConditionEqual, v2, reflect.Bool) // v1 == true
 		return
 	}
 
-	switch cond := cond.(type) {
-
-	case *ast.BinaryOperator:
-
-		// if v   == nil
-		// if v   != nil
-		// if nil == v
-		// if nil != v
+	// if v   == nil
+	// if v   != nil
+	// if nil == v
+	// if nil != v
+	if cond, ok := cond.(*ast.BinaryOperator); ok {
 		if em.ti(cond.Expr1).Nil() != em.ti(cond.Expr2).Nil() {
 			expr := cond.Expr1
 			if em.ti(cond.Expr1).Nil() {
@@ -2086,19 +2109,21 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 			em.fb.emitIf(false, v, condType, 0, typ.Kind())
 			return
 		}
+	}
 
-		// if len("str") == v
-		// if len("str") != v
-		// if len("str") <  v
-		// if len("str") <= v
-		// if len("str") >  v
-		// if len("str") >= v
-		// if v == len("str")
-		// if v != len("str")
-		// if v <  len("str")
-		// if v <= len("str")
-		// if v >  len("str")
-		// if v >= len("str")
+	// if len("str") == v
+	// if len("str") != v
+	// if len("str") <  v
+	// if len("str") <= v
+	// if len("str") >  v
+	// if len("str") >= v
+	// if v == len("str")
+	// if v != len("str")
+	// if v <  len("str")
+	// if v <= len("str")
+	// if v >  len("str")
+	// if v >= len("str")
+	if cond, ok := cond.(*ast.BinaryOperator); ok {
 		if em.isLenBuiltinCall(cond.Expr1) != em.isLenBuiltinCall(cond.Expr2) {
 			var lenArg, expr ast.Expression
 			if em.isLenBuiltinCall(cond.Expr1) {
@@ -2112,85 +2137,64 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 				v1 := em.emitExpr(lenArg, em.ti(lenArg).Type)
 				typ := em.ti(expr).Type
 				v2, k2 := em.emitExprK(expr, typ)
-				var condType vm.Condition
-				switch cond.Operator() {
-				case ast.OperatorEqual:
-					condType = vm.ConditionEqualLen
-				case ast.OperatorNotEqual:
-					condType = vm.ConditionNotEqualLen
-				case ast.OperatorLess:
-					condType = vm.ConditionLessLen
-				case ast.OperatorLessOrEqual:
-					condType = vm.ConditionLessOrEqualLen
-				case ast.OperatorGreater:
-					condType = vm.ConditionGreaterLen
-				case ast.OperatorGreaterOrEqual:
-					condType = vm.ConditionGreaterOrEqualLen
-				}
+				condType := map[ast.OperatorType]vm.Condition{
+					ast.OperatorEqual:          vm.ConditionEqualLen,
+					ast.OperatorNotEqual:       vm.ConditionNotEqualLen,
+					ast.OperatorLess:           vm.ConditionLessLen,
+					ast.OperatorLessOrEqual:    vm.ConditionLessOrEqualLen,
+					ast.OperatorGreater:        vm.ConditionGreaterLen,
+					ast.OperatorGreaterOrEqual: vm.ConditionGreaterOrEqualLen,
+				}[cond.Operator()]
 				em.fb.emitIf(k2, v1, condType, v2, reflect.String)
 				return
 			}
 		}
+	}
 
-		// if v1 == v2
-		// if v1 != v2
-		// if v1 <  v2
-		// if v1 <= v2
-		// if v1 >  v2
-		// if v1 >= v2
+	// Binary operations that involves specific kinds of values that are
+	// optimized in the VM.
+	//
+	// if v1 == v2
+	// if v1 != v2
+	// if v1 <  v2
+	// if v1 <= v2
+	// if v1 >  v2
+	// if v1 >= v2
+	if cond, ok := cond.(*ast.BinaryOperator); ok {
 		t1 := em.ti(cond.Expr1).Type
 		t2 := em.ti(cond.Expr2).Type
 		if t1.Kind() == t2.Kind() {
-			switch kind := t1.Kind(); kind {
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
-				reflect.Float32, reflect.Float64,
-				reflect.String:
+			if kind := t1.Kind(); reflect.Int <= kind && kind <= reflect.Float64 {
 				v1 := em.emitExpr(cond.Expr1, t1)
 				v2, k2 := em.emitExprK(cond.Expr2, t2)
-				var condType vm.Condition
-				switch cond.Operator() {
-				case ast.OperatorEqual:
-					condType = vm.ConditionEqual
-				case ast.OperatorNotEqual:
-					condType = vm.ConditionNotEqual
-				case ast.OperatorLess:
-					condType = vm.ConditionLess
-				case ast.OperatorLessOrEqual:
-					condType = vm.ConditionLessOrEqual
-				case ast.OperatorGreater:
-					condType = vm.ConditionGreater
-				case ast.OperatorGreaterOrEqual:
-					condType = vm.ConditionGreaterOrEqual
-				}
-				if reflect.Uint <= kind && kind <= reflect.Uintptr {
-					// Equality and not equality checks are not optimized for uints.
-					if condType == vm.ConditionEqual || condType == vm.ConditionNotEqual {
-						kind = reflect.Int
-					}
+				condType := map[ast.OperatorType]vm.Condition{
+					ast.OperatorEqual:          vm.ConditionEqual,
+					ast.OperatorNotEqual:       vm.ConditionNotEqual,
+					ast.OperatorLess:           vm.ConditionLess,
+					ast.OperatorLessOrEqual:    vm.ConditionLessOrEqual,
+					ast.OperatorGreater:        vm.ConditionGreater,
+					ast.OperatorGreaterOrEqual: vm.ConditionGreaterOrEqual,
+				}[cond.Operator()]
+				// Equality and not equality checks are not optimized for
+				// uints, so these kinds must use the instructions of
+				// integers.
+				if reflect.Uint <= kind && kind <= reflect.Uintptr && condType == vm.ConditionEqual || condType == vm.ConditionNotEqual {
+					em.fb.emitIf(k2, v1, condType, v2, reflect.Int)
+					return
 				}
 				em.fb.emitIf(k2, v1, condType, v2, kind)
 				return
 			}
 		}
-
-		if ti := em.ti(cond); ti != nil {
-			v1 := em.emitExpr(cond, ti.Type)
-			k2 := em.fb.makeIntConstant(1)
-			v2 := em.fb.newRegister(reflect.Bool)
-			em.fb.emitLoadNumber(vm.TypeInt, k2, v2)
-			em.fb.emitIf(false, v1, vm.ConditionEqual, v2, reflect.Bool)
-			return
-		}
-
-	default:
-
-		v1 := em.emitExpr(cond, em.ti(cond).Type)
-		k2 := em.fb.makeIntConstant(1)
-		v2 := em.fb.newRegister(reflect.Bool)
-		em.fb.emitLoadNumber(vm.TypeInt, k2, v2)
-		em.fb.emitIf(false, v1, vm.ConditionEqual, v2, reflect.Bool)
-
 	}
+
+	// // Any other binary condition is evaluated and compared to 'true'. For
+	// // example 'if a == b || c == d' becomes 'if (a == b || c == d) == 1'.
+	v1 := em.emitExpr(cond, em.ti(cond).Type)
+	k2 := em.fb.makeIntConstant(1)
+	v2 := em.fb.newRegister(reflect.Bool)
+	em.fb.emitLoadNumber(vm.TypeInt, k2, v2)
+	em.fb.emitIf(false, v1, vm.ConditionEqual, v2, reflect.Bool)
+	return
 
 }
