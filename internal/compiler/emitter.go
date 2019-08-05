@@ -2128,21 +2128,14 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 				v1 := em.emitExpr(lenArg, em.ti(lenArg).Type)
 				typ := em.ti(expr).Type
 				v2, k2 := em.emitExprK(expr, typ)
-				var condType vm.Condition
-				switch cond.Operator() {
-				case ast.OperatorEqual:
-					condType = vm.ConditionEqualLen
-				case ast.OperatorNotEqual:
-					condType = vm.ConditionNotEqualLen
-				case ast.OperatorLess:
-					condType = vm.ConditionLessLen
-				case ast.OperatorLessOrEqual:
-					condType = vm.ConditionLessOrEqualLen
-				case ast.OperatorGreater:
-					condType = vm.ConditionGreaterLen
-				case ast.OperatorGreaterOrEqual:
-					condType = vm.ConditionGreaterOrEqualLen
-				}
+				condType := map[ast.OperatorType]vm.Condition{
+					ast.OperatorEqual:          vm.ConditionEqualLen,
+					ast.OperatorNotEqual:       vm.ConditionNotEqualLen,
+					ast.OperatorLess:           vm.ConditionLessLen,
+					ast.OperatorLessOrEqual:    vm.ConditionLessOrEqualLen,
+					ast.OperatorGreater:        vm.ConditionGreaterLen,
+					ast.OperatorGreaterOrEqual: vm.ConditionGreaterOrEqualLen,
+				}[cond.Operator()]
 				em.fb.emitIf(k2, v1, condType, v2, reflect.String)
 				return
 			}
