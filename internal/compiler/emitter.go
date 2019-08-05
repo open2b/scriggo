@@ -2193,4 +2193,8 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 
 	}
 
+	// TODO(Gianluca): this panic must be enabled: currently some tests pass by
+	// sheer accident.
+	// panic(fmt.Errorf("emitCondition: no matches for expression %s", cond))
+
 }
