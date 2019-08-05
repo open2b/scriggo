@@ -2000,9 +2000,17 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 	var typ reflect.Type
 
 	if node.Expr == nil {
-		typ = reflect.TypeOf(false)
+		typ = reflect.TypeOf(true)
 		expr = em.fb.newRegister(typ.Kind())
 		em.fb.emitMove(true, 1, expr, typ.Kind())
+		node.Expr = ast.NewIdentifier(nil, "true")
+		em.typeInfos[node.Expr] = &TypeInfo{
+			Constant:   boolConst(true),
+			Type:       reflect.TypeOf(true),
+			value:      int64(1), // true
+			valueType:  reflect.TypeOf(true),
+			Properties: PropertyUntyped | PropertyHasValue,
+		}
 	} else {
 		typ = em.ti(node.Expr).Type
 		expr = em.emitExpr(node.Expr, typ)
@@ -2018,8 +2026,10 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 		bodyLabels[i] = em.fb.newLabel()
 		hasDefault = hasDefault || cas.Expressions == nil
 		for _, caseExpr := range cas.Expressions {
-			y, ky := em.emitExprK(caseExpr, typ)
-			em.fb.emitIf(ky, expr, vm.ConditionNotEqual, y, typ.Kind()) // Condizione negata per poter concatenare gli if
+			// y, ky := em.emitExprK(caseExpr, typ)
+			binOp := ast.NewBinaryOperator(nil, ast.OperatorNotEqual, node.Expr, caseExpr)
+			em.emitCondition(binOp)
+			// em.fb.emitIf(ky, expr, vm.ConditionNotEqual, y, typ.Kind()) // Condizione negata per poter concatenare gli if
 			em.fb.emitGoto(bodyLabels[i])
 		}
 	}
