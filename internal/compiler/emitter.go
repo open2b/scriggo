@@ -2080,7 +2080,7 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 	// converted to 'b == true'.
 	if ti := em.ti(cond); ti != nil && ti.HasValue() {
 		if ti.Type.Kind() != reflect.Bool {
-			panic("bug: expected a boolean constant")
+			panic("bug: expected a boolean constant") // TODO(Gianluca): remove.
 		}
 		v1 := em.emitExpr(cond, ti.Type)
 		k2 := em.fb.makeIntConstant(1) // true
