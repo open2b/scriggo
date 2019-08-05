@@ -79,10 +79,32 @@ func main() {
 		fmt.Println(`l := 3; len("str") != l is false`)
 	}
 
-	// Others.
+	// Boolean conditions.
 	if l := 10; len([]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}) > l {
 		fmt.Println(`greater`)
 	} else {
 		panic("error")
 	}
+	a := 2
+	b := 10
+	if a == b {
+		panic("err")
+	} else {
+		fmt.Println("a (2) != b (10)")
+	}
+	if (a + 8) == b {
+		fmt.Println("(a + 8) == b")
+	} else {
+		panic("error")
+	}
+	if (a == 2) && (b == 10) {
+		fmt.Println("(a == 2) && (b == 10)")
+	} else {
+		panic("error")
+	}
+	// if ([]int(nil) == nil) == true {
+	// 	fmt.Println("[]int(nil) == nil is true")
+	// } else {
+	// 	panic("error")
+	// }
 }

@@ -2080,14 +2080,11 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 		return
 	}
 
-	switch cond := cond.(type) {
-
-	case *ast.BinaryOperator:
-
-		// if v   == nil
-		// if v   != nil
-		// if nil == v
-		// if nil != v
+	// if v   == nil
+	// if v   != nil
+	// if nil == v
+	// if nil != v
+	if cond, ok := cond.(*ast.BinaryOperator); ok {
 		if em.ti(cond.Expr1).Nil() != em.ti(cond.Expr2).Nil() {
 			expr := cond.Expr1
 			if em.ti(cond.Expr1).Nil() {
@@ -2102,19 +2099,21 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 			em.fb.emitIf(false, v, condType, 0, typ.Kind())
 			return
 		}
+	}
 
-		// if len("str") == v
-		// if len("str") != v
-		// if len("str") <  v
-		// if len("str") <= v
-		// if len("str") >  v
-		// if len("str") >= v
-		// if v == len("str")
-		// if v != len("str")
-		// if v <  len("str")
-		// if v <= len("str")
-		// if v >  len("str")
-		// if v >= len("str")
+	// if len("str") == v
+	// if len("str") != v
+	// if len("str") <  v
+	// if len("str") <= v
+	// if len("str") >  v
+	// if len("str") >= v
+	// if v == len("str")
+	// if v != len("str")
+	// if v <  len("str")
+	// if v <= len("str")
+	// if v >  len("str")
+	// if v >= len("str")
+	if cond, ok := cond.(*ast.BinaryOperator); ok {
 		if em.isLenBuiltinCall(cond.Expr1) != em.isLenBuiltinCall(cond.Expr2) {
 			var lenArg, expr ast.Expression
 			if em.isLenBuiltinCall(cond.Expr1) {
@@ -2140,13 +2139,15 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 				return
 			}
 		}
+	}
 
-		// if v1 == v2
-		// if v1 != v2
-		// if v1 <  v2
-		// if v1 <= v2
-		// if v1 >  v2
-		// if v1 >= v2
+	// if v1 == v2
+	// if v1 != v2
+	// if v1 <  v2
+	// if v1 <= v2
+	// if v1 >  v2
+	// if v1 >= v2
+	if cond, ok := cond.(*ast.BinaryOperator); ok {
 		t1 := em.ti(cond.Expr1).Type
 		t2 := em.ti(cond.Expr2).Type
 		if t1.Kind() == t2.Kind() {
@@ -2182,28 +2183,15 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 				return
 			}
 		}
-
-		if ti := em.ti(cond); ti != nil {
-			v1 := em.emitExpr(cond, ti.Type)
-			k2 := em.fb.makeIntConstant(1)
-			v2 := em.fb.newRegister(reflect.Bool)
-			em.fb.emitLoadNumber(vm.TypeInt, k2, v2)
-			em.fb.emitIf(false, v1, vm.ConditionEqual, v2, reflect.Bool)
-			return
-		}
-
-	default:
-
-		v1 := em.emitExpr(cond, em.ti(cond).Type)
-		k2 := em.fb.makeIntConstant(1)
-		v2 := em.fb.newRegister(reflect.Bool)
-		em.fb.emitLoadNumber(vm.TypeInt, k2, v2)
-		em.fb.emitIf(false, v1, vm.ConditionEqual, v2, reflect.Bool)
-
 	}
 
-	// TODO(Gianluca): this panic must be enabled: currently some tests pass by
-	// sheer accident.
-	// panic(fmt.Errorf("emitCondition: no matches for expression %s", cond))
+	// // Any other binary condition is evaluated and compared to 'true'. For
+	// // example 'if a == b || c == d' becomes 'if (a == b || c == d) == 1'.
+	v1 := em.emitExpr(cond, em.ti(cond).Type)
+	k2 := em.fb.makeIntConstant(1)
+	v2 := em.fb.newRegister(reflect.Bool)
+	em.fb.emitLoadNumber(vm.TypeInt, k2, v2)
+	em.fb.emitIf(false, v1, vm.ConditionEqual, v2, reflect.Bool)
+	return
 
 }
