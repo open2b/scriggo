@@ -102,9 +102,9 @@ func main() {
 	} else {
 		panic("error")
 	}
-	// if ([]int(nil) == nil) == true {
-	// 	fmt.Println("[]int(nil) == nil is true")
-	// } else {
-	// 	panic("error")
-	// }
+	if ([]int(nil) == nil) == true {
+		fmt.Println("[]int(nil) == nil is true")
+	} else {
+		panic("error")
+	}
 }
