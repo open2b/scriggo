@@ -2035,10 +2035,11 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 		bodyLabels[i] = em.fb.newLabel()
 		hasDefault = hasDefault || cas.Expressions == nil
 		for _, caseExpr := range cas.Expressions {
-			y, ky := em.emitExprK(caseExpr, typ)
-			// binOp := ast.NewBinaryOperator(nil, ast.OperatorNotEqual, node.Expr, caseExpr)
-			// em.emitCondition(binOp)
-			em.fb.emitIf(ky, expr, vm.ConditionNotEqual, y, typ.Kind()) // Condizione negata per poter concatenare gli if
+			binOp := ast.NewBinaryOperator(nil, ast.OperatorNotEqual, node.Expr, caseExpr)
+			em.typeInfos[binOp] = &TypeInfo{
+				Type: boolType,
+			}
+			em.emitCondition(binOp)
 			em.fb.emitGoto(bodyLabels[i])
 		}
 	}
