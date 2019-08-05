@@ -2065,12 +2065,18 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 // emitted is always the "If" instruction.
 func (em *emitter) emitCondition(cond ast.Expression) {
 
+	// cond is a boolean constant. Given that the 'if' instruction requires a
+	// binary operation as condition, any boolean constant expressions 'b' is
+	// converted to 'b == true'.
 	if ti := em.ti(cond); ti != nil && ti.HasValue() {
+		if ti.Type.Kind() != reflect.Bool {
+			panic("bug: expected a boolean constant")
+		}
 		v1 := em.emitExpr(cond, ti.Type)
-		k2 := em.fb.makeIntConstant(1)
+		k2 := em.fb.makeIntConstant(1) // true
 		v2 := em.fb.newRegister(reflect.Bool)
 		em.fb.emitLoadNumber(vm.TypeInt, k2, v2)
-		em.fb.emitIf(false, v1, vm.ConditionEqual, v2, reflect.Bool)
+		em.fb.emitIf(false, v1, vm.ConditionEqual, v2, reflect.Bool) // v1 == true
 		return
 	}
 
