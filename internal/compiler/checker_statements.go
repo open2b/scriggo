@@ -388,10 +388,16 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 						}
 					}
 					if t.Nil() {
-						t = nilOf(typ)
-						tc.typeInfos[ex] = t
+						// Nothing to do: the predeclared identifier 'nil' must
+						// reach the emitter as is. It must not be typed to the
+						// switch expression type; think about a []int
+						// expression: if the 'nil' in the case gets a type
+						// (i.e. it becames the zero of []int) the comparison
+						// could not be perfomed anymore (a slice can only be
+						// compared to the predeclared identifier nil).
+					} else {
+						t.setValue(typ)
 					}
-					t.setValue(typ)
 				}
 				tc.checkNodesInNewScope(cas.Body)
 				hasFallthrough = hasFallthrough || cas.Fallthrough
