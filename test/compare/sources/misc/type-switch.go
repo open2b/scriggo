@@ -40,4 +40,10 @@ func main() {
 		fmt.Println(a)
 	}
 
+	switch interface{}(0).(type) {
+	case struct{}:
+	case struct {
+		A, B int
+	}:
+	}
 }
