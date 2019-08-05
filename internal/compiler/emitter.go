@@ -1145,15 +1145,19 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 		case *ast.Var:
 			addresses := make([]address, len(node.Lhs))
 			for i, v := range node.Lhs {
-				staticType := em.ti(v).Type
-				if em.indirectVars[v] {
-					varr := -em.fb.newRegister(reflect.Interface)
-					em.fb.bindVarReg(v.Name, varr)
-					addresses[i] = em.newAddress(addressIndirectDeclaration, staticType, varr, 0)
+				if isBlankIdentifier(v) {
+					addresses[i] = em.newAddress(addressBlank, reflect.Type(nil), 0, 0)
 				} else {
-					varr := em.fb.newRegister(staticType.Kind())
-					em.fb.bindVarReg(v.Name, varr)
-					addresses[i] = em.newAddress(addressRegister, staticType, varr, 0)
+					staticType := em.ti(v).Type
+					if em.indirectVars[v] {
+						varr := -em.fb.newRegister(reflect.Interface)
+						em.fb.bindVarReg(v.Name, varr)
+						addresses[i] = em.newAddress(addressIndirectDeclaration, staticType, varr, 0)
+					} else {
+						varr := em.fb.newRegister(staticType.Kind())
+						em.fb.bindVarReg(v.Name, varr)
+						addresses[i] = em.newAddress(addressRegister, staticType, varr, 0)
+					}
 				}
 			}
 			em.assign(addresses, node.Rhs)
