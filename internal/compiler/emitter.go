@@ -2155,7 +2155,7 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
 				reflect.Float32, reflect.Float64,
-				reflect.String:
+				reflect.String, reflect.Bool:
 				v1 := em.emitExpr(cond.Expr1, t1)
 				v2, k2 := em.emitExprK(cond.Expr2, t2)
 				var condType vm.Condition
