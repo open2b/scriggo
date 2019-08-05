@@ -2009,15 +2009,15 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 	var typ reflect.Type
 
 	if node.Expr == nil {
-		typ = reflect.TypeOf(true)
+		typ = boolType
 		expr = em.fb.newRegister(typ.Kind())
 		em.fb.emitMove(true, 1, expr, typ.Kind())
 		node.Expr = ast.NewIdentifier(nil, "true")
 		em.typeInfos[node.Expr] = &TypeInfo{
 			Constant:   boolConst(true),
-			Type:       reflect.TypeOf(true),
+			Type:       boolType,
 			value:      int64(1), // true
-			valueType:  reflect.TypeOf(true),
+			valueType:  boolType,
 			Properties: PropertyUntyped | PropertyHasValue,
 		}
 	} else {
