@@ -138,9 +138,9 @@ type typechecker struct {
 	nextValidGoto   int
 	storedValidGoto int
 	labels          [][]string
-
-	pkgPathToIndex map[string]int
 }
+
+var pkgPathToIndex = map[string]int{}
 
 func newTypechecker(path string, opts CheckerOptions) *typechecker {
 	return &typechecker{
@@ -153,7 +153,6 @@ func newTypechecker(path string, opts CheckerOptions) *typechecker {
 		indirectVars:     map[*ast.Identifier]bool{},
 		opts:             opts,
 		iota:             -1,
-		pkgPathToIndex:   map[string]int{},
 	}
 }
 
@@ -256,17 +255,17 @@ func (tc *typechecker) assignScope(name string, value *TypeInfo, declNode *ast.I
 // currentPkgIndex returns an index related to the current package; such index
 // is unique for every package path.
 func (tc *typechecker) currentPkgIndex() int {
-	i, ok := tc.pkgPathToIndex[tc.path]
+	i, ok := pkgPathToIndex[tc.path]
 	if ok {
 		return i
 	}
 	max := -1
-	for _, i := range tc.pkgPathToIndex {
+	for _, i := range pkgPathToIndex {
 		if i > max {
 			max = i
 		}
 	}
-	tc.pkgPathToIndex[tc.path] = max + 1
+	pkgPathToIndex[tc.path] = max + 1
 	return max + 1
 }
 
