@@ -1,4 +1,4 @@
-// skip : import "reflect" and "unsafe"
+// skip : import "reflect" and "unsafe" https://github.com/open2b/scriggo/issues/267
 
 // run
 

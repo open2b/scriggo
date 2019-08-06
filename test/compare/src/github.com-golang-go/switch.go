@@ -1,4 +1,4 @@
-// skip : implement case 'nil' in switch https://github.com/open2b/scriggo/issues/193
+// skip : false positive "invalid case in switch" https://github.com/open2b/scriggo/issues/269
 
 // run
 
