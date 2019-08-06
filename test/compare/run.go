@@ -399,7 +399,7 @@ func runGc(src []byte) output {
 // getAllFilepaths returns a list of filepaths matching the given pattern.
 // If pattern is "", pattern matching is always assumed true.
 func getAllFilepaths(pattern string) []string {
-	const testsDir = "sources"
+	const testsDir = "src"
 	filepaths := []string{}
 	var re *regexp.Regexp
 	if pattern != "" {
