@@ -1,4 +1,4 @@
-// skip : reflect.Set: value of type *sha1.digest is not assignable to type []uint8
+// skip : reflect.Set: value of type *sha1.digest is not assignable to type []uint8 https://github.com/open2b/scriggo/issues/268
 
 // [_SHA1 hashes_](http://en.wikipedia.org/wiki/SHA-1) are
 // frequently used to compute short identities for binary
