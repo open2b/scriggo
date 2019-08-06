@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"unicode"
 
 	"scriggo/ast"
 )
@@ -166,20 +167,28 @@ func convert(ti *TypeInfo, t2 reflect.Type) (constant, error) {
 
 // fieldByName returns the struct field with the given name and a boolean
 // indicating if the field was found.
-func fieldByName(t *TypeInfo, name string) (*TypeInfo, bool) {
+func fieldByName(t *TypeInfo, name string, indirectPointer bool) (*TypeInfo, *string, bool) {
+	var newName *string
+	if !t.IsType() {
+		panic("bug: t must be a type") // TODO(Gianluca): remove.
+	}
+	if !t.IsPredefined() && !unicode.Is(unicode.Lu, []rune(name)[0]) {
+		name = "𝗽0" + name
+		newName = &name
+	}
 	if t.Type.Kind() == reflect.Struct {
 		field, ok := t.Type.FieldByName(name)
 		if ok {
-			return &TypeInfo{Type: field.Type}, true
+			return &TypeInfo{Type: field.Type}, newName, true
 		}
 	}
-	if t.Type.Kind() == reflect.Ptr {
+	if indirectPointer && t.Type.Kind() == reflect.Ptr {
 		field, ok := t.Type.Elem().FieldByName(name)
 		if ok {
-			return &TypeInfo{Type: field.Type}, true
+			return &TypeInfo{Type: field.Type}, newName, true
 		}
 	}
-	return nil, false
+	return nil, nil, false
 }
 
 // fillParametersTypes takes a list of parameters (function arguments or

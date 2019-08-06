@@ -1,0 +1,27 @@
+// run
+
+import "fmt"
+
+s1 := struct {
+	a, b int
+}{}
+fmt.Printf("%#v\n", s1)
+
+s2 := struct {
+	A, b, C string
+}{}
+fmt.Printf("%#v\n", s2)
+
+s3 := struct {
+	A, b int
+	C, d []int
+}{
+	A: 10,
+	b: 20,
+	// TODO(Gianluca):
+	// C: nil,
+	d: []int{5,6,7},
+}
+fmt.Printf("%#v\n", s3)
+
+

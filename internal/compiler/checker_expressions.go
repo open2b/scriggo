@@ -713,11 +713,18 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			} else {
 				// Explicit field declaration.
 				for _, ident := range fd.IdentifierList {
+					name := ident.Name
+					if !unicode.Is(unicode.Lu, []rune(name)[0]) {
+						// TODO(Gianluca): add pkg unique identifier to the
+						// name. Field with name "a" should be 𝗽0a, where 0 is
+						// the id of the package. This is necessary to make a
+						// comparison between structs with unexported fields
+						// declared in two different packages, which must fail.
+						name = "𝗽" + "0" + ident.Name
+					}
 					fields = append(fields, reflect.StructField{
-						Name:      ident.Name,
-						PkgPath:   "",
+						Name:      name,
 						Type:      typ,
-						Tag:       "", // TODO(Gianluca): to implement.
 						Index:     []int{i},
 						Anonymous: false,
 					})
@@ -1059,12 +1066,15 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			}
 			return method
 		}
-		field, ok := fieldByName(t, expr.Ident)
+		field, newName, ok := fieldByName(t, expr.Ident, true)
 		if ok {
 			field.Properties |= PropertyAddressable
 			return field
 		}
 		panic(tc.errorf(expr, "%v undefined (type %s has no field or method %s)", expr, t, expr.Ident))
+		if newName != nil {
+			expr.Ident = *newName
+		}
 
 	case *ast.TypeAssertion:
 		t := tc.checkExpr(expr.Expr)
@@ -2021,7 +2031,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					panic(tc.errorf(node, "duplicate field name in struct literal: %s", keyValue.Key))
 				}
 				hasField[ident.Name] = struct{}{}
-				fieldTi, ok := ti.Type.FieldByName(ident.Name)
+				fieldTi, newName, ok := fieldByName(ti, ident.Name, false)
 				if !ok {
 					panic(tc.errorf(node, "unknown field '%s' in struct literal of type %s", keyValue.Key, ti))
 				}
@@ -2033,6 +2043,9 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					panic(tc.errorf(node, "%s", err))
 				}
 				valueTi.setValue(fieldTi.Type)
+				if newName != nil {
+					ident.Name = *newName
+				}
 			}
 		case false: // struct with implicit fields.
 			if len(node.KeyValues) == 0 {
