@@ -549,13 +549,6 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 	}
 
 	if ti.IsPredefined() {
-		// Predefined function.
-		if ti.Type.Kind() == reflect.Func {
-			index := em.predFuncIndex(ti.value.(reflect.Value), ti.PredefPackageName, expr.Ident)
-			em.fb.emitGetFunc(true, index, reg)
-			em.changeRegister(false, reg, reg, ti.Type, dstType)
-			return
-		}
 
 		// TODO(Gianluca): this is the new way of accessing predefined vars.
 		// Incrementally integrate into Scriggo, then remove the other checks.
@@ -1324,6 +1317,42 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		return reg, false
 	}
 
+	// Predefined values.
+	if ti := em.ti(expr); ti != nil && ti.IsPredefined() && ti.MethodType == 0 {
+
+		// Predefined functions.
+		if ti.Type.Kind() == reflect.Func {
+			name := ""
+			switch expr := expr.(type) {
+			case *ast.Identifier:
+				name = expr.Name
+			case *ast.Selector:
+				name = expr.Ident
+			case *ast.Placeholder:
+			default:
+				panic("bug") // TODO(Gianluca).
+			}
+			index := em.predFuncIndex(ti.value.(reflect.Value), ti.PredefPackageName, name)
+			em.fb.emitGetFunc(true, index, reg)
+			em.changeRegister(false, reg, reg, ti.Type, dstType)
+			return reg, false
+		}
+
+		// Predefined variable.
+		if ident, ok := expr.(*ast.Identifier); ok {
+			index := em.predVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, ident.Name)
+			if canEmitDirectly(ti.Type.Kind(), dstType.Kind()) {
+				em.fb.emitGetVar(int(index), reg)
+				return reg, false
+			}
+			tmp := em.fb.newRegister(ti.Type.Kind())
+			em.fb.emitGetVar(int(index), tmp)
+			em.changeRegister(false, tmp, reg, ti.Type, dstType)
+			return reg, false
+		}
+
+	}
+
 	switch expr := expr.(type) {
 
 	case *ast.BinaryOperator:
@@ -1839,27 +1868,6 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			tmp := em.fb.newRegister(typ.Kind())
 			em.fb.emitGetVar(int(index), tmp)
 			em.changeRegister(false, tmp, reg, typ, dstType)
-			return reg, false
-		}
-
-		// Predefined variable.
-		if ti := em.ti(expr); ti.IsPredefined() && ti.Type.Kind() != reflect.Func {
-			index := em.predVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, expr.Name)
-			if canEmitDirectly(ti.Type.Kind(), dstType.Kind()) {
-				em.fb.emitGetVar(int(index), reg)
-				return reg, false
-			}
-			tmp := em.fb.newRegister(ti.Type.Kind())
-			em.fb.emitGetVar(int(index), tmp)
-			em.changeRegister(false, tmp, reg, ti.Type, dstType)
-			return reg, false
-		}
-
-		// Predefined function.
-		if ti := em.ti(expr); ti.IsPredefined() && ti.Type.Kind() == reflect.Func {
-			index := em.predFuncIndex(ti.value.(reflect.Value), ti.PredefPackageName, expr.Name)
-			em.fb.emitGetFunc(true, index, reg)
-			em.changeRegister(false, reg, reg, ti.Type, dstType)
 			return reg, false
 		}
 
