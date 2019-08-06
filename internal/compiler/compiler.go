@@ -125,6 +125,8 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 		panic("unspecified syntax type")
 	}
 
+	pkgPathToIndex = map[string]int{}
+
 	// Type check a program.
 	if opts.SyntaxType == ProgramSyntax {
 		pkgInfos := map[string]*PackageInfo{}
