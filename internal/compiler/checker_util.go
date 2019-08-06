@@ -166,9 +166,9 @@ func convert(ti *TypeInfo, t2 reflect.Type) (constant, error) {
 	return nil, errTypeConversion
 }
 
-// fieldByName returns the struct field with the given name and a boolean
-// indicating if the field was found.
-func (tc *typechecker) fieldByName(t *TypeInfo, name string, indirectPointer bool) (*TypeInfo, *string, bool) {
+// fieldOrMethodByName returns the struct field with the given name and a
+// boolean indicating if the field was found.
+func (tc *typechecker) fieldOrMethodByName(t *TypeInfo, name string, indirectPointer bool) (*TypeInfo, *string, bool) {
 	var newName *string
 	if !t.IsPredefined() && !unicode.Is(unicode.Lu, []rune(name)[0]) {
 		name = "𝗽" + strconv.Itoa(tc.currentPkgIndex()) + name
