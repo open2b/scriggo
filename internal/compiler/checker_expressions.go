@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"unicode"
 
 	"scriggo/ast"
@@ -137,6 +138,8 @@ type typechecker struct {
 	nextValidGoto   int
 	storedValidGoto int
 	labels          [][]string
+
+	pkgPathToIndex map[string]int
 }
 
 func newTypechecker(path string, opts CheckerOptions) *typechecker {
@@ -150,6 +153,7 @@ func newTypechecker(path string, opts CheckerOptions) *typechecker {
 		indirectVars:     map[*ast.Identifier]bool{},
 		opts:             opts,
 		iota:             -1,
+		pkgPathToIndex:   map[string]int{},
 	}
 }
 
@@ -247,6 +251,23 @@ func (tc *typechecker) assignScope(name string, value *TypeInfo, declNode *ast.I
 	} else {
 		tc.scopes[len(tc.scopes)-1][name] = scopeElement{t: value, decl: declNode}
 	}
+}
+
+// currentPkgIndex returns an index related to the current package; such index
+// is unique for every package path.
+func (tc *typechecker) currentPkgIndex() int {
+	i, ok := tc.pkgPathToIndex[tc.path]
+	if ok {
+		return i
+	}
+	max := -1
+	for _, i := range tc.pkgPathToIndex {
+		if i > max {
+			max = i
+		}
+	}
+	tc.pkgPathToIndex[tc.path] = max + 1
+	return max + 1
 }
 
 // addToAncestors adds a node as ancestor.
@@ -715,12 +736,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 				for _, ident := range fd.IdentifierList {
 					name := ident.Name
 					if !unicode.Is(unicode.Lu, []rune(name)[0]) {
-						// TODO(Gianluca): add pkg unique identifier to the
-						// name. Field with name "a" should be 𝗽0a, where 0 is
-						// the id of the package. This is necessary to make a
-						// comparison between structs with unexported fields
-						// declared in two different packages, which must fail.
-						name = "𝗽" + "0" + ident.Name
+						name = "𝗽" + strconv.Itoa(tc.currentPkgIndex()) + ident.Name
 					}
 					fields = append(fields, reflect.StructField{
 						Name:      name,
@@ -1066,7 +1082,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			}
 			return method
 		}
-		field, newName, ok := fieldByName(t, expr.Ident, true)
+		field, newName, ok := tc.fieldByName(t, expr.Ident, true)
 		if ok {
 			field.Properties |= PropertyAddressable
 			return field
@@ -2031,7 +2047,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					panic(tc.errorf(node, "duplicate field name in struct literal: %s", keyValue.Key))
 				}
 				hasField[ident.Name] = struct{}{}
-				fieldTi, newName, ok := fieldByName(ti, ident.Name, false)
+				fieldTi, newName, ok := tc.fieldByName(ti, ident.Name, false)
 				if !ok {
 					panic(tc.errorf(node, "unknown field '%s' in struct literal of type %s", keyValue.Key, ti))
 				}

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"unicode"
 
 	"scriggo/ast"
@@ -167,13 +168,10 @@ func convert(ti *TypeInfo, t2 reflect.Type) (constant, error) {
 
 // fieldByName returns the struct field with the given name and a boolean
 // indicating if the field was found.
-func fieldByName(t *TypeInfo, name string, indirectPointer bool) (*TypeInfo, *string, bool) {
+func (tc *typechecker) fieldByName(t *TypeInfo, name string, indirectPointer bool) (*TypeInfo, *string, bool) {
 	var newName *string
-	if !t.IsType() {
-		panic("bug: t must be a type") // TODO(Gianluca): remove.
-	}
 	if !t.IsPredefined() && !unicode.Is(unicode.Lu, []rune(name)[0]) {
-		name = "𝗽0" + name
+		name = "𝗽" + strconv.Itoa(tc.currentPkgIndex()) + name
 		newName = &name
 	}
 	if t.Type.Kind() == reflect.Struct {
