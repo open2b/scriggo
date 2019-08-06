@@ -1855,6 +1855,14 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			return reg, false
 		}
 
+		// Predefined function.
+		if ti := em.ti(expr); ti.IsPredefined() && ti.Type.Kind() == reflect.Func {
+			index := em.predFuncIndex(ti.value.(reflect.Value), ti.PredefPackageName, expr.Name)
+			em.fb.emitGetFunc(true, index, reg)
+			em.changeRegister(false, reg, reg, ti.Type, dstType)
+			return reg, false
+		}
+
 		panic(fmt.Errorf("bug: none of the previous conditions matched identifier %v", expr))
 
 	case *ast.Index:
