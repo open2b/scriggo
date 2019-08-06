@@ -49,38 +49,22 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			// Replaces the type node with a value holding a reflect.Type.
 			k := declType.Type.Kind()
 			n.Rhs = make([]ast.Expression, len(n.Lhs))
-			switch {
-			case isNumeric(k):
-				for i := range n.Lhs {
-					n.Rhs[i] = ast.NewPlaceholder()
+			for i := range n.Lhs {
+				n.Rhs[i] = ast.NewPlaceholder()
+				switch {
+				case isNumeric(k):
 					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: declType.Type, Constant: int64Const(0), Properties: PropertyUntyped}
 					tc.typeInfos[n.Rhs[i]].setValue(declType.Type)
-				}
-			case k == reflect.String:
-				for i := range n.Lhs {
-					n.Rhs[i] = ast.NewPlaceholder()
+				case k == reflect.String:
 					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: declType.Type, Constant: stringConst(""), Properties: PropertyUntyped}
 					tc.typeInfos[n.Rhs[i]].setValue(declType.Type)
-				}
-			case k == reflect.Bool:
-				for i := range n.Lhs {
-					n.Rhs[i] = ast.NewPlaceholder()
+				case k == reflect.Bool:
 					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: declType.Type, Constant: boolConst(false), Properties: PropertyUntyped}
 					tc.typeInfos[n.Rhs[i]].setValue(declType.Type)
-				}
-			case k == reflect.Interface:
-				for i := range n.Lhs {
-					n.Rhs[i] = ast.NewPlaceholder()
+				case k == reflect.Interface,
+					k == reflect.Func:
 					tc.typeInfos[n.Rhs[i]] = nilOf(declType.Type)
-				}
-			case k == reflect.Func:
-				for i := range n.Lhs {
-					n.Rhs[i] = ast.NewPlaceholder()
-					tc.typeInfos[n.Rhs[i]] = nilOf(declType.Type)
-				}
-			default:
-				for i := range n.Lhs {
-					n.Rhs[i] = ast.NewPlaceholder()
+				default:
 					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: declType.Type, value: reflect.Zero(declType.Type).Interface(), Properties: PropertyHasValue}
 					tc.typeInfos[n.Rhs[i]].setValue(declType.Type)
 				}
