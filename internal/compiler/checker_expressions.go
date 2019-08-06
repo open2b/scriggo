@@ -91,6 +91,9 @@ type scopeVariable struct {
 	node       ast.Node
 }
 
+// pkgPathToIndex maps a package path to an unique identifier.
+var pkgPathToIndex = map[string]int{}
+
 // typechecker represents the state of the type checking.
 type typechecker struct {
 	path             string
@@ -139,8 +142,6 @@ type typechecker struct {
 	storedValidGoto int
 	labels          [][]string
 }
-
-var pkgPathToIndex = map[string]int{}
 
 func newTypechecker(path string, opts CheckerOptions) *typechecker {
 	return &typechecker{
@@ -733,6 +734,22 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			} else {
 				// Explicit field declaration.
 				for _, ident := range fd.IdentifierList {
+					// If the field name is unexported, it's impossibile to
+					// create an new reflect.Type due to the limits that the
+					// package 'reflect' currently has. The solution adopted is
+					// to prepone an unicode character 𝗽 which is considered
+					// unexported by the specifications of Go but is allowed by
+					// the reflect.
+					//
+					// In addition to this, two values with type struct declared
+					// in two different packages cannot be compared (types are
+					// different) because the package paths are different; the
+					// reflect package does not have the ability to set the such
+					// path; to work around the problem, an identifier is put in
+					// the middle of the character 𝗽 and the original field
+					// name; this makes the field unique to a given package,
+					// resulting in the unability of make comparisons with that
+					// types.
 					name := ident.Name
 					if !unicode.Is(unicode.Lu, []rune(name)[0]) {
 						name = "𝗽" + strconv.Itoa(tc.currentPkgIndex()) + ident.Name
