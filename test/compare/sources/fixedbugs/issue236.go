@@ -1,5 +1,3 @@
-// skip : array zeroes are not supported https://github.com/open2b/scriggo/issues/236
-
 // run
 
 package main

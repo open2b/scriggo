@@ -860,7 +860,18 @@ func (vm *VM) run() (uint32, bool) {
 			case TypeFloat:
 				vm.setFloat(c, vm.floatk(b, op < 0))
 			case TypeGeneral:
-				vm.setGeneral(c, vm.generalk(b, op < 0))
+				if op < 0 {
+					v := vm.generalk(b, true)
+					if t := reflect.TypeOf(v); t != nil && t.Kind() == reflect.Array {
+						rv := reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf(v).Elem()), t.Len(), t.Len())
+						reflect.Copy(rv, reflect.ValueOf(v))
+						vm.setGeneral(c, rv.Interface())
+					} else {
+						vm.setGeneral(c, v)
+					}
+				} else {
+					vm.setGeneral(c, vm.general(b))
+				}
 			case TypeInt:
 				vm.setInt(c, vm.intk(b, op < 0))
 			case TypeString:
