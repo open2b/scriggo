@@ -462,6 +462,13 @@ func nilOf(t reflect.Type) *TypeInfo {
 			value:      nil,
 		}
 	}
+	if t.Kind() == reflect.Func {
+		return &TypeInfo{
+			Type:       t,
+			Properties: PropertyHasValue | PropertyIsPredefined,
+			value:      reflect.Zero(t),
+		}
+	}
 	return &TypeInfo{
 		Type:       t,
 		value:      reflect.Zero(t).Interface(),
