@@ -1,0 +1,3 @@
+struct { 𝗽0a int; 𝗽0b int }{𝗽0a:0, 𝗽0b:0}
+struct { A string; 𝗽0b string; C string }{A:"", 𝗽0b:"", C:""}
+struct { A int; 𝗽0b int; C []int; 𝗽0d []int }{A:10, 𝗽0b:20, C:[]int(nil), 𝗽0d:[]int{5, 6, 7}}

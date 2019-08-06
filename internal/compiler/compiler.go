@@ -125,6 +125,10 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 		panic("unspecified syntax type")
 	}
 
+	// Reset the global variable that holds the map of package paths to unique
+	// indexes.
+	pkgPathToIndex = map[string]int{}
+
 	// Type check a program.
 	if opts.SyntaxType == ProgramSyntax {
 		pkgInfos := map[string]*PackageInfo{}

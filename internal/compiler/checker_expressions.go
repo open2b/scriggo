@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"unicode"
 
 	"scriggo/ast"
@@ -89,6 +90,9 @@ type scopeVariable struct {
 	scopeLevel int
 	node       ast.Node
 }
+
+// pkgPathToIndex maps a package path to an unique identifier.
+var pkgPathToIndex = map[string]int{}
 
 // typechecker represents the state of the type checking.
 type typechecker struct {
@@ -247,6 +251,23 @@ func (tc *typechecker) assignScope(name string, value *TypeInfo, declNode *ast.I
 	} else {
 		tc.scopes[len(tc.scopes)-1][name] = scopeElement{t: value, decl: declNode}
 	}
+}
+
+// currentPkgIndex returns an index related to the current package; such index
+// is unique for every package path.
+func (tc *typechecker) currentPkgIndex() int {
+	i, ok := pkgPathToIndex[tc.path]
+	if ok {
+		return i
+	}
+	max := -1
+	for _, i := range pkgPathToIndex {
+		if i > max {
+			max = i
+		}
+	}
+	pkgPathToIndex[tc.path] = max + 1
+	return max + 1
 }
 
 // addToAncestors adds a node as ancestor.
@@ -713,11 +734,29 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			} else {
 				// Explicit field declaration.
 				for _, ident := range fd.IdentifierList {
+					// If the field name is unexported, it's impossibile to
+					// create an new reflect.Type due to the limits that the
+					// package 'reflect' currently has. The solution adopted is
+					// to prepone an unicode character 𝗽 which is considered
+					// unexported by the specifications of Go but is allowed by
+					// the reflect.
+					//
+					// In addition to this, two values with type struct declared
+					// in two different packages cannot be compared (types are
+					// different) because the package paths are different; the
+					// reflect package does not have the ability to set the such
+					// path; to work around the problem, an identifier is put in
+					// the middle of the character 𝗽 and the original field
+					// name; this makes the field unique to a given package,
+					// resulting in the unability of make comparisons with that
+					// types.
+					name := ident.Name
+					if !unicode.Is(unicode.Lu, []rune(name)[0]) {
+						name = "𝗽" + strconv.Itoa(tc.currentPkgIndex()) + ident.Name
+					}
 					fields = append(fields, reflect.StructField{
-						Name:      ident.Name,
-						PkgPath:   "",
+						Name:      name,
 						Type:      typ,
-						Tag:       "", // TODO(Gianluca): to implement.
 						Index:     []int{i},
 						Anonymous: false,
 					})
@@ -1059,12 +1098,15 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			}
 			return method
 		}
-		field, ok := fieldByName(t, expr.Ident)
+		field, newName, ok := tc.fieldOrMethodByName(t, expr.Ident, true)
 		if ok {
 			field.Properties |= PropertyAddressable
 			return field
 		}
 		panic(tc.errorf(expr, "%v undefined (type %s has no field or method %s)", expr, t, expr.Ident))
+		if newName != nil {
+			expr.Ident = *newName
+		}
 
 	case *ast.TypeAssertion:
 		t := tc.checkExpr(expr.Expr)
@@ -2021,7 +2063,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					panic(tc.errorf(node, "duplicate field name in struct literal: %s", keyValue.Key))
 				}
 				hasField[ident.Name] = struct{}{}
-				fieldTi, ok := ti.Type.FieldByName(ident.Name)
+				fieldTi, newName, ok := tc.fieldOrMethodByName(ti, ident.Name, false)
 				if !ok {
 					panic(tc.errorf(node, "unknown field '%s' in struct literal of type %s", keyValue.Key, ti))
 				}
@@ -2033,6 +2075,9 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					panic(tc.errorf(node, "%s", err))
 				}
 				valueTi.setValue(fieldTi.Type)
+				if newName != nil {
+					ident.Name = *newName
+				}
 			}
 		case false: // struct with implicit fields.
 			if len(node.KeyValues) == 0 {
