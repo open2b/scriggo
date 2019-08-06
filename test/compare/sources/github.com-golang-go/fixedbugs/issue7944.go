@@ -1,4 +1,4 @@
-// skip : need to access runtime
+// skip : need to access runtime https://github.com/open2b/scriggo/issues/267
 
 // run
 

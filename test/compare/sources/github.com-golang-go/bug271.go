@@ -1,4 +1,4 @@
-// skip : values are different than expected
+// skip : problem in variadic call https://github.com/open2b/scriggo/issues/265
 
 // run
 

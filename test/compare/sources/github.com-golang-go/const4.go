@@ -1,4 +1,4 @@
-// skip : segfault on parser
+// skip : panics the parser https://github.com/open2b/scriggo/issues/266
 
 // run
 

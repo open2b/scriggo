@@ -1,4 +1,4 @@
-// skip : need to access 'runtime' to get informations about compiler
+// skip : need to access 'runtime' to get informations about compiler https://github.com/open2b/scriggo/issues/267
 
 // run
 
