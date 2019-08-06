@@ -1,4 +1,4 @@
-// skip : require 'defer' statement
+// skip : require 'defer' statement https://github.com/open2b/scriggo/issues/173
 
 // run
 

@@ -1,4 +1,4 @@
-// skip : need statement defer
+// skip : need statement defer https://github.com/open2b/scriggo/issues/173
 
 // Copyright 2010 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style

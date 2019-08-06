@@ -1,4 +1,4 @@
-// skip : require statement 'defer' and access to runtime
+// skip : require statement 'defer' (https://github.com/open2b/scriggo/issues/173) and access to runtime
 
 // run
 
