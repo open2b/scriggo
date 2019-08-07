@@ -25,7 +25,7 @@ import (
 	"time"
 )
 
-func scriggoCmd(stdin []byte, args ...string) string {
+func cmd(stdin []byte, args ...string) string {
 	cmd := exec.Command("./cmd/cmd", args...)
 	// TODO(Gianluca): use just a single buffer? Not only for optimization
 	// purposes, but should allow stdout lines interlaced with stderr lines.
@@ -145,7 +145,7 @@ func errorcheck(src []byte, ext string) {
 		var out string
 		switch ext {
 		case ".go":
-			ret := cmd(cleanSrc.Bytes())
+			ret := obsoleteScriggoRun(cleanSrc.Bytes())
 			if !ret.isErr() {
 				panic(fmt.Errorf("expected error %q, got %q", expectedErr, ret.String()))
 			}
@@ -346,8 +346,8 @@ func callCatchingStdout(f func()) string {
 	return <-out
 }
 
-// cmd runs a Go program using Scriggo and returns its output.
-func cmd(src []byte) output {
+// obsoleteScriggoRun runs a Go program using Scriggo and returns its output.
+func obsoleteScriggoRun(src []byte) output {
 	program, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), nil)
 	if err != nil {
 		return parseOutputMessage(err.Error())
@@ -513,9 +513,9 @@ func main() {
 			case ".go.skip", ".sgo.skip", ".html.skip":
 				countSkipped++
 			case ".go.compile", ".go.build":
-				scriggoCmd(src, "compile program")
+				cmd(src, "compile program")
 			case ".go.run":
-				out := scriggoCmd(src, "run program")
+				out := cmd(src, "run program")
 				scriggoOut := parseOutputMessage(out)
 				gcOut := runGc(src)
 				if scriggoOut.isErr() && gcOut.isErr() {
@@ -535,7 +535,7 @@ func main() {
 				if _, err := os.Stat(dirPath); err != nil {
 					panic(err)
 				}
-				out := scriggoCmd(nil, "run program directory", dirPath)
+				out := cmd(nil, "run program directory", dirPath)
 				scriggoOut := parseOutputMessage(out)
 				goldenPath := strings.TrimSuffix(path, ".go") + ".golden"
 				goldenData, err := ioutil.ReadFile(goldenPath)
@@ -548,11 +548,11 @@ func main() {
 					panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
 				}
 			case ".sgo.compile", ".sgo.build":
-				scriggoCmd(src, "compile script")
+				cmd(src, "compile script")
 			case ".go.errorcheck", ".sgo.errorcheck", ".html.errorcheck":
 				errorcheck(src, ext)
 			case ".sgo.run":
-				out := scriggoCmd(src, "run script")
+				out := cmd(src, "run script")
 				goldenPath := strings.TrimSuffix(path, ".sgo") + ".golden"
 				goldenData, err := ioutil.ReadFile(goldenPath)
 				if err != nil {
