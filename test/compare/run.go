@@ -512,12 +512,12 @@ func main() {
 					fmt.Print(" ")
 				}
 			}
-			switch ext + "." + mode {
-			case ".go.skip", ".sgo.skip", ".html.skip":
+			switch mode + " " + ext {
+			case "skip .go", "skip .sgo", "skip .html":
 				countSkipped++
-			case ".go.compile", ".go.build":
+			case "compile .go", "build .go":
 				cmd(src, "compile program")
-			case ".go.run":
+			case "run .go":
 				out := cmd(src, "run program")
 				scriggoOut := parseOutputMessage(out)
 				gcOut := runGc(path)
@@ -533,24 +533,24 @@ func main() {
 				if scriggoOut.msg != gcOut.msg {
 					panic("Scriggo and gc returned two different outputs" + outputDetails(scriggoOut, gcOut))
 				}
-			case ".go.rundir":
+			case "rundir .go":
 				dirPath := strings.TrimSuffix(path, ".go") + ".dir"
 				if _, err := os.Stat(dirPath); err != nil {
 					panic(err)
 				}
 				out := cmd(nil, "run program directory", dirPath)
 				goldenCompare(path, out)
-			case ".sgo.compile", ".sgo.build":
+			case "compile .sgo", "build .sgo":
 				cmd(src, "compile script")
-			case ".go.errorcheck", ".sgo.errorcheck", ".html.errorcheck":
+			case "errorcheck .go", "errorcheck .sgo", "errorcheck .html":
 				errorcheck(src, ext)
-			case ".sgo.run":
+			case "run .sgo":
 				goldenCompare(path, cmd(src, "run script"))
-			case ".html.compile", ".html.build":
+			case "compile .html", "build .html":
 				cmd(src, "compile html")
-			case ".html.render":
+			case "render .html":
 				goldenCompare(path, cmd(src, "render html"))
-			case ".html.renderdir":
+			case "renderdir .html":
 				dirPath := strings.TrimSuffix(path, ".html") + ".dir"
 				goldenCompare(path, cmd(nil, "render html directory", dirPath))
 			default:
