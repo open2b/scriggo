@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-func cmd(stdin []byte, args ...string) (string, string) {
+func cmd(stdin []byte, args ...string) ([]byte, []byte) {
 	cmd := exec.Command("./cmd/cmd", args...)
 	stdout := bytes.Buffer{}
 	stderr := bytes.Buffer{}
@@ -30,12 +30,12 @@ func cmd(stdin []byte, args ...string) (string, string) {
 	cmd.Stderr = &stderr
 	cmd.Stdin = bytes.NewReader(stdin)
 	_ = cmd.Run()
-	return stdout.String(), stderr.String()
+	return stdout.Bytes(), stderr.Bytes()
 }
 
 // TODO(Gianluca): use []byte and compare them. Convert to string only if
 // necessary. Use bytes.TrimSpace.
-func goldenCompare(testPath, got string) {
+func goldenCompare(testPath string, got []byte) {
 	ext := filepath.Ext(testPath)
 	if ext != ".go" && ext != ".sgo" && ext != ".html" {
 		panic("unsupported ext: " + ext)
@@ -45,9 +45,9 @@ func goldenCompare(testPath, got string) {
 	if err != nil {
 		panic(err)
 	}
-	expected := strings.TrimSpace(string(goldenData))
-	got = strings.TrimSpace(got)
-	if expected != got {
+	expected := bytes.TrimSpace(goldenData)
+	got = bytes.TrimSpace(got)
+	if bytes.Compare(expected, got) != 0 {
 		panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
 	}
 }
@@ -124,14 +124,14 @@ func errorcheck(src []byte, ext string) {
 			".html": "render html",
 		}[ext]
 		stdout, stderr := cmd(cleanSrc.Bytes(), arg)
-		if stdout != "" {
+		if len(stdout) > 0 {
 			panic("stdout should be empty")
 		}
-		if stderr == "" {
+		if len(stderr) == 0 {
 			panic("expected error, got nothing")
 		}
 		re := regexp.MustCompile(expectedErr)
-		if !re.MatchString(stderr) {
+		if !re.Match(stderr) {
 			panic(fmt.Errorf("error does not match:\n\n\texpecting:  %s\n\tgot:        %s", expectedErr, stderr))
 		}
 	}
@@ -235,7 +235,7 @@ func readMode(src []byte, ext string, onlySkipped bool) (mode string, mustBeIgno
 var packages scriggo.Packages
 
 // runGc runs a Go program using gc and returns its output.
-func runGc(path string) (string, string) {
+func runGc(path string) ([]byte, []byte) {
 	if ext := filepath.Ext(path); ext != ".go" {
 		panic("unsupported ext " + ext)
 	}
@@ -245,7 +245,7 @@ func runGc(path string) (string, string) {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	_ = cmd.Run()
-	return stdout.String(), stderr.String()
+	return stdout.Bytes(), stderr.Bytes()
 }
 
 // getAllFilepaths returns a list of filepaths matching the given pattern.
@@ -373,16 +373,16 @@ func main() {
 			case "run .go":
 				scriggoStdout, scriggoStderr := cmd(src, "run program")
 				gcStdout, gcStderr := runGc(path)
-				if scriggoStderr != "" && gcStderr != "" {
+				if len(scriggoStderr) > 0 && len(gcStderr) > 0 {
 					panic("expected succeed, but Scriggo and gc returned an error")
 				}
-				if scriggoStderr != "" && gcStderr == "" {
+				if len(scriggoStderr) > 0 && len(gcStderr) == 0 {
 					panic("expected succeed, but Scriggo returned an error")
 				}
-				if scriggoStderr == "" && gcStderr != "" {
+				if len(scriggoStderr) == 0 && len(gcStderr) > 0 {
 					panic("expected succeed, but gc returned an error")
 				}
-				if scriggoStdout != gcStdout {
+				if bytes.Compare(scriggoStdout, gcStdout) != 0 {
 					panic("Scriggo and gc returned two different outputs")
 				}
 			case "rundir .go":
@@ -391,8 +391,8 @@ func main() {
 					panic(err)
 				}
 				stdout, stderr := cmd(nil, "run program directory", dirPath)
-				if stderr != "" {
-					panic("unexpected stderr " + stderr)
+				if len(stderr) > 0 {
+					panic("unexpected stderr " + string(stderr))
 				}
 				goldenCompare(path, stdout)
 			case "compile .sgo", "build .sgo":
@@ -401,23 +401,23 @@ func main() {
 				errorcheck(src, ext)
 			case "run .sgo":
 				stdout, stderr := cmd(src, "run script")
-				if stderr != "" {
-					panic("unexpected stderr " + stderr)
+				if len(stderr) > 0 {
+					panic("unexpected stderr " + string(stderr))
 				}
 				goldenCompare(path, stdout)
 			case "compile .html", "build .html":
 				cmd(src, "compile html")
 			case "render .html":
 				stdout, stderr := cmd(src, "render html")
-				if stderr != "" {
-					panic("unexpected stderr " + stderr)
+				if len(stderr) > 0 {
+					panic("unexpected stderr " + string(stderr))
 				}
 				goldenCompare(path, stdout)
 			case "renderdir .html":
 				dirPath := strings.TrimSuffix(path, ".html") + ".dir"
 				stdout, stderr := cmd(nil, "render html directory", dirPath)
-				if stderr != "" {
-					panic("unexpected stderr " + stderr)
+				if len(stderr) > 0 {
+					panic("unexpected stderr " + string(stderr))
 				}
 				goldenCompare(path, stdout)
 			default:
