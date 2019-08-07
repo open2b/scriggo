@@ -72,10 +72,10 @@ func goldenCompare(testPath string, got []byte) {
 }
 
 const (
-	ColorInfo  = "\033[1;34m"
-	ColorBad   = "\033[1;31m"
-	ColorGood  = "\033[1;32m"
-	ColorReset = "\033[0m"
+	colorInfo  = "\033[1;34m"
+	colorBad   = "\033[1;31m"
+	colorGood  = "\033[1;32m"
+	colorReset = "\033[0m"
 )
 
 func isTestPath(path string) bool {
@@ -415,7 +415,7 @@ func main() {
 			// Print output before running the test.
 			if *verbose {
 				if *color {
-					fmt.Print(ColorInfo)
+					fmt.Print(colorInfo)
 				}
 				perc := strconv.Itoa(int(math.Floor(float64(countTotal) / float64(len(filepaths)) * 100)))
 				for i := len(perc); i < 4; i++ {
@@ -424,7 +424,7 @@ func main() {
 				perc = "[" + perc + "%  ] "
 				fmt.Print(perc)
 				if *color {
-					fmt.Print(ColorReset)
+					fmt.Print(colorReset)
 				}
 				fmt.Print(path)
 				for i := len(path); i < maxPathLen+2; i++ {
@@ -443,7 +443,7 @@ func main() {
 					fmt.Println("[ skipped ]")
 				} else {
 					if *color {
-						fmt.Printf(ColorGood+"ok"+ColorReset+"     (%s)", mode)
+						fmt.Printf(colorGood+"ok"+colorReset+"     (%s)", mode)
 					} else {
 						fmt.Printf("ok     (%s)", mode)
 					}
@@ -463,13 +463,13 @@ func main() {
 	// Print output after all tests are completed.
 	if *verbose {
 		if *color {
-			fmt.Print(ColorGood)
+			fmt.Print(colorGood)
 		}
 		countExecuted := countTotal - countSkipped
 		end := time.Now()
 		fmt.Printf("done!   %d tests executed, %d tests skipped in %s\n", countExecuted, countSkipped, end.Sub(start).Truncate(time.Duration(time.Millisecond)))
 		if *color {
-			fmt.Print(ColorReset)
+			fmt.Print(colorReset)
 		}
 	}
 
