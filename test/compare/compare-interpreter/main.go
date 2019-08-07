@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"scriggo"
 )
 
@@ -18,6 +19,29 @@ func (b mainLoader) Load(path string) (interface{}, error) {
 		return bytes.NewReader(b), nil
 	}
 	return nil, nil
+}
+
+// A dirLoader is a package loader used in tests which involve directories
+// containing Scriggo programs.
+type dirLoader string
+
+// Load implement interface scriggo.PackageLoader.
+func (dl dirLoader) Load(path string) (interface{}, error) {
+	if path == "main" {
+		main, err := ioutil.ReadFile(filepath.Join(string(dl), "main.go"))
+		if err != nil {
+			panic(err)
+		}
+		return bytes.NewReader(main), nil
+	}
+	data, err := ioutil.ReadFile(filepath.Join(string(dl), path+".go"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return bytes.NewReader(data), nil
 }
 
 func main() {
@@ -41,6 +65,17 @@ func main() {
 			panic(err)
 		}
 		err = program.Run(nil)
+		if err != nil {
+			panic(err)
+		}
+	case "run program directory":
+		dirPath := os.Args[2]
+		dl := dirLoader(dirPath)
+		prog, err := scriggo.LoadProgram(scriggo.CombinedLoaders{dl, packages}, nil)
+		if err != nil {
+			panic(err)
+		}
+		err = prog.Run(nil)
 		if err != nil {
 			panic(err)
 		}

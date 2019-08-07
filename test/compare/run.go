@@ -560,26 +560,30 @@ func main() {
 				if _, err := os.Stat(dirPath); err != nil {
 					panic(err)
 				}
-				dl := dirLoader(dirPath)
+
 				t.start()
-				prog, err := scriggo.LoadProgram(scriggo.CombinedLoaders{dl, packages}, nil)
+
+				cmd := exec.Command("./compare-interpreter/compare-interpreter", "run program directory", dirPath)
+				stdout := bytes.Buffer{}
+				stderr := bytes.Buffer{}
+				cmd.Stdout = &stdout
+				cmd.Stderr = &stderr
+				cmd.Stdin = bytes.NewReader(src)
+				err := cmd.Run()
 				if err != nil {
-					panic(err)
+					panic(fmt.Sprint(err, " stdout: ", stdout.String(), " stderr: ", stderr.String()))
 				}
-				stdout := callCatchingStdout(func() {
-					err = prog.Run(nil)
-				})
+				scriggoOut := parseOutputMessage(stdout.String() + stderr.String())
+
 				t.stop()
-				if err != nil {
-					panic(err)
-				}
+
 				goldenPath := strings.TrimSuffix(path, ".go") + ".golden"
 				goldenData, err := ioutil.ReadFile(goldenPath)
 				if err != nil {
 					panic(err)
 				}
 				expected := strings.TrimSpace(string(goldenData))
-				got := strings.TrimSpace(stdout)
+				got := strings.TrimSpace(scriggoOut.String())
 				if expected != got {
 					panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
 				}
