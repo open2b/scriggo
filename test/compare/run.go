@@ -434,13 +434,15 @@ func main() {
 	}
 
 	// Builds cmd.
-	cmd := exec.Command("go", "build")
-	cmd.Dir = "./cmd"
-	stderr := &bytes.Buffer{}
-	cmd.Stderr = stderr
-	err := cmd.Run()
-	if err != nil {
-		panic(stderr.String())
+	{
+		cmd := exec.Command("go", "build")
+		cmd.Dir = "./cmd"
+		stderr := &bytes.Buffer{}
+		cmd.Stderr = stderr
+		err := cmd.Run()
+		if err != nil {
+			panic(stderr.String())
+		}
 	}
 
 	defer func() {
