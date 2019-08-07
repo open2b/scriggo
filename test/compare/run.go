@@ -362,27 +362,19 @@ func main() {
 	start := time.Now()
 
 	// Parse the command line arguments.
-	verbose := flag.Bool("v", false, "verbose. if set, parallelism is set to 1.")
-	pattern := flag.String("p", "", "executes test whose path is matched by the given pattern. Regexp is supported, in the syntax of stdlib package 'regexp'")
-	color := flag.Bool("c", false, "enable colored output. Output device must support ANSI escape sequences. Require flag -v")
-	parallel := flag.Int("l", -1, "number of parallel tests to run (default 4)")
+	v := flag.Bool("v", false, "verbose. if set, parallelism is set to 1.")
+	p := flag.String("p", "", "executes test whose path is matched by the given pattern. regular expressions are supported, in the syntax of stdlib package 'regexp'")
+	c := flag.Bool("c", false, "enable colored output. output device must support ANSI escape sequences. require verbose to take effect")
+	l := flag.Int("l", 4, "number of parallel tests to run")
 
 	flag.Parse()
-	if *color && !*verbose {
-		panic("flag -c requires flag -v")
-	}
-	if *verbose {
-		if *parallel != -1 {
-			panic("cannot use flag -v with flag -l")
-		}
-		*parallel = 1
-	} else {
-		*parallel = 4
+	if *v {
+		*l = 1
 	}
 
 	buildCmd()
 
-	filepaths := getAllFilepaths(*pattern)
+	filepaths := getAllFilepaths(*p)
 
 	// Look for the longest path; used when formatting output.
 	maxPathLen := 0
@@ -393,7 +385,7 @@ func main() {
 	}
 
 	wg := sync.WaitGroup{}
-	queue := make(chan bool, *parallel)
+	queue := make(chan bool, *l)
 
 	countTotal := int64(0)
 	countSkipped := int64(0)
@@ -413,8 +405,8 @@ func main() {
 			ext := filepath.Ext(path)
 			mode := readMode(src, ext)
 			// Print output before running the test.
-			if *verbose {
-				if *color {
+			if *v {
+				if *c {
 					fmt.Print(colorInfo)
 				}
 				perc := strconv.Itoa(int(math.Floor(float64(countTotal) / float64(len(filepaths)) * 100)))
@@ -423,7 +415,7 @@ func main() {
 				}
 				perc = "[" + perc + "%  ] "
 				fmt.Print(perc)
-				if *color {
+				if *c {
 					fmt.Print(colorReset)
 				}
 				fmt.Print(path)
@@ -438,11 +430,11 @@ func main() {
 				test(src, path, mode, ext)
 			}
 			// Print output when the test is completed.
-			if *verbose {
+			if *v {
 				if mode == "skip" {
 					fmt.Println("[ skipped ]")
 				} else {
-					if *color {
+					if *c {
 						fmt.Printf(colorGood+"ok"+colorReset+"     (%s)", mode)
 					} else {
 						fmt.Printf("ok     (%s)", mode)
@@ -461,14 +453,14 @@ func main() {
 	wg.Wait()
 
 	// Print output after all tests are completed.
-	if *verbose {
-		if *color {
+	if *v {
+		if *c {
 			fmt.Print(colorGood)
 		}
 		countExecuted := countTotal - countSkipped
 		end := time.Now()
 		fmt.Printf("done!   %d tests executed, %d tests skipped in %s\n", countExecuted, countSkipped, end.Sub(start).Truncate(time.Duration(time.Millisecond)))
-		if *color {
+		if *c {
 			fmt.Print(colorReset)
 		}
 	}
