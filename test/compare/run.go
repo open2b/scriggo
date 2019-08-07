@@ -25,7 +25,7 @@ import (
 	"time"
 )
 
-func scriggoInterpreter(stdin []byte, args ...string) string {
+func scriggoCmd(stdin []byte, args ...string) string {
 	cmd := exec.Command("./compare-interpreter/compare-interpreter", args...)
 	// TODO(Gianluca): use just a single buffer? Not only for optimization
 	// purposes, but should allow stdout lines interlaced with stderr lines.
@@ -460,6 +460,14 @@ func main() {
 		panic("flag -c requires flag -v")
 	}
 
+	// Builds the interpreter.
+	cmd := exec.Command("go", "build")
+	cmd.Dir = "./compare-interpreter"
+	err := cmd.Run()
+	if err != nil {
+		panic(err)
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			if *verbose {
@@ -531,11 +539,11 @@ func main() {
 				countSkipped++
 			case ".go.compile", ".go.build":
 				t.start()
-				scriggoInterpreter(src, "compile program")
+				scriggoCmd(src, "compile program")
 				t.stop()
 			case ".go.run":
 				t.start()
-				out := scriggoInterpreter(src, "run program")
+				out := scriggoCmd(src, "run program")
 				t.stop()
 				scriggoOut := parseOutputMessage(out)
 				gcOut := runGc(src)
@@ -557,7 +565,7 @@ func main() {
 					panic(err)
 				}
 				t.start()
-				out := scriggoInterpreter(nil, "run program directory", dirPath)
+				out := scriggoCmd(nil, "run program directory", dirPath)
 				t.stop()
 				scriggoOut := parseOutputMessage(out)
 				goldenPath := strings.TrimSuffix(path, ".go") + ".golden"
