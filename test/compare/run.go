@@ -25,6 +25,25 @@ import (
 	"time"
 )
 
+func scriggoInterpreter(stdin []byte, args ...string) string {
+	cmd := exec.Command("./compare-interpreter/compare-interpreter", args...)
+	// TODO(Gianluca): use just a single buffer? Not only for optimization
+	// purposes, but should allow stdout lines interlaced with stderr lines.
+	stdout := bytes.Buffer{}
+	stderr := bytes.Buffer{}
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	cmd.Stdin = bytes.NewReader(stdin)
+	err := cmd.Run()
+	if err != nil {
+		panic(fmt.Sprint(err, " stdout: ", stdout.String(), " stderr: ", stderr.String()))
+	}
+	if err != nil {
+		panic(err.Error())
+	}
+	return stdout.String() + stderr.String()
+}
+
 type mainLoader []byte
 
 func (b mainLoader) Load(path string) (interface{}, error) {
@@ -512,36 +531,13 @@ func main() {
 				countSkipped++
 			case ".go.compile", ".go.build":
 				t.start()
-				cmd := exec.Command("./compare-interpreter/compare-interpreter", "compile program")
-				stdout := bytes.Buffer{}
-				stderr := bytes.Buffer{}
-				cmd.Stdout = &stdout
-				cmd.Stderr = &stderr
-				cmd.Stdin = bytes.NewReader(src)
-				err := cmd.Run()
-				if err != nil {
-					panic(fmt.Sprint(err, " stdout: ", stdout.String(), " stderr: ", stderr.String()))
-				}
+				scriggoInterpreter(src, "compile program")
 				t.stop()
-				if err != nil {
-					panic(err.Error())
-				}
 			case ".go.run":
 				t.start()
-
-				cmd := exec.Command("./compare-interpreter/compare-interpreter", "run program")
-				stdout := bytes.Buffer{}
-				stderr := bytes.Buffer{}
-				cmd.Stdout = &stdout
-				cmd.Stderr = &stderr
-				cmd.Stdin = bytes.NewReader(src)
-				err := cmd.Run()
-				if err != nil {
-					panic(fmt.Sprint(err, " stdout: ", stdout.String(), " stderr: ", stderr.String()))
-				}
-				scriggoOut := parseOutputMessage(stdout.String() + stderr.String())
-
+				out := scriggoInterpreter(src, "run program")
 				t.stop()
+				scriggoOut := parseOutputMessage(out)
 				gcOut := runGc(src)
 				if scriggoOut.isErr() && gcOut.isErr() {
 					panic("expected succeed, but Scriggo and gc returned an error" + outputDetails(scriggoOut, gcOut))
@@ -560,23 +556,10 @@ func main() {
 				if _, err := os.Stat(dirPath); err != nil {
 					panic(err)
 				}
-
 				t.start()
-
-				cmd := exec.Command("./compare-interpreter/compare-interpreter", "run program directory", dirPath)
-				stdout := bytes.Buffer{}
-				stderr := bytes.Buffer{}
-				cmd.Stdout = &stdout
-				cmd.Stderr = &stderr
-				cmd.Stdin = bytes.NewReader(src)
-				err := cmd.Run()
-				if err != nil {
-					panic(fmt.Sprint(err, " stdout: ", stdout.String(), " stderr: ", stderr.String()))
-				}
-				scriggoOut := parseOutputMessage(stdout.String() + stderr.String())
-
+				out := scriggoInterpreter(nil, "run program directory", dirPath)
 				t.stop()
-
+				scriggoOut := parseOutputMessage(out)
 				goldenPath := strings.TrimSuffix(path, ".go") + ".golden"
 				goldenData, err := ioutil.ReadFile(goldenPath)
 				if err != nil {
