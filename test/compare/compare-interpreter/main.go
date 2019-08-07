@@ -12,6 +12,8 @@ import (
 //go:generate scriggo embed -v -o packages.go
 var packages scriggo.Packages
 
+// TODO(Gianluca): convert mainLoader to a reader, so os.Stdin can be called
+// directly.
 type mainLoader []byte
 
 func (b mainLoader) Load(path string) (interface{}, error) {
