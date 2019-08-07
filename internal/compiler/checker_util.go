@@ -467,25 +467,27 @@ func representedBy(t1 *TypeInfo, t2 reflect.Type) (constant, error) {
 // nilOf returns a new type info representing a 'typed nil', that is the zero of
 // type t.
 func nilOf(t reflect.Type) *TypeInfo {
-	if t.Kind() == reflect.Interface {
+	switch t.Kind() {
+	case reflect.Func:
 		return &TypeInfo{
-			Type:       t,
-			Properties: PropertyHasValue,
-			value:      nil,
-		}
-	}
-	if t.Kind() == reflect.Func {
-		return &TypeInfo{
-			Type:       t,
 			Properties: PropertyHasValue | PropertyIsPredefined,
+			Type:       t,
 			value:      reflect.Zero(t),
 		}
+	case reflect.Interface:
+		return &TypeInfo{
+			Properties: PropertyHasValue,
+			Type:       t,
+			value:      nil,
+		}
+	default:
+		return &TypeInfo{
+			Properties: PropertyHasValue,
+			Type:       t,
+			value:      reflect.Zero(t).Interface(),
+		}
 	}
-	return &TypeInfo{
-		Type:       t,
-		value:      reflect.Zero(t).Interface(),
-		Properties: PropertyHasValue,
-	}
+
 }
 
 // typedValue returns a constant type info value represented with a given
