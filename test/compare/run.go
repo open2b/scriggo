@@ -400,21 +400,6 @@ func main() {
 
 	buildCmd()
 
-	defer func() {
-		if r := recover(); r != nil {
-			if *verbose {
-				if *color {
-					fmt.Print(ColorBad)
-				}
-				fmt.Print("\n\nPANIC!\n\n")
-				if *color {
-					fmt.Print(ColorReset)
-				}
-			}
-			panic(r)
-		}
-	}()
-
 	filepaths := getAllFilepaths(*pattern)
 	maxPathLen := 0
 	for _, fp := range filepaths {
