@@ -19,6 +19,8 @@ import (
 	"scriggo"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -295,7 +297,7 @@ func test(src []byte, path, mode, ext string) {
 			panic("expected succeed, but gc returned an error")
 		}
 		if bytes.Compare(scriggoStdout, gcStdout) != 0 {
-			panic("Scriggo and gc returned two different outputs")
+			panic("Scriggo and gc returned two different outputs: " + string(scriggoStdout) + ", " + string(gcStdout))
 		}
 	case "rundir .go":
 		dirPath := strings.TrimSuffix(path, ".go") + ".dir"
@@ -352,13 +354,22 @@ func main() {
 	start := time.Now()
 
 	// Parse the command line arguments.
-	verbose := flag.Bool("v", false, "enable verbose output")
+	verbose := flag.Bool("v", false, "verbose. if set, parallelism is set to 1.")
 	pattern := flag.String("p", "", "executes test whose path is matched by the given pattern. Regexp is supported, in the syntax of stdlib package 'regexp'")
 	color := flag.Bool("c", false, "enable colored output. Output device must support ANSI escape sequences. Require flag -v")
+	parallel := flag.Int("l", -1, "number of parallel tests to run (default 4)")
 
 	flag.Parse()
 	if *color && !*verbose {
 		panic("flag -c requires flag -v")
+	}
+	if *verbose {
+		if *parallel != -1 {
+			panic("cannot use flag -v with flag -l")
+		}
+		*parallel = 1
+	} else {
+		*parallel = 4
 	}
 
 	buildCmd()
@@ -373,20 +384,25 @@ func main() {
 		}
 	}
 
-	countTotal := 0
-	countSkipped := 0
+	wg := sync.WaitGroup{}
+	queue := make(chan bool, *parallel)
+
+	countTotal := int64(0)
+	countSkipped := int64(0)
+
 	for _, path := range filepaths {
 
-		func() {
+		wg.Add(1)
 
-			countTotal++
+		go func(path string) {
+			queue <- true
+			atomic.AddInt64(&countTotal, 1)
 			src, err := ioutil.ReadFile(path)
 			if err != nil {
 				panic(err)
 			}
 			ext := filepath.Ext(path)
 			mode := readMode(src, ext)
-
 			// Print output before running the test.
 			if *verbose {
 				if *color {
@@ -406,14 +422,12 @@ func main() {
 					fmt.Print(" ")
 				}
 			}
-
 			// Skip or run the test.
 			if mode == "skip" {
-				countSkipped++
+				atomic.AddInt64(&countSkipped, 1)
 			} else {
 				test(src, path, mode, ext)
 			}
-
 			// Print output when the test is completed.
 			if *verbose {
 				if mode == "skip" {
@@ -430,8 +444,12 @@ func main() {
 					fmt.Println("")
 				}
 			}
-		}()
+			<-queue
+			wg.Done()
+		}(path)
 	}
+
+	wg.Wait()
 
 	// Print output after all tests are completed.
 	if *verbose {
