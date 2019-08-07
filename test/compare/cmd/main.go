@@ -9,6 +9,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -55,7 +56,8 @@ func main() {
 	case "compile program":
 		_, err := scriggo.LoadProgram(scriggo.Loaders(stdinLoader{os.Stdin}, predefPkgs), nil)
 		if err != nil {
-			panic(err)
+			fmt.Fprint(os.Stderr, err)
+			os.Exit(1)
 		}
 	case "compile script":
 		src, err := ioutil.ReadAll(os.Stdin)
@@ -64,36 +66,43 @@ func main() {
 		}
 		_, err = scriggo.LoadScript(bytes.NewReader(src), predefPkgs, nil)
 		if err != nil {
-			panic(err)
+			fmt.Fprint(os.Stderr, err)
+			os.Exit(1)
 		}
 	case "run program":
 		program, err := scriggo.LoadProgram(scriggo.Loaders(stdinLoader{os.Stdin}, predefPkgs), nil)
 		if err != nil {
-			panic(err)
+			fmt.Fprint(os.Stderr, err)
+			os.Exit(1)
 		}
 		err = program.Run(nil)
 		if err != nil {
-			panic(err)
+			fmt.Fprint(os.Stderr, err)
+			os.Exit(1)
 		}
 	case "run script":
 		script, err := scriggo.LoadScript(os.Stdin, predefPkgs, nil)
 		if err != nil {
-			panic(err)
+			fmt.Fprint(os.Stderr, err)
+			os.Exit(1)
 		}
 		err = script.Run(nil, nil)
 		if err != nil {
-			panic(err)
+			fmt.Fprint(os.Stderr, err)
+			os.Exit(1)
 		}
 	case "run program directory":
 		dirPath := os.Args[2]
 		dl := dirLoader(dirPath)
 		prog, err := scriggo.LoadProgram(scriggo.CombinedLoaders{dl, predefPkgs}, nil)
 		if err != nil {
-			panic(err)
+			fmt.Fprint(os.Stderr, err)
+			os.Exit(1)
 		}
 		err = prog.Run(nil)
 		if err != nil {
-			panic(err)
+			fmt.Fprint(os.Stderr, err)
+			os.Exit(1)
 		}
 	case "render html":
 		src, err := ioutil.ReadAll(os.Stdin)
@@ -103,22 +112,26 @@ func main() {
 		r := template.MapReader{"/index.html": src}
 		templ, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
 		if err != nil {
-			panic(err)
+			fmt.Fprint(os.Stderr, err)
+			os.Exit(1)
 		}
 		err = templ.Render(os.Stdout, nil, nil)
 		if err != nil {
-			panic(err)
+			fmt.Fprint(os.Stderr, err)
+			os.Exit(1)
 		}
 	case "render html directory":
 		dirPath := os.Args[2]
 		r := template.DirReader(dirPath)
 		templ, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
 		if err != nil {
-			panic(err)
+			fmt.Fprint(os.Stderr, err)
+			os.Exit(1)
 		}
 		err = templ.Render(os.Stdout, nil, nil)
 		if err != nil {
-			panic(err)
+			fmt.Fprint(os.Stderr, err)
+			os.Exit(1)
 		}
 	case "compile html":
 		src, err := ioutil.ReadAll(os.Stdin)
@@ -128,7 +141,8 @@ func main() {
 		r := template.MapReader{"/index.html": src}
 		_, err = template.Load("/index.html", r, nil, template.ContextHTML, nil)
 		if err != nil {
-			panic(err)
+			fmt.Fprint(os.Stderr, err)
+			os.Exit(1)
 		}
 	default:
 		panic("invalid argument: %s" + os.Args[1])

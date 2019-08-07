@@ -263,6 +263,14 @@ func getAllFilepaths(pattern string) []string {
 }
 
 func test(src []byte, path, mode, ext string) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintf(os.Stderr, "%s: %s\n", path, r)
+			os.Exit(1)
+		}
+	}()
+
 	switch mode + " " + ext {
 
 	// Just compile.
@@ -288,10 +296,10 @@ func test(src []byte, path, mode, ext string) {
 		scriggoStdout, scriggoStderr := cmd(src, "run program")
 		gcStdout, gcStderr := runGc(path)
 		if len(scriggoStderr) > 0 && len(gcStderr) > 0 {
-			panic("expected succeed, but Scriggo and gc returned an error")
+			panic(fmt.Errorf("expected succeed, but Scriggo returned error '%s' and gc returned error '%s'", scriggoStderr, gcStderr))
 		}
 		if len(scriggoStderr) > 0 && len(gcStderr) == 0 {
-			panic("expected succeed, but Scriggo returned an error")
+			panic(fmt.Errorf("expected succeed, but Scriggo returned error '%s'", scriggoStderr))
 		}
 		if len(scriggoStderr) == 0 && len(gcStderr) > 0 {
 			panic("expected succeed, but gc returned an error")
@@ -395,6 +403,7 @@ func main() {
 		wg.Add(1)
 
 		go func(path string) {
+
 			queue <- true
 			atomic.AddInt64(&countTotal, 1)
 			src, err := ioutil.ReadFile(path)
