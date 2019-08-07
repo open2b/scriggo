@@ -22,7 +22,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 )
 
 func scriggoCmd(stdin []byte, args ...string) string {
@@ -270,28 +269,6 @@ func readMode(src []byte, ext string, onlySkipped bool) (mode string, mustBeIgno
 //go:generate scriggo embed -v -o packages.go
 var packages scriggo.Packages
 
-// A timer returns the string representation of the time elapsed between two
-// events.
-type timer struct {
-	_start, _end time.Time
-}
-
-// start starts the timer.
-func (t *timer) start() {
-	t._start = time.Now()
-}
-
-// stop stops the timer. After calling stop is possible to call method delta.
-func (t *timer) stop() {
-	t._end = time.Now()
-}
-
-// delta return the string representation of the time elapsed between the call
-// to start to the call of stop.
-func (t *timer) delta() string {
-	return fmt.Sprintf("%v", t._end.Sub(t._start))
-}
-
 // output represents the output of Scriggo or gc. output can represent either a
 // compilation error (syntax or type checking) or the output in case of success.
 type output struct {
@@ -448,14 +425,10 @@ func main() {
 	// Parse the command line arguments.
 	verbose := flag.Bool("v", false, "enable verbose output")
 	pattern := flag.String("p", "", "executes test whose path is matched by the given pattern. Regexp is supported, in the syntax of stdlib package 'regexp'")
-	time := flag.Bool("t", false, "show time elapsed between the beginning and the ending of every test. Require flag -v")
 	color := flag.Bool("c", false, "enable colored output. Output device must support ANSI escape sequences. Require flag -v")
 	onlySkipped := flag.Bool("only-skipped", false, "only run skipped tests, returning an error instead of panicking when one of them fails. Note that skipped tests may lead to unexpected behaviours and/or infinite loops")
 
 	flag.Parse()
-	if *time && !*verbose {
-		panic("flag -t requires flag -v")
-	}
 	if *color && !*verbose {
 		panic("flag -c requires flag -v")
 	}
@@ -463,9 +436,11 @@ func main() {
 	// Builds the interpreter.
 	cmd := exec.Command("go", "build")
 	cmd.Dir = "./compare-interpreter"
+	stderr := &bytes.Buffer{}
+	cmd.Stderr = stderr
 	err := cmd.Run()
 	if err != nil {
-		panic(err)
+		panic(stderr.String())
 	}
 
 	defer func() {
@@ -499,11 +474,6 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			// A timer is used to measure time that elapses during the execution of a given
-			// test. Note that timer should measure only time needed by Scriggo; any
-			// other elapsed time (eg. calling the gc compiler for the comparison
-			// output) is considered overhead and should no be included in counting.
-			t := &timer{}
 			ext := filepath.Ext(path)
 			mode, mustBeIgnored := readMode(src, ext, *onlySkipped)
 			if mustBeIgnored {
@@ -538,13 +508,9 @@ func main() {
 			case ".go.skip", ".sgo.skip", ".html.skip":
 				countSkipped++
 			case ".go.compile", ".go.build":
-				t.start()
 				scriggoCmd(src, "compile program")
-				t.stop()
 			case ".go.run":
-				t.start()
 				out := scriggoCmd(src, "run program")
-				t.stop()
 				scriggoOut := parseOutputMessage(out)
 				gcOut := runGc(src)
 				if scriggoOut.isErr() && gcOut.isErr() {
@@ -564,9 +530,7 @@ func main() {
 				if _, err := os.Stat(dirPath); err != nil {
 					panic(err)
 				}
-				t.start()
 				out := scriggoCmd(nil, "run program directory", dirPath)
-				t.stop()
 				scriggoOut := parseOutputMessage(out)
 				goldenPath := strings.TrimSuffix(path, ".go") + ".golden"
 				goldenData, err := ioutil.ReadFile(goldenPath)
@@ -579,44 +543,24 @@ func main() {
 					panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
 				}
 			case ".sgo.compile", ".sgo.build":
-				t.start()
-				_, err := scriggo.LoadScript(bytes.NewReader(src), packages, nil)
-				t.stop()
-				if err != nil {
-					panic(err)
-				}
+				scriggoCmd(src, "compile script")
 			case ".go.errorcheck", ".sgo.errorcheck", ".html.errorcheck":
-				t.start()
 				errorcheck(src, ext)
-				t.stop()
 			case ".sgo.run":
-				t.start()
-				script, err := scriggo.LoadScript(bytes.NewReader(src), packages, nil)
-				if err != nil {
-					panic(err)
-				}
-				stdout := callCatchingStdout(func() {
-					err = script.Run(nil, nil)
-				})
-				if err != nil {
-					panic(err)
-				}
-				t.stop()
+				out := scriggoCmd(src, "run script")
 				goldenPath := strings.TrimSuffix(path, ".sgo") + ".golden"
 				goldenData, err := ioutil.ReadFile(goldenPath)
 				if err != nil {
 					panic(err)
 				}
 				expected := strings.TrimSpace(string(goldenData))
-				got := strings.TrimSpace(stdout)
+				got := strings.TrimSpace(out)
 				if expected != got {
 					panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
 				}
 			case ".html.compile", ".html.build":
 				r := template.MapReader{"/index.html": src}
-				t.start()
 				_, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
-				t.stop()
 				if err != nil {
 					panic(err)
 				}
@@ -627,14 +571,12 @@ func main() {
 				} else {
 					r = template.DirReader(strings.TrimSuffix(path, ".html") + ".dir")
 				}
-				t.start()
 				templ, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
 				if err != nil {
 					panic(err)
 				}
 				w := &bytes.Buffer{}
 				err = templ.Render(w, nil, nil)
-				t.stop()
 				if err != nil {
 					panic(err)
 				}
@@ -665,11 +607,7 @@ func main() {
 					for i := len(mode); i < 15; i++ {
 						fmt.Print(" ")
 					}
-					if *time {
-						fmt.Println(t.delta())
-					} else {
-						fmt.Println("")
-					}
+					fmt.Println("")
 				}
 			}
 		}()
