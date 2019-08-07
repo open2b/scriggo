@@ -25,7 +25,7 @@ import (
 )
 
 func scriggoCmd(stdin []byte, args ...string) string {
-	cmd := exec.Command("./compare-interpreter/compare-interpreter", args...)
+	cmd := exec.Command("./cmd/cmd", args...)
 	// TODO(Gianluca): use just a single buffer? Not only for optimization
 	// purposes, but should allow stdout lines interlaced with stderr lines.
 	stdout := bytes.Buffer{}
@@ -433,9 +433,9 @@ func main() {
 		panic("flag -c requires flag -v")
 	}
 
-	// Builds the interpreter.
+	// Builds cmd.
 	cmd := exec.Command("go", "build")
-	cmd.Dir = "./compare-interpreter"
+	cmd.Dir = "./cmd"
 	stderr := &bytes.Buffer{}
 	cmd.Stderr = stderr
 	err := cmd.Run()
