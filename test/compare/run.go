@@ -385,12 +385,30 @@ func main() {
 				}
 			}
 			switch mode + " " + ext {
+
+			// Skip.
 			case "skip .go", "skip .sgo", "skip .html":
 				countSkipped++
+
+			// Just compile.
 			case "compile .go", "build .go":
 				failOnOutput(
 					cmd(src, "compile program"),
 				)
+			case "compile .sgo", "build .sgo":
+				failOnOutput(
+					cmd(src, "compile script"),
+				)
+			case "compile .html", "build .html":
+				failOnOutput(
+					cmd(src, "compile html"),
+				)
+
+			// Error check.
+			case "errorcheck .go", "errorcheck .sgo", "errorcheck .html":
+				errorcheck(src, ext)
+
+			// Run or render.
 			case "run .go":
 				scriggoStdout, scriggoStderr := cmd(src, "run program")
 				gcStdout, gcStderr := runGc(path)
@@ -417,22 +435,12 @@ func main() {
 						cmd(nil, "run program directory", dirPath),
 					),
 				)
-			case "compile .sgo", "build .sgo":
-				failOnOutput(
-					cmd(src, "compile script"),
-				)
-			case "errorcheck .go", "errorcheck .sgo", "errorcheck .html":
-				errorcheck(src, ext)
 			case "run .sgo":
 				goldenCompare(
 					path,
 					unwrapStdout(
 						cmd(src, "run script"),
 					),
-				)
-			case "compile .html", "build .html":
-				failOnOutput(
-					cmd(src, "compile html"),
 				)
 			case "render .html":
 				goldenCompare(
@@ -448,6 +456,7 @@ func main() {
 						cmd(nil, "render html directory", strings.TrimSuffix(path, ".html")+".dir"),
 					),
 				)
+
 			default:
 				panic(fmt.Errorf("unsupported mode '%s' for test with extension '%s'", mode, ext))
 			}
