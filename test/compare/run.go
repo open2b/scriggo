@@ -18,7 +18,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"scriggo"
-	"scriggo/template"
 	"strconv"
 	"strings"
 	"sync"
@@ -153,33 +152,21 @@ func errorcheck(src []byte, ext string) {
 		}
 		// Get output from program/script/templates and check if it matches with
 		// expected error.
-		var out string
-		switch ext {
-		case ".go":
-			ret := obsoleteScriggoRun(cleanSrc.Bytes())
-			if !ret.isErr() {
-				panic(fmt.Errorf("expected error %q, got %q", expectedErr, ret.String()))
-			}
-			out = ret.String()
-		case ".sgo":
-			_, err := scriggo.LoadScript(bytes.NewReader(src), packages, nil)
-			if err == nil {
-				panic(fmt.Errorf("expected error %q, got nothing", expectedErr))
-			}
-			out = err.Error()
-		case ".html":
-			r := template.MapReader{"/index.html": src}
-			_, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
-			if err == nil {
-				panic(fmt.Errorf("expected error %q, got nothing", expectedErr))
-			}
-			out = err.Error()
-		default:
-			panic("errorcheck does not support extension " + ext)
+		arg := map[string]string{
+			".go":   "run program",
+			".sgo":  "run script",
+			".html": "render html",
+		}[ext]
+		stdout, stderr := cmd(cleanSrc.Bytes(), arg)
+		if stdout != "" {
+			panic("stdout should be empty")
+		}
+		if stderr == "" {
+			panic("expected error, got nothing")
 		}
 		re := regexp.MustCompile(expectedErr)
-		if !re.MatchString(out) {
-			panic(fmt.Errorf("error does not match:\n\n\texpecting:  %s\n\tgot:        %s", expectedErr, out))
+		if !re.MatchString(stderr) {
+			panic(fmt.Errorf("error does not match:\n\n\texpecting:  %s\n\tgot:        %s", expectedErr, stderr))
 		}
 	}
 }
