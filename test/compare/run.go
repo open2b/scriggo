@@ -296,6 +296,93 @@ func getAllFilepaths(pattern string) []string {
 	return filepaths
 }
 
+func test(src []byte, path, mode, ext string) {
+	switch mode + " " + ext {
+
+	// Just compile.
+	case "compile .go", "build .go":
+		failOnOutput(
+			cmd(src, "compile program"),
+		)
+	case "compile .sgo", "build .sgo":
+		failOnOutput(
+			cmd(src, "compile script"),
+		)
+	case "compile .html", "build .html":
+		failOnOutput(
+			cmd(src, "compile html"),
+		)
+
+	// Error check.
+	case "errorcheck .go", "errorcheck .sgo", "errorcheck .html":
+		errorcheck(src, ext)
+
+	// Run or render.
+	case "run .go":
+		scriggoStdout, scriggoStderr := cmd(src, "run program")
+		gcStdout, gcStderr := runGc(path)
+		if len(scriggoStderr) > 0 && len(gcStderr) > 0 {
+			panic("expected succeed, but Scriggo and gc returned an error")
+		}
+		if len(scriggoStderr) > 0 && len(gcStderr) == 0 {
+			panic("expected succeed, but Scriggo returned an error")
+		}
+		if len(scriggoStderr) == 0 && len(gcStderr) > 0 {
+			panic("expected succeed, but gc returned an error")
+		}
+		if bytes.Compare(scriggoStdout, gcStdout) != 0 {
+			panic("Scriggo and gc returned two different outputs")
+		}
+	case "rundir .go":
+		dirPath := strings.TrimSuffix(path, ".go") + ".dir"
+		if _, err := os.Stat(dirPath); err != nil {
+			panic(err)
+		}
+		goldenCompare(
+			path,
+			unwrapStdout(
+				cmd(nil, "run program directory", dirPath),
+			),
+		)
+	case "run .sgo":
+		goldenCompare(
+			path,
+			unwrapStdout(
+				cmd(src, "run script"),
+			),
+		)
+	case "render .html":
+		goldenCompare(
+			path,
+			unwrapStdout(
+				cmd(src, "render html"),
+			),
+		)
+	case "renderdir .html":
+		goldenCompare(
+			path,
+			unwrapStdout(
+				cmd(nil, "render html directory", strings.TrimSuffix(path, ".html")+".dir"),
+			),
+		)
+
+	default:
+		panic(fmt.Errorf("unsupported mode '%s' for test with extension '%s'", mode, ext))
+	}
+
+}
+
+func buildCmd() {
+	cmd := exec.Command("go", "build")
+	cmd.Dir = "./cmd"
+	stderr := &bytes.Buffer{}
+	cmd.Stderr = stderr
+	err := cmd.Run()
+	if err != nil {
+		panic(stderr.String())
+	}
+}
+
 func main() {
 
 	start := time.Now()
@@ -311,17 +398,7 @@ func main() {
 		panic("flag -c requires flag -v")
 	}
 
-	// Builds cmd.
-	{
-		cmd := exec.Command("go", "build")
-		cmd.Dir = "./cmd"
-		stderr := &bytes.Buffer{}
-		cmd.Stderr = stderr
-		err := cmd.Run()
-		if err != nil {
-			panic(stderr.String())
-		}
-	}
+	buildCmd()
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -348,7 +425,9 @@ func main() {
 	countTotal := 0
 	countSkipped := 0
 	for _, path := range filepaths {
+
 		func() {
+
 			countTotal++
 			src, err := ioutil.ReadFile(path)
 			if err != nil {
@@ -359,6 +438,8 @@ func main() {
 			if mustBeIgnored {
 				return
 			}
+
+			// Catch panics if running only skipped tests.
 			if *onlySkipped {
 				defer func() {
 					if r := recover(); r != nil {
@@ -366,6 +447,8 @@ func main() {
 					}
 				}()
 			}
+
+			// Print output before running the test.
 			if *verbose {
 				if *color {
 					fmt.Print(ColorInfo)
@@ -384,84 +467,15 @@ func main() {
 					fmt.Print(" ")
 				}
 			}
-			switch mode + " " + ext {
 
-			// Skip.
-			case "skip .go", "skip .sgo", "skip .html":
+			// Skip or run the test.
+			if mode == "skip" {
 				countSkipped++
-
-			// Just compile.
-			case "compile .go", "build .go":
-				failOnOutput(
-					cmd(src, "compile program"),
-				)
-			case "compile .sgo", "build .sgo":
-				failOnOutput(
-					cmd(src, "compile script"),
-				)
-			case "compile .html", "build .html":
-				failOnOutput(
-					cmd(src, "compile html"),
-				)
-
-			// Error check.
-			case "errorcheck .go", "errorcheck .sgo", "errorcheck .html":
-				errorcheck(src, ext)
-
-			// Run or render.
-			case "run .go":
-				scriggoStdout, scriggoStderr := cmd(src, "run program")
-				gcStdout, gcStderr := runGc(path)
-				if len(scriggoStderr) > 0 && len(gcStderr) > 0 {
-					panic("expected succeed, but Scriggo and gc returned an error")
-				}
-				if len(scriggoStderr) > 0 && len(gcStderr) == 0 {
-					panic("expected succeed, but Scriggo returned an error")
-				}
-				if len(scriggoStderr) == 0 && len(gcStderr) > 0 {
-					panic("expected succeed, but gc returned an error")
-				}
-				if bytes.Compare(scriggoStdout, gcStdout) != 0 {
-					panic("Scriggo and gc returned two different outputs")
-				}
-			case "rundir .go":
-				dirPath := strings.TrimSuffix(path, ".go") + ".dir"
-				if _, err := os.Stat(dirPath); err != nil {
-					panic(err)
-				}
-				goldenCompare(
-					path,
-					unwrapStdout(
-						cmd(nil, "run program directory", dirPath),
-					),
-				)
-			case "run .sgo":
-				goldenCompare(
-					path,
-					unwrapStdout(
-						cmd(src, "run script"),
-					),
-				)
-			case "render .html":
-				goldenCompare(
-					path,
-					unwrapStdout(
-						cmd(src, "render html"),
-					),
-				)
-			case "renderdir .html":
-				goldenCompare(
-					path,
-					unwrapStdout(
-						cmd(nil, "render html directory", strings.TrimSuffix(path, ".html")+".dir"),
-					),
-				)
-
-			default:
-				panic(fmt.Errorf("unsupported mode '%s' for test with extension '%s'", mode, ext))
+			} else {
+				test(src, path, mode, ext)
 			}
 
-			// Test is completed, print some output and go to the next.
+			// Print output when the test is completed.
 			if *verbose {
 				if mode == "skip" {
 					fmt.Println("[ skipped ]")
@@ -479,6 +493,8 @@ func main() {
 			}
 		}()
 	}
+
+	// Print output after all tests are completed.
 	if *verbose {
 		if *color {
 			fmt.Print(ColorGood)
