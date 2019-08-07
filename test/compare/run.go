@@ -519,7 +519,19 @@ func main() {
 				}
 			case ".go.run":
 				t.start()
-				scriggoOut := runScriggo(src)
+
+				cmd := exec.Command("./compare-interpreter/compare-interpreter", "program")
+				stdout := bytes.Buffer{}
+				stderr := bytes.Buffer{}
+				cmd.Stdout = &stdout
+				cmd.Stderr = &stderr
+				cmd.Stdin = bytes.NewReader(src)
+				err := cmd.Run()
+				if err != nil {
+					panic(fmt.Sprint(err, " stdout: ", stdout.String(), " stderr: ", stderr.String()))
+				}
+				scriggoOut := parseOutputMessage(stdout.String() + stderr.String())
+
 				t.stop()
 				gcOut := runGc(src)
 				if scriggoOut.isErr() && gcOut.isErr() {
