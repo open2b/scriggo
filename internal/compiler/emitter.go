@@ -1318,7 +1318,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 	}
 
 	// Predefined values.
-	if ti := em.ti(expr); ti != nil && ti.IsPredefined() && ti.MethodType == 0 {
+	if ti := em.ti(expr); ti != nil && ti.IsPredefined() && ti.MethodType == NoMethod {
 
 		// Predefined functions.
 		if ti.Type.Kind() == reflect.Func {

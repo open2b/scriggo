@@ -37,10 +37,11 @@ type TypeInfo struct {
 type MethodType uint8
 
 const (
-	MethodValueConcrete  MethodType = iota + 1 // Method value on a concrete receiver.
-	MethodValueInterface                       // Method value on an interface receiver.
-	MethodCallConcrete                         // Method call on concrete receiver.
-	MethodCallInterface                        // Method call on interface receiver.
+	NoMethod             MethodType = iota // Not a method.
+	MethodValueConcrete                    // Method value on a concrete receiver.
+	MethodValueInterface                   // Method value on an interface receiver.
+	MethodCallConcrete                     // Method call on concrete receiver.
+	MethodCallInterface                    // Method call on interface receiver.
 )
 
 // Nil reports whether it is the predeclared nil.
