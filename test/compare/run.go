@@ -175,12 +175,7 @@ func errorcheck(src []byte, ext string) {
 //  // skip because feature X is not supported
 //  // skip : enable when bug Y will be fixed
 //
-// When onlySkipped is true, all tests with the "skip" comment are executed
-// (according to the next comment mode found) and other tests (which would be
-// runned normally) are ignored.
-//
-func readMode(src []byte, ext string, onlySkipped bool) (mode string, mustBeIgnored bool) {
-	hasSkip := false
+func readMode(src []byte, ext string) (mode string) {
 	switch ext {
 	case ".go", ".sgo":
 		for _, l := range strings.Split(string(src), "\n") {
@@ -197,22 +192,9 @@ func readMode(src []byte, ext string, onlySkipped bool) (mode string, mustBeIgno
 			l = strings.TrimPrefix(l, "//")
 			l = strings.TrimSpace(l)
 			if strings.HasPrefix(l, "skip ") {
-				// Comment containing "skip" is ignored, moving to the next
-				// comment, which has been "skipped."
-				if onlySkipped {
-					hasSkip = true
-					continue
-				}
-				return "skip", false
+				return "skip"
 			}
-			// mode != "skip"
-			// Comment is not "skip", but readMode is looking for skipped
-			// tests, so any test that contains a valid directive is
-			// ignored.
-			if onlySkipped && !hasSkip {
-				return "", true
-			}
-			return l, false
+			return l
 		}
 	case ".html":
 		for _, l := range strings.Split(string(src), "\n") {
@@ -225,22 +207,9 @@ func readMode(src []byte, ext string, onlySkipped bool) (mode string, mustBeIgno
 				l = strings.TrimSuffix(l, "#}")
 				l = strings.TrimSpace(l)
 				if strings.HasPrefix(l, "skip ") {
-					if onlySkipped {
-						// Comment containing "skip" is ignored, moving to the
-						// next comment, which has been "skipped."
-						hasSkip = true
-						continue
-					}
-					return "skip", false
+					return "skip"
 				}
-				// mode != "skip"
-				if onlySkipped && !hasSkip {
-					// Comment is not "skip", but readMode is looking for
-					// skipped tests, so any test that contains a valid
-					// directive is ignored.
-					return "", true
-				}
-				return l, false
+				return l
 			}
 		}
 	default:
@@ -391,7 +360,6 @@ func main() {
 	verbose := flag.Bool("v", false, "enable verbose output")
 	pattern := flag.String("p", "", "executes test whose path is matched by the given pattern. Regexp is supported, in the syntax of stdlib package 'regexp'")
 	color := flag.Bool("c", false, "enable colored output. Output device must support ANSI escape sequences. Require flag -v")
-	onlySkipped := flag.Bool("only-skipped", false, "only run skipped tests, returning an error instead of panicking when one of them fails. Note that skipped tests may lead to unexpected behaviours and/or infinite loops")
 
 	flag.Parse()
 	if *color && !*verbose {
@@ -401,12 +369,15 @@ func main() {
 	buildCmd()
 
 	filepaths := getAllFilepaths(*pattern)
+
+	// Look for the longest path; used when formatting output.
 	maxPathLen := 0
 	for _, fp := range filepaths {
 		if len(fp) > maxPathLen {
 			maxPathLen = len(fp)
 		}
 	}
+
 	countTotal := 0
 	countSkipped := 0
 	for _, path := range filepaths {
@@ -419,19 +390,7 @@ func main() {
 				panic(err)
 			}
 			ext := filepath.Ext(path)
-			mode, mustBeIgnored := readMode(src, ext, *onlySkipped)
-			if mustBeIgnored {
-				return
-			}
-
-			// Catch panics if running only skipped tests.
-			if *onlySkipped {
-				defer func() {
-					if r := recover(); r != nil {
-						fmt.Println("panicked: %s", r)
-					}
-				}()
-			}
+			mode := readMode(src, ext)
 
 			// Print output before running the test.
 			if *verbose {
