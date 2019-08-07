@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"math"
 	"os"
@@ -20,7 +19,6 @@ import (
 	"scriggo"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -54,15 +52,6 @@ func goldenCompare(testPath, got string) {
 	}
 }
 
-type mainLoader []byte
-
-func (b mainLoader) Load(path string) (interface{}, error) {
-	if path == "main" {
-		return bytes.NewReader(b), nil
-	}
-	return nil, nil
-}
-
 // Some colors.
 const (
 	ColorInfo  = "\033[1;34m"
@@ -70,29 +59,6 @@ const (
 	ColorGood  = "\033[1;32m"
 	ColorReset = "\033[0m"
 )
-
-// A dirLoader is a package loader used in tests which involve directories
-// containing Scriggo programs.
-type dirLoader string
-
-// Load implement interface scriggo.PackageLoader.
-func (dl dirLoader) Load(path string) (interface{}, error) {
-	if path == "main" {
-		main, err := ioutil.ReadFile(filepath.Join(string(dl), "main.go"))
-		if err != nil {
-			panic(err)
-		}
-		return bytes.NewReader(main), nil
-	}
-	data, err := ioutil.ReadFile(filepath.Join(string(dl), path+".go"))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return bytes.NewReader(data), nil
-}
 
 // isTestPath reports whether path is a valid test path.
 func isTestPath(path string) bool {
@@ -267,97 +233,6 @@ func readMode(src []byte, ext string, onlySkipped bool) (mode string, mustBeIgno
 // packages contains the predefined packages used in tests.
 //go:generate scriggo embed -v -o packages.go
 var packages scriggo.Packages
-
-// output represents the output of Scriggo or gc. output can represent either a
-// compilation error (syntax or type checking) or the output in case of success.
-type output struct {
-	path        string
-	column, row string // not error if both ""
-	msg         string
-}
-
-// isErr reports whether o is an error or not.
-func (o output) isErr() bool {
-	return o.column != "" && o.row != ""
-}
-
-func (o output) String() string {
-	if !o.isErr() {
-		return o.msg
-	}
-	path := o.path
-	if path == "" {
-		path = "[nopath]"
-	}
-	return path + ":" + o.column + ":" + o.row + " " + o.msg
-}
-
-// parseOutputMessage parses a Scriggo or gc output message.
-func parseOutputMessage(msg string) output {
-	r := regexp.MustCompile(`([\w\. ]*):(\d+):(\d+):\s(.*)`)
-	// Is not an error.
-	if !r.MatchString(msg) {
-		return output{msg: msg}
-	}
-	m := r.FindStringSubmatch(msg)
-	path := m[1]
-	column := m[2]
-	row := m[3]
-	msg = m[4]
-	return output{
-		path:   path,
-		column: column,
-		row:    row,
-		msg:    msg,
-	}
-}
-
-// outputDetails returns a string which compares scriggo and gc outputs.
-func outputDetails(scriggo, gc output) string {
-	return fmt.Sprintf("\n\n\t[Scriggo]: %s\n\t[gc]:      %s\n", scriggo, gc)
-}
-
-// callCatchingStdout calls the given function, catching the standard output and
-// returning it as a string.
-func callCatchingStdout(f func()) string {
-	r, w, err := os.Pipe()
-	if err != nil {
-		panic(err)
-	}
-	backup := os.Stdout
-	os.Stdout = w
-	defer func() {
-		os.Stdout = backup
-	}()
-	out := make(chan string)
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
-	go func() {
-		var buf bytes.Buffer
-		wg.Done()
-		io.Copy(&buf, r)
-		out <- buf.String()
-	}()
-	wg.Wait()
-	f()
-	w.Close()
-	return <-out
-}
-
-// obsoleteScriggoRun runs a Go program using Scriggo and returns its output.
-func obsoleteScriggoRun(src []byte) output {
-	program, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), nil)
-	if err != nil {
-		return parseOutputMessage(err.Error())
-	}
-	stdout := callCatchingStdout(func() {
-		err = program.Run(nil)
-	})
-	if err != nil {
-		return parseOutputMessage(err.Error())
-	}
-	return parseOutputMessage(stdout)
-}
 
 // runGc runs a Go program using gc and returns its output.
 func runGc(path string) (string, string) {
