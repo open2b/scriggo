@@ -381,27 +381,11 @@ func obsoleteScriggoRun(src []byte) output {
 }
 
 // runGc runs a Go program using gc and returns its output.
-func runGc(src []byte) output {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "scriggotesting")
-	if err != nil {
-		panic(err)
+func runGc(path string) output {
+	if ext := filepath.Ext(path); ext != ".go" {
+		panic("unsupported ext " + ext)
 	}
-	defer func() {
-		if !strings.HasPrefix(tmpDir, os.TempDir()) {
-			panic(fmt.Errorf("invalid tmpDir: %q", tmpDir))
-		}
-		_ = os.RemoveAll(tmpDir)
-	}()
-	tmpFile, err := os.Create(filepath.Join(tmpDir, "globals.go"))
-	if err != nil {
-		panic(err)
-	}
-	_, err = tmpFile.Write(src)
-	if err != nil {
-		panic(err)
-	}
-	cmd := exec.Command("go", "run", filepath.Base(tmpFile.Name()))
-	cmd.Dir = tmpDir
+	cmd := exec.Command("go", "run", path)
 	stdout := bytes.Buffer{}
 	stderr := bytes.Buffer{}
 	cmd.Stdout = &stdout
@@ -536,7 +520,7 @@ func main() {
 			case ".go.run":
 				out := cmd(src, "run program")
 				scriggoOut := parseOutputMessage(out)
-				gcOut := runGc(src)
+				gcOut := runGc(path)
 				if scriggoOut.isErr() && gcOut.isErr() {
 					panic("expected succeed, but Scriggo and gc returned an error" + outputDetails(scriggoOut, gcOut))
 				}
@@ -561,17 +545,14 @@ func main() {
 			case ".go.errorcheck", ".sgo.errorcheck", ".html.errorcheck":
 				errorcheck(src, ext)
 			case ".sgo.run":
-				out := cmd(src, "run script")
-				goldenCompare(path, out)
+				goldenCompare(path, cmd(src, "run script"))
 			case ".html.compile", ".html.build":
 				cmd(src, "compile html")
 			case ".html.render":
-				out := cmd(src, "render html")
-				goldenCompare(path, out)
+				goldenCompare(path, cmd(src, "render html"))
 			case ".html.renderdir":
 				dirPath := strings.TrimSuffix(path, ".html") + ".dir"
-				out := cmd(nil, "render html directory", dirPath)
-				goldenCompare(path, out)
+				goldenCompare(path, cmd(nil, "render html directory", dirPath))
 			default:
 				panic(fmt.Errorf("unsupported mode '%s' for test with extension '%s'", mode, ext))
 			}
