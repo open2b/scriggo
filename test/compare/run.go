@@ -313,16 +313,6 @@ func outputDetails(scriggo, gc output) string {
 	return fmt.Sprintf("\n\n\t[Scriggo]: %s\n\t[gc]:      %s\n", scriggo, gc)
 }
 
-// mainLoader is used to load the Scriggo source in function runScriggo.
-type mainLoader []byte
-
-func (b mainLoader) Load(path string) (interface{}, error) {
-	if path == "main" {
-		return bytes.NewReader(b), nil
-	}
-	return nil, nil
-}
-
 // callCatchingStdout calls the given function, catching the standard output and
 // returning it as a string.
 func callCatchingStdout(f func()) string {
