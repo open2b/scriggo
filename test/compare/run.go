@@ -33,6 +33,25 @@ func cmd(stdin []byte, args ...string) ([]byte, []byte) {
 	return stdout.Bytes(), stderr.Bytes()
 }
 
+func unwrapStdout(stdout, stderr []byte) []byte {
+	if len(stderr) > 0 {
+		panic("unexpected standard error: " + string(stderr))
+	}
+	return stdout
+}
+
+func unwrapStderr(stdout, stderr []byte) []byte {
+	if len(stderr) > 0 {
+		panic("unexpected standard output: " + string(stderr))
+	}
+	return stderr
+}
+
+func failOnOutput(stdout, stderr []byte) {
+	_ = unwrapStdout(stdout, stderr)
+	_ = unwrapStderr(stdout, stderr)
+}
+
 // TODO(Gianluca): use []byte and compare them. Convert to string only if
 // necessary. Use bytes.TrimSpace.
 func goldenCompare(testPath string, got []byte) {
@@ -369,7 +388,9 @@ func main() {
 			case "skip .go", "skip .sgo", "skip .html":
 				countSkipped++
 			case "compile .go", "build .go":
-				cmd(src, "compile program")
+				failOnOutput(
+					cmd(src, "compile program"),
+				)
 			case "run .go":
 				scriggoStdout, scriggoStderr := cmd(src, "run program")
 				gcStdout, gcStderr := runGc(path)
@@ -390,36 +411,43 @@ func main() {
 				if _, err := os.Stat(dirPath); err != nil {
 					panic(err)
 				}
-				stdout, stderr := cmd(nil, "run program directory", dirPath)
-				if len(stderr) > 0 {
-					panic("unexpected stderr " + string(stderr))
-				}
-				goldenCompare(path, stdout)
+				goldenCompare(
+					path,
+					unwrapStdout(
+						cmd(nil, "run program directory", dirPath),
+					),
+				)
 			case "compile .sgo", "build .sgo":
-				cmd(src, "compile script")
+				failOnOutput(
+					cmd(src, "compile script"),
+				)
 			case "errorcheck .go", "errorcheck .sgo", "errorcheck .html":
 				errorcheck(src, ext)
 			case "run .sgo":
-				stdout, stderr := cmd(src, "run script")
-				if len(stderr) > 0 {
-					panic("unexpected stderr " + string(stderr))
-				}
-				goldenCompare(path, stdout)
+				goldenCompare(
+					path,
+					unwrapStdout(
+						cmd(src, "run script"),
+					),
+				)
 			case "compile .html", "build .html":
-				cmd(src, "compile html")
+				failOnOutput(
+					cmd(src, "compile html"),
+				)
 			case "render .html":
-				stdout, stderr := cmd(src, "render html")
-				if len(stderr) > 0 {
-					panic("unexpected stderr " + string(stderr))
-				}
-				goldenCompare(path, stdout)
+				goldenCompare(
+					path,
+					unwrapStdout(
+						cmd(src, "render html"),
+					),
+				)
 			case "renderdir .html":
-				dirPath := strings.TrimSuffix(path, ".html") + ".dir"
-				stdout, stderr := cmd(nil, "render html directory", dirPath)
-				if len(stderr) > 0 {
-					panic("unexpected stderr " + string(stderr))
-				}
-				goldenCompare(path, stdout)
+				goldenCompare(
+					path,
+					unwrapStdout(
+						cmd(nil, "render html directory", strings.TrimSuffix(path, ".html")+".dir"),
+					),
+				)
 			default:
 				panic(fmt.Errorf("unsupported mode '%s' for test with extension '%s'", mode, ext))
 			}
