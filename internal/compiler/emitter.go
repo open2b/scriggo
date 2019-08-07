@@ -473,7 +473,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.
 			numVar := len(call.Args) - (typ.NumIn() - 1)
 			em.fb.emitCallPredefined(index, int8(numVar), stackShift)
 		} else {
-			em.fb.emitCallPredefined(index, vm.NoVariadic, stackShift)
+			em.fb.emitCallPredefined(index, vm.NoVariadicArgs, stackShift)
 		}
 		return regs, types
 	}
@@ -512,7 +512,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.
 	reg := em.emitExpr(call.Func, em.ti(call.Func).Type)
 	stackShift := em.fb.currentStackShift()
 	regs, types := em.prepareCallParameters(typ, call.Args, true, false)
-	numVar := vm.NoVariadic
+	numVar := vm.NoVariadicArgs
 	if typ.IsVariadic() {
 		numVar = len(call.Args) - (typ.NumIn() - 1)
 	}
@@ -854,7 +854,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			// and starting goroutines with no arguments and no return
 			// parameters.
 			argsShift := vm.StackShift{}
-			em.fb.emitDefer(fun, vm.NoVariadic, offset, argsShift)
+			em.fb.emitDefer(fun, vm.NoVariadicArgs, offset, argsShift)
 
 		case *ast.Import:
 			if em.isTemplate {

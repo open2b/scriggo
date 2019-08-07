@@ -14,7 +14,7 @@ import (
 	"sync"
 )
 
-const NoVariadic = -1
+const NoVariadicArgs = -1
 const CurrentFunction = -1
 
 const stackSize = 512
@@ -499,7 +499,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 			vm.fp[2] += uint32(fn.outOff[2])
 			vm.fp[3] += uint32(fn.outOff[3])
 			lastNonVariadic := len(fn.in)
-			if variadic && numVariadic != NoVariadic {
+			if variadic && numVariadic != NoVariadicArgs {
 				lastNonVariadic--
 			}
 			for i, k := range fn.in {

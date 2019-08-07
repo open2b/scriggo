@@ -263,7 +263,7 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 				s += " " + disassembleOperand(fn, a, vm.Interface, false)
 			}
 		}
-		if c != vm.NoVariadic && (op == vm.OpCallIndirect || op == vm.OpCallPredefined || op == vm.OpDefer) {
+		if c != vm.NoVariadicArgs && (op == vm.OpCallIndirect || op == vm.OpCallPredefined || op == vm.OpDefer) {
 			s += " ..." + strconv.Itoa(int(c))
 		}
 		switch op {
@@ -553,7 +553,7 @@ func disassembleFunctionCall(fn *vm.Function, index int8, isPredefined bool, sta
 		in += print(funcType.In(i)) + ", "
 	}
 	if funcType.NumIn()-1 >= 0 {
-		if variadic == vm.NoVariadic || variadic == 0 {
+		if variadic == vm.NoVariadicArgs || variadic == 0 {
 			in += print(funcType.In(funcType.NumIn() - 1))
 		} else {
 			varType := funcType.In(funcType.NumIn() - 1).Elem()
