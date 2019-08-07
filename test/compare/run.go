@@ -52,8 +52,6 @@ func failOnOutput(stdout, stderr []byte) {
 	_ = unwrapStderr(stdout, stderr)
 }
 
-// TODO(Gianluca): use []byte and compare them. Convert to string only if
-// necessary. Use bytes.TrimSpace.
 func goldenCompare(testPath string, got []byte) {
 	ext := filepath.Ext(testPath)
 	if ext != ".go" && ext != ".sgo" && ext != ".html" {
@@ -71,7 +69,6 @@ func goldenCompare(testPath string, got []byte) {
 	}
 }
 
-// Some colors.
 const (
 	ColorInfo  = "\033[1;34m"
 	ColorBad   = "\033[1;31m"
@@ -79,7 +76,6 @@ const (
 	ColorReset = "\033[0m"
 )
 
-// isTestPath reports whether path is a valid test path.
 func isTestPath(path string) bool {
 	if filepath.Ext(path) != ".go" && filepath.Ext(path) != ".sgo" && filepath.Ext(path) != ".html" {
 		return false
@@ -90,7 +86,6 @@ func isTestPath(path string) bool {
 	return true
 }
 
-// errorcheck executes the 'errorcheck' test on src.
 func errorcheck(src []byte, ext string) {
 	type stmt struct {
 		line string
