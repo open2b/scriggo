@@ -27,17 +27,12 @@ import (
 
 func cmd(stdin []byte, args ...string) (string, string) {
 	cmd := exec.Command("./cmd/cmd", args...)
-	// TODO(Gianluca): use just a single buffer? Not only for optimization
-	// purposes, but should allow stdout lines interlaced with stderr lines.
 	stdout := bytes.Buffer{}
 	stderr := bytes.Buffer{}
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	cmd.Stdin = bytes.NewReader(stdin)
-	err := cmd.Run()
-	if err != nil {
-		return stdout.String(), stderr.String()
-	}
+	_ = cmd.Run()
 	return stdout.String(), stderr.String()
 }
 
