@@ -864,7 +864,9 @@ func (vm *VM) run() (uint32, bool) {
 					v := vm.generalk(b, true)
 					if t := reflect.TypeOf(v); t != nil && t.Kind() == reflect.Array {
 						rv := reflect.MakeSlice(reflect.SliceOf(t.Elem()), t.Len(), t.Len())
-						reflect.Copy(rv, reflect.ValueOf(v))
+						// It's not necessary to copy the elements from the
+						// original array to the new slice because the values
+						// stored in the slice of general constants are zeroes.
 						vm.setGeneral(c, rv.Interface())
 					} else {
 						vm.setGeneral(c, v)

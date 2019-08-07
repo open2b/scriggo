@@ -317,6 +317,7 @@ func (builder *functionBuilder) makeStringConstant(c string) int8 {
 }
 
 // makeGeneralConstant makes a new general constant, returning it's index.
+// c must be the zero of it's type.
 func (builder *functionBuilder) makeGeneralConstant(c interface{}) int8 {
 	r := len(builder.fn.Constants.General)
 	if r > 255 {
