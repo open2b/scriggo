@@ -654,7 +654,7 @@ func (vm *VM) invokeTraceFunc() {
 }
 
 func (vm *VM) deferCall(fn *callable, numVariadic int8, shift, args StackShift) {
-	vm.calls = append(vm.calls, callFrame{cl: *fn, fp: vm.fp, pc: 0, status: deferred, variadics: numVariadic})
+	vm.calls = append(vm.calls, callFrame{cl: *fn, fp: vm.fp, pc: 0, status: deferred, numVariadics: numVariadic})
 	if args[0] > 0 {
 		stack := vm.regs.int[vm.fp[0]+1:]
 		tot := shift[0] + args[0]
@@ -738,7 +738,7 @@ func (vm *VM) nextCall() bool {
 			if call.cl.fn != nil {
 				break
 			}
-			vm.callPredefined(call.cl.Predefined(), call.variadics, StackShift{}, false)
+			vm.callPredefined(call.cl.Predefined(), call.numVariadics, StackShift{}, false)
 			fallthrough
 		case returned, recovered:
 			// A deferred call is returned. If there is another deferred
@@ -767,7 +767,7 @@ func (vm *VM) nextCall() bool {
 						i++
 						break
 					}
-					vm.callPredefined(call.cl.predefined, call.variadics, StackShift{}, false)
+					vm.callPredefined(call.cl.predefined, call.numVariadics, StackShift{}, false)
 				}
 			}
 		}
@@ -1127,11 +1127,11 @@ const CallFrameSize = 88
 
 // If the size of callFrame changes, update the constant CallFrameSize.
 type callFrame struct {
-	cl        callable   // callable.
-	fp        [4]uint32  // frame pointers.
-	pc        uint32     // program counter.
-	status    callStatus // status.
-	variadics int8       // number of variadic arguments.
+	cl           callable   // callable.
+	fp           [4]uint32  // frame pointers.
+	pc           uint32     // program counter.
+	status       callStatus // status.
+	numVariadics int8       // number of variadic arguments.
 }
 
 type callable struct {
