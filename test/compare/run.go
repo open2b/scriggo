@@ -25,6 +25,15 @@ import (
 	"time"
 )
 
+type mainLoader []byte
+
+func (b mainLoader) Load(path string) (interface{}, error) {
+	if path == "main" {
+		return bytes.NewReader(b), nil
+	}
+	return nil, nil
+}
+
 // Some colors.
 const (
 	ColorInfo  = "\033[1;34m"
