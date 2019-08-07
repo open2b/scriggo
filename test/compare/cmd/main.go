@@ -19,13 +19,13 @@ import (
 //go:generate scriggo embed -v -o packages.go
 var packages scriggo.Packages
 
-// TODO(Gianluca): convert mainLoader to a reader, so os.Stdin can be called
-// directly.
-type mainLoader []byte
+type stdinLoader struct {
+	file *os.File
+}
 
-func (b mainLoader) Load(path string) (interface{}, error) {
+func (b stdinLoader) Load(path string) (interface{}, error) {
 	if path == "main" {
-		return bytes.NewReader(b), nil
+		return b.file, nil
 	}
 	return nil, nil
 }
@@ -53,11 +53,7 @@ func (dl dirLoader) Load(path string) (interface{}, error) {
 func main() {
 	switch os.Args[1] {
 	case "compile program":
-		src, err := ioutil.ReadAll(os.Stdin)
-		if err != nil {
-			panic(err)
-		}
-		_, err = scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), nil)
+		_, err := scriggo.LoadProgram(scriggo.Loaders(stdinLoader{os.Stdin}, packages), nil)
 		if err != nil {
 			panic(err)
 		}
@@ -71,11 +67,7 @@ func main() {
 			panic(err)
 		}
 	case "run program":
-		src, err := ioutil.ReadAll(os.Stdin)
-		if err != nil {
-			panic(err)
-		}
-		program, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), nil)
+		program, err := scriggo.LoadProgram(scriggo.Loaders(stdinLoader{os.Stdin}, packages), nil)
 		if err != nil {
 			panic(err)
 		}
