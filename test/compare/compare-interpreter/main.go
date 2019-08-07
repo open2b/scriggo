@@ -55,6 +55,15 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+	case "compile script":
+		src, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			panic(err)
+		}
+		_, err = scriggo.LoadScript(bytes.NewReader(src), packages, nil)
+		if err != nil {
+			panic(err)
+		}
 	case "run program":
 		src, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
@@ -65,6 +74,15 @@ func main() {
 			panic(err)
 		}
 		err = program.Run(nil)
+		if err != nil {
+			panic(err)
+		}
+	case "run script":
+		script, err := scriggo.LoadScript(os.Stdin, packages, nil)
+		if err != nil {
+			panic(err)
+		}
+		err = script.Run(nil, nil)
 		if err != nil {
 			panic(err)
 		}
