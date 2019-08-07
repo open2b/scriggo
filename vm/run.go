@@ -863,7 +863,7 @@ func (vm *VM) run() (uint32, bool) {
 				if op < 0 {
 					v := vm.generalk(b, true)
 					if t := reflect.TypeOf(v); t != nil && t.Kind() == reflect.Array {
-						rv := reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf(v).Elem()), t.Len(), t.Len())
+						rv := reflect.MakeSlice(reflect.SliceOf(t.Elem()), t.Len(), t.Len())
 						reflect.Copy(rv, reflect.ValueOf(v))
 						vm.setGeneral(c, rv.Interface())
 					} else {
