@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 func scriggoCmd(stdin []byte, args ...string) string {
@@ -144,7 +145,7 @@ func errorcheck(src []byte, ext string) {
 		var out string
 		switch ext {
 		case ".go":
-			ret := runScriggo(cleanSrc.Bytes())
+			ret := cmd(cleanSrc.Bytes())
 			if !ret.isErr() {
 				panic(fmt.Errorf("expected error %q, got %q", expectedErr, ret.String()))
 			}
@@ -345,8 +346,8 @@ func callCatchingStdout(f func()) string {
 	return <-out
 }
 
-// runScriggo runs a Go program using Scriggo and returns its output.
-func runScriggo(src []byte) output {
+// cmd runs a Go program using Scriggo and returns its output.
+func cmd(src []byte) output {
 	program, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), nil)
 	if err != nil {
 		return parseOutputMessage(err.Error())
@@ -421,6 +422,8 @@ func getAllFilepaths(pattern string) []string {
 }
 
 func main() {
+
+	start := time.Now()
 
 	// Parse the command line arguments.
 	verbose := flag.Bool("v", false, "enable verbose output")
@@ -619,7 +622,8 @@ func main() {
 			fmt.Print(ColorGood)
 		}
 		countExecuted := countTotal - countSkipped
-		fmt.Printf("done!   %d tests executed, %d tests skipped\n", countExecuted, countSkipped)
+		end := time.Now()
+		fmt.Printf("done!   %d tests executed, %d tests skipped in %s\n", countExecuted, countSkipped, end.Sub(start).Truncate(time.Duration(time.Millisecond)))
 		if *color {
 			fmt.Print(ColorReset)
 		}
