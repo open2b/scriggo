@@ -215,10 +215,6 @@ func readMode(src []byte, ext string) (mode string) {
 	panic("mode not specified")
 }
 
-// packages contains the predefined packages used in tests.
-//go:generate scriggo embed -v -o packages.go
-var packages scriggo.Packages
-
 // runGc runs a Go program using gc and returns its output.
 func runGc(path string) ([]byte, []byte) {
 	if ext := filepath.Ext(path); ext != ".go" {
