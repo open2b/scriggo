@@ -16,7 +16,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"scriggo"
 	"strconv"
 	"strings"
 	"sync"
@@ -24,6 +23,8 @@ import (
 	"time"
 )
 
+// cmd calls the executable "./cmd/cmd" passing the given arguments and the
+// given stdin, if not nil.
 func cmd(stdin []byte, args ...string) ([]byte, []byte) {
 	cmd := exec.Command("./cmd/cmd", args...)
 	stdout := bytes.Buffer{}
@@ -35,6 +36,8 @@ func cmd(stdin []byte, args ...string) ([]byte, []byte) {
 	return stdout.Bytes(), stderr.Bytes()
 }
 
+// unwrapStdout unwraps the given streams returning the stdout. Panics if stderr
+// is not empty.
 func unwrapStdout(stdout, stderr []byte) []byte {
 	if len(stderr) > 0 {
 		panic("unexpected standard error: " + string(stderr))
@@ -42,6 +45,8 @@ func unwrapStdout(stdout, stderr []byte) []byte {
 	return stdout
 }
 
+// unwrapStdout unwraps the given streams returning the stderr. Panics if stdout
+// is not empty.
 func unwrapStderr(stdout, stderr []byte) []byte {
 	if len(stderr) > 0 {
 		panic("unexpected standard output: " + string(stderr))
@@ -49,11 +54,14 @@ func unwrapStderr(stdout, stderr []byte) []byte {
 	return stderr
 }
 
+// failOnOutput fails if at least one of the given streams is not empty.
 func failOnOutput(stdout, stderr []byte) {
 	_ = unwrapStdout(stdout, stderr)
 	_ = unwrapStderr(stdout, stderr)
 }
 
+// goldenCompare compares the golden file related to the given path with the
+// given data.
 func goldenCompare(testPath string, got []byte) {
 	ext := filepath.Ext(testPath)
 	if ext != ".go" && ext != ".sgo" && ext != ".html" {
@@ -78,6 +86,7 @@ const (
 	colorReset = "\033[0m"
 )
 
+// isTestPath reports whether path is a valid test path.
 func isTestPath(path string) bool {
 	if filepath.Ext(path) != ".go" && filepath.Ext(path) != ".sgo" && filepath.Ext(path) != ".html" {
 		return false
@@ -88,6 +97,7 @@ func isTestPath(path string) bool {
 	return true
 }
 
+// errorcheck run test with mode 'errorcheck' on the given source code.
 func errorcheck(src []byte, ext string) {
 	type stmt struct {
 		line string
@@ -258,6 +268,7 @@ func getAllFilepaths(pattern string) []string {
 	return filepaths
 }
 
+// test execute test on the given source code with the specified mode.
 func test(src []byte, path, mode, ext string, keepTestingOnFail bool) {
 
 	defer func() {
