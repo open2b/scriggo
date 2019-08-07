@@ -512,7 +512,16 @@ func main() {
 				countSkipped++
 			case ".go.compile", ".go.build":
 				t.start()
-				_, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), &scriggo.LoadOptions{LimitMemorySize: true})
+				cmd := exec.Command("./compare-interpreter/compare-interpreter", "compile program")
+				stdout := bytes.Buffer{}
+				stderr := bytes.Buffer{}
+				cmd.Stdout = &stdout
+				cmd.Stderr = &stderr
+				cmd.Stdin = bytes.NewReader(src)
+				err := cmd.Run()
+				if err != nil {
+					panic(fmt.Sprint(err, " stdout: ", stdout.String(), " stderr: ", stderr.String()))
+				}
 				t.stop()
 				if err != nil {
 					panic(err.Error())
@@ -520,7 +529,7 @@ func main() {
 			case ".go.run":
 				t.start()
 
-				cmd := exec.Command("./compare-interpreter/compare-interpreter", "program")
+				cmd := exec.Command("./compare-interpreter/compare-interpreter", "run program")
 				stdout := bytes.Buffer{}
 				stderr := bytes.Buffer{}
 				cmd.Stdout = &stdout

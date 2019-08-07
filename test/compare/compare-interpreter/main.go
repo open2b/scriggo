@@ -22,7 +22,16 @@ func (b mainLoader) Load(path string) (interface{}, error) {
 
 func main() {
 	switch os.Args[1] {
-	case "program":
+	case "compile program":
+		src, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			panic(err)
+		}
+		_, err = scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), nil)
+		if err != nil {
+			panic(err)
+		}
+	case "run program":
 		src, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
 			panic(err)
