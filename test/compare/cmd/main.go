@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"scriggo"
+	"scriggo/template"
 )
 
 //go:generate scriggo embed -v -o packages.go
@@ -95,6 +96,41 @@ func main() {
 			panic(err)
 		}
 		err = prog.Run(nil)
+		if err != nil {
+			panic(err)
+		}
+	case "render html":
+		src, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			panic(err)
+		}
+		r := template.MapReader{"/index.html": src}
+		templ, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
+		if err != nil {
+			panic(err)
+		}
+		err = templ.Render(os.Stdout, nil, nil)
+		if err != nil {
+			panic(err)
+		}
+	case "render html directory":
+		dirPath := os.Args[2]
+		r := template.DirReader(dirPath)
+		templ, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
+		if err != nil {
+			panic(err)
+		}
+		err = templ.Render(os.Stdout, nil, nil)
+		if err != nil {
+			panic(err)
+		}
+	case "compile html":
+		src, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			panic(err)
+		}
+		r := template.MapReader{"/index.html": src}
+		_, err = template.Load("/index.html", r, nil, template.ContextHTML, nil)
 		if err != nil {
 			panic(err)
 		}

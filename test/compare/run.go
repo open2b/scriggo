@@ -570,28 +570,14 @@ func main() {
 				out := cmd(src, "run script")
 				compareWithGolden(path, out)
 			case ".html.compile", ".html.build":
-				r := template.MapReader{"/index.html": src}
-				_, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
-				if err != nil {
-					panic(err)
-				}
-			case ".html.render", ".html.renderdir":
-				var r template.Reader
-				if mode == "render" {
-					r = template.MapReader{"/index.html": src}
-				} else {
-					r = template.DirReader(strings.TrimSuffix(path, ".html") + ".dir")
-				}
-				templ, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
-				if err != nil {
-					panic(err)
-				}
-				w := &bytes.Buffer{}
-				err = templ.Render(w, nil, nil)
-				if err != nil {
-					panic(err)
-				}
-				compareWithGolden(path, w.String())
+				cmd(src, "compile html")
+			case ".html.render":
+				out := cmd(src, "render html")
+				compareWithGolden(path, out)
+			case ".html.renderdir":
+				dirPath := strings.TrimSuffix(path, ".html") + ".dir"
+				out := cmd(nil, "render html directory", dirPath)
+				compareWithGolden(path, out)
 			default:
 				panic(fmt.Errorf("unsupported mode '%s' for test with extension '%s'", mode, ext))
 			}
