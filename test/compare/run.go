@@ -10,64 +10,165 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"scriggo"
-	"scriggo/template"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
-// Some colors.
+func main() {
+
+	start := time.Now()
+
+	// Parse the command line arguments.
+	var (
+		color             = flag.Bool("c", false, "enable colored output. output device must support ANSI escape sequences. require verbose to take effect")
+		keepTestingOnFail = flag.Bool("k", false, "keep testing on fail")
+		parallel          = flag.Int("l", 4, "number of parallel tests to run")
+		pattern           = flag.String("p", "", "executes test whose path is matched by the given pattern. regular expressions are supported, in the syntax of stdlib package 'regexp'")
+		verbose           = flag.Bool("v", false, "verbose. if set, parallelism is set to 1 and keep testing on fail is set to false")
+	)
+
+	flag.Parse()
+	if *verbose {
+		*parallel = 1
+		*keepTestingOnFail = false
+	}
+
+	buildCmd()
+
+	filepaths := getAllFilepaths(*pattern)
+
+	// Look for the longest path; used when formatting output.
+	maxPathLen := 0
+	for _, fp := range filepaths {
+		if len(fp) > maxPathLen {
+			maxPathLen = len(fp)
+		}
+	}
+
+	wg := sync.WaitGroup{}
+	queue := make(chan bool, *parallel)
+
+	countTotal := int64(0)
+	countSkipped := int64(0)
+
+	for _, path := range filepaths {
+
+		wg.Add(1)
+
+		go func(path string) {
+
+			queue <- true
+			atomic.AddInt64(&countTotal, 1)
+			src, err := ioutil.ReadFile(path)
+			if err != nil {
+				panic(err)
+			}
+			ext := filepath.Ext(path)
+			mode := readMode(src, ext)
+			// Print output before running the test.
+			if *verbose {
+				if *color {
+					fmt.Print(colorInfo)
+				}
+				perc := strconv.Itoa(int(math.Floor(float64(countTotal) / float64(len(filepaths)) * 100)))
+				for i := len(perc); i < 4; i++ {
+					perc = " " + perc
+				}
+				perc = "[" + perc + "%  ] "
+				fmt.Print(perc)
+				if *color {
+					fmt.Print(colorReset)
+				}
+				fmt.Print(path)
+				for i := len(path); i < maxPathLen+2; i++ {
+					fmt.Print(" ")
+				}
+			}
+			// Skip or run the test.
+			if mode == "skip" {
+				atomic.AddInt64(&countSkipped, 1)
+			} else {
+				test(src, path, mode, ext, *keepTestingOnFail)
+			}
+			// Print output when the test is completed.
+			if *verbose {
+				if mode == "skip" {
+					fmt.Println("[ skipped ]")
+				} else {
+					if *color {
+						fmt.Printf(colorGood+"ok"+colorReset+"     (%s)", mode)
+					} else {
+						fmt.Printf("ok     (%s)", mode)
+					}
+					for i := len(mode); i < 15; i++ {
+						fmt.Print(" ")
+					}
+					fmt.Println("")
+				}
+			}
+			<-queue
+			wg.Done()
+		}(path)
+	}
+
+	wg.Wait()
+
+	// Print output after all tests are completed.
+	if *verbose {
+		if *color {
+			fmt.Print(colorGood)
+		}
+		countExecuted := countTotal - countSkipped
+		end := time.Now()
+		fmt.Printf("done!   %d tests executed, %d tests skipped in %s\n", countExecuted, countSkipped, end.Sub(start).Truncate(time.Duration(time.Millisecond)))
+		if *color {
+			fmt.Print(colorReset)
+		}
+	}
+}
+
 const (
-	ColorInfo  = "\033[1;34m"
-	ColorBad   = "\033[1;31m"
-	ColorGood  = "\033[1;32m"
-	ColorReset = "\033[0m"
+	colorInfo  = "\033[1;34m"
+	colorBad   = "\033[1;31m"
+	colorGood  = "\033[1;32m"
+	colorReset = "\033[0m"
 )
 
-// A dirLoader is a package loader used in tests which involve directories
-// containing Scriggo programs.
-type dirLoader string
-
-// Load implement interface scriggo.PackageLoader.
-func (dl dirLoader) Load(path string) (interface{}, error) {
-	if path == "main" {
-		main, err := ioutil.ReadFile(filepath.Join(string(dl), "main.go"))
-		if err != nil {
-			panic(err)
-		}
-		return bytes.NewReader(main), nil
-	}
-	data, err := ioutil.ReadFile(filepath.Join(string(dl), path+".go"))
+// buildCmd executes 'go build' on the directory 'cmd'.
+func buildCmd() {
+	cmd := exec.Command("go", "build")
+	cmd.Dir = "./cmd"
+	stderr := &bytes.Buffer{}
+	cmd.Stderr = stderr
+	err := cmd.Run()
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
+		panic(stderr.String())
 	}
-	return bytes.NewReader(data), nil
 }
 
-// isTestPath reports whether path is a valid test path.
-func isTestPath(path string) bool {
-	if filepath.Ext(path) != ".go" && filepath.Ext(path) != ".sgo" && filepath.Ext(path) != ".html" {
-		return false
-	}
-	if filepath.Ext(filepath.Dir(path)) == ".dir" {
-		return false
-	}
-	return true
+// cmd calls the executable "./cmd/cmd" passing the given arguments and the
+// given stdin, if not nil.
+func cmd(stdin []byte, args ...string) ([]byte, []byte) {
+	cmd := exec.Command("./cmd/cmd", args...)
+	stdout := bytes.Buffer{}
+	stderr := bytes.Buffer{}
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	cmd.Stdin = bytes.NewReader(stdin)
+	_ = cmd.Run()
+	return stdout.Bytes(), stderr.Bytes()
 }
 
-// errorcheck executes the 'errorcheck' test on src.
+// errorcheck run test with mode 'errorcheck' on the given source code.
 func errorcheck(src []byte, ext string) {
 	type stmt struct {
 		line string
@@ -114,286 +215,29 @@ func errorcheck(src []byte, ext string) {
 		}
 		// Get output from program/script/templates and check if it matches with
 		// expected error.
-		var out string
-		switch ext {
-		case ".go":
-			ret := runScriggo(cleanSrc.Bytes())
-			if !ret.isErr() {
-				panic(fmt.Errorf("expected error %q, got %q", expectedErr, ret.String()))
-			}
-			out = ret.String()
-		case ".sgo":
-			_, err := scriggo.LoadScript(bytes.NewReader(src), packages, nil)
-			if err == nil {
-				panic(fmt.Errorf("expected error %q, got nothing", expectedErr))
-			}
-			out = err.Error()
-		case ".html":
-			r := template.MapReader{"/index.html": src}
-			_, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
-			if err == nil {
-				panic(fmt.Errorf("expected error %q, got nothing", expectedErr))
-			}
-			out = err.Error()
-		default:
-			panic("errorcheck does not support extension " + ext)
+		arg := map[string]string{
+			".go":   "run program",
+			".sgo":  "run script",
+			".html": "render html",
+		}[ext]
+		stdout, stderr := cmd(cleanSrc.Bytes(), arg)
+		if len(stdout) > 0 {
+			panic("stdout should be empty")
+		}
+		if len(stderr) == 0 {
+			panic("expected error, got nothing")
 		}
 		re := regexp.MustCompile(expectedErr)
-		if !re.MatchString(out) {
-			panic(fmt.Errorf("error does not match:\n\n\texpecting:  %s\n\tgot:        %s", expectedErr, out))
+		if !re.Match(stderr) {
+			panic(fmt.Errorf("error does not match:\n\n\texpecting:  %s\n\tgot:        %s", expectedErr, stderr))
 		}
 	}
 }
 
-// readMode reports the readMode associated to src.
-//
-// Mode is specified in programs and scripts using a comment line (starting with
-// "//"):
-//
-//  // readMode
-//
-// templates must encapsulate readMode in a line containing just a comment:
-//
-//  {# readMode #}
-//
-// As a special case, the 'skip' comment can be followed by any sequence of
-// characters (after a whitespace character) that will be ignored. This is
-// useful to put an inline comment to the "skip" comment, explaining the reason
-// why a given test cannot be run. For example:
-//
-//  // skip because feature X is not supported
-//  // skip : enable when bug Y will be fixed
-//
-// When onlySkipped is true, all tests with the "skip" comment are executed
-// (according to the next comment mode found) and other tests (which would be
-// runned normally) are ignored.
-//
-func readMode(src []byte, ext string, onlySkipped bool) (mode string, mustBeIgnored bool) {
-	hasSkip := false
-	switch ext {
-	case ".go", ".sgo":
-		for _, l := range strings.Split(string(src), "\n") {
-			l = strings.TrimSpace(l)
-			if l == "" {
-				continue
-			}
-			if strings.HasPrefix(l, "//+build ignore") {
-				panic("//+build ignore is no longer supported; remove such line from source")
-			}
-			if !strings.HasPrefix(l, "//") {
-				continue
-			}
-			l = strings.TrimPrefix(l, "//")
-			l = strings.TrimSpace(l)
-			if strings.HasPrefix(l, "skip ") {
-				// Comment containing "skip" is ignored, moving to the next
-				// comment, which has been "skipped."
-				if onlySkipped {
-					hasSkip = true
-					continue
-				}
-				return "skip", false
-			}
-			// mode != "skip"
-			// Comment is not "skip", but readMode is looking for skipped
-			// tests, so any test that contains a valid directive is
-			// ignored.
-			if onlySkipped && !hasSkip {
-				return "", true
-			}
-			return l, false
-		}
-	case ".html":
-		for _, l := range strings.Split(string(src), "\n") {
-			l = strings.TrimSpace(l)
-			if l == "" {
-				continue
-			}
-			if strings.HasPrefix(l, "{#") && strings.HasSuffix(l, "#}") {
-				l = strings.TrimPrefix(l, "{#")
-				l = strings.TrimSuffix(l, "#}")
-				l = strings.TrimSpace(l)
-				if strings.HasPrefix(l, "skip ") {
-					if onlySkipped {
-						// Comment containing "skip" is ignored, moving to the
-						// next comment, which has been "skipped."
-						hasSkip = true
-						continue
-					}
-					return "skip", false
-				}
-				// mode != "skip"
-				if onlySkipped && !hasSkip {
-					// Comment is not "skip", but readMode is looking for
-					// skipped tests, so any test that contains a valid
-					// directive is ignored.
-					return "", true
-				}
-				return l, false
-			}
-		}
-	default:
-		panic("unsupported extension " + ext)
-	}
-	panic("mode not specified")
-}
-
-// packages contains the predefined packages used in tests.
-//go:generate scriggo embed -v -o packages.go
-var packages scriggo.Packages
-
-// A timer returns the string representation of the time elapsed between two
-// events.
-type timer struct {
-	_start, _end time.Time
-}
-
-// start starts the timer.
-func (t *timer) start() {
-	t._start = time.Now()
-}
-
-// stop stops the timer. After calling stop is possible to call method delta.
-func (t *timer) stop() {
-	t._end = time.Now()
-}
-
-// delta return the string representation of the time elapsed between the call
-// to start to the call of stop.
-func (t *timer) delta() string {
-	return fmt.Sprintf("%v", t._end.Sub(t._start))
-}
-
-// output represents the output of Scriggo or gc. output can represent either a
-// compilation error (syntax or type checking) or the output in case of success.
-type output struct {
-	path        string
-	column, row string // not error if both ""
-	msg         string
-}
-
-// isErr reports whether o is an error or not.
-func (o output) isErr() bool {
-	return o.column != "" && o.row != ""
-}
-
-func (o output) String() string {
-	if !o.isErr() {
-		return o.msg
-	}
-	path := o.path
-	if path == "" {
-		path = "[nopath]"
-	}
-	return path + ":" + o.column + ":" + o.row + " " + o.msg
-}
-
-// parseOutputMessage parses a Scriggo or gc output message.
-func parseOutputMessage(msg string) output {
-	r := regexp.MustCompile(`([\w\. ]*):(\d+):(\d+):\s(.*)`)
-	// Is not an error.
-	if !r.MatchString(msg) {
-		return output{msg: msg}
-	}
-	m := r.FindStringSubmatch(msg)
-	path := m[1]
-	column := m[2]
-	row := m[3]
-	msg = m[4]
-	return output{
-		path:   path,
-		column: column,
-		row:    row,
-		msg:    msg,
-	}
-}
-
-// outputDetails returns a string which compares scriggo and gc outputs.
-func outputDetails(scriggo, gc output) string {
-	return fmt.Sprintf("\n\n\t[Scriggo]: %s\n\t[gc]:      %s\n", scriggo, gc)
-}
-
-// mainLoader is used to load the Scriggo source in function runScriggo.
-type mainLoader []byte
-
-func (b mainLoader) Load(path string) (interface{}, error) {
-	if path == "main" {
-		return bytes.NewReader(b), nil
-	}
-	return nil, nil
-}
-
-// callCatchingStdout calls the given function, catching the standard output and
-// returning it as a string.
-func callCatchingStdout(f func()) string {
-	r, w, err := os.Pipe()
-	if err != nil {
-		panic(err)
-	}
-	backup := os.Stdout
-	os.Stdout = w
-	defer func() {
-		os.Stdout = backup
-	}()
-	out := make(chan string)
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
-	go func() {
-		var buf bytes.Buffer
-		wg.Done()
-		io.Copy(&buf, r)
-		out <- buf.String()
-	}()
-	wg.Wait()
-	f()
-	w.Close()
-	return <-out
-}
-
-// runScriggo runs a Go program using Scriggo and returns its output.
-func runScriggo(src []byte) output {
-	program, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), nil)
-	if err != nil {
-		return parseOutputMessage(err.Error())
-	}
-	stdout := callCatchingStdout(func() {
-		err = program.Run(nil)
-	})
-	if err != nil {
-		return parseOutputMessage(err.Error())
-	}
-	return parseOutputMessage(stdout)
-}
-
-// runGc runs a Go program using gc and returns its output.
-func runGc(src []byte) output {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "scriggotesting")
-	if err != nil {
-		panic(err)
-	}
-	defer func() {
-		if !strings.HasPrefix(tmpDir, os.TempDir()) {
-			panic(fmt.Errorf("invalid tmpDir: %q", tmpDir))
-		}
-		_ = os.RemoveAll(tmpDir)
-	}()
-	tmpFile, err := os.Create(filepath.Join(tmpDir, "globals.go"))
-	if err != nil {
-		panic(err)
-	}
-	_, err = tmpFile.Write(src)
-	if err != nil {
-		panic(err)
-	}
-	cmd := exec.Command("go", "run", filepath.Base(tmpFile.Name()))
-	cmd.Dir = tmpDir
-	stdout := bytes.Buffer{}
-	stderr := bytes.Buffer{}
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	_ = cmd.Run()
-	out := stdout.String() + stderr.String()
-	return parseOutputMessage(out)
+// failOnOutput fails if at least one of the given streams is not empty.
+func failOnOutput(stdout, stderr []byte) {
+	_ = unwrapStdout(stdout, stderr)
+	_ = unwrapStderr(stdout, stderr)
 }
 
 // getAllFilepaths returns a list of filepaths matching the given pattern.
@@ -425,249 +269,217 @@ func getAllFilepaths(pattern string) []string {
 	return filepaths
 }
 
-func main() {
-
-	// Parse the command line arguments.
-	verbose := flag.Bool("v", false, "enable verbose output")
-	pattern := flag.String("p", "", "executes test whose path is matched by the given pattern. Regexp is supported, in the syntax of stdlib package 'regexp'")
-	time := flag.Bool("t", false, "show time elapsed between the beginning and the ending of every test. Require flag -v")
-	color := flag.Bool("c", false, "enable colored output. Output device must support ANSI escape sequences. Require flag -v")
-	onlySkipped := flag.Bool("only-skipped", false, "only run skipped tests, returning an error instead of panicking when one of them fails. Note that skipped tests may lead to unexpected behaviours and/or infinite loops")
-
-	flag.Parse()
-	if *time && !*verbose {
-		panic("flag -t requires flag -v")
+// goldenCompare compares the golden file related to the given path with the
+// given data.
+func goldenCompare(testPath string, got []byte) {
+	ext := filepath.Ext(testPath)
+	if ext != ".go" && ext != ".sgo" && ext != ".html" {
+		panic("unsupported ext: " + ext)
 	}
-	if *color && !*verbose {
-		panic("flag -c requires flag -v")
+	goldenPath := strings.TrimSuffix(testPath, ext) + ".golden"
+	goldenData, err := ioutil.ReadFile(goldenPath)
+	if err != nil {
+		panic(err)
 	}
+	expected := bytes.TrimSpace(goldenData)
+	got = bytes.TrimSpace(got)
+	if bytes.Compare(expected, got) != 0 {
+		panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
+	}
+}
+
+// isTestPath reports whether path is a valid test path.
+func isTestPath(path string) bool {
+	if filepath.Ext(path) != ".go" && filepath.Ext(path) != ".sgo" && filepath.Ext(path) != ".html" {
+		return false
+	}
+	if filepath.Ext(filepath.Dir(path)) == ".dir" {
+		return false
+	}
+	return true
+}
+
+// readMode reports the readMode associated to src.
+//
+// Mode is specified in programs and scripts using a comment line (starting with
+// "//"):
+//
+//  // readMode
+//
+// templates must encapsulate readMode in a line containing just a comment:
+//
+//  {# readMode #}
+//
+// As a special case, the 'skip' comment can be followed by any sequence of
+// characters (after a whitespace character) that will be ignored. This is
+// useful to put an inline comment to the "skip" comment, explaining the reason
+// why a given test cannot be run. For example:
+//
+//  // skip because feature X is not supported
+//  // skip : enable when bug Y will be fixed
+//
+func readMode(src []byte, ext string) (mode string) {
+	switch ext {
+	case ".go", ".sgo":
+		for _, l := range strings.Split(string(src), "\n") {
+			l = strings.TrimSpace(l)
+			if l == "" {
+				continue
+			}
+			if strings.HasPrefix(l, "//+build ignore") {
+				panic("//+build ignore is no longer supported; remove such line from source")
+			}
+			if !strings.HasPrefix(l, "//") {
+				continue
+			}
+			l = strings.TrimPrefix(l, "//")
+			l = strings.TrimSpace(l)
+			if strings.HasPrefix(l, "skip ") {
+				return "skip"
+			}
+			return l
+		}
+	case ".html":
+		for _, l := range strings.Split(string(src), "\n") {
+			l = strings.TrimSpace(l)
+			if l == "" {
+				continue
+			}
+			if strings.HasPrefix(l, "{#") && strings.HasSuffix(l, "#}") {
+				l = strings.TrimPrefix(l, "{#")
+				l = strings.TrimSuffix(l, "#}")
+				l = strings.TrimSpace(l)
+				if strings.HasPrefix(l, "skip ") {
+					return "skip"
+				}
+				return l
+			}
+		}
+	default:
+		panic("unsupported extension " + ext)
+	}
+	panic("mode not specified")
+}
+
+// runGc runs a Go program using gc and returns its output.
+func runGc(path string) ([]byte, []byte) {
+	if ext := filepath.Ext(path); ext != ".go" {
+		panic("unsupported ext " + ext)
+	}
+	cmd := exec.Command("go", "run", path)
+	stdout := bytes.Buffer{}
+	stderr := bytes.Buffer{}
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	_ = cmd.Run()
+	return stdout.Bytes(), stderr.Bytes()
+}
+
+// test execute test on the given source code with the specified mode.
+// When a test fails, test calls os.Exit with an non-zero error code, unless
+// keepTestingOnFail is set.
+func test(src []byte, path, mode, ext string, keepTestingOnFail bool) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			if *verbose {
-				if *color {
-					fmt.Print(ColorBad)
-				}
-				fmt.Print("\n\nPANIC!\n\n")
-				if *color {
-					fmt.Print(ColorReset)
-				}
+			absPath, _ := filepath.Abs(path)
+			fmt.Fprintf(os.Stderr, "%s: %s\n", absPath, r)
+			if keepTestingOnFail {
+				return
 			}
-			panic(r)
+			os.Exit(1)
 		}
 	}()
 
-	filepaths := getAllFilepaths(*pattern)
-	maxPathLen := 0
-	for _, fp := range filepaths {
-		if len(fp) > maxPathLen {
-			maxPathLen = len(fp)
-		}
-	}
-	countTotal := 0
-	countSkipped := 0
-	for _, path := range filepaths {
-		func() {
-			countTotal++
-			src, err := ioutil.ReadFile(path)
-			if err != nil {
-				panic(err)
-			}
-			// A timer is used to measure time that elapses during the execution of a given
-			// test. Note that timer should measure only time needed by Scriggo; any
-			// other elapsed time (eg. calling the gc compiler for the comparison
-			// output) is considered overhead and should no be included in counting.
-			t := &timer{}
-			ext := filepath.Ext(path)
-			mode, mustBeIgnored := readMode(src, ext, *onlySkipped)
-			if mustBeIgnored {
-				return
-			}
-			if *onlySkipped {
-				defer func() {
-					if r := recover(); r != nil {
-						fmt.Println("panicked: %s", r)
-					}
-				}()
-			}
-			if *verbose {
-				if *color {
-					fmt.Print(ColorInfo)
-				}
-				perc := strconv.Itoa(int(math.Floor(float64(countTotal) / float64(len(filepaths)) * 100)))
-				for i := len(perc); i < 4; i++ {
-					perc = " " + perc
-				}
-				perc = "[" + perc + "%  ] "
-				fmt.Print(perc)
-				if *color {
-					fmt.Print(ColorReset)
-				}
-				fmt.Print(path)
-				for i := len(path); i < maxPathLen+2; i++ {
-					fmt.Print(" ")
-				}
-			}
-			switch ext + "." + mode {
-			case ".go.skip", ".sgo.skip", ".html.skip":
-				countSkipped++
-			case ".go.compile", ".go.build":
-				t.start()
-				_, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), &scriggo.LoadOptions{LimitMemorySize: true})
-				t.stop()
-				if err != nil {
-					panic(err.Error())
-				}
-			case ".go.run":
-				t.start()
-				scriggoOut := runScriggo(src)
-				t.stop()
-				gcOut := runGc(src)
-				if scriggoOut.isErr() && gcOut.isErr() {
-					panic("expected succeed, but Scriggo and gc returned an error" + outputDetails(scriggoOut, gcOut))
-				}
-				if scriggoOut.isErr() && !gcOut.isErr() {
-					panic("expected succeed, but Scriggo returned an error" + outputDetails(scriggoOut, gcOut))
-				}
-				if !scriggoOut.isErr() && gcOut.isErr() {
-					panic("expected succeed, but gc returned an error" + outputDetails(scriggoOut, gcOut))
-				}
-				if scriggoOut.msg != gcOut.msg {
-					panic("Scriggo and gc returned two different outputs" + outputDetails(scriggoOut, gcOut))
-				}
-			case ".go.rundir":
-				dirPath := strings.TrimSuffix(path, ".go") + ".dir"
-				if _, err := os.Stat(dirPath); err != nil {
-					panic(err)
-				}
-				dl := dirLoader(dirPath)
-				t.start()
-				prog, err := scriggo.LoadProgram(scriggo.CombinedLoaders{dl, packages}, nil)
-				if err != nil {
-					panic(err)
-				}
-				stdout := callCatchingStdout(func() {
-					err = prog.Run(nil)
-				})
-				t.stop()
-				if err != nil {
-					panic(err)
-				}
-				goldenPath := strings.TrimSuffix(path, ".go") + ".golden"
-				goldenData, err := ioutil.ReadFile(goldenPath)
-				if err != nil {
-					panic(err)
-				}
-				expected := strings.TrimSpace(string(goldenData))
-				got := strings.TrimSpace(stdout)
-				if expected != got {
-					panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
-				}
-			case ".sgo.compile", ".sgo.build":
-				t.start()
-				_, err := scriggo.LoadScript(bytes.NewReader(src), packages, nil)
-				t.stop()
-				if err != nil {
-					panic(err)
-				}
-			case ".go.errorcheck", ".sgo.errorcheck", ".html.errorcheck":
-				t.start()
-				errorcheck(src, ext)
-				t.stop()
-			case ".sgo.run":
-				t.start()
-				script, err := scriggo.LoadScript(bytes.NewReader(src), packages, nil)
-				if err != nil {
-					panic(err)
-				}
-				stdout := callCatchingStdout(func() {
-					err = script.Run(nil, nil)
-				})
-				if err != nil {
-					panic(err)
-				}
-				t.stop()
-				goldenPath := strings.TrimSuffix(path, ".sgo") + ".golden"
-				goldenData, err := ioutil.ReadFile(goldenPath)
-				if err != nil {
-					panic(err)
-				}
-				expected := strings.TrimSpace(string(goldenData))
-				got := strings.TrimSpace(stdout)
-				if expected != got {
-					panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
-				}
-			case ".html.compile", ".html.build":
-				r := template.MapReader{"/index.html": src}
-				t.start()
-				_, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
-				t.stop()
-				if err != nil {
-					panic(err)
-				}
-			case ".html.render", ".html.renderdir":
-				var r template.Reader
-				if mode == "render" {
-					r = template.MapReader{"/index.html": src}
-				} else {
-					r = template.DirReader(strings.TrimSuffix(path, ".html") + ".dir")
-				}
-				t.start()
-				templ, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
-				if err != nil {
-					panic(err)
-				}
-				w := &bytes.Buffer{}
-				err = templ.Render(w, nil, nil)
-				t.stop()
-				if err != nil {
-					panic(err)
-				}
-				goldenPath := strings.TrimSuffix(path, ".html") + ".golden"
-				goldenData, err := ioutil.ReadFile(goldenPath)
-				if err != nil {
-					panic(err)
-				}
-				expected := strings.TrimSpace(string(goldenData))
-				got := strings.TrimSpace(w.String())
-				if expected != got {
-					panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
-				}
-			default:
-				panic(fmt.Errorf("unsupported mode '%s' for test with extension '%s'", mode, ext))
-			}
+	switch mode + " " + ext {
 
-			// Test is completed, print some output and go to the next.
-			if *verbose {
-				if mode == "skip" {
-					fmt.Println("[ skipped ]")
-				} else {
-					if *color {
-						fmt.Printf(ColorGood+"ok"+ColorReset+"     (%s)", mode)
-					} else {
-						fmt.Printf("ok     (%s)", mode)
-					}
-					for i := len(mode); i < 15; i++ {
-						fmt.Print(" ")
-					}
-					if *time {
-						fmt.Println(t.delta())
-					} else {
-						fmt.Println("")
-					}
-				}
-			}
-		}()
-	}
-	if *verbose {
-		if *color {
-			fmt.Print(ColorGood)
+	// Just compile.
+	case "compile .go", "build .go":
+		failOnOutput(
+			cmd(src, "compile program"),
+		)
+	case "compile .sgo", "build .sgo":
+		failOnOutput(
+			cmd(src, "compile script"),
+		)
+	case "compile .html", "build .html":
+		failOnOutput(
+			cmd(src, "compile html"),
+		)
+
+	// Error check.
+	case "errorcheck .go", "errorcheck .sgo", "errorcheck .html":
+		errorcheck(src, ext)
+
+	// Run or render.
+	case "run .go":
+		scriggoStdout, scriggoStderr := cmd(src, "run program")
+		gcStdout, gcStderr := runGc(path)
+		if len(scriggoStderr) > 0 && len(gcStderr) > 0 {
+			panic(fmt.Errorf("expected succeed, but Scriggo returned error '%s' and gc returned error '%s'", scriggoStderr, gcStderr))
 		}
-		countExecuted := countTotal - countSkipped
-		fmt.Printf("done!   %d tests executed, %d tests skipped\n", countExecuted, countSkipped)
-		if *color {
-			fmt.Print(ColorReset)
+		if len(scriggoStderr) > 0 && len(gcStderr) == 0 {
+			panic(fmt.Errorf("expected succeed, but Scriggo returned error '%s'", scriggoStderr))
 		}
+		if len(scriggoStderr) == 0 && len(gcStderr) > 0 {
+			panic("expected succeed, but gc returned an error")
+		}
+		if bytes.Compare(scriggoStdout, gcStdout) != 0 {
+			panic("Scriggo and gc returned two different outputs: " + string(scriggoStdout) + ", " + string(gcStdout))
+		}
+	case "rundir .go":
+		dirPath := strings.TrimSuffix(path, ".go") + ".dir"
+		if _, err := os.Stat(dirPath); err != nil {
+			panic(err)
+		}
+		goldenCompare(
+			path,
+			unwrapStdout(
+				cmd(nil, "run program directory", dirPath),
+			),
+		)
+	case "run .sgo":
+		goldenCompare(
+			path,
+			unwrapStdout(
+				cmd(src, "run script"),
+			),
+		)
+	case "render .html":
+		goldenCompare(
+			path,
+			unwrapStdout(
+				cmd(src, "render html"),
+			),
+		)
+	case "renderdir .html":
+		goldenCompare(
+			path,
+			unwrapStdout(
+				cmd(nil, "render html directory", strings.TrimSuffix(path, ".html")+".dir"),
+			),
+		)
+
+	default:
+		panic(fmt.Errorf("unsupported mode '%s' for test with extension '%s'", mode, ext))
 	}
 
+}
+
+// unwrapStdout unwraps the given streams returning the stderr. Panics if stdout
+// is not empty.
+func unwrapStderr(stdout, stderr []byte) []byte {
+	if len(stderr) > 0 {
+		panic("unexpected standard output: " + string(stderr))
+	}
+	return stderr
+}
+
+// unwrapStdout unwraps the given streams returning the stdout. Panics if stderr
+// is not empty.
+func unwrapStdout(stdout, stderr []byte) []byte {
+	if len(stderr) > 0 {
+		panic("unexpected standard error: " + string(stderr))
+	}
+	return stdout
 }
