@@ -16,8 +16,8 @@ import (
 	"scriggo/template"
 )
 
-//go:generate scriggo embed -v -o packages.go
-var packages scriggo.Packages
+//go:generate scriggo embed -v -o predefPkgs.go
+var predefPkgs scriggo.Packages
 
 type stdinLoader struct {
 	file *os.File
@@ -53,7 +53,7 @@ func (dl dirLoader) Load(path string) (interface{}, error) {
 func main() {
 	switch os.Args[1] {
 	case "compile program":
-		_, err := scriggo.LoadProgram(scriggo.Loaders(stdinLoader{os.Stdin}, packages), nil)
+		_, err := scriggo.LoadProgram(scriggo.Loaders(stdinLoader{os.Stdin}, predefPkgs), nil)
 		if err != nil {
 			panic(err)
 		}
@@ -62,12 +62,12 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		_, err = scriggo.LoadScript(bytes.NewReader(src), packages, nil)
+		_, err = scriggo.LoadScript(bytes.NewReader(src), predefPkgs, nil)
 		if err != nil {
 			panic(err)
 		}
 	case "run program":
-		program, err := scriggo.LoadProgram(scriggo.Loaders(stdinLoader{os.Stdin}, packages), nil)
+		program, err := scriggo.LoadProgram(scriggo.Loaders(stdinLoader{os.Stdin}, predefPkgs), nil)
 		if err != nil {
 			panic(err)
 		}
@@ -76,7 +76,7 @@ func main() {
 			panic(err)
 		}
 	case "run script":
-		script, err := scriggo.LoadScript(os.Stdin, packages, nil)
+		script, err := scriggo.LoadScript(os.Stdin, predefPkgs, nil)
 		if err != nil {
 			panic(err)
 		}
@@ -87,7 +87,7 @@ func main() {
 	case "run program directory":
 		dirPath := os.Args[2]
 		dl := dirLoader(dirPath)
-		prog, err := scriggo.LoadProgram(scriggo.CombinedLoaders{dl, packages}, nil)
+		prog, err := scriggo.LoadProgram(scriggo.CombinedLoaders{dl, predefPkgs}, nil)
 		if err != nil {
 			panic(err)
 		}

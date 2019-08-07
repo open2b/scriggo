@@ -1,3 +1,4 @@
+SET VARIABLE predefPkgs
 IMPORT bufio
 IMPORT bytes
 IMPORT crypto/sha1
