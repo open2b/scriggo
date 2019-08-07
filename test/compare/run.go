@@ -25,7 +25,7 @@ import (
 	"time"
 )
 
-func cmd(stdin []byte, args ...string) string {
+func cmd(stdin []byte, args ...string) (string, string) {
 	cmd := exec.Command("./cmd/cmd", args...)
 	// TODO(Gianluca): use just a single buffer? Not only for optimization
 	// purposes, but should allow stdout lines interlaced with stderr lines.
@@ -36,12 +36,9 @@ func cmd(stdin []byte, args ...string) string {
 	cmd.Stdin = bytes.NewReader(stdin)
 	err := cmd.Run()
 	if err != nil {
-		panic(fmt.Sprint(err, " stdout: ", stdout.String(), " stderr: ", stderr.String()))
+		return stdout.String(), stderr.String()
 	}
-	if err != nil {
-		panic(err.Error())
-	}
-	return stdout.String() + stderr.String()
+	return stdout.String(), stderr.String()
 }
 
 // TODO(Gianluca): use []byte and compare them. Convert to string only if
@@ -381,7 +378,7 @@ func obsoleteScriggoRun(src []byte) output {
 }
 
 // runGc runs a Go program using gc and returns its output.
-func runGc(path string) output {
+func runGc(path string) (string, string) {
 	if ext := filepath.Ext(path); ext != ".go" {
 		panic("unsupported ext " + ext)
 	}
@@ -391,8 +388,7 @@ func runGc(path string) output {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	_ = cmd.Run()
-	out := stdout.String() + stderr.String()
-	return parseOutputMessage(out)
+	return stdout.String(), stderr.String()
 }
 
 // getAllFilepaths returns a list of filepaths matching the given pattern.
@@ -518,41 +514,55 @@ func main() {
 			case "compile .go", "build .go":
 				cmd(src, "compile program")
 			case "run .go":
-				out := cmd(src, "run program")
-				scriggoOut := parseOutputMessage(out)
-				gcOut := runGc(path)
-				if scriggoOut.isErr() && gcOut.isErr() {
-					panic("expected succeed, but Scriggo and gc returned an error" + outputDetails(scriggoOut, gcOut))
+				scriggoStdout, scriggoStderr := cmd(src, "run program")
+				gcStdout, gcStderr := runGc(path)
+				if scriggoStderr != "" && gcStderr != "" {
+					panic("expected succeed, but Scriggo and gc returned an error")
 				}
-				if scriggoOut.isErr() && !gcOut.isErr() {
-					panic("expected succeed, but Scriggo returned an error" + outputDetails(scriggoOut, gcOut))
+				if scriggoStderr != "" && gcStderr == "" {
+					panic("expected succeed, but Scriggo returned an error")
 				}
-				if !scriggoOut.isErr() && gcOut.isErr() {
-					panic("expected succeed, but gc returned an error" + outputDetails(scriggoOut, gcOut))
+				if scriggoStderr == "" && gcStderr != "" {
+					panic("expected succeed, but gc returned an error")
 				}
-				if scriggoOut.msg != gcOut.msg {
-					panic("Scriggo and gc returned two different outputs" + outputDetails(scriggoOut, gcOut))
+				if scriggoStdout != gcStdout {
+					panic("Scriggo and gc returned two different outputs")
 				}
 			case "rundir .go":
 				dirPath := strings.TrimSuffix(path, ".go") + ".dir"
 				if _, err := os.Stat(dirPath); err != nil {
 					panic(err)
 				}
-				out := cmd(nil, "run program directory", dirPath)
-				goldenCompare(path, out)
+				stdout, stderr := cmd(nil, "run program directory", dirPath)
+				if stderr != "" {
+					panic("unexpected stderr " + stderr)
+				}
+				goldenCompare(path, stdout)
 			case "compile .sgo", "build .sgo":
 				cmd(src, "compile script")
 			case "errorcheck .go", "errorcheck .sgo", "errorcheck .html":
 				errorcheck(src, ext)
 			case "run .sgo":
-				goldenCompare(path, cmd(src, "run script"))
+				stdout, stderr := cmd(src, "run script")
+				if stderr != "" {
+					panic("unexpected stderr " + stderr)
+				}
+				goldenCompare(path, stdout)
 			case "compile .html", "build .html":
 				cmd(src, "compile html")
 			case "render .html":
-				goldenCompare(path, cmd(src, "render html"))
+				stdout, stderr := cmd(src, "render html")
+				if stderr != "" {
+					panic("unexpected stderr " + stderr)
+				}
+				goldenCompare(path, stdout)
 			case "renderdir .html":
 				dirPath := strings.TrimSuffix(path, ".html") + ".dir"
-				goldenCompare(path, cmd(nil, "render html directory", dirPath))
+				stdout, stderr := cmd(nil, "render html directory", dirPath)
+				if stderr != "" {
+					panic("unexpected stderr " + stderr)
+				}
+				goldenCompare(path, stdout)
 			default:
 				panic(fmt.Errorf("unsupported mode '%s' for test with extension '%s'", mode, ext))
 			}

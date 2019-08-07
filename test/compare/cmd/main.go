@@ -1,6 +1,10 @@
 // This executable is not meant to be human friendly or to have a nice CLI
 // interface. It just aims to simplicity, speed and robustness.
 
+// In case of success the standard output contains the output of the execution
+// of the program/script or the rendering of the template. Else, in case of
+// error, the stderr contains the error.
+
 package main
 
 import (
