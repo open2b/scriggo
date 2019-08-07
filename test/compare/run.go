@@ -44,6 +44,21 @@ func cmd(stdin []byte, args ...string) string {
 	return stdout.String() + stderr.String()
 }
 
+// TODO(Gianluca): use []byte and compare them. Convert to string only if
+// necessary. Use bytes.TrimSpace.
+func compareWithGolden(testPath, got string) {
+	goldenPath := strings.TrimSuffix(testPath, filepath.Ext(testPath)) + ".golden"
+	goldenData, err := ioutil.ReadFile(goldenPath)
+	if err != nil {
+		panic(err)
+	}
+	expected := strings.TrimSpace(string(goldenData))
+	got = strings.TrimSpace(got)
+	if expected != got {
+		panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
+	}
+}
+
 type mainLoader []byte
 
 func (b mainLoader) Load(path string) (interface{}, error) {
@@ -553,16 +568,7 @@ func main() {
 				errorcheck(src, ext)
 			case ".sgo.run":
 				out := cmd(src, "run script")
-				goldenPath := strings.TrimSuffix(path, ".sgo") + ".golden"
-				goldenData, err := ioutil.ReadFile(goldenPath)
-				if err != nil {
-					panic(err)
-				}
-				expected := strings.TrimSpace(string(goldenData))
-				got := strings.TrimSpace(out)
-				if expected != got {
-					panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
-				}
+				compareWithGolden(path, out)
 			case ".html.compile", ".html.build":
 				r := template.MapReader{"/index.html": src}
 				_, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
@@ -585,16 +591,7 @@ func main() {
 				if err != nil {
 					panic(err)
 				}
-				goldenPath := strings.TrimSuffix(path, ".html") + ".golden"
-				goldenData, err := ioutil.ReadFile(goldenPath)
-				if err != nil {
-					panic(err)
-				}
-				expected := strings.TrimSpace(string(goldenData))
-				got := strings.TrimSpace(w.String())
-				if expected != got {
-					panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
-				}
+				compareWithGolden(path, w.String())
 			default:
 				panic(fmt.Errorf("unsupported mode '%s' for test with extension '%s'", mode, ext))
 			}
