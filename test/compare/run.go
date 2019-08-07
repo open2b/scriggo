@@ -46,7 +46,7 @@ func cmd(stdin []byte, args ...string) string {
 
 // TODO(Gianluca): use []byte and compare them. Convert to string only if
 // necessary. Use bytes.TrimSpace.
-func compareWithGolden(testPath, got string) {
+func goldenCompare(testPath, got string) {
 	ext := filepath.Ext(testPath)
 	if ext != ".go" && ext != ".sgo" && ext != ".html" {
 		panic("unsupported ext: " + ext)
@@ -555,23 +555,23 @@ func main() {
 					panic(err)
 				}
 				out := cmd(nil, "run program directory", dirPath)
-				compareWithGolden(path, out)
+				goldenCompare(path, out)
 			case ".sgo.compile", ".sgo.build":
 				cmd(src, "compile script")
 			case ".go.errorcheck", ".sgo.errorcheck", ".html.errorcheck":
 				errorcheck(src, ext)
 			case ".sgo.run":
 				out := cmd(src, "run script")
-				compareWithGolden(path, out)
+				goldenCompare(path, out)
 			case ".html.compile", ".html.build":
 				cmd(src, "compile html")
 			case ".html.render":
 				out := cmd(src, "render html")
-				compareWithGolden(path, out)
+				goldenCompare(path, out)
 			case ".html.renderdir":
 				dirPath := strings.TrimSuffix(path, ".html") + ".dir"
 				out := cmd(nil, "render html directory", dirPath)
-				compareWithGolden(path, out)
+				goldenCompare(path, out)
 			default:
 				panic(fmt.Errorf("unsupported mode '%s' for test with extension '%s'", mode, ext))
 			}
