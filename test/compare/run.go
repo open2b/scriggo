@@ -47,7 +47,11 @@ func cmd(stdin []byte, args ...string) string {
 // TODO(Gianluca): use []byte and compare them. Convert to string only if
 // necessary. Use bytes.TrimSpace.
 func compareWithGolden(testPath, got string) {
-	goldenPath := strings.TrimSuffix(testPath, filepath.Ext(testPath)) + ".golden"
+	ext := filepath.Ext(testPath)
+	if ext != ".go" && ext != ".sgo" && ext != ".html" {
+		panic("unsupported ext: " + ext)
+	}
+	goldenPath := strings.TrimSuffix(testPath, ext) + ".golden"
 	goldenData, err := ioutil.ReadFile(goldenPath)
 	if err != nil {
 		panic(err)
@@ -551,17 +555,7 @@ func main() {
 					panic(err)
 				}
 				out := cmd(nil, "run program directory", dirPath)
-				scriggoOut := parseOutputMessage(out)
-				goldenPath := strings.TrimSuffix(path, ".go") + ".golden"
-				goldenData, err := ioutil.ReadFile(goldenPath)
-				if err != nil {
-					panic(err)
-				}
-				expected := strings.TrimSpace(string(goldenData))
-				got := strings.TrimSpace(scriggoOut.String())
-				if expected != got {
-					panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
-				}
+				compareWithGolden(path, out)
 			case ".sgo.compile", ".sgo.build":
 				cmd(src, "compile script")
 			case ".go.errorcheck", ".sgo.errorcheck", ".html.errorcheck":
