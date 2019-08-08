@@ -243,13 +243,12 @@ func failOnOutput(stdout, stderr []byte) {
 // getAllFilepaths returns a list of filepaths matching the given pattern.
 // If pattern is "", pattern matching is always assumed true.
 func getAllFilepaths(pattern string) []string {
-	const testsDir = "src"
 	filepaths := []string{}
 	var re *regexp.Regexp
 	if pattern != "" {
 		re = regexp.MustCompile(pattern)
 	}
-	filepath.Walk(testsDir, func(path string, info os.FileInfo, err error) error {
+	filepath.Walk("testdata", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			panic(err)
 		}

@@ -18,7 +18,7 @@ func main() {
 
 	// You can have an `if` statement without an else.
 	if 8%4 == 0 {
-	   fmt.Println("8 is divisible by 4")
+		fmt.Println("8 is divisible by 4")
 	}
 
 	// A statement can precede conditionals; any variables

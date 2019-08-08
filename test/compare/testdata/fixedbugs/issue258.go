@@ -9,5 +9,5 @@ func main() {
 	var _ = nil == interface{}(nil)
 	var _, _ = 1, 2
 	_ = 3
-	_, _, _ = 4,5,6
+	_, _, _ = 4, 5, 6
 }
