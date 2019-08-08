@@ -653,35 +653,55 @@ func (vm *VM) invokeTraceFunc() {
 	vm.env.trace(vm.fn, vm.pc, regs)
 }
 
-func (vm *VM) deferCall(fn *callable, numVariadic int8, shift, args StackShift) {
-	vm.calls = append(vm.calls, callFrame{cl: *fn, fp: vm.fp, pc: 0, status: deferred, numVariadic: numVariadic})
-	if args[0] > 0 {
-		stack := vm.regs.int[vm.fp[0]+1:]
-		tot := shift[0] + args[0]
-		copy(stack[shift[0]:], stack[:tot])
-		copy(stack, stack[shift[0]:tot])
-		vm.fp[0] += uint32(args[0])
+func (vm *VM) deferCall(cl *callable, numVariadic int8, off, arg StackShift) {
+	vm.calls = append(vm.calls, callFrame{cl: *cl, fp: vm.fp, pc: 0, status: deferred, numVariadic: numVariadic})
+	if arg[0] > 0 {
+		if off[0] > 0 {
+			if vm.fp[0]+uint32(arg[0]) > vm.st[0] {
+				vm.moreIntStack()
+			}
+			stack := vm.regs.int[vm.fp[0]+1:]
+			tot := off[0] + arg[0]
+			copy(stack[arg[0]:], stack[:tot])
+			copy(stack, stack[tot:tot+arg[0]])
+		}
+		vm.fp[0] += uint32(arg[0])
 	}
-	if args[1] > 0 {
-		stack := vm.regs.float[vm.fp[1]+1:]
-		tot := shift[1] + args[1]
-		copy(stack[shift[1]:], stack[:tot])
-		copy(stack, stack[shift[1]:tot])
-		vm.fp[1] += uint32(args[1])
+	if arg[1] > 0 {
+		if off[1] > 0 {
+			if vm.fp[1]+uint32(arg[1]) > vm.st[1] {
+				vm.moreIntStack()
+			}
+			stack := vm.regs.float[vm.fp[1]+1:]
+			tot := off[1] + arg[1]
+			copy(stack[arg[1]:], stack[:tot])
+			copy(stack, stack[tot:tot+arg[1]])
+		}
+		vm.fp[1] += uint32(arg[1])
 	}
-	if args[2] > 0 {
-		stack := vm.regs.string[vm.fp[2]+1:]
-		tot := shift[2] + args[2]
-		copy(stack[shift[2]:], stack[:tot])
-		copy(stack, stack[shift[2]:tot])
-		vm.fp[2] += uint32(args[2])
+	if arg[2] > 0 {
+		if off[2] > 0 {
+			if vm.fp[2]+uint32(arg[2]) > vm.st[2] {
+				vm.moreIntStack()
+			}
+			stack := vm.regs.string[vm.fp[2]+1:]
+			tot := off[2] + arg[2]
+			copy(stack[arg[2]:], stack[:tot])
+			copy(stack, stack[tot:tot+arg[2]])
+		}
+		vm.fp[2] += uint32(arg[2])
 	}
-	if args[3] > 0 {
-		stack := vm.regs.general[vm.fp[3]+1:]
-		tot := shift[3] + args[3]
-		copy(stack[shift[3]:], stack[:tot])
-		copy(stack, stack[shift[3]:tot])
-		vm.fp[3] += uint32(args[3])
+	if arg[3] > 0 {
+		if off[3] > 0 {
+			if vm.fp[3]+uint32(arg[3]) > vm.st[3] {
+				vm.moreIntStack()
+			}
+			stack := vm.regs.general[vm.fp[3]+1:]
+			tot := off[3] + arg[3]
+			copy(stack[arg[3]:], stack[:tot])
+			copy(stack, stack[tot:tot+arg[3]])
+		}
+		vm.fp[3] += uint32(arg[3])
 	}
 }
 
