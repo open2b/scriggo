@@ -432,16 +432,19 @@ func (vm *VM) alloc() {
 }
 
 // callPredefined calls a predefined function. numVariadic is the number of
-// actual variadic arguments, shift is the stack shift and newGoroutine
-// reports whether a new goroutine must be started.
-func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift StackShift, newGoroutine bool) {
+// variadic arguments, shift is the stack shift and asGoroutine reports
+// whether the function must be started as a goroutine.
+func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift StackShift, asGoroutine bool) {
+	// Make a copy of the frame pointer.
 	fp := vm.fp
+	// Shift the stack pointer.
 	vm.fp[0] += uint32(shift[0])
 	vm.fp[1] += uint32(shift[1])
 	vm.fp[2] += uint32(shift[2])
 	vm.fp[3] += uint32(shift[3])
 	if fn.Func != nil {
-		if newGoroutine {
+		// Try to call the function without the reflect.
+		if asGoroutine {
 			switch f := fn.Func.(type) {
 			case func(string) int:
 				go f(vm.string(1))
@@ -460,6 +463,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 			case func([]byte, []byte) bool:
 				go f(vm.general(1).([]byte), vm.general(2).([]byte))
 			default:
+				// The function can be called only with reflect.
 				fn.slow()
 			}
 		} else {
@@ -485,11 +489,13 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 			case func(interface{}) interface{}:
 				vm.setGeneral(1, f(vm.general(2)))
 			default:
+				// Prepare the function to be be called with reflect.
 				fn.slow()
 			}
 		}
 	}
 	if fn.Func == nil {
+		// Call the function with reflect.
 		var args []reflect.Value
 		variadic := fn.value.Type().IsVariadic()
 		if len(fn.in) > 0 {
@@ -596,7 +602,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 			vm.fp[2] = fp[2] + uint32(shift[2])
 			vm.fp[3] = fp[3] + uint32(shift[3])
 		}
-		if newGoroutine {
+		if asGoroutine {
 			if variadic {
 				go fn.value.CallSlice(args)
 			} else {
@@ -638,6 +644,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 			}
 		}
 	}
+	// Restore the frame pointer.
 	vm.fp = fp
 	vm.pc++
 }
