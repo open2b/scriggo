@@ -75,6 +75,16 @@ func (em *emitter) compositeLiteralLen(node *ast.CompositeLiteral) int {
 	return size
 }
 
+// stackDifference returns the difference of registers between a and b.
+func stackDifference(a, b vm.StackShift) vm.StackShift {
+	return vm.StackShift{
+		a[0] - b[0],
+		a[1] - b[1],
+		a[2] - b[2],
+		a[3] - b[3],
+	}
+}
+
 // functionIndex returns the index of a function inside the current function,
 // creating it if it does not exist.
 func (em *emitter) functionIndex(fun *vm.Function) int8 {

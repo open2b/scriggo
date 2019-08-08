@@ -362,7 +362,7 @@ func (em *emitter) prepareCallParameters(typ reflect.Type, args []ast.Expression
 		}
 	} else { // No-variadic function.
 		if numIn > 1 && len(args) == 1 { // f(g()), where f takes more than 1 argument.
-			regs, types := em.emitCallNode(args[0].(*ast.Call), false)
+			regs, types := em.emitCallNode(args[0].(*ast.Call), false, false)
 			for i := range regs {
 				dstType := typ.In(i)
 				reg := em.fb.newRegister(dstType.Kind())
@@ -421,7 +421,9 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 
 // emitCallNode emits instructions for a function call node. It returns the
 // registers and the reflect types of the returned values.
-func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.Type) {
+// goStmt indicates if the call node belongs to a 'go statement', while
+// deferStmt reports whether it must be deferred.
+func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]int8, []reflect.Type) {
 
 	ti := em.ti(call.Func)
 	typ := ti.Type
@@ -446,6 +448,9 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.
 		if goStmt {
 			em.fb.emitGo()
 		}
+		if deferStmt {
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		}
 		em.fb.emitCallIndirect(method, 0, stackShift)
 		return regs, types
 	}
@@ -469,12 +474,18 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.
 		if goStmt {
 			em.fb.emitGo()
 		}
+		numVar := vm.NoVariadicArgs
 		if typ.IsVariadic() {
-			numVar := len(call.Args) - (typ.NumIn() - 1)
-			em.fb.emitCallPredefined(index, int8(numVar), stackShift)
-		} else {
-			em.fb.emitCallPredefined(index, vm.NoVariadicArgs, stackShift)
+			numVar = len(call.Args) - (typ.NumIn() - 1)
 		}
+		if deferStmt {
+			args := em.fb.currentStackShift()
+			reg := em.fb.newRegister(reflect.Func)
+			em.fb.emitGetFunc(true, index, reg)
+			em.fb.emitDefer(reg, int8(numVar), stackShift, args)
+			return regs, types
+		}
+		em.fb.emitCallPredefined(index, int8(numVar), stackShift)
 		return regs, types
 	}
 
@@ -486,6 +497,14 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.
 			index := em.functionIndex(fn)
 			if goStmt {
 				em.fb.emitGo()
+			}
+			if deferStmt {
+				args := stackDifference(em.fb.currentStackShift(), stackShift)
+				reg := em.fb.newRegister(reflect.Func)
+				em.fb.emitGetFunc(false, index, reg)
+				// TODO(Gianluca): review vm.NoVariadicArgs.
+				em.fb.emitDefer(reg, vm.NoVariadicArgs, stackShift, args)
+				return regs, types
 			}
 			em.fb.emitCall(index, stackShift, call.Pos().Line)
 			return regs, types
@@ -501,6 +520,9 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.
 				index := em.functionIndex(fun)
 				if goStmt {
 					em.fb.emitGo()
+				}
+				if deferStmt {
+					panic("TODO: not implemented") // TODO(Gianluca): to implement.
 				}
 				em.fb.emitCall(index, stackShift, call.Pos().Line)
 				return regs, types
@@ -518,6 +540,11 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.
 	}
 	if goStmt {
 		em.fb.emitGo()
+	}
+	if deferStmt {
+		args := stackDifference(em.fb.currentStackShift(), stackShift)
+		em.fb.emitDefer(reg, int8(numVar), stackShift, args)
+		return regs, types
 	}
 	em.fb.emitCallIndirect(reg, int8(numVar), stackShift)
 
@@ -813,48 +840,20 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				panic("TODO: https://github.com/open2b/scriggo/issues/233") // TODO(Gianluca): not implemented.
 			}
 			em.fb.enterStack()
-			_, _ = em.emitCallNode(node.Call, true)
+			_, _ = em.emitCallNode(node.Call, true, false)
 			em.fb.exitStack()
 
 		case *ast.Defer:
-			if em.isPredeclaredBuiltinFunc(node.Call.Func) {
-				ident := node.Call.Func.(*ast.Identifier)
-				if ident.Name == "recover" {
-					continue
-				} else {
-					// TODO(Gianluca): builtins (except recover)
-					// must be incapsulated inside a function
-					// literal call when deferring (or starting
-					// a goroutine?). For example
-					//
-					//	defer copy(dst, src)
-					//
-					// should be compiled into
-					//
-					// 	defer func() {
-					// 		copy(dst, src)
-					// 	}()
-					//
-					panic("TODO(Gianluca): not implemented")
-				}
+			if em.ti(node.Call.Func) == showMacroIgnoredTi {
+				// Nothing to do
+				continue
 			}
-			fun := em.fb.newRegister(reflect.Func)
-			var fnNode ast.Expression
-			var args []ast.Expression
-			fnNode = node.Call.Func
-			args = node.Call.Args
-			funType := em.ti(fnNode).Type
-			em.emitExprR(fnNode, em.ti(fnNode).Type, fun)
-			offset := em.fb.currentStackShift()
-			// TODO(Gianluca): currently supports only deferring or
-			// starting goroutines of not predefined functions.
-			isPredefined := false
-			em.prepareCallParameters(funType, args, isPredefined, false)
-			// TODO(Gianluca): currently supports only deferring functions
-			// and starting goroutines with no arguments and no return
-			// parameters.
-			argsShift := vm.StackShift{}
-			em.fb.emitDefer(fun, vm.NoVariadicArgs, offset, argsShift)
+			if em.isPredeclaredBuiltinFunc(node.Call.Func) {
+				panic("TODO: https://github.com/open2b/scriggo/issues/233") // TODO(Gianluca): not implemented.
+			}
+			em.fb.enterStack()
+			_, _ = em.emitCallNode(node.Call, false, true)
+			em.fb.exitStack()
 
 		case *ast.Import:
 			if em.isTemplate {
@@ -1526,7 +1525,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 		// Function call.
 		em.fb.enterStack()
-		regs, types := em.emitCallNode(expr, false)
+		regs, types := em.emitCallNode(expr, false, false)
 		if reg != 0 {
 			em.changeRegister(false, regs[0], reg, types[0], dstType)
 		}

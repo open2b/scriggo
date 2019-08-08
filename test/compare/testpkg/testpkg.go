@@ -53,3 +53,7 @@ func NewT(a int) T {
 type T int
 
 type Complex128 complex128
+
+func SayHello() {
+	fmt.Println("Hello, world!")
+}
