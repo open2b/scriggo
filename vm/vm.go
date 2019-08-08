@@ -435,194 +435,301 @@ func (vm *VM) alloc() {
 // variadic arguments, shift is the stack shift and asGoroutine reports
 // whether the function must be started as a goroutine.
 func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift StackShift, asGoroutine bool) {
+
 	// Make a copy of the frame pointer.
 	fp := vm.fp
-	// Shift the stack pointer.
+
+	// Shift the frame pointer.
 	vm.fp[0] += uint32(shift[0])
 	vm.fp[1] += uint32(shift[1])
 	vm.fp[2] += uint32(shift[2])
 	vm.fp[3] += uint32(shift[3])
-	if fn.Func != nil && !asGoroutine {
-		// Try to call the function without the reflect.
-		switch f := fn.Func.(type) {
-		case func(string) int:
-			vm.setInt(1, int64(f(vm.string(1))))
-		case func(string) string:
-			vm.setString(1, f(vm.string(2)))
-		case func(string, string) int:
-			vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
-		case func(string, int) string:
-			vm.setString(1, f(vm.string(2), int(vm.int(1))))
-		case func(string, string) bool:
-			vm.setBool(1, f(vm.string(1), vm.string(2)))
-		case func([]byte) []byte:
-			vm.setGeneral(1, f(vm.general(2).([]byte)))
-		case func([]byte, []byte) int:
-			vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
-		case func([]byte, []byte) bool:
-			vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
-		case func(interface{}, interface{}) interface{}:
-			vm.setGeneral(1, f(vm.general(2), vm.general(3)))
-		case func(interface{}) interface{}:
-			vm.setGeneral(1, f(vm.general(2)))
-		default:
-			// Prepare the function to be be called with reflect.
-			fn.slow()
+
+	// Try to call the function without the reflect.
+	if !asGoroutine {
+		fn.mx.RLock()
+		in := fn.in
+		fn.mx.RUnlock()
+		if in == nil {
+			called := true
+			switch f := fn.Func.(type) {
+			case func(string) int:
+				vm.setInt(1, int64(f(vm.string(1))))
+			case func(string) string:
+				vm.setString(1, f(vm.string(2)))
+			case func(string, string) int:
+				vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
+			case func(string, int) string:
+				vm.setString(1, f(vm.string(2), int(vm.int(1))))
+			case func(string, string) bool:
+				vm.setBool(1, f(vm.string(1), vm.string(2)))
+			case func([]byte) []byte:
+				vm.setGeneral(1, f(vm.general(2).([]byte)))
+			case func([]byte, []byte) int:
+				vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
+			case func([]byte, []byte) bool:
+				vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
+			case func(interface{}, interface{}) interface{}:
+				vm.setGeneral(1, f(vm.general(2), vm.general(3)))
+			case func(interface{}) interface{}:
+				vm.setGeneral(1, f(vm.general(2)))
+			default:
+				called = false
+			}
+			if called {
+				vm.fp = fp // Restore the frame pointer.
+				return
+			}
 		}
 	}
-	if fn.Func == nil {
-		// Call the function with reflect.
-		var args []reflect.Value
-		variadic := fn.value.Type().IsVariadic()
-		if len(fn.in) > 0 {
-			args = fn.getArgs()
-			vm.fp[0] += uint32(fn.outOff[0])
-			vm.fp[1] += uint32(fn.outOff[1])
-			vm.fp[2] += uint32(fn.outOff[2])
-			vm.fp[3] += uint32(fn.outOff[3])
-			lastNonVariadic := len(fn.in)
-			if variadic && numVariadic != NoVariadicArgs {
-				lastNonVariadic--
-			}
-			for i, k := range fn.in {
-				if i < lastNonVariadic {
-					switch k {
-					case Bool:
-						args[i].SetBool(vm.bool(1))
-						vm.fp[0]++
-					case Int:
-						args[i].SetInt(vm.int(1))
-						vm.fp[0]++
-					case Uint:
-						args[i].SetUint(uint64(vm.int(1)))
-						vm.fp[0]++
-					case Float64:
-						args[i].SetFloat(vm.float(1))
-						vm.fp[1]++
-					case String:
-						args[i].SetString(vm.string(1))
-						vm.fp[2]++
-					case Func:
-						f := vm.general(1).(*callable)
-						args[i].Set(f.Value(vm.env))
-						vm.fp[3]++
-					case Environment:
-						args[i].Set(vm.envArg)
-					case Interface:
-						if v := vm.general(1); v == nil {
-							if t := args[i].Type(); t == emptyInterfaceType {
-								args[i] = emptyInterfaceNil
-							} else {
-								args[i].Set(reflect.Zero(t))
-							}
-						} else {
-							args[i].Set(reflect.ValueOf(v))
-						}
-						vm.fp[3]++
-					default:
-						args[i].Set(reflect.ValueOf(vm.general(1)))
-						vm.fp[3]++
-					}
+
+	// Prepare the function to be be called with reflect.
+	fn.mx.Lock()
+	if fn.in == nil {
+		fn.value = reflect.ValueOf(fn.Func)
+		typ := fn.value.Type()
+		nIn := typ.NumIn()
+		fn.in = make([]Kind, nIn)
+		for i := 0; i < nIn; i++ {
+			var k = typ.In(i).Kind()
+			switch {
+			case k == reflect.Bool:
+				fn.in[i] = Bool
+			case reflect.Int <= k && k <= reflect.Int64:
+				fn.in[i] = Int
+			case reflect.Uint <= k && k <= reflect.Uintptr:
+				fn.in[i] = Uint
+			case k == reflect.Float64 || k == reflect.Float32:
+				fn.in[i] = Float64
+			case k == reflect.String:
+				fn.in[i] = String
+			case k == reflect.Func:
+				fn.in[i] = Func
+			default:
+				if i < 2 && typ.In(i) == envType {
+					fn.in[i] = Environment
 				} else {
-					sliceType := args[i].Type()
-					slice := reflect.MakeSlice(sliceType, int(numVariadic), int(numVariadic))
-					k := sliceType.Elem().Kind()
-					switch k {
-					case reflect.Bool:
-						for j := 0; j < int(numVariadic); j++ {
-							slice.Index(j).SetBool(vm.bool(int8(j + 1)))
-						}
-					case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-						for j := 0; j < int(numVariadic); j++ {
-							slice.Index(j).SetInt(vm.int(int8(j + 1)))
-						}
-					case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-						for j := 0; j < int(numVariadic); j++ {
-							slice.Index(j).SetUint(uint64(vm.int(int8(j + 1))))
-						}
-					case reflect.Float32, reflect.Float64:
-						for j := 0; j < int(numVariadic); j++ {
-							slice.Index(j).SetFloat(vm.float(int8(j + 1)))
-						}
-					case reflect.Func:
-						for j := 0; j < int(numVariadic); j++ {
-							f := vm.general(int8(j + 1)).(*callable)
-							slice.Index(j).Set(f.Value(vm.env))
-						}
-					case reflect.String:
-						for j := 0; j < int(numVariadic); j++ {
-							slice.Index(j).SetString(vm.string(int8(j + 1)))
-						}
-					case reflect.Interface:
-						for j := 0; j < int(numVariadic); j++ {
-							if v := vm.general(int8(j + 1)); v == nil {
-								if t := slice.Index(j).Type(); t == emptyInterfaceType {
-									slice.Index(j).Set(emptyInterfaceNil)
-								} else {
-									slice.Index(j).Set(reflect.Zero(t))
-								}
-							} else {
-								slice.Index(j).Set(reflect.ValueOf(v))
-							}
-						}
-					default:
-						for j := 0; j < int(numVariadic); j++ {
-							slice.Index(j).Set(reflect.ValueOf(vm.general(int8(j + 1))))
-						}
-					}
-					args[i].Set(slice)
+					fn.in[i] = Interface
 				}
 			}
-			vm.fp[0] = fp[0] + uint32(shift[0])
-			vm.fp[1] = fp[1] + uint32(shift[1])
-			vm.fp[2] = fp[2] + uint32(shift[2])
-			vm.fp[3] = fp[3] + uint32(shift[3])
 		}
-		if asGoroutine {
-			if variadic {
-				go fn.value.CallSlice(args)
-			} else {
-				go fn.value.Call(args)
+		nOut := typ.NumOut()
+		fn.out = make([]Kind, nOut)
+		for i := 0; i < nOut; i++ {
+			k := typ.Out(i).Kind()
+			switch {
+			case k == reflect.Bool:
+				fn.out[i] = Bool
+				fn.outOff[0]++
+			case reflect.Int <= k && k <= reflect.Int64:
+				fn.out[i] = Int
+				fn.outOff[0]++
+			case reflect.Uint <= k && k <= reflect.Uintptr:
+				fn.out[i] = Uint
+				fn.outOff[0]++
+			case k == reflect.Float64 || k == reflect.Float32:
+				fn.out[i] = Float64
+				fn.outOff[1]++
+			case k == reflect.String:
+				fn.out[i] = String
+				fn.outOff[2]++
+			case k == reflect.Func:
+				fn.out[i] = Func
+				fn.outOff[3]++
+			default:
+				fn.out[i] = Interface
+				fn.outOff[3]++
+			}
+		}
+	}
+	fn.mx.Unlock()
+
+	// Call the function with reflect.
+	var args []reflect.Value
+	variadic := fn.value.Type().IsVariadic()
+
+	if len(fn.in) > 0 {
+
+		// Shift the frame pointer.
+		vm.fp[0] += uint32(fn.outOff[0])
+		vm.fp[1] += uint32(fn.outOff[1])
+		vm.fp[2] += uint32(fn.outOff[2])
+		vm.fp[3] += uint32(fn.outOff[3])
+
+		// Get a slice of reflect.Value for the arguments.
+		fn.mx.Lock()
+		if len(fn.args) == 0 {
+			fn.mx.Unlock()
+			nIn := len(fn.in)
+			typ := fn.value.Type()
+			args = make([]reflect.Value, nIn)
+			for i := 0; i < nIn; i++ {
+				t := typ.In(i)
+				args[i] = reflect.New(t).Elem()
 			}
 		} else {
-			var ret []reflect.Value
-			if variadic {
-				ret = fn.value.CallSlice(args)
-			} else {
-				ret = fn.value.Call(args)
-			}
-			for i, k := range fn.out {
+			last := len(fn.args) - 1
+			args = fn.args[last]
+			fn.args = fn.args[:last]
+			fn.mx.Unlock()
+		}
+
+		// Prepare the arguments.
+		lastNonVariadic := len(fn.in)
+		if variadic && numVariadic != NoVariadicArgs {
+			lastNonVariadic--
+		}
+		for i, k := range fn.in {
+			if i < lastNonVariadic {
 				switch k {
 				case Bool:
-					vm.setBool(1, ret[i].Bool())
+					args[i].SetBool(vm.bool(1))
 					vm.fp[0]++
 				case Int:
-					vm.setInt(1, ret[i].Int())
+					args[i].SetInt(vm.int(1))
 					vm.fp[0]++
 				case Uint:
-					vm.setInt(1, int64(ret[i].Uint()))
+					args[i].SetUint(uint64(vm.int(1)))
 					vm.fp[0]++
 				case Float64:
-					vm.setFloat(1, ret[i].Float())
+					args[i].SetFloat(vm.float(1))
 					vm.fp[1]++
 				case String:
-					vm.setString(1, ret[i].String())
+					args[i].SetString(vm.string(1))
 					vm.fp[2]++
 				case Func:
-
+					f := vm.general(1).(*callable)
+					args[i].Set(f.Value(vm.env))
+					vm.fp[3]++
+				case Environment:
+					args[i].Set(vm.envArg)
+				case Interface:
+					if v := vm.general(1); v == nil {
+						if t := args[i].Type(); t == emptyInterfaceType {
+							args[i] = emptyInterfaceNil
+						} else {
+							args[i].Set(reflect.Zero(t))
+						}
+					} else {
+						args[i].Set(reflect.ValueOf(v))
+					}
+					vm.fp[3]++
 				default:
-					vm.setGeneral(1, ret[i].Interface())
+					args[i].Set(reflect.ValueOf(vm.general(1)))
 					vm.fp[3]++
 				}
-			}
-			if args != nil {
-				fn.putArgs(args)
+			} else {
+				sliceType := args[i].Type()
+				slice := reflect.MakeSlice(sliceType, int(numVariadic), int(numVariadic))
+				k := sliceType.Elem().Kind()
+				switch k {
+				case reflect.Bool:
+					for j := 0; j < int(numVariadic); j++ {
+						slice.Index(j).SetBool(vm.bool(int8(j + 1)))
+					}
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					for j := 0; j < int(numVariadic); j++ {
+						slice.Index(j).SetInt(vm.int(int8(j + 1)))
+					}
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+					for j := 0; j < int(numVariadic); j++ {
+						slice.Index(j).SetUint(uint64(vm.int(int8(j + 1))))
+					}
+				case reflect.Float32, reflect.Float64:
+					for j := 0; j < int(numVariadic); j++ {
+						slice.Index(j).SetFloat(vm.float(int8(j + 1)))
+					}
+				case reflect.Func:
+					for j := 0; j < int(numVariadic); j++ {
+						f := vm.general(int8(j + 1)).(*callable)
+						slice.Index(j).Set(f.Value(vm.env))
+					}
+				case reflect.String:
+					for j := 0; j < int(numVariadic); j++ {
+						slice.Index(j).SetString(vm.string(int8(j + 1)))
+					}
+				case reflect.Interface:
+					for j := 0; j < int(numVariadic); j++ {
+						if v := vm.general(int8(j + 1)); v == nil {
+							if t := slice.Index(j).Type(); t == emptyInterfaceType {
+								slice.Index(j).Set(emptyInterfaceNil)
+							} else {
+								slice.Index(j).Set(reflect.Zero(t))
+							}
+						} else {
+							slice.Index(j).Set(reflect.ValueOf(v))
+						}
+					}
+				default:
+					for j := 0; j < int(numVariadic); j++ {
+						slice.Index(j).Set(reflect.ValueOf(vm.general(int8(j + 1))))
+					}
+				}
+				args[i].Set(slice)
 			}
 		}
+
+		// Shift the frame pointer.
+		vm.fp[0] = fp[0] + uint32(shift[0])
+		vm.fp[1] = fp[1] + uint32(shift[1])
+		vm.fp[2] = fp[2] + uint32(shift[2])
+		vm.fp[3] = fp[3] + uint32(shift[3])
+
 	}
-	// Restore the frame pointer.
-	vm.fp = fp
-	vm.pc++
+
+	if asGoroutine {
+
+		// Start a goroutine.
+		if variadic {
+			go fn.value.CallSlice(args)
+		} else {
+			go fn.value.Call(args)
+		}
+
+	} else {
+
+		// Call the function and get the results.
+		var ret []reflect.Value
+		if variadic {
+			ret = fn.value.CallSlice(args)
+		} else {
+			ret = fn.value.Call(args)
+		}
+		for i, k := range fn.out {
+			switch k {
+			case Bool:
+				vm.setBool(1, ret[i].Bool())
+				vm.fp[0]++
+			case Int:
+				vm.setInt(1, ret[i].Int())
+				vm.fp[0]++
+			case Uint:
+				vm.setInt(1, int64(ret[i].Uint()))
+				vm.fp[0]++
+			case Float64:
+				vm.setFloat(1, ret[i].Float())
+				vm.fp[1]++
+			case String:
+				vm.setString(1, ret[i].String())
+				vm.fp[2]++
+			case Func:
+
+			default:
+				vm.setGeneral(1, ret[i].Interface())
+				vm.fp[3]++
+			}
+		}
+		if args != nil {
+			fn.mx.Lock()
+			fn.args = append(fn.args, args)
+			fn.mx.Unlock()
+		}
+
+	}
+
+	vm.fp = fp // Restore the frame pointer.
+
+	return
 }
 
 //go:noinline
@@ -1013,39 +1120,12 @@ type PredefinedFunction struct {
 	Pkg    string
 	Name   string
 	Func   interface{}
-	value  reflect.Value
+	mx     sync.RWMutex // synchronize access to the following fields.
 	in     []Kind
 	out    []Kind
-	mx     sync.Mutex
 	args   [][]reflect.Value
 	outOff [4]int8
-}
-
-func (fn *PredefinedFunction) getArgs() []reflect.Value {
-	fn.mx.Lock()
-	var args []reflect.Value
-	if len(fn.args) == 0 {
-		nIn := len(fn.in)
-		typ := fn.value.Type()
-		args = make([]reflect.Value, nIn)
-		for i := 0; i < nIn; i++ {
-			t := typ.In(i)
-			args[i] = reflect.New(t).Elem()
-		}
-	} else {
-		last := len(fn.args) - 1
-		args = fn.args[last]
-		fn.args = fn.args[:last]
-	}
-	fn.mx.Unlock()
-	return args
-}
-
-func (fn *PredefinedFunction) putArgs(args []reflect.Value) {
-	fn.mx.Lock()
-	fn.args = append(fn.args, args)
-	fn.mx.Unlock()
-	return
+	value  reflect.Value
 }
 
 // Function represents a function.
@@ -1066,69 +1146,6 @@ type Function struct {
 	Body       []Instruction
 	Lines      map[uint32]int
 	Data       [][]byte
-}
-
-func (fn *PredefinedFunction) slow() {
-	fn.mx.Lock()
-	if !fn.value.IsValid() {
-		fn.value = reflect.ValueOf(fn.Func)
-	}
-	typ := fn.value.Type()
-	nIn := typ.NumIn()
-	fn.in = make([]Kind, nIn)
-	for i := 0; i < nIn; i++ {
-		var k = typ.In(i).Kind()
-		switch {
-		case k == reflect.Bool:
-			fn.in[i] = Bool
-		case reflect.Int <= k && k <= reflect.Int64:
-			fn.in[i] = Int
-		case reflect.Uint <= k && k <= reflect.Uintptr:
-			fn.in[i] = Uint
-		case k == reflect.Float64 || k == reflect.Float32:
-			fn.in[i] = Float64
-		case k == reflect.String:
-			fn.in[i] = String
-		case k == reflect.Func:
-			fn.in[i] = Func
-		default:
-			if i < 2 && typ.In(i) == envType {
-				fn.in[i] = Environment
-			} else {
-				fn.in[i] = Interface
-			}
-		}
-	}
-	nOut := typ.NumOut()
-	fn.out = make([]Kind, nOut)
-	for i := 0; i < nOut; i++ {
-		k := typ.Out(i).Kind()
-		switch {
-		case k == reflect.Bool:
-			fn.out[i] = Bool
-			fn.outOff[0]++
-		case reflect.Int <= k && k <= reflect.Int64:
-			fn.out[i] = Int
-			fn.outOff[0]++
-		case reflect.Uint <= k && k <= reflect.Uintptr:
-			fn.out[i] = Uint
-			fn.outOff[0]++
-		case k == reflect.Float64 || k == reflect.Float32:
-			fn.out[i] = Float64
-			fn.outOff[1]++
-		case k == reflect.String:
-			fn.out[i] = String
-			fn.outOff[2]++
-		case k == reflect.Func:
-			fn.out[i] = Func
-			fn.outOff[3]++
-		default:
-			fn.out[i] = Interface
-			fn.outOff[3]++
-		}
-	}
-	fn.Func = nil
-	fn.mx.Unlock()
 }
 
 type callStatus int8
@@ -1188,10 +1205,7 @@ func (c *callable) Value(env *Env) reflect.Value {
 	}
 	if c.predefined != nil {
 		// It is a predefined function.
-		if !c.predefined.value.IsValid() {
-			c.predefined.value = reflect.ValueOf(c.predefined.Func)
-		}
-		c.value = c.predefined.value
+		c.value = reflect.ValueOf(c.predefined.Func)
 		return c.value
 	}
 	if c.method == "" {
