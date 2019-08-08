@@ -1,4 +1,4 @@
-// run
+// skip : fails on go 1.12
 
 package main
 
