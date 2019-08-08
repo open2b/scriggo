@@ -1,4 +1,7 @@
 SET VARIABLE predefPkgs
+
+IMPORT testpkg
+
 IMPORT bufio
 IMPORT bytes
 IMPORT crypto/sha1
@@ -11,6 +14,7 @@ IMPORT math/rand
 IMPORT net
 IMPORT net/url
 IMPORT os
+IMPORT os/exec
 IMPORT regexp
 IMPORT sort
 IMPORT strconv
@@ -18,3 +22,4 @@ IMPORT strings
 IMPORT time
 IMPORT unicode
 IMPORT unicode/utf8
+
