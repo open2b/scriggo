@@ -1,5 +1,3 @@
-// skip : cannot pass the argument
-
 // run
 
 // Test the defer statement.

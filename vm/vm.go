@@ -777,7 +777,7 @@ func (vm *VM) deferCall(cl *callable, numVariadic int8, off, arg StackShift) {
 	if arg[1] > 0 {
 		if off[1] > 0 {
 			if vm.fp[1]+uint32(arg[1]) > vm.st[1] {
-				vm.moreIntStack()
+				vm.moreFloatStack()
 			}
 			stack := vm.regs.float[vm.fp[1]+1:]
 			tot := off[1] + arg[1]
@@ -789,7 +789,7 @@ func (vm *VM) deferCall(cl *callable, numVariadic int8, off, arg StackShift) {
 	if arg[2] > 0 {
 		if off[2] > 0 {
 			if vm.fp[2]+uint32(arg[2]) > vm.st[2] {
-				vm.moreIntStack()
+				vm.moreStringStack()
 			}
 			stack := vm.regs.string[vm.fp[2]+1:]
 			tot := off[2] + arg[2]
@@ -801,7 +801,7 @@ func (vm *VM) deferCall(cl *callable, numVariadic int8, off, arg StackShift) {
 	if arg[3] > 0 {
 		if off[3] > 0 {
 			if vm.fp[3]+uint32(arg[3]) > vm.st[3] {
-				vm.moreIntStack()
+				vm.moreGeneralStack()
 			}
 			stack := vm.regs.general[vm.fp[3]+1:]
 			tot := off[3] + arg[3]
@@ -963,53 +963,53 @@ func (vm *VM) startGoroutine() bool {
 }
 
 func (vm *VM) swapCall(call callFrame) callFrame {
-	if call.fp[0] < vm.fp[0] {
-		a := uint32(vm.fp[0] - call.fp[0])
-		b := uint32(vm.fn.RegNum[0])
-		if vm.fp[0]+2*b > vm.st[0] {
-			vm.moreIntStack()
+	if arg := vm.fp[0] - call.fp[0]; arg > 0 {
+		if off := uint32(vm.fn.RegNum[0]); off > 0 {
+			if vm.fp[0]+2*off > vm.st[0] {
+				vm.moreIntStack()
+			}
+			s := vm.regs.int[call.fp[0]+1:]
+			copy(s[arg:], s[:arg+off])
+			copy(s, s[arg+off:arg+2*off])
+			call.fp[0] += off
 		}
-		s := vm.regs.int[call.fp[0]+1:]
-		copy(s[a:], s[:a+b])
-		copy(s, s[a+b:a+2*b])
-		vm.fp[0] -= a
-		call.fp[0] += b
+		vm.fp[0] -= arg
 	}
-	if call.fp[1] < vm.fp[1] {
-		a := uint32(vm.fp[1] - call.fp[1])
-		b := uint32(vm.fn.RegNum[1])
-		if vm.fp[1]+2*b > vm.st[1] {
-			vm.moreFloatStack()
+	if arg := vm.fp[1] - call.fp[1]; arg > 0 {
+		if off := uint32(vm.fn.RegNum[1]); off > 0 {
+			if vm.fp[1]+2*off > vm.st[1] {
+				vm.moreFloatStack()
+			}
+			s := vm.regs.float[call.fp[1]+1:]
+			copy(s[arg:], s[:arg+off])
+			copy(s, s[arg+off:arg+2*off])
+			call.fp[1] += off
 		}
-		s := vm.regs.float[call.fp[1]+1:]
-		copy(s[a:], s[:a+b])
-		copy(s, s[a+b:a+2*b])
-		vm.fp[1] -= a
-		call.fp[1] += b
+		vm.fp[1] -= arg
 	}
-	if call.fp[2] < vm.fp[2] {
-		a := uint32(vm.fp[2] - call.fp[2])
-		b := uint32(vm.fn.RegNum[2])
-		if vm.fp[2]+2*b > vm.st[2] {
-			vm.moreStringStack()
+	if arg := vm.fp[2] - call.fp[2]; arg > 0 {
+		if off := uint32(vm.fn.RegNum[2]); off > 0 {
+			if vm.fp[2]+2*off > vm.st[2] {
+				vm.moreStringStack()
+			}
+			s := vm.regs.string[call.fp[2]+1:]
+			copy(s[arg:], s[:arg+off])
+			copy(s, s[arg+off:arg+2*off])
+			call.fp[2] += off
 		}
-		s := vm.regs.float[call.fp[2]+1:]
-		copy(s[a:], s[:a+b])
-		copy(s, s[a+b:a+2*b])
-		vm.fp[2] -= a
-		call.fp[2] += b
+		vm.fp[2] -= arg
 	}
-	if call.fp[3] < vm.fp[3] {
-		a := uint32(vm.fp[3] - call.fp[3])
-		b := uint32(vm.fn.RegNum[3])
-		if vm.fp[3]+2*b > vm.st[3] {
-			vm.moreGeneralStack()
+	if arg := vm.fp[3] - call.fp[3]; arg > 0 {
+		if off := uint32(vm.fn.RegNum[3]); off > 0 {
+			if vm.fp[3]+2*off > vm.st[3] {
+				vm.moreGeneralStack()
+			}
+			s := vm.regs.string[call.fp[3]+1:]
+			copy(s[arg:], s[:arg+off])
+			copy(s, s[arg+off:arg+2*off])
+			call.fp[3] += off
 		}
-		s := vm.regs.general[call.fp[3]+1:]
-		copy(s[a:], s[:a+b])
-		copy(s, s[a+b:a+2*b])
-		vm.fp[3] -= a
-		call.fp[3] += b
+		vm.fp[3] -= arg
 	}
 	return call
 }
