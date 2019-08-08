@@ -1181,9 +1181,9 @@ LABEL:
 		var call *ast.Call
 		switch expr := expr.(type) {
 		default:
-			panic(&CheckingError{"", *tok.pos, fmt.Errorf("expression in %s must be function call", keyword)})
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expression in %s must be function call", keyword)})
 		case *ast.Parenthesis:
-			panic(&CheckingError{"", *tok.pos, fmt.Errorf("expression in %s must not be parenthesized", keyword)})
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expression in %s must not be parenthesized", keyword)})
 		case *ast.Call:
 			call = expr
 		}
