@@ -278,6 +278,7 @@ func (vm *VM) run() (uint32, bool) {
 				off := vm.fn.Body[vm.pc]
 				vm.callPredefined(f.Predefined(), c, StackShift{int8(off.Op), off.A, off.B, off.C}, startPredefinedGoroutine)
 				startPredefinedGoroutine = false
+				vm.pc++
 			} else {
 				fn := f.fn
 				vm.vars = f.vars
@@ -310,6 +311,7 @@ func (vm *VM) run() (uint32, bool) {
 			off := vm.fn.Body[vm.pc]
 			vm.callPredefined(fn, c, StackShift{int8(off.Op), off.A, off.B, off.C}, startPredefinedGoroutine)
 			startPredefinedGoroutine = false
+			vm.pc++
 
 		// Cap
 		case OpCap:
