@@ -442,56 +442,32 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 	vm.fp[1] += uint32(shift[1])
 	vm.fp[2] += uint32(shift[2])
 	vm.fp[3] += uint32(shift[3])
-	if fn.Func != nil {
+	if fn.Func != nil && !asGoroutine {
 		// Try to call the function without the reflect.
-		if asGoroutine {
-			switch f := fn.Func.(type) {
-			case func(string) int:
-				go f(vm.string(1))
-			case func(string) string:
-				go f(vm.string(2))
-			case func(string, string) int:
-				go f(vm.string(1), vm.string(2))
-			case func(string, int) string:
-				go f(vm.string(2), int(vm.int(1)))
-			case func(string, string) bool:
-				go f(vm.string(1), vm.string(2))
-			case func([]byte) []byte:
-				go f(vm.general(2).([]byte))
-			case func([]byte, []byte) int:
-				go f(vm.general(1).([]byte), vm.general(2).([]byte))
-			case func([]byte, []byte) bool:
-				go f(vm.general(1).([]byte), vm.general(2).([]byte))
-			default:
-				// The function can be called only with reflect.
-				fn.slow()
-			}
-		} else {
-			switch f := fn.Func.(type) {
-			case func(string) int:
-				vm.setInt(1, int64(f(vm.string(1))))
-			case func(string) string:
-				vm.setString(1, f(vm.string(2)))
-			case func(string, string) int:
-				vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
-			case func(string, int) string:
-				vm.setString(1, f(vm.string(2), int(vm.int(1))))
-			case func(string, string) bool:
-				vm.setBool(1, f(vm.string(1), vm.string(2)))
-			case func([]byte) []byte:
-				vm.setGeneral(1, f(vm.general(2).([]byte)))
-			case func([]byte, []byte) int:
-				vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
-			case func([]byte, []byte) bool:
-				vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
-			case func(interface{}, interface{}) interface{}:
-				vm.setGeneral(1, f(vm.general(2), vm.general(3)))
-			case func(interface{}) interface{}:
-				vm.setGeneral(1, f(vm.general(2)))
-			default:
-				// Prepare the function to be be called with reflect.
-				fn.slow()
-			}
+		switch f := fn.Func.(type) {
+		case func(string) int:
+			vm.setInt(1, int64(f(vm.string(1))))
+		case func(string) string:
+			vm.setString(1, f(vm.string(2)))
+		case func(string, string) int:
+			vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
+		case func(string, int) string:
+			vm.setString(1, f(vm.string(2), int(vm.int(1))))
+		case func(string, string) bool:
+			vm.setBool(1, f(vm.string(1), vm.string(2)))
+		case func([]byte) []byte:
+			vm.setGeneral(1, f(vm.general(2).([]byte)))
+		case func([]byte, []byte) int:
+			vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
+		case func([]byte, []byte) bool:
+			vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
+		case func(interface{}, interface{}) interface{}:
+			vm.setGeneral(1, f(vm.general(2), vm.general(3)))
+		case func(interface{}) interface{}:
+			vm.setGeneral(1, f(vm.general(2)))
+		default:
+			// Prepare the function to be be called with reflect.
+			fn.slow()
 		}
 	}
 	if fn.Func == nil {
