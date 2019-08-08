@@ -446,45 +446,47 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 	vm.fp[3] += uint32(shift[3])
 
 	// Try to call the function without the reflect.
-	if fn.Func != nil && !asGoroutine {
-		called := true
-		switch f := fn.Func.(type) {
-		case func(string) int:
-			vm.setInt(1, int64(f(vm.string(1))))
-		case func(string) string:
-			vm.setString(1, f(vm.string(2)))
-		case func(string, string) int:
-			vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
-		case func(string, int) string:
-			vm.setString(1, f(vm.string(2), int(vm.int(1))))
-		case func(string, string) bool:
-			vm.setBool(1, f(vm.string(1), vm.string(2)))
-		case func([]byte) []byte:
-			vm.setGeneral(1, f(vm.general(2).([]byte)))
-		case func([]byte, []byte) int:
-			vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
-		case func([]byte, []byte) bool:
-			vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
-		case func(interface{}, interface{}) interface{}:
-			vm.setGeneral(1, f(vm.general(2), vm.general(3)))
-		case func(interface{}) interface{}:
-			vm.setGeneral(1, f(vm.general(2)))
-		default:
-			called = false
-		}
-		if called {
-			// Restore the frame pointer.
-			vm.fp = fp
-			return
+	if !asGoroutine {
+		fn.mx.RLock()
+		in := fn.in
+		fn.mx.RUnlock()
+		if in == nil {
+			called := true
+			switch f := fn.Func.(type) {
+			case func(string) int:
+				vm.setInt(1, int64(f(vm.string(1))))
+			case func(string) string:
+				vm.setString(1, f(vm.string(2)))
+			case func(string, string) int:
+				vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
+			case func(string, int) string:
+				vm.setString(1, f(vm.string(2), int(vm.int(1))))
+			case func(string, string) bool:
+				vm.setBool(1, f(vm.string(1), vm.string(2)))
+			case func([]byte) []byte:
+				vm.setGeneral(1, f(vm.general(2).([]byte)))
+			case func([]byte, []byte) int:
+				vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
+			case func([]byte, []byte) bool:
+				vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
+			case func(interface{}, interface{}) interface{}:
+				vm.setGeneral(1, f(vm.general(2), vm.general(3)))
+			case func(interface{}) interface{}:
+				vm.setGeneral(1, f(vm.general(2)))
+			default:
+				called = false
+			}
+			if called {
+				vm.fp = fp // Restore the frame pointer.
+				return
+			}
 		}
 	}
 
 	// Prepare the function to be be called with reflect.
-	if fn.Func != nil {
-		fn.mx.Lock()
-		if !fn.value.IsValid() {
-			fn.value = reflect.ValueOf(fn.Func)
-		}
+	fn.mx.Lock()
+	if fn.in == nil {
+		fn.value = reflect.ValueOf(fn.Func)
 		typ := fn.value.Type()
 		nIn := typ.NumIn()
 		fn.in = make([]Kind, nIn)
@@ -539,19 +541,40 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 				fn.outOff[3]++
 			}
 		}
-		fn.Func = nil
-		fn.mx.Unlock()
 	}
+	fn.mx.Unlock()
 
 	// Call the function with reflect.
 	var args []reflect.Value
 	variadic := fn.value.Type().IsVariadic()
+
 	if len(fn.in) > 0 {
-		args = fn.getArgs()
+
+		// Shift the frame pointer.
 		vm.fp[0] += uint32(fn.outOff[0])
 		vm.fp[1] += uint32(fn.outOff[1])
 		vm.fp[2] += uint32(fn.outOff[2])
 		vm.fp[3] += uint32(fn.outOff[3])
+
+		// Get a slice of reflect.Value for the arguments.
+		fn.mx.Lock()
+		if len(fn.args) == 0 {
+			fn.mx.Unlock()
+			nIn := len(fn.in)
+			typ := fn.value.Type()
+			args = make([]reflect.Value, nIn)
+			for i := 0; i < nIn; i++ {
+				t := typ.In(i)
+				args[i] = reflect.New(t).Elem()
+			}
+		} else {
+			last := len(fn.args) - 1
+			args = fn.args[last]
+			fn.args = fn.args[:last]
+			fn.mx.Unlock()
+		}
+
+		// Prepare the arguments.
 		lastNonVariadic := len(fn.in)
 		if variadic && numVariadic != NoVariadicArgs {
 			lastNonVariadic--
@@ -645,20 +668,26 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 				args[i].Set(slice)
 			}
 		}
+
+		// Shift the frame pointer.
 		vm.fp[0] = fp[0] + uint32(shift[0])
 		vm.fp[1] = fp[1] + uint32(shift[1])
 		vm.fp[2] = fp[2] + uint32(shift[2])
 		vm.fp[3] = fp[3] + uint32(shift[3])
+
 	}
 
 	if asGoroutine {
+
 		// Start a goroutine.
 		if variadic {
 			go fn.value.CallSlice(args)
 		} else {
 			go fn.value.Call(args)
 		}
+
 	} else {
+
 		// Call the function and get the results.
 		var ret []reflect.Value
 		if variadic {
@@ -691,12 +720,14 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 			}
 		}
 		if args != nil {
-			fn.putArgs(args)
+			fn.mx.Lock()
+			fn.args = append(fn.args, args)
+			fn.mx.Unlock()
 		}
+
 	}
 
-	// Restore the frame pointer.
-	vm.fp = fp
+	vm.fp = fp // Restore the frame pointer.
 
 	return
 }
@@ -1089,39 +1120,12 @@ type PredefinedFunction struct {
 	Pkg    string
 	Name   string
 	Func   interface{}
-	value  reflect.Value
+	mx     sync.RWMutex // synchronize access to the following fields.
 	in     []Kind
 	out    []Kind
-	mx     sync.Mutex
 	args   [][]reflect.Value
 	outOff [4]int8
-}
-
-func (fn *PredefinedFunction) getArgs() []reflect.Value {
-	fn.mx.Lock()
-	var args []reflect.Value
-	if len(fn.args) == 0 {
-		nIn := len(fn.in)
-		typ := fn.value.Type()
-		args = make([]reflect.Value, nIn)
-		for i := 0; i < nIn; i++ {
-			t := typ.In(i)
-			args[i] = reflect.New(t).Elem()
-		}
-	} else {
-		last := len(fn.args) - 1
-		args = fn.args[last]
-		fn.args = fn.args[:last]
-	}
-	fn.mx.Unlock()
-	return args
-}
-
-func (fn *PredefinedFunction) putArgs(args []reflect.Value) {
-	fn.mx.Lock()
-	fn.args = append(fn.args, args)
-	fn.mx.Unlock()
-	return
+	value  reflect.Value
 }
 
 // Function represents a function.
@@ -1201,10 +1205,7 @@ func (c *callable) Value(env *Env) reflect.Value {
 	}
 	if c.predefined != nil {
 		// It is a predefined function.
-		if !c.predefined.value.IsValid() {
-			c.predefined.value = reflect.ValueOf(c.predefined.Func)
-		}
-		c.value = c.predefined.value
+		c.value = reflect.ValueOf(c.predefined.Func)
 		return c.value
 	}
 	if c.method == "" {
