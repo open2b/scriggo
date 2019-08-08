@@ -653,8 +653,25 @@ func (vm *VM) invokeTraceFunc() {
 	vm.env.trace(vm.fn, vm.pc, regs)
 }
 
+// deferCall is called from the Defer instruction to defer a callable.
+// numVariadic is the number of variadic arguments, off is the call offset and
+// arg is the number of arguments per each register type.
 func (vm *VM) deferCall(cl *callable, numVariadic int8, off, arg StackShift) {
+	// Append the deferred call the call frame.
 	vm.calls = append(vm.calls, callFrame{cl: *cl, fp: vm.fp, pc: 0, status: deferred, numVariadic: numVariadic})
+	//
+	// Create a stack frame for the deferred call moving the arguments before
+	// the current function stack frame:
+	//
+	//  defer f(a, b)
+	//
+	//  before:                       after:
+	//   -----------------------       -----------------------
+	//  |   | x | y | z | a | b | --> |   | a | b | x | y | z |
+	//   -----------------------       -----------------------
+	//    ^                                     ^
+	//    frame pointer (fp)                    frame pointer (fp)
+	//
 	if arg[0] > 0 {
 		if off[0] > 0 {
 			if vm.fp[0]+uint32(arg[0]) > vm.st[0] {
