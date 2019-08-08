@@ -1589,37 +1589,47 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			}
 			em.changeRegister(false, reg, reg, em.ti(expr.Type).Type, dstType)
 		case reflect.Struct:
+			// Struct should no be created, but its values must be emitted.
 			if reg == 0 {
 				for _, kv := range expr.KeyValues {
-					typ := em.ti(kv.Value).Type
-					em.emitExprR(kv.Value, typ, 0)
+					em.emitExprR(kv.Value, em.ti(kv.Value).Type, 0)
 				}
 				return reg, false
 			}
-			em.fb.enterStack()
-			tmpTyp := reflect.PtrTo(typ)
-			tmp := -em.fb.newRegister(tmpTyp.Kind())
-			em.fb.emitNew(typ, -tmp)
-			if len(expr.KeyValues) > 0 {
-				for _, kv := range expr.KeyValues {
-					name := kv.Key.(*ast.Identifier).Name
-					field, _ := typ.FieldByName(name)
-					valueType := em.ti(kv.Value).Type
-					if canEmitDirectly(field.Type.Kind(), valueType.Kind()) {
-						value := em.emitExpr(kv.Value, valueType)
-						fieldConstIndex := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
-						em.fb.emitSetField(false, tmp, fieldConstIndex, value)
-					} else {
-						tmpValue := em.emitExpr(kv.Value, valueType)
-						value := em.fb.newRegister(field.Type.Kind())
-						em.changeRegister(false, tmpValue, value, valueType, field.Type)
-						fieldConstIndex := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
-						em.fb.emitSetField(false, tmp, fieldConstIndex, value)
-					}
-					// TODO(Gianluca): use field "k" of SetField.
-				}
+			structZero := em.fb.makeGeneralConstant(reflect.Zero(typ).Interface())
+			// When there are no values in the composite literal, optimize the
+			// creation of the struct.
+			if len(expr.KeyValues) == 0 {
+				em.changeRegister(true, structZero, reg, typ, dstType)
+				return reg, false
 			}
-			em.changeRegister(false, tmp, reg, tmpTyp, dstType)
+			// Assign key-value pairs to the struct fields.
+			em.fb.enterStack()
+			var structt int8
+			if canEmitDirectly(typ.Kind(), dstType.Kind()) {
+				structt = em.fb.newRegister(reflect.Struct)
+			} else {
+				structt = reg
+			}
+			em.changeRegister(true, structZero, structt, typ, typ)
+			for _, kv := range expr.KeyValues {
+				name := kv.Key.(*ast.Identifier).Name
+				field, _ := typ.FieldByName(name)
+				valueType := em.ti(kv.Value).Type
+				if canEmitDirectly(field.Type.Kind(), valueType.Kind()) {
+					value, k := em.emitExprK(kv.Value, valueType)
+					index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+					em.fb.emitSetField(k, structt, index, value)
+				} else {
+					tmpValue := em.emitExpr(kv.Value, valueType)
+					value := em.fb.newRegister(field.Type.Kind())
+					em.changeRegister(false, tmpValue, value, valueType, field.Type)
+					index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+					em.fb.emitSetField(false, structt, index, value)
+				}
+				// TODO(Gianluca): use field "k" of SetField.
+			}
+			em.changeRegister(false, structt, reg, typ, dstType)
 			em.fb.exitStack()
 
 		case reflect.Map:
