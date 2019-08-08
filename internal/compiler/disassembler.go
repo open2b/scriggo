@@ -461,9 +461,9 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		// s += ", cap: "
 		// s += fmt.Sprintf("%d", fn.Body[addr+1].B)
 	case vm.OpSetField:
-		s += " " + disassembleOperand(fn, a, vm.Interface, k)
+		s += " " + disassembleOperand(fn, a, vm.Unknown, k)
 		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[b]))
-		s += " " + disassembleOperand(fn, c, vm.Interface, k)
+		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpSetMap:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		if k {
