@@ -383,7 +383,7 @@ func test(src []byte, path, mode, ext string, keepTestingOnFail bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			absPath, _ := filepath.Abs(path)
-			fmt.Fprintf(os.Stderr, "%s: %s\n", absPath, r)
+			fmt.Fprintf(os.Stderr, "\n%s: %s\n", absPath, r)
 			if keepTestingOnFail {
 				return
 			}
@@ -422,7 +422,7 @@ func test(src []byte, path, mode, ext string, keepTestingOnFail bool) {
 			panic(fmt.Errorf("expected succeed, but Scriggo returned error '%s'", scriggoStderr))
 		}
 		if len(scriggoStderr) == 0 && len(gcStderr) > 0 {
-			panic("expected succeed, but gc returned an error")
+			panic(fmt.Errorf("expected succeed, but gc returned error '%s'", gcStderr))
 		}
 		if bytes.Compare(scriggoStdout, gcStdout) != 0 {
 			panic("Scriggo and gc returned two different outputs: " + string(scriggoStdout) + ", " + string(gcStdout))
