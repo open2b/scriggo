@@ -330,6 +330,20 @@ func (em *emitter) prepareCallParameters(typ reflect.Type, args []ast.Expression
 		args = args[1:]
 	}
 	if typ.IsVariadic() {
+		// f(g()) where f is variadic.
+		if typ.NumIn() == 1 && len(args) == 1 {
+			if g, ok := args[0].(*ast.Call); ok {
+				if numOut, ok := em.numOut(g); ok && numOut > 1 {
+					argRegs, argTypes := em.emitCallNode(g, false)
+					for i := range argRegs {
+						dstType := typ.In(0).Elem()
+						reg := em.fb.newRegister(dstType.Kind())
+						em.changeRegister(false, argRegs[i], reg, argTypes[i], dstType)
+					}
+					return regs, types
+				}
+			}
+		}
 		for i := 0; i < numIn-1; i++ {
 			t := typ.In(i)
 			reg := em.fb.newRegister(t.Kind())
@@ -469,12 +483,19 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.
 		if goStmt {
 			em.fb.emitGo()
 		}
+		numVar := vm.NoVariadicArgs
 		if typ.IsVariadic() {
-			numVar := len(call.Args) - (typ.NumIn() - 1)
-			em.fb.emitCallPredefined(index, int8(numVar), stackShift)
-		} else {
-			em.fb.emitCallPredefined(index, vm.NoVariadicArgs, stackShift)
+			numArgs := len(call.Args)
+			if len(call.Args) == 1 {
+				if callArg, ok := call.Args[0].(*ast.Call); ok {
+					if numOut, ok := em.numOut(callArg); ok {
+						numArgs = numOut
+					}
+				}
+			}
+			numVar = numArgs - (typ.NumIn() - 1)
 		}
+		em.fb.emitCallPredefined(index, int8(numVar), stackShift)
 		return regs, types
 	}
 
