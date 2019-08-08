@@ -52,7 +52,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 		result, _, endPos = p.parseFuncFields(tok, names, true)
 		pos.End = endPos.End
 		tok = next(p.lex)
-	case tokenLeftBrackets, tokenFunc, tokenIdentifier, tokenInterface, tokenMap, tokenMultiplication, tokenStruct:
+	case tokenLeftBrackets, tokenFunc, tokenIdentifier, tokenInterface, tokenMap, tokenMultiplication, tokenStruct, tokenChan:
 		expr, tok = p.parseExpr(tok, false, true, true)
 		pos.End = tok.pos.End
 		result = []*ast.Field{ast.NewField(nil, expr)}
