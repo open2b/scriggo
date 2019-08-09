@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"strconv"
 	"unicode"
+	"unicode/utf8"
 
 	"scriggo/ast"
 	"scriggo/vm"
@@ -751,7 +752,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 					// resulting in the unability of make comparisons with that
 					// types.
 					name := ident.Name
-					if !unicode.Is(unicode.Lu, []rune(name)[0]) {
+					if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
 						name = "𝗽" + strconv.Itoa(tc.currentPkgIndex()) + ident.Name
 					}
 					fields = append(fields, reflect.StructField{

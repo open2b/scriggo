@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"strconv"
 	"unicode"
+	"unicode/utf8"
 
 	"scriggo/ast"
 )
@@ -175,7 +176,8 @@ func convert(ti *TypeInfo, t2 reflect.Type) (constant, error) {
 // an *ast.StructType.
 func (tc *typechecker) fieldOrMethodByName(t *TypeInfo, name string, indirectPointer bool) (*TypeInfo, *string, bool) {
 	var newName *string
-	if t.IsType() && !t.IsPredefined() && !unicode.Is(unicode.Lu, []rune(name)[0]) {
+	firstChar, _ := utf8.DecodeRuneInString(name)
+	if t.IsType() && !t.IsPredefined() && !unicode.Is(unicode.Lu, firstChar) {
 		name = "𝗽" + strconv.Itoa(tc.currentPkgIndex()) + name
 		newName = &name
 	}
