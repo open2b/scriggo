@@ -860,9 +860,11 @@ func (vm *VM) nextCall() bool {
 		case deferred:
 			// A call, that has deferred calls, is returned, its first
 			// deferred call will be executed.
-			call = vm.swapCall(call)
-			vm.calls[i] = callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: returned}
+			returned := callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: returned}
+			vm.swapStacks(&call, &returned)
+			vm.calls[i] = returned
 			if call.cl.fn != nil {
+				i++
 				break
 			}
 			vm.callPredefined(call.cl.Predefined(), call.numVariadic, StackShift{}, false)
@@ -873,6 +875,7 @@ func (vm *VM) nextCall() bool {
 			// finalized.
 			if i > 0 {
 				if prev := vm.calls[i-1]; prev.status == deferred {
+					vm.swapStacks(&prev, &call)
 					call, vm.calls[i-1] = prev, call
 					break
 				}
@@ -962,56 +965,69 @@ func (vm *VM) startGoroutine() bool {
 	return false
 }
 
-func (vm *VM) swapCall(call callFrame) callFrame {
-	if arg := vm.fp[0] - call.fp[0]; arg > 0 {
-		if off := uint32(vm.fn.RegNum[0]); off > 0 {
-			if vm.fp[0]+2*off > vm.st[0] {
-				vm.moreIntStack()
-			}
-			s := vm.regs.int[call.fp[0]+1:]
-			copy(s[arg:], s[:arg+off])
-			copy(s, s[arg+off:arg+2*off])
-			call.fp[0] += off
+func (vm *VM) swapStacks(c1, c2 *callFrame) {
+
+	// Int.
+	arg := c2.fp[0] - c1.fp[0]
+	off := uint32(c2.cl.fn.RegNum[0])
+	if arg > 0 && off > 0 {
+		if c2.fp[0]+2*off > vm.st[0] {
+			vm.moreIntStack()
 		}
-		vm.fp[0] -= arg
+		s := vm.regs.int[c1.fp[0]+1:]
+		tot := arg + off
+		copy(s[off:], s[:tot])
+		copy(s, s[tot:tot+off])
 	}
-	if arg := vm.fp[1] - call.fp[1]; arg > 0 {
-		if off := uint32(vm.fn.RegNum[1]); off > 0 {
-			if vm.fp[1]+2*off > vm.st[1] {
-				vm.moreFloatStack()
-			}
-			s := vm.regs.float[call.fp[1]+1:]
-			copy(s[arg:], s[:arg+off])
-			copy(s, s[arg+off:arg+2*off])
-			call.fp[1] += off
+	c2.fp[0] -= arg
+	c1.fp[0] += off
+
+	// Float.
+	arg = c2.fp[1] - c1.fp[1]
+	off = uint32(c2.cl.fn.RegNum[1])
+	if arg > 0 && off > 0 {
+		if c2.fp[1]+2*off > vm.st[1] {
+			vm.moreFloatStack()
 		}
-		vm.fp[1] -= arg
+		s := vm.regs.float[c1.fp[1]+1:]
+		tot := arg + off
+		copy(s[off:], s[:tot])
+		copy(s, s[tot:tot+off])
 	}
-	if arg := vm.fp[2] - call.fp[2]; arg > 0 {
-		if off := uint32(vm.fn.RegNum[2]); off > 0 {
-			if vm.fp[2]+2*off > vm.st[2] {
-				vm.moreStringStack()
-			}
-			s := vm.regs.string[call.fp[2]+1:]
-			copy(s[arg:], s[:arg+off])
-			copy(s, s[arg+off:arg+2*off])
-			call.fp[2] += off
+	c2.fp[1] -= arg
+	c1.fp[1] += off
+
+	// String.
+	arg = c2.fp[2] - c1.fp[2]
+	off = uint32(c2.cl.fn.RegNum[2])
+	if arg > 0 && off > 0 {
+		if c2.fp[2]+2*off > vm.st[2] {
+			vm.moreStringStack()
 		}
-		vm.fp[2] -= arg
+		s := vm.regs.string[c1.fp[2]+1:]
+		tot := arg + off
+		copy(s[off:], s[:tot])
+		copy(s, s[tot:tot+off])
 	}
-	if arg := vm.fp[3] - call.fp[3]; arg > 0 {
-		if off := uint32(vm.fn.RegNum[3]); off > 0 {
-			if vm.fp[3]+2*off > vm.st[3] {
-				vm.moreGeneralStack()
-			}
-			s := vm.regs.string[call.fp[3]+1:]
-			copy(s[arg:], s[:arg+off])
-			copy(s, s[arg+off:arg+2*off])
-			call.fp[3] += off
+	c2.fp[2] -= arg
+	c1.fp[2] += off
+
+	// General.
+	arg = c2.fp[3] - c1.fp[3]
+	off = uint32(c2.cl.fn.RegNum[3])
+	if arg > 0 && off > 0 {
+		if c2.fp[3]+2*off > vm.st[3] {
+			vm.moreGeneralStack()
 		}
-		vm.fp[3] -= arg
+		s := vm.regs.general[c1.fp[3]+1:]
+		tot := arg + off
+		copy(s[off:], s[:tot])
+		copy(s, s[tot:tot+off])
 	}
-	return call
+	c2.fp[3] -= arg
+	c1.fp[3] += off
+
+	return
 }
 
 type Registers struct {
