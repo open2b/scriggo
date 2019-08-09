@@ -366,6 +366,11 @@ func (em *emitter) prepareCallParameters(typ reflect.Type, args []ast.Expression
 				return regs, types
 			}
 		}
+		if varArgs := len(args) - (numIn - 1); varArgs == 0 {
+			slice := em.fb.newRegister(reflect.Slice)
+			em.fb.emitMakeSlice(true, true, typ.In(numIn-1), 0, 0, slice)
+			return regs, types
+		}
 		if varArgs := len(args) - (numIn - 1); varArgs > 0 {
 			t := typ.In(numIn - 1).Elem()
 			if isPredefined {
