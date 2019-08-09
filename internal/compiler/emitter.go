@@ -303,40 +303,46 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 
 }
 
-// prepareCallParameters prepares the parameters (out and in) for a function
-// call. funcType is the reflect type of the function, args are the arguments
-// and isPredefined reports whether it is a predefined function.
+// callOptions holds informations about a function call.
+type callOptions struct {
+	predefined    bool
+	receiverAsArg bool
+	callHasDots   bool
+}
+
+// prepareCallParameters prepares the input and the output parameters for a
+// function call.
+
+// Returns the index (and their respective type) of the registers that will hold
+// the function return parameters.
 //
-// It returns the registers for the returned values and their respective
-// reflect types.
-//
-// While prepareCallParameters is called before calling the function,
+// Note that while prepareCallParameters is called before calling the function,
 // prepareFunctionBodyParameters is called before emitting its body.
-func (em *emitter) prepareCallParameters(typ reflect.Type, args []ast.Expression, isPredefined bool, receiverAsArg bool, callHasDots bool) ([]int8, []reflect.Type) {
-	numOut := typ.NumOut()
-	numIn := typ.NumIn()
+func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expression, opts callOptions) ([]int8, []reflect.Type) {
+	numOut := fnTyp.NumOut()
+	numIn := fnTyp.NumIn()
 	regs := make([]int8, numOut)
 	types := make([]reflect.Type, numOut)
 	for i := 0; i < numOut; i++ {
-		t := typ.Out(i)
+		t := fnTyp.Out(i)
 		regs[i] = em.fb.newRegister(t.Kind())
 		types[i] = t
 	}
-	if receiverAsArg {
+	if opts.receiverAsArg {
 		reg := em.fb.newRegister(em.ti(args[0]).Type.Kind())
 		em.fb.enterStack()
 		em.emitExprR(args[0], em.ti(args[0]).Type, reg)
 		em.fb.exitStack()
 		args = args[1:]
 	}
-	if typ.IsVariadic() {
+	if fnTyp.IsVariadic() {
 		// f(g()) where f is variadic.
-		if typ.NumIn() == 1 && len(args) == 1 {
+		if fnTyp.NumIn() == 1 && len(args) == 1 {
 			if g, ok := args[0].(*ast.Call); ok {
 				if numOut, ok := em.numOut(g); ok && numOut > 1 {
 					argRegs, argTypes := em.emitCallNode(g, false)
 					for i := range argRegs {
-						dstType := typ.In(0).Elem()
+						dstType := fnTyp.In(0).Elem()
 						reg := em.fb.newRegister(dstType.Kind())
 						em.changeRegister(false, argRegs[i], reg, argTypes[i], dstType)
 					}
@@ -345,20 +351,20 @@ func (em *emitter) prepareCallParameters(typ reflect.Type, args []ast.Expression
 			}
 		}
 		for i := 0; i < numIn-1; i++ {
-			t := typ.In(i)
+			t := fnTyp.In(i)
 			reg := em.fb.newRegister(t.Kind())
 			em.fb.enterStack()
 			em.emitExprR(args[i], t, reg)
 			em.fb.exitStack()
 		}
-		if callHasDots {
-			if isPredefined {
+		if opts.callHasDots {
+			if opts.predefined {
 				// TODO(Gianluca): how can we handle this? The VM expects to
 				// find all the elements of the slice "unwrapped" in registers.
 				panic("TODO: not implemented") // TODO(Gianluca): to implement.
 			} else {
 				sliceArg := args[len(args)-1]
-				sliceArgType := typ.In(typ.NumIn() - 1)
+				sliceArgType := fnTyp.In(fnTyp.NumIn() - 1)
 				reg := em.fb.newRegister(sliceArgType.Kind())
 				em.fb.enterStack()
 				em.emitExprR(sliceArg, sliceArgType, reg)
@@ -368,12 +374,12 @@ func (em *emitter) prepareCallParameters(typ reflect.Type, args []ast.Expression
 		}
 		if varArgs := len(args) - (numIn - 1); varArgs == 0 {
 			slice := em.fb.newRegister(reflect.Slice)
-			em.fb.emitMakeSlice(true, true, typ.In(numIn-1), 0, 0, slice)
+			em.fb.emitMakeSlice(true, true, fnTyp.In(numIn-1), 0, 0, slice)
 			return regs, types
 		}
 		if varArgs := len(args) - (numIn - 1); varArgs > 0 {
-			t := typ.In(numIn - 1).Elem()
-			if isPredefined {
+			t := fnTyp.In(numIn - 1).Elem()
+			if opts.predefined {
 				for i := 0; i < varArgs; i++ {
 					reg := em.fb.newRegister(t.Kind())
 					em.fb.enterStack()
@@ -382,7 +388,7 @@ func (em *emitter) prepareCallParameters(typ reflect.Type, args []ast.Expression
 				}
 			} else {
 				slice := em.fb.newRegister(reflect.Slice)
-				em.fb.emitMakeSlice(true, true, typ.In(numIn-1), int8(varArgs), int8(varArgs), slice)
+				em.fb.emitMakeSlice(true, true, fnTyp.In(numIn-1), int8(varArgs), int8(varArgs), slice)
 				for i := 0; i < varArgs; i++ {
 					tmp := em.fb.newRegister(t.Kind())
 					em.fb.enterStack()
@@ -398,13 +404,13 @@ func (em *emitter) prepareCallParameters(typ reflect.Type, args []ast.Expression
 		if numIn > 1 && len(args) == 1 { // f(g()), where f takes more than 1 argument.
 			regs, types := em.emitCallNode(args[0].(*ast.Call), false)
 			for i := range regs {
-				dstType := typ.In(i)
+				dstType := fnTyp.In(i)
 				reg := em.fb.newRegister(dstType.Kind())
 				em.changeRegister(false, regs[i], reg, types[i], dstType)
 			}
 		} else {
 			for i := 0; i < numIn; i++ {
-				t := typ.In(i)
+				t := fnTyp.In(i)
 				reg := em.fb.newRegister(t.Kind())
 				em.fb.enterStack()
 				em.emitExprR(args[i], t, reg)
@@ -457,11 +463,10 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 // registers and the reflect types of the returned values.
 func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.Type) {
 
-	ti := em.ti(call.Func)
-	typ := ti.Type
+	funTi := em.ti(call.Func)
 
 	// Method call on a interface value.
-	if ti.MethodType == MethodCallInterface {
+	if funTi.MethodType == MethodCallInterface {
 		rcvrExpr := call.Func.(*ast.Selector).Expr
 		rcvrType := em.ti(rcvrExpr).Type
 		rcvr := em.emitExpr(rcvrExpr, rcvrType)
@@ -475,7 +480,12 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.
 		em.fb.emitMethodValue(name, rcvr, method)
 		call.Args = append([]ast.Expression{rcvrExpr}, call.Args...)
 		stackShift := em.fb.currentStackShift()
-		regs, types := em.prepareCallParameters(typ, call.Args, true, true, call.IsVariadic)
+		opts := callOptions{
+			predefined:    true,
+			receiverAsArg: true,
+			callHasDots:   call.IsVariadic,
+		}
+		regs, types := em.prepareCallParameters(funTi.Type, call.Args, opts)
 		// TODO(Gianluca): handle variadic method calls.
 		if goStmt {
 			em.fb.emitGo()
@@ -485,13 +495,18 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.
 	}
 
 	// Predefined function (identifiers, selectors etc...).
-	if ti.IsPredefined() {
-		if ti.MethodType == MethodCallConcrete {
+	if funTi.IsPredefined() {
+		if funTi.MethodType == MethodCallConcrete {
 			rcv := call.Func.(*ast.Selector).Expr // TODO(Gianluca): is this correct?
 			call.Args = append([]ast.Expression{rcv}, call.Args...)
 		}
 		stackShift := em.fb.currentStackShift()
-		regs, types := em.prepareCallParameters(typ, call.Args, true, ti.MethodType == MethodCallConcrete, call.IsVariadic)
+		opts := callOptions{
+			predefined:    true,
+			receiverAsArg: funTi.MethodType == MethodCallConcrete,
+			callHasDots:   call.IsVariadic,
+		}
+		regs, types := em.prepareCallParameters(funTi.Type, call.Args, opts)
 		var name string
 		switch f := call.Func.(type) {
 		case *ast.Identifier:
@@ -499,12 +514,12 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.
 		case *ast.Selector:
 			name = f.Ident
 		}
-		index := em.predFuncIndex(ti.value.(reflect.Value), ti.PredefPackageName, name)
+		index := em.predFuncIndex(funTi.value.(reflect.Value), funTi.PredefPackageName, name)
 		if goStmt {
 			em.fb.emitGo()
 		}
 		numVar := vm.NoVariadicArgs
-		if typ.IsVariadic() {
+		if funTi.Type.IsVariadic() {
 			numArgs := len(call.Args)
 			if len(call.Args) == 1 {
 				if callArg, ok := call.Args[0].(*ast.Call); ok {
@@ -513,7 +528,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.
 					}
 				}
 			}
-			numVar = numArgs - (typ.NumIn() - 1)
+			numVar = numArgs - (funTi.Type.NumIn() - 1)
 		}
 		em.fb.emitCallPredefined(index, int8(numVar), stackShift)
 		return regs, types
@@ -523,7 +538,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.
 	if ident, ok := call.Func.(*ast.Identifier); ok && !em.fb.isVariable(ident.Name) {
 		if fn, ok := em.functions[em.pkg][ident.Name]; ok {
 			stackShift := em.fb.currentStackShift()
-			regs, types := em.prepareCallParameters(fn.Type, call.Args, false, false, call.IsVariadic)
+			regs, types := em.prepareCallParameters(fn.Type, call.Args, callOptions{callHasDots: call.IsVariadic})
 			index := em.functionIndex(fn)
 			if goStmt {
 				em.fb.emitGo()
@@ -538,7 +553,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.
 		if ident, ok := selector.Expr.(*ast.Identifier); ok {
 			if fun, ok := em.functions[em.pkg][ident.Name+"."+selector.Ident]; ok {
 				stackShift := em.fb.currentStackShift()
-				regs, types := em.prepareCallParameters(fun.Type, call.Args, false, false, call.IsVariadic)
+				regs, types := em.prepareCallParameters(fun.Type, call.Args, callOptions{callHasDots: call.IsVariadic})
 				index := em.functionIndex(fun)
 				if goStmt {
 					em.fb.emitGo()
@@ -552,10 +567,11 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.
 	// Indirect function.
 	reg := em.emitExpr(call.Func, em.ti(call.Func).Type)
 	stackShift := em.fb.currentStackShift()
-	regs, types := em.prepareCallParameters(typ, call.Args, true, false, call.IsVariadic)
+	opts := callOptions{predefined: true, callHasDots: call.IsVariadic}
+	regs, types := em.prepareCallParameters(funTi.Type, call.Args, opts)
 	numVar := vm.NoVariadicArgs
-	if typ.IsVariadic() {
-		numVar = len(call.Args) - (typ.NumIn() - 1)
+	if funTi.Type.IsVariadic() {
+		numVar = len(call.Args) - (funTi.Type.NumIn() - 1)
 	}
 	if goStmt {
 		em.fb.emitGo()
@@ -889,8 +905,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			offset := em.fb.currentStackShift()
 			// TODO(Gianluca): currently supports only deferring or
 			// starting goroutines of not predefined functions.
-			isPredefined := false
-			em.prepareCallParameters(funType, args, isPredefined, false, false)
+			em.prepareCallParameters(funType, args, callOptions{predefined: true})
 			// TODO(Gianluca): currently supports only deferring functions
 			// and starting goroutines with no arguments and no return
 			// parameters.
