@@ -719,7 +719,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 
 	case *ast.StructType:
 		fields := []reflect.StructField{}
-		for i, fd := range expr.FieldDecl {
+		for _, fd := range expr.FieldDecl {
 			typ := tc.checkType(fd.Type).Type
 			if fd.IdentifierList == nil {
 				// Implicit field declaration.
@@ -727,9 +727,8 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 					Name:      "Name", // TODO (Gianluca): to review.
 					PkgPath:   "",     // TODO (Gianluca): to review.
 					Type:      typ,
-					Tag:       "",  // TODO (Gianluca): to review.
-					Offset:    0,   // TODO (Gianluca): to review.
-					Index:     nil, // TODO (Gianluca): to review.
+					Tag:       "", // TODO (Gianluca): to review.
+					Offset:    0,  // TODO (Gianluca): to review.
 					Anonymous: true,
 				})
 			} else {
@@ -758,7 +757,6 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 					fields = append(fields, reflect.StructField{
 						Name:      name,
 						Type:      typ,
-						Index:     []int{i},
 						Anonymous: false,
 					})
 				}
