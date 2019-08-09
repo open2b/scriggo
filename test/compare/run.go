@@ -29,10 +29,11 @@ func main() {
 
 	// Parse the command line arguments.
 	var (
-		color             = flag.Bool("c", false, "enable colored output. output device must support ANSI escape sequences. require verbose to take effect")
+		color             = flag.Bool("c", false, "enable colored output. output device must support ANSI escape sequences. require verbose or stats to take effect")
 		keepTestingOnFail = flag.Bool("k", false, "keep testing on fail")
 		parallel          = flag.Int("l", 4, "number of parallel tests to run")
 		pattern           = flag.String("p", "", "executes test whose path is matched by the given pattern. regular expressions are supported, in the syntax of stdlib package 'regexp'")
+		stat              = flag.Bool("s", false, "print some stats about executed tests. Parallelism is not influenced.")
 		verbose           = flag.Bool("v", false, "verbose. if set, parallelism is set to 1 and keep testing on fail is set to false")
 	)
 
@@ -52,6 +53,10 @@ func main() {
 		if len(fp) > maxPathLen {
 			maxPathLen = len(fp)
 		}
+	}
+
+	if *verbose || *stat {
+		fmt.Printf("%d tests found (including skipped)\n", len(filepaths))
 	}
 
 	wg := sync.WaitGroup{}
@@ -75,6 +80,10 @@ func main() {
 			ext := filepath.Ext(path)
 			mode := readMode(src, ext)
 			// Print output before running the test.
+			if *stat && !*verbose {
+				perc := strconv.Itoa(int(math.Floor(float64(countTotal) / float64(len(filepaths)) * 100)))
+				fmt.Printf("\r%s%% (test %d/%d)", perc, countTotal, len(filepaths))
+			}
 			if *verbose {
 				if *color {
 					fmt.Print(colorInfo)
@@ -123,13 +132,13 @@ func main() {
 	wg.Wait()
 
 	// Print output after all tests are completed.
-	if *verbose {
+	if *verbose || *stat {
 		if *color {
 			fmt.Print(colorGood)
 		}
 		countExecuted := countTotal - countSkipped
 		end := time.Now()
-		fmt.Printf("done!   %d tests executed, %d tests skipped in %s\n", countExecuted, countSkipped, end.Sub(start).Truncate(time.Duration(time.Millisecond)))
+		fmt.Printf("\ndone!   %d tests executed, %d tests skipped in %s\n", countExecuted, countSkipped, end.Sub(start).Truncate(time.Duration(time.Millisecond)))
 		if *color {
 			fmt.Print(colorReset)
 		}
