@@ -390,7 +390,7 @@ var checkerExprs = []struct {
 	{`string([]byte{1,2,3})`, tiString(), nil},
 	{`string([]rune{'a','b','c'})`, tiString(), nil},
 	{`(*int)(nil)`, tiIntPtr(), nil},
-	//{`interface{}(nil)`, &TypeInfo{Type: emptyInterfaceType}, nil}, TODO: fails with "unexpected untyped, expecting type interface {}"
+	{`interface{}(nil)`, &TypeInfo{Type: emptyInterfaceType}, nil},
 
 	// append
 	{`append([]byte{})`, tiByteSlice(), nil},
@@ -702,8 +702,8 @@ var checkerStmts = map[string]string{
 	`const Huge = 1 << 100`:                               ok,
 	`const Θ float64 = 3/2; const iΘ = complex(0, Θ)`:     ok,
 	`const Σ = 1 - 0.707i; const Δ = Σ + 2.0e-4`:          ok,
-	//`const Φ = iota*1i - 1/1i`:                   ok, // TODO.
-	`const a = 1; const b int8 = a`: ok,
+	`const Φ = iota*1i - 1/1i`:                            ok,
+	`const a = 1; const b int8 = a`:                       ok,
 
 	// Identifiers.
 	// TODO(Gianluca): related to the possibility of returning the last
@@ -743,18 +743,18 @@ var checkerStmts = map[string]string{
 	`v := 1; v *= 2`:                                              ok,
 	`v := 1; v /= 2`:                                              ok,
 	`v := 1; v %= 2`:                                              ok,
-	//`v := 1; v &= 2`:                                              ok, TODO(Gianluca): v declared and not used
-	//`v := 1; v |= 2`:                                              ok,
-	//`v := 1; v ^= 2`:                                              ok,
-	//`v := 1; v &^= 2`:                                             ok,
-	//`v := 1; v <<= 2`:                                             ok,
-	//`v := 1; v >>= 2`:                                             ok,
-	`[]int{1,2,3} := 3`:         `non-name []int literal on left side of :=`,
-	`a := 0; *a = 1`:            `invalid indirect of a (type int)`,
-	`a := 0; b := &a; b[0] = 2`: `invalid operation: b[0] (type *int does not support indexing)`,
-	`a := 1; a, a = 1, 2`:       declaredNotUsed("a"),
-	`a, a := 1, 2`:              `a repeated on left side of :=`,
-	`f := func() (int, int) { return 0, 0 }; f() = 0`:               `multiple-value f() in single-value context`,
+	`v := 1; v &= 2`:                                              ok,
+	`v := 1; v |= 2`:                                              ok,
+	`v := 1; v ^= 2`:                                              ok,
+	`v := 1; v &^= 2`:                                             ok,
+	`v := 1; v <<= 2`:                                             ok,
+	`v := 1; v >>= 2`:                                             ok,
+	`[]int{1,2,3} := 3`:                                           `non-name []int literal on left side of :=`,
+	`a := 0; *a = 1`:                                              `invalid indirect of a (type int)`,
+	`a := 0; b := &a; b[0] = 2`:                                   `invalid operation: b[0] (type *int does not support indexing)`,
+	`a := 1; a, a = 1, 2`:                                         declaredNotUsed("a"),
+	`a, a := 1, 2`:                                                `a repeated on left side of :=`,
+	`f := func() (int, int) { return 0, 0 }; f() = 0`:             `multiple-value f() in single-value context`,
 	`f := func() (int, int) { return 0, 0 }; var a, b string = f()`: `cannot assign int to a (type string) in multiple assignment`,
 	`f := func() { }; f() = 0`:                                      `f() used as value`,
 	`f := func() int { return 0 } ; var a string = f() ; _ = a`:     `cannot use f() (type int) as type string in assignment`,
@@ -1139,7 +1139,7 @@ var checkerStmts = map[string]string{
 	`f := func(string, int) { } ; f(0, 0, 0)`:                         "too many arguments in call to f\n\thave (number, number, number)\n\twant (string, int)",
 	`f := func() (a, b int) { return 0, "" }; f()`:                    `cannot use "" (type string) as type int in return argument`,
 	`var _, _ int = func(a, b int) (int, int) { return a, b }("", 0)`: `cannot use "" (type string) as type int in argument to func literal`,
-	// `f := func(n ...int) { for _ = range n { } }; f(1,2,3)`:           ok, // TODO: syntax error: unexpected (, expecting name
+	`f := func(n ...int) { for _ = range n { } }; f(1,2,3)`:           ok,
 	// `func(c int) { _ = c == 0 && c == 0 }(0)`:      ok, // TODO: syntax error: unexpected (, expecting name
 
 	// Function literal calls with function call as argument.
@@ -1233,19 +1233,15 @@ var checkerStmts = map[string]string{
 	`copy(0,0)`:                      `arguments to copy must be slices; have int, int`,
 
 	// Builtin function 'close'.
-	//
-	// TODO(Gianluca): re-enable when channel types will be full implemented in
-	// parser.
-	//
-	// `var c chan <- int; close(c)`: ok,
-	// `var c chan int; close(c)`:    ok,
-	// `close()`:                     `missing argument to close: close()`,
-	// `close(chan int)`:             `type chan int is not an expression`,
-	// `close(nil)`:                  `use of untyped nil`,
-	// `var c <- chan int; close(c)`: `invalid operation: close(c) (cannot close receive-only channel)`,
-	// `var c chan int; close(c, c)`: `too many arguments to close: close(c, c)`,
-	// `var i int; close(i, i)`:      `too many arguments to close: close(i, i)`,
-	// `var i int; close(i)`:         `invalid operation: close(i) (non-chan type int)`,
+	`var c chan <- int; close(c)`: ok,
+	`var c chan int; close(c)`:    ok,
+	`close()`:                     `missing argument to close: close()`,
+	`close(chan int)`:             `type chan int is not an expression`,
+	`close(nil)`:                  `use of untyped nil`,
+	`var c <- chan int; close(c)`: `invalid operation: close(c) (cannot close receive-only channel)`,
+	`var c chan int; close(c, c)`: `too many arguments to close: close(c, c)`,
+	`var i int; close(i, i)`:      `too many arguments to close: close(i, i)`,
+	`var i int; close(i)`:         `invalid operation: close(i) (non-chan type int)`,
 
 	// Builtin function 'delete'.
 	`delete(aStringMap, "a")`:                  ok,
