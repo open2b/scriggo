@@ -93,6 +93,12 @@ type scopeVariable struct {
 }
 
 // pkgPathToIndex maps a package path to an unique identifier.
+// TODO(Gianluca): it's not safe to use a global variable. More than this, we need a structure in common among all type checkers, which should hold:
+//
+// - pkgPathToIndex
+// - all the collected pkgInfos
+// - informations about which tree has already been checked.
+//
 var pkgPathToIndex = map[string]int{}
 
 // typechecker represents the state of the type checking.
@@ -256,6 +262,9 @@ func (tc *typechecker) assignScope(name string, value *TypeInfo, declNode *ast.I
 
 // currentPkgIndex returns an index related to the current package; such index
 // is unique for every package path.
+//
+// TODO(Gianluca): we should keep an index of the last (or the next) package
+// index, instead of recalculate it every time.
 func (tc *typechecker) currentPkgIndex() int {
 	i, ok := pkgPathToIndex[tc.path]
 	if ok {
