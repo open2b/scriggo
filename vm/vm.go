@@ -863,12 +863,7 @@ func (vm *VM) nextCall() bool {
 			returned := callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: returned}
 			vm.swapStacks(&call, &returned)
 			vm.calls[i] = returned
-			if call.cl.fn != nil {
-				i++
-				break
-			}
-			vm.callPredefined(call.cl.Predefined(), call.numVariadic, StackShift{}, false)
-			fallthrough
+			i++
 		case returned, recovered:
 			// A deferred call is returned. If there is another deferred
 			// call, it will be executed, otherwise the previous call will be
@@ -901,15 +896,18 @@ func (vm *VM) nextCall() bool {
 				}
 			}
 		}
-		break
-	}
-	if i >= 0 {
-		vm.calls = vm.calls[:i]
-		vm.fp = call.fp
-		vm.pc = call.pc
-		vm.fn = call.cl.fn
-		vm.vars = call.cl.vars
-		return true
+		if i >= 0 {
+			if call.cl.fn != nil {
+				vm.calls = vm.calls[:i]
+				vm.fp = call.fp
+				vm.pc = call.pc
+				vm.fn = call.cl.fn
+				vm.vars = call.cl.vars
+				return true
+			}
+			vm.fp = call.fp
+			vm.callPredefined(call.cl.Predefined(), call.numVariadic, StackShift{}, false)
+		}
 	}
 	return false
 }
