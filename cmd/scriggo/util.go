@@ -156,6 +156,7 @@ func uniquePackageName(pkgPath string) string {
 //		1.12.5 -> 1.12
 //
 func goBaseVersion(v string) string {
+	// When updating, also update test/compare/run.go.
 	if i := strings.Index(v, "beta"); i >= 0 {
 		v = v[:i]
 	}

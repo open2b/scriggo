@@ -1,4 +1,6 @@
-// skip : fails on go 1.12
+//+build go1.13
+
+// run
 
 package main
 
