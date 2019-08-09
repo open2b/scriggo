@@ -561,16 +561,17 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.
 	// Indirect function.
 	reg := em.emitExpr(call.Func, em.ti(call.Func).Type)
 	stackShift := em.fb.currentStackShift()
-	opts := callOptions{predefined: true, callHasDots: call.IsVariadic}
+	opts := callOptions{predefined: false, callHasDots: call.IsVariadic}
 	regs, types := em.prepareCallParameters(funTi.Type, call.Args, opts)
-	numVar := vm.NoVariadicArgs
-	if funTi.Type.IsVariadic() {
-		numVar = len(call.Args) - (funTi.Type.NumIn() - 1)
-	}
+	// CallIndirect is always emitted with 'NoVariadicArgs' because the emitter
+	// cannot distinguish between Scriggo defined functions (that require a
+	// []Type) and predefined function (that require Type1, Type2 ...). For this
+	// reason the arguments of an indirect call are emitted as if always calling
+	// a Scriggo defined function.
 	if goStmt {
 		em.fb.emitGo()
 	}
-	em.fb.emitCallIndirect(reg, int8(numVar), stackShift)
+	em.fb.emitCallIndirect(reg, int8(vm.NoVariadicArgs), stackShift)
 
 	return regs, types
 }
