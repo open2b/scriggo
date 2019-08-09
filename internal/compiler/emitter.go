@@ -358,19 +358,13 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 			em.fb.exitStack()
 		}
 		if opts.callHasDots {
-			if opts.predefined {
-				// TODO(Gianluca): how can we handle this? The VM expects to
-				// find all the elements of the slice "unwrapped" in registers.
-				panic("TODO: not implemented") // TODO(Gianluca): to implement.
-			} else {
-				sliceArg := args[len(args)-1]
-				sliceArgType := fnTyp.In(fnTyp.NumIn() - 1)
-				reg := em.fb.newRegister(sliceArgType.Kind())
-				em.fb.enterStack()
-				em.emitExprR(sliceArg, sliceArgType, reg)
-				em.fb.exitStack()
-				return regs, types
-			}
+			sliceArg := args[len(args)-1]
+			sliceArgType := fnTyp.In(fnTyp.NumIn() - 1)
+			reg := em.fb.newRegister(sliceArgType.Kind())
+			em.fb.enterStack()
+			em.emitExprR(sliceArg, sliceArgType, reg)
+			em.fb.exitStack()
+			return regs, types
 		}
 		if varArgs := len(args) - (numIn - 1); varArgs == 0 {
 			slice := em.fb.newRegister(reflect.Slice)
@@ -519,7 +513,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool) ([]int8, []reflect.
 			em.fb.emitGo()
 		}
 		numVar := vm.NoVariadicArgs
-		if funTi.Type.IsVariadic() {
+		if funTi.Type.IsVariadic() && !call.IsVariadic {
 			numArgs := len(call.Args)
 			if len(call.Args) == 1 {
 				if callArg, ok := call.Args[0].(*ast.Call); ok {
