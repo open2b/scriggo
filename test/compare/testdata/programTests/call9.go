@@ -9,7 +9,7 @@ import (
 
 func main() {
 	a := 2
-	a = testpkg.F11(9)
+	a = testpkg.G11(9)
 	fmt.Print(a)
 	return
 }

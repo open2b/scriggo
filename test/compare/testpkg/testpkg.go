@@ -3,10 +3,10 @@ package testpkg
 
 import "fmt"
 
-func F00()          {}
-func F01() int      { return 40 }
-func F10(a int)     {}
-func F11(a int) int { return a + 33 }
+func G00()          {}
+func G01() int      { return 40 }
+func G10(a int)     {}
+func G11(a int) int { return a + 33 }
 
 func Sum(a, b int) int {
 	return a + b
