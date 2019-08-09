@@ -1,5 +1,3 @@
-// skip : problem in variadic call https://github.com/open2b/scriggo/issues/265
-
 // run
 
 // Copyright 2010 The Go Authors. All rights reserved.

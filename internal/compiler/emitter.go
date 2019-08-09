@@ -312,7 +312,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 //
 // While prepareCallParameters is called before calling the function,
 // prepareFunctionBodyParameters is called before emitting its body.
-func (em *emitter) prepareCallParameters(typ reflect.Type, args []ast.Expression, isPredefined bool, receiverAsArg bool) ([]int8, []reflect.Type) {
+func (em *emitter) prepareCallParameters(typ reflect.Type, args []ast.Expression, isPredefined bool, receiverAsArg bool, callHasDots bool) ([]int8, []reflect.Type) {
 	numOut := typ.NumOut()
 	numIn := typ.NumIn()
 	regs := make([]int8, numOut)
@@ -330,12 +330,46 @@ func (em *emitter) prepareCallParameters(typ reflect.Type, args []ast.Expression
 		args = args[1:]
 	}
 	if typ.IsVariadic() {
+		// f(g()) where f is variadic.
+		if typ.NumIn() == 1 && len(args) == 1 {
+			if g, ok := args[0].(*ast.Call); ok {
+				if numOut, ok := em.numOut(g); ok && numOut > 1 {
+					argRegs, argTypes := em.emitCallNode(g, false, false)
+					for i := range argRegs {
+						dstType := typ.In(0).Elem()
+						reg := em.fb.newRegister(dstType.Kind())
+						em.changeRegister(false, argRegs[i], reg, argTypes[i], dstType)
+					}
+					return regs, types
+				}
+			}
+		}
 		for i := 0; i < numIn-1; i++ {
 			t := typ.In(i)
 			reg := em.fb.newRegister(t.Kind())
 			em.fb.enterStack()
 			em.emitExprR(args[i], t, reg)
 			em.fb.exitStack()
+		}
+		if callHasDots {
+			if isPredefined {
+				// TODO(Gianluca): how can we handle this? The VM expects to
+				// find all the elements of the slice "unwrapped" in registers.
+				panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			} else {
+				sliceArg := args[len(args)-1]
+				sliceArgType := typ.In(typ.NumIn() - 1)
+				reg := em.fb.newRegister(sliceArgType.Kind())
+				em.fb.enterStack()
+				em.emitExprR(sliceArg, sliceArgType, reg)
+				em.fb.exitStack()
+				return regs, types
+			}
+		}
+		if varArgs := len(args) - (numIn - 1); varArgs == 0 {
+			slice := em.fb.newRegister(reflect.Slice)
+			em.fb.emitMakeSlice(true, true, typ.In(numIn-1), 0, 0, slice)
+			return regs, types
 		}
 		if varArgs := len(args) - (numIn - 1); varArgs > 0 {
 			t := typ.In(numIn - 1).Elem()
@@ -443,7 +477,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 		em.fb.emitMethodValue(name, rcvr, method)
 		call.Args = append([]ast.Expression{rcvrExpr}, call.Args...)
 		stackShift := em.fb.currentStackShift()
-		regs, types := em.prepareCallParameters(typ, call.Args, true, true)
+		regs, types := em.prepareCallParameters(typ, call.Args, true, true, call.IsVariadic)
 		// TODO(Gianluca): handle variadic method calls.
 		if goStmt {
 			em.fb.emitGo()
@@ -462,7 +496,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 			call.Args = append([]ast.Expression{rcv}, call.Args...)
 		}
 		stackShift := em.fb.currentStackShift()
-		regs, types := em.prepareCallParameters(typ, call.Args, true, ti.MethodType == MethodCallConcrete)
+		regs, types := em.prepareCallParameters(typ, call.Args, true, ti.MethodType == MethodCallConcrete, call.IsVariadic)
 		var name string
 		switch f := call.Func.(type) {
 		case *ast.Identifier:
@@ -476,7 +510,15 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 		}
 		numVar := vm.NoVariadicArgs
 		if typ.IsVariadic() {
-			numVar = len(call.Args) - (typ.NumIn() - 1)
+			numArgs := len(call.Args)
+			if len(call.Args) == 1 {
+				if callArg, ok := call.Args[0].(*ast.Call); ok {
+					if numOut, ok := em.numOut(callArg); ok {
+						numArgs = numOut
+					}
+				}
+			}
+			numVar = numArgs - (typ.NumIn() - 1)
 		}
 		if deferStmt {
 			args := em.fb.currentStackShift()
@@ -493,7 +535,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 	if ident, ok := call.Func.(*ast.Identifier); ok && !em.fb.isVariable(ident.Name) {
 		if fn, ok := em.functions[em.pkg][ident.Name]; ok {
 			stackShift := em.fb.currentStackShift()
-			regs, types := em.prepareCallParameters(fn.Type, call.Args, false, false)
+			regs, types := em.prepareCallParameters(fn.Type, call.Args, false, false, call.IsVariadic)
 			index := em.functionIndex(fn)
 			if goStmt {
 				em.fb.emitGo()
@@ -516,7 +558,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 		if ident, ok := selector.Expr.(*ast.Identifier); ok {
 			if fun, ok := em.functions[em.pkg][ident.Name+"."+selector.Ident]; ok {
 				stackShift := em.fb.currentStackShift()
-				regs, types := em.prepareCallParameters(fun.Type, call.Args, false, false)
+				regs, types := em.prepareCallParameters(fun.Type, call.Args, false, false, call.IsVariadic)
 				index := em.functionIndex(fun)
 				if goStmt {
 					em.fb.emitGo()
@@ -533,7 +575,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 	// Indirect function.
 	reg := em.emitExpr(call.Func, em.ti(call.Func).Type)
 	stackShift := em.fb.currentStackShift()
-	regs, types := em.prepareCallParameters(typ, call.Args, true, false)
+	regs, types := em.prepareCallParameters(typ, call.Args, true, false, call.IsVariadic)
 	numVar := vm.NoVariadicArgs
 	if typ.IsVariadic() {
 		numVar = len(call.Args) - (typ.NumIn() - 1)
@@ -1567,37 +1609,47 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			}
 			em.changeRegister(false, reg, reg, em.ti(expr.Type).Type, dstType)
 		case reflect.Struct:
+			// Struct should no be created, but its values must be emitted.
 			if reg == 0 {
 				for _, kv := range expr.KeyValues {
-					typ := em.ti(kv.Value).Type
-					em.emitExprR(kv.Value, typ, 0)
+					em.emitExprR(kv.Value, em.ti(kv.Value).Type, 0)
 				}
 				return reg, false
 			}
-			em.fb.enterStack()
-			tmpTyp := reflect.PtrTo(typ)
-			tmp := -em.fb.newRegister(tmpTyp.Kind())
-			em.fb.emitNew(typ, -tmp)
-			if len(expr.KeyValues) > 0 {
-				for _, kv := range expr.KeyValues {
-					name := kv.Key.(*ast.Identifier).Name
-					field, _ := typ.FieldByName(name)
-					valueType := em.ti(kv.Value).Type
-					if canEmitDirectly(field.Type.Kind(), valueType.Kind()) {
-						value := em.emitExpr(kv.Value, valueType)
-						fieldConstIndex := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
-						em.fb.emitSetField(false, tmp, fieldConstIndex, value)
-					} else {
-						tmpValue := em.emitExpr(kv.Value, valueType)
-						value := em.fb.newRegister(field.Type.Kind())
-						em.changeRegister(false, tmpValue, value, valueType, field.Type)
-						fieldConstIndex := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
-						em.fb.emitSetField(false, tmp, fieldConstIndex, value)
-					}
-					// TODO(Gianluca): use field "k" of SetField.
-				}
+			structZero := em.fb.makeGeneralConstant(reflect.Zero(typ).Interface())
+			// When there are no values in the composite literal, optimize the
+			// creation of the struct.
+			if len(expr.KeyValues) == 0 {
+				em.changeRegister(true, structZero, reg, typ, dstType)
+				return reg, false
 			}
-			em.changeRegister(false, tmp, reg, tmpTyp, dstType)
+			// Assign key-value pairs to the struct fields.
+			em.fb.enterStack()
+			var structt int8
+			if canEmitDirectly(typ.Kind(), dstType.Kind()) {
+				structt = em.fb.newRegister(reflect.Struct)
+			} else {
+				structt = reg
+			}
+			em.changeRegister(true, structZero, structt, typ, typ)
+			for _, kv := range expr.KeyValues {
+				name := kv.Key.(*ast.Identifier).Name
+				field, _ := typ.FieldByName(name)
+				valueType := em.ti(kv.Value).Type
+				if canEmitDirectly(field.Type.Kind(), valueType.Kind()) {
+					value, k := em.emitExprK(kv.Value, valueType)
+					index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+					em.fb.emitSetField(k, structt, index, value)
+				} else {
+					tmpValue := em.emitExpr(kv.Value, valueType)
+					value := em.fb.newRegister(field.Type.Kind())
+					em.changeRegister(false, tmpValue, value, valueType, field.Type)
+					index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+					em.fb.emitSetField(false, structt, index, value)
+				}
+				// TODO(Gianluca): use field "k" of SetField.
+			}
+			em.changeRegister(false, structt, reg, typ, dstType)
 			em.fb.exitStack()
 
 		case reflect.Map:

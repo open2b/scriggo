@@ -3,16 +3,16 @@
 To run the compare tests, run the following commands in the `test/compare` directory:
 
 ```bash
-> go generate
+> go generate ./...
 > go build
 > ./compare
 ```
 
-Run `./compare -h` to see the available options. You may whish to use the `-v` flag, which prints a verbose output.
+Run `./compare -h` to see the available options.
 
 # Adding new tests
 
-A test consists in a text file containing source code, which can be put everywhere inside the directory `sources`. Directory names has no special meaning, except for `test/compare/sources/github.com-golang-go` (see section **Go tests from https //github.com/golang/go/** for more informations).
+A test consists in a text file containing source code, which can be put everywhere inside the directory `testdata`. Directory names has no special meaning, except for `test/compare/sources/github.com-golang-go` (see section **Go tests from https //github.com/golang/go/** for more informations).
 
 Every test source code must specify a _testing mode_. See the section **Testing modes** for more informations.
 

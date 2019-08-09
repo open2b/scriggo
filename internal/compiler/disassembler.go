@@ -138,30 +138,46 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.Function, globals []Global, dep
 			labelOf[uint32(addr)] = uint32(i) + 1
 		}
 	}
+
+	// Print input parameters.
 	_, _ = fmt.Fprintf(w, "(")
-	nIn := fn.Type.NumIn()
-	nOut := fn.Type.NumOut()
-	for i := 0; i < nIn; i++ {
-		if i > 0 {
-			_, _ = fmt.Fprint(w, ", ")
+	if fn.Type.NumIn() > 0 {
+		out := map[vm.Type]int{vm.TypeInt: 0, vm.TypeFloat: 0, vm.TypeString: 0, vm.TypeGeneral: 0}
+		for i := 0; i < fn.Type.NumOut(); i++ {
+			out[kindToType(fn.Type.Out(i).Kind())]++
 		}
-		typ := fn.Type.In(i)
-		label := registerKindToLabel(reflectToRegisterKind(typ.Kind()))
-		_, _ = fmt.Fprintf(w, "%s%d %s", label, nOut+i+1, typ)
+		in := map[vm.Type]int{vm.TypeInt: 0, vm.TypeFloat: 0, vm.TypeString: 0, vm.TypeGeneral: 0}
+		for i := 0; i < fn.Type.NumIn(); i++ {
+			if i > 0 {
+				_, _ = fmt.Fprint(w, ", ")
+			}
+			typ := fn.Type.In(i)
+			label := registerKindToLabel(reflectToRegisterKind(typ.Kind()))
+			vmType := kindToType(fn.Type.In(i).Kind())
+			in[vmType]++
+			reg := out[vmType] + in[vmType]
+			_, _ = fmt.Fprintf(w, "%s%d %s", label, reg, typ)
+		}
 	}
 	_, _ = fmt.Fprint(w, ")")
-	if nOut > 0 {
+
+	// Print output parameters.
+	if fn.Type.NumOut() > 0 {
+		out := map[vm.Type]int{vm.TypeInt: 0, vm.TypeFloat: 0, vm.TypeString: 0, vm.TypeGeneral: 0}
 		_, _ = fmt.Fprint(w, " (")
-		for i := 0; i < nOut; i++ {
+		for i := 0; i < fn.Type.NumOut(); i++ {
 			if i > 0 {
 				_, _ = fmt.Fprint(w, ", ")
 			}
 			typ := fn.Type.Out(i)
 			label := registerKindToLabel(reflectToRegisterKind(typ.Kind()))
-			_, _ = fmt.Fprintf(w, "%s%d %s", label, i+1, fn.Type.Out(i))
+			vmType := kindToType(fn.Type.Out(i).Kind())
+			out[vmType]++
+			_, _ = fmt.Fprintf(w, "%s%d %s", label, out[vmType], fn.Type.Out(i))
 		}
 		_, _ = fmt.Fprint(w, ")")
 	}
+
 	_, _ = fmt.Fprint(w, "\n")
 	_, _ = fmt.Fprintf(w, "%s\t; regs(%d,%d,%d,%d)\n", indent,
 		fn.RegNum[0], fn.RegNum[1], fn.RegNum[2], fn.RegNum[3])
@@ -461,9 +477,9 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		// s += ", cap: "
 		// s += fmt.Sprintf("%d", fn.Body[addr+1].B)
 	case vm.OpSetField:
-		s += " " + disassembleOperand(fn, a, vm.Interface, k)
+		s += " " + disassembleOperand(fn, a, vm.Unknown, k)
 		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[b]))
-		s += " " + disassembleOperand(fn, c, vm.Interface, k)
+		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpSetMap:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		if k {

@@ -142,6 +142,17 @@ func (em *emitter) isLenBuiltinCall(expr ast.Expression) bool {
 	return false
 }
 
+// numOut reports the number of return parameters of call, if it is a function
+// call. If is not, returns 0 and false.
+func (em *emitter) numOut(call *ast.Call) (int, bool) {
+	if ti := em.ti(call.Func); ti != nil && ti.Type != nil {
+		if ti.Type.Kind() == reflect.Func {
+			return ti.Type.NumOut(), true
+		}
+	}
+	return 0, false
+}
+
 // kindToType returns the internal register type of a reflect kind.
 func kindToType(k reflect.Kind) vm.Type {
 	switch k {
