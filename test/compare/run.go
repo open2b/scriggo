@@ -329,7 +329,7 @@ func readMode(src []byte, ext string) (mode string) {
 				panic("//+build ignore is no longer supported; remove such line from source")
 			}
 			if !strings.HasPrefix(l, "//") {
-				continue
+				panic(fmt.Errorf("not a valid directive: '%s'", l))
 			}
 			l = strings.TrimPrefix(l, "//")
 			l = strings.TrimSpace(l)
@@ -352,6 +352,8 @@ func readMode(src []byte, ext string) (mode string) {
 					return "skip"
 				}
 				return l
+			} else {
+				panic(fmt.Errorf("not a valid directive: '%s'", l))
 			}
 		}
 	default:
