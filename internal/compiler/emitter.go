@@ -358,19 +358,13 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 			em.fb.exitStack()
 		}
 		if opts.callHasDots {
-			if opts.predefined {
-				// TODO(Gianluca): how can we handle this? The VM expects to
-				// find all the elements of the slice "unwrapped" in registers.
-				panic("TODO: not implemented") // TODO(Gianluca): to implement.
-			} else {
-				sliceArg := args[len(args)-1]
-				sliceArgType := fnTyp.In(fnTyp.NumIn() - 1)
-				reg := em.fb.newRegister(sliceArgType.Kind())
-				em.fb.enterStack()
-				em.emitExprR(sliceArg, sliceArgType, reg)
-				em.fb.exitStack()
-				return regs, types
-			}
+			sliceArg := args[len(args)-1]
+			sliceArgType := fnTyp.In(fnTyp.NumIn() - 1)
+			reg := em.fb.newRegister(sliceArgType.Kind())
+			em.fb.enterStack()
+			em.emitExprR(sliceArg, sliceArgType, reg)
+			em.fb.exitStack()
+			return regs, types
 		}
 		if varArgs := len(args) - (numIn - 1); varArgs == 0 {
 			slice := em.fb.newRegister(reflect.Slice)
@@ -524,7 +518,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 			em.fb.emitGo()
 		}
 		numVar := vm.NoVariadicArgs
-		if funTi.Type.IsVariadic() {
+		if funTi.Type.IsVariadic() && !call.IsVariadic {
 			numArgs := len(call.Args)
 			if len(call.Args) == 1 {
 				if callArg, ok := call.Args[0].(*ast.Call); ok {
@@ -590,21 +584,22 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 	// Indirect function.
 	reg := em.emitExpr(call.Func, em.ti(call.Func).Type)
 	stackShift := em.fb.currentStackShift()
-	opts := callOptions{predefined: true, callHasDots: call.IsVariadic}
+	opts := callOptions{predefined: false, callHasDots: call.IsVariadic}
 	regs, types := em.prepareCallParameters(funTi.Type, call.Args, opts)
-	numVar := vm.NoVariadicArgs
-	if funTi.Type.IsVariadic() {
-		numVar = len(call.Args) - (funTi.Type.NumIn() - 1)
-	}
+	// CallIndirect is always emitted with 'NoVariadicArgs' because the emitter
+	// cannot distinguish between Scriggo defined functions (that require a
+	// []Type) and predefined function (that require Type1, Type2 ...). For this
+	// reason the arguments of an indirect call are emitted as if always calling
+	// a Scriggo defined function.
 	if goStmt {
 		em.fb.emitGo()
 	}
 	if deferStmt {
 		args := stackDifference(em.fb.currentStackShift(), stackShift)
-		em.fb.emitDefer(reg, int8(numVar), stackShift, args)
+		em.fb.emitDefer(reg, int8(vm.NoVariadicArgs), stackShift, args)
 		return regs, types
 	}
-	em.fb.emitCallIndirect(reg, int8(numVar), stackShift)
+	em.fb.emitCallIndirect(reg, int8(vm.NoVariadicArgs), stackShift)
 
 	return regs, types
 }

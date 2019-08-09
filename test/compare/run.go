@@ -16,11 +16,14 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/rogpeppe/go-internal/imports"
 )
 
 func main() {
@@ -56,7 +59,7 @@ func main() {
 	}
 
 	if *verbose || *stat {
-		fmt.Printf("%d tests found (including skipped)\n", len(filepaths))
+		fmt.Printf("%d tests found (including skipped and incompatible ones)\n", len(filepaths))
 	}
 
 	wg := sync.WaitGroup{}
@@ -64,6 +67,7 @@ func main() {
 
 	countTotal := int64(0)
 	countSkipped := int64(0)
+	countIncompatible := int64(0)
 
 	for _, path := range filepaths {
 
@@ -78,7 +82,6 @@ func main() {
 				panic(err)
 			}
 			ext := filepath.Ext(path)
-			mode := readMode(src, ext)
 			// Print output before running the test.
 			if *stat && !*verbose {
 				perc := strconv.Itoa(int(math.Floor(float64(countTotal) / float64(len(filepaths)) * 100)))
@@ -102,6 +105,13 @@ func main() {
 					fmt.Print(" ")
 				}
 			}
+			if !shouldBuild(src) {
+				atomic.AddInt64(&countIncompatible, 1)
+				<-queue
+				wg.Done()
+				return
+			}
+			mode := readMode(src, ext)
 			// Skip or run the test.
 			if mode == "skip" {
 				atomic.AddInt64(&countSkipped, 1)
@@ -136,9 +146,13 @@ func main() {
 		if *color {
 			fmt.Print(colorGood)
 		}
-		countExecuted := countTotal - countSkipped
-		end := time.Now()
-		fmt.Printf("\ndone!   %d tests executed, %d tests skipped in %s\n", countExecuted, countSkipped, end.Sub(start).Truncate(time.Duration(time.Millisecond)))
+		countExecuted := countTotal - countSkipped - countIncompatible
+		totalTime := time.Now().Sub(start).Truncate(time.Duration(time.Millisecond))
+		if countIncompatible > 0 {
+			fmt.Printf("\ndone!   %d tests executed, %d tests skipped (and %d not compatible) in %s\n", countExecuted, countSkipped, countIncompatible, totalTime)
+		} else {
+			fmt.Printf("\ndone!   %d tests executed, %d tests skipped in %s\n", countExecuted, countSkipped, totalTime)
+		}
 		if *color {
 			fmt.Print(colorReset)
 		}
@@ -296,6 +310,18 @@ func goldenCompare(testPath string, got []byte) {
 	}
 }
 
+// isBuildConstraints reports whether line is a build contrain, as specified at
+// https://golang.org/pkg/go/build/#hdr-Build_Constraints.
+func isBuildConstraints(line string) bool {
+	line = strings.TrimSpace(line)
+	if !strings.HasPrefix(line, "//") {
+		return false
+	}
+	line = strings.TrimPrefix(line, "//")
+	line = strings.TrimSpace(line)
+	return strings.HasPrefix(line, "+build")
+}
+
 // isTestPath reports whether path is a valid test path.
 func isTestPath(path string) bool {
 	if filepath.Ext(path) != ".go" && filepath.Ext(path) != ".sgo" && filepath.Ext(path) != ".html" {
@@ -334,8 +360,8 @@ func readMode(src []byte, ext string) (mode string) {
 			if l == "" {
 				continue
 			}
-			if strings.HasPrefix(l, "//+build ignore") {
-				panic("//+build ignore is no longer supported; remove such line from source")
+			if isBuildConstraints(l) {
+				continue
 			}
 			if !strings.HasPrefix(l, "//") {
 				panic(fmt.Errorf("not a valid directive: '%s'", l))
@@ -383,6 +409,66 @@ func runGc(path string) ([]byte, []byte) {
 	cmd.Stderr = &stderr
 	_ = cmd.Run()
 	return stdout.Bytes(), stderr.Bytes()
+}
+
+// goBaseVersion returns the go base version for v.
+//
+//		1.12.5 -> 1.12
+//
+func goBaseVersion(v string) string {
+	// Taken from cmd/scriggo/util.go.
+	if i := strings.Index(v, "beta"); i >= 0 {
+		v = v[:i]
+	}
+	v = v[4:]
+	f, err := strconv.ParseFloat(v, 32)
+	if err != nil {
+		panic(err)
+	}
+	f = math.Floor(f)
+	next := int(f)
+	return fmt.Sprintf("go1.%d", next)
+}
+
+var buildTags = map[string]bool{}
+
+func init() {
+	// Fill builtags.
+	goos := os.Getenv("GOOS")
+	if goos == "" {
+		goos = runtime.GOOS
+	}
+	goarch := os.Getenv("GOARCH")
+	if goarch == "" {
+		goarch = runtime.GOARCH
+	}
+	buildTags = map[string]bool{
+		goos:   true,
+		goarch: true,
+	}
+	// Add the build tags from the first version of go to the current one.
+	cmd := exec.Command("go", "version")
+	stdout := &bytes.Buffer{}
+	cmd.Stdout = stdout
+	err := cmd.Run()
+	if err != nil {
+		panic(err)
+	}
+	rawVersion := strings.Split(stdout.String(), " ")[2]
+	rawVersion = strings.TrimSpace(rawVersion)
+	goVersion := goBaseVersion(rawVersion)
+	subv, err := strconv.Atoi(goVersion[len("go1."):])
+	if err != nil {
+		panic(err)
+	}
+	for i := 1; i <= subv; i++ {
+		buildTags[fmt.Sprintf("go1.%d", i)] = true
+	}
+}
+
+// shouldBuild reports whether a given source code should build or not.
+func shouldBuild(src []byte) bool {
+	return imports.ShouldBuild(src, buildTags)
 }
 
 // test execute test on the given source code with the specified mode.
