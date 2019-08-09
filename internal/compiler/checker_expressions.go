@@ -1099,13 +1099,13 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		}
 		field, newName, ok := tc.fieldOrMethodByName(t, expr.Ident, true)
 		if ok {
+			if newName != nil {
+				expr.Ident = *newName
+			}
 			field.Properties |= PropertyAddressable
 			return field
 		}
 		panic(tc.errorf(expr, "%v undefined (type %s has no field or method %s)", expr, t, expr.Ident))
-		if newName != nil {
-			expr.Ident = *newName
-		}
 
 	case *ast.TypeAssertion:
 		t := tc.checkExpr(expr.Expr)
