@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"strconv"
 	"unicode"
+	"unicode/utf8"
 
 	"scriggo/ast"
 	"scriggo/vm"
@@ -92,6 +93,12 @@ type scopeVariable struct {
 }
 
 // pkgPathToIndex maps a package path to an unique identifier.
+// TODO(Gianluca): it's not safe to use a global variable. More than this, we need a structure in common among all type checkers, which should hold:
+//
+// - pkgPathToIndex
+// - all the collected pkgInfos
+// - informations about which tree has already been checked.
+//
 var pkgPathToIndex = map[string]int{}
 
 // typechecker represents the state of the type checking.
@@ -255,6 +262,9 @@ func (tc *typechecker) assignScope(name string, value *TypeInfo, declNode *ast.I
 
 // currentPkgIndex returns an index related to the current package; such index
 // is unique for every package path.
+//
+// TODO(Gianluca): we should keep an index of the last (or the next) package
+// index, instead of recalculate it every time.
 func (tc *typechecker) currentPkgIndex() int {
 	i, ok := pkgPathToIndex[tc.path]
 	if ok {
@@ -718,7 +728,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 
 	case *ast.StructType:
 		fields := []reflect.StructField{}
-		for i, fd := range expr.FieldDecl {
+		for _, fd := range expr.FieldDecl {
 			typ := tc.checkType(fd.Type).Type
 			if fd.IdentifierList == nil {
 				// Implicit field declaration.
@@ -726,9 +736,8 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 					Name:      "Name", // TODO (Gianluca): to review.
 					PkgPath:   "",     // TODO (Gianluca): to review.
 					Type:      typ,
-					Tag:       "",  // TODO (Gianluca): to review.
-					Offset:    0,   // TODO (Gianluca): to review.
-					Index:     nil, // TODO (Gianluca): to review.
+					Tag:       "", // TODO (Gianluca): to review.
+					Offset:    0,  // TODO (Gianluca): to review.
 					Anonymous: true,
 				})
 			} else {
@@ -751,13 +760,12 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 					// resulting in the unability of make comparisons with that
 					// types.
 					name := ident.Name
-					if !unicode.Is(unicode.Lu, []rune(name)[0]) {
+					if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
 						name = "𝗽" + strconv.Itoa(tc.currentPkgIndex()) + ident.Name
 					}
 					fields = append(fields, reflect.StructField{
 						Name:      name,
 						Type:      typ,
-						Index:     []int{i},
 						Anonymous: false,
 					})
 				}
@@ -1098,15 +1106,13 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			}
 			return method
 		}
-		field, newName, ok := tc.fieldOrMethodByName(t, expr.Ident, true)
+		field, newName, ok := tc.fieldByName(t, expr.Ident)
 		if ok {
+			expr.Ident = newName
 			field.Properties |= PropertyAddressable
 			return field
 		}
 		panic(tc.errorf(expr, "%v undefined (type %s has no field or method %s)", expr, t, expr.Ident))
-		if newName != nil {
-			expr.Ident = *newName
-		}
 
 	case *ast.TypeAssertion:
 		t := tc.checkExpr(expr.Expr)
@@ -2065,7 +2071,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					panic(tc.errorf(node, "duplicate field name in struct literal: %s", keyValue.Key))
 				}
 				hasField[ident.Name] = struct{}{}
-				fieldTi, newName, ok := tc.fieldOrMethodByName(ti, ident.Name, false)
+				fieldTi, newName, ok := tc.fieldByName(ti, ident.Name)
 				if !ok {
 					panic(tc.errorf(node, "unknown field '%s' in struct literal of type %s", keyValue.Key, ti))
 				}
@@ -2077,9 +2083,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					panic(tc.errorf(node, "%s", err))
 				}
 				valueTi.setValue(fieldTi.Type)
-				if newName != nil {
-					ident.Name = *newName
-				}
+				ident.Name = newName
 			}
 		case false: // struct with implicit fields.
 			if len(node.KeyValues) == 0 {

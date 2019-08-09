@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"strconv"
 	"unicode"
+	"unicode/utf8"
 
 	"scriggo/ast"
 )
@@ -166,18 +167,18 @@ func convert(ti *TypeInfo, t2 reflect.Type) (constant, error) {
 	return nil, errTypeConversion
 }
 
-// fieldOrMethodByName returns the struct field or the struct method with the
-// given name and a boolean indicating if the field was found.
+// fieldByName returns the struct field with the given name and a boolean
+// indicating if the field was found.
 //
 // If name is unexported and the type is predefined, name is transformed and the
-// new name is returned as *string. Otherwise the *string argument is nil. For
-// further informations about this see the documentation of the type checking of
-// an *ast.StructType.
-func (tc *typechecker) fieldOrMethodByName(t *TypeInfo, name string, indirectPointer bool) (*TypeInfo, *string, bool) {
-	var newName *string
-	if t.IsType() && !t.IsPredefined() && !unicode.Is(unicode.Lu, []rune(name)[0]) {
+// new name is returned. For further informations about this check the
+// documentation of the type checking of an *ast.StructType.
+func (tc *typechecker) fieldByName(t *TypeInfo, name string) (*TypeInfo, string, bool) {
+	newName := name
+	firstChar, _ := utf8.DecodeRuneInString(name)
+	if !t.IsPredefined() && !unicode.Is(unicode.Lu, firstChar) {
 		name = "𝗽" + strconv.Itoa(tc.currentPkgIndex()) + name
-		newName = &name
+		newName = name
 	}
 	if t.Type.Kind() == reflect.Struct {
 		field, ok := t.Type.FieldByName(name)
@@ -185,13 +186,13 @@ func (tc *typechecker) fieldOrMethodByName(t *TypeInfo, name string, indirectPoi
 			return &TypeInfo{Type: field.Type}, newName, true
 		}
 	}
-	if indirectPointer && t.Type.Kind() == reflect.Ptr {
+	if t.Type.Kind() == reflect.Ptr {
 		field, ok := t.Type.Elem().FieldByName(name)
 		if ok {
 			return &TypeInfo{Type: field.Type}, newName, true
 		}
 	}
-	return nil, nil, false
+	return nil, newName, false
 }
 
 // fillParametersTypes takes a list of parameters (function arguments or
