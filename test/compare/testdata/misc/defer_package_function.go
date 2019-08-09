@@ -1,13 +1,5 @@
 // run
 
-// Test the defer statement.
-
-// What is deferred?                             Package function
-// Does the deferred function take arguments?    Yes/No
-// Is the deferred function variadic?            Yes/No
-// Are there more than one sibling defer?        Yes
-// Are there more than one nested defer?         No
-
 package main
 
 import "fmt"
