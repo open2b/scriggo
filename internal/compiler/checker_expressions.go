@@ -1097,11 +1097,9 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			}
 			return method
 		}
-		field, newName, ok := tc.fieldOrMethodByName(t, expr.Ident, true)
+		field, newName, ok := tc.fieldByName(t, expr.Ident)
 		if ok {
-			if newName != nil {
-				expr.Ident = *newName
-			}
+			expr.Ident = newName
 			field.Properties |= PropertyAddressable
 			return field
 		}
@@ -2064,7 +2062,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					panic(tc.errorf(node, "duplicate field name in struct literal: %s", keyValue.Key))
 				}
 				hasField[ident.Name] = struct{}{}
-				fieldTi, newName, ok := tc.fieldOrMethodByName(ti, ident.Name, false)
+				fieldTi, newName, ok := tc.fieldByName(ti, ident.Name)
 				if !ok {
 					panic(tc.errorf(node, "unknown field '%s' in struct literal of type %s", keyValue.Key, ti))
 				}
@@ -2076,9 +2074,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					panic(tc.errorf(node, "%s", err))
 				}
 				valueTi.setValue(fieldTi.Type)
-				if newName != nil {
-					ident.Name = *newName
-				}
+				ident.Name = newName
 			}
 		case false: // struct with implicit fields.
 			if len(node.KeyValues) == 0 {
