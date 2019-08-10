@@ -1,4 +1,4 @@
-// skip : need statement defer https://github.com/open2b/scriggo/issues/173
+// run
 
 // Copyright 2010 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
@@ -8,15 +8,15 @@
 
 package main
 
-func main() {	
+func main() {
 	n := int64(100)
 	x := make([]int, n)
-	x[99] = 234;	
+	x[99] = 234
 	z := x[n-1]
 	if z != 234 {
 		println("BUG")
 	}
-	n |= 1<<32
+	n |= 1 << 32
 	defer func() {
 		recover()
 	}()

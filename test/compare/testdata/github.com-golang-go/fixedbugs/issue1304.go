@@ -1,5 +1,3 @@
-// skip : need statement defer https://github.com/open2b/scriggo/issues/173
-
 // run
 
 // Copyright 2014 The Go Authors. All rights reserved.
