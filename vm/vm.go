@@ -845,10 +845,8 @@ func (vm *VM) moreGeneralStack() {
 }
 
 func (vm *VM) nextCall() bool {
-	var i int
-	var call callFrame
-	for i = len(vm.calls) - 1; i >= 0; i-- {
-		call = vm.calls[i]
+	for i := len(vm.calls) - 1; i >= 0; i-- {
+		call := vm.calls[i]
 		switch call.status {
 		case started:
 			// A call is returned, continue with the previous call.
@@ -860,16 +858,17 @@ func (vm *VM) nextCall() bool {
 		case deferred:
 			// A call, that has deferred calls, is returned, its first
 			// deferred call will be executed.
-			returned := callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: returned}
-			vm.swapStacks(&call, &returned)
-			vm.calls[i] = returned
+			current := callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: returned}
+			vm.swapStacks(&call, &current)
+			vm.calls[i] = current
 			i++
 		case returned, recovered:
 			// A deferred call is returned. If there is another deferred
 			// call, it will be executed, otherwise the previous call will be
 			// finalized.
 			if i > 0 {
-				if prev := vm.calls[i-1]; prev.status == deferred {
+				prev := vm.calls[i-1]
+				if prev.status == deferred {
 					vm.swapStacks(&prev, &call)
 					call, vm.calls[i-1] = prev, call
 					break
