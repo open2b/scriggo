@@ -5,6 +5,6 @@ package main
 import "testpkg"
 
 func main() {
-	testpkg.F00()
+	testpkg.G00()
 	return
 }
