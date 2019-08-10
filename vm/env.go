@@ -84,3 +84,21 @@ func (env *Env) FreeMemory() (bytes int, limitedMemory bool) {
 	}
 	return 0, false
 }
+
+// Print calls the print built-in function with args as argument.
+func (env *Env) Print(args ...interface{}) {
+	for _, arg := range args {
+		env.print(arg)
+	}
+}
+
+// Println calls the println built-in function with args as argument.
+func (env *Env) Println(args ...interface{}) {
+	for i, arg := range args {
+		if i > 0 {
+			env.print(" ")
+		}
+		env.print(arg)
+	}
+	env.print("\n")
+}
