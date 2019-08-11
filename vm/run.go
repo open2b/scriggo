@@ -502,12 +502,18 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Defer
 		case OpDefer:
+			cl := vm.general(a).(*callable)
 			off := vm.fn.Body[vm.pc]
 			arg := vm.fn.Body[vm.pc+1]
-			vm.deferCall(vm.general(a).(*callable), c,
-				StackShift{int8(off.Op), off.A, off.B, off.C},
-				StackShift{int8(arg.Op), arg.A, arg.B, arg.C})
 			vm.pc += 2
+			fp := [4]uint32{
+				vm.fp[0] + uint32(off.Op),
+				vm.fp[1] + uint32(off.A),
+				vm.fp[2] + uint32(off.B),
+				vm.fp[3] + uint32(off.C),
+			}
+			vm.swapStack(&vm.fp, &fp, StackShift{int8(arg.Op), arg.A, arg.B, arg.C})
+			vm.calls = append(vm.calls, callFrame{cl: *cl, fp: fp, pc: 0, status: deferred, numVariadic: c})
 
 		// Delete
 		case OpDelete:
