@@ -206,9 +206,12 @@ func (builder *functionBuilder) exitStack() {
 // newRegister makes a new register of a given kind.
 func (builder *functionBuilder) newRegister(kind reflect.Kind) int8 {
 	t := kindToType(kind)
-	reg := int8(builder.numRegs[t]) + 1
-	builder.allocRegister(t, reg)
-	return reg
+	num := builder.numRegs[t]
+	if num == 127 {
+		panic(fmt.Errorf("cannot allocate a new %s register", t))
+	}
+	builder.allocRegister(t, num+1)
+	return num + 1
 }
 
 // bindVarReg binds name with register reg. To create a new variable, use
@@ -401,13 +404,11 @@ func (builder *functionBuilder) end() {
 }
 
 func (builder *functionBuilder) allocRegister(typ vm.Type, reg int8) {
-	if reg > 0 {
-		if num, ok := builder.maxRegs[typ]; !ok || reg > num {
-			builder.maxRegs[typ] = reg
-		}
-		if num, ok := builder.numRegs[typ]; !ok || reg > num {
-			builder.numRegs[typ] = reg
-		}
+	if max, ok := builder.maxRegs[typ]; !ok || reg > max {
+		builder.maxRegs[typ] = reg
+	}
+	if num, ok := builder.numRegs[typ]; !ok || reg > num {
+		builder.numRegs[typ] = reg
 	}
 }
 
