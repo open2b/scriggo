@@ -385,7 +385,8 @@ func (builder *functionBuilder) end() {
 		for _, addr := range builder.allocs {
 			var bytes int
 			if addr == 0 {
-				bytes = vm.CallFrameSize + 8*int(fn.NumReg[0]+fn.NumReg[1]) + 16*int(fn.NumReg[2]+fn.NumReg[3])
+				bytes = vm.CallFrameSize + 8*int(fn.NumReg[vm.TypeInt]+fn.NumReg[vm.TypeFloat]) +
+					16*int(fn.NumReg[vm.TypeString]+fn.NumReg[vm.TypeGeneral])
 			} else {
 				in := fn.Body[addr+1]
 				if in.Op == vm.OpFunc {
