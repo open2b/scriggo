@@ -856,7 +856,7 @@ func (vm *VM) nextCall() bool {
 			// A call, that has deferred calls, is returned, its first
 			// deferred call will be executed.
 			current := callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: returned}
-			vm.swapStacks(&call, &current)
+			vm.swapStack(&call.fp, &current.fp, current.cl.fn.NumReg)
 			vm.calls[i] = current
 			i++
 		case returned, recovered:
@@ -866,7 +866,7 @@ func (vm *VM) nextCall() bool {
 			if i > 0 {
 				prev := vm.calls[i-1]
 				if prev.status == deferred {
-					vm.swapStacks(&prev, &call)
+					vm.swapStack(&prev.fp, &call.fp, call.cl.fn.NumReg)
 					call, vm.calls[i-1] = prev, call
 					break
 				}
@@ -959,69 +959,72 @@ func (vm *VM) startGoroutine() bool {
 	return false
 }
 
-func (vm *VM) swapStacks(c1, c2 *callFrame) {
+// swapStack swaps the stacks pointed by a and b. bSize is the size of the
+// stack pointed by b. The stacks must be consecutive and a must precede b.
+//
+// A stack can have zero size, so a and b can point to the same index.
+func (vm *VM) swapStack(a, b *[4]uint32, bSize StackShift) {
 
-	// Int.
-	arg := c2.fp[0] - c1.fp[0]
-	off := uint32(c2.cl.fn.NumReg[0])
-	if arg > 0 && off > 0 {
-		if c2.fp[0]+2*off > vm.st[0] {
+	// Swap int registers.
+	as := b[0] - a[0]
+	bs := uint32(bSize[0])
+	if as > 0 && bs > 0 {
+		tot := as + bs
+		if a[0]+tot+bs > vm.st[0] {
 			vm.moreIntStack()
 		}
-		s := vm.regs.int[c1.fp[0]+1:]
-		tot := arg + off
-		copy(s[off:], s[:tot])
-		copy(s, s[tot:tot+off])
+		s := vm.regs.int[a[0]+1:]
+		copy(s[bs:], s[:tot])
+		copy(s, s[tot:tot+bs])
 	}
-	c2.fp[0] -= arg
-	c1.fp[0] += off
+	b[0] = a[0]
+	a[0] += bs
 
-	// Float.
-	arg = c2.fp[1] - c1.fp[1]
-	off = uint32(c2.cl.fn.NumReg[1])
-	if arg > 0 && off > 0 {
-		if c2.fp[1]+2*off > vm.st[1] {
+	// Swap float registers.
+	as = b[1] - a[1]
+	bs = uint32(bSize[1])
+	if as > 0 && bs > 0 {
+		tot := as + bs
+		if a[1]+tot+bs > vm.st[1] {
 			vm.moreFloatStack()
 		}
-		s := vm.regs.float[c1.fp[1]+1:]
-		tot := arg + off
-		copy(s[off:], s[:tot])
-		copy(s, s[tot:tot+off])
+		s := vm.regs.float[a[1]+1:]
+		copy(s[bs:], s[:tot])
+		copy(s, s[tot:tot+bs])
 	}
-	c2.fp[1] -= arg
-	c1.fp[1] += off
+	b[1] = a[1]
+	a[1] += bs
 
-	// String.
-	arg = c2.fp[2] - c1.fp[2]
-	off = uint32(c2.cl.fn.NumReg[2])
-	if arg > 0 && off > 0 {
-		if c2.fp[2]+2*off > vm.st[2] {
+	// Swap string registers.
+	as = b[2] - a[2]
+	bs = uint32(bSize[2])
+	if as > 0 && bs > 0 {
+		tot := as + bs
+		if a[2]+tot+bs > vm.st[2] {
 			vm.moreStringStack()
 		}
-		s := vm.regs.string[c1.fp[2]+1:]
-		tot := arg + off
-		copy(s[off:], s[:tot])
-		copy(s, s[tot:tot+off])
+		s := vm.regs.string[a[2]+1:]
+		copy(s[bs:], s[:tot])
+		copy(s, s[tot:tot+bs])
 	}
-	c2.fp[2] -= arg
-	c1.fp[2] += off
+	b[2] = a[2]
+	a[2] += bs
 
-	// General.
-	arg = c2.fp[3] - c1.fp[3]
-	off = uint32(c2.cl.fn.NumReg[3])
-	if arg > 0 && off > 0 {
-		if c2.fp[3]+2*off > vm.st[3] {
+	// Swap general registers.
+	as = b[3] - a[3]
+	bs = uint32(bSize[3])
+	if as > 0 && bs > 0 {
+		tot := as + bs
+		if a[3]+tot+bs > vm.st[3] {
 			vm.moreGeneralStack()
 		}
-		s := vm.regs.general[c1.fp[3]+1:]
-		tot := arg + off
-		copy(s[off:], s[:tot])
-		copy(s, s[tot:tot+off])
+		s := vm.regs.general[a[3]+1:]
+		copy(s[bs:], s[:tot])
+		copy(s, s[tot:tot+bs])
 	}
-	c2.fp[3] -= arg
-	c1.fp[3] += off
+	b[3] = a[3]
+	a[3] += bs
 
-	return
 }
 
 type Registers struct {
