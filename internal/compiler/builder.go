@@ -122,8 +122,8 @@ type functionBuilder struct {
 	fn                     *vm.Function
 	labels                 []uint32
 	gotos                  map[uint32]uint32
-	maxRegs                map[reflect.Kind]int8 // max number of registers allocated at the same time.
-	numRegs                map[reflect.Kind]int8
+	maxRegs                map[vm.Type]int8 // max number of registers allocated at the same time.
+	numRegs                map[vm.Type]int8
 	scopes                 []map[string]int8
 	scopeShifts            []vm.StackShift
 	allocs                 []uint32
@@ -137,8 +137,8 @@ func newBuilder(fn *vm.Function) *functionBuilder {
 	builder := &functionBuilder{
 		fn:                     fn,
 		gotos:                  map[uint32]uint32{},
-		maxRegs:                map[reflect.Kind]int8{},
-		numRegs:                map[reflect.Kind]int8{},
+		maxRegs:                map[vm.Type]int8{},
+		numRegs:                map[vm.Type]int8{},
 		scopes:                 []map[string]int8{},
 		complexBinaryOpIndexes: map[ast.OperatorType]int8{},
 		complexUnaryOpIndex:    -1,
@@ -149,10 +149,10 @@ func newBuilder(fn *vm.Function) *functionBuilder {
 // currentStackShift returns the current stack shift.
 func (builder *functionBuilder) currentStackShift() vm.StackShift {
 	return vm.StackShift{
-		int8(builder.numRegs[reflect.Int]),
-		int8(builder.numRegs[reflect.Float64]),
-		int8(builder.numRegs[reflect.String]),
-		int8(builder.numRegs[reflect.Interface]),
+		builder.numRegs[vm.TypeInt],
+		builder.numRegs[vm.TypeFloat],
+		builder.numRegs[vm.TypeString],
+		builder.numRegs[vm.TypeGeneral],
 	}
 }
 
@@ -196,27 +196,18 @@ func (builder *functionBuilder) enterStack() {
 // See enterStack documentation for further details and usage.
 func (builder *functionBuilder) exitStack() {
 	shift := builder.scopeShifts[len(builder.scopeShifts)-1]
-	builder.numRegs[reflect.Int] = shift[0]
-	builder.numRegs[reflect.Float64] = shift[1]
-	builder.numRegs[reflect.String] = shift[2]
-	builder.numRegs[reflect.Interface] = shift[3]
+	builder.numRegs[vm.TypeInt] = shift[vm.TypeInt]
+	builder.numRegs[vm.TypeFloat] = shift[vm.TypeFloat]
+	builder.numRegs[vm.TypeString] = shift[vm.TypeString]
+	builder.numRegs[vm.TypeGeneral] = shift[vm.TypeGeneral]
 	builder.scopeShifts = builder.scopeShifts[:len(builder.scopeShifts)-1]
 }
 
 // newRegister makes a new register of a given kind.
 func (builder *functionBuilder) newRegister(kind reflect.Kind) int8 {
-	switch kindToType(kind) {
-	case vm.TypeInt:
-		kind = reflect.Int
-	case vm.TypeFloat:
-		kind = reflect.Float64
-	case vm.TypeString:
-		kind = reflect.String
-	case vm.TypeGeneral:
-		kind = reflect.Interface
-	}
-	reg := int8(builder.numRegs[kind]) + 1
-	builder.allocRegister(kind, reg)
+	t := kindToType(kind)
+	reg := int8(builder.numRegs[t]) + 1
+	builder.allocRegister(t, reg)
 	return reg
 }
 
@@ -385,24 +376,9 @@ func (builder *functionBuilder) end() {
 		fn.Body[addr] = i
 	}
 	builder.gotos = nil
-	for kind, num := range builder.maxRegs {
-		switch {
-		case reflect.Int <= kind && kind <= reflect.Uintptr:
-			if num > fn.NumReg[0] {
-				fn.NumReg[0] = num
-			}
-		case kind == reflect.Float64 || kind == reflect.Float32:
-			if num > fn.NumReg[1] {
-				fn.NumReg[1] = num
-			}
-		case kind == reflect.String:
-			if num > fn.NumReg[2] {
-				fn.NumReg[2] = num
-			}
-		default:
-			if num > fn.NumReg[3] {
-				fn.NumReg[3] = num
-			}
+	for typ, num := range builder.maxRegs {
+		if num > fn.NumReg[typ] {
+			fn.NumReg[typ] = num
 		}
 	}
 	if builder.allocs != nil {
@@ -423,23 +399,13 @@ func (builder *functionBuilder) end() {
 	}
 }
 
-func (builder *functionBuilder) allocRegister(kind reflect.Kind, reg int8) {
-	switch kindToType(kind) {
-	case vm.TypeInt:
-		kind = reflect.Int
-	case vm.TypeFloat:
-		kind = reflect.Float64
-	case vm.TypeString:
-		kind = reflect.String
-	case vm.TypeGeneral:
-		kind = reflect.Interface
-	}
+func (builder *functionBuilder) allocRegister(typ vm.Type, reg int8) {
 	if reg > 0 {
-		if num, ok := builder.maxRegs[kind]; !ok || reg > num {
-			builder.maxRegs[kind] = reg
+		if num, ok := builder.maxRegs[typ]; !ok || reg > num {
+			builder.maxRegs[typ] = reg
 		}
-		if num, ok := builder.numRegs[kind]; !ok || reg > num {
-			builder.numRegs[kind] = reg
+		if num, ok := builder.numRegs[typ]; !ok || reg > num {
+			builder.numRegs[typ] = reg
 		}
 	}
 }
