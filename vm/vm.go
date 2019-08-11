@@ -1078,7 +1078,7 @@ type Function struct {
 	VarRefs    []int16
 	Literals   []*Function
 	Types      []reflect.Type
-	NumReg     [4]uint8
+	NumReg     [4]int8
 	Constants  Registers
 	Functions  []*Function
 	Predefined []*PredefinedFunction

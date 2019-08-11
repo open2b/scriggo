@@ -122,8 +122,8 @@ type functionBuilder struct {
 	fn                     *vm.Function
 	labels                 []uint32
 	gotos                  map[uint32]uint32
-	maxRegs                map[reflect.Kind]uint8 // max number of registers allocated at the same time.
-	numRegs                map[reflect.Kind]uint8
+	maxRegs                map[reflect.Kind]int8 // max number of registers allocated at the same time.
+	numRegs                map[reflect.Kind]int8
 	scopes                 []map[string]int8
 	scopeShifts            []vm.StackShift
 	allocs                 []uint32
@@ -137,8 +137,8 @@ func newBuilder(fn *vm.Function) *functionBuilder {
 	builder := &functionBuilder{
 		fn:                     fn,
 		gotos:                  map[uint32]uint32{},
-		maxRegs:                map[reflect.Kind]uint8{},
-		numRegs:                map[reflect.Kind]uint8{},
+		maxRegs:                map[reflect.Kind]int8{},
+		numRegs:                map[reflect.Kind]int8{},
 		scopes:                 []map[string]int8{},
 		complexBinaryOpIndexes: map[ast.OperatorType]int8{},
 		complexUnaryOpIndex:    -1,
@@ -196,10 +196,10 @@ func (builder *functionBuilder) enterStack() {
 // See enterStack documentation for further details and usage.
 func (builder *functionBuilder) exitStack() {
 	shift := builder.scopeShifts[len(builder.scopeShifts)-1]
-	builder.numRegs[reflect.Int] = uint8(shift[0])
-	builder.numRegs[reflect.Float64] = uint8(shift[1])
-	builder.numRegs[reflect.String] = uint8(shift[2])
-	builder.numRegs[reflect.Interface] = uint8(shift[3])
+	builder.numRegs[reflect.Int] = shift[0]
+	builder.numRegs[reflect.Float64] = shift[1]
+	builder.numRegs[reflect.String] = shift[2]
+	builder.numRegs[reflect.Interface] = shift[3]
 	builder.scopeShifts = builder.scopeShifts[:len(builder.scopeShifts)-1]
 }
 
@@ -435,11 +435,11 @@ func (builder *functionBuilder) allocRegister(kind reflect.Kind, reg int8) {
 		kind = reflect.Interface
 	}
 	if reg > 0 {
-		if num, ok := builder.maxRegs[kind]; !ok || uint8(reg) > num {
-			builder.maxRegs[kind] = uint8(reg)
+		if num, ok := builder.maxRegs[kind]; !ok || reg > num {
+			builder.maxRegs[kind] = reg
 		}
-		if num, ok := builder.numRegs[kind]; !ok || uint8(reg) > num {
-			builder.numRegs[kind] = uint8(reg)
+		if num, ok := builder.numRegs[kind]; !ok || reg > num {
+			builder.numRegs[kind] = reg
 		}
 	}
 }
