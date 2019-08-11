@@ -388,20 +388,20 @@ func (builder *functionBuilder) end() {
 	for kind, num := range builder.maxRegs {
 		switch {
 		case reflect.Int <= kind && kind <= reflect.Uintptr:
-			if num > fn.RegNum[0] {
-				fn.RegNum[0] = num
+			if num > fn.NumReg[0] {
+				fn.NumReg[0] = num
 			}
 		case kind == reflect.Float64 || kind == reflect.Float32:
-			if num > fn.RegNum[1] {
-				fn.RegNum[1] = num
+			if num > fn.NumReg[1] {
+				fn.NumReg[1] = num
 			}
 		case kind == reflect.String:
-			if num > fn.RegNum[2] {
-				fn.RegNum[2] = num
+			if num > fn.NumReg[2] {
+				fn.NumReg[2] = num
 			}
 		default:
-			if num > fn.RegNum[3] {
-				fn.RegNum[3] = num
+			if num > fn.NumReg[3] {
+				fn.NumReg[3] = num
 			}
 		}
 	}
@@ -409,7 +409,7 @@ func (builder *functionBuilder) end() {
 		for _, addr := range builder.allocs {
 			var bytes int
 			if addr == 0 {
-				bytes = vm.CallFrameSize + 8*int(fn.RegNum[0]+fn.RegNum[1]) + 16*int(fn.RegNum[2]+fn.RegNum[3])
+				bytes = vm.CallFrameSize + 8*int(fn.NumReg[0]+fn.NumReg[1]) + 16*int(fn.NumReg[2]+fn.NumReg[3])
 			} else {
 				in := fn.Body[addr+1]
 				if in.Op == vm.OpFunc {

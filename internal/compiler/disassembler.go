@@ -180,7 +180,7 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.Function, globals []Global, dep
 
 	_, _ = fmt.Fprint(w, "\n")
 	_, _ = fmt.Fprintf(w, "%s\t; regs(%d,%d,%d,%d)\n", indent,
-		fn.RegNum[0], fn.RegNum[1], fn.RegNum[2], fn.RegNum[3])
+		fn.NumReg[0], fn.NumReg[1], fn.NumReg[2], fn.NumReg[3])
 	instrNum := uint32(len(fn.Body))
 	for addr := uint32(0); addr < instrNum; addr++ {
 		if label, ok := labelOf[uint32(addr)]; ok {

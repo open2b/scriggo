@@ -732,10 +732,10 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 //go:noinline
 func (vm *VM) invokeTraceFunc() {
 	regs := Registers{
-		Int:     vm.regs.int[vm.fp[0]+1 : vm.fp[0]+uint32(vm.fn.RegNum[0])+1],
-		Float:   vm.regs.float[vm.fp[1]+1 : vm.fp[1]+uint32(vm.fn.RegNum[1])+1],
-		String:  vm.regs.string[vm.fp[2]+1 : vm.fp[2]+uint32(vm.fn.RegNum[2])+1],
-		General: vm.regs.general[vm.fp[3]+1 : vm.fp[3]+uint32(vm.fn.RegNum[3])+1],
+		Int:     vm.regs.int[vm.fp[0]+1 : vm.fp[0]+uint32(vm.fn.NumReg[0])+1],
+		Float:   vm.regs.float[vm.fp[1]+1 : vm.fp[1]+uint32(vm.fn.NumReg[1])+1],
+		String:  vm.regs.string[vm.fp[2]+1 : vm.fp[2]+uint32(vm.fn.NumReg[2])+1],
+		General: vm.regs.general[vm.fp[3]+1 : vm.fp[3]+uint32(vm.fn.NumReg[3])+1],
 	}
 	vm.env.trace(vm.fn, vm.pc, regs)
 }
@@ -963,7 +963,7 @@ func (vm *VM) swapStacks(c1, c2 *callFrame) {
 
 	// Int.
 	arg := c2.fp[0] - c1.fp[0]
-	off := uint32(c2.cl.fn.RegNum[0])
+	off := uint32(c2.cl.fn.NumReg[0])
 	if arg > 0 && off > 0 {
 		if c2.fp[0]+2*off > vm.st[0] {
 			vm.moreIntStack()
@@ -978,7 +978,7 @@ func (vm *VM) swapStacks(c1, c2 *callFrame) {
 
 	// Float.
 	arg = c2.fp[1] - c1.fp[1]
-	off = uint32(c2.cl.fn.RegNum[1])
+	off = uint32(c2.cl.fn.NumReg[1])
 	if arg > 0 && off > 0 {
 		if c2.fp[1]+2*off > vm.st[1] {
 			vm.moreFloatStack()
@@ -993,7 +993,7 @@ func (vm *VM) swapStacks(c1, c2 *callFrame) {
 
 	// String.
 	arg = c2.fp[2] - c1.fp[2]
-	off = uint32(c2.cl.fn.RegNum[2])
+	off = uint32(c2.cl.fn.NumReg[2])
 	if arg > 0 && off > 0 {
 		if c2.fp[2]+2*off > vm.st[2] {
 			vm.moreStringStack()
@@ -1008,7 +1008,7 @@ func (vm *VM) swapStacks(c1, c2 *callFrame) {
 
 	// General.
 	arg = c2.fp[3] - c1.fp[3]
-	off = uint32(c2.cl.fn.RegNum[3])
+	off = uint32(c2.cl.fn.NumReg[3])
 	if arg > 0 && off > 0 {
 		if c2.fp[3]+2*off > vm.st[3] {
 			vm.moreGeneralStack()
@@ -1078,7 +1078,7 @@ type Function struct {
 	VarRefs    []int16
 	Literals   []*Function
 	Types      []reflect.Type
-	RegNum     [4]uint8
+	NumReg     [4]uint8
 	Constants  Registers
 	Functions  []*Function
 	Predefined []*PredefinedFunction

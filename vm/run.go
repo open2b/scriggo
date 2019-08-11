@@ -251,19 +251,19 @@ func (vm *VM) run() (uint32, bool) {
 			off := vm.fn.Body[vm.pc]
 			call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
 			vm.fp[0] += uint32(off.Op)
-			if vm.fp[0]+uint32(fn.RegNum[0]) > vm.st[0] {
+			if vm.fp[0]+uint32(fn.NumReg[0]) > vm.st[0] {
 				vm.moreIntStack()
 			}
 			vm.fp[1] += uint32(off.A)
-			if vm.fp[1]+uint32(fn.RegNum[1]) > vm.st[1] {
+			if vm.fp[1]+uint32(fn.NumReg[1]) > vm.st[1] {
 				vm.moreFloatStack()
 			}
 			vm.fp[2] += uint32(off.B)
-			if vm.fp[2]+uint32(fn.RegNum[2]) > vm.st[2] {
+			if vm.fp[2]+uint32(fn.NumReg[2]) > vm.st[2] {
 				vm.moreStringStack()
 			}
 			vm.fp[3] += uint32(off.C)
-			if vm.fp[3]+uint32(fn.RegNum[3]) > vm.st[3] {
+			if vm.fp[3]+uint32(fn.NumReg[3]) > vm.st[3] {
 				vm.moreGeneralStack()
 			}
 			vm.fn = fn
@@ -285,19 +285,19 @@ func (vm *VM) run() (uint32, bool) {
 				off := vm.fn.Body[vm.pc]
 				call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
 				vm.fp[0] += uint32(off.Op)
-				if vm.fp[0]+uint32(fn.RegNum[0]) > vm.st[0] {
+				if vm.fp[0]+uint32(fn.NumReg[0]) > vm.st[0] {
 					vm.moreIntStack()
 				}
 				vm.fp[1] += uint32(off.A)
-				if vm.fp[1]+uint32(fn.RegNum[1]) > vm.st[1] {
+				if vm.fp[1]+uint32(fn.NumReg[1]) > vm.st[1] {
 					vm.moreFloatStack()
 				}
 				vm.fp[2] += uint32(off.B)
-				if vm.fp[2]+uint32(fn.RegNum[2]) > vm.st[2] {
+				if vm.fp[2]+uint32(fn.NumReg[2]) > vm.st[2] {
 					vm.moreStringStack()
 				}
 				vm.fp[3] += uint32(off.C)
-				if vm.fp[3]+uint32(fn.RegNum[3]) > vm.st[3] {
+				if vm.fp[3]+uint32(fn.NumReg[3]) > vm.st[3] {
 					vm.moreGeneralStack()
 				}
 				vm.fn = fn
@@ -1690,16 +1690,16 @@ func (vm *VM) run() (uint32, bool) {
 					fn = vm.fn.Functions[uint8(b)]
 					vm.vars = vm.env.globals
 				}
-				if vm.fp[0]+uint32(fn.RegNum[0]) > vm.st[0] {
+				if vm.fp[0]+uint32(fn.NumReg[0]) > vm.st[0] {
 					vm.moreIntStack()
 				}
-				if vm.fp[1]+uint32(fn.RegNum[1]) > vm.st[1] {
+				if vm.fp[1]+uint32(fn.NumReg[1]) > vm.st[1] {
 					vm.moreFloatStack()
 				}
-				if vm.fp[2]+uint32(fn.RegNum[2]) > vm.st[2] {
+				if vm.fp[2]+uint32(fn.NumReg[2]) > vm.st[2] {
 					vm.moreStringStack()
 				}
-				if vm.fp[3]+uint32(fn.RegNum[3]) > vm.st[3] {
+				if vm.fp[3]+uint32(fn.NumReg[3]) > vm.st[3] {
 					vm.moreGeneralStack()
 				}
 				vm.fn = fn
