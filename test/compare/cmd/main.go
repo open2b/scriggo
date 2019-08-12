@@ -51,6 +51,13 @@ func (dl dirLoader) Load(path string) (interface{}, error) {
 	return bytes.NewReader(data), nil
 }
 
+var templateMain = &scriggo.MapPackage{
+	PkgName: "main",
+	Declarations: map[string]interface{}{
+		"MainSum": func(a, b int) int { return a + b },
+	},
+}
+
 func main() {
 	switch os.Args[1] {
 	case "compile program":
@@ -110,7 +117,7 @@ func main() {
 			panic(err)
 		}
 		r := template.MapReader{"/index.html": src}
-		templ, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
+		templ, err := template.Load("/index.html", r, templateMain, template.ContextHTML, nil)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -123,7 +130,7 @@ func main() {
 	case "render html directory":
 		dirPath := os.Args[2]
 		r := template.DirReader(dirPath)
-		templ, err := template.Load("/index.html", r, nil, template.ContextHTML, nil)
+		templ, err := template.Load("/index.html", r, templateMain, template.ContextHTML, nil)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -139,7 +146,7 @@ func main() {
 			panic(err)
 		}
 		r := template.MapReader{"/index.html": src}
-		_, err = template.Load("/index.html", r, nil, template.ContextHTML, nil)
+		_, err = template.Load("/index.html", r, templateMain, template.ContextHTML, nil)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
