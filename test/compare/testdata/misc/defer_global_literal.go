@@ -49,14 +49,14 @@ func g() (int, string, float64, int) {
 	defer f9("a", 7, 8, 9)
 	defer f9("a", []int{12, 16, 23}...)
 	defer f10()
-	//defer f11("a", 6.9, []string{"x", "y"})
+	defer f11("a", 6.9, []string{"x", "y"})
 	s := h("x", "y", "z")
 	fmt.Printf("h %v\n", s)
 	return a, "sf", 34.89, 8
 }
 
 func h(s ...string) []string {
-	//defer f11("a", 6.9, []string{"x", "y"})
+	defer f11("a", 6.9, []string{"x", "y"})
 	defer f10()
 	defer f9("a", []int{12, 16, 23}...)
 	defer f9("a", 7, 8, 9)
