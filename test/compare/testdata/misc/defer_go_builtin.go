@@ -24,6 +24,7 @@ func main() {
 	delete(map[int]int{4: 16, 20: 400}, 20)
 
 	// // Builtin 'print'.
+	// See https://github.com/open2b/scriggo/issues/285#issuecomment-520437921
 
 	// defer print("print")
 	// defer print(1, 2, 3)
