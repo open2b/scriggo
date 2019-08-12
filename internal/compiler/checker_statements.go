@@ -580,6 +580,10 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				switch name {
 				case "append", "cap", "len", "make", "new":
 					panic(tc.errorf(node, "defer discards result of %s", node.Call))
+				case "panic", "recover":
+					panic("TODO: not implemented; see https://github.com/open2b/scriggo/issues/285") // TODO(Gianluca): to implement.
+				case "close", "delete", "print", "println":
+					tc.typeInfos[node.Call.Func] = deferGoBuiltin(name)
 				}
 			}
 			if isConversion {
@@ -594,6 +598,10 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				switch name {
 				case "append", "cap", "len", "make", "new":
 					panic(tc.errorf(node, "go discards result of %s", node.Call))
+				case "panic", "recover":
+					panic("TODO: not implemented; see https://github.com/open2b/scriggo/issues/285") // TODO(Gianluca): to implement.
+				case "close", "delete", "print", "println":
+					tc.typeInfos[node.Call.Func] = deferGoBuiltin(name)
 				}
 			}
 			if isConversion {

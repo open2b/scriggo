@@ -889,9 +889,6 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				// Nothing to do
 				continue
 			}
-			if em.isPredeclaredBuiltinFunc(node.Call.Func) {
-				panic("TODO: https://github.com/open2b/scriggo/issues/233") // TODO(Gianluca): not implemented.
-			}
 			em.fb.enterStack()
 			_, _ = em.emitCallNode(node.Call, true, false)
 			em.fb.exitStack()
@@ -900,9 +897,6 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			if em.ti(node.Call.Func) == showMacroIgnoredTi {
 				// Nothing to do
 				continue
-			}
-			if em.isPredeclaredBuiltinFunc(node.Call.Func) {
-				panic("TODO: https://github.com/open2b/scriggo/issues/233") // TODO(Gianluca): not implemented.
 			}
 			em.fb.enterStack()
 			_, _ = em.emitCallNode(node.Call, false, true)

@@ -15,6 +15,7 @@ import (
 	"unicode/utf8"
 
 	"scriggo/ast"
+	"scriggo/vm"
 )
 
 var errTypeConversion = errors.New("failed type conversion")
@@ -165,6 +166,37 @@ func convert(ti *TypeInfo, t2 reflect.Type) (constant, error) {
 	}
 
 	return nil, errTypeConversion
+}
+
+// deferGoBuiltin returns a type info suitable to be embedded into the 'defer'
+// and 'go' statements with a builtin call as argument.
+func deferGoBuiltin(name string) *TypeInfo {
+	ti := &TypeInfo{
+		Properties: PropertyHasValue | PropertyIsPredefined,
+	}
+	fun := map[string]interface{}{
+		"close": func(ch interface{}) {
+			reflect.ValueOf(ch).Close()
+		},
+		"delete": func(m interface{}, key interface{}) {
+			reflect.ValueOf(m).SetMapIndex(reflect.ValueOf(key), reflect.Value{})
+		},
+		"print": func(env *vm.Env, args ...interface{}) {
+			env.Print(args)
+		},
+		"println": func(env *vm.Env, args ...interface{}) {
+			env.Println(args)
+		},
+	}[name]
+	typ := map[string]reflect.Type{
+		"close":   reflect.TypeOf(func(interface{}) {}),
+		"delete":  reflect.TypeOf(func(interface{}, interface{}) {}),
+		"print":   reflect.TypeOf(func(...interface{}) {}),
+		"println": reflect.TypeOf(func(...interface{}) {}),
+	}[name]
+	ti.value = reflect.ValueOf(fun)
+	ti.Type = typ
+	return ti
 }
 
 // fieldByName returns the struct field with the given name and a boolean
