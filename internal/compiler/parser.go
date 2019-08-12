@@ -106,9 +106,6 @@ type parsing struct {
 	// Reports whether it has an extend statement.
 	hasExtend bool
 
-	// Reports whether it is in a macro.
-	isInMacro bool
-
 	// Reports whether there is a token in current line for which it is possible
 	// to cut the leading and trailing spaces.
 	cutSpacesToken bool
@@ -316,9 +313,6 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, deps Pack
 
 		// {{ }}
 		case tokenStartValue:
-			if p.hasExtend && !p.isInMacro {
-				return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("value statement outside macro")}
-			}
 			tokensInLine++
 			expr, tok2 := p.parseExpr(token{}, false, false, false)
 			if expr == nil {
@@ -818,9 +812,6 @@ LABEL:
 
 	// include
 	case tokenInclude:
-		if p.hasExtend && !p.isInMacro {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("include statement outside macro")})
-		}
 		if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("include statement inside an attribute value")})
 		}
@@ -844,11 +835,6 @@ LABEL:
 
 	// show
 	case tokenShow:
-		// TODO(Gianluca): consider check if p.isExtended && !p.isInMacro
-		// before entering parsing switch, removing checks from all cases.
-		if p.hasExtend && !p.isInMacro {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("show statement outside macro")})
-		}
 		if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("show statement inside an attribute value")})
 		}
@@ -1091,7 +1077,6 @@ LABEL:
 		p.addChild(node)
 		p.ancestors = append(p.ancestors, node)
 		p.cutSpacesToken = true
-		p.isInMacro = true
 
 	// end
 	case tokenEnd:
@@ -1142,9 +1127,6 @@ LABEL:
 				continue
 			}
 			break
-		}
-		if _, ok := parent.(*ast.Macro); ok {
-			p.isInMacro = false
 		}
 		p.cutSpacesToken = true
 
