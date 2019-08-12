@@ -931,8 +931,10 @@ LABEL:
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("extends already exists")})
 		}
 		tree := p.ancestors[0].(*ast.Tree)
-		if len(tree.Nodes) > 0 {
-			if _, ok = tree.Nodes[0].(*ast.Text); !ok || len(tree.Nodes) > 1 {
+		for _, node := range tree.Nodes {
+			switch node.(type) {
+			case *ast.Text, *ast.Comment:
+			default:
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("extends can only be the first statement")})
 			}
 		}

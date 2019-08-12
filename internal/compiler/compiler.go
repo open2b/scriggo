@@ -152,7 +152,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 	}
 
 	// Type check a template page which extends another page.
-	if extends, ok := tree.Nodes[0].(*ast.Extends); ok {
+	if extends, ok := getExtends(tree.Nodes); ok {
 		// First: all macro definitions in extending pages are declared but not
 		// inizialized. This is necessary because the extended page can refer to
 		// macro defined in the extending one, but these macro can contain
@@ -291,7 +291,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 				}
 			}
 			// Emits extended page.
-			extends := pkg.Declarations[0].(*ast.Extends)
+			extends, _ := getExtends(pkg.Declarations)
 			e.fb.enterScope()
 			e.reserveTemplateRegisters()
 			// Reserves first index of Functions for the function that
@@ -331,4 +331,19 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	e.fb.end()
 	return &Code{Main: e.fb.fn, Globals: e.globals}
 
+}
+
+// getExtends returns the 'extends' node contained in nodes, if exists. Note
+// that such node can only be preceded by a comment node or a text node.
+func getExtends(nodes []ast.Node) (*ast.Extends, bool) {
+	for _, node := range nodes {
+		switch n := node.(type) {
+		case *ast.Comment, *ast.Text:
+		case *ast.Extends:
+			return n, true
+		default:
+			return nil, false
+		}
+	}
+	return nil, false
 }
