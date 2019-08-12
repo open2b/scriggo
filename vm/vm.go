@@ -1089,6 +1089,7 @@ func (c *callable) Value(env *Env) reflect.Value {
 			nvm := create(env)
 			nOut := fn.Type.NumOut()
 			results := make([]reflect.Value, nOut)
+			var r = [4]int8{1, 1, 1, 1}
 			for i := 0; i < nOut; i++ {
 				t := fn.Type.Out(i)
 				results[i] = reflect.New(t).Elem()
@@ -1096,58 +1097,63 @@ func (c *callable) Value(env *Env) reflect.Value {
 				switch k {
 				case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 					reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-					nvm.fp[0]++
+					r[0]++
 				case reflect.Float32, reflect.Float64:
-					nvm.fp[1]++
+					r[1]++
 				case reflect.String:
-					nvm.fp[2]++
+					r[2]++
 				default:
-					nvm.fp[3]++
+					r[3]++
 				}
 			}
-			var r int8 = 1
 			for _, arg := range args {
 				k := arg.Kind()
 				switch k {
 				case reflect.Bool:
-					nvm.setBool(r, arg.Bool())
+					nvm.setBool(r[0], arg.Bool())
+					r[0]++
 				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-					nvm.setInt(r, arg.Int())
+					nvm.setInt(r[0], arg.Int())
+					r[0]++
 				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-					nvm.setInt(r, int64(arg.Uint()))
+					nvm.setInt(r[0], int64(arg.Uint()))
+					r[0]++
 				case reflect.Float32, reflect.Float64:
-					nvm.setFloat(r, arg.Float())
+					nvm.setFloat(r[1], arg.Float())
+					r[1]++
 				case reflect.String:
-					nvm.setString(r, arg.String())
+					nvm.setString(r[2], arg.String())
+					r[2]++
 				default:
-					nvm.setGeneral(r, arg.Interface())
+					nvm.setGeneral(r[3], arg.Interface())
+					r[3]++
 				}
-				r++
 			}
-			nvm.fp[0] = 0
-			nvm.fp[1] = 0
-			nvm.fp[2] = 0
-			nvm.fp[3] = 0
 			nvm.runFunc(fn, vars)
-			r = 1
+			r = [4]int8{1, 1, 1, 1}
 			for i, result := range results {
 				t := fn.Type.Out(i)
 				k := t.Kind()
 				switch k {
 				case reflect.Bool:
-					result.SetBool(nvm.bool(r))
+					result.SetBool(nvm.bool(r[0]))
+					r[0]++
 				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-					result.SetInt(nvm.int(r))
+					result.SetInt(nvm.int(r[0]))
+					r[0]++
 				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-					result.SetUint(uint64(nvm.int(r)))
+					result.SetUint(uint64(nvm.int(r[0])))
+					r[0]++
 				case reflect.Float32, reflect.Float64:
-					result.SetFloat(nvm.float(r))
+					result.SetFloat(nvm.float(r[0]))
+					r[1]++
 				case reflect.String:
-					result.SetString(nvm.string(r))
+					result.SetString(nvm.string(r[0]))
+					r[2]++
 				default:
-					result.Set(reflect.ValueOf(nvm.general(r)))
+					result.Set(reflect.ValueOf(nvm.general(r[0])))
+					r[3]++
 				}
-				r++
 			}
 			return results
 		})
