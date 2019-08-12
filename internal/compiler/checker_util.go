@@ -182,10 +182,10 @@ func deferGoBuiltin(name string) *TypeInfo {
 			reflect.ValueOf(m).SetMapIndex(reflect.ValueOf(key), reflect.Value{})
 		},
 		"print": func(env *vm.Env, args ...interface{}) {
-			env.Print(args)
+			env.Print(args...)
 		},
 		"println": func(env *vm.Env, args ...interface{}) {
-			env.Println(args)
+			env.Println(args...)
 		},
 	}[name]
 	typ := map[string]reflect.Type{
