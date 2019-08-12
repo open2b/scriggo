@@ -1,4 +1,4 @@
-// skip : returned error is different from expected
+// skip : recursive assignment https://github.com/open2b/scriggo/issues/180
 
 // errorcheck
 
