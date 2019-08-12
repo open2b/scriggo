@@ -327,7 +327,7 @@ func isTestPath(path string) bool {
 	if filepath.Ext(path) != ".go" && filepath.Ext(path) != ".sgo" && filepath.Ext(path) != ".html" {
 		return false
 	}
-	if filepath.Ext(filepath.Dir(path)) == ".dir" {
+	if strings.Contains(path, ".dir"+string(filepath.Separator)) {
 		return false
 	}
 	return true
