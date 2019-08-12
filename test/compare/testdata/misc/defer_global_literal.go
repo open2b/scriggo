@@ -42,6 +42,7 @@ func g() (int, string, float64, int) {
 	defer f4("a")
 	defer f5([]int{1, 2, 3})
 	defer f6(1, 3)
+	// See issue https://github.com/open2b/scriggo/issues/286.
 	//defer f7(5, 6.7, "c")
 	defer f8(3, 4, 5)
 	//defer f9("a")
