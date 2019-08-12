@@ -1072,6 +1072,8 @@ func (c *callable) Predefined() *PredefinedFunction {
 
 // Value returns a reflect Value of a callable, so it can be called from a
 // predefined code and passed to a predefined code.
+//
+// TODO(marco): implement for variadic functions.
 func (c *callable) Value(env *Env) reflect.Value {
 	if c.value.IsValid() {
 		return c.value
@@ -1091,69 +1093,22 @@ func (c *callable) Value(env *Env) reflect.Value {
 			results := make([]reflect.Value, nOut)
 			var r = [4]int8{1, 1, 1, 1}
 			for i := 0; i < nOut; i++ {
-				t := fn.Type.Out(i)
-				results[i] = reflect.New(t).Elem()
-				k := t.Kind()
-				switch k {
-				case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-					reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-					r[0]++
-				case reflect.Float32, reflect.Float64:
-					r[1]++
-				case reflect.String:
-					r[2]++
-				default:
-					r[3]++
-				}
+				typ := fn.Type.Out(i)
+				results[i] = reflect.New(typ).Elem()
+				t := kindToType(typ.Kind())
+				r[t]++
 			}
 			for _, arg := range args {
-				k := arg.Kind()
-				switch k {
-				case reflect.Bool:
-					nvm.setBool(r[0], arg.Bool())
-					r[0]++
-				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-					nvm.setInt(r[0], arg.Int())
-					r[0]++
-				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-					nvm.setInt(r[0], int64(arg.Uint()))
-					r[0]++
-				case reflect.Float32, reflect.Float64:
-					nvm.setFloat(r[1], arg.Float())
-					r[1]++
-				case reflect.String:
-					nvm.setString(r[2], arg.String())
-					r[2]++
-				default:
-					nvm.setGeneral(r[3], arg.Interface())
-					r[3]++
-				}
+				t := kindToType(arg.Kind())
+				nvm.setFromReflectValue(r[t], arg)
+				r[t]++
 			}
 			nvm.runFunc(fn, vars)
 			r = [4]int8{1, 1, 1, 1}
-			for i, result := range results {
-				t := fn.Type.Out(i)
-				k := t.Kind()
-				switch k {
-				case reflect.Bool:
-					result.SetBool(nvm.bool(r[0]))
-					r[0]++
-				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-					result.SetInt(nvm.int(r[0]))
-					r[0]++
-				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-					result.SetUint(uint64(nvm.int(r[0])))
-					r[0]++
-				case reflect.Float32, reflect.Float64:
-					result.SetFloat(nvm.float(r[0]))
-					r[1]++
-				case reflect.String:
-					result.SetString(nvm.string(r[0]))
-					r[2]++
-				default:
-					result.Set(reflect.ValueOf(nvm.general(r[0])))
-					r[3]++
-				}
+			for _, result := range results {
+				t := kindToType(result.Kind())
+				nvm.getIntoReflectValue(r[t], result, false)
+				r[t]++
 			}
 			return results
 		})
@@ -1228,6 +1183,21 @@ func (t Type) String() string {
 		return "general"
 	}
 	panic("unknown type")
+}
+
+// kindToType returns the internal register type of a reflect kind.
+func kindToType(k reflect.Kind) Type {
+	switch k {
+	case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return TypeInt
+	case reflect.Float32, reflect.Float64:
+		return TypeFloat
+	case reflect.String:
+		return TypeString
+	default:
+		return TypeGeneral
+	}
 }
 
 type Condition int8
