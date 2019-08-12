@@ -1,3 +1,37 @@
-{# a comment before extend #}
+{% extends "layouts/home.html" %}
 
-{% extends "/extended.html" %}
+{% import "includes/banners.html" %}
+{% import "includes/products.html" %}
+
+{% macro Head %}Page head{% end macro %}
+
+{% macro Main %}
+  {% translate := func(string) string { return "" } %}
+  {% title := "Page title" %}
+  {% if title != "" %}<h1>{{ title }}</h1>{% end %}
+  {% products := make([]string, 10) %}
+  {% columns := make([]int, 10) %}
+  {% if len(products) > 0 %}
+  <h2>{{ translate("Featured") }}</h2>
+  {% show Products(products, columns) %}
+  {% end if %}
+  {% show Banner(1, true, "3000/500") %}
+  {% promotions := make([]int, 20) %}
+  {% if len(promotions) > 0 %}
+  <h2>{{ translate("Home promotions") }}</h2>
+  {# {% include "includes/promotions.html" %} #}
+  {% end if %}
+  {% topSellers := make([]string, 10) %}
+  {% topSellersColumns := make([]int, 10) %}
+  {% if len(topSellers) > 0 %}
+  <h2>{{ translate("Top sellers") }}</h2>
+  <div class="top-sellers">
+    {% show Products(topSellers, topSellersColumns) %}
+  </div>
+  {% end if %}
+  {% blogPosts := make([]string, 10) %}
+  {% if len(blogPosts) > 0 %}
+  <h2>{{ translate("News") }}</h2>
+  {# {% include "includes/blog-posts.html" %} #}
+  {% end if %}
+{% end macro %}
