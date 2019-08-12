@@ -1,4 +1,6 @@
-// skip : want go1.13
+//+build go1.13
+
+// run
 
 package main
 
