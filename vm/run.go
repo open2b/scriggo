@@ -948,7 +948,7 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Print
 		case OpPrint:
-			vm.print(vm.general(a))
+			vm.env.doPrint(vm.general(a))
 
 		// Range
 		case OpRange:

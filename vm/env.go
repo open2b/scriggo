@@ -8,6 +8,7 @@ package vm
 
 import (
 	"context"
+	"reflect"
 	"sync"
 )
 
@@ -88,7 +89,7 @@ func (env *Env) FreeMemory() (bytes int, limitedMemory bool) {
 // Print calls the print built-in function with args as argument.
 func (env *Env) Print(args ...interface{}) {
 	for _, arg := range args {
-		env.print(arg)
+		env.doPrint(arg)
 	}
 }
 
@@ -96,9 +97,39 @@ func (env *Env) Print(args ...interface{}) {
 func (env *Env) Println(args ...interface{}) {
 	for i, arg := range args {
 		if i > 0 {
-			env.print(" ")
+			env.doPrint(" ")
 		}
-		env.print(arg)
+		env.doPrint(arg)
 	}
-	env.print("\n")
+	env.doPrint("\n")
+}
+
+func (env *Env) doPrint(arg interface{}) {
+	if env.print != nil {
+		env.print(arg)
+		return
+	}
+	r := reflect.ValueOf(arg)
+	switch r.Kind() {
+	case reflect.Invalid, reflect.Array, reflect.Func, reflect.Struct:
+		print(hex(reflect.ValueOf(&arg).Elem().InterfaceData()[1]))
+	case reflect.Bool:
+		print(r.Bool())
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		print(r.Int())
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		print(r.Uint())
+	case reflect.Float32, reflect.Float64:
+		print(r.Float())
+	case reflect.Complex64, reflect.Complex128:
+		print(r.Complex())
+	case reflect.Chan, reflect.Map, reflect.UnsafePointer:
+		print(hex(r.Pointer()))
+	case reflect.Interface, reflect.Ptr:
+		print(arg)
+	case reflect.Slice:
+		print("[", r.Len(), "/", r.Cap(), "]", hex(r.Pointer()))
+	case reflect.String:
+		print(r.String())
+	}
 }
