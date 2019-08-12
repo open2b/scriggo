@@ -1,5 +1,3 @@
-// skip : Scriggo returns error 'invalid operation: a << big (shift count too large: 9223372036854775808) https://github.com/open2b/scriggo/issues/287
-
 // build
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -8,7 +6,7 @@
 
 package main
 
-const big uint64 = 1<<63
+const big uint64 = 1 << 63
 
 func f(a uint64) uint64 {
 	return a << big

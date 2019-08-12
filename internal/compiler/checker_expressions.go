@@ -1201,20 +1201,23 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			}
 			if t1.IsConstant() {
 				c, err = t1.Constant.binaryOp(op, t2.Constant)
-			} else {
-				_, err = newIntConst(0).binaryOp(op, t2.Constant)
-				t2.setValue(intType)
-			}
-			if err != nil {
-				switch err {
-				case errNegativeShiftCount:
-					err = fmt.Errorf("invalid negative shift count: %s", t2.Constant)
-				case errShiftCountTooLarge:
-					err = fmt.Errorf("shift count too large: %s", t2.Constant)
-				case errShiftCountTruncatedToInteger:
-					err = fmt.Errorf("constant %s truncated to integer", t2.Constant)
+				if err != nil {
+					switch err {
+					case errNegativeShiftCount:
+						err = fmt.Errorf("invalid negative shift count: %s", t2.Constant)
+					case errShiftCountTooLarge:
+						err = fmt.Errorf("shift count too large: %s", t2.Constant)
+					case errShiftCountTruncatedToInteger:
+						err = fmt.Errorf("constant %s truncated to integer", t2.Constant)
+					}
+					return nil, err
 				}
-				return nil, err
+			} else {
+				_, err = t2.Constant.representedBy(uintType)
+				if err != nil {
+					return nil, err
+				}
+				t2.setValue(uintType)
 			}
 		} else if !t2.IsInteger() {
 			return nil, fmt.Errorf("shift count type %s, must be unsigned integer", t2.ShortString())
