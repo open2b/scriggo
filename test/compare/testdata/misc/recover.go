@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"reflect"
-	"runtime"
 )
 
 func main() {
@@ -35,22 +34,6 @@ func expectRecover(got, expected interface{}) {
 	}
 	if !reflect.DeepEqual(got, expected) {
 		log.Printf("expected recover %#v, got %T %#v", expected, got, got)
-		os.Exit(-1)
-	}
-}
-
-func expectRuntimeRecover(got interface{}, expected string) {
-	if got == nil {
-		log.Printf("expected recover %#v, got nil", expected)
-		os.Exit(-1)
-	}
-	e, ok := got.(runtime.Error)
-	if !ok {
-		log.Printf("expected recover runtime error, got %T %#v", got, got)
-		os.Exit(-1)
-	}
-	if e.Error() != "runtime error: "+expected {
-		log.Printf("expected recover %q, got %q", expected, got)
 		os.Exit(-1)
 	}
 }
@@ -206,10 +189,12 @@ func test13() {
 }
 
 func test14() {
+	f14b := func() {
+		panic(1)
+	}
 	defer func() {
 		v := recover()
-		expectRuntimeRecover(v, "index out of range")
+		expectRecover(v, 1)
 	}()
-	var a []int
-	_ = a[0]
+	f14b()
 }
