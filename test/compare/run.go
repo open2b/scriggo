@@ -46,6 +46,12 @@ func main() {
 		*keepTestingOnFail = false
 	}
 
+	if len(flag.Args()) > 0 {
+		fmt.Fprintf(os.Stderr, "too many arguments on the command line\n")
+		flag.Usage()
+		os.Exit(1)
+	}
+
 	buildCmd()
 
 	filepaths := getAllFilepaths(*pattern)
