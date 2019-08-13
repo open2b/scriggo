@@ -54,6 +54,10 @@ type T int
 
 type Complex128 complex128
 
+type I interface {
+	M()
+}
+
 func SayHello() {
 	fmt.Println("Hello, world!")
 }
