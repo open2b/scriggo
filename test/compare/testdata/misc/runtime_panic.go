@@ -14,7 +14,7 @@ func main() {
 
 	// test1() // expecting "runtime error: hash of unhashable type func()", got nothing
 	// test2() // emitter panic: "TODO(Gianluca): not implemented"
-	//test3() // expected "runtime error: invalid memory address or nil pointer dereference", got *reflect.ValueError &reflect.ValueError{Method:"reflect.Value.MethodByName", Kind:0x0}
+	// test3() // expected "runtime error: invalid memory address or nil pointer dereference", got *reflect.ValueError &reflect.ValueError{Method:"reflect.Value.MethodByName", Kind:0x0}
 	test4()
 	test4b()
 	test5()
@@ -23,9 +23,14 @@ func main() {
 	test7()
 	test8()
 	test9()
-	//test10() // expected "runtime error: slice bounds out of range", got <*reflect.ValueError> &reflect.ValueError{Method:"reflect.Value.Len", Kind:0x16}
+	// test10() // expected "runtime error: slice bounds out of range", got <*reflect.ValueError> &reflect.ValueError{Method:"reflect.Value.Len", Kind:0x16}
 	// test11() // expected "interface conversion: interface {} is int, not string", got nothing
-	// test12() // expected "runtime error: invalid memory address or nil pointer dereference", got "reflect.Value.Call: call of nil function"
+	test12()
+	test12b()
+	test12c()
+	test12d()
+	test12e()
+	test12f()
 	test13()
 	test14()
 	// test15() // expected "runtime error: invalid memory address or nil pointer dereference", got &reflect.ValueError{Method:"reflect.Value.Uint", Kind:0x0}
@@ -141,6 +146,37 @@ func test12() {
 	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
 	var f func()
 	f()
+}
+
+func test12b() {
+	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
+	var f func(string) int
+	f("")
+}
+
+func test12c() {
+	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
+	var f func(a ...testpkg.T)
+	f()
+}
+
+var f1 func()
+var f2 func(string) int
+var f3 func(a ...testpkg.T)
+
+func test12d() {
+	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
+	f1()
+}
+
+func test12e() {
+	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
+	f2("")
+}
+
+func test12f() {
+	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
+	f3()
 }
 
 func test13() {
