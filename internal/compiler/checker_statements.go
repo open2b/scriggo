@@ -183,7 +183,10 @@ nodesLoop:
 
 		case *ast.Include:
 			// TODO(Gianluca): can node.Tree.Nodes be nil?
+			backup := tc.path
+			tc.path = node.Path
 			tc.checkNodes(node.Tree.Nodes)
+			tc.path = backup
 
 		case *ast.Block:
 			tc.checkNodesInNewScope(node.Nodes)
