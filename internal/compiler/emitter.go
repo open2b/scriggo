@@ -2182,6 +2182,13 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 			if cond.Operator() == ast.OperatorEqual {
 				condType = vm.ConditionNil
 			}
+			if em.ti(expr).Type.Kind() == reflect.Interface {
+				if condType == vm.ConditionNil {
+					condType = vm.ConditionInterfaceNil
+				} else {
+					condType = vm.ConditionInterfaceNotNil
+				}
+			}
 			em.fb.emitIf(false, v, condType, 0, typ.Kind())
 			return
 		}
