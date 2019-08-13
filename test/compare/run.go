@@ -591,17 +591,11 @@ func test(src []byte, path, mode, ext string, keepTestingOnFail bool) {
 
 	// Just compile.
 	case "compile .go", "build .go":
-		mustBeOK(
-			cmd(src, "compile program"),
-		)
+		mustBeOK(cmd(src, "compile program"))
 	case "compile .sgo", "build .sgo":
-		mustBeOK(
-			cmd(src, "compile script"),
-		)
+		mustBeOK(cmd(src, "compile script"))
 	case "compile .html", "build .html":
-		mustBeOK(
-			cmd(src, "compile html"),
-		)
+		mustBeOK(cmd(src, "compile html"))
 
 	// Error check.
 	case "errorcheck .go", "errorcheck .sgo", "errorcheck .html":
