@@ -643,6 +643,9 @@ nodesLoop:
 				tiv.setValue(elemType)
 			}
 
+		case *ast.URL:
+			// TODO(Gianluca).
+
 		case *ast.UnaryOperator:
 			ti := tc.checkExpr(node)
 			if node.Op != ast.OperatorReceive {
