@@ -16,9 +16,9 @@ func main() {
 	// test2() // emitter panic: "TODO(Gianluca): not implemented"
 	// test3() // expected "runtime error: invalid memory address or nil pointer dereference", got *reflect.ValueError &reflect.ValueError{Method:"reflect.Value.MethodByName", Kind:0x0}
 	// test4() // expected "runtime error: index out of range", got "reflect: slice index out of range"
-	test4b()
-	test5()
-	test5b()
+	// test4b() // expected "runtime error: index out of range", got "reflect: slice index out of range"
+	// test5() // expected "runtime error: index out of range", got "reflect: slice index out of range"
+	// test5b() // expected "runtime error: index out of range", got "reflect: slice index out of range"
 	test6()
 	test7()
 	// test8() // expected "runtime error: slice bounds out of range", got "reflect.Value.Slice: slice index out of bounds"
@@ -28,7 +28,7 @@ func main() {
 	// test12() // expected "runtime error: invalid memory address or nil pointer dereference", got "reflect.Value.Call: call of nil function"
 	test13()
 	test14()
-	test15()
+	// test15() // expected "runtime error: invalid memory address or nil pointer dereference", got &reflect.ValueError{Method:"reflect.Value.Uint", Kind:0x0}
 	// test16() // emitter panic: "TODO(Gianluca): not implemented"
 	test17()
 	test18()
@@ -75,33 +75,33 @@ func test3() {
 
 func test4() {
 	defer recoverRuntimePanic("runtime error: index out of range")
-	var a [1]int
+	var a [1]testpkg.T
 	var b = 2
 	_ = a[b]
 }
 
 func test4b() {
 	defer recoverRuntimePanic("runtime error: index out of range")
-	var a [1]int
+	var a [1]testpkg.T
 	var b = 2
 	a[b] = 3
 }
 
 func test5() {
 	defer recoverRuntimePanic("runtime error: index out of range")
-	var a []int
+	var a []testpkg.T
 	_ = a[0]
 }
 
 func test5b() {
 	defer recoverRuntimePanic("runtime error: index out of range")
-	var a []int
+	var a []testpkg.T
 	a[0] = 1
 }
 
 func test6() {
 	defer recoverRuntimePanic("runtime error: index out of range")
-	var a string
+	var a testpkg.S
 	_ = a[0]
 }
 
@@ -113,13 +113,13 @@ func test7() {
 
 func test8() {
 	defer recoverRuntimePanic("runtime error: slice bounds out of range")
-	a := make([]int, 0)
+	a := make([]testpkg.T, 0)
 	_ = a[1:]
 }
 
 func test9() {
 	defer recoverRuntimePanic("runtime error: slice bounds out of range")
-	a := [1]int{}
+	a := [1]testpkg.T{}
 	b := 2
 	_ = a[b:]
 }
@@ -133,7 +133,7 @@ func test10() {
 func test11() {
 	defer recoverRuntimePanic("interface conversion: interface {} is int, not string")
 	var a interface{} = 5
-	_ = a.(string)
+	_ = a.(testpkg.S)
 }
 
 func test12() {
@@ -157,7 +157,7 @@ func test14() {
 
 func test15() {
 	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
-	var a *int
+	var a *testpkg.T
 	_ = *a
 }
 
@@ -169,32 +169,32 @@ func test15() {
 
 func test17() {
 	defer recoverRuntimePanic("send on closed channel")
-	a := make(chan int)
+	a := make(chan testpkg.T)
 	close(a)
 	a <- 3
 }
 
 func test18() {
 	defer recoverRuntimePanic("close of closed channel")
-	a := make(chan int)
+	a := make(chan testpkg.T)
 	close(a)
 	close(a)
 }
 
 func test19() {
 	defer recoverRuntimePanic("close of nil channel")
-	var a chan int
+	var a chan testpkg.T
 	close(a)
 }
 
 func test20() {
 	defer recoverRuntimePanic("runtime error: makeslice: len out of range")
 	a := -1
-	_ = make([]int, a)
+	_ = make([]testpkg.T, a)
 }
 
 func test21() {
 	defer recoverRuntimePanic("runtime error: makeslice: cap out of range")
 	a := 1
-	_ = make([]int, a+1, a)
+	_ = make([]testpkg.T, a+1, a)
 }

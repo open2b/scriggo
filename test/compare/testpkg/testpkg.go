@@ -51,6 +51,7 @@ func NewT(a int) T {
 }
 
 type T int
+type S string
 
 type Complex128 complex128
 
