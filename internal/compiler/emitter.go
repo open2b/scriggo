@@ -827,16 +827,17 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		for i, argExpr := range args {
 			arg := em.emitExpr(argExpr, emptyInterfaceType)
 			em.fb.emitPrint(arg)
-			var str int8
 			if i < last {
-				str = em.fb.makeStringConstant(" ")
-			} else {
-				str = em.fb.makeStringConstant("\n")
+				str := em.fb.makeStringConstant(" ")
+				sep := em.fb.newRegister(reflect.Interface)
+				em.changeRegister(true, str, sep, stringType, emptyInterfaceType)
+				em.fb.emitPrint(sep)
 			}
-			sep := em.fb.newRegister(reflect.Interface)
-			em.changeRegister(true, str, sep, stringType, emptyInterfaceType)
-			em.fb.emitPrint(sep)
 		}
+		str := em.fb.makeStringConstant("\n")
+		sep := em.fb.newRegister(reflect.Interface)
+		em.changeRegister(true, str, sep, stringType, emptyInterfaceType)
+		em.fb.emitPrint(sep)
 	case "real":
 		panic("TODO: not implemented")
 	case "recover":
@@ -2181,6 +2182,13 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 			condType := vm.ConditionNotNil
 			if cond.Operator() == ast.OperatorEqual {
 				condType = vm.ConditionNil
+			}
+			if em.ti(expr).Type.Kind() == reflect.Interface {
+				if condType == vm.ConditionNil {
+					condType = vm.ConditionInterfaceNil
+				} else {
+					condType = vm.ConditionInterfaceNotNil
+				}
 			}
 			em.fb.emitIf(false, v, condType, 0, typ.Kind())
 			return

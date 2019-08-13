@@ -1215,6 +1215,8 @@ const (
 	ConditionLessOrEqualLen                     // len(x) <= y
 	ConditionGreaterLen                         // len(x) >  y
 	ConditionGreaterOrEqualLen                  // len(x) >= y
+	ConditionInterfaceNil                       // x == nil
+	ConditionInterfaceNotNil                    // x != nil
 	ConditionNil                                // x == nil
 	ConditionNotNil                             // x != nil
 	ConditionOK                                 // [vm.ok]
