@@ -817,9 +817,8 @@ func (vm *VM) nextCall() bool {
 					vm.calls[i].status = panicked
 					if call.cl.fn != nil {
 						i++
-						break
 					}
-					vm.callPredefined(call.cl.predefined, call.numVariadic, StackShift{}, false)
+					break
 				}
 			}
 		}

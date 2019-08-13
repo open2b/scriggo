@@ -29,6 +29,7 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
 				} else {
 					err = e
 				}
+				isPanicked = false
 			} else if len(vm.calls) > 0 {
 				var call = callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: panicked}
 				vm.calls = append(vm.calls, call)
@@ -50,7 +51,7 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
 	vm.env.exited = true
 	vm.env.mu.Unlock()
 	// Manage error and panics.
-	if len(vm.panics) > 0 {
+	if isPanicked {
 		if vm.env.dontPanic {
 			err = vm.panics[len(vm.panics)-1]
 		} else {
