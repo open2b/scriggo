@@ -347,12 +347,16 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Interface, false)
 	case vm.OpIf:
-		if vm.Condition(b) == vm.ConditionOK {
-			s += " OK"
-		} else {
-			s += " " + disassembleOperand(fn, a, vm.Unknown, false)
+		switch vm.Condition(b) {
+		case vm.ConditionOK, vm.ConditionNotOK:
 			s += " " + conditionName[b]
-			s += " " + disassembleOperand(fn, c, vm.Unknown, k)
+		case vm.ConditionNil, vm.ConditionNotNil:
+			s += " " + disassembleOperand(fn, a, vm.Interface, false)
+			s += " " + conditionName[b]
+		default:
+			s += " " + disassembleOperand(fn, a, vm.Interface, false)
+			s += " " + conditionName[b]
+			s += " " + disassembleOperand(fn, c, vm.Interface, k)
 		}
 	case vm.OpIfInt, vm.OpIfUint:
 		s += " " + disassembleOperand(fn, a, vm.Int, false)
