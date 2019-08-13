@@ -489,9 +489,9 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		if k {
 			s += fmt.Sprintf(" K(%v)", b)
 		} else {
-			s += " " + disassembleOperand(fn, b, vm.Interface, false)
+			s += " " + disassembleOperand(fn, b, vm.Unknown, false)
 		}
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
+		s += " " + disassembleOperand(fn, c, vm.Unknown, false)
 	case vm.OpSetSlice:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Unknown, k)
