@@ -1118,6 +1118,26 @@ func (c *callable) Value(env *Env) reflect.Value {
 	return c.value
 }
 
+// runtimeError represents a runtime error.
+type runtimeError string
+
+func (err runtimeError) Error() string { return string(err) }
+func (err runtimeError) RuntimeError() {}
+
+// runtimeIndex returns the v's i'th element. If i is out of range, it panics
+// with a runtimeError error.
+func runtimeIndex(v reflect.Value, i int) reflect.Value {
+	defer func() {
+		if err := recover(); err != nil {
+			if _, ok := err.(string); ok {
+				panic(runtimeError("runtime error: index out of range"))
+			}
+			panic(err)
+		}
+	}()
+	return v.Index(i)
+}
+
 type Panic struct {
 	Msg        interface{}
 	Recovered  bool

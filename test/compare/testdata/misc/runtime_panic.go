@@ -14,11 +14,11 @@ func main() {
 
 	// test1() // expecting "runtime error: hash of unhashable type func()", got nothing
 	// test2() // emitter panic: "TODO(Gianluca): not implemented"
-	// test3() // expected "runtime error: invalid memory address or nil pointer dereference", got *reflect.ValueError &reflect.ValueError{Method:"reflect.Value.MethodByName", Kind:0x0}
-	// test4() // expected "runtime error: index out of range", got "reflect: slice index out of range"
-	// test4b() // expected "runtime error: index out of range", got "reflect: slice index out of range"
-	// test5() // expected "runtime error: index out of range", got "reflect: slice index out of range"
-	// test5b() // expected "runtime error: index out of range", got "reflect: slice index out of range"
+	//test3() // expected "runtime error: invalid memory address or nil pointer dereference", got *reflect.ValueError &reflect.ValueError{Method:"reflect.Value.MethodByName", Kind:0x0}
+	test4()
+	test4b()
+	test5()
+	test5b()
 	test6()
 	test7()
 	// test8() // expected "runtime error: slice bounds out of range", got "reflect.Value.Slice: slice index out of bounds"

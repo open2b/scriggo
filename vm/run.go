@@ -742,7 +742,7 @@ func (vm *VM) run() (uint32, bool) {
 		// Index
 		case OpIndex, -OpIndex:
 			i := int(vm.intk(b, op < 0))
-			v := reflect.ValueOf(vm.general(a)).Index(i)
+			v := runtimeIndex(reflect.ValueOf(vm.general(a)), i)
 			vm.setFromReflectValue(c, v)
 
 		// LeftShift
@@ -1570,7 +1570,7 @@ func (vm *VM) run() (uint32, bool) {
 			case []interface{}:
 				s[i] = vm.generalk(b, op < 0)
 			default:
-				v := reflect.ValueOf(s).Index(int(i))
+				v := runtimeIndex(reflect.ValueOf(s), int(i))
 				vm.getIntoReflectValue(b, v, op < 0)
 			}
 
@@ -1632,7 +1632,7 @@ func (vm *VM) run() (uint32, bool) {
 			case []interface{}:
 				vm.setGeneral(c, v[i])
 			default:
-				vm.setFromReflectValue(c, reflect.ValueOf(v).Index(i))
+				vm.setFromReflectValue(c, runtimeIndex(reflect.ValueOf(v), i))
 			}
 
 		// StringIndex
