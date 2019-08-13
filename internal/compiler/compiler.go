@@ -132,7 +132,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 	// Type check a program.
 	if opts.SyntaxType == ProgramSyntax {
 		pkgInfos := map[string]*PackageInfo{}
-		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, packages, pkgInfos, opts)
+		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, packages, pkgInfos, opts, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -140,16 +140,17 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 	}
 
 	// Prepare type checking for scripts and templates.
-	tc := newTypechecker(tree.Path, opts)
+	var globalScope typeCheckerScope
 	if packages != nil {
 		main, err := packages.Load("main")
 		if err != nil {
 			return nil, err
 		}
 		if main != nil {
-			tc.scopes = append(tc.scopes, toTypeCheckerScope(main.(predefinedPackage)))
+			globalScope = toTypeCheckerScope(main.(predefinedPackage))
 		}
 	}
+	tc := newTypechecker(tree.Path, opts, globalScope)
 
 	// Type check a template page which extends another page.
 	if extends, ok := getExtends(tree.Nodes); ok {
@@ -179,7 +180,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 			return nil, err
 		}
 		pkgInfos := map[string]*PackageInfo{}
-		err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, nil, pkgInfos, opts)
+		err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, nil, pkgInfos, opts, tc.globalScope)
 		if err != nil {
 			return nil, err
 		}

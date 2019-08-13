@@ -435,7 +435,7 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos map[string]*PackageInfo, opts CheckerOptions) (err error) {
+func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos map[string]*PackageInfo, opts CheckerOptions, globalScope typeCheckerScope) (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -449,7 +449,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 
 	packageNode := pkg
 
-	tc := newTypechecker(path, opts)
+	tc := newTypechecker(path, opts, globalScope)
 
 	err = sortDeclarations(packageNode)
 	if err != nil {
@@ -521,12 +521,12 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 					if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
 						return tc.programImportError(d)
 					}
-					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, pkgInfos, opts) // TODO(Gianluca): where are deps?
+					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, pkgInfos, opts, tc.globalScope) // TODO(Gianluca): where are deps?
 				} else {
 					if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
 						return tc.programImportError(d)
 					}
-					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, pkgInfos, opts) // TODO(Gianluca): where are deps?
+					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, pkgInfos, opts, tc.globalScope) // TODO(Gianluca): where are deps?
 				}
 				importedPkg = pkgInfos[d.Tree.Path]
 				if err != nil {

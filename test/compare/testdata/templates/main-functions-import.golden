@@ -1,0 +1,4 @@
+Access from 'index.html': 30
+Access from 'included.html': 90
+
+    Access from 'imported.html': 210

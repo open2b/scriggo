@@ -527,7 +527,7 @@ func TestCheckerExpressions(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{scope}
 			}
-			tc := newTypechecker("", CheckerOptions{})
+			tc := newTypechecker("", CheckerOptions{}, nil)
 			tc.scopes = scopes
 			tc.enterScope()
 			ti := tc.checkExpr(node)
@@ -608,7 +608,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{scope}
 			}
-			tc := newTypechecker("", CheckerOptions{})
+			tc := newTypechecker("", CheckerOptions{}, nil)
 			tc.scopes = scopes
 			tc.enterScope()
 			ti := tc.checkExpr(node)
@@ -1425,7 +1425,7 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			tc := newTypechecker("", CheckerOptions{DisallowGoStmt: true, SyntaxType: ScriptSyntax})
+			tc := newTypechecker("", CheckerOptions{DisallowGoStmt: true, SyntaxType: ScriptSyntax}, nil)
 			tc.scopes = append(tc.scopes, scope)
 			tc.enterScope()
 			tc.checkNodes(tree.Nodes)
@@ -1918,7 +1918,7 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 		"[]T{x, x, x, 9: x}": 9,
 		"[]T{x, 9: x, x, x}": 11,
 	}
-	tc := newTypechecker("", CheckerOptions{})
+	tc := newTypechecker("", CheckerOptions{}, nil)
 	for src, expected := range cases {
 		tree, err := ParseSource([]byte(src), true, false)
 		if err != nil {
@@ -2016,7 +2016,7 @@ func TestFunctionUpVars(t *testing.T) {
 		`a, b := 1, 1; _ = a + b; _ = func() { a, b := 1, 1; _ = a + b }`: nil,
 	}
 	for src, expected := range cases {
-		tc := newTypechecker("", CheckerOptions{})
+		tc := newTypechecker("", CheckerOptions{}, nil)
 		tc.enterScope()
 		tree, err := ParseSource([]byte(src), true, false)
 		if err != nil {
@@ -2141,7 +2141,7 @@ func TestGotoLabels(t *testing.T) {
 				return
 			}
 			pkgInfos := map[string]*PackageInfo{}
-			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, nil, pkgInfos, CheckerOptions{SyntaxType: ProgramSyntax})
+			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, nil, pkgInfos, CheckerOptions{SyntaxType: ProgramSyntax}, nil)
 			switch {
 			case err == nil && cas.errorMsg == "":
 				// Ok.

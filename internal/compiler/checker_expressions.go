@@ -103,12 +103,27 @@ var pkgPathToIndex = map[string]int{}
 
 // typechecker represents the state of the type checking.
 type typechecker struct {
-	path             string
-	predefinedPkgs   PackageLoader
-	universe         typeCheckerScope
+	path           string
+	predefinedPkgs PackageLoader
+
+	// universe is the outermost scope.
+	universe typeCheckerScope
+
+	// A globalScope is a scope between the universe and the file/package block.
+	// In Go there is not an equivalent concept. In scripts and templates, the
+	// declarations of the predefined package 'main' are added to this scope;
+	// this makes possibile, in templates, to access such declarations from
+	// every page, including imported and extended ones.
+	globalScope typeCheckerScope
+
+	// filePackageBlock is a scope that holds the declarations from both the
+	// file block and the package block.
 	filePackageBlock typeCheckerScope
-	scopes           []typeCheckerScope
-	ancestors        []*ancestor
+
+	// scopes holds the local scopes.
+	scopes []typeCheckerScope
+
+	ancestors []*ancestor
 
 	// terminating reports whether current statement is terminating. For further
 	// details see https://golang.org/ref/spec#Terminating_statements.
@@ -150,10 +165,11 @@ type typechecker struct {
 	labels          [][]string
 }
 
-func newTypechecker(path string, opts CheckerOptions) *typechecker {
+func newTypechecker(path string, opts CheckerOptions, globalScope typeCheckerScope) *typechecker {
 	return &typechecker{
 		path:             path,
 		filePackageBlock: typeCheckerScope{},
+		globalScope:      globalScope,
 		hasBreak:         map[ast.Node]bool{},
 		typeInfos:        map[ast.Node]*TypeInfo{},
 		universe:         universe,
@@ -228,6 +244,10 @@ func (tc *typechecker) lookupScopesElem(name string, justCurrentScope bool) (sco
 	}
 	if justCurrentScope {
 		return scopeElement{}, false
+	}
+	// Global scope.
+	if elem, ok := tc.globalScope[name]; ok {
+		return elem, true
 	}
 	// Universe.
 	if elem, ok := tc.universe[name]; ok {
@@ -353,6 +373,10 @@ func (tc *typechecker) getDeclarationNode(name string) ast.Node {
 	}
 	// Package + file block.
 	if elem, ok := tc.filePackageBlock[name]; ok {
+		return elem.decl
+	}
+	// Global scope.
+	if elem, ok := tc.globalScope[name]; ok {
 		return elem.decl
 	}
 	// Universe.
