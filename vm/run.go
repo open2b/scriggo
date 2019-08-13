@@ -1593,25 +1593,29 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Slice
 		case OpSlice:
-			var low, high, max int
+			var i, j, k int
 			s := reflect.ValueOf(vm.general(a))
+			sLen := s.Len()
+			sCap := s.Cap()
 			next := vm.fn.Body[vm.pc]
 			vm.pc++
 			lowIsConst := b&1 != 0
-			low = int(vm.intk(next.A, lowIsConst))
+			i = int(vm.intk(next.A, lowIsConst))
 			highIsConst := b&2 != 0
 			if highIsConst && next.B == -1 {
-				high = s.Len()
+				j = sLen
 			} else {
-				high = int(vm.intk(next.B, highIsConst))
+				j = int(vm.intk(next.B, highIsConst))
 			}
+			k = sCap
 			maxIsConst := b&4 != 0
-			if maxIsConst && next.C == -1 {
-				s = s.Slice(low, high)
-			} else {
-				max = int(vm.intk(next.C, maxIsConst))
-				s = s.Slice3(low, high, max)
+			if !maxIsConst || next.C != -1 {
+				k = int(vm.intk(next.C, maxIsConst))
 			}
+			if i < 0 || j < i || k < j || k > sCap {
+				panic(runtimeError("runtime error: slice bounds out of range"))
+			}
+			s = s.Slice3(i, j, k)
 			vm.setGeneral(c, s.Interface())
 
 		// SliceIndex

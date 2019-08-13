@@ -21,9 +21,9 @@ func main() {
 	test5b()
 	test6()
 	test7()
-	// test8() // expected "runtime error: slice bounds out of range", got "reflect.Value.Slice: slice index out of bounds"
-	// test9() // expected "runtime error: slice bounds out of range", got "reflect.Value.Slice: slice index out of bounds"
-	// test10() // expected "runtime error: slice bounds out of range", got <*reflect.ValueError> &reflect.ValueError{Method:"reflect.Value.Len", Kind:0x16}
+	test8()
+	test9()
+	//test10() // expected "runtime error: slice bounds out of range", got <*reflect.ValueError> &reflect.ValueError{Method:"reflect.Value.Len", Kind:0x16}
 	// test11() // expected "interface conversion: interface {} is int, not string", got nothing
 	// test12() // expected "runtime error: invalid memory address or nil pointer dereference", got "reflect.Value.Call: call of nil function"
 	test13()
@@ -127,7 +127,7 @@ func test9() {
 
 func test10() {
 	defer recoverRuntimePanic("runtime error: slice bounds out of range")
-	a := ""
+	a := testpkg.S("")
 	_ = a[1:]
 }
 
