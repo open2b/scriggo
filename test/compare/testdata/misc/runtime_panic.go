@@ -53,14 +53,6 @@ func recoverRuntimeError(err string) {
 	}
 }
 
-func notRecover() {
-	v := recover()
-	if v != nil {
-		log.Printf("not expected recover %#v", v)
-		os.Exit(1)
-	}
-}
-
 func test1() {
 	defer recoverRuntimeError("runtime error: hash of unhashable type func()")
 	a := map[interface{}]string{}
