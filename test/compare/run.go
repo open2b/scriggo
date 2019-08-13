@@ -180,15 +180,20 @@ func buildCmd() {
 
 // cmd calls the executable "./cmd/cmd" passing the given arguments and the
 // given stdin, if not nil.
-func cmd(stdin []byte, args ...string) ([]byte, []byte) {
+func cmd(stdin []byte, args ...string) (int, []byte, []byte) {
 	cmd := exec.Command("./cmd/cmd", args...)
 	stdout := bytes.Buffer{}
 	stderr := bytes.Buffer{}
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	cmd.Stdin = bytes.NewReader(stdin)
-	_ = cmd.Run()
-	return stdout.Bytes(), stderr.Bytes()
+	err := cmd.Run()
+	if err != nil {
+		if ee, ok := err.(*exec.ExitError); ok {
+			return ee.ProcessState.ExitCode(), stdout.Bytes(), stderr.Bytes()
+		}
+	}
+	return 0, stdout.Bytes(), stderr.Bytes()
 }
 
 // errorcheck run test with mode 'errorcheck' on the given source code.
@@ -243,7 +248,10 @@ func errorcheck(src []byte, ext string) {
 			".sgo":  "run script",
 			".html": "render html",
 		}[ext]
-		stdout, stderr := cmd(cleanSrc.Bytes(), arg)
+		exitCode, stdout, stderr := cmd(cleanSrc.Bytes(), arg)
+		if exitCode == 0 {
+			panic("expecting error but exit code is 0")
+		}
 		if len(stdout) > 0 {
 			panic("stdout should be empty")
 		}
@@ -257,10 +265,13 @@ func errorcheck(src []byte, ext string) {
 	}
 }
 
-// failOnOutput fails if at least one of the given streams is not empty.
-func failOnOutput(stdout, stderr []byte) {
-	_ = unwrapStdout(stdout, stderr)
-	_ = unwrapStderr(stdout, stderr)
+// mustBeOK fails if at least one of the given streams is not empty or if the
+// exit code is not zero.
+func mustBeOK(exitCode int, stdout, stderr []byte) {
+	_ = unwrapStdout(exitCode, stdout, stderr)
+	if len(stderr) > 0 {
+		panic("unexpected standard output: " + string(stderr))
+	}
 }
 
 // getAllFilepaths returns a list of filepaths matching the given pattern.
@@ -398,17 +409,100 @@ func readMode(src []byte, ext string) (mode string) {
 }
 
 // runGc runs a Go program using gc and returns its output.
-func runGc(path string) ([]byte, []byte) {
+func runGc(path string) (int, []byte, []byte) {
 	if ext := filepath.Ext(path); ext != ".go" {
 		panic("unsupported ext " + ext)
 	}
-	cmd := exec.Command("go", "run", path)
-	stdout := bytes.Buffer{}
-	stderr := bytes.Buffer{}
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	_ = cmd.Run()
-	return stdout.Bytes(), stderr.Bytes()
+	tmpDir, err := ioutil.TempDir("", "scriggo-gc")
+	if err != nil {
+		panic(err)
+	}
+	// Create a temporary directory.
+	err = os.MkdirAll(tmpDir, 0755)
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		err := os.RemoveAll(tmpDir)
+		if err != nil {
+			panic(err)
+		}
+	}()
+	// Copy the test source into the temporary directory.
+	src, err := ioutil.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+	err = ioutil.WriteFile(filepath.Join(tmpDir, "main.go"), src, 0664)
+	if err != nil {
+		panic(err)
+	}
+	// Copy the "testpkg" module into the directory.
+	{
+		data, err := ioutil.ReadFile("testpkg/testpkg.go")
+		if err != nil {
+			panic(err)
+		}
+		err = os.MkdirAll(filepath.Join(tmpDir, "testpkg"), 0755)
+		if err != nil {
+			panic(err)
+		}
+		err = ioutil.WriteFile(filepath.Join(tmpDir, "testpkg", "testpkg.go"), data, 0664)
+		if err != nil {
+			panic(err)
+		}
+		goMod := strings.Join([]string{
+			`module testpkg`,
+		}, "\n")
+		err = ioutil.WriteFile(filepath.Join(tmpDir, "testpkg", "go.mod"), []byte(goMod), 0664)
+		if err != nil {
+			panic(err)
+		}
+	}
+	// Create a "go.mod" file inside the testing directory.
+	{
+		data := strings.Join([]string{
+			`module scriggo-gc-test`,
+			`replace testpkg => ./testpkg`,
+		}, "\n")
+		err := ioutil.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(data), 0664)
+		if err != nil {
+			panic(err)
+		}
+	}
+	// Build the test source.
+	{
+		cmd := exec.Command("go", "build", "-o", "main", "main.go")
+		cmd.Dir = tmpDir
+		stdout := bytes.Buffer{}
+		stderr := bytes.Buffer{}
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		err = cmd.Run()
+		if err != nil {
+			if ee, ok := err.(*exec.ExitError); ok {
+				return ee.ProcessState.ExitCode(), stdout.Bytes(), stderr.Bytes()
+			}
+			panic(err)
+		}
+	}
+	// Run the test just compiled.
+	{
+		cmd := exec.Command("./main")
+		cmd.Dir = tmpDir
+		stdout := bytes.Buffer{}
+		stderr := bytes.Buffer{}
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		err = cmd.Run()
+		if err != nil {
+			if ee, ok := err.(*exec.ExitError); ok {
+				return ee.ProcessState.ExitCode(), stdout.Bytes(), stderr.Bytes()
+			}
+			panic(err)
+		}
+		return 0, stdout.Bytes(), stderr.Bytes()
+	}
 }
 
 // goBaseVersion returns the go base version for v.
@@ -491,15 +585,15 @@ func test(src []byte, path, mode, ext string, keepTestingOnFail bool) {
 
 	// Just compile.
 	case "compile .go", "build .go":
-		failOnOutput(
+		mustBeOK(
 			cmd(src, "compile program"),
 		)
 	case "compile .sgo", "build .sgo":
-		failOnOutput(
+		mustBeOK(
 			cmd(src, "compile script"),
 		)
 	case "compile .html", "build .html":
-		failOnOutput(
+		mustBeOK(
 			cmd(src, "compile html"),
 		)
 
@@ -509,19 +603,22 @@ func test(src []byte, path, mode, ext string, keepTestingOnFail bool) {
 
 	// Run or render.
 	case "run .go":
-		scriggoStdout, scriggoStderr := cmd(src, "run program")
-		gcStdout, gcStderr := runGc(path)
-		if len(scriggoStderr) > 0 && len(gcStderr) > 0 {
-			panic(fmt.Errorf("expected succeed, but Scriggo returned error '%s' and gc returned error '%s'", scriggoStderr, gcStderr))
+		scriggoExitCode, scriggoStdout, scriggoStderr := cmd(src, "run program")
+		gcExitCode, gcStdout, gcStderr := runGc(path)
+		if scriggoExitCode != 0 && gcExitCode != 0 {
+			panic("scriggo and gc returned a non-zero exit code")
 		}
-		if len(scriggoStderr) > 0 && len(gcStderr) == 0 {
-			panic(fmt.Errorf("expected succeed, but Scriggo returned error '%s'", scriggoStderr))
+		if scriggoExitCode != 0 {
+			panic("scriggo returned a non-zero exit code, while gc succeded")
 		}
-		if len(scriggoStderr) == 0 && len(gcStderr) > 0 {
-			panic(fmt.Errorf("expected succeed, but gc returned error '%s'", gcStderr))
+		if gcExitCode != 0 {
+			panic("gc returned a non-zero exit code, while Scriggo succeded")
 		}
 		if bytes.Compare(scriggoStdout, gcStdout) != 0 {
-			panic("Scriggo and gc returned two different outputs: " + string(scriggoStdout) + ", " + string(gcStdout))
+			panic("Scriggo and gc returned two different stdout: " + string(scriggoStdout) + ", " + string(gcStdout))
+		}
+		if bytes.Compare(scriggoStderr, gcStderr) != 0 {
+			panic("Scriggo and gc returned two different stderr: " + string(scriggoStdout) + ", " + string(gcStdout))
 		}
 	case "rundir .go":
 		dirPath := strings.TrimSuffix(path, ".go") + ".dir"
@@ -562,18 +659,12 @@ func test(src []byte, path, mode, ext string, keepTestingOnFail bool) {
 
 }
 
-// unwrapStdout unwraps the given streams returning the stderr. Panics if stdout
-// is not empty.
-func unwrapStderr(stdout, stderr []byte) []byte {
-	if len(stderr) > 0 {
-		panic("unexpected standard output: " + string(stderr))
-	}
-	return stderr
-}
-
 // unwrapStdout unwraps the given streams returning the stdout. Panics if stderr
-// is not empty.
-func unwrapStdout(stdout, stderr []byte) []byte {
+// is not empty or if exit code is not 0.
+func unwrapStdout(exitCode int, stdout, stderr []byte) []byte {
+	if exitCode != 0 {
+		panic(fmt.Errorf("exit code is %d", exitCode))
+	}
 	if len(stderr) > 0 {
 		panic("unexpected standard error: " + string(stderr))
 	}
