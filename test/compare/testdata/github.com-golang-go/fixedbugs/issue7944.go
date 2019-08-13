@@ -1,5 +1,3 @@
-// skip : need to access runtime https://github.com/open2b/scriggo/issues/267
-
 // run
 
 // Copyright 2014 The Go Authors. All rights reserved.

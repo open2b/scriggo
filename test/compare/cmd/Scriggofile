@@ -16,10 +16,10 @@ IMPORT net/url
 IMPORT os
 IMPORT os/exec
 IMPORT regexp
+IMPORT runtime
 IMPORT sort
 IMPORT strconv
 IMPORT strings
 IMPORT time
 IMPORT unicode
 IMPORT unicode/utf8
-
