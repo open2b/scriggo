@@ -478,7 +478,7 @@ func runGc(path string) (int, []byte, []byte) {
 	}
 	// Build the test source.
 	{
-		cmd := exec.Command("go", "build", "-o", "main", "main.go")
+		cmd := exec.Command("go", "build", "-o", "main.exe", "main.go")
 		cmd.Dir = tmpDir
 		stdout := bytes.Buffer{}
 		stderr := bytes.Buffer{}
@@ -494,7 +494,7 @@ func runGc(path string) (int, []byte, []byte) {
 	}
 	// Run the test just compiled.
 	{
-		cmd := exec.Command("./main")
+		cmd := exec.Command(filepath.Join(tmpDir, "main.exe"))
 		cmd.Dir = tmpDir
 		stdout := bytes.Buffer{}
 		stderr := bytes.Buffer{}
