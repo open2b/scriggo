@@ -33,8 +33,9 @@ func main() {
 	test17()
 	test18()
 	test19()
-	// test20() // expected "runtime error: makeslice: len out of range", got "reflect.MakeSlice: negative len"
-	// test21() // expected "runtime error: makeslice: cap out of range", got "reflect.MakeSlice: len > cap"
+	test20()
+	test21()
+	test22()
 
 }
 
@@ -194,6 +195,12 @@ func test20() {
 }
 
 func test21() {
+	defer recoverRuntimePanic("runtime error: makeslice: cap out of range")
+	a := -1
+	_ = make([]testpkg.T, 0, a)
+}
+
+func test22() {
 	defer recoverRuntimePanic("runtime error: makeslice: cap out of range")
 	a := 1
 	_ = make([]testpkg.T, a+1, a)

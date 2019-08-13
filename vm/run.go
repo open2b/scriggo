@@ -858,7 +858,7 @@ func (vm *VM) run() (uint32, bool) {
 				capIsConst := (b & (1 << 2)) != 0
 				cap = int(vm.intk(next.B, capIsConst))
 			}
-			vm.setGeneral(c, reflect.MakeSlice(typ, len, cap).Interface())
+			vm.setGeneral(c, runtimeMakeSlice(typ, len, cap).Interface())
 
 		// MethodValue
 		case OpMethodValue:

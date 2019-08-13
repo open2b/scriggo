@@ -11,6 +11,7 @@ import (
 	"errors"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -1130,12 +1131,31 @@ func runtimeIndex(v reflect.Value, i int) reflect.Value {
 	defer func() {
 		if err := recover(); err != nil {
 			if _, ok := err.(string); ok {
-				panic(runtimeError("runtime error: index out of range"))
+				err = runtimeError("runtime error: index out of range")
 			}
 			panic(err)
 		}
 	}()
 	return v.Index(i)
+}
+
+// MakeSlice creates a slice value for the specified slice type, length, and
+// capacity. If len and cap are out of range, it panics with a runtimeError
+// error.
+func runtimeMakeSlice(typ reflect.Type, len, cap int) reflect.Value {
+	defer func() {
+		if err := recover(); err != nil {
+			if s, ok := err.(string); ok {
+				if strings.HasSuffix(s, "negative len") {
+					err = runtimeError("runtime error: makeslice: len out of range")
+				} else {
+					err = runtimeError("runtime error: makeslice: cap out of range")
+				}
+			}
+			panic(err)
+		}
+	}()
+	return reflect.MakeSlice(typ, len, cap)
 }
 
 type Panic struct {
