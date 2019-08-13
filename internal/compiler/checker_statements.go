@@ -14,10 +14,10 @@ import (
 	"scriggo/ast"
 )
 
-// templateToPackage extract first-level declarations in tree and appends them
+// templatePageToPackage extract first-level declarations in tree and appends them
 // to a package, which will be the only node of tree. If tree is already a
-// package, templateToPackage does nothing.
-func (tc *typechecker) templateToPackage(tree *ast.Tree, path string) error {
+// package, templatePageToPackage does nothing.
+func (tc *typechecker) templatePageToPackage(tree *ast.Tree, path string) error {
 	// tree is already a package: do nothing and return.
 	if len(tree.Nodes) == 1 {
 		if _, ok := tree.Nodes[0].(*ast.Package); ok {
@@ -131,7 +131,7 @@ nodesLoop:
 				if node.Ident != nil && node.Ident.Name == "_" {
 					continue nodesLoop
 				}
-				err := tc.templateToPackage(node.Tree, node.Path)
+				err := tc.templatePageToPackage(node.Tree, node.Path)
 				if err != nil {
 					panic(err)
 				}
