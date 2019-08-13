@@ -16,7 +16,9 @@ func main() {
 	// test2() // emitter panic: "TODO(Gianluca): not implemented"
 	// test3() // expected "runtime error: invalid memory address or nil pointer dereference", got *reflect.ValueError &reflect.ValueError{Method:"reflect.Value.MethodByName", Kind:0x0}
 	// test4() // expected "runtime error: index out of range", got "reflect: slice index out of range"
+	test4b()
 	test5()
+	test5b()
 	test6()
 	test7()
 	// test8() // expected "runtime error: slice bounds out of range", got "reflect.Value.Slice: slice index out of bounds"
@@ -78,10 +80,23 @@ func test4() {
 	_ = a[b]
 }
 
+func test4b() {
+	defer recoverRuntimePanic("runtime error: index out of range")
+	var a [1]int
+	var b = 2
+	a[b] = 3
+}
+
 func test5() {
 	defer recoverRuntimePanic("runtime error: index out of range")
 	var a []int
 	_ = a[0]
+}
+
+func test5b() {
+	defer recoverRuntimePanic("runtime error: index out of range")
+	var a []int
+	a[0] = 1
 }
 
 func test6() {
