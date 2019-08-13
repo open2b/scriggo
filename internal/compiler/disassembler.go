@@ -350,13 +350,13 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		switch vm.Condition(b) {
 		case vm.ConditionOK, vm.ConditionNotOK:
 			s += " " + conditionName[b]
-		case vm.ConditionNil, vm.ConditionNotNil:
-			s += " " + disassembleOperand(fn, a, vm.Interface, false)
-			s += " " + conditionName[b]
-		default:
+		case vm.ConditionEqual, vm.ConditionNotEqual:
 			s += " " + disassembleOperand(fn, a, vm.Interface, false)
 			s += " " + conditionName[b]
 			s += " " + disassembleOperand(fn, c, vm.Interface, k)
+		default:
+			s += " " + disassembleOperand(fn, a, vm.Interface, false)
+			s += " " + conditionName[b]
 		}
 	case vm.OpIfInt, vm.OpIfUint:
 		s += " " + disassembleOperand(fn, a, vm.Int, false)
@@ -875,6 +875,8 @@ var conditionName = [...]string{
 	vm.ConditionLessOrEqualLen:    "LessOrEqualLen",
 	vm.ConditionGreaterLen:        "GreaterOrEqualLen",
 	vm.ConditionGreaterOrEqualLen: "GreaterOrEqualLen",
+	vm.ConditionInterfaceNil:      "InterfaceNil",
+	vm.ConditionInterfaceNotNil:   "InterfaceNotNil",
 	vm.ConditionNil:               "Nil",
 	vm.ConditionNotNil:            "NotNil",
 	vm.ConditionOK:                "OK",

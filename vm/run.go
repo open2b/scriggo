@@ -613,10 +613,13 @@ func (vm *VM) run() (uint32, bool) {
 			switch Condition(b) {
 			case ConditionOK, ConditionNotOK:
 				cond = vm.ok
+			case ConditionInterfaceNil, ConditionInterfaceNotNil:
+				cond = vm.general(a) == nil
 			case ConditionNil, ConditionNotNil:
 				switch v := vm.general(a).(type) {
 				case nil:
-					cond = true
+					// TODO(Gianluca): remove when ConditionInterfaceNil has been implemented.
+					cond = v == nil
 				case []int:
 					cond = v == nil
 				case []string:
@@ -630,7 +633,7 @@ func (vm *VM) run() (uint32, bool) {
 				cond = vm.general(a) == vm.generalk(c, op < 0)
 			}
 			switch Condition(b) {
-			case ConditionNotOK, ConditionNotNil, ConditionNotEqual:
+			case ConditionNotOK, ConditionInterfaceNotNil, ConditionNotNil, ConditionNotEqual:
 				cond = !cond
 			}
 			if cond {
