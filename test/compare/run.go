@@ -605,6 +605,16 @@ func test(src []byte, path, mode, ext string, keepTestingOnFail bool) {
 	case "run .go":
 		scriggoExitCode, scriggoStdout, scriggoStderr := cmd(src, "run program")
 		gcExitCode, gcStdout, gcStderr := runGc(path)
+		panic := func(msg string) {
+			s := strings.Builder{}
+			s.WriteString(fmt.Sprintf("[ Scriggo exit code ] %d\n", scriggoExitCode))
+			s.WriteString(fmt.Sprintf("[ Scriggo stdout    ] '%s'\n", scriggoStdout))
+			s.WriteString(fmt.Sprintf("[ Scriggo stderr    ] '%s'\n", scriggoStderr))
+			s.WriteString(fmt.Sprintf("[ gc exit code      ] %d\n", gcExitCode))
+			s.WriteString(fmt.Sprintf("[ gc stdout         ] '%s'\n", gcStdout))
+			s.WriteString(fmt.Sprintf("[ gc stderr         ] '%s'\n", gcStderr))
+			panic(msg + "\n" + s.String())
+		}
 		if scriggoExitCode != 0 && gcExitCode != 0 {
 			panic("scriggo and gc returned a non-zero exit code")
 		}
@@ -614,11 +624,8 @@ func test(src []byte, path, mode, ext string, keepTestingOnFail bool) {
 		if gcExitCode != 0 {
 			panic("gc returned a non-zero exit code, while Scriggo succeded")
 		}
-		if bytes.Compare(scriggoStdout, gcStdout) != 0 {
-			panic("Scriggo and gc returned two different stdout: " + string(scriggoStdout) + ", " + string(gcStdout))
-		}
-		if bytes.Compare(scriggoStderr, gcStderr) != 0 {
-			panic("Scriggo and gc returned two different stderr: " + string(scriggoStdout) + ", " + string(gcStdout))
+		if bytes.Compare(scriggoStdout, gcStdout) != 0 || bytes.Compare(scriggoStderr, gcStderr) != 0 {
+			panic("Scriggo and gc returned two different stdout/stderr")
 		}
 	case "rundir .go":
 		dirPath := strings.TrimSuffix(path, ".go") + ".dir"
@@ -663,7 +670,7 @@ func test(src []byte, path, mode, ext string, keepTestingOnFail bool) {
 // is not empty or if exit code is not 0.
 func unwrapStdout(exitCode int, stdout, stderr []byte) []byte {
 	if exitCode != 0 {
-		panic(fmt.Errorf("exit code is %d", exitCode))
+		panic(fmt.Errorf("exit code is %d, should be zero. stderr: %s", exitCode, stderr))
 	}
 	if len(stderr) > 0 {
 		panic("unexpected standard error: " + string(stderr))
