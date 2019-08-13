@@ -11,12 +11,11 @@ func main() {
 	print(5, 6, "d", "e", 7)
 	print(8.0, 9.5, 10.233)
 
-	// TODO(Gianluca): fix builtin 'println'
-	// println()
-	// println(1)
-	// println(2, 3, 4)
-	// println("a")
-	// println("a", "b", "c")
-	// println(5, 6, "d", "e", 7)
-	// println(8.0, 9.5, 10.233)
+	println()
+	println(1)
+	println(2, 3, 4)
+	println("a")
+	println("a", "b", "c")
+	println(5, 6, "d", "e", 7)
+	println(8.0, 9.5, 10.233)
 }
