@@ -98,21 +98,8 @@ func (builder *functionBuilder) emitAppendSlice(t, s int8) {
 //     z = e.(t)
 //
 func (builder *functionBuilder) emitAssert(e int8, typ reflect.Type, z int8) {
-	index := -1
-	for i, t := range builder.fn.Types {
-		if t == typ {
-			index = i
-			break
-		}
-	}
-	if index == -1 {
-		index = len(builder.fn.Types)
-		if index > 255 {
-			panic("types limit reached")
-		}
-		builder.fn.Types = append(builder.fn.Types, typ)
-	}
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpAssert, A: e, B: int8(index), C: z})
+	t := builder.addType(typ)
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpAssert, A: e, B: int8(t), C: z})
 }
 
 // emitBind appends a new "Bind" instruction to the function body.
