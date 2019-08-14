@@ -741,9 +741,69 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Index
 		case OpIndex, -OpIndex:
+			s := vm.general(a)
 			i := int(vm.intk(b, op < 0))
-			v := runtimeIndex(reflect.ValueOf(vm.general(a)), i)
-			vm.setFromReflectValue(c, v)
+			switch v := s.(type) {
+			case []int:
+				vm.setInt(c, int64(v[i]))
+			case []byte:
+				vm.setInt(c, int64(v[i]))
+			case []rune:
+				vm.setInt(c, int64(v[i]))
+			case []float64:
+				vm.setFloat(c, v[i])
+			case []string:
+				vm.setString(c, v[i])
+			case []interface{}:
+				vm.setGeneral(c, v[i])
+			default:
+				vm.setFromReflectValue(c, runtimeIndex(reflect.ValueOf(v), i))
+			}
+		case OpIndexMap, -OpIndexMap:
+			m := vm.general(a)
+			switch m := m.(type) {
+			case map[int]int:
+				v, ok := m[int(vm.intk(b, op < 0))]
+				vm.setInt(c, int64(v))
+				vm.ok = ok
+			case map[int]bool:
+				v, ok := m[int(vm.intk(b, op < 0))]
+				vm.setBool(c, v)
+				vm.ok = ok
+			case map[int]string:
+				v, ok := m[int(vm.intk(b, op < 0))]
+				vm.setString(c, v)
+				vm.ok = ok
+			case map[string]string:
+				v, ok := m[vm.stringk(b, op < 0)]
+				vm.setString(c, v)
+				vm.ok = ok
+			case map[string]bool:
+				v, ok := m[vm.stringk(b, op < 0)]
+				vm.setBool(c, v)
+				vm.ok = ok
+			case map[string]int:
+				v, ok := m[vm.stringk(b, op < 0)]
+				vm.setInt(c, int64(v))
+				vm.ok = ok
+			case map[string]interface{}:
+				v, ok := m[vm.stringk(b, op < 0)]
+				vm.setGeneral(c, v)
+				vm.ok = ok
+			default:
+				mv := reflect.ValueOf(m)
+				t := mv.Type()
+				k := reflect.New(t.Key()).Elem()
+				vm.getIntoReflectValue(b, k, op < 0)
+				elem := mv.MapIndex(k)
+				vm.ok = elem.IsValid()
+				if !vm.ok {
+					elem = reflect.Zero(t.Elem())
+				}
+				vm.setFromReflectValue(c, elem)
+			}
+		case OpIndexString, -OpIndexString:
+			vm.setInt(c, int64(vm.string(a)[int(vm.intk(b, op < 0))]))
 
 		// LeftShift
 		case OpLeftShift8, -OpLeftShift8:
@@ -790,51 +850,6 @@ func (vm *VM) run() (uint32, bool) {
 			typ := vm.fn.Types[uint8(a)]
 			buffer := int(vm.intk(b, op < 0))
 			vm.setGeneral(c, reflect.MakeChan(typ, buffer).Interface())
-
-		// MapIndex
-		case OpMapIndex, -OpMapIndex:
-			m := vm.general(a)
-			switch m := m.(type) {
-			case map[int]int:
-				v, ok := m[int(vm.intk(b, op < 0))]
-				vm.setInt(c, int64(v))
-				vm.ok = ok
-			case map[int]bool:
-				v, ok := m[int(vm.intk(b, op < 0))]
-				vm.setBool(c, v)
-				vm.ok = ok
-			case map[int]string:
-				v, ok := m[int(vm.intk(b, op < 0))]
-				vm.setString(c, v)
-				vm.ok = ok
-			case map[string]string:
-				v, ok := m[vm.stringk(b, op < 0)]
-				vm.setString(c, v)
-				vm.ok = ok
-			case map[string]bool:
-				v, ok := m[vm.stringk(b, op < 0)]
-				vm.setBool(c, v)
-				vm.ok = ok
-			case map[string]int:
-				v, ok := m[vm.stringk(b, op < 0)]
-				vm.setInt(c, int64(v))
-				vm.ok = ok
-			case map[string]interface{}:
-				v, ok := m[vm.stringk(b, op < 0)]
-				vm.setGeneral(c, v)
-				vm.ok = ok
-			default:
-				mv := reflect.ValueOf(m)
-				t := mv.Type()
-				k := reflect.New(t.Key()).Elem()
-				vm.getIntoReflectValue(b, k, op < 0)
-				elem := mv.MapIndex(k)
-				vm.ok = elem.IsValid()
-				if !vm.ok {
-					elem = reflect.Zero(t.Elem())
-				}
-				vm.setFromReflectValue(c, elem)
-			}
 
 		// MakeMap
 		case OpMakeMap, -OpMakeMap:
@@ -1623,31 +1638,6 @@ func (vm *VM) run() (uint32, bool) {
 			}
 			s = s.Slice3(i, j, k)
 			vm.setGeneral(c, s.Interface())
-
-		// SliceIndex
-		case OpSliceIndex, -OpSliceIndex:
-			v := vm.general(a)
-			i := int(vm.intk(b, op < 0))
-			switch v := v.(type) {
-			case []int:
-				vm.setInt(c, int64(v[i]))
-			case []byte:
-				vm.setInt(c, int64(v[i]))
-			case []rune:
-				vm.setInt(c, int64(v[i]))
-			case []float64:
-				vm.setFloat(c, v[i])
-			case []string:
-				vm.setString(c, v[i])
-			case []interface{}:
-				vm.setGeneral(c, v[i])
-			default:
-				vm.setFromReflectValue(c, runtimeIndex(reflect.ValueOf(v), i))
-			}
-
-		// StringIndex
-		case OpStringIndex, -OpStringIndex:
-			vm.setInt(c, int64(vm.string(a)[int(vm.intk(b, op < 0))]))
 
 		// Sub
 		case OpSubInt8, -OpSubInt8:

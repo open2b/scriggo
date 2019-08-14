@@ -1356,6 +1356,8 @@ const (
 	OpIfString
 
 	OpIndex
+	OpIndexMap
+	OpIndexString
 
 	OpLeftShift8
 	OpLeftShift16
@@ -1369,8 +1371,6 @@ const (
 	OpLoadNumber
 
 	OpMakeChan
-
-	OpMapIndex
 
 	OpMakeMap
 
@@ -1431,10 +1431,6 @@ const (
 	OpSetVar
 
 	OpSlice
-
-	OpSliceIndex
-
-	OpStringIndex
 
 	OpSubInt8
 	OpSubInt16

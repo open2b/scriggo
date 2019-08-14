@@ -490,7 +490,7 @@ func (builder *functionBuilder) emitIf(k bool, x int8, o vm.Condition, y int8, k
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: int8(o), C: y})
 }
 
-// emitIndex appends a new "index" instruction to the function body
+// emitIndex appends a new "Index" instruction to the function body
 //
 //	dst = expr[i]
 //
@@ -499,17 +499,15 @@ func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType r
 	kind := exprType.Kind()
 	var op vm.Operation
 	switch kind {
-	default:
+	case reflect.Array, reflect.Slice:
 		op = vm.OpIndex
-	case reflect.Slice:
-		op = vm.OpSliceIndex
+	case reflect.Map:
+		op = vm.OpIndexMap
 	case reflect.String:
-		op = vm.OpStringIndex
+		op = vm.OpIndexString
 		if builder.allocs != nil {
 			fn.Body = append(fn.Body, vm.Instruction{Op: -vm.OpAlloc, C: 8})
 		}
-	case reflect.Map:
-		op = vm.OpMapIndex
 	}
 	if ki {
 		op = -op

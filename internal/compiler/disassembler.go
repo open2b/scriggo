@@ -396,7 +396,15 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 	case vm.OpIndex:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Int, k)
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
+		s += " " + disassembleOperand(fn, c, vm.Unknown, false)
+	case vm.OpIndexMap:
+		s += " " + disassembleOperand(fn, a, vm.Interface, false)
+		s += " " + disassembleOperand(fn, b, vm.Unknown, k)
+		s += " " + disassembleOperand(fn, b, vm.Unknown, false)
+	case vm.OpIndexString:
+		s += " " + disassembleOperand(fn, a, vm.String, false)
+		s += " " + disassembleOperand(fn, b, vm.Int, k)
+		s += " " + disassembleOperand(fn, c, vm.Int, false)
 	case vm.OpLen:
 		s += " " + strconv.Itoa(int(a))
 		if a == 0 {
@@ -426,10 +434,6 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, b, vm.Int, k)
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
-	case vm.OpMapIndex:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + disassembleOperand(fn, b, vm.Unknown, k)
-		s += " " + disassembleOperand(fn, b, vm.Unknown, false)
 	case vm.OpMove:
 		switch vm.Type(a) {
 		case vm.TypeInt:
@@ -516,10 +520,6 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		s += " " + disassembleOperand(fn, high, vm.Int, khigh)
 		s += " " + disassembleOperand(fn, max, vm.Int, kmax)
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
-	case vm.OpSliceIndex:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + disassembleOperand(fn, b, vm.Int, k)
-		s += " " + disassembleOperand(fn, c, vm.Unknown, false)
 	case vm.OpTypify:
 		typ := fn.Types[int(uint(a))]
 		s += " " + typ.String()
@@ -758,7 +758,9 @@ var operationName = [...]string{
 	vm.OpIfFloat:  "If",
 	vm.OpIfString: "If",
 
-	vm.OpIndex: "Index",
+	vm.OpIndex:       "Index",
+	vm.OpIndexMap:    "IndexMap",
+	vm.OpIndexString: "Index",
 
 	vm.OpLeftShift64: "LeftShift",
 	vm.OpLeftShift8:  "LeftShift8",
@@ -772,8 +774,6 @@ var operationName = [...]string{
 	vm.OpLoadNumber: "LoadNumber",
 
 	vm.OpMakeChan: "MakeChan",
-
-	vm.OpMapIndex: "MapIndex",
 
 	vm.OpMakeMap: "MakeMap",
 
@@ -835,10 +835,6 @@ var operationName = [...]string{
 	vm.OpSetVar: "SetVar",
 
 	vm.OpSlice: "Slice",
-
-	vm.OpSliceIndex: "SliceIndex",
-
-	vm.OpStringIndex: "StringIndex",
 
 	vm.OpSubInt64:   "Sub",
 	vm.OpSubInt8:    "Sub8",
