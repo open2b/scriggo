@@ -32,7 +32,7 @@ func main() {
 		test9()
 		test10()
 	}
-	// test11() // expected "interface conversion: interface {} is int, not string", got nothing
+	// test11() // expected "interface conversion: interface {} is int, not testpkg.S", got nothing
 	test12()
 	test12b()
 	test12c()
@@ -151,7 +151,7 @@ func test10() {
 }
 
 func test11() {
-	defer recoverRuntimePanic("interface conversion: interface {} is int, not string")
+	defer recoverRuntimePanic("interface conversion: interface {} is int, not testpkg.S")
 	var a interface{} = 5
 	_ = a.(testpkg.S)
 }
