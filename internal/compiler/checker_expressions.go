@@ -1870,7 +1870,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		}
 		converted := &TypeInfo{Type: t.Type, Constant: c}
 		if c == nil {
-			arg.setValue(t.Type)
+			arg.setValue(arg.Type)
 		} else {
 			converted.setValue(t.Type)
 		}
