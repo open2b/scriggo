@@ -41,7 +41,11 @@ func main() {
 	test12f()
 	test13()
 	test14()
-	// test15() // expected "runtime error: invalid memory address or nil pointer dereference", got &reflect.ValueError{Method:"reflect.Value.Uint", Kind:0x0}
+	test15()
+	test15b()
+	test15c()
+	test15d()
+	test15e()
 	// test16() // emitter panic: "TODO(Gianluca): not implemented"
 	test17()
 	test18()
@@ -208,7 +212,31 @@ func test14() {
 
 func test15() {
 	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
-	var a *testpkg.T
+	var a *testpkg.Int
+	_ = *a
+}
+
+func test15b() {
+	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
+	var a *testpkg.Bool
+	_ = *a
+}
+
+func test15c() {
+	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
+	var a *testpkg.Float64
+	_ = *a
+}
+
+func test15d() {
+	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
+	var a *testpkg.String
+	_ = *a
+}
+
+func test15e() {
+	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
+	var a *struct{}
 	_ = *a
 }
 

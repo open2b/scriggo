@@ -53,7 +53,11 @@ func NewT(a int) T {
 type T int
 type S string
 
+type Bool bool
+type Int int
+type Float64 float64
 type Complex128 complex128
+type String string
 
 type I interface {
 	M()
