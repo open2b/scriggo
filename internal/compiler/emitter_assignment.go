@@ -210,7 +210,10 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 		case *ast.Index:
 			exprType := em.ti(v.Expr).Type
 			expr := em.emitExpr(v.Expr, exprType)
-			indexType := em.ti(v.Index).Type
+			indexType := intType
+			if exprType.Kind() == reflect.Map {
+				indexType = exprType.Key()
+			}
 			index := em.emitExpr(v.Index, indexType)
 			addrType := addressSliceIndex
 			if exprType.Kind() == reflect.Map {
