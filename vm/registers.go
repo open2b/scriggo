@@ -50,6 +50,7 @@ func (vm *VM) intk(r int8, k bool) int64 {
 }
 
 func (vm *VM) intIndirect(r int8) int64 {
+	// TODO(Gianluca): add support bool values with defined type.
 	v := vm.regs.general[vm.fp[3]+uint32(r)]
 	if v, ok := v.(*int); ok {
 		return int64(*v)
