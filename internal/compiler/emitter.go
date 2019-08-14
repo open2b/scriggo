@@ -1800,7 +1800,10 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			case *ast.Selector:
 				panic("TODO(Gianluca): not implemented")
 			case *ast.CompositeLiteral:
-				panic("TODO(Gianluca): not implemented")
+				tmp := em.fb.newRegister(reflect.Ptr)
+				em.fb.emitNew(exprType, tmp)
+				em.emitExprR(expr, exprType, -tmp)
+				em.changeRegister(false, tmp, reg, typ, dstType)
 			default:
 				panic("TODO(Gianluca): not implemented")
 			}
