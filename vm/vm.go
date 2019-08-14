@@ -1129,6 +1129,24 @@ type runtimeError string
 func (err runtimeError) Error() string { return string(err) }
 func (err runtimeError) RuntimeError() {}
 
+type TypeAssertionError struct {
+	i reflect.Type
+	v reflect.Value
+	t reflect.Type
+}
+
+func (err TypeAssertionError) Error() string {
+	s := "interface conversion: "
+	if err.v.IsValid() {
+		s += err.v.Type().String() + " is not " + err.t.String()
+	} else {
+		s += "interface " + err.i.String() + " is nil, not " + err.t.String()
+	}
+	return s
+}
+
+func (err TypeAssertionError) RuntimeError() {}
+
 // runtimeIndex returns the v's i'th element. If i is out of range, it panics
 // with a runtimeError error.
 func runtimeIndex(v reflect.Value, i int) reflect.Value {

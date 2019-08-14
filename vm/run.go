@@ -202,6 +202,12 @@ func (vm *VM) run() (uint32, bool) {
 			vm.ok = ok
 			if ok {
 				vm.pc++
+			} else {
+				in := vm.fn.Body[vm.pc]
+				if in.Op == OpPanic {
+					i := vm.fn.Types[uint8(in.C)]
+					panic(TypeAssertionError{i, v, t})
+				}
 			}
 			if c != 0 {
 				switch t.Kind() {
@@ -963,9 +969,6 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Panic
 		case OpPanic:
-			// TODO(Gianluca): if argument is 0, check if previous
-			// instruction is Assert; in such case, raise a type-assertion
-			// panic, retrieving information from its operands.
 			panic(vm.general(a))
 
 		// Print
