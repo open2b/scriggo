@@ -1,5 +1,3 @@
-// skip : try to enable when https://github.com/open2b/scriggo/issues/99 is fixed
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.

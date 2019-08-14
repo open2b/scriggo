@@ -320,8 +320,20 @@ func (vm *VM) generalk(r int8, k bool) interface{} {
 }
 
 func (vm *VM) generalIndirect(r int8) interface{} {
-	v := vm.regs.general[vm.fp[3]+uint32(r)]
-	return reflect.ValueOf(v).Elem().Interface()
+	rv := reflect.ValueOf(vm.regs.general[vm.fp[3]+uint32(r)]).Elem()
+	switch rv.Kind() {
+	case reflect.Func:
+		return &callable{
+			predefined: &PredefinedFunction{
+				Func:  rv.Interface(),
+				value: rv,
+			},
+		}
+	case reflect.Array:
+		return rv.Slice(0, rv.Len()).Interface()
+	default:
+		return rv.Interface()
+	}
 }
 
 func (vm *VM) setGeneral(r int8, i interface{}) {
