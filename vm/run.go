@@ -1617,18 +1617,18 @@ func (vm *VM) run() (uint32, bool) {
 			sCap := s.Cap()
 			next := vm.fn.Body[vm.pc]
 			vm.pc++
-			lowIsConst := b&1 != 0
-			i = int(vm.intk(next.A, lowIsConst))
-			highIsConst := b&2 != 0
-			if highIsConst && next.B == -1 {
+			iConst := b&1 != 0
+			i = int(vm.intk(next.A, iConst))
+			jConst := b&2 != 0
+			if jConst && next.B == -1 {
 				j = sLen
 			} else {
-				j = int(vm.intk(next.B, highIsConst))
+				j = int(vm.intk(next.B, jConst))
 			}
 			k = sCap
-			maxIsConst := b&4 != 0
-			if !maxIsConst || next.C != -1 {
-				k = int(vm.intk(next.C, maxIsConst))
+			kConst := b&4 != 0
+			if !kConst || next.C != -1 {
+				k = int(vm.intk(next.C, kConst))
 			}
 			if i < 0 || j < i || k < j || k > sCap {
 				// TODO(Gianluca): runtime errors of kind 'slice bounds out of
