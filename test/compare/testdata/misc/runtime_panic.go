@@ -14,7 +14,8 @@ func main() {
 
 	// test1() // expecting "runtime error: hash of unhashable type func()", got nothing
 	// test2() // emitter panic: "TODO(Gianluca): not implemented"
-	// test3() // expected "runtime error: invalid memory address or nil pointer dereference", got *reflect.ValueError &reflect.ValueError{Method:"reflect.Value.MethodByName", Kind:0x0}
+	test3()
+	test3b()
 	test4()
 	test4b()
 	test5()
@@ -74,6 +75,12 @@ func test1() {
 //}
 
 func test3() {
+	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
+	var t testpkg.I
+	_ = t.M
+}
+
+func test3b() {
 	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
 	var t testpkg.I
 	t.M()

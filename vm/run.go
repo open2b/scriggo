@@ -863,6 +863,9 @@ func (vm *VM) run() (uint32, bool) {
 		// MethodValue
 		case OpMethodValue:
 			receiver := vm.general(a)
+			if receiver == nil {
+				panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
+			}
 			method := vm.stringk(b, true)
 			vm.setGeneral(c, &callable{receiver: receiver, method: method})
 
