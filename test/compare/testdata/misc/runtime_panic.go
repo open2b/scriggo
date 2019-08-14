@@ -19,7 +19,7 @@ func main() {
 	// test2() // emitter panic: "TODO(Gianluca): not implemented"
 	test3()
 	test3b()
-	if !isGo112 {
+	if isGo112 {
 		test4()
 		test4b()
 		test5()
@@ -27,7 +27,7 @@ func main() {
 		test6()
 	}
 	test7()
-	if !isGo112 {
+	if isGo112 {
 		test8()
 		test9()
 		// test10() // expected "runtime error: slice bounds out of range", got <*reflect.ValueError> &reflect.ValueError{Method:"reflect.Value.Len", Kind:0x16}
@@ -94,33 +94,33 @@ func test3b() {
 }
 
 func test4() {
-	defer recoverRuntimePanic("runtime error: index out of range [2] with length 1")
+	defer recoverRuntimePanic("runtime error: index out of range")
 	var a [1]testpkg.T
 	var b = 2
 	_ = a[b]
 }
 
 func test4b() {
-	defer recoverRuntimePanic("runtime error: index out of range [2] with length 1")
+	defer recoverRuntimePanic("runtime error: index out of range")
 	var a [1]testpkg.T
 	var b = 2
 	a[b] = 3
 }
 
 func test5() {
-	defer recoverRuntimePanic("runtime error: index out of range [0] with length 0")
+	defer recoverRuntimePanic("runtime error: index out of range")
 	var a []testpkg.T
 	_ = a[0]
 }
 
 func test5b() {
-	defer recoverRuntimePanic("runtime error: index out of range [0] with length 0")
+	defer recoverRuntimePanic("runtime error: index out of range")
 	var a []testpkg.T
 	a[0] = 1
 }
 
 func test6() {
-	defer recoverRuntimePanic("runtime error: index out of range [0] with length 0")
+	defer recoverRuntimePanic("runtime error: index out of range")
 	var a testpkg.S
 	_ = a[0]
 }
@@ -132,13 +132,13 @@ func test7() {
 }
 
 func test8() {
-	defer recoverRuntimePanic("runtime error: slice bounds out of range [1:0]")
+	defer recoverRuntimePanic("runtime error: slice bounds out of range")
 	a := make([]testpkg.T, 0)
 	_ = a[1:]
 }
 
 func test9() {
-	defer recoverRuntimePanic("runtime error: slice bounds out of range [2:1]")
+	defer recoverRuntimePanic("runtime error: slice bounds out of range")
 	a := [1]testpkg.T{}
 	b := 2
 	_ = a[b:]
