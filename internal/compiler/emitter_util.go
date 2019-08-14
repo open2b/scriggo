@@ -245,6 +245,11 @@ func (em *emitter) predFuncIndex(fn reflect.Value, predPkgName, name string) int
 // The result of this function depends from the current implementation of the
 // VM.
 func canEmitDirectly(k1, k2 reflect.Kind) bool {
+	// If the destination register has an interface kind, it's not possible to
+	// emit the value directly: a typify may be necessary.
+	if k2 == reflect.Interface {
+		return false
+	}
 	// Functions and arrays are handled as special cases in VM.
 	if k1 == reflect.Func || k2 == reflect.Func || k1 == reflect.Array || k2 == reflect.Array {
 		return false
