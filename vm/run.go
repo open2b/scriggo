@@ -1616,7 +1616,10 @@ func (vm *VM) run() (uint32, bool) {
 				k = int(vm.intk(next.C, maxIsConst))
 			}
 			if i < 0 || j < i || k < j || k > sCap {
-				panic(runtimeError("runtime error: slice bounds out of range"))
+				// TODO(Gianluca): runtime errors of kind 'slice bounds out of
+				// range' have several combinations of error messages in go1.13.
+				// Wait for a stable release and handle them here.
+				panic(runtimeError(fmt.Sprintf("runtime error: slice bounds out of range [%d:%d]", i, j)))
 			}
 			s = s.Slice3(i, j, k)
 			vm.setGeneral(c, s.Interface())

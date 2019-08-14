@@ -9,6 +9,7 @@ package vm
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -1135,7 +1136,7 @@ func runtimeIndex(v reflect.Value, i int) reflect.Value {
 	defer func() {
 		if err := recover(); err != nil {
 			if _, ok := err.(string); ok {
-				err = runtimeError("runtime error: index out of range")
+				err = runtimeError(fmt.Sprintf("runtime error: index out of range [%d] with length %d", i, v.Len()))
 			}
 			panic(err)
 		}
