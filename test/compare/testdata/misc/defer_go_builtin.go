@@ -23,16 +23,15 @@ func main() {
 	fmt.Println(m)
 	delete(map[int]int{4: 16, 20: 400}, 20)
 
-	// // Builtin 'print'.
-	// See https://github.com/open2b/scriggo/issues/285#issuecomment-520437921
+	// Builtin 'print'.
 
-	// defer print("print")
-	// defer print(1, 2, 3)
-	// defer print()
+	defer print("print")
+	defer print(1, 2, 3)
+	defer print()
 
-	// // Builtin 'println'.
+	// Builtin 'println'.
 
-	// defer println("println")
-	// defer println(4, 5, 6)
-	// defer println()
+	defer println("println")
+	defer println(4, 5, 6)
+	defer println()
 }
