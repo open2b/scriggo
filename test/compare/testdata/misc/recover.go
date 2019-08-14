@@ -24,6 +24,7 @@ func main() {
 	test12()
 	test13()
 	test14()
+	test15()
 
 }
 
@@ -197,4 +198,14 @@ func test14() {
 		expectRecover(v, 1)
 	}()
 	f14b()
+}
+
+func test15() {
+	defer func() {
+		v := recover()
+		expectRecover(v, 1)
+	}()
+	func() {
+		panic(1)
+	}()
 }
