@@ -427,10 +427,9 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		s += " " + disassembleOperand(fn, b, vm.Int, k)
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpMapIndex:
-		//s += " " + disassembleOperand(scriggo, a, vm.Interface, false)
-		//key := reflectToRegisterKind()
-		//s += " " + disassembleOperand(scriggo, b, vm.Interface, false)
-		//s += " " + disassembleOperand(scriggo, c, vm.Interface, false)
+		s += " " + disassembleOperand(fn, a, vm.Interface, false)
+		s += " " + disassembleOperand(fn, b, vm.Unknown, k)
+		s += " " + disassembleOperand(fn, b, vm.Unknown, false)
 	case vm.OpMove:
 		switch vm.Type(a) {
 		case vm.TypeInt:
