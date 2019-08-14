@@ -1968,9 +1968,10 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 	case *ast.Slicing:
 
-		src := em.emitExpr(expr.Expr, em.ti(expr.Expr).Type)
-		var low, high, max int8 = 0, -1, -1
-		var kLow, kHigh, kMax = true, true, true
+		exprType := em.ti(expr.Expr).Type
+		src := em.emitExpr(expr.Expr, exprType)
+		var low, high int8 = 0, -1
+		var kLow, kHigh = true, true
 		// emit low
 		if expr.Low != nil {
 			typ := em.ti(expr.Low).Type
@@ -1981,12 +1982,18 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			typ := em.ti(expr.High).Type
 			high, kHigh = em.emitExprK(expr.High, typ)
 		}
-		// emit max
-		if expr.Max != nil {
-			typ := em.ti(expr.Max).Type
-			max, kMax = em.emitExprK(expr.Max, typ)
+		if exprType.Kind() == reflect.String {
+			em.fb.emitSliceString(kLow, kHigh, src, reg, low, high)
+		} else {
+			// emit max
+			var max int8 = -1
+			var kMax = true
+			if expr.Max != nil {
+				typ := em.ti(expr.Max).Type
+				max, kMax = em.emitExprK(expr.Max, typ)
+			}
+			em.fb.emitSlice(kLow, kHigh, kMax, src, reg, low, high, max)
 		}
-		em.fb.emitSlice(kLow, kHigh, kMax, src, reg, low, high, max)
 
 	default:
 

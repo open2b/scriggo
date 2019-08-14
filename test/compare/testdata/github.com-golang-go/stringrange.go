@@ -1,5 +1,3 @@
-// skip : cannot slice a string ; see https://github.com/open2b/scriggo/issues/255
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.

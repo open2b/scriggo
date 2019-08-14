@@ -1638,6 +1638,26 @@ func (vm *VM) run() (uint32, bool) {
 			}
 			s = s.Slice3(i, j, k)
 			vm.setGeneral(c, s.Interface())
+		case OpSliceString:
+			var i, j int
+			s := vm.string(a)
+			next := vm.fn.Body[vm.pc]
+			vm.pc++
+			iConst := b&1 != 0
+			i = int(vm.intk(next.A, iConst))
+			jConst := b&2 != 0
+			if jConst && next.B == -1 {
+				j = len(s)
+			} else {
+				j = int(vm.intk(next.B, jConst))
+			}
+			if i < 0 || j < i || j > len(s) {
+				// TODO(Gianluca): runtime errors of kind 'slice bounds out of
+				// range' have several combinations of error messages in go1.13.
+				// Wait for a stable release and handle them here.
+				panic(runtimeError("runtime error: slice bounds out of range"))
+			}
+			vm.setString(c, s[i:j])
 
 		// Sub
 		case OpSubInt8, -OpSubInt8:

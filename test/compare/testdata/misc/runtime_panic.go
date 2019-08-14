@@ -30,7 +30,7 @@ func main() {
 	if isGo112 {
 		test8()
 		test9()
-		// test10() // expected "runtime error: slice bounds out of range", got <*reflect.ValueError> &reflect.ValueError{Method:"reflect.Value.Len", Kind:0x16}
+		test10()
 	}
 	// test11() // expected "interface conversion: interface {} is int, not string", got nothing
 	test12()

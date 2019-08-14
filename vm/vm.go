@@ -1430,6 +1430,7 @@ const (
 	OpSetVar
 
 	OpSlice
+	OpSliceString
 
 	OpSubInt8
 	OpSubInt16

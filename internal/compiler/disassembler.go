@@ -198,7 +198,7 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.Function, globals []Global, dep
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, globals, addr))
 		}
 		switch in.Op {
-		case vm.OpCall, vm.OpCallIndirect, vm.OpCallPredefined, vm.OpTailCall, vm.OpSlice:
+		case vm.OpCall, vm.OpCallIndirect, vm.OpCallPredefined, vm.OpTailCall, vm.OpSlice, vm.OpSliceString:
 			addr += 1
 		case vm.OpDefer:
 			addr += 2
@@ -520,6 +520,17 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		s += " " + disassembleOperand(fn, high, vm.Int, khigh)
 		s += " " + disassembleOperand(fn, max, vm.Int, kmax)
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
+	case vm.OpSliceString:
+		khigh := b&2 != 0
+		high := fn.Body[addr+1].B
+		if khigh && high == -1 {
+			khigh = false
+			high = 0
+		}
+		s += " " + disassembleOperand(fn, a, vm.String, false)
+		s += " " + disassembleOperand(fn, fn.Body[addr+1].A, vm.Int, b&1 != 0)
+		s += " " + disassembleOperand(fn, high, vm.Int, khigh)
+		s += " " + disassembleOperand(fn, c, vm.String, false)
 	case vm.OpTypify:
 		typ := fn.Types[int(uint(a))]
 		s += " " + typ.String()
@@ -834,7 +845,8 @@ var operationName = [...]string{
 
 	vm.OpSetVar: "SetVar",
 
-	vm.OpSlice: "Slice",
+	vm.OpSlice:       "Slice",
+	vm.OpSliceString: "Slice",
 
 	vm.OpSubInt64:   "Sub",
 	vm.OpSubInt8:    "Sub8",
