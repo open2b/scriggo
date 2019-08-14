@@ -1867,7 +1867,14 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			return reg, false
 		}
 
-		fn := em.fb.emitFunc(reg, em.ti(expr).Type)
+		var tmp int8
+		if canEmitDirectly(reflect.Func, dstType.Kind()) {
+			tmp = reg
+		} else {
+			tmp = em.fb.newRegister(reflect.Func)
+		}
+
+		fn := em.fb.emitFunc(tmp, em.ti(expr).Type)
 		em.setClosureRefs(fn, expr.Upvars)
 
 		funcLitBuilder := newBuilder(fn)
@@ -1881,6 +1888,8 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		em.fb.exitScope()
 		em.fb.end()
 		em.fb = currFB
+
+		em.changeRegister(false, tmp, reg, em.ti(expr).Type, dstType)
 
 	case *ast.Identifier:
 
