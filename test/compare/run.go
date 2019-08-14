@@ -601,6 +601,19 @@ func test(src []byte, path, mode, ext string, keepTestingOnFail bool) {
 	case "errorcheck .go", "errorcheck .sgo", "errorcheck .html":
 		errorcheck(src, ext)
 
+	// Panic check.
+	case "paniccheck .go":
+		exitCode, _, stderr := cmd(src, "run program")
+		if exitCode == 0 {
+			panic("expected panic, got exit code == 0 (success)")
+		}
+		panicBody := bytes.Index(stderr, []byte("\n\ngoroutine "))
+		if panicBody == -1 {
+			panic(fmt.Errorf("expected panic on stderr, got %q", stderr))
+		}
+		panicHead := stderr[:panicBody]
+		goldenCompare(path, panicHead)
+
 	// Run or render.
 	case "run .go":
 		scriggoExitCode, scriggoStdout, scriggoStderr := cmd(src, "run program")
