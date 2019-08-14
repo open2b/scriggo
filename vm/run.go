@@ -51,7 +51,7 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
 	vm.env.exited = true
 	vm.env.mu.Unlock()
 	// Manage error and panics.
-	if isPanicked {
+	if len(vm.panics) > 0 {
 		if vm.env.dontPanic {
 			err = vm.panics[len(vm.panics)-1]
 		} else {
