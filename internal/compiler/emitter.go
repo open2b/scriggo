@@ -1794,7 +1794,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				if expr.Operator() != ast.OperatorMultiplication {
 					panic("bug") // TODO(Gianluca): to review.
 				}
-				panic("TODO(Gianluca): not implemented")
+				em.emitExprR(expr.Expr, dstType, reg)
 			case *ast.Index:
 				panic("TODO(Gianluca): not implemented")
 			case *ast.Selector:
