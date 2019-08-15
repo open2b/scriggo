@@ -16,10 +16,9 @@ func main() {
 	var i2 interface{} = []int(nil)
 	i2 = []int(nil)
 	_ = i2
-	// TODO(Gianluca).
-	// if i2 == nil {
-	// 	panic("i2 == nil")
-	// }
+	if i2 == nil {
+		panic("i2 == nil")
+	}
 
 	_, err := fmt.Println()
 	if err != nil {

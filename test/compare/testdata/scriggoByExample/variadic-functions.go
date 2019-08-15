@@ -31,7 +31,6 @@ func main() {
 	// If you already have multiple args in a slice,
 	// apply them to a variadic function using
 	// `func(slice...)` like this.
-	// TODO (Gianluca):
-	// nums := []int{1, 2, 3, 4}
-	// sum(nums...)
+	nums := []int{1, 2, 3, 4}
+	sum(nums...)
 }

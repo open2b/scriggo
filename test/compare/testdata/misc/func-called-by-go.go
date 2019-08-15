@@ -10,8 +10,7 @@ import (
 	"unicode"
 )
 
-// TODO (Gianluca): «panic: runtime error: index out of range»
-//var F func(int) int
+var F func(int) int
 
 func main() {
 	{
@@ -27,10 +26,9 @@ func main() {
 		fmt.Printf("%T %d\n", m["inc"], m["inc"](3))
 	}
 	{
-		// TODO (Gianluca): «25:18: func(int) int is not a type»
-		//var s = make([]func(int) int, 1)
-		//s[0] = func(x int) int { return x + 1 }
-		//fmt.Printf("%T %d\n", s[0], s[0](3))
+		var s = make([]func(int) int, 1)
+		s[0] = func(x int) int { return x + 1 }
+		fmt.Printf("%T %d\n", s[0], s[0](3))
 	}
 	{
 		var s = make([]interface{}, 1)

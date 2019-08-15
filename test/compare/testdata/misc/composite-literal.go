@@ -27,9 +27,8 @@ func main() {
 	fmt.Println(s1)
 
 	s2 := [][]int{}
-	// TODO(Gianluca):
-	// s2 = append(s2, []int{1, 2})
-	// s2 = append(s2, []int{3, 4})
+	s2 = append(s2, []int{1, 2})
+	s2 = append(s2, []int{3, 4})
 	fmt.Println(s2)
 	sum := 0
 	for x := range s2 {
@@ -48,9 +47,8 @@ func main() {
 	_ = [...]int{0: 1, 2, 20: 3}
 	_ = [10]int{0: 1, 2, 2: 3}
 
-	// TODO(Gianluca): see issue #177 and #100.
-	// fmt.Println([]interface{}{} == nil)
-	// fmt.Println([]byte{} == nil)
+	fmt.Println([]interface{}{} == nil)
+	fmt.Println([]byte{} == nil)
 
 	// {
 	// 	// TODO (Gianluca): add other struct tests.

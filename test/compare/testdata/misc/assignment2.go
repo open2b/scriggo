@@ -22,14 +22,13 @@ func main() {
 		a := []int{1, 2, 3}
 		p(a)
 	}
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/198
-	// {
-	// 	a := [][]string{
-	// 		{"a", "b", "c"},
-	// 		{"d", "e", "f"},
-	// 	}
-	// 	p(a)
-	// }
+	{
+		a := [][]string{
+			{"a", "b", "c"},
+			{"d", "e", "f"},
+		}
+		p(a)
+	}
 	{
 		a := [][]int{}
 		p(a)

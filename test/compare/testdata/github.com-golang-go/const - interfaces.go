@@ -30,20 +30,18 @@ func main() {
 	assert((interface{}(nil) == interface{}(nil)) == ii(nilN, nilN),
 		"for interface{}==interface{} compiler == runtime")
 
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/203
-	// assert(((*int)(nil) == interface{}(nil)) == pi(nilI, nilN),
-	// 	"for *int==interface{} compiler == runtime")
-	// assert((interface{}(nil) == (*int)(nil)) == ip(nilN, nilI),
-	// 	"for interface{}==*int compiler == runtime")
+	assert(((*int)(nil) == interface{}(nil)) == pi(nilI, nilN),
+		"for *int==interface{} compiler == runtime")
+	assert((interface{}(nil) == (*int)(nil)) == ip(nilN, nilI),
+		"for interface{}==*int compiler == runtime")
 
 	assert((&five == interface{}(nil)) == pi(&five, nilN),
 		"for interface{}==*int compiler == runtime")
 	assert((interface{}(nil) == &five) == ip(nilN, &five),
 		"for interface{}==*int compiler == runtime")
 
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/204
 	assert((5 == interface{}(5)) == ni(five, five),
 		"for int==interface{} compiler == runtime")
-	// assert((interface{}(5) == 5) == in(five, five),
-	// 	"for interface{}==int compiler == runtime")
+	assert((interface{}(5) == 5) == in(five, five),
+		"for interface{}==int compiler == runtime")
 }
