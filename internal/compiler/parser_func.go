@@ -54,14 +54,13 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 		tok = next(p.lex)
 	case tokenLeftBrackets, tokenFunc, tokenIdentifier, tokenInterface, tokenMap, tokenMultiplication, tokenStruct, tokenChan:
 		expr, tok = p.parseExpr(tok, false, true, true)
-		pos.End = tok.pos.End
+		pos.End = expr.Pos().End
 		result = []*ast.Field{ast.NewField(nil, expr)}
 	}
 	// Makes the function type.
 	typ := ast.NewFuncType(nil, parameters, result, isVariadic)
 	if kind^parseFuncType == 0 || kind&parseFuncType != 0 && tok.typ != tokenLeftBraces {
-		pos.End = tok.pos.End
-		typ.Position = pos
+		typ.Position = &ast.Position{pos.Line, pos.Column, pos.Start, pos.End}
 		return typ, tok
 	}
 	// Parses the function body.
