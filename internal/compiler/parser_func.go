@@ -65,7 +65,11 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	}
 	// Parses the function body.
 	if tok.typ != tokenLeftBraces {
-		panic(&SyntaxError{"", *ident.Position, fmt.Errorf("missing function body")})
+		p := *pos
+		if ident != nil {
+			p = *ident.Position
+		}
+		panic(&SyntaxError{"", p, fmt.Errorf("missing function body")})
 	}
 	body := ast.NewBlock(tok.pos, nil)
 	node := ast.NewFunc(pos, ident, typ, body)
