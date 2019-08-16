@@ -543,6 +543,35 @@ var exprTests = []struct {
 				ast.NewField(ast.NewIdentifier(p(1, 9, 8, 8), "b"), ast.NewIdentifier(p(1, 14, 13, 15), "int")),
 			}, nil, true),
 			ast.NewBlock(p(1, 19, 18, 19), nil))},
+	{"func(p.T) {}",
+		ast.NewFunc(p(1, 1, 0, 11), nil,
+			ast.NewFuncType(nil, []*ast.Field{
+				ast.NewField(nil, ast.NewSelector(p(1, 8, 7, 7),
+					ast.NewIdentifier(p(1, 6, 5, 5), "p"), "T")),
+			}, nil, false),
+			ast.NewBlock(p(1, 11, 10, 11), nil),
+		),
+	},
+	{"func(a p.T) {}",
+		ast.NewFunc(p(1, 1, 0, 13), nil,
+			ast.NewFuncType(nil, []*ast.Field{
+				ast.NewField(ast.NewIdentifier(p(1, 6, 5, 5), "a"),
+					ast.NewSelector(p(1, 10, 9, 9),
+						ast.NewIdentifier(p(1, 8, 7, 7), "p"), "T")),
+			}, nil, false),
+			ast.NewBlock(p(1, 13, 12, 13), nil),
+		),
+	},
+	{"func(a ...p.T) {}",
+		ast.NewFunc(p(1, 1, 0, 16), nil,
+			ast.NewFuncType(nil, []*ast.Field{
+				ast.NewField(ast.NewIdentifier(p(1, 6, 5, 5), "a"),
+					ast.NewSelector(p(1, 13, 12, 12),
+						ast.NewIdentifier(p(1, 11, 10, 10), "p"), "T")),
+			}, nil, true),
+			ast.NewBlock(p(1, 15, 15, 16), nil),
+		),
+	},
 }
 
 func TestExpressions(t *testing.T) {

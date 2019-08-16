@@ -118,12 +118,7 @@ func (p *parsing) parseFuncFields(tok token, names map[string]struct{}, isResult
 	for {
 		tok = next(p.lex)
 		field := ast.NewField(nil, nil)
-		if tok.typ == tokenIdentifier {
-			field.Type = p.parseIdentifierNode(tok)
-			tok = next(p.lex)
-		} else {
-			field.Type, tok = p.parseExpr(tok, false, true, false)
-		}
+		field.Type, tok = p.parseExpr(tok, false, true, false)
 		if tok.typ == tokenRightParenthesis {
 			if field.Type != nil {
 				fields = append(fields, field)

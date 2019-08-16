@@ -252,7 +252,26 @@ var goContextTreeTests = []struct {
 			),
 		}, ast.ContextGo),
 	},
-	{"var A []T",
+	{"var f func (p.T)",
+		ast.NewTree("", []ast.Node{
+			ast.NewVar(
+				p(1, 1, 0, 15),
+				[]*ast.Identifier{
+					ast.NewIdentifier(p(1, 5, 4, 4), "f"),
+				},
+				ast.NewFuncType(
+					p(1, 7, 6, 15),
+					[]*ast.Field{
+						ast.NewField(nil, ast.NewSelector(p(1, 15, 14, 14),
+							ast.NewIdentifier(p(1, 13, 12, 12), "p"), "T")),
+					},
+					nil,
+					false,
+				),
+				nil,
+			),
+		}, ast.ContextGo),
+	}, {"var A []T",
 		ast.NewTree("", []ast.Node{
 			ast.NewVar(
 				p(1, 1, 0, 8),
