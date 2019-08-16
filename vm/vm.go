@@ -809,7 +809,13 @@ func (vm *VM) nextCall() bool {
 			}
 			// TODO(marco): call finalizer.
 			if call.status == recovered {
-				vm.panics = vm.panics[:len(vm.panics)-1]
+				numPanicked := 0
+				for _, c := range vm.calls {
+					if c.status == panicked {
+						numPanicked++
+					}
+				}
+				vm.panics = vm.panics[:numPanicked]
 			}
 			continue
 		case panicked:

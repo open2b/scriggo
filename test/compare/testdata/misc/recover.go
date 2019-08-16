@@ -17,14 +17,15 @@ func main() {
 	test5()
 	test6()
 	test7()
-	// test8()
+	test8()
 	test9()
 	test10()
-	// test11()
+	test11()
 	test12()
 	test13()
 	test14()
 	test15()
+	test16()
 
 }
 
@@ -208,4 +209,21 @@ func test15() {
 	func() {
 		panic(1)
 	}()
+}
+
+func test16() {
+	defer func() {
+		v := recover()
+		expectRecover(v, 1)
+	}()
+	defer func() {
+		func() {
+			defer func() {
+				v := recover()
+				expectRecover(v, 2)
+			}()
+			panic(2)
+		}()
+	}()
+	panic(1)
 }
