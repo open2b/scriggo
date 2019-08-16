@@ -1,0 +1,4 @@
+recovered 4
+panic: 1
+	panic: 2 [recovered]
+	panic: 5

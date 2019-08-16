@@ -58,9 +58,9 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
 			var msg string
 			for i, p := range vm.panics {
 				if i > 0 {
-					msg += "\t"
+					msg += "\tpanic: "
 				}
-				msg += fmt.Sprintf("panic %d: %#v", i+1, p.Msg)
+				msg += fmt.Sprintf("%#v", p.Msg)
 				if p.Recovered {
 					msg += " [recovered]"
 				}
