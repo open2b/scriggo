@@ -19,11 +19,13 @@ var testTime2 = Time(time.Date(12365, 3, 22, 15, 19, 5, 123456789, time.UTC))
 var testTime3 = Time(time.Date(2006, 1, 02, 15, 4, 5, 123456789, loc))
 var testTime4 = Time(time.Date(-12365, 3, 22, 15, 19, 5, 123456789, loc))
 
-var rendererBuiltinTestsInHTMLContext = []struct {
+type builtinTest struct {
 	src  string
 	res  string
 	vars Vars
-}{
+}
+
+var rendererBuiltinTestsInHTMLContext = []builtinTest{
 	// Hasher
 	{"{% var a Hasher %}{{ a }}", "0", nil},
 
@@ -374,11 +376,7 @@ func TestRenderBuiltinInHTMLContext(t *testing.T) {
 	}
 }
 
-var rendererBuiltinTestsInJavaScriptContext = []struct {
-	src  string
-	res  string
-	vars Vars
-}{
+var rendererBuiltinTestsInJavaScriptContext = []builtinTest{
 	// Time
 	{"var t = {{ t }};", "var t = new Date(\"2006-01-02T15:04:05.123Z\");", Vars{"t": Time(testTime)}},
 	{"var t = new Date(\"{{ t }}\");", "var t = new Date(\"2006-01-02T15:04:05.123Z\");", Vars{"t": Time(testTime)}},
@@ -386,8 +384,6 @@ var rendererBuiltinTestsInJavaScriptContext = []struct {
 	{"var t = new Date(\"{{ t }}\");", "var t = new Date(\"+012365-03-22T15:19:05.123Z\");", Vars{"t": Time(testTime2)}},
 	{"var t = {{ t }};", "var t = new Date(\"2006-01-02T15:04:05.123-08:00\");", Vars{"t": Time(testTime3)}},
 	{"var t = new Date(\"{{ t }}\");", "var t = new Date(\"2006-01-02T15:04:05.123-08:00\");", Vars{"t": Time(testTime3)}},
-	{"var t = {{ t }};", "var t = new Date(\"-012365-03-22T15:19:05.123-07:52\");", Vars{"t": Time(testTime4)}},
-	{"var t = new Date(\"{{ t }}\");", "var t = new Date(\"-012365-03-22T15:19:05.123-07:52\");", Vars{"t": Time(testTime4)}},
 }
 
 func TestRenderBuiltinInJavaScriptContext(t *testing.T) {
