@@ -53,7 +53,7 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
 	// Manage error and panics.
 	if len(vm.panics) > 0 {
 		if vm.env.dontPanic {
-			err = vm.panics[len(vm.panics)-1]
+			err = vm.panics[0]
 		} else {
 			var msg string
 			for i, p := range vm.panics {
