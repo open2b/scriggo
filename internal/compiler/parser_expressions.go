@@ -137,7 +137,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 	var mustBeSwitchGuard bool
 
 	if tok.txt == nil {
-		tok = next(p.lex)
+		tok = p.next()
 	}
 
 	for {
@@ -167,7 +167,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 		case tokenMap:
 			canCompositeLiteral = true
 			mapType := ast.NewMapType(tok.pos, nil, nil)
-			tok = next(p.lex)
+			tok = p.next()
 			if tok.typ != tokenLeftBrackets {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting [", tok)})
 			}
@@ -188,11 +188,11 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 		case tokenStruct:
 			canCompositeLiteral = true
 			structType := ast.NewStructType(tok.pos, nil)
-			tok = next(p.lex)
+			tok = p.next()
 			if tok.typ != tokenLeftBraces {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting {", tok)})
 			}
-			tok = next(p.lex)
+			tok = p.next()
 			if tok.typ != tokenRightBraces {
 				for {
 					fieldDecl := ast.NewFieldDecl(nil, nil, nil)
@@ -205,14 +205,14 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 							panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expecting typooo")})
 						}
 						fieldDecl.Type = exprs[0]
-						tok = next(p.lex)
+						tok = p.next()
 					} else {
 						// Explicit field declaration.
 						typ, tok = p.parseExpr(tok, false, true, false)
 						if tok.typ != tokenSemicolon {
 							panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting semicolon", tok)})
 						}
-						tok = next(p.lex)
+						tok = p.next()
 						fieldDecl.IdentifierList = make([]*ast.Identifier, len(exprs))
 						for i, e := range exprs {
 							ident, ok := e.(*ast.Identifier)
@@ -233,11 +233,11 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			operand = structType
 		case tokenInterface:
 			pos := tok.pos
-			tok = next(p.lex)
+			tok = p.next()
 			if tok.typ != tokenLeftBraces {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting {", tok)})
 			}
-			tok = next(p.lex)
+			tok = p.next()
 			if tok.typ != tokenRightBraces {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting }", tok)})
 			}
@@ -258,7 +258,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			pos := tok.pos
 			direction := ast.NoDirection
 			if tok.typ == tokenArrow {
-				tok = next(p.lex)
+				tok = p.next()
 				if tok.typ == tokenChan {
 					direction = ast.ReceiveDirection
 				} else {
@@ -267,10 +267,10 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				}
 			}
 			if operator == nil {
-				tok = next(p.lex)
+				tok = p.next()
 				if direction == ast.NoDirection && tok.typ == tokenArrow {
 					direction = ast.SendDirection
-					tok = next(p.lex)
+					tok = p.next()
 				}
 				var elemType ast.Expression
 				elemType, tok = p.parseExpr(tok, false, true, false)
@@ -306,9 +306,9 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			ident := p.parseIdentifierNode(tok)
 			operand = ident
 			if mustBeType {
-				tok = next(p.lex)
+				tok = p.next()
 				if tok.typ == tokenPeriod {
-					tok = next(p.lex)
+					tok = p.next()
 					if tok.typ != tokenIdentifier {
 						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok.txt)})
 					}
@@ -323,11 +323,11 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			var expr, length ast.Expression
 			pos := tok.pos
 			isEllipsis := false
-			tok = next(p.lex)
+			tok = p.next()
 			switch tok.typ {
 			case tokenEllipsis:
 				isEllipsis = true
-				tok = next(p.lex)
+				tok = p.next()
 			case tokenRightBrackets:
 			default:
 				oldTok := tok
@@ -379,7 +379,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 		for operator == nil {
 
 			if !reuseLastToken {
-				tok = next(p.lex)
+				tok = p.next()
 			}
 			reuseLastToken = false
 
@@ -436,7 +436,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected ..., expecting expression")})
 					}
 					isVariadic = true
-					tok = next(p.lex)
+					tok = p.next()
 				}
 				if tok.typ != tokenRightParenthesis {
 					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or )", tok)})
@@ -476,7 +476,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			case tokenPeriod: // e.
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
-				tok = next(p.lex)
+				tok = p.next()
 				switch tok.typ {
 				case tokenIdentifier:
 					// e.ident
@@ -488,7 +488,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 					operand = ast.NewSelector(pos, operand, ident)
 				case tokenLeftParenthesis:
 					// e.(ident), e.(pkg.ident)
-					tok = next(p.lex)
+					tok = p.next()
 					if len(tok.txt) == 1 && tok.txt[0] == '_' {
 						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
 					}
@@ -499,7 +499,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 							panic(&SyntaxError{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")})
 						}
 						mustBeSwitchGuard = true
-						tok = next(p.lex)
+						tok = p.next()
 					case tokenIdentifier:
 						if len(tok.txt) == 1 && tok.txt[0] == '_' {
 							panic(&SyntaxError{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
@@ -656,7 +656,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 		}
 
 		if !reuseLastToken {
-			tok = next(p.lex)
+			tok = p.next()
 		}
 		reuseLastToken = false
 

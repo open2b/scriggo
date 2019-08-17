@@ -28,13 +28,13 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	pos := tok.pos
 	// Parses the function name if present.
 	var ident *ast.Identifier
-	tok = next(p.lex)
+	tok = p.next()
 	if tok.typ == tokenIdentifier {
 		if kind&parseFuncDecl == 0 {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting (", tok)})
 		}
 		ident = ast.NewIdentifier(tok.pos, string(tok.txt))
-		tok = next(p.lex)
+		tok = p.next()
 	} else if kind^parseFuncDecl == 0 {
 		// Node to parse must be a function declaration.
 		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok.txt)})
@@ -44,14 +44,14 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	parameters, isVariadic, endPos := p.parseFuncFields(tok, names, false)
 	pos.End = endPos.End
 	var result []*ast.Field
-	tok = next(p.lex)
+	tok = p.next()
 	var expr ast.Expression
 	// Parses the result if present.
 	switch tok.typ {
 	case tokenLeftParenthesis:
 		result, _, endPos = p.parseFuncFields(tok, names, true)
 		pos.End = endPos.End
-		tok = next(p.lex)
+		tok = p.next()
 	case tokenLeftBrackets, tokenFunc, tokenIdentifier, tokenInterface, tokenMap, tokenMultiplication, tokenStruct, tokenChan:
 		expr, tok = p.parseExpr(tok, false, true, true)
 		pos.End = expr.Pos().End
@@ -116,7 +116,7 @@ func (p *parsing) parseFuncFields(tok token, names map[string]struct{}, isResult
 	var isVariadic bool
 
 	for {
-		tok = next(p.lex)
+		tok = p.next()
 		field := ast.NewField(nil, nil)
 		field.Type, tok = p.parseExpr(tok, false, true, false)
 		if tok.typ == tokenRightParenthesis {
@@ -136,7 +136,7 @@ func (p *parsing) parseFuncFields(tok token, names map[string]struct{}, isResult
 				field.Type = nil
 			}
 			isVariadic = true
-			tok = next(p.lex)
+			tok = p.next()
 		} else if field.Type == nil {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting )", tok)})
 		}
