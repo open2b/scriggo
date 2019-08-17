@@ -1346,7 +1346,16 @@ func (vm *VM) run() (uint32, bool) {
 		// Recover
 		case OpRecover:
 			var msg interface{}
-			for i := len(vm.calls) - 1; i >= 0; i-- {
+			last := len(vm.calls) - 1
+			if a > 0 {
+				// Recover down the stack.
+				if vm.calls[last].status == panicked {
+					last = -1
+				} else {
+					last--
+				}
+			}
+			for i := last; i >= 0; i-- {
 				switch vm.calls[i].status {
 				case deferred:
 					continue

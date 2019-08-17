@@ -841,7 +841,7 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 	case "real":
 		panic("TODO: not implemented")
 	case "recover":
-		em.fb.emitRecover(reg)
+		em.fb.emitRecover(reg, false)
 	default:
 		panic("unknown builtin") // TODO(Gianluca): remove.
 	}

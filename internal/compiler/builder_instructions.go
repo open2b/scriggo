@@ -820,9 +820,15 @@ func (builder *functionBuilder) emitReceive(ch, ok, dst int8) {
 // emitRecover appends a new "Recover" instruction to the function body.
 //
 //     recover()
+//     defer recover()
 //
-func (builder *functionBuilder) emitRecover(r int8) {
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpRecover, C: r})
+func (builder *functionBuilder) emitRecover(r int8, down bool) {
+	var a int8
+	if down {
+		// Recover down the stack.
+		a = 1
+	}
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpRecover, A: a, C: r})
 }
 
 // emitRem appends a new "rem" instruction to the function body.
