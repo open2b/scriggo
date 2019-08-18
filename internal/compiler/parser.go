@@ -155,13 +155,14 @@ func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, err error)
 	}()
 
 	// Reads the tokens.
-	for tok := range p.lex.tokens {
+TOKENS:
+	for {
+		tok := p.next()
 		switch tok.typ {
 		case tokenShebangLine:
 			if !shebang {
 				return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("illegal character U+0023 '#'")}
 			}
-			continue
 		default:
 			p.parseStatement(tok)
 		case tokenEOF:
@@ -176,11 +177,8 @@ func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, err error)
 					}
 				}
 			}
+			break TOKENS
 		}
-	}
-
-	if p.lex.err != nil {
-		return nil, p.lex.err
 	}
 
 	return tree, nil
@@ -231,7 +229,10 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, deps Pack
 	var end = len(src) - 1
 
 	// Reads the tokens.
-	for tok := range p.lex.tokens {
+TOKENS:
+	for {
+
+		tok := p.next()
 
 		var text *ast.Text
 		if tok.typ == tokenText {
@@ -255,6 +256,7 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, deps Pack
 			if len(p.ancestors) > 1 {
 				return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting {%% end %%}")}
 			}
+			break TOKENS
 
 		// Text
 		case tokenText:
@@ -337,10 +339,6 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, deps Pack
 
 		}
 
-	}
-
-	if p.lex.err != nil {
-		return nil, nil, p.lex.err
 	}
 
 	return tree, deps, nil

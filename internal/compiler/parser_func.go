@@ -77,7 +77,8 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	depth := len(p.ancestors)
 	isTemplate := p.isTemplate
 	p.isTemplate = false
-	for tok = range p.lex.tokens {
+	for {
+		tok = p.next()
 		if tok.typ == tokenRightBraces {
 			parent := p.ancestors[len(p.ancestors)-1]
 			if _, ok := parent.(*ast.Label); ok {
