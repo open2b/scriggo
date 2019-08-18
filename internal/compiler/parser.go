@@ -967,6 +967,13 @@ LABEL:
 					break
 				}
 				prevNode, tok = p.parseVarOrConst(tok, pos, decType)
+				switch tok.typ {
+				case tokenSemicolon:
+					tok = p.next()
+				case tokenRightParenthesis:
+				default:
+					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting semicolon or newline or )", tok)})
+				}
 				if c, ok := prevNode.(*ast.Const); ok {
 					if c.Type == nil {
 						c.Type = astutil.CloneExpression(prevConstType)
@@ -984,8 +991,8 @@ LABEL:
 			}
 		} else {
 			node, tok = p.parseVarOrConst(tok, pos, decType)
+			p.parseEndStatement(tok, tokenSemicolon)
 			p.addChild(node)
-			return tok
 		}
 
 	// import
@@ -1362,7 +1369,7 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, decType toke
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
 		}
-	case tokenSemicolon:
+	case tokenSemicolon, tokenRightParenthesis:
 		// const c
 		// const c, d
 		if decType == tokenVar {
@@ -1391,9 +1398,9 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, decType toke
 	}
 	nodePos.End = endPos
 	if decType == tokenVar {
-		return ast.NewVar(nodePos, idents, typ, exprs), p.next()
+		return ast.NewVar(nodePos, idents, typ, exprs), tok
 	}
-	return ast.NewConst(nodePos, idents, typ, exprs), p.next()
+	return ast.NewConst(nodePos, idents, typ, exprs), tok
 }
 
 func (p *parsing) parseImportSpec(tok token) *ast.Import {
