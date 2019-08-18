@@ -77,8 +77,8 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	depth := len(p.ancestors)
 	isTemplate := p.isTemplate
 	p.isTemplate = false
+	tok = p.next()
 	for {
-		tok = p.next()
 		if tok.typ == tokenRightBraces {
 			parent := p.ancestors[len(p.ancestors)-1]
 			if _, ok := parent.(*ast.Label); ok {
@@ -95,7 +95,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 			}
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting }")})
 		}
-		p.parseStatement(tok)
+		tok = p.parseStatement(tok)
 	}
 	body.Position.End = tok.pos.End
 	node.Position.End = tok.pos.End

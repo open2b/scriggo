@@ -155,16 +155,17 @@ func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, err error)
 	}()
 
 	// Reads the tokens.
+	tok := p.next()
 TOKENS:
 	for {
-		tok := p.next()
 		switch tok.typ {
 		case tokenShebangLine:
 			if !shebang {
 				return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("illegal character U+0023 '#'")}
 			}
 		default:
-			p.parseStatement(tok)
+			tok = p.parseStatement(tok)
+			continue
 		case tokenEOF:
 			if len(p.ancestors) > 1 {
 				switch p.ancestors[1].(type) {
@@ -179,6 +180,7 @@ TOKENS:
 			}
 			break TOKENS
 		}
+		tok = p.next()
 	}
 
 	return tree, nil
@@ -229,10 +231,9 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, deps Pack
 	var end = len(src) - 1
 
 	// Reads the tokens.
+	tok := p.next()
 TOKENS:
 	for {
-
-		tok := p.next()
 
 		var text *ast.Text
 		if tok.typ == tokenText {
@@ -311,7 +312,8 @@ TOKENS:
 		// {%
 		case tokenStartStatement:
 			tokensInLine++
-			p.parseStatement(tok)
+			tok = p.parseStatement(tok)
+			continue
 
 		// {{ }}
 		case tokenStartValue:
@@ -339,13 +341,15 @@ TOKENS:
 
 		}
 
+		tok = p.next()
+
 	}
 
 	return tree, deps, nil
 }
 
 // parseStatement parses a statement. Panics on error.
-func (p *parsing) parseStatement(tok token) {
+func (p *parsing) parseStatement(tok token) token {
 
 	var node ast.Node
 
@@ -707,11 +711,11 @@ LABEL:
 					p.ancestors = p.ancestors[:len(p.ancestors)-1]
 					parent = p.ancestors[len(p.ancestors)-1]
 				} else {
-					return
+					return p.next()
 				}
 			}
 		case tokenEOF:
-			return
+			return p.next()
 		default:
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s at end of statement", tok)})
 		}
@@ -741,7 +745,7 @@ LABEL:
 			elseBlock := ast.NewBlock(blockPos, nil)
 			p.addChild(elseBlock)
 			p.ancestors = append(p.ancestors, elseBlock)
-			return
+			return p.next()
 		}
 		if tok.typ != tokenIf { // "else if"
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting if or %%}", tok)})
@@ -952,8 +956,8 @@ LABEL:
 			var prevNode ast.Node
 			var prevConstValues []ast.Expression
 			var prevConstType ast.Expression
+			tok = p.next()
 			for {
-				tok = p.next()
 				if tok.typ == tokenRightParenthesis {
 					tok = p.next()
 					p.parseEndStatement(tok, tokenSemicolon)
@@ -962,7 +966,7 @@ LABEL:
 					}
 					break
 				}
-				prevNode = p.parseVarOrConst(tok, pos, decType)
+				prevNode, tok = p.parseVarOrConst(tok, pos, decType)
 				if c, ok := prevNode.(*ast.Const); ok {
 					if c.Type == nil {
 						c.Type = astutil.CloneExpression(prevConstType)
@@ -979,7 +983,9 @@ LABEL:
 				p.addChild(prevNode)
 			}
 		} else {
-			p.addChild(p.parseVarOrConst(tok, pos, decType))
+			node, tok = p.parseVarOrConst(tok, pos, decType)
+			p.addChild(node)
+			return tok
 		}
 
 	// import
@@ -1205,7 +1211,7 @@ LABEL:
 					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s after top level declaration", tok)})
 				}
 				p.addChild(node)
-				return
+				return p.next()
 			}
 		}
 		fallthrough
@@ -1270,7 +1276,7 @@ LABEL:
 		}
 	}
 
-	return
+	return p.next()
 }
 
 func (p *parsing) parseEndStatement(tok token, want tokenTyp) {
@@ -1320,7 +1326,7 @@ func (p *parsing) parseTypeDecl(tok token) (*ast.TypeDeclaration, token) {
 	return td, tok
 }
 
-func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, decType tokenTyp) ast.Node {
+func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, decType tokenTyp) (ast.Node, token) {
 	if tok.typ != tokenIdentifier {
 		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok)})
 	}
@@ -1385,9 +1391,9 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, decType toke
 	}
 	nodePos.End = endPos
 	if decType == tokenVar {
-		return ast.NewVar(nodePos, idents, typ, exprs)
+		return ast.NewVar(nodePos, idents, typ, exprs), p.next()
 	}
-	return ast.NewConst(nodePos, idents, typ, exprs)
+	return ast.NewConst(nodePos, idents, typ, exprs), p.next()
 }
 
 func (p *parsing) parseImportSpec(tok token) *ast.Import {
