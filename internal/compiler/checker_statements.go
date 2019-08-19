@@ -583,7 +583,8 @@ nodesLoop:
 				case "append", "cap", "len", "make", "new":
 					panic(tc.errorf(node, "defer discards result of %s", node.Call))
 				case "recover":
-					// Nothing to do here.
+					// The statement "defer recover()" is a special case
+					// implemented by the emitter.
 				case "close", "delete", "panic", "print", "println":
 					tc.typeInfos[node.Call.Func] = deferGoBuiltin(name)
 				}
