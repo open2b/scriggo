@@ -13,12 +13,13 @@ if count > 50 {
 	fmt.Println("count is <= 50")
 }
 var i = interface{}(432)
-switch i.(type) {
-case string:
-	fmt.Println("is a string")
-case int:
-	fmt.Println("is an int")
-}
+// TODO(Gianluca): https://github.com/open2b/scriggo/issues/298
+// switch i.(type) {
+// case string:
+// 	fmt.Println("is a string")
+// case int:
+// 	fmt.Println("is an int")
+// }
 i2 := interface{}(-42)
 res := i.(int) - i2.(int)
 fmt.Println("res is", res)

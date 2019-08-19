@@ -4,11 +4,17 @@
 count is {{ count }}
 {% if count > 50 %}count is > 50{% else %}count is <= 50{% end if %}
 {% var i = interface{}(432) %}
-{% switch i.(type) %}{% case string %}
-    is a string
-{% case int %}
-    is an int
-{% end switch %}
+{# 
+
+    https://github.com/open2b/scriggo/issues/298
+
+    {% switch i.(type) %}{% case string %}
+        is a string
+    {% case int %}
+        is an int
+    {% end switch %}
+
+#}
 
 {% i2 := interface{}(-42) %}
 {% res := i.(int) - i2.(int) %}

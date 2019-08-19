@@ -70,42 +70,43 @@ func main() {
 			fmt.Println("default")
 		}
 	}
-	{
-		typeName := func(v interface{}) string {
-			switch v.(type) {
-			case int:
-				return "int"
-			case string:
-				return "string"
-			default:
-				return "unknown"
-			}
-		}
-		fmt.Println(typeName("a"))
-		fmt.Println(typeName(3))
-		fmt.Println(typeName([]int{1, 2, 3}))
-	}
-	{
-		v := interface{}(3)
-		switch u := v.(type) {
-		default:
-			fmt.Println(u)
-		}
-	}
-	{
-		do := func(v interface{}) int {
-			switch u := v.(type) {
-			case int:
-				return u * 2
-			case string:
-				return len(u)
-			}
-			return 3
-		}
-		fmt.Println(do(21))
-		fmt.Println(do("bitrab"))
-		fmt.Println(do(3.142))
-	}
+	// https://github.com/open2b/scriggo/issues/298
+	// {
+	// 	typeName := func(v interface{}) string {
+	// 		switch v.(type) {
+	// 		case int:
+	// 			return "int"
+	// 		case string:
+	// 			return "string"
+	// 		default:
+	// 			return "unknown"
+	// 		}
+	// 	}
+	// 	fmt.Println(typeName("a"))
+	// 	fmt.Println(typeName(3))
+	// 	fmt.Println(typeName([]int{1, 2, 3}))
+	// }
+	// {
+	// 	v := interface{}(3)
+	// 	switch u := v.(type) {
+	// 	default:
+	// 		fmt.Println(u)
+	// 	}
+	// }
+	// {
+	// 	do := func(v interface{}) int {
+	// 		switch u := v.(type) {
+	// 		case int:
+	// 			return u * 2
+	// 		case string:
+	// 			return len(u)
+	// 		}
+	// 		return 3
+	// 	}
+	// 	fmt.Println(do(21))
+	// 	fmt.Println(do("bitrab"))
+	// 	fmt.Println(do(3.142))
+	// }
 	{
 		pluralEnding := func(n int) string {
 			ending := ""
