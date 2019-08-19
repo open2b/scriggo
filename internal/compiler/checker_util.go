@@ -195,6 +195,10 @@ func deferGoBuiltin(name string) *TypeInfo {
 		fun = func(env *vm.Env, args ...interface{}) {
 			env.Println(args...)
 		}
+	case "recover":
+		// This predefined function should only be used with the 'go'
+		// statement and not the 'defer' statement.
+		fun = func() {}
 	}
 	rv := reflect.ValueOf(fun)
 	return &TypeInfo{

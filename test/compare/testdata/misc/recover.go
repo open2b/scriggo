@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"runtime"
 )
 
 func main() {
@@ -28,6 +29,7 @@ func main() {
 	test16()
 	test17()
 	test18()
+	test19()
 
 }
 
@@ -259,5 +261,16 @@ func test18() {
 		defer recover() // no-op
 		panic(2)
 	}()
+	panic(1)
+}
+
+func test19() {
+	defer func() {
+		v := recover()
+		expectRecover(v, 1)
+	}()
+	runtime.GOMAXPROCS(1)
+	go recover()
+	runtime.Gosched()
 	panic(1)
 }
