@@ -1696,7 +1696,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		em.fb.enterScope()
 		tmp := em.fb.newRegister(assertType.Kind())
 		em.fb.emitAssert(exprReg, assertType, tmp)
-		em.fb.emitNop()
+		em.fb.emitPanic(0, expr.Pos().Line)
 		em.changeRegister(false, tmp, reg, assertType, dstType)
 		em.fb.exitScope()
 
