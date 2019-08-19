@@ -8,7 +8,6 @@ package vm
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 )
 
@@ -60,7 +59,7 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
 				if i > 0 {
 					msg += "\tpanic: "
 				}
-				msg += fmt.Sprintf("%#v", p.Msg)
+				msg += p.String()
 				if p.Recovered {
 					msg += " [recovered]"
 				}

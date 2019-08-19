@@ -1192,6 +1192,60 @@ type Panic struct {
 	StackTrace []byte
 }
 
+func (p Panic) String() string {
+	switch v := p.Msg.(type) {
+	case nil:
+		return "nil"
+	case bool:
+		if v {
+			return "true"
+		}
+		return "false"
+	case int:
+		return strconv.Itoa(v)
+	case int8:
+		return strconv.Itoa(int(v))
+	case int16:
+		return strconv.Itoa(int(v))
+	case int32:
+		return strconv.Itoa(int(v))
+	case int64:
+		return strconv.FormatInt(v, 10)
+	case uint:
+		return strconv.FormatUint(uint64(v), 10)
+	case uint8:
+		return strconv.FormatUint(uint64(v), 10)
+	case uint16:
+		return strconv.FormatUint(uint64(v), 10)
+	case uint32:
+		return strconv.FormatUint(uint64(v), 10)
+	case uint64:
+		return strconv.FormatUint(v, 10)
+	case uintptr:
+		return strconv.FormatUint(uint64(v), 10)
+	case float32:
+		return strconv.FormatFloat(float64(v), 'e', -1, 32)
+	case float64:
+		return strconv.FormatFloat(v, 'e', -1, 64)
+	case complex64:
+		return "(" + strconv.FormatFloat(float64(real(v)), 'e', -1, 32) +
+			strconv.FormatFloat(float64(imag(v)), 'e', -1, 32) + ")"
+	case complex128:
+		return "(" + strconv.FormatFloat(real(v), 'e', 3, 64) +
+			strconv.FormatFloat(imag(v), 'e', 3, 64) + ")"
+	case string:
+		return v
+	case error:
+		return v.Error()
+	case stringer:
+		return v.String()
+	default:
+		typ := reflect.TypeOf(v).String()
+		iData := reflect.ValueOf(&v).Elem().InterfaceData()
+		return "(" + typ + ") (" + hex(iData[0]) + "," + hex(iData[1]) + ")"
+	}
+}
+
 type stringer interface {
 	String() string
 }
