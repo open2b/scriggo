@@ -899,6 +899,18 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				// Nothing to do
 				continue
 			}
+			if em.isBuiltinCall(node.Call, "recover") {
+				stackShift := em.fb.currentStackShift()
+				backup := em.fb
+				fnReg := em.fb.newRegister(reflect.Func)
+				fn := em.fb.emitFunc(fnReg, reflect.FuncOf(nil, nil, false))
+				em.fb = newBuilder(fn)
+				em.fb.emitRecover(0, true)
+				em.fb.emitReturn()
+				em.fb = backup
+				em.fb.emitDefer(fnReg, 0, stackShift, vm.StackShift{0, 0, 0, 0})
+				continue
+			}
 			em.fb.enterStack()
 			_, _ = em.emitCallNode(node.Call, false, true)
 			em.fb.exitStack()
@@ -2227,9 +2239,9 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 	// if v >  len("str")
 	// if v >= len("str")
 	if cond, ok := cond.(*ast.BinaryOperator); ok {
-		if em.isLenBuiltinCall(cond.Expr1) != em.isLenBuiltinCall(cond.Expr2) {
+		if em.isBuiltinCall(cond.Expr1, "len") != em.isBuiltinCall(cond.Expr2, "len") {
 			var lenArg, expr ast.Expression
-			if em.isLenBuiltinCall(cond.Expr1) {
+			if em.isBuiltinCall(cond.Expr1, "len") {
 				lenArg = cond.Expr1.(*ast.Call).Args[0]
 				expr = cond.Expr2
 			} else {
