@@ -951,6 +951,14 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			if kind == reflect.Slice || kind == reflect.Array && t.Addressable() || kind == reflect.Ptr {
 				ti.Properties = PropertyAddressable
 			}
+			// Transform pa[i] to (*pa)[i].
+			if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Array {
+				unOp := ast.NewUnaryOperator(nil, ast.OperatorMultiplication, expr.Expr)
+				tc.typeInfos[unOp] = &TypeInfo{
+					Type: t.Type.Elem(),
+				}
+				expr.Expr = unOp
+			}
 			return ti
 		case reflect.Map:
 			key := tc.checkExpr(expr.Index)

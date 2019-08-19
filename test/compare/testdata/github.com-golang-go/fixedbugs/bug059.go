@@ -1,4 +1,4 @@
-// skip because pointer to array indexing is not supported. See https://github.com/open2b/scriggo/issues/242.
+// skip : recursive assignment https://github.com/open2b/scriggo/issues/180
 
 // run
 
