@@ -1,5 +1,3 @@
-// skip : https://github.com/open2b/scriggo/issues/298
-
 // run
 
 package main

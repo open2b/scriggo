@@ -70,7 +70,6 @@ func main() {
 			fmt.Println("default")
 		}
 	}
-	// https://github.com/open2b/scriggo/issues/298
 	// {
 	// 	typeName := func(v interface{}) string {
 	// 		switch v.(type) {

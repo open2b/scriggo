@@ -2052,8 +2052,12 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 				em.typeInfos[ta] = &TypeInfo{
 					Type: em.ti(cas.Expressions[0]).Type,
 				}
+				blank := ast.NewIdentifier(nil, "_")
 				n := ast.NewAssignment(nil,
-					[]ast.Expression{node.Assignment.Lhs[0]},
+					[]ast.Expression{
+						node.Assignment.Lhs[0], // the variable
+						blank,                  // a dummy blank identifier that prevent panicking
+					},
 					node.Assignment.Type,
 					[]ast.Expression{ta},
 				)
@@ -2061,7 +2065,9 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 			}
 		} else {
 			// If the type switch has an assignment, assign to the variable
-			// keeping the type.
+			// keeping the type. Note that this assignment does not involve type
+			// assertion statements, just takes the expression from the type
+			// assertion of the type switch.
 			if len(node.Assignment.Lhs) == 1 {
 				n := ast.NewAssignment(nil,
 					[]ast.Expression{node.Assignment.Lhs[0]},
