@@ -58,6 +58,15 @@ func (env *Env) Context() context.Context {
 	return env.ctx
 }
 
+// Exited reports whether the environment is exited.
+func (env *Env) Exited() bool {
+	var exited bool
+	env.mu.Lock()
+	exited = env.exited
+	env.mu.Unlock()
+	return exited
+}
+
 // ExitFunc calls f in its own goroutine after the execution of the
 // environment is terminated.
 func (env *Env) ExitFunc(f func()) {
