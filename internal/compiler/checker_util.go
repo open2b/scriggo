@@ -181,6 +181,12 @@ func deferGoBuiltin(name string) *TypeInfo {
 		fun = func(m interface{}, key interface{}) {
 			reflect.ValueOf(m).SetMapIndex(reflect.ValueOf(key), reflect.Value{})
 		}
+	case "panic":
+		// This predefined function should only be used with the 'defer'
+		// statement and not the 'go' statement.
+		fun = func(v interface{}) {
+			panic(v)
+		}
 	case "print":
 		fun = func(env *vm.Env, args ...interface{}) {
 			env.Print(args...)

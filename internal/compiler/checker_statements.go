@@ -584,9 +584,7 @@ nodesLoop:
 					panic(tc.errorf(node, "defer discards result of %s", node.Call))
 				case "recover":
 					// Nothing to do here.
-				case "panic":
-					panic("TODO: not implemented; see https://github.com/open2b/scriggo/issues/285") // TODO(Gianluca): to implement.
-				case "close", "delete", "print", "println":
+				case "close", "delete", "panic", "print", "println":
 					tc.typeInfos[node.Call.Func] = deferGoBuiltin(name)
 				}
 			}
