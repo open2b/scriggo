@@ -1129,6 +1129,34 @@ func (c *callable) Value(env *Env) reflect.Value {
 	return c.value
 }
 
+// missingMethod returns a method in iface and not in typ.
+func missingMethod(typ reflect.Type, iface reflect.Type) string {
+	num := iface.NumMethod()
+	for i := 0; i < num; i++ {
+		mi := iface.Method(i)
+		mt, ok := typ.MethodByName(mi.Name)
+		if !ok {
+			return mi.Name
+		}
+		numIn := mi.Type.NumIn()
+		numOut := mi.Type.NumOut()
+		if mt.Type.NumIn()-1 != numIn || mt.Type.NumOut() != numOut {
+			return mi.Name
+		}
+		for j := 0; j < numIn; j++ {
+			if mt.Type.In(j+1) != mi.Type.In(j) {
+				return mi.Name
+			}
+		}
+		for j := 0; j < numOut; j++ {
+			if mt.Type.Out(j) != mi.Type.Out(j) {
+				return mi.Name
+			}
+		}
+	}
+	return ""
+}
+
 // runtimeError represents a runtime error.
 type runtimeError string
 
@@ -1136,22 +1164,33 @@ func (err runtimeError) Error() string { return string(err) }
 func (err runtimeError) RuntimeError() {}
 
 type TypeAssertionError struct {
-	i reflect.Type
-	v reflect.Value
-	t reflect.Type
+	interfac      reflect.Type
+	concrete      reflect.Type
+	asserted      reflect.Type
+	missingMethod string
 }
 
-func (err TypeAssertionError) Error() string {
+func (e TypeAssertionError) Error() string {
 	s := "interface conversion: "
-	if err.v.IsValid() {
-		s += err.v.Type().String() + " is not " + err.t.String()
-	} else {
-		s += "interface " + err.i.String() + " is nil, not " + err.t.String()
+	if e.concrete == nil {
+		return s + e.interfac.String() + " is nil, not " + e.asserted.String()
 	}
-	return s
+	if e.missingMethod != "" {
+		return s + e.concrete.String() + " is not " + e.asserted.String() +
+			": missing method " + e.missingMethod
+	}
+	s += e.interfac.String() + " is " + e.concrete.String() + ", not " + e.asserted.String()
+	if e.concrete != e.asserted {
+		return s
+	}
+	s += " (types from different "
+	if e.concrete.PkgPath() == e.interfac.PkgPath() {
+		return s + "scopes)"
+	}
+	return s + "packages)"
 }
 
-func (err TypeAssertionError) RuntimeError() {}
+func (e TypeAssertionError) RuntimeError() {}
 
 // runtimeIndex returns the v's i'th element. If i is out of range, it panics
 // with a runtimeError error.

@@ -1,1 +1,1 @@
-panic: interface conversion: int is not string
+panic: interface conversion: interface {} is int, not string

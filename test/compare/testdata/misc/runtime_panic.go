@@ -32,7 +32,9 @@ func main() {
 		test9()
 		test10()
 	}
-	// test11() // expected "interface conversion: interface {} is int, not testpkg.S", got nothing
+	test11()
+	test11b()
+	test11c()
 	test12()
 	test12b()
 	test12c()
@@ -158,6 +160,18 @@ func test11() {
 	defer recoverRuntimePanic("interface conversion: interface {} is int, not testpkg.S")
 	var a interface{} = 5
 	_ = a.(testpkg.S)
+}
+
+func test11b() {
+	defer recoverRuntimePanic("interface conversion: interface {} is nil, not int")
+	var a interface{}
+	_ = a.(int)
+}
+
+func test11c() {
+	defer recoverRuntimePanic("interface conversion: testpkg.T is not testpkg.I: missing method M")
+	var a interface{} = testpkg.T(0)
+	_ = a.(testpkg.I)
 }
 
 func test12() {
