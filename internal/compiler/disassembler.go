@@ -434,6 +434,10 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, b, vm.Int, k)
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
+	case vm.OpMethodValue:
+		s += " " + disassembleOperand(fn, a, vm.Interface, false)
+		s += " " + disassembleOperand(fn, b, vm.String, true)
+		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpMove:
 		switch vm.Type(a) {
 		case vm.TypeInt:
@@ -792,6 +796,8 @@ var operationName = [...]string{
 	vm.OpMakeMap: "MakeMap",
 
 	vm.OpMakeSlice: "MakeSlice",
+
+	vm.OpMethodValue: "MethodValue",
 
 	vm.OpMove: "Move",
 
