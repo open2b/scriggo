@@ -778,12 +778,19 @@ func (builder *functionBuilder) emitOr(k bool, x, y, z int8, kind reflect.Kind) 
 }
 
 // emitPanic appends a new "Panic" instruction to the function body.
+// If the panic follows a type assertion, typ should contain the type of the
+// expression of the type assertion, in order to provide additional informations
+// to the VM; otherwise typ should be nil.
 //
 //     panic(v)
 //
-func (builder *functionBuilder) emitPanic(v int8, line int) {
+func (builder *functionBuilder) emitPanic(v int8, line int, typ reflect.Type) {
 	fn := builder.fn
-	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpPanic, A: v})
+	in := vm.Instruction{Op: vm.OpPanic, A: v}
+	if typ != nil {
+		in.C = int8(builder.addType(typ))
+	}
+	fn.Body = append(fn.Body, in)
 	builder.addLine(uint32(len(fn.Body)-1), line)
 }
 

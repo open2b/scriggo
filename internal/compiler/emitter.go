@@ -816,7 +816,7 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		em.fb.emitNew(newType, reg)
 	case "panic":
 		arg := em.emitExpr(args[0], emptyInterfaceType)
-		em.fb.emitPanic(arg, call.Pos().Line)
+		em.fb.emitPanic(arg, call.Pos().Line, nil)
 	case "print":
 		for _, argExpr := range args {
 			arg := em.emitExpr(argExpr, emptyInterfaceType)
@@ -1706,13 +1706,13 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 		if canEmitDirectly(assertType.Kind(), dstType.Kind()) {
 			em.fb.emitAssert(exprReg, assertType, reg)
-			em.fb.emitPanic(0, panicLine)
+			em.fb.emitPanic(0, panicLine, exprType)
 			return reg, false
 		}
 		em.fb.enterScope()
 		tmp := em.fb.newRegister(assertType.Kind())
 		em.fb.emitAssert(exprReg, assertType, tmp)
-		em.fb.emitPanic(0, panicLine)
+		em.fb.emitPanic(0, panicLine, exprType)
 		em.changeRegister(false, tmp, reg, assertType, dstType)
 		em.fb.exitScope()
 
