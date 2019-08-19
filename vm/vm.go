@@ -1180,7 +1180,7 @@ func (e TypeAssertionError) Error() string {
 			": missing method " + e.missingMethod
 	}
 	s += e.interfac.String() + " is " + e.concrete.String() + ", not " + e.asserted.String()
-	if e.concrete != e.asserted {
+	if e.concrete.String() != e.asserted.String() {
 		return s
 	}
 	s += " (types from different "
