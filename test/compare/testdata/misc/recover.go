@@ -26,6 +26,8 @@ func main() {
 	test14()
 	test15()
 	test16()
+	test17()
+	test18()
 
 }
 
@@ -224,6 +226,38 @@ func test16() {
 			}()
 			panic(2)
 		}()
+	}()
+	panic(1)
+}
+
+func test17() {
+	defer func() {
+		v := recover()
+		notExpectRecover(v)
+	}()
+	defer func() {
+		defer recover()
+		defer func() {
+			v := recover()
+			expectRecover(v, 2)
+		}()
+		panic(2)
+	}()
+	panic(1)
+}
+
+func test18() {
+	defer func() {
+		v := recover()
+		expectRecover(v, 1)
+	}()
+	defer func() {
+		defer func() {
+			v := recover()
+			expectRecover(v, 2)
+		}()
+		defer recover() // no-op
+		panic(2)
 	}()
 	panic(1)
 }
