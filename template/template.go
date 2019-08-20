@@ -123,6 +123,7 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *R
 	t.globals[0].Value = &out
 	t.globals[1].Value = &write
 	t.globals[2].Value = &render
+	t.globals[3].Value = &urlWriter{w: out}
 	if vars == nil {
 		vars = emptyVars
 	}

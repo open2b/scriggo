@@ -47,8 +47,8 @@ type emitter struct {
 
 	isTemplate   bool // Reports whether it's a template.
 	templateRegs struct {
-		gA, gB, gC, gD, gE int8 // Reserved general registers.
-		iA                 int8 // Reserved int register.
+		gA, gB, gC, gD, gE, gF int8 // Reserved general registers.
+		iA                     int8 // Reserved int register.
 	}
 
 	// Scriggo functions.
@@ -120,10 +120,12 @@ func (em *emitter) reserveTemplateRegisters() {
 	em.templateRegs.gC = em.fb.newRegister(reflect.Interface) // Render
 	em.templateRegs.gD = em.fb.newRegister(reflect.Interface) // free.
 	em.templateRegs.gE = em.fb.newRegister(reflect.Interface) // free.
+	em.templateRegs.gF = em.fb.newRegister(reflect.Interface) // urlWriter
 	em.templateRegs.iA = em.fb.newRegister(reflect.Int)       // free.
 	em.fb.emitGetVar(0, em.templateRegs.gA)
 	em.fb.emitGetVar(1, em.templateRegs.gB)
 	em.fb.emitGetVar(2, em.templateRegs.gC)
+	em.fb.emitGetVar(3, em.templateRegs.gF)
 }
 
 // emitPackage emits a package and returns the exported functions, the
