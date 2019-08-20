@@ -1203,8 +1203,18 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.breakLabel = currentBreakLabel
 
 		case *ast.URL:
+			// Entering inside an URL context; this will affect the way that
+			// values and text are rendered.
 			em.inURL = true
+			// Call method Reset of urlWriter.
+			em.fb.enterStack()
+			method := em.fb.newRegister(reflect.Func)
+			em.fb.emitMethodValue("Reset", em.templateRegs.gF, method)
+			em.fb.emitCallIndirect(method, 0, em.fb.currentStackShift())
+			em.fb.exitStack()
+			// Emit the nodes in the URL.
 			em.emitNodes(node.Value)
+			// Exiting from an URL context.
 			em.inURL = false
 
 		case *ast.Var:
