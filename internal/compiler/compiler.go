@@ -277,6 +277,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$io.Writer", Type: emptyInterfaceType})
 	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$Write", Type: reflect.FuncOf(nil, nil, false)})
 	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$Render", Type: reflect.FuncOf(nil, nil, false)})
+	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$urlWriter", Type: reflect.TypeOf(&struct{}{})})
 	e.fb.emitSetAlloc(opts.MemoryLimit)
 
 	// If page is a package, then page extends another page.
