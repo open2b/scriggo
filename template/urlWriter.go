@@ -28,7 +28,7 @@ func (w *urlWriter) Write(p []byte) (int, error) {
 	if w.path {
 		if strings.Contains(s, "?") {
 			w.path = false
-			w.query = true
+			w.query = true // TODO(Gianluca): this line differs from the original code.
 			w.addAmp = s[len(s)-1] != '?' && s[len(s)-1] != '&'
 		}
 		return 0, pathEscape(sw, s, true) // TODO(Gianluca): quote?
@@ -36,7 +36,7 @@ func (w *urlWriter) Write(p []byte) (int, error) {
 	if w.query {
 		return 0, queryEscape(sw, s)
 	}
-	panic("?")
+	panic("?") // TODO(Gianluca): remove this panic.
 	return len(p), nil
 }
 

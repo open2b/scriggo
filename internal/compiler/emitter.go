@@ -78,9 +78,6 @@ type emitter struct {
 	breakLabel *uint32
 
 	// inURL indicates if the emitter is currently inside an *ast.URL node.
-	//
-	// TODO(Gianluca): add documentation about urlWriter etc..
-	//
 	inURL bool
 }
 
@@ -117,10 +114,10 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 func (em *emitter) reserveTemplateRegisters() {
 	// Sync with:
 	//
-	// - emitter.setClosureRefs
-	// - EmitTemplate
 	// - case *ast.Show of emitter.emitNodes
 	// - case *ast.Text of emitter.emitNodes
+	// - EmitTemplate
+	// - emitter.setClosureRefs
 	//
 	em.templateRegs.gA = em.fb.newRegister(reflect.Interface) // w io.Writer
 	em.templateRegs.gB = em.fb.newRegister(reflect.Interface) // Write
