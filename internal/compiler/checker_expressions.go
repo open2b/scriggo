@@ -1142,6 +1142,16 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		if ok {
 			expr.Ident = newName
 			field.Properties |= PropertyAddressable
+			// Transform ps.F to (*ps).F, if ps is a defined pointer type and
+			// (*ps).F is a valid selector expression denoting a field (but not
+			// a method).
+			if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Struct {
+				unOp := ast.NewUnaryOperator(nil, ast.OperatorMultiplication, expr.Expr)
+				tc.typeInfos[unOp] = &TypeInfo{
+					Type: t.Type.Elem(),
+				}
+				expr.Expr = unOp
+			}
 			return field
 		}
 		panic(tc.errorf(expr, "%v undefined (type %s has no field or method %s)", expr, t, expr.Ident))
