@@ -1191,7 +1191,19 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			index := len(em.fb.fn.Data)
 			em.fb.fn.Data = append(em.fb.fn.Data, node.Text) // TODO(Gianluca): cut text.
 			em.fb.emitLoadData(int16(index), em.templateRegs.gE)
-			em.fb.emitCallIndirect(em.templateRegs.gB, 0, vm.StackShift{em.templateRegs.iA - 1, 0, 0, em.templateRegs.gC})
+			var writeFun int8
+			if em.inURL {
+				// In a URL context: getting the method WriteText of an the
+				// urlWriter, that has the same sign of the method Write which
+				// implements interface io.Writer.
+				em.fb.enterStack()
+				writeFun = em.fb.newRegister(reflect.Func)
+				em.fb.emitMethodValue("WriteText", em.templateRegs.gF, writeFun)
+				em.fb.exitStack()
+			} else {
+				writeFun = em.templateRegs.gB
+			}
+			em.fb.emitCallIndirect(writeFun, 0, vm.StackShift{em.templateRegs.iA - 1, 0, 0, em.templateRegs.gC})
 
 		case *ast.TypeDeclaration:
 			// Nothing to do.
