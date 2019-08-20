@@ -115,6 +115,13 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 // reserveTemplateRegisters reverses the register used for implement
 // specific template functions.
 func (em *emitter) reserveTemplateRegisters() {
+	// Sync with:
+	//
+	// - emitter.setClosureRefs
+	// - EmitTemplate
+	// - case *ast.Show of emitter.emitNodes
+	// - case *ast.Text of emitter.emitNodes
+	//
 	em.templateRegs.gA = em.fb.newRegister(reflect.Interface) // w io.Writer
 	em.templateRegs.gB = em.fb.newRegister(reflect.Interface) // Write
 	em.templateRegs.gC = em.fb.newRegister(reflect.Interface) // Render
