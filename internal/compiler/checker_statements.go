@@ -643,7 +643,7 @@ nodesLoop:
 			}
 
 		case *ast.URL:
-			// TODO(Gianluca).
+			tc.checkNodes(node.Value)
 
 		case *ast.UnaryOperator:
 			ti := tc.checkExpr(node)
