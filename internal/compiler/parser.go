@@ -400,6 +400,7 @@ LABEL:
 		if p.ctx != ast.ContextGo {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected semicolon, expecting statement")})
 		}
+		tok = p.next()
 
 	// package
 	case tokenPackage:
@@ -419,6 +420,7 @@ LABEL:
 		if tok.typ != tokenSemicolon {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting semicolon or newline", string(tok.txt))})
 		}
+		tok = p.next()
 		node = ast.NewPackage(pos, name, nil)
 		p.addChild(node)
 		p.ancestors = append(p.ancestors, node)
@@ -542,6 +544,7 @@ LABEL:
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or %%}", tok)})
 		}
 		p.parseEndStatement(tok, tokenLeftBraces)
+		tok = p.next()
 		p.addChild(node)
 		p.ancestors = append(p.ancestors, node)
 		p.cutSpacesToken = true
@@ -554,8 +557,9 @@ LABEL:
 			label = ast.NewIdentifier(tok.pos, string(tok.txt))
 			tok = p.next()
 		}
-		p.parseEndStatement(tok, tokenSemicolon)
 		pos.End = tok.pos.End
+		p.parseEndStatement(tok, tokenSemicolon)
+		tok = p.next()
 		node = ast.NewBreak(pos, label)
 		p.addChild(node)
 		p.cutSpacesToken = true
@@ -568,8 +572,9 @@ LABEL:
 			label = ast.NewIdentifier(tok.pos, string(tok.txt))
 			tok = p.next()
 		}
-		p.parseEndStatement(tok, tokenSemicolon)
 		pos.End = tok.pos.End
+		p.parseEndStatement(tok, tokenSemicolon)
+		tok = p.next()
 		node = ast.NewContinue(pos, label)
 		p.addChild(node)
 		p.cutSpacesToken = true
@@ -580,6 +585,7 @@ LABEL:
 		p.addChild(node)
 		p.ancestors = append(p.ancestors, node)
 		p.cutSpacesToken = true
+		tok = p.next()
 
 	// case
 	case tokenCase:
@@ -587,8 +593,9 @@ LABEL:
 		switch parent.(type) {
 		case *ast.Switch, *ast.TypeSwitch:
 			expressions, tok = p.parseExprList(token{}, false, false, false)
-			p.parseEndStatement(tok, tokenColon)
 			pos.End = tok.pos.End
+			p.parseEndStatement(tok, tokenColon)
+			tok = p.next()
 			node := ast.NewCase(pos, expressions, nil, false)
 			p.addChild(node)
 		case *ast.Select:
@@ -619,6 +626,7 @@ LABEL:
 			pos.End = tok.pos.End
 			node := ast.NewSelectCase(pos, comm, nil)
 			p.addChild(node)
+			tok = p.next()
 		default:
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected case, expecting %%}")})
 		}
@@ -628,15 +636,17 @@ LABEL:
 		switch parent.(type) {
 		case *ast.Switch, *ast.TypeSwitch:
 			tok = p.next()
-			p.parseEndStatement(tok, tokenColon)
 			pos.End = tok.pos.End
+			p.parseEndStatement(tok, tokenColon)
+			tok = p.next()
 			node := ast.NewCase(pos, nil, nil, false)
 			p.addChild(node)
 			p.cutSpacesToken = true
 		case *ast.Select:
 			tok = p.next()
-			p.parseEndStatement(tok, tokenColon)
 			pos.End = tok.pos.End
+			p.parseEndStatement(tok, tokenColon)
+			tok = p.next()
 			node := ast.NewSelectCase(pos, nil, nil)
 			p.addChild(node)
 			p.cutSpacesToken = true
@@ -667,6 +677,7 @@ LABEL:
 		}
 		pos.End = tok.pos.End
 		p.cutSpacesToken = true
+		tok = p.next()
 
 	// select
 	case tokenSelect:
@@ -676,6 +687,7 @@ LABEL:
 		p.addChild(node)
 		p.ancestors = append(p.ancestors, node)
 		p.cutSpacesToken = true
+		tok = p.next()
 
 	// {
 	case tokenLeftBraces:
@@ -686,6 +698,7 @@ LABEL:
 		p.addChild(node)
 		p.ancestors = append(p.ancestors, node)
 		p.cutSpacesToken = true
+		tok = p.next()
 
 	// }
 	case tokenRightBraces:
@@ -784,6 +797,7 @@ LABEL:
 		if p.ctx == ast.ContextGo {
 			blockPos = tok.pos
 		}
+		tok = p.next()
 		then := ast.NewBlock(blockPos, nil)
 		if _, ok := parent.(*ast.If); !ok {
 			ifPos = pos
@@ -810,6 +824,7 @@ LABEL:
 		if tok.typ != tokenSemicolon {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s at end of statement", tok)})
 		}
+		tok = p.next()
 		if len(values) > 0 {
 			pos.End = values[len(values)-1].Pos().End
 		}
@@ -838,6 +853,7 @@ LABEL:
 		node = ast.NewInclude(pos, path, tok.ctx)
 		p.addChild(node)
 		p.cutSpacesToken = true
+		tok = p.next()
 
 	// show
 	case tokenShow:
@@ -904,7 +920,6 @@ LABEL:
 				tok = p.next()
 			}
 		}
-		p.parseEndStatement(tok, tokenEndStatement)
 		pos.End = tok.pos.End
 		if impor == nil {
 			node = ast.NewShowMacro(pos, macro, args, isVariadic, or, tok.ctx)
@@ -912,6 +927,8 @@ LABEL:
 			node = ast.NewShowMacro(pos, ast.NewSelector(macro.Pos(), impor, macro.Name), args, isVariadic, or, tok.ctx)
 		}
 		p.addChild(node)
+		p.parseEndStatement(tok, tokenEndStatement)
+		tok = p.next()
 		p.cutSpacesToken = true
 
 	// extends
@@ -946,6 +963,7 @@ LABEL:
 		node = ast.NewExtends(pos, path, tree.Context)
 		p.addChild(node)
 		p.hasExtend = true
+		tok = p.next()
 
 	// var or const
 	case tokenVar, tokenConst:
@@ -964,10 +982,11 @@ LABEL:
 			for {
 				if tok.typ == tokenRightParenthesis {
 					tok = p.next()
-					p.parseEndStatement(tok, tokenSemicolon)
 					if prevNode != nil {
 						prevNode.Pos().End = tok.pos.End
 					}
+					p.parseEndStatement(tok, tokenSemicolon)
+					tok = p.next()
 					break
 				}
 				prevNode, tok = p.parseVarOrConst(tok, pos, decType)
@@ -996,6 +1015,7 @@ LABEL:
 		} else {
 			node, tok = p.parseVarOrConst(tok, pos, decType)
 			p.parseEndStatement(tok, tokenSemicolon)
+			tok = p.next()
 			p.addChild(node)
 		}
 
@@ -1049,10 +1069,12 @@ LABEL:
 			if tok.typ != tokenSemicolon && tok.typ != tokenEOF {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting semicolon or newline", tok)})
 			}
+			tok = p.next()
 		} else {
 			p.addChild(p.parseImportSpec(tok))
 			tok = p.next()
 			p.parseEndStatement(tok, tokenSemicolon)
+			tok = p.next()
 		}
 		p.cutSpacesToken = true
 
@@ -1092,6 +1114,7 @@ LABEL:
 		p.addChild(node)
 		p.ancestors = append(p.ancestors, node)
 		p.cutSpacesToken = true
+		tok = p.next()
 
 	// end
 	case tokenEnd:
@@ -1144,6 +1167,7 @@ LABEL:
 			break
 		}
 		p.cutSpacesToken = true
+		tok = p.next()
 
 	// type
 	case tokenType:
@@ -1168,8 +1192,8 @@ LABEL:
 			pos.End = tok.pos.End
 			td.Position = pos
 			p.addChild(td)
-
 		}
+		tok = p.next()
 
 	// defer or go
 	case tokenDefer, tokenGo:
@@ -1194,6 +1218,7 @@ LABEL:
 			node = ast.NewGo(pos, call)
 		}
 		p.addChild(node)
+		tok = p.next()
 
 	// goto
 	case tokenGoto:
@@ -1207,6 +1232,7 @@ LABEL:
 		pos.End = tok.pos.End
 		node := ast.NewGoto(pos, ast.NewIdentifier(tok.pos, string(tok.txt)))
 		p.addChild(node)
+		tok = p.next()
 
 	// func
 	case tokenFunc:
@@ -1241,9 +1267,10 @@ LABEL:
 			if assignment == nil {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expecting expression")})
 			}
-			p.parseEndStatement(tok, tokenSemicolon)
 			assignment.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: pos.End}
 			assignment.Position.End = tok.pos.End
+			p.parseEndStatement(tok, tokenSemicolon)
+			tok = p.next()
 			p.addChild(assignment)
 			p.cutSpacesToken = true
 		} else if tok.typ == tokenArrow {
@@ -1255,6 +1282,7 @@ LABEL:
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
 			p.parseEndStatement(tok, tokenSemicolon)
+			tok = p.next()
 			node := ast.NewSend(pos, channel, value)
 			node.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: value.Pos().End}
 			p.addChild(node)
@@ -1280,15 +1308,17 @@ LABEL:
 					}
 					goto LABEL
 				}
+				tok = p.next()
 			} else {
 				p.parseEndStatement(tok, tokenSemicolon)
+				tok = p.next()
 				p.addChild(expr)
 				p.cutSpacesToken = true
 			}
 		}
 	}
 
-	return p.next()
+	return tok
 }
 
 func (p *parsing) parseEndStatement(tok token, want tokenTyp) {
