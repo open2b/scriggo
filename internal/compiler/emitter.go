@@ -1165,7 +1165,13 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			// render([implicit *vm.Env,] gD io.Writer, gE interface{}, iA ast.Context)
 			em.emitExprR(node.Expr, emptyInterfaceType, em.templateRegs.gE)
 			em.fb.emitMove(true, int8(node.Context), em.templateRegs.iA, reflect.Int)
-			em.fb.emitMove(false, em.templateRegs.gA, em.templateRegs.gD, reflect.Interface)
+			if em.inURL {
+				// In a URL context: use the urlWriter, that implements io.Writer.
+				em.fb.emitMove(false, em.templateRegs.gF, em.templateRegs.gD, reflect.Interface)
+			} else {
+				// Not in a URL context: use the default writer.
+				em.fb.emitMove(false, em.templateRegs.gA, em.templateRegs.gD, reflect.Interface)
+			}
 			em.fb.emitCallIndirect(em.templateRegs.gC, 0, vm.StackShift{em.templateRegs.iA - 1, 0, 0, em.templateRegs.gC})
 
 		case *ast.Switch:
