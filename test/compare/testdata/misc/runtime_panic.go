@@ -16,7 +16,7 @@ func main() {
 	isGo112 := strings.HasPrefix(runtime.Version(), "go1.12")
 
 	test1()
-	// test2() // emitter panic: "TODO(Gianluca): not implemented"
+	test2()
 	test3()
 	test3b()
 	if isGo112 {
@@ -81,11 +81,11 @@ func test1() {
 	a[func() {}] = "c"
 }
 
-//func test2() {
-//	defer recoverRuntimePanic("runtime error: hash of unhashable type func()")
-//	tp := &testpkg.TestPointInt{}
-//	tp.A = 5
-//}
+func test2() {
+	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
+	var tp *testpkg.TestPointInt
+	tp.A = 5
+}
 
 func test3() {
 	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
