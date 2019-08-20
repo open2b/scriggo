@@ -48,7 +48,7 @@ func main() {
 	test15c()
 	test15d()
 	test15e()
-	// test16() // emitter panic: "TODO(Gianluca): not implemented"
+	// test16() // expected "runtime error: invalid memory address or nil pointer dereference", got nothing
 	test17()
 	test18()
 	test19()
@@ -254,11 +254,11 @@ func test15e() {
 	_ = *a
 }
 
-//func test16() {
-//	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
-//	var a *int
-//	_ = &*a
-//}
+func test16() {
+	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
+	var a *int
+	_ = &*a
+}
 
 func test17() {
 	defer recoverRuntimePanic("send on closed channel")
