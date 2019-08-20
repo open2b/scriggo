@@ -16,13 +16,17 @@ type urlWriter struct {
 }
 
 func (w *urlWriter) Write(p []byte) (int, error) {
-	return 0, nil // TODO(Gianluca).
+	// TODO(Gianluca):
+	return w.w.Write(p)
 }
 
 func (w *urlWriter) WriteText(p []byte) (int, error) {
-	return 0, nil // TODO(Gianluca).
+	// TODO(Gianluca):
+	return w.w.Write(p)
 }
 
 func (w *urlWriter) Reset() {
-	// TODO(Gianluca).
+	w.path = false
+	w.query = false
+	w.amper = false
 }
