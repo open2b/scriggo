@@ -28,18 +28,15 @@ func (w *urlWriter) Write(p []byte) (int, error) {
 	if w.path {
 		if strings.Contains(s, "?") {
 			w.path = false
+			w.query = true
 			w.addAmp = s[len(s)-1] != '?' && s[len(s)-1] != '&'
 		}
-		err := pathEscape(sw, s, false)
-		if err != nil {
-			return 0, err
-		}
-	} else if w.query {
-		err := queryEscape(sw, s)
-		if err != nil {
-			return 0, err
-		}
+		return 0, pathEscape(sw, s, true) // TODO(Gianluca): quote?
 	}
+	if w.query {
+		return 0, queryEscape(sw, s)
+	}
+	panic("?")
 	return len(p), nil
 }
 
@@ -60,7 +57,7 @@ func (w *urlWriter) WriteText(p []byte) (int, error) {
 			w.path = false
 			w.query = true
 		}
-		if w.isSet && bytes.IndexByte(text, ',') >= 0 { // TODO(Gianluca): why not use bytes.Contains?
+		if w.isSet && bytes.ContainsRune(text, ',') {
 			w.path = true
 			w.query = false
 		}
