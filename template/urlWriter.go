@@ -23,7 +23,7 @@ type urlWriter struct {
 
 // Write handle *ast.Show nodes in context URL.
 func (w *urlWriter) Write(p []byte) (int, error) {
-	s := html.UnescapeString(string(p))
+	s := html.UnescapeString(string(p)) // TODO(Gianluca): optimize.
 	sw := newStringWriter(w.w)
 	if w.path {
 		if strings.Contains(s, "?") {
@@ -45,7 +45,7 @@ func (w *urlWriter) Write(p []byte) (int, error) {
 
 // WriteText handle the *ast.Text nodes in context URL.
 func (w *urlWriter) WriteText(p []byte) (int, error) {
-	text := []byte(html.UnescapeString(string(p)))
+	text := []byte(html.UnescapeString(string(p))) // TODO(Gianluca): optimize.
 	if !w.query {
 		if bytes.ContainsAny(text, "?#") {
 			if text[0] == '?' && !w.path {
