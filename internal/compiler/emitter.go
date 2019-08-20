@@ -1200,6 +1200,11 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.breakable = currentBreakable
 			em.breakLabel = currentBreakLabel
 
+		case *ast.URL:
+			em.inURL = true
+			em.emitNodes(node.Value)
+			em.inURL = false
+
 		case *ast.Var:
 			addresses := make([]address, len(node.Lhs))
 			for i, v := range node.Lhs {
