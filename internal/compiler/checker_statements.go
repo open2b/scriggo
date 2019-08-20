@@ -643,7 +643,9 @@ nodesLoop:
 			}
 
 		case *ast.URL:
-			// TODO(Gianluca).
+			// TODO(Gianluca): should other fields of *ast.URL should be ignored
+			// by the type checker?
+			tc.checkNodes(node.Value)
 
 		case *ast.UnaryOperator:
 			ti := tc.checkExpr(node)

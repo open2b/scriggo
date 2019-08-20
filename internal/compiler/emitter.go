@@ -47,8 +47,8 @@ type emitter struct {
 
 	isTemplate   bool // Reports whether it's a template.
 	templateRegs struct {
-		gA, gB, gC, gD, gE int8 // Reserved general registers.
-		iA                 int8 // Reserved int register.
+		gA, gB, gC, gD, gE, gF int8 // Reserved general registers.
+		iA                     int8 // Reserved int register.
 	}
 
 	// Scriggo functions.
@@ -76,6 +76,9 @@ type emitter struct {
 	// breakLabel, if not nil, is the label to which pre-stated "breaks" must
 	// jump.
 	breakLabel *uint32
+
+	// inURL indicates if the emitter is currently inside an *ast.URL node.
+	inURL bool
 }
 
 // ti returns the type info of node n.
@@ -109,15 +112,24 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 // reserveTemplateRegisters reverses the register used for implement
 // specific template functions.
 func (em *emitter) reserveTemplateRegisters() {
+	// Sync with:
+	//
+	// - case *ast.Show of emitter.emitNodes
+	// - case *ast.Text of emitter.emitNodes
+	// - EmitTemplate
+	// - emitter.setClosureRefs
+	//
 	em.templateRegs.gA = em.fb.newRegister(reflect.Interface) // w io.Writer
 	em.templateRegs.gB = em.fb.newRegister(reflect.Interface) // Write
 	em.templateRegs.gC = em.fb.newRegister(reflect.Interface) // Render
 	em.templateRegs.gD = em.fb.newRegister(reflect.Interface) // free.
 	em.templateRegs.gE = em.fb.newRegister(reflect.Interface) // free.
+	em.templateRegs.gF = em.fb.newRegister(reflect.Interface) // urlWriter
 	em.templateRegs.iA = em.fb.newRegister(reflect.Int)       // free.
 	em.fb.emitGetVar(0, em.templateRegs.gA)
 	em.fb.emitGetVar(1, em.templateRegs.gB)
 	em.fb.emitGetVar(2, em.templateRegs.gC)
+	em.fb.emitGetVar(3, em.templateRegs.gF)
 }
 
 // emitPackage emits a package and returns the exported functions, the
@@ -1157,7 +1169,13 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			// render([implicit *vm.Env,] gD io.Writer, gE interface{}, iA ast.Context)
 			em.emitExprR(node.Expr, emptyInterfaceType, em.templateRegs.gE)
 			em.fb.emitMove(true, int8(node.Context), em.templateRegs.iA, reflect.Int)
-			em.fb.emitMove(false, em.templateRegs.gA, em.templateRegs.gD, reflect.Interface)
+			if em.inURL {
+				// In a URL context: use the urlWriter, that implements io.Writer.
+				em.fb.emitMove(false, em.templateRegs.gF, em.templateRegs.gD, reflect.Interface)
+			} else {
+				// Not in a URL context: use the default writer.
+				em.fb.emitMove(false, em.templateRegs.gA, em.templateRegs.gD, reflect.Interface)
+			}
 			em.fb.emitCallIndirect(em.templateRegs.gC, 0, vm.StackShift{em.templateRegs.iA - 1, 0, 0, em.templateRegs.gC})
 
 		case *ast.Switch:
@@ -1177,7 +1195,19 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			index := len(em.fb.fn.Data)
 			em.fb.fn.Data = append(em.fb.fn.Data, node.Text) // TODO(Gianluca): cut text.
 			em.fb.emitLoadData(int16(index), em.templateRegs.gE)
-			em.fb.emitCallIndirect(em.templateRegs.gB, 0, vm.StackShift{em.templateRegs.iA - 1, 0, 0, em.templateRegs.gC})
+			var writeFun int8
+			if em.inURL {
+				// In a URL context: getting the method WriteText of an the
+				// urlWriter, that has the same sign of the method Write which
+				// implements interface io.Writer.
+				em.fb.enterStack()
+				writeFun = em.fb.newRegister(reflect.Func)
+				em.fb.emitMethodValue("WriteText", em.templateRegs.gF, writeFun)
+				em.fb.exitStack()
+			} else {
+				writeFun = em.templateRegs.gB
+			}
+			em.fb.emitCallIndirect(writeFun, 0, vm.StackShift{em.templateRegs.iA - 1, 0, 0, em.templateRegs.gC})
 
 		case *ast.TypeDeclaration:
 			// Nothing to do.
@@ -1193,6 +1223,21 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			}
 			em.breakable = currentBreakable
 			em.breakLabel = currentBreakLabel
+
+		case *ast.URL:
+			// Entering inside an URL context; this will affect the way that
+			// values and text are rendered.
+			em.inURL = true
+			// Call method Reset of urlWriter.
+			em.fb.enterStack()
+			method := em.fb.newRegister(reflect.Func)
+			em.fb.emitMethodValue("Reset", em.templateRegs.gF, method)
+			em.fb.emitCallIndirect(method, 0, em.fb.currentStackShift())
+			em.fb.exitStack()
+			// Emit the nodes in the URL.
+			em.emitNodes(node.Value)
+			// Exiting from an URL context.
+			em.inURL = false
 
 		case *ast.Var:
 			addresses := make([]address, len(node.Lhs))

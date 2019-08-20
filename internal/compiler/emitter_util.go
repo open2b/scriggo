@@ -283,7 +283,7 @@ func (em *emitter) setClosureRefs(fn *vm.Function, closureVars []ast.Upvar) {
 	em.closureVarRefs[fn] = make(map[string]int)
 	if em.isTemplate {
 		// If it's a template, adds reserved global variables.
-		closureRefs = append(closureRefs, 0, 1, 2)
+		closureRefs = append(closureRefs, 0, 1, 2, 3)
 	}
 	for i, v := range closureVars {
 		if v.Declaration != nil {
