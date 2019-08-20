@@ -76,6 +76,12 @@ type emitter struct {
 	// breakLabel, if not nil, is the label to which pre-stated "breaks" must
 	// jump.
 	breakLabel *uint32
+
+	// inURL indicates if the emitter is currently inside an *ast.URL node.
+	//
+	// TODO(Gianluca): add documentation about urlWriter etc..
+	//
+	inURL bool
 }
 
 // ti returns the type info of node n.
