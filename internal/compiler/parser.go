@@ -428,7 +428,8 @@ LABEL:
 		var node ast.Node
 		var init *ast.Assignment
 		var assignmentType ast.AssignmentType
-		variables, tok := p.parseExprList(token{}, false, false, true)
+		var variables []ast.Expression
+		variables, tok = p.parseExprList(token{}, false, false, true)
 		switch tok.typ {
 		case tokenIn:
 			// Parses statement "for ident in expr".
@@ -582,15 +583,16 @@ LABEL:
 
 	// case
 	case tokenCase:
+		var expressions []ast.Expression
 		switch parent.(type) {
 		case *ast.Switch, *ast.TypeSwitch:
-			expressions, tok := p.parseExprList(token{}, false, false, false)
+			expressions, tok = p.parseExprList(token{}, false, false, false)
 			p.parseEndStatement(tok, tokenColon)
 			pos.End = tok.pos.End
 			node := ast.NewCase(pos, expressions, nil, false)
 			p.addChild(node)
 		case *ast.Select:
-			expressions, tok := p.parseExprList(token{}, false, false, false)
+			expressions, tok = p.parseExprList(token{}, false, false, false)
 			if len(expressions) == 0 {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
@@ -755,7 +757,8 @@ LABEL:
 	// if
 	case tokenIf:
 		ifPos := tok.pos
-		expressions, tok := p.parseExprList(token{}, false, false, true)
+		var expressions []ast.Expression
+		expressions, tok = p.parseExprList(token{}, false, false, true)
 		if len(expressions) == 0 {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 		}
@@ -802,7 +805,8 @@ LABEL:
 		if !inFunction {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("non-declaration statement outside function body")})
 		}
-		values, tok := p.parseExprList(token{}, false, false, false)
+		var values []ast.Expression
+		values, tok = p.parseExprList(token{}, false, false, false)
 		if tok.typ != tokenSemicolon {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s at end of statement", tok)})
 		}
@@ -1232,7 +1236,8 @@ LABEL:
 		}
 		if len(expressions) > 1 || isAssignmentToken(tok) {
 			// Parses assignment.
-			assignment, tok := p.parseAssignment(expressions, tok, false, false)
+			var assignment *ast.Assignment
+			assignment, tok = p.parseAssignment(expressions, tok, false, false)
 			if assignment == nil {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expecting expression")})
 			}
