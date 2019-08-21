@@ -39,6 +39,7 @@ func (w *urlWriter) Write(p []byte) (int, error) {
 	if w.query {
 		return 0, queryEscape(sw, s)
 	}
+	panic("not w.path and not w.query...")
 	return 0, nil
 }
 
