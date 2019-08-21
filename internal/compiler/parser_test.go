@@ -758,13 +758,13 @@ var treeTests = []struct {
 			ast.NewText(p(1, 10, 9, 9), []byte("/"), ast.Cut{}),
 			ast.NewShow(p(1, 11, 10, 16), ast.NewIdentifier(p(1, 14, 13, 13), "a"), ast.ContextAttribute),
 			ast.NewText(p(1, 18, 17, 18), []byte("/b"), ast.Cut{}),
-		}),
+		}, ast.ContextAttribute),
 		ast.NewText(p(1, 20, 19, 20), []byte("\">"), ast.Cut{}),
 	}, ast.ContextHTML)},
 	{"<a href=\"\n\">", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 8), []byte("<a href=\""), ast.Cut{}), ast.NewURL(p(1, 10, 9, 9), "a", "href", []ast.Node{
 			ast.NewText(p(1, 10, 9, 9), []byte("\n"), ast.Cut{}),
-		}),
+		}, ast.ContextAttribute),
 		ast.NewText(p(2, 1, 10, 11), []byte("\">"), ast.Cut{}),
 	}, ast.ContextHTML)},
 	{"<div {{ a }}>", ast.NewTree("", []ast.Node{

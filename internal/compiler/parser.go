@@ -299,7 +299,7 @@ TOKENS:
 
 		// StartURL
 		case tokenStartURL:
-			node := ast.NewURL(tok.pos, tok.tag, tok.att, nil)
+			node := ast.NewURL(tok.pos, tok.tag, tok.att, nil, tok.ctx)
 			p.addChild(node)
 			p.ancestors = append(p.ancestors, node)
 
