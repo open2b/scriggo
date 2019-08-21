@@ -1176,15 +1176,14 @@ LABEL:
 		tok = p.next()
 		if tok.typ == tokenLeftParenthesis {
 			// "type" "(" ... ")" .
-			for {
-				tok = p.next()
+			tok = p.next()
+			for tok.typ != tokenRightParenthesis {
 				td, tok = p.parseTypeDecl(tok)
 				td.Position = pos
 				p.addChild(td)
-				if tok.typ == tokenRightParenthesis {
-					break
-				}
-				if tok.typ != tokenSemicolon {
+				if tok.typ == tokenSemicolon {
+					tok = p.next()
+				} else if tok.typ != tokenRightParenthesis {
 					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting semicolon or newline or )", tok)})
 				}
 			}
