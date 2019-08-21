@@ -1231,7 +1231,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			// Call method Reset of urlWriter.
 			em.fb.enterStack()
 			method := em.fb.newRegister(reflect.Func)
-			em.fb.emitMethodValue("StartEscape", em.templateRegs.gF, method)
+			em.fb.emitMethodValue("StartURL", em.templateRegs.gF, method)
 			ss := em.fb.currentStackShift()
 			quoteArg := em.fb.newRegister(reflect.Bool)
 			isSetArg := em.fb.newRegister(reflect.Bool)

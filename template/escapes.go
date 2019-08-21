@@ -448,9 +448,10 @@ type urlEscaper struct {
 	w io.Writer
 }
 
-// StartEscape starts the escaping of a URL. It is called whenever a URL or a
-// set of URLs is to be escaped.
-func (w *urlEscaper) StartEscape(quoted, isSet bool) {
+// StartURL starts the escaping of a URL. It is called whenever a URL or a set
+// of URLs is to be escaped. quoted reports whether the attribute is quoted
+// and isSet reports whether the value of the attribute is a set of URLs.
+func (w *urlEscaper) StartURL(quoted, isSet bool) {
 	w.path = true
 	w.query = false
 	w.addAmp = false
