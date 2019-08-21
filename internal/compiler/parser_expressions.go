@@ -199,20 +199,24 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 					var exprs []ast.Expression
 					var typ ast.Expression
 					exprs, tok = p.parseExprList(tok, false, true, false)
-					if tok.typ == tokenSemicolon {
+					if tok.typ == tokenSemicolon || tok.typ == tokenRightBraces {
 						// Implicit field declaration.
 						if len(exprs) != 1 {
 							panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expecting typooo")})
 						}
 						fieldDecl.Type = exprs[0]
-						tok = p.next()
+						if tok.typ == tokenSemicolon {
+							tok = p.next()
+						}
 					} else {
 						// Explicit field declaration.
 						typ, tok = p.parseExpr(tok, false, true, false)
-						if tok.typ != tokenSemicolon {
+						if tok.typ != tokenSemicolon && tok.typ != tokenRightBraces {
 							panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting semicolon", tok)})
 						}
-						tok = p.next()
+						if tok.typ == tokenSemicolon {
+							tok = p.next()
+						}
 						fieldDecl.IdentifierList = make([]*ast.Identifier, len(exprs))
 						for i, e := range exprs {
 							ident, ok := e.(*ast.Identifier)
@@ -412,7 +416,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 							panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 						}
 						keyValues = append(keyValues, ast.KeyValue{Key: expr, Value: value})
-					case tokenComma, tokenSemicolon, tokenRightBraces:
+					case tokenComma, tokenRightBraces:
 						keyValues = append(keyValues, ast.KeyValue{Key: nil, Value: expr})
 					default:
 						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expecting comma or }", tok)})
