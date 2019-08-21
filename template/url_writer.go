@@ -18,8 +18,16 @@ type urlWriter struct {
 	query  bool
 	addAmp bool
 	isSet  bool
-	quote  bool
+	quoted bool
 	w      io.Writer
+}
+
+func (w *urlWriter) Init(quoted, isSet bool) {
+	w.path = true
+	w.query = false
+	w.addAmp = false
+	w.quoted = quoted
+	w.isSet = isSet
 }
 
 // Write handle *ast.Show nodes in context URL.
@@ -34,7 +42,7 @@ func (w *urlWriter) Write(p []byte) (int, error) {
 			w.path = false
 			w.addAmp = s[len(s)-1] != '?' && s[len(s)-1] != '&'
 		}
-		return 0, pathEscape(sw, s, w.quote)
+		return 0, pathEscape(sw, s, w.quoted)
 	}
 	if w.query {
 		return 0, queryEscape(sw, s)
@@ -68,17 +76,4 @@ func (w *urlWriter) WriteText(p []byte) (int, error) {
 		}
 	}
 	return w.w.Write(p)
-}
-
-func (w *urlWriter) Init(quote, isSet bool) {
-	w.path = true
-	w.query = false
-	w.addAmp = false
-	w.quote = quote
-	w.isSet = isSet
-}
-
-type stringWriter interface {
-	Write(b []byte) (int, error)
-	WriteString(s string) (int, error)
 }
