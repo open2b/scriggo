@@ -28,13 +28,13 @@
 <a href="{{ `=` }}?b=6#{{ `=` }}">
 <a href="{{ `,` }}?{{ `,` }}">
 <img srcset="{{ `large.jpg` }} 1024w, {{ `medium.jpg` }} 640w,{{ `small.jpg` }} 320w">
-{# <img srcset="{{ `large.jpg` }} 1024w, {{ `medium.jpg` }} 640w"> #}
-{# <img srcset="{{ `large.jpg` }} 1024w, {{ `medium.jpg` }} 640w"> #}
+<img srcset="{{ `large.jpg?s=1024` }} 1024w, {{ `medium.jpg` }} 640w">
+<img srcset="{{ `large.jpg?s=1024` }} 1024w, {{ `medium=.jpg` }} 640w">
 <a href="{% if true %}{{ `=` }}{% else %}?{{ `=` }}{% end %}">
 <a href="{% if false %}{{ `=` }}{% else %}?{{ `=` }}{% end %}">
 <input {{ `disabled` }}>
 <a href={{ `b` }}>
-{# <a href={{ ` b ` }}> #}
-{# <a href= {{ ` b `}} > #}
-{# <a href= {{ "\t\n\r\x0C b=`" }} > #}
+<a href={{ ` b ` }}>
+<a href= {{ ` b `}} >
+<a href= {{ "\t\n\r\x0C b=`" }} >
 <a href="{{ (map[interface{}]interface{}{})[`a`] }}">

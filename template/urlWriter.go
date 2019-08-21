@@ -34,7 +34,7 @@ func (w *urlWriter) Write(p []byte) (int, error) {
 			w.path = false
 			w.addAmp = s[len(s)-1] != '?' && s[len(s)-1] != '&'
 		}
-		return 0, pathEscape(sw, s, true) // TODO(Gianluca): quote?
+		return 0, pathEscape(sw, s, w.quote)
 	}
 	if w.query {
 		return 0, queryEscape(sw, s)
