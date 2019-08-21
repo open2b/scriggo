@@ -324,7 +324,7 @@ func pathEscape(w strWriter, s string, quoted bool) (int, error) {
 		case '&':
 			esc = "&amp;"
 		case '+':
-			esc = "&#34;"
+			esc = "&#43;"
 		case ' ':
 			if quoted {
 				continue
