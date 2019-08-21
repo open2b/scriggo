@@ -558,8 +558,7 @@ LABEL:
 			tok = p.next()
 		}
 		pos.End = tok.pos.End
-		p.parseEndStatement(tok, tokenSemicolon)
-		tok = p.next()
+		tok = p.parseEnd(tok)
 		node = ast.NewBreak(pos, label)
 		p.addChild(node)
 		p.cutSpacesToken = true
@@ -573,8 +572,7 @@ LABEL:
 			tok = p.next()
 		}
 		pos.End = tok.pos.End
-		p.parseEndStatement(tok, tokenSemicolon)
-		tok = p.next()
+		tok = p.parseEnd(tok)
 		node = ast.NewContinue(pos, label)
 		p.addChild(node)
 		p.cutSpacesToken = true
@@ -658,26 +656,25 @@ LABEL:
 	case tokenFallthrough:
 		// TODO (Gianluca): fallthrough must be implemented as an ast node.
 		p.lastFallthroughTokenPos = *tok.pos
-		tok = p.next()
-		p.parseEndStatement(tok, tokenSemicolon)
+		tok2 := p.next()
+		tok = p.parseEnd(tok2)
 		switch s := parent.(type) {
 		case *ast.Switch:
 			lastCase := s.Cases[len(s.Cases)-1]
 			// TODO (Gianluca): move this check to type-checker:
 			if lastCase.Fallthrough {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("fallthrough statement out of place")})
+				panic(&SyntaxError{"", *tok2.pos, fmt.Errorf("fallthrough statement out of place")})
 			}
 			lastCase.Fallthrough = true
 		case *ast.TypeSwitch:
 			// TODO (Gianluca): move this check to type-checker:
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("cannot fallthrough in type switch")})
+			panic(&SyntaxError{"", *tok2.pos, fmt.Errorf("cannot fallthrough in type switch")})
 		default:
 			// TODO (Gianluca): move this check to type-checker:
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("fallthrough statement out of place")})
+			panic(&SyntaxError{"", *tok2.pos, fmt.Errorf("fallthrough statement out of place")})
 		}
-		pos.End = tok.pos.End
+		pos.End = tok2.pos.End
 		p.cutSpacesToken = true
-		tok = p.next()
 
 	// select
 	case tokenSelect:
@@ -720,16 +717,20 @@ LABEL:
 		switch tok.typ {
 		case tokenElse:
 		case tokenSemicolon:
+			tok = p.next()
+			fallthrough
+		case tokenRightBraces:
 			for {
 				if _, ok := parent.(*ast.If); ok {
 					parent.Pos().End = bracesEnd
 					p.ancestors = p.ancestors[:len(p.ancestors)-1]
 					parent = p.ancestors[len(p.ancestors)-1]
 				} else {
-					return p.next()
+					return tok
 				}
 			}
 		case tokenEOF:
+			// TODO(marco): check if it is correct.
 			return p.next()
 		default:
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s at end of statement", tok)})
@@ -821,10 +822,7 @@ LABEL:
 		}
 		var values []ast.Expression
 		values, tok = p.parseExprList(token{}, false, false, false)
-		if tok.typ != tokenSemicolon {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s at end of statement", tok)})
-		}
-		tok = p.next()
+		tok = p.parseEnd(tok)
 		if len(values) > 0 {
 			pos.End = values[len(values)-1].Pos().End
 		}
@@ -985,8 +983,7 @@ LABEL:
 					if prevNode != nil {
 						prevNode.Pos().End = tok.pos.End
 					}
-					p.parseEndStatement(tok, tokenSemicolon)
-					tok = p.next()
+					tok = p.parseEnd(tok)
 					break
 				}
 				prevNode, tok = p.parseVarOrConst(tok, pos, decType)
@@ -1014,8 +1011,7 @@ LABEL:
 			}
 		} else {
 			node, tok = p.parseVarOrConst(tok, pos, decType)
-			p.parseEndStatement(tok, tokenSemicolon)
-			tok = p.next()
+			tok = p.parseEnd(tok)
 			p.addChild(node)
 		}
 
@@ -1188,6 +1184,7 @@ LABEL:
 				}
 			}
 			pos.End = tok.pos.End
+			tok = p.next()
 		} else {
 			// "type" identifier [ "=" ] type .
 			td, tok = p.parseTypeDecl(tok)
@@ -1195,7 +1192,7 @@ LABEL:
 			td.Position = pos
 			p.addChild(td)
 		}
-		tok = p.next()
+		tok = p.parseEnd(tok)
 
 	// defer or go
 	case tokenDefer, tokenGo:
@@ -1220,7 +1217,7 @@ LABEL:
 			node = ast.NewGo(pos, call)
 		}
 		p.addChild(node)
-		tok = p.next()
+		tok = p.parseEnd(tok)
 
 	// goto
 	case tokenGoto:
@@ -1235,6 +1232,7 @@ LABEL:
 		node := ast.NewGoto(pos, ast.NewIdentifier(tok.pos, string(tok.txt)))
 		p.addChild(node)
 		tok = p.next()
+		tok = p.parseEnd(tok)
 
 	// func
 	case tokenFunc:
@@ -1271,8 +1269,7 @@ LABEL:
 			}
 			assignment.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: pos.End}
 			assignment.Position.End = tok.pos.End
-			p.parseEndStatement(tok, tokenSemicolon)
-			tok = p.next()
+			tok = p.parseEnd(tok)
 			p.addChild(assignment)
 			p.cutSpacesToken = true
 		} else if tok.typ == tokenArrow {
@@ -1283,8 +1280,7 @@ LABEL:
 			if value == nil {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
-			p.parseEndStatement(tok, tokenSemicolon)
-			tok = p.next()
+			tok = p.parseEnd(tok)
 			node := ast.NewSend(pos, channel, value)
 			node.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: value.Pos().End}
 			p.addChild(node)
@@ -1312,14 +1308,29 @@ LABEL:
 				}
 				tok = p.next()
 			} else {
-				p.parseEndStatement(tok, tokenSemicolon)
-				tok = p.next()
+				tok = p.parseEnd(tok)
 				p.addChild(expr)
 				p.cutSpacesToken = true
 			}
 		}
 	}
 
+	return tok
+}
+
+func (p *parsing) parseEnd(tok token) token {
+	if p.isTemplate {
+		if tok.typ != tokenEndStatement {
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expecting expression")})
+		}
+		return p.next()
+	}
+	if tok.typ == tokenSemicolon {
+		return p.next()
+	}
+	if tok.typ != tokenRightBraces {
+		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expecting expression")})
+	}
 	return tok
 }
 

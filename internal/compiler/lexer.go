@@ -886,9 +886,6 @@ LOOP:
 			unclosedLeftBraces++
 		case '}':
 			if unclosedLeftBraces > 0 {
-				if endLineAsSemicolon {
-					l.emit(tokenSemicolon, 0)
-				}
 				l.emit(tokenRightBraces, 1)
 				l.column++
 				endLineAsSemicolon = true
@@ -924,8 +921,10 @@ LOOP:
 			l.src = l.src[1:]
 			l.column++
 		case '\n':
-			if endLineAsSemicolon {
-				l.emit(tokenSemicolon, 0)
+			if endLineAsSemicolon  {
+				if l.ctx == ast.ContextGo {
+					l.emit(tokenSemicolon, 0)
+				}
 				endLineAsSemicolon = false
 			}
 			l.newline()

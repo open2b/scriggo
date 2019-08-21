@@ -19,7 +19,7 @@ var typeTests = map[string][]tokenTyp{
 	`}`:                            {tokenText},
 	`{{a}}`:                        {tokenStartValue, tokenIdentifier, tokenEndValue},
 	`{{ a }}`:                      {tokenStartValue, tokenIdentifier, tokenEndValue},
-	"{{\ta\n}}":                    {tokenStartValue, tokenIdentifier, tokenSemicolon, tokenEndValue},
+	"{{\ta\n}}":                    {tokenStartValue, tokenIdentifier, tokenEndValue},
 	"{{\na\t}}":                    {tokenStartValue, tokenIdentifier, tokenEndValue},
 	"{{\na;\t}}":                   {tokenStartValue, tokenIdentifier, tokenSemicolon, tokenEndValue},
 	"{% a := 1 %}":                 {tokenStartStatement, tokenIdentifier, tokenDeclaration, tokenInt, tokenEndStatement},
@@ -38,7 +38,7 @@ var typeTests = map[string][]tokenTyp{
 	"{% a, ok := b.c %}":           {tokenStartStatement, tokenIdentifier, tokenComma, tokenIdentifier, tokenDeclaration, tokenIdentifier, tokenPeriod, tokenIdentifier, tokenEndStatement},
 	"{% a, ok = b.c %}":            {tokenStartStatement, tokenIdentifier, tokenComma, tokenIdentifier, tokenSimpleAssignment, tokenIdentifier, tokenPeriod, tokenIdentifier, tokenEndStatement},
 	"{%for()%}":                    {tokenStartStatement, tokenFor, tokenLeftParenthesis, tokenRightParenthesis, tokenEndStatement},
-	"{%\tfor()\n%}":                {tokenStartStatement, tokenFor, tokenLeftParenthesis, tokenRightParenthesis, tokenSemicolon, tokenEndStatement},
+	"{%\tfor()\n%}":                {tokenStartStatement, tokenFor, tokenLeftParenthesis, tokenRightParenthesis, tokenEndStatement},
 	"{%\tfor a%}":                  {tokenStartStatement, tokenFor, tokenIdentifier, tokenEndStatement},
 	"{% for a;\n\t%}":              {tokenStartStatement, tokenFor, tokenIdentifier, tokenSemicolon, tokenEndStatement},
 	"{% for in %}":                 {tokenStartStatement, tokenFor, tokenIn, tokenEndStatement},
@@ -186,7 +186,7 @@ var typeTests = map[string][]tokenTyp{
 	"{{ ( 1 + 2 ) * 3 }}": {tokenStartValue, tokenLeftParenthesis, tokenInt, tokenAddition, tokenInt, tokenRightParenthesis,
 		tokenMultiplication, tokenInt, tokenEndValue},
 	"{{ map{} }}":       {tokenStartValue, tokenMap, tokenLeftBraces, tokenRightBraces, tokenEndValue},
-	"{{ map{`a`: 6} }}": {tokenStartValue, tokenMap, tokenLeftBraces, tokenRawString, tokenColon, tokenInt, tokenSemicolon, tokenRightBraces, tokenEndValue},
+	"{{ map{`a`: 6} }}": {tokenStartValue, tokenMap, tokenLeftBraces, tokenRawString, tokenColon, tokenInt, tokenRightBraces, tokenEndValue},
 	"{{ interface{} }}": {tokenStartValue, tokenInterface, tokenLeftBraces, tokenRightBraces, tokenEndValue},
 }
 
@@ -208,7 +208,7 @@ var typeTestsGoContext = map[string][]tokenTyp{
 	"const b, c = 8, 10":                  {tokenConst, tokenIdentifier, tokenComma, tokenIdentifier, tokenSimpleAssignment, tokenInt, tokenComma, tokenInt, tokenSemicolon},
 	"type Int int":                        {tokenType, tokenIdentifier, tokenIdentifier, tokenSemicolon},
 	"type stringSlice []string":           {tokenType, tokenIdentifier, tokenLeftBrackets, tokenRightBrackets, tokenIdentifier, tokenSemicolon},
-	"struct { A, B T1 ; C, D T2 }":        {tokenStruct, tokenLeftBraces, tokenIdentifier, tokenComma, tokenIdentifier, tokenIdentifier, tokenSemicolon, tokenIdentifier, tokenComma, tokenIdentifier, tokenIdentifier, tokenSemicolon, tokenRightBraces, tokenSemicolon},
+	"struct { A, B T1 ; C, D T2 }":        {tokenStruct, tokenLeftBraces, tokenIdentifier, tokenComma, tokenIdentifier, tokenIdentifier, tokenSemicolon, tokenIdentifier, tokenComma, tokenIdentifier, tokenIdentifier, tokenRightBraces, tokenSemicolon},
 }
 
 var contextTests = map[ast.Context]map[string][]ast.Context{
