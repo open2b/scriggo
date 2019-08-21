@@ -921,7 +921,7 @@ LOOP:
 			l.src = l.src[1:]
 			l.column++
 		case '\n':
-			if endLineAsSemicolon  {
+			if endLineAsSemicolon {
 				if l.ctx == ast.ContextGo {
 					l.emit(tokenSemicolon, 0)
 				}
