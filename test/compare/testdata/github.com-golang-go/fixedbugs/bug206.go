@@ -1,4 +1,4 @@
-// skip : require "go/ast"
+// skip : undefined: ast (but go/ast is imported)
 
 // run
 

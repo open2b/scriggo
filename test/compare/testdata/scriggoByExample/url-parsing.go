@@ -1,4 +1,4 @@
-// skip : panic reflect: FieldByName of non-struct type https://github.com/open2b/scriggo/issues/142
+// run
 
 // URLs provide a [uniform way to locate resources](https://adam.herokuapp.com/past/2010/3/30/urls_are_the_uniform_way_to_locate_resources/).
 // Here's how to parse URLs in Go.

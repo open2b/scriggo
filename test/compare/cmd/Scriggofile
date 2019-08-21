@@ -8,6 +8,7 @@ IMPORT crypto/sha1
 IMPORT encoding/base64
 IMPORT errors
 IMPORT fmt
+IMPORT go/ast
 IMPORT io/ioutil
 IMPORT log
 IMPORT math

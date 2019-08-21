@@ -1,4 +1,4 @@
-// skip
+// skip : needs some synchronization mechanism.
 
 package main
 

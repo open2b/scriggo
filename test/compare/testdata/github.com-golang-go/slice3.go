@@ -1,4 +1,4 @@
-// skip
+// skip : mode 'runoutput' not supported
 
 // runoutput
 

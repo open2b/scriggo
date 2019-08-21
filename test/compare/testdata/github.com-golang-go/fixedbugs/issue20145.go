@@ -1,4 +1,4 @@
-// skip : panics the parser (segmentation fault)
+// skip : syntax error: missing function body
 
 // compile
 
