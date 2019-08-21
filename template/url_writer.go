@@ -42,10 +42,10 @@ func (w *urlWriter) Write(p []byte) (int, error) {
 			w.path = false
 			w.addAmp = s[len(s)-1] != '?' && s[len(s)-1] != '&'
 		}
-		return 0, pathEscape(sw, s, w.quoted)
+		return pathEscape(sw, s, w.quoted)
 	}
 	if w.query {
-		return 0, queryEscape(sw, s)
+		return queryEscape(sw, s)
 	}
 	panic("not w.path and not w.query...")
 	return 0, nil
@@ -56,13 +56,15 @@ func (w *urlWriter) WriteText(p []byte) (int, error) {
 	if len(p) == 0 {
 		return 0, nil
 	}
+	n := 0
 	if !w.query {
 		if bytes.ContainsAny(p, "?#") {
 			if p[0] == '?' && !w.path {
 				if w.addAmp {
-					_, err := io.WriteString(w.w, "&amp;")
+					nn, err := io.WriteString(w.w, "&amp;")
+					n += nn
 					if err != nil {
-						return 0, err
+						return n, err
 					}
 				}
 				p = p[1:]
@@ -75,5 +77,7 @@ func (w *urlWriter) WriteText(p []byte) (int, error) {
 			w.query = false
 		}
 	}
-	return w.w.Write(p)
+	nn, err := w.w.Write(p)
+	n += nn
+	return n, err
 }

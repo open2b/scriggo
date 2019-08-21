@@ -395,10 +395,12 @@ func renderInAttributeURL(w strWriter, value interface{}, inQuery, quoted bool) 
 	}
 
 	if inQuery {
-		return queryEscape(w, s)
+		_, err := queryEscape(w, s)
+		return err
 	}
 
-	return pathEscape(w, s, quoted)
+	_, err := pathEscape(w, s, quoted)
+	return err
 }
 
 // renderInCSS renders value in CSS context.

@@ -300,10 +300,12 @@ func javaScriptStringEscape(w strWriter, s string) error {
 
 // pathEscape escapes the string s so it can be placed inside an attribute
 // value as URL path, and write it to w. quoted reports whether the attribute
-// is quoted.
+// is quoted. It returns the number of bytes written and the first error
+// encountered.
 //
 // Note that url.PathEscape escapes '/' as '%2F' and ' ' as '%20'.
-func pathEscape(w strWriter, s string, quoted bool) error {
+func pathEscape(w strWriter, s string, quoted bool) (int, error) {
+	n := 0
 	last := 0
 	var buf []byte
 	for i := 0; i < len(s); i++ {
@@ -333,34 +335,40 @@ func pathEscape(w strWriter, s string, quoted bool) error {
 			buf[2] = hexchars[c&0xF]
 		}
 		if last != i {
-			_, err := w.WriteString(s[last:i])
+			nn, err := w.WriteString(s[last:i])
+			n += nn
 			if err != nil {
-				return err
+				return n, err
 			}
 		}
+		var nn int
 		var err error
 		if esc == "" {
-			_, err = w.Write(buf)
+			nn, err = w.Write(buf)
 		} else {
-			_, err = w.WriteString(esc)
+			nn, err = w.WriteString(esc)
 		}
+		n += nn
 		if err != nil {
-			return err
+			return n, err
 		}
 		last = i + 1
 	}
 	if last != len(s) {
-		_, err := w.WriteString(s[last:])
-		return err
+		nn, err := w.WriteString(s[last:])
+		n += nn
+		return n, err
 	}
-	return nil
+	return n, nil
 }
 
 // queryEscape escapes the string s, so it can be placed inside a URL query,
-// and write it to w.
+// and write it to w. It returns the number of bytes written and the first
+// error encountered.
 //
 // Note that url.QueryEscape escapes ' ' as '+' and not as '%20'.
-func queryEscape(w strWriter, s string) error {
+func queryEscape(w strWriter, s string) (int, error) {
+	n := 0
 	last := 0
 	var buf []byte
 	for i := 0; i < len(s); i++ {
@@ -376,22 +384,25 @@ func queryEscape(w strWriter, s string) error {
 		buf[1] = hexchars[c>>4]
 		buf[2] = hexchars[c&0xF]
 		if last != i {
-			_, err := w.WriteString(s[last:i])
+			nn, err := w.WriteString(s[last:i])
+			n += nn
 			if err != nil {
-				return err
+				return n, err
 			}
 		}
-		_, err := w.Write(buf)
+		nn, err := w.Write(buf)
+		n += nn
 		if err != nil {
-			return err
+			return n, err
 		}
 		last = i + 1
 	}
 	if last != len(s) {
-		_, err := w.WriteString(s[last:])
-		return err
+		nn, err := w.WriteString(s[last:])
+		n += nn
+		return n, err
 	}
-	return nil
+	return n, nil
 }
 
 // escapeBytes escapes b as Base64, so it can be placed inside JavaScript and
