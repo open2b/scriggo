@@ -1184,6 +1184,9 @@ LABEL:
 				if tok.typ == tokenRightParenthesis {
 					break
 				}
+				if tok.typ != tokenSemicolon {
+					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting semicolon or newline or )", tok)})
+				}
 			}
 			pos.End = tok.pos.End
 		} else {
