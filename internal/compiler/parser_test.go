@@ -109,7 +109,7 @@ var goContextTreeTests = []struct {
 						false)}), nil)}, ast.ContextGo)},
 	{"switch {\n\tdefault:\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewSwitch(p(1, 1, 0, 19), nil, nil, nil, []*ast.Case{
-			ast.NewCase(p(2, 2, 10, 17), nil, nil, false)})}, ast.ContextGo)},
+			ast.NewCase(p(2, 2, 10, 17), nil, nil)})}, ast.ContextGo)},
 	{"if x == 5 {}",
 		ast.NewTree("", []ast.Node{
 			ast.NewIf(&ast.Position{Line: 1, Column: 1, Start: 0, End: 11}, nil,
@@ -940,7 +940,6 @@ var treeTests = []struct {
 							ast.NewBasicLiteral(p(1, 23, 22, 22), ast.IntLiteral, "1"),
 						},
 						nil,
-						false,
 					),
 				},
 			),
@@ -961,8 +960,8 @@ var treeTests = []struct {
 						},
 						[]ast.Node{
 							ast.NewText(p(1, 27, 26, 34), []byte("something"), ast.Cut{}),
+							ast.NewFallthrough(p(1, 36, 35, 51)),
 						},
-						true,
 					),
 					ast.NewCase(
 						p(1, 53, 52, 63),
@@ -970,7 +969,6 @@ var treeTests = []struct {
 							ast.NewBasicLiteral(p(1, 61, 60, 60), ast.IntLiteral, "2"),
 						},
 						nil,
-						false,
 					),
 				},
 			),
@@ -1000,7 +998,6 @@ var treeTests = []struct {
 							ast.NewBasicLiteral(p(1, 35, 34, 34), ast.IntLiteral, "1"),
 						},
 						nil,
-						false,
 					),
 				},
 			),
@@ -1025,7 +1022,6 @@ var treeTests = []struct {
 							),
 						},
 						nil,
-						false,
 					),
 				},
 			),
@@ -1045,7 +1041,6 @@ var treeTests = []struct {
 						[]ast.Node{
 							ast.NewBreak(p(1, 26, 25, 35), nil),
 						},
-						false,
 					),
 				},
 			),
@@ -1083,7 +1078,6 @@ var treeTests = []struct {
 							),
 						},
 						nil,
-						false,
 					),
 				},
 			),
@@ -1105,7 +1099,6 @@ var treeTests = []struct {
 						[]ast.Node{
 							ast.NewText(p(1, 27, 26, 31), []byte("is one"), ast.Cut{}),
 						},
-						false,
 					),
 					ast.NewCase(
 						p(1, 33, 32, 43),
@@ -1115,7 +1108,6 @@ var treeTests = []struct {
 						[]ast.Node{
 							ast.NewText(p(1, 45, 44, 49), []byte("is two"), ast.Cut{}),
 						},
-						false,
 					),
 					ast.NewCase(
 						p(1, 51, 50, 62),
@@ -1123,7 +1115,6 @@ var treeTests = []struct {
 						[]ast.Node{
 							ast.NewText(p(1, 64, 63, 73), []byte("is a number"), ast.Cut{}),
 						},
-						false,
 					),
 				},
 			),
@@ -1157,7 +1148,6 @@ var treeTests = []struct {
 						[]ast.Node{
 							ast.NewText(p(1, 43, 42, 52), []byte("is a number"), ast.Cut{}),
 						},
-						false,
 					),
 				},
 			),
@@ -2238,6 +2228,11 @@ func equals(n1, n2 ast.Node, p int) error {
 			if err != nil {
 				return fmt.Errorf("Body: %s", err)
 			}
+		}
+
+	case *ast.Fallthrough:
+		if _, ok := n2.(*ast.Fallthrough); !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 
 	case *ast.Select:

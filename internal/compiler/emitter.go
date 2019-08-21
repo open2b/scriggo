@@ -988,6 +988,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				}
 			}
 
+		case *ast.Fallthrough:
+			// TODO(gianluca)
+
 		case *ast.For:
 			currentBreakable := em.breakable
 			currentBreakLabel := em.breakLabel
