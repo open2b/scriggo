@@ -352,13 +352,27 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 		if fnTyp.NumIn() == 1 && len(args) == 1 {
 			if g, ok := args[0].(*ast.Call); ok {
 				if numOut, ok := em.numOut(g); ok && numOut > 1 {
-					argRegs, argTypes := em.emitCallNode(g, false, false)
-					for i := range argRegs {
-						dstType := fnTyp.In(0).Elem()
-						reg := em.fb.newRegister(dstType.Kind())
-						em.changeRegister(false, argRegs[i], reg, argTypes[i], dstType)
+					if opts.predefined {
+						argRegs, argTypes := em.emitCallNode(g, false, false)
+						for i := range argRegs {
+							dstType := fnTyp.In(0).Elem()
+							reg := em.fb.newRegister(dstType.Kind())
+							em.changeRegister(false, argRegs[i], reg, argTypes[i], dstType)
+						}
+						return regs, types
 					}
-					return regs, types
+					// f(g()) where g returns more than 1 argument, f is variadic and not predefined.
+					slice := em.fb.newRegister(reflect.Slice)
+					em.fb.enterStack()
+					em.fb.emitMakeSlice(true, true, fnTyp.In(numIn-1), int8(numOut), int8(numOut), slice)
+					argRegs, _ := em.emitCallNode(g, false, false)
+					for i := range argRegs {
+						index := em.fb.newRegister(reflect.Int)
+						em.changeRegister(true, int8(i), index, intType, intType)
+						em.fb.emitSetSlice(false, slice, argRegs[i], index)
+					}
+					em.fb.exitStack()
+					return []int8{slice}, []reflect.Type{fnTyp.In(numIn - 1)}
 				}
 			}
 		}
