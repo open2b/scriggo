@@ -459,7 +459,7 @@ func (w *urlEscaper) StartURL(quoted, isSet bool) {
 	w.isSet = isSet
 }
 
-// WriteText is called for each template {{ value }} in a URL attribute value.
+// Write is called for each template {{ value }} in a URL attribute value.
 func (w *urlEscaper) Write(p []byte) (int, error) {
 	if len(p) == 0 {
 		return 0, nil
