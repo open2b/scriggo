@@ -320,6 +320,8 @@ func goldenCompare(testPath string, got []byte) {
 	if err != nil {
 		panic(err)
 	}
+	// Remove everything after "//".
+	goldenData = regexp.MustCompile(`(?m)^//.*$`).ReplaceAll(goldenData, []byte{})
 	expected := bytes.TrimSpace(goldenData)
 	got = bytes.TrimSpace(got)
 	if bytes.Compare(expected, got) != 0 {

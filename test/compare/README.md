@@ -59,7 +59,8 @@ Mode | Supported extensions | Expected behaviour
 **renderdir**  | `.html` | The test inside the _dir-directory_ (see below) associated to the test compiles and runs successfully and the rendered output is the same as the content of the _golden file_ associated to the test (see below).
 
 
-- A **golden file** associated to a test is a text file with the same path as the test but with extension `.golden` instead of `.sgo` or `.html`.
+- A **golden file** associated to a test is a text file with the same path as the test but with extension `.golden` instead of `.sgo` or `.html`. Golden files can have comments, that are lines that get replaced by empty lines during comparison. A comment line must start with `//`.
+
 - A **dir-directory** associated to a test is a directory with the same path as the test, but which ends in `.dir` instead of `.go` or `.html`. For instance, a test located at `test/path/testname.go` has an associated _dir-directory_ with path `test/path/testname.dir`.
 
 Only one mode per test is supported. If more than one comment containing a mode is present in a file,
