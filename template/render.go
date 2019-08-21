@@ -70,17 +70,9 @@ func render(_ *vm.Env, out io.Writer, value interface{}, ctx Context) {
 	case ContextTag:
 		err = renderInTag(w, value)
 	case ContextAttribute:
-		//if urlstate == nil {
 		err = renderInAttribute(w, value, true)
-		//} else {
-		//	err = r.renderInAttributeURL(w, value, node, urlstate, true)
-		//}
 	case ContextUnquotedAttribute:
-		//if urlstate == nil {
 		err = renderInAttribute(w, value, false)
-		//} else {
-		//	err = r.renderInAttributeURL(w, value, node, urlstate, false)
-		//}
 	case ContextCSS:
 		err = renderInCSS(w, value)
 	case ContextCSSString:
@@ -322,84 +314,6 @@ func renderInAttribute(w strWriter, value interface{}, quoted bool) error {
 
 	_, err := w.WriteString(s)
 
-	return err
-}
-
-// renderInAttributeURL renders value as an URL in Attribute context, quoted
-// or unquoted depending on quoted value.
-func renderInAttributeURL(w strWriter, value interface{}, inQuery, quoted bool) error {
-
-	if value == nil {
-		return nil
-	}
-
-	var s string
-
-	switch v := withConcreteType(value).(type) {
-	case bool:
-		s = "false"
-		if v {
-			s = "true"
-		}
-	case int64:
-		s = strconv.FormatInt(v, 10)
-	case uint64:
-		s = strconv.FormatUint(v, 10)
-	case float32:
-		s = strconv.FormatFloat(float64(v), 'f', -1, 32)
-	case float64:
-		s = strconv.FormatFloat(v, 'f', -1, 64)
-	case string:
-		s = v
-	default:
-		rv := reflect.ValueOf(value)
-		if !rv.IsValid() || rv.Kind() != reflect.Slice {
-			return ErrNoRenderInContext
-		}
-		if rv.IsNil() || rv.Len() == 0 {
-			return nil
-		}
-		for i, l := 0, rv.Len(); i < l; i++ {
-			if i > 0 {
-				if quoted {
-					s += ", "
-				} else {
-					s += ",&#32;"
-				}
-			}
-			switch v := withConcreteType(rv.Index(i).Interface()).(type) {
-			case bool:
-				if v {
-					s += "true"
-				} else {
-					s += "false"
-				}
-			case int64:
-				s = strconv.FormatInt(v, 10)
-			case uint64:
-				s = strconv.FormatUint(v, 10)
-			case float32:
-				s = strconv.FormatFloat(float64(v), 'f', -1, 32)
-			case float64:
-				s = strconv.FormatFloat(v, 'f', -1, 64)
-			case string:
-				s += v
-			default:
-				return ErrNoRenderInContext
-			}
-		}
-	}
-
-	if s == "" {
-		return nil
-	}
-
-	if inQuery {
-		_, err := queryEscape(w, s)
-		return err
-	}
-
-	_, err := pathEscape(w, s, quoted)
 	return err
 }
 
