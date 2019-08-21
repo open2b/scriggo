@@ -18,6 +18,7 @@ type urlWriter struct {
 	query  bool
 	addAmp bool
 	isSet  bool
+	quote  bool
 	w      io.Writer
 }
 
@@ -68,13 +69,12 @@ func (w *urlWriter) WriteText(p []byte) (int, error) {
 	return w.w.Write(p)
 }
 
-func (w *urlWriter) Reset() {
+func (w *urlWriter) Init(quote, isSet bool) {
 	w.path = true
 	w.query = false
 	w.addAmp = false
-	// TODO(Gianluca): isSet should be node.Attribute == "srcset". See
-	// https://github.com/open2b/commerceready/blob/18d101b986d8ae53cf316a66ba8b4e57d2849242/reports-cgi/open2b/template/rendering.go#L141-L149
-	w.isSet = false
+	w.quote = quote
+	w.isSet = isSet
 }
 
 type stringWriter interface {

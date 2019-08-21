@@ -1231,8 +1231,20 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			// Call method Reset of urlWriter.
 			em.fb.enterStack()
 			method := em.fb.newRegister(reflect.Func)
-			em.fb.emitMethodValue("Reset", em.templateRegs.gF, method)
-			em.fb.emitCallIndirect(method, 0, em.fb.currentStackShift())
+			em.fb.emitMethodValue("Init", em.templateRegs.gF, method)
+			ss := em.fb.currentStackShift()
+			quoteArg := em.fb.newRegister(reflect.Bool)
+			isSetArg := em.fb.newRegister(reflect.Bool)
+			var quote, isSet int8
+			if node.Context == ast.ContextAttribute {
+				quote = 1
+			}
+			if node.Attribute == "srcset" {
+				isSet = 1
+			}
+			em.changeRegister(true, quote, quoteArg, boolType, boolType)
+			em.changeRegister(true, isSet, isSetArg, boolType, boolType)
+			em.fb.emitCallIndirect(method, 0, ss)
 			em.fb.exitStack()
 			// Emit the nodes in the URL.
 			em.emitNodes(node.Value)
