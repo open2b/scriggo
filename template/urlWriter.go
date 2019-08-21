@@ -31,7 +31,6 @@ func (w *urlWriter) Write(p []byte) (int, error) {
 	if w.path {
 		if strings.Contains(s, "?") {
 			w.path = false
-			w.query = true // TODO(Gianluca): this line differs from the original code.
 			w.addAmp = s[len(s)-1] != '?' && s[len(s)-1] != '&'
 		}
 		return 0, pathEscape(sw, s, true) // TODO(Gianluca): quote?
@@ -39,8 +38,7 @@ func (w *urlWriter) Write(p []byte) (int, error) {
 	if w.query {
 		return 0, queryEscape(sw, s)
 	}
-	panic("?") // TODO(Gianluca): remove this panic.
-	return len(p), nil
+	return 0, nil
 }
 
 // WriteText handle the *ast.Text nodes in context URL.
@@ -48,27 +46,26 @@ func (w *urlWriter) WriteText(p []byte) (int, error) {
 	if len(p) == 0 {
 		return 0, nil
 	}
-	text := []byte(html.UnescapeString(string(p))) // TODO(Gianluca): optimize.
 	if !w.query {
-		if bytes.ContainsAny(text, "?#") {
-			if text[0] == '?' && !w.path {
+		if bytes.ContainsAny(p, "?#") {
+			if p[0] == '?' && !w.path {
 				if w.addAmp {
 					_, err := io.WriteString(w.w, "&amp;")
 					if err != nil {
 						return 0, err
 					}
 				}
-				text = text[1:]
+				p = p[1:]
 			}
 			w.path = false
 			w.query = true
 		}
-		if w.isSet && bytes.ContainsRune(text, ',') {
+		if w.isSet && bytes.ContainsRune(p, ',') {
 			w.path = true
 			w.query = false
 		}
 	}
-	return w.w.Write(text)
+	return w.w.Write(p)
 }
 
 func (w *urlWriter) Reset() {

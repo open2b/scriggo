@@ -1,0 +1,42 @@
+{# skip #}
+
+{# render #}
+
+<a href="">
+<a href="abc">
+<a href="本">
+<a href="{{ `b` }}">
+<a href="{{ `/` }}">
+<a href="{{ `http://www.site.com/` }}">
+<a href="{{ ` http://www.site.com/ ` }}">
+<a href="http://s/{{ `aà本` }}/">
+<a href="{{ `a` }}{{ `本` }}">
+<a href="{{ `a` }}?b={{ ` ` }}">
+<a href="{{ `a` }}?b={{ `=` }}">
+<a href="{{ `=` }}?b={{ `=` }}">
+<a href="{{ `p?` }}?b={{ `=` }}">
+<a href="{{ `p?&` }}?b={{ `=` }}">
+<a href="{{ `p?q` }}?b={{ `=` }}">
+<a href="{{ `?` }}?b={{ `=` }}">
+<a href="{{ `/a/b/c` }}?b={{ `=` }}&c={{ `6` }}">
+<a href="{{ `/a/b/c` }}?b={{ `=` }}&amp;c={{ `6` }}">
+<a href="{{ `` }}?{{ `` }}">
+<a href="?{{ `b` }}">
+<a href="?{{ `=` }}">
+<a href="#">
+<a href="#{{ `=` }}">
+<a href="{{ `=` }}#{{ `=` }}">
+<a href="{{ `=` }}?{{ `=` }}#{{ `=` }}">
+<a href="{{ `=` }}?b=6#{{ `=` }}">
+<a href="{{ `,` }}?{{ `,` }}">
+<img srcset="{{ `large.jpg` }} 1024w, {{ `medium.jpg` }} 640w,{{ `small.jpg` }} 320w">
+<img srcset="{{ `large.jpg` }} 1024w, {{ `medium.jpg` }} 640w">
+<img srcset="{{ `large.jpg` }} 1024w, {{ `medium.jpg` }} 640w">
+<a href="{% if true %}{{ `=` }}{% else %}?{{ `=` }}{% end %}">
+<a href="{% if false %}{{ `=` }}{% else %}?{{ `=` }}{% end %}">
+<input {{ `disabled` }}>
+<a href={{ `b` }}>
+<a href={{ ` b ` }}>
+<a href= {{ ` b `}} >
+<a href= {{ "\t\n\r\x0C b=`" }} >
+<a href="{{ (map[interface{}]interface{}{})[`a`] }}">
