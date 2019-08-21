@@ -234,6 +234,9 @@ func (tok token) String() string {
 	if tok.typ == tokenText {
 		return fmt.Sprintf("%q", tok.txt)
 	}
+	if tok.typ == tokenIdentifier {
+		return string(tok.txt)
+	}
 	return tok.typ.String()
 }
 
