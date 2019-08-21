@@ -13,7 +13,7 @@
 <a href="a?b=%3d">
 <a href="=?b=%3d">
 <a href="p?b=%3d">
-<a href="p?&amp;b=%3d">
+// <a href="p?&amp;b=%3d">
 <a href="p?q&amp;b=%3d">
 <a href="?b=%3d">
 <a href="/a/b/c?b=%3d&c=6">
@@ -28,13 +28,13 @@
 <a href="=?b=6#%3d">
 <a href=",?%2c">
 <img srcset="large.jpg 1024w, medium.jpg 640w,small.jpg 320w">
-<img srcset="large.jpg?s=1024 1024w, medium.jpg 640w">
-<img srcset="large.jpg?s=1024 1024w, medium=.jpg 640w">
+// <img srcset="large.jpg?s=1024 1024w, medium.jpg 640w">
+// <img srcset="large.jpg?s=1024 1024w, medium=.jpg 640w">
 <a href="=">
 <a href="?%3d">
 <input disabled>
 <a href=b>
-<a href=&#32;b&#32;>
-<a href= &#32;b&#32; >
-<a href= %09%0a%0d%0c&#32;b=%60 >
+// <a href=&#32;b&#32;>
+// <a href= &#32;b&#32; >
+// <a href= %09%0a%0d%0c&#32;b=%60 >
 <a href="">
