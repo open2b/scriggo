@@ -120,7 +120,7 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *R
 		}
 	}
 	write := out.Write
-	uw := &urlWriter{w: out}
+	uw := &urlEscaper{w: out}
 	t.globals[0].Value = &out
 	t.globals[1].Value = &write
 	t.globals[2].Value = &render
@@ -147,7 +147,7 @@ func (t *Template) StartRender(out io.Writer, vars map[string]interface{}, optio
 		}
 	}
 	write := out.Write
-	uw := &urlWriter{w: out}
+	uw := &urlEscaper{w: out}
 	t.globals[0].Value = &out
 	t.globals[1].Value = &write
 	t.globals[2].Value = &render
