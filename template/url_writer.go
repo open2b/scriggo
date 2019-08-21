@@ -13,15 +13,29 @@ import (
 	"strings"
 )
 
+// urlWriter implements an io.Writer that escapes a URL or a set of URL and
+// writes it to another writer. An urlWriter is passed to a RenderFunc
+// function and to a ValueRenderer Render function when the context is
+// ContextAttribute or ContextUnquotedAttribute and the value of the
+// attribute is an URL or a set of URL.
 type urlWriter struct {
-	path   bool
-	query  bool
+	// path reports whether it is currently in the path.
+	path bool
+	// query reports whether it is currently in the query string.
+	query bool
+	// addAmp reports whether an ampersand will be added before the next
+	// written text.
 	addAmp bool
-	isSet  bool
+	// isSet reports whether the attribute is a set of URLs.
+	isSet bool
+	// quoted reports whether the attribute is quoted.
 	quoted bool
-	w      io.Writer
+	// w is the io.Writer to write to.
+	w io.Writer
 }
 
+// Init initializes the urlWriter and it is called when an URL attribute value
+// starts.
 func (w *urlWriter) Init(quoted, isSet bool) {
 	w.path = true
 	w.query = false
@@ -30,7 +44,7 @@ func (w *urlWriter) Init(quoted, isSet bool) {
 	w.isSet = isSet
 }
 
-// Write handle *ast.Show nodes in context URL.
+// WriteText is called for each template {{ value }} in a URL attribute value.
 func (w *urlWriter) Write(p []byte) (int, error) {
 	if len(p) == 0 {
 		return 0, nil
@@ -51,7 +65,7 @@ func (w *urlWriter) Write(p []byte) (int, error) {
 	return 0, nil
 }
 
-// WriteText handle the *ast.Text nodes in context URL.
+// WriteText is called for each template text in a URL attribute value.
 func (w *urlWriter) WriteText(p []byte) (int, error) {
 	if len(p) == 0 {
 		return 0, nil
