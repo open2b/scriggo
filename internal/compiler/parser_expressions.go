@@ -97,8 +97,6 @@ import (
 // Devono però essere aggiunti i controlli che verifichino che effettivamente
 // ciò che è stato parsato sia un tipo.
 //
-// TODO (Gianluca): nextIsBlockOpen should have a better name.
-//
 func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlockOpen bool) (ast.Expression, token) {
 
 	// reuseLastToken reports whether the second part of parseExpr should reuse

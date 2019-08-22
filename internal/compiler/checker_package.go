@@ -613,7 +613,8 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 
 	if !tc.opts.AllowNotUsed {
 		for pkg := range tc.unusedImports {
-			return tc.errorf(new(ast.Position), "imported and not used: \"%s\"", pkg) // TODO (Gianluca): position is not correct.
+			// TODO(Gianluca): position is wrong: https://github.com/open2b/scriggo/issues/309.
+			return tc.errorf(new(ast.Position), "imported and not used: \"%s\"", pkg)
 		}
 	}
 

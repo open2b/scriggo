@@ -35,14 +35,7 @@ func isTypeGuard(node ast.Node) bool {
 // TODO (Gianluca): instead of using "pos" (*ast.Position), use full token "tok"
 // (token)
 //
-// TODO (Gianluca): change parameters order (final result should be tok token,
-// lex *lexer)
-//
 func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
-
-	// TODO (Gianluca): parsing this line: switch x := 2; x, y := a.(type), b
-	// should fail, cause it's not checking the number of expressions. There
-	// must be only one.
 
 	var assignment *ast.Assignment
 
