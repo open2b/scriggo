@@ -117,12 +117,10 @@ func (p *parsing) next() token {
 	return tok
 }
 
-// ParseSource parses a program or script. isScript reports whether it is a
-// script and shebang reports whether a script can have the shebang as first
-// line.
+// ParseSource parses a program or script and returns its tree. isScript
+// reports whether it is a script and shebang reports whether a script can
+// have the shebang as first line.
 //
-// Returns the AST tree and, only if it is a program, the dependencies for the
-// type checker.
 // TODO(Gianluca): path validation must be moved to parser.
 func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, err error) {
 
@@ -183,8 +181,9 @@ TOKENS:
 	return tree, nil
 }
 
-// ParseTemplateSource parses src in the context ctx and returns the parsed
-// tree. Nodes Extends, Import and Include are not be expanded.
+// ParseTemplateSource parses src in the context ctx and returns the its tree.
+// ctx can be ContextText, ContextHTML, ContextCSS or ast.ContextJavaScript.
+// Nodes Extends, Import and Include are not be expanded.
 func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, deps PackageDeclsDeps, err error) {
 
 	switch ctx {

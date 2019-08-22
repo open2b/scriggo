@@ -1455,9 +1455,9 @@ func TestGoContextTrees(t *testing.T) {
 }
 
 var shebangTests = []struct {
-	src  string
+	src     string
 	shebang bool
-	err string
+	err     string
 }{
 	{"#! /usr/bin/scriggo", true, ""},
 	{"#! /usr/bin/scriggo\n=", true, ":2:1: syntax error: unexpected =, expecting for, if, show, extends, include, macro or end"},
