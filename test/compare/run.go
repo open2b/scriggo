@@ -522,6 +522,9 @@ func goBaseVersion(v string) string {
 	if i := strings.Index(v, "beta"); i >= 0 {
 		v = v[:i]
 	}
+	if i := strings.Index(v, "rc"); i >= 0 {
+		v = v[:i]
+	}
 	v = v[4:]
 	f, err := strconv.ParseFloat(v, 32)
 	if err != nil {
