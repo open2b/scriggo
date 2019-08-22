@@ -339,11 +339,22 @@ nodesLoop:
 				parent := tc.ancestors[len(tc.ancestors)-1].node
 				if cas, ok := parent.(*ast.Case); ok {
 					nn := len(nodes)
+				CASE:
 					switch i {
-					case nn - 2:
-						text, ok := nodes[nn-1].(*ast.Text)
-						if !ok || !containsOnlySpaces(text.Text) {
-							break
+					default:
+						for j := nn - 1; j >= 0; j-- {
+							if nodes[j] == node {
+								break
+							}
+							switch n := nodes[j].(type) {
+							case *ast.Comment:
+							case *ast.Text:
+								if !containsOnlySpaces(n.Text) {
+									break CASE
+								}
+							default:
+								break CASE
+							}
 						}
 						fallthrough
 					case nn - 1:

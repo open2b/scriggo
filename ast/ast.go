@@ -574,12 +574,11 @@ type Case struct {
 	*Position
 	Expressions []Expression
 	Body        []Node
-	Fallthrough bool // TODO(marco): remove.
 }
 
 // NewCase returns a new Case node.
 func NewCase(pos *Position, expressions []Expression, body []Node) *Case {
-	return &Case{pos, expressions, body, false}
+	return &Case{pos, expressions, body}
 }
 
 // Fallthrough node represents a statement {% fallthrough %}.
