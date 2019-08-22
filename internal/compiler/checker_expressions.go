@@ -1066,9 +1066,6 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 						panic(tc.errorf(expr, "undefined: %v", expr))
 					}
 					// v is a predefined variable.
-					// TODO(Gianluca): type assertion should not be necessary,
-					// as predefined package variables should always be
-					// reflect.Value. Investigate.
 					if rv, ok := v.value.(reflect.Value); v.Addressable() && ok {
 						upvar := ast.Upvar{
 							PredefinedName:  expr.Ident,

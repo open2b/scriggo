@@ -155,7 +155,8 @@ func detectVarsLoop(vars []*ast.Var, deps PackageDeclsDeps) error {
 func detectTypeLoop(types []*ast.TypeDeclaration, deps PackageDeclsDeps) error {
 	for _, t := range types {
 		if !t.IsAliasDeclaration {
-			panic("type definition currently not supported") // TODO(Gianluca): to implement.
+			// TODO(Gianluca): type definition https://github.com/open2b/scriggo/issues/194
+			panic("type definition currently not supported")
 		}
 		path := []*ast.Identifier{t.Identifier}
 		loopPath := checkDepsPath(path, deps)
