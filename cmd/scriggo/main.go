@@ -234,8 +234,8 @@ var commands = map[string]func(){
 	},
 	"version": func() {
 		flag.Usage = commandsHelp["version"]
-		fmt.Printf("Scriggo module version:            (TODO) \n")     // TODO(Gianluca): use real version.
-		fmt.Printf("scriggo tool version:                  (TODO) \n") // TODO(Gianluca): use real version.
+		fmt.Printf("Scriggo module version:                (TODO) \n") // TODO(Gianluca): see https://github.com/open2b/scriggo/issues/310
+		fmt.Printf("scriggo tool version:                  (TODO) \n") // TODO(Gianluca): see https://github.com/open2b/scriggo/issues/310
 		fmt.Printf("Go version used to build scriggo:      %s\n", runtime.Version())
 	},
 }

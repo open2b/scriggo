@@ -33,12 +33,6 @@ func (d deps) addDepsToGlobal(ident *ast.Identifier, node ast.Node, scopes depSc
 		if dep.Name == "_" {
 			continue
 		}
-		if dep.Name == "interface{}" {
-			// TODO(Gianluca): when interface definition will be added to
-			// Scriggo, remove this check: "interface{}"" won't be an identifier
-			// anymore.
-			continue
-		}
 		alreadyAdded := false
 		for _, d := range d[ident] {
 			if d.Name == dep.Name {

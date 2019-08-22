@@ -1092,7 +1092,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				em.emitNodes([]ast.Node{node.Assignment})
 			}
 			em.emitCondition(node.Condition)
-			if node.Else == nil { // TODO (Gianluca): can "then" and "else" be unified in some way?
+			if node.Else == nil {
 				endIfLabel := em.fb.newLabel()
 				em.fb.emitGoto(endIfLabel)
 				em.fb.enterScope()

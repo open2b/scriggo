@@ -358,7 +358,7 @@ func (tc *typechecker) getScopeLevel(name string) (int, bool) {
 	// Iterating over scopes, from inside.
 	for i := len(tc.scopes) - 1; i >= 0; i-- {
 		if _, ok := tc.scopes[i][name]; ok {
-			return i + 1, false // TODO(Gianluca): to review.
+			return i + 1, false
 		}
 	}
 	return -1, tc.filePackageBlock[name].decl == nil
