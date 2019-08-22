@@ -369,13 +369,7 @@ TOKENS:
 // parseStatement parses a statement. Panics on error.
 func (p *parsing) parseStatement(tok token) token {
 
-	var node ast.Node
-
 	var pos = tok.pos
-
-	var expr ast.Expression
-
-	var ok bool
 
 LABEL:
 
@@ -432,7 +426,7 @@ LABEL:
 			panic(syntaxError(tok.pos, "unexpected %s, expecting semicolon or newline", string(tok.txt)))
 		}
 		tok = p.next()
-		node = ast.NewPackage(pos, name, nil)
+		node := ast.NewPackage(pos, name, nil)
 		p.addChild(node)
 		p.addToAncestors(node)
 
@@ -463,6 +457,7 @@ LABEL:
 			blank := ast.NewIdentifier(&ast.Position{Line: ipos.Line, Column: ipos.Column, Start: ipos.Start, End: ipos.Start}, "_")
 			// Parses the slice expression.
 			// TODO (Gianluca): nextIsBlockOpen should be true?
+			var expr ast.Expression
 			expr, tok = p.parseExpr(token{}, false, false, false)
 			if expr == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
@@ -492,6 +487,7 @@ LABEL:
 			}
 			tpos := tok.pos
 			// TODO (Gianluca): nextIsBlockOpen should be true?
+			var expr ast.Expression
 			expr, tok = p.parseExpr(token{}, false, false, true)
 			if expr == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
@@ -517,6 +513,7 @@ LABEL:
 				// Parses statements
 				//     "for index[, ident] = range expr" and
 				//     "for index[, ident] := range expr".
+				var expr ast.Expression
 				expr, tok = p.parseExpr(token{}, false, false, true)
 				if expr == nil {
 					panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
@@ -569,7 +566,7 @@ LABEL:
 			tok = p.next()
 		}
 		tok = p.parseEnd(tok, tokenSemicolon)
-		node = ast.NewBreak(pos, label)
+		node := ast.NewBreak(pos, label)
 		p.addChild(node)
 		p.cutSpacesToken = true
 
@@ -583,13 +580,13 @@ LABEL:
 			tok = p.next()
 		}
 		tok = p.parseEnd(tok, tokenSemicolon)
-		node = ast.NewContinue(pos, label)
+		node := ast.NewContinue(pos, label)
 		p.addChild(node)
 		p.cutSpacesToken = true
 
 	// switch
 	case tokenSwitch:
-		node = p.parseSwitch(pos)
+		node := p.parseSwitch(pos)
 		p.addChild(node)
 		p.addToAncestors(node)
 		p.cutSpacesToken = true
@@ -671,7 +668,7 @@ LABEL:
 	case tokenSelect:
 		tok = p.next()
 		tok = p.parseEnd(tok, tokenLeftBraces)
-		node = ast.NewSelect(pos, nil, nil)
+		node := ast.NewSelect(pos, nil, nil)
 		p.addChild(node)
 		p.addToAncestors(node)
 		p.cutSpacesToken = true
@@ -681,7 +678,7 @@ LABEL:
 		if p.ctx != ast.ContextGo {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting statement", tok))
 		}
-		node = ast.NewBlock(tok.pos, nil)
+		node := ast.NewBlock(tok.pos, nil)
 		p.addChild(node)
 		p.addToAncestors(node)
 		p.cutSpacesToken = true
@@ -728,12 +725,12 @@ LABEL:
 	case tokenElse:
 		if p.ctx != ast.ContextGo {
 			// Closes the "then" block.
-			if _, ok = p.parent().(*ast.Block); !ok {
+			if _, ok := p.parent().(*ast.Block); !ok {
 				panic(syntaxError(tok.pos, "unexpected else"))
 			}
 			p.removeLastAncestor()
 		}
-		if _, ok = p.parent().(*ast.If); !ok {
+		if _, ok := p.parent().(*ast.If); !ok {
 			panic(syntaxError(tok.pos, "unexpected else at end of statement"))
 		}
 		p.cutSpacesToken = true
@@ -763,6 +760,7 @@ LABEL:
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
 		var assignment *ast.Assignment
+		var expr ast.Expression
 		if len(expressions) > 1 || tok.typ == tokenSimpleAssignment || tok.typ == tokenDeclaration {
 			assignment, tok = p.parseAssignment(expressions, tok, false, false)
 			if assignment == nil {
@@ -788,7 +786,7 @@ LABEL:
 		if _, ok := p.parent().(*ast.If); !ok {
 			ifPos = pos
 		}
-		node = ast.NewIf(ifPos, assignment, expr, then, nil)
+		node := ast.NewIf(ifPos, assignment, expr, then, nil)
 		p.addChild(node)
 		p.addToAncestors(node)
 		p.addToAncestors(then)
@@ -812,7 +810,7 @@ LABEL:
 		if len(values) > 0 {
 			pos.End = values[len(values)-1].Pos().End
 		}
-		node = ast.NewReturn(pos, values)
+		node := ast.NewReturn(pos, values)
 		p.addChild(node)
 
 	// include
@@ -834,7 +832,7 @@ LABEL:
 			panic(syntaxError(tok.pos, "unexpected %s, expecting ( or %%}", tok))
 		}
 		pos.End = tok.pos.End
-		node = ast.NewInclude(pos, path, tok.ctx)
+		node := ast.NewInclude(pos, path, tok.ctx)
 		p.addChild(node)
 		p.cutSpacesToken = true
 		tok = p.next()
@@ -901,6 +899,7 @@ LABEL:
 			}
 		}
 		pos.End = tok.pos.End
+		var node ast.Node
 		if impor == nil {
 			node = ast.NewShowMacro(pos, macro, args, isVariadic, or, tok.ctx)
 		} else {
@@ -939,7 +938,7 @@ LABEL:
 			panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
 		}
 		pos.End = tok.pos.End
-		node = ast.NewExtends(pos, path, tree.Context)
+		node := ast.NewExtends(pos, path, tree.Context)
 		p.addChild(node)
 		p.hasExtend = true
 		tok = p.next()
@@ -991,6 +990,7 @@ LABEL:
 				p.addChild(prevNode)
 			}
 		} else {
+			var node ast.Node
 			node, tok = p.parseVarOrConst(tok, pos, decType)
 			tok = p.parseEnd(tok, tokenSemicolon)
 			p.addChild(node)
@@ -1094,10 +1094,10 @@ LABEL:
 
 	// end
 	case tokenEnd:
-		if _, ok = p.parent().(*ast.URL); ok || len(p.ancestors) == 1 {
+		if _, ok := p.parent().(*ast.URL); ok || len(p.ancestors) == 1 {
 			panic(syntaxError(tok.pos, "unexpected %s", tok))
 		}
-		if _, ok = p.parent().(*ast.Block); ok {
+		if _, ok := p.parent().(*ast.Block); ok {
 			p.removeLastAncestor()
 		}
 		p.parent().Pos().End = tok.pos.End
@@ -1176,6 +1176,7 @@ LABEL:
 	case tokenDefer, tokenGo:
 		keyword := tok.typ
 		tok = p.next()
+		var expr ast.Expression
 		expr, tok = p.parseExpr(tok, false, false, false)
 		pos.End = expr.Pos().End
 		// Errors on defer and go statements must be type checker errors and not syntax errors.
@@ -1219,7 +1220,7 @@ LABEL:
 			// kind is not parseType.
 			switch p.parent().(type) {
 			case *ast.Tree, *ast.Package:
-				node, _ = p.parseFunc(tok, parseFuncDecl)
+				node, _ := p.parseFunc(tok, parseFuncDecl)
 				// Consumes the semicolon.
 				tok = p.next()
 				if tok.typ != tokenSemicolon && tok.typ != tokenEOF {
