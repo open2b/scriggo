@@ -448,13 +448,8 @@ nodesLoop:
 				tc.checkNodes(cas.Body)
 				tc.removeLastAncestor()
 				tc.exitScope()
-				if !hasFallthrough {
-					if nn := len(cas.Body); nn > 0 {
-						_, hasFallthrough = cas.Body[nn-1].(*ast.Fallthrough)
-						if !hasFallthrough && nn > 1 {
-							_, hasFallthrough = cas.Body[nn-2].(*ast.Fallthrough)
-						}
-					}
+				if !hasFallthrough && len(cas.Body) > 0 {
+					_, hasFallthrough = cas.Body[len(cas.Body)-1].(*ast.Fallthrough)
 				}
 				terminating = terminating && (tc.terminating || hasFallthrough)
 			}
