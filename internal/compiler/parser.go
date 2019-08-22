@@ -827,10 +827,6 @@ LABEL:
 		if tok.typ != tokenIdentifier {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)})
 		}
-		// TODO(Gianluca): move to typechecker.
-		if len(tok.txt) == 1 && tok.txt[0] == '_' {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
-		}
 		macro := ast.NewIdentifier(tok.pos, string(tok.txt))
 		tok = p.next()
 		// import
