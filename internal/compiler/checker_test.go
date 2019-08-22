@@ -1042,6 +1042,15 @@ var checkerStmts = map[string]string{
 	`i := interface{}(int(0)); switch i.(type) { case nil: case nil: }`:     `multiple nil cases in type switch (first at 1:50)`,
 	`switch interface{}(0).(type) { case _: }`:                              `cannot use _ as value`,
 
+	// Fallthrough
+	`switch 1 { case 1: fallthrough; default: }`:                      ok,
+	`switch 1 { case 1: _ = 5; fallthrough; /* comment */ default: }`: ok,
+	`fallthrough`: `fallthrough statement out of place`,
+	`switch 1 { case 1: fallthrough; _ = 2; case 2: }`:                                     `fallthrough statement out of place`,
+	`switch 1 { case 1:; case 2: fallthrough }`:                                            `cannot fallthrough final case in switch`,
+	`i := interface{}(int(0)); switch i.(type) { case int: fallthrough; default: }`:        `cannot fallthrough in type switch`,
+	`i := interface{}(int(0)); switch i.(type) { case int: fallthrough; _ = 5; default: }`: `fallthrough statement out of place`,
+
 	// Select statements.
 	`select { }`:          ok,
 	`select { default: }`: ok,

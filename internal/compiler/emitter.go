@@ -988,6 +988,10 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				}
 			}
 
+		case *ast.Fallthrough:
+			// Nothing to do: fallthrough nodes are handled by method
+			// emitter.emitSwitch.
+
 		case *ast.For:
 			currentBreakable := em.breakable
 			currentBreakLabel := em.breakLabel
@@ -2247,7 +2251,14 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 		em.fb.setLabelAddr(bodyLabels[i])
 		em.fb.enterScope()
 		em.emitNodes(cas.Body)
-		if !cas.Fallthrough {
+		hasFallthrough := false
+		for i := len(cas.Body) - 1; i >= 0; i-- {
+			if _, ok := cas.Body[i].(*ast.Fallthrough); ok {
+				hasFallthrough = true
+				break
+			}
+		}
+		if !hasFallthrough {
 			em.fb.emitGoto(endSwitchLabel)
 		}
 		em.fb.exitScope()

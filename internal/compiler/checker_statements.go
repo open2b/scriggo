@@ -333,6 +333,48 @@ nodesLoop:
 			}
 			tc.terminating = false
 
+		case *ast.Fallthrough:
+			outOfPlace := true
+			if len(tc.ancestors) > 0 {
+				parent := tc.ancestors[len(tc.ancestors)-1].node
+				if cas, ok := parent.(*ast.Case); ok {
+					nn := len(nodes)
+				CASE:
+					switch i {
+					default:
+						for j := nn - 1; j >= 0; j-- {
+							if nodes[j] == node {
+								break
+							}
+							switch n := nodes[j].(type) {
+							case *ast.Comment:
+							case *ast.Text:
+								if !containsOnlySpaces(n.Text) {
+									break CASE
+								}
+							default:
+								break CASE
+							}
+						}
+						fallthrough
+					case nn - 1:
+						parent = tc.ancestors[len(tc.ancestors)-2].node
+						switch sw := parent.(type) {
+						case *ast.Switch:
+							if cas == sw.Cases[len(sw.Cases)-1] {
+								panic(tc.errorf(node, "cannot fallthrough final case in switch"))
+							}
+							outOfPlace = false
+						case *ast.TypeSwitch:
+							panic(tc.errorf(node, "cannot fallthrough in type switch"))
+						}
+					}
+				}
+			}
+			if outOfPlace {
+				panic(tc.errorf(node, "fallthrough statement out of place"))
+			}
+
 		case *ast.Return:
 			tc.checkReturn(node)
 			tc.terminating = true
@@ -401,8 +443,19 @@ nodesLoop:
 						t.setValue(typ)
 					}
 				}
-				tc.checkNodesInNewScope(cas.Body)
-				hasFallthrough = hasFallthrough || cas.Fallthrough
+				tc.enterScope()
+				tc.addToAncestors(cas)
+				tc.checkNodes(cas.Body)
+				tc.removeLastAncestor()
+				tc.exitScope()
+				if !hasFallthrough {
+					if nn := len(cas.Body); nn > 0 {
+						_, hasFallthrough = cas.Body[nn-1].(*ast.Fallthrough)
+						if !hasFallthrough && nn > 1 {
+							_, hasFallthrough = cas.Body[nn-2].(*ast.Fallthrough)
+						}
+					}
+				}
 				terminating = terminating && (tc.terminating || hasFallthrough)
 			}
 			tc.removeLastAncestor()
@@ -480,7 +533,10 @@ nodesLoop:
 						tc.checkAssignment(n)
 					}
 				}
+				tc.enterScope()
+				tc.addToAncestors(cas)
 				tc.checkNodes(cas.Body)
+				tc.removeLastAncestor()
 				tc.exitScope()
 				terminating = terminating && tc.terminating
 			}

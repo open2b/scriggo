@@ -574,12 +574,21 @@ type Case struct {
 	*Position
 	Expressions []Expression
 	Body        []Node
-	Fallthrough bool
 }
 
 // NewCase returns a new Case node.
-func NewCase(pos *Position, expressions []Expression, body []Node, fallThrough bool) *Case {
-	return &Case{pos, expressions, body, fallThrough}
+func NewCase(pos *Position, expressions []Expression, body []Node) *Case {
+	return &Case{pos, expressions, body}
+}
+
+// Fallthrough node represents a statement {% fallthrough %}.
+type Fallthrough struct {
+	*Position
+}
+
+// NewFallthrough returns a new Fallthrough node.
+func NewFallthrough(pos *Position) *Fallthrough {
+	return &Fallthrough{pos}
 }
 
 // Select node represents a statement {% select ... %}.

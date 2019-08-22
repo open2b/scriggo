@@ -102,9 +102,6 @@ type parsing struct {
 
 	// Ancestors from the root up to the parent.
 	ancestors []ast.Node
-
-	// Position of the last fallthrough token, used for error messages.
-	lastFallthroughTokenPos ast.Position
 }
 
 // next returns the next token from the lexer. Panics if the lexer channel is
@@ -270,13 +267,6 @@ TOKENS:
 						n.LeadingText = text
 					}
 					return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected text, expecting case of default or {%% end %%}")}
-				}
-				lastCase := n.Cases[len(n.Cases)-1]
-				if lastCase.Fallthrough {
-					if containsOnlySpaces(text.Text) {
-						continue
-					}
-					return nil, nil, &SyntaxError{"", p.lastFallthroughTokenPos, fmt.Errorf("fallthrough statement out of place")}
 				}
 			case *ast.TypeSwitch:
 				if len(n.Cases) == 0 {
@@ -592,7 +582,7 @@ LABEL:
 			expressions, tok = p.parseExprList(token{}, false, false, false)
 			pos.End = tok.pos.End
 			tok = p.parseEnd(tok, tokenColon)
-			node := ast.NewCase(pos, expressions, nil, false)
+			node := ast.NewCase(pos, expressions, nil)
 			p.addChild(node)
 		case *ast.Select:
 			expressions, tok = p.parseExprList(token{}, false, false, false)
@@ -634,7 +624,7 @@ LABEL:
 			tok = p.next()
 			pos.End = tok.pos.End
 			tok = p.parseEnd(tok, tokenColon)
-			node := ast.NewCase(pos, nil, nil, false)
+			node := ast.NewCase(pos, nil, nil)
 			p.addChild(node)
 			p.cutSpacesToken = true
 		case *ast.Select:
@@ -650,26 +640,11 @@ LABEL:
 
 	// fallthrough
 	case tokenFallthrough:
-		// TODO (Gianluca): fallthrough must be implemented as an ast node.
-		p.lastFallthroughTokenPos = *tok.pos
-		tok2 := p.next()
-		tok = p.parseEnd(tok2, tokenSemicolon)
-		switch s := parent.(type) {
-		case *ast.Switch:
-			lastCase := s.Cases[len(s.Cases)-1]
-			// TODO (Gianluca): move this check to type-checker:
-			if lastCase.Fallthrough {
-				panic(&SyntaxError{"", *tok2.pos, fmt.Errorf("fallthrough statement out of place")})
-			}
-			lastCase.Fallthrough = true
-		case *ast.TypeSwitch:
-			// TODO (Gianluca): move this check to type-checker:
-			panic(&SyntaxError{"", *tok2.pos, fmt.Errorf("cannot fallthrough in type switch")})
-		default:
-			// TODO (Gianluca): move this check to type-checker:
-			panic(&SyntaxError{"", *tok2.pos, fmt.Errorf("fallthrough statement out of place")})
-		}
-		pos.End = tok2.pos.End
+		tok = p.next()
+		pos.End = tok.pos.End
+		tok = p.parseEnd(tok, tokenSemicolon)
+		node := ast.NewFallthrough(pos)
+		p.addChild(node)
 		p.cutSpacesToken = true
 
 	// select

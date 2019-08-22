@@ -149,7 +149,9 @@ func CloneNode(node ast.Node) ast.Node {
 				body[i] = CloneNode(node)
 			}
 		}
-		return ast.NewCase(ClonePosition(n.Position), expressions, body, n.Fallthrough)
+		return ast.NewCase(ClonePosition(n.Position), expressions, body)
+	case *ast.Fallthrough:
+		return ast.NewFallthrough(ClonePosition(n.Position))
 	case *ast.Select:
 		var text *ast.Text
 		if n.LeadingText != nil {
