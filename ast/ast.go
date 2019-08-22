@@ -1309,6 +1309,10 @@ func NewPlaceholder() *Placeholder {
 	return &Placeholder{expression{}, nil}
 }
 
+func (n *Placeholder) String() string {
+	return "[Placeholder]"
+}
+
 // Send node represents a send statement.
 type Send struct {
 	*Position            // position in the source.
