@@ -632,9 +632,6 @@ func (vm *VM) run() (uint32, bool) {
 				cond = vm.general(a) == nil
 			case ConditionNil, ConditionNotNil:
 				switch v := vm.general(a).(type) {
-				case nil:
-					// TODO(Gianluca): remove when ConditionInterfaceNil has been implemented.
-					cond = v == nil
 				case []int:
 					cond = v == nil
 				case []string:
@@ -1651,9 +1648,7 @@ func (vm *VM) run() (uint32, bool) {
 				k = int(vm.intk(next.C, kConst))
 			}
 			if i < 0 || j < i || k < j || k > sCap {
-				// TODO(Gianluca): runtime errors of kind 'slice bounds out of
-				// range' have several combinations of error messages in go1.13.
-				// Wait for a stable release and handle them here.
+				// https://github.com/open2b/scriggo/issues/321
 				panic(runtimeError("runtime error: slice bounds out of range"))
 			}
 			s = s.Slice3(i, j, k)
