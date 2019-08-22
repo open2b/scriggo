@@ -73,24 +73,23 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	}
 	body := ast.NewBlock(tok.pos, nil)
 	node := ast.NewFunc(pos, ident, typ, body)
-	p.ancestors = append(p.ancestors, node, body)
+	p.addToAncestors(node)
+	p.addToAncestors(body)
 	depth := len(p.ancestors)
 	isTemplate := p.isTemplate
 	p.isTemplate = false
 	tok = p.next()
 	for {
 		if tok.typ == tokenRightBraces {
-			parent := p.ancestors[len(p.ancestors)-1]
-			if _, ok := parent.(*ast.Label); ok {
-				p.ancestors = p.ancestors[:len(p.ancestors)-1]
+			if _, ok := p.parent().(*ast.Label); ok {
+				p.removeLastAncestor()
 			}
 			if len(p.ancestors) == depth {
 				break
 			}
 		}
 		if tok.typ == tokenEOF {
-			parent := p.ancestors[len(p.ancestors)-1]
-			if _, ok := parent.(*ast.Label); ok {
+			if _, ok := p.parent().(*ast.Label); ok {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("missing statement after label")})
 			}
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting }")})
@@ -99,7 +98,8 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	}
 	body.Position.End = tok.pos.End
 	node.Position.End = tok.pos.End
-	p.ancestors = p.ancestors[:len(p.ancestors)-2]
+	p.removeLastAncestor()
+	p.removeLastAncestor()
 	p.isTemplate = isTemplate
 	return node, token{}
 }
