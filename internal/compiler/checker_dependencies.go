@@ -255,6 +255,8 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 		return nodeDeps(n.Call, scopes)
 	case *ast.Extends:
 		return nil
+	case *ast.Fallthrough:
+		return nil
 	case *ast.For:
 		scopes = enterScope(scopes)
 		deps := nodeDeps(n.Init, scopes)
