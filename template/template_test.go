@@ -104,7 +104,7 @@ var rendererExprTests = []struct {
 	// {`interface{}((5.5)).(float64)`, "5.5", nil},
 	// {`interface{}('a').(rune)`, "97", nil},
 	// {`interface{}(a).(bool)`, "true", Vars{"a": true}},
-	// {`interface{}(a).(error)`, "err", Vars{"a": errors.New("err")}}, // TODO (Gianluca): see https://github.com/open2b/scriggo/issues/64.
+	// {`interface{}(a).(error)`, "err", Vars{"a": errors.New("err")}}, // https://github.com/open2b/scriggo/issues/64.
 
 	// slice
 	// {"[]int{-3}[0]", "-3", nil},
@@ -200,7 +200,7 @@ var rendererExprTests = []struct {
 	// {`a != "<b>"`, "false", Vars{"a": "<b>"}},
 	// {`a != "<b>"`, "false", Vars{"a": HTML("<b>")}},
 
-	// TODO (Gianluca): see issue https://github.com/open2b/scriggo/issues/177.
+	// https://github.com/open2b/scriggo/issues/177.
 	// {"[]interface{}{} == nil", "false", nil},
 	// {"[]byte{} == nil", "false", nil},
 
@@ -496,7 +496,7 @@ var rendererStmtTests = []struct {
 	// slice
 	// {`{% if _, ok := interface{}([]int{1,2,3}).([]int); ok %}ok{% end %}`, "ok", nil},
 	// {`{% if _, ok := interface{}([]interface{}(a)).([]interface{}); ok %}ok{% end %}`, "ok", Vars{"a": []interface{}{}}},
-	// {`{% if []interface{}(a) != nil %}ok{% end %}`, "ok", Vars{"a": []interface{}{}}}, // TODO (Gianluca): see https://github.com/open2b/scriggo/issues/63.
+	// {`{% if []interface{}(a) != nil %}ok{% end %}`, "ok", Vars{"a": []interface{}{}}}, // TODO (Gianluca): https://github.com/open2b/scriggo/issues/63.
 }
 
 func TestRenderStatements(t *testing.T) {

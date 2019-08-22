@@ -29,7 +29,7 @@ func main() {
 
 	i = 2
 	x = []int{3, 5, 7}
-	// TODO(Gianluca): see https://github.com/open2b/scriggo/issues/182.
+	// https://github.com/open2b/scriggo/issues/182.
 	// for i, x[i] = range x {
 	// 	break
 	// }

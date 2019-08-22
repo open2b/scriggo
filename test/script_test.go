@@ -127,7 +127,7 @@ var scriptCases = map[string]struct {
 		out: "45",
 	},
 
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/317
+	// https://github.com/open2b/scriggo/issues/317
 	// "Function definitions": {
 	// 	src: `
 	// 	func F() {

@@ -106,7 +106,7 @@ func testfloat() {
 		}
 	}
 
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/172
+	// https://github.com/open2b/scriggo/issues/172
 	// {
 	// 	var (
 	// 		pz   = complex64(0)

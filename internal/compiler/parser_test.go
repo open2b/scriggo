@@ -1868,7 +1868,7 @@ func equals(n1, n2 ast.Node, p int) error {
 			if err != nil {
 				return fmt.Errorf("struct type: field %d: %s", i, err)
 			}
-			// TODO(Gianluca): test tags when implemented: https://github.com/open2b/scriggo/issues/61.
+			// https://github.com/open2b/scriggo/issues/61.
 		}
 
 	case *ast.TypeDeclaration:

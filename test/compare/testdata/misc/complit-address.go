@@ -9,7 +9,7 @@ import (
 func main() {
 
 	// Arrays.
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/313
+	// https://github.com/open2b/scriggo/issues/313
 	// a1 := &[3]int{}
 	// fmt.Println(a1)
 

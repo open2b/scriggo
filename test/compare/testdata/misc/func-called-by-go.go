@@ -29,6 +29,7 @@ func main() {
 		fmt.Printf("%T %d\n", s[0], s[0](3))
 	}
 	{
+		// https://github.com/open2b/scriggo/issues/320
 		var s = make([]interface{}, 1)
 		s[0] = func(x int) int { return x + 1 }
 		// TODO: the type assertion fails.

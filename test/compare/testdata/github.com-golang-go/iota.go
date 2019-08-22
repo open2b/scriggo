@@ -113,7 +113,7 @@ func main() {
 	assert(s == "a", "s")
 	assert(t == "b", "t")
 
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/209
+	// https://github.com/open2b/scriggo/issues/209
 	// assert(abit == 1, "abit")
 	// assert(amask == 0, "amask")
 	// assert(bbit == 2, "bbit")

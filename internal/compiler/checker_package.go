@@ -155,7 +155,7 @@ func detectVarsLoop(vars []*ast.Var, deps PackageDeclsDeps) error {
 func detectTypeLoop(types []*ast.TypeDeclaration, deps PackageDeclsDeps) error {
 	for _, t := range types {
 		if !t.IsAliasDeclaration {
-			// TODO(Gianluca): type definition https://github.com/open2b/scriggo/issues/194
+			// https://github.com/open2b/scriggo/issues/194
 			panic("type definition currently not supported")
 		}
 		path := []*ast.Identifier{t.Identifier}
@@ -610,7 +610,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 
 	if !tc.opts.AllowNotUsed {
 		for pkg := range tc.unusedImports {
-			// TODO(Gianluca): position is wrong: https://github.com/open2b/scriggo/issues/309.
+			// https://github.com/open2b/scriggo/issues/309.
 			return tc.errorf(new(ast.Position), "imported and not used: \"%s\"", pkg)
 		}
 	}

@@ -201,7 +201,7 @@ const scriptSkel = `r, err := os.Open(absFile)
 		}
 		os.Exit(0)`
 
-// TODO(Gianluca): see https://github.com/open2b/scriggo/commit/4974dd3d69e1f66da40b068507ca50c91a69f7f2#r34270334.
+// https://github.com/open2b/scriggo/commit/4974dd3d69e1f66da40b068507ca50c91a69f7f2#r34270334.
 
 const templateSkel = `r := template.DirReader(filepath.Dir(absFile))
 		path := "/" + filepath.Base(absFile)

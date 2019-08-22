@@ -66,7 +66,7 @@ func testslice() {
 		println("wrong sum ranging over makeslice", s)
 		panic("fail")
 	}
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/182
+	// https://github.com/open2b/scriggo/issues/182
 	// x := []int{10, 20}
 	// y := []int{99}
 	// i := 1
