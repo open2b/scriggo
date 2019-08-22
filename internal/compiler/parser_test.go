@@ -1454,6 +1454,33 @@ func TestGoContextTrees(t *testing.T) {
 	}
 }
 
+var shebangTests = []struct {
+	src  string
+	shebang bool
+	err string
+}{
+	{"#! /usr/bin/scriggo", true, ""},
+	{"#! /usr/bin/scriggo\n=", true, ":2:1: syntax error: unexpected =, expecting for, if, show, extends, include, macro or end"},
+	{"a = 5\n#! /usr/bin/scriggo\n", true, ":2:1: syntax error: unexpected #"},
+	{"#! /usr/bin/scriggo", false, ":1:1: syntax error: illegal character U+0023 '#'"},
+}
+
+func TestShebang(t *testing.T) {
+	for _, test := range shebangTests {
+		_, err := ParseSource([]byte(test.src), true, test.shebang)
+		if err == nil {
+			if test.err != "" {
+				t.Errorf("source: %q, expected error %q, got nothing\n", test.src, test.err)
+			}
+		} else {
+			if err.Error() != test.err {
+				t.Errorf("source: %q, %s\n", test.src, err)
+			}
+			continue
+		}
+	}
+}
+
 func TestTrees(t *testing.T) {
 	for _, tree := range treeTests {
 		node, _, err := ParseTemplateSource([]byte(tree.src), ast.ContextHTML)

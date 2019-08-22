@@ -209,6 +209,9 @@ var typeTestsGoContext = map[string][]tokenTyp{
 	"type Int int":                        {tokenType, tokenIdentifier, tokenIdentifier, tokenSemicolon},
 	"type stringSlice []string":           {tokenType, tokenIdentifier, tokenLeftBrackets, tokenRightBrackets, tokenIdentifier, tokenSemicolon},
 	"struct { A, B T1 ; C, D T2 }":        {tokenStruct, tokenLeftBraces, tokenIdentifier, tokenComma, tokenIdentifier, tokenIdentifier, tokenSemicolon, tokenIdentifier, tokenComma, tokenIdentifier, tokenIdentifier, tokenRightBraces, tokenSemicolon},
+	"#! /usr/bin/scriggo\nvar a":          {tokenShebangLine, tokenVar, tokenIdentifier, tokenSemicolon},
+	"#! /usr/bin/scriggo":                 {tokenShebangLine},
+	"#! /usr/bin/scriggo\n":               {tokenShebangLine},
 }
 
 var contextTests = map[ast.Context]map[string][]ast.Context{
