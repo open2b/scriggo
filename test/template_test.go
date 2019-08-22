@@ -194,11 +194,10 @@ var templateCases = map[string]struct {
 		out: `ok`,
 	},
 
-	// TODO(Gianluca): reflect: call of reflect.Value.Len on struct Value
-	//"Macro definition and show-macro variadic": {
-	//	src: `{% macro M(v ...int) %}{% for _ , i := range v %}{{ i }}{% end for %}{% end macro %}{% show M([]int{1,2,3}...) %}`,
-	//	out: `123`,
-	//},
+	"Macro definition and show-macro variadic": {
+		src: `{% macro M(v ...int) %}{% for _ , i := range v %}{{ i }}{% end for %}{% end macro %}{% show M([]int{1,2,3}...) %}`,
+		out: `123`,
+	},
 
 	"Template builtin - title": {
 		src: `{% s := "hello, world" %}{{ s }} converted to title is {{ title(s) }}`,
