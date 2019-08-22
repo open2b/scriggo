@@ -1346,15 +1346,6 @@ var treeTests = []struct {
 			nil,
 		),
 	}, ast.ContextHTML)},
-	{"{% if x == 5 %}{% end %}",
-		ast.NewTree("", []ast.Node{
-			ast.NewIf(&ast.Position{Line: 1, Column: 1, Start: 0, End: 23}, nil,
-				ast.NewBinaryOperator(p(1, 9, 6, 11),
-					ast.OperatorEqual,
-					ast.NewIdentifier(p(1, 7, 6, 6), "x"),
-					ast.NewBasicLiteral(p(1, 12, 11, 11), ast.IntLiteral, "5"),
-				), nil, nil),
-		}, ast.ContextHTML)},
 	{"{% extends \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtends(p(1, 1, 0, 19), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% include \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewInclude(p(1, 1, 0, 19), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% extends \"a.e\" %}{% macro b %}c{% end macro %}", ast.NewTree("", []ast.Node{
