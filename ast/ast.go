@@ -915,8 +915,8 @@ type StructType struct {
 }
 
 // NewStructType returns a new StructType node.
-func NewStructType(pos *Position, fieldDecl []*Field) *StructType {
-	return &StructType{expression{}, pos, fieldDecl}
+func NewStructType(pos *Position, fields []*Field) *StructType {
+	return &StructType{expression{}, pos, fields}
 }
 
 func (st *StructType) String() string {
