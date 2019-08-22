@@ -2122,7 +2122,7 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 		if len(cas.Expressions) == 1 {
 			// If the type switch has an assignment, assign to the variable
 			// using the type of the case.
-			if len(node.Assignment.Lhs) == 1 {
+			if len(node.Assignment.Lhs) == 1 && !em.ti(cas.Expressions[0]).Nil() {
 				ta := ast.NewTypeAssertion(nil, typeAssertion.Expr, cas.Expressions[0])
 				em.typeInfos[ta] = &TypeInfo{
 					Type: em.ti(cas.Expressions[0]).Type,
@@ -2154,10 +2154,11 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 		}
 		for _, caseExpr := range cas.Expressions {
 			if em.ti(caseExpr).Nil() {
-				panic("TODO(Gianluca): not implemented")
+				em.fb.emitIf(false, expr, vm.ConditionInterfaceNil, 0, reflect.Interface)
+			} else {
+				caseType := em.ti(caseExpr).Type
+				em.fb.emitAssert(expr, caseType, 0)
 			}
-			caseType := em.ti(caseExpr).Type
-			em.fb.emitAssert(expr, caseType, 0)
 			next := em.fb.newLabel()
 			em.fb.emitGoto(next)
 			em.fb.emitGoto(bodyLabels[i])
