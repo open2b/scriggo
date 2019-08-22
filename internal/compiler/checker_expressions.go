@@ -1864,6 +1864,9 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		c, err := convert(arg, t.Type)
 		if err != nil {
 			if err == errTypeConversion {
+				if arg.Nil() {
+					panic(tc.errorf(expr, "cannot convert nil to type %s", t.Type))
+				}
 				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", expr.Args[0], arg.Type, t.Type))
 			}
 			panic(tc.errorf(expr, "%s", err))

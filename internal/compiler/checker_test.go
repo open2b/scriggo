@@ -1178,7 +1178,7 @@ var checkerStmts = map[string]string{
 	// Conversions.
 	`int()`:     `missing argument to conversion to int: int()`,
 	`int(0, 0)`: `too many arguments to conversion to int: int(0, 0)`,
-	// `int(nil)`:  `cannot convert nil to type int`, // TODO
+	`int(nil)`:  `cannot convert nil to type int`,
 	// `float64("a")`: `cannot convert "a" (type untyped string) to type float64`, // TODO
 
 	// Function calls.
