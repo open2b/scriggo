@@ -204,49 +204,11 @@ func cmd(stdin []byte, args ...string) (int, []byte, []byte) {
 
 // errorcheck run test with mode 'errorcheck' on the given source code.
 func errorcheck(src []byte, ext string) {
-	type stmt struct {
-		line string
-		err  *string
-	}
-	stmts := []stmt{}
-	errorLines := []int{}
-	for i, l := range strings.Split(string(src), "\n") {
-		if index := strings.Index(l, "// ERROR "); index != -1 {
-			err := l[index:]
-			err = strings.TrimPrefix(err, "// ERROR ")
-			err = strings.TrimSpace(err)
-			if strings.HasPrefix(err, `"`) && strings.HasSuffix(err, `"`) {
-				err = strings.TrimPrefix(err, `"`)
-				err = strings.TrimSuffix(err, `"`)
-			} else if strings.HasPrefix(err, "`") && strings.HasSuffix(err, "`") {
-				err = strings.TrimPrefix(err, "`")
-				err = strings.TrimSuffix(err, "`")
-				err = regexp.QuoteMeta(err)
-			} else {
-				panic(fmt.Errorf("expected error must be followed by a string encapsulated in backticks (`) or double quotation marks (\"): %s", err))
-			}
-			stmts = append(stmts, stmt{line: l[:index], err: &err})
-			errorLines = append(errorLines, i)
-		} else {
-			stmts = append(stmts, stmt{line: l, err: nil})
-		}
-	}
-	if len(errorLines) == 0 {
+	tests := differentiateSources(string(src))
+	if len(tests) == 0 {
 		panic("no // ERROR comments found")
 	}
-	for _, errorLine := range errorLines {
-		cleanSrc := &bytes.Buffer{}
-		var expectedErr string
-		for stmtLine, stmt := range stmts {
-			if stmt.err == nil {
-				cleanSrc.WriteString(stmt.line + "\n")
-			} else {
-				if stmtLine == errorLine {
-					expectedErr = *stmt.err
-					cleanSrc.WriteString(stmt.line + "\n")
-				}
-			}
-		}
+	for _, test := range tests {
 		// Get output from program/script/templates and check if it matches with
 		// expected error.
 		arg := map[string]string{
@@ -254,7 +216,7 @@ func errorcheck(src []byte, ext string) {
 			".sgo":  "run script",
 			".html": "render html",
 		}[ext]
-		exitCode, stdout, stderr := cmd(cleanSrc.Bytes(), arg)
+		exitCode, stdout, stderr := cmd([]byte(test.src), arg)
 		if exitCode == 0 {
 			panic("expecting error but exit code is 0")
 		}
@@ -264,9 +226,9 @@ func errorcheck(src []byte, ext string) {
 		if len(stderr) == 0 {
 			panic("expected error, got nothing")
 		}
-		re := regexp.MustCompile(expectedErr)
+		re := regexp.MustCompile(test.err)
 		if !re.Match(stderr) {
-			panic(fmt.Errorf("error does not match:\n\n\texpecting:  %s\n\tgot:        %s", expectedErr, stderr))
+			panic(fmt.Errorf("error does not match:\n\n\texpecting:  %s\n\tgot:        %s", test.err, stderr))
 		}
 	}
 }
