@@ -471,10 +471,6 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 
 	// Defines functions in file/package block before checking all
 	// declarations.
-	//
-	// TODO(Gianluca): what happens if a function parameter type refer to an
-	// imported type? Consider checking all imports before checking functions.
-	//
 	for _, d := range packageNode.Declarations {
 		if f, ok := d.(*ast.Func); ok {
 			if f.Ident.Name == "init" || f.Ident.Name == "main" {
@@ -522,12 +518,12 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 					if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
 						return tc.programImportError(d)
 					}
-					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, pkgInfos, opts, tc.globalScope) // TODO(Gianluca): where are deps?
+					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, pkgInfos, opts, tc.globalScope)
 				} else {
 					if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
 						return tc.programImportError(d)
 					}
-					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, pkgInfos, opts, tc.globalScope) // TODO(Gianluca): where are deps?
+					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, pkgInfos, opts, tc.globalScope)
 				}
 				importedPkg = pkgInfos[d.Tree.Path]
 				if err != nil {

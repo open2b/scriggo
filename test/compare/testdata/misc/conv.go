@@ -160,5 +160,5 @@ func main() {
 	assert(float32(if5) == 40, "int8 -> float32")
 
 	// 3.b. Converting a complex type to another complex type.
-	// TODO(Gianluca).
+	// TODO(Gianluca): wait for https://github.com/open2b/scriggo/issues/172.
 }
