@@ -262,7 +262,6 @@ TOKENS:
 			switch n := parent.(type) {
 			case *ast.Switch:
 				if len(n.Cases) == 0 {
-					// TODO (Gianluca): this "if" should be moved before the switch that precedes it.
 					if containsOnlySpaces(text.Text) {
 						n.LeadingText = text
 					}
@@ -270,7 +269,6 @@ TOKENS:
 				}
 			case *ast.TypeSwitch:
 				if len(n.Cases) == 0 {
-					// TODO (Gianluca): this "if" should be moved before the switch that precedes it.
 					if containsOnlySpaces(text.Text) {
 						n.LeadingText = text
 					}
@@ -278,7 +276,6 @@ TOKENS:
 				}
 			case *ast.Select:
 				if len(n.Cases) == 0 {
-					// TODO (Gianluca): this "if" should be moved before the switch that precedes it.
 					if containsOnlySpaces(text.Text) {
 						n.LeadingText = text
 					}
