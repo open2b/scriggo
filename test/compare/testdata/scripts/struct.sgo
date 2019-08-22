@@ -18,8 +18,7 @@ s3 := struct {
 }{
 	A: 10,
 	b: 20,
-	// TODO(Gianluca):
-	// C: nil,
+	C: nil,
 	d: []int{5,6,7},
 }
 fmt.Printf("%#v\n", s3)

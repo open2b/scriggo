@@ -2126,7 +2126,12 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					}
 					panic(tc.errorf(node, "%s", err))
 				}
-				valueTi.setValue(fieldTi.Type)
+				if valueTi.Nil() {
+					valueTi = nilOf(fieldTi.Type)
+					tc.typeInfos[keyValue.Value] = valueTi
+				} else {
+					valueTi.setValue(fieldTi.Type)
+				}
 				ident.Name = newName
 			}
 		case false: // struct with implicit fields.
@@ -2155,7 +2160,12 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					panic(tc.errorf(node, "implicit assignment of unexported field '%s' in %v", fieldTi.Name, node))
 				}
 				keyValue.Key = ast.NewIdentifier(nil, fieldTi.Name)
-				valueTi.setValue(fieldTi.Type)
+				if valueTi.Nil() {
+					valueTi = nilOf(fieldTi.Type)
+					tc.typeInfos[keyValue.Value] = valueTi
+				} else {
+					valueTi.setValue(fieldTi.Type)
+				}
 			}
 		}
 
@@ -2190,7 +2200,12 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				}
 				panic(tc.errorf(node, "%s", err))
 			}
-			elemTi.setValue(ti.Type.Elem())
+			if elemTi.Nil() {
+				elemTi = nilOf(ti.Type.Elem())
+				tc.typeInfos[kv.Value] = elemTi
+			} else {
+				elemTi.setValue(ti.Type.Elem())
+			}
 		}
 
 	case reflect.Slice:
@@ -2227,7 +2242,12 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				}
 				panic(tc.errorf(node, "%s", err))
 			}
-			elemTi.setValue(ti.Type.Elem())
+			if elemTi.Nil() {
+				elemTi = nilOf(ti.Type.Elem())
+				tc.typeInfos[kv.Value] = elemTi
+			} else {
+				elemTi.setValue(ti.Type.Elem())
+			}
 		}
 
 	case reflect.Map:
