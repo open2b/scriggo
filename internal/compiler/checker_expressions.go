@@ -1101,20 +1101,6 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			}
 			return method
 		}
-		// TODO(Gianluca): is discriminating pointers necessary?
-		// // t is a pointer.
-		// if t.Type.Kind() == reflect.Ptr {
-		// 	method, _, ok := methodByName(t, expr.Ident)
-		// 	if ok {
-		// 		return method
-		// 	}
-		// 	field, ok := fieldByName(t, expr.Ident)
-		// 	if ok {
-		// 		return field
-		// 	}
-		// 	panic(tc.errorf(expr, "%v undefined (type %s has no field or method %s)", expr, t, expr.Ident))
-		// }
-		// regular case.
 		method, trans, ok := methodByName(t, expr.Ident)
 		if ok {
 			switch trans {
