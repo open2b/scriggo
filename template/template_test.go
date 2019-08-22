@@ -302,7 +302,6 @@ var rendererStmtTests = []struct {
 	expected string
 	globals  Vars
 }{
-	// TODO (Gianluca): decomment commented tests.
 	{"{% if true %}ok{% else %}no{% end %}", "ok", nil},
 	{"{% if false %}no{% else %}ok{% end %}", "ok", nil},
 	{"{% if a := true; a %}ok{% else %}no{% end %}", "ok", nil},
@@ -334,8 +333,7 @@ var rendererStmtTests = []struct {
 	// {"{% b := map[interface{}]interface{}{5.2: true} %}{% if a, ok := b[5.2]; ok %}ok{% else %}no{% end %}", "ok", nil},
 	// {"{% b := map[interface{}]interface{}{5: true} %}{% if a, ok := b[5]; ok %}ok{% else %}no{% end %}", "ok", nil},
 	// {"{% b := map[interface{}]interface{}{true: true} %}{% if a, ok := b[true]; ok %}ok{% else %}no{% end %}", "ok", nil},
-	// TODO (Gianluca): see issue #100.
-	// {"{% b := map[interface{}]interface{}{nil: true} %}{% if a, ok := b[nil]; ok %}ok{% else %}no{% end %}", "ok", nil},
+	{"{% b := map[interface{}]interface{}{nil: true} %}{% if a, ok := b[nil]; ok %}ok{% else %}no{% end %}", "ok", nil},
 	// {"{% a := 5 %}{% if true %}{% a = 7 %}{{ a }}{% end %}", "7", nil},
 	// {"{% a := 5 %}{% if true %}{% a := 7 %}{{ a }}{% end %}", "7", nil},
 	// {"{% a := 5 %}{% if true %}{% a := 7 %}{% a = 9 %}{{ a }}{% end %}", "9", nil},

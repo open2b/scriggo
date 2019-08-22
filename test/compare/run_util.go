@@ -49,7 +49,6 @@ type errorcheckTest struct {
 	err string
 }
 
-// TODO(Gianluca): accept a []byte instead of a string?
 func differentiateSources(src string) []errorcheckTest {
 	errLines := linesWithError(src)
 	tests := []errorcheckTest{}

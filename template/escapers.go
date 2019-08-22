@@ -16,8 +16,6 @@ import (
 
 const hexchars = "0123456789abcdef"
 
-// TODO(Gianluca): this definition is a copy-paste from "value.go", which has
-// been excluded from building. See "value.go" for further details.
 type strWriter interface {
 	Write(b []byte) (int, error)
 	WriteString(s string) (int, error)

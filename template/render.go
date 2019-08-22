@@ -41,8 +41,6 @@ type ValueRenderer interface {
 // Render renders value in the context ctx and writes to out.
 func render(_ *vm.Env, out io.Writer, value interface{}, ctx Context) {
 
-	// TODO: pass url state to render.
-
 	if e, ok := value.(ValueRenderer); ok {
 		err := e.Render(out, ctx)
 		if err != nil {

@@ -1667,9 +1667,7 @@ func (vm *VM) run() (uint32, bool) {
 				j = int(vm.intk(next.B, jConst))
 			}
 			if i < 0 || j < i || j > len(s) {
-				// TODO(Gianluca): runtime errors of kind 'slice bounds out of
-				// range' have several combinations of error messages in go1.13.
-				// Wait for a stable release and handle them here.
+				// https://github.com/open2b/scriggo/issues/321
 				panic(runtimeError("runtime error: slice bounds out of range"))
 			}
 			vm.setString(c, s[i:j])
