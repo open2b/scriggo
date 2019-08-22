@@ -51,13 +51,30 @@ var (
 // SyntaxError records a parsing error with the path and the position where the
 // error occurred.
 type SyntaxError struct {
-	Path string
-	Pos  ast.Position
-	Err  error
+	path string
+	pos  ast.Position
+	msg  string
 }
 
+// Error returns a string representing the syntax error.
 func (e *SyntaxError) Error() string {
-	return fmt.Sprintf("%s:%s: syntax error: %s", e.Path, e.Pos, e.Err)
+	return fmt.Sprintf("%s:%s: syntax error: %s", e.path, e.pos, e.msg)
+}
+
+// Path returns the path of the syntax error.
+func (e *SyntaxError) Path() string {
+	return e.path
+}
+
+// Position returns the position of the syntax error.
+func (e *SyntaxError) Position() ast.Position {
+	return e.pos
+}
+
+// syntaxError returns a SyntaxError error with position pos and message
+// formatted according the given format.
+func syntaxError(pos *ast.Position, format string, a ...interface{}) *SyntaxError {
+	return &SyntaxError{"", *pos, fmt.Sprintf(format, a...)}
 }
 
 // cycleError implements an error indicating the presence of a cycle.
@@ -130,10 +147,6 @@ func (p *parsing) next() token {
 		panic(p.lex.err)
 	}
 	return tok
-}
-
-func syntaxError(pos *ast.Position, format string, a ...interface{}) *SyntaxError {
-	return &SyntaxError{"", *pos, fmt.Errorf(format, a...)}
 }
 
 // ParseSource parses a program or script and returns its tree. isScript

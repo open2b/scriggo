@@ -8,7 +8,6 @@ package compiler
 
 import (
 	"bytes"
-	"fmt"
 	"unicode"
 	"unicode/utf8"
 
@@ -58,17 +57,14 @@ func (l *lexer) newline() {
 	l.column = 1
 }
 
-func (l *lexer) errorf(format string, args ...interface{}) *SyntaxError {
-	return &SyntaxError{
-		Path: "",
-		Pos: ast.Position{
-			Line:   l.line,
-			Column: l.column,
-			Start:  len(l.text) - len(l.src),
-			End:    len(l.text) - len(l.src),
-		},
-		Err: fmt.Errorf(format, args...),
+func (l *lexer) errorf(format string, a ...interface{}) *SyntaxError {
+	pos := ast.Position{
+		Line:   l.line,
+		Column: l.column,
+		Start:  len(l.text) - len(l.src),
+		End:    len(l.text) - len(l.src),
 	}
+	return syntaxError(&pos, format, a...)
 }
 
 // emit emits a token of type typ and length length at the current line and

@@ -1152,7 +1152,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			// 		for i := range call.Args {
 			// 			em.changeRegister(false, tmpRegs[i], paramPosition[i], tmpTypes[i], em.TypeInfo[call.Func].Type.In(i))
 			// 		}
-			// 		em.FB.TailCall(vm.CurrentFunction, node.Pos().Line)
+			// 		em.FB.TailCall(vm.CurrentFunction, node.pos().Line)
 			// 		continue
 			// 	}
 			// }

@@ -42,8 +42,8 @@ func ParseTemplate(path string, reader Reader, ctx ast.Context) (*ast.Tree, erro
 
 	tree, err := pp.parsePath(path, ctx)
 	if err != nil {
-		if err2, ok := err.(*SyntaxError); ok && err2.Path == "" {
-			err2.Path = path
+		if err2, ok := err.(*SyntaxError); ok && err2.path == "" {
+			err2.path = path
 		} else if err2, ok := err.(cycleError); ok {
 			err = cycleError(path + "\n\t" + string(err2))
 		}
@@ -102,7 +102,7 @@ func (pp *templateExpansion) parsePath(path string, ctx ast.Context) (*ast.Tree,
 	tree, _, err := ParseTemplateSource(src, ctx)
 	if err != nil {
 		if se, ok := err.(*SyntaxError); ok {
-			se.Path = path
+			se.path = path
 		}
 		return nil, err
 	}
@@ -112,8 +112,8 @@ func (pp *templateExpansion) parsePath(path string, ctx ast.Context) (*ast.Tree,
 	pp.paths = append(pp.paths, path)
 	err = pp.expand(tree.Nodes, ctx)
 	if err != nil {
-		if e, ok := err.(*SyntaxError); ok && e.Path == "" {
-			e.Path = path
+		if e, ok := err.(*SyntaxError); ok && e.path == "" {
+			e.path = path
 		}
 		return nil, err
 	}
