@@ -107,7 +107,13 @@ func (d deps) analyzeGlobalFunc(n *ast.Func) {
 
 // analyzeGlobalMacro analyzes a global macro declaration.
 func (d deps) analyzeGlobalMacro(n *ast.Macro) {
-	// TODO(Gianluca): macro arguments should be declared locally.
+	scopes := depScopes{map[string]struct{}{}}
+	for _, f := range n.Type.Parameters {
+		if f.Ident != nil {
+			scopes = declareLocally(scopes, f.Ident.Name)
+		}
+	}
+	d.addDepsToGlobal(n.Ident, n.Type, scopes)
 	d.addDepsToGlobal(n.Ident, n.Type, nil)
 	for _, node := range n.Body {
 		d.addDepsToGlobal(n.Ident, node, nil)
