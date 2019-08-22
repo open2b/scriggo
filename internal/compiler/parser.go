@@ -1463,6 +1463,7 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 		} else {
 			values = make([]ast.Expression, 1)
 			values[0], tok = p.parseExpr(token{}, false, false, false)
+			pos.End = values[0].Pos().End
 		}
 	}
 	return ast.NewAssignment(pos, variables, typ, values), tok
