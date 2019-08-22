@@ -191,7 +191,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			tok = p.next()
 			if tok.typ != tokenRightBraces {
 				for {
-					fieldDecl := ast.NewFieldDecl(nil, nil, nil)
+					fieldDecl := ast.NewField(nil, nil, nil)
 					var exprs []ast.Expression
 					var typ ast.Expression
 					exprs, tok = p.parseExprList(tok, false, true, false)

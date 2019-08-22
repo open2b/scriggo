@@ -413,8 +413,8 @@ var goContextTreeTests = []struct {
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(
 				p(1, 1, 0, 15),
-				[]*ast.FieldDecl{
-					ast.NewFieldDecl(
+				[]*ast.Field{
+					ast.NewField(
 						[]*ast.Identifier{
 							ast.NewIdentifier(p(1, 10, 9, 9), "A"),
 						},
@@ -428,8 +428,8 @@ var goContextTreeTests = []struct {
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(
 				p(1, 1, 0, 17),
-				[]*ast.FieldDecl{
-					ast.NewFieldDecl(
+				[]*ast.Field{
+					ast.NewField(
 						[]*ast.Identifier{
 							ast.NewIdentifier(p(1, 10, 9, 9), "A"),
 						},
@@ -446,15 +446,15 @@ var goContextTreeTests = []struct {
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(
 				p(1, 1, 0, 28),
-				[]*ast.FieldDecl{
-					ast.NewFieldDecl(
+				[]*ast.Field{
+					ast.NewField(
 						[]*ast.Identifier{
 							ast.NewIdentifier(p(1, 10, 9, 9), "A"),
 						},
 						ast.NewStructType(
 							p(1, 12, 11, 26),
-							[]*ast.FieldDecl{
-								ast.NewFieldDecl(
+							[]*ast.Field{
+								ast.NewField(
 									[]*ast.Identifier{
 										ast.NewIdentifier(p(1, 21, 20, 20), "C"),
 									},
@@ -472,8 +472,8 @@ var goContextTreeTests = []struct {
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(
 				p(1, 1, 0, 18),
-				[]*ast.FieldDecl{
-					ast.NewFieldDecl(
+				[]*ast.Field{
+					ast.NewField(
 						[]*ast.Identifier{
 							ast.NewIdentifier(p(1, 10, 9, 9), "A"),
 							ast.NewIdentifier(p(1, 13, 12, 12), "B"),
@@ -488,8 +488,8 @@ var goContextTreeTests = []struct {
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(
 				p(1, 1, 0, 32),
-				[]*ast.FieldDecl{
-					ast.NewFieldDecl(
+				[]*ast.Field{
+					ast.NewField(
 						[]*ast.Identifier{
 							ast.NewIdentifier(p(1, 10, 9, 9), "A"),
 							ast.NewIdentifier(p(1, 13, 12, 12), "B"),
@@ -497,7 +497,7 @@ var goContextTreeTests = []struct {
 						ast.NewIdentifier(p(1, 15, 14, 16), "int"),
 						nil,
 					),
-					ast.NewFieldDecl(
+					ast.NewField(
 						[]*ast.Identifier{
 							ast.NewIdentifier(p(1, 21, 20, 20), "C"),
 							ast.NewIdentifier(p(1, 24, 23, 23), "D"),
@@ -512,20 +512,20 @@ var goContextTreeTests = []struct {
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(
 				p(1, 1, 0, 24),
-				[]*ast.FieldDecl{
-					ast.NewFieldDecl(
+				[]*ast.Field{
+					ast.NewField(
 						[]*ast.Identifier{
 							ast.NewIdentifier(p(1, 10, 9, 9), "A"),
 						},
 						ast.NewIdentifier(p(1, 12, 11, 13), "int"),
 						nil,
 					),
-					ast.NewFieldDecl(
+					ast.NewField(
 						nil,
 						ast.NewIdentifier(p(1, 18, 17, 17), "C"),
 						nil,
 					),
-					ast.NewFieldDecl(
+					ast.NewField(
 						nil,
 						ast.NewUnaryOperator(
 							p(1, 22, 21, 22),
@@ -543,8 +543,8 @@ var goContextTreeTests = []struct {
 				p(1, 17, 0, 24),
 				ast.NewStructType(
 					p(1, 1, 0, 15),
-					[]*ast.FieldDecl{
-						ast.NewFieldDecl(
+					[]*ast.Field{
+						ast.NewField(
 							[]*ast.Identifier{
 								ast.NewIdentifier(p(1, 10, 9, 9), "A"),
 							},

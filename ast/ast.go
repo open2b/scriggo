@@ -911,11 +911,11 @@ func (n *BinaryOperator) Precedence() int {
 type StructType struct {
 	expression
 	*Position
-	Fields []*FieldDecl
+	Fields []*Field
 }
 
 // NewStructType returns a new StructType node.
-func NewStructType(pos *Position, fieldDecl []*FieldDecl) *StructType {
+func NewStructType(pos *Position, fieldDecl []*Field) *StructType {
 	return &StructType{expression{}, pos, fieldDecl}
 }
 
@@ -931,21 +931,21 @@ func (st *StructType) String() string {
 	return s
 }
 
-// FieldDecl represents a field declaration in a struct type. A field
+// Field represents a field declaration in a struct type. A field
 // declaration can be explicit (having an identifier list and a type) or
 // implicit (having a type only).
-type FieldDecl struct {
+type Field struct {
 	IdentifierList []*Identifier // if nil is an embedded field.
 	Type           Expression
 	Tag            *string
 }
 
-// NewFieldDecl returns a new NewFieldDecl node.
-func NewFieldDecl(identifierList []*Identifier, typ Expression, tag *string) *FieldDecl {
-	return &FieldDecl{identifierList, typ, tag}
+// NewField returns a new NewField node.
+func NewField(identifierList []*Identifier, typ Expression, tag *string) *Field {
+	return &Field{identifierList, typ, tag}
 }
 
-func (fd *FieldDecl) String() string {
+func (fd *Field) String() string {
 	s := ""
 	for i, ident := range fd.IdentifierList {
 		s += ident.String()

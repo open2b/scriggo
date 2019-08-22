@@ -170,8 +170,8 @@ func TestStatementString(t *testing.T) {
 			"type StringSlice = []string",
 		},
 		{
-			NewStructType(nil, []*FieldDecl{
-				NewFieldDecl(
+			NewStructType(nil, []*Field{
+				NewField(
 					[]*Identifier{
 						NewIdentifier(nil, "a"),
 						NewIdentifier(nil, "b"),
@@ -179,14 +179,14 @@ func TestStatementString(t *testing.T) {
 					NewIdentifier(nil, "Int"),
 					nil,
 				),
-				NewFieldDecl(
+				NewField(
 					[]*Identifier{
 						NewIdentifier(nil, "c"),
 					},
 					NewIdentifier(nil, "String"),
 					nil,
 				),
-				NewFieldDecl(
+				NewField(
 					nil,
 					NewIdentifier(nil, "Implicit"),
 					nil,
@@ -195,8 +195,8 @@ func TestStatementString(t *testing.T) {
 			"struct { a, b Int; c String; Implicit }",
 		},
 		{
-			NewStructType(nil, []*FieldDecl{
-				NewFieldDecl(
+			NewStructType(nil, []*Field{
+				NewField(
 					[]*Identifier{
 						NewIdentifier(nil, "a"),
 						NewIdentifier(nil, "b"),
@@ -204,14 +204,14 @@ func TestStatementString(t *testing.T) {
 					NewIdentifier(nil, "Int"),
 					ptrToStr("tag1"),
 				),
-				NewFieldDecl(
+				NewField(
 					[]*Identifier{
 						NewIdentifier(nil, "c"),
 					},
 					NewIdentifier(nil, "String"),
 					ptrToStr("tag2"),
 				),
-				NewFieldDecl(
+				NewField(
 					nil,
 					NewIdentifier(nil, "Implicit"),
 					ptrToStr("tag3"),
