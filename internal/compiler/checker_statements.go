@@ -148,10 +148,7 @@ nodesLoop:
 				for k, v := range pkgInfos[node.Path].TypeInfos {
 					tc.typeInfos[k] = v
 				}
-				importedPkg, ok := pkgInfos[node.Path]
-				if !ok {
-					panic(fmt.Errorf("cannot find path %q inside pkgInfos (%v)", node.Path, pkgInfos)) // TODO(Gianluca): remove.
-				}
+				importedPkg := pkgInfos[node.Path]
 				if node.Ident == nil {
 					tc.unusedImports[importedPkg.Name] = nil
 					for ident, ti := range importedPkg.Declarations {
