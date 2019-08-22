@@ -1846,12 +1846,12 @@ func equals(n1, n2 ast.Node, p int) error {
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
-		if len(nn1.FieldDecl) != len(nn2.FieldDecl) {
-			return fmt.Errorf("struct type: unexpected fields len %#v, expecting %#v", len(nn1.FieldDecl), len(nn2.FieldDecl))
+		if len(nn1.Fields) != len(nn2.Fields) {
+			return fmt.Errorf("struct type: unexpected fields len %#v, expecting %#v", len(nn1.Fields), len(nn2.Fields))
 		}
-		for i := range nn1.FieldDecl {
-			fd1 := nn1.FieldDecl[i]
-			fd2 := nn2.FieldDecl[i]
+		for i := range nn1.Fields {
+			fd1 := nn1.Fields[i]
+			fd2 := nn2.Fields[i]
 			if len(fd1.IdentifierList) != len(fd2.IdentifierList) {
 				return fmt.Errorf("struct type: field %d: expecting %d identifiers, got %d", i, len(fd2.IdentifierList), len(fd1.IdentifierList))
 			}

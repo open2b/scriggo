@@ -754,7 +754,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 
 	case *ast.StructType:
 		fields := []reflect.StructField{}
-		for _, fd := range expr.FieldDecl {
+		for _, fd := range expr.Fields {
 			typ := tc.checkType(fd.Type).Type
 			if fd.IdentifierList == nil {
 				// Implicit field declaration.

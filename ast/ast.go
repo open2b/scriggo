@@ -911,7 +911,7 @@ func (n *BinaryOperator) Precedence() int {
 type StructType struct {
 	expression
 	*Position
-	FieldDecl []*FieldDecl
+	Fields []*FieldDecl
 }
 
 // NewStructType returns a new StructType node.
@@ -921,9 +921,9 @@ func NewStructType(pos *Position, fieldDecl []*FieldDecl) *StructType {
 
 func (st *StructType) String() string {
 	s := "struct { "
-	for i, fd := range st.FieldDecl {
+	for i, fd := range st.Fields {
 		s += fd.String()
-		if i != len(st.FieldDecl)-1 {
+		if i != len(st.Fields)-1 {
 			s += "; "
 		}
 	}

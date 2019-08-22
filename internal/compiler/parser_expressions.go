@@ -223,7 +223,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 						}
 						fieldDecl.Type = typ
 					}
-					structType.FieldDecl = append(structType.FieldDecl, fieldDecl)
+					structType.Fields = append(structType.Fields, fieldDecl)
 					if tok.typ == tokenRightBraces {
 						break
 					}
