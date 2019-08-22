@@ -66,12 +66,12 @@ func ExampleDump() {
 	// │    │    │    Call (1:19) value()
 	//
 	// Tree: "":1:1
-	// │    Var (1:1) var x = 10
+	// │    Var (1:4) var x = 10
 	// │    │    Identifier (1:8) x
 	// │    │    BasicLiteral (1:12) 10
 	//
 	// Tree: "":1:1
-	// │    ForRange (1:1) 1:1
+	// │    ForRange (1:4) 1:4
 	// │    │    Assignment (1:8) _, i := x
 	// │    │    │    Identifier (1:8) _
 	// │    │    │    Identifier (1:8) i
@@ -79,7 +79,7 @@ func ExampleDump() {
 	// │    │    Text (1:17) " some text, blah blah blah "
 	//
 	// Tree: "":1:1
-	// │    ForRange (1:1) 1:1
+	// │    ForRange (1:4) 1:4
 	// │    │    Assignment (1:8) _, i := x
 	// │    │    │    Identifier (1:8) _
 	// │    │    │    Identifier (1:8) i
@@ -87,7 +87,7 @@ func ExampleDump() {
 	// │    │    Text (1:17) " some very very very very very..."
 	//
 	// Tree: "":1:1
-	// │    Include (1:1) 1:1
+	// │    Include (1:4) 1:4
 	//
 	// Tree: "":1:1
 	// │    Show (1:1) {{ 5 + 6 }}
@@ -96,17 +96,17 @@ func ExampleDump() {
 	// │    │    │    BasicLiteral (1:5) 6
 	//
 	// Tree: "":1:1
-	// │    Var (1:1) var x = 10
+	// │    Var (1:4) var x = 10
 	// │    │    Identifier (1:8) x
 	// │    │    BasicLiteral (1:12) 10
 	//
 	// Tree: "":1:1
-	// │    Assignment (1:1) y = 10
+	// │    Assignment (1:4) y = 10
 	// │    │    Identifier (1:4) y
 	// │    │    BasicLiteral (1:8) 10
 	//
 	// Tree: "":1:1
-	// │    Assignment (1:1) y = 4 + 5
+	// │    Assignment (1:4) y = 4 + 5
 	// │    │    Identifier (1:4) y
 	// │    │    BinaryOperator (1:11) 4 + 5
 	// │    │    │    BasicLiteral (1:9) 4

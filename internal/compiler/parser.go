@@ -298,6 +298,7 @@ TOKENS:
 		// {%
 		case tokenStartStatement:
 			tokensInLine++
+			tok = p.next()
 			tok = p.parseStatement(tok)
 			continue
 
@@ -344,10 +345,6 @@ func (p *parsing) parseStatement(tok token) token {
 	var expr ast.Expression
 
 	var ok bool
-
-	if p.isTemplate {
-		tok = p.next()
-	}
 
 LABEL:
 
@@ -540,9 +537,9 @@ LABEL:
 		tok = p.next()
 		if tok.typ == tokenIdentifier {
 			label = ast.NewIdentifier(tok.pos, string(tok.txt))
+			pos.End = tok.pos.End
 			tok = p.next()
 		}
-		pos.End = tok.pos.End
 		tok = p.parseEnd(tok, tokenSemicolon)
 		node = ast.NewBreak(pos, label)
 		p.addChild(node)
@@ -554,9 +551,9 @@ LABEL:
 		tok = p.next()
 		if tok.typ == tokenIdentifier {
 			label = ast.NewIdentifier(tok.pos, string(tok.txt))
+			pos.End = tok.pos.End
 			tok = p.next()
 		}
-		pos.End = tok.pos.End
 		tok = p.parseEnd(tok, tokenSemicolon)
 		node = ast.NewContinue(pos, label)
 		p.addChild(node)
@@ -576,7 +573,7 @@ LABEL:
 		switch parent.(type) {
 		case *ast.Switch, *ast.TypeSwitch:
 			expressions, tok = p.parseExprList(token{}, false, false, false)
-			pos.End = tok.pos.End
+			pos.End = expressions[len(expressions)-1].Pos().End
 			tok = p.parseEnd(tok, tokenColon)
 			node := ast.NewCase(pos, expressions, nil)
 			p.addChild(node)
@@ -637,7 +634,6 @@ LABEL:
 	// fallthrough
 	case tokenFallthrough:
 		tok = p.next()
-		pos.End = tok.pos.End
 		tok = p.parseEnd(tok, tokenSemicolon)
 		node := ast.NewFallthrough(pos)
 		p.addChild(node)
@@ -1080,6 +1076,7 @@ LABEL:
 			p.ancestors = p.ancestors[:len(p.ancestors)-1]
 			parent = p.ancestors[len(p.ancestors)-1]
 		}
+		parent.Pos().End = tok.pos.End
 		tok = p.next()
 		if tok.typ != tokenEndStatement {
 			parentTok := tok
@@ -1110,7 +1107,6 @@ LABEL:
 				}
 			}
 		}
-		parent.Pos().End = tok.pos.End
 		p.ancestors = p.ancestors[:len(p.ancestors)-1]
 		for {
 			parent = p.ancestors[len(p.ancestors)-1]
@@ -1158,6 +1154,7 @@ LABEL:
 		keyword := tok.typ
 		tok = p.next()
 		expr, tok = p.parseExpr(tok, false, false, false)
+		pos.End = expr.Pos().End
 		// Errors on defer and go statements must be type checker errors and not syntax errors.
 		var call *ast.Call
 		switch expr := expr.(type) {
@@ -1168,7 +1165,6 @@ LABEL:
 		case *ast.Call:
 			call = expr
 		}
-		pos.End = tok.pos.End
 		var node ast.Node
 		if keyword == tokenDefer {
 			node = ast.NewDefer(pos, call)
@@ -1226,8 +1222,7 @@ LABEL:
 			if assignment == nil {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expecting expression")})
 			}
-			assignment.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: pos.End}
-			assignment.Position.End = tok.pos.End
+			assignment.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: assignment.Pos().End}
 			tok = p.parseEnd(tok, tokenSemicolon)
 			p.addChild(assignment)
 			p.cutSpacesToken = true
