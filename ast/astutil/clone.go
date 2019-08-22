@@ -329,26 +329,26 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 	case *ast.TypeAssertion:
 		return ast.NewTypeAssertion(ClonePosition(e.Position), CloneExpression(e.Expr), CloneExpression(e.Type))
 	case *ast.FuncType:
-		var parameters []*ast.Field
+		var parameters []*ast.Parameter
 		if e.Parameters != nil {
-			parameters = make([]*ast.Field, len(e.Parameters))
-			for i, field := range e.Parameters {
+			parameters = make([]*ast.Parameter, len(e.Parameters))
+			for i, param := range e.Parameters {
 				var ident *ast.Identifier
-				if field.Ident != nil {
-					ident = ast.NewIdentifier(ClonePosition(field.Ident.Position), field.Ident.Name)
+				if param.Ident != nil {
+					ident = ast.NewIdentifier(ClonePosition(param.Ident.Position), param.Ident.Name)
 				}
-				parameters[i] = &ast.Field{Ident: ident, Type: CloneExpression(field.Type)}
+				parameters[i] = &ast.Parameter{Ident: ident, Type: CloneExpression(param.Type)}
 			}
 		}
-		var result []*ast.Field
+		var result []*ast.Parameter
 		if e.Result != nil {
-			result = make([]*ast.Field, len(e.Result))
-			for i, field := range e.Result {
+			result = make([]*ast.Parameter, len(e.Result))
+			for i, res := range e.Result {
 				var ident *ast.Identifier
-				if field.Ident != nil {
-					ident = ast.NewIdentifier(ClonePosition(field.Ident.Position), field.Ident.Name)
+				if res.Ident != nil {
+					ident = ast.NewIdentifier(ClonePosition(res.Ident.Position), res.Ident.Name)
 				}
-				result[i] = &ast.Field{Ident: ident, Type: CloneExpression(field.Type)}
+				result[i] = &ast.Parameter{Ident: ident, Type: CloneExpression(res.Type)}
 			}
 		}
 		return ast.NewFuncType(ClonePosition(e.Position), parameters, result, e.IsVariadic)

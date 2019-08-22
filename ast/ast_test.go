@@ -117,22 +117,22 @@ var expressionStringTests = []struct {
 		nil, OperatorMultiplication, NewIdentifier(nil, "int")),
 	)},
 	{"func()", NewFuncType(nil, nil, nil, false)},
-	{"func(int)", NewFuncType(nil, []*Field{NewField(nil, NewIdentifier(nil, "int"))}, nil, false)},
-	{"func(a int)", NewFuncType(nil, []*Field{NewField(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false)},
-	{"func() int", NewFuncType(nil, nil, []*Field{NewField(nil, NewIdentifier(nil, "int"))}, false)},
-	{"func() (n int)", NewFuncType(nil, nil, []*Field{NewField(NewIdentifier(nil, "n"), NewIdentifier(nil, "int"))}, false)},
+	{"func(int)", NewFuncType(nil, []*Parameter{NewParameter(nil, NewIdentifier(nil, "int"))}, nil, false)},
+	{"func(a int)", NewFuncType(nil, []*Parameter{NewParameter(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false)},
+	{"func() int", NewFuncType(nil, nil, []*Parameter{NewParameter(nil, NewIdentifier(nil, "int"))}, false)},
+	{"func() (n int)", NewFuncType(nil, nil, []*Parameter{NewParameter(NewIdentifier(nil, "n"), NewIdentifier(nil, "int"))}, false)},
 	{"func(a int, b bool) (n int, err error)", NewFuncType(nil,
-		[]*Field{
-			NewField(NewIdentifier(nil, "a"), NewIdentifier(nil, "int")),
-			NewField(NewIdentifier(nil, "b"), NewIdentifier(nil, "bool"))},
-		[]*Field{
-			NewField(NewIdentifier(nil, "n"), NewIdentifier(nil, "int")),
-			NewField(NewIdentifier(nil, "err"), NewIdentifier(nil, "error"))}, false)},
+		[]*Parameter{
+			NewParameter(NewIdentifier(nil, "a"), NewIdentifier(nil, "int")),
+			NewParameter(NewIdentifier(nil, "b"), NewIdentifier(nil, "bool"))},
+		[]*Parameter{
+			NewParameter(NewIdentifier(nil, "n"), NewIdentifier(nil, "int")),
+			NewParameter(NewIdentifier(nil, "err"), NewIdentifier(nil, "error"))}, false)},
 	{"func literal", NewFunc(nil, nil, NewFuncType(nil,
-		[]*Field{NewField(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false),
+		[]*Parameter{NewParameter(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false),
 		NewBlock(nil, nil))},
 	{"func declaration", NewFunc(nil, NewIdentifier(nil, "f"), NewFuncType(nil,
-		[]*Field{NewField(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false),
+		[]*Parameter{NewParameter(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false),
 		NewBlock(nil, nil))},
 }
 

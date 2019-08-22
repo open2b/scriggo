@@ -129,11 +129,11 @@ func Walk(v Visitor, node ast.Node) {
 		}
 
 	case *ast.FuncType:
-		for _, field := range n.Parameters {
-			Walk(v, field.Type)
+		for _, param := range n.Parameters {
+			Walk(v, param.Type)
 		}
-		for _, field := range n.Result {
-			Walk(v, field.Type)
+		for _, res := range n.Result {
+			Walk(v, res.Type)
 		}
 
 	case *ast.Macro:

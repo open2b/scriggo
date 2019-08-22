@@ -240,7 +240,7 @@ func (tc *typechecker) fieldByName(t *TypeInfo, name string) (*TypeInfo, string,
 // fillParametersTypes takes a list of parameters (function arguments or
 // function return values) and "fills" their types. For instance, a function
 // arguments signature "a, b int" becocmes "a int, b int".
-func fillParametersTypes(params []*ast.Field) {
+func fillParametersTypes(params []*ast.Parameter) {
 	if len(params) == 0 {
 		return
 	}

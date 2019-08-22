@@ -1048,13 +1048,13 @@ LABEL:
 		}
 		var ident = ast.NewIdentifier(tok.pos, string(tok.txt))
 		tok = p.next()
-		var parameters []*ast.Field
+		var parameters []*ast.Parameter
 		var isVariadic bool
 		if tok.typ == tokenLeftParenthesis {
 			// Parses the macro parameters.
 			names := map[string]struct{}{}
 			var endPos *ast.Position
-			parameters, isVariadic, endPos = p.parseFuncFields(tok, names, false)
+			parameters, isVariadic, endPos = p.parseFuncParameters(tok, names, false)
 			pos.End = endPos.End
 			tok = p.next()
 		}

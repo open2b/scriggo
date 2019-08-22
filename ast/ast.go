@@ -328,17 +328,18 @@ func (a *Assignment) String() string {
 	return s
 }
 
-// Field node represents a field in a function type, literal or declaration.
-type Field struct {
+// Parameter node represents a parameter in a function type, literal or
+// declaration.
+type Parameter struct {
 	Ident *Identifier // name, can be nil.
 	Type  Expression  // type.
 }
 
-func NewField(ident *Identifier, typ Expression) *Field {
-	return &Field{ident, typ}
+func NewParameter(ident *Identifier, typ Expression) *Parameter {
+	return &Parameter{ident, typ}
 }
 
-func (n *Field) String() string {
+func (n *Parameter) String() string {
 	if n.Ident == nil {
 		return n.Type.String()
 	}
@@ -352,23 +353,23 @@ func (n *Field) String() string {
 type FuncType struct {
 	expression
 	*Position               // position in the source.
-	Parameters []*Field     // parameters.
-	Result     []*Field     // result.
+	Parameters []*Parameter // parameters.
+	Result     []*Parameter // result.
 	IsVariadic bool         // reports whether it is variadic.
 	Reflect    reflect.Type // reflect type.
 }
 
-func NewFuncType(pos *Position, parameters []*Field, result []*Field, isVariadic bool) *FuncType {
+func NewFuncType(pos *Position, parameters []*Parameter, result []*Parameter, isVariadic bool) *FuncType {
 	return &FuncType{expression{}, pos, parameters, result, isVariadic, nil}
 }
 
 func (n *FuncType) String() string {
 	s := "func("
-	for i, field := range n.Parameters {
+	for i, param := range n.Parameters {
 		if i > 0 {
 			s += ", "
 		}
-		s += field.String()
+		s += param.String()
 	}
 	s += ")"
 	if len(n.Result) > 0 {
@@ -376,11 +377,11 @@ func (n *FuncType) String() string {
 			s += " " + n.Result[0].Type.String()
 		} else {
 			s += " ("
-			for i, field := range n.Result {
+			for i, res := range n.Result {
 				if i > 0 {
 					s += ", "
 				}
-				s += field.String()
+				s += res.String()
 			}
 			s += ")"
 		}
