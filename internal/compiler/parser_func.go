@@ -7,8 +7,6 @@
 package compiler
 
 import (
-	"fmt"
-
 	"scriggo/ast"
 )
 
@@ -31,13 +29,13 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	tok = p.next()
 	if tok.typ == tokenIdentifier {
 		if kind&parseFuncDecl == 0 {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting (", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting (", tok))
 		}
 		ident = ast.NewIdentifier(tok.pos, string(tok.txt))
 		tok = p.next()
 	} else if kind^parseFuncDecl == 0 {
 		// Node to parse must be a function declaration.
-		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok.txt)})
+		panic(syntaxError(tok.pos, "unexpected %s, expecting name", tok.txt))
 	}
 	// Parses the function parameters.
 	names := map[string]struct{}{}
@@ -65,11 +63,11 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	}
 	// Parses the function body.
 	if tok.typ != tokenLeftBraces {
-		p := *pos
+		p := pos
 		if ident != nil {
-			p = *ident.Position
+			p = ident.Position
 		}
-		panic(&SyntaxError{"", p, fmt.Errorf("missing function body")})
+		panic(syntaxError(p, "missing function body"))
 	}
 	body := ast.NewBlock(tok.pos, nil)
 	node := ast.NewFunc(pos, ident, typ, body)
@@ -90,9 +88,9 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 		}
 		if tok.typ == tokenEOF {
 			if _, ok := p.parent().(*ast.Label); ok {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("missing statement after label")})
+				panic(syntaxError(tok.pos, "missing statement after label"))
 			}
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting }")})
+			panic(syntaxError(tok.pos, "unexpected EOF, expecting }"))
 		}
 		tok = p.parseStatement(tok)
 	}
@@ -107,7 +105,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 func (p *parsing) parseFuncParameters(tok token, names map[string]struct{}, isResult bool) ([]*ast.Parameter, bool, *ast.Position) {
 
 	if tok.typ != tokenLeftParenthesis {
-		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting (", tok)})
+		panic(syntaxError(tok.pos, "unexpected %s, expecting (", tok))
 	}
 
 	var ok bool
@@ -128,29 +126,29 @@ func (p *parsing) parseFuncParameters(tok token, names map[string]struct{}, isRe
 		}
 		if tok.typ == tokenEllipsis {
 			if isResult {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("cannot use ... in receiver or result parameter list")})
+				panic(syntaxError(tok.pos, "cannot use ... in receiver or result parameter list"))
 			}
 			if param.Type != nil {
 				if param.Ident, ok = param.Type.(*ast.Identifier); !ok {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting )", param.Type)})
+					panic(syntaxError(tok.pos, "unexpected %s, expecting )", param.Type))
 				}
 				param.Type = nil
 			}
 			isVariadic = true
 			tok = p.next()
 		} else if param.Type == nil {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting )", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting )", tok))
 		}
 		expr, tok = p.parseExpr(tok, false, true, false)
 		if expr == nil {
 			if isVariadic {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("final argument in variadic function missing type")})
+				panic(syntaxError(tok.pos, "final argument in variadic function missing type"))
 			}
 		} else {
 			if !isVariadic {
 				var ok bool
 				if param.Ident, ok = param.Type.(*ast.Identifier); !ok {
-					panic(&SyntaxError{"", *pos, fmt.Errorf("unexpected %s, expecting )", param.Type)})
+					panic(syntaxError(pos, "unexpected %s, expecting )", param.Type))
 				}
 			}
 			param.Type = expr
@@ -160,10 +158,10 @@ func (p *parsing) parseFuncParameters(tok token, names map[string]struct{}, isRe
 			break
 		}
 		if tok.typ != tokenComma {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting comma or ", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting comma or ", tok))
 		}
 		if isVariadic {
-			panic(&SyntaxError{"", *param.Type.Pos(), fmt.Errorf("can only use ... with final parameter in list")})
+			panic(syntaxError(param.Type.Pos(), "can only use ... with final parameter in list"))
 		}
 	}
 
@@ -171,20 +169,20 @@ func (p *parsing) parseFuncParameters(tok token, names map[string]struct{}, isRe
 		if last := parameters[len(parameters)-1]; last.Ident == nil {
 			for _, field := range parameters {
 				if field.Ident != nil {
-					panic(&SyntaxError{"", *pos, fmt.Errorf("mixed named and unnamed function parameters")})
+					panic(syntaxError(pos, "mixed named and unnamed function parameters"))
 				}
 			}
 		} else {
 			for _, field := range parameters {
 				if field.Ident == nil {
 					if field.Ident, ok = field.Type.(*ast.Identifier); !ok {
-						panic(&SyntaxError{"", *(field.Type.Pos()), fmt.Errorf("unexpected %s, expecting )", field.Type)})
+						panic(syntaxError(field.Type.Pos(), "unexpected %s, expecting )", field.Type))
 					}
 					field.Type = nil
 				}
 				name := field.Ident.Name
 				if _, ok := names[name]; ok {
-					panic(&SyntaxError{"", *field.Ident.Position, fmt.Errorf("duplicate argument %s", name)})
+					panic(syntaxError(field.Ident.Position, "duplicate argument %s", name))
 				}
 				if name != "_" {
 					names[name] = struct{}{}

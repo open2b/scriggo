@@ -7,8 +7,6 @@
 package compiler
 
 import (
-	"fmt"
-
 	"scriggo/ast"
 )
 
@@ -59,7 +57,7 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 			afterSemicolon = expressions[0]
 		default:
 			// switch x + 2, y + 1 {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %%}, expecting := or = or comma")})
+			panic(syntaxError(tok.pos, "unexpected %%}, expecting := or = or comma"))
 		}
 
 	case tok.typ == tokenSemicolon:
@@ -75,12 +73,12 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 		default:
 			// switch f(), g(); x + 2 {
 			// switch f(), g(); {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected semicolon, expecting := or = or comma")})
+			panic(syntaxError(tok.pos, "unexpected semicolon, expecting := or = or comma"))
 		}
 		if isTypeGuard(beforeSemicolon) {
 			// TODO (Gianluca): use type assertion node position instead of last read token position
 			// TODO (Gianluca): move to type-checker:
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")})
+			panic(syntaxError(tok.pos, "use of .(type) outside type switch"))
 		}
 		expressions, tok = p.parseExprList(token{}, true, false, true)
 		switch len(expressions) { // # of expressions after ;
@@ -97,7 +95,7 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 			// switch x; a, b {
 			// switch ; a, b {
 			// switch ; a, b, c {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %%}, expecting := or = or comma")})
+			panic(syntaxError(tok.pos, "unexpected %%}, expecting := or = or comma"))
 		}
 
 	case isAssignmentToken(tok):
@@ -111,7 +109,7 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 
 			if isTypeGuard(assignment) {
 				// TODO (Gianluca): use type assertion node position instead of last read token position
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")})
+				panic(syntaxError(tok.pos, "use of .(type) outside type switch"))
 			}
 
 			beforeSemicolon = assignment
@@ -130,13 +128,13 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 				// expression which caused the error instead of the token (as Go
 				// does)?
 				if !ok {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("assignment %s used as value", assignment)})
+					panic(syntaxError(tok.pos, "assignment %s used as value", assignment))
 				}
 				if ta.Type != nil {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("%s used as value", assignment)})
+					panic(syntaxError(tok.pos, "%s used as value", assignment))
 				}
 				if len(assignment.Lhs) != 1 {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("%s used as value", assignment)})
+					panic(syntaxError(tok.pos, "%s used as value", assignment))
 				}
 				afterSemicolon = assignment
 			} else {
@@ -150,7 +148,7 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 					afterSemicolon = expressions[0]
 				default:
 					// switch x := 2; x + y, y + z {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %%}, expecting := or = or comma")})
+					panic(syntaxError(tok.pos, "unexpected %%}, expecting := or = or comma"))
 				}
 			}
 
@@ -158,17 +156,17 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 			// switch x = y.(type) {
 			// switch x := y.(type) {
 			if len(assignment.Rhs) != 1 {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %%}, expecting expression")})
+				panic(syntaxError(tok.pos, "unexpected %%}, expecting expression"))
 			}
 			if len(assignment.Lhs) != 1 {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("%s used as value", assignment)})
+				panic(syntaxError(tok.pos, "%s used as value", assignment))
 			}
 			ta, ok := assignment.Rhs[0].(*ast.TypeAssertion)
 			if !ok {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("assignment %s used as value", assignment)})
+				panic(syntaxError(tok.pos, "assignment %s used as value", assignment))
 			}
 			if ta.Type != nil {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("%s used as value", assignment)})
+				panic(syntaxError(tok.pos, "%s used as value", assignment))
 			}
 			afterSemicolon = assignment
 		}
@@ -176,7 +174,7 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 	}
 
 	if tok.typ != end {
-		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
+		panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
 	}
 
 	pos.End = tok.pos.End

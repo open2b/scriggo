@@ -51,7 +51,7 @@ func ParseTemplate(path string, reader Reader, ctx ast.Context) (*ast.Tree, erro
 	}
 
 	if len(tree.Nodes) == 0 {
-		return nil, &SyntaxError{"", ast.Position{Line: 1, Column: 1, Start: 0, End: 0}, fmt.Errorf("??????????, found 'EOF'")}
+		return nil, syntaxError(&ast.Position{Line: 1, Column: 1, Start: 0, End: 0}, "??????????, found 'EOF'")
 	}
 
 	return tree, nil
@@ -206,7 +206,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 		case *ast.Extends:
 
 			if len(pp.paths) > 1 {
-				return &SyntaxError{"", *(n.Pos()), fmt.Errorf("extended, imported and included paths can not have extends")}
+				return syntaxError(n.Pos(), "extended, imported and included paths can not have extends")
 			}
 			absPath, err := pp.abs(n.Path)
 			if err != nil {
@@ -217,7 +217,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 				if err == ErrInvalidPath {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
 				} else if err == ErrNotExist {
-					err = &SyntaxError{"", *(n.Pos()), fmt.Errorf("extends path %q does not exist", absPath)}
+					err = syntaxError(n.Pos(), "extends path %q does not exist", absPath)
 				} else if err2, ok := err.(cycleError); ok {
 					err = cycleError("imports " + string(err2))
 				}
@@ -235,7 +235,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 				if err == ErrInvalidPath {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
 				} else if err == ErrNotExist {
-					err = &SyntaxError{"", *(n.Pos()), fmt.Errorf("import path %q does not exist", absPath)}
+					err = syntaxError(n.Pos(), "import path %q does not exist", absPath)
 				} else if err2, ok := err.(cycleError); ok {
 					err = cycleError("imports " + string(err2))
 				}
@@ -253,7 +253,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 				if err == ErrInvalidPath {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
 				} else if err == ErrNotExist {
-					err = &SyntaxError{"", *(n.Pos()), fmt.Errorf("included path %q does not exist", absPath)}
+					err = syntaxError(n.Pos(), "included path %q does not exist", absPath)
 				} else if err2, ok := err.(cycleError); ok {
 					err = cycleError("include " + string(err2))
 				}

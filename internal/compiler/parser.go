@@ -132,6 +132,10 @@ func (p *parsing) next() token {
 	return tok
 }
 
+func syntaxError(pos *ast.Position, format string, a ...interface{}) *SyntaxError {
+	return &SyntaxError{"", *pos, fmt.Errorf(format, a...)}
+}
+
 // ParseSource parses a program or script and returns its tree. isScript
 // reports whether it is a script and shebang reports whether a script can
 // have the shebang as first line.
@@ -171,7 +175,7 @@ TOKENS:
 		switch tok.typ {
 		case tokenShebangLine:
 			if !shebang {
-				return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("illegal character U+0023 '#'")}
+				return nil, syntaxError(tok.pos, "illegal character U+0023 '#'")
 			}
 		default:
 			tok = p.parseStatement(tok)
@@ -181,10 +185,10 @@ TOKENS:
 				switch p.ancestors[1].(type) {
 				case *ast.Package:
 				case *ast.Label:
-					return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("missing statement after label")}
+					return nil, syntaxError(tok.pos, "missing statement after label")
 				default:
 					if len(p.ancestors) > 2 {
-						return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting }")}
+						return nil, syntaxError(tok.pos, "unexpected EOF, expecting }")
 					}
 				}
 			}
@@ -266,7 +270,7 @@ TOKENS:
 		// EOF
 		case tokenEOF:
 			if len(p.ancestors) > 1 {
-				return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting {%% end %%}")}
+				return nil, nil, syntaxError(tok.pos, "unexpected EOF, expecting {%% end %%}")
 			}
 			break TOKENS
 
@@ -278,21 +282,21 @@ TOKENS:
 					if containsOnlySpaces(text.Text) {
 						n.LeadingText = text
 					}
-					return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected text, expecting case of default or {%% end %%}")}
+					return nil, nil, syntaxError(tok.pos, "unexpected text, expecting case of default or {%% end %%}")
 				}
 			case *ast.TypeSwitch:
 				if len(n.Cases) == 0 {
 					if containsOnlySpaces(text.Text) {
 						n.LeadingText = text
 					}
-					return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected text, expecting case of default or {%% end %%}")}
+					return nil, nil, syntaxError(tok.pos, "unexpected text, expecting case of default or {%% end %%}")
 				}
 			case *ast.Select:
 				if len(n.Cases) == 0 {
 					if containsOnlySpaces(text.Text) {
 						n.LeadingText = text
 					}
-					return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected text, expecting case of default or {%% end %%}")}
+					return nil, nil, syntaxError(tok.pos, "unexpected text, expecting case of default or {%% end %%}")
 				}
 			}
 			p.addChild(text)
@@ -321,10 +325,10 @@ TOKENS:
 			tokensInLine++
 			expr, tok2 := p.parseExpr(token{}, false, false, false)
 			if expr == nil {
-				return nil, nil, &SyntaxError{"", *tok2.pos, fmt.Errorf("expecting expression")}
+				return nil, nil, syntaxError(tok2.pos, "expecting expression")
 			}
 			if tok2.typ != tokenEndValue {
-				return nil, nil, &SyntaxError{"", *tok2.pos, fmt.Errorf("unexpected %s, expecting }}", tok2)}
+				return nil, nil, syntaxError(tok2.pos, "unexpected %s, expecting }}", tok2)
 			}
 			tok.pos.End = tok2.pos.End
 			var node = ast.NewShow(tok.pos, expr, tok.ctx)
@@ -338,7 +342,7 @@ TOKENS:
 			p.cutSpacesToken = true
 
 		default:
-			return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s", tok)}
+			return nil, nil, syntaxError(tok.pos, "unexpected %s", tok)
 
 		}
 
@@ -365,25 +369,25 @@ LABEL:
 	switch s := p.parent().(type) {
 	case *ast.Tree:
 		if !p.isTemplate && !p.isScript && tok.typ != tokenPackage {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expected 'package', found '%s'", tok)})
+			panic(syntaxError(tok.pos, "expected 'package', found '%s'", tok))
 		}
 	case *ast.Package:
 		switch tok.typ {
 		case tokenImport, tokenFunc, tokenVar, tokenConst, tokenType:
 		default:
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("non-declaration statement outside function body (%q)", tok)})
+			panic(syntaxError(tok.pos, "non-declaration statement outside function body (%q)", tok))
 		}
 	case *ast.Switch:
 		if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd && tok.typ != tokenRightBraces {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting case of default or {%% end %%}", tok.String())})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting case of default or {%% end %%}", tok))
 		}
 	case *ast.TypeSwitch:
 		if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd && tok.typ != tokenRightBraces {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting case of default or {%% end %%}", tok.String())})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting case of default or {%% end %%}", tok))
 		}
 	case *ast.Select:
 		if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd && tok.typ != tokenRightBraces {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting case of default or {%% end %%}", tok.String())})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting case of default or {%% end %%}", tok))
 		}
 	}
 
@@ -392,27 +396,27 @@ LABEL:
 	// ;
 	case tokenSemicolon:
 		if p.ctx != ast.ContextGo {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected semicolon, expecting statement")})
+			panic(syntaxError(tok.pos, "unexpected semicolon, expecting statement"))
 		}
 		tok = p.next()
 
 	// package
 	case tokenPackage:
 		if tree, ok := p.parent().(*ast.Tree); !ok || p.ctx != ast.ContextGo || len(tree.Nodes) > 0 {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected package, expecting statement")})
+			panic(syntaxError(tok.pos, "unexpected package, expecting statement"))
 		}
 		tok = p.next()
 		if tok.typ != tokenIdentifier {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expected 'IDENT', found %q", string(tok.txt))})
+			panic(syntaxError(tok.pos, "expected 'IDENT', found %q", string(tok.txt)))
 		}
 		name := string(tok.txt)
 		if name == "_" {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("invalid package name _")})
+			panic(syntaxError(tok.pos, "invalid package name _"))
 		}
 		pos.End = tok.pos.End
 		tok = p.next()
 		if tok.typ != tokenSemicolon {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting semicolon or newline", string(tok.txt))})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting semicolon or newline", string(tok.txt)))
 		}
 		tok = p.next()
 		node = ast.NewPackage(pos, name, nil)
@@ -430,17 +434,17 @@ LABEL:
 		case tokenIn:
 			// Parses statement "for ident in expr".
 			if len(variables) == 0 {
-				panic(&SyntaxError{"", *(variables[1].Pos()), fmt.Errorf("unexpected in, expected expression")})
+				panic(syntaxError(variables[1].Pos(), "unexpected in, expected expression"))
 			}
 			if len(variables) > 1 {
-				panic(&SyntaxError{"", *(variables[1].Pos()), fmt.Errorf("expected only one expression")})
+				panic(syntaxError(variables[1].Pos(), "expected only one expression"))
 			}
 			ident, ok := variables[0].(*ast.Identifier)
 			if !ok {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected in, expected assignment")})
+				panic(syntaxError(tok.pos, "unexpected in, expected assignment"))
 			}
 			if ident.Name == "_" {
-				panic(&SyntaxError{"", *(ident.Pos()), fmt.Errorf("cannot use _ as value")})
+				panic(syntaxError(ident.Pos(), "cannot use _ as value"))
 			}
 			ipos := ident.Pos()
 			blank := ast.NewIdentifier(&ast.Position{Line: ipos.Line, Column: ipos.Column, Start: ipos.Start, End: ipos.Start}, "_")
@@ -448,7 +452,7 @@ LABEL:
 			// TODO (Gianluca): nextIsBlockOpen should be true?
 			expr, tok = p.parseExpr(token{}, false, false, false)
 			if expr == nil {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
 			assignment := ast.NewAssignment(&ast.Position{Line: ipos.Line, Column: ipos.Column, Start: ipos.Start, End: expr.Pos().End},
 				[]ast.Expression{blank, ident}, ast.AssignmentDeclaration, []ast.Expression{expr})
@@ -456,11 +460,11 @@ LABEL:
 			node = ast.NewForRange(pos, assignment, nil)
 		case tokenLeftBraces, tokenEndStatement:
 			if (p.ctx == ast.ContextGo) != (tok.typ == tokenLeftBraces) {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or %%}", tok)})
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression or %%}", tok))
 			}
 			// Parses statement "for".
 			if len(variables) > 1 {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
 			var condition ast.Expression
 			if len(variables) == 1 {
@@ -471,13 +475,13 @@ LABEL:
 		case tokenRange:
 			// Parses "for range expr".
 			if len(variables) > 0 {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected range, expecting := or = or comma")})
+				panic(syntaxError(tok.pos, "unexpected range, expecting := or = or comma"))
 			}
 			tpos := tok.pos
 			// TODO (Gianluca): nextIsBlockOpen should be true?
 			expr, tok = p.parseExpr(token{}, false, false, true)
 			if expr == nil {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
 			tpos.End = expr.Pos().End
 			assignment := ast.NewAssignment(tpos, nil, ast.AssignmentSimple, []ast.Expression{expr})
@@ -485,14 +489,14 @@ LABEL:
 			node = ast.NewForRange(pos, assignment, nil)
 		case tokenSimpleAssignment, tokenDeclaration, tokenIncrement, tokenDecrement:
 			if len(variables) == 0 {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
 			if tok.typ == tokenDeclaration {
 				assignmentType = ast.AssignmentDeclaration
 			}
 			init, tok = p.parseAssignment(variables, tok, false, false)
 			if init == nil && tok.typ != tokenRange {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
 			fallthrough
 		case tokenSemicolon:
@@ -502,7 +506,7 @@ LABEL:
 				//     "for index[, ident] := range expr".
 				expr, tok = p.parseExpr(token{}, false, false, true)
 				if expr == nil {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+					panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 				}
 				vpos := variables[0].Pos()
 				assignment := ast.NewAssignment(&ast.Position{Line: vpos.Line, Column: vpos.Column, Start: vpos.Start, End: expr.Pos().End},
@@ -515,7 +519,7 @@ LABEL:
 				var condition ast.Expression
 				condition, tok = p.parseExpr(token{}, false, false, true)
 				if tok.typ != tokenSemicolon {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expected semicolon", tok)})
+					panic(syntaxError(tok.pos, "unexpected %s, expected semicolon", tok))
 				}
 				// Parses the post iteration statement.
 				var post *ast.Assignment
@@ -524,10 +528,10 @@ LABEL:
 					pos := tok.pos
 					post, tok = p.parseAssignment(variables, tok, false, true)
 					if post == nil {
-						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expecting expression")})
+						panic(syntaxError(tok.pos, "expecting expression"))
 					}
 					if post.Type == ast.AssignmentDeclaration {
-						panic(&SyntaxError{"", *pos, fmt.Errorf("cannot declare in post statement of for loop")})
+						panic(syntaxError(pos, "cannot declare in post statement of for loop"))
 					}
 				}
 				pos.End = tok.pos.End
@@ -535,7 +539,7 @@ LABEL:
 			}
 		}
 		if node == nil {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or %%}", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting expression or %%}", tok))
 		}
 		tok = p.parseEnd(tok, tokenLeftBraces)
 		p.addChild(node)
@@ -591,7 +595,7 @@ LABEL:
 		case *ast.Select:
 			expressions, tok = p.parseExprList(token{}, false, false, false)
 			if len(expressions) == 0 {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
 			var comm ast.Node
 			if len(expressions) > 1 || isAssignmentToken(tok) {
@@ -603,7 +607,7 @@ LABEL:
 					var value ast.Expression
 					value, tok = p.parseExpr(token{}, false, false, false)
 					if value == nil {
-						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+						panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 					}
 					comm = ast.NewSend(sendPos, channel, value)
 				} else {
@@ -611,14 +615,14 @@ LABEL:
 				}
 			}
 			if tok.typ != tokenColon {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
+				panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
 			}
 			pos.End = tok.pos.End
 			node := ast.NewSelectCase(pos, comm, nil)
 			p.addChild(node)
 			tok = p.next()
 		default:
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected case, expecting %%}")})
+			panic(syntaxError(tok.pos, "unexpected case, expecting %%}"))
 		}
 
 	// default
@@ -639,7 +643,7 @@ LABEL:
 			p.addChild(node)
 			p.cutSpacesToken = true
 		default:
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected default, expecting %%}")})
+			panic(syntaxError(tok.pos, "unexpected default, expecting %%}"))
 		}
 
 	// fallthrough
@@ -662,7 +666,7 @@ LABEL:
 	// {
 	case tokenLeftBraces:
 		if p.ctx != ast.ContextGo {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting statement", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting statement", tok))
 		}
 		node = ast.NewBlock(tok.pos, nil)
 		p.addChild(node)
@@ -673,10 +677,10 @@ LABEL:
 	// }
 	case tokenRightBraces:
 		if p.ctx != ast.ContextGo {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting statement", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting statement", tok))
 		}
 		if len(p.ancestors) == 1 {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("not opened brace")})
+			panic(syntaxError(tok.pos, "not opened brace"))
 		}
 		if _, ok := p.parent().(*ast.Label); ok {
 			p.removeLastAncestor()
@@ -703,7 +707,7 @@ LABEL:
 			// TODO(marco): check if it is correct.
 			return p.next()
 		default:
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s at end of statement", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s at end of statement", tok))
 		}
 		fallthrough
 
@@ -712,12 +716,12 @@ LABEL:
 		if p.ctx != ast.ContextGo {
 			// Closes the "then" block.
 			if _, ok = p.parent().(*ast.Block); !ok {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected else")})
+				panic(syntaxError(tok.pos, "unexpected else"))
 			}
 			p.removeLastAncestor()
 		}
 		if _, ok = p.parent().(*ast.If); !ok {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected else at end of statement")})
+			panic(syntaxError(tok.pos, "unexpected else at end of statement"))
 		}
 		p.cutSpacesToken = true
 		tok = p.next()
@@ -733,7 +737,7 @@ LABEL:
 			return p.next()
 		}
 		if tok.typ != tokenIf { // "else if"
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting if or %%}", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting if or %%}", tok))
 		}
 		fallthrough
 
@@ -743,20 +747,20 @@ LABEL:
 		var expressions []ast.Expression
 		expressions, tok = p.parseExprList(token{}, false, false, true)
 		if len(expressions) == 0 {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
 		var assignment *ast.Assignment
 		if len(expressions) > 1 || tok.typ == tokenSimpleAssignment || tok.typ == tokenDeclaration {
 			assignment, tok = p.parseAssignment(expressions, tok, false, false)
 			if assignment == nil {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expecting expression")})
+				panic(syntaxError(tok.pos, "expecting expression"))
 			}
 			if tok.typ != tokenSemicolon {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("%s used as value", assignment)})
+				panic(syntaxError(tok.pos, "%s used as value", assignment))
 			}
 			expr, tok = p.parseExpr(token{}, false, false, true)
 			if expr == nil {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("missing condition in if statement")})
+				panic(syntaxError(tok.pos, "missing condition in if statement"))
 			}
 		} else {
 			expr = expressions[0]
@@ -787,7 +791,7 @@ LABEL:
 			}
 		}
 		if !inFunction {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("non-declaration statement outside function body")})
+			panic(syntaxError(tok.pos, "non-declaration statement outside function body"))
 		}
 		var values []ast.Expression
 		values, tok = p.parseExprList(token{}, false, false, false)
@@ -801,12 +805,12 @@ LABEL:
 	// include
 	case tokenInclude:
 		if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("include statement inside an attribute value")})
+			panic(syntaxError(tok.pos, "include statement inside an attribute value"))
 		}
 		// path
 		tok = p.next()
 		if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting string", tok))
 		}
 		var path = unquoteString(tok.txt)
 		if !ValidPath(path) {
@@ -814,7 +818,7 @@ LABEL:
 		}
 		tok = p.next()
 		if tok.typ != tokenEndStatement {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting ( or %%}", tok))
 		}
 		pos.End = tok.pos.End
 		node = ast.NewInclude(pos, path, tok.ctx)
@@ -825,11 +829,11 @@ LABEL:
 	// show
 	case tokenShow:
 		if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("show statement inside an attribute value")})
+			panic(syntaxError(tok.pos, "show statement inside an attribute value"))
 		}
 		tok = p.next()
 		if tok.typ != tokenIdentifier {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier", tok))
 		}
 		macro := ast.NewIdentifier(tok.pos, string(tok.txt))
 		tok = p.next()
@@ -838,15 +842,15 @@ LABEL:
 		if tok.typ == tokenPeriod {
 			tok = p.next()
 			if tok.typ != tokenIdentifier {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)})
+				panic(syntaxError(tok.pos, "unexpected %s, expecting identifier", tok))
 			}
 			if len(tok.txt) == 1 && tok.txt[0] == '_' {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
+				panic(syntaxError(tok.pos, "cannot use _ as value"))
 			}
 			impor = macro
 			macro = ast.NewIdentifier(tok.pos, string(tok.txt))
 			if fc, _ := utf8.DecodeRuneInString(macro.Name); !unicode.Is(unicode.Lu, fc) {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("cannot refer to unexported macro %s", macro.Name)})
+				panic(syntaxError(tok.pos, "cannot refer to unexported macro %s", macro.Name))
 			}
 			tok = p.next()
 		}
@@ -856,13 +860,13 @@ LABEL:
 			args, tok = p.parseExprList(token{}, false, false, false)
 			if tok.typ == tokenEllipsis {
 				if len(args) == 0 {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected ..., expecting expression")})
+					panic(syntaxError(tok.pos, "unexpected ..., expecting expression"))
 				}
 				isVariadic = true
 				tok = p.next()
 			}
 			if tok.typ != tokenRightParenthesis {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or )", tok)})
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression or )", tok))
 			}
 			tok = p.next()
 		}
@@ -878,7 +882,7 @@ LABEL:
 				case tok.typ == tokenIdentifier && bytes.Equal(tok.txt, errorIdent):
 					or = ast.ShowMacroOrError
 				default:
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s after or in show macro, expecting ignore, todo or error", tok)})
+					panic(syntaxError(tok.pos, "unexpected %s after or in show macro, expecting ignore, todo or error", tok))
 				}
 				tok = p.next()
 			}
@@ -896,30 +900,30 @@ LABEL:
 	// extends
 	case tokenExtends:
 		if tok.ctx != p.ctx {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("extends not in %s content", p.ctx)})
+			panic(syntaxError(tok.pos, "extends not in %s content", p.ctx))
 		}
 		if p.hasExtend {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("extends already exists")})
+			panic(syntaxError(tok.pos, "extends already exists"))
 		}
 		tree := p.ancestors[0].(*ast.Tree)
 		for _, node := range tree.Nodes {
 			switch node.(type) {
 			case *ast.Text, *ast.Comment:
 			default:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("extends can only be the first statement")})
+				panic(syntaxError(tok.pos, "extends can only be the first statement"))
 			}
 		}
 		tok = p.next()
 		if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting string", tok))
 		}
 		var path = unquoteString(tok.txt)
 		if !ValidPath(path) {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("invalid extends path %q", path)})
+			panic(syntaxError(tok.pos, "invalid extends path %q", path))
 		}
 		tok = p.next()
 		if tok.typ != tokenEndStatement {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
 		}
 		pos.End = tok.pos.End
 		node = ast.NewExtends(pos, path, tree.Context)
@@ -931,7 +935,7 @@ LABEL:
 	case tokenVar, tokenConst:
 		var decType = tok.typ
 		if tok.ctx != p.ctx {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("%s declaration not in %s content", decType, p.ctx)})
+			panic(syntaxError(tok.pos, "%s declaration not in %s content", decType, p.ctx))
 		}
 		tok = p.next()
 		if tok.typ == tokenLeftParenthesis {
@@ -956,7 +960,7 @@ LABEL:
 					tok = p.next()
 				case tokenRightParenthesis:
 				default:
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting semicolon or newline or )", tok)})
+					panic(syntaxError(tok.pos, "unexpected %s, expecting semicolon or newline or )", tok))
 				}
 				if c, ok := prevNode.(*ast.Const); ok {
 					if c.Type == nil {
@@ -1005,13 +1009,13 @@ LABEL:
 		}
 		if outOfOrder {
 			if tok.ctx == ast.ContextGo {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected import, expecting }")})
+				panic(syntaxError(tok.pos, "unexpected import, expecting }"))
 			} else {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected import, expecting statement")})
+				panic(syntaxError(tok.pos, "unexpected import, expecting statement"))
 			}
 		}
 		if tok.ctx != p.ctx {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("import not in %s content", p.ctx)})
+			panic(syntaxError(tok.pos, "import not in %s content", p.ctx))
 		}
 		tok = p.next()
 		if p.ctx == ast.ContextGo && tok.typ == tokenLeftParenthesis {
@@ -1022,12 +1026,12 @@ LABEL:
 				if tok.typ == tokenSemicolon {
 					tok = p.next()
 				} else if tok.typ != tokenRightParenthesis {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
+					panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
 				}
 			}
 			tok = p.next()
 			if tok.typ != tokenSemicolon && tok.typ != tokenEOF {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting semicolon or newline", tok)})
+				panic(syntaxError(tok.pos, "unexpected %s, expecting semicolon or newline", tok))
 			}
 			tok = p.next()
 		} else {
@@ -1040,15 +1044,15 @@ LABEL:
 	// macro
 	case tokenMacro:
 		if len(p.ancestors) > 1 {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected macro in statement scope")})
+			panic(syntaxError(tok.pos, "unexpected macro in statement scope"))
 		}
 		if tok.ctx != p.ctx {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("macro not in %s content", p.ctx)})
+			panic(syntaxError(tok.pos, "macro not in %s content", p.ctx))
 		}
 		// Parses the macro name.
 		tok = p.next()
 		if tok.typ != tokenIdentifier {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok.txt)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting name", tok.txt))
 		}
 		var ident = ast.NewIdentifier(tok.pos, string(tok.txt))
 		tok = p.next()
@@ -1063,7 +1067,7 @@ LABEL:
 			tok = p.next()
 		}
 		if tok.typ != tokenEndStatement {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
 		}
 		// Makes the macro node.
 		typ := ast.NewFuncType(nil, parameters, nil, isVariadic)
@@ -1078,7 +1082,7 @@ LABEL:
 	// end
 	case tokenEnd:
 		if _, ok = p.parent().(*ast.URL); ok || len(p.ancestors) == 1 {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s", tok))
 		}
 		if _, ok = p.parent().(*ast.Block); ok {
 			p.removeLastAncestor()
@@ -1089,28 +1093,28 @@ LABEL:
 			parentTok := tok
 			tok = p.next()
 			if tok.typ != tokenEndStatement {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
+				panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
 			}
 			switch p.parent().(type) {
 			case ast.For:
 				if parentTok.typ != tokenFor {
-					panic(&SyntaxError{"", *parentTok.pos, fmt.Errorf("unexpected %s, expecting for or %%}", tok)})
+					panic(syntaxError(parentTok.pos, "unexpected %s, expecting for or %%}", tok))
 				}
 			case *ast.If:
 				if parentTok.typ != tokenIf {
-					panic(&SyntaxError{"", *parentTok.pos, fmt.Errorf("unexpected %s, expecting if or %%}", tok)})
+					panic(syntaxError(parentTok.pos, "unexpected %s, expecting if or %%}", tok))
 				}
 			case *ast.Macro:
 				if parentTok.typ != tokenMacro {
-					panic(&SyntaxError{"", *parentTok.pos, fmt.Errorf("unexpected %s, expecting macro or %%}", tok)})
+					panic(syntaxError(parentTok.pos, "unexpected %s, expecting macro or %%}", tok))
 				}
 			case ast.Switch, ast.TypeSwitch:
 				if parentTok.typ != tokenSwitch {
-					panic(&SyntaxError{"", *parentTok.pos, fmt.Errorf("unexpected %s, expecting switch or %%}", tok)})
+					panic(syntaxError(parentTok.pos, "unexpected %s, expecting switch or %%}", tok))
 				}
 			case ast.Select:
 				if parentTok.typ != tokenSelect {
-					panic(&SyntaxError{"", *parentTok.pos, fmt.Errorf("unexpected %s, expecting select or %%}", tok)})
+					panic(syntaxError(parentTok.pos, "unexpected %s, expecting select or %%}", tok))
 				}
 			}
 		}
@@ -1141,7 +1145,7 @@ LABEL:
 				if tok.typ == tokenSemicolon {
 					tok = p.next()
 				} else if tok.typ != tokenRightParenthesis {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting semicolon or newline or )", tok)})
+					panic(syntaxError(tok.pos, "unexpected %s, expecting semicolon or newline or )", tok))
 				}
 			}
 			pos.End = tok.pos.End
@@ -1165,9 +1169,9 @@ LABEL:
 		var call *ast.Call
 		switch expr := expr.(type) {
 		default:
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expression in %s must be function call", keyword)})
+			panic(syntaxError(tok.pos, "expression in %s must be function call", keyword))
 		case *ast.Parenthesis:
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expression in %s must not be parenthesized", keyword)})
+			panic(syntaxError(tok.pos, "expression in %s must not be parenthesized", keyword))
 		case *ast.Call:
 			call = expr
 		}
@@ -1183,11 +1187,11 @@ LABEL:
 	// goto
 	case tokenGoto:
 		if tok.ctx != ast.ContextGo {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected goto outside function body")})
+			panic(syntaxError(tok.pos, "unexpected goto outside function body"))
 		}
 		tok = p.next()
 		if tok.typ != tokenIdentifier {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting name", tok))
 		}
 		pos.End = tok.pos.End
 		node := ast.NewGoto(pos, ast.NewIdentifier(tok.pos, string(tok.txt)))
@@ -1206,7 +1210,7 @@ LABEL:
 				// Consumes the semicolon.
 				tok = p.next()
 				if tok.typ != tokenSemicolon && tok.typ != tokenEOF {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s after top level declaration", tok)})
+					panic(syntaxError(tok.pos, "unexpected %s after top level declaration", tok))
 				}
 				p.addChild(node)
 				return p.next()
@@ -1219,14 +1223,14 @@ LABEL:
 		var expressions []ast.Expression
 		expressions, tok = p.parseExprList(tok, false, false, false)
 		if len(expressions) == 0 {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting for, if, show, extends, include, macro or end", tok))
 		}
 		if len(expressions) > 1 || isAssignmentToken(tok) {
 			// Parses assignment.
 			var assignment *ast.Assignment
 			assignment, tok = p.parseAssignment(expressions, tok, false, false)
 			if assignment == nil {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expecting expression")})
+				panic(syntaxError(tok.pos, "expecting expression"))
 			}
 			assignment.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: assignment.Pos().End}
 			tok = p.parseEnd(tok, tokenSemicolon)
@@ -1238,7 +1242,7 @@ LABEL:
 			var value ast.Expression
 			value, tok = p.parseExpr(token{}, false, false, false)
 			if value == nil {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
 			tok = p.parseEnd(tok, tokenSemicolon)
 			node := ast.NewSend(pos, channel, value)
@@ -1251,7 +1255,7 @@ LABEL:
 			if ident, ok := expr.(*ast.Identifier); ok && tok.typ == tokenColon {
 				if p.isTemplate {
 					if _, ok := p.parent().(*ast.Label); ok {
-						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected label, expecting statement")})
+						panic(syntaxError(tok.pos, "unexpected label, expecting statement"))
 					}
 				}
 				node := ast.NewLabel(pos, ident, nil)
@@ -1262,7 +1266,7 @@ LABEL:
 				if p.isTemplate {
 					tok = p.next()
 					if tok.typ == tokenEndStatement || tok.typ == tokenEOF {
-						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting statement", tok)})
+						panic(syntaxError(tok.pos, "unexpected %s, expecting statement", tok))
 					}
 					goto LABEL
 				}
@@ -1282,9 +1286,9 @@ func (p *parsing) parseEnd(tok token, want tokenTyp) token {
 	if p.isTemplate {
 		if tok.typ != tokenEndStatement {
 			if want == tokenSemicolon {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s at end of statement", tok)})
+				panic(syntaxError(tok.pos, "unexpected %s at end of statement", tok))
 			}
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
 		}
 		return p.next()
 	}
@@ -1293,12 +1297,12 @@ func (p *parsing) parseEnd(tok token, want tokenTyp) token {
 			return p.next()
 		}
 		if tok.typ != tokenRightBraces {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s at end of statement", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s at end of statement", tok))
 		}
 		return tok
 	}
 	if tok.typ != want {
-		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %s", tok, want)})
+		panic(syntaxError(tok.pos, "unexpected %s, expecting %s", tok, want))
 	}
 	return p.next()
 }
@@ -1323,7 +1327,7 @@ func (p *parsing) parseIdentifiersList(tok token) ([]*ast.Identifier, token) {
 // alias declaration. The token returned is the next valid token.
 func (p *parsing) parseTypeDecl(tok token) (*ast.TypeDeclaration, token) {
 	if tok.typ != tokenIdentifier {
-		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok)})
+		panic(syntaxError(tok.pos, "unexpected %s, expecting name", tok))
 	}
 	ident := ast.NewIdentifier(tok.pos, string(tok.txt))
 	tok = p.next()
@@ -1340,14 +1344,14 @@ func (p *parsing) parseTypeDecl(tok token) (*ast.TypeDeclaration, token) {
 
 func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, decType tokenTyp) (ast.Node, token) {
 	if tok.typ != tokenIdentifier {
-		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok)})
+		panic(syntaxError(tok.pos, "unexpected %s, expecting name", tok))
 	}
 	var exprs []ast.Expression
 	var idents []*ast.Identifier
 	var typ ast.Expression
 	idents, tok = p.parseIdentifiersList(tok)
 	if len(idents) == 0 {
-		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok)})
+		panic(syntaxError(tok.pos, "unexpected %s, expecting name", tok))
 	}
 	switch tok.typ {
 	case tokenSimpleAssignment:
@@ -1355,7 +1359,7 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, decType toke
 		// var/const  a, b  = ...
 		exprs, tok = p.parseExprList(token{}, false, false, false)
 		if len(exprs) == 0 {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
 	case tokenIdentifier, tokenFunc, tokenMap, tokenLeftBrackets, tokenInterface, tokenMultiplication, tokenChan, tokenArrow, tokenStruct:
 		// var  a     int
@@ -1364,24 +1368,24 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, decType toke
 		// var/const  a, b  int  =  ...
 		typ, tok = p.parseExpr(tok, false, true, false)
 		if tok.typ != tokenSimpleAssignment && decType == tokenConst {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
 		if tok.typ == tokenSimpleAssignment {
 			// var/const  a     int  =  ...
 			// var/const  a, b  int  =  ...
 			exprs, tok = p.parseExprList(token{}, false, false, false)
 			if len(exprs) == 0 {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
 		}
 	case tokenSemicolon, tokenRightParenthesis:
 		// const c
 		// const c, d
 		if decType == tokenVar {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting type", tok))
 		}
 	default:
-		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)})
+		panic(syntaxError(tok.pos, "unexpected %s, expecting type", tok))
 	}
 	// Searches the maximum end position.
 	var exprPosEnd, identPosEnd, typEndPos int
@@ -1419,18 +1423,18 @@ func (p *parsing) parseImportSpec(tok token) *ast.Import {
 		tok = p.next()
 	}
 	if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
-		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)})
+		panic(syntaxError(tok.pos, "unexpected %s, expecting string", tok))
 	}
 	var path = unquoteString(tok.txt)
 	if !ValidPath(path) {
-		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("invalid import path: %q", path)})
+		panic(syntaxError(tok.pos, "invalid import path: %q", path))
 	}
 	if p.ctx == ast.ContextGo {
 		if err := validPackagePath(path); err != nil {
 			if err == ErrNotCanonicalImportPath {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("non-canonical import path %q (should be %q)", path, cleanPath(path))})
+				panic(syntaxError(tok.pos, "non-canonical import path %q (should be %q)", path, cleanPath(path)))
 			}
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("invalid import path: %q", path)})
+			panic(syntaxError(tok.pos, "invalid import path: %q", path))
 		}
 	}
 	pos.End = tok.pos.End
@@ -1443,7 +1447,7 @@ func (p *parsing) parseImportSpec(tok token) *ast.Import {
 func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSwitchGuard bool, nextIsBlockOpen bool) (*ast.Assignment, token) {
 	var typ, ok = assignmentType(tok)
 	if !ok {
-		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting := or = or comma", tok)})
+		panic(syntaxError(tok.pos, "unexpected %s, expecting := or = or comma", tok))
 	}
 	vp := variables[0].Pos()
 	pos := &ast.Position{Line: vp.Line, Column: vp.Column, Start: vp.Start, End: tok.pos.End}
@@ -1457,7 +1461,7 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 		pos.End = values[len(values)-1].Pos().End
 	default:
 		if len(variables) > 1 {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting := or = or comma", tok)})
+			panic(syntaxError(tok.pos, "unexpected %s, expecting := or = or comma", tok))
 		}
 		if typ == ast.AssignmentIncrement || typ == ast.AssignmentDecrement {
 			tok = p.next()

@@ -46,7 +46,7 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
 			return nil, err
 		}
 		if pkg == nil {
-			return nil, &SyntaxError{"", *(n.Pos()), fmt.Errorf("cannot find package %q", n.Path)}
+			return nil, syntaxError(n.Pos(), "cannot find package %q", n.Path)
 		}
 
 		switch pkg := pkg.(type) {
@@ -171,7 +171,7 @@ func ParseScript(src io.Reader, loader PackageLoader, shebang bool) (*ast.Tree, 
 		}
 		// Load the package.
 		if loader == nil {
-			return nil, &SyntaxError{"", *(imp.Pos()), fmt.Errorf("cannot find package %q", imp.Path)}
+			return nil, syntaxError(imp.Pos(), "cannot find package %q", imp.Path)
 		}
 		pkg, err := loader.Load(imp.Path)
 		if err != nil {
@@ -181,7 +181,7 @@ func ParseScript(src io.Reader, loader PackageLoader, shebang bool) (*ast.Tree, 
 		case predefinedPackage:
 			packages[imp.Path] = true
 		case nil:
-			return nil, &SyntaxError{"", *(imp.Pos()), fmt.Errorf("cannot find package %q", imp.Path)}
+			return nil, syntaxError(imp.Pos(), "cannot find package %q", imp.Path)
 		default:
 			return nil, fmt.Errorf("scriggo: unexpected type %T package loader", pkg)
 		}
