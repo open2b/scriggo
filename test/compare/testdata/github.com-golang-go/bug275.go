@@ -1,5 +1,3 @@
-// skip : builtin 'real' not implemented https://github.com/open2b/scriggo/issues/172
-
 // compile
 
 // Copyright 2010 The Go Authors. All rights reserved.
