@@ -67,6 +67,7 @@ func main() {
 
 	var timeoutArg = flag.String("time", "", "limit the execution time; zero is no limit; the argument is parsed using function time.ParseDuration")
 	var memArg = flag.String("mem", "", "limit the allocable memory; zero is no limit; suffixes [BKMG] are supported")
+	var disallowGoStmt = flag.Bool("disallowGoStatement", false, "disallow the 'go' statement")
 
 	var limitMemorySize bool
 	var maxMemorySize = -1
@@ -122,6 +123,7 @@ func main() {
 		}
 		loadOpts := &scriggo.LoadOptions{
 			LimitMemorySize: limitMemorySize,
+			DisallowGoStmt:  *disallowGoStmt,
 		}
 		_, err := scriggo.Load(scriggo.Loaders(stdinLoader{os.Stdin}, predefPkgs), loadOpts)
 		if err != nil {
@@ -138,6 +140,7 @@ func main() {
 		}
 		loadOpts := &scriggo.LoadOptions{
 			LimitMemorySize: limitMemorySize,
+			DisallowGoStmt:  *disallowGoStmt,
 		}
 		_, err = scriggo.LoadScript(bytes.NewReader(src), predefPkgs, loadOpts)
 		if err != nil {
@@ -147,6 +150,7 @@ func main() {
 	case "run program":
 		loadOpts := &scriggo.LoadOptions{
 			LimitMemorySize: limitMemorySize,
+			DisallowGoStmt:  *disallowGoStmt,
 		}
 		program, err := scriggo.Load(scriggo.Loaders(stdinLoader{os.Stdin}, predefPkgs), loadOpts)
 		if err != nil {
@@ -164,6 +168,7 @@ func main() {
 	case "run script":
 		loadOpts := &scriggo.LoadOptions{
 			LimitMemorySize: limitMemorySize,
+			DisallowGoStmt:  *disallowGoStmt,
 		}
 		script, err := scriggo.LoadScript(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
@@ -181,6 +186,7 @@ func main() {
 	case "run program directory":
 		loadOpts := &scriggo.LoadOptions{
 			LimitMemorySize: limitMemorySize,
+			DisallowGoStmt:  *disallowGoStmt,
 		}
 		dirPath := flag.Args()[1]
 		dl := dirLoader(dirPath)
@@ -198,6 +204,9 @@ func main() {
 			panic(err)
 		}
 	case "render html":
+		if *disallowGoStmt {
+			panic("disallow Go statement not supported when rendering a html page")
+		}
 		src, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
 			panic(err)
@@ -220,6 +229,9 @@ func main() {
 			panic(err)
 		}
 	case "render html directory":
+		if *disallowGoStmt {
+			panic("disallow Go statement not supported when rendering a html directory")
+		}
 		dirPath := flag.Args()[1]
 		r := template.DirReader(dirPath)
 		loadOpts := &template.LoadOptions{
@@ -239,6 +251,9 @@ func main() {
 			panic(err)
 		}
 	case "compile html":
+		if *disallowGoStmt {
+			panic("disallow Go statement not supported when compiling a html page")
+		}
 		src, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
 			panic(err)
