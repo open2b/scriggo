@@ -63,7 +63,7 @@ func TestVMExpressions(t *testing.T) {
 	for src, expected := range exprTests {
 		t.Run(src, func(t *testing.T) {
 			r := scriggo.MapStringLoader{"main": "package main; func main() { a := " + src + "; _ = a }"}
-			program, err := scriggo.LoadProgram(r, &scriggo.LoadOptions{LimitMemorySize: true})
+			program, err := scriggo.Load(r, &scriggo.LoadOptions{LimitMemorySize: true})
 			if err != nil {
 				t.Errorf("test %q, compiler error: %s", src, err)
 				return

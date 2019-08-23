@@ -52,8 +52,8 @@ type Program struct {
 	options *LoadOptions
 }
 
-// LoadProgram loads a program, reading package "main" from packages.
-func LoadProgram(packages PackageLoader, options *LoadOptions) (*Program, error) {
+// Load loads a Go program, reading package "main" from packages.
+func Load(packages PackageLoader, options *LoadOptions) (*Program, error) {
 
 	tree, err := compiler.ParseProgram(packages)
 	if err != nil {

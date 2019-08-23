@@ -61,7 +61,7 @@ var templateMain = &scriggo.MapPackage{
 func main() {
 	switch os.Args[1] {
 	case "compile program":
-		_, err := scriggo.LoadProgram(scriggo.Loaders(stdinLoader{os.Stdin}, predefPkgs), nil)
+		_, err := scriggo.Load(scriggo.Loaders(stdinLoader{os.Stdin}, predefPkgs), nil)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -77,7 +77,7 @@ func main() {
 			os.Exit(1)
 		}
 	case "run program":
-		program, err := scriggo.LoadProgram(scriggo.Loaders(stdinLoader{os.Stdin}, predefPkgs), nil)
+		program, err := scriggo.Load(scriggo.Loaders(stdinLoader{os.Stdin}, predefPkgs), nil)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -101,7 +101,7 @@ func main() {
 	case "run program directory":
 		dirPath := os.Args[2]
 		dl := dirLoader(dirPath)
-		prog, err := scriggo.LoadProgram(scriggo.CombinedLoaders{dl, predefPkgs}, nil)
+		prog, err := scriggo.Load(scriggo.CombinedLoaders{dl, predefPkgs}, nil)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
