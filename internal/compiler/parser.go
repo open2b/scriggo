@@ -373,8 +373,6 @@ TOKENS:
 // In a template, a block starts with {% and end with %}.
 func (p *parsing) parseBlock(tok token) token {
 
-	var pos = tok.pos
-
 LABEL:
 
 	switch s := p.parent().(type) {
@@ -413,6 +411,7 @@ LABEL:
 
 	// package
 	case tokenPackage:
+		pos := tok.pos
 		if tree, ok := p.parent().(*ast.Tree); !ok || p.ctx != ast.ContextGo || len(tree.Nodes) > 0 {
 			panic(syntaxError(tok.pos, "unexpected package, expecting statement"))
 		}
@@ -437,6 +436,7 @@ LABEL:
 
 	// for
 	case tokenFor:
+		pos := tok.pos
 		var node ast.Node
 		var init *ast.Assignment
 		var assignmentType ast.AssignmentType
@@ -564,6 +564,7 @@ LABEL:
 
 	// break
 	case tokenBreak:
+		pos := tok.pos
 		var label *ast.Identifier
 		tok = p.next()
 		if tok.typ == tokenIdentifier {
@@ -579,6 +580,7 @@ LABEL:
 
 	// continue
 	case tokenContinue:
+		pos := tok.pos
 		var label *ast.Identifier
 		tok = p.next()
 		if tok.typ == tokenIdentifier {
@@ -594,6 +596,7 @@ LABEL:
 
 	// switch
 	case tokenSwitch:
+		pos := tok.pos
 		node := p.parseSwitch(pos)
 		p.addChild(node)
 		p.addToAncestors(node)
@@ -602,6 +605,7 @@ LABEL:
 
 	// case
 	case tokenCase:
+		pos := tok.pos
 		var expressions []ast.Expression
 		switch p.parent().(type) {
 		case *ast.Switch, *ast.TypeSwitch:
@@ -646,6 +650,7 @@ LABEL:
 
 	// default
 	case tokenDefault:
+		pos := tok.pos
 		switch p.parent().(type) {
 		case *ast.Switch, *ast.TypeSwitch:
 			tok = p.next()
@@ -668,6 +673,7 @@ LABEL:
 
 	// fallthrough
 	case tokenFallthrough:
+		pos := tok.pos
 		tok = p.next()
 		tok = p.parseEnd(tok, tokenSemicolon)
 		node := ast.NewFallthrough(pos)
@@ -677,6 +683,7 @@ LABEL:
 
 	// select
 	case tokenSelect:
+		pos := tok.pos
 		tok = p.next()
 		tok = p.parseEnd(tok, tokenLeftBraces)
 		node := ast.NewSelect(pos, nil, nil)
@@ -765,6 +772,7 @@ LABEL:
 
 	// if
 	case tokenIf:
+		pos := tok.pos
 		ifPos := tok.pos
 		var expressions []ast.Expression
 		expressions, tok = p.parseExprList(token{}, false, false, true)
@@ -807,6 +815,7 @@ LABEL:
 
 	// return
 	case tokenReturn:
+		pos := tok.pos
 		var inFunction bool
 		for i := len(p.ancestors) - 1; i > 0; i-- {
 			if _, ok := p.ancestors[i].(*ast.Func); ok {
@@ -829,6 +838,7 @@ LABEL:
 
 	// include
 	case tokenInclude:
+		pos := tok.pos
 		if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
 			panic(syntaxError(tok.pos, "include statement inside an attribute value"))
 		}
@@ -853,6 +863,7 @@ LABEL:
 
 	// show
 	case tokenShow:
+		pos := tok.pos
 		if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
 			panic(syntaxError(tok.pos, "show statement inside an attribute value"))
 		}
@@ -926,6 +937,7 @@ LABEL:
 
 	// extends
 	case tokenExtends:
+		pos := tok.pos
 		if tok.ctx != p.ctx {
 			panic(syntaxError(tok.pos, "extends not in %s content", p.ctx))
 		}
@@ -960,7 +972,8 @@ LABEL:
 
 	// var or const
 	case tokenVar, tokenConst:
-		var decType = tok.typ
+		pos := tok.pos
+		decType := tok.typ
 		if tok.ctx != p.ctx {
 			panic(syntaxError(tok.pos, "%s declaration not in %s content", decType, p.ctx))
 		}
@@ -1073,6 +1086,7 @@ LABEL:
 
 	// macro
 	case tokenMacro:
+		pos := tok.pos
 		if len(p.ancestors) > 1 {
 			panic(syntaxError(tok.pos, "unexpected macro in statement scope"))
 		}
@@ -1163,8 +1177,8 @@ LABEL:
 
 	// type
 	case tokenType:
+		pos := tok.pos
 		var td *ast.TypeDeclaration
-		pos = tok.pos
 		tok = p.next()
 		if tok.typ == tokenLeftParenthesis {
 			// "type" "(" ... ")" .
@@ -1193,6 +1207,7 @@ LABEL:
 
 	// defer or go
 	case tokenDefer, tokenGo:
+		pos := tok.pos
 		keyword := tok.typ
 		tok = p.next()
 		var expr ast.Expression
@@ -1213,6 +1228,7 @@ LABEL:
 
 	// goto
 	case tokenGoto:
+		pos := tok.pos
 		if tok.ctx != ast.ContextGo {
 			panic(syntaxError(tok.pos, "unexpected goto outside function body"))
 		}
@@ -1248,6 +1264,7 @@ LABEL:
 
 	// assignment, send, label or expression
 	default:
+		pos := tok.pos
 		var expressions []ast.Expression
 		expressions, tok = p.parseExprList(tok, false, false, false)
 		if len(expressions) == 0 {
