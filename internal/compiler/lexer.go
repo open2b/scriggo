@@ -170,7 +170,7 @@ func (l *lexer) scan() {
 					if p > 0 {
 						l.emitAtLineColumn(lin, col, tokenText, p)
 					}
-					err := l.lexStatement()
+					err := l.lexBlock()
 					if err != nil {
 						l.err = err
 						break LOOP
@@ -567,9 +567,9 @@ func (l *lexer) lexShow() error {
 	return nil
 }
 
-// lexStatement emits tokens of a statement knowing that src starts with '{%'.
-func (l *lexer) lexStatement() error {
-	l.emit(tokenStartStatement, 2)
+// lexBlock emits the tokens of a block knowing that src starts with {%.
+func (l *lexer) lexBlock() error {
+	l.emit(tokenStartBlock, 2)
 	l.column += 2
 	err := l.lexCode()
 	if err != nil {
@@ -580,7 +580,7 @@ func (l *lexer) lexStatement() error {
 	} else if l.src[0] != '%' && l.src[1] != '}' {
 		return l.errorf("unexpected %s, expecting %%}", l.src[:2])
 	}
-	l.emit(tokenEndStatement, 2)
+	l.emit(tokenEndBlock, 2)
 	l.column += 2
 	return nil
 }

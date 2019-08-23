@@ -191,7 +191,7 @@ TOKENS:
 				return nil, syntaxError(tok.pos, "illegal character U+0023 '#'")
 			}
 		default:
-			tok = p.parseStatement(tok)
+			tok = p.parseBlock(tok)
 			continue
 		case tokenEOF:
 			if len(p.ancestors) > 1 {
@@ -327,10 +327,10 @@ TOKENS:
 			p.removeLastAncestor()
 
 		// {%
-		case tokenStartStatement:
+		case tokenStartBlock:
 			tokensInLine++
 			tok = p.next()
-			tok = p.parseStatement(tok)
+			tok = p.parseBlock(tok)
 			continue
 
 		// {{ }}
@@ -366,8 +366,12 @@ TOKENS:
 	return tree, deps, nil
 }
 
-// parseStatement parses a statement. Panics on error.
-func (p *parsing) parseStatement(tok token) token {
+// parseBlock parses a block of code given its first token and returns the
+// next token after the block. A block can include a statement, as "a := 5",
+// or a part of a statement as "for c {".
+//
+// In a template, a block starts with {% and end with %}.
+func (p *parsing) parseBlock(tok token) token {
 
 	var pos = tok.pos
 
@@ -467,7 +471,7 @@ LABEL:
 				[]ast.Expression{blank, ident}, ast.AssignmentDeclaration, []ast.Expression{expr})
 			pos.End = tok.pos.End
 			node = ast.NewForRange(pos, assignment, nil)
-		case tokenLeftBraces, tokenEndStatement:
+		case tokenLeftBraces, tokenEndBlock:
 			if (p.ctx == ast.ContextGo) != (tok.typ == tokenLeftBraces) {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression or %%}", tok))
 			}
@@ -743,7 +747,7 @@ LABEL:
 		}
 		p.cutSpacesToken = true
 		tok = p.next()
-		if p.ctx == ast.ContextGo && tok.typ == tokenLeftBraces || p.ctx != ast.ContextGo && tok.typ == tokenEndStatement {
+		if p.ctx == ast.ContextGo && tok.typ == tokenLeftBraces || p.ctx != ast.ContextGo && tok.typ == tokenEndBlock {
 			// "else"
 			var blockPos *ast.Position
 			if p.ctx == ast.ContextGo {
@@ -838,7 +842,7 @@ LABEL:
 			panic(fmt.Errorf("invalid path %q at %s", path, tok.pos))
 		}
 		tok = p.next()
-		if tok.typ != tokenEndStatement {
+		if tok.typ != tokenEndBlock {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting ( or %%}", tok))
 		}
 		pos.End = tok.pos.End
@@ -916,7 +920,7 @@ LABEL:
 			node = ast.NewShowMacro(pos, ast.NewSelector(macro.Pos(), impor, macro.Name), args, isVariadic, or, tok.ctx)
 		}
 		p.addChild(node)
-		tok = p.parseEnd(tok, tokenEndStatement)
+		tok = p.parseEnd(tok, tokenEndBlock)
 		p.cutSpacesToken = true
 		return tok
 
@@ -945,7 +949,7 @@ LABEL:
 			panic(syntaxError(tok.pos, "invalid extends path %q", path))
 		}
 		tok = p.next()
-		if tok.typ != tokenEndStatement {
+		if tok.typ != tokenEndBlock {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
 		}
 		pos.End = tok.pos.End
@@ -1092,7 +1096,7 @@ LABEL:
 			pos.End = endPos.End
 			tok = p.next()
 		}
-		if tok.typ != tokenEndStatement {
+		if tok.typ != tokenEndBlock {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
 		}
 		// Makes the macro node.
@@ -1115,10 +1119,10 @@ LABEL:
 		}
 		p.parent().Pos().End = tok.pos.End
 		tok = p.next()
-		if tok.typ != tokenEndStatement {
+		if tok.typ != tokenEndBlock {
 			parentTok := tok
 			tok = p.next()
-			if tok.typ != tokenEndStatement {
+			if tok.typ != tokenEndBlock {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
 			}
 			switch p.parent().(type) {
@@ -1289,7 +1293,7 @@ LABEL:
 				p.cutSpacesToken = true
 				if p.isTemplate {
 					tok = p.next()
-					if tok.typ == tokenEndStatement || tok.typ == tokenEOF {
+					if tok.typ == tokenEndBlock || tok.typ == tokenEOF {
 						panic(syntaxError(tok.pos, "unexpected %s, expecting statement", tok))
 					}
 					goto LABEL
@@ -1308,7 +1312,7 @@ LABEL:
 
 func (p *parsing) parseEnd(tok token, want tokenTyp) token {
 	if p.isTemplate {
-		if tok.typ != tokenEndStatement {
+		if tok.typ != tokenEndBlock {
 			if want == tokenSemicolon {
 				panic(syntaxError(tok.pos, "unexpected %s at end of statement", tok))
 			}

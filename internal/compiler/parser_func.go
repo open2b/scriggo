@@ -92,7 +92,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 			}
 			panic(syntaxError(tok.pos, "unexpected EOF, expecting }"))
 		}
-		tok = p.parseStatement(tok)
+		tok = p.parseBlock(tok)
 	}
 	body.Position.End = tok.pos.End
 	node.Position.End = tok.pos.End

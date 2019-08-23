@@ -40,7 +40,7 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 
 	end := tokenLeftBraces
 	if p.ctx != ast.ContextGo {
-		end = tokenEndStatement
+		end = tokenEndBlock
 	}
 
 	switch {
