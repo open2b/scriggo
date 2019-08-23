@@ -933,6 +933,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				em.fb.emitGoto(em.rangeLabels[len(em.rangeLabels)-1][1])
 			}
 
+		case *ast.Comment:
+			// Nothing to do.
+
 		case *ast.Const:
 			// Nothing to do.
 
@@ -941,16 +944,6 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				panic("TODO(Gianluca): not implemented")
 			}
 			em.fb.emitContinue(em.rangeLabels[len(em.rangeLabels)-1][0])
-
-		case *ast.Go:
-			call := node.Call.(*ast.Call)
-			if em.ti(call.Func) == showMacroIgnoredTi {
-				// Nothing to do
-				continue
-			}
-			em.fb.enterStack()
-			_, _ = em.emitCallNode(call, true, false)
-			em.fb.exitStack()
 
 		case *ast.Defer:
 			call := node.Call.(*ast.Call)
@@ -1106,6 +1099,16 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.rangeLabels = em.rangeLabels[:len(em.rangeLabels)-1]
 			em.fb.exitScope()
 			em.fb.exitScope()
+
+		case *ast.Go:
+			call := node.Call.(*ast.Call)
+			if em.ti(call.Func) == showMacroIgnoredTi {
+				// Nothing to do
+				continue
+			}
+			em.fb.enterStack()
+			_, _ = em.emitCallNode(call, true, false)
+			em.fb.exitStack()
 
 		case *ast.Goto:
 			if label, ok := em.labels[em.fb.fn][node.Label.Name]; ok {
@@ -1321,8 +1324,6 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				}
 			}
 			em.assign(addresses, node.Rhs)
-
-		case *ast.Comment:
 
 		case ast.Expression:
 			em.emitExprR(node, reflect.Type(nil), 0)
