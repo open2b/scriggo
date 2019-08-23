@@ -392,6 +392,9 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 
 			case tokenLeftBraces: // ...{
 				canCompositeLiteral = false
+				if operand != nil && operand.Parenthesis() > 0 {
+					panic(syntaxError(tok.pos, "cannot parenthesize type in composite literal"))
+				}
 				pos := &ast.Position{Line: tok.pos.Line, Column: tok.pos.Column, Start: tok.pos.Start, End: tok.pos.End}
 				if operand != nil {
 					pos.Start = operand.Pos().Start
