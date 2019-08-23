@@ -1193,6 +1193,9 @@ LABEL:
 		tok = p.next()
 		var expr ast.Expression
 		expr, tok = p.parseExpr(tok, false, false, false)
+		if expr == nil {
+			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
+		}
 		pos.End = expr.Pos().End
 		// Errors on defer and go statements must be type checker errors and not syntax errors.
 		var call *ast.Call
