@@ -1068,6 +1068,18 @@ var checkerStmts = map[string]string{
 	`select { case true: }`:                                                                            `select case must be receive, send or assign recv`,
 	`ch := make(chan int); var a int; select { case a += <- ch: }`:                                     `select case must be receive, send or assign recv`,
 
+	// Defer statements.
+	`defer func() {}()`:   ok,
+	`defer (func() {}())`: `expression in defer must not be parenthesized`,
+	`defer 5`:             `expression in defer must be function call`,
+	`defer (5)`:           `expression in defer must not be parenthesized`,
+
+	// Go statements.
+	`go func() {}()`:   ok,
+	`go (func() {}())`: `expression in go must not be parenthesized`,
+	`go 5`:             `expression in go must be function call`,
+	`go (5)`:           `expression in go must not be parenthesized`,
+
 	// Function literals definitions.
 	`_ = func(     )         {                                             }`: ok,
 	`_ = func(     )         { return                                      }`: ok,
@@ -1389,9 +1401,6 @@ var checkerStmts = map[string]string{
 	`type S1 = struct { A int ; B map[string][]int; *int }`:                       ok,
 	`_ = struct{ A int }{C: 10}`:                                                  `unknown field 'C' in struct literal of type struct { A int }`,
 	`type S = struct{A,B int ; C,D float64} ; _ = S{A: 5, B: 10, C: 3.4, D: ""}`:  `cannot use "" (type string) as type float64 in field value`,
-
-	// go statement.
-	`go func() {}()`: `"go" statement not available`,
 }
 
 type pointInt struct{ X, Y int }
@@ -1434,7 +1443,7 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			tc := newTypechecker("", CheckerOptions{DisallowGoStmt: true, SyntaxType: ScriptSyntax}, nil)
+			tc := newTypechecker("", CheckerOptions{SyntaxType: ScriptSyntax}, nil)
 			tc.scopes = append(tc.scopes, scope)
 			tc.enterScope()
 			tc.checkNodes(tree.Nodes)

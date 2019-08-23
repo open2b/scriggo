@@ -624,7 +624,13 @@ nodesLoop:
 			}
 
 		case *ast.Defer:
-			call := node.Call.(*ast.Call)
+			if node.Call.Parenthesis() > 0 {
+				panic(tc.errorf(node.Call, "expression in defer must not be parenthesized"))
+			}
+			call, ok := node.Call.(*ast.Call)
+			if !ok {
+				panic(tc.errorf(node.Call, "expression in defer must be function call"))
+			}
 			_, isBuiltin, isConversion := tc.checkCallExpression(call, true)
 			if isBuiltin {
 				name := call.Func.(*ast.Identifier).Name
@@ -644,7 +650,13 @@ nodesLoop:
 			tc.terminating = false
 
 		case *ast.Go:
-			call := node.Call.(*ast.Call)
+			if node.Call.Parenthesis() > 0 {
+				panic(tc.errorf(node.Call, "expression in go must not be parenthesized"))
+			}
+			call, ok := node.Call.(*ast.Call)
+			if !ok {
+				panic(tc.errorf(node.Call, "expression in go must be function call"))
+			}
 			_, isBuiltin, isConversion := tc.checkCallExpression(call, true)
 			if isBuiltin {
 				name := call.Func.(*ast.Identifier).Name

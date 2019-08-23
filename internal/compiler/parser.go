@@ -1197,19 +1197,11 @@ LABEL:
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
 		pos.End = expr.Pos().End
-		// Errors on defer and go statements must be type checker errors and not syntax errors.
-		if expr.Parenthesis() > 0 {
-			panic(syntaxError(tok.pos, "expression in %s must not be parenthesized", keyword))
-		}
-		call, ok := expr.(*ast.Call)
-		if !ok {
-			panic(syntaxError(tok.pos, "expression in %s must be function call", keyword))
-		}
 		var node ast.Node
 		if keyword == tokenDefer {
-			node = ast.NewDefer(pos, call)
+			node = ast.NewDefer(pos, expr)
 		} else {
-			node = ast.NewGo(pos, call)
+			node = ast.NewGo(pos, expr)
 		}
 		p.addChild(node)
 		tok = p.parseEnd(tok, tokenSemicolon)
