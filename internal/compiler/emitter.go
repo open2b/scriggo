@@ -943,20 +943,22 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.emitContinue(em.rangeLabels[len(em.rangeLabels)-1][0])
 
 		case *ast.Go:
-			if em.ti(node.Call.Func) == showMacroIgnoredTi {
+			call := node.Call.(*ast.Call)
+			if em.ti(call.Func) == showMacroIgnoredTi {
 				// Nothing to do
 				continue
 			}
 			em.fb.enterStack()
-			_, _ = em.emitCallNode(node.Call, true, false)
+			_, _ = em.emitCallNode(call, true, false)
 			em.fb.exitStack()
 
 		case *ast.Defer:
-			if em.ti(node.Call.Func) == showMacroIgnoredTi {
+			call := node.Call.(*ast.Call)
+			if em.ti(call.Func) == showMacroIgnoredTi {
 				// Nothing to do
 				continue
 			}
-			if em.isBuiltinCall(node.Call, "recover") {
+			if em.isBuiltinCall(call, "recover") {
 				stackShift := em.fb.currentStackShift()
 				backup := em.fb
 				fnReg := em.fb.newRegister(reflect.Func)
@@ -969,7 +971,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				continue
 			}
 			em.fb.enterStack()
-			_, _ = em.emitCallNode(node.Call, false, true)
+			_, _ = em.emitCallNode(call, false, true)
 			em.fb.exitStack()
 
 		case *ast.Import:

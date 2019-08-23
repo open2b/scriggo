@@ -624,17 +624,18 @@ nodesLoop:
 			}
 
 		case *ast.Defer:
-			_, isBuiltin, isConversion := tc.checkCallExpression(node.Call, true)
+			call := node.Call.(*ast.Call)
+			_, isBuiltin, isConversion := tc.checkCallExpression(call, true)
 			if isBuiltin {
-				name := node.Call.Func.(*ast.Identifier).Name
+				name := call.Func.(*ast.Identifier).Name
 				switch name {
 				case "append", "cap", "len", "make", "new":
-					panic(tc.errorf(node, "defer discards result of %s", node.Call))
+					panic(tc.errorf(node, "defer discards result of %s", call))
 				case "recover":
 					// The statement "defer recover()" is a special case
 					// implemented by the emitter.
 				case "close", "delete", "panic", "print", "println":
-					tc.typeInfos[node.Call.Func] = deferGoBuiltin(name)
+					tc.typeInfos[call.Func] = deferGoBuiltin(name)
 				}
 			}
 			if isConversion {
@@ -643,14 +644,15 @@ nodesLoop:
 			tc.terminating = false
 
 		case *ast.Go:
-			_, isBuiltin, isConversion := tc.checkCallExpression(node.Call, true)
+			call := node.Call.(*ast.Call)
+			_, isBuiltin, isConversion := tc.checkCallExpression(call, true)
 			if isBuiltin {
-				name := node.Call.Func.(*ast.Identifier).Name
+				name := call.Func.(*ast.Identifier).Name
 				switch name {
 				case "append", "cap", "len", "make", "new":
-					panic(tc.errorf(node, "go discards result of %s", node.Call))
+					panic(tc.errorf(node, "go discards result of %s", call))
 				case "close", "delete", "panic", "print", "println", "recover":
-					tc.typeInfos[node.Call.Func] = deferGoBuiltin(name)
+					tc.typeInfos[call.Func] = deferGoBuiltin(name)
 				}
 			}
 			if isConversion {

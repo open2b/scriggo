@@ -264,9 +264,9 @@ func CloneNode(node ast.Node) ast.Node {
 		typ := CloneExpression(n.Type).(*ast.FuncType)
 		return ast.NewFunc(ClonePosition(n.Position), ident, typ, CloneNode(n.Body).(*ast.Block))
 	case *ast.Defer:
-		return ast.NewDefer(ClonePosition(n.Position), CloneExpression(n.Call).(*ast.Call))
+		return ast.NewDefer(ClonePosition(n.Position), CloneExpression(n.Call))
 	case *ast.Go:
-		return ast.NewGo(ClonePosition(n.Position), CloneExpression(n.Call).(*ast.Call))
+		return ast.NewGo(ClonePosition(n.Position), CloneExpression(n.Call))
 	case *ast.Goto:
 		return ast.NewGoto(ClonePosition(n.Position), CloneExpression(n.Label).(*ast.Identifier))
 	case *ast.Label:

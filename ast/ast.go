@@ -1097,11 +1097,11 @@ func (n *Call) String() string {
 
 // Defer node represents a defer statement.
 type Defer struct {
-	*Position       // position in the source.
-	Call      *Call // function or method call.
+	*Position            // position in the source.
+	Call      Expression // function or method call (should be a Call node).
 }
 
-func NewDefer(pos *Position, call *Call) *Defer {
+func NewDefer(pos *Position, call Expression) *Defer {
 	return &Defer{pos, call}
 }
 
@@ -1111,11 +1111,11 @@ func (n *Defer) String() string {
 
 // Go node represents a go statement.
 type Go struct {
-	*Position       // position in the source.
-	Call      *Call // function or method call.
+	*Position            // position in the source.
+	Call      Expression // function or method call (should be a Call node).
 }
 
-func NewGo(pos *Position, call *Call) *Go {
+func NewGo(pos *Position, call Expression) *Go {
 	return &Go{pos, call}
 }
 
