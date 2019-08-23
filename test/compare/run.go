@@ -218,13 +218,13 @@ func errorcheck(src []byte, ext string) {
 		}[ext]
 		exitCode, stdout, stderr := cmd([]byte(test.src), arg)
 		if exitCode == 0 {
-			panic("expecting error but exit code is 0")
+			panic(fmt.Errorf("expecting error '%s' but exit code is 0", test.err))
 		}
 		if len(stdout) > 0 {
 			panic("stdout should be empty")
 		}
 		if len(stderr) == 0 {
-			panic("expected error, got nothing")
+			panic(fmt.Errorf("expected error '%s', got nothing", test.err))
 		}
 		re := regexp.MustCompile(test.err)
 		if !re.Match(stderr) {
