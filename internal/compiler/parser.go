@@ -610,6 +610,9 @@ LABEL:
 		switch p.parent().(type) {
 		case *ast.Switch, *ast.TypeSwitch:
 			expressions, tok = p.parseExprList(token{}, false, false, false)
+			if len(expressions) == 0 {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
+			}
 			pos.End = expressions[len(expressions)-1].Pos().End
 			tok = p.parseEnd(tok, tokenColon)
 			node := ast.NewCase(pos, expressions, nil)
