@@ -9,10 +9,15 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
+	"time"
+
 	"scriggo"
 	"scriggo/template"
 )
@@ -59,57 +64,138 @@ var templateMain = &scriggo.MapPackage{
 }
 
 func main() {
-	switch os.Args[1] {
+
+	var timeoutArg = flag.String("time", "", "limit the execution time; zero is no limit; the argument is parsed using function time.ParseDuration")
+	var memArg = flag.String("mem", "", "limit the allocable memory; zero is no limit; suffixes [BKMG] are supported")
+
+	var limitMemorySize bool
+	var maxMemorySize = -1
+	var timeout context.Context
+
+	flag.Parse()
+
+	// TODO: this is a copy-paste from cmd/scriggo/interpreter_skel.go. When
+	// these code will be implemented as a support function, call it.
+	if *timeoutArg != "" {
+		d, err := time.ParseDuration(*timeoutArg)
+		if err != nil {
+			panic(err)
+		}
+		if d != 0 {
+			var cancel context.CancelFunc
+			timeout, cancel = context.WithTimeout(context.Background(), d)
+			defer cancel()
+		}
+	}
+
+	// TODO: this is a copy-paste from cmd/scriggo/interpreter_skel.go. When
+	// these code will be implemented as a support function, call it.
+	if *memArg != "" {
+		limitMemorySize = true
+		var unit = (*memArg)[len(*memArg)-1]
+		if unit > 'Z' {
+			unit -= 'z' - 'Z'
+		}
+		switch unit {
+		case 'B', 'K', 'M', 'G':
+			*memArg = (*memArg)[:len(*memArg)-1]
+		}
+		var err error
+		maxMemorySize, err = strconv.Atoi(*memArg)
+		if err != nil {
+			panic(err)
+		}
+		switch unit {
+		case 'K':
+			maxMemorySize *= 1024
+		case 'M':
+			maxMemorySize *= 1024 * 1024
+		case 'G':
+			maxMemorySize *= 1024 * 1024 * 1024
+		}
+	}
+
+	switch flag.Args()[0] {
 	case "compile program":
-		_, err := scriggo.Load(scriggo.Loaders(stdinLoader{os.Stdin}, predefPkgs), nil)
+		if timeout != nil {
+			panic("timeout not supported when compiling a program")
+		}
+		loadOpts := &scriggo.LoadOptions{
+			LimitMemorySize: limitMemorySize,
+		}
+		_, err := scriggo.Load(scriggo.Loaders(stdinLoader{os.Stdin}, predefPkgs), loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
 	case "compile script":
+		if timeout != nil {
+			panic("timeout not supported when compiling a script")
+		}
 		src, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
 			panic(err)
 		}
-		_, err = scriggo.LoadScript(bytes.NewReader(src), predefPkgs, nil)
+		loadOpts := &scriggo.LoadOptions{
+			LimitMemorySize: limitMemorySize,
+		}
+		_, err = scriggo.LoadScript(bytes.NewReader(src), predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
 	case "run program":
-		program, err := scriggo.Load(scriggo.Loaders(stdinLoader{os.Stdin}, predefPkgs), nil)
+		loadOpts := &scriggo.LoadOptions{
+			LimitMemorySize: limitMemorySize,
+		}
+		program, err := scriggo.Load(scriggo.Loaders(stdinLoader{os.Stdin}, predefPkgs), loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
-		err = program.Run(nil)
+		runOpts := &scriggo.RunOptions{
+			Context:       timeout,
+			MaxMemorySize: maxMemorySize,
+		}
+		err = program.Run(runOpts)
 		if err != nil {
-			fmt.Fprint(os.Stderr, err)
-			os.Exit(1)
+			panic(err)
 		}
 	case "run script":
-		script, err := scriggo.LoadScript(os.Stdin, predefPkgs, nil)
+		loadOpts := &scriggo.LoadOptions{
+			LimitMemorySize: limitMemorySize,
+		}
+		script, err := scriggo.LoadScript(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
-		err = script.Run(nil, nil)
+		runOpts := &scriggo.RunOptions{
+			Context:       timeout,
+			MaxMemorySize: maxMemorySize,
+		}
+		err = script.Run(nil, runOpts)
 		if err != nil {
-			fmt.Fprint(os.Stderr, err)
-			os.Exit(1)
+			panic(err)
 		}
 	case "run program directory":
-		dirPath := os.Args[2]
+		loadOpts := &scriggo.LoadOptions{
+			LimitMemorySize: limitMemorySize,
+		}
+		dirPath := flag.Args()[1]
 		dl := dirLoader(dirPath)
-		prog, err := scriggo.Load(scriggo.CombinedLoaders{dl, predefPkgs}, nil)
+		prog, err := scriggo.Load(scriggo.CombinedLoaders{dl, predefPkgs}, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
-		err = prog.Run(nil)
+		runOpts := &scriggo.RunOptions{
+			Context:       timeout,
+			MaxMemorySize: maxMemorySize,
+		}
+		err = prog.Run(runOpts)
 		if err != nil {
-			fmt.Fprint(os.Stderr, err)
-			os.Exit(1)
+			panic(err)
 		}
 	case "render html":
 		src, err := ioutil.ReadAll(os.Stdin)
@@ -117,41 +203,59 @@ func main() {
 			panic(err)
 		}
 		r := template.MapReader{"/index.html": src}
-		templ, err := template.Load("/index.html", r, templateMain, template.ContextHTML, nil)
+		loadOpts := &template.LoadOptions{
+			LimitMemorySize: limitMemorySize,
+		}
+		templ, err := template.Load("/index.html", r, templateMain, template.ContextHTML, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
-		err = templ.Render(os.Stdout, nil, nil)
+		renderOpts := &template.RenderOptions{
+			Context:       timeout,
+			MaxMemorySize: maxMemorySize,
+		}
+		err = templ.Render(os.Stdout, nil, renderOpts)
 		if err != nil {
-			fmt.Fprint(os.Stderr, err)
-			os.Exit(1)
+			panic(err)
 		}
 	case "render html directory":
-		dirPath := os.Args[2]
+		dirPath := flag.Args()[1]
 		r := template.DirReader(dirPath)
-		templ, err := template.Load("/index.html", r, templateMain, template.ContextHTML, nil)
+		loadOpts := &template.LoadOptions{
+			LimitMemorySize: limitMemorySize,
+		}
+		templ, err := template.Load("/index.html", r, templateMain, template.ContextHTML, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
-		err = templ.Render(os.Stdout, nil, nil)
+		renderOpts := &template.RenderOptions{
+			Context:       timeout,
+			MaxMemorySize: maxMemorySize,
+		}
+		err = templ.Render(os.Stdout, nil, renderOpts)
 		if err != nil {
-			fmt.Fprint(os.Stderr, err)
-			os.Exit(1)
+			panic(err)
 		}
 	case "compile html":
 		src, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
 			panic(err)
 		}
+		loadOpts := &template.LoadOptions{
+			LimitMemorySize: limitMemorySize,
+		}
+		if timeout != nil {
+			panic("timeout not supported when compiling a html page")
+		}
 		r := template.MapReader{"/index.html": src}
-		_, err = template.Load("/index.html", r, templateMain, template.ContextHTML, nil)
+		_, err = template.Load("/index.html", r, templateMain, template.ContextHTML, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
 	default:
-		panic("invalid argument: %s" + os.Args[1])
+		panic("invalid argument: %s" + flag.Args()[0])
 	}
 }

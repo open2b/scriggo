@@ -6,7 +6,10 @@
 
 package main
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func Test_errorcheck(t *testing.T) {
 
@@ -37,7 +40,7 @@ func Test_errorcheck(t *testing.T) {
 	}
 
 	for _, test := range mustPass {
-		errorcheck([]byte(test.src), test.ext)
+		errorcheck([]byte(test.src), test.ext, nil)
 	}
 
 	mustFail := []struct {
@@ -69,8 +72,67 @@ func Test_errorcheck(t *testing.T) {
 					t.Fatalf("expecting %q, got %q", test.panic, got)
 				}
 			}()
-			errorcheck([]byte(test.src), test.ext)
+			errorcheck([]byte(test.src), test.ext, nil)
 		}()
 	}
 
+}
+
+func Test_readMode(t *testing.T) {
+	cases := []struct {
+		src          string
+		ext          string
+		expectedMode string
+		expectedArgs []string
+	}{
+		{
+			src:          `// run`,
+			ext:          `.go`,
+			expectedMode: `run`,
+		},
+		{
+			src:          `// run -option`,
+			ext:          `.go`,
+			expectedMode: `run`,
+			expectedArgs: []string{"-option"},
+		},
+		{
+			src:          `// compile -time=3s`,
+			ext:          `.go`,
+			expectedMode: `compile`,
+			expectedArgs: []string{"-time=3s"},
+		},
+		{
+			src:          `// compile -time=3s`,
+			ext:          `.sgo`,
+			expectedMode: `compile`,
+			expectedArgs: []string{"-time=3s"},
+		},
+		{
+			src:          `// compile -time = 3s`,
+			ext:          `.sgo`,
+			expectedMode: `compile`,
+			expectedArgs: []string{"-time", "=", "3s"},
+		},
+		{
+			src: `{# render -time=5ms #}
+text`,
+			ext:          `.html`,
+			expectedMode: `render`,
+			expectedArgs: []string{"-time=5ms"},
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.src, func(t *testing.T) {
+			mode, args := readMode([]byte(c.src), c.ext)
+			if mode != c.expectedMode {
+				t.Errorf("expecting mode '%s', got '%s'", c.expectedMode, mode)
+			}
+			if len(args) == 0 && len(c.expectedArgs) == 0 {
+				// Ok.
+			} else if !reflect.DeepEqual(args, c.expectedArgs) {
+				t.Errorf("expecting args %#v, got %#v", c.expectedArgs, args)
+			}
+		})
+	}
 }

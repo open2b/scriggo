@@ -117,12 +117,12 @@ func main() {
 				wg.Done()
 				return
 			}
-			mode := readMode(src, ext)
+			mode, opts := readMode(src, ext)
 			// Skip or run the test.
 			if mode == "skip" {
 				atomic.AddInt64(&countSkipped, 1)
 			} else {
-				test(src, path, mode, ext, *keepTestingOnFail)
+				test(src, opts, path, mode, ext, *keepTestingOnFail)
 			}
 			// Print output when the test is completed.
 			if *verbose {
@@ -186,8 +186,11 @@ func buildCmd() {
 
 // cmd calls the executable "./cmd/cmd" passing the given arguments and the
 // given stdin, if not nil.
-func cmd(stdin []byte, args ...string) (int, []byte, []byte) {
-	cmd := exec.Command("./cmd/cmd", args...)
+func cmd(stdin []byte, opts []string, args ...string) (int, []byte, []byte) {
+	cmdArgs := []string{}
+	cmdArgs = append(cmdArgs, opts...)
+	cmdArgs = append(cmdArgs, args...)
+	cmd := exec.Command("./cmd/cmd", cmdArgs...)
 	stdout := bytes.Buffer{}
 	stderr := bytes.Buffer{}
 	cmd.Stdout = &stdout
@@ -203,7 +206,7 @@ func cmd(stdin []byte, args ...string) (int, []byte, []byte) {
 }
 
 // errorcheck run test with mode 'errorcheck' on the given source code.
-func errorcheck(src []byte, ext string) {
+func errorcheck(src []byte, ext string, opts []string) {
 	tests := differentiateSources(string(src))
 	if len(tests) == 0 {
 		panic("no // ERROR comments found")
@@ -216,7 +219,7 @@ func errorcheck(src []byte, ext string) {
 			".sgo":  "run script",
 			".html": "render html",
 		}[ext]
-		exitCode, stdout, stderr := cmd([]byte(test.src), arg)
+		exitCode, stdout, stderr := cmd([]byte(test.src), opts, arg)
 		if exitCode == 0 {
 			panic(fmt.Errorf("expecting error '%s' but exit code is 0", test.err))
 		}
@@ -314,16 +317,21 @@ func isTestPath(path string) bool {
 	return true
 }
 
-// readMode reports the readMode associated to src.
+// readMode reports the mode (and any options) associated to src.
 //
 // Mode is specified in programs and scripts using a comment line (starting with
 // "//"):
 //
-//  // readMode
+//  // mode
 //
-// templates must encapsulate readMode in a line containing just a comment:
+// templates must encapsulate mode in a line containing just a comment:
 //
 //  {# readMode #}
+//
+// After the mode keyword, some arguments may be provided using the syntax
+// accepted by function flag.Parse.
+//
+// 	// run -time 10s -mem 34K
 //
 // As a special case, the 'skip' comment can be followed by any sequence of
 // characters (after a whitespace character) that will be ignored. This is
@@ -333,7 +341,11 @@ func isTestPath(path string) bool {
 //  // skip because feature X is not supported
 //  // skip : enable when bug Y will be fixed
 //
-func readMode(src []byte, ext string) (mode string) {
+func readMode(src []byte, ext string) (mode string, opts []string) {
+	splitOpts := func(s string) (mode string, opts []string) {
+		ss := strings.Split(s, " ")
+		return ss[0], ss[1:]
+	}
 	switch ext {
 	case ".go", ".sgo":
 		for _, l := range strings.Split(string(src), "\n") {
@@ -350,9 +362,9 @@ func readMode(src []byte, ext string) (mode string) {
 			l = strings.TrimPrefix(l, "//")
 			l = strings.TrimSpace(l)
 			if strings.HasPrefix(l, "skip ") {
-				return "skip"
+				return "skip", []string{}
 			}
-			return l
+			return splitOpts(l)
 		}
 	case ".html":
 		for _, l := range strings.Split(string(src), "\n") {
@@ -365,9 +377,9 @@ func readMode(src []byte, ext string) (mode string) {
 				l = strings.TrimSuffix(l, "#}")
 				l = strings.TrimSpace(l)
 				if strings.HasPrefix(l, "skip ") {
-					return "skip"
+					return "skip", []string{}
 				}
-				return l
+				return splitOpts(l)
 			} else {
 				panic(fmt.Errorf("not a valid directive: '%s'", l))
 			}
@@ -541,7 +553,7 @@ func shouldBuild(src []byte) bool {
 // test execute test on the given source code with the specified mode.
 // When a test fails, test calls os.Exit with an non-zero error code, unless
 // keepTestingOnFail is set.
-func test(src []byte, path, mode, ext string, keepTestingOnFail bool) {
+func test(src []byte, opts []string, path, mode, ext string, keepTestingOnFail bool) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -558,19 +570,19 @@ func test(src []byte, path, mode, ext string, keepTestingOnFail bool) {
 
 	// Just compile.
 	case "compile .go", "build .go":
-		mustBeOK(cmd(src, "compile program"))
+		mustBeOK(cmd(src, opts, "compile program"))
 	case "compile .sgo", "build .sgo":
-		mustBeOK(cmd(src, "compile script"))
+		mustBeOK(cmd(src, opts, "compile script"))
 	case "compile .html", "build .html":
-		mustBeOK(cmd(src, "compile html"))
+		mustBeOK(cmd(src, opts, "compile html"))
 
 	// Error check.
 	case "errorcheck .go", "errorcheck .sgo", "errorcheck .html":
-		errorcheck(src, ext)
+		errorcheck(src, ext, opts)
 
 	// Panic check.
 	case "paniccheck .go":
-		exitCode, _, stderr := cmd(src, "run program")
+		exitCode, _, stderr := cmd(src, opts, "run program")
 		if exitCode == 0 {
 			panic("expected panic, got exit code == 0 (success)")
 		}
@@ -583,7 +595,7 @@ func test(src []byte, path, mode, ext string, keepTestingOnFail bool) {
 
 	// Run or render.
 	case "run .go":
-		scriggoExitCode, scriggoStdout, scriggoStderr := cmd(src, "run program")
+		scriggoExitCode, scriggoStdout, scriggoStderr := cmd(src, opts, "run program")
 		gcExitCode, gcStdout, gcStderr := runGc(path)
 		panic := func(msg string) {
 			s := strings.Builder{}
@@ -615,28 +627,28 @@ func test(src []byte, path, mode, ext string, keepTestingOnFail bool) {
 		goldenCompare(
 			path,
 			unwrapStdout(
-				cmd(nil, "run program directory", dirPath),
+				cmd(nil, opts, "run program directory", dirPath),
 			),
 		)
 	case "run .sgo":
 		goldenCompare(
 			path,
 			unwrapStdout(
-				cmd(src, "run script"),
+				cmd(src, opts, "run script"),
 			),
 		)
 	case "render .html":
 		goldenCompare(
 			path,
 			unwrapStdout(
-				cmd(src, "render html"),
+				cmd(src, opts, "render html"),
 			),
 		)
 	case "renderdir .html":
 		goldenCompare(
 			path,
 			unwrapStdout(
-				cmd(nil, "render html directory", strings.TrimSuffix(path, ".html")+".dir"),
+				cmd(nil, opts, "render html directory", strings.TrimSuffix(path, ".html")+".dir"),
 			),
 		)
 

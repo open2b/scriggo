@@ -25,14 +25,16 @@ A testing mode can be specified using a comment at the first non-empty line of t
 For **programs** and **scripts**:
 
 ```
-// mode
+// mode [options]
 ```
 
 for **templates**:
 
 ```
-{# mode #}
+{# mode [options] #}
 ```
+
+`[options]` is a list of options that will be passed to the program `test/compare/cmd/main.go`. Please refer to that file for a list of available options.
 
 Note that in templates the line that specifies the mode cannot contain anything but the comment.
 
@@ -59,7 +61,7 @@ Mode | Supported extensions | Expected behaviour
 **renderdir**  | `.html` | The test inside the _dir-directory_ (see below) associated to the test compiles and runs successfully and the rendered output is the same as the content of the _golden file_ associated to the test (see below).
 
 
-- A **golden file** associated to a test is a text file with the same path as the test but with extension `.golden` instead of `.sgo` or `.html`. Golden files can have comments, that are lines that get replaced by empty lines during comparison. A comment line must start with `//`.
+- A **golden file** associated to a test is a text file with the same path as the test but with extension `.golden` instead of `.sgo` or `.html`. Golden files can have comments, that are lines that get replaced by empty lines during comparison. A comment line must start with `//`. **Important**: when comparing the output of a test with its _goldenfile_, leading and trailing space is removed.
 
 - A **dir-directory** associated to a test is a directory with the same path as the test, but which ends in `.dir` instead of `.go` or `.html`. For instance, a test located at `test/path/testname.go` has an associated _dir-directory_ with path `test/path/testname.dir`.
 
