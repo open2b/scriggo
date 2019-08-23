@@ -599,6 +599,14 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 			if err != nil {
 				return err
 			}
+			// «If the function's signature declares result parameters, the
+			// function body's statement list must end in a terminating
+			// statement.»
+			if len(d.Type.Result) > 0 {
+				if !tc.terminating {
+					panic(tc.errorf(d, "missing return at end of function"))
+				}
+			}
 			tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
 			tc.exitScope()
 		case *ast.Const:

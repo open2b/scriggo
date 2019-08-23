@@ -8,14 +8,8 @@
 
 package p
 
-func F1(s []byte) []byte {
-	return s[2:1]		// ERROR "invalid slice index|inverted slice range"
-}
+func F1(s []byte) []byte { return s[2:1] } // ERROR "invalid slice index|inverted slice range"
 
-func F2(a [10]byte) []byte {
-	return a[2:1]		// ERROR "invalid slice index|inverted slice range"
-}
+func F2(a [10]byte) []byte { return a[2:1] } // ERROR "invalid slice index|inverted slice range"
 
-func F3(s string) string {
-	return s[2:1]		// ERROR "invalid slice index|inverted slice range"
-}
+func F3(s string) string { return s[2:1] } // ERROR "invalid slice index|inverted slice range"
