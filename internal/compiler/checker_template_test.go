@@ -9,47 +9,116 @@ import (
 	"scriggo/template"
 )
 
-var templateCases = map[string]string{
+var templateCases = []struct {
+	src      string
+	expected string
+	opts     *compiler.CheckerOptions
+}{
 
 	// Misc.
-	`Just test`: ok,
-	`{{ a }}`:   "undefined: a",
-
+	{
+		src:      `Just test`,
+		expected: ok,
+	},
+	{
+		src:      `{{ a }}`,
+		expected: "undefined: a",
+	},
 	// Macro definitions.
-	`{% macro M %}{% end %}`:                   ok,
-	`{% macro M() %}{% end %}`:                 ok,
-	`{% macro M(a, b int) %}{% end %}`:         ok,
-	`{% macro M(int, int, string) %}{% end %}`: ok,
-	`{% macro M(a) %}{% end %}`:                "undefined: a",
+	{
+		src:      `{% macro M %}{% end %}`,
+		expected: ok,
+	},
+	{
+		src:      `{% macro M() %}{% end %}`,
+		expected: ok,
+	},
+	{
+		src:      `{% macro M(a, b int) %}{% end %}`,
+		expected: ok,
+	},
+	{
+		src:      `{% macro M(int, int, string) %}{% end %}`,
+		expected: ok,
+	},
+	{
+		src:      `{% macro M(a) %}{% end %}`,
+		expected: "undefined: a",
+	},
 
 	// Show macro.
-	`{% macro M %}{% end %}         {% show M %}`:      ok,
-	`{% macro M %}{% end %}         {% show M(1) %}`:   "too many arguments in call to M\n\thave (number)\n\twant ()",
-	`{% macro M(int) %}{% end %}    {% show M("s") %}`: "cannot use \"s\" (type string) as type int in argument to M",
+	{
+		src:      `{% macro M %}{% end %}         {% show M %}`,
+		expected: ok,
+	},
+	{
+		src:      `{% macro M %}{% end %}         {% show M(1) %}`,
+		expected: "too many arguments in call to M\n\thave (number)\n\twant ()",
+	},
+	{
+		src:      `{% macro M(int) %}{% end %}    {% show M("s") %}`,
+		expected: "cannot use \"s\" (type string) as type int in argument to M",
+	},
 
-	"{% macro M %}{% end %}    {% show M() %}": ok,
+	{
+		src:      `{% macro M %}{% end %}    {% show M() %}`,
+		expected: ok,
+	},
 
-	`{% show M %}`:           `undefined: M`,
-	`{% show M or error %}`:  `undefined: M`,
-	`{% show M or ignore %}`: ok,
+	{
+		src:      `{% show M %}`,
+		expected: `undefined: M`,
+	},
+	{
+		src:      `{% show M or error %}`,
+		expected: `undefined: M`,
+	},
+	{
+		src:      `{% show M or ignore %}`,
+		expected: ok,
+	},
 
-	`{% a := 10 %}{% a %}`: `a evaluated but not used`,
+	{
+		src:      `{% a := 10 %}{% a %}`,
+		expected: `a evaluated but not used`,
+	},
 
-	// TODO(Gianluca): result of this test depends on the type checking options.
-	// `{% show M or todo %}`: ok,
+	{
+		src:      `{% show M or todo %}`,
+		expected: ok,
+		opts: &compiler.CheckerOptions{
+			SyntaxType: compiler.TemplateSyntax,
+			FailOnTODO: false,
+		},
+	},
+
+	{
+		src:      `{% show M or todo %}`,
+		expected: `macro M is not defined: must be implemented`,
+		opts: &compiler.CheckerOptions{
+			SyntaxType: compiler.TemplateSyntax,
+			FailOnTODO: true,
+		},
+	},
 }
 
 const ok = ""
 
 func TestTemplate(t *testing.T) {
-	for src, expected := range templateCases {
+	for _, cas := range templateCases {
+		src := cas.src
+		expected := cas.expected
 		t.Run(src, func(t *testing.T) {
 			r := template.MapReader{"/index.html": []byte(src)}
 			tree, err := compiler.ParseTemplate("/index.html", r, ast.ContextText)
 			if err != nil {
 				t.Fatalf("parsing error: %s", err)
 			}
-			_, err = compiler.Typecheck(tree, nil, compiler.CheckerOptions{SyntaxType: compiler.TemplateSyntax})
+			opts := compiler.CheckerOptions{SyntaxType: compiler.TemplateSyntax}
+			if cas.opts != nil {
+				opts = *cas.opts
+			}
+			_, err = compiler.Typecheck(tree, nil, opts)
 			switch {
 			case expected == "" && err != nil:
 				t.Fatalf("unexpected error: %q", err)

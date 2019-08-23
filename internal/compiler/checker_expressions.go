@@ -483,11 +483,21 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 	// error should not be returned, and function call should be removed
 	// from tree.
 	if !ok {
-		// TODO(Gianluca): add support for "or todo" error when making a type
-		// checking with "todosNotAllowed" option.
 		for _, sm := range tc.showMacros {
-			if sm.Macro == ident && (sm.Or == ast.ShowMacroOrIgnore || sm.Or == ast.ShowMacroOrTodo) {
-				return showMacroIgnoredTi
+			if sm.Macro == ident {
+				switch sm.Or {
+				case ast.ShowMacroOrIgnore:
+					return showMacroIgnoredTi
+				case ast.ShowMacroOrTodo:
+					if tc.opts.FailOnTODO {
+						panic(tc.errorf(ident, "macro %s is not defined: must be implemented", ident.Name))
+					}
+					return showMacroIgnoredTi
+				case ast.ShowMacroOrError:
+					// Do not handle this identifier in a special way: just
+					// return an 'undefined' error; this is the default
+					// behaviour.
+				}
 			}
 		}
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
