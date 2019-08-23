@@ -765,7 +765,20 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		chann := em.emitExpr(args[0], em.ti(args[0]).Type)
 		em.fb.emitClose(chann)
 	case "complex":
-		panic("TODO: not implemented")
+		floatType := em.ti(args[0]).Type
+		r := em.emitExpr(args[0], floatType)
+		i := em.emitExpr(args[1], floatType)
+		complexType := complex128Type
+		if floatType.Kind() == reflect.Float32 {
+			complexType = complex64Type
+		}
+		if canEmitDirectly(complexType.Kind(), dstType.Kind()) {
+			em.fb.emitComplex(r, i, reg, dstType.Kind())
+			return
+		}
+		tmp := em.fb.newRegister(complexType.Kind())
+		em.fb.emitComplex(r, i, tmp, complexType.Kind())
+		em.changeRegister(false, tmp, reg, complexType, dstType)
 	case "copy":
 		dst := em.emitExpr(args[0], em.ti(args[0]).Type)
 		src := em.emitExpr(args[1], em.ti(args[1]).Type)
@@ -786,8 +799,6 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		mapp := em.emitExpr(args[0], emptyInterfaceType)
 		key := em.emitExpr(args[1], emptyInterfaceType)
 		em.fb.emitDelete(mapp, key)
-	case "imag":
-		panic("TODO: not implemented")
 	case "len":
 		typ := em.ti(args[0]).Type
 		s := em.emitExpr(args[0], typ)
@@ -864,8 +875,28 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		sep := em.fb.newRegister(reflect.Interface)
 		em.changeRegister(true, str, sep, stringType, emptyInterfaceType)
 		em.fb.emitPrint(sep)
-	case "real":
-		panic("TODO: not implemented")
+	case "real", "imag":
+		complexType := em.ti(args[0]).Type
+		complex, k := em.emitExprK(args[0], complexType)
+		floatType := float64Type
+		if complexType.Kind() == reflect.Complex64 {
+			floatType = float32Type
+		}
+		if canEmitDirectly(floatType.Kind(), dstType.Kind()) {
+			if call.Func.(*ast.Identifier).Name == "real" {
+				em.fb.emitRealImag(k, complex, reg, 0)
+			} else {
+				em.fb.emitRealImag(k, complex, 0, reg)
+			}
+			return
+		}
+		tmp := em.fb.newRegister(floatType.Kind())
+		if call.Func.(*ast.Identifier).Name == "real" {
+			em.fb.emitRealImag(k, complex, tmp, 0)
+		} else {
+			em.fb.emitRealImag(k, complex, 0, tmp)
+		}
+		em.changeRegister(false, tmp, reg, floatType, dstType)
 	case "recover":
 		em.fb.emitRecover(reg, false)
 	default:
