@@ -1198,14 +1198,12 @@ LABEL:
 		}
 		pos.End = expr.Pos().End
 		// Errors on defer and go statements must be type checker errors and not syntax errors.
-		var call *ast.Call
-		switch expr := expr.(type) {
-		default:
-			panic(syntaxError(tok.pos, "expression in %s must be function call", keyword))
-		case *ast.Parenthesis:
+		if expr.Parenthesis() > 0 {
 			panic(syntaxError(tok.pos, "expression in %s must not be parenthesized", keyword))
-		case *ast.Call:
-			call = expr
+		}
+		call, ok := expr.(*ast.Call)
+		if !ok {
+			panic(syntaxError(tok.pos, "expression in %s must be function call", keyword))
 		}
 		var node ast.Node
 		if keyword == tokenDefer {

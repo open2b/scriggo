@@ -15,6 +15,11 @@ func init() {
 	expandedPrint = true
 }
 
+func parenthesized(expr Expression) Expression {
+	expr.SetParenthesis(expr.Parenthesis() + 1)
+	return expr
+}
+
 var n1 = NewBasicLiteral(nil, IntLiteral, "1")
 var n2 = NewBasicLiteral(nil, IntLiteral, "2")
 var n3 = NewBasicLiteral(nil, IntLiteral, "3")
@@ -44,7 +49,7 @@ var expressionStringTests = []struct {
 	{"a[2:5:7]", NewSlicing(nil, NewIdentifier(nil, "a"), n2, n5, n7, true)},
 	{"a[:5:7]", NewSlicing(nil, NewIdentifier(nil, "a"), nil, n5, n7, true)},
 	{"a.b", NewSelector(nil, NewIdentifier(nil, "a"), "b")},
-	{"(a)", NewParenthesis(nil, NewIdentifier(nil, "a"))},
+	{"(a)", parenthesized(NewIdentifier(nil, "a"))},
 	{"-(1 + 2)", NewUnaryOperator(nil, OperatorSubtraction, NewBinaryOperator(nil, OperatorAddition, n1, n2))},
 	{"-(+1)", NewUnaryOperator(nil, OperatorSubtraction, NewUnaryOperator(nil, OperatorAddition, n1))},
 	{"1 * 2 + -3", NewBinaryOperator(nil, OperatorAddition,
@@ -138,8 +143,12 @@ var expressionStringTests = []struct {
 
 func TestExpressionString(t *testing.T) {
 	for _, e := range expressionStringTests {
-		if e.expr.String() != e.str {
-			t.Errorf("unexpected %q, expecting %q\n", e.expr.String(), e.str)
+		str := e.expr.String()
+		for i := 0; i < e.expr.Parenthesis(); i++ {
+			str = "(" + str + ")"
+		}
+		if str != e.str {
+			t.Errorf("unexpected %q, expecting %q\n", str, e.str)
 		}
 	}
 }

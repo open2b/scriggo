@@ -16,6 +16,11 @@ var maxInt64Plus1 = "9223372036854775808"
 var minInt64Minus1 = "9223372036854775809"
 var bigInt = "433937734937734969526500969526500"
 
+func parenthesized(expr ast.Expression) ast.Expression {
+	expr.SetParenthesis(expr.Parenthesis() + 1)
+	return expr
+}
+
 var exprTests = []struct {
 	src  string
 	node ast.Node
@@ -119,7 +124,7 @@ var exprTests = []struct {
 		ast.NewUnaryOperator(p(1, 3, 2, 3), ast.OperatorSubtraction,
 			ast.NewBasicLiteral(p(1, 4, 3, 3), ast.IntLiteral, "2")))},
 	{"1+-(2)", ast.NewBinaryOperator(p(1, 2, 0, 5), ast.OperatorAddition, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"),
-		ast.NewUnaryOperator(p(1, 3, 2, 5), ast.OperatorSubtraction, ast.NewBasicLiteral(p(1, 5, 3, 5), ast.IntLiteral, "2")))},
+		ast.NewUnaryOperator(p(1, 3, 2, 5), ast.OperatorSubtraction, parenthesized(ast.NewBasicLiteral(p(1, 5, 3, 5), ast.IntLiteral, "2"))))},
 	// TODO (Gianluca): positions in this test have been altered to make the
 	// test pass.
 	{"*a+*b", ast.NewBinaryOperator(
@@ -135,7 +140,7 @@ var exprTests = []struct {
 			ast.OperatorMultiplication,
 			ast.NewIdentifier(p(1, 5, 4, 4), "b"),
 		))},
-	{"(a)", ast.NewIdentifier(p(1, 2, 0, 2), "a")},
+	{"(a)", parenthesized(ast.NewIdentifier(p(1, 2, 0, 2), "a"))},
 	{"a()", ast.NewCall(p(1, 2, 0, 2), ast.NewIdentifier(p(1, 1, 0, 0), "a"), []ast.Expression{}, false)},
 	{"a(1)", ast.NewCall(p(1, 2, 0, 3), ast.NewIdentifier(p(1, 1, 0, 0), "a"), []ast.Expression{ast.NewBasicLiteral(p(1, 3, 2, 2), ast.IntLiteral, "1")}, false)},
 	{"a(1,2)", ast.NewCall(p(1, 2, 0, 5), ast.NewIdentifier(p(1, 1, 0, 0), "a"),
@@ -163,12 +168,12 @@ var exprTests = []struct {
 		ast.NewBinaryOperator(p(1, 5, 3, 5), ast.OperatorAddition, ast.NewBasicLiteral(p(1, 4, 3, 3), ast.IntLiteral, "2"), ast.NewBasicLiteral(p(1, 6, 5, 5), ast.IntLiteral, "3")))},
 	{"1+2==3", ast.NewBinaryOperator(p(1, 4, 0, 5), ast.OperatorEqual, ast.NewBinaryOperator(p(1, 2, 0, 2),
 		ast.OperatorAddition, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 3, 2, 2), ast.IntLiteral, "2")), ast.NewBasicLiteral(p(1, 6, 5, 5), ast.IntLiteral, "3"))},
-	{"(1+2)*3", ast.NewBinaryOperator(p(1, 6, 0, 6), ast.OperatorMultiplication, ast.NewBinaryOperator(p(1, 3, 0, 4),
-		ast.OperatorAddition, ast.NewBasicLiteral(p(1, 2, 1, 1), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 4, 3, 3), ast.IntLiteral, "2")), ast.NewBasicLiteral(p(1, 7, 6, 6), ast.IntLiteral, "3"))},
+	{"(1+2)*3", ast.NewBinaryOperator(p(1, 6, 0, 6), ast.OperatorMultiplication, parenthesized(ast.NewBinaryOperator(p(1, 3, 0, 4),
+		ast.OperatorAddition, ast.NewBasicLiteral(p(1, 2, 1, 1), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 4, 3, 3), ast.IntLiteral, "2"))), ast.NewBasicLiteral(p(1, 7, 6, 6), ast.IntLiteral, "3"))},
 	{"1*(2+3)", ast.NewBinaryOperator(p(1, 2, 0, 6), ast.OperatorMultiplication, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"),
-		ast.NewBinaryOperator(p(1, 5, 2, 6), ast.OperatorAddition, ast.NewBasicLiteral(p(1, 4, 3, 3), ast.IntLiteral, "2"), ast.NewBasicLiteral(p(1, 6, 5, 5), ast.IntLiteral, "3")))},
-	{"(1*((2)+3))", ast.NewBinaryOperator(p(1, 3, 0, 10), ast.OperatorMultiplication, ast.NewBasicLiteral(p(1, 2, 1, 1), ast.IntLiteral, "1"),
-		ast.NewBinaryOperator(p(1, 8, 3, 9), ast.OperatorAddition, ast.NewBasicLiteral(p(1, 6, 4, 6), ast.IntLiteral, "2"), ast.NewBasicLiteral(p(1, 9, 8, 8), ast.IntLiteral, "3")))},
+		parenthesized(ast.NewBinaryOperator(p(1, 5, 2, 6), ast.OperatorAddition, ast.NewBasicLiteral(p(1, 4, 3, 3), ast.IntLiteral, "2"), ast.NewBasicLiteral(p(1, 6, 5, 5), ast.IntLiteral, "3"))))},
+	{"(1*((2)+3))", parenthesized(ast.NewBinaryOperator(p(1, 3, 0, 10), ast.OperatorMultiplication, ast.NewBasicLiteral(p(1, 2, 1, 1), ast.IntLiteral, "1"),
+		parenthesized(ast.NewBinaryOperator(p(1, 8, 3, 9), ast.OperatorAddition, parenthesized(ast.NewBasicLiteral(p(1, 6, 4, 6), ast.IntLiteral, "2")), ast.NewBasicLiteral(p(1, 9, 8, 8), ast.IntLiteral, "3")))))},
 	{"a()*1", ast.NewBinaryOperator(p(1, 4, 0, 4), ast.OperatorMultiplication,
 		ast.NewCall(p(1, 2, 0, 2), ast.NewIdentifier(p(1, 1, 0, 0), "a"), []ast.Expression{}, false), ast.NewBasicLiteral(p(1, 5, 4, 4), ast.IntLiteral, "1"))},
 	{"1*a()", ast.NewBinaryOperator(p(1, 2, 0, 4), ast.OperatorMultiplication,

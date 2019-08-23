@@ -144,7 +144,6 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 		case tokenLeftParenthesis: // ( e )
 			// Calls parseExpr recursively to parse the expression in
 			// parenthesis and then handles it as a single operand.
-			// The parenthesis will be omitted from the expression tree.
 			pos := tok.pos
 			var expr ast.Expression
 			expr, tok = p.parseExpr(token{}, false, mustBeType, false)
@@ -154,6 +153,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			if tok.typ != tokenRightParenthesis {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting )", tok))
 			}
+			expr.SetParenthesis(expr.Parenthesis() + 1)
 			operand = expr
 			operand.Pos().Start = pos.Start
 			operand.Pos().End = tok.pos.End

@@ -285,25 +285,24 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 	if expr == nil {
 		return nil
 	}
+	var expr2 ast.Expression
 	switch e := expr.(type) {
-	case *ast.Parenthesis:
-		return ast.NewParenthesis(ClonePosition(e.Position), CloneExpression(e.Expr))
 	case *ast.BasicLiteral:
-		return ast.NewBasicLiteral(ClonePosition(e.Position), e.Type, e.Value)
+		expr2 = ast.NewBasicLiteral(ClonePosition(e.Position), e.Type, e.Value)
 	case *ast.Identifier:
-		return ast.NewIdentifier(ClonePosition(e.Position), e.Name)
+		expr2 = ast.NewIdentifier(ClonePosition(e.Position), e.Name)
 	case *ast.UnaryOperator:
-		return ast.NewUnaryOperator(ClonePosition(e.Position), e.Op, CloneExpression(e.Expr))
+		expr2 = ast.NewUnaryOperator(ClonePosition(e.Position), e.Op, CloneExpression(e.Expr))
 	case *ast.BinaryOperator:
-		return ast.NewBinaryOperator(ClonePosition(e.Position), e.Op, CloneExpression(e.Expr1), CloneExpression(e.Expr2))
+		expr2 = ast.NewBinaryOperator(ClonePosition(e.Position), e.Op, CloneExpression(e.Expr1), CloneExpression(e.Expr2))
 	case *ast.MapType:
-		return ast.NewMapType(ClonePosition(e.Pos()), CloneExpression(e.KeyType), CloneExpression(e.ValueType))
+		expr2 = ast.NewMapType(ClonePosition(e.Pos()), CloneExpression(e.KeyType), CloneExpression(e.ValueType))
 	case *ast.SliceType:
-		return ast.NewSliceType(ClonePosition(e.Pos()), CloneExpression(e.ElementType))
+		expr2 = ast.NewSliceType(ClonePosition(e.Pos()), CloneExpression(e.ElementType))
 	case *ast.ArrayType:
-		return ast.NewArrayType(ClonePosition(e.Pos()), CloneExpression(e.Len), CloneExpression(e.ElementType))
+		expr2 = ast.NewArrayType(ClonePosition(e.Pos()), CloneExpression(e.Len), CloneExpression(e.ElementType))
 	case *ast.ChanType:
-		return ast.NewChanType(ClonePosition(e.Pos()), e.Direction, CloneExpression(e.ElementType))
+		expr2 = ast.NewChanType(ClonePosition(e.Pos()), e.Direction, CloneExpression(e.ElementType))
 	case *ast.CompositeLiteral:
 		keyValues := make([]ast.KeyValue, len(e.KeyValues))
 		for i, kv := range e.KeyValues {
@@ -312,22 +311,22 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 		}
 		return ast.NewCompositeLiteral(ClonePosition(e.Pos()), CloneExpression(e.Type), keyValues)
 	case *ast.Interface:
-		return ast.NewInterface(ClonePosition(e.Pos()))
+		expr2 = ast.NewInterface(ClonePosition(e.Pos()))
 	case *ast.Call:
 		var args = make([]ast.Expression, len(e.Args))
 		for i, arg := range e.Args {
 			args[i] = CloneExpression(arg)
 		}
-		return ast.NewCall(ClonePosition(e.Position), CloneExpression(e.Func), args, e.IsVariadic)
+		expr2 = ast.NewCall(ClonePosition(e.Position), CloneExpression(e.Func), args, e.IsVariadic)
 	case *ast.Index:
-		return ast.NewIndex(ClonePosition(e.Position), CloneExpression(e.Expr), CloneExpression(e.Index))
+		expr2 = ast.NewIndex(ClonePosition(e.Position), CloneExpression(e.Expr), CloneExpression(e.Index))
 	case *ast.Slicing:
-		return ast.NewSlicing(ClonePosition(e.Position), CloneExpression(e.Expr), CloneExpression(e.Low),
+		expr2 = ast.NewSlicing(ClonePosition(e.Position), CloneExpression(e.Expr), CloneExpression(e.Low),
 			CloneExpression(e.High), CloneExpression(e.Max), e.IsFull)
 	case *ast.Selector:
-		return ast.NewSelector(ClonePosition(e.Position), CloneExpression(e.Expr), e.Ident)
+		expr2 = ast.NewSelector(ClonePosition(e.Position), CloneExpression(e.Expr), e.Ident)
 	case *ast.TypeAssertion:
-		return ast.NewTypeAssertion(ClonePosition(e.Position), CloneExpression(e.Expr), CloneExpression(e.Type))
+		expr2 = ast.NewTypeAssertion(ClonePosition(e.Position), CloneExpression(e.Expr), CloneExpression(e.Type))
 	case *ast.FuncType:
 		var parameters []*ast.Parameter
 		if e.Parameters != nil {
@@ -351,7 +350,7 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 				result[i] = &ast.Parameter{Ident: ident, Type: CloneExpression(res.Type)}
 			}
 		}
-		return ast.NewFuncType(ClonePosition(e.Position), parameters, result, e.IsVariadic)
+		expr2 = ast.NewFuncType(ClonePosition(e.Position), parameters, result, e.IsVariadic)
 	case *ast.Func:
 		var ident *ast.Identifier
 		if e.Ident != nil {
@@ -359,10 +358,12 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 			ident = ast.NewIdentifier(ClonePosition(e.Ident.Position), e.Ident.Name)
 		}
 		typ := CloneExpression(e.Type).(*ast.FuncType)
-		return ast.NewFunc(ClonePosition(e.Position), ident, typ, CloneNode(e.Body).(*ast.Block))
+		expr2 = ast.NewFunc(ClonePosition(e.Position), ident, typ, CloneNode(e.Body).(*ast.Block))
 	default:
 		panic(fmt.Sprintf("unexpected node type %#v", expr))
 	}
+	expr2.SetParenthesis(expr.Parenthesis())
+	return expr2
 }
 
 // ClonePosition returns a copy of position pos.

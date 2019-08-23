@@ -1583,6 +1583,14 @@ func equals(n1, n2 ast.Node, p int) error {
 		}
 	}
 
+	if e1, ok := n1.(ast.Expression); ok {
+		if e2, ok := n2.(ast.Expression); ok {
+			if e1.Parenthesis() != e2.Parenthesis() {
+				return fmt.Errorf("unexpected %d parenthesis, expecting %d", e1.Parenthesis(), e2.Parenthesis())
+			}
+		}
+	}
+
 	switch nn1 := n1.(type) {
 
 	case *ast.Tree:
@@ -1712,16 +1720,6 @@ func equals(n1, n2 ast.Node, p int) error {
 		}
 		if nn1.Value != nn2.Value {
 			return fmt.Errorf("unexpected %q, expecting %q", nn1.Value, nn2.Value)
-		}
-
-	case *ast.Parenthesis:
-		nn2, ok := n2.(*ast.Parenthesis)
-		if !ok {
-			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
-		}
-		err := equals(nn1.Expr, nn2.Expr, p)
-		if err != nil {
-			return err
 		}
 
 	case *ast.UnaryOperator:

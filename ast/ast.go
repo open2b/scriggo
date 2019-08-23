@@ -189,14 +189,26 @@ func (p Position) String() string {
 
 // Expression node represents an expression.
 type Expression interface {
-	isexpr()
+	Parenthesis() int
+	SetParenthesis(int)
 	Node
 	String() string
 }
 
-type expression struct{}
+// expression represents an expression.
+type expression struct {
+	parenthesis int
+}
 
-func (e expression) isexpr() {}
+// Parenthesis returns the number of parenthesis around the expression.
+func (e *expression) Parenthesis() int {
+	return e.parenthesis
+}
+
+// SetParenthesis sets the number of parenthesis around the expression.
+func (e *expression) SetParenthesis(n int) {
+	e.parenthesis = n
+}
 
 // Tree node represents a tree.
 type Tree struct {
@@ -767,21 +779,6 @@ func NewComment(pos *Position, text string) *Comment {
 	return &Comment{pos, text}
 }
 
-// Parenthesis node represents a parenthesized expression.
-type Parenthesis struct {
-	expression
-	*Position            // position in the source.
-	Expr      Expression // expression.
-}
-
-func NewParenthesis(pos *Position, expr Expression) *Parenthesis {
-	return &Parenthesis{expression{}, pos, expr}
-}
-
-func (n *Parenthesis) String() string {
-	return "(" + n.Expr.String() + ")"
-}
-
 type BasicLiteral struct {
 	expression
 	*Position             // position in the source.
@@ -822,14 +819,14 @@ type Operator interface {
 
 // UnaryOperator node represents an unary operator expression.
 type UnaryOperator struct {
-	expression
+	*expression
 	*Position              // position in the source.
 	Op        OperatorType // operator.
 	Expr      Expression   // expression.
 }
 
 func NewUnaryOperator(pos *Position, op OperatorType, expr Expression) *UnaryOperator {
-	return &UnaryOperator{expression{}, pos, op, expr}
+	return &UnaryOperator{&expression{}, pos, op, expr}
 }
 
 func (n *UnaryOperator) String() string {
@@ -855,7 +852,7 @@ func (n *UnaryOperator) Precedence() int {
 
 // BinaryOperator node represents a binary operator expression.
 type BinaryOperator struct {
-	expression
+	*expression
 	*Position              // position in the source.
 	Op        OperatorType // operator.
 	Expr1     Expression   // first expression.
@@ -863,7 +860,7 @@ type BinaryOperator struct {
 }
 
 func NewBinaryOperator(pos *Position, op OperatorType, expr1, expr2 Expression) *BinaryOperator {
-	return &BinaryOperator{expression{}, pos, op, expr1, expr2}
+	return &BinaryOperator{&expression{}, pos, op, expr1, expr2}
 }
 
 func (n *BinaryOperator) String() string {
@@ -909,14 +906,14 @@ func (n *BinaryOperator) Precedence() int {
 
 // StructType node represents a struct type.
 type StructType struct {
-	expression
+	*expression
 	*Position
 	Fields []*Field
 }
 
 // NewStructType returns a new StructType node.
 func NewStructType(pos *Position, fields []*Field) *StructType {
-	return &StructType{expression{}, pos, fields}
+	return &StructType{&expression{}, pos, fields}
 }
 
 func (st *StructType) String() string {
@@ -963,13 +960,13 @@ func (fd *Field) String() string {
 
 // SliceType node represents a slice type.
 type SliceType struct {
-	expression
+	*expression
 	*Position              // position in the source.
 	ElementType Expression // element type.
 }
 
 func NewSliceType(pos *Position, elementType Expression) *SliceType {
-	return &SliceType{expression{}, pos, elementType}
+	return &SliceType{&expression{}, pos, elementType}
 }
 
 func (s *SliceType) String() string {
@@ -978,14 +975,14 @@ func (s *SliceType) String() string {
 
 // ArrayType node represents an array type.
 type ArrayType struct {
-	expression
+	*expression
 	*Position              // position in the source.
 	Len         Expression // length. It is nil for arrays specified with ... notation.
 	ElementType Expression // element type.
 }
 
 func NewArrayType(pos *Position, len Expression, elementType Expression) *ArrayType {
-	return &ArrayType{expression{}, pos, len, elementType}
+	return &ArrayType{&expression{}, pos, len, elementType}
 }
 
 func (a *ArrayType) String() string {
@@ -1001,14 +998,14 @@ func (a *ArrayType) String() string {
 
 // CompositeLiteral node represent a composite literal.
 type CompositeLiteral struct {
-	expression
+	*expression
 	*Position            // position in the source.
 	Type      Expression // type of the composite literal. nil for composite literals without type.
 	KeyValues []KeyValue // nil for empty composite literals.
 }
 
 func NewCompositeLiteral(pos *Position, typ Expression, keyValues []KeyValue) *CompositeLiteral {
-	return &CompositeLiteral{expression{}, pos, typ, keyValues}
+	return &CompositeLiteral{&expression{}, pos, typ, keyValues}
 }
 
 func (t *CompositeLiteral) String() string {
@@ -1042,14 +1039,14 @@ func (kv KeyValue) String() string {
 
 // MapType node represents a map type.
 type MapType struct {
-	expression
+	*expression
 	*Position            // position in the source.
 	KeyType   Expression // type of map keys.
 	ValueType Expression // type of map values.
 }
 
 func NewMapType(pos *Position, keyType, valueType Expression) *MapType {
-	return &MapType{expression{}, pos, keyType, valueType}
+	return &MapType{&expression{}, pos, keyType, valueType}
 }
 
 func (m *MapType) String() string {
@@ -1058,12 +1055,12 @@ func (m *MapType) String() string {
 
 // Interface node represents an interface type.
 type Interface struct {
-	expression
+	*expression
 	*Position // position in the source.
 }
 
 func NewInterface(pos *Position) *Interface {
-	return &Interface{expression{}, pos}
+	return &Interface{&expression{}, pos}
 }
 
 func (m *Interface) String() string {
@@ -1072,7 +1069,7 @@ func (m *Interface) String() string {
 
 // Call node represents a function call expression.
 type Call struct {
-	expression
+	*expression
 	*Position               // position in the source.
 	Func       Expression   // function.
 	Args       []Expression // arguments.
@@ -1080,7 +1077,7 @@ type Call struct {
 }
 
 func NewCall(pos *Position, fun Expression, args []Expression, isVariadic bool) *Call {
-	return &Call{expression{}, pos, fun, args, isVariadic}
+	return &Call{&expression{}, pos, fun, args, isVariadic}
 }
 
 func (n *Call) String() string {
@@ -1195,14 +1192,14 @@ func NewConst(pos *Position, identifiers []*Identifier, typ Expression, values [
 
 // Index node represents an index expression.
 type Index struct {
-	expression
+	*expression
 	*Position            // position in the source.
 	Expr      Expression // expression.
 	Index     Expression // index.
 }
 
 func NewIndex(pos *Position, expr Expression, index Expression) *Index {
-	return &Index{expression{}, pos, expr, index}
+	return &Index{&expression{}, pos, expr, index}
 }
 
 func (n *Index) String() string {
@@ -1211,7 +1208,7 @@ func (n *Index) String() string {
 
 // Slicing node represents a slicing expression.
 type Slicing struct {
-	expression
+	*expression
 	*Position            // position in the source.
 	Expr      Expression // expression.
 	Low       Expression // low bound.
@@ -1221,7 +1218,7 @@ type Slicing struct {
 }
 
 func NewSlicing(pos *Position, expr, low, high Expression, max Expression, isFull bool) *Slicing {
-	return &Slicing{expression{}, pos, expr, low, high, max, isFull}
+	return &Slicing{&expression{}, pos, expr, low, high, max, isFull}
 }
 
 func (n *Slicing) String() string {
@@ -1243,14 +1240,14 @@ func (n *Slicing) String() string {
 
 // ChanType node represents a chan type.
 type ChanType struct {
-	expression
+	*expression
 	*Position                 // position in the source.
 	Direction   ChanDirection // direction.
 	ElementType Expression    // type of chan elements.
 }
 
 func NewChanType(pos *Position, direction ChanDirection, elementType Expression) *ChanType {
-	return &ChanType{expression{}, pos, direction, elementType}
+	return &ChanType{&expression{}, pos, direction, elementType}
 }
 
 func (n *ChanType) String() string {
@@ -1267,14 +1264,14 @@ func (n *ChanType) String() string {
 
 // Selector node represents a selector expression.
 type Selector struct {
-	expression
+	*expression
 	*Position            // position in the source.
 	Expr      Expression // expression.
 	Ident     string     // identifier.
 }
 
 func NewSelector(pos *Position, expr Expression, ident string) *Selector {
-	return &Selector{expression{}, pos, expr, ident}
+	return &Selector{&expression{}, pos, expr, ident}
 }
 
 func (n *Selector) String() string {
@@ -1283,14 +1280,14 @@ func (n *Selector) String() string {
 
 // TypeAssertion node represents a type assertion expression.
 type TypeAssertion struct {
-	expression
+	*expression
 	*Position            // position in the source.
 	Expr      Expression // expression.
 	Type      Expression // type, is nil if it is a type switch assertion ".(type)".
 }
 
 func NewTypeAssertion(pos *Position, expr Expression, typ Expression) *TypeAssertion {
-	return &TypeAssertion{expression{}, pos, expr, typ}
+	return &TypeAssertion{&expression{}, pos, expr, typ}
 }
 
 func (n *TypeAssertion) String() string {
@@ -1302,12 +1299,12 @@ func (n *TypeAssertion) String() string {
 
 // Placeholder node represent a special placeholder node.
 type Placeholder struct {
-	expression
+	*expression
 	*Position // position in the source.
 }
 
 func NewPlaceholder() *Placeholder {
-	return &Placeholder{expression{}, nil}
+	return &Placeholder{&expression{}, nil}
 }
 
 func (n *Placeholder) String() string {

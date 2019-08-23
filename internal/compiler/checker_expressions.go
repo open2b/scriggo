@@ -659,9 +659,6 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			Constant:   parseBasicLiteral(expr.Type, expr.Value),
 		}
 
-	case *ast.Parenthesis:
-		panic("unexpected parenthesis")
-
 	case *ast.UnaryOperator:
 		t := tc.checkExprOrType(expr.Expr)
 		if t.IsType() {
