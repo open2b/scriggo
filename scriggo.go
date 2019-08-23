@@ -52,10 +52,11 @@ type Program struct {
 	options *LoadOptions
 }
 
-// Load loads a Go program, reading package "main" from packages.
-func Load(packages PackageLoader, options *LoadOptions) (*Program, error) {
+// Load loads a Go program with the given options, loading the main package and
+// the imported packages from loader. A main package have path "main".
+func Load(loader PackageLoader, options *LoadOptions) (*Program, error) {
 
-	tree, err := compiler.ParseProgram(packages)
+	tree, err := compiler.ParseProgram(loader)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +68,7 @@ func Load(packages PackageLoader, options *LoadOptions) (*Program, error) {
 		emitterOpts.MemoryLimit = options.LimitMemorySize
 	}
 
-	tci, err := compiler.Typecheck(tree, packages, checkerOpts)
+	tci, err := compiler.Typecheck(tree, loader, checkerOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -144,8 +145,9 @@ type Script struct {
 	options *LoadOptions
 }
 
-// LoadScript loads a script from a reader.
-func LoadScript(src io.Reader, packages PackageLoader, options *LoadOptions) (*Script, error) {
+// LoadScript loads a script from src with the given options, loading the
+// imported packages from loader.
+func LoadScript(src io.Reader, loader PackageLoader, options *LoadOptions) (*Script, error) {
 
 	checkerOpts := compiler.CheckerOptions{
 		SyntaxType: compiler.ScriptSyntax,
@@ -158,12 +160,12 @@ func LoadScript(src io.Reader, packages PackageLoader, options *LoadOptions) (*S
 		emitterOpts.MemoryLimit = options.LimitMemorySize
 	}
 
-	tree, err := compiler.ParseScript(src, packages, shebang)
+	tree, err := compiler.ParseScript(src, loader, shebang)
 	if err != nil {
 		return nil, err
 	}
 
-	tci, err := compiler.Typecheck(tree, packages, checkerOpts)
+	tci, err := compiler.Typecheck(tree, loader, checkerOpts)
 	if err != nil {
 		return nil, err
 	}
