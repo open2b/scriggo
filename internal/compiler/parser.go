@@ -190,7 +190,7 @@ func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, err error)
 	}
 
 	for tok.typ != tokenEOF {
-		tok = p.parseBlock(tok)
+		tok = p.parse(tok)
 	}
 
 	if len(p.ancestors) > 1 {
@@ -307,7 +307,7 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error
 		case tokenStartBlock:
 			numTokenInLine++
 			tok = p.next()
-			tok = p.parseBlock(tok)
+			tok = p.parse(tok)
 
 		// {{
 		case tokenStartValue:
@@ -362,12 +362,12 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error
 	return tree, nil
 }
 
-// parseBlock parses a block of code given its first token and returns the
-// next token after the block. A block can include a statement, as "a := 5",
-// or a part of a statement as "for c {".
+// parse parses a statement or part of it given its first token. Returns the
+// first not parsed token.
 //
-// In a template, a block starts with {% and end with %}.
-func (p *parsing) parseBlock(tok token) token {
+// For a template the parsed code is the source code between {% and %},
+// and the returned token is the first token after %}.
+func (p *parsing) parse(tok token) token {
 
 LABEL:
 
