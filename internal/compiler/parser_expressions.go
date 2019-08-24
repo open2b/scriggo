@@ -197,7 +197,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 					if tok.typ == tokenSemicolon || tok.typ == tokenRightBraces {
 						// Implicit field declaration.
 						if len(exprs) != 1 {
-							panic(syntaxError(tok.pos, "expecting typooo"))
+							panic(syntaxError(tok.pos, "unexpected %s, expecting type", tok))
 						}
 						fieldDecl.Type = exprs[0]
 						if tok.typ == tokenSemicolon {
