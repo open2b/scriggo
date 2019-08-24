@@ -1263,7 +1263,17 @@ LABEL:
 		var expressions []ast.Expression
 		expressions, tok = p.parseExprList(tok, false, false, false)
 		if len(expressions) == 0 {
-			if _, ok := p.parent().(*ast.Label); ok {
+			// There is no statement or it is not a statement.
+			if p.isTemplate {
+				if tok.typ == tokenEndBlock {
+					panic(syntaxError(tok.pos, "missing statement"))
+				}
+				panic(syntaxError(tok.pos, "unexpected %s, expected statement", tok))
+			}
+			switch p.parent().(type) {
+			case *ast.Tree:
+				panic(syntaxError(tok.pos, "unexpected %s, expected statement", tok))
+			case *ast.Label:
 				panic(syntaxError(tok.pos, "missing statement after label"))
 			}
 			panic(syntaxError(tok.pos, "unexpected %s, expecting for, if, show, extends, include, macro or end", tok))

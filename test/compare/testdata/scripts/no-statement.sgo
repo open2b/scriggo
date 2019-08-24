@@ -1,0 +1,3 @@
+// errorcheck
+
+:  // ERROR `unexpected :, expected statement`
