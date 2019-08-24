@@ -1263,6 +1263,9 @@ LABEL:
 		var expressions []ast.Expression
 		expressions, tok = p.parseExprList(tok, false, false, false)
 		if len(expressions) == 0 {
+			if _, ok := p.parent().(*ast.Label); ok {
+				panic(syntaxError(tok.pos, "missing statement after label"))
+			}
 			panic(syntaxError(tok.pos, "unexpected %s, expecting for, if, show, extends, include, macro or end", tok))
 		}
 		if len(expressions) > 1 || isAssignmentToken(tok) {
@@ -1306,7 +1309,7 @@ LABEL:
 				if p.isTemplate {
 					tok = p.next()
 					if tok.typ == tokenEndBlock || tok.typ == tokenEOF {
-						panic(syntaxError(tok.pos, "unexpected %s, expecting statement", tok))
+						panic(syntaxError(tok.pos, "missing statement after label"))
 					}
 					goto LABEL
 				}
