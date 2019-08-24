@@ -208,18 +208,19 @@ func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, err error)
 	return tree, nil
 }
 
-// ParseTemplateSource parses src in the context ctx and returns the its tree.
-// ctx can be ContextText, ContextHTML, ContextCSS or ast.ContextJavaScript.
-// Nodes Extends, Import and Include are not be expanded.
-func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, deps PackageDeclsDeps, err error) {
+// ParseTemplateSource parses a template with source src in the context ctx
+// and returns its tree. ctx can be ContextText, ContextHTML, ContextCSS or
+// ContextJavaScript.
+//
+// ParseTemplateSource does not expand the nodes Extends, Include and Import.
+func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 
 	switch ctx {
 	case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript:
 	default:
-		return nil, nil, errors.New("scriggo: invalid context. Valid contexts are Text, HTML, CSS and JavaScript")
+		return nil, errors.New("scriggo: invalid context. Valid contexts are Text, HTML, CSS and JavaScript")
 	}
 
-	// Tree result of the expansion.
 	tree = ast.NewTree("", nil, ctx)
 
 	var p = &parsing{
@@ -241,46 +242,38 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, deps Pack
 		}
 	}()
 
-	// Current line.
+	// line is the current line number.
 	var line = 0
 
-	// First Text node of the current line.
+	// firstText is the first Text node of the current line.
 	var firstText *ast.Text
 
-	// Number of non-text tokens in current line.
-	var tokensInLine = 0
+	// numTokenInLine is the number of non-text tokens in the current line.
+	var numTokenInLine = 0
 
-	// Index of the last byte.
-	var end = len(src) - 1
+	// lastIndex is the index of the last byte of the source.
+	var lastIndex = len(src) - 1
 
-	// Reads the tokens.
 	tok := p.next()
-TOKENS:
-	for {
+
+	for tok.typ != tokenEOF {
 
 		var text *ast.Text
 		if tok.typ == tokenText {
 			text = ast.NewText(tok.pos, tok.txt, ast.Cut{})
 		}
 
-		if line < tok.lin || tok.pos.End == end {
-			if p.cutSpacesToken && tokensInLine == 1 {
+		if line < tok.lin || tok.pos.End == lastIndex {
+			if p.cutSpacesToken && numTokenInLine == 1 {
 				cutSpaces(firstText, text)
 			}
 			line = tok.lin
 			firstText = text
 			p.cutSpacesToken = false
-			tokensInLine = 0
+			numTokenInLine = 0
 		}
 
 		switch tok.typ {
-
-		// EOF
-		case tokenEOF:
-			if len(p.ancestors) > 1 {
-				return nil, nil, syntaxError(tok.pos, "unexpected EOF, expecting {%% end %%}")
-			}
-			break TOKENS
 
 		// Text
 		case tokenText:
@@ -290,75 +283,83 @@ TOKENS:
 					if containsOnlySpaces(text.Text) {
 						n.LeadingText = text
 					}
-					return nil, nil, syntaxError(tok.pos, "unexpected text, expecting case of default or {%% end %%}")
+					return nil, syntaxError(tok.pos, "unexpected text, expecting case of default or {%% end %%}")
 				}
 			case *ast.TypeSwitch:
 				if len(n.Cases) == 0 {
 					if containsOnlySpaces(text.Text) {
 						n.LeadingText = text
 					}
-					return nil, nil, syntaxError(tok.pos, "unexpected text, expecting case of default or {%% end %%}")
+					return nil, syntaxError(tok.pos, "unexpected text, expecting case of default or {%% end %%}")
 				}
 			case *ast.Select:
 				if len(n.Cases) == 0 {
 					if containsOnlySpaces(text.Text) {
 						n.LeadingText = text
 					}
-					return nil, nil, syntaxError(tok.pos, "unexpected text, expecting case of default or {%% end %%}")
+					return nil, syntaxError(tok.pos, "unexpected text, expecting case of default or {%% end %%}")
 				}
 			}
 			p.addChild(text)
+			tok = p.next()
+
+		// {%
+		case tokenStartBlock:
+			numTokenInLine++
+			tok = p.next()
+			tok = p.parseBlock(tok)
+
+		// {{
+		case tokenStartValue:
+			numTokenInLine++
+			pos := tok.pos
+			var expr ast.Expression
+			expr, tok = p.parseExpr(token{}, false, false, false)
+			if expr == nil {
+				return nil, syntaxError(tok.pos, "expecting expression")
+			}
+			if tok.typ != tokenEndValue {
+				return nil, syntaxError(tok.pos, "unexpected %s, expecting }}", tok)
+			}
+			pos.End = tok.pos.End
+			var node = ast.NewShow(pos, expr, tok.ctx)
+			p.addChild(node)
+			tok = p.next()
 
 		// StartURL
 		case tokenStartURL:
 			node := ast.NewURL(tok.pos, tok.tag, tok.att, nil, tok.ctx)
 			p.addChild(node)
 			p.addToAncestors(node)
+			tok = p.next()
 
 		// EndURL
 		case tokenEndURL:
 			pos := p.parent().Pos()
 			pos.End = tok.pos.End - 1
 			p.removeLastAncestor()
-
-		// {%
-		case tokenStartBlock:
-			tokensInLine++
 			tok = p.next()
-			tok = p.parseBlock(tok)
-			continue
-
-		// {{ }}
-		case tokenStartValue:
-			tokensInLine++
-			expr, tok2 := p.parseExpr(token{}, false, false, false)
-			if expr == nil {
-				return nil, nil, syntaxError(tok2.pos, "expecting expression")
-			}
-			if tok2.typ != tokenEndValue {
-				return nil, nil, syntaxError(tok2.pos, "unexpected %s, expecting }}", tok2)
-			}
-			tok.pos.End = tok2.pos.End
-			var node = ast.NewShow(tok.pos, expr, tok.ctx)
-			p.addChild(node)
 
 		// comment
 		case tokenComment:
-			tokensInLine++
-			var node = ast.NewComment(tok.pos, string(tok.txt[2:len(tok.txt)-2]))
+			numTokenInLine++
+			node := ast.NewComment(tok.pos, string(tok.txt[2:len(tok.txt)-2]))
 			p.addChild(node)
 			p.cutSpacesToken = true
+			tok = p.next()
 
 		default:
-			return nil, nil, syntaxError(tok.pos, "unexpected %s", tok)
+			return nil, syntaxError(tok.pos, "unexpected %s", tok)
 
 		}
 
-		tok = p.next()
-
 	}
 
-	return tree, deps, nil
+	if len(p.ancestors) > 1 {
+		return nil, syntaxError(tok.pos, "unexpected EOF, expecting {%% end %%}")
+	}
+
+	return tree, nil
 }
 
 // parseBlock parses a block of code given its first token and returns the

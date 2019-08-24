@@ -1480,7 +1480,7 @@ func TestTrees(t *testing.T) {
 		if tree.src != "{% a.b = 2 %}" {
 			continue
 		}
-		node, _, err := ParseTemplateSource([]byte(tree.src), ast.ContextHTML)
+		node, err := ParseTemplateSource([]byte(tree.src), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", tree.src, err)
 			continue
