@@ -7,5 +7,5 @@
 package main
 
 func main() {
-	x⊛y := 1;	// ERROR `unexpected ⊛`
+	x⊛y := 1;	// ERROR `illegal character U+229B '⊛'`
 }

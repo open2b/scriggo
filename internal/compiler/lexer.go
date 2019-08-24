@@ -930,16 +930,20 @@ LOOP:
 			l.emit(tokenSemicolon, 1)
 			l.column++
 			endLineAsSemicolon = false
+		case '\x00':
+			return l.errorf("unexpected NUL in input")
 		default:
 			if c == '_' || c < utf8.RuneSelf && unicode.IsLetter(rune(c)) {
 				endLineAsSemicolon = l.lexIdentifierOrKeyword(1)
 			} else {
 				r, s := utf8.DecodeRune(l.src)
-				if unicode.IsLetter(r) {
-					endLineAsSemicolon = l.lexIdentifierOrKeyword(s)
-				} else {
-					return l.errorf("unexpected %c", r)
+				if !unicode.IsLetter(r) {
+					if unicode.IsPrint(r) {
+						return l.errorf("illegal character %U '%c'", r, r)
+					}
+					return l.errorf("illegal character %U", r)
 				}
+				endLineAsSemicolon = l.lexIdentifierOrKeyword(s)
 			}
 		}
 	}
