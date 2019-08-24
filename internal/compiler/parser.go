@@ -181,33 +181,28 @@ func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, err error)
 		}
 	}()
 
-	// Reads the tokens.
 	tok := p.next()
-TOKENS:
-	for {
-		switch tok.typ {
-		case tokenShebangLine:
-			if !shebang {
-				return nil, syntaxError(tok.pos, "illegal character U+0023 '#'")
-			}
-		default:
-			tok = p.parseBlock(tok)
-			continue
-		case tokenEOF:
-			if len(p.ancestors) > 1 {
-				switch p.ancestors[1].(type) {
-				case *ast.Package:
-				case *ast.Label:
-					return nil, syntaxError(tok.pos, "missing statement after label")
-				default:
-					if len(p.ancestors) > 2 {
-						return nil, syntaxError(tok.pos, "unexpected EOF, expecting }")
-					}
-				}
-			}
-			break TOKENS
+	if tok.typ == tokenShebangLine {
+		if !shebang {
+			return nil, syntaxError(tok.pos, "illegal character U+0023 '#'")
 		}
 		tok = p.next()
+	}
+
+	for tok.typ != tokenEOF {
+		tok = p.parseBlock(tok)
+	}
+
+	if len(p.ancestors) > 1 {
+		switch p.ancestors[1].(type) {
+		case *ast.Package:
+		case *ast.Label:
+			return nil, syntaxError(tok.pos, "missing statement after label")
+		default:
+			if len(p.ancestors) > 2 {
+				return nil, syntaxError(tok.pos, "unexpected EOF, expecting }")
+			}
+		}
 	}
 
 	return tree, nil
