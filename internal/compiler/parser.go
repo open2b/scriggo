@@ -408,7 +408,7 @@ LABEL:
 	// package
 	case tokenPackage:
 		pos := tok.pos
-		if tree, ok := p.parent().(*ast.Tree); !ok || p.ctx != ast.ContextGo || len(tree.Nodes) > 0 {
+		if tree, ok := p.parent().(*ast.Tree); !ok || p.isTemplate || p.isScript || len(tree.Nodes) > 0 {
 			panic(syntaxError(tok.pos, "unexpected package, expecting statement"))
 		}
 		tok = p.next()
