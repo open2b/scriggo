@@ -380,7 +380,7 @@ LABEL:
 		switch tok.typ {
 		case tokenImport, tokenFunc, tokenVar, tokenConst, tokenType:
 		default:
-			panic(syntaxError(tok.pos, "non-declaration statement outside function body (%q)", tok))
+			panic(syntaxError(tok.pos, "non-declaration statement outside function body"))
 		}
 	case *ast.Switch:
 		if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd && tok.typ != tokenRightBraces {
@@ -631,15 +631,13 @@ LABEL:
 					comm = expressions[0]
 				}
 			}
-			if tok.typ != tokenColon {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
-			}
 			pos.End = tok.pos.End
+			tok = p.parseEnd(tok, tokenColon)
 			node := ast.NewSelectCase(pos, comm, nil)
 			p.addChild(node)
-			tok = p.next()
 		default:
-			panic(syntaxError(tok.pos, "unexpected case, expecting %%}"))
+			// Panic with a syntax error.
+			p.parseEnd(tok, tokenRightBraces)
 		}
 		return tok
 
@@ -662,7 +660,8 @@ LABEL:
 			p.addChild(node)
 			p.cutSpacesToken = true
 		default:
-			panic(syntaxError(tok.pos, "unexpected default, expecting %%}"))
+			// Panic with a syntax error.
+			p.parseEnd(tok, tokenRightBraces)
 		}
 		return tok
 
@@ -760,8 +759,9 @@ LABEL:
 			p.addToAncestors(elseBlock)
 			return p.next()
 		}
-		if tok.typ != tokenIf { // "else if"
-			panic(syntaxError(tok.pos, "unexpected %s, expecting if or %%}", tok))
+		if tok.typ != tokenIf {
+			// Panic with a syntax error.
+			p.parseEnd(tok, tokenIf)
 		}
 		fallthrough
 
@@ -1045,11 +1045,10 @@ LABEL:
 			outOfOrder = true
 		}
 		if outOfOrder {
-			if tok.ctx == ast.ContextGo {
-				panic(syntaxError(tok.pos, "unexpected import, expecting }"))
-			} else {
+			if p.isTemplate {
 				panic(syntaxError(tok.pos, "unexpected import, expecting statement"))
 			}
+			panic(syntaxError(tok.pos, "unexpected import, expecting }"))
 		}
 		if tok.ctx != p.ctx {
 			panic(syntaxError(tok.pos, "import not in %s content", p.ctx))
@@ -1063,7 +1062,7 @@ LABEL:
 				if tok.typ == tokenSemicolon {
 					tok = p.next()
 				} else if tok.typ != tokenRightParenthesis {
-					panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
+					panic(syntaxError(tok.pos, "expected ';', found %s", tok))
 				}
 			}
 			tok = p.next()
@@ -1276,10 +1275,10 @@ LABEL:
 			case *ast.Label:
 				panic(syntaxError(tok.pos, "missing statement after label"))
 			}
-			panic(syntaxError(tok.pos, "unexpected %s, expecting for, if, show, extends, include, macro or end", tok))
+			panic(syntaxError(tok.pos, "unexpected %s, expected }", tok))
 		}
 		if len(expressions) > 1 || isAssignmentToken(tok) {
-			// Parses assignment.
+			// Parse assignment.
 			var assignment *ast.Assignment
 			assignment, tok = p.parseAssignment(expressions, tok, false, false)
 			if assignment == nil {
@@ -1290,7 +1289,7 @@ LABEL:
 			p.addChild(assignment)
 			p.cutSpacesToken = true
 		} else if tok.typ == tokenArrow {
-			// Parses send.
+			// Parse send.
 			channel := expressions[0]
 			var value ast.Expression
 			value, tok = p.parseExpr(token{}, false, false, false)
@@ -1303,9 +1302,10 @@ LABEL:
 			p.addChild(node)
 			p.cutSpacesToken = true
 		} else {
-			// Parses expression.
+			// Parse a label or an expression.
 			expr := expressions[0]
 			if ident, ok := expr.(*ast.Identifier); ok && tok.typ == tokenColon {
+				// Parse a label.
 				if p.isTemplate {
 					if _, ok := p.parent().(*ast.Label); ok {
 						panic(syntaxError(tok.pos, "unexpected label, expecting statement"))

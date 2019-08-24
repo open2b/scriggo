@@ -59,7 +59,7 @@ func (p *parsing) parseSwitch(tok token) ast.Node {
 			afterSemicolon = expressions[0]
 		default:
 			// switch x + 2, y + 1 {
-			panic(syntaxError(tok.pos, "unexpected %%}, expecting := or = or comma"))
+			panic(syntaxError(tok.pos, "unexpected %s, expecting := or = or comma", end))
 		}
 
 	case tok.typ == tokenSemicolon:
@@ -97,7 +97,7 @@ func (p *parsing) parseSwitch(tok token) ast.Node {
 			// switch x; a, b {
 			// switch ; a, b {
 			// switch ; a, b, c {
-			panic(syntaxError(tok.pos, "unexpected %%}, expecting := or = or comma"))
+			panic(syntaxError(tok.pos, "unexpected %s, expecting := or = or comma", end))
 		}
 
 	case isAssignmentToken(tok):
@@ -150,7 +150,7 @@ func (p *parsing) parseSwitch(tok token) ast.Node {
 					afterSemicolon = expressions[0]
 				default:
 					// switch x := 2; x + y, y + z {
-					panic(syntaxError(tok.pos, "unexpected %%}, expecting := or = or comma"))
+					panic(syntaxError(tok.pos, "unexpected %s, expecting := or = or comma", end))
 				}
 			}
 
@@ -158,7 +158,7 @@ func (p *parsing) parseSwitch(tok token) ast.Node {
 			// switch x = y.(type) {
 			// switch x := y.(type) {
 			if len(assignment.Rhs) != 1 {
-				panic(syntaxError(tok.pos, "unexpected %%}, expecting expression"))
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", end))
 			}
 			if len(assignment.Lhs) != 1 {
 				panic(syntaxError(tok.pos, "%s used as value", assignment))
@@ -176,7 +176,7 @@ func (p *parsing) parseSwitch(tok token) ast.Node {
 	}
 
 	if tok.typ != end {
-		panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
+		panic(syntaxError(tok.pos, "unexpected %s, expecting %s", tok, end))
 	}
 
 	pos.End = tok.pos.End

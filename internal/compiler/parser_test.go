@@ -1454,7 +1454,7 @@ var shebangTests = []struct {
 	err     string
 }{
 	{"#! /usr/bin/scriggo", true, ""},
-	{"#! /usr/bin/scriggo\n=", true, ":2:1: syntax error: unexpected =, expecting for, if, show, extends, include, macro or end"},
+	{"#! /usr/bin/scriggo\n=", true, ":2:1: syntax error: unexpected =, expected statement"},
 	{"a = 5\n#! /usr/bin/scriggo\n", true, ":2:1: syntax error: unexpected #"},
 	{"#! /usr/bin/scriggo", false, ":1:1: syntax error: illegal character U+0023 '#'"},
 }
