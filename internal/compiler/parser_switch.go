@@ -29,7 +29,9 @@ func isTypeGuard(node ast.Node) bool {
 
 // parseSwitch parses a switch statement and returns an Switch or TypeSwitch
 // node. Panics on error.
-func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
+func (p *parsing) parseSwitch(tok token) ast.Node {
+
+	pos := tok.pos
 
 	var assignment *ast.Assignment
 

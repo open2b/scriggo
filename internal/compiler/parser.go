@@ -413,7 +413,7 @@ LABEL:
 		}
 		tok = p.next()
 		if tok.typ != tokenIdentifier {
-			panic(syntaxError(tok.pos, "expected 'IDENT', found %q", string(tok.txt)))
+			panic(syntaxError(tok.pos, "expected 'IDENT', found %q", tok.txt))
 		}
 		name := string(tok.txt)
 		if name == "_" {
@@ -421,10 +421,7 @@ LABEL:
 		}
 		pos.End = tok.pos.End
 		tok = p.next()
-		if tok.typ != tokenSemicolon {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting semicolon or newline", string(tok.txt)))
-		}
-		tok = p.next()
+		tok = p.parseEnd(tok, tokenSemicolon)
 		node := ast.NewPackage(pos, name, nil)
 		p.addChild(node)
 		p.addToAncestors(node)
@@ -592,8 +589,7 @@ LABEL:
 
 	// switch
 	case tokenSwitch:
-		pos := tok.pos
-		node := p.parseSwitch(pos)
+		node := p.parseSwitch(tok)
 		p.addChild(node)
 		p.addToAncestors(node)
 		p.cutSpacesToken = true
