@@ -12,32 +12,37 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"scriggo/ast"
 )
 
-// validPackagePath reports whether path is a valid package path. path must be
-// already a valid path.
-func validPackagePath(path string) error {
+// validatePackagePath validates path at the position pos and panics if path
+// is not a valid package path.
+func validatePackagePath(path string, pos *ast.Position) {
 	if path == "main" {
-		return nil
+		return
+	}
+	if !ValidPath(path) {
+		panic(syntaxError(pos, "invalid import path: %q", path))
 	}
 	for _, r := range path {
 		if !unicode.In(r, unicode.L, unicode.M, unicode.N, unicode.P, unicode.S) {
-			return ErrInvalidPackagePath
+			panic(syntaxError(pos, "invalid import path: %q", path))
 		}
 		switch r {
 		case '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', ':', ';', '<',
 			'=', '>', '?', '[', '\\', ']', '^', '`', '{', '|', '}', '\uFFFD':
-			return ErrInvalidPackagePath
+			panic(syntaxError(pos, "invalid import path: %q", path))
 		}
 	}
 	if cleaned := cleanPath(path); path != cleaned {
-		return ErrNotCanonicalImportPath
+		panic(syntaxError(pos, "non-canonical import path %q (should be %q)", path, cleaned))
 	}
-	return nil
+	return
 }
 
-// ValidPath indicates whether path is valid for an extends, import and
-// include path.
+// ValidPath indicates whether path is valid path for Extends, Import and
+// Include paths.
 func ValidPath(path string) bool {
 	return utf8.ValidString(path) &&
 		path != "" && path != ".." &&

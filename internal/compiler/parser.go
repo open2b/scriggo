@@ -152,8 +152,6 @@ func (p *parsing) next() token {
 // ParseSource parses a program or script and returns its tree. isScript
 // reports whether it is a script and shebang reports whether a script can
 // have the shebang as first line.
-//
-// TODO(Gianluca): path validation must be moved to parser.
 func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, err error) {
 
 	if shebang && !isScript {
@@ -1056,10 +1054,11 @@ LABEL:
 			panic(syntaxError(tok.pos, "import not in %s content", p.ctx))
 		}
 		tok = p.next()
-		if p.ctx == ast.ContextGo && tok.typ == tokenLeftParenthesis {
+		if tok.typ == tokenLeftParenthesis && p.ctx == ast.ContextGo {
 			tok = p.next()
 			for tok.typ != tokenRightParenthesis {
-				p.addChild(p.parseImportSpec(tok))
+				node := p.parseImport(tok)
+				p.addChild(node)
 				tok = p.next()
 				if tok.typ == tokenSemicolon {
 					tok = p.next()
@@ -1068,12 +1067,13 @@ LABEL:
 				}
 			}
 			tok = p.next()
-			if tok.typ != tokenSemicolon && tok.typ != tokenEOF {
+			if tok.typ != tokenSemicolon {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting semicolon or newline", tok))
 			}
 			tok = p.next()
 		} else {
-			p.addChild(p.parseImportSpec(tok))
+			node := p.parseImport(tok)
+			p.addChild(node)
 			tok = p.next()
 			tok = p.parseEnd(tok, tokenSemicolon)
 		}
@@ -1467,13 +1467,14 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, decType toke
 	return ast.NewConst(nodePos, idents, typ, exprs), tok
 }
 
-func (p *parsing) parseImportSpec(tok token) *ast.Import {
+func (p *parsing) parseImport(tok token) *ast.Import {
 	pos := tok.pos
 	var ident *ast.Identifier
-	if tok.typ == tokenIdentifier {
+	switch tok.typ {
+	case tokenIdentifier:
 		ident = ast.NewIdentifier(tok.pos, string(tok.txt))
 		tok = p.next()
-	} else if tok.typ == tokenPeriod {
+	case tokenPeriod:
 		ident = ast.NewIdentifier(tok.pos, ".")
 		tok = p.next()
 	}
@@ -1481,16 +1482,14 @@ func (p *parsing) parseImportSpec(tok token) *ast.Import {
 		panic(syntaxError(tok.pos, "unexpected %s, expecting string", tok))
 	}
 	var path = unquoteString(tok.txt)
-	if !ValidPath(path) {
-		panic(syntaxError(tok.pos, "invalid import path: %q", path))
-	}
 	if p.ctx == ast.ContextGo {
-		if err := validPackagePath(path); err != nil {
-			if err == ErrNotCanonicalImportPath {
-				panic(syntaxError(tok.pos, "non-canonical import path %q (should be %q)", path, cleanPath(path)))
-			}
+		validatePackagePath(path, tok.pos)
+	} else {
+		if !ValidPath(path) {
 			panic(syntaxError(tok.pos, "invalid import path: %q", path))
 		}
+		// Further restrictions on the validity of a path can be imposed by a
+		// reader.
 	}
 	pos.End = tok.pos.End
 	return ast.NewImport(pos, ident, path, tok.ctx)

@@ -93,13 +93,6 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
 				} else if predefined[imp.Path] {
 					// Skip.
 				} else {
-					// Check if the path is a package path (path is already a valid path).
-					if err := validPackagePath(n.Path); err != nil {
-						if err == ErrNotCanonicalImportPath {
-							return nil, fmt.Errorf("non-canonical import path %q (should be %q)", n.Path, cleanPath(n.Path))
-						}
-						return nil, fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
-					}
 					// Append the imports in reverse order.
 					if last == len(imports)-1 {
 						imports = append(imports, imp)
@@ -161,13 +154,6 @@ func ParseScript(src io.Reader, loader PackageLoader, shebang bool) (*ast.Tree, 
 		imp, ok := node.(*ast.Import)
 		if !ok {
 			break
-		}
-		// Check if the path is a package path (path is already a valid path).
-		if err := validPackagePath(imp.Path); err != nil {
-			if err == ErrNotCanonicalImportPath {
-				return nil, fmt.Errorf("non-canonical import path %q (should be %q)", imp.Path, cleanPath(imp.Path))
-			}
-			return nil, fmt.Errorf("invalid path %q at %s", imp.Path, imp.Pos())
 		}
 		// Load the package.
 		if loader == nil {
