@@ -22,12 +22,6 @@ type Reader interface {
 }
 
 var (
-	// ErrInvalidPackagePath is returned from the Parse method and a Reader
-	// when the path argument is not valid.
-	ErrInvalidPackagePath = errors.New("scriggo: invalid path")
-
-	ErrNotCanonicalImportPath = errors.New("scriggo: non-canonical import path")
-
 	// ErrInvalidPath is returned from the Parse method and a Reader when the
 	// path argument is not valid.
 	ErrInvalidPath = errors.New("scriggo: invalid path")
