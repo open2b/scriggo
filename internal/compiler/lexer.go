@@ -129,7 +129,7 @@ func (l *lexer) scan() {
 			}
 		}
 
-		err := l.lexCode()
+		err := l.lexCode(false)
 		if err != nil {
 			l.err = err
 		}
@@ -552,7 +552,7 @@ func isEndScript(s []byte) bool {
 func (l *lexer) lexShow() error {
 	l.emit(tokenStartValue, 2)
 	l.column += 2
-	err := l.lexCode()
+	err := l.lexCode(true)
 	if err != nil {
 		return err
 	}
@@ -571,7 +571,7 @@ func (l *lexer) lexShow() error {
 func (l *lexer) lexBlock() error {
 	l.emit(tokenStartBlock, 2)
 	l.column += 2
-	err := l.lexCode()
+	err := l.lexCode(false)
 	if err != nil {
 		return err
 	}
@@ -606,14 +606,14 @@ func (l *lexer) lexComment() error {
 }
 
 // lexCode emits code tokens.
-func (l *lexer) lexCode() error {
+func (l *lexer) lexCode(isShow bool) error {
 	if len(l.src) == 0 {
 		return nil
 	}
 	// endLineAsSemicolon reports whether "\n" should be treated as ";".
 	var endLineAsSemicolon = false
 	// unclosedLeftBraces is the number of left braces lexed without a
-	// corresponding right brace.
+	// corresponding right brace. It is updated only if isShow is true.
 	var unclosedLeftBraces = 0
 LOOP:
 	for len(l.src) > 0 {
@@ -880,18 +880,22 @@ LOOP:
 			l.emit(tokenLeftBraces, 1)
 			l.column++
 			endLineAsSemicolon = false
-			unclosedLeftBraces++
-		case '}':
-			if unclosedLeftBraces > 0 {
-				l.emit(tokenRightBraces, 1)
-				l.column++
-				endLineAsSemicolon = true
-				unclosedLeftBraces--
-			} else if l.ctx != ast.ContextGo && len(l.src) > 1 && l.src[1] == '}' {
-				break LOOP
-			} else {
-				return l.errorf("unexpected }")
+			if isShow {
+				unclosedLeftBraces++
 			}
+		case '}':
+			if isShow {
+				if unclosedLeftBraces == 0 {
+					if len(l.src) > 1 && l.src[1] == '}' {
+						break LOOP
+					}
+				} else {
+					unclosedLeftBraces--
+				}
+			}
+			l.emit(tokenRightBraces, 1)
+			l.column++
+			endLineAsSemicolon = true
 		case '^':
 			if len(l.src) > 1 && l.src[1] == '=' {
 				l.emit(tokenXorAssignment, 2)

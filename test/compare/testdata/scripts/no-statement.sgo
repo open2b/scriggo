@@ -2,3 +2,4 @@
 
 :  // ERROR `unexpected :, expected statement`
 ∞  // ERROR `illegal character U+221E '∞'`
+}  // ERROR `unexpected }, expecting statement`

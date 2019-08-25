@@ -2,10 +2,12 @@
 
 :  // ERROR `expected 'package', found ':'`
 ∞  // ERROR `illegal character U+221E '∞'`
+}  // ERROR `expected 'package', found '}'`
 
 package main
 
 :  // ERROR `non-declaration statement outside function body`
+}  // ERROR `non-declaration statement outside function body`
 
 func main() {
 	:  // ERROR `unexpected :, expected }`
@@ -13,3 +15,4 @@ func main() {
 }
 
 :  // ERROR `non-declaration statement outside function body`
+}  // ERROR `non-declaration statement outside function body`

@@ -702,8 +702,8 @@ LABEL:
 		if p.ctx != ast.ContextGo {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting statement", tok))
 		}
-		if len(p.ancestors) == 1 {
-			panic(syntaxError(tok.pos, "not opened brace"))
+		if p.isScript && len(p.ancestors) == 1 {
+			panic(syntaxError(tok.pos, "unexpected }, expecting statement"))
 		}
 		if _, ok := p.parent().(*ast.Label); ok {
 			p.removeLastAncestor()
