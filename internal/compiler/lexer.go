@@ -376,7 +376,7 @@ func (l *lexer) scan() {
 
 		}
 
-		if len(l.src) > 0 {
+		if l.err == nil && len(l.src) > 0 {
 			l.emitAtLineColumn(lin, col, tokenText, p)
 		}
 
