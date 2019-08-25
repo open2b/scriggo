@@ -316,7 +316,7 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error
 			var expr ast.Expression
 			expr, tok = p.parseExpr(token{}, false, false, false)
 			if expr == nil {
-				return nil, syntaxError(tok.pos, "expecting expression")
+				return nil, syntaxError(tok.pos, "unexpected %s, expecting expression", tok)
 			}
 			if tok.typ != tokenEndValue {
 				return nil, syntaxError(tok.pos, "unexpected %s, expecting }}", tok)
