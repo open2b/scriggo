@@ -16,3 +16,5 @@ func main() {
 
 :  // ERROR `non-declaration statement outside function body`
 }  // ERROR `non-declaration statement outside function body`
+
+return // ERROR `non-declaration statement outside function body`

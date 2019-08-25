@@ -811,15 +811,17 @@ LABEL:
 	// return
 	case tokenReturn:
 		pos := tok.pos
-		var inFunction bool
-		for i := len(p.ancestors) - 1; i > 0; i-- {
-			if _, ok := p.ancestors[i].(*ast.Func); ok {
-				inFunction = true
-				break
+		if p.isScript || p.isTemplate {
+			var inFunction bool
+			for i := len(p.ancestors) - 1; i > 0; i-- {
+				if _, ok := p.ancestors[i].(*ast.Func); ok {
+					inFunction = true
+					break
+				}
 			}
-		}
-		if !inFunction {
-			panic(syntaxError(tok.pos, "non-declaration statement outside function body"))
+			if !inFunction {
+				panic(syntaxError(tok.pos, "return statement outside function body"))
+			}
 		}
 		var values []ast.Expression
 		values, tok = p.parseExprList(token{}, false, false, false)

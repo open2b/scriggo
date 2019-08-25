@@ -1,8 +1,9 @@
 {# errorcheck #}
 
-{%   %}  // ERROR `missing statement`
-{% : %}  // ERROR `unexpected :, expected statement`
-{% ∞ %}  // ERROR `illegal character U+221E '∞'`
-{% } %}  // ERROR `unexpected }, expecting statement`
+{%   %}       // ERROR `missing statement`
+{% : %}       // ERROR `unexpected :, expected statement`
+{% ∞ %}       // ERROR `illegal character U+221E '∞'`
+{% } %}       // ERROR `unexpected }, expecting statement`
+{% return %}  // ERROR `return statement outside function body`
 
 {{ } }}  // ERROR `unexpected }, expecting expression`
