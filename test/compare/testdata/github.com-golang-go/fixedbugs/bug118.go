@@ -1,5 +1,3 @@
-// skip : statement 'select' not implemented https://github.com/open2b/scriggo/issues/109
-
 // compile
 
 // Copyright 2009 The Go Authors. All rights reserved.

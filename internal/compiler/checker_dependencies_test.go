@@ -685,6 +685,57 @@ var cases = map[string]struct {
 			"main": {},
 		},
 	},
+	"select - no cases": {
+		`package main
+		
+		func main() {
+			select {}
+		}`,
+		map[string][]string{
+			"main": {},
+		},
+	},
+	"select - one case that receives from a package level channel": {
+		`package main
+
+		var ch = make(chan int, 3)
+		
+		func main() {
+			select {
+			case <-ch:
+			}
+		}
+		`,
+		map[string][]string{
+			"main": {"ch"},
+			"ch":   {"int", "make"},
+		},
+	},
+	"select - three receive operations": {
+		`package main
+
+		var ch = make(chan int, 3)
+		
+		var v1, v2 int
+		
+		func main() { 
+			select {
+			case <-ch:
+			case v1 = <-ch:
+				_ = v1
+			case v2, ok := <-ch:
+				_ = v2
+				_ = ok
+			}
+		}
+		`,
+		map[string][]string{
+			"main": {"ch", "v1"}, // does not depend on v2, which is locally declared.
+			"ch":   {"make", "int"},
+			"v1":   {"int"},
+			"v2":   {"int"},
+		},
+	},
 }
 
 func TestDependencies(t *testing.T) {

@@ -1214,6 +1214,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			}
 			em.fb.emitReturn()
 
+		case *ast.Select:
+			em.emitSelect(node)
+
 		case *ast.Send:
 			chann := em.emitExpr(node.Channel, em.ti(node.Channel).Type)
 			value := em.emitExpr(node.Value, em.ti(node.Value).Type)
@@ -2438,5 +2441,140 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 	em.fb.emitLoadNumber(vm.TypeInt, k2, v2)
 	em.fb.emitIf(false, v1, vm.ConditionEqual, v2, reflect.Bool)
 	return
+
+}
+
+// emitSelect emits the 'select' statements. The emission is composed by 4 main
+// parts:
+//
+// 1) Preparation of the channel and value registers for every case.
+//
+// 2) Emission of the 'case' instructions. Every case must be followed by a
+// 'goto' which points to the respective case body below.
+//
+// 3) Emission of the 'select' instruction.
+//
+// 4) Emission of the assignment node, in case of a case with assignment, and of
+// the body for every case.
+//
+func (em *emitter) emitSelect(selectNode *ast.Select) {
+
+	// Emit an empty select.
+	if len(selectNode.Cases) == 0 {
+		em.fb.emitSelect()
+		return
+	}
+
+	// Enter in a new stack: all the registers allocated during the execution of
+	// the 'select' statement will be released at the end of it.
+	em.fb.enterStack()
+
+	// Create some shared registers; preallocation is not a problem: when the
+	// select statement will be ended, all registers will be released.
+	ch := em.fb.newRegister(reflect.Chan)
+	ok := em.fb.newRegister(reflect.Bool)
+	value := [4]int8{
+		vm.TypeInt:     em.fb.newRegister(reflect.Int),
+		vm.TypeFloat:   em.fb.newRegister(reflect.Float64),
+		vm.TypeString:  em.fb.newRegister(reflect.String),
+		vm.TypeGeneral: em.fb.newRegister(reflect.Interface),
+	}
+
+	// Prepare the registers for the 'select' instruction.
+	for _, cas := range selectNode.Cases {
+		switch cas := cas.Comm.(type) {
+		case nil: // default: nothing to do.
+		case *ast.UnaryOperator:
+			// <- ch
+			chExpr := cas.Expr
+			em.emitExprR(chExpr, em.ti(chExpr).Type, ch)
+		case *ast.Assignment:
+			// v [, ok ] = <- ch
+			chExpr := cas.Rhs[0].(*ast.UnaryOperator).Expr
+			em.emitExprR(chExpr, em.ti(chExpr).Type, ch)
+		case *ast.Send:
+			// ch <- v
+			chExpr := cas.Channel
+			chType := em.ti(chExpr).Type
+			elemType := chType.Elem()
+			em.emitExprR(chExpr, chType, ch)
+			em.emitExprR(cas.Value, elemType, value[kindToType(elemType.Kind())])
+		}
+	}
+
+	// Emit all the 'case' instructions.
+	casesLabel := make([]uint32, len(selectNode.Cases))
+	for i, cas := range selectNode.Cases {
+		casesLabel[i] = em.fb.newLabel()
+		switch comm := cas.Comm.(type) {
+		case nil:
+			// default
+			em.fb.emitCase(false, reflect.SelectDefault, 0, 0, reflect.Invalid)
+		case *ast.UnaryOperator:
+			// <- ch
+			chExpr := comm.Expr
+			elemType := em.ti(chExpr).Type.Elem()
+			em.fb.emitCase(false, reflect.SelectRecv, 0, ch, elemType.Kind())
+		case *ast.Assignment:
+			// v [, ok ] = <- ch
+			chExpr := comm.Rhs[0].(*ast.UnaryOperator).Expr
+			chType := em.ti(chExpr).Type
+			elemType := chType.Elem()
+			em.fb.emitCase(false, reflect.SelectRecv, value[kindToType(elemType.Kind())], ch, elemType.Kind())
+		case *ast.Send:
+			// ch <- v
+			chExpr := comm.Channel
+			chType := em.ti(chExpr).Type
+			elemType := chType.Elem()
+			em.fb.emitCase(false, reflect.SelectSend, value[kindToType(elemType.Kind())], ch, elemType.Kind())
+		}
+		em.fb.emitGoto(casesLabel[i])
+	}
+
+	// Emit the 'select' instruction.
+	em.fb.emitSelect()
+
+	// Emit bodies of the 'select' cases.
+	casesEnd := em.fb.newLabel()
+	for i, cas := range selectNode.Cases {
+		// Make the previous 'goto' point here.
+		em.fb.setLabelAddr(casesLabel[i])
+		// Emit an assignment if it is a receive case with an assignment.
+		if assignment, isAssignment := cas.Comm.(*ast.Assignment); isAssignment {
+			receiveExpr := assignment.Rhs[0].(*ast.UnaryOperator)
+			chExpr := receiveExpr.Expr
+			chType := em.ti(chExpr).Type
+			elemType := chType.Elem()
+			// Split the assignment in the received value and the ok value if this exists.
+			em.fb.bindVarReg("$chanElem", value[kindToType(elemType.Kind())])
+			valueExpr := ast.NewIdentifier(nil, "$chanElem")
+			em.typeInfos[valueExpr] = em.typeInfos[receiveExpr]
+			valueAssignment := ast.NewAssignment(nil, assignment.Lhs[0:1], assignment.Type, []ast.Expression{valueExpr})
+			em.emitAssignmentNode(valueAssignment)
+			if len(assignment.Lhs) == 2 { // case has 'ok'
+				em.fb.emitMove(true, 1, ok, reflect.Bool)
+				em.fb.emitIf(false, 0, vm.ConditionOK, 0, reflect.Interface)
+				em.fb.emitMove(true, 0, ok, reflect.Bool)
+				okExpr := ast.NewIdentifier(nil, "$ok")
+				em.typeInfos[okExpr] = &TypeInfo{
+					Type: boolType,
+				}
+				em.fb.bindVarReg("$ok", ok)
+				okAssignment := ast.NewAssignment(nil, assignment.Lhs[1:2], assignment.Type, []ast.Expression{okExpr})
+				em.emitAssignmentNode(okAssignment)
+			}
+		}
+		// Emit the nodes of the body of the case.
+		em.emitNodes(cas.Body)
+		// All 'case' bodies jump to the end of the 'select' bodies, except for the last one.
+		if i < len(selectNode.Cases)-1 {
+			em.fb.emitGoto(casesEnd)
+		}
+	}
+	em.fb.setLabelAddr(casesEnd)
+
+	// Release all the registers allocated during the execution of the 'select'
+	// statement.
+	em.fb.exitStack()
 
 }
