@@ -2456,7 +2456,15 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 	// 'select' statement will be released at the end of it.
 	em.fb.enterStack()
 
-	ch := em.fb.newRegister(reflect.Chan)
+	var (
+		ch = em.fb.newRegister(reflect.Chan)
+	)
+	value := map[vm.Type]int8{
+		vm.TypeInt:     em.fb.newRegister(reflect.Int),
+		vm.TypeFloat:   em.fb.newRegister(reflect.Float64),
+		vm.TypeString:  em.fb.newRegister(reflect.String),
+		vm.TypeGeneral: em.fb.newRegister(reflect.Interface),
+	}
 
 	// Prepare registers for the 'select' instruction.
 	for _, caseNode := range selectNode.Cases {
@@ -2469,11 +2477,16 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 			chType := em.ti(chExpr).Type
 			em.emitExprR(chExpr, chType, ch)
 		case *ast.Assignment:
-			// v [, ok ] <- ch
+			// v [, ok ] = <- ch
 			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		case *ast.Send:
 			// ch <- v
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			chExpr := caseNode.Channel
+			chType := em.ti(chExpr).Type
+			em.emitExprR(chExpr, chType, ch)
+			valueExpr := caseNode.Value
+			valueType := em.ti(valueExpr).Type
+			em.emitExprR(valueExpr, valueType, value[kindToType(valueType.Kind())])
 		}
 	}
 
@@ -2493,11 +2506,13 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 			chElemKind := em.ti(chExpr).Type.Elem().Kind()
 			em.fb.emitCase(false, reflect.SelectRecv, 0, ch, chElemKind)
 		case *ast.Assignment:
-			// v [, ok ] <- ch
+			// v [, ok ] = <- ch
 			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		case *ast.Send:
 			// ch <- v
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			valueExpr := caseNode.Value
+			valueType := em.ti(valueExpr).Type
+			em.fb.emitCase(false, reflect.SelectSend, value[kindToType(valueType.Kind())], ch, valueType.Kind()) // TODO(Gianluca): use k.
 		}
 		em.fb.emitGoto(casesLabel[i])
 	}
@@ -2511,16 +2526,17 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 		em.fb.setLabelAddr(casesLabel[i])
 		switch caseNode.Comm.(type) {
 		case nil:
-			// default: nothing to do.
+			// default
+			em.emitNodes(caseNode.Body)
 		case *ast.UnaryOperator:
-			// <- ch.
+			// <- ch
 			em.emitNodes(caseNode.Body)
 		case *ast.Assignment:
-			// v [, ok ] <- ch
+			// v [, ok ] = <- ch
 			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		case *ast.Send:
 			// ch <- v
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			em.emitNodes(caseNode.Body)
 		}
 		// Every case body (except last) jumps to the end of all bodies.
 		if i < len(selectNode.Cases)-1 {
