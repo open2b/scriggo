@@ -8,7 +8,6 @@ package vm
 
 import (
 	"context"
-	"errors"
 	"reflect"
 	"strconv"
 	"strings"
@@ -20,12 +19,18 @@ const CurrentFunction = -1
 
 const stackSize = 512
 
-var ErrOutOfMemory = errors.New("out of memory")
-
 var envType = reflect.TypeOf(&Env{})
 var sliceByteType = reflect.TypeOf([]byte{})
 var emptyInterfaceType = reflect.TypeOf(&[]interface{}{nil}[0]).Elem()
 var emptyInterfaceNil = reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
+
+func IsOutOfTime(err error) bool {
+	return err == errOutOfTime
+}
+
+func IsOutOfMemory(err error) bool {
+	return err == errOutOfMemory
+}
 
 type StackShift [4]int8
 
@@ -132,7 +137,7 @@ func (vm *VM) Reset() {
 // Run don't panic and returns the panic message in the err out parameter.
 //
 // If a maximum available memory has been set and the memory is exhausted,
-// Run returns immediately with the error ErrOutOfMemory.
+// Run returns immediately with the error errOutOfMemory.
 //
 // If a context has been set and the context is canceled, Run returns
 // as soon as possible with the error returned by the Err method of the
@@ -289,12 +294,12 @@ func (vm *VM) alloc() {
 		l := int(b)
 		if l > sc-sl {
 			if sl+l < 0 {
-				panic(ErrOutOfMemory)
+				panic(errOutOfMemory)
 			}
 			capacity := appendCap(sc, sl, sl+l)
 			bytes = capacity * elemSize
 			if bytes/capacity != elemSize {
-				panic(ErrOutOfMemory)
+				panic(errOutOfMemory)
 			}
 		}
 	case OpAppendSlice:
@@ -326,12 +331,12 @@ func (vm *VM) alloc() {
 		if l > sc-sl {
 			nl := sl + l
 			if nl < sl {
-				panic(ErrOutOfMemory)
+				panic(errOutOfMemory)
 			}
 			capacity := appendCap(sc, sl, nl)
 			bytes = capacity * elemSize
 			if bytes/capacity != elemSize {
-				panic(ErrOutOfMemory)
+				panic(errOutOfMemory)
 			}
 		}
 	case OpConvertGeneral: // TODO(marco): implement in the builder.
@@ -353,7 +358,7 @@ func (vm *VM) alloc() {
 			length := len([]rune(vm.string(a)))
 			bytes = length * 4
 			if bytes/4 != length {
-				panic(ErrOutOfMemory)
+				panic(errOutOfMemory)
 			}
 		} else {
 			bytes = len(vm.string(a))
@@ -363,7 +368,7 @@ func (vm *VM) alloc() {
 		bLen := len(vm.string(b))
 		bytes = aLen + bLen
 		if bytes < aLen {
-			panic(ErrOutOfMemory)
+			panic(errOutOfMemory)
 		}
 	case OpMakeChan:
 		typ := vm.fn.Types[uint8(a)]
@@ -371,11 +376,11 @@ func (vm *VM) alloc() {
 		ts := int(typ.Size())
 		bytes = ts * capacity
 		if bytes/ts != capacity {
-			panic(ErrOutOfMemory)
+			panic(errOutOfMemory)
 		}
 		bytes += 10 * 8
 		if bytes < 0 {
-			panic(ErrOutOfMemory)
+			panic(errOutOfMemory)
 		}
 	case OpMakeMap:
 		// The size is approximated. The actual size depend on the type and
@@ -383,11 +388,11 @@ func (vm *VM) alloc() {
 		n := int(vm.int(b))
 		bytes = 50 * n
 		if bytes/50 != n {
-			panic(ErrOutOfMemory)
+			panic(errOutOfMemory)
 		}
 		bytes += 24
 		if bytes < 0 {
-			panic(ErrOutOfMemory)
+			panic(errOutOfMemory)
 		}
 	case OpMakeSlice:
 		typ := vm.fn.Types[uint8(a)]
@@ -395,11 +400,11 @@ func (vm *VM) alloc() {
 		ts := int(typ.Elem().Size())
 		bytes = ts * capacity
 		if bytes/ts != capacity {
-			panic(ErrOutOfMemory)
+			panic(errOutOfMemory)
 		}
 		bytes += 24
 		if bytes < 0 {
-			panic(ErrOutOfMemory)
+			panic(errOutOfMemory)
 		}
 	case OpNew:
 		t := vm.fn.Types[uint8(b)]
@@ -411,7 +416,7 @@ func (vm *VM) alloc() {
 		eSize := int(t.Elem().Size())
 		bytes = kSize + eSize
 		if bytes < 0 {
-			panic(ErrOutOfMemory)
+			panic(errOutOfMemory)
 		}
 	}
 	if bytes != 0 {
@@ -424,7 +429,7 @@ func (vm *VM) alloc() {
 		}
 		vm.env.mu.Unlock()
 		if free < 0 {
-			panic(ErrOutOfMemory)
+			panic(errOutOfMemory)
 		}
 	}
 	return

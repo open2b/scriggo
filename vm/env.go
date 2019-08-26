@@ -48,7 +48,7 @@ func (env *Env) Alloc(bytes int) {
 		}
 		env.mu.Unlock()
 		if free < 0 {
-			panic(ErrOutOfMemory)
+			panic(errOutOfMemory)
 		}
 	}
 }

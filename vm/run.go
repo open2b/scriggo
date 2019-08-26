@@ -7,11 +7,11 @@
 package vm
 
 import (
-	"errors"
 	"reflect"
 )
 
-var errDone = errors.New("done")
+var errOutOfTime = runtimeError("out of time")
+var errOutOfMemory = runtimeError("out of memory")
 
 func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
 	var isPanicked bool
@@ -21,13 +21,9 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
 		isPanicked = vm.runRecoverable()
 		if isPanicked {
 			p := vm.panics[len(vm.panics)-1]
-			if e, ok := p.Msg.(error); ok && e == errDone || e == ErrOutOfMemory {
+			if e, ok := p.Msg.(error); ok && e == errOutOfTime || e == errOutOfMemory {
 				vm.panics = vm.panics[:0]
-				if e == errDone {
-					err = vm.env.ctx.Err()
-				} else {
-					err = e
-				}
+				err = e
 				isPanicked = false
 			} else if len(vm.calls) > 0 {
 				var call = callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: panicked}
@@ -98,7 +94,7 @@ func (vm *VM) run() (uint32, bool) {
 		if vm.done != nil {
 			select {
 			case <-vm.done:
-				panic(errDone)
+				panic(errOutOfTime)
 			default:
 			}
 		}
@@ -147,7 +143,7 @@ func (vm *VM) run() (uint32, bool) {
 				}
 				vm.env.mu.Unlock()
 				if free < 0 {
-					panic(ErrOutOfMemory)
+					panic(errOutOfMemory)
 				}
 			}
 
@@ -1265,7 +1261,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case v, vm.ok = <-ch:
 					case <-vm.done:
-						panic(errDone)
+						panic(errOutOfTime)
 					}
 				}
 				if c != 0 {
@@ -1279,7 +1275,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case v, vm.ok = <-ch:
 					case <-vm.done:
-						panic(errDone)
+						panic(errOutOfTime)
 					}
 				}
 				if c != 0 {
@@ -1293,7 +1289,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case v, vm.ok = <-ch:
 					case <-vm.done:
-						panic(errDone)
+						panic(errOutOfTime)
 					}
 				}
 				if c != 0 {
@@ -1307,7 +1303,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case v, vm.ok = <-ch:
 					case <-vm.done:
-						panic(errDone)
+						panic(errOutOfTime)
 					}
 				}
 				if c != 0 {
@@ -1320,7 +1316,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case _, vm.ok = <-ch:
 					case <-vm.done:
-						panic(errDone)
+						panic(errOutOfTime)
 					}
 				}
 				if c != 0 {
@@ -1336,7 +1332,7 @@ func (vm *VM) run() (uint32, bool) {
 					vm.cases = append(vm.cases, cas, vm.doneCase)
 					chosen, v, vm.ok = reflect.Select(vm.cases)
 					if chosen == 1 {
-						panic(errDone)
+						panic(errOutOfTime)
 					}
 					vm.cases = vm.cases[:0]
 				}
@@ -1447,7 +1443,7 @@ func (vm *VM) run() (uint32, bool) {
 				vm.cases = append(vm.cases, vm.doneCase)
 				chosen, recv, recvOK = reflect.Select(vm.cases)
 				if chosen == numCase {
-					panic(errDone)
+					panic(errOutOfTime)
 				}
 			}
 			vm.pc -= 2 * uint32(numCase-chosen)
@@ -1473,7 +1469,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case ch <- vm.boolk(a, k):
 					case <-vm.done:
-						panic(errDone)
+						panic(errOutOfTime)
 					}
 				}
 			case chan int:
@@ -1483,7 +1479,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case ch <- int(vm.intk(a, k)):
 					case <-vm.done:
-						panic(errDone)
+						panic(errOutOfTime)
 					}
 				}
 			case chan rune:
@@ -1493,7 +1489,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case ch <- rune(vm.intk(a, k)):
 					case <-vm.done:
-						panic(errDone)
+						panic(errOutOfTime)
 					}
 				}
 			case chan string:
@@ -1503,7 +1499,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case ch <- vm.stringk(a, k):
 					case <-vm.done:
-						panic(errDone)
+						panic(errOutOfTime)
 					}
 				}
 			case chan struct{}:
@@ -1513,7 +1509,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case ch <- struct{}{}:
 					case <-vm.done:
-						panic(errDone)
+						panic(errOutOfTime)
 					}
 				}
 			default:
@@ -1528,7 +1524,7 @@ func (vm *VM) run() (uint32, bool) {
 					vm.cases = append(vm.cases, cas, vm.doneCase)
 					chosen, _, _ := reflect.Select(vm.cases)
 					if chosen == 1 {
-						panic(errDone)
+						panic(errOutOfTime)
 					}
 					vm.cases = vm.cases[:0]
 				}
