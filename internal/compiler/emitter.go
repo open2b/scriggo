@@ -2452,19 +2452,27 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 		return
 	}
 
+	// Enter in a new stack: all registers allocated during the execution of the
+	// 'select' statement will be released at the end of it.
+	em.fb.enterStack()
+
+	ch := em.fb.newRegister(reflect.Chan)
+
 	// Prepare registers for the 'select' instruction.
 	for _, caseNode := range selectNode.Cases {
-		switch caseNode.Comm.(type) {
+		switch caseNode := caseNode.Comm.(type) {
 		case nil:
 			// default: nothing to do.
 		case *ast.UnaryOperator:
 			// <- ch
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			chExpr := caseNode.Expr
+			chType := em.ti(chExpr).Type
+			em.emitExprR(chExpr, chType, ch)
 		case *ast.Assignment:
 			// v [, ok ] <- ch
 			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		case *ast.Send:
-			// v <- ch
+			// ch <- v
 			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		}
 	}
@@ -2475,18 +2483,20 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 		casesLabel[i] = em.fb.newLabel()
 	}
 	for i, caseNode := range selectNode.Cases {
-		switch caseNode.Comm.(type) {
+		switch caseNode := caseNode.Comm.(type) {
 		case nil:
 			// default
 			em.fb.emitCase(false, reflect.SelectDefault, 0, 0, reflect.Invalid)
 		case *ast.UnaryOperator:
 			// <- ch
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			chExpr := caseNode.Expr
+			chElemKind := em.ti(chExpr).Type.Elem().Kind()
+			em.fb.emitCase(false, reflect.SelectRecv, 0, ch, chElemKind)
 		case *ast.Assignment:
 			// v [, ok ] <- ch
 			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		case *ast.Send:
-			// v <- ch
+			// ch <- v
 			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		}
 		em.fb.emitGoto(casesLabel[i])
@@ -2503,13 +2513,13 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 		case nil:
 			// default: nothing to do.
 		case *ast.UnaryOperator:
-			// <- ch
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			// <- ch.
+			em.emitNodes(caseNode.Body)
 		case *ast.Assignment:
 			// v [, ok ] <- ch
 			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		case *ast.Send:
-			// v <- ch
+			// ch <- v
 			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		}
 		// Every case body (except last) jumps to the end of all bodies.
@@ -2518,4 +2528,8 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 		}
 	}
 	em.fb.setLabelAddr(casesEnd)
+
+	// Release all registers allocated during the execution of the 'select' statement.
+	em.fb.exitStack()
+
 }
