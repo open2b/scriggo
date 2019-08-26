@@ -1,3 +1,5 @@
+// skip : this test needs to be rewritten
+
 // errorcheck
 
 // Copyright 2017 The Go Authors. All rights reserved.

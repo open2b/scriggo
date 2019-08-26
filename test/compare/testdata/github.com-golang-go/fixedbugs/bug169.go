@@ -8,3 +8,4 @@ package main
 var x = ''';		// ERROR "char"
 
 
+func main() { }

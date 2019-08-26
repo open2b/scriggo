@@ -207,6 +207,7 @@ func cmd(stdin []byte, opts []string, args ...string) (int, []byte, []byte) {
 
 // errorcheck run test with mode 'errorcheck' on the given source code.
 func errorcheck(src []byte, ext string, opts []string) {
+	testWithoutErrorLines(src, ext, opts)
 	tests := differentiateSources(string(src))
 	if len(tests) == 0 {
 		panic("no // ERROR comments found")
@@ -233,6 +234,27 @@ func errorcheck(src []byte, ext string, opts []string) {
 		if !re.Match(stderr) {
 			panic(fmt.Errorf("error does not match:\n\n\texpecting:  %s\n\tgot:        %s", test.err, stderr))
 		}
+	}
+}
+
+// testWithoutErrorLines runs or renders src (using the given options) removing
+// all the '// ERROR' comments.
+func testWithoutErrorLines(src []byte, ext string, opts []string) {
+	arg := map[string]string{
+		".go":   "run program",
+		".sgo":  "run script",
+		".html": "render html",
+	}[ext]
+	linesWithoutError := []byte{}
+	for _, line := range bytes.Split(src, []byte{'\n'}) {
+		if !bytes.Contains(line, []byte("// ERROR ")) {
+			line = append(line, '\n')
+			linesWithoutError = append(linesWithoutError, line...)
+		}
+	}
+	exitCode, _, stderr := cmd([]byte(linesWithoutError), opts, arg)
+	if exitCode != 0 {
+		panic(fmt.Errorf("unexpected error (maybe you forgot to add an // ERROR comment or the test has some problem): '%s'", stderr))
 	}
 }
 

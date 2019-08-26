@@ -4,6 +4,8 @@ package main
 
 import "fmt"
 
+var _ = fmt.Println // avoid error "imported and not used"
+
 func typeof(i interface{}) string { fmt.Sprintf("%T", i) } // ERROR `missing return at end of function`
 
 func e() int { } // ERROR `missing return at end of function`

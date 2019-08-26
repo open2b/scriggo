@@ -9,8 +9,5 @@
 package foo
 
 func Foo() {
-	switch x := a.(type) { // ERROR "undefined: a"
-	default:
-		_ = x
-	}
+	switch x := a.(type) { default: _ = x }// ERROR "undefined: a"
 }

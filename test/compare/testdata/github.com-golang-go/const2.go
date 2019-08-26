@@ -19,3 +19,5 @@ const LargeB = LargeA * LargeA * LargeA
 const LargeC = LargeB * LargeB * LargeB // GC_ERROR "constant multiplication overflow"
 
 const AlsoLargeA = LargeA << 400 << 400 >> 400 >> 400 // GC_ERROR "constant shift overflow"
+
+func main() { }

@@ -1,3 +1,5 @@
+// skip : panics
+
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -12,4 +14,5 @@ func main() {
 	sort.Sort(nil);
 	var x int;
 	sort(x);	// ERROR "package"
+	_ = x
 }
