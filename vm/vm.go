@@ -158,6 +158,7 @@ func (vm *VM) SetContext(ctx context.Context) {
 		}
 	}
 	vm.done = nil
+	vm.doneCase = reflect.SelectCase{}
 }
 
 // SetDontPanic sets the "don't panic" option.
