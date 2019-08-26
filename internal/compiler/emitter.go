@@ -2456,9 +2456,8 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 	// 'select' statement will be released at the end of it.
 	em.fb.enterStack()
 
-	var (
-		ch = em.fb.newRegister(reflect.Chan)
-	)
+	ch := em.fb.newRegister(reflect.Chan)
+	ok := em.fb.newRegister(reflect.Bool)
 	value := map[vm.Type]int8{
 		vm.TypeInt:     em.fb.newRegister(reflect.Int),
 		vm.TypeFloat:   em.fb.newRegister(reflect.Float64),
@@ -2478,15 +2477,17 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 			em.emitExprR(chExpr, chType, ch)
 		case *ast.Assignment:
 			// v [, ok ] = <- ch
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			chExpr := caseNode.Rhs[0].(*ast.UnaryOperator).Expr
+			chType := em.ti(chExpr).Type
+			em.emitExprR(chExpr, chType, ch)
 		case *ast.Send:
 			// ch <- v
 			chExpr := caseNode.Channel
 			chType := em.ti(chExpr).Type
+			chElemType := chType.Elem()
 			em.emitExprR(chExpr, chType, ch)
 			valueExpr := caseNode.Value
-			valueType := em.ti(valueExpr).Type
-			em.emitExprR(valueExpr, valueType, value[kindToType(valueType.Kind())])
+			em.emitExprR(valueExpr, chElemType, value[kindToType(chElemType.Kind())])
 		}
 	}
 
@@ -2503,16 +2504,20 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 		case *ast.UnaryOperator:
 			// <- ch
 			chExpr := caseNode.Expr
-			chElemKind := em.ti(chExpr).Type.Elem().Kind()
-			em.fb.emitCase(false, reflect.SelectRecv, 0, ch, chElemKind)
+			chElemType := em.ti(chExpr).Type.Elem()
+			em.fb.emitCase(false, reflect.SelectRecv, 0, ch, chElemType.Kind())
 		case *ast.Assignment:
 			// v [, ok ] = <- ch
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			chExpr := caseNode.Rhs[0].(*ast.UnaryOperator).Expr
+			chType := em.ti(chExpr).Type
+			chElemType := chType.Elem()
+			em.fb.emitCase(false, reflect.SelectRecv, value[kindToType(chElemType.Kind())], ch, chElemType.Kind()) // TODO(Gianluca): use k.
 		case *ast.Send:
 			// ch <- v
-			valueExpr := caseNode.Value
-			valueType := em.ti(valueExpr).Type
-			em.fb.emitCase(false, reflect.SelectSend, value[kindToType(valueType.Kind())], ch, valueType.Kind()) // TODO(Gianluca): use k.
+			chExpr := caseNode.Channel
+			chType := em.ti(chExpr).Type
+			chElemType := chType.Elem()
+			em.fb.emitCase(false, reflect.SelectSend, value[kindToType(chElemType.Kind())], ch, chElemType.Kind()) // TODO(Gianluca): use k.
 		}
 		em.fb.emitGoto(casesLabel[i])
 	}
@@ -2533,7 +2538,31 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 			em.emitNodes(caseNode.Body)
 		case *ast.Assignment:
 			// v [, ok ] = <- ch
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			assignment := caseNode.Comm.(*ast.Assignment)
+			receiveExpr := assignment.Rhs[0].(*ast.UnaryOperator)
+			chExpr := receiveExpr.Expr
+			chType := em.ti(chExpr).Type
+			chElemType := chType.Elem()
+			// Split assignment in two parts: the first is the value assignment;
+			// the second, if exists, is the 'ok' assignment.
+			em.fb.bindVarReg("$chanElem", value[kindToType(chElemType.Kind())])
+			valueExpr := ast.NewIdentifier(nil, "$chanElem")
+			em.typeInfos[valueExpr] = em.typeInfos[receiveExpr]
+			valueAssignment := ast.NewAssignment(nil, assignment.Lhs[0:1], assignment.Type, []ast.Expression{valueExpr})
+			em.emitAssignmentNode(valueAssignment)
+			if len(assignment.Lhs) == 2 { // case has 'ok'
+				em.fb.emitMove(true, 1, ok, reflect.Bool)
+				em.fb.emitIf(false, 0, vm.ConditionOK, 0, reflect.Interface)
+				em.fb.emitMove(true, 0, ok, reflect.Bool)
+				okExpr := ast.NewIdentifier(nil, "$ok")
+				em.typeInfos[okExpr] = &TypeInfo{
+					Type: boolType,
+				}
+				em.fb.bindVarReg("$ok", ok)
+				okAssignment := ast.NewAssignment(nil, assignment.Lhs[1:2], assignment.Type, []ast.Expression{okExpr})
+				em.emitAssignmentNode(okAssignment)
+			}
+			em.emitNodes(caseNode.Body)
 		case *ast.Send:
 			// ch <- v
 			em.emitNodes(caseNode.Body)
