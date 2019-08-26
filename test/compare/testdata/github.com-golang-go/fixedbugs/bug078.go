@@ -1,5 +1,3 @@
-// skip because statement 'select' is not enabled
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.
