@@ -1440,16 +1440,17 @@ func (vm *VM) run() (uint32, bool) {
 			var chosen int
 			var recv reflect.Value
 			var recvOK bool
+			numCase := len(vm.cases)
 			if vm.done == nil || hasDefaultCase {
 				chosen, recv, recvOK = reflect.Select(vm.cases)
 			} else {
 				vm.cases = append(vm.cases, vm.doneCase)
 				chosen, recv, recvOK = reflect.Select(vm.cases)
-				if chosen == len(vm.cases)-1 {
+				if chosen == numCase {
 					panic(errDone)
 				}
 			}
-			vm.pc -= 2 * uint32(len(vm.cases)-chosen)
+			vm.pc -= 2 * uint32(numCase-chosen)
 			if vm.cases[chosen].Dir == reflect.SelectRecv {
 				r := vm.fn.Body[vm.pc-1].B
 				if r != 0 {
