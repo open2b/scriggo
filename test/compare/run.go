@@ -231,6 +231,7 @@ func errorcheck(src []byte, ext string, opts []string) {
 			panic(fmt.Errorf("expected error '%s', got nothing", test.err))
 		}
 		re := regexp.MustCompile(test.err)
+		stderr = []byte(removePrefixFromError(string(stderr)))
 		if !re.Match(stderr) {
 			panic(fmt.Errorf("error does not match:\n\n\texpecting:  %s\n\tgot:        %s", test.err, stderr))
 		}
