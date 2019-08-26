@@ -40,6 +40,17 @@ func test3() {
 	fmt.Println("ch has length", len(ch))
 }
 
+func test4() {
+	ch := make(chan int, 1)
+	close(ch)
+	fmt.Println("ch has length", len(ch))
+	select {
+	case v, ok := <-ch:
+		fmt.Println("read", v, "from ch (ok =", ok, ")")
+	}
+	fmt.Println("ch has length", len(ch))
+}
+
 func main() {
 	test1()
 	test2()
