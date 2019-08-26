@@ -386,6 +386,14 @@ LABEL:
 		if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd && tok.typ != tokenRightBraces {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting case of default or {%% end %%}", tok))
 		}
+	case *ast.Label:
+		if p.isTemplate {
+			switch tok.typ {
+			case tokenFor, tokenSwitch, tokenSelect:
+			default:
+				panic(syntaxError(tok.pos, "unexpected %s, expecting for, switch or select", tok))
+			}
+		}
 	}
 
 	switch tok.typ {
@@ -1302,11 +1310,6 @@ LABEL:
 			expr := expressions[0]
 			if ident, ok := expr.(*ast.Identifier); ok && tok.typ == tokenColon {
 				// Parse a label.
-				if p.isTemplate {
-					if _, ok := p.parent().(*ast.Label); ok {
-						panic(syntaxError(tok.pos, "unexpected label, expecting statement"))
-					}
-				}
 				node := ast.NewLabel(pos, ident, nil)
 				node.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: tok.pos.End}
 				p.addChild(node)
