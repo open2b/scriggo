@@ -312,6 +312,39 @@ func goldenCompare(testPath string, got []byte) {
 	goldenData = regexp.MustCompile(`(?m)^//.*$`).ReplaceAll(goldenData, []byte{})
 	expected := bytes.TrimSpace(goldenData)
 	got = bytes.TrimSpace(got)
+	// Compare all lines, finding all differences.
+	{
+		expectedLines := strings.Split(string(expected), "\n")
+		gotLines := strings.Split(string(got), "\n")
+		numLines := len(expectedLines)
+		// Find the minimum number of lines.
+		if len(gotLines) < numLines {
+			numLines = len(gotLines)
+		}
+		for i := 0; i < numLines; i++ {
+			if expectedLines[i] != gotLines[i] {
+				panic(fmt.Errorf("difference at line %d\nexpecting:  %q\ngot:        %q.\n\nFull output: \n------------------------\n%q", i+1, expectedLines[i], gotLines[i], expected))
+			}
+		}
+		if len(expectedLines) != len(gotLines) {
+			err := fmt.Sprintf("expecting an output of %d lines, got %d lines\n", len(expectedLines), len(gotLines))
+			if len(expectedLines) > len(gotLines) {
+				err += "expected lines (not returned by the test): \n"
+				for i := len(gotLines); i < len(expectedLines); i++ {
+					err += fmt.Sprintf("> " + expectedLines[i] + "\n")
+				}
+			}
+			if len(expectedLines) < len(gotLines) {
+				err += "additional lines returned by the test (not expected): \n"
+				for i := len(expectedLines); i < len(gotLines); i++ {
+					err += fmt.Sprintf("> " + gotLines[i] + "\n")
+				}
+			}
+			panic(err)
+		}
+	}
+	// Make an additional compare: any difference not catched by the previous
+	// check gets caught here.
 	if bytes.Compare(expected, got) != 0 {
 		panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
 	}
