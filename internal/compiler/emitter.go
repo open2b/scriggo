@@ -2444,6 +2444,19 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 
 }
 
+// emitSelect emits the 'select' statements.
+// The emission is composed by 4 main parts:
+//
+// 1) Preparation of the channel and value registers.
+//
+// 2) Emission of the 'case' instructions. Every case must be followed by a
+// 'goto' which points to the respective case body below.
+//
+// 3) Emission of the 'select' instruction.
+//
+// 4) Emission of the assignment node (in case of a case with assignment) and of
+// all the rest of the registers.
+//
 func (em *emitter) emitSelect(selectNode *ast.Select) {
 
 	// select { }
@@ -2456,6 +2469,7 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 	// 'select' statement will be released at the end of it.
 	em.fb.enterStack()
 
+	// Create some 'common' registers.
 	ch := em.fb.newRegister(reflect.Chan)
 	ok := em.fb.newRegister(reflect.Bool)
 	value := map[vm.Type]int8{
@@ -2468,18 +2482,15 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 	// Prepare registers for the 'select' instruction.
 	for _, caseNode := range selectNode.Cases {
 		switch caseNode := caseNode.Comm.(type) {
-		case nil:
-			// default: nothing to do.
+		case nil: // default: nothing to do.
 		case *ast.UnaryOperator:
 			// <- ch
 			chExpr := caseNode.Expr
-			chType := em.ti(chExpr).Type
-			em.emitExprR(chExpr, chType, ch)
+			em.emitExprR(chExpr, em.ti(chExpr).Type, ch)
 		case *ast.Assignment:
 			// v [, ok ] = <- ch
 			chExpr := caseNode.Rhs[0].(*ast.UnaryOperator).Expr
-			chType := em.ti(chExpr).Type
-			em.emitExprR(chExpr, chType, ch)
+			em.emitExprR(chExpr, em.ti(chExpr).Type, ch)
 		case *ast.Send:
 			// ch <- v
 			chExpr := caseNode.Channel
@@ -2511,13 +2522,13 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 			chExpr := caseNode.Rhs[0].(*ast.UnaryOperator).Expr
 			chType := em.ti(chExpr).Type
 			chElemType := chType.Elem()
-			em.fb.emitCase(false, reflect.SelectRecv, value[kindToType(chElemType.Kind())], ch, chElemType.Kind()) // TODO(Gianluca): use k.
+			em.fb.emitCase(false, reflect.SelectRecv, value[kindToType(chElemType.Kind())], ch, chElemType.Kind())
 		case *ast.Send:
 			// ch <- v
 			chExpr := caseNode.Channel
 			chType := em.ti(chExpr).Type
 			chElemType := chType.Elem()
-			em.fb.emitCase(false, reflect.SelectSend, value[kindToType(chElemType.Kind())], ch, chElemType.Kind()) // TODO(Gianluca): use k.
+			em.fb.emitCase(false, reflect.SelectSend, value[kindToType(chElemType.Kind())], ch, chElemType.Kind())
 		}
 		em.fb.emitGoto(casesLabel[i])
 	}
@@ -2528,17 +2539,10 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 	// Emit bodies of the 'select' cases.
 	casesEnd := em.fb.newLabel()
 	for i, caseNode := range selectNode.Cases {
+		// Make the previous 'goto' point here.
 		em.fb.setLabelAddr(casesLabel[i])
-		switch caseNode.Comm.(type) {
-		case nil:
-			// default
-			em.emitNodes(caseNode.Body)
-		case *ast.UnaryOperator:
-			// <- ch
-			em.emitNodes(caseNode.Body)
-		case *ast.Assignment:
-			// v [, ok ] = <- ch
-			assignment := caseNode.Comm.(*ast.Assignment)
+		// If the case is a receive case with an assignment, emit the assignment.
+		if assignment, isAssignment := caseNode.Comm.(*ast.Assignment); isAssignment {
 			receiveExpr := assignment.Rhs[0].(*ast.UnaryOperator)
 			chExpr := receiveExpr.Expr
 			chType := em.ti(chExpr).Type
@@ -2562,11 +2566,9 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 				okAssignment := ast.NewAssignment(nil, assignment.Lhs[1:2], assignment.Type, []ast.Expression{okExpr})
 				em.emitAssignmentNode(okAssignment)
 			}
-			em.emitNodes(caseNode.Body)
-		case *ast.Send:
-			// ch <- v
-			em.emitNodes(caseNode.Body)
 		}
+		// Emit the nodes of the body of the case.
+		em.emitNodes(caseNode.Body)
 		// Every case body (except last) jumps to the end of all bodies.
 		if i < len(selectNode.Cases)-1 {
 			em.fb.emitGoto(casesEnd)
