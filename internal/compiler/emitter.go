@@ -2545,7 +2545,7 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 			chExpr := receiveExpr.Expr
 			chType := em.ti(chExpr).Type
 			elemType := chType.Elem()
-			// Split the assignment in the received value and the ok value if this is exist.
+			// Split the assignment in the received value and the ok value if this exists.
 			em.fb.bindVarReg("$chanElem", value[kindToType(elemType.Kind())])
 			valueExpr := ast.NewIdentifier(nil, "$chanElem")
 			em.typeInfos[valueExpr] = em.typeInfos[receiveExpr]
