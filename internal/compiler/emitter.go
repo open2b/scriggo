@@ -1214,6 +1214,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			}
 			em.fb.emitReturn()
 
+		case *ast.Select:
+			em.emitSelect(node)
+
 		case *ast.Send:
 			chann := em.emitExpr(node.Channel, em.ti(node.Channel).Type)
 			value := em.emitExpr(node.Value, em.ti(node.Value).Type)
@@ -2439,4 +2442,80 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 	em.fb.emitIf(false, v1, vm.ConditionEqual, v2, reflect.Bool)
 	return
 
+}
+
+func (em *emitter) emitSelect(selectNode *ast.Select) {
+
+	// select { }
+	if len(selectNode.Cases) == 0 {
+		em.fb.emitSelect()
+		return
+	}
+
+	// Prepare registers for the 'select' instruction.
+	for _, caseNode := range selectNode.Cases {
+		switch caseNode.Comm.(type) {
+		case nil:
+			// default: nothing to do.
+		case *ast.UnaryOperator:
+			// <- ch
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		case *ast.Assignment:
+			// v [, ok ] <- ch
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		case *ast.Send:
+			// v <- ch
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		}
+	}
+
+	// Emit all the 'case' instructions.
+	casesLabel := make([]uint32, len(selectNode.Cases), len(selectNode.Cases))
+	for i := range casesLabel {
+		casesLabel[i] = em.fb.newLabel()
+	}
+	for i, caseNode := range selectNode.Cases {
+		switch caseNode.Comm.(type) {
+		case nil:
+			// default
+			em.fb.emitCase(false, reflect.SelectDefault, 0, 0, reflect.Invalid)
+		case *ast.UnaryOperator:
+			// <- ch
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		case *ast.Assignment:
+			// v [, ok ] <- ch
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		case *ast.Send:
+			// v <- ch
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		}
+		em.fb.emitGoto(casesLabel[i])
+	}
+
+	// Emit the 'select' instruction.
+	em.fb.emitSelect()
+
+	// Emit bodies of the 'select' cases.
+	casesEnd := em.fb.newLabel()
+	for i, caseNode := range selectNode.Cases {
+		em.fb.setLabelAddr(casesLabel[i])
+		switch caseNode.Comm.(type) {
+		case nil:
+			// default: nothing to do.
+		case *ast.UnaryOperator:
+			// <- ch
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		case *ast.Assignment:
+			// v [, ok ] <- ch
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		case *ast.Send:
+			// v <- ch
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		}
+		// Every case body (except last) jumps to the end of all bodies.
+		if i < len(selectNode.Cases)-1 {
+			em.fb.emitGoto(casesEnd)
+		}
+	}
+	em.fb.setLabelAddr(casesEnd)
 }
