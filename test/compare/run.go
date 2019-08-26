@@ -323,7 +323,7 @@ func goldenCompare(testPath string, got []byte) {
 		}
 		for i := 0; i < numLines; i++ {
 			if expectedLines[i] != gotLines[i] {
-				panic(fmt.Errorf("difference at line %d\nexpecting:  %q\ngot:        %q.\n\nFull output: \n------------------------\n%q", i+1, expectedLines[i], gotLines[i], expected))
+				panic(fmt.Errorf("difference at line %d\nexpecting:  %q\ngot:        %q.\n\nFull output: \n------------------------\n%s", i+1, expectedLines[i], gotLines[i], got))
 			}
 		}
 		if len(expectedLines) != len(gotLines) {
