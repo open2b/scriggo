@@ -1,4 +1,4 @@
-// skip : this test waits forever instead of panicking.
+// paniccheck
 
 package main
 
