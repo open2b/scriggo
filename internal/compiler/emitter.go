@@ -2469,7 +2469,8 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 	// 'select' statement will be released at the end of it.
 	em.fb.enterStack()
 
-	// Create some 'common' registers.
+	// Create some shared registers; preallocation is not a problem: when the
+	// select statement will be ended, all registers will be released.
 	ch := em.fb.newRegister(reflect.Chan)
 	ok := em.fb.newRegister(reflect.Bool)
 	value := map[vm.Type]int8{
