@@ -7,8 +7,5 @@
 package main
 
 func main() {
-	for ; ; x := 1 { // ERROR "cannot declare in post statement"
-		_ = x
-		break
-	}
+	for ; ; x := 1 {_ = x ; break } // ERROR "cannot declare in post statement"
 }

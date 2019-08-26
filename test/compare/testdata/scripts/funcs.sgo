@@ -1,4 +1,4 @@
-// skip : interface conversion: interface {} is nil, not *vm.callable : https://github.com/open2b/scriggo/issues/336
+// skip : interface conversion: interface {} is nil, not *vm.callable : https://github.com/open2b/scriggo/issues/317
 
 // run
 
@@ -8,4 +8,4 @@ func f2(a int) {
 	print(a)
 }
 
-f2(42)g
+f2(42)

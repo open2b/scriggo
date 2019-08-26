@@ -9,6 +9,6 @@
 
 package main
 
-const A = 1 + B // ERROR "constant definition loop"
-const B = C - 1
-const C = A + B + 1
+const ( A = 1 + B ; B = C - 1 ; C = A + B + 1 ) // ERROR "constant definition loop"
+
+func main() { }

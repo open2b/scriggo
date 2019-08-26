@@ -8,10 +8,6 @@
 
 package main
 
-func mine(int b) int { return b + 2 } // ERROR "undefined.*b"
+func mine(int b) int { return b + 2 } ; func main() { mine()      ; c = mine()  } // ERROR "undefined.*b"
 
-
-func main() {
-	mine()     
-	c = mine() 
-}
+func main() { }

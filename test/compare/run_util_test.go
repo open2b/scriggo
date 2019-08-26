@@ -185,3 +185,18 @@ func joinLines(ss []string) string {
 	}
 	return ws.String()
 }
+
+func Test_removePrefixFromError(t *testing.T) {
+	cases := map[string]string{
+		`error`: `error`,
+		`./prog.go:8:34: syntax error: unexpected s at end of statement`: `syntax error: unexpected s at end of statement`,
+		`:8:34: syntax error: something`:                                 `syntax error: something`,
+		`a:0:0: an error`:                                                `an error`,
+	}
+	for err, expected := range cases {
+		got := removePrefixFromError(err)
+		if expected != got {
+			t.Errorf("'%s': expecting '%s', got '%s'", err, expected, got)
+		}
+	}
+}

@@ -79,3 +79,14 @@ func differentiateSources(src string) []errorcheckTest {
 	}
 	return tests
 }
+
+// removePrefixFromError removes the prefix of the error (which contains the
+// filename and the row and line numbers) if it has one, else it returns the
+// error as it is.
+func removePrefixFromError(err string) string {
+	var re = regexp.MustCompile(`(?m).*?\d+:\d+:\s(.*)`)
+	if re.MatchString(err) {
+		return re.FindStringSubmatch(err)[1]
+	}
+	return err
+}

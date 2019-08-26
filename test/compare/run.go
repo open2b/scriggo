@@ -207,6 +207,7 @@ func cmd(stdin []byte, opts []string, args ...string) (int, []byte, []byte) {
 
 // errorcheck run test with mode 'errorcheck' on the given source code.
 func errorcheck(src []byte, ext string, opts []string) {
+	testWithoutErrorLines(src, ext, opts)
 	tests := differentiateSources(string(src))
 	if len(tests) == 0 {
 		panic("no // ERROR comments found")
@@ -230,9 +231,31 @@ func errorcheck(src []byte, ext string, opts []string) {
 			panic(fmt.Errorf("expected error '%s', got nothing", test.err))
 		}
 		re := regexp.MustCompile(test.err)
+		stderr = []byte(removePrefixFromError(string(stderr)))
 		if !re.Match(stderr) {
 			panic(fmt.Errorf("error does not match:\n\n\texpecting:  %s\n\tgot:        %s", test.err, stderr))
 		}
+	}
+}
+
+// testWithoutErrorLines runs or renders src (using the given options) removing
+// all the '// ERROR' comments.
+func testWithoutErrorLines(src []byte, ext string, opts []string) {
+	arg := map[string]string{
+		".go":   "run program",
+		".sgo":  "run script",
+		".html": "render html",
+	}[ext]
+	linesWithoutError := []byte{}
+	for _, line := range bytes.Split(src, []byte{'\n'}) {
+		if !bytes.Contains(line, []byte("// ERROR ")) {
+			line = append(line, '\n')
+			linesWithoutError = append(linesWithoutError, line...)
+		}
+	}
+	exitCode, _, stderr := cmd([]byte(linesWithoutError), opts, arg)
+	if exitCode != 0 {
+		panic(fmt.Errorf("unexpected error (maybe you forgot to add an // ERROR comment or the test has some problem): '%s'", stderr))
 	}
 }
 
@@ -289,6 +312,39 @@ func goldenCompare(testPath string, got []byte) {
 	goldenData = regexp.MustCompile(`(?m)^//.*$`).ReplaceAll(goldenData, []byte{})
 	expected := bytes.TrimSpace(goldenData)
 	got = bytes.TrimSpace(got)
+	// Compare all lines, finding all differences.
+	{
+		expectedLines := strings.Split(string(expected), "\n")
+		gotLines := strings.Split(string(got), "\n")
+		numLines := len(expectedLines)
+		// Find the minimum number of lines.
+		if len(gotLines) < numLines {
+			numLines = len(gotLines)
+		}
+		for i := 0; i < numLines; i++ {
+			if expectedLines[i] != gotLines[i] {
+				panic(fmt.Errorf("difference at line %d\nexpecting:  %q\ngot:        %q.\n\nFull output: \n------------------------\n%q", i+1, expectedLines[i], gotLines[i], expected))
+			}
+		}
+		if len(expectedLines) != len(gotLines) {
+			err := fmt.Sprintf("expecting an output of %d lines, got %d lines\n", len(expectedLines), len(gotLines))
+			if len(expectedLines) > len(gotLines) {
+				err += "expected lines (not returned by the test): \n"
+				for i := len(gotLines); i < len(expectedLines); i++ {
+					err += fmt.Sprintf("> " + expectedLines[i] + "\n")
+				}
+			}
+			if len(expectedLines) < len(gotLines) {
+				err += "additional lines returned by the test (not expected): \n"
+				for i := len(expectedLines); i < len(gotLines); i++ {
+					err += fmt.Sprintf("> " + gotLines[i] + "\n")
+				}
+			}
+			panic(err)
+		}
+	}
+	// Make an additional compare: any difference not catched by the previous
+	// check gets caught here.
 	if bytes.Compare(expected, got) != 0 {
 		panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
 	}
