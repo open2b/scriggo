@@ -1,0 +1,15 @@
+// run
+
+import "fmt"
+
+func f() {
+	fmt.Println("f")
+}
+
+func g() {
+	fmt.Println("g")
+	f()
+}
+
+g()
+

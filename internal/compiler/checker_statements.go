@@ -711,12 +711,6 @@ nodesLoop:
 
 		case *ast.UnaryOperator:
 			ti := tc.checkExpr(node)
-			if node.Op != ast.OperatorReceive {
-				isLastScriptStatement := len(tc.scopes) == 2 && i == len(nodes)-1
-				if tc.opts.SyntaxType == ProgramSyntax || !isLastScriptStatement {
-					panic(tc.errorf(node, "%s evaluated but not used", node))
-				}
-			}
 			ti.setValue(nil)
 
 		case *ast.Goto:
@@ -739,33 +733,37 @@ nodesLoop:
 		case *ast.Comment:
 
 		case ast.Expression:
-			ti := tc.checkExpr(node)
-			if tc.opts.SyntaxType == ScriptSyntax {
-				isLastScriptStatement := len(tc.scopes) == 2 && i == len(nodes)-1
-				switch node := node.(type) {
-				case *ast.Func:
-					if node.Ident == nil {
-						if !isLastScriptStatement {
-							panic(tc.errorf(node, "%s evaluated but not used", node))
-						}
-					} else {
-						tc.assignScope(node.Ident.Name, ti, node.Ident)
-					}
-				default:
-					if !isLastScriptStatement {
-						panic(tc.errorf(node, "%s evaluated but not used", node))
-					}
+
+			// Handle function declarations in scripts.
+			if fun, ok := node.(*ast.Func); ok {
+				if fun.Ident != nil {
+					// Remove the identifier from the function expression and
+					// use it during the assignment.
+					ident := fun.Ident
+					fun.Ident = nil
+					node := ast.NewAssignment(
+						fun.Pos(),
+						[]ast.Expression{ident},
+						ast.AssignmentDeclaration,
+						[]ast.Expression{fun},
+					)
+					tc.checkNodes([]ast.Node{node})
+					nodes[i] = node
+					// Avoid error 'declared and not used' by "using" the
+					// identifier.
+					tc.checkIdentifier(ident, true)
+					continue nodesLoop
 				}
-			} else if tc.opts.SyntaxType == TemplateSyntax {
-				switch node := node.(type) {
-				case *ast.Func:
-					tc.assignScope(node.Ident.Name, ti, node.Ident)
-				default:
-					panic(tc.errorf(node, "%s evaluated but not used", node))
-				}
-			} else {
-				panic(tc.errorf(node, "%s evaluated but not used", node))
 			}
+
+			ti := tc.checkExpr(node)
+			if tc.opts.SyntaxType == TemplateSyntax {
+				if node, ok := node.(*ast.Func); ok {
+					tc.assignScope(node.Ident.Name, ti, node.Ident)
+					continue nodesLoop
+				}
+			}
+			panic(tc.errorf(node, "%s evaluated but not used", node))
 
 		default:
 			panic(fmt.Errorf("checkNodes not implemented for type: %T", node))

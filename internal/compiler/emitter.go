@@ -1979,21 +1979,6 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			return reg, false
 		}
 
-		// Script function definition.
-		if expr.Ident != nil && !em.isTemplate {
-			varr := em.fb.newRegister(reflect.Func)
-			em.fb.bindVarReg(expr.Ident.Name, varr)
-			ident := expr.Ident
-			expr.Ident = nil // avoids recursive calls.
-			funcType := em.ti(expr).Type
-			if em.isTemplate {
-				addr := em.newAddress(addressRegister, funcType, varr, 0)
-				em.assign([]address{addr}, []ast.Expression{expr})
-			}
-			expr.Ident = ident
-			return reg, false
-		}
-
 		if reg == 0 {
 			return reg, false
 		}
