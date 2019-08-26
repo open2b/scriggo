@@ -488,7 +488,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 		fn.value = reflect.ValueOf(fn.Func)
 		if fn.value.IsNil() {
 			fn.mx.Unlock()
-			panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
+			panic(runtimeError("invalid memory address or nil pointer dereference"))
 		}
 		typ := fn.value.Type()
 		nIn := typ.NumIn()
@@ -1161,7 +1161,7 @@ func missingMethod(typ reflect.Type, iface reflect.Type) string {
 // runtimeError represents a runtime error.
 type runtimeError string
 
-func (err runtimeError) Error() string { return string(err) }
+func (err runtimeError) Error() string { return "runtime error: " + string(err) }
 func (err runtimeError) RuntimeError() {}
 
 type TypeAssertionError struct {
@@ -1199,7 +1199,7 @@ func runtimeIndex(v reflect.Value, i int) reflect.Value {
 	defer func() {
 		if err := recover(); err != nil {
 			if _, ok := err.(string); ok {
-				err = runtimeError("runtime error: index out of range")
+				err = runtimeError("index out of range")
 			}
 			panic(err)
 		}
@@ -1215,9 +1215,9 @@ func runtimeMakeSlice(typ reflect.Type, len, cap int) reflect.Value {
 		if err := recover(); err != nil {
 			if s, ok := err.(string); ok {
 				if strings.HasSuffix(s, "negative len") {
-					err = runtimeError("runtime error: makeslice: len out of range")
+					err = runtimeError("makeslice: len out of range")
 				} else {
-					err = runtimeError("runtime error: makeslice: cap out of range")
+					err = runtimeError("makeslice: cap out of range")
 				}
 			}
 			panic(err)
