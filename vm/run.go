@@ -33,9 +33,6 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
 				var call = callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: panicked}
 				vm.calls = append(vm.calls, call)
 				vm.fn = nil
-				if vm.cases != nil {
-					vm.cases = vm.cases[:0]
-				}
 				continue
 			}
 		}
@@ -1437,29 +1434,32 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Select
 		case OpSelect:
-			var chosen int
-			var recv reflect.Value
-			var recvOK bool
 			numCase := len(vm.cases)
-			if vm.done == nil || hasDefaultCase {
-				chosen, recv, recvOK = reflect.Select(vm.cases)
-			} else {
+			if vm.done != nil && !hasDefaultCase {
 				vm.cases = append(vm.cases, vm.doneCase)
-				chosen, recv, recvOK = reflect.Select(vm.cases)
-				if chosen == numCase {
-					panic(errDone)
-				}
 			}
-			vm.pc -= 2 * uint32(numCase-chosen)
-			if vm.cases[chosen].Dir == reflect.SelectRecv {
-				r := vm.fn.Body[vm.pc-1].B
-				if r != 0 {
-					vm.setFromReflectValue(r, recv)
+			chosen, recv, recvOK := reflect.Select(vm.cases)
+			step := numCase - chosen
+			if step > 0 {
+				vm.pc -= 2 * uint32(step)
+				if vm.cases[chosen].Dir == reflect.SelectRecv {
+					r := vm.fn.Body[vm.pc-1].B
+					if r != 0 {
+						vm.setFromReflectValue(r, recv)
+					}
+					vm.ok = recvOK
 				}
-				vm.ok = recvOK
+				hasDefaultCase = false
 			}
-			hasDefaultCase = false
+			for _, c := range vm.cases {
+				zero := reflect.Zero(c.Chan.Type().Elem())
+				c.Chan = reflect.Value{}
+				c.Send.Set(zero)
+			}
 			vm.cases = vm.cases[:0]
+			if step == 0 {
+				panic(errDone)
+			}
 
 		// Send
 		case OpSend, -OpSend:
