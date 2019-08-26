@@ -17,7 +17,6 @@ func Test_splitErrorFromLine(t *testing.T) {
 		"x = 10 // ERROR `undefined: x`": "undefined: x",
 		`f() // ERROR "cannot call f"`:   "cannot call f",
 		`f() // a comment`:               "",
-		`f() // ERROR: something`:        "",
 	}
 	for line, expected := range cases {
 		got := splitErrorFromLine(line)

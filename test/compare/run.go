@@ -207,8 +207,8 @@ func cmd(stdin []byte, opts []string, args ...string) (int, []byte, []byte) {
 
 // errorcheck run test with mode 'errorcheck' on the given source code.
 func errorcheck(src []byte, ext string, opts []string) {
-	testWithoutErrorLines(src, ext, opts)
 	tests := differentiateSources(string(src))
+	testWithoutErrorLines(src, ext, opts)
 	if len(tests) == 0 {
 		panic("no // ERROR comments found")
 	}

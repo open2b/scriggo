@@ -29,6 +29,10 @@ func splitErrorFromLine(l string) string {
 		}
 		return err
 	}
+	// If line has a comment containing 'ERROR' is probably a mistake.
+	if regexp.MustCompile(`(?m)\/\/\s*?ERROR`).MatchString(l) {
+		panic(fmt.Errorf("line '%s' contains string 'ERROR' in a comment but it's not a valid ERROR comment", l))
+	}
 	return ""
 }
 
