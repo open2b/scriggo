@@ -343,9 +343,17 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 		}
 		return deps
 	case *ast.Select:
-		panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		deps := []*ast.Identifier{}
+		for _, cas := range n.Cases {
+			deps = append(deps, nodeDeps(cas, scopes)...)
+		}
+		return deps
 	case *ast.SelectCase:
-		panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		deps := nodeDeps(n.Comm, scopes)
+		for _, n := range n.Body {
+			deps = append(deps, nodeDeps(n, scopes)...)
+		}
+		return deps
 	case *ast.Selector:
 		return nodeDeps(n.Expr, scopes)
 	case *ast.Send:
