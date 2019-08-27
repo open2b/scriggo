@@ -446,7 +446,7 @@ func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{}
 		ol := len(slice)
 		nl := ol + length
 		if nl < ol {
-			panic(errOutOfMemory)
+			panic(OutOfMemoryError{vm.env})
 		}
 		if c := cap(slice); nl <= c {
 			slice = slice[:nl]
@@ -466,7 +466,7 @@ func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{}
 		ol := len(slice)
 		nl := ol + length
 		if nl < ol {
-			panic(errOutOfMemory)
+			panic(OutOfMemoryError{vm.env})
 		}
 		if c := cap(slice); nl <= c {
 			slice = slice[:nl]
@@ -486,7 +486,7 @@ func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{}
 		ol := len(slice)
 		nl := ol + length
 		if nl < ol {
-			panic(errOutOfMemory)
+			panic(OutOfMemoryError{vm.env})
 		}
 		if c := cap(slice); nl <= c {
 			slice = slice[:nl]
@@ -516,7 +516,7 @@ func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{}
 		ol := s.Len()
 		nl := ol + length
 		if nl < ol {
-			panic(errOutOfMemory)
+			panic(OutOfMemoryError{vm.env})
 		}
 		if c := s.Cap(); nl <= c {
 			s = s.Slice(0, nl)

@@ -10,9 +10,6 @@ import (
 	"reflect"
 )
 
-var errOutOfTime = runtimeError("out of time")
-var errOutOfMemory = runtimeError("out of memory")
-
 func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
 	var isPanicked bool
 	vm.fn = fn
@@ -21,7 +18,11 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
 		isPanicked = vm.runRecoverable()
 		if isPanicked {
 			p := vm.panics[len(vm.panics)-1]
-			if e, ok := p.Msg.(error); ok && e == errOutOfTime || e == errOutOfMemory {
+			if e, ok := p.Msg.(OutOfTimeError); ok && e.env == vm.env {
+				vm.panics = vm.panics[:0]
+				err = e
+				isPanicked = false
+			} else if e, ok := p.Msg.(OutOfMemoryError); ok && e.env == vm.env {
 				vm.panics = vm.panics[:0]
 				err = e
 				isPanicked = false
@@ -94,7 +95,7 @@ func (vm *VM) run() (uint32, bool) {
 		if vm.done != nil {
 			select {
 			case <-vm.done:
-				panic(errOutOfTime)
+				panic(OutOfTimeError{vm.env})
 			default:
 			}
 		}
@@ -143,7 +144,7 @@ func (vm *VM) run() (uint32, bool) {
 				}
 				vm.env.mu.Unlock()
 				if free < 0 {
-					panic(errOutOfMemory)
+					panic(OutOfMemoryError{vm.env})
 				}
 			}
 
@@ -1261,7 +1262,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case v, vm.ok = <-ch:
 					case <-vm.done:
-						panic(errOutOfTime)
+						panic(OutOfTimeError{vm.env})
 					}
 				}
 				if c != 0 {
@@ -1275,7 +1276,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case v, vm.ok = <-ch:
 					case <-vm.done:
-						panic(errOutOfTime)
+						panic(OutOfTimeError{vm.env})
 					}
 				}
 				if c != 0 {
@@ -1289,7 +1290,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case v, vm.ok = <-ch:
 					case <-vm.done:
-						panic(errOutOfTime)
+						panic(OutOfTimeError{vm.env})
 					}
 				}
 				if c != 0 {
@@ -1303,7 +1304,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case v, vm.ok = <-ch:
 					case <-vm.done:
-						panic(errOutOfTime)
+						panic(OutOfTimeError{vm.env})
 					}
 				}
 				if c != 0 {
@@ -1316,7 +1317,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case _, vm.ok = <-ch:
 					case <-vm.done:
-						panic(errOutOfTime)
+						panic(OutOfTimeError{vm.env})
 					}
 				}
 				if c != 0 {
@@ -1332,7 +1333,7 @@ func (vm *VM) run() (uint32, bool) {
 					vm.cases = append(vm.cases, cas, vm.doneCase)
 					chosen, v, vm.ok = reflect.Select(vm.cases)
 					if chosen == 1 {
-						panic(errOutOfTime)
+						panic(OutOfTimeError{vm.env})
 					}
 					vm.cases = vm.cases[:0]
 				}
@@ -1439,11 +1440,12 @@ func (vm *VM) run() (uint32, bool) {
 			numCase := len(vm.cases)
 			if vm.done == nil || hasDefaultCase {
 				chosen, recv, recvOK = reflect.Select(vm.cases)
+				
 			} else {
 				vm.cases = append(vm.cases, vm.doneCase)
 				chosen, recv, recvOK = reflect.Select(vm.cases)
 				if chosen == numCase {
-					panic(errOutOfTime)
+					panic(OutOfTimeError{vm.env})
 				}
 			}
 			vm.pc -= 2 * uint32(numCase-chosen)
@@ -1469,7 +1471,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case ch <- vm.boolk(a, k):
 					case <-vm.done:
-						panic(errOutOfTime)
+						panic(OutOfTimeError{vm.env})
 					}
 				}
 			case chan int:
@@ -1479,7 +1481,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case ch <- int(vm.intk(a, k)):
 					case <-vm.done:
-						panic(errOutOfTime)
+						panic(OutOfTimeError{vm.env})
 					}
 				}
 			case chan rune:
@@ -1489,7 +1491,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case ch <- rune(vm.intk(a, k)):
 					case <-vm.done:
-						panic(errOutOfTime)
+						panic(OutOfTimeError{vm.env})
 					}
 				}
 			case chan string:
@@ -1499,7 +1501,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case ch <- vm.stringk(a, k):
 					case <-vm.done:
-						panic(errOutOfTime)
+						panic(OutOfTimeError{vm.env})
 					}
 				}
 			case chan struct{}:
@@ -1509,7 +1511,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case ch <- struct{}{}:
 					case <-vm.done:
-						panic(errOutOfTime)
+						panic(OutOfTimeError{vm.env})
 					}
 				}
 			default:
@@ -1524,7 +1526,7 @@ func (vm *VM) run() (uint32, bool) {
 					vm.cases = append(vm.cases, cas, vm.doneCase)
 					chosen, _, _ := reflect.Select(vm.cases)
 					if chosen == 1 {
-						panic(errOutOfTime)
+						panic(OutOfTimeError{vm.env})
 					}
 					vm.cases = vm.cases[:0]
 				}
