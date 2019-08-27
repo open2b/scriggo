@@ -165,6 +165,11 @@ type typechecker struct {
 	nextValidGoto   int
 	storedValidGoto int
 	labels          [][]string
+
+	// isScriptFuncDecl reports whether the type checker is currently checking a
+	// script function declaration, that has been transformed into an assignment
+	// node.
+	isScriptFuncDecl bool
 }
 
 func newTypechecker(path string, opts CheckerOptions, globalScope typeCheckerScope) *typechecker {
