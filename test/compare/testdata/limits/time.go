@@ -1,3 +1,5 @@
+//+build !windows
+
 // paniccheck -time=10ms
 
 package main
