@@ -454,7 +454,7 @@ LABEL:
 		case tokenIn:
 			// Parses statement "for ident in expr".
 			if len(variables) == 0 {
-				panic(syntaxError(variables[1].Pos(), "unexpected in, expected expression"))
+				panic(syntaxError(tok.pos, "unexpected in, expected expression"))
 			}
 			if len(variables) > 1 {
 				panic(syntaxError(variables[1].Pos(), "expected only one expression"))
