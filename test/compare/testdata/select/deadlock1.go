@@ -1,3 +1,7 @@
+//+build !linux
+
+// TODO(Gianluca): remove the build tag
+
 // paniccheck
 
 package main
