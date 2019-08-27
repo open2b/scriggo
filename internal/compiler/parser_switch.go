@@ -38,7 +38,7 @@ func (p *parsing) parseSwitch(tok token) ast.Node {
 	// "{%" "switch" [ beforeSemicolon ";" ] afterSemicolon "%}"
 	var beforeSemicolon, afterSemicolon ast.Node
 
-	expressions, tok := p.parseExprList(token{}, true, false, true)
+	expressions, tok := p.parseExprList(p.next(), true, false, true)
 
 	end := tokenLeftBraces
 	if p.ctx != ast.ContextGo {
@@ -82,7 +82,7 @@ func (p *parsing) parseSwitch(tok token) ast.Node {
 			// TODO (Gianluca): move to type-checker:
 			panic(syntaxError(tok.pos, "use of .(type) outside type switch"))
 		}
-		expressions, tok = p.parseExprList(token{}, true, false, true)
+		expressions, tok = p.parseExprList(p.next(), true, false, true)
 		switch len(expressions) { // # of expressions after ;
 		case 0:
 			// switch ; {
@@ -119,7 +119,7 @@ func (p *parsing) parseSwitch(tok token) ast.Node {
 			// switch x := 3; x {
 			// switch x := 3; x + y {
 			// switch x := 2; x = y.(type) {
-			expressions, tok = p.parseExprList(token{}, true, false, true)
+			expressions, tok = p.parseExprList(p.next(), true, false, true)
 			if isAssignmentToken(tok) {
 				// This is the only valid case where there is an assignment
 				// before and after the semicolon token:

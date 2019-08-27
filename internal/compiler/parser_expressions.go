@@ -125,10 +125,6 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 	// switch guard, that is `expr.(type)`.
 	var mustBeSwitchGuard bool
 
-	if tok.txt == nil {
-		tok = p.next()
-	}
-
 	for {
 
 		var operand ast.Expression
@@ -140,7 +136,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			// parenthesis and then handles it as a single operand.
 			pos := tok.pos
 			var expr ast.Expression
-			expr, tok = p.parseExpr(token{}, false, mustBeType, false)
+			expr, tok = p.parseExpr(p.next(), false, mustBeType, false)
 			if expr == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
@@ -161,12 +157,12 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				panic(syntaxError(tok.pos, "unexpected %s, expecting [", tok))
 			}
 			var typ ast.Expression
-			typ, tok = p.parseExpr(token{}, false, true, false)
+			typ, tok = p.parseExpr(p.next(), false, true, false)
 			if tok.typ != tokenRightBrackets {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting %s", tok, tokenRightBraces))
 			}
 			mapType.KeyType = typ
-			typ, tok = p.parseExpr(token{}, false, true, false)
+			typ, tok = p.parseExpr(p.next(), false, true, false)
 			if typ == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting type", tok))
 			}
@@ -344,7 +340,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				panic(syntaxError(tok.pos, "unexpected %s, expecting ]", tok))
 			}
 			var typ ast.Expression
-			typ, tok = p.parseExpr(token{}, false, true, false)
+			typ, tok = p.parseExpr(p.next(), false, true, false)
 			if typ == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
@@ -383,14 +379,14 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				var keyValues []ast.KeyValue
 				var expr ast.Expression
 				for {
-					expr, tok = p.parseExpr(token{}, false, false, false)
+					expr, tok = p.parseExpr(p.next(), false, false, false)
 					if expr == nil {
 						break
 					}
 					switch tok.typ {
 					case tokenColon:
 						var value ast.Expression
-						value, tok = p.parseExpr(token{}, false, false, false)
+						value, tok = p.parseExpr(p.next(), false, false, false)
 						if value == nil {
 							panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 						}
@@ -412,7 +408,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			case tokenLeftParenthesis: // e(...)
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
-				args, tok := p.parseExprList(token{}, false, false, false)
+				args, tok := p.parseExprList(p.next(), false, false, false)
 				var isVariadic bool
 				if tok.typ == tokenEllipsis {
 					if len(args) == 0 {
@@ -431,15 +427,15 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
 				var index ast.Expression
-				index, tok = p.parseExpr(token{}, false, false, false)
+				index, tok = p.parseExpr(p.next(), false, false, false)
 				if tok.typ == tokenColon {
 					low := index
 					isFull := false
 					var high, max ast.Expression
-					high, tok = p.parseExpr(token{}, false, false, false)
+					high, tok = p.parseExpr(p.next(), false, false, false)
 					if tok.typ == tokenColon {
 						isFull = true
-						max, tok = p.parseExpr(token{}, false, false, false)
+						max, tok = p.parseExpr(p.next(), false, false, false)
 					}
 					if tok.typ != tokenRightBrackets {
 						panic(syntaxError(tok.pos, "unexpected %s, expecting ]", tok))
@@ -653,17 +649,18 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 // TODO (Gianluca): nextIsBlockOpen should have a better name
 //
 func (p *parsing) parseExprList(tok token, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen bool) ([]ast.Expression, token) {
+	var element ast.Expression
 	var elements = []ast.Expression{}
 	for {
-		element, tok2 := p.parseExpr(tok, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen)
+		element, tok = p.parseExpr(tok, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen)
 		if element == nil {
-			return elements, tok2
+			return elements, tok
 		}
 		elements = append(elements, element)
-		if tok2.typ != tokenComma {
-			return elements, tok2
+		if tok.typ != tokenComma {
+			return elements, tok
 		}
-		tok = token{}
+		tok = p.next()
 	}
 }
 

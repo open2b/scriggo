@@ -306,7 +306,7 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error
 			numTokenInLine++
 			pos := tok.pos
 			var expr ast.Expression
-			expr, tok = p.parseExpr(token{}, false, false, false)
+			expr, tok = p.parseExpr(p.next(), false, false, false)
 			if expr == nil {
 				return nil, syntaxError(tok.pos, "unexpected %s, expecting expression", tok)
 			}
@@ -449,7 +449,7 @@ LABEL:
 		var init *ast.Assignment
 		var assignmentType ast.AssignmentType
 		var variables []ast.Expression
-		variables, tok = p.parseExprList(token{}, false, false, true)
+		variables, tok = p.parseExprList(p.next(), false, false, true)
 		switch tok.typ {
 		case tokenIn:
 			// Parses statement "for ident in expr".
@@ -471,7 +471,7 @@ LABEL:
 			// Parses the slice expression.
 			// TODO (Gianluca): nextIsBlockOpen should be true?
 			var expr ast.Expression
-			expr, tok = p.parseExpr(token{}, false, false, false)
+			expr, tok = p.parseExpr(p.next(), false, false, false)
 			if expr == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
@@ -501,7 +501,7 @@ LABEL:
 			tpos := tok.pos
 			// TODO (Gianluca): nextIsBlockOpen should be true?
 			var expr ast.Expression
-			expr, tok = p.parseExpr(token{}, false, false, true)
+			expr, tok = p.parseExpr(p.next(), false, false, true)
 			if expr == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
@@ -527,7 +527,7 @@ LABEL:
 				//     "for index[, ident] = range expr" and
 				//     "for index[, ident] := range expr".
 				var expr ast.Expression
-				expr, tok = p.parseExpr(token{}, false, false, true)
+				expr, tok = p.parseExpr(p.next(), false, false, true)
 				if expr == nil {
 					panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 				}
@@ -540,13 +540,13 @@ LABEL:
 				// Parses statement "for [init]; [condition]; [post]".
 				// Parses the condition expression.
 				var condition ast.Expression
-				condition, tok = p.parseExpr(token{}, false, false, true)
+				condition, tok = p.parseExpr(p.next(), false, false, true)
 				if tok.typ != tokenSemicolon {
 					panic(syntaxError(tok.pos, "unexpected %s, expected semicolon", tok))
 				}
 				// Parses the post iteration statement.
 				var post *ast.Assignment
-				variables, tok = p.parseExprList(token{}, false, false, true)
+				variables, tok = p.parseExprList(p.next(), false, false, true)
 				if len(variables) > 0 {
 					pos := tok.pos
 					post, tok = p.parseAssignment(variables, tok, false, true)
@@ -617,7 +617,7 @@ LABEL:
 		switch p.parent().(type) {
 		case *ast.Switch, *ast.TypeSwitch:
 			var expressions []ast.Expression
-			expressions, tok = p.parseExprList(token{}, false, false, false)
+			expressions, tok = p.parseExprList(p.next(), false, false, false)
 			if len(expressions) == 0 {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
@@ -625,7 +625,7 @@ LABEL:
 			node = ast.NewCase(pos, expressions, nil)
 		case *ast.Select:
 			var expressions []ast.Expression
-			expressions, tok = p.parseExprList(token{}, false, false, false)
+			expressions, tok = p.parseExprList(p.next(), false, false, false)
 			if len(expressions) == 0 {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
@@ -636,7 +636,7 @@ LABEL:
 				if tok.typ == tokenArrow {
 					sendPos := tok.pos
 					var value ast.Expression
-					value, tok = p.parseExpr(token{}, false, false, false)
+					value, tok = p.parseExpr(p.next(), false, false, false)
 					if value == nil {
 						panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 					}
@@ -781,7 +781,7 @@ LABEL:
 		pos := tok.pos
 		ifPos := tok.pos
 		var expressions []ast.Expression
-		expressions, tok = p.parseExprList(token{}, false, false, true)
+		expressions, tok = p.parseExprList(p.next(), false, false, true)
 		if len(expressions) == 0 {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
@@ -795,7 +795,7 @@ LABEL:
 			if tok.typ != tokenSemicolon {
 				panic(syntaxError(tok.pos, "%s used as value", assignment))
 			}
-			expr, tok = p.parseExpr(token{}, false, false, true)
+			expr, tok = p.parseExpr(p.next(), false, false, true)
 			if expr == nil {
 				panic(syntaxError(tok.pos, "missing condition in if statement"))
 			}
@@ -835,7 +835,7 @@ LABEL:
 			}
 		}
 		var values []ast.Expression
-		values, tok = p.parseExprList(token{}, false, false, false)
+		values, tok = p.parseExprList(p.next(), false, false, false)
 		if len(values) > 0 {
 			pos.End = values[len(values)-1].Pos().End
 		}
@@ -899,7 +899,7 @@ LABEL:
 		var args []ast.Expression
 		var isVariadic bool
 		if tok.typ == tokenLeftParenthesis {
-			args, tok = p.parseExprList(token{}, false, false, false)
+			args, tok = p.parseExprList(p.next(), false, false, false)
 			if tok.typ == tokenEllipsis {
 				if len(args) == 0 {
 					panic(syntaxError(tok.pos, "unexpected ..., expecting expression"))
@@ -1302,7 +1302,7 @@ LABEL:
 			// Parse send.
 			channel := expressions[0]
 			var value ast.Expression
-			value, tok = p.parseExpr(token{}, false, false, false)
+			value, tok = p.parseExpr(p.next(), false, false, false)
 			if value == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
@@ -1414,7 +1414,7 @@ func (p *parsing) parseVarOrConst(tok token, pos *ast.Position, decType tokenTyp
 	case tokenSimpleAssignment:
 		// var/const  a     = ...
 		// var/const  a, b  = ...
-		exprs, tok = p.parseExprList(token{}, false, false, false)
+		exprs, tok = p.parseExprList(p.next(), false, false, false)
 		if len(exprs) == 0 {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
@@ -1430,7 +1430,7 @@ func (p *parsing) parseVarOrConst(tok token, pos *ast.Position, decType tokenTyp
 		if tok.typ == tokenSimpleAssignment {
 			// var/const  a     int  =  ...
 			// var/const  a, b  int  =  ...
-			exprs, tok = p.parseExprList(token{}, false, false, false)
+			exprs, tok = p.parseExprList(p.next(), false, false, false)
 			if len(exprs) == 0 {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
@@ -1508,7 +1508,7 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 	var values []ast.Expression
 	switch typ {
 	case ast.AssignmentSimple, ast.AssignmentDeclaration:
-		values, tok = p.parseExprList(token{}, canBeSwitchGuard, false, nextIsBlockOpen)
+		values, tok = p.parseExprList(p.next(), canBeSwitchGuard, false, nextIsBlockOpen)
 		if len(values) == 0 {
 			return nil, tok
 		}
@@ -1521,7 +1521,7 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 			tok = p.next()
 		} else {
 			values = make([]ast.Expression, 1)
-			values[0], tok = p.parseExpr(token{}, false, false, false)
+			values[0], tok = p.parseExpr(p.next(), false, false, false)
 			pos.End = values[0].Pos().End
 		}
 	}
