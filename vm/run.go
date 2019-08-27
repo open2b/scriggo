@@ -1440,7 +1440,6 @@ func (vm *VM) run() (uint32, bool) {
 			numCase := len(vm.cases)
 			if vm.done == nil || hasDefaultCase {
 				chosen, recv, recvOK = reflect.Select(vm.cases)
-				
 			} else {
 				vm.cases = append(vm.cases, vm.doneCase)
 				chosen, recv, recvOK = reflect.Select(vm.cases)
