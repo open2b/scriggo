@@ -324,7 +324,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				args, tok = p.parseExprList(p.next(), false, false, false)
 				var isVariadic bool
 				if tok.typ == tokenEllipsis {
-					if len(args) == 0 {
+					if args == nil {
 						panic(syntaxError(tok.pos, "unexpected ..., expecting expression"))
 					}
 					isVariadic = true
@@ -564,13 +564,17 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 //
 func (p *parsing) parseExprList(tok token, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen bool) ([]ast.Expression, token) {
 	var element ast.Expression
-	var elements = []ast.Expression{}
+	var elements []ast.Expression
 	for {
 		element, tok = p.parseExpr(tok, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen)
 		if element == nil {
 			return elements, tok
 		}
-		elements = append(elements, element)
+		if elements == nil {
+			elements = []ast.Expression{element}
+		} else {
+			elements = append(elements, element)
+		}
 		if tok.typ != tokenComma {
 			return elements, tok
 		}
