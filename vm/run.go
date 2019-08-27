@@ -11,32 +11,30 @@ import (
 )
 
 func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
-	var isPanicked bool
 	vm.fn = fn
 	vm.vars = vars
 	for {
-		isPanicked = vm.runRecoverable()
-		if isPanicked {
-			p := vm.panics[len(vm.panics)-1]
-			if e, ok := p.Msg.(OutOfTimeError); ok && e.env == vm.env {
-				vm.panics = vm.panics[:0]
-				err = e
-				isPanicked = false
-			} else if e, ok := p.Msg.(OutOfMemoryError); ok && e.env == vm.env {
-				vm.panics = vm.panics[:0]
-				err = e
-				isPanicked = false
-			} else if len(vm.calls) > 0 {
-				var call = callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: panicked}
-				vm.calls = append(vm.calls, call)
-				vm.fn = nil
-				if vm.cases != nil {
-					vm.cases = vm.cases[:0]
-				}
-				continue
-			}
+		panicking := vm.runRecoverable()
+		if !panicking {
+			break
 		}
-		break
+		msg := vm.panics[len(vm.panics)-1].Msg
+		if e, ok := msg.(OutOfTimeError); ok && e.env == vm.env {
+			vm.panics = vm.panics[:0]
+			err = e
+			break
+		} else if e, ok := msg.(OutOfMemoryError); ok && e.env == vm.env {
+			vm.panics = vm.panics[:0]
+			err = e
+			break
+		} else if len(vm.calls) == 0 {
+			break
+		}
+		vm.calls = append(vm.calls, callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: panicked})
+		vm.fn = nil
+		if vm.cases != nil {
+			vm.cases = vm.cases[:0]
+		}
 	}
 	// Call exit functions.
 	vm.env.mu.Lock()
@@ -68,10 +66,10 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
 	return 0, err
 }
 
-func (vm *VM) runRecoverable() (panicked bool) {
-	panicked = true
+func (vm *VM) runRecoverable() (panicking bool) {
+	panicking = true
 	defer func() {
-		if panicked {
+		if panicking {
 			msg := recover()
 			vm.panics = append(vm.panics, Panic{Msg: msg})
 		}
