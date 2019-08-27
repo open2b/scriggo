@@ -1532,10 +1532,8 @@ func (vm *VM) run() (uint32, bool) {
 		// SetField
 		case OpSetField, -OpSetField:
 			i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
-			v := reflect.New(reflect.TypeOf(vm.general(c))).Elem()
-			vm.getIntoReflectValue(c, v, false)
-			vm.getIntoReflectValue(a, v.FieldByIndex(i), op < 0)
-			vm.setFromReflectValue(c, v)
+			s := reflect.ValueOf(vm.general(c))
+			vm.getIntoReflectValue(a, s.Elem().FieldByIndex(i), op < 0)
 
 		// SetMap
 		case OpSetMap, -OpSetMap:

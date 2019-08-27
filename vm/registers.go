@@ -394,6 +394,8 @@ func (vm *VM) getIntoReflectValue(r int8, v reflect.Value, k bool) {
 		} else {
 			v.Set(reflect.ValueOf(g))
 		}
+	case reflect.Struct:
+		v.Set(reflect.ValueOf(vm.generalk(r, k)).Elem())
 	default:
 		v.Set(reflect.ValueOf(vm.generalk(r, k)))
 	}
