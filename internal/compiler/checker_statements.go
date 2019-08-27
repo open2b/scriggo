@@ -747,7 +747,12 @@ nodesLoop:
 						ast.AssignmentDeclaration,
 						[]ast.Expression{fun},
 					)
+					// Check the new node, informing the type checker that the
+					// current assignment is a script function declaration.
+					backup := tc.isScriptFuncDecl
+					tc.isScriptFuncDecl = true
 					tc.checkNodes([]ast.Node{node})
+					tc.isScriptFuncDecl = backup
 					nodes[i] = node
 					// Avoid error 'declared and not used' by "using" the
 					// identifier.

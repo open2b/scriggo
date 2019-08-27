@@ -270,6 +270,9 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		}
 	}
 	if len(newVars) == 0 && isVariableDecl && isAssignmentNode {
+		if tc.opts.SyntaxType == ScriptSyntax && tc.isScriptFuncDecl {
+			panic(tc.errorf(node, "%v already declared in script", lhs[0]))
+		}
 		panic(tc.errorf(node, "no new variables on left side of :="))
 	}
 	for d, ti := range tmpScope {
