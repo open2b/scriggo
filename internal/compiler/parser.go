@@ -834,10 +834,13 @@ LABEL:
 				panic(syntaxError(tok.pos, "return statement outside function body"))
 			}
 		}
+		tok = p.next()
 		var values []ast.Expression
-		values, tok = p.parseExprList(p.next(), false, false, false)
-		if len(values) > 0 {
-			pos.End = values[len(values)-1].Pos().End
+		if tok.typ != tokenSemicolon {
+			values, tok = p.parseExprList(tok, false, false, false)
+			if len(values) > 0 {
+				pos.End = values[len(values)-1].Pos().End
+			}
 		}
 		node := ast.NewReturn(pos, values)
 		p.addChild(node)
