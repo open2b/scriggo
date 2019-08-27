@@ -560,7 +560,7 @@ func (vm *VM) run() (uint32, bool) {
 		// Field
 		case OpField:
 			i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
-			v := reflect.ValueOf(vm.general(a)).FieldByIndex(i)
+			v := reflect.ValueOf(vm.general(a)).Elem().FieldByIndex(i)
 			vm.setFromReflectValue(c, v)
 
 		// Func
