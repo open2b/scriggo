@@ -243,18 +243,9 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			if v.Operator() != ast.OperatorMultiplication {
 				panic("bug: v.Operator() != ast.OperatorMultiplication") // TODO(Gianluca): remove.
 			}
-			switch expr := v.Expr.(type) {
-			case *ast.Identifier:
-				if em.fb.isVariable(expr.Name) {
-					reg := em.fb.scopeLookup(expr.Name)
-					typ := em.ti(expr).Type
-					addresses[i] = em.newAddress(addressPointerIndirection, typ, reg, 0)
-				} else {
-					panic("TODO(Gianluca): not implemented")
-				}
-			default:
-				panic("TODO(Gianluca): not implemented")
-			}
+			typ := em.ti(v.Expr).Type
+			reg := em.emitExpr(v.Expr, typ)
+			addresses[i] = em.newAddress(addressPointerIndirection, typ, reg, 0)
 		default:
 			panic("TODO(Gianluca): not implemented")
 		}
