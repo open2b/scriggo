@@ -1,4 +1,4 @@
-// paniccheck -time=1ms
+// paniccheck -time=10ms
 
 package main
 
