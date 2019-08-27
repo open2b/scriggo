@@ -408,7 +408,8 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			case tokenLeftParenthesis: // e(...)
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
-				args, tok := p.parseExprList(p.next(), false, false, false)
+				var args []ast.Expression
+				args, tok = p.parseExprList(p.next(), false, false, false)
 				var isVariadic bool
 				if tok.typ == tokenEllipsis {
 					if len(args) == 0 {
