@@ -4,13 +4,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package P
+package main
 
 const a = 0;
 
 func f(a int) {
 	a = 0;
 }
+
+func main() { }
 
 /*
 bug161.go:8: operation LITERAL not allowed in assignment context

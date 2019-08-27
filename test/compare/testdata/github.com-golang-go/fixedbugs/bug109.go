@@ -4,13 +4,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package bug109
+package main
 
 func f(a float64) float64 {
 	e := 1.0
 	e = e * a
 	return e
 }
+
+func main() { }
 
 /*
 6g bugs/bug109.go

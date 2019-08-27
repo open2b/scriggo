@@ -31,6 +31,7 @@
 package compiler
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -132,7 +133,11 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 	// Type check a program.
 	if opts.SyntaxType == ProgramSyntax {
 		pkgInfos := map[string]*PackageInfo{}
-		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, packages, pkgInfos, opts, nil)
+		pkg := tree.Nodes[0].(*ast.Package)
+		if pkg.Name != "main" {
+			return nil, &CheckingError{Path: tree.Path, Pos: *pkg.Pos(), Err: errors.New("package name must be main")}
+		}
+		err := checkPackage(pkg, tree.Path, packages, pkgInfos, opts, nil)
 		if err != nil {
 			return nil, err
 		}

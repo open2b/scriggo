@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package main
 
 func f1() {
 	f2()
@@ -15,3 +15,5 @@ func f2() {
 		_ = func() {}
 	}
 }
+
+func main() { }

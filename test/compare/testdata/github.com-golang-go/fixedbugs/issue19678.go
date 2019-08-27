@@ -7,7 +7,7 @@
 // Used to crash when compiling functions containing
 // forward refs in dead code.
 
-package p
+package main
 
 var f func(int)
 
@@ -19,3 +19,5 @@ l2:
 	f(i)
 	goto l2
 }
+
+func main() { }

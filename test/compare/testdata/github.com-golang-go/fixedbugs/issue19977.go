@@ -6,8 +6,10 @@
 
 // Issue 19977: multiple error messages when type switching on an undefined
 
-package foo
+package main
 
 func Foo() {
 	switch x := a.(type) { default: _ = x }// ERROR "undefined: a"
 }
+
+func main() { }

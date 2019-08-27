@@ -6,7 +6,7 @@
 
 // Used to leak registers on 8g.
 
-package p
+package main
 
 func f(x byte, y uint64) {
 	var r byte
@@ -34,3 +34,5 @@ func f(x byte, y uint64) {
 	}
 	_ = r
 }
+
+func main() { }

@@ -7,7 +7,7 @@
 // Used to crash when a type switch was present in dead code
 // in an inlineable function.
 
-package p
+package main
 
 func Then() {
 	var i interface{}
@@ -36,3 +36,5 @@ func Switch() {
 	case 5:
 	}
 }
+
+func main() { }

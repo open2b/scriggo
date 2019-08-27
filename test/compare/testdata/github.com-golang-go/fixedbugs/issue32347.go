@@ -7,7 +7,7 @@
 // Issue 32347: gccgo compiler crashes with int-to-string conversion
 // with large integer constant operand.
 
-package p
+package main
 
 const (
 	X1 = string(128049)
@@ -16,3 +16,5 @@ const (
 )
 
 var S1, S2, S3 = X1, X2, X3
+
+func main() { }

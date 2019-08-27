@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package main
 
 func g() {}
 
@@ -17,3 +17,5 @@ func g2() ([]byte, []byte) { return nil, nil }
 func f2() {
 	g2()[:] // ERROR "multiple-value g2.. in single-value context"
 }
+
+func main() { }

@@ -4,13 +4,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package P
+package main
 
 var x int
 
 func foo() {
 	print(P.x);  // ERROR "undefined"
 }
+
+func main() { }
 
 /*
 uetli:~/Source/go1/test/bugs gri$ 6g bug085.go

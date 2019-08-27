@@ -7,7 +7,7 @@
 // Check that we don't crash due to "lost track of variable in
 // liveness" errors against unused variables.
 
-package p
+package main
 
 import "strings"
 
@@ -19,3 +19,5 @@ func F() {
 			strings.Repeat("longlit_", 10) + "\n",
 	}
 }
+
+func main() { }
