@@ -1765,7 +1765,12 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			panic(tc.errorf(expr, "too many arguments to panic: %s", expr))
 		}
 		ti := tc.checkExpr(expr.Args[0])
-		ti.setValue(nil)
+		if ti.Nil() {
+			ti = nilOf(emptyInterfaceType)
+			tc.typeInfos[expr.Args[0]] = ti
+		} else {
+			ti.setValue(nil)
+		}
 		return nil
 
 	case "print", "println":
