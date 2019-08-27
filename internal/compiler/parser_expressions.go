@@ -96,12 +96,6 @@ import (
 //
 func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlockOpen bool) (ast.Expression, token) {
 
-	// reuseLastToken reports whether the second part of parseExpr should reuse
-	// the last read token or should read a new one. This is necessary in all
-	// cases when the next token is necessary to determine the type of the
-	// expression but it's not part of it.
-	reuseLastToken := false
-
 	// canCompositeLiteral reports whether the currently parsed expression can
 	// be used as type in composite literals.
 	canCompositeLiteral := false
@@ -157,8 +151,8 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			operand = expr
 			operand.Pos().Start = pos.Start
 			operand.Pos().End = tok.pos.End
+			tok = p.next()
 		case tokenLeftBraces: // composite literal with no type.
-			reuseLastToken = true
 		case tokenMap:
 			canCompositeLiteral = true
 			mapType := ast.NewMapType(tok.pos, nil, nil)
@@ -179,7 +173,6 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			mapType.Position.End = typ.Pos().End
 			mapType.ValueType = typ
 			operand = mapType
-			reuseLastToken = true
 		case tokenStruct:
 			canCompositeLiteral = true
 			structType := ast.NewStructType(tok.pos, nil)
@@ -230,6 +223,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			}
 			structType.Position.End = tok.pos.End
 			operand = structType
+			tok = p.next()
 		case tokenInterface:
 			pos := tok.pos
 			tok = p.next()
@@ -242,13 +236,14 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			}
 			pos.End = tok.pos.End
 			operand = ast.NewInterface(pos)
+			tok = p.next()
 		case tokenFunc:
 			var node ast.Node
 			if mustBeType {
 				node, tok = p.parseFunc(tok, parseFuncType)
-				reuseLastToken = true
 			} else {
 				node, tok = p.parseFunc(tok, parseFuncLit)
+				tok = p.next()
 			}
 			operand = node.(ast.Expression)
 		case
@@ -265,7 +260,6 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 					if mustBeType {
 						panic(syntaxError(tok.pos, "unexpected %s, expecting type", operator))
 					}
-					reuseLastToken = true
 				}
 			}
 			if operator == nil {
@@ -279,7 +273,6 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				if elemType == nil {
 					panic(syntaxError(tok.pos, "missing channel element type"))
 				}
-				reuseLastToken = true
 				pos.End = elemType.Pos().End
 				operand = ast.NewChanType(pos, direction, elemType)
 			}
@@ -294,6 +287,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			if mustBeType && tok.typ != tokenMultiplication {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting type", operator))
 			}
+			tok = p.next()
 		case
 			tokenRune,      // '\x3c'
 			tokenInt,       // 18
@@ -303,6 +297,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				panic(syntaxError(tok.pos, "unexpected literal %s, expecting type", tok.txt))
 			}
 			operand = ast.NewBasicLiteral(tok.pos, literalType(tok.typ), string(tok.txt))
+			tok = p.next()
 		case
 			tokenInterpretedString, // ""
 			tokenRawString:         // ``
@@ -310,11 +305,12 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				panic(syntaxError(tok.pos, "unexpected literal %s, expecting type", tok.txt))
 			}
 			operand = ast.NewBasicLiteral(tok.pos, literalType(tok.typ), string(tok.txt))
+			tok = p.next()
 		case tokenIdentifier: // a
 			ident := p.parseIdentifierNode(tok)
 			operand = ident
+			tok = p.next()
 			if mustBeType {
-				tok = p.next()
 				if tok.typ == tokenPeriod {
 					tok = p.next()
 					if tok.typ != tokenIdentifier {
@@ -322,8 +318,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 					}
 					ident := p.parseIdentifierNode(tok)
 					operand = ast.NewSelector(tok.pos, operand, ident.Name)
-				} else {
-					reuseLastToken = true
+					tok = p.next()
 				}
 			}
 		case tokenLeftBrackets: // [
@@ -362,17 +357,11 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			default:
 				operand = ast.NewArrayType(pos, length, typ)
 			}
-			reuseLastToken = true
 		default:
 			return nil, tok
 		}
 
 		for operator == nil {
-
-			if !reuseLastToken {
-				tok = p.next()
-			}
-			reuseLastToken = false
 
 			skip := mustBeType || (tok.typ == tokenLeftBraces && nextIsBlockOpen && !canCompositeLiteral)
 			backupTok := tok
@@ -562,6 +551,8 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				return operand, tok
 			}
 
+			tok = p.next()
+
 		}
 
 		canBeSwitchGuard = false
@@ -648,11 +639,6 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			}
 
 		}
-
-		if !reuseLastToken {
-			tok = p.next()
-		}
-		reuseLastToken = false
 
 	}
 
