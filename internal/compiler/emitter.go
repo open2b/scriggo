@@ -1215,7 +1215,13 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.emitReturn()
 
 		case *ast.Select:
+			currentBreakable := em.breakable
+			currentBreakLabel := em.breakLabel
+			em.breakable = true
+			em.breakLabel = nil
 			em.emitSelect(node)
+			em.breakable = currentBreakable
+			em.breakLabel = currentBreakLabel
 
 		case *ast.Send:
 			chann := em.emitExpr(node.Channel, em.ti(node.Channel).Type)

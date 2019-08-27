@@ -1,1 +1,1 @@
-panic: out of memory
+panic: runtime error: out of memory

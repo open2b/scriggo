@@ -1,4 +1,8 @@
-// skip : this test waits forever instead of panicking.
+//+build !linux
+
+// TODO(Gianluca): remove the build tag
+
+// paniccheck
 
 package main
 
