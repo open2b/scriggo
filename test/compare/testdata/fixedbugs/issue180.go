@@ -69,6 +69,16 @@ func main() {
 		}
 	}
 
+	// Array indexing operation of an addressable array
+	{
+		{
+			a := [3][3][3]int{}
+			fmt.Println(a)
+			a[1][2][1] = 5
+			fmt.Println(a)
+		}
+	}
+
 	// Map index expression.
 	{
 		{
