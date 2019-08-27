@@ -262,6 +262,9 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 					direction = ast.ReceiveDirection
 				} else {
 					operator = ast.NewUnaryOperator(pos, ast.OperatorReceive, nil)
+					if mustBeType {
+						panic(syntaxError(tok.pos, "unexpected %s, expecting type", operator))
+					}
 					reuseLastToken = true
 				}
 			}
@@ -288,17 +291,23 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			tokenMultiplication, // *t, *T
 			tokenAnd:            // &e
 			operator = ast.NewUnaryOperator(tok.pos, operatorType(tok.typ), nil)
+			if mustBeType && tok.typ != tokenMultiplication {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting type", operator))
+			}
 		case
 			tokenRune,      // '\x3c'
 			tokenInt,       // 18
 			tokenFloat,     // 12.895
 			tokenImaginary: // 7.2i
+			if mustBeType {
+				panic(syntaxError(tok.pos, "unexpected literal %s, expecting type", tok.txt))
+			}
 			operand = ast.NewBasicLiteral(tok.pos, literalType(tok.typ), string(tok.txt))
 		case
 			tokenInterpretedString, // ""
 			tokenRawString:         // ``
 			if mustBeType {
-				panic(syntaxError(tok.pos, "unexpected literal %q, expecting type", tok.txt))
+				panic(syntaxError(tok.pos, "unexpected literal %s, expecting type", tok.txt))
 			}
 			operand = ast.NewBasicLiteral(tok.pos, literalType(tok.typ), string(tok.txt))
 		case tokenIdentifier: // a
@@ -356,23 +365,6 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			reuseLastToken = true
 		default:
 			return nil, tok
-		}
-
-		if mustBeType {
-			if operator != nil {
-				op, ok := operator.(*ast.UnaryOperator)
-				if !ok || op.Operator() != ast.OperatorMultiplication {
-					panic(syntaxError(tok.pos, "unexpected %s, expecting type", operator))
-				}
-			}
-			if operand != nil {
-				switch operand.(type) {
-				case *ast.Identifier, *ast.Interface, *ast.MapType, *ast.ArrayType, *ast.SliceType,
-					*ast.ChanType, *ast.Selector, *ast.FuncType, *ast.StructType:
-				default:
-					panic(syntaxError(tok.pos, "unexpected %s, expecting type", operand))
-				}
-			}
 		}
 
 		for operator == nil {
