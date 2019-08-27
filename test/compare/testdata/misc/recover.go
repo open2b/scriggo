@@ -30,6 +30,7 @@ func main() {
 	test17()
 	test18()
 	test19()
+	test20()
 
 }
 
@@ -273,4 +274,15 @@ func test19() {
 	go recover()
 	runtime.Gosched()
 	panic(1)
+}
+
+func test20() {
+	defer func() {
+		got := recover()
+		if got != nil {
+			log.Printf("expected recover nil, got %#v", got)
+			os.Exit(-1)
+		}
+	}()
+	panic(nil)
 }

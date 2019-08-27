@@ -24,14 +24,6 @@ var sliceByteType = reflect.TypeOf([]byte{})
 var emptyInterfaceType = reflect.TypeOf(&[]interface{}{nil}[0]).Elem()
 var emptyInterfaceNil = reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
 
-func IsOutOfTime(err error) bool {
-	return err == errOutOfTime
-}
-
-func IsOutOfMemory(err error) bool {
-	return err == errOutOfMemory
-}
-
 type StackShift [4]int8
 
 type Instruction struct {
@@ -137,7 +129,7 @@ func (vm *VM) Reset() {
 // Run don't panic and returns the panic message in the err out parameter.
 //
 // If a maximum available memory has been set and the memory is exhausted,
-// Run returns immediately with the error errOutOfMemory.
+// Run returns immediately with the an OutOfMemoryError error.
 //
 // If a context has been set and the context is canceled, Run returns
 // as soon as possible with the error returned by the Err method of the
@@ -294,12 +286,12 @@ func (vm *VM) alloc() {
 		l := int(b)
 		if l > sc-sl {
 			if sl+l < 0 {
-				panic(errOutOfMemory)
+				panic(OutOfMemoryError{vm.env})
 			}
 			capacity := appendCap(sc, sl, sl+l)
 			bytes = capacity * elemSize
 			if bytes/capacity != elemSize {
-				panic(errOutOfMemory)
+				panic(OutOfMemoryError{vm.env})
 			}
 		}
 	case OpAppendSlice:
@@ -331,12 +323,12 @@ func (vm *VM) alloc() {
 		if l > sc-sl {
 			nl := sl + l
 			if nl < sl {
-				panic(errOutOfMemory)
+				panic(OutOfMemoryError{vm.env})
 			}
 			capacity := appendCap(sc, sl, nl)
 			bytes = capacity * elemSize
 			if bytes/capacity != elemSize {
-				panic(errOutOfMemory)
+				panic(OutOfMemoryError{vm.env})
 			}
 		}
 	case OpConvertGeneral: // TODO(marco): implement in the builder.
@@ -358,7 +350,7 @@ func (vm *VM) alloc() {
 			length := len([]rune(vm.string(a)))
 			bytes = length * 4
 			if bytes/4 != length {
-				panic(errOutOfMemory)
+				panic(OutOfMemoryError{vm.env})
 			}
 		} else {
 			bytes = len(vm.string(a))
@@ -368,7 +360,7 @@ func (vm *VM) alloc() {
 		bLen := len(vm.string(b))
 		bytes = aLen + bLen
 		if bytes < aLen {
-			panic(errOutOfMemory)
+			panic(OutOfMemoryError{vm.env})
 		}
 	case OpMakeChan:
 		typ := vm.fn.Types[uint8(a)]
@@ -376,11 +368,11 @@ func (vm *VM) alloc() {
 		ts := int(typ.Size())
 		bytes = ts * capacity
 		if bytes/ts != capacity {
-			panic(errOutOfMemory)
+			panic(OutOfMemoryError{vm.env})
 		}
 		bytes += 10 * 8
 		if bytes < 0 {
-			panic(errOutOfMemory)
+			panic(OutOfMemoryError{vm.env})
 		}
 	case OpMakeMap:
 		// The size is approximated. The actual size depend on the type and
@@ -388,11 +380,11 @@ func (vm *VM) alloc() {
 		n := int(vm.int(b))
 		bytes = 50 * n
 		if bytes/50 != n {
-			panic(errOutOfMemory)
+			panic(OutOfMemoryError{vm.env})
 		}
 		bytes += 24
 		if bytes < 0 {
-			panic(errOutOfMemory)
+			panic(OutOfMemoryError{vm.env})
 		}
 	case OpMakeSlice:
 		typ := vm.fn.Types[uint8(a)]
@@ -400,11 +392,11 @@ func (vm *VM) alloc() {
 		ts := int(typ.Elem().Size())
 		bytes = ts * capacity
 		if bytes/ts != capacity {
-			panic(errOutOfMemory)
+			panic(OutOfMemoryError{vm.env})
 		}
 		bytes += 24
 		if bytes < 0 {
-			panic(errOutOfMemory)
+			panic(OutOfMemoryError{vm.env})
 		}
 	case OpNew:
 		t := vm.fn.Types[uint8(b)]
@@ -416,7 +408,7 @@ func (vm *VM) alloc() {
 		eSize := int(t.Elem().Size())
 		bytes = kSize + eSize
 		if bytes < 0 {
-			panic(errOutOfMemory)
+			panic(OutOfMemoryError{vm.env})
 		}
 	}
 	if bytes != 0 {
@@ -429,7 +421,7 @@ func (vm *VM) alloc() {
 		}
 		vm.env.mu.Unlock()
 		if free < 0 {
-			panic(errOutOfMemory)
+			panic(OutOfMemoryError{vm.env})
 		}
 	}
 	return
@@ -1161,55 +1153,6 @@ func missingMethod(typ reflect.Type, iface reflect.Type) string {
 		}
 	}
 	return ""
-}
-
-// runtimeError represents a runtime error.
-type runtimeError string
-
-func (err runtimeError) Error() string { return "runtime error: " + string(err) }
-func (err runtimeError) RuntimeError() {}
-
-type TypeAssertionError struct {
-	interfac      reflect.Type
-	concrete      reflect.Type
-	asserted      reflect.Type
-	missingMethod string
-}
-
-func (e TypeAssertionError) Error() string {
-	s := "interface conversion: "
-	if e.concrete == nil {
-		return s + e.interfac.String() + " is nil, not " + e.asserted.String()
-	}
-	if e.missingMethod != "" {
-		return s + e.concrete.String() + " is not " + e.asserted.String() +
-			": missing method " + e.missingMethod
-	}
-	s += e.interfac.String() + " is " + e.concrete.String() + ", not " + e.asserted.String()
-	if e.concrete.String() != e.asserted.String() {
-		return s
-	}
-	s += " (types from different "
-	if e.concrete.PkgPath() == e.interfac.PkgPath() {
-		return s + "scopes)"
-	}
-	return s + "packages)"
-}
-
-func (e TypeAssertionError) RuntimeError() {}
-
-// runtimeIndex returns the v's i'th element. If i is out of range, it panics
-// with a runtimeError error.
-func runtimeIndex(v reflect.Value, i int) reflect.Value {
-	defer func() {
-		if err := recover(); err != nil {
-			if _, ok := err.(string); ok {
-				err = runtimeError("index out of range")
-			}
-			panic(err)
-		}
-	}()
-	return v.Index(i)
 }
 
 // MakeSlice creates a slice value for the specified slice type, length, and

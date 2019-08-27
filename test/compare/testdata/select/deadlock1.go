@@ -1,6 +1,4 @@
-//+build !linux
-
-// TODO(Gianluca): remove the build tag
+//+build !cgo windows
 
 // paniccheck
 

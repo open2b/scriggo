@@ -580,6 +580,7 @@ func init() {
 	buildTags = map[string]bool{
 		goos:   true,
 		goarch: true,
+		"cgo":  cgoEnabled,
 	}
 	// Add the build tags from the first version of go to the current one.
 	cmd := exec.Command("go", "version")
