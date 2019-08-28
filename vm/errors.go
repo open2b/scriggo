@@ -91,7 +91,7 @@ func (vm *VM) convertInternalError(msg interface{}) error {
 			return runtimeNoPrefixError("append: out of memory")
 		}
 	case OpClose:
-		if err, ok := msg.(error); ok && err.Error() == "close of closed channel" {
+		if err, ok := msg.(runtime.Error); ok && err.Error() == "close of closed channel" {
 			return runtimeNoPrefixError("close of closed channel")
 		}
 	case OpIndex, -OpIndex, OpSetSlice, -OpSetSlice:
