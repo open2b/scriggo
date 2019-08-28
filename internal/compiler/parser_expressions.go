@@ -55,7 +55,12 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			operand.Pos().Start = pos.Start
 			operand.Pos().End = tok.pos.End
 			tok = p.next()
-		case tokenMap:
+		case tokenLeftBraces: // {
+			// composite literal with no type.
+			if mustBeType {
+				panic(syntaxError(tok.pos, "unexpected {, expecting type"))
+			}
+		case tokenMap: // map
 			canCompositeLiteral = true
 			mapType := ast.NewMapType(tok.pos, nil, nil)
 			tok = p.next()
@@ -75,7 +80,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			mapType.Position.End = typ.Pos().End
 			mapType.ValueType = typ
 			operand = mapType
-		case tokenStruct:
+		case tokenStruct: // struct
 			canCompositeLiteral = true
 			structType := ast.NewStructType(tok.pos, nil)
 			tok = p.next()
@@ -126,7 +131,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			structType.Position.End = tok.pos.End
 			operand = structType
 			tok = p.next()
-		case tokenInterface:
+		case tokenInterface: // interface{}
 			pos := tok.pos
 			tok = p.next()
 			if tok.typ != tokenLeftBraces {
@@ -139,7 +144,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			pos.End = tok.pos.End
 			operand = ast.NewInterface(pos)
 			tok = p.next()
-		case tokenFunc:
+		case tokenFunc: // func
 			var node ast.Node
 			if mustBeType {
 				node, tok = p.parseFunc(tok, parseFuncType)
@@ -259,7 +264,6 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			default:
 				operand = ast.NewArrayType(pos, length, typ)
 			}
-		case tokenLeftBraces: // composite literal with no type.
 		default:
 			return nil, tok
 		}
