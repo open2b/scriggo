@@ -895,8 +895,7 @@ func (vm *VM) run() (uint32, bool) {
 			case TypeGeneral:
 				if op < 0 {
 					v := vm.generalk(b, true)
-					t := reflect.TypeOf(v)
-					switch {
+					switch t := reflect.TypeOf(v); {
 					case t != nil && t.Kind() == reflect.Array:
 						rv := reflect.MakeSlice(reflect.SliceOf(t.Elem()), t.Len(), t.Len())
 						// It's not necessary to copy the elements from the
