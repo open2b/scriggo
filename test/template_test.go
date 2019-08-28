@@ -20,6 +20,9 @@ var templateCases = map[string]struct {
 	main *scriggo.MapPackage
 	vars map[string]interface{}
 }{
+	"Empty template": {
+		src: ``,
+	},
 	"Text only": {
 		src: `Hello, world!`,
 		out: `Hello, world!`,
