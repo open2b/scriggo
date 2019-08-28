@@ -348,9 +348,7 @@ func (vm *VM) generalIndirect(r int8) interface{} {
 	case reflect.Array:
 		return elem.Slice(0, elem.Len()).Interface()
 	case reflect.Struct:
-		s := reflect.New(elem.Type())
-		s.Elem().Set(elem)
-		return s.Interface()
+		return elem.Addr().Interface()
 	default:
 		return elem.Interface()
 	}

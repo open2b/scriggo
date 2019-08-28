@@ -62,4 +62,17 @@ func main() {
 		fmt.Printf("%v %T", s1, s1)
 		fmt.Printf("%v %T", p2, p2)
 	}
+	// TODO: cannot be tested for now. This is related to a problem in the
+	// emission of assignments: when assigning to an indirect variable, the
+	// value is copied by the instruction OpGetVar but it's not put back, so the
+	// assignment takes place on a temporary copy.
+	// {
+	// 	s := struct{ A int }{40}
+	// 	func() {
+	// 		_ = s
+	// 		s.A = 20
+	// 	}()
+	// 	fmt.Printf("%v %T", s, s)
+	// 	fmt.Printf("%v %T", s.A, s.A)
+	// }
 }
