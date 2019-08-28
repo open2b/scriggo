@@ -133,33 +133,6 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *R
 	return err
 }
 
-// StartRender renders the template in a new goroutine, writing the output to
-// out, and returns its virtual machine execution environment. vars contains
-// the values for the variables of the main package.
-func (t *Template) StartRender(out io.Writer, vars map[string]interface{}, options *RenderOptions) *vm.Env {
-	render := DefaultRenderFunc
-	if options != nil {
-		if options.MaxMemorySize > 0 && !t.options.LimitMemorySize {
-			panic("scrigoo: template not loaded with LimitMemorySize option")
-		}
-		if options.RenderFunc != nil {
-			render = options.RenderFunc
-		}
-	}
-	write := out.Write
-	uw := &urlEscaper{w: out}
-	t.globals[0].Value = &out
-	t.globals[1].Value = &write
-	t.globals[2].Value = &render
-	t.globals[3].Value = &uw
-	if vars == nil {
-		vars = emptyVars
-	}
-	vmm := newVM(options)
-	go vmm.Run(t.fn, initGlobals(t.globals, vars))
-	return vmm.Env()
-}
-
 // Options returns the options with which the template has been loaded.
 func (t *Template) Options() *LoadOptions {
 	return t.options
