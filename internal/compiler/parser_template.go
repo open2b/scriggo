@@ -50,10 +50,6 @@ func ParseTemplate(path string, reader Reader, ctx ast.Context) (*ast.Tree, erro
 		return nil, err
 	}
 
-	if len(tree.Nodes) == 0 {
-		return nil, syntaxError(&ast.Position{Line: 1, Column: 1, Start: 0, End: 0}, "??????????, found 'EOF'")
-	}
-
 	return tree, nil
 }
 

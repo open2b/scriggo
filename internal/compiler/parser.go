@@ -185,7 +185,11 @@ func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, err error)
 		tok = p.parse(tok)
 	}
 
-	if len(p.ancestors) > 1 {
+	if len(p.ancestors) == 1 {
+		if !isScript && len(tree.Nodes) == 0 {
+			panic(syntaxError(tok.pos, "expected 'package', found 'EOF'"))
+		}
+	} else {
 		switch p.ancestors[1].(type) {
 		case *ast.Package:
 		case *ast.Label:

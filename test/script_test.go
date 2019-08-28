@@ -23,6 +23,10 @@ var scriptCases = map[string]struct {
 
 	out string
 }{
+	"Empty script": {
+		src: ``,
+	},
+
 	"Don't use anything but Scriggo builtins": {
 		src: `println("hi!")`,
 	},
