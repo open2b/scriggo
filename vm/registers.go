@@ -347,6 +347,8 @@ func (vm *VM) generalIndirect(r int8) interface{} {
 		}
 	case reflect.Array:
 		return elem.Slice(0, elem.Len()).Interface()
+	case reflect.Struct:
+		return elem.Addr().Interface()
 	default:
 		return elem.Interface()
 	}
@@ -394,6 +396,8 @@ func (vm *VM) getIntoReflectValue(r int8, v reflect.Value, k bool) {
 		} else {
 			v.Set(reflect.ValueOf(g))
 		}
+	case reflect.Struct:
+		v.Set(reflect.ValueOf(vm.generalk(r, k)).Elem())
 	default:
 		v.Set(reflect.ValueOf(vm.generalk(r, k)))
 	}
@@ -421,6 +425,10 @@ func (vm *VM) setFromReflectValue(r int8, v reflect.Value) {
 		vm.setGeneral(r, c)
 	case reflect.Array:
 		vm.setGeneral(r, v.Slice(0, v.Len()).Interface())
+	case reflect.Struct:
+		s := reflect.New(v.Type())
+		s.Elem().Set(v)
+		vm.setGeneral(r, s.Interface())
 	default:
 		vm.setGeneral(r, v.Interface())
 	}

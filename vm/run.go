@@ -557,7 +557,7 @@ func (vm *VM) run() (uint32, bool) {
 		// Field
 		case OpField:
 			i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
-			v := reflect.ValueOf(vm.general(a)).FieldByIndex(i)
+			v := reflect.ValueOf(vm.general(a)).Elem().FieldByIndex(i)
 			vm.setFromReflectValue(c, v)
 
 		// Func
@@ -895,15 +895,18 @@ func (vm *VM) run() (uint32, bool) {
 			case TypeGeneral:
 				if op < 0 {
 					v := vm.generalk(b, true)
-					if t := reflect.TypeOf(v); t != nil && t.Kind() == reflect.Array {
-						rv := reflect.MakeSlice(reflect.SliceOf(t.Elem()), t.Len(), t.Len())
-						// It's not necessary to copy the elements from the
-						// original array to the new slice because the values
-						// stored in the slice of general constants are zeroes.
-						vm.setGeneral(c, rv.Interface())
-					} else {
-						vm.setGeneral(c, v)
+					if t := reflect.TypeOf(v); t != nil {
+						// Make a copy of the constant value.
+						// It's enough to create the zero since the general
+						// constant slice can contain only zeroes.
+						switch t.Kind() {
+						case reflect.Array:
+							v = reflect.MakeSlice(reflect.SliceOf(t.Elem()), t.Len(), t.Len()).Interface()
+						case reflect.Struct:
+							v = reflect.New(t).Interface()
+						}
 					}
+					vm.setGeneral(c, v)
 				} else {
 					vm.setGeneral(c, vm.general(b))
 				}
@@ -1536,10 +1539,8 @@ func (vm *VM) run() (uint32, bool) {
 		// SetField
 		case OpSetField, -OpSetField:
 			i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
-			v := reflect.New(reflect.TypeOf(vm.general(c))).Elem()
-			vm.getIntoReflectValue(c, v, false)
-			vm.getIntoReflectValue(a, v.FieldByIndex(i), op < 0)
-			vm.setFromReflectValue(c, v)
+			s := reflect.ValueOf(vm.general(c))
+			vm.getIntoReflectValue(a, s.Elem().FieldByIndex(i), op < 0)
 
 		// SetMap
 		case OpSetMap, -OpSetMap:

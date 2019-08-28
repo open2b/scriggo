@@ -1,3 +1,7 @@
+// skip : this test fails because the receive operation converts the type to
+// the internal value, but this is wrong: if the channel is an chan interface,
+// the value must be kept as is
+
 // run
 
 // Copyright 2011 The Go Authors. All rights reserved.

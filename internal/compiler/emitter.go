@@ -1752,7 +1752,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				}
 				return reg, false
 			}
-			structZero := em.fb.makeGeneralConstant(reflect.Zero(typ).Interface())
+			structZero := em.fb.makeGeneralConstant(reflect.New(typ).Interface())
 			// When there are no values in the composite literal, optimize the
 			// creation of the struct.
 			if len(expr.KeyValues) == 0 {
@@ -1936,7 +1936,11 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			case *ast.CompositeLiteral:
 				tmp := em.fb.newRegister(reflect.Ptr)
 				em.fb.emitNew(exprType, tmp)
-				em.emitExprR(expr, exprType, -tmp)
+				if exprType.Kind() == reflect.Struct {
+					em.emitExprR(expr, exprType, tmp)
+				} else {
+					em.emitExprR(expr, exprType, -tmp)
+				}
 				em.changeRegister(false, tmp, reg, typ, dstType)
 			default:
 				panic("TODO(Gianluca): not implemented")
