@@ -14,10 +14,12 @@ import (
 )
 
 // parseExpr parses an expression and returns its tree and the last read token
-// that does not belong to the expression. tok is the first token of the
-// expression, canBeSwitchGuard reports whether the parsed expression can be a
-// type switch guard, as x.(type), and mustBeGuard reports whatever the
-// expression can be a type. parseExpr panics on error.
+// that does not belong to the expression. It panics on error.
+//
+// tok is the first token of the expression. canBeSwitchGuard reports whether
+// the parsed expression can be a type switch guard, as x.(type). mustBeGuard
+// reports whatever the expression can be a type. nextIsBlockBrace report
+// whether a left brace block is expected after the expression.
 func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlockBrace bool) (ast.Expression, token) {
 
 	// canCompositeLiteral reports whether the currently parsed expression can
@@ -556,10 +558,12 @@ func addLastOperand(op ast.Expression, path []ast.Operator) ast.Expression {
 
 // parseExprList parses a list of expressions separated by a comma and returns
 // the list and the last token read that can not be part of the last
-// expression. tok is the first token of the expression, allowSwitchGuard
-// reports whether a parsed expression can contain a type switch guard, and
-// allMustBeTypes report whatever all the expressions must be types.
-// parseExprList panics on error.
+// expression. It panics on error.
+//
+// tok is the first token of the expression, allowSwitchGuard reports whether
+// a parsed expression can contain a type switch guard. allMustBeTypes report
+// whatever all the expressions must be types. nextIsBlockBrace report whether
+// a left brace block is expected after the expression.
 func (p *parsing) parseExprList(tok token, allowSwitchGuard, allMustBeTypes, nextIsBlockBrace bool) ([]ast.Expression, token) {
 	var element ast.Expression
 	var elements []ast.Expression
