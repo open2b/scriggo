@@ -359,9 +359,11 @@ func (vm *VM) generalIndirect(r int8) interface{} {
 // copyStruct copies the first level of fields of the struct src into dst.
 // dst must be addressable.
 func copyStruct(dst, src reflect.Value) {
-	for i := 0; i < dst.NumField(); i++ {
-		dst.Field(i).Set(src.Field(i))
-	}
+	dst.Set(src)
+	// This doesn't work when struct have unexported fields.
+	// for i := 0; i < dst.NumField(); i++ {
+	// 	dst.Field(i).Set(src.Field(i))
+	// }
 }
 
 func (vm *VM) setGeneral(r int8, i interface{}) {
