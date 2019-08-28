@@ -349,32 +349,11 @@ func (vm *VM) generalIndirect(r int8) interface{} {
 		return elem.Slice(0, elem.Len()).Interface()
 	case reflect.Struct:
 		s := reflect.New(elem.Type())
-		copyStruct(s.Elem(), elem)
+		s.Elem().Set(elem)
 		return s.Interface()
 	default:
 		return elem.Interface()
 	}
-}
-
-// copyStruct copies the first level of fields of the struct src into dst.
-// dst must be addressable.
-func copyStruct(dst, src reflect.Value) {
-	// TODO(Gianluca): remove:
-	if dst.Kind() != reflect.Struct {
-		panic(fmt.Errorf("kind of dst must be reflect.Struct, got %v", dst.Kind()))
-	}
-	// TODO(Gianluca): remove:
-	if src.Kind() != reflect.Struct {
-		panic(fmt.Errorf("kind of src must be reflect.Struct, got %v", src.Kind()))
-	}
-	if !dst.CanAddr() {
-		panic("dst cannot addr")
-	}
-	dst.Set(src)
-	// This doesn't work when struct have unexported fields.
-	// for i := 0; i < dst.NumField(); i++ {
-	// 	dst.Field(i).Set(src.Field(i))
-	// }
 }
 
 func (vm *VM) setGeneral(r int8, i interface{}) {
@@ -450,7 +429,7 @@ func (vm *VM) setFromReflectValue(r int8, v reflect.Value) {
 		vm.setGeneral(r, v.Slice(0, v.Len()).Interface())
 	case reflect.Struct:
 		s := reflect.New(v.Type())
-		copyStruct(s.Elem(), v)
+		s.Elem().Set(v)
 		vm.setGeneral(r, s.Interface())
 	default:
 		vm.setGeneral(r, v.Interface())
