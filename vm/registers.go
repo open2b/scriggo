@@ -435,6 +435,10 @@ func (vm *VM) setFromReflectValue(r int8, v reflect.Value) {
 		vm.setGeneral(r, c)
 	case reflect.Array:
 		vm.setGeneral(r, v.Slice(0, v.Len()).Interface())
+	case reflect.Struct:
+		dst := reflect.New(v.Type())
+		copyStruct(dst.Elem(), v)
+		vm.setGeneral(r, dst.Interface())
 	default:
 		vm.setGeneral(r, v.Interface())
 	}
