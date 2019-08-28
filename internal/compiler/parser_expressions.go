@@ -18,12 +18,7 @@ import (
 // expression, canBeSwitchGuard reports whether the parsed expression can be a
 // type switch guard, as x.(type), and mustBeGuard reports whatever the
 // expression can be a type. parseExpr panics on error.
-//
-// TODO (Gianluca): mustBeType ritorna quando ha finito di parsare un tipo.
-// Devono però essere aggiunti i controlli che verifichino che effettivamente
-// ciò che è stato parsato sia un tipo.
-//
-func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlockOpen bool) (ast.Expression, token) {
+func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlockBrace bool) (ast.Expression, token) {
 
 	// canCompositeLiteral reports whether the currently parsed expression can
 	// be used as type in composite literals.
@@ -60,7 +55,6 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			operand.Pos().Start = pos.Start
 			operand.Pos().End = tok.pos.End
 			tok = p.next()
-		case tokenLeftBraces: // composite literal with no type.
 		case tokenMap:
 			canCompositeLiteral = true
 			mapType := ast.NewMapType(tok.pos, nil, nil)
@@ -265,16 +259,17 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			default:
 				operand = ast.NewArrayType(pos, length, typ)
 			}
+		case tokenLeftBraces: // composite literal with no type.
 		default:
 			return nil, tok
 		}
 
 		for operator == nil {
 
-			skip := mustBeType || (tok.typ == tokenLeftBraces && nextIsBlockOpen && !canCompositeLiteral)
-			backupTok := tok
-			if skip {
-				tok = token{}
+			dontEatLeftBraces := tok.typ == tokenLeftBraces && nextIsBlockBrace && !canCompositeLiteral
+			if dontEatLeftBraces || mustBeType {
+				operand = addLastOperand(operand, path)
+				return operand, tok
 			}
 
 			switch tok.typ {
@@ -430,33 +425,10 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				tokenRightShift:     // e >>
 				operator = ast.NewBinaryOperator(tok.pos, operatorType(tok.typ), nil, nil)
 			default:
-				if len(path) > 0 {
-					// Add the operand as a child of the leaf operator.
-					switch leaf := path[len(path)-1].(type) {
-					case *ast.UnaryOperator:
-						leaf.Expr = operand
-					case *ast.BinaryOperator:
-						leaf.Expr2 = operand
-					}
-					// Set the end for all the operators in path.
-					end := operand.Pos().End
-					for _, op := range path {
-						switch o := op.(type) {
-						case *ast.UnaryOperator:
-							o.Position.End = end
-						case *ast.BinaryOperator:
-							o.Position.End = end
-						}
-					}
-					// The operand is the the root of the expression tree.
-					operand = path[0]
-				}
 				if mustBeSwitchGuard && !isTypeGuard(operand) {
 					panic(syntaxError(tok.pos, "use of .(type) outside type switch"))
 				}
-				if skip {
-					tok = backupTok
-				}
+				operand = addLastOperand(operand, path)
 				return operand, tok
 			}
 
@@ -553,20 +525,42 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 
 }
 
+func addLastOperand(op ast.Expression, path []ast.Operator) ast.Expression {
+	if len(path) == 0 {
+		return op
+	}
+	// Add the operand as a child of the leaf operator.
+	switch leaf := path[len(path)-1].(type) {
+	case *ast.UnaryOperator:
+		leaf.Expr = op
+	case *ast.BinaryOperator:
+		leaf.Expr2 = op
+	}
+	// Set the end for all the operators in path.
+	end := op.Pos().End
+	for _, op := range path {
+		switch o := op.(type) {
+		case *ast.UnaryOperator:
+			o.Position.End = end
+		case *ast.BinaryOperator:
+			o.Position.End = end
+		}
+	}
+	// The operand is the the root of the expression tree.
+	return path[0]
+}
+
 // parseExprList parses a list of expressions separated by a comma and returns
 // the list and the last token read that can not be part of the last
 // expression. tok is the first token of the expression, allowSwitchGuard
 // reports whether a parsed expression can contain a type switch guard, and
 // allMustBeTypes report whatever all the expressions must be types.
 // parseExprList panics on error.
-//
-// TODO (Gianluca): nextIsBlockOpen should have a better name
-//
-func (p *parsing) parseExprList(tok token, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen bool) ([]ast.Expression, token) {
+func (p *parsing) parseExprList(tok token, allowSwitchGuard, allMustBeTypes, nextIsBlockBrace bool) ([]ast.Expression, token) {
 	var element ast.Expression
 	var elements []ast.Expression
 	for {
-		element, tok = p.parseExpr(tok, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen)
+		element, tok = p.parseExpr(tok, allowSwitchGuard, allMustBeTypes, nextIsBlockBrace)
 		if element == nil {
 			return elements, tok
 		}
