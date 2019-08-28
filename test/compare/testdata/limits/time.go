@@ -1,11 +1,7 @@
-//+build !windows
-
-// paniccheck -time=10ms
+// paniccheck -time=1ms
 
 package main
 
-import "time"
-
 func main() {
-	time.Sleep(3 * time.Millisecond)
+	select{}
 }
