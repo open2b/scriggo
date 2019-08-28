@@ -348,9 +348,9 @@ func (vm *VM) generalIndirect(r int8) interface{} {
 	case reflect.Array:
 		return elem.Slice(0, elem.Len()).Interface()
 	case reflect.Struct:
-		dst := reflect.New(elem.Type())
-		copyStruct(dst.Elem(), elem)
-		return dst.Interface()
+		s := reflect.New(elem.Type())
+		copyStruct(s.Elem(), elem)
+		return s.Interface()
 	default:
 		return elem.Interface()
 	}
@@ -436,9 +436,9 @@ func (vm *VM) setFromReflectValue(r int8, v reflect.Value) {
 	case reflect.Array:
 		vm.setGeneral(r, v.Slice(0, v.Len()).Interface())
 	case reflect.Struct:
-		dst := reflect.New(v.Type())
-		copyStruct(dst.Elem(), v)
-		vm.setGeneral(r, dst.Interface())
+		s := reflect.New(v.Type())
+		copyStruct(s.Elem(), v)
+		vm.setGeneral(r, s.Interface())
 	default:
 		vm.setGeneral(r, v.Interface())
 	}
