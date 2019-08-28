@@ -531,6 +531,8 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 
 }
 
+// addLastOperand adds the last operand to the expression parsing path and
+// returns the operand resulting from the parsing of the entire expression.
 func addLastOperand(op ast.Expression, path []ast.Operator) ast.Expression {
 	if len(path) == 0 {
 		return op
