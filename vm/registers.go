@@ -347,8 +347,20 @@ func (vm *VM) generalIndirect(r int8) interface{} {
 		}
 	case reflect.Array:
 		return elem.Slice(0, elem.Len()).Interface()
+	case reflect.Struct:
+		dst := reflect.New(elem.Type())
+		copyStruct(dst.Elem(), elem)
+		return dst.Interface()
 	default:
 		return elem.Interface()
+	}
+}
+
+// copyStruct copies the first level of fields of the struct src into dst.
+// dst must be addressable.
+func copyStruct(dst, src reflect.Value) {
+	for i := 0; i < dst.NumField(); i++ {
+		dst.Field(i).Set(src.Field(i))
 	}
 }
 
