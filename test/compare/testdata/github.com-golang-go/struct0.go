@@ -1,3 +1,5 @@
+// skip
+
 // run
 
 // Copyright 2011 The Go Authors. All rights reserved.
