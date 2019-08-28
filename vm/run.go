@@ -895,19 +895,18 @@ func (vm *VM) run() (uint32, bool) {
 			case TypeGeneral:
 				if op < 0 {
 					v := vm.generalk(b, true)
-					switch t := reflect.TypeOf(v); {
-					case t != nil && t.Kind() == reflect.Array:
-						rv := reflect.MakeSlice(reflect.SliceOf(t.Elem()), t.Len(), t.Len())
-						// It's not necessary to copy the elements from the
-						// original array to the new slice because the values
-						// stored in the slice of general constants are zeroes.
-						vm.setGeneral(c, rv.Interface())
-					case t != nil && t.Kind() == reflect.Struct:
-						rv := reflect.New(t)
-						vm.setGeneral(c, rv.Interface())
-					default:
-						vm.setGeneral(c, v)
+					if t := reflect.TypeOf(v); t != nil {
+						// Make a copy of the constant value.
+						// It's enough to create the zero since the general
+						// constant slice can contain only zeroes.
+						switch t.Kind() {
+						case reflect.Array:
+							v = reflect.MakeSlice(reflect.SliceOf(t.Elem()), t.Len(), t.Len()).Interface()
+						case reflect.Struct:
+							v = reflect.New(t).Interface()
+						}
 					}
+					vm.setGeneral(c, v)
 				} else {
 					vm.setGeneral(c, vm.general(b))
 				}
