@@ -15,14 +15,8 @@ import (
 // runtimeError represents a runtime error.
 type runtimeError string
 
-func (err runtimeError) Error() string { return "runtime error: " + string(err) }
+func (err runtimeError) Error() string { return string(err) }
 func (err runtimeError) RuntimeError() {}
-
-// runtimeNoPrefixError represents a runtime error without the prefix.
-type runtimeNoPrefixError string
-
-func (err runtimeNoPrefixError) Error() string { return string(err) }
-func (err runtimeNoPrefixError) RuntimeError() {}
 
 type TypeAssertionError struct {
 	interfac      reflect.Type
@@ -88,45 +82,45 @@ func (vm *VM) convertInternalError(msg interface{}) error {
 	switch op {
 	case OpAppendSlice:
 		if err, ok := msg.(string); ok && err == "reflect.Append: slice overflow" {
-			return runtimeNoPrefixError("append: out of memory")
+			return runtimeError("append: out of memory")
 		}
 	case OpClose:
 		if err, ok := msg.(runtime.Error); ok && err.Error() == "close of closed channel" {
-			return runtimeNoPrefixError("close of closed channel")
+			return runtimeError("close of closed channel")
 		}
 	case OpIndex, -OpIndex, OpSetSlice, -OpSetSlice:
 		switch err := msg.(type) {
 		case runtime.Error:
 			if err.Error() == "runtime error: index out of range" {
-				return runtimeError("index out of range")
+				return runtimeError("runtime error: index out of range")
 			}
 		case string:
 			if err == "reflect: slice index out of range" {
-				return runtimeError("index out of range")
+				return runtimeError("runtime error: index out of range")
 			}
 		}
 	case OpIndexString, -OpIndexString:
 		if err, ok := msg.(runtime.Error); ok && err.Error() == "runtime error: index out of range" {
-			return runtimeError("index out of range")
+			return runtimeError("runtime error: index out of range")
 		}
 	case OpMakeChan:
 		if err, ok := msg.(string); ok && err == "reflect.MakeChan: negative buffer size" {
-			return runtimeNoPrefixError("makechan: size out of range")
+			return runtimeError("makechan: size out of range")
 		}
 	case OpMakeSlice:
 		if err, ok := msg.(string); ok {
 			switch err {
 			case "reflect.MakeSlice: negative len":
-				return runtimeError("makeslice: len out of range")
+				return runtimeError("runtime error: makeslice: len out of range")
 			case "reflect.MakeSlice: negative cap", "reflect.MakeSlice: len > cap":
-				return runtimeError("makeslice: cap out of range")
+				return runtimeError("runtime error: makeslice: cap out of range")
 			}
 		}
 	case OpSend, -OpSend:
 		if err, ok := msg.(string); ok {
 			switch err {
 			case "close of nil channel", "send on closed channel":
-				return runtimeNoPrefixError(err)
+				return runtimeError(err)
 			}
 		}
 	}

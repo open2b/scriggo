@@ -484,7 +484,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 		fn.value = reflect.ValueOf(fn.Func)
 		if fn.value.IsNil() {
 			fn.mx.Unlock()
-			panic(runtimeError("invalid memory address or nil pointer dereference"))
+			panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
 		}
 		typ := fn.value.Type()
 		nIn := typ.NumIn()

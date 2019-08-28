@@ -886,7 +886,7 @@ func (vm *VM) run() (uint32, bool) {
 		case OpMethodValue:
 			receiver := vm.general(a)
 			if receiver == nil {
-				panic(runtimeError("invalid memory address or nil pointer dereference"))
+				panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
 			}
 			method := vm.stringk(b, true)
 			vm.setGeneral(c, &callable{receiver: receiver, method: method})
@@ -1654,7 +1654,7 @@ func (vm *VM) run() (uint32, bool) {
 			}
 			if i < 0 || j < i || k < j || k > sCap {
 				// https://github.com/open2b/scriggo/issues/321
-				panic(runtimeError("slice bounds out of range"))
+				panic(runtimeError("runtime error: slice bounds out of range"))
 			}
 			s = s.Slice3(i, j, k)
 			vm.setGeneral(c, s.Interface())
@@ -1673,7 +1673,7 @@ func (vm *VM) run() (uint32, bool) {
 			}
 			if i < 0 || j < i || j > len(s) {
 				// https://github.com/open2b/scriggo/issues/321
-				panic(runtimeError("slice bounds out of range"))
+				panic(runtimeError("runtime error: slice bounds out of range"))
 			}
 			vm.setString(c, s[i:j])
 

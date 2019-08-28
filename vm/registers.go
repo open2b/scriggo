@@ -63,7 +63,7 @@ func (vm *VM) intIndirect(r int8) int64 {
 	}
 	rv := reflect.ValueOf(v)
 	if rv.IsNil() {
-		panic(runtimeError("invalid memory address or nil pointer dereference"))
+		panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
 	}
 	elem := rv.Elem()
 	if k := elem.Kind(); reflect.Int <= k && k <= reflect.Int64 {
@@ -210,7 +210,7 @@ func (vm *VM) floatIndirect(r int8) float64 {
 	}
 	rv := reflect.ValueOf(v)
 	if rv.IsNil() {
-		panic(runtimeError("invalid memory address or nil pointer dereference"))
+		panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
 	}
 	return rv.Elem().Float()
 }
@@ -292,7 +292,7 @@ func (vm *VM) stringIndirect(r int8) string {
 	}
 	rv := reflect.ValueOf(v)
 	if rv.IsNil() {
-		panic(runtimeError("invalid memory address or nil pointer dereference"))
+		panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
 	}
 	return rv.Elem().String()
 }
@@ -334,7 +334,7 @@ func (vm *VM) generalk(r int8, k bool) interface{} {
 func (vm *VM) generalIndirect(r int8) interface{} {
 	rv := reflect.ValueOf(vm.regs.general[vm.fp[3]+uint32(r)])
 	if rv.IsNil() {
-		panic(runtimeError("invalid memory address or nil pointer dereference"))
+		panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
 	}
 	elem := rv.Elem()
 	switch elem.Kind() {
@@ -524,7 +524,7 @@ func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{}
 		ol := s.Len()
 		nl := ol + length
 		if nl < ol {
-			panic(runtimeNoPrefixError("append: out of memory"))
+			panic(runtimeError("append: out of memory"))
 		}
 		if c := s.Cap(); nl <= c {
 			s = s.Slice(0, nl)
