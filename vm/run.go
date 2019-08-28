@@ -1309,19 +1309,19 @@ func (vm *VM) run() (uint32, bool) {
 				if c != 0 {
 					vm.setString(c, v)
 				}
-			// case chan struct{}:
-			// 	if vm.done == nil {
-			// 		_, vm.ok = <-ch
-			// 	} else {
-			// 		select {
-			// 		case _, vm.ok = <-ch:
-			// 		case <-vm.done:
-			// 			panic(OutOfTimeError{vm.env})
-			// 		}
-			// 	}
-			// 	if c != 0 {
-			// 		vm.setGeneral(c, &struct{}{})
-			// 	}
+			case chan struct{}:
+				if vm.done == nil {
+					_, vm.ok = <-ch
+				} else {
+					select {
+					case _, vm.ok = <-ch:
+					case <-vm.done:
+						panic(OutOfTimeError{vm.env})
+					}
+				}
+				if c != 0 {
+					vm.setGeneral(c, struct{}{})
+				}
 			default:
 				var v reflect.Value
 				if vm.done == nil {
