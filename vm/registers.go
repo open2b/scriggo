@@ -524,7 +524,7 @@ func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{}
 		ol := s.Len()
 		nl := ol + length
 		if nl < ol {
-			panic(OutOfMemoryError{vm.env})
+			panic(runtimeNoPrefixError("append: out of memory"))
 		}
 		if c := s.Cap(); nl <= c {
 			s = s.Slice(0, nl)

@@ -8,6 +8,7 @@ package vm
 
 import (
 	"reflect"
+	"runtime"
 	"strconv"
 )
 
@@ -16,6 +17,12 @@ type runtimeError string
 
 func (err runtimeError) Error() string { return "runtime error: " + string(err) }
 func (err runtimeError) RuntimeError() {}
+
+// runtimeNoPrefixError represents a runtime error without the prefix.
+type runtimeNoPrefixError string
+
+func (err runtimeNoPrefixError) Error() string { return string(err) }
+func (err runtimeNoPrefixError) RuntimeError() {}
 
 type TypeAssertionError struct {
 	interfac      reflect.Type
@@ -46,20 +53,6 @@ func (e TypeAssertionError) Error() string {
 
 func (e TypeAssertionError) RuntimeError() {}
 
-// runtimeIndex returns the v's i'th element. If i is out of range, it panics
-// with a runtimeError error.
-func runtimeIndex(v reflect.Value, i int) reflect.Value {
-	defer func() {
-		if err := recover(); err != nil {
-			if _, ok := err.(string); ok {
-				err = runtimeError("index out of range")
-			}
-			panic(err)
-		}
-	}()
-	return v.Index(i)
-}
-
 // OutOfTimeError represents a runtime out of time error.
 type OutOfTimeError struct {
 	env *Env
@@ -82,3 +75,60 @@ func (err OutOfMemoryError) Error() string {
 }
 
 func (err OutOfMemoryError) RuntimeError() {}
+
+// convertInternalError converts an internal error, from a panic, to a Go
+// error.
+func (vm *VM) convertInternalError(msg interface{}) error {
+	var op Operation
+	if vm.pc > 1 && vm.fn.Body[vm.pc-2].Op == OpMakeSlice {
+		op = OpMakeSlice
+	} else {
+		op = vm.fn.Body[vm.pc-1].Op
+	}
+	switch op {
+	case OpAppendSlice:
+		if err, ok := msg.(string); ok && err == "reflect.Append: slice overflow" {
+			return runtimeNoPrefixError("append: out of memory")
+		}
+	case OpClose:
+		if err, ok := msg.(error); ok && err.Error() == "close of closed channel" {
+			return runtimeNoPrefixError("close of closed channel")
+		}
+	case OpIndex, -OpIndex, OpSetSlice, -OpSetSlice:
+		switch err := msg.(type) {
+		case runtime.Error:
+			if err.Error() == "runtime error: index out of range" {
+				return runtimeError("index out of range")
+			}
+		case string:
+			if err == "reflect: slice index out of range" {
+				return runtimeError("index out of range")
+			}
+		}
+	case OpIndexString, -OpIndexString:
+		if err, ok := msg.(runtime.Error); ok && err.Error() == "runtime error: index out of range" {
+			return runtimeError("index out of range")
+		}
+	case OpMakeChan:
+		if err, ok := msg.(string); ok && err == "reflect.MakeChan: negative buffer size" {
+			return runtimeNoPrefixError("makechan: size out of range")
+		}
+	case OpMakeSlice:
+		if err, ok := msg.(string); ok {
+			switch err {
+			case "reflect.MakeSlice: negative len":
+				return runtimeError("makeslice: len out of range")
+			case "reflect.MakeSlice: negative cap", "reflect.MakeSlice: len > cap":
+				return runtimeError("makeslice: cap out of range")
+			}
+		}
+	case OpSend, -OpSend:
+		if err, ok := msg.(string); ok {
+			switch err {
+			case "close of nil channel", "send on closed channel":
+				return runtimeNoPrefixError(err)
+			}
+		}
+	}
+	return nil
+}

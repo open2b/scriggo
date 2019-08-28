@@ -52,9 +52,10 @@ func main() {
 	test17()
 	test18()
 	test19()
-	test20()
-	test21()
-	test22()
+	test20a()
+	test20b()
+	test20c()
+	test20d()
 
 }
 
@@ -280,20 +281,26 @@ func test19() {
 	close(a)
 }
 
-func test20() {
+func test20a() {
 	defer recoverRuntimePanic("runtime error: makeslice: len out of range")
 	a := -1
 	_ = make([]testpkg.T, a)
 }
 
-func test21() {
+func test20b() {
 	defer recoverRuntimePanic("runtime error: makeslice: cap out of range")
 	a := -1
 	_ = make([]testpkg.T, 0, a)
 }
 
-func test22() {
+func test20c() {
 	defer recoverRuntimePanic("runtime error: makeslice: cap out of range")
 	a := 1
 	_ = make([]testpkg.T, a+1, a)
+}
+
+func test20d() {
+	defer recoverRuntimePanic("makechan: size out of range")
+	a := -1
+	_ = make(chan testpkg.T, a)
 }

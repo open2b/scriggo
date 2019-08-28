@@ -10,7 +10,6 @@ import (
 	"context"
 	"reflect"
 	"strconv"
-	"strings"
 	"sync"
 )
 
@@ -1153,25 +1152,6 @@ func missingMethod(typ reflect.Type, iface reflect.Type) string {
 		}
 	}
 	return ""
-}
-
-// MakeSlice creates a slice value for the specified slice type, length, and
-// capacity. If len and cap are out of range, it panics with a runtimeError
-// error.
-func runtimeMakeSlice(typ reflect.Type, len, cap int) reflect.Value {
-	defer func() {
-		if err := recover(); err != nil {
-			if s, ok := err.(string); ok {
-				if strings.HasSuffix(s, "negative len") {
-					err = runtimeError("makeslice: len out of range")
-				} else {
-					err = runtimeError("makeslice: cap out of range")
-				}
-			}
-			panic(err)
-		}
-	}()
-	return reflect.MakeSlice(typ, len, cap)
 }
 
 type Panic struct {

@@ -27,7 +27,11 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
 			vm.panics = vm.panics[:0]
 			err = e
 			break
-		} else if len(vm.calls) == 0 {
+		}
+		if err := vm.convertInternalError(msg); err != nil {
+			vm.panics[len(vm.panics)-1].Msg = err
+		}
+		if len(vm.calls) == 0 {
 			break
 		}
 		vm.calls = append(vm.calls, callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: panicked})
@@ -760,7 +764,7 @@ func (vm *VM) run() (uint32, bool) {
 			case []interface{}:
 				vm.setGeneral(c, v[i])
 			default:
-				vm.setFromReflectValue(c, runtimeIndex(reflect.ValueOf(v), i))
+				vm.setFromReflectValue(c, reflect.ValueOf(v).Index(i))
 			}
 		case OpIndexMap, -OpIndexMap:
 			m := vm.general(a)
@@ -876,7 +880,7 @@ func (vm *VM) run() (uint32, bool) {
 				capIsConst := (b & (1 << 2)) != 0
 				cap = int(vm.intk(next.B, capIsConst))
 			}
-			vm.setGeneral(c, runtimeMakeSlice(typ, len, cap).Interface())
+			vm.setGeneral(c, reflect.MakeSlice(typ, len, cap).Interface())
 
 		// MethodValue
 		case OpMethodValue:
@@ -1606,7 +1610,7 @@ func (vm *VM) run() (uint32, bool) {
 			case []interface{}:
 				s[i] = vm.generalk(b, op < 0)
 			default:
-				v := runtimeIndex(reflect.ValueOf(s), int(i))
+				v := reflect.ValueOf(s).Index(int(i))
 				vm.getIntoReflectValue(b, v, op < 0)
 			}
 
