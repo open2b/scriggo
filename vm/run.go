@@ -901,6 +901,9 @@ func (vm *VM) run() (uint32, bool) {
 						// original array to the new slice because the values
 						// stored in the slice of general constants are zeroes.
 						vm.setGeneral(c, rv.Interface())
+					} else if t := reflect.TypeOf(v); t != nil && t.Kind() == reflect.Struct {
+						rv := reflect.New(t)
+						vm.setGeneral(c, rv.Interface())
 					} else {
 						vm.setGeneral(c, v)
 					}
@@ -1316,7 +1319,7 @@ func (vm *VM) run() (uint32, bool) {
 					}
 				}
 				if c != 0 {
-					vm.setGeneral(c, struct{}{})
+					vm.setGeneral(c, &struct{}{})
 				}
 			default:
 				var v reflect.Value
