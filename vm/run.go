@@ -1509,16 +1509,16 @@ func (vm *VM) run() (uint32, bool) {
 						panic(OutOfTimeError{vm.env})
 					}
 				}
-			// case chan struct{}:
-			// 	if vm.done == nil {
-			// 		ch <- struct{}{}
-			// 	} else {
-			// 		select {
-			// 		case ch <- struct{}{}:
-			// 		case <-vm.done:
-			// 			panic(OutOfTimeError{vm.env})
-			// 		}
-			// 	}
+			case chan struct{}:
+				if vm.done == nil {
+					ch <- struct{}{}
+				} else {
+					select {
+					case ch <- struct{}{}:
+					case <-vm.done:
+						panic(OutOfTimeError{vm.env})
+					}
+				}
 			default:
 				r := reflect.ValueOf(ch)
 				elemType := r.Type().Elem()
