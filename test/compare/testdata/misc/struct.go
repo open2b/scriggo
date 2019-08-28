@@ -54,4 +54,12 @@ func main() {
 		fmt.Printf("%v %T", s, s)
 		fmt.Printf("%v %T", s.A, s.A)
 	}
+	{
+		p1 := &struct{ A int }{20}
+		s1 := *p1
+		p2 := &s1
+		fmt.Printf("%v %T", p1, p1)
+		fmt.Printf("%v %T", s1, s1)
+		fmt.Printf("%v %T", p2, p2)
+	}
 }
