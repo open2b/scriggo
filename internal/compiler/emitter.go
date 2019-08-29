@@ -1959,6 +1959,10 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			return reg, false
 		}
 
+		// TODO: this is a copy-paste code (with some minor changes) from
+		// emitUnaryOperator; there must be a better way to handle this without
+		// having to duplicate all the code.
+
 		// Clojure variable.
 		if index, ok := em.closureVarRefs[em.fb.fn][expr.Name]; ok {
 			if canEmitDirectly(typ.Kind(), dstType.Kind()) {
@@ -2547,6 +2551,10 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 				em.fb.emitMove(false, -varr, reg, dstType.Kind())
 				return
 			}
+			// TODO: this is a copy-paste code (with some minor changes) from
+			// case *ast.Identifier of emitExpr; there must be a better way to
+			// handle this without having to duplicate all the code.
+
 			// Clojure variable address.
 			if index, ok := em.closureVarRefs[em.fb.fn][operand.Name]; ok {
 				if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
