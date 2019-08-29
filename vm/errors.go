@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"runtime"
 	"strconv"
+	"strings"
 )
 
 // FatalError represents a fatal error. A fatal error cannot be recovered by
@@ -94,8 +95,8 @@ func (vm *VM) convertInternalError(msg interface{}) error {
 	case OpAddr, OpIndex, -OpIndex, OpSetSlice, -OpSetSlice:
 		switch err := msg.(type) {
 		case runtime.Error:
-			if err.Error() == "runtime error: index out of range" {
-				return runtimeError("runtime error: index out of range")
+			if s := err.Error(); s == "runtime error: index out of range" {
+				return runtimeError(s)
 			}
 		case string:
 			if err == "reflect: slice index out of range" {
@@ -114,8 +115,10 @@ func (vm *VM) convertInternalError(msg interface{}) error {
 			}
 		}
 	case OpIndexString, -OpIndexString:
-		if err, ok := msg.(runtime.Error); ok && err.Error() == "runtime error: index out of range" {
-			return runtimeError("runtime error: index out of range")
+		if err, ok := msg.(runtime.Error); ok {
+			if s := err.Error(); s == "runtime error: index out of range" {
+				return runtimeError(s)
+			}
 		}
 	case OpMakeChan:
 		if err, ok := msg.(string); ok && err == "reflect.MakeChan: negative buffer size" {
@@ -131,15 +134,19 @@ func (vm *VM) convertInternalError(msg interface{}) error {
 			}
 		}
 	case OpSend, -OpSend:
-		if err, ok := msg.(string); ok {
-			switch err {
+		if s, ok := msg.(string); ok {
+			switch s {
 			case "close of nil channel", "send on closed channel":
-				return runtimeError(err)
+				return runtimeError(s)
 			}
 		}
 	case OpSetMap, -OpSetMap:
-		if err, ok := msg.(runtime.Error); ok && err.Error() == "assignment to entry in nil map" {
-			return runtimeError("assignment to entry in nil map")
+		if err, ok := msg.(runtime.Error); ok {
+			s := err.Error()
+			if s == "assignment to entry in nil map" ||
+				strings.HasPrefix(s, "runtime error: hash of unhashable type ") {
+				return runtimeError(s)
+			}
 		}
 	}
 	return nil
