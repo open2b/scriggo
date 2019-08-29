@@ -307,7 +307,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 					case tokenComma, tokenRightBraces:
 						keyValues = append(keyValues, ast.KeyValue{Key: nil, Value: expr})
 					default:
-						panic(syntaxError(tok.pos, "unexpected %s, expecting expecting comma or }", tok))
+						panic(syntaxError(tok.pos, "unexpected %s, expecting comma or }", tok))
 					}
 					if tok.typ == tokenRightBraces {
 						break
