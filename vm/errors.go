@@ -80,15 +80,7 @@ func (vm *VM) convertInternalError(msg interface{}) error {
 		op = vm.fn.Body[vm.pc-1].Op
 	}
 	switch op {
-	case OpAppendSlice:
-		if err, ok := msg.(string); ok && err == "reflect.Append: slice overflow" {
-			return runtimeError("append: out of memory")
-		}
-	case OpClose:
-		if err, ok := msg.(runtime.Error); ok && err.Error() == "close of closed channel" {
-			return runtimeError("close of closed channel")
-		}
-	case OpIndex, -OpIndex, OpSetSlice, -OpSetSlice:
+	case OpAddr, OpIndex, -OpIndex, OpSetSlice, -OpSetSlice:
 		switch err := msg.(type) {
 		case runtime.Error:
 			if err.Error() == "runtime error: index out of range" {
@@ -98,6 +90,14 @@ func (vm *VM) convertInternalError(msg interface{}) error {
 			if err == "reflect: slice index out of range" {
 				return runtimeError("runtime error: index out of range")
 			}
+		}
+	case OpAppendSlice:
+		if err, ok := msg.(string); ok && err == "reflect.Append: slice overflow" {
+			return runtimeError("append: out of memory")
+		}
+	case OpClose:
+		if err, ok := msg.(runtime.Error); ok && err.Error() == "close of closed channel" {
+			return runtimeError("close of closed channel")
 		}
 	case OpIndexString, -OpIndexString:
 		if err, ok := msg.(runtime.Error); ok && err.Error() == "runtime error: index out of range" {
