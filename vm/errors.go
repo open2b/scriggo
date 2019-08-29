@@ -137,6 +137,10 @@ func (vm *VM) convertInternalError(msg interface{}) error {
 				return runtimeError(err)
 			}
 		}
+	case OpSetMap, -OpSetMap:
+		if err, ok := msg.(runtime.Error); ok && err.Error() == "assignment to entry in nil map" {
+			return runtimeError("assignment to entry in nil map")
+		}
 	}
 	return nil
 }
