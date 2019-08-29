@@ -323,7 +323,22 @@ func (vm *VM) general(r int8) interface{} {
 
 func (vm *VM) generalk(r int8, k bool) interface{} {
 	if k {
-		return vm.fn.Constants.General[uint8(r)]
+		v := vm.fn.Constants.General[uint8(r)]
+		// Values in the general constant slice have the external
+		// representation, so they must be converted to the internal before
+		// putting them into a register of the VM.
+		if t := reflect.TypeOf(v); t != nil {
+			// Make a copy of the constant value.
+			// It's enough to create the zero since the general
+			// constant slice can contain only zeroes.
+			switch t.Kind() {
+			case reflect.Array:
+				v = reflect.MakeSlice(reflect.SliceOf(t.Elem()), t.Len(), t.Len()).Interface()
+			case reflect.Struct:
+				v = reflect.New(t).Interface()
+			}
+		}
+		return v
 	}
 	if r > 0 {
 		return vm.regs.general[vm.fp[3]+uint32(r)]

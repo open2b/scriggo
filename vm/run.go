@@ -897,23 +897,7 @@ func (vm *VM) run() (uint32, bool) {
 			case TypeFloat:
 				vm.setFloat(c, vm.floatk(b, op < 0))
 			case TypeGeneral:
-				if op < 0 {
-					v := vm.generalk(b, true)
-					if t := reflect.TypeOf(v); t != nil {
-						// Make a copy of the constant value.
-						// It's enough to create the zero since the general
-						// constant slice can contain only zeroes.
-						switch t.Kind() {
-						case reflect.Array:
-							v = reflect.MakeSlice(reflect.SliceOf(t.Elem()), t.Len(), t.Len()).Interface()
-						case reflect.Struct:
-							v = reflect.New(t).Interface()
-						}
-					}
-					vm.setGeneral(c, v)
-				} else {
-					vm.setGeneral(c, vm.general(b))
-				}
+				vm.setGeneral(c, vm.generalk(b, op < 0))
 			case TypeInt:
 				vm.setInt(c, vm.intk(b, op < 0))
 			case TypeString:
