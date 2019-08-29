@@ -47,22 +47,18 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
 	vm.env.mu.Unlock()
 	// Manage error and panics.
 	if len(vm.panics) > 0 {
-		if vm.env.dontPanic {
-			err = vm.panics[0]
-		} else {
-			var msg string
-			for i, p := range vm.panics {
-				if i > 0 {
-					msg += "\tpanic: "
-				}
-				msg += p.String()
-				if p.Recovered {
-					msg += " [recovered]"
-				}
-				msg += "\n"
+		var msg string
+		for i, p := range vm.panics {
+			if i > 0 {
+				msg += "\tpanic: "
 			}
-			panic(msg)
+			msg += p.String()
+			if p.Recovered {
+				msg += " [recovered]"
+			}
+			msg += "\n"
 		}
+		panic(msg)
 	}
 	return 0, err
 }

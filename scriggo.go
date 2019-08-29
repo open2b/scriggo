@@ -110,20 +110,6 @@ func (p *Program) Run(options *RunOptions) error {
 	return err
 }
 
-// Start starts the program in a new goroutine and returns its virtual machine
-// execution environment.
-//
-// Panics if the option MaxMemorySize is greater than zero but the program has
-// not been loaded with option LimitMemorySize.
-func (p *Program) Start(options *RunOptions) *vm.Env {
-	if options != nil && options.MaxMemorySize > 0 && !p.options.LimitMemorySize {
-		panic("scriggo: program not loaded with LimitMemorySize option")
-	}
-	vmm := newVM(options)
-	go vmm.Run(p.fn, initGlobals(p.globals, nil))
-	return vmm.Env()
-}
-
 // Disassemble disassembles the package with the given path. Predefined
 // packages can not be disassembled.
 func (p *Program) Disassemble(w io.Writer, pkgPath string) (int64, error) {
@@ -199,21 +185,6 @@ func (s *Script) Run(init map[string]interface{}, options *RunOptions) error {
 	return err
 }
 
-// Start starts the script in a new goroutine, with initialization values for
-// the global variables, and returns its virtual machine execution
-// environment.
-//
-// Panics if the option MaxMemorySize is greater than zero but the script has
-// not been loaded with option LimitMemorySize.
-func (s *Script) Start(init map[string]interface{}, options *RunOptions) *vm.Env {
-	if options != nil && options.MaxMemorySize > 0 && !s.options.LimitMemorySize {
-		panic("scriggo: script not loaded with LimitMemorySize option")
-	}
-	vmm := newVM(options)
-	go vmm.Run(s.fn, initGlobals(s.globals, init))
-	return vmm.Env()
-}
-
 // newVM returns a new vm with the given options.
 func newVM(options *RunOptions) *vm.VM {
 	vmm := vm.New()
@@ -223,9 +194,6 @@ func newVM(options *RunOptions) *vm.VM {
 		}
 		if options.MaxMemorySize > 0 {
 			vmm.SetMaxMemory(options.MaxMemorySize)
-		}
-		if options.DontPanic {
-			vmm.SetDontPanic(true)
 		}
 		if options.PrintFunc != nil {
 			vmm.SetPrint(options.PrintFunc)
