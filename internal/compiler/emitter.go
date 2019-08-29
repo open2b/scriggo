@@ -2547,7 +2547,29 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 				em.fb.emitMove(false, -varr, reg, dstType.Kind())
 				return
 			}
-			panic("TODO(Gianluca): not implemented")
+			// Clojure variable address.
+			if index, ok := em.closureVarRefs[em.fb.fn][operand.Name]; ok {
+				if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
+					em.fb.emitGetVarAddr(index, reg)
+					return
+				}
+				tmp := em.fb.newRegister(operandType.Kind())
+				em.fb.emitGetVarAddr(index, tmp)
+				em.changeRegister(false, tmp, reg, operandType, dstType)
+				return
+			}
+			// Scriggo variable.
+			if index, ok := em.availableVarIndexes[em.pkg][operand.Name]; ok {
+				if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
+					em.fb.emitGetVarAddr(int(index), reg)
+					return
+				}
+				tmp := em.fb.newRegister(operandType.Kind())
+				em.fb.emitGetVarAddr(int(index), tmp)
+				em.changeRegister(false, tmp, reg, operandType, dstType)
+				return
+			}
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 
 		// &*a
 		case *ast.UnaryOperator:
