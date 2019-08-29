@@ -55,7 +55,7 @@ func (builder *functionBuilder) emitAdd(k bool, x, y, z int8, kind reflect.Kind)
 //
 //    dest = &expr[index]
 //
-// Index must be a register in case of slice/address indexing and a integer
+// Index must be a register in case of slice/address indexing and an integer
 // constant index in case of a struct field.
 func (builder *functionBuilder) emitAddr(expr, index, dest int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpAddr, A: expr, B: index, C: dest})
@@ -434,7 +434,6 @@ func (builder *functionBuilder) emitGetVar(v int, r int8) {
 //
 func (builder *functionBuilder) emitGetVarAddr(v int, r int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpGetVarAddr, A: int8(v >> 8), B: int8(v), C: r})
-
 }
 
 // emitGo appends a new "Go" instruction to the function body.

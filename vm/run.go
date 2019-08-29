@@ -128,17 +128,13 @@ func (vm *VM) run() (uint32, bool) {
 		case OpAddr:
 			rv := reflect.ValueOf(vm.general(a))
 			switch rv.Kind() {
-			// slice or addressable array
 			case reflect.Slice:
 				i := int(vm.int(b))
 				vm.setFromReflectValue(c, rv.Index(i).Addr())
-			// struct
 			case reflect.Ptr:
 				i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
 				v := reflect.ValueOf(vm.general(a)).Elem().FieldByIndex(i).Addr()
 				vm.setFromReflectValue(c, v)
-			default:
-				panic("bug") // TODO: remove.
 			}
 
 		// Alloc
