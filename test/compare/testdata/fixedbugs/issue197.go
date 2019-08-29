@@ -34,4 +34,10 @@ func main() {
 		p2 := &a[0]
 		fmt.Println(p1 == p2)
 	}
+	{
+		s := struct{ A int }{A: 20}
+		p1 := &s.A
+		p2 := &s.A
+		fmt.Println(p1 == p2)
+	}
 }

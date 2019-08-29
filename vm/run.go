@@ -138,7 +138,9 @@ func (vm *VM) run() (uint32, bool) {
 				vm.setFromReflectValue(c, rv.Index(i).Addr())
 			// struct
 			case reflect.Ptr:
-				panic("TODO: not implemented") // TODO(Gianluca): to implement.
+				i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
+				v := reflect.ValueOf(vm.general(a)).Elem().FieldByIndex(i).Addr()
+				vm.setFromReflectValue(c, v)
 			default:
 				panic("bug") // TODO: remove.
 			}

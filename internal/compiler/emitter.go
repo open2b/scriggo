@@ -2600,7 +2600,19 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 
 		// &s.Field
 		case *ast.Selector:
-			panic("TODO(Gianluca): not implemented")
+			operandExprType := em.ti(operand.Expr).Type
+			expr := em.emitExpr(operand.Expr, operandExprType)
+			field, _ := operandExprType.FieldByName(operand.Ident)
+			index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+			if canEmitDirectly(reflect.PtrTo(field.Type).Kind(), dstType.Kind()) {
+				em.fb.emitAddr(expr, index, reg)
+				return
+			}
+			em.fb.enterStack()
+			tmp := em.fb.newRegister(reflect.Ptr)
+			em.fb.emitAddr(expr, index, tmp)
+			em.changeRegister(false, tmp, reg, reflect.PtrTo(field.Type), dstType)
+			em.fb.exitStack()
 
 		// &T{..}
 		case *ast.CompositeLiteral:
