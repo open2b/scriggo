@@ -107,8 +107,11 @@ func (vm *VM) convertInternalError(msg interface{}) error {
 			return runtimeError("append: out of memory")
 		}
 	case OpClose:
-		if err, ok := msg.(runtime.Error); ok && err.Error() == "close of closed channel" {
-			return runtimeError("close of closed channel")
+		if err, ok := msg.(runtime.Error); ok {
+			switch s := err.Error(); s {
+			case "close of closed channel", "close of nil channel":
+				return runtimeError(s)
+			}
 		}
 	case OpIndexString, -OpIndexString:
 		if err, ok := msg.(runtime.Error); ok && err.Error() == "runtime error: index out of range" {
