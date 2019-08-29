@@ -146,3 +146,15 @@ func (env *Env) doPrint(arg interface{}) {
 		print(r.String())
 	}
 }
+
+func (env *Env) exit() {
+	env.mu.Lock()
+	if !env.exited {
+		for _, f := range env.exits {
+			go f()
+		}
+		env.exits = nil
+		env.exited = true
+	}
+	env.mu.Unlock()
+}

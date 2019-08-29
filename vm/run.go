@@ -40,14 +40,7 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
 		vm.calls = append(vm.calls, callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: panicked})
 		vm.fn = nil
 	}
-	// Call exit functions.
-	vm.env.mu.Lock()
-	for _, f := range vm.env.exits {
-		go f()
-	}
-	vm.env.exits = nil
-	vm.env.exited = true
-	vm.env.mu.Unlock()
+	vm.env.exit()
 	// Manage error and panics.
 	if len(vm.panics) > 0 {
 		var msg string
