@@ -55,12 +55,10 @@ func (builder *functionBuilder) emitAdd(k bool, x, y, z int8, kind reflect.Kind)
 //
 //    dest = &expr[index]
 //
-func (builder *functionBuilder) emitAddr(kIndex bool, expr, index, dest int8) {
-	op := vm.OpAddr
-	if kIndex {
-		op = -op
-	}
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: expr, B: index, C: dest})
+// Index must be a register in case of slice/address indexing and a integer
+// constant index in case of a struct field.
+func (builder *functionBuilder) emitAddr(expr, index, dest int8) {
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpAddr, A: expr, B: index, C: dest})
 }
 
 // emitAnd appends a new "And" instruction to the function body.

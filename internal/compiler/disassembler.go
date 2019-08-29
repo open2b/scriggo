@@ -244,7 +244,7 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		s += " " + disassembleOperand(fn, c, vm.Float64, false)
 	case vm.OpAddr:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + disassembleOperand(fn, b, vm.Int, k)
+		s += " " + disassembleOperand(fn, b, vm.Int, false)
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpAlloc:
 		if k {

@@ -2589,11 +2589,11 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 			expr := em.emitExpr(operand.Expr, em.ti(operand.Expr).Type)
 			index := em.emitExpr(operand.Index, intType)
 			if canEmitDirectly(unOpType.Kind(), dstType.Kind()) {
-				em.fb.emitAddr(false, expr, index, reg) // TODO: use kIndex.
+				em.fb.emitAddr(expr, index, reg)
 			}
 			em.fb.enterStack()
 			tmp := em.fb.newRegister(unOpType.Kind())
-			em.fb.emitAddr(false, expr, index, tmp) // TODO: use kIndex.
+			em.fb.emitAddr(expr, index, tmp)
 			em.changeRegister(false, tmp, reg, unOpType, dstType)
 			em.fb.exitStack()
 

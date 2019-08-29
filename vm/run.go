@@ -129,12 +129,12 @@ func (vm *VM) run() (uint32, bool) {
 			vm.setFloat(c, vm.float(a)+float64(b))
 
 		// Addr
-		case OpAddr, -OpAddr:
+		case OpAddr:
 			rv := reflect.ValueOf(vm.general(a))
 			switch rv.Kind() {
 			// slice or addressable array
 			case reflect.Slice:
-				i := int(vm.intk(b, op < 0))
+				i := int(vm.int(b))
 				vm.setFromReflectValue(c, rv.Index(i).Addr())
 			// struct
 			case reflect.Ptr:
