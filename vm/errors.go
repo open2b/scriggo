@@ -12,6 +12,17 @@ import (
 	"strconv"
 )
 
+// FatalError represents a fatal error. A fatal error cannot be recovered by
+// the running program.
+type FatalError struct {
+	env *Env
+	msg interface{}
+}
+
+func (err FatalError) Error() string {
+	return "fatal error: " + panicToString(err.msg)
+}
+
 // runtimeError represents a runtime error.
 type runtimeError string
 

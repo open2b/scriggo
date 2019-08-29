@@ -1,7 +1,11 @@
 // package testpkg is a package containing declarations used in tests.
 package testpkg
 
-import "fmt"
+import (
+	"fmt"
+
+	"scriggo/vm"
+)
 
 func G00()          {}
 func G01() int      { return 40 }
@@ -90,4 +94,8 @@ func F10() int { fmt.Println("f10"); return 5 }
 func F11(a string, b float64, c []string) (string, error) {
 	fmt.Printf("f11 %q %f %v\n", a, b, c)
 	return "", nil
+}
+
+func Fatal(env *vm.Env, v interface{}) {
+	env.Fatal(v)
 }

@@ -1152,8 +1152,12 @@ type Panic struct {
 	StackTrace []byte
 }
 
-func (p Panic) String() string {
-	switch v := p.Msg.(type) {
+func (err Panic) String() string {
+	return panicToString(err.Msg)
+}
+
+func panicToString(msg interface{}) string {
+	switch v := msg.(type) {
 	case nil:
 		return "nil"
 	case bool:
