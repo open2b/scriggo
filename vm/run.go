@@ -611,6 +611,23 @@ func (vm *VM) run() (uint32, bool) {
 				vm.setFromReflectValue(c, rv)
 			}
 
+		// GetVarAddr
+		case OpGetVarAddr:
+			v := vm.vars[int(a)<<8|int(uint8(b))]
+			switch v := v.(type) {
+			case *bool:
+				vm.setGeneral(c, v)
+			case *int:
+				vm.setGeneral(c, v)
+			case *float64:
+				vm.setGeneral(c, v)
+			case *string:
+				vm.setGeneral(c, v)
+			default:
+				rv := reflect.ValueOf(v)
+				vm.setFromReflectValue(c, rv)
+			}
+
 		// Go
 		case OpGo:
 			wasPredefined := vm.startGoroutine()

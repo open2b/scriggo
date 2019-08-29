@@ -265,7 +265,7 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		t := fn.Types[int(uint(b))]
 		var kind = reflectToRegisterKind(t.Kind())
 		s += " " + disassembleOperand(fn, c, kind, false)
-	case vm.OpBind, vm.OpGetVar:
+	case vm.OpBind, vm.OpGetVar, vm.OpGetVarAddr:
 		s += " " + disassembleVarRef(fn, globals, int16(int(a)<<8|int(uint8(b))))
 		s += " " + disassembleOperand(fn, c, vm.Unknown, false)
 	case vm.OpBreak, vm.OpContinue, vm.OpGoto:
@@ -771,7 +771,8 @@ var operationName = [...]string{
 
 	vm.OpGetFunc: "GetFunc",
 
-	vm.OpGetVar: "GetVar",
+	vm.OpGetVar:     "GetVar",
+	vm.OpGetVarAddr: "GetVarAddr",
 
 	vm.OpGo: "Go",
 

@@ -430,6 +430,15 @@ func (builder *functionBuilder) emitGetVar(v int, r int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpGetVar, A: int8(v >> 8), B: int8(v), C: r})
 }
 
+// emitGetVarAddr appends a new "GetVarAddr" instruction to the function body.
+//
+//	   r = &v
+//
+func (builder *functionBuilder) emitGetVarAddr(v int, r int8) {
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpGetVarAddr, A: int8(v >> 8), B: int8(v), C: r})
+
+}
+
 // emitGo appends a new "Go" instruction to the function body.
 //
 //     go
