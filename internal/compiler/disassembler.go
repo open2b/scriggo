@@ -771,7 +771,8 @@ var operationName = [...]string{
 
 	vm.OpGetFunc: "GetFunc",
 
-	vm.OpGetVar:     "GetVar",
+	vm.OpGetVar: "GetVar",
+
 	vm.OpGetVarAddr: "GetVarAddr",
 
 	vm.OpGo: "Go",

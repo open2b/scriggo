@@ -1383,6 +1383,7 @@ const (
 	OpGetFunc
 
 	OpGetVar
+
 	OpGetVarAddr
 
 	OpGo
