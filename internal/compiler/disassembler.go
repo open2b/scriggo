@@ -341,8 +341,8 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		s += " " + disassembleOperand(fn, c, vm.Kind(typ.Kind()), false)
 	case vm.OpCopy:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + disassembleOperand(fn, b, vm.Interface, false)
-		s += " " + disassembleOperand(fn, c, vm.Int, false)
+		s += " " + disassembleOperand(fn, b, vm.Int, false)
+		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpDelete:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Interface, false)
