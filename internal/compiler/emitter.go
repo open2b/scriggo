@@ -707,6 +707,7 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 		em.fb.emitField(exprReg, index, reg)
 		return
 	}
+	// TODO: add enter/exit stack method calls.
 	tmp := em.fb.newRegister(fieldType.Kind())
 	em.fb.emitField(exprReg, index, tmp)
 	em.changeRegister(false, tmp, reg, fieldType, dstType)
