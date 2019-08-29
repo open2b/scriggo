@@ -153,9 +153,6 @@ func newVM(options *RenderOptions) *vm.VM {
 		if options.MaxMemorySize > 0 {
 			vmm.SetMaxMemory(options.MaxMemorySize)
 		}
-		if options.DontPanic {
-			vmm.SetDontPanic(true)
-		}
 		if options.PrintFunc != nil {
 			vmm.SetPrint(options.PrintFunc)
 		}

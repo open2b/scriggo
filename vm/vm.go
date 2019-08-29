@@ -124,8 +124,7 @@ func (vm *VM) Reset() {
 // and waits for it to complete.
 //
 // During the execution if a panic occurs and has not been recovered, by
-// default Run panics with the panic message. If the DontPanic option is true,
-// Run don't panic and returns the panic message in the err out parameter.
+// default Run panics with the panic message.
 //
 // If a maximum available memory has been set and the memory is exhausted,
 // Run returns immediately with the an OutOfMemoryError error.
@@ -155,13 +154,6 @@ func (vm *VM) SetContext(ctx context.Context) {
 	}
 	vm.done = nil
 	vm.doneCase = reflect.SelectCase{}
-}
-
-// SetDontPanic sets the "don't panic" option.
-//
-// SetDontPanic must not be called after vm has been started.
-func (vm *VM) SetDontPanic(dontPanic bool) {
-	vm.env.dontPanic = dontPanic
 }
 
 // SetMaxMemory sets the maximum available memory. Set bytes to zero or

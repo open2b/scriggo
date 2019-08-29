@@ -29,7 +29,6 @@ type Env struct {
 	print       PrintFunc       // custom print builtin.
 	freeMemory  int             // free memory.
 	limitMemory bool            // reports whether memory is limited.
-	dontPanic   bool            // don't panic.
 	exited      bool            // reports whether it is exited.
 	exits       []func()        // exit functions.
 
