@@ -3,7 +3,9 @@
 To run the compare tests, run the following commands in the `test/compare` directory:
 
 ```bash
-> go generate ./...
+> cd ./cmd
+> go generate
+> cd ./..
 > go build
 > ./compare
 ```
