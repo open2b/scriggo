@@ -1632,41 +1632,35 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Slice
 		case OpSlice:
-			var i, j, k int
+			var i1, i2, i3 int
 			s := reflect.ValueOf(vm.general(a))
-			sLen := s.Len()
-			sCap := s.Cap()
 			next := vm.fn.Body[vm.pc]
 			vm.pc++
-			iConst := b&1 != 0
-			i = int(vm.intk(next.A, iConst))
-			jConst := b&2 != 0
-			if jConst && next.B == -1 {
-				j = sLen
+			i1 = int(vm.intk(next.A, b&1 != 0))
+			if k := b&2 != 0; k && next.B == -1 {
+				i2 = s.Len()
 			} else {
-				j = int(vm.intk(next.B, jConst))
+				i2 = int(vm.intk(next.B, k))
 			}
-			k = sCap
-			kConst := b&4 != 0
-			if !kConst || next.C != -1 {
-				k = int(vm.intk(next.C, kConst))
+			if k := b&4 != 0; k && next.C == -1 {
+				i3 = s.Cap()
+			} else {
+				i3 = int(vm.intk(next.C, k))
 			}
-			s = s.Slice3(i, j, k)
+			s = s.Slice3(i1, i2, i3)
 			vm.setGeneral(c, s.Interface())
 		case OpSliceString:
-			var i, j int
+			var i1, i2 int
 			s := vm.string(a)
 			next := vm.fn.Body[vm.pc]
 			vm.pc++
-			iConst := b&1 != 0
-			i = int(vm.intk(next.A, iConst))
-			jConst := b&2 != 0
-			if jConst && next.B == -1 {
-				j = len(s)
+			i1 = int(vm.intk(next.A, b&1 != 0))
+			if k := b&2 != 0; k && next.B == -1 {
+				i2 = len(s)
 			} else {
-				j = int(vm.intk(next.B, jConst))
+				i2 = int(vm.intk(next.B, k))
 			}
-			vm.setString(c, s[i:j])
+			vm.setString(c, s[i1:i2])
 
 		// Sub
 		case OpSubInt8, -OpSubInt8:
