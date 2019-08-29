@@ -51,7 +51,7 @@ func (builder *functionBuilder) emitAdd(k bool, x, y, z int8, kind reflect.Kind)
 //
 //    dest = &expr.Field   (where Field is identified by its index)
 //
-// If expr is a slice:
+// If expr is a slice or an addressable array:
 //
 //    dest = &expr[index]
 //
