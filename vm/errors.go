@@ -88,6 +88,10 @@ func (vm *VM) convertInternalError(msg interface{}) error {
 	var op Operation
 	if vm.pc > 1 && vm.fn.Body[vm.pc-2].Op == OpMakeSlice {
 		op = OpMakeSlice
+	} else if vm.pc > 1 && vm.fn.Body[vm.pc-2].Op == OpSlice {
+		op = OpSlice
+	} else if vm.pc > 1 && vm.fn.Body[vm.pc-2].Op == OpSliceString {
+		op = OpSliceString
 	} else {
 		op = vm.fn.Body[vm.pc-1].Op
 	}
@@ -146,6 +150,18 @@ func (vm *VM) convertInternalError(msg interface{}) error {
 			if s == "assignment to entry in nil map" ||
 				strings.HasPrefix(s, "runtime error: hash of unhashable type ") {
 				return runtimeError(s)
+			}
+		}
+	case OpSlice, OpSliceString:
+		// https://github.com/open2b/scriggo/issues/321
+		switch err := msg.(type) {
+		case runtime.Error:
+			if s := err.Error(); s == "runtime error: slice bounds out of range" {
+				return runtimeError(s)
+			}
+		case string:
+			if err == "reflect.Value.Slice3: slice index out of bounds" {
+				return runtimeError("runtime error: slice bounds out of range")
 			}
 		}
 	}

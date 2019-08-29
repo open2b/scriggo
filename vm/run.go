@@ -1651,10 +1651,6 @@ func (vm *VM) run() (uint32, bool) {
 			if !kConst || next.C != -1 {
 				k = int(vm.intk(next.C, kConst))
 			}
-			if i < 0 || j < i || k < j || k > sCap {
-				// https://github.com/open2b/scriggo/issues/321
-				panic(runtimeError("runtime error: slice bounds out of range"))
-			}
 			s = s.Slice3(i, j, k)
 			vm.setGeneral(c, s.Interface())
 		case OpSliceString:
@@ -1669,10 +1665,6 @@ func (vm *VM) run() (uint32, bool) {
 				j = len(s)
 			} else {
 				j = int(vm.intk(next.B, jConst))
-			}
-			if i < 0 || j < i || j > len(s) {
-				// https://github.com/open2b/scriggo/issues/321
-				panic(runtimeError("runtime error: slice bounds out of range"))
 			}
 			vm.setString(c, s[i:j])
 
