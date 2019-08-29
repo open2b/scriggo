@@ -480,8 +480,9 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		s += " " + disassembleOperand(fn, b, vm.Float64, false)
 		s += " " + disassembleOperand(fn, c, vm.Float64, false)
 	case vm.OpField:
-		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[b]))
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
+		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[b]))
+		s += " " + disassembleOperand(fn, c, vm.Unknown, false)
 	case vm.OpMakeSlice:
 		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
