@@ -1529,10 +1529,13 @@ func (vm *VM) run() (uint32, bool) {
 					cas := reflect.SelectCase{Dir: reflect.SelectSend, Chan: reflect.ValueOf(ch), Send: v}
 					vm.cases = append(vm.cases, cas, vm.doneCase)
 					chosen, _, _ := reflect.Select(vm.cases)
+					vm.cases[0].Send.Set(reflect.Zero(elemType))
+					vm.cases[0].Chan = reflect.Value{}
+					vm.cases[1].Chan = reflect.Value{}
+					vm.cases = vm.cases[:0]
 					if chosen == 1 {
 						panic(OutOfTimeError{vm.env})
 					}
-					vm.cases = vm.cases[:0]
 				}
 			}
 
