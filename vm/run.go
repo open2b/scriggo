@@ -129,13 +129,14 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Addr
 		case OpAddr:
-			switch rv := reflect.ValueOf(vm.general(a)); rv.Kind() {
+			rv := reflect.ValueOf(vm.general(a))
+			switch rv.Kind() {
 			case reflect.Slice:
 				i := int(vm.int(b))
 				vm.setFromReflectValue(c, rv.Index(i).Addr())
 			case reflect.Ptr:
 				i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
-				v := reflect.ValueOf(vm.general(a)).Elem().FieldByIndex(i).Addr()
+				v := rv.Elem().FieldByIndex(i).Addr()
 				vm.setFromReflectValue(c, v)
 			}
 
@@ -621,8 +622,7 @@ func (vm *VM) run() (uint32, bool) {
 		// GetVarAddr
 		case OpGetVarAddr:
 			v := vm.vars[decodeInt16(a, b)]
-			rv := reflect.ValueOf(v)
-			vm.setFromReflectValue(c, rv)
+			vm.setFromReflectValue(c, reflect.ValueOf(v))
 
 		// Go
 		case OpGo:
