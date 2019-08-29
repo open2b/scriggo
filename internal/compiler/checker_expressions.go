@@ -943,7 +943,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		switch kind {
 		case reflect.String:
 			tc.checkIndex(expr.Index, t, false)
-			return &TypeInfo{Type: universe["byte"].t.Type}
+			return &TypeInfo{Type: uint8Type}
 		case reflect.Slice:
 			tc.checkIndex(expr.Index, t, false)
 			return &TypeInfo{Type: t.Type.Elem(), Properties: PropertyAddressable}

@@ -1900,7 +1900,7 @@ func tiNil() *TypeInfo { return universe["nil"].t }
 
 // byte type info.
 
-func tiByte() *TypeInfo { return &TypeInfo{Type: universe["byte"].t.Type} }
+func tiByte() *TypeInfo { return &TypeInfo{Type: uint8Type} }
 
 // byte slice type info.
 
