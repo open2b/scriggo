@@ -941,39 +941,30 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		t.setValue(nil)
 		kind := t.Type.Kind()
 		switch kind {
-		case reflect.Slice, reflect.String, reflect.Array, reflect.Ptr:
-			realType := t.Type
-			realKind := t.Type.Kind()
-			if kind == reflect.Ptr {
-				realType = t.Type.Elem()
-				realKind = realType.Kind()
-				if realKind != reflect.Array {
-					panic(tc.errorf(expr, "invalid operation: %v (type %s does not support indexing)", expr, t))
-				}
-			}
+		case reflect.String:
 			tc.checkIndex(expr.Index, t, false)
-			var typ reflect.Type
-			switch kind {
-			case reflect.String:
-				typ = universe["byte"].t.Type
-			case reflect.Slice, reflect.Array:
-				typ = t.Type.Elem()
-			case reflect.Ptr:
-				typ = t.Type.Elem().Elem()
-			}
-			ti := &TypeInfo{Type: typ}
-			if kind == reflect.Slice || kind == reflect.Array && t.Addressable() || kind == reflect.Ptr {
+			return &TypeInfo{Type: universe["byte"].t.Type}
+		case reflect.Slice:
+			tc.checkIndex(expr.Index, t, false)
+			return &TypeInfo{Type: t.Type.Elem(), Properties: PropertyAddressable}
+		case reflect.Array:
+			tc.checkIndex(expr.Index, t, false)
+			ti := &TypeInfo{Type: t.Type.Elem()}
+			if t.Addressable() {
 				ti.Properties = PropertyAddressable
 			}
-			// Transform pa[i] to (*pa)[i].
-			if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Array {
-				unOp := ast.NewUnaryOperator(nil, ast.OperatorMultiplication, expr.Expr)
-				tc.typeInfos[unOp] = &TypeInfo{
-					Type: t.Type.Elem(),
-				}
-				expr.Expr = unOp
-			}
 			return ti
+		case reflect.Ptr:
+			elemType := t.Type.Elem()
+			if elemType.Kind() != reflect.Array {
+				panic(tc.errorf(expr, "invalid operation: %v (type %s does not support indexing)", expr, t))
+			}
+			tc.checkIndex(expr.Index, t, false)
+			// Transform pa[i] to (*pa)[i].
+			unOp := ast.NewUnaryOperator(nil, ast.OperatorMultiplication, expr.Expr)
+			tc.typeInfos[unOp] = &TypeInfo{Type: elemType}
+			expr.Expr = unOp
+			return &TypeInfo{Type: elemType.Elem(), Properties: PropertyAddressable}
 		case reflect.Map:
 			key := tc.checkExpr(expr.Index)
 			if err := isAssignableTo(key, expr.Index, t.Type.Key()); err != nil {
