@@ -130,7 +130,18 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Addr
 		case OpAddr, -OpAddr:
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			rv := reflect.ValueOf(vm.general(a))
+			switch rv.Kind() {
+			// slice or addressable array
+			case reflect.Slice:
+				i := int(vm.intk(b, op < 0))
+				vm.setFromReflectValue(c, rv.Index(i).Addr())
+			// struct
+			case reflect.Ptr:
+				panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			default:
+				panic("bug") // TODO: remove.
+			}
 
 		// Alloc
 		case OpAlloc:

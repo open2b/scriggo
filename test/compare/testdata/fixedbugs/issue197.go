@@ -22,4 +22,10 @@ func main() {
 		)
 		fmt.Println(ptrA == ptrA2)
 	}
+	{
+		s := []int{1, 2, 3}
+		p1 := &s[0]
+		p2 := &s[0]
+		fmt.Println(p1 == p2)
+	}
 }

@@ -2586,7 +2586,16 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		// &v[i]
 		// (where v is a slice or an addressable array)
 		case *ast.Index:
-			panic("TODO(Gianluca): not implemented")
+			expr := em.emitExpr(operand.Expr, em.ti(operand.Expr).Type)
+			index := em.emitExpr(operand.Index, intType)
+			if canEmitDirectly(unOpType.Kind(), dstType.Kind()) {
+				em.fb.emitAddr(false, expr, index, reg) // TODO: use kIndex.
+			}
+			em.fb.enterStack()
+			tmp := em.fb.newRegister(unOpType.Kind())
+			em.fb.emitAddr(false, expr, index, tmp) // TODO: use kIndex.
+			em.changeRegister(false, tmp, reg, unOpType, dstType)
+			em.fb.exitStack()
 
 		// &s.Field
 		case *ast.Selector:
