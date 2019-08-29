@@ -28,4 +28,10 @@ func main() {
 		p2 := &s[0]
 		fmt.Println(p1 == p2)
 	}
+	{
+		a := [5]int{1, 2, 3}
+		p1 := &a[0]
+		p2 := &a[0]
+		fmt.Println(p1 == p2)
+	}
 }
