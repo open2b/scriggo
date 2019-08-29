@@ -1,4 +1,4 @@
-// skip
+// skip : range over string fails https://github.com/open2b/scriggo/issues/308
 
 // compile
 

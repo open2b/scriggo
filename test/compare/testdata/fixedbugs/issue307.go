@@ -1,4 +1,4 @@
-// skip
+// skip : continue statement panics https://github.com/open2b/scriggo/issues/178
 
 // compile
 
