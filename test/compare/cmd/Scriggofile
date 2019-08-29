@@ -10,6 +10,7 @@ IMPORT encoding/base64
 IMPORT errors
 IMPORT fmt
 IMPORT go/ast
+IMPORT io
 IMPORT io/ioutil
 IMPORT log
 IMPORT math
