@@ -86,6 +86,7 @@ func (err OutOfMemoryError) RuntimeError() {}
 // error.
 func (vm *VM) convertInternalError(msg interface{}) error {
 	var op Operation
+	// TODO(marco): op may be wrong with this implementation.
 	if vm.pc > 1 && vm.fn.Body[vm.pc-2].Op == OpMakeSlice {
 		op = OpMakeSlice
 	} else if vm.pc > 1 && vm.fn.Body[vm.pc-2].Op == OpSlice {
