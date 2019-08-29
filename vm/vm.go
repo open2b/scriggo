@@ -1316,6 +1316,8 @@ const (
 	OpAddFloat32
 	OpAddFloat64
 
+	OpAddr
+
 	OpAlloc
 
 	OpAnd
@@ -1381,6 +1383,7 @@ const (
 	OpGetFunc
 
 	OpGetVar
+	OpGetVarAddr
 
 	OpGo
 

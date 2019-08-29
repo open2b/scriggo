@@ -45,6 +45,22 @@ func (builder *functionBuilder) emitAdd(k bool, x, y, z int8, kind reflect.Kind)
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
 }
 
+// emitAddrs appends a new "Addr" instruction to the function body.
+//
+// If expr is a struct:
+//
+//    dest = &expr.Field   (where Field is identified by its index)
+//
+// If expr is a slice or an addressable array:
+//
+//    dest = &expr[index]
+//
+// Index must be a register in case of slice/address indexing and an integer
+// constant index in case of a struct field.
+func (builder *functionBuilder) emitAddr(expr, index, dest int8) {
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpAddr, A: expr, B: index, C: dest})
+}
+
 // emitAnd appends a new "And" instruction to the function body.
 //
 //     z = x & y
@@ -410,6 +426,14 @@ func (builder *functionBuilder) emitGetFunc(predefined bool, f int8, z int8) {
 //
 func (builder *functionBuilder) emitGetVar(v int, r int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpGetVar, A: int8(v >> 8), B: int8(v), C: r})
+}
+
+// emitGetVarAddr appends a new "GetVarAddr" instruction to the function body.
+//
+//	   r = &v
+//
+func (builder *functionBuilder) emitGetVarAddr(v int, r int8) {
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpGetVarAddr, A: int8(v >> 8), B: int8(v), C: r})
 }
 
 // emitGo appends a new "Go" instruction to the function body.

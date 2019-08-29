@@ -707,6 +707,7 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 		em.fb.emitField(exprReg, index, reg)
 		return
 	}
+	// TODO: add enter/exit stack method calls.
 	tmp := em.fb.newRegister(fieldType.Kind())
 	em.fb.emitField(exprReg, index, tmp)
 	em.changeRegister(false, tmp, reg, fieldType, dstType)
@@ -1959,6 +1960,10 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			return reg, false
 		}
 
+		// TODO: this is a copy-paste code (with some minor changes) from
+		// emitUnaryOperator; there must be a better way to handle this without
+		// having to duplicate all the code.
+
 		// Clojure variable.
 		if index, ok := em.closureVarRefs[em.fb.fn][expr.Name]; ok {
 			if canEmitDirectly(typ.Kind(), dstType.Kind()) {
@@ -2547,7 +2552,33 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 				em.fb.emitMove(false, -varr, reg, dstType.Kind())
 				return
 			}
-			panic("TODO(Gianluca): not implemented")
+			// TODO: this is a copy-paste code (with some minor changes) from
+			// case *ast.Identifier of emitExpr; there must be a better way to
+			// handle this without having to duplicate all the code.
+
+			// Clojure variable address.
+			if index, ok := em.closureVarRefs[em.fb.fn][operand.Name]; ok {
+				if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
+					em.fb.emitGetVarAddr(index, reg)
+					return
+				}
+				tmp := em.fb.newRegister(operandType.Kind())
+				em.fb.emitGetVarAddr(index, tmp)
+				em.changeRegister(false, tmp, reg, operandType, dstType)
+				return
+			}
+			// Scriggo variable.
+			if index, ok := em.availableVarIndexes[em.pkg][operand.Name]; ok {
+				if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
+					em.fb.emitGetVarAddr(int(index), reg)
+					return
+				}
+				tmp := em.fb.newRegister(operandType.Kind())
+				em.fb.emitGetVarAddr(int(index), tmp)
+				em.changeRegister(false, tmp, reg, operandType, dstType)
+				return
+			}
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 
 		// &*a
 		case *ast.UnaryOperator:
@@ -2556,11 +2587,32 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		// &v[i]
 		// (where v is a slice or an addressable array)
 		case *ast.Index:
-			panic("TODO(Gianluca): not implemented")
+			expr := em.emitExpr(operand.Expr, em.ti(operand.Expr).Type)
+			index := em.emitExpr(operand.Index, intType)
+			if canEmitDirectly(unOpType.Kind(), dstType.Kind()) {
+				em.fb.emitAddr(expr, index, reg)
+			}
+			em.fb.enterStack()
+			tmp := em.fb.newRegister(unOpType.Kind())
+			em.fb.emitAddr(expr, index, tmp)
+			em.changeRegister(false, tmp, reg, unOpType, dstType)
+			em.fb.exitStack()
 
 		// &s.Field
 		case *ast.Selector:
-			panic("TODO(Gianluca): not implemented")
+			operandExprType := em.ti(operand.Expr).Type
+			expr := em.emitExpr(operand.Expr, operandExprType)
+			field, _ := operandExprType.FieldByName(operand.Ident)
+			index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+			if canEmitDirectly(reflect.PtrTo(field.Type).Kind(), dstType.Kind()) {
+				em.fb.emitAddr(expr, index, reg)
+				return
+			}
+			em.fb.enterStack()
+			tmp := em.fb.newRegister(reflect.Ptr)
+			em.fb.emitAddr(expr, index, tmp)
+			em.changeRegister(false, tmp, reg, reflect.PtrTo(field.Type), dstType)
+			em.fb.exitStack()
 
 		// &T{..}
 		case *ast.CompositeLiteral:

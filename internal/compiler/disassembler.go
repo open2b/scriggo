@@ -242,6 +242,10 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		s += " " + disassembleOperand(fn, a, vm.Float64, false)
 		s += " " + disassembleOperand(fn, b, vm.Float64, k)
 		s += " " + disassembleOperand(fn, c, vm.Float64, false)
+	case vm.OpAddr:
+		s += " " + disassembleOperand(fn, a, vm.Interface, false)
+		s += " " + disassembleOperand(fn, b, vm.Int, false)
+		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpAlloc:
 		if k {
 			s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
@@ -261,7 +265,7 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		t := fn.Types[int(uint(b))]
 		var kind = reflectToRegisterKind(t.Kind())
 		s += " " + disassembleOperand(fn, c, kind, false)
-	case vm.OpBind, vm.OpGetVar:
+	case vm.OpBind, vm.OpGetVar, vm.OpGetVarAddr:
 		s += " " + disassembleVarRef(fn, globals, int16(int(a)<<8|int(uint8(b))))
 		s += " " + disassembleOperand(fn, c, vm.Unknown, false)
 	case vm.OpBreak, vm.OpContinue, vm.OpGoto:
@@ -703,6 +707,8 @@ var operationName = [...]string{
 	vm.OpAddFloat32: "Add32",
 	vm.OpAddFloat64: "Add",
 
+	vm.OpAddr: "Addr",
+
 	vm.OpAlloc: "Alloc",
 
 	vm.OpAnd: "And",
@@ -765,7 +771,8 @@ var operationName = [...]string{
 
 	vm.OpGetFunc: "GetFunc",
 
-	vm.OpGetVar: "GetVar",
+	vm.OpGetVar:     "GetVar",
+	vm.OpGetVarAddr: "GetVarAddr",
 
 	vm.OpGo: "Go",
 

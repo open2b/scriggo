@@ -124,6 +124,19 @@ func (vm *VM) run() (uint32, bool) {
 		case -OpAddFloat64:
 			vm.setFloat(c, vm.float(a)+float64(b))
 
+		// Addr
+		case OpAddr:
+			rv := reflect.ValueOf(vm.general(a))
+			switch rv.Kind() {
+			case reflect.Slice:
+				i := int(vm.int(b))
+				vm.setFromReflectValue(c, rv.Index(i).Addr())
+			case reflect.Ptr:
+				i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
+				v := reflect.ValueOf(vm.general(a)).Elem().FieldByIndex(i).Addr()
+				vm.setFromReflectValue(c, v)
+			}
+
 		// Alloc
 		case OpAlloc:
 			vm.alloc()
@@ -600,6 +613,23 @@ func (vm *VM) run() (uint32, bool) {
 				vm.setString(c, *v)
 			default:
 				rv := reflect.ValueOf(v).Elem()
+				vm.setFromReflectValue(c, rv)
+			}
+
+		// GetVarAddr
+		case OpGetVarAddr:
+			v := vm.vars[int(a)<<8|int(uint8(b))]
+			switch v := v.(type) {
+			case *bool:
+				vm.setGeneral(c, v)
+			case *int:
+				vm.setGeneral(c, v)
+			case *float64:
+				vm.setGeneral(c, v)
+			case *string:
+				vm.setGeneral(c, v)
+			default:
+				rv := reflect.ValueOf(v)
 				vm.setFromReflectValue(c, rv)
 			}
 
