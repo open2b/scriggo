@@ -128,6 +128,10 @@ func (vm *VM) run() (uint32, bool) {
 		case -OpAddFloat64:
 			vm.setFloat(c, vm.float(a)+float64(b))
 
+		// Addr
+		case OpAddr, -OpAddr:
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+
 		// Alloc
 		case OpAlloc:
 			vm.alloc()
