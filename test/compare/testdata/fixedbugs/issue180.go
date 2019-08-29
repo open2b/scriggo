@@ -2,7 +2,10 @@
 
 package main
 
-import "fmt"
+import (
+	"archive/tar"
+	"fmt"
+)
 
 func main() {
 
@@ -69,6 +72,20 @@ func main() {
 		}
 	}
 
+	// Field selector of an addressable struct operand
+	{
+		type T = struct {
+			F int
+		}
+		s := []T{
+			T{5},
+			T{6},
+		}
+		fmt.Println("s: ", s)
+		s[0].F = -42
+		fmt.Println("s: ", s)
+	}
+
 	// Array indexing operation of an addressable array
 	{
 		{
@@ -89,6 +106,30 @@ func main() {
 			fmt.Println(m)
 			m["b"][0] = 99
 			fmt.Println(m)
+		}
+	}
+
+	// Miscellaneous
+	{
+		{
+			data := []struct{ M map[string]int }{
+				struct{ M map[string]int }{M: map[string]int{"k1": 0}},
+			}
+			fmt.Println(data)
+			data[0].M["k1"] = 3
+			fmt.Println(data)
+			data[0].M["k3"] = 10
+			fmt.Println(data)
+		}
+		{
+			h := tar.Header{}
+			fmt.Print(h.Name)
+			h.Name = "test"
+			fmt.Print(h.Name)
+			hsm := map[string][]tar.Header{"first": []tar.Header{h}}
+			fmt.Print(hsm["first"][0].Name)
+			hsm["first"][0].Name = "set"
+			fmt.Print(hsm["first"][0].Name)
 		}
 	}
 

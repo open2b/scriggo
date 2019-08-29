@@ -2,6 +2,7 @@ SET VARIABLE predefPkgs
 
 IMPORT testpkg
 
+IMPORT archive/tar
 IMPORT bufio
 IMPORT bytes
 IMPORT crypto/sha1
