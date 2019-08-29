@@ -1882,90 +1882,10 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			return reg, false
 		}
 
-		exprType := em.ti(expr.Expr).Type
-		typ := em.ti(expr).Type
-		switch expr.Operator() {
-		case ast.OperatorNot:
-			if reg == 0 {
-				em.emitExprR(expr.Expr, exprType, 0)
-				return reg, false
-			}
-			if canEmitDirectly(typ.Kind(), dstType.Kind()) {
-				em.emitExprR(expr.Expr, exprType, reg)
-				em.fb.emitSubInv(true, reg, int8(1), reg, reflect.Int)
-				return reg, false
-			}
-			em.fb.enterScope()
-			exprReg := em.emitExpr(expr.Expr, exprType)
-			em.fb.emitSubInv(true, exprReg, int8(1), exprReg, reflect.Int)
-			em.changeRegister(false, exprReg, reg, exprType, dstType)
-			em.fb.exitScope()
-		case ast.OperatorMultiplication:
-			if reg == 0 {
-				em.emitExprR(expr.Expr, exprType, 0)
-				return reg, false
-			}
-			if canEmitDirectly(typ.Kind(), dstType.Kind()) {
-				exprReg := em.emitExpr(expr.Expr, exprType)
-				em.changeRegister(false, -exprReg, reg, exprType.Elem(), dstType)
-				return reg, false
-			}
-			exprReg := em.emitExpr(expr.Expr, exprType)
-			tmp := em.fb.newRegister(exprType.Elem().Kind())
-			em.changeRegister(false, -exprReg, tmp, exprType.Elem(), exprType.Elem())
-			em.changeRegister(false, tmp, reg, exprType.Elem(), dstType)
-		case ast.OperatorAnd:
-			switch expr := expr.Expr.(type) {
-			case *ast.Identifier:
-				if em.fb.isVariable(expr.Name) {
-					varr := em.fb.scopeLookup(expr.Name)
-					em.fb.emitNew(reflect.PtrTo(typ), reg)
-					em.fb.emitMove(false, -varr, reg, dstType.Kind())
-				} else {
-					panic("TODO(Gianluca): not implemented")
-				}
-			case *ast.UnaryOperator:
-				if expr.Operator() != ast.OperatorMultiplication {
-					panic("bug") // TODO(Gianluca): to review.
-				}
-				em.emitExprR(expr.Expr, dstType, reg)
-			case *ast.Index:
-				panic("TODO(Gianluca): not implemented")
-			case *ast.Selector:
-				panic("TODO(Gianluca): not implemented")
-			case *ast.CompositeLiteral:
-				tmp := em.fb.newRegister(reflect.Ptr)
-				em.fb.emitNew(exprType, tmp)
-				if exprType.Kind() == reflect.Struct {
-					em.emitExprR(expr, exprType, tmp)
-				} else {
-					em.emitExprR(expr, exprType, -tmp)
-				}
-				em.changeRegister(false, tmp, reg, typ, dstType)
-			default:
-				panic("TODO(Gianluca): not implemented")
-			}
-		case ast.OperatorAddition:
-			// Do nothing.
-		case ast.OperatorSubtraction:
-			if reg == 0 {
-				em.emitExprR(expr.Expr, dstType, 0)
-				return reg, false
-			}
-			exprReg := em.emitExpr(expr.Expr, dstType)
-			if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
-				em.fb.emitSubInv(true, exprReg, 0, reg, dstType.Kind())
-				return reg, false
-			}
-			em.fb.enterStack()
-			tmp := em.fb.newRegister(exprType.Kind())
-			em.fb.emitSubInv(true, exprReg, 0, tmp, exprType.Kind())
-			em.changeRegister(false, tmp, reg, exprType, dstType)
-			em.fb.exitStack()
+		// Emit a generic unary operator.
+		em.emitUnaryOperator(expr, reg, dstType)
 
-		default:
-			panic(fmt.Errorf("TODO: not implemented operator %s", expr.Operator()))
-		}
+		return reg, false
 
 	case *ast.Func:
 
@@ -2571,5 +2491,117 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 	// Release all the registers allocated during the execution of the 'select'
 	// statement.
 	em.fb.exitStack()
+
+}
+
+func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType reflect.Type) {
+
+	operand := unOp.Expr
+	operandType := em.ti(operand).Type
+	unOpType := em.ti(unOp).Type
+
+	switch unOp.Operator() {
+
+	// !operand
+	case ast.OperatorNot:
+		if reg == 0 {
+			em.emitExprR(operand, operandType, 0)
+			return
+		}
+		if canEmitDirectly(unOpType.Kind(), dstType.Kind()) {
+			em.emitExprR(operand, operandType, reg)
+			em.fb.emitSubInv(true, reg, int8(1), reg, reflect.Int)
+			return
+		}
+		em.fb.enterScope()
+		tmp := em.emitExpr(operand, operandType)
+		em.fb.emitSubInv(true, tmp, int8(1), tmp, reflect.Int)
+		em.changeRegister(false, tmp, reg, operandType, dstType)
+		em.fb.exitScope()
+
+	// *operand
+	case ast.OperatorMultiplication:
+		if reg == 0 {
+			em.emitExprR(operand, operandType, 0)
+			return
+		}
+		if canEmitDirectly(unOpType.Kind(), dstType.Kind()) {
+			exprReg := em.emitExpr(operand, operandType)
+			em.changeRegister(false, -exprReg, reg, operandType.Elem(), dstType)
+			return
+		}
+		exprReg := em.emitExpr(operand, operandType)
+		tmp := em.fb.newRegister(operandType.Elem().Kind())
+		em.changeRegister(false, -exprReg, tmp, operandType.Elem(), operandType.Elem())
+		em.changeRegister(false, tmp, reg, operandType.Elem(), dstType)
+
+	// &operand
+	case ast.OperatorAnd:
+		switch operand := operand.(type) {
+
+		// &a
+		case *ast.Identifier:
+			if em.fb.isVariable(operand.Name) {
+				varr := em.fb.scopeLookup(operand.Name)
+				em.fb.emitNew(reflect.PtrTo(unOpType), reg)
+				em.fb.emitMove(false, -varr, reg, dstType.Kind())
+				return
+			}
+			panic("TODO(Gianluca): not implemented")
+
+		// &*a
+		case *ast.UnaryOperator:
+			em.emitExprR(operand.Expr, dstType, reg)
+
+		// &v[i]
+		// (where v is a slice or an addressable array)
+		case *ast.Index:
+			panic("TODO(Gianluca): not implemented")
+
+		// &s.Field
+		case *ast.Selector:
+			panic("TODO(Gianluca): not implemented")
+
+		// &T{..}
+		case *ast.CompositeLiteral:
+			tmp := em.fb.newRegister(reflect.Ptr)
+			em.fb.emitNew(operandType, tmp)
+			if operandType.Kind() == reflect.Struct {
+				em.emitExprR(operand, operandType, tmp)
+			} else {
+				em.emitExprR(operand, operandType, -tmp)
+			}
+			em.changeRegister(false, tmp, reg, unOpType, dstType)
+
+		default:
+			panic("TODO(Gianluca): not implemented")
+		}
+
+	// +operand
+	case ast.OperatorAddition:
+		// Nothing to do.
+
+	// -operand
+	case ast.OperatorSubtraction:
+		if reg == 0 {
+			em.emitExprR(operand, dstType, 0)
+			return
+		}
+		exprReg := em.emitExpr(operand, dstType)
+		if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
+			em.fb.emitSubInv(true, exprReg, 0, reg, dstType.Kind())
+			return
+		}
+		em.fb.enterStack()
+		tmp := em.fb.newRegister(operandType.Kind())
+		em.fb.emitSubInv(true, exprReg, 0, tmp, operandType.Kind())
+		em.changeRegister(false, tmp, reg, operandType, dstType)
+		em.fb.exitStack()
+
+	default:
+		panic(fmt.Errorf("TODO: not implemented operator %s", unOp.Operator()))
+	}
+
+	return
 
 }
