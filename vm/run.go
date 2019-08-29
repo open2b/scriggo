@@ -245,11 +245,11 @@ func (vm *VM) run() (uint32, bool) {
 					}
 					vm.setString(c, s)
 				default:
-					var i interface{}
+					rv := reflect.New(t).Elem()
 					if ok {
-						i = v.Interface()
+						rv.Set(v)
 					}
-					vm.setGeneral(c, i)
+					vm.setFromReflectValue(c, rv)
 				}
 			}
 
