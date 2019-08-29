@@ -1,4 +1,4 @@
-// skip : "recursive" assignment is not implemented https://github.com/open2b/scriggo/issues/180
+// skip : panics reflect: call of reflect.flag.mustBeExported on zero Value
 
 // run
 

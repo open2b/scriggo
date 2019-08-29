@@ -1,4 +1,4 @@
-// skip : recursive assignment https://github.com/open2b/scriggo/issues/180
+// skip : reflect: call of reflect.Value.Len on ptr Value
 
 // run
 

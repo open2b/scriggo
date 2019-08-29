@@ -1,4 +1,4 @@
-// skip : recursive assignment is not supported https://github.com/open2b/scriggo/issues/180
+// skip : panic reflect: call of reflect.Value.IsNil on zero Value
 
 // run
 

@@ -1,4 +1,4 @@
-// skip : recursive assignment https://github.com/open2b/scriggo/issues/180
+// skip : https://github.com/open2b/scriggo/issues/352
 
 // errorcheck
 
@@ -22,4 +22,5 @@ func main() {
 	var x = "abc"
 	x[2] = 3	// ERROR "cannot|invalid"
 	m[0][5] = 6  // ERROR "cannot|invalid"
+	_ = x
 }

@@ -1,4 +1,4 @@
-// skip : recursive assignment https://github.com/open2b/scriggo/issues/180
+// skip : https://github.com/open2b/scriggo/issues/197
 
 // run
 
