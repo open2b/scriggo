@@ -121,6 +121,13 @@ func (vm *VM) convertInternalError(msg interface{}) error {
 				return runtimeError(s)
 			}
 		}
+	case OpDivInt8, OpDivInt16, OpDivInt32, OpDivInt64, OpDivFloat32, OpDivFloat64, OpRemInt8,
+		OpRemInt16, OpRemInt32, OpRemInt64, OpRemUint8, OpRemUint16, OpRemUint32, OpRemUint64:
+		if err, ok := msg.(runtime.Error); ok {
+			if s := err.Error(); s == "runtime error: integer divide by zero" {
+				return runtimeError(s)
+			}
+		}
 	case OpIndexString, -OpIndexString:
 		if err, ok := msg.(runtime.Error); ok {
 			if s := err.Error(); s == "runtime error: index out of range" {
