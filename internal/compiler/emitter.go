@@ -1766,9 +1766,11 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 					index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
 					em.fb.emitSetField(k, structt, index, value)
 				} else {
-					tmpValue := em.emitExpr(kv.Value, valueType)
+					em.fb.enterStack()
+					tmp := em.emitExpr(kv.Value, valueType)
 					value := em.fb.newRegister(field.Type.Kind())
-					em.changeRegister(false, tmpValue, value, valueType, field.Type)
+					em.changeRegister(false, tmp, value, valueType, field.Type)
+					em.fb.exitStack()
 					index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
 					em.fb.emitSetField(false, structt, index, value)
 				}
