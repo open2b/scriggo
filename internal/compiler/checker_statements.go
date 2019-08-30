@@ -179,7 +179,6 @@ nodesLoop:
 		case *ast.Text:
 
 		case *ast.Include:
-			// TODO(Gianluca): can node.Tree.Nodes be nil?
 			backup := tc.path
 			tc.path = node.Path
 			tc.checkNodes(node.Tree.Nodes)

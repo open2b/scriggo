@@ -71,9 +71,11 @@ type PackageLoader interface {
 	Load(pkgPath string) (interface{}, error)
 }
 
+// https://github.com/open2b/scriggo/issues/364
 type SyntaxType int8
 
 const (
+	// https://github.com/open2b/scriggo/issues/364
 	TemplateSyntax SyntaxType = iota + 1
 	ScriptSyntax
 	ProgramSyntax
@@ -82,7 +84,7 @@ const (
 // CheckerOptions contains the options for the type checker.
 type CheckerOptions struct {
 
-	// TODO(Gianluca): change name and add doc.
+	// https://github.com/open2b/scriggo/issues/364
 	SyntaxType SyntaxType
 
 	// DisallowGoStmt disables the "go" statement.

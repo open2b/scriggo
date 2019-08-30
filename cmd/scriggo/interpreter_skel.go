@@ -109,7 +109,7 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 						funcName += ":"
 					}
 					_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\t%s\t", regs.Int, regs.Float, funcName)
-					// TODO(Gianluca): uncomment.
+					// https://github.com/open2b/scriggo/issues/363
 					// _, _ = compiler.DisassembleInstruction(os.Stderr, fn, []compiler.Global{}, pc)
 					println()
 				}

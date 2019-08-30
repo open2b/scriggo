@@ -183,7 +183,7 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 	case *ast.ArrayType:
 		return nodeDeps(n.ElementType, scopes)
 	case *ast.Assignment:
-		if n == nil { // TODO(Gianluca).
+		if n == nil { // TODO: why is this necessary?
 			return nil
 		}
 		deps := []*ast.Identifier{}
