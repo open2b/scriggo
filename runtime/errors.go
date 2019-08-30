@@ -154,10 +154,14 @@ func (vm *VM) convertInternalError(msg interface{}) error {
 			}
 		}
 	case OpSend, -OpSend:
-		if s, ok := msg.(string); ok {
-			switch s {
-			case "close of nil channel", "send on closed channel":
+		switch err := msg.(type) {
+		case runtime.Error:
+			if s := err.Error(); s == "send on closed channel" {
 				return runtimeError(s)
+			}
+		case string:
+			if err == "close of nil channel" {
+				return runtimeError(err)
 			}
 		}
 	case OpSetMap, -OpSetMap:
