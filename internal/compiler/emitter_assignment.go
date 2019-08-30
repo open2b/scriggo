@@ -17,14 +17,14 @@ import (
 type addressType int8
 
 const (
-	addressRegister            addressType = iota // Variable assignments.
+	addressBlank               addressType = iota // Blank identifier assignments.
+	addressClosureVariable                        // Closure variable assignments.
 	addressIndirectDeclaration                    // Indirect variable declaration.
-	addressBlank                                  // Blank identifier assignments.
+	addressLocalVariable                          // Local variable assignment.
+	addressMapIndex                               // Map index assignments.
 	addressPointerIndirection                     // Pointer indirection assignments.
 	addressSliceIndex                             // Slice and array index assignments.
-	addressMapIndex                               // Map index assignments.
 	addressStructSelector                         // Struct selector assignments.
-	addressClosureVariable                        // Closure variable assignments.
 )
 
 // address represents an element on the left side of an assignment.
@@ -56,7 +56,7 @@ func (a address) assign(k bool, value int8, valueType reflect.Type) {
 		}
 	case addressBlank:
 		// Nothing to do.
-	case addressRegister:
+	case addressLocalVariable:
 		a.em.changeRegister(k, value, a.reg1, valueType, a.staticType)
 	case addressIndirectDeclaration:
 		a.em.fb.emitNew(a.staticType, -a.reg1)
@@ -169,7 +169,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				} else {
 					varReg := em.fb.newRegister(staticType.Kind())
 					em.fb.bindVarReg(v.Name, varReg)
-					addresses[i] = em.newAddress(addressRegister, staticType, varReg, 0)
+					addresses[i] = em.newAddress(addressLocalVariable, staticType, varReg, 0)
 				}
 			}
 		}
@@ -199,7 +199,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			}
 			// Local variable.
 			reg := em.fb.scopeLookup(v.Name)
-			addresses[i] = em.newAddress(addressRegister, varType, reg, 0)
+			addresses[i] = em.newAddress(addressLocalVariable, varType, reg, 0)
 		case *ast.Index:
 			exprType := em.ti(v.Expr).Type
 			expr := em.emitExpr(v.Expr, exprType)

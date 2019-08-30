@@ -246,7 +246,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 					staticType := em.ti(v).Type
 					varr := em.fb.newRegister(staticType.Kind())
 					em.fb.bindVarReg(v.Name, varr)
-					addresses[i] = em.newAddress(addressRegister, staticType, varr, 0)
+					addresses[i] = em.newAddress(addressLocalVariable, staticType, varr, 0)
 					// Store the variable register. It will be used later to store
 					// initialized value inside the proper global index.
 					pkgVarRegs[v.Name] = varr
@@ -1315,7 +1315,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					} else {
 						varr := em.fb.newRegister(staticType.Kind())
 						em.fb.bindVarReg(v.Name, varr)
-						addresses[i] = em.newAddress(addressRegister, staticType, varr, 0)
+						addresses[i] = em.newAddress(addressLocalVariable, staticType, varr, 0)
 					}
 				}
 			}
