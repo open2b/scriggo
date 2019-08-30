@@ -32,12 +32,21 @@ type address struct {
 	em         *emitter
 	addrType   addressType
 	staticType reflect.Type // Type of the addressed element.
-	reg1       int8         // Register containing the main expression.
-	reg2       int8         // Auxiliary register used in slice, map, array and selector assignments.
+	reg1, reg2 int8
 }
 
-// newAddress returns a new address. The meaning of reg1 and reg2 depends on
-// the address type.
+// newAddress returns a new address. The meaning of reg1 and reg2 depends on the
+// address type:
+//
+//  - addressBlank:                 reg1 is unused,                     reg2 is unused
+//  - addressClosureVariable        encoded index of the variable (reg1 is the msb, reg2 the lsb)
+//  - addressIndirectDeclaration    reg1 is the register,               reg2 is unused
+//  - addressLocalVariable          reg1 is the register,               reg2 is unused
+//  - addressMapIndex               reg1 is the register of the map,    reg2 is the register of the key
+//  - addressPointerIndirection     reg1 is the register,               reg2 is unused
+//  - addressSliceIndex             reg1 is the register of the slice,  reg2 is the register of the index
+//  - addressStructSelector         reg1 is the register of the struct, reg2 is the index of the int const. of the field
+//
 func (em *emitter) newAddress(addrType addressType, staticType reflect.Type, reg1, reg2 int8) address {
 	return address{em: em, addrType: addrType, staticType: staticType, reg1: reg1, reg2: reg2}
 }
