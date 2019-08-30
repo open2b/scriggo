@@ -447,7 +447,7 @@ func (builder *functionBuilder) emitGoto(label uint32) {
 	in := runtime.Instruction{Op: runtime.OpGoto}
 	if label > 0 {
 		if label > uint32(len(builder.labels)) {
-			panic("bug!") // TODO(Gianluca): remove.
+			panic("BUG") // remove.
 		}
 		addr := builder.labels[label-1]
 		if addr == 0 {

@@ -133,7 +133,7 @@ var commandsHelp = map[string]func(){
 var commands = map[string]func(){
 	"bug": func() {
 		flag.Usage = commandsHelp["bug"]
-		panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		panic("BUG: not implemented") // remove.
 	},
 	"build": func() {
 		flag.Usage = commandsHelp["install"]

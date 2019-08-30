@@ -272,13 +272,13 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			break
 		case *ast.UnaryOperator:
 			if v.Operator() != ast.OperatorMultiplication {
-				panic("bug: v.Operator() != ast.OperatorMultiplication") // TODO(Gianluca): remove.
+				panic("BUG.") // remove.
 			}
 			typ := em.ti(v.Expr).Type
 			reg := em.emitExpr(v.Expr, typ)
 			addresses[i] = em.newAddress(addressPointerIndirection, typ, reg, 0)
 		default:
-			panic("TODO(Gianluca): not implemented")
+			panic("BUG.") // remove.
 		}
 	}
 	em.assignValuesToAddresses(addresses, node.Rhs)

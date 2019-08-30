@@ -495,7 +495,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 		// MethodValue reads receiver from general.
 		if kindToType(rcvrType.Kind()) != runtime.TypeGeneral {
 			// TODO(Gianluca): put rcvr in general
-			panic("not implemented")
+			panic("BUG: not implemented") // remove.
 		}
 		method := em.fb.newRegister(reflect.Func)
 		name := call.Func.(*ast.Selector).Ident
@@ -513,7 +513,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 			em.fb.emitGo()
 		}
 		if deferStmt {
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			panic("BUG: not implemented") // remove.
 		}
 		em.fb.emitCallIndirect(method, 0, stackShift)
 		return regs, types
@@ -599,7 +599,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 					em.fb.emitGo()
 				}
 				if deferStmt {
-					panic("TODO: not implemented") // TODO(Gianluca): to implement.
+					panic("BUG: not implemented") // remove.
 				}
 				em.fb.emitCall(index, stackShift, call.Pos().Line)
 				return regs, types
@@ -887,7 +887,7 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 	case "recover":
 		em.fb.emitRecover(reg, false)
 	default:
-		panic("unknown builtin") // TODO(Gianluca): remove.
+		panic("BUG: unknown builtin") // remove.
 	}
 }
 
@@ -994,7 +994,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 						}
 					}
 					if len(inits) > 0 {
-						panic("have inits!") // TODO(Gianluca): review.
+						panic("BUG: have inits!") // remove.
 					}
 					em.fb = backupBuilder
 					em.pkg = backupPkg
@@ -1325,7 +1325,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.emitExprR(node, reflect.Type(nil), 0)
 
 		default:
-			panic(fmt.Sprintf("node %T not supported", node)) // TODO(Gianluca): remove.
+			panic(fmt.Sprintf("BUG: node %T not supported", node)) // remove.
 
 		}
 
@@ -1463,7 +1463,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		v := reflect.ValueOf(em.ti(expr).value)
 		switch v.Kind() {
 		case reflect.Interface:
-			panic("not implemented") // TODO(Gianluca).
+			panic("BUG: not implemented") // remove.
 		case reflect.Slice,
 			reflect.Complex64,
 			reflect.Complex128,
@@ -1476,7 +1476,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			c := em.fb.makeGeneralConstant(v.Interface())
 			em.changeRegister(true, c, reg, typ, dstType)
 		case reflect.UnsafePointer:
-			panic("not implemented") // TODO(Gianluca).
+			panic("BUG: not implemented") // remove.
 		default:
 			panic(fmt.Errorf("unsupported value type %T (expr: %s)", em.ti(expr).value, expr))
 		}
@@ -1496,7 +1496,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				name = expr.Ident
 			case *ast.Placeholder:
 			default:
-				panic("bug") // TODO(Gianluca).
+				panic("BUG") // remove.
 			}
 			index := em.predFuncIndex(ti.value.(reflect.Value), ti.PredefPackageName, name)
 			em.fb.emitGetFunc(true, index, reg)
@@ -1962,7 +1962,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			return reg, false
 		}
 
-		panic(fmt.Errorf("bug: none of the previous conditions matched identifier %v", expr))
+		panic(fmt.Errorf("BUG: none of the previous conditions matched identifier %v", expr)) // remove.
 
 	case *ast.Index:
 
@@ -2212,7 +2212,7 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 	// converted to 'b == true'.
 	if ti := em.ti(cond); ti != nil && ti.HasValue() {
 		if ti.Type.Kind() != reflect.Bool {
-			panic("bug: expected a boolean constant") // TODO(Gianluca): remove.
+			panic("BUG: expected a boolean constant") // remove.
 		}
 		v1 := em.emitExpr(cond, ti.Type)
 		k2 := em.fb.makeIntConstant(1) // true
@@ -2538,7 +2538,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 				return
 			}
 
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			panic("BUG: not implemented") // remove.
 
 		// &*a
 		case *ast.UnaryOperator:

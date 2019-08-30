@@ -390,7 +390,7 @@ func (tc *typechecker) getDeclarationNode(name string) ast.Node {
 	if elem, ok := tc.universe[name]; ok {
 		return elem.decl
 	}
-	panic(fmt.Sprintf("trying to get scope level of %s, but any scope, package block, file block or universe contains it", name)) // TODO(Gianluca): to review.
+	panic(fmt.Sprintf("BUG: trying to get scope level of %s, but any scope, package block, file block or universe contains it", name)) // remove.
 }
 
 func (tc *typechecker) programImportError(imp *ast.Import) error {

@@ -770,7 +770,7 @@ nodesLoop:
 			panic(tc.errorf(node, "%s evaluated but not used", node))
 
 		default:
-			panic(fmt.Errorf("checkNodes not implemented for type: %T", node))
+			panic(fmt.Errorf("BUG: checkNodes not implemented for type: %T", node)) // remove.
 
 		}
 
