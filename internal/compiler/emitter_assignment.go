@@ -13,78 +13,111 @@ import (
 	"scriggo/runtime"
 )
 
-// addressType is the type of the element on the left side of an assignment.
-type addressType int8
+// addressTarget is the type of the element on the left side of an assignment.
+type addressTarget int8
 
 const (
-	addressBlank               addressType = iota // Blank identifier assignments.
-	addressClosureVariable                        // Closure variable assignments.
-	addressIndirectDeclaration                    // Indirect variable declaration.
-	addressLocalVariable                          // Local variable assignment.
-	addressMapIndex                               // Map index assignments.
-	addressPointerIndirection                     // Pointer indirection assignments.
-	addressSliceIndex                             // Slice and array index assignments.
-	addressStructSelector                         // Struct selector assignments.
+	addressBlank               addressTarget = iota // Blank identifier assignment.
+	addressClosureVariable                          // Closure variable assignment.
+	addressIndirectDeclaration                      // Indirect variable declaration.
+	addressLocalVariable                            // Local variable assignment.
+	addressMapIndex                                 // Map index assignment.
+	addressPointerIndirection                       // Pointer indirection assignment.
+	addressSliceIndex                               // Slice and array index assignment.
+	addressStructSelector                           // Struct selector assignment.
 )
 
 // address represents an element on the left side of an assignment.
+// See em.newAddress for a detailed explanation of the fields.
 type address struct {
-	em         *emitter
-	addrType   addressType
-	staticType reflect.Type // Type of the addressed element.
-	reg1, reg2 int8
+	em            *emitter
+	addrTarget    addressTarget
+	addressedType reflect.Type
+	reg1, reg2    int8
 }
 
-// newAddress returns a new address with the given address type.
+// newAddress returns a new address that represent one element on the left side
+// of an assignment.
+// To get an explanation of the different address targets, see the declaration
+// of the addressTargets constants.
+// The meaning of the argument reg1, reg2 and addressType is explained in the
+// table below:
 //
-// TODO(Gianluca): improve documentation.
+//  Address target             reg1                 reg2                          Addressed Type
 //
-// The meaning of reg1 and reg2 depends on the address type:
+//  addressBlank:              (unused)             (unused)                      (unused)
+//  addressClosureVariable     msb of the var index lsb of the var index          type of the variable
+//  addressIndirectDeclaration register             (unused)                      type of the variable
+//  addressLocalVariable       register             (unused)                      type of the variable
+//  addressMapIndex            map register         key register                  type of the map
+//  addressPointerIndirection  register             (unused)                      type of the *v expression
+//  addressSliceIndex          slice register       index register                type of the slice
+//  addressStructSelector      struct register      index of the field (const)    type of the struct
 //
-//      Address type                 reg1                    reg2
-//
-//      addressBlank:                (unused)                (unused)
-//      addressClosureVariable       msb of the var index    lsb of the var index
-//      addressIndirectDeclaration   register                (unused)
-//      addressLocalVariable         register                (unused)
-//      addressMapIndex              map register            key register
-//      addressPointerIndirection    register                (unused)
-//      addressSliceIndex            slice register          index register
-//      addressStructSelector        struct register         index of the int const. of the field
-//
-func (em *emitter) newAddress(addrType addressType, staticType reflect.Type, reg1, reg2 int8) address {
-	return address{em: em, addrType: addrType, staticType: staticType, reg1: reg1, reg2: reg2}
+func (em *emitter) newAddress(addressTarget addressTarget, addressedType reflect.Type, reg1, reg2 int8) address {
+	return address{em: em, addrTarget: addressTarget, addressedType: addressedType, reg1: reg1, reg2: reg2}
 }
 
 // assign assigns value, with type valueType, to the address. If k is true
 // value is a constant otherwise is a register.
 func (a address) assign(k bool, value int8, valueType reflect.Type) {
-	switch a.addrType {
+	switch a.addrTarget {
 	case addressClosureVariable:
 		a.em.fb.emitSetVar(k, value, int(decodeInt16(a.reg1, a.reg2)))
 	case addressBlank:
 		// Nothing to do.
 	case addressLocalVariable:
-		a.em.changeRegister(k, value, a.reg1, valueType, a.staticType)
+		a.em.changeRegister(k, value, a.reg1, a.targetType(), a.addressedType)
 	case addressIndirectDeclaration:
-		a.em.fb.emitNew(a.staticType, -a.reg1)
-		a.em.changeRegister(k, value, a.reg1, valueType, a.staticType)
+		a.em.fb.emitNew(a.addressedType, -a.reg1)
+		a.em.changeRegister(k, value, a.reg1, a.targetType(), a.addressedType)
 	case addressPointerIndirection:
-		a.em.changeRegister(k, value, -a.reg1, valueType, a.staticType)
+		a.em.changeRegister(k, value, -a.reg1, a.targetType(), a.addressedType)
 	case addressSliceIndex:
 		a.em.fb.emitSetSlice(k, a.reg1, value, a.reg2)
 	case addressMapIndex:
-		a.em.fb.emitSetMap(k, a.reg1, value, a.reg2, a.staticType)
+		a.em.fb.emitSetMap(k, a.reg1, value, a.reg2, a.addressedType)
 	case addressStructSelector:
 		a.em.fb.emitSetField(k, a.reg1, a.reg2, value)
 	}
+}
+
+// targetType returns the type of the target of the assignment. The target type
+// can be different from the addressed type; for example in a slice assignment
+// the addressed type is the type of the slice (eg. '[]int'), while the target
+// type is 'int'.
+func (a address) targetType() reflect.Type {
+	switch a.addrTarget {
+	case addressBlank:
+		return nil
+	case addressClosureVariable:
+		return a.addressedType
+	case addressIndirectDeclaration:
+		return a.addressedType
+	case addressLocalVariable:
+		return a.addressedType
+	case addressMapIndex:
+		return a.addressedType.Elem()
+	case addressPointerIndirection:
+		return a.addressedType.Elem()
+	case addressSliceIndex:
+		return a.addressedType.Elem()
+	case addressStructSelector:
+		encodedField := a.em.fb.fn.Constants.Int[a.reg2]
+		index := decodeFieldIndex(encodedField)
+		return a.addressedType.FieldByIndex(index).Type
+	}
+	return nil
 }
 
 // assignValuesToAddresses assigns values to addresses.
 func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Expression) {
 
 	if len(addresses) == 1 && len(values) == 1 {
-		t := em.ti(values[0]).Type
+		t := addresses[0].targetType()
+		if t == nil {
+			t = em.ti(values[0]).Type
+		}
 		v, k := em.emitExprK(values[0], t)
 		addresses[0].assign(k, v, t)
 		return
@@ -123,7 +156,7 @@ func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Exp
 		key, kKey := em.emitExprK(valueExpr.Index, keyType)
 		valueType := mapType.Elem()
 		value := em.fb.newRegister(valueType.Kind())
-		okType := addresses[1].staticType
+		okType := addresses[1].addressedType
 		okReg := em.fb.newRegister(reflect.Bool)
 		em.fb.emitIndex(kKey, mapp, key, value, mapType)
 		em.fb.emitMove(true, 1, okReg, reflect.Bool)
@@ -135,7 +168,7 @@ func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Exp
 	case *ast.TypeAssertion:
 		typ := em.ti(valueExpr.Type).Type
 		expr := em.emitExpr(valueExpr.Expr, emptyInterfaceType)
-		okType := addresses[1].staticType
+		okType := addresses[1].addressedType
 		ok := em.fb.newRegister(reflect.Bool)
 		em.fb.emitMove(true, 1, ok, reflect.Bool)
 		result := em.fb.newRegister(typ.Kind())
@@ -147,7 +180,7 @@ func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Exp
 	case *ast.UnaryOperator: // receive from channel.
 		chanType := em.ti(valueExpr.Expr).Type
 		valueType := em.ti(valueExpr).Type
-		okType := addresses[1].staticType
+		okType := addresses[1].addressedType
 		chann := em.emitExpr(valueExpr.Expr, chanType)
 		ok := em.fb.newRegister(reflect.Bool)
 		value := em.fb.newRegister(valueType.Kind())
@@ -220,11 +253,11 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				indexType = exprType.Key()
 			}
 			index := em.emitExpr(v.Index, indexType)
-			addrType := addressSliceIndex
+			addrTarget := addressSliceIndex
 			if exprType.Kind() == reflect.Map {
-				addrType = addressMapIndex
+				addrTarget = addressMapIndex
 			}
-			addresses[i] = em.newAddress(addrType, exprType, expr, index)
+			addresses[i] = em.newAddress(addrTarget, exprType, expr, index)
 		case *ast.Selector:
 			if index, ok := em.getVarIndex(v); ok {
 				msb, lsb := encodeInt16(int16(index))
@@ -235,7 +268,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			reg := em.emitExpr(v.Expr, typ)
 			field, _ := typ.FieldByName(v.Ident)
 			index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
-			addresses[i] = em.newAddress(addressStructSelector, field.Type, reg, index)
+			addresses[i] = em.newAddress(addressStructSelector, typ, reg, index)
 			break
 		case *ast.UnaryOperator:
 			if v.Operator() != ast.OperatorMultiplication {

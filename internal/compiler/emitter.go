@@ -1373,13 +1373,13 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		if ti.HasValue() && !ti.IsPredefined() {
 			switch v := ti.value.(type) {
 			case int64:
-				if kindToType(dstType.Kind()) == runtime.TypeInt {
+				if canEmitDirectly(reflect.Int, dstType.Kind()) {
 					if -127 < v && v < 126 {
 						return int8(v), true
 					}
 				}
 			case float64:
-				if kindToType(dstType.Kind()) == runtime.TypeFloat {
+				if canEmitDirectly(reflect.Float64, dstType.Kind()) {
 					if math.Floor(v) == v && -127 < v && v < 126 {
 						return int8(v), true
 					}
@@ -1387,7 +1387,9 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			}
 		}
 		if expr, ok := expr.(*ast.Identifier); ok && em.fb.isVariable(expr.Name) {
-			return em.fb.scopeLookup(expr.Name), false
+			if canEmitDirectly(em.ti(expr).Type.Kind(), dstType.Kind()) {
+				return em.fb.scopeLookup(expr.Name), false
+			}
 		}
 	}
 
@@ -2595,14 +2597,15 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 			em.emitExprR(operand, dstType, 0)
 			return
 		}
-		exprReg := em.emitExpr(operand, dstType)
 		if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
-			em.fb.emitSubInv(true, exprReg, 0, reg, dstType.Kind())
+			em.emitExprR(operand, dstType, reg)
+			em.fb.emitSubInv(true, reg, 0, reg, dstType.Kind())
 			return
 		}
 		em.fb.enterStack()
 		tmp := em.fb.newRegister(operandType.Kind())
-		em.fb.emitSubInv(true, exprReg, 0, tmp, operandType.Kind())
+		em.emitExprR(operand, operandType, tmp)
+		em.fb.emitSubInv(true, tmp, 0, tmp, operandType.Kind())
 		em.changeRegister(false, tmp, reg, operandType, dstType)
 		em.fb.exitStack()
 
