@@ -56,13 +56,7 @@ func (em *emitter) newAddress(addrType addressType, staticType reflect.Type, reg
 func (a address) assign(k bool, value int8, valueType reflect.Type) {
 	switch a.addrType {
 	case addressClosureVariable:
-		if k {
-			tmp := a.em.fb.newRegister(valueType.Kind())
-			a.em.fb.emitMove(true, value, tmp, valueType.Kind())
-			a.em.fb.emitSetVar(false, tmp, int(decodeInt16(a.reg1, a.reg2)))
-		} else {
-			a.em.fb.emitSetVar(false, value, int(decodeInt16(a.reg1, a.reg2)))
-		}
+		a.em.fb.emitSetVar(k, value, int(decodeInt16(a.reg1, a.reg2)))
 	case addressBlank:
 		// Nothing to do.
 	case addressLocalVariable:
