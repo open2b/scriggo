@@ -78,8 +78,6 @@ func (a address) assign(k bool, value int8, valueType reflect.Type) {
 // assignValuesToAddresses assigns values to addresses.
 func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Expression) {
 
-	// TODO(Gianluca): use mayHaveDependencies.
-
 	if len(addresses) == 1 && len(values) == 1 {
 		t := em.ti(values[0]).Type
 		v, k := em.emitExprK(values[0], t)

@@ -219,40 +219,6 @@ func kindToType(k reflect.Kind) runtime.Type {
 	}
 }
 
-// mayHaveDependencies reports whether there may be dependencies between
-// values and variables.
-func mayHaveDependencies(variables, values []ast.Expression) bool {
-	// TODO(Gianluca): this function can be optimized, although for now
-	// readability has been preferred.
-	allDifferentIdentifiers := func() bool {
-		names := make(map[string]bool)
-		for _, v := range variables {
-			ident, ok := v.(*ast.Identifier)
-			if !ok {
-				return false
-			}
-			_, alreadyPresent := names[ident.Name]
-			if alreadyPresent {
-				return false
-			}
-			names[ident.Name] = true
-		}
-		for _, v := range values {
-			ident, ok := v.(*ast.Identifier)
-			if !ok {
-				return false
-			}
-			_, alreadyPresent := names[ident.Name]
-			if alreadyPresent {
-				return false
-			}
-			names[ident.Name] = true
-		}
-		return true
-	}
-	return !allDifferentIdentifiers()
-}
-
 // predVarIndex returns the index of a global variable in globals, adding it
 // if it does not exist.
 func (em *emitter) predVarIndex(v reflect.Value, predPkgName, name string) int16 {
