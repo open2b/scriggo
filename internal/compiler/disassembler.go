@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"strings"
 
-	"scriggo/vm"
+	"scriggo/runtime"
 )
 
 func packageName(pkg string) string {
@@ -23,16 +23,16 @@ func packageName(pkg string) string {
 	return pkg[i+1:]
 }
 
-func Disassemble(main *vm.Function, globals []Global) (assembler map[string]string, err error) {
+func Disassemble(main *runtime.Function, globals []Global) (assembler map[string]string, err error) {
 
-	functionsByPkg := map[string]map[*vm.Function]int{}
+	functionsByPkg := map[string]map[*runtime.Function]int{}
 	importsByPkg := map[string]map[string]struct{}{}
 
 	c := len(main.Functions)
 	if c == 0 {
 		c = 1
 	}
-	allFunctions := make([]*vm.Function, 1, c)
+	allFunctions := make([]*runtime.Function, 1, c)
 	allFunctions[0] = main
 
 	for i := 0; i < len(allFunctions); i++ {
@@ -40,7 +40,7 @@ func Disassemble(main *vm.Function, globals []Global) (assembler map[string]stri
 		if p, ok := functionsByPkg[fn.Pkg]; ok {
 			p[fn] = fn.Line
 		} else {
-			functionsByPkg[fn.Pkg] = map[*vm.Function]int{fn: fn.Line}
+			functionsByPkg[fn.Pkg] = map[*runtime.Function]int{fn: fn.Line}
 		}
 		for _, sf := range fn.Functions {
 			if sf.Pkg != fn.Pkg {
@@ -85,7 +85,7 @@ func Disassemble(main *vm.Function, globals []Global) (assembler map[string]stri
 			packages = packages[:]
 		}
 
-		functions := make([]*vm.Function, 0, len(funcs))
+		functions := make([]*runtime.Function, 0, len(funcs))
 		for fn := range funcs {
 			functions = append(functions, fn)
 		}
@@ -107,14 +107,14 @@ func Disassemble(main *vm.Function, globals []Global) (assembler map[string]stri
 	return assembler, nil
 }
 
-func DisassembleFunction(w io.Writer, fn *vm.Function, globals []Global) (int64, error) {
+func DisassembleFunction(w io.Writer, fn *runtime.Function, globals []Global) (int64, error) {
 	var b bytes.Buffer
 	_, _ = fmt.Fprintf(&b, "Func %s", fn.Name)
 	disassembleFunction(&b, fn, globals, 0)
 	return b.WriteTo(w)
 }
 
-func disassembleFunction(w *bytes.Buffer, fn *vm.Function, globals []Global, depth int) {
+func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global, depth int) {
 	indent := ""
 	if depth > 0 {
 		indent = strings.Repeat("\t", depth)
@@ -122,7 +122,7 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.Function, globals []Global, dep
 	labelOf := map[uint32]uint32{}
 	for _, in := range fn.Body {
 		switch in.Op {
-		case vm.OpBreak, vm.OpContinue, vm.OpGoto:
+		case runtime.OpBreak, runtime.OpContinue, runtime.OpGoto:
 			labelOf[decodeUint24(in.A, in.B, in.C)] = 0
 		}
 	}
@@ -142,11 +142,11 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.Function, globals []Global, dep
 	// Print input parameters.
 	_, _ = fmt.Fprintf(w, "(")
 	if fn.Type.NumIn() > 0 {
-		out := map[vm.Type]int{vm.TypeInt: 0, vm.TypeFloat: 0, vm.TypeString: 0, vm.TypeGeneral: 0}
+		out := map[runtime.Type]int{runtime.TypeInt: 0, runtime.TypeFloat: 0, runtime.TypeString: 0, runtime.TypeGeneral: 0}
 		for i := 0; i < fn.Type.NumOut(); i++ {
 			out[kindToType(fn.Type.Out(i).Kind())]++
 		}
-		in := map[vm.Type]int{vm.TypeInt: 0, vm.TypeFloat: 0, vm.TypeString: 0, vm.TypeGeneral: 0}
+		in := map[runtime.Type]int{runtime.TypeInt: 0, runtime.TypeFloat: 0, runtime.TypeString: 0, runtime.TypeGeneral: 0}
 		for i := 0; i < fn.Type.NumIn(); i++ {
 			if i > 0 {
 				_, _ = fmt.Fprint(w, ", ")
@@ -163,7 +163,7 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.Function, globals []Global, dep
 
 	// Print output parameters.
 	if fn.Type.NumOut() > 0 {
-		out := map[vm.Type]int{vm.TypeInt: 0, vm.TypeFloat: 0, vm.TypeString: 0, vm.TypeGeneral: 0}
+		out := map[runtime.Type]int{runtime.TypeInt: 0, runtime.TypeFloat: 0, runtime.TypeString: 0, runtime.TypeGeneral: 0}
 		_, _ = fmt.Fprint(w, " (")
 		for i := 0; i < fn.Type.NumOut(); i++ {
 			if i > 0 {
@@ -180,7 +180,7 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.Function, globals []Global, dep
 
 	_, _ = fmt.Fprint(w, "\n")
 	_, _ = fmt.Fprintf(w, "%s\t; regs(%d,%d,%d,%d)\n", indent,
-		fn.NumReg[vm.TypeInt], fn.NumReg[vm.TypeFloat], fn.NumReg[vm.TypeString], fn.NumReg[vm.TypeGeneral])
+		fn.NumReg[runtime.TypeInt], fn.NumReg[runtime.TypeFloat], fn.NumReg[runtime.TypeString], fn.NumReg[runtime.TypeGeneral])
 	instrNum := uint32(len(fn.Body))
 	for addr := uint32(0); addr < instrNum; addr++ {
 		if label, ok := labelOf[uint32(addr)]; ok {
@@ -188,33 +188,33 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.Function, globals []Global, dep
 		}
 		in := fn.Body[addr]
 		switch in.Op {
-		case vm.OpBreak, vm.OpContinue, vm.OpGoto:
+		case runtime.OpBreak, runtime.OpContinue, runtime.OpGoto:
 			label := labelOf[decodeUint24(in.A, in.B, in.C)]
 			_, _ = fmt.Fprintf(w, "%s\t%s %d\n", indent, operationName[in.Op], label)
-		case vm.OpFunc:
-			_, _ = fmt.Fprintf(w, "%s\tFunc %s ", indent, disassembleOperand(fn, in.C, vm.Interface, false))
+		case runtime.OpFunc:
+			_, _ = fmt.Fprintf(w, "%s\tFunc %s ", indent, disassembleOperand(fn, in.C, runtime.Interface, false))
 			disassembleFunction(w, fn.Literals[uint8(in.B)], globals, depth+1)
 		default:
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, globals, addr))
 		}
 		switch in.Op {
-		case vm.OpCall, vm.OpCallIndirect, vm.OpCallPredefined, vm.OpTailCall, vm.OpSlice, vm.OpSliceString:
+		case runtime.OpCall, runtime.OpCallIndirect, runtime.OpCallPredefined, runtime.OpTailCall, runtime.OpSlice, runtime.OpSliceString:
 			addr += 1
-		case vm.OpDefer:
+		case runtime.OpDefer:
 			addr += 2
 		}
-		if in.Op == vm.OpMakeSlice && in.B > 1 {
+		if in.Op == runtime.OpMakeSlice && in.B > 1 {
 			addr += 1
 		}
 	}
 }
 
-func DisassembleInstruction(w io.Writer, fn *vm.Function, globals []Global, addr uint32) (int64, error) {
+func DisassembleInstruction(w io.Writer, fn *runtime.Function, globals []Global, addr uint32) (int64, error) {
 	n, err := io.WriteString(w, disassembleInstruction(fn, globals, addr))
 	return int64(n), err
 }
 
-func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) string {
+func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32) string {
 	in := fn.Body[addr]
 	op, a, b, c := in.Op, in.A, in.B, in.C
 	k := false
@@ -224,170 +224,170 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 	}
 	s := operationName[op]
 	switch op {
-	case vm.OpAddInt64, vm.OpAddInt8, vm.OpAddInt16, vm.OpAddInt32,
-		vm.OpAnd, vm.OpAndNot, vm.OpOr, vm.OpXor,
-		vm.OpDivInt64, vm.OpDivInt8, vm.OpDivInt16, vm.OpDivInt32, vm.OpDivUint8, vm.OpDivUint16, vm.OpDivUint32, vm.OpDivUint64,
-		vm.OpMulInt64, vm.OpMulInt8, vm.OpMulInt16, vm.OpMulInt32,
-		vm.OpRemInt64, vm.OpRemInt8, vm.OpRemInt16, vm.OpRemInt32, vm.OpRemUint8, vm.OpRemUint16, vm.OpRemUint32, vm.OpRemUint64,
-		vm.OpSubInt64, vm.OpSubInt8, vm.OpSubInt16, vm.OpSubInt32,
-		vm.OpSubInvInt64, vm.OpSubInvInt8, vm.OpSubInvInt16, vm.OpSubInvInt32,
-		vm.OpLeftShift64, vm.OpLeftShift8, vm.OpLeftShift16, vm.OpLeftShift32,
-		vm.OpRightShift, vm.OpRightShiftU:
-		s += " " + disassembleOperand(fn, a, vm.Int, false)
-		s += " " + disassembleOperand(fn, b, vm.Int, k)
-		s += " " + disassembleOperand(fn, c, vm.Int, false)
-	case vm.OpAddFloat32, vm.OpAddFloat64, vm.OpDivFloat32, vm.OpDivFloat64,
-		vm.OpMulFloat32, vm.OpMulFloat64,
-		vm.OpSubFloat32, vm.OpSubFloat64, vm.OpSubInvFloat32, vm.OpSubInvFloat64:
-		s += " " + disassembleOperand(fn, a, vm.Float64, false)
-		s += " " + disassembleOperand(fn, b, vm.Float64, k)
-		s += " " + disassembleOperand(fn, c, vm.Float64, false)
-	case vm.OpAddr:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + disassembleOperand(fn, b, vm.Int, false)
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
-	case vm.OpAlloc:
+	case runtime.OpAddInt64, runtime.OpAddInt8, runtime.OpAddInt16, runtime.OpAddInt32,
+		runtime.OpAnd, runtime.OpAndNot, runtime.OpOr, runtime.OpXor,
+		runtime.OpDivInt64, runtime.OpDivInt8, runtime.OpDivInt16, runtime.OpDivInt32, runtime.OpDivUint8, runtime.OpDivUint16, runtime.OpDivUint32, runtime.OpDivUint64,
+		runtime.OpMulInt64, runtime.OpMulInt8, runtime.OpMulInt16, runtime.OpMulInt32,
+		runtime.OpRemInt64, runtime.OpRemInt8, runtime.OpRemInt16, runtime.OpRemInt32, runtime.OpRemUint8, runtime.OpRemUint16, runtime.OpRemUint32, runtime.OpRemUint64,
+		runtime.OpSubInt64, runtime.OpSubInt8, runtime.OpSubInt16, runtime.OpSubInt32,
+		runtime.OpSubInvInt64, runtime.OpSubInvInt8, runtime.OpSubInvInt16, runtime.OpSubInvInt32,
+		runtime.OpLeftShift64, runtime.OpLeftShift8, runtime.OpLeftShift16, runtime.OpLeftShift32,
+		runtime.OpRightShift, runtime.OpRightShiftU:
+		s += " " + disassembleOperand(fn, a, runtime.Int, false)
+		s += " " + disassembleOperand(fn, b, runtime.Int, k)
+		s += " " + disassembleOperand(fn, c, runtime.Int, false)
+	case runtime.OpAddFloat32, runtime.OpAddFloat64, runtime.OpDivFloat32, runtime.OpDivFloat64,
+		runtime.OpMulFloat32, runtime.OpMulFloat64,
+		runtime.OpSubFloat32, runtime.OpSubFloat64, runtime.OpSubInvFloat32, runtime.OpSubInvFloat64:
+		s += " " + disassembleOperand(fn, a, runtime.Float64, false)
+		s += " " + disassembleOperand(fn, b, runtime.Float64, k)
+		s += " " + disassembleOperand(fn, c, runtime.Float64, false)
+	case runtime.OpAddr:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, b, runtime.Int, false)
+		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+	case runtime.OpAlloc:
 		if k {
 			s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
 		} else {
 			s += " *"
 		}
-	case vm.OpAppend:
-		s += " " + disassembleOperand(fn, a, vm.Int, true)
-		s += " " + disassembleOperand(fn, b, vm.Int, true)
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
-	case vm.OpAppendSlice, vm.OpSend:
-		s += " " + disassembleOperand(fn, a, vm.Unknown, false)
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
-	case vm.OpAssert:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
+	case runtime.OpAppend:
+		s += " " + disassembleOperand(fn, a, runtime.Int, true)
+		s += " " + disassembleOperand(fn, b, runtime.Int, true)
+		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+	case runtime.OpAppendSlice, runtime.OpSend:
+		s += " " + disassembleOperand(fn, a, runtime.Unknown, false)
+		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+	case runtime.OpAssert:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 		s += " " + fn.Types[b].String()
 		t := fn.Types[int(uint(b))]
 		var kind = reflectToRegisterKind(t.Kind())
 		s += " " + disassembleOperand(fn, c, kind, false)
-	case vm.OpBind, vm.OpGetVar, vm.OpGetVarAddr:
+	case runtime.OpBind, runtime.OpGetVar, runtime.OpGetVarAddr:
 		s += " " + disassembleVarRef(fn, globals, int16(int(a)<<8|int(uint8(b))))
-		s += " " + disassembleOperand(fn, c, vm.Unknown, false)
-	case vm.OpBreak, vm.OpContinue, vm.OpGoto:
+		s += " " + disassembleOperand(fn, c, runtime.Unknown, false)
+	case runtime.OpBreak, runtime.OpContinue, runtime.OpGoto:
 		s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
-	case vm.OpCall, vm.OpCallIndirect, vm.OpCallPredefined, vm.OpTailCall, vm.OpDefer:
-		if a != vm.CurrentFunction {
+	case runtime.OpCall, runtime.OpCallIndirect, runtime.OpCallPredefined, runtime.OpTailCall, runtime.OpDefer:
+		if a != runtime.CurrentFunction {
 			switch op {
-			case vm.OpCall, vm.OpTailCall:
+			case runtime.OpCall, runtime.OpTailCall:
 				sf := fn.Functions[uint8(a)]
 				s += " " + packageName(sf.Pkg) + "." + sf.Name
-			case vm.OpCallPredefined:
+			case runtime.OpCallPredefined:
 				nf := fn.Predefined[uint8(a)]
 				s += " " + packageName(nf.Pkg) + "." + nf.Name
-			case vm.OpCallIndirect, vm.OpDefer:
-				s += " " + disassembleOperand(fn, a, vm.Interface, false)
+			case runtime.OpCallIndirect, runtime.OpDefer:
+				s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 			}
 		}
-		if c != vm.NoVariadicArgs && (op == vm.OpCallIndirect || op == vm.OpCallPredefined || op == vm.OpDefer) {
+		if c != runtime.NoVariadicArgs && (op == runtime.OpCallIndirect || op == runtime.OpCallPredefined || op == runtime.OpDefer) {
 			s += " ..." + strconv.Itoa(int(c))
 		}
 		switch op {
-		case vm.OpCallIndirect, vm.OpDefer:
+		case runtime.OpCallIndirect, runtime.OpDefer:
 			grow := fn.Body[addr+1]
 			s += "\t; Stack shift: " + strconv.Itoa(int(grow.Op)) + ", " + strconv.Itoa(int(grow.A)) + ", " +
 				strconv.Itoa(int(grow.B)) + ", " + strconv.Itoa(int(grow.C))
-		case vm.OpCall, vm.OpCallPredefined:
+		case runtime.OpCall, runtime.OpCallPredefined:
 			grow := fn.Body[addr+1]
-			stackShift := vm.StackShift{int8(grow.Op), grow.A, grow.B, grow.C}
-			s += "\t; " + disassembleFunctionCall(fn, a, op == vm.OpCallPredefined, stackShift, c)
+			stackShift := runtime.StackShift{int8(grow.Op), grow.A, grow.B, grow.C}
+			s += "\t; " + disassembleFunctionCall(fn, a, op == runtime.OpCallPredefined, stackShift, c)
 		}
-		if op == vm.OpDefer {
+		if op == runtime.OpDefer {
 			args := fn.Body[addr+2]
 			s += "; args: " + strconv.Itoa(int(args.Op)) + ", " + strconv.Itoa(int(args.A)) + ", " +
 				strconv.Itoa(int(args.B)) + ", " + strconv.Itoa(int(args.C))
 		}
-	case vm.OpCap:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + disassembleOperand(fn, c, vm.Int, false)
-	case vm.OpCase:
+	case runtime.OpCap:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, c, runtime.Int, false)
+	case runtime.OpCase:
 		switch reflect.SelectDir(a) {
 		case reflect.SelectSend:
-			s += " send " + disassembleOperand(fn, b, vm.Int, k) + " " + disassembleOperand(fn, c, vm.Interface, false)
+			s += " send " + disassembleOperand(fn, b, runtime.Int, k) + " " + disassembleOperand(fn, c, runtime.Interface, false)
 		case reflect.SelectRecv:
-			s += " recv " + disassembleOperand(fn, b, vm.Int, false) + " " + disassembleOperand(fn, c, vm.Interface, false)
+			s += " recv " + disassembleOperand(fn, b, runtime.Int, false) + " " + disassembleOperand(fn, c, runtime.Interface, false)
 		default:
 			s += " default"
 		}
-	case vm.OpClose, vm.OpPanic, vm.OpPrint:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-	case vm.OpComplex64, vm.OpComplex128:
-		s += " " + disassembleOperand(fn, a, vm.Float64, false)
-		s += " " + disassembleOperand(fn, b, vm.Float64, false)
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
-	case vm.OpConcat:
-		s += " " + disassembleOperand(fn, a, vm.String, false)
-		s += " " + disassembleOperand(fn, b, vm.String, k)
-		s += " " + disassembleOperand(fn, c, vm.String, false)
-	case vm.OpConvertGeneral:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
+	case runtime.OpClose, runtime.OpPanic, runtime.OpPrint:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+	case runtime.OpComplex64, runtime.OpComplex128:
+		s += " " + disassembleOperand(fn, a, runtime.Float64, false)
+		s += " " + disassembleOperand(fn, b, runtime.Float64, false)
+		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+	case runtime.OpConcat:
+		s += " " + disassembleOperand(fn, a, runtime.String, false)
+		s += " " + disassembleOperand(fn, b, runtime.String, k)
+		s += " " + disassembleOperand(fn, c, runtime.String, false)
+	case runtime.OpConvertGeneral:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 		typ := fn.Types[int(uint(b))]
 		s += " " + typ.String()
-		s += " " + disassembleOperand(fn, c, vm.Kind(typ.Kind()), false)
-	case vm.OpConvertInt, vm.OpConvertUint:
-		s += " " + disassembleOperand(fn, a, vm.Int, false)
+		s += " " + disassembleOperand(fn, c, runtime.Kind(typ.Kind()), false)
+	case runtime.OpConvertInt, runtime.OpConvertUint:
+		s += " " + disassembleOperand(fn, a, runtime.Int, false)
 		typ := fn.Types[int(uint(b))]
 		s += " " + typ.String()
-		s += " " + disassembleOperand(fn, c, vm.Kind(typ.Kind()), false)
-	case vm.OpConvertFloat:
-		s += " " + disassembleOperand(fn, a, vm.Float64, false)
+		s += " " + disassembleOperand(fn, c, runtime.Kind(typ.Kind()), false)
+	case runtime.OpConvertFloat:
+		s += " " + disassembleOperand(fn, a, runtime.Float64, false)
 		typ := fn.Types[int(uint(b))]
 		s += " " + typ.String()
-		s += " " + disassembleOperand(fn, c, vm.Kind(typ.Kind()), false)
-	case vm.OpConvertString:
-		s += " " + disassembleOperand(fn, a, vm.String, false)
+		s += " " + disassembleOperand(fn, c, runtime.Kind(typ.Kind()), false)
+	case runtime.OpConvertString:
+		s += " " + disassembleOperand(fn, a, runtime.String, false)
 		typ := fn.Types[int(uint(b))]
 		s += " " + typ.String()
-		s += " " + disassembleOperand(fn, c, vm.Kind(typ.Kind()), false)
-	case vm.OpCopy:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + disassembleOperand(fn, b, vm.Int, false)
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
-	case vm.OpDelete:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + disassembleOperand(fn, b, vm.Interface, false)
-	case vm.OpIf:
-		switch vm.Condition(b) {
-		case vm.ConditionOK, vm.ConditionNotOK:
+		s += " " + disassembleOperand(fn, c, runtime.Kind(typ.Kind()), false)
+	case runtime.OpCopy:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, b, runtime.Int, false)
+		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+	case runtime.OpDelete:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, b, runtime.Interface, false)
+	case runtime.OpIf:
+		switch runtime.Condition(b) {
+		case runtime.ConditionOK, runtime.ConditionNotOK:
 			s += " " + conditionName[b]
-		case vm.ConditionEqual, vm.ConditionNotEqual:
-			s += " " + disassembleOperand(fn, a, vm.Interface, false)
+		case runtime.ConditionEqual, runtime.ConditionNotEqual:
+			s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 			s += " " + conditionName[b]
-			s += " " + disassembleOperand(fn, c, vm.Interface, k)
+			s += " " + disassembleOperand(fn, c, runtime.Interface, k)
 		default:
-			s += " " + disassembleOperand(fn, a, vm.Interface, false)
+			s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 			s += " " + conditionName[b]
 		}
-	case vm.OpIfInt, vm.OpIfUint:
-		s += " " + disassembleOperand(fn, a, vm.Int, false)
+	case runtime.OpIfInt, runtime.OpIfUint:
+		s += " " + disassembleOperand(fn, a, runtime.Int, false)
 		s += " " + conditionName[b]
-		if vm.Condition(b) >= vm.ConditionEqual {
-			s += " " + disassembleOperand(fn, c, vm.Int, k)
+		if runtime.Condition(b) >= runtime.ConditionEqual {
+			s += " " + disassembleOperand(fn, c, runtime.Int, k)
 		}
-	case vm.OpIfFloat:
-		s += " " + disassembleOperand(fn, a, vm.Float64, false)
+	case runtime.OpIfFloat:
+		s += " " + disassembleOperand(fn, a, runtime.Float64, false)
 		s += " " + conditionName[b]
-		s += " " + disassembleOperand(fn, c, vm.Float64, k)
-	case vm.OpIfString:
-		s += " " + disassembleOperand(fn, a, vm.String, false)
+		s += " " + disassembleOperand(fn, c, runtime.Float64, k)
+	case runtime.OpIfString:
+		s += " " + disassembleOperand(fn, a, runtime.String, false)
 		s += " " + conditionName[b]
-		if vm.Condition(b) < vm.ConditionEqualLen {
+		if runtime.Condition(b) < runtime.ConditionEqualLen {
 			if k && c >= 0 {
 				s += " " + strconv.Quote(string(c))
 			} else {
-				s += " " + disassembleOperand(fn, c, vm.String, k)
+				s += " " + disassembleOperand(fn, c, runtime.String, k)
 			}
 		} else {
-			s += " " + disassembleOperand(fn, c, vm.Int, k)
+			s += " " + disassembleOperand(fn, c, runtime.Int, k)
 		}
-	case vm.OpFunc:
+	case runtime.OpFunc:
 		s += " func(" + strconv.Itoa(int(uint8(b))) + ")"
-		s += " " + disassembleOperand(fn, c, vm.Int, false)
-	case vm.OpGetFunc:
+		s += " " + disassembleOperand(fn, c, runtime.Int, false)
+	case runtime.OpGetFunc:
 		if a == 0 {
 			f := fn.Functions[uint8(b)]
 			s += " " + packageName(f.Pkg) + "." + f.Name
@@ -395,126 +395,126 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 			f := fn.Predefined[uint8(b)]
 			s += " " + packageName(f.Pkg) + "." + f.Name
 		}
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
-	case vm.OpGo, vm.OpReturn:
-	case vm.OpIndex:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + disassembleOperand(fn, b, vm.Int, k)
-		s += " " + disassembleOperand(fn, c, vm.Unknown, false)
-	case vm.OpIndexMap:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + disassembleOperand(fn, b, vm.Unknown, k)
-		s += " " + disassembleOperand(fn, b, vm.Unknown, false)
-	case vm.OpIndexString:
-		s += " " + disassembleOperand(fn, a, vm.String, false)
-		s += " " + disassembleOperand(fn, b, vm.Int, k)
-		s += " " + disassembleOperand(fn, c, vm.Int, false)
-	case vm.OpLen:
+		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+	case runtime.OpGo, runtime.OpReturn:
+	case runtime.OpIndex:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, b, runtime.Int, k)
+		s += " " + disassembleOperand(fn, c, runtime.Unknown, false)
+	case runtime.OpIndexMap:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, b, runtime.Unknown, k)
+		s += " " + disassembleOperand(fn, b, runtime.Unknown, false)
+	case runtime.OpIndexString:
+		s += " " + disassembleOperand(fn, a, runtime.String, false)
+		s += " " + disassembleOperand(fn, b, runtime.Int, k)
+		s += " " + disassembleOperand(fn, c, runtime.Int, false)
+	case runtime.OpLen:
 		s += " " + strconv.Itoa(int(a))
 		if a == 0 {
-			s += " " + disassembleOperand(fn, b, vm.String, false)
+			s += " " + disassembleOperand(fn, b, runtime.String, false)
 		} else {
-			s += " " + disassembleOperand(fn, b, vm.Interface, false)
+			s += " " + disassembleOperand(fn, b, runtime.Interface, false)
 		}
-		s += " " + disassembleOperand(fn, c, vm.Int, false)
-	case vm.OpLoadData:
+		s += " " + disassembleOperand(fn, c, runtime.Int, false)
+	case runtime.OpLoadData:
 		s += " " + strconv.Itoa(int(decodeInt16(a, b)))
-		s += " " + disassembleOperand(fn, c, vm.Func, false)
-	case vm.OpLoadNumber:
+		s += " " + disassembleOperand(fn, c, runtime.Func, false)
+	case runtime.OpLoadNumber:
 		if a == 0 {
 			s += " int"
 			s += " " + fmt.Sprintf("%d", fn.Constants.Int[uint8(b)])
-			s += " " + disassembleOperand(fn, c, vm.Int, false)
+			s += " " + disassembleOperand(fn, c, runtime.Int, false)
 		} else {
 			s += " float"
 			s += " " + fmt.Sprintf("%f", fn.Constants.Float[uint8(b)])
-			s += " " + disassembleOperand(fn, c, vm.Float64, false)
+			s += " " + disassembleOperand(fn, c, runtime.Float64, false)
 		}
-	case vm.OpMakeChan:
+	case runtime.OpMakeChan:
 		s += " " + fn.Types[int(uint(a))].String()
-		s += " " + disassembleOperand(fn, b, vm.Int, k)
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
-	case vm.OpMakeMap:
+		s += " " + disassembleOperand(fn, b, runtime.Int, k)
+		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+	case runtime.OpMakeMap:
 		s += " " + fn.Types[int(uint(a))].String()
-		s += " " + disassembleOperand(fn, b, vm.Int, k)
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
-	case vm.OpMethodValue:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + disassembleOperand(fn, b, vm.String, true)
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
-	case vm.OpMove:
-		switch vm.Type(a) {
-		case vm.TypeInt:
-			s += " " + disassembleOperand(fn, b, vm.Int, k)
-			s += " " + disassembleOperand(fn, c, vm.Int, false)
-		case vm.TypeFloat:
-			s += " " + disassembleOperand(fn, b, vm.Float64, k)
-			s += " " + disassembleOperand(fn, c, vm.Float64, false)
-		case vm.TypeString:
-			s += " " + disassembleOperand(fn, b, vm.String, k)
-			s += " " + disassembleOperand(fn, c, vm.String, false)
-		case vm.TypeGeneral:
-			s += " " + disassembleOperand(fn, b, vm.Interface, k)
-			s += " " + disassembleOperand(fn, c, vm.Interface, false)
+		s += " " + disassembleOperand(fn, b, runtime.Int, k)
+		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+	case runtime.OpMethodValue:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, b, runtime.String, true)
+		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+	case runtime.OpMove:
+		switch runtime.Type(a) {
+		case runtime.TypeInt:
+			s += " " + disassembleOperand(fn, b, runtime.Int, k)
+			s += " " + disassembleOperand(fn, c, runtime.Int, false)
+		case runtime.TypeFloat:
+			s += " " + disassembleOperand(fn, b, runtime.Float64, k)
+			s += " " + disassembleOperand(fn, c, runtime.Float64, false)
+		case runtime.TypeString:
+			s += " " + disassembleOperand(fn, b, runtime.String, k)
+			s += " " + disassembleOperand(fn, c, runtime.String, false)
+		case runtime.TypeGeneral:
+			s += " " + disassembleOperand(fn, b, runtime.Interface, k)
+			s += " " + disassembleOperand(fn, c, runtime.Interface, false)
 		}
-	case vm.OpNew:
+	case runtime.OpNew:
 		s += " " + fn.Types[int(uint(b))].String()
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
-	case vm.OpRange:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + disassembleOperand(fn, b, vm.Int, false)
-		s += " " + disassembleOperand(fn, c, vm.Int, false)
-	case vm.OpRangeString:
-		s += " " + disassembleOperand(fn, a, vm.String, k)
-		s += " " + disassembleOperand(fn, b, vm.Int, false)
-		s += " " + disassembleOperand(fn, c, vm.Int, false)
-	case vm.OpReceive:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + disassembleOperand(fn, b, vm.Bool, false)
-		s += " " + disassembleOperand(fn, c, vm.Unknown, false)
-	case vm.OpRecover:
+		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+	case runtime.OpRange:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, b, runtime.Int, false)
+		s += " " + disassembleOperand(fn, c, runtime.Int, false)
+	case runtime.OpRangeString:
+		s += " " + disassembleOperand(fn, a, runtime.String, k)
+		s += " " + disassembleOperand(fn, b, runtime.Int, false)
+		s += " " + disassembleOperand(fn, c, runtime.Int, false)
+	case runtime.OpReceive:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, b, runtime.Bool, false)
+		s += " " + disassembleOperand(fn, c, runtime.Unknown, false)
+	case runtime.OpRecover:
 		if a > 0 {
 			s += " down"
 		}
 		if c != 0 {
-			s += " " + disassembleOperand(fn, c, vm.Interface, false)
+			s += " " + disassembleOperand(fn, c, runtime.Interface, false)
 		}
-	case vm.OpRealImag:
-		s += " " + disassembleOperand(fn, a, vm.Interface, k)
-		s += " " + disassembleOperand(fn, b, vm.Float64, false)
-		s += " " + disassembleOperand(fn, c, vm.Float64, false)
-	case vm.OpField:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
+	case runtime.OpRealImag:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, k)
+		s += " " + disassembleOperand(fn, b, runtime.Float64, false)
+		s += " " + disassembleOperand(fn, c, runtime.Float64, false)
+	case runtime.OpField:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[b]))
-		s += " " + disassembleOperand(fn, c, vm.Unknown, false)
-	case vm.OpMakeSlice:
+		s += " " + disassembleOperand(fn, c, runtime.Unknown, false)
+	case runtime.OpMakeSlice:
 		s += " " + fn.Types[int(uint(a))].String()
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
+		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
 		// TODO(Gianluca).
 		// s += "\t; len: "
 		// s += fmt.Sprintf("%d", fn.Body[addr+1].A)
 		// s += ", cap: "
 		// s += fmt.Sprintf("%d", fn.Body[addr+1].B)
-	case vm.OpSetField:
-		s += " " + disassembleOperand(fn, a, vm.Unknown, k)
+	case runtime.OpSetField:
+		s += " " + disassembleOperand(fn, a, runtime.Unknown, k)
 		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[b]))
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
-	case vm.OpSetMap:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
+		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+	case runtime.OpSetMap:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 		if k {
 			s += fmt.Sprintf(" K(%v)", b)
 		} else {
-			s += " " + disassembleOperand(fn, b, vm.Unknown, false)
+			s += " " + disassembleOperand(fn, b, runtime.Unknown, false)
 		}
-		s += " " + disassembleOperand(fn, c, vm.Unknown, false)
-	case vm.OpSetSlice:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + disassembleOperand(fn, b, vm.Unknown, k)
-		s += " " + disassembleOperand(fn, c, vm.Int, false)
-	case vm.OpSetVar:
-		s += " " + disassembleOperand(fn, a, vm.Unknown, op < 0)
+		s += " " + disassembleOperand(fn, c, runtime.Unknown, false)
+	case runtime.OpSetSlice:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, b, runtime.Unknown, k)
+		s += " " + disassembleOperand(fn, c, runtime.Int, false)
+	case runtime.OpSetVar:
+		s += " " + disassembleOperand(fn, a, runtime.Unknown, op < 0)
 		s += " " + disassembleVarRef(fn, globals, int16(int(b)<<8|int(uint8(c))))
-	case vm.OpSlice:
+	case runtime.OpSlice:
 		khigh := b&2 != 0
 		high := fn.Body[addr+1].B
 		if khigh && high == -1 {
@@ -527,32 +527,32 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 			kmax = false
 			max = 0
 		}
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + disassembleOperand(fn, fn.Body[addr+1].A, vm.Int, b&1 != 0)
-		s += " " + disassembleOperand(fn, high, vm.Int, khigh)
-		s += " " + disassembleOperand(fn, max, vm.Int, kmax)
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
-	case vm.OpSliceString:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, fn.Body[addr+1].A, runtime.Int, b&1 != 0)
+		s += " " + disassembleOperand(fn, high, runtime.Int, khigh)
+		s += " " + disassembleOperand(fn, max, runtime.Int, kmax)
+		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+	case runtime.OpSliceString:
 		khigh := b&2 != 0
 		high := fn.Body[addr+1].B
 		if khigh && high == -1 {
 			khigh = false
 			high = 0
 		}
-		s += " " + disassembleOperand(fn, a, vm.String, false)
-		s += " " + disassembleOperand(fn, fn.Body[addr+1].A, vm.Int, b&1 != 0)
-		s += " " + disassembleOperand(fn, high, vm.Int, khigh)
-		s += " " + disassembleOperand(fn, c, vm.String, false)
-	case vm.OpTypify:
+		s += " " + disassembleOperand(fn, a, runtime.String, false)
+		s += " " + disassembleOperand(fn, fn.Body[addr+1].A, runtime.Int, b&1 != 0)
+		s += " " + disassembleOperand(fn, high, runtime.Int, khigh)
+		s += " " + disassembleOperand(fn, c, runtime.String, false)
+	case runtime.OpTypify:
 		typ := fn.Types[int(uint(a))]
 		s += " " + typ.String()
 		s += " " + disassembleOperand(fn, b, reflectToRegisterKind(typ.Kind()), k)
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
+		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
 	}
 	return s
 }
 
-func disassembleFunctionCall(fn *vm.Function, index int8, isPredefined bool, stackShift vm.StackShift, variadic int8) string {
+func disassembleFunctionCall(fn *runtime.Function, index int8, isPredefined bool, stackShift runtime.StackShift, variadic int8) string {
 	var funcType reflect.Type
 	var funcName string
 	if isPredefined {
@@ -568,16 +568,16 @@ func disassembleFunctionCall(fn *vm.Function, index int8, isPredefined bool, sta
 	print := func(t reflect.Type) string {
 		str := ""
 		switch kindToType(t.Kind()) {
-		case vm.TypeInt:
+		case runtime.TypeInt:
 			stackShift[0]++
 			str += fmt.Sprintf("i%d %v", stackShift[0], t)
-		case vm.TypeFloat:
+		case runtime.TypeFloat:
 			stackShift[1]++
 			str += fmt.Sprintf("f%d %v", stackShift[1], t)
-		case vm.TypeString:
+		case runtime.TypeString:
 			stackShift[2]++
 			str += fmt.Sprintf("s%d %v", stackShift[2], t)
-		case vm.TypeGeneral:
+		case runtime.TypeGeneral:
 			stackShift[3]++
 			str += fmt.Sprintf("g%d %v", stackShift[3], t)
 		}
@@ -595,7 +595,7 @@ func disassembleFunctionCall(fn *vm.Function, index int8, isPredefined bool, sta
 		in += print(funcType.In(i)) + ", "
 	}
 	if funcType.NumIn()-1 >= 0 {
-		if variadic == vm.NoVariadicArgs || variadic == 0 {
+		if variadic == runtime.NoVariadicArgs || variadic == 0 {
 			in += print(funcType.In(funcType.NumIn() - 1))
 		} else {
 			varType := funcType.In(funcType.NumIn() - 1).Elem()
@@ -610,7 +610,7 @@ func disassembleFunctionCall(fn *vm.Function, index int8, isPredefined bool, sta
 	return fmt.Sprintf("%s(%s) (%s)", funcName, in, out)
 }
 
-func disassembleVarRef(fn *vm.Function, globals []Global, ref int16) string {
+func disassembleVarRef(fn *runtime.Function, globals []Global, ref int16) string {
 	depth := 0
 	for ref >= 0 && fn.Parent != nil {
 		ref = fn.VarRefs[ref]
@@ -621,62 +621,62 @@ func disassembleVarRef(fn *vm.Function, globals []Global, ref int16) string {
 		v := globals[ref]
 		return packageName(v.Pkg) + "." + v.Name
 	}
-	s := disassembleOperand(fn, -int8(ref), vm.Interface, false)
+	s := disassembleOperand(fn, -int8(ref), runtime.Interface, false)
 	if depth > 0 {
 		s += "@" + strconv.Itoa(depth)
 	}
 	return s
 }
 
-func reflectToRegisterKind(kind reflect.Kind) vm.Kind {
+func reflectToRegisterKind(kind reflect.Kind) runtime.Kind {
 	switch kind {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return vm.Int
+		return runtime.Int
 	case reflect.Bool:
-		return vm.Bool
+		return runtime.Bool
 	case reflect.Float32, reflect.Float64:
-		return vm.Float64
+		return runtime.Float64
 	case reflect.String:
-		return vm.String
+		return runtime.String
 	default:
-		return vm.Interface
+		return runtime.Interface
 	}
 }
 
-func registerKindToLabel(kind vm.Kind) string {
+func registerKindToLabel(kind runtime.Kind) string {
 	switch kind {
-	case vm.Bool, vm.Int, vm.Int8, vm.Int16, vm.Int32, vm.Int64,
-		vm.Uint, vm.Uint8, vm.Uint16, vm.Uint32, vm.Uint64, vm.Uintptr:
+	case runtime.Bool, runtime.Int, runtime.Int8, runtime.Int16, runtime.Int32, runtime.Int64,
+		runtime.Uint, runtime.Uint8, runtime.Uint16, runtime.Uint32, runtime.Uint64, runtime.Uintptr:
 		return "i"
-	case vm.Float32, vm.Float64:
+	case runtime.Float32, runtime.Float64:
 		return "f"
-	case vm.String:
+	case runtime.String:
 		return "s"
-	case vm.Unknown:
+	case runtime.Unknown:
 		return "?" // TODO(Gianluca): review.
 	default:
 		return "g"
 	}
 }
 
-func disassembleOperand(fn *vm.Function, op int8, kind vm.Kind, constant bool) string {
+func disassembleOperand(fn *runtime.Function, op int8, kind runtime.Kind, constant bool) string {
 	if constant {
 		switch {
-		case vm.Int <= kind && kind <= vm.Uintptr:
+		case runtime.Int <= kind && kind <= runtime.Uintptr:
 			return strconv.Itoa(int(op))
-		case kind == vm.Float64:
+		case kind == runtime.Float64:
 			return strconv.FormatFloat(float64(op), 'f', -1, 64)
-		case kind == vm.Float32:
+		case kind == runtime.Float32:
 			return strconv.FormatFloat(float64(op), 'f', -1, 32)
-		case kind == vm.Bool:
+		case kind == runtime.Bool:
 			if op == 0 {
 				return "false"
 			}
 			return "true"
-		case kind == vm.String:
+		case kind == runtime.String:
 			return strconv.Quote(fn.Constants.String[uint8(op)])
-		case kind == vm.Unknown:
+		case kind == runtime.Unknown:
 			return "?"
 		default:
 			v := fn.Constants.General[uint8(op)]
@@ -698,212 +698,212 @@ func disassembleOperand(fn *vm.Function, op int8, kind vm.Kind, constant bool) s
 
 var operationName = [...]string{
 
-	vm.OpNone: "Nop",
+	runtime.OpNone: "Nop",
 
-	vm.OpAddInt64:   "Add",
-	vm.OpAddInt8:    "Add8",
-	vm.OpAddInt16:   "Add16",
-	vm.OpAddInt32:   "Add32",
-	vm.OpAddFloat32: "Add32",
-	vm.OpAddFloat64: "Add",
+	runtime.OpAddInt64:   "Add",
+	runtime.OpAddInt8:    "Add8",
+	runtime.OpAddInt16:   "Add16",
+	runtime.OpAddInt32:   "Add32",
+	runtime.OpAddFloat32: "Add32",
+	runtime.OpAddFloat64: "Add",
 
-	vm.OpAddr: "Addr",
+	runtime.OpAddr: "Addr",
 
-	vm.OpAlloc: "Alloc",
+	runtime.OpAlloc: "Alloc",
 
-	vm.OpAnd: "And",
+	runtime.OpAnd: "And",
 
-	vm.OpAndNot: "AndNot",
+	runtime.OpAndNot: "AndNot",
 
-	vm.OpAppend: "Append",
+	runtime.OpAppend: "Append",
 
-	vm.OpAppendSlice: "AppendSlice",
+	runtime.OpAppendSlice: "AppendSlice",
 
-	vm.OpAssert: "Assert",
+	runtime.OpAssert: "Assert",
 
-	vm.OpBind: "Bind",
+	runtime.OpBind: "Bind",
 
-	vm.OpBreak: "Break",
+	runtime.OpBreak: "Break",
 
-	vm.OpCall: "Call",
+	runtime.OpCall: "Call",
 
-	vm.OpCallIndirect: "CallIndirect",
+	runtime.OpCallIndirect: "CallIndirect",
 
-	vm.OpCallPredefined: "CallPredefined",
+	runtime.OpCallPredefined: "CallPredefined",
 
-	vm.OpCap: "Cap",
+	runtime.OpCap: "Cap",
 
-	vm.OpCase: "Case",
+	runtime.OpCase: "Case",
 
-	vm.OpClose: "Close",
+	runtime.OpClose: "Close",
 
-	vm.OpComplex64:  "Complex64",
-	vm.OpComplex128: "Complex128",
+	runtime.OpComplex64:  "Complex64",
+	runtime.OpComplex128: "Complex128",
 
-	vm.OpContinue: "Continue",
+	runtime.OpContinue: "Continue",
 
-	vm.OpConvertGeneral: "Convert",
-	vm.OpConvertInt:     "Convert",
-	vm.OpConvertUint:    "ConvertU",
-	vm.OpConvertFloat:   "Convert",
-	vm.OpConvertString:  "Convert",
+	runtime.OpConvertGeneral: "Convert",
+	runtime.OpConvertInt:     "Convert",
+	runtime.OpConvertUint:    "ConvertU",
+	runtime.OpConvertFloat:   "Convert",
+	runtime.OpConvertString:  "Convert",
 
-	vm.OpConcat: "Concat",
+	runtime.OpConcat: "Concat",
 
-	vm.OpCopy: "Copy",
+	runtime.OpCopy: "Copy",
 
-	vm.OpDefer: "Defer",
+	runtime.OpDefer: "Defer",
 
-	vm.OpDelete: "Delete",
+	runtime.OpDelete: "Delete",
 
-	vm.OpDivInt64:   "Div",
-	vm.OpDivInt8:    "Div8",
-	vm.OpDivInt16:   "Div16",
-	vm.OpDivInt32:   "Div32",
-	vm.OpDivUint8:   "DivU8",
-	vm.OpDivUint16:  "DivU16",
-	vm.OpDivUint32:  "DivU32",
-	vm.OpDivUint64:  "DivU64",
-	vm.OpDivFloat32: "Div32",
-	vm.OpDivFloat64: "Div",
+	runtime.OpDivInt64:   "Div",
+	runtime.OpDivInt8:    "Div8",
+	runtime.OpDivInt16:   "Div16",
+	runtime.OpDivInt32:   "Div32",
+	runtime.OpDivUint8:   "DivU8",
+	runtime.OpDivUint16:  "DivU16",
+	runtime.OpDivUint32:  "DivU32",
+	runtime.OpDivUint64:  "DivU64",
+	runtime.OpDivFloat32: "Div32",
+	runtime.OpDivFloat64: "Div",
 
-	vm.OpFunc: "Func",
+	runtime.OpFunc: "Func",
 
-	vm.OpGetFunc: "GetFunc",
+	runtime.OpGetFunc: "GetFunc",
 
-	vm.OpGetVar: "GetVar",
+	runtime.OpGetVar: "GetVar",
 
-	vm.OpGetVarAddr: "GetVarAddr",
+	runtime.OpGetVarAddr: "GetVarAddr",
 
-	vm.OpGo: "Go",
+	runtime.OpGo: "Go",
 
-	vm.OpGoto: "Goto",
+	runtime.OpGoto: "Goto",
 
-	vm.OpIf:       "If",
-	vm.OpIfInt:    "If",
-	vm.OpIfUint:   "IfU",
-	vm.OpIfFloat:  "If",
-	vm.OpIfString: "If",
+	runtime.OpIf:       "If",
+	runtime.OpIfInt:    "If",
+	runtime.OpIfUint:   "IfU",
+	runtime.OpIfFloat:  "If",
+	runtime.OpIfString: "If",
 
-	vm.OpIndex:       "Index",
-	vm.OpIndexMap:    "IndexMap",
-	vm.OpIndexString: "Index",
+	runtime.OpIndex:       "Index",
+	runtime.OpIndexMap:    "IndexMap",
+	runtime.OpIndexString: "Index",
 
-	vm.OpLeftShift64: "LeftShift",
-	vm.OpLeftShift8:  "LeftShift8",
-	vm.OpLeftShift16: "LeftShift16",
-	vm.OpLeftShift32: "LeftShift32",
+	runtime.OpLeftShift64: "LeftShift",
+	runtime.OpLeftShift8:  "LeftShift8",
+	runtime.OpLeftShift16: "LeftShift16",
+	runtime.OpLeftShift32: "LeftShift32",
 
-	vm.OpLen: "Len",
+	runtime.OpLen: "Len",
 
-	vm.OpLoadData: "LoadData",
+	runtime.OpLoadData: "LoadData",
 
-	vm.OpLoadNumber: "LoadNumber",
+	runtime.OpLoadNumber: "LoadNumber",
 
-	vm.OpMakeChan: "MakeChan",
+	runtime.OpMakeChan: "MakeChan",
 
-	vm.OpMakeMap: "MakeMap",
+	runtime.OpMakeMap: "MakeMap",
 
-	vm.OpMakeSlice: "MakeSlice",
+	runtime.OpMakeSlice: "MakeSlice",
 
-	vm.OpMethodValue: "MethodValue",
+	runtime.OpMethodValue: "MethodValue",
 
-	vm.OpMove: "Move",
+	runtime.OpMove: "Move",
 
-	vm.OpMulInt64:   "Mul",
-	vm.OpMulInt8:    "Mul8",
-	vm.OpMulInt16:   "Mul16",
-	vm.OpMulInt32:   "Mul32",
-	vm.OpMulFloat32: "Mul32",
-	vm.OpMulFloat64: "Mul",
+	runtime.OpMulInt64:   "Mul",
+	runtime.OpMulInt8:    "Mul8",
+	runtime.OpMulInt16:   "Mul16",
+	runtime.OpMulInt32:   "Mul32",
+	runtime.OpMulFloat32: "Mul32",
+	runtime.OpMulFloat64: "Mul",
 
-	vm.OpNew: "New",
+	runtime.OpNew: "New",
 
-	vm.OpOr: "Or",
+	runtime.OpOr: "Or",
 
-	vm.OpPanic: "Panic",
+	runtime.OpPanic: "Panic",
 
-	vm.OpPrint: "Print",
+	runtime.OpPrint: "Print",
 
-	vm.OpRange: "Range",
+	runtime.OpRange: "Range",
 
-	vm.OpRangeString: "Range",
+	runtime.OpRangeString: "Range",
 
-	vm.OpRealImag: "RealImag",
+	runtime.OpRealImag: "RealImag",
 
-	vm.OpReceive: "Receive",
+	runtime.OpReceive: "Receive",
 
-	vm.OpRecover: "Recover",
+	runtime.OpRecover: "Recover",
 
-	vm.OpRemInt64:  "Rem",
-	vm.OpRemInt8:   "Rem8",
-	vm.OpRemInt16:  "Rem16",
-	vm.OpRemInt32:  "Rem32",
-	vm.OpRemUint8:  "RemU8",
-	vm.OpRemUint16: "RemU16",
-	vm.OpRemUint32: "RemU32",
-	vm.OpRemUint64: "RemU64",
+	runtime.OpRemInt64:  "Rem",
+	runtime.OpRemInt8:   "Rem8",
+	runtime.OpRemInt16:  "Rem16",
+	runtime.OpRemInt32:  "Rem32",
+	runtime.OpRemUint8:  "RemU8",
+	runtime.OpRemUint16: "RemU16",
+	runtime.OpRemUint32: "RemU32",
+	runtime.OpRemUint64: "RemU64",
 
-	vm.OpReturn: "Return",
+	runtime.OpReturn: "Return",
 
-	vm.OpRightShift:  "RightShift",
-	vm.OpRightShiftU: "RightShiftU",
+	runtime.OpRightShift:  "RightShift",
+	runtime.OpRightShiftU: "RightShiftU",
 
-	vm.OpSelect: "Select",
+	runtime.OpSelect: "Select",
 
-	vm.OpField: "Field",
+	runtime.OpField: "Field",
 
-	vm.OpSend: "Send",
+	runtime.OpSend: "Send",
 
-	vm.OpSetField: "SetField",
+	runtime.OpSetField: "SetField",
 
-	vm.OpSetMap: "SetMap",
+	runtime.OpSetMap: "SetMap",
 
-	vm.OpSetSlice: "SetSlice",
+	runtime.OpSetSlice: "SetSlice",
 
-	vm.OpSetVar: "SetVar",
+	runtime.OpSetVar: "SetVar",
 
-	vm.OpSlice:       "Slice",
-	vm.OpSliceString: "Slice",
+	runtime.OpSlice:       "Slice",
+	runtime.OpSliceString: "Slice",
 
-	vm.OpSubInt64:   "Sub",
-	vm.OpSubInt8:    "Sub8",
-	vm.OpSubInt16:   "Sub16",
-	vm.OpSubInt32:   "Sub32",
-	vm.OpSubFloat32: "Sub32",
-	vm.OpSubFloat64: "Sub",
+	runtime.OpSubInt64:   "Sub",
+	runtime.OpSubInt8:    "Sub8",
+	runtime.OpSubInt16:   "Sub16",
+	runtime.OpSubInt32:   "Sub32",
+	runtime.OpSubFloat32: "Sub32",
+	runtime.OpSubFloat64: "Sub",
 
-	vm.OpSubInvInt64:   "SubInv",
-	vm.OpSubInvInt8:    "SubInv8",
-	vm.OpSubInvInt16:   "SubInv16",
-	vm.OpSubInvInt32:   "SubInv32",
-	vm.OpSubInvFloat32: "SubInv32",
-	vm.OpSubInvFloat64: "SubInv",
+	runtime.OpSubInvInt64:   "SubInv",
+	runtime.OpSubInvInt8:    "SubInv8",
+	runtime.OpSubInvInt16:   "SubInv16",
+	runtime.OpSubInvInt32:   "SubInv32",
+	runtime.OpSubInvFloat32: "SubInv32",
+	runtime.OpSubInvFloat64: "SubInv",
 
-	vm.OpTailCall: "TailCall",
+	runtime.OpTailCall: "TailCall",
 
-	vm.OpTypify: "Typify",
+	runtime.OpTypify: "Typify",
 
-	vm.OpXor: "Xor",
+	runtime.OpXor: "Xor",
 }
 
 var conditionName = [...]string{
-	vm.ConditionEqual:             "Equal",
-	vm.ConditionNotEqual:          "NotEqual",
-	vm.ConditionLess:              "Less",
-	vm.ConditionLessOrEqual:       "LessOrEqual",
-	vm.ConditionGreater:           "Greater",
-	vm.ConditionGreaterOrEqual:    "GreaterOrEqual",
-	vm.ConditionEqualLen:          "EqualLen",
-	vm.ConditionNotEqualLen:       "NotEqualLen",
-	vm.ConditionLessLen:           "LessLen",
-	vm.ConditionLessOrEqualLen:    "LessOrEqualLen",
-	vm.ConditionGreaterLen:        "GreaterOrEqualLen",
-	vm.ConditionGreaterOrEqualLen: "GreaterOrEqualLen",
-	vm.ConditionInterfaceNil:      "InterfaceNil",
-	vm.ConditionInterfaceNotNil:   "InterfaceNotNil",
-	vm.ConditionNil:               "Nil",
-	vm.ConditionNotNil:            "NotNil",
-	vm.ConditionOK:                "OK",
-	vm.ConditionNotOK:             "NotOK",
+	runtime.ConditionEqual:             "Equal",
+	runtime.ConditionNotEqual:          "NotEqual",
+	runtime.ConditionLess:              "Less",
+	runtime.ConditionLessOrEqual:       "LessOrEqual",
+	runtime.ConditionGreater:           "Greater",
+	runtime.ConditionGreaterOrEqual:    "GreaterOrEqual",
+	runtime.ConditionEqualLen:          "EqualLen",
+	runtime.ConditionNotEqualLen:       "NotEqualLen",
+	runtime.ConditionLessLen:           "LessLen",
+	runtime.ConditionLessOrEqualLen:    "LessOrEqualLen",
+	runtime.ConditionGreaterLen:        "GreaterOrEqualLen",
+	runtime.ConditionGreaterOrEqualLen: "GreaterOrEqualLen",
+	runtime.ConditionInterfaceNil:      "InterfaceNil",
+	runtime.ConditionInterfaceNotNil:   "InterfaceNotNil",
+	runtime.ConditionNil:               "Nil",
+	runtime.ConditionNotNil:            "NotNil",
+	runtime.ConditionOK:                "OK",
+	runtime.ConditionNotOK:             "NotOK",
 }

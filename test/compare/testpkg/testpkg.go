@@ -4,7 +4,7 @@ package testpkg
 import (
 	"fmt"
 
-	"scriggo/vm"
+	"scriggo/runtime"
 )
 
 func G00()          {}
@@ -96,6 +96,6 @@ func F11(a string, b float64, c []string) (string, error) {
 	return "", nil
 }
 
-func Fatal(env *vm.Env, v interface{}) {
+func Fatal(env *runtime.Env, v interface{}) {
 	env.Fatal(v)
 }

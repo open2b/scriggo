@@ -17,7 +17,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"scriggo/vm"
+	"scriggo/runtime"
 )
 
 // ErrNoRenderInContext indicates that a value, for its type, cannot be
@@ -39,7 +39,7 @@ type ValueRenderer interface {
 }
 
 // Render renders value in the context ctx and writes to out.
-func render(_ *vm.Env, out io.Writer, value interface{}, ctx Context) {
+func render(_ *runtime.Env, out io.Writer, value interface{}, ctx Context) {
 
 	if e, ok := value.(ValueRenderer); ok {
 		err := e.Render(out, ctx)

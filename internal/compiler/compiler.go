@@ -36,7 +36,7 @@ import (
 	"reflect"
 
 	"scriggo/ast"
-	"scriggo/vm"
+	"scriggo/runtime"
 )
 
 // UntypedConst represents an untyped constant.
@@ -231,9 +231,9 @@ type Code struct {
 	// Globals is a slice of all globals used in Code.
 	Globals []Global
 	// Functions is a map of exported functions indexed by name.
-	Functions map[string]*vm.Function
+	Functions map[string]*runtime.Function
 	// Main is the Code entry point.
-	Main *vm.Function
+	Main *runtime.Function
 }
 
 // EmitPackageMain emits the code for a package main given its ast node, the
@@ -290,7 +290,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 		if pkg, ok := tree.Nodes[0].(*ast.Package); ok {
 			mainBuilder := e.fb
 			// Macro declarations in extending page must be accessed by the extended page.
-			e.functions[e.pkg] = map[string]*vm.Function{}
+			e.functions[e.pkg] = map[string]*runtime.Function{}
 			for _, dec := range pkg.Declarations {
 				if fun, ok := dec.(*ast.Func); ok {
 					fn := newFunction("main", fun.Ident.Name, fun.Type.Reflect)
@@ -307,7 +307,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 			// package variables.
 			var initVarsIndex int8 = 0
 			e.fb.fn.Functions = append(e.fb.fn.Functions, nil)
-			e.fb.emitCall(initVarsIndex, vm.StackShift{}, 0)
+			e.fb.emitCall(initVarsIndex, runtime.StackShift{}, 0)
 			e.emitNodes(extends.Tree.Nodes)
 			e.fb.end()
 			e.fb.exitScope()

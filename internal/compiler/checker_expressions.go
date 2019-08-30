@@ -15,7 +15,7 @@ import (
 	"unicode/utf8"
 
 	"scriggo/ast"
-	"scriggo/vm"
+	"scriggo/runtime"
 )
 
 type scopeElement struct {
@@ -37,7 +37,7 @@ var int32TypeInfo = &TypeInfo{Type: int32Type, Properties: PropertyIsType | Prop
 
 var untypedBoolTypeInfo = &TypeInfo{Type: boolType, Properties: PropertyUntyped}
 
-var envType = reflect.TypeOf(&vm.Env{})
+var envType = reflect.TypeOf(&runtime.Env{})
 
 var universe = typeCheckerScope{
 	"append":     {t: &TypeInfo{Properties: PropertyPredeclared}},

@@ -12,7 +12,7 @@ import (
 	"unicode/utf8"
 
 	"scriggo/ast"
-	"scriggo/vm"
+	"scriggo/runtime"
 )
 
 // changeRegister emits the code that move the content of register src to
@@ -76,8 +76,8 @@ func (em *emitter) compositeLiteralLen(node *ast.CompositeLiteral) int {
 }
 
 // stackDifference returns the difference of registers between a and b.
-func stackDifference(a, b vm.StackShift) vm.StackShift {
-	return vm.StackShift{
+func stackDifference(a, b runtime.StackShift) runtime.StackShift {
+	return runtime.StackShift{
 		a[0] - b[0],
 		a[1] - b[1],
 		a[2] - b[2],
@@ -87,7 +87,7 @@ func stackDifference(a, b vm.StackShift) vm.StackShift {
 
 // functionIndex returns the index of a function inside the current function,
 // creating it if it does not exist.
-func (em *emitter) functionIndex(fun *vm.Function) int8 {
+func (em *emitter) functionIndex(fun *runtime.Function) int8 {
 	i, ok := em.funcIndexes[em.fb.fn][fun]
 	if ok {
 		return i
@@ -95,7 +95,7 @@ func (em *emitter) functionIndex(fun *vm.Function) int8 {
 	i = int8(len(em.fb.fn.Functions))
 	em.fb.fn.Functions = append(em.fb.fn.Functions, fun)
 	if em.funcIndexes[em.fb.fn] == nil {
-		em.funcIndexes[em.fb.fn] = make(map[*vm.Function]int8)
+		em.funcIndexes[em.fb.fn] = make(map[*runtime.Function]int8)
 	}
 	em.funcIndexes[em.fb.fn][fun] = i
 	return i
@@ -155,20 +155,20 @@ func (em *emitter) numOut(call *ast.Call) (int, bool) {
 }
 
 // kindToType returns the internal register type of a reflect kind.
-func kindToType(k reflect.Kind) vm.Type {
+func kindToType(k reflect.Kind) runtime.Type {
 	switch k {
 	case reflect.Bool:
-		return vm.TypeInt
+		return runtime.TypeInt
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return vm.TypeInt
+		return runtime.TypeInt
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return vm.TypeInt
+		return runtime.TypeInt
 	case reflect.Float32, reflect.Float64:
-		return vm.TypeFloat
+		return runtime.TypeFloat
 	case reflect.String:
-		return vm.TypeString
+		return runtime.TypeString
 	default:
-		return vm.TypeGeneral
+		return runtime.TypeGeneral
 	}
 }
 
@@ -266,7 +266,7 @@ func canEmitDirectly(k1, k2 reflect.Kind) bool {
 // setClosureRefs sets the closure refs of a function. setClosureRefs operates
 // on current function builder, so shall be called before changing or saving
 // it.
-func (em *emitter) setClosureRefs(fn *vm.Function, closureVars []ast.Upvar) {
+func (em *emitter) setClosureRefs(fn *runtime.Function, closureVars []ast.Upvar) {
 
 	// First: update the indexes of the declarations that are found at the
 	// same level of fn with appropriate register indexes.

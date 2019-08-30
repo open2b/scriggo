@@ -32,7 +32,7 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 
 			"scriggo"
 			"scriggo/template"
-			"scriggo/vm"
+			"scriggo/runtime"
 		)
 
 		const usage = "usage: %s [-S] [-mem 250K] [-time 50ms] [-trace] filename\n"

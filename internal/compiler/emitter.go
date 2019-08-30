@@ -12,7 +12,7 @@ import (
 	"reflect"
 
 	"scriggo/ast"
-	"scriggo/vm"
+	"scriggo/runtime"
 )
 
 // An emitter emits instructions for the VM.
@@ -22,7 +22,7 @@ type emitter struct {
 	// TODO(Gianluca): this is the new way of accessing predefined vars.
 	// Incrementally integrate into Scriggo, then remove the other (unused)
 	// fields.
-	predefinedVarRefs map[*vm.Function]map[reflect.Value]int
+	predefinedVarRefs map[*runtime.Function]map[reflect.Value]int
 
 	// fb is the current function builder.
 	fb *functionBuilder
@@ -32,7 +32,7 @@ type emitter struct {
 	// it's not altered by the emitter.
 	indirectVars map[*ast.Identifier]bool
 
-	labels map[*vm.Function]map[string]uint32
+	labels map[*runtime.Function]map[string]uint32
 
 	// pkg is the package that is currently being emitted.
 	pkg *ast.Package
@@ -42,7 +42,7 @@ type emitter struct {
 	typeInfos map[ast.Node]*TypeInfo
 
 	// Index in the Function VarRefs field for each closure variable.
-	closureVarRefs map[*vm.Function]map[string]int
+	closureVarRefs map[*runtime.Function]map[string]int
 	options        EmitterOptions
 
 	isTemplate   bool // Reports whether it's a template.
@@ -52,14 +52,14 @@ type emitter struct {
 	}
 
 	// Scriggo functions.
-	functions   map[*ast.Package]map[string]*vm.Function
-	funcIndexes map[*vm.Function]map[*vm.Function]int8
+	functions   map[*ast.Package]map[string]*runtime.Function
+	funcIndexes map[*runtime.Function]map[*runtime.Function]int8
 
 	// Scriggo variables.
 	availableVarIndexes map[*ast.Package]map[string]int16
 
 	// Predefined functions.
-	predFunIndexes map[*vm.Function]map[reflect.Value]int8
+	predFunIndexes map[*runtime.Function]map[reflect.Value]int8
 
 	// Holds all Scriggo-defined and pre-predefined global variables.
 	globals []Global
@@ -96,16 +96,16 @@ func (em *emitter) ti(n ast.Node) *TypeInfo {
 // variables and options.
 func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *emitter {
 	return &emitter{
-		funcIndexes:         map[*vm.Function]map[*vm.Function]int8{},
-		functions:           map[*ast.Package]map[string]*vm.Function{},
+		funcIndexes:         map[*runtime.Function]map[*runtime.Function]int8{},
+		functions:           map[*ast.Package]map[string]*runtime.Function{},
 		indirectVars:        indirectVars,
-		labels:              make(map[*vm.Function]map[string]uint32),
+		labels:              make(map[*runtime.Function]map[string]uint32),
 		options:             opts,
 		availableVarIndexes: map[*ast.Package]map[string]int16{},
-		predFunIndexes:      map[*vm.Function]map[reflect.Value]int8{},
+		predFunIndexes:      map[*runtime.Function]map[reflect.Value]int8{},
 		typeInfos:           typeInfos,
-		closureVarRefs:      map[*vm.Function]map[string]int{},
-		predefinedVarRefs:   map[*vm.Function]map[reflect.Value]int{},
+		closureVarRefs:      map[*runtime.Function]map[string]int{},
+		predefinedVarRefs:   map[*runtime.Function]map[reflect.Value]int{},
 	}
 }
 
@@ -134,11 +134,11 @@ func (em *emitter) reserveTemplateRegisters() {
 
 // emitPackage emits a package and returns the exported functions, the
 // exported variables and the init functions.
-func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string]*vm.Function, map[string]int16, []*vm.Function) {
+func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string]*runtime.Function, map[string]int16, []*runtime.Function) {
 
 	if !extendingPage {
 		em.pkg = pkg
-		em.functions[em.pkg] = map[string]*vm.Function{}
+		em.functions[em.pkg] = map[string]*runtime.Function{}
 	}
 	if em.availableVarIndexes[em.pkg] == nil {
 		em.availableVarIndexes[em.pkg] = map[string]int16{}
@@ -146,7 +146,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 
 	// TODO(Gianluca): if a package is imported more than once, its init
 	// functions are called more than once: that is wrong.
-	inits := []*vm.Function{} // List of all "init" functions in current package.
+	inits := []*runtime.Function{} // List of all "init" functions in current package.
 
 	// Emit the imports.
 	for _, decl := range pkg.Declarations {
@@ -192,7 +192,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 		}
 	}
 
-	functions := map[string]*vm.Function{}
+	functions := map[string]*runtime.Function{}
 
 	initToBuild := len(inits) // Index of the next "init" function to build.
 	if extendingPage {
@@ -220,7 +220,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 	vars := map[string]int16{}
 
 	// Emit the package variables.
-	var initVarsFn *vm.Function
+	var initVarsFn *runtime.Function
 	var initVarsFb *functionBuilder
 	for _, dec := range pkg.Declarations {
 		if n, ok := dec.(*ast.Var); ok {
@@ -267,7 +267,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 	// Emit the function declarations.
 	for _, dec := range pkg.Declarations {
 		if n, ok := dec.(*ast.Func); ok {
-			var fn *vm.Function
+			var fn *runtime.Function
 			if n.Ident.Name == "init" {
 				fn = inits[initToBuild]
 				initToBuild++
@@ -284,12 +284,12 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 				if initVarsFn != nil {
 					iv := em.functions[em.pkg]["$initvars"]
 					index := em.fb.addFunction(iv)
-					em.fb.emitCall(int8(index), vm.StackShift{}, 0)
+					em.fb.emitCall(int8(index), runtime.StackShift{}, 0)
 				}
 				// Second: call all init functions, in order.
 				for _, initFunc := range inits {
 					index := em.fb.addFunction(initFunc)
-					em.fb.emitCall(int8(index), vm.StackShift{}, 0)
+					em.fb.emitCall(int8(index), runtime.StackShift{}, 0)
 				}
 			}
 			em.prepareFunctionBodyParameters(n)
@@ -493,7 +493,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 		rcvrType := em.ti(rcvrExpr).Type
 		rcvr := em.emitExpr(rcvrExpr, rcvrType)
 		// MethodValue reads receiver from general.
-		if kindToType(rcvrType.Kind()) != vm.TypeGeneral {
+		if kindToType(rcvrType.Kind()) != runtime.TypeGeneral {
 			// TODO(Gianluca): put rcvr in general
 			panic("not implemented")
 		}
@@ -543,7 +543,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 		if goStmt {
 			em.fb.emitGo()
 		}
-		numVar := vm.NoVariadicArgs
+		numVar := runtime.NoVariadicArgs
 		if funTi.Type.IsVariadic() && !call.IsVariadic {
 			numArgs := len(call.Args)
 			if len(call.Args) == 1 {
@@ -580,7 +580,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 				reg := em.fb.newRegister(reflect.Func)
 				em.fb.emitGetFunc(false, index, reg)
 				// TODO(Gianluca): review vm.NoVariadicArgs.
-				em.fb.emitDefer(reg, vm.NoVariadicArgs, stackShift, args)
+				em.fb.emitDefer(reg, runtime.NoVariadicArgs, stackShift, args)
 				return regs, types
 			}
 			em.fb.emitCall(index, stackShift, call.Pos().Line)
@@ -622,10 +622,10 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 	}
 	if deferStmt {
 		args := stackDifference(em.fb.currentStackShift(), stackShift)
-		em.fb.emitDefer(reg, int8(vm.NoVariadicArgs), stackShift, args)
+		em.fb.emitDefer(reg, int8(runtime.NoVariadicArgs), stackShift, args)
 		return regs, types
 	}
-	em.fb.emitCallIndirect(reg, int8(vm.NoVariadicArgs), stackShift)
+	em.fb.emitCallIndirect(reg, int8(runtime.NoVariadicArgs), stackShift)
 
 	return regs, types
 }
@@ -641,12 +641,12 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 		rcvrType := em.ti(rcvrExpr).Type
 		rcvr := em.emitExpr(rcvrExpr, rcvrType)
 		// MethodValue reads receiver from general.
-		if kindToType(rcvrType.Kind()) != vm.TypeGeneral {
+		if kindToType(rcvrType.Kind()) != runtime.TypeGeneral {
 			oldRcvr := rcvr
 			rcvr = em.fb.newRegister(reflect.Interface)
 			em.fb.emitTypify(false, rcvrType, oldRcvr, rcvr)
 		}
-		if kindToType(dstType.Kind()) == vm.TypeGeneral {
+		if kindToType(dstType.Kind()) == runtime.TypeGeneral {
 			em.fb.emitMethodValue(expr.Ident, rcvr, reg)
 		} else {
 			panic("not implemented")
@@ -961,7 +961,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				em.fb.emitRecover(0, true)
 				em.fb.emitReturn()
 				em.fb = backup
-				em.fb.emitDefer(fnReg, 0, stackShift, vm.StackShift{0, 0, 0, 0})
+				em.fb.emitDefer(fnReg, 0, stackShift, runtime.StackShift{0, 0, 0, 0})
 				continue
 			}
 			em.fb.enterStack()
@@ -988,7 +988,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 						}
 					}
 					if em.functions[backupPkg] == nil {
-						em.functions[backupPkg] = map[string]*vm.Function{}
+						em.functions[backupPkg] = map[string]*runtime.Function{}
 					}
 					for name, fn := range functions {
 						if importName == "" {
@@ -1198,16 +1198,16 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				typ := em.fb.fn.Type.Out(i)
 				var reg int8
 				switch kindToType(typ.Kind()) {
-				case vm.TypeInt:
+				case runtime.TypeInt:
 					offset[0]++
 					reg = offset[0]
-				case vm.TypeFloat:
+				case runtime.TypeFloat:
 					offset[1]++
 					reg = offset[1]
-				case vm.TypeString:
+				case runtime.TypeString:
 					offset[2]++
 					reg = offset[2]
-				case vm.TypeGeneral:
+				case runtime.TypeGeneral:
 					offset[3]++
 					reg = offset[3]
 				}
@@ -1240,7 +1240,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				// Not in a URL context: use the default writer.
 				em.fb.emitMove(false, em.templateRegs.gA, em.templateRegs.gD, reflect.Interface)
 			}
-			em.fb.emitCallIndirect(em.templateRegs.gC, 0, vm.StackShift{em.templateRegs.iA - 1, 0, 0, em.templateRegs.gC})
+			em.fb.emitCallIndirect(em.templateRegs.gC, 0, runtime.StackShift{em.templateRegs.iA - 1, 0, 0, em.templateRegs.gC})
 
 		case *ast.Switch:
 			currentBreakable := em.breakable
@@ -1271,7 +1271,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			} else {
 				writeFun = em.templateRegs.gB
 			}
-			em.fb.emitCallIndirect(writeFun, 0, vm.StackShift{em.templateRegs.iA - 1, 0, 0, em.templateRegs.gC})
+			em.fb.emitCallIndirect(writeFun, 0, runtime.StackShift{em.templateRegs.iA - 1, 0, 0, em.templateRegs.gC})
 
 		case *ast.TypeDeclaration:
 			// Nothing to do.
@@ -1387,13 +1387,13 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		if ti.HasValue() && !ti.IsPredefined() {
 			switch v := ti.value.(type) {
 			case int64:
-				if kindToType(dstType.Kind()) == vm.TypeInt {
+				if kindToType(dstType.Kind()) == runtime.TypeInt {
 					if -127 < v && v < 126 {
 						return int8(v), true
 					}
 				}
 			case float64:
-				if kindToType(dstType.Kind()) == vm.TypeFloat {
+				if kindToType(dstType.Kind()) == runtime.TypeFloat {
 					if math.Floor(v) == v && -127 < v && v < 126 {
 						return int8(v), true
 					}
@@ -1443,12 +1443,12 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		case int64:
 			c := em.fb.makeIntConstant(v)
 			if canEmitDirectly(typ.Kind(), dstType.Kind()) {
-				em.fb.emitLoadNumber(vm.TypeInt, c, reg)
+				em.fb.emitLoadNumber(runtime.TypeInt, c, reg)
 				em.changeRegister(false, reg, reg, typ, dstType)
 				return reg, false
 			}
 			tmp := em.fb.newRegister(typ.Kind())
-			em.fb.emitLoadNumber(vm.TypeInt, c, tmp)
+			em.fb.emitLoadNumber(runtime.TypeInt, c, tmp)
 			em.changeRegister(false, tmp, reg, typ, dstType)
 			return reg, false
 		case float64:
@@ -1459,12 +1459,12 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				c = em.fb.makeFloatConstant(v)
 			}
 			if canEmitDirectly(typ.Kind(), dstType.Kind()) {
-				em.fb.emitLoadNumber(vm.TypeFloat, c, reg)
+				em.fb.emitLoadNumber(runtime.TypeFloat, c, reg)
 				em.changeRegister(false, reg, reg, typ, dstType)
 				return reg, false
 			}
 			tmp := em.fb.newRegister(typ.Kind())
-			em.fb.emitLoadNumber(vm.TypeFloat, c, tmp)
+			em.fb.emitLoadNumber(runtime.TypeFloat, c, tmp)
 			em.changeRegister(false, tmp, reg, typ, dstType)
 			return reg, false
 		case string:
@@ -1564,7 +1564,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			if canEmitDirectly(dstType.Kind(), reflect.Bool) {
 				em.emitExprR(expr.Expr1, dstType, reg)
 				endIf := em.fb.newLabel()
-				em.fb.emitIf(true, reg, vm.ConditionEqual, cmp, reflect.Int)
+				em.fb.emitIf(true, reg, runtime.ConditionEqual, cmp, reflect.Int)
 				em.fb.emitGoto(endIf)
 				em.emitExprR(expr.Expr2, dstType, reg)
 				em.fb.setLabelAddr(endIf)
@@ -1574,7 +1574,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			tmp := em.fb.newRegister(reflect.Bool)
 			em.emitExprR(expr.Expr1, boolType, tmp)
 			endIf := em.fb.newLabel()
-			em.fb.emitIf(true, tmp, vm.ConditionEqual, cmp, reflect.Int)
+			em.fb.emitIf(true, tmp, runtime.ConditionEqual, cmp, reflect.Int)
 			em.fb.emitGoto(endIf)
 			em.emitExprR(expr.Expr2, boolType, tmp)
 			em.fb.setLabelAddr(endIf)
@@ -1645,13 +1645,13 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			return reg, false
 		case ast.OperatorEqual, ast.OperatorNotEqual, ast.OperatorLess, ast.OperatorLessOrEqual,
 			ast.OperatorGreaterOrEqual, ast.OperatorGreater:
-			cond := map[ast.OperatorType]vm.Condition{
-				ast.OperatorEqual:          vm.ConditionEqual,
-				ast.OperatorNotEqual:       vm.ConditionNotEqual,
-				ast.OperatorLess:           vm.ConditionLess,
-				ast.OperatorLessOrEqual:    vm.ConditionLessOrEqual,
-				ast.OperatorGreater:        vm.ConditionGreater,
-				ast.OperatorGreaterOrEqual: vm.ConditionGreaterOrEqual,
+			cond := map[ast.OperatorType]runtime.Condition{
+				ast.OperatorEqual:          runtime.ConditionEqual,
+				ast.OperatorNotEqual:       runtime.ConditionNotEqual,
+				ast.OperatorLess:           runtime.ConditionLess,
+				ast.OperatorLessOrEqual:    runtime.ConditionLessOrEqual,
+				ast.OperatorGreater:        runtime.ConditionGreater,
+				ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqual,
 			}[expr.Operator()]
 			if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
 				em.fb.emitMove(true, 1, reg, reflect.Bool)
@@ -1894,7 +1894,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		if expr.Ident != nil && em.isTemplate {
 			macroFn := newFunction("", expr.Ident.Name, expr.Type.Reflect)
 			if em.functions[em.pkg] == nil {
-				em.functions[em.pkg] = map[string]*vm.Function{}
+				em.functions[em.pkg] = map[string]*runtime.Function{}
 			}
 			em.functions[em.pkg][expr.Ident.Name] = macroFn
 			fb := em.fb
@@ -2111,7 +2111,7 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 		}
 		for _, caseExpr := range cas.Expressions {
 			if em.ti(caseExpr).Nil() {
-				em.fb.emitIf(false, expr, vm.ConditionInterfaceNil, 0, reflect.Interface)
+				em.fb.emitIf(false, expr, runtime.ConditionInterfaceNil, 0, reflect.Interface)
 			} else {
 				caseType := em.ti(caseExpr).Type
 				em.fb.emitAssert(expr, caseType, 0)
@@ -2243,8 +2243,8 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 		v1 := em.emitExpr(cond, ti.Type)
 		k2 := em.fb.makeIntConstant(1) // true
 		v2 := em.fb.newRegister(reflect.Bool)
-		em.fb.emitLoadNumber(vm.TypeInt, k2, v2)
-		em.fb.emitIf(false, v1, vm.ConditionEqual, v2, reflect.Bool) // v1 == true
+		em.fb.emitLoadNumber(runtime.TypeInt, k2, v2)
+		em.fb.emitIf(false, v1, runtime.ConditionEqual, v2, reflect.Bool) // v1 == true
 		return
 	}
 
@@ -2260,15 +2260,15 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 			}
 			typ := em.ti(expr).Type
 			v := em.emitExpr(expr, typ)
-			condType := vm.ConditionNotNil
+			condType := runtime.ConditionNotNil
 			if cond.Operator() == ast.OperatorEqual {
-				condType = vm.ConditionNil
+				condType = runtime.ConditionNil
 			}
 			if em.ti(expr).Type.Kind() == reflect.Interface {
-				if condType == vm.ConditionNil {
-					condType = vm.ConditionInterfaceNil
+				if condType == runtime.ConditionNil {
+					condType = runtime.ConditionInterfaceNil
 				} else {
-					condType = vm.ConditionInterfaceNotNil
+					condType = runtime.ConditionInterfaceNotNil
 				}
 			}
 			em.fb.emitIf(false, v, condType, 0, typ.Kind())
@@ -2302,13 +2302,13 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 				v1 := em.emitExpr(lenArg, em.ti(lenArg).Type)
 				typ := em.ti(expr).Type
 				v2, k2 := em.emitExprK(expr, typ)
-				condType := map[ast.OperatorType]vm.Condition{
-					ast.OperatorEqual:          vm.ConditionEqualLen,
-					ast.OperatorNotEqual:       vm.ConditionNotEqualLen,
-					ast.OperatorLess:           vm.ConditionLessLen,
-					ast.OperatorLessOrEqual:    vm.ConditionLessOrEqualLen,
-					ast.OperatorGreater:        vm.ConditionGreaterLen,
-					ast.OperatorGreaterOrEqual: vm.ConditionGreaterOrEqualLen,
+				condType := map[ast.OperatorType]runtime.Condition{
+					ast.OperatorEqual:          runtime.ConditionEqualLen,
+					ast.OperatorNotEqual:       runtime.ConditionNotEqualLen,
+					ast.OperatorLess:           runtime.ConditionLessLen,
+					ast.OperatorLessOrEqual:    runtime.ConditionLessOrEqualLen,
+					ast.OperatorGreater:        runtime.ConditionGreaterLen,
+					ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqualLen,
 				}[cond.Operator()]
 				em.fb.emitIf(k2, v1, condType, v2, reflect.String)
 				return
@@ -2332,18 +2332,18 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 			if kind := t1.Kind(); reflect.Int <= kind && kind <= reflect.Float64 {
 				v1 := em.emitExpr(cond.Expr1, t1)
 				v2, k2 := em.emitExprK(cond.Expr2, t2)
-				condType := map[ast.OperatorType]vm.Condition{
-					ast.OperatorEqual:          vm.ConditionEqual,
-					ast.OperatorNotEqual:       vm.ConditionNotEqual,
-					ast.OperatorLess:           vm.ConditionLess,
-					ast.OperatorLessOrEqual:    vm.ConditionLessOrEqual,
-					ast.OperatorGreater:        vm.ConditionGreater,
-					ast.OperatorGreaterOrEqual: vm.ConditionGreaterOrEqual,
+				condType := map[ast.OperatorType]runtime.Condition{
+					ast.OperatorEqual:          runtime.ConditionEqual,
+					ast.OperatorNotEqual:       runtime.ConditionNotEqual,
+					ast.OperatorLess:           runtime.ConditionLess,
+					ast.OperatorLessOrEqual:    runtime.ConditionLessOrEqual,
+					ast.OperatorGreater:        runtime.ConditionGreater,
+					ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqual,
 				}[cond.Operator()]
 				// Equality and not equality checks are not optimized for
 				// uints, so these kinds must use the instructions of
 				// integers.
-				if reflect.Uint <= kind && kind <= reflect.Uintptr && condType == vm.ConditionEqual || condType == vm.ConditionNotEqual {
+				if reflect.Uint <= kind && kind <= reflect.Uintptr && condType == runtime.ConditionEqual || condType == runtime.ConditionNotEqual {
 					em.fb.emitIf(k2, v1, condType, v2, reflect.Int)
 					return
 				}
@@ -2358,8 +2358,8 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 	v1 := em.emitExpr(cond, em.ti(cond).Type)
 	k2 := em.fb.makeIntConstant(1)
 	v2 := em.fb.newRegister(reflect.Bool)
-	em.fb.emitLoadNumber(vm.TypeInt, k2, v2)
-	em.fb.emitIf(false, v1, vm.ConditionEqual, v2, reflect.Bool)
+	em.fb.emitLoadNumber(runtime.TypeInt, k2, v2)
+	em.fb.emitIf(false, v1, runtime.ConditionEqual, v2, reflect.Bool)
 	return
 
 }
@@ -2394,10 +2394,10 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 	ch := em.fb.newRegister(reflect.Chan)
 	ok := em.fb.newRegister(reflect.Bool)
 	value := [4]int8{
-		vm.TypeInt:     em.fb.newRegister(reflect.Int),
-		vm.TypeFloat:   em.fb.newRegister(reflect.Float64),
-		vm.TypeString:  em.fb.newRegister(reflect.String),
-		vm.TypeGeneral: em.fb.newRegister(reflect.Interface),
+		runtime.TypeInt:     em.fb.newRegister(reflect.Int),
+		runtime.TypeFloat:   em.fb.newRegister(reflect.Float64),
+		runtime.TypeString:  em.fb.newRegister(reflect.String),
+		runtime.TypeGeneral: em.fb.newRegister(reflect.Interface),
 	}
 
 	// Prepare the registers for the 'select' instruction.
@@ -2473,7 +2473,7 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 			em.emitAssignmentNode(valueAssignment)
 			if len(assignment.Lhs) == 2 { // case has 'ok'
 				em.fb.emitMove(true, 1, ok, reflect.Bool)
-				em.fb.emitIf(false, 0, vm.ConditionOK, 0, reflect.Interface)
+				em.fb.emitIf(false, 0, runtime.ConditionOK, 0, reflect.Interface)
 				em.fb.emitMove(true, 0, ok, reflect.Bool)
 				okExpr := ast.NewIdentifier(nil, "$ok")
 				em.typeInfos[okExpr] = &TypeInfo{

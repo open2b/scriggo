@@ -16,7 +16,7 @@ import (
 
 	"scriggo/ast"
 	"scriggo/internal/compiler"
-	"scriggo/vm"
+	"scriggo/runtime"
 )
 
 type LoadOptions struct {
@@ -47,7 +47,7 @@ type Package interface {
 }
 
 type Program struct {
-	fn      *vm.Function
+	fn      *runtime.Function
 	globals []compiler.Global
 	options *LoadOptions
 }
@@ -93,8 +93,8 @@ type RunOptions struct {
 	Context       context.Context
 	MaxMemorySize int
 	DontPanic     bool
-	PrintFunc     vm.PrintFunc
-	TraceFunc     vm.TraceFunc
+	PrintFunc     runtime.PrintFunc
+	TraceFunc     runtime.TraceFunc
 }
 
 // Run starts the program and waits for it to complete.
@@ -126,7 +126,7 @@ func (p *Program) Disassemble(w io.Writer, pkgPath string) (int64, error) {
 }
 
 type Script struct {
-	fn      *vm.Function
+	fn      *runtime.Function
 	globals []compiler.Global
 	options *LoadOptions
 }
@@ -186,8 +186,8 @@ func (s *Script) Run(init map[string]interface{}, options *RunOptions) error {
 }
 
 // newVM returns a new vm with the given options.
-func newVM(options *RunOptions) *vm.VM {
-	vmm := vm.New()
+func newVM(options *RunOptions) *runtime.VM {
+	vmm := runtime.New()
 	if options != nil {
 		if options.Context != nil {
 			vmm.SetContext(options.Context)
@@ -304,7 +304,7 @@ func (pp Packages) Load(path string) (interface{}, error) {
 // PrintFunc returns a function that print its argument to the writer w with
 // the same format used by the builtin print to print to the standard error.
 // The returned function can be used for the PrintFunc option.
-func PrintFunc(w io.Writer) vm.PrintFunc {
+func PrintFunc(w io.Writer) runtime.PrintFunc {
 	return func(v interface{}) {
 		r := reflect.ValueOf(v)
 		switch r.Kind() {

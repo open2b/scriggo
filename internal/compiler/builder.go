@@ -11,7 +11,7 @@ import (
 	"reflect"
 
 	"scriggo/ast"
-	"scriggo/vm"
+	"scriggo/runtime"
 )
 
 const maxUint24 = 16777215
@@ -108,37 +108,37 @@ func decodeUint24(a, b, c int8) uint32 {
 }
 
 // newFunction returns a new function with a given package, name and type.
-func newFunction(pkg, name string, typ reflect.Type) *vm.Function {
-	return &vm.Function{Pkg: pkg, Name: name, Type: typ}
+func newFunction(pkg, name string, typ reflect.Type) *runtime.Function {
+	return &runtime.Function{Pkg: pkg, Name: name, Type: typ}
 }
 
 // newPredefinedFunction returns a new predefined function with a given
 // package, name and implementation. fn must be a function type.
-func newPredefinedFunction(pkg, name string, fn interface{}) *vm.PredefinedFunction {
-	return &vm.PredefinedFunction{Pkg: pkg, Name: name, Func: fn}
+func newPredefinedFunction(pkg, name string, fn interface{}) *runtime.PredefinedFunction {
+	return &runtime.PredefinedFunction{Pkg: pkg, Name: name, Func: fn}
 }
 
 type functionBuilder struct {
-	fn                     *vm.Function
+	fn                     *runtime.Function
 	labels                 []uint32
 	gotos                  map[uint32]uint32
-	maxRegs                map[vm.Type]int8 // max number of registers allocated at the same time.
-	numRegs                map[vm.Type]int8
+	maxRegs                map[runtime.Type]int8 // max number of registers allocated at the same time.
+	numRegs                map[runtime.Type]int8
 	scopes                 []map[string]int8
-	scopeShifts            []vm.StackShift
+	scopeShifts            []runtime.StackShift
 	allocs                 []uint32
 	complexBinaryOpIndexes map[ast.OperatorType]int8 // indexes of complex binary op. functions.
 	complexUnaryOpIndex    int8                      // index of complex negation function.
 }
 
 // newBuilder returns a new function builder for the function fn.
-func newBuilder(fn *vm.Function) *functionBuilder {
+func newBuilder(fn *runtime.Function) *functionBuilder {
 	fn.Body = nil
 	builder := &functionBuilder{
 		fn:                     fn,
 		gotos:                  map[uint32]uint32{},
-		maxRegs:                map[vm.Type]int8{},
-		numRegs:                map[vm.Type]int8{},
+		maxRegs:                map[runtime.Type]int8{},
+		numRegs:                map[runtime.Type]int8{},
 		scopes:                 []map[string]int8{},
 		complexBinaryOpIndexes: map[ast.OperatorType]int8{},
 		complexUnaryOpIndex:    -1,
@@ -147,12 +147,12 @@ func newBuilder(fn *vm.Function) *functionBuilder {
 }
 
 // currentStackShift returns the current stack shift.
-func (builder *functionBuilder) currentStackShift() vm.StackShift {
-	return vm.StackShift{
-		builder.numRegs[vm.TypeInt],
-		builder.numRegs[vm.TypeFloat],
-		builder.numRegs[vm.TypeString],
-		builder.numRegs[vm.TypeGeneral],
+func (builder *functionBuilder) currentStackShift() runtime.StackShift {
+	return runtime.StackShift{
+		builder.numRegs[runtime.TypeInt],
+		builder.numRegs[runtime.TypeFloat],
+		builder.numRegs[runtime.TypeString],
+		builder.numRegs[runtime.TypeGeneral],
 	}
 }
 
@@ -196,10 +196,10 @@ func (builder *functionBuilder) enterStack() {
 // See enterStack documentation for further details and usage.
 func (builder *functionBuilder) exitStack() {
 	shift := builder.scopeShifts[len(builder.scopeShifts)-1]
-	builder.numRegs[vm.TypeInt] = shift[vm.TypeInt]
-	builder.numRegs[vm.TypeFloat] = shift[vm.TypeFloat]
-	builder.numRegs[vm.TypeString] = shift[vm.TypeString]
-	builder.numRegs[vm.TypeGeneral] = shift[vm.TypeGeneral]
+	builder.numRegs[runtime.TypeInt] = shift[runtime.TypeInt]
+	builder.numRegs[runtime.TypeFloat] = shift[runtime.TypeFloat]
+	builder.numRegs[runtime.TypeString] = shift[runtime.TypeString]
+	builder.numRegs[runtime.TypeGeneral] = shift[runtime.TypeGeneral]
 	builder.scopeShifts = builder.scopeShifts[:len(builder.scopeShifts)-1]
 }
 
@@ -274,7 +274,7 @@ func (builder *functionBuilder) addType(typ reflect.Type) int {
 }
 
 // addPredefinedFunction adds a predefined function to the builder's function.
-func (builder *functionBuilder) addPredefinedFunction(f *vm.PredefinedFunction) uint8 {
+func (builder *functionBuilder) addPredefinedFunction(f *runtime.PredefinedFunction) uint8 {
 	fn := builder.fn
 	r := len(fn.Predefined)
 	if r > 255 {
@@ -285,7 +285,7 @@ func (builder *functionBuilder) addPredefinedFunction(f *vm.PredefinedFunction) 
 }
 
 // addFunction adds a function to the builder's function.
-func (builder *functionBuilder) addFunction(f *vm.Function) uint8 {
+func (builder *functionBuilder) addFunction(f *runtime.Function) uint8 {
 	fn := builder.fn
 	r := len(fn.Functions)
 	if r > 255 {
@@ -375,7 +375,7 @@ func (builder *functionBuilder) setLabelAddr(label uint32) {
 
 func (builder *functionBuilder) end() {
 	fn := builder.fn
-	if len(fn.Body) == 0 || fn.Body[len(fn.Body)-1].Op != vm.OpReturn {
+	if len(fn.Body) == 0 || fn.Body[len(fn.Body)-1].Op != runtime.OpReturn {
 		builder.emitReturn()
 	}
 	for addr, label := range builder.gotos {
@@ -393,22 +393,22 @@ func (builder *functionBuilder) end() {
 		for _, addr := range builder.allocs {
 			var bytes int
 			if addr == 0 {
-				bytes = vm.CallFrameSize + 8*int(fn.NumReg[vm.TypeInt]+fn.NumReg[vm.TypeFloat]) +
-					16*int(fn.NumReg[vm.TypeString]+fn.NumReg[vm.TypeGeneral])
+				bytes = runtime.CallFrameSize + 8*int(fn.NumReg[runtime.TypeInt]+fn.NumReg[runtime.TypeFloat]) +
+					16*int(fn.NumReg[runtime.TypeString]+fn.NumReg[runtime.TypeGeneral])
 			} else {
 				in := fn.Body[addr+1]
-				if in.Op == vm.OpFunc {
+				if in.Op == runtime.OpFunc {
 					f := fn.Literals[uint8(in.B)]
 					bytes = 32 + len(f.VarRefs)*16
 				}
 			}
 			a, b, c := encodeUint24(uint32(bytes))
-			fn.Body[addr] = vm.Instruction{Op: -vm.OpAlloc, A: a, B: b, C: c}
+			fn.Body[addr] = runtime.Instruction{Op: -runtime.OpAlloc, A: a, B: b, C: c}
 		}
 	}
 }
 
-func (builder *functionBuilder) allocRegister(typ vm.Type, reg int8) {
+func (builder *functionBuilder) allocRegister(typ runtime.Type, reg int8) {
 	if max, ok := builder.maxRegs[typ]; !ok || reg > max {
 		builder.maxRegs[typ] = reg
 	}

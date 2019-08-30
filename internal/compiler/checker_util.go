@@ -15,7 +15,7 @@ import (
 	"unicode/utf8"
 
 	"scriggo/ast"
-	"scriggo/vm"
+	"scriggo/runtime"
 )
 
 var errTypeConversion = errors.New("failed type conversion")
@@ -182,18 +182,18 @@ func deferGoBuiltin(name string) *TypeInfo {
 			reflect.ValueOf(m).SetMapIndex(reflect.ValueOf(key), reflect.Value{})
 		}
 	case "panic":
-		fun = func(env *vm.Env, v interface{}) {
+		fun = func(env *runtime.Env, v interface{}) {
 			if env.Exited() {
 				return
 			}
 			panic(v)
 		}
 	case "print":
-		fun = func(env *vm.Env, args ...interface{}) {
+		fun = func(env *runtime.Env, args ...interface{}) {
 			env.Print(args...)
 		}
 	case "println":
-		fun = func(env *vm.Env, args ...interface{}) {
+		fun = func(env *runtime.Env, args ...interface{}) {
 			env.Println(args...)
 		}
 	case "recover":

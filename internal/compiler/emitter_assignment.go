@@ -10,7 +10,7 @@ import (
 	"reflect"
 
 	"scriggo/ast"
-	"scriggo/vm"
+	"scriggo/runtime"
 )
 
 // addressType is the type of the element on the left side of an assignment.
@@ -112,7 +112,7 @@ func (em *emitter) assign(addresses []address, values []ast.Expression) {
 			okReg := em.fb.newRegister(reflect.Bool)
 			em.fb.emitIndex(kKey, mapp, key, value, mapType)
 			em.fb.emitMove(true, 1, okReg, reflect.Bool)
-			em.fb.emitIf(false, 0, vm.ConditionOK, 0, reflect.Interface)
+			em.fb.emitIf(false, 0, runtime.ConditionOK, 0, reflect.Interface)
 			em.fb.emitMove(true, 0, okReg, reflect.Bool)
 			addresses[0].assign(false, value, valueType)
 			addresses[1].assign(false, okReg, okType)

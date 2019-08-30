@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"scriggo"
-	"scriggo/vm"
+	"scriggo/runtime"
 )
 
 var exprTests = map[string]interface{}{
@@ -68,8 +68,8 @@ func TestVMExpressions(t *testing.T) {
 				t.Errorf("test %q, compiler error: %s", src, err)
 				return
 			}
-			var registers vm.Registers
-			tf := func(_ *vm.Function, _ uint32, regs vm.Registers) {
+			var registers runtime.Registers
+			tf := func(_ *runtime.Function, _ uint32, regs runtime.Registers) {
 				registers = regs
 			}
 			err = program.Run(&scriggo.RunOptions{MaxMemorySize: 1000000, TraceFunc: tf})

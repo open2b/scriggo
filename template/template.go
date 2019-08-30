@@ -14,7 +14,7 @@ import (
 	"scriggo"
 	"scriggo/ast"
 	"scriggo/internal/compiler"
-	"scriggo/vm"
+	"scriggo/runtime"
 )
 
 // Context indicates the type of source that has to be rendered and controls
@@ -47,12 +47,12 @@ type RenderOptions struct {
 	MaxMemorySize int
 	DontPanic     bool
 	RenderFunc    RenderFunc
-	PrintFunc     vm.PrintFunc
-	TraceFunc     vm.TraceFunc
+	PrintFunc     runtime.PrintFunc
+	TraceFunc     runtime.TraceFunc
 }
 
 type Template struct {
-	fn      *vm.Function
+	fn      *runtime.Function
 	options *LoadOptions
 	globals []compiler.Global
 }
@@ -103,7 +103,7 @@ func Load(path string, reader Reader, main scriggo.Package, ctx Context, options
 // A RenderFunc renders value in the context ctx and writes the result to out.
 // A RenderFunc is called by the Render method to render the value resulting
 // from the evaluation of an expression between "{{" and "}}".
-type RenderFunc func(env *vm.Env, out io.Writer, value interface{}, ctx Context)
+type RenderFunc func(env *runtime.Env, out io.Writer, value interface{}, ctx Context)
 
 var emptyVars = map[string]interface{}{}
 
@@ -144,8 +144,8 @@ func (t *Template) Disassemble(w io.Writer) (int64, error) {
 }
 
 // newVM returns a new vm with the given options.
-func newVM(options *RenderOptions) *vm.VM {
-	vmm := vm.New()
+func newVM(options *RenderOptions) *runtime.VM {
+	vmm := runtime.New()
 	if options != nil {
 		if options.Context != nil {
 			vmm.SetContext(options.Context)
