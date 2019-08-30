@@ -100,6 +100,9 @@ func (vm *VM) run() (uint32, bool) {
 		vm.pc++
 		op, a, b, c = in.Op, in.A, in.B, in.C
 
+		// If an instruction needs to change the program counter,
+		// it must be changed, if possible, at the end of the instruction execution.
+
 		switch op {
 
 		// Add
@@ -200,9 +203,7 @@ func (vm *VM) run() (uint32, bool) {
 				}
 			}
 			vm.ok = ok
-			if ok {
-				vm.pc++
-			} else {
+			if !ok {
 				in := vm.fn.Body[vm.pc]
 				if in.Op == OpPanic {
 					err := TypeAssertionError{
@@ -251,6 +252,9 @@ func (vm *VM) run() (uint32, bool) {
 					}
 					vm.setFromReflectValue(c, rv)
 				}
+			}
+			if ok {
+				vm.pc++
 			}
 
 		// Bind
@@ -521,7 +525,6 @@ func (vm *VM) run() (uint32, bool) {
 			cl := vm.general(a).(*callable)
 			off := vm.fn.Body[vm.pc]
 			arg := vm.fn.Body[vm.pc+1]
-			vm.pc += 2
 			fp := [4]uint32{
 				vm.fp[0] + uint32(off.Op),
 				vm.fp[1] + uint32(off.A),
@@ -530,6 +533,7 @@ func (vm *VM) run() (uint32, bool) {
 			}
 			vm.swapStack(&vm.fp, &fp, StackShift{int8(arg.Op), arg.A, arg.B, arg.C})
 			vm.calls = append(vm.calls, callFrame{cl: *cl, fp: fp, pc: 0, status: deferred, numVariadic: c})
+			vm.pc += 2
 
 		// Delete
 		case OpDelete:
@@ -884,13 +888,15 @@ func (vm *VM) run() (uint32, bool) {
 			var len, cap int
 			if b > 0 {
 				next := vm.fn.Body[vm.pc]
-				vm.pc++
 				lenIsConst := (b & (1 << 1)) != 0
 				len = int(vm.intk(next.A, lenIsConst))
 				capIsConst := (b & (1 << 2)) != 0
 				cap = int(vm.intk(next.B, capIsConst))
 			}
 			vm.setGeneral(c, reflect.MakeSlice(typ, len, cap).Interface())
+			if b > 0 {
+				vm.pc++
+			}
 
 		// MethodValue
 		case OpMethodValue:
@@ -1417,9 +1423,9 @@ func (vm *VM) run() (uint32, bool) {
 				// TODO(marco): call finalizer.
 				vm.calls = vm.calls[:i]
 				vm.fp = call.fp
-				vm.pc = call.pc
 				vm.fn = call.cl.fn
 				vm.vars = call.cl.vars
+				vm.pc = call.pc
 			} else if !vm.nextCall() {
 				return 0, false
 			}
@@ -1438,10 +1444,11 @@ func (vm *VM) run() (uint32, bool) {
 			}
 			chosen, recv, recvOK := reflect.Select(vm.cases)
 			step := numCase - chosen
+			var pc uint32
 			if step > 0 {
-				vm.pc -= 2 * uint32(step)
+				pc = vm.pc - 2*uint32(step)
 				if vm.cases[chosen].Dir == reflect.SelectRecv {
-					r := vm.fn.Body[vm.pc-1].B
+					r := vm.fn.Body[pc-1].B
 					if r != 0 {
 						vm.setFromReflectValue(r, recv)
 					}
@@ -1462,6 +1469,7 @@ func (vm *VM) run() (uint32, bool) {
 			if step == 0 {
 				panic(OutOfTimeError{vm.env})
 			}
+			vm.pc = pc
 
 		// Send
 		case OpSend, -OpSend:
@@ -1635,7 +1643,6 @@ func (vm *VM) run() (uint32, bool) {
 			var i1, i2, i3 int
 			s := reflect.ValueOf(vm.general(a))
 			next := vm.fn.Body[vm.pc]
-			vm.pc++
 			i1 = int(vm.intk(next.A, b&1 != 0))
 			if k := b&2 != 0; k && next.B == -1 {
 				i2 = s.Len()
@@ -1649,11 +1656,11 @@ func (vm *VM) run() (uint32, bool) {
 			}
 			s = s.Slice3(i1, i2, i3)
 			vm.setGeneral(c, s.Interface())
+			vm.pc++
 		case OpSliceString:
 			var i1, i2 int
 			s := vm.string(a)
 			next := vm.fn.Body[vm.pc]
-			vm.pc++
 			i1 = int(vm.intk(next.A, b&1 != 0))
 			if k := b&2 != 0; k && next.B == -1 {
 				i2 = len(s)
@@ -1661,6 +1668,7 @@ func (vm *VM) run() (uint32, bool) {
 				i2 = int(vm.intk(next.B, k))
 			}
 			vm.setString(c, s[i1:i2])
+			vm.pc++
 
 		// Sub
 		case OpSubInt8, -OpSubInt8:
@@ -1712,7 +1720,6 @@ func (vm *VM) run() (uint32, bool) {
 				}
 			}
 			vm.calls = append(vm.calls, callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, pc: vm.pc, status: tailed})
-			vm.pc = 0
 			if a != CurrentFunction {
 				var fn *Function
 				if a == 0 {
@@ -1737,6 +1744,7 @@ func (vm *VM) run() (uint32, bool) {
 				}
 				vm.fn = fn
 			}
+			vm.pc = 0
 
 		// Typify
 		case OpTypify, -OpTypify:
