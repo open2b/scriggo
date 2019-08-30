@@ -1,4 +1,4 @@
-// skip : problem with OpIf
+// skip : problem with OpIf https://github.com/open2b/scriggo/issues/358
 
 // run
 
