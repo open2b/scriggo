@@ -145,7 +145,7 @@ func (t *Template) Disassemble(w io.Writer) (int64, error) {
 
 // newVM returns a new vm with the given options.
 func newVM(options *RenderOptions) *runtime.VM {
-	vm := runtime.New()
+	vm := runtime.NewVM()
 	if options != nil {
 		if options.Context != nil {
 			vm.SetContext(options.Context)

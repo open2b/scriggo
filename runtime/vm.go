@@ -84,8 +84,8 @@ type VM struct {
 	panics   []Panic              // panics.
 }
 
-// New returns a new virtual machine.
-func New() *VM {
+// NewVM returns a new virtual machine.
+func NewVM() *VM {
 	return create(&Env{})
 }
 
