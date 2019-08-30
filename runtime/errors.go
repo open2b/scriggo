@@ -13,6 +13,8 @@ import (
 	"strings"
 )
 
+var errNilPointer = runtimeError("runtime error: invalid memory address or nil pointer dereference")
+
 // FatalError represents a fatal error. A fatal error cannot be recovered by
 // the running program.
 type FatalError struct {
