@@ -654,24 +654,10 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 		return
 	}
 
-	if ti.IsPredefined() {
-
-		// TODO(Gianluca): this is the new way of accessing predefined vars.
-		// Incrementally integrate into Scriggo, then remove the other checks.
-		if index, ok := em.predefinedVarRefs[em.fb.fn][ti.value.(reflect.Value)]; ok {
-			em.fb.emitGetVar(int(index), reg)
-			return
-		}
-
-		// Predefined variable.
-		index := em.predVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, expr.Ident)
-		em.fb.emitGetVar(int(index), reg)
-		return
-	}
-
 	// Scriggo-defined package variables.
 	if ident, ok := expr.Expr.(*ast.Identifier); ok {
-		if index, ok := em.availableVarIndexes[em.pkg][ident.Name+"."+expr.Ident]; ok {
+
+		if index, ok := em.getVarIndex(expr); ok {
 			if reg == 0 {
 				return
 			}
@@ -1960,30 +1946,14 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			return reg, false
 		}
 
-		// TODO: this is a copy-paste code (with some minor changes) from
-		// emitUnaryOperator; there must be a better way to handle this without
-		// having to duplicate all the code.
-
-		// Clojure variable.
-		if index, ok := em.closureVarRefs[em.fb.fn][expr.Name]; ok {
+		// Scriggo variables and closure variables.
+		if index, ok := em.getVarIndex(expr); ok {
 			if canEmitDirectly(typ.Kind(), dstType.Kind()) {
 				em.fb.emitGetVar(index, reg)
 				return reg, false
 			}
 			tmp := em.fb.newRegister(typ.Kind())
 			em.fb.emitGetVar(index, tmp)
-			em.changeRegister(false, tmp, reg, typ, dstType)
-			return reg, false
-		}
-
-		// Scriggo variable.
-		if index, ok := em.availableVarIndexes[em.pkg][expr.Name]; ok {
-			if canEmitDirectly(typ.Kind(), dstType.Kind()) {
-				em.fb.emitGetVar(int(index), reg)
-				return reg, false
-			}
-			tmp := em.fb.newRegister(typ.Kind())
-			em.fb.emitGetVar(int(index), tmp)
 			em.changeRegister(false, tmp, reg, typ, dstType)
 			return reg, false
 		}
@@ -2552,12 +2522,8 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 				em.fb.emitMove(false, -varr, reg, dstType.Kind())
 				return
 			}
-			// TODO: this is a copy-paste code (with some minor changes) from
-			// case *ast.Identifier of emitExpr; there must be a better way to
-			// handle this without having to duplicate all the code.
-
-			// Clojure variable address.
-			if index, ok := em.closureVarRefs[em.fb.fn][operand.Name]; ok {
+			// Clojure variable address and Scriggo variables.
+			if index, ok := em.getVarIndex(operand); ok {
 				if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
 					em.fb.emitGetVarAddr(index, reg)
 					return
@@ -2567,17 +2533,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 				em.changeRegister(false, tmp, reg, operandType, dstType)
 				return
 			}
-			// Scriggo variable.
-			if index, ok := em.availableVarIndexes[em.pkg][operand.Name]; ok {
-				if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
-					em.fb.emitGetVarAddr(int(index), reg)
-					return
-				}
-				tmp := em.fb.newRegister(operandType.Kind())
-				em.fb.emitGetVarAddr(int(index), tmp)
-				em.changeRegister(false, tmp, reg, operandType, dstType)
-				return
-			}
+
 			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 
 		// &*a

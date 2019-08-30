@@ -47,6 +47,8 @@ func (em *emitter) newAddress(addrType addressType, staticType reflect.Type, reg
 func (a address) assign(k bool, value int8, valueType reflect.Type) {
 	switch a.addrType {
 	case addressClosureVariable:
+		// TODO(Gianluca): use both bytes to store the variable index, which is
+		// an int16. You may want to use functions encode/decodeInt16.
 		if k {
 			tmp := a.em.fb.newRegister(valueType.Kind())
 			a.em.fb.emitMove(true, value, tmp, valueType.Kind())
@@ -187,26 +189,20 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 	for i, v := range node.Lhs {
 		switch v := v.(type) {
 		case *ast.Identifier:
-			if !isBlankIdentifier(v) {
-				staticType := em.ti(v).Type
-				if reg, ok := em.closureVarRefs[em.fb.fn][v.Name]; ok {
-					// TODO(Gianluca): reg is converted into an
-					// int8; should we change address to store
-					// int32/64?
-					addresses[i] = em.newAddress(addressClosureVariable, staticType, int8(reg), 0)
-				} else if index, ok := em.availableVarIndexes[em.pkg][v.Name]; ok {
-					// TODO(Gianluca): split index in 2 bytes, assigning first to reg1 and second to reg2.
-					addresses[i] = em.newAddress(addressClosureVariable, staticType, int8(index), 0)
-				} else if ti := em.ti(v); ti.IsPredefined() {
-					index := em.predVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, v.Name)
-					addresses[i] = em.newAddress(addressClosureVariable, staticType, int8(index), 0)
-				} else {
-					reg := em.fb.scopeLookup(v.Name)
-					addresses[i] = em.newAddress(addressRegister, staticType, reg, 0)
-				}
-			} else {
+			// Blank identifier.
+			if isBlankIdentifier(v) {
 				addresses[i] = em.newAddress(addressBlank, reflect.Type(nil), 0, 0)
+				break
 			}
+			varType := em.ti(v).Type
+			// Package/closure/imported variable.
+			if index, ok := em.getVarIndex(v); ok {
+				addresses[i] = em.newAddress(addressClosureVariable, varType, int8(index), 0)
+				break
+			}
+			// Local variable.
+			reg := em.fb.scopeLookup(v.Name)
+			addresses[i] = em.newAddress(addressRegister, varType, reg, 0)
 		case *ast.Index:
 			exprType := em.ti(v.Expr).Type
 			expr := em.emitExpr(v.Expr, exprType)
@@ -221,15 +217,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			}
 			addresses[i] = em.newAddress(addrType, exprType, expr, index)
 		case *ast.Selector:
-			if ident, ok := v.Expr.(*ast.Identifier); ok {
-				if varIndex, ok := em.availableVarIndexes[em.pkg][ident.Name+"."+v.Ident]; ok {
-					addresses[i] = em.newAddress(addressClosureVariable, em.ti(v).Type, int8(varIndex), 0)
-					break
-				}
-			}
-			if ti := em.ti(v); ti.IsPredefined() {
-				rv := ti.value.(reflect.Value)
-				index := em.predVarIndex(rv, ti.PredefPackageName, v.Ident)
+			if index, ok := em.getVarIndex(v); ok {
 				addresses[i] = em.newAddress(addressClosureVariable, em.ti(v).Type, int8(index), 0)
 				break
 			}

@@ -101,6 +101,53 @@ func (em *emitter) functionIndex(fun *runtime.Function) int8 {
 	return i
 }
 
+// getVarIndex returns the index of the variable v, if exists.
+func (em *emitter) getVarIndex(v ast.Expression) (index int, ok bool) {
+
+	if ti := em.ti(v); ti != nil && ti.IsPredefined() {
+		// TODO: this is the new way of accessing predefined vars. Incrementally
+		// integrate into Scriggo, then remove the other checks.
+		if index, ok := em.predefinedVarRefs[em.fb.fn][ti.value.(reflect.Value)]; ok {
+			return index, true
+		}
+		// TODO: obsolete, remove:
+		if sel, ok := v.(*ast.Selector); ok {
+			index := em.predVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, sel.Ident)
+			return int(index), true
+		}
+		// TODO: obsolete, remove:
+		if ident, ok := v.(*ast.Identifier); ok {
+			index := em.predVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, ident.Name)
+			return int(index), true
+		}
+	}
+
+	var name string
+	switch v := v.(type) {
+	case *ast.Identifier:
+		name = v.Name
+	case *ast.Selector:
+		if ident, ok := v.Expr.(*ast.Identifier); ok {
+			name = ident.Name + "." + v.Ident
+		} else {
+			return 0, false
+		}
+	default:
+		return 0, false
+	}
+
+	// TODO: can these maps be unified in some way?
+	if index, ok := em.closureVarRefs[em.fb.fn][name]; ok {
+		return index, true
+	}
+	if index, ok := em.availableVarIndexes[em.pkg][name]; ok {
+		return int(index), true
+	}
+
+	return 0, false
+
+}
+
 // isExported reports whether name is exported, according to
 // https://golang.org/ref/spec#Exported_identifiers.
 func isExported(name string) bool {
