@@ -65,6 +65,11 @@ var templateMain = &scriggo.MapPackage{
 
 func main() {
 
+	err := os.Setenv("SCRIGGO", "v0.0.0")
+	if err != nil {
+		panic(err)
+	}
+
 	var timeoutArg = flag.String("time", "", "limit the execution time; zero is no limit; the argument is parsed using function time.ParseDuration")
 	var memArg = flag.String("mem", "", "limit the allocable memory; zero is no limit; suffixes [BKMG] are supported")
 	var disallowGoStmt = flag.Bool("disallowGoStatement", false, "disallow the 'go' statement")
