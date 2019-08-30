@@ -81,8 +81,8 @@ func (a address) assign(k bool, value int8, valueType reflect.Type) {
 	}
 }
 
-// assign assigns values to addresses.
-func (em *emitter) assign(addresses []address, values []ast.Expression) {
+// assignValuesToAddresses assigns values to addresses.
+func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Expression) {
 	// TODO(Gianluca): use mayHaveDependencies.
 	if len(addresses) == 1 && len(values) == 1 {
 		t := em.ti(values[0]).Type
@@ -182,7 +182,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				}
 			}
 		}
-		em.assign(addresses, node.Rhs)
+		em.assignValuesToAddresses(addresses, node.Rhs)
 		return
 	}
 
@@ -245,5 +245,5 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			panic("TODO(Gianluca): not implemented")
 		}
 	}
-	em.assign(addresses, node.Rhs)
+	em.assignValuesToAddresses(addresses, node.Rhs)
 }

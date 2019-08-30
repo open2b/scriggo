@@ -255,7 +255,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 					vars[v.Name] = int16(len(em.globals) - 1)
 				}
 			}
-			em.assign(addresses, n.Rhs)
+			em.assignValuesToAddresses(addresses, n.Rhs)
 			for name, reg := range pkgVarRegs {
 				index := em.availableVarIndexes[em.pkg][name]
 				em.fb.emitSetVar(false, reg, int(index))
@@ -1319,7 +1319,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					}
 				}
 			}
-			em.assign(addresses, node.Rhs)
+			em.assignValuesToAddresses(addresses, node.Rhs)
 
 		case ast.Expression:
 			em.emitExprR(node, reflect.Type(nil), 0)
