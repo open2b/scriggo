@@ -279,7 +279,7 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*TypeIn
 func (tc *typechecker) assignScope(name string, value *TypeInfo, declNode *ast.Identifier) {
 	if len(tc.scopes) == 0 {
 		if _, ok := tc.filePackageBlock[name]; ok {
-			panic("redeclared in this block...") // TODO(Gianluca): to review.
+			panic("redeclared in this block...") // TODO: review.
 		}
 		tc.filePackageBlock[name] = scopeElement{t: value, decl: declNode}
 	} else {
@@ -636,7 +636,6 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		panic(tc.errorf(expr, "cannot use _ as value"))
 	}
 
-	// TODO: remove double type check
 	ti := tc.typeInfos[expr]
 	if ti != nil {
 		return ti
@@ -769,15 +768,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		for _, fd := range expr.Fields {
 			typ := tc.checkType(fd.Type).Type
 			if fd.IdentifierList == nil {
-				// Implicit field declaration.
-				fields = append(fields, reflect.StructField{
-					Name:      "Name", // TODO (Gianluca): to review.
-					PkgPath:   "",     // TODO (Gianluca): to review.
-					Type:      typ,
-					Tag:       "", // TODO (Gianluca): to review.
-					Offset:    0,  // TODO (Gianluca): to review.
-					Anonymous: true,
-				})
+				// Not implemented: see https://github.com/open2b/scriggo/issues/367
 			} else {
 				// Explicit field declaration.
 				for _, ident := range fd.IdentifierList {
@@ -1390,7 +1381,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		}
 		if op == ast.OperatorEqual || op == ast.OperatorNotEqual {
 			if !t1.Type.Comparable() {
-				// TODO(marco) explain in the error message why they are not comparable.
+				// https://github.com/open2b/scriggo/issues/368
 				return nil, fmt.Errorf("%s cannot be compared", t1.Type)
 			}
 		} else if !isOrdered(t1) {
@@ -1511,11 +1502,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 				panic(tc.errorf(expr, "invalid argument %s (type %s) for cap", expr.Args[0], t.ShortString()))
 			}
 		}
-		// TODO (Gianluca): «The expressions len(s) and cap(s) are constants
-		// if the type of s is an array or pointer to an array and the
-		// expression s does not contain channel receives or (non-constant)
-		// function calls; in this case s is not evaluated.» (see
-		// https://golang.org/ref/spec#Length_and_capacity).
+		// https://github.com/open2b/scriggo/issues/369
 		ti := &TypeInfo{Type: intType}
 		if t.Type.Kind() == reflect.Array {
 			ti.Constant = int64Const(t.Type.Len())
@@ -1545,7 +1532,6 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		return []*TypeInfo{}
 
 	case "complex":
-		// TODO(Gianluca): add SetValue.
 		switch len(expr.Args) {
 		case 0:
 			panic(tc.errorf(expr, "missing argument to complex - complex(<N>, <N>)"))
@@ -1692,11 +1678,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			}
 		}
 		ti := &TypeInfo{Type: intType}
-		// TODO (Gianluca): «The expressions len(s) and cap(s) are constants
-		// if the type of s is an array or pointer to an array and the
-		// expression s does not contain channel receives or (non-constant)
-		// function calls; in this case s is not evaluated.» (see
-		// https://golang.org/ref/spec#Length_and_capacity).
+		// https://github.com/open2b/scriggo/issues/369
 		if t.IsConstant() && t.Type.Kind() == reflect.String {
 			ti.Constant = int64Const(len(t.Constant.string()))
 		}
@@ -1787,7 +1769,6 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		return nil
 
 	case "real", "imag":
-		// TODO(Gianluca): add SetValue.
 		switch len(expr.Args) {
 		case 0:
 			panic(tc.errorf(expr, "missing argument to %s: %s()", ident.Name, ident.Name))
