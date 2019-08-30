@@ -105,8 +105,8 @@ func (p *Program) Run(options *RunOptions) error {
 	if options != nil && options.MaxMemorySize > 0 && !p.options.LimitMemorySize {
 		panic("scriggo: program not loaded with LimitMemorySize option")
 	}
-	vmm := newVM(options)
-	_, err := vmm.Run(p.fn, initGlobals(p.globals, nil))
+	vm := newVM(options)
+	_, err := vm.Run(p.fn, initGlobals(p.globals, nil))
 	return err
 }
 
@@ -180,29 +180,29 @@ func (s *Script) Run(init map[string]interface{}, options *RunOptions) error {
 	if init == nil {
 		init = emptyInit
 	}
-	vmm := newVM(options)
-	_, err := vmm.Run(s.fn, initGlobals(s.globals, init))
+	vm := newVM(options)
+	_, err := vm.Run(s.fn, initGlobals(s.globals, init))
 	return err
 }
 
 // newVM returns a new vm with the given options.
 func newVM(options *RunOptions) *runtime.VM {
-	vmm := runtime.New()
+	vm := runtime.New()
 	if options != nil {
 		if options.Context != nil {
-			vmm.SetContext(options.Context)
+			vm.SetContext(options.Context)
 		}
 		if options.MaxMemorySize > 0 {
-			vmm.SetMaxMemory(options.MaxMemorySize)
+			vm.SetMaxMemory(options.MaxMemorySize)
 		}
 		if options.PrintFunc != nil {
-			vmm.SetPrint(options.PrintFunc)
+			vm.SetPrint(options.PrintFunc)
 		}
 		if options.TraceFunc != nil {
-			vmm.SetTraceFunc(options.TraceFunc)
+			vm.SetTraceFunc(options.TraceFunc)
 		}
 	}
-	return vmm
+	return vm
 }
 
 // initGlobals initializes the global variables and returns the values.

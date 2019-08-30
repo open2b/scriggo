@@ -128,8 +128,8 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *R
 	if vars == nil {
 		vars = emptyVars
 	}
-	vmm := newVM(options)
-	_, err := vmm.Run(t.fn, initGlobals(t.globals, vars))
+	vm := newVM(options)
+	_, err := vm.Run(t.fn, initGlobals(t.globals, vars))
 	return err
 }
 
@@ -145,22 +145,22 @@ func (t *Template) Disassemble(w io.Writer) (int64, error) {
 
 // newVM returns a new vm with the given options.
 func newVM(options *RenderOptions) *runtime.VM {
-	vmm := runtime.New()
+	vm := runtime.New()
 	if options != nil {
 		if options.Context != nil {
-			vmm.SetContext(options.Context)
+			vm.SetContext(options.Context)
 		}
 		if options.MaxMemorySize > 0 {
-			vmm.SetMaxMemory(options.MaxMemorySize)
+			vm.SetMaxMemory(options.MaxMemorySize)
 		}
 		if options.PrintFunc != nil {
-			vmm.SetPrint(options.PrintFunc)
+			vm.SetPrint(options.PrintFunc)
 		}
 		if options.TraceFunc != nil {
-			vmm.SetTraceFunc(options.TraceFunc)
+			vm.SetTraceFunc(options.TraceFunc)
 		}
 	}
-	return vmm
+	return vm
 }
 
 // initGlobals initializes the global variables and returns the values.
