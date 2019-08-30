@@ -5,6 +5,7 @@ package main
 import (
 	"log"
 	"os"
+	"reflect"
 	"runtime"
 	"strings"
 
@@ -73,6 +74,17 @@ func recoverRuntimePanic(err string) {
 	if e.Error() != err {
 		log.Printf("expected error %q, got %q", err, e)
 		os.Exit(1)
+	}
+	if _, ok := os.LookupEnv("SCRIGGO"); ok {
+		typ := reflect.TypeOf(e)
+		if typ.PkgPath() != "scriggo/runtime" {
+			if typ.Name() == "TypeAssertionError" {
+				log.Printf("expected type scritto/runtime.TypeAssertionError, got %s.TypeAssertionError for error %q", typ.PkgPath(), err)
+			} else {
+				log.Printf("expected type scritto/runtime.runtimeError, got %s.%s for error %q", typ.PkgPath(), typ.Name(), err)
+			}
+			os.Exit(1)
+		}
 	}
 }
 
