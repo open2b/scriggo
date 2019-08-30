@@ -2522,7 +2522,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 				em.fb.emitMove(false, -varr, reg, dstType.Kind())
 				return
 			}
-			// Clojure variable address and Scriggo variables.
+			// Closure variable address and Scriggo variables.
 			if index, ok := em.getVarIndex(operand); ok {
 				if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
 					em.fb.emitGetVarAddr(index, reg)
