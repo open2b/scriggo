@@ -206,17 +206,15 @@ func (vm *VM) run() (uint32, bool) {
 			if !ok {
 				in := vm.fn.Body[vm.pc]
 				if in.Op == OpPanic {
-					err := TypeAssertionError{
-						interfac: vm.fn.Types[uint8(in.C)],
-						asserted: t,
-					}
+					var concrete reflect.Type
 					if v.IsValid() {
-						err.concrete = v.Type()
+						concrete = v.Type()
 					}
-					if err.asserted.Kind() == reflect.Interface {
-						err.missingMethod = missingMethod(err.concrete, err.asserted)
+					var method string
+					if t.Kind() == reflect.Interface {
+						method = missingMethod(concrete, t)
 					}
-					panic(err)
+					panic(newTypeAssertionErr(vm.fn.Types[uint8(in.C)], concrete, t, method))
 				}
 			}
 			if c != 0 {

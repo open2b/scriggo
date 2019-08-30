@@ -32,34 +32,30 @@ type runtimeError string
 func (err runtimeError) Error() string { return string(err) }
 func (err runtimeError) RuntimeError() {}
 
-type TypeAssertionError struct {
-	interfac      reflect.Type
-	concrete      reflect.Type
-	asserted      reflect.Type
-	missingMethod string
-}
-
-func (e TypeAssertionError) Error() string {
+// newTypeAssertionErr returns a runtime error for a failed type assertion.
+// The Go runtime returns a runtime.TypeAssertionError, Scriggo cannot return
+// an error with this type because it has unexported fields.
+//
+// See also https://github.com/golang/go/issues/14443
+func newTypeAssertionErr(interfac, concrete, asserted reflect.Type, missingMethod string) runtimeError {
 	s := "interface conversion: "
-	if e.concrete == nil {
-		return s + e.interfac.String() + " is nil, not " + e.asserted.String()
+	if concrete == nil {
+		return runtimeError(s + interfac.String() + " is nil, not " + asserted.String())
 	}
-	if e.missingMethod != "" {
-		return s + e.concrete.String() + " is not " + e.asserted.String() +
-			": missing method " + e.missingMethod
+	if missingMethod != "" {
+		return runtimeError(s + concrete.String() + " is not " + asserted.String() +
+			": missing method " + missingMethod)
 	}
-	s += e.interfac.String() + " is " + e.concrete.String() + ", not " + e.asserted.String()
-	if e.concrete.String() != e.asserted.String() {
-		return s
+	s += interfac.String() + " is " + concrete.String() + ", not " + asserted.String()
+	if concrete.String() != asserted.String() {
+		return runtimeError(s)
 	}
 	s += " (types from different "
-	if e.concrete.PkgPath() == e.interfac.PkgPath() {
-		return s + "scopes)"
+	if concrete.PkgPath() == interfac.PkgPath() {
+		return runtimeError(s + "scopes)")
 	}
-	return s + "packages)"
+	return runtimeError(s + "packages)")
 }
-
-func (e TypeAssertionError) RuntimeError() {}
 
 // OutOfTimeError represents a runtime out of time error.
 type OutOfTimeError struct {
