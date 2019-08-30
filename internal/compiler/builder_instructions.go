@@ -976,15 +976,15 @@ func (builder *functionBuilder) emitSetVar(k bool, r int8, v int) {
 //
 //	m[key] = value
 //
-func (builder *functionBuilder) emitSetMap(k bool, m, value, key int8, typ reflect.Type) {
+func (builder *functionBuilder) emitSetMap(k bool, m, value, key int8, mapType reflect.Type) {
 	fn := builder.fn
 	op := runtime.OpSetMap
 	if k {
 		op = -op
 	}
 	if builder.allocs != nil {
-		kSize := int(typ.Key().Size())
-		eSize := int(typ.Elem().Size())
+		kSize := int(mapType.Key().Size())
+		eSize := int(mapType.Elem().Size())
 		bytes := kSize + eSize
 		if bytes < 0 {
 			panic("out of memory")
