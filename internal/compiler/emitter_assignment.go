@@ -47,14 +47,12 @@ func (em *emitter) newAddress(addrType addressType, staticType reflect.Type, reg
 func (a address) assign(k bool, value int8, valueType reflect.Type) {
 	switch a.addrType {
 	case addressClosureVariable:
-		// TODO(Gianluca): use both bytes to store the variable index, which is
-		// an int16. You may want to use functions encode/decodeInt16.
 		if k {
 			tmp := a.em.fb.newRegister(valueType.Kind())
 			a.em.fb.emitMove(true, value, tmp, valueType.Kind())
-			a.em.fb.emitSetVar(false, tmp, int(a.reg1))
+			a.em.fb.emitSetVar(false, tmp, int(decodeInt16(a.reg1, a.reg2)))
 		} else {
-			a.em.fb.emitSetVar(false, value, int(a.reg1))
+			a.em.fb.emitSetVar(false, value, int(decodeInt16(a.reg1, a.reg2)))
 		}
 	case addressBlank:
 		// Nothing to do.
@@ -150,8 +148,6 @@ func (em *emitter) assign(addresses []address, values []ast.Expression) {
 }
 
 // emitAssignmentNode emits the instructions for an assignment node.
-// TODO(Gianluca): add support for recursive assignment expressions (eg.
-// a[4][t].field[0]).
 func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 
 	// Emit declaration assignment.
@@ -197,7 +193,8 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			varType := em.ti(v).Type
 			// Package/closure/imported variable.
 			if index, ok := em.getVarIndex(v); ok {
-				addresses[i] = em.newAddress(addressClosureVariable, varType, int8(index), 0)
+				msb, lsb := encodeInt16(int16(index))
+				addresses[i] = em.newAddress(addressClosureVariable, varType, msb, lsb)
 				break
 			}
 			// Local variable.
@@ -218,7 +215,8 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			addresses[i] = em.newAddress(addrType, exprType, expr, index)
 		case *ast.Selector:
 			if index, ok := em.getVarIndex(v); ok {
-				addresses[i] = em.newAddress(addressClosureVariable, em.ti(v).Type, int8(index), 0)
+				msb, lsb := encodeInt16(int16(index))
+				addresses[i] = em.newAddress(addressClosureVariable, em.ti(v).Type, msb, lsb)
 				break
 			}
 			typ := em.ti(v.Expr).Type
