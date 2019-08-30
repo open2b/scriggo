@@ -128,6 +128,12 @@ func (vm *VM) convertInternalError(msg interface{}) error {
 				return runtimeError(s)
 			}
 		}
+	case OpIf, -OpIf:
+		if err, ok := msg.(runtime.Error); ok {
+			if s := err.Error(); strings.HasPrefix(s, "runtime error: comparing uncomparable type ") {
+				return runtimeError(s)
+			}
+		}
 	case OpIndexString, -OpIndexString:
 		if err, ok := msg.(runtime.Error); ok {
 			if s := err.Error(); s == "runtime error: index out of range" {
