@@ -77,12 +77,17 @@ func (a address) assign(k bool, value int8, valueType reflect.Type) {
 
 // assignValuesToAddresses assigns values to addresses.
 func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Expression) {
+
 	// TODO(Gianluca): use mayHaveDependencies.
+
 	if len(addresses) == 1 && len(values) == 1 {
 		t := em.ti(values[0]).Type
 		v, k := em.emitExprK(values[0], t)
 		addresses[0].assign(k, v, t)
-	} else if len(addresses) == len(values) {
+		return
+	}
+
+	if len(addresses) == len(values) {
 		regs := make([]int8, len(values))
 		types := make([]reflect.Type, len(values))
 		ks := make([]bool, len(values))
@@ -97,57 +102,58 @@ func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Exp
 		for i, addr := range addresses {
 			addr.assign(ks[i], regs[i], types[i])
 		}
-	} else {
-		switch valueExpr := values[0].(type) {
-		case *ast.Call:
-			regs, retTypes := em.emitCallNode(valueExpr, false, false)
-			for i, addr := range addresses {
-				addr.assign(false, regs[i], retTypes[i])
-			}
-		case *ast.Index: // map index.
-			mapType := em.ti(valueExpr.Expr).Type
-			mapp := em.emitExpr(valueExpr.Expr, mapType)
-			keyType := em.ti(valueExpr.Index).Type
-			key, kKey := em.emitExprK(valueExpr.Index, keyType)
-			valueType := mapType.Elem()
-			value := em.fb.newRegister(valueType.Kind())
-			okType := addresses[1].staticType
-			okReg := em.fb.newRegister(reflect.Bool)
-			em.fb.emitIndex(kKey, mapp, key, value, mapType)
-			em.fb.emitMove(true, 1, okReg, reflect.Bool)
-			em.fb.emitIf(false, 0, runtime.ConditionOK, 0, reflect.Interface)
-			em.fb.emitMove(true, 0, okReg, reflect.Bool)
-			addresses[0].assign(false, value, valueType)
-			addresses[1].assign(false, okReg, okType)
-		case *ast.TypeAssertion:
-			typ := em.ti(valueExpr.Type).Type
-			expr := em.emitExpr(valueExpr.Expr, emptyInterfaceType)
-			okType := addresses[1].staticType
-			ok := em.fb.newRegister(reflect.Bool)
-			em.fb.emitMove(true, 1, ok, reflect.Bool)
-			result := em.fb.newRegister(typ.Kind())
-			em.fb.emitAssert(expr, typ, result)
-			em.fb.emitMove(true, 0, ok, reflect.Bool)
-			addresses[0].assign(false, result, typ)
-			addresses[1].assign(false, ok, okType)
-		case *ast.UnaryOperator:
-			if valueExpr.Operator() == ast.OperatorReceive {
-				chanType := em.ti(valueExpr.Expr).Type
-				valueType := em.ti(valueExpr).Type
-				okType := addresses[1].staticType
-				chann := em.emitExpr(valueExpr.Expr, chanType)
-				ok := em.fb.newRegister(reflect.Bool)
-				value := em.fb.newRegister(valueType.Kind())
-				em.fb.emitReceive(chann, ok, value)
-				addresses[0].assign(false, value, valueType)
-				addresses[1].assign(false, ok, okType)
-			} else {
-				panic("TODO: not implemented") // TODO(Gianluca): to implement.
-			}
-		default:
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
-		}
+		return
 	}
+
+	switch valueExpr := values[0].(type) {
+
+	case *ast.Call:
+		regs, retTypes := em.emitCallNode(valueExpr, false, false)
+		for i, addr := range addresses {
+			addr.assign(false, regs[i], retTypes[i])
+		}
+
+	case *ast.Index: // map index.
+		mapType := em.ti(valueExpr.Expr).Type
+		mapp := em.emitExpr(valueExpr.Expr, mapType)
+		keyType := em.ti(valueExpr.Index).Type
+		key, kKey := em.emitExprK(valueExpr.Index, keyType)
+		valueType := mapType.Elem()
+		value := em.fb.newRegister(valueType.Kind())
+		okType := addresses[1].staticType
+		okReg := em.fb.newRegister(reflect.Bool)
+		em.fb.emitIndex(kKey, mapp, key, value, mapType)
+		em.fb.emitMove(true, 1, okReg, reflect.Bool)
+		em.fb.emitIf(false, 0, runtime.ConditionOK, 0, reflect.Interface)
+		em.fb.emitMove(true, 0, okReg, reflect.Bool)
+		addresses[0].assign(false, value, valueType)
+		addresses[1].assign(false, okReg, okType)
+
+	case *ast.TypeAssertion:
+		typ := em.ti(valueExpr.Type).Type
+		expr := em.emitExpr(valueExpr.Expr, emptyInterfaceType)
+		okType := addresses[1].staticType
+		ok := em.fb.newRegister(reflect.Bool)
+		em.fb.emitMove(true, 1, ok, reflect.Bool)
+		result := em.fb.newRegister(typ.Kind())
+		em.fb.emitAssert(expr, typ, result)
+		em.fb.emitMove(true, 0, ok, reflect.Bool)
+		addresses[0].assign(false, result, typ)
+		addresses[1].assign(false, ok, okType)
+
+	case *ast.UnaryOperator: // receive from channel.
+		chanType := em.ti(valueExpr.Expr).Type
+		valueType := em.ti(valueExpr).Type
+		okType := addresses[1].staticType
+		chann := em.emitExpr(valueExpr.Expr, chanType)
+		ok := em.fb.newRegister(reflect.Bool)
+		value := em.fb.newRegister(valueType.Kind())
+		em.fb.emitReceive(chann, ok, value)
+		addresses[0].assign(false, value, valueType)
+		addresses[1].assign(false, ok, okType)
+
+	}
+
 }
 
 // emitAssignmentNode emits the instructions for an assignment node.
