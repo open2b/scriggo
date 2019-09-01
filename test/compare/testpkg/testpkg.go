@@ -99,3 +99,12 @@ func F11(a string, b float64, c []string) (string, error) {
 func Fatal(env *runtime.Env, v interface{}) {
 	env.Fatal(v)
 }
+
+func CallFunction(f func()) {
+	f()
+}
+
+func RuntimeError() {
+	var a = 0
+	_ = 1 / a
+}
