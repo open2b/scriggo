@@ -87,8 +87,8 @@ func (vm *VM) convertInternalError(msg interface{}) error {
 	case OpAddr, OpIndex, -OpIndex, OpSetSlice, -OpSetSlice:
 		switch err := msg.(type) {
 		case runtime.Error:
-			if s := err.Error(); s == "runtime error: index out of range" {
-				return runtimeError(s)
+			if s := err.Error(); strings.HasPrefix(s, "runtime error: index out of range") {
+				return runtimeError("runtime error: index out of range")
 			}
 		case string:
 			if err == "reflect: slice index out of range" {
@@ -161,8 +161,8 @@ func (vm *VM) convertInternalError(msg interface{}) error {
 		// https://github.com/open2b/scriggo/issues/321
 		switch err := msg.(type) {
 		case runtime.Error:
-			if s := err.Error(); s == "runtime error: slice bounds out of range" {
-				return runtimeError(s)
+			if s := err.Error(); strings.HasPrefix(s, "runtime error: slice bounds out of range") {
+				return runtimeError("runtime error: slice bounds out of range")
 			}
 		case string:
 			if err == "reflect.Value.Slice3: slice index out of bounds" {
