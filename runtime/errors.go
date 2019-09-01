@@ -80,73 +80,93 @@ func (err OutOfMemoryError) Error() string {
 
 func (err OutOfMemoryError) RuntimeError() {}
 
-// convertInternalError converts an internal error, from a panic, to a Go
-// error.
-func (vm *VM) convertInternalError(msg interface{}) error {
+// convertPanic converts a panic to an error.
+func (vm *VM) convertPanic(msg interface{}) error {
 	switch vm.fn.Body[vm.pc-1].Op {
 	case OpAddr, OpIndex, -OpIndex, OpSetSlice, -OpSetSlice:
 		switch err := msg.(type) {
 		case runtime.Error:
 			if s := err.Error(); strings.HasPrefix(s, "runtime error: index out of range") {
-				return runtimeError("runtime error: index out of range")
+				return Panic{Msg: runtimeError("runtime error: index out of range")}
 			}
 		case string:
 			if err == "reflect: slice index out of range" {
-				return runtimeError("runtime error: index out of range")
+				return Panic{Msg: runtimeError("runtime error: index out of range")}
 			}
 		}
 	case OpAppendSlice:
 		if err, ok := msg.(string); ok && err == "reflect.Append: slice overflow" {
-			return runtimeError("append: out of memory")
+			return Panic{Msg: runtimeError("append: out of memory")}
+		}
+	case OpCallIndirect:
+		in := vm.fn.Body[vm.pc-1]
+		if f, ok := vm.general(in.A).(*callable); ok && f.fn != nil {
+			break
+		}
+		fallthrough
+	case OpCallPredefined:
+		switch msg := msg.(type) {
+		case runtimeError:
+			break
+		case *FatalError:
+			// TODO: check env.
+			return msg
+		case runtime.Error:
+			// TODO: check env.
+			break
+		default:
+			return Panic{Msg: msg}
 		}
 	case OpClose:
 		if err, ok := msg.(runtime.Error); ok {
 			switch s := err.Error(); s {
 			case "close of closed channel", "close of nil channel":
-				return runtimeError(s)
+				return Panic{Msg: runtimeError(s)}
 			}
 		}
 	case OpDivInt8, OpDivInt16, OpDivInt32, OpDivInt64, OpDivFloat32, OpDivFloat64, OpRemInt8,
 		OpRemInt16, OpRemInt32, OpRemInt64, OpRemUint8, OpRemUint16, OpRemUint32, OpRemUint64:
 		if err, ok := msg.(runtime.Error); ok {
 			if s := err.Error(); s == "runtime error: integer divide by zero" {
-				return runtimeError(s)
+				return Panic{Msg: runtimeError(s)}
 			}
 		}
 	case OpIf, -OpIf:
 		if err, ok := msg.(runtime.Error); ok {
 			if s := err.Error(); strings.HasPrefix(s, "runtime error: comparing uncomparable type ") {
-				return runtimeError(s)
+				return Panic{Msg: runtimeError(s)}
 			}
 		}
 	case OpIndexString, -OpIndexString:
 		if err, ok := msg.(runtime.Error); ok {
 			if s := err.Error(); s == "runtime error: index out of range" {
-				return runtimeError(s)
+				return Panic{Msg: runtimeError(s)}
 			}
 		}
 	case OpMakeChan:
 		if err, ok := msg.(string); ok && err == "reflect.MakeChan: negative buffer size" {
-			return runtimeError("makechan: size out of range")
+			return Panic{Msg: runtimeError("makechan: size out of range")}
 		}
 	case OpMakeSlice:
 		if err, ok := msg.(string); ok {
 			switch err {
 			case "reflect.MakeSlice: negative len":
-				return runtimeError("runtime error: makeslice: len out of range")
+				return Panic{Msg: runtimeError("runtime error: makeslice: len out of range")}
 			case "reflect.MakeSlice: negative cap", "reflect.MakeSlice: len > cap":
-				return runtimeError("runtime error: makeslice: cap out of range")
+				return Panic{Msg: runtimeError("runtime error: makeslice: cap out of range")}
 			}
 		}
+	case OpPanic:
+		return Panic{Msg: msg}
 	case OpSend, -OpSend:
 		switch err := msg.(type) {
 		case runtime.Error:
 			if s := err.Error(); s == "send on closed channel" {
-				return runtimeError(s)
+				return Panic{Msg: runtimeError(s)}
 			}
 		case string:
 			if err == "close of nil channel" {
-				return runtimeError(err)
+				return Panic{Msg: runtimeError(err)}
 			}
 		}
 	case OpSetMap, -OpSetMap:
@@ -154,7 +174,7 @@ func (vm *VM) convertInternalError(msg interface{}) error {
 			s := err.Error()
 			if s == "assignment to entry in nil map" ||
 				strings.HasPrefix(s, "runtime error: hash of unhashable type ") {
-				return runtimeError(s)
+				return Panic{Msg: runtimeError(s)}
 			}
 		}
 	case OpSlice, OpSliceString:
@@ -162,13 +182,16 @@ func (vm *VM) convertInternalError(msg interface{}) error {
 		switch err := msg.(type) {
 		case runtime.Error:
 			if s := err.Error(); strings.HasPrefix(s, "runtime error: slice bounds out of range") {
-				return runtimeError("runtime error: slice bounds out of range")
+				return Panic{Msg: runtimeError("runtime error: slice bounds out of range")}
 			}
 		case string:
 			if err == "reflect.Value.Slice3: slice index out of bounds" {
-				return runtimeError("runtime error: slice bounds out of range")
+				return Panic{Msg: runtimeError("runtime error: slice bounds out of range")}
 			}
 		}
 	}
-	return nil
+	if _, ok := msg.(runtimeError); ok {
+		return Panic{Msg: msg}
+	}
+	return &FatalError{msg: msg}
 }

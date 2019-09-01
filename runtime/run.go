@@ -10,38 +10,25 @@ import (
 	"reflect"
 )
 
-func (vm *VM) runFunc(fn *Function, vars []interface{}) (err error) {
+func (vm *VM) runFunc(fn *Function, vars []interface{}) error {
 	vm.fn = fn
 	vm.vars = vars
 	for {
-		panicking := vm.runRecoverable()
-		if !panicking {
+		err := vm.runRecoverable()
+		if err == nil {
 			break
 		}
-		msg := vm.panics[len(vm.panics)-1].Msg
-		if e, ok := msg.(*FatalError); ok && e.env == vm.env {
-			panic(e.msg)
+		p, ok := err.(Panic)
+		if !ok {
+			return err
 		}
-		if e, ok := msg.(OutOfTimeError); ok && e.env == vm.env {
-			vm.panics = vm.panics[:0]
-			err = e
-			break
-		} else if e, ok := msg.(OutOfMemoryError); ok && e.env == vm.env {
-			vm.panics = vm.panics[:0]
-			err = e
-			break
-		}
-		if err := vm.convertInternalError(msg); err != nil {
-			vm.panics[len(vm.panics)-1].Msg = err
-		}
+		vm.panics = append(vm.panics, p)
 		if len(vm.calls) == 0 {
 			break
 		}
 		vm.calls = append(vm.calls, callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: panicked})
 		vm.fn = nil
 	}
-	vm.env.exit()
-	// Manage error and panics.
 	if len(vm.panics) > 0 {
 		var msg string
 		for i, p := range vm.panics {
@@ -54,23 +41,24 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) (err error) {
 			}
 			msg += "\n"
 		}
-		panic(msg)
+		return &FatalError{msg: msg}
 	}
-	return err
+	return nil
 }
 
-func (vm *VM) runRecoverable() (panicking bool) {
-	panicking = true
+func (vm *VM) runRecoverable() (err error) {
+	panicking := true
 	defer func() {
 		if panicking {
 			msg := recover()
-			vm.panics = append(vm.panics, Panic{Msg: msg})
+			err = vm.convertPanic(msg)
 		}
 	}()
 	if vm.fn != nil || vm.nextCall() {
 		vm.run()
 	}
-	return false
+	panicking = false
+	return nil
 }
 
 func (vm *VM) run() (uint32, bool) {

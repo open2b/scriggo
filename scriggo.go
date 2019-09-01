@@ -180,8 +180,7 @@ func (s *Script) Run(init map[string]interface{}, options *RunOptions) error {
 		init = emptyInit
 	}
 	vm := newVM(options)
-	err := vm.Run(s.fn, initGlobals(s.globals, init))
-	return err
+	return vm.Run(s.fn, initGlobals(s.globals, init))
 }
 
 // newVM returns a new vm with the given options.

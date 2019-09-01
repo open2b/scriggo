@@ -132,9 +132,14 @@ func (vm *VM) Reset() {
 // If a context has been set and the context is canceled, Run returns
 // as soon as possible with the error returned by the Err method of the
 // context.
-func (vm *VM) Run(fn *Function, globals []interface{}) (err error) {
+func (vm *VM) Run(fn *Function, globals []interface{}) error {
 	vm.env.globals = globals
-	return vm.runFunc(fn, globals)
+	err := vm.runFunc(fn, globals)
+	vm.env.exit()
+	if fatal, ok := err.(*FatalError); ok {
+		panic(fatal.msg)
+	}
+	return err
 }
 
 // SetContext sets the context.
@@ -1132,7 +1137,10 @@ func (c *callable) Value(env *Env) reflect.Value {
 				nvm.setFromReflectValue(r[t], arg)
 				r[t]++
 			}
-			nvm.runFunc(fn, vars)
+			err := nvm.runFunc(fn, vars)
+			if err != nil {
+				panic(err)
+			}
 			r = [4]int8{1, 1, 1, 1}
 			for _, result := range results {
 				t := kindToType(result.Kind())
