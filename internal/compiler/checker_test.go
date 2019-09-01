@@ -430,7 +430,7 @@ var checkerExprs = []struct {
 	{`cap([]int{})`, tiInt(), nil},
 	{`cap([...]byte{})`, tiIntConst(0), nil},
 	{`cap(s)`, tiInt(), map[string]*TypeInfo{"s": {Type: reflect.TypeOf(definedIntSlice{})}}},
-	//{`cap(new([1]byte))`, tiInt(), nil}, // TODO.
+	//{`cap(new([1]byte))`, tiInt(), nil}, // TODO. See https://github.com/open2b/scriggo/issues/369
 
 	// copy
 	{`copy([]int{}, []int{})`, tiInt(), nil},
@@ -457,7 +457,7 @@ var checkerExprs = []struct {
 	{`len(map[string]int{})`, tiInt(), nil},
 	{`len([...]byte{})`, tiIntConst(0), nil},
 	{`len(s)`, tiInt(), map[string]*TypeInfo{"s": {Type: reflect.TypeOf(definedIntSlice{})}}},
-	//{`len(new([1]byte))`, tiInt(), nil}, // TODO.
+	//{`len(new([1]byte))`, tiInt(), nil}, // TODO. See https://github.com/open2b/scriggo/issues/369
 
 	// recover
 	{`recover()`, tiInterface(), nil},
@@ -706,9 +706,7 @@ var checkerStmts = map[string]string{
 	`const a = 1; const b int8 = a`:                       ok,
 
 	// Identifiers.
-	// TODO(Gianluca): related to the possibility of returning the last
-	// expression statement of a script as a value to Go.
-	// `a := 0; a`: evaluatedButNotUsed("a"),
+	`a := 0; a`: evaluatedButNotUsed("a"),
 
 	// Blank identifiers.
 	`_ = 1`:                           ok,
@@ -907,9 +905,7 @@ var checkerStmts = map[string]string{
 
 	// Expressions.
 	`int + 2`: `type int is not an expression`,
-	// TODO(Gianluca): related to the possibility of returning the last
-	// expression statement of a script as a value to Go.
-	// `0`:       evaluatedButNotUsed("0"),
+	`0`:       evaluatedButNotUsed("0"),
 
 	// Address operator.
 	`var a int; _ = &((a))`:             ok,
@@ -921,9 +917,7 @@ var checkerStmts = map[string]string{
 	`var a int; var b *int = &a; _ = b`: ok,
 	`_ = &(_)`:                          `cannot use _ as value`,
 	`_ = &(0)`:                          `cannot take the address of 0`,
-	// TODO(Gianluca): related to the possibility of returning the last
-	// expression statement of a script as a value to Go.
-	// `var a int; &a`:                     evaluatedButNotUsed("&a"),
+	// `var a int; &a`:                     evaluatedButNotUsed("&a"), // TODO. See https://github.com/open2b/scriggo/issues/98
 
 	// Pointer indirection operator.
 	`var a int; b := &a; var c int = *b; _ = c`: ok,
@@ -1197,7 +1191,7 @@ var checkerStmts = map[string]string{
 	`a := 0; a()`:                  `cannot call non-function a (type int)`,
 	`a := []int{}; a()`:            `cannot call non-function a (type []int)`,
 	`f := func(a int) {} ; f(nil)`: `cannot use nil as type int in argument to f`,
-	// `nil.F()`:     `use of untyped nil`, // TODO
+	// `nil.F()`:     `use of untyped nil`, // TODO: panics.
 	`_()`: `cannot use _ as value`,
 
 	// Variable declared and not used.
