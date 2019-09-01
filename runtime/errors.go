@@ -13,6 +13,12 @@ import (
 	"strings"
 )
 
+var go112 bool
+
+func init() {
+	go112 = strings.HasPrefix(runtime.Version(), "go1.12")
+}
+
 var errNilPointer = runtimeError("runtime error: invalid memory address or nil pointer dereference")
 
 // FatalError represents a fatal error. A fatal error cannot be recovered by
@@ -80,6 +86,23 @@ func (err OutOfMemoryError) Error() string {
 
 func (err OutOfMemoryError) RuntimeError() {}
 
+// errIndexOutOfRange returns an index of range runtime error for the
+// currently running virtual machine instruction.
+func (vm *VM) errIndexOutOfRange() runtimeError {
+	in := vm.fn.Body[vm.pc-1]
+	s := "runtime error: index out of range ["
+	switch in.Op {
+	case OpAddr, OpIndex, -OpIndex, OpIndexString, -OpIndexString:
+		s += strconv.Itoa(int(vm.intk(in.B, in.Op < 0)))
+	case OpSetSlice, -OpSetSlice:
+		s += strconv.Itoa(int(vm.int(in.C)))
+	default:
+		panic("unexpected operation")
+	}
+	s += "] with length " + strconv.Itoa(reflect.ValueOf(vm.general(in.A)).Len())
+	return runtimeError(s)
+}
+
 // convertPanic converts a panic to an error.
 func (vm *VM) convertPanic(msg interface{}) error {
 	switch vm.fn.Body[vm.pc-1].Op {
@@ -87,11 +110,14 @@ func (vm *VM) convertPanic(msg interface{}) error {
 		switch err := msg.(type) {
 		case runtime.Error:
 			if s := err.Error(); strings.HasPrefix(s, "runtime error: index out of range") {
-				return Panic{Msg: runtimeError("runtime error: index out of range")}
+				if go112 {
+					return Panic{Msg: vm.errIndexOutOfRange()}
+				}
+				return Panic{Msg: runtimeError(s)}
 			}
 		case string:
 			if err == "reflect: slice index out of range" {
-				return Panic{Msg: runtimeError("runtime error: index out of range")}
+				return Panic{Msg: vm.errIndexOutOfRange()}
 			}
 		}
 	case OpAppendSlice:
@@ -139,7 +165,10 @@ func (vm *VM) convertPanic(msg interface{}) error {
 		}
 	case OpIndexString, -OpIndexString:
 		if err, ok := msg.(runtime.Error); ok {
-			if s := err.Error(); s == "runtime error: index out of range" {
+			if s := err.Error(); strings.HasPrefix(s, "runtime error: index out of range") {
+				if go112 {
+					return Panic{Msg: vm.errIndexOutOfRange()}
+				}
 				return Panic{Msg: runtimeError(s)}
 			}
 		}

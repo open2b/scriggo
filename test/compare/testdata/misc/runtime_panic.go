@@ -20,7 +20,7 @@ func main() {
 	test2()
 	test3()
 	test3b()
-	if isGo112 {
+	if !isGo112 {
 		test4()
 		test4b()
 		test5()
@@ -113,33 +113,33 @@ func test3b() {
 }
 
 func test4() {
-	defer recoverRuntimePanic("runtime error: index out of range")
+	defer recoverRuntimePanic("runtime error: index out of range [2] with length 1")
 	var a [1]testpkg.T
 	var b = 2
 	_ = a[b]
 }
 
 func test4b() {
-	defer recoverRuntimePanic("runtime error: index out of range")
+	defer recoverRuntimePanic("runtime error: index out of range [2] with length 1")
 	var a [1]testpkg.T
 	var b = 2
 	a[b] = 3
 }
 
 func test5() {
-	defer recoverRuntimePanic("runtime error: index out of range")
+	defer recoverRuntimePanic("runtime error: index out of range [0] with length 0")
 	var a []testpkg.T
 	_ = a[0]
 }
 
 func test5b() {
-	defer recoverRuntimePanic("runtime error: index out of range")
+	defer recoverRuntimePanic("runtime error: index out of range [0] with length 0")
 	var a []testpkg.T
 	a[0] = 1
 }
 
 func test6() {
-	defer recoverRuntimePanic("runtime error: index out of range")
+	defer recoverRuntimePanic("runtime error: index out of range [0] with length 0")
 	var a testpkg.S
 	_ = a[0]
 }
