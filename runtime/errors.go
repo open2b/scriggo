@@ -22,7 +22,7 @@ type FatalError struct {
 	msg interface{}
 }
 
-func (err FatalError) Error() string {
+func (err *FatalError) Error() string {
 	return "fatal error: " + panicToString(err.msg)
 }
 

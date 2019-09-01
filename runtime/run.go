@@ -19,7 +19,7 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
 			break
 		}
 		msg := vm.panics[len(vm.panics)-1].Msg
-		if e, ok := msg.(FatalError); ok && e.env == vm.env {
+		if e, ok := msg.(*FatalError); ok && e.env == vm.env {
 			panic(e.msg)
 		}
 		if e, ok := msg.(OutOfTimeError); ok && e.env == vm.env {
