@@ -1495,20 +1495,19 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		if t.Nil() {
 			panic(tc.errorf(expr, "use of untyped nil"))
 		}
+		ti := &TypeInfo{Type: intType}
 		switch k := t.Type.Kind(); k {
-		case reflect.Slice, reflect.Array, reflect.Chan:
-		default:
-			if k != reflect.Ptr || t.Type.Elem().Kind() != reflect.Array {
+		case reflect.Slice, reflect.Chan:
+		case reflect.Array:
+			ti.Constant = int64Const(t.Type.Len())
+		case reflect.Ptr:
+			if t.Type.Elem().Kind() != reflect.Array {
 				panic(tc.errorf(expr, "invalid argument %s (type %s) for cap", expr.Args[0], t.ShortString()))
 			}
-		}
-		// https://github.com/open2b/scriggo/issues/369
-		ti := &TypeInfo{Type: intType}
-		if t.Type.Kind() == reflect.Array {
-			ti.Constant = int64Const(t.Type.Len())
-		}
-		if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Array {
+			// https://github.com/open2b/scriggo/issues/369
 			ti.Constant = int64Const(t.Type.Elem().Len())
+		default:
+			panic(tc.errorf(expr, "invalid argument %s (type %s) for cap", expr.Args[0], t.ShortString()))
 		}
 		return []*TypeInfo{ti}
 
@@ -1670,25 +1669,25 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			panic(tc.errorf(expr, "use of untyped nil"))
 		}
 		t.setValue(nil)
+		ti := &TypeInfo{Type: intType}
+		ti.setValue(nil)
 		switch k := t.Type.Kind(); k {
-		case reflect.String, reflect.Slice, reflect.Map, reflect.Array, reflect.Chan:
-		default:
-			if k != reflect.Ptr || t.Type.Elem().Kind() != reflect.Array {
+		case reflect.String:
+			if t.IsConstant() {
+				ti.Constant = int64Const(len(t.Constant.string()))
+			}
+		case reflect.Slice, reflect.Map, reflect.Chan:
+		case reflect.Array:
+			ti.Constant = int64Const(t.Type.Len())
+		case reflect.Ptr:
+			if t.Type.Elem().Kind() != reflect.Array {
 				panic(tc.errorf(expr, "invalid argument %s (type %s) for len", expr.Args[0], t.ShortString()))
 			}
-		}
-		ti := &TypeInfo{Type: intType}
-		// https://github.com/open2b/scriggo/issues/369
-		if t.IsConstant() && t.Type.Kind() == reflect.String {
-			ti.Constant = int64Const(len(t.Constant.string()))
-		}
-		if t.Type.Kind() == reflect.Array {
-			ti.Constant = int64Const(t.Type.Len())
-		}
-		if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Array {
+			// https://github.com/open2b/scriggo/issues/369
 			ti.Constant = int64Const(t.Type.Elem().Len())
+		default:
+			panic(tc.errorf(expr, "invalid argument %s (type %s) for len", expr.Args[0], t.ShortString()))
 		}
-		ti.setValue(nil)
 		return []*TypeInfo{ti}
 
 	case "make":
