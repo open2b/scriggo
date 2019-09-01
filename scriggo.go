@@ -106,8 +106,7 @@ func (p *Program) Run(options *RunOptions) error {
 		panic("scriggo: program not loaded with LimitMemorySize option")
 	}
 	vm := newVM(options)
-	_, err := vm.Run(p.fn, initGlobals(p.globals, nil))
-	return err
+	return vm.Run(p.fn, initGlobals(p.globals, nil))
 }
 
 // Disassemble disassembles the package with the given path. Predefined
@@ -181,7 +180,7 @@ func (s *Script) Run(init map[string]interface{}, options *RunOptions) error {
 		init = emptyInit
 	}
 	vm := newVM(options)
-	_, err := vm.Run(s.fn, initGlobals(s.globals, init))
+	err := vm.Run(s.fn, initGlobals(s.globals, init))
 	return err
 }
 

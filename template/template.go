@@ -129,8 +129,7 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *R
 		vars = emptyVars
 	}
 	vm := newVM(options)
-	_, err := vm.Run(t.fn, initGlobals(t.globals, vars))
-	return err
+	return vm.Run(t.fn, initGlobals(t.globals, vars))
 }
 
 // Options returns the options with which the template has been loaded.

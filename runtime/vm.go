@@ -132,7 +132,7 @@ func (vm *VM) Reset() {
 // If a context has been set and the context is canceled, Run returns
 // as soon as possible with the error returned by the Err method of the
 // context.
-func (vm *VM) Run(fn *Function, globals []interface{}) (code int, err error) {
+func (vm *VM) Run(fn *Function, globals []interface{}) (err error) {
 	vm.env.globals = globals
 	return vm.runFunc(fn, globals)
 }

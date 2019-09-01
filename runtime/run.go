@@ -10,7 +10,7 @@ import (
 	"reflect"
 )
 
-func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
+func (vm *VM) runFunc(fn *Function, vars []interface{}) (err error) {
 	vm.fn = fn
 	vm.vars = vars
 	for {
@@ -56,7 +56,7 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
 		}
 		panic(msg)
 	}
-	return 0, err
+	return err
 }
 
 func (vm *VM) runRecoverable() (panicking bool) {
