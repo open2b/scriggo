@@ -32,12 +32,12 @@ type runtimeError string
 func (err runtimeError) Error() string { return string(err) }
 func (err runtimeError) RuntimeError() {}
 
-// newTypeAssertionErr returns a runtime error for a failed type assertion.
-// The Go runtime returns a runtime.TypeAssertionError, Scriggo cannot return
-// an error with this type because it has unexported fields.
+// errTypeAssertion returns a runtime error for a failed type assertion. The
+// Go runtime returns a runtime.TypeAssertionError, Scriggo cannot return an
+// error with this type because it has unexported fields.
 //
 // See also https://github.com/golang/go/issues/14443
-func newTypeAssertionErr(interfac, concrete, asserted reflect.Type, missingMethod string) runtimeError {
+func errTypeAssertion(interfac, concrete, asserted reflect.Type, missingMethod string) runtimeError {
 	s := "interface conversion: "
 	if concrete == nil {
 		return runtimeError(s + interfac.String() + " is nil, not " + asserted.String())

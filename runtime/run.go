@@ -202,7 +202,7 @@ func (vm *VM) run() (uint32, bool) {
 					if t.Kind() == reflect.Interface {
 						method = missingMethod(concrete, t)
 					}
-					panic(newTypeAssertionErr(vm.fn.Types[uint8(in.C)], concrete, t, method))
+					panic(errTypeAssertion(vm.fn.Types[uint8(in.C)], concrete, t, method))
 				}
 			}
 			if c != 0 {
