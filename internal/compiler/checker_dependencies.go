@@ -240,6 +240,8 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 			deps = append(deps, nodeDeps(kv.Value, scopes)...)
 		}
 		return deps
+	case *ast.Comment:
+		return nil
 	case *ast.Const:
 		deps := []*ast.Identifier{}
 		for _, right := range n.Lhs {
