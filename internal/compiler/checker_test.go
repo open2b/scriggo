@@ -678,6 +678,7 @@ var checkerStmts = map[string]string{
 	`const A = 0; B := A; const C = A;   _ = B`: ok,
 	`const A = 0; B := A; const C = B;   _ = B`: `const initializer B is not a constant`,
 	`const a string = 2`:                        `cannot use 2 (type int) as type string in assignment`, // TODO (Gianluca): Go returns error: cannot convert 2 (type untyped number) to type string
+	`const a = nil`:                             `const initializer cannot be nil`,
 
 	// Constants - from https://golang.org/ref/spec#Constant_expressions
 	`const a = 2 + 3.0`:                      ok,
