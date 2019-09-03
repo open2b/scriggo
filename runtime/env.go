@@ -81,7 +81,7 @@ func (env *Env) ExitFunc(f func()) {
 
 // Fatal calls panic() with a FatalError error.
 func (env *Env) Fatal(v interface{}) {
-	panic(&FatalError{env, v})
+	panic(&FatalError{env: env, msg: v})
 }
 
 // FreeMemory returns the current free memory in bytes and true if the maximum

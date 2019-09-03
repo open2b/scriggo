@@ -9,6 +9,7 @@ package runtime
 import (
 	"reflect"
 	"runtime"
+	"scriggo/ast"
 	"strconv"
 	"strings"
 )
@@ -24,12 +25,14 @@ var errNilPointer = runtimeError("runtime error: invalid memory address or nil p
 // FatalError represents a fatal error. A fatal error cannot be recovered by
 // the running program.
 type FatalError struct {
-	env *Env
-	msg interface{}
+	env  *Env
+	msg  interface{}
+	file string
+	pos  *ast.Position
 }
 
 func (err *FatalError) Error() string {
-	return "fatal error: " + panicToString(err.msg)
+	return err.file + ":" + err.pos.String() + ": fatal error: " + panicToString(err.msg)
 }
 
 // runtimeError represents a runtime error.
@@ -103,6 +106,14 @@ func (vm *VM) errIndexOutOfRange() runtimeError {
 	return runtimeError(s)
 }
 
+func (vm *VM) newPanic(msg interface{}) Panic {
+	return Panic{
+		Msg:  msg,
+		File: vm.fn.File,
+		Line: vm.fn.Lines[vm.pc],
+	}
+}
+
 // convertPanic converts a panic to an error.
 func (vm *VM) convertPanic(msg interface{}) error {
 	switch vm.fn.Body[vm.pc-1].Op {
@@ -141,7 +152,7 @@ func (vm *VM) convertPanic(msg interface{}) error {
 			// TODO: check env.
 			break
 		default:
-			return Panic{Msg: msg}
+			return vm.newPanic(msg)
 		}
 	case OpClose:
 		if err, ok := msg.(runtime.Error); ok {
@@ -220,7 +231,8 @@ func (vm *VM) convertPanic(msg interface{}) error {
 		}
 	}
 	if _, ok := msg.(runtimeError); ok {
-		return Panic{Msg: msg}
+		p := vm.newPanic(msg)
+		return p
 	}
 	return &FatalError{msg: msg}
 }

@@ -1188,10 +1188,12 @@ type Panic struct {
 	Msg        interface{}
 	Recovered  bool
 	StackTrace []byte
+	File       string
+	Line       int
 }
 
 func (err Panic) String() string {
-	return panicToString(err.Msg)
+	return err.File + ":" + strconv.Itoa(err.Line) + ": " + panicToString(err.Msg)
 }
 
 func panicToString(msg interface{}) string {
