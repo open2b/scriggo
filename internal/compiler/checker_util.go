@@ -343,7 +343,7 @@ func isOrdered(t *TypeInfo) bool {
 
 // macroToFunc converts a macro node into a function node.
 func macroToFunc(macro *ast.Macro) *ast.Func {
-	return ast.NewFunc(macro.Pos(), macro.Ident, macro.Type, ast.NewBlock(nil, macro.Body))
+	return ast.NewFunc(macro.Pos(), macro.Ident, macro.Type, ast.NewBlock(macro.Pos(), macro.Body))
 }
 
 type receiverTransformation int

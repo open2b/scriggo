@@ -121,7 +121,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 				op = ast.OperatorSubtraction
 			}
 			n.Type = ast.AssignmentSimple
-			right := ast.NewBinaryOperator(nil, op, n.Lhs[0], ast.NewBasicLiteral(nil, ast.IntLiteral, "1"))
+			right := ast.NewBinaryOperator(n.Lhs[0].Pos(), op, n.Lhs[0], ast.NewBasicLiteral(n.Lhs[0].Pos(), ast.IntLiteral, "1"))
 			tc.checkExpr(right)
 			n.Rhs = []ast.Expression{right}
 			return
@@ -163,7 +163,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			// This change has no effects on type checking but simplifies the
 			// emitting of assignment nodes. a += 1 is semantically equivalent
 			// to a = a + 1.
-			right := ast.NewBinaryOperator(nil, op, n.Lhs[0], n.Rhs[0])
+			right := ast.NewBinaryOperator(n.Lhs[0].Pos(), op, n.Lhs[0], n.Rhs[0])
 			tc.checkExpr(right)
 			n.Rhs = []ast.Expression{right}
 			n.Type = ast.AssignmentSimple
