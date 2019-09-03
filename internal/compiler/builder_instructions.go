@@ -50,7 +50,8 @@ func (builder *functionBuilder) emitAdd(k bool, x, y, z int8, kind reflect.Kind)
 // 	   dest = &expr.Field
 // 	   dest = &expr[index]
 //
-func (builder *functionBuilder) emitAddr(expr, index, dest int8) {
+func (builder *functionBuilder) emitAddr(expr, index, dest int8, line int) {
+	builder.addLine(line)
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpAddr, A: expr, B: index, C: dest})
 }
 
@@ -94,7 +95,8 @@ func (builder *functionBuilder) emitAppend(first, length, s int8) {
 //
 //     s = append(s, t)
 //
-func (builder *functionBuilder) emitAppendSlice(t, s int8) {
+func (builder *functionBuilder) emitAppendSlice(t, s int8, line int) {
+	builder.addLine(line)
 	fn := builder.fn
 	if builder.allocs != nil {
 		fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
@@ -137,17 +139,18 @@ func (builder *functionBuilder) emitBreak(label uint32) {
 //     p.f()
 //
 func (builder *functionBuilder) emitCall(f int8, shift runtime.StackShift, line int) {
+	builder.addLine(line)
 	fn := builder.fn
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCall, A: f})
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
-	builder.addLine(uint32(len(fn.Body)-2), line)
 }
 
 // emitCallPredefined appends a new "CallPredefined" instruction to the function body.
 //
 //     p.F()
 //
-func (builder *functionBuilder) emitCallPredefined(f int8, numVariadic int8, shift runtime.StackShift) {
+func (builder *functionBuilder) emitCallPredefined(f int8, numVariadic int8, shift runtime.StackShift, line int) {
+	builder.addLine(line)
 	fn := builder.fn
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCallPredefined, A: f, C: numVariadic})
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
@@ -157,7 +160,8 @@ func (builder *functionBuilder) emitCallPredefined(f int8, numVariadic int8, shi
 //
 //     f()
 //
-func (builder *functionBuilder) emitCallIndirect(f int8, numVariadic int8, shift runtime.StackShift) {
+func (builder *functionBuilder) emitCallIndirect(f int8, numVariadic int8, shift runtime.StackShift, line int) {
+	builder.addLine(line)
 	fn := builder.fn
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCallIndirect, A: f, C: numVariadic})
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
@@ -189,7 +193,8 @@ func (builder *functionBuilder) emitCase(kvalue bool, dir reflect.SelectDir, val
 //
 //     close(ch)
 //
-func (builder *functionBuilder) emitClose(ch int8) {
+func (builder *functionBuilder) emitClose(ch int8, line int) {
+	builder.addLine(line)
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpClose, A: ch})
 }
 
@@ -299,7 +304,8 @@ func (builder *functionBuilder) emitDelete(m, k int8) {
 //
 //     z = x / y
 //
-func (builder *functionBuilder) emitDiv(ky bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitDiv(ky bool, x, y, z int8, kind reflect.Kind, line int) {
+	builder.addLine(line)
 	var op runtime.Operation
 	switch kind {
 	case reflect.Int:
@@ -478,7 +484,8 @@ func (builder *functionBuilder) emitGoto(label uint32) {
 //     len(x) >  y
 //     len(x) >= y
 //
-func (builder *functionBuilder) emitIf(k bool, x int8, o runtime.Condition, y int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitIf(k bool, x int8, o runtime.Condition, y int8, kind reflect.Kind, line int) {
+	builder.addLine(line)
 	var op runtime.Operation
 	switch kindToType(kind) {
 	case runtime.TypeInt:
@@ -500,7 +507,8 @@ func (builder *functionBuilder) emitIf(k bool, x int8, o runtime.Condition, y in
 //
 //	dst = expr[i]
 //
-func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType reflect.Type) {
+func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType reflect.Type, line int) {
+	builder.addLine(line)
 	fn := builder.fn
 	kind := exprType.Kind()
 	var op runtime.Operation
@@ -602,7 +610,8 @@ func (builder *functionBuilder) emitLoadNumber(typ runtime.Type, index, dst int8
 //
 //     dst = make(typ, capacity)
 //
-func (builder *functionBuilder) emitMakeChan(typ reflect.Type, kCapacity bool, capacity int8, dst int8) {
+func (builder *functionBuilder) emitMakeChan(typ reflect.Type, kCapacity bool, capacity int8, dst int8, line int) {
+	builder.addLine(line)
 	fn := builder.fn
 	t := builder.addType(typ)
 	op := runtime.OpMakeChan
@@ -661,7 +670,8 @@ func (builder *functionBuilder) emitMakeMap(typ reflect.Type, kSize bool, size i
 //
 //     make(sliceType, len, cap)
 //
-func (builder *functionBuilder) emitMakeSlice(kLen, kCap bool, sliceType reflect.Type, len, cap, dst int8) {
+func (builder *functionBuilder) emitMakeSlice(kLen, kCap bool, sliceType reflect.Type, len, cap, dst int8, line int) {
+	builder.addLine(line)
 	fn := builder.fn
 	t := builder.addType(sliceType)
 	var k int8
@@ -804,13 +814,13 @@ func (builder *functionBuilder) emitOr(k bool, x, y, z int8, kind reflect.Kind) 
 //     panic(v)
 //
 func (builder *functionBuilder) emitPanic(v int8, line int, typ reflect.Type) {
+	builder.addLine(line)
 	fn := builder.fn
 	in := runtime.Instruction{Op: runtime.OpPanic, A: v}
 	if typ != nil {
 		in.C = int8(builder.addType(typ))
 	}
 	fn.Body = append(fn.Body, in)
-	builder.addLine(uint32(len(fn.Body)-1), line)
 }
 
 // emitPrint appends a new "Print" instruction to the function body.
@@ -861,7 +871,8 @@ func (builder *functionBuilder) emitRecover(r int8, down bool) {
 //
 //     z = x % y
 //
-func (builder *functionBuilder) emitRem(ky bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitRem(ky bool, x, y, z int8, kind reflect.Kind, line int) {
+	builder.addLine(line)
 	var op runtime.Operation
 	switch kind {
 	case reflect.Int:
@@ -935,7 +946,8 @@ func (builder *functionBuilder) emitSelect() {
 //
 //	ch <- v
 //
-func (builder *functionBuilder) emitSend(ch, v int8) {
+func (builder *functionBuilder) emitSend(ch, v int8, line int) {
+	builder.addLine(line)
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpSend, A: v, C: ch})
 }
 
@@ -976,7 +988,8 @@ func (builder *functionBuilder) emitSetVar(k bool, r int8, v int) {
 //
 //	m[key] = value
 //
-func (builder *functionBuilder) emitSetMap(k bool, m, value, key int8, mapType reflect.Type) {
+func (builder *functionBuilder) emitSetMap(k bool, m, value, key int8, mapType reflect.Type, line int) {
+	builder.addLine(line)
 	fn := builder.fn
 	op := runtime.OpSetMap
 	if k {
@@ -1003,7 +1016,8 @@ func (builder *functionBuilder) emitSetMap(k bool, m, value, key int8, mapType r
 //
 //	slice[index] = value
 //
-func (builder *functionBuilder) emitSetSlice(k bool, slice, value, index int8) {
+func (builder *functionBuilder) emitSetSlice(k bool, slice, value, index int8, line int) {
+	builder.addLine(line)
 	in := runtime.Instruction{Op: runtime.OpSetSlice, A: slice, B: value, C: index}
 	if k {
 		in.Op = -in.Op
@@ -1015,7 +1029,8 @@ func (builder *functionBuilder) emitSetSlice(k bool, slice, value, index int8) {
 //
 //	slice[low:high:max]
 //
-func (builder *functionBuilder) emitSlice(klow, khigh, kmax bool, src, dst, low, high, max int8) {
+func (builder *functionBuilder) emitSlice(klow, khigh, kmax bool, src, dst, low, high, max int8, line int) {
+	builder.addLine(line)
 	fn := builder.fn
 	var b int8
 	if klow {
@@ -1035,7 +1050,8 @@ func (builder *functionBuilder) emitSlice(klow, khigh, kmax bool, src, dst, low,
 //
 //	string[low:high]
 //
-func (builder *functionBuilder) emitSliceString(klow, khigh bool, src, dst, low, high int8) {
+func (builder *functionBuilder) emitSliceString(klow, khigh bool, src, dst, low, high int8, line int) {
+	builder.addLine(line)
 	fn := builder.fn
 	var b int8
 	if klow {
@@ -1129,9 +1145,9 @@ func (builder *functionBuilder) emitTypify(k bool, typ reflect.Type, x, z int8) 
 //     f()
 //
 func (builder *functionBuilder) emitTailCall(f int8, line int) {
+	builder.addLine(line)
 	fn := builder.fn
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpTailCall, A: f})
-	builder.addLine(uint32(len(fn.Body)-1), line)
 }
 
 // emitXor appends a new "Xor" instruction to the function body.
