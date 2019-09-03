@@ -1396,6 +1396,7 @@ func (p *parsing) parseIdentifiersList(tok token) ([]*ast.Identifier, token) {
 // parseTypeDecl parses a type declaration, that is a type definition or an
 // alias declaration. The token returned is the next valid token.
 func (p *parsing) parseTypeDecl(tok token) (*ast.TypeDeclaration, token) {
+	pos := tok.pos
 	if tok.typ != tokenIdentifier {
 		panic(syntaxError(tok.pos, "unexpected %s, expecting name", tok))
 	}
@@ -1407,7 +1408,7 @@ func (p *parsing) parseTypeDecl(tok token) (*ast.TypeDeclaration, token) {
 	}
 	var typ ast.Expression
 	typ, tok = p.parseExpr(tok, false, true, false)
-	node := ast.NewTypeDeclaration(nil, ident, typ, alias)
+	node := ast.NewTypeDeclaration(pos, ident, typ, alias)
 	return node, tok
 }
 
