@@ -1194,7 +1194,7 @@ type Panic struct {
 }
 
 func (err Panic) String() string {
-	return err.File + ":" + strconv.Itoa(err.Line) + ": " + panicToString(err.Msg)
+	return panicToString(err.Msg)
 }
 
 func panicToString(msg interface{}) string {

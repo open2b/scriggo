@@ -32,7 +32,7 @@ type FatalError struct {
 }
 
 func (err *FatalError) Error() string {
-	return err.file + ":" + err.pos.String() + ": fatal error: " + panicToString(err.msg)
+	return panicToString(err.msg)
 }
 
 // runtimeError represents a runtime error.
