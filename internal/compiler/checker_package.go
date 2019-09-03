@@ -519,16 +519,19 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 						return tc.programImportError(d)
 					}
 					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, pkgInfos, opts, tc.globalScope)
+					if err != nil {
+						return err
+					}
 				} else {
 					if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
 						return tc.programImportError(d)
 					}
 					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, pkgInfos, opts, tc.globalScope)
+					if err != nil {
+						return err
+					}
 				}
 				importedPkg = pkgInfos[d.Tree.Path]
-				if err != nil {
-					return err
-				}
 			}
 			if tc.opts.SyntaxType == TemplateSyntax {
 				if d.Ident == nil {
