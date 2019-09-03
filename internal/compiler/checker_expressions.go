@@ -584,14 +584,14 @@ func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...inte
 		pos = nodeOrPos.(*ast.Position)
 	}
 	var err = &CheckingError{
-		Path: tc.path,
-		Pos: ast.Position{
+		path: tc.path,
+		pos: ast.Position{
 			Line:   pos.Line,
 			Column: pos.Column,
 			Start:  pos.Start,
 			End:    pos.End,
 		},
-		Err: fmt.Errorf(format, args...),
+		err: fmt.Errorf(format, args...),
 	}
 	return err
 }

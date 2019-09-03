@@ -18,7 +18,7 @@ import (
 )
 
 func tierr(line, column int, text string) *CheckingError {
-	return &CheckingError{Pos: ast.Position{Line: line, Column: column}, Err: errors.New(text)}
+	return &CheckingError{pos: ast.Position{Line: line, Column: column}, err: errors.New(text)}
 }
 
 type definedBool bool
@@ -2054,11 +2054,11 @@ func TestFunctionUpVars(t *testing.T) {
 }
 
 func sameTypeCheckError(err1, err2 *CheckingError) error {
-	if err1.Err.Error() != err2.Err.Error() {
-		return fmt.Errorf("unexpected error %q, expecting error %q\n", err1.Err, err2.Err)
+	if err1.err.Error() != err2.err.Error() {
+		return fmt.Errorf("unexpected error %q, expecting error %q\n", err1.err, err2.err)
 	}
-	pos1 := err1.Pos
-	pos2 := err2.Pos
+	pos1 := err1.pos
+	pos2 := err2.pos
 	if pos1.Line != pos2.Line {
 		return fmt.Errorf("unexpected line %d, expecting %d", pos1.Line, pos2.Line)
 	}

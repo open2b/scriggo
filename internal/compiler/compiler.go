@@ -109,13 +109,13 @@ type EmitterOptions struct {
 // CheckingError records a type checking error with the path and the position
 // where the error occurred.
 type CheckingError struct {
-	Path string
-	Pos  ast.Position
-	Err  error
+	path string
+	pos  ast.Position
+	err  error
 }
 
 func (e *CheckingError) Error() string {
-	return fmt.Sprintf("%s:%s: %s", e.Path, e.Pos, e.Err)
+	return fmt.Sprintf("%s:%s: %s", e.path, e.pos, e.err)
 }
 
 // Typecheck makes a type check on tree. A map of predefined packages may be
@@ -137,7 +137,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 		pkgInfos := map[string]*PackageInfo{}
 		pkg := tree.Nodes[0].(*ast.Package)
 		if pkg.Name != "main" {
-			return nil, &CheckingError{Path: tree.Path, Pos: *pkg.Pos(), Err: errors.New("package name must be main")}
+			return nil, &CheckingError{path: tree.Path, pos: *pkg.Pos(), err: errors.New("package name must be main")}
 		}
 		err := checkPackage(pkg, tree.Path, packages, pkgInfos, opts, nil)
 		if err != nil {
