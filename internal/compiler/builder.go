@@ -243,7 +243,10 @@ func (builder *functionBuilder) scopeLookup(n string) int8 {
 	panic(fmt.Sprintf("bug: %s not found", n))
 }
 
-func (builder *functionBuilder) addLine(pc uint32, line int) {
+// addLine adds the line number to the last emitted instruction. num specifies
+// the number of rows needed by such instruction.
+func (builder *functionBuilder) addLine(line int) {
+	pc := uint32(len(builder.fn.Body)) + 1
 	if builder.fn.Lines == nil {
 		builder.fn.Lines = map[uint32]int{pc: line}
 	} else {
