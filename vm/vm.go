@@ -7,22 +7,44 @@
 package vm
 
 import (
+	"bytes"
 	"reflect"
+	"runtime"
 	"strconv"
+	"strings"
+	"sync"
 )
+
+const debug = true
+
+type stackFrames int
+
+const (
+	deferState stackFrames = iota
+	preDeferState
+	scrigoState
+	nativeState
+	preRunState
+)
+
+var stackFramesStrings = [...]string{"defer", "pre defer", "scrigo", "native", "pre run"}
+
+var panicCallStacks = sync.Map{}
 
 const StackSize = 512
 
 type VM struct {
-	fp    [4]uint32       // frame pointers.
-	st    [4]uint32       // stack tops.
-	pc    uint32          // program counter.
-	ok    bool            // ok flag.
-	regs  registers       // registers.
-	fn    *ScrigoFunction // current function.
-	cvars []interface{}   // closure variables.
-	calls []Call          // call stack.
-	main  *Package        // package "main".
+	fp      [4]uint32 // frame pointers.
+	st      [4]uint32 // stack tops.
+	pc      uint32    // program counter.
+	ok      bool      // ok flag.
+	cpanic  bool      // capture panic?
+	isFirst bool
+	regs    registers       // registers.
+	fn      *ScrigoFunction // current function.
+	cvars   []interface{}   // closure variables.
+	calls   []Call          // call stack.
+	main    *Package        // package "main".
 }
 
 func New(main *Package) *VM {
@@ -44,6 +66,7 @@ func (vm *VM) Reset() {
 	vm.fp = [4]uint32{0, 0, 0, 0}
 	vm.pc = 0
 	vm.fn = nil
+	vm.isFirst = false
 	vm.cvars = nil
 	vm.calls = vm.calls[:]
 }
@@ -220,114 +243,268 @@ func (vm *VM) startScrigoGoroutine() bool {
 	return true
 }
 
-type PanicError struct {
-	Msg        interface{}
-	StackTrace []byte
+type Panic struct {
+	msg    interface{}
+	frames []interface{}
 }
 
 type stringer interface {
 	String() string
 }
 
-func (err *PanicError) Error() string {
-	b := make([]byte, 0, 100+len(err.StackTrace))
-	switch v := err.Msg.(type) {
-	case nil:
-		b = append(b, "nil"...)
-	case error:
-		b = append(b, v.Error()...)
-	case stringer:
-		b = append(b, v.String()...)
-	case bool:
-		b = strconv.AppendBool(b, v)
-	case int:
-		b = strconv.AppendInt(b, int64(v), 10)
-	case int8:
-		b = strconv.AppendInt(b, int64(v), 10)
-	case int16:
-		b = strconv.AppendInt(b, int64(v), 10)
-	case int32:
-		b = strconv.AppendInt(b, int64(v), 10)
-	case int64:
-		b = strconv.AppendInt(b, v, 10)
-	case uint:
-		b = strconv.AppendUint(b, uint64(v), 10)
-	case uint8:
-		b = strconv.AppendUint(b, uint64(v), 10)
-	case uint16:
-		b = strconv.AppendUint(b, uint64(v), 10)
-	case uint32:
-		b = strconv.AppendUint(b, uint64(v), 10)
-	case uint64:
-		b = strconv.AppendUint(b, v, 10)
-	case uintptr:
-		b = strconv.AppendUint(b, uint64(v), 10)
-	case float32:
-		b = strconv.AppendFloat(b, float64(v), 'e', 6, 32)
-	case float64:
-		b = strconv.AppendFloat(b, v, 'e', 6, 64)
-	case string:
-		b = append(b, v...)
-	default:
-		if v2, ok := v.(*callable); ok {
-			v = v2.reflectValue().Interface()
+func (p Panic) Error() string {
+	pc, _, _, ok := runtime.Caller(2)
+	if ok && runtime.FuncForPC(pc).Name() == "runtime.gopanic" {
+		print("panic: ")
+		switch msg := p.msg.(type) {
+		case error:
+			print(msg.Error())
+		case stringer:
+			print(msg.String())
+		case bool:
+			print(msg)
+		case int:
+			print(msg)
+		case int8:
+			print(msg)
+		case int16:
+			print(msg)
+		case int32:
+			print(msg)
+		case int64:
+			print(msg)
+		case uint:
+			print(msg)
+		case uint8:
+			print(msg)
+		case uint16:
+			print(msg)
+		case uint32:
+			print(msg)
+		case uint64:
+			print(msg)
+		case float32:
+			print(msg)
+		case float64:
+			print(msg)
+		case string:
+			print(msg)
+		default:
+			print("(", reflect.TypeOf(p.msg).String(), ") ", p.msg)
 		}
-		b = append(b, "("...)
-		b = append(b, reflect.TypeOf(v).String()...)
-		b = append(b, ")"...)
-		// TODO(marco): implement print of value
-	}
-	b = append(b, "\n\n"...)
-	b = append(b, err.StackTrace...)
-	return string(b)
-}
-
-func (vm *VM) Stack(buf []byte, all bool) int {
-	// TODO(marco): implement all == true
-	if len(buf) == 0 {
-		return 0
-	}
-	b := buf[0:0:len(buf)]
-	write := func(s string) {
-		n := copy(b[len(b):cap(b)], s)
-		b = b[:len(b)+n]
-	}
-	write("scrigo goroutine 1 [running]:")
-	size := len(vm.calls)
-	for i := size; i >= 0; i-- {
-		var fn *ScrigoFunction
-		var ppc uint32
-		if i == size {
-			fn = vm.fn
-			ppc = vm.pc - 1
-		} else {
-			call := vm.calls[i]
-			fn = call.fn
-			if call.tail {
-				ppc = call.pc - 1
-			} else {
-				ppc = call.pc - 2
+		print("\n\ngoroutine 1 [running]:")
+		for _, frame := range p.frames {
+			switch frame := frame.(type) {
+			case Call:
+				fn := frame.fn
+				var ppc uint32
+				if frame.tail {
+					ppc = frame.pc - 1
+				} else {
+					ppc = frame.pc - 2
+				}
+				print("\n", fn.pkg.name, ".", fn.name, "()\n\t")
+				if fn.file != "" {
+					print(fn.file)
+				}
+				print(":")
+				if line, ok := fn.lines[ppc]; ok {
+					print(line)
+				}
+			case runtime.Frame:
+				print("\n", frame.Function, "()\n\t", frame.File, ":", frame.Line)
 			}
 		}
-		write("\n")
-		write(fn.pkg.name)
-		write(".")
-		write(fn.name)
-		write("()\n\t")
-		if fn.file != "" {
-			write(fn.file)
-		} else {
-			write("???")
-		}
-		write(":")
-		if line, ok := fn.lines[ppc]; ok {
-			write(strconv.Itoa(line))
-		} else {
-			write("???")
-		}
-		if len(b) == len(buf) {
-			break
-		}
+		print("\n\nnative ")
 	}
-	return len(b)
+	return "[msg]"
 }
+
+func (vm *VM) panic(err interface{}, fn *NativeFunction) {
+
+	vm.calls = append(vm.calls, Call{fn: vm.fn, pc: vm.pc})
+	gid := getGID()
+
+	var calls [][]Call
+	if c, ok := panicCallStacks.Load(gid); ok {
+		calls = append(c.([][]Call), vm.calls)
+	} else {
+		calls = [][]Call{vm.calls}
+	}
+	panicCallStacks.Store(gid, calls)
+
+	if !vm.isFirst {
+		panic(err)
+	}
+
+	p := &Panic{msg: err}
+
+	if fn == nil {
+		p.frames = make([]interface{}, len(calls))
+		for i, call := range calls[0] {
+			p.frames[i] = call
+		}
+		calls = nil
+	} else {
+		var frames []interface{}
+		var callers = make([]uintptr, 20)
+		for {
+			n := runtime.Callers(0, callers)
+			if n < len(callers) {
+				callers = callers[:n]
+				break
+			}
+			callers = make([]uintptr, len(callers)*2)
+		}
+		callersFrame := runtime.CallersFrames(callers)
+		var frame runtime.Frame
+		more := true
+		state := deferState
+		dumpFrames := false
+		for more {
+			frame, more = callersFrame.Next()
+			fun := frame.Function
+			if debug {
+				print(">>> ", fun, " (", stackFramesStrings[state], " -> ")
+			}
+			switch state {
+			case deferState:
+				if fun == "runtime.gopanic" {
+					state = preDeferState
+				}
+			case preDeferState:
+				if fun == "scrigo/vm.(*VM).panic" {
+					for _, call := range calls[len(calls)-1] {
+						frames = append(frames, call)
+					}
+					calls = calls[:len(calls)-1]
+					state = scrigoState
+				} else {
+					frames = append(frames, frame)
+					state = nativeState
+				}
+				dumpFrames = true
+			case scrigoState:
+				if !strings.HasPrefix(fun, "scrigo/vm.") && !strings.HasPrefix(fun, "reflect.") {
+					frames = append(frames, frame)
+					state = nativeState
+					dumpFrames = true
+				}
+			case nativeState:
+				if strings.HasPrefix(fun, "scrigo/vm.(*VM).") {
+					if strings.HasSuffix(fun, "panic") {
+						frames = frames[:len(frames)-1]
+					} else {
+						frames = frames[:len(frames)-2]
+					}
+					for _, call := range calls[len(calls)-1] {
+						frames = append(frames, call)
+					}
+					calls = calls[:len(calls)-1]
+					state = scrigoState
+				} else {
+					frames = append(frames, frame)
+				}
+				dumpFrames = true
+			case preRunState:
+				// Do nothing.
+			}
+			if debug {
+				print(stackFramesStrings[state], ")\n")
+				if dumpFrames {
+					if len(frames) == 0 {
+						print("\t(no frame)\n")
+					} else {
+						for _, frame := range frames {
+							switch f := frame.(type) {
+							case Call:
+								print("\t", f.fn.pkg.name, ".", f.fn.name, "\n")
+							case runtime.Frame:
+								print("\t", f.Function, "\n")
+							}
+						}
+					}
+					dumpFrames = false
+				}
+			}
+			if len(calls) == 0 {
+				if debug {
+					state = preRunState
+				} else {
+					break
+				}
+			}
+		}
+		p.frames = frames
+	}
+
+	panic(p)
+}
+
+func getGID() uint64 {
+	b := make([]byte, 64)
+	b = b[:runtime.Stack(b, false)]
+	b = bytes.TrimPrefix(b, []byte("goroutine "))
+	b = b[:bytes.IndexByte(b, ' ')]
+	n, _ := strconv.ParseUint(string(b), 10, 64)
+	return n
+}
+
+//var bc = [64]byte{}
+//
+//func getGID() []byte {
+//	b := bc[:]
+//	b = b[:runtime.Stack(b, false)]
+//	b = b[10:]
+//	return b[:bytes.IndexByte(b, ' ')]
+//}
+
+//func (vm *VM) Stack(buf []byte, all bool) int {
+//	// TODO(marco): implement all == true
+//	if len(buf) == 0 {
+//		return 0
+//	}
+//	b := buf[0:0:len(buf)]
+//	write := func(s string) {
+//		n := copy(b[len(b):cap(b)], s)
+//		b = b[:len(b)+n]
+//	}
+//	write("scrigo goroutine 1 [running]:")
+//	size := len(vm.calls)
+//	for i := size; i >= 0; i-- {
+//		var fn *ScrigoFunction
+//		var ppc uint32
+//		if i == size {
+//			fn = vm.fn
+//			ppc = vm.pc - 1
+//		} else {
+//			call := vm.calls[i]
+//			fn = call.fn
+//			if call.tail {
+//				ppc = call.pc - 1
+//			} else {
+//				ppc = call.pc - 2
+//			}
+//		}
+//		write("\n")
+//		write(fn.pkg.name)
+//		write(".")
+//		write(fn.name)
+//		write("()\n\t")
+//		if fn.file != "" {
+//			write(fn.file)
+//		} else {
+//			write("???")
+//		}
+//		write(":")
+//		if line, ok := fn.lines[ppc]; ok {
+//			write(strconv.Itoa(line))
+//		} else {
+//			write("???")
+//		}
+//		if len(b) == len(buf) {
+//			break
+//		}
+//	}
+//	return len(b)
+//}

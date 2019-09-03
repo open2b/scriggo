@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"sctest"
 )
 
 var DebugTraceExecution = true
@@ -31,6 +32,8 @@ func (vm *VM) Run(funcname string) (int, error) {
 		return 0, err
 	}
 
+	vm.isFirst = true
+
 	status := vm.run()
 
 	return status, nil
@@ -39,6 +42,7 @@ func (vm *VM) Run(funcname string) (int, error) {
 func (vm *VM) run() int {
 
 	var startNativeGoroutine bool
+	var nativeRunningFunction *NativeFunction
 
 	var op operation
 	var a, b, c int8
@@ -252,6 +256,17 @@ func (vm *VM) run() int {
 			case opCall:
 				fn = vm.general(b).(*callable).native
 			}
+			if !startNativeGoroutine {
+				if !vm.cpanic {
+					defer func() {
+						if nativeRunningFunction != nil {
+							vm.panic(recover(), nativeRunningFunction)
+						}
+					}()
+					vm.cpanic = true
+				}
+				nativeRunningFunction = fn
+			}
 			fp := vm.fp
 			off := vm.fn.body[vm.pc]
 			vm.fp[0] += uint32(off.op)
@@ -425,6 +440,7 @@ func (vm *VM) run() int {
 					}
 				}
 			}
+			nativeRunningFunction = nil
 			vm.fp = fp
 			vm.pc++
 
@@ -849,9 +865,7 @@ func (vm *VM) run() int {
 
 		// Panic
 		case opPanic:
-			stackTrace := make([]byte, 10000)
-			n := vm.Stack(stackTrace, false)
-			panic(&PanicError{Msg: vm.general(a), StackTrace: stackTrace[:n]})
+			vm.panic(vm.general(a), nil)
 
 		// Print
 		case opPrint:
@@ -1316,6 +1330,42 @@ func (vm *VM) run() int {
 
 		}
 
+	}
+
+}
+
+func Main() {
+
+	native := NewPackage("native")
+	native.AddNativeFunction(NewNativeFunction("recall", sctest.Recall))
+
+	pkg := NewPackage("main")
+	pkg.Import(native)
+
+	inc := pkg.NewFunction("inc", reflect.FuncOf(nil, nil, false))
+	inc.file = "C:/Users/Marco/Software/mygo/src/scrigo/vm/run.go"
+	inc.line = 45
+	fb := inc.Builder()
+	fb.MakeInterfaceConstant([]int{1,2})
+	fb.Move(true, 0, 1, reflect.Interface)
+	fb.Panic(1, 49)
+	fb.End()
+
+	main := pkg.NewFunction("main", reflect.FuncOf(nil, nil, false))
+	main.file = "C:/Users/Marco/Software/mygo/src/scrigo/vm/run.go"
+	main.line = 12
+	fb = main.Builder()
+	fb.GetFunc(CurrentPackage, 0, 1)
+	fb.CallFunc(0, 0, NoVariadic, StackShift{})
+	fb.Return()
+	fb.End()
+
+	DebugTraceExecution = false
+	//Disassemble(os.Stderr, main)
+
+	_, err := New(pkg).Run("main")
+	if err != nil {
+		panic(err)
 	}
 
 }
