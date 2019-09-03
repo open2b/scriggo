@@ -7,11 +7,15 @@
 package runtime
 
 import (
+	"bytes"
 	"context"
 	"reflect"
+	"runtime"
 	"strconv"
 	"sync"
 )
+
+var debug = true
 
 const NoVariadicArgs = -1
 const CurrentFunction = -1
@@ -66,6 +70,20 @@ func decodeFieldIndex(i int64) []int {
 	return ns
 }
 
+type stackFrames int
+
+const (
+	deferState stackFrames = iota
+	preDeferState
+	scriggoState
+	nativeState
+	preRunState
+)
+
+var stackFramesStrings = [...]string{"defer", "pre defer", "scriggo", "native", "pre run"}
+
+var panicCallStacks = sync.Map{}
+
 // VM represents a Scriggo virtual machine.
 type VM struct {
 	fp       [4]uint32            // frame pointers.
@@ -82,6 +100,8 @@ type VM struct {
 	done     <-chan struct{}      // done.
 	doneCase reflect.SelectCase   // done, as reflect case.
 	panics   []Panic              // panics.
+	cpanic   bool                 // capture panic?
+	isFirst  bool
 }
 
 // NewVM returns a new virtual machine.
@@ -118,6 +138,7 @@ func (vm *VM) Reset() {
 	if vm.panics != nil {
 		vm.panics = vm.panics[:0]
 	}
+	vm.isFirst = false
 }
 
 // Run starts the execution of the function fn with the given global variables
@@ -1184,16 +1205,6 @@ func missingMethod(typ reflect.Type, iface reflect.Type) string {
 	return ""
 }
 
-type Panic struct {
-	Msg        interface{}
-	Recovered  bool
-	StackTrace []byte
-}
-
-func (err Panic) String() string {
-	return panicToString(err.Msg)
-}
-
 func panicToString(msg interface{}) string {
 	switch v := msg.(type) {
 	case nil:
@@ -1268,12 +1279,13 @@ func hex(p uintptr) string {
 	return string(h[i-2:])
 }
 
-func (err Panic) Error() string {
-	b := make([]byte, 0, 100+len(err.StackTrace))
-	//b = append(b, sprint(err.Msg)...) // TODO(marco): rewrite.
-	b = append(b, "\n\n"...)
-	b = append(b, err.StackTrace...)
-	return string(b)
+func getGID() uint64 {
+	b := make([]byte, 64)
+	b = b[:runtime.Stack(b, false)]
+	b = bytes.TrimPrefix(b, []byte("goroutine "))
+	b = b[:bytes.IndexByte(b, ' ')]
+	n, _ := strconv.ParseUint(string(b), 10, 64)
+	return n
 }
 
 func packageName(pkg string) string {

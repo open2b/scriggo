@@ -959,7 +959,7 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Panic
 		case OpPanic:
-			panic(vm.general(a))
+			vm.panic(vm.general(a), nil)
 
 		// Print
 		case OpPrint:

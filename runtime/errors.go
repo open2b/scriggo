@@ -224,3 +224,205 @@ func (vm *VM) convertPanic(msg interface{}) error {
 	}
 	return &FatalError{msg: msg}
 }
+
+type Panic struct {
+	Msg       interface{}
+	Recovered bool
+	frames    []interface{}
+}
+
+func (err Panic) String() string {
+	return panicToString(err.Msg)
+}
+
+func (err Panic) Error() string {
+	pc, _, _, ok := runtime.Caller(2)
+	if ok && runtime.FuncForPC(pc).Name() == "runtime.gopanic" {
+		print("panic: ")
+		switch msg := err.Msg.(type) {
+		case error:
+			print(msg.Error())
+		case stringer:
+			print(msg.String())
+		case bool:
+			print(msg)
+		case int:
+			print(msg)
+		case int8:
+			print(msg)
+		case int16:
+			print(msg)
+		case int32:
+			print(msg)
+		case int64:
+			print(msg)
+		case uint:
+			print(msg)
+		case uint8:
+			print(msg)
+		case uint16:
+			print(msg)
+		case uint32:
+			print(msg)
+		case uint64:
+			print(msg)
+		case float32:
+			print(msg)
+		case float64:
+			print(msg)
+		case string:
+			print(msg)
+		default:
+			print("(", reflect.TypeOf(err.Msg).String(), ") ", err.Msg)
+		}
+		print("\n\ngoroutine 1 [running]:")
+		for _, frame := range err.frames {
+			switch frame := frame.(type) {
+			case callFrame:
+				fn := frame.fn
+				var ppc uint32
+				if frame.tail {
+					ppc = frame.pc - 1
+				} else {
+					ppc = frame.pc - 2
+				}
+				print("\n", fn.pkg.name, ".", fn.name, "()\n\t")
+				if fn.file != "" {
+					print(fn.file)
+				}
+				print(":")
+				if line, ok := fn.lines[ppc]; ok {
+					print(line)
+				}
+			case runtime.Frame:
+				print("\n", frame.Function, "()\n\t", frame.File, ":", frame.Line)
+			}
+		}
+		print("\n\nnative ")
+	}
+	return "[msg]"
+}
+
+func (vm *VM) panic(err interface{}, fn *PredefinedFunction) {
+
+	vm.calls = append(vm.calls, callFrame{fn: vm.fn, pc: vm.pc})
+	gid := getGID()
+
+	var calls [][]callFrame
+	if c, ok := panicCallStacks.Load(gid); ok {
+		calls = append(c.([][]callFrame), vm.calls)
+	} else {
+		calls = [][]callFrame{vm.calls}
+	}
+
+	panicCallStacks.Store(gid, calls)
+
+	if !vm.isFirst {
+		panic(err)
+	}
+
+	p := &Panic{Msg: err}
+
+	if fn == nil {
+		p.frames = make([]interface{}, len(calls))
+		for i, call := range calls[0] {
+			p.frames[i] = call
+		}
+
+		calls = nil
+	} else {
+		var frames []interface{}
+		var callers = make([]uintptr, 20)
+		for {
+			n := runtime.Callers(0, callers)
+			if n < len(callers) {
+				callers = callers[:n]
+				break
+			}
+			callers = make([]uintptr, len(callers)*2)
+		}
+
+		callersFrame := runtime.CallersFrames(callers)
+		var frame runtime.Frame
+		more := true
+		state := deferState
+		dumpFrames := false
+		for more {
+			frame, more = callersFrame.Next()
+			fun := frame.Function
+			if debug {
+				print(">>> ", fun, " (", stackFramesStrings[state], " -> ")
+			}
+			switch state {
+			case deferState:
+				if fun == "runtime.gopanic" {
+					state = preDeferState
+				}
+			case preDeferState:
+				if fun == "scrigo/vm.(*VM).panic" {
+					for _, call := range calls[len(calls)-1] {
+						frames = append(frames, call)
+					}
+					calls = calls[:len(calls)-1]
+					state = scriggoState
+				} else {
+					frames = append(frames, frame)
+					state = nativeState
+				}
+				dumpFrames = true
+			case scriggoState:
+				if !strings.HasPrefix(fun, "scrigo/vm.") && !strings.HasPrefix(fun, "reflect.") {
+					frames = append(frames, frame)
+					state = nativeState
+					dumpFrames = true
+				}
+			case nativeState:
+				if strings.HasPrefix(fun, "scrigo/vm.(*VM).") {
+					if strings.HasSuffix(fun, "panic") {
+						frames = frames[:len(frames)-1]
+					} else {
+						frames = frames[:len(frames)-2]
+					}
+					for _, call := range calls[len(calls)-1] {
+						frames = append(frames, call)
+					}
+					calls = calls[:len(calls)-1]
+					state = scriggoState
+				} else {
+					frames = append(frames, frame)
+				}
+				dumpFrames = true
+			case preRunState:
+				// Do nothing.
+			}
+			if debug {
+				print(stackFramesStrings[state], ")\n")
+				if dumpFrames {
+					if len(frames) == 0 {
+						print("\t(no frame)\n")
+					} else {
+						for _, frame := range frames {
+							switch f := frame.(type) {
+							case callFrame:
+								print("\t", f.fn.pkg.name, ".", f.fn.name, "\n")
+							case runtime.Frame:
+								print("\t", f.Function, "\n")
+							}
+						}
+					}
+					dumpFrames = false
+				}
+			}
+			if len(calls) == 0 {
+				if debug {
+					state = preRunState
+				} else {
+					break
+				}
+			}
+		}
+		p.frames = frames
+	}
+
+	panic(p)
+}
