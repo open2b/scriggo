@@ -52,6 +52,14 @@ type Program struct {
 	options *LoadOptions
 }
 
+// CompilerError represents an error returned by the compiler.
+type CompilerError interface {
+	error
+	Position() ast.Position
+	Path() string
+	Message() string
+}
+
 // Load loads a Go program with the given options, loading the main package and
 // the imported packages from loader. A main package have path "main".
 func Load(loader PackageLoader, options *LoadOptions) (*Program, error) {

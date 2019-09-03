@@ -114,8 +114,25 @@ type CheckingError struct {
 	err  error
 }
 
+// Error returns a string representation of the type checking error.
 func (e *CheckingError) Error() string {
 	return fmt.Sprintf("%s:%s: %s", e.path, e.pos, e.err)
+}
+
+// Message returns the message of the type checking error, without position and
+// path.
+func (e *CheckingError) Message() string {
+	return e.err.Error()
+}
+
+// Path returns the path of the type checking error.
+func (e *CheckingError) Path() string {
+	return e.path
+}
+
+// Position returns the position of the checking error.
+func (e *CheckingError) Position() ast.Position {
+	return e.pos
 }
 
 // Typecheck makes a type check on tree. A map of predefined packages may be

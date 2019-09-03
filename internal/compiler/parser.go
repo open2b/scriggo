@@ -55,6 +55,11 @@ func (e *SyntaxError) Error() string {
 	return fmt.Sprintf("%s:%s: syntax error: %s", e.path, e.pos, e.msg)
 }
 
+// Message returns the message of the syntax error, without position and path.
+func (e *SyntaxError) Message() string {
+	return e.msg
+}
+
 // Path returns the path of the syntax error.
 func (e *SyntaxError) Path() string {
 	return e.path
