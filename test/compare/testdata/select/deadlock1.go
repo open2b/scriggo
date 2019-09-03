@@ -1,5 +1,7 @@
 //+build !cgo windows
 
+// skip
+
 // paniccheck
 
 package main

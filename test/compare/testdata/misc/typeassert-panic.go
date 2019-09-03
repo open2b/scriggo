@@ -1,3 +1,5 @@
+// skip
+
 // paniccheck
 
 package main

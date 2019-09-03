@@ -1,3 +1,5 @@
+// skip
+
 // paniccheck -mem=10B
 
 package main

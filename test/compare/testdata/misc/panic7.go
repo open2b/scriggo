@@ -1,3 +1,5 @@
+// skip
+
 // paniccheck
 
 // Test a program panic propagation.
