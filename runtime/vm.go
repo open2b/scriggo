@@ -1052,6 +1052,7 @@ type Function struct {
 	Predefined []*PredefinedFunction
 	Body       []Instruction
 	Lines      map[uint32]int
+	Files      map[uint32]string
 	Data       [][]byte
 }
 
