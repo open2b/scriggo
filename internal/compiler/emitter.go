@@ -364,12 +364,13 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 					// f(g()) where g returns more than 1 argument, f is variadic and not predefined.
 					slice := em.fb.newRegister(reflect.Slice)
 					em.fb.enterStack()
-					em.fb.emitMakeSlice(true, true, fnTyp.In(numIn-1), int8(numOut), int8(numOut), slice, args[0].Pos())
+					pos := args[0].Pos()
+					em.fb.emitMakeSlice(true, true, fnTyp.In(numIn-1), int8(numOut), int8(numOut), slice, pos)
 					argRegs, _ := em.emitCallNode(g, false, false)
 					for i := range argRegs {
 						index := em.fb.newRegister(reflect.Int)
 						em.changeRegister(true, int8(i), index, intType, intType)
-						em.fb.emitSetSlice(false, slice, argRegs[i], index, args[0].Pos())
+						em.fb.emitSetSlice(false, slice, argRegs[i], index, pos)
 					}
 					em.fb.exitStack()
 					return []int8{slice}, []reflect.Type{fnTyp.In(numIn - 1)}
@@ -416,7 +417,8 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 					em.fb.exitStack()
 					index := em.fb.newRegister(reflect.Int)
 					em.fb.emitMove(true, int8(i), index, reflect.Int)
-					em.fb.emitSetSlice(false, slice, tmp, index, args[len(args)-1].Pos())
+					pos := args[len(args)-1].Pos()
+					em.fb.emitSetSlice(false, slice, tmp, index, pos)
 				}
 			}
 		}
@@ -1181,7 +1183,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			// 		for i := range call.Args {
 			// 			em.changeRegister(false, tmpRegs[i], paramPosition[i], tmpTypes[i], em.TypeInfo[call.Func].Type.In(i))
 			// 		}
-			// 		em.FB.TailCall(vm.CurrentFunction, node.pos())
+			// 		em.FB.TailCall(vm.CurrentFunction, node.pos().Line)
 			// 		continue
 			// 	}
 			// }
@@ -1232,7 +1234,8 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				// Not in a URL context: use the default writer.
 				em.fb.emitMove(false, em.templateRegs.gA, em.templateRegs.gD, reflect.Interface)
 			}
-			em.fb.emitCallIndirect(em.templateRegs.gC, 0, runtime.StackShift{em.templateRegs.iA - 1, 0, 0, em.templateRegs.gC}, node.Pos())
+			shift := runtime.StackShift{em.templateRegs.iA - 1, 0, 0, em.templateRegs.gC}
+			em.fb.emitCallIndirect(em.templateRegs.gC, 0, shift, node.Pos())
 
 		case *ast.Switch:
 			currentBreakable := em.breakable
@@ -1614,6 +1617,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		case ast.OperatorAddition, ast.OperatorSubtraction, ast.OperatorMultiplication, ast.OperatorDivision,
 			ast.OperatorModulo, ast.OperatorAnd, ast.OperatorOr, ast.OperatorXor, ast.OperatorAndNot,
 			ast.OperatorLeftShift, ast.OperatorRightShift:
+			// TODO: replace with a switch.
 			emitFn := map[ast.OperatorType]func(bool, int8, int8, int8, reflect.Kind){
 				ast.OperatorAddition:       em.fb.emitAdd,
 				ast.OperatorSubtraction:    em.fb.emitSub,
@@ -1647,16 +1651,17 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				ast.OperatorGreater:        runtime.ConditionGreater,
 				ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqual,
 			}[expr.Operator()]
+			pos := expr.Pos()
 			if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
 				em.fb.emitMove(true, 1, reg, reflect.Bool)
-				em.fb.emitIf(k, v1, cond, v2, t1.Kind(), expr.Pos())
+				em.fb.emitIf(k, v1, cond, v2, t1.Kind(), pos)
 				em.fb.emitMove(true, 0, reg, reflect.Bool)
 				return reg, false
 			}
 			em.fb.enterStack()
 			tmp := em.fb.newRegister(exprType.Kind())
 			em.fb.emitMove(true, 1, tmp, reflect.Bool)
-			em.fb.emitIf(k, v1, cond, v2, t1.Kind(), expr.Pos())
+			em.fb.emitIf(k, v1, cond, v2, t1.Kind(), pos)
 			em.fb.emitMove(true, 0, tmp, reflect.Bool)
 			em.changeRegister(false, tmp, reg, exprType, dstType)
 			em.fb.exitStack()
@@ -1815,19 +1820,16 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		exprType := em.ti(expr.Expr).Type
 		exprReg := em.emitExpr(expr.Expr, exprType)
 		assertType := em.ti(expr.Type).Type
-		var panicPos *ast.Position
-		if expr.Pos() != nil {
-			panicPos = expr.Pos()
-		}
+		pos := expr.Pos()
 		if canEmitDirectly(assertType.Kind(), dstType.Kind()) {
 			em.fb.emitAssert(exprReg, assertType, reg)
-			em.fb.emitPanic(0, exprType, panicPos)
+			em.fb.emitPanic(0, exprType, pos)
 			return reg, false
 		}
 		em.fb.enterScope()
 		tmp := em.fb.newRegister(assertType.Kind())
 		em.fb.emitAssert(exprReg, assertType, tmp)
-		em.fb.emitPanic(0, exprType, panicPos)
+		em.fb.emitPanic(0, exprType, pos)
 		em.changeRegister(false, tmp, reg, assertType, dstType)
 		em.fb.exitScope()
 
@@ -1987,13 +1989,14 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		} else {
 			elemType = exprType.Elem()
 		}
+		pos := expr.Pos()
 		if canEmitDirectly(elemType.Kind(), dstType.Kind()) {
-			em.fb.emitIndex(kindex, exprReg, index, reg, exprType, expr.Pos())
+			em.fb.emitIndex(kindex, exprReg, index, reg, exprType, pos)
 			return reg, false
 		}
 		em.fb.enterStack()
 		tmp := em.fb.newRegister(elemType.Kind())
-		em.fb.emitIndex(kindex, exprReg, index, tmp, exprType, expr.Pos())
+		em.fb.emitIndex(kindex, exprReg, index, tmp, exprType, pos)
 		em.changeRegister(false, tmp, reg, elemType, dstType)
 		em.fb.exitStack()
 
@@ -2013,8 +2016,9 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			typ := em.ti(expr.High).Type
 			high, kHigh = em.emitExprK(expr.High, typ)
 		}
+		pos := expr.Pos()
 		if exprType.Kind() == reflect.String {
-			em.fb.emitSliceString(kLow, kHigh, src, reg, low, high, expr.Pos())
+			em.fb.emitSliceString(kLow, kHigh, src, reg, low, high, pos)
 		} else {
 			// emit max
 			var max int8 = -1
@@ -2023,7 +2027,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				typ := em.ti(expr.Max).Type
 				max, kMax = em.emitExprK(expr.Max, typ)
 			}
-			em.fb.emitSlice(kLow, kHigh, kMax, src, reg, low, high, max, expr.Pos())
+			em.fb.emitSlice(kLow, kHigh, kMax, src, reg, low, high, max, pos)
 		}
 
 	default:
@@ -2059,13 +2063,14 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 		if len(cas.Expressions) == 1 {
 			// If the type switch has an assignment, assign to the variable
 			// using the type of the case.
+			pos := cas.Expressions[0].Pos()
 			if len(node.Assignment.Lhs) == 1 && !em.ti(cas.Expressions[0]).Nil() {
-				ta := ast.NewTypeAssertion(cas.Expressions[0].Pos(), typeAssertion.Expr, cas.Expressions[0])
+				ta := ast.NewTypeAssertion(pos, typeAssertion.Expr, cas.Expressions[0])
 				em.typeInfos[ta] = &TypeInfo{
 					Type: em.ti(cas.Expressions[0]).Type,
 				}
-				blank := ast.NewIdentifier(cas.Expressions[0].Pos(), "_")
-				n := ast.NewAssignment(cas.Expressions[0].Pos(),
+				blank := ast.NewIdentifier(pos, "_")
+				n := ast.NewAssignment(pos,
 					[]ast.Expression{
 						node.Assignment.Lhs[0], // the variable
 						blank,                  // a dummy blank identifier that prevent panicking
@@ -2081,7 +2086,8 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 			// assertion statements, just takes the expression from the type
 			// assertion of the type switch.
 			if len(node.Assignment.Lhs) == 1 {
-				n := ast.NewAssignment(node.Assignment.Lhs[0].Pos(),
+				pos := node.Assignment.Lhs[0].Pos()
+				n := ast.NewAssignment(pos,
 					[]ast.Expression{node.Assignment.Lhs[0]},
 					node.Assignment.Type,
 					[]ast.Expression{typeAssertion.Expr},
@@ -2091,7 +2097,8 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 		}
 		for _, caseExpr := range cas.Expressions {
 			if em.ti(caseExpr).Nil() {
-				em.fb.emitIf(false, expr, runtime.ConditionInterfaceNil, 0, reflect.Interface, caseExpr.Pos())
+				pos := caseExpr.Pos()
+				em.fb.emitIf(false, expr, runtime.ConditionInterfaceNil, 0, reflect.Interface, pos)
 			} else {
 				caseType := em.ti(caseExpr).Type
 				em.fb.emitAssert(expr, caseType, 0)
@@ -2166,7 +2173,8 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 		bodyLabels[i] = em.fb.newLabel()
 		hasDefault = hasDefault || cas.Expressions == nil
 		for _, caseExpr := range cas.Expressions {
-			binOp := ast.NewBinaryOperator(caseExpr.Pos(), ast.OperatorNotEqual, node.Expr, caseExpr)
+			pos := caseExpr.Pos()
+			binOp := ast.NewBinaryOperator(pos, ast.OperatorNotEqual, node.Expr, caseExpr)
 			em.typeInfos[binOp] = &TypeInfo{
 				Type: boolType,
 			}
@@ -2320,14 +2328,15 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 					ast.OperatorGreater:        runtime.ConditionGreater,
 					ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqual,
 				}[cond.Operator()]
+				pos := cond.Pos()
 				// Equality and not equality checks are not optimized for
 				// uints, so these kinds must use the instructions of
 				// integers.
 				if reflect.Uint <= kind && kind <= reflect.Uintptr && condType == runtime.ConditionEqual || condType == runtime.ConditionNotEqual {
-					em.fb.emitIf(k2, v1, condType, v2, reflect.Int, cond.Pos())
+					em.fb.emitIf(k2, v1, condType, v2, reflect.Int, pos)
 					return
 				}
-				em.fb.emitIf(k2, v1, condType, v2, kind, cond.Pos())
+				em.fb.emitIf(k2, v1, condType, v2, kind, pos)
 				return
 			}
 		}
@@ -2447,20 +2456,21 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 			elemType := chType.Elem()
 			// Split the assignment in the received value and the ok value if this exists.
 			em.fb.bindVarReg("$chanElem", value[kindToType(elemType.Kind())])
-			valueExpr := ast.NewIdentifier(chExpr.Pos(), "$chanElem")
+			pos := chExpr.Pos()
+			valueExpr := ast.NewIdentifier(pos, "$chanElem")
 			em.typeInfos[valueExpr] = em.typeInfos[receiveExpr]
-			valueAssignment := ast.NewAssignment(chExpr.Pos(), assignment.Lhs[0:1], assignment.Type, []ast.Expression{valueExpr})
+			valueAssignment := ast.NewAssignment(pos, assignment.Lhs[0:1], assignment.Type, []ast.Expression{valueExpr})
 			em.emitAssignmentNode(valueAssignment)
 			if len(assignment.Lhs) == 2 { // case has 'ok'
 				em.fb.emitMove(true, 1, ok, reflect.Bool)
 				em.fb.emitIf(false, 0, runtime.ConditionOK, 0, reflect.Interface, assignment.Pos())
 				em.fb.emitMove(true, 0, ok, reflect.Bool)
-				okExpr := ast.NewIdentifier(chExpr.Pos(), "$ok")
+				okExpr := ast.NewIdentifier(pos, "$ok")
 				em.typeInfos[okExpr] = &TypeInfo{
 					Type: boolType,
 				}
 				em.fb.bindVarReg("$ok", ok)
-				okAssignment := ast.NewAssignment(chExpr.Pos(), assignment.Lhs[1:2], assignment.Type, []ast.Expression{okExpr})
+				okAssignment := ast.NewAssignment(pos, assignment.Lhs[1:2], assignment.Type, []ast.Expression{okExpr})
 				em.emitAssignmentNode(okAssignment)
 			}
 		}
@@ -2555,12 +2565,13 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		case *ast.Index:
 			expr := em.emitExpr(operand.Expr, em.ti(operand.Expr).Type)
 			index := em.emitExpr(operand.Index, intType)
+			pos := operand.Expr.Pos()
 			if canEmitDirectly(unOpType.Kind(), dstType.Kind()) {
-				em.fb.emitAddr(expr, index, reg, operand.Expr.Pos())
+				em.fb.emitAddr(expr, index, reg, pos)
 			}
 			em.fb.enterStack()
 			tmp := em.fb.newRegister(unOpType.Kind())
-			em.fb.emitAddr(expr, index, tmp, operand.Expr.Pos())
+			em.fb.emitAddr(expr, index, tmp, pos)
 			em.changeRegister(false, tmp, reg, unOpType, dstType)
 			em.fb.exitStack()
 
@@ -2570,13 +2581,14 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 			expr := em.emitExpr(operand.Expr, operandExprType)
 			field, _ := operandExprType.FieldByName(operand.Ident)
 			index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+			pos := operand.Expr.Pos()
 			if canEmitDirectly(reflect.PtrTo(field.Type).Kind(), dstType.Kind()) {
-				em.fb.emitAddr(expr, index, reg, operand.Expr.Pos())
+				em.fb.emitAddr(expr, index, reg, pos)
 				return
 			}
 			em.fb.enterStack()
 			tmp := em.fb.newRegister(reflect.Ptr)
-			em.fb.emitAddr(expr, index, tmp, operand.Expr.Pos())
+			em.fb.emitAddr(expr, index, tmp, pos)
 			em.changeRegister(false, tmp, reg, reflect.PtrTo(field.Type), dstType)
 			em.fb.exitStack()
 
