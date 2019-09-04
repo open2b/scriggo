@@ -27,8 +27,8 @@ var errNilPointer = runtimeError("runtime error: invalid memory address or nil p
 type FatalError struct {
 	env  *Env
 	msg  interface{}
-	file string
 	pos  *ast.Position
+	path string
 }
 
 func (err *FatalError) Error() string {
