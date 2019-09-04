@@ -267,8 +267,8 @@ func (builder *functionBuilder) addLineAndPath(line int) {
 	}
 }
 
-// setFilepath sets the current path. This function is called by the emitter.
-func (builder *functionBuilder) setFilepath(path string) {
+// setPath sets the current path. This function is called by the emitter.
+func (builder *functionBuilder) setPath(path string) {
 	builder.currentPath = path
 }
 

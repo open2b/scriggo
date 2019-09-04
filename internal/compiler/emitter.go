@@ -961,7 +961,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					// collateral effects.
 				} else {
 					backupPath := em.fb.path()
-					em.fb.setFilepath(node.Path)
+					em.fb.setPath(node.Path)
 					backupBuilder := em.fb
 					backupPkg := em.pkg
 					functions, vars, inits := em.emitPackage(node.Tree.Nodes[0].(*ast.Package), false)
@@ -1000,7 +1000,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					}
 					em.fb = backupBuilder
 					em.pkg = backupPkg
-					em.fb.setFilepath(backupPath)
+					em.fb.setPath(backupPath)
 				}
 			}
 
@@ -1146,9 +1146,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 
 		case *ast.Include:
 			path := em.fb.path()
-			em.fb.setFilepath(node.Tree.Path)
+			em.fb.setPath(node.Tree.Path)
 			em.emitNodes(node.Tree.Nodes)
-			em.fb.setFilepath(path)
+			em.fb.setPath(path)
 
 		case *ast.Label:
 			if _, found := em.labels[em.fb.fn][node.Name.Name]; !found {
