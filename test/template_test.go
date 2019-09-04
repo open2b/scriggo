@@ -145,7 +145,7 @@ var templateCases = map[string]struct {
 		out: `42`,
 	},
 
-	"Calling a function stored in a builtin variable": {
+	"Calling a builtin function": {
 		src: `{{ lowercase("HellO ScrIgGo!") }}{% x := "A String" %}{{ lowercase(x) }}`,
 		main: &scriggo.MapPackage{
 			PkgName: "main",
