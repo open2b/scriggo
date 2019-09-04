@@ -113,7 +113,7 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *R
 	render := DefaultRenderFunc
 	if options != nil {
 		if options.MaxMemorySize > 0 && !t.options.LimitMemorySize {
-			panic("scrigoo: template not loaded with LimitMemorySize option")
+			panic("scriggo: template not loaded with LimitMemorySize option")
 		}
 		if options.RenderFunc != nil {
 			render = options.RenderFunc
