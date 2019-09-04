@@ -1058,7 +1058,7 @@ type Function struct {
 	Predefined []*PredefinedFunction
 	Body       []Instruction
 	Positions  map[uint32]*ast.Position
-	Files      map[uint32]string
+	Paths      map[uint32]string
 	Data       [][]byte
 }
 

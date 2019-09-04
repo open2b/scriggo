@@ -735,7 +735,7 @@ func (v Show) String() string {
 // Extends node represents a statement {% extends ... %}.
 type Extends struct {
 	*Position         // position in the source.
-	Path      string  // path to the file to extend.
+	Path      string  // path to extend.
 	Context   Context // context.
 	Tree      *Tree   // expanded tree of extends.
 }
@@ -752,7 +752,7 @@ func (e Extends) String() string {
 type Import struct {
 	*Position             // position in the source.
 	Ident     *Identifier // name (including "." and "_") or nil.
-	Path      string      // path of the imported file.
+	Path      string      // path to import.
 	Context   Context     // context.
 	Tree      *Tree       // expanded tree of import.
 }

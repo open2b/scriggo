@@ -258,11 +258,11 @@ func (builder *functionBuilder) addPosAndPath(pos *ast.Position) {
 	} else {
 		builder.fn.Positions[pc] = pos
 	}
-	// Set the filepath of the next instruction.
-	if builder.fn.Files == nil {
-		builder.fn.Files = map[uint32]string{pc: builder.path}
+	// Set the path of the next instruction.
+	if builder.fn.Paths == nil {
+		builder.fn.Paths = map[uint32]string{pc: builder.path}
 	} else {
-		builder.fn.Files[pc] = builder.path
+		builder.fn.Paths[pc] = builder.path
 	}
 }
 

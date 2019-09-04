@@ -110,7 +110,7 @@ func (vm *VM) errIndexOutOfRange() runtimeError {
 func (vm *VM) newPanic(msg interface{}) *Panic {
 	return &Panic{
 		message:  msg,
-		file:     vm.fn.Files[vm.pc],
+		path:     vm.fn.Paths[vm.pc],
 		position: vm.fn.Positions[vm.pc],
 	}
 }
@@ -242,7 +242,7 @@ type Panic struct {
 	recovered  bool
 	stackTrace []byte
 	next       *Panic
-	file       string
+	path       string
 	position   *ast.Position
 }
 
@@ -276,7 +276,7 @@ func (p *Panic) String() string {
 
 // Path returns the path of the file that panicked.
 func (p *Panic) Path() string {
-	return p.file
+	return p.path
 }
 
 // Position returns the position.
