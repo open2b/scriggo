@@ -10,7 +10,7 @@ import (
 func main() {
 
 	// Creating a sort.IntSlice.
-	is := sort.IntSlice([]int{1, 2, 3})
+	is := sort.IntSlice([]int{1, 4, 3, 10, 2, -2})
 	fmt.Printf("%T\n", is)
 
 	// Print the length (method and receiver are both non-pointers).
