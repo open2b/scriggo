@@ -1666,7 +1666,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 
 		// Predeclared built-in function call.
-		if em.isPredeclaredBuiltinFunc(expr.Func) {
+		if em.ti(expr.Func).IsBuiltinFunction() {
 			em.emitBuiltin(expr, reg, dstType)
 			return reg, false
 		}

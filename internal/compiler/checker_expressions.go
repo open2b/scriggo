@@ -508,14 +508,8 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
 	}
 
-	if i.Predeclared() {
-		builtinFuncs := []string{"append", "cap", "close", "complex", "copy", "delete", "imag", "len",
-			"make", "new", "panic", "print", "println", "real", "recover"}
-		for _, bf := range builtinFuncs {
-			if ident.Name == bf {
-				panic(tc.errorf(ident, "use of builtin %s not in function call", ident.Name))
-			}
-		}
+	if i.IsBuiltinFunction() {
+		panic(tc.errorf(ident, "use of builtin %s not in function call", ident.Name))
 	}
 
 	// Mark identifier as "used".
@@ -1820,15 +1814,9 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 
 	// Check a builtin function call.
 	if ident, ok := expr.Func.(*ast.Identifier); ok {
-		if t, ok := tc.lookupScopes(ident.Name, false); ok && t.Predeclared() {
-			builtinFuncs := []string{"append", "cap", "close", "complex", "copy", "delete", "imag", "len",
-				"make", "new", "panic", "print", "println", "real", "recover"}
-			for _, bf := range builtinFuncs {
-				if ident.Name == bf {
-					tc.typeInfos[expr.Func] = t
-					return tc.checkBuiltinCall(expr), true, false
-				}
-			}
+		if ti, ok := tc.lookupScopes(ident.Name, false); ok && ti.IsBuiltinFunction() {
+			tc.typeInfos[expr.Func] = ti
+			return tc.checkBuiltinCall(expr), true, false
 		}
 	}
 

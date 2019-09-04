@@ -89,6 +89,11 @@ func (ti *TypeInfo) IsPredefined() bool {
 	return ti.Properties&PropertyIsPredefined != 0
 }
 
+// IsBuiltinFunction reports whether it is a builtin function.
+func (ti *TypeInfo) IsBuiltinFunction() bool {
+	return ti.Properties&PropertyPredeclared != 0 && ti.Properties&PropertyUntyped == 0 && ti.Type == nil
+}
+
 var runeType = reflect.TypeOf(rune(0))
 
 // String returns a string representation.
