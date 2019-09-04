@@ -251,7 +251,7 @@ func (builder *functionBuilder) scopeLookup(n string) int8 {
 	panic(fmt.Sprintf("bug: %s not found", n))
 }
 
-func (builder *functionBuilder) addPosPath(pos *ast.Position) {
+func (builder *functionBuilder) addPosAndPath(pos *ast.Position) {
 	pc := uint32(len(builder.fn.Body)) + 1
 	// Set the position of the next instruction.
 	if builder.fn.Positions == nil {
