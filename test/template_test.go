@@ -158,6 +158,22 @@ var templateCases = map[string]struct {
 		out: `hello scriggo!a string`,
 	},
 
+	"Calling a function stored in a builtin variable": {
+		src: `{{ lowercase("HellO ScrIgGo!") }}{% x := "A String" %}{{ lowercase(x) }}`,
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"lowercase": (*func(string) string)(nil),
+			},
+		},
+		vars: map[string]interface{}{
+			"lowercase": func(s string) string {
+				return strings.ToLower(s)
+			},
+		},
+		out: `hello scriggo!a string`,
+	},
+
 	"Macro definition (no arguments)": {
 		src: `Macro def: {% macro M %}M's body{% end %}end.`,
 		out: `Macro def: end.`,

@@ -522,7 +522,9 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 	}
 
 	// Predefined function (identifiers, selectors etc...).
-	if funTi.IsPredefined() {
+	// Calls of predefined functions stored in builtin variables are handled as
+	// common "indirect" calls.
+	if funTi.IsPredefined() && !funTi.Addressable() {
 		if funTi.MethodType == MethodCallConcrete {
 			rcv := call.Func.(*ast.Selector).Expr // TODO(Gianluca): is this correct?
 			call.Args = append([]ast.Expression{rcv}, call.Args...)
@@ -1474,7 +1476,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 	if ti := em.ti(expr); ti != nil && ti.IsPredefined() && ti.MethodType == NoMethod {
 
 		// Predefined functions.
-		if ti.Type.Kind() == reflect.Func {
+		if ti.Type.Kind() == reflect.Func && !ti.Addressable() {
 			name := ""
 			switch expr := expr.(type) {
 			case *ast.Identifier:
