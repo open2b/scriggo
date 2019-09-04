@@ -1165,28 +1165,6 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			}
 
 		case *ast.Return:
-			// TODO(Gianluca): complete implementation of tail call optimization.
-			// if len(node.Rhs) == 1 {
-			// 	if call, ok := node.Rhs[0].(*ast.Call); ok {
-			// 		tmpRegs := make([]int8, len(call.Args))
-			// 		paramPosition := make([]int8, len(call.Args))
-			// 		tmpTypes := make([]reflect.Type, len(call.Args))
-			// 		shift := vm.StackShift{}
-			// 		for i := range call.Args {
-			// 			tmpTypes[i] = em.TypeInfo[call.Args[i]].Type
-			// 			t := int(kindToType(tmpTypes[i].Kind()))
-			// 			tmpRegs[i] = em.FB.newRegister(tmpTypes[i].Kind())
-			// 			shift[t]++
-			// 			c.compileExpr(call.Args[i], tmpRegs[i], tmpTypes[i])
-			// 			paramPosition[i] = shift[t]
-			// 		}
-			// 		for i := range call.Args {
-			// 			em.changeRegister(false, tmpRegs[i], paramPosition[i], tmpTypes[i], em.TypeInfo[call.Func].Type.In(i))
-			// 		}
-			// 		em.FB.TailCall(vm.CurrentFunction, node.pos().Line)
-			// 		continue
-			// 	}
-			// }
 			offset := [4]int8{}
 			for i, v := range node.Values {
 				typ := em.fb.fn.Type.Out(i)
