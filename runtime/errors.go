@@ -274,6 +274,16 @@ func (p *Panic) String() string {
 	return panicToString(p.message)
 }
 
+// Path returns the path of the file that panicked.
+func (p *Panic) Path() string {
+	return p.file
+}
+
+// Position returns the position.
+func (p *Panic) Position() *ast.Position {
+	return p.position
+}
+
 func panicToString(msg interface{}) string {
 	switch v := msg.(type) {
 	case nil:
