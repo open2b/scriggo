@@ -8,6 +8,7 @@ package test
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"scriggo"
@@ -142,6 +143,19 @@ var templateCases = map[string]struct {
 			"initMainVar": 42,
 		},
 		out: `42`,
+	},
+
+	"Calling a function stored in a builtin variable": {
+		src: `{{ lowercase("HellO ScrIgGo!") }}{% x := "A String" %}{{ lowercase(x) }}`,
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"lowercase": func(s string) string {
+					return strings.ToLower(s)
+				},
+			},
+		},
+		out: `hello scriggo!a string`,
 	},
 
 	"Macro definition (no arguments)": {
