@@ -1,5 +1,3 @@
-// skip
-
 // paniccheck
 
 // Test a runtime error propagation.

@@ -1,5 +1,3 @@
-// skip
-
 // paniccheck
 
 // Test a fatal error propagation.

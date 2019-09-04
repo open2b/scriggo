@@ -1,5 +1,3 @@
-// skip
-
 // paniccheck
 
 // Test a runtime error in a predefined function.
