@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"scriggo"
+	"scriggo/runtime"
 	"scriggo/template"
 )
 
@@ -54,6 +55,22 @@ func (dl dirLoader) Load(path string) (interface{}, error) {
 		return nil, err
 	}
 	return bytes.NewReader(data), nil
+}
+
+func renderPanics(p *runtime.Panic) string {
+	var msg string
+	for p != nil {
+		msg = "\n" + msg
+		if p.Recovered() {
+			msg = " [recovered]" + msg
+		}
+		msg = p.String() + msg
+		if p.Next() != nil {
+			msg = "\tpanic: " + msg
+		}
+		p = p.Next()
+	}
+	return msg
 }
 
 var templateMain = &scriggo.MapPackage{
@@ -168,6 +185,9 @@ func main() {
 		}
 		err = program.Run(runOpts)
 		if err != nil {
+			if p, ok := err.(*runtime.Panic); ok {
+				panic(renderPanics(p))
+			}
 			panic(err)
 		}
 	case "run script":
@@ -186,6 +206,9 @@ func main() {
 		}
 		err = script.Run(nil, runOpts)
 		if err != nil {
+			if p, ok := err.(*runtime.Panic); ok {
+				panic(renderPanics(p))
+			}
 			panic(err)
 		}
 	case "run program directory":
@@ -206,6 +229,9 @@ func main() {
 		}
 		err = prog.Run(runOpts)
 		if err != nil {
+			if p, ok := err.(*runtime.Panic); ok {
+				panic(renderPanics(p))
+			}
 			panic(err)
 		}
 	case "render html":
@@ -231,6 +257,9 @@ func main() {
 		}
 		err = templ.Render(os.Stdout, nil, renderOpts)
 		if err != nil {
+			if p, ok := err.(*runtime.Panic); ok {
+				panic(renderPanics(p))
+			}
 			panic(err)
 		}
 	case "render html directory":
@@ -253,6 +282,9 @@ func main() {
 		}
 		err = templ.Render(os.Stdout, nil, renderOpts)
 		if err != nil {
+			if p, ok := err.(*runtime.Panic); ok {
+				panic(renderPanics(p))
+			}
 			panic(err)
 		}
 	case "compile html":

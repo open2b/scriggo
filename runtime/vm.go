@@ -1144,6 +1144,20 @@ func (c *callable) Value(env *Env) reflect.Value {
 			}
 			err := nvm.runFunc(fn, vars)
 			if err != nil {
+				if p, ok := err.(*Panic); ok {
+					var msg string
+					for ; p != nil; p = p.next {
+						msg = "\n" + msg
+						if p.recovered {
+							msg = " [recovered]" + msg
+						}
+						msg = p.String() + msg
+						if p.next != nil {
+							msg = "\tpanic: " + msg
+						}
+					}
+					err = &FatalError{msg: msg}
+				}
 				panic(err)
 			}
 			r = [4]int8{1, 1, 1, 1}
