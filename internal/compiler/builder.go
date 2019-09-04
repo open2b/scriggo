@@ -251,13 +251,13 @@ func (builder *functionBuilder) scopeLookup(n string) int8 {
 	panic(fmt.Sprintf("bug: %s not found", n))
 }
 
-func (builder *functionBuilder) addPosPath(line int) {
+func (builder *functionBuilder) addPosPath(pos *ast.Position) {
 	pc := uint32(len(builder.fn.Body)) + 1
 	// Set the position of the next instruction.
-	if builder.fn.Lines == nil {
-		builder.fn.Lines = map[uint32]int{pc: line}
+	if builder.fn.Positions == nil {
+		builder.fn.Positions = map[uint32]*ast.Position{pc: pos}
 	} else {
-		builder.fn.Lines[pc] = line
+		builder.fn.Positions[pc] = pos
 	}
 	// Set the filepath of the next instruction.
 	if builder.fn.Files == nil {

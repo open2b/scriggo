@@ -108,9 +108,9 @@ func (vm *VM) errIndexOutOfRange() runtimeError {
 
 func (vm *VM) newPanic(msg interface{}) Panic {
 	return Panic{
-		Msg:  msg,
-		File: vm.fn.File,
-		Line: vm.fn.Lines[vm.pc],
+		Msg:      msg,
+		File:     vm.fn.File,
+		Position: vm.fn.Positions[vm.pc],
 	}
 }
 

@@ -9,6 +9,7 @@ package runtime
 import (
 	"context"
 	"reflect"
+	"scriggo/ast"
 	"strconv"
 	"sync"
 )
@@ -228,8 +229,8 @@ func (vm *VM) Stack(buf []byte, all bool) int {
 			write("???")
 		}
 		write(":")
-		if line, ok := fn.Lines[ppc]; ok {
-			write(strconv.Itoa(line))
+		if pos, ok := fn.Positions[ppc]; ok {
+			write(strconv.Itoa(pos.Line))
 		} else {
 			write("???")
 		}
@@ -1051,7 +1052,7 @@ type Function struct {
 	Functions  []*Function
 	Predefined []*PredefinedFunction
 	Body       []Instruction
-	Lines      map[uint32]int
+	Positions  map[uint32]*ast.Position
 	Files      map[uint32]string
 	Data       [][]byte
 }
@@ -1190,7 +1191,7 @@ type Panic struct {
 	Recovered  bool
 	StackTrace []byte
 	File       string
-	Line       int
+	Position   *ast.Position
 }
 
 func (err Panic) String() string {

@@ -329,7 +329,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 			// package variables.
 			var initVarsIndex int8 = 0
 			e.fb.fn.Functions = append(e.fb.fn.Functions, nil)
-			e.fb.emitCall(initVarsIndex, runtime.StackShift{}, 0)
+			e.fb.emitCall(initVarsIndex, runtime.StackShift{}, nil)
 			e.emitNodes(extends.Tree.Nodes)
 			e.fb.end()
 			e.fb.exitScope()
