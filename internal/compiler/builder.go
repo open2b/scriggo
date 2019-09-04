@@ -251,17 +251,15 @@ func (builder *functionBuilder) scopeLookup(n string) int8 {
 	panic(fmt.Sprintf("bug: %s not found", n))
 }
 
-// addLine adds the line number to the last emitted instruction. num specifies
-// the number of rows needed by such instruction.
-func (builder *functionBuilder) addLineAndPath(line int) {
+func (builder *functionBuilder) addPosPath(line int) {
 	pc := uint32(len(builder.fn.Body)) + 1
-
+	// Set the position of the next instruction.
 	if builder.fn.Lines == nil {
 		builder.fn.Lines = map[uint32]int{pc: line}
 	} else {
 		builder.fn.Lines[pc] = line
 	}
-
+	// Set the filepath of the next instruction.
 	if builder.fn.Files == nil {
 		builder.fn.Files = map[uint32]string{pc: builder.path}
 	} else {
