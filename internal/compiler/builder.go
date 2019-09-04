@@ -133,6 +133,7 @@ type functionBuilder struct {
 	// path of the current file. For example, when "emitting" an {% include %}
 	// statement in a template the file path changes even if the function
 	// remains the same.
+	// TODO: rename to path.
 	currentPath string
 }
 
