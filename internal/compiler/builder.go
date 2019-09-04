@@ -271,11 +271,6 @@ func (builder *functionBuilder) addPosAndPath(pos *ast.Position) {
 // the path changes during the building of the same function, for example when
 // emitting an 'include' statement.
 func (builder *functionBuilder) changePath(newPath string) {
-	{ // TODO(Gianluca): Remove from here...
-		if newPath == "" {
-			panic("cannot set an empyt path")
-		}
-	} // ...to here.
 	builder.path = newPath
 }
 
