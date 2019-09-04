@@ -106,11 +106,11 @@ func (vm *VM) errIndexOutOfRange() runtimeError {
 	return runtimeError(s)
 }
 
-func (vm *VM) newPanic(msg interface{}) Panic {
-	return Panic{
-		Msg:      msg,
-		File:     vm.fn.File,
-		Position: vm.fn.Positions[vm.pc],
+func (vm *VM) newPanic(msg interface{}) *Panic {
+	return &Panic{
+		message:  msg,
+		file:     vm.fn.File,
+		position: vm.fn.Positions[vm.pc],
 	}
 }
 
@@ -231,8 +231,118 @@ func (vm *VM) convertPanic(msg interface{}) error {
 		}
 	}
 	if _, ok := msg.(runtimeError); ok {
-		p := vm.newPanic(msg)
-		return p
+		return vm.newPanic(msg)
 	}
 	return &FatalError{msg: msg}
+}
+
+type Panic struct {
+	message    interface{}
+	recovered  bool
+	stackTrace []byte
+	next       *Panic
+	file       string
+	position   *ast.Position
+}
+
+func (p *Panic) Error() string {
+	b := make([]byte, 0, 100+len(p.stackTrace))
+	//b = append(b, sprint(err.message)...) // TODO(marco): rewrite.
+	b = append(b, "\n\n"...)
+	b = append(b, p.stackTrace...)
+	return string(b)
+}
+
+// Message returns the message.
+func (p *Panic) Message() interface{} {
+	return p.message
+}
+
+// Next returns the next panic in the chain.
+func (p *Panic) Next() *Panic {
+	return p.next
+}
+
+// Recovered reports whether it has been recovered.
+func (p *Panic) Recovered() interface{} {
+	return p.recovered
+}
+
+// String returns the message as a string.
+func (p *Panic) String() string {
+	return panicToString(p.message)
+}
+
+func panicToString(msg interface{}) string {
+	switch v := msg.(type) {
+	case nil:
+		return "nil"
+	case bool:
+		if v {
+			return "true"
+		}
+		return "false"
+	case int:
+		return strconv.Itoa(v)
+	case int8:
+		return strconv.Itoa(int(v))
+	case int16:
+		return strconv.Itoa(int(v))
+	case int32:
+		return strconv.Itoa(int(v))
+	case int64:
+		return strconv.FormatInt(v, 10)
+	case uint:
+		return strconv.FormatUint(uint64(v), 10)
+	case uint8:
+		return strconv.FormatUint(uint64(v), 10)
+	case uint16:
+		return strconv.FormatUint(uint64(v), 10)
+	case uint32:
+		return strconv.FormatUint(uint64(v), 10)
+	case uint64:
+		return strconv.FormatUint(v, 10)
+	case uintptr:
+		return strconv.FormatUint(uint64(v), 10)
+	case float32:
+		return strconv.FormatFloat(float64(v), 'e', -1, 32)
+	case float64:
+		return strconv.FormatFloat(v, 'e', -1, 64)
+	case complex64:
+		return "(" + strconv.FormatFloat(float64(real(v)), 'e', -1, 32) +
+			strconv.FormatFloat(float64(imag(v)), 'e', -1, 32) + ")"
+	case complex128:
+		return "(" + strconv.FormatFloat(real(v), 'e', 3, 64) +
+			strconv.FormatFloat(imag(v), 'e', 3, 64) + ")"
+	case string:
+		return v
+	case error:
+		return v.Error()
+	case stringer:
+		return v.String()
+	default:
+		typ := reflect.TypeOf(v).String()
+		iData := reflect.ValueOf(&v).Elem().InterfaceData()
+		return "(" + typ + ") (" + hex(iData[0]) + "," + hex(iData[1]) + ")"
+	}
+}
+
+type stringer interface {
+	String() string
+}
+
+func hex(p uintptr) string {
+	i := 20
+	h := [20]byte{}
+	for {
+		i--
+		h[i] = "0123456789abcdef"[p%16]
+		p = p / 16
+		if p == 0 {
+			break
+		}
+	}
+	h[i-1] = 'x'
+	h[i-2] = '0'
+	return string(h[i-2:])
 }

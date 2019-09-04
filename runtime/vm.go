@@ -82,7 +82,7 @@ type VM struct {
 	cases    []reflect.SelectCase // select cases.
 	done     <-chan struct{}      // done.
 	doneCase reflect.SelectCase   // done, as reflect case.
-	panics   []Panic              // panics.
+	panic    *Panic               // panic.
 }
 
 // NewVM returns a new virtual machine.
@@ -116,9 +116,7 @@ func (vm *VM) Reset() {
 	}
 	vm.done = nil
 	vm.doneCase = reflect.SelectCase{}
-	if vm.panics != nil {
-		vm.panics = vm.panics[:0]
-	}
+	vm.panic = nil
 }
 
 // Run starts the execution of the function fn with the given global variables
@@ -840,7 +838,14 @@ func (vm *VM) nextCall() bool {
 						numPanicked++
 					}
 				}
-				vm.panics = vm.panics[:numPanicked]
+				num := 0
+				for p := vm.panic; p != nil; p = p.next {
+					num++
+				}
+				for p := vm.panic; num > numPanicked; num-- {
+					p = p.next
+					vm.panic = p
+				}
 			}
 			continue
 		case panicked:
@@ -1184,100 +1189,6 @@ func missingMethod(typ reflect.Type, iface reflect.Type) string {
 		}
 	}
 	return ""
-}
-
-type Panic struct {
-	Msg        interface{}
-	Recovered  bool
-	StackTrace []byte
-	File       string
-	Position   *ast.Position
-}
-
-func (err Panic) String() string {
-	return panicToString(err.Msg)
-}
-
-func panicToString(msg interface{}) string {
-	switch v := msg.(type) {
-	case nil:
-		return "nil"
-	case bool:
-		if v {
-			return "true"
-		}
-		return "false"
-	case int:
-		return strconv.Itoa(v)
-	case int8:
-		return strconv.Itoa(int(v))
-	case int16:
-		return strconv.Itoa(int(v))
-	case int32:
-		return strconv.Itoa(int(v))
-	case int64:
-		return strconv.FormatInt(v, 10)
-	case uint:
-		return strconv.FormatUint(uint64(v), 10)
-	case uint8:
-		return strconv.FormatUint(uint64(v), 10)
-	case uint16:
-		return strconv.FormatUint(uint64(v), 10)
-	case uint32:
-		return strconv.FormatUint(uint64(v), 10)
-	case uint64:
-		return strconv.FormatUint(v, 10)
-	case uintptr:
-		return strconv.FormatUint(uint64(v), 10)
-	case float32:
-		return strconv.FormatFloat(float64(v), 'e', -1, 32)
-	case float64:
-		return strconv.FormatFloat(v, 'e', -1, 64)
-	case complex64:
-		return "(" + strconv.FormatFloat(float64(real(v)), 'e', -1, 32) +
-			strconv.FormatFloat(float64(imag(v)), 'e', -1, 32) + ")"
-	case complex128:
-		return "(" + strconv.FormatFloat(real(v), 'e', 3, 64) +
-			strconv.FormatFloat(imag(v), 'e', 3, 64) + ")"
-	case string:
-		return v
-	case error:
-		return v.Error()
-	case stringer:
-		return v.String()
-	default:
-		typ := reflect.TypeOf(v).String()
-		iData := reflect.ValueOf(&v).Elem().InterfaceData()
-		return "(" + typ + ") (" + hex(iData[0]) + "," + hex(iData[1]) + ")"
-	}
-}
-
-type stringer interface {
-	String() string
-}
-
-func hex(p uintptr) string {
-	i := 20
-	h := [20]byte{}
-	for {
-		i--
-		h[i] = "0123456789abcdef"[p%16]
-		p = p / 16
-		if p == 0 {
-			break
-		}
-	}
-	h[i-1] = 'x'
-	h[i-2] = '0'
-	return string(h[i-2:])
-}
-
-func (err Panic) Error() string {
-	b := make([]byte, 0, 100+len(err.StackTrace))
-	//b = append(b, sprint(err.Msg)...) // TODO(marco): rewrite.
-	b = append(b, "\n\n"...)
-	b = append(b, err.StackTrace...)
-	return string(b)
 }
 
 func packageName(pkg string) string {
