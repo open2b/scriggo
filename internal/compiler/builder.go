@@ -267,11 +267,12 @@ func (builder *functionBuilder) addLineAndPath(line int) {
 	}
 }
 
-// setPath sets the current path. This function is called by the emitter.
+// setPath sets the current path.
 func (builder *functionBuilder) setPath(path string) {
 	builder.currentPath = path
 }
 
+// path returns the current path.
 func (builder *functionBuilder) path() string {
 	return builder.currentPath
 }
