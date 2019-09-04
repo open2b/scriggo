@@ -136,8 +136,9 @@ type functionBuilder struct {
 	path string
 }
 
-// newBuilder returns a new function builder for the function fn.
-func newBuilder(fn *runtime.Function) *functionBuilder {
+// newBuilder returns a new function builder for the function fn in the given
+// path.
+func newBuilder(fn *runtime.Function, path string) *functionBuilder {
 	fn.Body = nil
 	builder := &functionBuilder{
 		fn:                     fn,
@@ -147,6 +148,7 @@ func newBuilder(fn *runtime.Function) *functionBuilder {
 		scopes:                 []map[string]int8{},
 		complexBinaryOpIndexes: map[ast.OperatorType]int8{},
 		complexUnaryOpIndex:    -1,
+		path:                   path,
 	}
 	return builder
 }
@@ -264,9 +266,17 @@ func (builder *functionBuilder) addPosAndPath(pos *ast.Position) {
 	}
 }
 
-// setPath sets the current path.
-func (builder *functionBuilder) setPath(path string) {
-	builder.path = path
+// changePath changes the current path. Note that the path is initially set at
+// the creation of the function builder; this method should be called only when
+// the path changes during the building of the same function, for example when
+// emitting an 'include' statement.
+func (builder *functionBuilder) changePath(newPath string) {
+	{ // TODO(Gianluca): Remove from here...
+		if newPath == "" {
+			panic("cannot set an empyt path")
+		}
+	} // ...to here.
+	builder.path = newPath
 }
 
 // getPath returns the current path.

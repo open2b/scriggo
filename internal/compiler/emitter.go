@@ -134,7 +134,7 @@ func (em *emitter) reserveTemplateRegisters() {
 
 // emitPackage emits a package and returns the exported functions, the
 // exported variables and the init functions.
-func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string]*runtime.Function, map[string]int16, []*runtime.Function) {
+func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string) (map[string]*runtime.Function, map[string]int16, []*runtime.Function) {
 
 	if !extendingPage {
 		em.pkg = pkg
@@ -158,7 +158,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 			} else {
 				backupPkg := em.pkg
 				pkg := imp.Tree.Nodes[0].(*ast.Package)
-				funcs, vars, pkgInits := em.emitPackage(pkg, false)
+				funcs, vars, pkgInits := em.emitPackage(pkg, false, imp.Path)
 				em.pkg = backupPkg
 				inits = append(inits, pkgInits...)
 				var importName string
@@ -232,7 +232,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 			if initVarsFn == nil {
 				initVarsFn = newFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
 				em.functions[em.pkg]["$initvars"] = initVarsFn
-				initVarsFb = newBuilder(initVarsFn)
+				initVarsFb = newBuilder(initVarsFn, path)
 				initVarsFb.emitSetAlloc(em.options.MemoryLimit)
 				initVarsFb.enterScope()
 			}
@@ -274,7 +274,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 			} else {
 				fn = em.functions[em.pkg][n.Ident.Name]
 			}
-			em.fb = newBuilder(fn)
+			em.fb = newBuilder(fn, path)
 			em.fb.emitSetAlloc(em.options.MemoryLimit)
 			em.fb.enterScope()
 			// If it is the "main" function, variable initialization functions
@@ -945,7 +945,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				backup := em.fb
 				fnReg := em.fb.newRegister(reflect.Func)
 				fn := em.fb.emitFunc(fnReg, reflect.FuncOf(nil, nil, false))
-				em.fb = newBuilder(fn)
+				em.fb = newBuilder(fn, em.fb.getPath())
 				em.fb.emitRecover(0, true)
 				em.fb.emitReturn()
 				em.fb = backup
@@ -963,10 +963,10 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					// collateral effects.
 				} else {
 					backupPath := em.fb.getPath()
-					em.fb.setPath(node.Path)
+					em.fb.changePath(node.Path)
 					backupBuilder := em.fb
 					backupPkg := em.pkg
-					functions, vars, inits := em.emitPackage(node.Tree.Nodes[0].(*ast.Package), false)
+					functions, vars, inits := em.emitPackage(node.Tree.Nodes[0].(*ast.Package), false, node.Path)
 					var importName string
 					if node.Ident == nil {
 						// Imports without identifiers are handled as 'import . "path"'.
@@ -1002,7 +1002,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					}
 					em.fb = backupBuilder
 					em.pkg = backupPkg
-					em.fb.setPath(backupPath)
+					em.fb.changePath(backupPath)
 				}
 			}
 
@@ -1148,9 +1148,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 
 		case *ast.Include:
 			path := em.fb.getPath()
-			em.fb.setPath(node.Tree.Path)
+			em.fb.changePath(node.Tree.Path)
 			em.emitNodes(node.Tree.Nodes)
-			em.fb.setPath(path)
+			em.fb.changePath(path)
 
 		case *ast.Label:
 			if _, found := em.labels[em.fb.fn][node.Name.Name]; !found {
@@ -1886,7 +1886,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			em.functions[em.pkg][expr.Ident.Name] = macroFn
 			fb := em.fb
 			em.setClosureRefs(macroFn, expr.Upvars)
-			em.fb = newBuilder(macroFn)
+			em.fb = newBuilder(macroFn, em.fb.getPath())
 			em.fb.emitSetAlloc(em.options.MemoryLimit)
 			em.fb.enterScope()
 			em.prepareFunctionBodyParameters(expr)
@@ -1911,7 +1911,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		fn := em.fb.emitFunc(tmp, em.ti(expr).Type)
 		em.setClosureRefs(fn, expr.Upvars)
 
-		funcLitBuilder := newBuilder(fn)
+		funcLitBuilder := newBuilder(fn, em.fb.getPath())
 		funcLitBuilder.emitSetAlloc(em.options.MemoryLimit)
 		currFB := em.fb
 		em.fb = funcLitBuilder

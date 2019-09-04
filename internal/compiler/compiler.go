@@ -261,7 +261,7 @@ type Code struct {
 // the global variables and the main function.
 func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
-	functions, _, _ := e.emitPackage(pkgMain, false)
+	functions, _, _ := e.emitPackage(pkgMain, false, "main")
 	main := e.functions[pkgMain]["main"]
 	pkg := &Code{
 		Globals:   e.globals,
@@ -277,8 +277,7 @@ func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 // script and the global variables.
 func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
-	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)))
-	e.fb.setPath(tree.Path)
+	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)), tree.Path)
 	e.fb.emitSetAlloc(opts.MemoryLimit)
 	e.fb.enterScope()
 	e.emitNodes(tree.Nodes)
@@ -296,8 +295,8 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.pkg = &ast.Package{}
 	e.isTemplate = true
-	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)))
-	e.fb.setPath(tree.Path)
+	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)), tree.Path)
+	e.fb.changePath(tree.Path)
 
 	// Globals.
 	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$io.Writer", Type: emptyInterfaceType})
@@ -319,8 +318,9 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 				}
 			}
 			// Emits extended page.
+			backupPath := e.fb.getPath()
 			extends, _ := getExtends(pkg.Declarations)
-			e.fb.setPath(extends.Path)
+			e.fb.changePath(extends.Path)
 			e.fb.enterScope()
 			e.reserveTemplateRegisters()
 			// Reserves first index of Functions for the function that
@@ -333,9 +333,10 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 			e.emitNodes(extends.Tree.Nodes)
 			e.fb.end()
 			e.fb.exitScope()
+			e.fb.changePath(backupPath)
 			// Emits extending page as a package.
-			e.fb.setPath(tree.Path)
-			_, _, inits := e.emitPackage(pkg, true)
+			e.fb.changePath(tree.Path)
+			_, _, inits := e.emitPackage(pkg, true, tree.Path)
 			e.fb = mainBuilder
 			// Just one init is supported: the implicit one (the one that
 			// initializes variables).
@@ -345,7 +346,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 				// If there are no variables to initialize, a nop function is
 				// created because space has already been reserved for it.
 				nopFunction := newFunction("main", "$nop", reflect.FuncOf(nil, nil, false))
-				nopBuilder := newBuilder(nopFunction)
+				nopBuilder := newBuilder(nopFunction, tree.Path)
 				nopBuilder.end()
 				e.fb.fn.Functions[0] = nopFunction
 			}
