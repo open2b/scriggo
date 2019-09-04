@@ -251,7 +251,7 @@ func (p *Panic) Next() *Panic {
 }
 
 // Recovered reports whether it has been recovered.
-func (p *Panic) Recovered() interface{} {
+func (p *Panic) Recovered() bool {
 	return p.recovered
 }
 
