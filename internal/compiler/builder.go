@@ -271,6 +271,10 @@ func (builder *functionBuilder) setFilepath(path string) {
 	builder.currentPath = path
 }
 
+func (builder *functionBuilder) path() string {
+	return builder.currentPath
+}
+
 // addType adds a type to the builder's function, creating it if necessary.
 func (builder *functionBuilder) addType(typ reflect.Type) int {
 	fn := builder.fn
