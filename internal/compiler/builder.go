@@ -129,7 +129,8 @@ type functionBuilder struct {
 	allocs                 []uint32
 	complexBinaryOpIndexes map[ast.OperatorType]int8 // indexes of complex binary op. functions.
 	complexUnaryOpIndex    int8                      // index of complex negation function.
-	// path of the current file. For example, when "emitting" an {% include %}
+
+	// path of the current file. For example, when emitting an {% include ".." %}
 	// statement in a template the file path changes even if the function
 	// remains the same.
 	path string
@@ -268,7 +269,7 @@ func (builder *functionBuilder) setPath(path string) {
 	builder.path = path
 }
 
-// getPath returns the current getPath.
+// getPath returns the current path.
 func (builder *functionBuilder) getPath() string {
 	return builder.path
 }

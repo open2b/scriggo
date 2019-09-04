@@ -106,6 +106,7 @@ func (vm *VM) errIndexOutOfRange() runtimeError {
 	return runtimeError(s)
 }
 
+// newPanic returns a new *Panic with the given error message.
 func (vm *VM) newPanic(msg interface{}) *Panic {
 	return &Panic{
 		message:  msg,
