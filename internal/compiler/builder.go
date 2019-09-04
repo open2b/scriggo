@@ -133,8 +133,7 @@ type functionBuilder struct {
 	// path of the current file. For example, when "emitting" an {% include %}
 	// statement in a template the file path changes even if the function
 	// remains the same.
-	// TODO: rename to path.
-	currentPath string
+	path string
 }
 
 // newBuilder returns a new function builder for the function fn.
@@ -261,20 +260,20 @@ func (builder *functionBuilder) addLineAndPath(line int) {
 	}
 
 	if builder.fn.Files == nil {
-		builder.fn.Files = map[uint32]string{pc: builder.currentPath}
+		builder.fn.Files = map[uint32]string{pc: builder.path}
 	} else {
-		builder.fn.Files[pc] = builder.currentPath
+		builder.fn.Files[pc] = builder.path
 	}
 }
 
 // setPath sets the current path.
 func (builder *functionBuilder) setPath(path string) {
-	builder.currentPath = path
+	builder.path = path
 }
 
-// path returns the current path.
-func (builder *functionBuilder) path() string {
-	return builder.currentPath
+// getPath returns the current getPath.
+func (builder *functionBuilder) getPath() string {
+	return builder.path
 }
 
 // addType adds a type to the builder's function, creating it if necessary.

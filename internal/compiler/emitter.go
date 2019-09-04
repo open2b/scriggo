@@ -960,7 +960,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					// Nothing to do: template pages cannot have
 					// collateral effects.
 				} else {
-					backupPath := em.fb.path()
+					backupPath := em.fb.getPath()
 					em.fb.setPath(node.Path)
 					backupBuilder := em.fb
 					backupPkg := em.pkg
@@ -1145,7 +1145,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.exitScope()
 
 		case *ast.Include:
-			path := em.fb.path()
+			path := em.fb.getPath()
 			em.fb.setPath(node.Tree.Path)
 			em.emitNodes(node.Tree.Nodes)
 			em.fb.setPath(path)
