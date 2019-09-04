@@ -1595,20 +1595,31 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		case ast.OperatorAddition, ast.OperatorSubtraction, ast.OperatorMultiplication, ast.OperatorDivision,
 			ast.OperatorModulo, ast.OperatorAnd, ast.OperatorOr, ast.OperatorXor, ast.OperatorAndNot,
 			ast.OperatorLeftShift, ast.OperatorRightShift:
-			// TODO: replace with a switch.
-			emitFn := map[ast.OperatorType]func(bool, int8, int8, int8, reflect.Kind){
-				ast.OperatorAddition:       em.fb.emitAdd,
-				ast.OperatorSubtraction:    em.fb.emitSub,
-				ast.OperatorMultiplication: em.fb.emitMul,
-				ast.OperatorDivision:       func(k bool, x, y, z int8, kind reflect.Kind) { em.fb.emitDiv(k, x, y, z, kind, expr.Pos()) },
-				ast.OperatorModulo:         func(k bool, x, y, z int8, kind reflect.Kind) { em.fb.emitRem(k, x, y, z, kind, expr.Pos()) },
-				ast.OperatorAnd:            em.fb.emitAnd,
-				ast.OperatorOr:             em.fb.emitOr,
-				ast.OperatorXor:            em.fb.emitXor,
-				ast.OperatorAndNot:         em.fb.emitAndNot,
-				ast.OperatorLeftShift:      em.fb.emitLeftShift,
-				ast.OperatorRightShift:     em.fb.emitRightShift,
-			}[expr.Operator()]
+			var emitFn func(bool, int8, int8, int8, reflect.Kind)
+			switch expr.Operator() {
+			case ast.OperatorAddition:
+				emitFn = em.fb.emitAdd
+			case ast.OperatorSubtraction:
+				emitFn = em.fb.emitSub
+			case ast.OperatorMultiplication:
+				emitFn = em.fb.emitMul
+			case ast.OperatorDivision:
+				emitFn = func(k bool, x, y, z int8, kind reflect.Kind) { em.fb.emitDiv(k, x, y, z, kind, expr.Pos()) }
+			case ast.OperatorModulo:
+				emitFn = func(k bool, x, y, z int8, kind reflect.Kind) { em.fb.emitRem(k, x, y, z, kind, expr.Pos()) }
+			case ast.OperatorAnd:
+				emitFn = em.fb.emitAnd
+			case ast.OperatorOr:
+				emitFn = em.fb.emitOr
+			case ast.OperatorXor:
+				emitFn = em.fb.emitXor
+			case ast.OperatorAndNot:
+				emitFn = em.fb.emitAndNot
+			case ast.OperatorLeftShift:
+				emitFn = em.fb.emitLeftShift
+			case ast.OperatorRightShift:
+				emitFn = em.fb.emitRightShift
+			}
 			if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
 				emitFn(k, v1, v2, reg, exprType.Kind())
 				return reg, false
