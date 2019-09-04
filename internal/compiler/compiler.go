@@ -278,6 +278,7 @@ func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)))
+	e.fb.setPath(tree.Path)
 	e.fb.emitSetAlloc(opts.MemoryLimit)
 	e.fb.enterScope()
 	e.emitNodes(tree.Nodes)
@@ -296,6 +297,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	e.pkg = &ast.Package{}
 	e.isTemplate = true
 	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)))
+	e.fb.setPath(tree.Path)
 
 	// Globals.
 	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$io.Writer", Type: emptyInterfaceType})
@@ -318,6 +320,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 			}
 			// Emits extended page.
 			extends, _ := getExtends(pkg.Declarations)
+			e.fb.setPath(extends.Path)
 			e.fb.enterScope()
 			e.reserveTemplateRegisters()
 			// Reserves first index of Functions for the function that
@@ -326,11 +329,12 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 			// package variables.
 			var initVarsIndex int8 = 0
 			e.fb.fn.Functions = append(e.fb.fn.Functions, nil)
-			e.fb.emitCall(initVarsIndex, runtime.StackShift{}, 0)
+			e.fb.emitCall(initVarsIndex, runtime.StackShift{}, nil)
 			e.emitNodes(extends.Tree.Nodes)
 			e.fb.end()
 			e.fb.exitScope()
 			// Emits extending page as a package.
+			e.fb.setPath(tree.Path)
 			_, _, inits := e.emitPackage(pkg, true)
 			e.fb = mainBuilder
 			// Just one init is supported: the implicit one (the one that

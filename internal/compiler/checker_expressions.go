@@ -952,7 +952,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			}
 			tc.checkIndex(expr.Index, t, false)
 			// Transform pa[i] to (*pa)[i].
-			unOp := ast.NewUnaryOperator(nil, ast.OperatorMultiplication, expr.Expr)
+			unOp := ast.NewUnaryOperator(expr.Expr.Pos(), ast.OperatorMultiplication, expr.Expr)
 			tc.typeInfos[unOp] = &TypeInfo{Type: elemType}
 			expr.Expr = unOp
 			return &TypeInfo{Type: elemType.Elem(), Properties: PropertyAddressable}
@@ -1135,7 +1135,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			// (*ps).F is a valid selector expression denoting a field (but not
 			// a method).
 			if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Struct {
-				unOp := ast.NewUnaryOperator(nil, ast.OperatorMultiplication, expr.Expr)
+				unOp := ast.NewUnaryOperator(expr.Expr.Pos(), ast.OperatorMultiplication, expr.Expr)
 				tc.typeInfos[unOp] = &TypeInfo{
 					Type: t.Type.Elem(),
 				}
@@ -2146,7 +2146,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				if !isExported(fieldTi.Name) {
 					panic(tc.errorf(node, "implicit assignment of unexported field '%s' in %v", fieldTi.Name, node))
 				}
-				keyValue.Key = ast.NewIdentifier(nil, fieldTi.Name)
+				keyValue.Key = ast.NewIdentifier(node.Pos(), fieldTi.Name)
 				if valueTi.Nil() {
 					valueTi = nilOf(fieldTi.Type)
 					tc.typeInfos[keyValue.Value] = valueTi

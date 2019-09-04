@@ -129,6 +129,11 @@ type functionBuilder struct {
 	allocs                 []uint32
 	complexBinaryOpIndexes map[ast.OperatorType]int8 // indexes of complex binary op. functions.
 	complexUnaryOpIndex    int8                      // index of complex negation function.
+
+	// path of the current file. For example, when emitting an {% include ".." %}
+	// statement in a template the file path changes even if the function
+	// remains the same.
+	path string
 }
 
 // newBuilder returns a new function builder for the function fn.
@@ -243,18 +248,30 @@ func (builder *functionBuilder) scopeLookup(n string) int8 {
 	panic(fmt.Sprintf("bug: %s not found", n))
 }
 
-func (builder *functionBuilder) addLine(pc uint32, line int) {
-	if builder.fn.Lines == nil {
-		builder.fn.Lines = map[uint32]int{pc: line}
+func (builder *functionBuilder) addPosAndPath(pos *ast.Position) {
+	pc := uint32(len(builder.fn.Body)) + 1
+	// Set the position of the next instruction.
+	if builder.fn.Positions == nil {
+		builder.fn.Positions = map[uint32]*ast.Position{pc: pos}
 	} else {
-		builder.fn.Lines[pc] = line
+		builder.fn.Positions[pc] = pos
+	}
+	// Set the filepath of the next instruction.
+	if builder.fn.Files == nil {
+		builder.fn.Files = map[uint32]string{pc: builder.path}
+	} else {
+		builder.fn.Files[pc] = builder.path
 	}
 }
 
-// setFileLine sets the file name and line number of the Scriggo function.
-func (builder *functionBuilder) setFileLine(file string, line int) {
-	builder.fn.File = file
-	builder.fn.Line = line
+// setPath sets the current path.
+func (builder *functionBuilder) setPath(path string) {
+	builder.path = path
+}
+
+// getPath returns the current path.
+func (builder *functionBuilder) getPath() string {
+	return builder.path
 }
 
 // addType adds a type to the builder's function, creating it if necessary.
