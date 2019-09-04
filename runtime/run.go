@@ -18,28 +18,29 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) error {
 		if err == nil {
 			break
 		}
-		p, ok := err.(Panic)
+		p, ok := err.(*Panic)
 		if !ok {
 			return err
 		}
-		vm.panics = append(vm.panics, p)
+		p.next = vm.panic
+		vm.panic = p
 		if len(vm.calls) == 0 {
 			break
 		}
 		vm.calls = append(vm.calls, callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: panicked})
 		vm.fn = nil
 	}
-	if len(vm.panics) > 0 {
+	if vm.panic != nil {
 		var msg string
-		for i, p := range vm.panics {
-			if i > 0 {
-				msg += "\tpanic: "
+		for p := vm.panic; p != nil; p = p.next {
+			msg = "\n" + msg
+			if p.recovered {
+				msg = " [recovered]" + msg
 			}
-			msg += p.String()
-			if p.Recovered {
-				msg += " [recovered]"
+			msg = p.String() + msg
+			if p.next != nil {
+				msg = "\tpanic: " + msg
 			}
-			msg += "\n"
 		}
 		return &FatalError{msg: msg}
 	}
@@ -1353,9 +1354,8 @@ func (vm *VM) run() (uint32, bool) {
 					continue
 				case panicked:
 					vm.calls[i].status = recovered
-					last := len(vm.panics) - 1
-					vm.panics[last].Recovered = true
-					msg = vm.panics[last].Msg
+					vm.panic.recovered = true
+					msg = vm.panic.message
 				}
 				break
 			}
