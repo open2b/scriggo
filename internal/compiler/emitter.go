@@ -942,7 +942,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				// Nothing to do
 				continue
 			}
-			if em.isBuiltinCall(call, "recover") {
+			if em.builtinCallName(call) == "recover" {
 				stackShift := em.fb.currentStackShift()
 				backup := em.fb
 				fnReg := em.fb.newRegister(reflect.Func)
@@ -2268,9 +2268,10 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 	// if v >  len("str")
 	// if v >= len("str")
 	if cond, ok := cond.(*ast.BinaryOperator); ok {
-		if em.isBuiltinCall(cond.Expr1, "len") != em.isBuiltinCall(cond.Expr2, "len") {
+		name1, name2 := em.builtinCallName(cond.Expr1), em.builtinCallName(cond.Expr2)
+		if (name1 == "len") != (name2 == "len") {
 			var lenArg, expr ast.Expression
-			if em.isBuiltinCall(cond.Expr1, "len") {
+			if name1 == "len" {
 				lenArg = cond.Expr1.(*ast.Call).Args[0]
 				expr = cond.Expr2
 			} else {

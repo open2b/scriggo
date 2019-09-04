@@ -155,13 +155,14 @@ func isExported(name string) bool {
 	return unicode.Is(unicode.Lu, r)
 }
 
-// isBuiltinCall reports whether expr is a call to the builtin function with the
-// given name.
-func (em *emitter) isBuiltinCall(expr ast.Expression, name string) bool {
-	if call, ok := expr.(*ast.Call); ok {
-		return em.ti(call.Func).IsBuiltinFunction() && call.Func.(*ast.Identifier).Name == name
+// builtinCallName returns the name of the builtin function in a call
+// expression. If expr is not a call expression or the function is not a
+// builtin, it returns an empty string.
+func (em *emitter) builtinCallName(expr ast.Expression) string {
+	if call, ok := expr.(*ast.Call); ok && em.ti(call.Func).IsBuiltinFunction() {
+		return call.Func.(*ast.Identifier).Name
 	}
-	return false
+	return ""
 }
 
 // numOut reports the number of return parameters of call, if it is a function
