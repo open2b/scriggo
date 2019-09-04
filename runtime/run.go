@@ -31,18 +31,7 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) error {
 		vm.fn = nil
 	}
 	if vm.panic != nil {
-		var msg string
-		for p := vm.panic; p != nil; p = p.next {
-			msg = "\n" + msg
-			if p.recovered {
-				msg = " [recovered]" + msg
-			}
-			msg = p.String() + msg
-			if p.next != nil {
-				msg = "\tpanic: " + msg
-			}
-		}
-		return &FatalError{msg: msg}
+		return vm.panic
 	}
 	return nil
 }

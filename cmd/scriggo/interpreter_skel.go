@@ -49,6 +49,21 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 			return nil, nil
 		}
 
+		func renderPanics(p *runtime.Panic) string {
+			var msg string
+			for ; p != nil; p = p.Next() {
+				msg = "\n" + msg
+				if p.Recovered() {
+					msg = " [recovered]" + msg
+				}
+				msg = p.String() + msg
+				if p.Next() != nil {
+					msg = "\tpanic: " + msg
+				}
+			}
+			return msg
+		}
+
 		func main() {
 
 			var asm = flag.Bool("S", false, "print assembly listing")
@@ -165,6 +180,9 @@ const programSkel = `main, err := ioutil.ReadFile(absFile)
 		} else {
 			err = program.Run(runOptions)
 			if err != nil {
+				if p, ok := err.(*runtime.Panic); ok {
+					panic(renderPanics(p))
+				}
 				if err == context.DeadlineExceeded {
 					err = errors.New("process took too long")
 				}
@@ -195,6 +213,9 @@ const scriptSkel = `r, err := os.Open(absFile)
 		} else {
 			err = script.Run(nil, runOptions)
 			if err != nil {
+				if p, ok := err.(*runtime.Panic); ok {
+					panic(renderPanics(p))
+				}
 				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 				os.Exit(2)
 			}
@@ -243,6 +264,9 @@ const templateSkel = `r := template.DirReader(filepath.Dir(absFile))
 			}
 			err = t.Render(os.Stdout, nil, options)
 			if err != nil {
+				if p, ok := err.(*runtime.Panic); ok {
+					panic(renderPanics(p))
+				}
 				fmt.Println(err)
 				os.Exit(-1)
 			}
