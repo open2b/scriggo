@@ -507,7 +507,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 				// Not predefined package.
 				var err error
 				if tc.opts.SyntaxType == TemplateSyntax {
-					err := tc.templatePageToPackage(d.Tree, d.Path)
+					err := tc.templatePageToPackage(d.Tree, d.Tree.Path)
 					if err != nil {
 						return err
 					}

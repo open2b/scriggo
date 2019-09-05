@@ -131,7 +131,7 @@ nodesLoop:
 				if node.Ident != nil && node.Ident.Name == "_" {
 					continue nodesLoop
 				}
-				err := tc.templatePageToPackage(node.Tree, node.Path)
+				err := tc.templatePageToPackage(node.Tree, node.Tree.Path)
 				if err != nil {
 					panic(err)
 				}
