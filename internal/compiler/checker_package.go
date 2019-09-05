@@ -262,7 +262,6 @@ func sortDeclarations(pkg *ast.Package) error {
 	sortedTypes := []*ast.TypeDeclaration{}
 typesLoop:
 	for len(types) > 0 {
-		loop := true
 		// Searches for next type declaration with resolved deps.
 		for i, t := range types {
 			depsOk := true
@@ -289,19 +288,17 @@ typesLoop:
 				continue typesLoop
 			}
 		}
-		if loop {
-			// All remaining constants are added as "sorted"; a later stage of
-			// the type checking will report the error (usually a not defined
-			// symbol).
-			sortedTypes = append(sortedTypes, types...)
-		}
+		// All remaining constants are added as "sorted"; a later stage of
+		// the type checking will report the error (usually a not defined
+		// symbol).
+		sortedTypes = append(sortedTypes, types...)
+		types = nil
 	}
 
 	// Sorts constants.
 	sortedConsts := []*ast.Const{}
 constsLoop:
 	for len(consts) > 0 {
-		loop := true
 		// Searches for next constant with resolved deps.
 		for i, c := range consts {
 			depsOk := true
@@ -336,11 +333,12 @@ constsLoop:
 				continue constsLoop
 			}
 		}
-		if loop {
+		if true {
 			// All remaining constants are added as "sorted"; a later stage of
 			// the type checking will report the error (usually a not defined
 			// symbol).
 			sortedConsts = append(sortedConsts, consts...)
+			consts = nil
 		}
 	}
 
@@ -348,7 +346,6 @@ constsLoop:
 	sortedVars := []*ast.Var{}
 varsLoop:
 	for len(vars) > 0 {
-		loop := true
 		// Searches for next variable with resolved deps.
 		for i, v := range vars {
 			depsOk := true
@@ -402,12 +399,11 @@ varsLoop:
 				continue varsLoop
 			}
 		}
-		if loop {
-			// All remaining vars are added as "sorted"; a later stage of the
-			// type checking will report the error (usually a not defined
-			// symbol).
-			sortedVars = append(sortedVars, vars...)
-		}
+		// All remaining vars are added as "sorted"; a later stage of the
+		// type checking will report the error (usually a not defined
+		// symbol).
+		sortedVars = append(sortedVars, vars...)
+		vars = nil
 	}
 
 	sorted := []ast.Node{}
