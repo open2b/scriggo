@@ -1485,23 +1485,27 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		if len(expr.Args) > 1 {
 			panic(tc.errorf(expr, "too many arguments to cap: %s", expr))
 		}
-		t := tc.checkExpr(expr.Args[0])
+		arg := expr.Args[0]
+		t := tc.checkExpr(arg)
 		if t.Nil() {
 			panic(tc.errorf(expr, "use of untyped nil"))
 		}
 		ti := &TypeInfo{Type: intType}
-		switch k := t.Type.Kind(); k {
-		case reflect.Slice, reflect.Chan:
+		switch typ := t.Type; typ.Kind() {
 		case reflect.Array:
-			ti.Constant = int64Const(t.Type.Len())
-		case reflect.Ptr:
-			if t.Type.Elem().Kind() != reflect.Array {
-				panic(tc.errorf(expr, "invalid argument %s (type %s) for cap", expr.Args[0], t.ShortString()))
+			if tc.isCompileConstant(arg) {
+				ti.Constant = newIntConst(int64(typ.Len()))
 			}
-			// https://github.com/open2b/scriggo/issues/369
-			ti.Constant = int64Const(t.Type.Elem().Len())
+		case reflect.Chan, reflect.Slice:
+		case reflect.Ptr:
+			if typ.Elem().Kind() != reflect.Array {
+				panic(tc.errorf(expr, "invalid argument %s (type %s) for cap", arg, t.ShortString()))
+			}
+			if tc.isCompileConstant(arg) {
+				ti.Constant = newIntConst(int64(typ.Elem().Len()))
+			}
 		default:
-			panic(tc.errorf(expr, "invalid argument %s (type %s) for cap", expr.Args[0], t.ShortString()))
+			panic(tc.errorf(expr, "invalid argument %s (type %s) for cap", arg, t.ShortString()))
 		}
 		return []*TypeInfo{ti}
 
@@ -1658,29 +1662,33 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		if len(expr.Args) > 1 {
 			panic(tc.errorf(expr, "too many arguments to len: %s", expr))
 		}
-		t := tc.checkExpr(expr.Args[0])
+		arg := expr.Args[0]
+		t := tc.checkExpr(arg)
 		if t.Nil() {
 			panic(tc.errorf(expr, "use of untyped nil"))
 		}
 		t.setValue(nil)
 		ti := &TypeInfo{Type: intType}
 		ti.setValue(nil)
-		switch k := t.Type.Kind(); k {
+		switch typ := t.Type; typ.Kind() {
+		case reflect.Array:
+			if tc.isCompileConstant(arg) {
+				ti.Constant = newIntConst(int64(typ.Len()))
+			}
+		case reflect.Chan, reflect.Map, reflect.Slice:
 		case reflect.String:
 			if t.IsConstant() {
-				ti.Constant = int64Const(len(t.Constant.string()))
+				ti.Constant = newIntConst(int64(len(t.Constant.String())))
 			}
-		case reflect.Slice, reflect.Map, reflect.Chan:
-		case reflect.Array:
-			ti.Constant = int64Const(t.Type.Len())
 		case reflect.Ptr:
-			if t.Type.Elem().Kind() != reflect.Array {
-				panic(tc.errorf(expr, "invalid argument %s (type %s) for len", expr.Args[0], t.ShortString()))
+			if typ.Elem().Kind() != reflect.Array {
+				panic(tc.errorf(expr, "invalid argument %s (type %s) for len", arg, t.ShortString()))
 			}
-			// https://github.com/open2b/scriggo/issues/369
-			ti.Constant = int64Const(t.Type.Elem().Len())
+			if tc.isCompileConstant(arg) {
+				ti.Constant = newIntConst(int64(typ.Elem().Len()))
+			}
 		default:
-			panic(tc.errorf(expr, "invalid argument %s (type %s) for len", expr.Args[0], t.ShortString()))
+			panic(tc.errorf(expr, "invalid argument %s (type %s) for len", arg, t.ShortString()))
 		}
 		return []*TypeInfo{ti}
 
@@ -2283,4 +2291,67 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 	tc.typeInfos[node] = nodeTi
 
 	return nodeTi
+}
+
+// builtinCallName returns the name of the builtin function in a call
+// expression. If expr is not a call expression or the function is not a
+// builtin, it returns an empty string.
+func (tc *typechecker) builtinCallName(expr ast.Expression) string {
+	if call, ok := expr.(*ast.Call); ok && tc.typeInfos[call.Func].IsBuiltinFunction() {
+		return call.Func.(*ast.Identifier).Name
+	}
+	return ""
+}
+
+// isCompileConstant reports whether expr does not contain channel receives or
+// non-constant function calls.
+func (tc *typechecker) isCompileConstant(expr ast.Expression) bool {
+	if ti := tc.typeInfos[expr]; ti.IsConstant() {
+		return true
+	}
+	switch expr := expr.(type) {
+	case *ast.BinaryOperator:
+		return tc.isCompileConstant(expr.Expr1) && tc.isCompileConstant(expr.Expr2)
+	case *ast.Call:
+		ti := tc.typeInfos[expr.Func]
+		if ti.IsType() {
+			return tc.isCompileConstant(expr.Args[0])
+		}
+		switch tc.builtinCallName(expr) {
+		case "len", "cap":
+			return tc.isCompileConstant(expr.Args[0])
+		case "make":
+			switch len(expr.Args) {
+			case 1:
+				return true
+			case 2:
+				return tc.isCompileConstant(expr.Args[0])
+			case 3:
+				return tc.isCompileConstant(expr.Args[0]) && tc.isCompileConstant(expr.Args[1])
+			}
+		}
+		return false
+	case *ast.CompositeLiteral:
+		for _, kv := range expr.KeyValues {
+			if kv.Key != nil && !tc.isCompileConstant(kv.Key) {
+				return false
+			}
+			v := tc.isCompileConstant(kv.Value)
+			if !v {
+				return false
+			}
+		}
+	case *ast.Index:
+		return tc.isCompileConstant(expr.Expr) && tc.isCompileConstant(expr.Index)
+	case *ast.Selector:
+		return tc.isCompileConstant(expr.Expr)
+	case *ast.Slicing:
+		return tc.isCompileConstant(expr.Expr) && tc.isCompileConstant(expr.Low) &&
+			tc.isCompileConstant(expr.High) && (!expr.IsFull || tc.isCompileConstant(expr.Max))
+	case *ast.TypeAssertion:
+		return tc.isCompileConstant(expr.Expr)
+	case *ast.UnaryOperator:
+		return expr.Op != ast.OperatorReceive && tc.isCompileConstant(expr.Expr)
+	}
+	return true
 }
