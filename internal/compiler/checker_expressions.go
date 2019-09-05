@@ -2336,8 +2336,7 @@ func (tc *typechecker) isCompileConstant(expr ast.Expression) bool {
 			if kv.Key != nil && !tc.isCompileConstant(kv.Key) {
 				return false
 			}
-			v := tc.isCompileConstant(kv.Value)
-			if !v {
+			if !tc.isCompileConstant(kv.Value) {
 				return false
 			}
 		}
