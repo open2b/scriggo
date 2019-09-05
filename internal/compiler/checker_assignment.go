@@ -311,11 +311,13 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 		tc.typeInfos[rightExpr] = right
 	}
 
-	if isConstDecl && !right.IsConstant() {
+	if isConstDecl {
 		if right.Nil() {
 			panic(tc.errorf(node, "const initializer cannot be nil"))
 		}
-		panic(tc.errorf(node, "const initializer %s is not a constant", rightExpr))
+		if !right.IsConstant() {
+			panic(tc.errorf(node, "const initializer %s is not a constant", rightExpr))
+		}
 	}
 
 	if typ == nil {
