@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"time"
 )
 
@@ -54,4 +55,24 @@ func main() {
 		h := dp.Nanoseconds()
 		fmt.Print(h)
 	}
+
+	{
+		// Create a struct of struct and call a method on it;
+		// the method must be defined on non-pointer.
+
+		type S = struct {
+			Field sort.IntSlice
+		}
+
+		s := S{
+			Field: sort.IntSlice([]int{5, 6, 1}),
+		}
+
+		fmt.Printf("%v %T\n", s, s)
+
+		s.Field.Sort()
+
+		fmt.Printf("%v %T\n", s, s)
+	}
+
 }
