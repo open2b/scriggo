@@ -158,7 +158,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 			} else {
 				backupPkg := em.pkg
 				pkg := imp.Tree.Nodes[0].(*ast.Package)
-				funcs, vars, pkgInits := em.emitPackage(pkg, false, imp.Path)
+				funcs, vars, pkgInits := em.emitPackage(pkg, false, imp.Tree.Path)
 				em.pkg = backupPkg
 				inits = append(inits, pkgInits...)
 				var importName string
@@ -965,7 +965,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					// collateral effects.
 				} else {
 					backupPath := em.fb.getPath()
-					em.fb.changePath(node.Path)
+					em.fb.changePath(node.Tree.Path)
 					backupBuilder := em.fb
 					backupPkg := em.pkg
 					functions, vars, inits := em.emitPackage(node.Tree.Nodes[0].(*ast.Package), false, node.Path)
