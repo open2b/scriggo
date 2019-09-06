@@ -163,11 +163,31 @@ func (ti *TypeInfo) HasValue() bool {
 	return ti.Properties&PropertyHasValue != 0
 }
 
-// setValue sets ti value, whenever possible.
-// TODO(Gianluca): review this doc.
-func (ti *TypeInfo) setValue(t reflect.Type) {
-	typ := t
-	if t == nil || t.Kind() == reflect.Interface {
+// setValue sets the 'value' and 'valueType' fields of 'ti' if this is constant.
+// If ti is not constant, setValue is a no-op.
+//
+// This method should be called at every point where a constant expression is
+// used in a non-constant expression or in a statement.
+//
+// The type of 'value' is determined in the following way:
+//
+//      - if a ctxType is given, the value takes type from the context. This is the
+//      case, for example, of integer constants assigned to float numbers. As a special case,
+//      if context type is interface the type of ti is used.
+//
+//      - if ctxType is nil, the value is implicitly taken from ti. This is the case
+//      of a context that does not provide an explicit type, as a variable
+//      declaration without type.
+//
+// The following examples should clarify the use of this method:
+//
+// 		var i int64 = 20     call setValue on '20'    ctxType = int
+//      x + 3                call setValue on '3'     ctxType = typeof(x)
+//      x + y                no need to call setValue
+//
+func (ti *TypeInfo) setValue(ctxType reflect.Type) {
+	typ := ctxType
+	if ctxType == nil || ctxType.Kind() == reflect.Interface {
 		typ = ti.Type
 	}
 	if ti.IsConstant() {
