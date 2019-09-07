@@ -201,7 +201,10 @@ func (em *emitter) predVarIndex(v reflect.Value, predPkgName, name string) int16
 		return int16(index)
 	}
 	index := len(em.globals)
-	g := Global{Pkg: predPkgName, Name: name, Value: v.Interface(), Type: v.Type().Elem()}
+	g := Global{Pkg: predPkgName, Name: name, Type: v.Type().Elem()}
+	if !v.IsNil() {
+		g.Value = v.Interface()
+	}
 	if em.predefinedVarRefs[em.fb.fn] == nil {
 		em.predefinedVarRefs[em.fb.fn] = make(map[reflect.Value]int)
 	}
