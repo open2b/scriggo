@@ -211,7 +211,8 @@ func newVM(options *RunOptions) *runtime.VM {
 	return vm
 }
 
-// initGlobals initializes the global variables and returns the values.
+// initGlobals initializes the global variables and returns the values. It
+// panics if init is not valid.
 func initGlobals(globals []compiler.Global, init map[string]interface{}) []interface{} {
 	n := len(globals)
 	if n == 0 {
@@ -219,28 +220,36 @@ func initGlobals(globals []compiler.Global, init map[string]interface{}) []inter
 	}
 	values := make([]interface{}, n)
 	for i, global := range globals {
-		if init == nil { // Program.
-			if global.Value == nil {
-				values[i] = reflect.New(global.Type).Interface()
-			} else {
-				values[i] = global.Value
-			}
-		} else { // Script and template.
-			if global.Pkg == "main" {
-				if value, ok := init[global.Name]; ok {
-					if v, ok := value.(reflect.Value); ok {
-						values[i] = v.Addr().Interface()
-					} else {
-						rv := reflect.New(global.Type).Elem()
-						rv.Set(reflect.ValueOf(value))
-						values[i] = rv.Addr().Interface()
-					}
-				} else {
-					values[i] = reflect.New(global.Type).Interface()
+		if global.Pkg == "main" {
+			if value, ok := init[global.Name]; ok {
+				if global.Value != nil {
+					panic(fmt.Sprintf("variable %q already initialized", global.Name))
 				}
-			} else {
-				values[i] = global.Value
+				if value == nil {
+					panic(fmt.Sprintf("variable initializer %q cannot be nil", global.Name))
+				}
+				val := reflect.ValueOf(value)
+				if typ := val.Type(); typ == global.Type {
+					v := reflect.New(typ).Elem()
+					v.Set(val)
+					values[i] = v.Addr().Interface()
+				} else {
+					if typ.Kind() != reflect.Ptr || typ.Elem() != global.Type {
+						panic(fmt.Sprintf("variable initializer %q must have type %s or %s, but have %s",
+							global.Name, global.Type, reflect.PtrTo(global.Type), typ))
+					}
+					if val.IsNil() {
+						panic(fmt.Sprintf("variable initializer %q cannot be a nil pointer", global.Name))
+					}
+					values[i] = value
+				}
+				continue
 			}
+		}
+		if global.Value == nil {
+			values[i] = reflect.New(global.Type).Interface()
+		} else {
+			values[i] = global.Value
 		}
 	}
 	return values

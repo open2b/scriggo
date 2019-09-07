@@ -9,7 +9,6 @@ package test
 import (
 	"bytes"
 	"fmt"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -187,7 +186,7 @@ func TestScriptSum(t *testing.T) {
 			},
 		},
 	}
-	init := map[string]interface{}{"Sum": reflect.ValueOf(&Sum).Elem()}
+	init := map[string]interface{}{"Sum": &Sum}
 	script, err := scriggo.LoadScript(bytes.NewReader([]byte(src)), pkgs, nil)
 	if err != nil {
 		t.Fatalf("unable to load script: %s", err)
@@ -213,7 +212,7 @@ func TestScriptChainMessages(t *testing.T) {
 			},
 		},
 	}
-	init := map[string]interface{}{"Message": reflect.ValueOf(&Message).Elem()}
+	init := map[string]interface{}{"Message": &Message}
 	script1, err := scriggo.LoadScript(bytes.NewReader([]byte(src1)), pkgs, nil)
 	if err != nil {
 		t.Fatalf("unable to load script 1: %s", err)
