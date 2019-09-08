@@ -8,8 +8,9 @@ package scriggo
 
 import (
 	"reflect"
-	"scriggo/internal/compiler"
 	"testing"
+
+	"scriggo/internal/compiler"
 )
 
 func TestInitGlobals(t *testing.T) {
@@ -123,11 +124,10 @@ func TestInitGlobalsAlreadyInitializedError(t *testing.T) {
 
 func TestInitGlobalsNilError(t *testing.T) {
 	defer recoverInitGlobalsPanic(t, "variable initializer \"a\" cannot be nil")
-	n := 2
 	global := compiler.Global{
 		Pkg:  "main",
 		Name: "a",
-		Type: reflect.TypeOf(n),
+		Type: reflect.TypeOf(0),
 	}
 	init := map[string]interface{}{"a": nil}
 	_ = initGlobals([]compiler.Global{global}, init)
