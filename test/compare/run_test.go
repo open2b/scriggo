@@ -56,7 +56,7 @@ func Test_errorcheck(t *testing.T) {
 				`}`,
 			}),
 			ext:   ".go",
-			panic: "error does not match:\n\n\texpecting:  undefined: A\n\tgot:        undefined: a",
+			panic: "output does not match with the given regular expression:\n\n\tregexp:    undefined: A\n\toutput:    undefined: a\n",
 		},
 	}
 
