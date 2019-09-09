@@ -104,32 +104,42 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 		switch n.Type {
 		case ast.AssignmentIncrement, ast.AssignmentDecrement:
-			v := n.Lhs[0]
-			tc.cantBeBlank(v)
-			exprTi := tc.checkExpr(v)
-			if !isNumeric(exprTi.Type.Kind()) {
-				panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", node, exprTi))
+			lh := n.Lhs[0]
+			ti := tc.checkExpr(lh)
+			if ti.Nil() {
+				panic(tc.errorf(n, "cannot assign to nil"))
 			}
-			if indexing, ok := v.(*ast.Index); ok {
-				mapIndexing := tc.typeInfos[indexing.Expr].Type.Kind() == reflect.Map
-				if !mapIndexing {
-					tc.mustBeAddressable(v)
-				}
+			if ti.IsConstant() {
+				panic(tc.errorf(n, "cannot assign to %v", lh))
+			}
+			var addressable bool
+			switch lh := lh.(type) {
+			case *ast.Identifier:
+				addressable = true
+			case *ast.Index:
+				kind := tc.typeInfos[lh.Expr].Type.Kind()
+				addressable = kind == reflect.Map || ti.Addressable()
+			case *ast.Selector:
+				addressable = ti.Addressable()
+			case *ast.UnaryOperator:
+				addressable = lh.Operator() == ast.OperatorMultiplication
+			}
+			if !addressable {
+				panic(tc.errorf(n, "cannot assign to %v", lh))
+			}
+			if !isNumeric(ti.Type.Kind()) {
+				panic(tc.errorf(n, "invalid operation: %v (non-numeric type %s)", n, ti))
 			}
 			// Convert the assignment node from ++ and -- to a simple
 			// assignment. This change has no effects on type checking but
 			// simplifies the emitting of assignment nodes.
 			// a++ is semantically equivalent to a += 1, which is semantically
 			// equivalent to a = a + 1.
-			op := ast.OperatorAddition
-			if n.Type == ast.AssignmentDecrement {
-				op = ast.OperatorSubtraction
-			}
+			op := operatorFromAssignmentType(n.Type)
 			n.Type = ast.AssignmentSimple
-			pos := n.Lhs[0].Pos()
-			right := ast.NewBinaryOperator(pos, op, n.Lhs[0], ast.NewBasicLiteral(pos, ast.IntLiteral, "1"))
-			tc.checkExpr(right)
-			n.Rhs = []ast.Expression{right}
+			rh := ast.NewBinaryOperator(lh.Pos(), op, lh, ast.NewBasicLiteral(lh.Pos(), ast.IntLiteral, "1"))
+			tc.checkExpr(rh)
+			n.Rhs = []ast.Expression{rh}
 			return
 		case ast.AssignmentAddition, ast.AssignmentSubtraction, ast.AssignmentMultiplication,
 			ast.AssignmentDivision, ast.AssignmentModulo, ast.AssignmentAnd, ast.AssignmentOr,
@@ -466,9 +476,9 @@ func (tc *typechecker) mustBeAssignableTo(right ast.Expression, leftType reflect
 // type.
 func operatorFromAssignmentType(assignmentType ast.AssignmentType) ast.OperatorType {
 	switch assignmentType {
-	case ast.AssignmentAddition:
+	case ast.AssignmentAddition, ast.AssignmentIncrement:
 		return ast.OperatorAddition
-	case ast.AssignmentSubtraction:
+	case ast.AssignmentSubtraction, ast.AssignmentDecrement:
 		return ast.OperatorSubtraction
 	case ast.AssignmentMultiplication:
 		return ast.OperatorMultiplication
