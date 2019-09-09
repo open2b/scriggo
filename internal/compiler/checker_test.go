@@ -763,6 +763,25 @@ var checkerStmts = map[string]string{
 	`v1 := 1; v2 := "a"; v1 = v2`:                                   `cannot use v2 (type string) as type int in assignment`,
 	`v := "a"; v[0] = 'b'`:                                          `cannot assign to v[0]`,
 	`v := [...]int{}; v[0] = 5`:                                     ok,
+	`([1]int{0})[0] = 1`:                                            `cannot assign to [1]int literal[0]`,
+	`v := "a"; v[0]++`:                                              `cannot assign to v[0]`,
+	`"a"[0]++`:                                                      `cannot assign to "a"[0]`,
+	`v := [1]int{}; v[0]++`:                                         ok,
+	`v := []int{}; v[0]++`:                                          ok,
+	`v := &[1]int{}; v[0]++`:                                        ok,
+	`([]int{0})[0]++`:                                               ok,
+	`([1]int{0})[0]++`:                                              `cannot assign to [1]int literal[0]`,
+	`v := map[int]int{}; v[0]++`:                                    ok,
+	`(map[int]int{})[0]++`:                                          ok,
+	`(func(){})()++`:                                                `func literal() used as value`, // TODO: gc returns `(func literal)() used as value`
+	// `(func() int { return 0 })()++`:                                 `cannot assign to (func literal)()`,
+	`(func() (int, int) { return 0, 0 })()++`: `multiple-value func literal() in single-value context`,
+	// `nil++`: `cannot assign to nil`, // TODO: panic "runtime error: invalid memory address or nil pointer dereference"
+	`_++`:                `cannot use _ as value`,
+	`const c = 0; c = 1`: `cannot assign to c`,
+	// `const c = 0; c++`: `cannot assign to c`,
+	// `a := 1; ( 1 + a )++`:                                     `cannot assign to 1 + a`,
+	`var a int; b := &a; *b++`: ok,
 
 	// Slicing
 	`_ = []int{1,2,3,4,5}[:]`:             ok,
