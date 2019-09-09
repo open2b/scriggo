@@ -233,7 +233,8 @@ func errorcheck(src []byte, ext string, opts []string) {
 		re := regexp.MustCompile(test.err)
 		stderr = []byte(removePrefixFromError(string(stderr)))
 		if !re.Match(stderr) {
-			panic(fmt.Errorf("error does not match:\n\n\texpecting:  %s\n\tgot:        %s", test.err, stderr))
+			// panic(fmt.Errorf("error does not match:\n\n\texpecting match with:  %s\n\tgot:        %s", test.err, stderr))
+			panic(fmt.Errorf("output does not match with the given regular expression:\n\n\tregexp:    %s\n\toutput:    %s\n", test.err, stderr))
 		}
 	}
 }

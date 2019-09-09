@@ -792,10 +792,11 @@ func (vm *VM) run() (uint32, bool) {
 				t := mv.Type()
 				k := reflect.New(t.Key()).Elem()
 				vm.getIntoReflectValue(b, k, op < 0)
-				elem := mv.MapIndex(k)
-				vm.ok = elem.IsValid()
-				if !vm.ok {
-					elem = reflect.Zero(t.Elem())
+				elem := reflect.New(t.Elem()).Elem()
+				index := mv.MapIndex(k)
+				vm.ok = index.IsValid()
+				if vm.ok {
+					elem.Set(index)
 				}
 				vm.setFromReflectValue(c, elem)
 			}
