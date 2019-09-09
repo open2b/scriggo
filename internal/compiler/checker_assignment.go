@@ -20,6 +20,9 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	var rhs []ast.Expression
 	var declTi *TypeInfo
 
+	// isVariableDecl indicates if node is:
+	//   - an *ast.Var declaration
+	//   - an *ast.Assignment with ':='
 	var isVariableDecl bool
 	var isConstDecl bool
 	var isAssignmentNode bool
