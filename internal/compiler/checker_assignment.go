@@ -16,12 +16,13 @@ import (
 // and fills the scope, if necessary.
 func (tc *typechecker) checkAssignment(node ast.Node) {
 
-	lhs := []ast.Expression{}
-	rhs := []ast.Expression{}
-	declType := (*TypeInfo)(nil)
-	isVariableDecl := false
-	isConstDecl := false
-	isAssignmentNode := false
+	var lhs []ast.Expression
+	var rhs []ast.Expression
+	var declTi *TypeInfo
+
+	var isVariableDecl bool
+	var isConstDecl bool
+	var isAssignmentNode bool
 
 	if tc.lastConstPosition != node.Pos() {
 		tc.iota = -1
@@ -31,69 +32,70 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 	case *ast.Var:
 
-		rhs = n.Rhs
-		isVariableDecl = true
 		if n.Type != nil {
-			declType = tc.checkType(n.Type)
-		}
-		if len(rhs) == 0 {
-			for i := range n.Lhs {
-				zero := &TypeInfo{Type: declType.Type}
-				zeroExpr := ast.NewPlaceholder()
-				tc.typeInfos[zeroExpr] = zero
-				newVar := tc.assign(node, n.Lhs[i], zeroExpr, declType, true, false)
-				if newVar == "" && !isBlankIdentifier(n.Lhs[i]) {
-					panic(tc.errorf(node, "%s redeclared in this block", n.Lhs[i]))
+			declTi = tc.checkType(n.Type)
+			if len(n.Rhs) == 0 {
+				typ := declTi.Type
+				for i := range n.Lhs {
+					ph := ast.NewPlaceholder()
+					tc.typeInfos[ph] = &TypeInfo{Type: typ}
+					newVar := tc.assign(node, n.Lhs[i], ph, declTi, true, false)
+					if newVar == "" && !isBlankIdentifier(n.Lhs[i]) {
+						panic(tc.errorf(node, "%s redeclared in this block", n.Lhs[i]))
+					}
 				}
-			}
-			// Replaces the type node with a value holding a reflect.Type.
-			k := declType.Type.Kind()
-			n.Rhs = make([]ast.Expression, len(n.Lhs))
-			for i := range n.Lhs {
-				n.Rhs[i] = ast.NewPlaceholder()
-				switch {
-				case isNumeric(k):
-					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: declType.Type, Constant: int64Const(0), Properties: PropertyUntyped}
-					tc.typeInfos[n.Rhs[i]].setValue(declType.Type)
-				case k == reflect.String:
-					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: declType.Type, Constant: stringConst(""), Properties: PropertyUntyped}
-					tc.typeInfos[n.Rhs[i]].setValue(declType.Type)
-				case k == reflect.Bool:
-					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: declType.Type, Constant: boolConst(false), Properties: PropertyUntyped}
-					tc.typeInfos[n.Rhs[i]].setValue(declType.Type)
-				case k == reflect.Interface,
-					k == reflect.Func:
-					tc.typeInfos[n.Rhs[i]] = nilOf(declType.Type)
-				default:
-					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: declType.Type, value: reflect.Zero(declType.Type).Interface(), Properties: PropertyHasValue}
-					tc.typeInfos[n.Rhs[i]].setValue(declType.Type)
+				k := typ.Kind()
+				n.Rhs = make([]ast.Expression, len(n.Lhs))
+				for i := range n.Lhs {
+					var ti *TypeInfo
+					switch {
+					case reflect.Int <= k && k <= reflect.Complex128:
+						ti = &TypeInfo{Type: typ, Constant: int64Const(0), Properties: PropertyUntyped}
+						ti.setValue(typ)
+					case k == reflect.String:
+						ti = &TypeInfo{Type: typ, Constant: stringConst(""), Properties: PropertyUntyped}
+						ti.setValue(typ)
+					case k == reflect.Bool:
+						ti = &TypeInfo{Type: typ, Constant: boolConst(false), Properties: PropertyUntyped}
+						ti.setValue(typ)
+					case k == reflect.Interface, k == reflect.Func:
+						ti = nilOf(typ)
+					default:
+						ti = &TypeInfo{Type: typ, value: reflect.Zero(typ).Interface(), Properties: PropertyHasValue}
+						ti.setValue(typ)
+					}
+					n.Rhs[i] = ast.NewPlaceholder()
+					tc.typeInfos[n.Rhs[i]] = ti
 				}
+				return
 			}
-			return
 		}
+
+		isVariableDecl = true
 		lhs = make([]ast.Expression, len(n.Lhs))
 		for i, ident := range n.Lhs {
 			lhs[i] = ident
 		}
+		rhs = n.Rhs
 
 	case *ast.Const:
 
-		rhs = n.Rhs
 		isConstDecl = true
 		if n.Type != nil {
-			declType = tc.checkType(n.Type)
+			declTi = tc.checkType(n.Type)
 		}
 		tc.lastConstPosition = node.Pos()
-		if len(n.Lhs) > len(rhs) {
+		if len(n.Lhs) != len(n.Rhs) {
+			if len(n.Lhs) < len(n.Rhs) {
+				panic(tc.errorf(node, "extra expression in const declaration"))
+			}
 			panic(tc.errorf(node, "missing value in const declaration"))
-		}
-		if len(n.Lhs) < len(rhs) {
-			panic(tc.errorf(node, "extra expression in const declaration"))
 		}
 		lhs = make([]ast.Expression, len(n.Lhs))
 		for i, ident := range n.Lhs {
 			lhs[i] = ident
 		}
+		rhs = n.Rhs
 
 	case *ast.Assignment:
 
@@ -129,32 +131,8 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		case ast.AssignmentAddition, ast.AssignmentSubtraction, ast.AssignmentMultiplication,
 			ast.AssignmentDivision, ast.AssignmentModulo, ast.AssignmentAnd, ast.AssignmentOr,
 			ast.AssignmentXor, ast.AssignmentAndNot, ast.AssignmentLeftShift, ast.AssignmentRightShift:
-			var op ast.OperatorType
-			switch n.Type {
-			case ast.AssignmentAddition:
-				op = ast.OperatorAddition
-			case ast.AssignmentSubtraction:
-				op = ast.OperatorSubtraction
-			case ast.AssignmentMultiplication:
-				op = ast.OperatorMultiplication
-			case ast.AssignmentDivision:
-				op = ast.OperatorDivision
-			case ast.AssignmentModulo:
-				op = ast.OperatorModulo
-			case ast.AssignmentAnd:
-				op = ast.OperatorAnd
-			case ast.AssignmentOr:
-				op = ast.OperatorOr
-			case ast.AssignmentXor:
-				op = ast.OperatorXor
-			case ast.AssignmentAndNot:
-				op = ast.OperatorAndNot
-			case ast.AssignmentLeftShift:
-				op = ast.OperatorLeftShift
-			case ast.AssignmentRightShift:
-				op = ast.OperatorRightShift
-			}
 			tc.cantBeBlank(n.Lhs[0])
+			var op = operatorFromAssignmentType(n.Type)
 			_, err := tc.binaryOp(n.Lhs[0], op, n.Rhs[0])
 			if err != nil {
 				panic(tc.errorf(n, "invalid operation: %v (%s)", n, err))
@@ -171,6 +149,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			n.Type = ast.AssignmentSimple
 			return
 		}
+
 		lhs = n.Lhs
 		rhs = n.Rhs
 		isVariableDecl = n.Type == ast.AssignmentDeclaration
@@ -179,8 +158,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	}
 
 	if len(lhs) >= 2 && len(rhs) == 1 {
-		call, ok := rhs[0].(*ast.Call)
-		if ok {
+		if call, ok := rhs[0].(*ast.Call); ok {
 			tis, isBuiltin, _ := tc.checkCallExpression(call, false)
 			if len(lhs) != len(tis) {
 				if isBuiltin {
@@ -188,38 +166,31 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 				}
 				panic(tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(lhs), call, len(rhs)))
 			}
-			rhs = nil
-			for _, ti := range tis {
-				newCall := ast.NewCall(call.Pos(), call.Func, call.Args, false)
-				tc.typeInfos[newCall] = ti
-				rhs = append(rhs, newCall)
+			rhs = make([]ast.Expression, len(tis))
+			for i, ti := range tis {
+				rhs[i] = ast.NewCall(call.Pos(), call.Func, call.Args, false)
+				tc.typeInfos[rhs[i]] = ti
 			}
 		}
 	}
 
 	if len(lhs) == 2 && len(rhs) == 1 {
 		switch v := rhs[0].(type) {
-
 		case *ast.TypeAssertion:
-
 			v1 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
 			v2 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
 			ti := tc.checkExpr(rhs[0])
 			tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
 			tc.typeInfos[v2] = untypedBoolTypeInfo
 			rhs = []ast.Expression{v1, v2}
-
 		case *ast.Index:
-
 			v1 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			v2 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			ti := tc.checkExpr(rhs[0])
 			tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
 			tc.typeInfos[v2] = untypedBoolTypeInfo
 			rhs = []ast.Expression{v1, v2}
-
 		case *ast.UnaryOperator:
-
 			if v.Op == ast.OperatorReceive {
 				v1 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
 				v2 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
@@ -228,7 +199,6 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 				tc.typeInfos[v2] = untypedBoolTypeInfo
 				rhs = []ast.Expression{v1, v2}
 			}
-
 		}
 	}
 
@@ -236,7 +206,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(lhs), len(rhs)))
 	}
 
-	newVars := []string{}
+	var newVars []string
 	tmpScope := typeCheckerScope{}
 	for i := range lhs {
 		if isConstDecl {
@@ -244,13 +214,16 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		}
 		var newVar string
 		if valueTi := tc.typeInfos[rhs[i]]; valueTi == nil {
-			newVar = tc.assign(node, lhs[i], rhs[i], declType, isVariableDecl, isConstDecl)
+			newVar = tc.assign(node, lhs[i], rhs[i], declTi, isVariableDecl, isConstDecl)
 		} else {
 			ph := ast.NewPlaceholder()
 			tc.typeInfos[ph] = valueTi
-			newVar = tc.assign(node, lhs[i], ph, declType, isVariableDecl, isConstDecl)
+			newVar = tc.assign(node, lhs[i], ph, declTi, isVariableDecl, isConstDecl)
 		}
 		if isVariableDecl || isConstDecl {
+			if !isAssignmentNode && newVar == "" && !isBlankIdentifier(lhs[i]) {
+				panic(tc.errorf(node, "%s redeclared in this block", lhs[i]))
+			}
 			ti, _ := tc.lookupScopes(newVar, true)
 			tmpScope[newVar] = scopeElement{t: ti, decl: lhs[i].(*ast.Identifier)}
 			if len(tc.scopes) > 0 {
@@ -258,9 +231,6 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			} else {
 				delete(tc.filePackageBlock, newVar)
 			}
-		}
-		if (isVariableDecl || isConstDecl) && !isAssignmentNode && newVar == "" && !isBlankIdentifier(lhs[i]) {
-			panic(tc.errorf(node, "%s redeclared in this block", lhs[i]))
 		}
 		for _, v := range newVars {
 			if newVar == v {
@@ -280,8 +250,8 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	for d, ti := range tmpScope {
 		tc.assignScope(d, ti.t, ti.decl)
 	}
-	return
 
+	return
 }
 
 // assign assigns rightExpr to leftExpr. If right is not nil, then is used
@@ -487,4 +457,34 @@ func (tc *typechecker) mustBeAssignableTo(right ast.Expression, leftType reflect
 	if err := isAssignableTo(ti, right, leftType); err != nil {
 		panic(tc.errorf(right, "%s in assignment", err))
 	}
+}
+
+// operatorFromAssignmentType returns an operator type from an assignment
+// type.
+func operatorFromAssignmentType(assignmentType ast.AssignmentType) ast.OperatorType {
+	switch assignmentType {
+	case ast.AssignmentAddition:
+		return ast.OperatorAddition
+	case ast.AssignmentSubtraction:
+		return ast.OperatorSubtraction
+	case ast.AssignmentMultiplication:
+		return ast.OperatorMultiplication
+	case ast.AssignmentDivision:
+		return ast.OperatorDivision
+	case ast.AssignmentModulo:
+		return ast.OperatorModulo
+	case ast.AssignmentAnd:
+		return ast.OperatorAnd
+	case ast.AssignmentOr:
+		return ast.OperatorOr
+	case ast.AssignmentXor:
+		return ast.OperatorXor
+	case ast.AssignmentAndNot:
+		return ast.OperatorAndNot
+	case ast.AssignmentLeftShift:
+		return ast.OperatorLeftShift
+	case ast.AssignmentRightShift:
+		return ast.OperatorRightShift
+	}
+	panic("unexpected assignment type")
 }
