@@ -414,11 +414,15 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 	case *ast.Index:
 
 		left := tc.checkExpr(leftExpr)
-		switch left.Type.Kind() {
-		case reflect.Slice, reflect.Map:
-			// Always addressable when used in indexing operation.
+		ti := tc.typeInfos[leftExpr.Expr]
+		switch ti.Type.Kind() {
 		case reflect.Array:
 			tc.mustBeAddressable(leftExpr)
+		case reflect.String:
+			panic(tc.errorf(node, "cannot assign to %v", leftExpr))
+		default:
+			// Slices, maps and pointers to array are always addressable when
+			// used in indexing operation.
 		}
 		tc.mustBeAssignableTo(rightExpr, left.Type)
 		right.setValue(left.Type)

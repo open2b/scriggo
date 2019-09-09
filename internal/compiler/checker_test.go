@@ -761,6 +761,8 @@ var checkerStmts = map[string]string{
 	`len = 0`:                                                       `use of builtin len not in function call`,
 	`v = 1`:                                                         undefined("v"),
 	`v1 := 1; v2 := "a"; v1 = v2`:                                   `cannot use v2 (type string) as type int in assignment`,
+	`v := "a"; v[0] = 'b'`:                                          `cannot assign to v[0]`,
+	`v := [...]int{}; v[0] = 5`:                                     ok,
 
 	// Slicing
 	`_ = []int{1,2,3,4,5}[:]`:             ok,
