@@ -1025,7 +1025,7 @@ const (
 	String      = Kind(reflect.String)
 	Func        = Kind(reflect.Func)
 	Interface   = Kind(reflect.Interface)
-	Unknown     = 254
+	Unknown     = 254 // https://github.com/open2b/scriggo/issues/390
 	Environment = 255
 )
 

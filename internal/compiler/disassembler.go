@@ -490,7 +490,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 	case runtime.OpMakeSlice:
 		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
-		// TODO(Gianluca).
+		// https://github.com/open2b/scriggo/issues/387
 		// s += "\t; len: "
 		// s += fmt.Sprintf("%d", fn.Body[addr+1].A)
 		// s += ", cap: "
@@ -654,7 +654,7 @@ func registerKindToLabel(kind runtime.Kind) string {
 	case runtime.String:
 		return "s"
 	case runtime.Unknown:
-		return "?" // TODO(Gianluca): review.
+		return "?" // https://github.com/open2b/scriggo/issues/390
 	default:
 		return "g"
 	}
@@ -677,7 +677,7 @@ func disassembleOperand(fn *runtime.Function, op int8, kind runtime.Kind, consta
 		case kind == runtime.String:
 			return strconv.Quote(fn.Constants.String[uint8(op)])
 		case kind == runtime.Unknown:
-			return "?"
+			return "?" // https://github.com/open2b/scriggo/issues/390
 		default:
 			v := fn.Constants.General[uint8(op)]
 			if v == nil {

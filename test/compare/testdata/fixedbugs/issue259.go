@@ -44,8 +44,7 @@ func test4() {
 	}
 }
 
-//// TODO(Gianluca): reports error: undefined x. See
-//// https://github.com/open2b/scriggo/issues/298.
+// https://github.com/open2b/scriggo/issues/298
 //
 // func test5() {
 //  var i interface{}
@@ -62,5 +61,5 @@ func main() {
 	test2()
 	test3()
 	test4()
-	//test5()
+	//test5() // https://github.com/open2b/scriggo/issues/298
 }

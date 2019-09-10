@@ -179,7 +179,7 @@ func (r MapReader) Read(path string) ([]byte, error) {
 	if !compiler.ValidPath(path) {
 		return nil, ErrInvalidPath
 	}
-	// TODO (Gianluca): to review.
+	// https://github.com/open2b/scriggo/issues/386
 	// if path[0] == '/' {
 	// 	path = path[1:]
 	// }

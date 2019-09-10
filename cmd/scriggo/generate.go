@@ -282,7 +282,7 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 		Mode: 1023,
 	}
 	if goos != "" {
-		// TODO(Gianluca): enable support for different GOOSes.
+		// https://github.com/open2b/scriggo/issues/388
 		//  conf.Env = append(os.Environ(), "GOOS=", goos)
 	}
 
