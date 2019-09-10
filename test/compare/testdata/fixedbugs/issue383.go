@@ -12,24 +12,22 @@ func main() {
 
 	Println("Simple slice expressions")
 	{
-		// TODO:
-		// a := [4]int{4, 5, 6, 7}
-		// pa := &a
-		// s := pa[3:4]
-		// Println(s, len(s), cap(s))
-		// Println(pa[:])
-		// Println((*pa)[1:2])
+		a := [4]int{4, 5, 6, 7}
+		pa := &a
+		s := pa[3:4]
+		Println(s, len(s), cap(s))
+		Println(pa[:])
+		Println((*pa)[1:2])
 	}
 
 	Println("Full slice expressions")
 	{
-		// TODO:
-		// a := [4]int{4, 5, 6, 7}
-		// pa := &a
-		// s := pa[3:4:4]
-		// Println(s, len(s), cap(s))
-		// Println(pa[:2:3])
-		// Println((*pa)[1:2:4])
+		a := [4]int{4, 5, 6, 7}
+		pa := &a
+		s := pa[3:4:4]
+		Println(s, len(s), cap(s))
+		Println(pa[:2:3])
+		Println((*pa)[1:2:4])
 	}
 
 	Println("Selectors")

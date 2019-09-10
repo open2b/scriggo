@@ -1020,6 +1020,16 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		if hv != nil && mv != nil && hv.int64() > mv.int64() {
 			panic(tc.errorf(expr, "invalid slice index: %d > %d", hv, mv))
 		}
+		// Transform the tree: if a is a pointer to an array, a[low : high] is
+		// shorthand for (*a)[low : high]; also, if a is a pointer to an array,
+		// a[low : high : max] is shorthand for (*a)[low : high : max].
+		if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Array {
+			unOp := ast.NewUnaryOperator(expr.Expr.Pos(), ast.OperatorMultiplication, expr.Expr)
+			tc.typeInfos[unOp] = &TypeInfo{
+				Type: t.Type.Elem(),
+			}
+			expr.Expr = unOp
+		}
 		switch kind {
 		case reflect.String, reflect.Slice:
 			return &TypeInfo{Type: t.Type}
