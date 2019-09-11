@@ -15,90 +15,122 @@ import (
 	"scriggo/template"
 )
 
-var templateCases = map[string]struct {
-	src  string
-	out  string
-	main *scriggo.MapPackage
-	vars map[string]interface{}
+var templateMultiPageCases = map[string]struct {
+	sources  map[string]string
+	expected string
+	main     *scriggo.MapPackage
+	vars     map[string]interface{}
 }{
+
 	"Empty template": {
-		src: ``,
+		sources: map[string]string{
+			"/index.html": ``,
+		},
 	},
 	"Text only": {
-		src: `Hello, world!`,
-		out: `Hello, world!`,
+		sources: map[string]string{
+			"/index.html": `Hello, world!`,
+		},
+		expected: `Hello, world!`,
 	},
 
 	"Template comments": {
-		src: `{# this is a comment #}`,
-		out: ``,
+		sources: map[string]string{
+			"/index.html": `{# this is a comment #}`,
+		},
+		expected: ``,
 	},
 
 	"Template comments with text": {
-		src: `Text before comment{# comment #} text after comment{# another comment #}`,
-		out: `Text before comment text after comment`,
+		sources: map[string]string{
+			"/index.html": `Text before comment{# comment #} text after comment{# another comment #}`,
+		},
+		expected: `Text before comment text after comment`,
 	},
 
 	"'Show' node only": {
-		src: `{{ "i am a show" }}`,
-		out: `i am a show`,
+		sources: map[string]string{
+			"/index.html": `{{ "i am a show" }}`,
+		},
+		expected: `i am a show`,
 	},
 
 	"Text and show": {
-		src: `Hello, {{ "world" }}!!`,
-		out: `Hello, world!!`,
+		sources: map[string]string{
+			"/index.html": `Hello, {{ "world" }}!!`,
+		},
+		expected: `Hello, world!!`,
 	},
 
 	"If statements - true": {
-		src: `{% if true %}true{% else %}false{% end %}`,
-		out: `true`,
+		sources: map[string]string{
+			"/index.html": `{% if true %}true{% else %}false{% end %}`,
+		},
+		expected: `true`,
 	},
 
 	"If statements - false": {
-		src: `{% if !true %}true{% else %}false{% end %}`,
-		out: `false`,
+		sources: map[string]string{
+			"/index.html": `{% if !true %}true{% else %}false{% end %}`,
+		},
+		expected: `false`,
 	},
 
 	"Variable declarations": {
-		src: `{% var a = 10 %}{% var b = 20 %}{{ a + b }}`,
-		out: "30",
+		sources: map[string]string{
+			"/index.html": `{% var a = 10 %}{% var b = 20 %}{{ a + b }}`,
+		},
+		expected: "30",
 	},
 
 	"For loop": {
-		src: "For loop: {% for i := 0; i < 5; i++ %}{{ i }}, {% end %}",
-		out: "For loop: 0, 1, 2, 3, 4, ",
+		sources: map[string]string{
+			"/index.html": "For loop: {% for i := 0; i < 5; i++ %}{{ i }}, {% end %}",
+		},
+		expected: "For loop: 0, 1, 2, 3, 4, ",
 	},
 
 	"Template builtin - max": {
-		src: `Maximum between 10 and -3 is {{ max(10, -3) }}`,
-		out: `Maximum between 10 and -3 is 10`,
+		sources: map[string]string{
+			"/index.html": `Maximum between 10 and -3 is {{ max(10, -3) }}`,
+		},
+		expected: `Maximum between 10 and -3 is 10`,
 	},
 
 	"Template builtin - sort": {
-		src: `{% s := []string{"a", "c", "b"} %}{{ s }} sorted is {% sort(s) %}{{ s }}`,
-		out: `a, c, b sorted is a, b, c`,
+		sources: map[string]string{
+			"/index.html": `{% s := []string{"a", "c", "b"} %}{{ s }} sorted is {% sort(s) %}{{ s }}`,
+		},
+		expected: `a, c, b sorted is a, b, c`,
 	},
 
 	"Function call": {
-		src: `{% func() { print(5) }() %}`,
-		out: `5`,
+		sources: map[string]string{
+			"/index.html": `{% func() { print(5) }() %}`,
+		},
+		expected: `5`,
 	},
 
 	"Multi rows": {
-		src: `{%
+		sources: map[string]string{
+			"/index.html": `{%
 	print(3) %}`,
-		out: `3`,
+		},
+		expected: `3`,
 	},
 
 	"Multi rows 2": {
-		src: `{%
+		sources: map[string]string{
+			"/index.html": `{%
 	print(3)
 %}`,
-		out: `3`,
+		},
+		expected: `3`,
 	},
 
 	"Multi rows with comments": {
-		src: `{%
+		sources: map[string]string{
+			"/index.html": `{%
 // pre comment
 /* pre comment */
 	print(3)
@@ -106,33 +138,40 @@ var templateCases = map[string]struct {
 // post comment
 
 %}`,
-		out: `3`,
+		},
+		expected: `3`,
 	},
 
 	"Using a function declared in main": {
-		src: `calling f: {{ f() }}, done!`,
+		sources: map[string]string{
+			"/index.html": `calling f: {{ f() }}, done!`,
+		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"f": func() string { return "i'm f!" },
 			},
 		},
-		out: `calling f: i'm f!, done!`,
+		expected: `calling f: i'm f!, done!`,
 	},
 
 	"Reading a variable declared in main": {
-		src: `{{ mainVar }}`,
+		sources: map[string]string{
+			"/index.html": `{{ mainVar }}`,
+		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"mainVar": (*int)(nil),
 			},
 		},
-		out: `0`,
+		expected: `0`,
 	},
 
 	"Reading a variable declared in main and initialized with vars": {
-		src: `{{ initMainVar }}`,
+		sources: map[string]string{
+			"/index.html": `{{ initMainVar }}`,
+		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
@@ -142,11 +181,13 @@ var templateCases = map[string]struct {
 		vars: map[string]interface{}{
 			"initMainVar": 42,
 		},
-		out: `42`,
+		expected: `42`,
 	},
 
 	"Calling a builtin function": {
-		src: `{{ lowercase("HellO ScrIgGo!") }}{% x := "A String" %}{{ lowercase(x) }}`,
+		sources: map[string]string{
+			"/index.html": `{{ lowercase("HellO ScrIgGo!") }}{% x := "A String" %}{{ lowercase(x) }}`,
+		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
@@ -155,11 +196,13 @@ var templateCases = map[string]struct {
 				},
 			},
 		},
-		out: `hello scriggo!a string`,
+		expected: `hello scriggo!a string`,
 	},
 
 	"Calling a function stored in a builtin variable": {
-		src: `{{ lowercase("HellO ScrIgGo!") }}{% x := "A String" %}{{ lowercase(x) }}`,
+		sources: map[string]string{
+			"/index.html": `{{ lowercase("HellO ScrIgGo!") }}{% x := "A String" %}{{ lowercase(x) }}`,
+		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
@@ -171,11 +214,13 @@ var templateCases = map[string]struct {
 				return strings.ToLower(s)
 			},
 		},
-		out: `hello scriggo!a string`,
+		expected: `hello scriggo!a string`,
 	},
 
 	"https://github.com/open2b/scriggo/issues/391": {
-		src: `{{ a }}{{ b }}`,
+		sources: map[string]string{
+			"/index.html": `{{ a }}{{ b }}`,
+		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
@@ -187,126 +232,118 @@ var templateCases = map[string]struct {
 			"a": "AAA",
 			"b": "BBB",
 		},
-		out: `AAABBB`,
+		expected: `AAABBB`,
 	},
 
 	"Macro definition (no arguments)": {
-		src: `Macro def: {% macro M %}M's body{% end %}end.`,
-		out: `Macro def: end.`,
+		sources: map[string]string{
+			"/index.html": `Macro def: {% macro M %}M's body{% end %}end.`,
+		},
+		expected: `Macro def: end.`,
 	},
 
 	"Macro definition (no arguments) and show-macro": {
-		src: `{% macro M %}body{% end %}{% show M %}`,
-		out: `body`,
+		sources: map[string]string{
+			"/index.html": `{% macro M %}body{% end %}{% show M %}`,
+		},
+		expected: `body`,
 	},
 
 	"Macro definition (with arguments)": {
-		src: `{% macro M(v int) %}v is {{ v }}{% end %}`,
+		sources: map[string]string{
+			"/index.html": `{% macro M(v int) %}v is {{ v }}{% end %}`,
+		},
 	},
 
 	"Macro definition (with one string argument) and show-macro": {
-		src: `{% macro M(v string) %}v is {{ v }}{% end %}{% show M("msg") %}`,
-		out: `v is msg`,
+		sources: map[string]string{
+			"/index.html": `{% macro M(v string) %}v is {{ v }}{% end %}{% show M("msg") %}`,
+		},
+		expected: `v is msg`,
 	},
 
 	"Macro definition (with two string arguments) and show-macro": {
-		src: `{% macro M(a, b string) %}a is {{ a }} and b is {{ b }}{% end %}{% show M("avalue", "bvalue") %}`,
-		out: `a is avalue and b is bvalue`,
+		sources: map[string]string{
+			"/index.html": `{% macro M(a, b string) %}a is {{ a }} and b is {{ b }}{% end %}{% show M("avalue", "bvalue") %}`,
+		},
+		expected: `a is avalue and b is bvalue`,
 	},
 
 	"Macro definition (with one int argument) and show-macro": {
-		src: `{% macro M(v int) %}v is {{ v }}{% end %}{% show M(42) %}`,
-		out: `v is 42`,
+		sources: map[string]string{
+			"/index.html": `{% macro M(v int) %}v is {{ v }}{% end %}{% show M(42) %}`,
+		},
+		expected: `v is 42`,
 	},
 
 	"Macro definition (with one []int argument) and show-macro": {
-		src: `{% macro M(v []int) %}v is {{ v }}{% end %}{% show M([]int{42}) %}`,
-		out: `v is 42`,
+		sources: map[string]string{
+			"/index.html": `{% macro M(v []int) %}v is {{ v }}{% end %}{% show M([]int{42}) %}`,
+		},
+		expected: `v is 42`,
 	},
 
 	"Two macro definitions": {
-		src: `{% macro M1 %}M1's body{% end %}{% macro M2(i int, s string) %}i: {{ i }}, s: {{ s }}{% end %}`,
+		sources: map[string]string{
+			"/index.html": `{% macro M1 %}M1's body{% end %}{% macro M2(i int, s string) %}i: {{ i }}, s: {{ s }}{% end %}`,
+		},
 	},
 
 	"Two macro definitions and three show-macro": {
-		src: `{% macro M1 %}M1's body{% end %}{% macro M2(i int, s string) %}i: {{ i }}, s: {{ s }}{% end %}Show macro: {% show M1 %} {% show M2(-30, "hello") %} ... {% show M1 %}`,
-		out: `Show macro: M1's body i: -30, s: hello ... M1's body`,
+		sources: map[string]string{
+			"/index.html": `{% macro M1 %}M1's body{% end %}{% macro M2(i int, s string) %}i: {{ i }}, s: {{ s }}{% end %}Show macro: {% show M1 %} {% show M2(-30, "hello") %} ... {% show M1 %}`,
+		},
+		expected: `Show macro: M1's body i: -30, s: hello ... M1's body`,
 	},
 
 	"Macro definition and show-macro without parameters": {
-		src: `{% macro M %}ok{% end %}{% show M() %}`,
-		out: `ok`,
+		sources: map[string]string{
+			"/index.html": `{% macro M %}ok{% end %}{% show M() %}`,
+		},
+		expected: `ok`,
 	},
 
 	"Macro definition and show-macro without parentheses": {
-		src: `{% macro M %}ok{% end %}{% show M %}`,
-		out: `ok`,
+		sources: map[string]string{
+			"/index.html": `{% macro M %}ok{% end %}{% show M %}`,
+		},
+		expected: `ok`,
 	},
 
 	"Macro definition and show-macro variadic": {
-		src: `{% macro M(v ...int) %}{% for _ , i := range v %}{{ i }}{% end for %}{% end macro %}{% show M([]int{1,2,3}...) %}`,
-		out: `123`,
+		sources: map[string]string{
+			"/index.html": `{% macro M(v ...int) %}{% for _ , i := range v %}{{ i }}{% end for %}{% end macro %}{% show M([]int{1,2,3}...) %}`,
+		},
+		expected: `123`,
 	},
 
 	"Template builtin - title": {
-		src: `{% s := "hello, world" %}{{ s }} converted to title is {{ title(s) }}`,
-		out: `hello, world converted to title is Hello, World`,
+		sources: map[string]string{
+			"/index.html": `{% s := "hello, world" %}{{ s }} converted to title is {{ title(s) }}`,
+		},
+		expected: `hello, world converted to title is Hello, World`,
 	},
 
 	"Label for": {
-		src: `{% L: for %}a{% break L %}b{% end for %}`,
-		out: `a`,
+		sources: map[string]string{
+			"/index.html": `{% L: for %}a{% break L %}b{% end for %}`,
+		},
+		expected: `a`,
 	},
 
 	"Label switch": {
-		src: `{% L: switch 1 %}{% case 1 %}a{% break L %}b{% end switch %}`,
-		out: `a`,
+		sources: map[string]string{
+			"/index.html": `{% L: switch 1 %}{% case 1 %}a{% break L %}b{% end switch %}`,
+		},
+		expected: `a`,
 	},
 
 	"ShowMacro of a not-defined macro with 'or ignore' option": {
-		src: `Ignored macro: {% show M or ignore %} ok.`,
-		out: `Ignored macro:  ok.`,
+		sources: map[string]string{
+			"/index.html": `Ignored macro: {% show M or ignore %} ok.`,
+		},
+		expected: `Ignored macro:  ok.`,
 	},
-}
-
-func TestTemplate(t *testing.T) {
-	for name, cas := range templateCases {
-		t.Run(name, func(t *testing.T) {
-			r := template.MapReader{"/main": []byte(cas.src)}
-			builtins := template.Builtins()
-			if cas.main != nil {
-				b := scriggo.MapPackage{
-					PkgName:      "main",
-					Declarations: map[string]interface{}{},
-				}
-				for _, name := range builtins.DeclarationNames() {
-					b.Declarations[name] = builtins.Lookup(name)
-				}
-				for k, v := range cas.main.Declarations {
-					b.Declarations[k] = v
-				}
-				builtins = &b
-			}
-			templ, err := template.Load("/main", r, builtins, template.ContextText, nil)
-			if err != nil {
-				t.Fatalf("loading error: %s", err)
-			}
-			w := &bytes.Buffer{}
-			err = templ.Render(w, cas.vars, &template.RenderOptions{PrintFunc: scriggo.PrintFunc(w)})
-			if err != nil {
-				t.Fatalf("rendering error: %s", err)
-			}
-			if cas.out != w.String() {
-				t.Fatalf("expecting %q, got %q", cas.out, w.String())
-			}
-		})
-	}
-}
-
-var templateMultiPageCases = map[string]struct {
-	sources  map[string]string
-	expected string
-}{
 
 	"Include - Only text": {
 		sources: map[string]string{
@@ -483,12 +520,26 @@ func TestMultiPageTemplate(t *testing.T) {
 			for p, src := range cas.sources {
 				r[p] = []byte(src)
 			}
-			templ, err := template.Load("/index.html", r, template.Builtins(), template.ContextText, nil)
+			builtins := template.Builtins()
+			if cas.main != nil {
+				b := scriggo.MapPackage{
+					PkgName:      "main",
+					Declarations: map[string]interface{}{},
+				}
+				for _, name := range builtins.DeclarationNames() {
+					b.Declarations[name] = builtins.Lookup(name)
+				}
+				for k, v := range cas.main.Declarations {
+					b.Declarations[k] = v
+				}
+				builtins = &b
+			}
+			templ, err := template.Load("/index.html", r, builtins, template.ContextText, nil)
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
 			w := &bytes.Buffer{}
-			err = templ.Render(w, nil, nil)
+			err = templ.Render(w, cas.vars, &template.RenderOptions{PrintFunc: scriggo.PrintFunc(w)})
 			if err != nil {
 				t.Fatalf("rendering error: %s", err)
 			}
