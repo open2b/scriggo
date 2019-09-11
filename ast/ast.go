@@ -427,7 +427,7 @@ type Upvar struct {
 
 	// PredefinedValue is the value of the predefined variable Upvar. If Upvar
 	// is not a predefined then Upvar is nil.
-	PredefinedValue reflect.Value
+	PredefinedValue *reflect.Value
 
 	// Declaration is the ast node where Upvar is defined. If Upvar is a
 	// predefined var then Declaration is nil.

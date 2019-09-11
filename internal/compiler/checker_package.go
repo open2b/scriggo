@@ -30,9 +30,10 @@ func toTypeCheckerScope(gp predefinedPackage) typeCheckerScope {
 		}
 		// Import a variable.
 		if reflect.TypeOf(value).Kind() == reflect.Ptr {
+			v := reflect.ValueOf(value)
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:              reflect.TypeOf(value).Elem(),
-				value:             reflect.ValueOf(value),
+				value:             &v,
 				Properties:        PropertyAddressable | PropertyIsPredefined | PropertyHasValue,
 				PredefPackageName: pkgName,
 			}}

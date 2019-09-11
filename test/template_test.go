@@ -174,6 +174,22 @@ var templateCases = map[string]struct {
 		out: `hello scriggo!a string`,
 	},
 
+	"https://github.com/open2b/scriggo/issues/391": {
+		src: `{{ a }}{{ b }}`,
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"a": (*string)(nil),
+				"b": (*string)(nil),
+			},
+		},
+		vars: map[string]interface{}{
+			"a": "AAA",
+			"b": "BBB",
+		},
+		out: `AAABBB`,
+	},
+
 	"Macro definition (no arguments)": {
 		src: `Macro def: {% macro M %}M's body{% end %}end.`,
 		out: `Macro def: end.`,

@@ -107,17 +107,17 @@ func (em *emitter) getVarIndex(v ast.Expression) (index int, ok bool) {
 	if ti := em.ti(v); ti != nil && ti.IsPredefined() {
 		// TODO: this is the new way of accessing predefined vars. Incrementally
 		// integrate into Scriggo, then remove the other checks.
-		if index, ok := em.predefinedVarRefs[em.fb.fn][ti.value.(reflect.Value)]; ok {
+		if index, ok := em.predefinedVarRefs[em.fb.fn][ti.value.(*reflect.Value)]; ok {
 			return index, true
 		}
 		// TODO: obsolete, remove:
 		if sel, ok := v.(*ast.Selector); ok {
-			index := em.predVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, sel.Ident)
+			index := em.predVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, sel.Ident)
 			return int(index), true
 		}
 		// TODO: obsolete, remove:
 		if ident, ok := v.(*ast.Identifier); ok {
-			index := em.predVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, ident.Name)
+			index := em.predVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, ident.Name)
 			return int(index), true
 		}
 	}
@@ -196,7 +196,7 @@ func kindToType(k reflect.Kind) runtime.Type {
 
 // predVarIndex returns the index of a global variable in globals, adding it
 // if it does not exist.
-func (em *emitter) predVarIndex(v reflect.Value, predPkgName, name string) int16 {
+func (em *emitter) predVarIndex(v *reflect.Value, predPkgName, name string) int16 {
 	if index, ok := em.predefinedVarRefs[em.fb.fn][v]; ok {
 		return int16(index)
 	}
@@ -206,7 +206,7 @@ func (em *emitter) predVarIndex(v reflect.Value, predPkgName, name string) int16
 		g.Value = v.Interface()
 	}
 	if em.predefinedVarRefs[em.fb.fn] == nil {
-		em.predefinedVarRefs[em.fb.fn] = make(map[reflect.Value]int)
+		em.predefinedVarRefs[em.fb.fn] = make(map[*reflect.Value]int)
 	}
 	em.globals = append(em.globals, g)
 	em.predefinedVarRefs[em.fb.fn][v] = index
@@ -286,7 +286,7 @@ func (em *emitter) setClosureRefs(fn *runtime.Function, closureVars []ast.Upvar)
 			em.closureVarRefs[fn][v.Declaration.(*ast.Identifier).Name] = i
 		} else {
 			if em.predefinedVarRefs[fn] == nil {
-				em.predefinedVarRefs[fn] = map[reflect.Value]int{}
+				em.predefinedVarRefs[fn] = map[*reflect.Value]int{}
 			}
 			em.predefinedVarRefs[fn][v.PredefinedValue] = i
 		}

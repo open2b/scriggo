@@ -22,7 +22,7 @@ type emitter struct {
 	// TODO(Gianluca): this is the new way of accessing predefined vars.
 	// Incrementally integrate into Scriggo, then remove the other (unused)
 	// fields.
-	predefinedVarRefs map[*runtime.Function]map[reflect.Value]int
+	predefinedVarRefs map[*runtime.Function]map[*reflect.Value]int
 
 	// fb is the current function builder.
 	fb *functionBuilder
@@ -105,7 +105,7 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 		predFunIndexes:      map[*runtime.Function]map[reflect.Value]int8{},
 		typeInfos:           typeInfos,
 		closureVarRefs:      map[*runtime.Function]map[string]int{},
-		predefinedVarRefs:   map[*runtime.Function]map[reflect.Value]int{},
+		predefinedVarRefs:   map[*runtime.Function]map[*reflect.Value]int{},
 	}
 }
 
@@ -1495,7 +1495,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 		// Predefined variable.
 		if ident, ok := expr.(*ast.Identifier); ok {
-			index := em.predVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, ident.Name)
+			index := em.predVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, ident.Name)
 			if canEmitDirectly(ti.Type.Kind(), dstType.Kind()) {
 				em.fb.emitGetVar(int(index), reg)
 				return reg, false

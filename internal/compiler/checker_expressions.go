@@ -1074,7 +1074,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 						panic(tc.errorf(expr, "undefined: %v", expr))
 					}
 					// v is a predefined variable.
-					if rv, ok := v.value.(reflect.Value); v.Addressable() && ok {
+					if rv, ok := v.value.(*reflect.Value); v.Addressable() && ok {
 						upvar := ast.Upvar{
 							PredefinedName:  expr.Ident,
 							PredefinedPkg:   ident.Name,
