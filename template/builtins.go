@@ -16,7 +16,7 @@ import (
 	"errors"
 	"fmt"
 	_hash "hash"
-	_html "html"
+	"html"
 	"io"
 	"math"
 	_rand "math/rand"
@@ -69,13 +69,13 @@ func (h HTML) Render(out io.Writer, ctx Context) error {
 		err = renderInTag(w, string(h))
 	case ContextAttribute:
 		//if urlstate == nil {
-		err = attributeEscape(w, _html.UnescapeString(string(h)), true)
+		err = attributeEscape(w, html.UnescapeString(string(h)), true)
 		//} else {
 		//	err = r.renderInAttributeURL(w, value, node, urlstate, true)
 		//}
 	case ContextUnquotedAttribute:
 		//if urlstate == nil {
-		err = attributeEscape(w, _html.UnescapeString(string(h)), false)
+		err = attributeEscape(w, html.UnescapeString(string(h)), false)
 		//} else {
 		//	err = r.renderInAttributeURL(w, value, node, urlstate, false)
 		//}
@@ -193,6 +193,7 @@ var main = &scriggo.MapPackage{
 	Declarations: map[string]interface{}{
 		"Hasher":      hasherType,
 		"MD5":         _MD5,
+		"HTML":        reflect.TypeOf(HTML("")),
 		"SHA1":        _SHA1,
 		"SHA256":      _SHA256,
 		"Time":        timeType,
@@ -209,7 +210,6 @@ var main = &scriggo.MapPackage{
 		"hasSuffix":   strings.HasSuffix,
 		"hex":         hex,
 		"hmac":        hmac,
-		"html":        reflect.TypeOf(HTML("")),
 		"index":       index,
 		"indexAny":    indexAny,
 		"itoa":        itoa,

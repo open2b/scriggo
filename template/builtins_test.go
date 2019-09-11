@@ -123,13 +123,13 @@ var rendererBuiltinTestsInHTMLContext = []builtinTest{
 	{"{{ hmac(SHA256, ``, `secret`) }}", "+eZuF5tnR65UEI+C+K3os8Jddv0wr95sOVgixTAZYWk=", nil},
 	{"{{ hmac(SHA256, `hello world!`, `secret`) }}", "cgaXMb8pG0Y67LIYvCJ6vOPUA9dtpn+u8tSNPLQ7L1Q=", nil},
 
-	// html
-	{"{{ html(``) }}", "", nil},
-	{"{{ html(`a`) }}", "a", nil},
-	{"{{ html(`<a>`) }}", "<a>", nil},
-	{"{{ html(a) }}", "<a>", Vars{"a": "<a>"}},
-	{"{{ html(a) }}", "<a>", Vars{"a": HTML("<a>")}},
-	//{"{{ html(a) + html(b) }}", "<a><b>", Vars{"a": "<a>", "b": "<b>"}}, TODO: reflect: call of reflect.Value.Set on zero Value
+	// HTML
+	{"{{ HTML(``) }}", "", nil},
+	{"{{ HTML(`a`) }}", "a", nil},
+	{"{{ HTML(`<a>`) }}", "<a>", nil},
+	{"{{ HTML(a) }}", "<a>", Vars{"a": "<a>"}},
+	{"{{ HTML(a) }}", "<a>", Vars{"a": HTML("<a>")}},
+	//{"{{ HTML(a) + HTML(b) }}", "<a><b>", Vars{"a": "<a>", "b": "<b>"}}, TODO: reflect: call of reflect.Value.Set on zero Value
 
 	// index
 	{"{{ index(``,``) }}", "0", nil},
@@ -248,7 +248,7 @@ var rendererBuiltinTestsInHTMLContext = []builtinTest{
 	{"{% sort(s7) %}{{ s7 }}", "a, b", Vars{"s7": []string{"b", "a"}}},
 	{"{% sort(s8) %}{{ s8 }}", "a, b, c", Vars{"s8": []string{"b", "a", "c"}}},
 	{"{% sort(s9) %}{{ s9 }}", "false, true, true", Vars{"s9": []bool{true, false, true}}},
-	{"{% s := []html{html(`<b>`), html(`<a>`), html(`<c>`)} %}{% sort(s) %}{{ s }}", "<a>, <b>, <c>", nil},
+	{"{% s := []HTML{HTML(`<b>`), HTML(`<a>`), HTML(`<c>`)} %}{% sort(s) %}{{ s }}", "<a>, <b>, <c>", nil},
 
 	// split
 	{"{{ split(``, ``) }}", "", nil},
