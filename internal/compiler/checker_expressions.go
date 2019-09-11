@@ -97,7 +97,7 @@ type scopeVariable struct {
 //
 // - pkgPathToIndex
 // - all the collected pkgInfos
-// - informations about which tree has already been checked.
+// - information about which tree has already been checked.
 //
 var pkgPathToIndex = map[string]int{}
 
@@ -112,7 +112,7 @@ type typechecker struct {
 	// A globalScope is a scope between the universe and the file/package block.
 	// In Go there is not an equivalent concept. In scripts and templates, the
 	// declarations of the predefined package 'main' are added to this scope;
-	// this makes possibile, in templates, to access such declarations from
+	// this makes possible, in templates, to access such declarations from
 	// every page, including imported and extended ones.
 	globalScope typeCheckerScope
 
@@ -155,7 +155,7 @@ type typechecker struct {
 
 	// showMacros is the list of all ast.ShowMacro nodes. This is needed because
 	// the ast.ShowMacro nodes are handled in a special way: if an ast.ShowMacro
-	// node points to a not-defined macro, an error will be retured depending on
+	// node points to a not-defined macro, an error will be returned depending on
 	// its 'Or' field.
 	showMacros []*ast.ShowMacro
 
@@ -766,7 +766,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			} else {
 				// Explicit field declaration.
 				for _, ident := range fd.IdentifierList {
-					// If the field name is unexported, it's impossibile to
+					// If the field name is unexported, it's impossible to
 					// create an new reflect.Type due to the limits that the
 					// package 'reflect' currently has. The solution adopted is
 					// to prepone an unicode character 𝗽 which is considered
