@@ -16,10 +16,12 @@ import (
 )
 
 var templateMultiPageCases = map[string]struct {
-	sources  map[string]string
-	expected string
-	main     *scriggo.MapPackage
-	vars     map[string]interface{}
+	sources    map[string]string
+	expected   string                 // default to ""
+	main       *scriggo.MapPackage    // default to nil
+	vars       map[string]interface{} // default to nil
+	ctx        template.Context       // default to template.ContextText
+	entryPoint string                 // default to "/index.html"
 }{
 
 	"Empty template": {
@@ -534,7 +536,15 @@ func TestMultiPageTemplate(t *testing.T) {
 				}
 				builtins = &b
 			}
-			templ, err := template.Load("/index.html", r, builtins, template.ContextText, nil)
+			ctx := cas.ctx
+			if ctx == 0 {
+				ctx = template.ContextText
+			}
+			entryPoint := cas.entryPoint
+			if entryPoint == "" {
+				entryPoint = "/index.html"
+			}
+			templ, err := template.Load(entryPoint, r, builtins, ctx, nil)
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
