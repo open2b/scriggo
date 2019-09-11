@@ -138,7 +138,7 @@ func (vm *VM) convertPanic(msg interface{}) error {
 		}
 	case OpCallIndirect:
 		in := vm.fn.Body[vm.pc-1]
-		if f, ok := vm.general(in.A).(*callable); ok && f.fn != nil {
+		if f, ok := vm.general(in.A).(*callable); !ok && f.fn != nil {
 			break
 		}
 		fallthrough

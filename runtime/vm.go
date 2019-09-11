@@ -446,51 +446,61 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 			switch f := fn.Func.(type) {
 			case func(string) int:
 				if f == nil {
+					vm.fp = fp
 					panic(errNilPointer)
 				}
 				vm.setInt(1, int64(f(vm.string(1))))
 			case func(string) string:
 				if f == nil {
+					vm.fp = fp
 					panic(errNilPointer)
 				}
 				vm.setString(1, f(vm.string(2)))
 			case func(string, string) int:
 				if f == nil {
+					vm.fp = fp
 					panic(errNilPointer)
 				}
 				vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
 			case func(string, int) string:
 				if f == nil {
+					vm.fp = fp
 					panic(errNilPointer)
 				}
 				vm.setString(1, f(vm.string(2), int(vm.int(1))))
 			case func(string, string) bool:
 				if f == nil {
+					vm.fp = fp
 					panic(errNilPointer)
 				}
 				vm.setBool(1, f(vm.string(1), vm.string(2)))
 			case func([]byte) []byte:
 				if f == nil {
+					vm.fp = fp
 					panic(errNilPointer)
 				}
 				vm.setGeneral(1, f(vm.general(2).([]byte)))
 			case func([]byte, []byte) int:
 				if f == nil {
+					vm.fp = fp
 					panic(errNilPointer)
 				}
 				vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
 			case func([]byte, []byte) bool:
 				if f == nil {
+					vm.fp = fp
 					panic(errNilPointer)
 				}
 				vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
 			case func(interface{}, interface{}) interface{}:
 				if f == nil {
+					vm.fp = fp
 					panic(errNilPointer)
 				}
 				vm.setGeneral(1, f(vm.general(2), vm.general(3)))
 			case func(interface{}) interface{}:
 				if f == nil {
+					vm.fp = fp
 					panic(errNilPointer)
 				}
 				vm.setGeneral(1, f(vm.general(2)))
@@ -498,7 +508,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 				called = false
 			}
 			if called {
-				vm.fp = fp // Restore the frame pointer.
+				vm.fp = fp
 				return
 			}
 		}
@@ -510,6 +520,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 		fn.value = reflect.ValueOf(fn.Func)
 		if fn.value.IsNil() {
 			fn.mx.Unlock()
+			vm.fp = fp
 			panic(errNilPointer)
 		}
 		typ := fn.value.Type()
