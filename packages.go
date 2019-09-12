@@ -106,3 +106,52 @@ func (p *MapPackage) DeclarationNames() []string {
 	}
 	return declarations
 }
+
+// CombinedPackage combines more packages in one package with name the name of
+// the first package and declarations the declarations of all the packages.
+//
+// Its Lookup method calls in order the Load methods of each package and
+// returns as soon as a package returns a declaration.
+type CombinedPackage []Package
+
+func (packages CombinedPackage) Name() string {
+	if len(packages) == 0 {
+		return ""
+	}
+	return packages[0].Name()
+}
+
+func (packages CombinedPackage) Lookup(declName string) interface{} {
+	for _, pkg := range packages {
+		if decl := pkg.Lookup(declName); decl != nil {
+			return decl
+		}
+	}
+	return nil
+}
+
+func (packages CombinedPackage) DeclarationNames() []string {
+	if len(packages) == 0 {
+		return []string{}
+	}
+	var names []string
+	for i, pkg := range packages {
+		if i == 0 {
+			names = pkg.DeclarationNames()
+			continue
+		}
+		for _, name := range pkg.DeclarationNames() {
+			exists := false
+			for _, n := range names {
+				if n == name {
+					exists = true
+					break
+				}
+			}
+			if !exists {
+				names = append(names, name)
+			}
+		}
+	}
+	return names
+}

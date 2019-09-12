@@ -154,3 +154,41 @@ func TestInitGlobalsNilPointerError(t *testing.T) {
 	init := map[string]interface{}{"a": (*int)(nil)}
 	_ = initGlobals([]compiler.Global{global}, init)
 }
+
+func TestCombinedPackage(t *testing.T) {
+	pkg1 := &MapPackage{"main", map[string]interface{}{"a": 1, "b": 2}}
+	pkg2 := &MapPackage{"main2", map[string]interface{}{"b": 3, "c": 4, "d": 5}}
+	pkg := CombinedPackage{pkg1, pkg2}
+	expected := []string{"a", "b", "c", "d"}
+	// Test Name.
+	if pkg.Name() != pkg1.Name() {
+		t.Fatalf("unexpected name %s, expecting %s", pkg.Name(), pkg1.Name())
+	}
+	// Test Lookup.
+	for _, name := range expected {
+		if decl := pkg.Lookup(name); decl == nil {
+			t.Fatalf("unexpected nil, expecting declaration of %s", name)
+		}
+	}
+	if decl := pkg.Lookup("notExistent"); decl != nil {
+		t.Fatalf("unexpected %#v for not existend declaration", decl)
+	}
+	// Test DeclarationNames.
+	names := pkg.DeclarationNames()
+	if len(names) != len(expected) {
+		t.Fatalf("unexpected %d declarations, expecting %d", len(names), len(expected))
+	}
+	has := map[string]bool{}
+	for _, name := range names {
+		if has[name] {
+			t.Fatalf("unexpected duplicated name %s", name)
+		}
+		has[name] = true
+	}
+
+	for _, name := range expected {
+		if !has[name] {
+			t.Fatalf("missing name %s from declarations", name)
+		}
+	}
+}
