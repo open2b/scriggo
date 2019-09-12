@@ -106,8 +106,7 @@ func (op OperatorType) String() string {
 type Context int
 
 const (
-	ContextGo Context = iota
-	ContextText
+	ContextText Context = iota
 	ContextHTML
 	ContextTag
 	ContextAttribute
@@ -116,6 +115,7 @@ const (
 	ContextCSSString
 	ContextJavaScript
 	ContextJavaScriptString
+	ContextGo
 )
 
 func (ctx Context) String() string {

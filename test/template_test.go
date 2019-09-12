@@ -536,15 +536,11 @@ func TestMultiPageTemplate(t *testing.T) {
 				}
 				builtins = &b
 			}
-			ctx := cas.ctx
-			if ctx == 0 {
-				ctx = template.ContextText
-			}
 			entryPoint := cas.entryPoint
 			if entryPoint == "" {
 				entryPoint = "/index.html"
 			}
-			templ, err := template.Load(entryPoint, r, builtins, ctx, nil)
+			templ, err := template.Load(entryPoint, r, builtins, cas.ctx, nil)
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
