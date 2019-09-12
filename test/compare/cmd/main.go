@@ -218,7 +218,7 @@ func main() {
 		}
 		dirPath := flag.Args()[1]
 		dl := dirLoader(dirPath)
-		prog, err := scriggo.Load(scriggo.CombinedLoaders{dl, predefPkgs}, loadOpts)
+		prog, err := scriggo.Load(scriggo.CombinedLoader{dl, predefPkgs}, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)

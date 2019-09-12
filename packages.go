@@ -53,12 +53,12 @@ func (r MapStringLoader) Load(path string) (interface{}, error) {
 	return nil, nil
 }
 
-// CombinedLoaders combines more loaders in one loader. Load calls in order
-// the Load methods of each loader and returns as soon as a loader returns
-// a package.
-type CombinedLoaders []PackageLoader
+// CombinedLoader combines more loaders in one loader. Load calls in order the
+// Load methods of each loader and returns as soon as a loader returns a
+// package.
+type CombinedLoader []PackageLoader
 
-func (loaders CombinedLoaders) Load(path string) (interface{}, error) {
+func (loaders CombinedLoader) Load(path string) (interface{}, error) {
 	for _, loader := range loaders {
 		p, err := loader.Load(path)
 		if p != nil || err != nil {
@@ -68,9 +68,9 @@ func (loaders CombinedLoaders) Load(path string) (interface{}, error) {
 	return nil, nil
 }
 
-// Loaders returns a CombinedLoaders that combine loaders.
+// Loaders returns a CombinedLoader that combine loaders.
 func Loaders(loaders ...PackageLoader) PackageLoader {
-	return CombinedLoaders(loaders)
+	return CombinedLoader(loaders)
 }
 
 // Packages is a Loader that load packages from a map where the key is a
