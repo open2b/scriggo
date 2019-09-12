@@ -22,9 +22,6 @@ import (
 // how to escape the values to render.
 type Context int
 
-// TODO: remove the values that are not supported by the Load function, then
-// change the type of the context argument of RenderFunc to "ast.Context"
-// instead of "Context".
 const (
 	ContextText              = Context(ast.ContextText)
 	ContextHTML              = Context(ast.ContextHTML)
