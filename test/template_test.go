@@ -513,6 +513,44 @@ var templateMultiPageCases = map[string]struct {
 			"/b.html":     `{% macro M %}I'm b{% end %}`,
 		},
 	},
+
+	"https://github.com/open2b/scriggo/issues/392": {
+		sources: map[string]string{
+			"/product.html": `{{ "" }}{% include "includes/products.html" %}
+`, // this newline is intentional
+			"/includes/products.html": `{% macro M(s []int) %}{% end %}`,
+		},
+		expected:   "\n",
+		ctx:        template.ContextHTML,
+		entryPoint: "/product.html",
+	},
+
+	"https://github.com/open2b/scriggo/issues/392 (minimal)": {
+		sources: map[string]string{
+			"/index.html": `text{% macro M(s []int) %}{% end %}text`,
+		},
+		expected: `texttext`,
+		ctx:      template.ContextHTML,
+	},
+
+	"https://github.com/open2b/scriggo/issues/392 (invalid memory address)": {
+		sources: map[string]string{
+			"/index.html": `{% macro M(s []int) %}{% end %}text`,
+		},
+		expected: `text`,
+		ctx:      template.ContextHTML,
+	},
+
+	"https://github.com/open2b/scriggo/issues/393": {
+		sources: map[string]string{
+			"/product.html": `{% include "includes/products.html" %}
+`, // this newline is intentional
+			"/includes/products.html": `{% macro M(s []int) %}{% end %}`,
+		},
+		expected:   "\n",
+		ctx:        template.ContextHTML,
+		entryPoint: "/product.html",
+	},
 }
 
 func TestMultiPageTemplate(t *testing.T) {

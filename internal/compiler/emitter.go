@@ -45,11 +45,7 @@ type emitter struct {
 	closureVarRefs map[*runtime.Function]map[string]int
 	options        EmitterOptions
 
-	isTemplate   bool // Reports whether it's a template.
-	templateRegs struct {
-		gA, gB, gC, gD, gE, gF int8 // Reserved general registers.
-		iA                     int8 // Reserved int register.
-	}
+	isTemplate bool // Reports whether it's a template.
 
 	// Scriggo functions.
 	functions   map[*ast.Package]map[string]*runtime.Function
@@ -119,17 +115,17 @@ func (em *emitter) reserveTemplateRegisters() {
 	// - EmitTemplate
 	// - emitter.setClosureRefs
 	//
-	em.templateRegs.gA = em.fb.newRegister(reflect.Interface) // w io.Writer
-	em.templateRegs.gB = em.fb.newRegister(reflect.Interface) // Write
-	em.templateRegs.gC = em.fb.newRegister(reflect.Interface) // Render
-	em.templateRegs.gD = em.fb.newRegister(reflect.Interface) // free.
-	em.templateRegs.gE = em.fb.newRegister(reflect.Interface) // free.
-	em.templateRegs.gF = em.fb.newRegister(reflect.Interface) // urlWriter
-	em.templateRegs.iA = em.fb.newRegister(reflect.Int)       // free.
-	em.fb.emitGetVar(0, em.templateRegs.gA)
-	em.fb.emitGetVar(1, em.templateRegs.gB)
-	em.fb.emitGetVar(2, em.templateRegs.gC)
-	em.fb.emitGetVar(3, em.templateRegs.gF)
+	em.fb.templateRegs.gA = em.fb.newRegister(reflect.Interface) // w io.Writer
+	em.fb.templateRegs.gB = em.fb.newRegister(reflect.Interface) // Write
+	em.fb.templateRegs.gC = em.fb.newRegister(reflect.Interface) // Render
+	em.fb.templateRegs.gD = em.fb.newRegister(reflect.Interface) // free.
+	em.fb.templateRegs.gE = em.fb.newRegister(reflect.Interface) // free.
+	em.fb.templateRegs.gF = em.fb.newRegister(reflect.Interface) // urlWriter
+	em.fb.templateRegs.iA = em.fb.newRegister(reflect.Int)       // free.
+	em.fb.emitGetVar(0, em.fb.templateRegs.gA)
+	em.fb.emitGetVar(1, em.fb.templateRegs.gB)
+	em.fb.emitGetVar(2, em.fb.templateRegs.gC)
+	em.fb.emitGetVar(3, em.fb.templateRegs.gF)
 }
 
 // emitPackage emits a package and returns the exported functions, the
@@ -1205,17 +1201,17 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 
 		case *ast.Show:
 			// render([implicit *vm.Env,] gD io.Writer, gE interface{}, iA ast.Context)
-			em.emitExprR(node.Expr, emptyInterfaceType, em.templateRegs.gE)
-			em.fb.emitMove(true, int8(node.Context), em.templateRegs.iA, reflect.Int)
+			em.emitExprR(node.Expr, emptyInterfaceType, em.fb.templateRegs.gE)
+			em.fb.emitMove(true, int8(node.Context), em.fb.templateRegs.iA, reflect.Int)
 			if em.inURL {
 				// In a URL context: use the urlWriter, that implements io.Writer.
-				em.fb.emitMove(false, em.templateRegs.gF, em.templateRegs.gD, reflect.Interface)
+				em.fb.emitMove(false, em.fb.templateRegs.gF, em.fb.templateRegs.gD, reflect.Interface)
 			} else {
 				// Not in a URL context: use the default writer.
-				em.fb.emitMove(false, em.templateRegs.gA, em.templateRegs.gD, reflect.Interface)
+				em.fb.emitMove(false, em.fb.templateRegs.gA, em.fb.templateRegs.gD, reflect.Interface)
 			}
-			shift := runtime.StackShift{em.templateRegs.iA - 1, 0, 0, em.templateRegs.gC}
-			em.fb.emitCallIndirect(em.templateRegs.gC, 0, shift, node.Pos())
+			shift := runtime.StackShift{em.fb.templateRegs.iA - 1, 0, 0, em.fb.templateRegs.gC}
+			em.fb.emitCallIndirect(em.fb.templateRegs.gC, 0, shift, node.Pos())
 
 		case *ast.Switch:
 			currentBreakable := em.breakable
@@ -1233,7 +1229,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			// Write(gE []byte) (iA int, gD error)
 			index := len(em.fb.fn.Data)
 			em.fb.fn.Data = append(em.fb.fn.Data, node.Text) // TODO(Gianluca): cut text.
-			em.fb.emitLoadData(int16(index), em.templateRegs.gE)
+			em.fb.emitLoadData(int16(index), em.fb.templateRegs.gE)
 			var writeFun int8
 			if em.inURL {
 				// In a URL context: getting the method WriteText of an the
@@ -1241,12 +1237,12 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				// implements interface io.Writer.
 				em.fb.enterStack()
 				writeFun = em.fb.newRegister(reflect.Func)
-				em.fb.emitMethodValue("WriteText", em.templateRegs.gF, writeFun)
+				em.fb.emitMethodValue("WriteText", em.fb.templateRegs.gF, writeFun)
 				em.fb.exitStack()
 			} else {
-				writeFun = em.templateRegs.gB
+				writeFun = em.fb.templateRegs.gB
 			}
-			em.fb.emitCallIndirect(writeFun, 0, runtime.StackShift{em.templateRegs.iA - 1, 0, 0, em.templateRegs.gC}, node.Pos())
+			em.fb.emitCallIndirect(writeFun, 0, runtime.StackShift{em.fb.templateRegs.iA - 1, 0, 0, em.fb.templateRegs.gC}, node.Pos())
 
 		case *ast.TypeDeclaration:
 			// Nothing to do.
@@ -1270,7 +1266,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			// Call method Reset of urlWriter.
 			em.fb.enterStack()
 			method := em.fb.newRegister(reflect.Func)
-			em.fb.emitMethodValue("StartURL", em.templateRegs.gF, method)
+			em.fb.emitMethodValue("StartURL", em.fb.templateRegs.gF, method)
 			ss := em.fb.currentStackShift()
 			quoteArg := em.fb.newRegister(reflect.Bool)
 			isSetArg := em.fb.newRegister(reflect.Bool)

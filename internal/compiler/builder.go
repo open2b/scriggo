@@ -134,6 +134,11 @@ type functionBuilder struct {
 	// statement in a template the file path changes even if the function
 	// remains the same.
 	path string
+
+	templateRegs struct {
+		gA, gB, gC, gD, gE, gF int8 // Reserved general registers.
+		iA                     int8 // Reserved int register.
+	}
 }
 
 // newBuilder returns a new function builder for the function fn in the given
