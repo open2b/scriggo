@@ -7,6 +7,7 @@
 package runtime
 
 import (
+	"fmt"
 	"reflect"
 	"runtime"
 	"scriggo/ast"
@@ -247,11 +248,9 @@ type Panic struct {
 }
 
 func (p *Panic) Error() string {
-	b := make([]byte, 0, 100+len(p.stackTrace))
-	//b = append(b, sprint(err.message)...) // TODO(marco): rewrite.
-	b = append(b, "\n\n"...)
-	b = append(b, p.stackTrace...)
-	return string(b)
+	// TODO: this code is a temporary substitution of the code above and should
+	// be removed. Also, it adds a dependency from 'fmt'.
+	return fmt.Sprint(p.path, p.position, p.message)
 }
 
 // Message returns the message.
