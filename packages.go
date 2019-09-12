@@ -110,8 +110,8 @@ func (p *MapPackage) DeclarationNames() []string {
 // CombinedPackage combines more packages in one package with name the name of
 // the first package and declarations the declarations of all the packages.
 //
-// Its Lookup method calls in order the Load methods of each package and
-// returns as soon as a package returns a declaration.
+// Lookup method calls in order the Lookup methods of each package and returns
+// as soon as a package returns a declaration.
 type CombinedPackage []Package
 
 func (packages CombinedPackage) Name() string {
