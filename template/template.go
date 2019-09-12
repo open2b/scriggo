@@ -64,7 +64,8 @@ type Template struct {
 // Load loads a template given its path. Load calls the method Read of reader
 // to read the files of the template. Package main declares constants, types,
 // variables and functions that are accessible from the code in the template.
-// Context is the context in which the code is executed.
+// Context is the context in which the code is executed and can be
+// ContextText, ContextHTML, ContextCSS or ContextJavaScript.
 func Load(path string, reader Reader, main scriggo.Package, ctx Context, options *LoadOptions) (*Template, error) {
 	tree, err := compiler.ParseTemplate(path, reader, ast.Context(ctx))
 	if err != nil {
