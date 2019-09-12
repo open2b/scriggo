@@ -171,7 +171,7 @@ func TestCombinedPackage(t *testing.T) {
 		}
 	}
 	if decl := pkg.Lookup("notExistent"); decl != nil {
-		t.Fatalf("unexpected %#v for not existend declaration", decl)
+		t.Fatalf("unexpected %#v for non-existent declaration, expecting nil", decl)
 	}
 	// Test DeclarationNames.
 	names := pkg.DeclarationNames()
