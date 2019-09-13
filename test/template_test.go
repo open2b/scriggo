@@ -547,7 +547,7 @@ var templateMultiPageCases = map[string]struct {
 `, // this newline is intentional
 			"/includes/products.html": `{% macro M(s []int) %}{% end %}`,
 		},
-		expected:   "\n",
+		expected:   "",
 		ctx:        template.ContextHTML,
 		entryPoint: "/product.html",
 	},

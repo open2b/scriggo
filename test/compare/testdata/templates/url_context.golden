@@ -13,7 +13,6 @@
 <a href="a?b=%3d">
 <a href="=?b=%3d">
 <a href="p?b=%3d">
-// <a href="p?&amp;b=%3d">
 <a href="p?q&amp;b=%3d">
 <a href="?b=%3d">
 <a href="/a/b/c?b=%3d&c=6">

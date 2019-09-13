@@ -1228,21 +1228,24 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 		case *ast.Text:
 			// Write(gE []byte) (iA int, gD error)
 			index := len(em.fb.fn.Data)
-			em.fb.fn.Data = append(em.fb.fn.Data, node.Text) // TODO(Gianluca): cut text.
-			em.fb.emitLoadData(int16(index), em.fb.templateRegs.gE)
-			var writeFun int8
-			if em.inURL {
-				// In a URL context: getting the method WriteText of an the
-				// urlWriter, that has the same sign of the method Write which
-				// implements interface io.Writer.
-				em.fb.enterStack()
-				writeFun = em.fb.newRegister(reflect.Func)
-				em.fb.emitMethodValue("WriteText", em.fb.templateRegs.gF, writeFun)
-				em.fb.exitStack()
-			} else {
-				writeFun = em.fb.templateRegs.gB
+			data := node.Text[node.Cut.Left : len(node.Text)-node.Cut.Right]
+			if len(data) != 0 {
+				em.fb.fn.Data = append(em.fb.fn.Data, data)
+				em.fb.emitLoadData(int16(index), em.fb.templateRegs.gE)
+				var writeFun int8
+				if em.inURL {
+					// In a URL context: getting the method WriteText of an the
+					// urlWriter, that has the same sign of the method Write which
+					// implements interface io.Writer.
+					em.fb.enterStack()
+					writeFun = em.fb.newRegister(reflect.Func)
+					em.fb.emitMethodValue("WriteText", em.fb.templateRegs.gF, writeFun)
+					em.fb.exitStack()
+				} else {
+					writeFun = em.fb.templateRegs.gB
+				}
+				em.fb.emitCallIndirect(writeFun, 0, runtime.StackShift{em.fb.templateRegs.iA - 1, 0, 0, em.fb.templateRegs.gC}, node.Pos())
 			}
-			em.fb.emitCallIndirect(writeFun, 0, runtime.StackShift{em.fb.templateRegs.iA - 1, 0, 0, em.fb.templateRegs.gC}, node.Pos())
 
 		case *ast.TypeDeclaration:
 			// Nothing to do.
