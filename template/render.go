@@ -160,16 +160,16 @@ func renderInText(out io.Writer, value interface{}) error {
 
 // renderInHTML renders value in HTML context.
 func renderInHTML(out io.Writer, value interface{}) error {
-	var s string
+	w := newStringWriter(out)
 	switch v := value.(type) {
-	case compiler.HTMLRenderer:
-		return v.RenderHTML(out)
+	case compiler.HTMLStringer:
+		_, err := w.WriteString(v.HTML())
+		return err
 	case fmt.Stringer:
-		s = v.String()
+		return htmlEscape(w, v.String())
 	default:
-		s = toString(reflect.ValueOf(value))
+		return htmlEscape(w, toString(reflect.ValueOf(value)))
 	}
-	return htmlEscape(newStringWriter(out), s)
 }
 
 // renderInTag renders value in Tag context.
@@ -218,8 +218,10 @@ func renderInAttribute(out io.Writer, value interface{}, quoted bool) error {
 
 // renderInCSS renders value in CSS context.
 func renderInCSS(out io.Writer, value interface{}) error {
-	if v, ok := value.(compiler.CSSRenderer); ok {
-		return v.RenderCSS(out)
+	if v, ok := value.(compiler.CSSStringer); ok {
+		w := newStringWriter(out)
+		_, err := w.WriteString(v.CSS())
+		return err
 	}
 	v := reflect.ValueOf(value)
 	switch v.Kind() {
@@ -263,8 +265,10 @@ func renderInCSSString(out io.Writer, value interface{}) error {
 func renderInJavaScript(out io.Writer, value interface{}) error {
 
 	switch v := value.(type) {
-	case compiler.JavaScriptRenderer:
-		return v.RenderJavaScript(out)
+	case compiler.JavaScriptStringer:
+		w := newStringWriter(out)
+		_, err := w.WriteString(v.JavaScript())
+		return err
 	}
 
 	w := newStringWriter(out)

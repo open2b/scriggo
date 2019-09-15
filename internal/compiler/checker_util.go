@@ -9,7 +9,6 @@ package compiler
 import (
 	"errors"
 	"fmt"
-	"io"
 	"reflect"
 	"strconv"
 	"unicode"
@@ -125,15 +124,15 @@ var operatorsOfKind = [...][21]bool{
 	reflect.Interface:  interfaceOperators,
 }
 
-type HTMLRenderer interface{ RenderHTML(out io.Writer) error }
-type CSSRenderer interface{ RenderCSS(out io.Writer) error }
-type JavaScriptRenderer interface{ RenderJavaScript(out io.Writer) error }
+type HTMLStringer interface{ HTML() string }
+type CSSStringer interface{ CSS() string }
+type JavaScriptStringer interface{ JavaScript() string }
 
 var stringerType = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
 
-var htmlRendererType = reflect.TypeOf((*HTMLRenderer)(nil)).Elem()
-var cssRendererType = reflect.TypeOf((*CSSRenderer)(nil)).Elem()
-var javaScriptRendererType = reflect.TypeOf((*JavaScriptRenderer)(nil)).Elem()
+var htmlStringerType = reflect.TypeOf((*HTMLStringer)(nil)).Elem()
+var cssStringerType = reflect.TypeOf((*CSSStringer)(nil)).Elem()
+var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
 
 // convert converts a value explicitly. If the converted value is a constant,
 // convert returns its value, otherwise returns nil.
@@ -471,7 +470,7 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 func printedAsJavaScript(t reflect.Type) error {
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
-		t.Implements(javaScriptRendererType) {
+		t.Implements(javaScriptStringerType) {
 		return nil
 	}
 	switch kind {

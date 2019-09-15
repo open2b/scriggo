@@ -56,10 +56,8 @@ func Builtins() scriggo.Package {
 
 type HTML string
 
-func (h HTML) RenderHTML(out io.Writer) error {
-	w := newStringWriter(out)
-	_, err := w.WriteString(string(h))
-	return err
+func (h HTML) HTML() string {
+	return string(h)
 }
 
 var times sync.Map
@@ -79,46 +77,31 @@ func (t Time) UTC(env *runtime.Env) Time {
 	return Time(time.Time(t).UTC())
 }
 
-func (t Time) RenderJavaScript(out io.Writer) error {
-	w := newStringWriter(out)
-	_, err := w.WriteString(`new Date("`)
-	if err == nil {
-		err = t.formatJavaScript(w)
-	}
-	if err == nil {
-		_, err = w.WriteString(`")`)
-	}
-	return err
-}
-
-func (t Time) formatJavaScript(out io.Writer) error {
-	w := newStringWriter(out)
+func (t Time) JavaScript() string {
 	tt := time.Time(t)
 	y := tt.Year()
 	if y < -999999 || y > 999999 {
-		return errors.New("not representable year in JavaScript")
+		panic("not representable year in JavaScript")
 	}
 	ms := int64(tt.Nanosecond()) / int64(time.Millisecond)
-	var err error
-	if name, offset := tt.Zone(); name == "UTC" {
-		format := "%0.4d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3dZ"
+	name, offset := tt.Zone()
+	if name == "UTC" {
+		format := `new Date("%0.4d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3dZ")`
 		if y < 0 || y > 9999 {
-			format = "%+0.6d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3dZ"
+			format = `new Date("%+0.6d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3dZ")`
 		}
-		_, err = fmt.Fprintf(w, format, y, tt.Month(), tt.Day(), tt.Hour(), tt.Minute(), tt.Second(), ms)
-	} else {
-		zone := offset / 60
-		h, m := zone/60, zone%60
-		if m < 0 {
-			m = -m
-		}
-		format := "%0.4d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3d%+0.2d:%0.2d"
-		if y < 0 || y > 9999 {
-			format = "%+0.6d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3d%+0.2d:%0.2d"
-		}
-		_, err = fmt.Fprintf(w, format, y, tt.Month(), tt.Day(), tt.Hour(), tt.Minute(), tt.Second(), ms, h, m)
+		return fmt.Sprintf(format, y, tt.Month(), tt.Day(), tt.Hour(), tt.Minute(), tt.Second(), ms)
 	}
-	return err
+	zone := offset / 60
+	h, m := zone/60, zone%60
+	if m < 0 {
+		m = -m
+	}
+	format := `new Date("%0.4d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3d%+0.2d:%0.2d")`
+	if y < 0 || y > 9999 {
+		format = `new Date("%+0.6d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3d%+0.2d:%0.2d")`
+	}
+	return fmt.Sprintf(format, y, tt.Month(), tt.Day(), tt.Hour(), tt.Minute(), tt.Second(), ms, h, m)
 }
 
 var main = &scriggo.MapPackage{

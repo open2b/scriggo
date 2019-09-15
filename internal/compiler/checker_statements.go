@@ -615,7 +615,7 @@ nodesLoop:
 				case reflect.Bool <= kind && kind <= reflect.Complex128:
 				case ti.Type == emptyInterfaceType:
 				case ti.Type.Implements(stringerType):
-				case ti.Type.Implements(htmlRendererType):
+				case ti.Type.Implements(htmlStringerType):
 				default:
 					panic(tc.errorf(node, "cannot print %s (type %s cannot be printed as HTML)", node.Expr, ti))
 				}
@@ -625,7 +625,7 @@ nodesLoop:
 				case reflect.Int <= kind && kind <= reflect.Float64:
 				case ti.Type == emptyInterfaceType:
 				case ti.Type == byteSliceType:
-				case ti.Type.Implements(cssRendererType):
+				case ti.Type.Implements(cssStringerType):
 				default:
 					panic(tc.errorf(node, "cannot print %s (type %s cannot be printed as CSS)", node.Expr, ti))
 				}
