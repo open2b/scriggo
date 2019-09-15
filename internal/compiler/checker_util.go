@@ -9,6 +9,7 @@ package compiler
 import (
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"strconv"
 	"unicode"
@@ -123,6 +124,16 @@ var operatorsOfKind = [...][21]bool{
 	reflect.String:     stringOperators,
 	reflect.Interface:  interfaceOperators,
 }
+
+type HTMLRenderer interface{ RenderHTML(out io.Writer) error }
+type CSSRenderer interface{ RenderCSS(out io.Writer) error }
+type JavaScriptRenderer interface{ RenderJavaScript(out io.Writer) error }
+
+var stringerType = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
+
+var htmlRendererType = reflect.TypeOf((*HTMLRenderer)(nil)).Elem()
+var cssRendererType = reflect.TypeOf((*CSSRenderer)(nil)).Elem()
+var javaScriptRendererType = reflect.TypeOf((*JavaScriptRenderer)(nil)).Elem()
 
 // convert converts a value explicitly. If the converted value is a constant,
 // convert returns its value, otherwise returns nil.
@@ -453,6 +464,55 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 		}
 	}
 	return nil, receiverNoTransform, false
+}
+
+// printedAsJavaScript reports whether a type can be printed as JavaScript.
+// It returns an error it the type cannot be printed.
+func printedAsJavaScript(t reflect.Type) error {
+	kind := t.Kind()
+	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
+		t.Implements(javaScriptRendererType) {
+		return nil
+	}
+	switch kind {
+	case reflect.Array:
+		if err := printedAsJavaScript(t.Elem()); err != nil {
+			return fmt.Errorf("array of %s cannot be printed as JavaScript", t.Elem())
+		}
+	case reflect.Interface:
+	case reflect.Map:
+		key := t.Key().Kind()
+		switch {
+		case key == reflect.String:
+		case reflect.Bool <= key && key <= reflect.Complex128:
+		case t.Implements(stringerType):
+		default:
+			return fmt.Errorf("map with %s key cannot be printed as JavaScript", t.Key())
+		}
+		err := printedAsJavaScript(t.Elem())
+		if err != nil {
+			return fmt.Errorf("map with %s element cannot be printed as JavaScript", t.Elem())
+		}
+	case reflect.Ptr, reflect.UnsafePointer:
+		return printedAsJavaScript(t.Elem())
+	case reflect.Slice:
+		if err := printedAsJavaScript(t.Elem()); err != nil {
+			return fmt.Errorf("slice of %s cannot be printed as JavaScript", t.Elem())
+		}
+	case reflect.Struct:
+		n := t.NumField()
+		for i := 0; i < n; i++ {
+			field := t.Field(i)
+			if field.PkgPath == "" {
+				if err := printedAsJavaScript(field.Type); err != nil {
+					return fmt.Errorf("struct containing %s cannot be printed as JavaScript", field.Type)
+				}
+			}
+		}
+	default:
+		return fmt.Errorf("type %s cannot be printed as JavaScript", t)
+	}
+	return nil
 }
 
 // removeEnvArg returns a type equal to typ but with the vm environment

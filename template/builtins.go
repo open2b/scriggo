@@ -16,7 +16,6 @@ import (
 	"errors"
 	"fmt"
 	_hash "hash"
-	"html"
 	"io"
 	"math"
 	_rand "math/rand"
@@ -57,55 +56,9 @@ func Builtins() scriggo.Package {
 
 type HTML string
 
-func (h HTML) Render(out io.Writer, ctx Context) error {
+func (h HTML) RenderHTML(out io.Writer) error {
 	w := newStringWriter(out)
-	var err error
-	switch ctx {
-	case ContextText:
-		_, err = w.WriteString(string(h))
-	case ContextHTML:
-		_, err = w.WriteString(string(h))
-	case ContextTag:
-		err = renderInTag(w, string(h))
-	case ContextAttribute:
-		//if urlstate == nil {
-		err = attributeEscape(w, html.UnescapeString(string(h)), true)
-		//} else {
-		//	err = r.renderInAttributeURL(w, value, node, urlstate, true)
-		//}
-	case ContextUnquotedAttribute:
-		//if urlstate == nil {
-		err = attributeEscape(w, html.UnescapeString(string(h)), false)
-		//} else {
-		//	err = r.renderInAttributeURL(w, value, node, urlstate, false)
-		//}
-	case ContextCSS:
-		_, err := w.WriteString(`"`)
-		if err != nil {
-			return err
-		}
-		err = cssStringEscape(w, string(h))
-		if err != nil {
-			return err
-		}
-		_, err = w.WriteString(`"`)
-	case ContextCSSString:
-		err = cssStringEscape(w, string(h))
-	case ContextJavaScript:
-		_, err := w.WriteString("\"")
-		if err != nil {
-			return err
-		}
-		err = javaScriptStringEscape(w, string(h))
-		if err != nil {
-			return err
-		}
-		_, err = w.WriteString("\"")
-	case ContextJavaScriptString:
-		err = javaScriptStringEscape(w, string(h))
-	default:
-		panic("scriggo: unknown context")
-	}
+	_, err := w.WriteString(string(h))
 	return err
 }
 
@@ -126,34 +79,14 @@ func (t Time) UTC(env *runtime.Env) Time {
 	return Time(time.Time(t).UTC())
 }
 
-func (t Time) Render(out io.Writer, ctx Context) error {
-	var err error
+func (t Time) RenderJavaScript(out io.Writer) error {
 	w := newStringWriter(out)
-	switch ctx {
-	case ContextText:
-		_, err = w.WriteString(t.Format(time.RFC3339))
-	case ContextHTML:
-		_, err = w.WriteString(t.Format(time.RFC1123))
-	case ContextAttribute, ContextUnquotedAttribute:
-		//if urlstate == nil {
-		_, err = w.WriteString(t.Format(time.RFC3339))
-		//} else {
-		//	err = r.renderInAttributeURL(w, value, node, urlstate, true)
-		//}
-	case ContextJavaScript:
-		_, err = w.WriteString(`new Date("`)
-		if err != nil {
-			return err
-		}
+	_, err := w.WriteString(`new Date("`)
+	if err == nil {
 		err = t.formatJavaScript(w)
-		if err != nil {
-			return err
-		}
+	}
+	if err == nil {
 		_, err = w.WriteString(`")`)
-	case ContextJavaScriptString:
-		err = t.formatJavaScript(w)
-	default:
-		err = ErrNoRenderInContext
 	}
 	return err
 }

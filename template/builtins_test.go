@@ -35,10 +35,10 @@ var rendererBuiltinTestsInHTMLContext = []builtinTest{
 	{"{% var h = SHA256 %}{{ h }}", "2", nil},
 
 	// Time
-	{"{% var t Time %}{{ t }}", "Mon, 01 Jan 0001 00:00:00 UTC", nil},
-	{"{{ t }}", "Mon, 02 Jan 2006 15:04:05 UTC", Vars{"t": Time(testTime)}},
-	{"<div data-time=\"{{ t }}\">", "<div data-time=\"2006-01-02T15:04:05Z\">", Vars{"t": Time(testTime)}},
-	{"<div data-time={{ t }}>", "<div data-time=2006-01-02T15:04:05Z>", Vars{"t": Time(testTime)}},
+	{"{% var t Time %}{{ t }}", "0001-01-01 00:00:00 +0000 UTC", nil},
+	{"{{ t }}", "2006-01-02 15:04:05.123456 +0000 UTC", Vars{"t": Time(testTime)}},
+	{"<div data-time=\"{{ t }}\">", "<div data-time=\"2006-01-02 15:04:05.123456 +0000 UTC\">", Vars{"t": Time(testTime)}},
+	{"<div data-time={{ t }}>", "<div data-time=2006-01-02&#32;15:04:05.123456&#32;+0000&#32;UTC>", Vars{"t": Time(testTime)}},
 
 	// abbreviate
 	{"{{ abbreviate(``,0) }}", "", nil},
@@ -224,11 +224,11 @@ var rendererBuiltinTestsInHTMLContext = []builtinTest{
 	{"{{ replaceAll(`abcbcba`, `b`, `e`) }}", "aececea", nil},
 
 	// reverse
-	{"{{ reverse(s) }}", "", Vars{"s": []int(nil)}},
-	{"{{ reverse(s) }}", "", Vars{"s": []int{}}},
-	{"{{ reverse(s) }}", "1", Vars{"s": []int{1}}},
-	{"{{ reverse(s) }}", "2, 1", Vars{"s": []int{1, 2}}},
-	{"{{ reverse(s) }}", "3, 2, 1", Vars{"s": []int{1, 2, 3}}},
+	{"{% s := reverse(s) %}{{ sprint(s) }}", "[]", Vars{"s": []int(nil)}},
+	{"{% s := reverse(s) %}{{ sprint(s) }}", "[]", Vars{"s": []int{}}},
+	{"{% s := reverse(s) %}{{ sprint(s) }}", "[1]", Vars{"s": []int{1}}},
+	{"{% s := reverse(s) %}{{ sprint(s) }}", "[2 1]", Vars{"s": []int{1, 2}}},
+	{"{% s := reverse(s) %}{{ sprint(s) }}", "[3 2 1]", Vars{"s": []int{1, 2, 3}}},
 
 	// round
 	{"{{ round(0) }}", "0", nil},
@@ -239,29 +239,29 @@ var rendererBuiltinTestsInHTMLContext = []builtinTest{
 
 	// sort
 	//{"{% sort(nil) %}", "", nil}, TODO: not implemented
-	{"{% sort(s1) %}{{ s1 }}", "", Vars{"s1": []int{}}},
-	{"{% sort(s2) %}{{ s2 }}", "1", Vars{"s2": []int{1}}},
-	{"{% sort(s3) %}{{ s3 }}", "1, 2", Vars{"s3": []int{1, 2}}},
-	{"{% sort(s4) %}{{ s4 }}", "1, 2", Vars{"s4": []int{2, 1}}},
-	{"{% sort(s5) %}{{ s5 }}", "1, 2, 3", Vars{"s5": []int{3, 1, 2}}},
-	{"{% sort(s6) %}{{ s6 }}", "a", Vars{"s6": []string{"a"}}},
-	{"{% sort(s7) %}{{ s7 }}", "a, b", Vars{"s7": []string{"b", "a"}}},
-	{"{% sort(s8) %}{{ s8 }}", "a, b, c", Vars{"s8": []string{"b", "a", "c"}}},
-	{"{% sort(s9) %}{{ s9 }}", "false, true, true", Vars{"s9": []bool{true, false, true}}},
-	{"{% s := []HTML{HTML(`<b>`), HTML(`<a>`), HTML(`<c>`)} %}{% sort(s) %}{{ s }}", "<a>, <b>, <c>", nil},
+	{"{% sort(s1) %}{{ sprint(s1) }}", "[]", Vars{"s1": []int{}}},
+	{"{% sort(s2) %}{{ sprint(s2) }}", "[1]", Vars{"s2": []int{1}}},
+	{"{% sort(s3) %}{{ sprint(s3) }}", "[1 2]", Vars{"s3": []int{1, 2}}},
+	{"{% sort(s4) %}{{ sprint(s4) }}", "[1 2]", Vars{"s4": []int{2, 1}}},
+	{"{% sort(s5) %}{{ sprint(s5) }}", "[1 2 3]", Vars{"s5": []int{3, 1, 2}}},
+	{"{% sort(s6) %}{{ sprint(s6) }}", "[a]", Vars{"s6": []string{"a"}}},
+	{"{% sort(s7) %}{{ sprint(s7) }}", "[a b]", Vars{"s7": []string{"b", "a"}}},
+	{"{% sort(s8) %}{{ sprint(s8) }}", "[a b c]", Vars{"s8": []string{"b", "a", "c"}}},
+	{"{% sort(s9) %}{{ sprint(s9) }}", "[false true true]", Vars{"s9": []bool{true, false, true}}},
+	{"{% s := []HTML{HTML(`<b>`), HTML(`<a>`), HTML(`<c>`)} %}{% sort(s) %}{% for n in s %}{{ n }},{% end %}", "<a>,<b>,<c>,", nil},
 
 	// split
-	{"{{ split(``, ``) }}", "", nil},
-	{"{{ split(`a`, ``) }}", "a", nil},
-	{"{{ split(`ab`, ``) }}", "a, b", nil},
-	{"{{ split(`a,b,c`, `,`) }}", "a, b, c", nil},
-	{"{{ split(`a,b,c,`, `,`) }}", "a, b, c, ", nil},
+	{"{% s := split(``, ``) %}{{ sprint(s) }}", "[]", nil},
+	{"{% s := split(`a`, ``) %}{{ sprint(s) }}", "[a]", nil},
+	{"{% s := split(`ab`, ``) %}{{ sprint(s) }}", "[a b]", nil},
+	{"{% s := split(`a,b,c`, `,`) %}{{ sprint(s) }}", "[a b c]", nil},
+	{"{% s := split(`a,b,c,`, `,`) %}{{ sprint(s) }}", "[a b c ]", nil},
 
 	// splitN
-	{"{{ splitN(``, ``, 0) }}", "", nil},
-	{"{{ splitN(`a`, ``, 0) }}", "", nil},
-	{"{{ splitN(`ab`, ``, 1) }}", "ab", nil},
-	{"{{ splitN(`a,b,c`, `,`, 2) }}", "a, b,c", nil},
+	{"{% s := splitN(``, ``, 0) %}{{ sprint(s) }}", "[]", nil},
+	{"{% s := splitN(`a`, ``, 0) %}{{ sprint(s) }}", "[]", nil},
+	{"{% s := splitN(`ab`, ``, 1) %}{{ sprint(s) }}", "[ab]", nil},
+	{"{% s := splitN(`a,b,c`, `,`, 2) %}{{ sprint(s) }}", "[a b,c]", nil},
 
 	// sprint
 	{"{{ sprint() }}", "", nil},
@@ -390,11 +390,11 @@ func TestRenderBuiltinInHTMLContext(t *testing.T) {
 var rendererBuiltinTestsInJavaScriptContext = []builtinTest{
 	// Time
 	{"var t = {{ t }};", "var t = new Date(\"2006-01-02T15:04:05.123Z\");", Vars{"t": Time(testTime)}},
-	{"var t = new Date(\"{{ t }}\");", "var t = new Date(\"2006-01-02T15:04:05.123Z\");", Vars{"t": Time(testTime)}},
+	{"var t = new Date(\"{{ t }}\");", "var t = new Date(\"2006-01-02 15:04:05.123456 +0000 UTC\");", Vars{"t": Time(testTime)}},
 	{"var t = {{ t }};", "var t = new Date(\"+012365-03-22T15:19:05.123Z\");", Vars{"t": Time(testTime2)}},
-	{"var t = new Date(\"{{ t }}\");", "var t = new Date(\"+012365-03-22T15:19:05.123Z\");", Vars{"t": Time(testTime2)}},
+	{"var t = new Date(\"{{ t }}\");", "var t = new Date(\"12365-03-22 15:19:05.123456789 +0000 UTC\");", Vars{"t": Time(testTime2)}},
 	{"var t = {{ t }};", "var t = new Date(\"2006-01-02T15:04:05.123-08:00\");", Vars{"t": Time(testTime3)}},
-	{"var t = new Date(\"{{ t }}\");", "var t = new Date(\"2006-01-02T15:04:05.123-08:00\");", Vars{"t": Time(testTime3)}},
+	{"var t = new Date(\"{{ t }}\");", "var t = new Date(\"2006-01-02 15:04:05.123456789 -0800 PST\");", Vars{"t": Time(testTime3)}},
 }
 
 func TestRenderBuiltinInJavaScriptContext(t *testing.T) {
@@ -442,16 +442,16 @@ var rendererRandomBuiltinTests = []struct {
 	{"{{ randFloat() }}", 4, "0.4377141871869802", nil},
 
 	// shuffle
-	{"{% shuffle(s) %}{{ s }}", 1, "", Vars{"s": []int{}}},
-	{"{% shuffle(s) %}{{ s }}", 1, "1", Vars{"s": []int{1}}},
-	{"{% shuffle(s) %}{{ s }}", 1, "1, 2", Vars{"s": []int{1, 2}}},
-	{"{% shuffle(s) %}{{ s }}", 2, "2, 1", Vars{"s": []int{1, 2}}},
-	{"{% shuffle(s) %}{{ s }}", 1, "1, 2, 3", Vars{"s": []int{1, 2, 3}}},
-	{"{% shuffle(s) %}{{ s }}", 2, "3, 1, 2", Vars{"s": []int{1, 2, 3}}},
-	{"{% shuffle(s) %}{{ s }}", 3, "1, 3, 2", Vars{"s": []int{1, 2, 3}}},
-	{"{% shuffle(s) %}{{ s }}", 1, "a, b, c", Vars{"s": []string{"a", "b", "c"}}},
-	{"{% shuffle(s) %}{{ s }}", 2, "c, a, b", Vars{"s": []string{"a", "b", "c"}}},
-	{"{% shuffle(s) %}{{ s }}", 3, "a, c, b", Vars{"s": []string{"a", "b", "c"}}},
+	{"{% shuffle(s) %}{{ sprint(s) }}", 1, "[]", Vars{"s": []int{}}},
+	{"{% shuffle(s) %}{{ sprint(s) }}", 1, "[1]", Vars{"s": []int{1}}},
+	{"{% shuffle(s) %}{{ sprint(s) }}", 1, "[1 2]", Vars{"s": []int{1, 2}}},
+	{"{% shuffle(s) %}{{ sprint(s) }}", 2, "[2 1]", Vars{"s": []int{1, 2}}},
+	{"{% shuffle(s) %}{{ sprint(s) }}", 1, "[1 2 3]", Vars{"s": []int{1, 2, 3}}},
+	{"{% shuffle(s) %}{{ sprint(s) }}", 2, "[3 1 2]", Vars{"s": []int{1, 2, 3}}},
+	{"{% shuffle(s) %}{{ sprint(s) }}", 3, "[1 3 2]", Vars{"s": []int{1, 2, 3}}},
+	{"{% shuffle(s) %}{{ sprint(s) }}", 1, "[a b c]", Vars{"s": []string{"a", "b", "c"}}},
+	{"{% shuffle(s) %}{{ sprint(s) }}", 2, "[c a b]", Vars{"s": []string{"a", "b", "c"}}},
+	{"{% shuffle(s) %}{{ sprint(s) }}", 3, "[a c b]", Vars{"s": []string{"a", "b", "c"}}},
 }
 
 func TestRenderRandomBuiltin(t *testing.T) {

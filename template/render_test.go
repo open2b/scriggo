@@ -21,7 +21,6 @@ var htmlContextTests = []struct {
 	res  string
 	vars Vars
 }{
-	{`([]int)(nil)`, "", nil},
 	{`""`, "", nil},
 	{`"a"`, "a", nil},
 	{`"<a>"`, "&lt;a&gt;", nil},
@@ -46,9 +45,6 @@ var htmlContextTests = []struct {
 	{`-0.1000000`, "-0.1", nil},
 	{`true`, "true", nil},
 	{`false`, "false", nil},
-	{`a`, "0, 1, 2, 3, 4, 5", Vars{"a": []int{0, 1, 2, 3, 4, 5}}},
-	{`a`, "-2, -1, 0, 1, 2", Vars{"a": []int{-2, -1, 0, 1, 2}}},
-	{`a`, "true, false, true", Vars{"a": []bool{true, false, true}}},
 	{`s["a"]`, "", Vars{"s": map[string]string{}}},
 }
 
@@ -78,7 +74,6 @@ var attributeContextTests = []struct {
 	res  string
 	vars Vars
 }{
-	{`([]int)(nil)`, "", nil},
 	{`""`, "", nil},
 	{`"a"`, "a", nil},
 	{`"<a>"`, "&lt;a&gt;", nil},
@@ -86,7 +81,6 @@ var attributeContextTests = []struct {
 	{`a`, "&lt;a&gt;", Vars{"a": "<a>"}},
 	{`d`, "&lt;div&gt;&lt;/div&gt;", Vars{"d": "<div></div>"}},
 	{`a`, "&lt;a&gt;", Vars{"a": HTML("<a>")}},
-	{`a`, "&amp;", Vars{"a": HTML("&amp;")}},
 	{`d`, "&lt;div&gt;&lt;/div&gt;", Vars{"d": HTML("<div></div>")}},
 	{`0`, "0", nil},
 	{`25`, "25", nil},
@@ -101,9 +95,6 @@ var attributeContextTests = []struct {
 	{`-0.1000000`, "-0.1", nil},
 	{`true`, "true", nil},
 	{`false`, "false", nil},
-	{`a`, "0, 1, 2, 3, 4, 5", Vars{"a": []int{0, 1, 2, 3, 4, 5}}},
-	{`a`, "-2, -1, 0, 1, 2", Vars{"a": []int{-2, -1, 0, 1, 2}}},
-	{`a`, "true, false, true", Vars{"a": []bool{true, false, true}}},
 	{`s["a"]`, "", Vars{"s": map[interface{}]interface{}{}}},
 }
 
@@ -135,7 +126,6 @@ var unquotedAttributeContextTests = []struct {
 }{
 	{`a`, "&#32;a&#32;", Vars{"a": " a "}},
 	{`a`, "&#09;&#10;&#13;&#12;&#32;a&#61;&#96;", Vars{"a": "\t\n\r\x0C a=`"}},
-	{`a`, "0,&#32;1,&#32;2", Vars{"a": []int{0, 1, 2}}},
 	{`s["a"]`, "", Vars{"s": map[interface{}]interface{}{}}},
 }
 
@@ -165,7 +155,6 @@ var javaScriptContextTests = []struct {
 	res  string
 	vars Vars
 }{
-	{`([]int)(nil)`, `null`, nil},
 	{`""`, `""`, nil},
 	{`"a"`, `"a"`, nil},
 	{`"<a>"`, `"\x3ca\x3e"`, nil},
