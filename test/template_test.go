@@ -101,7 +101,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Template builtin - sort": {
 		sources: map[string]string{
-			"/index.html": `{% s := []string{"a", "c", "b"} %}{{ sprintf("%v", s) }} sorted is {% sort(s) %}{{ sprintf("%v", s) }}`,
+			"/index.html": `{% s := []string{"a", "c", "b"} %}{{ sprint(s) }} sorted is {% sort(s) %}{{ sprint(s) }}`,
 		},
 		expected: `[a c b] sorted is [a b c]`,
 	},
@@ -280,7 +280,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Macro definition (with one []int argument) and show-macro": {
 		sources: map[string]string{
-			"/index.html": `{% macro M(v []int) %}v is {{ sprintf("%v", v) }}{% end %}{% show M([]int{42}) %}`,
+			"/index.html": `{% macro M(v []int) %}v is {{ sprint(v) }}{% end %}{% show M([]int{42}) %}`,
 		},
 		expected: `v is [42]`,
 	},
