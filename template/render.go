@@ -35,16 +35,6 @@ func (err PrintTypeError) RuntimeError() {}
 // option RenderFunc is nil.
 var DefaultRenderFunc = render
 
-// ValueRenderer is called by the RenderFunc and is implemented by the types
-// that know how to render their values. Render renders the value in the
-// context ctx and writes to out.
-//
-// If the value can not be rendered in context ctx, Render returns the
-// ErrNoRenderInContext error.
-type ValueRenderer interface {
-	Render(out io.Writer, ctx Context) error
-}
-
 // Render renders value in the context ctx and writes to out.
 func render(_ *runtime.Env, out io.Writer, value interface{}, ctx Context) {
 
