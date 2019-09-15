@@ -246,7 +246,8 @@ func main() {
 		loadOpts := &template.LoadOptions{
 			LimitMemorySize: limitMemorySize,
 		}
-		templ, err := template.Load("/index.html", r, templateMain, template.ContextHTML, loadOpts)
+		main := scriggo.CombinedPackage{templateMain, template.Builtins()}
+		templ, err := template.Load("/index.html", r, main, template.ContextHTML, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -271,7 +272,8 @@ func main() {
 		loadOpts := &template.LoadOptions{
 			LimitMemorySize: limitMemorySize,
 		}
-		templ, err := template.Load("/index.html", r, templateMain, template.ContextHTML, loadOpts)
+		main := scriggo.CombinedPackage{templateMain, template.Builtins()}
+		templ, err := template.Load("/index.html", r, main, template.ContextHTML, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -302,7 +304,8 @@ func main() {
 			panic("timeout not supported when compiling a html page")
 		}
 		r := template.MapReader{"/index.html": src}
-		_, err = template.Load("/index.html", r, templateMain, template.ContextHTML, loadOpts)
+		main := scriggo.CombinedPackage{templateMain, template.Builtins()}
+		_, err = template.Load("/index.html", r, main, template.ContextHTML, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
