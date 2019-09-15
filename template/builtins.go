@@ -229,6 +229,7 @@ var main = &scriggo.MapPackage{
 		"sort":        sort,
 		"split":       split,
 		"splitN":      splitN,
+		"sprint":      sprint,
 		"sprintf":     sprintf,
 		"title":       title,
 		"toLower":     toLower,
@@ -708,6 +709,12 @@ func splitN(env *runtime.Env, s, sep string, n int) []string {
 		}
 	}
 	return strings.SplitN(s, sep, n)
+}
+
+// sprint is the builtin function "sprint".
+func sprint(a ...interface{}) string {
+	// TODO(marco): Alloc.
+	return fmt.Sprint(a...)
 }
 
 // sprintf is the builtin function "sprintf".
