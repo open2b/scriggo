@@ -225,11 +225,11 @@ var main = &scriggo.MapPackage{
 		"replaceAll":  replaceAll,
 		"reverse":     reverse,
 		"round":       round,
-		"printf":      printf,
 		"shuffle":     shuffle,
 		"sort":        sort,
 		"split":       split,
 		"splitN":      splitN,
+		"sprintf":     sprintf,
 		"title":       title,
 		"toLower":     toLower,
 		"toTitle":     toTitle,
@@ -539,12 +539,6 @@ func now(env *runtime.Env) Time {
 	return actual.(Time)
 }
 
-// printf is the builtin function "printf".
-func printf(format string, a ...interface{}) (n int, err error) {
-	// TODO(marco): Alloc.
-	return fmt.Printf(format, a...)
-}
-
 // rand is the builtin function "rand".
 func rand(x int) int {
 	seed := time.Now().UTC().UnixNano()
@@ -714,6 +708,12 @@ func splitN(env *runtime.Env, s, sep string, n int) []string {
 		}
 	}
 	return strings.SplitN(s, sep, n)
+}
+
+// sprintf is the builtin function "sprintf".
+func sprintf(format string, a ...interface{}) string {
+	// TODO(marco): Alloc.
+	return fmt.Sprintf(format, a...)
 }
 
 // title is the builtin function "title".

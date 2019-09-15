@@ -263,6 +263,12 @@ var rendererBuiltinTestsInHTMLContext = []builtinTest{
 	{"{{ splitN(`ab`, ``, 1) }}", "ab", nil},
 	{"{{ splitN(`a,b,c`, `,`, 2) }}", "a, b,c", nil},
 
+	// sprintf
+	{"{{ sprintf(``) }}", "", nil},
+	{"{{ sprintf(`a`) }}", "a", nil},
+	{"{{ sprintf(`%s`, `a`) }}", "a", nil},
+	{"{{ sprintf(`%d`, 5) }}", "5", nil},
+
 	// title
 	{"{{ title(``) }}", "", nil},
 	{"{{ title(`a`) }}", "A", nil},
