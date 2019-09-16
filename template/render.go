@@ -162,8 +162,11 @@ func renderInText(out io.Writer, value interface{}) error {
 func renderInHTML(out io.Writer, value interface{}) error {
 	w := newStringWriter(out)
 	switch v := value.(type) {
+	case HTML:
+		_, err := w.WriteString(string(v))
+		return err
 	case compiler.HTMLStringer:
-		_, err := w.WriteString(v.HTML())
+		_, err := w.WriteString(string(v.HTML()))
 		return err
 	case fmt.Stringer:
 		return htmlEscape(w, v.String())
@@ -218,15 +221,18 @@ func renderInAttribute(out io.Writer, value interface{}, quoted bool) error {
 
 // renderInCSS renders value in CSS context.
 func renderInCSS(out io.Writer, value interface{}) error {
-	if v, ok := value.(compiler.CSSStringer); ok {
-		w := newStringWriter(out)
-		_, err := w.WriteString(v.CSS())
+	w := newStringWriter(out)
+	switch v := value.(type) {
+	case CSS:
+		_, err := w.WriteString(string(v))
+		return err
+	case compiler.CSSStringer:
+		_, err := w.WriteString(string(v.CSS()))
 		return err
 	}
 	v := reflect.ValueOf(value)
 	switch v.Kind() {
 	case reflect.String:
-		w := newStringWriter(out)
 		_, err := w.WriteString(`"`)
 		if err == nil {
 			err = cssStringEscape(w, v.String())
@@ -236,10 +242,8 @@ func renderInCSS(out io.Writer, value interface{}) error {
 		}
 		return err
 	case reflect.Slice:
-		w := newStringWriter(out)
 		return escapeBytes(w, v.Interface().([]byte), false)
 	default:
-		w := newStringWriter(out)
 		_, err := w.WriteString(toString(v))
 		return err
 	}
@@ -264,14 +268,17 @@ func renderInCSSString(out io.Writer, value interface{}) error {
 // renderInJavaScript renders value in JavaScript context.
 func renderInJavaScript(out io.Writer, value interface{}) error {
 
+	w := newStringWriter(out)
+
 	switch v := value.(type) {
+	case JavaScript:
+		_, err := w.WriteString(string(v))
+		return err
 	case compiler.JavaScriptStringer:
-		w := newStringWriter(out)
-		_, err := w.WriteString(v.JavaScript())
+		_, err := w.WriteString(string(v.JavaScript()))
 		return err
 	}
 
-	w := newStringWriter(out)
 	v := reflect.ValueOf(value)
 
 	var s string

@@ -28,6 +28,7 @@ import (
 	"unicode/utf8"
 
 	"scriggo"
+	"scriggo/internal/compiler"
 	"scriggo/runtime"
 )
 
@@ -54,11 +55,9 @@ func Builtins() scriggo.Package {
 	return main
 }
 
-type HTML string
-
-func (h HTML) HTML() string {
-	return string(h)
-}
+type HTML = compiler.HTML
+type CSS = compiler.CSS
+type JavaScript = compiler.JavaScript
 
 var times sync.Map
 
@@ -77,7 +76,7 @@ func (t Time) UTC(env *runtime.Env) Time {
 	return Time(time.Time(t).UTC())
 }
 
-func (t Time) JavaScript() string {
+func (t Time) JavaScript() JavaScript {
 	tt := time.Time(t)
 	y := tt.Year()
 	if y < -999999 || y > 999999 {
@@ -90,7 +89,7 @@ func (t Time) JavaScript() string {
 		if y < 0 || y > 9999 {
 			format = `new Date("%+0.6d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3dZ")`
 		}
-		return fmt.Sprintf(format, y, tt.Month(), tt.Day(), tt.Hour(), tt.Minute(), tt.Second(), ms)
+		return JavaScript(fmt.Sprintf(format, y, tt.Month(), tt.Day(), tt.Hour(), tt.Minute(), tt.Second(), ms))
 	}
 	zone := offset / 60
 	h, m := zone/60, zone%60
@@ -101,15 +100,17 @@ func (t Time) JavaScript() string {
 	if y < 0 || y > 9999 {
 		format = `new Date("%+0.6d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3d%+0.2d:%0.2d")`
 	}
-	return fmt.Sprintf(format, y, tt.Month(), tt.Day(), tt.Hour(), tt.Minute(), tt.Second(), ms, h, m)
+	return JavaScript(fmt.Sprintf(format, y, tt.Month(), tt.Day(), tt.Hour(), tt.Minute(), tt.Second(), ms, h, m))
 }
 
 var main = &scriggo.MapPackage{
 	PkgName: "main",
 	Declarations: map[string]interface{}{
+		"CSS":         compiler.CSSType,
 		"Hasher":      hasherType,
+		"JavaScript":  compiler.JavaScriptType,
 		"MD5":         _MD5,
-		"HTML":        reflect.TypeOf(HTML("")),
+		"HTML":        compiler.HTMLType,
 		"SHA1":        _SHA1,
 		"SHA256":      _SHA256,
 		"Time":        timeType,

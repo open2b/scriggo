@@ -611,6 +611,7 @@ nodesLoop:
 				}
 			case ast.ContextHTML:
 				switch {
+				case ti.Type == HTMLType:
 				case kind == reflect.String:
 				case reflect.Bool <= kind && kind <= reflect.Complex128:
 				case ti.Type == emptyInterfaceType:
@@ -621,6 +622,7 @@ nodesLoop:
 				}
 			case ast.ContextCSS:
 				switch {
+				case ti.Type == CSSType:
 				case kind == reflect.String:
 				case reflect.Int <= kind && kind <= reflect.Float64:
 				case ti.Type == emptyInterfaceType:

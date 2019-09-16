@@ -25,8 +25,6 @@ type scopeElement struct {
 
 type typeCheckerScope map[string]scopeElement
 
-type HTML string
-
 var boolType = reflect.TypeOf(false)
 var uintType = reflect.TypeOf(uint(0))
 var uint8Type = reflect.TypeOf(uint8(0))
