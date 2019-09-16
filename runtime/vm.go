@@ -17,6 +17,8 @@ import (
 const NoVariadicArgs = -1
 const CurrentFunction = -1
 
+const maxUint32 = 1<<31 - 1
+
 const stackSize = 512
 
 var envType = reflect.TypeOf(&Env{})

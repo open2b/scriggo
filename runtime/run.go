@@ -1392,7 +1392,7 @@ func (vm *VM) run() (uint32, bool) {
 			i := len(vm.calls) - 1
 			if i == -1 {
 				// TODO(marco): call finalizer.
-				return 0, false
+				return maxUint32, false
 			}
 			call := vm.calls[i]
 			if call.status == started {
@@ -1403,7 +1403,7 @@ func (vm *VM) run() (uint32, bool) {
 				vm.vars = call.cl.vars
 				vm.pc = call.pc
 			} else if !vm.nextCall() {
-				return 0, false
+				return maxUint32, false
 			}
 
 		// RightShift
