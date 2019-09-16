@@ -1,4 +1,4 @@
-// skip : infinite loop
+// skip : infinite loop: see https://github.com/open2b/scriggo/issues/398
 
 // We often need our programs to perform operations on
 // collections of data, like selecting all items that
