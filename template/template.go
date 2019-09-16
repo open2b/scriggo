@@ -23,15 +23,10 @@ import (
 type Context int
 
 const (
-	ContextText              = Context(ast.ContextText)
-	ContextHTML              = Context(ast.ContextHTML)
-	ContextTag               = Context(ast.ContextTag)
-	ContextAttribute         = Context(ast.ContextAttribute)
-	ContextUnquotedAttribute = Context(ast.ContextUnquotedAttribute)
-	ContextCSS               = Context(ast.ContextCSS)
-	ContextCSSString         = Context(ast.ContextCSSString)
-	ContextJavaScript        = Context(ast.ContextJavaScript)
-	ContextJavaScriptString  = Context(ast.ContextJavaScriptString)
+	ContextText       = Context(ast.ContextText)
+	ContextHTML       = Context(ast.ContextHTML)
+	ContextCSS        = Context(ast.ContextCSS)
+	ContextJavaScript = Context(ast.ContextJavaScript)
 )
 
 func (ctx Context) String() string {
@@ -47,7 +42,6 @@ type RenderOptions struct {
 	Context       context.Context
 	MaxMemorySize int
 	DontPanic     bool
-	RenderFunc    RenderFunc
 	PrintFunc     runtime.PrintFunc
 	TraceFunc     runtime.TraceFunc
 }
@@ -61,8 +55,6 @@ type Template struct {
 // Load loads a template given its path. Load calls the method Read of reader
 // to read the files of the template. Package main declares constants, types,
 // variables and functions that are accessible from the code in the template.
-// Context is the context in which the code is executed and can be
-// ContextText, ContextHTML, ContextCSS or ContextJavaScript.
 func Load(path string, reader Reader, main scriggo.Package, ctx Context, options *LoadOptions) (*Template, error) {
 	tree, err := compiler.ParseTemplate(path, reader, ast.Context(ctx))
 	if err != nil {
@@ -102,30 +94,22 @@ func Load(path string, reader Reader, main scriggo.Package, ctx Context, options
 	return &Template{fn: code.Main, globals: code.Globals, options: options}, nil
 }
 
-// A RenderFunc renders value in the context ctx and writes the result to out.
-// A RenderFunc is called by the Render method to render the value resulting
-// from the evaluation of an expression between "{{" and "}}".
-type RenderFunc func(env *runtime.Env, out io.Writer, value interface{}, ctx Context)
-
 var emptyVars = map[string]interface{}{}
 
 // Render renders the template and write the output to out. vars contains the values for the
 // variables of the main package.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *RenderOptions) error {
-	render := DefaultRenderFunc
 	if options != nil {
 		if options.MaxMemorySize > 0 && !t.options.LimitMemorySize {
 			panic("scriggo: template not loaded with LimitMemorySize option")
 		}
-		if options.RenderFunc != nil {
-			render = options.RenderFunc
-		}
 	}
-	write := out.Write
+	writeFunc := out.Write
+	renderFunc := render
 	uw := &urlEscaper{w: out}
 	t.globals[0].Value = &out
-	t.globals[1].Value = &write
-	t.globals[2].Value = &render
+	t.globals[1].Value = &writeFunc
+	t.globals[2].Value = &renderFunc
 	t.globals[3].Value = &uw
 	if vars == nil {
 		vars = emptyVars

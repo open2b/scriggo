@@ -16,6 +16,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"scriggo/ast"
 	"scriggo/internal/compiler"
 	"scriggo/runtime"
 )
@@ -31,33 +32,29 @@ func (err PrintTypeError) Error() string {
 }
 func (err PrintTypeError) RuntimeError() {}
 
-// DefaultRenderFunc is the default RenderFunc used by Render method if the
-// option RenderFunc is nil.
-var DefaultRenderFunc = render
-
-// Render renders value in the context ctx and writes to out.
-func render(_ *runtime.Env, out io.Writer, value interface{}, ctx Context) {
+// render renders value in the context ctx and writes to out.
+func render(_ *runtime.Env, out io.Writer, value interface{}, ctx ast.Context) {
 
 	var err error
 
 	switch ctx {
-	case ContextText:
+	case ast.ContextText:
 		err = renderInText(out, value)
-	case ContextHTML:
+	case ast.ContextHTML:
 		err = renderInHTML(out, value)
-	case ContextTag:
+	case ast.ContextTag:
 		err = renderInTag(out, value)
-	case ContextAttribute:
+	case ast.ContextAttribute:
 		err = renderInAttribute(out, value, true)
-	case ContextUnquotedAttribute:
+	case ast.ContextUnquotedAttribute:
 		err = renderInAttribute(out, value, false)
-	case ContextCSS:
+	case ast.ContextCSS:
 		err = renderInCSS(out, value)
-	case ContextCSSString:
+	case ast.ContextCSSString:
 		err = renderInCSSString(out, value)
-	case ContextJavaScript:
+	case ast.ContextJavaScript:
 		err = renderInJavaScript(out, value)
-	case ContextJavaScriptString:
+	case ast.ContextJavaScriptString:
 		err = renderInJavaScriptString(out, value)
 	default:
 		panic("scriggo: unknown context")
