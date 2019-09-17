@@ -1,4 +1,4 @@
-// skip : syntax error
+// skip : tags not supported https://github.com/open2b/scriggo/issues/61
 
 // errorcheck
 
