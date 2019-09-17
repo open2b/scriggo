@@ -391,7 +391,7 @@ func renderInJavaScript(out io.Writer, value interface{}) error {
 			} else {
 				keyPairs[i].key = toString(key)
 			}
-			keyPairs[i].val = iter.Value()
+			keyPairs[i].val = iter.Value().Interface()
 		}
 		_sort.Slice(keyPairs, func(i, j int) bool {
 			return keyPairs[i].key < keyPairs[i].key
