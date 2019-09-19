@@ -53,7 +53,7 @@ func toTypeCheckerScope(gp predefinedPackage) typeCheckerScope {
 		if c, ok := value.(UntypedConstant); ok {
 			constant, typ, err := parseConstant(string(c))
 			if err != nil {
-				panic(fmt.Errorf("scriggo: invalid untyped constant %q in package %s", c, gp.Name()))
+				panic(fmt.Errorf("scriggo: invalid untyped constant %q for %s.%s", c, gp.Name(), ident))
 			}
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:              typ,
@@ -66,7 +66,7 @@ func toTypeCheckerScope(gp predefinedPackage) typeCheckerScope {
 		// Import a typed constant.
 		constant := convertToConstant(value)
 		if constant == nil {
-			panic(fmt.Errorf("scriggo: invalid constant value %v in package %s", value, pkgName))
+			panic(fmt.Errorf("scriggo: invalid constant value %v for %s.%s", value, pkgName, ident))
 		}
 		s[ident] = scopeElement{t: &TypeInfo{
 			Type:              reflect.TypeOf(value),
