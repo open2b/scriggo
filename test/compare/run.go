@@ -256,7 +256,7 @@ func testWithoutErrorLines(src []byte, ext string, opts []string) {
 	}
 	exitCode, _, stderr := cmd([]byte(linesWithoutError), opts, arg)
 	if exitCode != 0 {
-		panic(fmt.Errorf("unexpected error (maybe you forgot to add an // ERROR comment or the test has some problem): '%s'", stderr))
+		panic(fmt.Errorf("unexpected error (maybe you forgot to add an // ERROR comment or the test has some problems): '%s'", stderr))
 	}
 }
 
