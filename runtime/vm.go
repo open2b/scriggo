@@ -541,8 +541,12 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 				fn.in[i] = Float64
 			case k == reflect.String:
 				fn.in[i] = String
+			case k == reflect.Array:
+				fn.in[i] = Array
 			case k == reflect.Func:
 				fn.in[i] = Func
+			case k == reflect.Struct:
+				fn.in[i] = Struct
 			default:
 				if i < 2 && typ.In(i) == envType {
 					fn.in[i] = Environment
@@ -635,6 +639,12 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 				case String:
 					args[i].SetString(vm.string(1))
 					vm.fp[2]++
+				case Array:
+					slice := reflect.ValueOf(vm.general(1))
+					array := reflect.New(reflect.ArrayOf(slice.Len(), slice.Type().Elem())).Elem()
+					reflect.Copy(array, slice)
+					args[i].Set(array)
+					vm.fp[3]++
 				case Func:
 					f := vm.general(1).(*callable)
 					args[i].Set(f.Value(vm.env))
@@ -651,6 +661,9 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 					} else {
 						args[i].Set(reflect.ValueOf(v))
 					}
+					vm.fp[3]++
+				case Struct:
+					args[i].Set(reflect.ValueOf(vm.general(1)).Elem())
 					vm.fp[3]++
 				default:
 					args[i].Set(reflect.ValueOf(vm.general(1)))
@@ -1035,9 +1048,11 @@ const (
 	Uintptr     = Kind(reflect.Uintptr)
 	Float32     = Kind(reflect.Float32)
 	Float64     = Kind(reflect.Float64)
+	Array       = Kind(reflect.Array)
 	String      = Kind(reflect.String)
 	Func        = Kind(reflect.Func)
 	Interface   = Kind(reflect.Interface)
+	Struct      = Kind(reflect.Struct)
 	Unknown     = 254 // https://github.com/open2b/scriggo/issues/390
 	Environment = 255
 )
