@@ -13,12 +13,12 @@ import (
 	"scriggo/ast"
 )
 
-func toTypeCheckerScope(gp predefinedPackage) typeCheckerScope {
-	pkgName := gp.Name()
-	declarations := gp.DeclarationNames()
+func toTypeCheckerScope(pp predefinedPackage) typeCheckerScope {
+	pkgName := pp.Name()
+	declarations := pp.DeclarationNames()
 	s := make(typeCheckerScope, len(declarations))
 	for _, ident := range declarations {
-		value := gp.Lookup(ident)
+		value := pp.Lookup(ident)
 		// Import a type.
 		if t, ok := value.(reflect.Type); ok {
 			s[ident] = scopeElement{t: &TypeInfo{
@@ -53,7 +53,7 @@ func toTypeCheckerScope(gp predefinedPackage) typeCheckerScope {
 		if c, ok := value.(UntypedConstant); ok {
 			constant, typ, err := parseConstant(string(c))
 			if err != nil {
-				panic(fmt.Errorf("scriggo: invalid untyped constant %q for %s.%s", c, gp.Name(), ident))
+				panic(fmt.Errorf("scriggo: invalid untyped constant %q for %s.%s", c, pp.Name(), ident))
 			}
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:              typ,
