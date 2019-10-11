@@ -9,6 +9,7 @@ package test
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"strings"
 	"testing"
 
@@ -128,6 +129,36 @@ var scriptCases = map[string]struct {
 			},
 		},
 		out: "45",
+	},
+
+	"Auto imported package": {
+		src: `
+			name := strings.ToLower("HELLO")
+			Print(name)
+			Print(math.MaxInt8)
+			v := math.MaxInt8 * 2
+			Print(v)
+		`,
+		pkgs: scriggo.Packages{
+			"main": &scriggo.MapPackage{
+				PkgName: "main",
+				Declarations: map[string]interface{}{
+					"strings": &scriggo.MapPackage{
+						PkgName: "strings",
+						Declarations: map[string]interface{}{
+							"ToLower": strings.ToLower,
+						},
+					},
+					"math": &scriggo.MapPackage{
+						PkgName: "math",
+						Declarations: map[string]interface{}{
+							"MaxInt8": math.MaxInt8,
+						},
+					},
+				},
+			},
+		},
+		out: "hello127254",
 	},
 
 	// https://github.com/open2b/scriggo/issues/317
