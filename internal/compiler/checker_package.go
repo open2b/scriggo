@@ -20,7 +20,9 @@ type scriggoPackage interface {
 	DeclarationNames() []string
 }
 
-func toTypeCheckerScope(pp predefinedPackage) typeCheckerScope {
+// toTypeCheckerScope generates a type checker scope given a predefined package.
+// depth should be set to 0 for non-recursive calls.
+func toTypeCheckerScope(pp predefinedPackage, depth int, opts CheckerOptions) typeCheckerScope {
 	pkgName := pp.Name()
 	declarations := pp.DeclarationNames()
 	s := make(typeCheckerScope, len(declarations))
@@ -29,9 +31,15 @@ func toTypeCheckerScope(pp predefinedPackage) typeCheckerScope {
 		// Import an auto-imported package. This is supported in scripts and
 		// templates only.
 		if p, ok := value.(scriggoPackage); ok {
+			if opts.SyntaxType == ProgramSyntax {
+				panic(fmt.Errorf("scriggo: auto-imported packages are supported only for scripts and templates"))
+			}
+			if depth > 0 {
+				panic(fmt.Errorf("scriggo: cannot have an auto-imported package inside another auto-imported package"))
+			}
 			autoPkg := &PackageInfo{}
 			autoPkg.Declarations = map[string]*TypeInfo{}
-			for n, d := range toTypeCheckerScope(p) {
+			for n, d := range toTypeCheckerScope(p, depth+1, opts) {
 				autoPkg.Declarations[n] = d.t
 			}
 			autoPkg.Name = p.Name()
@@ -522,7 +530,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 				}
 				declarations := predefinedPkg.DeclarationNames()
 				importedPkg.Declarations = make(map[string]*TypeInfo, len(declarations))
-				for n, d := range toTypeCheckerScope(predefinedPkg) {
+				for n, d := range toTypeCheckerScope(predefinedPkg, 0, tc.opts) {
 					importedPkg.Declarations[n] = d.t
 				}
 				importedPkg.Name = predefinedPkg.Name()

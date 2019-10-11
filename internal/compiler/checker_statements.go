@@ -106,7 +106,7 @@ nodesLoop:
 				decls := predefinedPkg.DeclarationNames()
 				importedPkg := &PackageInfo{}
 				importedPkg.Declarations = make(map[string]*TypeInfo, len(decls))
-				for n, d := range toTypeCheckerScope(predefinedPkg) {
+				for n, d := range toTypeCheckerScope(predefinedPkg, 0, tc.opts) {
 					importedPkg.Declarations[n] = d.t
 				}
 				importedPkg.Name = predefinedPkg.Name()
