@@ -26,7 +26,8 @@ func toTypeCheckerScope(gp predefinedPackage) typeCheckerScope {
 	s := make(typeCheckerScope, len(declarations))
 	for _, ident := range declarations {
 		value := gp.Lookup(ident)
-
+		// Import an auto-imported package. This is supported in scripts and
+		// templates only.
 		if p, ok := value.(scriggoPackage); ok {
 			autoPkg := &PackageInfo{}
 			autoPkg.Declarations = map[string]*TypeInfo{}
@@ -40,7 +41,6 @@ func toTypeCheckerScope(gp predefinedPackage) typeCheckerScope {
 			}}
 			continue
 		}
-
 		// Import a type.
 		if t, ok := value.(reflect.Type); ok {
 			s[ident] = scopeElement{t: &TypeInfo{
