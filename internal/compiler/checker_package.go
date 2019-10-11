@@ -13,12 +13,34 @@ import (
 	"scriggo/ast"
 )
 
+// Sync with scriggo.Package.
+type scriggoPackage interface {
+	Name() string
+	Lookup(declName string) interface{}
+	DeclarationNames() []string
+}
+
 func toTypeCheckerScope(gp predefinedPackage) typeCheckerScope {
 	pkgName := gp.Name()
 	declarations := gp.DeclarationNames()
 	s := make(typeCheckerScope, len(declarations))
 	for _, ident := range declarations {
 		value := gp.Lookup(ident)
+
+		if p, ok := value.(scriggoPackage); ok {
+			autoPkg := &PackageInfo{}
+			autoPkg.Declarations = map[string]*TypeInfo{}
+			for n, d := range toTypeCheckerScope(p) {
+				autoPkg.Declarations[n] = d.t
+			}
+			autoPkg.Name = p.Name()
+			s[ident] = scopeElement{t: &TypeInfo{
+				value:      autoPkg,
+				Properties: PropertyIsPackage | PropertyHasValue,
+			}}
+			continue
+		}
+
 		// Import a type.
 		if t, ok := value.(reflect.Type); ok {
 			s[ident] = scopeElement{t: &TypeInfo{

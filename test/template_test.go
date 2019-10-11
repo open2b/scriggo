@@ -8,6 +8,8 @@ package test
 
 import (
 	"bytes"
+	"math"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -550,6 +552,74 @@ var templateMultiPageCases = map[string]struct {
 		expected:   "",
 		ctx:        template.ContextHTML,
 		entryPoint: "/product.html",
+	},
+	"Auto imported packages - Function call": {
+		sources: map[string]string{
+			"/index.html": `{{ strings.ToLower("HELLO") }}`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"strings": &scriggo.MapPackage{
+					PkgName: "strings",
+					Declarations: map[string]interface{}{
+						"ToLower": strings.ToLower,
+					},
+				},
+			},
+		},
+		expected: "hello",
+	},
+	"Auto imported packages - Variable": {
+		sources: map[string]string{
+			"/index.html": `{{ data.Name }} Holmes`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"data": &scriggo.MapPackage{
+					PkgName: "data",
+					Declarations: map[string]interface{}{
+						"Name": &[]string{"Sherlock"}[0],
+					},
+				},
+			},
+		},
+		expected: "Sherlock Holmes",
+	},
+	"Auto imported packages - Type": {
+		sources: map[string]string{
+			"/index.html": `{% b := &bytes.Buffer{} %}{% b.WriteString("oh!") %}{{ b.String() }}`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"bytes": &scriggo.MapPackage{
+					PkgName: "bytes",
+					Declarations: map[string]interface{}{
+						"Buffer": reflect.TypeOf(bytes.Buffer{}),
+					},
+				},
+			},
+		},
+		expected: "oh!",
+	},
+	"Auto imported packages - Constants": {
+		sources: map[string]string{
+			"/index.html": `{{ math.MaxInt8 }}`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"math": &scriggo.MapPackage{
+					PkgName: "math",
+					Declarations: map[string]interface{}{
+						"MaxInt8": math.MaxInt8,
+					},
+				},
+			},
+		},
+		expected: "127",
 	},
 }
 
