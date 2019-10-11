@@ -20,12 +20,12 @@ type scriggoPackage interface {
 	DeclarationNames() []string
 }
 
-func toTypeCheckerScope(gp predefinedPackage) typeCheckerScope {
-	pkgName := gp.Name()
-	declarations := gp.DeclarationNames()
+func toTypeCheckerScope(pp predefinedPackage) typeCheckerScope {
+	pkgName := pp.Name()
+	declarations := pp.DeclarationNames()
 	s := make(typeCheckerScope, len(declarations))
 	for _, ident := range declarations {
-		value := gp.Lookup(ident)
+		value := pp.Lookup(ident)
 		// Import an auto-imported package. This is supported in scripts and
 		// templates only.
 		if p, ok := value.(scriggoPackage); ok {
@@ -75,7 +75,7 @@ func toTypeCheckerScope(gp predefinedPackage) typeCheckerScope {
 		if c, ok := value.(UntypedConstant); ok {
 			constant, typ, err := parseConstant(string(c))
 			if err != nil {
-				panic(fmt.Errorf("scriggo: invalid untyped constant %q for %s.%s", c, gp.Name(), ident))
+				panic(fmt.Errorf("scriggo: invalid untyped constant %q for %s.%s", c, pp.Name(), ident))
 			}
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:              typ,
