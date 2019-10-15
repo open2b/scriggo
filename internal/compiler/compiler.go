@@ -171,7 +171,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 			return nil, err
 		}
 		if main != nil {
-			globalScope = toTypeCheckerScope(main.(predefinedPackage))
+			globalScope = toTypeCheckerScope(main.(predefinedPackage), 0, opts)
 		}
 	}
 	tc := newTypechecker(tree.Path, opts, globalScope)
