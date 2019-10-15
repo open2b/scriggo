@@ -1,5 +1,3 @@
-// skip
-
 // run
 
 package main
@@ -7,7 +5,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"reflect"
 )
 
 func main() {
@@ -44,10 +41,11 @@ func main() {
 	{
 		_ = interface{}(errors.New("test")).(error)
 	}
-	{
-		rv := reflect.ValueOf(fmt.Print)
-		interf := rv.Interface()
-		p := interf.(func(...interface{}) (int, error))
-		p(1, 2, "x")
-	}
+	// https: //github.com/open2b/scriggo/issues/409
+	// {
+	// 	rv := reflect.ValueOf(fmt.Print)
+	// 	interf := rv.Interface()
+	// 	p := interf.(func(...interface{}) (int, error))
+	// 	p(1, 2, "x")
+	// }
 }
