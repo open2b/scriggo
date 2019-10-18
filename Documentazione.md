@@ -356,7 +356,24 @@ Possiamo quindi visualizzare un messaggio di benvenuto diverso in base a questa 
 <hr>Non hai ancora effettuato il login, cosa aspetti?
 </pre>
 
-<!-- TODO: documentare più avanti l'else if -->
+#### If else if
+
+Nell'istruzione **if** è possibile aggiungere anche **else if**:
+
+<pre class='example'>
+{% <b>if</b> 4 == 5 %}
+    Sbagliato..
+{% <b>else if</b> 4 > 5 %}
+    Sbagliato..
+{% <b>else if</b> 4 < 5 %}
+    Corretto!
+{% <b>else</b> %}
+    Impossibile arrivare qui, almeno una delle condizioni
+    precedenti deve essersi verificata..
+{% <b>end if</b> %}
+<hr>Corretto!
+</pre>
+
 
 ### Istruzione for
 
@@ -465,13 +482,7 @@ Dal momento che gli **indici partono da 0**, possiamo riscrivere l'esempio prece
     3. Forno
 </pre>
 
-> NOTA: la variabile `i` viene incrementata di 1 solamente quando deve essere mostrata. Utilizzare all'interno di un'espressione una variabile non porta alla modifica di quest'ultima.
-
-
-
-**TODO**
-
-#### for ; ; ;
+#### for classico
 
 Il template in Scriggo supporta anche il _classico_ ciclo for, comunemente diffuso in diversi linguaggi di programmazione.
 
@@ -485,9 +496,7 @@ Ciclo 1
 Ciclo 2
 </pre>
 
-
-**TODO**
-
+Anche in questo tipo di **for** sono disponibili le istruzioni **continue** e **break**.
 
 ### Istruzione switch
 
@@ -512,8 +521,6 @@ Vediamo un esempio nel quale deve essere mostrato un messaggio diverso in base a
 {% <b>end switch</b> %}
 <hr>Foto di un frullatore
 </pre>
-
-<!-- TODO: documentare break e fallthrough -->
 
 #### break in uno switch
 
@@ -626,11 +633,24 @@ Nel sistema di template in Scriggo vengono fornite delle dichiarazioni **builtin
 - Se `expr` è uno slice, viene restituito il numero di elementi che lo compongono.
 - Se `expr` è un map, viene restituito il numero di coppie chiave-valore che lo compongono.
 
-## Avanzate
+## Argomenti avanzati
 
 ### Chiamata di funzioni dal template
 
-**TODO**
+Dal template è possibile effettuare chiamate alle funzioni.
+
+```
+{% deleteFile("test.txt") %}
+```
+
+Nel caso particolare in cui una funzione abbia un solo valore di ritorno, la chiamata a tale funzione può essere usata come _espressione_.
+
+<pre class='example'>
+Quest'anno è il {{ year() }},
+il prossimo sarà il {{ year() + 1 }}.
+<hr>Quest'anno è il 2047,
+il prossimo sarà il 2048.
+</pre>
 
 <!-- ▪ Le chiamate di funzione sono espressioni (con esempi)
 ▪ Funzioni con valori multipli di ritorno
@@ -789,4 +809,9 @@ Se l'istruzione **defer** viene eseguita più volte, vengono eseguite per prime 
 
 #### Builtin recover
 
-**TODO**
+Il template in Scriggo mette a disposizione la builtin `recover`, il cui comportamento è identico all'ononima builtin presente in Go.
+Si rimanda quindi alla documentazione di quest'ultima:
+
+- [Blog di Go - Defer, Panic and Recover](https://blog.golang.org/defer-panic-and-recover)
+- [Effective Go - Recover](https://golang.org/doc/effective_go.html#recover)
+- [Specifiche di Go - Gestione dei panic](https://golang.org/ref/spec#Handling_panics)
