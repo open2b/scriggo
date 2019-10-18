@@ -17,7 +17,6 @@ pre.example {
 # Template in Scriggo
 
   * [Introduzione](#introduzione)
-  * [Mostrare testo e HTML](#mostrare-testo-e-html)
   * [Mostrare valori nel template](#mostrare-valori-nel-template)
   * [Espressioni](#espressioni)
     + [Espressioni numeriche](#espressioni-numeriche)
@@ -29,9 +28,10 @@ pre.example {
     + [Map](#map)
   * [Variabili](#variabili)
     + [Dichiarazione di variabili tramite var](#dichiarazione-di-variabili-tramite-var)
-    + [Cambiare il valore di una variabile](#cambiare-il-valore-di-una-variabile)
+    + [Assegnamento di un nuovo valore](#assegnamento-di-un-nuovo-valore)
   * [Controllo di flusso](#controllo-di-flusso)
     + [Istruzione if](#istruzione-if)
+      - [If else](#if-else)
     + [Istruzione for](#istruzione-for)
       - [break in un for](#break-in-un-for)
       - [continue in un for](#continue-in-un-for)
@@ -40,7 +40,7 @@ pre.example {
     + [Istruzione switch](#istruzione-switch)
       - [break in uno switch](#break-in-uno-switch)
       - [fallthrough in uno switch](#fallthrough-in-uno-switch)
-  * [Definizione e chiamata di macro](#definizione-e-chiamata-di-macro)
+  * [Macro](#macro)
     + [Macro con argomenti](#macro-con-argomenti)
   * [Template su file multipli](#template-su-file-multipli)
     + [Istruzione include](#istruzione-include)
@@ -79,7 +79,7 @@ Sorgente del template
 
 > NOTA: per una questione di leggibilità, alcuni esempi potrebbero contenere degli _a capo_ o degli spazi che non verrebbero in realtà renderizzati, o viceversa, vengono nascoste delle spaziature che invece sono presenti nel template mostrato da Scriggo. Per approfondire la questione degli spazi si veda la sezione [Avanzato - Rendering del testo]()
 
-## Mostrare testo e HTML
+<!-- ## Mostrare testo e HTML
 
 Tutto ciò che viene scritto nel sorgente del template, ad eccezione delle istruzioni e dei commenti, viene mostrato così com'è.
 
@@ -97,35 +97,18 @@ Testo &lt;b&gt;grassetto&lt;/b&gt;
 
 Di per sè utilizzare un sistema di template che riscriva il testo così com'è non ha alcuna utilità. Vengono quindi messe a disposizione diverse istruzioni per poter controllare cosa deve essere rappresentato e come deve essere rappresentato.
 
-Si pensi, ad esempio, ad una sezione di una pagina HTML che deve essere mostrata solo in determinate condizioni; oppure si pensi ad calendario che deve essere mostrato in maniera differente in base al giorno.
+Si pensi, ad esempio, ad una sezione di una pagina HTML che deve essere mostrata solo in determinate condizioni; oppure si pensi ad calendario che deve essere mostrato in maniera differente in base al giorno. -->
 
 ## Mostrare valori nel template
 
 Per mostrare un valore si utilizza `{{ .. }}`; ciò che si trova tra i `{{` e `}}` viene mostrato nel template.
 
 <pre class="example">
-{{ "Hello, World!"}}
+{{ "Hello" }}, {{ "World!" }}
 <hr>Hello, World!
 </pre>
-
-Le istruzioni `{{ .. }}` possono essere inserite intercalate tra del testo:
-
-<pre class="example">
-{{ "Hello" }}, {{ "World!"}}
-<hr>Hello, World!
-</pre>
-
-All'interno di `{{ .. }}` possono essere inserite delle _espressioni_.
 
 ## Espressioni
-
-Le espressioni sono ciò che permette di indicare un valore all'interno di un template.
-
-Alcuni esempi di espressioni sono:
-
-- numeri: `1`, `42`,`-432.11`
-- stringhe: `"hello"`
-- operazioni matematiche: `3 + 4`, `(5 + 4) * -2.78`
 
 Ad ogni espressione è necessariamente associato un _tipo_. Il tipo definisce il contesto ed il significato di un'espressione. 
 
@@ -135,17 +118,7 @@ Le espressioni numeriche sono tutte le espressioni che rappresentano un valore n
 
 #### Tipo int
 
-Il tipo `int` permette di rappresentare i numeri interi, come ad esempio:
-
-- `42`
-- `-100`
-- `0`
-
-È possibile comporre delle espressioni intere mediante gli operatori matematici `+`, `-`, `*`, `/` e `%`.
-
-Prendiamo ad esempio `40 + 2`; sia `40` che `2` sono entrambe espressioni intere di tipo `int`. L'operatore `+` effettua la somma tra i due numeri interi, restituendo a sua volta un valore di tipo `int`.
-
-Possiamo quindi usare il template per svolgere calcoli matematici:
+Il tipo `int` rappresenta numeri interi, sui quali è possibile svolgere operazioni matematiche.
 
 <pre class="example">
 In un anno ci sono {{ 365 * 24 * 3600 }} secondi.
@@ -154,7 +127,7 @@ In un anno ci sono {{ 365 * 24 * 3600 }} secondi.
 
 #### Tipo float64
 
-Il tipo `float64` permette di rappresentare numeri in virgola mobile.
+Il tipo `float64` permette di rappresentare numeri con parte decimale.
 
 <pre class="example">
 {{ 56 + 321.43 * 43 }}
@@ -167,7 +140,7 @@ Il tipo `float64` permette di rappresentare numeri in virgola mobile.
 
 ### Stringhe
 
-Il tipo `string` permette di rappresentare stringhe, ovvero sequenze di caratteri Unicode.
+Il tipo `string` rappresenta delle stringhe.s
 
 Una stringa viene scritta all'interno dei doppi apici `"` oppure all'interno di due caratteri accento grave.
 
@@ -197,7 +170,7 @@ Ogni volta che viene utilizzato un operatore il tipo a sinistra deve avere lo st
 
 ### Booleani
 
-Il tipo `bool` rappresenta un valore booleano, che può assumere solamente due valori: `true` o `false`.
+Il tipo `bool` rappresenta un valori booleani.
 
 <pre class="example">
 {{ true }} {{ false }} {{ true }}
@@ -217,50 +190,35 @@ true
 
 ### Slice
 
-Le espressioni di tipo `slice` permettono di rappresentare una _sequenza_ di espressioni.
+Le espressioni di tipo `slice` permettono di memorizzare una lista di valori, tutti dello stesso tipo.
 
-Uno slice viene costruito mediante
-
-```go
-[]tipo{elemento1, elemento2, ... elementoN}
 ```
-
-Ad esempio uno slice di `int` contiene una sequenza di espressioni `int`:
-
-```go
-[]int{3, 432, -4, 843, 0, 48, 44}
+[]int{-2, 4, 0}
 ```
 
 Uno slice, così come le altre espressioni, può essere specificato anche su più righe:
 
-```go
+```
 []int{
-    3,
-    -432,
-    44,
+   -2,
+   4,
+   0,
 }
 ```
-
-I tipi `slice` verrano ripresi più avanti.
 
 ### Map
 
-Le espressioni di tipo map permettono di rappresentare una struttura di tipo chiave-valore.
-
-Un map viene definito con la sintassi:
-```go
-map[tipoChiave]tipoValore{chiave1: valore1, chiave2: valore2 ... }
-```
+I **map** permettono di memorizzare delle coppie chiave-valore.
 
 Supponiamo di voler rappresentare una struttura che associ, ad ogni prodotto, il prezzo unitario. A questo scopo utilizzato un `map` da `string` (nome del prodotto) a `float64` (prezzo unitario, in euro):
 
-```go
+```
 map[string]float64{
-    TODO
+    "Mele": 0.80,
+    "Pere": 0.75,
+    "Cocomero": 8.99,
 }
 ```
-
-I tipi `map` verrano ripresi più avanti.
 
 
 ## Variabili
@@ -307,9 +265,9 @@ Hello {{ name }} {{ surname }}!
 
 Le variabili possono anche essere dichiarate mediante una sintassi alternativa
 
-```go
-var variabile = expressione
-```
+<pre>
+var <em>variabile</em> = <em>expressione</em>
+</pre>
 
 Si noti che la parola chiave `var` precede il nome della variabile, e che al posto dell'operatore `:=` è stato usato l'operatore `=`.
 
@@ -339,14 +297,12 @@ Il nome è {{ name }}.
 <hr>ERRORE: impossibile assegnare 30 (tipo int) alla variabile name (tipo string)
 </pre>
 
-### Cambiare il valore di una variabile
+### Assegnamento di un nuovo valore
 
-Una variabile, come si intuisce dal nome, può essere _variata_, ovvero può assumere valori diversi. Il cambio di valore di una variabile, che prende il nome di **assegnamento ad una variabile**, viene sempre effettuato tramite l'operatore `=`.
-
-Una variabile contiene un certo valore fino al momento le viene assegnato uno nuovo; da quel punto in poi del template sarà disponibile il nuovo valore:
+L'assegnamento di un valore ad una variabile viene effettuato tramite l'operatore `=`.
 
 <pre class="example">
-{% var name string = "John" %}
+{% name := "John" %}
 Il nome è {{ name }}.
 {% name = "Paul" %}
 Il nome è {{ name }}.
@@ -366,18 +322,7 @@ Il template di Scriggo mette a disposizione tre istruzioni principali per contro
 
 ### Istruzione if
 
-L'istruzione `{% if .. %}`, come accennato, permette di mostrare una parte del template in base ad una determinata condizione.
-
-La sintassi è la seguente:
-
-```
-{% if condizione %}
-    questa parte viene mostrata solamente
-    se la condizione ha valore 'true'
-{% end if %}
-```
-
-La _condizione_ deve necessariamente essere un'espressione _booleana_, ovvero deve avere tipo `bool`.
+L'istruzione `{% if .. %}` permette di mostrare una parte del template in base ad una determinata condizione.
 
 <pre class="example">
 {% <b>if</b> 2 + 2 == 4 %}
@@ -386,9 +331,7 @@ La _condizione_ deve necessariamente essere un'espressione _booleana_, ovvero de
 <hr>    La matematica funziona!
 </pre>
 
-In quest'ultimo esempio possiamo notare l'espressione `2 + 2 == 4`, che una volta valutata ha valore `true` di tipo `bool`.
-
-Nella condizione dell'istruzione **if** possono essere usate anche variabili, anche in combinazione tra loro, purché il tipo dell'espressione risultante sia sempre `bool`.
+Nella condizione dell'**if** si possono ovviamente usare anche le variabili:
 
 <pre class="example">
 {% name := "George" %}
@@ -398,19 +341,8 @@ Nella condizione dell'istruzione **if** possono essere usate anche variabili, an
 <hr>(non è viene stato mostrato nulla)
 </pre>
 
-In questo esempio abbiamo visto come, nel caso in cui la condizione dell'istruzione **if** sia valutata a `false`, il _corpo_ dell'istruzione non venga mostrato.
 
-In alcuni casi può essere utile mostrare una parte di template _alternativamente_ ad un'altra. A questo scopo viene utilizzata una versione estesa dell'istruzione **if** che prevede l'uso di `{% else %}`.
-
-<pre>
-{% <b>if</b> <em>condizione</em> %}
-    questa parte viene mostrata solamente
-    se la condizione ha valore 'true'
-{% <b>else</b> %}
-    questa parte viene mostrata solamente
-    se la condizione ha valore 'false'
-{% <b>end if</b> %}
-</pre>
+#### If else
 
 Supponiamo di avere una variabile `isLoggedIn` di tipo `bool` che contiene il valore `true` se l'utente ha effettuato il login, oppure `false` se non l'ha effettuato.
 Possiamo quindi visualizzare un messaggio di benvenuto diverso in base a questa condizione (supponiamo, in questo esempio, che l'utente non abbia effettuato il login, e che pertanto la variabile `isLoggedIn` abbia valore `false`):
@@ -430,15 +362,11 @@ Possiamo quindi visualizzare un messaggio di benvenuto diverso in base a questa 
 
 L'istruzione `for` permette di mostrare più volte una sezione di template. Questo è particolarmente utile nel caso in cui si abbia uno _slice_ di valori, e per ognuno di essi debba essere mostrata una parte di template.
 
-Supponiamo di avere una variabile `products` di tipo `[]string`, ovvero uno _slice di stringhe_, definita in questo modo:
-
-```go
-{% products := []string{"Frigorifero", "Lavastoviglie", "Forno"} %}
-```
-
-Possiamo inserire questa variabile in un _ciclo for_, che mostrerà una parte di template ripetutamente, per ogni stringa contenuta in `products`.
+Supponiamo di avere una variabile `products` di tipo `[]string`, ovvero uno _slice di stringhe_.
+Possiamo inserire questa variabile nel contenuto di un **for**, che mostrerà una parte di template ripetutamente, per ogni stringa contenuta in `products`.
 
 <pre class='example'>
+{% products := []string{"Frigorifero", "Lavastoviglie", "Forno"} %}
 {% <b>for</b> product <b>in</b> products %}
     Acquista {{ product }}!
 {% <b>end for</b> %}
@@ -446,15 +374,6 @@ Possiamo inserire questa variabile in un _ciclo for_, che mostrerà una parte di
 Acquista Lavastoviglie!
 Acquista Forno!
 </pre>
-
-Vediamo di chiarire questo esempio.
-
-L'istruzione `for` necessita di due parametri:
-
-1. il nome di una nuova variabile che andrà a contenere, ad ogni ciclo, un valore diverso
-2. un'espressione che possa contenere più elementi (in questo caso uno _slice_)
-
-La riga <code>{% <b>for</b> product <b>in</b> products %}</code> sta dicendo: _per ogni_ elemento contenuto in `products`, assegna il suo valore alla variabile `product` e mostra il corpo del `for`.
 
 L'istruzione `for` può contenere al suo interno anche altre istruzioni.
 Possiamo riscrivere l'esempio precedente in questo modo:
@@ -472,6 +391,55 @@ Possiamo riscrivere l'esempio precedente in questo modo:
 Acquista una Lavastoviglie!
 Acquista un Forno!
 </pre>
+
+> NOTA: l'istruzione **for .. in ..** è l'unico caso di uno statement che non esiste in Go ma che è possibile utilizzare nel template in Scriggo.
+
+#### break in un for
+
+L'istruzione `{% break %}` interrompe il **for** dentro al quale ci si trova.
+
+<pre class='example'>
+{% numbers := []int{1, 2, 3, 4, 5, 6 } %}
+
+{% <b>for</b> n <b>in</b> numbers %}
+
+    Numero: {{ n }}
+
+    {% <b>if</b> n == 3 %}
+        {% <b>break</b> %}
+    {% <b>end if</b> }
+
+{% <b>end for</b> %}
+
+Fine!
+<hr>
+Numero: 1
+Numero: 2
+Numero: 3
+Fine!
+</pre>
+
+
+#### continue in un for
+
+L'istruzione `{% continue %}` permette di proseguire con la prossima iterazione del **for** interrompendo quella attuale.
+
+<pre class='example'>
+{% <b>for</b> v <b>in</b> []int{1, 2, 3} %}
+    {{ v }}
+    {% <b>if</b> v % 2 == 0 %}
+        {% continue %}
+    {% <b>end if</b> %}
+    è un numero dispari
+{% end for %}
+<hr>
+1 è un numero dispari
+2
+3 è un numero dispari
+</pre>
+
+
+#### for .. range
 
 Esiste una variante del ciclo for che permette di memorizzare anche l'indice al quale si trova un dato valore all'interno dello slice sul quale il `for` andrà ad iterare.
 
@@ -499,15 +467,24 @@ Dal momento che gli **indici partono da 0**, possiamo riscrivere l'esempio prece
 
 > NOTA: la variabile `i` viene incrementata di 1 solamente quando deve essere mostrata. Utilizzare all'interno di un'espressione una variabile non porta alla modifica di quest'ultima.
 
-#### break in un for
 
-#### continue in un for
-
-#### for .. range
 
 **TODO**
 
 #### for ; ; ;
+
+Il template in Scriggo supporta anche il _classico_ ciclo for, comunemente diffuso in diversi linguaggi di programmazione.
+
+<pre class='example'>
+{% <b>for</b> i := 0; i < 3; i++ %}
+    Ciclo {{ i }}
+{% <b>end for</b> %}
+<hr>
+Ciclo 0
+Ciclo 1
+Ciclo 2
+</pre>
+
 
 **TODO**
 
@@ -516,37 +493,23 @@ Dal momento che gli **indici partono da 0**, possiamo riscrivere l'esempio prece
 
 L'istruzione `switch` seleziona una parte di template da visualizzare in base al valore di un'espressione.
 
-Al contrario dell'istruzione **if**, lo `switch` non deve necessariamente avere un espressione di tipo `bool`.
-
-<pre>
-{% <b>switch</b> espressione %}
-
-    {% <b>case</b> valore1 %}
-        mostrato se <em>expressione == valore1</em>
-
-    {% <b>case</b> valore2 %}
-        mostrato se <em>expressione == valore2</em>
-
-    {% <b>default</b> %}
-        mostrato se espressione non corrisponde
-        con nessuno dei precedenti valori
-
-{% <b>end</b> switch %}
-</pre>
-
 Vediamo un esempio nel quale deve essere mostrato un messaggio diverso in base al giorno della settimana. Supponiamo quindi di avere una variabile `department` che conterrà il nome del reparto di un dato prodotto.
 
 <pre class='example'>
 {% department := "Elettrodomestici" }
 
 {% <b>switch</b> department %}
+
     {% <b>case</b> "Abiti" %}
         Foto di un giacchetto
+
     {% <b>case</b> "Elettrodomestici" %}
         Foto di un frullatore
+
     {% <b>default</b> %}
         Nessuna foto disponibile per questo reparto
-{% <b>end switch</b> }
+
+{% <b>end switch</b> %}
 <hr>Foto di un frullatore
 </pre>
 
@@ -556,33 +519,9 @@ Vediamo un esempio nel quale deve essere mostrato un messaggio diverso in base a
 
 #### fallthrough in uno switch
 
-## Definizione e chiamata di macro
+## Macro
 
 Le **macro** permettono di definire un "blocco" di template che può essere mostrato più volte altrove, nella posizione desiderata.
-
-La sintassi per definire una macro è:
-
-<pre>
-{% <b>macro</b> NomeMacro %}
-    Contenuto della macro
-{% <b>end</b> macro %}
-</pre>
-
-mentre quella per mostrare una macro è
-
-<pre>
-{% <b>show</b> NomeMacro %}
-</pre>
-
-oppure
-
-<pre>
-{{ NomeMacro }}
-</pre>
-
-Quest'ultima sintassi è la stessa utilizzata per mostrare delle espressioni. Le due sintassi sono tra loro equivalenti.
-
-Vediamo un esempio di definizione e chiamata di macro:
 
 <pre class='example'>
 {% <b>macro</b> Banner %}
@@ -608,29 +547,23 @@ Contenuto della pagina
     Foto di un frigorifero
 </pre>
 
-### Macro con argomenti
-
-Le macro offrono la possibilità di specificare degli _argomenti_ in ingresso, ovvero dei parametri che possono variare ogni volta che una macro deve essere mostrata.
+La sintassi per mostrare una **macro** è:
 
 <pre>
-{% <b>macro</b> NomeMacro(argomento1 tipo1, argomento2 tipo2 ...) %}
-    Contenuto della macro
-{% <b>end macro</b> %}
-</pre>
-
-La sintassi per mostrare una macro con argomenti è
-
-<pre>
-{% <b>show</b> NomeMacro(argomento1, argomento2, ..) %}
+{% <b>show</b> NomeMacro %}
 </pre>
 
 oppure
 
 <pre>
-{{ NomeMacro(argomento1, argomento2, ..) }}
+{{ NomeMacro }}
 </pre>
 
-Vediamo un esempio di **macro** che accetta argomenti:
+Quest'ultima sintassi è la stessa utilizzata per mostrare delle espressioni. Le due sintassi sono tra loro equivalenti.
+
+### Macro con argomenti
+
+Le macro offrono la possibilità di specificare dei parametri in ingresso, che possono quindi variare ogni volta in cui la macro viene chiamata.
 
 <pre class='example'>
 {% <b>macro</b> Banner(product string) %}
@@ -771,12 +704,12 @@ Il template in Scriggo prevede un controllo degli errori uguale a quello utilizz
 
 In questo caso, se la lettura del file non è andata a buon fine, la variabile `err` conterrà l'errore che si è verificato; questo può essere controllato con un'istruzione **if**, ed in caso in cui l'errore sia effettivamente `!= nil`, è possibile chiamare la builtin `panic` per arrestare il rendering del template.
 
-```
+<pre>
 {% content, err := readFile("test.txt") %}
-{% if err != nil %}
+{% <b>if</b> err != nil %}
     {% panic(err) %}
-{% end if %}
-```
+{% <b>end if</b> %}
+</pre>
 
 > Per approfondire vedi [Effective Go - Gestione degli errori](https://golang.org/doc/effective_go.html#errors).
 
@@ -812,7 +745,18 @@ In questo caso, se la lettura del file non è andata a buon fine, la variabile `
 
 ### Istruzione defer
 
-**TODO**
+L'istruzione `defer` permette rimandare l'esecuzione di codice alla fine del rendering del template, oppure, se inserita all'interno del corpo di una funzione, di eseguire il codice quando la funzione sta per ritornare.
+
+<pre class='example'>
+{% file := openFile("test.txt) %}
+{% <b>defer</b> file.Close() %}
+{{ file.Content() }}
+<hr>Contenuto del file......fine.
+Il file test.txt è stato chiuso correttamente
+</pre>
+
+
+Se l'istruzione **defer** viene eseguita più volte, vengono eseguite per prime le chiamate di funzioni _deferred_ per ultime. Per maggiori informazioni si rimanda alla documentazione di Go relativa allo [statement defer](https://golang.org/doc/effective_go.html#defer).
 
 #### Builtin recover
 
