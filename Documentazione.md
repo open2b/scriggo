@@ -731,7 +731,36 @@ In questo caso, se la lettura del file non è andata a buon fine, la variabile `
 
 #### Differenza tra HTML e string
 
-**TODO**
+Se ci si trova nel contesto HTML e si renderizza una stringa, il codice HTML contenuto al suo interno verrà <em>sottoposto ad escape</em>. Questo fa si che non sia possibile modificare la struttura della pagina HTML mediante il rendering di stringhe.
+
+Ad esempio:
+
+<pre>
+{% s := &quot;&lt;b&gt;bold text&lt;/b&gt;&quot; %}
+{{ s }}
+</pre>
+
+viene renderizzato nella pagina HTML come
+
+<pre>
+&lt;b&gt;bold text&lt;/b&gt;
+</pre>
+
+in quanto è stato <em>sottoposto ad escape</em>.
+
+Se questo comportamento non è quello desiderato, ovvero si vuole che il contenuto di una stringa
+venga renderizzato _così com'è_ è necessario indicare esplicitamente il tipo `HTML` durante il rendering:
+
+<pre>
+{% s := HTML(&quot;&lt;b&gt;bold text&lt;/b&gt;&quot;) %}
+{{ s }}
+</pre>
+
+in questo modo il browser effettuerà correttamente il rendering del codice HTML in quanto questo non è stato <em>sottoposto ad escape</em>:
+
+<pre>
+<b>bold text</b>
+</pre>
 
 ### Concorrenza
 
