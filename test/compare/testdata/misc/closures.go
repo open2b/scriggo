@@ -1,17 +1,15 @@
-// skip : taking the address of a closure variable is not supported
-
 // run
 
 package main
 
-// func F() func() {
-// 	a := 10
-// 	return func() {
-// 		b := &a
-// 		*b = 30
-// 		println(a)
-// 	}
-// }
+func F() func() {
+	a := 10
+	return func() {
+		b := &a
+		*b = 30
+		println(a)
+	}
+}
 
 func main() {
 
@@ -62,18 +60,18 @@ func main() {
 		println(a)
 	}
 
-	{
-		a := 2
-		g := func() {
-			b := &a
-			*b = 5
-		}
-		println(a)
-		g()
-		println(a)
-	}
-
 	// {
-	// 	F()()
+	// 	a := 2
+	// 	g := func() {
+	// 		b := &a
+	// 		*b = 5
+	// 	}
+	// 	println(a)
+	// 	g()
+	// 	println(a)
 	// }
+
+	{
+		F()()
+	}
 }
