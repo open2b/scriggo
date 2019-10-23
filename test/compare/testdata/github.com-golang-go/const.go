@@ -1,5 +1,3 @@
-// skip : call of reflect.Value.Elem on zero Value
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.
