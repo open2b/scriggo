@@ -1,4 +1,4 @@
-// skip : panics reflect: call of reflect.flag.mustBeExported on zero Value
+// skip : https://github.com/open2b/scriggo/issues/414
 
 // run
 
