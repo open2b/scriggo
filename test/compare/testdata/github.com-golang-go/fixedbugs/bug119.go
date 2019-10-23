@@ -1,5 +1,3 @@
-// skip : address of composite literals is not supported https://github.com/open2b/scriggo/issues/109
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.
