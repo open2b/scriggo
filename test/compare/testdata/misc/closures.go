@@ -60,6 +60,7 @@ func main() {
 		println(a)
 	}
 
+	// https://github.com/open2b/scriggo/issues/412
 	// {
 	// 	a := 2
 	// 	g := func() {
