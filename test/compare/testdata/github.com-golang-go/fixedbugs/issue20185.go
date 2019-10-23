@@ -1,4 +1,4 @@
-// skip : syntax error
+// skip : type switch on 'nil' https://github.com/open2b/scriggo/issues/415
 
 // errorcheck
 
@@ -9,19 +9,16 @@
 // Issue 20185: type switching on untyped values (e.g. nil or consts)
 // caused an internal compiler error.
 
-package p
+package main
 
 func F() {
-	switch t := nil.(type) { // ERROR "cannot type switch on non-interface value nil"
-	default:
-		_ = t
-	}
+	switch t := nil.(type) { default: _ = t } // ERROR "cannot type switch on non-interface value nil"
 }
 
 const x = 1
 
 func G() {
-	switch t := x.(type) { // ERROR "cannot type switch on non-interface value x \(type untyped number\)"
-	default:
-	}
+	switch t := x.(type) { default: } // ERROR "cannot type switch on non-interface value x \(type untyped number\)"	
 }
+
+func main() { }
