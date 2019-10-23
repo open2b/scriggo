@@ -1,4 +1,4 @@
-// skip : problem in mode 'errorcheck'
+// skip : problem in mode 'errorcheck' https://github.com/open2b/scriggo/issues/417
 
 // errorcheck
 

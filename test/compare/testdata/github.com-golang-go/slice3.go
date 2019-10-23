@@ -1,4 +1,4 @@
-// skip : mode 'runoutput' not supported
+// skip : mode 'runoutput' not supported https://github.com/open2b/scriggo/issues/417
 
 // runoutput
 

@@ -1,4 +1,4 @@
-// skip : type checker claims for function 'main' if package is 'main'
+// skip : type checker claims for function 'main' if package is 'main' https://github.com/open2b/scriggo/issues/417
 
 // errorcheck
 

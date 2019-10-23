@@ -1,4 +1,4 @@
-// skip : mode 'errorcheck -0 -live -l -d=compilelater' is not supported
+// skip : mode 'errorcheck -0 -live -l -d=compilelater' is not supported https://github.com/open2b/scriggo/issues/417
 
 // errorcheck -0 -live -l -d=compilelater
 

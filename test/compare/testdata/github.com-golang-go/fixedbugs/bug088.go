@@ -1,4 +1,4 @@
-// skip : mode 'compiledir' not supported
+// skip : mode 'compiledir' not supported https://github.com/open2b/scriggo/issues/417
 
 // compiledir
 

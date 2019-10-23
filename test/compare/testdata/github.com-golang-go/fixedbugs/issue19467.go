@@ -1,4 +1,4 @@
-// skip : mode 'rundir -l=4' not supported
+// skip : mode 'rundir -l=4' not supported https://github.com/open2b/scriggo/issues/417
 
 // rundir -l=4
 

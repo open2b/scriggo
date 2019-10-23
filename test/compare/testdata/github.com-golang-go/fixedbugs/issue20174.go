@@ -1,4 +1,4 @@
-// skip : mode 'compile -c=2' not supported
+// skip : mode 'compile -c=2' not supported https://github.com/open2b/scriggo/issues/417
 
 // compile -c=2
 

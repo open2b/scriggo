@@ -1,4 +1,4 @@
-// skip : mode 'run -gcflags=-d=ssa/check/on' not supported
+// skip : mode 'run -gcflags=-d=ssa/check/on' not supported https://github.com/open2b/scriggo/issues/417
 
 // run -gcflags=-d=ssa/check/on
 

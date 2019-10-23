@@ -1,4 +1,4 @@
-// skip : rundir mode not supported for gc tests
+// skip : rundir mode not supported for gc tests https://github.com/open2b/scriggo/issues/417
 
 // rundir
 

@@ -1,4 +1,4 @@
-// skip : 'errorcheck -0 -race' not supported
+// skip : 'errorcheck -0 -race' not supported https://github.com/open2b/scriggo/issues/417
 
 // errorcheck -0 -race
 // +build linux,amd64 linux,ppc64le darwin,amd64 freebsd,amd64 netbsd,amd64 windows,amd64

@@ -1,4 +1,4 @@
-// skip : this test must be rewritten
+// skip : this test must be rewritten https://github.com/open2b/scriggo/issues/417
 
 // errorcheck
 
