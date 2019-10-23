@@ -140,7 +140,7 @@ Il tipo `float64` permette di rappresentare numeri con parte decimale.
 
 ### Stringhe
 
-Il tipo `string` rappresenta delle stringhe.s
+Il tipo `string` rappresenta delle stringhe.
 
 Una stringa viene scritta all'interno dei doppi apici `"` oppure all'interno di due caratteri accento grave.
 
@@ -170,14 +170,7 @@ Ogni volta che viene utilizzato un operatore il tipo a sinistra deve avere lo st
 
 ### Booleani
 
-Il tipo `bool` rappresenta un valori booleani.
-
-<pre class="example">
-{{ true }} {{ false }} {{ true }}
-<hr>true false true
-</pre>
-
-I tipi booleani possono essere ottenuti mediante gli operatori `==`, `!=`, `<`, `<=`, `>=`, `>`, che permettono di confrontare due valori dello stesso tipo.
+Il tipo `bool` rappresenta un valore booleani (`true` o `false`). Gli operatori di confronto restituiscono un valore di tipo `bool`.
 
 <pre class="example">
 {{ 5 == 2 + 3 }}
@@ -220,6 +213,7 @@ map[string]float64{
 }
 ```
 
+> NOTA: i map, a differenza degli slice, non hanno un criterio di ordinamento. Questo significa che _iterando_ sulle chiavi di un map il criterio di ordinamento non è specificato.
 
 ## Variabili
 
@@ -309,6 +303,16 @@ Il nome è {{ name }}.
 <hr>Il nome è John.
 Il nome è Paul.
 </pre>
+
+### Assegnamento multiplo
+
+Più variabili possono essere assegnate (o dichiarate) in una sola istruzione:
+
+<pre>
+{% a, b, c := 10, 20, 30 %}
+{% <b>var</b> d, e, f = 40, 50, 60 %}
+</pre>
+
 
 ## Controllo di flusso
 
@@ -609,7 +613,15 @@ Vediamo in dettaglio queste tre istruzioni.
 
 ### Istruzione include
 
-**TODO**
+L'istruzione **include** permette di includere un file di template così com'è, come se il suo contenuto fosse copiato ed incollato al posto dell'istruzione **include**.
+
+<pre class="example">
+Contenuto incluso:
+{% include "file.html %}
+<hr>
+Contenuto incluso:
+Contenuto di 'file.html'!
+</pre>
 
 ### Istruzione import
 
