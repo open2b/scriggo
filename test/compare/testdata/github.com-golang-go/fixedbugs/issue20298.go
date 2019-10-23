@@ -1,4 +1,4 @@
-// skip : mode 'errorcheck -e=0' not supported
+// skip : mode 'errorcheck -e=0' not supported https://github.com/open2b/scriggo/issues/417
 
 // errorcheck -e=0
 
