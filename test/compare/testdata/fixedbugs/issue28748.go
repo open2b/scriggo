@@ -1,5 +1,3 @@
-// skip : interface conversion: interface {} is func() error, not *vm.callable
-
 // run
 
 package main
