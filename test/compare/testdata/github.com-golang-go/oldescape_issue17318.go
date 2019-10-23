@@ -1,4 +1,4 @@
-// skip : mode 'errorcheck -0 -N -m -l -newescape=false' not supported
+// skip : mode 'errorcheck -0 -N -m -l -newescape=false' not supported https://github.com/open2b/scriggo/issues/417
 
 // errorcheck -0 -N -m -l -newescape=false
 

@@ -1,4 +1,4 @@
-// skip : panic on the parser
+// skip : missing function body https://github.com/open2b/scriggo/issues/416
 
 // errorcheck
 

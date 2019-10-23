@@ -1,4 +1,4 @@
-// skip : pointer indirection of non-names is not supported: https://github.com/open2b/scriggo/issues/195.
+// skip : https://github.com/open2b/scriggo/issues/419
 
 
 

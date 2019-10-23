@@ -1,4 +1,4 @@
-// skip : function declaration with no body is not supported
+// skip : constant declaration depending from a variable https://github.com/open2b/scriggo/issues/206
 
 // errorcheck
 
