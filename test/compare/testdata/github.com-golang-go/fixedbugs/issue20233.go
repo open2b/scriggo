@@ -1,5 +1,3 @@
-// skip : panics the parser
-
 // errorcheck
 
 // Copyright 2017 The Go Authors. All rights reserved.
@@ -8,6 +6,10 @@
 
 // Issue 20233: panic while formatting an error message
 
-package p
+package main
 
-var f = func(...A) // ERROR "undefined: A"
+var f = func(...A) // ERROR `syntax error: missing function body`
+
+var f = func(...A) { } // ERROR `undefined: A`
+
+func main() { }
