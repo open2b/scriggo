@@ -1,4 +1,4 @@
-// skip : needs some synchronization mechanism.
+// skip : needs some synchronization mechanism. https://github.com/open2b/scriggo/issues/420
 
 // run
 
