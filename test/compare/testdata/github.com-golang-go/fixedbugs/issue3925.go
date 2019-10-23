@@ -1,4 +1,4 @@
-// skip : panic: unexpected <nil>
+// skip : missing key in map literal not reported https://github.com/open2b/scriggo/issues/422
 
 // errorcheck
 
