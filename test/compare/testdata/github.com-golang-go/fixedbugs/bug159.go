@@ -1,4 +1,4 @@
-// skip : different output.
+// skip : different output. https://github.com/open2b/scriggo/issues/418
 
 // run
 
