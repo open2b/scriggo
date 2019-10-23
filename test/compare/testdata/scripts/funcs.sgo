@@ -1,11 +1,11 @@
-// skip : interface conversion: interface {} is nil, not *vm.callable : https://github.com/open2b/scriggo/issues/317
-
 // run
+
+import "fmt"
 
 func f1() {}
 
 func f2(a int) {
-	print(a)
+	fmt.Println(a)
 }
 
 f2(42)
