@@ -1,4 +1,4 @@
-// skip : infinite loop
+// skip : constant dependent from variable https://github.com/open2b/scriggo/issues/206
 
 // run
 
