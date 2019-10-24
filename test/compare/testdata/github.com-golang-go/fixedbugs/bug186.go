@@ -1,4 +1,4 @@
-// skip : expected error, got nothing
+// skip : expected error on iota, got nothing https://github.com/open2b/scriggo/issues/426
 
 // errorcheck
 
