@@ -1,4 +1,4 @@
-// skip : Scriggo panics (value are initialized wrongly)
+// skip : 16 != 16 https://github.com/open2b/scriggo/issues/427
 
 // run
 
