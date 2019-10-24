@@ -1,4 +1,4 @@
-// skip : panic reflect: call of reflect.Value.IsNil on zero Value
+// skip : references and closure values: https://github.com/open2b/scriggo/issues/412
 
 // run
 
