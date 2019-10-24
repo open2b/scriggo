@@ -1,6 +1,4 @@
-// skip : infinite loop
-
-// do not run : infinite loop
+// skip : constant initialization takes too much time https://github.com/open2b/scriggo/issues/421
 
 // errorcheck
 
