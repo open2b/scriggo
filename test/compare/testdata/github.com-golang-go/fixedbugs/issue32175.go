@@ -1,4 +1,4 @@
-// skip : panics on Scriggo. Note that output is wrong on 'play.golang.org' too (should be 42, is 0).
+// skip : https://github.com/open2b/scriggo/issues/278
 
 // run
 
