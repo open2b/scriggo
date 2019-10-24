@@ -1,4 +1,4 @@
-// skip : panics the type checker
+// skip : panics the type checker https://github.com/open2b/scriggo/issues/429
 
 // errorcheck
 
