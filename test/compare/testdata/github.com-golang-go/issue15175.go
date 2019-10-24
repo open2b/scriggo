@@ -1,4 +1,4 @@
-// skip : 'panic: emitExpr currently does not support *ast.BasicLiteral nodes (expr: 2)'
+// skip : strange behaviour of uint https://github.com/open2b/scriggo/issues/428
 
 // run
 
