@@ -1,4 +1,4 @@
-// skip : syntax error: missing function body
+// skip : syntax error: missing function body https://github.com/open2b/scriggo/issues/416
 
 // compile
 
