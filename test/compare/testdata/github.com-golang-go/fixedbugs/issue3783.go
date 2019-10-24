@@ -1,4 +1,4 @@
-// skip : method definition not implemented
+// skip : method declarations are not supported https://github.com/open2b/scriggo/issues/238
 
 // errorcheck
 
