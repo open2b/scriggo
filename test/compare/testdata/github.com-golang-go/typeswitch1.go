@@ -1,4 +1,4 @@
-// skip : undefined: xx at line 40 (nil case of type switch)
+// skip : problem in type switch statement https://github.com/open2b/scriggo/issues/431
 
 // run
 
