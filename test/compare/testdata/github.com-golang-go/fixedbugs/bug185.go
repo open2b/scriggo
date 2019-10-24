@@ -1,4 +1,4 @@
-// skip : bad value (cause Scriggo to call builtin 'panic')
+// skip : bad return values in function with named return parameters https://github.com/open2b/scriggo/issues/423
 
 // run
 
