@@ -1,4 +1,4 @@
-// skip : should return error, got nothing
+// skip : error not returned https://github.com/open2b/scriggo/issues/430
 
 // errorcheck
 
