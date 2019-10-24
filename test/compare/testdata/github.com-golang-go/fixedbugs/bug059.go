@@ -1,5 +1,3 @@
-// skip : reflect: call of reflect.Value.Len on ptr Value
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.
