@@ -1,4 +1,4 @@
-// skip : 'errorcheck' cannot be run with current implementation
+// skip : 'errorcheck' cannot be run with current implementation https://github.com/open2b/scriggo/issues/417
 
 // errorcheck
 
