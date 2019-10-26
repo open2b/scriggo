@@ -1396,7 +1396,6 @@ const (
 	OpIfString
 
 	OpIndex
-	OpIndexMap
 	OpIndexString
 
 	OpLeftShift8
@@ -1415,6 +1414,8 @@ const (
 	OpMakeMap
 
 	OpMakeSlice
+
+	OpMapIndex
 
 	OpMethodValue
 

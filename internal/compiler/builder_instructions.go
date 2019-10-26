@@ -504,7 +504,7 @@ func (builder *functionBuilder) emitIf(k bool, x int8, o runtime.Condition, y in
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: int8(o), C: y})
 }
 
-// emitIndex appends a new "Index" instruction to the function body
+// emitIndex appends a new "Index" or "MapIndex" instruction to the function body
 //
 //	dst = expr[i]
 //
@@ -517,7 +517,7 @@ func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType r
 	case reflect.Array, reflect.Slice:
 		op = runtime.OpIndex
 	case reflect.Map:
-		op = runtime.OpIndexMap
+		op = runtime.OpMapIndex
 	case reflect.String:
 		op = runtime.OpIndexString
 		if builder.allocs != nil {

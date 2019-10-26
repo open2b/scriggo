@@ -401,10 +401,6 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 		s += " " + disassembleOperand(fn, b, runtime.Int, k)
 		s += " " + disassembleOperand(fn, c, runtime.Unknown, false)
-	case runtime.OpIndexMap:
-		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
-		s += " " + disassembleOperand(fn, b, runtime.Unknown, k)
-		s += " " + disassembleOperand(fn, b, runtime.Unknown, false)
 	case runtime.OpIndexString:
 		s += " " + disassembleOperand(fn, a, runtime.String, false)
 		s += " " + disassembleOperand(fn, b, runtime.Int, k)
@@ -438,6 +434,10 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, b, runtime.Int, k)
 		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+	case runtime.OpMapIndex:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, b, runtime.Unknown, k)
+		s += " " + disassembleOperand(fn, b, runtime.Unknown, false)
 	case runtime.OpMethodValue:
 		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 		s += " " + disassembleOperand(fn, b, runtime.String, true)
@@ -786,7 +786,6 @@ var operationName = [...]string{
 	runtime.OpIfString: "If",
 
 	runtime.OpIndex:       "Index",
-	runtime.OpIndexMap:    "IndexMap",
 	runtime.OpIndexString: "Index",
 
 	runtime.OpLeftShift64: "LeftShift",
@@ -805,6 +804,8 @@ var operationName = [...]string{
 	runtime.OpMakeMap: "MakeMap",
 
 	runtime.OpMakeSlice: "MakeSlice",
+
+	runtime.OpMapIndex: "MapIndex",
 
 	runtime.OpMethodValue: "MethodValue",
 

@@ -756,50 +756,6 @@ func (vm *VM) run() (uint32, bool) {
 			default:
 				vm.setFromReflectValue(c, reflect.ValueOf(v).Index(i))
 			}
-		case OpIndexMap, -OpIndexMap:
-			m := vm.general(a)
-			switch m := m.(type) {
-			case map[int]int:
-				v, ok := m[int(vm.intk(b, op < 0))]
-				vm.setInt(c, int64(v))
-				vm.ok = ok
-			case map[int]bool:
-				v, ok := m[int(vm.intk(b, op < 0))]
-				vm.setBool(c, v)
-				vm.ok = ok
-			case map[int]string:
-				v, ok := m[int(vm.intk(b, op < 0))]
-				vm.setString(c, v)
-				vm.ok = ok
-			case map[string]string:
-				v, ok := m[vm.stringk(b, op < 0)]
-				vm.setString(c, v)
-				vm.ok = ok
-			case map[string]bool:
-				v, ok := m[vm.stringk(b, op < 0)]
-				vm.setBool(c, v)
-				vm.ok = ok
-			case map[string]int:
-				v, ok := m[vm.stringk(b, op < 0)]
-				vm.setInt(c, int64(v))
-				vm.ok = ok
-			case map[string]interface{}:
-				v, ok := m[vm.stringk(b, op < 0)]
-				vm.setGeneral(c, v)
-				vm.ok = ok
-			default:
-				mv := reflect.ValueOf(m)
-				t := mv.Type()
-				k := reflect.New(t.Key()).Elem()
-				vm.getIntoReflectValue(b, k, op < 0)
-				elem := reflect.New(t.Elem()).Elem()
-				index := mv.MapIndex(k)
-				vm.ok = index.IsValid()
-				if vm.ok {
-					elem.Set(index)
-				}
-				vm.setFromReflectValue(c, elem)
-			}
 		case OpIndexString, -OpIndexString:
 			vm.setInt(c, int64(vm.string(a)[int(vm.intk(b, op < 0))]))
 
@@ -886,6 +842,52 @@ func (vm *VM) run() (uint32, bool) {
 			vm.setGeneral(c, reflect.MakeSlice(typ, len, cap).Interface())
 			if b > 0 {
 				vm.pc++
+			}
+
+		// MapIndex
+		case OpMapIndex, -OpMapIndex:
+			m := vm.general(a)
+			switch m := m.(type) {
+			case map[int]int:
+				v, ok := m[int(vm.intk(b, op < 0))]
+				vm.setInt(c, int64(v))
+				vm.ok = ok
+			case map[int]bool:
+				v, ok := m[int(vm.intk(b, op < 0))]
+				vm.setBool(c, v)
+				vm.ok = ok
+			case map[int]string:
+				v, ok := m[int(vm.intk(b, op < 0))]
+				vm.setString(c, v)
+				vm.ok = ok
+			case map[string]string:
+				v, ok := m[vm.stringk(b, op < 0)]
+				vm.setString(c, v)
+				vm.ok = ok
+			case map[string]bool:
+				v, ok := m[vm.stringk(b, op < 0)]
+				vm.setBool(c, v)
+				vm.ok = ok
+			case map[string]int:
+				v, ok := m[vm.stringk(b, op < 0)]
+				vm.setInt(c, int64(v))
+				vm.ok = ok
+			case map[string]interface{}:
+				v, ok := m[vm.stringk(b, op < 0)]
+				vm.setGeneral(c, v)
+				vm.ok = ok
+			default:
+				mv := reflect.ValueOf(m)
+				t := mv.Type()
+				k := reflect.New(t.Key()).Elem()
+				vm.getIntoReflectValue(b, k, op < 0)
+				elem := reflect.New(t.Elem()).Elem()
+				index := mv.MapIndex(k)
+				vm.ok = index.IsValid()
+				if vm.ok {
+					elem.Set(index)
+				}
+				vm.setFromReflectValue(c, elem)
 			}
 
 		// MethodValue
