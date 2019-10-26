@@ -843,6 +843,19 @@ func (vm *VM) run() (uint32, bool) {
 			}
 			vm.setInt(c, int64(length))
 
+		// LoadData
+		case OpLoadData:
+			vm.setGeneral(c, vm.fn.Data[decodeInt16(a, b)])
+
+		// LoadNumber.
+		case OpLoadNumber:
+			switch a {
+			case 0:
+				vm.setInt(c, vm.fn.Constants.Int[uint8(b)])
+			case 1:
+				vm.setFloat(c, vm.fn.Constants.Float[uint8(b)])
+			}
+
 		// MakeChan
 		case OpMakeChan, -OpMakeChan:
 			typ := vm.fn.Types[uint8(a)]
@@ -895,19 +908,6 @@ func (vm *VM) run() (uint32, bool) {
 				vm.setInt(c, vm.intk(b, op < 0))
 			case TypeString:
 				vm.setString(c, vm.stringk(b, op < 0))
-			}
-
-		// LoadData
-		case OpLoadData:
-			vm.setGeneral(c, vm.fn.Data[decodeInt16(a, b)])
-
-		// LoadNumber.
-		case OpLoadNumber:
-			switch a {
-			case 0:
-				vm.setInt(c, vm.fn.Constants.Int[uint8(b)])
-			case 1:
-				vm.setFloat(c, vm.fn.Constants.Float[uint8(b)])
 			}
 
 		// Mul
