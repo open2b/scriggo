@@ -328,7 +328,7 @@ func (vm *VM) alloc() {
 				panic(OutOfMemoryError{vm.env})
 			}
 		}
-	case OpConvertGeneral: // TODO(marco): implement in the builder.
+	case OpConvert: // TODO(marco): implement in the builder.
 		t := vm.fn.Types[uint8(b)]
 		switch t.Kind() {
 		case reflect.Func:
@@ -1350,7 +1350,7 @@ const (
 
 	OpContinue
 
-	OpConvertGeneral
+	OpConvert
 	OpConvertInt
 	OpConvertUint
 	OpConvertFloat

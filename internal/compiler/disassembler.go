@@ -323,7 +323,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 		s += " " + disassembleOperand(fn, a, runtime.String, false)
 		s += " " + disassembleOperand(fn, b, runtime.String, k)
 		s += " " + disassembleOperand(fn, c, runtime.String, false)
-	case runtime.OpConvertGeneral:
+	case runtime.OpConvert:
 		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 		typ := fn.Types[int(uint(b))]
 		s += " " + typ.String()
@@ -742,11 +742,11 @@ var operationName = [...]string{
 
 	runtime.OpContinue: "Continue",
 
-	runtime.OpConvertGeneral: "Convert",
-	runtime.OpConvertInt:     "Convert",
-	runtime.OpConvertUint:    "ConvertU",
-	runtime.OpConvertFloat:   "Convert",
-	runtime.OpConvertString:  "Convert",
+	runtime.OpConvert:       "Convert",
+	runtime.OpConvertInt:    "Convert",
+	runtime.OpConvertUint:   "ConvertU",
+	runtime.OpConvertFloat:  "Convert",
+	runtime.OpConvertString: "Convert",
 
 	runtime.OpConcat: "Concat",
 

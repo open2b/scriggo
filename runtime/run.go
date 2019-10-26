@@ -372,7 +372,7 @@ func (vm *VM) run() (uint32, bool) {
 			return decodeUint24(a, b, c), false
 
 		// Convert
-		case OpConvertGeneral:
+		case OpConvert:
 			t := vm.fn.Types[uint8(b)]
 			if t == sliceByteType {
 				vm.setString(c, string(vm.general(a).([]byte)))

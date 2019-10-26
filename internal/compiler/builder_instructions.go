@@ -246,7 +246,7 @@ func (builder *functionBuilder) emitConvert(src int8, typ reflect.Type, dst int8
 	var op runtime.Operation
 	switch kindToType(srcKind) {
 	case runtime.TypeGeneral:
-		op = runtime.OpConvertGeneral
+		op = runtime.OpConvert
 		if builder.allocs != nil {
 			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
 		}
