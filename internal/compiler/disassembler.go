@@ -384,6 +384,10 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 		} else {
 			s += " " + disassembleOperand(fn, c, runtime.Int, k)
 		}
+	case runtime.OpField:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[b]))
+		s += " " + disassembleOperand(fn, c, runtime.Unknown, false)
 	case runtime.OpFunc:
 		s += " func(" + strconv.Itoa(int(uint8(b))) + ")"
 		s += " " + disassembleOperand(fn, c, runtime.Int, false)
@@ -434,7 +438,14 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, b, runtime.Int, k)
 		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
-	case runtime.OpMapIndex:
+	case runtime.OpMakeSlice:
+		s += " " + fn.Types[int(uint(a))].String()
+		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+		// https://github.com/open2b/scriggo/issues/387
+		// s += "\t; len: "
+		// s += fmt.Sprintf("%d", fn.Body[addr+1].A)
+		// s += ", cap: "
+		// s += fmt.Sprintf("%d", fn.Body[addr+1].B)	case runtime.OpMapIndex:
 		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 		s += " " + disassembleOperand(fn, b, runtime.Unknown, k)
 		s += " " + disassembleOperand(fn, b, runtime.Unknown, false)
@@ -468,6 +479,10 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 		s += " " + disassembleOperand(fn, a, runtime.String, k)
 		s += " " + disassembleOperand(fn, b, runtime.Int, false)
 		s += " " + disassembleOperand(fn, c, runtime.Int, false)
+	case runtime.OpRealImag:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, k)
+		s += " " + disassembleOperand(fn, b, runtime.Float64, false)
+		s += " " + disassembleOperand(fn, c, runtime.Float64, false)
 	case runtime.OpReceive:
 		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 		s += " " + disassembleOperand(fn, b, runtime.Bool, false)
@@ -479,22 +494,6 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 		if c != 0 {
 			s += " " + disassembleOperand(fn, c, runtime.Interface, false)
 		}
-	case runtime.OpRealImag:
-		s += " " + disassembleOperand(fn, a, runtime.Interface, k)
-		s += " " + disassembleOperand(fn, b, runtime.Float64, false)
-		s += " " + disassembleOperand(fn, c, runtime.Float64, false)
-	case runtime.OpField:
-		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
-		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[b]))
-		s += " " + disassembleOperand(fn, c, runtime.Unknown, false)
-	case runtime.OpMakeSlice:
-		s += " " + fn.Types[int(uint(a))].String()
-		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
-		// https://github.com/open2b/scriggo/issues/387
-		// s += "\t; len: "
-		// s += fmt.Sprintf("%d", fn.Body[addr+1].A)
-		// s += ", cap: "
-		// s += fmt.Sprintf("%d", fn.Body[addr+1].B)
 	case runtime.OpSetField:
 		s += " " + disassembleOperand(fn, a, runtime.Unknown, k)
 		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[b]))
