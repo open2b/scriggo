@@ -233,10 +233,6 @@ func (vm *VM) run() (uint32, bool) {
 				vm.pc++
 			}
 
-		// Bind
-		case OpBind:
-			vm.setGeneral(c, vm.vars[int(a)<<8|int(uint8(b))])
-
 		// Break
 		case OpBreak:
 			return decodeUint24(a, b, c), true

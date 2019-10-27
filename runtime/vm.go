@@ -1329,8 +1329,6 @@ const (
 
 	OpAppendSlice
 
-	OpBind
-
 	OpBreak
 
 	OpCall

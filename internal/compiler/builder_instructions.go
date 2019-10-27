@@ -114,14 +114,6 @@ func (builder *functionBuilder) emitAssert(e int8, typ reflect.Type, z int8) {
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpAssert, A: e, B: int8(t), C: z})
 }
 
-// emitBind appends a new "Bind" instruction to the function body.
-//
-//     r = v
-//
-func (builder *functionBuilder) emitBind(v int, r int8) {
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpBind, A: int8(v >> 8), B: int8(v), C: r})
-}
-
 // emitBreak appends a new "Break" instruction to the function body.
 //
 //     break addr

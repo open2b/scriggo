@@ -265,9 +265,6 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 		t := fn.Types[int(uint(b))]
 		var kind = reflectToRegisterKind(t.Kind())
 		s += " " + disassembleOperand(fn, c, kind, false)
-	case runtime.OpBind, runtime.OpGetVar, runtime.OpGetVarAddr:
-		s += " " + disassembleVarRef(fn, globals, int16(int(a)<<8|int(uint8(b))))
-		s += " " + disassembleOperand(fn, c, runtime.Unknown, false)
 	case runtime.OpBreak, runtime.OpContinue, runtime.OpGoto:
 		s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
 	case runtime.OpCall, runtime.OpCallIndirect, runtime.OpCallPredefined, runtime.OpTailCall, runtime.OpDefer:
@@ -400,6 +397,9 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 			s += " " + packageName(f.Pkg) + "." + f.Name
 		}
 		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+	case runtime.OpGetVar, runtime.OpGetVarAddr:
+		s += " " + disassembleVarRef(fn, globals, int16(int(a)<<8|int(uint8(b))))
+		s += " " + disassembleOperand(fn, c, runtime.Unknown, false)
 	case runtime.OpGo, runtime.OpReturn:
 	case runtime.OpIndex:
 		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
@@ -719,8 +719,6 @@ var operationName = [...]string{
 	runtime.OpAppendSlice: "AppendSlice",
 
 	runtime.OpAssert: "Assert",
-
-	runtime.OpBind: "Bind",
 
 	runtime.OpBreak: "Break",
 
