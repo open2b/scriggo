@@ -307,11 +307,11 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 	case runtime.OpCase:
 		switch reflect.SelectDir(a) {
 		case reflect.SelectSend:
-			s += " send " + disassembleOperand(fn, b, runtime.Int, k) + " " + disassembleOperand(fn, c, runtime.Interface, false)
+			s += " Send " + disassembleOperand(fn, b, runtime.Int, k) + " " + disassembleOperand(fn, c, runtime.Interface, false)
 		case reflect.SelectRecv:
-			s += " recv " + disassembleOperand(fn, b, runtime.Int, false) + " " + disassembleOperand(fn, c, runtime.Interface, false)
+			s += " Recv " + disassembleOperand(fn, b, runtime.Int, false) + " " + disassembleOperand(fn, c, runtime.Interface, false)
 		default:
-			s += " default"
+			s += " Default"
 		}
 	case runtime.OpClose, runtime.OpPanic, runtime.OpPrint:
 		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
