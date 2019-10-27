@@ -219,7 +219,7 @@ func (vm *VM) convertPanic(msg interface{}) error {
 				return vm.newPanic(runtimeError(s))
 			}
 		}
-	case OpSlice, OpSliceString:
+	case OpSlice, OpStringSlice:
 		// https://github.com/open2b/scriggo/issues/321
 		switch err := msg.(type) {
 		case runtime.Error:

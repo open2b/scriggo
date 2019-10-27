@@ -1047,11 +1047,11 @@ func (builder *functionBuilder) emitSlice(klow, khigh, kmax bool, src, dst, low,
 	fn.Body = append(fn.Body, runtime.Instruction{A: low, B: high, C: max})
 }
 
-// emitSliceString appends a new "SliceString" instruction to the function body.
+// emitStringSlice appends a new "StringSlice" instruction to the function body.
 //
 //	string[low:high]
 //
-func (builder *functionBuilder) emitSliceString(klow, khigh bool, src, dst, low, high int8, pos *ast.Position) {
+func (builder *functionBuilder) emitStringSlice(klow, khigh bool, src, dst, low, high int8, pos *ast.Position) {
 	builder.addPosAndPath(pos)
 	fn := builder.fn
 	var b int8
@@ -1061,7 +1061,7 @@ func (builder *functionBuilder) emitSliceString(klow, khigh bool, src, dst, low,
 	if khigh {
 		b |= 2
 	}
-	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpSliceString, A: src, B: b, C: dst})
+	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpStringSlice, A: src, B: b, C: dst})
 	fn.Body = append(fn.Body, runtime.Instruction{A: low, B: high})
 }
 

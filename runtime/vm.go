@@ -1472,7 +1472,8 @@ const (
 	OpSetVar
 
 	OpSlice
-	OpSliceString
+
+	OpStringSlice
 
 	OpSubInt8
 	OpSubInt16

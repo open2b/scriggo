@@ -198,7 +198,7 @@ func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, globals, addr))
 		}
 		switch in.Op {
-		case runtime.OpCall, runtime.OpCallIndirect, runtime.OpCallPredefined, runtime.OpTailCall, runtime.OpSlice, runtime.OpSliceString:
+		case runtime.OpCall, runtime.OpCallIndirect, runtime.OpCallPredefined, runtime.OpTailCall, runtime.OpSlice, runtime.OpStringSlice:
 			addr += 1
 		case runtime.OpDefer:
 			addr += 2
@@ -531,7 +531,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 		s += " " + disassembleOperand(fn, high, runtime.Int, khigh)
 		s += " " + disassembleOperand(fn, max, runtime.Int, kmax)
 		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
-	case runtime.OpSliceString:
+	case runtime.OpStringSlice:
 		khigh := b&2 != 0
 		high := fn.Body[addr+1].B
 		if khigh && high == -1 {
@@ -863,8 +863,9 @@ var operationName = [...]string{
 
 	runtime.OpSetVar: "SetVar",
 
-	runtime.OpSlice:       "Slice",
-	runtime.OpSliceString: "Slice",
+	runtime.OpSlice: "Slice",
+
+	runtime.OpStringSlice: "Slice",
 
 	runtime.OpSubInt64:   "Sub",
 	runtime.OpSubInt8:    "Sub8",

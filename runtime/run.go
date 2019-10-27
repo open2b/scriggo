@@ -1635,7 +1635,7 @@ func (vm *VM) run() (uint32, bool) {
 			s = s.Slice3(i1, i2, i3)
 			vm.setGeneral(c, s.Interface())
 			vm.pc++
-		case OpSliceString:
+		case OpStringSlice:
 			var i1, i2 int
 			s := vm.string(a)
 			next := vm.fn.Body[vm.pc]

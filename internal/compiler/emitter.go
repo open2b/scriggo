@@ -2008,7 +2008,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 		pos := expr.Pos()
 		if exprType.Kind() == reflect.String {
-			em.fb.emitSliceString(kLow, kHigh, src, reg, low, high, pos)
+			em.fb.emitStringSlice(kLow, kHigh, src, reg, low, high, pos)
 		} else {
 			// emit max
 			var max int8 = -1
