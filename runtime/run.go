@@ -347,7 +347,7 @@ func (vm *VM) run() (uint32, bool) {
 		case OpClose:
 			reflect.ValueOf(vm.general(a)).Close()
 
-		// OpComplex
+		// Complex
 		case OpComplex64:
 			var re, im float32
 			if a > 0 {
