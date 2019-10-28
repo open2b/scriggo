@@ -356,8 +356,8 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 			s += " " + conditionName[b]
 			s += " " + disassembleOperand(fn, c, runtime.Interface, k)
 		default:
-			s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 			s += " " + conditionName[b]
+			s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 		}
 	case runtime.OpIfInt:
 		s += " " + disassembleOperand(fn, a, runtime.Int, false)
