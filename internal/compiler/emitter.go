@@ -1633,14 +1633,26 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			return reg, false
 		case ast.OperatorEqual, ast.OperatorNotEqual, ast.OperatorLess, ast.OperatorLessOrEqual,
 			ast.OperatorGreaterOrEqual, ast.OperatorGreater:
-			cond := map[ast.OperatorType]runtime.Condition{
-				ast.OperatorEqual:          runtime.ConditionEqual,
-				ast.OperatorNotEqual:       runtime.ConditionNotEqual,
-				ast.OperatorLess:           runtime.ConditionLess,
-				ast.OperatorLessOrEqual:    runtime.ConditionLessOrEqual,
-				ast.OperatorGreater:        runtime.ConditionGreater,
-				ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqual,
-			}[expr.Operator()]
+			var cond runtime.Condition
+			if kind := t1.Kind(); reflect.Uint <= kind && kind <= reflect.Uintptr {
+				cond = map[ast.OperatorType]runtime.Condition{
+					ast.OperatorEqual:          runtime.ConditionEqual,    // same as signed integers
+					ast.OperatorNotEqual:       runtime.ConditionNotEqual, // same as signed integers
+					ast.OperatorLess:           runtime.ConditionLessU,
+					ast.OperatorLessOrEqual:    runtime.ConditionLessOrEqualU,
+					ast.OperatorGreater:        runtime.ConditionGreaterU,
+					ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqualU,
+				}[expr.Operator()]
+			} else {
+				cond = map[ast.OperatorType]runtime.Condition{
+					ast.OperatorEqual:          runtime.ConditionEqual,
+					ast.OperatorNotEqual:       runtime.ConditionNotEqual,
+					ast.OperatorLess:           runtime.ConditionLess,
+					ast.OperatorLessOrEqual:    runtime.ConditionLessOrEqual,
+					ast.OperatorGreater:        runtime.ConditionGreater,
+					ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqual,
+				}[expr.Operator()]
+			}
 			pos := expr.Pos()
 			if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
 				em.fb.emitMove(true, 1, reg, reflect.Bool)
@@ -2311,23 +2323,27 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 			if kind := t1.Kind(); reflect.Int <= kind && kind <= reflect.Float64 {
 				v1 := em.emitExpr(cond.Expr1, t1)
 				v2, k2 := em.emitExprK(cond.Expr2, t2)
-				condType := map[ast.OperatorType]runtime.Condition{
-					ast.OperatorEqual:          runtime.ConditionEqual,
-					ast.OperatorNotEqual:       runtime.ConditionNotEqual,
-					ast.OperatorLess:           runtime.ConditionLess,
-					ast.OperatorLessOrEqual:    runtime.ConditionLessOrEqual,
-					ast.OperatorGreater:        runtime.ConditionGreater,
-					ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqual,
-				}[cond.Operator()]
-				pos := cond.Pos()
-				// Equality and not equality checks are not optimized for
-				// uints, so these kinds must use the instructions of
-				// integers.
-				if reflect.Uint <= kind && kind <= reflect.Uintptr && condType == runtime.ConditionEqual || condType == runtime.ConditionNotEqual {
-					em.fb.emitIf(k2, v1, condType, v2, reflect.Int, pos)
-					return
+				var condType runtime.Condition
+				if k := t1.Kind(); reflect.Uint <= k && k <= reflect.Uintptr {
+					condType = map[ast.OperatorType]runtime.Condition{
+						ast.OperatorEqual:          runtime.ConditionEqual,    // same as for signed integers
+						ast.OperatorNotEqual:       runtime.ConditionNotEqual, // same as for signed integers
+						ast.OperatorLess:           runtime.ConditionLessU,
+						ast.OperatorLessOrEqual:    runtime.ConditionLessOrEqualU,
+						ast.OperatorGreater:        runtime.ConditionGreaterU,
+						ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqualU,
+					}[cond.Operator()]
+				} else {
+					condType = map[ast.OperatorType]runtime.Condition{
+						ast.OperatorEqual:          runtime.ConditionEqual,
+						ast.OperatorNotEqual:       runtime.ConditionNotEqual,
+						ast.OperatorLess:           runtime.ConditionLess,
+						ast.OperatorLessOrEqual:    runtime.ConditionLessOrEqual,
+						ast.OperatorGreater:        runtime.ConditionGreater,
+						ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqual,
+					}[cond.Operator()]
 				}
-				em.fb.emitIf(k2, v1, condType, v2, kind, pos)
+				em.fb.emitIf(k2, v1, condType, v2, kind, cond.Pos())
 				return
 			}
 		}
