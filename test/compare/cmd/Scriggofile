@@ -6,6 +6,7 @@ IMPORT archive/tar
 IMPORT bufio
 IMPORT bytes
 IMPORT crypto/sha1
+IMPORT crypto/md5
 IMPORT encoding/base64
 IMPORT errors
 IMPORT fmt
