@@ -1,5 +1,3 @@
-// skip : missing key in map literal not reported https://github.com/open2b/scriggo/issues/422
-
 // errorcheck
 
 // Copyright 2012 The Go Authors. All rights reserved.
@@ -10,7 +8,7 @@
 
 // also a test for correct line number in other malformed composite literals.
 
-package foo
+package main
 
 var _ = map[string]string{
 	"1": "2",
@@ -20,6 +18,7 @@ var _ = map[string]string{
 var _ = []string{
 	"foo",
 	"bar",
-	20, // ERROR "cannot use|incompatible type"
+	20, // ERROR `cannot convert 20 (type untyped int) to type string`
 }
 
+func main() { }

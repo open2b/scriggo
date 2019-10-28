@@ -2249,6 +2249,9 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			kv := &node.KeyValues[i]
 			keyType := ti.Type.Key()
 			elemType := ti.Type.Elem()
+			if kv.Key == nil {
+				panic(tc.errorf(node, "missing key in map literal"))
+			}
 			var keyTi *TypeInfo
 			if compLit, ok := kv.Key.(*ast.CompositeLiteral); ok {
 				keyTi = tc.checkCompositeLiteral(compLit, keyType)
