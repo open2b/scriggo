@@ -507,8 +507,8 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 		s += " " + disassembleOperand(fn, b, runtime.Interface, false)
 		s += " " + disassembleOperand(fn, c, runtime.Unknown, false)
 	case runtime.OpSetSlice:
-		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
-		s += " " + disassembleOperand(fn, b, runtime.Unknown, k)
+		s += " " + disassembleOperand(fn, a, runtime.Unknown, k)
+		s += " " + disassembleOperand(fn, b, runtime.Interface, false)
 		s += " " + disassembleOperand(fn, c, runtime.Int, false)
 	case runtime.OpSetVar:
 		s += " " + disassembleOperand(fn, a, runtime.Unknown, op < 0)

@@ -1011,7 +1011,7 @@ func (builder *functionBuilder) emitSetMap(k bool, m, value, key int8, mapType r
 //
 func (builder *functionBuilder) emitSetSlice(k bool, slice, value, index int8, pos *ast.Position) {
 	builder.addPosAndPath(pos)
-	in := runtime.Instruction{Op: runtime.OpSetSlice, A: slice, B: value, C: index}
+	in := runtime.Instruction{Op: runtime.OpSetSlice, A: value, B: slice, C: index}
 	if k {
 		in.Op = -in.Op
 	}

@@ -1576,23 +1576,23 @@ func (vm *VM) run() (uint32, bool) {
 		// SetSlice
 		case OpSetSlice, -OpSetSlice:
 			i := vm.int(c)
-			s := vm.general(a)
+			s := vm.general(b)
 			switch s := s.(type) {
 			case []int:
-				s[i] = int(vm.intk(b, op < 0))
+				s[i] = int(vm.intk(a, op < 0))
 			case []rune:
-				s[i] = rune(vm.intk(b, op < 0))
+				s[i] = rune(vm.intk(a, op < 0))
 			case []byte:
-				s[i] = byte(vm.intk(b, op < 0))
+				s[i] = byte(vm.intk(a, op < 0))
 			case []float64:
-				s[i] = vm.floatk(b, op < 0)
+				s[i] = vm.floatk(a, op < 0)
 			case []string:
-				s[i] = vm.stringk(b, op < 0)
+				s[i] = vm.stringk(a, op < 0)
 			case []interface{}:
-				s[i] = vm.generalk(b, op < 0)
+				s[i] = vm.generalk(a, op < 0)
 			default:
 				v := reflect.ValueOf(s).Index(int(i))
-				vm.getIntoReflectValue(b, v, op < 0)
+				vm.getIntoReflectValue(a, v, op < 0)
 			}
 
 		// SetVar
