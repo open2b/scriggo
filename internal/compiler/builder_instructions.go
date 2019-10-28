@@ -1002,7 +1002,7 @@ func (builder *functionBuilder) emitSetMap(k bool, m, value, key int8, mapType r
 			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
 		}
 	}
-	fn.Body = append(fn.Body, runtime.Instruction{Op: op, A: m, B: value, C: key})
+	fn.Body = append(fn.Body, runtime.Instruction{Op: op, A: value, B: m, C: key})
 }
 
 // emitSetSlice appends a new "SetSlice" instruction to the function body.

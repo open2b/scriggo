@@ -1529,37 +1529,37 @@ func (vm *VM) run() (uint32, bool) {
 
 		// SetMap
 		case OpSetMap, -OpSetMap:
-			m := vm.general(a)
+			m := vm.general(b)
 			switch m := m.(type) {
 			case map[string]string:
 				k := vm.string(c)
-				v := vm.stringk(b, op < 0)
+				v := vm.stringk(a, op < 0)
 				m[k] = v
 			case map[string]int:
 				k := vm.string(c)
-				v := vm.intk(b, op < 0)
+				v := vm.intk(a, op < 0)
 				m[k] = int(v)
 			case map[string]bool:
 				k := vm.string(c)
-				v := vm.boolk(b, op < 0)
+				v := vm.boolk(a, op < 0)
 				m[k] = v
 			case map[string]struct{}:
 				m[vm.string(c)] = struct{}{}
 			case map[string]interface{}:
 				k := vm.string(c)
-				v := vm.generalk(b, op < 0)
+				v := vm.generalk(a, op < 0)
 				m[k] = v
 			case map[int]int:
 				k := vm.int(c)
-				v := vm.intk(b, op < 0)
+				v := vm.intk(a, op < 0)
 				m[int(k)] = int(v)
 			case map[int]bool:
 				k := vm.int(c)
-				v := vm.boolk(b, op < 0)
+				v := vm.boolk(a, op < 0)
 				m[int(k)] = v
 			case map[int]string:
 				k := vm.int(c)
-				v := vm.stringk(b, op < 0)
+				v := vm.stringk(a, op < 0)
 				m[int(k)] = v
 			case map[int]struct{}:
 				m[int(vm.int(c))] = struct{}{}
@@ -1569,7 +1569,7 @@ func (vm *VM) run() (uint32, bool) {
 				k := reflect.New(t.Key()).Elem()
 				vm.getIntoReflectValue(c, k, false)
 				v := reflect.New(t.Elem()).Elem()
-				vm.getIntoReflectValue(b, v, op < 0)
+				vm.getIntoReflectValue(a, v, op < 0)
 				mv.SetMapIndex(k, v)
 			}
 
