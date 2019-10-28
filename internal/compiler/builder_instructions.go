@@ -962,7 +962,7 @@ func (builder *functionBuilder) emitSetField(k bool, s, field, v int8) {
 	if k {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: v, B: field, C: s})
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: v, B: s, C: field})
 }
 
 // emitSetVar appends a new "SetVar" instruction to the function body.

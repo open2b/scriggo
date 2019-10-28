@@ -1523,8 +1523,8 @@ func (vm *VM) run() (uint32, bool) {
 
 		// SetField
 		case OpSetField, -OpSetField:
-			i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
-			s := reflect.ValueOf(vm.general(c))
+			i := decodeFieldIndex(vm.fn.Constants.Int[uint8(c)])
+			s := reflect.ValueOf(vm.general(b))
 			vm.getIntoReflectValue(a, s.Elem().FieldByIndex(i), op < 0)
 
 		// SetMap

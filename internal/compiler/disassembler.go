@@ -496,8 +496,8 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 		}
 	case runtime.OpSetField:
 		s += " " + disassembleOperand(fn, a, runtime.Unknown, k)
-		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[b]))
-		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, b, runtime.Interface, false)
+		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[c]))
 	case runtime.OpSetMap:
 		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 		if k {
