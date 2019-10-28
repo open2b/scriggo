@@ -1143,6 +1143,7 @@ func toSameConstImpl(c1, c2 constant) (constant, constant) {
 var errNegativeShiftCount = errors.New("negative shift count")
 var errShiftCountTooLarge = errors.New("shift count too large")
 var errShiftCountTruncatedToInteger = errors.New("shift count truncated to integer")
+var errConstantOverflowUint = errors.New("constant overflows uint")
 
 // shiftConstError returns an error that explain why c cannot be used as the
 // right operand in the shift expression op. Returns nil if c can be used.
@@ -1160,12 +1161,12 @@ func shiftConstError(op ast.OperatorType, c constant) error {
 		if n < 0 {
 			return errNegativeShiftCount
 		}
-		return errShiftCountTooLarge
+		return errConstantOverflowUint
 	case intConst:
 		if n.i.Sign() < 0 {
 			return errNegativeShiftCount
 		}
-		return errShiftCountTooLarge
+		return errConstantOverflowUint
 	}
 	return errShiftCountTruncatedToInteger
 }

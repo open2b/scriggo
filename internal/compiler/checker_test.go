@@ -954,13 +954,14 @@ var checkerStmts = map[string]string{
 	`var _ map[*int][]*string`:            ok,
 
 	// Shifts.
-	`_ = 1 << nil`:                     `cannot convert nil to type uint`,
-	`_ = 1 << "s"`:                     `invalid operation: 1 << "s" (shift count type string, must be unsigned integer)`,
-	`_ = 1 << 1.2`:                     `invalid operation: 1 << 1.2 (constant 1.2 truncated to integer)`,
-	`_ = 1 << -1`:                      `invalid negative shift count: -1`,
-	`_ = 1 << 512`:                     `shift count too large: 512`,
-	`_ = 1 >> 1000`:                    ok,
-	`const a string = "s"; _ = 1 << a`: `invalid operation: 1 << a (shift count type string, must be unsigned integer)`,
+	`_ = 1 << nil`:  `cannot convert nil to type uint`,
+	`_ = 1 << "s"`:  `invalid operation: 1 << "s" (shift count type string, must be unsigned integer)`,
+	`_ = 1 << 1.2`:  `invalid operation: 1 << 1.2 (constant 1.2 truncated to integer)`,
+	`_ = 1 << -1`:   `invalid negative shift count: -1`,
+	`_ = 1 << 512`:  `shift count too large: 512`,
+	`_ = 1 >> 1000`: ok,
+	`const c = 1; _ = c << 18446744073709551616`: `invalid operation: c << 18446744073709551616 (constant 18446744073709551616 overflows uint)`,
+	`const a string = "s"; _ = 1 << a`:           `invalid operation: 1 << a (shift count type string, must be unsigned integer)`,
 	//`const a int = -1; _ = 1 << a`:     `invalid operation: 1 << a (invalid negative shift count: -1)`, // TODO: go1.13
 	`var a = "s"; _ = 1 << a`:                  `invalid operation: 1 << a (shift count type string, must be unsigned integer)`,
 	`var a = 1.2; _ = 1 << a`:                  `invalid operation: 1 << a (shift count type float64, must be unsigned integer)`,

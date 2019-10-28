@@ -1247,6 +1247,8 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 						err = fmt.Errorf("shift count too large: %s", t2.Constant)
 					case errShiftCountTruncatedToInteger:
 						err = fmt.Errorf("constant %s truncated to integer", t2.Constant)
+					case errConstantOverflowUint:
+						err = fmt.Errorf("constant %s overflows uint", t2.Constant)
 					}
 					return nil, err
 				}
