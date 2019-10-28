@@ -1289,6 +1289,10 @@ const (
 	ConditionLessOrEqual                        // x <= y
 	ConditionGreater                            // x >  y
 	ConditionGreaterOrEqual                     // x >= y
+	ConditionLessU                              // x <  y (unsigned)
+	ConditionLessOrEqualU                       // x <= y (unsigned)
+	ConditionGreaterU                           // x >  y (unsigned)
+	ConditionGreaterOrEqualU                    // x >= y (unsigned)
 	ConditionEqualLen                           // len(x) == y
 	ConditionNotEqualLen                        // len(x) != y
 	ConditionLessLen                            // len(x) <  y
@@ -1389,7 +1393,6 @@ const (
 
 	OpIf
 	OpIfInt
-	OpIfUint
 	OpIfFloat
 	OpIfString
 

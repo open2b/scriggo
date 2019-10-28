@@ -635,38 +635,36 @@ func (vm *VM) run() (uint32, bool) {
 			}
 		case OpIfInt, -OpIfInt:
 			var cond bool
-			v1 := vm.int(a)
-			v2 := int64(vm.intk(c, op < 0))
-			switch Condition(b) {
-			case ConditionEqual:
-				cond = v1 == v2
-			case ConditionNotEqual:
-				cond = v1 != v2
-			case ConditionLess:
-				cond = v1 < v2
-			case ConditionLessOrEqual:
-				cond = v1 <= v2
-			case ConditionGreater:
-				cond = v1 > v2
-			case ConditionGreaterOrEqual:
-				cond = v1 >= v2
-			}
-			if cond {
-				vm.pc++
-			}
-		case OpIfUint, -OpIfUint:
-			var cond bool
-			v1 := uint64(vm.int(a))
-			v2 := uint64(vm.intk(c, op < 0))
-			switch Condition(b) {
-			case ConditionLess:
-				cond = v1 < v2
-			case ConditionLessOrEqual:
-				cond = v1 <= v2
-			case ConditionGreater:
-				cond = v1 > v2
-			case ConditionGreaterOrEqual:
-				cond = v1 >= v2
+			if ConditionLessU <= Condition(b) && Condition(b) <= ConditionGreaterOrEqualU {
+				v1 := uint64(vm.int(a))
+				v2 := uint64(vm.intk(c, op < 0))
+				switch Condition(b) {
+				case ConditionLessU:
+					cond = v1 < v2
+				case ConditionLessOrEqualU:
+					cond = v1 <= v2
+				case ConditionGreaterU:
+					cond = v1 > v2
+				case ConditionGreaterOrEqualU:
+					cond = v1 >= v2
+				}
+			} else {
+				v1 := vm.int(a)
+				v2 := int64(vm.intk(c, op < 0))
+				switch Condition(b) {
+				case ConditionEqual:
+					cond = v1 == v2
+				case ConditionNotEqual:
+					cond = v1 != v2
+				case ConditionLess:
+					cond = v1 < v2
+				case ConditionLessOrEqual:
+					cond = v1 <= v2
+				case ConditionGreater:
+					cond = v1 > v2
+				case ConditionGreaterOrEqual:
+					cond = v1 >= v2
+				}
 			}
 			if cond {
 				vm.pc++

@@ -359,7 +359,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 			s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 			s += " " + conditionName[b]
 		}
-	case runtime.OpIfInt, runtime.OpIfUint:
+	case runtime.OpIfInt:
 		s += " " + disassembleOperand(fn, a, runtime.Int, false)
 		s += " " + conditionName[b]
 		if runtime.Condition(b) >= runtime.ConditionEqual {
@@ -778,7 +778,6 @@ var operationName = [...]string{
 
 	runtime.OpIf:       "If",
 	runtime.OpIfInt:    "If",
-	runtime.OpIfUint:   "IfU",
 	runtime.OpIfFloat:  "If",
 	runtime.OpIfString: "If",
 
@@ -899,6 +898,10 @@ var conditionName = [...]string{
 	runtime.ConditionLessOrEqualLen:    "LessOrEqualLen",
 	runtime.ConditionGreaterLen:        "GreaterOrEqualLen",
 	runtime.ConditionGreaterOrEqualLen: "GreaterOrEqualLen",
+	runtime.ConditionLessU:             "ConditionLessU",
+	runtime.ConditionLessOrEqualU:      "ConditionLessOrEqualU",
+	runtime.ConditionGreaterU:          "ConditionGreaterU",
+	runtime.ConditionGreaterOrEqualU:   "ConditionGreaterOrEqualU",
 	runtime.ConditionInterfaceNil:      "InterfaceNil",
 	runtime.ConditionInterfaceNotNil:   "InterfaceNotNil",
 	runtime.ConditionNil:               "Nil",
