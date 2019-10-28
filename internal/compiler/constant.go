@@ -1270,52 +1270,64 @@ func parseConstant(s string) (constant, reflect.Type, error) {
 }
 
 // parseBasicLiteral parses a basic literal and returns the represented
-// constant. If the string is not a basic literal the behaviour is undefined.
-func parseBasicLiteral(typ ast.LiteralType, s string) constant {
+// constant. Returns an error if the constant can not be represented.
+// If the string is not a basic literal the behaviour is undefined.
+func parseBasicLiteral(typ ast.LiteralType, s string) (constant, error) {
 	switch typ {
 	case ast.StringLiteral:
-		return stringConst(unquoteString([]byte(s)))
+		return stringConst(unquoteString([]byte(s))), nil
 	case ast.RuneLiteral:
 		if s[1] == '\\' {
 			r, _ := parseEscapedRune([]byte(s[1:]))
-			return int64Const(r)
+			return int64Const(r), nil
 		}
 		if len(s) == 3 {
-			return int64Const(s[1])
+			return int64Const(s[1]), nil
 		}
 		r, _ := utf8.DecodeRuneInString(s[1:])
-		return int64Const(r)
+		return int64Const(r), nil
 	case ast.IntLiteral:
 		n, _ := new(big.Int).SetString(s, 0)
-		if n.IsInt64() {
-			return int64Const(n.Int64())
+		if n.BitLen() > 512 {
+			return nil, fmt.Errorf("constant too large: %s", s)
 		}
-		return intConst{i: n}
+		if n.IsInt64() {
+			return int64Const(n.Int64()), nil
+		}
+		return intConst{i: n}, nil
 	case ast.FloatLiteral:
 		n, _ := bigFloat().SetString(s)
 		if n.MinPrec() < 53 {
 			f, _ := n.Float64()
-			return float64Const(f)
+			return float64Const(f), nil
 		}
 		if !n.IsInf() {
 			const maxExp = 4 << 10
 			if e := n.MantExp(nil); -maxExp < e && e < maxExp {
 				r, _ := new(big.Rat).SetString(s)
-				return ratConst{r: r}
+				return ratConst{r: r}, nil
 			}
 		}
-		return floatConst{f: n}
+		return floatConst{f: n}, nil
 	case ast.ImaginaryLiteral:
 		if strings.ContainsAny(s, ".eEpP") {
-			return complexConst{r: int64Const(0), i: parseBasicLiteral(ast.FloatLiteral, s[:len(s)-1])}
+			im, err := parseBasicLiteral(ast.FloatLiteral, s[:len(s)-1])
+			if err != nil {
+				return nil, err
+			}
+			return complexConst{r: int64Const(0), i: im}, nil
 		}
 		if s[0] == '0' && ('0' <= s[1] && s[1] <= '9' || s[1] == '_') {
 			s = strings.TrimLeft(s, "0_")
 			if s == "i" {
-				return int64Const(0)
+				return int64Const(0), nil
 			}
 		}
-		return complexConst{r: int64Const(0), i: parseBasicLiteral(ast.IntLiteral, s[:len(s)-1])}
+		im, err := parseBasicLiteral(ast.IntLiteral, s[:len(s)-1])
+		if err != nil {
+			return nil, err
+		}
+		return complexConst{r: int64Const(0), i: im}, nil
 	}
 	panic("no basic literal")
 }

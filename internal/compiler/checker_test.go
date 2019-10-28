@@ -679,6 +679,8 @@ var checkerStmts = map[string]string{
 	`const A = 0; B := A; const C = B;   _ = B`: `const initializer B is not a constant`,
 	`const a string = 2`:                        `cannot use 2 (type int) as type string in assignment`, // TODO (Gianluca): Go returns error: cannot convert 2 (type untyped number) to type string
 	`const a = nil`:                             `const initializer cannot be nil`,
+	`const _ = 13407807929942597099574024998205846127479365820592393377723561443721764030073546976801874298166903427690031858186486050853753882811946569946433649006084095`: ok,
+	`const _ = 13407807929942597099574024998205846127479365820592393377723561443721764030073546976801874298166903427690031858186486050853753882811946569946433649006084096`: `constant too large`,
 
 	// Constants - from https://golang.org/ref/spec#Constant_expressions
 	`const a = 2 + 3.0`:                      ok,
@@ -1686,9 +1688,13 @@ func tiUntypedBool() *TypeInfo {
 // float type infos.
 
 func tiUntypedFloatConst(lit string) *TypeInfo {
+	c, err := parseBasicLiteral(ast.FloatLiteral, lit)
+	if err != nil {
+		panic("unexpected error: " + err.Error())
+	}
 	return &TypeInfo{
 		Type:       float64Type,
-		Constant:   parseBasicLiteral(ast.FloatLiteral, lit),
+		Constant:   c,
 		Properties: PropertyUntyped,
 	}
 }
@@ -1721,14 +1727,21 @@ func tiUntypedComplexConst(lit string) *TypeInfo {
 		if s == -1 {
 			s = 0
 		}
-		c := parseBasicLiteral(ast.ImaginaryLiteral, lit[s:])
+		c, err := parseBasicLiteral(ast.ImaginaryLiteral, lit[s:])
+		if err != nil {
+			panic("unexpected error: " + err.Error())
+		}
 		im = c.imag()
 		lit = lit[:s]
 	} else {
 		im = int64Const(0)
 	}
 	if len(lit) > 0 {
-		re = parseBasicLiteral(ast.FloatLiteral, lit)
+		var err error
+		re, err = parseBasicLiteral(ast.FloatLiteral, lit)
+		if err != nil {
+			panic("unexpected error: " + err.Error())
+		}
 	} else {
 		re = int64Const(0)
 	}

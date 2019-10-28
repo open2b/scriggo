@@ -650,10 +650,14 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		case ast.ImaginaryLiteral:
 			typ = complex128Type
 		}
+		c, err := parseBasicLiteral(expr.Type, expr.Value)
+		if err != nil {
+			panic(tc.errorf(expr, err.Error()))
+		}
 		return &TypeInfo{
 			Type:       typ,
 			Properties: PropertyUntyped,
-			Constant:   parseBasicLiteral(expr.Type, expr.Value),
+			Constant:   c,
 		}
 
 	case *ast.UnaryOperator:
