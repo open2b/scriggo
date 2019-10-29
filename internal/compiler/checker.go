@@ -184,8 +184,8 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*TypeIn
 	return elem.t, ok
 }
 
-// assignScope assigns value to name in the last scope. If there are no scopes,
-// value is assigned in file/package block.
+// assignScope assigns value to name in the current scope. If there are no
+// scopes, value is assigned to the file/package block.
 func (tc *typechecker) assignScope(name string, value *TypeInfo, declNode *ast.Identifier) {
 	if len(tc.scopes) == 0 {
 		if _, ok := tc.filePackageBlock[name]; ok {
@@ -305,6 +305,8 @@ func (tc *typechecker) getDeclarationNode(name string) ast.Node {
 	panic(fmt.Sprintf("BUG: trying to get scope level of %s, but any scope, package block, file block or universe contains it", name)) // remove.
 }
 
+// programImportError returns an error that states that it's impossible to
+// import a program (package main).
 func (tc *typechecker) programImportError(imp *ast.Import) error {
 	return tc.errorf(imp, "import \"%s\" is a program, not a in importable package", imp.Path)
 }
@@ -355,7 +357,7 @@ func (tc *typechecker) getAllNestedFuncs() []*ast.Func {
 	return funcs
 }
 
-// errorf builds and returns a type check error.
+// errorf builds and returns a type checking error.
 func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...interface{}) error {
 	var pos *ast.Position
 	if node, ok := nodeOrPos.(ast.Node); ok {
