@@ -217,6 +217,14 @@ func (tc *typechecker) currentPkgIndex() int {
 	return max + 1
 }
 
+// An ancestor is an AST node with a scope level associated. The type checker
+// holds a list of ancestors to keep track of the current position and depth
+// inside the full AST tree.
+type ancestor struct {
+	scopeLevel int
+	node       ast.Node
+}
+
 // addToAncestors adds a node as ancestor.
 func (tc *typechecker) addToAncestors(n ast.Node) {
 	tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), n})

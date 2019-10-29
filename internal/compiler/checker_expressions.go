@@ -80,11 +80,6 @@ var universe = typeCheckerScope{
 	"uintptr":    {t: &TypeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: PropertyIsType | PropertyPredeclared}},
 }
 
-type ancestor struct {
-	scopeLevel int
-	node       ast.Node
-}
-
 type scopeVariable struct {
 	ident      string
 	scopeLevel int
