@@ -496,7 +496,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		tc.enterScope()
 		t := tc.checkType(expr.Type)
 		expr.Type.Reflect = t.Type
-		tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), expr})
+		tc.addToAncestors(expr)
 		// Adds parameters to the function body scope.
 		fillParametersTypes(expr.Type.Parameters)
 		isVariadic := expr.Type.IsVariadic

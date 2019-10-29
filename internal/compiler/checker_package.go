@@ -612,7 +612,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 
 		case *ast.Func:
 			tc.enterScope()
-			tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), d})
+			tc.addToAncestors(d)
 			// Adds parameters to the function body scope.
 			fillParametersTypes(d.Type.Parameters)
 			isVariadic := d.Type.IsVariadic
