@@ -107,6 +107,15 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts CheckerOptions) ty
 	return s
 }
 
+// pkgPathToIndex maps a package path to an unique identifier.
+// TODO(Gianluca): it's not safe to use a global variable. More than this, we need a structure in common among all type checkers, which should hold:
+//
+// - pkgPathToIndex
+// - all the collected pkgInfos
+// - information about which tree has already been checked.
+//
+var pkgPathToIndex = map[string]int{}
+
 type PackageInfo struct {
 	Name         string
 	Declarations map[string]*TypeInfo
