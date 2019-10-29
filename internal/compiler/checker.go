@@ -97,7 +97,7 @@ func newTypechecker(path string, opts CheckerOptions, globalScope typeCheckerSco
 	}
 }
 
-// enterScope adds a new empty scope to the type checker.
+// enterScope enters into a new empty scope.
 func (tc *typechecker) enterScope() {
 	tc.scopes = append(tc.scopes, typeCheckerScope{})
 	tc.labels = append(tc.labels, []string{})
@@ -105,7 +105,7 @@ func (tc *typechecker) enterScope() {
 	tc.gotos = []string{}
 }
 
-// exitScope removes the current scope from the type checker.
+// exitScope exits from the current scope.
 func (tc *typechecker) exitScope() {
 	// Check if some variables declared in the closing scope are still unused.
 	if !tc.opts.AllowNotUsed {
