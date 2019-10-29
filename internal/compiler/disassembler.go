@@ -393,6 +393,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 			f := fn.Functions[uint8(b)]
 			s += " " + packageName(f.Pkg) + "." + f.Name
 		} else {
+			s += " Predefined"
 			f := fn.Predefined[uint8(b)]
 			s += " " + packageName(f.Pkg) + "." + f.Name
 		}
@@ -724,9 +725,9 @@ var operationName = [...]string{
 
 	runtime.OpCall: "Call",
 
-	runtime.OpCallIndirect: "CallIndirect",
+	runtime.OpCallIndirect: "Call Indirect",
 
-	runtime.OpCallPredefined: "CallPredefined",
+	runtime.OpCallPredefined: "Call Predefined",
 
 	runtime.OpCap: "Cap",
 
