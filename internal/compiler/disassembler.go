@@ -214,6 +214,27 @@ func DisassembleInstruction(w io.Writer, fn *runtime.Function, globals []Global,
 	return int64(n), err
 }
 
+// getKind returns the kind of the given operand (which can be 'a', 'b' or 'c')
+// of the instruction at the given address. If the informations about the kind
+// of the operands have not been added by the emitter/builder, then the
+// runtime.Unknown kind is returned.
+func getKind(operand rune, fn *runtime.Function, addr uint32) runtime.Kind {
+	kinds, ok := fn.OperandKinds[addr]
+	if !ok {
+		return runtime.Unknown
+	}
+	switch operand {
+	case 'a':
+		return kinds[0]
+	case 'b':
+		return kinds[1]
+	case 'c':
+		return kinds[2]
+	default:
+		panic(fmt.Errorf("BUG: invalid operand %v", operand))
+	}
+}
+
 func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32) string {
 	in := fn.Body[addr]
 	op, a, b, c := in.Op, in.A, in.B, in.C
@@ -256,8 +277,11 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 		s += " " + disassembleOperand(fn, a, runtime.Int, true)
 		s += " " + disassembleOperand(fn, b, runtime.Int, true)
 		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
-	case runtime.OpAppendSlice, runtime.OpSend:
-		s += " " + disassembleOperand(fn, a, runtime.Unknown, false)
+	case runtime.OpAppendSlice:
+		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+	case runtime.OpSend:
+		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), false)
 		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
 	case runtime.OpAssert:
 		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
@@ -384,7 +408,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 	case runtime.OpField:
 		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[b]))
-		s += " " + disassembleOperand(fn, c, runtime.Unknown, false)
+		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
 	case runtime.OpGetFunc:
 		if a == 0 {
 			f := fn.Functions[uint8(b)]
@@ -401,14 +425,17 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 			s += " " + packageName(f.Pkg) + "." + f.Name
 		}
 		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
-	case runtime.OpGetVar, runtime.OpGetVarAddr:
+	case runtime.OpGetVar:
 		s += " " + disassembleVarRef(fn, globals, int16(int(a)<<8|int(uint8(b))))
-		s += " " + disassembleOperand(fn, c, runtime.Unknown, false)
+		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
+	case runtime.OpGetVarAddr:
+		s += " " + disassembleVarRef(fn, globals, int16(int(a)<<8|int(uint8(b))))
+		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
 	case runtime.OpGo, runtime.OpReturn:
 	case runtime.OpIndex:
 		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 		s += " " + disassembleOperand(fn, b, runtime.Int, k)
-		s += " " + disassembleOperand(fn, c, runtime.Unknown, false)
+		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
 	case runtime.OpIndexString:
 		s += " " + disassembleOperand(fn, a, runtime.String, false)
 		s += " " + disassembleOperand(fn, b, runtime.Int, k)
@@ -490,7 +517,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 	case runtime.OpReceive:
 		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 		s += " " + disassembleOperand(fn, b, runtime.Bool, false)
-		s += " " + disassembleOperand(fn, c, runtime.Unknown, false)
+		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
 	case runtime.OpRecover:
 		if a > 0 {
 			s += " down"
@@ -499,23 +526,20 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 			s += " " + disassembleOperand(fn, c, runtime.Interface, false)
 		}
 	case runtime.OpSetField:
-		s += " " + disassembleOperand(fn, a, runtime.Unknown, k)
+		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), k)
 		s += " " + disassembleOperand(fn, b, runtime.Interface, false)
 		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[c]))
 	case runtime.OpSetMap:
-		if k {
-			s += fmt.Sprintf(" K(%v)", b)
-		} else {
-			s += " " + disassembleOperand(fn, a, runtime.Unknown, false)
-		}
+		// fn, addr, 'a'
+		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), k)
 		s += " " + disassembleOperand(fn, b, runtime.Interface, false)
-		s += " " + disassembleOperand(fn, c, runtime.Unknown, false)
+		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
 	case runtime.OpSetSlice:
-		s += " " + disassembleOperand(fn, a, runtime.Unknown, k)
+		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), k)
 		s += " " + disassembleOperand(fn, b, runtime.Interface, false)
 		s += " " + disassembleOperand(fn, c, runtime.Int, false)
 	case runtime.OpSetVar:
-		s += " " + disassembleOperand(fn, a, runtime.Unknown, op < 0)
+		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), op < 0)
 		s += " " + disassembleVarRef(fn, globals, int16(int(b)<<8|int(uint8(c))))
 	case runtime.OpSlice:
 		khigh := b&2 != 0
@@ -657,7 +681,7 @@ func registerKindToLabel(kind runtime.Kind) string {
 	case runtime.String:
 		return "s"
 	case runtime.Unknown:
-		return "?" // https://github.com/open2b/scriggo/issues/390
+		return "?"
 	default:
 		return "g"
 	}
@@ -680,7 +704,7 @@ func disassembleOperand(fn *runtime.Function, op int8, kind runtime.Kind, consta
 		case kind == runtime.String:
 			return strconv.Quote(fn.Constants.String[uint8(op)])
 		case kind == runtime.Unknown:
-			return "?" // https://github.com/open2b/scriggo/issues/390
+			return "?"
 		default:
 			v := fn.Constants.General[uint8(op)]
 			if v == nil {

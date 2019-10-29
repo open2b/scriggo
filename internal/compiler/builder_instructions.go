@@ -369,7 +369,8 @@ func (builder *functionBuilder) emitRange(k bool, s, i, e int8, kind reflect.Kin
 //
 // 	C = A.field
 //
-func (builder *functionBuilder) emitField(a, field, c int8) {
+func (builder *functionBuilder) emitField(a, field, c int8, dstKind reflect.Kind) {
+	builder.addOperandKinds(0, 0, dstKind)
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpField, A: a, B: field, C: c})
 }
 
@@ -416,8 +417,9 @@ func (builder *functionBuilder) emitGetFunc(predefined bool, f int8, z int8) {
 //
 //     r = v
 //
-func (builder *functionBuilder) emitGetVar(v int, r int8) {
+func (builder *functionBuilder) emitGetVar(v int, r int8, varKind reflect.Kind) {
 	a, b := encodeInt16(int16(v))
+	builder.addOperandKinds(0, 0, varKind)
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpGetVar, A: a, B: b, C: r})
 }
 
@@ -502,6 +504,7 @@ func (builder *functionBuilder) emitIf(k bool, x int8, o runtime.Condition, y in
 //
 func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType reflect.Type, pos *ast.Position) {
 	builder.addPosAndPath(pos)
+	builder.addOperandKinds(0, 0, exprType.Kind())
 	fn := builder.fn
 	kind := exprType.Kind()
 	var op runtime.Operation
@@ -939,8 +942,9 @@ func (builder *functionBuilder) emitSelect() {
 //
 //	ch <- v
 //
-func (builder *functionBuilder) emitSend(ch, v int8, pos *ast.Position) {
+func (builder *functionBuilder) emitSend(ch, v int8, pos *ast.Position, chanElemKind reflect.Kind) {
 	builder.addPosAndPath(pos)
+	builder.addOperandKinds(chanElemKind, 0, 0)
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpSend, A: v, C: ch})
 }
 
@@ -957,7 +961,8 @@ func (builder *functionBuilder) emitSetAlloc(alloc bool) {
 //
 //     s.field = v
 //
-func (builder *functionBuilder) emitSetField(k bool, s, field, v int8) {
+func (builder *functionBuilder) emitSetField(k bool, s, field, v int8, fieldKind reflect.Kind) {
+	builder.addOperandKinds(fieldKind, 0, 0)
 	op := runtime.OpSetField
 	if k {
 		op = -op
@@ -969,7 +974,8 @@ func (builder *functionBuilder) emitSetField(k bool, s, field, v int8) {
 //
 //     v = r
 //
-func (builder *functionBuilder) emitSetVar(k bool, r int8, v int) {
+func (builder *functionBuilder) emitSetVar(k bool, r int8, v int, dstKind reflect.Kind) {
+	builder.addOperandKinds(dstKind, 0, 0)
 	op := runtime.OpSetVar
 	if k {
 		op = -op
@@ -982,15 +988,18 @@ func (builder *functionBuilder) emitSetVar(k bool, r int8, v int) {
 //	m[key] = value
 //
 func (builder *functionBuilder) emitSetMap(k bool, m, value, key int8, mapType reflect.Type, pos *ast.Position) {
+	keyType := mapType.Key()
+	valueType := mapType.Elem()
 	builder.addPosAndPath(pos)
+	builder.addOperandKinds(valueType.Kind(), 0, keyType.Kind())
 	fn := builder.fn
 	op := runtime.OpSetMap
 	if k {
 		op = -op
 	}
 	if builder.allocs != nil {
-		kSize := int(mapType.Key().Size())
-		eSize := int(mapType.Elem().Size())
+		kSize := int(keyType.Size())
+		eSize := int(valueType.Size())
 		bytes := kSize + eSize
 		if bytes < 0 {
 			panic("out of memory")
@@ -1009,8 +1018,9 @@ func (builder *functionBuilder) emitSetMap(k bool, m, value, key int8, mapType r
 //
 //	slice[index] = value
 //
-func (builder *functionBuilder) emitSetSlice(k bool, slice, value, index int8, pos *ast.Position) {
+func (builder *functionBuilder) emitSetSlice(k bool, slice, value, index int8, pos *ast.Position, sliceElemKind reflect.Kind) {
 	builder.addPosAndPath(pos)
+	builder.addOperandKinds(sliceElemKind, 0, 0)
 	in := runtime.Instruction{Op: runtime.OpSetSlice, A: value, B: slice, C: index}
 	if k {
 		in.Op = -in.Op

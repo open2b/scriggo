@@ -122,10 +122,10 @@ func (em *emitter) reserveTemplateRegisters() {
 	em.fb.templateRegs.gE = em.fb.newRegister(reflect.Interface) // free.
 	em.fb.templateRegs.gF = em.fb.newRegister(reflect.Interface) // urlWriter
 	em.fb.templateRegs.iA = em.fb.newRegister(reflect.Int)       // free.
-	em.fb.emitGetVar(0, em.fb.templateRegs.gA)
-	em.fb.emitGetVar(1, em.fb.templateRegs.gB)
-	em.fb.emitGetVar(2, em.fb.templateRegs.gC)
-	em.fb.emitGetVar(3, em.fb.templateRegs.gF)
+	em.fb.emitGetVar(0, em.fb.templateRegs.gA, reflect.Interface)
+	em.fb.emitGetVar(1, em.fb.templateRegs.gB, reflect.Interface)
+	em.fb.emitGetVar(2, em.fb.templateRegs.gC, reflect.Interface)
+	em.fb.emitGetVar(3, em.fb.templateRegs.gF, reflect.Interface)
 }
 
 // emitPackage emits a package and returns the exported functions, the
@@ -235,6 +235,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 			em.fb = initVarsFb
 			addresses := make([]address, len(n.Lhs))
 			pkgVarRegs := map[string]int8{}
+			pkgVarTypes := map[string]reflect.Type{}
 			for i, v := range n.Lhs {
 				if isBlankIdentifier(v) {
 					addresses[i] = em.newAddress(addressBlank, reflect.Type(nil), 0, 0, v.Pos())
@@ -246,6 +247,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 					// Store the variable register. It will be used later to store
 					// initialized value inside the proper global index.
 					pkgVarRegs[v.Name] = varr
+					pkgVarTypes[v.Name] = staticType
 					em.globals = append(em.globals, Global{Pkg: "main", Name: v.Name, Type: staticType})
 					em.availableVarIndexes[em.pkg][v.Name] = int16(len(em.globals) - 1)
 					vars[v.Name] = int16(len(em.globals) - 1)
@@ -254,7 +256,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 			em.assignValuesToAddresses(addresses, n.Rhs)
 			for name, reg := range pkgVarRegs {
 				index := em.availableVarIndexes[em.pkg][name]
-				em.fb.emitSetVar(false, reg, int(index))
+				em.fb.emitSetVar(false, reg, int(index), pkgVarTypes[name].Kind())
 			}
 			em.fb = backupFb
 		}
@@ -366,7 +368,7 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 					for i := range argRegs {
 						index := em.fb.newRegister(reflect.Int)
 						em.changeRegister(true, int8(i), index, intType, intType)
-						em.fb.emitSetSlice(false, slice, argRegs[i], index, pos)
+						em.fb.emitSetSlice(false, slice, argRegs[i], index, pos, fnTyp.In(numIn-1).Elem().Kind())
 					}
 					em.fb.exitStack()
 					return []int8{slice}, []reflect.Type{fnTyp.In(numIn - 1)}
@@ -414,7 +416,7 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 					index := em.fb.newRegister(reflect.Int)
 					em.fb.emitMove(true, int8(i), index, reflect.Int)
 					pos := args[len(args)-1].Pos()
-					em.fb.emitSetSlice(false, slice, tmp, index, pos)
+					em.fb.emitSetSlice(false, slice, tmp, index, pos, fnTyp.In(numIn-1).Elem().Kind())
 				}
 			}
 		}
@@ -662,11 +664,11 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 				return
 			}
 			if canEmitDirectly(ti.Type.Kind(), dstType.Kind()) {
-				em.fb.emitGetVar(int(index), reg)
+				em.fb.emitGetVar(int(index), reg, dstType.Kind())
 				return
 			}
 			tmp := em.fb.newRegister(ti.Type.Kind())
-			em.fb.emitGetVar(int(index), tmp)
+			em.fb.emitGetVar(int(index), tmp, ti.Type.Kind())
 			em.changeRegister(false, tmp, reg, ti.Type, dstType)
 			return
 		}
@@ -690,12 +692,12 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 	index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
 	fieldType := em.ti(expr).Type
 	if canEmitDirectly(fieldType.Kind(), dstType.Kind()) {
-		em.fb.emitField(exprReg, index, reg)
+		em.fb.emitField(exprReg, index, reg, dstType.Kind())
 		return
 	}
 	// TODO: add enter/exit stack method calls.
 	tmp := em.fb.newRegister(fieldType.Kind())
-	em.fb.emitField(exprReg, index, tmp)
+	em.fb.emitField(exprReg, index, tmp, fieldType.Kind())
 	em.changeRegister(false, tmp, reg, fieldType, dstType)
 
 	return
@@ -1195,9 +1197,10 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.breakLabel = currentBreakLabel
 
 		case *ast.Send:
-			chann := em.emitExpr(node.Channel, em.ti(node.Channel).Type)
+			chanType := em.ti(node.Channel).Type
+			chann := em.emitExpr(node.Channel, chanType)
 			value := em.emitExpr(node.Value, em.ti(node.Value).Type)
-			em.fb.emitSend(chann, value, node.Pos())
+			em.fb.emitSend(chann, value, node.Pos(), chanType.Elem().Kind())
 
 		case *ast.Show:
 			// render([implicit *vm.Env,] gD io.Writer, gE interface{}, iA ast.Context)
@@ -1496,11 +1499,11 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		if ident, ok := expr.(*ast.Identifier); ok {
 			index := em.predVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, ident.Name)
 			if canEmitDirectly(ti.Type.Kind(), dstType.Kind()) {
-				em.fb.emitGetVar(int(index), reg)
+				em.fb.emitGetVar(int(index), reg, dstType.Kind())
 				return reg, false
 			}
 			tmp := em.fb.newRegister(ti.Type.Kind())
-			em.fb.emitGetVar(int(index), tmp)
+			em.fb.emitGetVar(int(index), tmp, ti.Type.Kind())
 			em.changeRegister(false, tmp, reg, ti.Type, dstType)
 			return reg, false
 		}
@@ -1741,7 +1744,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				em.fb.emitMove(true, index, indexReg, reflect.Int)
 				elem, k := em.emitExprK(kv.Value, typ.Elem())
 				if reg != 0 {
-					em.fb.emitSetSlice(k, reg, elem, indexReg, expr.Pos())
+					em.fb.emitSetSlice(k, reg, elem, indexReg, expr.Pos(), typ.Elem().Kind())
 				}
 				em.fb.exitStack()
 			}
@@ -1777,7 +1780,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				if canEmitDirectly(field.Type.Kind(), valueType.Kind()) {
 					value, k := em.emitExprK(kv.Value, valueType)
 					index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
-					em.fb.emitSetField(k, structt, index, value)
+					em.fb.emitSetField(k, structt, index, value, field.Type.Kind())
 				} else {
 					em.fb.enterStack()
 					tmp := em.emitExpr(kv.Value, valueType)
@@ -1785,7 +1788,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 					em.changeRegister(false, tmp, value, valueType, field.Type)
 					em.fb.exitStack()
 					index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
-					em.fb.emitSetField(false, structt, index, value)
+					em.fb.emitSetField(false, structt, index, value, field.Type.Kind())
 				}
 				// TODO(Gianluca): use field "k" of SetField.
 			}
@@ -1963,11 +1966,11 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		// Scriggo variables and closure variables.
 		if index, ok := em.getVarIndex(expr); ok {
 			if canEmitDirectly(typ.Kind(), dstType.Kind()) {
-				em.fb.emitGetVar(index, reg)
+				em.fb.emitGetVar(index, reg, dstType.Kind())
 				return reg, false
 			}
 			tmp := em.fb.newRegister(typ.Kind())
-			em.fb.emitGetVar(index, tmp)
+			em.fb.emitGetVar(index, tmp, typ.Kind())
 			em.changeRegister(false, tmp, reg, typ, dstType)
 			return reg, false
 		}

@@ -1071,22 +1071,23 @@ type PredefinedFunction struct {
 
 // Function represents a function.
 type Function struct {
-	Pkg        string
-	Name       string
-	File       string
-	Line       int
-	Type       reflect.Type
-	Parent     *Function
-	VarRefs    []int16
-	Types      []reflect.Type
-	NumReg     [4]int8
-	Constants  Registers
-	Functions  []*Function
-	Predefined []*PredefinedFunction
-	Body       []Instruction
-	Positions  map[uint32]*ast.Position
-	Paths      map[uint32]string
-	Data       [][]byte
+	Pkg          string
+	Name         string
+	File         string
+	Line         int
+	Type         reflect.Type
+	Parent       *Function
+	VarRefs      []int16
+	Types        []reflect.Type
+	NumReg       [4]int8
+	Constants    Registers
+	Functions    []*Function
+	Predefined   []*PredefinedFunction
+	Body         []Instruction
+	Positions    map[uint32]*ast.Position
+	Paths        map[uint32]string
+	Data         [][]byte
+	OperandKinds map[uint32][3]Kind
 }
 
 type callStatus int8

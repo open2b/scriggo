@@ -271,6 +271,21 @@ func (builder *functionBuilder) addPosAndPath(pos *ast.Position) {
 	}
 }
 
+// addOperandKinds adds the kind of the three operands of the next instruction.
+// If an operand has no kind (or if that kind is not meaningful) it is legal to
+// pass the zero of reflect.Kind for such operand.
+func (builder *functionBuilder) addOperandKinds(a, b, c reflect.Kind) {
+	pc := uint32(len(builder.fn.Body))
+	if builder.fn.OperandKinds == nil {
+		builder.fn.OperandKinds = map[uint32][3]runtime.Kind{}
+	}
+	builder.fn.OperandKinds[pc] = [3]runtime.Kind{
+		runtime.Kind(a),
+		runtime.Kind(b),
+		runtime.Kind(c),
+	}
+}
+
 // changePath changes the current path. Note that the path is initially set at
 // the creation of the function builder; this method should be called only when
 // the path changes during the building of the same function, for example when

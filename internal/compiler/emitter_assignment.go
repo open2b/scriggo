@@ -66,7 +66,7 @@ func (em *emitter) newAddress(addressTarget addressTarget, addressedType reflect
 func (a address) assign(k bool, value int8, valueType reflect.Type) {
 	switch a.addrTarget {
 	case addressClosureVariable:
-		a.em.fb.emitSetVar(k, value, int(decodeInt16(a.reg1, a.reg2)))
+		a.em.fb.emitSetVar(k, value, int(decodeInt16(a.reg1, a.reg2)), a.addressedType.Kind())
 	case addressBlank:
 		// Nothing to do.
 	case addressLocalVariable:
@@ -77,11 +77,11 @@ func (a address) assign(k bool, value int8, valueType reflect.Type) {
 	case addressPointerIndirection:
 		a.em.changeRegister(k, value, -a.reg1, a.targetType(), a.addressedType)
 	case addressSliceIndex:
-		a.em.fb.emitSetSlice(k, a.reg1, value, a.reg2, a.pos)
+		a.em.fb.emitSetSlice(k, a.reg1, value, a.reg2, a.pos, valueType.Kind())
 	case addressMapIndex:
 		a.em.fb.emitSetMap(k, a.reg1, value, a.reg2, a.addressedType, a.pos)
 	case addressStructSelector:
-		a.em.fb.emitSetField(k, a.reg1, a.reg2, value)
+		a.em.fb.emitSetField(k, a.reg1, a.reg2, value, valueType.Kind())
 	}
 }
 
