@@ -266,13 +266,15 @@ func (tc *typechecker) isUpVar(name string) bool {
 	return false
 }
 
-// getScopeLevel returns the scope level in which name is declared, and a
-// boolean which reports whether has been imported from another package/page
-// or not.
-func (tc *typechecker) getScopeLevel(name string) (int, bool) {
+// scopeLevelOf returns the scope level in which name is declared, and a boolean
+// which reports whether name has been imported from another package/page or
+// not.
+func (tc *typechecker) scopeLevelOf(name string) (int, bool) {
 	// Iterating over scopes, from inside.
 	for i := len(tc.scopes) - 1; i >= 0; i-- {
 		if _, ok := tc.scopes[i][name]; ok {
+			// If name is declared in a local scope then it's impossible that
+			// its value has been imported.
 			return i + 1, false
 		}
 	}
@@ -324,7 +326,7 @@ func (tc *typechecker) programImportError(imp *ast.Import) error {
 // calling getNestedFuncs("A") returns [G, H].
 //
 func (tc *typechecker) getNestedFuncs(name string) []*ast.Func {
-	declLevel, imported := tc.getScopeLevel(name)
+	declLevel, imported := tc.scopeLevelOf(name)
 	// If name has been imported, function chain does not exist.
 	if imported {
 		return nil
