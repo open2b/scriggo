@@ -21,7 +21,7 @@ type scriggoPackage interface {
 }
 
 // toTypeCheckerScope generates a type checker scope given a predefined package.
-// depth should be set to 0 for non-recursive calls.
+// depth must be 0 unless toTypeCheckerScope is called recursively.
 func toTypeCheckerScope(pp predefinedPackage, depth int, opts CheckerOptions) typeCheckerScope {
 	pkgName := pp.Name()
 	declarations := pp.DeclarationNames()
