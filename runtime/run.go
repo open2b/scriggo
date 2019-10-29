@@ -239,9 +239,9 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Call
 		case OpCall:
+			call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
 			fn := vm.fn.Functions[uint8(a)]
 			off := vm.fn.Body[vm.pc]
-			call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
 			vm.fp[0] += uint32(off.Op)
 			if vm.fp[0]+uint32(fn.NumReg[0]) > vm.st[0] {
 				vm.moreIntStack()
@@ -272,10 +272,9 @@ func (vm *VM) run() (uint32, bool) {
 				startPredefinedGoroutine = false
 				vm.pc++
 			} else {
-				fn := f.fn
-				vm.vars = f.vars
-				off := vm.fn.Body[vm.pc]
 				call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
+				fn := f.fn
+				off := vm.fn.Body[vm.pc]
 				vm.fp[0] += uint32(off.Op)
 				if vm.fp[0]+uint32(fn.NumReg[0]) > vm.st[0] {
 					vm.moreIntStack()
@@ -293,6 +292,7 @@ func (vm *VM) run() (uint32, bool) {
 					vm.moreGeneralStack()
 				}
 				vm.fn = fn
+				vm.vars = f.vars
 				vm.calls = append(vm.calls, call)
 				vm.pc = 0
 			}
@@ -566,6 +566,7 @@ func (vm *VM) run() (uint32, bool) {
 			fn := callable{}
 			if a == 0 {
 				fn.fn = vm.fn.Functions[uint8(b)]
+				fn.vars = vm.env.globals
 			} else {
 				fn.predefined = vm.fn.Predefined[uint8(b)]
 			}

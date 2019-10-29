@@ -1119,7 +1119,7 @@ type callable struct {
 	predefined *PredefinedFunction // predefined function.
 	receiver   interface{}         // receiver, if it is a method value.
 	method     string              // method name, if it is a method value.
-	vars       []interface{}       // closure variables, if it is a closure.
+	vars       []interface{}       // non-local (global and closure) variables.
 }
 
 // Predefined returns the predefined function of a callable.
