@@ -220,6 +220,10 @@ func (tc *typechecker) currentPkgIndex() int {
 // An ancestor is an AST node with a scope level associated. The type checker
 // holds a list of ancestors to keep track of the current position and depth
 // inside the full AST tree.
+//
+// Note that an ancestor must be an AST node that can hold statements inside its
+// body. For example an *ast.For node should be set as ancestor before checking
+// it's body, while an *ast.Assignment node should not.
 type ancestor struct {
 	scopeLevel int
 	node       ast.Node
