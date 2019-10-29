@@ -424,8 +424,8 @@ func (builder *functionBuilder) end() {
 					16*int(fn.NumReg[runtime.TypeString]+fn.NumReg[runtime.TypeGeneral])
 			} else {
 				in := fn.Body[addr+1]
-				if in.Op == runtime.OpFunc {
-					f := fn.Literals[uint8(in.B)]
+				if in.Op == runtime.OpGetFunc {
+					f := fn.Functions[uint8(in.B)]
 					bytes = 32 + len(f.VarRefs)*16
 				}
 			}

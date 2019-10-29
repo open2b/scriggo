@@ -191,9 +191,9 @@ func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global
 		case runtime.OpBreak, runtime.OpContinue, runtime.OpGoto:
 			label := labelOf[decodeUint24(in.A, in.B, in.C)]
 			_, _ = fmt.Fprintf(w, "%s\t%s %d\n", indent, operationName[in.Op], label)
-		case runtime.OpFunc:
+		case runtime.OpGetFunc:
 			_, _ = fmt.Fprintf(w, "%s\tFunc %s ", indent, disassembleOperand(fn, in.C, runtime.Interface, false))
-			disassembleFunction(w, fn.Literals[uint8(in.B)], globals, depth+1)
+			disassembleFunction(w, fn.Functions[uint8(in.B)], globals, depth+1)
 		default:
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, globals, addr))
 		}
@@ -385,13 +385,16 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32)
 		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[b]))
 		s += " " + disassembleOperand(fn, c, runtime.Unknown, false)
-	case runtime.OpFunc:
-		s += " func(" + strconv.Itoa(int(uint8(b))) + ")"
-		s += " " + disassembleOperand(fn, c, runtime.Int, false)
 	case runtime.OpGetFunc:
 		if a == 0 {
 			f := fn.Functions[uint8(b)]
-			s += " " + packageName(f.Pkg) + "." + f.Name
+			if f.Parent == nil { // f is a function literal.
+				s = "Func" // overwrite s.
+				s += " func(" + strconv.Itoa(int(uint8(b))) + ")"
+				s += " " + disassembleOperand(fn, c, runtime.Int, false)
+			} else {
+				s += " " + packageName(f.Pkg) + "." + f.Name
+			}
 		} else {
 			s += " Predefined"
 			f := fn.Predefined[uint8(b)]
@@ -764,8 +767,6 @@ var operationName = [...]string{
 	runtime.OpDivUint64:  "DivU64",
 	runtime.OpDivFloat32: "Div32",
 	runtime.OpDivFloat64: "Div",
-
-	runtime.OpFunc: "Func",
 
 	runtime.OpGetFunc: "GetFunc",
 

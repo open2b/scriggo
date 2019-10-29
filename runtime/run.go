@@ -545,32 +545,29 @@ func (vm *VM) run() (uint32, bool) {
 			v := reflect.ValueOf(vm.general(a)).Elem().FieldByIndex(i)
 			vm.setFromReflectValue(c, v)
 
-		// Func
-		case OpFunc:
-			fn := vm.fn.Literals[uint8(b)]
-			var vars []interface{}
-			if fn.VarRefs != nil {
-				vars = make([]interface{}, len(fn.VarRefs))
-				for i, ref := range fn.VarRefs {
-					if ref < 0 {
-						vars[i] = vm.general(int8(-ref))
-					} else {
-						vars[i] = vm.vars[ref]
-					}
-				}
-			}
-			vm.setGeneral(c, &callable{fn: fn, vars: vars})
-
 		// GetFunc
 		case OpGetFunc:
-			fn := callable{}
-			if a == 0 {
-				fn.fn = vm.fn.Functions[uint8(b)]
-				fn.vars = vm.env.globals
-			} else {
+			if a == 1 {
+				fn := callable{}
 				fn.predefined = vm.fn.Predefined[uint8(b)]
+				vm.setGeneral(c, &fn)
+			} else {
+				fn := vm.fn.Functions[uint8(b)]
+				var vars []interface{}
+				if fn.VarRefs != nil {
+					vars = make([]interface{}, len(fn.VarRefs))
+					for i, ref := range fn.VarRefs {
+						if ref < 0 {
+							vars[i] = vm.general(int8(-ref))
+						} else {
+							vars[i] = vm.vars[ref]
+						}
+					}
+				} else {
+					vars = vm.env.globals
+				}
+				vm.setGeneral(c, &callable{fn: fn, vars: vars})
 			}
-			vm.setGeneral(c, &fn)
 
 		// GetVar
 		case OpGetVar:

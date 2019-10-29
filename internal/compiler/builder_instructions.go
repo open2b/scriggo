@@ -379,7 +379,7 @@ func (builder *functionBuilder) emitField(a, field, c int8) {
 //
 func (builder *functionBuilder) emitFunc(r int8, typ reflect.Type) *runtime.Function {
 	fn := builder.fn
-	b := len(fn.Literals)
+	b := len(fn.Functions)
 	if b == 256 {
 		panic("Functions limit reached")
 	}
@@ -387,12 +387,12 @@ func (builder *functionBuilder) emitFunc(r int8, typ reflect.Type) *runtime.Func
 		Type:   typ,
 		Parent: fn,
 	}
-	fn.Literals = append(fn.Literals, scriggoFunc)
+	fn.Functions = append(fn.Functions, scriggoFunc)
 	if builder.allocs != nil {
 		builder.allocs = append(builder.allocs, uint32(len(fn.Body)))
 		fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
 	}
-	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpFunc, B: int8(b), C: r})
+	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpGetFunc, B: int8(b), C: r})
 	return scriggoFunc
 }
 

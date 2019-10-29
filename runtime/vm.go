@@ -1078,7 +1078,6 @@ type Function struct {
 	Type       reflect.Type
 	Parent     *Function
 	VarRefs    []int16
-	Literals   []*Function
 	Types      []reflect.Type
 	NumReg     [4]int8
 	Constants  Registers
@@ -1378,8 +1377,6 @@ const (
 	OpDivFloat64
 
 	OpField
-
-	OpFunc
 
 	OpGetFunc
 
