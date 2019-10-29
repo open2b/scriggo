@@ -1,4 +1,4 @@
-// skip : investigate on this
+// skip : Cannot assign to a pointer indirection returned by a function https://github.com/open2b/scriggo/issues/439
 
 // run
 
