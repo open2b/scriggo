@@ -33,6 +33,8 @@ type typechecker struct {
 	// scopes holds the local scopes.
 	scopes []typeCheckerScope
 
+	// ancestors is the current list of ancestors. See the documentation of the
+	// ancestor type for further details.
 	ancestors []*ancestor
 
 	// terminating reports whether current statement is terminating. In a
@@ -46,14 +48,21 @@ type typechecker struct {
 	// switch or select) can be terminating or not.
 	hasBreak map[ast.Node]bool
 
-	unusedVars    []*scopeVariable
+	// unusedVars keeps track of all declared but not used variables.
+	unusedVars []*scopeVariable
+
+	// unusedImports keeps track of all imported but not used packages.
 	unusedImports map[string][]string
-	typeInfos     map[ast.Node]*TypeInfo
+
+	// typeInfos associates a TypeInfo to the nodes of the AST that is currently
+	// being type checked.
+	typeInfos map[ast.Node]*TypeInfo
 
 	// indirectVars contains the list of all declarations of variables which
 	// must be emitted as "indirect".
 	indirectVars map[*ast.Identifier]bool
 
+	// opts holds the options that define the behaviour of the type checker.
 	opts CheckerOptions
 
 	// iota holds the current iota value.
@@ -82,6 +91,8 @@ type typechecker struct {
 	isScriptFuncDecl bool
 }
 
+// newTypechecker creates a new typechecker. A global scope may be provided for
+// scripts and templates.
 func newTypechecker(path string, opts CheckerOptions, globalScope typeCheckerScope) *typechecker {
 	return &typechecker{
 		path:             path,
@@ -369,7 +380,18 @@ func (tc *typechecker) allNestedFuncs() []*ast.Func {
 	return funcs
 }
 
-// errorf builds and returns a type checking error.
+// errorf builds and returns a type checking error. This method is used
+// internally by the type checker: when it finds an error, instead of returning
+// it the type checker panics with a CheckinError argument; this type of panics
+// are recovered an converted into well-formatted errors before being returned
+// by the compiler.
+//
+// For example:
+//
+//		if bad(node) {
+//			panic(tc.errorf(node, "bad node"))
+//		}
+//
 func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...interface{}) error {
 	var pos *ast.Position
 	if node, ok := nodeOrPos.(ast.Node); ok {
