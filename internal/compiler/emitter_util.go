@@ -7,6 +7,7 @@
 package compiler
 
 import (
+	"io"
 	"reflect"
 	"unicode"
 	"unicode/utf8"
@@ -297,3 +298,45 @@ func (em *emitter) setClosureRefs(fn *runtime.Function, closureVars []ast.Upvar)
 	fn.VarRefs = closureRefs
 
 }
+
+// renderFuncType is a reflect.Type that stores the type of the render function
+// defined in the scriggo/template package.
+//
+// Keep in sync with scriggo/template.render.
+//
+var renderFuncType = reflect.FuncOf([]reflect.Type{
+	reflect.PtrTo(reflect.TypeOf(runtime.Env{})), // _ *runtime.Env
+	reflect.TypeOf((*io.Writer)(nil)).Elem(),     // out io.Writer
+	reflect.TypeOf((*interface{})(nil)).Elem(),   // value interface{}
+	reflect.TypeOf(ast.Context(0)),               // ctx ast.Context
+}, nil, false)
+
+// ioWriterWriteType is a reflect.Type that stores the type of the function
+//
+//		Write(p []byte) (n int, err error)
+//
+//  defined in the interface io.Writer.
+//
+var ioWriterWriteType = reflect.FuncOf(
+	[]reflect.Type{
+		reflect.TypeOf([]byte{}), // p []byte
+	},
+	[]reflect.Type{
+		reflect.TypeOf(int(0)),               // n int
+		reflect.TypeOf((*error)(nil)).Elem(), // err error
+	},
+	false,
+)
+
+// urlEscaperStartURLType is a reflect.Type that sotres the type of the method
+//
+//		func (w *urlEscaper) StartURL(quoted, isSet bool)
+//
+// defined on the type urlEscaper.
+//
+// Keep in sync with scriggo/template.urlEscaper.StartURL.
+//
+var urlEscaperStartURLType = reflect.FuncOf([]reflect.Type{
+	reflect.TypeOf(bool(false)), // quoted bool
+	reflect.TypeOf(bool(false)), // isSet bool
+}, nil, false)
