@@ -218,8 +218,8 @@ func DisassembleInstruction(w io.Writer, fn *runtime.Function, globals []Global,
 }
 
 // getKind returns the kind of the given operand (which can be 'a', 'b' or 'c')
-// of the instruction at the given address. If the informations about the kind
-// of the operands have not been added by the emitter/builder, then the
+// of the instruction at the given address. If the information about the kind of
+// the operands have not been added by the emitter/builder, then the
 // runtime.Unknown kind is returned.
 func getKind(operand rune, fn *runtime.Function, addr runtime.Addr) runtime.Kind {
 	debugInfo, ok := fn.DebugInfo[addr]

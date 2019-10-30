@@ -230,7 +230,7 @@ func deferGoBuiltin(name string) *TypeInfo {
 // indicating if the field was found.
 //
 // If name is unexported and the type is predefined, name is transformed and the
-// new name is returned. For further informations about this check the
+// new name is returned. For further information about this check the
 // documentation of the type checking of an *ast.StructType.
 func (tc *typechecker) fieldByName(t *TypeInfo, name string) (*TypeInfo, string, bool) {
 	newName := name

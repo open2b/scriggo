@@ -356,7 +356,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 
 }
 
-// callOptions holds informations about a function call.
+// callOptions holds information about a function call.
 type callOptions struct {
 	predefined    bool
 	receiverAsArg bool

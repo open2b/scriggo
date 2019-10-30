@@ -14,9 +14,9 @@ Run `./compare -h` to see the available options.
 
 # Adding new tests
 
-A test consists in a text file containing source code, which can be put everywhere inside the directory `testdata`. Directory names has no special meaning, except for `test/compare/sources/github.com-golang-go` (see section **Go tests from https //github.com/golang/go/** for more informations).
+A test consists in a text file containing source code, which can be put everywhere inside the directory `testdata`. Directory names has no special meaning, except for `test/compare/sources/github.com-golang-go` (see section **Go tests from https //github.com/golang/go/** for more information).
 
-Every test source code must specify a _testing mode_. See the section **Testing modes** for more informations.
+Every test source code must specify a _testing mode_. See the section **Testing modes** for more information.
 
 **Warning**: when a new test is added or an existing one is modified, pay attention to not run formatting tools (as `go fmt`) on tests. Some of them test some special syntaxes that are changed by such tools.
 

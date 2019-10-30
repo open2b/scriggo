@@ -22,10 +22,10 @@ const (
 	PropertyHasValue                            // has a value
 )
 
-// A TypeInfo holds the type checking informations. For example, every
-// expression in the AST has an associated TypeInfo. The TypeInfo is also used
-// in the type checker scopes to associate the declarations to the type checking
-// informations.
+// A TypeInfo holds the type checking information. For example, every expression
+// in the AST has an associated TypeInfo. The TypeInfo is also used in the type
+// checker scopes to associate the declarations to the type checking
+// information.
 type TypeInfo struct {
 	Type              reflect.Type // Type.
 	Properties        Properties   // Properties.

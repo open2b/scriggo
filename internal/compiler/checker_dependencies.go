@@ -13,7 +13,7 @@ import (
 )
 
 // Makes a dependency analysis after parsing and before the type checking. See
-// https://golang.org/ref/spec#Package_initialization for further informations.
+// https://golang.org/ref/spec#Package_initialization for further information.
 
 // PackageDeclsDeps is the result of a dependency analysis performed on a tree.
 type PackageDeclsDeps map[*ast.Identifier][]*ast.Identifier
@@ -126,7 +126,7 @@ func (d deps) analyzeGlobalTypeDeclaration(td *ast.TypeDeclaration) {
 }
 
 // AnalyzeTree analyzes tree returning a data structure holding all dependencies
-// informations.
+// information.
 func AnalyzeTree(pkg *ast.Package) PackageDeclsDeps {
 	d := deps{}
 	for _, n := range pkg.Declarations {

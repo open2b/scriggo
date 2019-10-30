@@ -804,10 +804,10 @@ func (builder *functionBuilder) emitOr(k bool, x, y, z int8, kind reflect.Kind) 
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
 }
 
-// emitPanic appends a new "Panic" instruction to the function body.
-// If the panic follows a type assertion, typ should contain the type of the
-// expression of the type assertion, in order to provide additional informations
-// to the VM; otherwise typ should be nil.
+// emitPanic appends a new "Panic" instruction to the function body. If the
+// panic follows a type assertion, typ should contain the type of the expression
+// of the type assertion, in order to provide additional information to the VM;
+// otherwise typ should be nil.
 //
 //     panic(v)
 //
