@@ -300,28 +300,32 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			case runtime.OpCallPredefined:
 				nf := fn.Predefined[uint8(a)]
 				s += " " + packageName(nf.Pkg) + "." + nf.Name
-			case runtime.OpCallIndirect, runtime.OpDefer:
+			case runtime.OpDefer:
 				s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+			case runtime.OpCallIndirect:
+				s += " " + "("
+				s += disassembleOperand(fn, a, runtime.Interface, false)
+				s += ")"
 			}
 		}
+		grow := fn.Body[addr+1]
+		stackShift := runtime.StackShift{int8(grow.Op), grow.A, grow.B, grow.C}
 		if c != runtime.NoVariadicArgs && (op == runtime.OpCallIndirect || op == runtime.OpCallPredefined || op == runtime.OpDefer) {
 			s += " ..." + strconv.Itoa(int(c))
 		}
-		switch op {
-		case runtime.OpCallIndirect, runtime.OpDefer:
-			grow := fn.Body[addr+1]
-			s += "\t; Stack shift: " + strconv.Itoa(int(grow.Op)) + ", " + strconv.Itoa(int(grow.A)) + ", " +
-				strconv.Itoa(int(grow.B)) + ", " + strconv.Itoa(int(grow.C))
-		case runtime.OpCall, runtime.OpCallPredefined:
-			grow := fn.Body[addr+1]
-			stackShift := runtime.StackShift{int8(grow.Op), grow.A, grow.B, grow.C}
-			s += "\t; " + disassembleFunctionCall(fn, a, op == runtime.OpCallPredefined, stackShift, c)
+		for i := 0; i < 4; i++ {
+			s += " "
+			if stackShift[i] == 0 {
+				_, fn := funcNameType(fn, a, addr, op)
+				if fn != nil && !funcHasParameterInRegister(fn, runtime.Type(i)) {
+					s += "_"
+					continue
+				}
+			}
+			s += string("ifsg"[i])
+			s += strconv.Itoa(int(stackShift[i] + 1))
 		}
-		if op == runtime.OpDefer {
-			args := fn.Body[addr+2]
-			s += "; args: " + strconv.Itoa(int(args.Op)) + ", " + strconv.Itoa(int(args.A)) + ", " +
-				strconv.Itoa(int(args.B)) + ", " + strconv.Itoa(int(args.C))
-		}
+		s += "\t; " + disassembleFunctionCall(fn, a, addr, op, stackShift, c)
 	case runtime.OpCap:
 		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 		s += " " + disassembleOperand(fn, c, runtime.Int, false)
@@ -579,17 +583,53 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	return s
 }
 
-func disassembleFunctionCall(fn *runtime.Function, index int8, isPredefined bool, stackShift runtime.StackShift, variadic int8) string {
-	var funcType reflect.Type
-	var funcName string
-	if isPredefined {
-		funcType = reflect.TypeOf(fn.Predefined[index].Func)
-		funcName = fn.Predefined[index].Name
-	} else {
-		funcType = fn.Functions[index].Type
-		funcName = fn.Functions[index].Name
+// funcNameType returns the name and the type of the specified function, if
+// available. Only one of index and addr is meaningful, depending on the
+// operation specified by op.
+func funcNameType(fn *runtime.Function, index int8, addr runtime.Addr, op runtime.Operation) (string, reflect.Type) {
+	switch op {
+	case runtime.OpCall:
+		typ := fn.Functions[index].Type
+		name := fn.Functions[index].Name
+		return name, typ
+	case runtime.OpCallPredefined:
+		name := fn.Predefined[index].Name
+		typ := reflect.TypeOf(fn.Predefined[index].Func)
+		return name, typ
+	case runtime.OpCallIndirect, runtime.OpDefer:
+		return "", fn.DebugInfo[addr].FuncType
+	case runtime.OpTailCall:
+		panic("BUG: not implemented") // TODO.
+	default:
+		panic("BUG")
 	}
-	if funcName == "$initvars" {
+}
+
+// funcHasParameterInRegister reports whether the given function has at least
+// one parameter (input or output) that is stored into the given register type.
+func funcHasParameterInRegister(fn reflect.Type, reg runtime.Type) bool {
+	for i := 0; i < fn.NumIn(); i++ {
+		if kindToType(fn.In(i).Kind()) == reg {
+			return true
+		}
+	}
+	for i := 0; i < fn.NumOut(); i++ {
+		if kindToType(fn.Out(i).Kind()) == reg {
+			return true
+		}
+	}
+	return false
+}
+
+// disassembleFunctionCall disassemble a function call returning an
+// human-readable string representing the call. The result of this function is
+// used as a comment to the byte code.
+func disassembleFunctionCall(fn *runtime.Function, index int8, addr runtime.Addr, op runtime.Operation, stackShift runtime.StackShift, variadic int8) string {
+	name, typ := funcNameType(fn, index, addr, op)
+	if typ == nil {
+		return ""
+	}
+	if name == "$initvars" {
 		return "package vars init"
 	}
 	print := func(t reflect.Type) string {
@@ -611,21 +651,21 @@ func disassembleFunctionCall(fn *runtime.Function, index int8, isPredefined bool
 		return str
 	}
 	out := ""
-	for i := 0; i < funcType.NumOut(); i++ {
-		out += print(funcType.Out(i))
-		if i < funcType.NumOut()-1 {
+	for i := 0; i < typ.NumOut(); i++ {
+		out += print(typ.Out(i))
+		if i < typ.NumOut()-1 {
 			out += ", "
 		}
 	}
 	in := ""
-	for i := 0; i < funcType.NumIn()-1; i++ {
-		in += print(funcType.In(i)) + ", "
+	for i := 0; i < typ.NumIn()-1; i++ {
+		in += print(typ.In(i)) + ", "
 	}
-	if funcType.NumIn()-1 >= 0 {
+	if typ.NumIn()-1 >= 0 {
 		if variadic == runtime.NoVariadicArgs || variadic == 0 {
-			in += print(funcType.In(funcType.NumIn() - 1))
+			in += print(typ.In(typ.NumIn() - 1))
 		} else {
-			varType := funcType.In(funcType.NumIn() - 1).Elem()
+			varType := typ.In(typ.NumIn() - 1).Elem()
 			for i := int8(0); i < variadic; i++ {
 				in += print(varType)
 				if i < variadic-1 {
@@ -634,7 +674,7 @@ func disassembleFunctionCall(fn *runtime.Function, index int8, isPredefined bool
 			}
 		}
 	}
-	return fmt.Sprintf("%s(%s) (%s)", funcName, in, out)
+	return fmt.Sprintf("func(%s) (%s)", in, out)
 }
 
 func disassembleVarRef(fn *runtime.Function, globals []Global, ref int16) string {
@@ -752,9 +792,9 @@ var operationName = [...]string{
 
 	runtime.OpCall: "Call",
 
-	runtime.OpCallIndirect: "Call Indirect",
+	runtime.OpCallIndirect: "Call",
 
-	runtime.OpCallPredefined: "Call Predefined",
+	runtime.OpCallPredefined: "Call",
 
 	runtime.OpCap: "Cap",
 
