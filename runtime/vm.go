@@ -71,9 +71,9 @@ func decodeFieldIndex(i int64) []int {
 
 // VM represents a Scriggo virtual machine.
 type VM struct {
-	fp       [4]uint32            // frame pointers.
-	st       [4]uint32            // stack tops.
-	pc       uint32               // program counter.
+	fp       [4]Addr              // frame pointers.
+	st       [4]Addr              // stack tops.
+	pc       Addr                 // program counter.
 	ok       bool                 // ok flag.
 	regs     registers            // registers.
 	fn       *Function            // running function.
@@ -99,11 +99,11 @@ func (vm *VM) Env() *Env {
 
 // Reset resets a virtual machine so that it is ready for a new call to Run.
 func (vm *VM) Reset() {
-	vm.fp = [4]uint32{0, 0, 0, 0}
-	vm.st[0] = uint32(len(vm.regs.int))
-	vm.st[1] = uint32(len(vm.regs.float))
-	vm.st[2] = uint32(len(vm.regs.string))
-	vm.st[3] = uint32(len(vm.regs.general))
+	vm.fp = [4]Addr{0, 0, 0, 0}
+	vm.st[0] = Addr(len(vm.regs.int))
+	vm.st[1] = Addr(len(vm.regs.float))
+	vm.st[2] = Addr(len(vm.regs.string))
+	vm.st[3] = Addr(len(vm.regs.general))
 	vm.pc = 0
 	vm.ok = false
 	vm.fn = nil
@@ -205,7 +205,7 @@ func (vm *VM) Stack(buf []byte, all bool) int {
 	size := len(vm.calls)
 	for i := size; i >= 0; i-- {
 		var fn *Function
-		var ppc uint32
+		var ppc Addr
 		if i == size {
 			fn = vm.fn
 			ppc = vm.pc - 1
@@ -433,10 +433,10 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 	fp := vm.fp
 
 	// Shift the frame pointer.
-	vm.fp[0] += uint32(shift[0])
-	vm.fp[1] += uint32(shift[1])
-	vm.fp[2] += uint32(shift[2])
-	vm.fp[3] += uint32(shift[3])
+	vm.fp[0] += Addr(shift[0])
+	vm.fp[1] += Addr(shift[1])
+	vm.fp[2] += Addr(shift[2])
+	vm.fp[3] += Addr(shift[3])
 
 	// Try to call the function without the reflect.
 	if !asGoroutine {
@@ -593,10 +593,10 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 	if len(fn.in) > 0 {
 
 		// Shift the frame pointer.
-		vm.fp[0] += uint32(fn.outOff[0])
-		vm.fp[1] += uint32(fn.outOff[1])
-		vm.fp[2] += uint32(fn.outOff[2])
-		vm.fp[3] += uint32(fn.outOff[3])
+		vm.fp[0] += Addr(fn.outOff[0])
+		vm.fp[1] += Addr(fn.outOff[1])
+		vm.fp[2] += Addr(fn.outOff[2])
+		vm.fp[3] += Addr(fn.outOff[3])
 
 		// Get a slice of reflect.Value for the arguments.
 		fn.mx.Lock()
@@ -721,10 +721,10 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 		}
 
 		// Shift the frame pointer.
-		vm.fp[0] = fp[0] + uint32(shift[0])
-		vm.fp[1] = fp[1] + uint32(shift[1])
-		vm.fp[2] = fp[2] + uint32(shift[2])
-		vm.fp[3] = fp[3] + uint32(shift[3])
+		vm.fp[0] = fp[0] + Addr(shift[0])
+		vm.fp[1] = fp[1] + Addr(shift[1])
+		vm.fp[2] = fp[2] + Addr(shift[2])
+		vm.fp[3] = fp[3] + Addr(shift[3])
 
 	}
 
@@ -786,10 +786,10 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 //go:noinline
 func (vm *VM) invokeTraceFunc() {
 	regs := Registers{
-		Int:     vm.regs.int[vm.fp[0]+1 : vm.fp[0]+uint32(vm.fn.NumReg[0])+1],
-		Float:   vm.regs.float[vm.fp[1]+1 : vm.fp[1]+uint32(vm.fn.NumReg[1])+1],
-		String:  vm.regs.string[vm.fp[2]+1 : vm.fp[2]+uint32(vm.fn.NumReg[2])+1],
-		General: vm.regs.general[vm.fp[3]+1 : vm.fp[3]+uint32(vm.fn.NumReg[3])+1],
+		Int:     vm.regs.int[vm.fp[0]+1 : vm.fp[0]+Addr(vm.fn.NumReg[0])+1],
+		Float:   vm.regs.float[vm.fp[1]+1 : vm.fp[1]+Addr(vm.fn.NumReg[1])+1],
+		String:  vm.regs.string[vm.fp[2]+1 : vm.fp[2]+Addr(vm.fn.NumReg[2])+1],
+		General: vm.regs.general[vm.fp[3]+1 : vm.fp[3]+Addr(vm.fn.NumReg[3])+1],
 	}
 	vm.env.trace(vm.fn, vm.pc, regs)
 }
@@ -799,7 +799,7 @@ func (vm *VM) moreIntStack() {
 	stack := make([]int64, top)
 	copy(stack, vm.regs.int)
 	vm.regs.int = stack
-	vm.st[0] = uint32(top)
+	vm.st[0] = Addr(top)
 }
 
 func (vm *VM) moreFloatStack() {
@@ -807,7 +807,7 @@ func (vm *VM) moreFloatStack() {
 	stack := make([]float64, top)
 	copy(stack, vm.regs.float)
 	vm.regs.float = stack
-	vm.st[1] = uint32(top)
+	vm.st[1] = Addr(top)
 }
 
 func (vm *VM) moreStringStack() {
@@ -815,7 +815,7 @@ func (vm *VM) moreStringStack() {
 	stack := make([]string, top)
 	copy(stack, vm.regs.string)
 	vm.regs.string = stack
-	vm.st[2] = uint32(top)
+	vm.st[2] = Addr(top)
 }
 
 func (vm *VM) moreGeneralStack() {
@@ -823,7 +823,7 @@ func (vm *VM) moreGeneralStack() {
 	stack := make([]interface{}, top)
 	copy(stack, vm.regs.general)
 	vm.regs.general = stack
-	vm.st[3] = uint32(top)
+	vm.st[3] = Addr(top)
 }
 
 func (vm *VM) nextCall() bool {
@@ -908,7 +908,7 @@ func (vm *VM) nextCall() bool {
 // create creates a new virtual machine with the execution environment env.
 func create(env *Env) *VM {
 	vm := &VM{
-		st: [4]uint32{stackSize, stackSize, stackSize, stackSize},
+		st: [4]Addr{stackSize, stackSize, stackSize, stackSize},
 		regs: registers{
 			int:     make([]int64, stackSize),
 			float:   make([]float64, stackSize),
@@ -947,10 +947,10 @@ func (vm *VM) startGoroutine() bool {
 	nvm := create(vm.env)
 	vm.pc++
 	off := vm.fn.Body[vm.pc]
-	copy(nvm.regs.int, vm.regs.int[vm.fp[0]+uint32(off.Op):vm.fp[0]+127])
-	copy(nvm.regs.float, vm.regs.float[vm.fp[1]+uint32(off.A):vm.fp[1]+127])
-	copy(nvm.regs.string, vm.regs.string[vm.fp[2]+uint32(off.B):vm.fp[2]+127])
-	copy(nvm.regs.general, vm.regs.general[vm.fp[3]+uint32(off.C):vm.fp[3]+127])
+	copy(nvm.regs.int, vm.regs.int[vm.fp[0]+Addr(off.Op):vm.fp[0]+127])
+	copy(nvm.regs.float, vm.regs.float[vm.fp[1]+Addr(off.A):vm.fp[1]+127])
+	copy(nvm.regs.string, vm.regs.string[vm.fp[2]+Addr(off.B):vm.fp[2]+127])
+	copy(nvm.regs.general, vm.regs.general[vm.fp[3]+Addr(off.C):vm.fp[3]+127])
 	go nvm.runFunc(fn, vars)
 	vm.pc++
 	return false
@@ -960,11 +960,11 @@ func (vm *VM) startGoroutine() bool {
 // stack pointed by b. The stacks must be consecutive and a must precede b.
 //
 // A stack can have zero size, so a and b can point to the same index.
-func (vm *VM) swapStack(a, b *[4]uint32, bSize StackShift) {
+func (vm *VM) swapStack(a, b *[4]Addr, bSize StackShift) {
 
 	// Swap int registers.
 	as := b[0] - a[0]
-	bs := uint32(bSize[0])
+	bs := Addr(bSize[0])
 	if as > 0 && bs > 0 {
 		tot := as + bs
 		if a[0]+tot+bs > vm.st[0] {
@@ -979,7 +979,7 @@ func (vm *VM) swapStack(a, b *[4]uint32, bSize StackShift) {
 
 	// Swap float registers.
 	as = b[1] - a[1]
-	bs = uint32(bSize[1])
+	bs = Addr(bSize[1])
 	if as > 0 && bs > 0 {
 		tot := as + bs
 		if a[1]+tot+bs > vm.st[1] {
@@ -994,7 +994,7 @@ func (vm *VM) swapStack(a, b *[4]uint32, bSize StackShift) {
 
 	// Swap string registers.
 	as = b[2] - a[2]
-	bs = uint32(bSize[2])
+	bs = Addr(bSize[2])
 	if as > 0 && bs > 0 {
 		tot := as + bs
 		if a[2]+tot+bs > vm.st[2] {
@@ -1009,7 +1009,7 @@ func (vm *VM) swapStack(a, b *[4]uint32, bSize StackShift) {
 
 	// Swap general registers.
 	as = b[3] - a[3]
-	bs = uint32(bSize[3])
+	bs = Addr(bSize[3])
 	if as > 0 && bs > 0 {
 		tot := as + bs
 		if a[3]+tot+bs > vm.st[3] {
@@ -1084,11 +1084,13 @@ type Function struct {
 	Functions    []*Function
 	Predefined   []*PredefinedFunction
 	Body         []Instruction
-	Positions    map[uint32]*ast.Position
-	Paths        map[uint32]string
+	Positions    map[Addr]*ast.Position
+	Paths        map[Addr]string
 	Data         [][]byte
-	OperandKinds map[uint32][3]Kind
+	OperandKinds map[Addr][3]Kind
 }
+
+type Addr uint32
 
 type callStatus int8
 
@@ -1107,8 +1109,8 @@ const CallFrameSize = 88
 // If the size of callFrame changes, update the constant CallFrameSize.
 type callFrame struct {
 	cl          callable   // callable.
-	fp          [4]uint32  // frame pointers.
-	pc          uint32     // program counter.
+	fp          [4]Addr    // frame pointers.
+	pc          Addr       // program counter.
 	status      callStatus // status.
 	numVariadic int8       // number of variadic arguments.
 }

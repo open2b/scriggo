@@ -25,6 +25,8 @@ var complex64Type = reflect.TypeOf(complex64(0))
 var stringType = reflect.TypeOf("")
 var emptyInterfaceType = reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem()
 
+type label runtime.Addr
+
 func encodeUint24(v uint32) (a, b, c int8) {
 	a = int8(uint8(v >> 16))
 	b = int8(uint8(v >> 8))
@@ -120,13 +122,13 @@ func newPredefinedFunction(pkg, name string, fn interface{}) *runtime.Predefined
 
 type functionBuilder struct {
 	fn                     *runtime.Function
-	labels                 []uint32
-	gotos                  map[uint32]uint32
+	labels                 []runtime.Addr // labels[lab - 1] = addr
+	gotos                  map[runtime.Addr]label
 	maxRegs                map[runtime.Type]int8 // max number of registers allocated at the same time.
 	numRegs                map[runtime.Type]int8
 	scopes                 []map[string]int8
 	scopeShifts            []runtime.StackShift
-	allocs                 []uint32
+	allocs                 []runtime.Addr
 	complexBinaryOpIndexes map[ast.OperatorType]int8 // indexes of complex binary op. functions.
 	complexUnaryOpIndex    int8                      // index of complex negation function.
 
@@ -147,7 +149,7 @@ func newBuilder(fn *runtime.Function, path string) *functionBuilder {
 	fn.Body = nil
 	builder := &functionBuilder{
 		fn:                     fn,
-		gotos:                  map[uint32]uint32{},
+		gotos:                  map[runtime.Addr]label{},
 		maxRegs:                map[runtime.Type]int8{},
 		numRegs:                map[runtime.Type]int8{},
 		scopes:                 []map[string]int8{},
@@ -256,16 +258,16 @@ func (builder *functionBuilder) scopeLookup(n string) int8 {
 }
 
 func (builder *functionBuilder) addPosAndPath(pos *ast.Position) {
-	pc := uint32(len(builder.fn.Body)) + 1
+	pc := runtime.Addr(len(builder.fn.Body)) + 1
 	// Set the position of the next instruction.
 	if builder.fn.Positions == nil {
-		builder.fn.Positions = map[uint32]*ast.Position{pc: pos}
+		builder.fn.Positions = map[runtime.Addr]*ast.Position{pc: pos}
 	} else {
 		builder.fn.Positions[pc] = pos
 	}
 	// Set the path of the next instruction.
 	if builder.fn.Paths == nil {
-		builder.fn.Paths = map[uint32]string{pc: builder.path}
+		builder.fn.Paths = map[runtime.Addr]string{pc: builder.path}
 	} else {
 		builder.fn.Paths[pc] = builder.path
 	}
@@ -275,9 +277,9 @@ func (builder *functionBuilder) addPosAndPath(pos *ast.Position) {
 // If an operand has no kind (or if that kind is not meaningful) it is legal to
 // pass the zero of reflect.Kind for such operand.
 func (builder *functionBuilder) addOperandKinds(a, b, c reflect.Kind) {
-	pc := uint32(len(builder.fn.Body))
+	pc := runtime.Addr(len(builder.fn.Body))
 	if builder.fn.OperandKinds == nil {
-		builder.fn.OperandKinds = map[uint32][3]runtime.Kind{}
+		builder.fn.OperandKinds = map[runtime.Addr][3]runtime.Kind{}
 	}
 	builder.fn.OperandKinds[pc] = [3]runtime.Kind{
 		runtime.Kind(a),
@@ -399,20 +401,20 @@ func (builder *functionBuilder) makeIntConstant(c int64) int8 {
 }
 
 // currentAddr returns builder's current address.
-func (builder *functionBuilder) currentAddr() uint32 {
-	return uint32(len(builder.fn.Body))
+func (builder *functionBuilder) currentAddr() runtime.Addr {
+	return runtime.Addr(len(builder.fn.Body))
 }
 
 // newLabel creates a new empty label. Use setLabelAddr to associate an
 // address to it.
-func (builder *functionBuilder) newLabel() uint32 {
-	builder.labels = append(builder.labels, uint32(0))
-	return uint32(len(builder.labels))
+func (builder *functionBuilder) newLabel() label {
+	builder.labels = append(builder.labels, runtime.Addr(0))
+	return label(len(builder.labels))
 }
 
 // setLabelAddr sets label's address as builder's current address.
-func (builder *functionBuilder) setLabelAddr(label uint32) {
-	builder.labels[label-1] = builder.currentAddr()
+func (builder *functionBuilder) setLabelAddr(lab label) {
+	builder.labels[lab-1] = builder.currentAddr()
 }
 
 func (builder *functionBuilder) end() {
@@ -422,7 +424,7 @@ func (builder *functionBuilder) end() {
 	}
 	for addr, label := range builder.gotos {
 		i := fn.Body[addr]
-		i.A, i.B, i.C = encodeUint24(builder.labels[label-1])
+		i.A, i.B, i.C = encodeUint24(uint32(builder.labels[label-1]))
 		fn.Body[addr] = i
 	}
 	builder.gotos = nil

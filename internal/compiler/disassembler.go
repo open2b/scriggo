@@ -119,11 +119,11 @@ func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global
 	if depth > 0 {
 		indent = strings.Repeat("\t", depth)
 	}
-	labelOf := map[uint32]uint32{}
+	labelOf := map[runtime.Addr]runtime.Addr{}
 	for _, in := range fn.Body {
 		switch in.Op {
 		case runtime.OpBreak, runtime.OpContinue, runtime.OpGoto:
-			labelOf[decodeUint24(in.A, in.B, in.C)] = 0
+			labelOf[runtime.Addr(decodeUint24(in.A, in.B, in.C))] = 0
 		}
 	}
 	if len(labelOf) > 0 {
@@ -135,7 +135,7 @@ func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global
 		}
 		sort.Ints(addresses)
 		for i, addr := range addresses {
-			labelOf[uint32(addr)] = uint32(i) + 1
+			labelOf[runtime.Addr(addr)] = runtime.Addr(i) + 1
 		}
 	}
 
@@ -181,15 +181,15 @@ func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global
 	_, _ = fmt.Fprint(w, "\n")
 	_, _ = fmt.Fprintf(w, "%s\t; regs(%d,%d,%d,%d)\n", indent,
 		fn.NumReg[runtime.TypeInt], fn.NumReg[runtime.TypeFloat], fn.NumReg[runtime.TypeString], fn.NumReg[runtime.TypeGeneral])
-	instrNum := uint32(len(fn.Body))
-	for addr := uint32(0); addr < instrNum; addr++ {
-		if label, ok := labelOf[uint32(addr)]; ok {
+	instrNum := runtime.Addr(len(fn.Body))
+	for addr := runtime.Addr(0); addr < instrNum; addr++ {
+		if label, ok := labelOf[runtime.Addr(addr)]; ok {
 			_, _ = fmt.Fprintf(w, "%s%d:", indent, label)
 		}
 		in := fn.Body[addr]
 		switch in.Op {
 		case runtime.OpBreak, runtime.OpContinue, runtime.OpGoto:
-			label := labelOf[decodeUint24(in.A, in.B, in.C)]
+			label := labelOf[runtime.Addr(decodeUint24(in.A, in.B, in.C))]
 			_, _ = fmt.Fprintf(w, "%s\t%s %d\n", indent, operationName[in.Op], label)
 		case runtime.OpGetFunc:
 			_, _ = fmt.Fprintf(w, "%s\tFunc %s ", indent, disassembleOperand(fn, in.C, runtime.Interface, false))
@@ -209,7 +209,7 @@ func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global
 	}
 }
 
-func DisassembleInstruction(w io.Writer, fn *runtime.Function, globals []Global, addr uint32) (int64, error) {
+func DisassembleInstruction(w io.Writer, fn *runtime.Function, globals []Global, addr runtime.Addr) (int64, error) {
 	n, err := io.WriteString(w, disassembleInstruction(fn, globals, addr))
 	return int64(n), err
 }
@@ -218,7 +218,7 @@ func DisassembleInstruction(w io.Writer, fn *runtime.Function, globals []Global,
 // of the instruction at the given address. If the informations about the kind
 // of the operands have not been added by the emitter/builder, then the
 // runtime.Unknown kind is returned.
-func getKind(operand rune, fn *runtime.Function, addr uint32) runtime.Kind {
+func getKind(operand rune, fn *runtime.Function, addr runtime.Addr) runtime.Kind {
 	kinds, ok := fn.OperandKinds[addr]
 	if !ok {
 		return runtime.Unknown
@@ -235,7 +235,7 @@ func getKind(operand rune, fn *runtime.Function, addr uint32) runtime.Kind {
 	}
 }
 
-func disassembleInstruction(fn *runtime.Function, globals []Global, addr uint32) string {
+func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime.Addr) string {
 	in := fn.Body[addr]
 	op, a, b, c := in.Op, in.A, in.B, in.C
 	k := false

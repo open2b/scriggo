@@ -32,7 +32,7 @@ type emitter struct {
 	// it's not altered by the emitter.
 	indirectVars map[*ast.Identifier]bool
 
-	labels map[*runtime.Function]map[string]uint32
+	labels map[*runtime.Function]map[string]label
 
 	// pkg is the package that is currently being emitted.
 	pkg *ast.Package
@@ -63,7 +63,7 @@ type emitter struct {
 	// rangeLabels is a list of current active Ranges. First element is the
 	// Range address, second refers to the first instruction outside Range's
 	// body.
-	rangeLabels [][2]uint32
+	rangeLabels [][2]label
 
 	// breakable is true if emitting a "breakable" statement (except ForRange,
 	// which implements his own "breaking" system).
@@ -71,7 +71,7 @@ type emitter struct {
 
 	// breakLabel, if not nil, is the label to which pre-stated "breaks" must
 	// jump.
-	breakLabel *uint32
+	breakLabel *label
 
 	// inURL indicates if the emitter is currently inside an *ast.URL node.
 	inURL bool
@@ -95,7 +95,7 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 		funcIndexes:         map[*runtime.Function]map[*runtime.Function]int8{},
 		functions:           map[*ast.Package]map[string]*runtime.Function{},
 		indirectVars:        indirectVars,
-		labels:              make(map[*runtime.Function]map[string]uint32),
+		labels:              make(map[*runtime.Function]map[string]label),
 		options:             opts,
 		availableVarIndexes: map[*ast.Package]map[string]int16{},
 		predFunIndexes:      map[*runtime.Function]map[reflect.Value]int8{},
@@ -1081,7 +1081,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			rangeLabel := em.fb.newLabel()
 			em.fb.setLabelAddr(rangeLabel)
 			endRange := em.fb.newLabel()
-			em.rangeLabels = append(em.rangeLabels, [2]uint32{rangeLabel, endRange})
+			em.rangeLabels = append(em.rangeLabels, [2]label{rangeLabel, endRange})
 			em.fb.emitRange(kExpr, exprReg, indexReg, elem, exprType.Kind())
 			em.fb.emitGoto(endRange)
 			em.fb.enterScope()
@@ -1103,15 +1103,15 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.exitStack()
 
 		case *ast.Goto:
-			if label, ok := em.labels[em.fb.fn][node.Label.Name]; ok {
-				em.fb.emitGoto(label)
+			if lab, ok := em.labels[em.fb.fn][node.Label.Name]; ok {
+				em.fb.emitGoto(lab)
 			} else {
 				if em.labels[em.fb.fn] == nil {
-					em.labels[em.fb.fn] = make(map[string]uint32)
+					em.labels[em.fb.fn] = make(map[string]label)
 				}
-				label = em.fb.newLabel()
-				em.fb.emitGoto(label)
-				em.labels[em.fb.fn][node.Label.Name] = label
+				lab = em.fb.newLabel()
+				em.fb.emitGoto(lab)
+				em.labels[em.fb.fn][node.Label.Name] = lab
 			}
 
 		case *ast.If:
@@ -1155,7 +1155,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 		case *ast.Label:
 			if _, found := em.labels[em.fb.fn][node.Name.Name]; !found {
 				if em.labels[em.fb.fn] == nil {
-					em.labels[em.fb.fn] = make(map[string]uint32)
+					em.labels[em.fb.fn] = make(map[string]label)
 				}
 				em.labels[em.fb.fn][node.Name.Name] = em.fb.newLabel()
 			}
@@ -2056,10 +2056,10 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 	typeAssertion := node.Assignment.Rhs[0].(*ast.TypeAssertion)
 	expr := em.emitExpr(typeAssertion.Expr, em.ti(typeAssertion.Expr).Type)
 
-	bodyLabels := make([]uint32, len(node.Cases))
+	bodyLabels := make([]label, len(node.Cases))
 	endSwitchLabel := em.fb.newLabel()
 
-	var defaultLabel uint32
+	var defaultLabel label
 	hasDefault := false
 
 	for i, cas := range node.Cases {
@@ -2168,10 +2168,10 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 		expr = em.emitExpr(node.Expr, typ)
 	}
 
-	bodyLabels := make([]uint32, len(node.Cases))
+	bodyLabels := make([]label, len(node.Cases))
 	endSwitchLabel := em.fb.newLabel()
 
-	var defaultLabel uint32
+	var defaultLabel label
 	hasDefault := false
 
 	for i, cas := range node.Cases {
@@ -2422,7 +2422,7 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 	}
 
 	// Emit all the 'case' instructions.
-	casesLabel := make([]uint32, len(selectNode.Cases))
+	casesLabel := make([]label, len(selectNode.Cases))
 	for i, cas := range selectNode.Cases {
 		casesLabel[i] = em.fb.newLabel()
 		switch comm := cas.Comm.(type) {

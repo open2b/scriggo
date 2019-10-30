@@ -34,7 +34,7 @@ func (vm *VM) set(r int8, v reflect.Value) {
 
 func (vm *VM) int(r int8) int64 {
 	if r > 0 {
-		return vm.regs.int[vm.fp[0]+uint32(r)]
+		return vm.regs.int[vm.fp[0]+Addr(r)]
 	}
 	return vm.intIndirect(-r)
 }
@@ -44,14 +44,14 @@ func (vm *VM) intk(r int8, k bool) int64 {
 		return int64(r)
 	}
 	if r > 0 {
-		return vm.regs.int[vm.fp[0]+uint32(r)]
+		return vm.regs.int[vm.fp[0]+Addr(r)]
 	}
 	return vm.intIndirect(-r)
 }
 
 func (vm *VM) intIndirect(r int8) int64 {
 	// TODO(Gianluca): add support bool values with defined type.
-	v := vm.regs.general[vm.fp[3]+uint32(r)]
+	v := vm.regs.general[vm.fp[3]+Addr(r)]
 	if v, ok := v.(*int); ok {
 		return int64(*v)
 	}
@@ -74,14 +74,14 @@ func (vm *VM) intIndirect(r int8) int64 {
 
 func (vm *VM) setInt(r int8, i int64) {
 	if r > 0 {
-		vm.regs.int[vm.fp[0]+uint32(r)] = i
+		vm.regs.int[vm.fp[0]+Addr(r)] = i
 		return
 	}
 	vm.setIntIndirect(-r, i)
 }
 
 func (vm *VM) setIntIndirect(r int8, i int64) {
-	v := vm.regs.general[vm.fp[3]+uint32(r)]
+	v := vm.regs.general[vm.fp[3]+Addr(r)]
 	if vi, ok := v.(*int); ok {
 		*vi = int(i)
 	} else if vb, ok := v.(*bool); ok {
@@ -98,7 +98,7 @@ func (vm *VM) setIntIndirect(r int8, i int64) {
 
 func (vm *VM) bool(r int8) bool {
 	if r > 0 {
-		return vm.regs.int[vm.fp[0]+uint32(r)] > 0
+		return vm.regs.int[vm.fp[0]+Addr(r)] > 0
 	}
 	return vm.boolIndirect(-r)
 }
@@ -108,13 +108,13 @@ func (vm *VM) boolk(r int8, k bool) bool {
 		return r > 0
 	}
 	if r > 0 {
-		return vm.regs.int[vm.fp[0]+uint32(r)] > 0
+		return vm.regs.int[vm.fp[0]+Addr(r)] > 0
 	}
 	return vm.boolIndirect(-r)
 }
 
 func (vm *VM) boolIndirect(r int8) bool {
-	v := vm.regs.general[vm.fp[3]+uint32(r)]
+	v := vm.regs.general[vm.fp[3]+Addr(r)]
 	if v, ok := v.(*bool); ok {
 		return *v
 	}
@@ -127,14 +127,14 @@ func (vm *VM) setBool(r int8, b bool) {
 		if b {
 			v = 1
 		}
-		vm.regs.int[vm.fp[0]+uint32(r)] = v
+		vm.regs.int[vm.fp[0]+Addr(r)] = v
 		return
 	}
 	vm.setBoolIndirect(-r, b)
 }
 
 func (vm *VM) setBoolIndirect(r int8, b bool) {
-	v := vm.regs.general[vm.fp[3]+uint32(r)]
+	v := vm.regs.general[vm.fp[3]+Addr(r)]
 	if v, ok := v.(*bool); ok {
 		*v = b
 	} else {
@@ -144,14 +144,14 @@ func (vm *VM) setBoolIndirect(r int8, b bool) {
 
 func (vm *VM) incInt(r int8) {
 	if r > 0 {
-		vm.regs.int[vm.fp[0]+uint32(r)]++
+		vm.regs.int[vm.fp[0]+Addr(r)]++
 		return
 	}
 	vm.incIntIndirect(-r)
 }
 
 func (vm *VM) incIntIndirect(r int8) {
-	v := vm.regs.general[vm.fp[3]+uint32(r)]
+	v := vm.regs.general[vm.fp[3]+Addr(r)]
 	if v, ok := v.(*int); ok {
 		*v++
 	} else {
@@ -166,14 +166,14 @@ func (vm *VM) incIntIndirect(r int8) {
 
 func (vm *VM) decInt(r int8) {
 	if r > 0 {
-		vm.regs.int[vm.fp[0]+uint32(r)]--
+		vm.regs.int[vm.fp[0]+Addr(r)]--
 		return
 	}
 	vm.decIntIndirect(-r)
 }
 
 func (vm *VM) decIntIndirect(r int8) {
-	v := vm.regs.general[vm.fp[3]+uint32(r)]
+	v := vm.regs.general[vm.fp[3]+Addr(r)]
 	if v, ok := v.(*int); ok {
 		*v--
 	} else {
@@ -188,7 +188,7 @@ func (vm *VM) decIntIndirect(r int8) {
 
 func (vm *VM) float(r int8) float64 {
 	if r > 0 {
-		return vm.regs.float[vm.fp[1]+uint32(r)]
+		return vm.regs.float[vm.fp[1]+Addr(r)]
 	}
 	return vm.floatIndirect(-r)
 }
@@ -198,13 +198,13 @@ func (vm *VM) floatk(r int8, k bool) float64 {
 		return float64(r)
 	}
 	if r > 0 {
-		return vm.regs.float[vm.fp[1]+uint32(r)]
+		return vm.regs.float[vm.fp[1]+Addr(r)]
 	}
 	return vm.floatIndirect(-r)
 }
 
 func (vm *VM) floatIndirect(r int8) float64 {
-	v := vm.regs.general[vm.fp[3]+uint32(r)]
+	v := vm.regs.general[vm.fp[3]+Addr(r)]
 	if v, ok := v.(*float64); ok {
 		return *v
 	}
@@ -217,14 +217,14 @@ func (vm *VM) floatIndirect(r int8) float64 {
 
 func (vm *VM) setFloat(r int8, f float64) {
 	if r > 0 {
-		vm.regs.float[vm.fp[1]+uint32(r)] = f
+		vm.regs.float[vm.fp[1]+Addr(r)] = f
 		return
 	}
 	vm.setFloatIndirect(-r, f)
 }
 
 func (vm *VM) setFloatIndirect(r int8, f float64) {
-	v := vm.regs.general[vm.fp[3]+uint32(r)]
+	v := vm.regs.general[vm.fp[3]+Addr(r)]
 	if v, ok := v.(*float64); ok {
 		*v = f
 	} else {
@@ -234,14 +234,14 @@ func (vm *VM) setFloatIndirect(r int8, f float64) {
 
 func (vm *VM) incFloat(r int8) {
 	if r > 0 {
-		vm.regs.float[vm.fp[1]+uint32(r)]++
+		vm.regs.float[vm.fp[1]+Addr(r)]++
 		return
 	}
 	vm.incFloatIndirect(-r)
 }
 
 func (vm *VM) incFloatIndirect(r int8) {
-	v := vm.regs.general[vm.fp[3]+uint32(r)]
+	v := vm.regs.general[vm.fp[3]+Addr(r)]
 	if v, ok := v.(*float64); ok {
 		*v++
 	} else {
@@ -252,14 +252,14 @@ func (vm *VM) incFloatIndirect(r int8) {
 
 func (vm *VM) decFloat(r int8) {
 	if r > 0 {
-		vm.regs.float[vm.fp[1]+uint32(r)]--
+		vm.regs.float[vm.fp[1]+Addr(r)]--
 		return
 	}
 	vm.decFloatIndirect(-r)
 }
 
 func (vm *VM) decFloatIndirect(r int8) {
-	v := vm.regs.general[vm.fp[3]+uint32(r)]
+	v := vm.regs.general[vm.fp[3]+Addr(r)]
 	if v, ok := v.(*float64); ok {
 		*v--
 	} else {
@@ -270,7 +270,7 @@ func (vm *VM) decFloatIndirect(r int8) {
 
 func (vm *VM) string(r int8) string {
 	if r > 0 {
-		return vm.regs.string[vm.fp[2]+uint32(r)]
+		return vm.regs.string[vm.fp[2]+Addr(r)]
 	}
 	return vm.stringIndirect(-r)
 }
@@ -280,13 +280,13 @@ func (vm *VM) stringk(r int8, k bool) string {
 		return vm.fn.Constants.String[uint8(r)]
 	}
 	if r > 0 {
-		return vm.regs.string[vm.fp[2]+uint32(r)]
+		return vm.regs.string[vm.fp[2]+Addr(r)]
 	}
 	return vm.stringIndirect(-r)
 }
 
 func (vm *VM) stringIndirect(r int8) string {
-	v := vm.regs.general[vm.fp[3]+uint32(r)]
+	v := vm.regs.general[vm.fp[3]+Addr(r)]
 	if v, ok := v.(*string); ok {
 		return *v
 	}
@@ -299,14 +299,14 @@ func (vm *VM) stringIndirect(r int8) string {
 
 func (vm *VM) setString(r int8, s string) {
 	if r > 0 {
-		vm.regs.string[vm.fp[2]+uint32(r)] = s
+		vm.regs.string[vm.fp[2]+Addr(r)] = s
 		return
 	}
 	vm.setStringIndirect(-r, s)
 }
 
 func (vm *VM) setStringIndirect(r int8, s string) {
-	v := vm.regs.general[vm.fp[3]+uint32(r)]
+	v := vm.regs.general[vm.fp[3]+Addr(r)]
 	if v, ok := v.(*string); ok {
 		*v = s
 	} else {
@@ -316,7 +316,7 @@ func (vm *VM) setStringIndirect(r int8, s string) {
 
 func (vm *VM) general(r int8) interface{} {
 	if r > 0 {
-		return vm.regs.general[vm.fp[3]+uint32(r)]
+		return vm.regs.general[vm.fp[3]+Addr(r)]
 	}
 	return vm.generalIndirect(-r)
 }
@@ -341,13 +341,13 @@ func (vm *VM) generalk(r int8, k bool) interface{} {
 		return v
 	}
 	if r > 0 {
-		return vm.regs.general[vm.fp[3]+uint32(r)]
+		return vm.regs.general[vm.fp[3]+Addr(r)]
 	}
 	return vm.generalIndirect(-r)
 }
 
 func (vm *VM) generalIndirect(r int8) interface{} {
-	rv := reflect.ValueOf(vm.regs.general[vm.fp[3]+uint32(r)])
+	rv := reflect.ValueOf(vm.regs.general[vm.fp[3]+Addr(r)])
 	if rv.IsNil() {
 		panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
 	}
@@ -371,14 +371,14 @@ func (vm *VM) generalIndirect(r int8) interface{} {
 
 func (vm *VM) setGeneral(r int8, i interface{}) {
 	if r > 0 {
-		vm.regs.general[vm.fp[3]+uint32(r)] = i
+		vm.regs.general[vm.fp[3]+Addr(r)] = i
 		return
 	}
 	vm.setGeneralIndirect(-r, i)
 }
 
 func (vm *VM) setGeneralIndirect(r int8, i interface{}) {
-	v := vm.regs.general[vm.fp[3]+uint32(r)]
+	v := vm.regs.general[vm.fp[3]+Addr(r)]
 	reflect.ValueOf(v).Elem().Set(reflect.ValueOf(i))
 }
 
@@ -478,7 +478,7 @@ func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{}
 			copy(slice, old)
 		}
 		t := slice[ol:]
-		regs := vm.regs.int[vm.fp[0]+uint32(first):]
+		regs := vm.regs.int[vm.fp[0]+Addr(first):]
 		for i := 0; i < length; i++ {
 			t[i] = int(regs[i])
 		}
@@ -498,7 +498,7 @@ func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{}
 			copy(slice, old)
 		}
 		t := slice[ol:]
-		s := vm.regs.int[vm.fp[0]+uint32(first):]
+		s := vm.regs.int[vm.fp[0]+Addr(first):]
 		for i := 0; i < length; i++ {
 			t[i] = byte(s[i])
 		}
@@ -518,19 +518,19 @@ func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{}
 			copy(slice, old)
 		}
 		t := slice[ol:]
-		s := vm.regs.int[vm.fp[0]+uint32(first):]
+		s := vm.regs.int[vm.fp[0]+Addr(first):]
 		for i := 0; i < length; i++ {
 			t[i] = rune(s[i])
 		}
 		return slice
 	case []float64:
-		i := int(vm.fp[1] + uint32(first))
+		i := int(vm.fp[1] + Addr(first))
 		return append(slice, vm.regs.float[i:i+length]...)
 	case []string:
-		i := int(vm.fp[2] + uint32(first))
+		i := int(vm.fp[2] + Addr(first))
 		return append(slice, vm.regs.string[i:i+length]...)
 	case []interface{}:
-		i := int(vm.fp[3] + uint32(first))
+		i := int(vm.fp[3] + Addr(first))
 		return append(slice, vm.regs.general[i:i+length]...)
 	default:
 		s := reflect.ValueOf(slice)
@@ -551,32 +551,32 @@ func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{}
 		}
 		switch s.Type().Elem().Kind() {
 		case reflect.Bool:
-			regs := vm.regs.int[vm.fp[0]+uint32(first):]
+			regs := vm.regs.int[vm.fp[0]+Addr(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
 				s.Index(j).SetBool(regs[i] > 0)
 			}
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			regs := vm.regs.int[vm.fp[0]+uint32(first):]
+			regs := vm.regs.int[vm.fp[0]+Addr(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
 				s.Index(j).SetInt(regs[i])
 			}
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-			regs := vm.regs.int[vm.fp[0]+uint32(first):]
+			regs := vm.regs.int[vm.fp[0]+Addr(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
 				s.Index(j).SetUint(uint64(regs[i]))
 			}
 		case reflect.Float32, reflect.Float64:
-			regs := vm.regs.float[vm.fp[1]+uint32(first):]
+			regs := vm.regs.float[vm.fp[1]+Addr(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
 				s.Index(j).SetFloat(regs[i])
 			}
 		case reflect.String:
-			regs := vm.regs.string[vm.fp[2]+uint32(first):]
+			regs := vm.regs.string[vm.fp[2]+Addr(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
 				s.Index(j).SetString(regs[i])
 			}
 		default:
-			regs := vm.regs.general[vm.fp[3]+uint32(first):]
+			regs := vm.regs.general[vm.fp[3]+Addr(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
 				s.Index(j).Set(reflect.ValueOf(regs[i]))
 			}

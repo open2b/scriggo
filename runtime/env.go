@@ -12,7 +12,7 @@ import (
 	"sync"
 )
 
-type TraceFunc func(fn *Function, pc uint32, regs Registers)
+type TraceFunc func(fn *Function, pc Addr, regs Registers)
 type PrintFunc func(interface{})
 
 // Env represents an execution environment.

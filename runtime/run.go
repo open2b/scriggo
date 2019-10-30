@@ -51,7 +51,7 @@ func (vm *VM) runRecoverable() (err error) {
 	return nil
 }
 
-func (vm *VM) run() (uint32, bool) {
+func (vm *VM) run() (Addr, bool) {
 
 	var startPredefinedGoroutine bool
 	var hasDefaultCase bool
@@ -235,27 +235,27 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Break
 		case OpBreak:
-			return decodeUint24(a, b, c), true
+			return Addr(decodeUint24(a, b, c)), true
 
 		// Call
 		case OpCall:
 			call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
 			fn := vm.fn.Functions[uint8(a)]
 			off := vm.fn.Body[vm.pc]
-			vm.fp[0] += uint32(off.Op)
-			if vm.fp[0]+uint32(fn.NumReg[0]) > vm.st[0] {
+			vm.fp[0] += Addr(off.Op)
+			if vm.fp[0]+Addr(fn.NumReg[0]) > vm.st[0] {
 				vm.moreIntStack()
 			}
-			vm.fp[1] += uint32(off.A)
-			if vm.fp[1]+uint32(fn.NumReg[1]) > vm.st[1] {
+			vm.fp[1] += Addr(off.A)
+			if vm.fp[1]+Addr(fn.NumReg[1]) > vm.st[1] {
 				vm.moreFloatStack()
 			}
-			vm.fp[2] += uint32(off.B)
-			if vm.fp[2]+uint32(fn.NumReg[2]) > vm.st[2] {
+			vm.fp[2] += Addr(off.B)
+			if vm.fp[2]+Addr(fn.NumReg[2]) > vm.st[2] {
 				vm.moreStringStack()
 			}
-			vm.fp[3] += uint32(off.C)
-			if vm.fp[3]+uint32(fn.NumReg[3]) > vm.st[3] {
+			vm.fp[3] += Addr(off.C)
+			if vm.fp[3]+Addr(fn.NumReg[3]) > vm.st[3] {
 				vm.moreGeneralStack()
 			}
 			vm.fn = fn
@@ -275,20 +275,20 @@ func (vm *VM) run() (uint32, bool) {
 				call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
 				fn := f.fn
 				off := vm.fn.Body[vm.pc]
-				vm.fp[0] += uint32(off.Op)
-				if vm.fp[0]+uint32(fn.NumReg[0]) > vm.st[0] {
+				vm.fp[0] += Addr(off.Op)
+				if vm.fp[0]+Addr(fn.NumReg[0]) > vm.st[0] {
 					vm.moreIntStack()
 				}
-				vm.fp[1] += uint32(off.A)
-				if vm.fp[1]+uint32(fn.NumReg[1]) > vm.st[1] {
+				vm.fp[1] += Addr(off.A)
+				if vm.fp[1]+Addr(fn.NumReg[1]) > vm.st[1] {
 					vm.moreFloatStack()
 				}
-				vm.fp[2] += uint32(off.B)
-				if vm.fp[2]+uint32(fn.NumReg[2]) > vm.st[2] {
+				vm.fp[2] += Addr(off.B)
+				if vm.fp[2]+Addr(fn.NumReg[2]) > vm.st[2] {
 					vm.moreStringStack()
 				}
-				vm.fp[3] += uint32(off.C)
-				if vm.fp[3]+uint32(fn.NumReg[3]) > vm.st[3] {
+				vm.fp[3] += Addr(off.C)
+				if vm.fp[3]+Addr(fn.NumReg[3]) > vm.st[3] {
 					vm.moreGeneralStack()
 				}
 				vm.fn = fn
@@ -365,7 +365,7 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Continue
 		case OpContinue:
-			return decodeUint24(a, b, c), false
+			return Addr(decodeUint24(a, b, c)), false
 
 		// Convert
 		case OpConvert:
@@ -497,11 +497,11 @@ func (vm *VM) run() (uint32, bool) {
 			cl := vm.general(a).(*callable)
 			off := vm.fn.Body[vm.pc]
 			arg := vm.fn.Body[vm.pc+1]
-			fp := [4]uint32{
-				vm.fp[0] + uint32(off.Op),
-				vm.fp[1] + uint32(off.A),
-				vm.fp[2] + uint32(off.B),
-				vm.fp[3] + uint32(off.C),
+			fp := [4]Addr{
+				vm.fp[0] + Addr(off.Op),
+				vm.fp[1] + Addr(off.A),
+				vm.fp[2] + Addr(off.B),
+				vm.fp[3] + Addr(off.C),
 			}
 			vm.swapStack(&vm.fp, &fp, StackShift{int8(arg.Op), arg.A, arg.B, arg.C})
 			vm.calls = append(vm.calls, callFrame{cl: *cl, fp: fp, pc: 0, status: deferred, numVariadic: c})
@@ -600,7 +600,7 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Goto
 		case OpGoto:
-			vm.pc = decodeUint24(a, b, c)
+			vm.pc = Addr(decodeUint24(a, b, c))
 
 		// If
 		case OpIf:
@@ -952,7 +952,7 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Range
 		case OpRange:
-			var addr uint32
+			var addr Addr
 			var breakOut bool
 			rangeAddress := vm.pc - 1
 			bodyAddress := vm.pc + 1
@@ -1178,7 +1178,7 @@ func (vm *VM) run() (uint32, bool) {
 
 		// RangeString
 		case OpRangeString, -OpRangeString:
-			var addr uint32
+			var addr Addr
 			var breakOut bool
 			rangeAddress := vm.pc - 1
 			bodyAddress := vm.pc + 1
@@ -1414,9 +1414,9 @@ func (vm *VM) run() (uint32, bool) {
 			}
 			chosen, recv, recvOK := reflect.Select(vm.cases)
 			step := numCase - chosen
-			var pc uint32
+			var pc Addr
 			if step > 0 {
-				pc = vm.pc - 2*uint32(step)
+				pc = vm.pc - 2*Addr(step)
 				if vm.cases[chosen].Dir == reflect.SelectRecv {
 					r := vm.fn.Body[pc-1].B
 					if r != 0 {
@@ -1700,16 +1700,16 @@ func (vm *VM) run() (uint32, bool) {
 					fn = vm.fn.Functions[uint8(b)]
 					vm.vars = vm.env.globals
 				}
-				if vm.fp[0]+uint32(fn.NumReg[0]) > vm.st[0] {
+				if vm.fp[0]+Addr(fn.NumReg[0]) > vm.st[0] {
 					vm.moreIntStack()
 				}
-				if vm.fp[1]+uint32(fn.NumReg[1]) > vm.st[1] {
+				if vm.fp[1]+Addr(fn.NumReg[1]) > vm.st[1] {
 					vm.moreFloatStack()
 				}
-				if vm.fp[2]+uint32(fn.NumReg[2]) > vm.st[2] {
+				if vm.fp[2]+Addr(fn.NumReg[2]) > vm.st[2] {
 					vm.moreStringStack()
 				}
-				if vm.fp[3]+uint32(fn.NumReg[3]) > vm.st[3] {
+				if vm.fp[3]+Addr(fn.NumReg[3]) > vm.st[3] {
 					vm.moreGeneralStack()
 				}
 				vm.fn = fn

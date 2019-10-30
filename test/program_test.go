@@ -70,7 +70,7 @@ func TestVMExpressions(t *testing.T) {
 				return
 			}
 			var registers runtime.Registers
-			tf := func(_ *runtime.Function, _ uint32, regs runtime.Registers) {
+			tf := func(_ *runtime.Function, _ runtime.Addr, regs runtime.Registers) {
 				registers = regs
 			}
 			err = program.Run(&scriggo.RunOptions{MaxMemorySize: 1000000, TraceFunc: tf})

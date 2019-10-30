@@ -5,12 +5,12 @@ import (
 )
 
 type expectedSwapStack struct {
-	a, b [4]uint32
+	a, b [4]Addr
 	regs registers
 }
 
 var swapStackTests = []struct {
-	a, b     [4]uint32
+	a, b     [4]Addr
 	bSize    StackShift
 	regs     registers
 	expected expectedSwapStack
@@ -27,7 +27,7 @@ var swapStackTests = []struct {
 		bSize: StackShift{1},
 		regs:  registers{int: []int64{0, 3}},
 		expected: expectedSwapStack{
-			a:    [4]uint32{1},
+			a:    [4]Addr{1},
 			regs: registers{int: []int64{0, 3}},
 		},
 	},
@@ -37,7 +37,7 @@ var swapStackTests = []struct {
 	//   a   b         b,a
 	{
 		regs: registers{int: []int64{0, 5}},
-		b:    [4]uint32{1},
+		b:    [4]Addr{1},
 		expected: expectedSwapStack{
 			regs: registers{int: []int64{0, 5}},
 		},
@@ -47,11 +47,11 @@ var swapStackTests = []struct {
 	//   ^   ^              ^   ^
 	//   a   b              b   a
 	{
-		b:     [4]uint32{1},
+		b:     [4]Addr{1},
 		bSize: StackShift{1},
 		regs:  registers{int: []int64{0, 5, 3}},
 		expected: expectedSwapStack{
-			a:    [4]uint32{1},
+			a:    [4]Addr{1},
 			regs: registers{int: []int64{0, 3, 5}},
 		},
 	},
@@ -60,11 +60,11 @@ var swapStackTests = []struct {
 	//   ^           ^                      ^           ^
 	//   a           b                      b           a
 	{
-		b:     [4]uint32{3},
+		b:     [4]Addr{3},
 		bSize: StackShift{3},
 		regs:  registers{int: []int64{0, 5, 8, 2, 3, 6, 1}},
 		expected: expectedSwapStack{
-			a:    [4]uint32{3},
+			a:    [4]Addr{3},
 			regs: registers{int: []int64{0, 3, 6, 1, 5, 8, 2}},
 		},
 	},
@@ -73,13 +73,13 @@ var swapStackTests = []struct {
 	//           ^       ^                              ^           ^
 	//           a       b                              b           a
 	{
-		a:     [4]uint32{2},
-		b:     [4]uint32{4},
+		a:     [4]Addr{2},
+		b:     [4]Addr{4},
 		bSize: StackShift{3},
 		regs:  registers{int: []int64{0, 6, 0, 1, 3, 6, 1, 7}},
 		expected: expectedSwapStack{
-			a:    [4]uint32{5},
-			b:    [4]uint32{2},
+			a:    [4]Addr{5},
+			b:    [4]Addr{2},
 			regs: registers{int: []int64{0, 6, 0, 6, 1, 7, 1, 3}},
 		},
 	},
@@ -88,13 +88,13 @@ var swapStackTests = []struct {
 	//                ^           ^                                          ^                 ^
 	//                a           b                                          b                 a
 	{
-		a:     [4]uint32{0, 2},
-		b:     [4]uint32{0, 4},
+		a:     [4]Addr{0, 2},
+		b:     [4]Addr{0, 4},
 		bSize: StackShift{0, 3},
 		regs:  registers{float: []float64{0, 6, 0, 1, 3, 6, 1, 7}},
 		expected: expectedSwapStack{
-			a:    [4]uint32{0, 5},
-			b:    [4]uint32{0, 2},
+			a:    [4]Addr{0, 5},
+			b:    [4]Addr{0, 2},
 			regs: registers{float: []float64{0, 6, 0, 6, 1, 7, 1, 3}},
 		},
 	},
@@ -103,13 +103,13 @@ var swapStackTests = []struct {
 	//               ^           ^                                         ^                 ^
 	//               a           b                                         b                 a
 	{
-		a:     [4]uint32{0, 0, 2},
-		b:     [4]uint32{0, 0, 4},
+		a:     [4]Addr{0, 0, 2},
+		b:     [4]Addr{0, 0, 4},
 		bSize: StackShift{0, 0, 3},
 		regs:  registers{string: []string{"", "e", "c", "s", "e", "h", "p", "d"}},
 		expected: expectedSwapStack{
-			a:    [4]uint32{0, 0, 5},
-			b:    [4]uint32{0, 0, 2},
+			a:    [4]Addr{0, 0, 5},
+			b:    [4]Addr{0, 0, 2},
 			regs: registers{string: []string{"", "e", "c", "h", "p", "d", "s", "e"}},
 		},
 	},
@@ -118,13 +118,13 @@ var swapStackTests = []struct {
 	//              ^           ^                                       ^                 ^
 	//              a           b                                       b                 a
 	{
-		a:     [4]uint32{0, 0, 0, 2},
-		b:     [4]uint32{0, 0, 0, 4},
+		a:     [4]Addr{0, 0, 0, 2},
+		b:     [4]Addr{0, 0, 0, 4},
 		bSize: StackShift{0, 0, 0, 3},
 		regs:  registers{general: []interface{}{nil, 5, "c", true, 9, 7.2, "s", nil}},
 		expected: expectedSwapStack{
-			a:    [4]uint32{0, 0, 0, 5},
-			b:    [4]uint32{0, 0, 0, 2},
+			a:    [4]Addr{0, 0, 0, 5},
+			b:    [4]Addr{0, 0, 0, 2},
 			regs: registers{general: []interface{}{nil, 5, "c", 7.2, "s", nil, true, 9}},
 		},
 	},
