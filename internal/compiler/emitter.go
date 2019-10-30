@@ -8,6 +8,7 @@ package compiler
 
 import (
 	"fmt"
+	"io"
 	"math"
 	"reflect"
 
@@ -87,6 +88,48 @@ func (em *emitter) ti(n ast.Node) *TypeInfo {
 	}
 	return nil
 }
+
+// renderFuncType is a reflect.Type that stores the type of the render function
+// defined in the scriggo/template package.
+//
+// Keep in sync with scriggo/template.render.
+//
+var renderFuncType = reflect.FuncOf([]reflect.Type{
+	reflect.PtrTo(reflect.TypeOf(runtime.Env{})), // _ *runtime.Env
+	reflect.TypeOf((*io.Writer)(nil)).Elem(),     // out io.Writer
+	reflect.TypeOf((*interface{})(nil)).Elem(),   // value interface{}
+	reflect.TypeOf(ast.Context(0)),               // ctx ast.Context
+}, nil, false)
+
+// ioWriterWriteType is a reflect.Type that stores the type of the function
+//
+//		Write(p []byte) (n int, err error)
+//
+//  defined in the interface io.Writer.
+//
+var ioWriterWriteType = reflect.FuncOf(
+	[]reflect.Type{
+		reflect.TypeOf([]byte{}), // p []byte
+	},
+	[]reflect.Type{
+		reflect.TypeOf(int(0)),               // n int
+		reflect.TypeOf((*error)(nil)).Elem(), // err error
+	},
+	false,
+)
+
+// urlEscaperStartURLType is a reflect.Type that sotres the type of the method
+//
+//		func (w *urlEscaper) StartURL(quoted, isSet bool)
+//
+// defined on the type urlEscaper.
+//
+// Keep in sync with scriggo/template.urlEscaper.StartURL.
+//
+var urlEscaperStartURLType = reflect.FuncOf([]reflect.Type{
+	reflect.TypeOf(bool(false)), // quoted bool
+	reflect.TypeOf(bool(false)), // isSet bool
+}, nil, false)
 
 // newEmitter returns a new emitter with the given type infos, indirect
 // variables and options.
@@ -515,7 +558,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 		if deferStmt {
 			panic("BUG: not implemented") // remove.
 		}
-		em.fb.emitCallIndirect(method, 0, stackShift, call.Pos())
+		em.fb.emitCallIndirect(method, 0, stackShift, call.Pos(), funTi.Type)
 		return regs, types
 	}
 
@@ -561,7 +604,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 			args := em.fb.currentStackShift()
 			reg := em.fb.newRegister(reflect.Func)
 			em.fb.emitGetFunc(true, index, reg)
-			em.fb.emitDefer(reg, int8(numVar), stackShift, args)
+			em.fb.emitDefer(reg, int8(numVar), stackShift, args, funTi.Type)
 			return regs, types
 		}
 		em.fb.emitCallPredefined(index, int8(numVar), stackShift, call.Pos())
@@ -582,7 +625,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 				reg := em.fb.newRegister(reflect.Func)
 				em.fb.emitGetFunc(false, index, reg)
 				// TODO(Gianluca): review vm.NoVariadicArgs.
-				em.fb.emitDefer(reg, runtime.NoVariadicArgs, stackShift, args)
+				em.fb.emitDefer(reg, runtime.NoVariadicArgs, stackShift, args, fn.Type)
 				return regs, types
 			}
 			em.fb.emitCall(index, stackShift, call.Pos())
@@ -624,10 +667,10 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 	}
 	if deferStmt {
 		args := stackDifference(em.fb.currentStackShift(), stackShift)
-		em.fb.emitDefer(reg, int8(runtime.NoVariadicArgs), stackShift, args)
+		em.fb.emitDefer(reg, int8(runtime.NoVariadicArgs), stackShift, args, funTi.Type)
 		return regs, types
 	}
-	em.fb.emitCallIndirect(reg, int8(runtime.NoVariadicArgs), stackShift, call.Pos())
+	em.fb.emitCallIndirect(reg, int8(runtime.NoVariadicArgs), stackShift, call.Pos(), funTi.Type)
 
 	return regs, types
 }
@@ -949,7 +992,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				em.fb.emitRecover(0, true)
 				em.fb.emitReturn()
 				em.fb = backup
-				em.fb.emitDefer(fnReg, 0, stackShift, runtime.StackShift{0, 0, 0, 0})
+				em.fb.emitDefer(fnReg, 0, stackShift, runtime.StackShift{0, 0, 0, 0}, fn.Type)
 				continue
 			}
 			em.fb.enterStack()
@@ -1214,7 +1257,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				em.fb.emitMove(false, em.fb.templateRegs.gA, em.fb.templateRegs.gD, reflect.Interface)
 			}
 			shift := runtime.StackShift{em.fb.templateRegs.iA - 1, 0, 0, em.fb.templateRegs.gC}
-			em.fb.emitCallIndirect(em.fb.templateRegs.gC, 0, shift, node.Pos())
+			em.fb.emitCallIndirect(em.fb.templateRegs.gC, 0, shift, node.Pos(), renderFuncType)
 
 		case *ast.Switch:
 			currentBreakable := em.breakable
@@ -1247,7 +1290,13 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				} else {
 					writeFun = em.fb.templateRegs.gB
 				}
-				em.fb.emitCallIndirect(writeFun, 0, runtime.StackShift{em.fb.templateRegs.iA - 1, 0, 0, em.fb.templateRegs.gC}, node.Pos())
+				em.fb.emitCallIndirect(
+					writeFun, // register
+					0,        // numVariadic
+					runtime.StackShift{em.fb.templateRegs.iA - 1, 0, 0, em.fb.templateRegs.gC},
+					node.Pos(),
+					ioWriterWriteType, // functionType
+				)
 			}
 
 		case *ast.TypeDeclaration:
@@ -1285,7 +1334,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			}
 			em.changeRegister(true, quote, quoteArg, boolType, boolType)
 			em.changeRegister(true, isSet, isSetArg, boolType, boolType)
-			em.fb.emitCallIndirect(method, 0, ss, node.Pos())
+			em.fb.emitCallIndirect(method, 0, ss, node.Pos(), urlEscaperStartURLType)
 			em.fb.exitStack()
 			// Emit the nodes in the URL.
 			em.emitNodes(node.Value)

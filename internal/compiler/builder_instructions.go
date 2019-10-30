@@ -153,8 +153,9 @@ func (builder *functionBuilder) emitCallPredefined(f int8, numVariadic int8, shi
 //
 //     f()
 //
-func (builder *functionBuilder) emitCallIndirect(f int8, numVariadic int8, shift runtime.StackShift, pos *ast.Position) {
+func (builder *functionBuilder) emitCallIndirect(f int8, numVariadic int8, shift runtime.StackShift, pos *ast.Position, funcType reflect.Type) {
 	builder.addPosAndPath(pos)
+	builder.addFunctionType(funcType)
 	fn := builder.fn
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCallIndirect, A: f, C: numVariadic})
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
@@ -278,7 +279,8 @@ func (builder *functionBuilder) emitCopy(dst, src, n int8) {
 //
 //     defer
 //
-func (builder *functionBuilder) emitDefer(f int8, numVariadic int8, off, arg runtime.StackShift) {
+func (builder *functionBuilder) emitDefer(f int8, numVariadic int8, off, arg runtime.StackShift, funcType reflect.Type) {
+	builder.addFunctionType(funcType)
 	fn := builder.fn
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpDefer, A: f, C: numVariadic})
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.Operation(off[0]), A: off[1], B: off[2], C: off[3]})

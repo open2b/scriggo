@@ -33,6 +33,9 @@ func (err PrintTypeError) Error() string {
 func (err PrintTypeError) RuntimeError() {}
 
 // render renders value in the context ctx and writes to out.
+//
+// Keep in sync with scriggo/internal/compiler.renderFuncType.
+//
 func render(_ *runtime.Env, out io.Writer, value interface{}, ctx ast.Context) {
 
 	var err error

@@ -1071,23 +1071,24 @@ type PredefinedFunction struct {
 
 // Function represents a function.
 type Function struct {
-	Pkg          string
-	Name         string
-	File         string
-	Line         int
-	Type         reflect.Type
-	Parent       *Function
-	VarRefs      []int16
-	Types        []reflect.Type
-	NumReg       [4]int8
-	Constants    Registers
-	Functions    []*Function
-	Predefined   []*PredefinedFunction
-	Body         []Instruction
-	Positions    map[Addr]*ast.Position
-	Paths        map[Addr]string
-	Data         [][]byte
-	OperandKinds map[Addr][3]Kind
+	Pkg           string
+	Name          string
+	File          string
+	Line          int
+	Type          reflect.Type
+	Parent        *Function
+	VarRefs       []int16
+	Types         []reflect.Type
+	NumReg        [4]int8
+	Constants     Registers
+	Functions     []*Function
+	Predefined    []*PredefinedFunction
+	Body          []Instruction
+	Positions     map[Addr]*ast.Position
+	Paths         map[Addr]string
+	Data          [][]byte
+	OperandKinds  map[Addr][3]Kind
+	DebugFuncType map[Addr]reflect.Type // TODO: merge with other debug fields in a structure and rename.
 }
 
 type Addr uint32

@@ -288,6 +288,18 @@ func (builder *functionBuilder) addOperandKinds(a, b, c reflect.Kind) {
 	}
 }
 
+// addFunctionType adds the type to the next function call instruction as a
+// debug information. Note that it's not necessary to call this method for Call
+// and CallPredefined instructions because the type of the function is already
+// stored into the Functions and Predefined slices.
+func (builder *functionBuilder) addFunctionType(typ reflect.Type) {
+	pc := runtime.Addr(len(builder.fn.Body))
+	if builder.fn.DebugFuncType == nil {
+		builder.fn.DebugFuncType = map[runtime.Addr]reflect.Type{}
+	}
+	builder.fn.DebugFuncType[pc] = typ
+}
+
 // changePath changes the current path. Note that the path is initially set at
 // the creation of the function builder; this method should be called only when
 // the path changes during the building of the same function, for example when
