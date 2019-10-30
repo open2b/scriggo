@@ -259,18 +259,13 @@ func (builder *functionBuilder) scopeLookup(n string) int8 {
 
 func (builder *functionBuilder) addPosAndPath(pos *ast.Position) {
 	pc := runtime.Addr(len(builder.fn.Body)) + 1
-	// Set the position of the next instruction.
-	if builder.fn.Positions == nil {
-		builder.fn.Positions = map[runtime.Addr]*ast.Position{pc: pos}
-	} else {
-		builder.fn.Positions[pc] = pos
+	if builder.fn.DebugInfo == nil {
+		builder.fn.DebugInfo = map[runtime.Addr]runtime.DebugInfo{}
 	}
-	// Set the path of the next instruction.
-	if builder.fn.Paths == nil {
-		builder.fn.Paths = map[runtime.Addr]string{pc: builder.path}
-	} else {
-		builder.fn.Paths[pc] = builder.path
-	}
+	debugInfo := builder.fn.DebugInfo[pc]
+	debugInfo.Position = pos
+	debugInfo.Path = builder.path
+	builder.fn.DebugInfo[pc] = debugInfo
 }
 
 // addOperandKinds adds the kind of the three operands of the next instruction.
@@ -278,14 +273,16 @@ func (builder *functionBuilder) addPosAndPath(pos *ast.Position) {
 // pass the zero of reflect.Kind for such operand.
 func (builder *functionBuilder) addOperandKinds(a, b, c reflect.Kind) {
 	pc := runtime.Addr(len(builder.fn.Body))
-	if builder.fn.OperandKinds == nil {
-		builder.fn.OperandKinds = map[runtime.Addr][3]runtime.Kind{}
+	if builder.fn.DebugInfo == nil {
+		builder.fn.DebugInfo = map[runtime.Addr]runtime.DebugInfo{}
 	}
-	builder.fn.OperandKinds[pc] = [3]runtime.Kind{
+	debugInfo := builder.fn.DebugInfo[pc]
+	debugInfo.OperandKind = [3]runtime.Kind{
 		runtime.Kind(a),
 		runtime.Kind(b),
 		runtime.Kind(c),
 	}
+	builder.fn.DebugInfo[pc] = debugInfo
 }
 
 // addFunctionType adds the type to the next function call instruction as a
@@ -294,10 +291,12 @@ func (builder *functionBuilder) addOperandKinds(a, b, c reflect.Kind) {
 // stored into the Functions and Predefined slices.
 func (builder *functionBuilder) addFunctionType(typ reflect.Type) {
 	pc := runtime.Addr(len(builder.fn.Body))
-	if builder.fn.DebugFuncType == nil {
-		builder.fn.DebugFuncType = map[runtime.Addr]reflect.Type{}
+	if builder.fn.DebugInfo == nil {
+		builder.fn.DebugInfo = map[runtime.Addr]runtime.DebugInfo{}
 	}
-	builder.fn.DebugFuncType[pc] = typ
+	debugInfo := builder.fn.DebugInfo[pc]
+	debugInfo.FuncType = typ
+	builder.fn.DebugInfo[pc] = debugInfo
 }
 
 // changePath changes the current path. Note that the path is initially set at

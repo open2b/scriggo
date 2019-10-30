@@ -229,8 +229,8 @@ func (vm *VM) Stack(buf []byte, all bool) int {
 			write("???")
 		}
 		write(":")
-		if pos, ok := fn.Positions[ppc]; ok {
-			write(strconv.Itoa(pos.Line))
+		if debugInfo, ok := fn.DebugInfo[ppc]; ok {
+			write(strconv.Itoa(debugInfo.Position.Line))
 		} else {
 			write("???")
 		}
@@ -1071,24 +1071,30 @@ type PredefinedFunction struct {
 
 // Function represents a function.
 type Function struct {
-	Pkg           string
-	Name          string
-	File          string
-	Line          int
-	Type          reflect.Type
-	Parent        *Function
-	VarRefs       []int16
-	Types         []reflect.Type
-	NumReg        [4]int8
-	Constants     Registers
-	Functions     []*Function
-	Predefined    []*PredefinedFunction
-	Body          []Instruction
-	Positions     map[Addr]*ast.Position
-	Paths         map[Addr]string
-	Data          [][]byte
-	OperandKinds  map[Addr][3]Kind
-	DebugFuncType map[Addr]reflect.Type // TODO: merge with other debug fields in a structure and rename.
+	Pkg        string
+	Name       string
+	File       string
+	Line       int
+	Type       reflect.Type
+	Parent     *Function
+	VarRefs    []int16
+	Types      []reflect.Type
+	NumReg     [4]int8
+	Constants  Registers
+	Functions  []*Function
+	Predefined []*PredefinedFunction
+	Body       []Instruction
+	Data       [][]byte
+	DebugInfo  map[Addr]DebugInfo
+}
+
+// DebugInfo represents a set of debug information associated to a given
+// instruction. None of the fields below is mandatory.
+type DebugInfo struct {
+	Position    *ast.Position // position of the instruction in the source code.
+	Path        string        // path of the source code where the instruction is located in.
+	OperandKind [3]Kind       // kind of operands A, B and C.
+	FuncType    reflect.Type  // type of the function that is called; only for call instructions.
 }
 
 type Addr uint32

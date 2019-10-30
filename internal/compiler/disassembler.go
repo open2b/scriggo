@@ -219,17 +219,17 @@ func DisassembleInstruction(w io.Writer, fn *runtime.Function, globals []Global,
 // of the operands have not been added by the emitter/builder, then the
 // runtime.Unknown kind is returned.
 func getKind(operand rune, fn *runtime.Function, addr runtime.Addr) runtime.Kind {
-	kinds, ok := fn.OperandKinds[addr]
+	debugInfo, ok := fn.DebugInfo[addr]
 	if !ok {
 		return runtime.Unknown
 	}
 	switch operand {
 	case 'a':
-		return kinds[0]
+		return debugInfo.OperandKind[0]
 	case 'b':
-		return kinds[1]
+		return debugInfo.OperandKind[1]
 	case 'c':
-		return kinds[2]
+		return debugInfo.OperandKind[2]
 	default:
 		panic(fmt.Errorf("BUG: invalid operand %v", operand))
 	}
