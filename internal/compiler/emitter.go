@@ -736,7 +736,7 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		}
 		// TODO(Gianluca): if len(appendArgs) > 255 split in blocks
 		if len(elems) > 0 {
-			em.fb.emitAppend(elems[0], int8(len(elems)), tmp)
+			em.fb.emitAppend(elems[0], elems[0]+int8(len(elems)), tmp, sliceType.Elem().Kind())
 		}
 		em.changeRegister(false, tmp, reg, sliceType, dstType)
 		em.fb.exitStack()

@@ -82,14 +82,13 @@ func (builder *functionBuilder) emitAndNot(k bool, x, y, z int8, kind reflect.Ki
 
 // emitAppend appends a new "Append" instruction to the function body.
 //
-//     s = append(s, regs[first:first+length]...)
-//
-func (builder *functionBuilder) emitAppend(first, length, s int8) {
+func (builder *functionBuilder) emitAppend(low, high, s int8, elementsKind reflect.Kind) {
+	builder.addOperandKinds(elementsKind, elementsKind, 0)
 	fn := builder.fn
 	if builder.allocs != nil {
 		fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
 	}
-	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAppend, A: first, B: length, C: s})
+	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAppend, A: low, B: high, C: s})
 }
 
 // emitAppendSlice appends a new "AppendSlice" instruction to the function body.

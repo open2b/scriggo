@@ -277,8 +277,8 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			s += " *"
 		}
 	case runtime.OpAppend:
-		s += " " + disassembleOperand(fn, a, runtime.Int, true)
-		s += " " + disassembleOperand(fn, b, runtime.Int, true)
+		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), false)
+		s += " " + disassembleOperand(fn, b-1, getKind('b', fn, addr), false)
 		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
 	case runtime.OpAppendSlice:
 		s += " " + disassembleOperand(fn, a, runtime.Interface, false)

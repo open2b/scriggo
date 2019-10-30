@@ -143,7 +143,7 @@ func (vm *VM) run() (Addr, bool) {
 
 		// Append
 		case OpAppend:
-			vm.setGeneral(c, vm.appendSlice(a, int(b), vm.general(c)))
+			vm.setGeneral(c, vm.appendSlice(a, int(b-a), vm.general(c)))
 
 		// AppendSlice
 		case OpAppendSlice:
