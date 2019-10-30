@@ -367,10 +367,10 @@ func (tc *typechecker) getNestedFuncs(name string) []*ast.Func {
 	return funcs
 }
 
-// allNestedFuncs returns an ordered list of all nested functions, starting
-// from the outermost function declaration to the innermost function, which is
-// the current.
-func (tc *typechecker) allNestedFuncs() []*ast.Func {
+// nestedFuncs returns an ordered list of the nested functions, starting from
+// the outermost function declaration to the innermost function, which is the
+// current.
+func (tc *typechecker) nestedFuncs() []*ast.Func {
 	funcs := []*ast.Func{}
 	for _, anc := range tc.ancestors {
 		if fun, ok := anc.node.(*ast.Func); ok {

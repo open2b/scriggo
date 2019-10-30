@@ -704,7 +704,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 							PredefinedValue: rv,
 							Index:           -1,
 						}
-						for _, fn := range tc.allNestedFuncs() {
+						for _, fn := range tc.nestedFuncs() {
 							add := true
 							for i, uv := range fn.Upvars {
 								if uv.PredefinedValue == upvar.PredefinedValue {
