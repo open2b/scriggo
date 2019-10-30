@@ -118,7 +118,7 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 			}
 
 			if *trace {
-				runOptions.TraceFunc = func(fn *runtime.Function, pc uint32, regs runtime.Registers) {
+				runOptions.TraceFunc = func(fn *runtime.Function, pc runtime.Addr, regs runtime.Registers) {
 					funcName := fn.Name
 					if funcName != "" {
 						funcName += ":"
