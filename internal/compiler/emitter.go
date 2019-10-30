@@ -78,6 +78,23 @@ type emitter struct {
 	inURL bool
 }
 
+// newEmitter returns a new emitter with the given type infos, indirect
+// variables and options.
+func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *emitter {
+	return &emitter{
+		funcIndexes:         map[*runtime.Function]map[*runtime.Function]int8{},
+		functions:           map[*ast.Package]map[string]*runtime.Function{},
+		indirectVars:        indirectVars,
+		labels:              make(map[*runtime.Function]map[string]label),
+		options:             opts,
+		availableVarIndexes: map[*ast.Package]map[string]int16{},
+		predFunIndexes:      map[*runtime.Function]map[reflect.Value]int8{},
+		typeInfos:           typeInfos,
+		closureVarRefs:      map[*runtime.Function]map[string]int{},
+		predefinedVarRefs:   map[*runtime.Function]map[*reflect.Value]int{},
+	}
+}
+
 // ti returns the type info of node n.
 func (em *emitter) ti(n ast.Node) *TypeInfo {
 	if ti, ok := em.typeInfos[n]; ok {
@@ -130,23 +147,6 @@ var urlEscaperStartURLType = reflect.FuncOf([]reflect.Type{
 	reflect.TypeOf(bool(false)), // quoted bool
 	reflect.TypeOf(bool(false)), // isSet bool
 }, nil, false)
-
-// newEmitter returns a new emitter with the given type infos, indirect
-// variables and options.
-func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *emitter {
-	return &emitter{
-		funcIndexes:         map[*runtime.Function]map[*runtime.Function]int8{},
-		functions:           map[*ast.Package]map[string]*runtime.Function{},
-		indirectVars:        indirectVars,
-		labels:              make(map[*runtime.Function]map[string]label),
-		options:             opts,
-		availableVarIndexes: map[*ast.Package]map[string]int16{},
-		predFunIndexes:      map[*runtime.Function]map[reflect.Value]int8{},
-		typeInfos:           typeInfos,
-		closureVarRefs:      map[*runtime.Function]map[string]int{},
-		predefinedVarRefs:   map[*runtime.Function]map[*reflect.Value]int{},
-	}
-}
 
 // reserveTemplateRegisters reverses the register used for implement
 // specific template functions.
