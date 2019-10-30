@@ -395,15 +395,15 @@ func (builder *functionBuilder) emitFunc(r int8, typ reflect.Type) *runtime.Func
 		builder.allocs = append(builder.allocs, runtime.Addr(len(fn.Body)))
 		fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
 	}
-	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpGetFunc, B: int8(b), C: r})
+	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpLoadFunc, B: int8(b), C: r})
 	return scriggoFunc
 }
 
-// emitGetFunc appends a new "GetFunc" instruction to the function body.
+// emitLoadFunc appends a new "LoadFunc" instruction to the function body.
 //
 //     z = p.f
 //
-func (builder *functionBuilder) emitGetFunc(predefined bool, f int8, z int8) {
+func (builder *functionBuilder) emitLoadFunc(predefined bool, f int8, z int8) {
 	fn := builder.fn
 	var a int8
 	if predefined {
@@ -412,7 +412,7 @@ func (builder *functionBuilder) emitGetFunc(predefined bool, f int8, z int8) {
 	if builder.allocs != nil {
 		fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, C: 32})
 	}
-	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpGetFunc, A: a, B: f, C: z})
+	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpLoadFunc, A: a, B: f, C: z})
 }
 
 // emitGetVar appends a new "GetVar" instruction to the function body.

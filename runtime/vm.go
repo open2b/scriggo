@@ -1388,7 +1388,7 @@ const (
 
 	OpField
 
-	OpGetFunc
+	OpLoadFunc
 
 	OpGetVar
 

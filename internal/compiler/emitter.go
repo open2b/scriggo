@@ -603,7 +603,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 		if deferStmt {
 			args := em.fb.currentStackShift()
 			reg := em.fb.newRegister(reflect.Func)
-			em.fb.emitGetFunc(true, index, reg)
+			em.fb.emitLoadFunc(true, index, reg)
 			em.fb.emitDefer(reg, int8(numVar), stackShift, args, funTi.Type)
 			return regs, types
 		}
@@ -623,7 +623,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 			if deferStmt {
 				args := stackDifference(em.fb.currentStackShift(), stackShift)
 				reg := em.fb.newRegister(reflect.Func)
-				em.fb.emitGetFunc(false, index, reg)
+				em.fb.emitLoadFunc(false, index, reg)
 				// TODO(Gianluca): review vm.NoVariadicArgs.
 				em.fb.emitDefer(reg, runtime.NoVariadicArgs, stackShift, args, fn.Type)
 				return regs, types
@@ -722,7 +722,7 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 				return
 			}
 			index := em.functionIndex(sf)
-			em.fb.emitGetFunc(false, index, reg)
+			em.fb.emitLoadFunc(false, index, reg)
 			em.changeRegister(false, reg, reg, em.ti(expr).Type, dstType)
 			return
 		}
@@ -1539,7 +1539,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				panic("BUG") // remove.
 			}
 			index := em.predFuncIndex(ti.value.(reflect.Value), ti.PredefPackageName, name)
-			em.fb.emitGetFunc(true, index, reg)
+			em.fb.emitLoadFunc(true, index, reg)
 			em.changeRegister(false, reg, reg, ti.Type, dstType)
 			return reg, false
 		}
@@ -2007,7 +2007,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 		// Identifier represents a function.
 		if fun, ok := em.functions[em.pkg][expr.Name]; ok {
-			em.fb.emitGetFunc(false, em.functionIndex(fun), reg)
+			em.fb.emitLoadFunc(false, em.functionIndex(fun), reg)
 			em.changeRegister(false, reg, reg, em.ti(expr).Type, dstType)
 			return reg, false
 		}

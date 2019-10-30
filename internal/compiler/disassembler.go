@@ -191,7 +191,7 @@ func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global
 		case runtime.OpBreak, runtime.OpContinue, runtime.OpGoto:
 			label := labelOf[runtime.Addr(decodeUint24(in.A, in.B, in.C))]
 			_, _ = fmt.Fprintf(w, "%s\t%s %d\n", indent, operationName[in.Op], label)
-		case runtime.OpGetFunc:
+		case runtime.OpLoadFunc:
 			_, _ = fmt.Fprintf(w, "%s\tFunc %s ", indent, disassembleOperand(fn, in.C, runtime.Interface, false))
 			disassembleFunction(w, fn.Functions[uint8(in.B)], globals, depth+1)
 		default:
@@ -413,7 +413,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[b]))
 		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
-	case runtime.OpGetFunc:
+	case runtime.OpLoadFunc:
 		if a == 0 {
 			f := fn.Functions[uint8(b)]
 			if f.Parent == nil { // f is a function literal.
@@ -832,7 +832,7 @@ var operationName = [...]string{
 	runtime.OpDivFloat32: "Div32",
 	runtime.OpDivFloat64: "Div",
 
-	runtime.OpGetFunc: "GetFunc",
+	runtime.OpLoadFunc: "OpLoadFunc",
 
 	runtime.OpGetVar: "GetVar",
 

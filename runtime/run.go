@@ -545,8 +545,8 @@ func (vm *VM) run() (Addr, bool) {
 			v := reflect.ValueOf(vm.general(a)).Elem().FieldByIndex(i)
 			vm.setFromReflectValue(c, v)
 
-		// GetFunc
-		case OpGetFunc:
+		// OpLoadFunc
+		case OpLoadFunc:
 			if a == 1 {
 				fn := callable{}
 				fn.predefined = vm.fn.Predefined[uint8(b)]
