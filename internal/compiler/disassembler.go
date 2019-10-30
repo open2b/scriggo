@@ -191,11 +191,14 @@ func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global
 		case runtime.OpBreak, runtime.OpContinue, runtime.OpGoto:
 			label := labelOf[runtime.Addr(decodeUint24(in.A, in.B, in.C))]
 			_, _ = fmt.Fprintf(w, "%s\t%s %d\n", indent, operationName[in.Op], label)
-		case runtime.OpLoadFunc:
-			_, _ = fmt.Fprintf(w, "%s\tFunc %s ", indent, disassembleOperand(fn, in.C, runtime.Interface, false))
-			disassembleFunction(w, fn.Functions[uint8(in.B)], globals, depth+1)
 		default:
-			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, globals, addr))
+			_, _ = fmt.Fprintf(w, "%s\t%s", indent, disassembleInstruction(fn, globals, addr))
+		}
+		if in.Op == runtime.OpLoadFunc && fn.Functions[uint8(in.B)].Parent != nil { // function literal
+			_, _ = fmt.Fprint(w, " ", disassembleOperand(fn, in.C, runtime.Interface, false), " func")
+			disassembleFunction(w, fn.Functions[uint8(in.B)], globals, depth+1)
+		} else {
+			_, _ = fmt.Fprint(w, "\n")
 		}
 		switch in.Op {
 		case runtime.OpCall, runtime.OpCallIndirect, runtime.OpCallPredefined, runtime.OpTailCall, runtime.OpSlice, runtime.OpStringSlice:
@@ -416,19 +419,17 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	case runtime.OpLoadFunc:
 		if a == 0 {
 			f := fn.Functions[uint8(b)]
-			if f.Parent == nil { // f is a function literal.
+			if f.Parent != nil { // f is a function literal.
 				s = "Func" // overwrite s.
-				s += " func(" + strconv.Itoa(int(uint8(b))) + ")"
-				s += " " + disassembleOperand(fn, c, runtime.Int, false)
 			} else {
 				s += " " + packageName(f.Pkg) + "." + f.Name
+				s += " " + disassembleOperand(fn, c, runtime.Interface, false)
 			}
-		} else {
-			s += " Predefined"
+		} else { // LoadFunc (predefined).
 			f := fn.Predefined[uint8(b)]
 			s += " " + packageName(f.Pkg) + "." + f.Name
+			s += " " + disassembleOperand(fn, c, runtime.Interface, false)
 		}
-		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
 	case runtime.OpGetVar:
 		s += " " + disassembleVarRef(fn, globals, int16(int(a)<<8|int(uint8(b))))
 		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
@@ -832,7 +833,7 @@ var operationName = [...]string{
 	runtime.OpDivFloat32: "Div32",
 	runtime.OpDivFloat64: "Div",
 
-	runtime.OpLoadFunc: "OpLoadFunc",
+	runtime.OpLoadFunc: "LoadFunc",
 
 	runtime.OpGetVar: "GetVar",
 
