@@ -196,7 +196,7 @@ func detectTypeLoop(types []*ast.TypeDeclaration, deps PackageDeclsDeps) error {
 	for _, t := range types {
 		if !t.IsAliasDeclaration {
 			// https://github.com/open2b/scriggo/issues/194
-			panic("type definition currently not supported")
+			panic("BUG: type definition currently not supported")
 		}
 		path := []*ast.Identifier{t.Identifier}
 		loopPath := checkDepsPath(path, deps)
@@ -498,7 +498,8 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 	for _, d := range packageNode.Declarations {
 		if td, ok := d.(*ast.TypeDeclaration); ok {
 			if !td.IsAliasDeclaration {
-				panic(tc.errorf(d, "type definition is not supported in this release of Scriggo"))
+				// https://github.com/open2b/scriggo/issues/417
+				panic("BUG: type definition not supported")
 			}
 			typ := tc.checkType(td.Type)
 			tc.assignScope(td.Identifier.Name, typ, td.Identifier)

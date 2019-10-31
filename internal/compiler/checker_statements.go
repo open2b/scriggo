@@ -582,7 +582,8 @@ nodesLoop:
 
 		case *ast.TypeDeclaration:
 			if !node.IsAliasDeclaration {
-				panic(tc.errorf(node, "type definition is not supported in this release of Scriggo"))
+				// https://github.com/open2b/scriggo/issues/417
+				panic("BUG: type definition not supported")
 			}
 			if isBlankIdentifier(node.Identifier) {
 				continue
