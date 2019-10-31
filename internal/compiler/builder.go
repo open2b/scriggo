@@ -122,7 +122,7 @@ func newPredefinedFunction(pkg, name string, fn interface{}) *runtime.Predefined
 
 type functionBuilder struct {
 	fn                     *runtime.Function
-	labels                 []runtime.Addr // addresses of the labels; the address of the label n is labels[n-1]
+	labelAddrs             []runtime.Addr // addresses of the labels; the address of the label n is labels[n-1]
 	gotos                  map[runtime.Addr]label
 	maxRegs                map[runtime.Type]int8 // max number of registers allocated at the same time.
 	numRegs                map[runtime.Type]int8
@@ -419,13 +419,13 @@ func (builder *functionBuilder) currentAddr() runtime.Addr {
 // newLabel creates a new empty label. Use setLabelAddr to associate an
 // address to it.
 func (builder *functionBuilder) newLabel() label {
-	builder.labels = append(builder.labels, runtime.Addr(0))
-	return label(len(builder.labels))
+	builder.labelAddrs = append(builder.labelAddrs, runtime.Addr(0))
+	return label(len(builder.labelAddrs))
 }
 
 // setLabelAddr sets label's address as builder's current address.
 func (builder *functionBuilder) setLabelAddr(lab label) {
-	builder.labels[lab-1] = builder.currentAddr()
+	builder.labelAddrs[lab-1] = builder.currentAddr()
 }
 
 func (builder *functionBuilder) end() {
@@ -435,7 +435,7 @@ func (builder *functionBuilder) end() {
 	}
 	for addr, label := range builder.gotos {
 		i := fn.Body[addr]
-		i.A, i.B, i.C = encodeUint24(uint32(builder.labels[label-1]))
+		i.A, i.B, i.C = encodeUint24(uint32(builder.labelAddrs[label-1]))
 		fn.Body[addr] = i
 	}
 	builder.gotos = nil

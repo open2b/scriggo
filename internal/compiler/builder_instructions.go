@@ -118,7 +118,7 @@ func (builder *functionBuilder) emitAssert(e int8, typ reflect.Type, z int8) {
 //     break addr
 //
 func (builder *functionBuilder) emitBreak(lab label) {
-	addr := builder.labels[lab-1]
+	addr := builder.labelAddrs[lab-1]
 	if builder.allocs != nil {
 		addr += 1
 	}
@@ -220,7 +220,7 @@ func (builder *functionBuilder) emitConcat(s, t, z int8) {
 //     continue label
 //
 func (builder *functionBuilder) emitContinue(lab label) {
-	addr := builder.labels[lab-1]
+	addr := builder.labelAddrs[lab-1]
 	if builder.allocs != nil {
 		addr += 1
 	}
@@ -432,10 +432,10 @@ func (builder *functionBuilder) emitGo() {
 func (builder *functionBuilder) emitGoto(lab label) {
 	in := runtime.Instruction{Op: runtime.OpGoto}
 	if lab > 0 {
-		if lab > label(len(builder.labels)) {
+		if lab > label(len(builder.labelAddrs)) {
 			panic("BUG") // remove.
 		}
-		addr := builder.labels[lab-1]
+		addr := builder.labelAddrs[lab-1]
 		if addr == 0 {
 			builder.gotos[builder.currentAddr()] = lab
 		} else {
