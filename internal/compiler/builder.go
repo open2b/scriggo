@@ -122,7 +122,7 @@ func newPredefinedFunction(pkg, name string, fn interface{}) *runtime.Predefined
 
 type functionBuilder struct {
 	fn                     *runtime.Function
-	labelAddrs             []runtime.Addr // addresses of the labels; the address of the label n is labels[n-1]
+	labelAddrs             []runtime.Addr // addresses of the labels; the address of the label n is labelAddrs[n-1]
 	gotos                  map[runtime.Addr]label
 	maxRegs                map[runtime.Type]int8 // max number of registers allocated at the same time.
 	numRegs                map[runtime.Type]int8
