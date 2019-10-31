@@ -545,30 +545,6 @@ func (vm *VM) run() (Addr, bool) {
 			v := reflect.ValueOf(vm.general(a)).Elem().FieldByIndex(i)
 			vm.setFromReflectValue(c, v)
 
-		// OpLoadFunc
-		case OpLoadFunc:
-			if a == 1 {
-				fn := callable{}
-				fn.predefined = vm.fn.Predefined[uint8(b)]
-				vm.setGeneral(c, &fn)
-			} else {
-				fn := vm.fn.Functions[uint8(b)]
-				var vars []interface{}
-				if fn.VarRefs != nil {
-					vars = make([]interface{}, len(fn.VarRefs))
-					for i, ref := range fn.VarRefs {
-						if ref < 0 {
-							vars[i] = vm.general(int8(-ref))
-						} else {
-							vars[i] = vm.vars[ref]
-						}
-					}
-				} else {
-					vars = vm.env.globals
-				}
-				vm.setGeneral(c, &callable{fn: fn, vars: vars})
-			}
-
 		// GetVar
 		case OpGetVar:
 			v := vm.vars[decodeInt16(a, b)]
@@ -794,6 +770,30 @@ func (vm *VM) run() (Addr, bool) {
 		// LoadData
 		case OpLoadData:
 			vm.setGeneral(c, vm.fn.Data[decodeInt16(a, b)])
+
+		// OpLoadFunc
+		case OpLoadFunc:
+			if a == 1 {
+				fn := callable{}
+				fn.predefined = vm.fn.Predefined[uint8(b)]
+				vm.setGeneral(c, &fn)
+			} else {
+				fn := vm.fn.Functions[uint8(b)]
+				var vars []interface{}
+				if fn.VarRefs != nil {
+					vars = make([]interface{}, len(fn.VarRefs))
+					for i, ref := range fn.VarRefs {
+						if ref < 0 {
+							vars[i] = vm.general(int8(-ref))
+						} else {
+							vars[i] = vm.vars[ref]
+						}
+					}
+				} else {
+					vars = vm.env.globals
+				}
+				vm.setGeneral(c, &callable{fn: fn, vars: vars})
+			}
 
 		// LoadNumber.
 		case OpLoadNumber:

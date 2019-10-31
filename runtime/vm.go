@@ -1388,8 +1388,6 @@ const (
 
 	OpField
 
-	OpLoadFunc
-
 	OpGetVar
 
 	OpGetVarAddr
@@ -1414,6 +1412,8 @@ const (
 	OpLen
 
 	OpLoadData
+
+	OpLoadFunc
 
 	OpLoadNumber
 

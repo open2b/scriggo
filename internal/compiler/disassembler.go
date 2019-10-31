@@ -416,20 +416,6 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[b]))
 		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
-	case runtime.OpLoadFunc:
-		if a == 0 {
-			f := fn.Functions[uint8(b)]
-			if f.Parent != nil { // f is a function literal.
-				s = "Func" // overwrite s.
-			} else {
-				s += " " + packageName(f.Pkg) + "." + f.Name
-				s += " " + disassembleOperand(fn, c, runtime.Interface, false)
-			}
-		} else { // LoadFunc (predefined).
-			f := fn.Predefined[uint8(b)]
-			s += " " + packageName(f.Pkg) + "." + f.Name
-			s += " " + disassembleOperand(fn, c, runtime.Interface, false)
-		}
 	case runtime.OpGetVar:
 		s += " " + disassembleVarRef(fn, globals, int16(int(a)<<8|int(uint8(b))))
 		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
@@ -456,6 +442,20 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	case runtime.OpLoadData:
 		s += " " + strconv.Itoa(int(decodeInt16(a, b)))
 		s += " " + disassembleOperand(fn, c, runtime.Func, false)
+	case runtime.OpLoadFunc:
+		if a == 0 {
+			f := fn.Functions[uint8(b)]
+			if f.Parent != nil { // f is a function literal.
+				s = "Func" // overwrite s.
+			} else {
+				s += " " + packageName(f.Pkg) + "." + f.Name
+				s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+			}
+		} else { // LoadFunc (predefined).
+			f := fn.Predefined[uint8(b)]
+			s += " " + packageName(f.Pkg) + "." + f.Name
+			s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+		}
 	case runtime.OpLoadNumber:
 		if a == 0 {
 			s += " int"
@@ -833,8 +833,6 @@ var operationName = [...]string{
 	runtime.OpDivFloat32: "Div32",
 	runtime.OpDivFloat64: "Div",
 
-	runtime.OpLoadFunc: "LoadFunc",
-
 	runtime.OpGetVar: "GetVar",
 
 	runtime.OpGetVarAddr: "GetVarAddr",
@@ -859,6 +857,8 @@ var operationName = [...]string{
 	runtime.OpLen: "Len",
 
 	runtime.OpLoadData: "LoadData",
+
+	runtime.OpLoadFunc: "LoadFunc",
 
 	runtime.OpLoadNumber: "LoadNumber",
 
