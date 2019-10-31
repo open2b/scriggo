@@ -293,10 +293,11 @@ var goContextTreeTests = []struct {
 				[]*ast.Identifier{
 					ast.NewIdentifier(p(1, 7, 6, 6), "a"),
 				},
-				nil,
+				nil, // no type
 				[]ast.Expression{
 					ast.NewBasicLiteral(p(1, 11, 10, 10), ast.IntLiteral, "4"),
 				},
+				nil, // no group
 			),
 		}, ast.ContextGo),
 	},
@@ -307,20 +308,26 @@ var goContextTreeTests = []struct {
 			[]*ast.Identifier{
 				ast.NewIdentifier(p(2, 1, 8, 8), "A"),
 			},
-			nil,
+			nil, // no type
 			[]ast.Expression{
 				ast.NewBasicLiteral(p(2, 5, 12, 13), ast.IntLiteral, "42"),
 			},
+			// no matter if different from the other NewConst call (cannot be
+			// tested), it just have to be != nil.
+			ast.NewGroup(),
 		),
 		ast.NewConst(
 			p(1, 1, 0, 17),
 			[]*ast.Identifier{
 				ast.NewIdentifier(p(3, 1, 15, 15), "B"),
 			},
-			nil,
+			nil, // no type
 			[]ast.Expression{
 				ast.NewBasicLiteral(p(2, 5, 12, 13), ast.IntLiteral, "42"),
 			},
+			// no matter if different from the other NewConst call (cannot be
+			// tested), it just have to be != nil.
+			ast.NewGroup(),
 		),
 	}, ast.ContextGo)},
 	{"{}", ast.NewTree("", []ast.Node{
@@ -2140,6 +2147,16 @@ func equals(n1, n2 ast.Node, p int) error {
 				return err
 			}
 		}
+		if nn1.Group == nil && nn2.Group != nil {
+			return fmt.Errorf("expected constant declaration group %p, got nil", nn2.Group)
+		}
+		if nn1.Group != nil && nn2.Group == nil {
+			return fmt.Errorf("unexpected constant declaration group, got %p", nn1.Group)
+		}
+		// It's not possibile to test if a group is correct, because
+		// ast.NewGroup is called twice: first by the parser, then by the test.
+		// So, here we're only checking if a group is defined for a given
+		// constant declaration, not if that group is correct.
 
 	case *ast.Switch:
 		nn2, ok := n2.(*ast.Switch)

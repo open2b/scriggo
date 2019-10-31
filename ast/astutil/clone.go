@@ -243,7 +243,7 @@ func CloneNode(node ast.Node) ast.Node {
 		for i, v := range n.Rhs {
 			values[i] = CloneExpression(v)
 		}
-		return ast.NewConst(ClonePosition(n.Position), idents, typ, values)
+		return ast.NewConst(ClonePosition(n.Position), idents, typ, values, n.Group)
 	case *ast.Assignment:
 		variables := make([]ast.Expression, len(n.Lhs))
 		for i, v := range n.Lhs {

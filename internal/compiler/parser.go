@@ -1000,6 +1000,7 @@ LABEL:
 			var prevNode ast.Node
 			var prevConstValues []ast.Expression
 			var prevConstType ast.Expression
+			group := ast.NewGroup()
 			tok = p.next()
 			for {
 				if tok.typ == tokenRightParenthesis {
@@ -1010,7 +1011,7 @@ LABEL:
 					tok = p.parseEnd(tok, tokenSemicolon)
 					break
 				}
-				prevNode, tok = p.parseVarOrConst(tok, pos, decType)
+				prevNode, tok = p.parseVarOrConst(tok, pos, decType, group)
 				switch tok.typ {
 				case tokenSemicolon:
 					tok = p.next()
@@ -1035,7 +1036,7 @@ LABEL:
 			}
 		} else {
 			var node ast.Node
-			node, tok = p.parseVarOrConst(tok, pos, decType)
+			node, tok = p.parseVarOrConst(tok, pos, decType, nil)
 			p.addChild(node)
 			tok = p.parseEnd(tok, tokenSemicolon)
 		}
@@ -1423,7 +1424,8 @@ func (p *parsing) parseTypeDecl(tok token) (*ast.TypeDeclaration, token) {
 	return node, tok
 }
 
-func (p *parsing) parseVarOrConst(tok token, pos *ast.Position, decType tokenTyp) (ast.Node, token) {
+// group is nil if parseVarOrConst is called when not in a declaration group.
+func (p *parsing) parseVarOrConst(tok token, pos *ast.Position, decType tokenTyp, group *ast.Group) (ast.Node, token) {
 	if tok.typ != tokenIdentifier {
 		panic(syntaxError(tok.pos, "unexpected %s, expecting name", tok))
 	}
@@ -1488,7 +1490,7 @@ func (p *parsing) parseVarOrConst(tok token, pos *ast.Position, decType tokenTyp
 	if decType == tokenVar {
 		return ast.NewVar(pos, idents, typ, exprs), tok
 	}
-	return ast.NewConst(pos, idents, typ, exprs), tok
+	return ast.NewConst(pos, idents, typ, exprs, group), tok
 }
 
 func (p *parsing) parseImport(tok token) *ast.Import {
