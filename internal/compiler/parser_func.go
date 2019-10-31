@@ -34,6 +34,11 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 		ident = ast.NewIdentifier(tok.pos, string(tok.txt))
 		tok = p.next()
 	} else if kind^parseFuncDecl == 0 {
+		// This check could be avoided (the code panics anyway) but improves the
+		// readability of the error message.
+		if tok.typ == tokenLeftParenthesis {
+			panic(syntaxError(tok.pos, "method declarations are not supported in this release of Scriggo"))
+		}
 		// Node to parse must be a function declaration.
 		panic(syntaxError(tok.pos, "unexpected %s, expecting name", tok.txt))
 	}
