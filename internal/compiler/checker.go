@@ -91,7 +91,7 @@ type typechecker struct {
 	isScriptFuncDecl bool
 }
 
-// newTypechecker creates a new typechecker. A global scope may be provided for
+// newTypechecker creates a new type checker. A global scope may be provided for
 // scripts and templates.
 func newTypechecker(path string, opts CheckerOptions, globalScope typeCheckerScope) *typechecker {
 	return &typechecker{
@@ -382,7 +382,7 @@ func (tc *typechecker) nestedFuncs() []*ast.Func {
 
 // errorf builds and returns a type checking error. This method is used
 // internally by the type checker: when it finds an error, instead of returning
-// it the type checker panics with a CheckinError argument; this type of panics
+// it the type checker panics with a CheckingError argument; this type of panics
 // are recovered an converted into well-formatted errors before being returned
 // by the compiler.
 //
