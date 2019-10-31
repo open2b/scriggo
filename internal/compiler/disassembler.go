@@ -300,15 +300,15 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			case runtime.OpCall, runtime.OpTailCall:
 				sf := fn.Functions[uint8(a)]
 				s += " " + packageName(sf.Pkg) + "." + sf.Name
+			case runtime.OpCallIndirect:
+				s += " " + "("
+				s += disassembleOperand(fn, a, runtime.Interface, false)
+				s += ")"
 			case runtime.OpCallPredefined:
 				nf := fn.Predefined[uint8(a)]
 				s += " " + packageName(nf.Pkg) + "." + nf.Name
 			case runtime.OpDefer:
 				s += " " + disassembleOperand(fn, a, runtime.Interface, false)
-			case runtime.OpCallIndirect:
-				s += " " + "("
-				s += disassembleOperand(fn, a, runtime.Interface, false)
-				s += ")"
 			}
 		}
 		grow := fn.Body[addr+1]
