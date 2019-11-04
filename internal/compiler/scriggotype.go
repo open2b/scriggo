@@ -74,7 +74,7 @@ func (st scriggoType) Underlying() reflect.Type {
 func SliceOf(t reflect.Type) reflect.Type {
 	if st, ok := t.(scriggoType); ok {
 		// TODO: name is not setted here, is calculated when needed. Is that ok?
-		slice := newScriggoType("", reflect.SliceOf(st.Underlying()))
+		slice := newScriggoType("", SliceOf(st.Underlying()))
 		slice.elem = &st
 		return slice
 	}
