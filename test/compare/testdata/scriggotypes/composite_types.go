@@ -21,4 +21,8 @@ func main() {
 
 	s1[0] = int(2) // ERROR `cannot use int(2) (type int) as type Int in assignment`
 
+	type Int2 int
+
+	s1[0] = Int2(32) // ERROR `cannot use Int2(32) (type Int2) as type Int in assignment`
+
 }
