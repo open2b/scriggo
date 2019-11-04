@@ -20,17 +20,17 @@ func TestScriggoTypeMethods(t *testing.T) {
 	}{
 		{
 			input: scriggoType{
-				name: "Int",
-				Type: intType,
+				definedName: "Int",
+				Type:        intType,
 			},
 			expectedName: "Int",
 		},
 		{
 			input: scriggoType{
-				name: "SliceInt",
+				definedName: "SliceInt",
 				elem: &scriggoType{
-					name: "Int",
-					Type: intType,
+					definedName: "Int",
+					Type:        intType,
 				},
 				Type: sliceIntType,
 			},

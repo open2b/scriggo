@@ -10,12 +10,31 @@ import (
 	"reflect"
 )
 
+// scriggoType represents a Scriggo type, which can be both:
+//
+// 	- a type defined in Scriggo
+//  - a non-defined type that contains some types defined in Scriggo
+//
+// For example:
+//
+//		type Int int
+//
+// creates a new Scriggo type that is a defined-type with underlying type int.
 type scriggoType struct {
 	reflect.Type
-	name string          // empty for non-defined types.
+
+	// definedName is the name of the defined type.
+	//
+	//		type definedName int
+	//
+	// If the Scriggo type is not defined (i.e. is a composite type) then
+	// definedName is empty.
+	definedName string
+
 	elem *scriggoType    // slices, arrays, maps and pointers
 	in   *[]reflect.Type // for functions
 	out  *[]reflect.Type // for functions
+
 	// Path string
 	// Methods []Method
 }
@@ -25,11 +44,34 @@ type scriggoType struct {
 //
 //    type Int int
 //
-func newScriggoDefinedType(name string, baseType reflect.Type) scriggoType {
-	return scriggoType{
-		Type: baseType,
-		name: name,
+func newScriggoDefinedType(definedName string, baseType reflect.Type) scriggoType {
+	if definedName == "" {
+		panic("BUG: definedName cannot be empty")
 	}
+	return scriggoType{
+		Type:        baseType,
+		definedName: definedName,
+	}
+}
+
+func isDefinedType(t reflect.Type) bool {
+	return t.Name() != ""
+}
+
+// isCompositeType reports whether the Scriggo type is a composite type, that is
+// a type without a name composed by other Scriggo types.
+// Some examples are:
+//
+//		[]Int
+//		map[String]int
+//  	func(Int) int
+//
+func (st scriggoType) isCompositeType() bool {
+	isComposite := st.elem != nil || st.in != nil || st.out != nil
+	if isComposite && isDefinedType(st) {
+		panic("BUG: a Scriggo type cannot be both composite and defined")
+	}
+	return isComposite
 }
 
 func (x scriggoType) AssignableTo(T reflect.Type) bool {
@@ -37,15 +79,17 @@ func (x scriggoType) AssignableTo(T reflect.Type) bool {
 	// If both x and T are Scriggo defined types, the assignment can be done
 	// only if they are the same type.
 	if T, ok := T.(scriggoType); ok {
-		return x == T
+		if isDefinedType(x) && isDefinedType(T) {
+			return x == T
+		}
 	}
 
-	// TODO: add other checks == nil on new fields.
-	if T.Name() == "" && x.elem == nil && x.in == nil && x.out == nil {
+	// x is a defined type byt it's not a composite type (it just have a name,
+	// internally is a Go type) and T is not a defined type.
+	if !x.isCompositeType() && !isDefinedType(T) {
 		return x.Type.AssignableTo(T)
 	}
 
-	// x is a type defined in Scriggo and T is a type defined in Go.
 	return false
 
 }
@@ -79,14 +123,16 @@ func (st scriggoType) Len() int {
 	panic("not implemented") // TODO.
 }
 
+// Name returns the type's name within its package for a defined type.
+// For other (non-defined) types it returns the empty string.
 func (st scriggoType) Name() string {
-	return st.name
+	return st.definedName
 }
 
 // TODO: add support for packages path.
 func (st scriggoType) String() string {
-	if st.name != "" {
-		return st.name
+	if st.definedName != "" {
+		return st.definedName
 	}
 	switch st.Type.Kind() {
 	case reflect.Slice:
@@ -116,7 +162,7 @@ func (st scriggoType) String() string {
 	case reflect.Array, reflect.Ptr, reflect.Struct, reflect.Map:
 		panic("TODO: not implemented") // TODO(Gianluca): to implement.
 	default:
-		return st.name
+		return st.definedName
 	}
 }
 
