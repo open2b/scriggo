@@ -19,4 +19,6 @@ func main() {
 
 	s1 = s2 // ERROR `cannot use s2 (type SliceInt2) as type SliceInt1 in assignment`
 
+	// s1[0] = int(2)
+
 }

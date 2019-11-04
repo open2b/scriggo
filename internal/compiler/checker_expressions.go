@@ -657,7 +657,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		case reflect.String, reflect.Slice:
 			return &TypeInfo{Type: t.Type}
 		case reflect.Array, reflect.Ptr:
-			return &TypeInfo{Type: reflect.SliceOf(realType.Elem())}
+			return &TypeInfo{Type: SliceOf(realType.Elem())}
 		}
 
 	case *ast.Selector:

@@ -18,14 +18,23 @@ type scriggoType struct {
 	// Methods []Method
 }
 
-// newScriggoType creates a new type defined in Scriggo with the syntax
+// newScriggoDefinedType creates a new Scriggo defined type, that is a type
+// created with the syntax
 //
-//     type Int int
+//    type Int int
 //
-func newScriggoType(name string, baseType reflect.Type) scriggoType {
+func newScriggoDefinedType(name string, baseType reflect.Type) scriggoType {
+	var elem *scriggoType
+	switch baseType.Kind() {
+	case reflect.Slice:
+		if ste, ok := baseType.Elem().(scriggoType); ok {
+			elem = &ste
+		}
+	}
 	return scriggoType{
 		Type: baseType,
 		name: name,
+		elem: elem,
 	}
 }
 
@@ -46,8 +55,19 @@ func (x scriggoType) AssignableTo(T reflect.Type) bool {
 
 }
 
+func (st scriggoType) Kind() reflect.Kind {
+	return st.Underlying().Kind()
+}
+
 func (st scriggoType) Elem() reflect.Type {
+	if st.elem == nil {
+		panic("BUG: cannot call method Elem() on a scriggoType with nil elem")
+	}
 	return st.elem
+}
+
+func (st scriggoType) Len() int {
+	panic("not implemented") // TODO.
 }
 
 func (st scriggoType) Name() string {
@@ -77,8 +97,10 @@ func (st scriggoType) Underlying() reflect.Type {
 // TODO: change all calls to reflect.SliceOf to SliceOf.
 func SliceOf(t reflect.Type) reflect.Type {
 	if st, ok := t.(scriggoType); ok {
-		slice := newScriggoType("", SliceOf(st.Underlying()))
-		slice.elem = &st
+		slice := scriggoType{
+			Type: SliceOf(st.Underlying()),
+			elem: &st,
+		}
 		return slice
 	}
 	return reflect.SliceOf(t)
