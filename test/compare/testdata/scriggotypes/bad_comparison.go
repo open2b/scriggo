@@ -1,5 +1,3 @@
-// skip
-
 // errorcheck
 
 package main
