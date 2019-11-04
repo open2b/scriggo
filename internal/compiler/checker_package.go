@@ -498,12 +498,12 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 	// First: check all type declarations.
 	for _, d := range packageNode.Declarations {
 		if td, ok := d.(*ast.TypeDeclaration); ok {
-			if !td.IsAliasDeclaration {
-				// https://github.com/open2b/scriggo/issues/417
-				panic("BUG: type definition not supported")
+			if isBlankIdentifier(td.Identifier) {
+				continue
 			}
-			typ := tc.checkType(td.Type)
-			tc.assignScope(td.Identifier.Name, typ, td.Identifier)
+			name := td.Identifier.Name
+			ti := tc.checkTypeDeclaration(td)
+			tc.assignScope(name, ti, td.Identifier)
 		}
 	}
 

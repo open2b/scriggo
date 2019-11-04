@@ -585,39 +585,11 @@ nodesLoop:
 			tc.terminating = false
 
 		case *ast.TypeDeclaration:
-
-			// type _ is a nop.
 			if isBlankIdentifier(node.Identifier) {
 				continue nodesLoop
 			}
-
-			// Get the type name from the declaration.
-			//
-			//      type Int int
-			//           ^^^
-			//
 			name := node.Identifier.Name
-
-			// Get the base type.
-			//
-			//      type Int int
-			//               ^^^
-			//
-			typ := tc.checkType(node.Type)
-
-			// If this is an alias declaration, the new type is exactly the base
-			// type. Nothing else should be done.
-			if node.IsAliasDeclaration {
-				tc.assignScope(name, typ, node.Identifier)
-				continue nodesLoop
-			}
-
-			// Type definition: a Scriggo type must be created.
-			ti := &TypeInfo{
-				Type:        typ.Type,
-				ScriggoType: newScriggoType(name, typ.Type),
-				Properties:  PropertyIsType,
-			}
+			ti := tc.checkTypeDeclaration(node)
 			tc.assignScope(name, ti, node.Identifier)
 
 		case *ast.Show:
@@ -949,4 +921,39 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 	}
 
 	return
+}
+
+func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) *TypeInfo {
+
+	if isBlankIdentifier(node.Identifier) {
+		panic("BUG: unexpected blank identifier")
+	}
+
+	// Get the type name from the declaration.
+	//
+	//      type Int int
+	//           ^^^
+	//
+	name := node.Identifier.Name
+
+	// Get the base type.
+	//
+	//      type Int int
+	//               ^^^
+	//
+	typ := tc.checkType(node.Type)
+
+	// If this is an alias declaration, the new type is exactly the base
+	// type. Nothing else should be done.
+	if node.IsAliasDeclaration {
+		return typ
+	}
+
+	// Type definition: a Scriggo type must be created.
+	return &TypeInfo{
+		Type:        typ.Type,
+		ScriggoType: newScriggoType(name, typ.Type),
+		Properties:  PropertyIsType,
+	}
+
 }
