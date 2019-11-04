@@ -317,8 +317,8 @@ func isAssignableTo(x *TypeInfo, expr ast.Expression, t reflect.Type) error {
 		}
 		return newInvalidTypeInAssignment(x, expr, t)
 	}
-	if st, ok := t.(scriggoType); ok {
-		if _, ok := x.Type.(scriggoType); ok {
+	if st, ok := t.(ScriggoType); ok {
+		if _, ok := x.Type.(ScriggoType); ok {
 			// Nothing to do: both x and t have a type defined in Scriggo, so
 			// it's responsability of the IsAssignableTo method of scriggoType
 			// to check if the assignment can be done.
