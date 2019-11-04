@@ -947,9 +947,8 @@ func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) *TypeInfo
 
 	// Type definition: a Scriggo type must be created.
 	return &TypeInfo{
-		Type:        typ.Type,
-		ScriggoType: newScriggoType(name, typ.Type),
-		Properties:  PropertyIsType,
+		Type:       newScriggoType(name, typ.Type),
+		Properties: PropertyIsType,
 	}
 
 }
