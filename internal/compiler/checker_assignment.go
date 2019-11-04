@@ -64,7 +64,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 					case k == reflect.Interface, k == reflect.Func:
 						ti = nilOf(typ)
 					default:
-						ti = &TypeInfo{Type: typ, value: reflect.Zero(typ).Interface(), Properties: PropertyHasValue}
+						ti = &TypeInfo{Type: typ, value: Zero(typ).Interface(), Properties: PropertyHasValue}
 						ti.setValue(typ)
 					}
 					n.Rhs[i] = ast.NewPlaceholder()
