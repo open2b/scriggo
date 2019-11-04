@@ -28,7 +28,6 @@ const (
 // information.
 type TypeInfo struct {
 	Type              reflect.Type // Type.
-	ScriggoType       scriggoType  // Scriggo type. nil if it is a base type or a predefined type.
 	Properties        Properties   // Properties.
 	Constant          constant     // Constant value.
 	PredefPackageName string       // Name of the package. Empty string if not predefined.
