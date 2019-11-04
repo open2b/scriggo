@@ -28,11 +28,16 @@ type scriggoType struct {
 	// Methods []Method
 }
 
-func (st scriggoType) AssignableTo(T reflect.Type) bool {
+func (x scriggoType) AssignableTo(T reflect.Type) bool {
 	if T, ok := T.(scriggoType); ok {
-		return st.name == T.name
+		return x.name == T.name
 	}
-	panic("not implemented")
+	// trying to assign a Scriggo type to a 'Go' type.
+	if T.Name() == "" {
+		return x.Type.AssignableTo(T)
+	} else {
+		return false
+	}
 }
 
 func (st scriggoType) String() string {
