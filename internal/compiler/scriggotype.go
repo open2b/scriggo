@@ -40,7 +40,8 @@ func (x scriggoType) AssignableTo(T reflect.Type) bool {
 		return x == T
 	}
 
-	if T.Name() == "" && x.elem == nil {
+	// TODO: add other checks == nil on new fields.
+	if T.Name() == "" && x.elem == nil && x.in == nil && x.out == nil {
 		return x.Type.AssignableTo(T)
 	}
 
@@ -79,20 +80,44 @@ func (st scriggoType) Len() int {
 }
 
 func (st scriggoType) Name() string {
+	return st.name
+}
+
+// TODO: add support for packages path.
+func (st scriggoType) String() string {
 	if st.name != "" {
 		return st.name
 	}
-
 	switch st.Type.Kind() {
 	case reflect.Slice:
 		return "[]" + st.elem.Name()
+	case reflect.Func:
+		s := "func("
+		for i, t := range *st.in {
+			s += t.String()
+			if i != len(*st.in)-1 {
+				s += ", "
+			}
+		}
+		s += ") "
+		if len(*st.out) >= 2 {
+			s += "("
+		}
+		for i, t := range *st.out {
+			s += t.String()
+			if i != len(*st.out)-1 {
+				s += ", "
+			}
+		}
+		if len(*st.out) >= 2 {
+			s += ")"
+		}
+		return s
+	case reflect.Array, reflect.Ptr, reflect.Struct, reflect.Map:
+		panic("TODO: not implemented") // TODO(Gianluca): to implement.
 	default:
 		return st.name
 	}
-}
-
-func (st scriggoType) String() string {
-	return st.Name() // TODO
 }
 
 // Underlying returns the underlying type of the Scriggo type.
