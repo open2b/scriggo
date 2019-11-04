@@ -61,7 +61,6 @@ func (st scriggoType) Name() string {
 	default:
 		return st.name
 	}
-
 }
 
 func (st scriggoType) String() string {
@@ -75,12 +74,20 @@ func (st scriggoType) Underlying() reflect.Type {
 
 // Functions
 
+// TODO: change all calls to reflect.SliceOf to SliceOf.
 func SliceOf(t reflect.Type) reflect.Type {
 	if st, ok := t.(scriggoType); ok {
-		// TODO: name is not setted here, is calculated when needed. Is that ok?
 		slice := newScriggoType("", SliceOf(st.Underlying()))
 		slice.elem = &st
 		return slice
 	}
 	return reflect.SliceOf(t)
+}
+
+// TODO: change all calls to reflect.Zero to Zero.
+func Zero(t reflect.Type) reflect.Value {
+	if st, ok := t.(scriggoType); ok {
+		return Zero(st.Underlying())
+	}
+	return reflect.Zero(t)
 }
