@@ -287,6 +287,23 @@ func newInvalidTypeInAssignment(x *TypeInfo, expr ast.Expression, t reflect.Type
 // isAssignableTo reports whether x is assignable to type t.
 // See https://golang.org/ref/spec#Assignability for details.
 func isAssignableTo(x *TypeInfo, expr ast.Expression, t reflect.Type) error {
+
+	if st, ok := t.(scriggoType); ok {
+		if _, ok := x.Type.(scriggoType); ok {
+			// Nothing to do here: both x and t have a type defined in Scriggo,
+			// so the assignment checkings are handled by the scriggotype methods.
+		} else {
+			// x is a Go type
+			// t is a Scriggo type
+			if x.IsUntypedConstant() {
+				return isAssignableTo(x, expr, st.Type)
+			} else {
+				return newInvalidTypeInAssignment(x, expr, t)
+			}
+
+		}
+	}
+
 	if x.Type == t {
 		return nil
 	}

@@ -24,4 +24,7 @@ func main() {
 
 	var i int = i1 // ERROR `cannot use i1 (type Int1) as type int in assignment`
 
+	i1 = int(42)         // ERROR `cannot use int(42) (type int) as type Int1 in assignment`
+	i2 = float64(56.034) // ERROR `cannot use float64(56.034) (type float64) as type Int2 in assignment`
+
 }
