@@ -35,10 +35,6 @@ func (st scriggoType) AssignableTo(T reflect.Type) bool {
 	panic("not implemented")
 }
 
-func (st scriggoType) Name() string {
-	return st.name
-}
-
 func (st scriggoType) String() string {
-	return st.Name() // TODO
+	return st.name // TODO
 }
