@@ -923,6 +923,13 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 	return
 }
 
+// checkTypeDeclaration checks a type declaration node, which can be both a type
+// definition or an alias declaration. Returns the type info that represents the
+// declared type. node cannot have the blank identifier as type name.
+//
+//  type Int int
+//  type Int = int
+//
 func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) *TypeInfo {
 
 	if isBlankIdentifier(node.Identifier) {

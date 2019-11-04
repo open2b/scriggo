@@ -29,17 +29,31 @@ type scriggoType struct {
 }
 
 func (x scriggoType) AssignableTo(T reflect.Type) bool {
+
+	// If both x and T are Scriggo defined types, the assignment can be done
+	// only if they are the same type.
 	if T, ok := T.(scriggoType); ok {
-		return x.name == T.name
+		return x == T
 	}
-	// trying to assign a Scriggo type to a 'Go' type.
+
 	if T.Name() == "" {
 		return x.Type.AssignableTo(T)
-	} else {
-		return false
 	}
+
+	// x is a type defined in Scriggo and T is a type defined in Go.
+	return false
+
+}
+
+// Underlying returns the underlying type of the Scriggo type.
+func (st scriggoType) Underlying() reflect.Type {
+	return st.Type
 }
 
 func (st scriggoType) String() string {
 	return st.name // TODO
+}
+
+func (st scriggoType) Name() string {
+	return st.name
 }
