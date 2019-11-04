@@ -51,6 +51,10 @@ func (st scriggoType) Elem() reflect.Type {
 }
 
 func (st scriggoType) Name() string {
+	if st.name != "" {
+		return st.name
+	}
+
 	switch st.Type.Kind() {
 	case reflect.Slice:
 		return "[]" + st.elem.Name()
