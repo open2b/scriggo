@@ -489,7 +489,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 				out[i] = c.Type
 			}
 		}
-		expr.Reflect = reflect.FuncOf(in, out, variadic)
+		expr.Reflect = FuncOf(in, out, variadic)
 		return &TypeInfo{Type: expr.Reflect, Properties: PropertyIsType}
 
 	case *ast.Func:
