@@ -12,7 +12,7 @@ import (
 
 type scriggoType struct {
 	reflect.Type
-	name string
+	name string          // empty for non-defined types.
 	elem *scriggoType    // slices, arrays, maps and pointers
 	in   *[]reflect.Type // for functions
 	out  *[]reflect.Type // for functions
