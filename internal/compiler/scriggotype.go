@@ -10,6 +10,14 @@ import (
 	"reflect"
 )
 
+type scriggoType struct {
+	reflect.Type
+	name string
+	elem *scriggoType
+	// Path string
+	// Methods []Method
+}
+
 // newScriggoType creates a new type defined in Scriggo with the syntax
 //
 //     type Int int
@@ -21,13 +29,6 @@ func newScriggoType(name string, baseType reflect.Type) scriggoType {
 	}
 }
 
-type scriggoType struct {
-	reflect.Type
-	name string
-	// Path string
-	// Methods []Method
-}
-
 func (x scriggoType) AssignableTo(T reflect.Type) bool {
 
 	// If both x and T are Scriggo defined types, the assignment can be done
@@ -36,7 +37,7 @@ func (x scriggoType) AssignableTo(T reflect.Type) bool {
 		return x == T
 	}
 
-	if T.Name() == "" {
+	if T.Name() == "" && x.elem == nil {
 		return x.Type.AssignableTo(T)
 	}
 
@@ -45,15 +46,37 @@ func (x scriggoType) AssignableTo(T reflect.Type) bool {
 
 }
 
+func (st scriggoType) Elem() reflect.Type {
+	return st.elem
+}
+
+func (st scriggoType) Name() string {
+	switch st.Type.Kind() {
+	case reflect.Slice:
+		return "[]" + st.elem.Name()
+	default:
+		return st.name
+	}
+
+}
+
+func (st scriggoType) String() string {
+	return st.Name() // TODO
+}
+
 // Underlying returns the underlying type of the Scriggo type.
 func (st scriggoType) Underlying() reflect.Type {
 	return st.Type
 }
 
-func (st scriggoType) String() string {
-	return st.name // TODO
-}
+// Functions
 
-func (st scriggoType) Name() string {
-	return st.name
+func SliceOf(t reflect.Type) reflect.Type {
+	if st, ok := t.(scriggoType); ok {
+		// TODO: name is not setted here, is calculated when needed. Is that ok?
+		slice := newScriggoType("", reflect.SliceOf(st.Underlying()))
+		slice.elem = &st
+		return slice
+	}
+	return reflect.SliceOf(t)
 }
