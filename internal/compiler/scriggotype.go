@@ -24,17 +24,9 @@ type scriggoType struct {
 //    type Int int
 //
 func newScriggoDefinedType(name string, baseType reflect.Type) scriggoType {
-	var elem *scriggoType
-	switch baseType.Kind() {
-	case reflect.Slice:
-		if ste, ok := baseType.Elem().(scriggoType); ok {
-			elem = &ste
-		}
-	}
 	return scriggoType{
 		Type: baseType,
 		name: name,
-		elem: elem,
 	}
 }
 
