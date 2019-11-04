@@ -585,16 +585,40 @@ nodesLoop:
 			tc.terminating = false
 
 		case *ast.TypeDeclaration:
-			if !node.IsAliasDeclaration {
-				// https://github.com/open2b/scriggo/issues/417
-				panic("BUG: type definition not supported")
-			}
+
+			// type _ is a nop.
 			if isBlankIdentifier(node.Identifier) {
-				continue
+				continue nodesLoop
 			}
+
+			// Get the type name from the declaration.
+			//
+			//      type Int int
+			//           ^^^
+			//
 			name := node.Identifier.Name
+
+			// Get the base type.
+			//
+			//      type Int int
+			//               ^^^
+			//
 			typ := tc.checkType(node.Type)
-			tc.assignScope(name, typ, node.Identifier)
+
+			// If this is an alias declaration, the new type is exactly the base
+			// type. Nothing else should be done.
+			if node.IsAliasDeclaration {
+				tc.assignScope(name, typ, node.Identifier)
+				continue nodesLoop
+			}
+
+			// Type definition: a Scriggo type must be created.
+			ti := &TypeInfo{
+				Type:        typ.Type,
+				ScriggoType: newScriggoType(name, typ.Type),
+				Properties:  PropertyIsType,
+			}
+			tc.assignScope(name, ti, node.Identifier)
 
 		case *ast.Show:
 			ti := tc.checkExpr(node.Expr)
