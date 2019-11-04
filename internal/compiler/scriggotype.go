@@ -52,10 +52,10 @@ func (st scriggoType) Kind() reflect.Kind {
 }
 
 func (st scriggoType) Elem() reflect.Type {
-	if st.elem == nil {
-		panic("BUG: cannot call method Elem() on a scriggoType with nil elem")
+	if st.elem != nil {
+		return *st.elem
 	}
-	return st.elem
+	return st.Type.Elem()
 }
 
 func (st scriggoType) Len() int {
