@@ -445,7 +445,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 
 	case *ast.SliceType:
 		elem := tc.checkType(expr.ElementType)
-		return &TypeInfo{Properties: PropertyIsType, Type: reflect.SliceOf(elem.Type)}
+		return &TypeInfo{Properties: PropertyIsType, Type: SliceOf(elem.Type)}
 
 	case *ast.ArrayType:
 		return tc.checkArrayType(expr, -1)
