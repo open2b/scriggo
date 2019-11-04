@@ -6,7 +6,9 @@
 
 package compiler
 
-import "reflect"
+import (
+	"reflect"
+)
 
 // newScriggoType creates a new type defined in Scriggo with the syntax
 //
@@ -24,4 +26,19 @@ type scriggoType struct {
 	name string
 	// Path string
 	// Methods []Method
+}
+
+func (st scriggoType) AssignableTo(T reflect.Type) bool {
+	if T, ok := T.(scriggoType); ok {
+		return st.name == T.name
+	}
+	panic("not implemented")
+}
+
+func (st scriggoType) Name() string {
+	return st.name
+}
+
+func (st scriggoType) String() string {
+	return st.Name() // TODO
 }
