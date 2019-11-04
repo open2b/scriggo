@@ -1409,17 +1409,6 @@ func (p *parsing) parseTypeDecl(tok token) (*ast.TypeDeclaration, token) {
 	}
 	var typ ast.Expression
 	typ, tok = p.parseExpr(tok, false, true, false)
-	{
-		// This code is a barrage to avoid that all the type declarations that
-		// are not alias declarations (i.e. are type definitions) pass from the
-		// parser to the other parts of the compiler, throwing random and
-		// unclear errors all around the code. This should be the only check
-		// that returns an user-friendly error. If a type definition is
-		// encountered in another point of the code it's considered a BUG.
-		if !alias {
-			panic(syntaxError(tok.pos, "type definitions are not supported in this release of Scriggo"))
-		}
-	}
 	node := ast.NewTypeDeclaration(pos, ident, typ, alias)
 	return node, tok
 }
