@@ -13,7 +13,9 @@ import (
 type scriggoType struct {
 	reflect.Type
 	name string
-	elem *scriggoType
+	elem *scriggoType    // slices, arrays, maps and pointers
+	in   *[]reflect.Type // for functions
+	out  *[]reflect.Type // for functions
 	// Path string
 	// Methods []Method
 }
@@ -45,6 +47,20 @@ func (x scriggoType) AssignableTo(T reflect.Type) bool {
 	// x is a type defined in Scriggo and T is a type defined in Go.
 	return false
 
+}
+
+func (st scriggoType) In(i int) reflect.Type {
+	if st.in != nil {
+		return (*st.in)[i]
+	}
+	return st.Underlying().In(i)
+}
+
+func (st scriggoType) Out(i int) reflect.Type {
+	if st.out != nil {
+		return (*st.out)[i]
+	}
+	return st.Underlying().Out(i)
 }
 
 func (st scriggoType) Kind() reflect.Kind {
@@ -96,6 +112,57 @@ func SliceOf(t reflect.Type) reflect.Type {
 		return slice
 	}
 	return reflect.SliceOf(t)
+}
+
+func FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
+
+	// First: check if this function contains a Scriggo type in its parameters.
+	// If not, such function can be created with reflect.FuncOf without any
+	// problem.
+	isScriggoType := false
+	for _, t := range in {
+		if _, ok := t.(scriggoType); ok {
+			isScriggoType = true
+			break
+		}
+	}
+	for _, t := range out {
+		if _, ok := t.(scriggoType); ok {
+			isScriggoType = true
+			break
+		}
+	}
+
+	if isScriggoType {
+
+		inBase := make([]reflect.Type, len(in))
+		outBase := make([]reflect.Type, len(out))
+
+		for i := range in {
+			if st, ok := in[i].(scriggoType); ok {
+				inBase[i] = st.Underlying()
+			} else {
+				inBase[i] = in[i]
+			}
+		}
+		for i := range out {
+			if st, ok := out[i].(scriggoType); ok {
+				outBase[i] = st.Underlying()
+			} else {
+				outBase[i] = out[i]
+			}
+		}
+
+		return scriggoType{
+			in:   &in,
+			out:  &out,
+			Type: FuncOf(inBase, outBase, variadic),
+		}
+
+	}
+
+	return reflect.FuncOf(in, out, variadic)
+
 }
 
 // TODO: change all calls to reflect.Zero to Zero.
