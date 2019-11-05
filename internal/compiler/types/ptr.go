@@ -37,5 +37,5 @@ func (x ptrType) Elem() reflect.Type {
 }
 
 func (x ptrType) String() string {
-	return "*" + x.elem.Name()
+	return "*" + x.elem.String()
 }
