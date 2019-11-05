@@ -15,6 +15,22 @@ type S4 struct {
 	A, B Int
 }
 
+type S5 struct {
+	Int
+}
+
+type S6 struct {
+	SliceInt []Int
+}
+
+type S7 struct {
+	Field struct {
+		A, B     Int
+		SliceInt []Int
+		Map      map[Int][]string
+	}
+}
+
 func main() {
 	var s1 S1
 	_ = s1
@@ -29,4 +45,10 @@ func main() {
 	// var s4 S4
 	// s4.A = 20 // untyped int
 	// s4.B = Int(42)
+
+	var s6 S6
+	_ = s6
+
+	var s7 S7
+	_ = s7
 }
