@@ -10,6 +10,7 @@ import (
 	"reflect"
 
 	"scriggo/ast"
+	"scriggo/internal/compiler/types"
 )
 
 // checkAssignment type checks an assignment node (Var, Const or Assignment)
@@ -64,7 +65,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 					case k == reflect.Interface, k == reflect.Func:
 						ti = nilOf(typ)
 					default:
-						ti = &TypeInfo{Type: typ, value: Zero(typ).Interface(), Properties: PropertyHasValue}
+						ti = &TypeInfo{Type: typ, value: types.Zero(typ).Interface(), Properties: PropertyHasValue}
 						ti.setValue(typ)
 					}
 					n.Rhs[i] = ast.NewPlaceholder()

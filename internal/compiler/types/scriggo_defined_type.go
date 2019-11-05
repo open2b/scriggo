@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package compiler
+package types
 
 import "reflect"
 
@@ -14,12 +14,12 @@ type scriggoDefinedType struct {
 	name string
 }
 
-// newScriggoDefinedType creates a new Scriggo defined type, that is a type
+// NewScriggoDefinedType creates a new Scriggo defined type, that is a type
 // created with the syntax
 //
 //    type Int int
 //
-func newScriggoDefinedType(name string, baseType reflect.Type) reflect.Type {
+func NewScriggoDefinedType(name string, baseType reflect.Type) reflect.Type {
 	if name == "" {
 		panic("BUG: name cannot be empty")
 	}

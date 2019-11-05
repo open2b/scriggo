@@ -15,6 +15,7 @@ import (
 	"unicode/utf8"
 
 	"scriggo/ast"
+	"scriggo/internal/compiler/types"
 	"scriggo/runtime"
 )
 
@@ -435,7 +436,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 
 	case *ast.SliceType:
 		elem := tc.checkType(expr.ElementType)
-		return &TypeInfo{Properties: PropertyIsType, Type: SliceOf(elem.Type)}
+		return &TypeInfo{Properties: PropertyIsType, Type: types.SliceOf(elem.Type)}
 
 	case *ast.ArrayType:
 		return tc.checkArrayType(expr, -1)
@@ -489,7 +490,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 				out[i] = c.Type
 			}
 		}
-		expr.Reflect = FuncOf(in, out, variadic)
+		expr.Reflect = types.FuncOf(in, out, variadic)
 		return &TypeInfo{Type: expr.Reflect, Properties: PropertyIsType}
 
 	case *ast.Func:
@@ -657,7 +658,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		case reflect.String, reflect.Slice:
 			return &TypeInfo{Type: t.Type}
 		case reflect.Array, reflect.Ptr:
-			return &TypeInfo{Type: SliceOf(realType.Elem())}
+			return &TypeInfo{Type: types.SliceOf(realType.Elem())}
 		}
 
 	case *ast.Selector:
