@@ -51,3 +51,7 @@ func (x mapType) Key() reflect.Type {
 	}
 	return x.Type.Key()
 }
+
+func (x mapType) Underlying() reflect.Type {
+	return x.Type
+}
