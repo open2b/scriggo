@@ -59,6 +59,10 @@ type structType struct {
 	scriggoFields *map[int]reflect.StructField
 }
 
+func (x structType) AssignableTo(T reflect.Type) bool {
+	return x == T
+}
+
 func (x structType) Underlying() reflect.Type {
 	return x.Type
 }

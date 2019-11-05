@@ -23,6 +23,10 @@ type ptrType struct {
 	elem reflect.Type // always != nil
 }
 
+func (x ptrType) AssignableTo(T reflect.Type) bool {
+	return x == T
+}
+
 func (x ptrType) Underlying() reflect.Type {
 	return x.Type
 }

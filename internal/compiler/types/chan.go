@@ -23,6 +23,10 @@ type chanType struct {
 	elem reflect.Type // always != nil
 }
 
+func (x chanType) AssignableTo(T reflect.Type) bool {
+	return x == T
+}
+
 func (x chanType) Underlying() reflect.Type {
 	return x.Type
 }
