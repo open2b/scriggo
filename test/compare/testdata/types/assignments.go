@@ -64,6 +64,9 @@ func definedTypes() {
 
 	i1 = int(42)         // ERROR `cannot use int(42) (type int) as type Int1 in assignment`
 	i2 = float64(56.034) // ERROR `cannot use float64(56.034) (type float64) as type Int2 in assignment`
+
+	type SliceByte []byte
+	var _ SliceByte = SliceByte([]byte{1,2,3})
 }
 
 func mapTypes() {
