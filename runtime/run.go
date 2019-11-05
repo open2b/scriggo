@@ -174,10 +174,14 @@ func (vm *VM) run() (Addr, bool) {
 			t := vm.fn.Types[uint8(b)]
 			var ok bool
 			if v.IsValid() {
-				if t.Kind() == reflect.Interface {
-					ok = v.Type().Implements(t)
+				if w, isWrapper := t.(Wrapper); isWrapper { // Scriggo type.
+					v, ok = w.Unwrap(v)
 				} else {
-					ok = v.Type() == t
+					if t.Kind() == reflect.Interface { // Go type.
+						ok = v.Type().Implements(t)
+					} else {
+						ok = v.Type() == t
+					}
 				}
 			}
 			vm.ok = ok
@@ -1719,9 +1723,20 @@ func (vm *VM) run() (Addr, bool) {
 		// Typify
 		case OpTypify, -OpTypify:
 			t := vm.fn.Types[uint8(a)]
-			v := reflect.New(t).Elem()
-			vm.getIntoReflectValue(b, v, op < 0)
-			vm.setGeneral(c, v.Interface())
+			if w, ok := t.(Wrapper); ok {
+				var v interface{}
+				switch t.Kind() {
+				case reflect.Int:
+					v = vm.intk(b, op < 0)
+				default:
+					panic("TODO: not implemented") // TODO(Gianluca): to implement.
+				}
+				vm.setGeneral(c, w.Wrap(v))
+			} else {
+				v := reflect.New(t).Elem()
+				vm.getIntoReflectValue(b, v, op < 0)
+				vm.setGeneral(c, v.Interface())
+			}
 
 		// Xor
 		case OpXor, -OpXor:

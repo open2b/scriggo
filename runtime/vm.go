@@ -26,6 +26,12 @@ var sliceByteType = reflect.TypeOf([]byte{})
 var emptyInterfaceType = reflect.TypeOf(&[]interface{}{nil}[0]).Elem()
 var emptyInterfaceNil = reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
 
+// TODO: document and put elsewhere.
+type Wrapper interface {
+	Wrap(interface{}) interface{}
+	Unwrap(reflect.Value) (reflect.Value, bool)
+}
+
 type StackShift [4]int8
 
 type Instruction struct {
