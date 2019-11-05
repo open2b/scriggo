@@ -318,29 +318,9 @@ func isAssignableTo(x *TypeInfo, expr ast.Expression, t reflect.Type) error {
 		}
 		return newInvalidTypeInAssignment(x, expr, t)
 	}
-	if st, ok := t.(types.ScriggoType); ok {
-		if _, ok := x.Type.(types.ScriggoType); ok {
-			// Nothing to do: both x and t have a type defined in Scriggo, so
-			// it's responsability of the IsAssignableTo method of scriggoType
-			// to check if the assignment can be done.
-		} else {
-			// x is a type info representing a type defined in Go,
-			// T is a type defined in Scriggo.
-			//
-			// If x is an untyped constant, then the type name is not a problem:
-			// it's enough to check if the untyped constant is assignable to the
-			// underlying type.
-			if x.IsUntypedConstant() {
-				return isAssignableTo(x, expr, st.Underlying())
-			}
-			// x has a type that is defined in Go and t is a Scriggo defined
-			// type: this assignment can never be done.
-			return newInvalidTypeInAssignment(x, expr, t)
-		}
-	}
 	// Checks if the type of x and t have identical underlying types and at
 	// least one is not a defined type.
-	if !x.Type.AssignableTo(t) {
+	if !types.AssignableTo(x.Type, t) {
 		return newInvalidTypeInAssignment(x, expr, t)
 	}
 	return nil
