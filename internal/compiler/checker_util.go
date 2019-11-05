@@ -479,8 +479,8 @@ func (tc *typechecker) methodByName(t *TypeInfo, name string) (*TypeInfo, receiv
 		return ti, receiverNoTransform, true
 	}
 	if t.Type.Kind() != reflect.Ptr {
-		method = types.Zero(reflect.PtrTo(t.Type)).MethodByName(name)
-		methodExplicitRcvr, _ := reflect.PtrTo(t.Type).MethodByName(name)
+		method = types.Zero(types.PtrTo(t.Type)).MethodByName(name)
+		methodExplicitRcvr, _ := types.PtrTo(t.Type).MethodByName(name)
 		if method.IsValid() {
 			return &TypeInfo{
 				Type:       removeEnvArg(method.Type(), false),
