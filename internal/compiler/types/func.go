@@ -8,12 +8,6 @@ package types
 
 import "reflect"
 
-type funcType struct {
-	reflect.Type
-
-	in, out *[]reflect.Type
-}
-
 func FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 
 	// First: check if this function contains a Scriggo type in its parameters.
@@ -63,6 +57,12 @@ func FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 
 	return reflect.FuncOf(in, out, variadic)
 
+}
+
+type funcType struct {
+	reflect.Type
+
+	in, out *[]reflect.Type
 }
 
 func (st funcType) In(i int) reflect.Type {
