@@ -55,7 +55,7 @@ func AssignableTo(x, t reflect.Type) bool {
 	}
 
 	if justOneIsDefined(x, T) {
-		x.AssignableTo(T.Underlying())
+		return x.AssignableTo(T.Underlying())
 	}
 
 	// TODO.

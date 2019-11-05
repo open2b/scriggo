@@ -55,7 +55,7 @@ func ptrTypes() {
 	type PtrInt *Int
 	var p1 Ptrint
 	_ = p1
-	// p1 = (*int)(nil)
+	p1 = (*int)(nil)
 }
 
 func main() {
