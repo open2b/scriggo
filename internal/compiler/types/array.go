@@ -44,6 +44,6 @@ func (x arrayType) Underlying() reflect.Type {
 
 func (x arrayType) String() string {
 	s := "[" + strconv.Itoa(x.Type.Len()) + "]"
-	s += x.elem.Name()
+	s += x.elem.String()
 	return s
 }

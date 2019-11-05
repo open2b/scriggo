@@ -59,15 +59,15 @@ func (x mapType) Key() reflect.Type {
 func (x mapType) String() string {
 	s := "map["
 	if x.key != nil {
-		s += x.key.Name()
+		s += x.key.String()
 	} else {
-		s += x.Type.Key().Name()
+		s += x.Type.Key().String()
 	}
 	s += "]"
 	if x.elem != nil {
-		s += x.elem.Name()
+		s += x.elem.String()
 	} else {
-		s += x.Type.Elem().Name()
+		s += x.Type.Elem().String()
 	}
 	return s
 }
