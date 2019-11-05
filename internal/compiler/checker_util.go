@@ -589,7 +589,7 @@ func (tc *typechecker) nilOf(t reflect.Type) *TypeInfo {
 		return &TypeInfo{
 			Properties: PropertyHasValue | PropertyIsPredefined,
 			Type:       t,
-			value:      reflect.Zero(t),
+			value:      types.Zero(t),
 		}
 	case reflect.Interface:
 		return &TypeInfo{
@@ -601,7 +601,7 @@ func (tc *typechecker) nilOf(t reflect.Type) *TypeInfo {
 		return &TypeInfo{
 			Properties: PropertyHasValue,
 			Type:       t,
-			value:      reflect.Zero(t).Interface(),
+			value:      types.Zero(t).Interface(),
 		}
 	}
 

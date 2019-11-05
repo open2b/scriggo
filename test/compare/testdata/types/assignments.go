@@ -56,6 +56,8 @@ func ptrTypes() {
 	var p1 Ptrint
 	_ = p1
 	p1 = (*int)(nil)
+	p1 = (Ptrint)(nil)
+	p1 = (PtrInt)(nil) // ERROR `cannot use PtrInt(nil) (type PtrInt) as type Ptrint in assignment`
 }
 
 func main() {
