@@ -68,10 +68,8 @@ func (x structType) Underlying() reflect.Type {
 }
 
 func (x structType) Field(i int) reflect.StructField {
-	if x.scriggoFields != nil {
-		if field, ok := (*x.scriggoFields)[i]; ok {
-			return field
-		}
+	if field, ok := (*x.scriggoFields)[i]; ok {
+		return field
 	}
 	return x.Type.Field(i)
 }
@@ -81,16 +79,38 @@ func (x structType) FieldByIndex(index []int) reflect.StructField {
 }
 
 func (x structType) FieldByName(name string) (reflect.StructField, bool) {
-	if x.scriggoFields != nil {
-		for _, field := range *x.scriggoFields {
-			if field.Name == name {
-				return field, true
-			}
+	for _, field := range *x.scriggoFields {
+		if field.Name == name {
+			return field, true
 		}
 	}
 	return x.Type.FieldByName(name)
 }
 
-func FieldByNameFunc(match func(string) bool) (reflect.StructField, bool) {
+func (x structType) FieldByNameFunc(match func(string) bool) (reflect.StructField, bool) {
 	panic("TODO: not implemented") // TODO(Gianluca): to implement.
+}
+
+func (x structType) NumField() int {
+	return x.Type.NumField()
+}
+
+func (x structType) String() string {
+	s := "struct { "
+	for i := 0; i < x.NumField(); i++ {
+		field := x.Field(i)
+		s += field.Name + " "
+		if scriggoField, ok := (*x.scriggoFields)[i]; ok {
+			s += scriggoField.Type.String()
+		} else {
+			s += field.Type.Name()
+		}
+		if i != x.NumField()-1 {
+			s += "; "
+		} else {
+			s += " "
+		}
+	}
+	s += "}"
+	return s
 }
