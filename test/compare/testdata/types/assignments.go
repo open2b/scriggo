@@ -2,8 +2,15 @@
 
 package main
 
-func main() {
+func arrayTypes() {
+	type Int1 int
+	var a1 [3]Int1
+	_ = a1
+	a1[0] = int(0) // ERROR `cannot use int(0) (type int) as type Int1 in assignment`
+	a1 = [3]int{}  // ERROR `cannot use [3]int literal (type [3]int) as type [3]Int1 in assignment`
+}
 
+func definedTypes() {
 	type Int1 int
 	type Int2 int
 
@@ -26,18 +33,35 @@ func main() {
 
 	i1 = int(42)         // ERROR `cannot use int(42) (type int) as type Int1 in assignment`
 	i2 = float64(56.034) // ERROR `cannot use float64(56.034) (type float64) as type Int2 in assignment`
+}
 
+func mapTypes() {
 	type MapIntString map[int]string
-
 	var v MapIntString
-
 	_ = v
-
 	v = map[int]int{} // ERROR `cannot use map[int]int literal (type map[int]int) as type MapIntString in assignment`
+}
 
-	var a1 [3]Int1
-	_ = a1
-	a1[0] = int(0) // ERROR `cannot use int(0) (type int) as type Int1 in assignment`
-	a1 = [3]int{}  // ERROR `cannot use [3]int literal (type [3]int) as type [3]Int1 in assignment`
+func sliceTypes() {
+	type Int int
+	var s []Int
+	_ = s
+	s = []int{} // ERROR `cannot use []int literal (type []int) as type []Int in assignment`
+}
 
+func ptrTypes() {
+	type Int int
+	type Ptrint *int
+	type PtrInt *Int
+	var p1 Ptrint
+	_ = p1
+	// p1 = (*int)(nil)
+}
+
+func main() {
+	arrayTypes()
+	definedTypes()
+	mapTypes()
+	ptrTypes()
+	sliceTypes()
 }
