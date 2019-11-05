@@ -63,3 +63,8 @@ func (x definedType) AssignableTo(T reflect.Type) bool {
 	return false
 
 }
+
+func (x definedType) MethodByName(string) (reflect.Method, bool) {
+	// TODO.
+	return reflect.Method{}, false
+}

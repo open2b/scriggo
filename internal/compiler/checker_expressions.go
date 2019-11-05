@@ -428,7 +428,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 				}
 			}
 		}
-		t := reflect.StructOf(fields)
+		t := types.StructOf(fields)
 		return &TypeInfo{
 			Type:       t,
 			Properties: PropertyIsType,

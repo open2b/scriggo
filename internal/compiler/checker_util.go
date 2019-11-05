@@ -453,7 +453,7 @@ func (tc *typechecker) methodByName(t *TypeInfo, name string) (*TypeInfo, receiv
 	}
 
 	// Method calls and method values on concrete types.
-	method := reflect.Zero(t.Type).MethodByName(name)
+	method := types.Zero(t.Type).MethodByName(name)
 	methodExplicitRcvr, _ := t.Type.MethodByName(name)
 	if method.IsValid() {
 		ti := &TypeInfo{
@@ -479,7 +479,7 @@ func (tc *typechecker) methodByName(t *TypeInfo, name string) (*TypeInfo, receiv
 		return ti, receiverNoTransform, true
 	}
 	if t.Type.Kind() != reflect.Ptr {
-		method = reflect.Zero(reflect.PtrTo(t.Type)).MethodByName(name)
+		method = types.Zero(reflect.PtrTo(t.Type)).MethodByName(name)
 		methodExplicitRcvr, _ := reflect.PtrTo(t.Type).MethodByName(name)
 		if method.IsValid() {
 			return &TypeInfo{
