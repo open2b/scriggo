@@ -462,7 +462,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			dir = reflect.SendDir
 		}
 		elem := tc.checkType(expr.ElementType)
-		return &TypeInfo{Properties: PropertyIsType, Type: reflect.ChanOf(dir, elem.Type)}
+		return &TypeInfo{Properties: PropertyIsType, Type: types.ChanOf(dir, elem.Type)}
 
 	case *ast.CompositeLiteral:
 		return tc.checkCompositeLiteral(expr, nil)
