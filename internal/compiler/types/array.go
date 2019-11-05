@@ -13,7 +13,7 @@ import (
 
 func ArrayOf(count int, elem reflect.Type) reflect.Type {
 	if st, ok := elem.(ScriggoType); ok {
-		return sliceType{
+		return arrayType{
 			Type: ArrayOf(count, st.Underlying()),
 			elem: st,
 		}
