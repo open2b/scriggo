@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"scriggo/ast"
+	"scriggo/internal/compiler/types"
 )
 
 // templatePageToPackage extract first-level declarations in tree and appends them
@@ -958,7 +959,7 @@ func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) *TypeInfo
 
 	// Type definition: a Scriggo type must be created.
 	return &TypeInfo{
-		Type:       newScriggoDefinedType(name, typ.Type),
+		Type:       types.NewScriggoDefinedType(name, typ.Type),
 		Properties: PropertyIsType,
 	}
 
