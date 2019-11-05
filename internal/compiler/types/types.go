@@ -64,3 +64,13 @@ func AssignableTo(x, t reflect.Type) bool {
 	// TODO.
 	return false
 }
+
+func ConvertibleTo(x, u reflect.Type) bool {
+	if x, ok := x.(ScriggoType); ok {
+		return ConvertibleTo(x.Underlying(), u)
+	}
+	if u, ok := u.(ScriggoType); ok {
+		return ConvertibleTo(x, u.Underlying())
+	}
+	return x.ConvertibleTo(u) // rtype method
+}

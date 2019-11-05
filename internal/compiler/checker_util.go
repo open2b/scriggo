@@ -179,7 +179,7 @@ func convert(ti *TypeInfo, t2 reflect.Type) (constant, error) {
 		return representedBy(ti, t2)
 	}
 
-	if t.ConvertibleTo(t2) {
+	if types.ConvertibleTo(t, t2) {
 		return nil, nil
 	}
 
