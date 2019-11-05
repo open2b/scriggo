@@ -142,50 +142,6 @@ func (vm *VM) setBoolIndirect(r int8, b bool) {
 	}
 }
 
-func (vm *VM) incInt(r int8) {
-	if r > 0 {
-		vm.regs.int[vm.fp[0]+Addr(r)]++
-		return
-	}
-	vm.incIntIndirect(-r)
-}
-
-func (vm *VM) incIntIndirect(r int8) {
-	v := vm.regs.general[vm.fp[3]+Addr(r)]
-	if v, ok := v.(*int); ok {
-		*v++
-	} else {
-		elem := reflect.ValueOf(v).Elem()
-		if k := elem.Kind(); reflect.Int <= k && k <= reflect.Int64 {
-			elem.SetInt(elem.Int() + 1)
-		} else {
-			elem.SetUint(elem.Uint() + 1)
-		}
-	}
-}
-
-func (vm *VM) decInt(r int8) {
-	if r > 0 {
-		vm.regs.int[vm.fp[0]+Addr(r)]--
-		return
-	}
-	vm.decIntIndirect(-r)
-}
-
-func (vm *VM) decIntIndirect(r int8) {
-	v := vm.regs.general[vm.fp[3]+Addr(r)]
-	if v, ok := v.(*int); ok {
-		*v--
-	} else {
-		elem := reflect.ValueOf(v).Elem()
-		if k := elem.Kind(); reflect.Int <= k && k <= reflect.Int64 {
-			elem.SetInt(elem.Int() - 1)
-		} else {
-			elem.SetUint(elem.Uint() - 1)
-		}
-	}
-}
-
 func (vm *VM) float(r int8) float64 {
 	if r > 0 {
 		return vm.regs.float[vm.fp[1]+Addr(r)]
@@ -229,42 +185,6 @@ func (vm *VM) setFloatIndirect(r int8, f float64) {
 		*v = f
 	} else {
 		reflect.ValueOf(v).Elem().SetFloat(f)
-	}
-}
-
-func (vm *VM) incFloat(r int8) {
-	if r > 0 {
-		vm.regs.float[vm.fp[1]+Addr(r)]++
-		return
-	}
-	vm.incFloatIndirect(-r)
-}
-
-func (vm *VM) incFloatIndirect(r int8) {
-	v := vm.regs.general[vm.fp[3]+Addr(r)]
-	if v, ok := v.(*float64); ok {
-		*v++
-	} else {
-		elem := reflect.ValueOf(v).Elem()
-		elem.SetFloat(elem.Float() + 1)
-	}
-}
-
-func (vm *VM) decFloat(r int8) {
-	if r > 0 {
-		vm.regs.float[vm.fp[1]+Addr(r)]--
-		return
-	}
-	vm.decFloatIndirect(-r)
-}
-
-func (vm *VM) decFloatIndirect(r int8) {
-	v := vm.regs.general[vm.fp[3]+Addr(r)]
-	if v, ok := v.(*float64); ok {
-		*v--
-	} else {
-		elem := reflect.ValueOf(v).Elem()
-		elem.SetFloat(elem.Float() - 1)
 	}
 }
 
