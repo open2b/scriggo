@@ -47,9 +47,11 @@ func mapTypes() {
 
 func sliceTypes() {
 	type Int int
+	type String string
 	var s []Int
 	_ = s
-	s = []int{} // ERROR `cannot use []int literal (type []int) as type []Int in assignment`
+	s = []int{}    // ERROR `cannot use []int literal (type []int) as type []Int in assignment`
+	s = []String{} // ERROR `cannot use []String literal (type []String) as type []Int in assignment`
 }
 
 func ptrTypes() {
