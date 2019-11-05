@@ -36,13 +36,16 @@ func definedTypes() {
 }
 
 func mapTypes() {
+
 	type Int int
 	type String string
 	type MapIntString map[int]string
-	var v MapIntString
-	_ = v
-	v = map[int]int{}    // ERROR `cannot use map[int]int literal (type map[int]int) as type MapIntString in assignment`
-	v = map[Int]String{} // ERROR `cannot use map[Int]String literal (type map[Int]String) as type MapIntString in assignment`
+
+	var m MapIntString
+	_ = m
+	m = map[int]int{}    // ERROR `cannot use map[int]int literal (type map[int]int) as type MapIntString in assignment`
+	m = map[Int]String{} // ERROR `cannot use map[Int]String literal (type map[Int]String) as type MapIntString in assignment`
+	m = []MapIntString{} // ERROR `cannot use []MapIntString literal (type []MapIntString) as type MapIntString in assignment`
 }
 
 func sliceTypes() {
