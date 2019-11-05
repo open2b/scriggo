@@ -100,6 +100,28 @@ func ptrTypes() {
 	p1 = (*Int)(nil)   // ERROR `cannot use *Int(nil) (type *Int) as type Ptrint in assignment`
 }
 
+func structTypes() {
+	type Int int
+	type String string
+	type Field = map[Int][]string
+
+	var s struct{ A, B Field }
+	_ = s
+	s.A = 4              // ERROR `cannot use 4 (type int) as type map[Int][]string in assignment`
+	s.A = String("ciao") // ERROR `cannot use String("ciao") (type String) as type map[Int][]string in assignment`
+	s = []int{}          // ERROR `cannot use []int literal (type []int) as type struct { A map[Int][]string; B map[Int][]string } in assignment`
+
+	type S struct{ A map[string]Field }
+	var s2 S
+	_ = s2
+	s2.A = 4                // ERROR `cannot use 4 (type int) as type map[string]map[Int][]string in assignment`
+	s2.A = map[string]Int{} // ERROR `cannot use map[string]Int literal (type map[string]Int) as type map[string]map[Int][]string in assignment`
+
+	type F struct{ A []Field }
+	s2 = F{}                   // ERROR `cannot use F literal (type F) as type S in assignment`
+	s2 = struct{ A []Field }{} // ERROR `cannot use struct { A []Field } literal (type struct { A []map[Int][]string }) as type S in assignment`
+}
+
 func main() {
 	arrayTypes()
 	chanTypes()
@@ -107,4 +129,5 @@ func main() {
 	mapTypes()
 	ptrTypes()
 	sliceTypes()
+	structTypes()
 }
