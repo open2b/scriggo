@@ -6,7 +6,10 @@
 
 package types
 
-import "reflect"
+import (
+	"reflect"
+	"strconv"
+)
 
 func ArrayOf(count int, elem reflect.Type) reflect.Type {
 	if st, ok := elem.(ScriggoType); ok {
@@ -37,4 +40,10 @@ func (x arrayType) Elem() reflect.Type {
 
 func (x arrayType) Underlying() reflect.Type {
 	return x.Type
+}
+
+func (x arrayType) String() string {
+	s := "[" + strconv.Itoa(x.Type.Len()) + "]"
+	s += x.elem.Name()
+	return s
 }
