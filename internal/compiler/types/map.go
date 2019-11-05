@@ -38,6 +38,10 @@ type mapType struct {
 	key, elem reflect.Type
 }
 
+func (x mapType) AssignableTo(T reflect.Type) bool {
+	return x == T
+}
+
 func (x mapType) Elem() reflect.Type {
 	if x.elem != nil {
 		return x.elem

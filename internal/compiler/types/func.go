@@ -65,6 +65,10 @@ type funcType struct {
 	in, out *[]reflect.Type
 }
 
+func (x funcType) AssignableTo(T reflect.Type) bool {
+	return x == T
+}
+
 func (st funcType) In(i int) reflect.Type {
 	if st.in != nil {
 		return (*st.in)[i]
