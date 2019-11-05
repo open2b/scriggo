@@ -35,3 +35,7 @@ func (x ptrType) Elem() reflect.Type {
 	// x.elem is always != nil, otherwise this ptrType has no reason to exist.
 	return x.elem
 }
+
+func (x ptrType) String() string {
+	return "*" + x.elem.Name()
+}

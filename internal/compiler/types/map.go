@@ -56,6 +56,22 @@ func (x mapType) Key() reflect.Type {
 	return x.Type.Key()
 }
 
+func (x mapType) String() string {
+	s := "map["
+	if x.key != nil {
+		s += x.key.Name()
+	} else {
+		s += x.Type.Key().Name()
+	}
+	s += "]"
+	if x.elem != nil {
+		s += x.elem.Name()
+	} else {
+		s += x.Type.Elem().Name()
+	}
+	return s
+}
+
 func (x mapType) Underlying() reflect.Type {
 	return x.Type
 }
