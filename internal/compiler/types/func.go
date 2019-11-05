@@ -8,7 +8,7 @@ package types
 
 import "reflect"
 
-type scriggoFuncType struct {
+type funcType struct {
 	reflect.Type
 
 	in, out *[]reflect.Type
@@ -53,7 +53,7 @@ func FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 			}
 		}
 
-		return scriggoFuncType{
+		return funcType{
 			in:   &in,
 			out:  &out,
 			Type: FuncOf(inBase, outBase, variadic),
@@ -65,33 +65,33 @@ func FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 
 }
 
-func (st scriggoFuncType) In(i int) reflect.Type {
+func (st funcType) In(i int) reflect.Type {
 	if st.in != nil {
 		return (*st.in)[i]
 	}
 	return st.Type.In(i)
 }
 
-func (st scriggoFuncType) Out(i int) reflect.Type {
+func (st funcType) Out(i int) reflect.Type {
 	if st.out != nil {
 		return (*st.out)[i]
 	}
 	return st.Type.Out(i)
 }
 
-func (st scriggoFuncType) Kind() reflect.Kind {
+func (st funcType) Kind() reflect.Kind {
 	return reflect.Func
 }
 
-func (st scriggoFuncType) Name() string {
+func (st funcType) Name() string {
 	return "" // this is a composite type, not a defined type.
 }
 
-func (st scriggoFuncType) Underlying() reflect.Type {
+func (st funcType) Underlying() reflect.Type {
 	return st.Type
 }
 
-func (st scriggoFuncType) String() string {
+func (st funcType) String() string {
 	s := "func("
 	for i, t := range *st.in {
 		s += t.String()
