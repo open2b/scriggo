@@ -11,7 +11,7 @@ import "reflect"
 func SliceOf(t reflect.Type) reflect.Type {
 	if st, ok := t.(ScriggoType); ok {
 		return scriggoSliceType{
-			Type: SliceOf(st.RType()),
+			Type: SliceOf(st.Underlying()),
 			elem: st,
 		}
 	}
@@ -35,7 +35,7 @@ func (x scriggoSliceType) Elem() reflect.Type {
 	return x.elem
 }
 
-func (x scriggoSliceType) RType() reflect.Type {
+func (x scriggoSliceType) Underlying() reflect.Type {
 	return x.Type
 }
 

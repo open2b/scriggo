@@ -40,14 +40,14 @@ func FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 
 		for i := range in {
 			if st, ok := in[i].(ScriggoType); ok {
-				inBase[i] = st.RType()
+				inBase[i] = st.Underlying()
 			} else {
 				inBase[i] = in[i]
 			}
 		}
 		for i := range out {
 			if st, ok := out[i].(ScriggoType); ok {
-				outBase[i] = st.RType()
+				outBase[i] = st.Underlying()
 			} else {
 				outBase[i] = out[i]
 			}
@@ -87,7 +87,7 @@ func (st scriggoFuncType) Name() string {
 	return "" // this is a composite type, not a defined type.
 }
 
-func (st scriggoFuncType) RType() reflect.Type {
+func (st scriggoFuncType) Underlying() reflect.Type {
 	return st.Type
 }
 

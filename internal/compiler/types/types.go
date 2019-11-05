@@ -12,7 +12,7 @@ import (
 
 type ScriggoType interface {
 	reflect.Type
-	RType() reflect.Type
+	Underlying() reflect.Type
 }
 
 func isDefinedType(t reflect.Type) bool {
@@ -21,7 +21,7 @@ func isDefinedType(t reflect.Type) bool {
 
 func Zero(t reflect.Type) reflect.Value {
 	if st, ok := t.(ScriggoType); ok {
-		return Zero(st.RType())
+		return Zero(st.Underlying())
 	}
 	return reflect.Zero(t)
 }

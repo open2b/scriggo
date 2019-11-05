@@ -40,7 +40,7 @@ func (x scriggoDefinedType) String() string {
 	return x.name
 }
 
-func (x scriggoDefinedType) RType() reflect.Type {
+func (x scriggoDefinedType) Underlying() reflect.Type {
 	return x.Type
 }
 

@@ -331,7 +331,7 @@ func isAssignableTo(x *TypeInfo, expr ast.Expression, t reflect.Type) error {
 			// it's enough to check if the untyped constant is assignable to the
 			// underlying type.
 			if x.IsUntypedConstant() {
-				return isAssignableTo(x, expr, st.RType())
+				return isAssignableTo(x, expr, st.Underlying())
 			}
 			// x has a type that is defined in Go and t is a Scriggo defined
 			// type: this assignment can never be done.
