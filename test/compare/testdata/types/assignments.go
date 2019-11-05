@@ -10,6 +10,37 @@ func arrayTypes() {
 	a1 = [3]int{}  // ERROR `cannot use [3]int literal (type [3]int) as type [3]Int1 in assignment`
 }
 
+func chanTypes() {
+
+	return // avoids operations on channels
+
+	type Int int
+	type String string
+
+	var c1 chan int
+	_ = c1
+	c1 <- Int(0)           // ERROR `cannot use Int(0) (type Int) as type int in send`
+	var _ Int = <-c1       // ERROR `cannot use <-c1 (type int) as type Int in assignment`
+	c1 = (chan Int)(nil)   // ERROR `cannot use chan Int(nil) (type chan Int) as type chan int in assignment`
+	c1 = (chan<- Int)(nil) // ERROR `cannot use chan<- Int(nil) (type chan<- Int) as type chan int in assignment`
+	c1 = (<-chan Int)(nil) // ERROR `cannot use <-chan Int(nil) (type <-chan Int) as type chan int in assignment`
+
+	var c2 chan Int
+	_ = c2
+	c2 <- Int(0)
+	c2 <- int(42)    // ERROR `cannot use int(42) (type int) as type Int in send`
+	var _ int = <-c2 // ERROR `cannot use <-c2 (type Int) as type int in assignment`
+
+	var c3 chan<- []String
+	_ = c3
+	c3 <- []Int{} // ERROR `cannot use []Int literal (type []Int) as type []String in send`
+
+	var c4 (<-chan map[String][]Int)
+	_ = c4
+	var _ int = <-c4 // ERROR `cannot use <-c4 (type map[String][]Int) as type int in assignment`
+
+}
+
 func definedTypes() {
 	type Int1 int
 	type Int2 int
@@ -71,6 +102,7 @@ func ptrTypes() {
 
 func main() {
 	arrayTypes()
+	chanTypes()
 	definedTypes()
 	mapTypes()
 	ptrTypes()
