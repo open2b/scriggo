@@ -35,3 +35,17 @@ func (x chanType) Elem() reflect.Type {
 	// x.elem is always != nil, otherwise this chanType has no reason to exist.
 	return x.elem
 }
+
+func (x chanType) String() string {
+	var s string
+	switch x.ChanDir() {
+	case reflect.BothDir:
+		s += "chan "
+	case reflect.RecvDir:
+		s += "<-chan "
+	case reflect.SendDir:
+		s += "chan<- "
+	}
+	s += x.elem.String()
+	return s
+}
