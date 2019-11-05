@@ -25,6 +25,9 @@ func justOneIsDefined(t1, t2 reflect.Type) bool {
 	return (isDefinedType(t1) && !isDefinedType(t2)) || (!isDefinedType(t1) && isDefinedType(t2))
 }
 
+// TODO: every call to a reflect function in the compiler should be checked and
+// eventually converted to a call to a function of this package.
+
 func Zero(t reflect.Type) reflect.Value {
 	if st, ok := t.(ScriggoType); ok {
 		return Zero(st.Underlying())
