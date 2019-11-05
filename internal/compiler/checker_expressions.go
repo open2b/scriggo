@@ -442,7 +442,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 				panic(tc.errorf(expr, "invalid map key type %s", key))
 			}
 		}()
-		return &TypeInfo{Properties: PropertyIsType, Type: reflect.MapOf(key.Type, value.Type)}
+		return &TypeInfo{Properties: PropertyIsType, Type: types.MapOf(key.Type, value.Type)}
 
 	case *ast.SliceType:
 		elem := tc.checkType(expr.ElementType)

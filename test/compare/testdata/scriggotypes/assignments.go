@@ -27,4 +27,12 @@ func main() {
 	i1 = int(42)         // ERROR `cannot use int(42) (type int) as type Int1 in assignment`
 	i2 = float64(56.034) // ERROR `cannot use float64(56.034) (type float64) as type Int2 in assignment`
 
+	type MapIntString map[int]string
+
+	var v MapIntString
+
+	_ = v
+
+	v = map[int]int{} // ERROR `cannot use map[int]int literal (type map[int]int) as type MapIntString in assignment`
+
 }
