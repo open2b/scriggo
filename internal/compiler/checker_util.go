@@ -363,6 +363,11 @@ func isComplex(k reflect.Kind) bool {
 	return k == reflect.Complex64 || k == reflect.Complex128
 }
 
+// isDefinedType reports whether t is a defined type or not.
+func isDefinedType(t reflect.Type) bool {
+	return t.Name() != ""
+}
+
 // isInteger reports whether a reflect kind is integer.
 func isInteger(k reflect.Kind) bool {
 	return reflect.Int <= k && k <= reflect.Uintptr
