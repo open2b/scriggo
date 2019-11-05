@@ -35,4 +35,9 @@ func main() {
 
 	v = map[int]int{} // ERROR `cannot use map[int]int literal (type map[int]int) as type MapIntString in assignment`
 
+	var a1 [3]Int1
+	_ = a1
+	a1[0] = int(0) // ERROR `cannot use int(0) (type int) as type Int1 in assignment`
+	a1 = [3]int{}  // ERROR `cannot use [3]int literal (type [3]int) as type [3]Int1 in assignment`
+
 }
