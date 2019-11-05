@@ -285,7 +285,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		t := tc.checkExprOrType(expr.Expr)
 		if t.IsType() {
 			if expr.Op == ast.OperatorMultiplication {
-				return &TypeInfo{Properties: PropertyIsType, Type: reflect.PtrTo(t.Type)}
+				return &TypeInfo{Properties: PropertyIsType, Type: types.PtrTo(t.Type)}
 			}
 			panic(tc.errorf(expr, "type %s is not an expression", t))
 		}
@@ -335,7 +335,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			if _, ok := expr.Expr.(*ast.CompositeLiteral); !ok && !t.Addressable() {
 				panic(tc.errorf(expr, "cannot take the address of %s", expr.Expr))
 			}
-			ti.Type = reflect.PtrTo(t.Type)
+			ti.Type = types.PtrTo(t.Type)
 			// When taking the address of a variable, such variable must be
 			// marked as "indirect".
 			if ident, ok := expr.Expr.(*ast.Identifier); ok {
@@ -742,7 +742,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 					tc.indirectVars[elem.decl] = true
 					expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorAnd, expr.Expr)
 					tc.typeInfos[expr.Expr] = &TypeInfo{
-						Type:       reflect.PtrTo(t.Type),
+						Type:       types.PtrTo(t.Type),
 						MethodType: t.MethodType,
 					}
 				}
@@ -1380,7 +1380,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		if len(expr.Args) > 1 {
 			panic(tc.errorf(expr, "too many arguments to new(%s)", expr.Args[0]))
 		}
-		return []*TypeInfo{{Type: reflect.PtrTo(t.Type)}}
+		return []*TypeInfo{{Type: types.PtrTo(t.Type)}}
 
 	case "panic":
 		if len(expr.Args) == 0 {
