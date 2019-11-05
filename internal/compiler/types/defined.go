@@ -8,47 +8,47 @@ package types
 
 import "reflect"
 
-type scriggoDefinedType struct {
+type definedType struct {
 	reflect.Type
 
 	name string
 }
 
-// NewScriggoDefinedType creates a new Scriggo defined type, that is a type
+// DefinedOf creates a new Scriggo defined type, that is a type
 // created with the syntax
 //
 //    type Int int
 //
-func NewScriggoDefinedType(name string, baseType reflect.Type) reflect.Type {
+func DefinedOf(name string, baseType reflect.Type) reflect.Type {
 	if name == "" {
 		panic("BUG: name cannot be empty")
 	}
-	return scriggoDefinedType{
+	return definedType{
 		Type: baseType,
 		name: name,
 	}
 }
 
-func (x scriggoDefinedType) Name() string {
+func (x definedType) Name() string {
 	return x.name
 }
 
-func (x scriggoDefinedType) String() string {
+func (x definedType) String() string {
 	// For defined types the string representation is exactly the name of the
 	// type; the internal structure of the type is hidden.
 	// TODO: verify that this is correct.
 	return x.name
 }
 
-func (x scriggoDefinedType) Underlying() reflect.Type {
+func (x definedType) Underlying() reflect.Type {
 	return x.Type
 }
 
-func (x scriggoDefinedType) AssignableTo(T reflect.Type) bool {
+func (x definedType) AssignableTo(T reflect.Type) bool {
 
 	// Both x and T are Scriggo defined types: x is assignable to T only if they
 	// are the same type.
-	if T, ok := T.(scriggoDefinedType); ok {
+	if T, ok := T.(definedType); ok {
 		return x == T
 	}
 

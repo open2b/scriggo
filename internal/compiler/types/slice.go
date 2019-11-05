@@ -10,7 +10,7 @@ import "reflect"
 
 func SliceOf(t reflect.Type) reflect.Type {
 	if st, ok := t.(ScriggoType); ok {
-		return scriggoSliceType{
+		return sliceType{
 			Type: SliceOf(st.Underlying()),
 			elem: st,
 		}
@@ -18,27 +18,27 @@ func SliceOf(t reflect.Type) reflect.Type {
 	return reflect.SliceOf(t)
 }
 
-type scriggoSliceType struct {
+type sliceType struct {
 	reflect.Type
 	elem reflect.Type
 }
 
-func (x scriggoSliceType) AssignableTo(T reflect.Type) bool {
+func (x sliceType) AssignableTo(T reflect.Type) bool {
 	return x == T
 }
 
-func (x scriggoSliceType) Name() string {
+func (x sliceType) Name() string {
 	return ""
 }
 
-func (x scriggoSliceType) Elem() reflect.Type {
+func (x sliceType) Elem() reflect.Type {
 	return x.elem
 }
 
-func (x scriggoSliceType) Underlying() reflect.Type {
+func (x sliceType) Underlying() reflect.Type {
 	return x.Type
 }
 
-func (x scriggoSliceType) String() string {
+func (x sliceType) String() string {
 	return "[]" + (x.elem).String()
 }
