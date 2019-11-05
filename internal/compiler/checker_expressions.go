@@ -188,7 +188,7 @@ unusedLoop:
 func (tc *typechecker) checkArrayType(array *ast.ArrayType, length int) *TypeInfo {
 	elem := tc.checkType(array.ElementType)
 	if array.Len == nil { // ellipsis.
-		tc.typeInfos[array] = &TypeInfo{Properties: PropertyIsType, Type: reflect.ArrayOf(length, elem.Type)}
+		tc.typeInfos[array] = &TypeInfo{Properties: PropertyIsType, Type: types.ArrayOf(length, elem.Type)}
 		return tc.typeInfos[array]
 	}
 	len := tc.checkExpr(array.Len)
@@ -206,7 +206,7 @@ func (tc *typechecker) checkArrayType(array *ast.ArrayType, length int) *TypeInf
 	if b < length {
 		panic(tc.errorf(array, "array index %d out of bounds [0:%d]", length-1, b))
 	}
-	tc.typeInfos[array] = &TypeInfo{Properties: PropertyIsType, Type: reflect.ArrayOf(b, elem.Type)}
+	tc.typeInfos[array] = &TypeInfo{Properties: PropertyIsType, Type: types.ArrayOf(b, elem.Type)}
 	return tc.typeInfos[array]
 }
 
