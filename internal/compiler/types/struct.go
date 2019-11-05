@@ -49,14 +49,14 @@ func StructOf(fields []reflect.StructField) reflect.Type {
 
 	return structType{
 		Type:          StructOf(baseFields),
-		scriggoFields: scriggoFields,
+		scriggoFields: &scriggoFields,
 	}
 
 }
 
 type structType struct {
 	reflect.Type
-	scriggoFields map[int]reflect.StructField
+	scriggoFields *map[int]reflect.StructField
 }
 
 func (x structType) Underlying() reflect.Type {
@@ -64,8 +64,10 @@ func (x structType) Underlying() reflect.Type {
 }
 
 func (x structType) Field(i int) reflect.StructField {
-	if field, ok := x.scriggoFields[i]; ok {
-		return field
+	if x.scriggoFields != nil {
+		if field, ok := (*x.scriggoFields)[i]; ok {
+			return field
+		}
 	}
 	return x.Type.Field(i)
 }
@@ -75,9 +77,11 @@ func (x structType) FieldByIndex(index []int) reflect.StructField {
 }
 
 func (x structType) FieldByName(name string) (reflect.StructField, bool) {
-	for _, field := range x.scriggoFields {
-		if field.Name == name {
-			return field, true
+	if x.scriggoFields != nil {
+		for _, field := range *x.scriggoFields {
+			if field.Name == name {
+				return field, true
+			}
 		}
 	}
 	return x.Type.FieldByName(name)
