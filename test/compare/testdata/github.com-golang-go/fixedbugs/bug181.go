@@ -1,4 +1,4 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
+// skip : invalid recursive type alias
 
 // errorcheck
 
@@ -11,3 +11,5 @@ package main
 type T *struct {
 	T;	// ERROR "embed.*pointer"
 }
+
+func main() { }
