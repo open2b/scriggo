@@ -40,6 +40,15 @@ func justOneIsDefined(t1, t2 reflect.Type) bool {
 	return (isDefinedType(t1) && !isDefinedType(t2)) || (!isDefinedType(t1) && isDefinedType(t2))
 }
 
+// New behaves like reflect.New expect when typ is a Scriggo type; in such case
+// is returned a 'new' instance of the underlying Go type.
+func New(typ reflect.Type) reflect.Value {
+	if st, ok := typ.(ScriggoType); ok {
+		return New(st.Underlying())
+	}
+	return reflect.New(typ)
+}
+
 // Zero behaves like reflect.Zero except when t is a Scriggo type; in such case
 // instead of returning the zero of the Scriggo type is returned the zero of the
 // underlying type.

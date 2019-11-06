@@ -656,7 +656,7 @@ func typedValue(ti *TypeInfo, t reflect.Type) interface{} {
 			panic(fmt.Sprintf("unexpected kind %q", k))
 		}
 	}
-	nv := reflect.New(t).Elem()
+	nv := types.New(t).Elem()
 	switch k {
 	case reflect.Bool:
 		nv.SetBool(c.bool())

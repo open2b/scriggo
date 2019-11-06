@@ -40,6 +40,22 @@ func main() {
 
 		type Int int
 		var i1 interface{} = []Int{1,2,3}
+		_ , ok = i1.(Int)   ; fmt.Println(ok)
+		_ , ok = i1.([]int) ; fmt.Println(ok)
+		_ , ok = i1.([]Int) ; fmt.Println(ok)
+
+	}
+
+	{
+
+		// Map types.
+
+		var ok bool
+
+		type Int int
+		type String string
+
+		var i1 interface{} = map[String]Int{"ciao": 3}
 		_ , ok = i1.(Int); fmt.Println(ok)
 
 	}
