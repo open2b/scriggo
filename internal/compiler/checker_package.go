@@ -622,7 +622,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 				t := tc.checkType(param.Type)
 				if param.Ident != nil {
 					if isVariadic && i == len(d.Type.Parameters)-1 {
-						tc.assignScope(param.Ident.Name, &TypeInfo{Type: reflect.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
+						tc.assignScope(param.Ident.Name, &TypeInfo{Type: tc.types.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
 					} else {
 						tc.assignScope(param.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 					}

@@ -481,7 +481,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			} else {
 				t := tc.checkType(param.Type)
 				if variadic && i == numIn-1 {
-					in[i] = reflect.SliceOf(t.Type)
+					in[i] = tc.types.SliceOf(t.Type)
 				} else {
 					in[i] = t.Type
 				}
@@ -514,7 +514,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			t := tc.checkType(f.Type)
 			if f.Ident != nil {
 				if isVariadic && i == len(expr.Type.Parameters)-1 {
-					tc.assignScope(f.Ident.Name, &TypeInfo{Type: reflect.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
+					tc.assignScope(f.Ident.Name, &TypeInfo{Type: tc.types.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
 					continue
 				}
 				tc.assignScope(f.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
@@ -1626,7 +1626,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		}
 		a := tc.checkExpr(arg)
 		if i == lastIn && callIsVariadic {
-			if err := tc.isAssignableTo(a, arg, reflect.SliceOf(in)); err != nil {
+			if err := tc.isAssignableTo(a, arg, tc.types.SliceOf(in)); err != nil {
 				if _, ok := err.(invalidTypeInAssignment); ok {
 					panic(tc.errorf(expr, "%s in argument to %s", err, expr.Func))
 				}
