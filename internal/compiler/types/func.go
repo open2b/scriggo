@@ -38,8 +38,8 @@ func (types *Types) FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 		}
 
 		return funcType{
-			in:   &in,
-			out:  &out,
+			in:   types.addFuncParameters(in, input),
+			out:  types.addFuncParameters(out, output),
 			Type: types.FuncOf(inGo, outGo, variadic),
 		}
 
@@ -47,6 +47,42 @@ func (types *Types) FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 
 	return reflect.FuncOf(in, out, variadic)
 
+}
+
+type parameters = []reflect.Type
+
+const (
+	input  = 0
+	output = 1
+)
+
+// equalParams reports whether params1 and params2 are equal, i.e. have the same
+// length and contain the same elements at the same position.
+func equalParams(params1, params2 parameters) bool {
+	if len(params1) != len(params2) {
+		return false
+	}
+	for i := range params1 {
+		if params1[i] != params2[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// addFuncParameters adds in to the list of input (0) or output (1) parameters for a function. If a list
+// with the same elements is found, then the pointer to such list is returned.
+// This makes comparisons betweens two identical function types declared in two
+// parts of the code correct.
+func (types *Types) addFuncParameters(params parameters, inOrOut int) *parameters {
+	for _, storedParams := range types.funcParameters[inOrOut] {
+		if equalParams(*storedParams, params) {
+			return storedParams
+		}
+	}
+	// Not found.
+	types.funcParameters[inOrOut] = append(types.funcParameters[inOrOut], &params)
+	return types.funcParameters[inOrOut][len(types.funcParameters[inOrOut])-1]
 }
 
 // containsScriggoTypes reports whether types contains at least one Scriggo type.

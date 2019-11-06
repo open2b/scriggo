@@ -18,4 +18,7 @@ func main() {
 
 	// var s SumFunc = Sum
 	// fmt.Println(s(20, 30))
+	var _ func(A Int) = func(A Int) {}
+	type String string
+	var _ func(A Int) String = func(A Int) String { return "" }
 }
