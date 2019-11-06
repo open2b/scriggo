@@ -28,6 +28,7 @@ func (x chanType) AssignableTo(T reflect.Type) bool {
 }
 
 func (x chanType) Underlying() reflect.Type {
+	assertNotScriggoType(x.Type)
 	return x.Type
 }
 

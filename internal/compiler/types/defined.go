@@ -10,9 +10,21 @@ import (
 	"reflect"
 )
 
+// A definedType is a type defined in Scriggo with the syntax
+//
+//		type Name subType
+//
+// 	subType can be both a "Scriggo type" or a "Go Type".
+//
 type definedType struct {
+	// The embedded reflect.Type can be both a reflect.Type implemented by the
+	// package "reflect" or a ScriggoType.
 	reflect.Type
 
+	// name is the name of the defined type.
+	//
+	//     type name subtype
+	//
 	name string
 }
 
@@ -43,6 +55,10 @@ func (x definedType) String() string {
 }
 
 func (x definedType) Underlying() reflect.Type {
+	if st, ok := x.Type.(ScriggoType); ok {
+		return st.Underlying()
+	}
+	assertNotScriggoType(x.Type)
 	return x.Type
 }
 
