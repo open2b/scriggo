@@ -69,52 +69,52 @@ func (x funcType) AssignableTo(T reflect.Type) bool {
 	return x == T
 }
 
-func (st funcType) In(i int) reflect.Type {
-	if st.in != nil {
-		return (*st.in)[i]
+func (x funcType) In(i int) reflect.Type {
+	if x.in != nil {
+		return (*x.in)[i]
 	}
-	return st.Type.In(i)
+	return x.Type.In(i)
 }
 
-func (st funcType) Out(i int) reflect.Type {
-	if st.out != nil {
-		return (*st.out)[i]
+func (x funcType) Out(i int) reflect.Type {
+	if x.out != nil {
+		return (*x.out)[i]
 	}
-	return st.Type.Out(i)
+	return x.Type.Out(i)
 }
 
-func (st funcType) Kind() reflect.Kind {
+func (x funcType) Kind() reflect.Kind {
 	return reflect.Func
 }
 
-func (st funcType) Name() string {
+func (x funcType) Name() string {
 	return "" // this is a composite type, not a defined type.
 }
 
-func (st funcType) Underlying() reflect.Type {
-	assertNotScriggoType(st)
-	return st.Type
+func (x funcType) Underlying() reflect.Type {
+	assertNotScriggoType(x)
+	return x.Type
 }
 
-func (st funcType) String() string {
+func (x funcType) String() string {
 	s := "func("
-	for i, t := range *st.in {
+	for i, t := range *x.in {
 		s += t.String()
-		if i != len(*st.in)-1 {
+		if i != len(*x.in)-1 {
 			s += ", "
 		}
 	}
 	s += ") "
-	if len(*st.out) >= 2 {
+	if len(*x.out) >= 2 {
 		s += "("
 	}
-	for i, t := range *st.out {
+	for i, t := range *x.out {
 		s += t.String()
-		if i != len(*st.out)-1 {
+		if i != len(*x.out)-1 {
 			s += ", "
 		}
 	}
-	if len(*st.out) >= 2 {
+	if len(*x.out) >= 2 {
 		s += ")"
 	}
 	return s
