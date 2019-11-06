@@ -56,9 +56,12 @@ func main() {
 		type String string
 
 		var i1 interface{} = map[String]Int{"ciao": 3}
-		_ , ok = i1.(Int); fmt.Println(ok)
+		_ , ok = i1.(Int)            ; fmt.Println(ok)
+		_ , ok = i1.(map[string]int) ; fmt.Println(ok)
+		_ , ok = i1.(map[String]Int) ; fmt.Println(ok)
 
 	}
+
 
 
 }
