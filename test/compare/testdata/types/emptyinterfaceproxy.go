@@ -62,6 +62,21 @@ func main() {
 
 	}
 
+	{
+		// Struct types.
+
+		var ok bool
+
+		type (
+			Int int
+			String string
+		)
+
+		var i1 interface{} = struct{A Int}{42}
+		_, ok = i1.(Int); fmt.Println(ok)
+		_, ok = i1.(struct{A int}); fmt.Println(ok)
+		// _, ok = i1.(struct{A Int}); fmt.Println(ok) // TODO: cannot pass until structType has a pointer inside of it.
+	}
 
 
 }
