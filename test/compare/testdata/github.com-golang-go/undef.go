@@ -1,5 +1,3 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
-
 // errorcheck
 
 // Copyright 2010 The Go Authors. All rights reserved.
@@ -44,4 +42,8 @@ func f2(val interface{}) {
 	default:
 		println(v)	// ERROR "undefined.*v"
 	}
+}
+
+func main() { 
+	
 }
