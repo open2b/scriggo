@@ -8,6 +8,9 @@ package types
 
 import "reflect"
 
+// MapOf behaves like reflect.MapOf except when at least once of the map key or
+// the map element is a Scriggo type; in such case a new Scriggo map type is
+// created and returned as reflect.Type.
 func MapOf(key, elem reflect.Type) reflect.Type {
 	keySt, keyIsScriggoType := key.(ScriggoType)
 	elemSt, elemIsScriggoType := elem.(ScriggoType)
@@ -33,6 +36,8 @@ func MapOf(key, elem reflect.Type) reflect.Type {
 	}
 }
 
+// mapType represents a composite map type where at least once of map key or map
+// element is a Scriggo type.
 type mapType struct {
 	reflect.Type
 	key, elem reflect.Type

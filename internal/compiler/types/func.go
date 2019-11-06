@@ -8,22 +8,15 @@ package types
 
 import "reflect"
 
-// containsScriggoTypes reports whether types contains at least one Scriggo type.
-func containsScriggoTypes(types []reflect.Type) bool {
-	for _, t := range types {
-		if _, ok := t.(ScriggoType); ok {
-			return true
-		}
-	}
-	return false
-}
-
+// FuncOf behaves like reflect.FuncOf except when at least once of the
+// parameters is a Scriggo type; in such case a new Scriggo function type is
+// created and returned as reflect.Type.
 func FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 
 	// If at least one parameter of the function that is going to be created is
 	// a Scriggo type then such function must be represented with a Scriggo
-	// type. If not, the resulting function is can be represented by the reflect
-	// implementation of reflect.Type that can be created with reflect.Func.
+	// type. If not, the resulting function can be represented by the reflect
+	// implementation of reflect.Type that can be created with reflect.FuncOf.
 	if containsScriggoTypes(in) || containsScriggoTypes(out) {
 
 		inGo := make([]reflect.Type, len(in))
@@ -54,6 +47,16 @@ func FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 
 	return reflect.FuncOf(in, out, variadic)
 
+}
+
+// containsScriggoTypes reports whether types contains at least one Scriggo type.
+func containsScriggoTypes(types []reflect.Type) bool {
+	for _, t := range types {
+		if _, ok := t.(ScriggoType); ok {
+			return true
+		}
+	}
+	return false
 }
 
 type funcType struct {

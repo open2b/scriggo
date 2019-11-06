@@ -12,13 +12,14 @@ import (
 
 // A definedType is a type defined in Scriggo with the syntax
 //
-//		type Name subType
+//      type Name subType
 //
-// 	subType can be both a "Scriggo type" or a "Go Type".
+//  subType can be both a Scriggo type or a Go Type.
 //
 type definedType struct {
 	// The embedded reflect.Type can be both a reflect.Type implemented by the
-	// package "reflect" or a ScriggoType.
+	// package "reflect" or a ScriggoType. In the other implementations of
+	// ScriggoType the embedded reflect.Type is always a Go type.
 	reflect.Type
 
 	// name is the name of the defined type.

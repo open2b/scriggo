@@ -8,6 +8,8 @@ package types
 
 import "reflect"
 
+// ChanOf behaves like reflect.ChanOf except when t is a Scriggo type; in such
+// case a new Scriggo channel type is created and returned as reflect.Type.
 func ChanOf(dir reflect.ChanDir, t reflect.Type) reflect.Type {
 	if st, ok := t.(ScriggoType); ok {
 		return chanType{
@@ -18,9 +20,11 @@ func ChanOf(dir reflect.ChanDir, t reflect.Type) reflect.Type {
 	return reflect.ChanOf(dir, t)
 }
 
+// chanType represents a composite channel type where the element is a Scriggo
+// type.
 type chanType struct {
-	reflect.Type
-	elem reflect.Type // always != nil
+	reflect.Type              // always a reflect implementation of reflect.Type
+	elem         reflect.Type // channel element, always a Scriggo type
 }
 
 func (x chanType) AssignableTo(T reflect.Type) bool {
@@ -33,7 +37,6 @@ func (x chanType) Underlying() reflect.Type {
 }
 
 func (x chanType) Elem() reflect.Type {
-	// x.elem is always != nil, otherwise this chanType has no reason to exist.
 	return x.elem
 }
 
