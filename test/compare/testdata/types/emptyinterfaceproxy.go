@@ -28,9 +28,9 @@ func main() {
 		_, ok = i2.(String) ; fmt.Println(ok) // true
 		_, ok = i2.(int)    ; fmt.Println(ok) // false
 
-		// var i3 interface{} = SliceByte([]byte{})
-		// _, ok = i2.(SliceByte) ; fmt.Println(ok) // true
-		// _, ok = i2.([]byte)    ; fmt.Println(ok) // false
+		var i3 interface{} = SliceByte([]byte{})
+		_, ok = i3.(SliceByte) ; fmt.Println(ok) // true
+		_, ok = i3.([]byte)    ; fmt.Println(ok) // false
 	}
 
 
