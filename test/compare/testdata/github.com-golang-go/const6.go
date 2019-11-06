@@ -1,4 +1,4 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
+// skip : investigate
 
 // errorcheck
 
@@ -8,7 +8,7 @@
 
 // Ideal vs non-ideal bool. See issue 3915, 3923.
 
-package p
+package main
 
 type mybool bool
 type mybool1 bool
@@ -30,3 +30,5 @@ var (
 	_ = c2 && c6 // ERROR "mismatched types|incompatible types"
 	_ = c1 && c6 // ERROR "mismatched types|incompatible types"
 )
+
+func main() { }
