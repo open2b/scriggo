@@ -200,6 +200,9 @@ func (vm *VM) run() (Addr, bool) {
 				}
 			}
 			if c != 0 {
+				if w, ok := t.(Wrapper); ok {
+					t = w.Underlying()
+				}
 				switch t.Kind() {
 				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 					var n int64

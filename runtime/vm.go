@@ -30,6 +30,7 @@ var emptyInterfaceNil = reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
 type Wrapper interface {
 	Wrap(interface{}) interface{}
 	Unwrap(reflect.Value) (reflect.Value, bool)
+	Underlying() reflect.Type
 }
 
 type StackShift [4]int8
