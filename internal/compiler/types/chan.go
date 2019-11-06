@@ -10,10 +10,10 @@ import "reflect"
 
 // ChanOf behaves like reflect.ChanOf except when t is a Scriggo type; in such
 // case a new Scriggo channel type is created and returned as reflect.Type.
-func ChanOf(dir reflect.ChanDir, t reflect.Type) reflect.Type {
+func (types *Types) ChanOf(dir reflect.ChanDir, t reflect.Type) reflect.Type {
 	if st, ok := t.(ScriggoType); ok {
 		return chanType{
-			Type: ChanOf(dir, st.Underlying()),
+			Type: types.ChanOf(dir, st.Underlying()),
 			elem: st,
 		}
 	}

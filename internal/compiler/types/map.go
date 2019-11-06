@@ -11,24 +11,24 @@ import "reflect"
 // MapOf behaves like reflect.MapOf except when at least once of the map key or
 // the map element is a Scriggo type; in such case a new Scriggo map type is
 // created and returned as reflect.Type.
-func MapOf(key, elem reflect.Type) reflect.Type {
+func (types *Types) MapOf(key, elem reflect.Type) reflect.Type {
 	keySt, keyIsScriggoType := key.(ScriggoType)
 	elemSt, elemIsScriggoType := elem.(ScriggoType)
 	switch {
 	case keyIsScriggoType && elemIsScriggoType:
 		return mapType{
-			Type: MapOf(keySt.Underlying(), elemSt.Underlying()),
+			Type: types.MapOf(keySt.Underlying(), elemSt.Underlying()),
 			key:  keySt,
 			elem: elemSt,
 		}
 	case keyIsScriggoType && !elemIsScriggoType:
 		return mapType{
-			Type: MapOf(keySt.Underlying(), elem),
+			Type: types.MapOf(keySt.Underlying(), elem),
 			key:  keySt,
 		}
 	case elemIsScriggoType && !keyIsScriggoType:
 		return mapType{
-			Type: MapOf(key, elemSt.Underlying()),
+			Type: types.MapOf(key, elemSt.Underlying()),
 			elem: elemSt,
 		}
 	default:

@@ -11,7 +11,7 @@ import "reflect"
 // FuncOf behaves like reflect.FuncOf except when at least once of the
 // parameters is a Scriggo type; in such case a new Scriggo function type is
 // created and returned as reflect.Type.
-func FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
+func (types *Types) FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 
 	// If at least one parameter of the function that is going to be created is
 	// a Scriggo type then such function must be represented with a Scriggo
@@ -40,7 +40,7 @@ func FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 		return funcType{
 			in:   &in,
 			out:  &out,
-			Type: FuncOf(inGo, outGo, variadic),
+			Type: types.FuncOf(inGo, outGo, variadic),
 		}
 
 	}

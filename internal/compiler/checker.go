@@ -9,6 +9,7 @@ package compiler
 import (
 	"fmt"
 	"scriggo/ast"
+	"scriggo/internal/compiler/types"
 )
 
 // typechecker represents the state of the type checking.
@@ -89,6 +90,9 @@ type typechecker struct {
 	// script function declaration, that has been transformed into an assignment
 	// node.
 	isScriptFuncDecl bool
+
+	// types builds and operate of Scriggo types and Go types.
+	types *types.Types
 }
 
 // newTypechecker creates a new type checker. A global scope may be provided for
@@ -105,6 +109,7 @@ func newTypechecker(path string, opts CheckerOptions, globalScope typeCheckerSco
 		indirectVars:     map[*ast.Identifier]bool{},
 		opts:             opts,
 		iota:             -1,
+		types:            types.NewTypes(),
 	}
 }
 

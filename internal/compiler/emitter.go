@@ -1327,7 +1327,8 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				}
 				return reg, false
 			}
-			structZero := em.fb.makeGeneralConstant(types.New(typ).Elem().Interface())
+			// TODO: the types instance should be the same of the type checker!
+			structZero := em.fb.makeGeneralConstant(types.NewTypes().New(typ).Elem().Interface())
 			// When there are no values in the composite literal, optimize the
 			// creation of the struct.
 			if len(expr.KeyValues) == 0 {
