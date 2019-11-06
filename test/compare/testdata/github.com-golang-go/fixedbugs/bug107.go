@@ -1,5 +1,3 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
-
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -15,3 +13,4 @@ func f() (os int) {
 	 v := os.Open("", 0, 0);	// ERROR "undefined"
 	 return 0
 }
+func main() { _ = os.Args }
