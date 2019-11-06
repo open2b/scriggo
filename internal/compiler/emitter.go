@@ -1807,7 +1807,8 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		case *ast.Identifier:
 			if em.fb.isVariable(operand.Name) {
 				varr := em.fb.scopeLookup(operand.Name)
-				em.fb.emitNew(reflect.PtrTo(unOpType), reg)
+				// TODO: replace NewTypes() with a 'types' instance.
+				em.fb.emitNew(types.NewTypes().PtrTo(unOpType), reg) 
 				em.fb.emitMove(false, -varr, reg, dstType.Kind())
 				return
 			}
