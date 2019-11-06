@@ -54,9 +54,29 @@ func (types *Types) StructOf(fields []reflect.StructField) reflect.Type {
 
 	return structType{
 		Type:          types.StructOf(baseFields),
-		scriggoFields: &scriggoFields,
+		scriggoFields: types.addFields(scriggoFields),
 	}
 
+}
+
+func equalFields(fs1, fs2 map[int]reflect.StructField) bool {
+	return reflect.DeepEqual(fs1, fs2)
+}
+
+// addFields adds a list of struct fields to the cache if not already present or
+// returns the found one. This avoids duplication of struct fields by ensuring
+// that every pointer to map returned by this method is equal if and only if the
+// underlying map is equal.
+func (types *Types) addFields(fields map[int]reflect.StructField) *map[int]reflect.StructField {
+	for _, storedFields := range types.structFieldsLists {
+		if equalFields(*storedFields, fields) {
+			return storedFields
+		}
+	}
+	// Not found.
+	newFields := &fields
+	types.structFieldsLists = append(types.structFieldsLists, newFields)
+	return newFields
 }
 
 // structType represents a composite struct type where at least once of the

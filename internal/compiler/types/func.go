@@ -74,7 +74,8 @@ func equalParams(params1, params2 parameters) bool {
 // (inOurOut = 1) parameters for a function. If a list with the same elements is
 // found, then the pointer to such list is returned. This makes comparisons
 // betweens two identical function types declared in two parts of the code
-// correct.
+// correct. This methods ensures that every pointer to parameter list is equal
+// to another pointer if and only if the parameter list is exactly the same.
 func (types *Types) addFuncParameters(params parameters, inOrOut int) *parameters {
 	for _, storedParams := range types.funcParams[inOrOut] {
 		if equalParams(*storedParams, params) {

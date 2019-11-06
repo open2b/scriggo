@@ -51,4 +51,14 @@ func main() {
 
 	var s7 S7
 	_ = s7
+
+	type Int int
+	var _ struct{ A Int } = struct{ A Int }{}
+	var _ struct {
+		A Int
+		B string
+	} = struct {
+		A Int
+		B string
+	}{}
 }
