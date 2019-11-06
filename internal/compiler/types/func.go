@@ -70,19 +70,21 @@ func equalParams(params1, params2 parameters) bool {
 	return true
 }
 
-// addFuncParameters adds in to the list of input (0) or output (1) parameters for a function. If a list
-// with the same elements is found, then the pointer to such list is returned.
-// This makes comparisons betweens two identical function types declared in two
-// parts of the code correct.
+// addFuncParameters adds in to the list of input (inOrOut = 0) or output
+// (inOurOut = 1) parameters for a function. If a list with the same elements is
+// found, then the pointer to such list is returned. This makes comparisons
+// betweens two identical function types declared in two parts of the code
+// correct.
 func (types *Types) addFuncParameters(params parameters, inOrOut int) *parameters {
-	for _, storedParams := range types.funcParameters[inOrOut] {
+	for _, storedParams := range types.funcParams[inOrOut] {
 		if equalParams(*storedParams, params) {
 			return storedParams
 		}
 	}
 	// Not found.
-	types.funcParameters[inOrOut] = append(types.funcParameters[inOrOut], &params)
-	return types.funcParameters[inOrOut][len(types.funcParameters[inOrOut])-1]
+	newParams := &params
+	types.funcParams[inOrOut] = append(types.funcParams[inOrOut], newParams)
+	return newParams
 }
 
 // containsScriggoTypes reports whether types contains at least one Scriggo type.

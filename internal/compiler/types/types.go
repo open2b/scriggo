@@ -19,12 +19,12 @@ import (
 
 // A Types helps you work with Scriggo types and Go types.
 type Types struct {
-	// funcParameters holds a list of parameters list for both input (index 0)
-	// and output (index 1) parameters. This avoids the duplication of the
+	// funcParams holds a list of parameters list for both input (index 0) and
+	// output (index 1) parameters. This avoids the duplication of the
 	// parameters list, that is both unefficient and wrong (without that, two
 	// indentical functions declared in two parts of the code would have two
 	// different parameters lists, making them 'different' when compared by Go).
-	funcParameters [2][]*[]reflect.Type
+	funcParams [2][]*[]reflect.Type
 }
 
 // NewTypes returns a new value with type Types than can be used to build and
