@@ -125,6 +125,13 @@ func (x structType) NumField() int {
 	return x.Type.NumField()
 }
 
+func (x structType) Implements(u reflect.Type) bool {
+	if u.Kind() != reflect.Interface {
+		panic("expected reflect.Interface")
+	}
+	return u.NumMethod() == 0
+}
+
 func (x structType) String() string {
 	s := "struct { "
 	for i := 0; i < x.NumField(); i++ {

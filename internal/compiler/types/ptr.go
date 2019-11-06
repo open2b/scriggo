@@ -36,6 +36,13 @@ func (x ptrType) Underlying() reflect.Type {
 	return x.Type
 }
 
+func (x ptrType) Implements(u reflect.Type) bool {
+	if u.Kind() != reflect.Interface {
+		panic("expected reflect.Interface")
+	}
+	return u.NumMethod() == 0
+}
+
 func (x ptrType) Elem() reflect.Type {
 	// x.elem is always != nil, otherwise this ptrType has no reason to exist.
 	return x.elem

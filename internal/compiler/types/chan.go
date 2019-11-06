@@ -31,6 +31,13 @@ func (x chanType) AssignableTo(T reflect.Type) bool {
 	return x == T
 }
 
+func (x chanType) Implements(u reflect.Type) bool {
+	if u.Kind() != reflect.Interface {
+		panic("expected reflect.Interface")
+	}
+	return u.NumMethod() == 0
+}
+
 func (x chanType) Underlying() reflect.Type {
 	assertNotScriggoType(x.Type)
 	return x.Type

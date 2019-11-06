@@ -299,7 +299,7 @@ func (tc *typechecker) isAssignableTo(x *TypeInfo, expr ast.Expression, t reflec
 		return newInvalidTypeInAssignment(x, expr, t)
 	}
 	if k == reflect.Interface {
-		if !x.Type.Implements(t) {
+		if !tc.types.Implements(x.Type, t) {
 			return newInvalidTypeInAssignment(x, expr, t)
 		}
 		return nil
