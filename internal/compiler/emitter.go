@@ -1372,12 +1372,13 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				}
 				return reg, false
 			}
+			tmp := em.fb.newRegister(reflect.Map)
 			size := len(expr.KeyValues)
 			if 0 <= size && size < 126 {
-				em.fb.emitMakeMap(typ, true, int8(size), reg)
+				em.fb.emitMakeMap(typ, true, int8(size), tmp)
 			} else {
 				sizeReg := em.fb.makeIntConstant(int64(size))
-				em.fb.emitMakeMap(typ, false, sizeReg, reg)
+				em.fb.emitMakeMap(typ, false, sizeReg, tmp)
 			}
 			for _, kv := range expr.KeyValues {
 				key := em.fb.newRegister(typ.Key().Kind())
@@ -1385,8 +1386,9 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				em.emitExprR(kv.Key, typ.Key(), key)
 				value, k := em.emitExprK(kv.Value, typ.Elem())
 				em.fb.exitStack()
-				em.fb.emitSetMap(k, reg, value, key, typ, expr.Pos())
+				em.fb.emitSetMap(k, tmp, value, key, typ, expr.Pos())
 			}
+			em.changeRegister(false, tmp, reg, typ, dstType)
 		}
 
 	case *ast.TypeAssertion:
