@@ -34,7 +34,7 @@ type definedType struct {
 //
 //    type Int int
 //
-func DefinedOf(name string, baseType reflect.Type) reflect.Type {
+func (types *Types) DefinedOf(name string, baseType reflect.Type) reflect.Type {
 	if name == "" {
 		panic("BUG: name cannot be empty")
 	}

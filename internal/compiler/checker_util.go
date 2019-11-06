@@ -15,7 +15,6 @@ import (
 	"unicode/utf8"
 
 	"scriggo/ast"
-	"scriggo/internal/compiler/types"
 	"scriggo/runtime"
 )
 
@@ -147,7 +146,7 @@ var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
 //
 // If the value can not be converted, returns an errTypeConversion type error,
 // errConstantTruncated or errConstantOverflow.
-func convert(ti *TypeInfo, t2 reflect.Type) (constant, error) {
+func (tc *typechecker) convert(ti *TypeInfo, t2 reflect.Type) (constant, error) {
 
 	t := ti.Type
 	k2 := t2.Kind()
@@ -179,7 +178,7 @@ func convert(ti *TypeInfo, t2 reflect.Type) (constant, error) {
 		return representedBy(ti, t2)
 	}
 
-	if types.ConvertibleTo(t, t2) {
+	if tc.types.ConvertibleTo(t, t2) {
 		return nil, nil
 	}
 
@@ -287,7 +286,7 @@ func newInvalidTypeInAssignment(x *TypeInfo, expr ast.Expression, t reflect.Type
 
 // isAssignableTo reports whether x is assignable to type t.
 // See https://golang.org/ref/spec#Assignability for details.
-func isAssignableTo(x *TypeInfo, expr ast.Expression, t reflect.Type) error {
+func (tc *typechecker) isAssignableTo(x *TypeInfo, expr ast.Expression, t reflect.Type) error {
 	if x.Type == t {
 		return nil
 	}
@@ -320,7 +319,7 @@ func isAssignableTo(x *TypeInfo, expr ast.Expression, t reflect.Type) error {
 	}
 	// Checks if the type of x and t have identical underlying types and at
 	// least one is not a defined type.
-	if !types.AssignableTo(x.Type, t) {
+	if !tc.types.AssignableTo(x.Type, t) {
 		return newInvalidTypeInAssignment(x, expr, t)
 	}
 	return nil
@@ -384,7 +383,7 @@ const (
 //
 // Only for type classes, the returned function type has the method's
 // receiver as first argument.
-func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, bool) {
+func (tc *typechecker) methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, bool) {
 
 	if t.IsType() {
 		// Method expression on interface type.
@@ -438,7 +437,7 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 	}
 
 	// Method calls and method values on concrete types.
-	method := types.Zero(t.Type).MethodByName(name)
+	method := tc.types.Zero(t.Type).MethodByName(name)
 	methodExplicitRcvr, _ := t.Type.MethodByName(name)
 	if method.IsValid() {
 		ti := &TypeInfo{
@@ -464,8 +463,8 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 		return ti, receiverNoTransform, true
 	}
 	if t.Type.Kind() != reflect.Ptr {
-		method = types.Zero(types.PtrTo(t.Type)).MethodByName(name)
-		methodExplicitRcvr, _ := types.PtrTo(t.Type).MethodByName(name)
+		method = tc.types.Zero(tc.types.PtrTo(t.Type)).MethodByName(name)
+		methodExplicitRcvr, _ := tc.types.PtrTo(t.Type).MethodByName(name)
 		if method.IsValid() {
 			return &TypeInfo{
 				Type:       removeEnvArg(method.Type(), false),
@@ -583,13 +582,13 @@ func representedBy(t1 *TypeInfo, t2 reflect.Type) (constant, error) {
 
 // nilOf returns a new type info representing a 'typed nil', that is the zero of
 // type t.
-func nilOf(t reflect.Type) *TypeInfo {
+func (tc *typechecker) nilOf(t reflect.Type) *TypeInfo {
 	switch t.Kind() {
 	case reflect.Func:
 		return &TypeInfo{
 			Properties: PropertyHasValue | PropertyIsPredefined,
 			Type:       t,
-			value:      types.Zero(t),
+			value:      tc.types.Zero(t),
 		}
 	case reflect.Interface:
 		return &TypeInfo{
@@ -601,7 +600,7 @@ func nilOf(t reflect.Type) *TypeInfo {
 		return &TypeInfo{
 			Properties: PropertyHasValue,
 			Type:       t,
-			value:      types.Zero(t).Interface(),
+			value:      tc.types.Zero(t).Interface(),
 		}
 	}
 
@@ -609,7 +608,7 @@ func nilOf(t reflect.Type) *TypeInfo {
 
 // typedValue returns a constant type info value represented with a given
 // type.
-func typedValue(ti *TypeInfo, t reflect.Type) interface{} {
+func (tc *typechecker) typedValue(ti *TypeInfo, t reflect.Type) interface{} {
 	k := t.Kind()
 	if k == reflect.Interface {
 		t = ti.Type
@@ -656,7 +655,7 @@ func typedValue(ti *TypeInfo, t reflect.Type) interface{} {
 			panic(fmt.Sprintf("unexpected kind %q", k))
 		}
 	}
-	nv := types.New(t).Elem()
+	nv := tc.types.New(t).Elem()
 	switch k {
 	case reflect.Bool:
 		nv.SetBool(c.bool())

@@ -13,10 +13,10 @@ import (
 
 // ArrayOf behaves like reflect.ArrayOf except when elem is a Scriggo type; in
 // such case a new Scriggo array type is created and returned as reflect.Type.
-func ArrayOf(count int, elem reflect.Type) reflect.Type {
+func (types *Types) ArrayOf(count int, elem reflect.Type) reflect.Type {
 	if st, ok := elem.(ScriggoType); ok {
 		return arrayType{
-			Type: ArrayOf(count, st.Underlying()),
+			Type: types.ArrayOf(count, st.Underlying()),
 			elem: st,
 		}
 	}

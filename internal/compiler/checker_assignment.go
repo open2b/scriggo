@@ -10,7 +10,6 @@ import (
 	"reflect"
 
 	"scriggo/ast"
-	"scriggo/internal/compiler/types"
 )
 
 // checkAssignment type checks an assignment node (Var, Const or Assignment)
@@ -63,9 +62,9 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 						ti = &TypeInfo{Type: typ, Constant: boolConst(false), Properties: PropertyUntyped}
 						ti.setValue(typ)
 					case k == reflect.Interface, k == reflect.Func:
-						ti = nilOf(typ)
+						ti = tc.nilOf(typ)
 					default:
-						ti = &TypeInfo{Type: typ, value: types.Zero(typ).Interface(), Properties: PropertyHasValue}
+						ti = &TypeInfo{Type: typ, value: tc.types.Zero(typ).Interface(), Properties: PropertyHasValue}
 						ti.setValue(typ)
 					}
 					n.Rhs[i] = ast.NewPlaceholder()
@@ -282,7 +281,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 	//
 	if !isVariableDecl && !isConstDecl && right.Nil() {
 		left := tc.checkExpr(leftExpr)
-		right = nilOf(left.Type)
+		right = tc.nilOf(left.Type)
 		tc.typeInfos[rightExpr] = right
 	}
 
@@ -291,7 +290,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 	//	var a []int = nil
 	//
 	if isVariableDecl && typ != nil && right.Nil() {
-		right = nilOf(typ.Type)
+		right = tc.nilOf(typ.Type)
 		tc.typeInfos[rightExpr] = right
 	}
 
@@ -309,7 +308,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 		right.setValue(nil)
 	} else {
 		// Type is explicit, so must check assignability.
-		if err := isAssignableTo(right, rightExpr, typ.Type); err != nil {
+		if err := tc.isAssignableTo(right, rightExpr, typ.Type); err != nil {
 			if _, isPlaceholder := rightExpr.(*ast.Placeholder); isPlaceholder || rightExpr == nil {
 				panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", right.ShortString(), leftExpr, typ))
 			}
@@ -318,7 +317,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 		if right.Nil() {
 			// Note that this doesn't change the type info associated to node
 			// 'right'; it just uses a new type info inside this function.
-			right = nilOf(typ.Type)
+			right = tc.nilOf(typ.Type)
 		} else {
 			right.setValue(typ.Type)
 		}
@@ -468,7 +467,7 @@ func (tc *typechecker) mustBeAddressable(expr ast.Expression) {
 // mustBeAssignableTo panics if right is not assignable to leftType.
 func (tc *typechecker) mustBeAssignableTo(right ast.Expression, leftType reflect.Type) {
 	ti := tc.typeInfos[right]
-	if err := isAssignableTo(ti, right, leftType); err != nil {
+	if err := tc.isAssignableTo(ti, right, leftType); err != nil {
 		panic(tc.errorf(right, "%s in assignment", err))
 	}
 }

@@ -2040,8 +2040,9 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 		{x: tiUntypedIntConst("10"), T: byteType, assignable: true},
 		// {x: tiUntypedIntConst("300"), T: byteType, assignable: false},
 	}
+	tc := newTypechecker("", CheckerOptions{}, nil)
 	for _, c := range cases {
-		err := isAssignableTo(c.x, nil, c.T)
+		err := tc.isAssignableTo(c.x, nil, c.T)
 		if c.assignable && err != nil {
 			t.Errorf("%s should be assignable to %s, but isAssignableTo returned error: %s", c.x, c.T, err)
 		}

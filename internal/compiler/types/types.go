@@ -17,6 +17,15 @@ import (
 	"reflect"
 )
 
+// A Types helps you work with Scriggo types and Go types.
+type Types struct{}
+
+// NewTypes returns a new value with type Types than can be used to build and
+// operate with Scriggo types and Go types.
+func NewTypes() *Types {
+	return &Types{}
+}
+
 // A ScriggoType can represent both a type defined in Scriggo and a composite
 // type that "contains" a type defined in Scriggo. Any other type can be
 // represented using a "real" reflect.Type (i.e. the reflect.Type implementation
@@ -42,9 +51,9 @@ func justOneIsDefined(t1, t2 reflect.Type) bool {
 
 // New behaves like reflect.New expect when typ is a Scriggo type; in such case
 // is returned a 'new' instance of the underlying Go type.
-func New(typ reflect.Type) reflect.Value {
+func (types *Types) New(typ reflect.Type) reflect.Value {
 	if st, ok := typ.(ScriggoType); ok {
-		return New(st.Underlying())
+		return types.New(st.Underlying())
 	}
 	return reflect.New(typ)
 }
@@ -52,15 +61,15 @@ func New(typ reflect.Type) reflect.Value {
 // Zero behaves like reflect.Zero except when t is a Scriggo type; in such case
 // instead of returning the zero of the Scriggo type is returned the zero of the
 // underlying type.
-func Zero(t reflect.Type) reflect.Value {
+func (types *Types) Zero(t reflect.Type) reflect.Value {
 	if st, ok := t.(ScriggoType); ok {
-		return Zero(st.Underlying())
+		return types.Zero(st.Underlying())
 	}
 	return reflect.Zero(t)
 }
 
 // AssignableTo behaves like x.AssignableTo(t) except when t is a Scriggo type.
-func AssignableTo(x, t reflect.Type) bool {
+func (types *Types) AssignableTo(x, t reflect.Type) bool {
 
 	T, isScriggoType := t.(ScriggoType)
 
@@ -93,12 +102,12 @@ func AssignableTo(x, t reflect.Type) bool {
 
 // ConvertibleTo behaves like x.ConvertibleTo(u) except when one of x or u is a
 // Scriggo type.
-func ConvertibleTo(x, u reflect.Type) bool {
+func (types *Types) ConvertibleTo(x, u reflect.Type) bool {
 	if x, ok := x.(ScriggoType); ok {
-		return ConvertibleTo(x.Underlying(), u)
+		return types.ConvertibleTo(x.Underlying(), u)
 	}
 	if u, ok := u.(ScriggoType); ok {
-		return ConvertibleTo(x, u.Underlying())
+		return types.ConvertibleTo(x, u.Underlying())
 	}
 	return x.ConvertibleTo(u) // rtype method
 }

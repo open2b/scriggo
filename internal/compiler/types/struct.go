@@ -11,7 +11,7 @@ import "reflect"
 // StructOf behaves like reflect.StructOf except when at least once of the
 // fields has a Scriggo type; in such case a new Scriggo struct type is created
 // and returned as reflect.Type.
-func StructOf(fields []reflect.StructField) reflect.Type {
+func (types *Types) StructOf(fields []reflect.StructField) reflect.Type {
 
 	// baseFields contains all the fields with their 'Go' type; if there are not
 	// any Scriggo types in fields then baseFields contains exactly the content
@@ -53,7 +53,7 @@ func StructOf(fields []reflect.StructField) reflect.Type {
 	}
 
 	return structType{
-		Type:          StructOf(baseFields),
+		Type:          types.StructOf(baseFields),
 		scriggoFields: &scriggoFields,
 	}
 

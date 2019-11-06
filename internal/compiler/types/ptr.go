@@ -10,10 +10,10 @@ import "reflect"
 
 // PtrTo behaves like reflect.PtrTo except when t is a Scriggo type; in such
 // case a new Scriggo pointer type is created and returned as reflect.Type.
-func PtrTo(t reflect.Type) reflect.Type {
+func (types *Types) PtrTo(t reflect.Type) reflect.Type {
 	if st, ok := t.(ScriggoType); ok {
 		return ptrType{
-			Type: PtrTo(st.Underlying()),
+			Type: types.PtrTo(st.Underlying()),
 			elem: st,
 		}
 	}

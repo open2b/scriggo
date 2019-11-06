@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"scriggo/ast"
-	"scriggo/internal/compiler/types"
 )
 
 // templatePageToPackage extract first-level declarations in tree and appends them
@@ -408,7 +407,7 @@ nodesLoop:
 				}
 				for _, ex := range cas.Expressions {
 					t := tc.checkExpr(ex)
-					if err := isAssignableTo(t, ex, typ); err != nil {
+					if err := tc.isAssignableTo(t, ex, typ); err != nil {
 						if _, ok := err.(invalidTypeInAssignment); ok {
 							var ne string
 							if node.Expr != nil {
@@ -421,7 +420,7 @@ nodesLoop:
 					if t.IsConstant() {
 						if typ.Kind() != reflect.Bool {
 							// Check duplicate.
-							value := typedValue(t, typ)
+							value := tc.typedValue(t, typ)
 							if pos, ok := positionOf[value]; ok {
 								panic(tc.errorf(cas, "duplicate case %v in switch\n\tprevious case at %s", ex, pos))
 							}
@@ -723,7 +722,7 @@ nodesLoop:
 			}
 			elemType := tic.Type.Elem()
 			tiv := tc.checkExpr(node.Value)
-			if err := isAssignableTo(tiv, node.Value, elemType); err != nil {
+			if err := tc.isAssignableTo(tiv, node.Value, elemType); err != nil {
 				if _, ok := err.(invalidTypeInAssignment); ok {
 					if tiv.Nil() {
 						panic(tc.errorf(node, "cannot convert nil to type %s", elemType))
@@ -736,7 +735,7 @@ nodesLoop:
 				panic(tc.errorf(node, "%s", err))
 			}
 			if tiv.Nil() {
-				tiv = nilOf(elemType)
+				tiv = tc.nilOf(elemType)
 				tc.typeInfos[node.Value] = tiv
 			} else {
 				tiv.setValue(elemType)
@@ -903,14 +902,14 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 	for i, typ := range expectedTypes {
 		x := got[i]
 		ti := tc.typeInfos[x]
-		if err := isAssignableTo(ti, x, typ); err != nil {
+		if err := tc.isAssignableTo(ti, x, typ); err != nil {
 			if _, ok := err.(invalidTypeInAssignment); ok {
 				panic(tc.errorf(node, "%s in return argument", err))
 			}
 			panic(tc.errorf(node, "%s", err))
 		}
 		if ti.Nil() {
-			ti = nilOf(typ)
+			ti = tc.nilOf(typ)
 			tc.typeInfos[x] = ti
 		} else {
 			ti.setValue(typ)
@@ -955,7 +954,7 @@ func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) *TypeInfo
 
 	// Type definition: a Scriggo type must be created.
 	return &TypeInfo{
-		Type:       types.DefinedOf(name, typ.Type),
+		Type:       tc.types.DefinedOf(name, typ.Type),
 		Properties: PropertyIsType,
 	}
 

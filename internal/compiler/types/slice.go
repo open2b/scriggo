@@ -10,10 +10,10 @@ import "reflect"
 
 // SliceOf behaves like reflect.SliceOf except when elem is a Scriggo type; in
 // such case a new Scriggo slice type is created and returned as reflect.Type.
-func SliceOf(t reflect.Type) reflect.Type {
+func (types *Types) SliceOf(t reflect.Type) reflect.Type {
 	if st, ok := t.(ScriggoType); ok {
 		return sliceType{
-			Type: SliceOf(st.Underlying()),
+			Type: types.SliceOf(st.Underlying()),
 			elem: st,
 		}
 	}

@@ -15,7 +15,6 @@ import (
 	"unicode/utf8"
 
 	"scriggo/ast"
-	"scriggo/internal/compiler/types"
 	"scriggo/runtime"
 )
 
@@ -188,14 +187,14 @@ unusedLoop:
 func (tc *typechecker) checkArrayType(array *ast.ArrayType, length int) *TypeInfo {
 	elem := tc.checkType(array.ElementType)
 	if array.Len == nil { // ellipsis.
-		tc.typeInfos[array] = &TypeInfo{Properties: PropertyIsType, Type: types.ArrayOf(length, elem.Type)}
+		tc.typeInfos[array] = &TypeInfo{Properties: PropertyIsType, Type: tc.types.ArrayOf(length, elem.Type)}
 		return tc.typeInfos[array]
 	}
 	len := tc.checkExpr(array.Len)
 	if !len.IsConstant() {
 		panic(tc.errorf(array, "non-constant array bound %s", array.Len))
 	}
-	c, err := convert(len, intType)
+	c, err := tc.convert(len, intType)
 	if err != nil {
 		panic(tc.errorf(array, "%s", err))
 	}
@@ -206,7 +205,7 @@ func (tc *typechecker) checkArrayType(array *ast.ArrayType, length int) *TypeInf
 	if b < length {
 		panic(tc.errorf(array, "array index %d out of bounds [0:%d]", length-1, b))
 	}
-	tc.typeInfos[array] = &TypeInfo{Properties: PropertyIsType, Type: types.ArrayOf(b, elem.Type)}
+	tc.typeInfos[array] = &TypeInfo{Properties: PropertyIsType, Type: tc.types.ArrayOf(b, elem.Type)}
 	return tc.typeInfos[array]
 }
 
@@ -285,7 +284,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		t := tc.checkExprOrType(expr.Expr)
 		if t.IsType() {
 			if expr.Op == ast.OperatorMultiplication {
-				return &TypeInfo{Properties: PropertyIsType, Type: types.PtrTo(t.Type)}
+				return &TypeInfo{Properties: PropertyIsType, Type: tc.types.PtrTo(t.Type)}
 			}
 			panic(tc.errorf(expr, "type %s is not an expression", t))
 		}
@@ -335,7 +334,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			if _, ok := expr.Expr.(*ast.CompositeLiteral); !ok && !t.Addressable() {
 				panic(tc.errorf(expr, "cannot take the address of %s", expr.Expr))
 			}
-			ti.Type = types.PtrTo(t.Type)
+			ti.Type = tc.types.PtrTo(t.Type)
 			// When taking the address of a variable, such variable must be
 			// marked as "indirect".
 			if ident, ok := expr.Expr.(*ast.Identifier); ok {
@@ -418,7 +417,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 				}
 			}
 		}
-		t := types.StructOf(fields)
+		t := tc.types.StructOf(fields)
 		return &TypeInfo{
 			Type:       t,
 			Properties: PropertyIsType,
@@ -432,11 +431,11 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 				panic(tc.errorf(expr, "invalid map key type %s", key))
 			}
 		}()
-		return &TypeInfo{Properties: PropertyIsType, Type: types.MapOf(key.Type, value.Type)}
+		return &TypeInfo{Properties: PropertyIsType, Type: tc.types.MapOf(key.Type, value.Type)}
 
 	case *ast.SliceType:
 		elem := tc.checkType(expr.ElementType)
-		return &TypeInfo{Properties: PropertyIsType, Type: types.SliceOf(elem.Type)}
+		return &TypeInfo{Properties: PropertyIsType, Type: tc.types.SliceOf(elem.Type)}
 
 	case *ast.ArrayType:
 		return tc.checkArrayType(expr, -1)
@@ -452,7 +451,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			dir = reflect.SendDir
 		}
 		elem := tc.checkType(expr.ElementType)
-		return &TypeInfo{Properties: PropertyIsType, Type: types.ChanOf(dir, elem.Type)}
+		return &TypeInfo{Properties: PropertyIsType, Type: tc.types.ChanOf(dir, elem.Type)}
 
 	case *ast.CompositeLiteral:
 		return tc.checkCompositeLiteral(expr, nil)
@@ -490,7 +489,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 				out[i] = c.Type
 			}
 		}
-		expr.Reflect = types.FuncOf(in, out, variadic)
+		expr.Reflect = tc.types.FuncOf(in, out, variadic)
 		return &TypeInfo{Type: expr.Reflect, Properties: PropertyIsType}
 
 	case *ast.Func:
@@ -576,14 +575,14 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			return &TypeInfo{Type: elemType.Elem(), Properties: PropertyAddressable}
 		case reflect.Map:
 			key := tc.checkExpr(expr.Index)
-			if err := isAssignableTo(key, expr.Index, t.Type.Key()); err != nil {
+			if err := tc.isAssignableTo(key, expr.Index, t.Type.Key()); err != nil {
 				if _, ok := err.(invalidTypeInAssignment); ok {
 					panic(tc.errorf(expr, "%s in map index", err))
 				}
 				panic(tc.errorf(expr, "%s", err))
 			}
 			if key.Nil() {
-				key = nilOf(t.Type.Key())
+				key = tc.nilOf(t.Type.Key())
 				tc.typeInfos[expr.Index] = key
 			} else {
 				key.setValue(t.Type.Key())
@@ -658,7 +657,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		case reflect.String, reflect.Slice:
 			return &TypeInfo{Type: t.Type}
 		case reflect.Array, reflect.Ptr:
-			return &TypeInfo{Type: types.SliceOf(realType.Elem())}
+			return &TypeInfo{Type: tc.types.SliceOf(realType.Elem())}
 		}
 
 	case *ast.Selector:
@@ -727,13 +726,13 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		}
 		t := tc.checkExprOrType(expr.Expr)
 		if t.IsType() {
-			method, _, ok := methodByName(t, expr.Ident)
+			method, _, ok := tc.methodByName(t, expr.Ident)
 			if !ok {
 				panic(tc.errorf(expr, "%v undefined (type %s has no method %s)", expr, t, expr.Ident))
 			}
 			return method
 		}
-		method, trans, ok := methodByName(t, expr.Ident)
+		method, trans, ok := tc.methodByName(t, expr.Ident)
 		if ok {
 			switch trans {
 			case receiverAddAddress:
@@ -742,7 +741,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 					tc.indirectVars[elem.decl] = true
 					expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorAnd, expr.Expr)
 					tc.typeInfos[expr.Expr] = &TypeInfo{
-						Type:       types.PtrTo(t.Type),
+						Type:       tc.types.PtrTo(t.Type),
 						MethodType: t.MethodType,
 					}
 				}
@@ -806,7 +805,7 @@ func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, isSlice bool
 	}
 	index.setValue(intType)
 	if index.IsConstant() {
-		c, err := convert(index, intType)
+		c, err := tc.convert(index, intType)
 		if err != nil {
 			panic(tc.errorf(expr, "%s", err))
 		}
@@ -889,7 +888,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			if t1.Untyped() {
 				ti.Properties = PropertyUntyped
 			} else {
-				ti.Constant, err = convert(ti, ti.Type)
+				ti.Constant, err = tc.convert(ti, ti.Type)
 				if err != nil {
 					return nil, fmt.Errorf("constant %v overflows %s", c, t1)
 				}
@@ -998,7 +997,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			return &TypeInfo{Type: boolType, Constant: c}, nil
 		}
 		ti := &TypeInfo{Type: t1.Type, Constant: c}
-		ti.Constant, err = convert(ti, t1.Type)
+		ti.Constant, err = tc.convert(ti, t1.Type)
 		if err != nil {
 			return nil, fmt.Errorf("constant %v overflows %s", c, t1)
 		}
@@ -1006,7 +1005,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 	}
 
 	if isComparison(op) {
-		if isAssignableTo(t1, expr1, t2.Type) != nil && isAssignableTo(t2, expr2, t1.Type) != nil {
+		if tc.isAssignableTo(t1, expr1, t2.Type) != nil && tc.isAssignableTo(t2, expr2, t1.Type) != nil {
 			return nil, fmt.Errorf("mismatched types %s and %s", t1.ShortString(), t2.ShortString())
 		}
 		if op == ast.OperatorEqual || op == ast.OperatorNotEqual {
@@ -1051,7 +1050,7 @@ func (tc *typechecker) checkSize(expr ast.Expression, typ reflect.Type, name str
 	}
 	size.setValue(intType)
 	if size.IsConstant() {
-		c, err := convert(size, intType)
+		c, err := tc.convert(size, intType)
 		if err != nil {
 			panic(tc.errorf(expr, "%s", err))
 		}
@@ -1093,7 +1092,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			}
 			t := tc.checkExpr(expr.Args[1])
 			isSpecialCase := t.Type.Kind() == reflect.String && slice.Type.Elem() == uint8Type
-			if !isSpecialCase && isAssignableTo(t, expr.Args[1], slice.Type) != nil {
+			if !isSpecialCase && tc.isAssignableTo(t, expr.Args[1], slice.Type) != nil {
 				panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", expr.Args[1], t, slice.Type))
 			}
 		} else if len(expr.Args) > 1 {
@@ -1103,7 +1102,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 					continue
 				}
 				t := tc.checkExpr(el)
-				if err := isAssignableTo(t, el, elemType); err != nil {
+				if err := tc.isAssignableTo(t, el, elemType); err != nil {
 					if _, ok := err.(invalidTypeInAssignment); ok {
 						panic(tc.errorf(expr, "%s in append", err))
 					}
@@ -1201,13 +1200,13 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		if re.IsUntypedConstant() {
 			k := im.Type.Kind()
 			_ = k
-			c, err := convert(re, im.Type)
+			c, err := tc.convert(re, im.Type)
 			if err != nil {
 				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", re.Constant, re, im))
 			}
 			re = &TypeInfo{Type: im.Type, Constant: c}
 		} else if im.IsUntypedConstant() {
-			c, err := convert(im, re.Type)
+			c, err := tc.convert(im, re.Type)
 			if err != nil {
 				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", im.Constant, im, re))
 			}
@@ -1276,14 +1275,14 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			panic(tc.errorf(expr, "first argument to delete must be map; have %s", t))
 		}
 		keyType := t.Type.Key()
-		if err := isAssignableTo(key, expr.Args[1], keyType); err != nil {
+		if err := tc.isAssignableTo(key, expr.Args[1], keyType); err != nil {
 			if _, ok := err.(invalidTypeInAssignment); ok {
 				panic(tc.errorf(expr, "%s in delete", err))
 			}
 			panic(tc.errorf(expr, "%s", err))
 		}
 		if key.IsConstant() {
-			_, err := convert(key, keyType)
+			_, err := tc.convert(key, keyType)
 			if err != nil {
 				panic(tc.errorf(expr, "%s", err))
 			}
@@ -1380,7 +1379,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		if len(expr.Args) > 1 {
 			panic(tc.errorf(expr, "too many arguments to new(%s)", expr.Args[0]))
 		}
-		return []*TypeInfo{{Type: types.PtrTo(t.Type)}}
+		return []*TypeInfo{{Type: tc.types.PtrTo(t.Type)}}
 
 	case "panic":
 		if len(expr.Args) == 0 {
@@ -1391,7 +1390,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		}
 		ti := tc.checkExpr(expr.Args[0])
 		if ti.Nil() {
-			ti = nilOf(emptyInterfaceType)
+			ti = tc.nilOf(emptyInterfaceType)
 			tc.typeInfos[expr.Args[0]] = ti
 		} else {
 			ti.setValue(nil)
@@ -1491,7 +1490,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			panic(tc.errorf(expr, "too many arguments to conversion to %s: %s", t, expr))
 		}
 		arg := tc.checkExpr(expr.Args[0])
-		c, err := convert(arg, t.Type)
+		c, err := tc.convert(arg, t.Type)
 		if err != nil {
 			if err == errTypeConversion {
 				if arg.Nil() {
@@ -1502,7 +1501,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			panic(tc.errorf(expr, "%s", err))
 		}
 		if arg.Nil() {
-			return []*TypeInfo{nilOf(t.Type)}, false, true
+			return []*TypeInfo{tc.nilOf(t.Type)}, false, true
 		}
 		converted := &TypeInfo{Type: t.Type, Constant: c}
 		if c == nil {
@@ -1605,7 +1604,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		}
 		if isSpecialCase {
 			a := tc.typeInfos[arg]
-			if err := isAssignableTo(a, arg, in); err != nil {
+			if err := tc.isAssignableTo(a, arg, in); err != nil {
 				if _, ok := err.(invalidTypeInAssignment); ok {
 					panic(tc.errorf(args[i], "cannot use %s as type %s in argument to %s", a, in, expr.Func))
 				}
@@ -1615,7 +1614,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		}
 		a := tc.checkExpr(arg)
 		if i == lastIn && callIsVariadic {
-			if err := isAssignableTo(a, arg, reflect.SliceOf(in)); err != nil {
+			if err := tc.isAssignableTo(a, arg, reflect.SliceOf(in)); err != nil {
 				if _, ok := err.(invalidTypeInAssignment); ok {
 					panic(tc.errorf(expr, "%s in argument to %s", err, expr.Func))
 				}
@@ -1623,14 +1622,14 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			}
 			continue
 		}
-		if err := isAssignableTo(a, arg, in); err != nil {
+		if err := tc.isAssignableTo(a, arg, in); err != nil {
 			if _, ok := err.(invalidTypeInAssignment); ok {
 				panic(tc.errorf(expr, "%s in argument to %s", err, expr.Func))
 			}
 			panic(tc.errorf(expr, "%s", err))
 		}
 		if a.Nil() {
-			a := nilOf(in)
+			a := tc.nilOf(in)
 			tc.typeInfos[expr.Args[i]] = a
 		} else {
 			a.setValue(in)
@@ -1739,14 +1738,14 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					panic(tc.errorf(node, "unknown field '%s' in struct literal of type %s", keyValue.Key, ti))
 				}
 				valueTi := tc.checkExpr(keyValue.Value)
-				if err := isAssignableTo(valueTi, keyValue.Value, fieldTi.Type); err != nil {
+				if err := tc.isAssignableTo(valueTi, keyValue.Value, fieldTi.Type); err != nil {
 					if _, ok := err.(invalidTypeInAssignment); ok {
 						panic(tc.errorf(node, "%s in field value", err))
 					}
 					panic(tc.errorf(node, "%s", err))
 				}
 				if valueTi.Nil() {
-					valueTi = nilOf(fieldTi.Type)
+					valueTi = tc.nilOf(fieldTi.Type)
 					tc.typeInfos[keyValue.Value] = valueTi
 				} else {
 					valueTi.setValue(fieldTi.Type)
@@ -1769,7 +1768,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				keyValue := &node.KeyValues[i]
 				valueTi := tc.checkExpr(keyValue.Value)
 				fieldTi := ti.Type.Field(i)
-				if err := isAssignableTo(valueTi, keyValue.Value, fieldTi.Type); err != nil {
+				if err := tc.isAssignableTo(valueTi, keyValue.Value, fieldTi.Type); err != nil {
 					if _, ok := err.(invalidTypeInAssignment); ok {
 						panic(tc.errorf(node, "%s in field value", err))
 					}
@@ -1780,7 +1779,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				}
 				keyValue.Key = ast.NewIdentifier(node.Pos(), fieldTi.Name)
 				if valueTi.Nil() {
-					valueTi = nilOf(fieldTi.Type)
+					valueTi = tc.nilOf(fieldTi.Type)
 					tc.typeInfos[keyValue.Value] = valueTi
 				} else {
 					valueTi.setValue(fieldTi.Type)
@@ -1812,7 +1811,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			} else {
 				elemTi = tc.checkExpr(kv.Value)
 			}
-			if err := isAssignableTo(elemTi, kv.Value, ti.Type.Elem()); err != nil {
+			if err := tc.isAssignableTo(elemTi, kv.Value, ti.Type.Elem()); err != nil {
 				k := ti.Type.Elem().Kind()
 				if _, ok := err.(invalidTypeInAssignment); ok && k == reflect.Slice || k == reflect.Array {
 					panic(tc.errorf(node, "%s in array or slice literal", err))
@@ -1820,7 +1819,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				panic(tc.errorf(node, "%s", err))
 			}
 			if elemTi.Nil() {
-				elemTi = nilOf(ti.Type.Elem())
+				elemTi = tc.nilOf(ti.Type.Elem())
 				tc.typeInfos[kv.Value] = elemTi
 			} else {
 				elemTi.setValue(ti.Type.Elem())
@@ -1851,7 +1850,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			} else {
 				elemTi = tc.checkExpr(kv.Value)
 			}
-			if err := isAssignableTo(elemTi, kv.Value, ti.Type.Elem()); err != nil {
+			if err := tc.isAssignableTo(elemTi, kv.Value, ti.Type.Elem()); err != nil {
 				k := ti.Type.Elem().Kind()
 				if _, ok := err.(invalidTypeInAssignment); ok {
 					if k == reflect.Slice || k == reflect.Array {
@@ -1862,7 +1861,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				panic(tc.errorf(node, "%s", err))
 			}
 			if elemTi.Nil() {
-				elemTi = nilOf(ti.Type.Elem())
+				elemTi = tc.nilOf(ti.Type.Elem())
 				tc.typeInfos[kv.Value] = elemTi
 			} else {
 				elemTi.setValue(ti.Type.Elem())
@@ -1885,21 +1884,21 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			} else {
 				keyTi = tc.checkExpr(kv.Key)
 			}
-			if err := isAssignableTo(keyTi, kv.Key, keyType); err != nil {
+			if err := tc.isAssignableTo(keyTi, kv.Key, keyType); err != nil {
 				if _, ok := err.(invalidTypeInAssignment); ok {
 					panic(tc.errorf(node, "%s in map key", err))
 				}
 				panic(tc.errorf(node, "%s", err))
 			}
 			if keyTi.IsConstant() {
-				key := typedValue(keyTi, keyType)
+				key := tc.typedValue(keyTi, keyType)
 				if _, ok := hasKey[key]; ok {
 					panic(tc.errorf(node, "duplicate key %s in map literal", kv.Key))
 				}
 				hasKey[key] = struct{}{}
 			}
 			if keyTi.Nil() {
-				keyTi = nilOf(keyType)
+				keyTi = tc.nilOf(keyType)
 				tc.typeInfos[kv.Key] = keyTi
 			} else {
 				keyTi.setValue(keyType)
@@ -1910,14 +1909,14 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			} else {
 				valueTi = tc.checkExpr(kv.Value)
 			}
-			if err := isAssignableTo(valueTi, kv.Value, elemType); err != nil {
+			if err := tc.isAssignableTo(valueTi, kv.Value, elemType); err != nil {
 				if _, ok := err.(invalidTypeInAssignment); ok {
 					panic(tc.errorf(node, "%s in map value", err))
 				}
 				panic(tc.errorf(node, "%s", err))
 			}
 			if valueTi.Nil() {
-				valueTi = nilOf(elemType)
+				valueTi = tc.nilOf(elemType)
 				tc.typeInfos[kv.Value] = valueTi
 			} else {
 				valueTi.setValue(elemType)
