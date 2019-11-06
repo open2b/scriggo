@@ -1,5 +1,3 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
-
 // errorcheck
 
 // Copyright 2016 The Go Authors.  All rights reserved.
@@ -9,7 +7,7 @@
 // The compiler was failing to correctly report an error when a dot
 // expression was used a struct literal key.
 
-package p
+package main
 
 type T struct {
         toInt    map[string]int
@@ -20,3 +18,5 @@ var t = T{
         foo.toInt:    make(map[string]int), // ERROR "field name"
         bar.toString: make(map[int]string), // ERROR "field name"
 }
+
+func main() { }
