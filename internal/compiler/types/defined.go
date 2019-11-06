@@ -88,31 +88,6 @@ func (x definedType) MethodByName(string) (reflect.Method, bool) {
 	return reflect.Method{}, false
 }
 
-func (x definedType) Wrap(v interface{}) interface{} {
-	return emptyInterfaceProxy{
-		value: v,
-		sign:  x,
-	}
-}
+func (x definedType) Wrap(v interface{}) interface{} { return wrap(x, v) }
 
-// TODO: currently Unwrap always returns an empty interface wrapper. This will
-// change when methods declaration will be implemented in Scriggo.
-func (x definedType) Unwrap(v reflect.Value) (reflect.Value, bool) {
-	p, ok := v.Interface().(emptyInterfaceProxy)
-	// Not a proxy.
-	if !ok {
-		return reflect.Value{}, false
-	}
-	// v is a proxy but is has a different Scriggo type.
-	if p.sign != x {
-		return reflect.Value{}, false
-	}
-	return reflect.ValueOf(p.value), true
-}
-
-// emptyInterfaceProxy is a proxy for values of types that has no methods
-// associated.
-type emptyInterfaceProxy struct {
-	value interface{}
-	sign  definedType
-}
+func (x definedType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }

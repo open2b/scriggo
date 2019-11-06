@@ -81,3 +81,7 @@ func (x mapType) Underlying() reflect.Type {
 	assertNotScriggoType(x.Type)
 	return x.Type
 }
+
+func (x mapType) Wrap(v interface{}) interface{} { return wrap(x, v) }
+
+func (x mapType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }

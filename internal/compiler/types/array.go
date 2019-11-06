@@ -52,3 +52,7 @@ func (x arrayType) String() string {
 	s += x.elem.String()
 	return s
 }
+
+func (x arrayType) Wrap(v interface{}) interface{} { return wrap(x, v) }
+
+func (x arrayType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }

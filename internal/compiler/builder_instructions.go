@@ -109,7 +109,7 @@ func (builder *functionBuilder) emitAppendSlice(t, s int8, pos *ast.Position) {
 //     z = e.(t)
 //
 func (builder *functionBuilder) emitAssert(e int8, typ reflect.Type, z int8) {
-	t := builder.addType(typ)
+	t := builder.addTypeAsIs(typ)
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpAssert, A: e, B: int8(t), C: z})
 }
 
@@ -815,7 +815,7 @@ func (builder *functionBuilder) emitPanic(v int8, typ reflect.Type, pos *ast.Pos
 	fn := builder.fn
 	in := runtime.Instruction{Op: runtime.OpPanic, A: v}
 	if typ != nil {
-		in.C = int8(builder.addType(typ))
+		in.C = int8(builder.addTypeAsIs(typ))
 	}
 	fn.Body = append(fn.Body, in)
 }
@@ -1136,7 +1136,7 @@ func (builder *functionBuilder) emitSubInv(k bool, x, y, z int8, kind reflect.Ki
 
 // emitTypify appends a new "Typify" instruction to the function body.
 func (builder *functionBuilder) emitTypify(k bool, typ reflect.Type, x, z int8) {
-	t := builder.addType(typ)
+	t := builder.addTypeAsIs(typ)
 	op := runtime.OpTypify
 	if k {
 		op = -op

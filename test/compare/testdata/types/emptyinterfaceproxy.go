@@ -33,5 +33,16 @@ func main() {
 		_, ok = i3.([]byte)    ; fmt.Println(ok) // false
 	}
 
+	{
+		// Slice types.
+
+		var ok bool
+
+		type Int int
+		var i1 interface{} = []Int{1,2,3}
+		_ , ok = i1.(Int); fmt.Println(ok)
+
+	}
+
 
 }

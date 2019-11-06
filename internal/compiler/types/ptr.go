@@ -44,3 +44,7 @@ func (x ptrType) Elem() reflect.Type {
 func (x ptrType) String() string {
 	return "*" + x.elem.String()
 }
+
+func (x ptrType) Wrap(v interface{}) interface{} { return wrap(x, v) }
+
+func (x ptrType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
