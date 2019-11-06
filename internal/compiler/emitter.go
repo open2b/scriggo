@@ -249,7 +249,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 					// initialized value inside the proper global index.
 					pkgVarRegs[v.Name] = varr
 					pkgVarTypes[v.Name] = staticType
-					em.globals = append(em.globals, Global{Pkg: "main", Name: v.Name, Type: staticType})
+					em.globals = append(em.globals, newGlobal("Main", v.Name, staticType, nil))
 					em.availableVarIndexes[em.pkg][v.Name] = int16(len(em.globals) - 1)
 					vars[v.Name] = int16(len(em.globals) - 1)
 				}

@@ -13,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"scriggo/ast"
+	"scriggo/internal/compiler/types"
 	"scriggo/runtime"
 )
 
@@ -195,6 +196,20 @@ func kindToType(k reflect.Kind) runtime.Type {
 	}
 }
 
+// newGlobal returns a new Global value. If typ is a Scriggo type, then typ is
+// converted to a Go type before creating the Global value.
+func newGlobal(pkg, name string, typ reflect.Type, value interface{}) Global {
+	if st, ok := typ.(types.ScriggoType); ok {
+		typ = st.Underlying()
+	}
+	return Global{
+		Pkg:   pkg,
+		Name:  name,
+		Type:  typ,
+		Value: value,
+	}
+}
+
 // predVarIndex returns the index of a global variable in globals, adding it
 // if it does not exist.
 func (em *emitter) predVarIndex(v *reflect.Value, predPkgName, name string) int16 {
@@ -202,7 +217,7 @@ func (em *emitter) predVarIndex(v *reflect.Value, predPkgName, name string) int1
 		return int16(index)
 	}
 	index := len(em.globals)
-	g := Global{Pkg: predPkgName, Name: name, Type: v.Type().Elem()}
+	g := newGlobal(predPkgName, name, v.Type().Elem(), nil)
 	if !v.IsNil() {
 		g.Value = v.Interface()
 	}
