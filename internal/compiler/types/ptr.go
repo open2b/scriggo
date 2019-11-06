@@ -8,6 +8,8 @@ package types
 
 import "reflect"
 
+// PtrTo behaves like reflect.PtrTo except when t is a Scriggo type; in such
+// case a new Scriggo pointer type is created and returned as reflect.Type.
 func PtrTo(t reflect.Type) reflect.Type {
 	if st, ok := t.(ScriggoType); ok {
 		return ptrType{
@@ -18,6 +20,8 @@ func PtrTo(t reflect.Type) reflect.Type {
 	return reflect.PtrTo(t)
 }
 
+// ptrType represents a composite pointer type where the element is a Scriggo
+// type.
 type ptrType struct {
 	reflect.Type
 	elem reflect.Type // always != nil

@@ -11,6 +11,8 @@ import (
 	"strconv"
 )
 
+// ArrayOf behaves like reflect.ArrayOf except when elem is a Scriggo type; in
+// such case a new Scriggo array type is created and returned as reflect.Type.
 func ArrayOf(count int, elem reflect.Type) reflect.Type {
 	if st, ok := elem.(ScriggoType); ok {
 		return arrayType{
@@ -21,9 +23,11 @@ func ArrayOf(count int, elem reflect.Type) reflect.Type {
 	return reflect.ArrayOf(count, elem)
 }
 
+// arrayType represents a composite array type where the element is a Scriggo
+// type.
 type arrayType struct {
-	reflect.Type
-	elem reflect.Type
+	reflect.Type              // always a reflect implementation of reflect.Type
+	elem         reflect.Type // array element, always a Scriggo type
 }
 
 func (x arrayType) AssignableTo(T reflect.Type) bool {
