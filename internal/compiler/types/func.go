@@ -8,49 +8,46 @@ package types
 
 import "reflect"
 
+// containsScriggoTypes reports whether types contains at least one Scriggo type.
+func containsScriggoTypes(types []reflect.Type) bool {
+	for _, t := range types {
+		if _, ok := t.(ScriggoType); ok {
+			return true
+		}
+	}
+	return false
+}
+
 func FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 
-	// First: check if this function contains a Scriggo type in its parameters.
-	// If not, such function can be created with reflect.FuncOf without any
-	// problem.
-	isScriggoType := false
-	for _, t := range in {
-		if _, ok := t.(ScriggoType); ok {
-			isScriggoType = true
-			break
-		}
-	}
-	for _, t := range out {
-		if _, ok := t.(ScriggoType); ok {
-			isScriggoType = true
-			break
-		}
-	}
+	// If at least one parameter of the function that is going to be created is
+	// a Scriggo type then such function must be represented with a Scriggo
+	// type. If not, the resulting function is can be represented by the reflect
+	// implementation of reflect.Type that can be created with reflect.Func.
+	if containsScriggoTypes(in) || containsScriggoTypes(out) {
 
-	if isScriggoType {
-
-		inBase := make([]reflect.Type, len(in))
-		outBase := make([]reflect.Type, len(out))
+		inGo := make([]reflect.Type, len(in))
+		outGo := make([]reflect.Type, len(out))
 
 		for i := range in {
 			if st, ok := in[i].(ScriggoType); ok {
-				inBase[i] = st.Underlying()
+				inGo[i] = st.Underlying()
 			} else {
-				inBase[i] = in[i]
+				inGo[i] = in[i]
 			}
 		}
 		for i := range out {
 			if st, ok := out[i].(ScriggoType); ok {
-				outBase[i] = st.Underlying()
+				outGo[i] = st.Underlying()
 			} else {
-				outBase[i] = out[i]
+				outGo[i] = out[i]
 			}
 		}
 
 		return funcType{
 			in:   &in,
 			out:  &out,
-			Type: FuncOf(inBase, outBase, variadic),
+			Type: FuncOf(inGo, outGo, variadic),
 		}
 
 	}
