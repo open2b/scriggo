@@ -25,6 +25,10 @@ type Types struct {
 	// indentical functions declared in two parts of the code would have two
 	// different parameters lists, making them 'different' when compared by Go).
 	funcParams [2][]*[]reflect.Type
+
+	// structFieldsLists avoid the creation of two different structTypes with
+	// the same struct fields.
+	structFieldsLists []*map[int]reflect.StructField
 }
 
 // NewTypes returns a new value with type Types than can be used to build and
@@ -129,7 +133,3 @@ func assertNotScriggoType(t reflect.Type) {
 
 // TODO: every call to a reflect function in the compiler should be checked and
 // eventually converted to a call to a function of this package.
-
-// TODO: using a pointer to a map/slice etc.. as a field makes comparisons
-// return false when two identical Scriggo types are created in two different
-// moments.
