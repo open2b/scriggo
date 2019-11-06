@@ -35,6 +35,13 @@ func (x sliceType) Name() string {
 	return ""
 }
 
+func (x sliceType) Implements(u reflect.Type) bool {
+	if u.Kind() != reflect.Interface {
+		panic("expected reflect.Interface")
+	}
+	return u.NumMethod() == 0
+}
+
 func (x sliceType) Elem() reflect.Type {
 	return x.elem
 }

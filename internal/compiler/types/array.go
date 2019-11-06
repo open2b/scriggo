@@ -53,6 +53,13 @@ func (x arrayType) String() string {
 	return s
 }
 
+func (x arrayType) Implements(u reflect.Type) bool {
+	if u.Kind() != reflect.Interface {
+		panic("expected reflect.Interface")
+	}
+	return u.NumMethod() == 0
+}
+
 func (x arrayType) Wrap(v interface{}) interface{} { return wrap(x, v) }
 
 func (x arrayType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }

@@ -54,6 +54,13 @@ func (x mapType) Elem() reflect.Type {
 	return x.Type.Elem()
 }
 
+func (x mapType) Implements(u reflect.Type) bool {
+	if u.Kind() != reflect.Interface {
+		panic("expected reflect.Interface")
+	}
+	return u.NumMethod() == 0
+}
+
 func (x mapType) Key() reflect.Type {
 	if x.key != nil {
 		return x.key

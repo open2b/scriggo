@@ -123,6 +123,28 @@ func (types *Types) ConvertibleTo(x, u reflect.Type) bool {
 	return x.ConvertibleTo(u) // rtype method
 }
 
+// Implements behaves like x.Implements(u) except when one of x or u is a
+// Scriggo type.
+func (types *Types) Implements(x, u reflect.Type) bool {
+
+	// x is a Scriggo type,
+	// u (the interface type) can be both a Scriggo type or a Go type.
+	if st, ok := x.(ScriggoType); ok {
+		return st.Implements(u)
+	}
+
+	// x is a Go type,
+	// u (the interface type) is a Scriggo type.
+	if st, ok := u.(ScriggoType); ok {
+		return x.Implements(st.Underlying())
+	}
+
+	// x is a Go type,
+	// u (the interface type) is a Go type.
+	return x.Implements(u) // rtype method
+
+}
+
 // TODO: this function will be removed when the development of this package is
 // concluded.
 func assertNotScriggoType(t reflect.Type) {

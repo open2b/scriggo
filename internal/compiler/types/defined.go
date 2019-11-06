@@ -83,6 +83,15 @@ func (x definedType) AssignableTo(T reflect.Type) bool {
 
 }
 
+func (x definedType) Implements(u reflect.Type) bool {
+	if u.Kind() != reflect.Interface {
+		panic("expected reflect.Interface")
+	}
+	// TODO: currently methods definition is not supported, so every defined
+	// type implements only the empty interface.
+	return u.NumMethod() == 0
+}
+
 func (x definedType) MethodByName(string) (reflect.Method, bool) {
 	// TODO.
 	return reflect.Method{}, false

@@ -108,6 +108,13 @@ func (x funcType) AssignableTo(T reflect.Type) bool {
 	return x == T
 }
 
+func (x funcType) Implements(u reflect.Type) bool {
+	if u.Kind() != reflect.Interface {
+		panic("expected reflect.Interface")
+	}
+	return u.NumMethod() == 0
+}
+
 func (x funcType) In(i int) reflect.Type {
 	if x.in != nil {
 		return (*x.in)[i]
