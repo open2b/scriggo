@@ -39,7 +39,9 @@ func StructOf(fields []reflect.StructField) reflect.Type {
 		// information from the type and add that information to the structType.
 		if st, ok := field.Type.(ScriggoType); ok {
 			baseFields[i].Type = st.Underlying()
-			scriggoFields[i] = field
+			scriggoField := field
+			scriggoField.Index = []int{i}
+			scriggoFields[i] = scriggoField
 		}
 
 	}
@@ -87,7 +89,9 @@ func (x structType) FieldByIndex(index []int) reflect.StructField {
 func (x structType) FieldByName(name string) (reflect.StructField, bool) {
 	for _, field := range *x.scriggoFields {
 		if field.Name == name {
-			return field, true
+			goField := field
+			goField.Type = field.Type.(ScriggoType).Underlying()
+			return goField, true
 		}
 	}
 	return x.Type.FieldByName(name)
