@@ -1,4 +1,4 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
+// skip : bug in compiler/types
 
 // run
 
@@ -13,22 +13,22 @@ var v2 = T2{2}
 var v3 = T3{0: 3, 1: 4}
 var v4 = T4{0: 5, 1: 6}
 var v5 = T5{0: 7, 1: 8}
-var v6 = T2{f: 9}
+var v6 = T2{F: 9}
 var v7 = T4{f: 10}
 var v8 = T5{f: 11}
 var pf func(T1)
 
 func main() {
-	if v1 != 1 || v2.f != 2 || v3[0] != 3 || v3[1] != 4 ||
+	if v1 != 1 || v2.F != 2 || v3[0] != 3 || v3[1] != 4 ||
 		v4[0] != 5 || v4[1] != 6 || v5[0] != 7 || v5[1] != 8 ||
-		v6.f != 9 || v7[0] != 10 || v8[0] != 11 {
+		v6.F != 9 || v7[0] != 10 || v8[0] != 11 {
 		panic("fail")
 	}
 }
 
 type T1 int
 type T2 struct {
-	f int
+	F int // TODO: should be unexported.
 }
 type T3 []int
 type T4 [2]int
