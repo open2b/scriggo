@@ -47,3 +47,7 @@ func (x sliceType) Underlying() reflect.Type {
 func (x sliceType) String() string {
 	return "[]" + (x.elem).String()
 }
+
+func (x sliceType) Wrap(v interface{}) interface{} { return wrap(x, v) }
+
+func (x sliceType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }

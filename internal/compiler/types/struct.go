@@ -120,3 +120,7 @@ func (x structType) String() string {
 	s += "}"
 	return s
 }
+
+func (x structType) Wrap(v interface{}) interface{} { return wrap(x, v) }
+
+func (x structType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }

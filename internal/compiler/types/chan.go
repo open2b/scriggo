@@ -53,3 +53,7 @@ func (x chanType) String() string {
 	s += x.elem.String()
 	return s
 }
+
+func (x chanType) Wrap(v interface{}) interface{} { return wrap(x, v) }
+
+func (x chanType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
