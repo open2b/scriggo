@@ -1,5 +1,3 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
-
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -12,6 +10,6 @@ func main() {
 	type Slice []byte;
 	a := [...]byte{ 0 };
 	b := Slice(a[0:]);	// This should be OK.
-	c := Slice(a);		// ERROR "invalid|illegal|cannot"
-	_, _ = b, c;
+	c := Slice(a);	_ = c;	// ERROR "invalid|illegal|cannot"
+	_ = b
 }
