@@ -36,6 +36,7 @@ func (x sliceType) Elem() reflect.Type {
 }
 
 func (x sliceType) Underlying() reflect.Type {
+	assertNotScriggoType(x.Type)
 	return x.Type
 }
 

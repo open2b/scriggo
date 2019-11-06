@@ -39,6 +39,7 @@ func (x arrayType) Elem() reflect.Type {
 }
 
 func (x arrayType) Underlying() reflect.Type {
+	assertNotScriggoType(x.Type)
 	return x.Type
 }
 

@@ -28,6 +28,7 @@ func (x ptrType) AssignableTo(T reflect.Type) bool {
 }
 
 func (x ptrType) Underlying() reflect.Type {
+	assertNotScriggoType(x.Type)
 	return x.Type
 }
 

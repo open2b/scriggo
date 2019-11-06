@@ -64,6 +64,7 @@ func (x structType) AssignableTo(T reflect.Type) bool {
 }
 
 func (x structType) Underlying() reflect.Type {
+	assertNotScriggoType(x.Type)
 	return x.Type
 }
 

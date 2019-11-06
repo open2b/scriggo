@@ -92,6 +92,7 @@ func (st funcType) Name() string {
 }
 
 func (st funcType) Underlying() reflect.Type {
+	assertNotScriggoType(st)
 	return st.Type
 }
 

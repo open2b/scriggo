@@ -7,11 +7,18 @@
 package types
 
 import (
+	"fmt"
 	"reflect"
 )
 
+// A ScriggoType represents both a type defined in Scriggo and a composite type
+// that "contains" a type defined in Scriggo. Any other type can be represented
+// using a "real" reflect.Type (*reflect.rtype).
 type ScriggoType interface {
 	reflect.Type
+	// Underlying always returns the reflect implementation of the reflect.Type,
+	// so it's safe to pass the returned value to the functions exported by the
+	// reflect package.
 	Underlying() reflect.Type
 }
 
@@ -73,4 +80,12 @@ func ConvertibleTo(x, u reflect.Type) bool {
 		return ConvertibleTo(x, u.Underlying())
 	}
 	return x.ConvertibleTo(u) // rtype method
+}
+
+// TODO: this function will be removed when the development of this package is
+// concluded.
+func assertNotScriggoType(t reflect.Type) {
+	if _, ok := t.(ScriggoType); ok {
+		panic(fmt.Errorf("%v is a Scriggo type!", t))
+	}
 }

@@ -73,5 +73,6 @@ func (x mapType) String() string {
 }
 
 func (x mapType) Underlying() reflect.Type {
+	assertNotScriggoType(x.Type)
 	return x.Type
 }
