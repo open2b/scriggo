@@ -972,9 +972,8 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 	//
 	// Not that this does not imply that method 'changeRegister' doesn't have to
 	// be called: in case when internal representation is different than the
-	// external one (for example arrays and functions), the calls to
-	// 'changeRegister' may emit a Typify instruction to ensure that values are
-	// correctly converted.
+	// external one (functions and bools), the calls to 'changeRegister' may
+	// emit a Typify instruction to ensure that values are correctly converted.
 
 	if ti := em.ti(expr); ti != nil && ti.HasValue() && !ti.IsPredefined() {
 		typ := ti.Type
