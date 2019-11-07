@@ -13,6 +13,7 @@ import (
 	"sync"
 )
 
+
 const NoVariadicArgs = -1
 const CurrentFunction = -1
 
@@ -253,32 +254,9 @@ func (vm *VM) alloc() {
 	var bytes int
 	switch op {
 	case OpAppend:
-		var elemSize int
-		var sc, sl int
-		switch s := vm.general(c).(type) {
-		case []int:
-			elemSize = 8
-			sl, sc = len(s), cap(s)
-		case []byte:
-			elemSize = 1
-			sl, sc = len(s), cap(s)
-		case []rune:
-			elemSize = 4
-			sl, sc = len(s), cap(s)
-		case []float64:
-			elemSize = 8
-			sl, sc = len(s), cap(s)
-		case []string:
-			elemSize = 16
-			sl, sc = len(s), cap(s)
-		case []interface{}:
-			elemSize = 16
-			sl, sc = len(s), cap(s)
-		default:
-			rs := reflect.ValueOf(s)
-			elemSize = int(rs.Type().Size())
-			sl, sc = rs.Len(), rs.Cap()
-		}
+		s := vm.general(c)
+		elemSize := int(s.Type().Size())
+		sl, sc := s.Len(), s.Cap()
 		l := int(b)
 		if l > sc-sl {
 			if sl+l < 0 {
@@ -291,31 +269,12 @@ func (vm *VM) alloc() {
 			}
 		}
 	case OpAppendSlice:
-		var elemSize int
-		var l, sc, sl int
 		src := vm.general(a)
-		switch s := vm.general(c).(type) {
-		case []int:
-			elemSize = 8
-			l, sl, sc = len(src.([]int)), len(s), cap(s)
-		case []byte:
-			elemSize = 1
-			l, sl, sc = len(src.([]byte)), len(s), cap(s)
-		case []rune:
-			elemSize = 4
-			l, sl, sc = len(src.([]rune)), len(s), cap(s)
-		case []float64:
-			elemSize = 8
-			l, sl, sc = len(src.([]float64)), len(s), cap(s)
-		case []string:
-			elemSize = 16
-			l, sl, sc = len(src.([]string)), len(s), cap(s)
-		case []interface{}:
-			elemSize = 16
-			l, sl, sc = len(src.([]interface{})), len(s), cap(s)
-		default:
-			sl, sc = reflect.ValueOf(src).Len(), reflect.ValueOf(s).Cap()
-		}
+		s := vm.general(c)
+		elemSize := int(s.Type().Size())
+		l := src.Len()
+		sl := s.Len()
+		sc := s.Cap()
 		if l > sc-sl {
 			nl := sl + l
 			if nl < sl {
@@ -331,14 +290,14 @@ func (vm *VM) alloc() {
 		t := vm.fn.Types[uint8(b)]
 		switch t.Kind() {
 		case reflect.Func:
-			call := vm.general(a).(*callable)
+			call := vm.general(a).Interface().(*callable)
 			if !call.value.IsValid() {
 				// Approximated size based on makeFuncImpl in
 				// https://golang.org/src/reflect/makefunc.go
 				bytes = 100
 			}
 		default:
-			bytes = int(reflect.TypeOf(vm.general(a)).Size())
+			bytes = int(vm.general(a).Type().Size())
 		}
 	case OpConvertString: // TODO(marco): implement in the builder.
 		t := vm.fn.Types[uint8(b)]
@@ -398,8 +357,7 @@ func (vm *VM) alloc() {
 		t := vm.fn.Types[uint8(b)]
 		bytes = int(t.Size())
 	case OpSetMap:
-		m := vm.general(a)
-		t := reflect.TypeOf(m)
+		t := vm.general(a).Type()
 		kSize := int(t.Key().Size())
 		eSize := int(t.Elem().Size())
 		bytes = kSize + eSize
@@ -475,36 +433,36 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 					panic(errNilPointer)
 				}
 				vm.setBool(1, f(vm.string(1), vm.string(2)))
-			case func([]byte) []byte:
-				if f == nil {
-					vm.fp = fp
-					panic(errNilPointer)
-				}
-				vm.setGeneral(1, f(vm.general(2).([]byte)))
-			case func([]byte, []byte) int:
-				if f == nil {
-					vm.fp = fp
-					panic(errNilPointer)
-				}
-				vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
-			case func([]byte, []byte) bool:
-				if f == nil {
-					vm.fp = fp
-					panic(errNilPointer)
-				}
-				vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
-			case func(interface{}, interface{}) interface{}:
-				if f == nil {
-					vm.fp = fp
-					panic(errNilPointer)
-				}
-				vm.setGeneral(1, f(vm.general(2), vm.general(3)))
-			case func(interface{}) interface{}:
-				if f == nil {
-					vm.fp = fp
-					panic(errNilPointer)
-				}
-				vm.setGeneral(1, f(vm.general(2)))
+			//case func([]byte) []byte:
+			//	if f == nil {
+			//		vm.fp = fp
+			//		panic(errNilPointer)
+			//	}
+			//	vm.setGeneral(1, f(vm.general(2).([]byte)))
+			//case func([]byte, []byte) int:
+			//	if f == nil {
+			//		vm.fp = fp
+			//		panic(errNilPointer)
+			//	}
+			//	vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
+			//case func([]byte, []byte) bool:
+			//	if f == nil {
+			//		vm.fp = fp
+			//		panic(errNilPointer)
+			//	}
+			//	vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
+			//case func(interface{}, interface{}) interface{}:
+			//	if f == nil {
+			//		vm.fp = fp
+			//		panic(errNilPointer)
+			//	}
+			//	vm.setGeneral(1, f(vm.general(2), vm.general(3)))
+			//case func(interface{}) interface{}:
+			//	if f == nil {
+			//		vm.fp = fp
+			//		panic(errNilPointer)
+			//	}
+			//	vm.setGeneral(1, f(vm.general(2)))
 			default:
 				called = false
 			}
@@ -638,34 +596,25 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 				case String:
 					args[i].SetString(vm.string(1))
 					vm.fp[2]++
-				case Array:
-					slice := reflect.ValueOf(vm.general(1))
-					array := reflect.New(reflect.ArrayOf(slice.Len(), slice.Type().Elem())).Elem()
-					reflect.Copy(array, slice)
-					args[i].Set(array)
-					vm.fp[3]++
 				case Func:
-					f := vm.general(1).(*callable)
+					f := vm.general(1).Interface().(*callable)
 					args[i].Set(f.Value(vm.env))
 					vm.fp[3]++
 				case Environment:
 					args[i].Set(vm.envArg)
 				case Interface:
-					if v := vm.general(1); v == nil {
+					if v := vm.general(1); !v.IsValid() {
 						if t := args[i].Type(); t == emptyInterfaceType {
 							args[i] = emptyInterfaceNil
 						} else {
 							args[i].Set(reflect.Zero(t))
 						}
 					} else {
-						args[i].Set(reflect.ValueOf(v))
+						args[i].Set(v)
 					}
 					vm.fp[3]++
-				case Struct:
-					args[i].Set(reflect.ValueOf(vm.general(1)).Elem())
-					vm.fp[3]++
 				default:
-					args[i].Set(reflect.ValueOf(vm.general(1)))
+					args[i].Set(vm.general(1))
 					vm.fp[3]++
 				}
 			} else {
@@ -691,7 +640,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 					}
 				case reflect.Func:
 					for j := 0; j < int(numVariadic); j++ {
-						f := vm.general(int8(j + 1)).(*callable)
+						f := vm.general(int8(j + 1)).Interface().(*callable)
 						slice.Index(j).Set(f.Value(vm.env))
 					}
 				case reflect.String:
@@ -700,19 +649,19 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 					}
 				case reflect.Interface:
 					for j := 0; j < int(numVariadic); j++ {
-						if v := vm.general(int8(j + 1)); v == nil {
+						if v := vm.general(int8(j + 1)); !v.IsValid() {
 							if t := slice.Index(j).Type(); t == emptyInterfaceType {
 								slice.Index(j).Set(emptyInterfaceNil)
 							} else {
 								slice.Index(j).Set(reflect.Zero(t))
 							}
 						} else {
-							slice.Index(j).Set(reflect.ValueOf(v))
+							slice.Index(j).Set(v)
 						}
 					}
 				default:
 					for j := 0; j < int(numVariadic); j++ {
-						slice.Index(j).Set(reflect.ValueOf(vm.general(int8(j + 1))))
+						slice.Index(j).Set(vm.general(int8(j + 1)))
 					}
 				}
 				args[i].Set(slice)
@@ -765,7 +714,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 			case Func:
 
 			default:
-				vm.setGeneral(1, ret[i].Interface())
+				vm.setGeneral(1, ret[i])
 				vm.fp[3]++
 			}
 		}
@@ -785,10 +734,10 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 //go:noinline
 func (vm *VM) invokeTraceFunc() {
 	regs := Registers{
-		Int:     vm.regs.int[vm.fp[0]+1 : vm.fp[0]+Addr(vm.fn.NumReg[0])+1],
-		Float:   vm.regs.float[vm.fp[1]+1 : vm.fp[1]+Addr(vm.fn.NumReg[1])+1],
-		String:  vm.regs.string[vm.fp[2]+1 : vm.fp[2]+Addr(vm.fn.NumReg[2])+1],
-		General: vm.regs.general[vm.fp[3]+1 : vm.fp[3]+Addr(vm.fn.NumReg[3])+1],
+		Int:    vm.regs.int[vm.fp[0]+1 : vm.fp[0]+Addr(vm.fn.NumReg[0])+1],
+		Float:  vm.regs.float[vm.fp[1]+1 : vm.fp[1]+Addr(vm.fn.NumReg[1])+1],
+		String: vm.regs.string[vm.fp[2]+1 : vm.fp[2]+Addr(vm.fn.NumReg[2])+1],
+		//General: vm.regs.general[vm.fp[3]+1 : vm.fp[3]+Addr(vm.fn.NumReg[3])+1], TODO
 	}
 	vm.env.trace(vm.fn, vm.pc, regs)
 }
@@ -819,7 +768,7 @@ func (vm *VM) moreStringStack() {
 
 func (vm *VM) moreGeneralStack() {
 	top := len(vm.regs.general) * 2
-	stack := make([]interface{}, top)
+	stack := make([]reflect.Value, top)
 	copy(stack, vm.regs.general)
 	vm.regs.general = stack
 	vm.st[3] = Addr(top)
@@ -912,7 +861,7 @@ func create(env *Env) *VM {
 			int:     make([]int64, stackSize),
 			float:   make([]float64, stackSize),
 			string:  make([]string, stackSize),
-			general: make([]interface{}, stackSize),
+			general: make([]reflect.Value, stackSize),
 		},
 	}
 	if env != nil {
@@ -934,7 +883,7 @@ func (vm *VM) startGoroutine() bool {
 		fn = vm.fn.Functions[uint8(call.A)]
 		vars = vm.env.globals
 	case OpCallIndirect:
-		f := vm.general(call.A).(*callable)
+		f := vm.general(call.A).Interface().(*callable)
 		if f.fn == nil {
 			return true
 		}
