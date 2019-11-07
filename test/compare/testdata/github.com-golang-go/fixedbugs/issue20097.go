@@ -1,5 +1,3 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
-
 // compile
 
 // Copyright 2017 The Go Authors. All rights reserved.
@@ -18,3 +16,5 @@ func f(x, y int64) (int64, T) {
 	b := T(x) / T(y)
 	return a, b
 }
+
+func main() {}

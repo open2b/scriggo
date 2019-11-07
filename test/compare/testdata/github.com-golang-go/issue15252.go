@@ -1,5 +1,3 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
-
 // run
 
 // Copyright 2016 The Go Authors.  All rights reserved.
@@ -13,12 +11,12 @@
 package main
 
 type T struct {
-	i int64
+	I int64 // TODO: should be unexported
 }
 
 func f(t *T) byte {
 	b := [2]byte{3, 4}
-	return b[t.i]
+	return b[t.I]
 }
 
 func main() {
