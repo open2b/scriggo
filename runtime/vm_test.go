@@ -174,7 +174,8 @@ func TestSwapStack(t *testing.T) {
 			}
 		}
 		for i, v := range sst.expected.regs.general {
-			if v != m.regs.general[i] {
+			v2 := m.regs.general[i]
+			if v.IsValid() != v2.IsValid() || (v.IsValid() && v2.IsValid() && v.Interface() != m.regs.general[i].Interface()) {
 				t.Fatalf("test %d: expected %#v for general[%d], got %#v", n, v, i, m.regs.general[i])
 			}
 		}
