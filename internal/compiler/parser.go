@@ -925,22 +925,23 @@ LABEL:
 			tok = p.next()
 		}
 		or := ast.ShowMacroOrError
-		if tok.typ == tokenIdentifier {
-			if bytes.Equal(tok.txt, orIdent) {
-				tok = p.next()
-				switch {
-				case tok.typ == tokenIdentifier && bytes.Equal(tok.txt, ignoreIdent):
-					or = ast.ShowMacroOrIgnore
-				case tok.typ == tokenIdentifier && bytes.Equal(tok.txt, todoIdent):
-					or = ast.ShowMacroOrTodo
-				case tok.typ == tokenIdentifier && bytes.Equal(tok.txt, errorIdent):
-					or = ast.ShowMacroOrError
-				default:
-					panic(syntaxError(tok.pos, "unexpected %s after or in show macro, expecting ignore, todo or error", tok))
-				}
-				pos.End = tok.pos.End
-				tok = p.next()
+		if tok.typ == tokenIdentifier && bytes.Equal(tok.txt, orIdent) {
+			tok = p.next()
+			if tok.typ != tokenIdentifier {
+				panic(syntaxError(tok.pos, "unexpected %s after or in show macro, expecting ignore, todo or error", tok))
 			}
+			switch {
+			case bytes.Equal(tok.txt, ignoreIdent):
+				or = ast.ShowMacroOrIgnore
+			case bytes.Equal(tok.txt, todoIdent):
+				or = ast.ShowMacroOrTodo
+			case bytes.Equal(tok.txt, errorIdent):
+				or = ast.ShowMacroOrError
+			default:
+				panic(syntaxError(tok.pos, "unexpected %s after or in show macro, expecting ignore, todo or error", tok))
+			}
+			pos.End = tok.pos.End
+			tok = p.next()
 		}
 		var node ast.Node
 		if impor == nil {
