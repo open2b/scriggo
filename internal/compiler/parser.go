@@ -671,12 +671,8 @@ LABEL:
 		var node ast.Node
 		switch p.parent().(type) {
 		case *ast.Switch, *ast.TypeSwitch:
-			tok = p.next()
-			pos.End = tok.pos.End
 			node = ast.NewCase(pos, nil, nil)
 		case *ast.Select:
-			tok = p.next()
-			pos.End = tok.pos.End
 			node = ast.NewSelectCase(pos, nil, nil)
 		default:
 			// Panic with a syntax error.
@@ -684,6 +680,7 @@ LABEL:
 		}
 		p.addChild(node)
 		p.cutSpacesToken = true
+		tok = p.next()
 		tok = p.parseEnd(tok, tokenColon)
 		return tok
 
@@ -890,6 +887,7 @@ LABEL:
 			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier", tok))
 		}
 		macro := ast.NewIdentifier(tok.pos, string(tok.txt))
+		pos.End = tok.pos.End
 		tok = p.next()
 		// import
 		var impor *ast.Identifier
@@ -906,6 +904,7 @@ LABEL:
 			if fc, _ := utf8.DecodeRuneInString(macro.Name); !unicode.Is(unicode.Lu, fc) {
 				panic(syntaxError(tok.pos, "cannot refer to unexported macro %s", macro.Name))
 			}
+			pos.End = tok.pos.End
 			tok = p.next()
 		}
 		var args []ast.Expression
@@ -922,6 +921,7 @@ LABEL:
 			if tok.typ != tokenRightParenthesis {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression or )", tok))
 			}
+			pos.End = tok.pos.End
 			tok = p.next()
 		}
 		or := ast.ShowMacroOrError
@@ -938,10 +938,10 @@ LABEL:
 				default:
 					panic(syntaxError(tok.pos, "unexpected %s after or in show macro, expecting ignore, todo or error", tok))
 				}
+				pos.End = tok.pos.End
 				tok = p.next()
 			}
 		}
-		pos.End = tok.pos.End
 		var node ast.Node
 		if impor == nil {
 			node = ast.NewShowMacro(pos, macro, args, isVariadic, or, tok.ctx)
@@ -1149,10 +1149,11 @@ LABEL:
 		if _, ok := p.parent().(*ast.Block); ok {
 			p.removeLastAncestor()
 		}
-		p.parent().Pos().End = tok.pos.End
+		pos := tok.pos
 		tok = p.next()
 		if tok.typ != tokenEndBlock {
 			parentTok := tok
+			pos = parentTok.pos
 			tok = p.next()
 			if tok.typ != tokenEndBlock {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
@@ -1180,10 +1181,11 @@ LABEL:
 				}
 			}
 		}
+		p.parent().Pos().End = pos.End
 		p.removeLastAncestor()
 		for {
 			if n, ok := p.parent().(*ast.If); ok {
-				n.Pos().End = tok.pos.End
+				n.Pos().End = pos.End
 				p.removeLastAncestor()
 				continue
 			}
