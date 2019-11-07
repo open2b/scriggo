@@ -14,7 +14,6 @@ import (
 	"sync"
 )
 
-
 const NoVariadicArgs = -1
 const CurrentFunction = -1
 
