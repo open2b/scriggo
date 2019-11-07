@@ -1863,11 +1863,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		case *ast.CompositeLiteral:
 			tmp := em.fb.newRegister(reflect.Ptr)
 			em.fb.emitNew(operandType, tmp)
-			if operandType.Kind() == reflect.Struct {
-				em.emitExprR(operand, operandType, tmp)
-			} else {
-				em.emitExprR(operand, operandType, -tmp)
-			}
+			em.emitExprR(operand, operandType, -tmp)
 			em.changeRegister(false, tmp, reg, unOpType, dstType)
 
 		default:
