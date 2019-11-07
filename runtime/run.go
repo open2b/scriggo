@@ -1446,7 +1446,7 @@ func (vm *VM) run() (Addr, bool) {
 			case []string:
 				s[i] = vm.stringk(a, op < 0)
 			case []interface{}:
-				s[i] = vm.generalk(a, op < 0)
+				s[i] = vm.generalk(a, op < 0).Interface()
 			default:
 				v := sv.Index(int(i))
 				vm.getIntoReflectValue(a, v, op < 0)
