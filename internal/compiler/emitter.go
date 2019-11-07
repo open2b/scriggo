@@ -1295,11 +1295,12 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				return reg, false
 			}
 			length := int8(em.compositeLiteralLen(expr)) // TODO(Gianluca): length is int
-			if typ.Kind() == reflect.Array {
-				length = int8(typ.Len())
-				typ = reflect.SliceOf(typ.Elem())
+			if typ.Kind() == reflect.Slice {
+				em.fb.emitMakeSlice(true, true, typ, length, length, reg, expr.Pos())
+			} else {
+				arrayZero := em.fb.makeGeneralConstant(reflect.New(typ).Elem().Interface())
+				em.changeRegister(true, arrayZero, reg, typ, typ)
 			}
-			em.fb.emitMakeSlice(true, true, typ, length, length, reg, expr.Pos())
 			var index int8 = -1
 			for _, kv := range expr.KeyValues {
 				if kv.Key != nil {
