@@ -247,7 +247,7 @@ func (vm *VM) generalIndirect(r int8) reflect.Value {
 			},
 		})
 	}
-	return v
+	return elem
 }
 
 func (vm *VM) setGeneral(r int8, v reflect.Value) {
