@@ -581,12 +581,10 @@ nodesLoop:
 			tc.terminating = false
 
 		case *ast.TypeDeclaration:
-			if isBlankIdentifier(node.Identifier) {
-				continue nodesLoop
+			name, ti := tc.checkTypeDeclaration(node)
+			if ti != nil {
+				tc.assignScope(name, ti, node.Identifier)
 			}
-			name := node.Identifier.Name
-			ti := tc.checkTypeDeclaration(node)
-			tc.assignScope(name, ti, node.Identifier)
 
 		case *ast.Show:
 			ti := tc.checkExpr(node.Expr)
@@ -920,16 +918,29 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 }
 
 // checkTypeDeclaration checks a type declaration node, which can be both a type
-// definition or an alias declaration. Returns the type info that represents the
-// declared type. node cannot have the blank identifier as type name.
+// definition or an alias declaration. Returns the type name and a type info
+// that represents the declared type. If the type declaration has a blank
+// identifier as name, then an empty string and a nil TypeInfo is returned.
 //
 //  type Int int
 //  type Int = int
 //
-func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) *TypeInfo {
+func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) (string, *TypeInfo) {
 
+	// Get and type check the base type.
+	//
+	//      type Int int
+	//               ^^^
+	//
+	typ := tc.checkType(node.Type)
+
+	// Blank identifier: return nothing.
+	//
+	// 		type _ Int
+	// 		type _ = Int
+	//
 	if isBlankIdentifier(node.Identifier) {
-		panic("BUG: unexpected blank identifier")
+		return "", nil
 	}
 
 	// Get the type name from the declaration.
@@ -939,21 +950,14 @@ func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) *TypeInfo
 	//
 	name := node.Identifier.Name
 
-	// Get the base type.
-	//
-	//      type Int int
-	//               ^^^
-	//
-	typ := tc.checkType(node.Type)
-
 	// If this is an alias declaration, the new type is exactly the base
 	// type. Nothing else should be done.
 	if node.IsAliasDeclaration {
-		return typ
+		return name, typ
 	}
 
 	// Type definition: a Scriggo type must be created.
-	return &TypeInfo{
+	return name, &TypeInfo{
 		Type:       tc.types.DefinedOf(name, typ.Type),
 		Properties: PropertyIsType,
 	}

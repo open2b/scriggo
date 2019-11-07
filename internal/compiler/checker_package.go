@@ -498,12 +498,10 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 	// First: check all type declarations.
 	for _, d := range packageNode.Declarations {
 		if td, ok := d.(*ast.TypeDeclaration); ok {
-			if isBlankIdentifier(td.Identifier) {
-				continue
+			name, ti := tc.checkTypeDeclaration(td)
+			if ti != nil {
+				tc.assignScope(name, ti, td.Identifier)
 			}
-			name := td.Identifier.Name
-			ti := tc.checkTypeDeclaration(td)
-			tc.assignScope(name, ti, td.Identifier)
 		}
 	}
 
