@@ -245,11 +245,7 @@ func canEmitDirectly(k1, k2 reflect.Kind) bool {
 	}
 	// Functions and arrays are handled as special cases in VM.
 	if k1 == reflect.Func ||
-		k2 == reflect.Func ||
-		k1 == reflect.Array ||
-		k2 == reflect.Array ||
-		k1 == reflect.Struct ||
-		k2 == reflect.Struct {
+		k2 == reflect.Func {
 		return false
 	}
 	return kindToType(k1) == kindToType(k2)
