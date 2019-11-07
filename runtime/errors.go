@@ -103,7 +103,7 @@ func (vm *VM) errIndexOutOfRange() runtimeError {
 	default:
 		panic("unexpected operation")
 	}
-	s += "] with length " + strconv.Itoa(reflect.ValueOf(vm.general(in.A)).Len())
+	s += "] with length " + strconv.Itoa(vm.general(in.A).Len())
 	return runtimeError(s)
 }
 
@@ -139,7 +139,7 @@ func (vm *VM) convertPanic(msg interface{}) error {
 		}
 	case OpCallIndirect:
 		in := vm.fn.Body[vm.pc-1]
-		if f, ok := vm.general(in.A).(*callable); !ok || f.fn != nil {
+		if f, ok := vm.general(in.A).Interface().(*callable); !ok || f.fn != nil {
 			break
 		}
 		fallthrough
