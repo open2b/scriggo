@@ -37,17 +37,17 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) error {
 }
 
 func (vm *VM) runRecoverable() (err error) {
-	//panicking := true
-	//defer func() {
-	//	if panicking {
-	//		msg := recover()
-	//		err = vm.convertPanic(msg)
-	//	}
-	//}()
+	panicking := true
+	defer func() {
+		if panicking {
+			msg := recover()
+			err = vm.convertPanic(msg)
+		}
+	}()
 	if vm.fn != nil || vm.nextCall() {
 		vm.run()
 	}
-	//panicking = false
+	panicking = false
 	return nil
 }
 
