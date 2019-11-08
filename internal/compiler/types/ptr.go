@@ -13,7 +13,7 @@ import "reflect"
 func (types *Types) PtrTo(t reflect.Type) reflect.Type {
 	if st, ok := t.(ScriggoType); ok {
 		return ptrType{
-			Type: types.PtrTo(st.Underlying()),
+			Type: reflect.PtrTo(st.Underlying()),
 			elem: st,
 		}
 	}

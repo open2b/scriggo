@@ -13,7 +13,7 @@ import "reflect"
 func (types *Types) ChanOf(dir reflect.ChanDir, t reflect.Type) reflect.Type {
 	if st, ok := t.(ScriggoType); ok {
 		return chanType{
-			Type: types.ChanOf(dir, st.Underlying()),
+			Type: reflect.ChanOf(dir, st.Underlying()),
 			elem: st,
 		}
 	}

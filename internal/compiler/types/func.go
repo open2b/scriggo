@@ -40,7 +40,7 @@ func (types *Types) FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 		return funcType{
 			in:   types.addFuncParameters(in, input),
 			out:  types.addFuncParameters(out, output),
-			Type: types.FuncOf(inGo, outGo, variadic),
+			Type: reflect.FuncOf(inGo, outGo, variadic),
 		}
 
 	}

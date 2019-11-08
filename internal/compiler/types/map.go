@@ -17,18 +17,18 @@ func (types *Types) MapOf(key, elem reflect.Type) reflect.Type {
 	switch {
 	case keyIsScriggoType && elemIsScriggoType:
 		return mapType{
-			Type: types.MapOf(keySt.Underlying(), elemSt.Underlying()),
+			Type: reflect.MapOf(keySt.Underlying(), elemSt.Underlying()),
 			key:  keySt,
 			elem: elemSt,
 		}
 	case keyIsScriggoType && !elemIsScriggoType:
 		return mapType{
-			Type: types.MapOf(keySt.Underlying(), elem),
+			Type: reflect.MapOf(keySt.Underlying(), elem),
 			key:  keySt,
 		}
 	case elemIsScriggoType && !keyIsScriggoType:
 		return mapType{
-			Type: types.MapOf(key, elemSt.Underlying()),
+			Type: reflect.MapOf(key, elemSt.Underlying()),
 			elem: elemSt,
 		}
 	default:

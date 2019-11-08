@@ -13,7 +13,7 @@ import "reflect"
 func (types *Types) SliceOf(t reflect.Type) reflect.Type {
 	if st, ok := t.(ScriggoType); ok {
 		return sliceType{
-			Type: types.SliceOf(st.Underlying()),
+			Type: reflect.SliceOf(st.Underlying()),
 			elem: st,
 		}
 	}
