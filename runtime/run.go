@@ -1729,8 +1729,6 @@ func (vm *VM) run() (Addr, bool) {
 			if w, ok := t.(Wrapper); ok {
 				var v interface{}
 				switch t.Kind() {
-				// TODO: with this implementation internal types are not
-				// converted to external types.
 				case reflect.Bool,
 					reflect.Int,
 					reflect.Int8,
@@ -1760,8 +1758,6 @@ func (vm *VM) run() (Addr, bool) {
 					reflect.Slice,
 					reflect.Struct:
 					v = vm.generalk(b, op < 0)
-				default:
-					panic("TODO: not implemented") // TODO(Gianluca): to implement.
 				}
 				vm.setGeneral(c, w.Wrap(v))
 			} else {
