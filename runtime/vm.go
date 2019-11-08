@@ -26,10 +26,24 @@ var sliceByteType = reflect.TypeOf([]byte{})
 var emptyInterfaceType = reflect.TypeOf(&[]interface{}{nil}[0]).Elem()
 var emptyInterfaceNil = reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
 
-// TODO: document and put elsewhere.
+// A wrapper wraps and unwraps Scriggo types into Go types. A wrapper is used
+// when an internal implemenation of a value must be typified or when an
+// external Go value must be imported into Scriggo.
 type Wrapper interface {
+
+	// Wrap wraps a value with a Scriggo type putting into a proxy that exposes
+	// methods to Go.
 	Wrap(interface{}) interface{}
+
+	// Unwrap unwraps a value that has been read from Go. If the value given as
+	// parameter can be unwrapped using the unwrapper's type, the unwrapped
+	// value is returned and the method returns true.
 	Unwrap(reflect.Value) (reflect.Value, bool)
+
+	// Underlying returns the underlying type of a Scriggo type. Note that the
+	// implementation of the reflect.Type returned by Underlying is the
+	// implementation of the package 'reflect', so it's safe to pass the
+	// returned value to reflect functions and methods as argument.
 	Underlying() reflect.Type
 }
 
