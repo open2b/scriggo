@@ -917,7 +917,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 	return
 }
 
-// checkTypeDeclaration checks a type declaration node, which can be both a type
+// checkTypeDeclaration checks a type declaration node that can be both a type
 // definition or an alias declaration. Returns the type name and a type info
 // that represents the declared type. If the type declaration has a blank
 // identifier as name, then an empty string and a nil TypeInfo is returned.
