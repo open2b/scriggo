@@ -542,7 +542,12 @@ func (vm *VM) run() (Addr, bool) {
 			case ConditionOK, ConditionNotOK:
 				cond = vm.ok
 			case ConditionInterfaceNil, ConditionInterfaceNotNil:
-				cond = !vm.general(a).IsValid()
+				rv := vm.general(a)
+				if rv.IsValid() {
+					cond = rv.IsNil()
+				} else {
+					cond = false
+				}
 			case ConditionNil, ConditionNotNil:
 				cond = vm.general(a).IsNil()
 			case ConditionEqual, ConditionNotEqual:
