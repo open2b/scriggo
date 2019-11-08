@@ -146,7 +146,7 @@ var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
 //
 // If the value can not be converted, returns an errTypeConversion type error,
 // errConstantTruncated or errConstantOverflow.
-func convert(ti *TypeInfo, t2 reflect.Type) (constant, error) {
+func (tc *typechecker) convert(ti *TypeInfo, t2 reflect.Type) (constant, error) {
 
 	t := ti.Type
 	k2 := t2.Kind()
@@ -286,7 +286,7 @@ func newInvalidTypeInAssignment(x *TypeInfo, expr ast.Expression, t reflect.Type
 
 // isAssignableTo reports whether x is assignable to type t.
 // See https://golang.org/ref/spec#Assignability for details.
-func isAssignableTo(x *TypeInfo, expr ast.Expression, t reflect.Type) error {
+func (tc *typechecker) isAssignableTo(x *TypeInfo, expr ast.Expression, t reflect.Type) error {
 	if x.Type == t {
 		return nil
 	}
@@ -577,7 +577,7 @@ func representedBy(t1 *TypeInfo, t2 reflect.Type) (constant, error) {
 
 // nilOf returns a new type info representing a 'typed nil', that is the zero of
 // type t.
-func nilOf(t reflect.Type) *TypeInfo {
+func (tc *typechecker) nilOf(t reflect.Type) *TypeInfo {
 	switch t.Kind() {
 	case reflect.Func:
 		return &TypeInfo{
@@ -603,7 +603,7 @@ func nilOf(t reflect.Type) *TypeInfo {
 
 // typedValue returns a constant type info value represented with a given
 // type.
-func typedValue(ti *TypeInfo, t reflect.Type) interface{} {
+func (tc *typechecker) typedValue(ti *TypeInfo, t reflect.Type) interface{} {
 	k := t.Kind()
 	if k == reflect.Interface {
 		t = ti.Type
