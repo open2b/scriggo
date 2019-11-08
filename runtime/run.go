@@ -544,8 +544,19 @@ func (vm *VM) run() (Addr, bool) {
 			case ConditionInterfaceNil, ConditionInterfaceNotNil:
 				rv := vm.general(a)
 				if rv.IsValid() {
-					cond = rv.IsNil()
+					if rv.Kind() == reflect.Interface {
+						// A nil value set by Go, for example the return value
+						// of a predefined function call.
+						cond = rv.IsNil()
+					} else {
+						// A value that is valid (not nil in Scriggo) that
+						// contains something that is not an interface: cannot
+						// be nil.
+						cond = false
+					}
 				} else {
+					// An invalid reflect.Value is a nil interface value set by
+					// Scriggo.
 					cond = true
 				}
 			case ConditionNil, ConditionNotNil:
