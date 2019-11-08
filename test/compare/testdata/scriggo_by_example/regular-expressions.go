@@ -1,3 +1,5 @@
+// skip : enable before merging with 'master'.
+
 // run
 
 // Go offers built-in support for [regular expressions](http://en.wikipedia.org/wiki/Regular_expression).
