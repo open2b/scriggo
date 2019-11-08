@@ -1421,7 +1421,7 @@ func (vm *VM) run() (Addr, bool) {
 				m[vm.string(c)] = struct{}{}
 			case map[string]interface{}:
 				k := vm.string(c)
-				v := vm.generalk(a, op < 0)
+				v := vm.generalk(a, op < 0).Interface()
 				m[k] = v
 			case map[int]int:
 				k := vm.int(c)
