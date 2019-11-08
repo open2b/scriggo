@@ -16,7 +16,7 @@ import (
 func (types *Types) ArrayOf(count int, elem reflect.Type) reflect.Type {
 	if st, ok := elem.(ScriggoType); ok {
 		return arrayType{
-			Type: types.ArrayOf(count, st.Underlying()),
+			Type: reflect.ArrayOf(count, st.Underlying()),
 			elem: st,
 		}
 	}

@@ -53,7 +53,7 @@ func (types *Types) StructOf(fields []reflect.StructField) reflect.Type {
 	}
 
 	return structType{
-		Type:          types.StructOf(baseFields),
+		Type:          reflect.StructOf(baseFields),
 		scriggoFields: types.addFields(scriggoFields),
 	}
 
