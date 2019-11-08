@@ -910,7 +910,7 @@ LABEL:
 		var args []ast.Expression
 		var isVariadic bool
 		if tok.typ == tokenLeftParenthesis {
-			args, tok = p.parseExprList(p.next(), false, false, false)
+			args, tok = p.parseExprListInParenthesis(p.next())
 			if tok.typ == tokenEllipsis {
 				if args == nil {
 					panic(syntaxError(tok.pos, "unexpected ..., expecting expression"))
