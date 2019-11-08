@@ -91,7 +91,10 @@ type typechecker struct {
 	// node.
 	isScriptFuncDecl bool
 
-	// types builds and operate of Scriggo types and Go types.
+	// types builds and operate on Scriggo types and Go types. Considering that
+	// the type checker supports both Scriggo and Go types, instead of calling
+	// functions from the package 'reflect' the methods of types should be
+	// called (they have the same name and the same sign).
 	types *types.Types
 }
 
