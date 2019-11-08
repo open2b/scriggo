@@ -546,7 +546,7 @@ func (vm *VM) run() (Addr, bool) {
 				if rv.IsValid() {
 					cond = rv.IsNil()
 				} else {
-					cond = false
+					cond = true
 				}
 			case ConditionNil, ConditionNotNil:
 				cond = vm.general(a).IsNil()
