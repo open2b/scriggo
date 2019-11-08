@@ -1,3 +1,5 @@
+// skip : enable before merging with 'master'.
+
 // run
 
 // The standard library's `strings` package provides many
