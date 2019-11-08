@@ -138,7 +138,7 @@ func (x funcType) Name() string {
 }
 
 func (x funcType) Underlying() reflect.Type {
-	assertNotScriggoType(x)
+	assertNotScriggoType(x.Type)
 	return x.Type
 }
 
