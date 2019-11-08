@@ -822,11 +822,21 @@ func (vm *VM) run() (Addr, bool) {
 
 		// Panic
 		case OpPanic:
-			panic(vm.general(a).Interface())
+			rv := vm.general(a)
+			if rv.IsValid() {
+				panic(rv.Interface())
+			} else {
+				panic(nil)
+			}
 
 		// Print
 		case OpPrint:
-			vm.env.doPrint(vm.general(a).Interface())
+			rv := vm.general(a)
+			if rv.IsValid() {
+				vm.env.doPrint(rv.Interface())
+			} else {
+				vm.env.doPrint(nil)
+			}
 
 		// Range
 		case OpRange:
