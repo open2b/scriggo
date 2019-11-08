@@ -805,16 +805,20 @@ var checkerStmts = map[string]string{
 	`_ = <-aIntChan`:                    ok,
 	`v := <-aIntChan; _ = v`:            ok,
 	`v, ok := <-aIntChan; _, _ = v, ok`: ok,
+	`_ = <-5`:                           `invalid operation: <-5 (receive from non-chan type int)`,
+	`_ = <-[]struct{A int}{{A: 5}}`:     `invalid operation: <-[]struct { A int } literal (receive from non-chan type []struct { A int })`,
+	`_ = <-make(chan<- int)`:            `invalid operation: <-make(chan<- int) (receive from send-only type chan<- int)`, // TODO: gc returns error `invalid operation: <-(make(chan<- int)) (receive from send-only type chan<- int)`
 
 	// Send.
-	`aIntChan <- 5`:            ok,
-	`aIntChan <- nil`:          `cannot convert nil to type int`,
-	`aIntChan <- 1.34`:         `constant 1.34 truncated to integer`,
-	`aIntChan <- "a"`:          `cannot convert "a" (type untyped string) to type int`,
-	`make(<-chan int) <- 5`:    `invalid operation: make(<-chan int) <- 5 (send to receive-only type <-chan int)`,
-	`aSliceChan <- nil`:        ok,
-	`aSliceChan <- []int(nil)`: ok,
-	`aSliceChan <- []int{1}`:   ok,
+	`aIntChan <- 5`:                ok,
+	`aIntChan <- nil`:              `cannot convert nil to type int`,
+	`aIntChan <- 1.34`:             `constant 1.34 truncated to integer`,
+	`aIntChan <- "a"`:              `cannot convert "a" (type untyped string) to type int`,
+	`make(<-chan int) <- 5`:        `invalid operation: make(<-chan int) <- 5 (send to receive-only type <-chan int)`,
+	`[]struct{A int}{{A: 5}} <- 5`: `invalid operation: []struct { A int } literal <- 5 (send to non-chan type []struct { A int })`,
+	`aSliceChan <- nil`:            ok,
+	`aSliceChan <- []int(nil)`:     ok,
+	`aSliceChan <- []int{1}`:       ok,
 
 	// Unary operators on untyped nil.
 	`!nil`:  `invalid operation: ! nil`,

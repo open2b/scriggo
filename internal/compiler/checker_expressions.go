@@ -360,7 +360,10 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 				panic(tc.errorf(expr, "use of untyped nil"))
 			}
 			if k != reflect.Chan {
-				panic(tc.errorf(expr, "invalid operation: %s (receive from non-chan type %s)", expr.Expr, t.Type))
+				panic(tc.errorf(expr, "invalid operation: %s (receive from non-chan type %s)", expr, t.Type))
+			}
+			if t.Type.ChanDir() == reflect.SendDir {
+				panic(tc.errorf(expr, "invalid operation: %s (receive from send-only type %s)", expr, t.Type))
 			}
 			ti.Type = t.Type.Elem()
 		}
