@@ -311,6 +311,8 @@ func (vm *VM) setFromReflectValue(r int8, v reflect.Value) {
 			},
 		}
 		vm.setGeneral(r, reflect.ValueOf(c))
+	case reflect.Interface:
+		vm.setGeneral(r, v.Elem())
 	default:
 		vm.setGeneral(r, v)
 	}
