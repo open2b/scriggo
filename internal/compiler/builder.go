@@ -316,9 +316,10 @@ func (builder *functionBuilder) getPath() string {
 // addTypeAsIs adds a type to the builder's function, creating it if necessary.
 // This method adds typ to the slice of types 'as is', independently from it's
 // implementation. This method is useful for instructions that need to keep the
-// informations about the Scriggo type.
+// information about the Scriggo type.
 // Note that for every instruction of the virtual machine that receives a type
-// 'as is', such type must be handled as a special case from the VM.
+// 'as is', such type must be handled as a special case from the VM; considered
+// that, in the most cases you would just simply use builder.addType.
 func (builder *functionBuilder) addTypeAsIs(typ reflect.Type) int {
 	fn := builder.fn
 	for i, t := range fn.Types {
