@@ -662,27 +662,7 @@ func (vm *VM) run() (Addr, bool) {
 		case OpIndex, -OpIndex:
 			v := vm.general(a)
 			i := int(vm.intk(b, op < 0))
-			rv := v.Index(i)
-			//
-			// TODO: this check: 'if si, ok := v.Interface().([]interface{});
-			// ok' has been added because the implementation of OpIndex is
-			// wrong: the problem is that setFromReflectValue converts a value
-			// to the internal representation, but if the slice is a
-			// []interface{..}{..} then an internal value is put inside an
-			// interface value, that is wrong. So, this code is added to make
-			// the tests pass.
-			//
-			// We have never noticed this problem before because there was an
-			// optimization that by accident caught all the indexing operations
-			// of the tests.
-			//
-			// Note that maybe the same problem applies elsewhere.
-			//
-			if si, ok := v.Interface().([]interface{}); ok {
-				vm.setGeneral(c, reflect.ValueOf(si[i]))
-			} else {
-				vm.setFromReflectValue(c, rv)
-			}
+			vm.setFromReflectValue(c, v.Index(i))
 		case OpIndexString, -OpIndexString:
 			vm.setInt(c, int64(vm.string(a)[int(vm.intk(b, op < 0))]))
 
