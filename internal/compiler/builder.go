@@ -313,6 +313,17 @@ func (builder *functionBuilder) getPath() string {
 	return builder.path
 }
 
+// addType adds a type to the builder's function, creating it if necessary. If
+// typ is a Scriggo type it is converted to the underlying type before being
+// added to the slice of types. If you want to preserve the Scriggo type use the
+// method addTypeAsIs.
+func (builder *functionBuilder) addType(typ reflect.Type) int {
+	if st, ok := typ.(types.ScriggoType); ok {
+		typ = st.Underlying()
+	}
+	return builder.addTypeAsIs(typ)
+}
+
 // addTypeAsIs adds a type to the builder's function, creating it if necessary.
 // This method adds typ to the slice of types 'as is', independently from it's
 // implementation. This method is useful for instructions that need to keep the
@@ -333,17 +344,6 @@ func (builder *functionBuilder) addTypeAsIs(typ reflect.Type) int {
 	}
 	fn.Types = append(fn.Types, typ)
 	return index
-}
-
-// addType adds a type to the builder's function, creating it if necessary. If
-// typ is a Scriggo type it is converted to the underlying type before being
-// added to the slice of types. If you want to preserve the Scriggo type use the
-// method addTypeAsIs.
-func (builder *functionBuilder) addType(typ reflect.Type) int {
-	if st, ok := typ.(types.ScriggoType); ok {
-		typ = st.Underlying()
-	}
-	return builder.addTypeAsIs(typ)
 }
 
 // addPredefinedFunction adds a predefined function to the builder's function.
