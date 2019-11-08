@@ -322,7 +322,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
 				var args []ast.Expression
-				args, tok = p.parseExprList(p.next(), false, false, false)
+				args, tok = p.parseExprListInParenthesis(p.next())
 				var isVariadic bool
 				if tok.typ == tokenEllipsis {
 					if args == nil {
@@ -572,6 +572,34 @@ func (p *parsing) parseExprList(tok token, allowSwitchGuard, allMustBeTypes, nex
 	for {
 		element, tok = p.parseExpr(tok, allowSwitchGuard, allMustBeTypes, nextIsBlockBrace)
 		if element == nil {
+			if elements != nil {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
+			}
+			return elements, tok
+		}
+		if elements == nil {
+			elements = []ast.Expression{element}
+		} else {
+			elements = append(elements, element)
+		}
+		if tok.typ != tokenComma {
+			return elements, tok
+		}
+		tok = p.next()
+	}
+}
+
+// parseExprListInParenthesis parses a list of expressions as parseExprList
+// does but allows a trailing comma if it is followed by a right parenthesis.
+func (p *parsing) parseExprListInParenthesis(tok token) ([]ast.Expression, token) {
+	var element ast.Expression
+	var elements []ast.Expression
+	for {
+		element, tok = p.parseExpr(tok, false, false, false)
+		if element == nil {
+			if elements != nil && tok.typ != tokenRightParenthesis {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
+			}
 			return elements, tok
 		}
 		if elements == nil {
