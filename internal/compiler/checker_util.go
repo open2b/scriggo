@@ -378,7 +378,7 @@ const (
 //
 // Only for type classes, the returned function type has the method's
 // receiver as first argument.
-func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, bool) {
+func (tc *typechecker) methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, bool) {
 
 	if t.IsType() {
 		// Method expression on interface type.

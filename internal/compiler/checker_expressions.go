@@ -729,13 +729,13 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		}
 		t := tc.checkExprOrType(expr.Expr)
 		if t.IsType() {
-			method, _, ok := methodByName(t, expr.Ident)
+			method, _, ok := tc.methodByName(t, expr.Ident)
 			if !ok {
 				panic(tc.errorf(expr, "%v undefined (type %s has no method %s)", expr, t, expr.Ident))
 			}
 			return method
 		}
-		method, trans, ok := methodByName(t, expr.Ident)
+		method, trans, ok := tc.methodByName(t, expr.Ident)
 		if ok {
 			switch trans {
 			case receiverAddAddress:
