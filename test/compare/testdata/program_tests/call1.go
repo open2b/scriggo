@@ -1,4 +1,4 @@
-// run
+// skip : enable before merging with 'master'.
 
 package main
 
