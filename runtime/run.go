@@ -1421,8 +1421,12 @@ func (vm *VM) run() (Addr, bool) {
 				m[vm.string(c)] = struct{}{}
 			case map[string]interface{}:
 				k := vm.string(c)
-				v := vm.generalk(a, op < 0).Interface()
-				m[k] = v
+				rv := vm.generalk(a, op < 0)
+				if rv.IsValid() {
+					m[k] = rv.Interface()
+				} else {
+					m[k] = nil
+				}
 			case map[int]int:
 				k := vm.int(c)
 				v := vm.intk(a, op < 0)
@@ -1462,7 +1466,12 @@ func (vm *VM) run() (Addr, bool) {
 			case []string:
 				s[i] = vm.stringk(a, op < 0)
 			case []interface{}:
-				s[i] = vm.generalk(a, op < 0).Interface()
+				rv := vm.generalk(a, op < 0)
+				if rv.IsValid() {
+					s[i] = rv.Interface()
+				} else {
+					s[i] = nil
+				}
 			default:
 				v := sv.Index(int(i))
 				vm.getIntoReflectValue(a, v, op < 0)
