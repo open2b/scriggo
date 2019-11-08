@@ -710,6 +710,9 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 			case String:
 				vm.setString(1, ret[i].String())
 				vm.fp[2]++
+			case Interface:
+				vm.setGeneral(1, ret[i].Elem())
+				vm.fp[3]++
 			case Func:
 
 			default:
