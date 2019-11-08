@@ -109,7 +109,7 @@ var goContextTreeTests = []struct {
 						false)}), nil)}, ast.ContextGo)},
 	{"switch {\n\tdefault:\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewSwitch(p(1, 1, 0, 19), nil, nil, nil, []*ast.Case{
-			ast.NewCase(p(2, 2, 10, 17), nil, nil)})}, ast.ContextGo)},
+			ast.NewCase(p(2, 2, 10, 16), nil, nil)})}, ast.ContextGo)},
 	{"if x == 5 {}",
 		ast.NewTree("", []ast.Node{
 			ast.NewIf(&ast.Position{Line: 1, Column: 1, Start: 0, End: 11}, nil,
@@ -678,7 +678,7 @@ var goContextTreeTests = []struct {
 				ast.NewParameter(ast.NewIdentifier(p(1, 44, 43, 45), "err"), ast.NewIdentifier(p(1, 48, 47, 51), "error")),
 			}, true),
 			ast.NewBlock(p(1, 55, 54, 78), []ast.Node{
-				ast.NewAssignment(p(1, 57, 56, 62),
+				ast.NewAssignment(p(1, 57, 56, 61),
 					[]ast.Expression{ast.NewIdentifier(p(1, 57, 56, 56), "a")},
 					ast.AssignmentDeclaration,
 					[]ast.Expression{ast.NewBasicLiteral(p(1, 62, 61, 61), ast.IntLiteral, "5")},
@@ -692,7 +692,7 @@ var goContextTreeTests = []struct {
 		ast.NewSelect(p(1, 1, 0, 8), nil, nil)}, ast.ContextGo)},
 	{"select {\n\tdefault:\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewSelect(p(1, 1, 0, 19), nil, []*ast.SelectCase{
-			ast.NewSelectCase(p(2, 2, 10, 17), nil, nil)})}, ast.ContextGo)},
+			ast.NewSelectCase(p(2, 2, 10, 16), nil, nil)})}, ast.ContextGo)},
 	{"chan int", ast.NewTree("", []ast.Node{
 		ast.NewChanType(p(1, 1, 0, 7), ast.NoDirection, ast.NewIdentifier(p(1, 6, 5, 7), "int")),
 	}, ast.ContextGo)},
@@ -1051,7 +1051,7 @@ var treeTests = []struct {
 				nil,
 				[]*ast.Case{
 					ast.NewCase(
-						p(1, 16, 15, 24),
+						p(1, 16, 15, 21),
 						nil,
 						[]ast.Node{
 							ast.NewBreak(p(1, 29, 28, 32), nil),
@@ -1070,7 +1070,7 @@ var treeTests = []struct {
 				nil,
 				[]*ast.Case{
 					ast.NewCase(
-						p(1, 13, 12, 44),
+						p(1, 16, 15, 41),
 						[]ast.Expression{
 							ast.NewBinaryOperator( // 1 < 6
 								p(1, 23, 20, 24),
@@ -1107,7 +1107,7 @@ var treeTests = []struct {
 				nil,
 				[]*ast.Case{
 					ast.NewCase(
-						p(1, 15, 14, 25),
+						p(1, 18, 17, 22),
 						[]ast.Expression{
 							ast.NewBasicLiteral(p(1, 23, 22, 22), ast.IntLiteral, "1"),
 						},
@@ -1116,7 +1116,7 @@ var treeTests = []struct {
 						},
 					),
 					ast.NewCase(
-						p(1, 33, 32, 43),
+						p(1, 36, 35, 40),
 						[]ast.Expression{
 							ast.NewBasicLiteral(p(1, 41, 40, 40), ast.IntLiteral, "2"),
 						},
@@ -1125,7 +1125,7 @@ var treeTests = []struct {
 						},
 					),
 					ast.NewCase(
-						p(1, 51, 50, 62),
+						p(1, 54, 53, 59),
 						nil,
 						[]ast.Node{
 							ast.NewText(p(1, 64, 63, 73), []byte("is a number"), ast.Cut{}),
@@ -1155,7 +1155,7 @@ var treeTests = []struct {
 				),
 				nil,
 				[]*ast.Case{
-					ast.NewCase(p(1, 22, 21, 41),
+					ast.NewCase(p(1, 25, 24, 38),
 						[]ast.Expression{
 							ast.NewIdentifier(p(1, 30, 29, 31), "int"),
 							ast.NewIdentifier(p(1, 35, 34, 38), "float"),
@@ -1254,7 +1254,7 @@ var treeTests = []struct {
 		ast.NewShowMacro(p(1, 4, 3, 16), ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrTodo, ast.ContextHTML),
 	}, ast.ContextHTML)},
 	{"{% show M    or  ignore    %}", ast.NewTree("", []ast.Node{
-		ast.NewShowMacro(p(1, 4, 3, 23), ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrIgnore, ast.ContextHTML),
+		ast.NewShowMacro(p(1, 4, 3, 22), ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrIgnore, ast.ContextHTML),
 	}, ast.ContextHTML)},
 	{"{% show M  or  error %}", ast.NewTree("", []ast.Node{
 		ast.NewShowMacro(p(1, 4, 3, 19), ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrError, ast.ContextHTML),
@@ -1269,13 +1269,13 @@ var treeTests = []struct {
 			ast.NewIdentifier(p(1, 8, 7, 7), "_"),
 			ast.NewIdentifier(p(1, 8, 7, 7), "v")},
 			ast.AssignmentDeclaration, []ast.Expression{ast.NewIdentifier(p(1, 13, 12, 12), "e")}),
-			[]ast.Node{ast.NewBreak(p(1, 17, 16, 26), nil)})}, ast.ContextHTML)},
+			[]ast.Node{ast.NewBreak(p(1, 20, 19, 23), nil)})}, ast.ContextHTML)},
 	{"{% for v in e %}{% continue %}{% end %}", ast.NewTree("", []ast.Node{
 		ast.NewForRange(p(1, 4, 3, 35), ast.NewAssignment(p(1, 8, 7, 12), []ast.Expression{
 			ast.NewIdentifier(p(1, 8, 7, 7), "_"),
 			ast.NewIdentifier(p(1, 8, 7, 7), "v")},
 			ast.AssignmentDeclaration, []ast.Expression{ast.NewIdentifier(p(1, 13, 12, 12), "e")}),
-			[]ast.Node{ast.NewContinue(p(1, 17, 16, 29), nil)})}, ast.ContextHTML)},
+			[]ast.Node{ast.NewContinue(p(1, 20, 19, 26), nil)})}, ast.ContextHTML)},
 	{"{% if a %}b{% end if %}", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 4, 3, 19), nil, ast.NewIdentifier(p(1, 7, 6, 6), "a"), ast.NewBlock(nil, []ast.Node{ast.NewText(p(1, 11, 10, 10), []byte("b"), ast.Cut{})}), nil)}, ast.ContextHTML)},
 	{"{% if a %}b{% else %}c{% end %}", ast.NewTree("", []ast.Node{
@@ -1296,24 +1296,24 @@ var treeTests = []struct {
 		ast.NewIf(p(1, 6, 5, 23), nil, ast.NewIdentifier(p(1, 9, 8, 8), "a"), ast.NewBlock(nil, []ast.Node{ast.NewText(p(1, 13, 12, 17), []byte(" \nb\n  "), ast.Cut{2, 2})}), nil),
 		ast.NewText(p(3, 12, 27, 28), []byte(" \t"), ast.Cut{2, 0})}, ast.ContextHTML)},
 	{"{% if a = b; a %}b{% end if %}", ast.NewTree("", []ast.Node{
-		ast.NewIf(p(1, 1, 0, 29),
+		ast.NewIf(p(1, 4, 3, 26),
 			ast.NewAssignment(p(1, 7, 6, 10), []ast.Expression{ast.NewIdentifier(p(1, 7, 6, 6), "a")}, ast.AssignmentSimple,
 				[]ast.Expression{ast.NewIdentifier(p(1, 11, 10, 10), "b")}),
 			ast.NewIdentifier(p(1, 14, 13, 13), "a"), ast.NewBlock(nil, []ast.Node{ast.NewText(p(1, 18, 17, 17), []byte("b"), ast.Cut{})}), nil)}, ast.ContextHTML)},
 	{"{% if a := b; a %}b{% end if %}", ast.NewTree("", []ast.Node{
-		ast.NewIf(p(1, 1, 0, 30),
+		ast.NewIf(p(1, 4, 3, 27),
 			ast.NewAssignment(p(1, 7, 6, 11), []ast.Expression{ast.NewIdentifier(p(1, 7, 6, 6), "a")}, ast.AssignmentDeclaration,
 				[]ast.Expression{ast.NewIdentifier(p(1, 12, 11, 11), "b")}),
 			ast.NewIdentifier(p(1, 15, 14, 14), "a"), ast.NewBlock(nil, []ast.Node{ast.NewText(p(1, 19, 18, 18), []byte("b"), ast.Cut{})}), nil)}, ast.ContextHTML)},
 	{"{% if a, ok := b.c; a %}b{% end if %}", ast.NewTree("", []ast.Node{
-		ast.NewIf(p(1, 1, 0, 36),
+		ast.NewIf(p(1, 4, 3, 33),
 			ast.NewAssignment(p(1, 7, 6, 17),
 				[]ast.Expression{ast.NewIdentifier(p(1, 7, 6, 6), "a"), ast.NewIdentifier(p(1, 10, 9, 10), "ok")},
 				ast.AssignmentDeclaration, []ast.Expression{ast.NewSelector(p(1, 17, 15, 17), ast.NewIdentifier(p(1, 16, 15, 15), "b"), "c")}),
 			ast.NewIdentifier(p(1, 21, 20, 20), "a"), ast.NewBlock(nil, []ast.Node{ast.NewText(p(1, 25, 24, 24), []byte("b"), ast.Cut{})}), nil)}, ast.ContextHTML)},
 	{"{% if x < 10 %}x is < 10{% else if x == 10 %}x is 10{% else %}x is > 10 {% end %}",
 		ast.NewTree("", []ast.Node{
-			ast.NewIf(p(1, 1, 0, 80), nil,
+			ast.NewIf(p(1, 4, 3, 77), nil,
 				ast.NewBinaryOperator(
 					p(1, 9, 6, 11),
 					ast.OperatorLess,
@@ -1321,7 +1321,7 @@ var treeTests = []struct {
 					ast.NewBasicLiteral(p(1, 11, 10, 11), ast.IntLiteral, "10"),
 				),
 				ast.NewBlock(nil, []ast.Node{ast.NewText(p(1, 16, 15, 23), []byte("x is < 10"), ast.Cut{})}),
-				ast.NewIf(p(1, 33, 32, 80), nil, // else if
+				ast.NewIf(p(1, 33, 32, 77), nil, // else if
 					ast.NewBinaryOperator(
 						p(1, 38, 35, 41),
 						ast.OperatorEqual,
@@ -1333,7 +1333,7 @@ var treeTests = []struct {
 				),
 			)}, ast.ContextHTML)},
 	{"{% if _, ok := []int{1,2,3}.([]int); ok %}{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewIf(p(1, 1, 0, 50),
+		ast.NewIf(p(1, 4, 3, 47),
 			ast.NewAssignment(
 				p(1, 7, 6, 34),
 				[]ast.Expression{
@@ -1361,17 +1361,17 @@ var treeTests = []struct {
 			nil,
 		),
 	}, ast.ContextHTML)},
-	{"{% extends \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtends(p(1, 1, 0, 19), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
-	{"{% include \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewInclude(p(1, 1, 0, 19), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
+	{"{% extends \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtends(p(1, 4, 3, 16), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
+	{"{% include \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewInclude(p(1, 4, 3, 16), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% extends \"a.e\" %}{% macro b %}c{% end macro %}", ast.NewTree("", []ast.Node{
-		ast.NewExtends(p(1, 1, 0, 18), "a.e", ast.ContextHTML),
-		ast.NewMacro(p(1, 20, 19, 47), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
-			ast.NewFuncType(&ast.Position{Line: 1, Column: 20, Start: 19, End: 47}, nil, nil, false),
+		ast.NewExtends(p(1, 4, 3, 15), "a.e", ast.ContextHTML),
+		ast.NewMacro(p(1, 23, 22, 44), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
+			ast.NewFuncType(&ast.Position{Line: 1, Column: 23, Start: 22, End: 44}, nil, nil, false),
 			[]ast.Node{ast.NewText(p(1, 33, 32, 32), []byte("c"), ast.Cut{})}, ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% extends \"a.e\" %}{% macro b(c, d int) %}txt{% end macro %}", ast.NewTree("", []ast.Node{
-		ast.NewExtends(p(1, 1, 0, 18), "a.e", ast.ContextHTML),
-		ast.NewMacro(p(1, 20, 19, 59), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
-			ast.NewFuncType(&ast.Position{Line: 1, Column: 20, Start: 19, End: 59}, []*ast.Parameter{
+		ast.NewExtends(p(1, 4, 3, 15), "a.e", ast.ContextHTML),
+		ast.NewMacro(p(1, 23, 22, 56), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
+			ast.NewFuncType(&ast.Position{Line: 1, Column: 23, Start: 22, End: 56}, []*ast.Parameter{
 				ast.NewParameter(ast.NewIdentifier(p(1, 31, 30, 30), "c"), nil),
 				ast.NewParameter(ast.NewIdentifier(p(1, 34, 33, 33), "d"),
 					ast.NewIdentifier(p(1, 36, 35, 37), "int")),
@@ -1379,15 +1379,15 @@ var treeTests = []struct {
 			[]ast.Node{ast.NewText(p(1, 43, 42, 44), []byte("txt"), ast.Cut{})}, ast.ContextHTML)}, ast.ContextHTML)},
 	{"{# comment\ncomment #}", ast.NewTree("", []ast.Node{ast.NewComment(p(1, 1, 0, 20), " comment\ncomment ")}, ast.ContextHTML)},
 	{"{% macro a(i int) %}c{% end macro %}", ast.NewTree("", []ast.Node{
-		ast.NewMacro(p(1, 1, 0, 35), ast.NewIdentifier(p(1, 10, 9, 9), "a"),
-			ast.NewFuncType(&ast.Position{Line: 1, Column: 1, Start: 0, End: 35}, []*ast.Parameter{
+		ast.NewMacro(p(1, 4, 3, 32), ast.NewIdentifier(p(1, 10, 9, 9), "a"),
+			ast.NewFuncType(&ast.Position{Line: 1, Column: 4, Start: 3, End: 32}, []*ast.Parameter{
 				ast.NewParameter(ast.NewIdentifier(p(1, 12, 11, 11), "i"),
 					ast.NewIdentifier(p(1, 14, 13, 15), "int")),
 			}, nil, false),
 			[]ast.Node{ast.NewText(p(1, 21, 20, 20), []byte("c"), ast.Cut{})}, ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% macro a(b bool, c ...string) %}d{% end macro %}", ast.NewTree("", []ast.Node{
-		ast.NewMacro(p(1, 1, 0, 49), ast.NewIdentifier(p(1, 10, 9, 9), "a"),
-			ast.NewFuncType(&ast.Position{Line: 1, Column: 1, Start: 0, End: 49}, []*ast.Parameter{
+		ast.NewMacro(p(1, 4, 3, 46), ast.NewIdentifier(p(1, 10, 9, 9), "a"),
+			ast.NewFuncType(&ast.Position{Line: 1, Column: 4, Start: 3, End: 46}, []*ast.Parameter{
 				ast.NewParameter(ast.NewIdentifier(p(1, 12, 11, 11), "b"),
 					ast.NewIdentifier(p(1, 14, 13, 16), "bool")),
 				ast.NewParameter(ast.NewIdentifier(p(1, 20, 19, 19), "c"),
@@ -1395,7 +1395,7 @@ var treeTests = []struct {
 			}, nil, true),
 			[]ast.Node{ast.NewText(p(1, 35, 34, 34), []byte("d"), ast.Cut{})}, ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% *a = 3 %}", ast.NewTree("", []ast.Node{
-		ast.NewAssignment(p(1, 1, 0, 11),
+		ast.NewAssignment(p(1, 4, 3, 8),
 			[]ast.Expression{
 				ast.NewUnaryOperator(p(1, 4, 3, 4),
 					ast.OperatorMultiplication,
@@ -1563,35 +1563,35 @@ func equals(n1, n2 ast.Node, p int) error {
 		}
 		return fmt.Errorf("unexpected node %#v, expecting nil", n1)
 	}
-	// TODO: enable tests on positions.
-	// var pos1 = n1.Pos()
-	// var pos2 = n2.Pos()
-	// if pos1 == nil && pos2 != nil {
-	// 	return fmt.Errorf("unexpected nil pos, expecting %#v", pos2)
-	// }
-	// if pos1 != nil && pos2 == nil {
-	// 	return fmt.Errorf("expected nil pos, got %#v", pos1)
-	// }
-	// if pos1 != nil && pos2 != nil {
-	// 	if pos1.Line != pos2.Line {
-	// 		return fmt.Errorf("unexpected line %d, expecting %d", pos1.Line, pos2.Line)
-	// 	}
-	// 	if pos1.Line == 1 {
-	// 		if pos1.Column-p != pos2.Column {
-	// 			return fmt.Errorf("unexpected column %d, expecting %d", pos1.Column-p, pos2.Column)
-	// 		}
-	// 	} else {
-	// 		if pos1.Column != pos2.Column {
-	// 			return fmt.Errorf("unexpected column %d, expecting %d", pos1.Column, pos2.Column)
-	// 		}
-	// 	}
-	// 	if pos1.Start-p != pos2.Start {
-	// 		return fmt.Errorf("unexpected start %d, expecting %d", pos1.Start-p, pos2.Start)
-	// 	}
-	// 	if pos1.End-p != pos2.End {
-	// 		return fmt.Errorf("unexpected end %d, expecting %d", pos1.End-p, pos2.End)
-	// 	}
-	// }
+
+	var pos1 = n1.Pos()
+	var pos2 = n2.Pos()
+	if pos1 == nil && pos2 != nil {
+		return fmt.Errorf("unexpected nil pos, expecting %#v", pos2)
+	}
+	if pos1 != nil && pos2 == nil {
+		return fmt.Errorf("expected nil pos, got %#v", pos1)
+	}
+	if pos1 != nil && pos2 != nil {
+		if pos1.Line != pos2.Line {
+			return fmt.Errorf("unexpected line %d, expecting %d", pos1.Line, pos2.Line)
+		}
+		if pos1.Line == 1 {
+			if pos1.Column-p != pos2.Column {
+				return fmt.Errorf("unexpected column %d, expecting %d", pos1.Column-p, pos2.Column)
+			}
+		} else {
+			if pos1.Column != pos2.Column {
+				return fmt.Errorf("unexpected column %d, expecting %d", pos1.Column, pos2.Column)
+			}
+		}
+		if pos1.Start-p != pos2.Start {
+			return fmt.Errorf("unexpected start %d, expecting %d", pos1.Start-p, pos2.Start)
+		}
+		if pos1.End-p != pos2.End {
+			return fmt.Errorf("unexpected end %d, expecting %d", pos1.End-p, pos2.End)
+		}
+	}
 
 	if e1, ok := n1.(ast.Expression); ok {
 		if e2, ok := n2.(ast.Expression); ok {

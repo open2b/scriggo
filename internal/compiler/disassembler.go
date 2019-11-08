@@ -190,7 +190,7 @@ func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global
 		switch in.Op {
 		case runtime.OpBreak, runtime.OpContinue, runtime.OpGoto:
 			label := labelOf[runtime.Addr(decodeUint24(in.A, in.B, in.C))]
-			_, _ = fmt.Fprintf(w, "%s\t%s %d\n", indent, operationName[in.Op], label)
+			_, _ = fmt.Fprintf(w, "%s\t%s %d", indent, operationName[in.Op], label)
 		default:
 			_, _ = fmt.Fprintf(w, "%s\t%s", indent, disassembleInstruction(fn, globals, addr))
 		}
