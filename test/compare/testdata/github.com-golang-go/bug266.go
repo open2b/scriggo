@@ -1,3 +1,5 @@
+// skip : enable before merging with 'master'.
+
 // run
 
 // Copyright 2010 The Go Authors. All rights reserved.
