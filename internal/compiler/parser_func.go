@@ -20,8 +20,6 @@ const (
 
 // parseFunc parses a function type, literal o declaration. tok must be the
 // "func" token.
-//
-// If kind does not include func type, the next token is not consumed.
 func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	pos := tok.pos
 	// Parses the function name if present.
@@ -104,7 +102,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	p.removeLastAncestor()
 	p.removeLastAncestor()
 	p.isTemplate = isTemplate
-	return node, token{}
+	return node, p.next()
 }
 
 func (p *parsing) parseFuncParameters(tok token, names map[string]struct{}, isResult bool) ([]*ast.Parameter, bool, *ast.Position) {

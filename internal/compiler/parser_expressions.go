@@ -151,8 +151,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			if mustBeType {
 				node, tok = p.parseFunc(tok, parseFuncType)
 			} else {
-				node, tok = p.parseFunc(tok, parseFuncLit)
-				tok = p.next()
+				node, tok = p.parseFunc(tok, parseFuncType|parseFuncLit)
 			}
 			operand = node.(ast.Expression)
 		case

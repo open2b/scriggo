@@ -391,6 +391,7 @@ var checkerExprs = []struct {
 	{`string([]rune{'a','b','c'})`, tiString(), nil},
 	{`(*int)(nil)`, tiIntPtr(), nil},
 	{`interface{}(nil)`, &TypeInfo{Type: emptyInterfaceType}, nil},
+	{`(func())(nil)`, &TypeInfo{Type: reflect.TypeOf((func())(nil))}, nil},
 
 	// append
 	{`append([]byte{})`, tiByteSlice(), nil},

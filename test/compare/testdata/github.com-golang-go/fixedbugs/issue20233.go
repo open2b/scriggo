@@ -8,8 +8,6 @@
 
 package main
 
-var f = func(...A) // ERROR `syntax error: missing function body`
+var f = func(...A) // ERROR "undefined: A"
 
-var f = func(...A) { } // ERROR `undefined: A`
-
-func main() { }
+func main() {}

@@ -1271,12 +1271,11 @@ LABEL:
 			// because kind is not parseType.
 			switch p.parent().(type) {
 			case *ast.Tree, *ast.Package:
-				node, _ := p.parseFunc(tok, parseFuncDecl)
-				p.addChild(node)
-				tok = p.next()
+				node, tok := p.parseFunc(tok, parseFuncDecl)
 				if tok.typ != tokenSemicolon {
 					panic(syntaxError(tok.pos, "unexpected %s after top level declaration", tok))
 				}
+				p.addChild(node)
 				return p.next()
 			}
 		}
