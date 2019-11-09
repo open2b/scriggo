@@ -363,7 +363,14 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 				panic(tc.errorf(expr, "invalid operation: %s (receive from non-chan type %s)", expr, t.Type))
 			}
 			if t.Type.ChanDir() == reflect.SendDir {
-				panic(tc.errorf(expr, "invalid operation: %s (receive from send-only type %s)", expr, t.Type))
+				// Expression <-make(...) is printed as <-(make(...)) in the error message.
+				var s string
+				if call, ok := expr.Expr.(*ast.Call); ok && tc.typeInfos[call.Func].IsBuiltinFunction() {
+					s = expr.Op.String() + "(" + expr.Expr.String() + ")"
+				} else {
+					s = expr.String()
+				}
+				panic(tc.errorf(expr, "invalid operation: %s (receive from send-only type %s)", s, t.Type))
 			}
 			ti.Type = t.Type.Elem()
 		}

@@ -831,7 +831,7 @@ func NewUnaryOperator(pos *Position, op OperatorType, expr Expression) *UnaryOpe
 
 func (n *UnaryOperator) String() string {
 	s := n.Op.String()
-	if e, ok := n.Expr.(Operator); ok && e.Precedence() <= n.Precedence() {
+	if e, ok := n.Expr.(Operator); ok && (n.Op == OperatorReceive || e.Precedence() <= n.Precedence()) {
 		s += "(" + n.Expr.String() + ")"
 	} else {
 		s += n.Expr.String()
@@ -1081,7 +1081,20 @@ func NewCall(pos *Position, fun Expression, args []Expression, isVariadic bool) 
 }
 
 func (n *Call) String() string {
-	s := n.Func.String() + "("
+	s := n.Func.String()
+	switch fn := n.Func.(type) {
+	case *UnaryOperator:
+		if fn.Op == OperatorMultiplication || fn.Op == OperatorReceive {
+			s = "(" + s + ")"
+		}
+	case *FuncType:
+		if len(fn.Result) == 0 {
+			s = "(" + s + ")"
+		}
+	case *ChanType:
+		s = "(" + s + ")"
+	}
+	s += "("
 	for i, arg := range n.Args {
 		if i > 0 {
 			s += ", "

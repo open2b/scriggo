@@ -779,12 +779,14 @@ var checkerStmts = map[string]string{
 	`(func(){})()++`:                                                `func literal() used as value`,    // TODO: gc returns `(func literal)() used as value`
 	`(func() int { return 0 })()++`:                                 `cannot assign to func literal()`, // TODO: gc returns `cannot assign to (func literal)()`
 	`(func() (int, int) { return 0, 0 })()++`:                       `multiple-value func literal() in single-value context`,
-	`nil++`:                    `cannot assign to nil`,
-	`_++`:                      `cannot use _ as value`,
-	`const c = 0; c = 1`:       `cannot assign to c`,
-	`const c = 0; c++`:         `cannot assign to c`,
-	`a := 1; ( 1 + a )++`:      `cannot assign to 1 + a`,
-	`var a int; b := &a; *b++`: ok,
+	`nil++`:                     `cannot assign to nil`,
+	`_++`:                       `cannot use _ as value`,
+	`const c = 0; c = 1`:        `cannot assign to c`,
+	`const c = 0; c++`:          `cannot assign to c`,
+	`a := 1; ( 1 + a )++`:       `cannot assign to 1 + a`,
+	`var a int; b := &a; *b++`:  ok,
+	`var a int = (*int)(nil)`:   `cannot use (*int)(nil) (type *int) as type int in assignment`,
+	`var a int = chan int(nil)`: `cannot use (chan int)(nil) (type chan int) as type int in assignment`,
 
 	// Slicing
 	`_ = []int{1,2,3,4,5}[:]`:             ok,
@@ -802,13 +804,16 @@ var checkerStmts = map[string]string{
 	`_ = []int{1,2,3,4,5}[2:3:nil]`:       `invalid slice index nil (type nil)`,
 
 	// Receive.
-	`<-aIntChan`:                        ok,
-	`_ = <-aIntChan`:                    ok,
-	`v := <-aIntChan; _ = v`:            ok,
-	`v, ok := <-aIntChan; _, _ = v, ok`: ok,
-	`_ = <-5`:                           `invalid operation: <-5 (receive from non-chan type int)`,
-	`_ = <-[]struct{A int}{{A: 5}}`:     `invalid operation: <-[]struct { A int } literal (receive from non-chan type []struct { A int })`,
-	`_ = <-make(chan<- int)`:            `invalid operation: <-make(chan<- int) (receive from send-only type chan<- int)`, // TODO: gc returns error `invalid operation: <-(make(chan<- int)) (receive from send-only type chan<- int)`
+	`<-aIntChan`:                         ok,
+	`_ = <-aIntChan`:                     ok,
+	`v := <-aIntChan; _ = v`:             ok,
+	`v, ok := <-aIntChan; _, _ = v, ok`:  ok,
+	`_ = <-5`:                            `invalid operation: <-5 (receive from non-chan type int)`,
+	`_ = <-[]struct{A int}{{A: 5}}`:      `invalid operation: <-[]struct { A int } literal (receive from non-chan type []struct { A int })`,
+	`var ch chan<- int; _ = <-ch`:        `invalid operation: <-ch (receive from send-only type chan<- int)`,
+	`var f func() chan<- int; _ = <-f()`: `invalid operation: <-f() (receive from send-only type chan<- int)`,
+	`_ = <-make(chan<- int)`:             `invalid operation: <-(make(chan<- int)) (receive from send-only type chan<- int)`,
+	`var ch *chan<- int; _ = <-*ch`:      `invalid operation: <-(*ch) (receive from send-only type chan<- int)`,
 
 	// Send.
 	`aIntChan <- 5`:                ok,
