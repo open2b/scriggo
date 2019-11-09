@@ -309,8 +309,8 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 	} else {
 		// Type is explicit, so must check assignability.
 		if err := tc.isAssignableTo(right, rightExpr, typ.Type); err != nil {
-			if _, isPlaceholder := rightExpr.(*ast.Placeholder); isPlaceholder || rightExpr == nil {
-				panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", right.ShortString(), leftExpr, typ))
+			if _, ok := rightExpr.(*ast.Placeholder); ok {
+				panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", right, leftExpr, typ))
 			}
 			panic(tc.errorf(node, "%s in assignment", err))
 		}
@@ -394,7 +394,12 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 		if !left.Addressable() {
 			panic(tc.errorf(leftExpr, "cannot assign to %v", leftExpr))
 		}
-		tc.mustBeAssignableTo(rightExpr, left.Type)
+		if err := tc.isAssignableTo(right, rightExpr, left.Type); err != nil {
+			if _, ok := rightExpr.(*ast.Placeholder); ok {
+				panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", right, leftExpr, left))
+			}
+			panic(tc.errorf(node, "%s in assignment", err))
+		}
 		right.setValue(left.Type)
 		tc.typeInfos[leftExpr] = left
 
@@ -413,7 +418,12 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 			// Slices, maps and pointers to array are always addressable when
 			// used in indexing operation.
 		}
-		tc.mustBeAssignableTo(rightExpr, left.Type)
+		if err := tc.isAssignableTo(right, rightExpr, left.Type); err != nil {
+			if _, ok := rightExpr.(*ast.Placeholder); ok {
+				panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", right, leftExpr, left))
+			}
+			panic(tc.errorf(node, "%s in assignment", err))
+		}
 		right.setValue(left.Type)
 		return ""
 
@@ -426,7 +436,12 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 			}
 			panic(tc.errorf(leftExpr, "cannot assign to %v", leftExpr))
 		}
-		tc.mustBeAssignableTo(rightExpr, left.Type)
+		if err := tc.isAssignableTo(right, rightExpr, left.Type); err != nil {
+			if _, ok := rightExpr.(*ast.Placeholder); ok {
+				panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", right, leftExpr, left))
+			}
+			panic(tc.errorf(node, "%s in assignment", err))
+		}
 		right.setValue(left.Type)
 		return ""
 
@@ -434,7 +449,12 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 
 		if leftExpr.Operator() == ast.OperatorMultiplication { // pointer indirection.
 			left := tc.checkExpr(leftExpr)
-			tc.mustBeAssignableTo(rightExpr, left.Type)
+			if err := tc.isAssignableTo(right, rightExpr, left.Type); err != nil {
+				if _, ok := rightExpr.(*ast.Placeholder); ok {
+					panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", right, leftExpr, left))
+				}
+				panic(tc.errorf(node, "%s in assignment", err))
+			}
 			right.setValue(left.Type)
 			return ""
 		}
@@ -464,14 +484,6 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 func (tc *typechecker) cantBeBlank(expr ast.Expression) {
 	if isBlankIdentifier(expr) {
 		panic(tc.errorf(expr, "cannot use _ as value"))
-	}
-}
-
-// mustBeAssignableTo panics if right is not assignable to leftType.
-func (tc *typechecker) mustBeAssignableTo(right ast.Expression, leftType reflect.Type) {
-	ti := tc.typeInfos[right]
-	if err := tc.isAssignableTo(ti, right, leftType); err != nil {
-		panic(tc.errorf(right, "%s in assignment", err))
 	}
 }
 

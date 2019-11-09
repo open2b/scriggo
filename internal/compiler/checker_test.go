@@ -789,6 +789,8 @@ var checkerStmts = map[string]string{
 	`var a int; b := &a; *b++`:  ok,
 	`var a int = (*int)(nil)`:   `cannot use (*int)(nil) (type *int) as type int in assignment`,
 	`var a int = chan int(nil)`: `cannot use (chan int)(nil) (type chan int) as type int in assignment`,
+	`f := func() (int, int) { return 0, 0 }; var a bool; _, a = f()`: `cannot assign int to a (type bool) in multiple assignment`,
+	`f := func() (int, int) { return 0, 0 }; var a bool; a, _ = f()`: `cannot assign int to a (type bool) in multiple assignment`,
 
 	// Slicing
 	`_ = []int{1,2,3,4,5}[:]`:             ok,
