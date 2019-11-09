@@ -241,7 +241,7 @@ func (tc *typechecker) checkExprOrType(expr ast.Expression) *TypeInfo {
 // typeExpected reports whether a type is expected; it only affects error
 // messages.
 //
-// typeof cannot be called directly, use checkExpr, checkType or
+// typeof should not be called directly, use checkExpr, checkType or
 // checkExprOrType.
 func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo {
 
