@@ -327,8 +327,10 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 	// Note that the error message takes for granted that isVariableDecl refers
 	// to a declaration assignment. This is always true because 'var' nodes
 	// require an *ast.Identifier as lhs, so !isIdent is always false.
-	if _, isIdent := leftExpr.(*ast.Identifier); isVariableDecl && !isIdent {
-		panic(tc.errorf(node, "non-name %s on left side of :=", leftExpr))
+	if isVariableDecl {
+		if _, isIdent := leftExpr.(*ast.Identifier); !isIdent {
+			panic(tc.errorf(node, "non-name %s on left side of :=", leftExpr))
+		}
 	}
 
 	switch leftExpr := leftExpr.(type) {
