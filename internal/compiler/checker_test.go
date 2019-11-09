@@ -768,6 +768,7 @@ var checkerStmts = map[string]string{
 	`v := [...]int{}; v[0] = 5`:                                     ok,
 	`([1]int{0})[0] = 1`:                                            `cannot assign to [1]int literal[0]`,
 	`m := map[int]struct{A int}{}; m[0].A = 5`:                      `cannot assign to struct field m[0].A in map`,
+	`m := map[int]*struct{A int}{}; m[0].A = 5`:                     ok,
 	`v := "a"; v[0]++`:                                              `cannot assign to v[0]`,
 	`"a"[0]++`:                                                      `cannot assign to "a"[0]`,
 	`v := [1]int{}; v[0]++`:                                         ok,
