@@ -249,8 +249,8 @@ func NewText(pos *Position, text []byte, cut Cut) *Text {
 	return &Text{pos, text, cut}
 }
 
-func (t Text) String() string {
-	return string(t.Text)
+func (n *Text) String() string {
+	return string(n.Text)
 }
 
 // URL node represents an URL in an attribute value. Show nodes that are
@@ -301,15 +301,15 @@ func NewAssignment(pos *Position, lhs []Expression, typ AssignmentType, rhs []Ex
 	return &Assignment{pos, lhs, typ, rhs}
 }
 
-func (a *Assignment) String() string {
+func (n *Assignment) String() string {
 	var s string
-	for i, v := range a.Lhs {
+	for i, v := range n.Lhs {
 		if i > 0 {
 			s += ", "
 		}
 		s += v.String()
 	}
-	switch a.Type {
+	switch n.Type {
 	case AssignmentSimple:
 		s += " = "
 	case AssignmentDeclaration:
@@ -329,8 +329,8 @@ func (a *Assignment) String() string {
 	case AssignmentDecrement:
 		s += "--"
 	}
-	if a.Rhs != nil {
-		for i, value := range a.Rhs {
+	if n.Rhs != nil {
+		for i, value := range n.Rhs {
 			if i > 0 {
 				s += ", "
 			}
@@ -637,11 +637,11 @@ type TypeDeclaration struct {
 	IsAliasDeclaration bool        // reports whether it is an alias declaration or a type definition.
 }
 
-func (td *TypeDeclaration) String() string {
-	if td.IsAliasDeclaration {
-		return fmt.Sprintf("type %s = %s", td.Identifier.Name, td.Type.String())
+func (n *TypeDeclaration) String() string {
+	if n.IsAliasDeclaration {
+		return fmt.Sprintf("type %s = %s", n.Identifier.Name, n.Type.String())
 	}
-	return fmt.Sprintf("type %s %s", td.Identifier.Name, td.Type.String())
+	return fmt.Sprintf("type %s %s", n.Identifier.Name, n.Type.String())
 }
 
 // NewTypeDeclaration returns a new TypeDeclaration node.
@@ -728,8 +728,8 @@ func NewShow(pos *Position, expr Expression, ctx Context) *Show {
 	return &Show{pos, expr, ctx}
 }
 
-func (v Show) String() string {
-	return fmt.Sprintf("{{ %v }}", v.Expr)
+func (n *Show) String() string {
+	return fmt.Sprintf("{{ %v }}", n.Expr)
 }
 
 // Extends node represents a statement {% extends ... %}.
@@ -744,8 +744,8 @@ func NewExtends(pos *Position, path string, ctx Context) *Extends {
 	return &Extends{Position: pos, Path: path, Context: ctx}
 }
 
-func (e Extends) String() string {
-	return fmt.Sprintf("{%% extends %v %%}", strconv.Quote(e.Path))
+func (n *Extends) String() string {
+	return fmt.Sprintf("{%% extends %v %%}", strconv.Quote(n.Path))
 }
 
 // Import node represents a statement {% import ... %}.
@@ -761,12 +761,12 @@ func NewImport(pos *Position, ident *Identifier, path string, ctx Context) *Impo
 	return &Import{Position: pos, Ident: ident, Path: path, Context: ctx}
 }
 
-func (i Import) String() string {
-	if i.Ident == nil {
-		return fmt.Sprintf("{%% import %v %%}", strconv.Quote(i.Path))
+func (n *Import) String() string {
+	if n.Ident == nil {
+		return fmt.Sprintf("{%% import %v %%}", strconv.Quote(n.Path))
 	}
 
-	return fmt.Sprintf("{%% import %v %v %%}", i.Ident, strconv.Quote(i.Path))
+	return fmt.Sprintf("{%% import %v %v %%}", n.Ident, strconv.Quote(n.Path))
 }
 
 // Comment node represents a statement {# ... #}.
@@ -916,11 +916,11 @@ func NewStructType(pos *Position, fields []*Field) *StructType {
 	return &StructType{&expression{}, pos, fields}
 }
 
-func (st *StructType) String() string {
+func (n *StructType) String() string {
 	s := "struct { "
-	for i, fd := range st.Fields {
+	for i, fd := range n.Fields {
 		s += fd.String()
-		if i != len(st.Fields)-1 {
+		if i != len(n.Fields)-1 {
 			s += "; "
 		}
 	}
@@ -942,18 +942,18 @@ func NewField(identifierList []*Identifier, typ Expression, tag *string) *Field 
 	return &Field{identifierList, typ, tag}
 }
 
-func (fd *Field) String() string {
+func (n *Field) String() string {
 	s := ""
-	for i, ident := range fd.IdentifierList {
+	for i, ident := range n.IdentifierList {
 		s += ident.String()
-		if i != len(fd.IdentifierList)-1 {
+		if i != len(n.IdentifierList)-1 {
 			s += ","
 		}
 		s += " "
 	}
-	s += fd.Type.String()
-	if fd.Tag != nil {
-		s += " `" + *fd.Tag + "`"
+	s += n.Type.String()
+	if n.Tag != nil {
+		s += " `" + *n.Tag + "`"
 	}
 	return s
 }
@@ -969,8 +969,8 @@ func NewSliceType(pos *Position, elementType Expression) *SliceType {
 	return &SliceType{&expression{}, pos, elementType}
 }
 
-func (s *SliceType) String() string {
-	return "[]" + s.ElementType.String()
+func (n *SliceType) String() string {
+	return "[]" + n.ElementType.String()
 }
 
 // ArrayType node represents an array type.
@@ -985,14 +985,14 @@ func NewArrayType(pos *Position, len Expression, elementType Expression) *ArrayT
 	return &ArrayType{&expression{}, pos, len, elementType}
 }
 
-func (a *ArrayType) String() string {
+func (n *ArrayType) String() string {
 	s := "["
-	if a.Len == nil {
+	if n.Len == nil {
 		s += "..."
 	} else {
-		s += a.Len.String()
+		s += n.Len.String()
 	}
-	s += "]" + a.ElementType.String()
+	s += "]" + n.ElementType.String()
 	return s
 }
 
@@ -1008,11 +1008,11 @@ func NewCompositeLiteral(pos *Position, typ Expression, keyValues []KeyValue) *C
 	return &CompositeLiteral{&expression{}, pos, typ, keyValues}
 }
 
-func (t *CompositeLiteral) String() string {
+func (n *CompositeLiteral) String() string {
 	if expandedPrint {
-		s := t.Type.String()
+		s := n.Type.String()
 		s += "{"
-		for i, kv := range t.KeyValues {
+		for i, kv := range n.KeyValues {
 			if i > 0 {
 				s += ", "
 			}
@@ -1021,7 +1021,7 @@ func (t *CompositeLiteral) String() string {
 		s += "}"
 		return s
 	}
-	return t.Type.String() + " literal"
+	return n.Type.String() + " literal"
 }
 
 // KeyValue represents a key value pair in a slice, map or struct composite literal.
@@ -1049,8 +1049,8 @@ func NewMapType(pos *Position, keyType, valueType Expression) *MapType {
 	return &MapType{&expression{}, pos, keyType, valueType}
 }
 
-func (m *MapType) String() string {
-	return "map[" + m.KeyType.String() + "]" + m.ValueType.String()
+func (n *MapType) String() string {
+	return "map[" + n.KeyType.String() + "]" + n.ValueType.String()
 }
 
 // Interface node represents an interface type.
@@ -1063,7 +1063,7 @@ func NewInterface(pos *Position) *Interface {
 	return &Interface{&expression{}, pos}
 }
 
-func (m *Interface) String() string {
+func (n *Interface) String() string {
 	return "interface{}"
 }
 
