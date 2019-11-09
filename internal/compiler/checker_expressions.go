@@ -767,7 +767,6 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		field, newName, ok := tc.fieldByName(t, expr.Ident)
 		if ok {
 			expr.Ident = newName
-			field.Properties |= PropertyAddressable
 			// Transform ps.F to (*ps).F, if ps is a defined pointer type and
 			// (*ps).F is a valid selector expression denoting a field (but not
 			// a method).

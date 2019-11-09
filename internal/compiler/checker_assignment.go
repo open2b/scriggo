@@ -391,7 +391,9 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 
 		// Simple assignment.
 		left := tc.checkIdentifier(leftExpr, false)
-		tc.mustBeAddressable(leftExpr)
+		if !left.Addressable() {
+			panic(tc.errorf(leftExpr, "cannot assign to %v", leftExpr))
+		}
 		tc.mustBeAssignableTo(rightExpr, left.Type)
 		right.setValue(left.Type)
 		tc.typeInfos[leftExpr] = left
@@ -402,7 +404,9 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 		ti := tc.typeInfos[leftExpr.Expr]
 		switch ti.Type.Kind() {
 		case reflect.Array:
-			tc.mustBeAddressable(leftExpr)
+			if !left.Addressable() {
+				panic(tc.errorf(leftExpr, "cannot assign to %v", leftExpr))
+			}
 		case reflect.String:
 			panic(tc.errorf(node, "cannot assign to %v", leftExpr))
 		default:
@@ -416,7 +420,12 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 	case *ast.Selector:
 
 		left := tc.checkExpr(leftExpr)
-		tc.mustBeAddressable(leftExpr)
+		if !left.Addressable() {
+			if e, ok := leftExpr.Expr.(*ast.Index); ok && tc.typeInfos[e.Expr].Type.Kind() == reflect.Map {
+				panic(tc.errorf(leftExpr, "cannot assign to struct field %v in map", leftExpr))
+			}
+			panic(tc.errorf(leftExpr, "cannot assign to %v", leftExpr))
+		}
 		tc.mustBeAssignableTo(rightExpr, left.Type)
 		right.setValue(left.Type)
 		return ""
@@ -455,14 +464,6 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 func (tc *typechecker) cantBeBlank(expr ast.Expression) {
 	if isBlankIdentifier(expr) {
 		panic(tc.errorf(expr, "cannot use _ as value"))
-	}
-}
-
-// mustBeAddressable panics if ti is not addressable.
-func (tc *typechecker) mustBeAddressable(expr ast.Expression) {
-	ti := tc.typeInfos[expr]
-	if !ti.Addressable() {
-		panic(tc.errorf(expr, "cannot assign to %v", expr))
 	}
 }
 

@@ -242,13 +242,13 @@ func (tc *typechecker) fieldByName(t *TypeInfo, name string) (*TypeInfo, string,
 	if t.Type.Kind() == reflect.Struct {
 		field, ok := t.Type.FieldByName(name)
 		if ok {
-			return &TypeInfo{Type: field.Type}, newName, true
+			return &TypeInfo{Type: field.Type, Properties: t.Properties & PropertyAddressable}, newName, true
 		}
 	}
 	if t.Type.Kind() == reflect.Ptr {
 		field, ok := t.Type.Elem().FieldByName(name)
 		if ok {
-			return &TypeInfo{Type: field.Type}, newName, true
+			return &TypeInfo{Type: field.Type, Properties: PropertyAddressable}, newName, true
 		}
 	}
 	return nil, newName, false
