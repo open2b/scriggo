@@ -60,7 +60,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	}
 	// Makes the function type.
 	typ := ast.NewFuncType(nil, parameters, result, isVariadic)
-	if kind^parseFuncType == 0 || kind&parseFuncType != 0 && tok.typ != tokenLeftBraces {
+	if kind == parseFuncType || kind&parseFuncType != 0 && tok.typ != tokenLeftBraces {
 		typ.Position = &ast.Position{pos.Line, pos.Column, pos.Start, pos.End}
 		return typ, tok
 	}
