@@ -641,7 +641,7 @@ func evaluatedButNotUsed(v string) string {
 
 // checkerStmts contains some Scriggo snippets with expected type-checker error
 // (or empty string if the type checking is valid). Error messages are based
-// upon Go 1.12. Tests are subdivided for categories. Each category has a title
+// upon Go 1.13. Tests are subdivided for categories. Each category has a title
 // (indicated by a comment), and it's split in two parts: correct source codes
 // (which goes first) and bad ones. Correct source codes and bad source codes
 // are, respectively, sorted by lexicographical order.
@@ -976,21 +976,21 @@ var checkerStmts = map[string]string{
 	`_ = 1 >> 1000`: ok,
 	`const c = 1; _ = c << 18446744073709551616`: `invalid operation: c << 18446744073709551616 (constant 18446744073709551616 overflows uint)`,
 	`const a string = "s"; _ = 1 << a`:           `invalid operation: 1 << a (shift count type string, must be unsigned integer)`,
-	//`const a int = -1; _ = 1 << a`:     `invalid operation: 1 << a (invalid negative shift count: -1)`, // TODO: go1.13
-	`var a = "s"; _ = 1 << a`:                  `invalid operation: 1 << a (shift count type string, must be unsigned integer)`,
-	`var a = 1.2; _ = 1 << a`:                  `invalid operation: 1 << a (shift count type float64, must be unsigned integer)`,
-	`var a int; _ = a << uint64(0)`:            ok,
-	`var a int; _ = a << 0`:                    ok,
-	`var a int; _ = a << 18446744073709551615`: ok,
-	`var a int; _ = a << 18446744073709551616`: `invalid operation: a << 18446744073709551616 (constant 18446744073709551616 overflows uint)`,
-	`_ = nil << 1`:                             `invalid operation: nil << 1 (shift of type nil)`,
-	`_ = "a" << 1`:                             `invalid operation: "a" << 1 (shift of type untyped string)`,
-	`_ = 1.2 << 1`:                             `invalid operation: 1.2 << 1 (constant 1.2 truncated to integer)`,
-	`_ = 1 << 1`:                               ok,
-	`_ = 1 << 1.0`:                             ok,
-	`_ = 1 << 511`:                             ok,
-	`_ = -1 << 1`:                              ok,
-	`_ = 1.0 << 1`:                             ok,
+	`const a int = -1; _ = 1 << a`:               `invalid operation: 1 << a (invalid negative shift count: -1)`,
+	`var a = "s"; _ = 1 << a`:                    `invalid operation: 1 << a (shift count type string, must be unsigned integer)`,
+	`var a = 1.2; _ = 1 << a`:                    `invalid operation: 1 << a (shift count type float64, must be unsigned integer)`,
+	`var a int; _ = a << uint64(0)`:              ok,
+	`var a int; _ = a << 0`:                      ok,
+	`var a int; _ = a << 18446744073709551615`:   ok,
+	`var a int; _ = a << 18446744073709551616`:   `invalid operation: a << 18446744073709551616 (constant 18446744073709551616 overflows uint)`,
+	`_ = nil << 1`:                               `invalid operation: nil << 1 (shift of type nil)`,
+	`_ = "a" << 1`:                               `invalid operation: "a" << 1 (shift of type untyped string)`,
+	`_ = 1.2 << 1`:                               `invalid operation: 1.2 << 1 (constant 1.2 truncated to integer)`,
+	`_ = 1 << 1`:                                 ok,
+	`_ = 1 << 1.0`:                               ok,
+	`_ = 1 << 511`:                               ok,
+	`_ = -1 << 1`:                                ok,
+	`_ = 1.0 << 1`:                               ok,
 
 	// Blocks.
 	`{ a := 1; a = 10; _ = a }`:            ok,
@@ -1198,7 +1198,7 @@ var checkerStmts = map[string]string{
 	`f := func() (a, b int) { return 0, "" }; f()`:                    `cannot use "" (type string) as type int in return argument`,
 	`var _, _ int = func(a, b int) (int, int) { return a, b }("", 0)`: `cannot use "" (type string) as type int in argument to func literal`,
 	`f := func(n ...int) { for _ = range n { } }; f(1,2,3)`:           ok,
-	// `func(c int) { _ = c == 0 && c == 0 }(0)`:      ok, // TODO: syntax error: unexpected (, expecting name
+	// `func(c int) { _ = c == 0 && c == 0 }(0)`:      ok, // TODO: syntax error: method declarations are not supported in this release of Scriggo
 
 	// Function literal calls with function call as argument.
 	`f := func() (int, int) { return 0, 0 } ; g := func(int, int) { } ; g(f())`:         ok,
@@ -1221,10 +1221,10 @@ var checkerStmts = map[string]string{
 	`f := func(a, b, c int, d... int) {  };  f(1,2)`:                                "not enough arguments in call to f\n\thave (number, number)\n\twant (int, int, int, ...int)",
 
 	// Conversions.
-	`int()`:     `missing argument to conversion to int: int()`,
-	`int(0, 0)`: `too many arguments to conversion to int: int(0, 0)`,
-	`int(nil)`:  `cannot convert nil to type int`,
-	// `float64("a")`: `cannot convert "a" (type untyped string) to type float64`, // TODO
+	`int()`:        `missing argument to conversion to int: int()`,
+	`int(0, 0)`:    `too many arguments to conversion to int: int(0, 0)`,
+	`int(nil)`:     `cannot convert nil to type int`,
+	`float64("a")`: `cannot convert a (type untyped string) to type float64`, // TODO: must return `cannot convert "a" (type untyped string) to type float64`
 
 	// Function calls.
 	`a := 0; a()`:                  `cannot call non-function a (type int)`,
@@ -1310,27 +1310,27 @@ var checkerStmts = map[string]string{
 	`delete(nil, 0)`:                           `first argument to delete must be map; have nil`,
 
 	// Builtin function 'len'.
-	`_ = len([]int{})`:           ok,
-	`len()`:                      `missing argument to len: len()`,
-	`len([]string{"", ""})`:      evaluatedButNotUsed("len([]string literal)"),
-	`len(0)`:                     `invalid argument 0 (type int) for len`,
-	`len(nil)`:                   `use of untyped nil`,
-	`len := 0; _ = len`:          ok,
-	`const _ = len("")`:          ok,
-	`const _ = len([...]byte{})`: ok,
-	// `const _ = len(new([1]byte))`: `const initializer len(new([1]byte)) is not a constant`, // TODO.
+	`_ = len([]int{})`:            ok,
+	`len()`:                       `missing argument to len: len()`,
+	`len([]string{"", ""})`:       evaluatedButNotUsed("len([]string literal)"),
+	`len(0)`:                      `invalid argument 0 (type int) for len`,
+	`len(nil)`:                    `use of untyped nil`,
+	`len := 0; _ = len`:           ok,
+	`const _ = len("")`:           ok,
+	`const _ = len([...]byte{})`:  ok,
+	`const _ = len(new([1]byte))`: `const initializer len(new([1]byte)) is not a constant`,
 
 	// Builtin function 'cap'.
-	`_ = cap([]int{})`:          ok,
-	`const _ = cap([...]int{})`: ok,
-	`const _ = cap([2]int{})`:   ok,
-	`_ = cap(new([1]byte))`:     ok,
-	`cap()`:                     `missing argument to cap: cap()`,
-	`cap(0)`:                    `invalid argument 0 (type int) for cap`,
-	`cap(nil)`:                  `use of untyped nil`,
-	`cap([]int{})`:              evaluatedButNotUsed("cap([]int literal)"),
-	`const _ = cap([]int{})`:    `const initializer cap([]int literal) is not a constant`,
-	// `const _ = cap(new([1]byte))`: `const initializer cap(new([1]byte)) is not a constant`, // TODO.
+	`_ = cap([]int{})`:            ok,
+	`const _ = cap([...]int{})`:   ok,
+	`const _ = cap([2]int{})`:     ok,
+	`_ = cap(new([1]byte))`:       ok,
+	`cap()`:                       `missing argument to cap: cap()`,
+	`cap(0)`:                      `invalid argument 0 (type int) for cap`,
+	`cap(nil)`:                    `use of untyped nil`,
+	`cap([]int{})`:                evaluatedButNotUsed("cap([]int literal)"),
+	`const _ = cap([]int{})`:      `const initializer cap([]int literal) is not a constant`,
+	`const _ = cap(new([1]byte))`: `const initializer cap(new([1]byte)) is not a constant`,
 
 	// Builtin function 'make'.
 	`_ = make(map[int]int)`:   ok,
