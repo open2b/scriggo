@@ -206,7 +206,7 @@ func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global
 		case runtime.OpDefer:
 			addr += 2
 		}
-		if in.Op == runtime.OpMakeSlice && in.B > 1 {
+		if in.Op == runtime.OpMakeSlice && in.B > 0 {
 			addr += 1
 		}
 	}
@@ -475,16 +475,15 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + disassembleOperand(fn, b, runtime.Int, k)
 		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
 	case runtime.OpMakeSlice:
-		s += " " + fn.Types[int(uint(a))].String()
+		s += " " + fn.Types[int(uint(a))].Elem().String()
+		if b > 0 {
+			next := fn.Body[addr+1]
+			s += " " + disassembleOperand(fn, next.A, runtime.Int, (b&(1<<1)) != 0)
+			s += " " + disassembleOperand(fn, next.B, runtime.Int, (b&(1<<2)) != 0)
+		} else {
+			s += " 0 0"
+		}
 		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
-		// https://github.com/open2b/scriggo/issues/387
-		// s += "\t; len: "
-		// s += fmt.Sprintf("%d", fn.Body[addr+1].A)
-		// s += ", cap: "
-		// s += fmt.Sprintf("%d", fn.Body[addr+1].B)	case runtime.OpMapIndex:
-		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
-		s += " " + disassembleOperand(fn, b, runtime.Unknown, k)
-		s += " " + disassembleOperand(fn, b, runtime.Unknown, false)
 	case runtime.OpMethodValue:
 		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
 		s += " " + disassembleOperand(fn, b, runtime.String, true)
