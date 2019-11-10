@@ -866,7 +866,8 @@ var checkerStmts = map[string]string{
 
 	// Type assertions.
 	`a := interface{}(3); n, ok := a.(int); var _ int = n; var _ bool = ok`: ok,
-	`a := int(3); n, ok := a.(int); var _ int = n; var _ bool = ok`:         `invalid type assertion: a.(int) (non-interface type int on left)`,
+	`_ = nil.(int)`: `use of untyped nil`,
+	`a := int(3); n, ok := a.(int); var _ int = n; var _ bool = ok`: `invalid type assertion: a.(int) (non-interface type int on left)`,
 
 	// Slices.
 	`_ = [][]string{[]string{"a", "f"}, []string{"g", "h"}}`: ok,

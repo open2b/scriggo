@@ -783,6 +783,9 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 
 	case *ast.TypeAssertion:
 		t := tc.checkExpr(expr.Expr)
+		if t.Nil() {
+			panic(tc.errorf(expr, "use of untyped nil"))
+		}
 		if t.Type.Kind() != reflect.Interface {
 			panic(tc.errorf(expr, "invalid type assertion: %v (non-interface type %s on left)", expr, t))
 		}
