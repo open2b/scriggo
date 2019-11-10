@@ -123,8 +123,8 @@ func (ti *TypeInfo) ShortString() string {
 	return ti.Type.String()
 }
 
-// StringWithNumber returns the string representation of ti in the context of a
-// function call and return statement.
+// StringWithNumber returns the string representation of ti in the context of
+// a function call, return statement and type switch assertion.
 func (ti *TypeInfo) StringWithNumber(explicitUntyped bool) string {
 	if ti.Untyped() && ti.IsNumeric() {
 		if explicitUntyped {

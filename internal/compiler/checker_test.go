@@ -1072,8 +1072,9 @@ var checkerStmts = map[string]string{
 	`v := interface{}(3); switch u := v.(type) { default: { _ = u } }`:      ok,
 	`switch u := interface{}(2).(type) { case int: _ = u * 2 }`:             ok,
 	`i := interface{}(int(0)); switch i.(type) { case 2: case float64: }`:   `2 (type untyped number) is not a type`,
-	`switch nil.(type) { }`:       `cannot type switch on non-interface value nil`,
-	`i := 0; switch i.(type) { }`: `cannot type switch on non-interface value i (type int)`,
+	`switch nil.(type) { }`:                                             `cannot type switch on non-interface value nil`,
+	`i := 0; switch i.(type) { }`:                                       `cannot type switch on non-interface value i (type int)`,
+	`const i = 1; switch i.(type) { }`:                                  `cannot type switch on non-interface value i (type untyped number)`,
 	`i := interface{}(int(0)); switch i.(type) { case nil: case nil: }`: `multiple nil cases in type switch (first at 1:50)`,
 	`switch interface{}(0).(type) { case _: }`:                          `cannot use _ as value`,
 

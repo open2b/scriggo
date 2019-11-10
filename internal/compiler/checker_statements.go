@@ -466,7 +466,8 @@ nodesLoop:
 				panic(tc.errorf(node, "cannot type switch on non-interface value nil"))
 			}
 			if t.Type.Kind() != reflect.Interface {
-				panic(tc.errorf(node, "cannot type switch on non-interface value %v (type %s)", ta.Expr, t.ShortString()))
+				panic(tc.errorf(node, "cannot type switch on non-interface value %v (type %s)", ta.Expr,
+					t.StringWithNumber(true)))
 			}
 			var positionOfDefault *ast.Position
 			var positionOfNil *ast.Position

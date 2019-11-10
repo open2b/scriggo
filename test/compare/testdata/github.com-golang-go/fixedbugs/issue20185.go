@@ -16,8 +16,7 @@ func F() {
 const x = 1
 
 func G() {
-	// TODO: Scriggo error: "cannot type switch on non-interface value x (type int)"
-	// switch t := x.(type) { default: } ERROR "cannot type switch on non-interface value x \(type untyped number\)"
+	switch t := x.(type) { default: } // ERROR "cannot type switch on non-interface value x \(type untyped number\)"
 }
 
 func main() { }
