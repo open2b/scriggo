@@ -1087,7 +1087,7 @@ type Function struct {
 	DebugInfo  map[Addr]DebugInfo
 }
 
-// Position is a position of a node in the source.
+// Position represents a source position.
 type Position struct {
 	Line   int // line starting from 1
 	Column int // column in characters starting from 1
