@@ -50,6 +50,16 @@ func Disassemble(main *runtime.Function, globals []Global) (assembler map[string
 					importsByPkg[fn.Pkg] = map[string]struct{}{sf.Pkg: {}}
 				}
 			}
+			added := false
+			for _, f := range allFunctions {
+				if f == sf {
+					added = true
+					break
+				}
+			}
+			if !added {
+				allFunctions = append(allFunctions, sf)
+			}
 		}
 		for _, nf := range fn.Predefined {
 			if packages, ok := importsByPkg[fn.Pkg]; ok {
@@ -58,7 +68,6 @@ func Disassemble(main *runtime.Function, globals []Global) (assembler map[string
 				importsByPkg[fn.Pkg] = map[string]struct{}{nf.Pkg: {}}
 			}
 		}
-		allFunctions = append(allFunctions, fn.Functions...)
 	}
 
 	assembler = map[string]string{}
