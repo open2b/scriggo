@@ -1,5 +1,3 @@
-// skip : strange behaviour of uint https://github.com/open2b/scriggo/issues/428
-
 // run
 
 // Copyright 2016 The Go Authors. All rights reserved.

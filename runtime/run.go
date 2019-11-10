@@ -395,13 +395,13 @@ func (vm *VM) run() (Addr, bool) {
 			case reflect.Int64:
 				vm.setInt(c, v)
 			case reflect.Uint, reflect.Uintptr:
-				vm.setInt(c, int64(uint(v)))
+				vm.setInt(c, int64(int(uint(v))))
 			case reflect.Uint8:
-				vm.setInt(c, int64(uint8(v)))
+				vm.setInt(c, int64(int8(uint8(v))))
 			case reflect.Uint16:
-				vm.setInt(c, int64(uint16(v)))
+				vm.setInt(c, int64(int16(uint16(v))))
 			case reflect.Uint32:
-				vm.setInt(c, int64(uint32(v)))
+				vm.setInt(c, int64(int32(uint32(v))))
 			case reflect.Uint64:
 				vm.setInt(c, v)
 			case reflect.Float32:
@@ -725,7 +725,7 @@ func (vm *VM) run() (Addr, bool) {
 				vm.setFromReflectValue(c, reflect.ValueOf(v).Index(i))
 			}
 		case OpIndexString, -OpIndexString:
-			vm.setInt(c, int64(vm.string(a)[int(vm.intk(b, op < 0))]))
+			vm.setInt(c, int64(int8(vm.string(a)[int(vm.intk(b, op < 0))])))
 
 		// LeftShift
 		case OpLeftShift8, -OpLeftShift8:

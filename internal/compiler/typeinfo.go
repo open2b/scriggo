@@ -204,7 +204,17 @@ func (ti *TypeInfo) setValue(ctxType reflect.Type) {
 			}
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			ti.value = ti.Constant.int64()
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		case reflect.Uint:
+			ti.value = int64(int(ti.Constant.uint64()))
+		case reflect.Uint8:
+			ti.value = int64(int8(ti.Constant.uint64()))
+		case reflect.Uint16:
+			ti.value = int64(int16(ti.Constant.uint64()))
+		case reflect.Uint32:
+			ti.value = int64(int32(ti.Constant.uint64()))
+		case reflect.Uint64:
+			ti.value = int64(ti.Constant.uint64())
+		case reflect.Uintptr:
 			ti.value = int64(ti.Constant.uint64())
 		case reflect.Float32, reflect.Float64:
 			ti.value = ti.Constant.float64()
