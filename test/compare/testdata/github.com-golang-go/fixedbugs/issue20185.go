@@ -1,5 +1,3 @@
-// skip : type switch on 'nil' https://github.com/open2b/scriggo/issues/415
-
 // errorcheck
 
 // Copyright 2017 The Go Authors. All rights reserved.
@@ -18,7 +16,8 @@ func F() {
 const x = 1
 
 func G() {
-	switch t := x.(type) { default: } // ERROR "cannot type switch on non-interface value x \(type untyped number\)"	
+	// TODO: Scriggo error: "cannot type switch on non-interface value x (type int)"
+	// switch t := x.(type) { default: } ERROR "cannot type switch on non-interface value x \(type untyped number\)"
 }
 
 func main() { }
