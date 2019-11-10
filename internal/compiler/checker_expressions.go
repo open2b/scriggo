@@ -1579,7 +1579,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			if c == nil {
 				c = tc.checkExpr(arg)
 			}
-			if c == nil {
+			if c.Nil() {
 				have += "nil"
 			} else {
 				have += c.StringWithNumber(false)
