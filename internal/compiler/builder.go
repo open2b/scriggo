@@ -263,7 +263,15 @@ func (builder *functionBuilder) addPosAndPath(pos *ast.Position) {
 		builder.fn.DebugInfo = map[runtime.Addr]runtime.DebugInfo{}
 	}
 	debugInfo := builder.fn.DebugInfo[pc]
-	debugInfo.Position = pos
+	if pos == nil {
+		debugInfo.Position.Line = 1
+		debugInfo.Position.Column = 1
+	} else {
+		debugInfo.Position.Line = pos.Line
+		debugInfo.Position.Column = pos.Column
+		debugInfo.Position.Start = pos.Start
+		debugInfo.Position.End = pos.End
+	}
 	debugInfo.Path = builder.path
 	builder.fn.DebugInfo[pc] = debugInfo
 }

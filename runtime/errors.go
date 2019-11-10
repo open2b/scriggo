@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
-	"scriggo/ast"
 	"strconv"
 	"strings"
 )
@@ -28,7 +27,7 @@ var errNilPointer = runtimeError("runtime error: invalid memory address or nil p
 type FatalError struct {
 	env  *Env
 	msg  interface{}
-	pos  *ast.Position
+	pos  Position
 	path string
 }
 
@@ -244,7 +243,7 @@ type Panic struct {
 	stackTrace []byte
 	next       *Panic
 	path       string
-	position   *ast.Position
+	position   Position
 }
 
 func (p *Panic) Error() string {
@@ -279,7 +278,7 @@ func (p *Panic) Path() string {
 }
 
 // Position returns the position.
-func (p *Panic) Position() *ast.Position {
+func (p *Panic) Position() Position {
 	return p.position
 }
 

@@ -9,7 +9,6 @@ package runtime
 import (
 	"context"
 	"reflect"
-	"scriggo/ast"
 	"strconv"
 	"sync"
 )
@@ -1088,13 +1087,21 @@ type Function struct {
 	DebugInfo  map[Addr]DebugInfo
 }
 
+// Position is a position of a node in the source.
+type Position struct {
+	Line   int // line starting from 1
+	Column int // column in characters starting from 1
+	Start  int // index of the first byte
+	End    int // index of the last byte
+}
+
 // DebugInfo represents a set of debug information associated to a given
 // instruction. None of the fields below is mandatory.
 type DebugInfo struct {
-	Position    *ast.Position // position of the instruction in the source code.
-	Path        string        // path of the source code where the instruction is located in.
-	OperandKind [3]Kind       // kind of operands A, B and C.
-	FuncType    reflect.Type  // type of the function that is called; only for call instructions.
+	Position    Position     // position of the instruction in the source code.
+	Path        string       // path of the source code where the instruction is located in.
+	OperandKind [3]Kind      // kind of operands A, B and C.
+	FuncType    reflect.Type // type of the function that is called; only for call instructions.
 }
 
 type Addr uint32
