@@ -1051,6 +1051,7 @@ type Registers struct {
 	General []interface{}
 }
 
+// parameterKind is the kind of a parameter of a predefined function.
 type parameterKind uint8
 
 const (
@@ -1061,9 +1062,9 @@ const (
 	arrayParameter
 	stringParameter
 	funcParameter
-	otherParameter
 	structParameter
 	envParameter
+	otherParameter
 )
 
 type PredefinedFunction struct {
