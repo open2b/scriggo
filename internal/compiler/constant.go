@@ -256,7 +256,11 @@ func (c1 int64Const) binaryOp(op ast.OperatorType, c2 constant) (constant, error
 		sc := uint(c2.uint64())
 		if op == ast.OperatorLeftShift {
 			i := big.NewInt(int64(c1))
-			return intConst{i: i.Lsh(i, sc)}, nil
+			n := intConst{i: i.Lsh(i, sc)}
+			if n.overflow() {
+				return intConst{}, errors.New("constant shift overflow")
+			}
+			return n, nil
 		}
 		return c1 >> sc, nil
 	}
@@ -450,7 +454,11 @@ func (c1 intConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error) 
 		sc := uint(c2.uint64())
 		i := new(big.Int).Set(c1.i)
 		if op == ast.OperatorLeftShift {
-			return intConst{i: i.Lsh(i, sc)}, nil
+			c := intConst{i: i.Lsh(i, sc)}
+			if c.overflow() {
+				return intConst{}, errors.New("constant shift overflow")
+			}
+			return c, nil
 		}
 		return intConst{i: i.Rsh(i, sc)}, nil
 	}
@@ -478,11 +486,23 @@ func (c1 intConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error) 
 			return boolConst(cmp >= 0), nil
 		}
 	case ast.OperatorAddition:
-		return intConst{i: new(big.Int).Add(n1.i, n2.i)}, nil
+		c := intConst{i: new(big.Int).Add(n1.i, n2.i)}
+		if c.overflow() {
+			return intConst{}, errors.New("constant addition overflow")
+		}
+		return c, nil
 	case ast.OperatorSubtraction:
-		return intConst{i: new(big.Int).Sub(n1.i, n2.i)}, nil
+		c := intConst{i: new(big.Int).Sub(n1.i, n2.i)}
+		if c.overflow() {
+			return intConst{}, errors.New("constant subtraction overflow")
+		}
+		return c, nil
 	case ast.OperatorMultiplication:
-		return intConst{i: new(big.Int).Mul(n1.i, n2.i)}, nil
+		c := intConst{i: new(big.Int).Mul(n1.i, n2.i)}
+		if c.overflow() {
+			return intConst{}, errors.New("constant multiplication overflow")
+		}
+		return c, nil
 	case ast.OperatorDivision:
 		if n2.i.Sign() == 0 {
 			return nil, errDivisionByZero
@@ -544,6 +564,10 @@ func (c1 intConst) equals(c2 constant) bool {
 		return d1.equals(d2)
 	}
 	return n1.i.Cmp(n2.i) == 0
+}
+
+func (c1 intConst) overflow() bool {
+	return c1.i.BitLen() > 512
 }
 
 func (c1 intConst) setUint64(n uint64) constant { c1.i.SetUint64(n); return c1 }
@@ -1288,14 +1312,15 @@ func parseBasicLiteral(typ ast.LiteralType, s string) (constant, error) {
 		r, _ := utf8.DecodeRuneInString(s[1:])
 		return int64Const(r), nil
 	case ast.IntLiteral:
-		n, _ := new(big.Int).SetString(s, 0)
-		if n.BitLen() > 512 {
+		i, _ := new(big.Int).SetString(s, 0)
+		n := intConst{i: i}
+		if n.overflow() {
 			return nil, fmt.Errorf("constant too large: %s", s)
 		}
-		if n.IsInt64() {
-			return int64Const(n.Int64()), nil
+		if n.i.IsInt64() {
+			return int64Const(n.i.Int64()), nil
 		}
-		return intConst{i: n}, nil
+		return n, nil
 	case ast.FloatLiteral:
 		n, _ := bigFloat().SetString(s)
 		if n.MinPrec() < 53 {
