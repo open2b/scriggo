@@ -204,7 +204,7 @@ func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global
 			_, _ = fmt.Fprintf(w, "%s\t%s", indent, disassembleInstruction(fn, globals, addr))
 		}
 		if in.Op == runtime.OpLoadFunc && fn.Functions[uint8(in.B)].Parent != nil { // function literal
-			_, _ = fmt.Fprint(w, " ", disassembleOperand(fn, in.C, runtime.Interface, false), " func")
+			_, _ = fmt.Fprint(w, " ", disassembleOperand(fn, in.C, reflect.Interface, false), " func")
 			disassembleFunction(w, fn.Functions[uint8(in.B)], globals, depth+1)
 		} else {
 			_, _ = fmt.Fprint(w, "\n")
@@ -229,11 +229,11 @@ func DisassembleInstruction(w io.Writer, fn *runtime.Function, globals []Global,
 // getKind returns the kind of the given operand (which can be 'a', 'b' or 'c')
 // of the instruction at the given address. If the information about the kind of
 // the operands have not been added by the emitter/builder, then the
-// runtime.Unknown kind is returned.
-func getKind(operand rune, fn *runtime.Function, addr runtime.Addr) runtime.Kind {
+// reflect.Invalid kind is returned.
+func getKind(operand rune, fn *runtime.Function, addr runtime.Addr) reflect.Kind {
 	debugInfo, ok := fn.DebugInfo[addr]
 	if !ok {
-		return runtime.Unknown
+		return reflect.Invalid
 	}
 	switch operand {
 	case 'a':
@@ -266,19 +266,19 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		runtime.OpSubInvInt64, runtime.OpSubInvInt8, runtime.OpSubInvInt16, runtime.OpSubInvInt32,
 		runtime.OpLeftShift64, runtime.OpLeftShift8, runtime.OpLeftShift16, runtime.OpLeftShift32,
 		runtime.OpRightShift, runtime.OpRightShiftU:
-		s += " " + disassembleOperand(fn, a, runtime.Int, false)
-		s += " " + disassembleOperand(fn, b, runtime.Int, k)
-		s += " " + disassembleOperand(fn, c, runtime.Int, false)
+		s += " " + disassembleOperand(fn, a, reflect.Int, false)
+		s += " " + disassembleOperand(fn, b, reflect.Int, k)
+		s += " " + disassembleOperand(fn, c, reflect.Int, false)
 	case runtime.OpAddFloat32, runtime.OpAddFloat64, runtime.OpDivFloat32, runtime.OpDivFloat64,
 		runtime.OpMulFloat32, runtime.OpMulFloat64,
 		runtime.OpSubFloat32, runtime.OpSubFloat64, runtime.OpSubInvFloat32, runtime.OpSubInvFloat64:
-		s += " " + disassembleOperand(fn, a, runtime.Float64, false)
-		s += " " + disassembleOperand(fn, b, runtime.Float64, k)
-		s += " " + disassembleOperand(fn, c, runtime.Float64, false)
+		s += " " + disassembleOperand(fn, a, reflect.Float64, false)
+		s += " " + disassembleOperand(fn, b, reflect.Float64, k)
+		s += " " + disassembleOperand(fn, c, reflect.Float64, false)
 	case runtime.OpAddr:
-		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
-		s += " " + disassembleOperand(fn, b, runtime.Int, false)
-		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
+		s += " " + disassembleOperand(fn, b, reflect.Int, false)
+		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpAlloc:
 		if k {
 			s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
@@ -288,15 +288,15 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	case runtime.OpAppend:
 		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), false)
 		s += " " + disassembleOperand(fn, b-1, getKind('b', fn, addr), false)
-		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpAppendSlice:
-		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
-		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
+		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpSend:
 		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), false)
-		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpAssert:
-		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 		s += " " + fn.Types[b].String()
 		t := fn.Types[int(uint(b))]
 		var kind = reflectToRegisterKind(t.Kind())
@@ -311,13 +311,13 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 				s += " " + packageName(sf.Pkg) + "." + sf.Name
 			case runtime.OpCallIndirect:
 				s += " " + "("
-				s += disassembleOperand(fn, a, runtime.Interface, false)
+				s += disassembleOperand(fn, a, reflect.Interface, false)
 				s += ")"
 			case runtime.OpCallPredefined:
 				nf := fn.Predefined[uint8(a)]
 				s += " " + packageName(nf.Pkg) + "." + nf.Name
 			case runtime.OpDefer:
-				s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+				s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 			}
 		}
 		grow := fn.Body[addr+1]
@@ -339,90 +339,90 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		}
 		s += "\t; " + disassembleFunctionCall(fn, a, addr, op, stackShift, c)
 	case runtime.OpCap:
-		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
-		s += " " + disassembleOperand(fn, c, runtime.Int, false)
+		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
+		s += " " + disassembleOperand(fn, c, reflect.Int, false)
 	case runtime.OpCase:
 		switch reflect.SelectDir(a) {
 		case reflect.SelectSend:
-			s += " Send " + disassembleOperand(fn, b, runtime.Int, k) + " " + disassembleOperand(fn, c, runtime.Interface, false)
+			s += " Send " + disassembleOperand(fn, b, reflect.Int, k) + " " + disassembleOperand(fn, c, reflect.Interface, false)
 		case reflect.SelectRecv:
-			s += " Recv " + disassembleOperand(fn, b, runtime.Int, false) + " " + disassembleOperand(fn, c, runtime.Interface, false)
+			s += " Recv " + disassembleOperand(fn, b, reflect.Int, false) + " " + disassembleOperand(fn, c, reflect.Interface, false)
 		default:
 			s += " Default"
 		}
 	case runtime.OpClose, runtime.OpPanic, runtime.OpPrint:
-		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 	case runtime.OpComplex64, runtime.OpComplex128:
-		s += " " + disassembleOperand(fn, a, runtime.Float64, false)
-		s += " " + disassembleOperand(fn, b, runtime.Float64, false)
-		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, a, reflect.Float64, false)
+		s += " " + disassembleOperand(fn, b, reflect.Float64, false)
+		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpConcat:
-		s += " " + disassembleOperand(fn, a, runtime.String, false)
-		s += " " + disassembleOperand(fn, b, runtime.String, k)
-		s += " " + disassembleOperand(fn, c, runtime.String, false)
+		s += " " + disassembleOperand(fn, a, reflect.String, false)
+		s += " " + disassembleOperand(fn, b, reflect.String, k)
+		s += " " + disassembleOperand(fn, c, reflect.String, false)
 	case runtime.OpConvert:
-		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 		typ := fn.Types[int(uint(b))]
 		s += " " + typ.String()
-		s += " " + disassembleOperand(fn, c, runtime.Kind(typ.Kind()), false)
+		s += " " + disassembleOperand(fn, c, typ.Kind(), false)
 	case runtime.OpConvertInt, runtime.OpConvertUint:
-		s += " " + disassembleOperand(fn, a, runtime.Int, false)
+		s += " " + disassembleOperand(fn, a, reflect.Int, false)
 		typ := fn.Types[int(uint(b))]
 		s += " " + typ.String()
-		s += " " + disassembleOperand(fn, c, runtime.Kind(typ.Kind()), false)
+		s += " " + disassembleOperand(fn, c, reflect.Kind(typ.Kind()), false)
 	case runtime.OpConvertFloat:
-		s += " " + disassembleOperand(fn, a, runtime.Float64, false)
+		s += " " + disassembleOperand(fn, a, reflect.Float64, false)
 		typ := fn.Types[int(uint(b))]
 		s += " " + typ.String()
-		s += " " + disassembleOperand(fn, c, runtime.Kind(typ.Kind()), false)
+		s += " " + disassembleOperand(fn, c, reflect.Kind(typ.Kind()), false)
 	case runtime.OpConvertString:
-		s += " " + disassembleOperand(fn, a, runtime.String, false)
+		s += " " + disassembleOperand(fn, a, reflect.String, false)
 		typ := fn.Types[int(uint(b))]
 		s += " " + typ.String()
-		s += " " + disassembleOperand(fn, c, runtime.Kind(typ.Kind()), false)
+		s += " " + disassembleOperand(fn, c, reflect.Kind(typ.Kind()), false)
 	case runtime.OpCopy:
-		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
-		s += " " + disassembleOperand(fn, b, runtime.Int, false)
-		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
+		s += " " + disassembleOperand(fn, b, reflect.Int, false)
+		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpDelete:
-		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
-		s += " " + disassembleOperand(fn, b, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
+		s += " " + disassembleOperand(fn, b, reflect.Interface, false)
 	case runtime.OpIf:
 		switch runtime.Condition(b) {
 		case runtime.ConditionOK, runtime.ConditionNotOK:
 			s += " " + conditionName[b]
 		case runtime.ConditionEqual, runtime.ConditionNotEqual:
-			s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+			s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 			s += " " + conditionName[b]
-			s += " " + disassembleOperand(fn, c, runtime.Interface, k)
+			s += " " + disassembleOperand(fn, c, reflect.Interface, k)
 		default:
 			s += " " + conditionName[b]
-			s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+			s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 		}
 	case runtime.OpIfInt:
-		s += " " + disassembleOperand(fn, a, runtime.Int, false)
+		s += " " + disassembleOperand(fn, a, reflect.Int, false)
 		s += " " + conditionName[b]
 		if runtime.Condition(b) >= runtime.ConditionEqual {
-			s += " " + disassembleOperand(fn, c, runtime.Int, k)
+			s += " " + disassembleOperand(fn, c, reflect.Int, k)
 		}
 	case runtime.OpIfFloat:
-		s += " " + disassembleOperand(fn, a, runtime.Float64, false)
+		s += " " + disassembleOperand(fn, a, reflect.Float64, false)
 		s += " " + conditionName[b]
-		s += " " + disassembleOperand(fn, c, runtime.Float64, k)
+		s += " " + disassembleOperand(fn, c, reflect.Float64, k)
 	case runtime.OpIfString:
-		s += " " + disassembleOperand(fn, a, runtime.String, false)
+		s += " " + disassembleOperand(fn, a, reflect.String, false)
 		s += " " + conditionName[b]
 		if runtime.Condition(b) < runtime.ConditionEqualLen {
 			if k && c >= 0 {
 				s += " " + strconv.Quote(string(c))
 			} else {
-				s += " " + disassembleOperand(fn, c, runtime.String, k)
+				s += " " + disassembleOperand(fn, c, reflect.String, k)
 			}
 		} else {
-			s += " " + disassembleOperand(fn, c, runtime.Int, k)
+			s += " " + disassembleOperand(fn, c, reflect.Int, k)
 		}
 	case runtime.OpField:
-		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[b]))
 		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
 	case runtime.OpGetVar:
@@ -430,27 +430,27 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
 	case runtime.OpGetVarAddr:
 		s += " " + disassembleVarRef(fn, globals, int16(int(a)<<8|int(uint8(b))))
-		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpGo, runtime.OpReturn:
 	case runtime.OpIndex:
-		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
-		s += " " + disassembleOperand(fn, b, runtime.Int, k)
+		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
+		s += " " + disassembleOperand(fn, b, reflect.Int, k)
 		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
 	case runtime.OpIndexString:
-		s += " " + disassembleOperand(fn, a, runtime.String, false)
-		s += " " + disassembleOperand(fn, b, runtime.Int, k)
-		s += " " + disassembleOperand(fn, c, runtime.Int, false)
+		s += " " + disassembleOperand(fn, a, reflect.String, false)
+		s += " " + disassembleOperand(fn, b, reflect.Int, k)
+		s += " " + disassembleOperand(fn, c, reflect.Int, false)
 	case runtime.OpLen:
 		s += " " + strconv.Itoa(int(a))
 		if a == 0 {
-			s += " " + disassembleOperand(fn, b, runtime.String, false)
+			s += " " + disassembleOperand(fn, b, reflect.String, false)
 		} else {
-			s += " " + disassembleOperand(fn, b, runtime.Interface, false)
+			s += " " + disassembleOperand(fn, b, reflect.Interface, false)
 		}
-		s += " " + disassembleOperand(fn, c, runtime.Int, false)
+		s += " " + disassembleOperand(fn, c, reflect.Int, false)
 	case runtime.OpLoadData:
 		s += " " + strconv.Itoa(int(decodeInt16(a, b)))
-		s += " " + disassembleOperand(fn, c, runtime.Func, false)
+		s += " " + disassembleOperand(fn, c, reflect.Func, false)
 	case runtime.OpLoadFunc:
 		if a == 0 {
 			f := fn.Functions[uint8(b)]
@@ -458,99 +458,99 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 				s = "Func" // overwrite s.
 			} else {
 				s += " " + packageName(f.Pkg) + "." + f.Name
-				s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+				s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 			}
 		} else { // LoadFunc (predefined).
 			f := fn.Predefined[uint8(b)]
 			s += " " + packageName(f.Pkg) + "." + f.Name
-			s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+			s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 		}
 	case runtime.OpLoadNumber:
 		if a == 0 {
 			s += " int"
 			s += " " + fmt.Sprintf("%d", fn.Constants.Int[uint8(b)])
-			s += " " + disassembleOperand(fn, c, runtime.Int, false)
+			s += " " + disassembleOperand(fn, c, reflect.Int, false)
 		} else {
 			s += " float"
 			s += " " + fmt.Sprintf("%f", fn.Constants.Float[uint8(b)])
-			s += " " + disassembleOperand(fn, c, runtime.Float64, false)
+			s += " " + disassembleOperand(fn, c, reflect.Float64, false)
 		}
 	case runtime.OpMakeChan:
 		s += " " + fn.Types[int(uint(a))].String()
-		s += " " + disassembleOperand(fn, b, runtime.Int, k)
-		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, b, reflect.Int, k)
+		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpMakeMap:
 		s += " " + fn.Types[int(uint(a))].String()
-		s += " " + disassembleOperand(fn, b, runtime.Int, k)
-		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, b, reflect.Int, k)
+		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpMakeSlice:
 		s += " " + fn.Types[int(uint(a))].Elem().String()
 		if b > 0 {
 			next := fn.Body[addr+1]
-			s += " " + disassembleOperand(fn, next.A, runtime.Int, (b&(1<<1)) != 0)
-			s += " " + disassembleOperand(fn, next.B, runtime.Int, (b&(1<<2)) != 0)
+			s += " " + disassembleOperand(fn, next.A, reflect.Int, (b&(1<<1)) != 0)
+			s += " " + disassembleOperand(fn, next.B, reflect.Int, (b&(1<<2)) != 0)
 		} else {
 			s += " 0 0"
 		}
-		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpMethodValue:
-		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
-		s += " " + disassembleOperand(fn, b, runtime.String, true)
-		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
+		s += " " + disassembleOperand(fn, b, reflect.String, true)
+		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpMove:
 		switch runtime.Type(a) {
 		case runtime.TypeInt:
-			s += " " + disassembleOperand(fn, b, runtime.Int, k)
-			s += " " + disassembleOperand(fn, c, runtime.Int, false)
+			s += " " + disassembleOperand(fn, b, reflect.Int, k)
+			s += " " + disassembleOperand(fn, c, reflect.Int, false)
 		case runtime.TypeFloat:
-			s += " " + disassembleOperand(fn, b, runtime.Float64, k)
-			s += " " + disassembleOperand(fn, c, runtime.Float64, false)
+			s += " " + disassembleOperand(fn, b, reflect.Float64, k)
+			s += " " + disassembleOperand(fn, c, reflect.Float64, false)
 		case runtime.TypeString:
-			s += " " + disassembleOperand(fn, b, runtime.String, k)
-			s += " " + disassembleOperand(fn, c, runtime.String, false)
+			s += " " + disassembleOperand(fn, b, reflect.String, k)
+			s += " " + disassembleOperand(fn, c, reflect.String, false)
 		case runtime.TypeGeneral:
-			s += " " + disassembleOperand(fn, b, runtime.Interface, k)
-			s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+			s += " " + disassembleOperand(fn, b, reflect.Interface, k)
+			s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 		}
 	case runtime.OpNew:
 		s += " " + fn.Types[int(uint(b))].String()
-		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpRange:
-		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
-		s += " " + disassembleOperand(fn, b, runtime.Int, false)
-		s += " " + disassembleOperand(fn, c, runtime.Int, false)
+		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
+		s += " " + disassembleOperand(fn, b, reflect.Int, false)
+		s += " " + disassembleOperand(fn, c, reflect.Int, false)
 	case runtime.OpRangeString:
-		s += " " + disassembleOperand(fn, a, runtime.String, k)
-		s += " " + disassembleOperand(fn, b, runtime.Int, false)
-		s += " " + disassembleOperand(fn, c, runtime.Int, false)
+		s += " " + disassembleOperand(fn, a, reflect.String, k)
+		s += " " + disassembleOperand(fn, b, reflect.Int, false)
+		s += " " + disassembleOperand(fn, c, reflect.Int, false)
 	case runtime.OpRealImag:
-		s += " " + disassembleOperand(fn, a, runtime.Interface, k)
-		s += " " + disassembleOperand(fn, b, runtime.Float64, false)
-		s += " " + disassembleOperand(fn, c, runtime.Float64, false)
+		s += " " + disassembleOperand(fn, a, reflect.Interface, k)
+		s += " " + disassembleOperand(fn, b, reflect.Float64, false)
+		s += " " + disassembleOperand(fn, c, reflect.Float64, false)
 	case runtime.OpReceive:
-		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
-		s += " " + disassembleOperand(fn, b, runtime.Bool, false)
+		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
+		s += " " + disassembleOperand(fn, b, reflect.Bool, false)
 		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
 	case runtime.OpRecover:
 		if a > 0 {
 			s += " down"
 		}
 		if c != 0 {
-			s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+			s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 		}
 	case runtime.OpSetField:
 		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), k)
-		s += " " + disassembleOperand(fn, b, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, b, reflect.Interface, false)
 		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[c]))
 	case runtime.OpSetMap:
 		// fn, addr, 'a'
 		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), k)
-		s += " " + disassembleOperand(fn, b, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, b, reflect.Interface, false)
 		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
 	case runtime.OpSetSlice:
 		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), k)
-		s += " " + disassembleOperand(fn, b, runtime.Interface, false)
-		s += " " + disassembleOperand(fn, c, runtime.Int, false)
+		s += " " + disassembleOperand(fn, b, reflect.Interface, false)
+		s += " " + disassembleOperand(fn, c, reflect.Int, false)
 	case runtime.OpSetVar:
 		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), op < 0)
 		s += " " + disassembleVarRef(fn, globals, int16(int(b)<<8|int(uint8(c))))
@@ -567,11 +567,11 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			kmax = false
 			max = 0
 		}
-		s += " " + disassembleOperand(fn, a, runtime.Interface, false)
-		s += " " + disassembleOperand(fn, fn.Body[addr+1].A, runtime.Int, b&1 != 0)
-		s += " " + disassembleOperand(fn, high, runtime.Int, khigh)
-		s += " " + disassembleOperand(fn, max, runtime.Int, kmax)
-		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
+		s += " " + disassembleOperand(fn, fn.Body[addr+1].A, reflect.Int, b&1 != 0)
+		s += " " + disassembleOperand(fn, high, reflect.Int, khigh)
+		s += " " + disassembleOperand(fn, max, reflect.Int, kmax)
+		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpStringSlice:
 		khigh := b&2 != 0
 		high := fn.Body[addr+1].B
@@ -579,15 +579,15 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			khigh = false
 			high = 0
 		}
-		s += " " + disassembleOperand(fn, a, runtime.String, false)
-		s += " " + disassembleOperand(fn, fn.Body[addr+1].A, runtime.Int, b&1 != 0)
-		s += " " + disassembleOperand(fn, high, runtime.Int, khigh)
-		s += " " + disassembleOperand(fn, c, runtime.String, false)
+		s += " " + disassembleOperand(fn, a, reflect.String, false)
+		s += " " + disassembleOperand(fn, fn.Body[addr+1].A, reflect.Int, b&1 != 0)
+		s += " " + disassembleOperand(fn, high, reflect.Int, khigh)
+		s += " " + disassembleOperand(fn, c, reflect.String, false)
 	case runtime.OpTypify:
 		typ := fn.Types[int(uint(a))]
 		s += " " + typ.String()
 		s += " " + disassembleOperand(fn, b, reflectToRegisterKind(typ.Kind()), k)
-		s += " " + disassembleOperand(fn, c, runtime.Interface, false)
+		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	}
 	return s
 }
@@ -697,62 +697,62 @@ func disassembleVarRef(fn *runtime.Function, globals []Global, ref int16) string
 		v := globals[ref]
 		return packageName(v.Pkg) + "." + v.Name
 	}
-	s := disassembleOperand(fn, -int8(ref), runtime.Interface, false)
+	s := disassembleOperand(fn, -int8(ref), reflect.Interface, false)
 	if depth > 0 {
 		s += "@" + strconv.Itoa(depth)
 	}
 	return s
 }
 
-func reflectToRegisterKind(kind reflect.Kind) runtime.Kind {
+func reflectToRegisterKind(kind reflect.Kind) reflect.Kind {
 	switch kind {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return runtime.Int
+		return reflect.Int
 	case reflect.Bool:
-		return runtime.Bool
+		return reflect.Bool
 	case reflect.Float32, reflect.Float64:
-		return runtime.Float64
+		return reflect.Float64
 	case reflect.String:
-		return runtime.String
+		return reflect.String
 	default:
-		return runtime.Interface
+		return reflect.Interface
 	}
 }
 
-func registerKindToLabel(kind runtime.Kind) string {
+func registerKindToLabel(kind reflect.Kind) string {
 	switch kind {
-	case runtime.Bool, runtime.Int, runtime.Int8, runtime.Int16, runtime.Int32, runtime.Int64,
-		runtime.Uint, runtime.Uint8, runtime.Uint16, runtime.Uint32, runtime.Uint64, runtime.Uintptr:
+	case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		return "i"
-	case runtime.Float32, runtime.Float64:
+	case reflect.Float32, reflect.Float64:
 		return "f"
-	case runtime.String:
+	case reflect.String:
 		return "s"
-	case runtime.Unknown:
+	case reflect.Invalid:
 		return "?"
 	default:
 		return "g"
 	}
 }
 
-func disassembleOperand(fn *runtime.Function, op int8, kind runtime.Kind, constant bool) string {
+func disassembleOperand(fn *runtime.Function, op int8, kind reflect.Kind, constant bool) string {
 	if constant {
 		switch {
-		case runtime.Int <= kind && kind <= runtime.Uintptr:
+		case reflect.Int <= kind && kind <= reflect.Uintptr:
 			return strconv.Itoa(int(op))
-		case kind == runtime.Float64:
+		case kind == reflect.Float64:
 			return strconv.FormatFloat(float64(op), 'f', -1, 64)
-		case kind == runtime.Float32:
+		case kind == reflect.Float32:
 			return strconv.FormatFloat(float64(op), 'f', -1, 32)
-		case kind == runtime.Bool:
+		case kind == reflect.Bool:
 			if op == 0 {
 				return "false"
 			}
 			return "true"
-		case kind == runtime.String:
+		case kind == reflect.String:
 			return strconv.Quote(fn.Constants.String[uint8(op)])
-		case kind == runtime.Unknown:
+		case kind == reflect.Invalid:
 			return "?"
 		default:
 			v := fn.Constants.General[uint8(op)]

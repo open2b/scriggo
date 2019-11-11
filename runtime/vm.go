@@ -547,59 +547,59 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 		}
 		typ := fn.value.Type()
 		nIn := typ.NumIn()
-		fn.in = make([]Kind, nIn)
+		fn.in = make([]parameterKind, nIn)
 		for i := 0; i < nIn; i++ {
 			var k = typ.In(i).Kind()
 			switch {
 			case k == reflect.Bool:
-				fn.in[i] = Bool
+				fn.in[i] = boolParameter
 			case reflect.Int <= k && k <= reflect.Int64:
-				fn.in[i] = Int
+				fn.in[i] = intParameter
 			case reflect.Uint <= k && k <= reflect.Uintptr:
-				fn.in[i] = Uint
+				fn.in[i] = uintParameter
 			case k == reflect.Float64 || k == reflect.Float32:
-				fn.in[i] = Float64
+				fn.in[i] = float64Parameter
 			case k == reflect.String:
-				fn.in[i] = String
+				fn.in[i] = stringParameter
 			case k == reflect.Array:
-				fn.in[i] = Array
+				fn.in[i] = arrayParameter
 			case k == reflect.Func:
-				fn.in[i] = Func
+				fn.in[i] = funcParameter
 			case k == reflect.Struct:
-				fn.in[i] = Struct
+				fn.in[i] = structParameter
 			default:
 				if i < 2 && typ.In(i) == envType {
-					fn.in[i] = Environment
+					fn.in[i] = envParameter
 				} else {
-					fn.in[i] = Interface
+					fn.in[i] = interfaceParameter
 				}
 			}
 		}
 		nOut := typ.NumOut()
-		fn.out = make([]Kind, nOut)
+		fn.out = make([]parameterKind, nOut)
 		for i := 0; i < nOut; i++ {
 			k := typ.Out(i).Kind()
 			switch {
 			case k == reflect.Bool:
-				fn.out[i] = Bool
+				fn.out[i] = boolParameter
 				fn.outOff[0]++
 			case reflect.Int <= k && k <= reflect.Int64:
-				fn.out[i] = Int
+				fn.out[i] = intParameter
 				fn.outOff[0]++
 			case reflect.Uint <= k && k <= reflect.Uintptr:
-				fn.out[i] = Uint
+				fn.out[i] = uintParameter
 				fn.outOff[0]++
 			case k == reflect.Float64 || k == reflect.Float32:
-				fn.out[i] = Float64
+				fn.out[i] = float64Parameter
 				fn.outOff[1]++
 			case k == reflect.String:
-				fn.out[i] = String
+				fn.out[i] = stringParameter
 				fn.outOff[2]++
 			case k == reflect.Func:
-				fn.out[i] = Func
+				fn.out[i] = funcParameter
 				fn.outOff[3]++
 			default:
-				fn.out[i] = Interface
+				fn.out[i] = interfaceParameter
 				fn.outOff[3]++
 			}
 		}
@@ -644,34 +644,34 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 		for i, k := range fn.in {
 			if i < lastNonVariadic {
 				switch k {
-				case Bool:
+				case boolParameter:
 					args[i].SetBool(vm.bool(1))
 					vm.fp[0]++
-				case Int:
+				case intParameter:
 					args[i].SetInt(vm.int(1))
 					vm.fp[0]++
-				case Uint:
+				case uintParameter:
 					args[i].SetUint(uint64(vm.int(1)))
 					vm.fp[0]++
-				case Float64:
+				case float64Parameter:
 					args[i].SetFloat(vm.float(1))
 					vm.fp[1]++
-				case String:
+				case stringParameter:
 					args[i].SetString(vm.string(1))
 					vm.fp[2]++
-				case Array:
+				case arrayParameter:
 					slice := reflect.ValueOf(vm.general(1))
 					array := reflect.New(reflect.ArrayOf(slice.Len(), slice.Type().Elem())).Elem()
 					reflect.Copy(array, slice)
 					args[i].Set(array)
 					vm.fp[3]++
-				case Func:
+				case funcParameter:
 					f := vm.general(1).(*callable)
 					args[i].Set(f.Value(vm.env))
 					vm.fp[3]++
-				case Environment:
+				case envParameter:
 					args[i].Set(vm.envArg)
-				case Interface:
+				case interfaceParameter:
 					if v := vm.general(1); v == nil {
 						if t := args[i].Type(); t == emptyInterfaceType {
 							args[i] = emptyInterfaceNil
@@ -682,7 +682,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 						args[i].Set(reflect.ValueOf(v))
 					}
 					vm.fp[3]++
-				case Struct:
+				case structParameter:
 					args[i].Set(reflect.ValueOf(vm.general(1)).Elem())
 					vm.fp[3]++
 				default:
@@ -768,22 +768,22 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 		}
 		for i, k := range fn.out {
 			switch k {
-			case Bool:
+			case boolParameter:
 				vm.setBool(1, ret[i].Bool())
 				vm.fp[0]++
-			case Int:
+			case intParameter:
 				vm.setInt(1, ret[i].Int())
 				vm.fp[0]++
-			case Uint:
+			case uintParameter:
 				vm.setInt(1, int64(ret[i].Uint()))
 				vm.fp[0]++
-			case Float64:
+			case float64Parameter:
 				vm.setFloat(1, ret[i].Float())
 				vm.fp[1]++
-			case String:
+			case stringParameter:
 				vm.setString(1, ret[i].String())
 				vm.fp[2]++
-			case Func:
+			case funcParameter:
 
 			default:
 				vm.setGeneral(1, ret[i].Interface())
@@ -1051,30 +1051,20 @@ type Registers struct {
 	General []interface{}
 }
 
-type Kind uint8
+type parameterKind uint8
 
 const (
-	Bool        = Kind(reflect.Bool)
-	Int         = Kind(reflect.Int)
-	Int8        = Kind(reflect.Int8)
-	Int16       = Kind(reflect.Int16)
-	Int32       = Kind(reflect.Int32)
-	Int64       = Kind(reflect.Int64)
-	Uint        = Kind(reflect.Uint)
-	Uint8       = Kind(reflect.Uint8)
-	Uint16      = Kind(reflect.Uint16)
-	Uint32      = Kind(reflect.Uint32)
-	Uint64      = Kind(reflect.Uint64)
-	Uintptr     = Kind(reflect.Uintptr)
-	Float32     = Kind(reflect.Float32)
-	Float64     = Kind(reflect.Float64)
-	Array       = Kind(reflect.Array)
-	String      = Kind(reflect.String)
-	Func        = Kind(reflect.Func)
-	Interface   = Kind(reflect.Interface)
-	Struct      = Kind(reflect.Struct)
-	Unknown     = 254 // https://github.com/open2b/scriggo/issues/390
-	Environment = 255
+	boolParameter      = parameterKind(reflect.Bool)
+	intParameter       = parameterKind(reflect.Int)
+	uintParameter      = parameterKind(reflect.Uint)
+	float64Parameter   = parameterKind(reflect.Float64)
+	arrayParameter     = parameterKind(reflect.Array)
+	stringParameter    = parameterKind(reflect.String)
+	funcParameter      = parameterKind(reflect.Func)
+	interfaceParameter = parameterKind(reflect.Interface)
+	structParameter    = parameterKind(reflect.Struct)
+	unknownParameter   = 254 // https://github.com/open2b/scriggo/issues/390
+	envParameter       = 255
 )
 
 type PredefinedFunction struct {
@@ -1082,8 +1072,8 @@ type PredefinedFunction struct {
 	Name   string
 	Func   interface{}
 	mx     sync.RWMutex // synchronize access to the following fields.
-	in     []Kind
-	out    []Kind
+	in     []parameterKind
+	out    []parameterKind
 	args   [][]reflect.Value
 	outOff [4]int8
 	value  reflect.Value
@@ -1119,10 +1109,10 @@ type Position struct {
 // DebugInfo represents a set of debug information associated to a given
 // instruction. None of the fields below is mandatory.
 type DebugInfo struct {
-	Position    Position     // position of the instruction in the source code.
-	Path        string       // path of the source code where the instruction is located in.
-	OperandKind [3]Kind      // kind of operands A, B and C.
-	FuncType    reflect.Type // type of the function that is called; only for call instructions.
+	Position    Position        // position of the instruction in the source code.
+	Path        string          // path of the source code where the instruction is located in.
+	OperandKind [3]reflect.Kind // kind of operands A, B and C.
+	FuncType    reflect.Type    // type of the function that is called; only for call instructions.
 }
 
 type Addr uint32
