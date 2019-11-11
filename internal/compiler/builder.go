@@ -285,11 +285,7 @@ func (builder *functionBuilder) addOperandKinds(a, b, c reflect.Kind) {
 		builder.fn.DebugInfo = map[runtime.Addr]runtime.DebugInfo{}
 	}
 	debugInfo := builder.fn.DebugInfo[pc]
-	debugInfo.OperandKind = [3]runtime.Kind{
-		runtime.Kind(a),
-		runtime.Kind(b),
-		runtime.Kind(c),
-	}
+	debugInfo.OperandKind = [3]reflect.Kind{a, b, c}
 	builder.fn.DebugInfo[pc] = debugInfo
 }
 
