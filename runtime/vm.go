@@ -1054,16 +1054,16 @@ type Registers struct {
 type parameterKind uint8
 
 const (
-	boolParameter      = parameterKind(reflect.Bool)
-	intParameter       = parameterKind(reflect.Int)
-	uintParameter      = parameterKind(reflect.Uint)
-	float64Parameter   = parameterKind(reflect.Float64)
-	arrayParameter     = parameterKind(reflect.Array)
-	stringParameter    = parameterKind(reflect.String)
-	funcParameter      = parameterKind(reflect.Func)
-	interfaceParameter = parameterKind(reflect.Interface)
-	structParameter    = parameterKind(reflect.Struct)
-	envParameter       = 255
+	boolParameter = iota
+	intParameter
+	uintParameter
+	float64Parameter
+	arrayParameter
+	stringParameter
+	funcParameter
+	interfaceParameter
+	structParameter
+	envParameter
 )
 
 type PredefinedFunction struct {
