@@ -1042,7 +1042,6 @@ const (
 	funcParameter      = parameterKind(reflect.Func)
 	interfaceParameter = parameterKind(reflect.Interface)
 	structParameter    = parameterKind(reflect.Struct)
-	unknownParameter   = 254 // https://github.com/open2b/scriggo/issues/390
 	envParameter       = 255
 )
 
