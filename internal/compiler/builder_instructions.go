@@ -237,12 +237,12 @@ func (builder *functionBuilder) emitConvert(src int8, typ reflect.Type, dst int8
 	regType := builder.addType(typ)
 	var op runtime.Operation
 	switch kindToType(srcKind) {
-	case runtime.TypeGeneral:
+	case generalRegister:
 		op = runtime.OpConvert
 		if builder.allocs != nil {
 			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
 		}
-	case runtime.TypeInt:
+	case intRegister:
 		switch srcKind {
 		case reflect.Uint,
 			reflect.Uint8,
@@ -254,12 +254,12 @@ func (builder *functionBuilder) emitConvert(src int8, typ reflect.Type, dst int8
 		default:
 			op = runtime.OpConvertInt
 		}
-	case runtime.TypeString:
+	case stringRegister:
 		op = runtime.OpConvertString
 		if builder.allocs != nil {
 			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
 		}
-	case runtime.TypeFloat:
+	case floatRegister:
 		op = runtime.OpConvertFloat
 	}
 	fn.Body = append(fn.Body, runtime.Instruction{Op: op, A: src, B: int8(regType), C: dst})
@@ -468,13 +468,13 @@ func (builder *functionBuilder) emitIf(k bool, x int8, o runtime.Condition, y in
 	builder.addPosAndPath(pos)
 	var op runtime.Operation
 	switch kindToType(kind) {
-	case runtime.TypeInt:
+	case intRegister:
 		op = runtime.OpIfInt
-	case runtime.TypeFloat:
+	case floatRegister:
 		op = runtime.OpIfFloat
-	case runtime.TypeString:
+	case stringRegister:
 		op = runtime.OpIfString
-	case runtime.TypeGeneral:
+	case generalRegister:
 		op = runtime.OpIf
 	}
 	if k {
@@ -590,15 +590,15 @@ func (builder *functionBuilder) emitLoadFunc(predefined bool, f int8, z int8) {
 
 // emitLoadNumber appends a new "LoadNumber" instruction to the function body.
 //
-func (builder *functionBuilder) emitLoadNumber(typ runtime.Type, index, dst int8) {
+func (builder *functionBuilder) emitLoadNumber(typ registerType, index, dst int8) {
 	var a int8
 	switch typ {
-	case runtime.TypeInt:
+	case intRegister:
 		a = 0
-	case runtime.TypeFloat:
+	case floatRegister:
 		a = 1
 	default:
-		panic("LoadNumber only accepts vm.TypeInt or vm.TypeFloat as type")
+		panic("LoadNumber only accepts intRegister or floatRegister as type")
 	}
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpLoadNumber, A: a, B: index, C: dst})
 }

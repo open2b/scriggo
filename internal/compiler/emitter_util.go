@@ -179,20 +179,20 @@ func (em *emitter) numOut(call *ast.Call) (int, bool) {
 }
 
 // kindToType returns the internal register type of a reflect kind.
-func kindToType(k reflect.Kind) runtime.Type {
+func kindToType(k reflect.Kind) registerType {
 	switch k {
 	case reflect.Bool:
-		return runtime.TypeInt
+		return intRegister
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return runtime.TypeInt
+		return intRegister
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return runtime.TypeInt
+		return intRegister
 	case reflect.Float32, reflect.Float64:
-		return runtime.TypeFloat
+		return floatRegister
 	case reflect.String:
-		return runtime.TypeString
+		return stringRegister
 	default:
-		return runtime.TypeGeneral
+		return generalRegister
 	}
 }
 

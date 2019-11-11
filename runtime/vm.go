@@ -1269,41 +1269,27 @@ func packageName(pkg string) string {
 	return pkg
 }
 
-type Type int8
+type registerType int8
 
 const (
-	TypeInt Type = iota
-	TypeFloat
-	TypeString
-	TypeGeneral
+	intRegister registerType = iota
+	floatRegister
+	stringRegister
+	generalRegister
 )
 
-func (t Type) String() string {
-	switch t {
-	case TypeInt:
-		return "int"
-	case TypeFloat:
-		return "float"
-	case TypeString:
-		return "string"
-	case TypeGeneral:
-		return "general"
-	}
-	panic("unknown type")
-}
-
 // kindToType returns the internal register type of a reflect kind.
-func kindToType(k reflect.Kind) Type {
+func kindToType(k reflect.Kind) registerType {
 	switch k {
 	case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return TypeInt
+		return intRegister
 	case reflect.Float32, reflect.Float64:
-		return TypeFloat
+		return floatRegister
 	case reflect.String:
-		return TypeString
+		return stringRegister
 	default:
-		return TypeGeneral
+		return generalRegister
 	}
 }
 

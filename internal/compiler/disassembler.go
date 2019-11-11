@@ -18,6 +18,29 @@ import (
 	"scriggo/runtime"
 )
 
+type registerType int8
+
+const (
+	intRegister registerType = iota
+	floatRegister
+	stringRegister
+	generalRegister
+)
+
+func (t registerType) String() string {
+	switch t {
+	case intRegister:
+		return "int"
+	case floatRegister:
+		return "float"
+	case stringRegister:
+		return "string"
+	case generalRegister:
+		return "general"
+	}
+	panic("unknown type")
+}
+
 func packageName(pkg string) string {
 	i := strings.LastIndex(pkg, "/")
 	return pkg[i+1:]
@@ -151,11 +174,11 @@ func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global
 	// Print input parameters.
 	_, _ = fmt.Fprintf(w, "(")
 	if fn.Type.NumIn() > 0 {
-		out := map[runtime.Type]int{runtime.TypeInt: 0, runtime.TypeFloat: 0, runtime.TypeString: 0, runtime.TypeGeneral: 0}
+		out := map[registerType]int{intRegister: 0, floatRegister: 0, stringRegister: 0, generalRegister: 0}
 		for i := 0; i < fn.Type.NumOut(); i++ {
 			out[kindToType(fn.Type.Out(i).Kind())]++
 		}
-		in := map[runtime.Type]int{runtime.TypeInt: 0, runtime.TypeFloat: 0, runtime.TypeString: 0, runtime.TypeGeneral: 0}
+		in := map[registerType]int{intRegister: 0, floatRegister: 0, stringRegister: 0, generalRegister: 0}
 		for i := 0; i < fn.Type.NumIn(); i++ {
 			if i > 0 {
 				_, _ = fmt.Fprint(w, ", ")
@@ -172,7 +195,7 @@ func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global
 
 	// Print output parameters.
 	if fn.Type.NumOut() > 0 {
-		out := map[runtime.Type]int{runtime.TypeInt: 0, runtime.TypeFloat: 0, runtime.TypeString: 0, runtime.TypeGeneral: 0}
+		out := map[registerType]int{intRegister: 0, floatRegister: 0, stringRegister: 0, generalRegister: 0}
 		_, _ = fmt.Fprint(w, " (")
 		for i := 0; i < fn.Type.NumOut(); i++ {
 			if i > 0 {
@@ -189,7 +212,7 @@ func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global
 
 	_, _ = fmt.Fprint(w, "\n")
 	_, _ = fmt.Fprintf(w, "%s\t; regs(%d,%d,%d,%d)\n", indent,
-		fn.NumReg[runtime.TypeInt], fn.NumReg[runtime.TypeFloat], fn.NumReg[runtime.TypeString], fn.NumReg[runtime.TypeGeneral])
+		fn.NumReg[intRegister], fn.NumReg[floatRegister], fn.NumReg[stringRegister], fn.NumReg[generalRegister])
 	instrNum := runtime.Addr(len(fn.Body))
 	for addr := runtime.Addr(0); addr < instrNum; addr++ {
 		if label, ok := labelOf[runtime.Addr(addr)]; ok {
@@ -329,7 +352,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			s += " "
 			if stackShift[i] == 0 {
 				_, fn := funcNameType(fn, a, addr, op)
-				if fn != nil && !funcHasParameterInRegister(fn, runtime.Type(i)) {
+				if fn != nil && !funcHasParameterInRegister(fn, registerType(i)) {
 					s += "_"
 					continue
 				}
@@ -498,17 +521,17 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + disassembleOperand(fn, b, reflect.String, true)
 		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpMove:
-		switch runtime.Type(a) {
-		case runtime.TypeInt:
+		switch registerType(a) {
+		case intRegister:
 			s += " " + disassembleOperand(fn, b, reflect.Int, k)
 			s += " " + disassembleOperand(fn, c, reflect.Int, false)
-		case runtime.TypeFloat:
+		case floatRegister:
 			s += " " + disassembleOperand(fn, b, reflect.Float64, k)
 			s += " " + disassembleOperand(fn, c, reflect.Float64, false)
-		case runtime.TypeString:
+		case stringRegister:
 			s += " " + disassembleOperand(fn, b, reflect.String, k)
 			s += " " + disassembleOperand(fn, c, reflect.String, false)
-		case runtime.TypeGeneral:
+		case generalRegister:
 			s += " " + disassembleOperand(fn, b, reflect.Interface, k)
 			s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 		}
@@ -616,7 +639,7 @@ func funcNameType(fn *runtime.Function, index int8, addr runtime.Addr, op runtim
 
 // funcHasParameterInRegister reports whether the given function has at least
 // one parameter (input or output) that is stored into the given register type.
-func funcHasParameterInRegister(fn reflect.Type, reg runtime.Type) bool {
+func funcHasParameterInRegister(fn reflect.Type, reg registerType) bool {
 	for i := 0; i < fn.NumIn(); i++ {
 		if kindToType(fn.In(i).Kind()) == reg {
 			return true
@@ -644,16 +667,16 @@ func disassembleFunctionCall(fn *runtime.Function, index int8, addr runtime.Addr
 	print := func(t reflect.Type) string {
 		str := ""
 		switch kindToType(t.Kind()) {
-		case runtime.TypeInt:
+		case intRegister:
 			stackShift[0]++
 			str += fmt.Sprintf("i%d %v", stackShift[0], t)
-		case runtime.TypeFloat:
+		case floatRegister:
 			stackShift[1]++
 			str += fmt.Sprintf("f%d %v", stackShift[1], t)
-		case runtime.TypeString:
+		case stringRegister:
 			stackShift[2]++
 			str += fmt.Sprintf("s%d %v", stackShift[2], t)
-		case runtime.TypeGeneral:
+		case generalRegister:
 			stackShift[3]++
 			str += fmt.Sprintf("g%d %v", stackShift[3], t)
 		}

@@ -125,8 +125,8 @@ type functionBuilder struct {
 	fn                     *runtime.Function
 	labelAddrs             []runtime.Addr // addresses of the labels; the address of the label n is labelAddrs[n-1]
 	gotos                  map[runtime.Addr]label
-	maxRegs                map[runtime.Type]int8 // max number of registers allocated at the same time.
-	numRegs                map[runtime.Type]int8
+	maxRegs                map[registerType]int8 // max number of registers allocated at the same time.
+	numRegs                map[registerType]int8
 	scopes                 []map[string]int8
 	scopeShifts            []runtime.StackShift
 	allocs                 []runtime.Addr
@@ -151,8 +151,8 @@ func newBuilder(fn *runtime.Function, path string) *functionBuilder {
 	builder := &functionBuilder{
 		fn:                     fn,
 		gotos:                  map[runtime.Addr]label{},
-		maxRegs:                map[runtime.Type]int8{},
-		numRegs:                map[runtime.Type]int8{},
+		maxRegs:                map[registerType]int8{},
+		numRegs:                map[registerType]int8{},
 		scopes:                 []map[string]int8{},
 		complexBinaryOpIndexes: map[ast.OperatorType]int8{},
 		complexUnaryOpIndex:    -1,
@@ -164,10 +164,10 @@ func newBuilder(fn *runtime.Function, path string) *functionBuilder {
 // currentStackShift returns the current stack shift.
 func (builder *functionBuilder) currentStackShift() runtime.StackShift {
 	return runtime.StackShift{
-		builder.numRegs[runtime.TypeInt],
-		builder.numRegs[runtime.TypeFloat],
-		builder.numRegs[runtime.TypeString],
-		builder.numRegs[runtime.TypeGeneral],
+		builder.numRegs[intRegister],
+		builder.numRegs[floatRegister],
+		builder.numRegs[stringRegister],
+		builder.numRegs[generalRegister],
 	}
 }
 
@@ -211,10 +211,10 @@ func (builder *functionBuilder) enterStack() {
 // See enterStack documentation for further details and usage.
 func (builder *functionBuilder) exitStack() {
 	shift := builder.scopeShifts[len(builder.scopeShifts)-1]
-	builder.numRegs[runtime.TypeInt] = shift[runtime.TypeInt]
-	builder.numRegs[runtime.TypeFloat] = shift[runtime.TypeFloat]
-	builder.numRegs[runtime.TypeString] = shift[runtime.TypeString]
-	builder.numRegs[runtime.TypeGeneral] = shift[runtime.TypeGeneral]
+	builder.numRegs[intRegister] = shift[intRegister]
+	builder.numRegs[floatRegister] = shift[floatRegister]
+	builder.numRegs[stringRegister] = shift[stringRegister]
+	builder.numRegs[generalRegister] = shift[generalRegister]
 	builder.scopeShifts = builder.scopeShifts[:len(builder.scopeShifts)-1]
 }
 
@@ -470,8 +470,8 @@ func (builder *functionBuilder) end() {
 		for _, addr := range builder.allocs {
 			var bytes int
 			if addr == 0 {
-				bytes = runtime.CallFrameSize + 8*int(fn.NumReg[runtime.TypeInt]+fn.NumReg[runtime.TypeFloat]) +
-					16*int(fn.NumReg[runtime.TypeString]+fn.NumReg[runtime.TypeGeneral])
+				bytes = runtime.CallFrameSize + 8*int(fn.NumReg[intRegister]+fn.NumReg[floatRegister]) +
+					16*int(fn.NumReg[stringRegister]+fn.NumReg[generalRegister])
 			} else {
 				in := fn.Body[addr+1]
 				if in.Op == runtime.OpLoadFunc {
@@ -485,7 +485,7 @@ func (builder *functionBuilder) end() {
 	}
 }
 
-func (builder *functionBuilder) allocRegister(typ runtime.Type, reg int8) {
+func (builder *functionBuilder) allocRegister(typ registerType, reg int8) {
 	if max, ok := builder.maxRegs[typ]; !ok || reg > max {
 		builder.maxRegs[typ] = reg
 	}
