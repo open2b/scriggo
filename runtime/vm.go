@@ -507,7 +507,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 				if i < 2 && typ.In(i) == envType {
 					fn.in[i] = envParameter
 				} else {
-					fn.in[i] = interfaceParameter
+					fn.in[i] = otherParameter
 				}
 			}
 		}
@@ -535,7 +535,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 				fn.out[i] = funcParameter
 				fn.outOff[3]++
 			default:
-				fn.out[i] = interfaceParameter
+				fn.out[i] = otherParameter
 				fn.outOff[3]++
 			}
 		}
@@ -601,7 +601,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 					vm.fp[3]++
 				case envParameter:
 					args[i].Set(vm.envArg)
-				case interfaceParameter:
+				case otherParameter:
 					if v := vm.general(1); !v.IsValid() {
 						if t := args[i].Type(); t == emptyInterfaceType {
 							args[i] = emptyInterfaceNil
@@ -710,7 +710,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 			case stringParameter:
 				vm.setString(1, ret[i].String())
 				vm.fp[2]++
-			case interfaceParameter:
+			case otherParameter:
 				vm.setGeneral(1, ret[i].Elem())
 				vm.fp[3]++
 			case funcParameter:
@@ -991,7 +991,7 @@ const (
 	arrayParameter
 	stringParameter
 	funcParameter
-	interfaceParameter
+	otherParameter
 	structParameter
 	envParameter
 )
