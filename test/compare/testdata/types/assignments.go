@@ -21,9 +21,9 @@ func chanTypes() {
 	_ = c1
 	c1 <- Int(0)           // ERROR `cannot use Int(0) (type Int) as type int in send`
 	var _ Int = <-c1       // ERROR `cannot use <-c1 (type int) as type Int in assignment`
-	c1 = (chan Int)(nil)   // ERROR `cannot use chan Int(nil) (type chan Int) as type chan int in assignment`
-	c1 = (chan<- Int)(nil) // ERROR `cannot use chan<- Int(nil) (type chan<- Int) as type chan int in assignment`
-	c1 = (<-chan Int)(nil) // ERROR `cannot use <-chan Int(nil) (type <-chan Int) as type chan int in assignment`
+	c1 = (chan Int)(nil)   // ERROR `cannot use (chan Int)(nil) (type chan Int) as type chan int in assignment`
+	c1 = (chan<- Int)(nil) // ERROR `cannot use (chan<- Int)(nil) (type chan<- Int) as type chan int in assignment`
+	c1 = (<-chan Int)(nil) // ERROR `cannot use (<-chan Int)(nil) (type <-chan Int) as type chan int in assignment`
 
 	var c2 chan Int
 	_ = c2
@@ -100,7 +100,7 @@ func ptrTypes() {
 	p1 = (*int)(nil)
 	p1 = (Ptrint)(nil)
 	p1 = (PtrInt)(nil) // ERROR `cannot use PtrInt(nil) (type PtrInt) as type Ptrint in assignment`
-	p1 = (*Int)(nil)   // ERROR `cannot use *Int(nil) (type *Int) as type Ptrint in assignment`
+	p1 = (*Int)(nil)   // ERROR `cannot use (*Int)(nil) (type *Int) as type Ptrint in assignment`
 }
 
 func structTypes() {
