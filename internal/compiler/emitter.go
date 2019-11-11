@@ -493,7 +493,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 		rcvrType := em.ti(rcvrExpr).Type
 		rcvr := em.emitExpr(rcvrExpr, rcvrType)
 		// MethodValue reads receiver from general.
-		if kindToType(rcvrType.Kind()) != runtime.TypeGeneral {
+		if kindToType(rcvrType.Kind()) != generalRegister {
 			// TODO(Gianluca): put rcvr in general
 			panic("BUG: not implemented") // remove.
 		}
@@ -643,12 +643,12 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 		rcvrType := em.ti(rcvrExpr).Type
 		rcvr := em.emitExpr(rcvrExpr, rcvrType)
 		// MethodValue reads receiver from general.
-		if kindToType(rcvrType.Kind()) != runtime.TypeGeneral {
+		if kindToType(rcvrType.Kind()) != generalRegister {
 			oldRcvr := rcvr
 			rcvr = em.fb.newRegister(reflect.Interface)
 			em.fb.emitTypify(false, rcvrType, oldRcvr, rcvr)
 		}
-		if kindToType(dstType.Kind()) == runtime.TypeGeneral {
+		if kindToType(dstType.Kind()) == generalRegister {
 			em.fb.emitMethodValue(expr.Ident, rcvr, reg)
 		} else {
 			panic("not implemented")
@@ -990,12 +990,12 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		case int64:
 			c := em.fb.makeIntConstant(v)
 			if canEmitDirectly(typ.Kind(), dstType.Kind()) {
-				em.fb.emitLoadNumber(runtime.TypeInt, c, reg)
+				em.fb.emitLoadNumber(intRegister, c, reg)
 				em.changeRegister(false, reg, reg, typ, dstType)
 				return reg, false
 			}
 			tmp := em.fb.newRegister(typ.Kind())
-			em.fb.emitLoadNumber(runtime.TypeInt, c, tmp)
+			em.fb.emitLoadNumber(intRegister, c, tmp)
 			em.changeRegister(false, tmp, reg, typ, dstType)
 			return reg, false
 		case float64:
@@ -1006,12 +1006,12 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				c = em.fb.makeFloatConstant(v)
 			}
 			if canEmitDirectly(typ.Kind(), dstType.Kind()) {
-				em.fb.emitLoadNumber(runtime.TypeFloat, c, reg)
+				em.fb.emitLoadNumber(floatRegister, c, reg)
 				em.changeRegister(false, reg, reg, typ, dstType)
 				return reg, false
 			}
 			tmp := em.fb.newRegister(typ.Kind())
-			em.fb.emitLoadNumber(runtime.TypeFloat, c, tmp)
+			em.fb.emitLoadNumber(floatRegister, c, tmp)
 			em.changeRegister(false, tmp, reg, typ, dstType)
 			return reg, false
 		case string:
@@ -1629,7 +1629,7 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 		v1 := em.emitExpr(cond, ti.Type)
 		k2 := em.fb.makeIntConstant(1) // true
 		v2 := em.fb.newRegister(reflect.Bool)
-		em.fb.emitLoadNumber(runtime.TypeInt, k2, v2)
+		em.fb.emitLoadNumber(intRegister, k2, v2)
 		em.fb.emitIf(false, v1, runtime.ConditionEqual, v2, reflect.Bool, cond.Pos()) // v1 == true
 		return
 	}
@@ -1750,7 +1750,7 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 	v1 := em.emitExpr(cond, em.ti(cond).Type)
 	k2 := em.fb.makeIntConstant(1)
 	v2 := em.fb.newRegister(reflect.Bool)
-	em.fb.emitLoadNumber(runtime.TypeInt, k2, v2)
+	em.fb.emitLoadNumber(intRegister, k2, v2)
 	em.fb.emitIf(false, v1, runtime.ConditionEqual, v2, reflect.Bool, cond.Pos())
 	return
 

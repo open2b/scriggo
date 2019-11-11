@@ -798,14 +798,14 @@ func (vm *VM) run() (Addr, bool) {
 
 		// Move
 		case OpMove, -OpMove:
-			switch Type(a) {
-			case TypeFloat:
+			switch registerType(a) {
+			case floatRegister:
 				vm.setFloat(c, vm.floatk(b, op < 0))
-			case TypeGeneral:
+			case generalRegister:
 				vm.setGeneral(c, vm.generalk(b, op < 0))
-			case TypeInt:
+			case intRegister:
 				vm.setInt(c, vm.intk(b, op < 0))
-			case TypeString:
+			case stringRegister:
 				vm.setString(c, vm.stringk(b, op < 0))
 			}
 

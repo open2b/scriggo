@@ -290,16 +290,16 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				typ := em.fb.fn.Type.Out(i)
 				var reg int8
 				switch kindToType(typ.Kind()) {
-				case runtime.TypeInt:
+				case intRegister:
 					offset[0]++
 					reg = offset[0]
-				case runtime.TypeFloat:
+				case floatRegister:
 					offset[1]++
 					reg = offset[1]
-				case runtime.TypeString:
+				case stringRegister:
 					offset[2]++
 					reg = offset[2]
-				case runtime.TypeGeneral:
+				case generalRegister:
 					offset[3]++
 					reg = offset[3]
 				}
@@ -480,10 +480,10 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 	ch := em.fb.newRegister(reflect.Chan)
 	ok := em.fb.newRegister(reflect.Bool)
 	value := [4]int8{
-		runtime.TypeInt:     em.fb.newRegister(reflect.Int),
-		runtime.TypeFloat:   em.fb.newRegister(reflect.Float64),
-		runtime.TypeString:  em.fb.newRegister(reflect.String),
-		runtime.TypeGeneral: em.fb.newRegister(reflect.Interface),
+		intRegister:     em.fb.newRegister(reflect.Int),
+		floatRegister:   em.fb.newRegister(reflect.Float64),
+		stringRegister:  em.fb.newRegister(reflect.String),
+		generalRegister: em.fb.newRegister(reflect.Interface),
 	}
 
 	// Prepare the registers for the 'select' instruction.
