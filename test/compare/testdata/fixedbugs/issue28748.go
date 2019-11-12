@@ -1,4 +1,4 @@
-// skip
+// skip : this test passes because Scriggo has a bug, needs investigation. See https://github.com/open2b/scriggo/issues/394.
 
 // run
 
