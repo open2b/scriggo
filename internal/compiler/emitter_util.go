@@ -243,7 +243,7 @@ func canEmitDirectly(k1, k2 reflect.Kind) bool {
 	if k2 == reflect.Interface {
 		return false
 	}
-	// Functions and arrays are handled as special cases in VM.
+	// Functions are handled as a special cases in VM.
 	if k1 == reflect.Func || k2 == reflect.Func {
 		return false
 	}
