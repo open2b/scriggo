@@ -497,12 +497,10 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 				fn.in[i] = float64Parameter
 			case k == reflect.String:
 				fn.in[i] = stringParameter
-			case k == reflect.Array:
-				fn.in[i] = arrayParameter
 			case k == reflect.Func:
 				fn.in[i] = funcParameter
-			case k == reflect.Struct:
-				fn.in[i] = structParameter
+			case k == reflect.Interface:
+				fn.in[i] = interfaceParameter
 			default:
 				if i < 2 && typ.In(i) == envType {
 					fn.in[i] = envParameter
@@ -533,6 +531,9 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 				fn.outOff[2]++
 			case k == reflect.Func:
 				fn.out[i] = funcParameter
+				fn.outOff[3]++
+			case k == reflect.Interface:
+				fn.out[i] = interfaceParameter
 				fn.outOff[3]++
 			default:
 				fn.out[i] = otherParameter
@@ -601,7 +602,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 					vm.fp[3]++
 				case envParameter:
 					args[i].Set(vm.envArg)
-				case otherParameter:
+				case interfaceParameter:
 					if v := vm.general(1); !v.IsValid() {
 						if t := args[i].Type(); t == emptyInterfaceType {
 							args[i] = emptyInterfaceNil
@@ -612,9 +613,11 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 						args[i].Set(v)
 					}
 					vm.fp[3]++
-				default:
+				case otherParameter:
 					args[i].Set(vm.general(1))
 					vm.fp[3]++
+				default:
+					panic("BUG") // TODO: remove.
 				}
 			} else {
 				sliceType := args[i].Type()
@@ -710,14 +713,16 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 			case stringParameter:
 				vm.setString(1, ret[i].String())
 				vm.fp[2]++
-			case otherParameter:
+			case funcParameter:
+				panic("BUG: not implemented") // TODO: fix.
+			case interfaceParameter:
 				vm.setGeneral(1, ret[i].Elem())
 				vm.fp[3]++
-			case funcParameter:
-
-			default:
+			case otherParameter:
 				vm.setGeneral(1, ret[i])
 				vm.fp[3]++
+			default:
+				panic("BUG: unexpected") // TODO: remove.
 			}
 		}
 		if args != nil {
@@ -989,11 +994,10 @@ const (
 	intParameter
 	uintParameter
 	float64Parameter
-	arrayParameter
 	stringParameter
 	funcParameter
-	structParameter
 	envParameter
+	interfaceParameter
 	otherParameter
 )
 
