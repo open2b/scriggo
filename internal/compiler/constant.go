@@ -1295,8 +1295,9 @@ func parseConstant(s string) (constant, reflect.Type, error) {
 }
 
 // parseBasicLiteral parses a basic literal and returns the represented
-// constant. Returns an error if the constant can not be represented.
-// If the string is not a basic literal the behaviour is undefined.
+// constant. Returns an error if an integer cannot be represented or if a
+// floating-point or complex cannot be represented due to overflow. If the
+// parsed string is not a basic literal the behaviour is undefined.
 func parseBasicLiteral(typ ast.LiteralType, s string) (constant, error) {
 	switch typ {
 	case ast.StringLiteral:
