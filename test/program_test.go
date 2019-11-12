@@ -28,10 +28,10 @@ var exprTests = map[string]interface{}{
 	`"abc"`: "abc",
 
 	// Composite literals - arrays.
-	`[4]int{1,2,3,4}`:     []int{1, 2, 3, 4},      // Internally, arrays are stored as slices.
-	`[...]int{1,2,3,4}`:   []int{1, 2, 3, 4},      // Internally, arrays are stored as slices.
-	`[3]string{}`:         []string{"", "", ""},   // Internally, arrays are stored as slices.
-	`[3]string{"a", "b"}`: []string{"a", "b", ""}, // Internally, arrays are stored as slices.
+	`[4]int{1,2,3,4}`:     [4]int{1, 2, 3, 4},
+	`[...]int{1,2,3,4}`:   [4]int{1, 2, 3, 4},
+	`[3]string{}`:         [3]string{"", "", ""},
+	`[3]string{"a", "b"}`: [3]string{"a", "b", ""},
 
 	// Composite literals - slices.
 	`[]int{}`:                   []int{},
