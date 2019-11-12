@@ -128,7 +128,7 @@ func (vm *VM) convertPanic(msg interface{}) error {
 				return vm.newPanic(runtimeError(s))
 			}
 		case string:
-			if err == "reflect: slice index out of range" {
+			if err == "reflect: slice index out of range" || err == "reflect: array index out of range" {
 				return vm.newPanic(vm.errIndexOutOfRange())
 			}
 		}
