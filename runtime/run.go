@@ -685,7 +685,7 @@ func (vm *VM) run() (Addr, bool) {
 			if a == 0 {
 				length = len(vm.string(b))
 			} else {
-				length = vm.general(b).Len() // TODO: change the builder.
+				length = vm.general(b).Len()
 			}
 			vm.setInt(c, int64(length))
 
