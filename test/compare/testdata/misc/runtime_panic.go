@@ -25,8 +25,10 @@ func main() {
 	if !isGo112 {
 		test4()
 		test4b()
+		test4c()
 		test5()
 		test5b()
+		test5c()
 		test6()
 	}
 	test7()
@@ -128,6 +130,13 @@ func test4b() {
 	a[b] = 3
 }
 
+func test4c() {
+	defer recoverRuntimePanic("runtime error: index out of range [2] with length 1")
+	var a [1]testpkg.T
+	var b = 2
+	_ = &a[b]
+}
+
 func test5() {
 	defer recoverRuntimePanic("runtime error: index out of range [0] with length 0")
 	var a []testpkg.T
@@ -138,6 +147,13 @@ func test5b() {
 	defer recoverRuntimePanic("runtime error: index out of range [0] with length 0")
 	var a []testpkg.T
 	a[0] = 1
+}
+
+func test5c() {
+	defer recoverRuntimePanic("runtime error: index out of range [2] with length 0")
+	var a []testpkg.T
+	var b = 2
+	_ = &a[b]
 }
 
 func test6() {

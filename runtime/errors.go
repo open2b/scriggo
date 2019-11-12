@@ -93,16 +93,21 @@ func (err OutOfMemoryError) RuntimeError() {}
 // currently running virtual machine instruction.
 func (vm *VM) errIndexOutOfRange() runtimeError {
 	in := vm.fn.Body[vm.pc-1]
-	s := "runtime error: index out of range ["
+	var index, length int
 	switch in.Op {
-	case OpAddr, OpIndex, -OpIndex, OpIndexString, -OpIndexString:
-		s += strconv.Itoa(int(vm.intk(in.B, in.Op < 0)))
+	case OpAddr, OpIndex, -OpIndex:
+		index = int(vm.intk(in.B, in.Op < 0))
+		length = vm.general(in.A).Len()
+	case OpIndexString, -OpIndexString:
+		index = int(vm.intk(in.B, in.Op < 0))
+		length = len(vm.string(in.A))
 	case OpSetSlice, -OpSetSlice:
-		s += strconv.Itoa(int(vm.int(in.C)))
+		index = int(vm.int(in.C))
+		length = vm.general(in.B).Len()
 	default:
 		panic("unexpected operation")
 	}
-	s += "] with length " + strconv.Itoa(vm.general(in.A).Len())
+	s := "runtime error: index out of range [" + strconv.Itoa(index) + "] with length " + strconv.Itoa(length)
 	return runtimeError(s)
 }
 

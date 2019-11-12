@@ -1053,6 +1053,10 @@ type Position struct {
 	End    int // index of the last byte
 }
 
+func (p Position) String() string {
+	return strconv.Itoa(p.Line) + ":" + strconv.Itoa(p.Column)
+}
+
 // DebugInfo represents a set of debug information associated to a given
 // instruction. None of the fields below is mandatory.
 type DebugInfo struct {
