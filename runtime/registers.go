@@ -332,123 +332,122 @@ func appendCap(c, ol, nl int) int {
 	return c
 }
 
-func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{} {
-	switch slice := slice.(type) {
+func (vm *VM) appendSlice(first int8, length int, slice reflect.Value) reflect.Value {
+	switch s := slice.Interface().(type) {
 	case []int:
-		ol := len(slice)
+		ol := len(s)
 		nl := ol + length
 		if nl < ol {
 			panic(OutOfMemoryError{vm.env})
 		}
-		if c := cap(slice); nl <= c {
-			slice = slice[:nl]
+		if c := cap(s); nl <= c {
+			s = s[:nl]
 		} else {
-			old := slice
+			old := s
 			c = appendCap(c, ol, nl)
-			slice = make([]int, nl, c)
-			copy(slice, old)
+			s = make([]int, nl, c)
+			copy(s, old)
 		}
-		t := slice[ol:]
+		t := s[ol:]
 		regs := vm.regs.int[vm.fp[0]+Addr(first):]
 		for i := 0; i < length; i++ {
 			t[i] = int(regs[i])
 		}
-		return slice
+		return reflect.ValueOf(s)
 	case []byte:
-		ol := len(slice)
+		ol := len(s)
 		nl := ol + length
 		if nl < ol {
 			panic(OutOfMemoryError{vm.env})
 		}
-		if c := cap(slice); nl <= c {
-			slice = slice[:nl]
+		if c := cap(s); nl <= c {
+			s = s[:nl]
 		} else {
-			old := slice
+			old := s
 			c = appendCap(c, ol, nl)
-			slice = make([]byte, nl, c)
-			copy(slice, old)
+			s = make([]byte, nl, c)
+			copy(s, old)
 		}
-		t := slice[ol:]
-		s := vm.regs.int[vm.fp[0]+Addr(first):]
+		t := s[ol:]
+		r := vm.regs.int[vm.fp[0]+Addr(first):]
 		for i := 0; i < length; i++ {
-			t[i] = byte(s[i])
+			t[i] = byte(r[i])
 		}
-		return slice
+		return reflect.ValueOf(s)
 	case []rune:
-		ol := len(slice)
+		ol := len(s)
 		nl := ol + length
 		if nl < ol {
 			panic(OutOfMemoryError{vm.env})
 		}
-		if c := cap(slice); nl <= c {
-			slice = slice[:nl]
+		if c := cap(s); nl <= c {
+			s = s[:nl]
 		} else {
-			old := slice
+			old := s
 			c = appendCap(c, ol, nl)
-			slice = make([]rune, nl, c)
-			copy(slice, old)
+			s = make([]rune, nl, c)
+			copy(s, old)
 		}
-		t := slice[ol:]
-		s := vm.regs.int[vm.fp[0]+Addr(first):]
+		t := s[ol:]
+		r := vm.regs.int[vm.fp[0]+Addr(first):]
 		for i := 0; i < length; i++ {
-			t[i] = rune(s[i])
+			t[i] = rune(r[i])
 		}
-		return slice
+		return reflect.ValueOf(s)
 	case []float64:
 		i := int(vm.fp[1] + Addr(first))
-		return append(slice, vm.regs.float[i:i+length]...)
+		return reflect.ValueOf(append(s, vm.regs.float[i:i+length]...))
 	case []string:
 		i := int(vm.fp[2] + Addr(first))
-		return append(slice, vm.regs.string[i:i+length]...)
+		return reflect.ValueOf(append(s, vm.regs.string[i:i+length]...))
 	default:
-		s := reflect.ValueOf(slice)
-		ol := s.Len()
+		ol := slice.Len()
 		nl := ol + length
 		if nl < ol {
 			panic(runtimeError("append: out of memory"))
 		}
-		if c := s.Cap(); nl <= c {
-			s = s.Slice(0, nl)
+		if c := slice.Cap(); nl <= c {
+			slice = slice.Slice(0, nl)
 		} else {
-			old := s
+			old := slice
 			c = appendCap(c, ol, nl)
-			s = reflect.MakeSlice(s.Type(), nl, c)
+			slice = reflect.MakeSlice(slice.Type(), nl, c)
 			if ol > 0 {
-				reflect.Copy(s, old)
+				reflect.Copy(slice, old)
 			}
 		}
-		switch s.Type().Elem().Kind() {
+		switch slice.Type().Elem().Kind() {
 		case reflect.Bool:
 			regs := vm.regs.int[vm.fp[0]+Addr(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
-				s.Index(j).SetBool(regs[i] > 0)
+				slice.Index(j).SetBool(regs[i] > 0)
 			}
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			regs := vm.regs.int[vm.fp[0]+Addr(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
-				s.Index(j).SetInt(regs[i])
+				slice.Index(j).SetInt(regs[i])
 			}
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 			regs := vm.regs.int[vm.fp[0]+Addr(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
-				s.Index(j).SetUint(uint64(regs[i]))
+				slice.Index(j).SetUint(uint64(regs[i]))
 			}
 		case reflect.Float32, reflect.Float64:
 			regs := vm.regs.float[vm.fp[1]+Addr(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
-				s.Index(j).SetFloat(regs[i])
+				slice.Index(j).SetFloat(regs[i])
 			}
 		case reflect.String:
 			regs := vm.regs.string[vm.fp[2]+Addr(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
-				s.Index(j).SetString(regs[i])
+				slice.Index(j).SetString(regs[i])
 			}
 		default:
 			regs := vm.regs.general[vm.fp[3]+Addr(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
-				s.Index(j).Set(regs[i])
+				slice.Index(j).Set(regs[i])
 			}
 		}
-		return s.Interface()
+		return slice
 	}
 }
