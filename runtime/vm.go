@@ -432,6 +432,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 					panic(errNilPointer)
 				}
 				vm.setBool(1, f(vm.string(1), vm.string(2)))
+			// TODO: modify or remove these optimizations.
 			//case func([]byte) []byte:
 			//	if f == nil {
 			//		vm.fp = fp
