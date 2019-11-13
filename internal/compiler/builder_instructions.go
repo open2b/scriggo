@@ -726,6 +726,9 @@ func (builder *functionBuilder) emitMethodValue(name string, receiver int8, dst 
 //
 //     z = x
 //
+// TODO: copy should be true only when necessary, otherwise it's just a waste of
+// resources. Check every call to emitMove from the emitter and set the 'copy'
+// argument correctly.
 func (builder *functionBuilder) emitMove(k bool, x, z int8, kind reflect.Kind, copy bool) {
 	op := runtime.OpMove
 	if k {
