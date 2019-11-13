@@ -873,7 +873,8 @@ var operationName = [...]string{
 
 	runtime.OpIndex:       "Index",
 	runtime.OpIndexString: "Index",
-	runtime.OpIndexRef:    "IndexRef",
+
+	runtime.OpIndexRef: "IndexRef",
 
 	runtime.OpLeftShift64: "LeftShift",
 	runtime.OpLeftShift8:  "LeftShift8",

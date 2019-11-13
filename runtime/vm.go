@@ -1359,6 +1359,7 @@ const (
 
 	OpIndex
 	OpIndexString
+
 	OpIndexRef
 
 	OpLeftShift8
