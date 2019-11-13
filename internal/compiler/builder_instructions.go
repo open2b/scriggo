@@ -7,7 +7,6 @@
 package compiler
 
 import (
-	"fmt"
 	"reflect"
 	"scriggo/ast"
 	"scriggo/runtime"
@@ -503,19 +502,18 @@ func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType r
 	builder.addOperandKinds(0, 0, exprType.Kind())
 	fn := builder.fn
 	kind := exprType.Kind()
-	if ref && kind != reflect.Array {
-		panic(fmt.Errorf("BUG: cannot set the ref argument if the expression has kind %s", kind))
-	}
+	// TODO: re-enable this check?
+	// if ref && (kind != reflect.Array && kind != reflect.Slice) {
+	// 	panic(fmt.Errorf("BUG: cannot set the ref argument if the expression has kind %s", kind))
+	// }
 	var op runtime.Operation
 	switch kind {
-	case reflect.Array:
+	case reflect.Array, reflect.Slice:
 		if ref {
-			op = runtime.OpIndex
-		} else {
 			op = runtime.OpIndexRef
+		} else {
+			op = runtime.OpIndex
 		}
-	case reflect.Slice:
-		op = runtime.OpIndex
 	case reflect.Map:
 		op = runtime.OpMapIndex
 	case reflect.String:
