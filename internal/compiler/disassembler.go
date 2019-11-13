@@ -942,7 +942,8 @@ var operationName = [...]string{
 
 	runtime.OpSelect: "Select",
 
-	runtime.OpField:    "Field",
+	runtime.OpField: "Field",
+
 	runtime.OpFieldRef: "FieldRef",
 
 	runtime.OpSend: "Send",

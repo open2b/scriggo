@@ -1342,6 +1342,7 @@ const (
 	OpDivFloat64
 
 	OpField
+
 	OpFieldRef
 
 	OpGetVar
