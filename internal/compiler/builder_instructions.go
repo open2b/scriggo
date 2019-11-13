@@ -497,6 +497,8 @@ func (builder *functionBuilder) emitIf(k bool, x int8, o runtime.Condition, y in
 //
 //  dst = expr[i]
 //
+// TODO: consider splitting emitIndex in two methods removing the 'ref bool'
+// argument.
 func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType reflect.Type, pos *ast.Position, ref bool) {
 	builder.addPosAndPath(pos)
 	builder.addOperandKinds(0, 0, exprType.Kind())
