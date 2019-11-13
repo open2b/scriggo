@@ -7,6 +7,7 @@
 package compiler
 
 import (
+	"fmt"
 	"reflect"
 	"scriggo/ast"
 	"scriggo/runtime"
@@ -366,13 +367,20 @@ func (builder *functionBuilder) emitRange(k bool, s, i, e int8, kind reflect.Kin
 	fn.Body = append(fn.Body, runtime.Instruction{Op: op, A: s, B: i, C: e})
 }
 
-// emitField appends a new "Field" instruction to the function body.
+// emitField appends a new "Field" or a "FielRef" instruction to the function
+// body. If ref is set then the result of the "field operation" is a reference
+// to that field (i.e. is an addressable reflect.Value with the same underlying
+// field value); otherwise the field is copied.
 //
-// 	C = A.field
+//  C = A.field
 //
-func (builder *functionBuilder) emitField(a, field, c int8, dstKind reflect.Kind) {
+func (builder *functionBuilder) emitField(a, field, c int8, dstKind reflect.Kind, ref bool) {
 	builder.addOperandKinds(0, 0, dstKind)
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpField, A: a, B: field, C: c})
+	op := runtime.OpField
+	if ref {
+		op = runtime.OpFieldRef
+	}
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: a, B: field, C: c})
 }
 
 // emitFunc appends a new "Func" instruction to the function body.
@@ -483,18 +491,30 @@ func (builder *functionBuilder) emitIf(k bool, x int8, o runtime.Condition, y in
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: int8(o), C: y})
 }
 
-// emitIndex appends a new "Index" or "MapIndex" instruction to the function body
+// emitIndex appends a new "Index", "IndexRef" or "MapIndex" instruction to the
+// function body. If ref is set then the result of the indexing operation is a
+// reference to the index (i.e. is an addressable reflect.Value with the same
+// underlying index value); otherwise the index is copied.
 //
-//	dst = expr[i]
+//  dst = expr[i]
 //
-func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType reflect.Type, pos *ast.Position) {
+func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType reflect.Type, pos *ast.Position, ref bool) {
 	builder.addPosAndPath(pos)
 	builder.addOperandKinds(0, 0, exprType.Kind())
 	fn := builder.fn
 	kind := exprType.Kind()
+	if ref && kind != reflect.Array {
+		panic(fmt.Errorf("BUG: cannot set the ref argument if the expression has kind %s", kind))
+	}
 	var op runtime.Operation
 	switch kind {
-	case reflect.Array, reflect.Slice:
+	case reflect.Array:
+		if ref {
+			op = runtime.OpIndex
+		} else {
+			op = runtime.OpIndexRef
+		}
+	case reflect.Slice:
 		op = runtime.OpIndex
 	case reflect.Map:
 		op = runtime.OpMapIndex

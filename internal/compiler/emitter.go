@@ -692,12 +692,12 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 	index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
 	fieldType := em.ti(expr).Type
 	if canEmitDirectly(fieldType.Kind(), dstType.Kind()) {
-		em.fb.emitField(exprReg, index, reg, dstType.Kind())
+		em.fb.emitField(exprReg, index, reg, dstType.Kind(), false)
 		return
 	}
 	// TODO: add enter/exit stack method calls.
 	tmp := em.fb.newRegister(fieldType.Kind())
-	em.fb.emitField(exprReg, index, tmp, fieldType.Kind())
+	em.fb.emitField(exprReg, index, tmp, fieldType.Kind(), false)
 	em.changeRegister(false, tmp, reg, fieldType, dstType)
 
 	return
@@ -1567,12 +1567,12 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 		pos := expr.Pos()
 		if canEmitDirectly(elemType.Kind(), dstType.Kind()) {
-			em.fb.emitIndex(kindex, exprReg, index, reg, exprType, pos)
+			em.fb.emitIndex(kindex, exprReg, index, reg, exprType, pos, false)
 			return reg, false
 		}
 		em.fb.enterStack()
 		tmp := em.fb.newRegister(elemType.Kind())
-		em.fb.emitIndex(kindex, exprReg, index, tmp, exprType, pos)
+		em.fb.emitIndex(kindex, exprReg, index, tmp, exprType, pos, false)
 		em.changeRegister(false, tmp, reg, elemType, dstType)
 		em.fb.exitStack()
 
