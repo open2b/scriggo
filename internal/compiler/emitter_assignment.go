@@ -162,7 +162,7 @@ func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Exp
 		okType := addresses[1].addressedType
 		okReg := em.fb.newRegister(reflect.Bool)
 		pos := valueExpr.Pos()
-		em.fb.emitIndex(kKey, mapp, key, value, mapType, pos, false)
+		em.fb.emitIndex(kKey, mapp, key, value, mapType, pos, true)
 		em.fb.emitMove(true, 1, okReg, reflect.Bool)
 		em.fb.emitIf(false, 0, runtime.ConditionOK, 0, reflect.Interface, pos)
 		em.fb.emitMove(true, 0, okReg, reflect.Bool)
