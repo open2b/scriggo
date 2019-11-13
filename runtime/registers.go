@@ -219,13 +219,7 @@ func (vm *VM) general(r int8) reflect.Value {
 func (vm *VM) generalk(r int8, k bool) reflect.Value {
 	if k {
 		v := vm.fn.Constants.General[uint8(r)]
-		rv := reflect.ValueOf(v)
-		if k := rv.Kind(); k == reflect.Struct || k == reflect.Array {
-			av := reflect.New(rv.Type()).Elem()
-			av.Set(rv)
-			rv = av
-		}
-		return rv
+		return reflect.ValueOf(v)
 	}
 	if r > 0 {
 		return vm.regs.general[vm.fp[3]+Addr(r)]

@@ -802,7 +802,13 @@ func (vm *VM) run() (Addr, bool) {
 			case floatRegister:
 				vm.setFloat(c, vm.floatk(b, op < 0))
 			case generalRegister:
-				vm.setGeneral(c, vm.generalk(b, op < 0))
+				rv := vm.generalk(b, op < 0)
+				if k := rv.Kind(); k == reflect.Array || k == reflect.Struct {
+					newRv := reflect.New(rv.Type()).Elem()
+					newRv.Set(reflect.ValueOf(rv.Interface()))
+					rv = newRv
+				}
+				vm.setGeneral(c, rv)
 			case intRegister:
 				vm.setInt(c, vm.intk(b, op < 0))
 			case stringRegister:
