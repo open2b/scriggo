@@ -14,7 +14,7 @@ type registers struct {
 	int     []int64
 	float   []float64
 	string  []string
-	general []interface{}
+	general []reflect.Value
 }
 
 func (vm *VM) set(r int8, v reflect.Value) {
@@ -28,7 +28,7 @@ func (vm *VM) set(r int8, v reflect.Value) {
 	} else if k == reflect.Float64 || k == reflect.Float32 {
 		vm.setFloat(r, v.Float())
 	} else {
-		vm.setGeneral(r, v.Interface())
+		vm.setGeneral(r, v)
 	}
 }
 
@@ -50,26 +50,23 @@ func (vm *VM) intk(r int8, k bool) int64 {
 }
 
 func (vm *VM) intIndirect(r int8) int64 {
-	// TODO(Gianluca): add support bool values with defined type.
 	v := vm.regs.general[vm.fp[3]+Addr(r)]
-	if v, ok := v.(*int); ok {
-		return int64(*v)
-	}
-	if v, ok := v.(*bool); ok {
-		if *v {
-			return 1 // true.
-		}
-		return 0 // false.
-	}
-	rv := reflect.ValueOf(v)
-	if rv.IsNil() {
+	if v.IsNil() {
 		panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
 	}
-	elem := rv.Elem()
-	if k := elem.Kind(); reflect.Int <= k && k <= reflect.Int64 {
+	elem := v.Elem()
+	k := elem.Kind()
+	switch {
+	case reflect.Int <= k && k <= reflect.Int64:
 		return elem.Int()
+	case k == reflect.Bool:
+		if elem.Bool() {
+			return 1
+		}
+		return 0
+	default:
+		return int64(elem.Uint())
 	}
-	return int64(elem.Uint())
 }
 
 func (vm *VM) setInt(r int8, i int64) {
@@ -82,17 +79,15 @@ func (vm *VM) setInt(r int8, i int64) {
 
 func (vm *VM) setIntIndirect(r int8, i int64) {
 	v := vm.regs.general[vm.fp[3]+Addr(r)]
-	if vi, ok := v.(*int); ok {
-		*vi = int(i)
-	} else if vb, ok := v.(*bool); ok {
-		*vb = bool(i == 1)
-	} else {
-		elem := reflect.ValueOf(v).Elem()
-		if k := elem.Kind(); reflect.Int <= k && k <= reflect.Int64 {
-			elem.SetInt(i)
-		} else {
-			elem.SetUint(uint64(i))
-		}
+	elem := v.Elem()
+	k := elem.Kind()
+	switch {
+	case reflect.Int <= k && k <= reflect.Int64:
+		elem.SetInt(i)
+	case k == reflect.Bool:
+		elem.SetBool(i == 1)
+	default:
+		elem.SetUint(uint64(i))
 	}
 }
 
@@ -115,10 +110,10 @@ func (vm *VM) boolk(r int8, k bool) bool {
 
 func (vm *VM) boolIndirect(r int8) bool {
 	v := vm.regs.general[vm.fp[3]+Addr(r)]
-	if v, ok := v.(*bool); ok {
-		return *v
+	if v.IsNil() {
+		panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
 	}
-	return reflect.ValueOf(v).Elem().Bool()
+	return v.Elem().Bool()
 }
 
 func (vm *VM) setBool(r int8, b bool) {
@@ -135,11 +130,7 @@ func (vm *VM) setBool(r int8, b bool) {
 
 func (vm *VM) setBoolIndirect(r int8, b bool) {
 	v := vm.regs.general[vm.fp[3]+Addr(r)]
-	if v, ok := v.(*bool); ok {
-		*v = b
-	} else {
-		reflect.ValueOf(v).Elem().SetBool(b)
-	}
+	v.Elem().SetBool(b)
 }
 
 func (vm *VM) float(r int8) float64 {
@@ -161,14 +152,10 @@ func (vm *VM) floatk(r int8, k bool) float64 {
 
 func (vm *VM) floatIndirect(r int8) float64 {
 	v := vm.regs.general[vm.fp[3]+Addr(r)]
-	if v, ok := v.(*float64); ok {
-		return *v
-	}
-	rv := reflect.ValueOf(v)
-	if rv.IsNil() {
+	if v.IsNil() {
 		panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
 	}
-	return rv.Elem().Float()
+	return v.Elem().Float()
 }
 
 func (vm *VM) setFloat(r int8, f float64) {
@@ -181,11 +168,7 @@ func (vm *VM) setFloat(r int8, f float64) {
 
 func (vm *VM) setFloatIndirect(r int8, f float64) {
 	v := vm.regs.general[vm.fp[3]+Addr(r)]
-	if v, ok := v.(*float64); ok {
-		*v = f
-	} else {
-		reflect.ValueOf(v).Elem().SetFloat(f)
-	}
+	v.Elem().SetFloat(f)
 }
 
 func (vm *VM) string(r int8) string {
@@ -207,14 +190,10 @@ func (vm *VM) stringk(r int8, k bool) string {
 
 func (vm *VM) stringIndirect(r int8) string {
 	v := vm.regs.general[vm.fp[3]+Addr(r)]
-	if v, ok := v.(*string); ok {
-		return *v
-	}
-	rv := reflect.ValueOf(v)
-	if rv.IsNil() {
+	if v.IsNil() {
 		panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
 	}
-	return rv.Elem().String()
+	return v.Elem().String()
 }
 
 func (vm *VM) setString(r int8, s string) {
@@ -227,38 +206,20 @@ func (vm *VM) setString(r int8, s string) {
 
 func (vm *VM) setStringIndirect(r int8, s string) {
 	v := vm.regs.general[vm.fp[3]+Addr(r)]
-	if v, ok := v.(*string); ok {
-		*v = s
-	} else {
-		reflect.ValueOf(v).Elem().SetString(s)
-	}
+	v.Elem().SetString(s)
 }
 
-func (vm *VM) general(r int8) interface{} {
+func (vm *VM) general(r int8) reflect.Value {
 	if r > 0 {
 		return vm.regs.general[vm.fp[3]+Addr(r)]
 	}
 	return vm.generalIndirect(-r)
 }
 
-func (vm *VM) generalk(r int8, k bool) interface{} {
+func (vm *VM) generalk(r int8, k bool) reflect.Value {
 	if k {
 		v := vm.fn.Constants.General[uint8(r)]
-		// Values in the general constant slice have the external
-		// representation, so they must be converted to the internal before
-		// putting them into a register of the VM.
-		if t := reflect.TypeOf(v); t != nil {
-			// Make a copy of the constant value.
-			// It's enough to create the zero since the general
-			// constant slice can contain only zeroes.
-			switch t.Kind() {
-			case reflect.Array:
-				v = reflect.MakeSlice(reflect.SliceOf(t.Elem()), t.Len(), t.Len()).Interface()
-			case reflect.Struct:
-				v = reflect.New(t).Interface()
-			}
-		}
-		return v
+		return reflect.ValueOf(v)
 	}
 	if r > 0 {
 		return vm.regs.general[vm.fp[3]+Addr(r)]
@@ -266,40 +227,33 @@ func (vm *VM) generalk(r int8, k bool) interface{} {
 	return vm.generalIndirect(-r)
 }
 
-func (vm *VM) generalIndirect(r int8) interface{} {
-	rv := reflect.ValueOf(vm.regs.general[vm.fp[3]+Addr(r)])
-	if rv.IsNil() {
+func (vm *VM) generalIndirect(r int8) reflect.Value {
+	v := vm.regs.general[vm.fp[3]+Addr(r)]
+	if v.IsNil() {
 		panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
 	}
-	elem := rv.Elem()
-	switch elem.Kind() {
-	case reflect.Func:
-		return &callable{
+	elem := v.Elem()
+	if elem.Kind() == reflect.Func {
+		return reflect.ValueOf(&callable{
 			predefined: &PredefinedFunction{
 				Func:  elem.Interface(),
 				value: elem,
 			},
-		}
-	case reflect.Array:
-		return elem.Slice(0, elem.Len()).Interface()
-	case reflect.Struct:
-		return elem.Addr().Interface()
-	default:
-		return elem.Interface()
+		})
 	}
+	return elem
 }
 
-func (vm *VM) setGeneral(r int8, i interface{}) {
+func (vm *VM) setGeneral(r int8, v reflect.Value) {
 	if r > 0 {
-		vm.regs.general[vm.fp[3]+Addr(r)] = i
+		vm.regs.general[vm.fp[3]+Addr(r)] = v
 		return
 	}
-	vm.setGeneralIndirect(-r, i)
+	vm.setGeneralIndirect(-r, v)
 }
 
-func (vm *VM) setGeneralIndirect(r int8, i interface{}) {
-	v := vm.regs.general[vm.fp[3]+Addr(r)]
-	reflect.ValueOf(v).Elem().Set(reflect.ValueOf(i))
+func (vm *VM) setGeneralIndirect(r int8, v reflect.Value) {
+	vm.regs.general[vm.fp[3]+Addr(r)].Elem().Set(v)
 }
 
 func (vm *VM) getIntoReflectValue(r int8, v reflect.Value, k bool) {
@@ -315,26 +269,19 @@ func (vm *VM) getIntoReflectValue(r int8, v reflect.Value, k bool) {
 	case reflect.String:
 		v.SetString(vm.stringk(r, k))
 	case reflect.Func:
-		v.Set(vm.generalk(r, k).(*callable).Value(vm.env))
-	case reflect.Array:
-		slice := reflect.ValueOf(vm.generalk(r, k))
-		array := reflect.New(reflect.ArrayOf(slice.Len(), slice.Type().Elem())).Elem()
-		reflect.Copy(array, slice)
-		v.Set(array)
+		v.Set(vm.generalk(r, k).Interface().(*callable).Value(vm.env))
 	case reflect.Interface:
-		if g := vm.generalk(r, k); g == nil {
+		if g := vm.generalk(r, k); !g.IsValid() { // TODO: check if it is correct.
 			if t := v.Type(); t == emptyInterfaceType {
 				v.Set(emptyInterfaceNil)
 			} else {
 				v.Set(reflect.Zero(t))
 			}
 		} else {
-			v.Set(reflect.ValueOf(g))
+			v.Set(g)
 		}
-	case reflect.Struct:
-		v.Set(reflect.ValueOf(vm.generalk(r, k)).Elem())
 	default:
-		v.Set(reflect.ValueOf(vm.generalk(r, k)))
+		v.Set(vm.generalk(r, k))
 	}
 }
 
@@ -357,13 +304,11 @@ func (vm *VM) setFromReflectValue(r int8, v reflect.Value) {
 				value: v,
 			},
 		}
-		vm.setGeneral(r, c)
-	case reflect.Array:
-		vm.setGeneral(r, v.Slice(0, v.Len()).Interface())
-	case reflect.Struct:
-		vm.setGeneral(r, v.Addr().Interface())
+		vm.setGeneral(r, reflect.ValueOf(c))
+	case reflect.Interface:
+		vm.setGeneral(r, v.Elem())
 	default:
-		vm.setGeneral(r, v.Interface())
+		vm.setGeneral(r, v)
 	}
 }
 
@@ -381,126 +326,122 @@ func appendCap(c, ol, nl int) int {
 	return c
 }
 
-func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{} {
-	switch slice := slice.(type) {
+func (vm *VM) appendSlice(first int8, length int, slice reflect.Value) reflect.Value {
+	switch s := slice.Interface().(type) {
 	case []int:
-		ol := len(slice)
+		ol := len(s)
 		nl := ol + length
 		if nl < ol {
 			panic(OutOfMemoryError{vm.env})
 		}
-		if c := cap(slice); nl <= c {
-			slice = slice[:nl]
+		if c := cap(s); nl <= c {
+			s = s[:nl]
 		} else {
-			old := slice
+			old := s
 			c = appendCap(c, ol, nl)
-			slice = make([]int, nl, c)
-			copy(slice, old)
+			s = make([]int, nl, c)
+			copy(s, old)
 		}
-		t := slice[ol:]
+		t := s[ol:]
 		regs := vm.regs.int[vm.fp[0]+Addr(first):]
 		for i := 0; i < length; i++ {
 			t[i] = int(regs[i])
 		}
-		return slice
+		return reflect.ValueOf(s)
 	case []byte:
-		ol := len(slice)
+		ol := len(s)
 		nl := ol + length
 		if nl < ol {
 			panic(OutOfMemoryError{vm.env})
 		}
-		if c := cap(slice); nl <= c {
-			slice = slice[:nl]
+		if c := cap(s); nl <= c {
+			s = s[:nl]
 		} else {
-			old := slice
+			old := s
 			c = appendCap(c, ol, nl)
-			slice = make([]byte, nl, c)
-			copy(slice, old)
+			s = make([]byte, nl, c)
+			copy(s, old)
 		}
-		t := slice[ol:]
-		s := vm.regs.int[vm.fp[0]+Addr(first):]
+		t := s[ol:]
+		r := vm.regs.int[vm.fp[0]+Addr(first):]
 		for i := 0; i < length; i++ {
-			t[i] = byte(s[i])
+			t[i] = byte(r[i])
 		}
-		return slice
+		return reflect.ValueOf(s)
 	case []rune:
-		ol := len(slice)
+		ol := len(s)
 		nl := ol + length
 		if nl < ol {
 			panic(OutOfMemoryError{vm.env})
 		}
-		if c := cap(slice); nl <= c {
-			slice = slice[:nl]
+		if c := cap(s); nl <= c {
+			s = s[:nl]
 		} else {
-			old := slice
+			old := s
 			c = appendCap(c, ol, nl)
-			slice = make([]rune, nl, c)
-			copy(slice, old)
+			s = make([]rune, nl, c)
+			copy(s, old)
 		}
-		t := slice[ol:]
-		s := vm.regs.int[vm.fp[0]+Addr(first):]
+		t := s[ol:]
+		r := vm.regs.int[vm.fp[0]+Addr(first):]
 		for i := 0; i < length; i++ {
-			t[i] = rune(s[i])
+			t[i] = rune(r[i])
 		}
-		return slice
+		return reflect.ValueOf(s)
 	case []float64:
 		i := int(vm.fp[1] + Addr(first))
-		return append(slice, vm.regs.float[i:i+length]...)
+		return reflect.ValueOf(append(s, vm.regs.float[i:i+length]...))
 	case []string:
 		i := int(vm.fp[2] + Addr(first))
-		return append(slice, vm.regs.string[i:i+length]...)
-	case []interface{}:
-		i := int(vm.fp[3] + Addr(first))
-		return append(slice, vm.regs.general[i:i+length]...)
+		return reflect.ValueOf(append(s, vm.regs.string[i:i+length]...))
 	default:
-		s := reflect.ValueOf(slice)
-		ol := s.Len()
+		ol := slice.Len()
 		nl := ol + length
 		if nl < ol {
 			panic(runtimeError("append: out of memory"))
 		}
-		if c := s.Cap(); nl <= c {
-			s = s.Slice(0, nl)
+		if c := slice.Cap(); nl <= c {
+			slice = slice.Slice(0, nl)
 		} else {
-			old := s
+			old := slice
 			c = appendCap(c, ol, nl)
-			s = reflect.MakeSlice(s.Type(), nl, c)
+			slice = reflect.MakeSlice(slice.Type(), nl, c)
 			if ol > 0 {
-				reflect.Copy(s, old)
+				reflect.Copy(slice, old)
 			}
 		}
-		switch s.Type().Elem().Kind() {
+		switch slice.Type().Elem().Kind() {
 		case reflect.Bool:
 			regs := vm.regs.int[vm.fp[0]+Addr(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
-				s.Index(j).SetBool(regs[i] > 0)
+				slice.Index(j).SetBool(regs[i] > 0)
 			}
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			regs := vm.regs.int[vm.fp[0]+Addr(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
-				s.Index(j).SetInt(regs[i])
+				slice.Index(j).SetInt(regs[i])
 			}
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 			regs := vm.regs.int[vm.fp[0]+Addr(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
-				s.Index(j).SetUint(uint64(regs[i]))
+				slice.Index(j).SetUint(uint64(regs[i]))
 			}
 		case reflect.Float32, reflect.Float64:
 			regs := vm.regs.float[vm.fp[1]+Addr(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
-				s.Index(j).SetFloat(regs[i])
+				slice.Index(j).SetFloat(regs[i])
 			}
 		case reflect.String:
 			regs := vm.regs.string[vm.fp[2]+Addr(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
-				s.Index(j).SetString(regs[i])
+				slice.Index(j).SetString(regs[i])
 			}
 		default:
 			regs := vm.regs.general[vm.fp[3]+Addr(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
-				s.Index(j).Set(reflect.ValueOf(regs[i]))
+				slice.Index(j).Set(regs[i])
 			}
 		}
-		return s.Interface()
+		return slice
 	}
 }
