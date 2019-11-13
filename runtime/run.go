@@ -206,7 +206,7 @@ func (vm *VM) run() (Addr, bool) {
 					if ok {
 						rv.Set(v)
 					}
-					vm.setFromReflectValue(c, rv) // TODO: bool?
+					vm.setFromReflectValue(c, rv)
 				}
 			}
 			if ok {
