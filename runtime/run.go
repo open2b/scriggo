@@ -509,6 +509,13 @@ func (vm *VM) run() (Addr, bool) {
 
 		// Field
 		case OpField:
+			// TODO: OpField currently returns the reference to the struct
+			// field, so the implementation is the same as OpFieldRef. This is
+			// going to change in a future commit.
+			i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
+			v := vm.general(a).FieldByIndex(i)
+			vm.setFromReflectValue(c, v)
+		case OpFieldRef:
 			i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
 			v := vm.general(a).FieldByIndex(i)
 			vm.setFromReflectValue(c, v)
@@ -661,11 +668,19 @@ func (vm *VM) run() (Addr, bool) {
 
 		// Index
 		case OpIndex, -OpIndex:
+			// TODO: OpIndex and -OpIndex currently return the reference to the
+			// element returned by the indexing operation, so the implementation
+			// is the same as OpIndexRef and -OpIndexRef. This is going to
+			// change in a future commit.
 			v := vm.general(a)
 			i := int(vm.intk(b, op < 0))
 			vm.setFromReflectValue(c, v.Index(i))
 		case OpIndexString, -OpIndexString:
 			vm.setInt(c, int64(int8(vm.string(a)[int(vm.intk(b, op < 0))])))
+		case OpIndexRef, -OpIndexRef:
+			v := vm.general(a)
+			i := int(vm.intk(b, op < 0))
+			vm.setFromReflectValue(c, v.Index(i))
 
 		// LeftShift
 		case OpLeftShift8, -OpLeftShift8:

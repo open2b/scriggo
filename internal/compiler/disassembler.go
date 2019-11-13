@@ -435,7 +435,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		} else {
 			s += " " + disassembleOperand(fn, c, reflect.Int, k)
 		}
-	case runtime.OpField:
+	case runtime.OpField, runtime.OpFieldRef:
 		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[b]))
 		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
@@ -446,7 +446,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + disassembleVarRef(fn, globals, int16(int(a)<<8|int(uint8(b))))
 		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpGo, runtime.OpReturn:
-	case runtime.OpIndex:
+	case runtime.OpIndex, runtime.OpIndexRef:
 		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 		s += " " + disassembleOperand(fn, b, reflect.Int, k)
 		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
@@ -870,6 +870,7 @@ var operationName = [...]string{
 
 	runtime.OpIndex:       "Index",
 	runtime.OpIndexString: "Index",
+	runtime.OpIndexRef:    "IndexRef",
 
 	runtime.OpLeftShift64: "LeftShift",
 	runtime.OpLeftShift8:  "LeftShift8",
@@ -937,7 +938,8 @@ var operationName = [...]string{
 
 	runtime.OpSelect: "Select",
 
-	runtime.OpField: "Field",
+	runtime.OpField:    "Field",
+	runtime.OpFieldRef: "FieldRef",
 
 	runtime.OpSend: "Send",
 

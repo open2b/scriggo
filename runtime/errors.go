@@ -95,7 +95,7 @@ func (vm *VM) errIndexOutOfRange() runtimeError {
 	in := vm.fn.Body[vm.pc-1]
 	var index, length int
 	switch in.Op {
-	case OpAddr, OpIndex, -OpIndex:
+	case OpAddr, OpIndex, -OpIndex, OpIndexRef, -OpIndexRef:
 		index = int(vm.intk(in.B, in.Op < 0))
 		length = vm.general(in.A).Len()
 	case OpIndexString, -OpIndexString:
@@ -123,7 +123,7 @@ func (vm *VM) newPanic(msg interface{}) *Panic {
 // convertPanic converts a panic to an error.
 func (vm *VM) convertPanic(msg interface{}) error {
 	switch vm.fn.Body[vm.pc-1].Op {
-	case OpAddr, OpIndex, -OpIndex, OpSetSlice, -OpSetSlice:
+	case OpAddr, OpIndex, -OpIndex, OpIndexRef, -OpIndexRef, OpSetSlice, -OpSetSlice:
 		switch err := msg.(type) {
 		case runtime.Error:
 			if s := err.Error(); strings.HasPrefix(s, "runtime error: index out of range") {

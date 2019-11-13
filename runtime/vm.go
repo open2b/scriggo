@@ -1342,6 +1342,7 @@ const (
 	OpDivFloat64
 
 	OpField
+	OpFieldRef
 
 	OpGetVar
 
@@ -1358,6 +1359,7 @@ const (
 
 	OpIndex
 	OpIndexString
+	OpIndexRef
 
 	OpLeftShift8
 	OpLeftShift16
