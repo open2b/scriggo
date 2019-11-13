@@ -726,12 +726,24 @@ func (builder *functionBuilder) emitMethodValue(name string, receiver int8, dst 
 //
 //     z = x
 //
-func (builder *functionBuilder) emitMove(k bool, x, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitMove(k bool, x, z int8, kind reflect.Kind, copy bool) {
 	op := runtime.OpMove
 	if k {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(kindToType(kind)), B: x, C: z})
+	a := int8(kindToType(kind))
+	if copy {
+		// TODO: enable this check..
+		//
+		// if kind != reflect.Array && kind != reflect.Struct {
+		// 	panic(fmt.Errorf("BUG: emitMove: cannot set copy = true with kind %s, expected kind array or struct", kind.String()))
+		// }
+		// .. and remove this if:
+		if kind == reflect.Array || kind == reflect.Struct {
+			a = int8(-generalRegister)
+		}
+	}
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: a, B: x, C: z})
 }
 
 // emitMul appends a new "mul" instruction to the function body.

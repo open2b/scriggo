@@ -414,7 +414,7 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 					em.emitExprR(args[i+numIn-1], t, tmp)
 					em.fb.exitStack()
 					index := em.fb.newRegister(reflect.Int)
-					em.fb.emitMove(true, int8(i), index, reflect.Int)
+					em.fb.emitMove(true, int8(i), index, reflect.Int, true)
 					pos := args[len(args)-1].Pos()
 					em.fb.emitSetSlice(false, slice, tmp, index, pos, fnTyp.In(numIn-1).Elem().Kind())
 				}
@@ -713,7 +713,7 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		slice := em.emitExpr(args[0], sliceType)
 		if call.IsVariadic {
 			tmp := em.fb.newRegister(sliceType.Kind())
-			em.fb.emitMove(false, slice, tmp, sliceType.Kind())
+			em.fb.emitMove(false, slice, tmp, sliceType.Kind(), true)
 			arg := em.emitExpr(args[1], em.ti(args[1]).Type)
 			em.fb.emitAppendSlice(arg, tmp, call.Pos())
 			em.changeRegister(false, tmp, reg, sliceType, dstType)
@@ -1226,16 +1226,16 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			}
 			pos := expr.Pos()
 			if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
-				em.fb.emitMove(true, 1, reg, reflect.Bool)
+				em.fb.emitMove(true, 1, reg, reflect.Bool, true)
 				em.fb.emitIf(k, v1, cond, v2, t1.Kind(), pos)
-				em.fb.emitMove(true, 0, reg, reflect.Bool)
+				em.fb.emitMove(true, 0, reg, reflect.Bool, true)
 				return reg, false
 			}
 			em.fb.enterStack()
 			tmp := em.fb.newRegister(exprType.Kind())
-			em.fb.emitMove(true, 1, tmp, reflect.Bool)
+			em.fb.emitMove(true, 1, tmp, reflect.Bool, true)
 			em.fb.emitIf(k, v1, cond, v2, t1.Kind(), pos)
-			em.fb.emitMove(true, 0, tmp, reflect.Bool)
+			em.fb.emitMove(true, 0, tmp, reflect.Bool, true)
 			em.changeRegister(false, tmp, reg, exprType, dstType)
 			em.fb.exitStack()
 		}
@@ -1310,7 +1310,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				}
 				em.fb.enterStack()
 				indexReg := em.fb.newRegister(reflect.Int)
-				em.fb.emitMove(true, index, indexReg, reflect.Int)
+				em.fb.emitMove(true, index, indexReg, reflect.Int, true)
 				elem, k := em.emitExprK(kv.Value, typ.Elem())
 				if reg != 0 {
 					em.fb.emitSetSlice(k, reg, elem, indexReg, expr.Pos(), typ.Elem().Kind())
@@ -1806,7 +1806,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 			if em.fb.isVariable(operand.Name) {
 				varr := em.fb.scopeLookup(operand.Name)
 				em.fb.emitNew(reflect.PtrTo(unOpType), reg)
-				em.fb.emitMove(false, -varr, reg, dstType.Kind())
+				em.fb.emitMove(false, -varr, reg, dstType.Kind(), true)
 				return
 			}
 			// Closure variable address and Scriggo variables.

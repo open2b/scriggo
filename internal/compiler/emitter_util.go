@@ -30,7 +30,7 @@ func (em *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, d
 	// When moving a value from general to general, value's type must be
 	// updated.
 	if dstType.Kind() == reflect.Interface && srcType.Kind() == reflect.Interface {
-		em.fb.emitMove(k, src, dst, srcType.Kind())
+		em.fb.emitMove(k, src, dst, srcType.Kind(), true)
 		return
 	}
 
@@ -47,7 +47,7 @@ func (em *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, d
 		if k {
 			em.fb.enterScope()
 			tmp := em.fb.newRegister(srcType.Kind())
-			em.fb.emitMove(true, src, tmp, srcType.Kind())
+			em.fb.emitMove(true, src, tmp, srcType.Kind(), true)
 			em.fb.emitConvert(tmp, dstType, dst, srcType.Kind())
 			em.fb.exitScope()
 		}
@@ -56,7 +56,7 @@ func (em *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, d
 	}
 
 	if k || src != dst {
-		em.fb.emitMove(k, src, dst, srcType.Kind())
+		em.fb.emitMove(k, src, dst, srcType.Kind(), true)
 	}
 
 }
