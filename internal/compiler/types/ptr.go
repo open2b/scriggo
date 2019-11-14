@@ -52,6 +52,6 @@ func (x ptrType) String() string {
 	return "*" + x.elem.String()
 }
 
-func (x ptrType) Wrap(v interface{}) interface{} { return wrap(x, v) }
+func (x ptrType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
 
 func (x ptrType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }

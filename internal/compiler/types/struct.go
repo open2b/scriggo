@@ -152,6 +152,6 @@ func (x structType) String() string {
 	return s
 }
 
-func (x structType) Wrap(v interface{}) interface{} { return wrap(x, v) }
+func (x structType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
 
 func (x structType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }

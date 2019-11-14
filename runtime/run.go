@@ -1637,7 +1637,7 @@ func (vm *VM) run() (Addr, bool) {
 		case OpTypify, -OpTypify:
 			t := vm.fn.Types[uint8(a)]
 			if w, ok := t.(Wrapper); ok {
-				var v interface{}
+				var v reflect.Value
 				switch t.Kind() {
 				case reflect.Bool,
 					reflect.Int,
@@ -1651,12 +1651,12 @@ func (vm *VM) run() (Addr, bool) {
 					reflect.Uint32,
 					reflect.Uint64,
 					reflect.Uintptr:
-					v = vm.intk(b, op < 0)
+					v = reflect.ValueOf(vm.intk(b, op < 0))
 				case reflect.Float32,
 					reflect.Float64:
-					v = vm.floatk(b, op < 0)
+					v = reflect.ValueOf(vm.floatk(b, op < 0))
 				case reflect.String:
-					v = vm.stringk(b, op < 0)
+					v = reflect.ValueOf(vm.stringk(b, op < 0))
 				case reflect.Complex64,
 					reflect.Complex128,
 					reflect.Array,
@@ -1667,9 +1667,9 @@ func (vm *VM) run() (Addr, bool) {
 					reflect.Ptr,
 					reflect.Slice,
 					reflect.Struct:
-					v = vm.generalk(b, op < 0).Interface()
+					v = vm.generalk(b, op < 0)
 				}
-				vm.setGeneral(c, reflect.ValueOf(w.Wrap(v)))
+				vm.setGeneral(c, w.Wrap(v))
 			} else {
 				v := reflect.New(t).Elem()
 				vm.getIntoReflectValue(b, v, op < 0)

@@ -12,11 +12,11 @@ import "reflect"
 // defined in this package. These two methods plus Underlying implement the
 // runtime.Wrapper interface.
 
-func wrap(t ScriggoType, v interface{}) interface{} {
-	return emptyInterfaceProxy{
+func wrap(t ScriggoType, v reflect.Value) reflect.Value {
+	return reflect.ValueOf(emptyInterfaceProxy{
 		value: v,
 		sign:  t,
-	}
+	})
 }
 
 // TODO: currently unwrap always returns an empty interface wrapper. This will
@@ -31,12 +31,12 @@ func unwrap(x ScriggoType, v reflect.Value) (reflect.Value, bool) {
 	if p.sign != x {
 		return reflect.Value{}, false
 	}
-	return reflect.ValueOf(p.value), true
+	return p.value, true
 }
 
 // emptyInterfaceProxy is a proxy for values of types that has no methods
 // associated.
 type emptyInterfaceProxy struct {
-	value interface{}
+	value reflect.Value
 	sign  ScriggoType
 }

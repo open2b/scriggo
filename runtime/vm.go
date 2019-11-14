@@ -32,7 +32,7 @@ type Wrapper interface {
 
 	// Wrap wraps a value with a Scriggo type putting into a proxy that exposes
 	// methods to Go.
-	Wrap(interface{}) interface{}
+	Wrap(reflect.Value) reflect.Value
 
 	// Unwrap unwraps a value that has been read from Go. If the value given as
 	// parameter can be unwrapped using the unwrapper's type, the unwrapped

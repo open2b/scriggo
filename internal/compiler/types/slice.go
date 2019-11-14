@@ -55,6 +55,6 @@ func (x sliceType) String() string {
 	return "[]" + (x.elem).String()
 }
 
-func (x sliceType) Wrap(v interface{}) interface{} { return wrap(x, v) }
+func (x sliceType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
 
 func (x sliceType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }

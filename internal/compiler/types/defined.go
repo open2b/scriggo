@@ -96,7 +96,6 @@ func (x definedType) MethodByName(string) (reflect.Method, bool) {
 	// TODO.
 	return reflect.Method{}, false
 }
-
-func (x definedType) Wrap(v interface{}) interface{} { return wrap(x, v) }
+func (x definedType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
 
 func (x definedType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }

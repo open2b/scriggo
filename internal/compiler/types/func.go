@@ -166,6 +166,6 @@ func (x funcType) String() string {
 	return s
 }
 
-func (x funcType) Wrap(v interface{}) interface{} { return wrap(x, v) }
+func (x funcType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
 
 func (x funcType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }

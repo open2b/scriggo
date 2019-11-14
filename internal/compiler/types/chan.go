@@ -61,6 +61,6 @@ func (x chanType) String() string {
 	return s
 }
 
-func (x chanType) Wrap(v interface{}) interface{} { return wrap(x, v) }
+func (x chanType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
 
 func (x chanType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }

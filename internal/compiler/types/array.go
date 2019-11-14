@@ -60,6 +60,6 @@ func (x arrayType) Implements(u reflect.Type) bool {
 	return u.NumMethod() == 0
 }
 
-func (x arrayType) Wrap(v interface{}) interface{} { return wrap(x, v) }
+func (x arrayType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
 
 func (x arrayType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
