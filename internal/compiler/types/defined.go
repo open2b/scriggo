@@ -102,5 +102,4 @@ func (x definedType) Underlying() reflect.Type {
 func (x definedType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
 
 // Wrap implement the interface runtime.Wrapper.
-
 func (x definedType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

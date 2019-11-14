@@ -64,5 +64,5 @@ func (x arrayType) Underlying() reflect.Type {
 // Unwrap implement the interface runtime.Wrapper.
 func (x arrayType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
 
-// Unwrap implement the interface runtime.Wrapper.
+// Wrap implement the interface runtime.Wrapper.
 func (x arrayType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
