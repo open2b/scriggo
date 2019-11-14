@@ -31,20 +31,15 @@ func (x chanType) AssignableTo(T reflect.Type) bool {
 	return x == T
 }
 
+func (x chanType) Elem() reflect.Type {
+	return x.elem
+}
+
 func (x chanType) Implements(u reflect.Type) bool {
 	if u.Kind() != reflect.Interface {
 		panic("expected reflect.Interface")
 	}
 	return u.NumMethod() == 0
-}
-
-func (x chanType) Underlying() reflect.Type {
-	assertNotScriggoType(x.Type)
-	return x.Type
-}
-
-func (x chanType) Elem() reflect.Type {
-	return x.elem
 }
 
 func (x chanType) String() string {
@@ -62,5 +57,10 @@ func (x chanType) String() string {
 }
 
 func (x chanType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
+
+func (x chanType) Underlying() reflect.Type {
+	assertNotScriggoType(x.Type)
+	return x.Type
+}
 
 func (x chanType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }

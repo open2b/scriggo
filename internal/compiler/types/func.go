@@ -124,13 +124,6 @@ func (x funcType) In(i int) reflect.Type {
 	return x.Type.In(i)
 }
 
-func (x funcType) Out(i int) reflect.Type {
-	if x.out != nil {
-		return (*x.out)[i]
-	}
-	return x.Type.Out(i)
-}
-
 func (x funcType) Kind() reflect.Kind {
 	return reflect.Func
 }
@@ -139,9 +132,11 @@ func (x funcType) Name() string {
 	return "" // this is a composite type, not a defined type.
 }
 
-func (x funcType) Underlying() reflect.Type {
-	assertNotScriggoType(x.Type)
-	return x.Type
+func (x funcType) Out(i int) reflect.Type {
+	if x.out != nil {
+		return (*x.out)[i]
+	}
+	return x.Type.Out(i)
 }
 
 func (x funcType) String() string {
@@ -168,6 +163,11 @@ func (x funcType) String() string {
 	return s
 }
 
-func (x funcType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
+func (x funcType) Underlying() reflect.Type {
+	assertNotScriggoType(x.Type)
+	return x.Type
+}
 
 func (x funcType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
+
+func (x funcType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

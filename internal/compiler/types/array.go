@@ -34,23 +34,8 @@ func (x arrayType) AssignableTo(T reflect.Type) bool {
 	return x == T
 }
 
-func (x arrayType) Name() string {
-	return ""
-}
-
 func (x arrayType) Elem() reflect.Type {
 	return x.elem
-}
-
-func (x arrayType) Underlying() reflect.Type {
-	assertNotScriggoType(x.Type)
-	return x.Type
-}
-
-func (x arrayType) String() string {
-	s := "[" + strconv.Itoa(x.Type.Len()) + "]"
-	s += x.elem.String()
-	return s
 }
 
 func (x arrayType) Implements(u reflect.Type) bool {
@@ -60,6 +45,21 @@ func (x arrayType) Implements(u reflect.Type) bool {
 	return u.NumMethod() == 0
 }
 
-func (x arrayType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
+func (x arrayType) Name() string {
+	return ""
+}
+
+func (x arrayType) String() string {
+	s := "[" + strconv.Itoa(x.Type.Len()) + "]"
+	s += x.elem.String()
+	return s
+}
+
+func (x arrayType) Underlying() reflect.Type {
+	assertNotScriggoType(x.Type)
+	return x.Type
+}
 
 func (x arrayType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
+
+func (x arrayType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

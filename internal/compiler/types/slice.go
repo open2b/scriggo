@@ -31,8 +31,8 @@ func (x sliceType) AssignableTo(T reflect.Type) bool {
 	return x == T
 }
 
-func (x sliceType) Name() string {
-	return ""
+func (x sliceType) Elem() reflect.Type {
+	return x.elem
 }
 
 func (x sliceType) Implements(u reflect.Type) bool {
@@ -42,8 +42,12 @@ func (x sliceType) Implements(u reflect.Type) bool {
 	return u.NumMethod() == 0
 }
 
-func (x sliceType) Elem() reflect.Type {
-	return x.elem
+func (x sliceType) Name() string {
+	return ""
+}
+
+func (x sliceType) String() string {
+	return "[]" + (x.elem).String()
 }
 
 func (x sliceType) Underlying() reflect.Type {
@@ -51,10 +55,6 @@ func (x sliceType) Underlying() reflect.Type {
 	return x.Type
 }
 
-func (x sliceType) String() string {
-	return "[]" + (x.elem).String()
-}
+func (x sliceType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
 
 func (x sliceType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
-
-func (x sliceType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }

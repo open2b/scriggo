@@ -90,11 +90,6 @@ func (x structType) AssignableTo(T reflect.Type) bool {
 	return x == T
 }
 
-func (x structType) Underlying() reflect.Type {
-	assertNotScriggoType(x.Type)
-	return x.Type
-}
-
 func (x structType) Field(i int) reflect.StructField {
 	if field, ok := (*x.scriggoFields)[i]; ok {
 		return field
@@ -121,15 +116,15 @@ func (x structType) FieldByNameFunc(match func(string) bool) (reflect.StructFiel
 	panic("TODO: not implemented") // TODO(Gianluca): to implement.
 }
 
-func (x structType) NumField() int {
-	return x.Type.NumField()
-}
-
 func (x structType) Implements(u reflect.Type) bool {
 	if u.Kind() != reflect.Interface {
 		panic("expected reflect.Interface")
 	}
 	return u.NumMethod() == 0
+}
+
+func (x structType) NumField() int {
+	return x.Type.NumField()
 }
 
 func (x structType) String() string {
@@ -152,6 +147,11 @@ func (x structType) String() string {
 	return s
 }
 
-func (x structType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
+func (x structType) Underlying() reflect.Type {
+	assertNotScriggoType(x.Type)
+	return x.Type
+}
 
 func (x structType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
+
+func (x structType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

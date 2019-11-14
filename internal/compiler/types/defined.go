@@ -48,21 +48,6 @@ func (x definedType) Name() string {
 	return x.name
 }
 
-func (x definedType) String() string {
-	// For defined types the string representation is exactly the name of the
-	// type; the internal structure of the type is hidden.
-	// TODO: verify that this is correct.
-	return x.name
-}
-
-func (x definedType) Underlying() reflect.Type {
-	if st, ok := x.Type.(ScriggoType); ok {
-		return st.Underlying()
-	}
-	assertNotScriggoType(x.Type)
-	return x.Type
-}
-
 func (x definedType) AssignableTo(T reflect.Type) bool {
 
 	// Both x and T are Scriggo defined types: x is assignable to T only if they
@@ -96,6 +81,22 @@ func (x definedType) MethodByName(string) (reflect.Method, bool) {
 	// TODO.
 	return reflect.Method{}, false
 }
+
+func (x definedType) String() string {
+	// For defined types the string representation is exactly the name of the
+	// type; the internal structure of the type is hidden.
+	// TODO: verify that this is correct.
+	return x.name
+}
+
 func (x definedType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
+
+func (x definedType) Underlying() reflect.Type {
+	if st, ok := x.Type.(ScriggoType); ok {
+		return st.Underlying()
+	}
+	assertNotScriggoType(x.Type)
+	return x.Type
+}
 
 func (x definedType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }

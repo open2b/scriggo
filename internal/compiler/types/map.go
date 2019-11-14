@@ -89,6 +89,6 @@ func (x mapType) Underlying() reflect.Type {
 	return x.Type
 }
 
-func (x mapType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
-
 func (x mapType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
+
+func (x mapType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

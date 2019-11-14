@@ -31,9 +31,9 @@ func (x ptrType) AssignableTo(T reflect.Type) bool {
 	return x == T
 }
 
-func (x ptrType) Underlying() reflect.Type {
-	assertNotScriggoType(x.Type)
-	return x.Type
+func (x ptrType) Elem() reflect.Type {
+	// x.elem is always != nil, otherwise this ptrType has no reason to exist.
+	return x.elem
 }
 
 func (x ptrType) Implements(u reflect.Type) bool {
@@ -43,15 +43,15 @@ func (x ptrType) Implements(u reflect.Type) bool {
 	return u.NumMethod() == 0
 }
 
-func (x ptrType) Elem() reflect.Type {
-	// x.elem is always != nil, otherwise this ptrType has no reason to exist.
-	return x.elem
-}
-
 func (x ptrType) String() string {
 	return "*" + x.elem.String()
 }
 
-func (x ptrType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
+func (x ptrType) Underlying() reflect.Type {
+	assertNotScriggoType(x.Type)
+	return x.Type
+}
 
 func (x ptrType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
+
+func (x ptrType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
