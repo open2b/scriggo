@@ -193,7 +193,7 @@ func (vm *VM) convertPanic(msg interface{}) error {
 				return vm.newPanic(runtimeError(s))
 			}
 		}
-	case OpMakeChan:
+	case OpMakeChan, -OpMakeChan:
 		if err, ok := msg.(string); ok && err == "reflect.MakeChan: negative buffer size" {
 			return vm.newPanic(runtimeError("makechan: size out of range"))
 		}
