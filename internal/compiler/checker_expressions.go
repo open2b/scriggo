@@ -1025,6 +1025,10 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 				// https://github.com/open2b/scriggo/issues/368
 				return nil, fmt.Errorf("%s cannot be compared", t1.Type)
 			}
+			if !t2.Type.Comparable() {
+				// https://github.com/open2b/scriggo/issues/368
+				return nil, fmt.Errorf("%s cannot be compared", t2.Type)
+			}
 		} else if !isOrdered(t1) {
 			return nil, fmt.Errorf("operator %s not defined on %s", op, t1.Type.Kind())
 		}

@@ -734,6 +734,9 @@ var checkerStmts = map[string]string{
 	`_ = 4 + _`:                       cannotUseBlankAsValue,
 	`_ = []_{}`:                       cannotUseBlankAsValue,
 
+	// Equality
+	`type S = struct{ A func() }; _ = interface{}(nil) == S{}`: `invalid operation: interface{}(nil) == S literal (struct { A func() } cannot be compared)`,
+
 	// Assignments.
 	`(((map[int]string{}[0]))) = ""`:                              ok,
 	`a := ((0)); var _ int = a`:                                   ok,
