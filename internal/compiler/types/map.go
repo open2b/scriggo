@@ -61,6 +61,10 @@ func (x mapType) Implements(u reflect.Type) bool {
 	return u.NumMethod() == 0
 }
 
+func (x mapType) Name() string {
+	return "" // composite types do not have a name.
+}
+
 func (x mapType) Key() reflect.Type {
 	if x.key != nil {
 		return x.key

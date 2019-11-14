@@ -42,6 +42,10 @@ func (x chanType) Implements(u reflect.Type) bool {
 	return u.NumMethod() == 0
 }
 
+func (x chanType) Name() string {
+	return "" // composite types do not have a name.
+}
+
 func (x chanType) String() string {
 	var s string
 	switch x.ChanDir() {
