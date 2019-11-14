@@ -195,6 +195,16 @@ func kindToType(k reflect.Kind) registerType {
 	}
 }
 
+// newGlobal returns a new Global value.
+func newGlobal(pkg, name string, typ reflect.Type, value interface{}) Global {
+	return Global{
+		Pkg:   pkg,
+		Name:  name,
+		Type:  typ,
+		Value: value,
+	}
+}
+
 // predVarIndex returns the index of a global variable in globals, adding it
 // if it does not exist.
 func (em *emitter) predVarIndex(v *reflect.Value, predPkgName, name string) int16 {
@@ -202,7 +212,7 @@ func (em *emitter) predVarIndex(v *reflect.Value, predPkgName, name string) int1
 		return int16(index)
 	}
 	index := len(em.globals)
-	g := Global{Pkg: predPkgName, Name: name, Type: v.Type().Elem()}
+	g := newGlobal(predPkgName, name, v.Type().Elem(), nil)
 	if !v.IsNil() {
 		g.Value = v.Interface()
 	}
