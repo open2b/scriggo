@@ -8,6 +8,7 @@ package compiler
 
 import (
 	"fmt"
+
 	"scriggo/ast"
 	"scriggo/internal/compiler/types"
 )
