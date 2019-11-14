@@ -1044,6 +1044,9 @@ func (c1 complexConst) binaryOp(op ast.OperatorType, c2 constant) (constant, err
 		cc, _ := n2.r.binaryOp(ast.OperatorMultiplication, n2.r)
 		dd, _ := n2.i.binaryOp(ast.OperatorMultiplication, n2.i)
 		s, _ := cc.binaryOp(ast.OperatorAddition, dd)
+		if s.zero() {
+			return nil, errComplexDivisionByZero
+		}
 		// z = (ac+bd)/s + i(bc-ad)/s
 		ac, _ := n1.r.binaryOp(ast.OperatorMultiplication, n2.r)
 		bd, _ := n1.i.binaryOp(ast.OperatorMultiplication, n2.i)
@@ -1052,8 +1055,8 @@ func (c1 complexConst) binaryOp(op ast.OperatorType, c2 constant) (constant, err
 		re, _ := ac.binaryOp(ast.OperatorAddition, bd)
 		im, _ := bc.binaryOp(ast.OperatorSubtraction, ad)
 		c := complexConst{}
-		c.r, _ = re.binaryOp(op, s)
-		c.i, _ = im.binaryOp(op, s)
+		c.r, _ = re.binaryOp(ast.OperatorDivision, s)
+		c.i, _ = im.binaryOp(ast.OperatorDivision, s)
 		return c, nil
 	}
 	return nil, errInvalidOperation

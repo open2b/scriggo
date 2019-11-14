@@ -1,5 +1,3 @@
-// skip : complex division by zero panics the type checker https://github.com/open2b/scriggo/issues/424
-
 // errorcheck
 
 // Copyright 2017 The Go Authors. All rights reserved.
@@ -8,7 +6,7 @@
 
 // Issue 20227: panic while constructing constant "1i/1e-600000000"
 
-package p
+package main
 
 var _ = 1 / 1e-600000000i  // ERROR "complex division by zero"
 var _ = 1i / 1e-600000000  // ERROR "complex division by zero"
@@ -16,3 +14,5 @@ var _ = 1i / 1e-600000000i // ERROR "complex division by zero"
 
 var _ = 1 / (1e-600000000 + 1e-600000000i)  // ERROR "complex division by zero"
 var _ = 1i / (1e-600000000 + 1e-600000000i) // ERROR "complex division by zero"
+
+func main() {}
