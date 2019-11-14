@@ -154,10 +154,10 @@ func (vm *VM) run() (Addr, bool) {
 			t := vm.fn.Types[uint8(b)]
 			var ok bool
 			if v.IsValid() {
-				if w, isWrapper := t.(Wrapper); isWrapper { // Scriggo type.
+				if w, isWrapper := t.(Wrapper); isWrapper {
 					v, ok = w.Unwrap(v)
 				} else {
-					if t.Kind() == reflect.Interface { // Go type.
+					if t.Kind() == reflect.Interface {
 						ok = v.Type().Implements(t)
 					} else {
 						ok = v.Type() == t
