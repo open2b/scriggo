@@ -1,4 +1,4 @@
-// skip
+// run
 
 package main
 
