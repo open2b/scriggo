@@ -745,7 +745,14 @@ func (vm *VM) run() (Addr, bool) {
 		case OpMakeChan, -OpMakeChan:
 			typ := vm.fn.Types[uint8(a)]
 			buffer := int(vm.intk(b, op < 0))
-			vm.setGeneral(c, reflect.MakeChan(typ, buffer))
+			var ch reflect.Value
+			if typ.ChanDir() == reflect.BothDir {
+				ch = reflect.MakeChan(typ, buffer)
+			} else {
+				t := reflect.ChanOf(reflect.BothDir, typ.Elem())
+				ch = reflect.MakeChan(t, buffer).Convert(typ)
+			}
+			vm.setGeneral(c, ch)
 
 		// MakeMap
 		case OpMakeMap, -OpMakeMap:
