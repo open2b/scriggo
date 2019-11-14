@@ -923,47 +923,25 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 
 // checkTypeDeclaration checks a type declaration node that can be both a type
 // definition or an alias declaration. Returns the type name and a type info
-// that represents the declared type. If the type declaration has a blank
-// identifier as name, then an empty string and a nil TypeInfo is returned.
+// representing the declared type. If the type declaration has a blank
+// identifier as name, an empty string and a nil type info are returned.
 //
 //  type Int int
 //  type Int = int
 //
 func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) (string, *TypeInfo) {
-
-	// Get and type check the base type.
-	//
-	//      type Int int
-	//               ^^^
-	//
 	typ := tc.checkType(node.Type)
-
-	// Blank identifier: return nothing.
-	//
-	// 		type _ Int
-	// 		type _ = Int
-	//
 	if isBlankIdentifier(node.Identifier) {
 		return "", nil
 	}
-
-	// Get the type name from the declaration.
-	//
-	//      type Int int
-	//           ^^^
-	//
 	name := node.Identifier.Name
-
-	// If this is an alias declaration, the new type is exactly the base
-	// type. Nothing else should be done.
 	if node.IsAliasDeclaration {
+		// Return the base type.
 		return name, typ
 	}
-
-	// Type definition: a Scriggo type must be created.
+	// Create and return a new Scriggo type.
 	return name, &TypeInfo{
 		Type:       tc.types.DefinedOf(name, typ.Type),
 		Properties: PropertyIsType,
 	}
-
 }
