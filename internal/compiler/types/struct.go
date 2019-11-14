@@ -79,7 +79,7 @@ func (types *Types) addFields(fields map[int]reflect.StructField) *map[int]refle
 	return newFields
 }
 
-// structType represents a composite struct type where at least once of the
+// structType represents a composite struct type where at least one of the
 // fields has a Scriggo type.
 type structType struct {
 	reflect.Type
