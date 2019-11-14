@@ -129,7 +129,7 @@ func (x funcType) Kind() reflect.Kind {
 }
 
 func (x funcType) Name() string {
-	return "" // composite types do not have a name. // this is a composite type, not a defined type.
+	return "" // composite types do not have a name.
 }
 
 func (x funcType) Out(i int) reflect.Type {
