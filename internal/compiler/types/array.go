@@ -46,7 +46,7 @@ func (x arrayType) Implements(u reflect.Type) bool {
 }
 
 func (x arrayType) Name() string {
-	return ""
+	return "" // composite types do not have a name.
 }
 
 func (x arrayType) String() string {

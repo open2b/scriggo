@@ -43,7 +43,7 @@ func (x sliceType) Implements(u reflect.Type) bool {
 }
 
 func (x sliceType) Name() string {
-	return ""
+	return "" // composite types do not have a name.
 }
 
 func (x sliceType) String() string {
