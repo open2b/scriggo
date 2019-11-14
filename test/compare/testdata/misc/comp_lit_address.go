@@ -9,9 +9,8 @@ import (
 func main() {
 
 	// Arrays.
-	// https://github.com/open2b/scriggo/issues/313
-	// a1 := &[3]int{}
-	// fmt.Println(a1)
+	a1 := &[3]int{}
+	fmt.Println(a1)
 
 	// Slices.
 	s1 := &[]int{}
