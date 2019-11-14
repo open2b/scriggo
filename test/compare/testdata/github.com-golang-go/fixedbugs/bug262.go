@@ -1,5 +1,3 @@
-// skip : Cannot assign to a pointer indirection returned by a function https://github.com/open2b/scriggo/issues/439
-
 // run
 
 // Copyright 2010 The Go Authors. All rights reserved.

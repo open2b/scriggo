@@ -682,6 +682,8 @@ var checkerStmts = map[string]string{
 	`const a = nil`:                             `const initializer cannot be nil`,
 	`const _ = 13407807929942597099574024998205846127479365820592393377723561443721764030073546976801874298166903427690031858186486050853753882811946569946433649006084095`: ok,
 	`const _ = 13407807929942597099574024998205846127479365820592393377723561443721764030073546976801874298166903427690031858186486050853753882811946569946433649006084096`: `constant too large`,
+	`const _ = 6e5518446744`: `malformed constant: 6e5518446744 (exponent overflow)`,
+	`const _ = 6e1518446744`: `constant too large: 6e1518446744`,
 
 	// Constants - from https://golang.org/ref/spec#Constant_expressions
 	`const a = 2 + 3.0`:                      ok,
@@ -1044,7 +1046,7 @@ var checkerStmts = map[string]string{
 	`for k, v := range ([...]int{}) { var _, _ int = k, v }`:                         ok,
 	`for k, v := range map[float64]string{} { var _ float64 = k; var _ string = v }`: ok,
 	`for _, _ = range (&[...]int{}) { }`:                                             ok,
-	`for _, _ = range 0 { }`:                                                         `cannot range over 0 (type untyped int)`, // TODO (Gianluca): should be 'number', not int.
+	`for _, _ = range 0 { }`:                                                         `cannot range over 0 (type untyped number)`,
 	`for _, _ = range (&[]int{}) { }`:                                                `cannot range over &[]int literal (type *[]int)`,
 	`for a, b, c := range "" { }`:                                                    `too many variables in range`,
 	`for a, b := range nil { }`:                                                      `cannot range over nil`,

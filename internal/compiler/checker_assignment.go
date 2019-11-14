@@ -175,9 +175,9 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			tis, isBuiltin, _ := tc.checkCallExpression(call, false)
 			if len(lhs) != len(tis) {
 				if isBuiltin {
-					panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(lhs), len(rhs)))
+					panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(lhs), len(tis)))
 				}
-				panic(tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(lhs), call, len(rhs)))
+				panic(tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(lhs), call, len(tis)))
 			}
 			rhs = make([]ast.Expression, len(tis))
 			for i, ti := range tis {

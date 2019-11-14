@@ -1,4 +1,4 @@
-// skip : see if it's related to https://github.com/open2b/scriggo/issues/421
+// skip
 
 // Copyright 2011 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style

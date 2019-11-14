@@ -1044,6 +1044,9 @@ func (c1 complexConst) binaryOp(op ast.OperatorType, c2 constant) (constant, err
 		cc, _ := n2.r.binaryOp(ast.OperatorMultiplication, n2.r)
 		dd, _ := n2.i.binaryOp(ast.OperatorMultiplication, n2.i)
 		s, _ := cc.binaryOp(ast.OperatorAddition, dd)
+		if s.zero() {
+			return nil, errComplexDivisionByZero
+		}
 		// z = (ac+bd)/s + i(bc-ad)/s
 		ac, _ := n1.r.binaryOp(ast.OperatorMultiplication, n2.r)
 		bd, _ := n1.i.binaryOp(ast.OperatorMultiplication, n2.i)
@@ -1052,8 +1055,8 @@ func (c1 complexConst) binaryOp(op ast.OperatorType, c2 constant) (constant, err
 		re, _ := ac.binaryOp(ast.OperatorAddition, bd)
 		im, _ := bc.binaryOp(ast.OperatorSubtraction, ad)
 		c := complexConst{}
-		c.r, _ = re.binaryOp(op, s)
-		c.i, _ = im.binaryOp(op, s)
+		c.r, _ = re.binaryOp(ast.OperatorDivision, s)
+		c.i, _ = im.binaryOp(ast.OperatorDivision, s)
 		return c, nil
 	}
 	return nil, errInvalidOperation
@@ -1323,17 +1326,21 @@ func parseBasicLiteral(typ ast.LiteralType, s string) (constant, error) {
 		}
 		return n, nil
 	case ast.FloatLiteral:
-		n, _ := bigFloat().SetString(s)
+		n, _, err := bigFloat().Parse(s, 0)
+		if err != nil {
+			return nil, fmt.Errorf("malformed constant: %s (%v)", s, err)
+		}
+		if n.IsInf() {
+			return nil, fmt.Errorf("constant too large: %s", s)
+		}
 		if n.MinPrec() < 53 {
 			f, _ := n.Float64()
 			return float64Const(f), nil
 		}
-		if !n.IsInf() {
-			const maxExp = 4 << 10
-			if e := n.MantExp(nil); -maxExp < e && e < maxExp {
-				r, _ := new(big.Rat).SetString(s)
-				return ratConst{r: r}, nil
-			}
+		const maxExp = 4 << 10
+		if e := n.MantExp(nil); -maxExp < e && e < maxExp {
+			r, _ := new(big.Rat).SetString(s)
+			return ratConst{r: r}, nil
 		}
 		return floatConst{f: n}, nil
 	case ast.ImaginaryLiteral:

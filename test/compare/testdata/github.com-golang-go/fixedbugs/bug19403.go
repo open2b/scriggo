@@ -1,5 +1,3 @@
-// skip : 16 != 16 https://github.com/open2b/scriggo/issues/427
-
 // run
 
 // Copyright 2017 The Go Authors.  All rights reserved.
