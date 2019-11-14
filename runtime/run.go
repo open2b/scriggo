@@ -1638,35 +1638,15 @@ func (vm *VM) run() (Addr, bool) {
 			t := vm.fn.Types[uint8(a)]
 			if w, ok := t.(Wrapper); ok {
 				var v reflect.Value
-				switch t.Kind() {
-				case reflect.Bool,
-					reflect.Int,
-					reflect.Int8,
-					reflect.Int16,
-					reflect.Int32,
-					reflect.Int64,
-					reflect.Uint,
-					reflect.Uint8,
-					reflect.Uint16,
-					reflect.Uint32,
-					reflect.Uint64,
-					reflect.Uintptr:
+				k := t.Kind()
+				switch {
+				case reflect.Bool <= k && k <= reflect.Uintptr:
 					v = reflect.ValueOf(vm.intk(b, op < 0))
-				case reflect.Float32,
-					reflect.Float64:
+				case k == reflect.Float32 || k == reflect.Float64:
 					v = reflect.ValueOf(vm.floatk(b, op < 0))
-				case reflect.String:
+				case k == reflect.String:
 					v = reflect.ValueOf(vm.stringk(b, op < 0))
-				case reflect.Complex64,
-					reflect.Complex128,
-					reflect.Array,
-					reflect.Chan,
-					reflect.Func,
-					reflect.Interface,
-					reflect.Map,
-					reflect.Ptr,
-					reflect.Slice,
-					reflect.Struct:
+				case reflect.Complex64 <= k && k <= reflect.Struct:
 					v = vm.generalk(b, op < 0)
 				}
 				vm.setGeneral(c, w.Wrap(v))
