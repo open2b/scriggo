@@ -23,7 +23,22 @@ func (em *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, d
 
 	// dst is indirect, so value must be "typed" to its true (original) type
 	// before putting it into general.
+	//
+	// As an exception to this rule, if the srcType is a Scriggo type then the
+	// typify instruction should use the Scriggo internal type or the Go defined
+	// typ, not the Scriggo defined type; that's because when the Scriggo
+	// defined type reaches the outside, Go cannot access to it's internal
+	// implementation. Think about a struct defined in Go: when this is passed
+	// through an interface to Go, Go can make a type assertion with the
+	// concrete type because it's defined in Go, then it is able to access the
+	// struct fields. This is not possible with Scriggo defined types, because
+	// Go cannot reference to them.
 	if dst < 0 {
+
+		if st, ok := srcType.(types.ScriggoType); ok {
+			srcType = st.Underlying()
+		}
+
 		em.fb.emitTypify(k, srcType, src, dst)
 		return
 	}

@@ -78,5 +78,21 @@ func main() {
 		// _, ok = i1.(struct{A Int}); fmt.Println(ok) // TODO: cannot pass until structType has a pointer inside of it.
 	}
 
+	{
+		// Indirect values.
+
+		var ok bool
+
+		type Int int
+
+		i := Int(42)
+		_ = &i
+		var interf interface{} = i
+		_, ok = interf.(Int)  ; fmt.Println(ok)
+		_, ok = interf.(int)  ; fmt.Println(ok)
+		_, ok = interf.(*int) ; fmt.Println(ok)
+		_, ok = interf.(*Int) ; fmt.Println(ok)
+	}
+
 
 }
