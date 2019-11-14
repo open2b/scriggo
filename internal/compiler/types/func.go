@@ -101,6 +101,8 @@ func containsScriggoTypes(types []reflect.Type) bool {
 type funcType struct {
 	reflect.Type
 
+	// At least one of 'in' and 'out' contains at least one Scriggo type,
+	// otherwise there's no need to create a funcType.
 	in, out *[]reflect.Type
 }
 
