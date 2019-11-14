@@ -1,5 +1,3 @@
-// skip : panics the type checker https://github.com/open2b/scriggo/issues/429
-
 // errorcheck
 
 // Copyright 2017 The Go Authors. All rights reserved.
@@ -11,3 +9,5 @@ package main
 const _ = 6e5518446744 // ERROR "malformed constant: 6e5518446744 \(exponent overflow\)"
 const _ = 1e-1000000000
 const _ = 1e+1000000000 // ERROR "constant too large"
+
+func main() {}
