@@ -55,11 +55,14 @@ func (x arrayType) String() string {
 	return s
 }
 
+// Underlying implement the interface runtime.Wrapper.
 func (x arrayType) Underlying() reflect.Type {
 	assertNotScriggoType(x.Type)
 	return x.Type
 }
 
+// Unwrap implement the interface runtime.Wrapper.
 func (x arrayType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
 
+// Unwrap implement the interface runtime.Wrapper.
 func (x arrayType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

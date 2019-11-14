@@ -56,11 +56,14 @@ func (x chanType) String() string {
 	return s
 }
 
-func (x chanType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
-
+// Underlying implement the interface runtime.Wrapper.
 func (x chanType) Underlying() reflect.Type {
 	assertNotScriggoType(x.Type)
 	return x.Type
 }
 
+// Unwrap implement the interface runtime.Wrapper.
 func (x chanType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
+
+// Wrap implement the interface runtime.Wrapper.
+func (x chanType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

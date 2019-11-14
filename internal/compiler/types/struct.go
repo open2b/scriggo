@@ -147,11 +147,13 @@ func (x structType) String() string {
 	return s
 }
 
+// Underlying implement the interface runtime.Wrapper.
 func (x structType) Underlying() reflect.Type {
 	assertNotScriggoType(x.Type)
 	return x.Type
 }
 
+// Unwrap implement the interface runtime.Wrapper.
 func (x structType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
 
 func (x structType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

@@ -84,11 +84,14 @@ func (x mapType) String() string {
 	return s
 }
 
+// Underlying implement the interface runtime.Wrapper.
 func (x mapType) Underlying() reflect.Type {
 	assertNotScriggoType(x.Type)
 	return x.Type
 }
 
+// Unwrap implement the interface runtime.Wrapper.
 func (x mapType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
 
+// Wrap implement the interface runtime.Wrapper.
 func (x mapType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

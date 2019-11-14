@@ -89,8 +89,7 @@ func (x definedType) String() string {
 	return x.name
 }
 
-func (x definedType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
-
+// Underlying implement the interface runtime.Wrapper.
 func (x definedType) Underlying() reflect.Type {
 	if st, ok := x.Type.(ScriggoType); ok {
 		return st.Underlying()
@@ -99,4 +98,9 @@ func (x definedType) Underlying() reflect.Type {
 	return x.Type
 }
 
+// Unwrap implement the interface runtime.Wrapper.
 func (x definedType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
+
+// Wrap implement the interface runtime.Wrapper.
+
+func (x definedType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

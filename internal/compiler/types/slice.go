@@ -50,11 +50,14 @@ func (x sliceType) String() string {
 	return "[]" + (x.elem).String()
 }
 
+// Underlying implement the interface runtime.Wrapper.
 func (x sliceType) Underlying() reflect.Type {
 	assertNotScriggoType(x.Type)
 	return x.Type
 }
 
+// Unwrap implement the interface runtime.Wrapper.
 func (x sliceType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
 
+// Wrap implement the interface runtime.Wrapper.
 func (x sliceType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
