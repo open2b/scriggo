@@ -43,6 +43,10 @@ func (x ptrType) Implements(u reflect.Type) bool {
 	return u.NumMethod() == 0
 }
 
+func (x ptrType) Name() string {
+	return "" // composite types do not have a name.
+}
+
 func (x ptrType) String() string {
 	return "*" + x.elem.String()
 }
