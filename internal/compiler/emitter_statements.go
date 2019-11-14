@@ -325,13 +325,13 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 		case *ast.Show:
 			// render([implicit *vm.Env,] gD io.Writer, gE interface{}, iA ast.Context)
 			em.emitExprR(node.Expr, emptyInterfaceType, em.fb.templateRegs.gE)
-			em.fb.emitMove(true, int8(node.Context), em.fb.templateRegs.iA, reflect.Int)
+			em.fb.emitMove(true, int8(node.Context), em.fb.templateRegs.iA, reflect.Int, false)
 			if em.inURL {
 				// In a URL context: use the urlWriter, that implements io.Writer.
-				em.fb.emitMove(false, em.fb.templateRegs.gF, em.fb.templateRegs.gD, reflect.Interface)
+				em.fb.emitMove(false, em.fb.templateRegs.gF, em.fb.templateRegs.gD, reflect.Interface, false)
 			} else {
 				// Not in a URL context: use the default writer.
-				em.fb.emitMove(false, em.fb.templateRegs.gA, em.fb.templateRegs.gD, reflect.Interface)
+				em.fb.emitMove(false, em.fb.templateRegs.gA, em.fb.templateRegs.gD, reflect.Interface, false)
 			}
 			shift := runtime.StackShift{em.fb.templateRegs.iA - 1, 0, 0, em.fb.templateRegs.gC}
 			em.fb.emitCallIndirect(em.fb.templateRegs.gC, 0, shift, node.Pos(), renderFuncType)
@@ -559,9 +559,9 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 			valueAssignment := ast.NewAssignment(pos, assignment.Lhs[0:1], assignment.Type, []ast.Expression{valueExpr})
 			em.emitAssignmentNode(valueAssignment)
 			if len(assignment.Lhs) == 2 { // case has 'ok'
-				em.fb.emitMove(true, 1, ok, reflect.Bool)
+				em.fb.emitMove(true, 1, ok, reflect.Bool, false)
 				em.fb.emitIf(false, 0, runtime.ConditionOK, 0, reflect.Interface, assignment.Pos())
-				em.fb.emitMove(true, 0, ok, reflect.Bool)
+				em.fb.emitMove(true, 0, ok, reflect.Bool, false)
 				okExpr := ast.NewIdentifier(pos, "$ok")
 				em.typeInfos[okExpr] = &TypeInfo{
 					Type: boolType,
@@ -601,7 +601,7 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 	if node.Expr == nil {
 		typ = boolType
 		expr = em.fb.newRegister(typ.Kind())
-		em.fb.emitMove(true, 1, expr, typ.Kind())
+		em.fb.emitMove(true, 1, expr, typ.Kind(), true)
 		node.Expr = ast.NewIdentifier(node.Pos(), "true")
 		em.typeInfos[node.Expr] = &TypeInfo{
 			Constant:   boolConst(true),

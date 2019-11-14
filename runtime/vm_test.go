@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -121,11 +122,13 @@ var swapStackTests = []struct {
 		a:     [4]Addr{0, 0, 0, 2},
 		b:     [4]Addr{0, 0, 0, 4},
 		bSize: StackShift{0, 0, 0, 3},
-		regs:  registers{general: []interface{}{nil, 5, "c", true, 9, 7.2, "s", nil}},
+		regs: registers{general: []reflect.Value{{}, reflect.ValueOf(5), reflect.ValueOf("c"),
+			reflect.ValueOf(true), reflect.ValueOf(9), reflect.ValueOf(7.2), reflect.ValueOf("s"), {}}},
 		expected: expectedSwapStack{
-			a:    [4]Addr{0, 0, 0, 5},
-			b:    [4]Addr{0, 0, 0, 2},
-			regs: registers{general: []interface{}{nil, 5, "c", 7.2, "s", nil, true, 9}},
+			a: [4]Addr{0, 0, 0, 5},
+			b: [4]Addr{0, 0, 0, 2},
+			regs: registers{general: []reflect.Value{{}, reflect.ValueOf(5), reflect.ValueOf("c"),
+				reflect.ValueOf(7.2), reflect.ValueOf("s"), {}, reflect.ValueOf(true), reflect.ValueOf(9)}},
 		},
 	},
 }
@@ -171,7 +174,8 @@ func TestSwapStack(t *testing.T) {
 			}
 		}
 		for i, v := range sst.expected.regs.general {
-			if v != m.regs.general[i] {
+			v2 := m.regs.general[i]
+			if v.IsValid() != v2.IsValid() || (v.IsValid() && v2.IsValid() && v.Interface() != m.regs.general[i].Interface()) {
 				t.Fatalf("test %d: expected %#v for general[%d], got %#v", n, v, i, m.regs.general[i])
 			}
 		}

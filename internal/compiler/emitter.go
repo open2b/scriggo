@@ -420,7 +420,7 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 					em.emitExprR(args[i+numIn-1], t, tmp)
 					em.fb.exitStack()
 					index := em.fb.newRegister(reflect.Int)
-					em.fb.emitMove(true, int8(i), index, reflect.Int)
+					em.fb.emitMove(true, int8(i), index, reflect.Int, false)
 					pos := args[len(args)-1].Pos()
 					em.fb.emitSetSlice(false, slice, tmp, index, pos, fnTyp.In(numIn-1).Elem().Kind())
 				}
@@ -698,12 +698,12 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 	index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
 	fieldType := em.ti(expr).Type
 	if canEmitDirectly(fieldType.Kind(), dstType.Kind()) {
-		em.fb.emitField(exprReg, index, reg, dstType.Kind())
+		em.fb.emitField(exprReg, index, reg, dstType.Kind(), true)
 		return
 	}
 	// TODO: add enter/exit stack method calls.
 	tmp := em.fb.newRegister(fieldType.Kind())
-	em.fb.emitField(exprReg, index, tmp, fieldType.Kind())
+	em.fb.emitField(exprReg, index, tmp, fieldType.Kind(), true)
 	em.changeRegister(false, tmp, reg, fieldType, dstType)
 
 	return
@@ -719,7 +719,7 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		slice := em.emitExpr(args[0], sliceType)
 		if call.IsVariadic {
 			tmp := em.fb.newRegister(sliceType.Kind())
-			em.fb.emitMove(false, slice, tmp, sliceType.Kind())
+			em.fb.emitMove(false, slice, tmp, sliceType.Kind(), false)
 			arg := em.emitExpr(args[1], em.ti(args[1]).Type)
 			em.fb.emitAppendSlice(arg, tmp, call.Pos())
 			em.changeRegister(false, tmp, reg, sliceType, dstType)
@@ -978,9 +978,8 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 	//
 	// Not that this does not imply that method 'changeRegister' doesn't have to
 	// be called: in case when internal representation is different than the
-	// external one (for example arrays and functions), the calls to
-	// 'changeRegister' may emit a Typify instruction to ensure that values are
-	// correctly converted.
+	// external one (functions and bools), the calls to 'changeRegister' may
+	// emit a Typify instruction to ensure that values are correctly converted.
 
 	if ti := em.ti(expr); ti != nil && ti.HasValue() && !ti.IsPredefined() {
 		typ := ti.Type
@@ -1233,16 +1232,16 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			}
 			pos := expr.Pos()
 			if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
-				em.fb.emitMove(true, 1, reg, reflect.Bool)
+				em.fb.emitMove(true, 1, reg, reflect.Bool, false)
 				em.fb.emitIf(k, v1, cond, v2, t1.Kind(), pos)
-				em.fb.emitMove(true, 0, reg, reflect.Bool)
+				em.fb.emitMove(true, 0, reg, reflect.Bool, false)
 				return reg, false
 			}
 			em.fb.enterStack()
 			tmp := em.fb.newRegister(exprType.Kind())
-			em.fb.emitMove(true, 1, tmp, reflect.Bool)
+			em.fb.emitMove(true, 1, tmp, reflect.Bool, false)
 			em.fb.emitIf(k, v1, cond, v2, t1.Kind(), pos)
-			em.fb.emitMove(true, 0, tmp, reflect.Bool)
+			em.fb.emitMove(true, 0, tmp, reflect.Bool, false)
 			em.changeRegister(false, tmp, reg, exprType, dstType)
 			em.fb.exitStack()
 		}
@@ -1302,11 +1301,12 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				return reg, false
 			}
 			length := int8(em.compositeLiteralLen(expr)) // TODO(Gianluca): length is int
-			if typ.Kind() == reflect.Array {
-				length = int8(typ.Len())
-				typ = em.types.SliceOf(typ.Elem())
+			if typ.Kind() == reflect.Slice {
+				em.fb.emitMakeSlice(true, true, typ, length, length, reg, expr.Pos())
+			} else {
+				arrayZero := em.fb.makeGeneralConstant(em.types.New(typ).Elem().Interface())
+				em.changeRegister(true, arrayZero, reg, typ, typ)
 			}
-			em.fb.emitMakeSlice(true, true, typ, length, length, reg, expr.Pos())
 			var index int8 = -1
 			for _, kv := range expr.KeyValues {
 				if kv.Key != nil {
@@ -1316,7 +1316,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				}
 				em.fb.enterStack()
 				indexReg := em.fb.newRegister(reflect.Int)
-				em.fb.emitMove(true, index, indexReg, reflect.Int)
+				em.fb.emitMove(true, index, indexReg, reflect.Int, true)
 				elem, k := em.emitExprK(kv.Value, typ.Elem())
 				if reg != 0 {
 					em.fb.emitSetSlice(k, reg, elem, indexReg, expr.Pos(), typ.Elem().Kind())
@@ -1574,12 +1574,12 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 		pos := expr.Pos()
 		if canEmitDirectly(elemType.Kind(), dstType.Kind()) {
-			em.fb.emitIndex(kindex, exprReg, index, reg, exprType, pos)
+			em.fb.emitIndex(kindex, exprReg, index, reg, exprType, pos, true)
 			return reg, false
 		}
 		em.fb.enterStack()
 		tmp := em.fb.newRegister(elemType.Kind())
-		em.fb.emitIndex(kindex, exprReg, index, tmp, exprType, pos)
+		em.fb.emitIndex(kindex, exprReg, index, tmp, exprType, pos, true)
 		em.changeRegister(false, tmp, reg, elemType, dstType)
 		em.fb.exitStack()
 
@@ -1813,7 +1813,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 			if em.fb.isVariable(operand.Name) {
 				varr := em.fb.scopeLookup(operand.Name)
 				em.fb.emitNew(em.types.PtrTo(unOpType), reg)
-				em.fb.emitMove(false, -varr, reg, dstType.Kind())
+				em.fb.emitMove(false, -varr, reg, dstType.Kind(), false)
 				return
 			}
 			// Closure variable address and Scriggo variables.
@@ -1870,11 +1870,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		case *ast.CompositeLiteral:
 			tmp := em.fb.newRegister(reflect.Ptr)
 			em.fb.emitNew(operandType, tmp)
-			if operandType.Kind() == reflect.Struct {
-				em.emitExprR(operand, operandType, tmp)
-			} else {
-				em.emitExprR(operand, operandType, -tmp)
-			}
+			em.emitExprR(operand, operandType, -tmp)
 			em.changeRegister(false, tmp, reg, unOpType, dstType)
 
 		default:

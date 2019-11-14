@@ -162,10 +162,10 @@ func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Exp
 		okType := addresses[1].addressedType
 		okReg := em.fb.newRegister(reflect.Bool)
 		pos := valueExpr.Pos()
-		em.fb.emitIndex(kKey, mapp, key, value, mapType, pos)
-		em.fb.emitMove(true, 1, okReg, reflect.Bool)
+		em.fb.emitIndex(kKey, mapp, key, value, mapType, pos, false)
+		em.fb.emitMove(true, 1, okReg, reflect.Bool, false)
 		em.fb.emitIf(false, 0, runtime.ConditionOK, 0, reflect.Interface, pos)
-		em.fb.emitMove(true, 0, okReg, reflect.Bool)
+		em.fb.emitMove(true, 0, okReg, reflect.Bool, false)
 		addresses[0].assign(false, value, valueType)
 		addresses[1].assign(false, okReg, okType)
 
@@ -174,10 +174,10 @@ func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Exp
 		expr := em.emitExpr(valueExpr.Expr, emptyInterfaceType)
 		okType := addresses[1].addressedType
 		ok := em.fb.newRegister(reflect.Bool)
-		em.fb.emitMove(true, 1, ok, reflect.Bool)
+		em.fb.emitMove(true, 1, ok, reflect.Bool, false)
 		result := em.fb.newRegister(typ.Kind())
 		em.fb.emitAssert(expr, typ, result)
-		em.fb.emitMove(true, 0, ok, reflect.Bool)
+		em.fb.emitMove(true, 0, ok, reflect.Bool, false)
 		addresses[0].assign(false, result, typ)
 		addresses[1].assign(false, ok, okType)
 

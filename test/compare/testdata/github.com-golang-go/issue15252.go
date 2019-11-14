@@ -1,3 +1,5 @@
+// skip : re-enable before merging 'types' into 'master'
+
 // run
 
 // Copyright 2016 The Go Authors.  All rights reserved.
