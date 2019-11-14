@@ -270,7 +270,7 @@ nodesLoop:
 				typ1 = typ.Elem()
 				maxLhs = 1
 			default:
-				panic(tc.errorf(node.Assignment.Rhs[0], "cannot range over %s (type %s)", expr, ti))
+				panic(tc.errorf(node.Assignment.Rhs[0], "cannot range over %s (type %s)", expr, ti.StringWithNumber(true)))
 			}
 			// Check variables.
 			if lhs != nil {

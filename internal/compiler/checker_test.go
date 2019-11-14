@@ -1046,7 +1046,7 @@ var checkerStmts = map[string]string{
 	`for k, v := range ([...]int{}) { var _, _ int = k, v }`:                         ok,
 	`for k, v := range map[float64]string{} { var _ float64 = k; var _ string = v }`: ok,
 	`for _, _ = range (&[...]int{}) { }`:                                             ok,
-	`for _, _ = range 0 { }`:                                                         `cannot range over 0 (type untyped int)`, // TODO (Gianluca): should be 'number', not int.
+	`for _, _ = range 0 { }`:                                                         `cannot range over 0 (type untyped number)`,
 	`for _, _ = range (&[]int{}) { }`:                                                `cannot range over &[]int literal (type *[]int)`,
 	`for a, b, c := range "" { }`:                                                    `too many variables in range`,
 	`for a, b := range nil { }`:                                                      `cannot range over nil`,
