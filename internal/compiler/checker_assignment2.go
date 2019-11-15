@@ -27,6 +27,34 @@ func (tc *typechecker) declareConstant(name string, typ reflect.Type, value cons
 	panic("not implemented")
 }
 
+// checkLhsRhs takes a simple assignment node, a short declaration node or a
+// variable declaration node and returns the lists of the type infos for the
+// left and the right sides of the node. This methods also handles "unbalanced"
+// nodes where there is just one value on the right and more than one value on
+// the left. If the number of elements on the right side does not match with the
+// number of elements on the left, checkLhsRhs panics with an "assignment
+// mismatch" error.
+func (tc *typechecker) checkLhsRhs(node ast.Node) ([]*TypeInfo, []*TypeInfo) {
+
+	// TODO: check that type is correct.
+	switch node := node.(type) {
+	case *ast.Assignment:
+		switch node.Type {
+		case ast.AssignmentSimple:
+		case ast.AssignmentDeclaration:
+		default:
+			panic("BUG: expecting a simple assignment, a short declaration or a variable declaration")
+		}
+	case *ast.Var:
+	default:
+		panic("BUG: expecting a simple assignment, a short declaration or a variable declaration")
+	}
+
+	// TODO: this method can be renamed/removed or implemented using an existing
+	// type checking function.
+	panic("not implemented")
+}
+
 // checkConstantDeclaration type checks a constant declaration.
 // See https://golang.org/ref/spec#Constant_declarations.
 func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
@@ -96,6 +124,16 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 // checkVariableDeclaration type checks a variable declaration.
 // See https://golang.org/ref/spec#Variable_declarations.
 func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
+
+	lhs, rhs := tc.checkLhsRhs(node)
+
+	// Every Lh identifier must not be defined in the current block.
+	for _, lhIdent := range node.Lhs {
+		if decl, ok := tc.declaredInThisBlock(lhIdent.Name); ok {
+			_ = decl                              // TODO
+			panic("..redeclared in this block..") // TODO
+		}
+	}
 
 }
 
