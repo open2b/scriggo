@@ -20,17 +20,10 @@ type definedType struct {
 	reflect.Type
 
 	// name is the name of the defined type.
-	//
-	//     type name subtype
-	//
 	name string
 }
 
-// DefinedOf creates a new Scriggo defined type, that is a type
-// created with the syntax
-//
-//    type Int int
-//
+// DefinedOf creates a new Scriggo defined type.
 func (types *Types) DefinedOf(name string, baseType reflect.Type) reflect.Type {
 	if name == "" {
 		panic("BUG: name cannot be empty")
