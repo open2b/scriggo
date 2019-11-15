@@ -74,16 +74,16 @@ func (x mapType) Key() reflect.Type {
 
 func (x mapType) String() string {
 	s := "map["
-	if x.key != nil {
-		s += x.key.String()
-	} else {
+	if x.key == nil {
 		s += x.Type.Key().String()
+	} else {
+		s += x.key.String()
 	}
 	s += "]"
-	if x.elem != nil {
-		s += x.elem.String()
-	} else {
+	if x.elem == nil {
 		s += x.Type.Elem().String()
+	} else {
+		s += x.elem.String()
 	}
 	return s
 }
