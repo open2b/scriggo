@@ -18,7 +18,7 @@ func (types *Types) FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 	// type. If not, the resulting function can be represented by the reflect
 	// implementation of reflect.Type that can be created with reflect.FuncOf.
 
-	if !containsScriggoTypes(in) && !containsScriggoTypes(out) {
+	if !containsScriggoType(in) && !containsScriggoType(out) {
 		return reflect.FuncOf(in, out, variadic)
 	}
 
@@ -87,8 +87,8 @@ func (types *Types) addFuncParameters(params parameters, inOrOut int) *parameter
 	return newParams
 }
 
-// containsScriggoTypes reports whether types contains at least one Scriggo type.
-func containsScriggoTypes(types []reflect.Type) bool {
+// containsScriggoType reports whether types contains at least one Scriggo type.
+func containsScriggoType(types []reflect.Type) bool {
 	for _, t := range types {
 		if _, ok := t.(ScriggoType); ok {
 			return true
