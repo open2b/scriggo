@@ -8,9 +8,9 @@ package types
 
 import "reflect"
 
-// FuncOf behaves like reflect.FuncOf except when at least once of the
-// parameters is a Scriggo type; in such case a new Scriggo function type is
-// created and returned as reflect.Type.
+// FuncOf behaves like reflect.FuncOf except when at least one of the parameters
+// is a Scriggo type; in such case a new Scriggo function type is created and
+// returned as reflect.Type.
 func (types *Types) FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 
 	// If at least one parameter of the function that is going to be created is
