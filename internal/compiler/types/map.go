@@ -43,6 +43,7 @@ type mapType struct {
 	key, elem reflect.Type
 }
 
+// AssignableTo is equivalent to reflect's AssignableTo.
 func (x mapType) AssignableTo(u reflect.Type) bool {
 	return x == u
 }

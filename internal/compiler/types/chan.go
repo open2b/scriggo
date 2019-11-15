@@ -27,6 +27,7 @@ type chanType struct {
 	elem         reflect.Type // channel element, always a Scriggo type
 }
 
+// AssignableTo is equivalent to reflect's AssignableTo.
 func (x chanType) AssignableTo(u reflect.Type) bool {
 	return x == u
 }
