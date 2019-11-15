@@ -318,24 +318,20 @@ func (builder *functionBuilder) getPath() string {
 }
 
 // addType adds a type to the builder's function, creating it if necessary. If
-// typ is a Scriggo type it is converted to the underlying type before being
-// added to the slice of types. If you want to preserve the Scriggo type use the
-// method addTypeAsIs.
-func (builder *functionBuilder) addType(typ reflect.Type) int {
-	if st, ok := typ.(types.ScriggoType); ok {
-		typ = st.Underlying()
+// not preserving type and if typ is a Scriggo then type is converted to the
+// underlying type before being added to the slice of types; otherwise this
+// method adds typ to the slice of types 'as is', independently from it's
+// implementation. Setting 'preserveType' is useful for instructions that need
+// to keep the information about the Scriggo type. Note that for every
+// instruction of the virtual machine that receives a type 'as is', such type
+// must be handled as a special case from the VM; considered that, in the most
+// cases you would just simply set 'preserveType' to false.
+func (builder *functionBuilder) addType(typ reflect.Type, preserveType bool) int {
+	if !preserveType {
+		if st, ok := typ.(types.ScriggoType); ok {
+			typ = st.Underlying()
+		}
 	}
-	return builder.addTypeAsIs(typ)
-}
-
-// addTypeAsIs adds a type to the builder's function, creating it if necessary.
-// This method adds typ to the slice of types 'as is', independently from it's
-// implementation. This method is useful for instructions that need to keep the
-// information about the Scriggo type.
-// Note that for every instruction of the virtual machine that receives a type
-// 'as is', such type must be handled as a special case from the VM; considered
-// that, in the most cases you would just simply use builder.addType.
-func (builder *functionBuilder) addTypeAsIs(typ reflect.Type) int {
 	fn := builder.fn
 	for i, t := range fn.Types {
 		if t == typ {
