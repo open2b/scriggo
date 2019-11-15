@@ -6,10 +6,6 @@
 
 // package types implements functions and types to represent and work with
 // Scriggo types.
-//
-// In the documentation of this package the expression 'Go type' refers to a
-// type that can be represented by the package 'reflect' implementation of
-// 'reflect.Type'.
 package types
 
 import (
@@ -73,14 +69,14 @@ func (types *Types) AssignableTo(x, u reflect.Type) bool {
 
 	typ, isScriggoType := u.(ScriggoType)
 
-	// T is not a Scriggo type (is a *reflect.rtype), so it's safe to call the
-	// reflect method AssignableTo with T as argument.
+	// T is not a Scriggo (is implemented by the reflect package), so it's safe
+	// to call the reflect method AssignableTo with T as argument.
 	if !isScriggoType {
 		return x.AssignableTo(u)
 	}
 
 	// typ is a Scriggo type.
-	// x can be both a Scriggo type or a Go type.
+	// x can be both a Scriggo type or a gc compiled type.
 
 	// The type is the same so x is assignable to typ.
 	if x == typ {
@@ -113,7 +109,7 @@ func (types *Types) ConvertibleTo(x, u reflect.Type) bool {
 	if u, ok := u.(ScriggoType); ok {
 		return types.ConvertibleTo(x, u.Underlying())
 	}
-	return x.ConvertibleTo(u) // rtype method
+	return x.ConvertibleTo(u) // x is implemented by the reflect package.
 }
 
 // Implements behaves like x.Implements(u) except when one of x or u is a
@@ -121,20 +117,20 @@ func (types *Types) ConvertibleTo(x, u reflect.Type) bool {
 func (types *Types) Implements(x, u reflect.Type) bool {
 
 	// x is a Scriggo type,
-	// u (the interface type) can be both a Scriggo type or a Go type.
+	// u (the interface type) can be both a Scriggo type or a gc compiled type.
 	if st, ok := x.(ScriggoType); ok {
 		return st.Implements(u)
 	}
 
-	// x is a Go type,
+	// x is a gc compiled type,
 	// u (the interface type) is a Scriggo type.
 	if st, ok := u.(ScriggoType); ok {
 		return x.Implements(st.Underlying())
 	}
 
-	// x is a Go type,
-	// u (the interface type) is a Go type.
-	return x.Implements(u) // rtype method
+	// x is a gc compiled type,
+	// u (the interface type) is a gc compiled type.
+	return x.Implements(u) // x is implemented by the reflect package.
 
 }
 

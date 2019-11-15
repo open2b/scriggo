@@ -16,7 +16,7 @@ import (
 type definedType struct {
 	// The embedded reflect.Type can be both a reflect.Type implemented by the
 	// package "reflect" or a ScriggoType. In the other implementations of
-	// ScriggoType the embedded reflect.Type is always a Go type.
+	// ScriggoType the embedded reflect.Type is always a gc compiled type.
 	reflect.Type
 
 	name string

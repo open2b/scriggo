@@ -317,9 +317,9 @@ func (builder *functionBuilder) getPath() string {
 	return builder.path
 }
 
-// addType adds a type to the builder's function, creating it if necessary. If
-// not preserving type and if typ is a Scriggo then type is converted to the
-// underlying type before being added to the slice of types; otherwise this
+// addType adds a type to the builder's function, creating it if necessary.
+// preserveType controls if typ should be converted to the underlying gc type in
+// case of typ is a Scriggo type. So, if preserveType is set to false, this
 // method adds typ to the slice of types 'as is', independently from it's
 // implementation. Setting 'preserveType' is useful for instructions that need
 // to keep the information about the Scriggo type. Note that for every

@@ -213,7 +213,7 @@ func kindToType(k reflect.Kind) registerType {
 }
 
 // newGlobal returns a new Global value. If typ is a Scriggo type, then typ is
-// converted to a Go type before creating the Global value.
+// converted to a gc compiled type before creating the Global value.
 func newGlobal(pkg, name string, typ reflect.Type, value interface{}) Global {
 	// TODO: is this solution ok? Or does it prevent from creating "global"
 	// values with scriggo types?
