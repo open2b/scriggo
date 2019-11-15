@@ -94,7 +94,7 @@ func (types *Types) AssignableTo(x, t reflect.Type) bool {
 	}
 
 	xIsDefined := isDefinedType(x)
-	tIsDefined := isDefinedType(t)
+	tIsDefined := isDefinedType(typ)
 
 	// x and typ are both defined types but they are not the same: not
 	// assignable.
