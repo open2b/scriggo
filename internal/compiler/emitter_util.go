@@ -27,12 +27,13 @@ func (em *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, d
 	// As an exception to this rule, if srcType is a Scriggo type then the
 	// Typify instruction must use the Scriggo internal type or the Go defined
 	// type, not the Scriggo defined type; that's because when the Scriggo
-	// defined type reaches the outside, Go cannot access to it's internal
-	// implementation. Think about a struct defined in Go: when this is passed
-	// through an interface to Go, Go can make a type assertion with the
-	// concrete type because it's defined in Go, then it is able to access the
-	// struct fields. This is not possible with Scriggo defined types, because
-	// Go cannot reference to them.
+	// defined type reaches the outside, the gc compiled code cannot access to
+	// it's internal implementation. Think about a struct defined in the gc
+	// compiled code: when this is passed through an interface to the gc
+	// compiled code, it can make a type assertion with the concrete type
+	// because it's defined in the gc compiled code, then it is able to access
+	// the struct fields. This is not possible with Scriggo defined types,
+	// because the gc compiled code cannot reference to them.
 	if dst < 0 {
 
 		if st, ok := srcType.(types.ScriggoType); ok {
