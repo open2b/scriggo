@@ -13,20 +13,11 @@ import "reflect"
 // and returned as reflect.Type.
 func (types *Types) StructOf(fields []reflect.StructField) reflect.Type {
 
-	// baseFields contains all the fields with their 'Go' type; if there are not
-	// any Scriggo types in fields then baseFields contains exactly the content
-	// of fields.
-	//
-	// This slice is always dense.
-	//
+	// baseFields contains all the fields with their 'Go' type.
 	baseFields := make([]reflect.StructField, len(fields))
 
-	// scriggoFields contains the struct fields that cannot be represented by
-	// the Go reflect because they are Scriggo types.
-	//
-	// This is a map (where the key is the struct field index) because can be
-	// sparse or empty.
-	//
+	// scriggoFields contains the fields that are Scriggo fields, indexed by the
+	// index of the field.
 	scriggoFields := map[int]reflect.StructField{}
 
 	for i, field := range fields {
