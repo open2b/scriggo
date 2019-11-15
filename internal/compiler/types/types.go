@@ -54,7 +54,7 @@ func isDefinedType(t reflect.Type) bool {
 	return t.Name() != ""
 }
 
-// New behaves like reflect.New expect when typ is a Scriggo type; in such case
+// New behaves like reflect.New except when typ is a Scriggo type; in such case
 // is returned an instance of the underlying type created with a reflect.New
 // call.
 func (types *Types) New(typ reflect.Type) reflect.Value {
@@ -64,8 +64,8 @@ func (types *Types) New(typ reflect.Type) reflect.Value {
 	return reflect.New(typ)
 }
 
-// Zero is equivalent to reflect.Zero. If t is a Scriggo type it return the zero
-// of the underlying type.
+// Zero is equivalent to reflect.Zero. If t is a Scriggo type it returns the
+// zero of the underlying type.
 func (types *Types) Zero(t reflect.Type) reflect.Value {
 	if st, ok := t.(ScriggoType); ok {
 		return types.Zero(st.Underlying())
