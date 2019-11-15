@@ -25,7 +25,7 @@ func (em *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, d
 	// before putting it into general.
 	//
 	// As an exception to this rule, if srcType is a Scriggo type then the
-	// typify instruction should use the Scriggo internal type or the Go defined
+	// Typify instruction should use the Scriggo internal type or the Go defined
 	// typ, not the Scriggo defined type; that's because when the Scriggo
 	// defined type reaches the outside, Go cannot access to it's internal
 	// implementation. Think about a struct defined in Go: when this is passed
