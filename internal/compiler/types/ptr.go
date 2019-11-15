@@ -24,7 +24,7 @@ func (types *Types) PtrTo(t reflect.Type) reflect.Type {
 // type.
 type ptrType struct {
 	reflect.Type
-	elem reflect.Type // always != nil
+	elem reflect.Type // Cannot be nil.
 }
 
 func (x ptrType) AssignableTo(T reflect.Type) bool {
@@ -32,7 +32,7 @@ func (x ptrType) AssignableTo(T reflect.Type) bool {
 }
 
 func (x ptrType) Elem() reflect.Type {
-	// x.elem is always != nil, otherwise this ptrType has no reason to exist.
+	// x.elem cannot be nil, otherwise this ptrType has no reason to exist.
 	return x.elem
 }
 
