@@ -27,8 +27,8 @@ type sliceType struct {
 	elem reflect.Type
 }
 
-func (x sliceType) AssignableTo(T reflect.Type) bool {
-	return x == T
+func (x sliceType) AssignableTo(u reflect.Type) bool {
+	return x == u
 }
 
 func (x sliceType) Elem() reflect.Type {

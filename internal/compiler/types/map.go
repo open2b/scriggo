@@ -43,8 +43,8 @@ type mapType struct {
 	key, elem reflect.Type
 }
 
-func (x mapType) AssignableTo(T reflect.Type) bool {
-	return x == T
+func (x mapType) AssignableTo(u reflect.Type) bool {
+	return x == u
 }
 
 func (x mapType) Elem() reflect.Type {

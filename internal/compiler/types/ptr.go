@@ -27,8 +27,8 @@ type ptrType struct {
 	elem reflect.Type // Cannot be nil.
 }
 
-func (x ptrType) AssignableTo(T reflect.Type) bool {
-	return x == T
+func (x ptrType) AssignableTo(u reflect.Type) bool {
+	return x == u
 }
 
 func (x ptrType) Elem() reflect.Type {

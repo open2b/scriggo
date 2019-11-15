@@ -42,18 +42,18 @@ func (x definedType) Name() string {
 	return x.name
 }
 
-func (x definedType) AssignableTo(T reflect.Type) bool {
+func (x definedType) AssignableTo(u reflect.Type) bool {
 
 	// Both x and T are Scriggo defined types: x is assignable to T only if they
 	// are the same type.
-	if T, ok := T.(definedType); ok {
+	if T, ok := u.(definedType); ok {
 		return x == T
 	}
 
 	// x is a Scriggo defined type and T is not a defined type: x is assignable
 	// to T only if the underlying type of x is assignable to T.
-	if !isDefinedType(T) {
-		return x.Type.AssignableTo(T)
+	if !isDefinedType(u) {
+		return x.Type.AssignableTo(u)
 	}
 
 	// x is a Scriggo defined type and T is a Go defined type: assignment is

@@ -31,8 +31,8 @@ type arrayType struct {
 	elem         reflect.Type // array element, always a Scriggo type
 }
 
-func (x arrayType) AssignableTo(T reflect.Type) bool {
-	return x == T
+func (x arrayType) AssignableTo(u reflect.Type) bool {
+	return x == u
 }
 
 func (x arrayType) Elem() reflect.Type {

@@ -74,14 +74,14 @@ func (types *Types) Zero(t reflect.Type) reflect.Value {
 }
 
 // AssignableTo is equivalent to reflect's AssignableTo.
-func (types *Types) AssignableTo(x, t reflect.Type) bool {
+func (types *Types) AssignableTo(x, u reflect.Type) bool {
 
-	typ, isScriggoType := t.(ScriggoType)
+	typ, isScriggoType := u.(ScriggoType)
 
 	// T is not a Scriggo type (is a *reflect.rtype), so it's safe to call the
 	// reflect method AssignableTo with T as argument.
 	if !isScriggoType {
-		return x.AssignableTo(t)
+		return x.AssignableTo(u)
 	}
 
 	// typ is a Scriggo type.
