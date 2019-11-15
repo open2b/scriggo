@@ -17,7 +17,9 @@ import (
 // does, for a specific compilation and for both the types compiled by Scriggo
 // and by gc.
 type Types struct {
-	funcParams funcParams
+	// funcParamsStore provides the function parameters necessary to create
+	// funcTypes.
+	funcParamsStore funcParamsStore
 
 	// structFieldsLists avoid the creation of two different structTypes with
 	// the same struct fields.

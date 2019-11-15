@@ -41,58 +41,45 @@ func (types *Types) FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 	}
 
 	return funcType{
-		in:   types.funcParams.add(in, inputParams),
-		out:  types.funcParams.add(out, outputParams),
+		in:   types.funcParamsStore.get(in),
+		out:  types.funcParamsStore.get(out),
 		Type: reflect.FuncOf(inGo, outGo, variadic),
 	}
 
 }
 
-// funcParams holds a list of parameters list for both input and output
-// parameters. This avoids the duplication of the parameters list, that is both
-// unefficient and wrong (without that, two indentical functions declared in two
-// parts of the code would have two different parameters lists, making them
-// 'different' when compared using the == operator).
-type funcParams struct {
-	params [2][]*[]reflect.Type
+// funcParamsStore stores and provides the function parameters necessary to
+// create a funcType, ensuring that two parameters list have the same pointer if
+// and only if their elements are exactly the same.
+//
+// This consequently ensures that the comparison between two pointers to
+// parameters list returns a consistent result.
+type funcParamsStore struct {
+	params []*[]reflect.Type
 }
 
-// add adds the given parameters list to types. paramType specifies is referring
-// to input or output parameters.
-func (store *funcParams) add(params parameters, paramType paramsType) *parameters {
-	for _, storedParams := range store.params[paramType] {
-		if equalParams(*storedParams, params) {
+// get returns a pointer to the given parameters list, creating it if does not
+// exist.
+func (store *funcParamsStore) get(params []reflect.Type) *[]reflect.Type {
+	for _, storedParams := range store.params {
+		if equalReflectTypes(*storedParams, params) {
 			return storedParams
 		}
 	}
 	// Not found.
-	newParams := &params
-	store.params[paramType] = append(store.params[paramType], newParams)
-	return newParams
+	newParamsPtr := &params
+	store.params = append(store.params, newParamsPtr)
+	return newParamsPtr
 }
 
-type paramsType int8
-
-const (
-	inputParams paramsType = iota
-	outputParams
-)
-
-type parameters = []reflect.Type
-
-const (
-	input  = 0
-	output = 1
-)
-
-// equalParams reports whether params1 and params2 are equal, i.e. have the same
-// length and contain the same elements at the same position.
-func equalParams(params1, params2 parameters) bool {
-	if len(params1) != len(params2) {
+// equalReflectTypes reports whether ts1 and ts2 are equal, i.e. they contain
+// the same elements at the same position.
+func equalReflectTypes(ts1, ts2 []reflect.Type) bool {
+	if len(ts1) != len(ts2) {
 		return false
 	}
-	for i := range params1 {
-		if params1[i] != params2[i] {
+	for i := range ts1 {
+		if ts1[i] != ts2[i] {
 			return false
 		}
 	}
