@@ -31,8 +31,7 @@ type Types struct {
 	structFieldsLists []*map[int]reflect.StructField
 }
 
-// NewTypes returns a new value with type Types than can be used to build and
-// operate with Scriggo types and Go types.
+// NewTypes returns a new instance of Types.
 func NewTypes() *Types {
 	return &Types{}
 }
