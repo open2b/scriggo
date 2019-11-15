@@ -19,7 +19,6 @@ type definedType struct {
 	// ScriggoType the embedded reflect.Type is always a Go type.
 	reflect.Type
 
-	// name is the name of the defined type.
 	name string
 }
 
