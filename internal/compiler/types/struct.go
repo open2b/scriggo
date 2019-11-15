@@ -125,17 +125,17 @@ func (x structType) NumField() int {
 func (x structType) String() string {
 	s := "struct { "
 	for i := 0; i < x.NumField(); i++ {
+		if i > 0 {
+			s += "; "
+		} else {
+			s += " "
+		}
 		field := x.Field(i)
 		s += field.Name + " "
 		if scriggoField, ok := (*x.scriggoFields)[i]; ok {
 			s += scriggoField.Type.String()
 		} else {
 			s += field.Type.Name()
-		}
-		if i != x.NumField()-1 {
-			s += "; "
-		} else {
-			s += " "
 		}
 	}
 	s += "}"
