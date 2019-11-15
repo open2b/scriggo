@@ -41,12 +41,42 @@ func (types *Types) FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 	}
 
 	return funcType{
-		in:   types.addFuncParameters(in, input),
-		out:  types.addFuncParameters(out, output),
+		in:   types.funcParams.add(in, inputParams),
+		out:  types.funcParams.add(out, outputParams),
 		Type: reflect.FuncOf(inGo, outGo, variadic),
 	}
 
 }
+
+// funcParams holds a list of parameters list for both input and output
+// parameters. This avoids the duplication of the parameters list, that is both
+// unefficient and wrong (without that, two indentical functions declared in two
+// parts of the code would have two different parameters lists, making them
+// 'different' when compared using the == operator).
+type funcParams struct {
+	params [2][]*[]reflect.Type
+}
+
+// add adds the given parameters list to types. paramType specifies is referring
+// to input or output parameters.
+func (store *funcParams) add(params parameters, paramType paramsType) *parameters {
+	for _, storedParams := range store.params[paramType] {
+		if equalParams(*storedParams, params) {
+			return storedParams
+		}
+	}
+	// Not found.
+	newParams := &params
+	store.params[paramType] = append(store.params[paramType], newParams)
+	return newParams
+}
+
+type paramsType int8
+
+const (
+	inputParams paramsType = iota
+	outputParams
+)
 
 type parameters = []reflect.Type
 
@@ -67,24 +97,6 @@ func equalParams(params1, params2 parameters) bool {
 		}
 	}
 	return true
-}
-
-// addFuncParameters adds in to the list of input (inOrOut = 0) or output
-// (inOurOut = 1) parameters for a function. If a list with the same elements is
-// found, then the pointer to such list is returned. This makes comparisons
-// betweens two identical function types declared in two parts of the code
-// correct. This methods ensures that every pointer to parameter list is equal
-// to another pointer if and only if the parameter list is exactly the same.
-func (types *Types) addFuncParameters(params parameters, inOrOut int) *parameters {
-	for _, storedParams := range types.funcParams[inOrOut] {
-		if equalParams(*storedParams, params) {
-			return storedParams
-		}
-	}
-	// Not found.
-	newParams := &params
-	types.funcParams[inOrOut] = append(types.funcParams[inOrOut], newParams)
-	return newParams
 }
 
 // containsScriggoType reports whether types contains at least one Scriggo type.

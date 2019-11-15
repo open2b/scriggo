@@ -21,12 +21,7 @@ import (
 // does, for a specific compilation and for both the types compiled by Scriggo
 // and by gc.
 type Types struct {
-	// funcParams holds a list of parameters list for both input (index 0) and
-	// output (index 1) parameters. This avoids the duplication of the
-	// parameters list, that is both unefficient and wrong (without that, two
-	// indentical functions declared in two parts of the code would have two
-	// different parameters lists, making them 'different' when compared by Go).
-	funcParams [2][]*[]reflect.Type
+	funcParams funcParams
 
 	// structFieldsLists avoid the creation of two different structTypes with
 	// the same struct fields.
