@@ -77,7 +77,7 @@ func (types *Types) Zero(t reflect.Type) reflect.Value {
 // AssignableTo behaves like x.AssignableTo(t) except when t is a Scriggo type.
 func (types *Types) AssignableTo(x, t reflect.Type) bool {
 
-	T, isScriggoType := t.(ScriggoType)
+	typ, isScriggoType := t.(ScriggoType)
 
 	// T is not a Scriggo type (is a *reflect.rtype), so it's safe to call the
 	// reflect method AssignableTo with T as argument.
@@ -85,25 +85,26 @@ func (types *Types) AssignableTo(x, t reflect.Type) bool {
 		return x.AssignableTo(t)
 	}
 
-	// T is a Scriggo type.
+	// typ is a Scriggo type.
 	// x can be both a Scriggo type or a Go type.
 
-	// The type is the same so x is assignable to T.
-	if x == T {
+	// The type is the same so x is assignable to typ.
+	if x == typ {
 		return true
 	}
 
 	xIsDefined := isDefinedType(x)
 	tIsDefined := isDefinedType(t)
 
-	// x and T are both defined types but they are not the same: not assignable.
+	// x and typ are both defined types but they are not the same: not
+	// assignable.
 	if xIsDefined && tIsDefined {
 		return false
 	}
 
 	// Just one is defined.
 	if xIsDefined != tIsDefined {
-		return x.AssignableTo(T.Underlying())
+		return x.AssignableTo(typ.Underlying())
 	}
 
 	// TODO: any other cases missing? Or it's ok to return 'false' here?
