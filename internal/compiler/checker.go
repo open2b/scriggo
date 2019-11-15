@@ -94,7 +94,7 @@ type typechecker struct {
 
 	// types refers the types of the current compilation and it is used to
 	// create and manipulate types and values, both predefined and defined only
-	// by Scriggo
+	// by Scriggo.
 	types *types.Types
 }
 

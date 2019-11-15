@@ -77,8 +77,9 @@ type emitter struct {
 	// inURL indicates if the emitter is currently inside an *ast.URL node.
 	inURL bool
 
-	// types works on Scriggo and Go types. See the documentation of
-	// typechecker.types for further informations.
+	// types refers the types of the current compilation and it is used to
+	// create and manipulate types and values, both predefined and defined only
+	// by Scriggo.
 	types *types.Types
 }
 
