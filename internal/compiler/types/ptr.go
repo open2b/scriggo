@@ -32,7 +32,6 @@ func (x ptrType) AssignableTo(T reflect.Type) bool {
 }
 
 func (x ptrType) Elem() reflect.Type {
-	// x.elem cannot be nil, otherwise this ptrType has no reason to exist.
 	return x.elem
 }
 
