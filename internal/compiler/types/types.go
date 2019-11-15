@@ -38,10 +38,8 @@ func NewTypes() *Types {
 	return &Types{}
 }
 
-// A ScriggoType can represent both a type defined in Scriggo and a composite
-// type that "contains" a type defined in Scriggo. Any other type can be
-// represented using a "real" reflect.Type (i.e. the reflect.Type implementation
-// from the 'reflect' package.).
+// A ScriggoType represents a type compiled by Scriggo from a type definition or
+// a composite type literal with at least one element with a Scriggo type.
 type ScriggoType interface {
 	reflect.Type
 
