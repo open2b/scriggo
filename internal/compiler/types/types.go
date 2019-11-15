@@ -55,11 +55,6 @@ func isDefinedType(t reflect.Type) bool {
 	return t.Name() != ""
 }
 
-// justOneIsDefined returns true only if just one of t1 and t2 is a defined type.
-func justOneIsDefined(t1, t2 reflect.Type) bool {
-	return (isDefinedType(t1) && !isDefinedType(t2)) || (!isDefinedType(t1) && isDefinedType(t2))
-}
-
 // New behaves like reflect.New expect when typ is a Scriggo type; in such case
 // is returned a 'new' instance of the underlying Go type.
 func (types *Types) New(typ reflect.Type) reflect.Value {
@@ -98,12 +93,16 @@ func (types *Types) AssignableTo(x, t reflect.Type) bool {
 		return true
 	}
 
+	xIsDefined := isDefinedType(x)
+	tIsDefined := isDefinedType(t)
+
 	// x and T are both defined types but they are not the same: not assignable.
-	if isDefinedType(x) && isDefinedType(T) {
+	if xIsDefined && tIsDefined {
 		return false
 	}
 
-	if justOneIsDefined(x, T) {
+	// Just one is defined.
+	if xIsDefined != tIsDefined {
 		return x.AssignableTo(T.Underlying())
 	}
 
