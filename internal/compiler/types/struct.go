@@ -127,8 +127,6 @@ func (x structType) String() string {
 	for i := 0; i < x.NumField(); i++ {
 		if i > 0 {
 			s += "; "
-		} else {
-			s += " "
 		}
 		field := x.Field(i)
 		s += field.Name + " "
@@ -138,7 +136,7 @@ func (x structType) String() string {
 			s += field.Type.Name()
 		}
 	}
-	s += "}"
+	s += " }"
 	return s
 }
 
