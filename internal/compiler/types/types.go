@@ -44,8 +44,8 @@ func NewTypes() *Types {
 type ScriggoType interface {
 	reflect.Type
 
-	// Underlying always returns the reflect implementation of the reflect.Type,
-	// so it's safe to pass the returned value to the functions of the reflect
+	// Underlying returns the reflect implementation of the reflect.Type, so
+	// it's safe to pass the returned value to the functions of the reflect
 	// package.
 	Underlying() reflect.Type
 }
