@@ -17,7 +17,9 @@ import (
 	"reflect"
 )
 
-// A Types helps you work with Scriggo types and Go types.
+// Types allows to create and manage types and values, as the reflect package
+// does, for a specific compilation and for both the types compiled by Scriggo
+// and by gc.
 type Types struct {
 	// funcParams holds a list of parameters list for both input (index 0) and
 	// output (index 1) parameters. This avoids the duplication of the
