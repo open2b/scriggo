@@ -50,7 +50,7 @@ func (types *Types) FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 
 // funcParamsStore stores and provides the function parameters necessary to
 // create a funcType, ensuring that two parameters list have the same pointer if
-// and only if their elements are exactly the same.
+// and only if their elements are the same.
 //
 // This consequently ensures that the comparison between two pointers to
 // parameters list returns a consistent result.
