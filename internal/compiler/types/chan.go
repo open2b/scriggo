@@ -50,11 +50,11 @@ func (x chanType) String() string {
 	var s string
 	switch x.ChanDir() {
 	case reflect.BothDir:
-		s += "chan "
+		s = "chan "
 	case reflect.RecvDir:
-		s += "<-chan "
+		s = "<-chan "
 	case reflect.SendDir:
-		s += "chan<- "
+		s = "chan<- "
 	}
 	s += x.elem.String()
 	return s
