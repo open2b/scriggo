@@ -9,8 +9,8 @@ package types
 import "reflect"
 
 // wrap and unwrap are called by the methods Wrap and Unwrap of the types
-// defined in this package. These two methods plus Underlying implement the
-// runtime.Wrapper interface.
+// defined in this package. These two methods and the Underlying method
+// implement the runtime.Wrapper interface.
 
 func wrap(t ScriggoType, v reflect.Value) reflect.Value {
 	return reflect.ValueOf(emptyInterfaceProxy{
@@ -34,8 +34,8 @@ func unwrap(x ScriggoType, v reflect.Value) (reflect.Value, bool) {
 	return p.value, true
 }
 
-// emptyInterfaceProxy is a proxy for values of types that has no methods
-// associated.
+// emptyInterfaceProxy is a proxy for values of types that have an empty method
+// set.
 type emptyInterfaceProxy struct {
 	value reflect.Value
 	sign  ScriggoType
