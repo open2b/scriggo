@@ -110,8 +110,7 @@ func (types *Types) AssignableTo(x, t reflect.Type) bool {
 	return false
 }
 
-// ConvertibleTo behaves like x.ConvertibleTo(u) except when one of x or u is a
-// Scriggo type.
+// ConvertibleTo is equivalent to reflect's ConvertibleTo.
 func (types *Types) ConvertibleTo(x, u reflect.Type) bool {
 	if x, ok := x.(ScriggoType); ok {
 		return types.ConvertibleTo(x.Underlying(), u)
