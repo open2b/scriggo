@@ -101,7 +101,8 @@ type funcType struct {
 	reflect.Type
 
 	// At least one of 'in' and 'out' contains at least one Scriggo type,
-	// otherwise there's no need to create a funcType.
+	// otherwise there's no need to create a funcType. in and out must be
+	// pointers because a funcType value must be comparable.
 	in, out *[]reflect.Type
 }
 
