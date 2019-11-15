@@ -17,35 +17,34 @@ func (types *Types) FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 	// a Scriggo type then such function must be represented with a Scriggo
 	// type. If not, the resulting function can be represented by the reflect
 	// implementation of reflect.Type that can be created with reflect.FuncOf.
-	if containsScriggoTypes(in) || containsScriggoTypes(out) {
 
-		inGo := make([]reflect.Type, len(in))
-		outGo := make([]reflect.Type, len(out))
-
-		for i := range in {
-			if st, ok := in[i].(ScriggoType); ok {
-				inGo[i] = st.Underlying()
-			} else {
-				inGo[i] = in[i]
-			}
-		}
-		for i := range out {
-			if st, ok := out[i].(ScriggoType); ok {
-				outGo[i] = st.Underlying()
-			} else {
-				outGo[i] = out[i]
-			}
-		}
-
-		return funcType{
-			in:   types.addFuncParameters(in, input),
-			out:  types.addFuncParameters(out, output),
-			Type: reflect.FuncOf(inGo, outGo, variadic),
-		}
-
+	if !containsScriggoTypes(in) && !containsScriggoTypes(out) {
+		return reflect.FuncOf(in, out, variadic)
 	}
 
-	return reflect.FuncOf(in, out, variadic)
+	inGo := make([]reflect.Type, len(in))
+	outGo := make([]reflect.Type, len(out))
+
+	for i := range in {
+		if st, ok := in[i].(ScriggoType); ok {
+			inGo[i] = st.Underlying()
+		} else {
+			inGo[i] = in[i]
+		}
+	}
+	for i := range out {
+		if st, ok := out[i].(ScriggoType); ok {
+			outGo[i] = st.Underlying()
+		} else {
+			outGo[i] = out[i]
+		}
+	}
+
+	return funcType{
+		in:   types.addFuncParameters(in, input),
+		out:  types.addFuncParameters(out, output),
+		Type: reflect.FuncOf(inGo, outGo, variadic),
+	}
 
 }
 
