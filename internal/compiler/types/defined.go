@@ -22,12 +22,14 @@ type definedType struct {
 	name string
 }
 
-// DefinedOf creates a new Scriggo defined type.
-func (types *Types) DefinedOf(name string, baseType reflect.Type) reflect.Type {
+// DefinedOf returns the defined type with the given name and underlying type.
+// For example, if n is "Int" and k represents int, DefinedOf(n, k) represents
+// the the type Int declared with 'type Int int'.
+func (types *Types) DefinedOf(name string, underlyingType reflect.Type) reflect.Type {
 	if name == "" {
 		panic("BUG: name cannot be empty")
 	}
-	return definedType{Type: baseType, name: name}
+	return definedType{Type: underlyingType, name: name}
 }
 
 func (x definedType) Name() string {
