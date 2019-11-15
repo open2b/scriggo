@@ -585,16 +585,10 @@ nodesLoop:
 			tc.terminating = false
 
 		case *ast.TypeDeclaration:
-			if !node.IsAliasDeclaration {
-				// https://github.com/open2b/scriggo/issues/417
-				panic("BUG: type definition not supported")
+			name, ti := tc.checkTypeDeclaration(node)
+			if ti != nil {
+				tc.assignScope(name, ti, node.Identifier)
 			}
-			if isBlankIdentifier(node.Identifier) {
-				continue
-			}
-			name := node.Identifier.Name
-			typ := tc.checkType(node.Type)
-			tc.assignScope(name, typ, node.Identifier)
 
 		case *ast.Show:
 			ti := tc.checkExpr(node.Expr)
@@ -925,4 +919,29 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 	}
 
 	return
+}
+
+// checkTypeDeclaration checks a type declaration node that can be both a type
+// definition or an alias declaration. Returns the type name and a type info
+// representing the declared type. If the type declaration has a blank
+// identifier as name, an empty string and a nil type info are returned.
+//
+//  type Int int
+//  type Int = int
+//
+func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) (string, *TypeInfo) {
+	typ := tc.checkType(node.Type)
+	if isBlankIdentifier(node.Identifier) {
+		return "", nil
+	}
+	name := node.Identifier.Name
+	if node.IsAliasDeclaration {
+		// Return the base type.
+		return name, typ
+	}
+	// Create and return a new Scriggo type.
+	return name, &TypeInfo{
+		Type:       tc.types.DefinedOf(name, typ.Type),
+		Properties: PropertyIsType,
+	}
 }

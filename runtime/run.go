@@ -154,10 +154,14 @@ func (vm *VM) run() (Addr, bool) {
 			t := vm.fn.Types[uint8(b)]
 			var ok bool
 			if v.IsValid() {
-				if t.Kind() == reflect.Interface {
-					ok = v.Type().Implements(t)
+				if w, isWrapper := t.(Wrapper); isWrapper {
+					v, ok = w.Unwrap(v)
 				} else {
-					ok = v.Type() == t
+					if t.Kind() == reflect.Interface {
+						ok = v.Type().Implements(t)
+					} else {
+						ok = v.Type() == t
+					}
 				}
 			}
 			vm.ok = ok
@@ -202,6 +206,9 @@ func (vm *VM) run() (Addr, bool) {
 					}
 					vm.setString(c, s)
 				default:
+					if w, ok := t.(Wrapper); ok {
+						t = w.Underlying()
+					}
 					rv := reflect.New(t).Elem()
 					if ok {
 						rv.Set(v)
@@ -1636,9 +1643,25 @@ func (vm *VM) run() (Addr, bool) {
 		// Typify
 		case OpTypify, -OpTypify:
 			t := vm.fn.Types[uint8(a)]
-			v := reflect.New(t).Elem()
-			vm.getIntoReflectValue(b, v, op < 0)
-			vm.setGeneral(c, v)
+			if w, ok := t.(Wrapper); ok {
+				var v reflect.Value
+				k := t.Kind()
+				switch {
+				case reflect.Bool <= k && k <= reflect.Uintptr:
+					v = reflect.ValueOf(vm.intk(b, op < 0))
+				case k == reflect.Float32 || k == reflect.Float64:
+					v = reflect.ValueOf(vm.floatk(b, op < 0))
+				case k == reflect.String:
+					v = reflect.ValueOf(vm.stringk(b, op < 0))
+				default:
+					v = vm.generalk(b, op < 0)
+				}
+				vm.setGeneral(c, w.Wrap(v))
+			} else {
+				v := reflect.New(t).Elem()
+				vm.getIntoReflectValue(b, v, op < 0)
+				vm.setGeneral(c, v)
+			}
 
 		// Xor
 		case OpXor, -OpXor:

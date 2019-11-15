@@ -1,5 +1,3 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
-
 // compile
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -8,7 +6,7 @@
 
 package main
 
-type T struct { s string }
+type T struct { S string } // should be s (lowercase)
 var t = T{"hi"}
 
 func main() {}

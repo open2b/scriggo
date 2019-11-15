@@ -1,5 +1,3 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
-
 // compile
 
 // Copyright 2017 The Go Authors. All rights reserved.
@@ -9,7 +7,7 @@
 // Used to crash when compiling assignments involving [0]T,
 // where T is not SSA-able.
 
-package p
+package main
 
 type s struct {
 	a, b, c, d, e int
@@ -20,3 +18,5 @@ func f() {
 	arr := [0]s{}
 	arr[i].a++
 }
+
+func main() { }

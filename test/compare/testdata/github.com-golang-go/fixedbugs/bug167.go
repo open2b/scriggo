@@ -1,5 +1,3 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
-
 // build
 
 // Copyright 2009 The Go Authors. All rights reserved.

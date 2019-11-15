@@ -1,5 +1,3 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -12,9 +10,9 @@ import "os"
 import "strconv"
 
 type Test struct {
-	f   float64
-	in  string
-	out string
+	F   float64 // TODO: field name was unexported.
+	In  string // TODO: field name was unexported.
+	Out string // TODO: field name was unexported.
 }
 
 var tests = []Test{
@@ -43,16 +41,16 @@ func main() {
 	ok := true
 	for i := 0; i < len(tests); i++ {
 		t := tests[i]
-		v := strconv.FormatFloat(t.f, 'g', -1, 64)
-		if v != t.out {
-			println("Bad float64 const:", t.in, "want", t.out, "got", v)
-			x, err := strconv.ParseFloat(t.out, 64)
+		v := strconv.FormatFloat(t.F, 'g', -1, 64)
+		if v != t.Out {
+			println("Bad float64 const:", t.In, "want", t.Out, "got", v)
+			x, err := strconv.ParseFloat(t.Out, 64)
 			if err != nil {
-				println("bug120: strconv.Atof64", t.out)
+				println("bug120: strconv.Atof64", t.Out)
 				panic("fail")
 			}
 			println("\twant exact:", strconv.FormatFloat(x, 'g', 1000, 64))
-			println("\tgot exact: ", strconv.FormatFloat(t.f, 'g', 1000, 64))
+			println("\tgot exact: ", strconv.FormatFloat(t.F, 'g', 1000, 64))
 			ok = false
 		}
 	}

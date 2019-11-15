@@ -1,4 +1,4 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
+// skip : investigate on this
 
 // errorcheck
 
@@ -12,4 +12,4 @@ package main
 
 type A [...]int	// ERROR "outside of array literal"
 
-
+func main() { }

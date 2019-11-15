@@ -1,4 +1,4 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
+// skip : invalid memory address
 
 // run
 
@@ -18,9 +18,9 @@ import (
 )
 
 type ErrorTest struct {
-	name string
-	fn   func()
-	err  string
+	Name string // TODO: should be unexported.
+	Fn   func() // TODO: should be unexported.
+	Err  string // TODO: should be unexported.
 }
 
 var (
@@ -179,8 +179,8 @@ func error_(fn func()) (error string) {
 }
 
 type FloatTest struct {
-	f, g float64
-	out  float64
+	F, G float64
+	Out  float64
 }
 
 var float64Tests = []FloatTest{
@@ -203,29 +203,29 @@ func alike(a, b float64) bool {
 func main() {
 	bad := false
 	for _, t := range errorTests {
-		err := error_(t.fn)
+		err := error_(t.Fn)
 		switch {
-		case t.err == "" && err == "":
+		case t.Err == "" && err == "":
 			// fine
-		case t.err != "" && err == "":
+		case t.Err != "" && err == "":
 			if !bad {
 				bad = true
 				fmt.Printf("BUG\n")
 			}
-			fmt.Printf("%s: expected %q; got no error\n", t.name, t.err)
-		case t.err == "" && err != "":
+			fmt.Printf("%s: expected %q; got no error\n", t.Name, t.Err)
+		case t.Err == "" && err != "":
 			if !bad {
 				bad = true
 				fmt.Printf("BUG\n")
 			}
-			fmt.Printf("%s: expected no error; got %q\n", t.name, err)
-		case t.err != "" && err != "":
-			if strings.Index(err, t.err) < 0 {
+			fmt.Printf("%s: expected no error; got %q\n", t.Name, err)
+		case t.Err != "" && err != "":
+			if strings.Index(err, t.Err) < 0 {
 				if !bad {
 					bad = true
 					fmt.Printf("BUG\n")
 				}
-				fmt.Printf("%s: expected %q; got %q\n", t.name, t.err, err)
+				fmt.Printf("%s: expected %q; got %q\n", t.Name, t.Err, err)
 				continue
 			}
 		}
@@ -233,13 +233,13 @@ func main() {
 
 	// At this point we know we don't error on the values we're testing
 	for _, t := range float64Tests {
-		x := t.f / t.g
-		if !alike(x, t.out) {
+		x := t.F / t.G
+		if !alike(x, t.Out) {
 			if !bad {
 				bad = true
 				fmt.Printf("BUG\n")
 			}
-			fmt.Printf("%v/%v: expected %g error; got %g\n", t.f, t.g, t.out, x)
+			fmt.Printf("%v/%v: expected %g error; got %g\n", t.F, t.G, t.Out, x)
 		}
 	}
 	if bad {

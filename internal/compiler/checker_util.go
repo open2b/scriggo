@@ -178,7 +178,7 @@ func (tc *typechecker) convert(ti *TypeInfo, t2 reflect.Type) (constant, error) 
 		return representedBy(ti, t2)
 	}
 
-	if t.ConvertibleTo(t2) {
+	if tc.types.ConvertibleTo(t, t2) {
 		return nil, nil
 	}
 
@@ -299,7 +299,7 @@ func (tc *typechecker) isAssignableTo(x *TypeInfo, expr ast.Expression, t reflec
 		return newInvalidTypeInAssignment(x, expr, t)
 	}
 	if k == reflect.Interface {
-		if !x.Type.Implements(t) {
+		if !tc.types.Implements(x.Type, t) {
 			return newInvalidTypeInAssignment(x, expr, t)
 		}
 		return nil
@@ -319,7 +319,7 @@ func (tc *typechecker) isAssignableTo(x *TypeInfo, expr ast.Expression, t reflec
 	}
 	// Checks if the type of x and t have identical underlying types and at
 	// least one is not a defined type.
-	if !x.Type.AssignableTo(t) {
+	if !tc.types.AssignableTo(x.Type, t) {
 		return newInvalidTypeInAssignment(x, expr, t)
 	}
 	return nil
@@ -432,7 +432,7 @@ func (tc *typechecker) methodByName(t *TypeInfo, name string) (*TypeInfo, receiv
 	}
 
 	// Method calls and method values on concrete types.
-	method := reflect.Zero(t.Type).MethodByName(name)
+	method := tc.types.Zero(t.Type).MethodByName(name)
 	methodExplicitRcvr, _ := t.Type.MethodByName(name)
 	if method.IsValid() {
 		ti := &TypeInfo{
@@ -458,8 +458,8 @@ func (tc *typechecker) methodByName(t *TypeInfo, name string) (*TypeInfo, receiv
 		return ti, receiverNoTransform, true
 	}
 	if t.Type.Kind() != reflect.Ptr {
-		method = reflect.Zero(reflect.PtrTo(t.Type)).MethodByName(name)
-		methodExplicitRcvr, _ := reflect.PtrTo(t.Type).MethodByName(name)
+		method = tc.types.Zero(tc.types.PtrTo(t.Type)).MethodByName(name)
+		methodExplicitRcvr, _ := tc.types.PtrTo(t.Type).MethodByName(name)
 		if method.IsValid() {
 			return &TypeInfo{
 				Type:       removeEnvArg(method.Type(), false),
@@ -583,7 +583,7 @@ func (tc *typechecker) nilOf(t reflect.Type) *TypeInfo {
 		return &TypeInfo{
 			Properties: PropertyHasValue | PropertyIsPredefined,
 			Type:       t,
-			value:      reflect.Zero(t),
+			value:      tc.types.Zero(t),
 		}
 	case reflect.Interface:
 		return &TypeInfo{
@@ -595,7 +595,7 @@ func (tc *typechecker) nilOf(t reflect.Type) *TypeInfo {
 		return &TypeInfo{
 			Properties: PropertyHasValue,
 			Type:       t,
-			value:      reflect.Zero(t).Interface(),
+			value:      tc.types.Zero(t).Interface(),
 		}
 	}
 
@@ -650,7 +650,7 @@ func (tc *typechecker) typedValue(ti *TypeInfo, t reflect.Type) interface{} {
 			panic(fmt.Sprintf("unexpected kind %q", k))
 		}
 	}
-	nv := reflect.New(t).Elem()
+	nv := tc.types.New(t).Elem()
 	switch k {
 	case reflect.Bool:
 		nv.SetBool(c.bool())

@@ -1421,15 +1421,15 @@ var checkerStmts = map[string]string{
 	`a := complex64(3+2i); _ = imag(a)`: ok,
 
 	// Type definitions.
-	// `type  ( T1 int ; T2 string; T3 map[T1]T2 ) ; _ = T3{0:"a"}`: ok,
-	// `type T int            ; var _ T = T(0)`:                     ok,
-	// `type T interface{}    ; var _ T`:                            ok,
-	// `type T map[string]int ; _ = T{"one": 1}`:                    ok,
-	// `type T string         ; _ = []T{"a", "b"}`:                  ok,
-	// `type T T2`: undefined("T2"),
-	// `type T int            ; _ = []T{"a", "b"}`:    `cannot convert "a" (type untyped string) to type T`, // TODO.
-	// `type T float64        ; _ = T("a")`:           `cannot convert "a" (type untyped string) to type T`, // TODO.
-	// `type T float64        ; var _ T = float64(0)`: `cannot use float64(0) (type float64) as type T in assignment`, // TODO.
+	`type  ( T1 int ; T2 string; T3 map[T1]T2 ) ; _ = T3{0:"a"}`: ok,
+	`type T int            ; var _ T = T(0)`:                     ok,
+	`type T interface{}    ; var _ T`:                            ok,
+	`type T map[string]int ; _ = T{"one": 1}`:                    ok,
+	`type T string         ; _ = []T{"a", "b"}`:                  ok,
+	`type T T2`: undefined("T2"),
+	`type T int            ; _ = []T{"a", "b"}`:    `cannot convert "a" (type untyped string) to type T`,
+	`type T float64        ; _ = T("a")`:           `cannot convert a (type untyped string) to type T`, // TODO: missing quotes.
+	`type T float64        ; var _ T = float64(0)`: `cannot use float64(0) (type float64) as type T in assignment`,
 
 	// Alias declarations.
 	`type  ( T1 = int ; T2 = string; T3 = map[T1]T2 ) ; _ = T3{0:"a"}`: ok,

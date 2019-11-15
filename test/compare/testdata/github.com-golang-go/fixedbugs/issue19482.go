@@ -1,4 +1,4 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
+// skip : struct field '_'
 
 // errorcheck
 
@@ -10,7 +10,7 @@
 // in a non-static setting (e.g. in a function)
 // when the struct contained a field named _.
 
-package p
+package main
 
 type T struct {
 	_ string
@@ -34,3 +34,5 @@ func bad() {
 	_ = z
 	_ = T{_: "itinerary"} // ERROR "invalid field name _ in struct initializer"
 }
+
+func main() { }

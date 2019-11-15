@@ -1,4 +1,4 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
+// skip : method definition
 
 // errorcheck
 
@@ -11,9 +11,8 @@
 
 package main
 
-func () x()	// ERROR "no receiver"
+func () x() // ERROR "no receiver"
 
-func (a b, c d) x()	// ERROR "multiple receiver"
+func (a b, c d) x() // ERROR "multiple receiver"
 
 type b int
-

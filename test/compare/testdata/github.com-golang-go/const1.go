@@ -1,4 +1,4 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
+// skip : require unsafe https://github.com/open2b/scriggo/issues/288
 
 // errorcheck
 

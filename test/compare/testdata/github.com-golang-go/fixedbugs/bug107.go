@@ -1,4 +1,4 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
+// skip : investigate on this
 
 // errorcheck
 
@@ -15,3 +15,4 @@ func f() (os int) {
 	 v := os.Open("", 0, 0);	// ERROR "undefined"
 	 return 0
 }
+func main() { _ = os.Args }

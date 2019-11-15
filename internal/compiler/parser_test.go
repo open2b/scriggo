@@ -333,30 +333,26 @@ var goContextTreeTests = []struct {
 	{"{}", ast.NewTree("", []ast.Node{
 		ast.NewBlock(p(1, 1, 0, 1), nil),
 	}, ast.ContextGo)},
-	// This test is not runnable until types are implemented in Scriggo.
-	// https://github.com/open2b/scriggo/issues/194
-	// {"type Int int",
-	// 	ast.NewTree("", []ast.Node{
-	// 		ast.NewTypeDeclaration(
-	// 			p(1, 1, 0, 11),
-	// 			ast.NewIdentifier(p(1, 6, 5, 7), "Int"),
-	// 			ast.NewIdentifier(p(1, 10, 9, 11), "int"),
-	// 			false,
-	// 		),
-	// 	}, ast.ContextGo),
-	// },
-	// This test is not runnable until types are implemented in Scriggo.
-	// https://github.com/open2b/scriggo/issues/194
-	// {"type Int []string",
-	// 	ast.NewTree("", []ast.Node{
-	// 		ast.NewTypeDeclaration(
-	// 			p(1, 1, 0, 16),
-	// 			ast.NewIdentifier(p(1, 6, 5, 7), "Int"),
-	// 			ast.NewSliceType(p(1, 10, 9, 16), ast.NewIdentifier(p(1, 12, 11, 16), "string")),
-	// 			false,
-	// 		),
-	// 	}, ast.ContextGo),
-	// },
+	{"type Int int",
+		ast.NewTree("", []ast.Node{
+			ast.NewTypeDeclaration(
+				p(1, 1, 0, 11),
+				ast.NewIdentifier(p(1, 6, 5, 7), "Int"),
+				ast.NewIdentifier(p(1, 10, 9, 11), "int"),
+				false,
+			),
+		}, ast.ContextGo),
+	},
+	{"type Int []string",
+		ast.NewTree("", []ast.Node{
+			ast.NewTypeDeclaration(
+				p(1, 1, 0, 16),
+				ast.NewIdentifier(p(1, 6, 5, 7), "Int"),
+				ast.NewSliceType(p(1, 10, 9, 16), ast.NewIdentifier(p(1, 12, 11, 16), "string")),
+				false,
+			),
+		}, ast.ContextGo),
+	},
 	{"type Int = int",
 		ast.NewTree("", []ast.Node{
 			ast.NewTypeDeclaration(
@@ -381,42 +377,38 @@ var goContextTreeTests = []struct {
 			),
 		}, ast.ContextGo),
 	},
-	// This test is not runnable until types are implemented in Scriggo.
-	// https://github.com/open2b/scriggo/issues/194
-	// {"type ( Int int ; String string )",
-	// 	ast.NewTree("", []ast.Node{
-	// 		ast.NewTypeDeclaration(
-	// 			p(1, 1, 0, 31),
-	// 			ast.NewIdentifier(p(1, 8, 7, 9), "Int"),
-	// 			ast.NewIdentifier(p(1, 12, 11, 13), "int"),
-	// 			false,
-	// 		),
-	// 		ast.NewTypeDeclaration(
-	// 			p(1, 1, 0, 31),
-	// 			ast.NewIdentifier(p(1, 18, 17, 22), "String"),
-	// 			ast.NewIdentifier(p(1, 25, 24, 29), "string"),
-	// 			false,
-	// 		),
-	// 	}, ast.ContextGo),
-	// },
-	// This test is not runnable until types are implemented in Scriggo.
-	// https://github.com/open2b/scriggo/issues/194
-	// {"type ( Int = int ; String string )",
-	// 	ast.NewTree("", []ast.Node{
-	// 		ast.NewTypeDeclaration(
-	// 			p(1, 1, 0, 33),
-	// 			ast.NewIdentifier(p(1, 8, 7, 9), "Int"),
-	// 			ast.NewIdentifier(p(1, 14, 13, 15), "int"),
-	// 			true,
-	// 		),
-	// 		ast.NewTypeDeclaration(
-	// 			p(1, 1, 0, 33),
-	// 			ast.NewIdentifier(p(1, 20, 19, 24), "String"),
-	// 			ast.NewIdentifier(p(1, 27, 26, 31), "string"),
-	// 			false,
-	// 		),
-	// 	}, ast.ContextGo),
-	// },
+	{"type ( Int int ; String string )",
+		ast.NewTree("", []ast.Node{
+			ast.NewTypeDeclaration(
+				p(1, 1, 0, 31),
+				ast.NewIdentifier(p(1, 8, 7, 9), "Int"),
+				ast.NewIdentifier(p(1, 12, 11, 13), "int"),
+				false,
+			),
+			ast.NewTypeDeclaration(
+				p(1, 1, 0, 31),
+				ast.NewIdentifier(p(1, 18, 17, 22), "String"),
+				ast.NewIdentifier(p(1, 25, 24, 29), "string"),
+				false,
+			),
+		}, ast.ContextGo),
+	},
+	{"type ( Int = int ; String string )",
+		ast.NewTree("", []ast.Node{
+			ast.NewTypeDeclaration(
+				p(1, 1, 0, 33),
+				ast.NewIdentifier(p(1, 8, 7, 9), "Int"),
+				ast.NewIdentifier(p(1, 14, 13, 15), "int"),
+				true,
+			),
+			ast.NewTypeDeclaration(
+				p(1, 1, 0, 33),
+				ast.NewIdentifier(p(1, 20, 19, 24), "String"),
+				ast.NewIdentifier(p(1, 27, 26, 31), "string"),
+				false,
+			),
+		}, ast.ContextGo),
+	},
 	{"struct { }",
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(

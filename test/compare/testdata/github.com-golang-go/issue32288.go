@@ -1,5 +1,3 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
-
 // run
 
 // Copyright 2019 The Go Authors. All rights reserved.
@@ -9,8 +7,8 @@
 package main
 
 type T struct {
-	s   [1]string
-	pad [16]uintptr
+	S   [1]string // TODO: should be unexported
+	Pad [16]uintptr // TODO: should be unexported
 }
 
 //go:noinline

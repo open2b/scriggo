@@ -13,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"scriggo/ast"
+	"scriggo/internal/compiler/types"
 	"scriggo/runtime"
 )
 
@@ -20,9 +21,25 @@ import (
 // register dst, making a conversion if necessary.
 func (em *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
 
-	// dst is indirect, so value must be "typed" to its true (original) type
+	// dst is indirect, so the value must be "typed" to its true (original) type
 	// before putting it into general.
+	//
+	// As an exception to this rule, if srcType is a Scriggo type then the
+	// Typify instruction must use the Scriggo internal type or the Go defined
+	// type, not the Scriggo defined type; that's because when the Scriggo
+	// defined type reaches the outside, the gc compiled code cannot access to
+	// it's internal implementation. Think about a struct defined in the gc
+	// compiled code: when this is passed through an interface to the gc
+	// compiled code, it can make a type assertion with the concrete type
+	// because it's defined in the gc compiled code, then it is able to access
+	// the struct fields. This is not possible with Scriggo defined types,
+	// because the gc compiled code cannot reference to them.
 	if dst < 0 {
+
+		if st, ok := srcType.(types.ScriggoType); ok {
+			srcType = st.Underlying()
+		}
+
 		em.fb.emitTypify(k, srcType, src, dst)
 		return
 	}
@@ -195,8 +212,14 @@ func kindToType(k reflect.Kind) registerType {
 	}
 }
 
-// newGlobal returns a new Global value.
+// newGlobal returns a new Global value. If typ is a Scriggo type, then typ is
+// converted to a gc compiled type before creating the Global value.
 func newGlobal(pkg, name string, typ reflect.Type, value interface{}) Global {
+	// TODO: is this solution ok? Or does it prevent from creating "global"
+	// values with scriggo types?
+	if st, ok := typ.(types.ScriggoType); ok {
+		typ = st.Underlying()
+	}
 	return Global{
 		Pkg:   pkg,
 		Name:  name,

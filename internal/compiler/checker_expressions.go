@@ -187,7 +187,7 @@ unusedLoop:
 func (tc *typechecker) checkArrayType(array *ast.ArrayType, length int) *TypeInfo {
 	elem := tc.checkType(array.ElementType)
 	if array.Len == nil { // ellipsis.
-		tc.typeInfos[array] = &TypeInfo{Properties: PropertyIsType, Type: reflect.ArrayOf(length, elem.Type)}
+		tc.typeInfos[array] = &TypeInfo{Properties: PropertyIsType, Type: tc.types.ArrayOf(length, elem.Type)}
 		return tc.typeInfos[array]
 	}
 	len := tc.checkExpr(array.Len)
@@ -205,7 +205,7 @@ func (tc *typechecker) checkArrayType(array *ast.ArrayType, length int) *TypeInf
 	if b < length {
 		panic(tc.errorf(array, "array index %d out of bounds [0:%d]", length-1, b))
 	}
-	tc.typeInfos[array] = &TypeInfo{Properties: PropertyIsType, Type: reflect.ArrayOf(b, elem.Type)}
+	tc.typeInfos[array] = &TypeInfo{Properties: PropertyIsType, Type: tc.types.ArrayOf(b, elem.Type)}
 	return tc.typeInfos[array]
 }
 
@@ -284,7 +284,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		t := tc.checkExprOrType(expr.Expr)
 		if t.IsType() {
 			if expr.Op == ast.OperatorMultiplication {
-				return &TypeInfo{Properties: PropertyIsType, Type: reflect.PtrTo(t.Type)}
+				return &TypeInfo{Properties: PropertyIsType, Type: tc.types.PtrTo(t.Type)}
 			}
 			panic(tc.errorf(expr, "type %s is not an expression", t))
 		}
@@ -334,7 +334,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			if _, ok := expr.Expr.(*ast.CompositeLiteral); !ok && !t.Addressable() {
 				panic(tc.errorf(expr, "cannot take the address of %s", expr.Expr))
 			}
-			ti.Type = reflect.PtrTo(t.Type)
+			ti.Type = tc.types.PtrTo(t.Type)
 			// When taking the address of a variable, such variable must be
 			// marked as "indirect".
 			if ident, ok := expr.Expr.(*ast.Identifier); ok {
@@ -427,7 +427,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 				}
 			}
 		}
-		t := reflect.StructOf(fields)
+		t := tc.types.StructOf(fields)
 		return &TypeInfo{
 			Type:       t,
 			Properties: PropertyIsType,
@@ -441,11 +441,11 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 				panic(tc.errorf(expr, "invalid map key type %s", key))
 			}
 		}()
-		return &TypeInfo{Properties: PropertyIsType, Type: reflect.MapOf(key.Type, value.Type)}
+		return &TypeInfo{Properties: PropertyIsType, Type: tc.types.MapOf(key.Type, value.Type)}
 
 	case *ast.SliceType:
 		elem := tc.checkType(expr.ElementType)
-		return &TypeInfo{Properties: PropertyIsType, Type: reflect.SliceOf(elem.Type)}
+		return &TypeInfo{Properties: PropertyIsType, Type: tc.types.SliceOf(elem.Type)}
 
 	case *ast.ArrayType:
 		return tc.checkArrayType(expr, -1)
@@ -461,7 +461,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			dir = reflect.SendDir
 		}
 		elem := tc.checkType(expr.ElementType)
-		return &TypeInfo{Properties: PropertyIsType, Type: reflect.ChanOf(dir, elem.Type)}
+		return &TypeInfo{Properties: PropertyIsType, Type: tc.types.ChanOf(dir, elem.Type)}
 
 	case *ast.CompositeLiteral:
 		return tc.checkCompositeLiteral(expr, nil)
@@ -481,7 +481,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			} else {
 				t := tc.checkType(param.Type)
 				if variadic && i == numIn-1 {
-					in[i] = reflect.SliceOf(t.Type)
+					in[i] = tc.types.SliceOf(t.Type)
 				} else {
 					in[i] = t.Type
 				}
@@ -499,7 +499,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 				out[i] = c.Type
 			}
 		}
-		expr.Reflect = reflect.FuncOf(in, out, variadic)
+		expr.Reflect = tc.types.FuncOf(in, out, variadic)
 		return &TypeInfo{Type: expr.Reflect, Properties: PropertyIsType}
 
 	case *ast.Func:
@@ -514,7 +514,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			t := tc.checkType(f.Type)
 			if f.Ident != nil {
 				if isVariadic && i == len(expr.Type.Parameters)-1 {
-					tc.assignScope(f.Ident.Name, &TypeInfo{Type: reflect.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
+					tc.assignScope(f.Ident.Name, &TypeInfo{Type: tc.types.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
 					continue
 				}
 				tc.assignScope(f.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
@@ -667,7 +667,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		case reflect.String, reflect.Slice:
 			return &TypeInfo{Type: t.Type}
 		case reflect.Array, reflect.Ptr:
-			return &TypeInfo{Type: reflect.SliceOf(realType.Elem())}
+			return &TypeInfo{Type: tc.types.SliceOf(realType.Elem())}
 		}
 
 	case *ast.Selector:
@@ -751,7 +751,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 					tc.indirectVars[elem.decl] = true
 					expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorAnd, expr.Expr)
 					tc.typeInfos[expr.Expr] = &TypeInfo{
-						Type:       reflect.PtrTo(t.Type),
+						Type:       tc.types.PtrTo(t.Type),
 						MethodType: t.MethodType,
 					}
 				}
@@ -1395,7 +1395,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		if len(expr.Args) > 1 {
 			panic(tc.errorf(expr, "too many arguments to new(%s)", expr.Args[0]))
 		}
-		return []*TypeInfo{{Type: reflect.PtrTo(t.Type)}}
+		return []*TypeInfo{{Type: tc.types.PtrTo(t.Type)}}
 
 	case "panic":
 		if len(expr.Args) == 0 {
@@ -1630,7 +1630,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		}
 		a := tc.checkExpr(arg)
 		if i == lastIn && callIsVariadic {
-			if err := tc.isAssignableTo(a, arg, reflect.SliceOf(in)); err != nil {
+			if err := tc.isAssignableTo(a, arg, tc.types.SliceOf(in)); err != nil {
 				if _, ok := err.(invalidTypeInAssignment); ok {
 					panic(tc.errorf(expr, "%s in argument to %s", err, expr.Func))
 				}

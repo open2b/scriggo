@@ -1,5 +1,3 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
-
 // run
 
 // Copyright 2017 The Go Authors. All rights reserved.

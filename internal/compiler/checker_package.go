@@ -195,8 +195,9 @@ func detectVarsLoop(vars []*ast.Var, deps PackageDeclsDeps) error {
 func detectTypeLoop(types []*ast.TypeDeclaration, deps PackageDeclsDeps) error {
 	for _, t := range types {
 		if !t.IsAliasDeclaration {
-			// https://github.com/open2b/scriggo/issues/194
-			panic("BUG: type definition currently not supported")
+			// TODO: currently the initialization loop check for type
+			// definitions is the same as for type declarations. Is this
+			// correct?
 		}
 		path := []*ast.Identifier{t.Identifier}
 		loopPath := checkDepsPath(path, deps)
@@ -497,12 +498,10 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 	// First: check all type declarations.
 	for _, d := range packageNode.Declarations {
 		if td, ok := d.(*ast.TypeDeclaration); ok {
-			if !td.IsAliasDeclaration {
-				// https://github.com/open2b/scriggo/issues/417
-				panic("BUG: type definition not supported")
+			name, ti := tc.checkTypeDeclaration(td)
+			if ti != nil {
+				tc.assignScope(name, ti, td.Identifier)
 			}
-			typ := tc.checkType(td.Type)
-			tc.assignScope(td.Identifier.Name, typ, td.Identifier)
 		}
 	}
 
@@ -621,7 +620,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 				t := tc.checkType(param.Type)
 				if param.Ident != nil {
 					if isVariadic && i == len(d.Type.Parameters)-1 {
-						tc.assignScope(param.Ident.Name, &TypeInfo{Type: reflect.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
+						tc.assignScope(param.Ident.Name, &TypeInfo{Type: tc.types.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
 					} else {
 						tc.assignScope(param.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 					}

@@ -11,6 +11,7 @@ import (
 	"reflect"
 
 	"scriggo/ast"
+	"scriggo/internal/compiler/types"
 	"scriggo/runtime"
 )
 
@@ -317,7 +318,20 @@ func (builder *functionBuilder) getPath() string {
 }
 
 // addType adds a type to the builder's function, creating it if necessary.
-func (builder *functionBuilder) addType(typ reflect.Type) int {
+// preserveType controls if typ should be converted to the underlying gc type in
+// case of typ is a Scriggo type. So, if preserveType is set to false, this
+// method adds typ to the slice of types 'as is', independently from it's
+// implementation. Setting 'preserveType' is useful for instructions that need
+// to keep the information about the Scriggo type. Note that for every
+// instruction of the virtual machine that receives a type 'as is', such type
+// must be handled as a special case from the VM; considered that, in the most
+// cases you would just simply set 'preserveType' to false.
+func (builder *functionBuilder) addType(typ reflect.Type, preserveType bool) int {
+	if !preserveType {
+		if st, ok := typ.(types.ScriggoType); ok {
+			typ = st.Underlying()
+		}
+	}
 	fn := builder.fn
 	for i, t := range fn.Types {
 		if t == typ {

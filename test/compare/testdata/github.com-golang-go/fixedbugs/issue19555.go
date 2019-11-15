@@ -1,12 +1,10 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
-
 // compile
 
 // Copyright 2017 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package main
 
 type NodeLink struct{}
 
@@ -36,3 +34,5 @@ func NewNodeLink(role LinkRole) *NodeLink {
 	_ = nextConnId
 	return nil
 }
+
+func main() {}

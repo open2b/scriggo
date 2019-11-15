@@ -1,4 +1,4 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
+// skip : panic: reflect.Set: value of type *struct { A int; B int } is not assignable to type struct { A int; B int }
 
 // run
 
@@ -8,19 +8,19 @@
 
 package main
 
-type T struct {a, b int};
+type T struct {A, B int}; // TODO: fields should be unexported
 
 func println(x, y int) { }
 
 func f(x interface{}) interface{} {
-	type T struct {a, b int};
+	type T struct {A, B int}; // TODO: fields should be unexported
 
 	if x == nil {
 		return T{2, 3};
 	}
 
 	t := x.(T);
-	println(t.a, t.b);
+	println(t.A, t.B);
 	return x;
 }
 

@@ -1,5 +1,3 @@
-// skip : type definition (see https://github.com/open2b/scriggo/issues/194)
-
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -12,7 +10,8 @@ type T int
 
 func f() {
 	var x struct { T };
-	var y struct { T T };
+	var y struct { T T }; 
+	_ = y
 	x = y;	// ERROR "cannot|incompatible"
 	_ = x;
 }
@@ -23,7 +22,9 @@ type T2 struct { T T }
 func g() {
 	var x T1;
 	var y T2;
+	_ = y
 	x = y;	// ERROR "cannot|incompatible"
 	_ = x;
 }
 
+func main() { }

@@ -12,6 +12,7 @@ import (
 	"reflect"
 
 	"scriggo/ast"
+	"scriggo/internal/compiler/types"
 	"scriggo/runtime"
 )
 
@@ -75,6 +76,11 @@ type emitter struct {
 
 	// inURL indicates if the emitter is currently inside an *ast.URL node.
 	inURL bool
+
+	// types refers the types of the current compilation and it is used to
+	// create and manipulate types and values, both predefined and defined only
+	// by Scriggo.
+	types *types.Types
 }
 
 // newEmitter returns a new emitter with the given type infos, indirect
@@ -91,6 +97,7 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 		typeInfos:           typeInfos,
 		closureVarRefs:      map[*runtime.Function]map[string]int{},
 		predefinedVarRefs:   map[*runtime.Function]map[*reflect.Value]int{},
+		types:               types.NewTypes(), // TODO: this is wrong: the instance should be taken from the type checker.
 	}
 }
 
@@ -248,7 +255,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 					// initialized value inside the proper global index.
 					pkgVarRegs[v.Name] = varr
 					pkgVarTypes[v.Name] = staticType
-					em.globals = append(em.globals, newGlobal("Main", v.Name, staticType, nil))
+					em.globals = append(em.globals, newGlobal("main", v.Name, staticType, nil))
 					em.availableVarIndexes[em.pkg][v.Name] = int16(len(em.globals) - 1)
 					vars[v.Name] = int16(len(em.globals) - 1)
 				}
@@ -1298,7 +1305,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			if typ.Kind() == reflect.Slice {
 				em.fb.emitMakeSlice(true, true, typ, length, length, reg, expr.Pos())
 			} else {
-				arrayZero := em.fb.makeGeneralConstant(reflect.New(typ).Elem().Interface())
+				arrayZero := em.fb.makeGeneralConstant(em.types.New(typ).Elem().Interface())
 				em.changeRegister(true, arrayZero, reg, typ, typ)
 			}
 			var index int8 = -1
@@ -1326,7 +1333,8 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				}
 				return reg, false
 			}
-			structZero := em.fb.makeGeneralConstant(reflect.New(typ).Elem().Interface())
+			// TODO: the types instance should be the same of the type checker!
+			structZero := em.fb.makeGeneralConstant(em.types.New(typ).Elem().Interface())
 			// When there are no values in the composite literal, optimize the
 			// creation of the struct.
 			if len(expr.KeyValues) == 0 {
@@ -1805,7 +1813,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		case *ast.Identifier:
 			if em.fb.isVariable(operand.Name) {
 				varr := em.fb.scopeLookup(operand.Name)
-				em.fb.emitNew(reflect.PtrTo(unOpType), reg)
+				em.fb.emitNew(em.types.PtrTo(unOpType), reg)
 				em.fb.emitMove(false, -varr, reg, dstType.Kind(), false)
 				return
 			}
@@ -1856,7 +1864,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 			em.fb.enterStack()
 			tmp := em.fb.newRegister(reflect.Ptr)
 			em.fb.emitAddr(expr, index, tmp, pos)
-			em.changeRegister(false, tmp, reg, reflect.PtrTo(field.Type), dstType)
+			em.changeRegister(false, tmp, reg, em.types.PtrTo(field.Type), dstType)
 			em.fb.exitStack()
 
 		// &T{..}

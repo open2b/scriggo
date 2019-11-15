@@ -109,7 +109,7 @@ func (builder *functionBuilder) emitAppendSlice(t, s int8, pos *ast.Position) {
 //     z = e.(t)
 //
 func (builder *functionBuilder) emitAssert(e int8, typ reflect.Type, z int8) {
-	t := builder.addType(typ)
+	t := builder.addType(typ, true)
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpAssert, A: e, B: int8(t), C: z})
 }
 
@@ -234,7 +234,7 @@ func (builder *functionBuilder) emitContinue(lab label) {
 //
 func (builder *functionBuilder) emitConvert(src int8, typ reflect.Type, dst int8, srcKind reflect.Kind) {
 	fn := builder.fn
-	regType := builder.addType(typ)
+	regType := builder.addType(typ, false)
 	var op runtime.Operation
 	switch kindToType(srcKind) {
 	case generalRegister:
@@ -613,7 +613,7 @@ func (builder *functionBuilder) emitLoadNumber(typ registerType, index, dst int8
 func (builder *functionBuilder) emitMakeChan(typ reflect.Type, kCapacity bool, capacity int8, dst int8, pos *ast.Position) {
 	builder.addPosAndPath(pos)
 	fn := builder.fn
-	t := builder.addType(typ)
+	t := builder.addType(typ, false)
 	op := runtime.OpMakeChan
 	if kCapacity {
 		op = -op
@@ -649,7 +649,7 @@ func (builder *functionBuilder) emitMakeChan(typ reflect.Type, kCapacity bool, c
 //
 func (builder *functionBuilder) emitMakeMap(typ reflect.Type, kSize bool, size int8, dst int8) {
 	fn := builder.fn
-	t := builder.addType(typ)
+	t := builder.addType(typ, false)
 	op := runtime.OpMakeMap
 	if kSize {
 		op = -op
@@ -673,7 +673,7 @@ func (builder *functionBuilder) emitMakeMap(typ reflect.Type, kSize bool, size i
 func (builder *functionBuilder) emitMakeSlice(kLen, kCap bool, sliceType reflect.Type, len, cap, dst int8, pos *ast.Position) {
 	builder.addPosAndPath(pos)
 	fn := builder.fn
-	t := builder.addType(sliceType)
+	t := builder.addType(sliceType, false)
 	var k int8
 	if len == 0 && cap == 0 {
 		k = 0
@@ -790,7 +790,7 @@ func (builder *functionBuilder) emitMul(ky bool, x, y, z int8, kind reflect.Kind
 //
 func (builder *functionBuilder) emitNew(typ reflect.Type, z int8) {
 	fn := builder.fn
-	b := builder.addType(typ)
+	b := builder.addType(typ, false)
 	if builder.allocs != nil {
 		bytes := int(typ.Size())
 		if bytes <= maxUint24 {
@@ -833,7 +833,7 @@ func (builder *functionBuilder) emitPanic(v int8, typ reflect.Type, pos *ast.Pos
 	fn := builder.fn
 	in := runtime.Instruction{Op: runtime.OpPanic, A: v}
 	if typ != nil {
-		in.C = int8(builder.addType(typ))
+		in.C = int8(builder.addType(typ, true))
 	}
 	fn.Body = append(fn.Body, in)
 }
@@ -1154,7 +1154,7 @@ func (builder *functionBuilder) emitSubInv(k bool, x, y, z int8, kind reflect.Ki
 
 // emitTypify appends a new "Typify" instruction to the function body.
 func (builder *functionBuilder) emitTypify(k bool, typ reflect.Type, x, z int8) {
-	t := builder.addType(typ)
+	t := builder.addType(typ, true)
 	op := runtime.OpTypify
 	if k {
 		op = -op
