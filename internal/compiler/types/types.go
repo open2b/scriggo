@@ -64,9 +64,8 @@ func (types *Types) New(typ reflect.Type) reflect.Value {
 	return reflect.New(typ)
 }
 
-// Zero behaves like reflect.Zero except when t is a Scriggo type; in such case
-// instead of returning the zero of the Scriggo type is returned the zero of the
-// underlying type.
+// Zero is equivalent to reflect.Zero. If t is a Scriggo type it return the zero
+// of the underlying type.
 func (types *Types) Zero(t reflect.Type) reflect.Value {
 	if st, ok := t.(ScriggoType); ok {
 		return types.Zero(st.Underlying())
@@ -74,7 +73,7 @@ func (types *Types) Zero(t reflect.Type) reflect.Value {
 	return reflect.Zero(t)
 }
 
-// AssignableTo behaves like x.AssignableTo(t) except when t is a Scriggo type.
+// AssignableTo is equivalent to reflect's AssignableTo.
 func (types *Types) AssignableTo(x, t reflect.Type) bool {
 
 	typ, isScriggoType := t.(ScriggoType)
