@@ -51,9 +51,7 @@ func (x arrayType) Name() string {
 }
 
 func (x arrayType) String() string {
-	s := "[" + strconv.Itoa(x.Type.Len()) + "]"
-	s += x.elem.String()
-	return s
+	return "[" + strconv.Itoa(x.Type.Len()) + "]" + x.elem.String()
 }
 
 // Underlying implement the interface runtime.Wrapper.
