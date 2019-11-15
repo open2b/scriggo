@@ -55,7 +55,8 @@ func isDefinedType(t reflect.Type) bool {
 }
 
 // New behaves like reflect.New expect when typ is a Scriggo type; in such case
-// is returned a 'new' instance of the underlying Go type.
+// is returned an instance of the underlying type created with a reflect.New
+// call.
 func (types *Types) New(typ reflect.Type) reflect.Value {
 	if st, ok := typ.(ScriggoType); ok {
 		return types.New(st.Underlying())
