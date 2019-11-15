@@ -27,6 +27,7 @@ type sliceType struct {
 	elem reflect.Type
 }
 
+// AssignableTo is equivalent to reflect's AssignableTo.
 func (x sliceType) AssignableTo(u reflect.Type) bool {
 	return x == u
 }

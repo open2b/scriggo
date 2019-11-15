@@ -27,6 +27,7 @@ type ptrType struct {
 	elem reflect.Type // Cannot be nil.
 }
 
+// AssignableTo is equivalent to reflect's AssignableTo.
 func (x ptrType) AssignableTo(u reflect.Type) bool {
 	return x == u
 }

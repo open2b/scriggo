@@ -77,6 +77,7 @@ type structType struct {
 	scriggoFields *map[int]reflect.StructField
 }
 
+// AssignableTo is equivalent to reflect's AssignableTo.
 func (x structType) AssignableTo(u reflect.Type) bool {
 	return x == u
 }

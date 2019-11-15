@@ -106,6 +106,7 @@ type funcType struct {
 	in, out *[]reflect.Type
 }
 
+// AssignableTo is equivalent to reflect's AssignableTo.
 func (x funcType) AssignableTo(u reflect.Type) bool {
 	return x == u
 }

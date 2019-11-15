@@ -36,6 +36,7 @@ func (x definedType) Name() string {
 	return x.name
 }
 
+// AssignableTo is equivalent to reflect's AssignableTo.
 func (x definedType) AssignableTo(u reflect.Type) bool {
 
 	// Both x and T are Scriggo defined types: x is assignable to T only if they
