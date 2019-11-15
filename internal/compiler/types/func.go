@@ -139,23 +139,24 @@ func (x funcType) Out(i int) reflect.Type {
 	return x.Type.Out(i)
 }
 
+// TODO: does this function handle variadic functions properly?
 func (x funcType) String() string {
 	s := "func("
 	for i, t := range *x.in {
-		s += t.String()
-		if i != len(*x.in)-1 {
+		if i > 0 {
 			s += ", "
 		}
+		s += t.String()
 	}
 	s += ") "
 	if len(*x.out) >= 2 {
 		s += "("
 	}
 	for i, t := range *x.out {
-		s += t.String()
-		if i != len(*x.out)-1 {
+		if i > 0 {
 			s += ", "
 		}
+		s += t.String()
 	}
 	if len(*x.out) >= 2 {
 		s += ")"
