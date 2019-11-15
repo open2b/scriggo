@@ -24,7 +24,7 @@ type definedType struct {
 
 // DefinedOf returns the defined type with the given name and underlying type.
 // For example, if n is "Int" and k represents int, DefinedOf(n, k) represents
-// the the type Int declared with 'type Int int'.
+// the type Int declared with 'type Int int'.
 func (types *Types) DefinedOf(name string, underlyingType reflect.Type) reflect.Type {
 	if name == "" {
 		panic("BUG: name cannot be empty")
