@@ -25,7 +25,7 @@ var sliceByteType = reflect.TypeOf([]byte{})
 var emptyInterfaceType = reflect.TypeOf(&[]interface{}{nil}[0]).Elem()
 var emptyInterfaceNil = reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
 
-// A wrapper wraps and unwraps Scriggo types into Go types. A wrapper is used
+// A Wrapper wraps and unwraps Scriggo types into Go types. A wrapper is used
 // when an internal implemenation of a value must be typified or when an
 // external Go value must be imported into Scriggo.
 type Wrapper interface {
