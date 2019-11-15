@@ -180,9 +180,6 @@ func (vm *VM) run() (Addr, bool) {
 				}
 			}
 			if c != 0 {
-				if w, ok := t.(Wrapper); ok {
-					t = w.Underlying()
-				}
 				switch t.Kind() {
 				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 					var n int64
@@ -209,6 +206,9 @@ func (vm *VM) run() (Addr, bool) {
 					}
 					vm.setString(c, s)
 				default:
+					if w, ok := t.(Wrapper); ok {
+						t = w.Underlying()
+					}
 					rv := reflect.New(t).Elem()
 					if ok {
 						rv.Set(v)
@@ -1646,7 +1646,7 @@ func (vm *VM) run() (Addr, bool) {
 					v = reflect.ValueOf(vm.floatk(b, op < 0))
 				case k == reflect.String:
 					v = reflect.ValueOf(vm.stringk(b, op < 0))
-				case reflect.Complex64 <= k && k <= reflect.Struct:
+				default:
 					v = vm.generalk(b, op < 0)
 				}
 				vm.setGeneral(c, w.Wrap(v))
