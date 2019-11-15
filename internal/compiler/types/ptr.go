@@ -50,7 +50,7 @@ func (x ptrType) String() string {
 	return "*" + x.elem.String()
 }
 
-// Underlying implement the interface runtime.Wrapper.
+// Underlying implements the interface runtime.Wrapper.
 func (x ptrType) Underlying() reflect.Type {
 	assertNotScriggoType(x.Type)
 	return x.Type

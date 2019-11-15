@@ -164,7 +164,7 @@ func (x funcType) String() string {
 	return s
 }
 
-// Underlying implement the interface runtime.Wrapper.
+// Underlying implements the interface runtime.Wrapper.
 func (x funcType) Underlying() reflect.Type {
 	assertNotScriggoType(x.Type)
 	return x.Type

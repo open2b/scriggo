@@ -54,7 +54,7 @@ func (x arrayType) String() string {
 	return "[" + strconv.Itoa(x.Type.Len()) + "]" + x.elem.String()
 }
 
-// Underlying implement the interface runtime.Wrapper.
+// Underlying implements the interface runtime.Wrapper.
 func (x arrayType) Underlying() reflect.Type {
 	assertNotScriggoType(x.Type)
 	return x.Type

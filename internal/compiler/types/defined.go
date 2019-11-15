@@ -83,7 +83,7 @@ func (x definedType) String() string {
 	return x.name
 }
 
-// Underlying implement the interface runtime.Wrapper.
+// Underlying implements the interface runtime.Wrapper.
 func (x definedType) Underlying() reflect.Type {
 	if st, ok := x.Type.(ScriggoType); ok {
 		return st.Underlying()
