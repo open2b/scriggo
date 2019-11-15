@@ -19,7 +19,7 @@ import (
 type Types struct {
 	// funcParamsStore provides the function parameters necessary to create
 	// funcTypes.
-	funcParamsStore funcParamsStore
+	funcParamsStore funcParams
 
 	// structFieldsLists avoid the creation of two different structTypes with
 	// the same struct fields.

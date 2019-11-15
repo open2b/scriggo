@@ -41,33 +41,37 @@ func (types *Types) FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 	}
 
 	return funcType{
-		in:   types.funcParamsStore.get(in),
-		out:  types.funcParamsStore.get(out),
+		in:   types.funcParamsStore.deduplicate(in),
+		out:  types.funcParamsStore.deduplicate(out),
 		Type: reflect.FuncOf(inGo, outGo, variadic),
 	}
 
 }
 
-// funcParamsStore stores and provides the function parameters necessary to
-// create a funcType, ensuring that two parameters list have the same pointer if
-// and only if their elements are the same.
+// funcParams stores and provides the function parameters necessary to create a
+// funcType, ensuring that two parameters list have the same pointer if and only
+// if their elements are the same.
 //
 // This consequently ensures that the comparison between two pointers to
 // parameters list returns a consistent result.
-type funcParamsStore struct {
+type funcParams struct {
 	params []*[]reflect.Type
 }
 
-// get returns a pointer to the given parameters list, creating it if does not
-// exist.
-func (store *funcParamsStore) get(params []reflect.Type) *[]reflect.Type {
+// deduplicate deduplicates the given parameters by returning a pointer to a
+// slice of parameters that contains the same elements.
+func (store *funcParams) deduplicate(params []reflect.Type) *[]reflect.Type {
 	for _, storedParams := range store.params {
 		if equalReflectTypes(*storedParams, params) {
 			return storedParams
 		}
 	}
-	// Not found.
-	newParamsPtr := &params
+	// Make a copy of params before getting the pointer.
+	newParams := make([]reflect.Type, len(params))
+	for i := range params {
+		newParams[i] = params[i]
+	}
+	newParamsPtr := &newParams
 	store.params = append(store.params, newParamsPtr)
 	return newParamsPtr
 }
