@@ -21,10 +21,10 @@ import (
 // register dst, making a conversion if necessary.
 func (em *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
 
-	// dst is indirect, so value must be "typed" to its true (original) type
+	// dst is indirect, so the value must be "typed" to its true (original) type
 	// before putting it into general.
 	//
-	// As an exception to this rule, if the srcType is a Scriggo type then the
+	// As an exception to this rule, if srcType is a Scriggo type then the
 	// typify instruction should use the Scriggo internal type or the Go defined
 	// typ, not the Scriggo defined type; that's because when the Scriggo
 	// defined type reaches the outside, Go cannot access to it's internal
