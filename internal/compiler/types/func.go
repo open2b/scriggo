@@ -8,13 +8,13 @@ package types
 
 import "reflect"
 
-// FuncOf behaves like reflect.FuncOf except when at least one of the parameters
-// is a Scriggo type; in such case a new Scriggo function type is created and
-// returned as reflect.Type.
+// FuncOf behaves like reflect.FuncOf except when at least one of the
+// parameters is a Scriggo type; in such case a new Scriggo function type is
+// created and returned as reflect.Type.
 func (types *Types) FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 
-	// If at least one parameter of the function that is going to be created is
-	// a Scriggo type then such function must be represented with a Scriggo
+	// If at least one parameter of the function that is going to be created
+	// is a Scriggo type then such function must be represented with a Scriggo
 	// type. If not, the resulting function can be represented by the reflect
 	// implementation of reflect.Type that can be created with reflect.FuncOf.
 
@@ -48,9 +48,9 @@ func (types *Types) FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 
 }
 
-// funcParams stores and provides the function parameters necessary to create a
-// funcType, ensuring that two parameters list have the same pointer if and only
-// if their elements are the same.
+// funcParams stores and provides the function parameters necessary to create
+// a funcType, ensuring that two parameters list have the same pointer if and
+// only if their elements are the same.
 //
 // This consequently ensures that the comparison between two pointers to
 // parameters list returns a consistent result.
@@ -90,7 +90,8 @@ func equalReflectTypes(ts1, ts2 []reflect.Type) bool {
 	return true
 }
 
-// containsScriggoType reports whether types contains at least one Scriggo type.
+// containsScriggoType reports whether types contains at least one Scriggo
+// type.
 func containsScriggoType(types []reflect.Type) bool {
 	for _, t := range types {
 		if _, ok := t.(ScriggoType); ok {
@@ -103,7 +104,7 @@ func containsScriggoType(types []reflect.Type) bool {
 type funcType struct {
 	reflect.Type
 
-	// At least one of 'in' and 'out' contains at least one Scriggo type,
+	// At least one of in and out contains at least one Scriggo type,
 	// otherwise there's no need to create a funcType. in and out must be
 	// pointers because a funcType value must be comparable.
 	in, out *[]reflect.Type
@@ -174,8 +175,8 @@ func (x funcType) Underlying() reflect.Type {
 	return x.Type
 }
 
-// Unwrap implement the interface runtime.Wrapper.
+// Unwrap implements the interface runtime.Wrapper.
 func (x funcType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
 
-// Wrap implement the interface runtime.Wrapper.
+// Wrap implements the interface runtime.Wrapper.
 func (x funcType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
