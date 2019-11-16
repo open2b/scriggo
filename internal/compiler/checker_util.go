@@ -141,12 +141,12 @@ var htmlStringerType = reflect.TypeOf((*HTMLStringer)(nil)).Elem()
 var cssStringerType = reflect.TypeOf((*CSSStringer)(nil)).Elem()
 var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
 
-// convert converts a value explicitly. If the converted value is a constant,
-// convert returns its value, otherwise returns nil.
+// convertExplicitly explicitly converts a value. If the converted value is a
+// constant, convert returns its value, otherwise returns nil.
 //
 // If the value can not be converted, returns an errTypeConversion type error,
 // errConstantTruncated or errConstantOverflow.
-func (tc *typechecker) convert(ti *TypeInfo, t2 reflect.Type) (constant, error) {
+func (tc *typechecker) convertExplicitly(ti *TypeInfo, t2 reflect.Type) (constant, error) {
 
 	t := ti.Type
 	k2 := t2.Kind()
@@ -182,6 +182,35 @@ func (tc *typechecker) convert(ti *TypeInfo, t2 reflect.Type) (constant, error) 
 		return nil, nil
 	}
 
+	return nil, errTypeConversion
+}
+
+// convertImplicitly implicitly converts an untyped value. If the converted
+// value is a constant, convert returns its value, otherwise returns nil.
+//
+// Untyped values are the predeclared identifier nil, the untyped constants
+// and the untyped boolean values.
+//
+// If the value can not be converted, returns an errTypeConversion type error,
+// errConstantTruncated or errConstantOverflow.
+func (tc *typechecker) convertImplicitly(ti *TypeInfo, t2 reflect.Type) (constant, error) {
+	switch k2 := t2.Kind(); {
+	case ti.Nil():
+		switch k2 {
+		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
+			return nil, nil
+		}
+	case k2 == reflect.Interface:
+		if t2 == emptyInterfaceType || tc.types.ConvertibleTo(ti.Type, t2) {
+			return nil, nil
+		}
+	case ti.IsConstant():
+		return ti.Constant.representedBy(t2)
+	default:
+		if k2 == reflect.Bool {
+			return nil, nil
+		}
+	}
 	return nil, errTypeConversion
 }
 

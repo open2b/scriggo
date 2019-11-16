@@ -194,7 +194,7 @@ func (tc *typechecker) checkArrayType(array *ast.ArrayType, length int) *TypeInf
 	if !len.IsConstant() {
 		panic(tc.errorf(array, "non-constant array bound %s", array.Len))
 	}
-	c, err := tc.convert(len, intType)
+	c, err := tc.convertExplicitly(len, intType)
 	if err != nil {
 		panic(tc.errorf(array, "%s", err))
 	}
@@ -817,7 +817,7 @@ func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, isSlice bool
 	}
 	index.setValue(intType)
 	if index.IsConstant() {
-		c, err := tc.convert(index, intType)
+		c, err := tc.convertExplicitly(index, intType)
 		if err != nil {
 			panic(tc.errorf(expr, "%s", err))
 		}
@@ -900,7 +900,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			if t1.Untyped() {
 				ti.Properties = PropertyUntyped
 			} else {
-				ti.Constant, err = tc.convert(ti, ti.Type)
+				ti.Constant, err = tc.convertExplicitly(ti, ti.Type)
 				if err != nil {
 					return nil, fmt.Errorf("constant %v overflows %s", c, t1)
 				}
@@ -915,16 +915,15 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		if t1.Nil() && t2.Nil() {
 			return nil, fmt.Errorf("operator %s not defined on nil", op)
 		}
-		t := t1
-		if t.Nil() {
-			t = t2
+		if t1.Nil() {
+			t1, t2 = t2, t1
 		}
-		k := t.Type.Kind()
-		if reflect.Bool <= k && k <= reflect.Array || k == reflect.String || k == reflect.Struct {
-			return nil, fmt.Errorf("cannot convert nil to type %s", t.ShortString())
+		_, err := tc.convertImplicitly(t2, t1.Type)
+		if err != nil {
+			return nil, fmt.Errorf("cannot convert nil to type %s", t1.ShortString())
 		}
 		if op != ast.OperatorEqual && op != ast.OperatorNotEqual {
-			return nil, fmt.Errorf("operator %s not defined on %s", op, k)
+			return nil, fmt.Errorf("operator %s not defined on %s", op, t1.Type.Kind())
 		}
 		return untypedBoolTypeInfo, nil
 	}
@@ -967,15 +966,21 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 	}
 
 	if t1.IsUntypedConstant() {
-		c, err := representedBy(t1, t2.Type)
+		c, err := tc.convertImplicitly(t1, t2.Type)
 		if err != nil {
+			if err == errNotRepresentable {
+				err = fmt.Errorf("cannot convert %v (type %s) to type %s", t1.Constant, t1, t2)
+			}
 			return nil, err
 		}
 		t1.setValue(t2.Type)
 		t1 = &TypeInfo{Type: t2.Type, Constant: c}
 	} else if t2.IsUntypedConstant() {
-		c, err := representedBy(t2, t1.Type)
+		c, err := tc.convertImplicitly(t2, t1.Type)
 		if err != nil {
+			if err == errNotRepresentable {
+				err = fmt.Errorf("cannot convert %v (type %s) to type %s", t2.Constant, t2, t1)
+			}
 			return nil, err
 		}
 		t2.setValue(t1.Type)
@@ -1009,7 +1014,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			return &TypeInfo{Type: boolType, Constant: c}, nil
 		}
 		ti := &TypeInfo{Type: t1.Type, Constant: c}
-		ti.Constant, err = tc.convert(ti, t1.Type)
+		ti.Constant, err = tc.convertExplicitly(ti, t1.Type)
 		if err != nil {
 			return nil, fmt.Errorf("constant %v overflows %s", c, t1)
 		}
@@ -1066,7 +1071,7 @@ func (tc *typechecker) checkSize(expr ast.Expression, typ reflect.Type, name str
 	}
 	size.setValue(intType)
 	if size.IsConstant() {
-		c, err := tc.convert(size, intType)
+		c, err := tc.convertExplicitly(size, intType)
 		if err != nil {
 			panic(tc.errorf(expr, "%s", err))
 		}
@@ -1216,13 +1221,13 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		if re.IsUntypedConstant() {
 			k := im.Type.Kind()
 			_ = k
-			c, err := tc.convert(re, im.Type)
+			c, err := tc.convertImplicitly(re, im.Type)
 			if err != nil {
 				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", re.Constant, re, im))
 			}
 			re = &TypeInfo{Type: im.Type, Constant: c}
 		} else if im.IsUntypedConstant() {
-			c, err := tc.convert(im, re.Type)
+			c, err := tc.convertImplicitly(im, re.Type)
 			if err != nil {
 				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", im.Constant, im, re))
 			}
@@ -1298,7 +1303,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			panic(tc.errorf(expr, "%s", err))
 		}
 		if key.IsConstant() {
-			_, err := tc.convert(key, keyType)
+			_, err := tc.convertExplicitly(key, keyType)
 			if err != nil {
 				panic(tc.errorf(expr, "%s", err))
 			}
@@ -1506,7 +1511,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			panic(tc.errorf(expr, "too many arguments to conversion to %s: %s", t, expr))
 		}
 		arg := tc.checkExpr(expr.Args[0])
-		c, err := tc.convert(arg, t.Type)
+		c, err := tc.convertExplicitly(arg, t.Type)
 		if err != nil {
 			if err == errTypeConversion {
 				if arg.Nil() {
