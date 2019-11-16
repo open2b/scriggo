@@ -152,7 +152,7 @@ func (tc *typechecker) convert(ti *TypeInfo, t2 reflect.Type) (constant, error) 
 	k2 := t2.Kind()
 
 	if ti.Nil() {
-		switch t2.Kind() {
+		switch k2 {
 		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
 			return nil, nil
 		}
