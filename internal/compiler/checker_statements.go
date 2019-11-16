@@ -378,11 +378,11 @@ nodesLoop:
 		case *ast.Switch:
 			tc.enterScope()
 			tc.addToAncestors(node)
-			// Checks the init.
+			// Check the init.
 			if node.Init != nil {
 				tc.checkAssignment(node.Init)
 			}
-			// Checks the expression.
+			// Check the expression.
 			typ := boolType
 			var ti *TypeInfo
 			if node.Expr != nil {
@@ -393,7 +393,7 @@ nodesLoop:
 				ti.setValue(nil)
 				typ = ti.Type
 			}
-			// Checks the cases.
+			// Check the cases.
 			terminating := true
 			hasFallthrough := false
 			positionOf := map[interface{}]*ast.Position{}

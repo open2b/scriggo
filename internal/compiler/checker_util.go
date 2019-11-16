@@ -317,7 +317,7 @@ func (tc *typechecker) isAssignableTo(x *TypeInfo, expr ast.Expression, t reflec
 		}
 		return newInvalidTypeInAssignment(x, expr, t)
 	}
-	// Checks if the type of x and t have identical underlying types and at
+	// Check if the type of x and t have identical underlying types and at
 	// least one is not a defined type.
 	if !tc.types.AssignableTo(x.Type, t) {
 		return newInvalidTypeInAssignment(x, expr, t)
@@ -441,7 +441,7 @@ func (tc *typechecker) methodByName(t *TypeInfo, name string) (*TypeInfo, receiv
 			Properties: PropertyIsPredefined | PropertyHasValue,
 			MethodType: MethodValueConcrete,
 		}
-		// Checks if pointer is defined on T or *T when called on a *T receiver.
+		// Check if pointer is defined on T or *T when called on a *T receiver.
 		if t.Type.Kind() == reflect.Ptr {
 			// TODO(Gianluca): always check first if t has method m, regardless
 			// of whether it's a pointer receiver or not. If m exists, it's
