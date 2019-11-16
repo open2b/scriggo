@@ -736,6 +736,7 @@ var checkerStmts = map[string]string{
 
 	// Equality
 	`type S = struct{ A func() }; _ = interface{}(nil) == S{}`: `invalid operation: interface{}(nil) == S literal (struct { A func() } cannot be compared)`,
+	`var a interface{}; _ = a == 9223372036854775808`:          `invalid operation: a == 9223372036854775808 (constant 9223372036854775808 overflows int)`,
 
 	// Assignments.
 	`(((map[int]string{}[0]))) = ""`:                              ok,
@@ -1237,10 +1238,11 @@ var checkerStmts = map[string]string{
 	`f := func(a, b, c int, d... int) {  };  f(1,2)`:                                "not enough arguments in call to f\n\thave (number, number)\n\twant (int, int, int, ...int)",
 
 	// Conversions.
-	`int()`:        `missing argument to conversion to int: int()`,
-	`int(0, 0)`:    `too many arguments to conversion to int: int(0, 0)`,
-	`int(nil)`:     `cannot convert nil to type int`,
-	`float64("a")`: `cannot convert a (type untyped string) to type float64`, // TODO: must return `cannot convert "a" (type untyped string) to type float64`
+	`int()`:                            `missing argument to conversion to int: int()`,
+	`int(0, 0)`:                        `too many arguments to conversion to int: int(0, 0)`,
+	`int(nil)`:                         `cannot convert nil to type int`,
+	`float64("a")`:                     `cannot convert a (type untyped string) to type float64`, // TODO: must return `cannot convert "a" (type untyped string) to type float64`
+	`interface{}(9223372036854775808)`: `constant 9223372036854775808 overflows int`,
 
 	// Function calls.
 	`a := 0; a()`:                  `cannot call non-function a (type int)`,

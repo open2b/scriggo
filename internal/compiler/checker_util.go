@@ -178,6 +178,14 @@ func (tc *typechecker) convertExplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 		return representedBy(ti, t2)
 	}
 
+	if ti.IsUntypedConstant() && k2 == reflect.Interface {
+		if t2 == emptyInterfaceType || tc.types.ConvertibleTo(ti.Type, t2) {
+			_, err := ti.Constant.representedBy(ti.Type)
+			return nil, err
+		}
+		return nil, errTypeConversion
+	}
+
 	if tc.types.ConvertibleTo(t, t2) {
 		return nil, nil
 	}
@@ -200,14 +208,20 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
 			return nil, nil
 		}
-	case k2 == reflect.Interface:
-		if t2 == emptyInterfaceType || tc.types.ConvertibleTo(ti.Type, t2) {
-			return nil, nil
-		}
 	case ti.IsConstant():
-		return ti.Constant.representedBy(t2)
+		if k2 == reflect.Interface {
+			if t2 == emptyInterfaceType || tc.types.ConvertibleTo(ti.Type, t2) {
+				_, err := ti.Constant.representedBy(ti.Type)
+				return nil, err
+			}
+		} else {
+			return ti.Constant.representedBy(t2)
+		}
 	default:
-		if k2 == reflect.Bool {
+		switch {
+		case k2 == reflect.Bool:
+			return nil, nil
+		case k2 == reflect.Interface && (t2 == emptyInterfaceType || tc.types.ConvertibleTo(ti.Type, t2)):
 			return nil, nil
 		}
 	}
