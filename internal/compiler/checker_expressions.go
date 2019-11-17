@@ -1011,7 +1011,11 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			return nil, err
 		}
 		if evalToBoolOperators[op] {
-			return &TypeInfo{Type: boolType, Constant: c}, nil
+			ti := &TypeInfo{Type: boolType, Constant: c}
+			if isComparison(op) {
+				ti.Properties = PropertyUntyped
+			}
+			return ti, nil
 		}
 		ti := &TypeInfo{Type: t1.Type, Constant: c}
 		ti.Constant, err = tc.convertExplicitly(ti, t1.Type)
