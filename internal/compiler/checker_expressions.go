@@ -965,7 +965,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		return t, nil
 	}
 
-	if t1.IsUntypedConstant() {
+	if t1.Untyped() {
 		c, err := tc.convertImplicitly(t1, t2.Type)
 		if err != nil {
 			if err == errNotRepresentable {
@@ -975,7 +975,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		}
 		t1.setValue(t2.Type)
 		t1 = &TypeInfo{Type: t2.Type, Constant: c}
-	} else if t2.IsUntypedConstant() {
+	} else if t2.Untyped() {
 		c, err := tc.convertImplicitly(t2, t1.Type)
 		if err != nil {
 			if err == errNotRepresentable {
