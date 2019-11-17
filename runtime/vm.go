@@ -21,7 +21,6 @@ const maxUint32 = 1<<31 - 1
 const stackSize = 512
 
 var envType = reflect.TypeOf(&Env{})
-var sliceByteType = reflect.TypeOf([]byte{})
 var emptyInterfaceType = reflect.TypeOf(&[]interface{}{nil}[0]).Elem()
 var emptyInterfaceNil = reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
 
