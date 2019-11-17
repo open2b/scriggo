@@ -422,9 +422,6 @@ nodesLoop:
 					if tcase.Untyped() {
 						c, err := tc.convertImplicitly(tcase, texpr.Type)
 						if err != nil {
-							if tcase.Nil() {
-								panic(tc.errorf(cas, "cannot convert nil to type %s", texpr))
-							}
 							if err == errNotRepresentable || err == errTypeConversion {
 								panic(tc.errorf(cas, "invalid case %s in switch%s (mismatched types %s and %s)", ex, ne, tcase.ShortString(), texpr.ShortString()))
 							}

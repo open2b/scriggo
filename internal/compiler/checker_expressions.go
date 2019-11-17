@@ -902,7 +902,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			} else {
 				ti.Constant, err = tc.convertExplicitly(ti, ti.Type)
 				if err != nil {
-					return nil, fmt.Errorf("constant %v overflows %s", c, t1)
+					return nil, err
 				}
 			}
 		}
@@ -920,7 +920,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		}
 		_, err := tc.convertImplicitly(t2, t1.Type)
 		if err != nil {
-			return nil, fmt.Errorf("cannot convert nil to type %s", t1.ShortString())
+			return nil, err
 		}
 		if op != ast.OperatorEqual && op != ast.OperatorNotEqual {
 			return nil, fmt.Errorf("operator %s not defined on %s", op, t1.Type.Kind())
@@ -1020,7 +1020,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		ti := &TypeInfo{Type: t1.Type, Constant: c}
 		ti.Constant, err = tc.convertExplicitly(ti, t1.Type)
 		if err != nil {
-			return nil, fmt.Errorf("constant %v overflows %s", c, t1)
+			return nil, err
 		}
 		return ti, nil
 	}
@@ -1518,9 +1518,6 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		c, err := tc.convertExplicitly(arg, t.Type)
 		if err != nil {
 			if err == errTypeConversion {
-				if arg.Nil() {
-					panic(tc.errorf(expr, "cannot convert nil to type %s", t.Type))
-				}
 				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", expr.Args[0], arg.Type, t.Type))
 			}
 			panic(tc.errorf(expr, "%s", err))
