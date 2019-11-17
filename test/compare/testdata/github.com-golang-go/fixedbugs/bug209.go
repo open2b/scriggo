@@ -1,5 +1,3 @@
-// skip : investigate on this
-
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -9,9 +7,9 @@
 package main
 
 func main() {
-	var buf [10]int;
-	for ; len(buf); {  // ERROR "bool"
-	}
+	var buf [10]int
+	for ; len(buf); { } // ERROR "bool"
+	_ = buf
 }
 
 /*

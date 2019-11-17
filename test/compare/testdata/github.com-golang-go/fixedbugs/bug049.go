@@ -1,5 +1,3 @@
-// skip : investigate on this
-
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -9,9 +7,7 @@
 package main
 
 func atom(s string) {
-	if s == nil {	// ERROR "nil|incompatible"
-		return;
-	}
+	if s == nil { return; } // ERROR "nil|incompatible"
 }
 
 func main() {}

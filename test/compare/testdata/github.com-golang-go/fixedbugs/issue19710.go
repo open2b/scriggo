@@ -1,5 +1,3 @@
-// skip : require 'defer' on builtins https://github.com/open2b/scriggo/issues/173
-
 // run
 
 // Copyright 2017 The Go Authors. All rights reserved.
