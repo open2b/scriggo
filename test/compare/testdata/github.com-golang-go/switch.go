@@ -1,4 +1,4 @@
-// skip : false positive "invalid case in switch" https://github.com/open2b/scriggo/issues/269
+// skip : panic: assertion fail: i should be "hello"
 
 // run
 
