@@ -383,15 +383,23 @@ nodesLoop:
 				tc.checkAssignment(node.Init)
 			}
 			// Check the expression.
-			typ := boolType
-			var ti *TypeInfo
-			if node.Expr != nil {
-				ti = tc.checkExpr(node.Expr)
-				if ti.Nil() {
+			var texpr *TypeInfo
+			if node.Expr == nil {
+				texpr = &TypeInfo{Type: boolType, Constant: boolConst(true)}
+				texpr.setValue(nil)
+			} else {
+				texpr = tc.checkExpr(node.Expr)
+				if texpr.Nil() {
 					panic(tc.errorf(node, "use of untyped nil"))
 				}
-				ti.setValue(nil)
-				typ = ti.Type
+				texpr.setValue(nil)
+				if texpr.Untyped() {
+					c, err := tc.convertImplicitly(texpr, texpr.Type)
+					if err != nil {
+						panic(tc.errorf(node.Expr, "%s", err))
+					}
+					texpr = &TypeInfo{Type: texpr.Type, Constant: c}
+				}
 			}
 			// Check the cases.
 			terminating := true
@@ -406,38 +414,47 @@ nodesLoop:
 					positionOfDefault = cas.Pos()
 				}
 				for _, ex := range cas.Expressions {
-					t := tc.checkExpr(ex)
-					if err := tc.isAssignableTo(t, ex, typ); err != nil {
-						if _, ok := err.(invalidTypeInAssignment); ok {
-							var ne string
-							if node.Expr != nil {
-								ne = " on " + node.Expr.String()
-							}
-							panic(tc.errorf(cas, "invalid case %s in switch%s (mismatched types %s and %s)", ex, ne, t.ShortString(), typ))
-						}
-						panic(tc.errorf(cas, "%s", err))
+					var ne string
+					if node.Expr != nil {
+						ne = " on " + node.Expr.String()
 					}
-					if t.IsConstant() {
-						if typ.Kind() != reflect.Bool {
-							// Check duplicate.
-							value := tc.typedValue(t, typ)
-							if pos, ok := positionOf[value]; ok {
-								panic(tc.errorf(cas, "duplicate case %v in switch\n\tprevious case at %s", ex, pos))
+					tcase := tc.checkExpr(ex)
+					if tcase.Untyped() {
+						c, err := tc.convertImplicitly(tcase, texpr.Type)
+						if err != nil {
+							if tcase.Nil() {
+								panic(tc.errorf(cas, "cannot convert nil to type %s", texpr))
 							}
-							positionOf[value] = ex.Pos()
+							if err == errNotRepresentable || err == errTypeConversion {
+								panic(tc.errorf(cas, "invalid case %s in switch%s (mismatched types %s and %s)", ex, ne, tcase.ShortString(), texpr.ShortString()))
+							}
+							panic(tc.errorf(cas, "%s", err))
 						}
-					}
-					if t.Nil() {
-						// Nothing to do: the predeclared identifier 'nil' must
-						// reach the emitter as is. It must not be typed to the
-						// switch expression type; think about a []int
-						// expression: if the 'nil' in the case gets a type
-						// (i.e. it becames the zero of []int) the comparison
-						// could not be perfomed anymore (a slice can only be
-						// compared to the predeclared identifier nil).
+						if !tcase.Nil() {
+							tcase.setValue(texpr.Type)
+						}
+						tcase = &TypeInfo{Type: texpr.Type, Constant: c}
 					} else {
-						t.setValue(typ)
+						if tc.isAssignableTo(tcase, ex, texpr.Type) != nil && tc.isAssignableTo(texpr, ex, tcase.Type) != nil {
+							panic(tc.errorf(cas, "invalid case %s in switch%s (mismatched types %s and %s)", ex, ne, tcase.ShortString(), texpr.ShortString()))
+						}
+						if !texpr.Type.Comparable() {
+							panic(tc.errorf(cas, "invalid case %s in switch (can only compare %s %s to nil)", ex, texpr.Type.Kind(), node.Expr))
+						}
+						if !tcase.Type.Comparable() {
+							panic(tc.errorf(cas, "invalid case %s (type %s) in switch (incomparable type)", ex, tcase.ShortString()))
+						}
+						tcase.setValue(nil)
 					}
+					if tcase.IsConstant() && texpr.Type.Kind() != reflect.Bool {
+						// Check for duplicates.
+						value := tc.typedValue(tcase, tcase.Type)
+						if pos, ok := positionOf[value]; ok {
+							panic(tc.errorf(cas, "duplicate case %v in switch\n\tprevious case at %s", ex, pos))
+						}
+						positionOf[value] = ex.Pos()
+					}
+					tcase.setValue(texpr.Type)
 				}
 				tc.enterScope()
 				tc.addToAncestors(cas)
