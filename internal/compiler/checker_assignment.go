@@ -535,6 +535,10 @@ func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 		panic(tc.errorf(node.Lhs[0], "cannot assign to %v", node.Lhs[0]))
 	}
 
+	if !isNumeric(lh.Type.Kind()) {
+		panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", node, lh))
+	}
+
 	tc.convertNodeForTheEmitter(node)
 
 	// TODO: the untyped constant '1' must be assignable to the type of lh.
