@@ -294,7 +294,14 @@ nodesLoop:
 			tc.terminating = !tc.hasBreak[node]
 
 		case *ast.Assignment:
-			tc.checkAssignmentOld(node)
+			switch node.Type {
+			case ast.AssignmentDeclaration:
+				tc.checkShortVariableDeclaration(node)
+			case ast.AssignmentIncrement, ast.AssignmentDecrement:
+				tc.checkIncDecStatement(node)
+			default:
+				tc.checkAssignment(node)
+			}
 			if node.Type == ast.AssignmentDeclaration {
 				tc.nextValidGoto = len(tc.gotos)
 			}
