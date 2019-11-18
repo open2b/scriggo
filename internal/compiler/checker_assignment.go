@@ -29,15 +29,19 @@ func (tc *typechecker) declareConstant(lhNode *ast.Identifier, typ reflect.Type,
 }
 
 func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
-	// if _, ok := tc.declaredInThisBlock(lh.Name); ok {
-	// 	panic(tc.errorf(lh, "declared in this block..")) // TODO
-	// }
 	ti := &TypeInfo{
 		Type:       typ,
 		Properties: PropertyAddressable,
 	}
 	tc.typeInfos[lh] = ti
 	tc.assignScope(lh.Name, ti, lh)
+	if !tc.opts.AllowNotUsed {
+		tc.unusedVars = append(tc.unusedVars, &scopeVariable{
+			ident:      lh.Name,
+			scopeLevel: len(tc.scopes) - 1,
+			node:       lh,
+		})
+	}
 }
 
 // isMapIndexExpression reports whether node is a map index expression.
@@ -385,7 +389,7 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 			continue
 		}
 		if alreadyDeclared[node.Lhs[i]] {
-			tc.checkExpr(node.Lhs[i])
+			tc.checkIdentifier(node.Lhs[i].(*ast.Identifier), false)
 		} else {
 			tc.declareVariable(node.Lhs[i].(*ast.Identifier), rh.Type)
 		}
@@ -416,25 +420,19 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		if isBlankIdentifier(lhExpr) {
 			lhs = append(lhs, nil)
 		} else {
-			lh := tc.checkExpr(lhExpr)
+			var lh *TypeInfo
+			op := node.Type
+			if ident, ok := lhExpr.(*ast.Identifier); ok && !(ast.AssignmentAddition <= op && op <= ast.AssignmentRightShift) {
+				lh = tc.checkIdentifier(ident, false)
+			} else {
+				lh = tc.checkExpr(lhExpr)
+			}
 			lhs = append(lhs, lh)
 		}
 	}
 	for _, rhExpr := range nodeRhs {
 		rh := tc.checkExpr(rhExpr)
 		rhs = append(rhs, rh)
-	}
-
-	if op := node.Type; ast.AssignmentAddition <= op && op <= ast.AssignmentRightShift {
-		if len(lhs) != 1 {
-			panic("...") // TODO
-		}
-		if len(rhs) != 1 {
-			panic("...") // TODO
-		}
-		if isBlankIdentifier(node.Lhs[0]) {
-			panic("...") // TODO
-		}
 	}
 
 	for i, lh := range lhs {
