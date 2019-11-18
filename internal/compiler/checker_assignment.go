@@ -497,7 +497,7 @@ func (tc *typechecker) isSelectorOfMapField(expr ast.Expression) bool {
 	if !ok {
 		return false
 	}
-	kind := tc.checkExpr(field).Type.Kind()
+	kind := tc.checkExpr(field.Expr).Type.Kind()
 	return kind == reflect.Map
 }
 
