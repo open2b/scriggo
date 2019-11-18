@@ -281,8 +281,11 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 
 	nodeRhs := node.Rhs
 
+	isMultipleAssignment := false // just for error messages
+
 	if len(node.Rhs) > 0 && len(node.Lhs) != len(node.Rhs) {
 		nodeRhs = tc.rebalanceRightSide(node)
+		isMultipleAssignment = true
 	}
 
 	for _, rhExpr := range nodeRhs {
@@ -298,6 +301,9 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		for i := range rhs {
 			err := tc.isAssignableTo(rhs[i], nodeRhs[i], typ.Type)
 			if err != nil {
+				if isMultipleAssignment {
+					panic(tc.errorf(node.Rhs[0], "cannot assign %v to %v (type %v) in multiple assignment", rhs[i].Type, node.Lhs[i], typ.Type))
+				}
 				panic(tc.errorf(nodeRhs[i], "%s in assignment", err))
 			}
 		}
@@ -485,7 +491,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		}
 		err := tc.isAssignableTo(rh, nodeRhs[i], lhs[i].Type)
 		if err != nil {
-			if isMultipleAssignment { // TODO: should this check be added to the other methods as well?
+			if isMultipleAssignment {
 				panic(tc.errorf(node.Rhs[0], "cannot assign %v to %v (type %v) in multiple assignment", rh.Type, node.Lhs[i], lhs[i].Type))
 			}
 			panic(tc.errorf(nodeRhs[i], "%s in assignment", err))
