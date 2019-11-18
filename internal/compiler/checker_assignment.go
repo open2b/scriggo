@@ -424,8 +424,11 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
 	nodeRhs := node.Rhs
 
+	isMultipleAssignment := false
+
 	if len(node.Lhs) != len(nodeRhs) {
 		nodeRhs = tc.rebalanceRightSide(node)
+		isMultipleAssignment = true
 	}
 
 	// Check that node is an assignment node.
@@ -482,6 +485,9 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		}
 		err := tc.isAssignableTo(rh, nodeRhs[i], lhs[i].Type)
 		if err != nil {
+			if isMultipleAssignment { // TODO: should this check be added to the other methods as well?
+				panic(tc.errorf(node.Rhs[0], "cannot assign %v to %v (type %v) in multiple assignment", rh.Type, node.Lhs[i], lhs[i].Type))
+			}
 			panic(tc.errorf(nodeRhs[i], "%s in assignment", err))
 		}
 	}
