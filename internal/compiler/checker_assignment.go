@@ -113,6 +113,7 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 		tc.iota = -1
 	}
 
+	tc.lastConstPosition = node.Pos()
 	tc.iota++
 
 	if len(node.Lhs) > len(node.Rhs) {
