@@ -34,6 +34,14 @@ func (tc *typechecker) declareConstant(lhNode *ast.Identifier, typ reflect.Type,
 	tc.assignScope(lhNode.Name, ti, lhNode)
 }
 
+func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
+	ti := &TypeInfo{
+		Type:       typ,
+		Properties: PropertyAddressable,
+	}
+	tc.assignScope(lh.Name, ti, lh)
+}
+
 // isMapIndexExpression reports whether node is a map index expression.
 func (tc *typechecker) isMapIndexExpression(node ast.Node) bool {
 	index, ok := node.(*ast.Index)
@@ -45,37 +53,59 @@ func (tc *typechecker) isMapIndexExpression(node ast.Node) bool {
 	return exprKind == reflect.Map
 }
 
-// checkLhsRhs takes a simple assignment node, a short declaration node or a
-// variable declaration node and returns the lists of the type infos for the
-// left and the right sides of the node. This methods also handles "unbalanced"
-// nodes where there is just one value on the right and more than one value on
-// the left. If the number of elements on the right side does not match with the
-// number of elements on the left, checkLhsRhs panics with an "assignment
-// mismatch" error.
-//
-// TODO: if checkLhsRhs does not modify the source node, then it's illegal to
-// access from the outside to node.Rhs[i] because the node could be unbalanced.
-//
-func (tc *typechecker) checkLhsRhs(node ast.Node) ([]*TypeInfo, []*TypeInfo) {
+// // checkLhsRhs takes a simple assignment node, a short declaration node or a
+// // variable declaration node and returns the lists of the type infos for the
+// // left and the right sides of the node. This methods also handles "unbalanced"
+// // nodes where there is just one value on the right and more than one value on
+// // the left. If the number of elements on the right side does not match with the
+// // number of elements on the left, checkLhsRhs panics with an "assignment
+// // mismatch" error.
+// //
+// // TODO: if checkLhsRhs does not modify the source node, then it's illegal to
+// // access from the outside to node.Rhs[i] because the node could be unbalanced.
+// //
+// func (tc *typechecker) checkLhsRhs(node ast.Node) ([]*TypeInfo, []*TypeInfo) {
 
-	// TODO: check that type is correct.
-	switch node := node.(type) {
-	case *ast.Assignment:
-		switch node.Type {
-		case ast.AssignmentSimple:
-		case ast.AssignmentDeclaration:
-		default:
-			panic("BUG: expecting a simple assignment, a short declaration or a variable declaration")
-		}
-	case *ast.Var:
-	default:
-		panic("BUG: expecting a simple assignment, a short declaration or a variable declaration")
-	}
+// 	var lhsExpr, rhsExpr []ast.Expression
 
-	// TODO: this method can be renamed/removed or implemented using an existing
-	// type checking function.
-	panic("not implemented")
-}
+// 	// TODO: check that type is correct.
+// 	switch node := node.(type) {
+// 	case *ast.Assignment:
+// 		switch node.Type {
+// 		case ast.AssignmentSimple, ast.AssignmentDeclaration:
+// 			lhsExpr = node.Lhs
+// 			rhsExpr = node.Rhs
+// 		default:
+// 			panic("BUG: expecting a simple assignment, a short declaration or a variable declaration")
+// 		}
+// 	case *ast.Var:
+// 		for _, lhExpr := range node.Lhs {
+// 			lhsExpr = append(lhsExpr, lhExpr)
+// 		}
+// 		rhsExpr = node.Rhs
+// 	default:
+// 		panic("BUG: expecting a simple assignment, a short declaration or a variable declaration")
+// 	}
+
+// 	if len(lhsExpr) != len(rhsExpr) {
+// 		panic("not implemented")
+// 	}
+
+// 	var lhs, rhs []*TypeInfo
+
+// 	for _, lhExpr := range lhsExpr {
+// 		lh := tc.checkExpr(lhExpr)
+// 		lhs = append(lhs, lh)
+// 	}
+
+// 	for _, rhExpr := range rhsExpr {
+// 		rh := tc.checkExpr(rhExpr)
+// 		rhs = append(rhs, rh)
+// 	}
+
+// 	return lhs, rhs
+
+// }
 
 // checkConstantDeclaration type checks a constant declaration.
 // See https://golang.org/ref/spec#Constant_declarations.
@@ -147,9 +177,16 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 // See https://golang.org/ref/spec#Variable_declarations.
 func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 
-	lhs, rhs := tc.checkLhsRhs(node)
+	var rhs []*TypeInfo
 
-	_ = lhs // TODO
+	if len(node.Lhs) != len(node.Rhs) {
+		panic("not implemented")
+	}
+
+	for _, rhExpr := range node.Rhs {
+		rh := tc.checkExpr(rhExpr)
+		rhs = append(rhs, rh)
+	}
 
 	// Every Lh identifier must not be defined in the current block.
 	for _, lhIdent := range node.Lhs {
@@ -183,11 +220,13 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 	}
 
 	for i, rh := range rhs {
-
-		// TODO
-		_ = i
-		_ = rh
-
+		var varTyp reflect.Type
+		if typ == nil {
+			varTyp = rh.Type
+		} else {
+			varTyp = typ.Type
+		}
+		tc.declareVariable(node.Lhs[i], varTyp)
 	}
 
 }
@@ -208,16 +247,20 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 		}
 	}
 
-	lhs, rhs := tc.checkLhsRhs(node)
+	var rhs []*TypeInfo
+	for _, rhExpr := range node.Rhs {
+		rh := tc.checkExpr(rhExpr)
+		rhs = append(rhs, rh)
+	}
 
-	var lhsToDeclare, lhsToRedeclare []*TypeInfo
+	var lhsToDeclare, lhsToRedeclare []ast.Expression
 
-	for i, lh := range lhs {
-		name := node.Lhs[i].(*ast.Identifier).Name
+	for _, lhExpr := range node.Lhs {
+		name := lhExpr.(*ast.Identifier).Name
 		if _, ok := tc.declaredInThisBlock(name); ok {
-			lhsToRedeclare = append(lhsToRedeclare, lh)
+			lhsToRedeclare = append(lhsToRedeclare, lhExpr)
 		} else {
-			lhsToDeclare = append(lhsToDeclare, lh)
+			lhsToDeclare = append(lhsToDeclare, lhExpr)
 		}
 	}
 
@@ -225,20 +268,20 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 		panic("no new variables on left side of :=")
 	}
 
-	for i, lh := range lhs {
-		switch {
-		case lh.Addressable():
-			// Ok!
-		case isBlankIdentifier(node.Lhs[i]):
-			// Ok!
-		default:
-			panic("cannot assign to ..") // TODO
-		}
-		err := tc.isAssignableTo(rhs[i], node.Rhs[i], lh.Type)
-		if err != nil {
-			panic("not assignable") // TODO
-		}
-	}
+	// for i, lh := range lhs {
+	// 	switch {
+	// 	case lh.Addressable():
+	// 		// Ok!
+	// 	case isBlankIdentifier(node.Lhs[i]):
+	// 		// Ok!
+	// 	default:
+	// 		panic("cannot assign to ..") // TODO
+	// 	}
+	// 	err := tc.isAssignableTo(rhs[i], node.Rhs[i], lh.Type)
+	// 	if err != nil {
+	// 		panic("not assignable") // TODO
+	// 	}
+	// }
 
 	// TODO
 
@@ -254,7 +297,15 @@ func (tc *typechecker) checkAssignment2(node *ast.Assignment) {
 		panic("BUG: expected an assignment node")
 	}
 
-	lhs, rhs := tc.checkLhsRhs(node)
+	var lhs, rhs []*TypeInfo
+	for _, lhExpr := range node.Lhs {
+		lh := tc.checkExpr(lhExpr)
+		lhs = append(lhs, lh)
+	}
+	for _, rhExpr := range node.Rhs {
+		rh := tc.checkExpr(rhExpr)
+		rhs = append(rhs, rh)
+	}
 
 	if op := node.Type; ast.AssignmentAddition <= op && op <= ast.AssignmentRightShift {
 		if len(lhs) != 1 {
