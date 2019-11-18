@@ -154,7 +154,7 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 		for i := range rhs {
 			err := tc.isAssignableTo(rhs[i], node.Rhs[i], typ.Type)
 			if err != nil {
-				panic("not assignable") // TODO
+				panic(tc.errorf(node.Rhs[i], "%s in assignment", err))
 			}
 		}
 	}
@@ -352,7 +352,7 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 	for _, lhExpr := range node.Lhs {
 		_, isIdent := lhExpr.(*ast.Identifier)
 		if !isIdent {
-			panic("non-name .. on left side of :=") // TODO
+			panic(tc.errorf(node, "non-name %s on left side of :=", lhExpr))
 		}
 	}
 
@@ -361,8 +361,6 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 		rh := tc.checkExpr(rhExpr)
 		rhs = append(rhs, rh)
 	}
-
-	// var lhsToDeclare, lhsToRedeclare []ast.Expression
 
 	alreadyDeclared := map[ast.Expression]bool{}
 
@@ -392,21 +390,6 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 			tc.declareVariable(node.Lhs[i].(*ast.Identifier), rh.Type)
 		}
 	}
-
-	// for i, lh := range lhs {
-	// 	switch {
-	// 	case lh.Addressable():
-	// 		// Ok!
-	// 	case isBlankIdentifier(node.Lhs[i]):
-	// 		// Ok!
-	// 	default:
-	// 		panic("cannot assign to ..") // TODO
-	// 	}
-	// 	err := tc.isAssignableTo(rhs[i], node.Rhs[i], lh.Type)
-	// 	if err != nil {
-	// 		panic("not assignable") // TODO
-	// 	}
-	// }
 
 	// TODO
 
@@ -505,7 +488,7 @@ func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 	case tc.isMapIndexExpression(node.Lhs[0]):
 		// Ok!
 	default:
-		panic("cannot assign to..") // TODO
+		panic(tc.errorf(node.Lhs[0], "cannot assign to %v", node.Lhs[0]))
 	}
 
 	tc.convertNodeForTheEmitter(node)
