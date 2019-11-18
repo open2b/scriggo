@@ -269,7 +269,7 @@ func (tc *typechecker) rebalanceRightSide(node ast.Node) []ast.Expression {
 		}
 	}
 
-	panic(tc.errorf(node, "assignment mismatch: %d variables but %d values", len(nodeLhs), len(nodeRhs)))
+	panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(nodeLhs), len(nodeRhs)))
 
 }
 
@@ -341,6 +341,20 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 
 }
 
+func (tc *typechecker) checkRepeatedLhs(node *ast.Assignment) {
+	names := map[string]bool{}
+	for _, lh := range node.Lhs {
+		if isBlankIdentifier(lh) {
+			continue
+		}
+		name := lh.(*ast.Identifier).Name
+		if names[name] {
+			panic(tc.errorf(node, "%s repeated on left side of :=", name))
+		}
+		names[name] = true
+	}
+}
+
 // checkShortVariableDeclaration type checks a short variable declaration. See
 // https://golang.org/ref/spec#Short_variable_declarations.
 func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
@@ -363,6 +377,8 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 		}
 	}
 
+	tc.checkRepeatedLhs(node)
+
 	var rhs []*TypeInfo
 	for _, rhExpr := range nodeRhs {
 		rh := tc.checkExpr(rhExpr)
@@ -373,7 +389,7 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 
 	for _, lhExpr := range node.Lhs {
 		name := lhExpr.(*ast.Identifier).Name
-		if tc.declaredInThisBlock(name) {
+		if tc.declaredInThisBlock(name) || isBlankIdentifier(lhExpr) {
 			alreadyDeclared[lhExpr] = true
 		}
 	}
