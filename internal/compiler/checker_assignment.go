@@ -35,6 +35,9 @@ func (tc *typechecker) declareConstant(lhNode *ast.Identifier, typ reflect.Type,
 }
 
 func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
+	if _, ok := tc.declaredInThisBlock(lh.Name); ok {
+		panic(tc.errorf(lh, "declared in this block..")) // TODO
+	}
 	ti := &TypeInfo{
 		Type:       typ,
 		Properties: PropertyAddressable,
@@ -213,9 +216,9 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 	// If typ is not specified, none of the Rh values must be the predeclared
 	// nil.
 	if typ == nil {
-		for _, rh := range rhs {
+		for i, rh := range rhs {
 			if rh.Nil() {
-				panic("cannot have nil..") // TODO
+				panic(tc.errorf(node.Rhs[i], "use of untyped nil"))
 			}
 		}
 	}
@@ -229,18 +232,8 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		} else {
 			varTyp = typ.Type
 		}
-
 		rh.setValue(varTyp)
-
-		// TODO: what's the purpose of this code?
-		// if len(tc.scopes) > 0 {
-		// 	delete(tc.scopes[len(tc.scopes)-1], node.Lhs[i].Name)
-		// } else {
-		// 	delete(tc.filePackageBlock, node.Lhs[i].Name)
-		// }
-
 		tc.declareVariable(node.Lhs[i], varTyp)
-
 	}
 
 }
