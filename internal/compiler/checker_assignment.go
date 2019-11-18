@@ -177,27 +177,43 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 
 }
 
+func (tc *typechecker) newPlaceholderFor(typ reflect.Type) *ast.Placeholder {
+	k := typ.Kind()
+	var ti *TypeInfo
+	switch {
+	case reflect.Int <= k && k <= reflect.Complex128:
+		ti = &TypeInfo{Type: typ, Constant: int64Const(0), Properties: PropertyUntyped}
+		ti.setValue(typ)
+	case k == reflect.String:
+		ti = &TypeInfo{Type: typ, Constant: stringConst(""), Properties: PropertyUntyped}
+		ti.setValue(typ)
+	case k == reflect.Bool:
+		ti = &TypeInfo{Type: typ, Constant: boolConst(false), Properties: PropertyUntyped}
+		ti.setValue(typ)
+	case k == reflect.Interface, k == reflect.Func:
+		ti = tc.nilOf(typ)
+	default:
+		ti = &TypeInfo{Type: typ, value: tc.types.Zero(typ).Interface(), Properties: PropertyHasValue}
+		ti.setValue(typ)
+	}
+	ph := ast.NewPlaceholder()
+	tc.typeInfos[ph] = ti
+	return ph
+}
+
 // checkVariableDeclaration type checks a variable declaration.
 // See https://golang.org/ref/spec#Variable_declarations.
 func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 
 	var rhs []*TypeInfo
 
-	if len(node.Lhs) != len(node.Rhs) {
+	if len(node.Rhs) > 0 && len(node.Lhs) != len(node.Rhs) {
 		panic("not implemented")
 	}
 
 	for _, rhExpr := range node.Rhs {
 		rh := tc.checkExpr(rhExpr)
 		rhs = append(rhs, rh)
-	}
-
-	// Every Lh identifier must not be defined in the current block.
-	for _, lhIdent := range node.Lhs {
-		if decl, ok := tc.declaredInThisBlock(lhIdent.Name); ok {
-			_ = decl                              // TODO
-			panic("..redeclared in this block..") // TODO
-		}
 	}
 
 	var typ *TypeInfo
@@ -220,6 +236,14 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 			if rh.Nil() {
 				panic(tc.errorf(node.Rhs[i], "use of untyped nil"))
 			}
+		}
+	}
+
+	if len(node.Rhs) == 0 {
+		node.Rhs = make([]ast.Expression, len(node.Lhs))
+		for i := 0; i < len(node.Lhs); i++ {
+			node.Rhs[i] = tc.newPlaceholderFor(typ.Type)
+			rhs = append(rhs, tc.checkExpr(node.Rhs[i]))
 		}
 	}
 
@@ -272,7 +296,14 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 	}
 
 	if len(lhsToDeclare) == 0 {
-		panic("no new variables on left side of :=")
+		panic(tc.errorf(node, "no new variables on left side of :="))
+	}
+
+	for i, rh := range rhs {
+		var varTyp reflect.Type
+		varTyp = rh.Type
+		rh.setValue(varTyp)
+		tc.declareVariable(node.Lhs[i].(*ast.Identifier), varTyp)
 	}
 
 	// for i, lh := range lhs {
