@@ -651,7 +651,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 		case *ast.Const:
 			tc.checkConstantDeclaration(d)
 		case *ast.Var:
-			tc.checkAssignment(d)
+			tc.checkVariableDeclaration(d)
 		}
 	}
 

@@ -594,7 +594,7 @@ nodesLoop:
 			tc.terminating = false
 
 		case *ast.Var:
-			tc.checkAssignment(node)
+			tc.checkVariableDeclaration(node)
 			tc.nextValidGoto = len(tc.gotos)
 			tc.terminating = false
 
