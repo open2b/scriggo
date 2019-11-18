@@ -142,6 +142,8 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 
 	lhs, rhs := tc.checkLhsRhs(node)
 
+	_ = lhs // TODO
+
 	// Every Lh identifier must not be defined in the current block.
 	for _, lhIdent := range node.Lhs {
 		if decl, ok := tc.declaredInThisBlock(lhIdent.Name); ok {
@@ -220,7 +222,7 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 		switch {
 		case lh.Addressable():
 			// Ok!
-		case lh.IsBlankIdentifier():
+		case isBlankIdentifier(node.Lhs[i]):
 			// Ok!
 		default:
 			panic("cannot assign to ..") // TODO
@@ -254,7 +256,7 @@ func (tc *typechecker) checkAssignment2(node *ast.Assignment) {
 		if len(rhs) != 1 {
 			panic("...") // TODO
 		}
-		if lhs[0].IsBlankIdentifier() {
+		if isBlankIdentifier(node.Lhs[0]) {
 			panic("...") // TODO
 		}
 	}
@@ -265,7 +267,7 @@ func (tc *typechecker) checkAssignment2(node *ast.Assignment) {
 			// Ok!
 		case tc.isMapIndexExpression(node.Lhs[i]):
 			// Ok!
-		case lh.isBlankIdentifier():
+		case isBlankIdentifier(node.Lhs[i]):
 			// Ok!
 		default:
 			panic("not assignable") // TODO
@@ -294,7 +296,7 @@ func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 	switch {
 	case lh.Addressable():
 		// Ok!
-	case lh.IsBlankIdentifier():
+	case isBlankIdentifier(node.Lhs[0]):
 		// Ok!
 	default:
 		panic("cannot assign to..") // TODO
