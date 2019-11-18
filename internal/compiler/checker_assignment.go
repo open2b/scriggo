@@ -379,8 +379,12 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
 	var lhs, rhs []*TypeInfo
 	for _, lhExpr := range node.Lhs {
-		lh := tc.checkExpr(lhExpr)
-		lhs = append(lhs, lh)
+		if isBlankIdentifier(lhExpr) {
+			lhs = append(lhs, nil)
+		} else {
+			lh := tc.checkExpr(lhExpr)
+			lhs = append(lhs, lh)
+		}
 	}
 	for _, rhExpr := range node.Rhs {
 		rh := tc.checkExpr(rhExpr)
@@ -401,11 +405,11 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
 	for i, lh := range lhs {
 		switch {
+		case isBlankIdentifier(node.Lhs[i]):
+			// Ok!
 		case lh.Addressable():
 			// Ok!
 		case tc.isMapIndexExpression(node.Lhs[i]):
-			// Ok!
-		case isBlankIdentifier(node.Lhs[i]):
 			// Ok!
 		default:
 			panic("not assignable") // TODO
@@ -413,6 +417,10 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 	}
 
 	for i, rh := range rhs {
+		rh.setValue(nil)
+		if isBlankIdentifier(node.Lhs[i]) {
+			continue
+		}
 		err := tc.isAssignableTo(rh, node.Rhs[i], lhs[i].Type)
 		if err != nil {
 			panic("not assignable") // TODO
