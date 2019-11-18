@@ -171,6 +171,10 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 			constType = typ.Type
 		}
 
+		if isBlankIdentifier(node.Lhs[i]) {
+			continue
+		}
+
 		tc.declareConstant(node.Lhs[i], constType, constValue, rh.Untyped())
 
 	}
@@ -286,7 +290,7 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		for i := range rhs {
 			err := tc.isAssignableTo(rhs[i], nodeRhs[i], typ.Type)
 			if err != nil {
-				panic("not assignable") // TODO
+				panic(tc.errorf(nodeRhs[i], "%s in assignment", err))
 			}
 		}
 	}
@@ -312,10 +316,8 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 	// TODO: check for repetitions on the left side of the =
 
 	for i, rh := range rhs {
-		var varTyp reflect.Type
-		if typ == nil {
-			varTyp = rh.Type
-		} else {
+		varTyp := rh.Type
+		if typ != nil {
 			varTyp = typ.Type
 		}
 		if rh.Nil() {
@@ -335,15 +337,15 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 // https://golang.org/ref/spec#Short_variable_declarations.
 func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 
+	// Check that node is a short variable declaration.
+	if node.Type != ast.AssignmentDeclaration {
+		panic("BUG: expected a short variable declaration")
+	}
+
 	nodeRhs := node.Rhs
 
 	if len(node.Lhs) != len(nodeRhs) {
 		nodeRhs = tc.rebalanceRightSide(node)
-	}
-
-	// Check that node is a short variable declaration.
-	if node.Type != ast.AssignmentDeclaration {
-		panic("BUG: expected a short variable declaration")
 	}
 
 	for _, lhExpr := range node.Lhs {
@@ -359,18 +361,19 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 		rhs = append(rhs, rh)
 	}
 
-	var lhsToDeclare, lhsToRedeclare []ast.Expression
+	// var lhsToDeclare, lhsToRedeclare []ast.Expression
+
+	alreadyDeclared := map[ast.Expression]bool{}
 
 	for _, lhExpr := range node.Lhs {
 		name := lhExpr.(*ast.Identifier).Name
 		if tc.declaredInThisBlock(name) {
-			lhsToRedeclare = append(lhsToRedeclare, lhExpr)
-		} else {
-			lhsToDeclare = append(lhsToDeclare, lhExpr)
+			alreadyDeclared[lhExpr] = true
 		}
 	}
 
-	if len(lhsToDeclare) == 0 {
+	// no new variables on left side of :=
+	if len(node.Lhs) == len(alreadyDeclared) {
 		if tc.opts.SyntaxType == ScriptSyntax && tc.isScriptFuncDecl {
 			panic(tc.errorf(node, "%v already declared in script", node.Lhs[0]))
 		}
@@ -378,10 +381,15 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 	}
 
 	for i, rh := range rhs {
-		var varTyp reflect.Type
-		varTyp = rh.Type
-		rh.setValue(varTyp)
-		tc.declareVariable(node.Lhs[i].(*ast.Identifier), varTyp)
+		rh.setValue(nil)
+		if isBlankIdentifier(node.Lhs[i]) {
+			continue
+		}
+		if alreadyDeclared[node.Lhs[i]] {
+			tc.checkExpr(node.Lhs[i])
+		} else {
+			tc.declareVariable(node.Lhs[i].(*ast.Identifier), rh.Type)
+		}
 	}
 
 	// for i, lh := range lhs {
