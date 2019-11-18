@@ -12,15 +12,9 @@ import (
 	"scriggo/ast"
 )
 
-// declaredInThisBlock reports whether name is declared in this block. If so
-// then true and the ast.Node where name is declared are returned. Otherwise, a
-// nil ast.Node and false are returned.
-func (tc *typechecker) declaredInThisBlock(name string) (ast.Node, bool) {
-	scopeElem, ok := tc.lookupScopesElem(name, true)
-	if ok {
-		return scopeElem.decl, true
-	}
-	return nil, false
+func (tc *typechecker) declaredInThisBlock(name string) bool {
+	_, ok := tc.lookupScopesElem(name, true)
+	return ok
 }
 
 func (tc *typechecker) declareConstant(lhNode *ast.Identifier, typ reflect.Type, value constant, untyped bool) {
@@ -35,9 +29,9 @@ func (tc *typechecker) declareConstant(lhNode *ast.Identifier, typ reflect.Type,
 }
 
 func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
-	if _, ok := tc.declaredInThisBlock(lh.Name); ok {
-		panic(tc.errorf(lh, "declared in this block..")) // TODO
-	}
+	// if _, ok := tc.declaredInThisBlock(lh.Name); ok {
+	// 	panic(tc.errorf(lh, "declared in this block..")) // TODO
+	// }
 	ti := &TypeInfo{
 		Type:       typ,
 		Properties: PropertyAddressable,
@@ -115,6 +109,12 @@ func (tc *typechecker) isMapIndexExpression(node ast.Node) bool {
 // See https://golang.org/ref/spec#Constant_declarations.
 func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 
+	if tc.lastConstPosition != node.Pos() {
+		tc.iota = -1
+	}
+
+	tc.iota++
+
 	if len(node.Lhs) > len(node.Rhs) {
 		panic(tc.errorf(node, "missing value in const declaration"))
 	}
@@ -132,18 +132,18 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 			if rh.Nil() {
 				panic(tc.errorf(node, "const initializer cannot be nil"))
 			}
-			panic(tc.errorf(node, "const initializer %s is not a constant", rh))
+			panic(tc.errorf(node, "const initializer %s is not a constant", rhExpr))
 		}
 		rhs = append(rhs, rh)
 	}
 
-	// Every Lh identifier must not be defined in the current block.
-	for _, lhIdent := range node.Lhs {
-		if decl, ok := tc.declaredInThisBlock(lhIdent.Name); ok {
-			_ = decl                              // TODO
-			panic("..redeclared in this block..") // TODO
-		}
-	}
+	// // Every Lh identifier must not be defined in the current block.
+	// for _, lhIdent := range node.Lhs {
+	// 	if decl, ok := tc.declaredInThisBlock(lhIdent.Name); ok {
+	// 		_ = decl                              // TODO
+	// 		panic("..redeclared in this block..") // TODO
+	// 	}
+	// }
 
 	var typ *TypeInfo
 
@@ -201,59 +201,79 @@ func (tc *typechecker) newPlaceholderFor(typ reflect.Type) *ast.Placeholder {
 	return ph
 }
 
+func (tc *typechecker) rebalanceRightSide(node ast.Node) []ast.Expression {
+
+	var lhs, rhs []ast.Expression
+
+	switch node := node.(type) {
+	case *ast.Var:
+		for _, lh := range node.Lhs {
+			lhs = append(lhs, lh)
+		}
+		rhs = node.Rhs
+	case *ast.Assignment:
+		lhs = node.Lhs
+		rhs = node.Rhs
+	}
+
+	rhsExpr := []ast.Expression{}
+	if call, ok := rhs[0].(*ast.Call); ok {
+		tis, isBuiltin, _ := tc.checkCallExpression(call, false)
+		if len(lhs) != len(tis) {
+			if isBuiltin {
+				panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(lhs), len(tis)))
+			}
+			panic(tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(lhs), call, len(tis)))
+		}
+		rhsExpr = make([]ast.Expression, len(tis))
+		for i, ti := range tis {
+			rhsExpr[i] = ast.NewCall(call.Pos(), call.Func, call.Args, false)
+			tc.typeInfos[rhsExpr[i]] = ti
+		}
+	}
+	if len(rhs) == 2 && len(rhs) == 1 {
+		switch v := rhsExpr[0].(type) {
+		case *ast.TypeAssertion:
+			v1 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
+			v2 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
+			ti := tc.checkExpr(rhsExpr[0])
+			tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
+			tc.typeInfos[v2] = untypedBoolTypeInfo
+			rhsExpr = []ast.Expression{v1, v2}
+		case *ast.Index:
+			v1 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
+			v2 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
+			ti := tc.checkExpr(rhsExpr[0])
+			tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
+			tc.typeInfos[v2] = untypedBoolTypeInfo
+			rhsExpr = []ast.Expression{v1, v2}
+		case *ast.UnaryOperator:
+			if v.Op == ast.OperatorReceive {
+				v1 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
+				v2 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
+				ti := tc.checkExpr(rhsExpr[0])
+				tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
+				tc.typeInfos[v2] = untypedBoolTypeInfo
+				rhsExpr = []ast.Expression{v1, v2}
+			}
+		}
+	}
+	return rhsExpr
+}
+
 // checkVariableDeclaration type checks a variable declaration.
 // See https://golang.org/ref/spec#Variable_declarations.
 func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 
 	var rhs []*TypeInfo
 
-	rhsExpr := node.Rhs
+	nodeRhs := node.Rhs
 
 	if len(node.Rhs) > 0 && len(node.Lhs) != len(node.Rhs) {
-		if call, ok := node.Rhs[0].(*ast.Call); ok {
-			tis, isBuiltin, _ := tc.checkCallExpression(call, false)
-			if len(node.Lhs) != len(tis) {
-				if isBuiltin {
-					panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(node.Lhs), len(tis)))
-				}
-				panic(tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(node.Lhs), call, len(tis)))
-			}
-			rhsExpr = make([]ast.Expression, len(tis))
-			for i, ti := range tis {
-				rhsExpr[i] = ast.NewCall(call.Pos(), call.Func, call.Args, false)
-				tc.typeInfos[rhsExpr[i]] = ti
-			}
-		}
-		if len(node.Rhs) == 2 && len(rhs) == 1 {
-			switch v := rhsExpr[0].(type) {
-			case *ast.TypeAssertion:
-				v1 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
-				v2 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
-				ti := tc.checkExpr(rhsExpr[0])
-				tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
-				tc.typeInfos[v2] = untypedBoolTypeInfo
-				rhsExpr = []ast.Expression{v1, v2}
-			case *ast.Index:
-				v1 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
-				v2 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
-				ti := tc.checkExpr(rhsExpr[0])
-				tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
-				tc.typeInfos[v2] = untypedBoolTypeInfo
-				rhsExpr = []ast.Expression{v1, v2}
-			case *ast.UnaryOperator:
-				if v.Op == ast.OperatorReceive {
-					v1 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
-					v2 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
-					ti := tc.checkExpr(rhsExpr[0])
-					tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
-					tc.typeInfos[v2] = untypedBoolTypeInfo
-					rhsExpr = []ast.Expression{v1, v2}
-				}
-			}
-		}
+		nodeRhs = tc.rebalanceRightSide(node)
 	}
 
-	for _, rhExpr := range rhsExpr {
+	for _, rhExpr := range nodeRhs {
 		rh := tc.checkExpr(rhExpr)
 		rhs = append(rhs, rh)
 	}
@@ -264,7 +284,7 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		// Every Rh must be assignable to the type.
 		typ = tc.checkType(node.Type)
 		for i := range rhs {
-			err := tc.isAssignableTo(rhs[i], rhsExpr[i], typ.Type)
+			err := tc.isAssignableTo(rhs[i], nodeRhs[i], typ.Type)
 			if err != nil {
 				panic("not assignable") // TODO
 			}
@@ -276,7 +296,7 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 	if typ == nil {
 		for i, rh := range rhs {
 			if rh.Nil() {
-				panic(tc.errorf(rhsExpr[i], "use of untyped nil"))
+				panic(tc.errorf(nodeRhs[i], "use of untyped nil"))
 			}
 		}
 	}
@@ -299,6 +319,9 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 			varTyp = typ.Type
 		}
 		rh.setValue(varTyp)
+		if isBlankIdentifier(node.Lhs[i]) {
+			continue
+		}
 		tc.declareVariable(node.Lhs[i], varTyp)
 	}
 
@@ -307,6 +330,12 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 // checkShortVariableDeclaration type checks a short variable declaration. See
 // https://golang.org/ref/spec#Short_variable_declarations.
 func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
+
+	nodeRhs := node.Rhs
+
+	if len(node.Lhs) != len(nodeRhs) {
+		nodeRhs = tc.rebalanceRightSide(node)
+	}
 
 	// Check that node is a short variable declaration.
 	if node.Type != ast.AssignmentDeclaration {
@@ -321,7 +350,7 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 	}
 
 	var rhs []*TypeInfo
-	for _, rhExpr := range node.Rhs {
+	for _, rhExpr := range nodeRhs {
 		rh := tc.checkExpr(rhExpr)
 		rhs = append(rhs, rh)
 	}
@@ -330,7 +359,7 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 
 	for _, lhExpr := range node.Lhs {
 		name := lhExpr.(*ast.Identifier).Name
-		if _, ok := tc.declaredInThisBlock(name); ok {
+		if tc.declaredInThisBlock(name) {
 			lhsToRedeclare = append(lhsToRedeclare, lhExpr)
 		} else {
 			lhsToDeclare = append(lhsToDeclare, lhExpr)
@@ -338,6 +367,9 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 	}
 
 	if len(lhsToDeclare) == 0 {
+		if tc.opts.SyntaxType == ScriptSyntax && tc.isScriptFuncDecl {
+			panic(tc.errorf(node, "%v already declared in script", node.Lhs[0]))
+		}
 		panic(tc.errorf(node, "no new variables on left side of :="))
 	}
 
@@ -371,6 +403,12 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 // checkAssignments type check an assignment node.
 func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
+	nodeRhs := node.Rhs
+
+	if len(node.Lhs) != len(nodeRhs) {
+		nodeRhs = tc.rebalanceRightSide(node)
+	}
+
 	// Check that node is an assignment node.
 	switch node.Type {
 	case ast.AssignmentDeclaration, ast.AssignmentIncrement, ast.AssignmentDecrement:
@@ -386,7 +424,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 			lhs = append(lhs, lh)
 		}
 	}
-	for _, rhExpr := range node.Rhs {
+	for _, rhExpr := range nodeRhs {
 		rh := tc.checkExpr(rhExpr)
 		rhs = append(rhs, rh)
 	}
@@ -412,7 +450,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		case tc.isMapIndexExpression(node.Lhs[i]):
 			// Ok!
 		default:
-			panic("not assignable") // TODO
+			panic(tc.errorf(node.Lhs[i], "cannot assign to %v", node.Lhs[i]))
 		}
 	}
 
@@ -421,10 +459,14 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		if isBlankIdentifier(node.Lhs[i]) {
 			continue
 		}
-		err := tc.isAssignableTo(rh, node.Rhs[i], lhs[i].Type)
+		err := tc.isAssignableTo(rh, nodeRhs[i], lhs[i].Type)
 		if err != nil {
-			panic("not assignable") // TODO
+			panic(tc.errorf(nodeRhs[i], "%s in assignment", err))
 		}
+	}
+
+	if op := node.Type; ast.AssignmentAddition <= op && op <= ast.AssignmentRightShift {
+		tc.convertNodeForTheEmitter(node)
 	}
 
 }
@@ -442,12 +484,36 @@ func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 	switch {
 	case lh.Addressable():
 		// Ok!
-	case isBlankIdentifier(node.Lhs[0]):
+	case tc.isMapIndexExpression(node.Lhs[0]):
 		// Ok!
 	default:
 		panic("cannot assign to..") // TODO
 	}
 
+	tc.convertNodeForTheEmitter(node)
+
 	// TODO: the untyped constant '1' must be assignable to the type of lh.
 
+}
+
+// TODO: this implementation is wrong. It has been kept to make the test pass,
+// but it must be changed:
+//
+//		m[f()] ++
+//
+// currenlty calls twice f(), which is wrong.
+//
+// See https://github.com/open2b/scriggo/issues/222.
+func (tc *typechecker) convertNodeForTheEmitter(node *ast.Assignment) {
+	pos := node.Lhs[0].Pos()
+	op := operatorFromAssignmentType(node.Type)
+	var right ast.Expression
+	if node.Type == ast.AssignmentIncrement || node.Type == ast.AssignmentDecrement {
+		right = ast.NewBinaryOperator(pos, op, node.Lhs[0], ast.NewBasicLiteral(pos, ast.IntLiteral, "1"))
+	} else {
+		right = ast.NewBinaryOperator(pos, op, node.Lhs[0], node.Rhs[0])
+	}
+	tc.checkExpr(right)
+	node.Rhs = []ast.Expression{right}
+	node.Type = ast.AssignmentSimple
 }

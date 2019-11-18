@@ -205,15 +205,22 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*TypeIn
 
 // assignScope assigns value to name in the current scope. If there are no
 // scopes, value is assigned to the file/package block.
+//
+// assignScope panics a type checking error "redeclared in this block" if name
+// is already defined in the current scope.
 func (tc *typechecker) assignScope(name string, value *TypeInfo, declNode *ast.Identifier) {
+
+	if tc.declaredInThisBlock(name) {
+		panic(tc.errorf(declNode, "%s redeclared in this block", name))
+		// TODO: add informations about previous declaration
+	}
+
 	if len(tc.scopes) == 0 {
-		if _, ok := tc.filePackageBlock[name]; ok {
-			panic("redeclared in this block...") // TODO: review.
-		}
 		tc.filePackageBlock[name] = scopeElement{t: value, decl: declNode}
 	} else {
 		tc.scopes[len(tc.scopes)-1][name] = scopeElement{t: value, decl: declNode}
 	}
+
 }
 
 // currentPkgIndex returns an index related to the current package; such index
