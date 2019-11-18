@@ -207,11 +207,53 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 
 	var rhs []*TypeInfo
 
+	rhsExpr := node.Rhs
+
 	if len(node.Rhs) > 0 && len(node.Lhs) != len(node.Rhs) {
-		panic("not implemented")
+		if call, ok := node.Rhs[0].(*ast.Call); ok {
+			tis, isBuiltin, _ := tc.checkCallExpression(call, false)
+			if len(node.Lhs) != len(tis) {
+				if isBuiltin {
+					panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(node.Lhs), len(tis)))
+				}
+				panic(tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(node.Lhs), call, len(tis)))
+			}
+			rhsExpr = make([]ast.Expression, len(tis))
+			for i, ti := range tis {
+				rhsExpr[i] = ast.NewCall(call.Pos(), call.Func, call.Args, false)
+				tc.typeInfos[rhsExpr[i]] = ti
+			}
+		}
+		if len(node.Rhs) == 2 && len(rhs) == 1 {
+			switch v := rhsExpr[0].(type) {
+			case *ast.TypeAssertion:
+				v1 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
+				v2 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
+				ti := tc.checkExpr(rhsExpr[0])
+				tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
+				tc.typeInfos[v2] = untypedBoolTypeInfo
+				rhsExpr = []ast.Expression{v1, v2}
+			case *ast.Index:
+				v1 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
+				v2 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
+				ti := tc.checkExpr(rhsExpr[0])
+				tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
+				tc.typeInfos[v2] = untypedBoolTypeInfo
+				rhsExpr = []ast.Expression{v1, v2}
+			case *ast.UnaryOperator:
+				if v.Op == ast.OperatorReceive {
+					v1 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
+					v2 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
+					ti := tc.checkExpr(rhsExpr[0])
+					tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
+					tc.typeInfos[v2] = untypedBoolTypeInfo
+					rhsExpr = []ast.Expression{v1, v2}
+				}
+			}
+		}
 	}
 
-	for _, rhExpr := range node.Rhs {
+	for _, rhExpr := range rhsExpr {
 		rh := tc.checkExpr(rhExpr)
 		rhs = append(rhs, rh)
 	}
@@ -222,7 +264,7 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		// Every Rh must be assignable to the type.
 		typ = tc.checkType(node.Type)
 		for i := range rhs {
-			err := tc.isAssignableTo(rhs[i], node.Rhs[i], typ.Type)
+			err := tc.isAssignableTo(rhs[i], rhsExpr[i], typ.Type)
 			if err != nil {
 				panic("not assignable") // TODO
 			}
@@ -234,7 +276,7 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 	if typ == nil {
 		for i, rh := range rhs {
 			if rh.Nil() {
-				panic(tc.errorf(node.Rhs[i], "use of untyped nil"))
+				panic(tc.errorf(rhsExpr[i], "use of untyped nil"))
 			}
 		}
 	}
