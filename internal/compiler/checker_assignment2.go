@@ -172,9 +172,9 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 
 }
 
-// checkShortVariableDeclarations type checks a short variable declaration.
-// See https://golang.org/ref/spec#Short_variable_declarations.
-func (tc *typechecker) checkShortVariableDeclarations(node *ast.Assignment) {
+// checkShortVariableDeclaration type checks a short variable declaration. See
+// https://golang.org/ref/spec#Short_variable_declarations.
+func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 
 	// Check that node is a short variable declaration.
 	if node.Type != ast.AssignmentDeclaration {
@@ -226,7 +226,7 @@ func (tc *typechecker) checkShortVariableDeclarations(node *ast.Assignment) {
 
 // See https://golang.org/ref/spec#Assignments.
 // checkAssignments type check an assignment node.
-func (tc *typechecker) checkAssignments(node *ast.Assignment) {
+func (tc *typechecker) checkAssignment2(node *ast.Assignment) {
 
 	// Check that node is an assignment node.
 	switch node.Type {
@@ -270,9 +270,9 @@ func (tc *typechecker) checkAssignments(node *ast.Assignment) {
 
 }
 
-// checkIncDecStatements checks an IncDec statement.
-// See https://golang.org/ref/spec#IncDec_statements.
-func (tc *typechecker) checkIncDecStatements(node *ast.Assignment) {
+// checkIncDecStatement checks an IncDec statement. See
+// https://golang.org/ref/spec#IncDec_statements.
+func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 
 	// Check that node is an IncDec statement.
 	if node.Type != ast.AssignmentIncrement && node.Type != ast.AssignmentDecrement {
