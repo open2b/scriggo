@@ -212,35 +212,36 @@ func (tc *typechecker) newPlaceholderFor(typ reflect.Type) *ast.Placeholder {
 
 func (tc *typechecker) rebalanceRightSide(node ast.Node) []ast.Expression {
 
-	var lhs, nodeRhs []ast.Expression
+	var nodeLhs, nodeRhs []ast.Expression
 
 	switch node := node.(type) {
 	case *ast.Var:
 		for _, lh := range node.Lhs {
-			lhs = append(lhs, lh)
+			nodeLhs = append(nodeLhs, lh)
 		}
 		nodeRhs = node.Rhs
 	case *ast.Assignment:
-		lhs = node.Lhs
+		nodeLhs = node.Lhs
 		nodeRhs = node.Rhs
 	}
 
-	rhsExpr := []ast.Expression{}
 	if call, ok := nodeRhs[0].(*ast.Call); ok {
 		tis, isBuiltin, _ := tc.checkCallExpression(call, false)
-		if len(lhs) != len(tis) {
+		if len(nodeLhs) != len(tis) {
 			if isBuiltin {
-				panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(lhs), len(tis)))
+				panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(nodeLhs), len(tis)))
 			}
-			panic(tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(lhs), call, len(tis)))
+			panic(tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(nodeLhs), call, len(tis)))
 		}
-		rhsExpr = make([]ast.Expression, len(tis))
+		rhsExpr := make([]ast.Expression, len(tis))
 		for i, ti := range tis {
 			rhsExpr[i] = ast.NewCall(call.Pos(), call.Func, call.Args, false)
 			tc.typeInfos[rhsExpr[i]] = ti
 		}
+		return rhsExpr
 	}
-	if len(lhs) == 2 && len(nodeRhs) == 1 {
+
+	if len(nodeLhs) == 2 && len(nodeRhs) == 1 {
 		switch v := nodeRhs[0].(type) {
 		case *ast.TypeAssertion:
 			v1 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
@@ -248,14 +249,14 @@ func (tc *typechecker) rebalanceRightSide(node ast.Node) []ast.Expression {
 			ti := tc.checkExpr(nodeRhs[0])
 			tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
 			tc.typeInfos[v2] = untypedBoolTypeInfo
-			rhsExpr = []ast.Expression{v1, v2}
+			return []ast.Expression{v1, v2}
 		case *ast.Index:
 			v1 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			v2 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			ti := tc.checkExpr(nodeRhs[0])
 			tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
 			tc.typeInfos[v2] = untypedBoolTypeInfo
-			rhsExpr = []ast.Expression{v1, v2}
+			return []ast.Expression{v1, v2}
 		case *ast.UnaryOperator:
 			if v.Op == ast.OperatorReceive {
 				v1 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
@@ -263,11 +264,13 @@ func (tc *typechecker) rebalanceRightSide(node ast.Node) []ast.Expression {
 				ti := tc.checkExpr(nodeRhs[0])
 				tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
 				tc.typeInfos[v2] = untypedBoolTypeInfo
-				rhsExpr = []ast.Expression{v1, v2}
+				return []ast.Expression{v1, v2}
 			}
 		}
 	}
-	return rhsExpr
+
+	panic(tc.errorf(node, "assignment mismatch: %d variables but %d values", len(nodeLhs), len(nodeRhs)))
+
 }
 
 // checkVariableDeclaration type checks a variable declaration.
