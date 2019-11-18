@@ -590,7 +590,7 @@ nodesLoop:
 			tc.terminating = terminating && !tc.hasBreak[node]
 
 		case *ast.Const:
-			tc.checkAssignment(node)
+			tc.checkConstantDeclaration(node)
 			tc.terminating = false
 
 		case *ast.Var:
