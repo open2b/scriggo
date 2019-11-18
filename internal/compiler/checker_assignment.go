@@ -296,7 +296,7 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 
 // See https://golang.org/ref/spec#Assignments.
 // checkAssignments type check an assignment node.
-func (tc *typechecker) checkAssignment2(node *ast.Assignment) {
+func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
 	// Check that node is an assignment node.
 	switch node.Type {
