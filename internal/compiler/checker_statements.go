@@ -190,7 +190,7 @@ nodesLoop:
 		case *ast.If:
 			tc.enterScope()
 			if node.Assignment != nil {
-				tc.checkAssignment(node.Assignment)
+				tc.checkAssignmentOld(node.Assignment)
 			}
 			ti := tc.checkExpr(node.Condition)
 			if ti.Type.Kind() != reflect.Bool {
@@ -217,7 +217,7 @@ nodesLoop:
 			tc.enterScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
-				tc.checkAssignment(node.Init)
+				tc.checkAssignmentOld(node.Init)
 			}
 			if node.Condition != nil {
 				ti := tc.checkExpr(node.Condition)
@@ -227,7 +227,7 @@ nodesLoop:
 				ti.setValue(nil)
 			}
 			if node.Post != nil {
-				tc.checkAssignment(node.Post)
+				tc.checkAssignmentOld(node.Post)
 			}
 			tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()
@@ -294,7 +294,7 @@ nodesLoop:
 			tc.terminating = !tc.hasBreak[node]
 
 		case *ast.Assignment:
-			tc.checkAssignment(node)
+			tc.checkAssignmentOld(node)
 			if node.Type == ast.AssignmentDeclaration {
 				tc.nextValidGoto = len(tc.gotos)
 			}
@@ -380,7 +380,7 @@ nodesLoop:
 			tc.addToAncestors(node)
 			// Check the init.
 			if node.Init != nil {
-				tc.checkAssignment(node.Init)
+				tc.checkAssignmentOld(node.Init)
 			}
 			// Check the expression.
 			var texpr *TypeInfo
@@ -472,7 +472,7 @@ nodesLoop:
 			tc.enterScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
-				tc.checkAssignment(node.Init)
+				tc.checkAssignmentOld(node.Init)
 			}
 			ta := node.Assignment.Rhs[0].(*ast.TypeAssertion)
 			t := tc.checkExpr(ta.Expr)
@@ -526,7 +526,7 @@ nodesLoop:
 									ast.NewTypeAssertion(ta.Pos(), ta.Expr, cas.Expressions[0]),
 								},
 							)
-							tc.checkAssignment(n)
+							tc.checkAssignmentOld(n)
 						}
 					}
 				} else {
@@ -539,7 +539,7 @@ nodesLoop:
 								ta.Expr,
 							},
 						)
-						tc.checkAssignment(n)
+						tc.checkAssignmentOld(n)
 					}
 				}
 				tc.enterScope()
@@ -572,7 +572,7 @@ nodesLoop:
 						panic(tc.errorf(node, "select case must be receive, send or assign recv"))
 					}
 				case *ast.Assignment:
-					tc.checkAssignment(comm)
+					tc.checkAssignmentOld(comm)
 					if comm.Type != ast.AssignmentSimple && comm.Type != ast.AssignmentDeclaration {
 						panic(tc.errorf(node, "select case must be receive, send or assign recv"))
 					}

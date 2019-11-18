@@ -12,9 +12,9 @@ import (
 	"scriggo/ast"
 )
 
-// checkAssignment type checks an assignment node (Var, Const or Assignment)
+// checkAssignmentOld type checks an assignment node (Var, Const or Assignment)
 // and fills the scope, if necessary.
-func (tc *typechecker) checkAssignment(node ast.Node) {
+func (tc *typechecker) checkAssignmentOld(node ast.Node) {
 
 	var lhs []ast.Expression
 	var rhs []ast.Expression
