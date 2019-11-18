@@ -11,8 +11,8 @@ import (
 )
 
 // definedType represents a type defined in the Scriggo compiled code with a
-// type definition, where the underlying type can be both a type compiled in the
-// Scriggo code or in gc.
+// type definition, where the underlying type can be both a type compiled in
+// the Scriggo code or in gc.
 type definedType struct {
 	// The embedded reflect.Type can be both a reflect.Type implemented by the
 	// package "reflect" or a ScriggoType. In the other implementations of
@@ -39,19 +39,19 @@ func (x definedType) Name() string {
 // AssignableTo is equivalent to reflect's AssignableTo.
 func (x definedType) AssignableTo(u reflect.Type) bool {
 
-	// Both x and T are Scriggo defined types: x is assignable to T only if they
-	// are the same type.
+	// Both x and u are Scriggo defined types: x is assignable to u only if
+	// they are the same type.
 	if T, ok := u.(definedType); ok {
 		return x == T
 	}
 
-	// x is a Scriggo defined type and T is not a defined type: x is assignable
-	// to T only if the underlying type of x is assignable to T.
+	// x is a Scriggo defined type and u is not a defined type: x is
+	// assignable to u only if the underlying type of x is assignable to u.
 	if !isDefinedType(u) {
 		return x.Type.AssignableTo(u)
 	}
 
-	// x is a Scriggo defined type and T is a Go defined type: assignment is
+	// x is a Scriggo defined type and u is a Go defined type: assignment is
 	// always impossible.
 	return false
 
@@ -87,8 +87,8 @@ func (x definedType) Underlying() reflect.Type {
 	return x.Type
 }
 
-// Unwrap implement the interface runtime.Wrapper.
+// Unwrap implements the interface runtime.Wrapper.
 func (x definedType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
 
-// Wrap implement the interface runtime.Wrapper.
+// Wrap implements the interface runtime.Wrapper.
 func (x definedType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

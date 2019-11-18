@@ -8,16 +8,16 @@ package types
 
 import "reflect"
 
-// StructOf behaves like reflect.StructOf except when at least once of the
-// fields has a Scriggo type; in such case a new Scriggo struct type is created
-// and returned as reflect.Type.
+// StructOf behaves like reflect.StructOf except when at least one of the
+// fields has a Scriggo type; in such case a new Scriggo struct type is
+// created and returned as reflect.Type.
 func (types *Types) StructOf(fields []reflect.StructField) reflect.Type {
 
-	// baseFields contains all the fields with their 'Go' type.
+	// baseFields contains all the fields with their Go type.
 	baseFields := make([]reflect.StructField, len(fields))
 
-	// scriggoFields contains the fields that are Scriggo fields, indexed by the
-	// index of the field.
+	// scriggoFields contains the fields that are Scriggo fields, indexed by
+	// the index of the field.
 	scriggoFields := map[int]reflect.StructField{}
 
 	for i, field := range fields {
@@ -27,7 +27,8 @@ func (types *Types) StructOf(fields []reflect.StructField) reflect.Type {
 		baseFields[i] = field
 
 		// This field cannot be represented using the reflect: remove the
-		// information from the type and add that information to the structType.
+		// information from the type and add that information to the
+		// structType.
 		if st, ok := field.Type.(ScriggoType); ok {
 			baseFields[i].Type = st.Underlying()
 			scriggoField := field
@@ -37,8 +38,8 @@ func (types *Types) StructOf(fields []reflect.StructField) reflect.Type {
 
 	}
 
-	// Every field can be represented by the builtin reflect: no need to create
-	// a structType.
+	// Every field can be represented by the builtin reflect: no need to
+	// create a structType.
 	if len(scriggoFields) == 0 {
 		return reflect.StructOf(fields)
 	}
@@ -54,10 +55,10 @@ func equalFields(fs1, fs2 map[int]reflect.StructField) bool {
 	return reflect.DeepEqual(fs1, fs2)
 }
 
-// addFields adds a list of struct fields to the cache if not already present or
-// returns the found one. This avoids duplication of struct fields by ensuring
-// that every pointer to map returned by this method is equal if and only if the
-// underlying map is equal.
+// addFields adds a list of struct fields to the cache if not already present
+// or returns the found one. This avoids duplication of struct fields by
+// ensuring that every pointer to map returned by this method is equal if and
+// only if the underlying map is equal.
 func (types *Types) addFields(fields map[int]reflect.StructField) *map[int]reflect.StructField {
 	for _, storedFields := range types.structFieldsLists {
 		if equalFields(*storedFields, fields) {
@@ -147,7 +148,8 @@ func (x structType) Underlying() reflect.Type {
 	return x.Type
 }
 
-// Unwrap implement the interface runtime.Wrapper.
+// Unwrap implements the interface runtime.Wrapper.
 func (x structType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
 
+// Wrap implements the interface runtime.Wrapper.
 func (x structType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

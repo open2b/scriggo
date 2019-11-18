@@ -225,18 +225,19 @@ var checkerExprs = []struct {
 	{`"a" == "b"`, tiUntypedBoolConst("a" == "b"), nil},
 
 	// Equality ( typed + untyped )
-	{`a == false`, tiBoolConst(bool(false) == false), map[string]*TypeInfo{"a": tiBoolConst(false)}},
-	{`a == true`, tiBoolConst(bool(false) == true), map[string]*TypeInfo{"a": tiBoolConst(false)}},
-	{`a == 0`, tiBoolConst(int(0) == 0), map[string]*TypeInfo{"a": tiIntConst(0)}},
-	{`a == 1`, tiBoolConst(int(1) == 1), map[string]*TypeInfo{"a": tiIntConst(1)}},
-	{`a == 0`, tiBoolConst(float64(0.0) == 0), map[string]*TypeInfo{"a": tiFloat64Const(0.0)}},
-	{`a == 0`, tiBoolConst(float32(1.0) == 0), map[string]*TypeInfo{"a": tiFloat32Const(1.0)}},
-	{`a == 1.0`, tiBoolConst(int(1) == 1.0), map[string]*TypeInfo{"a": tiIntConst(1)}},
-	{`a == "a"`, tiBoolConst(string("a") == "a"), map[string]*TypeInfo{"a": tiStringConst("a")}},
-	{`a == "b"`, tiBoolConst(string("a") == "b"), map[string]*TypeInfo{"a": tiStringConst("a")}},
+	{`a == false`, tiUntypedBoolConst(bool(false) == false), map[string]*TypeInfo{"a": tiBoolConst(false)}},
+	{`a == true`, tiUntypedBoolConst(bool(false) == true), map[string]*TypeInfo{"a": tiBoolConst(false)}},
+	{`a == 0`, tiUntypedBoolConst(int(0) == 0), map[string]*TypeInfo{"a": tiIntConst(0)}},
+	{`a == 1`, tiUntypedBoolConst(int(1) == 1), map[string]*TypeInfo{"a": tiIntConst(1)}},
+	{`a == 0`, tiUntypedBoolConst(float64(0.0) == 0), map[string]*TypeInfo{"a": tiFloat64Const(0.0)}},
+	{`a == 0`, tiUntypedBoolConst(float32(1.0) == 0), map[string]*TypeInfo{"a": tiFloat32Const(1.0)}},
+	{`a == 1.0`, tiUntypedBoolConst(int(1) == 1.0), map[string]*TypeInfo{"a": tiIntConst(1)}},
+	{`a == "a"`, tiUntypedBoolConst(string("a") == "a"), map[string]*TypeInfo{"a": tiStringConst("a")}},
+	{`a == "b"`, tiUntypedBoolConst(string("a") == "b"), map[string]*TypeInfo{"a": tiStringConst("a")}},
 	{`a == 0`, tiUntypedBool(), map[string]*TypeInfo{"a": tiInt()}},
 	{`5 == interface{}(5)`, tiUntypedBool(), nil},
 	{`interface{}(5) == 5`, tiUntypedBool(), nil},
+	{`a == (1 < 2)`, tiUntypedBool(), map[string]*TypeInfo{"a": tiBool()}},
 
 	// Shifts.
 	{`1 << 1`, tiUntypedIntConst("2"), nil},
@@ -736,6 +737,7 @@ var checkerStmts = map[string]string{
 
 	// Equality
 	`type S = struct{ A func() }; _ = interface{}(nil) == S{}`: `invalid operation: interface{}(nil) == S literal (struct { A func() } cannot be compared)`,
+	`var a interface{}; _ = a == 9223372036854775808`:          `invalid operation: a == 9223372036854775808 (constant 9223372036854775808 overflows int)`,
 
 	// Assignments.
 	`(((map[int]string{}[0]))) = ""`:                              ok,
@@ -1237,10 +1239,11 @@ var checkerStmts = map[string]string{
 	`f := func(a, b, c int, d... int) {  };  f(1,2)`:                                "not enough arguments in call to f\n\thave (number, number)\n\twant (int, int, int, ...int)",
 
 	// Conversions.
-	`int()`:        `missing argument to conversion to int: int()`,
-	`int(0, 0)`:    `too many arguments to conversion to int: int(0, 0)`,
-	`int(nil)`:     `cannot convert nil to type int`,
-	`float64("a")`: `cannot convert a (type untyped string) to type float64`, // TODO: must return `cannot convert "a" (type untyped string) to type float64`
+	`int()`:                            `missing argument to conversion to int: int()`,
+	`int(0, 0)`:                        `too many arguments to conversion to int: int(0, 0)`,
+	`int(nil)`:                         `cannot convert nil to type int`,
+	`float64("a")`:                     `cannot convert a (type untyped string) to type float64`, // TODO: must return `cannot convert "a" (type untyped string) to type float64`
+	`interface{}(9223372036854775808)`: `constant 9223372036854775808 overflows int`,
 
 	// Function calls.
 	`a := 0; a()`:                  `cannot call non-function a (type int)`,

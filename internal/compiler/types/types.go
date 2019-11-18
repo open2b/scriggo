@@ -31,8 +31,8 @@ func NewTypes() *Types {
 	return &Types{}
 }
 
-// A ScriggoType represents a type compiled by Scriggo from a type definition or
-// a composite type literal with at least one element with a Scriggo type.
+// A ScriggoType represents a type compiled by Scriggo from a type definition
+// or a composite type literal with at least one element with a Scriggo type.
 type ScriggoType interface {
 	reflect.Type
 
@@ -47,9 +47,9 @@ func isDefinedType(t reflect.Type) bool {
 	return t.Name() != ""
 }
 
-// New behaves like reflect.New except when typ is a Scriggo type; in such case
-// is returned an instance of the underlying type created with a reflect.New
-// call.
+// New behaves like reflect.New except when typ is a Scriggo type; in such
+// case it returns an instance of the underlying type created with a
+// reflect.New call.
 func (types *Types) New(typ reflect.Type) reflect.Value {
 	if st, ok := typ.(ScriggoType); ok {
 		return types.New(st.Underlying())
@@ -71,8 +71,8 @@ func (types *Types) AssignableTo(x, u reflect.Type) bool {
 
 	typ, isScriggoType := u.(ScriggoType)
 
-	// T is not a Scriggo (is implemented by the reflect package), so it's safe
-	// to call the reflect method AssignableTo with T as argument.
+	// u is not a Scriggo type (is implemented by the reflect package), so
+	// it's safe to call the reflect method AssignableTo with u as argument.
 	if !isScriggoType {
 		return x.AssignableTo(u)
 	}
@@ -118,26 +118,24 @@ func (types *Types) ConvertibleTo(x, u reflect.Type) bool {
 // Scriggo type.
 func (types *Types) Implements(x, u reflect.Type) bool {
 
-	// x is a Scriggo type,
-	// u (the interface type) can be both a Scriggo type or a gc compiled type.
+	// x is a Scriggo type, u (the interface type) can be both a Scriggo type
+	// or a gc compiled type.
 	if st, ok := x.(ScriggoType); ok {
 		return st.Implements(u)
 	}
 
-	// x is a gc compiled type,
-	// u (the interface type) is a Scriggo type.
+	// x is a gc compiled type, u (the interface type) is a Scriggo type.
 	if st, ok := u.(ScriggoType); ok {
 		return x.Implements(st.Underlying())
 	}
 
-	// x is a gc compiled type,
-	// u (the interface type) is a gc compiled type.
+	// x is a gc compiled type, u (the interface type) is a gc compiled type.
 	return x.Implements(u) // x is implemented by the reflect package.
 
 }
 
 // TODO: this function will be removed when the development of this package is
-// concluded.
+//  concluded.
 func assertNotScriggoType(t reflect.Type) {
 	if _, ok := t.(ScriggoType); ok {
 		panic(fmt.Errorf("%v is a Scriggo type!", t))
@@ -145,4 +143,4 @@ func assertNotScriggoType(t reflect.Type) {
 }
 
 // TODO: every call to a reflect function in the compiler should be checked and
-// eventually converted to a call to a function of this package.
+//  eventually converted to a call to a function of this package.

@@ -8,7 +8,7 @@ package types
 
 import "reflect"
 
-// PtrTo behaves like reflect.PtrTo except when t is a Scriggo type; in such
+// PtrTo behaves like reflect.PtrTo except when it is a Scriggo type; in such
 // case a new Scriggo pointer type is created and returned as reflect.Type.
 func (types *Types) PtrTo(t reflect.Type) reflect.Type {
 	if st, ok := t.(ScriggoType); ok {
@@ -57,8 +57,8 @@ func (x ptrType) Underlying() reflect.Type {
 	return x.Type
 }
 
-// Unwrap implement the interface runtime.Wrapper.
+// Unwrap implements the interface runtime.Wrapper.
 func (x ptrType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
 
-// Wrap implement the interface runtime.Wrapper.
+// Wrap implements the interface runtime.Wrapper.
 func (x ptrType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

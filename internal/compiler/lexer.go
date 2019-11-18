@@ -248,7 +248,7 @@ func (l *lexer) scan() {
 						l.column++
 					}
 				} else if !isASCIISpace(c) {
-					// Checks if it is an attribute.
+					// Check if it is an attribute.
 					var next int
 					if l.attr, next = l.scanAttribute(p); next > p {
 						p = next

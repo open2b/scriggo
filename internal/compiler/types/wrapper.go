@@ -20,22 +20,22 @@ func wrap(t ScriggoType, v reflect.Value) reflect.Value {
 }
 
 // TODO: currently unwrap always returns an empty interface wrapper. This will
-// change when methods declaration will be implemented in Scriggo.
+//  change when methods declaration will be implemented in Scriggo.
 func unwrap(x ScriggoType, v reflect.Value) (reflect.Value, bool) {
 	p, ok := v.Interface().(emptyInterfaceProxy)
 	// Not a proxy.
 	if !ok {
 		return reflect.Value{}, false
 	}
-	// v is a proxy but is has a different Scriggo type.
+	// v is a proxy but it has a different Scriggo type.
 	if p.sign != x {
 		return reflect.Value{}, false
 	}
 	return p.value, true
 }
 
-// emptyInterfaceProxy is a proxy for values of types that have an empty method
-// set.
+// emptyInterfaceProxy is a proxy for values of types that have an empty
+// method set.
 type emptyInterfaceProxy struct {
 	value reflect.Value
 	sign  ScriggoType

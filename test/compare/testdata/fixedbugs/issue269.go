@@ -1,5 +1,3 @@
-// skip : problem in switch comparison. See https://github.com/open2b/scriggo/issues/269
-
 // run
 
 package main

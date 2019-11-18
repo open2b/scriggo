@@ -141,22 +141,19 @@ var htmlStringerType = reflect.TypeOf((*HTMLStringer)(nil)).Elem()
 var cssStringerType = reflect.TypeOf((*CSSStringer)(nil)).Elem()
 var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
 
-// convert converts a value explicitly. If the converted value is a constant,
-// convert returns its value, otherwise returns nil.
-//
-// If the value can not be converted, returns an errTypeConversion type error,
-// errConstantTruncated or errConstantOverflow.
-func (tc *typechecker) convert(ti *TypeInfo, t2 reflect.Type) (constant, error) {
+// convertExplicitly explicitly converts a value. If the converted value is a
+// constant, convert returns its value, otherwise returns nil.
+func (tc *typechecker) convertExplicitly(ti *TypeInfo, t2 reflect.Type) (constant, error) {
 
 	t := ti.Type
 	k2 := t2.Kind()
 
 	if ti.Nil() {
-		switch t2.Kind() {
+		switch k2 {
 		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
 			return nil, nil
 		}
-		return nil, errTypeConversion
+		return nil, fmt.Errorf("cannot convert nil to type %s", t2)
 	}
 
 	if ti.IsConstant() && k2 != reflect.Interface {
@@ -178,10 +175,51 @@ func (tc *typechecker) convert(ti *TypeInfo, t2 reflect.Type) (constant, error) 
 		return representedBy(ti, t2)
 	}
 
+	if ti.IsUntypedConstant() && k2 == reflect.Interface {
+		if t2 == emptyInterfaceType || tc.types.ConvertibleTo(ti.Type, t2) {
+			_, err := ti.Constant.representedBy(ti.Type)
+			return nil, err
+		}
+		return nil, errTypeConversion
+	}
+
 	if tc.types.ConvertibleTo(t, t2) {
 		return nil, nil
 	}
 
+	return nil, errTypeConversion
+}
+
+// convertImplicitly implicitly converts an untyped value. If the converted
+// value is a constant, convert returns its value, otherwise returns nil.
+//
+// Untyped values are the predeclared identifier nil, the untyped constants
+// and the untyped boolean values.
+func (tc *typechecker) convertImplicitly(ti *TypeInfo, t2 reflect.Type) (constant, error) {
+	switch k2 := t2.Kind(); {
+	case ti.Nil():
+		switch k2 {
+		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
+			return nil, nil
+		}
+		return nil, fmt.Errorf("cannot convert nil to type %s", t2)
+	case ti.IsConstant():
+		if k2 == reflect.Interface {
+			if t2 == emptyInterfaceType || tc.types.ConvertibleTo(ti.Type, t2) {
+				_, err := ti.Constant.representedBy(ti.Type)
+				return nil, err
+			}
+		} else {
+			return ti.Constant.representedBy(t2)
+		}
+	default:
+		switch {
+		case k2 == reflect.Bool:
+			return nil, nil
+		case k2 == reflect.Interface && (t2 == emptyInterfaceType || tc.types.ConvertibleTo(ti.Type, t2)):
+			return nil, nil
+		}
+	}
 	return nil, errTypeConversion
 }
 
@@ -317,7 +355,7 @@ func (tc *typechecker) isAssignableTo(x *TypeInfo, expr ast.Expression, t reflec
 		}
 		return newInvalidTypeInAssignment(x, expr, t)
 	}
-	// Checks if the type of x and t have identical underlying types and at
+	// Check if the type of x and t have identical underlying types and at
 	// least one is not a defined type.
 	if !tc.types.AssignableTo(x.Type, t) {
 		return newInvalidTypeInAssignment(x, expr, t)
@@ -441,7 +479,7 @@ func (tc *typechecker) methodByName(t *TypeInfo, name string) (*TypeInfo, receiv
 			Properties: PropertyIsPredefined | PropertyHasValue,
 			MethodType: MethodValueConcrete,
 		}
-		// Checks if pointer is defined on T or *T when called on a *T receiver.
+		// Check if pointer is defined on T or *T when called on a *T receiver.
 		if t.Type.Kind() == reflect.Ptr {
 			// TODO(Gianluca): always check first if t has method m, regardless
 			// of whether it's a pointer receiver or not. If m exists, it's
