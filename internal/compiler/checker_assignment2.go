@@ -34,6 +34,10 @@ func (tc *typechecker) declareConstant(name string, typ reflect.Type, value cons
 // the left. If the number of elements on the right side does not match with the
 // number of elements on the left, checkLhsRhs panics with an "assignment
 // mismatch" error.
+//
+// TODO: if checkLhsRhs does not modify the source node, then it's illegal to
+// access from the outside to node.Rhs[i] because the node could be unbalanced.
+//
 func (tc *typechecker) checkLhsRhs(node ast.Node) ([]*TypeInfo, []*TypeInfo) {
 
 	// TODO: check that type is correct.
@@ -228,6 +232,40 @@ func (tc *typechecker) checkAssignments(node *ast.Assignment) {
 	switch node.Type {
 	case ast.AssignmentDeclaration, ast.AssignmentIncrement, ast.AssignmentDecrement:
 		panic("BUG: expected an assignment node")
+	}
+
+	lhs, rhs := tc.checkLhsRhs(node)
+
+	if op := node.Type; ast.AssignmentAddition <= op && op <= ast.AssignmentRightShift {
+		if len(lhs) != 1 {
+			panic("...") // TODO
+		}
+		if len(rhs) != 1 {
+			panic("...") // TODO
+		}
+		if lhs[0].IsBlankIdentifier() {
+			panic("...") // TODO
+		}
+	}
+
+	for i, lh := range lhs {
+		switch {
+		case lh.Addressable():
+			// Ok!
+		case tc.isMapIndexExpression(node.Lhs[i]):
+			// Ok!
+		case lh.isBlankIdentifier():
+			// Ok!
+		default:
+			panic("not assignable") // TODO
+		}
+	}
+
+	for i, rh := range rhs {
+		err := tc.isAssignableTo(rh, node.Rhs[i], lhs[i].Type)
+		if err != nil {
+			panic("not assignable") // TODO
+		}
 	}
 
 }
