@@ -463,6 +463,9 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		case tc.isMapIndexExpression(node.Lhs[i]):
 			// Ok!
 		default:
+			if tc.isSelectorOfMapField(node.Lhs[i]) {
+				panic(tc.errorf(node.Lhs[i], "cannot assign to struct field %v in map", node.Lhs[i]))
+			}
 			panic(tc.errorf(node.Lhs[i], "cannot assign to %v", node.Lhs[i]))
 		}
 	}
@@ -489,6 +492,15 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
 }
 
+func (tc *typechecker) isSelectorOfMapField(expr ast.Expression) bool {
+	field, ok := expr.(*ast.Selector)
+	if !ok {
+		return false
+	}
+	kind := tc.checkExpr(field).Type.Kind()
+	return kind == reflect.Map
+}
+
 // checkIncDecStatement checks an IncDec statement. See
 // https://golang.org/ref/spec#IncDec_statements.
 func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
@@ -505,6 +517,9 @@ func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 	case tc.isMapIndexExpression(node.Lhs[0]):
 		// Ok!
 	default:
+		if tc.isSelectorOfMapField(node.Lhs[0]) {
+			panic(tc.errorf(node.Lhs[0], "cannot assign to struct field %v in map", node.Lhs[0]))
+		}
 		panic(tc.errorf(node.Lhs[0], "cannot assign to %v", node.Lhs[0]))
 	}
 
