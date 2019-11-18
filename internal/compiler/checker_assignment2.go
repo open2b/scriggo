@@ -135,6 +135,37 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		}
 	}
 
+	var typ *TypeInfo
+
+	if node.Type != nil {
+		// Every Rh must be assignable to the type.
+		typ = tc.checkType(node.Type)
+		for i := range rhs {
+			err := tc.isAssignableTo(rhs[i], node.Rhs[i], typ.Type)
+			if err != nil {
+				panic("not assignable") // TODO
+			}
+		}
+	}
+
+	// If typ is not specified, none of the Rh values must be the predeclared
+	// nil.
+	if typ == nil {
+		for _, rh := range rhs {
+			if rh.Nil() {
+				panic("cannot have nil..") // TODO
+			}
+		}
+	}
+
+	for i, rh := range rhs {
+
+		// TODO
+		_ = i
+		_ = rh
+
+	}
+
 }
 
 // checkShortVariableDeclarations type checks a short variable declaration.
@@ -145,6 +176,47 @@ func (tc *typechecker) checkShortVariableDeclarations(node *ast.Assignment) {
 	if node.Type != ast.AssignmentDeclaration {
 		panic("BUG: expected a short variable declaration")
 	}
+
+	for _, lhExpr := range node.Lhs {
+		_, isIdent := lhExpr.(*ast.Identifier)
+		if !isIdent {
+			panic("non-name .. on left side of :=") // TODO
+		}
+	}
+
+	lhs, rhs := tc.checkLhsRhs(node)
+
+	var lhsToDeclare, lhsToRedeclare []*TypeInfo
+
+	for i, lh := range lhs {
+		name := node.Lhs[i].(*ast.Identifier).Name
+		if _, ok := tc.declaredInThisBlock(name); ok {
+			lhsToRedeclare = append(lhsToRedeclare, lh)
+		} else {
+			lhsToDeclare = append(lhsToDeclare, lh)
+		}
+	}
+
+	if len(lhsToDeclare) == 0 {
+		panic("no new variables on left side of :=")
+	}
+
+	for i, lh := range lhs {
+		switch {
+		case lh.Addressable():
+			// Ok!
+		case lh.IsBlankIdentifier():
+			// Ok!
+		default:
+			panic("cannot assign to ..") // TODO
+		}
+		err := tc.isAssignableTo(rhs[i], node.Rhs[i], lh.Type)
+		if err != nil {
+			panic("not assignable") // TODO
+		}
+	}
+
+	// TODO
 
 }
 
@@ -168,5 +240,17 @@ func (tc *typechecker) checkIncDecStatements(node *ast.Assignment) {
 	if node.Type != ast.AssignmentIncrement && node.Type != ast.AssignmentDecrement {
 		panic("BUG: expected an IncDec statement")
 	}
+
+	lh := tc.checkExpr(node.Lhs[0])
+	switch {
+	case lh.Addressable():
+		// Ok!
+	case lh.IsBlankIdentifier():
+		// Ok!
+	default:
+		panic("cannot assign to..") // TODO
+	}
+
+	// TODO: the untyped constant '1' must be assignable to the type of lh.
 
 }
