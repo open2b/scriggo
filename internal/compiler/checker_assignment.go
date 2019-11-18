@@ -39,6 +39,7 @@ func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 		Type:       typ,
 		Properties: PropertyAddressable,
 	}
+	tc.typeInfos[lh] = ti
 	tc.assignScope(lh.Name, ti, lh)
 }
 
@@ -219,6 +220,8 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		}
 	}
 
+	// TODO: check for repetitions on the left side of the =
+
 	for i, rh := range rhs {
 		var varTyp reflect.Type
 		if typ == nil {
@@ -226,7 +229,18 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		} else {
 			varTyp = typ.Type
 		}
+
+		rh.setValue(varTyp)
+
+		// TODO: what's the purpose of this code?
+		// if len(tc.scopes) > 0 {
+		// 	delete(tc.scopes[len(tc.scopes)-1], node.Lhs[i].Name)
+		// } else {
+		// 	delete(tc.filePackageBlock, node.Lhs[i].Name)
+		// }
+
 		tc.declareVariable(node.Lhs[i], varTyp)
+
 	}
 
 }
