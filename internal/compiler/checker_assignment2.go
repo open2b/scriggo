@@ -16,15 +16,22 @@ import (
 // then true and the ast.Node where name is declared are returned. Otherwise, a
 // nil ast.Node and false are returned.
 func (tc *typechecker) declaredInThisBlock(name string) (ast.Node, bool) {
-	// TODO: this method can be renamed/removed or implemented using an existing
-	// type checking function.
-	panic("not implemented")
+	scopeElem, ok := tc.lookupScopesElem(name, true)
+	if ok {
+		return scopeElem.decl, true
+	}
+	return nil, false
 }
 
-func (tc *typechecker) declareConstant(name string, typ reflect.Type, value constant) {
-	// TODO: this method can be renamed/removed or implemented using an existing
-	// type checking function.
-	panic("not implemented")
+func (tc *typechecker) declareConstant(lhNode *ast.Identifier, typ reflect.Type, value constant, untyped bool) {
+	ti := &TypeInfo{
+		Type:     typ,
+		Constant: value,
+	}
+	if untyped {
+		ti.Properties |= PropertyUntyped
+	}
+	tc.assignScope(lhNode.Name, ti, lhNode)
 }
 
 // isMapIndexExpression reports whether node is a map index expression.
@@ -130,7 +137,7 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 			constType = typ.Type
 		}
 
-		tc.declareConstant(node.Lhs[i].Name, constType, constValue)
+		tc.declareConstant(node.Lhs[i], constType, constValue, rh.Untyped())
 
 	}
 
