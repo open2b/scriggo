@@ -203,21 +203,21 @@ func (tc *typechecker) newPlaceholderFor(typ reflect.Type) *ast.Placeholder {
 
 func (tc *typechecker) rebalanceRightSide(node ast.Node) []ast.Expression {
 
-	var lhs, rhs []ast.Expression
+	var lhs, nodeRhs []ast.Expression
 
 	switch node := node.(type) {
 	case *ast.Var:
 		for _, lh := range node.Lhs {
 			lhs = append(lhs, lh)
 		}
-		rhs = node.Rhs
+		nodeRhs = node.Rhs
 	case *ast.Assignment:
 		lhs = node.Lhs
-		rhs = node.Rhs
+		nodeRhs = node.Rhs
 	}
 
 	rhsExpr := []ast.Expression{}
-	if call, ok := rhs[0].(*ast.Call); ok {
+	if call, ok := nodeRhs[0].(*ast.Call); ok {
 		tis, isBuiltin, _ := tc.checkCallExpression(call, false)
 		if len(lhs) != len(tis) {
 			if isBuiltin {
@@ -231,19 +231,19 @@ func (tc *typechecker) rebalanceRightSide(node ast.Node) []ast.Expression {
 			tc.typeInfos[rhsExpr[i]] = ti
 		}
 	}
-	if len(rhs) == 2 && len(rhs) == 1 {
-		switch v := rhsExpr[0].(type) {
+	if len(lhs) == 2 && len(nodeRhs) == 1 {
+		switch v := nodeRhs[0].(type) {
 		case *ast.TypeAssertion:
 			v1 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
 			v2 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
-			ti := tc.checkExpr(rhsExpr[0])
+			ti := tc.checkExpr(nodeRhs[0])
 			tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
 			tc.typeInfos[v2] = untypedBoolTypeInfo
 			rhsExpr = []ast.Expression{v1, v2}
 		case *ast.Index:
 			v1 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			v2 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
-			ti := tc.checkExpr(rhsExpr[0])
+			ti := tc.checkExpr(nodeRhs[0])
 			tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
 			tc.typeInfos[v2] = untypedBoolTypeInfo
 			rhsExpr = []ast.Expression{v1, v2}
@@ -251,7 +251,7 @@ func (tc *typechecker) rebalanceRightSide(node ast.Node) []ast.Expression {
 			if v.Op == ast.OperatorReceive {
 				v1 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
 				v2 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
-				ti := tc.checkExpr(rhsExpr[0])
+				ti := tc.checkExpr(nodeRhs[0])
 				tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
 				tc.typeInfos[v2] = untypedBoolTypeInfo
 				rhsExpr = []ast.Expression{v1, v2}
@@ -318,7 +318,11 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		} else {
 			varTyp = typ.Type
 		}
-		rh.setValue(varTyp)
+		if rh.Nil() {
+			tc.typeInfos[nodeRhs[i]] = tc.nilOf(typ.Type)
+		} else {
+			rh.setValue(varTyp)
+		}
 		if isBlankIdentifier(node.Lhs[i]) {
 			continue
 		}
@@ -455,7 +459,12 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 	}
 
 	for i, rh := range rhs {
-		rh.setValue(nil)
+		if rh.Nil() {
+			rh = tc.nilOf(lhs[i].Type)    // needed by the type checker
+			tc.typeInfos[nodeRhs[i]] = rh // needed by the emitter
+		} else {
+			rh.setValue(nil)
+		}
 		if isBlankIdentifier(node.Lhs[i]) {
 			continue
 		}
