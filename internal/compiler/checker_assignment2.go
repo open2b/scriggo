@@ -27,6 +27,17 @@ func (tc *typechecker) declareConstant(name string, typ reflect.Type, value cons
 	panic("not implemented")
 }
 
+// isMapIndexExpression reports whether node is a map index expression.
+func (tc *typechecker) isMapIndexExpression(node ast.Node) bool {
+	index, ok := node.(*ast.Index)
+	if !ok {
+		return false
+	}
+	expr := index.Expr
+	exprKind := tc.checkExpr(expr).Type.Kind()
+	return exprKind == reflect.Map
+}
+
 // checkLhsRhs takes a simple assignment node, a short declaration node or a
 // variable declaration node and returns the lists of the type infos for the
 // left and the right sides of the node. This methods also handles "unbalanced"
