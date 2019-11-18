@@ -430,7 +430,9 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
 	nodeRhs := node.Rhs
 
-	isMultipleAssignment := false
+	isMultipleAssignment := false // for error messages
+
+	isShortAssignment := ast.AssignmentAddition <= node.Type && node.Type <= ast.AssignmentRightShift
 
 	if len(node.Lhs) != len(nodeRhs) {
 		nodeRhs = tc.rebalanceRightSide(node)
@@ -449,8 +451,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 			lhs = append(lhs, nil)
 		} else {
 			var lh *TypeInfo
-			op := node.Type
-			if ident, ok := lhExpr.(*ast.Identifier); ok && !(ast.AssignmentAddition <= op && op <= ast.AssignmentRightShift) {
+			if ident, ok := lhExpr.(*ast.Identifier); ok && !isShortAssignment {
 				lh = tc.checkIdentifier(ident, false)
 			} else {
 				lh = tc.checkExpr(lhExpr)
@@ -461,6 +462,14 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 	for _, rhExpr := range nodeRhs {
 		rh := tc.checkExpr(rhExpr)
 		rhs = append(rhs, rh)
+	}
+
+	if isShortAssignment {
+		op := operatorFromAssignmentType(node.Type)
+		_, err := tc.binaryOp(node.Lhs[0], op, node.Rhs[0])
+		if err != nil {
+			panic(tc.errorf(node, "invalid operation: %v (%s)", node, err))
+		}
 	}
 
 	for i, lh := range lhs {
