@@ -58,6 +58,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		rhs = append(rhs, rh)
 	}
 
+	// +=, -=, *= ...
 	if hasAssignOp {
 		op := operatorFromAssignmentType(node.Type)
 		_, err := tc.binaryOp(node.Lhs[0], op, nodeRhs[0])
@@ -297,7 +298,14 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 			continue
 		}
 		if alreadyDeclared[node.Lhs[i]] {
-			tc.checkIdentifier(node.Lhs[i].(*ast.Identifier), false)
+			lh := tc.checkIdentifier(node.Lhs[i].(*ast.Identifier), false)
+			if isBlankIdentifier(node.Lhs[i]) {
+				continue
+			}
+			err := tc.isAssignableTo(rhs[i], nodeRhs[i], lh.Type)
+			if err != nil {
+				panic(tc.errorf(nodeRhs[i], "%s in assignment", err))
+			}
 		} else {
 			tc.declareVariable(node.Lhs[i].(*ast.Identifier), rh.Type)
 		}
