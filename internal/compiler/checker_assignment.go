@@ -12,7 +12,6 @@ import (
 	"scriggo/ast"
 )
 
-// See https://golang.org/ref/spec#Assignments.
 // checkAssignments type check an assignment node.
 func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
@@ -102,7 +101,6 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 }
 
 // checkConstantDeclaration type checks a constant declaration.
-// See https://golang.org/ref/spec#Constant_declarations.
 func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 
 	if tc.lastConstPosition != node.Pos() {
@@ -190,8 +188,7 @@ func (tc *typechecker) checkGenericAssignmentNode(node *ast.Assignment) {
 	}
 }
 
-// checkIncDecStatement checks an IncDec statement. See
-// https://golang.org/ref/spec#IncDec_statements.
+// checkIncDecStatement checks an IncDec statement.
 func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 
 	// Check that node is an IncDec statement.
@@ -236,8 +233,7 @@ func (tc *typechecker) checkRepeatedLhs(node *ast.Assignment) {
 	}
 }
 
-// checkShortVariableDeclaration type checks a short variable declaration. See
-// https://golang.org/ref/spec#Short_variable_declarations.
+// checkShortVariableDeclaration type checks a short variable declaration.
 func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 
 	// Check that node is a short variable declaration.
@@ -300,7 +296,6 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 }
 
 // checkVariableDeclaration type checks a variable declaration.
-// See https://golang.org/ref/spec#Variable_declarations.
 func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 
 	var rhs []*TypeInfo
@@ -414,6 +409,8 @@ func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 	}
 }
 
+// newPlaceholder returns a new Placeholder node with an associated type info
+// that holds the zero for the given type.
 func (tc *typechecker) newPlaceholderFor(typ reflect.Type) *ast.Placeholder {
 	k := typ.Kind()
 	var ti *TypeInfo
@@ -438,6 +435,11 @@ func (tc *typechecker) newPlaceholderFor(typ reflect.Type) *ast.Placeholder {
 	return ph
 }
 
+// rebalanceRightSide rebalances the given node by returning a slice of
+// Expressions that must be used as right side in the type checking of the given
+// node.
+// rebalanceRightSide panics a type checking error if the given node cannot be
+// rebalanced.
 func (tc *typechecker) rebalanceRightSide(node ast.Node) []ast.Expression {
 
 	var nodeLhs, nodeRhs []ast.Expression
@@ -451,6 +453,10 @@ func (tc *typechecker) rebalanceRightSide(node ast.Node) []ast.Expression {
 	case *ast.Assignment:
 		nodeLhs = node.Lhs
 		nodeRhs = node.Rhs
+	}
+
+	if len(nodeLhs) == len(nodeRhs) {
+		panic("BUG: this method must be called only for multiple assignments")
 	}
 
 	if call, ok := nodeRhs[0].(*ast.Call); ok {
