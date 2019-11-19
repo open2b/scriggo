@@ -202,7 +202,6 @@ func (tc *typechecker) checkGenericAssignmentNode(node *ast.Assignment) {
 // checkIncDecStatement checks an IncDec statement.
 func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 
-	// Check that node is an IncDec statement.
 	if node.Type != ast.AssignmentIncrement && node.Type != ast.AssignmentDecrement {
 		panic("BUG: expected an IncDec statement")
 	}
@@ -228,7 +227,12 @@ func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 
 }
 
+// checkRepeatedLhs panics a type checking error the left side of the given node
+// contains repeated identifiers.
 func (tc *typechecker) checkRepeatedLhs(node *ast.Assignment) {
+	if node.Type != ast.AssignmentDeclaration {
+		panic("BUG: expecting a := node")
+	}
 	names := map[string]bool{}
 	for _, lh := range node.Lhs {
 		if isBlankIdentifier(lh) {
