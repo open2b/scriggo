@@ -15,45 +15,52 @@ import (
 // checkAssignments type check an assignment node.
 func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
-	// Check that node is an assignment node.
 	switch node.Type {
 	case ast.AssignmentDeclaration, ast.AssignmentIncrement, ast.AssignmentDecrement:
 		panic("BUG: expected an assignment node")
 	}
 
+	// In case of unbalanced assignments a 'fake' rhs must be used for the type
+	// checking, but the tree must not be changed.
 	nodeRhs := node.Rhs
 
-	isMultipleAssignment := false // for error messages
-
-	isShortAssignment := ast.AssignmentAddition <= node.Type && node.Type <= ast.AssignmentRightShift
+	isUnbalancedAssign := false // just for error messages
 
 	if len(node.Lhs) != len(nodeRhs) {
 		nodeRhs = tc.rebalanceRightSide(node)
-		isMultipleAssignment = true
+		isUnbalancedAssign = true
 	}
 
+	// +=, -=, *=, ...
+	hasAssignOp := ast.AssignmentAddition <= node.Type && node.Type <= ast.AssignmentRightShift
+
 	var lhs, rhs []*TypeInfo
+
+	// Type check the left side.
 	for _, lhExpr := range node.Lhs {
 		if isBlankIdentifier(lhExpr) {
 			lhs = append(lhs, nil)
-		} else {
-			var lh *TypeInfo
-			if ident, ok := lhExpr.(*ast.Identifier); ok && !isShortAssignment {
-				lh = tc.checkIdentifier(ident, false)
-			} else {
-				lh = tc.checkExpr(lhExpr)
-			}
-			lhs = append(lhs, lh)
+			continue
 		}
+		var lh *TypeInfo
+		if ident, ok := lhExpr.(*ast.Identifier); ok && !hasAssignOp {
+			// Use checkIdentifier to avoid marking 'ident' as used.
+			lh = tc.checkIdentifier(ident, false)
+		} else {
+			lh = tc.checkExpr(lhExpr)
+		}
+		lhs = append(lhs, lh)
 	}
+
+	// Type check the right side.
 	for _, rhExpr := range nodeRhs {
 		rh := tc.checkExpr(rhExpr)
 		rhs = append(rhs, rh)
 	}
 
-	if isShortAssignment {
+	if hasAssignOp {
 		op := operatorFromAssignmentType(node.Type)
-		_, err := tc.binaryOp(node.Lhs[0], op, node.Rhs[0])
+		_, err := tc.binaryOp(node.Lhs[0], op, nodeRhs[0])
 		if err != nil {
 			panic(tc.errorf(node, "invalid operation: %v (%s)", node, err))
 		}
@@ -75,6 +82,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		}
 	}
 
+	// Check for assignability and update the type infos.
 	for i, rh := range rhs {
 		if rh.Nil() {
 			rh = tc.nilOf(lhs[i].Type)    // needed by the type checker
@@ -87,13 +95,15 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		}
 		err := tc.isAssignableTo(rh, nodeRhs[i], lhs[i].Type)
 		if err != nil {
-			if isMultipleAssignment {
+			if isUnbalancedAssign {
 				panic(tc.errorf(node.Rhs[0], "cannot assign %v to %v (type %v) in multiple assignment", rh.Type, node.Lhs[i], lhs[i].Type))
 			}
 			panic(tc.errorf(nodeRhs[i], "%s in assignment", err))
 		}
 	}
 
+	// Transform the tree after the type checking to make things easier for the
+	// emitter.
 	if op := node.Type; ast.AssignmentAddition <= op && op <= ast.AssignmentRightShift {
 		tc.convertNodeForTheEmitter(node)
 	}
@@ -241,6 +251,8 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 		panic("BUG: expected a short variable declaration")
 	}
 
+	// In case of unbalanced short variable declarations a 'fake' rhs must be
+	// used for the type checking, but the tree must not be changed.
 	nodeRhs := node.Rhs
 
 	if len(node.Lhs) != len(nodeRhs) {
