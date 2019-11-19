@@ -175,7 +175,7 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 
 		// Declare the constant in the current block/scope.
 		constTi := &TypeInfo{Type: constType, Constant: constValue}
-		if rh.Untyped() {
+		if rh.Untyped() && typ == nil {
 			constTi.Properties |= PropertyUntyped
 		}
 		tc.assignScope(node.Lhs[i].Name, constTi, node.Lhs[i])
