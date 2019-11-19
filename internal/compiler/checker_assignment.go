@@ -173,10 +173,10 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 
 }
 
-// checkGenericAssignmentNode should be used in every context where an
-// *ast.Assignment node must be checked. This is necessary because the
-// *ast.Assignment node of the Scriggo AST represents short variable
-// declarations, assignments, short assignments and inc-dec statements.
+// checkGenericAssignmentNode type checks an *ast.Assignment node. This method
+// is necessary because the *ast.Assignment node of the Scriggo AST represents
+// short variable declarations, assignments, short assignments and inc-dec
+// statements.
 func (tc *typechecker) checkGenericAssignmentNode(node *ast.Assignment) {
 	switch node.Type {
 	case ast.AssignmentDeclaration:
