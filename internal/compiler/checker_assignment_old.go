@@ -16,6 +16,8 @@ import (
 // and fills the scope, if necessary.
 func (tc *typechecker) checkAssignmentOld(node ast.Node) {
 
+	panic("OBSOLETE")
+
 	var lhs []ast.Expression
 	var rhs []ast.Expression
 	var declTi *TypeInfo

@@ -190,7 +190,7 @@ nodesLoop:
 		case *ast.If:
 			tc.enterScope()
 			if node.Assignment != nil {
-				tc.checkAssignmentOld(node.Assignment)
+				tc.checkGenericAssignmentNode(node.Assignment)
 			}
 			ti := tc.checkExpr(node.Condition)
 			if ti.Type.Kind() != reflect.Bool {
@@ -217,7 +217,7 @@ nodesLoop:
 			tc.enterScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
-				tc.checkAssignmentOld(node.Init)
+				tc.checkGenericAssignmentNode(node.Init)
 			}
 			if node.Condition != nil {
 				ti := tc.checkExpr(node.Condition)
@@ -227,7 +227,7 @@ nodesLoop:
 				ti.setValue(nil)
 			}
 			if node.Post != nil {
-				tc.checkAssignmentOld(node.Post)
+				tc.checkGenericAssignmentNode(node.Post)
 			}
 			tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()
@@ -294,14 +294,7 @@ nodesLoop:
 			tc.terminating = !tc.hasBreak[node]
 
 		case *ast.Assignment:
-			switch node.Type {
-			case ast.AssignmentDeclaration:
-				tc.checkShortVariableDeclaration(node)
-			case ast.AssignmentIncrement, ast.AssignmentDecrement:
-				tc.checkIncDecStatement(node)
-			default:
-				tc.checkAssignment(node)
-			}
+			tc.checkGenericAssignmentNode(node)
 			if node.Type == ast.AssignmentDeclaration {
 				tc.nextValidGoto = len(tc.gotos)
 			}
@@ -387,7 +380,8 @@ nodesLoop:
 			tc.addToAncestors(node)
 			// Check the init.
 			if node.Init != nil {
-				tc.checkAssignmentOld(node.Init)
+				// TODO: this type assertion should be removed/handled differently.
+				tc.checkGenericAssignmentNode(node.Init.(*ast.Assignment))
 			}
 			// Check the expression.
 			var texpr *TypeInfo
@@ -479,7 +473,8 @@ nodesLoop:
 			tc.enterScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
-				tc.checkAssignmentOld(node.Init)
+				// TODO: this type assertion should be removed/handled differently.
+				tc.checkGenericAssignmentNode(node.Init.(*ast.Assignment))
 			}
 			ta := node.Assignment.Rhs[0].(*ast.TypeAssertion)
 			t := tc.checkExpr(ta.Expr)
@@ -533,7 +528,7 @@ nodesLoop:
 									ast.NewTypeAssertion(ta.Pos(), ta.Expr, cas.Expressions[0]),
 								},
 							)
-							tc.checkAssignmentOld(n)
+							tc.checkGenericAssignmentNode(n)
 						}
 					}
 				} else {
@@ -546,7 +541,7 @@ nodesLoop:
 								ta.Expr,
 							},
 						)
-						tc.checkAssignmentOld(n)
+						tc.checkGenericAssignmentNode(n)
 					}
 				}
 				tc.enterScope()
@@ -579,7 +574,7 @@ nodesLoop:
 						panic(tc.errorf(node, "select case must be receive, send or assign recv"))
 					}
 				case *ast.Assignment:
-					tc.checkAssignmentOld(comm)
+					tc.checkGenericAssignmentNode(comm)
 					if comm.Type != ast.AssignmentSimple && comm.Type != ast.AssignmentDeclaration {
 						panic(tc.errorf(node, "select case must be receive, send or assign recv"))
 					}

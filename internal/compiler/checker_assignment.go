@@ -424,9 +424,30 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 
 }
 
+// checkGenericAssignmentNode should be used in every context where an
+// *ast.Assignment node must be checked. This is necessary because the
+// *ast.Assignment node of the Scriggo AST represents short variable
+// declarations, assignments, short assignments and inc-dec statements.
+func (tc *typechecker) checkGenericAssignmentNode(node *ast.Assignment) {
+	switch node.Type {
+	case ast.AssignmentDeclaration:
+		tc.checkShortVariableDeclaration(node)
+	case ast.AssignmentIncrement, ast.AssignmentDecrement:
+		tc.checkIncDecStatement(node)
+	default:
+		tc.checkAssignment(node)
+	}
+}
+
 // See https://golang.org/ref/spec#Assignments.
 // checkAssignments type check an assignment node.
 func (tc *typechecker) checkAssignment(node *ast.Assignment) {
+
+	// Check that node is an assignment node.
+	switch node.Type {
+	case ast.AssignmentDeclaration, ast.AssignmentIncrement, ast.AssignmentDecrement:
+		panic("BUG: expected an assignment node")
+	}
 
 	nodeRhs := node.Rhs
 
@@ -437,12 +458,6 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 	if len(node.Lhs) != len(nodeRhs) {
 		nodeRhs = tc.rebalanceRightSide(node)
 		isMultipleAssignment = true
-	}
-
-	// Check that node is an assignment node.
-	switch node.Type {
-	case ast.AssignmentDeclaration, ast.AssignmentIncrement, ast.AssignmentDecrement:
-		panic("BUG: expected an assignment node")
 	}
 
 	var lhs, rhs []*TypeInfo
