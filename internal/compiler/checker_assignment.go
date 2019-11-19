@@ -272,6 +272,9 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 	var rhs []*TypeInfo
 	for _, rhExpr := range nodeRhs {
 		rh := tc.checkExpr(rhExpr)
+		if rh.Nil() {
+			panic(tc.errorf(rhExpr, "use of untyped nil"))
+		}
 		rhs = append(rhs, rh)
 	}
 
