@@ -44,7 +44,7 @@ func (tc *typechecker) checkAssignmentOld(node ast.Node) {
 				for i := range n.Lhs {
 					ph := ast.NewPlaceholder()
 					tc.typeInfos[ph] = &TypeInfo{Type: typ}
-					newVar := tc.assign(node, n.Lhs[i], ph, declTi, true, false)
+					newVar := tc.obsoleteAssign(node, n.Lhs[i], ph, declTi, true, false)
 					if newVar == "" && !isBlankIdentifier(n.Lhs[i]) {
 						panic(tc.errorf(node, "%s redeclared in this block", n.Lhs[i]))
 					}
@@ -152,7 +152,7 @@ func (tc *typechecker) checkAssignmentOld(node ast.Node) {
 			if err != nil {
 				panic(tc.errorf(n, "invalid operation: %v (%s)", n, err))
 			}
-			tc.assign(node, n.Lhs[0], n.Rhs[0], nil, false, false)
+			tc.obsoleteAssign(node, n.Lhs[0], n.Rhs[0], nil, false, false)
 			// Convert the assignment node from l op= r to a simple assignment.
 			// This change has no effects on type checking but simplifies the
 			// emitting of assignment nodes. a += 1 is semantically equivalent
@@ -229,11 +229,11 @@ func (tc *typechecker) checkAssignmentOld(node ast.Node) {
 		}
 		var newVar string
 		if valueTi := tc.typeInfos[rhs[i]]; valueTi == nil {
-			newVar = tc.assign(node, lhs[i], rhs[i], declTi, isVariableDecl, isConstDecl)
+			newVar = tc.obsoleteAssign(node, lhs[i], rhs[i], declTi, isVariableDecl, isConstDecl)
 		} else {
 			ph := ast.NewPlaceholder()
 			tc.typeInfos[ph] = valueTi
-			newVar = tc.assign(node, lhs[i], ph, declTi, isVariableDecl, isConstDecl)
+			newVar = tc.obsoleteAssign(node, lhs[i], ph, declTi, isVariableDecl, isConstDecl)
 		}
 		if isVariableDecl || isConstDecl {
 			if !isAssignmentNode && newVar == "" && !isBlankIdentifier(lhs[i]) {
@@ -269,11 +269,8 @@ func (tc *typechecker) checkAssignmentOld(node ast.Node) {
 	return
 }
 
-// assign assigns rightExpr to leftExpr. If right is not nil, then is used
-// instead of rightExpr. typ is the type specified in the declaration, if any.
-// If assignment is a declaration and the scope has been updated, returns the
-// identifier of the new scope element; otherwise returns an empty string.
-func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression, typ *TypeInfo, isVariableDecl, isConstDecl bool) string {
+// TODO: this methods is still used by the ForRange statement.
+func (tc *typechecker) obsoleteAssign(node ast.Node, leftExpr, rightExpr ast.Expression, typ *TypeInfo, isVariableDecl, isConstDecl bool) string {
 
 	right := tc.checkExpr(rightExpr)
 
