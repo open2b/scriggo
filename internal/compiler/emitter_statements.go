@@ -476,8 +476,12 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 	em.fb.enterStack()
 
 	// Create some shared registers; preallocation is not a problem: when the
-	// select statement will be ended, all registers will be released.
-	ch := em.fb.newRegister(reflect.Chan)
+	// emission of the select statement will is completed, all registers are
+	// released.
+	chs := make([]int8, len(selectNode.Cases))
+	for i := 0; i < len(selectNode.Cases); i++ {
+		chs[i] = em.fb.newRegister(reflect.Chan)
+	}
 	ok := em.fb.newRegister(reflect.Bool)
 	value := [4]int8{
 		intRegister:     em.fb.newRegister(reflect.Int),
@@ -487,23 +491,23 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 	}
 
 	// Prepare the registers for the 'select' instruction.
-	for _, cas := range selectNode.Cases {
+	for i, cas := range selectNode.Cases {
 		switch cas := cas.Comm.(type) {
 		case nil: // default: nothing to do.
 		case *ast.UnaryOperator:
 			// <- ch
 			chExpr := cas.Expr
-			em.emitExprR(chExpr, em.ti(chExpr).Type, ch)
+			em.emitExprR(chExpr, em.ti(chExpr).Type, chs[i])
 		case *ast.Assignment:
 			// v [, ok ] = <- ch
 			chExpr := cas.Rhs[0].(*ast.UnaryOperator).Expr
-			em.emitExprR(chExpr, em.ti(chExpr).Type, ch)
+			em.emitExprR(chExpr, em.ti(chExpr).Type, chs[i])
 		case *ast.Send:
 			// ch <- v
 			chExpr := cas.Channel
 			chType := em.ti(chExpr).Type
 			elemType := chType.Elem()
-			em.emitExprR(chExpr, chType, ch)
+			em.emitExprR(chExpr, chType, chs[i])
 			em.emitExprR(cas.Value, elemType, value[kindToType(elemType.Kind())])
 		}
 	}
@@ -520,19 +524,19 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 			// <- ch
 			chExpr := comm.Expr
 			elemType := em.ti(chExpr).Type.Elem()
-			em.fb.emitCase(false, reflect.SelectRecv, 0, ch, elemType.Kind())
+			em.fb.emitCase(false, reflect.SelectRecv, 0, chs[i], elemType.Kind())
 		case *ast.Assignment:
 			// v [, ok ] = <- ch
 			chExpr := comm.Rhs[0].(*ast.UnaryOperator).Expr
 			chType := em.ti(chExpr).Type
 			elemType := chType.Elem()
-			em.fb.emitCase(false, reflect.SelectRecv, value[kindToType(elemType.Kind())], ch, elemType.Kind())
+			em.fb.emitCase(false, reflect.SelectRecv, value[kindToType(elemType.Kind())], chs[i], elemType.Kind())
 		case *ast.Send:
 			// ch <- v
 			chExpr := comm.Channel
 			chType := em.ti(chExpr).Type
 			elemType := chType.Elem()
-			em.fb.emitCase(false, reflect.SelectSend, value[kindToType(elemType.Kind())], ch, elemType.Kind())
+			em.fb.emitCase(false, reflect.SelectSend, value[kindToType(elemType.Kind())], chs[i], elemType.Kind())
 		}
 		em.fb.emitGoto(casesLabel[i])
 	}

@@ -35,45 +35,44 @@ func (em *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, d
 	// the struct fields. This is not possible with Scriggo defined types,
 	// because the gc compiled code cannot reference to them.
 	if dst < 0 {
-
 		if st, ok := srcType.(types.ScriggoType); ok {
 			srcType = st.Underlying()
 		}
-
 		em.fb.emitTypify(k, srcType, src, dst)
 		return
 	}
 
-	// When moving a value from general to general, value's type must be
-	// updated.
-	if dstType.Kind() == reflect.Interface && srcType.Kind() == reflect.Interface {
-		em.fb.emitMove(k, src, dst, srcType.Kind(), true)
+	srcKind := srcType.Kind()
+	dstKind := dstType.Kind()
+
+	if dstKind == reflect.Interface && srcKind == reflect.Interface {
+		em.fb.emitMove(k, src, dst, srcKind, true)
 		return
 	}
 
 	// When moving a value from int, float or string to general, value's type
 	// must be "typed" to its true (original) type.
-	if dstType.Kind() == reflect.Interface {
+	if dstKind == reflect.Interface {
 		em.fb.emitTypify(k, srcType, src, dst)
 		return
 	}
 
 	// Source register is different than destination register: a conversion is
 	// needed.
-	if dstType.Kind() != srcType.Kind() {
+	if dstKind != srcKind {
 		if k {
 			em.fb.enterScope()
-			tmp := em.fb.newRegister(srcType.Kind())
-			em.fb.emitMove(true, src, tmp, srcType.Kind(), true)
-			em.fb.emitConvert(tmp, dstType, dst, srcType.Kind())
+			tmp := em.fb.newRegister(srcKind)
+			em.fb.emitMove(true, src, tmp, srcKind, true)
+			em.fb.emitConvert(tmp, dstType, dst, srcKind)
 			em.fb.exitScope()
 		}
-		em.fb.emitConvert(src, dstType, dst, srcType.Kind())
+		em.fb.emitConvert(src, dstType, dst, srcKind)
 		return
 	}
 
 	if k || src != dst {
-		em.fb.emitMove(k, src, dst, srcType.Kind(), true)
+		em.fb.emitMove(k, src, dst, srcKind, true)
 	}
 
 }
