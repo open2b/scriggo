@@ -314,8 +314,6 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 		}
 	}
 
-	// TODO
-
 }
 
 // checkVariableDeclaration type checks a variable declaration.
