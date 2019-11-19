@@ -807,6 +807,7 @@ var checkerStmts = map[string]string{
 	`var a int = chan int(nil)`: `cannot use (chan int)(nil) (type chan int) as type int in assignment`,
 	`f := func() (int, int) { return 0, 0 }; var a bool; _, a = f()`: `cannot assign int to a (type bool) in multiple assignment`,
 	`f := func() (int, int) { return 0, 0 }; var a bool; a, _ = f()`: `cannot assign int to a (type bool) in multiple assignment`,
+	`var a int = 1<<63; _ = a`: `constant 9223372036854775808 overflows int in assignment`, // TODO: gc returns error `constant 9223372036854775808 overflows int`
 
 	// Slicing
 	`_ = []int{1,2,3,4,5}[:]`:             ok,
