@@ -1060,9 +1060,6 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				name = expr.Name
 			case *ast.Selector:
 				name = expr.Ident
-			case *ast.Placeholder:
-			default:
-				panic("BUG") // remove.
 			}
 			index := em.predFuncIndex(ti.value.(reflect.Value), ti.PredefPackageName, name)
 			em.fb.emitLoadFunc(true, index, reg)
