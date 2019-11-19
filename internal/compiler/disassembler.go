@@ -226,7 +226,8 @@ func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global
 		default:
 			_, _ = fmt.Fprintf(w, "%s\t%s", indent, disassembleInstruction(fn, globals, addr))
 		}
-		if in.Op == runtime.OpLoadFunc && fn.Functions[uint8(in.B)].Parent != nil { // function literal
+		// TODO: this part is not clear:
+		if in.Op == runtime.OpLoadFunc && (int(in.B) < len(fn.Functions)) && fn.Functions[uint8(in.B)].Parent != nil { // function literal
 			_, _ = fmt.Fprint(w, " ", disassembleOperand(fn, in.C, reflect.Interface, false), " func")
 			disassembleFunction(w, fn.Functions[uint8(in.B)], globals, depth+1)
 		} else {
