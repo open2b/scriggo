@@ -6,10 +6,10 @@
 
 package compiler
 
-import (
-	"scriggo/ast"
-)
+import "scriggo/ast"
 
+// TODO: this method is obsolete and must be removed when changing the type
+// checking of ForRange nodes.
 func (tc *typechecker) obsoleteForRangeAssign(node ast.Node, leftExpr, rightExpr ast.Expression, typ *TypeInfo, isVariableDecl, isConstDecl bool) string {
 
 	right := tc.checkExpr(rightExpr)
