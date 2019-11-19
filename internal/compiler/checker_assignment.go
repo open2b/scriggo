@@ -12,6 +12,9 @@ import (
 	"scriggo/ast"
 )
 
+// declareVariable declares the variable lh in the current block/scope with the
+// given type. Note that a variabile declaration may come from both 'var'
+// statements and short variable declaration statements.
 func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 	ti := &TypeInfo{
 		Type:       typ,
@@ -26,17 +29,6 @@ func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 			node:       lh,
 		})
 	}
-}
-
-// isMapIndexExpression reports whether node is a map index expression.
-func (tc *typechecker) isMapIndexExpression(node ast.Node) bool {
-	index, ok := node.(*ast.Index)
-	if !ok {
-		return false
-	}
-	expr := index.Expr
-	exprKind := tc.checkExpr(expr).Type.Kind()
-	return exprKind == reflect.Map
 }
 
 // checkConstantDeclaration type checks a constant declaration.
@@ -420,10 +412,10 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 			// Ok!
 		case lh.Addressable():
 			// Ok!
-		case tc.isMapIndexExpression(node.Lhs[i]):
+		case tc.isMapIndexing(node.Lhs[i]):
 			// Ok!
 		default:
-			if tc.isSelectorOfMapField(node.Lhs[i]) {
+			if tc.isSelectorOfMapIndexing(node.Lhs[i]) {
 				panic(tc.errorf(node.Lhs[i], "cannot assign to struct field %v in map", node.Lhs[i]))
 			}
 			panic(tc.errorf(node.Lhs[i], "cannot assign to %v", node.Lhs[i]))
@@ -455,19 +447,6 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
 }
 
-func (tc *typechecker) isSelectorOfMapField(expr ast.Expression) bool {
-	field, ok := expr.(*ast.Selector)
-	if !ok {
-		return false
-	}
-	index, ok := field.Expr.(*ast.Index)
-	if !ok {
-		return false
-	}
-	kind := tc.checkExpr(index.Expr).Type.Kind()
-	return kind == reflect.Map
-}
-
 // checkIncDecStatement checks an IncDec statement. See
 // https://golang.org/ref/spec#IncDec_statements.
 func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
@@ -481,10 +460,10 @@ func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 	switch {
 	case lh.Addressable():
 		// Ok!
-	case tc.isMapIndexExpression(node.Lhs[0]):
+	case tc.isMapIndexing(node.Lhs[0]):
 		// Ok!
 	default:
-		if tc.isSelectorOfMapField(node.Lhs[0]) {
+		if tc.isSelectorOfMapIndexing(node.Lhs[0]) {
 			panic(tc.errorf(node.Lhs[0], "cannot assign to struct field %v in map", node.Lhs[0]))
 		}
 		panic(tc.errorf(node.Lhs[0], "cannot assign to %v", node.Lhs[0]))
