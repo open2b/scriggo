@@ -111,13 +111,6 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 // checkConstantDeclaration type checks a constant declaration.
 func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 
-	if tc.lastConstPosition != node.Pos() {
-		tc.iota = -1
-	}
-
-	tc.lastConstPosition = node.Pos()
-	tc.iota++
-
 	if len(node.Lhs) > len(node.Rhs) {
 		panic(tc.errorf(node, "missing value in const declaration"))
 	}
@@ -125,6 +118,13 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 	if len(node.Rhs) < len(node.Rhs) {
 		panic(tc.errorf(node, "extra expression in const declaration"))
 	}
+
+	if tc.lastConstPosition != node.Pos() {
+		tc.iota = -1
+	}
+
+	tc.lastConstPosition = node.Pos()
+	tc.iota++
 
 	rhs := []*TypeInfo{}
 
@@ -320,12 +320,18 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 
 	var rhs []*TypeInfo
 
+	// In case of unbalanced var declarations a 'fake' rhs must be used for the
+	// type checking, but the tree must not be changed.
 	nodeRhs := node.Rhs
 
-	if len(node.Rhs) > 0 && len(node.Lhs) != len(node.Rhs) {
+	// var a, b   =  f()
+	// var a, ok  =  m[k]
+	// var a, ok  =  <-ch
+	if len(nodeRhs) > 0 && len(node.Lhs) != len(nodeRhs) {
 		nodeRhs = tc.rebalanceRightSide(node)
 	}
 
+	// Type check every expression of the right.
 	for _, rhExpr := range nodeRhs {
 		rh := tc.checkExpr(rhExpr)
 		rhs = append(rhs, rh)
@@ -333,8 +339,9 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 
 	var typ *TypeInfo
 
+	// 'var' declaration with explicit type: every rh must be assignable to that
+	// type.
 	if node.Type != nil {
-		// Every Rh must be assignable to the type.
 		typ = tc.checkType(node.Type)
 		for i := range rhs {
 			err := tc.isAssignableTo(rhs[i], nodeRhs[i], typ.Type)
@@ -357,6 +364,8 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		}
 	}
 
+	// Variable declaration with no expressions: the zero of the explicit type
+	// must be assigned to the left identifiers.
 	if len(node.Rhs) == 0 {
 		node.Rhs = make([]ast.Expression, len(node.Lhs))
 		for i := 0; i < len(node.Lhs); i++ {
@@ -365,22 +374,30 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		}
 	}
 
-	// TODO: check for repetitions on the left side of the =
-
+	// Declare the left hand identifiers and update the type infos.
 	for i, rh := range rhs {
-		varTyp := rh.Type
-		if typ != nil {
+
+		// Determine the type of the new variable.
+		var varTyp reflect.Type
+		if typ == nil {
+			varTyp = rh.Type
+		} else {
 			varTyp = typ.Type
 		}
+
+		// Set the type info of the right operand.
 		if rh.Nil() {
 			tc.typeInfos[nodeRhs[i]] = tc.nilOf(typ.Type)
 		} else {
 			rh.setValue(varTyp)
 		}
+
 		if isBlankIdentifier(node.Lhs[i]) {
 			continue
 		}
+
 		tc.declareVariable(node.Lhs[i], varTyp)
+
 	}
 
 }
