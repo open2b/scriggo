@@ -35,10 +35,13 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
 	// Type check the left side.
 	for _, lhExpr := range node.Lhs {
+
 		if isBlankIdentifier(lhExpr) {
+			// Ensures that lhs[i] is always correct.
 			lhs = append(lhs, nil)
 			continue
 		}
+
 		var lh *TypeInfo
 		if ident, ok := lhExpr.(*ast.Identifier); ok && !isAssignmentOperation {
 			// Use checkIdentifier to avoid marking 'ident' as used.
@@ -46,6 +49,19 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		} else {
 			lh = tc.checkExpr(lhExpr)
 		}
+
+		switch {
+		case lh.Addressable():
+			// Ok!
+		case tc.isMapIndexing(lhExpr):
+			// Ok!
+		default:
+			if tc.isSelectorOfMapIndexing(lhExpr) {
+				panic(tc.errorf(lhExpr, "cannot assign to struct field %v in map", lhExpr))
+			}
+			panic(tc.errorf(lhExpr, "cannot assign to %v", lhExpr))
+		}
+
 		lhs = append(lhs, lh)
 	}
 
@@ -61,22 +77,6 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		_, err := tc.binaryOp(node.Lhs[0], op, nodeRhs[0])
 		if err != nil {
 			panic(tc.errorf(node, "invalid operation: %v (%s)", node, err))
-		}
-	}
-
-	for i, lh := range lhs {
-		switch {
-		case isBlankIdentifier(node.Lhs[i]):
-			// Ok!
-		case lh.Addressable():
-			// Ok!
-		case tc.isMapIndexing(node.Lhs[i]):
-			// Ok!
-		default:
-			if tc.isSelectorOfMapIndexing(node.Lhs[i]) {
-				panic(tc.errorf(node.Lhs[i], "cannot assign to struct field %v in map", node.Lhs[i]))
-			}
-			panic(tc.errorf(node.Lhs[i], "cannot assign to %v", node.Lhs[i]))
 		}
 	}
 
