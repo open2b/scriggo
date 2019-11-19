@@ -211,8 +211,10 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*TypeIn
 func (tc *typechecker) assignScope(name string, value *TypeInfo, declNode *ast.Identifier) {
 
 	if tc.declaredInThisBlock(name) {
-		panic(tc.errorf(declNode, "%s redeclared in this block", name))
-		// TODO: add informations about previous declaration
+		previousDecl, _ := tc.lookupScopesElem(name, true)
+		s := name + " redeclared in this block\n"
+		s += "\tprevious declaration at " + previousDecl.decl.Pos().String()
+		panic(tc.errorf(declNode, s))
 	}
 
 	if len(tc.scopes) == 0 {
