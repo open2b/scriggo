@@ -12,6 +12,35 @@ import (
 	"scriggo/ast"
 )
 
+// operatorFromAssignmentType returns an operator type from an assignment type.
+func operatorFromAssignmentType(assignmentType ast.AssignmentType) ast.OperatorType {
+	switch assignmentType {
+	case ast.AssignmentAddition, ast.AssignmentIncrement:
+		return ast.OperatorAddition
+	case ast.AssignmentSubtraction, ast.AssignmentDecrement:
+		return ast.OperatorSubtraction
+	case ast.AssignmentMultiplication:
+		return ast.OperatorMultiplication
+	case ast.AssignmentDivision:
+		return ast.OperatorDivision
+	case ast.AssignmentModulo:
+		return ast.OperatorModulo
+	case ast.AssignmentAnd:
+		return ast.OperatorAnd
+	case ast.AssignmentOr:
+		return ast.OperatorOr
+	case ast.AssignmentXor:
+		return ast.OperatorXor
+	case ast.AssignmentAndNot:
+		return ast.OperatorAndNot
+	case ast.AssignmentLeftShift:
+		return ast.OperatorLeftShift
+	case ast.AssignmentRightShift:
+		return ast.OperatorRightShift
+	}
+	panic("unexpected assignment type")
+}
+
 func (tc *typechecker) declaredInThisBlock(name string) bool {
 	_, ok := tc.lookupScopesElem(name, true)
 	return ok
