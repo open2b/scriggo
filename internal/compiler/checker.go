@@ -213,7 +213,11 @@ func (tc *typechecker) assignScope(name string, value *TypeInfo, declNode *ast.I
 	if tc.declaredInThisBlock(name) {
 		previousDecl, _ := tc.lookupScopesElem(name, true)
 		s := name + " redeclared in this block\n"
-		s += "\tprevious declaration at " + previousDecl.decl.Pos().String()
+		if decl := previousDecl.decl; decl != nil {
+			if pos := decl.Pos(); pos != nil {
+				s += "\tprevious declaration at " + pos.String()
+			}
+		}
 		panic(tc.errorf(declNode, s))
 	}
 
