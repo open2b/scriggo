@@ -1052,11 +1052,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		return nil, fmt.Errorf("operator %s not defined on %s)", op, kind)
 	}
 
-	if t1.IsConstant() {
-		return t2, nil
-	}
-
-	return t1, nil
+	return &TypeInfo{Type: t1.Type}, nil
 }
 
 // checkSize checks the type of expr as a make size parameter.
