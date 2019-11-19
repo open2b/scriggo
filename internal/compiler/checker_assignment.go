@@ -29,7 +29,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 	}
 
 	// +=, -=, *=, ...
-	hasAssignOp := ast.AssignmentAddition <= node.Type && node.Type <= ast.AssignmentRightShift
+	isAssignmentOperation := ast.AssignmentAddition <= node.Type && node.Type <= ast.AssignmentRightShift
 
 	var lhs, rhs []*TypeInfo
 
@@ -40,7 +40,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 			continue
 		}
 		var lh *TypeInfo
-		if ident, ok := lhExpr.(*ast.Identifier); ok && !hasAssignOp {
+		if ident, ok := lhExpr.(*ast.Identifier); ok && !isAssignmentOperation {
 			// Use checkIdentifier to avoid marking 'ident' as used.
 			lh = tc.checkIdentifier(ident, false)
 		} else {
@@ -56,7 +56,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 	}
 
 	// +=, -=, *= ...
-	if hasAssignOp {
+	if isAssignmentOperation {
 		op := operatorFromAssignmentType(node.Type)
 		_, err := tc.binaryOp(node.Lhs[0], op, nodeRhs[0])
 		if err != nil {
