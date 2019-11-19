@@ -119,6 +119,7 @@ var checkerExprs = []struct {
 	{`&[]int{}`, &TypeInfo{Type: reflect.PtrTo(reflect.SliceOf(intType))}, nil},
 	{`&[...]int{}`, &TypeInfo{Type: reflect.PtrTo(reflect.ArrayOf(0, intType))}, nil},
 	{`&map[int]int{}`, &TypeInfo{Type: reflect.PtrTo(reflect.MapOf(intType, intType))}, nil},
+	{`1 + a`, &TypeInfo{Type: intType}, map[string]*TypeInfo{"a": intVariable()}},
 
 	// Operations ( untyped + untyped ).
 	{`true && true`, tiUntypedBoolConst(true), nil},
@@ -1750,6 +1751,10 @@ func tiFloat32Const(n float32) *TypeInfo {
 
 func tiFloat64Const(n float64) *TypeInfo {
 	return &TypeInfo{Type: float64Type, Constant: float64Const(n)}
+}
+
+func intVariable() *TypeInfo {
+	return &TypeInfo{Type: intType, Properties: PropertyAddressable}
 }
 
 // complex type infos.
