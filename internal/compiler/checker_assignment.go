@@ -346,6 +346,9 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		for i := range rhs {
 			err := tc.isAssignableTo(rhs[i], nodeRhs[i], typ.Type)
 			if err != nil {
+				if rhs[i].Nil() {
+					panic(tc.errorf(nodeRhs[i], "cannot use nil as type %s in assignment", typ.Type))
+				}
 				if len(node.Lhs) != len(node.Rhs) {
 					panic(tc.errorf(node.Rhs[0], "cannot assign %v to %v (type %v) in multiple assignment", rhs[i].Type, node.Lhs[i], typ.Type))
 				}
