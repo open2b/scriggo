@@ -131,13 +131,6 @@ func (tc *typechecker) obsoleteForRangeAssign(node ast.Node, leftExpr, rightExpr
 	return ""
 }
 
-// cantBeBlank panics if expr is the blank identifier.
-func (tc *typechecker) cantBeBlank(expr ast.Expression) {
-	if isBlankIdentifier(expr) {
-		panic(tc.errorf(expr, "cannot use _ as value"))
-	}
-}
-
 // operatorFromAssignmentType returns an operator type from an assignment
 // type.
 func operatorFromAssignmentType(assignmentType ast.AssignmentType) ast.OperatorType {
