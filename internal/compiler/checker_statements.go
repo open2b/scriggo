@@ -281,11 +281,11 @@ nodesLoop:
 				declaration := node.Assignment.Type == ast.AssignmentDeclaration
 				indexPh := ast.NewPlaceholder()
 				tc.typeInfos[indexPh] = ti1
-				tc.obsoleteAssign(node.Assignment, lhs[0], indexPh, nil, declaration, false)
+				tc.obsoleteForRangeAssign(node.Assignment, lhs[0], indexPh, nil, declaration, false)
 				if len(lhs) == 2 {
 					valuePh := ast.NewPlaceholder()
 					tc.typeInfos[valuePh] = &TypeInfo{Type: typ2}
-					tc.obsoleteAssign(node.Assignment, lhs[1], valuePh, nil, declaration, false)
+					tc.obsoleteForRangeAssign(node.Assignment, lhs[1], valuePh, nil, declaration, false)
 				}
 			}
 			tc.checkNodesInNewScope(node.Body)

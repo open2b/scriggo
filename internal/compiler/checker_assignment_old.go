@@ -44,7 +44,7 @@ func (tc *typechecker) checkAssignmentOld(node ast.Node) {
 				for i := range n.Lhs {
 					ph := ast.NewPlaceholder()
 					tc.typeInfos[ph] = &TypeInfo{Type: typ}
-					newVar := tc.obsoleteAssign(node, n.Lhs[i], ph, declTi, true, false)
+					newVar := tc.obsoleteForRangeAssign(node, n.Lhs[i], ph, declTi, true, false)
 					if newVar == "" && !isBlankIdentifier(n.Lhs[i]) {
 						panic(tc.errorf(node, "%s redeclared in this block", n.Lhs[i]))
 					}
@@ -152,7 +152,7 @@ func (tc *typechecker) checkAssignmentOld(node ast.Node) {
 			if err != nil {
 				panic(tc.errorf(n, "invalid operation: %v (%s)", n, err))
 			}
-			tc.obsoleteAssign(node, n.Lhs[0], n.Rhs[0], nil, false, false)
+			tc.obsoleteForRangeAssign(node, n.Lhs[0], n.Rhs[0], nil, false, false)
 			// Convert the assignment node from l op= r to a simple assignment.
 			// This change has no effects on type checking but simplifies the
 			// emitting of assignment nodes. a += 1 is semantically equivalent
@@ -229,11 +229,11 @@ func (tc *typechecker) checkAssignmentOld(node ast.Node) {
 		}
 		var newVar string
 		if valueTi := tc.typeInfos[rhs[i]]; valueTi == nil {
-			newVar = tc.obsoleteAssign(node, lhs[i], rhs[i], declTi, isVariableDecl, isConstDecl)
+			newVar = tc.obsoleteForRangeAssign(node, lhs[i], rhs[i], declTi, isVariableDecl, isConstDecl)
 		} else {
 			ph := ast.NewPlaceholder()
 			tc.typeInfos[ph] = valueTi
-			newVar = tc.obsoleteAssign(node, lhs[i], ph, declTi, isVariableDecl, isConstDecl)
+			newVar = tc.obsoleteForRangeAssign(node, lhs[i], ph, declTi, isVariableDecl, isConstDecl)
 		}
 		if isVariableDecl || isConstDecl {
 			if !isAssignmentNode && newVar == "" && !isBlankIdentifier(lhs[i]) {
@@ -269,37 +269,19 @@ func (tc *typechecker) checkAssignmentOld(node ast.Node) {
 	return
 }
 
-// TODO: this methods is still used by the ForRange statement.
-func (tc *typechecker) obsoleteAssign(node ast.Node, leftExpr, rightExpr ast.Expression, typ *TypeInfo, isVariableDecl, isConstDecl bool) string {
+func (tc *typechecker) obsoleteForRangeAssign(node ast.Node, leftExpr, rightExpr ast.Expression, typ *TypeInfo, isVariableDecl, isConstDecl bool) string {
 
 	right := tc.checkExpr(rightExpr)
 
-	// Assignment using '=' with 'nil' as right value.
-	//
-	//	s = nil // where s has type []int
-	//
 	if !isVariableDecl && !isConstDecl && right.Nil() {
 		left := tc.checkExpr(leftExpr)
 		right = tc.nilOf(left.Type)
 		tc.typeInfos[rightExpr] = right
 	}
 
-	// Variable declaration using 'var' with an explicit type and 'nil' as right value.
-	//
-	//	var a []int = nil
-	//
 	if isVariableDecl && typ != nil && right.Nil() {
 		right = tc.nilOf(typ.Type)
 		tc.typeInfos[rightExpr] = right
-	}
-
-	if isConstDecl {
-		if right.Nil() {
-			panic(tc.errorf(node, "const initializer cannot be nil"))
-		}
-		if !right.IsConstant() {
-			panic(tc.errorf(node, "const initializer %s is not a constant", rightExpr))
-		}
 	}
 
 	if typ == nil {
@@ -401,79 +383,8 @@ func (tc *typechecker) obsoleteAssign(node ast.Node, leftExpr, rightExpr ast.Exp
 		}
 		right.setValue(left.Type)
 		tc.typeInfos[leftExpr] = left
-
-	case *ast.Index:
-
-		left := tc.checkExpr(leftExpr)
-		ti := tc.typeInfos[leftExpr.Expr]
-		switch ti.Type.Kind() {
-		case reflect.Array:
-			if !left.Addressable() {
-				panic(tc.errorf(leftExpr, "cannot assign to %v", leftExpr))
-			}
-		case reflect.String:
-			panic(tc.errorf(node, "cannot assign to %v", leftExpr))
-		default:
-			// Slices, maps and pointers to array are always addressable when
-			// used in indexing operation.
-		}
-		if err := tc.isAssignableTo(right, rightExpr, left.Type); err != nil {
-			if _, ok := rightExpr.(*ast.Placeholder); ok {
-				panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", right, leftExpr, left))
-			}
-			panic(tc.errorf(node, "%s in assignment", err))
-		}
-		right.setValue(left.Type)
-		return ""
-
-	case *ast.Selector:
-
-		left := tc.checkExpr(leftExpr)
-		if !left.Addressable() {
-			if e, ok := leftExpr.Expr.(*ast.Index); ok && tc.typeInfos[e.Expr].Type.Kind() == reflect.Map {
-				panic(tc.errorf(leftExpr, "cannot assign to struct field %v in map", leftExpr))
-			}
-			panic(tc.errorf(leftExpr, "cannot assign to %v", leftExpr))
-		}
-		if err := tc.isAssignableTo(right, rightExpr, left.Type); err != nil {
-			if _, ok := rightExpr.(*ast.Placeholder); ok {
-				panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", right, leftExpr, left))
-			}
-			panic(tc.errorf(node, "%s in assignment", err))
-		}
-		right.setValue(left.Type)
-		return ""
-
-	case *ast.UnaryOperator:
-
-		if leftExpr.Operator() == ast.OperatorMultiplication { // pointer indirection.
-			left := tc.checkExpr(leftExpr)
-			if err := tc.isAssignableTo(right, rightExpr, left.Type); err != nil {
-				if _, ok := rightExpr.(*ast.Placeholder); ok {
-					panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", right, leftExpr, left))
-				}
-				panic(tc.errorf(node, "%s in assignment", err))
-			}
-			right.setValue(left.Type)
-			return ""
-		}
-		panic(tc.errorf(node, "cannot assign to %v", leftExpr))
-
-	case *ast.Call: // call on left side of assignment: f() = 10 .
-
-		retValues, _, _ := tc.checkCallExpression(leftExpr, false)
-		switch len(retValues) {
-		case 0:
-			panic(tc.errorf(node, "%s used as value", leftExpr))
-		case 1:
-			panic(tc.errorf(node, "cannot assign to %v", leftExpr))
-		default:
-			panic(tc.errorf(node, "multiple-value %s in single-value context", leftExpr))
-		}
-
 	default:
-
-		panic(tc.errorf(node, "cannot assign to %v", leftExpr))
+		panic(tc.errorf(node, "BUG"))
 	}
 
 	return ""
