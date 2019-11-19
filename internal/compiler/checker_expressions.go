@@ -1300,6 +1300,9 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			if _, ok := err.(invalidTypeInAssignment); ok {
 				panic(tc.errorf(expr, "%s in delete", err))
 			}
+			if _, ok := err.(nilConvertionError); ok {
+				panic(tc.errorf(expr, "cannot use nil as type %s in delete", keyType))
+			}
 			panic(tc.errorf(expr, "%s", err))
 		}
 		if key.IsConstant() {
@@ -1643,6 +1646,9 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		if err := tc.isAssignableTo(a, arg, in); err != nil {
 			if _, ok := err.(invalidTypeInAssignment); ok {
 				panic(tc.errorf(expr, "%s in argument to %s", err, expr.Func))
+			}
+			if _, ok := err.(nilConvertionError); ok {
+				panic(tc.errorf(args[i], "cannot use %s as type %s in argument to %s", a, in, expr.Func))
 			}
 			panic(tc.errorf(expr, "%s", err))
 		}

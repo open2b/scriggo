@@ -20,6 +20,14 @@ import (
 
 var errTypeConversion = errors.New("failed type conversion")
 
+type nilConvertionError struct{
+	typ reflect.Type
+}
+
+func (err nilConvertionError) Error() string {
+	return "cannot convert nil to type " + err.typ.String()
+}
+
 const (
 	maxInt   = int(maxUint >> 1)
 	minInt   = -maxInt - 1
@@ -153,7 +161,7 @@ func (tc *typechecker) convertExplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
 			return nil, nil
 		}
-		return nil, fmt.Errorf("cannot convert nil to type %s", t2)
+		return nil, nilConvertionError{t2}
 	}
 
 	if ti.IsConstant() && k2 != reflect.Interface {
@@ -202,7 +210,7 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
 			return nil, nil
 		}
-		return nil, fmt.Errorf("cannot convert nil to type %s", t2)
+		return nil, nilConvertionError{t2}
 	case ti.IsConstant():
 		if k2 == reflect.Interface {
 			if t2 == emptyInterfaceType || tc.types.ConvertibleTo(ti.Type, t2) {
@@ -316,47 +324,28 @@ func (err invalidTypeInAssignment) Error() string {
 }
 
 func newInvalidTypeInAssignment(x *TypeInfo, expr ast.Expression, t reflect.Type) invalidTypeInAssignment {
-	if x.Nil() {
-		return invalidTypeInAssignment(fmt.Sprintf("cannot use nil as type %s", t))
-	}
 	return invalidTypeInAssignment(fmt.Sprintf("cannot use %s (type %s) as type %s", expr, x.Type, t))
 }
 
 // isAssignableTo reports whether x is assignable to type t.
 // See https://golang.org/ref/spec#Assignability for details.
 func (tc *typechecker) isAssignableTo(x *TypeInfo, expr ast.Expression, t reflect.Type) error {
+	if x.Untyped() {
+		_, err := tc.convertImplicitly(x, t)
+		if err == errNotRepresentable || err == errTypeConversion {
+			return newInvalidTypeInAssignment(x, expr, t)
+		}
+		return err
+	}
 	if x.Type == t {
 		return nil
 	}
-	k := t.Kind()
-	if x.Nil() {
-		switch k {
-		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
-			return nil
-		}
-		return newInvalidTypeInAssignment(x, expr, t)
-	}
-	if k == reflect.Interface {
+	if t.Kind() == reflect.Interface {
 		if !tc.types.Implements(x.Type, t) {
 			return newInvalidTypeInAssignment(x, expr, t)
 		}
 		return nil
 	}
-	if x.Untyped() {
-		if x.IsConstant() {
-			_, err := x.Constant.representedBy(t)
-			if err == errNotRepresentable {
-				err = newInvalidTypeInAssignment(x, expr, t)
-			}
-			return err
-		}
-		if k == reflect.Bool {
-			return nil
-		}
-		return newInvalidTypeInAssignment(x, expr, t)
-	}
-	// Check if the type of x and t have identical underlying types and at
-	// least one is not a defined type.
 	if !tc.types.AssignableTo(x.Type, t) {
 		return newInvalidTypeInAssignment(x, expr, t)
 	}
