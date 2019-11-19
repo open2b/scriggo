@@ -223,6 +223,12 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 	return nil, errTypeConversion
 }
 
+// declaredInThisBlock reports whether name is declared in this block.
+func (tc *typechecker) declaredInThisBlock(name string) bool {
+	_, ok := tc.lookupScopesElem(name, true)
+	return ok
+}
+
 // deferGoBuiltin returns a type info suitable to be embedded into the 'defer'
 // and 'go' statements with a builtin call as argument.
 func deferGoBuiltin(name string) *TypeInfo {
@@ -508,6 +514,35 @@ func (tc *typechecker) methodByName(t *TypeInfo, name string) (*TypeInfo, receiv
 		}
 	}
 	return nil, receiverNoTransform, false
+}
+
+// operatorFromAssignmentType returns an operator type from an assignment type.
+func operatorFromAssignmentType(assignmentType ast.AssignmentType) ast.OperatorType {
+	switch assignmentType {
+	case ast.AssignmentAddition, ast.AssignmentIncrement:
+		return ast.OperatorAddition
+	case ast.AssignmentSubtraction, ast.AssignmentDecrement:
+		return ast.OperatorSubtraction
+	case ast.AssignmentMultiplication:
+		return ast.OperatorMultiplication
+	case ast.AssignmentDivision:
+		return ast.OperatorDivision
+	case ast.AssignmentModulo:
+		return ast.OperatorModulo
+	case ast.AssignmentAnd:
+		return ast.OperatorAnd
+	case ast.AssignmentOr:
+		return ast.OperatorOr
+	case ast.AssignmentXor:
+		return ast.OperatorXor
+	case ast.AssignmentAndNot:
+		return ast.OperatorAndNot
+	case ast.AssignmentLeftShift:
+		return ast.OperatorLeftShift
+	case ast.AssignmentRightShift:
+		return ast.OperatorRightShift
+	}
+	panic("unexpected assignment type")
 }
 
 // printedAsJavaScript reports whether a type can be printed as JavaScript.

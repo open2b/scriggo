@@ -12,51 +12,6 @@ import (
 	"scriggo/ast"
 )
 
-// operatorFromAssignmentType returns an operator type from an assignment type.
-func operatorFromAssignmentType(assignmentType ast.AssignmentType) ast.OperatorType {
-	switch assignmentType {
-	case ast.AssignmentAddition, ast.AssignmentIncrement:
-		return ast.OperatorAddition
-	case ast.AssignmentSubtraction, ast.AssignmentDecrement:
-		return ast.OperatorSubtraction
-	case ast.AssignmentMultiplication:
-		return ast.OperatorMultiplication
-	case ast.AssignmentDivision:
-		return ast.OperatorDivision
-	case ast.AssignmentModulo:
-		return ast.OperatorModulo
-	case ast.AssignmentAnd:
-		return ast.OperatorAnd
-	case ast.AssignmentOr:
-		return ast.OperatorOr
-	case ast.AssignmentXor:
-		return ast.OperatorXor
-	case ast.AssignmentAndNot:
-		return ast.OperatorAndNot
-	case ast.AssignmentLeftShift:
-		return ast.OperatorLeftShift
-	case ast.AssignmentRightShift:
-		return ast.OperatorRightShift
-	}
-	panic("unexpected assignment type")
-}
-
-func (tc *typechecker) declaredInThisBlock(name string) bool {
-	_, ok := tc.lookupScopesElem(name, true)
-	return ok
-}
-
-func (tc *typechecker) declareConstant(lhNode *ast.Identifier, typ reflect.Type, value constant, untyped bool) {
-	ti := &TypeInfo{
-		Type:     typ,
-		Constant: value,
-	}
-	if untyped {
-		ti.Properties |= PropertyUntyped
-	}
-	tc.assignScope(lhNode.Name, ti, lhNode)
-}
-
 func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 	ti := &TypeInfo{
 		Type:       typ,
@@ -83,60 +38,6 @@ func (tc *typechecker) isMapIndexExpression(node ast.Node) bool {
 	exprKind := tc.checkExpr(expr).Type.Kind()
 	return exprKind == reflect.Map
 }
-
-// // checkLhsRhs takes a simple assignment node, a short declaration node or a
-// // variable declaration node and returns the lists of the type infos for the
-// // left and the right sides of the node. This methods also handles "unbalanced"
-// // nodes where there is just one value on the right and more than one value on
-// // the left. If the number of elements on the right side does not match with the
-// // number of elements on the left, checkLhsRhs panics with an "assignment
-// // mismatch" error.
-// //
-// // TODO: if checkLhsRhs does not modify the source node, then it's illegal to
-// // access from the outside to node.Rhs[i] because the node could be unbalanced.
-// //
-// func (tc *typechecker) checkLhsRhs(node ast.Node) ([]*TypeInfo, []*TypeInfo) {
-
-// 	var lhsExpr, rhsExpr []ast.Expression
-
-// 	// TODO: check that type is correct.
-// 	switch node := node.(type) {
-// 	case *ast.Assignment:
-// 		switch node.Type {
-// 		case ast.AssignmentSimple, ast.AssignmentDeclaration:
-// 			lhsExpr = node.Lhs
-// 			rhsExpr = node.Rhs
-// 		default:
-// 			panic("BUG: expecting a simple assignment, a short declaration or a variable declaration")
-// 		}
-// 	case *ast.Var:
-// 		for _, lhExpr := range node.Lhs {
-// 			lhsExpr = append(lhsExpr, lhExpr)
-// 		}
-// 		rhsExpr = node.Rhs
-// 	default:
-// 		panic("BUG: expecting a simple assignment, a short declaration or a variable declaration")
-// 	}
-
-// 	if len(lhsExpr) != len(rhsExpr) {
-// 		panic("not implemented")
-// 	}
-
-// 	var lhs, rhs []*TypeInfo
-
-// 	for _, lhExpr := range lhsExpr {
-// 		lh := tc.checkExpr(lhExpr)
-// 		lhs = append(lhs, lh)
-// 	}
-
-// 	for _, rhExpr := range rhsExpr {
-// 		rh := tc.checkExpr(rhExpr)
-// 		rhs = append(rhs, rh)
-// 	}
-
-// 	return lhs, rhs
-
-// }
 
 // checkConstantDeclaration type checks a constant declaration.
 // See https://golang.org/ref/spec#Constant_declarations.
@@ -171,14 +72,6 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 		rhs = append(rhs, rh)
 	}
 
-	// // Every Lh identifier must not be defined in the current block.
-	// for _, lhIdent := range node.Lhs {
-	// 	if decl, ok := tc.declaredInThisBlock(lhIdent.Name); ok {
-	// 		_ = decl                              // TODO
-	// 		panic("..redeclared in this block..") // TODO
-	// 	}
-	// }
-
 	var typ *TypeInfo
 
 	if node.Type != nil {
@@ -209,7 +102,12 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 			continue
 		}
 
-		tc.declareConstant(node.Lhs[i], constType, constValue, rh.Untyped())
+		// Declare the constant in the current block/scope.
+		constTi := &TypeInfo{Type: constType, Constant: constValue}
+		if rh.Untyped() {
+			constTi.Properties |= PropertyUntyped
+		}
+		tc.assignScope(node.Lhs[i].Name, constTi, node.Lhs[i])
 
 	}
 
