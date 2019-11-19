@@ -226,8 +226,6 @@ func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 
 	tc.convertNodeForTheEmitter(node)
 
-	// TODO: the untyped constant '1' must be assignable to the type of lh.
-
 }
 
 func (tc *typechecker) checkRepeatedLhs(node *ast.Assignment) {
