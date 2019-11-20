@@ -321,25 +321,19 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 	// In case of unbalanced var declarations a 'fake' rhs must be used for the
 	// type checking, but the tree must not be changed.
 	nodeRhs := node.Rhs
-
-	// var a, b   =  f()
-	// var a, ok  =  m[k]
-	// var a, ok  =  <-ch
 	if len(nodeRhs) > 0 && len(node.Lhs) != len(nodeRhs) {
 		nodeRhs = tc.rebalanceRightSide(node)
 	}
 
+	// Type check expressions on the right.
 	rhs := make([]*TypeInfo, len(nodeRhs))
-
-	// Type check every expression on the right.
 	for i := range nodeRhs {
 		rhs[i] = tc.checkExpr(nodeRhs[i])
 	}
 
+	// 'var' declaration with explicit type: every rh must be assignable to
+	// that type.
 	var typ *TypeInfo
-
-	// 'var' declaration with explicit type: every rh must be assignable to that
-	// type.
 	if node.Type != nil {
 		typ = tc.checkType(node.Type)
 		for i := range rhs {
@@ -347,18 +341,16 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		}
 	}
 
-	// If typ is not specified, none of the Rh values must be the predeclared
-	// nil.
+	// Type is not specified, so there can't be an untyped nil as right
+	// expression; more than this, every untyped constant must be
+	// representable by it's default type.
 	if typ == nil {
 		for i, rh := range rhs {
 			if rh.Nil() {
 				panic(tc.errorf(nodeRhs[i], "use of untyped nil"))
 			}
 			if rh.IsUntypedConstant() {
-				err := tc.isAssignableTo(rh, nodeRhs[i], rh.Type)
-				if err != nil {
-					panic(tc.errorf(nodeRhs[i], "%s", err))
-				}
+				tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
 			}
 		}
 	}
