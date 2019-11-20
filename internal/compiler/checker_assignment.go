@@ -13,7 +13,7 @@ import (
 	"scriggo/ast"
 )
 
-// checkAssignment type check an assignment node with operator '='.
+// checkAssignment type checks an assignment node with the operator '='.
 func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
 	if node.Type != ast.AssignmentSimple {
@@ -25,7 +25,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 	nodeRhs := node.Rhs
 
 	if len(node.Lhs) != len(nodeRhs) {
-		nodeRhs = tc.rebalanceRightSide(node)
+		nodeRhs = tc.rebalancedRightSide(node)
 	}
 
 	// Type check the left side.
@@ -267,7 +267,7 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 	// used for the type checking, but the tree must not be changed.
 	nodeRhs := node.Rhs
 	if len(node.Lhs) != len(nodeRhs) {
-		nodeRhs = tc.rebalanceRightSide(node)
+		nodeRhs = tc.rebalancedRightSide(node)
 	}
 
 	tc.checkNonNamesOnLeft(node)
@@ -283,7 +283,7 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 	isAlreadyDeclared := map[ast.Expression]bool{}
 	for _, lhExpr := range node.Lhs {
 		name := lhExpr.(*ast.Identifier).Name
-		if tc.declaredInThisBlock(name) || isBlankIdentifier(lhExpr) {
+		if name == "_" || tc.declaredInThisBlock(name) {
 			isAlreadyDeclared[lhExpr] = true
 		}
 	}
@@ -334,7 +334,7 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 	// type checking, but the tree must not be changed.
 	nodeRhs := node.Rhs
 	if len(nodeRhs) > 0 && len(node.Lhs) != len(nodeRhs) {
-		nodeRhs = tc.rebalanceRightSide(node)
+		nodeRhs = tc.rebalancedRightSide(node)
 	}
 
 	// Type check expressions on the right side.
@@ -489,12 +489,12 @@ func (tc *typechecker) newPlaceholderFor(typ reflect.Type) *ast.Placeholder {
 	return ph
 }
 
-// rebalanceRightSide rebalances the given node by returning a slice of
-// Expressions that must be used as right side in the type checking of the given
-// node.
-// rebalanceRightSide panics a type checking error if the given node cannot be
-// rebalanced.
-func (tc *typechecker) rebalanceRightSide(node ast.Node) []ast.Expression {
+// rebalancedRightSide returns the right side of the an unbalanced assignment or
+// declaration, represented by node, rebalanced so the number of elements are
+// the same of the left side.
+// rebalancedRightSide type checks the returned right side, panicking if the
+// type checking fails.
+func (tc *typechecker) rebalancedRightSide(node ast.Node) []ast.Expression {
 
 	var nodeLhs, nodeRhs []ast.Expression
 
