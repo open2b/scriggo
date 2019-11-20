@@ -290,7 +290,7 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 		rh := rhs[i]
 
 		if isBlankIdentifier(node.Lhs[i]) {
-			tc.mustBeAssignableTo(nodeRhs[i], rhs[i].Type, false, nil)
+			tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
 			rh.setValue(nil)
 			continue
 		}
@@ -306,8 +306,8 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 		if rh.Nil() {
 			panic(tc.errorf(nodeRhs[i], "use of untyped nil"))
 		}
-		if rhs[i].IsUntypedConstant() {
-			tc.mustBeAssignableTo(nodeRhs[i], rhs[i].Type, false, nil)
+		if rh.IsUntypedConstant() {
+			tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
 		}
 		tc.declareVariable(node.Lhs[i].(*ast.Identifier), rh.Type)
 		rh.setValue(nil)
