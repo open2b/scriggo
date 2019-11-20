@@ -46,8 +46,8 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 			lh = tc.checkExpr(lhExpr)
 		}
 		switch {
-		case lh.Addressable(): // Ok!
-		case tc.isMapIndexing(lhExpr): // Ok!
+		case lh.Addressable(): // ok!
+		case tc.isMapIndexing(lhExpr): // ok!
 		default:
 			if tc.isSelectorOfMapIndexing(lhExpr) {
 				panic(tc.errorf(lhExpr, "cannot assign to struct field %v in map", lhExpr))
@@ -194,10 +194,8 @@ func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 
 	lh := tc.checkExpr(node.Lhs[0])
 	switch {
-	case lh.Addressable():
-		// Ok!
-	case tc.isMapIndexing(node.Lhs[0]):
-		// Ok!
+	case lh.Addressable(): // ok!
+	case tc.isMapIndexing(node.Lhs[0]): // ok!
 	default:
 		if tc.isSelectorOfMapIndexing(node.Lhs[0]) {
 			panic(tc.errorf(node.Lhs[0], "cannot assign to struct field %v in map", node.Lhs[0]))
