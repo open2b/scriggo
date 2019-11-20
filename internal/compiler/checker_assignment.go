@@ -213,6 +213,20 @@ func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 
 }
 
+// checkNonNamesOnLeft panic a type checking error if the short declaration node
+// contains a non-name on the left side.
+func (tc *typechecker) checkNonNamesOnLeft(node *ast.Assignment) {
+	if node.Type != ast.AssignmentDeclaration {
+		panic("BUG: expected a short variable declaration")
+	}
+	for _, lhExpr := range node.Lhs {
+		_, isIdent := lhExpr.(*ast.Identifier)
+		if !isIdent {
+			panic(tc.errorf(node, "non-name %s on left side of :=", lhExpr))
+		}
+	}
+}
+
 // checkRepeatedLhs panics a type checking error the left side of the given node
 // contains repeated identifiers.
 func (tc *typechecker) checkRepeatedLhs(node *ast.Assignment) {
@@ -248,12 +262,7 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 		nodeRhs = tc.rebalanceRightSide(node)
 	}
 
-	for _, lhExpr := range node.Lhs {
-		_, isIdent := lhExpr.(*ast.Identifier)
-		if !isIdent {
-			panic(tc.errorf(node, "non-name %s on left side of :=", lhExpr))
-		}
-	}
+	tc.checkNonNamesOnLeft(node)
 
 	tc.checkRepeatedLhs(node)
 
