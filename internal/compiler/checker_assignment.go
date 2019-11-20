@@ -106,9 +106,11 @@ func (tc *typechecker) checkAssignmentOperation(node *ast.Assignment) {
 		panic(tc.errorf(node, "invalid operation: %s (%s)", node, err))
 	}
 
-	// TODO: this is wrong for shift assignment operations.
-
-	tc.mustBeAssignableTo(rhExpr, lh.Type, false, nil)
+	if node.Type == ast.AssignmentLeftShift || node.Type == ast.AssignmentRightShift {
+		// TODO.
+	} else {
+		tc.mustBeAssignableTo(rhExpr, lh.Type, false, nil)
+	}
 
 	// Transform the tree for the emitter.
 	rh.setValue(nil)

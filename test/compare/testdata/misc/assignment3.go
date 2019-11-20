@@ -35,5 +35,19 @@ func main() {
 		_, _ = a, b
 		a, c := nil, 30 ; _ = c // ERROR `cannot use nil as type int in assignment`
 	}
+	{
+		var a int8
+		a >>= uint8(1)
+	}
+	{
+		var a int8
+		a <<= uint8(1)
+	}
+	{
+		var s string
+		// TODO: fix the error message:
+		s >>= 10 // ERROR `invalid operation: s10 (shift of type string)`
+		_ = s
+	}
 
 }
