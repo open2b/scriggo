@@ -297,7 +297,9 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 			if rh.Nil() {
 				panic(tc.errorf(nodeRhs[i], "use of untyped nil"))
 			}
-			tc.mustBeAssignableTo(nodeRhs[i], rhs[i].Type, false, nil)
+			if rhs[i].IsUntypedConstant() {
+				tc.mustBeAssignableTo(nodeRhs[i], rhs[i].Type, false, nil)
+			}
 			tc.declareVariable(node.Lhs[i].(*ast.Identifier), rh.Type)
 			rh.setValue(nil)
 		}
