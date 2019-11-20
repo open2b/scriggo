@@ -1,4 +1,4 @@
-// skip : function definition without body is not supported
+// skip : function body declarations with no body. This test cannot be run. https://github.com/open2b/scriggo/issues/417
 
 // errorcheck
 
