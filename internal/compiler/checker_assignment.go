@@ -13,12 +13,11 @@ import (
 	"scriggo/ast"
 )
 
-// checkAssignment type check an assignment node.
+// checkAssignment type check an assignment node with operator '='.
 func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
-	switch node.Type {
-	case ast.AssignmentDeclaration, ast.AssignmentIncrement, ast.AssignmentDecrement:
-		panic("BUG: expected an assignment node")
+	if node.Type != ast.AssignmentSimple {
+		panic("BUG: expected an assignment node with an '=' operator")
 	}
 
 	// In case of unbalanced assignments a 'fake' rhs must be used for the type
@@ -29,9 +28,6 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		nodeRhs = tc.rebalanceRightSide(node)
 	}
 
-	// +=, -=, *=, ...
-	isAssignmentOperation := ast.AssignmentAddition <= node.Type && node.Type <= ast.AssignmentRightShift
-
 	// Type check the left side.
 	lhs := make([]*TypeInfo, len(node.Lhs))
 	for i, lhExpr := range node.Lhs {
@@ -40,7 +36,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		}
 		// Find the Lh type info.
 		var lh *TypeInfo
-		if ident, ok := lhExpr.(*ast.Identifier); ok && !isAssignmentOperation {
+		if ident, ok := lhExpr.(*ast.Identifier); ok {
 			lh = tc.checkIdentifier(ident, false) // Use checkIdentifier to avoid marking 'ident' as used.
 		} else {
 			lh = tc.checkExpr(lhExpr)
@@ -61,15 +57,6 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 	rhs := make([]*TypeInfo, len(nodeRhs))
 	for i := range nodeRhs {
 		rhs[i] = tc.checkExpr(nodeRhs[i])
-	}
-
-	// +=, -=, *= ...
-	if isAssignmentOperation {
-		op := operatorFromAssignmentType(node.Type)
-		_, err := tc.binaryOp(node.Lhs[0], op, nodeRhs[0])
-		if err != nil {
-			panic(tc.errorf(node, "invalid operation: %s (%s)", node, err))
-		}
 	}
 
 	// Check for assignability and update the type infos.
@@ -93,11 +80,39 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		}
 	}
 
-	// Transform the tree after the type checking to make things easier for the
-	// emitter.
-	if op := node.Type; ast.AssignmentAddition <= op && op <= ast.AssignmentRightShift {
-		tc.convertNodeForTheEmitter(node)
+}
+
+// checkAssignmentOperation type checks an assignment operation.
+//
+//		lh op= rh
+//
+// See https://golang.org/ref/spec#assign_op and
+// https://golang.org/ref/spec#Assignments.
+func (tc *typechecker) checkAssignmentOperation(node *ast.Assignment) {
+
+	if !(ast.AssignmentAddition <= node.Type && node.Type <= ast.AssignmentRightShift) {
+		panic("BUG: expected an assignment operation")
 	}
+
+	lhExpr := node.Lhs[0]
+	rhExpr := node.Rhs[0]
+
+	lh := tc.checkExpr(lhExpr)
+	rh := tc.checkExpr(rhExpr)
+
+	op := operatorFromAssignmentType(node.Type)
+	_, err := tc.binaryOp(node.Lhs[0], op, rhExpr)
+	if err != nil {
+		panic(tc.errorf(node, "invalid operation: %s (%s)", node, err))
+	}
+
+	// TODO: this is wrong for shift assignment operations.
+
+	tc.mustBeAssignableTo(rhExpr, lh.Type, false, nil)
+
+	// Transform the tree for the emitter.
+	rh.setValue(nil)
+	tc.convertNodeForTheEmitter(node)
 
 }
 
@@ -180,8 +195,10 @@ func (tc *typechecker) checkGenericAssignmentNode(node *ast.Assignment) {
 		tc.checkShortVariableDeclaration(node)
 	case ast.AssignmentIncrement, ast.AssignmentDecrement:
 		tc.checkIncDecStatement(node)
-	default:
+	case ast.AssignmentSimple:
 		tc.checkAssignment(node)
+	default:
+		tc.checkAssignmentOperation(node)
 	}
 }
 
