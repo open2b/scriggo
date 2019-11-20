@@ -36,35 +36,27 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
 	// Type check the left side.
 	for _, lhExpr := range node.Lhs {
-
 		if isBlankIdentifier(lhExpr) {
-			// Ensures that lhs[i] is always correct.
 			lhs = append(lhs, nil)
 			continue
 		}
-
+		// Find the Lh type info.
 		var lh *TypeInfo
 		if ident, ok := lhExpr.(*ast.Identifier); ok && !isAssignmentOperation {
-			// Use checkIdentifier to avoid marking 'ident' as used.
-			lh = tc.checkIdentifier(ident, false)
+			lh = tc.checkIdentifier(ident, false) // Use checkIdentifier to avoid marking 'ident' as used.
 		} else {
 			lh = tc.checkExpr(lhExpr)
 		}
-
 		switch {
-		case lh.Addressable():
-			// Ok!
-		case tc.isMapIndexing(lhExpr):
-			// Ok!
+		case lh.Addressable(): // Ok!
+		case tc.isMapIndexing(lhExpr): // Ok!
 		default:
 			if tc.isSelectorOfMapIndexing(lhExpr) {
 				panic(tc.errorf(lhExpr, "cannot assign to struct field %v in map", lhExpr))
 			}
 			panic(tc.errorf(lhExpr, "cannot assign to %v", lhExpr))
 		}
-
 		lhs = append(lhs, lh)
-
 	}
 
 	// Type check the right side.
@@ -413,10 +405,10 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 
 }
 
-// TODO: this implementation is wrong. It has been kept to make the test pass,
+// TODO: this implementation is wrong. It has been kept to make the tests pass,
 // but it must be changed:
 //
-//		m[f()] ++
+//              m[f()] ++
 //
 // currenlty calls twice f(), which is wrong.
 //
