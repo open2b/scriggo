@@ -325,7 +325,7 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		nodeRhs = tc.rebalanceRightSide(node)
 	}
 
-	// Type check expressions on the right.
+	// Type check expressions on the right side.
 	rhs := make([]*TypeInfo, len(nodeRhs))
 	for i := range nodeRhs {
 		rhs[i] = tc.checkExpr(nodeRhs[i])
@@ -341,8 +341,8 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		}
 	}
 
-	// Type is not specified, so there can't be an untyped nil as right
-	// expression; more than this, every untyped constant must be
+	// Type is not specified, so there can't be an untyped nil in the right
+	// side expression; more than this, every untyped constant must be
 	// representable by it's default type.
 	if typ == nil {
 		for i, rh := range rhs {
