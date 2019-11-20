@@ -316,7 +316,7 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		nodeRhs = tc.rebalanceRightSide(node)
 	}
 
-	// Type check every expression of the right.
+	// Type check every expression on the right.
 	for _, rhExpr := range nodeRhs {
 		rh := tc.checkExpr(rhExpr)
 		rhs = append(rhs, rh)
