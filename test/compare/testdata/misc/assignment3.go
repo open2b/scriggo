@@ -10,4 +10,12 @@ func main() {
 		a, b := "string", 20 ; _ = b // ERROR `cannot use "string" (type string) as type int in assignment`		
 	}
 
+	{
+		var a int = 1 << 63; _ = a // ERROR `constant 9223372036854775808 overflows int`
+		var a = 1 << 63; _ = a     // ERROR `constant 9223372036854775808 overflows int`
+		a := 1 << 63 ; _ = a       // ERROR `constant 9223372036854775808 overflows int`
+		_ = 1 << 63                // ERROR `constant 9223372036854775808 overflows int`
+		const _ int = 1 << 100     // ERROR `constant 1267650600228229401496703205376 overflows int`
+	}
+
 }

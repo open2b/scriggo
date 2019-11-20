@@ -8,6 +8,7 @@ package compiler
 
 import (
 	"reflect"
+	"strings"
 
 	"scriggo/ast"
 )
@@ -89,12 +90,22 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 			rh.setValue(nil)
 		}
 		if isBlankIdentifier(node.Lhs[i]) {
+			err := tc.isAssignableTo(rh, nodeRhs[i], rh.Type)
+			if err != nil {
+				if strings.HasPrefix(err.Error(), "constant ") {
+					panic(tc.errorf(nodeRhs[i], err.Error()))
+				}
+				panic(tc.errorf(nodeRhs[i], "%s in assignment", err))
+			}
 			continue
 		}
 		err := tc.isAssignableTo(rh, nodeRhs[i], lhs[i].Type)
 		if err != nil {
 			if len(node.Lhs) != len(node.Rhs) {
 				panic(tc.errorf(node.Rhs[0], "cannot assign %v to %v (type %v) in multiple assignment", rh.Type, node.Lhs[i], lhs[i].Type))
+			}
+			if strings.HasPrefix(err.Error(), "constant ") {
+				panic(tc.errorf(nodeRhs[i], err.Error()))
 			}
 			panic(tc.errorf(nodeRhs[i], "%s in assignment", err))
 		}
@@ -148,6 +159,9 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 		for i := range rhs {
 			err := tc.isAssignableTo(rhs[i], node.Rhs[i], typ.Type)
 			if err != nil {
+				if strings.HasPrefix(err.Error(), "constant ") {
+					panic(tc.errorf(node.Rhs[i], err.Error()))
+				}
 				panic(tc.errorf(node.Rhs[i], "%s in assignment", err))
 			}
 		}
@@ -297,18 +311,36 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 	for i, rh := range rhs {
 		rh.setValue(nil)
 		if isBlankIdentifier(node.Lhs[i]) {
+			if rhs[i].IsUntypedConstant() {
+				err := tc.isAssignableTo(rhs[i], nodeRhs[i], rhs[i].Type)
+				if err != nil {
+					if strings.HasPrefix(err.Error(), "constant ") {
+						panic(tc.errorf(nodeRhs[i], err.Error()))
+					}
+					panic(tc.errorf(nodeRhs[i], "%s in assignment", err))
+				}
+			}
 			continue
 		}
 		if alreadyDeclared[node.Lhs[i]] {
 			lh := tc.checkIdentifier(node.Lhs[i].(*ast.Identifier), false)
-			if isBlankIdentifier(node.Lhs[i]) {
-				continue
-			}
 			err := tc.isAssignableTo(rhs[i], nodeRhs[i], lh.Type)
 			if err != nil {
+				if strings.HasPrefix(err.Error(), "constant ") {
+					panic(tc.errorf(nodeRhs[i], err.Error()))
+				}
 				panic(tc.errorf(nodeRhs[i], "%s in assignment", err))
 			}
 		} else {
+			if rhs[i].IsUntypedConstant() {
+				err := tc.isAssignableTo(rhs[i], nodeRhs[i], rhs[i].Type)
+				if err != nil {
+					if strings.HasPrefix(err.Error(), "constant ") {
+						panic(tc.errorf(nodeRhs[i], err.Error()))
+					}
+					panic(tc.errorf(nodeRhs[i], "%s in assignment", err))
+				}
+			}
 			tc.declareVariable(node.Lhs[i].(*ast.Identifier), rh.Type)
 		}
 	}
@@ -352,6 +384,9 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 				if len(node.Lhs) != len(node.Rhs) {
 					panic(tc.errorf(node.Rhs[0], "cannot assign %v to %v (type %v) in multiple assignment", rhs[i].Type, node.Lhs[i], typ.Type))
 				}
+				if strings.HasPrefix(err.Error(), "constant ") {
+					panic(tc.errorf(nodeRhs[i], err.Error()))
+				}
 				panic(tc.errorf(nodeRhs[i], "%s in assignment", err))
 			}
 		}
@@ -363,6 +398,12 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		for i, rh := range rhs {
 			if rh.Nil() {
 				panic(tc.errorf(nodeRhs[i], "use of untyped nil"))
+			}
+			if rh.IsUntypedConstant() {
+				err := tc.isAssignableTo(rh, nodeRhs[i], rh.Type)
+				if err != nil {
+					panic(tc.errorf(nodeRhs[i], "%s", err))
+				}
 			}
 		}
 	}
