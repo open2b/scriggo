@@ -26,5 +26,9 @@ func main() {
 	{
 		_ = nil // ERROR `use of untyped nil`
 	}
+	{
+		var a int32 = 10
+		_ = a
+	}
 
 }

@@ -80,11 +80,14 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 			if rh.Nil() { // _ = nil
 				panic(tc.errorf(node.Lhs[i], "use of untyped nil"))
 			}
-			tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
+			if rh.IsUntypedConstant() {
+				tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
+			}
 			rh.setValue(nil)
 			continue
 		}
 		tc.mustBeAssignableTo(nodeRhs[i], lhs[i].Type, len(node.Lhs) != len(node.Rhs), node.Lhs[i])
+		// Update the type info for the emitter.
 		if rh.Nil() {
 			tc.typeInfos[nodeRhs[i]] = tc.nilOf(lhs[i].Type)
 		} else {
@@ -284,17 +287,22 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 	}
 
 	for i, rh := range rhs {
-		rh.setValue(nil)
 		if isBlankIdentifier(node.Lhs[i]) {
 			tc.mustBeAssignableTo(nodeRhs[i], rhs[i].Type, false, nil)
+			rh.setValue(nil)
 			continue
 		}
 		if alreadyDeclared[node.Lhs[i]] {
 			lh := tc.checkIdentifier(node.Lhs[i].(*ast.Identifier), false)
 			tc.mustBeAssignableTo(nodeRhs[i], lh.Type, false, nil)
+			rh.setValue(lh.Type)
 		} else {
+			if rh.Nil() {
+				panic(tc.errorf(nodeRhs[i], "use of untyped nil"))
+			}
 			tc.mustBeAssignableTo(nodeRhs[i], rhs[i].Type, false, nil)
 			tc.declareVariable(node.Lhs[i].(*ast.Identifier), rh.Type)
+			rh.setValue(nil)
 		}
 	}
 
