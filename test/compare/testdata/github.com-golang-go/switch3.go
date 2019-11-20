@@ -1,4 +1,4 @@
-// skip : interface definition
+// skip : interface definition https://github.com/open2b/scriggo/issues/218
 
 // errorcheck
 
