@@ -64,6 +64,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		}
 
 		lhs = append(lhs, lh)
+
 	}
 
 	// Type check the right side.
@@ -90,13 +91,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 			rh.setValue(nil)
 		}
 		if isBlankIdentifier(node.Lhs[i]) {
-			err := tc.isAssignableTo(rh, nodeRhs[i], rh.Type)
-			if err != nil {
-				if strings.HasPrefix(err.Error(), "constant ") {
-					panic(tc.errorf(nodeRhs[i], err.Error()))
-				}
-				panic(tc.errorf(nodeRhs[i], "%s in assignment", err))
-			}
+			tc.mustBeAssignableTo(nodeRhs[i], rh.Type)
 			continue
 		}
 		err := tc.isAssignableTo(rh, nodeRhs[i], lhs[i].Type)
@@ -157,13 +152,7 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 		// Every Rh must be assignable to the type.
 		typ = tc.checkType(node.Type)
 		for i := range rhs {
-			err := tc.isAssignableTo(rhs[i], node.Rhs[i], typ.Type)
-			if err != nil {
-				if strings.HasPrefix(err.Error(), "constant ") {
-					panic(tc.errorf(node.Rhs[i], err.Error()))
-				}
-				panic(tc.errorf(node.Rhs[i], "%s in assignment", err))
-			}
+			tc.mustBeAssignableTo(node.Rhs[i], typ.Type)
 		}
 	}
 
@@ -311,36 +300,14 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 	for i, rh := range rhs {
 		rh.setValue(nil)
 		if isBlankIdentifier(node.Lhs[i]) {
-			if rhs[i].IsUntypedConstant() {
-				err := tc.isAssignableTo(rhs[i], nodeRhs[i], rhs[i].Type)
-				if err != nil {
-					if strings.HasPrefix(err.Error(), "constant ") {
-						panic(tc.errorf(nodeRhs[i], err.Error()))
-					}
-					panic(tc.errorf(nodeRhs[i], "%s in assignment", err))
-				}
-			}
+			tc.mustBeAssignableTo(nodeRhs[i], rhs[i].Type)
 			continue
 		}
 		if alreadyDeclared[node.Lhs[i]] {
 			lh := tc.checkIdentifier(node.Lhs[i].(*ast.Identifier), false)
-			err := tc.isAssignableTo(rhs[i], nodeRhs[i], lh.Type)
-			if err != nil {
-				if strings.HasPrefix(err.Error(), "constant ") {
-					panic(tc.errorf(nodeRhs[i], err.Error()))
-				}
-				panic(tc.errorf(nodeRhs[i], "%s in assignment", err))
-			}
+			tc.mustBeAssignableTo(nodeRhs[i], lh.Type)
 		} else {
-			if rhs[i].IsUntypedConstant() {
-				err := tc.isAssignableTo(rhs[i], nodeRhs[i], rhs[i].Type)
-				if err != nil {
-					if strings.HasPrefix(err.Error(), "constant ") {
-						panic(tc.errorf(nodeRhs[i], err.Error()))
-					}
-					panic(tc.errorf(nodeRhs[i], "%s in assignment", err))
-				}
-			}
+			tc.mustBeAssignableTo(nodeRhs[i], rhs[i].Type)
 			tc.declareVariable(node.Lhs[i].(*ast.Identifier), rh.Type)
 		}
 	}
@@ -484,6 +451,19 @@ func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 			scopeLevel: len(tc.scopes) - 1,
 			node:       lh,
 		})
+	}
+}
+
+// mustBeAssignableTo panics a type checking error if the type info associated
+// to rhExpr is not assignable to the given type.
+func (tc *typechecker) mustBeAssignableTo(rhExpr ast.Expression, typ reflect.Type) {
+	rh := tc.typeInfos[rhExpr]
+	err := tc.isAssignableTo(rh, rhExpr, typ)
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "constant ") {
+			panic(tc.errorf(rhExpr, err.Error()))
+		}
+		panic(tc.errorf(rhExpr, "%s in assignment", err))
 	}
 }
 
