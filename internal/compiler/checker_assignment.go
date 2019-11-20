@@ -389,7 +389,7 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		// Set the type info of the right operand.
 		if rh.Nil() {
 			tc.typeInfos[nodeRhs[i]] = tc.nilOf(typ.Type)
-		} else {
+		} else if rh.IsConstant() {
 			rh.setValue(varTyp)
 		}
 
@@ -513,7 +513,9 @@ func (tc *typechecker) rebalanceRightSide(node ast.Node) []ast.Expression {
 		panic("BUG: this method must be called only for multiple assignments")
 	}
 
-	if call, ok := nodeRhs[0].(*ast.Call); ok {
+	rhExpr := nodeRhs[0]
+
+	if call, ok := rhExpr.(*ast.Call); ok {
 		tis, isBuiltin, _ := tc.checkCallExpression(call, false)
 		if len(nodeLhs) != len(tis) {
 			if isBuiltin {
@@ -530,18 +532,18 @@ func (tc *typechecker) rebalanceRightSide(node ast.Node) []ast.Expression {
 	}
 
 	if len(nodeLhs) == 2 && len(nodeRhs) == 1 {
-		switch v := nodeRhs[0].(type) {
+		switch v := rhExpr.(type) {
 		case *ast.TypeAssertion:
 			v1 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
 			v2 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
-			ti := tc.checkExpr(nodeRhs[0])
+			ti := tc.checkExpr(rhExpr)
 			tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
 			tc.typeInfos[v2] = untypedBoolTypeInfo
 			return []ast.Expression{v1, v2}
 		case *ast.Index:
 			v1 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			v2 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
-			ti := tc.checkExpr(nodeRhs[0])
+			ti := tc.checkExpr(rhExpr)
 			tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
 			tc.typeInfos[v2] = untypedBoolTypeInfo
 			return []ast.Expression{v1, v2}
@@ -549,7 +551,7 @@ func (tc *typechecker) rebalanceRightSide(node ast.Node) []ast.Expression {
 			if v.Op == ast.OperatorReceive {
 				v1 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
 				v2 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
-				ti := tc.checkExpr(nodeRhs[0])
+				ti := tc.checkExpr(rhExpr)
 				tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
 				tc.typeInfos[v2] = untypedBoolTypeInfo
 				return []ast.Expression{v1, v2}
