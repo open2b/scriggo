@@ -296,33 +296,26 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 
 	// Declare or redeclare variables on the left side of :=.
 	for i := range node.Lhs {
-
 		rh := rhs[i]
-
-		if isBlankIdentifier(node.Lhs[i]) {
+		switch {
+		case isBlankIdentifier(node.Lhs[i]):
 			if rh.IsConstant() {
 				tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
 				rh.setValue(nil)
 			}
-			continue
-		}
-
-		if isAlreadyDeclared[node.Lhs[i]] {
+		case isAlreadyDeclared[node.Lhs[i]]:
 			lh := tc.checkIdentifier(node.Lhs[i].(*ast.Identifier), false)
 			tc.mustBeAssignableTo(nodeRhs[i], lh.Type, false, nil)
 			rh.setValue(lh.Type)
-			continue
-		}
-
-		// New variable.
-		if rh.Nil() {
+		case rh.Nil():
 			panic(tc.errorf(nodeRhs[i], "use of untyped nil"))
-		}
-		if rh.IsUntypedConstant() {
+		case rh.IsUntypedConstant():
 			tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
+			fallthrough
+		default:
+			tc.declareVariable(node.Lhs[i].(*ast.Identifier), rh.Type)
+			rh.setValue(nil)
 		}
-		tc.declareVariable(node.Lhs[i].(*ast.Identifier), rh.Type)
-		rh.setValue(nil)
 	}
 
 }
@@ -444,14 +437,16 @@ func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 	}
 }
 
-// mustBeAssignableTo panics a type checking error if the type info associated
-// to rhExpr is not assignable to the given type.
-func (tc *typechecker) mustBeAssignableTo(rhExpr ast.Expression, typ reflect.Type, isMultipleAssignment bool, multipleAssignmentLh ast.Expression) {
+// mustBeAssignableTo ensures that the type info of rhExpr is assignable to the
+// given type, otherwise panics. unbalanced reports whether the assignment is
+// unbalanced and in this case unbalancedLh is its left expression that is
+// assigned.
+func (tc *typechecker) mustBeAssignableTo(rhExpr ast.Expression, typ reflect.Type, unbalanced bool, unbalancedLh ast.Expression) {
 	rh := tc.typeInfos[rhExpr]
 	err := tc.isAssignableTo(rh, rhExpr, typ)
 	if err != nil {
-		if isMultipleAssignment {
-			panic(tc.errorf(rhExpr, "cannot assign %s to %s (type %s) in multiple assignment", rh.Type, multipleAssignmentLh, typ))
+		if unbalanced {
+			panic(tc.errorf(rhExpr, "cannot assign %s to %s (type %s) in multiple assignment", rh.Type, unbalancedLh, typ))
 		}
 		if strings.HasPrefix(err.Error(), "constant ") {
 			panic(tc.errorf(rhExpr, err.Error()))
