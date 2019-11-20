@@ -34,7 +34,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		if isBlankIdentifier(lhExpr) {
 			continue
 		}
-		// Find the Lh type info.
+		// Determine the Lh type info.
 		var lh *TypeInfo
 		if ident, ok := lhExpr.(*ast.Identifier); ok {
 			lh = tc.checkIdentifier(ident, false) // Use checkIdentifier to avoid marking 'ident' as used.
@@ -42,8 +42,8 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 			lh = tc.checkExpr(lhExpr)
 		}
 		switch {
-		case lh.Addressable(): // ok!
-		case tc.isMapIndexing(lhExpr): // ok!
+		case lh.Addressable(): // ok.
+		case tc.isMapIndexing(lhExpr): // ok.
 		default:
 			if tc.isSelectorOfMapIndexing(lhExpr) {
 				panic(tc.errorf(lhExpr, "cannot assign to struct field %s in map", lhExpr))
@@ -161,6 +161,10 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 
 	for i, rh := range rhs {
 
+		if isBlankIdentifier(node.Lhs[i]) {
+			continue
+		}
+
 		// Prepare the constant value.
 		constValue := rh.Constant
 
@@ -172,14 +176,10 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 			constType = typ.Type
 		}
 
-		if isBlankIdentifier(node.Lhs[i]) {
-			continue
-		}
-
 		// Declare the constant in the current block/scope.
 		constTi := &TypeInfo{Type: constType, Constant: constValue}
 		if rh.Untyped() && typ == nil {
-			constTi.Properties |= PropertyUntyped
+			constTi.Properties = PropertyUntyped
 		}
 		tc.assignScope(node.Lhs[i].Name, constTi, node.Lhs[i])
 
@@ -187,10 +187,9 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 
 }
 
-// checkGenericAssignmentNode type checks an *ast.Assignment node. This method
-// is necessary because the *ast.Assignment node of the Scriggo AST represents
-// short variable declarations, assignments, short assignments and inc-dec
-// statements.
+// checkGenericAssignmentNode calls the appropriate type checker method based on
+// what the given node represents: a short variable declaration, an assignment,
+// a short assignment or an inc-dec statement.
 func (tc *typechecker) checkGenericAssignmentNode(node *ast.Assignment) {
 	switch node.Type {
 	case ast.AssignmentDeclaration:
@@ -213,8 +212,8 @@ func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 
 	lh := tc.checkExpr(node.Lhs[0])
 	switch {
-	case lh.Addressable(): // ok!
-	case tc.isMapIndexing(node.Lhs[0]): // ok!
+	case lh.Addressable(): // ok.
+	case tc.isMapIndexing(node.Lhs[0]): // ok.
 	default:
 		if tc.isSelectorOfMapIndexing(node.Lhs[0]) {
 			panic(tc.errorf(node.Lhs[0], "cannot assign to struct field %s in map", node.Lhs[0]))
@@ -230,8 +229,8 @@ func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 
 }
 
-// checkNonNamesOnLeft panic a type checking error if the short declaration node
-// contains a non-name on the left side.
+// checkNonNamesOnLeft ensures that a short declaration contains only
+// identifiers on the left side, otherwise panics.
 func (tc *typechecker) checkNonNamesOnLeft(node *ast.Assignment) {
 	if node.Type != ast.AssignmentDeclaration {
 		panic("BUG: expected a short variable declaration")
