@@ -13,7 +13,7 @@ import (
 	"scriggo/ast"
 )
 
-// checkAssignments type check an assignment node.
+// checkAssignment type check an assignment node.
 func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
 	switch node.Type {
