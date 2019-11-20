@@ -260,13 +260,10 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 
 	tc.checkRepeatedLhs(node)
 
-	var rhs []*TypeInfo
-	for _, rhExpr := range nodeRhs {
-		rh := tc.checkExpr(rhExpr)
-		if rh.Nil() {
-			panic(tc.errorf(rhExpr, "use of untyped nil"))
-		}
-		rhs = append(rhs, rh)
+	rhs := make([]*TypeInfo, len(nodeRhs))
+
+	for i, rhExpr := range nodeRhs {
+		rhs[i] = tc.checkExpr(rhExpr)
 	}
 
 	alreadyDeclared := map[ast.Expression]bool{}

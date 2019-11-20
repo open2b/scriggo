@@ -30,5 +30,10 @@ func main() {
 		var a int32 = 10
 		_ = a
 	}
+	{
+		a, b := 10, 20
+		_, _ = a, b
+		a, c := nil, 30 ; _ = c // ERROR `cannot use nil as type int in assignment`
+	}
 
 }
