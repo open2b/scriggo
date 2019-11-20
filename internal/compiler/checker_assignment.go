@@ -249,7 +249,6 @@ func (tc *typechecker) checkRepeatedLhs(node *ast.Assignment) {
 // checkShortVariableDeclaration type checks a short variable declaration.
 func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 
-	// Check that node is a short variable declaration.
 	if node.Type != ast.AssignmentDeclaration {
 		panic("BUG: expected a short variable declaration")
 	}
@@ -257,58 +256,61 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 	// In case of unbalanced short variable declarations a 'fake' rhs must be
 	// used for the type checking, but the tree must not be changed.
 	nodeRhs := node.Rhs
-
 	if len(node.Lhs) != len(nodeRhs) {
 		nodeRhs = tc.rebalanceRightSide(node)
 	}
 
 	tc.checkNonNamesOnLeft(node)
-
 	tc.checkRepeatedLhs(node)
 
+	// Type check the right side of :=.
 	rhs := make([]*TypeInfo, len(nodeRhs))
-
 	for i, rhExpr := range nodeRhs {
 		rhs[i] = tc.checkExpr(rhExpr)
 	}
 
-	alreadyDeclared := map[ast.Expression]bool{}
-
+	// Discriminate already declared variables from new variables.
+	isAlreadyDeclared := map[ast.Expression]bool{}
 	for _, lhExpr := range node.Lhs {
 		name := lhExpr.(*ast.Identifier).Name
 		if tc.declaredInThisBlock(name) || isBlankIdentifier(lhExpr) {
-			alreadyDeclared[lhExpr] = true
+			isAlreadyDeclared[lhExpr] = true
 		}
 	}
-
-	// no new variables on left side of :=
-	if len(node.Lhs) == len(alreadyDeclared) {
+	if len(node.Lhs) == len(isAlreadyDeclared) {
 		if tc.opts.SyntaxType == ScriptSyntax && tc.isScriptFuncDecl {
 			panic(tc.errorf(node, "%v already declared in script", node.Lhs[0]))
 		}
 		panic(tc.errorf(node, "no new variables on left side of :="))
 	}
 
-	for i, rh := range rhs {
+	// Declare or redeclare variables on the left side of :=.
+	for i := range node.Lhs {
+
+		rh := rhs[i]
+
 		if isBlankIdentifier(node.Lhs[i]) {
 			tc.mustBeAssignableTo(nodeRhs[i], rhs[i].Type, false, nil)
 			rh.setValue(nil)
 			continue
 		}
-		if alreadyDeclared[node.Lhs[i]] {
+
+		if isAlreadyDeclared[node.Lhs[i]] {
 			lh := tc.checkIdentifier(node.Lhs[i].(*ast.Identifier), false)
 			tc.mustBeAssignableTo(nodeRhs[i], lh.Type, false, nil)
 			rh.setValue(lh.Type)
-		} else {
-			if rh.Nil() {
-				panic(tc.errorf(nodeRhs[i], "use of untyped nil"))
-			}
-			if rhs[i].IsUntypedConstant() {
-				tc.mustBeAssignableTo(nodeRhs[i], rhs[i].Type, false, nil)
-			}
-			tc.declareVariable(node.Lhs[i].(*ast.Identifier), rh.Type)
-			rh.setValue(nil)
+			continue
 		}
+
+		// New variable.
+		if rh.Nil() {
+			panic(tc.errorf(nodeRhs[i], "use of untyped nil"))
+		}
+		if rhs[i].IsUntypedConstant() {
+			tc.mustBeAssignableTo(nodeRhs[i], rhs[i].Type, false, nil)
+		}
+		tc.declareVariable(node.Lhs[i].(*ast.Identifier), rh.Type)
+		rh.setValue(nil)
 	}
 
 }
