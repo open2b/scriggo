@@ -50,9 +50,9 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		case tc.isMapIndexing(lhExpr): // ok!
 		default:
 			if tc.isSelectorOfMapIndexing(lhExpr) {
-				panic(tc.errorf(lhExpr, "cannot assign to struct field %v in map", lhExpr))
+				panic(tc.errorf(lhExpr, "cannot assign to struct field %s in map", lhExpr))
 			}
-			panic(tc.errorf(lhExpr, "cannot assign to %v", lhExpr))
+			panic(tc.errorf(lhExpr, "cannot assign to %s", lhExpr))
 		}
 		lhs[i] = lh
 	}
@@ -68,7 +68,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		op := operatorFromAssignmentType(node.Type)
 		_, err := tc.binaryOp(node.Lhs[0], op, nodeRhs[0])
 		if err != nil {
-			panic(tc.errorf(node, "invalid operation: %v (%s)", node, err))
+			panic(tc.errorf(node, "invalid operation: %s (%s)", node, err))
 		}
 	}
 
@@ -198,13 +198,13 @@ func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 	case tc.isMapIndexing(node.Lhs[0]): // ok!
 	default:
 		if tc.isSelectorOfMapIndexing(node.Lhs[0]) {
-			panic(tc.errorf(node.Lhs[0], "cannot assign to struct field %v in map", node.Lhs[0]))
+			panic(tc.errorf(node.Lhs[0], "cannot assign to struct field %s in map", node.Lhs[0]))
 		}
-		panic(tc.errorf(node.Lhs[0], "cannot assign to %v", node.Lhs[0]))
+		panic(tc.errorf(node.Lhs[0], "cannot assign to %s", node.Lhs[0]))
 	}
 
 	if !isNumeric(lh.Type.Kind()) {
-		panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", node, lh))
+		panic(tc.errorf(node, "invalid operation: %s (non-numeric type %s)", node, lh))
 	}
 
 	tc.convertNodeForTheEmitter(node)
@@ -277,7 +277,7 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 	}
 	if len(node.Lhs) == len(isAlreadyDeclared) {
 		if tc.opts.SyntaxType == ScriptSyntax && tc.isScriptFuncDecl {
-			panic(tc.errorf(node, "%v already declared in script", node.Lhs[0]))
+			panic(tc.errorf(node, "%s already declared in script", node.Lhs[0]))
 		}
 		panic(tc.errorf(node, "no new variables on left side of :="))
 	}
@@ -439,7 +439,7 @@ func (tc *typechecker) mustBeAssignableTo(rhExpr ast.Expression, typ reflect.Typ
 	err := tc.isAssignableTo(rh, rhExpr, typ)
 	if err != nil {
 		if isMultipleAssignment {
-			panic(tc.errorf(rhExpr, "cannot assign %v to %v (type %v) in multiple assignment", rh.Type, multipleAssignmentLh, typ))
+			panic(tc.errorf(rhExpr, "cannot assign %s to %s (type %s) in multiple assignment", rh.Type, multipleAssignmentLh, typ))
 		}
 		if strings.HasPrefix(err.Error(), "constant ") {
 			panic(tc.errorf(rhExpr, err.Error()))
@@ -507,7 +507,7 @@ func (tc *typechecker) rebalanceRightSide(node ast.Node) []ast.Expression {
 			if isBuiltin {
 				panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(nodeLhs), len(tis)))
 			}
-			panic(tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(nodeLhs), call, len(tis)))
+			panic(tc.errorf(node, "assignment mismatch: %d variables but %s returns %d values", len(nodeLhs), call, len(tis)))
 		}
 		rhsExpr := make([]ast.Expression, len(tis))
 		for i, ti := range tis {
