@@ -1,5 +1,3 @@
-// skip : investigate on this
-
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -7,8 +5,8 @@
 // license that can be found in the LICENSE file.
 
 package main
-type I = int
-type S = struct { F map[I]int }
+type I int
+type S struct { F map[I]int }
 var v1 = S{ make(map[int]int) }		// ERROR "cannot|illegal|incompatible|wrong"
 var v2 map[I]int = map[int]int{}	// ERROR "cannot|illegal|incompatible|wrong"
 var v3 = S{ make(map[uint]int) }	// ERROR "cannot|illegal|incompatible|wrong"
