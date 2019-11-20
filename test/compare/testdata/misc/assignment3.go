@@ -18,4 +18,13 @@ func main() {
 		const _ int = 1 << 100     // ERROR `constant 1267650600228229401496703205376 overflows int`
 	}
 
+	{
+		a := 10
+		a = nil // ERROR `cannot use nil as type int in assignment`
+		_ = a
+	}
+	{
+		_ = nil // ERROR `use of untyped nil`
+	}
+
 }
