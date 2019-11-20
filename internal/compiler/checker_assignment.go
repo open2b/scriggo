@@ -82,10 +82,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
 }
 
-// checkAssignmentOperation type checks an assignment operation.
-//
-//		lh op= rh
-//
+// checkAssignmentOperation type checks an assignment operation x op= y.
 // See https://golang.org/ref/spec#assign_op and
 // https://golang.org/ref/spec#Assignments.
 func (tc *typechecker) checkAssignmentOperation(node *ast.Assignment) {
@@ -94,14 +91,11 @@ func (tc *typechecker) checkAssignmentOperation(node *ast.Assignment) {
 		panic("BUG: expected an assignment operation")
 	}
 
-	lhExpr := node.Lhs[0]
-	rhExpr := node.Rhs[0]
-
-	lh := tc.checkExpr(lhExpr)
-	rh := tc.checkExpr(rhExpr)
+	lh := tc.checkExpr(node.Lhs[0])
+	rh := tc.checkExpr(node.Rhs[0])
 
 	op := operatorFromAssignmentType(node.Type)
-	_, err := tc.binaryOp(node.Lhs[0], op, rhExpr)
+	_, err := tc.binaryOp(node.Lhs[0], op, node.Rhs[0])
 	if err != nil {
 		panic(tc.errorf(node, "invalid operation: %s (%s)", node, err))
 	}
@@ -109,7 +103,7 @@ func (tc *typechecker) checkAssignmentOperation(node *ast.Assignment) {
 	if node.Type == ast.AssignmentLeftShift || node.Type == ast.AssignmentRightShift {
 		// TODO.
 	} else {
-		tc.mustBeAssignableTo(rhExpr, lh.Type, false, nil)
+		tc.mustBeAssignableTo(node.Rhs[0], lh.Type, false, nil)
 	}
 
 	// Transform the tree for the emitter.
@@ -306,8 +300,10 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 		rh := rhs[i]
 
 		if isBlankIdentifier(node.Lhs[i]) {
-			tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
-			rh.setValue(nil)
+			if rh.IsConstant() {
+				tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
+				rh.setValue(nil)
+			}
 			continue
 		}
 
@@ -347,20 +343,11 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		rhs[i] = tc.checkExpr(nodeRhs[i])
 	}
 
-	// 'var' declaration with explicit type: every rh must be assignable to
-	// that type.
 	var typ *TypeInfo
-	if node.Type != nil {
-		typ = tc.checkType(node.Type)
-		for i := range rhs {
-			tc.mustBeAssignableTo(nodeRhs[i], typ.Type, len(node.Lhs) != len(node.Rhs), node.Lhs[i])
-		}
-	}
-
-	// Type is not specified, so there can't be an untyped nil in the right
-	// side expression; more than this, every untyped constant must be
-	// representable by it's default type.
-	if typ == nil {
+	if node.Type == nil {
+		// Type is not specified, so there can't be an untyped nil in the right
+		// side expression; more than this, every untyped constant must be
+		// representable by it's default type.
 		for i, rh := range rhs {
 			if rh.Nil() {
 				panic(tc.errorf(nodeRhs[i], "use of untyped nil"))
@@ -368,6 +355,13 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 			if rh.IsUntypedConstant() {
 				tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
 			}
+		}
+	} else {
+		// 'var' declaration with explicit type: every rh must be assignable to
+		// that type.
+		typ = tc.checkType(node.Type)
+		for i := range rhs {
+			tc.mustBeAssignableTo(nodeRhs[i], typ.Type, len(node.Lhs) != len(node.Rhs), node.Lhs[i])
 		}
 	}
 
