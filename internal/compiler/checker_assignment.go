@@ -8,511 +8,542 @@ package compiler
 
 import (
 	"reflect"
+	"strings"
 
 	"scriggo/ast"
 )
 
-// checkAssignment type checks an assignment node (Var, Const or Assignment)
-// and fills the scope, if necessary.
-func (tc *typechecker) checkAssignment(node ast.Node) {
+// checkAssignment type checks an assignment node with the operator '='.
+func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
-	var lhs []ast.Expression
-	var rhs []ast.Expression
-	var declTi *TypeInfo
+	if node.Type != ast.AssignmentSimple {
+		panic("BUG: expected an assignment node with an '=' operator")
+	}
 
-	// isVariableDecl indicates if node is:
-	//   - an *ast.Var declaration
-	//   - an *ast.Assignment with ':='
-	var isVariableDecl bool
-	var isConstDecl bool
-	var isAssignmentNode bool
+	// In case of unbalanced assignments a 'fake' rhs must be used for the type
+	// checking, but the tree must not be changed.
+	nodeRhs := node.Rhs
+
+	if len(node.Lhs) != len(nodeRhs) {
+		nodeRhs = tc.rebalancedRightSide(node)
+	}
+
+	// Type check the left side.
+	lhs := make([]*TypeInfo, len(node.Lhs))
+	for i, lhExpr := range node.Lhs {
+		if isBlankIdentifier(lhExpr) {
+			continue
+		}
+		// Determine the Lh type info.
+		var lh *TypeInfo
+		if ident, ok := lhExpr.(*ast.Identifier); ok {
+			lh = tc.checkIdentifier(ident, false) // Use checkIdentifier to avoid marking 'ident' as used.
+		} else {
+			lh = tc.checkExpr(lhExpr)
+		}
+		switch {
+		case lh.Addressable(): // ok.
+		case tc.isMapIndexing(lhExpr): // ok.
+		default:
+			if tc.isSelectorOfMapIndexing(lhExpr) {
+				panic(tc.errorf(lhExpr, "cannot assign to struct field %s in map", lhExpr))
+			}
+			panic(tc.errorf(lhExpr, "cannot assign to %s", lhExpr))
+		}
+		lhs[i] = lh
+	}
+
+	// Type check the right side.
+	rhs := make([]*TypeInfo, len(nodeRhs))
+	for i := range nodeRhs {
+		rhs[i] = tc.checkExpr(nodeRhs[i])
+	}
+
+	// Check for assignability and update the type infos.
+	for i, rh := range rhs {
+		if isBlankIdentifier(node.Lhs[i]) {
+			if rh.Nil() { // _ = nil
+				panic(tc.errorf(node.Lhs[i], "use of untyped nil"))
+			}
+			if rh.IsUntypedConstant() {
+				tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
+			}
+			rh.setValue(nil)
+			continue
+		}
+		tc.mustBeAssignableTo(nodeRhs[i], lhs[i].Type, len(node.Lhs) != len(node.Rhs), node.Lhs[i])
+		// Update the type info for the emitter.
+		if rh.Nil() {
+			tc.typeInfos[nodeRhs[i]] = tc.nilOf(lhs[i].Type)
+		} else {
+			rh.setValue(nil)
+		}
+	}
+
+}
+
+// checkAssignmentOperation type checks an assignment operation x op= y.
+// See https://golang.org/ref/spec#assign_op and
+// https://golang.org/ref/spec#Assignments.
+func (tc *typechecker) checkAssignmentOperation(node *ast.Assignment) {
+
+	if !(ast.AssignmentAddition <= node.Type && node.Type <= ast.AssignmentRightShift) {
+		panic("BUG: expected an assignment operation")
+	}
+
+	lh := tc.checkExpr(node.Lhs[0])
+	rh := tc.checkExpr(node.Rhs[0])
+
+	op := operatorFromAssignmentType(node.Type)
+	_, err := tc.binaryOp(node.Lhs[0], op, node.Rhs[0])
+	if err != nil {
+		panic(tc.errorf(node, "invalid operation: %s (%s)", node, err))
+	}
+
+	if node.Type == ast.AssignmentLeftShift || node.Type == ast.AssignmentRightShift {
+		// TODO.
+	} else {
+		tc.mustBeAssignableTo(node.Rhs[0], lh.Type, false, nil)
+	}
+
+	// Transform the tree for the emitter.
+	rh.setValue(nil)
+	tc.convertNodeForTheEmitter(node)
+
+}
+
+// checkConstantDeclaration type checks a constant declaration.
+func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
+
+	if len(node.Lhs) > len(node.Rhs) {
+		panic(tc.errorf(node, "missing value in const declaration"))
+	}
+
+	if len(node.Rhs) < len(node.Rhs) {
+		panic(tc.errorf(node, "extra expression in const declaration"))
+	}
 
 	if tc.lastConstPosition != node.Pos() {
 		tc.iota = -1
 	}
 
-	switch n := node.(type) {
+	tc.lastConstPosition = node.Pos()
+	tc.iota++
 
+	// Type check every Rh expression: they must be constant.
+	rhs := make([]*TypeInfo, len(node.Rhs))
+	for i, rhExpr := range node.Rhs {
+		rh := tc.checkExpr(rhExpr)
+		if !rh.IsConstant() {
+			if rh.Nil() {
+				panic(tc.errorf(node, "const initializer cannot be nil"))
+			}
+			panic(tc.errorf(node, "const initializer %s is not a constant", rhExpr))
+		}
+		rhs[i] = rh
+	}
+
+	var typ *TypeInfo
+
+	if node.Type != nil {
+		// Every Rh must be assignable to the type.
+		typ = tc.checkType(node.Type)
+		for i := range rhs {
+			tc.mustBeAssignableTo(node.Rhs[i], typ.Type, false, nil)
+		}
+	}
+
+	for i, rh := range rhs {
+
+		if isBlankIdentifier(node.Lhs[i]) {
+			continue
+		}
+
+		// Prepare the constant value.
+		constValue := rh.Constant
+
+		// Prepare the constant type.
+		var constType reflect.Type
+		if typ == nil {
+			constType = rh.Type
+		} else {
+			constType = typ.Type
+		}
+
+		// Declare the constant in the current block/scope.
+		constTi := &TypeInfo{Type: constType, Constant: constValue}
+		if rh.Untyped() && typ == nil {
+			constTi.Properties = PropertyUntyped
+		}
+		tc.assignScope(node.Lhs[i].Name, constTi, node.Lhs[i])
+
+	}
+
+}
+
+// checkGenericAssignmentNode calls the appropriate type checker method based on
+// what the given node represents: a short variable declaration, an assignment,
+// a short assignment or an inc-dec statement.
+func (tc *typechecker) checkGenericAssignmentNode(node *ast.Assignment) {
+	switch node.Type {
+	case ast.AssignmentDeclaration:
+		tc.checkShortVariableDeclaration(node)
+	case ast.AssignmentIncrement, ast.AssignmentDecrement:
+		tc.checkIncDecStatement(node)
+	case ast.AssignmentSimple:
+		tc.checkAssignment(node)
+	default:
+		tc.checkAssignmentOperation(node)
+	}
+}
+
+// checkIncDecStatement checks an IncDec statement.
+func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
+
+	if node.Type != ast.AssignmentIncrement && node.Type != ast.AssignmentDecrement {
+		panic("BUG: expected an IncDec statement")
+	}
+
+	lh := tc.checkExpr(node.Lhs[0])
+	switch {
+	case lh.Addressable(): // ok.
+	case tc.isMapIndexing(node.Lhs[0]): // ok.
+	default:
+		if tc.isSelectorOfMapIndexing(node.Lhs[0]) {
+			panic(tc.errorf(node.Lhs[0], "cannot assign to struct field %s in map", node.Lhs[0]))
+		}
+		panic(tc.errorf(node.Lhs[0], "cannot assign to %s", node.Lhs[0]))
+	}
+
+	if !isNumeric(lh.Type.Kind()) {
+		panic(tc.errorf(node, "invalid operation: %s (non-numeric type %s)", node, lh))
+	}
+
+	tc.convertNodeForTheEmitter(node)
+
+}
+
+// checkShortVariableDeclaration type checks a short variable declaration.
+func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
+
+	if node.Type != ast.AssignmentDeclaration {
+		panic("BUG: expected a short variable declaration")
+	}
+
+	// In case of unbalanced short variable declarations a 'fake' rhs must be
+	// used for the type checking, but the tree must not be changed.
+	nodeRhs := node.Rhs
+	if len(node.Lhs) != len(nodeRhs) {
+		nodeRhs = tc.rebalancedRightSide(node)
+	}
+
+	// Check that every operand on the left is an identifier.
+	for _, lhExpr := range node.Lhs {
+		_, isIdent := lhExpr.(*ast.Identifier)
+		if !isIdent {
+			panic(tc.errorf(node, "non-name %s on left side of :=", lhExpr))
+		}
+	}
+
+	// Check that the left side does not contain repeated names.
+	names := map[string]bool{}
+	for _, lh := range node.Lhs {
+		if isBlankIdentifier(lh) {
+			continue
+		}
+		name := lh.(*ast.Identifier).Name
+		if names[name] {
+			panic(tc.errorf(node, "%s repeated on left side of :=", name))
+		}
+		names[name] = true
+	}
+
+	// Type check the right side of :=.
+	rhs := make([]*TypeInfo, len(nodeRhs))
+	for i, rhExpr := range nodeRhs {
+		rhs[i] = tc.checkExpr(rhExpr)
+	}
+
+	// Discriminate already declared variables from new variables.
+	isAlreadyDeclared := map[ast.Expression]bool{}
+	for _, lhExpr := range node.Lhs {
+		name := lhExpr.(*ast.Identifier).Name
+		if name == "_" || tc.declaredInThisBlock(name) {
+			isAlreadyDeclared[lhExpr] = true
+		}
+	}
+	if len(node.Lhs) == len(isAlreadyDeclared) {
+		if tc.opts.SyntaxType == ScriptSyntax && tc.isScriptFuncDecl {
+			panic(tc.errorf(node, "%s already declared in script", node.Lhs[0]))
+		}
+		panic(tc.errorf(node, "no new variables on left side of :="))
+	}
+
+	// Declare or redeclare variables on the left side of :=.
+	for i := range node.Lhs {
+		rh := rhs[i]
+		switch {
+		case isBlankIdentifier(node.Lhs[i]):
+			if rh.IsConstant() {
+				tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
+				rh.setValue(nil)
+			}
+		case isAlreadyDeclared[node.Lhs[i]]:
+			lh := tc.checkIdentifier(node.Lhs[i].(*ast.Identifier), false)
+			tc.mustBeAssignableTo(nodeRhs[i], lh.Type, false, nil)
+			rh.setValue(lh.Type)
+		case rh.Nil():
+			panic(tc.errorf(nodeRhs[i], "use of untyped nil"))
+		case rh.IsUntypedConstant():
+			tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
+			fallthrough
+		default:
+			tc.declareVariable(node.Lhs[i].(*ast.Identifier), rh.Type)
+			rh.setValue(nil)
+		}
+	}
+
+}
+
+// checkVariableDeclaration type checks a variable declaration.
+func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
+
+	// Type check the explicit type, if present.
+	var typ *TypeInfo
+	if node.Type != nil {
+		typ = tc.checkType(node.Type)
+	}
+
+	// In case of unbalanced var declarations a 'fake' rhs must be used for the
+	// type checking, but the tree must not be changed.
+	nodeRhs := node.Rhs
+	if len(nodeRhs) > 0 && len(node.Lhs) != len(nodeRhs) {
+		nodeRhs = tc.rebalancedRightSide(node)
+	}
+
+	// Variable declaration with no expressions: the zero of the explicit type
+	// must be assigned to the left identifiers.
+	if len(nodeRhs) == 0 {
+		nodeRhs = make([]ast.Expression, len(node.Lhs))
+		for i := 0; i < len(node.Lhs); i++ {
+			nodeRhs[i] = tc.newPlaceholderFor(typ.Type)
+		}
+		node.Rhs = nodeRhs // change the tree for the emitter.
+	}
+
+	// Type check expressions on the right side.
+	rhs := make([]*TypeInfo, len(nodeRhs))
+	for i := range nodeRhs {
+		rhs[i] = tc.checkExpr(nodeRhs[i])
+	}
+
+	if typ == nil {
+		// Type is not specified, so there can't be an untyped nil in the right
+		// side expression; more than this, every untyped constant must be
+		// representable by it's default type.
+		for i, rh := range rhs {
+			if rh.Nil() {
+				panic(tc.errorf(nodeRhs[i], "use of untyped nil"))
+			}
+			if rh.IsUntypedConstant() {
+				tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
+			}
+		}
+	} else {
+		// 'var' declaration with explicit type: every rh must be assignable to
+		// that type.
+		typ = tc.checkType(node.Type)
+		for i := range rhs {
+			tc.mustBeAssignableTo(nodeRhs[i], typ.Type, len(node.Lhs) != len(node.Rhs), node.Lhs[i])
+		}
+	}
+
+	// Declare the left hand identifiers and update the type infos.
+	for i, rh := range rhs {
+
+		// Determine the type of the new variable.
+		var varTyp reflect.Type
+		if typ == nil {
+			varTyp = rh.Type
+		} else {
+			varTyp = typ.Type
+		}
+
+		// Set the type info of the right operand.
+		if rh.Nil() {
+			tc.typeInfos[nodeRhs[i]] = tc.nilOf(typ.Type)
+		} else if rh.IsConstant() {
+			rh.setValue(varTyp)
+		}
+
+		if isBlankIdentifier(node.Lhs[i]) {
+			continue
+		}
+
+		tc.declareVariable(node.Lhs[i], varTyp)
+
+	}
+
+}
+
+// TODO: this implementation is wrong. It has been kept to make the tests pass,
+// but it must be changed:
+//
+//              m[f()] ++
+//
+// currenlty calls twice f(), which is wrong.
+//
+// See https://github.com/open2b/scriggo/issues/222.
+func (tc *typechecker) convertNodeForTheEmitter(node *ast.Assignment) {
+	pos := node.Lhs[0].Pos()
+	op := operatorFromAssignmentType(node.Type)
+	var right ast.Expression
+	if node.Type == ast.AssignmentIncrement || node.Type == ast.AssignmentDecrement {
+		right = ast.NewBinaryOperator(pos, op, node.Lhs[0], ast.NewBasicLiteral(pos, ast.IntLiteral, "1"))
+	} else {
+		right = ast.NewBinaryOperator(pos, op, node.Lhs[0], node.Rhs[0])
+	}
+	tc.checkExpr(right)
+	node.Rhs = []ast.Expression{right}
+	node.Type = ast.AssignmentSimple
+}
+
+// declareVariable declares the variable lh in the current block/scope with the
+// given type. Note that a variabile declaration may come from both 'var'
+// statements and short variable declaration statements.
+func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
+	ti := &TypeInfo{
+		Type:       typ,
+		Properties: PropertyAddressable,
+	}
+	tc.typeInfos[lh] = ti
+	tc.assignScope(lh.Name, ti, lh)
+	if !tc.opts.AllowNotUsed {
+		tc.unusedVars = append(tc.unusedVars, &scopeVariable{
+			ident:      lh.Name,
+			scopeLevel: len(tc.scopes) - 1,
+			node:       lh,
+		})
+	}
+}
+
+// mustBeAssignableTo ensures that the type info of rhExpr is assignable to the
+// given type, otherwise panics. unbalanced reports whether the assignment is
+// unbalanced and in this case unbalancedLh is its left expression that is
+// assigned.
+func (tc *typechecker) mustBeAssignableTo(rhExpr ast.Expression, typ reflect.Type, unbalanced bool, unbalancedLh ast.Expression) {
+	rh := tc.typeInfos[rhExpr]
+	err := tc.isAssignableTo(rh, rhExpr, typ)
+	if err != nil {
+		if unbalanced {
+			panic(tc.errorf(rhExpr, "cannot assign %s to %s (type %s) in multiple assignment", rh.Type, unbalancedLh, typ))
+		}
+		if strings.HasPrefix(err.Error(), "constant ") {
+			panic(tc.errorf(rhExpr, err.Error()))
+		}
+		if nilErr, ok := err.(nilConvertionError); ok {
+			panic(tc.errorf(rhExpr, "cannot use nil as type %s in assignment", nilErr.typ))
+		}
+		panic(tc.errorf(rhExpr, "%s in assignment", err))
+	}
+}
+
+// newPlaceholder returns a new Placeholder node with an associated type info
+// that holds the zero for the given type.
+func (tc *typechecker) newPlaceholderFor(typ reflect.Type) *ast.Placeholder {
+	k := typ.Kind()
+	var ti *TypeInfo
+	switch {
+	case reflect.Int <= k && k <= reflect.Complex128:
+		ti = &TypeInfo{Type: typ, Constant: int64Const(0), Properties: PropertyUntyped}
+		ti.setValue(typ)
+	case k == reflect.String:
+		ti = &TypeInfo{Type: typ, Constant: stringConst(""), Properties: PropertyUntyped}
+		ti.setValue(typ)
+	case k == reflect.Bool:
+		ti = &TypeInfo{Type: typ, Constant: boolConst(false), Properties: PropertyUntyped}
+		ti.setValue(typ)
+	case k == reflect.Interface, k == reflect.Func:
+		ti = tc.nilOf(typ)
+	default:
+		ti = &TypeInfo{Type: typ, value: tc.types.Zero(typ).Interface(), Properties: PropertyHasValue}
+		ti.setValue(typ)
+	}
+	ph := ast.NewPlaceholder()
+	tc.typeInfos[ph] = ti
+	return ph
+}
+
+// rebalancedRightSide returns the right side of the an unbalanced assignment or
+// declaration, represented by node, rebalanced so the number of elements are
+// the same of the left side.
+// rebalancedRightSide type checks the returned right side, panicking if the
+// type checking fails.
+func (tc *typechecker) rebalancedRightSide(node ast.Node) []ast.Expression {
+
+	var nodeLhs, nodeRhs []ast.Expression
+
+	switch node := node.(type) {
 	case *ast.Var:
-
-		if n.Type != nil {
-			declTi = tc.checkType(n.Type)
-			if len(n.Rhs) == 0 {
-				typ := declTi.Type
-				for i := range n.Lhs {
-					ph := ast.NewPlaceholder()
-					tc.typeInfos[ph] = &TypeInfo{Type: typ}
-					newVar := tc.assign(node, n.Lhs[i], ph, declTi, true, false)
-					if newVar == "" && !isBlankIdentifier(n.Lhs[i]) {
-						panic(tc.errorf(node, "%s redeclared in this block", n.Lhs[i]))
-					}
-				}
-				k := typ.Kind()
-				n.Rhs = make([]ast.Expression, len(n.Lhs))
-				for i := range n.Lhs {
-					var ti *TypeInfo
-					switch {
-					case reflect.Int <= k && k <= reflect.Complex128:
-						ti = &TypeInfo{Type: typ, Constant: int64Const(0), Properties: PropertyUntyped}
-						ti.setValue(typ)
-					case k == reflect.String:
-						ti = &TypeInfo{Type: typ, Constant: stringConst(""), Properties: PropertyUntyped}
-						ti.setValue(typ)
-					case k == reflect.Bool:
-						ti = &TypeInfo{Type: typ, Constant: boolConst(false), Properties: PropertyUntyped}
-						ti.setValue(typ)
-					case k == reflect.Interface, k == reflect.Func:
-						ti = tc.nilOf(typ)
-					default:
-						ti = &TypeInfo{Type: typ, value: tc.types.Zero(typ).Interface(), Properties: PropertyHasValue}
-						ti.setValue(typ)
-					}
-					n.Rhs[i] = ast.NewPlaceholder()
-					tc.typeInfos[n.Rhs[i]] = ti
-				}
-				return
-			}
+		for _, lh := range node.Lhs {
+			nodeLhs = append(nodeLhs, lh)
 		}
-
-		isVariableDecl = true
-		lhs = make([]ast.Expression, len(n.Lhs))
-		for i, ident := range n.Lhs {
-			lhs[i] = ident
-		}
-		rhs = n.Rhs
-
-	case *ast.Const:
-
-		isConstDecl = true
-		if n.Type != nil {
-			declTi = tc.checkType(n.Type)
-		}
-		tc.lastConstPosition = node.Pos()
-		if len(n.Lhs) != len(n.Rhs) {
-			if len(n.Lhs) < len(n.Rhs) {
-				panic(tc.errorf(node, "extra expression in const declaration"))
-			}
-			panic(tc.errorf(node, "missing value in const declaration"))
-		}
-		lhs = make([]ast.Expression, len(n.Lhs))
-		for i, ident := range n.Lhs {
-			lhs[i] = ident
-		}
-		rhs = n.Rhs
-
+		nodeRhs = node.Rhs
 	case *ast.Assignment:
-
-		switch n.Type {
-		case ast.AssignmentIncrement, ast.AssignmentDecrement:
-			lh := n.Lhs[0]
-			ti := tc.checkExpr(lh)
-			if ti.Nil() {
-				panic(tc.errorf(n, "cannot assign to nil"))
-			}
-			if ti.IsConstant() {
-				panic(tc.errorf(n, "cannot assign to %v", lh))
-			}
-			var addressable bool
-			switch lh := lh.(type) {
-			case *ast.Identifier:
-				addressable = true
-			case *ast.Index:
-				kind := tc.typeInfos[lh.Expr].Type.Kind()
-				addressable = kind == reflect.Map || ti.Addressable()
-			case *ast.Selector:
-				addressable = ti.Addressable()
-			case *ast.UnaryOperator:
-				addressable = lh.Operator() == ast.OperatorMultiplication
-			}
-			if !addressable {
-				panic(tc.errorf(n, "cannot assign to %v", lh))
-			}
-			if !isNumeric(ti.Type.Kind()) {
-				panic(tc.errorf(n, "invalid operation: %v (non-numeric type %s)", n, ti))
-			}
-			// Convert the assignment node from ++ and -- to a simple
-			// assignment. This change has no effects on type checking but
-			// simplifies the emitting of assignment nodes.
-			// a++ is semantically equivalent to a += 1, which is semantically
-			// equivalent to a = a + 1.
-			op := operatorFromAssignmentType(n.Type)
-			n.Type = ast.AssignmentSimple
-			rh := ast.NewBinaryOperator(lh.Pos(), op, lh, ast.NewBasicLiteral(lh.Pos(), ast.IntLiteral, "1"))
-			tc.checkExpr(rh)
-			n.Rhs = []ast.Expression{rh}
-			return
-		case ast.AssignmentAddition, ast.AssignmentSubtraction, ast.AssignmentMultiplication,
-			ast.AssignmentDivision, ast.AssignmentModulo, ast.AssignmentAnd, ast.AssignmentOr,
-			ast.AssignmentXor, ast.AssignmentAndNot, ast.AssignmentLeftShift, ast.AssignmentRightShift:
-			tc.cantBeBlank(n.Lhs[0])
-			var op = operatorFromAssignmentType(n.Type)
-			_, err := tc.binaryOp(n.Lhs[0], op, n.Rhs[0])
-			if err != nil {
-				panic(tc.errorf(n, "invalid operation: %v (%s)", n, err))
-			}
-			tc.assign(node, n.Lhs[0], n.Rhs[0], nil, false, false)
-			// Convert the assignment node from l op= r to a simple assignment.
-			// This change has no effects on type checking but simplifies the
-			// emitting of assignment nodes. a += 1 is semantically equivalent
-			// to a = a + 1.
-			pos := n.Lhs[0].Pos()
-			right := ast.NewBinaryOperator(pos, op, n.Lhs[0], n.Rhs[0])
-			tc.checkExpr(right)
-			n.Rhs = []ast.Expression{right}
-			n.Type = ast.AssignmentSimple
-			return
-		}
-
-		lhs = n.Lhs
-		rhs = n.Rhs
-		isVariableDecl = n.Type == ast.AssignmentDeclaration
-		isAssignmentNode = true
-
+		nodeLhs = node.Lhs
+		nodeRhs = node.Rhs
 	}
 
-	if len(lhs) >= 2 && len(rhs) == 1 {
-		if call, ok := rhs[0].(*ast.Call); ok {
-			tis, isBuiltin, _ := tc.checkCallExpression(call, false)
-			if len(lhs) != len(tis) {
-				if isBuiltin {
-					panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(lhs), len(tis)))
-				}
-				panic(tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(lhs), call, len(tis)))
-			}
-			rhs = make([]ast.Expression, len(tis))
-			for i, ti := range tis {
-				rhs[i] = ast.NewCall(call.Pos(), call.Func, call.Args, false)
-				tc.typeInfos[rhs[i]] = ti
-			}
-		}
+	if len(nodeLhs) == len(nodeRhs) {
+		panic("BUG: this method must be called only for multiple assignments")
 	}
 
-	if len(lhs) == 2 && len(rhs) == 1 {
-		switch v := rhs[0].(type) {
+	rhExpr := nodeRhs[0]
+
+	if call, ok := rhExpr.(*ast.Call); ok {
+		tis, isBuiltin, _ := tc.checkCallExpression(call, false)
+		if len(nodeLhs) != len(tis) {
+			if isBuiltin {
+				panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(nodeLhs), len(tis)))
+			}
+			panic(tc.errorf(node, "assignment mismatch: %d variables but %s returns %d values", len(nodeLhs), call, len(tis)))
+		}
+		rhsExpr := make([]ast.Expression, len(tis))
+		for i, ti := range tis {
+			rhsExpr[i] = ast.NewCall(call.Pos(), call.Func, call.Args, false)
+			tc.typeInfos[rhsExpr[i]] = ti
+		}
+		return rhsExpr
+	}
+
+	if len(nodeLhs) == 2 && len(nodeRhs) == 1 {
+		switch v := rhExpr.(type) {
 		case *ast.TypeAssertion:
 			v1 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
 			v2 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
-			ti := tc.checkExpr(rhs[0])
+			ti := tc.checkExpr(rhExpr)
 			tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
 			tc.typeInfos[v2] = untypedBoolTypeInfo
-			rhs = []ast.Expression{v1, v2}
+			return []ast.Expression{v1, v2}
 		case *ast.Index:
 			v1 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			v2 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
-			ti := tc.checkExpr(rhs[0])
+			ti := tc.checkExpr(rhExpr)
 			tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
 			tc.typeInfos[v2] = untypedBoolTypeInfo
-			rhs = []ast.Expression{v1, v2}
+			return []ast.Expression{v1, v2}
 		case *ast.UnaryOperator:
 			if v.Op == ast.OperatorReceive {
 				v1 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
 				v2 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
-				ti := tc.checkExpr(rhs[0])
+				ti := tc.checkExpr(rhExpr)
 				tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
 				tc.typeInfos[v2] = untypedBoolTypeInfo
-				rhs = []ast.Expression{v1, v2}
+				return []ast.Expression{v1, v2}
 			}
 		}
 	}
 
-	if len(lhs) != len(rhs) {
-		panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(lhs), len(rhs)))
-	}
+	panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(nodeLhs), len(nodeRhs)))
 
-	var newVars []string
-	tmpScope := typeCheckerScope{}
-	for i := range lhs {
-		if isConstDecl {
-			tc.iota++
-		}
-		var newVar string
-		if valueTi := tc.typeInfos[rhs[i]]; valueTi == nil {
-			newVar = tc.assign(node, lhs[i], rhs[i], declTi, isVariableDecl, isConstDecl)
-		} else {
-			ph := ast.NewPlaceholder()
-			tc.typeInfos[ph] = valueTi
-			newVar = tc.assign(node, lhs[i], ph, declTi, isVariableDecl, isConstDecl)
-		}
-		if isVariableDecl || isConstDecl {
-			if !isAssignmentNode && newVar == "" && !isBlankIdentifier(lhs[i]) {
-				panic(tc.errorf(node, "%s redeclared in this block", lhs[i]))
-			}
-			ti, _ := tc.lookupScopes(newVar, true)
-			tmpScope[newVar] = scopeElement{t: ti, decl: lhs[i].(*ast.Identifier)}
-			if len(tc.scopes) > 0 {
-				delete(tc.scopes[len(tc.scopes)-1], newVar)
-			} else {
-				delete(tc.filePackageBlock, newVar)
-			}
-		}
-		for _, v := range newVars {
-			if newVar == v {
-				panic(tc.errorf(node, "%s repeated on left side of :=", lhs[i]))
-			}
-		}
-		if newVar != "" {
-			newVars = append(newVars, newVar)
-		}
-	}
-	if len(newVars) == 0 && isVariableDecl && isAssignmentNode {
-		if tc.opts.SyntaxType == ScriptSyntax && tc.isScriptFuncDecl {
-			panic(tc.errorf(node, "%v already declared in script", lhs[0]))
-		}
-		panic(tc.errorf(node, "no new variables on left side of :="))
-	}
-	for d, ti := range tmpScope {
-		tc.assignScope(d, ti.t, ti.decl)
-	}
-
-	return
-}
-
-// assign assigns rightExpr to leftExpr. If right is not nil, then is used
-// instead of rightExpr. typ is the type specified in the declaration, if any.
-// If assignment is a declaration and the scope has been updated, returns the
-// identifier of the new scope element; otherwise returns an empty string.
-func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression, typ *TypeInfo, isVariableDecl, isConstDecl bool) string {
-
-	right := tc.checkExpr(rightExpr)
-
-	// Assignment using '=' with 'nil' as right value.
-	//
-	//	s = nil // where s has type []int
-	//
-	if !isVariableDecl && !isConstDecl && right.Nil() {
-		left := tc.checkExpr(leftExpr)
-		right = tc.nilOf(left.Type)
-		tc.typeInfos[rightExpr] = right
-	}
-
-	// Variable declaration using 'var' with an explicit type and 'nil' as right value.
-	//
-	//	var a []int = nil
-	//
-	if isVariableDecl && typ != nil && right.Nil() {
-		right = tc.nilOf(typ.Type)
-		tc.typeInfos[rightExpr] = right
-	}
-
-	if isConstDecl {
-		if right.Nil() {
-			panic(tc.errorf(node, "const initializer cannot be nil"))
-		}
-		if !right.IsConstant() {
-			panic(tc.errorf(node, "const initializer %s is not a constant", rightExpr))
-		}
-	}
-
-	if typ == nil {
-		// Type is not explicit, so is deducted by value.
-		right.setValue(nil)
-	} else {
-		// Type is explicit, so must check assignability.
-		if err := tc.isAssignableTo(right, rightExpr, typ.Type); err != nil {
-			if _, ok := rightExpr.(*ast.Placeholder); ok {
-				panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", right, leftExpr, typ))
-			}
-			panic(tc.errorf(node, "%s in assignment", err))
-		}
-		if right.Nil() {
-			// Note that this doesn't change the type info associated to node
-			// 'right'; it just uses a new type info inside this function.
-			right = tc.nilOf(typ.Type)
-		} else {
-			right.setValue(typ.Type)
-		}
-	}
-
-	// When declaring a variable, left side must be a name.
-	// Note that the error message takes for granted that isVariableDecl refers
-	// to a declaration assignment. This is always true because 'var' nodes
-	// require an *ast.Identifier as lhs, so !isIdent is always false.
-	if isVariableDecl {
-		if _, isIdent := leftExpr.(*ast.Identifier); !isIdent {
-			panic(tc.errorf(node, "non-name %s on left side of :=", leftExpr))
-		}
-	}
-
-	switch leftExpr := leftExpr.(type) {
-
-	case *ast.Identifier:
-
-		if leftExpr.Name == "_" {
-			return ""
-		}
-
-		if isConstDecl {
-			newRight := &TypeInfo{}
-			if typ == nil {
-				if right.Nil() {
-					panic(tc.errorf(node, "use of untyped nil"))
-				}
-				newRight.Type = right.Type
-			} else {
-				newRight.Type = typ.Type
-			}
-			tc.typeInfos[leftExpr] = newRight
-			if _, alreadyInCurrentScope := tc.lookupScopes(leftExpr.Name, true); alreadyInCurrentScope {
-				return ""
-			}
-			newRight.Constant = right.Constant
-			if right.Untyped() {
-				newRight.Properties = PropertyUntyped
-			}
-			tc.assignScope(leftExpr.Name, newRight, nil)
-			return leftExpr.Name
-		}
-
-		if isVariableDecl {
-			newRight := &TypeInfo{}
-			if typ == nil {
-				if right.Nil() {
-					panic(tc.errorf(node, "use of untyped nil"))
-				}
-				newRight.Type = right.Type
-			} else {
-				newRight.Type = typ.Type
-			}
-			tc.typeInfos[leftExpr] = newRight
-			if _, alreadyInCurrentScope := tc.lookupScopes(leftExpr.Name, true); alreadyInCurrentScope {
-				return ""
-			}
-			newRight.Properties |= PropertyAddressable
-			tc.assignScope(leftExpr.Name, newRight, leftExpr)
-			if !tc.opts.AllowNotUsed {
-				tc.unusedVars = append(tc.unusedVars, &scopeVariable{
-					ident:      leftExpr.Name,
-					scopeLevel: len(tc.scopes) - 1,
-					node:       node,
-				})
-			}
-			return leftExpr.Name
-		}
-
-		// Simple assignment.
-		left := tc.checkIdentifier(leftExpr, false)
-		if !left.Addressable() {
-			panic(tc.errorf(leftExpr, "cannot assign to %v", leftExpr))
-		}
-		if err := tc.isAssignableTo(right, rightExpr, left.Type); err != nil {
-			if _, ok := rightExpr.(*ast.Placeholder); ok {
-				panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", right, leftExpr, left))
-			}
-			panic(tc.errorf(node, "%s in assignment", err))
-		}
-		right.setValue(left.Type)
-		tc.typeInfos[leftExpr] = left
-
-	case *ast.Index:
-
-		left := tc.checkExpr(leftExpr)
-		ti := tc.typeInfos[leftExpr.Expr]
-		switch ti.Type.Kind() {
-		case reflect.Array:
-			if !left.Addressable() {
-				panic(tc.errorf(leftExpr, "cannot assign to %v", leftExpr))
-			}
-		case reflect.String:
-			panic(tc.errorf(node, "cannot assign to %v", leftExpr))
-		default:
-			// Slices, maps and pointers to array are always addressable when
-			// used in indexing operation.
-		}
-		if err := tc.isAssignableTo(right, rightExpr, left.Type); err != nil {
-			if _, ok := rightExpr.(*ast.Placeholder); ok {
-				panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", right, leftExpr, left))
-			}
-			panic(tc.errorf(node, "%s in assignment", err))
-		}
-		right.setValue(left.Type)
-		return ""
-
-	case *ast.Selector:
-
-		left := tc.checkExpr(leftExpr)
-		if !left.Addressable() {
-			if e, ok := leftExpr.Expr.(*ast.Index); ok && tc.typeInfos[e.Expr].Type.Kind() == reflect.Map {
-				panic(tc.errorf(leftExpr, "cannot assign to struct field %v in map", leftExpr))
-			}
-			panic(tc.errorf(leftExpr, "cannot assign to %v", leftExpr))
-		}
-		if err := tc.isAssignableTo(right, rightExpr, left.Type); err != nil {
-			if _, ok := rightExpr.(*ast.Placeholder); ok {
-				panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", right, leftExpr, left))
-			}
-			panic(tc.errorf(node, "%s in assignment", err))
-		}
-		right.setValue(left.Type)
-		return ""
-
-	case *ast.UnaryOperator:
-
-		if leftExpr.Operator() == ast.OperatorMultiplication { // pointer indirection.
-			left := tc.checkExpr(leftExpr)
-			if err := tc.isAssignableTo(right, rightExpr, left.Type); err != nil {
-				if _, ok := rightExpr.(*ast.Placeholder); ok {
-					panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", right, leftExpr, left))
-				}
-				panic(tc.errorf(node, "%s in assignment", err))
-			}
-			right.setValue(left.Type)
-			return ""
-		}
-		panic(tc.errorf(node, "cannot assign to %v", leftExpr))
-
-	case *ast.Call: // call on left side of assignment: f() = 10 .
-
-		retValues, _, _ := tc.checkCallExpression(leftExpr, false)
-		switch len(retValues) {
-		case 0:
-			panic(tc.errorf(node, "%s used as value", leftExpr))
-		case 1:
-			panic(tc.errorf(node, "cannot assign to %v", leftExpr))
-		default:
-			panic(tc.errorf(node, "multiple-value %s in single-value context", leftExpr))
-		}
-
-	default:
-
-		panic(tc.errorf(node, "cannot assign to %v", leftExpr))
-	}
-
-	return ""
-}
-
-// cantBeBlank panics if expr is the blank identifier.
-func (tc *typechecker) cantBeBlank(expr ast.Expression) {
-	if isBlankIdentifier(expr) {
-		panic(tc.errorf(expr, "cannot use _ as value"))
-	}
-}
-
-// operatorFromAssignmentType returns an operator type from an assignment
-// type.
-func operatorFromAssignmentType(assignmentType ast.AssignmentType) ast.OperatorType {
-	switch assignmentType {
-	case ast.AssignmentAddition, ast.AssignmentIncrement:
-		return ast.OperatorAddition
-	case ast.AssignmentSubtraction, ast.AssignmentDecrement:
-		return ast.OperatorSubtraction
-	case ast.AssignmentMultiplication:
-		return ast.OperatorMultiplication
-	case ast.AssignmentDivision:
-		return ast.OperatorDivision
-	case ast.AssignmentModulo:
-		return ast.OperatorModulo
-	case ast.AssignmentAnd:
-		return ast.OperatorAnd
-	case ast.AssignmentOr:
-		return ast.OperatorOr
-	case ast.AssignmentXor:
-		return ast.OperatorXor
-	case ast.AssignmentAndNot:
-		return ast.OperatorAndNot
-	case ast.AssignmentLeftShift:
-		return ast.OperatorLeftShift
-	case ast.AssignmentRightShift:
-		return ast.OperatorRightShift
-	}
-	panic("unexpected assignment type")
 }

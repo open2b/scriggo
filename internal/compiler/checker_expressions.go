@@ -990,6 +990,14 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		t2 = &TypeInfo{Type: t1.Type, Constant: c}
 	}
 
+	if t1.IsConstant() && !t2.IsConstant() {
+		t1.setValue(nil)
+	}
+
+	if !t1.IsConstant() && t2.IsConstant() {
+		t2.setValue(nil)
+	}
+
 	if t1.IsConstant() && t2.IsConstant() {
 		if t1.Type != t2.Type {
 			return nil, fmt.Errorf("mismatched types %s and %s", t1, t2)

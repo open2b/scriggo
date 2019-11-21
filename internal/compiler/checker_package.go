@@ -649,9 +649,9 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 			tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
 			tc.exitScope()
 		case *ast.Const:
-			tc.checkAssignment(d)
+			tc.checkConstantDeclaration(d)
 		case *ast.Var:
-			tc.checkAssignment(d)
+			tc.checkVariableDeclaration(d)
 		}
 	}
 

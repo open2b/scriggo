@@ -190,7 +190,7 @@ nodesLoop:
 		case *ast.If:
 			tc.enterScope()
 			if node.Assignment != nil {
-				tc.checkAssignment(node.Assignment)
+				tc.checkGenericAssignmentNode(node.Assignment)
 			}
 			ti := tc.checkExpr(node.Condition)
 			if ti.Type.Kind() != reflect.Bool {
@@ -217,7 +217,7 @@ nodesLoop:
 			tc.enterScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
-				tc.checkAssignment(node.Init)
+				tc.checkGenericAssignmentNode(node.Init)
 			}
 			if node.Condition != nil {
 				ti := tc.checkExpr(node.Condition)
@@ -227,7 +227,7 @@ nodesLoop:
 				ti.setValue(nil)
 			}
 			if node.Post != nil {
-				tc.checkAssignment(node.Post)
+				tc.checkGenericAssignmentNode(node.Post)
 			}
 			tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()
@@ -281,11 +281,11 @@ nodesLoop:
 				declaration := node.Assignment.Type == ast.AssignmentDeclaration
 				indexPh := ast.NewPlaceholder()
 				tc.typeInfos[indexPh] = ti1
-				tc.assign(node.Assignment, lhs[0], indexPh, nil, declaration, false)
+				tc.obsoleteForRangeAssign(node.Assignment, lhs[0], indexPh, nil, declaration, false)
 				if len(lhs) == 2 {
 					valuePh := ast.NewPlaceholder()
 					tc.typeInfos[valuePh] = &TypeInfo{Type: typ2}
-					tc.assign(node.Assignment, lhs[1], valuePh, nil, declaration, false)
+					tc.obsoleteForRangeAssign(node.Assignment, lhs[1], valuePh, nil, declaration, false)
 				}
 			}
 			tc.checkNodesInNewScope(node.Body)
@@ -294,7 +294,7 @@ nodesLoop:
 			tc.terminating = !tc.hasBreak[node]
 
 		case *ast.Assignment:
-			tc.checkAssignment(node)
+			tc.checkGenericAssignmentNode(node)
 			if node.Type == ast.AssignmentDeclaration {
 				tc.nextValidGoto = len(tc.gotos)
 			}
@@ -380,7 +380,8 @@ nodesLoop:
 			tc.addToAncestors(node)
 			// Check the init.
 			if node.Init != nil {
-				tc.checkAssignment(node.Init)
+				// TODO: this type assertion should be removed/handled differently.
+				tc.checkGenericAssignmentNode(node.Init.(*ast.Assignment))
 			}
 			// Check the expression.
 			var texpr *TypeInfo
@@ -472,7 +473,8 @@ nodesLoop:
 			tc.enterScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
-				tc.checkAssignment(node.Init)
+				// TODO: this type assertion should be removed/handled differently.
+				tc.checkGenericAssignmentNode(node.Init.(*ast.Assignment))
 			}
 			ta := node.Assignment.Rhs[0].(*ast.TypeAssertion)
 			t := tc.checkExpr(ta.Expr)
@@ -526,7 +528,7 @@ nodesLoop:
 									ast.NewTypeAssertion(ta.Pos(), ta.Expr, cas.Expressions[0]),
 								},
 							)
-							tc.checkAssignment(n)
+							tc.checkGenericAssignmentNode(n)
 						}
 					}
 				} else {
@@ -539,7 +541,7 @@ nodesLoop:
 								ta.Expr,
 							},
 						)
-						tc.checkAssignment(n)
+						tc.checkGenericAssignmentNode(n)
 					}
 				}
 				tc.enterScope()
@@ -572,7 +574,7 @@ nodesLoop:
 						panic(tc.errorf(node, "select case must be receive, send or assign recv"))
 					}
 				case *ast.Assignment:
-					tc.checkAssignment(comm)
+					tc.checkGenericAssignmentNode(comm)
 					if comm.Type != ast.AssignmentSimple && comm.Type != ast.AssignmentDeclaration {
 						panic(tc.errorf(node, "select case must be receive, send or assign recv"))
 					}
@@ -590,11 +592,11 @@ nodesLoop:
 			tc.terminating = terminating && !tc.hasBreak[node]
 
 		case *ast.Const:
-			tc.checkAssignment(node)
+			tc.checkConstantDeclaration(node)
 			tc.terminating = false
 
 		case *ast.Var:
-			tc.checkAssignment(node)
+			tc.checkVariableDeclaration(node)
 			tc.nextValidGoto = len(tc.gotos)
 			tc.terminating = false
 
