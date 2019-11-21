@@ -308,11 +308,27 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 // checkVariableDeclaration type checks a variable declaration.
 func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 
+	// Type check the explicit type, if present.
+	var typ *TypeInfo
+	if node.Type != nil {
+		typ = tc.checkType(node.Type)
+	}
+
 	// In case of unbalanced var declarations a 'fake' rhs must be used for the
 	// type checking, but the tree must not be changed.
 	nodeRhs := node.Rhs
 	if len(nodeRhs) > 0 && len(node.Lhs) != len(nodeRhs) {
 		nodeRhs = tc.rebalancedRightSide(node)
+	}
+
+	// Variable declaration with no expressions: the zero of the explicit type
+	// must be assigned to the left identifiers.
+	if len(nodeRhs) == 0 {
+		nodeRhs = make([]ast.Expression, len(node.Lhs))
+		for i := 0; i < len(node.Lhs); i++ {
+			nodeRhs[i] = tc.newPlaceholderFor(typ.Type)
+		}
+		node.Rhs = nodeRhs // change the tree for the emitter.
 	}
 
 	// Type check expressions on the right side.
@@ -321,8 +337,7 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		rhs[i] = tc.checkExpr(nodeRhs[i])
 	}
 
-	var typ *TypeInfo
-	if node.Type == nil {
+	if typ == nil {
 		// Type is not specified, so there can't be an untyped nil in the right
 		// side expression; more than this, every untyped constant must be
 		// representable by it's default type.
@@ -340,16 +355,6 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		typ = tc.checkType(node.Type)
 		for i := range rhs {
 			tc.mustBeAssignableTo(nodeRhs[i], typ.Type, len(node.Lhs) != len(node.Rhs), node.Lhs[i])
-		}
-	}
-
-	// Variable declaration with no expressions: the zero of the explicit type
-	// must be assigned to the left identifiers.
-	if len(node.Rhs) == 0 {
-		node.Rhs = make([]ast.Expression, len(node.Lhs))
-		for i := 0; i < len(node.Lhs); i++ {
-			node.Rhs[i] = tc.newPlaceholderFor(typ.Type)
-			rhs = append(rhs, tc.checkExpr(node.Rhs[i]))
 		}
 	}
 
