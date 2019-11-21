@@ -20,7 +20,7 @@ import (
 
 var errTypeConversion = errors.New("failed type conversion")
 
-type nilConvertionError struct{
+type nilConvertionError struct {
 	typ reflect.Type
 }
 
