@@ -12,4 +12,10 @@ func main() {
 		fmt.Println(i)
 	}
 
+	{
+		r := int(20)
+		var s int32 = 1 << r
+		_ = s
+	}
+
 }
