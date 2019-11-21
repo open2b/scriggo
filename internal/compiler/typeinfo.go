@@ -109,7 +109,12 @@ func (ti *TypeInfo) String() string {
 	if ti.Untyped() {
 		s = "untyped "
 	}
-	return s + ti.Type.String()
+	if ti.Type == nil {
+		s += "unsigned number"
+	} else {
+		s += ti.Type.String()
+	}
+	return s
 }
 
 // ShortString returns a short string representation.
@@ -119,6 +124,9 @@ func (ti *TypeInfo) ShortString() string {
 	}
 	if ti.IsConstant() && ti.Type == runeType {
 		return "rune"
+	}
+	if ti.Type == nil {
+		return "unsigned number"
 	}
 	return ti.Type.String()
 }

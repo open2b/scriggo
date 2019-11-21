@@ -219,6 +219,14 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 		} else {
 			return ti.Constant.representedBy(t2)
 		}
+	case ti.IsInteger():
+		c := ti.value.(*TypeInfo)
+		_, err := c.Constant.representedBy(t2)
+		if err != nil {
+			return nil, err
+		}
+		ti.value = nil
+		return nil, nil
 	default:
 		switch {
 		case k2 == reflect.Bool:
