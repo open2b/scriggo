@@ -223,39 +223,6 @@ func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 
 }
 
-// checkNonNamesOnLeft ensures that a short declaration contains only
-// identifiers on the left side, otherwise panics.
-func (tc *typechecker) checkNonNamesOnLeft(node *ast.Assignment) {
-	if node.Type != ast.AssignmentDeclaration {
-		panic("BUG: expected a short variable declaration")
-	}
-	for _, lhExpr := range node.Lhs {
-		_, isIdent := lhExpr.(*ast.Identifier)
-		if !isIdent {
-			panic(tc.errorf(node, "non-name %s on left side of :=", lhExpr))
-		}
-	}
-}
-
-// checkRepeatedLhs panics a type checking error the left side of the given node
-// contains repeated identifiers.
-func (tc *typechecker) checkRepeatedLhs(node *ast.Assignment) {
-	if node.Type != ast.AssignmentDeclaration {
-		panic("BUG: expecting a := node")
-	}
-	names := map[string]bool{}
-	for _, lh := range node.Lhs {
-		if isBlankIdentifier(lh) {
-			continue
-		}
-		name := lh.(*ast.Identifier).Name
-		if names[name] {
-			panic(tc.errorf(node, "%s repeated on left side of :=", name))
-		}
-		names[name] = true
-	}
-}
-
 // checkShortVariableDeclaration type checks a short variable declaration.
 func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 
@@ -270,8 +237,26 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 		nodeRhs = tc.rebalancedRightSide(node)
 	}
 
-	tc.checkNonNamesOnLeft(node)
-	tc.checkRepeatedLhs(node)
+	// Check that every operand on the left is an identifier.
+	for _, lhExpr := range node.Lhs {
+		_, isIdent := lhExpr.(*ast.Identifier)
+		if !isIdent {
+			panic(tc.errorf(node, "non-name %s on left side of :=", lhExpr))
+		}
+	}
+
+	// Check that the left side does not contain repeated names.
+	names := map[string]bool{}
+	for _, lh := range node.Lhs {
+		if isBlankIdentifier(lh) {
+			continue
+		}
+		name := lh.(*ast.Identifier).Name
+		if names[name] {
+			panic(tc.errorf(node, "%s repeated on left side of :=", name))
+		}
+		names[name] = true
+	}
 
 	// Type check the right side of :=.
 	rhs := make([]*TypeInfo, len(nodeRhs))
