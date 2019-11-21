@@ -910,7 +910,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			}
 		} else if t1.IsUntypedConstant() {
 			ti.Properties = PropertyUntyped
-			ti.value = t1
+			tc.untypedIntegers[ti] = t1
 		}
 		t1.setValue(nil)
 		t2.setValue(nil)

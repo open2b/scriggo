@@ -20,7 +20,7 @@ import (
 
 var errTypeConversion = errors.New("failed type conversion")
 
-type nilConvertionError struct{
+type nilConvertionError struct {
 	typ reflect.Type
 }
 
@@ -220,13 +220,20 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 			return ti.Constant.representedBy(t2)
 		}
 	case ti.IsInteger():
-		c := ti.value.(*TypeInfo)
-		_, err := c.Constant.representedBy(t2)
-		if err != nil {
-			return nil, err
+		c := tc.untypedIntegers[ti]
+		if k2 == reflect.Interface {
+			if t2 == emptyInterfaceType || tc.types.ConvertibleTo(c.Type, t2) {
+				_, err := c.Constant.representedBy(c.Type)
+				return nil, err
+			}
+		} else {
+			_, err := c.Constant.representedBy(t2)
+			if err != nil {
+				return nil, err
+			}
+			delete(tc.untypedIntegers, ti)
+			return nil, nil
 		}
-		ti.value = nil
-		return nil, nil
 	default:
 		switch {
 		case k2 == reflect.Bool:

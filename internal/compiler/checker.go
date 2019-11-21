@@ -96,6 +96,9 @@ type typechecker struct {
 	// create and manipulate types and values, both predefined and defined only
 	// by Scriggo.
 	types *types.Types
+
+	// TODO: review.
+	untypedIntegers map[*TypeInfo]*TypeInfo
 }
 
 // newTypechecker creates a new type checker. A global scope may be provided for
@@ -113,6 +116,7 @@ func newTypechecker(path string, opts CheckerOptions, globalScope typeCheckerSco
 		opts:             opts,
 		iota:             -1,
 		types:            types.NewTypes(),
+		untypedIntegers:  map[*TypeInfo]*TypeInfo{},
 	}
 }
 

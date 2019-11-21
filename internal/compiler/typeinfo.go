@@ -109,6 +109,7 @@ func (ti *TypeInfo) String() string {
 	if ti.Untyped() {
 		s = "untyped "
 	}
+	// X MARCO: is this change ok or is it obsolete?
 	if ti.Type == nil {
 		s += "unsigned number"
 	} else {
@@ -125,6 +126,7 @@ func (ti *TypeInfo) ShortString() string {
 	if ti.IsConstant() && ti.Type == runeType {
 		return "rune"
 	}
+	// X MARCO: is this change ok or is it obsolete?
 	if ti.Type == nil {
 		return "unsigned number"
 	}
