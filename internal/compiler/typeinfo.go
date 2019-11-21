@@ -98,6 +98,11 @@ func (ti *TypeInfo) IsBuiltinFunction() bool {
 	return ti.Properties&PropertyPredeclared != 0 && ti.Properties&PropertyUntyped == 0 && ti.Type == nil
 }
 
+// TODO: review.
+func (ti *TypeInfo) UntypedNonConstantInteger() bool {
+	return ti.IsInteger() && !ti.IsConstant() && ti.Untyped()
+}
+
 var runeType = reflect.TypeOf(rune(0))
 
 // String returns a string representation.

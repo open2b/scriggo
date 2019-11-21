@@ -219,6 +219,9 @@ func (tc *typechecker) checkExpr(expr ast.Expression) *TypeInfo {
 		panic(tc.errorf(expr, "type %s is not an expression", ti))
 	}
 	tc.typeInfos[expr] = ti
+	if ti.UntypedNonConstantInteger() {
+		tc.untypedIntegerRoot = expr
+	}
 	return ti
 }
 
@@ -860,8 +863,6 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		if err != nil {
 			panic(err) // TODO: review.
 		}
-		t1.Type = t2.Type
-		t1.Properties &^= PropertyUntyped
 	}
 
 	if ui2, ok := tc.untypedIntegers[t2]; ok {
@@ -869,8 +870,6 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		if err != nil {
 			panic(err) // TODO: review.
 		}
-		t2.Type = t1.Type
-		t2.Properties &^= PropertyUntyped
 	}
 
 	if op == ast.OperatorLeftShift || op == ast.OperatorRightShift {

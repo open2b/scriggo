@@ -197,6 +197,37 @@ func (tc *typechecker) convertExplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 	return nil, errTypeConversion
 }
 
+func (tc *typechecker) shiftCheck(node ast.Node, ctxType reflect.Type) {
+	ti := tc.typeInfos[node]
+	if ti == nil {
+		panic("BUG: unexpected")
+	}
+	if ti.IsConstant() {
+		_, err := ti.Constant.representedBy(ctxType)
+		if err != nil {
+			panic(tc.errorf(node, "%s", err))
+		}
+		return
+	}
+	ti.Type = ctxType
+	switch node := node.(type) {
+	case *ast.BinaryOperator:
+		if node.Operator() == ast.OperatorRightShift || node.Operator() == ast.OperatorLeftShift {
+			if k := ctxType.Kind(); k < reflect.Int || k > reflect.Uintptr {
+				panic(tc.errorf(node, "invalid operation: %s (shift of type %s)", node, ctxType))
+			}
+			tc.shiftCheck(node.Expr1, ctxType)
+		} else {
+			tc.shiftCheck(node.Expr2, ctxType)
+			tc.shiftCheck(node.Expr1, ctxType)
+		}
+	case *ast.UnaryOperator:
+		tc.shiftCheck(node.Expr, ctxType)
+	default:
+		panic(fmt.Errorf("BUG: unexpected node %s (type %T) with type info %s", node, node, ti))
+	}
+}
+
 // convertImplicitly implicitly converts an untyped value. If the converted
 // value is a constant, convert returns its value, otherwise returns nil.
 //
@@ -219,21 +250,19 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 		} else {
 			return ti.Constant.representedBy(t2)
 		}
-	case ti.IsInteger():
-		c := tc.untypedIntegers[ti]
+	case ti.UntypedNonConstantInteger():
+		// c := tc.untypedIntegers[ti]
 		if k2 == reflect.Interface {
-			if t2 == emptyInterfaceType || tc.types.ConvertibleTo(c.Type, t2) {
-				_, err := c.Constant.representedBy(c.Type)
-				return nil, err
-			}
+			return nil, nil
 		} else {
-			_, err := c.Constant.representedBy(t2)
-			if err != nil {
-				return nil, err
+			if tc.untypedIntegerRoot == nil {
+				panic("BUG: unexpected")
 			}
-			delete(tc.untypedIntegers, ti)
+			tc.shiftCheck(tc.untypedIntegerRoot, t2)
+			tc.untypedIntegerRoot = nil
 			return nil, nil
 		}
+
 	default:
 		switch {
 		case k2 == reflect.Bool:

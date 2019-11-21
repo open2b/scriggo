@@ -99,6 +99,8 @@ type typechecker struct {
 
 	// TODO: review.
 	untypedIntegers map[*TypeInfo]*TypeInfo
+
+	untypedIntegerRoot ast.Node
 }
 
 // newTypechecker creates a new type checker. A global scope may be provided for
