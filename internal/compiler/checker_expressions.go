@@ -858,18 +858,16 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 	t1 := tc.checkExpr(expr1)
 	t2 := tc.checkExpr(expr2)
 
-	if ui1, ok := tc.untypedIntegers[t1]; ok {
-		_, err := tc.convertImplicitly(ui1, t2.Type)
-		if err != nil {
-			panic(err) // TODO: review.
-		}
+	if t1.UntypedNonConstantInteger() && t2.UntypedNonConstantInteger() {
+		panic("BUG: (untyped integer) op (untyped integer) not implemented")
 	}
 
-	if ui2, ok := tc.untypedIntegers[t2]; ok {
-		_, err := tc.convertImplicitly(ui2, t1.Type)
-		if err != nil {
-			panic(err) // TODO: review.
-		}
+	if t1.UntypedNonConstantInteger() {
+		t1.Type = t2.Type
+	}
+
+	if t2.UntypedNonConstantInteger() {
+		t2.Type = t1.Type
 	}
 
 	if op == ast.OperatorLeftShift || op == ast.OperatorRightShift {

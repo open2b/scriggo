@@ -210,6 +210,7 @@ func (tc *typechecker) shiftCheck(node ast.Node, ctxType reflect.Type) {
 		return
 	}
 	ti.Type = ctxType
+	ti.Properties &^= PropertyUntyped
 	switch node := node.(type) {
 	case *ast.BinaryOperator:
 		if node.Operator() == ast.OperatorRightShift || node.Operator() == ast.OperatorLeftShift {
