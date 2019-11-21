@@ -57,4 +57,16 @@ func main() {
 		fmt.Println(rune(2<<v) > 1<<v)
 	}
 
+	{
+		var v uint = 32
+		fmt.Println(1<<v == 2<<v)
+		fmt.Println(1<<v != 2<<v)
+		fmt.Println(1<<v >  2<<v)
+	}
+
+	{
+		var v uint = 32
+        fmt.Println(1 << v == '\002' << v)
+	}
+
 }
