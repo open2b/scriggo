@@ -855,6 +855,24 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 	t1 := tc.checkExpr(expr1)
 	t2 := tc.checkExpr(expr2)
 
+	if ui1, ok := tc.untypedIntegers[t1]; ok {
+		_, err := tc.convertImplicitly(ui1, t2.Type)
+		if err != nil {
+			panic(err) // TODO: review.
+		}
+		t1.Type = t2.Type
+		t1.Properties &^= PropertyUntyped
+	}
+
+	if ui2, ok := tc.untypedIntegers[t2]; ok {
+		_, err := tc.convertImplicitly(ui2, t1.Type)
+		if err != nil {
+			panic(err) // TODO: review.
+		}
+		t2.Type = t1.Type
+		t2.Properties &^= PropertyUntyped
+	}
+
 	if op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
 		if t2.Nil() {
 			return nil, errors.New("cannot convert nil to type uint")

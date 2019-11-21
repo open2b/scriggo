@@ -43,4 +43,18 @@ func main() {
 		f(1 << r)
 	}
 
+	{
+		var v uint = 32
+		fmt.Println(1<<v == rune(2<<v))
+		fmt.Println(1<<v != rune(2<<v))
+		fmt.Println(1<<v > rune(2<<v))
+	}
+
+	{
+		var v uint = 32
+		fmt.Println(rune(2<<v) == 1<<v)
+		fmt.Println(rune(2<<v) != 1<<v)
+		fmt.Println(rune(2<<v) > 1<<v)
+	}
+
 }
