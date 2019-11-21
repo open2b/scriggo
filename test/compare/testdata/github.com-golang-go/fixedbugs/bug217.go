@@ -1,4 +1,4 @@
-// skip : method definition
+// skip : method definition https://github.com/open2b/scriggo/issues/458
 
 // errorcheck
 

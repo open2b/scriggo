@@ -1,4 +1,4 @@
-// skip : missing function body
+// skip : output is different from Gc
 
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
@@ -24,7 +24,7 @@ const (
 )
 
 type S struct {
-	a int
+	A int
 }
 
 var s S = S{1234}
@@ -78,7 +78,7 @@ func main() {
 		case string:
 			assert(x == "hello" && i == String, "string")
 		case S:
-			assert(x.a == 1234 && i == Struct, "struct")
+			assert(x.A == 1234 && i == Struct, "struct")
 		case chan int:
 			assert(x == c && i == Chan, "chan")
 		case []int:
@@ -88,6 +88,7 @@ func main() {
 		case func(i int) interface{}:
 			assert(x != nil && i == Func, "fun")
 		default:
+			_ = x // https://github.com/open2b/scriggo/issues/230
 			assert(false, "unknown")
 		}
 	}

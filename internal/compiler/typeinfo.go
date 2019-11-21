@@ -156,15 +156,6 @@ func (ti *TypeInfo) IsInteger() bool {
 	return reflect.Int <= k && k <= reflect.Uintptr
 }
 
-// IsUnsignedInteger reports whether it is an unsigned integer.
-func (ti *TypeInfo) IsUnsignedInteger() bool {
-	if ti.Nil() {
-		return false
-	}
-	k := ti.Type.Kind()
-	return reflect.Uint <= k && k <= reflect.Uintptr
-}
-
 // HasValue reports whether it has a value.
 func (ti *TypeInfo) HasValue() bool {
 	return ti.Properties&PropertyHasValue != 0
