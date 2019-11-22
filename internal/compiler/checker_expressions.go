@@ -980,7 +980,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 	bothUntypedIntValue := t1.UntypedNonConstantInteger() && t2.UntypedNonConstantInteger()
 	if bothUntypedIntValue || (t1.UntypedNonConstantInteger() && t1.IsConstant()) || (t1.IsConstant() && t1.UntypedNonConstantInteger()) {
 		var typ reflect.Type
-		if isSupersetOf(t1.Type.Kind(), t2.Type.Kind()) {
+		if kindHasPrecedenceInConstants(t1.Type.Kind(), t2.Type.Kind()) {
 			typ = t1.Type
 		} else {
 			typ = t2.Type
