@@ -860,8 +860,11 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 
 	if t1.UntypedNonConstantInteger() && t2.UntypedNonConstantInteger() {
 		// TODO: review:
-		t1.Type = intType
-		t2.Type = intType
+		if t1.Type.Kind() < t2.Type.Kind() {
+			t1.Type = t2.Type
+		} else {
+			t2.Type = t1.Type
+		}
 	}
 
 	if t1.UntypedNonConstantInteger() {
