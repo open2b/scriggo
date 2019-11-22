@@ -202,7 +202,7 @@ func (tc *typechecker) convertExplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 //
 // Untyped values are the predeclared identifier nil, the untyped constants
 // and the untyped boolean values.
-func (tc *typechecker) convertImplicitly(ti *TypeInfo, t2 reflect.Type) (constant, error) {
+func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 reflect.Type) (constant, error) {
 	switch k2 := t2.Kind(); {
 	case ti.Nil():
 		switch k2 {
@@ -336,7 +336,7 @@ func newInvalidTypeInAssignment(x *TypeInfo, expr ast.Expression, t reflect.Type
 // See https://golang.org/ref/spec#Assignability for details.
 func (tc *typechecker) isAssignableTo(x *TypeInfo, expr ast.Expression, t reflect.Type) error {
 	if x.Untyped() {
-		_, err := tc.convertImplicitly(x, t)
+		_, err := tc.convertImplicitly(x, expr, t)
 		if err == errNotRepresentable || err == errTypeConversion {
 			return newInvalidTypeInAssignment(x, expr, t)
 		}
