@@ -978,8 +978,14 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		if t1.Type.Kind() < t2.Type.Kind() {
 			typ = t2.Type
 		}
-		tc.convertImplicitly(t1, expr1, typ)
-		tc.convertImplicitly(t2, expr2, typ)
+		_, err := tc.convertImplicitly(t1, expr1, typ)
+		if err != nil {
+			panic(tc.errorf(expr1, "%s", err))
+		}
+		_, err = tc.convertImplicitly(t2, expr2, typ)
+		if err != nil {
+			panic(tc.errorf(expr2, "%s", err))
+		}
 		if isComparison(op) {
 			return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
 		}
@@ -987,12 +993,18 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 	}
 
 	if t1.UntypedNonConstantInteger() && isComparison(op) {
-		tc.convertImplicitly(t1, expr1, t2.Type)
+		_, err := tc.convertImplicitly(t1, expr1, t2.Type)
+		if err != nil {
+			panic(tc.errorf(expr1, "%s", err))
+		}
 		return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
 	}
 
 	if t2.UntypedNonConstantInteger() && isComparison(op) {
-		tc.convertImplicitly(t2, expr2, t1.Type)
+		_, err := tc.convertImplicitly(t2, expr2, t1.Type)
+		if err != nil {
+			panic(tc.errorf(expr2, "%s", err))
+		}
 		return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
 	}
 
