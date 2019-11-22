@@ -98,6 +98,15 @@ func (ti *TypeInfo) IsBuiltinFunction() bool {
 	return ti.Properties&PropertyPredeclared != 0 && ti.Properties&PropertyUntyped == 0 && ti.Type == nil
 }
 
+func (ti *TypeInfo) UntypedNonConstantNumber() bool {
+	return ti.IsNumeric() && !ti.IsConstant() && ti.Untyped()
+}
+
+// TODO: to remove?
+func (ti *TypeInfo) UntypedNonConstantInteger() bool {
+	return ti.IsInteger() && !ti.IsConstant() && ti.Untyped()
+}
+
 var runeType = reflect.TypeOf(rune(0))
 
 // String returns a string representation.
@@ -109,7 +118,12 @@ func (ti *TypeInfo) String() string {
 	if ti.Untyped() {
 		s = "untyped "
 	}
-	return s + ti.Type.String()
+	if ti.Type == nil {
+		s += "unsigned number"
+	} else {
+		s += ti.Type.String()
+	}
+	return s
 }
 
 // ShortString returns a short string representation.
@@ -119,6 +133,9 @@ func (ti *TypeInfo) ShortString() string {
 	}
 	if ti.IsConstant() && ti.Type == runeType {
 		return "rune"
+	}
+	if ti.Type == nil {
+		return "unsigned number"
 	}
 	return ti.Type.String()
 }
