@@ -249,6 +249,9 @@ func (tc *typechecker) convertImplicitFromContext(expr ast.Expression, ctxType r
 // Untyped values are the predeclared identifier nil, the untyped constants
 // and the untyped boolean values.
 func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 reflect.Type) (constant, error) {
+	if !ti.Untyped() {
+		panic("BUG")
+	}
 	switch k2 := t2.Kind(); {
 	case ti.Nil():
 		switch k2 {
@@ -265,7 +268,19 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 		} else {
 			return ti.Constant.representedBy(t2)
 		}
-	case ti.IsNumeric():
+	case ti.Type.Kind() == reflect.Bool:
+		switch {
+		case k2 == reflect.Bool:
+			return nil, nil
+		// TODO: replace with a function 'emptyMethodSet(reflect.Type) bool'.
+		case k2 == reflect.Interface && (t2 == emptyInterfaceType || tc.types.ConvertibleTo(ti.Type, t2)):
+			return nil, nil
+		}
+	default:
+		if !ti.IsNumeric() {
+			panic("BUG")
+		}
+		//
 		if k2 == reflect.Interface {
 			if t2 == emptyInterfaceType || tc.types.ConvertibleTo(ti.Type, t2) {
 				tc.convertImplicitFromContext(expr, ti.Type)
@@ -273,13 +288,6 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 			}
 		} else {
 			tc.convertImplicitFromContext(expr, t2)
-			return nil, nil
-		}
-	default:
-		switch {
-		case k2 == reflect.Bool:
-			return nil, nil
-		case k2 == reflect.Interface && (t2 == emptyInterfaceType || tc.types.ConvertibleTo(ti.Type, t2)):
 			return nil, nil
 		}
 	}
