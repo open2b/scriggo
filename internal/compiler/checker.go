@@ -99,6 +99,8 @@ type typechecker struct {
 
 	// untypedIntegerRoot is the root of AST branch that has an untyped integer
 	// type.
+	// TODO: when convertImplicit will work on ast.Expressions instead of type
+	// infos, untypedIntegerRoot will be removed.
 	untypedIntegerRoot ast.Node
 }
 

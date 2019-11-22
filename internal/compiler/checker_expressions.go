@@ -219,6 +219,8 @@ func (tc *typechecker) checkExpr(expr ast.Expression) *TypeInfo {
 		panic(tc.errorf(expr, "type %s is not an expression", ti))
 	}
 	tc.typeInfos[expr] = ti
+	// TODO: when convertImplicit will work on ast.Expressions instead of type
+	// infos, untypedIntegerRoot will be removed.
 	if ti.UntypedNonConstantInteger() {
 		tc.untypedIntegerRoot = expr
 	}
