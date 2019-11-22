@@ -974,10 +974,8 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 	// TODO: remove this variable?
 	bothUntypedIntValue := t1.UntypedNonConstantInteger() && t2.UntypedNonConstantInteger()
 	if bothUntypedIntValue || (t1.UntypedNonConstantInteger() && t1.IsConstant()) || (t1.IsConstant() && t1.UntypedNonConstantInteger()) {
-		var typ reflect.Type
-		if kindHasPrecedenceInConstants(t1.Type.Kind(), t2.Type.Kind()) {
-			typ = t1.Type
-		} else {
+		typ := t1.Type
+		if t1.Type.Kind() < t2.Type.Kind() {
 			typ = t2.Type
 		}
 		tc.convertImplicitly(t1, expr1, typ)
