@@ -97,6 +97,8 @@ type typechecker struct {
 	// by Scriggo.
 	types *types.Types
 
+	// untypedIntegerRoot is the root of AST branch that has an untyped integer
+	// type.
 	untypedIntegerRoot ast.Node
 }
 

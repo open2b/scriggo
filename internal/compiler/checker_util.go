@@ -252,8 +252,8 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 			return ti.Constant.representedBy(t2)
 		}
 	case ti.UntypedNonConstantInteger():
-		// c := tc.untypedIntegers[ti]
 		if k2 == reflect.Interface {
+			// TODO: review.
 			return nil, nil
 		} else {
 			if tc.untypedIntegerRoot == nil {
