@@ -265,7 +265,7 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 		} else {
 			return ti.Constant.representedBy(t2)
 		}
-	case ti.UntypedNonConstantInteger():
+	case ti.IsInteger():
 		if k2 == reflect.Interface {
 			if t2 == emptyInterfaceType || tc.types.ConvertibleTo(ti.Type, t2) {
 				tc.convertImplicitFromContext(expr, ti.Type)
@@ -275,7 +275,6 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 			tc.convertImplicitFromContext(expr, t2)
 			return nil, nil
 		}
-
 	default:
 		switch {
 		case k2 == reflect.Bool:
