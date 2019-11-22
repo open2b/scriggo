@@ -212,7 +212,7 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 		return nil, nilConvertionError{t2}
 	case ti.IsConstant():
 		if k2 == reflect.Interface {
-			if t2 == emptyInterfaceType || tc.types.ConvertibleTo(ti.Type, t2) {
+			if tc.emptyMethodSet(t2) {
 				_, err := ti.Constant.representedBy(ti.Type)
 				return nil, err
 			}
@@ -223,7 +223,7 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 		switch {
 		case k2 == reflect.Bool:
 			return nil, nil
-		case k2 == reflect.Interface && (t2 == emptyInterfaceType || tc.types.ConvertibleTo(ti.Type, t2)):
+		case k2 == reflect.Interface && tc.emptyMethodSet(t2):
 			return nil, nil
 		}
 	}
@@ -275,6 +275,11 @@ func deferGoBuiltin(name string) *TypeInfo {
 		Type:       removeEnvArg(rv.Type(), false),
 		value:      rv,
 	}
+}
+
+// emptyMethodSet reports whether the given interface as an empty method set.
+func (tc *typechecker) emptyMethodSet(interf reflect.Type) bool {
+	return interf == emptyInterfaceType || tc.types.ConvertibleTo(intType, interf)
 }
 
 // fieldByName returns the struct field with the given name and a boolean
