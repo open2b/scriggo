@@ -267,8 +267,10 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 		}
 	case ti.UntypedNonConstantInteger():
 		if k2 == reflect.Interface {
-			// TODO: review.
-			return nil, nil
+			if t2 == emptyInterfaceType || tc.types.ConvertibleTo(ti.Type, t2) {
+				tc.convertImplicitFromContext(expr, ti.Type)
+				return nil, nil
+			}
 		} else {
 			tc.convertImplicitFromContext(expr, t2)
 			return nil, nil
