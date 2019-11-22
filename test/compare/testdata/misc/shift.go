@@ -69,4 +69,22 @@ func main() {
 		fmt.Println((1 << v) == (rune('\002' << v)))
 	}
 
+	{
+		var v uint = 32
+
+		fmt.Println((1 << v) + ('\002' << v))
+		fmt.Println(('\002' << v) + (1 << v))
+
+		fmt.Println((rune('\002' << v)) + (1 << v))
+		fmt.Println((1 << v) + (rune('\002' << v)))
+	}
+
+	{
+		v := 32
+		fmt.Println(
+			(1 << v) + int(10 << (v*2)) + 
+			(200 << v) + int('a' << (v*2)),
+		)
+	}
+
 }
