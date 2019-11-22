@@ -219,11 +219,6 @@ func (tc *typechecker) checkExpr(expr ast.Expression) *TypeInfo {
 		panic(tc.errorf(expr, "type %s is not an expression", ti))
 	}
 	tc.typeInfos[expr] = ti
-	// TODO: when convertImplicit will work on ast.Expressions instead of type
-	// infos, untypedIntegerRoot will be removed.
-	if ti.UntypedNonConstantInteger() {
-		tc.untypedIntegerRoot = expr
-	}
 	return ti
 }
 
@@ -985,11 +980,8 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		} else {
 			typ = t2.Type
 		}
-		tc.untypedIntegerRoot = expr1
 		tc.convertImplicitly(t1, expr1, typ)
-		tc.untypedIntegerRoot = expr2
 		tc.convertImplicitly(t2, expr2, typ)
-		tc.untypedIntegerRoot = nil
 		if isComparison(op) {
 			return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
 		}
@@ -997,13 +989,11 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 	}
 
 	if t1.UntypedNonConstantInteger() && isComparison(op) {
-		tc.untypedIntegerRoot = expr1
 		tc.convertImplicitly(t1, expr1, t2.Type)
 		return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
 	}
 
 	if t2.UntypedNonConstantInteger() && isComparison(op) {
-		tc.untypedIntegerRoot = expr2
 		tc.convertImplicitly(t2, expr2, t1.Type)
 		return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
 	}

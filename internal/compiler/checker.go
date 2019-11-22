@@ -96,12 +96,6 @@ type typechecker struct {
 	// create and manipulate types and values, both predefined and defined only
 	// by Scriggo.
 	types *types.Types
-
-	// untypedIntegerRoot is the root of AST branch that has an untyped integer
-	// type.
-	// TODO: when convertImplicit will work on ast.Expressions instead of type
-	// infos, untypedIntegerRoot will be removed.
-	untypedIntegerRoot ast.Node
 }
 
 // newTypechecker creates a new type checker. A global scope may be provided for

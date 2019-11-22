@@ -267,11 +267,7 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 			// TODO: review.
 			return nil, nil
 		} else {
-			if tc.untypedIntegerRoot == nil {
-				panic("BUG: unexpected")
-			}
-			tc.convertImplicitUntypedInteger(tc.untypedIntegerRoot, t2)
-			tc.untypedIntegerRoot = nil
+			tc.convertImplicitUntypedInteger(expr, t2)
 			return nil, nil
 		}
 
