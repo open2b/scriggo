@@ -197,52 +197,6 @@ func (tc *typechecker) convertExplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 	return nil, errTypeConversion
 }
 
-// convertImplicitFromContext converts implicitly an untyped expression to its
-// context type. It implements the type check of the special form of shift where
-// the left operand is constant and the right operand is a non-constant.
-func (tc *typechecker) convertImplicitFromContext(expr ast.Expression, ctxType reflect.Type) {
-
-	ti := tc.typeInfos[expr]
-	if ti == nil {
-		panic("BUG: unexpected")
-	}
-
-	if ti.IsConstant() {
-		_, err := ti.Constant.representedBy(ctxType)
-		if err != nil {
-			panic(tc.errorf(expr, "%s", err))
-		}
-		return
-	}
-
-	tc.typeInfos[expr] = &TypeInfo{Type: ctxType}
-
-	switch expr := expr.(type) {
-
-	case *ast.UnaryOperator:
-		tc.convertImplicitFromContext(expr.Expr, ctxType)
-
-	case *ast.BinaryOperator:
-		if op := expr.Operator(); op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
-			t1 := tc.typeInfos[expr.Expr1]
-			_, err := t1.Constant.representedBy(ctxType)
-			if err != nil {
-				panic(tc.errorf(expr, "%s", err))
-			}
-			if k := ctxType.Kind(); k < reflect.Int || k > reflect.Uintptr {
-				panic(tc.errorf(expr, "invalid operation: %s (shift of type %s)", expr, ctxType))
-			}
-		} else {
-			tc.convertImplicitFromContext(expr.Expr1, ctxType)
-			tc.convertImplicitFromContext(expr.Expr2, ctxType)
-		}
-
-	default:
-		panic(fmt.Errorf("BUG: unexpected expr %s (type %T) with type info %s", expr, expr, ti))
-	}
-
-}
-
 // convertImplicitly implicitly converts an untyped value. If the converted
 // value is a constant, convert returns its value, otherwise returns nil.
 //
@@ -292,6 +246,52 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 		}
 	}
 	return nil, errTypeConversion
+}
+
+// convertImplicitFromContext converts implicitly an untyped expression to its
+// context type. It implements the type check of the special form of shift where
+// the left operand is constant and the right operand is a non-constant.
+func (tc *typechecker) convertImplicitFromContext(expr ast.Expression, ctxType reflect.Type) {
+
+	ti := tc.typeInfos[expr]
+	if ti == nil {
+		panic("BUG: unexpected")
+	}
+
+	if ti.IsConstant() {
+		_, err := ti.Constant.representedBy(ctxType)
+		if err != nil {
+			panic(tc.errorf(expr, "%s", err))
+		}
+		return
+	}
+
+	tc.typeInfos[expr] = &TypeInfo{Type: ctxType}
+
+	switch expr := expr.(type) {
+
+	case *ast.UnaryOperator:
+		tc.convertImplicitFromContext(expr.Expr, ctxType)
+
+	case *ast.BinaryOperator:
+		if op := expr.Operator(); op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
+			t1 := tc.typeInfos[expr.Expr1]
+			_, err := t1.Constant.representedBy(ctxType)
+			if err != nil {
+				panic(tc.errorf(expr, "%s", err))
+			}
+			if k := ctxType.Kind(); k < reflect.Int || k > reflect.Uintptr {
+				panic(tc.errorf(expr, "invalid operation: %s (shift of type %s)", expr, ctxType))
+			}
+		} else {
+			tc.convertImplicitFromContext(expr.Expr1, ctxType)
+			tc.convertImplicitFromContext(expr.Expr2, ctxType)
+		}
+
+	default:
+		panic(fmt.Errorf("BUG: unexpected expr %s (type %T) with type info %s", expr, expr, ti))
+	}
+
 }
 
 // declaredInThisBlock reports whether name is declared in this block.
