@@ -197,9 +197,9 @@ func (tc *typechecker) convertExplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 	return nil, errTypeConversion
 }
 
-func (tc *typechecker) convertImplicitUntypedInteger(node ast.Node, ctxType reflect.Type) {
+func (tc *typechecker) convertImplicitUntypedInteger(expr ast.Expression, ctxType reflect.Type) {
 
-	ti := tc.typeInfos[node]
+	ti := tc.typeInfos[expr]
 	if ti == nil {
 		panic("BUG: unexpected")
 	}
@@ -207,35 +207,35 @@ func (tc *typechecker) convertImplicitUntypedInteger(node ast.Node, ctxType refl
 	if ti.IsConstant() {
 		_, err := ti.Constant.representedBy(ctxType)
 		if err != nil {
-			panic(tc.errorf(node, "%s", err))
+			panic(tc.errorf(expr, "%s", err))
 		}
 		return
 	}
 
-	tc.typeInfos[node] = &TypeInfo{Type: ctxType}
+	tc.typeInfos[expr] = &TypeInfo{Type: ctxType}
 
-	switch node := node.(type) {
+	switch expr := expr.(type) {
 
 	case *ast.UnaryOperator:
-		tc.convertImplicitUntypedInteger(node.Expr, ctxType)
+		tc.convertImplicitUntypedInteger(expr.Expr, ctxType)
 
 	case *ast.BinaryOperator:
-		if op := node.Operator(); op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
-			t1 := tc.typeInfos[node.Expr1]
+		if op := expr.Operator(); op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
+			t1 := tc.typeInfos[expr.Expr1]
 			_, err := t1.Constant.representedBy(ctxType)
 			if err != nil {
-				panic(tc.errorf(node, "%s", err))
+				panic(tc.errorf(expr, "%s", err))
 			}
 			if k := ctxType.Kind(); k < reflect.Int || k > reflect.Uintptr {
-				panic(tc.errorf(node, "invalid operation: %s (shift of type %s)", node, ctxType))
+				panic(tc.errorf(expr, "invalid operation: %s (shift of type %s)", expr, ctxType))
 			}
 		} else {
-			tc.convertImplicitUntypedInteger(node.Expr1, ctxType)
-			tc.convertImplicitUntypedInteger(node.Expr2, ctxType)
+			tc.convertImplicitUntypedInteger(expr.Expr1, ctxType)
+			tc.convertImplicitUntypedInteger(expr.Expr2, ctxType)
 		}
 
 	default:
-		panic(fmt.Errorf("BUG: unexpected node %s (type %T) with type info %s", node, node, ti))
+		panic(fmt.Errorf("BUG: unexpected expr %s (type %T) with type info %s", expr, expr, ti))
 	}
 
 }
