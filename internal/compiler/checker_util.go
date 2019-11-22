@@ -197,7 +197,10 @@ func (tc *typechecker) convertExplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 	return nil, errTypeConversion
 }
 
-func (tc *typechecker) convertImplicitUntypedInteger(expr ast.Expression, ctxType reflect.Type) {
+// convertImplicitFromContext converts implicitly an untyped expression to its
+// context type. It implements the type check of the special form of shift where
+// the left operand is constant and the right operand is a non-constant.
+func (tc *typechecker) convertImplicitFromContext(expr ast.Expression, ctxType reflect.Type) {
 
 	ti := tc.typeInfos[expr]
 	if ti == nil {
@@ -217,7 +220,7 @@ func (tc *typechecker) convertImplicitUntypedInteger(expr ast.Expression, ctxTyp
 	switch expr := expr.(type) {
 
 	case *ast.UnaryOperator:
-		tc.convertImplicitUntypedInteger(expr.Expr, ctxType)
+		tc.convertImplicitFromContext(expr.Expr, ctxType)
 
 	case *ast.BinaryOperator:
 		if op := expr.Operator(); op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
@@ -230,8 +233,8 @@ func (tc *typechecker) convertImplicitUntypedInteger(expr ast.Expression, ctxTyp
 				panic(tc.errorf(expr, "invalid operation: %s (shift of type %s)", expr, ctxType))
 			}
 		} else {
-			tc.convertImplicitUntypedInteger(expr.Expr1, ctxType)
-			tc.convertImplicitUntypedInteger(expr.Expr2, ctxType)
+			tc.convertImplicitFromContext(expr.Expr1, ctxType)
+			tc.convertImplicitFromContext(expr.Expr2, ctxType)
 		}
 
 	default:
@@ -267,7 +270,7 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 			// TODO: review.
 			return nil, nil
 		} else {
-			tc.convertImplicitUntypedInteger(expr, t2)
+			tc.convertImplicitFromContext(expr, t2)
 			return nil, nil
 		}
 
