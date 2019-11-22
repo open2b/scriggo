@@ -149,7 +149,7 @@ var cssStringerType = reflect.TypeOf((*CSSStringer)(nil)).Elem()
 var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
 
 // convertExplicitly explicitly converts a value. If the converted value is a
-// constant, convert returns its value, otherwise returns nil.
+// constant, convertExplicitly returns its value, otherwise returns nil.
 func (tc *typechecker) convertExplicitly(ti *TypeInfo, t2 reflect.Type) (constant, error) {
 
 	t := ti.Type
@@ -198,7 +198,8 @@ func (tc *typechecker) convertExplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 }
 
 // convertImplicitly implicitly converts an untyped value. If the converted
-// value is a constant, convert returns its value, otherwise returns nil.
+// value is a constant, convertImplicitly returns its value, otherwise returns
+// nil.
 //
 // Untyped values are the predeclared identifier nil, the untyped constants
 // and the untyped boolean values.
