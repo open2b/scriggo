@@ -98,6 +98,10 @@ func (ti *TypeInfo) IsBuiltinFunction() bool {
 	return ti.Properties&PropertyPredeclared != 0 && ti.Properties&PropertyUntyped == 0 && ti.Type == nil
 }
 
+func (ti *TypeInfo) UntypedNonConstantNumber() bool {
+	return ti.IsNumeric() && !ti.IsConstant() && ti.Untyped()
+}
+
 // TODO: to remove?
 func (ti *TypeInfo) UntypedNonConstantInteger() bool {
 	return ti.IsInteger() && !ti.IsConstant() && ti.Untyped()

@@ -971,9 +971,9 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		return t, nil
 	}
 
-	if (t1.UntypedNonConstantInteger() && t2.UntypedNonConstantInteger()) ||
-		(t1.UntypedNonConstantInteger() && t2.IsUntypedConstant()) ||
-		(t1.IsUntypedConstant() && t2.UntypedNonConstantInteger()) {
+	if (t1.UntypedNonConstantNumber() && t2.UntypedNonConstantNumber()) ||
+		(t1.UntypedNonConstantNumber() && t2.IsUntypedConstant()) ||
+		(t1.IsUntypedConstant() && t2.UntypedNonConstantNumber()) {
 		typ := t1.Type
 		if t1.Type.Kind() < t2.Type.Kind() {
 			typ = t2.Type
@@ -994,24 +994,30 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		return &TypeInfo{Type: typ, Properties: PropertyUntyped}, nil
 	}
 
-	if t1.UntypedNonConstantInteger() && isComparison(op) {
+	if t1.UntypedNonConstantNumber() {
 		_, err := tc.convertImplicitly(t1, expr1, t2.Type)
 		if err != nil {
 			panic(tc.errorf(expr1, "%s", err))
 		}
 		t1.setValue(nil)
 		t2.setValue(nil)
-		return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
+		if isComparison(op) {
+			return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
+		}
+		return &TypeInfo{Type: t2.Type}, nil
 	}
 
-	if t2.UntypedNonConstantInteger() && isComparison(op) {
+	if t2.UntypedNonConstantNumber() {
 		_, err := tc.convertImplicitly(t2, expr2, t1.Type)
 		if err != nil {
 			panic(tc.errorf(expr2, "%s", err))
 		}
 		t1.setValue(nil)
 		t2.setValue(nil)
-		return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
+		if isComparison(op) {
+			return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
+		}
+		return &TypeInfo{Type: t1.Type}, nil
 	}
 
 	if t1.Untyped() {

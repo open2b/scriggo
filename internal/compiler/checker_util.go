@@ -265,7 +265,7 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 		} else {
 			return ti.Constant.representedBy(t2)
 		}
-	case ti.IsInteger():
+	case ti.IsNumeric():
 		if k2 == reflect.Interface {
 			if t2 == emptyInterfaceType || tc.types.ConvertibleTo(ti.Type, t2) {
 				tc.convertImplicitFromContext(expr, ti.Type)
