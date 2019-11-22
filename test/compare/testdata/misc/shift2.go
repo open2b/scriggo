@@ -14,6 +14,7 @@ func main() {
 		_         = (1 << v) + (2 << v) + 2.1        // ERROR `invalid operation: 1 << v (shift of type float64)`
 		_         = (1 << v) + 1i                    // ERROR `invalid operation: 1 << v (shift of type complex128)`
 		_ int     = (1 << v) + 1i                    // ERROR `invalid operation: 1 << v (shift of type complex128)`
+		// _ int     = (1.0 << v) + int(5)
 	)
 
 }
