@@ -201,20 +201,26 @@ func (tc *typechecker) convertExplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 // value is a constant, convertImplicitly returns its value, otherwise returns
 // nil.
 //
-// Untyped values are the predeclared identifier nil, the untyped constants
-// and the untyped boolean values.
+// As per spec, untyped values are the predeclared identifier nil, the untyped
+// constants and the untyped boolean values.
+//
+// In addition, convertImplicitly handles expressions that contain numeric
+// constants and shift operations with a constant left operand and a
+// non-constant right operand.
 func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 reflect.Type) (constant, error) {
 	if !ti.Untyped() {
 		panic("BUG")
 	}
 	switch k2 := t2.Kind(); {
 	case ti.Nil():
+		// untyped nil.
 		switch k2 {
 		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
 			return nil, nil
 		}
 		return nil, nilConvertionError{t2}
 	case ti.IsConstant():
+		// constant.
 		if k2 == reflect.Interface {
 			if tc.emptyMethodSet(t2) {
 				_, err := ti.Constant.representedBy(ti.Type)
@@ -224,15 +230,13 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 			return ti.Constant.representedBy(t2)
 		}
 	case ti.Type.Kind() == reflect.Bool:
+		// untyped boolean value.
 		if k2 == reflect.Bool || (k2 == reflect.Interface && tc.emptyMethodSet(t2)) {
 			return nil, nil
 		}
 	default:
-		// Handle untyped values (non constant) obtained from the evaluation of
-		// shift operations with a constant left operand and a non-constant
-		// right operand. In this case it's necessary to call
-		// convertImplicitFromContext to perform a "second type checking".
-		// TODO: improve this documentation.
+		// expression that contains numeric constants and shift operations
+		// with a constant left operand and a non-constant right operand.
 		if !ti.IsNumeric() {
 			panic("BUG")
 		}
@@ -240,16 +244,17 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 		if k2 == reflect.Interface && tc.emptyMethodSet(t2) {
 			typ = ti.Type
 		}
-		tc.convertImplicitFromContext(expr, typ)
+		tc.convertReplaced(expr, typ)
 		return nil, nil
 	}
 	return nil, errTypeConversion
 }
 
-// convertImplicitFromContext converts implicitly an untyped expression to its
-// context type. It implements the type check of the special form of shift where
-// the left operand is constant and the right operand is a non-constant.
-func (tc *typechecker) convertImplicitFromContext(expr ast.Expression, ctxType reflect.Type) {
+// convertReplaced converts an expression that contains numeric constants and
+// shift operations, with a constant left operand and a non-constant right
+// operand, to the type the left operand would assume if the shift expression
+// were replaced by its left operand alone.
+func (tc *typechecker) convertReplaced(expr ast.Expression, typ reflect.Type) {
 
 	ti := tc.typeInfos[expr]
 	if ti == nil {
@@ -257,33 +262,33 @@ func (tc *typechecker) convertImplicitFromContext(expr ast.Expression, ctxType r
 	}
 
 	if ti.IsConstant() {
-		_, err := ti.Constant.representedBy(ctxType)
+		_, err := ti.Constant.representedBy(typ)
 		if err != nil {
 			panic(tc.errorf(expr, "%s", err))
 		}
 		return
 	}
 
-	tc.typeInfos[expr] = &TypeInfo{Type: ctxType}
+	tc.typeInfos[expr] = &TypeInfo{Type: typ}
 
 	switch expr := expr.(type) {
 
 	case *ast.UnaryOperator:
-		tc.convertImplicitFromContext(expr.Expr, ctxType)
+		tc.convertReplaced(expr.Expr, typ)
 
 	case *ast.BinaryOperator:
 		if op := expr.Operator(); op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
 			t1 := tc.typeInfos[expr.Expr1]
-			_, err := t1.Constant.representedBy(ctxType)
+			_, err := t1.Constant.representedBy(typ)
 			if err != nil {
 				panic(tc.errorf(expr, "%s", err))
 			}
-			if k := ctxType.Kind(); k < reflect.Int || k > reflect.Uintptr {
-				panic(tc.errorf(expr, "invalid operation: %s (shift of type %s)", expr, ctxType))
+			if k := typ.Kind(); k < reflect.Int || k > reflect.Uintptr {
+				panic(tc.errorf(expr, "invalid operation: %s (shift of type %s)", expr, typ))
 			}
 		} else {
-			tc.convertImplicitFromContext(expr.Expr1, ctxType)
-			tc.convertImplicitFromContext(expr.Expr2, ctxType)
+			tc.convertReplaced(expr.Expr1, typ)
+			tc.convertReplaced(expr.Expr2, typ)
 		}
 
 	default:
