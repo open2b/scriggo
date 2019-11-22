@@ -853,18 +853,6 @@ func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, isSlice bool
 	return nil
 }
 
-// TODO: review/remove this function.
-// isSupersetOf reports whether the kind k1 is a superset of the kind k2.
-func isSupersetOf(k1, k2 reflect.Kind) bool {
-	valueOf := map[reflect.Kind]int8{
-		reflect.Int:        0,
-		reflect.Int32:      1,
-		reflect.Float64:    2,
-		reflect.Complex128: 3,
-	}
-	return valueOf[k1] >= valueOf[k2]
-}
-
 // binaryOp executes the binary expression t1 op t2 and returns its result.
 // Returns an error if the operation can not be executed.
 func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2 ast.Expression) (*TypeInfo, error) {

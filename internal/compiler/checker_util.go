@@ -474,6 +474,19 @@ func (tc *typechecker) isSelectorOfMapIndexing(expr ast.Expression) bool {
 	return tc.isMapIndexing(selector.Expr)
 }
 
+// kindHasPrecedenceInConstants reports whether the k1 has the precedence
+// over k2 in a constant type context. See
+// https://golang.org/ref/spec#Constant_expressions for more details.
+func kindHasPrecedenceInConstants(kind1, kind2 reflect.Kind) bool {
+	precOf := map[reflect.Kind]int8{
+		reflect.Int:        0,
+		reflect.Int32:      1,
+		reflect.Float64:    2,
+		reflect.Complex128: 3,
+	}
+	return precOf[kind1] >= precOf[kind2]
+}
+
 // macroToFunc converts a macro node into a function node.
 func macroToFunc(macro *ast.Macro) *ast.Func {
 	pos := macro.Pos()
