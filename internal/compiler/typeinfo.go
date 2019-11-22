@@ -98,7 +98,7 @@ func (ti *TypeInfo) IsBuiltinFunction() bool {
 	return ti.Properties&PropertyPredeclared != 0 && ti.Properties&PropertyUntyped == 0 && ti.Type == nil
 }
 
-// TODO: review.
+// TODO: to remove?
 func (ti *TypeInfo) UntypedNonConstantInteger() bool {
 	return ti.IsInteger() && !ti.IsConstant() && ti.Untyped()
 }
@@ -114,7 +114,6 @@ func (ti *TypeInfo) String() string {
 	if ti.Untyped() {
 		s = "untyped "
 	}
-	// X MARCO: is this change ok or is it obsolete?
 	if ti.Type == nil {
 		s += "unsigned number"
 	} else {
@@ -131,7 +130,6 @@ func (ti *TypeInfo) ShortString() string {
 	if ti.IsConstant() && ti.Type == runeType {
 		return "rune"
 	}
-	// X MARCO: is this change ok or is it obsolete?
 	if ti.Type == nil {
 		return "unsigned number"
 	}
