@@ -223,10 +223,7 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 			return ti.Constant.representedBy(t2)
 		}
 	case ti.Type.Kind() == reflect.Bool:
-		switch {
-		case k2 == reflect.Bool:
-			return nil, nil
-		case k2 == reflect.Interface && tc.emptyMethodSet(t2):
+		if k2 == reflect.Bool || (k2 == reflect.Interface && tc.emptyMethodSet(t2)) {
 			return nil, nil
 		}
 	default:
