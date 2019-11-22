@@ -851,31 +851,24 @@ func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, isSlice bool
 	return nil
 }
 
+// TODO: review/remove this function.
+// isSupersetOf reports whether the kind k1 is a superset of the kind k2.
+func isSupersetOf(k1, k2 reflect.Kind) bool {
+	valueOf := map[reflect.Kind]int8{
+		reflect.Int32:      0,
+		reflect.Int:        1,
+		reflect.Float64:    2,
+		reflect.Complex128: 3,
+	}
+	return valueOf[k1] >= valueOf[k2]
+}
+
 // binaryOp executes the binary expression t1 op t2 and returns its result.
 // Returns an error if the operation can not be executed.
 func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2 ast.Expression) (*TypeInfo, error) {
 
 	t1 := tc.checkExpr(expr1)
 	t2 := tc.checkExpr(expr2)
-
-	if t1.UntypedNonConstantInteger() && t2.UntypedNonConstantInteger() {
-		// TODO: review:
-		if t1.Type.Kind() < t2.Type.Kind() {
-			t1.Type = t2.Type
-		} else {
-			t2.Type = t1.Type
-		}
-	}
-
-	if t1.UntypedNonConstantInteger() {
-		// TODO: review:
-		t1.Type = t2.Type
-	}
-
-	if t2.UntypedNonConstantInteger() {
-		// TODO: review:
-		t2.Type = t1.Type
-	}
 
 	if op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
 		if t2.Nil() {
@@ -932,6 +925,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			}
 		} else if t1.IsUntypedConstant() {
 			ti.Properties = PropertyUntyped
+			ti.Type = t1.Type
 		}
 		t1.setValue(nil)
 		t2.setValue(nil)
@@ -990,6 +984,21 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			}
 		}
 		return t, nil
+	}
+
+	// TODO: remove this variable?
+	bothUntypedIntValue := t1.UntypedNonConstantInteger() && t2.UntypedNonConstantInteger()
+	if bothUntypedIntValue || (t1.UntypedNonConstantInteger() && t1.IsConstant()) || (t1.IsConstant() && t1.UntypedNonConstantInteger()) {
+		if isComparison(op) {
+			return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
+		}
+		var typ reflect.Type
+		if isSupersetOf(t1.Type.Kind(), t2.Type.Kind()) {
+			typ = t1.Type
+		} else {
+			typ = t2.Type
+		}
+		return &TypeInfo{Type: typ, Properties: PropertyUntyped}, nil
 	}
 
 	if t1.Untyped() {

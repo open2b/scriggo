@@ -197,11 +197,13 @@ func (tc *typechecker) convertExplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 	return nil, errTypeConversion
 }
 
-func (tc *typechecker) shiftCheck(node ast.Node, ctxType reflect.Type) {
+func (tc *typechecker) convertImplicitUntypedInteger(node ast.Node, ctxType reflect.Type) {
+
 	ti := tc.typeInfos[node]
 	if ti == nil {
 		panic("BUG: unexpected")
 	}
+
 	if ti.IsConstant() {
 		_, err := ti.Constant.representedBy(ctxType)
 		if err != nil {
@@ -209,24 +211,33 @@ func (tc *typechecker) shiftCheck(node ast.Node, ctxType reflect.Type) {
 		}
 		return
 	}
-	ti.Type = ctxType
-	ti.Properties &^= PropertyUntyped
+
+	tc.typeInfos[node] = &TypeInfo{Type: ctxType}
+
 	switch node := node.(type) {
+
+	case *ast.UnaryOperator:
+		tc.convertImplicitUntypedInteger(node.Expr, ctxType)
+
 	case *ast.BinaryOperator:
-		if node.Operator() == ast.OperatorRightShift || node.Operator() == ast.OperatorLeftShift {
+		if op := node.Operator(); op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
+			t1 := tc.typeInfos[node.Expr1]
+			_, err := t1.Constant.representedBy(ctxType)
+			if err != nil {
+				panic(tc.errorf(node, "%s", err))
+			}
 			if k := ctxType.Kind(); k < reflect.Int || k > reflect.Uintptr {
 				panic(tc.errorf(node, "invalid operation: %s (shift of type %s)", node, ctxType))
 			}
-			tc.shiftCheck(node.Expr1, ctxType)
 		} else {
-			tc.shiftCheck(node.Expr2, ctxType)
-			tc.shiftCheck(node.Expr1, ctxType)
+			tc.convertImplicitUntypedInteger(node.Expr1, ctxType)
+			tc.convertImplicitUntypedInteger(node.Expr2, ctxType)
 		}
-	case *ast.UnaryOperator:
-		tc.shiftCheck(node.Expr, ctxType)
+
 	default:
 		panic(fmt.Errorf("BUG: unexpected node %s (type %T) with type info %s", node, node, ti))
 	}
+
 }
 
 // convertImplicitly implicitly converts an untyped value. If the converted
@@ -259,7 +270,7 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 			if tc.untypedIntegerRoot == nil {
 				panic("BUG: unexpected")
 			}
-			tc.shiftCheck(tc.untypedIntegerRoot, t2)
+			tc.convertImplicitUntypedInteger(tc.untypedIntegerRoot, t2)
 			tc.untypedIntegerRoot = nil
 			return nil, nil
 		}

@@ -13,13 +13,10 @@ func main() {
 	// TODO: should return error.
 	//var _ = (9999999999 << v) == rune(10<<v) // E RROR `constant 9999999999 overflows rune`
 
-	// TODO: should be                         `invalid operation: 1 << v (shift of type float64)`
-	var _ = (1 << v) + (2 << v) + 2.1 // ERROR `invalid operation: (1 << v + 2 << v) + 2.1 (constant 2.1 truncated to integer)`
+	var _ = (1 << v) + (2 << v) + 2.1 // ERROR `invalid operation: 1 << v (shift of type float64)`
 
-	// TODO: should be             `invalid operation: 1 << v (shift of type complex128)`
-	var _ = (1 << v) + 1i // ERROR `invalid operation: 1 << v + 1i (failed type conversion)`
+	var _ = (1 << v) + 1i // ERROR `invalid operation: 1 << v (shift of type complex128)`
 
-	// TODO: should be                 `constant 1i truncated to integer`
-	var _ int = (1 << v) + 1i // ERROR `invalid operation: 1 << v + 1i (failed type conversion)`
+	var _ int = (1 << v) + 1i // ERROR `invalid operation: 1 << v (shift of type complex128)`
 
 }
