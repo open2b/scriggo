@@ -204,9 +204,9 @@ func (tc *typechecker) convertExplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 // As per spec, untyped values are the predeclared identifier nil, the untyped
 // constants and the untyped boolean values.
 //
-// In addition, convertImplicitly handles expressions that contain numeric
-// constants and shift operations with a constant left operand and a
-// non-constant right operand.
+// In addition, convertImplicitly handles expressions that contain untyped
+// numeric constants and shift operations with an untyped constant left
+// operand and a non-constant right operand.
 func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 reflect.Type) (constant, error) {
 	if !ti.Untyped() {
 		panic("BUG")
@@ -235,8 +235,9 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 			return nil, nil
 		}
 	default:
-		// expression that contains numeric constants and shift operations
-		// with a constant left operand and a non-constant right operand.
+		// expression that contains untyped numeric constants and shift
+		// operations with an untyped constant left operand and a non-constant
+		// right operand.
 		if !ti.IsNumeric() {
 			panic("BUG")
 		}
@@ -250,10 +251,10 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 	return nil, errTypeConversion
 }
 
-// convertReplaced converts an expression that contains numeric constants and
-// shift operations, with a constant left operand and a non-constant right
-// operand, to the type the left operand would assume if the shift expression
-// were replaced by its left operand alone.
+// convertReplaced converts an expression that contains untyped numeric
+// constants and shift operations, with a untyped constant left operand
+// and a non-constant right operand, to the type the left operand would
+// assume if the shift expression were replaced by its left operand alone.
 func (tc *typechecker) convertReplaced(expr ast.Expression, typ reflect.Type) {
 
 	ti := tc.typeInfos[expr]
