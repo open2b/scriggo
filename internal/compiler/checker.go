@@ -97,9 +97,6 @@ type typechecker struct {
 	// by Scriggo.
 	types *types.Types
 
-	// TODO: review.
-	untypedIntegers map[*TypeInfo]*TypeInfo
-
 	untypedIntegerRoot ast.Node
 }
 
@@ -118,7 +115,6 @@ func newTypechecker(path string, opts CheckerOptions, globalScope typeCheckerSco
 		opts:             opts,
 		iota:             -1,
 		types:            types.NewTypes(),
-		untypedIntegers:  map[*TypeInfo]*TypeInfo{},
 	}
 }
 
