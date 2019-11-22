@@ -855,8 +855,8 @@ func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, isSlice bool
 // isSupersetOf reports whether the kind k1 is a superset of the kind k2.
 func isSupersetOf(k1, k2 reflect.Kind) bool {
 	valueOf := map[reflect.Kind]int8{
-		reflect.Int32:      0,
-		reflect.Int:        1,
+		reflect.Int:        0,
+		reflect.Int32:      1,
 		reflect.Float64:    2,
 		reflect.Complex128: 3,
 	}
@@ -989,16 +989,33 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 	// TODO: remove this variable?
 	bothUntypedIntValue := t1.UntypedNonConstantInteger() && t2.UntypedNonConstantInteger()
 	if bothUntypedIntValue || (t1.UntypedNonConstantInteger() && t1.IsConstant()) || (t1.IsConstant() && t1.UntypedNonConstantInteger()) {
-		if isComparison(op) {
-			return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
-		}
 		var typ reflect.Type
 		if isSupersetOf(t1.Type.Kind(), t2.Type.Kind()) {
 			typ = t1.Type
 		} else {
 			typ = t2.Type
 		}
+		tc.untypedIntegerRoot = expr1
+		tc.convertImplicitly(t1, typ)
+		tc.untypedIntegerRoot = expr2
+		tc.convertImplicitly(t2, typ)
+		tc.untypedIntegerRoot = nil
+		if isComparison(op) {
+			return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
+		}
 		return &TypeInfo{Type: typ, Properties: PropertyUntyped}, nil
+	}
+
+	if t1.UntypedNonConstantInteger() && isComparison(op) {
+		tc.untypedIntegerRoot = expr1
+		tc.convertImplicitly(t1, t2.Type)
+		return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
+	}
+
+	if t2.UntypedNonConstantInteger() && isComparison(op) {
+		tc.untypedIntegerRoot = expr2
+		tc.convertImplicitly(t2, t1.Type)
+		return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
 	}
 
 	if t1.Untyped() {
