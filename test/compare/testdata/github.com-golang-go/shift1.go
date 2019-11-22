@@ -1,4 +1,4 @@
-// skip
+// skip : need investigation
 
 // errorcheck
 
@@ -52,7 +52,7 @@ var (
 )
 
 // from the spec
-func _() {
+func F1() {
 	var (
 		s uint  = 33
 		i       = 1 << s         // 1 has type int
@@ -69,14 +69,7 @@ func _() {
 		v  float32 = 1 << s      // ERROR "non-integer|float32"
 		w  int64   = 1.0 << 33   // 1.0<<33 is a constant shift expression
 
-		_ = j
-		_ = k
-		_ = m
-		_ = n
-		_ = o
-		_ = u1
-		_ = u2
-		_ = v
+		_, _, _, _, _, _, _, _, _, _ = j, k, m, n, o, u, u1, u2, v, w
 	)
 
 	// non constants arguments trigger a different path
@@ -157,7 +150,7 @@ var (
 )
 
 // shifts as operands in non-arithmetic operations and as arguments
-func _() {
+func F2() {
 	var s uint
 	var a []int
 	_ = a[1<<s]
@@ -207,7 +200,7 @@ func _() {
 }
 
 // shifts of shifts
-func _() {
+func F3() {
 	var s uint
 	_ = 1 << (1 << s)
 	_ = 1 << (1. << s)
