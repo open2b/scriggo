@@ -230,6 +230,11 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 			return nil, nil
 		}
 	default:
+		// Handle untyped values (non constant) obtained from the evaluation of
+		// shift operations with a constant left operand and a non-constant
+		// right operand. In this case it's necessary to call
+		// convertImplicitFromContext to perform a "second type checking".
+		// TODO: improve this documentation.
 		if !ti.IsNumeric() {
 			panic("BUG")
 		}
