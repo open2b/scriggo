@@ -270,10 +270,10 @@ func (tc *typechecker) convertReplaced(expr ast.Expression, typ reflect.Type) er
 			t1 := tc.typeInfos[expr.Expr1]
 			_, err := t1.Constant.representedBy(typ)
 			if err != nil {
-				panic(tc.errorf(expr, "%s", err))
+				return err
 			}
 			if k := typ.Kind(); k < reflect.Int || k > reflect.Uintptr {
-				panic(tc.errorf(expr, "invalid operation: %s (shift of type %s)", expr, typ))
+				return fmt.Errorf("invalid operation: %s (shift of type %s)", expr, typ)
 			}
 		} else {
 			err := tc.convertReplaced(expr.Expr1, typ)
