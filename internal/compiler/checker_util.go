@@ -224,7 +224,7 @@ func (tc *typechecker) convert(ti *TypeInfo, expr ast.Expression, t2 reflect.Typ
 				}
 				return nil, nil
 			}
-			_, err := tc.convert(tc.typeInfos[expr.Expr2], expr.Expr1, typ)
+			_, err := tc.convert(tc.typeInfos[expr.Expr1], expr.Expr1, typ)
 			if err != nil {
 				return nil, err
 			}
