@@ -148,43 +148,6 @@ var htmlStringerType = reflect.TypeOf((*HTMLStringer)(nil)).Elem()
 var cssStringerType = reflect.TypeOf((*CSSStringer)(nil)).Elem()
 var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
 
-// convertExplicitly explicitly converts a value. If the converted value is a
-// constant, convertExplicitly returns its value, otherwise returns nil.
-func (tc *typechecker) convertExplicitly(ti *TypeInfo, expr ast.Expression, t2 reflect.Type) (constant, error) {
-
-	t := ti.Type
-	k2 := t2.Kind()
-
-	if ti.IsConstant() && k2 != reflect.Interface {
-		k1 := t.Kind()
-		if k2 == reflect.String && isInteger(k1) {
-			// As a special case, an integer constant can be explicitly
-			// converted to a string type.
-			if n, _ := ti.Constant.representedBy(int64Type); n != nil {
-				return stringConst(n.int64()), nil
-			}
-			return stringConst("\uFFFD"), nil
-		} else if k2 == reflect.Slice && k1 == reflect.String {
-			// As a special case, a string constant can be explicitly converted
-			// to a slice of runes or bytes.
-			if elem := t2.Elem(); elem == uint8Type || elem == int32Type {
-				return nil, nil
-			}
-		}
-		return representedBy(ti, t2)
-	}
-
-	if ti.Untyped() {
-		return tc.convertImplicitly(ti, expr, t2)
-	}
-
-	if tc.types.ConvertibleTo(t, t2) {
-		return nil, nil
-	}
-
-	return nil, errTypeConversion
-}
-
 // convertImplicitly implicitly converts an untyped value. If the converted
 // value is a constant, convertImplicitly returns its value, otherwise returns
 // nil.

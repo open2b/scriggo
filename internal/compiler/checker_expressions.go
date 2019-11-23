@@ -1568,30 +1568,8 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 	}
 
 	if t.IsType() {
-		if len(expr.Args) == 0 {
-			panic(tc.errorf(expr, "missing argument to conversion to %s: %s", t, expr))
-		}
-		if len(expr.Args) > 1 {
-			panic(tc.errorf(expr, "too many arguments to conversion to %s: %s", t, expr))
-		}
-		arg := tc.checkExpr(expr.Args[0])
-		c, err := tc.convertExplicitly(arg, expr.Args[0], t.Type)
-		if err != nil {
-			if err == errTypeConversion {
-				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", expr.Args[0], arg.Type, t.Type))
-			}
-			panic(tc.errorf(expr, "%s", err))
-		}
-		if arg.Nil() {
-			return []*TypeInfo{tc.nilOf(t.Type)}, false, true
-		}
-		converted := &TypeInfo{Type: t.Type, Constant: c}
-		if c == nil {
-			arg.setValue(arg.Type)
-		} else {
-			converted.setValue(t.Type)
-		}
-		return []*TypeInfo{converted}, false, true
+		ti := tc.checkExplicitConversion(expr)
+		return []*TypeInfo{ti}, false, true
 	}
 
 	if t.Type.Kind() != reflect.Func {
@@ -1728,6 +1706,81 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 	}
 
 	return resultTypes, false, false
+}
+
+func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *TypeInfo {
+
+	t := tc.typeInfos[expr.Func]
+
+	if len(expr.Args) == 0 {
+		panic(tc.errorf(expr, "missing argument to conversion to %s: %s", t, expr))
+	}
+	if len(expr.Args) > 1 {
+		panic(tc.errorf(expr, "too many arguments to conversion to %s: %s", t, expr))
+	}
+
+	arg := tc.checkExpr(expr.Args[0])
+
+	var c constant
+	var err error
+
+	switch {
+	case arg.IsConstant():
+		k := t.Type.Kind()
+		if k == reflect.Interface {
+			if tc.emptyMethodSet(t.Type) {
+				_, err = arg.Constant.representedBy(arg.Type)
+			} else {
+				err = errTypeConversion
+			}
+		} else {
+			argKind := arg.Type.Kind()
+			switch {
+			case k == reflect.String && isInteger(argKind):
+				// As a special case, an integer constant can be explicitly
+				// converted to a string type.
+				n, _ := arg.Constant.representedBy(int64Type)
+				if n == nil {
+					c = stringConst("\uFFFD")
+				} else {
+					c = stringConst(n.int64())
+				}
+			case k == reflect.Slice && argKind == reflect.String:
+				// As a special case, a string constant can be explicitly converted
+				// to a slice of runes or bytes.
+				if elem := t.Type.Elem(); elem != uint8Type && elem != int32Type {
+					err = errTypeConversion
+				}
+			default:
+				c, err = representedBy(arg, t.Type)
+			}
+		}
+	case arg.Untyped():
+		_, err = tc.convertImplicitly(arg, expr.Args[0], t.Type)
+	default:
+		if !tc.types.ConvertibleTo(arg.Type, t.Type) {
+			err = errTypeConversion
+		}
+	}
+
+	if err != nil {
+		if err == errTypeConversion {
+			panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", expr.Args[0], arg.Type, t.Type))
+		}
+		panic(tc.errorf(expr, "%s", err))
+	}
+
+	if arg.Nil() {
+		return tc.nilOf(t.Type)
+	}
+	ti := &TypeInfo{Type: t.Type, Constant: c}
+	if c == nil {
+		arg.setValue(arg.Type)
+	} else {
+		ti.setValue(t.Type)
+	}
+
+	return ti
 }
 
 // maxIndex returns the maximum element index in the composite literal node.
