@@ -1282,8 +1282,6 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			return []*TypeInfo{ti}
 		}
 		if re.IsUntypedConstant() {
-			k := im.Type.Kind()
-			_ = k
 			c, err := tc.convertImplicitly(re, expr.Args[0], im.Type)
 			if err != nil {
 				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", re.Constant, re, im))
