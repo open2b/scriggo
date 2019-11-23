@@ -164,7 +164,7 @@ func (tc *typechecker) convert(ti *TypeInfo, expr ast.Expression, t2 reflect.Typ
 	switch k2 := t2.Kind(); {
 
 	case ti.Nil():
-		// untyped nil.
+		// predeclared nil.
 		switch k2 {
 		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
 			return nil, nil
@@ -172,7 +172,7 @@ func (tc *typechecker) convert(ti *TypeInfo, expr ast.Expression, t2 reflect.Typ
 		return nil, nilConvertionError{t2}
 
 	case ti.IsConstant():
-		// constant.
+		// untyped constant.
 		if k2 == reflect.Interface {
 			if !tc.emptyMethodSet(t2) {
 				return nil, errTypeConversion
