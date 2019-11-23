@@ -192,14 +192,15 @@ func (tc *typechecker) convertExplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 // As per spec, untyped values are the predeclared identifier nil, the untyped
 // constants and the untyped boolean values.
 //
-// In addition, convertImplicitly handles expressions that contain untyped
+// In addition, convertImplicitly converts expressions that contain untyped
 // numeric constants and shift operations with an untyped constant left
-// operand and a non-constant right operand.
+// operand and a non-constant right operand. In this case t2 is the type the
+// left operand would assume if the shift expressions were replaced by its
+// left operand alone.
 func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 reflect.Type) (constant, error) {
-	if !ti.Untyped() {
-		panic("BUG")
-	}
+
 	switch k2 := t2.Kind(); {
+
 	case ti.Nil():
 		// untyped nil.
 		switch k2 {
@@ -207,28 +208,34 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 			return nil, nil
 		}
 		return nil, nilConvertionError{t2}
+
 	case ti.IsConstant():
 		// constant.
 		if k2 == reflect.Interface {
-			if tc.emptyMethodSet(t2) {
-				_, err := ti.Constant.representedBy(ti.Type)
-				return nil, err
+			if !tc.emptyMethodSet(t2) {
+				return nil, errTypeConversion
 			}
-		} else {
-			return ti.Constant.representedBy(t2)
+			_, err := ti.Constant.representedBy(ti.Type)
+			return nil, err
 		}
+		return ti.Constant.representedBy(t2)
+
 	case ti.Type.Kind() == reflect.Bool:
 		// untyped boolean value.
 		if k2 == reflect.Bool || (k2 == reflect.Interface && tc.emptyMethodSet(t2)) {
 			return nil, nil
 		}
+		return nil, errTypeConversion
+
 	default:
 		// expression that contains untyped numeric constants and shift
 		// operations with an untyped constant left operand and a non-constant
 		// right operand.
+
 		if !ti.IsNumeric() {
 			panic("BUG")
 		}
+
 		typ := t2
 		if k2 == reflect.Interface {
 			if !tc.emptyMethodSet(t2) {
@@ -236,58 +243,38 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 			}
 			typ = ti.Type
 		}
-		err := tc.convertReplaced(expr, typ)
-		return nil, err
-	}
-	return nil, errTypeConversion
-}
+		tc.typeInfos[expr] = &TypeInfo{Type: typ}
 
-// convertReplaced converts an expression that contains untyped numeric
-// constants and shift operations, with a untyped constant left operand
-// and a non-constant right operand, to the type the left operand would
-// assume if the shift expression were replaced by its left operand alone.
-func (tc *typechecker) convertReplaced(expr ast.Expression, typ reflect.Type) error {
+		switch expr := expr.(type) {
 
-	ti := tc.typeInfos[expr]
-	if ti == nil {
-		panic("BUG: unexpected")
-	}
+		case *ast.UnaryOperator:
+			return tc.convertImplicitly(tc.typeInfos[expr.Expr], expr.Expr, typ)
 
-	if ti.IsConstant() {
-		_, err := ti.Constant.representedBy(typ)
-		return err
-	}
-
-	tc.typeInfos[expr] = &TypeInfo{Type: typ}
-
-	switch expr := expr.(type) {
-
-	case *ast.UnaryOperator:
-		return tc.convertReplaced(expr.Expr, typ)
-
-	case *ast.BinaryOperator:
-		if op := expr.Operator(); op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
-			t1 := tc.typeInfos[expr.Expr1]
-			_, err := t1.Constant.representedBy(typ)
+		case *ast.BinaryOperator:
+			if op := expr.Operator(); op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
+				t1 := tc.typeInfos[expr.Expr1]
+				_, err := t1.Constant.representedBy(typ)
+				if err != nil {
+					return nil, err
+				}
+				if k := typ.Kind(); k < reflect.Int || k > reflect.Uintptr {
+					return nil, fmt.Errorf("invalid operation: %s (shift of type %s)", expr, typ)
+				}
+				return nil, nil
+			}
+			_, err := tc.convertImplicitly(tc.typeInfos[expr.Expr2], expr.Expr1, typ)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			if k := typ.Kind(); k < reflect.Int || k > reflect.Uintptr {
-				return fmt.Errorf("invalid operation: %s (shift of type %s)", expr, typ)
-			}
-		} else {
-			err := tc.convertReplaced(expr.Expr1, typ)
-			if err != nil {
-				return err
-			}
-			return tc.convertReplaced(expr.Expr2, typ)
+			return tc.convertImplicitly(tc.typeInfos[expr.Expr2], expr.Expr2, typ)
+
+		default:
+			panic(fmt.Errorf("BUG: unexpected expr %s (type %T) with type info %s", expr, expr, ti))
+
 		}
 
-	default:
-		panic(fmt.Errorf("BUG: unexpected expr %s (type %T) with type info %s", expr, expr, ti))
 	}
 
-	return nil
 }
 
 // declaredInThisBlock reports whether name is declared in this block.
