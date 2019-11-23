@@ -182,7 +182,7 @@ func (tc *typechecker) convert(ti *TypeInfo, expr ast.Expression, t2 reflect.Typ
 		}
 		return ti.Constant.representedBy(t2)
 
-	case ti.Type.Kind() == reflect.Bool:
+	case ti.Type == boolType:
 		// untyped boolean value.
 		if k2 == reflect.Bool || (k2 == reflect.Interface && tc.emptyMethodSet(t2)) {
 			return nil, nil
