@@ -924,7 +924,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		if t1.Nil() {
 			t1, t2 = t2, t1
 		}
-		_, err := tc.convertImplicitly(t2, expr2, t1.Type)
+		_, err := tc.convert(t2, expr2, t1.Type)
 		if err != nil {
 			return nil, err
 		}
@@ -978,11 +978,11 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		if t1.Type.Kind() < t2.Type.Kind() {
 			typ = t2.Type
 		}
-		_, err := tc.convertImplicitly(t1, expr1, typ)
+		_, err := tc.convert(t1, expr1, typ)
 		if err != nil {
 			panic(tc.errorf(expr1, "%s", err))
 		}
-		_, err = tc.convertImplicitly(t2, expr2, typ)
+		_, err = tc.convert(t2, expr2, typ)
 		if err != nil {
 			panic(tc.errorf(expr2, "%s", err))
 		}
@@ -995,7 +995,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 	}
 
 	if t1.UntypedNonConstantNumber() {
-		_, err := tc.convertImplicitly(t1, expr1, t2.Type)
+		_, err := tc.convert(t1, expr1, t2.Type)
 		if err != nil {
 			panic(tc.errorf(expr1, "%s", err))
 		}
@@ -1008,7 +1008,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 	}
 
 	if t2.UntypedNonConstantNumber() {
-		_, err := tc.convertImplicitly(t2, expr2, t1.Type)
+		_, err := tc.convert(t2, expr2, t1.Type)
 		if err != nil {
 			panic(tc.errorf(expr2, "%s", err))
 		}
@@ -1021,7 +1021,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 	}
 
 	if t1.Untyped() {
-		c, err := tc.convertImplicitly(t1, expr1, t2.Type)
+		c, err := tc.convert(t1, expr1, t2.Type)
 		if err != nil {
 			if err == errNotRepresentable {
 				err = fmt.Errorf("cannot convert %v (type %s) to type %s", t1.Constant, t1, t2)
@@ -1031,7 +1031,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		t1.setValue(t2.Type)
 		t1 = &TypeInfo{Type: t2.Type, Constant: c}
 	} else if t2.Untyped() {
-		c, err := tc.convertImplicitly(t2, expr2, t1.Type)
+		c, err := tc.convert(t2, expr2, t1.Type)
 		if err != nil {
 			if err == errNotRepresentable {
 				err = fmt.Errorf("cannot convert %v (type %s) to type %s", t2.Constant, t2, t1)
@@ -1282,13 +1282,13 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			return []*TypeInfo{ti}
 		}
 		if re.IsUntypedConstant() {
-			c, err := tc.convertImplicitly(re, expr.Args[0], im.Type)
+			c, err := tc.convert(re, expr.Args[0], im.Type)
 			if err != nil {
 				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", re.Constant, re, im))
 			}
 			re = &TypeInfo{Type: im.Type, Constant: c}
 		} else if im.IsUntypedConstant() {
-			c, err := tc.convertImplicitly(im, expr.Args[1], re.Type)
+			c, err := tc.convert(im, expr.Args[1], re.Type)
 			if err != nil {
 				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", im.Constant, im, re))
 			}
@@ -1367,7 +1367,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			panic(tc.errorf(expr, "%s", err))
 		}
 		if key.IsConstant() {
-			_, err := tc.convertImplicitly(key, expr.Args[1], keyType)
+			_, err := tc.convert(key, expr.Args[1], keyType)
 			if err != nil {
 				panic(tc.errorf(expr, "%s", err))
 			}
@@ -1756,7 +1756,7 @@ func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *TypeInfo {
 			}
 		}
 	case arg.Untyped():
-		_, err = tc.convertImplicitly(arg, expr.Args[0], t.Type)
+		_, err = tc.convert(arg, expr.Args[0], t.Type)
 	default:
 		if !tc.types.ConvertibleTo(arg.Type, t.Type) {
 			err = errTypeConversion

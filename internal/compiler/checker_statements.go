@@ -395,7 +395,7 @@ nodesLoop:
 				}
 				texpr.setValue(nil)
 				if texpr.Untyped() {
-					c, err := tc.convertImplicitly(texpr, node.Expr, texpr.Type)
+					c, err := tc.convert(texpr, node.Expr, texpr.Type)
 					if err != nil {
 						panic(tc.errorf(node.Expr, "%s", err))
 					}
@@ -421,7 +421,7 @@ nodesLoop:
 					}
 					tcase := tc.checkExpr(ex)
 					if tcase.Untyped() {
-						c, err := tc.convertImplicitly(tcase, ex, texpr.Type)
+						c, err := tc.convert(tcase, ex, texpr.Type)
 						if err != nil {
 							if err == errNotRepresentable || err == errTypeConversion {
 								panic(tc.errorf(cas, "invalid case %s in switch%s (mismatched types %s and %s)", ex, ne, tcase.ShortString(), texpr.ShortString()))

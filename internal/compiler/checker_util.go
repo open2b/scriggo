@@ -148,19 +148,18 @@ var htmlStringerType = reflect.TypeOf((*HTMLStringer)(nil)).Elem()
 var cssStringerType = reflect.TypeOf((*CSSStringer)(nil)).Elem()
 var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
 
-// convertImplicitly implicitly converts an untyped value. If the converted
-// value is a constant, convertImplicitly returns its value, otherwise returns
-// nil.
+// convert implicitly converts an untyped value. If the converted value is a
+// constant, convert returns its value, otherwise returns nil.
 //
 // As per spec, untyped values are the predeclared identifier nil, the untyped
 // constants and the untyped boolean values.
 //
-// In addition, convertImplicitly converts expressions that contain untyped
-// numeric constants and shift operations with an untyped constant left
-// operand and a non-constant right operand. In this case t2 is the type the
-// left operand would assume if the shift expressions were replaced by its
-// left operand alone.
-func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 reflect.Type) (constant, error) {
+// In addition, convert converts expressions that contain untyped numeric
+// constants and shift operations with an untyped constant left operand and a
+// non-constant right operand. In this case t2 is the type the left operand
+// would assume if the shift expressions were replaced by its left operand
+// alone.
+func (tc *typechecker) convert(ti *TypeInfo, expr ast.Expression, t2 reflect.Type) (constant, error) {
 
 	switch k2 := t2.Kind(); {
 
@@ -211,7 +210,7 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 		switch expr := expr.(type) {
 
 		case *ast.UnaryOperator:
-			return tc.convertImplicitly(tc.typeInfos[expr.Expr], expr.Expr, typ)
+			return tc.convert(tc.typeInfos[expr.Expr], expr.Expr, typ)
 
 		case *ast.BinaryOperator:
 			if op := expr.Operator(); op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
@@ -225,11 +224,11 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 				}
 				return nil, nil
 			}
-			_, err := tc.convertImplicitly(tc.typeInfos[expr.Expr2], expr.Expr1, typ)
+			_, err := tc.convert(tc.typeInfos[expr.Expr2], expr.Expr1, typ)
 			if err != nil {
 				return nil, err
 			}
-			return tc.convertImplicitly(tc.typeInfos[expr.Expr2], expr.Expr2, typ)
+			return tc.convert(tc.typeInfos[expr.Expr2], expr.Expr2, typ)
 
 		default:
 			panic(fmt.Errorf("BUG: unexpected expr %s (type %T) with type info %s", expr, expr, ti))
@@ -351,7 +350,7 @@ func newInvalidTypeInAssignment(x *TypeInfo, expr ast.Expression, t reflect.Type
 // See https://golang.org/ref/spec#Assignability for details.
 func (tc *typechecker) isAssignableTo(x *TypeInfo, expr ast.Expression, t reflect.Type) error {
 	if x.Untyped() {
-		_, err := tc.convertImplicitly(x, expr, t)
+		_, err := tc.convert(x, expr, t)
 		if err == errNotRepresentable || err == errTypeConversion {
 			return newInvalidTypeInAssignment(x, expr, t)
 		}
