@@ -197,7 +197,7 @@ func (tc *typechecker) checkArrayType(array *ast.ArrayType, length int) *TypeInf
 	if !len.IsConstant() {
 		panic(tc.errorf(array, "non-constant array bound %s", array.Len))
 	}
-	c, err := tc.convertExplicitly(len, intType)
+	c, err := len.Constant.representedBy(intType)
 	if err != nil {
 		panic(tc.errorf(array, "%s", err))
 	}
@@ -820,7 +820,7 @@ func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, isSlice bool
 	}
 	index.setValue(intType)
 	if index.IsConstant() {
-		c, err := tc.convertExplicitly(index, intType)
+		c, err := index.Constant.representedBy(intType)
 		if err != nil {
 			panic(tc.errorf(expr, "%s", err))
 		}
@@ -903,7 +903,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			if t1.Untyped() {
 				ti.Properties = PropertyUntyped
 			} else {
-				ti.Constant, err = tc.convertExplicitly(ti, ti.Type)
+				ti.Constant, err = ti.Constant.representedBy(ti.Type)
 				if err != nil {
 					return nil, err
 				}
@@ -1081,7 +1081,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			return ti, nil
 		}
 		ti := &TypeInfo{Type: t1.Type, Constant: c}
-		ti.Constant, err = tc.convertExplicitly(ti, t1.Type)
+		ti.Constant, err = ti.Constant.representedBy(t1.Type)
 		if err != nil {
 			return nil, err
 		}
@@ -1134,7 +1134,7 @@ func (tc *typechecker) checkSize(expr ast.Expression, typ reflect.Type, name str
 	}
 	size.setValue(intType)
 	if size.IsConstant() {
-		c, err := tc.convertExplicitly(size, intType)
+		c, err := size.Constant.representedBy(intType)
 		if err != nil {
 			panic(tc.errorf(expr, "%s", err))
 		}
@@ -1367,7 +1367,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			panic(tc.errorf(expr, "%s", err))
 		}
 		if key.IsConstant() {
-			_, err := tc.convertExplicitly(key, keyType)
+			_, err := tc.convertImplicitly(key, expr.Args[1], keyType)
 			if err != nil {
 				panic(tc.errorf(expr, "%s", err))
 			}
