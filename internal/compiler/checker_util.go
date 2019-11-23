@@ -233,8 +233,8 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 		if k2 == reflect.Interface && tc.emptyMethodSet(t2) {
 			typ = ti.Type
 		}
-		tc.convertReplaced(expr, typ)
-		return nil, nil
+		err := tc.convertReplaced(expr, typ)
+		return nil, err
 	}
 	return nil, errTypeConversion
 }
@@ -243,7 +243,7 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 // constants and shift operations, with a untyped constant left operand
 // and a non-constant right operand, to the type the left operand would
 // assume if the shift expression were replaced by its left operand alone.
-func (tc *typechecker) convertReplaced(expr ast.Expression, typ reflect.Type) {
+func (tc *typechecker) convertReplaced(expr ast.Expression, typ reflect.Type) error {
 
 	ti := tc.typeInfos[expr]
 	if ti == nil {
@@ -252,10 +252,7 @@ func (tc *typechecker) convertReplaced(expr ast.Expression, typ reflect.Type) {
 
 	if ti.IsConstant() {
 		_, err := ti.Constant.representedBy(typ)
-		if err != nil {
-			panic(tc.errorf(expr, "%s", err))
-		}
-		return
+		return err
 	}
 
 	tc.typeInfos[expr] = &TypeInfo{Type: typ}
@@ -263,7 +260,7 @@ func (tc *typechecker) convertReplaced(expr ast.Expression, typ reflect.Type) {
 	switch expr := expr.(type) {
 
 	case *ast.UnaryOperator:
-		tc.convertReplaced(expr.Expr, typ)
+		return tc.convertReplaced(expr.Expr, typ)
 
 	case *ast.BinaryOperator:
 		if op := expr.Operator(); op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
@@ -276,14 +273,18 @@ func (tc *typechecker) convertReplaced(expr ast.Expression, typ reflect.Type) {
 				panic(tc.errorf(expr, "invalid operation: %s (shift of type %s)", expr, typ))
 			}
 		} else {
-			tc.convertReplaced(expr.Expr1, typ)
-			tc.convertReplaced(expr.Expr2, typ)
+			err := tc.convertReplaced(expr.Expr1, typ)
+			if err != nil {
+				return err
+			}
+			return tc.convertReplaced(expr.Expr2, typ)
 		}
 
 	default:
 		panic(fmt.Errorf("BUG: unexpected expr %s (type %T) with type info %s", expr, expr, ti))
 	}
 
+	return nil
 }
 
 // declaredInThisBlock reports whether name is declared in this block.
