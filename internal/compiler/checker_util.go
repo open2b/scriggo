@@ -230,7 +230,10 @@ func (tc *typechecker) convertImplicitly(ti *TypeInfo, expr ast.Expression, t2 r
 			panic("BUG")
 		}
 		typ := t2
-		if k2 == reflect.Interface && tc.emptyMethodSet(t2) {
+		if k2 == reflect.Interface {
+			if !tc.emptyMethodSet(t2) {
+				return nil, errTypeConversion
+			}
 			typ = ti.Type
 		}
 		err := tc.convertReplaced(expr, typ)
