@@ -1575,7 +1575,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			panic(tc.errorf(expr, "too many arguments to conversion to %s: %s", t, expr))
 		}
 		arg := tc.checkExpr(expr.Args[0])
-		c, err := tc.convertExplicitly(arg, t.Type)
+		c, err := tc.convertExplicitly(arg, expr.Args[0], t.Type)
 		if err != nil {
 			if err == errTypeConversion {
 				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", expr.Args[0], arg.Type, t.Type))

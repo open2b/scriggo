@@ -150,18 +150,10 @@ var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
 
 // convertExplicitly explicitly converts a value. If the converted value is a
 // constant, convertExplicitly returns its value, otherwise returns nil.
-func (tc *typechecker) convertExplicitly(ti *TypeInfo, t2 reflect.Type) (constant, error) {
+func (tc *typechecker) convertExplicitly(ti *TypeInfo, expr ast.Expression, t2 reflect.Type) (constant, error) {
 
 	t := ti.Type
 	k2 := t2.Kind()
-
-	if ti.Nil() {
-		switch k2 {
-		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
-			return nil, nil
-		}
-		return nil, nilConvertionError{t2}
-	}
 
 	if ti.IsConstant() && k2 != reflect.Interface {
 		k1 := t.Kind()
@@ -182,12 +174,8 @@ func (tc *typechecker) convertExplicitly(ti *TypeInfo, t2 reflect.Type) (constan
 		return representedBy(ti, t2)
 	}
 
-	if ti.IsUntypedConstant() && k2 == reflect.Interface {
-		if t2 == emptyInterfaceType || tc.types.ConvertibleTo(ti.Type, t2) {
-			_, err := ti.Constant.representedBy(ti.Type)
-			return nil, err
-		}
-		return nil, errTypeConversion
+	if ti.Untyped() {
+		return tc.convertImplicitly(ti, expr, t2)
 	}
 
 	if tc.types.ConvertibleTo(t, t2) {
