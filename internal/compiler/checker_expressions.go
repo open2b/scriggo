@@ -908,7 +908,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 					return nil, err
 				}
 			}
-		} else if t1.IsUntypedConstant() {
+		} else if t1.Untyped() {
 			ti.Properties = PropertyUntyped
 			ti.Type = t1.Type
 		}

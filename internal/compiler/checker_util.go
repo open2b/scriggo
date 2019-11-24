@@ -214,8 +214,7 @@ func (tc *typechecker) convert(ti *TypeInfo, expr ast.Expression, t2 reflect.Typ
 
 		case *ast.BinaryOperator:
 			if op := expr.Operator(); op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
-				t1 := tc.typeInfos[expr.Expr1]
-				_, err := t1.Constant.representedBy(typ)
+				_, err := tc.convert(tc.typeInfos[expr.Expr1], expr.Expr1, typ)
 				if err != nil {
 					return nil, err
 				}

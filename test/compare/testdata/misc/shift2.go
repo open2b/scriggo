@@ -19,7 +19,8 @@ func main() {
 		_ int       = (1 << v) + 1i                    // ERROR `invalid operation: 1 << v (shift of type complex128)`
 		_ int       = (1.0 << v) + int(5)
 		_ int       = int(5) + (1.0 << v)
-		_ io.Reader = 1 << v // ERROR `cannot use 1 << v (type int) as type io.Reader in assignment`
+		_ io.Reader = 1 << v          // ERROR `cannot use 1 << v (type int) as type io.Reader in assignment`
+		_ int8      = ('€' << v) << 5 // ERROR `constant 8364 overflows int8`
 	)
 
 }
