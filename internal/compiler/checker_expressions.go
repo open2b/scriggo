@@ -866,12 +866,12 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		} else if !t1.IsInteger() {
 			return nil, fmt.Errorf("shift of type %s", t1)
 		}
+		if !(t2.IsNumeric() && (t2.Untyped() || t2.IsInteger())) {
+			return nil, fmt.Errorf("shift count type %s, must be integer", t2.ShortString())
+		}
 		var c constant
 		var err error
 		if t2.IsConstant() {
-			if !t2.IsNumeric() {
-				return nil, fmt.Errorf("shift count type %s, must be unsigned integer", t2.ShortString())
-			}
 			if t1.IsConstant() {
 				c, err = t1.Constant.binaryOp(op, t2.Constant)
 				if err != nil {
@@ -894,8 +894,6 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 				}
 				t2.setValue(uintType)
 			}
-		} else if !t2.IsInteger() {
-			return nil, fmt.Errorf("shift count type %s, must be unsigned integer", t2.ShortString())
 		}
 		ti := &TypeInfo{Type: t1.Type}
 		if t1.IsConstant() && t2.IsConstant() {

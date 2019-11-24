@@ -21,6 +21,7 @@ func main() {
 		_ int       = int(5) + (1.0 << v)
 		_ io.Reader = 1 << v          // ERROR `cannot use 1 << v (type int) as type io.Reader in assignment`
 		_ int8      = ('€' << v) << 5 // ERROR `constant 8364 overflows int8`
+		_ int8      = 1 << (1.0 << v)
 	)
 
 }
