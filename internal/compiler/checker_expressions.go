@@ -855,58 +855,116 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 	t1 := tc.checkExpr(expr1)
 	t2 := tc.checkExpr(expr2)
 
-	if op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
+	isShift := op == ast.OperatorLeftShift || op == ast.OperatorRightShift
+
+	if isShift {
+		if !(t1.IsNumeric() && (t1.Untyped() || t1.IsInteger())) {
+			return nil, fmt.Errorf("shift of type %s", t1)
+		}
 		if t2.Nil() {
 			return nil, errors.New("cannot convert nil to type uint")
-		}
-		if t1.IsUntypedConstant() {
-			if !t1.IsNumeric() {
-				return nil, fmt.Errorf("shift of type %s", t1)
-			}
-		} else if !t1.IsInteger() {
-			return nil, fmt.Errorf("shift of type %s", t1)
 		}
 		if !(t2.IsNumeric() && (t2.Untyped() || t2.IsInteger())) {
 			return nil, fmt.Errorf("shift count type %s, must be integer", t2.ShortString())
 		}
-		var c constant
-		var err error
-		if t2.IsConstant() {
-			if t1.IsConstant() {
-				c, err = t1.Constant.binaryOp(op, t2.Constant)
+	}
+
+	if t1.IsConstant() && t2.IsConstant() {
+
+		if isShift {
+			t1.setValue(nil)
+			t2.setValue(nil)
+		} else {
+			if t1.Untyped() != t2.Untyped() {
+				// Make both typed.
+				var err error
+				if t1.Untyped() {
+					var c constant
+					c, err = tc.convert(t1, expr1, t2.Type)
+					t1.setValue(t2.Type)
+					t1 = &TypeInfo{Type: t2.Type, Constant: c}
+				} else {
+					var c constant
+					c, err = tc.convert(t2, expr2, t1.Type)
+					t2.setValue(t1.Type)
+					t2 = &TypeInfo{Type: t1.Type, Constant: c}
+				}
 				if err != nil {
-					switch err {
-					case errNegativeShiftCount:
-						err = fmt.Errorf("invalid negative shift count: %s", t2.Constant)
-					case errShiftCountTooLarge:
-						err = fmt.Errorf("shift count too large: %s", t2.Constant)
-					case errShiftCountTruncatedToInteger:
-						err = fmt.Errorf("constant %s truncated to integer", t2.Constant)
-					case errConstantOverflowUint:
-						err = fmt.Errorf("constant %s overflows uint", t2.Constant)
+					if err == errNotRepresentable {
+						err = fmt.Errorf("cannot convert %v (type %s) to type %s", t1.Constant, t1, t2)
 					}
 					return nil, err
 				}
-			} else {
-				_, err = t2.Constant.representedBy(uintType)
-				if err != nil {
-					return nil, err
-				}
-				t2.setValue(uintType)
+			}
+			if t1.Type != t2.Type && !(t1.Untyped() && t1.IsNumeric() && t2.IsNumeric()) {
+				return nil, fmt.Errorf("mismatched types %s and %s", t1.ShortString(), t2.ShortString())
 			}
 		}
-		ti := &TypeInfo{Type: t1.Type}
-		if t1.IsConstant() && t2.IsConstant() {
-			ti.Constant = c
-			if t1.Untyped() {
-				ti.Properties = PropertyUntyped
-			} else {
-				ti.Constant, err = ti.Constant.representedBy(ti.Type)
-				if err != nil {
-					return nil, err
+
+		c, err := t1.Constant.binaryOp(op, t2.Constant)
+		if err != nil {
+			switch err {
+			case errInvalidOperation:
+				switch op {
+				case ast.OperatorModulo:
+					if isComplex(t1.Type.Kind()) {
+						err = errors.New("complex % operation")
+					} else {
+						err = errors.New("floating-point % operation")
+					}
+				case ast.OperatorAnd, ast.OperatorOr, ast.OperatorXor:
+					if isComplex(t1.Type.Kind()) {
+						err = fmt.Errorf("operator %s not defined on untyped complex", op)
+					} else {
+						err = fmt.Errorf("operator %s not defined on untyped float", op)
+					}
+				default:
+					err = fmt.Errorf("operator %s not defined on %s", op, t1.ShortString())
 				}
+			case errNegativeShiftCount:
+				err = fmt.Errorf("invalid negative shift count: %s", t2.Constant)
+			case errShiftCountTooLarge:
+				err = fmt.Errorf("shift count too large: %s", t2.Constant)
+			case errShiftCountTruncatedToInteger:
+				err = fmt.Errorf("constant %s truncated to integer", t2.Constant)
+			case errConstantOverflowUint:
+				err = fmt.Errorf("constant %s overflows uint", t2.Constant)
 			}
-		} else if t1.Untyped() {
+			return nil, err
+		}
+
+		if !t1.Untyped() && !evalToBoolOperators[op] {
+			c, err = c.representedBy(t1.Type)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		typ := t1.Type
+		if evalToBoolOperators[op] {
+			typ = boolType
+		} else if t1.Untyped() && t1.Type.Kind() < t2.Type.Kind() {
+			typ = t2.Type
+		}
+		ti := &TypeInfo{Type: typ, Constant: c}
+		if t1.Untyped() || isComparison(op) {
+			ti.Properties = PropertyUntyped
+		}
+
+		return ti, nil
+	}
+
+	if isShift {
+		var err error
+		if t2.IsConstant() {
+			_, err = t2.Constant.representedBy(uintType)
+			if err != nil {
+				return nil, err
+			}
+			t2.setValue(uintType)
+		}
+		ti := &TypeInfo{Type: t1.Type}
+		if t1.Untyped() {
 			ti.Properties = PropertyUntyped
 			ti.Type = t1.Type
 		}
@@ -930,43 +988,6 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			return nil, fmt.Errorf("operator %s not defined on %s", op, t1.Type.Kind())
 		}
 		return untypedBoolTypeInfo, nil
-	}
-
-	if t1.IsUntypedConstant() && t2.IsUntypedConstant() {
-		k1 := t1.Type.Kind()
-		k2 := t2.Type.Kind()
-		if !(k1 == k2 || isNumeric(k1) && isNumeric(k2)) {
-			return nil, fmt.Errorf("mismatched types %s and %s", t1.ShortString(), t2.ShortString())
-		}
-		c, err := t1.Constant.binaryOp(op, t2.Constant)
-		if err != nil {
-			if err == errInvalidOperation {
-				switch op {
-				case ast.OperatorModulo:
-					if isComplex(t1.Type.Kind()) {
-						return nil, errors.New("complex % operation")
-					}
-					return nil, errors.New("floating-point % operation")
-				case ast.OperatorAnd, ast.OperatorOr, ast.OperatorXor:
-					if isComplex(t1.Type.Kind()) {
-						return nil, fmt.Errorf("operator %s not defined on untyped complex", op)
-					}
-					return nil, fmt.Errorf("operator %s not defined on untyped float", op)
-				}
-				return nil, fmt.Errorf("operator %s not defined on %s", op, t1.ShortString())
-			}
-			return nil, err
-		}
-		t := &TypeInfo{Constant: c, Properties: PropertyUntyped}
-		if evalToBoolOperators[op] {
-			t.Type = boolType
-		} else {
-			t.Type = t1.Type
-			if k2 > k1 {
-				t.Type = t2.Type
-			}
-		}
-		return t, nil
 	}
 
 	if (t1.UntypedNonConstantNumber() && t2.UntypedNonConstantNumber()) ||
@@ -1040,50 +1061,12 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		t2 = &TypeInfo{Type: t1.Type, Constant: c}
 	}
 
-	if t1.IsConstant() && !t2.IsConstant() {
+	if t1.IsConstant() {
 		t1.setValue(nil)
 	}
 
-	if !t1.IsConstant() && t2.IsConstant() {
+	if t2.IsConstant() {
 		t2.setValue(nil)
-	}
-
-	if t1.IsConstant() && t2.IsConstant() {
-		if t1.Type != t2.Type {
-			return nil, fmt.Errorf("mismatched types %s and %s", t1, t2)
-		}
-		c, err := t1.Constant.binaryOp(op, t2.Constant)
-		if err != nil {
-			if err == errInvalidOperation {
-				switch op {
-				case ast.OperatorModulo:
-					if isComplex(t1.Type.Kind()) {
-						return nil, errors.New("complex % operation")
-					}
-					return nil, errors.New("floating-point % operation")
-				case ast.OperatorAnd, ast.OperatorOr, ast.OperatorXor:
-					if isComplex(t1.Type.Kind()) {
-						return nil, fmt.Errorf("operator %s not defined on untyped complex", op)
-					}
-					return nil, fmt.Errorf("operator %s not defined on untyped float", op)
-				}
-				return nil, fmt.Errorf("operator %s not defined on %s", op, t1.ShortString())
-			}
-			return nil, err
-		}
-		if evalToBoolOperators[op] {
-			ti := &TypeInfo{Type: boolType, Constant: c}
-			if isComparison(op) {
-				ti.Properties = PropertyUntyped
-			}
-			return ti, nil
-		}
-		ti := &TypeInfo{Type: t1.Type, Constant: c}
-		ti.Constant, err = ti.Constant.representedBy(t1.Type)
-		if err != nil {
-			return nil, err
-		}
-		return ti, nil
 	}
 
 	if isComparison(op) {
