@@ -1,4 +1,4 @@
-// skip : for statement should support a simple statement
+// skip : for statement should support a simple statement https://github.com/open2b/scriggo/issues/234
 
 // run
 
