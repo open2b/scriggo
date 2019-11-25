@@ -1800,6 +1800,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 
 	// Handle composite literal nodes with implicit type.
 	if node.Type == nil {
+		node.Type = ast.NewPlaceholder()
 		tc.typeInfos[node.Type] = &TypeInfo{Properties: PropertyIsType, Type: typ}
 	}
 
