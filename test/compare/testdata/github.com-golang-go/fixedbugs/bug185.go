@@ -1,5 +1,3 @@
-// skip : bad return values in function with named return parameters https://github.com/open2b/scriggo/issues/423
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.

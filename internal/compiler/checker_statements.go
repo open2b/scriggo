@@ -372,7 +372,17 @@ nodesLoop:
 			}
 
 		case *ast.Return:
-			tc.checkReturn(node)
+			assign := tc.checkReturn(node)
+			if assign != nil {
+				// Create a block statement that contains the assignment and the
+				// return statement without its return values.
+				//
+				// The creation of the block is necessary because we are
+				// iterating over nodes, so only one node can be changed without
+				// breaking the iteration.
+				node.Values = nil
+				nodes[i] = ast.NewBlock(node.Pos(), []ast.Node{assign, node})
+			}
 			tc.terminating = true
 
 		case *ast.Switch:
@@ -834,9 +844,28 @@ nodesLoop:
 }
 
 // checkReturn type checks a return statement.
-func (tc *typechecker) checkReturn(node *ast.Return) {
+//
+// If the return statement has an expression list and the returning function has
+// named return parameters, then an assignment node is returned, that has on the
+// left side the list of the function named parameters and on the right side the
+// expression list of the return statement; in this way, when checkReturn is
+// called, the tree can be changed from
+//
+//      func F() (a, b int) {
+//          return b, a
+//      }
+//
+// to
+//
+//      func F() (a, b int) {
+//          a, b = b, a
+//          return
+//      }
+//
+// This simplifies the value swapping by handling it as a generic assignment.
+func (tc *typechecker) checkReturn(node *ast.Return) ast.Node {
 
-	fn, funcBound := tc.currentFunction()
+	fn, _ := tc.currentFunction()
 	if fn == nil {
 		panic(tc.errorf(node, "non-declaration statement outside function body"))
 	}
@@ -846,13 +875,14 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 	got := node.Values
 
 	if len(expected) == 0 && len(got) == 0 {
-		return
+		return nil
 	}
 
 	// Named return arguments with empty return: check if any value has been
 	// shadowed.
 	if len(expected) > 0 && expected[0].Ident != nil && len(got) == 0 {
 		// If "return" belongs to an inner scope (not the function scope).
+		_, funcBound := tc.currentFunction()
 		if len(tc.scopes) > funcBound {
 			for _, e := range expected {
 				name := e.Ident.Name
@@ -862,7 +892,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 				}
 			}
 		}
-		return
+		return nil
 	}
 
 	var expectedTypes []reflect.Type
@@ -934,7 +964,17 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 		}
 	}
 
-	return
+	if len(expected) > 0 && expected[0].Ident != nil && len(got) > 0 {
+		lhs := make([]ast.Expression, len(expected))
+		for i := range expected {
+			lhs[i] = expected[i].Ident
+		}
+		assign := ast.NewAssignment(nil, lhs, ast.AssignmentSimple, got)
+		tc.checkAssignment(assign)
+		return assign
+	}
+
+	return nil
 }
 
 // checkTypeDeclaration checks a type declaration node that can be both a type
