@@ -146,8 +146,14 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 	var typ *TypeInfo
 
 	if node.Type != nil {
-		// Every Rh must be assignable to the type.
 		typ = tc.checkType(node.Type)
+		switch typ.Type.Kind() {
+		case reflect.Array, reflect.Chan, reflect.Func,
+			reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice,
+			reflect.Struct, reflect.UnsafePointer:
+			panic(tc.errorf(node.Type, "invalid constant type %s", typ))
+		}
+		// Every Rh must be assignable to the type.
 		for i := range rhs {
 			tc.mustBeAssignableTo(node.Rhs[i], typ.Type, false, nil)
 		}
