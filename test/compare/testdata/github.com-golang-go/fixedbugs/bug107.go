@@ -1,5 +1,3 @@
-// skip : compiler/checker: cannot reference to an imported type from a package level type declaration https://github.com/open2b/scriggo/issues/466
-
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.

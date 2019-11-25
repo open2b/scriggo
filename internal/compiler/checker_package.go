@@ -495,40 +495,9 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 		return tc.errorf(loopErr.node, loopErr.msg)
 	}
 
-	// First: check all type declarations.
+	// First: import packages.
 	for _, d := range packageNode.Declarations {
-		if td, ok := d.(*ast.TypeDeclaration); ok {
-			name, ti := tc.checkTypeDeclaration(td)
-			if ti != nil {
-				tc.assignScope(name, ti, td.Identifier)
-			}
-		}
-	}
-
-	// Defines functions in file/package block before checking all
-	// declarations.
-	for _, d := range packageNode.Declarations {
-		if f, ok := d.(*ast.Func); ok {
-			if isBlankIdentifier(f.Ident) {
-				continue
-			}
-			if f.Ident.Name == "init" || f.Ident.Name == "main" {
-				if len(f.Type.Parameters) > 0 || len(f.Type.Result) > 0 {
-					return tc.errorf(f.Ident, "func %s must have no arguments and no return values", f.Ident.Name)
-				}
-			}
-			if f.Ident.Name != "init" {
-				if _, ok := tc.filePackageBlock[f.Ident.Name]; ok {
-					return tc.errorf(f.Ident, "%s redeclared in this block", f.Ident.Name)
-				}
-				tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: tc.checkType(f.Type).Type}}
-			}
-		}
-	}
-
-	for _, d := range packageNode.Declarations {
-		switch d := d.(type) {
-		case *ast.Import:
+		if d, ok := d.(*ast.Import); ok {
 			importedPkg := &PackageInfo{}
 			if d.Tree == nil {
 				// Predefined package.
@@ -612,7 +581,43 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 					}
 				}
 			}
+		}
+	}
 
+	// Second: check all type declarations.
+	for _, d := range packageNode.Declarations {
+		if td, ok := d.(*ast.TypeDeclaration); ok {
+			name, ti := tc.checkTypeDeclaration(td)
+			if ti != nil {
+				tc.assignScope(name, ti, td.Identifier)
+			}
+		}
+	}
+
+	// Defines functions in file/package block before checking all
+	// declarations.
+	for _, d := range packageNode.Declarations {
+		if f, ok := d.(*ast.Func); ok {
+			if isBlankIdentifier(f.Ident) {
+				continue
+			}
+			if f.Ident.Name == "init" || f.Ident.Name == "main" {
+				if len(f.Type.Parameters) > 0 || len(f.Type.Result) > 0 {
+					return tc.errorf(f.Ident, "func %s must have no arguments and no return values", f.Ident.Name)
+				}
+			}
+			if f.Ident.Name != "init" {
+				if _, ok := tc.filePackageBlock[f.Ident.Name]; ok {
+					return tc.errorf(f.Ident, "%s redeclared in this block", f.Ident.Name)
+				}
+				tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: tc.checkType(f.Type).Type}}
+			}
+		}
+	}
+
+	// Type check and defined functions, variables and constants.
+	for _, d := range packageNode.Declarations {
+		switch d := d.(type) {
 		case *ast.Func:
 			tc.enterScope()
 			tc.addToAncestors(d)
