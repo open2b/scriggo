@@ -23,6 +23,7 @@ IMPORT os/exec
 IMPORT reflect
 IMPORT regexp
 IMPORT runtime
+IMPORT sync
 IMPORT sort
 IMPORT strconv
 IMPORT strings
