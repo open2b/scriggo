@@ -155,6 +155,11 @@ func (ti *TypeInfo) StringWithNumber(explicitUntyped bool) string {
 	return ti.Type.String()
 }
 
+// IsBoolean reports whether it is boolean.
+func (ti *TypeInfo) IsBoolean() bool {
+	return !ti.Nil() && ti.Type.Kind() == reflect.Bool
+}
+
 // IsNumeric reports whether it is numeric.
 func (ti *TypeInfo) IsNumeric() bool {
 	if ti.Nil() {

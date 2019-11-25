@@ -976,10 +976,42 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		return ti, nil
 	}
 
-	if t1.Nil() || t2.Nil() {
+	if t1.Untyped() && t2.Untyped() {
 		if t1.Nil() && t2.Nil() {
 			return nil, fmt.Errorf("operator %s not defined on nil", op)
 		}
+		if t1.Nil() {
+			return nil, fmt.Errorf("cannot convert nil to type %s", t2.Type)
+		}
+		if t2.Nil() {
+			return nil, fmt.Errorf("cannot convert nil to type %s", t1.Type)
+		}
+		if t1.IsNumeric() && t2.IsBoolean() || t1.IsBoolean() && t2.IsNumeric() {
+			return nil, fmt.Errorf("mismatched types %s and %s", t1.Type, t2.Type)
+		}
+		typ := t1.Type
+		if t1.IsNumeric() {
+			if t1.Type.Kind() < t2.Type.Kind() {
+				typ = t2.Type
+			}
+			_, err := tc.convert(t1, expr1, typ)
+			if err != nil {
+				panic(tc.errorf(expr1, "%s", err))
+			}
+			_, err = tc.convert(t2, expr2, typ)
+			if err != nil {
+				panic(tc.errorf(expr2, "%s", err))
+			}
+		}
+		if isComparison(op) {
+			typ = boolType
+		}
+		t1.setValue(nil)
+		t2.setValue(nil)
+		return &TypeInfo{Type: typ, Properties: PropertyUntyped}, nil
+	}
+
+	if t1.Nil() || t2.Nil() {
 		if t1.Nil() {
 			t1, t2 = t2, t1
 		}
@@ -991,29 +1023,6 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			return nil, fmt.Errorf("operator %s not defined on %s", op, t1.Type.Kind())
 		}
 		return untypedBoolTypeInfo, nil
-	}
-
-	if (t1.UntypedNonConstantNumber() && t2.UntypedNonConstantNumber()) ||
-		(t1.UntypedNonConstantNumber() && t2.IsUntypedConstant()) ||
-		(t1.IsUntypedConstant() && t2.UntypedNonConstantNumber()) {
-		typ := t1.Type
-		if t1.Type.Kind() < t2.Type.Kind() {
-			typ = t2.Type
-		}
-		_, err := tc.convert(t1, expr1, typ)
-		if err != nil {
-			panic(tc.errorf(expr1, "%s", err))
-		}
-		_, err = tc.convert(t2, expr2, typ)
-		if err != nil {
-			panic(tc.errorf(expr2, "%s", err))
-		}
-		t1.setValue(nil)
-		t2.setValue(nil)
-		if isComparison(op) {
-			return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
-		}
-		return &TypeInfo{Type: typ, Properties: PropertyUntyped}, nil
 	}
 
 	if t1.UntypedNonConstantNumber() {
