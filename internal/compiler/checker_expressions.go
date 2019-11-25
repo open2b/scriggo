@@ -858,13 +858,13 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 	isShift := op == ast.OperatorLeftShift || op == ast.OperatorRightShift
 
 	if isShift {
-		if !(t1.IsNumeric() && (t1.Untyped() || t1.IsInteger())) {
+		if !(t1.Untyped() && t1.IsNumeric() || !t1.Untyped() && t1.IsInteger()) {
 			return nil, fmt.Errorf("shift of type %s", t1)
 		}
 		if t2.Nil() {
 			return nil, errors.New("cannot convert nil to type uint")
 		}
-		if !(t2.IsNumeric() && (t2.Untyped() || t2.IsInteger())) {
+		if !(t2.Untyped() && t2.IsNumeric() || !t2.Untyped() && t2.IsInteger()) {
 			return nil, fmt.Errorf("shift count type %s, must be integer", t2.ShortString())
 		}
 	}
