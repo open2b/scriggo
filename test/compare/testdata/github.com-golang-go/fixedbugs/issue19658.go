@@ -1,4 +1,4 @@
-// skip : need to call system command 'go run ....'
+// skip : need to call system command 'go run ....' https://github.com/open2b/scriggo/issues/417
 
 // +build !nacl,!js
 // run
