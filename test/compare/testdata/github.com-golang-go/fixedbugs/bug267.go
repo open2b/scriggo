@@ -6,7 +6,7 @@
 
 package main
 
-type T = []int
+type T []int
 
 var a []bool
 

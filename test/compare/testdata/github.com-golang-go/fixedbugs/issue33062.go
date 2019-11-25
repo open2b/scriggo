@@ -1,4 +1,4 @@
-// skip : embedded fields problems
+// skip : embedded struct fields are not supported for Scriggo types
 
 // run
 

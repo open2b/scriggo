@@ -7,8 +7,8 @@
 package main
 
 type T struct {
-	s   [1]string
-	pad [16]uintptr
+	S   [1]string // TODO: should be unexported
+	Pad [16]uintptr // TODO: should be unexported
 }
 
 //go:noinline
