@@ -108,3 +108,7 @@ func RuntimeError() {
 	var a = 0
 	_ = 1 / a
 }
+
+func (t *T) Method() { }
+
+var Value T
