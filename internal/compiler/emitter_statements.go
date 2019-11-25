@@ -319,7 +319,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 		case *ast.Send:
 			chanType := em.ti(node.Channel).Type
 			chann := em.emitExpr(node.Channel, chanType)
-			value := em.emitExpr(node.Value, em.ti(node.Value).Type)
+			value := em.emitExpr(node.Value, chanType.Elem())
 			em.fb.emitSend(chann, value, node.Pos(), chanType.Elem().Kind())
 
 		case *ast.Show:
