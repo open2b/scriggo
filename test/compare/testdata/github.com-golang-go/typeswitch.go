@@ -88,7 +88,6 @@ func main() {
 		case func(i int) interface{}:
 			assert(x != nil && i == Func, "fun")
 		default:
-			_ = x // https://github.com/open2b/scriggo/issues/230
 			assert(false, "unknown")
 		}
 	}

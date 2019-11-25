@@ -1,4 +1,4 @@
-// skip : switch reports a false positive 'declared and not used' : https://github.com/open2b/scriggo/issues/230
+// run
 
 // _Switch statements_ express conditionals across many
 // branches.

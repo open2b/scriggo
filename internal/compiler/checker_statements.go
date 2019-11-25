@@ -530,28 +530,38 @@ nodesLoop:
 				if len(cas.Expressions) == 1 {
 					if ti := tc.typeInfos[cas.Expressions[0]]; !ti.Nil() {
 						if len(node.Assignment.Lhs) == 1 {
+							lh := node.Assignment.Lhs[0]
 							n := ast.NewAssignment(
 								node.Assignment.Pos(),
-								[]ast.Expression{node.Assignment.Lhs[0]},
+								[]ast.Expression{lh},
 								node.Assignment.Type,
 								[]ast.Expression{
 									ast.NewTypeAssertion(ta.Pos(), ta.Expr, cas.Expressions[0]),
 								},
 							)
 							tc.checkGenericAssignmentNode(n)
+							// Mark lh as used.
+							if !isBlankIdentifier(lh) {
+								_ = tc.checkIdentifier(lh.(*ast.Identifier), true)
+							}
 						}
 					}
 				} else {
 					if len(node.Assignment.Lhs) == 1 {
+						lh := node.Assignment.Lhs[0]
 						n := ast.NewAssignment(
 							node.Assignment.Pos(),
-							[]ast.Expression{node.Assignment.Lhs[0]},
+							[]ast.Expression{lh},
 							node.Assignment.Type,
 							[]ast.Expression{
 								ta.Expr,
 							},
 						)
 						tc.checkGenericAssignmentNode(n)
+						// Mark lh as used.
+						if !isBlankIdentifier(lh) {
+							_ = tc.checkIdentifier(lh.(*ast.Identifier), true)
+						}
 					}
 				}
 				tc.enterScope()
