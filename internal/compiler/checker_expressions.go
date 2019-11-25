@@ -877,23 +877,26 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		} else {
 			if t1.Untyped() != t2.Untyped() {
 				// Make both typed.
-				var err error
 				if t1.Untyped() {
-					var c constant
-					c, err = tc.convert(t1, expr1, t2.Type)
+					c, err := tc.convert(t1, expr1, t2.Type)
+					if err != nil {
+						if err == errNotRepresentable {
+							err = fmt.Errorf("cannot convert %v (type %s) to type %s", t1.Constant, t1, t2)
+						}
+						return nil, err
+					}
 					t1.setValue(t2.Type)
 					t1 = &TypeInfo{Type: t2.Type, Constant: c}
 				} else {
-					var c constant
-					c, err = tc.convert(t2, expr2, t1.Type)
+					c, err := tc.convert(t2, expr2, t1.Type)
+					if err != nil {
+						if err == errNotRepresentable {
+							err = fmt.Errorf("cannot convert %v (type %s) to type %s", t2.Constant, t2, t1)
+						}
+						return nil, err
+					}
 					t2.setValue(t1.Type)
 					t2 = &TypeInfo{Type: t1.Type, Constant: c}
-				}
-				if err != nil {
-					if err == errNotRepresentable {
-						err = fmt.Errorf("cannot convert %v (type %s) to type %s", t1.Constant, t1, t2)
-					}
-					return nil, err
 				}
 			}
 			if t1.Type != t2.Type && !(t1.Untyped() && t1.IsNumeric() && t2.IsNumeric()) {
