@@ -153,28 +153,27 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 
 	// Emit the imports.
 	for _, decl := range pkg.Declarations {
-		if imp, ok := decl.(*ast.Import); ok {
-			if imp.Tree == nil {
-				// Nothing to do. Predefined variables, constants, types
-				// and functions are added as information to the tree by
-				// the type-checker.
-			} else {
+		if node, ok := decl.(*ast.Import); ok {
+			// If importing a predefined package, the emitter doesn't have to do
+			// anything. Predefined variables, constants, types and functions
+			// are added as information to the tree by the type-checker.
+			if node.Tree != nil {
 				backupPkg := em.pkg
-				pkg := imp.Tree.Nodes[0].(*ast.Package)
-				funcs, vars, pkgInits := em.emitPackage(pkg, false, imp.Tree.Path)
+				pkg := node.Tree.Nodes[0].(*ast.Package)
+				funcs, vars, pkgInits := em.emitPackage(pkg, false, node.Tree.Path)
 				em.pkg = backupPkg
 				inits = append(inits, pkgInits...)
 				var importName string
-				if imp.Ident == nil {
+				if node.Ident == nil {
 					importName = pkg.Name
 				} else {
-					switch imp.Ident.Name {
+					switch node.Ident.Name {
 					case "_":
 						panic("TODO(Gianluca): not implemented")
 					case ".":
 						importName = ""
 					default:
-						importName = imp.Ident.Name
+						importName = node.Ident.Name
 					}
 				}
 				for name, fn := range funcs {
@@ -197,12 +196,13 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 
 	functions := map[string]*runtime.Function{}
 
-	initToBuild := len(inits) // Index of the next "init" function to build.
-	if extendingPage {
-		// If the page is extending another page, the function declarations
-		// have already been added to the list of available functions, so they
-		// can't be added twice.
-	} else {
+	// initToBuild is the index of the next "init" function to build.
+	initToBuild := len(inits)
+
+	// If the page is extending another page, the function declarations have
+	// already been added to the list of available functions, so they can't be
+	// added twice.
+	if !extendingPage {
 		// Store all function declarations in current package before building
 		// their bodies: order of declaration doesn't matter at package level.
 		for _, dec := range pkg.Declarations {
