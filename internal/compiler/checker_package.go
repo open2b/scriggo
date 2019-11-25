@@ -509,6 +509,9 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 	// declarations.
 	for _, d := range packageNode.Declarations {
 		if f, ok := d.(*ast.Func); ok {
+			if isBlankIdentifier(f.Ident) {
+				continue
+			}
 			if f.Ident.Name == "init" || f.Ident.Name == "main" {
 				if len(f.Type.Parameters) > 0 || len(f.Type.Result) > 0 {
 					return tc.errorf(f.Ident, "func %s must have no arguments and no return values", f.Ident.Name)

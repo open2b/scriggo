@@ -276,6 +276,11 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 			if n.Ident.Name == "init" {
 				fn = inits[initToBuild]
 				initToBuild++
+			} else if isBlankIdentifier(n.Ident) {
+				// Do not emit this function declaration; it has already been
+				// type checked, so there's no need to enter into its body
+				// again.
+				continue
 			} else {
 				fn = em.functions[em.pkg][n.Ident.Name]
 			}
