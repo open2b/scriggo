@@ -1,4 +1,4 @@
-// skip : invalid recursive type alias
+// skip : invalid recursive type alias https://github.com/open2b/scriggo/issues/440
 
 // errorcheck
 
