@@ -1,5 +1,3 @@
-
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -9,7 +7,7 @@
 package main
 
 func main() {
-	s1 := "hi"
-	s2 := "ho"
-	s1 += s2
+	s1 := "hi";
+	s2 := "ho";
+	s1 += s2;
 }
