@@ -147,8 +147,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 		em.availableVarIndexes[em.pkg] = map[string]int16{}
 	}
 
-	// TODO(Gianluca): if a package is imported more than once, its init
-	// functions are called more than once: that is wrong.
+	// https://github.com/open2b/scriggo/issues/476
 	inits := []*runtime.Function{} // List of all "init" functions in current package.
 
 	// Emit the imports.
