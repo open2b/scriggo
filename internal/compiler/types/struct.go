@@ -97,9 +97,7 @@ func (x structType) FieldByIndex(index []int) reflect.StructField {
 func (x structType) FieldByName(name string) (reflect.StructField, bool) {
 	for _, field := range *x.scriggoFields {
 		if field.Name == name {
-			goField := field
-			goField.Type = field.Type.(ScriggoType).Underlying()
-			return goField, true
+			return field, true
 		}
 	}
 	return x.Type.FieldByName(name)

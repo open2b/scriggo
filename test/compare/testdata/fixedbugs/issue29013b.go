@@ -1,4 +1,4 @@
-// skip : problem in assignment to struct field with a Scriggo type https://github.com/open2b/scriggo/issues/465
+// skip : runtime panic
 
 // run
 
