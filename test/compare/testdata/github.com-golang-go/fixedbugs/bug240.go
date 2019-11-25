@@ -1,4 +1,4 @@
-// skip : import package unsafe
+// skip : import package unsafe https://github.com/open2b/scriggo/issues/288
 
 // errorcheck
 

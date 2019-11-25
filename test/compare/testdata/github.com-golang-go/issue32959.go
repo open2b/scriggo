@@ -1,4 +1,4 @@
-// skip : require the 'unsafe' package
+// skip : require the 'unsafe' package https://github.com/open2b/scriggo/issues/288
 
 // compile
 

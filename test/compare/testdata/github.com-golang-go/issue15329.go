@@ -1,4 +1,4 @@
-// skip : import "runtime" and "unsafe"
+// skip : import "runtime" and "unsafe" https://github.com/open2b/scriggo/issues/288
 
 // run
 
