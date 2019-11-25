@@ -1,4 +1,4 @@
-// skip : method declaration
+// skip : method declaration https://github.com/open2b/scriggo/issues/458
 
 // run
 
