@@ -157,7 +157,7 @@ var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
 // In addition, convert converts expressions that contain untyped numeric
 // constants and shift operations with an untyped constant left operand and a
 // non-constant right operand. In this case t2 is the type the left operand
-// would assume if the shift expression were replaced by its left operand
+// would assume if the shift expressions were replaced by its left operand
 // alone.
 func (tc *typechecker) convert(ti *TypeInfo, expr ast.Expression, t2 reflect.Type) (constant, error) {
 
