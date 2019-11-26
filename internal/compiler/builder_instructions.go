@@ -9,9 +9,10 @@ package compiler
 import (
 	"fmt"
 	"reflect"
+	"strconv"
+
 	"scriggo/ast"
 	"scriggo/runtime"
-	"strconv"
 )
 
 // emitAdd appends a new "Add" instruction to the function body.
