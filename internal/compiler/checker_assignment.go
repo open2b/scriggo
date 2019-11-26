@@ -65,7 +65,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 			if rh.Nil() { // _ = nil
 				panic(tc.errorf(node.Lhs[i], "use of untyped nil"))
 			}
-			if rh.IsUntypedConstant() {
+			if rh.Untyped() {
 				tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
 			}
 			rh.setValue(nil)
@@ -300,7 +300,7 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 			rh.setValue(lh.Type)
 		case rh.Nil():
 			panic(tc.errorf(nodeRhs[i], "use of untyped nil"))
-		case rh.IsUntypedConstant():
+		case rh.Untyped():
 			tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
 			fallthrough
 		default:
@@ -351,7 +351,7 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 			if rh.Nil() {
 				panic(tc.errorf(nodeRhs[i], "use of untyped nil"))
 			}
-			if rh.IsUntypedConstant() {
+			if rh.Untyped() {
 				tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
 			}
 		}

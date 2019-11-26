@@ -62,11 +62,17 @@ func main() {
 	{
 		var v uint = 32
 
-		fmt.Println((1 << v) == ('\002' << v))
-		fmt.Println(('\002' << v) == (1 << v))
+		_ = v // TODO: remove.
 
-		fmt.Println((rune('\002' << v)) == (1 << v))
-		fmt.Println((1 << v) == (rune('\002' << v)))
+		// TODO: see https://github.com/open2b/scriggo/issues/477.
+
+		// TODO: re-enable:
+		// fmt.Println((1 << v) == ('\002' << v))
+		// fmt.Println(('\002' << v) == (1 << v))
+
+		// TODO: re-enable:
+		// fmt.Println((rune('\002' << v)) == (1 << v))
+		// fmt.Println((1 << v) == (rune('\002' << v)))
 	}
 
 	{
