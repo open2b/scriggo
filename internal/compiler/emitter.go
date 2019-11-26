@@ -244,7 +244,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 			pkgVarTypes := map[string]reflect.Type{}
 			for i, v := range n.Lhs {
 				if isBlankIdentifier(v) {
-					addresses[i] = em.newAddress(assignBlank, reflect.Type(nil), 0, 0, 0, v.Pos())
+					addresses[i] = em.newAddressBlankIdent(v.Pos())
 				} else {
 					staticType := em.ti(v).Type
 					varr := em.fb.newRegister(staticType.Kind())

@@ -64,6 +64,10 @@ func (em *emitter) newAddress(target assignmentTarget, addressedType reflect.Typ
 	return address{em: em, target: target, addressedType: addressedType, operator: operator, op1: op1, op2: op2, pos: pos}
 }
 
+func (em *emitter) newAddressBlankIdent(pos *ast.Position) address {
+	return address{em: em, target: assignBlank, pos: pos}
+}
+
 // assign assigns value, with type valueType, to the address. If k is true
 // value is a constant otherwise is a register.
 func (a address) assign(k bool, value int8, valueType reflect.Type) {

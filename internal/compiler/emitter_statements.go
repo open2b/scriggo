@@ -422,7 +422,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			addresses := make([]address, len(node.Lhs))
 			for i, v := range node.Lhs {
 				if isBlankIdentifier(v) {
-					addresses[i] = em.newAddress(assignBlank, reflect.Type(nil), 0, 0, 0, v.Pos())
+					addresses[i] = em.newAddressBlankIdent(v.Pos())
 				} else {
 					staticType := em.ti(v).Type
 					if em.indirectVars[v] {
@@ -459,7 +459,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 		for i, v := range node.Lhs {
 			pos := v.Pos()
 			if isBlankIdentifier(v) {
-				addresses[i] = em.newAddress(assignBlank, reflect.Type(nil), 0, 0, 0, pos)
+				addresses[i] = em.newAddressBlankIdent(pos)
 			} else {
 				v := v.(*ast.Identifier)
 				staticType := em.ti(v).Type
@@ -486,7 +486,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 		case *ast.Identifier:
 			// Blank identifier.
 			if isBlankIdentifier(v) {
-				addresses[i] = em.newAddress(assignBlank, reflect.Type(nil), 0, 0, 0, pos)
+				addresses[i] = em.newAddressBlankIdent(pos)
 				break
 			}
 			varType := em.ti(v).Type
