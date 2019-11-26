@@ -33,7 +33,7 @@ type address struct {
 	em            *emitter
 	target        assignmentTarget
 	addressedType reflect.Type
-	reg1, reg2    int8
+	op1, op2      int8
 	pos           *ast.Position
 }
 
@@ -43,10 +43,10 @@ type address struct {
 // pos is the position of the assignment in the source code.
 //
 // To get an explanation of the different address targets, see the declaration
-// of the addressTargets constants. The meaning of the argument reg1, reg2 and
+// of the addressTargets constants. The meaning of the argument op1, op2 and
 // addressType is explained in the table below:
 //
-//  Address target             reg1                 reg2                          Addressed Type
+//  Address target             op1                  op2                           Addressed Type
 //
 //  addressBlank:              (unused)             (unused)                      (unused)
 //  addressClosureVariable     msb of the var index lsb of the var index          type of the variable
@@ -57,8 +57,8 @@ type address struct {
 //  addressSliceIndex          slice register       index register                type of the slice
 //  addressStructSelector      struct register      index of the field (const)    type of the struct
 //
-func (em *emitter) newAddress(target assignmentTarget, addressedType reflect.Type, reg1, reg2 int8, pos *ast.Position) address {
-	return address{em: em, target: target, addressedType: addressedType, reg1: reg1, reg2: reg2, pos: pos}
+func (em *emitter) newAddress(target assignmentTarget, addressedType reflect.Type, op1, op2 int8, pos *ast.Position) address {
+	return address{em: em, target: target, addressedType: addressedType, op1: op1, op2: op2, pos: pos}
 }
 
 // assign assigns value, with type valueType, to the address. If k is true
@@ -66,22 +66,22 @@ func (em *emitter) newAddress(target assignmentTarget, addressedType reflect.Typ
 func (a address) assign(k bool, value int8, valueType reflect.Type) {
 	switch a.target {
 	case assignClosureVar:
-		a.em.fb.emitSetVar(k, value, int(decodeInt16(a.reg1, a.reg2)), a.addressedType.Kind())
+		a.em.fb.emitSetVar(k, value, int(decodeInt16(a.op1, a.op2)), a.addressedType.Kind())
 	case assignBlank:
 		// Nothing to do.
 	case assignLocalVar:
-		a.em.changeRegister(k, value, a.reg1, a.targetType(), a.addressedType)
+		a.em.changeRegister(k, value, a.op1, a.targetType(), a.addressedType)
 	case assignNewIndirectVar:
-		a.em.fb.emitNew(a.addressedType, -a.reg1)
-		a.em.changeRegister(k, value, a.reg1, a.targetType(), a.addressedType)
+		a.em.fb.emitNew(a.addressedType, -a.op1)
+		a.em.changeRegister(k, value, a.op1, a.targetType(), a.addressedType)
 	case assignPtrIndirection:
-		a.em.changeRegister(k, value, -a.reg1, a.targetType(), a.addressedType)
+		a.em.changeRegister(k, value, -a.op1, a.targetType(), a.addressedType)
 	case assignSliceIndex:
-		a.em.fb.emitSetSlice(k, a.reg1, value, a.reg2, a.pos, valueType.Kind())
+		a.em.fb.emitSetSlice(k, a.op1, value, a.op2, a.pos, valueType.Kind())
 	case assignMapIndex:
-		a.em.fb.emitSetMap(k, a.reg1, value, a.reg2, a.addressedType, a.pos)
+		a.em.fb.emitSetMap(k, a.op1, value, a.op2, a.addressedType, a.pos)
 	case assignStructSelector:
-		a.em.fb.emitSetField(k, a.reg1, a.reg2, value, valueType.Kind())
+		a.em.fb.emitSetField(k, a.op1, a.op2, value, valueType.Kind())
 	}
 }
 
@@ -106,7 +106,7 @@ func (a address) targetType() reflect.Type {
 	case assignSliceIndex:
 		return a.addressedType.Elem()
 	case assignStructSelector:
-		encodedField := a.em.fb.fn.Constants.Int[a.reg2]
+		encodedField := a.em.fb.fn.Constants.Int[a.op2]
 		index := decodeFieldIndex(encodedField)
 		return a.addressedType.FieldByIndex(index).Type
 	}
