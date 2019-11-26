@@ -51,10 +51,10 @@ type address struct {
 //
 //  assignBlank                (unused)             (unused)                      (unused)
 //  assignClosureVariable      msb of the var index lsb of the var index          type of the variable
-//  assignIndirectDeclaration  register             (unused)                      type of the variable
+//  assignNewIndirectVar       register             (unused)                      type of the variable
 //  assignLocalVariable        register             (unused)                      type of the variable
 //  assignMapIndex             map register         key register                  type of the map
-//  assignPointerIndirection   register             (unused)                      type of the *v expression
+//  assignPtrIndirection       register             (unused)                      type of the *v expression
 //  assignSliceIndex           slice register       index register                type of the slice
 //  assignStructSelector       struct register      index of the field (const)    type of the struct
 //
