@@ -39,6 +39,14 @@ type address struct {
 	operator      ast.AssignmentType
 }
 
+func (em *emitter) newAddressBlankIdent(pos *ast.Position) address {
+	return address{
+		em:     em,
+		pos:    pos,
+		target: assignBlank,
+	}
+}
+
 func (em *emitter) newAddressClosureVariable(index int16, varType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
 	msb, lsb := encodeInt16(index)
 	return address{
@@ -52,14 +60,6 @@ func (em *emitter) newAddressClosureVariable(index int16, varType reflect.Type, 
 	}
 }
 
-func (em *emitter) newAddressBlankIdent(pos *ast.Position) address {
-	return address{
-		em:     em,
-		pos:    pos,
-		target: assignBlank,
-	}
-}
-
 func (em *emitter) newAddressLocalVar(reg int8, varType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
 	return address{
 		addressedType: varType,
@@ -68,40 +68,6 @@ func (em *emitter) newAddressLocalVar(reg int8, varType reflect.Type, pos *ast.P
 		operator:      op,
 		pos:           pos,
 		target:        assignLocalVar,
-	}
-}
-
-func (em *emitter) newAddressPtrIndirect(reg int8, pointedType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
-	return address{
-		addressedType: pointedType,
-		em:            em,
-		op1:           reg,
-		operator:      op,
-		pos:           pos,
-		target:        assignPtrIndirection,
-	}
-}
-
-func (em *emitter) newAddressStructSelector(structReg int8, kFieldIndex int8, structType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
-	return address{
-		addressedType: structType,
-		em:            em,
-		op1:           structReg,
-		op2:           kFieldIndex,
-		operator:      op,
-		pos:           pos,
-		target:        assignStructSelector,
-	}
-}
-
-func (em *emitter) newAddressNewIndirectVar(reg int8, varType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
-	return address{
-		addressedType: varType,
-		em:            em,
-		op1:           reg,
-		operator:      op,
-		pos:           pos,
-		target:        assignNewIndirectVar,
 	}
 }
 
@@ -117,6 +83,28 @@ func (em *emitter) newAddressMapIndex(mapReg int8, keyReg int8, mapType reflect.
 	}
 }
 
+func (em *emitter) newAddressNewIndirectVar(reg int8, varType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	return address{
+		addressedType: varType,
+		em:            em,
+		op1:           reg,
+		operator:      op,
+		pos:           pos,
+		target:        assignNewIndirectVar,
+	}
+}
+
+func (em *emitter) newAddressPtrIndirect(reg int8, pointedType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	return address{
+		addressedType: pointedType,
+		em:            em,
+		op1:           reg,
+		operator:      op,
+		pos:           pos,
+		target:        assignPtrIndirection,
+	}
+}
+
 func (em *emitter) newAddressSliceIndex(sliceReg int8, indexReg int8, sliceType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
 	return address{
 		addressedType: sliceType,
@@ -126,6 +114,18 @@ func (em *emitter) newAddressSliceIndex(sliceReg int8, indexReg int8, sliceType 
 		operator:      op,
 		pos:           pos,
 		target:        assignSliceIndex,
+	}
+}
+
+func (em *emitter) newAddressStructSelector(structReg int8, kFieldIndex int8, structType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	return address{
+		addressedType: structType,
+		em:            em,
+		op1:           structReg,
+		op2:           kFieldIndex,
+		operator:      op,
+		pos:           pos,
+		target:        assignStructSelector,
 	}
 }
 
