@@ -994,12 +994,22 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			if t1.Type.Kind() < t2.Type.Kind() {
 				typ = t2.Type
 			}
+			if isComparison(op) {
+				_, err := tc.convert(t1, expr1, typ)
+				if err != nil {
+					panic(tc.errorf(expr1, "%s", err))
+				}
+				_, err = tc.convert(t2, expr2, typ)
+				if err != nil {
+					panic(tc.errorf(expr2, "%s", err))
+				}
+			}
 		}
+		t1.setValue(typ)
+		t2.setValue(typ)
 		if isComparison(op) {
 			typ = boolType
 		}
-		t1.setValue(nil)
-		t2.setValue(nil)
 		return &TypeInfo{Type: typ, Properties: PropertyUntyped}, nil
 	}
 
