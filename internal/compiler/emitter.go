@@ -1092,21 +1092,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 		// Binary operations on complex numbers.
 		if exprType := em.ti(expr).Type; exprType.Kind() == reflect.Complex64 || exprType.Kind() == reflect.Complex128 {
-			stackShift := em.fb.currentStackShift()
-			em.fb.enterScope()
-			index := em.fb.complexOperationIndex(expr.Operator(), false)
-			ret := em.fb.newRegister(reflect.Complex128)
-			c1 := em.fb.newRegister(reflect.Complex128)
-			c2 := em.fb.newRegister(reflect.Complex128)
-			em.fb.enterScope()
-			em.emitExprR(expr.Expr1, exprType, c1)
-			em.fb.exitScope()
-			em.fb.enterScope()
-			em.emitExprR(expr.Expr2, exprType, c2)
-			em.fb.exitScope()
-			em.fb.emitCallPredefined(index, 0, stackShift, expr.Pos())
-			em.changeRegister(false, ret, reg, exprType, dstType)
-			em.fb.exitScope()
+			em.emitComplexOperation(exprType, expr.Expr1, expr.Operator(), expr.Expr2, reg, dstType)
 			return reg, false
 		}
 
@@ -1907,4 +1893,24 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 
 	return
 
+}
+
+// emitComplexOperation emits the operation on the given complex numbers putting
+// the result into the given register.
+func (em *emitter) emitComplexOperation(exprType reflect.Type, expr1 ast.Expression, op ast.OperatorType, expr2 ast.Expression, reg int8, dstType reflect.Type) {
+	stackShift := em.fb.currentStackShift()
+	em.fb.enterScope()
+	index := em.fb.complexOperationIndex(op, false)
+	ret := em.fb.newRegister(reflect.Complex128)
+	c1 := em.fb.newRegister(reflect.Complex128)
+	c2 := em.fb.newRegister(reflect.Complex128)
+	em.fb.enterScope()
+	em.emitExprR(expr1, exprType, c1)
+	em.fb.exitScope()
+	em.fb.enterScope()
+	em.emitExprR(expr2, exprType, c2)
+	em.fb.exitScope()
+	em.fb.emitCallPredefined(index, 0, stackShift, expr1.Pos())
+	em.changeRegister(false, ret, reg, exprType, dstType)
+	em.fb.exitScope()
 }
