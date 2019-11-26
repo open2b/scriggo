@@ -453,9 +453,6 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 // emitAssignmentNode emits the instructions for an assignment node.
 func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 
-	node__String := fmt.Sprintf("%v", node) // TODO(Gianluca): remove [DEBUG].
-	_ = node__String                        // TODO(Gianluca): remove [DEBUG].
-
 	// Emit a short declaration.
 	if node.Type == ast.AssignmentDeclaration {
 		addresses := make([]address, len(node.Lhs))

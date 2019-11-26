@@ -205,12 +205,13 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Expression) {
 
 	if len(addresses) == 1 && len(values) == 1 {
-
+		// Assignment operation.
 		if op := addresses[0].operator; ast.AssignmentAddition <= op && op <= ast.AssignmentRightShift {
 			em.emitAssignmentOperation(addresses[0], values[0])
 			return
 		}
-
+		// Optimize the case when there's just one element on the left and one
+		// element on the right side.
 		t := addresses[0].targetType()
 		if t == nil {
 			t = em.ti(values[0]).Type
