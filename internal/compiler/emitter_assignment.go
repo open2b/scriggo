@@ -35,6 +35,7 @@ type address struct {
 	addressedType reflect.Type
 	op1, op2      int8
 	pos           *ast.Position
+	operator      ast.AssignmentType // TODO: use or remove this field.
 }
 
 // newAddress returns a new address that represent one element on the left side
@@ -57,8 +58,10 @@ type address struct {
 //  addressSliceIndex          slice register       index register                type of the slice
 //  addressStructSelector      struct register      index of the field (const)    type of the struct
 //
-func (em *emitter) newAddress(target assignmentTarget, addressedType reflect.Type, op1, op2 int8, pos *ast.Position) address {
-	return address{em: em, target: target, addressedType: addressedType, op1: op1, op2: op2, pos: pos}
+// TODO: this method as a lot of arguments, consider splitting this method in
+// submethods.
+func (em *emitter) newAddress(target assignmentTarget, addressedType reflect.Type, operator ast.AssignmentType, op1, op2 int8, pos *ast.Position) address {
+	return address{em: em, target: target, addressedType: addressedType, operator: operator, op1: op1, op2: op2, pos: pos}
 }
 
 // assign assigns value, with type valueType, to the address. If k is true
@@ -113,10 +116,91 @@ func (a address) targetType() reflect.Type {
 	return nil
 }
 
+func (em *emitter) emitAssignmentOperation(addr address, value ast.Expression) {
+
+	// x op= y
+
+	x := em.fb.newRegister(addr.targetType().Kind())
+
+	switch addr.target {
+	case assignBlank, assignNewIndirectVar:
+		panic("Type checking BUG")
+	case assignClosureVar:
+		em.fb.emitGetVar(int(decodeInt16(addr.op1, addr.op2)), x, addr.addressedType.Kind())
+	case assignLocalVar:
+		em.changeRegister(false, addr.op1, x, addr.addressedType, addr.targetType())
+	case assignMapIndex,
+		assignSliceIndex:
+		em.fb.emitIndex(false, addr.op1, addr.op2, x, addr.addressedType, addr.pos, false)
+	case assignPtrIndirection:
+		em.changeRegister(false, -addr.op1, x, addr.addressedType, addr.addressedType)
+	case assignStructSelector:
+		em.fb.emitField(addr.op1, addr.op2, x, addr.targetType().Kind(), false)
+	}
+
+	y := em.emitExpr(value, addr.targetType())
+
+	z := em.fb.newRegister(addr.targetType().Kind())
+
+	if k := addr.targetType().Kind(); k == reflect.Complex64 || k == reflect.Complex128 {
+		stackShift := em.fb.currentStackShift()
+		em.fb.enterScope()
+		ret := em.fb.newRegister(reflect.Complex128)
+		c1 := em.fb.newRegister(reflect.Complex128)
+		c2 := em.fb.newRegister(reflect.Complex128)
+		em.changeRegister(false, x, c1, addr.targetType(), addr.targetType())
+		em.changeRegister(false, y, c2, addr.targetType(), addr.targetType())
+		index := em.fb.complexOperationIndex(operatorFromAssignmentType(addr.operator), false)
+		em.fb.emitCallPredefined(index, 0, stackShift, addr.pos)
+		em.changeRegister(false, ret, z, addr.targetType(), addr.targetType())
+		em.fb.exitScope()
+		addr.assign(false, z, addr.targetType())
+		return
+	}
+
+	switch addr.operator {
+	case ast.AssignmentAddition:
+		if addr.targetType().Kind() == reflect.String {
+			em.fb.emitConcat(x, y, z)
+		} else {
+			em.fb.emitAdd(false, x, y, z, addr.targetType().Kind())
+		}
+	case ast.AssignmentSubtraction:
+		em.fb.emitSub(false, x, y, z, addr.targetType().Kind())
+	case ast.AssignmentMultiplication:
+		em.fb.emitMul(false, x, y, z, addr.targetType().Kind())
+	case ast.AssignmentDivision:
+		em.fb.emitDiv(false, x, y, z, addr.targetType().Kind(), addr.pos)
+	case ast.AssignmentModulo:
+		em.fb.emitRem(false, x, y, z, addr.targetType().Kind(), addr.pos)
+	case ast.AssignmentAnd:
+		em.fb.emitAnd(false, x, y, z, addr.targetType().Kind())
+	case ast.AssignmentOr:
+		em.fb.emitOr(false, x, y, z, addr.targetType().Kind())
+	case ast.AssignmentXor:
+		em.fb.emitXor(false, x, y, z, addr.targetType().Kind())
+	case ast.AssignmentAndNot:
+		em.fb.emitAndNot(false, x, y, z, addr.targetType().Kind())
+	case ast.AssignmentLeftShift:
+		em.fb.emitLeftShift(false, x, y, z, addr.targetType().Kind())
+	case ast.AssignmentRightShift:
+		em.fb.emitRightShift(false, x, y, z, addr.targetType().Kind())
+	}
+
+	addr.assign(false, z, addr.targetType())
+
+}
+
 // assignValuesToAddresses assigns values to addresses.
 func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Expression) {
 
 	if len(addresses) == 1 && len(values) == 1 {
+
+		if op := addresses[0].operator; ast.AssignmentAddition <= op && op <= ast.AssignmentRightShift {
+			em.emitAssignmentOperation(addresses[0], values[0])
+			return
+		}
+
 		t := addresses[0].targetType()
 		if t == nil {
 			t = em.ti(values[0]).Type

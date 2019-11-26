@@ -108,7 +108,7 @@ func (tc *typechecker) checkAssignmentOperation(node *ast.Assignment) {
 
 	// Transform the tree for the emitter.
 	rh.setValue(nil)
-	tc.convertNodeForTheEmitter(node)
+	// tc.convertNodeForTheEmitter(node)
 
 }
 
@@ -225,7 +225,16 @@ func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 		panic(tc.errorf(node, "invalid operation: %s (non-numeric type %s)", node, lh))
 	}
 
-	tc.convertNodeForTheEmitter(node)
+	// Transform the tree for the emitter.
+	if node.Type == ast.AssignmentIncrement {
+		node.Type = ast.AssignmentAddition
+	} else {
+		node.Type = ast.AssignmentSubtraction
+	}
+	rhExpr := ast.NewBasicLiteral(nil, ast.IntLiteral, "1")
+	rh := tc.checkExpr(rhExpr)
+	rh.setValue(lh.Type)
+	node.Rhs = append(node.Rhs, rhExpr)
 
 }
 
@@ -392,6 +401,7 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 
 }
 
+// TODO: remove this function.
 // TODO: this implementation is wrong. It has been kept to make the tests pass,
 // but it must be changed:
 //

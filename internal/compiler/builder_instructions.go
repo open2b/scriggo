@@ -7,6 +7,7 @@
 package compiler
 
 import (
+	"fmt"
 	"reflect"
 	"scriggo/ast"
 	"scriggo/runtime"
@@ -38,7 +39,7 @@ func (builder *functionBuilder) emitAdd(k bool, x, y, z int8, kind reflect.Kind)
 	case reflect.Float32:
 		op = runtime.OpAddFloat32
 	default:
-		panic("add: invalid type")
+		panic(fmt.Errorf("BUG: add: invalid kind %s", kind))
 	}
 	if k {
 		op = -op
@@ -333,7 +334,7 @@ func (builder *functionBuilder) emitDiv(ky bool, x, y, z int8, kind reflect.Kind
 	case reflect.Float32:
 		op = runtime.OpDivFloat32
 	default:
-		panic("div: invalid type")
+		panic(fmt.Errorf("BUG: invalid kind %s", kind))
 	}
 	if ky {
 		op = -op
@@ -523,6 +524,8 @@ func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType r
 		if builder.allocs != nil {
 			fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, C: 8})
 		}
+	default:
+		panic(fmt.Errorf("BUG: invalid type %s", exprType))
 	}
 	if ki {
 		op = -op
