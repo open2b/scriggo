@@ -72,6 +72,10 @@ func (em *emitter) newAddressLocalVar(reg int8, varType reflect.Type, pos *ast.P
 	return address{em: em, target: assignLocalVar, addressedType: varType, op1: reg, pos: pos, operator: op}
 }
 
+func (em *emitter) newAddressNewIndirectVar(reg int8, varType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	return address{em: em, target: assignNewIndirectVar, addressedType: varType, op1: reg, pos: pos, operator: op}
+}
+
 func (em *emitter) newAddressMapIndex(mapReg int8, keyReg int8, mapType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
 	return address{em: em, target: assignMapIndex, addressedType: mapType, op1: mapReg, op2: keyReg, pos: pos, operator: op}
 }

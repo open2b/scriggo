@@ -428,7 +428,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					if em.indirectVars[v] {
 						varr := -em.fb.newRegister(reflect.Interface)
 						em.fb.bindVarReg(v.Name, varr)
-						addresses[i] = em.newAddress(assignNewIndirectVar, staticType, 0, varr, 0, v.Pos())
+						addresses[i] = em.newAddressNewIndirectVar(varr, staticType, v.Pos(), 0)
 					} else {
 						varr := em.fb.newRegister(staticType.Kind())
 						em.fb.bindVarReg(v.Name, varr)
@@ -466,7 +466,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				if em.indirectVars[v] {
 					varReg := -em.fb.newRegister(reflect.Interface)
 					em.fb.bindVarReg(v.Name, varReg)
-					addresses[i] = em.newAddress(assignNewIndirectVar, staticType, 0, varReg, 0, pos)
+					addresses[i] = em.newAddressNewIndirectVar(varReg, staticType, pos, node.Type)
 				} else {
 					varReg := em.fb.newRegister(staticType.Kind())
 					em.fb.bindVarReg(v.Name, varReg)
