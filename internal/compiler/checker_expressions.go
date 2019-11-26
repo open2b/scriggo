@@ -1005,11 +1005,11 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 				}
 			}
 		}
+		t1.setValue(typ)
+		t2.setValue(typ)
 		if isComparison(op) {
 			typ = boolType
 		}
-		t1.setValue(nil)
-		t2.setValue(nil)
 		return &TypeInfo{Type: typ, Properties: PropertyUntyped}, nil
 	}
 
