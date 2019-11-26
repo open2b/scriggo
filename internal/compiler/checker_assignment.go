@@ -106,9 +106,7 @@ func (tc *typechecker) checkAssignmentOperation(node *ast.Assignment) {
 		tc.mustBeAssignableTo(node.Rhs[0], lh.Type, false, nil)
 	}
 
-	// Transform the tree for the emitter.
-	rh.setValue(nil)
-	tc.convertNodeForTheEmitter(node)
+	rh.setValue(lh.Type)
 
 }
 
@@ -225,7 +223,16 @@ func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 		panic(tc.errorf(node, "invalid operation: %s (non-numeric type %s)", node, lh))
 	}
 
-	tc.convertNodeForTheEmitter(node)
+	// Transform the tree for the emitter.
+	if node.Type == ast.AssignmentIncrement {
+		node.Type = ast.AssignmentAddition
+	} else {
+		node.Type = ast.AssignmentSubtraction
+	}
+	rhExpr := ast.NewBasicLiteral(nil, ast.IntLiteral, "1")
+	rh := tc.checkExpr(rhExpr)
+	rh.setValue(lh.Type)
+	node.Rhs = append(node.Rhs, rhExpr)
 
 }
 
@@ -390,28 +397,6 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 
 	}
 
-}
-
-// TODO: this implementation is wrong. It has been kept to make the tests pass,
-// but it must be changed:
-//
-//              m[f()] ++
-//
-// currenlty calls twice f(), which is wrong.
-//
-// See https://github.com/open2b/scriggo/issues/222.
-func (tc *typechecker) convertNodeForTheEmitter(node *ast.Assignment) {
-	pos := node.Lhs[0].Pos()
-	op := operatorFromAssignmentType(node.Type)
-	var right ast.Expression
-	if node.Type == ast.AssignmentIncrement || node.Type == ast.AssignmentDecrement {
-		right = ast.NewBinaryOperator(pos, op, node.Lhs[0], ast.NewBasicLiteral(pos, ast.IntLiteral, "1"))
-	} else {
-		right = ast.NewBinaryOperator(pos, op, node.Lhs[0], node.Rhs[0])
-	}
-	tc.checkExpr(right)
-	node.Rhs = []ast.Expression{right}
-	node.Type = ast.AssignmentSimple
 }
 
 // declareVariable declares the variable lh in the current block/scope with the

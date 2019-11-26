@@ -422,17 +422,17 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			addresses := make([]address, len(node.Lhs))
 			for i, v := range node.Lhs {
 				if isBlankIdentifier(v) {
-					addresses[i] = em.newAddress(assignBlank, reflect.Type(nil), 0, 0, v.Pos())
+					addresses[i] = em.addressBlankIdent(v.Pos())
 				} else {
 					staticType := em.ti(v).Type
 					if em.indirectVars[v] {
 						varr := -em.fb.newRegister(reflect.Interface)
 						em.fb.bindVarReg(v.Name, varr)
-						addresses[i] = em.newAddress(assignNewIndirectVar, staticType, varr, 0, v.Pos())
+						addresses[i] = em.addressNewIndirectVar(varr, staticType, v.Pos(), 0)
 					} else {
 						varr := em.fb.newRegister(staticType.Kind())
 						em.fb.bindVarReg(v.Name, varr)
-						addresses[i] = em.newAddress(assignLocalVar, staticType, varr, 0, v.Pos())
+						addresses[i] = em.addressLocalVar(varr, staticType, v.Pos(), 0)
 					}
 				}
 			}
@@ -459,18 +459,18 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 		for i, v := range node.Lhs {
 			pos := v.Pos()
 			if isBlankIdentifier(v) {
-				addresses[i] = em.newAddress(assignBlank, reflect.Type(nil), 0, 0, pos)
+				addresses[i] = em.addressBlankIdent(pos)
 			} else {
 				v := v.(*ast.Identifier)
 				staticType := em.ti(v).Type
 				if em.indirectVars[v] {
 					varReg := -em.fb.newRegister(reflect.Interface)
 					em.fb.bindVarReg(v.Name, varReg)
-					addresses[i] = em.newAddress(assignNewIndirectVar, staticType, varReg, 0, pos)
+					addresses[i] = em.addressNewIndirectVar(varReg, staticType, pos, node.Type)
 				} else {
 					varReg := em.fb.newRegister(staticType.Kind())
 					em.fb.bindVarReg(v.Name, varReg)
-					addresses[i] = em.newAddress(assignLocalVar, staticType, varReg, 0, pos)
+					addresses[i] = em.addressLocalVar(varReg, staticType, pos, node.Type)
 				}
 			}
 		}
@@ -486,19 +486,18 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 		case *ast.Identifier:
 			// Blank identifier.
 			if isBlankIdentifier(v) {
-				addresses[i] = em.newAddress(assignBlank, reflect.Type(nil), 0, 0, pos)
+				addresses[i] = em.addressBlankIdent(pos)
 				break
 			}
 			varType := em.ti(v).Type
 			// Package/closure/imported variable.
 			if index, ok := em.getVarIndex(v); ok {
-				msb, lsb := encodeInt16(int16(index))
-				addresses[i] = em.newAddress(assignClosureVar, varType, msb, lsb, pos)
+				addresses[i] = em.addressClosureVar(int16(index), varType, pos, node.Type)
 				break
 			}
 			// Local variable.
 			reg := em.fb.scopeLookup(v.Name)
-			addresses[i] = em.newAddress(assignLocalVar, varType, reg, 0, pos)
+			addresses[i] = em.addressLocalVar(reg, varType, pos, node.Type)
 		case *ast.Index:
 			exprType := em.ti(v.Expr).Type
 			expr := em.emitExpr(v.Expr, exprType)
@@ -507,22 +506,21 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				indexType = exprType.Key()
 			}
 			index := em.emitExpr(v.Index, indexType)
-			addrTarget := assignSliceIndex
 			if exprType.Kind() == reflect.Map {
-				addrTarget = assignMapIndex
+				addresses[i] = em.addressMapIndex(expr, index, exprType, pos, node.Type)
+			} else {
+				addresses[i] = em.addressSliceIndex(expr, index, exprType, pos, node.Type)
 			}
-			addresses[i] = em.newAddress(addrTarget, exprType, expr, index, pos)
 		case *ast.Selector:
 			if index, ok := em.getVarIndex(v); ok {
-				msb, lsb := encodeInt16(int16(index))
-				addresses[i] = em.newAddress(assignClosureVar, em.ti(v).Type, msb, lsb, pos)
+				addresses[i] = em.addressClosureVar(int16(index), em.ti(v).Type, pos, node.Type)
 				break
 			}
 			typ := em.ti(v.Expr).Type
 			reg := em.emitExpr(v.Expr, typ)
 			field, _ := typ.FieldByName(v.Ident)
 			index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
-			addresses[i] = em.newAddress(assignStructSelector, typ, reg, index, pos)
+			addresses[i] = em.addressStructSelector(reg, index, typ, pos, node.Type)
 			break
 		case *ast.UnaryOperator:
 			if v.Operator() != ast.OperatorMultiplication {
@@ -530,7 +528,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			}
 			typ := em.ti(v.Expr).Type
 			reg := em.emitExpr(v.Expr, typ)
-			addresses[i] = em.newAddress(assignPtrIndirection, typ, reg, 0, pos)
+			addresses[i] = em.addressPtrIndirect(reg, typ, pos, node.Type)
 		default:
 			panic("BUG.") // remove.
 		}

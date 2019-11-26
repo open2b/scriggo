@@ -13,6 +13,18 @@ import (
 	"scriggo/runtime"
 )
 
+// address represents an element on the left side of an assignment.
+// The meaning of the various fields is explained in the constructor methods for
+// this type.
+type address struct {
+	em            *emitter           // a reference to the current emitter.
+	target        assignmentTarget   // target of the assignment.
+	addressedType reflect.Type       // type of the addressed type (see the methods below).
+	op1, op2      int8               // two bytes for store addressing informations (see the methods below).
+	pos           *ast.Position      // position of the addressed element in the source code.
+	operator      ast.AssignmentType // type of the assignment that involves this address.
+}
+
 // assignmentTarget is the target of an assignment.
 type assignmentTarget int8
 
@@ -27,38 +39,128 @@ const (
 	assignStructSelector                         // Assign to a struct selector.
 )
 
-// address represents an element on the left side of an assignment.
-// See em.newAddress for a detailed explanation of the fields.
-type address struct {
-	em            *emitter
-	target        assignmentTarget
-	addressedType reflect.Type
-	op1, op2      int8
-	pos           *ast.Position
+// addressBlankIdent returns a new address that addresses a blank identifier.
+// op is the type of the assignment that involves this address, and pos is the
+// position of the assignment in the source code.
+func (em *emitter) addressBlankIdent(pos *ast.Position) address {
+	return address{
+		em:     em,
+		pos:    pos,
+		target: assignBlank,
+	}
 }
 
-// newAddress returns a new address that represent one element on the left side
-// of an assignment.
-//
-// pos is the position of the assignment in the source code.
-//
-// To get an explanation of the different assignment targets, see the
-// declaration of the assignmentTarget constants. The meaning of the argument
-// op1, op2 and addressedType is explained in the table below:
-//
-//  Assignment target          op1                  op2                           Addressed Type
-//
-//  assignBlank                (unused)             (unused)                      (unused)
-//  assignClosureVariable      msb of the var index lsb of the var index          type of the variable
-//  assignNewIndirectVar       register             (unused)                      type of the variable
-//  assignLocalVariable        register             (unused)                      type of the variable
-//  assignMapIndex             map register         key register                  type of the map
-//  assignPtrIndirection       register             (unused)                      type of the *v expression
-//  assignSliceIndex           slice register       index register                type of the slice
-//  assignStructSelector       struct register      index of the field (const)    type of the struct
-//
-func (em *emitter) newAddress(target assignmentTarget, addressedType reflect.Type, op1, op2 int8, pos *ast.Position) address {
-	return address{em: em, target: target, addressedType: addressedType, op1: op1, op2: op2, pos: pos}
+// addressClosureVar returns a new address that addresses the closure variable
+// with the given type that is indexed by index.
+// op is the type of the assignment that involves this address, and pos is the
+// position of the assignment in the source code.
+func (em *emitter) addressClosureVar(index int16, typ reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	msb, lsb := encodeInt16(index)
+	return address{
+		addressedType: typ,
+		em:            em,
+		op1:           msb,
+		op2:           lsb,
+		operator:      op,
+		pos:           pos,
+		target:        assignClosureVar,
+	}
+}
+
+// addressLocalVar returns a new address that addresses the local variable with
+// the given type that is stored in reg.
+// op is the type of the assignment that involves this address, and pos is the
+// position of the assignment in the source code.
+func (em *emitter) addressLocalVar(reg int8, typ reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	return address{
+		addressedType: typ,
+		em:            em,
+		op1:           reg,
+		operator:      op,
+		pos:           pos,
+		target:        assignLocalVar,
+	}
+}
+
+// addressMapIndex returns a new address that addresses a map index expression,
+// with the map and key stored into the given registers.
+// op is the type of the assignment that involves this address, and pos is the
+// position of the assignment in the source code.
+func (em *emitter) addressMapIndex(mapReg int8, keyReg int8, mapType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	return address{
+		addressedType: mapType,
+		em:            em,
+		op1:           mapReg,
+		op2:           keyReg,
+		operator:      op,
+		pos:           pos,
+		target:        assignMapIndex,
+	}
+}
+
+// addressNewIndirectVar returns a new address that addresses a new variable
+// declared as 'indirect' that is going to be stored at the given register.
+// op is the type of the assignment that involves this address, and pos is the
+// position of the assignment in the source code.
+func (em *emitter) addressNewIndirectVar(reg int8, typ reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	return address{
+		addressedType: typ,
+		em:            em,
+		op1:           reg,
+		operator:      op,
+		pos:           pos,
+		target:        assignNewIndirectVar,
+	}
+}
+
+// addressPtrIndirect returns a new address that addresses a pointer
+// indirection. reg contains the pointed value, and pointedType is its type.
+// op is the type of the assignment that involves this address, and pos is the
+// position of the assignment in the source code.
+func (em *emitter) addressPtrIndirect(reg int8, pointedType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	return address{
+		addressedType: pointedType,
+		em:            em,
+		op1:           reg,
+		operator:      op,
+		pos:           pos,
+		target:        assignPtrIndirection,
+	}
+}
+
+// addressSliceIndex returns a new address that addresses a slice index
+// expression. sliceReg is the register that holds the slice and indexReg is the
+// register that holds the index of the slice.
+// op is the type of the assignment that involves this address, and pos is the
+// position of the assignment in the source code.
+func (em *emitter) addressSliceIndex(sliceReg int8, indexReg int8, sliceType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	return address{
+		addressedType: sliceType,
+		em:            em,
+		op1:           sliceReg,
+		op2:           indexReg,
+		operator:      op,
+		pos:           pos,
+		target:        assignSliceIndex,
+	}
+}
+
+// addressStructSelector returns a new address that addresses a struct field
+// expression. structReg is the register that holds the struct value and
+// kFieldIndex is the index of the integer constant that contains the encoded
+// slice of the field index.
+// op is the type of the assignment that involves this address, and pos is the
+// position of the assignment in the source code.
+func (em *emitter) addressStructSelector(structReg int8, kFieldIndex int8, structType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	return address{
+		addressedType: structType,
+		em:            em,
+		op1:           structReg,
+		op2:           kFieldIndex,
+		operator:      op,
+		pos:           pos,
+		target:        assignStructSelector,
+	}
 }
 
 // assign assigns value, with type valueType, to the address. If k is true
@@ -113,10 +215,102 @@ func (a address) targetType() reflect.Type {
 	return nil
 }
 
+// emitAssignmentOperation emits an assignment operation
+//
+//      x op= rh
+//
+// addr represents the address of x and rh is the right hand side of the
+// assignment operation.
+func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
+
+	addrTyp := addr.addressedType // type of the addressed element (eg. type of the slice).
+	typ := addr.targetType()      // type of the "target" (eg. type of the slice element).
+
+	// Emit the code that evaluates the left side of the assignment.
+	lhReg := em.fb.newRegister(typ.Kind())
+	switch addr.target {
+	case assignBlank, assignNewIndirectVar:
+		panic("Type checking BUG")
+	case assignClosureVar:
+		em.fb.emitGetVar(int(decodeInt16(addr.op1, addr.op2)), lhReg, addrTyp.Kind())
+	case assignLocalVar:
+		em.changeRegister(false, addr.op1, lhReg, addrTyp, typ)
+	case assignMapIndex,
+		assignSliceIndex:
+		em.fb.emitIndex(false, addr.op1, addr.op2, lhReg, addrTyp, addr.pos, false)
+	case assignPtrIndirection:
+		em.changeRegister(false, -addr.op1, lhReg, addrTyp, addrTyp)
+	case assignStructSelector:
+		em.fb.emitField(addr.op1, addr.op2, lhReg, typ.Kind(), false)
+	}
+
+	// Emit the code that evaluataes the right side of the assignment.
+	rhReg := em.emitExpr(rh, typ)
+
+	// Emit the code that computes the result of the operation; such result will
+	// be put back into the left side.
+	result := em.fb.newRegister(typ.Kind())
+	if k := typ.Kind(); k == reflect.Complex64 || k == reflect.Complex128 {
+		// Operation on complex numbers.
+		stackShift := em.fb.currentStackShift()
+		em.fb.enterScope()
+		ret := em.fb.newRegister(reflect.Complex128)
+		c1 := em.fb.newRegister(reflect.Complex128)
+		c2 := em.fb.newRegister(reflect.Complex128)
+		em.changeRegister(false, lhReg, c1, typ, typ)
+		em.changeRegister(false, rhReg, c2, typ, typ)
+		index := em.fb.complexOperationIndex(operatorFromAssignmentType(addr.operator), false)
+		em.fb.emitCallPredefined(index, 0, stackShift, addr.pos)
+		em.changeRegister(false, ret, result, typ, typ)
+		em.fb.exitScope()
+		addr.assign(false, result, typ)
+	} else {
+		switch addr.operator {
+		case ast.AssignmentAddition:
+			if typ.Kind() == reflect.String {
+				em.fb.emitConcat(lhReg, rhReg, result)
+			} else {
+				em.fb.emitAdd(false, lhReg, rhReg, result, typ.Kind())
+			}
+		case ast.AssignmentSubtraction:
+			em.fb.emitSub(false, lhReg, rhReg, result, typ.Kind())
+		case ast.AssignmentMultiplication:
+			em.fb.emitMul(false, lhReg, rhReg, result, typ.Kind())
+		case ast.AssignmentDivision:
+			em.fb.emitDiv(false, lhReg, rhReg, result, typ.Kind(), addr.pos)
+		case ast.AssignmentModulo:
+			em.fb.emitRem(false, lhReg, rhReg, result, typ.Kind(), addr.pos)
+		case ast.AssignmentAnd:
+			em.fb.emitAnd(false, lhReg, rhReg, result, typ.Kind())
+		case ast.AssignmentOr:
+			em.fb.emitOr(false, lhReg, rhReg, result, typ.Kind())
+		case ast.AssignmentXor:
+			em.fb.emitXor(false, lhReg, rhReg, result, typ.Kind())
+		case ast.AssignmentAndNot:
+			em.fb.emitAndNot(false, lhReg, rhReg, result, typ.Kind())
+		case ast.AssignmentLeftShift:
+			em.fb.emitLeftShift(false, lhReg, rhReg, result, typ.Kind())
+		case ast.AssignmentRightShift:
+			em.fb.emitRightShift(false, lhReg, rhReg, result, typ.Kind())
+		}
+	}
+
+	// Put back the result into the left side of the assignment.
+	addr.assign(false, result, typ)
+
+}
+
 // assignValuesToAddresses assigns values to addresses.
 func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Expression) {
 
 	if len(addresses) == 1 && len(values) == 1 {
+		// Assignment operation.
+		if op := addresses[0].operator; ast.AssignmentAddition <= op && op <= ast.AssignmentRightShift {
+			em.emitAssignmentOperation(addresses[0], values[0])
+			return
+		}
+		// Optimize the case when there's just one element on the left and one
+		// element on the right side.
 		t := addresses[0].targetType()
 		if t == nil {
 			t = em.ti(values[0]).Type
