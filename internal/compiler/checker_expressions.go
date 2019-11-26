@@ -986,12 +986,18 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		if t2.Nil() {
 			return nil, fmt.Errorf("cannot convert nil to type %s", t1.Type)
 		}
-		if t1.IsNumeric() && t2.IsBoolean() || t1.IsBoolean() && t2.IsNumeric() {
+		k1, k2 := t1.Type.Kind(), t2.Type.Kind()
+		if !(k1 == k2 || isNumeric(k1) && isNumeric(k2)) {
 			return nil, fmt.Errorf("mismatched types %s and %s", t1.Type, t2.Type)
 		}
 		typ := t1.Type
-		if t1.IsNumeric() {
-			if t1.Type.Kind() < t2.Type.Kind() {
+		switch {
+		case isBoolean(k2):
+			if ast.OperatorLess <= op && op <= ast.OperatorGreaterOrEqual {
+				return nil, fmt.Errorf("operator < not defined on bool")
+			}
+		case isNumeric(k1):
+			if k1 < k2 {
 				typ = t2.Type
 			}
 			if isComparison(op) {
@@ -1027,32 +1033,6 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		return untypedBoolTypeInfo, nil
 	}
 
-	if t1.UntypedNonConstantNumber() {
-		_, err := tc.convert(t1, expr1, t2.Type)
-		if err != nil {
-			panic(tc.errorf(expr1, "%s", err))
-		}
-		t1.setValue(nil)
-		t2.setValue(nil)
-		if isComparison(op) {
-			return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
-		}
-		return &TypeInfo{Type: t2.Type}, nil
-	}
-
-	if t2.UntypedNonConstantNumber() {
-		_, err := tc.convert(t2, expr2, t1.Type)
-		if err != nil {
-			panic(tc.errorf(expr2, "%s", err))
-		}
-		t1.setValue(nil)
-		t2.setValue(nil)
-		if isComparison(op) {
-			return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
-		}
-		return &TypeInfo{Type: t1.Type}, nil
-	}
-
 	if t1.Untyped() {
 		c, err := tc.convert(t1, expr1, t2.Type)
 		if err != nil {
@@ -1073,13 +1053,8 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		}
 		t2.setValue(t1.Type)
 		t2 = &TypeInfo{Type: t1.Type, Constant: c}
-	}
-
-	if t1.IsConstant() {
+	} else {
 		t1.setValue(nil)
-	}
-
-	if t2.IsConstant() {
 		t2.setValue(nil)
 	}
 

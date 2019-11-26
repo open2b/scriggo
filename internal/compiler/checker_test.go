@@ -741,6 +741,28 @@ var checkerStmts = map[string]string{
 	`type S = struct{ A func() }; _ = interface{}(nil) == S{}`: `invalid operation: interface{}(nil) == S literal (struct { A func() } cannot be compared)`,
 	`var a interface{}; _ = a == 9223372036854775808`:          `invalid operation: a == 9223372036854775808 (constant 9223372036854775808 overflows int)`,
 
+	// Other comparisons
+	`_ = 1 < 2`:                           ok,
+	`_ = 1 < int(2)`:                      ok,
+	`_ = int(1) < 2`:                      ok,
+	`_ = int(1) < int(2)`:                 ok,
+	`_ = 1.2 < 2.3`:                       ok,
+	`_ = 1.2 < float64(2.3)`:              ok,
+	`_ = float64(1.2) < 2.3`:              ok,
+	`_ = float64(1.2) < float64(2.3)`:     ok,
+	`_ = 1i < 2i`:                         `invalid operation: 1i < 2i (operator < not defined on complex128)`,
+	`_ = 1i < complex128(2i)`:             `invalid operation: 1i < complex128(2i) (operator < not defined on complex128)`,
+	`_ = complex128(1i) < 2i`:             `invalid operation: complex128(1i) < 2i (operator < not defined on complex128)`,
+	`_ = complex128(1i) < complex128(2i)`: `invalid operation: complex128(1i) < complex128(2i) (operator < not defined on complex128)`,
+	`_ = "a" < "b"`:                       ok,
+	`_ = "a" < string("b")`:               ok,
+	`_ = string("a") < "b"`:               ok,
+	`_ = string("a") < string("b")`:       ok,
+	`_ = true < false`:                    `invalid operation: true < false (operator < not defined on bool)`,
+	`_ = true < bool(false)`:              `invalid operation: true < bool(false) (operator < not defined on bool)`,
+	`_ = bool(true) < false`:              `invalid operation: bool(true) < false (operator < not defined on bool)`,
+	`_ = bool(true) < bool(false)`:        `invalid operation: bool(true) < bool(false) (operator < not defined on bool)`,
+
 	// Assignments.
 	`(((map[int]string{}[0]))) = ""`:                              ok,
 	`a := ((0)); var _ int = a`:                                   ok,

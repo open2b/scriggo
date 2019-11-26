@@ -397,6 +397,11 @@ func isNumeric(k reflect.Kind) bool {
 	return reflect.Int <= k && k <= reflect.Complex128
 }
 
+// isBoolean reports whether a reflect kind is Bool.
+func isBoolean(k reflect.Kind) bool {
+	return k == reflect.Bool
+}
+
 // isOrdered reports whether t is ordered.
 func isOrdered(t *TypeInfo) bool {
 	k := t.Type.Kind()
