@@ -507,11 +507,11 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				indexType = exprType.Key()
 			}
 			index := em.emitExpr(v.Index, indexType)
-			addrTarget := assignSliceIndex
 			if exprType.Kind() == reflect.Map {
-				addrTarget = assignMapIndex
+				addresses[i] = em.newAddressMapIndex(expr, index, exprType, pos, node.Type)
+			} else {
+				addresses[i] = em.newAddressSliceIndex(expr, index, exprType, pos, node.Type)
 			}
-			addresses[i] = em.newAddress(addrTarget, exprType, node.Type, expr, index, pos)
 		case *ast.Selector:
 			if index, ok := em.getVarIndex(v); ok {
 				msb, lsb := encodeInt16(int16(index))

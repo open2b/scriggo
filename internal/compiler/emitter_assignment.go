@@ -72,6 +72,14 @@ func (em *emitter) newAddressLocalVar(reg int8, varType reflect.Type, pos *ast.P
 	return address{em: em, target: assignLocalVar, addressedType: varType, op1: reg, pos: pos, operator: op}
 }
 
+func (em *emitter) newAddressMapIndex(mapReg int8, keyReg int8, mapType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	return address{em: em, target: assignMapIndex, addressedType: mapType, op1: mapReg, op2: keyReg, pos: pos, operator: op}
+}
+
+func (em *emitter) newAddressSliceIndex(sliceReg int8, indexReg int8, sliceType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	return address{em: em, target: assignSliceIndex, addressedType: sliceType, op1: sliceReg, op2: indexReg, pos: pos, operator: op}
+}
+
 // assign assigns value, with type valueType, to the address. If k is true
 // value is a constant otherwise is a register.
 func (a address) assign(k bool, value int8, valueType reflect.Type) {
