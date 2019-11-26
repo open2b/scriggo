@@ -244,12 +244,12 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 			pkgVarTypes := map[string]reflect.Type{}
 			for i, v := range n.Lhs {
 				if isBlankIdentifier(v) {
-					addresses[i] = em.newAddressBlankIdent(v.Pos())
+					addresses[i] = em.addressBlankIdent(v.Pos())
 				} else {
 					staticType := em.ti(v).Type
 					varr := em.fb.newRegister(staticType.Kind())
 					em.fb.bindVarReg(v.Name, varr)
-					addresses[i] = em.newAddressLocalVar(varr, staticType, v.Pos(), 0)
+					addresses[i] = em.addressLocalVar(varr, staticType, v.Pos(), 0)
 					// Store the variable register. It will be used later to store
 					// initialized value inside the proper global index.
 					pkgVarRegs[v.Name] = varr
