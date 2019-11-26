@@ -13,6 +13,18 @@ import (
 	"scriggo/runtime"
 )
 
+// address represents an element on the left side of an assignment.
+// The meaning of the various fields is explained in the constructor methods for
+// this type.
+type address struct {
+	em            *emitter           // a reference to the current emitter.
+	target        assignmentTarget   // target of the assignment.
+	addressedType reflect.Type       // type of the addressed type (see the methods below).
+	op1, op2      int8               // two bytes for store addressing informations (see the methods below).
+	pos           *ast.Position      // position of the addressed element in the source code.
+	operator      ast.AssignmentType // type of the assignment that involves this address.
+}
+
 // assignmentTarget is the target of an assignment.
 type assignmentTarget int8
 
@@ -27,18 +39,9 @@ const (
 	assignStructSelector                         // Assign to a struct selector.
 )
 
-// address represents an element on the left side of an assignment.
-// The meaning of the various fields is explained in the constructor methods for
-// this type.
-type address struct {
-	em            *emitter
-	target        assignmentTarget
-	addressedType reflect.Type
-	op1, op2      int8
-	pos           *ast.Position
-	operator      ast.AssignmentType
-}
-
+// addressBlankIdent returns a new address that addresses a blank identifier.
+// op is the type of the assignment that involves this address, and pos is the
+// position of the assignment in the source code.
 func (em *emitter) addressBlankIdent(pos *ast.Position) address {
 	return address{
 		em:     em,
@@ -47,10 +50,14 @@ func (em *emitter) addressBlankIdent(pos *ast.Position) address {
 	}
 }
 
-func (em *emitter) addressClosureVar(index int16, varType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+// addressClosureVar returns a new address that addresses the closure variable
+// with the given type that is indexed by index.
+// op is the type of the assignment that involves this address, and pos is the
+// position of the assignment in the source code.
+func (em *emitter) addressClosureVar(index int16, typ reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
 	msb, lsb := encodeInt16(index)
 	return address{
-		addressedType: varType,
+		addressedType: typ,
 		em:            em,
 		op1:           msb,
 		op2:           lsb,
@@ -60,9 +67,13 @@ func (em *emitter) addressClosureVar(index int16, varType reflect.Type, pos *ast
 	}
 }
 
-func (em *emitter) addressLocalVar(reg int8, varType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+// addressLocalVar returns a new address that addresses the local variable with
+// the given type that is stored in reg.
+// op is the type of the assignment that involves this address, and pos is the
+// position of the assignment in the source code.
+func (em *emitter) addressLocalVar(reg int8, typ reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
 	return address{
-		addressedType: varType,
+		addressedType: typ,
 		em:            em,
 		op1:           reg,
 		operator:      op,
@@ -71,6 +82,10 @@ func (em *emitter) addressLocalVar(reg int8, varType reflect.Type, pos *ast.Posi
 	}
 }
 
+// addressMapIndex returns a new address that addresses a map index expression,
+// with the map and key stored into the given registers.
+// op is the type of the assignment that involves this address, and pos is the
+// position of the assignment in the source code.
 func (em *emitter) addressMapIndex(mapReg int8, keyReg int8, mapType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
 	return address{
 		addressedType: mapType,
@@ -83,9 +98,13 @@ func (em *emitter) addressMapIndex(mapReg int8, keyReg int8, mapType reflect.Typ
 	}
 }
 
-func (em *emitter) addressNewIndirectVar(reg int8, varType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+// addressNewIndirectVar returns a new address that addresses a new variable
+// declared as 'indirect' that is going to be stored at the given register.
+// op is the type of the assignment that involves this address, and pos is the
+// position of the assignment in the source code.
+func (em *emitter) addressNewIndirectVar(reg int8, typ reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
 	return address{
-		addressedType: varType,
+		addressedType: typ,
 		em:            em,
 		op1:           reg,
 		operator:      op,
@@ -94,6 +113,10 @@ func (em *emitter) addressNewIndirectVar(reg int8, varType reflect.Type, pos *as
 	}
 }
 
+// addressPtrIndirect returns a new address that addresses a pointer
+// indirection. reg contains the pointed value, and pointedType is its type.
+// op is the type of the assignment that involves this address, and pos is the
+// position of the assignment in the source code.
 func (em *emitter) addressPtrIndirect(reg int8, pointedType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
 	return address{
 		addressedType: pointedType,
@@ -105,6 +128,11 @@ func (em *emitter) addressPtrIndirect(reg int8, pointedType reflect.Type, pos *a
 	}
 }
 
+// addressSliceIndex returns a new address that addresses a slice index
+// expression. sliceReg is the register that holds the slice and indexReg is the
+// register that holds the index of the slice.
+// op is the type of the assignment that involves this address, and pos is the
+// position of the assignment in the source code.
 func (em *emitter) addressSliceIndex(sliceReg int8, indexReg int8, sliceType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
 	return address{
 		addressedType: sliceType,
@@ -117,6 +145,12 @@ func (em *emitter) addressSliceIndex(sliceReg int8, indexReg int8, sliceType ref
 	}
 }
 
+// addressStructSelector returns a new address that addresses a struct field
+// expression. structReg is the register that holds the struct value and
+// kFieldIndex is the index of the integer constant that contains the encoded
+// slice of the field index.
+// op is the type of the assignment that involves this address, and pos is the
+// position of the assignment in the source code.
 func (em *emitter) addressStructSelector(structReg int8, kFieldIndex int8, structType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
 	return address{
 		addressedType: structType,
