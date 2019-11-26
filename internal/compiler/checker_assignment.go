@@ -106,7 +106,7 @@ func (tc *typechecker) checkAssignmentOperation(node *ast.Assignment) {
 		tc.mustBeAssignableTo(node.Rhs[0], lh.Type, false, nil)
 	}
 
-	rh.setValue(nil)
+	rh.setValue(lh.Type)
 
 }
 
