@@ -8,8 +8,6 @@ func main() {
 
 	p := fmt.Println
 
-	// TODO: testare anche l'ordine di chiamata
-
 	// Assign to a variable.
 	{
 		v := 10.01
@@ -110,4 +108,23 @@ func main() {
 		s[index()]--
 		p(s)
 	}
+
+	// Test call order.
+	{
+		f1 := func() int {
+			p("f1")
+			return 1
+		}
+		f2 := func() int {
+			p("f2")
+			return 2
+		}
+		s := []int{10, 20, 30, 40, 50}
+		p(s)
+		s[f1()] += f2()
+		p(s)
+		s[f1() + 3] *= f2()
+		p(s)
+	}
+
 }
