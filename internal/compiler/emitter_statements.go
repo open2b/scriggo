@@ -453,10 +453,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 // emitAssignmentNode emits the instructions for an assignment node.
 func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 
-	// Emit declaration assignment.
-	//
-	//	left := right
-	//
+	// Emit a short declaration.
 	if node.Type == ast.AssignmentDeclaration {
 		addresses := make([]address, len(node.Lhs))
 		for i, v := range node.Lhs {
@@ -481,10 +478,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 		return
 	}
 
-	// Emit simple assignment.
-	//
-	//	left = right
-	//
+	// Emit an assignment.
 	addresses := make([]address, len(node.Lhs))
 	for i, v := range node.Lhs {
 		pos := v.Pos()
