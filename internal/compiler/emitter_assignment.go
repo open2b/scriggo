@@ -42,20 +42,20 @@ type address struct {
 //
 // pos is the position of the assignment in the source code.
 //
-// To get an explanation of the different address targets, see the declaration
-// of the addressTargets constants. The meaning of the argument op1, op2 and
-// addressType is explained in the table below:
+// To get an explanation of the different assignment targets, see the
+// declaration of the assignmentTarget constants. The meaning of the argument
+// op1, op2 and addressedType is explained in the table below:
 //
-//  Address target             op1                  op2                           Addressed Type
+//  Assignment target          op1                  op2                           Addressed Type
 //
-//  addressBlank:              (unused)             (unused)                      (unused)
-//  addressClosureVariable     msb of the var index lsb of the var index          type of the variable
-//  addressIndirectDeclaration register             (unused)                      type of the variable
-//  addressLocalVariable       register             (unused)                      type of the variable
-//  addressMapIndex            map register         key register                  type of the map
-//  addressPointerIndirection  register             (unused)                      type of the *v expression
-//  addressSliceIndex          slice register       index register                type of the slice
-//  addressStructSelector      struct register      index of the field (const)    type of the struct
+//  assignBlank                (unused)             (unused)                      (unused)
+//  assignClosureVariable      msb of the var index lsb of the var index          type of the variable
+//  assignIndirectDeclaration  register             (unused)                      type of the variable
+//  assignLocalVariable        register             (unused)                      type of the variable
+//  assignMapIndex             map register         key register                  type of the map
+//  assignPointerIndirection   register             (unused)                      type of the *v expression
+//  assignSliceIndex           slice register       index register                type of the slice
+//  assignStructSelector       struct register      index of the field (const)    type of the struct
 //
 func (em *emitter) newAddress(target assignmentTarget, addressedType reflect.Type, op1, op2 int8, pos *ast.Position) address {
 	return address{em: em, target: target, addressedType: addressedType, op1: op1, op2: op2, pos: pos}
