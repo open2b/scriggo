@@ -64,12 +64,40 @@ func (em *emitter) newAddress(target assignmentTarget, addressedType reflect.Typ
 	return address{em: em, target: target, addressedType: addressedType, operator: operator, op1: op1, op2: op2, pos: pos}
 }
 
+func (em *emitter) newAddressClosureVariable(index int16, varType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	msb, lsb := encodeInt16(index)
+	return address{
+		addressedType: varType,
+		em:            em,
+		op1:           msb,
+		op2:           lsb,
+		operator:      op,
+		pos:           pos,
+		target:        assignClosureVar,
+	}
+}
+
 func (em *emitter) newAddressBlankIdent(pos *ast.Position) address {
 	return address{em: em, target: assignBlank, pos: pos}
 }
 
 func (em *emitter) newAddressLocalVar(reg int8, varType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
 	return address{em: em, target: assignLocalVar, addressedType: varType, op1: reg, pos: pos, operator: op}
+}
+
+func (em *emitter) newAddressPtrIndirect(reg int8, pointedType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	return address{
+		addressedType: pointedType,
+		em:            em,
+		op1:           reg,
+		operator:      op,
+		pos:           pos,
+		target:        assignPtrIndirection,
+	}
+}
+
+func (em *emitter) newAddressStructSelector(structReg int8, kFieldIndex int8, structType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	return address{em: em, target: assignStructSelector, addressedType: structType, op1: structReg, op2: kFieldIndex, pos: pos, operator: op}
 }
 
 func (em *emitter) newAddressNewIndirectVar(reg int8, varType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {

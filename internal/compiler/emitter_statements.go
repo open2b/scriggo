@@ -492,8 +492,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			varType := em.ti(v).Type
 			// Package/closure/imported variable.
 			if index, ok := em.getVarIndex(v); ok {
-				msb, lsb := encodeInt16(int16(index))
-				addresses[i] = em.newAddress(assignClosureVar, varType, node.Type, msb, lsb, pos)
+				addresses[i] = em.newAddressClosureVariable(int16(index), varType, pos, node.Type)
 				break
 			}
 			// Local variable.
@@ -514,15 +513,14 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			}
 		case *ast.Selector:
 			if index, ok := em.getVarIndex(v); ok {
-				msb, lsb := encodeInt16(int16(index))
-				addresses[i] = em.newAddress(assignClosureVar, em.ti(v).Type, node.Type, msb, lsb, pos)
+				addresses[i] = em.newAddressClosureVariable(int16(index), em.ti(v).Type, pos, node.Type)
 				break
 			}
 			typ := em.ti(v.Expr).Type
 			reg := em.emitExpr(v.Expr, typ)
 			field, _ := typ.FieldByName(v.Ident)
 			index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
-			addresses[i] = em.newAddress(assignStructSelector, typ, node.Type, reg, index, pos)
+			addresses[i] = em.newAddressStructSelector(reg, index, typ, pos, node.Type)
 			break
 		case *ast.UnaryOperator:
 			if v.Operator() != ast.OperatorMultiplication {
@@ -530,7 +528,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			}
 			typ := em.ti(v.Expr).Type
 			reg := em.emitExpr(v.Expr, typ)
-			addresses[i] = em.newAddress(assignPtrIndirection, typ, node.Type, reg, 0, pos)
+			addresses[i] = em.newAddressPtrIndirect(reg, typ, pos, node.Type)
 		default:
 			panic("BUG.") // remove.
 		}
