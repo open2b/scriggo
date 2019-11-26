@@ -432,7 +432,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					} else {
 						varr := em.fb.newRegister(staticType.Kind())
 						em.fb.bindVarReg(v.Name, varr)
-						addresses[i] = em.newAddress(assignLocalVar, staticType, 0, varr, 0, v.Pos())
+						addresses[i] = em.newAddressLocalVar(varr, staticType, v.Pos(), 0)
 					}
 				}
 			}
@@ -470,7 +470,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				} else {
 					varReg := em.fb.newRegister(staticType.Kind())
 					em.fb.bindVarReg(v.Name, varReg)
-					addresses[i] = em.newAddress(assignLocalVar, staticType, 0, varReg, 0, pos)
+					addresses[i] = em.newAddressLocalVar(varReg, staticType, pos, node.Type)
 				}
 			}
 		}
@@ -498,7 +498,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			}
 			// Local variable.
 			reg := em.fb.scopeLookup(v.Name)
-			addresses[i] = em.newAddress(assignLocalVar, varType, node.Type, reg, 0, pos)
+			addresses[i] = em.newAddressLocalVar(reg, varType, pos, node.Type)
 		case *ast.Index:
 			exprType := em.ti(v.Expr).Type
 			expr := em.emitExpr(v.Expr, exprType)

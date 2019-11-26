@@ -249,7 +249,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 					staticType := em.ti(v).Type
 					varr := em.fb.newRegister(staticType.Kind())
 					em.fb.bindVarReg(v.Name, varr)
-					addresses[i] = em.newAddress(assignLocalVar, staticType, 0, varr, 0, v.Pos())
+					addresses[i] = em.newAddressLocalVar(varr, staticType, v.Pos(), 0)
 					// Store the variable register. It will be used later to store
 					// initialized value inside the proper global index.
 					pkgVarRegs[v.Name] = varr
