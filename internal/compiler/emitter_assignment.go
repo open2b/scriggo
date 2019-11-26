@@ -28,7 +28,8 @@ const (
 )
 
 // address represents an element on the left side of an assignment.
-// See em.newAddress for a detailed explanation of the fields.
+// The meaning of the various fields is explained in the constructor methods for
+// this type.
 type address struct {
 	em            *emitter
 	target        assignmentTarget
@@ -36,32 +37,6 @@ type address struct {
 	op1, op2      int8
 	pos           *ast.Position
 	operator      ast.AssignmentType
-}
-
-// newAddress returns a new address that represent one element on the left side
-// of an assignment.
-//
-// pos is the position of the assignment in the source code.
-//
-// To get an explanation of the different assignment targets, see the
-// declaration of the assignmentTarget constants. The meaning of the argument
-// op1, op2 and addressedType is explained in the table below:
-//
-//  Assignment target          op1                  op2                           Addressed Type
-//
-//  assignBlank                (unused)             (unused)                      (unused)
-//  assignClosureVariable      msb of the var index lsb of the var index          type of the variable
-//  assignNewIndirectVar       register             (unused)                      type of the variable
-//  assignLocalVariable        register             (unused)                      type of the variable
-//  assignMapIndex             map register         key register                  type of the map
-//  assignPtrIndirection       register             (unused)                      type of the *v expression
-//  assignSliceIndex           slice register       index register                type of the slice
-//  assignStructSelector       struct register      index of the field (const)    type of the struct
-//
-// TODO: this method as a lot of arguments, consider splitting this method in
-// submethods.
-func (em *emitter) newAddress(target assignmentTarget, addressedType reflect.Type, operator ast.AssignmentType, op1, op2 int8, pos *ast.Position) address {
-	return address{em: em, target: target, addressedType: addressedType, operator: operator, op1: op1, op2: op2, pos: pos}
 }
 
 func (em *emitter) newAddressClosureVariable(index int16, varType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
@@ -78,11 +53,22 @@ func (em *emitter) newAddressClosureVariable(index int16, varType reflect.Type, 
 }
 
 func (em *emitter) newAddressBlankIdent(pos *ast.Position) address {
-	return address{em: em, target: assignBlank, pos: pos}
+	return address{
+		em:     em,
+		pos:    pos,
+		target: assignBlank,
+	}
 }
 
 func (em *emitter) newAddressLocalVar(reg int8, varType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
-	return address{em: em, target: assignLocalVar, addressedType: varType, op1: reg, pos: pos, operator: op}
+	return address{
+		addressedType: varType,
+		em:            em,
+		op1:           reg,
+		operator:      op,
+		pos:           pos,
+		target:        assignLocalVar,
+	}
 }
 
 func (em *emitter) newAddressPtrIndirect(reg int8, pointedType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
@@ -97,19 +83,50 @@ func (em *emitter) newAddressPtrIndirect(reg int8, pointedType reflect.Type, pos
 }
 
 func (em *emitter) newAddressStructSelector(structReg int8, kFieldIndex int8, structType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
-	return address{em: em, target: assignStructSelector, addressedType: structType, op1: structReg, op2: kFieldIndex, pos: pos, operator: op}
+	return address{
+		addressedType: structType,
+		em:            em,
+		op1:           structReg,
+		op2:           kFieldIndex,
+		operator:      op,
+		pos:           pos,
+		target:        assignStructSelector,
+	}
 }
 
 func (em *emitter) newAddressNewIndirectVar(reg int8, varType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
-	return address{em: em, target: assignNewIndirectVar, addressedType: varType, op1: reg, pos: pos, operator: op}
+	return address{
+		addressedType: varType,
+		em:            em,
+		op1:           reg,
+		operator:      op,
+		pos:           pos,
+		target:        assignNewIndirectVar,
+	}
 }
 
 func (em *emitter) newAddressMapIndex(mapReg int8, keyReg int8, mapType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
-	return address{em: em, target: assignMapIndex, addressedType: mapType, op1: mapReg, op2: keyReg, pos: pos, operator: op}
+	return address{
+		addressedType: mapType,
+		em:            em,
+		op1:           mapReg,
+		op2:           keyReg,
+		operator:      op,
+		pos:           pos,
+		target:        assignMapIndex,
+	}
 }
 
 func (em *emitter) newAddressSliceIndex(sliceReg int8, indexReg int8, sliceType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
-	return address{em: em, target: assignSliceIndex, addressedType: sliceType, op1: sliceReg, op2: indexReg, pos: pos, operator: op}
+	return address{
+		addressedType: sliceType,
+		em:            em,
+		op1:           sliceReg,
+		op2:           indexReg,
+		operator:      op,
+		pos:           pos,
+		target:        assignSliceIndex,
+	}
 }
 
 // assign assigns value, with type valueType, to the address. If k is true
