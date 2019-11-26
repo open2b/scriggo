@@ -992,7 +992,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		}
 		typ := t1.Type
 		switch {
-		case isBoolean(k2):
+		case isBoolean(k1):
 			if ast.OperatorLess <= op && op <= ast.OperatorGreaterOrEqual {
 				return nil, fmt.Errorf("operator < not defined on bool")
 			}
