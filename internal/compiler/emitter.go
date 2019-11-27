@@ -126,6 +126,12 @@ func (vs *varStore) predefVarIndex(v *reflect.Value, pkg, name string) int16 {
 	return index
 }
 
+func (vs *varStore) isPredefVar(v *reflect.Value) (int16, bool) {
+	currFn := vs.emitter.fb.fn
+	index, ok := vs.predefinedVarRefs[currFn][v]
+	return index, ok
+}
+
 // TODO: review -------------------------------------------------
 
 // An emitter emits instructions for the VM.
