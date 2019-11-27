@@ -126,6 +126,13 @@ func (vs *varStore) predefVarIndex(v *reflect.Value, pkg, name string) int16 {
 	return index
 }
 
+func (vs *varStore) setPredefVarIndex(fn *runtime.Function, v *reflect.Value, index int16) {
+	if vs.predefVarRef[fn] == nil {
+		vs.predefVarRef[fn] = map[*reflect.Value]int16{}
+	}
+	vs.predefVarRef[fn][v] = index
+}
+
 func (vs *varStore) isPredefVar(v *reflect.Value) (int16, bool) {
 	currFn := vs.emitter.fb.fn
 	index, ok := vs.predefVarRef[currFn][v]
