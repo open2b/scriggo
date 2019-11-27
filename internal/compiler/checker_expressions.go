@@ -1069,7 +1069,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		} else if !isOrdered(t1) {
 			return nil, fmt.Errorf("operator %s not defined on %s", op, t1.Type.Kind())
 		}
-		return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
+		return untypedBoolTypeInfo, nil
 	}
 
 	if t1.Type != t2.Type {
