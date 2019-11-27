@@ -606,12 +606,17 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 					return tc.errorf(f.Ident, "func %s must have no arguments and no return values", f.Ident.Name)
 				}
 			}
-			if f.Ident.Name != "init" {
-				if _, ok := tc.filePackageBlock[f.Ident.Name]; ok {
-					return tc.errorf(f.Ident, "%s redeclared in this block", f.Ident.Name)
-				}
-				tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: tc.checkType(f.Type).Type}}
+			// Function type must be checked for every function, including
+			// 'init's functions.
+			funcType := tc.checkType(f.Type).Type
+			if f.Ident.Name == "init" {
+				// Do not add the 'init' function to the file/package block.
+				continue
 			}
+			if _, ok := tc.filePackageBlock[f.Ident.Name]; ok {
+				return tc.errorf(f.Ident, "%s redeclared in this block", f.Ident.Name)
+			}
+			tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: funcType}}
 		}
 	}
 
