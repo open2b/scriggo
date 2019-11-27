@@ -43,7 +43,7 @@ type emitter struct {
 	typeInfos map[ast.Node]*TypeInfo
 
 	// Index in the Function VarRefs field for each closure variable.
-	functionClosureVars map[*runtime.Function]map[string]int
+	closureVars map[*runtime.Function]map[string]int
 
 	options EmitterOptions
 
@@ -88,17 +88,17 @@ type emitter struct {
 // variables and options.
 func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *emitter {
 	return &emitter{
-		funcIndexes:         map[*runtime.Function]map[*runtime.Function]int8{},
-		functions:           map[*ast.Package]map[string]*runtime.Function{},
-		indirectVars:        indirectVars,
-		labels:              make(map[*runtime.Function]map[string]label),
-		options:             opts,
-		scriggoPackageVars:  map[*ast.Package]map[string]int16{},
-		predFunIndexes:      map[*runtime.Function]map[reflect.Value]int8{},
-		typeInfos:           typeInfos,
-		functionClosureVars: map[*runtime.Function]map[string]int{},
-		predefinedVarRefs:   map[*runtime.Function]map[*reflect.Value]int{},
-		types:               types.NewTypes(), // TODO: this is wrong: the instance should be taken from the type checker.
+		funcIndexes:        map[*runtime.Function]map[*runtime.Function]int8{},
+		functions:          map[*ast.Package]map[string]*runtime.Function{},
+		indirectVars:       indirectVars,
+		labels:             make(map[*runtime.Function]map[string]label),
+		options:            opts,
+		scriggoPackageVars: map[*ast.Package]map[string]int16{},
+		predFunIndexes:     map[*runtime.Function]map[reflect.Value]int8{},
+		typeInfos:          typeInfos,
+		closureVars:        map[*runtime.Function]map[string]int{},
+		predefinedVarRefs:  map[*runtime.Function]map[*reflect.Value]int{},
+		types:              types.NewTypes(), // TODO: this is wrong: the instance should be taken from the type checker.
 	}
 }
 
