@@ -43,8 +43,8 @@ type emitter struct {
 	typeInfos map[ast.Node]*TypeInfo
 
 	// Index in the Function VarRefs field for each closure variable.
-	closureVarRefs map[*runtime.Function]map[string]int
-	options        EmitterOptions
+	functionClosureVars map[*runtime.Function]map[string]int
+	options             EmitterOptions
 
 	isTemplate bool // Reports whether it's a template.
 
@@ -95,7 +95,7 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 		nonLocalScriggoVars: map[*ast.Package]map[string]int16{},
 		predFunIndexes:      map[*runtime.Function]map[reflect.Value]int8{},
 		typeInfos:           typeInfos,
-		closureVarRefs:      map[*runtime.Function]map[string]int{},
+		functionClosureVars: map[*runtime.Function]map[string]int{},
 		predefinedVarRefs:   map[*runtime.Function]map[*reflect.Value]int{},
 		types:               types.NewTypes(), // TODO: this is wrong: the instance should be taken from the type checker.
 	}
