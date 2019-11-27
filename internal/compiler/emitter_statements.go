@@ -491,7 +491,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			}
 			varType := em.ti(v).Type
 			// Package/closure/imported variable.
-			if index, ok := em.getVarIndex(v); ok {
+			if index, ok := em.nonLocalVarIndex(v); ok {
 				addresses[i] = em.addressClosureVar(int16(index), varType, pos, node.Type)
 				break
 			}
@@ -512,7 +512,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				addresses[i] = em.addressSliceIndex(expr, index, exprType, pos, node.Type)
 			}
 		case *ast.Selector:
-			if index, ok := em.getVarIndex(v); ok {
+			if index, ok := em.nonLocalVarIndex(v); ok {
 				addresses[i] = em.addressClosureVar(int16(index), em.ti(v).Type, pos, node.Type)
 				break
 			}

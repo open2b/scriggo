@@ -118,8 +118,8 @@ func (em *emitter) functionIndex(fun *runtime.Function) int8 {
 	return i
 }
 
-// getVarIndex returns the index of the variable v, if exists.
-func (em *emitter) getVarIndex(v ast.Expression) (index int, ok bool) {
+// nonLocalVarIndex returns the index of the non-local variable v, if exists.
+func (em *emitter) nonLocalVarIndex(v ast.Expression) (index int, ok bool) {
 
 	if ti := em.ti(v); ti != nil && ti.IsPredefined() {
 		// TODO: this is the new way of accessing predefined vars. Incrementally
