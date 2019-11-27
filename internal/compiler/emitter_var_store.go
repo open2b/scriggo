@@ -30,6 +30,11 @@ func newVarStore(emitter *emitter, indirectVars map[*ast.Identifier]bool) *varSt
 	}
 }
 
+func (vs *varStore) scriggoPackageVarIndex(pkg *ast.Package, name string) (int16, bool) {
+	index, ok := vs.scriggoPackageVars[pkg][name]
+	return index, ok
+}
+
 func (vs *varStore) mustBeDeclaredAsIndirect(v *ast.Identifier) bool {
 	return vs.indirectVars[v]
 }
