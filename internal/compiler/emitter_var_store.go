@@ -17,14 +17,16 @@ type varStore struct {
 	indirectVars map[*ast.Identifier]bool
 	predefVarRef map[*runtime.Function]map[*reflect.Value]int16
 	// Holds all Scriggo-defined and pre-predefined global variables.
-	globals []Global
+	globals            []Global
+	scriggoPackageVars map[*ast.Package]map[string]int16
 }
 
 func newVarStore(emitter *emitter, indirectVars map[*ast.Identifier]bool) *varStore {
 	return &varStore{
-		emitter:      emitter,
-		predefVarRef: map[*runtime.Function]map[*reflect.Value]int16{},
-		indirectVars: indirectVars,
+		emitter:            emitter,
+		predefVarRef:       map[*runtime.Function]map[*reflect.Value]int16{},
+		indirectVars:       indirectVars,
+		scriggoPackageVars: map[*ast.Package]map[string]int16{},
 	}
 }
 

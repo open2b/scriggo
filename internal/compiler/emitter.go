@@ -48,9 +48,6 @@ type emitter struct {
 	// isTemplate reports whether the emitter is currently emitting a template.
 	isTemplate bool
 
-	// Scriggo variables.
-	scriggoPackageVars map[*ast.Package]map[string]int16
-
 	// rangeLabels is a list of current active Ranges. First element is the
 	// Range address, second refers to the first instruction outside Range's
 	// body.
@@ -77,12 +74,11 @@ type emitter struct {
 // variables and options.
 func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *emitter {
 	em := &emitter{
-		labels:             make(map[*runtime.Function]map[string]label),
-		options:            opts,
-		scriggoPackageVars: map[*ast.Package]map[string]int16{},
-		typeInfos:          typeInfos,
-		closureVars:        map[*runtime.Function]map[string]int{},
-		types:              types.NewTypes(), // TODO: this is wrong: the instance should be taken from the type checker.
+		labels:      make(map[*runtime.Function]map[string]label),
+		options:     opts,
+		typeInfos:   typeInfos,
+		closureVars: map[*runtime.Function]map[string]int{},
+		types:       types.NewTypes(), // TODO: this is wrong: the instance should be taken from the type checker.
 	}
 	em.fnStore = newFunctionStore(em)
 	em.varStore = newVarStore(em, indirectVars)
@@ -132,8 +128,8 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 	if !extendingPage {
 		em.pkg = pkg
 	}
-	if em.scriggoPackageVars[em.pkg] == nil {
-		em.scriggoPackageVars[em.pkg] = map[string]int16{}
+	if em.varStore.scriggoPackageVars[em.pkg] == nil {
+		em.varStore.scriggoPackageVars[em.pkg] = map[string]int16{}
 	}
 
 	// https://github.com/open2b/scriggo/issues/476
@@ -173,9 +169,9 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				}
 				for name, v := range vars {
 					if importName == "" {
-						em.scriggoPackageVars[em.pkg][name] = v
+						em.varStore.scriggoPackageVars[em.pkg][name] = v
 					} else {
-						em.scriggoPackageVars[em.pkg][importName+"."+name] = v
+						em.varStore.scriggoPackageVars[em.pkg][importName+"."+name] = v
 					}
 				}
 			}
@@ -247,12 +243,12 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				pkgVarRegs[v.Name] = varr
 				pkgVarTypes[v.Name] = varType
 				index := em.varStore.addGlobal(newGlobal("main", v.Name, varType, nil))
-				em.scriggoPackageVars[em.pkg][v.Name] = index
+				em.varStore.scriggoPackageVars[em.pkg][v.Name] = index
 				vars[v.Name] = index
 			}
 			em.assignValuesToAddresses(addresses, n.Rhs)
 			for name, reg := range pkgVarRegs {
-				index := em.scriggoPackageVars[em.pkg][name]
+				index := em.varStore.scriggoPackageVars[em.pkg][name]
 				em.fb.emitSetVar(false, reg, int(index), pkgVarTypes[name].Kind())
 			}
 			em.fb = backupFb
