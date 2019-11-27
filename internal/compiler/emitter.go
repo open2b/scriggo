@@ -16,8 +16,30 @@ import (
 	"scriggo/runtime"
 )
 
+// TODO: review -------------------------------------------------
+
+type functionStore struct {
+	scriggoFunctions map[*ast.Package]map[string]*runtime.Function
+}
+
+func newFunctionStore() *functionStore {
+	return &functionStore{
+		scriggoFunctions: map[*ast.Package]map[string]*runtime.Function{},
+	}
+}
+
+func (fs *functionStore) addScriggoFn(pkg *ast.Package, name string, fn *runtime.Function) {
+	if fs.scriggoFunctions[pkg] == nil {
+		fs.scriggoFunctions[pkg] = map[string]*runtime.Function{}
+	}
+	fs.scriggoFunctions[pkg][name] = fn
+}
+
+// TODO: review -------------------------------------------------
+
 // An emitter emits instructions for the VM.
 type emitter struct {
+	functionStore *functionStore
 
 	// Index in the Function VarRefs field for each predefined variable.
 	// TODO(Gianluca): this is the new way of accessing predefined vars.
@@ -88,6 +110,7 @@ type emitter struct {
 // variables and options.
 func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *emitter {
 	return &emitter{
+		functionStore:      newFunctionStore(),
 		funcIndexes:        map[*runtime.Function]map[*runtime.Function]int8{},
 		functions:          map[*ast.Package]map[string]*runtime.Function{},
 		indirectVars:       indirectVars,
