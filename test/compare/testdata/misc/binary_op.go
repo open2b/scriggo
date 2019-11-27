@@ -168,4 +168,56 @@ func main() {
 	_ = interface{}(1) == (1 << i)
 	_ = interface{}(1) == i
 
+	// Operation +
+	_ = 1.2 + 2.3
+	_ = 1.1 + float64(2.3)
+	_ = float64(1.2) + 2.3
+	_ = float64(1.2) + float64(2.3)
+	_ = 1i + 2i
+	_ = 1i + complex128(2i)
+	_ = complex128(1i) + 2i
+	_ = complex128(1i) + complex128(2i)
+
+	// Operation *
+	_ = 1 * 2
+	_ = 1 * int(2)
+	_ = int(1) * 2
+	_ = int(1) * int(2)
+	_ = 1.2 * 2.3
+	_ = 1.1 * float64(2.3)
+	_ = float64(1.2) * 2.3
+	_ = float64(1.2) * float64(2.3)
+	_ = 1i * 2i
+	_ = 1i * complex128(2i)
+	_ = complex128(1i) * 2i
+	_ = complex128(1i) * complex128(2i)
+
+	// Operation /
+	_ = 1 / 2
+	_ = 1 / int(2)
+	_ = int(1) / 2
+	_ = int(1) / int(2)
+	_ = 1.2 / 2.3
+	_ = 1.1 / float64(2.3)
+	_ = float64(1.2) / 2.3
+	_ = float64(1.2) / float64(2.3)
+	_ = 1i / 2i
+	_ = 1i / complex128(2i)
+	_ = complex128(1i) / 2i
+	_ = complex128(1i) / complex128(2i)
+
+	// Operation %
+	_ = 1 % 2
+	_ = 1 % int(2)
+	_ = int(1) % 2
+	_ = int(1) % int(2)
+	_ = 1.2 % 2.3                       // ERROR `invalid operation: 1.2 % 2.3 (floating-point % operation)`
+	_ = 1.1 % float64(2.3)              // ERROR `invalid operation: 1.1 % float64(2.3) (operator % not defined on float64)`
+	_ = float64(1.2) % 2.3              // ERROR `invalid operation: float64(1.2) % 2.3 (operator % not defined on float64)`
+	_ = float64(1.2) % float64(2.3)     // ERROR `invalid operation: float64(1.2) % float64(2.3) (operator % not defined on float64)`
+	_ = 1i % 2i                         // ERROR `invalid operation: 1i % 2i (operator % not defined on untyped complex)`
+	_ = 1i % complex128(2i)             // ERROR `invalid operation: 1i % complex128(2i) (operator % not defined on complex128)`
+	_ = complex128(1i) % 2i             // ERROR `invalid operation: complex128(1i) % 2i (operator % not defined on complex128)`
+	_ = complex128(1i) % complex128(2i) // ERROR `invalid operation: complex128(1i) % complex128(2i) (operator % not defined on complex128)`
+
 }

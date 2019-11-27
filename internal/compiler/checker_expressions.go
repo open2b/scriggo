@@ -869,6 +869,8 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		}
 	}
 
+	untypedOperands := t1.Untyped() && t2.Untyped()
+
 	if t1.IsConstant() && t2.IsConstant() {
 
 		if isShift {
@@ -908,20 +910,13 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		if err != nil {
 			switch err {
 			case errInvalidOperation:
-				switch op {
-				case ast.OperatorModulo:
+				if op == ast.OperatorModulo && untypedOperands {
 					if isComplex(t1.Type.Kind()) {
-						err = errors.New("complex % operation")
+						err = fmt.Errorf("operator %% not defined on untyped complex")
 					} else {
 						err = errors.New("floating-point % operation")
 					}
-				case ast.OperatorAnd, ast.OperatorOr, ast.OperatorXor:
-					if isComplex(t1.Type.Kind()) {
-						err = fmt.Errorf("operator %s not defined on untyped complex", op)
-					} else {
-						err = fmt.Errorf("operator %s not defined on untyped float", op)
-					}
-				default:
+				} else {
 					err = fmt.Errorf("operator %s not defined on %s", op, t1.ShortString())
 				}
 			case errNegativeShiftCount:
@@ -976,7 +971,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		return ti, nil
 	}
 
-	if t1.Untyped() && t2.Untyped() {
+	if untypedOperands {
 		if t1.Nil() && t2.Nil() {
 			return nil, fmt.Errorf("operator %s not defined on nil", op)
 		}
