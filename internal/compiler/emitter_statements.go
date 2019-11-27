@@ -422,7 +422,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					addresses[i] = em.addressBlankIdent(v.Pos())
 				} else {
 					staticType := em.ti(v).Type
-					if em.indirectVars[v] {
+					if em.varStore.mustBeDeclaredAsIndirect(v) {
 						varr := -em.fb.newRegister(reflect.Interface)
 						em.fb.bindVarReg(v.Name, varr)
 						addresses[i] = em.addressNewIndirectVar(varr, staticType, v.Pos(), 0)
@@ -460,7 +460,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			} else {
 				v := v.(*ast.Identifier)
 				staticType := em.ti(v).Type
-				if em.indirectVars[v] {
+				if em.varStore.mustBeDeclaredAsIndirect(v) {
 					varReg := -em.fb.newRegister(reflect.Interface)
 					em.fb.bindVarReg(v.Name, varReg)
 					addresses[i] = em.addressNewIndirectVar(varReg, staticType, pos, node.Type)
