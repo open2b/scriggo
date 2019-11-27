@@ -267,12 +267,13 @@ func (em *emitter) setClosureRefs(fn *runtime.Function, closureVars []ast.Upvar)
 	for i := range closureVars {
 		v := &closureVars[i]
 		if v.Index == -1 {
-			if v.Declaration != nil {
+			if v.Declaration == nil {
+				// The upvar is predefined.
+				v.Index = em.predVarIndex(v.PredefinedValue, v.PredefinedPkg, v.PredefinedName)
+			} else {
 				name := v.Declaration.(*ast.Identifier).Name
 				reg := em.fb.scopeLookup(name)
 				v.Index = int16(reg)
-			} else {
-				v.Index = em.predVarIndex(v.PredefinedValue, v.PredefinedPkg, v.PredefinedName)
 			}
 		}
 	}
