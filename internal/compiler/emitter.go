@@ -20,11 +20,13 @@ import (
 
 type functionStore struct {
 	scriggoFunctions map[*ast.Package]map[string]*runtime.Function
+	functionIndexes  map[*runtime.Function]map[*runtime.Function]int8
 }
 
 func newFunctionStore() *functionStore {
 	return &functionStore{
 		scriggoFunctions: map[*ast.Package]map[string]*runtime.Function{},
+		functionIndexes:  map[*runtime.Function]map[*runtime.Function]int8{},
 	}
 }
 
@@ -46,6 +48,20 @@ func (fs *functionStore) getScriggoFn(pkg *ast.Package, name string) *runtime.Fu
 		// TODO
 	}
 	return fn
+}
+
+func (fs *functionStore) fnIndex(currFn, fun *runtime.Function) int8 {
+	if fs.functionIndexes[currFn] == nil {
+		fs.functionIndexes[currFn] = map[*runtime.Function]int8{}
+	}
+	i, ok := fs.functionIndexes[currFn][fun]
+	if ok {
+		return i
+	}
+	i = int8(len(currFn.Functions))
+	currFn.Functions = append(currFn.Functions, fun)
+	fs.functionIndexes[currFn][fun] = i
+	return i
 }
 
 // TODO: review -------------------------------------------------
@@ -86,7 +102,7 @@ type emitter struct {
 
 	// Scriggo functions.
 	// functions   map[*ast.Package]map[string]*runtime.Function
-	funcIndexes map[*runtime.Function]map[*runtime.Function]int8
+	//funcIndexes map[*runtime.Function]map[*runtime.Function]int8
 
 	// Scriggo variables.
 	scriggoPackageVars map[*ast.Package]map[string]int16
@@ -124,7 +140,6 @@ type emitter struct {
 func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *emitter {
 	return &emitter{
 		fnStore:            newFunctionStore(),
-		funcIndexes:        map[*runtime.Function]map[*runtime.Function]int8{},
 		indirectVars:       indirectVars,
 		labels:             make(map[*runtime.Function]map[string]label),
 		options:            opts,
