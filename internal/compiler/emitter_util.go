@@ -164,7 +164,7 @@ func (em *emitter) nonLocalVarIndex(v ast.Expression) (index int, ok bool) {
 	if index, ok := em.closureVarRefs[em.fb.fn][name]; ok {
 		return index, true
 	}
-	if index, ok := em.availableVarIndexes[em.pkg][name]; ok {
+	if index, ok := em.nonLocalScriggoVars[em.pkg][name]; ok {
 		return int(index), true
 	}
 

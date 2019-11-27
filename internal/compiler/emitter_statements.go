@@ -107,14 +107,14 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 							em.functions[backupPkg][importName+"."+name] = fn
 						}
 					}
-					if em.availableVarIndexes[backupPkg] == nil {
-						em.availableVarIndexes[backupPkg] = map[string]int16{}
+					if em.nonLocalScriggoVars[backupPkg] == nil {
+						em.nonLocalScriggoVars[backupPkg] = map[string]int16{}
 					}
 					for name, v := range vars {
 						if importName == "" {
-							em.availableVarIndexes[backupPkg][name] = v
+							em.nonLocalScriggoVars[backupPkg][name] = v
 						} else {
-							em.availableVarIndexes[backupPkg][importName+"."+name] = v
+							em.nonLocalScriggoVars[backupPkg][importName+"."+name] = v
 						}
 					}
 					if len(inits) > 0 {

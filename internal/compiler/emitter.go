@@ -53,7 +53,7 @@ type emitter struct {
 	funcIndexes map[*runtime.Function]map[*runtime.Function]int8
 
 	// Scriggo variables.
-	availableVarIndexes map[*ast.Package]map[string]int16
+	nonLocalScriggoVars map[*ast.Package]map[string]int16
 
 	// Predefined functions.
 	predFunIndexes map[*runtime.Function]map[reflect.Value]int8
@@ -92,7 +92,7 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 		indirectVars:        indirectVars,
 		labels:              make(map[*runtime.Function]map[string]label),
 		options:             opts,
-		availableVarIndexes: map[*ast.Package]map[string]int16{},
+		nonLocalScriggoVars: map[*ast.Package]map[string]int16{},
 		predFunIndexes:      map[*runtime.Function]map[reflect.Value]int8{},
 		typeInfos:           typeInfos,
 		closureVarRefs:      map[*runtime.Function]map[string]int{},
@@ -145,8 +145,8 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 		em.pkg = pkg
 		em.functions[em.pkg] = map[string]*runtime.Function{}
 	}
-	if em.availableVarIndexes[em.pkg] == nil {
-		em.availableVarIndexes[em.pkg] = map[string]int16{}
+	if em.nonLocalScriggoVars[em.pkg] == nil {
+		em.nonLocalScriggoVars[em.pkg] = map[string]int16{}
 	}
 
 	// https://github.com/open2b/scriggo/issues/476
@@ -186,9 +186,9 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				}
 				for name, v := range vars {
 					if importName == "" {
-						em.availableVarIndexes[em.pkg][name] = v
+						em.nonLocalScriggoVars[em.pkg][name] = v
 					} else {
-						em.availableVarIndexes[em.pkg][importName+"."+name] = v
+						em.nonLocalScriggoVars[em.pkg][importName+"."+name] = v
 					}
 				}
 			}
@@ -260,12 +260,12 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				pkgVarRegs[v.Name] = varr
 				pkgVarTypes[v.Name] = varType
 				em.globals = append(em.globals, newGlobal("main", v.Name, varType, nil))
-				em.availableVarIndexes[em.pkg][v.Name] = int16(len(em.globals) - 1)
+				em.nonLocalScriggoVars[em.pkg][v.Name] = int16(len(em.globals) - 1)
 				vars[v.Name] = int16(len(em.globals) - 1)
 			}
 			em.assignValuesToAddresses(addresses, n.Rhs)
 			for name, reg := range pkgVarRegs {
-				index := em.availableVarIndexes[em.pkg][name]
+				index := em.nonLocalScriggoVars[em.pkg][name]
 				em.fb.emitSetVar(false, reg, int(index), pkgVarTypes[name].Kind())
 			}
 			em.fb = backupFb
