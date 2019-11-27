@@ -945,9 +945,12 @@ func (em *emitter) emitExprR(expr ast.Expression, dstType reflect.Type, reg int8
 //
 func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8, useGivenReg bool, allowK bool) (int8, bool) {
 
-	if allowK && !useGivenReg {
+	// No need to use the given register: check if expr can be emitted without
+	// allocating a new one.
+	if !useGivenReg {
 		ti := em.ti(expr)
-		if ti.HasValue() && !ti.IsPredefined() {
+		// Check if expr can be emitted as immediate.
+		if allowK && ti.HasValue() && !ti.IsPredefined() {
 			switch v := ti.value.(type) {
 			case int64:
 				if canEmitDirectly(reflect.Int, dstType.Kind()) {
@@ -963,19 +966,16 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				}
 			}
 		}
+		// Expr cannot be emitted as immediate: check if it's possible to emit
+		// it without allocating a new register.
 		if expr, ok := expr.(*ast.Identifier); ok && em.fb.isVariable(expr.Name) {
 			if canEmitDirectly(em.ti(expr).Type.Kind(), dstType.Kind()) {
 				return em.fb.scopeLookup(expr.Name), false
 			}
 		}
-	}
 
-	if !useGivenReg {
-		if expr, ok := expr.(*ast.Identifier); ok && em.fb.isVariable(expr.Name) {
-			if canEmitDirectly(em.ti(expr).Type.Kind(), dstType.Kind()) {
-				return em.fb.scopeLookup(expr.Name), false
-			}
-		}
+		// None of the conditions above applied: a new register must be
+		// allocated, and the emission must proceed.
 		reg = em.fb.newRegister(dstType.Kind())
 	}
 
