@@ -270,10 +270,10 @@ func (em *emitter) setClosureRefs(fn *runtime.Function, closureVars []ast.Upvar)
 		if v.Declaration != nil {
 			em.closureVars[fn][v.Declaration.(*ast.Identifier).Name] = i
 		} else {
-			if em.varStore.predefinedVarRefs[fn] == nil {
-				em.varStore.predefinedVarRefs[fn] = map[*reflect.Value]int16{}
+			if em.varStore.predefVarRef[fn] == nil {
+				em.varStore.predefVarRef[fn] = map[*reflect.Value]int16{}
 			}
-			em.varStore.predefinedVarRefs[fn][v.PredefinedValue] = int16(i)
+			em.varStore.predefVarRef[fn][v.PredefinedValue] = int16(i)
 		}
 		closureRefs[i] = v.Index
 	}

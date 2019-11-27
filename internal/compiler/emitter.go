@@ -89,18 +89,18 @@ func (fs *functionStore) predefFnIndex(fn reflect.Value, pkg, name string) int8 
 // TODO: review -------------------------------------------------
 
 type varStore struct {
-	emitter           *emitter
-	indirectVars      map[*ast.Identifier]bool
-	predefinedVarRefs map[*runtime.Function]map[*reflect.Value]int16
+	emitter      *emitter
+	indirectVars map[*ast.Identifier]bool
+	predefVarRef map[*runtime.Function]map[*reflect.Value]int16
 	// Holds all Scriggo-defined and pre-predefined global variables.
 	globals []Global
 }
 
 func newVarStore(emitter *emitter, indirectVars map[*ast.Identifier]bool) *varStore {
 	return &varStore{
-		emitter:           emitter,
-		predefinedVarRefs: map[*runtime.Function]map[*reflect.Value]int16{},
-		indirectVars:      indirectVars,
+		emitter:      emitter,
+		predefVarRef: map[*runtime.Function]map[*reflect.Value]int16{},
+		indirectVars: indirectVars,
 	}
 }
 
@@ -110,7 +110,7 @@ func (vs *varStore) mustBeDeclaredAsIndirect(v *ast.Identifier) bool {
 
 func (vs *varStore) predefVarIndex(v *reflect.Value, pkg, name string) int16 {
 	currFn := vs.emitter.fb.fn
-	if index, ok := vs.predefinedVarRefs[currFn][v]; ok {
+	if index, ok := vs.predefVarRef[currFn][v]; ok {
 		return index
 	}
 	index := int16(len(vs.globals))
@@ -118,17 +118,17 @@ func (vs *varStore) predefVarIndex(v *reflect.Value, pkg, name string) int16 {
 	if !v.IsNil() {
 		g.Value = v.Interface()
 	}
-	if vs.predefinedVarRefs[currFn] == nil {
-		vs.predefinedVarRefs[currFn] = map[*reflect.Value]int16{}
+	if vs.predefVarRef[currFn] == nil {
+		vs.predefVarRef[currFn] = map[*reflect.Value]int16{}
 	}
 	vs.globals = append(vs.globals, g)
-	vs.predefinedVarRefs[currFn][v] = index
+	vs.predefVarRef[currFn][v] = index
 	return index
 }
 
 func (vs *varStore) isPredefVar(v *reflect.Value) (int16, bool) {
 	currFn := vs.emitter.fb.fn
-	index, ok := vs.predefinedVarRefs[currFn][v]
+	index, ok := vs.predefVarRef[currFn][v]
 	return index, ok
 }
 
