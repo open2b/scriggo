@@ -70,6 +70,9 @@ func (fs *functionStore) scriggoFnIndex(fun *runtime.Function) int8 {
 
 func (fs *functionStore) predefFnIndex(fn reflect.Value, pkg, name string) int8 {
 	currFn := fs.emitter.fb.fn
+	if fs.predefFuncIndex[currFn] == nil {
+		fs.predefFuncIndex[currFn] = map[reflect.Value]int8{}
+	}
 	if index, ok := fs.predefFuncIndex[currFn][fn]; ok {
 		return index
 	}
@@ -86,17 +89,41 @@ func (fs *functionStore) predefFnIndex(fn reflect.Value, pkg, name string) int8 
 // TODO: review -------------------------------------------------
 
 type varStore struct {
-	indirectVars map[*ast.Identifier]bool
+	emitter           *emitter
+	indirectVars      map[*ast.Identifier]bool
+	predefinedVarRefs map[*runtime.Function]map[*reflect.Value]int16
+	// Holds all Scriggo-defined and pre-predefined global variables.
+	globals []Global
 }
 
-func newVarStore(indirectVars map[*ast.Identifier]bool) *varStore {
+func newVarStore(emitter *emitter, indirectVars map[*ast.Identifier]bool) *varStore {
 	return &varStore{
-		indirectVars: indirectVars,
+		emitter:           emitter,
+		predefinedVarRefs: map[*runtime.Function]map[*reflect.Value]int16{},
+		indirectVars:      indirectVars,
 	}
 }
 
 func (vs *varStore) mustBeDeclaredAsIndirect(v *ast.Identifier) bool {
 	return vs.indirectVars[v]
+}
+
+func (vs *varStore) predefVarIndex(v *reflect.Value, pkg, name string) int16 {
+	currFn := vs.emitter.fb.fn
+	if vs.predefinedVarRefs[currFn] == nil {
+		vs.predefinedVarRefs[currFn] = map[*reflect.Value]int16{}
+	}
+	if index, ok := vs.predefinedVarRefs[currFn][v]; ok {
+		return index
+	}
+	index := int16(len(vs.globals))
+	g := newGlobal(pkg, name, v.Type().Elem(), nil)
+	if !v.IsNil() {
+		g.Value = v.Interface()
+	}
+	vs.globals = append(vs.globals, g)
+	vs.predefinedVarRefs[currFn][v] = index
+	return index
 }
 
 // TODO: review -------------------------------------------------
@@ -136,9 +163,6 @@ type emitter struct {
 	// Scriggo variables.
 	scriggoPackageVars map[*ast.Package]map[string]int16
 
-	// Holds all Scriggo-defined and pre-predefined global variables.
-	globals []Global
-
 	// rangeLabels is a list of current active Ranges. First element is the
 	// Range address, second refers to the first instruction outside Range's
 	// body.
@@ -174,7 +198,7 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 		types:              types.NewTypes(), // TODO: this is wrong: the instance should be taken from the type checker.
 	}
 	em.fnStore = newFunctionStore(em)
-	em.varStore = newVarStore(indirectVars)
+	em.varStore = newVarStore(em, indirectVars)
 	return em
 }
 
@@ -335,9 +359,9 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				// initialized value inside the proper global index.
 				pkgVarRegs[v.Name] = varr
 				pkgVarTypes[v.Name] = varType
-				em.globals = append(em.globals, newGlobal("main", v.Name, varType, nil))
-				em.scriggoPackageVars[em.pkg][v.Name] = int16(len(em.globals) - 1)
-				vars[v.Name] = int16(len(em.globals) - 1)
+				em.varStore.globals = append(em.varStore.globals, newGlobal("main", v.Name, varType, nil))
+				em.scriggoPackageVars[em.pkg][v.Name] = int16(len(em.varStore.globals) - 1)
+				vars[v.Name] = int16(len(em.varStore.globals) - 1)
 			}
 			em.assignValuesToAddresses(addresses, n.Rhs)
 			for name, reg := range pkgVarRegs {

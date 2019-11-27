@@ -264,7 +264,7 @@ func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 	functions, _, _ := e.emitPackage(pkgMain, false, "main")
 	main := e.fnStore.getScriggoFn(pkgMain, "main")
 	pkg := &Code{
-		Globals:   e.globals,
+		Globals:   e.varStore.globals,
 		Functions: functions,
 		Main:      main,
 	}
@@ -283,7 +283,7 @@ func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()
 	e.fb.end()
-	return &Code{Main: e.fb.fn, Globals: e.globals}
+	return &Code{Main: e.fb.fn, Globals: e.varStore.globals}
 }
 
 // EmitTemplate emits the code for a template given its tree, the type info and
@@ -299,10 +299,10 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	e.fb.changePath(tree.Path)
 
 	// Globals.
-	e.globals = append(e.globals, newGlobal("$template", "$io.Writer", emptyInterfaceType, nil))
-	e.globals = append(e.globals, newGlobal("$template", "$Write", reflect.FuncOf(nil, nil, false), nil))
-	e.globals = append(e.globals, newGlobal("$template", "$Render", reflect.FuncOf(nil, nil, false), nil))
-	e.globals = append(e.globals, newGlobal("$template", "$urlWriter", reflect.TypeOf(&struct{}{}), nil))
+	e.varStore.globals = append(e.varStore.globals, newGlobal("$template", "$io.Writer", emptyInterfaceType, nil))
+	e.varStore.globals = append(e.varStore.globals, newGlobal("$template", "$Write", reflect.FuncOf(nil, nil, false), nil))
+	e.varStore.globals = append(e.varStore.globals, newGlobal("$template", "$Render", reflect.FuncOf(nil, nil, false), nil))
+	e.varStore.globals = append(e.varStore.globals, newGlobal("$template", "$urlWriter", reflect.TypeOf(&struct{}{}), nil))
 	e.fb.emitSetAlloc(opts.MemoryLimit)
 
 	// If page is a package, then page extends another page.
@@ -349,7 +349,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 				nopBuilder.end()
 				e.fb.fn.Functions[0] = nopFunction
 			}
-			return &Code{Main: e.fb.fn, Globals: e.globals}
+			return &Code{Main: e.fb.fn, Globals: e.varStore.globals}
 		}
 	}
 
@@ -359,7 +359,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()
 	e.fb.end()
-	return &Code{Main: e.fb.fn, Globals: e.globals}
+	return &Code{Main: e.fb.fn, Globals: e.varStore.globals}
 
 }
 

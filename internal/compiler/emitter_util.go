@@ -225,7 +225,7 @@ func (em *emitter) predVarIndex(v *reflect.Value, predPkgName, name string) int1
 	if index, ok := em.predefinedVarRefs[em.fb.fn][v]; ok {
 		return int16(index)
 	}
-	index := len(em.globals)
+	index := len(em.varStore.globals)
 	g := newGlobal(predPkgName, name, v.Type().Elem(), nil)
 	if !v.IsNil() {
 		g.Value = v.Interface()
@@ -233,7 +233,7 @@ func (em *emitter) predVarIndex(v *reflect.Value, predPkgName, name string) int1
 	if em.predefinedVarRefs[em.fb.fn] == nil {
 		em.predefinedVarRefs[em.fb.fn] = make(map[*reflect.Value]int)
 	}
-	em.globals = append(em.globals, g)
+	em.varStore.globals = append(em.varStore.globals, g)
 	em.predefinedVarRefs[em.fb.fn][v] = index
 	return int16(index)
 }
