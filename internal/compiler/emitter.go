@@ -117,11 +117,8 @@ type emitter struct {
 
 	options EmitterOptions
 
-	isTemplate bool // Reports whether it's a template.
-
-	// Scriggo functions.
-	// functions   map[*ast.Package]map[string]*runtime.Function
-	//funcIndexes map[*runtime.Function]map[*runtime.Function]int8
+	// isTemplate reports whether the emitter is currently emitting a template.
+	isTemplate bool
 
 	// Scriggo variables.
 	scriggoPackageVars map[*ast.Package]map[string]int16
