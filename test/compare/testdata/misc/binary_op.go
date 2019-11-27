@@ -15,12 +15,16 @@ func main() {
 	_ = 1 + int(2)
 	_ = int(1) + 2
 	_ = int(1) + int(2)
+	_ = true + false             // ERROR `invalid operation: true + false (operator + not defined on bool)`
+	_ = bool(true) + bool(false) // ERROR `invalid operation: bool(true) + bool(false) (operator + not defined on bool)`
 
 	// untyped + untyped.
 	_ = 1 + (1 << i)
 	_ = 1 + ('a' << i)
-	_ = 1 + (1.0 << i) // ERROR `invalid operation: 1.0 << i (shift of type float64)`
-	_ = 1 + (0i << i)  // ERROR `invalid operation: 0i << i (shift of type complex128)`
+	_ = 1 + (1.0 << i)      // ERROR `invalid operation: 1.0 << i (shift of type float64)`
+	_ = 1 + (0i << i)       // ERROR `invalid operation: 0i << i (shift of type complex128)`
+	_ = (1 == i) + (2 == i) // ERROR `invalid operation: (1 == i) + (2 == i) (operator + not defined on bool)`
+
 	_ = (1 << i) + 1
 	_ = ('a' << i) + 1
 	_ = (1.0 << i) + 1 // ERROR `invalid operation: 1.0 << i (shift of type float64)`
@@ -40,6 +44,7 @@ func main() {
 	_ = ii + ('a' << i)
 	_ = ii + (1.0 << i)
 	_ = ii + (0i << i)
+	_ = bool(true) + (2 == i) // ERROR `invalid operation: bool(true) + (2 == i) (operator + not defined on bool)`
 
 	// untyped + typed.
 	_ = 2 + i
@@ -55,6 +60,7 @@ func main() {
 	_ = ('a' << i) + ii
 	_ = (1.0 << i) + ii
 	_ = (0i << i) + ii
+	_ = (2 == i) + bool(false) // ERROR `invalid operation: (2 == i) + bool(false) (operator + not defined on bool)`
 
 	// typed + typed.
 	_ = i + i
@@ -62,6 +68,7 @@ func main() {
 	_ = int(1) + i
 	_ = int(1) + int(2)
 	_ = ii == ii
+	_ = bool(true) + bool(false) // ERROR `invalid operation: bool(true) + bool(false) (operator + not defined on bool)`
 
 	// shifts.
 	_ = 1 << 2
