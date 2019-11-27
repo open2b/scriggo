@@ -1188,7 +1188,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 		// Predefined variable.
 		if ident, ok := expr.(*ast.Identifier); ok {
-			index := em.predVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, ident.Name)
+			index := em.varStore.predefVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, ident.Name)
 			if canEmitDirectly(ti.Type.Kind(), dstType.Kind()) {
 				em.fb.emitGetVar(int(index), reg, dstType.Kind())
 				return reg, false

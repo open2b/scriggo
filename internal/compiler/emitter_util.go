@@ -120,12 +120,12 @@ func (em *emitter) nonLocalVarIndex(v ast.Expression) (index int, ok bool) {
 		}
 		// TODO: obsolete, remove:
 		if sel, ok := v.(*ast.Selector); ok {
-			index := em.predVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, sel.Ident)
+			index := em.varStore.predefVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, sel.Ident)
 			return int(index), true
 		}
 		// TODO: obsolete, remove:
 		if ident, ok := v.(*ast.Identifier); ok {
-			index := em.predVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, ident.Name)
+			index := em.varStore.predefVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, ident.Name)
 			return int(index), true
 		}
 	}
@@ -219,26 +219,6 @@ func newGlobal(pkg, name string, typ reflect.Type, value interface{}) Global {
 	}
 }
 
-// predVarIndex returns the index of a global variable in globals, adding it
-// if it does not exist.
-func (em *emitter) predVarIndex(v *reflect.Value, predPkgName, name string) int16 {
-	return em.varStore.predefVarIndex(v, predPkgName, name)
-	// if index, ok := em.predefinedVarRefs[em.fb.fn][v]; ok {
-	// 	return int16(index)
-	// }
-	// index := len(em.varStore.globals)
-	// g := newGlobal(predPkgName, name, v.Type().Elem(), nil)
-	// if !v.IsNil() {
-	// 	g.Value = v.Interface()
-	// }
-	// if em.predefinedVarRefs[em.fb.fn] == nil {
-	// 	em.predefinedVarRefs[em.fb.fn] = make(map[*reflect.Value]int)
-	// }
-	// em.varStore.globals = append(em.varStore.globals, g)
-	// em.predefinedVarRefs[em.fb.fn][v] = index
-	// return int16(index)
-}
-
 // canEmitDirectly reports whether a value of kind k1 can be emitted directly
 // into a register of kind k2 without the needing of passing from an
 // intermediate register.
@@ -270,7 +250,7 @@ func (em *emitter) setClosureRefs(fn *runtime.Function, closureVars []ast.Upvar)
 		if v.Index == -1 {
 			if v.Declaration == nil {
 				// The upvar is predefined.
-				v.Index = em.predVarIndex(v.PredefinedValue, v.PredefinedPkg, v.PredefinedName)
+				v.Index = em.varStore.predefVarIndex(v.PredefinedValue, v.PredefinedPkg, v.PredefinedName)
 			} else {
 				name := v.Declaration.(*ast.Identifier).Name
 				reg := em.fb.scopeLookup(name)
