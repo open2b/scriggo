@@ -102,23 +102,6 @@ func stackDifference(a, b runtime.StackShift) runtime.StackShift {
 	}
 }
 
-// functionIndex returns the index of a function inside the current function,
-// creating it if it does not exist.
-func (em *emitter) functionIndex(fun *runtime.Function) int8 {
-	return em.fnStore.fnIndex(em.fb.fn, fun)
-	// i, ok := em.funcIndexes[em.fb.fn][fun]
-	// if ok {
-	// 	return i
-	// }
-	// i = int8(len(em.fb.fn.Functions))
-	// em.fb.fn.Functions = append(em.fb.fn.Functions, fun)
-	// if em.funcIndexes[em.fb.fn] == nil {
-	// 	em.funcIndexes[em.fb.fn] = make(map[*runtime.Function]int8)
-	// }
-	// em.funcIndexes[em.fb.fn][fun] = i
-	// return i
-}
-
 // nonLocalVarIndex returns the index of the non-local variable v, if exists.
 // v can be one of:
 //
