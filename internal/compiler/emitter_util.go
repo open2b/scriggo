@@ -119,6 +119,13 @@ func (em *emitter) functionIndex(fun *runtime.Function) int8 {
 }
 
 // nonLocalVarIndex returns the index of the non-local variable v, if exists.
+// v can be one of:
+//
+//   - a closure variable
+//   - a package level variable compiled in Scriggo
+//   - a package level variable compiled and imported from another Scriggo package
+//   - an imported gc precompiled variable
+//
 func (em *emitter) nonLocalVarIndex(v ast.Expression) (index int, ok bool) {
 
 	if ti := em.ti(v); ti != nil && ti.IsPredefined() {
