@@ -316,7 +316,7 @@ func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Exp
 			t = em.ti(values[0]).Type
 		}
 		if addresses[0].target == assignBlank {
-			// This if is a temporary workaround for the issue
+			// This is a temporary workaround for the issue
 			// https://github.com/open2b/scriggo/issues/482.
 			em.fb.enterStack()
 			em.emitExprK(values[0], t)
