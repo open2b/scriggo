@@ -144,7 +144,7 @@ func (em *emitter) nonLocalVarIndex(v ast.Expression) (index int, ok bool) {
 		return 0, false
 	}
 
-	if index, ok := em.varStore.closureVars[em.fb.fn][name]; ok {
+	if index, ok := em.varStore.closureVar(em.fb.fn, name); ok {
 		return index, true
 	}
 

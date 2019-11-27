@@ -32,6 +32,11 @@ func newVarStore(emitter *emitter, indirectVars map[*ast.Identifier]bool) *varSt
 	}
 }
 
+func (vs *varStore) closureVar(fn *runtime.Function, name string) (int, bool) {
+	reg, ok := vs.closureVars[fn][name]
+	return reg, ok
+}
+
 func (vs *varStore) addScriggoPackageVar(pkg *ast.Package, name string, index int16) {
 	if vs.scriggoPackageVars[pkg] == nil {
 		vs.scriggoPackageVars[pkg] = map[string]int16{}
