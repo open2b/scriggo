@@ -19,6 +19,7 @@ type varStore struct {
 	// Holds all Scriggo-defined and pre-predefined global variables.
 	globals            []Global
 	scriggoPackageVars map[*ast.Package]map[string]int16
+	closureVars        map[*runtime.Function]map[string]int
 }
 
 func newVarStore(emitter *emitter, indirectVars map[*ast.Identifier]bool) *varStore {
@@ -27,6 +28,7 @@ func newVarStore(emitter *emitter, indirectVars map[*ast.Identifier]bool) *varSt
 		predefVarRef:       map[*runtime.Function]map[*reflect.Value]int16{},
 		indirectVars:       indirectVars,
 		scriggoPackageVars: map[*ast.Package]map[string]int16{},
+		closureVars:        map[*runtime.Function]map[string]int{},
 	}
 }
 

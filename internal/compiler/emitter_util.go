@@ -144,8 +144,7 @@ func (em *emitter) nonLocalVarIndex(v ast.Expression) (index int, ok bool) {
 		return 0, false
 	}
 
-	// TODO: can these maps be unified in some way?
-	if index, ok := em.closureVars[em.fb.fn][name]; ok {
+	if index, ok := em.varStore.closureVars[em.fb.fn][name]; ok {
 		return index, true
 	}
 
@@ -261,14 +260,14 @@ func (em *emitter) setClosureRefs(fn *runtime.Function, closureVars []ast.Upvar)
 
 	// Second: update functionClosureVars with external-defined names.
 	closureRefs := make([]int16, len(closureVars))
-	em.closureVars[fn] = make(map[string]int)
+	em.varStore.closureVars[fn] = make(map[string]int)
 	if em.isTemplate {
 		// If it's a template, adds reserved global variables.
 		closureRefs = append(closureRefs, 0, 1, 2, 3)
 	}
 	for i, v := range closureVars {
 		if v.Declaration != nil {
-			em.closureVars[fn][v.Declaration.(*ast.Identifier).Name] = i
+			em.varStore.closureVars[fn][v.Declaration.(*ast.Identifier).Name] = i
 		} else {
 			em.varStore.setPredefVarIndex(fn, v.PredefinedValue, int16(i))
 		}

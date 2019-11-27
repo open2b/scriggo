@@ -18,7 +18,8 @@ import (
 
 // An emitter emits instructions for the VM.
 type emitter struct {
-	fnStore *functionStore
+	fnStore  *functionStore
+	varStore *varStore
 
 	// Index in the Function VarRefs field for each predefined variable.
 	// TODO(Gianluca): this is the new way of accessing predefined vars.
@@ -28,8 +29,6 @@ type emitter struct {
 
 	// fb is the current function builder.
 	fb *functionBuilder
-
-	varStore *varStore
 
 	labels map[*runtime.Function]map[string]label
 
@@ -41,7 +40,6 @@ type emitter struct {
 	typeInfos map[ast.Node]*TypeInfo
 
 	// Index in the Function VarRefs field for each closure variable.
-	closureVars map[*runtime.Function]map[string]int
 
 	options EmitterOptions
 
@@ -74,11 +72,10 @@ type emitter struct {
 // variables and options.
 func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *emitter {
 	em := &emitter{
-		labels:      make(map[*runtime.Function]map[string]label),
-		options:     opts,
-		typeInfos:   typeInfos,
-		closureVars: map[*runtime.Function]map[string]int{},
-		types:       types.NewTypes(), // TODO: this is wrong: the instance should be taken from the type checker.
+		labels:    make(map[*runtime.Function]map[string]label),
+		options:   opts,
+		typeInfos: typeInfos,
+		types:     types.NewTypes(), // TODO: this is wrong: the instance should be taken from the type checker.
 	}
 	em.fnStore = newFunctionStore(em)
 	em.varStore = newVarStore(em, indirectVars)
