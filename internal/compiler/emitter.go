@@ -137,6 +137,8 @@ func (em *emitter) reserveTemplateRegisters() {
 
 // emitPackage emits a package and returns the exported functions, the
 // exported variables and the init functions.
+// extendingPage reports whether emitPackage is going to emit a package that
+// extends another page.
 func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string) (map[string]*runtime.Function, map[string]int16, []*runtime.Function) {
 
 	if !extendingPage {
@@ -193,15 +195,16 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 		}
 	}
 
+	// Package level functions.
 	functions := map[string]*runtime.Function{}
 
 	// initToBuild is the index of the next "init" function to build.
 	initToBuild := len(inits)
 
-	// If the page is extending another page, the function declarations have
-	// already been added to the list of available functions, so they can't be
-	// added twice.
-	if !extendingPage {
+	if extendingPage {
+		// The function declarations have already been added to the list of
+		// available functions, so they can't be added twice.
+	} else {
 		// Store all function declarations in current package before building
 		// their bodies: order of declaration doesn't matter at package level.
 		for _, dec := range pkg.Declarations {
@@ -209,16 +212,17 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				fn := newFunction("main", fun.Ident.Name, fun.Type.Reflect)
 				if fun.Ident.Name == "init" {
 					inits = append(inits, fn)
-				} else {
-					em.functions[em.pkg][fun.Ident.Name] = fn
-					if isExported(fun.Ident.Name) {
-						functions[fun.Ident.Name] = fn
-					}
+					continue
+				}
+				em.functions[em.pkg][fun.Ident.Name] = fn
+				if isExported(fun.Ident.Name) {
+					functions[fun.Ident.Name] = fn
 				}
 			}
 		}
 	}
 
+	// Package level variables.
 	vars := map[string]int16{}
 
 	// Emit the package variables.
@@ -245,19 +249,19 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 			for i, v := range n.Lhs {
 				if isBlankIdentifier(v) {
 					addresses[i] = em.addressBlankIdent(v.Pos())
-				} else {
-					staticType := em.ti(v).Type
-					varr := em.fb.newRegister(staticType.Kind())
-					em.fb.bindVarReg(v.Name, varr)
-					addresses[i] = em.addressLocalVar(varr, staticType, v.Pos(), 0)
-					// Store the variable register. It will be used later to store
-					// initialized value inside the proper global index.
-					pkgVarRegs[v.Name] = varr
-					pkgVarTypes[v.Name] = staticType
-					em.globals = append(em.globals, newGlobal("main", v.Name, staticType, nil))
-					em.availableVarIndexes[em.pkg][v.Name] = int16(len(em.globals) - 1)
-					vars[v.Name] = int16(len(em.globals) - 1)
+					continue
 				}
+				varType := em.ti(v).Type
+				varr := em.fb.newRegister(varType.Kind())
+				em.fb.bindVarReg(v.Name, varr)
+				addresses[i] = em.addressLocalVar(varr, varType, v.Pos(), 0)
+				// Store the variable register. It will be used later to store
+				// initialized value inside the proper global index.
+				pkgVarRegs[v.Name] = varr
+				pkgVarTypes[v.Name] = varType
+				em.globals = append(em.globals, newGlobal("main", v.Name, varType, nil))
+				em.availableVarIndexes[em.pkg][v.Name] = int16(len(em.globals) - 1)
+				vars[v.Name] = int16(len(em.globals) - 1)
 			}
 			em.assignValuesToAddresses(addresses, n.Rhs)
 			for name, reg := range pkgVarRegs {
@@ -268,26 +272,28 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 		}
 	}
 
-	// Emit the function declarations.
+	// Emit function declarations.
 	for _, dec := range pkg.Declarations {
 		if n, ok := dec.(*ast.Func); ok {
 			var fn *runtime.Function
-			if n.Ident.Name == "init" {
-				fn = inits[initToBuild]
-				initToBuild++
-			} else if isBlankIdentifier(n.Ident) {
+			if isBlankIdentifier(n.Ident) {
 				// Do not emit this function declaration; it has already been
 				// type checked, so there's no need to enter into its body
 				// again.
 				continue
+			}
+			if n.Ident.Name == "init" {
+				fn = inits[initToBuild]
+				initToBuild++
 			} else {
 				fn = em.functions[em.pkg][n.Ident.Name]
 			}
 			em.fb = newBuilder(fn, path)
 			em.fb.emitSetAlloc(em.options.MemoryLimit)
 			em.fb.enterScope()
-			// If it is the "main" function, variable initialization functions
-			// must be called before everything else inside main's body.
+			// If this is the main function, functions that initialize variables
+			// must be called before executing every other statement of the main
+			// function.
 			if n.Ident.Name == "main" {
 				// First: initialize the package variables.
 				if initVarsFn != nil {
@@ -315,7 +321,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 	}
 
 	// If this package is imported, initFuncs must contain initVarsFn, that is
-	// processed as a common "init" function.
+	// processed as a generic "init" function.
 	if initVarsFn != nil {
 		inits = append(inits, initVarsFn)
 	}
