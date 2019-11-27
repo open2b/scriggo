@@ -256,6 +256,12 @@ func testWithoutErrorLines(src []byte, ext string, opts []string) {
 	}
 	exitCode, _, stderr := cmd([]byte(linesWithoutError), opts, arg)
 	if exitCode != 0 {
+		// TODO: return an error message that suggests which error was expected,
+		// something like:
+		//
+		//		Unexpected error, maybe you should add // ERROR: `undefined: x`
+		//
+		// Note that the error position must be removed from the output.
 		panic(fmt.Errorf("unexpected error (maybe you forgot to add an // ERROR comment or the test has some problems): '%s'", stderr))
 	}
 }
