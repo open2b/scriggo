@@ -19,33 +19,33 @@ import (
 // TODO: review -------------------------------------------------
 
 type functionStore struct {
-	emitter          *emitter
-	scriggoFunctions map[*ast.Package]map[string]*runtime.Function
-	functionIndexes  map[*runtime.Function]map[*runtime.Function]int8
+	emitter      *emitter
+	scriggoFuncs map[*ast.Package]map[string]*runtime.Function
+	indexes      map[*runtime.Function]map[*runtime.Function]int8
 }
 
 func newFunctionStore(emitter *emitter) *functionStore {
 	return &functionStore{
-		emitter:          emitter,
-		scriggoFunctions: map[*ast.Package]map[string]*runtime.Function{},
-		functionIndexes:  map[*runtime.Function]map[*runtime.Function]int8{},
+		emitter:      emitter,
+		scriggoFuncs: map[*ast.Package]map[string]*runtime.Function{},
+		indexes:      map[*runtime.Function]map[*runtime.Function]int8{},
 	}
 }
 
 func (fs *functionStore) addScriggoFn(pkg *ast.Package, name string, fn *runtime.Function) {
-	if fs.scriggoFunctions[pkg] == nil {
-		fs.scriggoFunctions[pkg] = map[string]*runtime.Function{}
+	if fs.scriggoFuncs[pkg] == nil {
+		fs.scriggoFuncs[pkg] = map[string]*runtime.Function{}
 	}
-	fs.scriggoFunctions[pkg][name] = fn
+	fs.scriggoFuncs[pkg][name] = fn
 }
 
 func (fs *functionStore) isScriggoFn(pkg *ast.Package, name string) bool {
-	_, ok := fs.scriggoFunctions[pkg][name]
+	_, ok := fs.scriggoFuncs[pkg][name]
 	return ok
 }
 
 func (fs *functionStore) getScriggoFn(pkg *ast.Package, name string) *runtime.Function {
-	fn, ok := fs.scriggoFunctions[pkg][name]
+	fn, ok := fs.scriggoFuncs[pkg][name]
 	if !ok {
 		// TODO
 	}
@@ -54,17 +54,16 @@ func (fs *functionStore) getScriggoFn(pkg *ast.Package, name string) *runtime.Fu
 
 func (fs *functionStore) fnIndex(fun *runtime.Function) int8 {
 	currFn := fs.emitter.fb.fn
-	if fs.functionIndexes[currFn] == nil {
-		fs.functionIndexes[currFn] = map[*runtime.Function]int8{}
+	if fs.indexes[currFn] == nil {
+		fs.indexes[currFn] = map[*runtime.Function]int8{}
 	}
-	i, ok := fs.functionIndexes[currFn][fun]
-	if ok {
-		return i
+	if index, ok := fs.indexes[currFn][fun]; ok {
+		return index
 	}
-	i = int8(len(currFn.Functions))
+	index := int8(len(currFn.Functions))
 	currFn.Functions = append(currFn.Functions, fun)
-	fs.functionIndexes[currFn][fun] = i
-	return i
+	fs.indexes[currFn][fun] = index
+	return index
 }
 
 // TODO: review -------------------------------------------------
