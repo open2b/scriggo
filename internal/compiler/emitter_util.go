@@ -161,11 +161,11 @@ func (em *emitter) nonLocalVarIndex(v ast.Expression) (index int, ok bool) {
 	}
 
 	// TODO: can these maps be unified in some way?
-	if index, ok := em.functionClosureVars[em.fb.fn][name]; ok {
+	if index, ok := em.closureVars[em.fb.fn][name]; ok {
 		return index, true
 	}
 
-	if index, ok := em.nonLocalScriggoVars[em.pkg][name]; ok {
+	if index, ok := em.scriggoPackageVars[em.pkg][name]; ok {
 		return int(index), true
 	}
 
@@ -312,14 +312,14 @@ func (em *emitter) setClosureRefs(fn *runtime.Function, closureVars []ast.Upvar)
 
 	// Second: update functionClosureVars with external-defined names.
 	closureRefs := make([]int16, len(closureVars))
-	em.functionClosureVars[fn] = make(map[string]int)
+	em.closureVars[fn] = make(map[string]int)
 	if em.isTemplate {
 		// If it's a template, adds reserved global variables.
 		closureRefs = append(closureRefs, 0, 1, 2, 3)
 	}
 	for i, v := range closureVars {
 		if v.Declaration != nil {
-			em.functionClosureVars[fn][v.Declaration.(*ast.Identifier).Name] = i
+			em.closureVars[fn][v.Declaration.(*ast.Identifier).Name] = i
 		} else {
 			if em.predefinedVarRefs[fn] == nil {
 				em.predefinedVarRefs[fn] = map[*reflect.Value]int{}
