@@ -284,24 +284,28 @@ func (tc *typechecker) currentFunction() (*ast.Func, int) {
 
 // isUpVar checks if name is an upvar, that is a variable declared outside
 // current function.
+// TODO: is this function correct? It is correct to check the filePackageBlock first?
 func (tc *typechecker) isUpVar(name string) bool {
 
 	// Check if name is a package variable.
-	if _, ok := tc.filePackageBlock[name]; ok {
-		return true
+	if elem, ok := tc.filePackageBlock[name]; ok {
+		// Elem must be a variable.
+		return elem.t.Addressable()
 	}
 
 	// name is not a package variable; check if has been declared outside
 	// current function.
 	_, funcBound := tc.currentFunction()
 	for i := len(tc.scopes) - 1; i >= 0; i-- {
-		for n := range tc.scopes[i] {
+		for n, elem := range tc.scopes[i] {
 			if n != name {
 				continue
 			}
 			if i < funcBound-1 { // out of current function scope.
-				tc.indirectVars[tc.scopes[i][n].decl] = true
-				return true
+				if elem.t.Addressable() { // elem must be a variable.
+					tc.indirectVars[tc.scopes[i][n].decl] = true
+					return true
+				}
 			}
 			return false
 		}

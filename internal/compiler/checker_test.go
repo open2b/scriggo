@@ -2129,6 +2129,20 @@ func TestFunctionUpVars(t *testing.T) {
 		`a := 1; b := 1; _ = a + b; _ = func() { _ = a + b }`:             {"a", "b"},
 		`a, b := 1, 1; _ = a + b; _ = func() { b := 1; _ = a + b }`:       {"a"},
 		`a, b := 1, 1; _ = a + b; _ = func() { a, b := 1, 1; _ = a + b }`: nil,
+		`
+			type T struct{}
+			_ = func() {
+				_ = T{}
+			}
+		`: nil,
+		`
+			type T struct{}
+			var A int
+			_ = func() {
+				_ = A
+				_ = T{}
+			}
+		`: {"A"},
 	}
 	for src, expected := range cases {
 		tc := newTypechecker("", CheckerOptions{}, nil)
