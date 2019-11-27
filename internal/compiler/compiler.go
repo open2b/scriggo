@@ -299,10 +299,10 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	e.fb.changePath(tree.Path)
 
 	// Globals.
-	e.varStore.globals = append(e.varStore.globals, newGlobal("$template", "$io.Writer", emptyInterfaceType, nil))
-	e.varStore.globals = append(e.varStore.globals, newGlobal("$template", "$Write", reflect.FuncOf(nil, nil, false), nil))
-	e.varStore.globals = append(e.varStore.globals, newGlobal("$template", "$Render", reflect.FuncOf(nil, nil, false), nil))
-	e.varStore.globals = append(e.varStore.globals, newGlobal("$template", "$urlWriter", reflect.TypeOf(&struct{}{}), nil))
+	e.varStore.addGlobal(newGlobal("$template", "$io.Writer", emptyInterfaceType, nil))
+	e.varStore.addGlobal(newGlobal("$template", "$Write", reflect.FuncOf(nil, nil, false), nil))
+	e.varStore.addGlobal(newGlobal("$template", "$Render", reflect.FuncOf(nil, nil, false), nil))
+	e.varStore.addGlobal(newGlobal("$template", "$urlWriter", reflect.TypeOf(&struct{}{}), nil))
 	e.fb.emitSetAlloc(opts.MemoryLimit)
 
 	// If page is a package, then page extends another page.

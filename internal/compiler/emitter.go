@@ -139,6 +139,12 @@ func (vs *varStore) isPredefVar(v *reflect.Value) (int16, bool) {
 	return index, ok
 }
 
+func (vs *varStore) addGlobal(g Global) int16 {
+	index := int16(len(vs.globals))
+	vs.globals = append(vs.globals, g)
+	return index
+}
+
 // TODO: review -------------------------------------------------
 
 // An emitter emits instructions for the VM.
@@ -371,9 +377,9 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				// initialized value inside the proper global index.
 				pkgVarRegs[v.Name] = varr
 				pkgVarTypes[v.Name] = varType
-				em.varStore.globals = append(em.varStore.globals, newGlobal("main", v.Name, varType, nil))
-				em.scriggoPackageVars[em.pkg][v.Name] = int16(len(em.varStore.globals) - 1)
-				vars[v.Name] = int16(len(em.varStore.globals) - 1)
+				index := em.varStore.addGlobal(newGlobal("main", v.Name, varType, nil))
+				em.scriggoPackageVars[em.pkg][v.Name] = index
+				vars[v.Name] = index
 			}
 			em.assignValuesToAddresses(addresses, n.Rhs)
 			for name, reg := range pkgVarRegs {
