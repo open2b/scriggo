@@ -128,9 +128,6 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 	if !extendingPage {
 		em.pkg = pkg
 	}
-	if em.varStore.scriggoPackageVars[em.pkg] == nil {
-		em.varStore.scriggoPackageVars[em.pkg] = map[string]int16{}
-	}
 
 	// https://github.com/open2b/scriggo/issues/476
 	inits := []*runtime.Function{} // List of all "init" functions in current package.
@@ -169,9 +166,9 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				}
 				for name, v := range vars {
 					if importName == "" {
-						em.varStore.scriggoPackageVars[em.pkg][name] = v
+						em.varStore.addScriggoPackageVar(em.pkg, name, v)
 					} else {
-						em.varStore.scriggoPackageVars[em.pkg][importName+"."+name] = v
+						em.varStore.addScriggoPackageVar(em.pkg, importName+"."+name, v)
 					}
 				}
 			}
@@ -243,12 +240,12 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				pkgVarRegs[v.Name] = varr
 				pkgVarTypes[v.Name] = varType
 				index := em.varStore.addGlobal(newGlobal("main", v.Name, varType, nil))
-				em.varStore.scriggoPackageVars[em.pkg][v.Name] = index
+				em.varStore.addScriggoPackageVar(em.pkg, v.Name, index)
 				vars[v.Name] = index
 			}
 			em.assignValuesToAddresses(addresses, n.Rhs)
 			for name, reg := range pkgVarRegs {
-				index := em.varStore.scriggoPackageVars[em.pkg][name]
+				index, _ := em.varStore.emitter.varStore.scriggoPackageVarIndex(em.pkg, name)
 				em.fb.emitSetVar(false, reg, int(index), pkgVarTypes[name].Kind())
 			}
 			em.fb = backupFb

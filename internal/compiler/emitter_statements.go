@@ -77,6 +77,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.exitStack()
 
 		case *ast.Import:
+			// TODO: consider uniforming this code with the *ast.Import case in the emitter.
 			if em.isTemplate {
 				if node.Ident != nil && node.Ident.Name == "_" {
 					// Nothing to do: template pages cannot have
@@ -104,14 +105,11 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 							em.fnStore.declareScriggoFn(backupPkg, importName+"."+name, fn)
 						}
 					}
-					if em.varStore.scriggoPackageVars[backupPkg] == nil {
-						em.varStore.scriggoPackageVars[backupPkg] = map[string]int16{}
-					}
 					for name, v := range vars {
 						if importName == "" {
-							em.varStore.scriggoPackageVars[backupPkg][name] = v
+							em.varStore.addScriggoPackageVar(backupPkg, name, v)
 						} else {
-							em.varStore.scriggoPackageVars[backupPkg][importName+"."+name] = v
+							em.varStore.addScriggoPackageVar(backupPkg, importName+"."+name, v)
 						}
 					}
 					if len(inits) > 0 {
