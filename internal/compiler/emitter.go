@@ -35,11 +35,24 @@ func (fs *functionStore) addScriggoFn(pkg *ast.Package, name string, fn *runtime
 	fs.scriggoFunctions[pkg][name] = fn
 }
 
+func (fs *functionStore) isScriggoFn(pkg *ast.Package, name string) bool {
+	_, ok := fs.scriggoFunctions[pkg][name]
+	return ok
+}
+
+func (fs *functionStore) getScriggoFn(pkg *ast.Package, name string) *runtime.Function {
+	fn, ok := fs.scriggoFunctions[pkg][name]
+	if !ok {
+		// TODO
+	}
+	return fn
+}
+
 // TODO: review -------------------------------------------------
 
 // An emitter emits instructions for the VM.
 type emitter struct {
-	functionStore *functionStore
+	fnStore *functionStore
 
 	// Index in the Function VarRefs field for each predefined variable.
 	// TODO(Gianluca): this is the new way of accessing predefined vars.
@@ -72,7 +85,7 @@ type emitter struct {
 	isTemplate bool // Reports whether it's a template.
 
 	// Scriggo functions.
-	functions   map[*ast.Package]map[string]*runtime.Function
+	// functions   map[*ast.Package]map[string]*runtime.Function
 	funcIndexes map[*runtime.Function]map[*runtime.Function]int8
 
 	// Scriggo variables.
@@ -110,9 +123,8 @@ type emitter struct {
 // variables and options.
 func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *emitter {
 	return &emitter{
-		functionStore:      newFunctionStore(),
+		fnStore:            newFunctionStore(),
 		funcIndexes:        map[*runtime.Function]map[*runtime.Function]int8{},
-		functions:          map[*ast.Package]map[string]*runtime.Function{},
 		indirectVars:       indirectVars,
 		labels:             make(map[*runtime.Function]map[string]label),
 		options:            opts,
@@ -167,7 +179,6 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 
 	if !extendingPage {
 		em.pkg = pkg
-		em.functions[em.pkg] = map[string]*runtime.Function{}
 	}
 	if em.scriggoPackageVars[em.pkg] == nil {
 		em.scriggoPackageVars[em.pkg] = map[string]int16{}
@@ -203,9 +214,9 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				}
 				for name, fn := range funcs {
 					if importName == "" {
-						em.functions[em.pkg][name] = fn
+						em.fnStore.addScriggoFn(em.pkg, name, fn)
 					} else {
-						em.functions[em.pkg][importName+"."+name] = fn
+						em.fnStore.addScriggoFn(em.pkg, importName+"."+name, fn)
 					}
 				}
 				for name, v := range vars {
@@ -238,7 +249,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 					inits = append(inits, fn)
 					continue
 				}
-				em.functions[em.pkg][fun.Ident.Name] = fn
+				em.fnStore.addScriggoFn(em.pkg, fun.Ident.Name, fn)
 				if isExported(fun.Ident.Name) {
 					functions[fun.Ident.Name] = fn
 				}
@@ -261,7 +272,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 			backupFb := em.fb
 			if initVarsFn == nil {
 				initVarsFn = newFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
-				em.functions[em.pkg]["$initvars"] = initVarsFn
+				em.fnStore.addScriggoFn(em.pkg, "$initvars", initVarsFn)
 				initVarsFb = newBuilder(initVarsFn, path)
 				initVarsFb.emitSetAlloc(em.options.MemoryLimit)
 				initVarsFb.enterScope()
@@ -310,7 +321,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				fn = inits[initToBuild]
 				initToBuild++
 			} else {
-				fn = em.functions[em.pkg][n.Ident.Name]
+				fn = em.fnStore.getScriggoFn(em.pkg, n.Ident.Name)
 			}
 			em.fb = newBuilder(fn, path)
 			em.fb.emitSetAlloc(em.options.MemoryLimit)
@@ -321,7 +332,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 			if n.Ident.Name == "main" {
 				// First: initialize the package variables.
 				if initVarsFn != nil {
-					iv := em.functions[em.pkg]["$initvars"]
+					iv := em.fnStore.getScriggoFn(em.pkg, "$initvars")
 					index := em.fb.addFunction(iv)
 					em.fb.emitCall(int8(index), runtime.StackShift{}, nil)
 				}
@@ -611,7 +622,8 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 
 	// Scriggo-defined function (identifier).
 	if ident, ok := call.Func.(*ast.Identifier); ok && !em.fb.isVariable(ident.Name) {
-		if fn, ok := em.functions[em.pkg][ident.Name]; ok {
+		if em.fnStore.isScriggoFn(em.pkg, ident.Name) {
+			fn := em.fnStore.getScriggoFn(em.pkg, ident.Name)
 			stackShift := em.fb.currentStackShift()
 			regs, types := em.prepareCallParameters(fn.Type, call.Args, callOptions{callHasDots: call.IsVariadic})
 			index := em.functionIndex(fn)
@@ -634,7 +646,8 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 	// Scriggo-defined function (selector).
 	if selector, ok := call.Func.(*ast.Selector); ok {
 		if ident, ok := selector.Expr.(*ast.Identifier); ok {
-			if fun, ok := em.functions[em.pkg][ident.Name+"."+selector.Ident]; ok {
+			if em.fnStore.isScriggoFn(em.pkg, ident.Name+"."+selector.Ident) {
+				fun := em.fnStore.getScriggoFn(em.pkg, ident.Name+"."+selector.Ident)
 				stackShift := em.fb.currentStackShift()
 				regs, types := em.prepareCallParameters(fun.Type, call.Args, callOptions{callHasDots: call.IsVariadic})
 				index := em.functionIndex(fun)
@@ -715,7 +728,8 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 		}
 
 		// Scriggo-defined package functions.
-		if sf, ok := em.functions[em.pkg][ident.Name+"."+expr.Ident]; ok {
+		if em.fnStore.isScriggoFn(em.pkg, ident.Name+"."+expr.Ident) {
+			sf := em.fnStore.getScriggoFn(em.pkg, ident.Name+"."+expr.Ident)
 			if reg == 0 {
 				return
 			}
@@ -1493,10 +1507,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		// Template macro definition.
 		if expr.Ident != nil && em.isTemplate {
 			macroFn := newFunction("", expr.Ident.Name, expr.Type.Reflect)
-			if em.functions[em.pkg] == nil {
-				em.functions[em.pkg] = map[string]*runtime.Function{}
-			}
-			em.functions[em.pkg][expr.Ident.Name] = macroFn
+			em.fnStore.addScriggoFn(em.pkg, expr.Ident.Name, macroFn)
 			fb := em.fb
 			em.setClosureRefs(macroFn, expr.Upvars)
 			em.fb = newBuilder(macroFn, em.fb.getPath())
@@ -1554,7 +1565,8 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 
 		// Identifier represents a function.
-		if fun, ok := em.functions[em.pkg][expr.Name]; ok {
+		if em.fnStore.isScriggoFn(em.pkg, expr.Name) {
+			fun := em.fnStore.getScriggoFn(em.pkg, expr.Name)
 			em.fb.emitLoadFunc(false, em.functionIndex(fun), reg)
 			em.changeRegister(false, reg, reg, ti.Type, dstType)
 			return reg, false

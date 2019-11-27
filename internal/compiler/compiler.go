@@ -262,7 +262,7 @@ type Code struct {
 func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
 	functions, _, _ := e.emitPackage(pkgMain, false, "main")
-	main := e.functions[pkgMain]["main"]
+	main := e.fnStore.getScriggoFn(pkgMain, "main")
 	pkg := &Code{
 		Globals:   e.globals,
 		Functions: functions,
@@ -310,11 +310,10 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 		if pkg, ok := tree.Nodes[0].(*ast.Package); ok {
 			mainBuilder := e.fb
 			// Macro declarations in extending page must be accessed by the extended page.
-			e.functions[e.pkg] = map[string]*runtime.Function{}
 			for _, dec := range pkg.Declarations {
 				if fun, ok := dec.(*ast.Func); ok {
 					fn := newFunction("main", fun.Ident.Name, fun.Type.Reflect)
-					e.functions[e.pkg][fun.Ident.Name] = fn
+					e.fnStore.addScriggoFn(e.pkg, fun.Ident.Name, fn)
 				}
 			}
 			// Emits extended page.

@@ -97,14 +97,11 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 							importName = ""
 						}
 					}
-					if em.functions[backupPkg] == nil {
-						em.functions[backupPkg] = map[string]*runtime.Function{}
-					}
 					for name, fn := range functions {
 						if importName == "" {
-							em.functions[backupPkg][name] = fn
+							em.fnStore.addScriggoFn(backupPkg, name, fn)
 						} else {
-							em.functions[backupPkg][importName+"."+name] = fn
+							em.fnStore.addScriggoFn(backupPkg, importName+"."+name, fn)
 						}
 					}
 					if em.scriggoPackageVars[backupPkg] == nil {
