@@ -13,6 +13,11 @@ import (
 )
 
 func splitErrorFromLine(l string) string {
+	if tl := strings.TrimSpace(l); strings.HasPrefix(tl, "//") {
+		// Line is commented: it makes no difference if it contains ERROR or
+		// not, this line must be ignored.
+		return ""
+	}
 	if index := strings.Index(l, "// ERROR "); index != -1 {
 		err := l[index:]
 		err = strings.TrimPrefix(err, "// ERROR ")

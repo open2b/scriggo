@@ -14,9 +14,14 @@ import (
 
 func Test_splitErrorFromLine(t *testing.T) {
 	cases := map[string]string{
-		"x = 10 // ERROR `undefined: x`": "undefined: x",
-		`f() // ERROR "cannot call f"`:   "cannot call f",
-		`f() // a comment`:               "",
+		"x = 10 // ERROR `undefined: x`":             "undefined: x",
+		`f() // ERROR "cannot call f"`:               "cannot call f",
+		`f() // a comment`:                           "",
+		`// commented line`:                          "",
+		"// commented line // ERROR `error..`":       "",
+		"//commented line // ERROR `error..`":        "",
+		"    //commented line // ERROR `error..`":    "",
+		"    //   commented line // ERROR `error..`": "",
 	}
 	for line, expected := range cases {
 		got := splitErrorFromLine(line)
@@ -54,6 +59,30 @@ func Test_linesWithError(t *testing.T) {
 				"line 3 // ERROR `something else`",
 			},
 			expected: []int{2, 3},
+		},
+		{
+			src: []string{
+				"line 1",
+				"line 2 // ERROR `something`",
+				"//line 3 // ERROR `something else`",
+			},
+			expected: []int{2},
+		},
+		{
+			src: []string{
+				"line 1",
+				"line 2 // ERROR `something`",
+				"    //  line 3 // ERROR `something else`",
+			},
+			expected: []int{2},
+		},
+		{
+			src: []string{
+				"line 1",
+				"line 2 // ERROR `something`",
+				"    //line 3 // ERROR `something else`",
+			},
+			expected: []int{2},
 		},
 	}
 	for _, cas := range cases {
@@ -112,6 +141,23 @@ func Test_differentiateSources(t *testing.T) {
 				errorcheckTest{
 					src: joinLines([]string{
 						`line 1`,
+						`line 3 // ERROR "something else"`,
+					}),
+					err: "something else",
+				},
+			},
+		},
+		{
+			src: joinLines([]string{
+				`line 1`,
+				`// line 2 // ERROR "something"`,
+				`line 3 // ERROR "something else"`,
+			}),
+			expected: []errorcheckTest{
+				errorcheckTest{
+					src: joinLines([]string{
+						`line 1`,
+						`// line 2 // ERROR "something"`,
 						`line 3 // ERROR "something else"`,
 					}),
 					err: "something else",
