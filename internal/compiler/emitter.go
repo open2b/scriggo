@@ -945,10 +945,11 @@ func (em *emitter) emitExprR(expr ast.Expression, dstType reflect.Type, reg int8
 //
 func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8, useGivenReg bool, allowK bool) (int8, bool) {
 
+	ti := em.ti(expr)
+
 	// No need to use the given register: check if expr can be emitted without
 	// allocating a new one.
 	if !useGivenReg {
-		ti := em.ti(expr)
 		// Check if expr can be emitted as immediate.
 		if allowK && ti.HasValue() && !ti.IsPredefined() {
 			switch v := ti.value.(type) {
@@ -969,7 +970,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		// Expr cannot be emitted as immediate: check if it's possible to emit
 		// it without allocating a new register.
 		if expr, ok := expr.(*ast.Identifier); ok && em.fb.isVariable(expr.Name) {
-			if canEmitDirectly(em.ti(expr).Type.Kind(), dstType.Kind()) {
+			if canEmitDirectly(ti.Type.Kind(), dstType.Kind()) {
 				return em.fb.scopeLookup(expr.Name), false
 			}
 		}
@@ -992,7 +993,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 	// external one (functions and bools), the calls to 'changeRegister' may
 	// emit a Typify instruction to ensure that values are correctly converted.
 
-	if ti := em.ti(expr); ti != nil && ti.HasValue() && !ti.IsPredefined() {
+	if ti != nil && ti.HasValue() && !ti.IsPredefined() {
 		typ := ti.Type
 		if reg == 0 {
 			return reg, false
@@ -1036,7 +1037,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			em.changeRegister(true, c, reg, typ, dstType)
 			return reg, false
 		}
-		v := reflect.ValueOf(em.ti(expr).value)
+		v := reflect.ValueOf(ti.value)
 		switch v.Kind() {
 		case reflect.Interface:
 			panic("BUG: not implemented") // remove.
@@ -1054,13 +1055,13 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		case reflect.UnsafePointer:
 			panic("BUG: not implemented") // remove.
 		default:
-			panic(fmt.Errorf("unsupported value type %T (expr: %s)", em.ti(expr).value, expr))
+			panic(fmt.Errorf("unsupported value type %T (expr: %s)", ti.value, expr))
 		}
 		return reg, false
 	}
 
 	// Predefined values.
-	if ti := em.ti(expr); ti != nil && ti.IsPredefined() && ti.MethodType == NoMethod {
+	if ti != nil && ti.IsPredefined() && ti.MethodType == NoMethod {
 
 		// Predefined functions.
 		if ti.Type.Kind() == reflect.Func && !ti.Addressable() {
@@ -1097,7 +1098,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 	case *ast.BinaryOperator:
 
 		// Binary operations on complex numbers.
-		if exprType := em.ti(expr).Type; exprType.Kind() == reflect.Complex64 || exprType.Kind() == reflect.Complex128 {
+		if exprType := ti.Type; exprType.Kind() == reflect.Complex64 || exprType.Kind() == reflect.Complex128 {
 			em.emitComplexOperation(exprType, expr.Expr1, expr.Operator(), expr.Expr2, reg, dstType)
 			return reg, false
 		}
@@ -1139,7 +1140,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 
 		// ==, !=, <, <=, >=, >, &&, ||, +, -, *, /, %, ^, &^, <<, >>.
-		exprType := em.ti(expr).Type
+		exprType := ti.Type
 		t1 := em.ti(expr.Expr1).Type
 		t2 := em.ti(expr.Expr2).Type
 		v1 := em.emitExpr(expr.Expr1, t1)
@@ -1423,7 +1424,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		//          <- ch
 		if expr.Operator() == ast.OperatorReceive {
 			chanType := em.ti(expr.Expr).Type
-			valueType := em.ti(expr).Type
+			valueType := ti.Type
 			chann := em.emitExpr(expr.Expr, chanType)
 			if reg == 0 {
 				em.fb.emitReceive(chann, 0, 0)
@@ -1440,7 +1441,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 
 		// Unary operation (negation) on a complex number.
-		if exprType := em.ti(expr).Type; exprType.Kind() == reflect.Complex64 || exprType.Kind() == reflect.Complex128 {
+		if exprType := ti.Type; exprType.Kind() == reflect.Complex64 || exprType.Kind() == reflect.Complex128 {
 			if expr.Operator() != ast.OperatorSubtraction {
 				panic("bug: expected operator subtraction")
 			}
@@ -1496,7 +1497,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			tmp = em.fb.newRegister(reflect.Func)
 		}
 
-		fn := em.fb.emitFunc(tmp, em.ti(expr).Type)
+		fn := em.fb.emitFunc(tmp, ti.Type)
 		em.setClosureRefs(fn, expr.Upvars)
 
 		funcLitBuilder := newBuilder(fn, em.fb.getPath())
@@ -1511,7 +1512,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		em.fb.end()
 		em.fb = currFB
 
-		em.changeRegister(false, tmp, reg, em.ti(expr).Type, dstType)
+		em.changeRegister(false, tmp, reg, ti.Type, dstType)
 
 	case *ast.Identifier:
 
@@ -1520,7 +1521,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			return reg, false
 		}
 
-		typ := em.ti(expr).Type
+		typ := ti.Type
 
 		if em.fb.isVariable(expr.Name) {
 			ident := em.fb.scopeLookup(expr.Name)
@@ -1531,7 +1532,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		// Identifier represents a function.
 		if fun, ok := em.functions[em.pkg][expr.Name]; ok {
 			em.fb.emitLoadFunc(false, em.functionIndex(fun), reg)
-			em.changeRegister(false, reg, reg, em.ti(expr).Type, dstType)
+			em.changeRegister(false, reg, reg, ti.Type, dstType)
 			return reg, false
 		}
 
