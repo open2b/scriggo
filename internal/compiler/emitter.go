@@ -19,16 +19,18 @@ import (
 // TODO: review -------------------------------------------------
 
 type functionStore struct {
-	emitter      *emitter
-	scriggoFuncs map[*ast.Package]map[string]*runtime.Function
-	indexes      map[*runtime.Function]map[*runtime.Function]int8
+	emitter         *emitter
+	scriggoFuncs    map[*ast.Package]map[string]*runtime.Function
+	indexes         map[*runtime.Function]map[*runtime.Function]int8
+	predefFuncIndex map[*runtime.Function]map[reflect.Value]int8
 }
 
 func newFunctionStore(emitter *emitter) *functionStore {
 	return &functionStore{
-		emitter:      emitter,
-		scriggoFuncs: map[*ast.Package]map[string]*runtime.Function{},
-		indexes:      map[*runtime.Function]map[*runtime.Function]int8{},
+		emitter:         emitter,
+		scriggoFuncs:    map[*ast.Package]map[string]*runtime.Function{},
+		indexes:         map[*runtime.Function]map[*runtime.Function]int8{},
+		predefFuncIndex: map[*runtime.Function]map[reflect.Value]int8{},
 	}
 }
 
@@ -63,6 +65,21 @@ func (fs *functionStore) scriggoFnIndex(fun *runtime.Function) int8 {
 	index := int8(len(currFn.Functions))
 	currFn.Functions = append(currFn.Functions, fun)
 	fs.indexes[currFn][fun] = index
+	return index
+}
+
+func (fs *functionStore) predefFnIndex(fn reflect.Value, pkg, name string) int8 {
+	currFn := fs.emitter.fb.fn
+	if index, ok := fs.predefFuncIndex[currFn][fn]; ok {
+		return index
+	}
+	f := newPredefinedFunction(pkg, name, fn.Interface())
+	index := int8(len(currFn.Predefined))
+	currFn.Predefined = append(currFn.Predefined, f)
+	if fs.predefFuncIndex[currFn] == nil {
+		fs.predefFuncIndex[currFn] = map[reflect.Value]int8{}
+	}
+	fs.predefFuncIndex[currFn][fn] = index
 	return index
 }
 
@@ -109,9 +126,6 @@ type emitter struct {
 	// Scriggo variables.
 	scriggoPackageVars map[*ast.Package]map[string]int16
 
-	// Predefined functions.
-	predFunIndexes map[*runtime.Function]map[reflect.Value]int8
-
 	// Holds all Scriggo-defined and pre-predefined global variables.
 	globals []Global
 
@@ -145,7 +159,6 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 		labels:             make(map[*runtime.Function]map[string]label),
 		options:            opts,
 		scriggoPackageVars: map[*ast.Package]map[string]int16{},
-		predFunIndexes:     map[*runtime.Function]map[reflect.Value]int8{},
 		typeInfos:          typeInfos,
 		closureVars:        map[*runtime.Function]map[string]int{},
 		predefinedVarRefs:  map[*runtime.Function]map[*reflect.Value]int{},
@@ -611,7 +624,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 		case *ast.Selector:
 			name = f.Ident
 		}
-		index := em.predFuncIndex(funTi.value.(reflect.Value), funTi.PredefPackageName, name)
+		index := em.fnStore.predefFnIndex(funTi.value.(reflect.Value), funTi.PredefPackageName, name)
 		if goStmt {
 			em.fb.emitGo()
 		}
@@ -1128,7 +1141,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			case *ast.Selector:
 				name = expr.Ident
 			}
-			index := em.predFuncIndex(ti.value.(reflect.Value), ti.PredefPackageName, name)
+			index := em.fnStore.predefFnIndex(ti.value.(reflect.Value), ti.PredefPackageName, name)
 			em.fb.emitLoadFunc(true, index, reg)
 			em.changeRegister(false, reg, reg, ti.Type, dstType)
 			return reg, false

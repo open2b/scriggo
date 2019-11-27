@@ -238,23 +238,6 @@ func (em *emitter) predVarIndex(v *reflect.Value, predPkgName, name string) int1
 	return int16(index)
 }
 
-// predFuncIndex returns the index of a predefined function in the current
-// function, adding it if it does not exist.
-func (em *emitter) predFuncIndex(fn reflect.Value, predPkgName, name string) int8 {
-	index, ok := em.predFunIndexes[em.fb.fn][fn]
-	if ok {
-		return index
-	}
-	index = int8(len(em.fb.fn.Predefined))
-	f := newPredefinedFunction(predPkgName, name, fn.Interface())
-	if em.predFunIndexes[em.fb.fn] == nil {
-		em.predFunIndexes[em.fb.fn] = map[reflect.Value]int8{}
-	}
-	em.fb.fn.Predefined = append(em.fb.fn.Predefined, f)
-	em.predFunIndexes[em.fb.fn][fn] = index
-	return index
-}
-
 // canEmitDirectly reports whether a value of kind k1 can be emitted directly
 // into a register of kind k2 without the needing of passing from an
 // intermediate register.
