@@ -115,8 +115,8 @@ func (em *emitter) nonLocalVarIndex(v ast.Expression) (index int, ok bool) {
 	if ti := em.ti(v); ti != nil && ti.IsPredefined() {
 		// TODO: this is the new way of accessing predefined vars. Incrementally
 		// integrate into Scriggo, then remove the other checks.
-		if index, ok := em.predefinedVarRefs[em.fb.fn][ti.value.(*reflect.Value)]; ok {
-			return index, true
+		if index, ok := em.varStore.predefinedVarRefs[em.fb.fn][ti.value.(*reflect.Value)]; ok {
+			return int(index), true
 		}
 		// TODO: obsolete, remove:
 		if sel, ok := v.(*ast.Selector); ok {
@@ -222,20 +222,21 @@ func newGlobal(pkg, name string, typ reflect.Type, value interface{}) Global {
 // predVarIndex returns the index of a global variable in globals, adding it
 // if it does not exist.
 func (em *emitter) predVarIndex(v *reflect.Value, predPkgName, name string) int16 {
-	if index, ok := em.predefinedVarRefs[em.fb.fn][v]; ok {
-		return int16(index)
-	}
-	index := len(em.varStore.globals)
-	g := newGlobal(predPkgName, name, v.Type().Elem(), nil)
-	if !v.IsNil() {
-		g.Value = v.Interface()
-	}
-	if em.predefinedVarRefs[em.fb.fn] == nil {
-		em.predefinedVarRefs[em.fb.fn] = make(map[*reflect.Value]int)
-	}
-	em.varStore.globals = append(em.varStore.globals, g)
-	em.predefinedVarRefs[em.fb.fn][v] = index
-	return int16(index)
+	return em.varStore.predefVarIndex(v, predPkgName, name)
+	// if index, ok := em.predefinedVarRefs[em.fb.fn][v]; ok {
+	// 	return int16(index)
+	// }
+	// index := len(em.varStore.globals)
+	// g := newGlobal(predPkgName, name, v.Type().Elem(), nil)
+	// if !v.IsNil() {
+	// 	g.Value = v.Interface()
+	// }
+	// if em.predefinedVarRefs[em.fb.fn] == nil {
+	// 	em.predefinedVarRefs[em.fb.fn] = make(map[*reflect.Value]int)
+	// }
+	// em.varStore.globals = append(em.varStore.globals, g)
+	// em.predefinedVarRefs[em.fb.fn][v] = index
+	// return int16(index)
 }
 
 // canEmitDirectly reports whether a value of kind k1 can be emitted directly
@@ -289,10 +290,10 @@ func (em *emitter) setClosureRefs(fn *runtime.Function, closureVars []ast.Upvar)
 		if v.Declaration != nil {
 			em.closureVars[fn][v.Declaration.(*ast.Identifier).Name] = i
 		} else {
-			if em.predefinedVarRefs[fn] == nil {
-				em.predefinedVarRefs[fn] = map[*reflect.Value]int{}
+			if em.varStore.predefinedVarRefs[fn] == nil {
+				em.varStore.predefinedVarRefs[fn] = map[*reflect.Value]int16{}
 			}
-			em.predefinedVarRefs[fn][v.PredefinedValue] = i
+			em.varStore.predefinedVarRefs[fn][v.PredefinedValue] = int16(i)
 		}
 		closureRefs[i] = v.Index
 	}

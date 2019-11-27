@@ -110,9 +110,6 @@ func (vs *varStore) mustBeDeclaredAsIndirect(v *ast.Identifier) bool {
 
 func (vs *varStore) predefVarIndex(v *reflect.Value, pkg, name string) int16 {
 	currFn := vs.emitter.fb.fn
-	if vs.predefinedVarRefs[currFn] == nil {
-		vs.predefinedVarRefs[currFn] = map[*reflect.Value]int16{}
-	}
 	if index, ok := vs.predefinedVarRefs[currFn][v]; ok {
 		return index
 	}
@@ -120,6 +117,9 @@ func (vs *varStore) predefVarIndex(v *reflect.Value, pkg, name string) int16 {
 	g := newGlobal(pkg, name, v.Type().Elem(), nil)
 	if !v.IsNil() {
 		g.Value = v.Interface()
+	}
+	if vs.predefinedVarRefs[currFn] == nil {
+		vs.predefinedVarRefs[currFn] = map[*reflect.Value]int16{}
 	}
 	vs.globals = append(vs.globals, g)
 	vs.predefinedVarRefs[currFn][v] = index
@@ -136,7 +136,7 @@ type emitter struct {
 	// TODO(Gianluca): this is the new way of accessing predefined vars.
 	// Incrementally integrate into Scriggo, then remove the other (unused)
 	// fields.
-	predefinedVarRefs map[*runtime.Function]map[*reflect.Value]int
+	// predefinedVarRefs map[*runtime.Function]map[*reflect.Value]int
 
 	// fb is the current function builder.
 	fb *functionBuilder
@@ -194,7 +194,6 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 		scriggoPackageVars: map[*ast.Package]map[string]int16{},
 		typeInfos:          typeInfos,
 		closureVars:        map[*runtime.Function]map[string]int{},
-		predefinedVarRefs:  map[*runtime.Function]map[*reflect.Value]int{},
 		types:              types.NewTypes(), // TODO: this is wrong: the instance should be taken from the type checker.
 	}
 	em.fnStore = newFunctionStore(em)
