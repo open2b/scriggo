@@ -264,7 +264,7 @@ func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 	functions, _, _ := e.emitPackage(pkgMain, false, "main")
 	main := e.fnStore.getScriggoFn(pkgMain, "main")
 	pkg := &Code{
-		Globals:   e.varStore.globals,
+		Globals:   e.varStore.getGlobals(),
 		Functions: functions,
 		Main:      main,
 	}
@@ -283,7 +283,7 @@ func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()
 	e.fb.end()
-	return &Code{Main: e.fb.fn, Globals: e.varStore.globals}
+	return &Code{Main: e.fb.fn, Globals: e.varStore.getGlobals()}
 }
 
 // EmitTemplate emits the code for a template given its tree, the type info and
@@ -349,7 +349,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 				nopBuilder.end()
 				e.fb.fn.Functions[0] = nopFunction
 			}
-			return &Code{Main: e.fb.fn, Globals: e.varStore.globals}
+			return &Code{Main: e.fb.fn, Globals: e.varStore.getGlobals()}
 		}
 	}
 
@@ -359,7 +359,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()
 	e.fb.end()
-	return &Code{Main: e.fb.fn, Globals: e.varStore.globals}
+	return &Code{Main: e.fb.fn, Globals: e.varStore.getGlobals()}
 
 }
 

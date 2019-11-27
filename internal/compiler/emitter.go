@@ -145,6 +145,10 @@ func (vs *varStore) addGlobal(g Global) int16 {
 	return index
 }
 
+func (vs *varStore) getGlobals() []Global {
+	return vs.globals
+}
+
 // TODO: review -------------------------------------------------
 
 // An emitter emits instructions for the VM.
