@@ -19,12 +19,14 @@ import (
 // TODO: review -------------------------------------------------
 
 type functionStore struct {
+	emitter          *emitter
 	scriggoFunctions map[*ast.Package]map[string]*runtime.Function
 	functionIndexes  map[*runtime.Function]map[*runtime.Function]int8
 }
 
-func newFunctionStore() *functionStore {
+func newFunctionStore(emitter *emitter) *functionStore {
 	return &functionStore{
+		emitter:          emitter,
 		scriggoFunctions: map[*ast.Package]map[string]*runtime.Function{},
 		functionIndexes:  map[*runtime.Function]map[*runtime.Function]int8{},
 	}
@@ -50,7 +52,8 @@ func (fs *functionStore) getScriggoFn(pkg *ast.Package, name string) *runtime.Fu
 	return fn
 }
 
-func (fs *functionStore) fnIndex(currFn, fun *runtime.Function) int8 {
+func (fs *functionStore) fnIndex(fun *runtime.Function) int8 {
+	currFn := fs.emitter.fb.fn
 	if fs.functionIndexes[currFn] == nil {
 		fs.functionIndexes[currFn] = map[*runtime.Function]int8{}
 	}
@@ -138,8 +141,7 @@ type emitter struct {
 // newEmitter returns a new emitter with the given type infos, indirect
 // variables and options.
 func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *emitter {
-	return &emitter{
-		fnStore:            newFunctionStore(),
+	em := &emitter{
 		indirectVars:       indirectVars,
 		labels:             make(map[*runtime.Function]map[string]label),
 		options:            opts,
@@ -150,6 +152,8 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 		predefinedVarRefs:  map[*runtime.Function]map[*reflect.Value]int{},
 		types:              types.NewTypes(), // TODO: this is wrong: the instance should be taken from the type checker.
 	}
+	em.fnStore = newFunctionStore(em)
+	return em
 }
 
 // ti returns the type info of node n.
@@ -641,7 +645,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 			fn := em.fnStore.getScriggoFn(em.pkg, ident.Name)
 			stackShift := em.fb.currentStackShift()
 			regs, types := em.prepareCallParameters(fn.Type, call.Args, callOptions{callHasDots: call.IsVariadic})
-			index := em.fnStore.fnIndex(em.fb.fn, fn)
+			index := em.fnStore.fnIndex(fn)
 			if goStmt {
 				em.fb.emitGo()
 			}
@@ -665,7 +669,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 				fun := em.fnStore.getScriggoFn(em.pkg, ident.Name+"."+selector.Ident)
 				stackShift := em.fb.currentStackShift()
 				regs, types := em.prepareCallParameters(fun.Type, call.Args, callOptions{callHasDots: call.IsVariadic})
-				index := em.fnStore.fnIndex(em.fb.fn, fun)
+				index := em.fnStore.fnIndex(fun)
 				if goStmt {
 					em.fb.emitGo()
 				}
@@ -748,7 +752,7 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 			if reg == 0 {
 				return
 			}
-			index := em.fnStore.fnIndex(em.fb.fn, sf)
+			index := em.fnStore.fnIndex(sf)
 			em.fb.emitLoadFunc(false, index, reg)
 			em.changeRegister(false, reg, reg, em.ti(expr).Type, dstType)
 			return
@@ -1582,7 +1586,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		// Identifier represents a function.
 		if em.fnStore.isScriggoFn(em.pkg, expr.Name) {
 			fun := em.fnStore.getScriggoFn(em.pkg, expr.Name)
-			em.fb.emitLoadFunc(false, em.fnStore.fnIndex(em.fb.fn, fun), reg)
+			em.fb.emitLoadFunc(false, em.fnStore.fnIndex(fun), reg)
 			em.changeRegister(false, reg, reg, ti.Type, dstType)
 			return reg, false
 		}
