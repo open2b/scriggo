@@ -19,35 +19,35 @@ import (
 // TODO: review -------------------------------------------------
 
 type functionStore struct {
-	emitter         *emitter
-	scriggoFuncs    map[*ast.Package]map[string]*runtime.Function
-	indexes         map[*runtime.Function]map[*runtime.Function]int8
-	predefFuncIndex map[*runtime.Function]map[reflect.Value]int8
+	emitter               *emitter
+	availableScriggoFuncs map[*ast.Package]map[string]*runtime.Function
+	indexes               map[*runtime.Function]map[*runtime.Function]int8
+	predefFuncIndex       map[*runtime.Function]map[reflect.Value]int8
 }
 
 func newFunctionStore(emitter *emitter) *functionStore {
 	return &functionStore{
-		emitter:         emitter,
-		scriggoFuncs:    map[*ast.Package]map[string]*runtime.Function{},
-		indexes:         map[*runtime.Function]map[*runtime.Function]int8{},
-		predefFuncIndex: map[*runtime.Function]map[reflect.Value]int8{},
+		emitter:               emitter,
+		availableScriggoFuncs: map[*ast.Package]map[string]*runtime.Function{},
+		indexes:               map[*runtime.Function]map[*runtime.Function]int8{},
+		predefFuncIndex:       map[*runtime.Function]map[reflect.Value]int8{},
 	}
 }
 
-func (fs *functionStore) addScriggoFn(pkg *ast.Package, name string, fn *runtime.Function) {
-	if fs.scriggoFuncs[pkg] == nil {
-		fs.scriggoFuncs[pkg] = map[string]*runtime.Function{}
+func (fs *functionStore) declareScriggoFn(pkg *ast.Package, name string, fn *runtime.Function) {
+	if fs.availableScriggoFuncs[pkg] == nil {
+		fs.availableScriggoFuncs[pkg] = map[string]*runtime.Function{}
 	}
-	fs.scriggoFuncs[pkg][name] = fn
+	fs.availableScriggoFuncs[pkg][name] = fn
 }
 
 func (fs *functionStore) isScriggoFn(pkg *ast.Package, name string) bool {
-	_, ok := fs.scriggoFuncs[pkg][name]
+	_, ok := fs.availableScriggoFuncs[pkg][name]
 	return ok
 }
 
 func (fs *functionStore) getScriggoFn(pkg *ast.Package, name string) *runtime.Function {
-	fn, ok := fs.scriggoFuncs[pkg][name]
+	fn, ok := fs.availableScriggoFuncs[pkg][name]
 	if !ok {
 		// TODO
 	}
@@ -245,9 +245,9 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				}
 				for name, fn := range funcs {
 					if importName == "" {
-						em.fnStore.addScriggoFn(em.pkg, name, fn)
+						em.fnStore.declareScriggoFn(em.pkg, name, fn)
 					} else {
-						em.fnStore.addScriggoFn(em.pkg, importName+"."+name, fn)
+						em.fnStore.declareScriggoFn(em.pkg, importName+"."+name, fn)
 					}
 				}
 				for name, v := range vars {
@@ -280,7 +280,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 					inits = append(inits, fn)
 					continue
 				}
-				em.fnStore.addScriggoFn(em.pkg, fun.Ident.Name, fn)
+				em.fnStore.declareScriggoFn(em.pkg, fun.Ident.Name, fn)
 				if isExported(fun.Ident.Name) {
 					functions[fun.Ident.Name] = fn
 				}
@@ -303,7 +303,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 			backupFb := em.fb
 			if initVarsFn == nil {
 				initVarsFn = newFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
-				em.fnStore.addScriggoFn(em.pkg, "$initvars", initVarsFn)
+				em.fnStore.declareScriggoFn(em.pkg, "$initvars", initVarsFn)
 				initVarsFb = newBuilder(initVarsFn, path)
 				initVarsFb.emitSetAlloc(em.options.MemoryLimit)
 				initVarsFb.enterScope()
@@ -1538,7 +1538,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		// Template macro definition.
 		if expr.Ident != nil && em.isTemplate {
 			macroFn := newFunction("", expr.Ident.Name, expr.Type.Reflect)
-			em.fnStore.addScriggoFn(em.pkg, expr.Ident.Name, macroFn)
+			em.fnStore.declareScriggoFn(em.pkg, expr.Ident.Name, macroFn)
 			fb := em.fb
 			em.setClosureRefs(macroFn, expr.Upvars)
 			em.fb = newBuilder(macroFn, em.fb.getPath())

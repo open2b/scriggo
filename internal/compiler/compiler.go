@@ -313,7 +313,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 			for _, dec := range pkg.Declarations {
 				if fun, ok := dec.(*ast.Func); ok {
 					fn := newFunction("main", fun.Ident.Name, fun.Type.Reflect)
-					e.fnStore.addScriggoFn(e.pkg, fun.Ident.Name, fn)
+					e.fnStore.declareScriggoFn(e.pkg, fun.Ident.Name, fn)
 				}
 			}
 			// Emits extended page.

@@ -99,9 +99,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					}
 					for name, fn := range functions {
 						if importName == "" {
-							em.fnStore.addScriggoFn(backupPkg, name, fn)
+							em.fnStore.declareScriggoFn(backupPkg, name, fn)
 						} else {
-							em.fnStore.addScriggoFn(backupPkg, importName+"."+name, fn)
+							em.fnStore.declareScriggoFn(backupPkg, importName+"."+name, fn)
 						}
 					}
 					if em.scriggoPackageVars[backupPkg] == nil {
