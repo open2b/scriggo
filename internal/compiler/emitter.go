@@ -52,7 +52,7 @@ func (fs *functionStore) getScriggoFn(pkg *ast.Package, name string) *runtime.Fu
 	return fn
 }
 
-func (fs *functionStore) fnIndex(fun *runtime.Function) int8 {
+func (fs *functionStore) scriggoFnIndex(fun *runtime.Function) int8 {
 	currFn := fs.emitter.fb.fn
 	if fs.indexes[currFn] == nil {
 		fs.indexes[currFn] = map[*runtime.Function]int8{}
@@ -644,7 +644,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 			fn := em.fnStore.getScriggoFn(em.pkg, ident.Name)
 			stackShift := em.fb.currentStackShift()
 			regs, types := em.prepareCallParameters(fn.Type, call.Args, callOptions{callHasDots: call.IsVariadic})
-			index := em.fnStore.fnIndex(fn)
+			index := em.fnStore.scriggoFnIndex(fn)
 			if goStmt {
 				em.fb.emitGo()
 			}
@@ -668,7 +668,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 				fun := em.fnStore.getScriggoFn(em.pkg, ident.Name+"."+selector.Ident)
 				stackShift := em.fb.currentStackShift()
 				regs, types := em.prepareCallParameters(fun.Type, call.Args, callOptions{callHasDots: call.IsVariadic})
-				index := em.fnStore.fnIndex(fun)
+				index := em.fnStore.scriggoFnIndex(fun)
 				if goStmt {
 					em.fb.emitGo()
 				}
@@ -751,7 +751,7 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 			if reg == 0 {
 				return
 			}
-			index := em.fnStore.fnIndex(sf)
+			index := em.fnStore.scriggoFnIndex(sf)
 			em.fb.emitLoadFunc(false, index, reg)
 			em.changeRegister(false, reg, reg, em.ti(expr).Type, dstType)
 			return
@@ -1585,7 +1585,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		// Identifier represents a function.
 		if em.fnStore.isScriggoFn(em.pkg, expr.Name) {
 			fun := em.fnStore.getScriggoFn(em.pkg, expr.Name)
-			em.fb.emitLoadFunc(false, em.fnStore.fnIndex(fun), reg)
+			em.fb.emitLoadFunc(false, em.fnStore.scriggoFnIndex(fun), reg)
 			em.changeRegister(false, reg, reg, ti.Type, dstType)
 			return reg, false
 		}
