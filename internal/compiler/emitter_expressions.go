@@ -754,7 +754,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 				em.fb.emitMove(false, -varr, reg, dstType.Kind(), false)
 				return
 			}
-			// Closure variable address and Scriggo variables.
+			// Address of a non-local variable.
 			if index, ok := em.varStore.nonLocalVarIndex(operand); ok {
 				if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
 					em.fb.emitGetVarAddr(index, reg)
@@ -789,6 +789,17 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 
 		// &s.Field
 		case *ast.Selector:
+			// Address of a non-local variable.
+			if index, ok := em.varStore.nonLocalVarIndex(operand); ok {
+				if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
+					em.fb.emitGetVarAddr(index, reg)
+					return
+				}
+				tmp := em.fb.newRegister(operandType.Kind())
+				em.fb.emitGetVarAddr(index, tmp)
+				em.changeRegister(false, tmp, reg, operandType, dstType)
+				return
+			}
 			operandExprType := em.ti(operand.Expr).Type
 			expr := em.emitExpr(operand.Expr, operandExprType)
 			field, _ := operandExprType.FieldByName(operand.Ident)
