@@ -31,7 +31,7 @@ type varStore struct {
 
 	scriggoPackageVars map[*ast.Package]map[string]int16
 
-	closureVars map[*runtime.Function]map[string]int
+	closureVars map[*runtime.Function]map[string]int16
 }
 
 // newVarStore returns a new *varStore.
@@ -41,21 +41,21 @@ func newVarStore(emitter *emitter, indirectVars map[*ast.Identifier]bool) *varSt
 		predefVarRef:       map[*runtime.Function]map[*reflect.Value]int16{},
 		indirectVars:       indirectVars,
 		scriggoPackageVars: map[*ast.Package]map[string]int16{},
-		closureVars:        map[*runtime.Function]map[string]int{},
+		closureVars:        map[*runtime.Function]map[string]int16{},
 	}
 }
 
 // closureVar returns the index of the closure variable with the given name for
 // the given function. If name is not a closure var then false is returned.
-func (vs *varStore) closureVar(fn *runtime.Function, name string) (int, bool) {
+func (vs *varStore) closureVar(fn *runtime.Function, name string) (int16, bool) {
 	index, ok := vs.closureVars[fn][name]
 	return index, ok
 }
 
 // setClosureVar the index of the closure variable name for the given function.
-func (vs *varStore) setClosureVar(fn *runtime.Function, name string, index int) {
+func (vs *varStore) setClosureVar(fn *runtime.Function, name string, index int16) {
 	if vs.closureVars[fn] == nil {
-		vs.closureVars[fn] = map[string]int{}
+		vs.closureVars[fn] = map[string]int16{}
 	}
 	vs.closureVars[fn][name] = index
 }

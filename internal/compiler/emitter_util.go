@@ -145,7 +145,7 @@ func (em *emitter) nonLocalVarIndex(v ast.Expression) (index int, ok bool) {
 	}
 
 	if index, ok := em.varStore.closureVar(em.fb.fn, name); ok {
-		return index, true
+		return int(index), true
 	}
 
 	if index, ok := em.varStore.scriggoPackageVar(em.pkg, name); ok {
@@ -271,7 +271,7 @@ func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Up
 			em.varStore.setPredefVarIndex(fn, v.PredefinedValue, int16(i))
 			continue
 		}
-		em.varStore.setClosureVar(fn, v.Declaration.(*ast.Identifier).Name, i)
+		em.varStore.setClosureVar(fn, v.Declaration.(*ast.Identifier).Name, int16(i))
 	}
 
 	// Third: update the field VarRefs of the function passed as argument.
