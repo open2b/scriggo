@@ -527,14 +527,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 			callHasDots:   call.IsVariadic,
 		}
 		regs, types := em.prepareCallParameters(funTi.Type, call.Args, opts)
-		var name string
-		switch f := call.Func.(type) {
-		case *ast.Identifier:
-			name = f.Name
-		case *ast.Selector:
-			name = f.Ident
-		}
-		index := em.fnStore.predefFnIndex(funTi.value.(reflect.Value), funTi.PredefPackageName, name)
+		index, _ := em.fnStore.predefFunc(call.Func, true)
 		if goStmt {
 			em.fb.emitGo()
 		}
@@ -961,7 +954,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 	}
 
 	// Predefined function (TODO: remove this code and put below).
-	if index, ok := em.fnStore.predefinedFunction(expr); ok {
+	if index, ok := em.fnStore.predefFunc(expr, false); ok {
 		em.fb.emitLoadFunc(true, index, reg)
 		em.changeRegister(false, reg, reg, ti.Type, dstType)
 		return reg, false
