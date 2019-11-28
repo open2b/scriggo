@@ -267,7 +267,7 @@ func (em *emitter) setClosureRefs(fn *runtime.Function, closureVars []ast.Upvar)
 	}
 	for i, v := range closureVars {
 		if v.Declaration != nil {
-			em.varStore.closureVars[fn][v.Declaration.(*ast.Identifier).Name] = i
+			em.varStore.setClosureVar(fn, v.Declaration.(*ast.Identifier).Name, i)
 		} else {
 			em.varStore.setPredefVarIndex(fn, v.PredefinedValue, int16(i))
 		}
