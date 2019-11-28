@@ -12,16 +12,29 @@ import (
 	"scriggo/runtime"
 )
 
+// A varStore holds informations about closure variables, predefined variables
+// and package-level variables during the emission.
 type varStore struct {
-	emitter      *emitter
+
+	// emitter is a reference to the current emitter.
+	emitter *emitter
+
+	// indirectVars indicates if a given identifier must declare an indirect
+	// variable. This field is set during the creation of the varStore and is
+	// read-only.
 	indirectVars map[*ast.Identifier]bool
+
 	predefVarRef map[*runtime.Function]map[*reflect.Value]int16
+
 	// Holds all Scriggo-defined and pre-predefined global variables.
-	globals            []Global
+	globals []Global
+
 	scriggoPackageVars map[*ast.Package]map[string]int16
-	closureVars        map[*runtime.Function]map[string]int
+
+	closureVars map[*runtime.Function]map[string]int
 }
 
+// newVarStore returns a new *varStore.
 func newVarStore(emitter *emitter, indirectVars map[*ast.Identifier]bool) *varStore {
 	return &varStore{
 		emitter:            emitter,
@@ -32,18 +45,19 @@ func newVarStore(emitter *emitter, indirectVars map[*ast.Identifier]bool) *varSt
 	}
 }
 
+// closureVar returns the index of the closure variable with the given name for
+// the given function. If name is not a closure var then false is returned.
 func (vs *varStore) closureVar(fn *runtime.Function, name string) (int, bool) {
-	// TODO: is 'reg' ok as a name?
-	reg, ok := vs.closureVars[fn][name]
-	return reg, ok
+	index, ok := vs.closureVars[fn][name]
+	return index, ok
 }
 
-// TODO: is 'reg' ok as a name?
-func (vs *varStore) setClosureVar(fn *runtime.Function, name string, reg int) {
+// setClosureVar the index of the closure variable name for the given function.
+func (vs *varStore) setClosureVar(fn *runtime.Function, name string, index int) {
 	if vs.closureVars[fn] == nil {
 		vs.closureVars[fn] = map[string]int{}
 	}
-	vs.closureVars[fn][name] = reg
+	vs.closureVars[fn][name] = index
 }
 
 func (vs *varStore) addScriggoPackageVar(pkg *ast.Package, name string, index int16) {
