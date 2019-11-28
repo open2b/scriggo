@@ -856,6 +856,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 	t2 := tc.checkExpr(expr2)
 
 	isShift := op == ast.OperatorLeftShift || op == ast.OperatorRightShift
+	isUntyped := t1.Untyped() && t2.Untyped()
 
 	if isShift {
 		if !(t1.Untyped() && t1.IsNumeric() || !t1.Untyped() && t1.IsInteger()) {
@@ -867,6 +868,41 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		if !(t2.Untyped() && t2.IsNumeric() || !t2.Untyped() && t2.IsInteger()) {
 			return nil, fmt.Errorf("shift count type %s, must be integer", t2.ShortString())
 		}
+	} else if t1.Untyped() != t2.Untyped() {
+		// Make both typed.
+		if t1.Untyped() {
+			c, err := tc.convert(t1, expr1, t2.Type)
+			if err != nil {
+				if err == errNotRepresentable {
+					err = fmt.Errorf("cannot convert %v (type %s) to type %s", t1.Constant, t1, t2)
+				}
+				return nil, err
+			}
+			if t1.Nil() {
+				if op != ast.OperatorEqual && op != ast.OperatorNotEqual {
+					return nil, fmt.Errorf("operator %s not defined on %s", op, t2.Type.Kind())
+				}
+				return untypedBoolTypeInfo, nil
+			}
+			t1.setValue(t2.Type)
+			t1 = &TypeInfo{Type: t2.Type, Constant: c}
+		} else {
+			c, err := tc.convert(t2, expr2, t1.Type)
+			if err != nil {
+				if err == errNotRepresentable {
+					err = fmt.Errorf("cannot convert %v (type %s) to type %s", t2.Constant, t2, t1)
+				}
+				return nil, err
+			}
+			if t2.Nil() {
+				if op != ast.OperatorEqual && op != ast.OperatorNotEqual {
+					return nil, fmt.Errorf("operator %s not defined on %s", op, t1.Type.Kind())
+				}
+				return untypedBoolTypeInfo, nil
+			}
+			t2.setValue(t1.Type)
+			t2 = &TypeInfo{Type: t1.Type, Constant: c}
+		}
 	}
 
 	if t1.IsConstant() && t2.IsConstant() {
@@ -875,30 +911,6 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			t1.setValue(nil)
 			t2.setValue(nil)
 		} else {
-			if t1.Untyped() != t2.Untyped() {
-				// Make both typed.
-				if t1.Untyped() {
-					c, err := tc.convert(t1, expr1, t2.Type)
-					if err != nil {
-						if err == errNotRepresentable {
-							err = fmt.Errorf("cannot convert %v (type %s) to type %s", t1.Constant, t1, t2)
-						}
-						return nil, err
-					}
-					t1.setValue(t2.Type)
-					t1 = &TypeInfo{Type: t2.Type, Constant: c}
-				} else {
-					c, err := tc.convert(t2, expr2, t1.Type)
-					if err != nil {
-						if err == errNotRepresentable {
-							err = fmt.Errorf("cannot convert %v (type %s) to type %s", t2.Constant, t2, t1)
-						}
-						return nil, err
-					}
-					t2.setValue(t1.Type)
-					t2 = &TypeInfo{Type: t1.Type, Constant: c}
-				}
-			}
 			if t1.Type != t2.Type && !(t1.Untyped() && t1.IsNumeric() && t2.IsNumeric()) {
 				return nil, fmt.Errorf("mismatched types %s and %s", t1.ShortString(), t2.ShortString())
 			}
@@ -908,20 +920,13 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		if err != nil {
 			switch err {
 			case errInvalidOperation:
-				switch op {
-				case ast.OperatorModulo:
+				if op == ast.OperatorModulo && isUntyped {
 					if isComplex(t1.Type.Kind()) {
-						err = errors.New("complex % operation")
+						err = fmt.Errorf("operator %% not defined on untyped complex")
 					} else {
 						err = errors.New("floating-point % operation")
 					}
-				case ast.OperatorAnd, ast.OperatorOr, ast.OperatorXor:
-					if isComplex(t1.Type.Kind()) {
-						err = fmt.Errorf("operator %s not defined on untyped complex", op)
-					} else {
-						err = fmt.Errorf("operator %s not defined on untyped float", op)
-					}
-				default:
+				} else {
 					err = fmt.Errorf("operator %s not defined on %s", op, t1.ShortString())
 				}
 			case errNegativeShiftCount:
@@ -976,7 +981,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		return ti, nil
 	}
 
-	if t1.Untyped() && t2.Untyped() {
+	if isUntyped {
 		if t1.Nil() && t2.Nil() {
 			return nil, fmt.Errorf("operator %s not defined on nil", op)
 		}
@@ -993,8 +998,8 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		typ := t1.Type
 		switch {
 		case isBoolean(k1):
-			if ast.OperatorLess <= op && op <= ast.OperatorGreaterOrEqual {
-				return nil, fmt.Errorf("operator < not defined on bool")
+			if !operatorsOfKind[k1][op] {
+				return nil, fmt.Errorf("operator %s not defined on bool", op)
 			}
 		case isNumeric(k1):
 			if k1 < k2 {
@@ -1019,44 +1024,8 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		return &TypeInfo{Type: typ, Properties: PropertyUntyped}, nil
 	}
 
-	if t1.Nil() || t2.Nil() {
-		if t1.Nil() {
-			t1, t2 = t2, t1
-		}
-		_, err := tc.convert(t2, expr2, t1.Type)
-		if err != nil {
-			return nil, err
-		}
-		if op != ast.OperatorEqual && op != ast.OperatorNotEqual {
-			return nil, fmt.Errorf("operator %s not defined on %s", op, t1.Type.Kind())
-		}
-		return untypedBoolTypeInfo, nil
-	}
-
-	if t1.Untyped() {
-		c, err := tc.convert(t1, expr1, t2.Type)
-		if err != nil {
-			if err == errNotRepresentable {
-				err = fmt.Errorf("cannot convert %v (type %s) to type %s", t1.Constant, t1, t2)
-			}
-			return nil, err
-		}
-		t1.setValue(t2.Type)
-		t1 = &TypeInfo{Type: t2.Type, Constant: c}
-	} else if t2.Untyped() {
-		c, err := tc.convert(t2, expr2, t1.Type)
-		if err != nil {
-			if err == errNotRepresentable {
-				err = fmt.Errorf("cannot convert %v (type %s) to type %s", t2.Constant, t2, t1)
-			}
-			return nil, err
-		}
-		t2.setValue(t1.Type)
-		t2 = &TypeInfo{Type: t1.Type, Constant: c}
-	} else {
-		t1.setValue(nil)
-		t2.setValue(nil)
-	}
+	t1.setValue(nil)
+	t2.setValue(nil)
 
 	if isComparison(op) {
 		if tc.isAssignableTo(t1, expr1, t2.Type) != nil && tc.isAssignableTo(t2, expr2, t1.Type) != nil {
@@ -1074,7 +1043,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		} else if !isOrdered(t1) {
 			return nil, fmt.Errorf("operator %s not defined on %s", op, t1.Type.Kind())
 		}
-		return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
+		return untypedBoolTypeInfo, nil
 	}
 
 	if t1.Type != t2.Type {

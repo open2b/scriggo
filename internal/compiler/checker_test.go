@@ -1745,7 +1745,7 @@ func tiBoolConst(b bool) *TypeInfo {
 }
 
 func tiUntypedBool() *TypeInfo {
-	return &TypeInfo{Type: boolType, Properties: PropertyUntyped}
+	return untypedBoolTypeInfo
 }
 
 // float type infos.
