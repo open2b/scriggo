@@ -13,69 +13,74 @@ import (
 )
 
 type functionStore struct {
-	emitter               *emitter
+	emitter *emitter
+
 	availableScriggoFuncs map[*ast.Package]map[string]*runtime.Function
-	indexes               map[*runtime.Function]map[*runtime.Function]int8
-	predefFuncIndex       map[*runtime.Function]map[reflect.Value]int8
+	scriggoFuncIndexes    map[*runtime.Function]map[*runtime.Function]int8
+
+	predefFuncIndexes map[*runtime.Function]map[reflect.Value]int8
 }
 
 func newFunctionStore(emitter *emitter) *functionStore {
 	return &functionStore{
 		emitter:               emitter,
 		availableScriggoFuncs: map[*ast.Package]map[string]*runtime.Function{},
-		indexes:               map[*runtime.Function]map[*runtime.Function]int8{},
-		predefFuncIndex:       map[*runtime.Function]map[reflect.Value]int8{},
+		scriggoFuncIndexes:    map[*runtime.Function]map[*runtime.Function]int8{},
+		predefFuncIndexes:     map[*runtime.Function]map[reflect.Value]int8{},
 	}
 }
 
-func (fs *functionStore) declareScriggoFn(pkg *ast.Package, name string, fn *runtime.Function) {
+// makeAvailableScriggoFn makes available the given function with the given name
+// in the pkg package, ensuring that such function can be later retrieved if it
+// is referenced in the Scriggo compiled code.
+func (fs *functionStore) makeAvailableScriggoFn(pkg *ast.Package, name string, fn *runtime.Function) {
 	if fs.availableScriggoFuncs[pkg] == nil {
 		fs.availableScriggoFuncs[pkg] = map[string]*runtime.Function{}
 	}
 	fs.availableScriggoFuncs[pkg][name] = fn
 }
 
-func (fs *functionStore) isScriggoFn(pkg *ast.Package, name string) bool {
-	_, ok := fs.availableScriggoFuncs[pkg][name]
-	return ok
-}
-
-func (fs *functionStore) getScriggoFn(pkg *ast.Package, name string) *runtime.Function {
+// availableScriggoFn returns the Scriggo function with the given name available
+// in the pkg package. If not available then false is returned.
+func (fs *functionStore) availableScriggoFn(pkg *ast.Package, name string) (*runtime.Function, bool) {
 	fn, ok := fs.availableScriggoFuncs[pkg][name]
-	if !ok {
-		// TODO
-	}
-	return fn
+	return fn, ok
 }
 
-func (fs *functionStore) scriggoFnIndex(fun *runtime.Function) int8 {
+// scriggoFnIndex returns the index of the given Scriggo function inside the
+// Functions slice of the current function. If fun is not present in such slice
+// it is added by this call.
+func (fs *functionStore) scriggoFnIndex(fn *runtime.Function) int8 {
 	currFn := fs.emitter.fb.fn
-	if fs.indexes[currFn] == nil {
-		fs.indexes[currFn] = map[*runtime.Function]int8{}
+	if fs.scriggoFuncIndexes[currFn] == nil {
+		fs.scriggoFuncIndexes[currFn] = map[*runtime.Function]int8{}
 	}
-	if index, ok := fs.indexes[currFn][fun]; ok {
+	if index, ok := fs.scriggoFuncIndexes[currFn][fn]; ok {
 		return index
 	}
 	index := int8(len(currFn.Functions))
-	currFn.Functions = append(currFn.Functions, fun)
-	fs.indexes[currFn][fun] = index
+	currFn.Functions = append(currFn.Functions, fn)
+	fs.scriggoFuncIndexes[currFn][fn] = index
 	return index
 }
 
+// predefFnIndex returns the index of the given predefined function inside the
+// Predefined slice of the current function. If fn is not present in such slice
+// it is added by this call.
 func (fs *functionStore) predefFnIndex(fn reflect.Value, pkg, name string) int8 {
 	currFn := fs.emitter.fb.fn
-	if fs.predefFuncIndex[currFn] == nil {
-		fs.predefFuncIndex[currFn] = map[reflect.Value]int8{}
+	if fs.predefFuncIndexes[currFn] == nil {
+		fs.predefFuncIndexes[currFn] = map[reflect.Value]int8{}
 	}
-	if index, ok := fs.predefFuncIndex[currFn][fn]; ok {
+	if index, ok := fs.predefFuncIndexes[currFn][fn]; ok {
 		return index
 	}
 	f := newPredefinedFunction(pkg, name, fn.Interface())
 	index := int8(len(currFn.Predefined))
 	currFn.Predefined = append(currFn.Predefined, f)
-	if fs.predefFuncIndex[currFn] == nil {
-		fs.predefFuncIndex[currFn] = map[reflect.Value]int8{}
+	if fs.predefFuncIndexes[currFn] == nil {
+		fs.predefFuncIndexes[currFn] = map[reflect.Value]int8{}
 	}
-	fs.predefFuncIndex[currFn][fn] = index
+	fs.predefFuncIndexes[currFn][fn] = index
 	return index
 }

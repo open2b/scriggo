@@ -115,7 +115,7 @@ func (em *emitter) nonLocalVarIndex(v ast.Expression) (index int, ok bool) {
 	if ti := em.ti(v); ti != nil && ti.IsPredefined() {
 		// TODO: this is the new way of accessing predefined vars. Incrementally
 		// integrate into Scriggo, then remove the other checks.
-		if index, ok := em.varStore.isPredefVar(ti.value.(*reflect.Value)); ok {
+		if index, ok := em.varStore.predefVar(ti.value.(*reflect.Value)); ok {
 			return int(index), true
 		}
 		// TODO: obsolete, remove:

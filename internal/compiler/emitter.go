@@ -156,9 +156,9 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				}
 				for name, fn := range funcs {
 					if importName == "" {
-						em.fnStore.declareScriggoFn(em.pkg, name, fn)
+						em.fnStore.makeAvailableScriggoFn(em.pkg, name, fn)
 					} else {
-						em.fnStore.declareScriggoFn(em.pkg, importName+"."+name, fn)
+						em.fnStore.makeAvailableScriggoFn(em.pkg, importName+"."+name, fn)
 					}
 				}
 				for name, v := range vars {
@@ -191,7 +191,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 					inits = append(inits, fn)
 					continue
 				}
-				em.fnStore.declareScriggoFn(em.pkg, fun.Ident.Name, fn)
+				em.fnStore.makeAvailableScriggoFn(em.pkg, fun.Ident.Name, fn)
 				if isExported(fun.Ident.Name) {
 					functions[fun.Ident.Name] = fn
 				}
@@ -214,7 +214,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 			backupFb := em.fb
 			if initVarsFn == nil {
 				initVarsFn = newFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
-				em.fnStore.declareScriggoFn(em.pkg, "$initvars", initVarsFn)
+				em.fnStore.makeAvailableScriggoFn(em.pkg, "$initvars", initVarsFn)
 				initVarsFb = newBuilder(initVarsFn, path)
 				initVarsFb.emitSetAlloc(em.options.MemoryLimit)
 				initVarsFb.enterScope()
@@ -262,7 +262,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				fn = inits[initToBuild]
 				initToBuild++
 			} else {
-				fn = em.fnStore.getScriggoFn(em.pkg, n.Ident.Name)
+				fn, _ = em.fnStore.availableScriggoFn(em.pkg, n.Ident.Name)
 			}
 			em.fb = newBuilder(fn, path)
 			em.fb.emitSetAlloc(em.options.MemoryLimit)
@@ -273,8 +273,8 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 			if n.Ident.Name == "main" {
 				// First: initialize the package variables.
 				if initVarsFn != nil {
-					iv := em.fnStore.getScriggoFn(em.pkg, "$initvars")
-					index := em.fb.addFunction(iv)
+					iv, _ := em.fnStore.availableScriggoFn(em.pkg, "$initvars")
+					index := em.fb.addFunction(iv) // TODO: check addFunction
 					em.fb.emitCall(int8(index), runtime.StackShift{}, nil)
 				}
 				// Second: call all init functions, in order.
@@ -563,8 +563,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 
 	// Scriggo-defined function (identifier).
 	if ident, ok := call.Func.(*ast.Identifier); ok && !em.fb.isVariable(ident.Name) {
-		if em.fnStore.isScriggoFn(em.pkg, ident.Name) {
-			fn := em.fnStore.getScriggoFn(em.pkg, ident.Name)
+		if fn, ok := em.fnStore.availableScriggoFn(em.pkg, ident.Name); ok {
 			stackShift := em.fb.currentStackShift()
 			regs, types := em.prepareCallParameters(fn.Type, call.Args, callOptions{callHasDots: call.IsVariadic})
 			index := em.fnStore.scriggoFnIndex(fn)
@@ -587,8 +586,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 	// Scriggo-defined function (selector).
 	if selector, ok := call.Func.(*ast.Selector); ok {
 		if ident, ok := selector.Expr.(*ast.Identifier); ok {
-			if em.fnStore.isScriggoFn(em.pkg, ident.Name+"."+selector.Ident) {
-				fun := em.fnStore.getScriggoFn(em.pkg, ident.Name+"."+selector.Ident)
+			if fun, ok := em.fnStore.availableScriggoFn(em.pkg, ident.Name+"."+selector.Ident); ok {
 				stackShift := em.fb.currentStackShift()
 				regs, types := em.prepareCallParameters(fun.Type, call.Args, callOptions{callHasDots: call.IsVariadic})
 				index := em.fnStore.scriggoFnIndex(fun)
@@ -669,8 +667,7 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 		}
 
 		// Scriggo-defined package functions.
-		if em.fnStore.isScriggoFn(em.pkg, ident.Name+"."+expr.Ident) {
-			sf := em.fnStore.getScriggoFn(em.pkg, ident.Name+"."+expr.Ident)
+		if sf, ok := em.fnStore.availableScriggoFn(em.pkg, ident.Name+"."+expr.Ident); ok {
 			if reg == 0 {
 				return
 			}
@@ -1448,7 +1445,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		// Template macro definition.
 		if expr.Ident != nil && em.isTemplate {
 			macroFn := newFunction("", expr.Ident.Name, expr.Type.Reflect)
-			em.fnStore.declareScriggoFn(em.pkg, expr.Ident.Name, macroFn)
+			em.fnStore.makeAvailableScriggoFn(em.pkg, expr.Ident.Name, macroFn)
 			fb := em.fb
 			em.setFunctionVarRefs(macroFn, expr.Upvars)
 			em.fb = newBuilder(macroFn, em.fb.getPath())
@@ -1506,8 +1503,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 
 		// Identifier represents a function.
-		if em.fnStore.isScriggoFn(em.pkg, expr.Name) {
-			fun := em.fnStore.getScriggoFn(em.pkg, expr.Name)
+		if fun, ok := em.fnStore.availableScriggoFn(em.pkg, expr.Name); ok {
 			em.fb.emitLoadFunc(false, em.fnStore.scriggoFnIndex(fun), reg)
 			em.changeRegister(false, reg, reg, ti.Type, dstType)
 			return reg, false

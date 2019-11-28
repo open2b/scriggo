@@ -262,7 +262,7 @@ type Code struct {
 func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
 	functions, _, _ := e.emitPackage(pkgMain, false, "main")
-	main := e.fnStore.getScriggoFn(pkgMain, "main")
+	main, _ := e.fnStore.availableScriggoFn(pkgMain, "main")
 	pkg := &Code{
 		Globals:   e.varStore.getGlobals(),
 		Functions: functions,
@@ -313,7 +313,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 			for _, dec := range pkg.Declarations {
 				if fun, ok := dec.(*ast.Func); ok {
 					fn := newFunction("main", fun.Ident.Name, fun.Type.Reflect)
-					e.fnStore.declareScriggoFn(e.pkg, fun.Ident.Name, fn)
+					e.fnStore.makeAvailableScriggoFn(e.pkg, fun.Ident.Name, fn)
 				}
 			}
 			// Emits extended page.

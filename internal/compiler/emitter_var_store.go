@@ -82,10 +82,13 @@ func (vs *varStore) scriggoPackageVar(pkg *ast.Package, name string) (int16, boo
 	return index, ok
 }
 
+// mustBeDeclaredAsIndirect reports whether v must be declared as indirect.
 func (vs *varStore) mustBeDeclaredAsIndirect(v *ast.Identifier) bool {
 	return vs.indirectVars[v]
 }
 
+// predefVarIndex returns the index of the predefined variable v. If v is not
+// available in the global slice then it is added by this call.
 func (vs *varStore) predefVarIndex(v *reflect.Value, pkg, name string) int16 {
 	currFn := vs.emitter.fb.fn
 	if index, ok := vs.predefVarRef[currFn][v]; ok {
@@ -104,6 +107,13 @@ func (vs *varStore) predefVarIndex(v *reflect.Value, pkg, name string) int16 {
 	return index
 }
 
+// TODO: uniform with predefVarIndex?
+func (vs *varStore) predefVar(v *reflect.Value) (int16, bool) {
+	currFn := vs.emitter.fb.fn
+	index, ok := vs.predefVarRef[currFn][v]
+	return index, ok
+}
+
 func (vs *varStore) setPredefVarIndex(fn *runtime.Function, v *reflect.Value, index int16) {
 	if vs.predefVarRef[fn] == nil {
 		vs.predefVarRef[fn] = map[*reflect.Value]int16{}
@@ -111,12 +121,7 @@ func (vs *varStore) setPredefVarIndex(fn *runtime.Function, v *reflect.Value, in
 	vs.predefVarRef[fn][v] = index
 }
 
-func (vs *varStore) isPredefVar(v *reflect.Value) (int16, bool) {
-	currFn := vs.emitter.fb.fn
-	index, ok := vs.predefVarRef[currFn][v]
-	return index, ok
-}
-
+// getGlobals returns the slice of all Globals collected during the emission.
 func (vs *varStore) getGlobals() []Global {
 	return vs.globals
 }
