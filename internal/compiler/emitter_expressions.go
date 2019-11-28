@@ -272,3 +272,73 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 	return reg, false
 
 }
+
+// emitSelector emits selector in register reg.
+func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Type) {
+
+	ti := em.ti(expr)
+
+	// Method value on concrete and interface values.
+	if ti.MethodType == MethodValueConcrete || ti.MethodType == MethodValueInterface {
+		rcvrExpr := expr.Expr
+		rcvrType := em.ti(rcvrExpr).Type
+		rcvr := em.emitExpr(rcvrExpr, rcvrType)
+		// MethodValue reads receiver from general.
+		if kindToType(rcvrType.Kind()) != generalRegister {
+			oldRcvr := rcvr
+			rcvr = em.fb.newRegister(reflect.Interface)
+			em.fb.emitTypify(false, rcvrType, oldRcvr, rcvr)
+		}
+		if kindToType(dstType.Kind()) == generalRegister {
+			em.fb.emitMethodValue(expr.Ident, rcvr, reg)
+		} else {
+			panic("not implemented")
+		}
+		return
+	}
+
+	// Predefined package variable or imported package variable.
+	if index, ok := em.varStore.nonLocalVarIndex(expr); ok {
+		if reg == 0 {
+			return
+		}
+		if canEmitDirectly(ti.Type.Kind(), dstType.Kind()) {
+			em.fb.emitGetVar(int(index), reg, dstType.Kind())
+			return
+		}
+		tmp := em.fb.newRegister(ti.Type.Kind())
+		em.fb.emitGetVar(int(index), tmp, ti.Type.Kind())
+		em.changeRegister(false, tmp, reg, ti.Type, dstType)
+		return
+	}
+
+	// Scriggo-defined package functions.
+	if ident, ok := expr.Expr.(*ast.Identifier); ok {
+		if sf, ok := em.fnStore.availableScriggoFn(em.pkg, ident.Name+"."+expr.Ident); ok {
+			if reg == 0 {
+				return
+			}
+			index := em.fnStore.scriggoFnIndex(sf)
+			em.fb.emitLoadFunc(false, index, reg)
+			em.changeRegister(false, reg, reg, em.ti(expr).Type, dstType)
+			return
+		}
+	}
+
+	// Struct field.
+	exprType := em.ti(expr.Expr).Type
+	exprReg := em.emitExpr(expr.Expr, exprType)
+	field, _ := exprType.FieldByName(expr.Ident)
+	index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+	fieldType := em.ti(expr).Type
+	if canEmitDirectly(fieldType.Kind(), dstType.Kind()) {
+		em.fb.emitField(exprReg, index, reg, dstType.Kind(), true)
+		return
+	}
+	// TODO: add enter/exit stack method calls.
+	tmp := em.fb.newRegister(fieldType.Kind())
+	em.fb.emitField(exprReg, index, tmp, fieldType.Kind(), true)
+	em.changeRegister(false, tmp, reg, fieldType, dstType)
+
+	return
+}
