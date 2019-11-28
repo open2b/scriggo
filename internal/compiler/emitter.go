@@ -1053,19 +1053,6 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			return reg, false
 		}
 
-		// Predefined variable.
-		if ident, ok := expr.(*ast.Identifier); ok {
-			index := em.varStore.predefVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, ident.Name)
-			if canEmitDirectly(ti.Type.Kind(), dstType.Kind()) {
-				em.fb.emitGetVar(int(index), reg, dstType.Kind())
-				return reg, false
-			}
-			tmp := em.fb.newRegister(ti.Type.Kind())
-			em.fb.emitGetVar(int(index), tmp, ti.Type.Kind())
-			em.changeRegister(false, tmp, reg, ti.Type, dstType)
-			return reg, false
-		}
-
 	}
 
 	switch expr := expr.(type) {
@@ -1495,16 +1482,11 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 		typ := ti.Type
 
+		// TODO: isVariable should be isLocalVariable; also documentat that
+		// expr.Name can also be a non-local variable.
 		if em.fb.isVariable(expr.Name) {
 			ident := em.fb.scopeLookup(expr.Name)
 			em.changeRegister(false, ident, reg, typ, dstType)
-			return reg, false
-		}
-
-		// Identifier represents a function.
-		if fun, ok := em.fnStore.availableScriggoFn(em.pkg, expr.Name); ok {
-			em.fb.emitLoadFunc(false, em.fnStore.scriggoFnIndex(fun), reg)
-			em.changeRegister(false, reg, reg, ti.Type, dstType)
 			return reg, false
 		}
 
@@ -1517,6 +1499,13 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			tmp := em.fb.newRegister(typ.Kind())
 			em.fb.emitGetVar(index, tmp, typ.Kind())
 			em.changeRegister(false, tmp, reg, typ, dstType)
+			return reg, false
+		}
+
+		// Identifier represents a function.
+		if fun, ok := em.fnStore.availableScriggoFn(em.pkg, expr.Name); ok {
+			em.fb.emitLoadFunc(false, em.fnStore.scriggoFnIndex(fun), reg)
+			em.changeRegister(false, reg, reg, ti.Type, dstType)
 			return reg, false
 		}
 
