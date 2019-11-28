@@ -163,9 +163,9 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				}
 				for name, v := range vars {
 					if importName == "" {
-						em.varStore.addScriggoPackageVarByIndex(em.pkg, name, v)
+						em.varStore.registerScriggoPackageVar(em.pkg, name, v)
 					} else {
-						em.varStore.addScriggoPackageVarByIndex(em.pkg, importName+"."+name, v)
+						em.varStore.registerScriggoPackageVar(em.pkg, importName+"."+name, v)
 					}
 				}
 			}
@@ -236,12 +236,12 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				// initialized value inside the proper global index.
 				pkgVarRegs[v.Name] = varr
 				pkgVarTypes[v.Name] = varType
-				index := em.varStore.addScriggoPackageVar(em.pkg, newGlobal("main", v.Name, varType, nil))
+				index := em.varStore.createScriggoPackageVar(em.pkg, newGlobal("main", v.Name, varType, nil))
 				vars[v.Name] = index
 			}
 			em.assignValuesToAddresses(addresses, n.Rhs)
 			for name, reg := range pkgVarRegs {
-				index, _ := em.varStore.emitter.varStore.scriggoPackageVarIndex(em.pkg, name)
+				index, _ := em.varStore.emitter.varStore.scriggoPackageVar(em.pkg, name)
 				em.fb.emitSetVar(false, reg, int(index), pkgVarTypes[name].Kind())
 			}
 			em.fb = backupFb

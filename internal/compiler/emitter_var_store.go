@@ -60,15 +60,14 @@ func (vs *varStore) setClosureVar(fn *runtime.Function, name string, index int) 
 	vs.closureVars[fn][name] = index
 }
 
-// TODO: obsolete?
-func (vs *varStore) addScriggoPackageVarByIndex(pkg *ast.Package, name string, index int16) {
+func (vs *varStore) registerScriggoPackageVar(pkg *ast.Package, name string, index int16) {
 	if vs.scriggoPackageVars[pkg] == nil {
 		vs.scriggoPackageVars[pkg] = map[string]int16{}
 	}
 	vs.scriggoPackageVars[pkg][name] = index
 }
 
-func (vs *varStore) addScriggoPackageVar(pkg *ast.Package, global Global) int16 {
+func (vs *varStore) createScriggoPackageVar(pkg *ast.Package, global Global) int16 {
 	index := int16(len(vs.globals))
 	vs.globals = append(vs.globals, global)
 	if vs.scriggoPackageVars[pkg] == nil {
@@ -78,7 +77,7 @@ func (vs *varStore) addScriggoPackageVar(pkg *ast.Package, global Global) int16 
 	return index
 }
 
-func (vs *varStore) scriggoPackageVarIndex(pkg *ast.Package, name string) (int16, bool) {
+func (vs *varStore) scriggoPackageVar(pkg *ast.Package, name string) (int16, bool) {
 	index, ok := vs.scriggoPackageVars[pkg][name]
 	return index, ok
 }

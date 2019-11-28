@@ -148,7 +148,7 @@ func (em *emitter) nonLocalVarIndex(v ast.Expression) (index int, ok bool) {
 		return index, true
 	}
 
-	if index, ok := em.varStore.scriggoPackageVarIndex(em.pkg, name); ok {
+	if index, ok := em.varStore.scriggoPackageVar(em.pkg, name); ok {
 		return int(index), true
 	}
 
