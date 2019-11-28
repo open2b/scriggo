@@ -109,23 +109,23 @@ func (fs *functionStore) predefFunc(fn ast.Expression, allowMethod bool) (int8, 
 		// return 0, false // TODO
 	}
 
-	{ // TODO.
-		fn := ti.value.(reflect.Value)
-		currFn := fs.emitter.fb.fn
-		if fs.predefFuncIndexes[currFn] == nil {
-			fs.predefFuncIndexes[currFn] = map[reflect.Value]int8{}
-		}
-		if index, ok := fs.predefFuncIndexes[currFn][fn]; ok {
-			return index, true
-		}
-		f := newPredefinedFunction(ti.PredefPackageName, name, fn.Interface())
-		index := int8(len(currFn.Predefined))
-		currFn.Predefined = append(currFn.Predefined, f)
-		if fs.predefFuncIndexes[currFn] == nil {
-			fs.predefFuncIndexes[currFn] = map[reflect.Value]int8{}
-		}
-		fs.predefFuncIndexes[currFn][fn] = index
+	// Add the function to the Predefined slice, or get the index if already
+	// present.
+	fnRv := ti.value.(reflect.Value)
+	currFn := fs.emitter.fb.fn
+	if fs.predefFuncIndexes[currFn] == nil {
+		fs.predefFuncIndexes[currFn] = map[reflect.Value]int8{}
+	}
+	if index, ok := fs.predefFuncIndexes[currFn][fnRv]; ok {
 		return index, true
 	}
+	f := newPredefinedFunction(ti.PredefPackageName, name, fnRv.Interface())
+	index := int8(len(currFn.Predefined))
+	currFn.Predefined = append(currFn.Predefined, f)
+	if fs.predefFuncIndexes[currFn] == nil {
+		fs.predefFuncIndexes[currFn] = map[reflect.Value]int8{}
+	}
+	fs.predefFuncIndexes[currFn][fnRv] = index
+	return index, true
 
 }
