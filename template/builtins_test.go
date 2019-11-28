@@ -224,11 +224,12 @@ var rendererBuiltinTestsInHTMLContext = []builtinTest{
 	{"{{ replaceAll(`abcbcba`, `b`, `e`) }}", "aececea", nil},
 
 	// reverse
-	{"{% s := reverse(s) %}{{ sprint(s) }}", "[]", Vars{"s": []int(nil)}},
-	{"{% s := reverse(s) %}{{ sprint(s) }}", "[]", Vars{"s": []int{}}},
-	{"{% s := reverse(s) %}{{ sprint(s) }}", "[1]", Vars{"s": []int{1}}},
-	{"{% s := reverse(s) %}{{ sprint(s) }}", "[2 1]", Vars{"s": []int{1, 2}}},
-	{"{% s := reverse(s) %}{{ sprint(s) }}", "[3 2 1]", Vars{"s": []int{1, 2, 3}}},
+	// These tests pass accidentally. See https://github.com/open2b/scriggo/issues/235.
+	// {"{% s := reverse(s) %}{{ sprint(s) }}", "[]", Vars{"s": []int(nil)}},
+	// {"{% s := reverse(s) %}{{ sprint(s) }}", "[]", Vars{"s": []int{}}},
+	// {"{% s := reverse(s) %}{{ sprint(s) }}", "[1]", Vars{"s": []int{1}}},
+	// {"{% s := reverse(s) %}{{ sprint(s) }}", "[2 1]", Vars{"s": []int{1, 2}}},
+	// {"{% s := reverse(s) %}{{ sprint(s) }}", "[3 2 1]", Vars{"s": []int{1, 2, 3}}},
 
 	// round
 	{"{{ round(0) }}", "0", nil},
