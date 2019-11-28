@@ -649,24 +649,23 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 		return
 	}
 
-	// Scriggo-defined package variables.
-	if ident, ok := expr.Expr.(*ast.Identifier); ok {
-
-		if index, ok := em.varStore.nonLocalVarSelector(expr); ok {
-			if reg == 0 {
-				return
-			}
-			if canEmitDirectly(ti.Type.Kind(), dstType.Kind()) {
-				em.fb.emitGetVar(int(index), reg, dstType.Kind())
-				return
-			}
-			tmp := em.fb.newRegister(ti.Type.Kind())
-			em.fb.emitGetVar(int(index), tmp, ti.Type.Kind())
-			em.changeRegister(false, tmp, reg, ti.Type, dstType)
+	// Predefined package variable or imported package variable.
+	if index, ok := em.varStore.nonLocalVarIndex(expr); ok {
+		if reg == 0 {
 			return
 		}
+		if canEmitDirectly(ti.Type.Kind(), dstType.Kind()) {
+			em.fb.emitGetVar(int(index), reg, dstType.Kind())
+			return
+		}
+		tmp := em.fb.newRegister(ti.Type.Kind())
+		em.fb.emitGetVar(int(index), tmp, ti.Type.Kind())
+		em.changeRegister(false, tmp, reg, ti.Type, dstType)
+		return
+	}
 
-		// Scriggo-defined package functions.
+	// Scriggo-defined package functions.
+	if ident, ok := expr.Expr.(*ast.Identifier); ok {
 		if sf, ok := em.fnStore.availableScriggoFn(em.pkg, ident.Name+"."+expr.Ident); ok {
 			if reg == 0 {
 				return
@@ -1510,7 +1509,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 
 		// Scriggo variables and closure variables.
-		if index, ok := em.varStore.nonLocalVarIdentifier(expr); ok {
+		if index, ok := em.varStore.nonLocalVarIndex(expr); ok {
 			if canEmitDirectly(typ.Kind(), dstType.Kind()) {
 				em.fb.emitGetVar(index, reg, dstType.Kind())
 				return reg, false
@@ -1785,7 +1784,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 				return
 			}
 			// Closure variable address and Scriggo variables.
-			if index, ok := em.varStore.nonLocalVarIdentifier(operand); ok {
+			if index, ok := em.varStore.nonLocalVarIndex(operand); ok {
 				if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
 					em.fb.emitGetVarAddr(index, reg)
 					return
