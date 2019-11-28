@@ -12,15 +12,29 @@ import (
 	"scriggo/runtime"
 )
 
+// A functionStore holds informations about functions defined in Scriggo and
+// predefined functions during the emission.
 type functionStore struct {
+
+	// emitter is a reference to the current emitter.
 	emitter *emitter
 
+	// availableScriggoFuncs holds a list of Scriggo compiled functions that are
+	// available to be called or evaluated as expressions. The functions stored
+	// in availableScriggoFuncs are not added nor to Functions or Predefined if
+	// they are not used in the Scriggo code.
 	availableScriggoFuncs map[*ast.Package]map[string]*runtime.Function
-	scriggoFuncIndexes    map[*runtime.Function]map[*runtime.Function]int8
 
+	// scriggoFuncIndexes holds the indexes of the Scriggo functions that have
+	// been added to Functions because they are referenced in the Scriggo code.
+	scriggoFuncIndexes map[*runtime.Function]map[*runtime.Function]int8
+
+	// predefFuncIndexes holds the indexes of the predefined functions that have
+	// been added to Predefined because they are referenced in the Scriggo code.
 	predefFuncIndexes map[*runtime.Function]map[reflect.Value]int8
 }
 
+// newFunctionStore returns a new functionStore.
 func newFunctionStore(emitter *emitter) *functionStore {
 	return &functionStore{
 		emitter:               emitter,
@@ -64,6 +78,8 @@ func (fs *functionStore) scriggoFnIndex(fn *runtime.Function) int8 {
 	return index
 }
 
+// predefFunc returns the index of the predefined function 'contained' in fn if
+// there's one, else returns 0 and false.
 func (fs *functionStore) predefFunc(fn ast.Expression, allowMethod bool) (int8, bool) {
 	ti := fs.emitter.ti(fn)
 	if (ti == nil) || (!ti.IsPredefined()) {
@@ -86,14 +102,14 @@ func (fs *functionStore) predefFunc(fn ast.Expression, allowMethod bool) (int8, 
 		switch e := fn.Expr.(type) {
 		case *ast.Identifier:
 			name = e.Name // TODO: why just name? Where is the dot?
-			// default:
+			// default: // TODO
 			// 	return 0, false
 		}
 	default:
-		// return 0, false
+		// return 0, false // TODO
 	}
 
-	{
+	{ // TODO.
 		fn := ti.value.(reflect.Value)
 		currFn := fs.emitter.fb.fn
 		if fs.predefFuncIndexes[currFn] == nil {
