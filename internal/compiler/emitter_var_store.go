@@ -70,11 +70,6 @@ func (vs *varStore) createScriggoPackageVar(pkg *ast.Package, global Global) int
 	return index
 }
 
-func (vs *varStore) scriggoPackageVarRef(pkg *ast.Package, name string) (int16, bool) {
-	index, ok := vs.scriggoPackageVarRefs[pkg][name]
-	return index, ok
-}
-
 // mustBeDeclaredAsIndirect reports whether v must be declared as indirect.
 func (vs *varStore) mustBeDeclaredAsIndirect(v *ast.Identifier) bool {
 	return vs.indirectVars[v]
@@ -146,7 +141,7 @@ func (vs *varStore) nonLocalVarIndex(v ast.Expression) (index int, ok bool) {
 	if index, ok := vs.closureVars[currFn][fullName]; ok {
 		return int(index), true
 	}
-	if index, ok := vs.scriggoPackageVarRef(currPkg, fullName); ok {
+	if index, ok := vs.scriggoPackageVarRefs[currPkg][fullName]; ok {
 		return int(index), true
 	}
 	return 0, false
