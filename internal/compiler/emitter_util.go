@@ -112,15 +112,19 @@ func stackDifference(a, b runtime.StackShift) runtime.StackShift {
 //
 func (em *emitter) nonLocalVarIndex(v ast.Expression) (index int, ok bool) {
 
+	// v is a predefined variable.
 	if ti := em.ti(v); ti != nil && ti.IsPredefined() {
-		if sel, ok := v.(*ast.Selector); ok {
-			index := em.varStore.predefVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, sel.Ident)
-			return int(index), true
+		var name string
+		switch v := v.(type) {
+		case *ast.Identifier:
+			name = v.Name
+		case *ast.Selector:
+			name = v.Ident
+		default:
+			panic("BUG")
 		}
-		if ident, ok := v.(*ast.Identifier); ok {
-			index := em.varStore.predefVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, ident.Name)
-			return int(index), true
-		}
+		index := em.varStore.predefVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, name)
+		return int(index), true
 	}
 
 	var name string
