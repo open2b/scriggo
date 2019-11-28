@@ -117,13 +117,6 @@ func (vs *varStore) isPredefVar(v *reflect.Value) (int16, bool) {
 	return index, ok
 }
 
-// TODO: obsolete?
-func (vs *varStore) addGlobal(g Global) int16 {
-	index := int16(len(vs.globals))
-	vs.globals = append(vs.globals, g)
-	return index
-}
-
 func (vs *varStore) getGlobals() []Global {
 	return vs.globals
 }

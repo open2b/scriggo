@@ -299,10 +299,10 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	e.fb.changePath(tree.Path)
 
 	// Globals.
-	e.varStore.addGlobal(newGlobal("$template", "$io.Writer", emptyInterfaceType, nil))
-	e.varStore.addGlobal(newGlobal("$template", "$Write", reflect.FuncOf(nil, nil, false), nil))
-	e.varStore.addGlobal(newGlobal("$template", "$Render", reflect.FuncOf(nil, nil, false), nil))
-	e.varStore.addGlobal(newGlobal("$template", "$urlWriter", reflect.TypeOf(&struct{}{}), nil))
+	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$io.Writer", emptyInterfaceType, nil))
+	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$Write", reflect.FuncOf(nil, nil, false), nil))
+	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$Render", reflect.FuncOf(nil, nil, false), nil))
+	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$urlWriter", reflect.TypeOf(&struct{}{}), nil))
 	e.fb.emitSetAlloc(opts.MemoryLimit)
 
 	// If page is a package, then page extends another page.
