@@ -163,9 +163,9 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				}
 				for name, v := range vars {
 					if importName == "" {
-						em.varStore.addScriggoPackageVar(em.pkg, name, v)
+						em.varStore.addScriggoPackageVarByIndex(em.pkg, name, v)
 					} else {
-						em.varStore.addScriggoPackageVar(em.pkg, importName+"."+name, v)
+						em.varStore.addScriggoPackageVarByIndex(em.pkg, importName+"."+name, v)
 					}
 				}
 			}
@@ -236,8 +236,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				// initialized value inside the proper global index.
 				pkgVarRegs[v.Name] = varr
 				pkgVarTypes[v.Name] = varType
-				index := em.varStore.addGlobal(newGlobal("main", v.Name, varType, nil))
-				em.varStore.addScriggoPackageVar(em.pkg, v.Name, index)
+				index := em.varStore.addScriggoPackageVar(em.pkg, newGlobal("main", v.Name, varType, nil))
 				vars[v.Name] = index
 			}
 			em.assignValuesToAddresses(addresses, n.Rhs)

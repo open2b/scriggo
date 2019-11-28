@@ -107,9 +107,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					}
 					for name, v := range vars {
 						if importName == "" {
-							em.varStore.addScriggoPackageVar(backupPkg, name, v)
+							em.varStore.addScriggoPackageVarByIndex(backupPkg, name, v)
 						} else {
-							em.varStore.addScriggoPackageVar(backupPkg, importName+"."+name, v)
+							em.varStore.addScriggoPackageVarByIndex(backupPkg, importName+"."+name, v)
 						}
 					}
 					if len(inits) > 0 {

@@ -60,11 +60,22 @@ func (vs *varStore) setClosureVar(fn *runtime.Function, name string, index int) 
 	vs.closureVars[fn][name] = index
 }
 
-func (vs *varStore) addScriggoPackageVar(pkg *ast.Package, name string, index int16) {
+// TODO: obsolete?
+func (vs *varStore) addScriggoPackageVarByIndex(pkg *ast.Package, name string, index int16) {
 	if vs.scriggoPackageVars[pkg] == nil {
 		vs.scriggoPackageVars[pkg] = map[string]int16{}
 	}
 	vs.scriggoPackageVars[pkg][name] = index
+}
+
+func (vs *varStore) addScriggoPackageVar(pkg *ast.Package, global Global) int16 {
+	index := int16(len(vs.globals))
+	vs.globals = append(vs.globals, global)
+	if vs.scriggoPackageVars[pkg] == nil {
+		vs.scriggoPackageVars[pkg] = map[string]int16{}
+	}
+	vs.scriggoPackageVars[pkg][global.Name] = index
+	return index
 }
 
 func (vs *varStore) scriggoPackageVarIndex(pkg *ast.Package, name string) (int16, bool) {
@@ -107,6 +118,7 @@ func (vs *varStore) isPredefVar(v *reflect.Value) (int16, bool) {
 	return index, ok
 }
 
+// TODO: obsolete?
 func (vs *varStore) addGlobal(g Global) int16 {
 	index := int16(len(vs.globals))
 	vs.globals = append(vs.globals, g)
