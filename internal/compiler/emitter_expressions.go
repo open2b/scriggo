@@ -765,8 +765,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 				em.changeRegister(false, tmp, reg, operandType, dstType)
 				return
 			}
-
-			panic("BUG: not implemented") // remove.
+			panic("BUG")
 
 		// &*a
 		case *ast.UnaryOperator:
