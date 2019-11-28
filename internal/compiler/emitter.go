@@ -955,19 +955,6 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		reg = em.fb.newRegister(dstType.Kind())
 	}
 
-	// If the instructions that emit expr put result in a register type
-	// different than the register type of dstType, use an intermediate
-	// temporary register. Consider that this is not always necessary to check
-	// this: for example if expr is a function, dstType must be a function or an
-	// interface (this is guaranteed by the type checker) and in the current
-	// implementation of the VM functions and interfaces use the same register
-	// type.
-	//
-	// Not that this does not imply that method 'changeRegister' doesn't have to
-	// be called: in case when internal representation is different than the
-	// external one (functions and bools), the calls to 'changeRegister' may
-	// emit a Typify instruction to ensure that values are correctly converted.
-
 	if ti != nil && ti.HasValue() && !ti.IsPredefined() {
 		return em.emitValueNotPredefined(ti, reg, dstType)
 	}
