@@ -562,7 +562,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 	}
 
 	// Scriggo-defined function (identifier).
-	if ident, ok := call.Func.(*ast.Identifier); ok && !em.fb.isVariable(ident.Name) {
+	if ident, ok := call.Func.(*ast.Identifier); ok && !em.fb.isLocalVariable(ident.Name) {
 		if fn, ok := em.fnStore.availableScriggoFn(em.pkg, ident.Name); ok {
 			stackShift := em.fb.currentStackShift()
 			regs, types := em.prepareCallParameters(fn.Type, call.Args, callOptions{callHasDots: call.IsVariadic})
@@ -944,7 +944,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 		// Expr cannot be emitted as immediate: check if it's possible to emit
 		// it without allocating a new register.
-		if expr, ok := expr.(*ast.Identifier); ok && em.fb.isVariable(expr.Name) {
+		if expr, ok := expr.(*ast.Identifier); ok && em.fb.isLocalVariable(expr.Name) {
 			if canEmitDirectly(ti.Type.Kind(), dstType.Kind()) {
 				return em.fb.scopeLookup(expr.Name), false
 			}
@@ -1482,9 +1482,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 		typ := ti.Type
 
-		// TODO: isVariable should be isLocalVariable; also documentat that
-		// expr.Name can also be a non-local variable.
-		if em.fb.isVariable(expr.Name) {
+		if em.fb.isLocalVariable(expr.Name) {
 			ident := em.fb.scopeLookup(expr.Name)
 			em.changeRegister(false, ident, reg, typ, dstType)
 			return reg, false
@@ -1766,7 +1764,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 
 		// &a
 		case *ast.Identifier:
-			if em.fb.isVariable(operand.Name) {
+			if em.fb.isLocalVariable(operand.Name) {
 				varr := em.fb.scopeLookup(operand.Name)
 				em.fb.emitNew(em.types.PtrTo(unOpType), reg)
 				em.fb.emitMove(false, -varr, reg, dstType.Kind(), false)
