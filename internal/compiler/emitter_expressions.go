@@ -12,6 +12,117 @@ import (
 	"scriggo/runtime"
 )
 
+func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, dstType reflect.Type) (int8, bool) {
+	typ := em.ti(expr.Type).Type
+	switch typ.Kind() {
+	case reflect.Slice, reflect.Array:
+		if reg == 0 {
+			for _, kv := range expr.KeyValues {
+				typ := em.ti(kv.Value).Type
+				em.emitExprR(kv.Value, typ, 0)
+			}
+			return reg, false
+		}
+		length := int8(em.compositeLiteralLen(expr)) // TODO(Gianluca): length is int
+		if typ.Kind() == reflect.Slice {
+			em.fb.emitMakeSlice(true, true, typ, length, length, reg, expr.Pos())
+		} else {
+			arrayZero := em.fb.makeGeneralConstant(em.types.New(typ).Elem().Interface())
+			em.changeRegister(true, arrayZero, reg, typ, typ)
+		}
+		var index int8 = -1
+		for _, kv := range expr.KeyValues {
+			if kv.Key != nil {
+				index = int8(em.ti(kv.Key).Constant.int64())
+			} else {
+				index++
+			}
+			em.fb.enterStack()
+			indexReg := em.fb.newRegister(reflect.Int)
+			em.fb.emitMove(true, index, indexReg, reflect.Int, true)
+			elem, k := em.emitExprK(kv.Value, typ.Elem())
+			if reg != 0 {
+				em.fb.emitSetSlice(k, reg, elem, indexReg, expr.Pos(), typ.Elem().Kind())
+			}
+			em.fb.exitStack()
+		}
+		em.changeRegister(false, reg, reg, em.ti(expr.Type).Type, dstType)
+	case reflect.Struct:
+		// Struct should no be created, but its values must be emitted.
+		if reg == 0 {
+			for _, kv := range expr.KeyValues {
+				em.emitExprR(kv.Value, em.ti(kv.Value).Type, 0)
+			}
+			return reg, false
+		}
+		// TODO: the types instance should be the same of the type checker!
+		structZero := em.fb.makeGeneralConstant(em.types.New(typ).Elem().Interface())
+		// When there are no values in the composite literal, optimize the
+		// creation of the struct.
+		if len(expr.KeyValues) == 0 {
+			em.changeRegister(true, structZero, reg, typ, dstType)
+			return reg, false
+		}
+		// Assign key-value pairs to the struct fields.
+		em.fb.enterStack()
+		var structt int8
+		if canEmitDirectly(typ.Kind(), dstType.Kind()) {
+			structt = em.fb.newRegister(reflect.Struct)
+		} else {
+			structt = reg
+		}
+		em.changeRegister(true, structZero, structt, typ, typ)
+		for _, kv := range expr.KeyValues {
+			name := kv.Key.(*ast.Identifier).Name
+			field, _ := typ.FieldByName(name)
+			valueType := em.ti(kv.Value).Type
+			if canEmitDirectly(field.Type.Kind(), valueType.Kind()) {
+				value, k := em.emitExprK(kv.Value, valueType)
+				index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+				em.fb.emitSetField(k, structt, index, value, field.Type.Kind())
+			} else {
+				em.fb.enterStack()
+				tmp := em.emitExpr(kv.Value, valueType)
+				value := em.fb.newRegister(field.Type.Kind())
+				em.changeRegister(false, tmp, value, valueType, field.Type)
+				em.fb.exitStack()
+				index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+				em.fb.emitSetField(false, structt, index, value, field.Type.Kind())
+			}
+			// TODO(Gianluca): use field "k" of SetField.
+		}
+		em.changeRegister(false, structt, reg, typ, dstType)
+		em.fb.exitStack()
+
+	case reflect.Map:
+		if reg == 0 {
+			for _, kv := range expr.KeyValues {
+				typ := em.ti(kv.Value).Type
+				em.emitExprR(kv.Value, typ, 0)
+			}
+			return reg, false
+		}
+		tmp := em.fb.newRegister(reflect.Map)
+		size := len(expr.KeyValues)
+		if 0 <= size && size < 126 {
+			em.fb.emitMakeMap(typ, true, int8(size), tmp)
+		} else {
+			sizeReg := em.fb.makeIntConstant(int64(size))
+			em.fb.emitMakeMap(typ, false, sizeReg, tmp)
+		}
+		for _, kv := range expr.KeyValues {
+			key := em.fb.newRegister(typ.Key().Kind())
+			em.fb.enterStack()
+			em.emitExprR(kv.Key, typ.Key(), key)
+			value, k := em.emitExprK(kv.Value, typ.Elem())
+			em.fb.exitStack()
+			em.fb.emitSetMap(k, tmp, value, key, typ, expr.Pos())
+		}
+		em.changeRegister(false, tmp, reg, typ, dstType)
+	}
+	return reg, false
+}
+
 func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType reflect.Type) (int8, bool) {
 	ti := em.ti(expr)
 	// Binary operations on complex numbers.
