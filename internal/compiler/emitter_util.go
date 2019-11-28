@@ -113,17 +113,10 @@ func stackDifference(a, b runtime.StackShift) runtime.StackShift {
 func (em *emitter) nonLocalVarIndex(v ast.Expression) (index int, ok bool) {
 
 	if ti := em.ti(v); ti != nil && ti.IsPredefined() {
-		// TODO: this is the new way of accessing predefined vars. Incrementally
-		// integrate into Scriggo, then remove the other checks.
-		if index, ok := em.varStore.predefVar(ti.value.(*reflect.Value)); ok {
-			return int(index), true
-		}
-		// TODO: obsolete, remove:
 		if sel, ok := v.(*ast.Selector); ok {
 			index := em.varStore.predefVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, sel.Ident)
 			return int(index), true
 		}
-		// TODO: obsolete, remove:
 		if ident, ok := v.(*ast.Identifier); ok {
 			index := em.varStore.predefVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, ident.Name)
 			return int(index), true

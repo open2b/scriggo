@@ -107,13 +107,6 @@ func (vs *varStore) predefVarIndex(v *reflect.Value, pkg, name string) int16 {
 	return index
 }
 
-// TODO: uniform with predefVarIndex?
-func (vs *varStore) predefVar(v *reflect.Value) (int16, bool) {
-	currFn := vs.emitter.fb.fn
-	index, ok := vs.predefVarRef[currFn][v]
-	return index, ok
-}
-
 func (vs *varStore) setPredefVarIndex(fn *runtime.Function, v *reflect.Value, index int16) {
 	if vs.predefVarRef[fn] == nil {
 		vs.predefVarRef[fn] = map[*reflect.Value]int16{}
