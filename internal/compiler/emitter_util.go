@@ -102,37 +102,6 @@ func stackDifference(a, b runtime.StackShift) runtime.StackShift {
 	}
 }
 
-func (em *emitter) nonLocalVarIdentifier(v *ast.Identifier) (index int, ok bool) {
-	// v is a predefined variable.
-	if ti := em.ti(v); ti != nil && ti.IsPredefined() {
-		index := em.varStore.predefVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, v.Name)
-		return int(index), true
-	}
-	if index, ok := em.varStore.closureVar(em.fb.fn, v.Name); ok {
-		return int(index), true
-	}
-	if index, ok := em.varStore.scriggoPackageVar(em.pkg, v.Name); ok {
-		return int(index), true
-	}
-	return 0, false
-}
-
-func (em *emitter) nonLocalVarSelector(v *ast.Selector) (index int, ok bool) {
-	// v is a predefined variable.
-	if ti := em.ti(v); ti != nil && ti.IsPredefined() {
-		index := em.varStore.predefVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, v.Ident)
-		return int(index), true
-	}
-	name := v.Expr.(*ast.Identifier).Name + "." + v.Ident
-	if index, ok := em.varStore.closureVar(em.fb.fn, name); ok {
-		return int(index), true
-	}
-	if index, ok := em.varStore.scriggoPackageVar(em.pkg, name); ok {
-		return int(index), true
-	}
-	return 0, false
-}
-
 // isExported reports whether name is exported, according to
 // https://golang.org/ref/spec#Exported_identifiers.
 func isExported(name string) bool {

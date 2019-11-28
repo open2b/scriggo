@@ -118,3 +118,40 @@ func (vs *varStore) setPredefVarIndex(fn *runtime.Function, v *reflect.Value, in
 func (vs *varStore) getGlobals() []Global {
 	return vs.globals
 }
+
+func (vs *varStore) nonLocalVarIdentifier(v *ast.Identifier) (index int, ok bool) {
+	ti := vs.emitter.ti(v)
+	currFn := vs.emitter.fb.fn
+	currPkg := vs.emitter.pkg
+	// v is a predefined variable.
+	if ti != nil && ti.IsPredefined() {
+		index := vs.predefVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, v.Name)
+		return int(index), true
+	}
+	if index, ok := vs.closureVar(currFn, v.Name); ok {
+		return int(index), true
+	}
+	if index, ok := vs.scriggoPackageVar(currPkg, v.Name); ok {
+		return int(index), true
+	}
+	return 0, false
+}
+
+func (vs *varStore) nonLocalVarSelector(v *ast.Selector) (index int, ok bool) {
+	ti := vs.emitter.ti(v)
+	currFn := vs.emitter.fb.fn
+	currPkg := vs.emitter.pkg
+	// v is a predefined variable.
+	if ti != nil && ti.IsPredefined() {
+		index := vs.predefVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, v.Ident)
+		return int(index), true
+	}
+	name := v.Expr.(*ast.Identifier).Name + "." + v.Ident
+	if index, ok := vs.closureVar(currFn, name); ok {
+		return int(index), true
+	}
+	if index, ok := vs.scriggoPackageVar(currPkg, name); ok {
+		return int(index), true
+	}
+	return 0, false
+}
