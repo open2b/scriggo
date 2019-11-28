@@ -920,6 +920,7 @@ func (em *emitter) emitExprR(expr ast.Expression, dstType reflect.Type, reg int8
 //
 func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8, useGivenReg bool, allowK bool) (int8, bool) {
 
+	// Take the type info of the expression.
 	ti := em.ti(expr)
 
 	// No need to use the given register: check if expr can be emitted without
@@ -949,12 +950,12 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				return em.fb.scopeLookup(expr.Name), false
 			}
 		}
-
 		// None of the conditions above applied: a new register must be
 		// allocated, and the emission must proceed.
 		reg = em.fb.newRegister(dstType.Kind())
 	}
 
+	// The expression has a value and is not predefined.
 	if ti != nil && ti.HasValue() && !ti.IsPredefined() {
 		return em.emitValueNotPredefined(ti, reg, dstType)
 	}
