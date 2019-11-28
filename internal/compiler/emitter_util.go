@@ -102,55 +102,35 @@ func stackDifference(a, b runtime.StackShift) runtime.StackShift {
 	}
 }
 
-// nonLocalVarIndex returns the index of the non-local variable v, if exists.
-// v can be one of:
-//
-//   - a closure variable
-//   - a package level variable compiled in Scriggo
-//   - a package level variable compiled and imported from another Scriggo package
-//   - an imported gc precompiled variable
-//
-func (em *emitter) nonLocalVarIndex(v ast.Expression) (index int, ok bool) {
-
+func (em *emitter) nonLocalVarIdentifier(v *ast.Identifier) (index int, ok bool) {
 	// v is a predefined variable.
 	if ti := em.ti(v); ti != nil && ti.IsPredefined() {
-		var name string
-		switch v := v.(type) {
-		case *ast.Identifier:
-			name = v.Name
-		case *ast.Selector:
-			name = v.Ident
-		default:
-			panic("BUG")
-		}
-		index := em.varStore.predefVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, name)
+		index := em.varStore.predefVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, v.Name)
 		return int(index), true
 	}
-
-	var name string
-	switch v := v.(type) {
-	case *ast.Identifier:
-		name = v.Name
-	case *ast.Selector:
-		if ident, ok := v.Expr.(*ast.Identifier); ok {
-			name = ident.Name + "." + v.Ident
-		} else {
-			return 0, false
-		}
-	default:
-		return 0, false
+	if index, ok := em.varStore.closureVar(em.fb.fn, v.Name); ok {
+		return int(index), true
 	}
+	if index, ok := em.varStore.scriggoPackageVar(em.pkg, v.Name); ok {
+		return int(index), true
+	}
+	return 0, false
+}
 
+func (em *emitter) nonLocalVarSelector(v *ast.Selector) (index int, ok bool) {
+	// v is a predefined variable.
+	if ti := em.ti(v); ti != nil && ti.IsPredefined() {
+		index := em.varStore.predefVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, v.Ident)
+		return int(index), true
+	}
+	name := v.Expr.(*ast.Identifier).Name + "." + v.Ident
 	if index, ok := em.varStore.closureVar(em.fb.fn, name); ok {
 		return int(index), true
 	}
-
 	if index, ok := em.varStore.scriggoPackageVar(em.pkg, name); ok {
 		return int(index), true
 	}
-
 	return 0, false
-
 }
 
 // isExported reports whether name is exported, according to

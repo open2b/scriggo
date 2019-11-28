@@ -54,6 +54,9 @@ func (em *emitter) addressBlankIdent(pos *ast.Position) address {
 // with the given type that is indexed by index.
 // op is the type of the assignment that involves this address, and pos is the
 // position of the assignment in the source code.
+
+// TODO: rename to addressNonLocalVar
+
 func (em *emitter) addressClosureVar(index int16, typ reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
 	msb, lsb := encodeInt16(index)
 	return address{

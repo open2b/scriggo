@@ -652,7 +652,7 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 	// Scriggo-defined package variables.
 	if ident, ok := expr.Expr.(*ast.Identifier); ok {
 
-		if index, ok := em.nonLocalVarIndex(expr); ok {
+		if index, ok := em.nonLocalVarSelector(expr); ok {
 			if reg == 0 {
 				return
 			}
@@ -1510,7 +1510,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 
 		// Scriggo variables and closure variables.
-		if index, ok := em.nonLocalVarIndex(expr); ok {
+		if index, ok := em.nonLocalVarIdentifier(expr); ok {
 			if canEmitDirectly(typ.Kind(), dstType.Kind()) {
 				em.fb.emitGetVar(index, reg, dstType.Kind())
 				return reg, false
@@ -1785,7 +1785,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 				return
 			}
 			// Closure variable address and Scriggo variables.
-			if index, ok := em.nonLocalVarIndex(operand); ok {
+			if index, ok := em.nonLocalVarIdentifier(operand); ok {
 				if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
 					em.fb.emitGetVarAddr(index, reg)
 					return
