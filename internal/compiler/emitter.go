@@ -960,24 +960,11 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		return em.emitValueNotPredefined(ti, reg, dstType)
 	}
 
-	// Predefined values.
-	if ti != nil && ti.IsPredefined() && ti.MethodType == NoMethod {
-
-		// Predefined functions.
-		if ti.Type.Kind() == reflect.Func && !ti.Addressable() {
-			name := ""
-			switch expr := expr.(type) {
-			case *ast.Identifier:
-				name = expr.Name
-			case *ast.Selector:
-				name = expr.Ident
-			}
-			index := em.fnStore.predefFnIndex(ti.value.(reflect.Value), ti.PredefPackageName, name)
-			em.fb.emitLoadFunc(true, index, reg)
-			em.changeRegister(false, reg, reg, ti.Type, dstType)
-			return reg, false
-		}
-
+	// Predefined function (TODO: remove this code and put below).
+	if index, ok := em.fnStore.predefinedFunction(expr); ok {
+		em.fb.emitLoadFunc(true, index, reg)
+		em.changeRegister(false, reg, reg, ti.Type, dstType)
+		return reg, false
 	}
 
 	switch expr := expr.(type) {

@@ -67,6 +67,9 @@ func (fs *functionStore) scriggoFnIndex(fn *runtime.Function) int8 {
 // predefFnIndex returns the index of the given predefined function inside the
 // Predefined slice of the current function. If fn is not present in such slice
 // it is added by this call.
+
+// TODO: remove this function?
+
 func (fs *functionStore) predefFnIndex(fn reflect.Value, pkg, name string) int8 {
 	currFn := fs.emitter.fb.fn
 	if fs.predefFuncIndexes[currFn] == nil {
@@ -83,4 +86,33 @@ func (fs *functionStore) predefFnIndex(fn reflect.Value, pkg, name string) int8 
 	}
 	fs.predefFuncIndexes[currFn][fn] = index
 	return index
+}
+
+func (fs *functionStore) predefinedFunction(fn ast.Expression) (int8, bool) {
+	ti := fs.emitter.ti(fn)
+	if (ti == nil) || (!ti.IsPredefined()) || (ti.MethodType != NoMethod) {
+		return 0, false
+	}
+	if ti.Type.Kind() != reflect.Func {
+		return 0, false
+	}
+	if ti.Addressable() {
+		return 0, false
+	}
+	var name string
+	switch fn := fn.(type) {
+	case *ast.Identifier:
+		name = fn.Name
+	case *ast.Selector:
+		switch e := fn.Expr.(type) {
+		case *ast.Identifier:
+			name = e.Name // TODO: why just name? Where is the dot?
+			// default:
+			// 	return 0, false
+		}
+	default:
+		// return 0, false
+	}
+	index := fs.predefFnIndex(ti.value.(reflect.Value), ti.PredefPackageName, name)
+	return index, true
 }
