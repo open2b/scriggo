@@ -51,7 +51,7 @@ func main() {
 	var b7 = [5]int{1}
 	var b8 = [3]int{1, 2, 3}
 	var b9 = [][7]int{{}}[0]
-	// var b11 = map[string][2]int{}["a"] // See https://github.com/open2b/scriggo/issues/376
+	var b11 = map[string][2]int{}["a"]
 	var b12 = make([][1]int, 1)[0]
 	var b13 = [1]int{len("a")}
 	var b14 = [1]int{cap([2]int{})}
@@ -66,7 +66,7 @@ func main() {
 	const _ = cap(b7)
 	const _ = cap(b8)
 	const _ = cap(b9)
-	// const _ = cap(b11)
+	const _ = cap(b11)
 	const _ = cap(b12)
 	const _ = cap(b13)
 	const _ = cap(b14)
