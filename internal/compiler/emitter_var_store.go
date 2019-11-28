@@ -29,7 +29,7 @@ type varStore struct {
 	// Holds all Scriggo-defined and pre-predefined global variables.
 	globals []Global
 
-	scriggoPackageVars map[*ast.Package]map[string]int16
+	scriggoPackageVarRefs map[*ast.Package]map[string]int16
 
 	closureVars map[*runtime.Function]map[string]int16
 }
@@ -37,19 +37,12 @@ type varStore struct {
 // newVarStore returns a new *varStore.
 func newVarStore(emitter *emitter, indirectVars map[*ast.Identifier]bool) *varStore {
 	return &varStore{
-		emitter:            emitter,
-		predefVarRef:       map[*runtime.Function]map[*reflect.Value]int16{},
-		indirectVars:       indirectVars,
-		scriggoPackageVars: map[*ast.Package]map[string]int16{},
-		closureVars:        map[*runtime.Function]map[string]int16{},
+		emitter:               emitter,
+		predefVarRef:          map[*runtime.Function]map[*reflect.Value]int16{},
+		indirectVars:          indirectVars,
+		scriggoPackageVarRefs: map[*ast.Package]map[string]int16{},
+		closureVars:           map[*runtime.Function]map[string]int16{},
 	}
-}
-
-// closureVar returns the index of the closure variable with the given name for
-// the given function. If name is not a closure var then false is returned.
-func (vs *varStore) closureVar(fn *runtime.Function, name string) (int16, bool) {
-	index, ok := vs.closureVars[fn][name]
-	return index, ok
 }
 
 // setClosureVar the index of the closure variable name for the given function.
@@ -61,24 +54,24 @@ func (vs *varStore) setClosureVar(fn *runtime.Function, name string, index int16
 }
 
 func (vs *varStore) registerScriggoPackageVar(pkg *ast.Package, name string, index int16) {
-	if vs.scriggoPackageVars[pkg] == nil {
-		vs.scriggoPackageVars[pkg] = map[string]int16{}
+	if vs.scriggoPackageVarRefs[pkg] == nil {
+		vs.scriggoPackageVarRefs[pkg] = map[string]int16{}
 	}
-	vs.scriggoPackageVars[pkg][name] = index
+	vs.scriggoPackageVarRefs[pkg][name] = index
 }
 
 func (vs *varStore) createScriggoPackageVar(pkg *ast.Package, global Global) int16 {
 	index := int16(len(vs.globals))
 	vs.globals = append(vs.globals, global)
-	if vs.scriggoPackageVars[pkg] == nil {
-		vs.scriggoPackageVars[pkg] = map[string]int16{}
+	if vs.scriggoPackageVarRefs[pkg] == nil {
+		vs.scriggoPackageVarRefs[pkg] = map[string]int16{}
 	}
-	vs.scriggoPackageVars[pkg][global.Name] = index
+	vs.scriggoPackageVarRefs[pkg][global.Name] = index
 	return index
 }
 
-func (vs *varStore) scriggoPackageVar(pkg *ast.Package, name string) (int16, bool) {
-	index, ok := vs.scriggoPackageVars[pkg][name]
+func (vs *varStore) scriggoPackageVarRef(pkg *ast.Package, name string) (int16, bool) {
+	index, ok := vs.scriggoPackageVarRefs[pkg][name]
 	return index, ok
 }
 
@@ -107,7 +100,7 @@ func (vs *varStore) predefVarIndex(v *reflect.Value, pkg, name string) int16 {
 	return index
 }
 
-func (vs *varStore) setPredefVarIndex(fn *runtime.Function, v *reflect.Value, index int16) {
+func (vs *varStore) setPredefVarRef(fn *runtime.Function, v *reflect.Value, index int16) {
 	if vs.predefVarRef[fn] == nil {
 		vs.predefVarRef[fn] = map[*reflect.Value]int16{}
 	}
@@ -150,10 +143,10 @@ func (vs *varStore) nonLocalVarIndex(v ast.Expression) (index int, ok bool) {
 		return int(index), true
 	}
 
-	if index, ok := vs.closureVar(currFn, fullName); ok {
+	if index, ok := vs.closureVars[currFn][fullName]; ok {
 		return int(index), true
 	}
-	if index, ok := vs.scriggoPackageVar(currPkg, fullName); ok {
+	if index, ok := vs.scriggoPackageVarRef(currPkg, fullName); ok {
 		return int(index), true
 	}
 	return 0, false

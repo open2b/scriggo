@@ -215,7 +215,7 @@ func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Up
 	for i, v := range closureVars {
 		closureRefs[i] = v.Index
 		if v.Declaration == nil {
-			em.varStore.setPredefVarIndex(fn, v.PredefinedValue, int16(i))
+			em.varStore.setPredefVarRef(fn, v.PredefinedValue, int16(i))
 			continue
 		}
 		em.varStore.setClosureVar(fn, v.Declaration.(*ast.Identifier).Name, int16(i))

@@ -239,7 +239,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 			}
 			em.assignValuesToAddresses(addresses, n.Rhs)
 			for name, reg := range pkgVarRegs {
-				index, _ := em.varStore.emitter.varStore.scriggoPackageVar(em.pkg, name)
+				index, _ := em.varStore.emitter.varStore.scriggoPackageVarRef(em.pkg, name)
 				em.fb.emitSetVar(false, reg, int(index), pkgVarTypes[name].Kind())
 			}
 			em.fb = backupFb
