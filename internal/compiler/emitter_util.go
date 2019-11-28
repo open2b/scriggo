@@ -7,6 +7,7 @@
 package compiler
 
 import (
+	"fmt"
 	"io"
 	"reflect"
 	"unicode"
@@ -266,3 +267,70 @@ var urlEscaperStartURLType = reflect.FuncOf([]reflect.Type{
 	reflect.TypeOf(bool(false)), // quoted bool
 	reflect.TypeOf(bool(false)), // isSet bool
 }, nil, false)
+
+func (em *emitter) emitValueNotPredefined(ti *TypeInfo, reg int8, dstType reflect.Type) (int8, bool) {
+	typ := ti.Type
+	if reg == 0 {
+		return reg, false
+	}
+	// Handle nil values.
+	if ti.value == nil {
+		c := em.fb.makeGeneralConstant(nil)
+		em.changeRegister(true, c, reg, typ, dstType)
+		return reg, false
+	}
+	switch v := ti.value.(type) {
+	case int64:
+		c := em.fb.makeIntConstant(v)
+		if canEmitDirectly(typ.Kind(), dstType.Kind()) {
+			em.fb.emitLoadNumber(intRegister, c, reg)
+			em.changeRegister(false, reg, reg, typ, dstType)
+			return reg, false
+		}
+		tmp := em.fb.newRegister(typ.Kind())
+		em.fb.emitLoadNumber(intRegister, c, tmp)
+		em.changeRegister(false, tmp, reg, typ, dstType)
+		return reg, false
+	case float64:
+		var c int8
+		if typ.Kind() == reflect.Float32 {
+			c = em.fb.makeFloatConstant(float64(float32(v)))
+		} else {
+			c = em.fb.makeFloatConstant(v)
+		}
+		if canEmitDirectly(typ.Kind(), dstType.Kind()) {
+			em.fb.emitLoadNumber(floatRegister, c, reg)
+			em.changeRegister(false, reg, reg, typ, dstType)
+			return reg, false
+		}
+		tmp := em.fb.newRegister(typ.Kind())
+		em.fb.emitLoadNumber(floatRegister, c, tmp)
+		em.changeRegister(false, tmp, reg, typ, dstType)
+		return reg, false
+	case string:
+		c := em.fb.makeStringConstant(v)
+		em.changeRegister(true, c, reg, typ, dstType)
+		return reg, false
+	}
+	v := reflect.ValueOf(ti.value)
+	switch v.Kind() {
+	case reflect.Interface:
+		panic("BUG: not implemented") // remove.
+	case reflect.Slice,
+		reflect.Complex64,
+		reflect.Complex128,
+		reflect.Array,
+		reflect.Chan,
+		reflect.Func,
+		reflect.Map,
+		reflect.Ptr,
+		reflect.Struct:
+		c := em.fb.makeGeneralConstant(v.Interface())
+		em.changeRegister(true, c, reg, typ, dstType)
+	case reflect.UnsafePointer:
+		panic("BUG: not implemented") // remove.
+	default:
+		panic(fmt.Errorf("unsupported value type %T", ti.value))
+	}
+	return reg, false
+}
