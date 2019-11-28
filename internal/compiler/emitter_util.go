@@ -237,24 +237,25 @@ func canEmitDirectly(k1, k2 reflect.Kind) bool {
 	return kindToType(k1) == kindToType(k2)
 }
 
-// setClosureRefs sets the closure refs of a function. setClosureRefs operates
-// on current function builder, so shall be called before changing or saving
-// it.
-func (em *emitter) setClosureRefs(fn *runtime.Function, closureVars []ast.Upvar) {
+// setFunctionVarRefs sets the var refs of a function. setFunctionVarRefs
+// operates on current function builder, so shall be called before changing or
+// saving it.
+func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Upvar) {
 
 	// First: update the indexes of the declarations that are found at the
 	// same level of fn with appropriate register indexes.
 	for i := range closureVars {
 		v := &closureVars[i]
 		if v.Index == -1 {
+			// If the upvar is predefined then update the index of such
+			// predefined variable.
 			if v.Declaration == nil {
-				// The upvar is predefined.
 				v.Index = em.varStore.predefVarIndex(v.PredefinedValue, v.PredefinedPkg, v.PredefinedName)
-			} else {
-				name := v.Declaration.(*ast.Identifier).Name
-				reg := em.fb.scopeLookup(name)
-				v.Index = int16(reg)
+				continue
 			}
+			name := v.Declaration.(*ast.Identifier).Name
+			reg := em.fb.scopeLookup(name)
+			v.Index = int16(reg)
 		}
 	}
 
@@ -265,15 +266,15 @@ func (em *emitter) setClosureRefs(fn *runtime.Function, closureVars []ast.Upvar)
 		closureRefs = append(closureRefs, 0, 1, 2, 3)
 	}
 	for i, v := range closureVars {
-		if v.Declaration != nil {
-			em.varStore.setClosureVar(fn, v.Declaration.(*ast.Identifier).Name, i)
-		} else {
-			em.varStore.setPredefVarIndex(fn, v.PredefinedValue, int16(i))
-		}
 		closureRefs[i] = v.Index
+		if v.Declaration == nil {
+			em.varStore.setPredefVarIndex(fn, v.PredefinedValue, int16(i))
+			continue
+		}
+		em.varStore.setClosureVar(fn, v.Declaration.(*ast.Identifier).Name, i)
 	}
 
-	// Third: var refs of current function are updated.
+	// Third: update the field VarRefs of the function passed as argument.
 	fn.VarRefs = closureRefs
 
 }

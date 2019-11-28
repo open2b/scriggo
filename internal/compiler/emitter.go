@@ -1451,7 +1451,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			macroFn := newFunction("", expr.Ident.Name, expr.Type.Reflect)
 			em.fnStore.declareScriggoFn(em.pkg, expr.Ident.Name, macroFn)
 			fb := em.fb
-			em.setClosureRefs(macroFn, expr.Upvars)
+			em.setFunctionVarRefs(macroFn, expr.Upvars)
 			em.fb = newBuilder(macroFn, em.fb.getPath())
 			em.fb.emitSetAlloc(em.options.MemoryLimit)
 			em.fb.enterScope()
@@ -1475,7 +1475,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 
 		fn := em.fb.emitFunc(tmp, ti.Type)
-		em.setClosureRefs(fn, expr.Upvars)
+		em.setFunctionVarRefs(fn, expr.Upvars)
 
 		funcLitBuilder := newBuilder(fn, em.fb.getPath())
 		funcLitBuilder.emitSetAlloc(em.options.MemoryLimit)
