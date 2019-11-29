@@ -440,7 +440,6 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 
 	// Reserve space for the return parameters.
-	fillParametersTypes(fn.Type.Result)
 	for _, res := range fn.Type.Result {
 		resType := em.ti(res.Type).Type
 		kind := resType.Kind()
@@ -450,7 +449,6 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 		}
 	}
 	// Bind the function argument names to pre-allocated registers.
-	fillParametersTypes(fn.Type.Parameters)
 	for i, par := range fn.Type.Parameters {
 		parType := em.ti(par.Type).Type
 		kind := parType.Kind()
