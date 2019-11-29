@@ -327,39 +327,31 @@ func (tc *typechecker) fieldByName(t *TypeInfo, name string) (*TypeInfo, string,
 func (tc *typechecker) fillParametersTypes(funType *ast.FuncType) {
 	in := funType.Parameters
 	out := funType.Result
-	if len(in)+len(out) == 0 {
+	if len(in) == 0 && len(out) == 0 {
 		return
 	}
-	// Check for duplicated names.
-	names := map[string]bool{}
-	for _, param := range append(in, out...) {
-		if param.Ident == nil {
-			continue
-		}
-		name := param.Ident.Name
-		if names[name] {
-			panic(tc.errorf(param.Ident, "duplicate argument %s", name))
-		}
-		names[name] = true
-	}
-	// Fill input parameters.
-	if len(in) > 0 {
-		typ := in[len(in)-1].Type
-		for i := len(in) - 1; i >= 0; i-- {
-			if in[i].Type != nil {
-				typ = in[i].Type
+	// Check for duplicated names and fill parameter types.
+	names := map[string]struct{}{}
+	for _, params := range [2][]*ast.Parameter{in, out} {
+		for _, param := range params {
+			if param.Ident == nil {
+				continue
 			}
-			in[i].Type = typ
-		}
-	}
-	// Fill output parameters.
-	if len(out) > 0 {
-		typ := out[len(out)-1].Type
-		for i := len(out) - 1; i >= 0; i-- {
-			if out[i].Type != nil {
-				typ = out[i].Type
+			name := param.Ident.Name
+			if _, ok := names[name]; ok {
+				panic(tc.errorf(param.Ident, "duplicate argument %s", name))
 			}
-			out[i].Type = typ
+			names[name] = struct{}{}
+		}
+		// Fill parameter types.
+		if len(params) > 0 {
+			typ := params[len(params)-1].Type
+			for i := len(params) - 1; i >= 0; i-- {
+				if params[i].Type != nil {
+					typ = params[i].Type
+				}
+				params[i].Type = typ
+			}
 		}
 	}
 }
