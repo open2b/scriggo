@@ -512,7 +512,8 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		expr.Type.Reflect = t.Type
 		tc.addToAncestors(expr)
 		// Adds parameters to the function body scope.
-		tc.fillParametersTypes(expr.Type)
+		tc.checkDuplicateParams(expr.Type)
+		tc.addMissingTypes(expr.Type)
 		isVariadic := expr.Type.IsVariadic
 		for i, f := range expr.Type.Parameters {
 			t := tc.checkType(f.Type)

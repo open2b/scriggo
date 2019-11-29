@@ -627,7 +627,8 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 			tc.enterScope()
 			tc.addToAncestors(d)
 			// Adds parameters to the function body scope.
-			tc.fillParametersTypes(d.Type)
+			tc.checkDuplicateParams(d.Type)
+			tc.addMissingTypes(d.Type)
 			isVariadic := d.Type.IsVariadic
 			for i, param := range d.Type.Parameters {
 				t := tc.checkType(param.Type)

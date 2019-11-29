@@ -318,21 +318,11 @@ func (tc *typechecker) fieldByName(t *TypeInfo, name string) (*TypeInfo, string,
 	return nil, newName, false
 }
 
-// fillParametersTypes takes a function type and "fills" its input and output
-// parameter types. For instance, a function arguments signature "a, b int"
-// becomes "a int, b int".
-//
-// fillParametersTypes panics with a type checking error if the input and the
-// output parameters list contains duplicated names.
-func (tc *typechecker) fillParametersTypes(funType *ast.FuncType) {
-	in := funType.Parameters
-	out := funType.Result
-	if len(in) == 0 && len(out) == 0 {
-		return
-	}
-	// Check for duplicated names and fill parameter types.
+// checkDuplicateParams checks if a function type contains duplicate
+// parameter names.
+func (tc *typechecker) checkDuplicateParams(fn *ast.FuncType) {
 	names := map[string]struct{}{}
-	for _, params := range [2][]*ast.Parameter{in, out} {
+	for _, params := range [2][]*ast.Parameter{fn.Parameters, fn.Result} {
 		for _, param := range params {
 			if param.Ident == nil {
 				continue
@@ -343,15 +333,30 @@ func (tc *typechecker) fillParametersTypes(funType *ast.FuncType) {
 			}
 			names[name] = struct{}{}
 		}
-		// Fill parameter types.
-		if len(params) > 0 {
-			typ := params[len(params)-1].Type
-			for i := len(params) - 1; i >= 0; i-- {
-				if params[i].Type != nil {
-					typ = params[i].Type
-				}
-				params[i].Type = typ
+	}
+}
+
+// addMissingTypes adds the type to the function parameters that do not have
+// one.
+// For example:
+//
+//      func(a, b int) (c, d string)
+//
+// is transformed into:
+//
+//      func(a int, b int) (c string, d string)
+//
+func (tc *typechecker) addMissingTypes(funType *ast.FuncType) {
+	for _, params := range [2][]*ast.Parameter{funType.Parameters, funType.Result} {
+		if len(params) == 0 {
+			continue
+		}
+		typ := params[len(params)-1].Type
+		for i := len(params) - 1; i >= 0; i-- {
+			if params[i].Type != nil {
+				typ = params[i].Type
 			}
+			params[i].Type = typ
 		}
 	}
 }
