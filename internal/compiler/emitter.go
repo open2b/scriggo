@@ -91,6 +91,11 @@ func (em *emitter) ti(n ast.Node) *TypeInfo {
 	return nil
 }
 
+// typ returns the reflect.Type associated to the given expression.
+func (em *emitter) typ(expr ast.Expression) reflect.Type {
+	return em.ti(expr).Type
+}
+
 // reserveTemplateRegisters reverses the register used for implement
 // specific template functions.
 func (em *emitter) reserveTemplateRegisters() {
@@ -226,7 +231,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 					addresses[i] = em.addressBlankIdent(v.Pos())
 					continue
 				}
-				varType := em.ti(v).Type
+				varType := em.typ(v)
 				varr := em.fb.newRegister(varType.Kind())
 				em.fb.bindVarReg(v.Name, varr)
 				addresses[i] = em.addressLocalVar(varr, varType, v.Pos(), 0)
@@ -330,9 +335,9 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 		types[i] = t
 	}
 	if opts.receiverAsArg {
-		reg := em.fb.newRegister(em.ti(args[0]).Type.Kind())
+		reg := em.fb.newRegister(em.typ(args[0]).Kind())
 		em.fb.enterStack()
-		em.emitExprR(args[0], em.ti(args[0]).Type, reg)
+		em.emitExprR(args[0], em.typ(args[0]), reg)
 		em.fb.exitStack()
 		args = args[1:]
 	}
@@ -441,8 +446,7 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 
 	// Reserve space for the return parameters.
 	for _, res := range fn.Type.Result {
-		resType := em.ti(res.Type).Type
-		kind := resType.Kind()
+		kind := em.typ(res.Type).Kind()
 		ret := em.fb.newRegister(kind)
 		if res.Ident != nil {
 			em.fb.bindVarReg(res.Ident.Name, ret)
@@ -450,8 +454,7 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 	}
 	// Bind the function argument names to pre-allocated registers.
 	for i, par := range fn.Type.Parameters {
-		parType := em.ti(par.Type).Type
-		kind := parType.Kind()
+		kind := em.typ(par.Type).Kind()
 		if fn.Type.IsVariadic && i == len(fn.Type.Parameters)-1 {
 			kind = reflect.Slice
 		}
@@ -479,7 +482,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 	// Method call on a interface value.
 	if funTi.MethodType == MethodCallInterface {
 		rcvrExpr := call.Func.(*ast.Selector).Expr
-		rcvrType := em.ti(rcvrExpr).Type
+		rcvrType := em.typ(rcvrExpr)
 		rcvr := em.emitExpr(rcvrExpr, rcvrType)
 		// MethodValue reads receiver from general.
 		if kindToType(rcvrType.Kind()) != generalRegister {
@@ -592,7 +595,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 	}
 
 	// Indirect function.
-	reg := em.emitExpr(call.Func, em.ti(call.Func).Type)
+	reg := em.emitExpr(call.Func, em.typ(call.Func))
 	stackShift := em.fb.currentStackShift()
 	opts := callOptions{predefined: false, callHasDots: call.IsVariadic}
 	regs, types := em.prepareCallParameters(funTi.Type, call.Args, opts)
@@ -620,12 +623,12 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 	args := call.Args
 	switch call.Func.(*ast.Identifier).Name {
 	case "append":
-		sliceType := em.ti(args[0]).Type
+		sliceType := em.typ(args[0])
 		slice := em.emitExpr(args[0], sliceType)
 		if call.IsVariadic {
 			tmp := em.fb.newRegister(sliceType.Kind())
 			em.fb.emitMove(false, slice, tmp, sliceType.Kind(), false)
-			arg := em.emitExpr(args[1], em.ti(args[1]).Type)
+			arg := em.emitExpr(args[1], em.typ(args[1]))
 			em.fb.emitAppendSlice(arg, tmp, call.Pos())
 			em.changeRegister(false, tmp, reg, sliceType, dstType)
 			return
@@ -652,8 +655,7 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		em.changeRegister(false, tmp, reg, sliceType, dstType)
 		em.fb.exitStack()
 	case "cap":
-		typ := em.ti(args[0]).Type
-		s := em.emitExpr(args[0], typ)
+		s := em.emitExpr(args[0], em.typ(args[0]))
 		if canEmitDirectly(intType.Kind(), dstType.Kind()) {
 			em.fb.emitCap(s, reg)
 			return
@@ -662,10 +664,10 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		em.fb.emitCap(s, tmp)
 		em.changeRegister(false, tmp, reg, intType, dstType)
 	case "close":
-		chann := em.emitExpr(args[0], em.ti(args[0]).Type)
+		chann := em.emitExpr(args[0], em.typ(args[0]))
 		em.fb.emitClose(chann, call.Pos())
 	case "complex":
-		floatType := em.ti(args[0]).Type
+		floatType := em.typ(args[0])
 		r := em.emitExpr(args[0], floatType)
 		i := em.emitExpr(args[1], floatType)
 		complexType := complex128Type
@@ -680,8 +682,8 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		em.fb.emitComplex(r, i, tmp, complexType.Kind())
 		em.changeRegister(false, tmp, reg, complexType, dstType)
 	case "copy":
-		dst := em.emitExpr(args[0], em.ti(args[0]).Type)
-		src := em.emitExpr(args[1], em.ti(args[1]).Type)
+		dst := em.emitExpr(args[0], em.typ(args[0]))
+		src := em.emitExpr(args[1], em.typ(args[1]))
 		if reg == 0 {
 			em.fb.emitCopy(dst, src, 0)
 			return
@@ -700,7 +702,7 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		key := em.emitExpr(args[1], emptyInterfaceType)
 		em.fb.emitDelete(mapp, key)
 	case "len":
-		typ := em.ti(args[0]).Type
+		typ := em.typ(args[0])
 		s := em.emitExpr(args[0], typ)
 		if canEmitDirectly(reflect.Int, dstType.Kind()) {
 			em.fb.emitLen(s, reg, typ)
@@ -712,7 +714,7 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		em.changeRegister(false, tmp, reg, intType, dstType)
 		em.fb.exitStack()
 	case "make":
-		typ := em.ti(args[0]).Type
+		typ := em.typ(args[0])
 		switch typ.Kind() {
 		case reflect.Map:
 			if len(args) == 1 {
@@ -735,7 +737,6 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 			}
 			em.fb.emitMakeSlice(kLen, kCap, typ, lenn, capp, reg, call.Pos())
 		case reflect.Chan:
-			chanType := em.ti(args[0]).Type
 			var kCapacity bool
 			var capacity int8
 			if len(args) == 1 {
@@ -744,13 +745,13 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 			} else {
 				capacity, kCapacity = em.emitExprK(args[1], intType)
 			}
+			chanType := em.typ(args[0])
 			em.fb.emitMakeChan(chanType, kCapacity, capacity, reg, call.Pos())
 		default:
 			panic("bug")
 		}
 	case "new":
-		newType := em.ti(args[0]).Type
-		em.fb.emitNew(newType, reg)
+		em.fb.emitNew(em.typ(args[0]), reg)
 	case "panic":
 		arg := em.emitExpr(args[0], emptyInterfaceType)
 		em.fb.emitPanic(arg, nil, call.Pos())
@@ -776,7 +777,7 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		em.changeRegister(true, str, sep, stringType, emptyInterfaceType)
 		em.fb.emitPrint(sep)
 	case "real", "imag":
-		complexType := em.ti(args[0]).Type
+		complexType := em.typ(args[0])
 		complex, k := em.emitExprK(args[0], complexType)
 		floatType := float64Type
 		if complexType.Kind() == reflect.Complex64 {
@@ -833,13 +834,13 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 			if em.ti(cond.Expr1).Nil() {
 				expr = cond.Expr2
 			}
-			typ := em.ti(expr).Type
+			typ := em.typ(expr)
 			v := em.emitExpr(expr, typ)
 			condType := runtime.ConditionNotNil
 			if cond.Operator() == ast.OperatorEqual {
 				condType = runtime.ConditionNil
 			}
-			if em.ti(expr).Type.Kind() == reflect.Interface {
+			if typ.Kind() == reflect.Interface {
 				if condType == runtime.ConditionNil {
 					condType = runtime.ConditionInterfaceNil
 				} else {
@@ -874,9 +875,9 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 				lenArg = cond.Expr2.(*ast.Call).Args[0]
 				expr = cond.Expr1
 			}
-			if em.ti(lenArg).Type.Kind() == reflect.String { // len is optimized for strings only.
-				v1 := em.emitExpr(lenArg, em.ti(lenArg).Type)
-				typ := em.ti(expr).Type
+			if em.typ(lenArg).Kind() == reflect.String { // len is optimized for strings only.
+				v1 := em.emitExpr(lenArg, em.typ(lenArg))
+				typ := em.typ(expr)
 				v2, k2 := em.emitExprK(expr, typ)
 				condType := map[ast.OperatorType]runtime.Condition{
 					ast.OperatorEqual:          runtime.ConditionEqualLen,
@@ -902,8 +903,8 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 	// if v1 >  v2
 	// if v1 >= v2
 	if cond, ok := cond.(*ast.BinaryOperator); ok {
-		t1 := em.ti(cond.Expr1).Type
-		t2 := em.ti(cond.Expr2).Type
+		t1 := em.typ(cond.Expr1)
+		t2 := em.typ(cond.Expr2)
 		if t1.Kind() == t2.Kind() {
 			if kind := t1.Kind(); reflect.Int <= kind && kind <= reflect.Float64 {
 				v1 := em.emitExpr(cond.Expr1, t1)
@@ -936,7 +937,7 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 
 	// // Any other binary condition is evaluated and compared to 'true'. For
 	// // example 'if a == b || c == d' becomes 'if (a == b || c == d) == 1'.
-	v1 := em.emitExpr(cond, em.ti(cond).Type)
+	v1 := em.emitExpr(cond, em.typ(cond))
 	k2 := em.fb.makeIntConstant(1)
 	v2 := em.fb.newRegister(reflect.Bool)
 	em.fb.emitLoadNumber(intRegister, k2, v2)

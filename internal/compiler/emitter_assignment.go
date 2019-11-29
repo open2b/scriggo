@@ -313,7 +313,7 @@ func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Exp
 		// element on the right side.
 		t := addresses[0].targetType()
 		if t == nil {
-			t = em.ti(values[0]).Type
+			t = em.typ(values[0])
 		}
 		em.fb.enterStack()
 		v, k := em.emitExprK(values[0], t)
@@ -328,7 +328,7 @@ func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Exp
 		types := make([]reflect.Type, len(values))
 		ks := make([]bool, len(values))
 		for i := range values {
-			types[i] = em.ti(values[i]).Type
+			types[i] = em.typ(values[i])
 			regs[i], ks[i] = em.emitExprK(values[i], types[i])
 			if !ks[i] {
 				regs[i] = em.fb.newRegister(types[i].Kind())
@@ -351,9 +351,9 @@ func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Exp
 		}
 
 	case *ast.Index: // map index.
-		mapType := em.ti(valueExpr.Expr).Type
+		mapType := em.typ(valueExpr.Expr)
 		mapp := em.emitExpr(valueExpr.Expr, mapType)
-		keyType := em.ti(valueExpr.Index).Type
+		keyType := em.typ(valueExpr.Index)
 		key, kKey := em.emitExprK(valueExpr.Index, keyType)
 		valueType := mapType.Elem()
 		value := em.fb.newRegister(valueType.Kind())
@@ -368,7 +368,7 @@ func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Exp
 		addresses[1].assign(false, okReg, okType)
 
 	case *ast.TypeAssertion:
-		typ := em.ti(valueExpr.Type).Type
+		typ := em.typ(valueExpr.Type)
 		expr := em.emitExpr(valueExpr.Expr, emptyInterfaceType)
 		okType := addresses[1].addressedType
 		ok := em.fb.newRegister(reflect.Bool)
@@ -380,8 +380,8 @@ func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Exp
 		addresses[1].assign(false, ok, okType)
 
 	case *ast.UnaryOperator: // receive from channel.
-		chanType := em.ti(valueExpr.Expr).Type
-		valueType := em.ti(valueExpr).Type
+		chanType := em.typ(valueExpr.Expr)
+		valueType := em.typ(valueExpr)
 		okType := addresses[1].addressedType
 		chann := em.emitExpr(valueExpr.Expr, chanType)
 		ok := em.fb.newRegister(reflect.Bool)

@@ -118,12 +118,12 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 		// Conversion.
 		if em.ti(expr.Func).IsType() {
-			convertType := em.ti(expr.Func).Type
+			convertType := em.typ(expr.Func)
 			// A conversion cannot have side-effects.
 			if reg == 0 {
 				return reg, false
 			}
-			typ := em.ti(expr.Args[0]).Type
+			typ := em.typ(expr.Args[0])
 			arg := em.emitExpr(expr.Args[0], typ)
 			if canEmitDirectly(convertType.Kind(), dstType.Kind()) {
 				em.changeRegister(false, arg, reg, typ, convertType)
@@ -151,9 +151,9 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 	case *ast.TypeAssertion:
 
-		exprType := em.ti(expr.Expr).Type
+		exprType := em.typ(expr.Expr)
 		exprReg := em.emitExpr(expr.Expr, exprType)
-		assertType := em.ti(expr.Type).Type
+		assertType := em.typ(expr.Type)
 		pos := expr.Pos()
 		if canEmitDirectly(assertType.Kind(), dstType.Kind()) {
 			em.fb.emitAssert(exprReg, assertType, reg)
@@ -263,7 +263,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 	case *ast.Index:
 
-		exprType := em.ti(expr.Expr).Type
+		exprType := em.typ(expr.Expr)
 		exprReg := em.emitExpr(expr.Expr, exprType)
 		var indexType reflect.Type
 		if exprType.Kind() == reflect.Map {
@@ -291,19 +291,17 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 	case *ast.Slicing:
 
-		exprType := em.ti(expr.Expr).Type
+		exprType := em.typ(expr.Expr)
 		src := em.emitExpr(expr.Expr, exprType)
 		var low, high int8 = 0, -1
 		var kLow, kHigh = true, true
 		// emit low
 		if expr.Low != nil {
-			typ := em.ti(expr.Low).Type
-			low, kLow = em.emitExprK(expr.Low, typ)
+			low, kLow = em.emitExprK(expr.Low, em.typ(expr.Low))
 		}
 		// emit high
 		if expr.High != nil {
-			typ := em.ti(expr.High).Type
-			high, kHigh = em.emitExprK(expr.High, typ)
+			high, kHigh = em.emitExprK(expr.High, em.typ(expr.High))
 		}
 		pos := expr.Pos()
 		if exprType.Kind() == reflect.String {
@@ -313,8 +311,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			var max int8 = -1
 			var kMax = true
 			if expr.Max != nil {
-				typ := em.ti(expr.Max).Type
-				max, kMax = em.emitExprK(expr.Max, typ)
+				max, kMax = em.emitExprK(expr.Max, em.typ(expr.Max))
 			}
 			em.fb.emitSlice(kLow, kHigh, kMax, src, reg, low, high, max, pos)
 		}
@@ -374,8 +371,8 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 
 	// ==, !=, <, <=, >=, >, &&, ||, +, -, *, /, %, ^, &^, <<, >>.
 	exprType := ti.Type
-	t1 := em.ti(expr.Expr1).Type
-	t2 := em.ti(expr.Expr2).Type
+	t1 := em.typ(expr.Expr1)
+	t2 := em.typ(expr.Expr2)
 	v1 := em.emitExpr(expr.Expr1, t1)
 	v2, k := em.emitExprK(expr.Expr2, t2)
 	if reg == 0 {
@@ -479,12 +476,12 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 }
 
 func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, dstType reflect.Type) (int8, bool) {
-	typ := em.ti(expr.Type).Type
+	typ := em.typ(expr.Type)
 	switch typ.Kind() {
 	case reflect.Slice, reflect.Array:
 		if reg == 0 {
 			for _, kv := range expr.KeyValues {
-				typ := em.ti(kv.Value).Type
+				typ := em.typ(kv.Value)
 				em.emitExprR(kv.Value, typ, 0)
 			}
 			return reg, false
@@ -526,12 +523,12 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 			}
 			em.fb.exitStack()
 		}
-		em.changeRegister(false, reg, reg, em.ti(expr.Type).Type, dstType)
+		em.changeRegister(false, reg, reg, em.typ(expr.Type), dstType)
 	case reflect.Struct:
 		// Struct should no be created, but its values must be emitted.
 		if reg == 0 {
 			for _, kv := range expr.KeyValues {
-				em.emitExprR(kv.Value, em.ti(kv.Value).Type, 0)
+				em.emitExprR(kv.Value, em.typ(kv.Value), 0)
 			}
 			return reg, false
 		}
@@ -555,7 +552,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 		for _, kv := range expr.KeyValues {
 			name := kv.Key.(*ast.Identifier).Name
 			field, _ := typ.FieldByName(name)
-			valueType := em.ti(kv.Value).Type
+			valueType := em.typ(kv.Value)
 			if canEmitDirectly(field.Type.Kind(), valueType.Kind()) {
 				value, k := em.emitExprK(kv.Value, valueType)
 				index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
@@ -577,8 +574,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 	case reflect.Map:
 		if reg == 0 {
 			for _, kv := range expr.KeyValues {
-				typ := em.ti(kv.Value).Type
-				em.emitExprR(kv.Value, typ, 0)
+				em.emitExprR(kv.Value, em.typ(kv.Value), 0)
 			}
 			return reg, false
 		}
@@ -611,7 +607,7 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 	// Method value on concrete and interface values.
 	if ti.MethodType == MethodValueConcrete || ti.MethodType == MethodValueInterface {
 		rcvrExpr := expr.Expr
-		rcvrType := em.ti(rcvrExpr).Type
+		rcvrType := em.typ(rcvrExpr)
 		rcvr := em.emitExpr(rcvrExpr, rcvrType)
 		// MethodValue reads receiver from general.
 		if kindToType(rcvrType.Kind()) != generalRegister {
@@ -650,17 +646,17 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 			}
 			index := em.fnStore.scriggoFnIndex(sf)
 			em.fb.emitLoadFunc(false, index, reg)
-			em.changeRegister(false, reg, reg, em.ti(expr).Type, dstType)
+			em.changeRegister(false, reg, reg, em.typ(expr), dstType)
 			return
 		}
 	}
 
 	// Struct field.
-	exprType := em.ti(expr.Expr).Type
+	exprType := em.typ(expr.Expr)
 	exprReg := em.emitExpr(expr.Expr, exprType)
 	field, _ := exprType.FieldByName(expr.Ident)
 	index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
-	fieldType := em.ti(expr).Type
+	fieldType := em.typ(expr)
 	if canEmitDirectly(fieldType.Kind(), dstType.Kind()) {
 		em.fb.emitField(exprReg, index, reg, dstType.Kind(), true)
 		return
@@ -676,8 +672,8 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType reflect.Type) {
 
 	operand := unOp.Expr
-	operandType := em.ti(operand).Type
-	unOpType := em.ti(unOp).Type
+	operandType := em.typ(operand)
+	unOpType := em.typ(unOp)
 
 	// Receive operation on channel.
 	//
@@ -685,7 +681,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 	//  v, ok = <- ch
 	//          <- ch
 	if unOp.Operator() == ast.OperatorReceive {
-		chanType := em.ti(unOp.Expr).Type
+		chanType := em.typ(unOp.Expr)
 		valueType := unOpType
 		chann := em.emitExpr(unOp.Expr, chanType)
 		if reg == 0 {
@@ -795,7 +791,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		// &v[i]
 		// (where v is a slice or an addressable array)
 		case *ast.Index:
-			expr := em.emitExpr(operand.Expr, em.ti(operand.Expr).Type)
+			expr := em.emitExpr(operand.Expr, em.typ(operand.Expr))
 			index := em.emitExpr(operand.Index, intType)
 			pos := operand.Expr.Pos()
 			if canEmitDirectly(unOpType.Kind(), dstType.Kind()) {
@@ -820,7 +816,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 				em.changeRegister(false, tmp, reg, operandType, dstType)
 				return
 			}
-			operandExprType := em.ti(operand.Expr).Type
+			operandExprType := em.typ(operand.Expr)
 			expr := em.emitExpr(operand.Expr, operandExprType)
 			field, _ := operandExprType.FieldByName(operand.Ident)
 			index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))

@@ -177,17 +177,16 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			}
 			elem := int8(0)
 			if len(vars) == 2 && !isBlankIdentifier(vars[1]) {
-				typ := em.ti(vars[1]).Type
 				name := vars[1].(*ast.Identifier).Name
 				if node.Assignment.Type == ast.AssignmentDeclaration {
-					elem = em.fb.newRegister(typ.Kind())
+					elem = em.fb.newRegister(em.typ(vars[1]).Kind())
 					em.fb.bindVarReg(name, elem)
 				} else {
 					elem = em.fb.scopeLookup(name)
 				}
 			}
 			expr := node.Assignment.Rhs[0]
-			exprType := em.ti(expr).Type
+			exprType := em.typ(expr)
 			exprReg, kExpr := em.emitExprK(expr, exprType)
 			if exprType.Kind() != reflect.String && kExpr {
 				kExpr = false
@@ -312,7 +311,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.breakLabel = currentBreakLabel
 
 		case *ast.Send:
-			chanType := em.ti(node.Channel).Type
+			chanType := em.typ(node.Channel)
 			chann := em.emitExpr(node.Channel, chanType)
 			value := em.emitExpr(node.Value, chanType.Elem())
 			em.fb.emitSend(chann, value, node.Pos(), chanType.Elem().Kind())
@@ -419,7 +418,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				if isBlankIdentifier(v) {
 					addresses[i] = em.addressBlankIdent(v.Pos())
 				} else {
-					staticType := em.ti(v).Type
+					staticType := em.typ(v)
 					if em.varStore.mustBeDeclaredAsIndirect(v) {
 						varr := -em.fb.newRegister(reflect.Interface)
 						em.fb.bindVarReg(v.Name, varr)
@@ -457,7 +456,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				addresses[i] = em.addressBlankIdent(pos)
 			} else {
 				v := v.(*ast.Identifier)
-				staticType := em.ti(v).Type
+				staticType := em.typ(v)
 				if em.varStore.mustBeDeclaredAsIndirect(v) {
 					varReg := -em.fb.newRegister(reflect.Interface)
 					em.fb.bindVarReg(v.Name, varReg)
@@ -484,7 +483,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				addresses[i] = em.addressBlankIdent(pos)
 				break
 			}
-			varType := em.ti(v).Type
+			varType := em.typ(v)
 			// Package/closure/imported variable.
 			if index, ok := em.varStore.nonLocalVarIndex(v); ok {
 				addresses[i] = em.addressNonLocalVar(int16(index), varType, pos, node.Type)
@@ -494,7 +493,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			reg := em.fb.scopeLookup(v.Name)
 			addresses[i] = em.addressLocalVar(reg, varType, pos, node.Type)
 		case *ast.Index:
-			exprType := em.ti(v.Expr).Type
+			exprType := em.typ(v.Expr)
 			expr := em.emitExpr(v.Expr, exprType)
 			indexType := intType
 			if exprType.Kind() == reflect.Map {
@@ -508,10 +507,10 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			}
 		case *ast.Selector:
 			if index, ok := em.varStore.nonLocalVarIndex(v); ok {
-				addresses[i] = em.addressNonLocalVar(int16(index), em.ti(v).Type, pos, node.Type)
+				addresses[i] = em.addressNonLocalVar(int16(index), em.typ(v), pos, node.Type)
 				break
 			}
-			typ := em.ti(v.Expr).Type
+			typ := em.typ(v.Expr)
 			reg := em.emitExpr(v.Expr, typ)
 			field, _ := typ.FieldByName(v.Ident)
 			index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
@@ -521,7 +520,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			if v.Operator() != ast.OperatorMultiplication {
 				panic("BUG.") // remove.
 			}
-			typ := em.ti(v.Expr).Type
+			typ := em.typ(v.Expr)
 			reg := em.emitExpr(v.Expr, typ)
 			addresses[i] = em.addressPtrIndirect(reg, typ, pos, node.Type)
 		default:
@@ -578,15 +577,15 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 		case *ast.UnaryOperator:
 			// <- ch
 			chExpr := cas.Expr
-			em.emitExprR(chExpr, em.ti(chExpr).Type, chs[i])
+			em.emitExprR(chExpr, em.typ(chExpr), chs[i])
 		case *ast.Assignment:
 			// v [, ok ] = <- ch
 			chExpr := cas.Rhs[0].(*ast.UnaryOperator).Expr
-			em.emitExprR(chExpr, em.ti(chExpr).Type, chs[i])
+			em.emitExprR(chExpr, em.typ(chExpr), chs[i])
 		case *ast.Send:
 			// ch <- v
 			chExpr := cas.Channel
-			chType := em.ti(chExpr).Type
+			chType := em.typ(chExpr)
 			elemType := chType.Elem()
 			em.emitExprR(chExpr, chType, chs[i])
 			em.emitExprR(cas.Value, elemType, value[kindToType(elemType.Kind())])
@@ -604,18 +603,18 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 		case *ast.UnaryOperator:
 			// <- ch
 			chExpr := comm.Expr
-			elemType := em.ti(chExpr).Type.Elem()
+			elemType := em.typ(chExpr).Elem()
 			em.fb.emitCase(false, reflect.SelectRecv, 0, chs[i], elemType.Kind())
 		case *ast.Assignment:
 			// v [, ok ] = <- ch
 			chExpr := comm.Rhs[0].(*ast.UnaryOperator).Expr
-			chType := em.ti(chExpr).Type
+			chType := em.typ(chExpr)
 			elemType := chType.Elem()
 			em.fb.emitCase(false, reflect.SelectRecv, value[kindToType(elemType.Kind())], chs[i], elemType.Kind())
 		case *ast.Send:
 			// ch <- v
 			chExpr := comm.Channel
-			chType := em.ti(chExpr).Type
+			chType := em.typ(chExpr)
 			elemType := chType.Elem()
 			em.fb.emitCase(false, reflect.SelectSend, value[kindToType(elemType.Kind())], chs[i], elemType.Kind())
 		}
@@ -634,8 +633,7 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 		if assignment, isAssignment := cas.Comm.(*ast.Assignment); isAssignment {
 			receiveExpr := assignment.Rhs[0].(*ast.UnaryOperator)
 			chExpr := receiveExpr.Expr
-			chType := em.ti(chExpr).Type
-			elemType := chType.Elem()
+			elemType := em.typ(chExpr).Elem()
 			// Split the assignment in the received value and the ok value if this exists.
 			em.fb.bindVarReg("$chanElem", value[kindToType(elemType.Kind())])
 			pos := chExpr.Pos()
@@ -696,7 +694,7 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 			Properties: PropertyUntyped | PropertyHasValue,
 		}
 	} else {
-		typ = em.ti(node.Expr).Type
+		typ = em.typ(node.Expr)
 		expr = em.emitExpr(node.Expr, typ)
 	}
 
@@ -766,7 +764,7 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 	}
 
 	typeAssertion := node.Assignment.Rhs[0].(*ast.TypeAssertion)
-	expr := em.emitExpr(typeAssertion.Expr, em.ti(typeAssertion.Expr).Type)
+	expr := em.emitExpr(typeAssertion.Expr, em.typ(typeAssertion.Expr))
 
 	bodyLabels := make([]label, len(node.Cases))
 	endSwitchLabel := em.fb.newLabel()
@@ -784,7 +782,7 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 			if len(node.Assignment.Lhs) == 1 && !em.ti(cas.Expressions[0]).Nil() {
 				ta := ast.NewTypeAssertion(pos, typeAssertion.Expr, cas.Expressions[0])
 				em.typeInfos[ta] = &TypeInfo{
-					Type: em.ti(cas.Expressions[0]).Type,
+					Type: em.typ(cas.Expressions[0]),
 				}
 				blank := ast.NewIdentifier(pos, "_")
 				n := ast.NewAssignment(pos,
@@ -817,7 +815,7 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 				pos := caseExpr.Pos()
 				em.fb.emitIf(false, expr, runtime.ConditionInterfaceNil, 0, reflect.Interface, pos)
 			} else {
-				caseType := em.ti(caseExpr).Type
+				caseType := em.typ(caseExpr)
 				em.fb.emitAssert(expr, caseType, 0)
 			}
 			next := em.fb.newLabel()
