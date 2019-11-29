@@ -1,3 +1,5 @@
+// skip type switch needs a rewriting in the emitter https://github.com/open2b/scriggo/issues/431
+
 // run
 
 package main

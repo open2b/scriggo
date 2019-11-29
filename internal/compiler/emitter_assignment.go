@@ -315,20 +315,15 @@ func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Exp
 		if t == nil {
 			t = em.ti(values[0]).Type
 		}
-		if addresses[0].target == assignBlank {
-			// This is a temporary workaround for the issue
-			// https://github.com/open2b/scriggo/issues/482.
-			em.fb.enterStack()
-			em.emitExprK(values[0], t)
-			em.fb.exitStack()
-		} else {
-			v, k := em.emitExprK(values[0], t)
-			addresses[0].assign(k, v, t)
-		}
+		em.fb.enterStack()
+		v, k := em.emitExprK(values[0], t)
+		addresses[0].assign(k, v, t)
+		em.fb.exitStack()
 		return
 	}
 
 	if len(addresses) == len(values) {
+		em.fb.enterStack()
 		regs := make([]int8, len(values))
 		types := make([]reflect.Type, len(values))
 		ks := make([]bool, len(values))
@@ -343,6 +338,7 @@ func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Exp
 		for i, addr := range addresses {
 			addr.assign(ks[i], regs[i], types[i])
 		}
+		em.fb.exitStack()
 		return
 	}
 

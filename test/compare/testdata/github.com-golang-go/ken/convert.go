@@ -1,4 +1,5 @@
-// skip : cannot allocate a new int register https://github.com/open2b/scriggo/issues/482
+// skip : cannot allocate a new int register: registers are not released in
+// switch statement cases?
 
 // run
 
