@@ -454,19 +454,21 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			pos := v.Pos()
 			if isBlankIdentifier(v) {
 				addresses[i] = em.addressBlankIdent(pos)
-			} else {
-				v := v.(*ast.Identifier)
-				staticType := em.typ(v)
-				if em.varStore.mustBeDeclaredAsIndirect(v) {
-					varReg := em.fb.newIndirectRegister()
-					em.fb.bindVarReg(v.Name, varReg)
-					addresses[i] = em.addressNewIndirectVar(varReg, staticType, pos, node.Type)
-				} else {
-					varReg := em.fb.newRegister(staticType.Kind())
-					em.fb.bindVarReg(v.Name, varReg)
-					addresses[i] = em.addressLocalVar(varReg, staticType, pos, node.Type)
-				}
+				continue
 			}
+			v := v.(*ast.Identifier)
+			varType := em.typ(v)
+			// Declare an indirect local variable.
+			if em.varStore.mustBeDeclaredAsIndirect(v) {
+				varr := em.fb.newIndirectRegister()
+				em.fb.bindVarReg(v.Name, varr)
+				addresses[i] = em.addressNewIndirectVar(varr, varType, pos, node.Type)
+				continue
+			}
+			// Declare a local variable.
+			varr := em.fb.newRegister(varType.Kind())
+			em.fb.bindVarReg(v.Name, varr)
+			addresses[i] = em.addressLocalVar(varr, varType, pos, node.Type)
 		}
 		em.assignValuesToAddresses(addresses, node.Rhs)
 		return
