@@ -54,7 +54,9 @@ func (vs *varStore) setClosureVar(fn *runtime.Function, name string, index int16
 	vs.closureVars[fn][name] = index
 }
 
-func (vs *varStore) registerScriggoPackageVar(pkg *ast.Package, name string, index int16) {
+// bindScriggoPackageVar binds name to the package variable defined in Scriggo
+// located at the given index, making it available for use in pkg.
+func (vs *varStore) bindScriggoPackageVar(pkg *ast.Package, name string, index int16) {
 	if vs.scriggoPackageVarRefs[pkg] == nil {
 		vs.scriggoPackageVarRefs[pkg] = map[string]int16{}
 	}

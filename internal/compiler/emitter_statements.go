@@ -577,7 +577,7 @@ func (em *emitter) emitImport(node *ast.Import, isTemplate bool) []*runtime.Func
 		if importName != "" {
 			name = importName + "." + name
 		}
-		em.varStore.registerScriggoPackageVar(targetPkg, name, v)
+		em.varStore.bindScriggoPackageVar(targetPkg, name, v)
 	}
 
 	if isTemplate {
