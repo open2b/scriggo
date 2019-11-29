@@ -10,7 +10,7 @@ func main() {
 		for _, i := range values {
 			for _, j := range values {
 				if j != 0 {
-					println(i, j, i/j)
+					println(i, "/", j, "=", i/j)
 				}
 			}
 		}
@@ -22,7 +22,7 @@ func main() {
 		for _, i := range values {
 			for _, j := range values {
 				if j != 0 {
-					println(i, j, i/j)
+					println(i, "/", j, "=", i/j)
 				}
 			}
 		}
@@ -34,7 +34,7 @@ func main() {
 		for _, i := range values {
 			for _, j := range values {
 				if j != 0 {
-					println(i, j, i/j)
+					println(i, "/", j, "=", i/j)
 				}
 			}
 		}
@@ -46,7 +46,7 @@ func main() {
 		for _, i := range values {
 			for _, j := range values {
 				if j != 0 {
-					println(i, j, i/j)
+					println(i, "/", j, "=", i/j)
 				}
 			}
 		}
@@ -58,7 +58,7 @@ func main() {
 		for _, i := range values {
 			for _, j := range values {
 				if j != 0 {
-					println(i, j, i/j)
+					println(i, "/", j, "=", i/j)
 				}
 			}
 		}
@@ -70,7 +70,7 @@ func main() {
 		for _, i := range values {
 			for _, j := range values {
 				if j != 0 {
-					println(i, j, i/j)
+					println(i, "/", j, "=", i/j)
 				}
 			}
 		}
@@ -82,7 +82,7 @@ func main() {
 		for _, i := range values {
 			for _, j := range values {
 				if j != 0 {
-					println(i, j, i/j)
+					println(i, "/", j, "=", i/j)
 				}
 			}
 		}
@@ -94,7 +94,7 @@ func main() {
 		for _, i := range values {
 			for _, j := range values {
 				if j != 0 {
-					println(i, j, i/j)
+					println(i, "/", j, "=", i/j)
 				}
 			}
 		}
@@ -106,7 +106,7 @@ func main() {
 		for _, i := range values {
 			for _, j := range values {
 				if j != 0 {
-					println(i, j, i/j)
+					println(i, "/", j, "=", i/j)
 				}
 			}
 		}

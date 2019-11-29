@@ -9,7 +9,7 @@ func main() {
 		values := []int8{min, min + 1, min + 2, -2, -1, 0, 1, 2, max - 2, max - 1, max}
 		for _, i := range values {
 			for _, j := range values {
-				println(i, j, i+j)
+				println(i, "+", j, "=", i+j)
 			}
 		}
 	}
@@ -19,7 +19,7 @@ func main() {
 		values := []int16{min, min + 1, min + 2, -2, -1, 0, 1, 2, max - 2, max - 1, max}
 		for _, i := range values {
 			for _, j := range values {
-				println(i, j, i+j)
+				println(i, "+", j, "=", i+j)
 			}
 		}
 	}
@@ -29,7 +29,7 @@ func main() {
 		values := []int32{min, min + 1, min + 2, -2, -1, 0, 1, 2, max - 2, max - 1, max}
 		for _, i := range values {
 			for _, j := range values {
-				println(i, j, i+j)
+				println(i, "+", j, "=", i+j)
 			}
 		}
 	}
@@ -39,7 +39,7 @@ func main() {
 		values := []int64{min, min + 1, min + 2, -2, -1, 0, 1, 2, max - 2, max - 1, max}
 		for _, i := range values {
 			for _, j := range values {
-				println(i, j, i+j)
+				println(i, "+", j, "=", i+j)
 			}
 		}
 	}
@@ -49,7 +49,7 @@ func main() {
 		values := []uint8{0, 1, 2, max - 2, max - 1, max}
 		for _, i := range values {
 			for _, j := range values {
-				println(i, j, i+j)
+				println(i, "+", j, "=", i+j)
 			}
 		}
 	}
@@ -59,7 +59,7 @@ func main() {
 		values := []uint8{0, 1, 2, max - 2, max - 1, max}
 		for _, i := range values {
 			for _, j := range values {
-				println(i, j, i+j)
+				println(i, "+", j, "=", i+j)
 			}
 		}
 	}
@@ -69,7 +69,7 @@ func main() {
 		values := []uint16{0, 1, 2, max - 2, max - 1, max}
 		for _, i := range values {
 			for _, j := range values {
-				println(i, j, i+j)
+				println(i, "+", j, "=", i+j)
 			}
 		}
 	}
@@ -79,7 +79,7 @@ func main() {
 		values := []uint32{0, 1, 2, max - 2, max - 1, max}
 		for _, i := range values {
 			for _, j := range values {
-				println(i, j, i+j)
+				println(i, "+", j, "=", i+j)
 			}
 		}
 	}
@@ -89,7 +89,7 @@ func main() {
 		values := []uint64{0, 1, 2, max - 2, max - 1, max}
 		for _, i := range values {
 			for _, j := range values {
-				println(i, j, i+j)
+				println(i, "+", j, "=", i+j)
 			}
 		}
 	}
