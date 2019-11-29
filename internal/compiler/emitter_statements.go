@@ -710,12 +710,14 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 		bodyLabels[i] = em.fb.newLabel()
 		hasDefault = hasDefault || cas.Expressions == nil
 		for _, caseExpr := range cas.Expressions {
+			em.fb.enterStack()
 			pos := caseExpr.Pos()
 			binOp := ast.NewBinaryOperator(pos, ast.OperatorNotEqual, node.Expr, caseExpr)
 			em.typeInfos[binOp] = &TypeInfo{
 				Type: boolType,
 			}
 			em.emitCondition(binOp)
+			em.fb.exitStack()
 			em.fb.emitGoto(bodyLabels[i])
 		}
 	}

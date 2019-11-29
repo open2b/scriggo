@@ -1,5 +1,4 @@
-// skip : cannot allocate a new int register: registers are not released in
-// switch statement cases?
+// skip : panic: runtime error: index out of range [40] with length 40
 
 // run
 
