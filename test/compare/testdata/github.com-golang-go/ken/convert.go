@@ -1,4 +1,4 @@
-// skip : cannot allocate a new int register
+// skip : cannot allocate a new int register https://github.com/open2b/scriggo/issues/482
 
 // run
 
