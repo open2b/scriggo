@@ -229,6 +229,11 @@ func (builder *functionBuilder) newRegister(kind reflect.Kind) int8 {
 	return num + 1
 }
 
+// newIndirectRegister allocates a new indirect register.
+func (builder *functionBuilder) newIndirectRegister() int8 {
+	return -builder.newRegister(reflect.Interface)
+}
+
 // bindVarReg binds name with register reg. To create a new variable, use
 // VariableRegister in conjunction with bindVarReg.
 func (builder *functionBuilder) bindVarReg(name string, reg int8) {
