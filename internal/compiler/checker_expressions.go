@@ -2001,6 +2001,10 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			}
 		}
 
+	default:
+
+		panic(tc.errorf(node, "invalid type for composite literal: %s", ti))
+
 	}
 
 	nodeTi := &TypeInfo{Type: ti.Type}

@@ -967,7 +967,7 @@ var checkerStmts = map[string]string{
 	`(pointInt{0,0}).SetZ(10)`:  `pointInt literal.SetZ undefined (type compiler.pointInt has no field or method SetZ)`,   // TODO (Gianluca): 'pointInt literal' should be '(compiler.pointInt literal)'
 
 	// Interfaces.
-	`_ = interface{}{}`:                 ok,
+	`_ = interface{}(0)`:                ok,
 	`_ = []interface{}{}`:               ok,
 	`_ = map[interface{}]interface{}{}`: ok,
 

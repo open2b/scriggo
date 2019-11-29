@@ -1,5 +1,3 @@
-// skip : not fail while type checking an incorrect composite literal (https://github.com/open2b/scriggo/issues/485)
-
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.
