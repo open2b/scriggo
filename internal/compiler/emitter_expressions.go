@@ -756,13 +756,11 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 			}
 			// Address of a non-local variable.
 			if index, ok := em.varStore.nonLocalVarIndex(operand); ok {
-				if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
-					em.fb.emitGetVarAddr(index, reg)
-					return
-				}
-				tmp := em.fb.newRegister(operandType.Kind())
+				em.fb.enterStack()
+				tmp := em.fb.newRegister(reflect.Ptr)
 				em.fb.emitGetVarAddr(index, tmp)
-				em.changeRegister(false, tmp, reg, operandType, dstType)
+				em.changeRegister(false, tmp, reg, reflect.PtrTo(operandType), dstType)
+				em.fb.exitStack()
 				return
 			}
 			panic("BUG")
