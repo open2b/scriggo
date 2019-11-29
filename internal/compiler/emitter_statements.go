@@ -507,11 +507,9 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				addresses[i] = em.addressSliceIndex(expr, index, exprType, pos, node.Type)
 			}
 		case *ast.Selector:
-			if _, ok := v.Expr.(*ast.Identifier); ok {
-				if index, ok := em.varStore.nonLocalVarIndex(v); ok {
-					addresses[i] = em.addressNonLocalVar(int16(index), em.ti(v).Type, pos, node.Type)
-					break
-				}
+			if index, ok := em.varStore.nonLocalVarIndex(v); ok {
+				addresses[i] = em.addressNonLocalVar(int16(index), em.ti(v).Type, pos, node.Type)
+				break
 			}
 			typ := em.ti(v.Expr).Type
 			reg := em.emitExpr(v.Expr, typ)
