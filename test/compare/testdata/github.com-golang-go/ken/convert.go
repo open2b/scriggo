@@ -1,4 +1,4 @@
-// skip : panic: runtime error: index out of range [40] with length 40
+// skip : Scriggo stdout is different from gc stdout
 
 // run
 
