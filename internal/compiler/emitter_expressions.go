@@ -531,23 +531,37 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 			}
 			return reg, false
 		}
-		length := int8(em.compositeLiteralLen(expr)) // TODO(Gianluca): length is int
+		length := em.compositeLiteralLen(expr)
+		var k bool
+		var length8 int8
+		if length > 126 {
+			length8 = em.fb.newRegister(reflect.Int)
+			em.fb.emitLoadNumber(intRegister, em.fb.makeIntConstant(int64(length)), length8)
+			k = false
+		} else {
+			length8 = int8(length)
+			k = true
+		}
 		if typ.Kind() == reflect.Slice {
-			em.fb.emitMakeSlice(true, true, typ, length, length, reg, expr.Pos())
+			em.fb.emitMakeSlice(k, k, typ, length8, length8, reg, expr.Pos())
 		} else {
 			arrayZero := em.fb.makeGeneralConstant(em.types.New(typ).Elem().Interface())
 			em.changeRegister(true, arrayZero, reg, typ, typ)
 		}
-		var index int8 = -1
+		var index int64 = -1
 		for _, kv := range expr.KeyValues {
 			if kv.Key != nil {
-				index = int8(em.ti(kv.Key).Constant.int64())
+				index = em.ti(kv.Key).Constant.int64()
 			} else {
 				index++
 			}
 			em.fb.enterStack()
 			indexReg := em.fb.newRegister(reflect.Int)
-			em.fb.emitMove(true, index, indexReg, reflect.Int, true)
+			if index > 126 {
+				em.fb.emitLoadNumber(intRegister, em.fb.makeIntConstant(int64(index)), indexReg)
+			} else {
+				em.fb.emitMove(true, int8(index), indexReg, reflect.Int, true)
+			}
 			elem, k := em.emitExprK(kv.Value, typ.Elem())
 			if reg != 0 {
 				em.fb.emitSetSlice(k, reg, elem, indexReg, expr.Pos(), typ.Elem().Kind())
