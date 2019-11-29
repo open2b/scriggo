@@ -769,6 +769,15 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 
 		// &*a
 		case *ast.UnaryOperator:
+			// Deference the pointer to check for "invalid memory address"
+			// errors, then discard the result.
+			em.fb.enterStack()
+			pointedElemType := dstType.Elem()
+			pointer := em.emitExpr(operand, pointedElemType)
+			tmp := em.fb.newRegister(pointedElemType.Kind())
+			em.changeRegister(false, -pointer, tmp, pointedElemType, pointedElemType)
+			em.fb.exitStack()
+			// The pointer is valid, so &*a is equivalent to a.
 			em.emitExprR(operand.Expr, dstType, reg)
 
 		// &v[i]
