@@ -1,4 +1,4 @@
-// skip : error in type checking of composite literal (https://github.com/open2b/scriggo/issues/486)
+// skip : general refs limit reached
 
 // run
 

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -1852,7 +1853,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					}
 					panic(tc.errorf(node, "%s", err))
 				}
-				if !isExported(fieldTi.Name) {
+				if !isExported(fieldTi.Name) && !strings.HasPrefix(fieldTi.Name, "𝗽") {
 					panic(tc.errorf(node, "implicit assignment of unexported field '%s' in %v", fieldTi.Name, node))
 				}
 				keyValue.Key = ast.NewIdentifier(node.Pos(), fieldTi.Name)
