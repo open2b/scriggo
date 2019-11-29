@@ -77,48 +77,8 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.exitStack()
 
 		case *ast.Import:
-			// TODO: consider uniforming this code with the *ast.Import case in the emitter.
 			if em.isTemplate {
-				if node.Ident != nil && node.Ident.Name == "_" {
-					// Nothing to do: template pages cannot have
-					// collateral effects.
-				} else {
-					backupPath := em.fb.getPath()
-					em.fb.changePath(node.Tree.Path)
-					backupBuilder := em.fb
-					backupPkg := em.pkg
-					functions, vars, inits := em.emitPackage(node.Tree.Nodes[0].(*ast.Package), false, node.Path)
-					var importName string
-					if node.Ident == nil {
-						// Imports without identifiers are handled as 'import . "path"'.
-						importName = ""
-					} else {
-						importName = node.Ident.Name
-						if node.Ident.Name == "." {
-							importName = ""
-						}
-					}
-					for name, fn := range functions {
-						if importName == "" {
-							em.fnStore.makeAvailableScriggoFn(backupPkg, name, fn)
-						} else {
-							em.fnStore.makeAvailableScriggoFn(backupPkg, importName+"."+name, fn)
-						}
-					}
-					for name, v := range vars {
-						if importName == "" {
-							em.varStore.registerScriggoPackageVar(backupPkg, name, v)
-						} else {
-							em.varStore.registerScriggoPackageVar(backupPkg, importName+"."+name, v)
-						}
-					}
-					if len(inits) > 0 {
-						panic("BUG: have inits!") // remove.
-					}
-					em.fb = backupBuilder
-					em.pkg = backupPkg
-					em.fb.changePath(backupPath)
-				}
+				em.emitImport(node, true)
 			}
 
 		case *ast.Fallthrough:
@@ -530,6 +490,97 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 		}
 	}
 	em.assignValuesToAddresses(addresses, node.Rhs)
+}
+
+// emitImport emits an import node, returning the list of all 'init' functions
+// emitted.
+func (em *emitter) emitImport(node *ast.Import, isTemplate bool) []*runtime.Function {
+
+	// TODO: the argument isTemplate must be passed explicitly because it's
+	// different from em.isTemplate. Why?
+
+	// TODO: this function works correctly but its code looks very ugly and hard
+	// to understand. Review and improve the code.
+
+	if node.Tree == nil {
+		return nil
+	}
+	inits := []*runtime.Function{}
+	backupPkg := em.pkg
+	var backupPath string
+	var backupBuilder *functionBuilder
+	if isTemplate {
+		backupPath = em.fb.getPath()
+		em.fb.changePath(node.Tree.Path)
+		backupBuilder = em.fb
+	}
+	pkg := node.Tree.Nodes[0].(*ast.Package)
+	var path string
+	if isTemplate {
+		path = node.Path
+	} else {
+		path = node.Tree.Path
+	}
+	funcs, vars, pkgInits := em.emitPackage(pkg, false, path)
+	if !isTemplate {
+		em.pkg = backupPkg
+	}
+	inits = append(inits, pkgInits...)
+	var importName string
+	if node.Ident == nil {
+		importName = pkg.Name
+		if isTemplate {
+			// Imports without identifiers are handled as 'import . "path"'.
+			importName = ""
+		} else {
+			importName = pkg.Name
+		}
+	} else {
+		if isTemplate {
+			importName = node.Ident.Name
+			if node.Ident.Name == "." {
+				importName = ""
+			}
+		}
+		switch node.Ident.Name {
+		case "_":
+			if isTemplate {
+				// TODO: Nothing to do?
+			} else {
+				panic("TODO(Gianluca): not implemented")
+			}
+		case ".":
+			importName = ""
+		default:
+			importName = node.Ident.Name
+		}
+	}
+	var targetPkg *ast.Package
+	if isTemplate {
+		targetPkg = backupPkg
+	} else {
+		targetPkg = em.pkg
+	}
+	for name, fn := range funcs {
+		if importName == "" {
+			em.fnStore.makeAvailableScriggoFn(targetPkg, name, fn)
+		} else {
+			em.fnStore.makeAvailableScriggoFn(targetPkg, importName+"."+name, fn)
+		}
+	}
+	for name, v := range vars {
+		if importName == "" {
+			em.varStore.registerScriggoPackageVar(targetPkg, name, v)
+		} else {
+			em.varStore.registerScriggoPackageVar(targetPkg, importName+"."+name, v)
+		}
+	}
+	if isTemplate {
+		em.fb = backupBuilder
+		em.pkg = backupPkg
+		em.fb.changePath(backupPath)
+	}
+	return inits
 }
 
 // emitSelect emits the 'select' statements. The emission is composed by 4 main

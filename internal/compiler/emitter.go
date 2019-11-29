@@ -135,43 +135,8 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 	// Emit the imports.
 	for _, decl := range pkg.Declarations {
 		if node, ok := decl.(*ast.Import); ok {
-			// If importing a predefined package, the emitter doesn't have to do
-			// anything. Predefined variables, constants, types and functions
-			// are added as information to the tree by the type-checker.
-			if node.Tree != nil {
-				backupPkg := em.pkg
-				pkg := node.Tree.Nodes[0].(*ast.Package)
-				funcs, vars, pkgInits := em.emitPackage(pkg, false, node.Tree.Path)
-				em.pkg = backupPkg
-				inits = append(inits, pkgInits...)
-				var importName string
-				if node.Ident == nil {
-					importName = pkg.Name
-				} else {
-					switch node.Ident.Name {
-					case "_":
-						panic("TODO(Gianluca): not implemented")
-					case ".":
-						importName = ""
-					default:
-						importName = node.Ident.Name
-					}
-				}
-				for name, fn := range funcs {
-					if importName == "" {
-						em.fnStore.makeAvailableScriggoFn(em.pkg, name, fn)
-					} else {
-						em.fnStore.makeAvailableScriggoFn(em.pkg, importName+"."+name, fn)
-					}
-				}
-				for name, v := range vars {
-					if importName == "" {
-						em.varStore.registerScriggoPackageVar(em.pkg, name, v)
-					} else {
-						em.varStore.registerScriggoPackageVar(em.pkg, importName+"."+name, v)
-					}
-				}
-			}
+			pkgInits := em.emitImport(node, false)
+			inits = append(inits, pkgInits...)
 		}
 	}
 
