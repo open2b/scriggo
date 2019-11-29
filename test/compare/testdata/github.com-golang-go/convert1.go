@@ -37,7 +37,7 @@ func main() {
 	_ = string(sb)
 	_ = []byte(sb)
 	// TODO:
-	// _ = []rune(sb)  // E RROR "cannot convert.*\[\]rune|invalid type conversion"
+	// _ = []rune(sb)  // ERROR "cannot convert.*\[\]rune|invalid type conversion"
 	_ = []int64(sb) // ERROR "cannot convert.*\[\]int64|invalid type conversion"
 	_ = Tstring(sb)
 	_ = Tbyte(sb)
@@ -46,7 +46,7 @@ func main() {
 
 	_ = string(sr)
 	// TODO:
-	// _ = []byte(sr) // E RROR "cannot convert.*\[\]byte|invalid type conversion"
+	// _ = []byte(sr) // ERROR "cannot convert.*\[\]byte|invalid type conversion"
 	_ = []rune(sr)
 	_ = []int64(sr) // ERROR "cannot convert.*\[\]int64|invalid type conversion"
 	_ = Tstring(sr)
@@ -56,8 +56,8 @@ func main() {
 
 	_ = string(si) // ERROR "cannot convert.* string|invalid type conversion"
 	// TODO:
-	// _ = []byte(si) // E RROR "cannot convert.*\[\]byte|invalid type conversion"
-	// _ = []rune(si) // E RROR "cannot convert.*\[\]rune|invalid type conversion"
+	// _ = []byte(si) // ERROR "cannot convert.*\[\]byte|invalid type conversion"
+	// _ = []rune(si) // ERROR "cannot convert.*\[\]rune|invalid type conversion"
 	_ = []int64(si)
 	_ = Tstring(si) // ERROR "cannot convert.*Tstring|invalid type conversion"
 	_ = Tbyte(si)   // ERROR "cannot convert.*Tbyte|invalid type conversion"
@@ -76,7 +76,7 @@ func main() {
 	_ = string(tsb)
 	_ = []byte(tsb)
 	// TODO:
-	// _ = []rune(tsb)  // E RROR "cannot convert.*\[\]rune|invalid type conversion"
+	// _ = []rune(tsb)  // ERROR "cannot convert.*\[\]rune|invalid type conversion"
 	_ = []int64(tsb) // ERROR "cannot convert.*\[\]int64|invalid type conversion"
 	_ = Tstring(tsb)
 	_ = Tbyte(tsb)
@@ -85,7 +85,7 @@ func main() {
 
 	_ = string(tsr)
 	// TODO:
-	// _ = []byte(tsr) // E RROR "cannot convert.*\[\]byte|invalid type conversion"
+	// _ = []byte(tsr) // ERROR "cannot convert.*\[\]byte|invalid type conversion"
 	_ = []rune(tsr)
 	_ = []int64(tsr) // ERROR "cannot convert.*\[\]int64|invalid type conversion"
 	_ = Tstring(tsr)
@@ -95,9 +95,9 @@ func main() {
 
 	_ = string(tsi) // ERROR "cannot convert.* string|invalid type conversion"
 	// TODO
-	// _ = []byte(tsi) // E RROR "cannot convert.*\[\]byte|invalid type conversion"
+	// _ = []byte(tsi) // ERROR "cannot convert.*\[\]byte|invalid type conversion"
 	// TODO
-	// _ = []rune(tsi) // E RROR "cannot convert.*\[\]rune|invalid type conversion"
+	// _ = []rune(tsi) // ERROR "cannot convert.*\[\]rune|invalid type conversion"
 	_ = []int64(tsi)
 	_ = Tstring(tsi) // ERROR "cannot convert.*Tstring|invalid type conversion"
 	_ = Tbyte(tsi)   // ERROR "cannot convert.*Tbyte|invalid type conversion"
