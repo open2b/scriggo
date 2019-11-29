@@ -869,7 +869,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		em.fb.exitStack()
 
 	default:
-		panic(fmt.Errorf("TODO: not implemented operator %s", unOp.Operator()))
+		panic(fmt.Errorf("BUG: not implemented operator %s", unOp.Operator()))
 	}
 
 	return
