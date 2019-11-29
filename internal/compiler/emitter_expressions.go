@@ -173,29 +173,6 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 	case *ast.UnaryOperator:
 
-		// Receive operation on channel.
-		//
-		//	v     = <- ch
-		//  v, ok = <- ch
-		//          <- ch
-		if expr.Operator() == ast.OperatorReceive {
-			chanType := em.ti(expr.Expr).Type
-			valueType := ti.Type
-			chann := em.emitExpr(expr.Expr, chanType)
-			if reg == 0 {
-				em.fb.emitReceive(chann, 0, 0)
-				return reg, false
-			}
-			if canEmitDirectly(valueType.Kind(), dstType.Kind()) {
-				em.fb.emitReceive(chann, 0, reg)
-				return reg, false
-			}
-			tmp := em.fb.newRegister(valueType.Kind())
-			em.fb.emitReceive(chann, 0, tmp)
-			em.changeRegister(false, tmp, reg, valueType, dstType)
-			return reg, false
-		}
-
 		// Emit a generic unary operator.
 		em.emitUnaryOperator(expr, reg, dstType)
 
@@ -701,6 +678,29 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 	operand := unOp.Expr
 	operandType := em.ti(operand).Type
 	unOpType := em.ti(unOp).Type
+
+	// Receive operation on channel.
+	//
+	//	v     = <- ch
+	//  v, ok = <- ch
+	//          <- ch
+	if unOp.Operator() == ast.OperatorReceive {
+		chanType := em.ti(unOp.Expr).Type
+		valueType := unOpType
+		chann := em.emitExpr(unOp.Expr, chanType)
+		if reg == 0 {
+			em.fb.emitReceive(chann, 0, 0)
+			return
+		}
+		if canEmitDirectly(valueType.Kind(), dstType.Kind()) {
+			em.fb.emitReceive(chann, 0, reg)
+			return
+		}
+		tmp := em.fb.newRegister(valueType.Kind())
+		em.fb.emitReceive(chann, 0, tmp)
+		em.changeRegister(false, tmp, reg, valueType, dstType)
+		return
+	}
 
 	// Unary operation (negation) on a complex number.
 	if exprType := unOpType; exprType.Kind() == reflect.Complex64 || exprType.Kind() == reflect.Complex128 {
