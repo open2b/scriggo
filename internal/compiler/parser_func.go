@@ -41,8 +41,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 		panic(syntaxError(tok.pos, "unexpected %s, expecting name", tok.txt))
 	}
 	// Parses the function parameters.
-	names := map[string]struct{}{}
-	parameters, isVariadic, endPos := p.parseFuncParameters(tok, names, false)
+	parameters, isVariadic, endPos := p.parseFuncParameters(tok, false)
 	pos.End = endPos.End
 	var result []*ast.Parameter
 	tok = p.next()
@@ -50,7 +49,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	// Parses the result if present.
 	switch tok.typ {
 	case tokenLeftParenthesis:
-		result, _, endPos = p.parseFuncParameters(tok, names, true)
+		result, _, endPos = p.parseFuncParameters(tok, true)
 		pos.End = endPos.End
 		tok = p.next()
 	case tokenLeftBrackets, tokenFunc, tokenIdentifier, tokenInterface, tokenMap, tokenMultiplication, tokenStruct, tokenChan:
@@ -105,7 +104,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	return node, p.next()
 }
 
-func (p *parsing) parseFuncParameters(tok token, names map[string]struct{}, isResult bool) ([]*ast.Parameter, bool, *ast.Position) {
+func (p *parsing) parseFuncParameters(tok token, isResult bool) ([]*ast.Parameter, bool, *ast.Position) {
 
 	if tok.typ != tokenLeftParenthesis {
 		panic(syntaxError(tok.pos, "unexpected %s, expecting (", tok))
@@ -182,13 +181,6 @@ func (p *parsing) parseFuncParameters(tok token, names map[string]struct{}, isRe
 						panic(syntaxError(field.Type.Pos(), "unexpected %s, expecting )", field.Type))
 					}
 					field.Type = nil
-				}
-				name := field.Ident.Name
-				if _, ok := names[name]; ok {
-					panic(syntaxError(field.Ident.Position, "duplicate argument %s", name))
-				}
-				if name != "_" {
-					names[name] = struct{}{}
 				}
 			}
 		}

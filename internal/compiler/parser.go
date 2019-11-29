@@ -1123,9 +1123,8 @@ LABEL:
 		tok = p.next()
 		if tok.typ == tokenLeftParenthesis {
 			// Parses the macro parameters.
-			names := map[string]struct{}{}
 			var endPos *ast.Position
-			parameters, isVariadic, endPos = p.parseFuncParameters(tok, names, false)
+			parameters, isVariadic, endPos = p.parseFuncParameters(tok, false)
 			pos.End = endPos.End
 			tok = p.next()
 		}

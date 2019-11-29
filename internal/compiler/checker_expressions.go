@@ -512,7 +512,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		expr.Type.Reflect = t.Type
 		tc.addToAncestors(expr)
 		// Adds parameters to the function body scope.
-		fillParametersTypes(expr.Type.Parameters)
+		tc.fillParametersTypes(expr.Type)
 		isVariadic := expr.Type.IsVariadic
 		for i, f := range expr.Type.Parameters {
 			t := tc.checkType(f.Type)
@@ -525,7 +525,6 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 			}
 		}
 		// Adds named return values to the function body scope.
-		fillParametersTypes(expr.Type.Result)
 		for _, f := range expr.Type.Result {
 			t := tc.checkType(f.Type)
 			if f.Ident != nil {

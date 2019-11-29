@@ -318,21 +318,50 @@ func (tc *typechecker) fieldByName(t *TypeInfo, name string) (*TypeInfo, string,
 	return nil, newName, false
 }
 
-// fillParametersTypes takes a list of parameters (function arguments or
-// function return values) and "fills" their types. For instance, a function
-// arguments signature "a, b int" becocmes "a int, b int".
-func fillParametersTypes(params []*ast.Parameter) {
-	if len(params) == 0 {
+// fillParametersTypes takes a function type and "fills" its input and output
+// parameter types. For instance, a function arguments signature "a, b int"
+// becomes "a int, b int".
+//
+// fillParametersTypes panics with a type checking error if the input and the
+// output parameters list contains duplicated names.
+func (tc *typechecker) fillParametersTypes(funType *ast.FuncType) {
+	in := funType.Parameters
+	out := funType.Result
+	if len(in)+len(out) == 0 {
 		return
 	}
-	typ := params[len(params)-1].Type
-	for i := len(params) - 1; i >= 0; i-- {
-		if params[i].Type != nil {
-			typ = params[i].Type
+	// Check for duplicated names.
+	names := map[string]bool{}
+	for _, param := range append(in, out...) {
+		if param.Ident == nil {
+			continue
 		}
-		params[i].Type = typ
+		name := param.Ident.Name
+		if names[name] {
+			panic(tc.errorf(param.Ident, "duplicate argument %s", name))
+		}
+		names[name] = true
 	}
-	return
+	// Fill input parameters.
+	if len(in) > 0 {
+		typ := in[len(in)-1].Type
+		for i := len(in) - 1; i >= 0; i-- {
+			if in[i].Type != nil {
+				typ = in[i].Type
+			}
+			in[i].Type = typ
+		}
+	}
+	// Fill output parameters.
+	if len(out) > 0 {
+		typ := out[len(out)-1].Type
+		for i := len(out) - 1; i >= 0; i-- {
+			if out[i].Type != nil {
+				typ = out[i].Type
+			}
+			out[i].Type = typ
+		}
+	}
 }
 
 type invalidTypeInAssignment string

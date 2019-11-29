@@ -627,7 +627,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 			tc.enterScope()
 			tc.addToAncestors(d)
 			// Adds parameters to the function body scope.
-			fillParametersTypes(d.Type.Parameters)
+			tc.fillParametersTypes(d.Type)
 			isVariadic := d.Type.IsVariadic
 			for i, param := range d.Type.Parameters {
 				t := tc.checkType(param.Type)
@@ -640,7 +640,6 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 				}
 			}
 			// Adds named return values to the function body scope.
-			fillParametersTypes(d.Type.Result)
 			for _, ret := range d.Type.Result {
 				t := tc.checkType(ret.Type)
 				if ret.Ident != nil {
