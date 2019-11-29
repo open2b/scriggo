@@ -494,18 +494,23 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 
 // emitImport emits an import node, returning the list of all 'init' functions
 // emitted.
+//
+// TODO: the argument isTemplate must be passed explicitly because it's
+// different from em.isTemplate. Why?
+//
+// TODO: this function works correctly but its code looks very ugly and hard
+// to understand. Review and improve the code.
+//
 func (em *emitter) emitImport(node *ast.Import, isTemplate bool) []*runtime.Function {
 
-	// TODO: the argument isTemplate must be passed explicitly because it's
-	// different from em.isTemplate. Why?
-
-	// TODO: this function works correctly but its code looks very ugly and hard
-	// to understand. Review and improve the code.
-
+	// If the imported package is predefined the emitter does not have to do
+	// anything: the predefined values have already been added to the type infos
+	// of the tree, and the init functions have already been called when gc
+	// imported the predefined package.
 	if node.Tree == nil {
 		return nil
 	}
-	inits := []*runtime.Function{}
+
 	backupPkg := em.pkg
 	var backupPath string
 	var backupBuilder *functionBuilder
@@ -514,18 +519,14 @@ func (em *emitter) emitImport(node *ast.Import, isTemplate bool) []*runtime.Func
 		em.fb.changePath(node.Tree.Path)
 		backupBuilder = em.fb
 	}
+
+	// Emit the package and collect functions, variables and init functions.
 	pkg := node.Tree.Nodes[0].(*ast.Package)
-	var path string
-	if isTemplate {
-		path = node.Path
-	} else {
-		path = node.Tree.Path
-	}
-	funcs, vars, pkgInits := em.emitPackage(pkg, false, path)
+	funcs, vars, inits := em.emitPackage(pkg, false, node.Tree.Path)
+
 	if !isTemplate {
 		em.pkg = backupPkg
 	}
-	inits = append(inits, pkgInits...)
 	var importName string
 	if node.Ident == nil {
 		importName = pkg.Name
@@ -555,31 +556,36 @@ func (em *emitter) emitImport(node *ast.Import, isTemplate bool) []*runtime.Func
 			importName = node.Ident.Name
 		}
 	}
+
 	var targetPkg *ast.Package
 	if isTemplate {
 		targetPkg = backupPkg
 	} else {
 		targetPkg = em.pkg
 	}
+
+	// Make available the imported functions.
 	for name, fn := range funcs {
-		if importName == "" {
-			em.fnStore.makeAvailableScriggoFn(targetPkg, name, fn)
-		} else {
-			em.fnStore.makeAvailableScriggoFn(targetPkg, importName+"."+name, fn)
+		if importName != "" {
+			name = importName + "." + name
 		}
+		em.fnStore.makeAvailableScriggoFn(targetPkg, name, fn)
 	}
+
+	// Add the imported variables.
 	for name, v := range vars {
-		if importName == "" {
-			em.varStore.registerScriggoPackageVar(targetPkg, name, v)
-		} else {
-			em.varStore.registerScriggoPackageVar(targetPkg, importName+"."+name, v)
+		if importName != "" {
+			name = importName + "." + name
 		}
+		em.varStore.registerScriggoPackageVar(targetPkg, name, v)
 	}
+
 	if isTemplate {
 		em.fb = backupBuilder
 		em.pkg = backupPkg
 		em.fb.changePath(backupPath)
 	}
+
 	return inits
 }
 
