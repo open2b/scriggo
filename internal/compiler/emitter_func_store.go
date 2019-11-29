@@ -8,6 +8,7 @@ package compiler
 
 import (
 	"reflect"
+
 	"scriggo/ast"
 	"scriggo/runtime"
 )
