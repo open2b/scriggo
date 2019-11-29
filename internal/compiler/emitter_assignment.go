@@ -30,10 +30,10 @@ type assignmentTarget int8
 
 const (
 	assignBlank          assignmentTarget = iota // Assign to a blank identifier.
-	assignClosureVar                             // Assign to a closure variable.
 	assignLocalVar                               // Assign to a local variable.
 	assignMapIndex                               // Assign to a map index.
 	assignNewIndirectVar                         // Assign to a new indirect variable.
+	assignNonLocalVar                            // Assign to a non-local variable.
 	assignPtrIndirection                         // Assign to a pointer indirection.
 	assignSliceIndex                             // Assign to a slice index.
 	assignStructSelector                         // Assign to a struct selector.
@@ -47,23 +47,6 @@ func (em *emitter) addressBlankIdent(pos *ast.Position) address {
 		em:     em,
 		pos:    pos,
 		target: assignBlank,
-	}
-}
-
-// addressClosureVar returns a new address that addresses the closure variable
-// with the given type that is indexed by index.
-// op is the type of the assignment that involves this address, and pos is the
-// position of the assignment in the source code.
-func (em *emitter) addressClosureVar(index int16, typ reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
-	msb, lsb := encodeInt16(index)
-	return address{
-		addressedType: typ,
-		em:            em,
-		op1:           msb,
-		op2:           lsb,
-		operator:      op,
-		pos:           pos,
-		target:        assignClosureVar,
 	}
 }
 
@@ -110,6 +93,23 @@ func (em *emitter) addressNewIndirectVar(reg int8, typ reflect.Type, pos *ast.Po
 		operator:      op,
 		pos:           pos,
 		target:        assignNewIndirectVar,
+	}
+}
+
+// addressNonLocalVar returns a new address that addresses the non-local
+// variable with the given type that is indexed by index. op is the type of the
+// assignment that involves this address, and pos is the position of the
+// assignment in the source code.
+func (em *emitter) addressNonLocalVar(index int16, typ reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	msb, lsb := encodeInt16(index)
+	return address{
+		addressedType: typ,
+		em:            em,
+		op1:           msb,
+		op2:           lsb,
+		operator:      op,
+		pos:           pos,
+		target:        assignNonLocalVar,
 	}
 }
 
@@ -167,7 +167,7 @@ func (em *emitter) addressStructSelector(structReg int8, kFieldIndex int8, struc
 // value is a constant otherwise is a register.
 func (a address) assign(k bool, value int8, valueType reflect.Type) {
 	switch a.target {
-	case assignClosureVar:
+	case assignNonLocalVar:
 		a.em.fb.emitSetVar(k, value, int(decodeInt16(a.op1, a.op2)), a.addressedType.Kind())
 	case assignBlank:
 		// Nothing to do.
@@ -195,7 +195,7 @@ func (a address) targetType() reflect.Type {
 	switch a.target {
 	case assignBlank:
 		return nil
-	case assignClosureVar:
+	case assignNonLocalVar:
 		return a.addressedType
 	case assignNewIndirectVar:
 		return a.addressedType
@@ -231,7 +231,7 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 	switch addr.target {
 	case assignBlank, assignNewIndirectVar:
 		panic("Type checking BUG")
-	case assignClosureVar:
+	case assignNonLocalVar:
 		em.fb.emitGetVar(int(decodeInt16(addr.op1, addr.op2)), lhReg, addrTyp.Kind())
 	case assignLocalVar:
 		em.changeRegister(false, addr.op1, lhReg, addrTyp, typ)

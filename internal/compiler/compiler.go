@@ -262,9 +262,9 @@ type Code struct {
 func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
 	functions, _, _ := e.emitPackage(pkgMain, false, "main")
-	main := e.functions[pkgMain]["main"]
+	main, _ := e.fnStore.availableScriggoFn(pkgMain, "main")
 	pkg := &Code{
-		Globals:   e.globals,
+		Globals:   e.varStore.getGlobals(),
 		Functions: functions,
 		Main:      main,
 	}
@@ -283,7 +283,7 @@ func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()
 	e.fb.end()
-	return &Code{Main: e.fb.fn, Globals: e.globals}
+	return &Code{Main: e.fb.fn, Globals: e.varStore.getGlobals()}
 }
 
 // EmitTemplate emits the code for a template given its tree, the type info and
@@ -299,10 +299,10 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	e.fb.changePath(tree.Path)
 
 	// Globals.
-	e.globals = append(e.globals, newGlobal("$template", "$io.Writer", emptyInterfaceType, nil))
-	e.globals = append(e.globals, newGlobal("$template", "$Write", reflect.FuncOf(nil, nil, false), nil))
-	e.globals = append(e.globals, newGlobal("$template", "$Render", reflect.FuncOf(nil, nil, false), nil))
-	e.globals = append(e.globals, newGlobal("$template", "$urlWriter", reflect.TypeOf(&struct{}{}), nil))
+	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$io.Writer", emptyInterfaceType, nil))
+	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$Write", reflect.FuncOf(nil, nil, false), nil))
+	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$Render", reflect.FuncOf(nil, nil, false), nil))
+	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$urlWriter", reflect.TypeOf(&struct{}{}), nil))
 	e.fb.emitSetAlloc(opts.MemoryLimit)
 
 	// If page is a package, then page extends another page.
@@ -310,11 +310,10 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 		if pkg, ok := tree.Nodes[0].(*ast.Package); ok {
 			mainBuilder := e.fb
 			// Macro declarations in extending page must be accessed by the extended page.
-			e.functions[e.pkg] = map[string]*runtime.Function{}
 			for _, dec := range pkg.Declarations {
 				if fun, ok := dec.(*ast.Func); ok {
 					fn := newFunction("main", fun.Ident.Name, fun.Type.Reflect)
-					e.functions[e.pkg][fun.Ident.Name] = fn
+					e.fnStore.makeAvailableScriggoFn(e.pkg, fun.Ident.Name, fn)
 				}
 			}
 			// Emits extended page.
@@ -350,7 +349,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 				nopBuilder.end()
 				e.fb.fn.Functions[0] = nopFunction
 			}
-			return &Code{Main: e.fb.fn, Globals: e.globals}
+			return &Code{Main: e.fb.fn, Globals: e.varStore.getGlobals()}
 		}
 	}
 
@@ -360,7 +359,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()
 	e.fb.end()
-	return &Code{Main: e.fb.fn, Globals: e.globals}
+	return &Code{Main: e.fb.fn, Globals: e.varStore.getGlobals()}
 
 }
 

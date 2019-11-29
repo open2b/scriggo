@@ -7,6 +7,7 @@
 package compiler
 
 import (
+	"fmt"
 	"io"
 	"reflect"
 	"unicode"
@@ -102,69 +103,6 @@ func stackDifference(a, b runtime.StackShift) runtime.StackShift {
 	}
 }
 
-// functionIndex returns the index of a function inside the current function,
-// creating it if it does not exist.
-func (em *emitter) functionIndex(fun *runtime.Function) int8 {
-	i, ok := em.funcIndexes[em.fb.fn][fun]
-	if ok {
-		return i
-	}
-	i = int8(len(em.fb.fn.Functions))
-	em.fb.fn.Functions = append(em.fb.fn.Functions, fun)
-	if em.funcIndexes[em.fb.fn] == nil {
-		em.funcIndexes[em.fb.fn] = make(map[*runtime.Function]int8)
-	}
-	em.funcIndexes[em.fb.fn][fun] = i
-	return i
-}
-
-// getVarIndex returns the index of the variable v, if exists.
-func (em *emitter) getVarIndex(v ast.Expression) (index int, ok bool) {
-
-	if ti := em.ti(v); ti != nil && ti.IsPredefined() {
-		// TODO: this is the new way of accessing predefined vars. Incrementally
-		// integrate into Scriggo, then remove the other checks.
-		if index, ok := em.predefinedVarRefs[em.fb.fn][ti.value.(*reflect.Value)]; ok {
-			return index, true
-		}
-		// TODO: obsolete, remove:
-		if sel, ok := v.(*ast.Selector); ok {
-			index := em.predVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, sel.Ident)
-			return int(index), true
-		}
-		// TODO: obsolete, remove:
-		if ident, ok := v.(*ast.Identifier); ok {
-			index := em.predVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, ident.Name)
-			return int(index), true
-		}
-	}
-
-	var name string
-	switch v := v.(type) {
-	case *ast.Identifier:
-		name = v.Name
-	case *ast.Selector:
-		if ident, ok := v.Expr.(*ast.Identifier); ok {
-			name = ident.Name + "." + v.Ident
-		} else {
-			return 0, false
-		}
-	default:
-		return 0, false
-	}
-
-	// TODO: can these maps be unified in some way?
-	if index, ok := em.closureVarRefs[em.fb.fn][name]; ok {
-		return index, true
-	}
-	if index, ok := em.availableVarIndexes[em.pkg][name]; ok {
-		return int(index), true
-	}
-
-	return 0, false
-
-}
-
 // isExported reports whether name is exported, according to
 // https://golang.org/ref/spec#Exported_identifiers.
 func isExported(name string) bool {
@@ -227,42 +165,6 @@ func newGlobal(pkg, name string, typ reflect.Type, value interface{}) Global {
 	}
 }
 
-// predVarIndex returns the index of a global variable in globals, adding it
-// if it does not exist.
-func (em *emitter) predVarIndex(v *reflect.Value, predPkgName, name string) int16 {
-	if index, ok := em.predefinedVarRefs[em.fb.fn][v]; ok {
-		return int16(index)
-	}
-	index := len(em.globals)
-	g := newGlobal(predPkgName, name, v.Type().Elem(), nil)
-	if !v.IsNil() {
-		g.Value = v.Interface()
-	}
-	if em.predefinedVarRefs[em.fb.fn] == nil {
-		em.predefinedVarRefs[em.fb.fn] = make(map[*reflect.Value]int)
-	}
-	em.globals = append(em.globals, g)
-	em.predefinedVarRefs[em.fb.fn][v] = index
-	return int16(index)
-}
-
-// predFuncIndex returns the index of a predefined function in the current
-// function, adding it if it does not exist.
-func (em *emitter) predFuncIndex(fn reflect.Value, predPkgName, name string) int8 {
-	index, ok := em.predFunIndexes[em.fb.fn][fn]
-	if ok {
-		return index
-	}
-	index = int8(len(em.fb.fn.Predefined))
-	f := newPredefinedFunction(predPkgName, name, fn.Interface())
-	if em.predFunIndexes[em.fb.fn] == nil {
-		em.predFunIndexes[em.fb.fn] = map[reflect.Value]int8{}
-	}
-	em.fb.fn.Predefined = append(em.fb.fn.Predefined, f)
-	em.predFunIndexes[em.fb.fn][fn] = index
-	return index
-}
-
 // canEmitDirectly reports whether a value of kind k1 can be emitted directly
 // into a register of kind k2 without the needing of passing from an
 // intermediate register.
@@ -275,53 +177,51 @@ func canEmitDirectly(k1, k2 reflect.Kind) bool {
 	if k2 == reflect.Interface {
 		return false
 	}
-	// Functions are handled as a special cases in VM.
+	// Functions are handled as special cases in VM.
 	if k1 == reflect.Func || k2 == reflect.Func {
 		return false
 	}
 	return kindToType(k1) == kindToType(k2)
 }
 
-// setClosureRefs sets the closure refs of a function. setClosureRefs operates
-// on current function builder, so shall be called before changing or saving
-// it.
-func (em *emitter) setClosureRefs(fn *runtime.Function, closureVars []ast.Upvar) {
+// setFunctionVarRefs sets the var refs of a function. setFunctionVarRefs
+// operates on current function builder, so shall be called before changing or
+// saving it.
+func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Upvar) {
 
 	// First: update the indexes of the declarations that are found at the
 	// same level of fn with appropriate register indexes.
 	for i := range closureVars {
 		v := &closureVars[i]
 		if v.Index == -1 {
-			if v.Declaration != nil {
-				name := v.Declaration.(*ast.Identifier).Name
-				reg := em.fb.scopeLookup(name)
-				v.Index = int16(reg)
-			} else {
-				v.Index = em.predVarIndex(v.PredefinedValue, v.PredefinedPkg, v.PredefinedName)
+			// If the upvar is predefined then update the index of such
+			// predefined variable.
+			if v.Declaration == nil {
+				v.Index = em.varStore.predefVarIndex(v.PredefinedValue, v.PredefinedPkg, v.PredefinedName)
+				continue
 			}
+			name := v.Declaration.(*ast.Identifier).Name
+			reg := em.fb.scopeLookup(name)
+			v.Index = int16(reg)
 		}
 	}
 
-	// Second: update closureVarRefs with external-defined names.
+	// Second: update functionClosureVars with external-defined names.
 	closureRefs := make([]int16, len(closureVars))
-	em.closureVarRefs[fn] = make(map[string]int)
+	// If it's a template, adds reserved global variables.
 	if em.isTemplate {
-		// If it's a template, adds reserved global variables.
 		closureRefs = append(closureRefs, 0, 1, 2, 3)
 	}
 	for i, v := range closureVars {
-		if v.Declaration != nil {
-			em.closureVarRefs[fn][v.Declaration.(*ast.Identifier).Name] = i
-		} else {
-			if em.predefinedVarRefs[fn] == nil {
-				em.predefinedVarRefs[fn] = map[*reflect.Value]int{}
-			}
-			em.predefinedVarRefs[fn][v.PredefinedValue] = i
-		}
 		closureRefs[i] = v.Index
+		if v.Declaration == nil {
+			em.varStore.setPredefVarRef(fn, v.PredefinedValue, int16(i))
+			continue
+		}
+		em.varStore.setClosureVar(fn, v.Declaration.(*ast.Identifier).Name, int16(i))
 	}
 
-	// Third: var refs of current function are updated.
+	// Third: update the field VarRefs of the function passed as argument.
 	fn.VarRefs = closureRefs
 
 }
@@ -367,3 +267,70 @@ var urlEscaperStartURLType = reflect.FuncOf([]reflect.Type{
 	reflect.TypeOf(bool(false)), // quoted bool
 	reflect.TypeOf(bool(false)), // isSet bool
 }, nil, false)
+
+func (em *emitter) emitValueNotPredefined(ti *TypeInfo, reg int8, dstType reflect.Type) (int8, bool) {
+	typ := ti.Type
+	if reg == 0 {
+		return reg, false
+	}
+	// Handle nil values.
+	if ti.value == nil {
+		c := em.fb.makeGeneralConstant(nil)
+		em.changeRegister(true, c, reg, typ, dstType)
+		return reg, false
+	}
+	switch v := ti.value.(type) {
+	case int64:
+		c := em.fb.makeIntConstant(v)
+		if canEmitDirectly(typ.Kind(), dstType.Kind()) {
+			em.fb.emitLoadNumber(intRegister, c, reg)
+			em.changeRegister(false, reg, reg, typ, dstType)
+			return reg, false
+		}
+		tmp := em.fb.newRegister(typ.Kind())
+		em.fb.emitLoadNumber(intRegister, c, tmp)
+		em.changeRegister(false, tmp, reg, typ, dstType)
+		return reg, false
+	case float64:
+		var c int8
+		if typ.Kind() == reflect.Float32 {
+			c = em.fb.makeFloatConstant(float64(float32(v)))
+		} else {
+			c = em.fb.makeFloatConstant(v)
+		}
+		if canEmitDirectly(typ.Kind(), dstType.Kind()) {
+			em.fb.emitLoadNumber(floatRegister, c, reg)
+			em.changeRegister(false, reg, reg, typ, dstType)
+			return reg, false
+		}
+		tmp := em.fb.newRegister(typ.Kind())
+		em.fb.emitLoadNumber(floatRegister, c, tmp)
+		em.changeRegister(false, tmp, reg, typ, dstType)
+		return reg, false
+	case string:
+		c := em.fb.makeStringConstant(v)
+		em.changeRegister(true, c, reg, typ, dstType)
+		return reg, false
+	}
+	v := reflect.ValueOf(ti.value)
+	switch v.Kind() {
+	case reflect.Interface:
+		panic("BUG: not implemented") // remove.
+	case reflect.Slice,
+		reflect.Complex64,
+		reflect.Complex128,
+		reflect.Array,
+		reflect.Chan,
+		reflect.Func,
+		reflect.Map,
+		reflect.Ptr,
+		reflect.Struct:
+		c := em.fb.makeGeneralConstant(v.Interface())
+		em.changeRegister(true, c, reg, typ, dstType)
+	case reflect.UnsafePointer:
+		panic("BUG: not implemented") // remove.
+	default:
+		panic(fmt.Errorf("unsupported value type %T", ti.value))
+	}
+	return reg, false
+}

@@ -235,11 +235,10 @@ func (builder *functionBuilder) bindVarReg(name string, reg int8) {
 	builder.scopes[len(builder.scopes)-1][name] = reg
 }
 
-// isVariable reports whether n is a variable (i.e. is a name defined in some
-// of the current scopes).
-func (builder *functionBuilder) isVariable(n string) bool {
+// isLocalVariable reports whether v is a local variable.
+func (builder *functionBuilder) isLocalVariable(v string) bool {
 	for i := len(builder.scopes) - 1; i >= 0; i-- {
-		_, ok := builder.scopes[i][n]
+		_, ok := builder.scopes[i][v]
 		if ok {
 			return true
 		}

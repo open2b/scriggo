@@ -77,6 +77,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.exitStack()
 
 		case *ast.Import:
+			// TODO: consider uniforming this code with the *ast.Import case in the emitter.
 			if em.isTemplate {
 				if node.Ident != nil && node.Ident.Name == "_" {
 					// Nothing to do: template pages cannot have
@@ -97,24 +98,18 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 							importName = ""
 						}
 					}
-					if em.functions[backupPkg] == nil {
-						em.functions[backupPkg] = map[string]*runtime.Function{}
-					}
 					for name, fn := range functions {
 						if importName == "" {
-							em.functions[backupPkg][name] = fn
+							em.fnStore.makeAvailableScriggoFn(backupPkg, name, fn)
 						} else {
-							em.functions[backupPkg][importName+"."+name] = fn
+							em.fnStore.makeAvailableScriggoFn(backupPkg, importName+"."+name, fn)
 						}
-					}
-					if em.availableVarIndexes[backupPkg] == nil {
-						em.availableVarIndexes[backupPkg] = map[string]int16{}
 					}
 					for name, v := range vars {
 						if importName == "" {
-							em.availableVarIndexes[backupPkg][name] = v
+							em.varStore.registerScriggoPackageVar(backupPkg, name, v)
 						} else {
-							em.availableVarIndexes[backupPkg][importName+"."+name] = v
+							em.varStore.registerScriggoPackageVar(backupPkg, importName+"."+name, v)
 						}
 					}
 					if len(inits) > 0 {
@@ -425,7 +420,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					addresses[i] = em.addressBlankIdent(v.Pos())
 				} else {
 					staticType := em.ti(v).Type
-					if em.indirectVars[v] {
+					if em.varStore.mustBeDeclaredAsIndirect(v) {
 						varr := -em.fb.newRegister(reflect.Interface)
 						em.fb.bindVarReg(v.Name, varr)
 						addresses[i] = em.addressNewIndirectVar(varr, staticType, v.Pos(), 0)
@@ -463,7 +458,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			} else {
 				v := v.(*ast.Identifier)
 				staticType := em.ti(v).Type
-				if em.indirectVars[v] {
+				if em.varStore.mustBeDeclaredAsIndirect(v) {
 					varReg := -em.fb.newRegister(reflect.Interface)
 					em.fb.bindVarReg(v.Name, varReg)
 					addresses[i] = em.addressNewIndirectVar(varReg, staticType, pos, node.Type)
@@ -491,8 +486,8 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			}
 			varType := em.ti(v).Type
 			// Package/closure/imported variable.
-			if index, ok := em.getVarIndex(v); ok {
-				addresses[i] = em.addressClosureVar(int16(index), varType, pos, node.Type)
+			if index, ok := em.varStore.nonLocalVarIndex(v); ok {
+				addresses[i] = em.addressNonLocalVar(int16(index), varType, pos, node.Type)
 				break
 			}
 			// Local variable.
@@ -512,8 +507,8 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				addresses[i] = em.addressSliceIndex(expr, index, exprType, pos, node.Type)
 			}
 		case *ast.Selector:
-			if index, ok := em.getVarIndex(v); ok {
-				addresses[i] = em.addressClosureVar(int16(index), em.ti(v).Type, pos, node.Type)
+			if index, ok := em.varStore.nonLocalVarIndex(v); ok {
+				addresses[i] = em.addressNonLocalVar(int16(index), em.ti(v).Type, pos, node.Type)
 				break
 			}
 			typ := em.ti(v.Expr).Type
