@@ -880,7 +880,6 @@ func (tc *typechecker) checkReturn(node *ast.Return) ast.Node {
 		panic(tc.errorf(node, "non-declaration statement outside function body"))
 	}
 
-	fillParametersTypes(fn.Type.Result)
 	expected := fn.Type.Result
 	got := node.Values
 
