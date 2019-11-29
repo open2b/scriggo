@@ -390,6 +390,16 @@ func (builder *functionBuilder) makeStringConstant(c string) int8 {
 // must always have the external representation. Any convertion, if needed, will
 // be internally handled.
 func (builder *functionBuilder) makeGeneralConstant(c interface{}) int8 {
+	// Check if a constant with the same value has already been added to the
+	// general Constants slice.
+	if typ := reflect.TypeOf(c); c != nil && typ.Comparable() {
+		kind := typ.Kind()
+		for i, v := range builder.fn.Constants.General {
+			if v != nil && reflect.TypeOf(v).Kind() == kind && c == v {
+				return int8(i)
+			}
+		}
+	}
 	r := len(builder.fn.Constants.General)
 	if r > 255 {
 		panic("general refs limit reached")

@@ -1,4 +1,4 @@
-// skip : general refs limit reached
+// skip : cannot allocate a new int register
 
 // run
 
