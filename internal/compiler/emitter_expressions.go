@@ -196,25 +196,6 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			return reg, false
 		}
 
-		// Unary operation (negation) on a complex number.
-		if exprType := ti.Type; exprType.Kind() == reflect.Complex64 || exprType.Kind() == reflect.Complex128 {
-			if expr.Operator() != ast.OperatorSubtraction {
-				panic("bug: expected operator subtraction")
-			}
-			stackShift := em.fb.currentStackShift()
-			em.fb.enterScope()
-			index := em.fb.complexOperationIndex(ast.OperatorSubtraction, true)
-			ret := em.fb.newRegister(reflect.Complex128)
-			arg := em.fb.newRegister(reflect.Complex128)
-			em.fb.enterScope()
-			em.emitExprR(expr.Expr, exprType, arg)
-			em.fb.exitScope()
-			em.fb.emitCallPredefined(index, 0, stackShift, expr.Pos())
-			em.changeRegister(false, ret, reg, exprType, dstType)
-			em.fb.exitScope()
-			return reg, false
-		}
-
 		// Emit a generic unary operator.
 		em.emitUnaryOperator(expr, reg, dstType)
 
@@ -720,6 +701,25 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 	operand := unOp.Expr
 	operandType := em.ti(operand).Type
 	unOpType := em.ti(unOp).Type
+
+	// Unary operation (negation) on a complex number.
+	if exprType := unOpType; exprType.Kind() == reflect.Complex64 || exprType.Kind() == reflect.Complex128 {
+		if unOp.Operator() != ast.OperatorSubtraction {
+			panic("bug: expected operator subtraction")
+		}
+		stackShift := em.fb.currentStackShift()
+		em.fb.enterScope()
+		index := em.fb.complexOperationIndex(ast.OperatorSubtraction, true)
+		ret := em.fb.newRegister(reflect.Complex128)
+		arg := em.fb.newRegister(reflect.Complex128)
+		em.fb.enterScope()
+		em.emitExprR(unOp.Expr, exprType, arg)
+		em.fb.exitScope()
+		em.fb.emitCallPredefined(index, 0, stackShift, unOp.Pos())
+		em.changeRegister(false, ret, reg, exprType, dstType)
+		em.fb.exitScope()
+		return
+	}
 
 	switch unOp.Operator() {
 
