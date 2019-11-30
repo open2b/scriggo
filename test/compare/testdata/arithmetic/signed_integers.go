@@ -23,8 +23,8 @@ func main() {
 		}
 	}
 
-	values16 := []int16{min16, min16 + 1, min16 + 2, min8 + 1, min8, min8 - 1, -2, -1, 0, 1, 2,
-		max8 + 1, max8, max8 - 1, max16 - 2, max16 - 1, max16}
+	values16 := []int16{min16, min16 + 1, min16 + 2, min8 - 1, min8, min8 + 1, -2, -1, 0, 1, 2,
+		max8 - 1, max8, max8 + 1, max16 - 2, max16 - 1, max16}
 
 	for _, i := range values16 {
 		for _, j := range values16 {
@@ -38,8 +38,8 @@ func main() {
 		}
 	}
 
-	values32 := []int32{min32, min32 + 1, min32 + 2, min16 + 1, min16, min16 - 1, min8 + 1, min8, min8 - 1,
-		-2, -1, 0, 1, 2, max8 + 1, max8, max8 - 1, min16 + 1, min16, min16 - 1, max32 - 2, max32 - 1, max32}
+	values32 := []int32{min32, min32 + 1, min32 + 2, min16 - 1, min16, min16 + 1, min8 - 1, min8, min8 + 1,
+		-2, -1, 0, 1, 2, max8 - 1, max8, max8 + 1, max16 - 1, max16, max16 + 1, max32 - 2, max32 - 1, max32}
 
 	for _, i := range values32 {
 		for _, j := range values32 {
@@ -53,9 +53,9 @@ func main() {
 		}
 	}
 
-	values64 := []int64{min64, min64 + 1, min64 + 2, min32 + 1, min32, min32 - 1, min16 + 1, min16, min16 - 1,
-		min8 + 1, min8, min8 - 1, -2, -1, 0, 1, 2, max8 + 1, max8, max8 - 1, max16 + 1, max16, max16 - 1,
-		max32 + 1, max32, max32 - 1, max64 - 2, max64 - 1, max64}
+	values64 := []int64{min64, min64 + 1, min64 + 2, min32 - 1, min32, min32 + 1, min16 - 1, min16, min16 + 1,
+		min8 - 1, min8, min8 + 1, -2, -1, 0, 1, 2, max8 - 1, max8, max8 + 1, max16 - 1, max16, max16 + 1,
+		max32 - 1, max32, max32 + 1, max64 - 2, max64 - 1, max64}
 
 	for _, i := range values64 {
 		for _, j := range values64 {
