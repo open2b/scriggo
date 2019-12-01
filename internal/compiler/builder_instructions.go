@@ -22,25 +22,12 @@ import (
 func (builder *functionBuilder) emitAdd(k bool, x, y, z int8, kind reflect.Kind) {
 	var op runtime.Operation
 	switch kind {
-	case reflect.Int, reflect.Uint, reflect.Uintptr:
-		op = runtime.OpAddInt64
-		if strconv.IntSize == 32 {
-			op = runtime.OpAddInt32
-		}
-	case reflect.Int64, reflect.Uint64:
-		op = runtime.OpAddInt64
-	case reflect.Int32, reflect.Uint32:
-		op = runtime.OpAddInt32
-	case reflect.Int16, reflect.Uint16:
-		op = runtime.OpAddInt16
-	case reflect.Int8, reflect.Uint8:
-		op = runtime.OpAddInt8
+	default:
+		op = runtime.OpAdd
 	case reflect.Float64:
 		op = runtime.OpAddFloat64
 	case reflect.Float32:
 		op = runtime.OpAddFloat32
-	default:
-		panic(fmt.Errorf("BUG: add: invalid kind %s", kind))
 	}
 	if k {
 		op = -op
@@ -479,6 +466,16 @@ func (builder *functionBuilder) emitIf(k bool, x int8, o runtime.Condition, y in
 	switch kindToType(kind) {
 	case intRegister:
 		op = runtime.OpIfInt
+		if o == runtime.ConditionNotEqual {
+			switch kind {
+			case reflect.Int8, reflect.Uint8:
+				o = runtime.ConditionNotEqual8
+			case reflect.Int16, reflect.Uint16:
+				o = runtime.ConditionNotEqual16
+			case reflect.Int32, reflect.Uint32:
+				o = runtime.ConditionNotEqual32
+			}
+		}
 	case floatRegister:
 		op = runtime.OpIfFloat
 	case stringRegister:
@@ -762,25 +759,12 @@ func (builder *functionBuilder) emitMove(k bool, x, z int8, kind reflect.Kind, c
 func (builder *functionBuilder) emitMul(ky bool, x, y, z int8, kind reflect.Kind) {
 	var op runtime.Operation
 	switch kind {
-	case reflect.Int, reflect.Uint, reflect.Uintptr:
-		op = runtime.OpMulInt64
-		if strconv.IntSize == 32 {
-			op = runtime.OpMulInt32
-		}
-	case reflect.Int64, reflect.Uint64:
-		op = runtime.OpMulInt64
-	case reflect.Int32, reflect.Uint32:
-		op = runtime.OpMulInt32
-	case reflect.Int16, reflect.Uint16:
-		op = runtime.OpMulInt16
-	case reflect.Int8, reflect.Uint8:
-		op = runtime.OpMulInt8
+	default:
+		op = runtime.OpMul
 	case reflect.Float64:
 		op = runtime.OpMulFloat64
 	case reflect.Float32:
 		op = runtime.OpMulFloat32
-	default:
-		panic("mul: invalid type")
 	}
 	if ky {
 		op = -op
@@ -1097,25 +1081,12 @@ func (builder *functionBuilder) emitStringSlice(klow, khigh bool, src, dst, low,
 func (builder *functionBuilder) emitSub(k bool, x, y, z int8, kind reflect.Kind) {
 	var op runtime.Operation
 	switch kind {
-	case reflect.Int, reflect.Uint, reflect.Uintptr:
-		op = runtime.OpSubInt64
-		if strconv.IntSize == 32 {
-			op = runtime.OpSubInt32
-		}
-	case reflect.Int64, reflect.Uint64:
-		op = runtime.OpSubInt64
-	case reflect.Int32, reflect.Uint32:
-		op = runtime.OpSubInt32
-	case reflect.Int16, reflect.Uint16:
-		op = runtime.OpSubInt16
-	case reflect.Int8, reflect.Uint8:
-		op = runtime.OpSubInt8
+	default:
+		op = runtime.OpSub
 	case reflect.Float64:
 		op = runtime.OpSubFloat64
 	case reflect.Float32:
 		op = runtime.OpSubFloat32
-	default:
-		panic("sub: invalid type")
 	}
 	if k {
 		op = -op
@@ -1130,25 +1101,12 @@ func (builder *functionBuilder) emitSub(k bool, x, y, z int8, kind reflect.Kind)
 func (builder *functionBuilder) emitSubInv(k bool, x, y, z int8, kind reflect.Kind) {
 	var op runtime.Operation
 	switch kind {
-	case reflect.Int, reflect.Uint, reflect.Uintptr:
-		op = runtime.OpSubInvInt64
-		if strconv.IntSize == 32 {
-			op = runtime.OpSubInvInt32
-		}
-	case reflect.Int64, reflect.Uint64:
-		op = runtime.OpSubInvInt64
-	case reflect.Int32, reflect.Uint32:
-		op = runtime.OpSubInvInt32
-	case reflect.Int16, reflect.Uint16:
-		op = runtime.OpSubInvInt16
-	case reflect.Int8, reflect.Uint8:
-		op = runtime.OpSubInvInt8
+	default:
+		op = runtime.OpSubInv
 	case reflect.Float64:
 		op = runtime.OpSubInvFloat64
 	case reflect.Float32:
 		op = runtime.OpSubInvFloat32
-	default:
-		panic("subInv: invalid type")
 	}
 	if k {
 		op = -op

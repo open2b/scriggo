@@ -60,7 +60,6 @@ func main() {
 	for _, i := range values64 {
 		for _, j := range values64 {
 			println(i, "+", j, "=", i+j)
-			println(i, "+", j, "=", i+j)
 			println(i, "-", j, "=", i-j)
 			println(i, "*", j, "=", i*j)
 			if j != 0 {

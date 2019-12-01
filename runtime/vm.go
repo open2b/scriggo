@@ -1269,12 +1269,33 @@ type Condition int8
 
 const (
 	ConditionEqual             Condition = iota // x == y
+	ConditionEqual8                             //
+	ConditionEqual16                            //
+	ConditionEqual32                            //
 	ConditionNotEqual                           // x != y
+	ConditionNotEqual8                          //
+	ConditionNotEqual16                         //
+	ConditionNotEqual32                         //
 	ConditionLess                               // x <  y
+	ConditionLess8                              //
+	ConditionLess16                             //
+	ConditionLess32                             //
+	ConditionLessU                              //
+	ConditionLessU8                             //
+	ConditionLessU16                            //
+	ConditionLessU32                            //
 	ConditionLessOrEqual                        // x <= y
+	ConditionLessOrEqual8                       //
+	ConditionLessOrEqual16                      //
+	ConditionLessOrEqual32                      //
 	ConditionGreater                            // x >  y
+	ConditionGreater8                           //
+	ConditionGreater16                          //
+	ConditionGreater32                          //
 	ConditionGreaterOrEqual                     // x >= y
-	ConditionLessU                              // x <  y (unsigned)
+	ConditionGreaterOrEqual8                    //
+	ConditionGreaterOrEqual16                   //
+	ConditionGreaterOrEqual32                   //
 	ConditionLessOrEqualU                       // x <= y (unsigned)
 	ConditionGreaterU                           // x >  y (unsigned)
 	ConditionGreaterOrEqualU                    // x >= y (unsigned)
@@ -1297,10 +1318,7 @@ type Operation int8
 const (
 	OpNone Operation = iota
 
-	OpAddInt8
-	OpAddInt16
-	OpAddInt32
-	OpAddInt64
+	OpAdd
 	OpAddFloat32
 	OpAddFloat64
 
@@ -1409,10 +1427,7 @@ const (
 
 	OpMove
 
-	OpMulInt8
-	OpMulInt16
-	OpMulInt32
-	OpMulInt64
+	OpMul
 	OpMulFloat32
 	OpMulFloat64
 
@@ -1463,17 +1478,11 @@ const (
 
 	OpStringSlice
 
-	OpSubInt8
-	OpSubInt16
-	OpSubInt32
-	OpSubInt64
+	OpSub
 	OpSubFloat32
 	OpSubFloat64
 
-	OpSubInvInt8
-	OpSubInvInt16
-	OpSubInvInt32
-	OpSubInvInt64
+	OpSubInv
 	OpSubInvFloat32
 	OpSubInvFloat64
 

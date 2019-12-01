@@ -84,16 +84,8 @@ func (vm *VM) run() (Addr, bool) {
 		switch op {
 
 		// Add
-		case OpAddInt8, -OpAddInt8:
-			vm.setInt(c, int64(int8(vm.int(a)+vm.intk(b, op < 0))))
-		case OpAddInt16, -OpAddInt16:
-			vm.setInt(c, int64(int16(vm.int(a)+vm.intk(b, op < 0))))
-		case OpAddInt32, -OpAddInt32:
-			vm.setInt(c, int64(int32(vm.int(a)+vm.intk(b, op < 0))))
-		case OpAddInt64:
-			vm.setInt(c, vm.int(a)+vm.int(b))
-		case -OpAddInt64:
-			vm.setInt(c, vm.int(a)+int64(b))
+		case OpAdd, -OpAdd:
+			vm.setInt(c, vm.int(a)+vm.intk(b, op < 0))
 		case OpAddFloat32, -OpAddFloat32:
 			vm.setFloat(c, float64(float32(vm.float(a)+vm.floatk(b, op < 0))))
 		case OpAddFloat64:
@@ -599,6 +591,12 @@ func (vm *VM) run() (Addr, bool) {
 					cond = v1 == v2
 				case ConditionNotEqual:
 					cond = v1 != v2
+				case ConditionNotEqual8:
+					cond = int8(v1) != int8(v2)
+				case ConditionNotEqual16:
+					cond = int16(v1) != int16(v2)
+				case ConditionNotEqual32:
+					cond = int32(v1) != int32(v2)
 				case ConditionLess:
 					cond = v1 < v2
 				case ConditionLessOrEqual:
@@ -832,16 +830,8 @@ func (vm *VM) run() (Addr, bool) {
 			}
 
 		// Mul
-		case OpMulInt8, -OpMulInt8:
-			vm.setInt(c, int64(int8(vm.int(a)*vm.intk(b, op < 0))))
-		case OpMulInt16, -OpMulInt16:
-			vm.setInt(c, int64(int16(vm.int(a)*vm.intk(b, op < 0))))
-		case OpMulInt32, -OpMulInt32:
-			vm.setInt(c, int64(int32(vm.int(a)*vm.intk(b, op < 0))))
-		case OpMulInt64:
-			vm.setInt(c, vm.int(a)*vm.int(b))
-		case -OpMulInt64:
-			vm.setInt(c, vm.int(a)*int64(b))
+		case OpMul, -OpMul:
+			vm.setInt(c, vm.int(a)*vm.intk(b, op < 0))
 		case OpMulFloat32, -OpMulFloat32:
 			vm.setFloat(c, float64(float32(vm.float(a))*float32(vm.floatk(b, op < 0))))
 		case OpMulFloat64:
@@ -1565,31 +1555,15 @@ func (vm *VM) run() (Addr, bool) {
 			vm.pc++
 
 		// Sub
-		case OpSubInt8, -OpSubInt8:
-			vm.setInt(c, int64(int8(vm.int(a)-vm.intk(b, op < 0))))
-		case OpSubInt16, -OpSubInt16:
-			vm.setInt(c, int64(int16(vm.int(a)-vm.intk(b, op < 0))))
-		case OpSubInt32, -OpSubInt32:
-			vm.setInt(c, int64(int32(vm.int(a)-vm.intk(b, op < 0))))
-		case OpSubFloat32, -OpSubFloat32:
-			vm.setFloat(c, float64(float32(vm.float(a))-float32(vm.floatk(b, op < 0))))
-		case OpSubInt64:
-			vm.setInt(c, vm.int(a)-vm.int(b))
-		case -OpSubInt64:
-			vm.setInt(c, vm.int(a)-int64(b))
+		case OpSub, -OpSub:
+			vm.setInt(c, vm.int(a)-vm.intk(b, op < 0))
 		case OpSubFloat64:
 			vm.setFloat(c, vm.float(a)-vm.float(b))
 		case -OpSubFloat64:
 			vm.setFloat(c, vm.float(a)-float64(b))
 
 		// SubInv
-		case OpSubInvInt8, -OpSubInvInt8:
-			vm.setInt(c, int64(int8(vm.intk(b, op < 0)-vm.int(a))))
-		case OpSubInvInt16, -OpSubInvInt16:
-			vm.setInt(c, int64(int16(vm.intk(b, op < 0)-vm.int(a))))
-		case OpSubInvInt32, -OpSubInvInt32:
-			vm.setInt(c, int64(int32(vm.intk(b, op < 0)-vm.int(a))))
-		case OpSubInvInt64, -OpSubInvInt64:
+		case OpSubInv, -OpSubInv:
 			vm.setInt(c, vm.intk(b, op < 0)-vm.int(a))
 		case OpSubInvFloat32, -OpSubInvFloat32:
 			vm.setFloat(c, float64(float32(vm.floatk(b, op < 0))-float32(vm.float(a))))
