@@ -286,10 +286,8 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		runtime.OpDivInt64, runtime.OpDivInt8, runtime.OpDivInt16, runtime.OpDivInt32, runtime.OpDivUint8, runtime.OpDivUint16, runtime.OpDivUint32, runtime.OpDivUint64,
 		runtime.OpMul,
 		runtime.OpRemInt64, runtime.OpRemInt8, runtime.OpRemInt16, runtime.OpRemInt32, runtime.OpRemUint8, runtime.OpRemUint16, runtime.OpRemUint32, runtime.OpRemUint64,
-		runtime.OpSub,
-		runtime.OpSubInv,
-		runtime.OpLeftShift64, runtime.OpLeftShift8, runtime.OpLeftShift16, runtime.OpLeftShift32,
-		runtime.OpRightShift, runtime.OpRightShiftU:
+		runtime.OpSub, runtime.OpSubInv,
+		runtime.OpLeftShift, runtime.OpRightShift, runtime.OpRightShiftU:
 		s += " " + disassembleOperand(fn, a, reflect.Int, false)
 		s += " " + disassembleOperand(fn, b, reflect.Int, k)
 		s += " " + disassembleOperand(fn, c, reflect.Int, false)
@@ -414,28 +412,28 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	case runtime.OpIf:
 		switch runtime.Condition(b) {
 		case runtime.ConditionOK, runtime.ConditionNotOK:
-			s += " " + conditionName[b]
+			s += " " + conditionName(b)
 		case runtime.ConditionEqual, runtime.ConditionNotEqual:
 			s += " " + disassembleOperand(fn, a, reflect.Interface, false)
-			s += " " + conditionName[b]
+			s += " " + conditionName(b)
 			s += " " + disassembleOperand(fn, c, reflect.Interface, k)
 		default:
-			s += " " + conditionName[b]
+			s += " " + conditionName(b)
 			s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 		}
 	case runtime.OpIfInt:
 		s += " " + disassembleOperand(fn, a, reflect.Int, false)
-		s += " " + conditionName[b]
+		s += " " + conditionName(b)
 		if runtime.Condition(b) >= runtime.ConditionEqual {
 			s += " " + disassembleOperand(fn, c, reflect.Int, k)
 		}
 	case runtime.OpIfFloat:
 		s += " " + disassembleOperand(fn, a, reflect.Float64, false)
-		s += " " + conditionName[b]
+		s += " " + conditionName(b)
 		s += " " + disassembleOperand(fn, c, reflect.Float64, k)
 	case runtime.OpIfString:
 		s += " " + disassembleOperand(fn, a, reflect.String, false)
-		s += " " + conditionName[b]
+		s += " " + conditionName(b)
 		if runtime.Condition(b) < runtime.ConditionEqualLen {
 			if k && c >= 0 {
 				s += " " + strconv.Quote(string(c))
@@ -804,7 +802,7 @@ var operationName = [...]string{
 	runtime.OpNone: "Nop",
 
 	runtime.OpAdd:        "Add",
-	runtime.OpAddFloat32: "Add32",
+	runtime.OpAddFloat32: "Add",
 	runtime.OpAddFloat64: "Add",
 
 	runtime.OpAddr: "Addr",
@@ -855,14 +853,14 @@ var operationName = [...]string{
 	runtime.OpDelete: "Delete",
 
 	runtime.OpDivInt64:   "Div",
-	runtime.OpDivInt8:    "Div8",
-	runtime.OpDivInt16:   "Div16",
-	runtime.OpDivInt32:   "Div32",
-	runtime.OpDivUint8:   "DivU8",
-	runtime.OpDivUint16:  "DivU16",
-	runtime.OpDivUint32:  "DivU32",
-	runtime.OpDivUint64:  "DivU64",
-	runtime.OpDivFloat32: "Div32",
+	runtime.OpDivInt8:    "Div",
+	runtime.OpDivInt16:   "Div",
+	runtime.OpDivInt32:   "Div",
+	runtime.OpDivUint8:   "Div",
+	runtime.OpDivUint16:  "Div",
+	runtime.OpDivUint32:  "Div",
+	runtime.OpDivUint64:  "Div",
+	runtime.OpDivFloat32: "Div",
 	runtime.OpDivFloat64: "Div",
 
 	runtime.OpGetVar: "GetVar",
@@ -883,10 +881,7 @@ var operationName = [...]string{
 
 	runtime.OpIndexRef: "IndexRef",
 
-	runtime.OpLeftShift64: "LeftShift",
-	runtime.OpLeftShift8:  "LeftShift8",
-	runtime.OpLeftShift16: "LeftShift16",
-	runtime.OpLeftShift32: "LeftShift32",
+	runtime.OpLeftShift: "LeftShift",
 
 	runtime.OpLen: "Len",
 
@@ -909,7 +904,7 @@ var operationName = [...]string{
 	runtime.OpMove: "Move",
 
 	runtime.OpMul:        "Mul",
-	runtime.OpMulFloat32: "Mul32",
+	runtime.OpMulFloat32: "Mul",
 	runtime.OpMulFloat64: "Mul",
 
 	runtime.OpNew: "New",
@@ -931,13 +926,13 @@ var operationName = [...]string{
 	runtime.OpRecover: "Recover",
 
 	runtime.OpRemInt64:  "Rem",
-	runtime.OpRemInt8:   "Rem8",
-	runtime.OpRemInt16:  "Rem16",
-	runtime.OpRemInt32:  "Rem32",
-	runtime.OpRemUint8:  "RemU8",
-	runtime.OpRemUint16: "RemU16",
-	runtime.OpRemUint32: "RemU32",
-	runtime.OpRemUint64: "RemU64",
+	runtime.OpRemInt8:   "Rem",
+	runtime.OpRemInt16:  "Rem",
+	runtime.OpRemInt32:  "Rem",
+	runtime.OpRemUint8:  "Rem",
+	runtime.OpRemUint16: "Rem",
+	runtime.OpRemUint32: "Rem",
+	runtime.OpRemUint64: "Rem",
 
 	runtime.OpReturn: "Return",
 
@@ -965,11 +960,11 @@ var operationName = [...]string{
 	runtime.OpStringSlice: "Slice",
 
 	runtime.OpSub:        "Sub",
-	runtime.OpSubFloat32: "Sub32",
+	runtime.OpSubFloat32: "Sub",
 	runtime.OpSubFloat64: "Sub",
 
 	runtime.OpSubInv:        "SubInv",
-	runtime.OpSubInvFloat32: "SubInv32",
+	runtime.OpSubInvFloat32: "SubInv",
 	runtime.OpSubInvFloat64: "SubInv",
 
 	runtime.OpTailCall: "TailCall",
@@ -979,30 +974,44 @@ var operationName = [...]string{
 	runtime.OpXor: "Xor",
 }
 
-var conditionName = [...]string{
-	runtime.ConditionEqual:             "Equal",
-	runtime.ConditionNotEqual:          "NotEqual",
-	runtime.ConditionNotEqual8:         "NotEqual8",
-	runtime.ConditionNotEqual16:        "NotEqual16",
-	runtime.ConditionNotEqual32:        "NotEqual32",
-	runtime.ConditionLess:              "Less",
-	runtime.ConditionLessOrEqual:       "LessOrEqual",
-	runtime.ConditionGreater:           "Greater",
-	runtime.ConditionGreaterOrEqual:    "GreaterOrEqual",
-	runtime.ConditionEqualLen:          "EqualLen",
-	runtime.ConditionNotEqualLen:       "NotEqualLen",
-	runtime.ConditionLessLen:           "LessLen",
-	runtime.ConditionLessOrEqualLen:    "LessOrEqualLen",
-	runtime.ConditionGreaterLen:        "GreaterOrEqualLen",
-	runtime.ConditionGreaterOrEqualLen: "GreaterOrEqualLen",
-	runtime.ConditionLessU:             "ConditionLessU",
-	runtime.ConditionLessOrEqualU:      "ConditionLessOrEqualU",
-	runtime.ConditionGreaterU:          "ConditionGreaterU",
-	runtime.ConditionGreaterOrEqualU:   "ConditionGreaterOrEqualU",
-	runtime.ConditionInterfaceNil:      "InterfaceNil",
-	runtime.ConditionInterfaceNotNil:   "InterfaceNotNil",
-	runtime.ConditionNil:               "Nil",
-	runtime.ConditionNotNil:            "NotNil",
-	runtime.ConditionOK:                "OK",
-	runtime.ConditionNotOK:             "NotOK",
+func conditionName(c int8) string {
+	switch c := runtime.Condition(c); {
+	case c == runtime.ConditionOK:
+		return "OK"
+	case c == runtime.ConditionNotOK:
+		return "NotOK"
+	case c == runtime.ConditionNil:
+		return "Nil"
+	case c == runtime.ConditionNotNil:
+		return "NotNil"
+	case c == runtime.ConditionInterfaceNil:
+		return "InterfaceNil"
+	case c == runtime.ConditionInterfaceNotNil:
+		return "InterfaceNotNil"
+	case c == runtime.ConditionEqualLen:
+		return "LenEqual"
+	case c == runtime.ConditionNotEqualLen:
+		return "LenNotEqual"
+	case c == runtime.ConditionLessLen:
+		return "LenLess"
+	case c == runtime.ConditionLessEqualLen:
+		return "LenLessEqual"
+	case c == runtime.ConditionGreaterLen:
+		return "LenGreater"
+	case c == runtime.ConditionGreaterEqualLen:
+		return "LenGreaterEqual"
+	case runtime.ConditionEqual <= c && c <= runtime.ConditionEqualU64:
+		return "Equal"
+	case runtime.ConditionNotEqual <= c && c <= runtime.ConditionNotEqualU64:
+		return "NotEqual"
+	case runtime.ConditionLess <= c && c <= runtime.ConditionLessU64:
+		return "Less"
+	case runtime.ConditionLessEqual <= c && c <= runtime.ConditionLessEqualU64:
+		return "LessEqual"
+	case runtime.ConditionGreater <= c && c <= runtime.ConditionGreaterU64:
+		return "Greater"
+	case runtime.ConditionGreaterEqual <= c && c <= runtime.ConditionGreaterEqualU64:
+		return "GreaterEqual"
+	}
+	panic("scriggo: invalid condition")
 }

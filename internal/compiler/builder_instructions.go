@@ -217,6 +217,20 @@ func (builder *functionBuilder) emitContinue(lab label) {
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpContinue, A: a, B: b, C: c})
 }
 
+func sizeOfInteger(k reflect.Kind) int {
+	switch k {
+	case reflect.Int8, reflect.Uint8:
+		return 1
+	case reflect.Int16, reflect.Uint16:
+		return 2
+	case reflect.Int32, reflect.Uint32:
+		return 4
+	case reflect.Int, reflect.Uint, reflect.Int64, reflect.Uint64, reflect.Uintptr:
+		return 8
+	}
+	panic("invalid kind")
+}
+
 // emitConvert appends a new "Convert" instruction to the function body.
 //
 // 	 dst = typ(src)
@@ -232,16 +246,22 @@ func (builder *functionBuilder) emitConvert(src int8, typ reflect.Type, dst int8
 			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
 		}
 	case intRegister:
-		switch srcKind {
-		case reflect.Uint,
-			reflect.Uint8,
-			reflect.Uint16,
-			reflect.Uint32,
-			reflect.Uint64,
-			reflect.Uintptr:
-			op = runtime.OpConvertUint
-		default:
-			op = runtime.OpConvertInt
+		op = runtime.OpConvertInt
+		if dstKind := typ.Kind(); reflect.Int <= dstKind && dstKind <= reflect.Uintptr {
+			if sizeOfInteger(srcKind) < sizeOfInteger(dstKind) {
+				builder.emitMove(false, src, dst, srcKind, false)
+				return
+			}
+		} else {
+			switch srcKind {
+			case reflect.Uint,
+				reflect.Uint8,
+				reflect.Uint16,
+				reflect.Uint32,
+				reflect.Uint64,
+				reflect.Uintptr:
+				op = runtime.OpConvertUint
+			}
 		}
 	case stringRegister:
 		op = runtime.OpConvertString
@@ -466,14 +486,108 @@ func (builder *functionBuilder) emitIf(k bool, x int8, o runtime.Condition, y in
 	switch kindToType(kind) {
 	case intRegister:
 		op = runtime.OpIfInt
-		if o == runtime.ConditionNotEqual {
+		switch o {
+		case runtime.ConditionEqual:
 			switch kind {
-			case reflect.Int8, reflect.Uint8:
+			case reflect.Int8:
+				o = runtime.ConditionEqual8
+			case reflect.Int16:
+				o = runtime.ConditionEqual16
+			case reflect.Int32:
+				o = runtime.ConditionEqual32
+			case reflect.Uint8:
+				o = runtime.ConditionEqualU8
+			case reflect.Uint16:
+				o = runtime.ConditionEqualU16
+			case reflect.Uint32:
+				o = runtime.ConditionEqualU32
+			case reflect.Uint64:
+				o = runtime.ConditionEqualU64
+			}
+		case runtime.ConditionNotEqual:
+			switch kind {
+			case reflect.Int8:
 				o = runtime.ConditionNotEqual8
-			case reflect.Int16, reflect.Uint16:
+			case reflect.Int16:
 				o = runtime.ConditionNotEqual16
-			case reflect.Int32, reflect.Uint32:
+			case reflect.Int32:
 				o = runtime.ConditionNotEqual32
+			case reflect.Uint8:
+				o = runtime.ConditionNotEqualU8
+			case reflect.Uint16:
+				o = runtime.ConditionNotEqualU16
+			case reflect.Uint32:
+				o = runtime.ConditionNotEqualU32
+			case reflect.Uint64:
+				o = runtime.ConditionNotEqualU64
+			}
+		case runtime.ConditionLess:
+			switch kind {
+			case reflect.Int8:
+				o = runtime.ConditionLess8
+			case reflect.Int16:
+				o = runtime.ConditionLess16
+			case reflect.Int32:
+				o = runtime.ConditionLess32
+			case reflect.Uint8:
+				o = runtime.ConditionLessU8
+			case reflect.Uint16:
+				o = runtime.ConditionLessU16
+			case reflect.Uint32:
+				o = runtime.ConditionLessU32
+			case reflect.Uint64:
+				o = runtime.ConditionLessU64
+			}
+		case runtime.ConditionLessEqual:
+			switch kind {
+			case reflect.Int8:
+				o = runtime.ConditionLessEqual8
+			case reflect.Int16:
+				o = runtime.ConditionLessEqual16
+			case reflect.Int32:
+				o = runtime.ConditionLessEqual32
+			case reflect.Uint8:
+				o = runtime.ConditionLessEqualU8
+			case reflect.Uint16:
+				o = runtime.ConditionLessEqualU16
+			case reflect.Uint32:
+				o = runtime.ConditionLessEqualU32
+			case reflect.Uint64:
+				o = runtime.ConditionLessEqualU64
+			}
+		case runtime.ConditionGreater:
+			switch kind {
+			case reflect.Int8:
+				o = runtime.ConditionGreater8
+			case reflect.Int16:
+				o = runtime.ConditionGreater16
+			case reflect.Int32:
+				o = runtime.ConditionGreater32
+			case reflect.Uint8:
+				o = runtime.ConditionGreaterU8
+			case reflect.Uint16:
+				o = runtime.ConditionGreaterU16
+			case reflect.Uint32:
+				o = runtime.ConditionGreaterU32
+			case reflect.Uint64:
+				o = runtime.ConditionGreaterU64
+			}
+		case runtime.ConditionGreaterEqual:
+			switch kind {
+			case reflect.Int8:
+				o = runtime.ConditionGreaterEqual8
+			case reflect.Int16:
+				o = runtime.ConditionGreaterEqual16
+			case reflect.Int32:
+				o = runtime.ConditionGreaterEqual32
+			case reflect.Uint8:
+				o = runtime.ConditionGreaterEqualU8
+			case reflect.Uint16:
+				o = runtime.ConditionGreaterEqualU16
+			case reflect.Uint32:
+				o = runtime.ConditionGreaterEqualU32
+			case reflect.Uint64:
+				o = runtime.ConditionGreaterEqualU64
 			}
 		}
 	case floatRegister:
@@ -536,22 +650,7 @@ func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType r
 //     z = x << y
 //
 func (builder *functionBuilder) emitLeftShift(k bool, x, y, z int8, kind reflect.Kind) {
-	var op runtime.Operation
-	switch kind {
-	case reflect.Int, reflect.Uint, reflect.Uintptr:
-		op = runtime.OpLeftShift64
-		if strconv.IntSize == 32 {
-			op = runtime.OpLeftShift32
-		}
-	case reflect.Int8, reflect.Uint8:
-		op = runtime.OpLeftShift8
-	case reflect.Int16, reflect.Uint16:
-		op = runtime.OpLeftShift16
-	case reflect.Int32, reflect.Uint32:
-		op = runtime.OpLeftShift32
-	case reflect.Int64, reflect.Uint64:
-		op = runtime.OpLeftShift64
-	}
+	op := runtime.OpLeftShift
 	if k {
 		op = -op
 	}

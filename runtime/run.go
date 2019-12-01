@@ -370,13 +370,13 @@ func (vm *VM) run() (Addr, bool) {
 			case reflect.Int64:
 				vm.setInt(c, v)
 			case reflect.Uint, reflect.Uintptr:
-				vm.setInt(c, int64(int(uint(v))))
+				vm.setInt(c, int64(uint(v)))
 			case reflect.Uint8:
-				vm.setInt(c, int64(int8(uint8(v))))
+				vm.setInt(c, int64(uint8(v)))
 			case reflect.Uint16:
-				vm.setInt(c, int64(int16(uint16(v))))
+				vm.setInt(c, int64(uint16(v)))
 			case reflect.Uint32:
-				vm.setInt(c, int64(int32(uint32(v))))
+				vm.setInt(c, int64(uint32(v)))
 			case reflect.Uint64:
 				vm.setInt(c, v)
 			case reflect.Float32:
@@ -390,26 +390,6 @@ func (vm *VM) run() (Addr, bool) {
 			t := vm.fn.Types[uint8(b)]
 			v := uint64(vm.int(a))
 			switch t.Kind() {
-			case reflect.Int:
-				vm.setInt(c, int64(int(v)))
-			case reflect.Int8:
-				vm.setInt(c, int64(int8(v)))
-			case reflect.Int16:
-				vm.setInt(c, int64(int16(v)))
-			case reflect.Int32:
-				vm.setInt(c, int64(int32(v)))
-			case reflect.Int64:
-				vm.setInt(c, int64(v))
-			case reflect.Uint, reflect.Uintptr:
-				vm.setInt(c, int64(uint(v)))
-			case reflect.Uint8:
-				vm.setInt(c, int64(uint8(v)))
-			case reflect.Uint16:
-				vm.setInt(c, int64(uint16(v)))
-			case reflect.Uint32:
-				vm.setInt(c, int64(uint32(v)))
-			case reflect.Uint64:
-				vm.setInt(c, int64(v))
 			case reflect.Float32:
 				vm.setFloat(c, float64(float32(v)))
 			case reflect.Float64:
@@ -570,42 +550,105 @@ func (vm *VM) run() (Addr, bool) {
 			}
 		case OpIfInt, -OpIfInt:
 			var cond bool
-			if ConditionLessU <= Condition(b) && Condition(b) <= ConditionGreaterOrEqualU {
-				v1 := uint64(vm.int(a))
-				v2 := uint64(vm.intk(c, op < 0))
-				switch Condition(b) {
-				case ConditionLessU:
-					cond = v1 < v2
-				case ConditionLessOrEqualU:
-					cond = v1 <= v2
-				case ConditionGreaterU:
-					cond = v1 > v2
-				case ConditionGreaterOrEqualU:
-					cond = v1 >= v2
-				}
-			} else {
-				v1 := vm.int(a)
-				v2 := int64(vm.intk(c, op < 0))
-				switch Condition(b) {
-				case ConditionEqual:
-					cond = v1 == v2
-				case ConditionNotEqual:
-					cond = v1 != v2
-				case ConditionNotEqual8:
-					cond = int8(v1) != int8(v2)
-				case ConditionNotEqual16:
-					cond = int16(v1) != int16(v2)
-				case ConditionNotEqual32:
-					cond = int32(v1) != int32(v2)
-				case ConditionLess:
-					cond = v1 < v2
-				case ConditionLessOrEqual:
-					cond = v1 <= v2
-				case ConditionGreater:
-					cond = v1 > v2
-				case ConditionGreaterOrEqual:
-					cond = v1 >= v2
-				}
+			v1 := vm.int(a)
+			v2 := vm.intk(c, op < 0)
+			switch Condition(b) {
+			case ConditionEqual:
+				cond = v1 == v2
+			case ConditionEqual8:
+				cond = int8(v1) == int8(v2)
+			case ConditionEqual16:
+				cond = int16(v1) == int16(v2)
+			case ConditionEqual32:
+				cond = int32(v1) == int32(v2)
+			case ConditionEqualU8:
+				cond = uint8(v1) == uint8(v2)
+			case ConditionEqualU16:
+				cond = uint16(v1) == uint16(v2)
+			case ConditionEqualU32:
+				cond = uint32(v1) == uint32(v2)
+			case ConditionEqualU64:
+				cond = uint64(v1) == uint64(v2)
+			case ConditionNotEqual:
+				cond = v1 != v2
+			case ConditionNotEqual8:
+				cond = int8(v1) != int8(v2)
+			case ConditionNotEqual16:
+				cond = int16(v1) != int16(v2)
+			case ConditionNotEqual32:
+				cond = int32(v1) != int32(v2)
+			case ConditionNotEqualU8:
+				cond = uint8(v1) != uint8(v2)
+			case ConditionNotEqualU16:
+				cond = uint16(v1) != uint16(v2)
+			case ConditionNotEqualU32:
+				cond = uint32(v1) != uint32(v2)
+			case ConditionNotEqualU64:
+				cond = uint64(v1) != uint64(v2)
+			case ConditionLess:
+				cond = v1 < v2
+			case ConditionLess8:
+				cond = int8(v1) < int8(v2)
+			case ConditionLess16:
+				cond = int16(v1) < int16(v2)
+			case ConditionLess32:
+				cond = int32(v1) < int32(v2)
+			case ConditionLessU8:
+				cond = uint8(v1) < uint8(v2)
+			case ConditionLessU16:
+				cond = uint16(v1) < uint16(v2)
+			case ConditionLessU32:
+				cond = uint32(v1) < uint32(v2)
+			case ConditionLessU64:
+				cond = uint64(v1) < uint64(v2)
+			case ConditionLessEqual:
+				cond = v1 <= v2
+			case ConditionLessEqual8:
+				cond = int8(v1) <= int8(v2)
+			case ConditionLessEqual16:
+				cond = int16(v1) <= int16(v2)
+			case ConditionLessEqual32:
+				cond = int32(v1) <= int32(v2)
+			case ConditionLessEqualU8:
+				cond = uint8(v1) <= uint8(v2)
+			case ConditionLessEqualU16:
+				cond = uint16(v1) <= uint16(v2)
+			case ConditionLessEqualU32:
+				cond = uint32(v1) <= uint32(v2)
+			case ConditionLessEqualU64:
+				cond = uint64(v1) <= uint64(v2)
+			case ConditionGreater:
+				cond = v1 > v2
+			case ConditionGreater8:
+				cond = int8(v1) > int8(v2)
+			case ConditionGreater16:
+				cond = int16(v1) > int16(v2)
+			case ConditionGreater32:
+				cond = int32(v1) > int32(v2)
+			case ConditionGreaterU8:
+				cond = uint8(v1) > uint8(v2)
+			case ConditionGreaterU16:
+				cond = uint16(v1) > uint16(v2)
+			case ConditionGreaterU32:
+				cond = uint32(v1) > uint32(v2)
+			case ConditionGreaterU64:
+				cond = uint64(v1) > uint64(v2)
+			case ConditionGreaterEqual:
+				cond = v1 >= v2
+			case ConditionGreaterEqual8:
+				cond = int8(v1) >= int8(v2)
+			case ConditionGreaterEqual16:
+				cond = int16(v1) >= int16(v2)
+			case ConditionGreaterEqual32:
+				cond = int32(v1) >= int32(v2)
+			case ConditionGreaterEqualU8:
+				cond = uint8(v1) >= uint8(v2)
+			case ConditionGreaterEqualU16:
+				cond = uint16(v1) >= uint16(v2)
+			case ConditionGreaterEqualU32:
+				cond = uint32(v1) >= uint32(v2)
+			case ConditionGreaterEqualU64:
+				cond = uint64(v1) >= uint64(v2)
 			}
 			if cond {
 				vm.pc++
@@ -621,11 +664,11 @@ func (vm *VM) run() (Addr, bool) {
 				cond = v1 != v2
 			case ConditionLess:
 				cond = v1 < v2
-			case ConditionLessOrEqual:
+			case ConditionLessEqual:
 				cond = v1 <= v2
 			case ConditionGreater:
 				cond = v1 > v2
-			case ConditionGreaterOrEqual:
+			case ConditionGreaterEqual:
 				cond = v1 >= v2
 			}
 			if cond {
@@ -643,11 +686,11 @@ func (vm *VM) run() (Addr, bool) {
 					cond = v1 != v2
 				case ConditionLess:
 					cond = v1 < v2
-				case ConditionLessOrEqual:
+				case ConditionLessEqual:
 					cond = v1 <= v2
 				case ConditionGreater:
 					cond = v1 > v2
-				case ConditionGreaterOrEqual:
+				case ConditionGreaterEqual:
 					cond = v1 >= v2
 				}
 			} else {
@@ -659,11 +702,11 @@ func (vm *VM) run() (Addr, bool) {
 					cond = len(v1) != v2
 				case ConditionLessLen:
 					cond = len(v1) < v2
-				case ConditionLessOrEqualLen:
+				case ConditionLessEqualLen:
 					cond = len(v1) <= v2
 				case ConditionGreaterLen:
 					cond = len(v1) > v2
-				case ConditionGreaterOrEqualLen:
+				case ConditionGreaterEqualLen:
 					cond = len(v1) >= v2
 				}
 			}
@@ -688,13 +731,7 @@ func (vm *VM) run() (Addr, bool) {
 			vm.setFromReflectValue(c, v.Index(i))
 
 		// LeftShift
-		case OpLeftShift8, -OpLeftShift8:
-			vm.setInt(c, int64(int8(vm.int(a))<<uint(vm.intk(b, op < 0))))
-		case OpLeftShift16, -OpLeftShift16:
-			vm.setInt(c, int64(int16(vm.int(a))<<uint(vm.intk(b, op < 0))))
-		case OpLeftShift32, -OpLeftShift32:
-			vm.setInt(c, int64(int32(vm.int(a))<<uint(vm.intk(b, op < 0))))
-		case OpLeftShift64, -OpLeftShift64:
+		case OpLeftShift, -OpLeftShift:
 			vm.setInt(c, vm.int(a)<<uint(vm.intk(b, op < 0)))
 
 		// Len
@@ -1557,6 +1594,8 @@ func (vm *VM) run() (Addr, bool) {
 		// Sub
 		case OpSub, -OpSub:
 			vm.setInt(c, vm.int(a)-vm.intk(b, op < 0))
+		case OpSubFloat32, -OpSubFloat32:
+			vm.setFloat(c, float64(float32(vm.float(a))-float32(vm.floatk(b, op < 0))))
 		case OpSubFloat64:
 			vm.setFloat(c, vm.float(a)-vm.float(b))
 		case -OpSubFloat64:

@@ -435,26 +435,14 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 		return reg, false
 	case ast.OperatorEqual, ast.OperatorNotEqual, ast.OperatorLess, ast.OperatorLessOrEqual,
 		ast.OperatorGreaterOrEqual, ast.OperatorGreater:
-		var cond runtime.Condition
-		if kind := t1.Kind(); reflect.Uint <= kind && kind <= reflect.Uintptr {
-			cond = map[ast.OperatorType]runtime.Condition{
-				ast.OperatorEqual:          runtime.ConditionEqual,    // same as signed integers
-				ast.OperatorNotEqual:       runtime.ConditionNotEqual, // same as signed integers
-				ast.OperatorLess:           runtime.ConditionLessU,
-				ast.OperatorLessOrEqual:    runtime.ConditionLessOrEqualU,
-				ast.OperatorGreater:        runtime.ConditionGreaterU,
-				ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqualU,
-			}[expr.Operator()]
-		} else {
-			cond = map[ast.OperatorType]runtime.Condition{
-				ast.OperatorEqual:          runtime.ConditionEqual,
-				ast.OperatorNotEqual:       runtime.ConditionNotEqual,
-				ast.OperatorLess:           runtime.ConditionLess,
-				ast.OperatorLessOrEqual:    runtime.ConditionLessOrEqual,
-				ast.OperatorGreater:        runtime.ConditionGreater,
-				ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqual,
-			}[expr.Operator()]
-		}
+		cond := map[ast.OperatorType]runtime.Condition{
+			ast.OperatorEqual:          runtime.ConditionEqual,
+			ast.OperatorNotEqual:       runtime.ConditionNotEqual,
+			ast.OperatorLess:           runtime.ConditionLess,
+			ast.OperatorLessOrEqual:    runtime.ConditionLessEqual,
+			ast.OperatorGreater:        runtime.ConditionGreater,
+			ast.OperatorGreaterOrEqual: runtime.ConditionGreaterEqual,
+		}[expr.Operator()]
 		pos := expr.Pos()
 		if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
 			em.fb.emitMove(true, 1, reg, reflect.Bool, false)

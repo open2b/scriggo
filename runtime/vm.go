@@ -1268,49 +1268,76 @@ func kindToType(k reflect.Kind) registerType {
 type Condition int8
 
 const (
-	ConditionEqual             Condition = iota // x == y
-	ConditionEqual8                             //
-	ConditionEqual16                            //
-	ConditionEqual32                            //
-	ConditionNotEqual                           // x != y
-	ConditionNotEqual8                          //
-	ConditionNotEqual16                         //
-	ConditionNotEqual32                         //
-	ConditionLess                               // x <  y
-	ConditionLess8                              //
-	ConditionLess16                             //
-	ConditionLess32                             //
-	ConditionLessU                              //
-	ConditionLessU8                             //
-	ConditionLessU16                            //
-	ConditionLessU32                            //
-	ConditionLessOrEqual                        // x <= y
-	ConditionLessOrEqual8                       //
-	ConditionLessOrEqual16                      //
-	ConditionLessOrEqual32                      //
-	ConditionGreater                            // x >  y
-	ConditionGreater8                           //
-	ConditionGreater16                          //
-	ConditionGreater32                          //
-	ConditionGreaterOrEqual                     // x >= y
-	ConditionGreaterOrEqual8                    //
-	ConditionGreaterOrEqual16                   //
-	ConditionGreaterOrEqual32                   //
-	ConditionLessOrEqualU                       // x <= y (unsigned)
-	ConditionGreaterU                           // x >  y (unsigned)
-	ConditionGreaterOrEqualU                    // x >= y (unsigned)
-	ConditionEqualLen                           // len(x) == y
-	ConditionNotEqualLen                        // len(x) != y
-	ConditionLessLen                            // len(x) <  y
-	ConditionLessOrEqualLen                     // len(x) <= y
-	ConditionGreaterLen                         // len(x) >  y
-	ConditionGreaterOrEqualLen                  // len(x) >= y
-	ConditionInterfaceNil                       // x == nil
-	ConditionInterfaceNotNil                    // x != nil
-	ConditionNil                                // x == nil
-	ConditionNotNil                             // x != nil
-	ConditionOK                                 // [vm.ok]
-	ConditionNotOK                              // ![vm.ok]
+	ConditionEqual Condition = iota // x == y
+	ConditionEqual8
+	ConditionEqual16
+	ConditionEqual32
+	ConditionEqualU8
+	ConditionEqualU16
+	ConditionEqualU32
+	ConditionEqualU64
+
+	ConditionNotEqual // x != y
+	ConditionNotEqual8
+	ConditionNotEqual16
+	ConditionNotEqual32
+	ConditionNotEqualU8
+	ConditionNotEqualU16
+	ConditionNotEqualU32
+	ConditionNotEqualU64
+
+	ConditionLess // x < y
+	ConditionLess8
+	ConditionLess16
+	ConditionLess32
+	ConditionLessU8
+	ConditionLessU16
+	ConditionLessU32
+	ConditionLessU64
+
+	ConditionLessEqual // x <= y
+	ConditionLessEqual8
+	ConditionLessEqual16
+	ConditionLessEqual32
+	ConditionLessEqualU8
+	ConditionLessEqualU16
+	ConditionLessEqualU32
+	ConditionLessEqualU64
+
+	ConditionGreater // x > y
+	ConditionGreater8
+	ConditionGreater16
+	ConditionGreater32
+	ConditionGreaterU8
+	ConditionGreaterU16
+	ConditionGreaterU32
+	ConditionGreaterU64
+
+	ConditionGreaterEqual // x >= y
+	ConditionGreaterEqual8
+	ConditionGreaterEqual16
+	ConditionGreaterEqual32
+	ConditionGreaterEqualU8
+	ConditionGreaterEqualU16
+	ConditionGreaterEqualU32
+	ConditionGreaterEqualU64
+
+	ConditionEqualLen        // len(x) == y
+	ConditionNotEqualLen     // len(x) != y
+	ConditionLessLen         // len(x) <  y
+	ConditionLessEqualLen    // len(x) <= y
+	ConditionGreaterLen      // len(x) >  y
+	ConditionGreaterEqualLen // len(x) >= y
+
+	ConditionInterfaceNil    // x == nil
+	ConditionInterfaceNotNil // x != nil
+
+	ConditionNil    // x == nil
+	ConditionNotNil // x != nil
+
+	ConditionOK    // [vm.ok]
+	ConditionNotOK // ![vm.ok]
+
 )
 
 type Operation int8
@@ -1402,10 +1429,7 @@ const (
 
 	OpIndexRef
 
-	OpLeftShift8
-	OpLeftShift16
-	OpLeftShift32
-	OpLeftShift64
+	OpLeftShift
 
 	OpLen
 

@@ -848,9 +848,9 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 					ast.OperatorEqual:          runtime.ConditionEqualLen,
 					ast.OperatorNotEqual:       runtime.ConditionNotEqualLen,
 					ast.OperatorLess:           runtime.ConditionLessLen,
-					ast.OperatorLessOrEqual:    runtime.ConditionLessOrEqualLen,
+					ast.OperatorLessOrEqual:    runtime.ConditionLessEqualLen,
 					ast.OperatorGreater:        runtime.ConditionGreaterLen,
-					ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqualLen,
+					ast.OperatorGreaterOrEqual: runtime.ConditionGreaterEqualLen,
 				}[cond.Operator()]
 				em.fb.emitIf(k2, v1, condType, v2, reflect.String, cond.Pos())
 				return
@@ -874,26 +874,14 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 			if kind := t1.Kind(); reflect.Int <= kind && kind <= reflect.Float64 {
 				v1 := em.emitExpr(cond.Expr1, t1)
 				v2, k2 := em.emitExprK(cond.Expr2, t2)
-				var condType runtime.Condition
-				if k := t1.Kind(); reflect.Uint <= k && k <= reflect.Uintptr {
-					condType = map[ast.OperatorType]runtime.Condition{
-						ast.OperatorEqual:          runtime.ConditionEqual,    // same as for signed integers
-						ast.OperatorNotEqual:       runtime.ConditionNotEqual, // same as for signed integers
-						ast.OperatorLess:           runtime.ConditionLessU,
-						ast.OperatorLessOrEqual:    runtime.ConditionLessOrEqualU,
-						ast.OperatorGreater:        runtime.ConditionGreaterU,
-						ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqualU,
-					}[cond.Operator()]
-				} else {
-					condType = map[ast.OperatorType]runtime.Condition{
-						ast.OperatorEqual:          runtime.ConditionEqual,
-						ast.OperatorNotEqual:       runtime.ConditionNotEqual,
-						ast.OperatorLess:           runtime.ConditionLess,
-						ast.OperatorLessOrEqual:    runtime.ConditionLessOrEqual,
-						ast.OperatorGreater:        runtime.ConditionGreater,
-						ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqual,
-					}[cond.Operator()]
-				}
+				condType := map[ast.OperatorType]runtime.Condition{
+					ast.OperatorEqual:          runtime.ConditionEqual,
+					ast.OperatorNotEqual:       runtime.ConditionNotEqual,
+					ast.OperatorLess:           runtime.ConditionLess,
+					ast.OperatorLessOrEqual:    runtime.ConditionLessEqual,
+					ast.OperatorGreater:        runtime.ConditionGreater,
+					ast.OperatorGreaterOrEqual: runtime.ConditionGreaterEqual,
+				}[cond.Operator()]
 				em.fb.emitIf(k2, v1, condType, v2, kind, cond.Pos())
 				return
 			}
