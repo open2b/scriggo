@@ -777,132 +777,130 @@ nodesLoop:
 
 // TODO: this code is the result of the mergin of two codes, so it looks very
 // ugly to read and hard to understand. Make a review.
-func (tc *typechecker) checkImport(d *ast.Import, imports PackageLoader, pkgInfos map[string]*PackageInfo, packageLevel bool) error {
+func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkgInfos map[string]*PackageInfo, packageLevel bool) error {
 
 	// Get the package info.
-	importedPkg := &PackageInfo{}
-	if d.Tree == nil {
+	imported := &PackageInfo{}
+	if impor.Tree == nil {
 		// Predefined package.
 		if packageLevel {
-			pkg, err := imports.Load(d.Path)
+			pkg, err := imports.Load(impor.Path)
 			if err != nil {
-				return tc.errorf(d, "%s", err)
+				return tc.errorf(impor, "%s", err)
 			}
 			predefinedPkg := pkg.(predefinedPackage)
 			if predefinedPkg.Name() == "main" {
-				return tc.programImportError(d)
+				return tc.programImportError(impor)
 			}
 			declarations := predefinedPkg.DeclarationNames()
-			importedPkg.Declarations = make(map[string]*TypeInfo, len(declarations))
+			imported.Declarations = make(map[string]*TypeInfo, len(declarations))
 			for n, d := range toTypeCheckerScope(predefinedPkg, 0, tc.opts) {
-				importedPkg.Declarations[n] = d.t
+				imported.Declarations[n] = d.t
 			}
-			importedPkg.Name = predefinedPkg.Name()
+			imported.Name = predefinedPkg.Name()
 		}
 	} else if packageLevel {
 		// Not predefined package.
-		var err error
 		if tc.opts.SyntaxType == TemplateSyntax {
-			err := tc.templatePageToPackage(d.Tree, d.Tree.Path)
+			err := tc.templatePageToPackage(impor.Tree, impor.Tree.Path)
 			if err != nil {
 				return err
 			}
 		}
-		if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
-			return tc.programImportError(d)
+		if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
+			return tc.programImportError(impor)
 		}
-		err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, imports, pkgInfos, tc.opts, tc.globalScope)
+		err := checkPackage(impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, imports, pkgInfos, tc.opts, tc.globalScope)
 		if err != nil {
 			return err
 		}
-		importedPkg = pkgInfos[d.Tree.Path]
+		imported = pkgInfos[impor.Tree.Path]
 	}
 
 	// Import statement in a template.
 	if tc.opts.SyntaxType == TemplateSyntax {
 		if !packageLevel {
-			if d.Ident != nil && d.Ident.Name == "_" {
+			if impor.Ident != nil && impor.Ident.Name == "_" {
 				return nil
 			}
-			err := tc.templatePageToPackage(d.Tree, d.Tree.Path)
+			err := tc.templatePageToPackage(impor.Tree, impor.Tree.Path)
 			if err != nil {
 				return err
 			}
 			pkgInfos := map[string]*PackageInfo{}
-			if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
-				return tc.programImportError(d)
+			if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
+				return tc.programImportError(impor)
 			}
-			err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Path, nil, pkgInfos, tc.opts, tc.globalScope)
+			err = checkPackage(impor.Tree.Nodes[0].(*ast.Package), impor.Path, nil, pkgInfos, tc.opts, tc.globalScope)
 			if err != nil {
 				return err
 			}
 			// TypeInfos of imported packages in templates are
 			// "manually" added to the map of typeinfos of typechecker.
-			for k, v := range pkgInfos[d.Path].TypeInfos {
+			for k, v := range pkgInfos[impor.Path].TypeInfos {
 				tc.typeInfos[k] = v
 			}
-			importedPkg = pkgInfos[d.Path]
+			imported = pkgInfos[impor.Path]
 		}
-		if d.Ident == nil {
-			tc.unusedImports[importedPkg.Name] = nil
-			for ident, ti := range importedPkg.Declarations {
-				tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
+		if impor.Ident == nil {
+			tc.unusedImports[imported.Name] = nil
+			for ident, ti := range imported.Declarations {
+				tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
 			}
 			return nil
 		}
-		switch d.Ident.Name {
+		switch impor.Ident.Name {
 		case "_":
 		case ".":
-			tc.unusedImports[importedPkg.Name] = nil
-			for ident, ti := range importedPkg.Declarations {
-				tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
+			tc.unusedImports[imported.Name] = nil
+			for ident, ti := range imported.Declarations {
+				tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
 			}
 		default:
-			tc.filePackageBlock[d.Ident.Name] = scopeElement{
+			tc.filePackageBlock[impor.Ident.Name] = scopeElement{
 				t: &TypeInfo{
-					value:      importedPkg,
+					value:      imported,
 					Properties: PropertyIsPackage | PropertyHasValue,
 				},
 			}
-			tc.unusedImports[d.Ident.Name] = nil
+			tc.unusedImports[impor.Ident.Name] = nil
 		}
 		return nil
 	}
 
 	// Import statement in a script.
 	if tc.opts.SyntaxType == ScriptSyntax {
-		pkg, err := tc.predefinedPkgs.Load(d.Path)
+		pkg, err := tc.predefinedPkgs.Load(impor.Path)
 		if err != nil {
-			return tc.errorf(d, "%s", err)
+			return tc.errorf(impor, "%s", err)
 		}
-		predefinedPkg := pkg.(predefinedPackage)
-		if predefinedPkg.Name() == "main" {
-			return tc.programImportError(d)
+		predefPkg := pkg.(predefinedPackage)
+		if predefPkg.Name() == "main" {
+			return tc.programImportError(impor)
 		}
-		decls := predefinedPkg.DeclarationNames()
-		importedPkg = &PackageInfo{}
-		importedPkg.Declarations = make(map[string]*TypeInfo, len(decls))
-		for n, d := range toTypeCheckerScope(predefinedPkg, 0, tc.opts) {
-			importedPkg.Declarations[n] = d.t
+		imported := &PackageInfo{}
+		imported.Declarations = make(map[string]*TypeInfo, len(predefPkg.DeclarationNames()))
+		for n, d := range toTypeCheckerScope(predefPkg, 0, tc.opts) {
+			imported.Declarations[n] = d.t
 		}
-		importedPkg.Name = predefinedPkg.Name()
-		if d.Ident == nil {
-			tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue}}
-			tc.unusedImports[importedPkg.Name] = nil
+		imported.Name = predefPkg.Name()
+		if impor.Ident == nil {
+			tc.filePackageBlock[imported.Name] = scopeElement{t: &TypeInfo{value: imported, Properties: PropertyIsPackage | PropertyHasValue}}
+			tc.unusedImports[imported.Name] = nil
 		} else {
-			switch d.Ident.Name {
+			switch impor.Ident.Name {
 			case "_":
 			case ".":
-				tc.unusedImports[importedPkg.Name] = nil
-				for ident, ti := range importedPkg.Declarations {
-					tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
+				tc.unusedImports[imported.Name] = nil
+				for ident, ti := range imported.Declarations {
+					tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
 					tc.filePackageBlock[ident] = scopeElement{t: ti}
 				}
 			default:
-				tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue}}
-				tc.unusedImports[d.Ident.Name] = nil
+				tc.filePackageBlock[impor.Ident.Name] = scopeElement{t: &TypeInfo{value: imported, Properties: PropertyIsPackage | PropertyHasValue}}
+				tc.unusedImports[impor.Ident.Name] = nil
 			}
 		}
 		return nil
@@ -911,30 +909,30 @@ func (tc *typechecker) checkImport(d *ast.Import, imports PackageLoader, pkgInfo
 	// Import statement in a program.
 	if tc.opts.SyntaxType == ProgramSyntax {
 		// No name provided.
-		if d.Ident == nil {
-			tc.filePackageBlock[importedPkg.Name] = scopeElement{
-				t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue},
+		if impor.Ident == nil {
+			tc.filePackageBlock[imported.Name] = scopeElement{
+				t: &TypeInfo{value: imported, Properties: PropertyIsPackage | PropertyHasValue},
 			}
-			tc.unusedImports[importedPkg.Name] = nil
+			tc.unusedImports[imported.Name] = nil
 			return nil
 		}
-		switch d.Ident.Name {
+		switch impor.Ident.Name {
 		case "_":
 			// Nothing to do.
 		case ".":
-			tc.unusedImports[importedPkg.Name] = nil
-			for ident, ti := range importedPkg.Declarations {
-				tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
+			tc.unusedImports[imported.Name] = nil
+			for ident, ti := range imported.Declarations {
+				tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
 			}
 		default:
-			tc.filePackageBlock[d.Ident.Name] = scopeElement{
+			tc.filePackageBlock[impor.Ident.Name] = scopeElement{
 				t: &TypeInfo{
-					value:      importedPkg,
+					value:      imported,
 					Properties: PropertyIsPackage | PropertyHasValue,
 				},
 			}
-			tc.unusedImports[d.Ident.Name] = nil
+			tc.unusedImports[impor.Ident.Name] = nil
 		}
 	}
 
