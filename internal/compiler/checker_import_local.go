@@ -2,16 +2,16 @@ package compiler
 
 import "scriggo/ast"
 
-func (tc *typechecker) checkImportLocal(node *ast.Import) {
+func (tc *typechecker) checkImportLocal(node *ast.Import) error {
 	switch tc.opts.SyntaxType {
 	case ScriptSyntax:
 		pkg, err := tc.predefinedPkgs.Load(node.Path)
 		if err != nil {
-			panic(tc.errorf(node, "%s", err))
+			return tc.errorf(node, "%s", err)
 		}
 		predefinedPkg := pkg.(predefinedPackage)
 		if predefinedPkg.Name() == "main" {
-			panic(tc.programImportError(node))
+			return tc.programImportError(node)
 		}
 		decls := predefinedPkg.DeclarationNames()
 		importedPkg := &PackageInfo{}
@@ -39,19 +39,19 @@ func (tc *typechecker) checkImportLocal(node *ast.Import) {
 		}
 	case TemplateSyntax:
 		if node.Ident != nil && node.Ident.Name == "_" {
-			return
+			return nil
 		}
 		err := tc.templatePageToPackage(node.Tree, node.Tree.Path)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		pkgInfos := map[string]*PackageInfo{}
 		if node.Tree.Nodes[0].(*ast.Package).Name == "main" {
-			panic(tc.programImportError(node))
+			return tc.programImportError(node)
 		}
 		err = checkPackage(node.Tree.Nodes[0].(*ast.Package), node.Path, nil, pkgInfos, tc.opts, tc.globalScope)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		// TypeInfos of imported packages in templates are
 		// "manually" added to the map of typeinfos of typechecker.
@@ -65,7 +65,7 @@ func (tc *typechecker) checkImportLocal(node *ast.Import) {
 				tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
 			}
-			return
+			return nil
 		}
 		switch node.Ident.Name {
 		case "_":
@@ -85,4 +85,5 @@ func (tc *typechecker) checkImportLocal(node *ast.Import) {
 			tc.unusedImports[node.Ident.Name] = nil
 		}
 	}
+	return nil
 }
