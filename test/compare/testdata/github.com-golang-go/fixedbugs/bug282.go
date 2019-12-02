@@ -1,4 +1,4 @@
-// skip : compile dir
+// skip : compile dir https://github.com/open2b/scriggo/issues/417
 
 // compiledir
 

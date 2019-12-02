@@ -1,4 +1,4 @@
-// skip : require package 'testing'
+// skip : require package 'testing' https://github.com/open2b/scriggo/issues/417
 
 // errorcheck
 

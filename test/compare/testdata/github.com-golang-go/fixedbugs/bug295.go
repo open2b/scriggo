@@ -1,4 +1,4 @@
-// skip : import "testing"
+// skip : import "testing" https://github.com/open2b/scriggo/issues/417
 
 // run
 

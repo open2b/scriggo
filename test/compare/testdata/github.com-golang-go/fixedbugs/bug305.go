@@ -1,4 +1,4 @@
-// skip : use "line" comments to simulate errors at a different position
+// skip : use "line" comments to simulate errors at a different position https://github.com/open2b/scriggo/issues/417
 
 // errorcheck
 

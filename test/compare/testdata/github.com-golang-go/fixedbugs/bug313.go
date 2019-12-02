@@ -1,4 +1,4 @@
-// skip : unsupported mode "errorcheckdir"
+// skip : unsupported mode "errorcheckdir" https://github.com/open2b/scriggo/issues/417
 
 // errorcheckdir
 

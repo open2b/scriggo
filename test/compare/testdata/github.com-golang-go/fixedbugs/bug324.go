@@ -1,4 +1,4 @@
-// skip : mode "rundir"
+// skip : mode "rundir" https://github.com/open2b/scriggo/issues/417
 
 // rundir
 
