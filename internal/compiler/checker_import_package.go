@@ -8,45 +8,49 @@ func (tc *typechecker) checkImportPackage(d *ast.Import, imports PackageLoader, 
 	importedPkg := &PackageInfo{}
 	if d.Tree == nil {
 		// Predefined package.
-		pkg, err := imports.Load(d.Path)
-		if err != nil {
-			return tc.errorf(d, "%s", err)
+		if packageLevel {
+			pkg, err := imports.Load(d.Path)
+			if err != nil {
+				return tc.errorf(d, "%s", err)
+			}
+			predefinedPkg := pkg.(predefinedPackage)
+			if predefinedPkg.Name() == "main" {
+				return tc.programImportError(d)
+			}
+			declarations := predefinedPkg.DeclarationNames()
+			importedPkg.Declarations = make(map[string]*TypeInfo, len(declarations))
+			for n, d := range toTypeCheckerScope(predefinedPkg, 0, tc.opts) {
+				importedPkg.Declarations[n] = d.t
+			}
+			importedPkg.Name = predefinedPkg.Name()
 		}
-		predefinedPkg := pkg.(predefinedPackage)
-		if predefinedPkg.Name() == "main" {
-			return tc.programImportError(d)
-		}
-		declarations := predefinedPkg.DeclarationNames()
-		importedPkg.Declarations = make(map[string]*TypeInfo, len(declarations))
-		for n, d := range toTypeCheckerScope(predefinedPkg, 0, tc.opts) {
-			importedPkg.Declarations[n] = d.t
-		}
-		importedPkg.Name = predefinedPkg.Name()
 	} else {
-		// Not predefined package.
-		var err error
-		if tc.opts.SyntaxType == TemplateSyntax {
-			err := tc.templatePageToPackage(d.Tree, d.Tree.Path)
-			if err != nil {
-				return err
+		if packageLevel {
+			// Not predefined package.
+			var err error
+			if tc.opts.SyntaxType == TemplateSyntax {
+				err := tc.templatePageToPackage(d.Tree, d.Tree.Path)
+				if err != nil {
+					return err
+				}
+				if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
+					return tc.programImportError(d)
+				}
+				err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, pkgInfos, tc.opts, tc.globalScope)
+				if err != nil {
+					return err
+				}
+			} else {
+				if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
+					return tc.programImportError(d)
+				}
+				err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, imports, pkgInfos, tc.opts, tc.globalScope)
+				if err != nil {
+					return err
+				}
 			}
-			if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
-				return tc.programImportError(d)
-			}
-			err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, pkgInfos, tc.opts, tc.globalScope)
-			if err != nil {
-				return err
-			}
-		} else {
-			if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
-				return tc.programImportError(d)
-			}
-			err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, imports, pkgInfos, tc.opts, tc.globalScope)
-			if err != nil {
-				return err
-			}
+			importedPkg = pkgInfos[d.Tree.Path]
 		}
-		importedPkg = pkgInfos[d.Tree.Path]
 	}
 
 	// Check the import itself.
@@ -78,7 +82,6 @@ func (tc *typechecker) checkImportPackage(d *ast.Import, imports PackageLoader, 
 		}
 		return nil
 	}
-
 	if tc.opts.SyntaxType == ScriptSyntax {
 		pkg, err := tc.predefinedPkgs.Load(d.Path)
 		if err != nil {
@@ -138,7 +141,7 @@ func (tc *typechecker) checkImportPackage(d *ast.Import, imports PackageLoader, 
 				tc.unusedImports[d.Ident.Name] = nil
 			}
 		}
-		return nil
 	}
+
 	return nil
 }

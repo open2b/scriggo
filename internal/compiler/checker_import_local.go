@@ -8,7 +8,7 @@ func (tc *typechecker) checkImportLocal(d *ast.Import, imports PackageLoader, pk
 	importedPkg := &PackageInfo{}
 	if d.Tree == nil {
 		// Predefined package.
-		if false {
+		if packageLevel {
 			pkg, err := imports.Load(d.Path)
 			if err != nil {
 				return tc.errorf(d, "%s", err)
@@ -25,7 +25,7 @@ func (tc *typechecker) checkImportLocal(d *ast.Import, imports PackageLoader, pk
 			importedPkg.Name = predefinedPkg.Name()
 		}
 	} else {
-		if false {
+		if packageLevel {
 			// Not predefined package.
 			var err error
 			if tc.opts.SyntaxType == TemplateSyntax {
