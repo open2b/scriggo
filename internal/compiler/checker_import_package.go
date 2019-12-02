@@ -55,6 +55,29 @@ func (tc *typechecker) checkImportPackage(d *ast.Import, imports PackageLoader, 
 
 	// Check the import itself.
 	if tc.opts.SyntaxType == TemplateSyntax {
+		if !packageLevel {
+			if d.Ident != nil && d.Ident.Name == "_" {
+				return nil
+			}
+			err := tc.templatePageToPackage(d.Tree, d.Tree.Path)
+			if err != nil {
+				return err
+			}
+			pkgInfos := map[string]*PackageInfo{}
+			if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
+				return tc.programImportError(d)
+			}
+			err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Path, nil, pkgInfos, tc.opts, tc.globalScope)
+			if err != nil {
+				return err
+			}
+			// TypeInfos of imported packages in templates are
+			// "manually" added to the map of typeinfos of typechecker.
+			for k, v := range pkgInfos[d.Path].TypeInfos {
+				tc.typeInfos[k] = v
+			}
+			importedPkg = pkgInfos[d.Path]
+		}
 		if d.Ident == nil {
 			tc.unusedImports[importedPkg.Name] = nil
 			for ident, ti := range importedPkg.Declarations {
