@@ -1,4 +1,4 @@
-// skip : panics the emitter
+// skip : named return parameter is a closure var https://github.com/open2b/scriggo/issues/278
 
 // run
 
