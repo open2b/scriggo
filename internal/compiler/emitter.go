@@ -69,6 +69,7 @@ type emitter struct {
 	// by storing the emitted function. This avoids emitting the same function
 	// twice, that also ensures that init functions are called just once when
 	// imported by two different packages.
+	// TODO: consider moving this field to the funcStore.
 	alreadyEmittedFuncs map[*ast.Func]*runtime.Function
 }
 
