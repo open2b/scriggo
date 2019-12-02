@@ -496,7 +496,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 	// First: import packages.
 	for _, d := range pkg.Declarations {
 		if d, ok := d.(*ast.Import); ok {
-			err := tc.checkImportPackage(d, imports, pkgInfos)
+			err := tc.checkImportPackage(d, imports, pkgInfos, true)
 			if err != nil {
 				return err
 			}
