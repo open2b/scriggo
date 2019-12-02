@@ -826,6 +826,7 @@ func (tc *typechecker) checkImport(d *ast.Import, imports PackageLoader, pkgInfo
 		importedPkg = pkgInfos[d.Tree.Path]
 	}
 
+	// Import statement in a template.
 	if tc.opts.SyntaxType == TemplateSyntax {
 		if !packageLevel {
 			if d.Ident != nil && d.Ident.Name == "_" {
@@ -877,6 +878,8 @@ func (tc *typechecker) checkImport(d *ast.Import, imports PackageLoader, pkgInfo
 		}
 		return nil
 	}
+
+	// Import statement in a script.
 	if tc.opts.SyntaxType == ScriptSyntax {
 		pkg, err := tc.predefinedPkgs.Load(d.Path)
 		if err != nil {
@@ -913,10 +916,13 @@ func (tc *typechecker) checkImport(d *ast.Import, imports PackageLoader, pkgInfo
 		return nil
 	}
 
+	// Import statement in a program.
 	if tc.opts.SyntaxType == ProgramSyntax {
 		// No name provided.
 		if d.Ident == nil {
-			tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue}}
+			tc.filePackageBlock[importedPkg.Name] = scopeElement{
+				t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue},
+			}
 			tc.unusedImports[importedPkg.Name] = nil
 			return nil
 		}
