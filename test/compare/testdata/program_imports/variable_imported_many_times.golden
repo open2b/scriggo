@@ -1,0 +1,3 @@
+a: c.C is 42 (before increment)
+a: c.C is 52 (after increment)
+b: c.C is 52
