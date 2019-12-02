@@ -914,6 +914,9 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 
 	// Import statement in a program.
 	if tc.opts.SyntaxType == ProgramSyntax {
+		if impor.Ident != nil && isBlankIdentifier(impor.Ident) {
+			return nil // nothing to do.
+		}
 		// No name provided.
 		if impor.Ident == nil {
 			tc.filePackageBlock[imported.Name] = scopeElement{
@@ -921,9 +924,6 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 			}
 			tc.unusedImports[imported.Name] = nil
 			return nil
-		}
-		if impor.Ident.Name == "_" {
-			return nil // nothing to do.
 		}
 		if impor.Ident.Name == "." {
 			tc.unusedImports[imported.Name] = nil
