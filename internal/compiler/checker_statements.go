@@ -916,24 +916,25 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 			tc.unusedImports[imported.Name] = nil
 			return nil
 		}
-		switch impor.Ident.Name {
-		case "_":
-			// Nothing to do.
-		case ".":
+		if impor.Ident.Name == "_" {
+			return nil // nothing to do.
+		}
+		if impor.Ident.Name == "." {
 			tc.unusedImports[imported.Name] = nil
 			for ident, ti := range imported.Declarations {
 				tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
 			}
-		default:
-			tc.filePackageBlock[impor.Ident.Name] = scopeElement{
-				t: &TypeInfo{
-					value:      imported,
-					Properties: PropertyIsPackage | PropertyHasValue,
-				},
-			}
-			tc.unusedImports[impor.Ident.Name] = nil
+			return nil
 		}
+		// Import statement with a name.
+		tc.filePackageBlock[impor.Ident.Name] = scopeElement{
+			t: &TypeInfo{
+				value:      imported,
+				Properties: PropertyIsPackage | PropertyHasValue,
+			},
+		}
+		tc.unusedImports[impor.Ident.Name] = nil
 	}
 
 	return nil
