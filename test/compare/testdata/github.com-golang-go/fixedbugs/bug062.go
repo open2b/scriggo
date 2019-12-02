@@ -1,5 +1,3 @@
-// skip : nil can be assigned to everything https://github.com/open2b/scriggo/issues/430
-
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -9,6 +7,5 @@
 package main
 
 func main() {
-	var s string = nil;	// ERROR "illegal|invalid|incompatible|cannot"
-	_ = s
+	var s string = nil;	_ = s // ERROR "illegal|invalid|incompatible|cannot"
 }
