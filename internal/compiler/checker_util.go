@@ -403,6 +403,11 @@ func isBlankIdentifier(expr ast.Expression) bool {
 	return ok && ident.Name == "_"
 }
 
+// isPeriodImport reports whether the import node has a period as import name.
+func isPeriodImport(impor *ast.Import) bool {
+	return impor.Ident != nil && impor.Ident.Name == "."
+}
+
 // isComparison reports whether op is a comparison operator.
 func isComparison(op ast.OperatorType) bool {
 	return op >= ast.OperatorEqual && op <= ast.OperatorGreaterOrEqual

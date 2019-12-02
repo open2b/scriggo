@@ -781,6 +781,9 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 
 	// Import statement in a script.
 	if tc.opts.SyntaxType == ScriptSyntax {
+		if impor.Tree != nil {
+			panic("cannot import precompiled packages in scripts") // TODO: review this panic.
+		}
 		pkg, err := tc.predefinedPkgs.Load(impor.Path)
 		if err != nil {
 			return tc.errorf(impor, "%s", err)
@@ -795,23 +798,26 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 			imported.Declarations[n] = d.t
 		}
 		imported.Name = predefPkg.Name()
-		if impor.Ident == nil {
-			tc.filePackageBlock[imported.Name] = scopeElement{t: &TypeInfo{value: imported, Properties: PropertyIsPackage | PropertyHasValue}}
-			tc.unusedImports[imported.Name] = nil
-		} else {
-			switch impor.Ident.Name {
-			case "_":
-			case ".":
-				tc.unusedImports[imported.Name] = nil
-				for ident, ti := range imported.Declarations {
-					tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
-					tc.filePackageBlock[ident] = scopeElement{t: ti}
-				}
-			default:
-				tc.filePackageBlock[impor.Ident.Name] = scopeElement{t: &TypeInfo{value: imported, Properties: PropertyIsPackage | PropertyHasValue}}
-				tc.unusedImports[impor.Ident.Name] = nil
-			}
+		if impor.Ident != nil && isBlankIdentifier(impor.Ident) {
+			return nil // nothing to do.
 		}
+		// import . "pkg": add every declaration to the file package block.
+		if isPeriodImport(impor) {
+			tc.unusedImports[imported.Name] = nil
+			for ident, ti := range imported.Declarations {
+				tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
+				tc.filePackageBlock[ident] = scopeElement{t: ti}
+			}
+			return nil
+		}
+		var name string
+		if impor.Ident == nil {
+			name = imported.Name // import "pkg".
+		} else {
+			name = impor.Ident.Name // import name "pkg".
+		}
+		tc.filePackageBlock[name] = scopeElement{t: &TypeInfo{value: imported, Properties: PropertyIsPackage | PropertyHasValue}}
+		tc.unusedImports[name] = nil
 		return nil
 	}
 
