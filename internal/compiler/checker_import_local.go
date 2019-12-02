@@ -2,7 +2,7 @@ package compiler
 
 import "scriggo/ast"
 
-func (tc *typechecker) checkImportLocal(d *ast.Import, imports PackageLoader, pkgInfos map[string]*PackageInfo, packageLevel bool) error {
+func (tc *typechecker) checkImport(d *ast.Import, imports PackageLoader, pkgInfos map[string]*PackageInfo, packageLevel bool) error {
 
 	// Get the package info.
 	importedPkg := &PackageInfo{}
