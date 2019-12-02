@@ -17,6 +17,7 @@ IMPORT log
 IMPORT math
 IMPORT math/rand
 IMPORT net
+IMPORT net/http
 IMPORT net/url
 IMPORT os
 IMPORT os/exec
