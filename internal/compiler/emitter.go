@@ -64,16 +64,23 @@ type emitter struct {
 	// create and manipulate types and values, both predefined and defined only
 	// by Scriggo.
 	types *types.Types
+
+	// alreadyEmittedFuncs reports if a given function has already been emitted
+	// by storing the emitted function. This avoids emitting the same function
+	// twice, that also ensures that init functions are called just once when
+	// imported by two different packages.
+	alreadyEmittedFuncs map[*ast.Func]*runtime.Function
 }
 
 // newEmitter returns a new emitter with the given type infos, indirect
 // variables and options.
 func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *emitter {
 	em := &emitter{
-		labels:    make(map[*runtime.Function]map[string]label),
-		options:   opts,
-		typeInfos: typeInfos,
-		types:     types.NewTypes(), // TODO: this is wrong: the instance should be taken from the type checker.
+		labels:              make(map[*runtime.Function]map[string]label),
+		options:             opts,
+		typeInfos:           typeInfos,
+		types:               types.NewTypes(), // TODO: this is wrong: the instance should be taken from the type checker.
+		alreadyEmittedFuncs: map[*ast.Func]*runtime.Function{},
 	}
 	em.fnStore = newFunctionStore(em)
 	em.varStore = newVarStore(em, indirectVars)
@@ -136,7 +143,19 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 	for _, decl := range pkg.Declarations {
 		if node, ok := decl.(*ast.Import); ok {
 			pkgInits := em.emitImport(node, false)
-			inits = append(inits, pkgInits...)
+			// Do not add duplicated init functions.
+			for _, pkgInit := range pkgInits {
+				add := true
+				for _, ini := range inits {
+					if ini == pkgInit {
+						add = false
+						break
+					}
+				}
+				if add {
+					inits = append(inits, pkgInits...)
+				}
+			}
 		}
 	}
 
@@ -154,7 +173,12 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 		// their bodies: order of declaration doesn't matter at package level.
 		for _, dec := range pkg.Declarations {
 			if fun, ok := dec.(*ast.Func); ok {
-				fn := newFunction("main", fun.Ident.Name, fun.Type.Reflect)
+				var fn *runtime.Function
+				if emFn, ok := em.alreadyEmittedFuncs[fun]; ok {
+					fn = emFn
+				} else {
+					fn = newFunction("main", fun.Ident.Name, fun.Type.Reflect)
+				}
 				if fun.Ident.Name == "init" {
 					inits = append(inits, fn)
 					continue
@@ -226,6 +250,9 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				// again.
 				continue
 			}
+			if _, ok := em.alreadyEmittedFuncs[n]; ok {
+				// Function has already been emitted, nothing to do.
+			}
 			if n.Ident.Name == "init" {
 				fn = inits[initToBuild]
 				initToBuild++
@@ -255,6 +282,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 			em.emitNodes(n.Body.Nodes)
 			em.fb.end()
 			em.fb.exitScope()
+			em.alreadyEmittedFuncs[n] = fn
 		}
 	}
 
