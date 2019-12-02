@@ -19,12 +19,6 @@ type emitter struct {
 	fnStore  *functionStore
 	varStore *varStore
 
-	// Index in the Function VarRefs field for each predefined variable.
-	// TODO(Gianluca): this is the new way of accessing predefined vars.
-	// Incrementally integrate into Scriggo, then remove the other (unused)
-	// fields.
-	// predefinedVarRefs map[*runtime.Function]map[*reflect.Value]int
-
 	// fb is the current function builder.
 	fb *functionBuilder
 
