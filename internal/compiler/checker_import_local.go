@@ -2,16 +2,16 @@ package compiler
 
 import "scriggo/ast"
 
-func (tc *typechecker) checkImportLocal(node *ast.Import) error {
+func (tc *typechecker) checkImportLocal(d *ast.Import) error {
 	switch tc.opts.SyntaxType {
 	case ScriptSyntax:
-		pkg, err := tc.predefinedPkgs.Load(node.Path)
+		pkg, err := tc.predefinedPkgs.Load(d.Path)
 		if err != nil {
-			return tc.errorf(node, "%s", err)
+			return tc.errorf(d, "%s", err)
 		}
 		predefinedPkg := pkg.(predefinedPackage)
 		if predefinedPkg.Name() == "main" {
-			return tc.programImportError(node)
+			return tc.programImportError(d)
 		}
 		decls := predefinedPkg.DeclarationNames()
 		importedPkg := &PackageInfo{}
@@ -20,11 +20,11 @@ func (tc *typechecker) checkImportLocal(node *ast.Import) error {
 			importedPkg.Declarations[n] = d.t
 		}
 		importedPkg.Name = predefinedPkg.Name()
-		if node.Ident == nil {
+		if d.Ident == nil {
 			tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue}}
 			tc.unusedImports[importedPkg.Name] = nil
 		} else {
-			switch node.Ident.Name {
+			switch d.Ident.Name {
 			case "_":
 			case ".":
 				tc.unusedImports[importedPkg.Name] = nil
@@ -33,33 +33,33 @@ func (tc *typechecker) checkImportLocal(node *ast.Import) error {
 					tc.filePackageBlock[ident] = scopeElement{t: ti}
 				}
 			default:
-				tc.filePackageBlock[node.Ident.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue}}
-				tc.unusedImports[node.Ident.Name] = nil
+				tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue}}
+				tc.unusedImports[d.Ident.Name] = nil
 			}
 		}
 	case TemplateSyntax:
-		if node.Ident != nil && node.Ident.Name == "_" {
+		if d.Ident != nil && d.Ident.Name == "_" {
 			return nil
 		}
-		err := tc.templatePageToPackage(node.Tree, node.Tree.Path)
+		err := tc.templatePageToPackage(d.Tree, d.Tree.Path)
 		if err != nil {
 			return err
 		}
 		pkgInfos := map[string]*PackageInfo{}
-		if node.Tree.Nodes[0].(*ast.Package).Name == "main" {
-			return tc.programImportError(node)
+		if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
+			return tc.programImportError(d)
 		}
-		err = checkPackage(node.Tree.Nodes[0].(*ast.Package), node.Path, nil, pkgInfos, tc.opts, tc.globalScope)
+		err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Path, nil, pkgInfos, tc.opts, tc.globalScope)
 		if err != nil {
 			return err
 		}
 		// TypeInfos of imported packages in templates are
 		// "manually" added to the map of typeinfos of typechecker.
-		for k, v := range pkgInfos[node.Path].TypeInfos {
+		for k, v := range pkgInfos[d.Path].TypeInfos {
 			tc.typeInfos[k] = v
 		}
-		importedPkg := pkgInfos[node.Path]
-		if node.Ident == nil {
+		importedPkg := pkgInfos[d.Path]
+		if d.Ident == nil {
 			tc.unusedImports[importedPkg.Name] = nil
 			for ident, ti := range importedPkg.Declarations {
 				tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
@@ -67,7 +67,7 @@ func (tc *typechecker) checkImportLocal(node *ast.Import) error {
 			}
 			return nil
 		}
-		switch node.Ident.Name {
+		switch d.Ident.Name {
 		case "_":
 		case ".":
 			tc.unusedImports[importedPkg.Name] = nil
@@ -76,13 +76,13 @@ func (tc *typechecker) checkImportLocal(node *ast.Import) error {
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
 			}
 		default:
-			tc.filePackageBlock[node.Ident.Name] = scopeElement{
+			tc.filePackageBlock[d.Ident.Name] = scopeElement{
 				t: &TypeInfo{
 					value:      importedPkg,
 					Properties: PropertyIsPackage | PropertyHasValue,
 				},
 			}
-			tc.unusedImports[node.Ident.Name] = nil
+			tc.unusedImports[d.Ident.Name] = nil
 		}
 	}
 	return nil
