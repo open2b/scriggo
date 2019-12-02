@@ -534,7 +534,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 					if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
 						return tc.programImportError(d)
 					}
-					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, pkgInfos, opts, tc.globalScope)
+					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, imports, pkgInfos, opts, tc.globalScope)
 					if err != nil {
 						return err
 					}
