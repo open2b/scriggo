@@ -81,7 +81,12 @@ func (tc *typechecker) checkImportPackage(d *ast.Import, imports PackageLoader, 
 					tc.filePackageBlock[ident] = scopeElement{t: ti}
 				}
 			default:
-				tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue}}
+				tc.filePackageBlock[d.Ident.Name] = scopeElement{
+					t: &TypeInfo{
+						value:      importedPkg,
+						Properties: PropertyIsPackage | PropertyHasValue,
+					},
+				}
 				tc.unusedImports[d.Ident.Name] = nil
 			}
 		}
