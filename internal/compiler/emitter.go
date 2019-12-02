@@ -433,7 +433,7 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 	for _, res := range fn.Type.Result {
 		kind := em.typ(res.Type).Kind()
 		ret := em.fb.newRegister(kind)
-		if res.Ident != nil {
+		if res.Ident != nil && !isBlankIdentifier(res.Ident) {
 			em.fb.bindVarReg(res.Ident.Name, ret)
 		}
 	}
@@ -444,7 +444,7 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 			kind = reflect.Slice
 		}
 		arg := em.fb.newRegister(kind)
-		if par.Ident != nil {
+		if par.Ident != nil && !isBlankIdentifier(par.Ident) {
 			em.fb.bindVarReg(par.Ident.Name, arg)
 		}
 	}
