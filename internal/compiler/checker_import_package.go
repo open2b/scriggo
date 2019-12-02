@@ -74,6 +74,42 @@ func (tc *typechecker) checkImportPackage(d *ast.Import, imports PackageLoader, 
 		return nil
 	}
 
+	if tc.opts.SyntaxType == ScriptSyntax {
+		pkg, err := tc.predefinedPkgs.Load(d.Path)
+		if err != nil {
+			return tc.errorf(d, "%s", err)
+		}
+		predefinedPkg := pkg.(predefinedPackage)
+		if predefinedPkg.Name() == "main" {
+			return tc.programImportError(d)
+		}
+		decls := predefinedPkg.DeclarationNames()
+		importedPkg = &PackageInfo{}
+		importedPkg.Declarations = make(map[string]*TypeInfo, len(decls))
+		for n, d := range toTypeCheckerScope(predefinedPkg, 0, tc.opts) {
+			importedPkg.Declarations[n] = d.t
+		}
+		importedPkg.Name = predefinedPkg.Name()
+		if d.Ident == nil {
+			tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue}}
+			tc.unusedImports[importedPkg.Name] = nil
+		} else {
+			switch d.Ident.Name {
+			case "_":
+			case ".":
+				tc.unusedImports[importedPkg.Name] = nil
+				for ident, ti := range importedPkg.Declarations {
+					tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
+					tc.filePackageBlock[ident] = scopeElement{t: ti}
+				}
+			default:
+				tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue}}
+				tc.unusedImports[d.Ident.Name] = nil
+			}
+		}
+		return nil
+	}
+
 	if tc.opts.SyntaxType == ProgramSyntax {
 		if d.Ident == nil {
 			tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue}}
