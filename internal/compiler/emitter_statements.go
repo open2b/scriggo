@@ -524,6 +524,8 @@ func (em *emitter) emitImport(node *ast.Import, isTemplate bool) []*runtime.Func
 	pkg := node.Tree.Nodes[0].(*ast.Package)
 	funcs, vars, inits := em.emitPackage(pkg, false, node.Tree.Path)
 
+	blankImport := false
+
 	if !isTemplate {
 		em.pkg = backupPkg
 	}
@@ -545,11 +547,7 @@ func (em *emitter) emitImport(node *ast.Import, isTemplate bool) []*runtime.Func
 		}
 		switch node.Ident.Name {
 		case "_":
-			if isTemplate {
-				// TODO: Nothing to do?
-			} else {
-				panic("TODO(Gianluca): not implemented")
-			}
+			blankImport = true
 		case ".":
 			importName = ""
 		default:
@@ -564,20 +562,22 @@ func (em *emitter) emitImport(node *ast.Import, isTemplate bool) []*runtime.Func
 		targetPkg = em.pkg
 	}
 
-	// Make available the imported functions.
-	for name, fn := range funcs {
-		if importName != "" {
-			name = importName + "." + name
+	if !blankImport {
+		// Make available the imported functions.
+		for name, fn := range funcs {
+			if importName != "" {
+				name = importName + "." + name
+			}
+			em.fnStore.makeAvailableScriggoFn(targetPkg, name, fn)
 		}
-		em.fnStore.makeAvailableScriggoFn(targetPkg, name, fn)
-	}
 
-	// Add the imported variables.
-	for name, v := range vars {
-		if importName != "" {
-			name = importName + "." + name
+		// Add the imported variables.
+		for name, v := range vars {
+			if importName != "" {
+				name = importName + "." + name
+			}
+			em.varStore.bindScriggoPackageVar(targetPkg, name, v)
 		}
-		em.varStore.bindScriggoPackageVar(targetPkg, name, v)
 	}
 
 	if isTemplate {
