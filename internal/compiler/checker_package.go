@@ -485,18 +485,16 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 		}
 	}()
 
-	packageNode := pkg
-
 	tc := newTypechecker(path, opts, globalScope)
 
-	err = sortDeclarations(packageNode)
+	err = sortDeclarations(pkg)
 	if err != nil {
 		loopErr := err.(initLoopError)
 		return tc.errorf(loopErr.node, loopErr.msg)
 	}
 
 	// First: import packages.
-	for _, d := range packageNode.Declarations {
+	for _, d := range pkg.Declarations {
 		if d, ok := d.(*ast.Import); ok {
 			importedPkg := &PackageInfo{}
 			if d.Tree == nil {
@@ -585,7 +583,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 	}
 
 	// Second: check all type declarations.
-	for _, d := range packageNode.Declarations {
+	for _, d := range pkg.Declarations {
 		if td, ok := d.(*ast.TypeDeclaration); ok {
 			name, ti := tc.checkTypeDeclaration(td)
 			if ti != nil {
@@ -596,7 +594,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 
 	// Defines functions in file/package block before checking all
 	// declarations.
-	for _, d := range packageNode.Declarations {
+	for _, d := range pkg.Declarations {
 		if f, ok := d.(*ast.Func); ok {
 			if isBlankIdentifier(f.Ident) {
 				continue
@@ -621,7 +619,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 	}
 
 	// Type check and defined functions, variables and constants.
-	for _, d := range packageNode.Declarations {
+	for _, d := range pkg.Declarations {
 		switch d := d.(type) {
 		case *ast.Func:
 			tc.enterScope()
@@ -675,7 +673,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 		}
 	}
 
-	if packageNode.Name == "main" {
+	if pkg.Name == "main" {
 		main, ok := tc.filePackageBlock["main"]
 		if !ok {
 			return tc.errorf(new(ast.Position), "function main is undeclared in the main package")
@@ -686,8 +684,8 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 	}
 
 	pkgInfo := &PackageInfo{
-		Name:         packageNode.Name,
-		Declarations: make(map[string]*TypeInfo, len(packageNode.Declarations)),
+		Name:         pkg.Name,
+		Declarations: make(map[string]*TypeInfo, len(pkg.Declarations)),
 		TypeInfos:    tc.typeInfos,
 	}
 	pkgInfo.Declarations = make(map[string]*TypeInfo)
