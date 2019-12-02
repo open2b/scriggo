@@ -93,7 +93,7 @@ nodesLoop:
 		switch node := node.(type) {
 
 		case *ast.Import:
-			err := tc.checkImportLocal(node)
+			err := tc.checkImportLocal(node, nil, nil)
 			if err != nil {
 				panic(err)
 			}

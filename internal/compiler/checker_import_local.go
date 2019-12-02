@@ -2,7 +2,7 @@ package compiler
 
 import "scriggo/ast"
 
-func (tc *typechecker) checkImportLocal(d *ast.Import) error {
+func (tc *typechecker) checkImportLocal(d *ast.Import, imports PackageLoader, pkgInfos map[string]*PackageInfo) error {
 	switch tc.opts.SyntaxType {
 	case ScriptSyntax:
 		pkg, err := tc.predefinedPkgs.Load(d.Path)
