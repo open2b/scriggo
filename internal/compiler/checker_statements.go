@@ -775,8 +775,7 @@ nodesLoop:
 
 }
 
-// TODO: this code is the result of the mergin of two codes, so it looks very
-// ugly to read and hard to understand. Make a review.
+// TODO: improve this code, making it more readable.
 func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkgInfos map[string]*PackageInfo, packageLevel bool) error {
 
 	// Import statement in a script.
