@@ -1,5 +1,3 @@
-// skip : investigate on this
-
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -8,6 +6,6 @@
 
 package main
 
-func f (x,		// GCCGO_ERROR "previous"
-	x int) {	// ERROR "duplicate argument|redefinition"
-}
+func f (x, x int) {	} // ERROR "duplicate argument|redefinition"
+
+func main() { }
