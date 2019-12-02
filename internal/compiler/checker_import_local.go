@@ -3,12 +3,57 @@ package compiler
 import "scriggo/ast"
 
 func (tc *typechecker) checkImportLocal(d *ast.Import, imports PackageLoader, pkgInfos map[string]*PackageInfo) error {
+
+	// Get the package info.
 	importedPkg := &PackageInfo{}
 	if d.Tree == nil {
-
+		// Predefined package.
+		if false {
+			pkg, err := imports.Load(d.Path)
+			if err != nil {
+				return tc.errorf(d, "%s", err)
+			}
+			predefinedPkg := pkg.(predefinedPackage)
+			if predefinedPkg.Name() == "main" {
+				return tc.programImportError(d)
+			}
+			declarations := predefinedPkg.DeclarationNames()
+			importedPkg.Declarations = make(map[string]*TypeInfo, len(declarations))
+			for n, d := range toTypeCheckerScope(predefinedPkg, 0, tc.opts) {
+				importedPkg.Declarations[n] = d.t
+			}
+			importedPkg.Name = predefinedPkg.Name()
+		}
 	} else {
-
+		if false {
+			// Not predefined package.
+			var err error
+			if tc.opts.SyntaxType == TemplateSyntax {
+				err := tc.templatePageToPackage(d.Tree, d.Tree.Path)
+				if err != nil {
+					return err
+				}
+				if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
+					return tc.programImportError(d)
+				}
+				err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, pkgInfos, tc.opts, tc.globalScope)
+				if err != nil {
+					return err
+				}
+			} else {
+				if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
+					return tc.programImportError(d)
+				}
+				err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, imports, pkgInfos, tc.opts, tc.globalScope)
+				if err != nil {
+					return err
+				}
+			}
+			importedPkg = pkgInfos[d.Tree.Path]
+		}
 	}
+
+	// Check the import itself.
 	if tc.opts.SyntaxType == TemplateSyntax {
 		if d.Ident != nil && d.Ident.Name == "_" {
 			return nil

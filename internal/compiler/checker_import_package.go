@@ -3,6 +3,8 @@ package compiler
 import "scriggo/ast"
 
 func (tc *typechecker) checkImportPackage(d *ast.Import, imports PackageLoader, pkgInfos map[string]*PackageInfo) error {
+
+	// Get the package info.
 	importedPkg := &PackageInfo{}
 	if d.Tree == nil {
 		// Predefined package.
@@ -46,6 +48,8 @@ func (tc *typechecker) checkImportPackage(d *ast.Import, imports PackageLoader, 
 		}
 		importedPkg = pkgInfos[d.Tree.Path]
 	}
+
+	// Check the import itself.
 	if tc.opts.SyntaxType == TemplateSyntax {
 		if d.Ident == nil {
 			tc.unusedImports[importedPkg.Name] = nil
@@ -67,6 +71,7 @@ func (tc *typechecker) checkImportPackage(d *ast.Import, imports PackageLoader, 
 				tc.unusedImports[d.Ident.Name] = nil
 			}
 		}
+		return nil
 	}
 
 	if tc.opts.SyntaxType == ProgramSyntax {
@@ -92,6 +97,7 @@ func (tc *typechecker) checkImportPackage(d *ast.Import, imports PackageLoader, 
 				tc.unusedImports[d.Ident.Name] = nil
 			}
 		}
+		return nil
 	}
 	return nil
 }
