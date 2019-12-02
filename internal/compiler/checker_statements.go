@@ -775,6 +775,8 @@ nodesLoop:
 
 }
 
+// TODO: this code is the result of the mergin of two codes, so it looks very
+// ugly to read and hard to understand. Make a review.
 func (tc *typechecker) checkImport(d *ast.Import, imports PackageLoader, pkgInfos map[string]*PackageInfo, packageLevel bool) error {
 
 	// Get the package info.
@@ -797,36 +799,33 @@ func (tc *typechecker) checkImport(d *ast.Import, imports PackageLoader, pkgInfo
 			}
 			importedPkg.Name = predefinedPkg.Name()
 		}
-	} else {
-		if packageLevel {
-			// Not predefined package.
-			var err error
-			if tc.opts.SyntaxType == TemplateSyntax {
-				err := tc.templatePageToPackage(d.Tree, d.Tree.Path)
-				if err != nil {
-					return err
-				}
-				if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
-					return tc.programImportError(d)
-				}
-				err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, pkgInfos, tc.opts, tc.globalScope)
-				if err != nil {
-					return err
-				}
-			} else {
-				if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
-					return tc.programImportError(d)
-				}
-				err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, imports, pkgInfos, tc.opts, tc.globalScope)
-				if err != nil {
-					return err
-				}
+	} else if packageLevel {
+		// Not predefined package.
+		var err error
+		if tc.opts.SyntaxType == TemplateSyntax {
+			err := tc.templatePageToPackage(d.Tree, d.Tree.Path)
+			if err != nil {
+				return err
 			}
-			importedPkg = pkgInfos[d.Tree.Path]
+			if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
+				return tc.programImportError(d)
+			}
+			err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, pkgInfos, tc.opts, tc.globalScope)
+			if err != nil {
+				return err
+			}
+		} else {
+			if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
+				return tc.programImportError(d)
+			}
+			err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, imports, pkgInfos, tc.opts, tc.globalScope)
+			if err != nil {
+				return err
+			}
 		}
+		importedPkg = pkgInfos[d.Tree.Path]
 	}
 
-	// Check the import itself.
 	if tc.opts.SyntaxType == TemplateSyntax {
 		if !packageLevel {
 			if d.Ident != nil && d.Ident.Name == "_" {
