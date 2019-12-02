@@ -1,0 +1,90 @@
+package compiler
+
+import "scriggo/ast"
+
+func (tc *typechecker) checkImportPackage(d *ast.Import, imports PackageLoader, pkgInfos map[string]*PackageInfo) error {
+	importedPkg := &PackageInfo{}
+	if d.Tree == nil {
+		// Predefined package.
+		pkg, err := imports.Load(d.Path)
+		if err != nil {
+			return tc.errorf(d, "%s", err)
+		}
+		predefinedPkg := pkg.(predefinedPackage)
+		if predefinedPkg.Name() == "main" {
+			return tc.programImportError(d)
+		}
+		declarations := predefinedPkg.DeclarationNames()
+		importedPkg.Declarations = make(map[string]*TypeInfo, len(declarations))
+		for n, d := range toTypeCheckerScope(predefinedPkg, 0, tc.opts) {
+			importedPkg.Declarations[n] = d.t
+		}
+		importedPkg.Name = predefinedPkg.Name()
+	} else {
+		// Not predefined package.
+		var err error
+		if tc.opts.SyntaxType == TemplateSyntax {
+			err := tc.templatePageToPackage(d.Tree, d.Tree.Path)
+			if err != nil {
+				return err
+			}
+			if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
+				return tc.programImportError(d)
+			}
+			err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, pkgInfos, tc.opts, tc.globalScope)
+			if err != nil {
+				return err
+			}
+		} else {
+			if d.Tree.Nodes[0].(*ast.Package).Name == "main" {
+				return tc.programImportError(d)
+			}
+			err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, imports, pkgInfos, tc.opts, tc.globalScope)
+			if err != nil {
+				return err
+			}
+		}
+		importedPkg = pkgInfos[d.Tree.Path]
+	}
+	if tc.opts.SyntaxType == TemplateSyntax {
+		if d.Ident == nil {
+			tc.unusedImports[importedPkg.Name] = nil
+			for ident, ti := range importedPkg.Declarations {
+				tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
+				tc.filePackageBlock[ident] = scopeElement{t: ti}
+			}
+		} else {
+			switch d.Ident.Name {
+			case "_":
+			case ".":
+				tc.unusedImports[importedPkg.Name] = nil
+				for ident, ti := range importedPkg.Declarations {
+					tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
+					tc.filePackageBlock[ident] = scopeElement{t: ti}
+				}
+			default:
+				tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue}}
+				tc.unusedImports[d.Ident.Name] = nil
+			}
+		}
+	} else {
+		if d.Ident == nil {
+			tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue}}
+			tc.unusedImports[importedPkg.Name] = nil
+		} else {
+			switch d.Ident.Name {
+			case "_":
+			case ".":
+				tc.unusedImports[importedPkg.Name] = nil
+				for ident, ti := range importedPkg.Declarations {
+					tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
+					tc.filePackageBlock[ident] = scopeElement{t: ti}
+				}
+			default:
+				tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue}}
+				tc.unusedImports[d.Ident.Name] = nil
+			}
+		}
+	}
+	return nil
+}
