@@ -517,7 +517,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		isVariadic := expr.Type.IsVariadic
 		for i, f := range expr.Type.Parameters {
 			t := tc.checkType(f.Type)
-			if f.Ident != nil {
+			if f.Ident != nil && !isBlankIdentifier(f.Ident) {
 				if isVariadic && i == len(expr.Type.Parameters)-1 {
 					tc.assignScope(f.Ident.Name, &TypeInfo{Type: tc.types.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
 					continue
@@ -528,7 +528,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 		// Adds named return values to the function body scope.
 		for _, f := range expr.Type.Result {
 			t := tc.checkType(f.Type)
-			if f.Ident != nil {
+			if f.Ident != nil && !isBlankIdentifier(f.Ident) {
 				tc.assignScope(f.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 			}
 		}

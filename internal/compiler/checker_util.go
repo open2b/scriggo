@@ -327,6 +327,9 @@ func (tc *typechecker) checkDuplicateParams(fn *ast.FuncType) {
 			if param.Ident == nil {
 				continue
 			}
+			if isBlankIdentifier(param.Ident) {
+				continue
+			}
 			name := param.Ident.Name
 			if _, ok := names[name]; ok {
 				panic(tc.errorf(param.Ident, "duplicate argument %s", name))

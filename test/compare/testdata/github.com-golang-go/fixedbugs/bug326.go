@@ -1,5 +1,3 @@
-// skip : panics the typechecker
-
 // errorcheck
 
 // Copyright 2011 The Go Authors. All rights reserved.
@@ -22,6 +20,7 @@ func h() (_ int, _ error) {
 
 func i() (int, error) {
 	return // ERROR "not enough arguments to return"
+	return 0, nil
 }
 
 func f1() (_ int, err error) {

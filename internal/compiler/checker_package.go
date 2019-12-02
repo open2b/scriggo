@@ -551,7 +551,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 			isVariadic := d.Type.IsVariadic
 			for i, param := range d.Type.Parameters {
 				t := tc.checkType(param.Type)
-				if param.Ident != nil {
+				if param.Ident != nil && !isBlankIdentifier(param.Ident) {
 					if isVariadic && i == len(d.Type.Parameters)-1 {
 						tc.assignScope(param.Ident.Name, &TypeInfo{Type: tc.types.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
 					} else {
@@ -562,7 +562,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 			// Adds named return values to the function body scope.
 			for _, ret := range d.Type.Result {
 				t := tc.checkType(ret.Type)
-				if ret.Ident != nil {
+				if ret.Ident != nil && !isBlankIdentifier(ret.Ident) {
 					tc.assignScope(ret.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 				}
 			}
