@@ -171,7 +171,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 unusedLoop:
 	for pkg, decls := range tc.unusedImports {
 		for _, d := range decls {
-			if d != ident.Name {
+			if d == ident.Name {
 				delete(tc.unusedImports, pkg)
 				break unusedLoop
 			}
