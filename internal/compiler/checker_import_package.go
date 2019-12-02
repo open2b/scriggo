@@ -67,7 +67,9 @@ func (tc *typechecker) checkImportPackage(d *ast.Import, imports PackageLoader, 
 				tc.unusedImports[d.Ident.Name] = nil
 			}
 		}
-	} else {
+	}
+
+	if tc.opts.SyntaxType == ProgramSyntax {
 		if d.Ident == nil {
 			tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue}}
 			tc.unusedImports[importedPkg.Name] = nil

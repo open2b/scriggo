@@ -95,7 +95,28 @@ func (tc *typechecker) checkImportLocal(d *ast.Import, imports PackageLoader, pk
 	}
 
 	if tc.opts.SyntaxType == ProgramSyntax {
-		// TODO.
+		if d.Ident == nil {
+			tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage | PropertyHasValue}}
+			tc.unusedImports[importedPkg.Name] = nil
+		} else {
+			switch d.Ident.Name {
+			case "_":
+			case ".":
+				tc.unusedImports[importedPkg.Name] = nil
+				for ident, ti := range importedPkg.Declarations {
+					tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
+					tc.filePackageBlock[ident] = scopeElement{t: ti}
+				}
+			default:
+				tc.filePackageBlock[d.Ident.Name] = scopeElement{
+					t: &TypeInfo{
+						value:      importedPkg,
+						Properties: PropertyIsPackage | PropertyHasValue,
+					},
+				}
+				tc.unusedImports[d.Ident.Name] = nil
+			}
+		}
 	}
 
 	return nil
