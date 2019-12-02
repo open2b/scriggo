@@ -1,4 +1,4 @@
-// skip : invalid behaviour
+// skip : blank return parameter https://github.com/open2b/scriggo/issues/495
 
 // run
 
