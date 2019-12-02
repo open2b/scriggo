@@ -204,7 +204,6 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				em.fnStore.makeAvailableScriggoFn(em.pkg, "$initvars", initVarsFn)
 				initVarsFb = newBuilder(initVarsFn, path)
 				initVarsFb.emitSetAlloc(em.options.MemoryLimit)
-				initVarsFb.enterScope()
 			}
 			em.fb = initVarsFb
 			addresses := make([]address, len(n.Lhs))
@@ -217,7 +216,6 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				}
 				varType := em.typ(v)
 				varr := em.fb.newRegister(varType.Kind())
-				em.fb.bindVarReg(v.Name, varr)
 				addresses[i] = em.addressLocalVar(varr, varType, v.Pos(), 0)
 				// Store the variable register. It will be used later to store
 				// initialized value inside the proper global index.
@@ -282,7 +280,6 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 	}
 
 	if initVarsFn != nil {
-		initVarsFb.exitScope()
 		initVarsFb.emitReturn()
 		initVarsFb.end()
 	}
