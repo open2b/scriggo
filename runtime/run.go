@@ -1345,9 +1345,21 @@ func (vm *VM) run() (Addr, bool) {
 			}
 
 		// RightShift
-		case OpRightShift, -OpRightShift:
+		case OpRightShiftInt8, -OpRightShiftInt8:
+			vm.setInt(c, int64(int8(vm.int(a))>>uint(vm.intk(b, op < 0))))
+		case OpRightShiftInt16, -OpRightShiftInt16:
+			vm.setInt(c, int64(int16(vm.int(a))>>uint(vm.intk(b, op < 0))))
+		case OpRightShiftInt32, -OpRightShiftInt32:
+			vm.setInt(c, int64(int32(vm.int(a))>>uint(vm.intk(b, op < 0))))
+		case OpRightShiftInt64, -OpRightShiftInt64:
 			vm.setInt(c, vm.int(a)>>uint(vm.intk(b, op < 0)))
-		case OpRightShiftU, -OpRightShiftU:
+		case OpRightShiftUint8, -OpRightShiftUint8:
+			vm.setInt(c, int64(uint8(vm.int(a))>>uint(vm.intk(b, op < 0))))
+		case OpRightShiftUint16, -OpRightShiftUint16:
+			vm.setInt(c, int64(uint16(vm.int(a))>>uint(vm.intk(b, op < 0))))
+		case OpRightShiftUint32, -OpRightShiftUint32:
+			vm.setInt(c, int64(uint32(vm.int(a))>>uint(vm.intk(b, op < 0))))
+		case OpRightShiftUint64, -OpRightShiftUint64:
 			vm.setInt(c, int64(uint64(vm.int(a))>>uint(vm.intk(b, op < 0))))
 
 		// Select

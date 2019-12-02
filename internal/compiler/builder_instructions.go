@@ -1025,10 +1025,34 @@ func (builder *functionBuilder) emitReturn() {
 //     z = x >> y
 //
 func (builder *functionBuilder) emitRightShift(k bool, x, y, z int8, kind reflect.Kind) {
-	op := runtime.OpRightShift
+	var op runtime.Operation
 	switch kind {
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		op = runtime.OpRightShiftU
+	case reflect.Int:
+		op = runtime.OpRightShiftInt64
+		if strconv.IntSize == 32 {
+			op = runtime.OpRightShiftInt32
+		}
+	case reflect.Int64:
+		op = runtime.OpRightShiftInt64
+	case reflect.Int32:
+		op = runtime.OpRightShiftInt32
+	case reflect.Int16:
+		op = runtime.OpRightShiftInt16
+	case reflect.Int8:
+		op = runtime.OpRightShiftInt8
+	case reflect.Uint, reflect.Uintptr:
+		op = runtime.OpRightShiftUint64
+		if strconv.IntSize == 32 {
+			op = runtime.OpRightShiftUint32
+		}
+	case reflect.Uint64:
+		op = runtime.OpRightShiftUint64
+	case reflect.Uint32:
+		op = runtime.OpRightShiftUint32
+	case reflect.Uint16:
+		op = runtime.OpRightShiftUint16
+	case reflect.Uint8:
+		op = runtime.OpRightShiftUint8
 	}
 	if k {
 		op = -op

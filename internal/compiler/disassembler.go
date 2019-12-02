@@ -286,8 +286,9 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		runtime.OpDivInt64, runtime.OpDivInt8, runtime.OpDivInt16, runtime.OpDivInt32, runtime.OpDivUint8, runtime.OpDivUint16, runtime.OpDivUint32, runtime.OpDivUint64,
 		runtime.OpMul,
 		runtime.OpRemInt64, runtime.OpRemInt8, runtime.OpRemInt16, runtime.OpRemInt32, runtime.OpRemUint8, runtime.OpRemUint16, runtime.OpRemUint32, runtime.OpRemUint64,
-		runtime.OpSub, runtime.OpSubInv,
-		runtime.OpLeftShift, runtime.OpRightShift, runtime.OpRightShiftU:
+		runtime.OpSub, runtime.OpSubInv, runtime.OpLeftShift,
+		runtime.OpRightShiftInt8, runtime.OpRightShiftInt16, runtime.OpRightShiftInt32, runtime.OpRightShiftInt64,
+		runtime.OpRightShiftUint8, runtime.OpRightShiftUint16, runtime.OpRightShiftUint32, runtime.OpRightShiftUint64:
 		s += " " + disassembleOperand(fn, a, reflect.Int, false)
 		s += " " + disassembleOperand(fn, b, reflect.Int, k)
 		s += " " + disassembleOperand(fn, c, reflect.Int, false)
@@ -936,8 +937,14 @@ var operationName = [...]string{
 
 	runtime.OpReturn: "Return",
 
-	runtime.OpRightShift:  "RightShift",
-	runtime.OpRightShiftU: "RightShiftU",
+	runtime.OpRightShiftInt8:   "RightShift",
+	runtime.OpRightShiftInt16:  "RightShift",
+	runtime.OpRightShiftInt32:  "RightShift",
+	runtime.OpRightShiftInt64:  "RightShift",
+	runtime.OpRightShiftUint8:  "RightShift",
+	runtime.OpRightShiftUint16: "RightShift",
+	runtime.OpRightShiftUint32: "RightShift",
+	runtime.OpRightShiftUint64: "RightShift",
 
 	runtime.OpSelect: "Select",
 

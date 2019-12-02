@@ -1484,8 +1484,14 @@ const (
 
 	OpReturn
 
-	OpRightShift
-	OpRightShiftU
+	OpRightShiftInt8
+	OpRightShiftInt16
+	OpRightShiftInt32
+	OpRightShiftInt64
+	OpRightShiftUint8
+	OpRightShiftUint16
+	OpRightShiftUint32
+	OpRightShiftUint64
 
 	OpSelect
 
