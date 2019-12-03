@@ -281,24 +281,6 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	}
 	s := operationName[op]
 	switch op {
-	case runtime.OpAddInt64, runtime.OpAddInt8, runtime.OpAddInt16, runtime.OpAddInt32,
-		runtime.OpAnd, runtime.OpAndNot, runtime.OpOr, runtime.OpXor,
-		runtime.OpDivInt64, runtime.OpDivInt8, runtime.OpDivInt16, runtime.OpDivInt32, runtime.OpDivUint8, runtime.OpDivUint16, runtime.OpDivUint32, runtime.OpDivUint64,
-		runtime.OpMulInt64, runtime.OpMulInt8, runtime.OpMulInt16, runtime.OpMulInt32,
-		runtime.OpRemInt64, runtime.OpRemInt8, runtime.OpRemInt16, runtime.OpRemInt32, runtime.OpRemUint8, runtime.OpRemUint16, runtime.OpRemUint32, runtime.OpRemUint64,
-		runtime.OpSubInt64, runtime.OpSubInt8, runtime.OpSubInt16, runtime.OpSubInt32,
-		runtime.OpSubInvInt64, runtime.OpSubInvInt8, runtime.OpSubInvInt16, runtime.OpSubInvInt32,
-		runtime.OpLeftShift64, runtime.OpLeftShift8, runtime.OpLeftShift16, runtime.OpLeftShift32,
-		runtime.OpRightShift, runtime.OpRightShiftU:
-		s += " " + disassembleOperand(fn, a, reflect.Int, false)
-		s += " " + disassembleOperand(fn, b, reflect.Int, k)
-		s += " " + disassembleOperand(fn, c, reflect.Int, false)
-	case runtime.OpAddFloat32, runtime.OpAddFloat64, runtime.OpDivFloat32, runtime.OpDivFloat64,
-		runtime.OpMulFloat32, runtime.OpMulFloat64,
-		runtime.OpSubFloat32, runtime.OpSubFloat64, runtime.OpSubInvFloat32, runtime.OpSubInvFloat64:
-		s += " " + disassembleOperand(fn, a, reflect.Float64, false)
-		s += " " + disassembleOperand(fn, b, reflect.Float64, k)
-		s += " " + disassembleOperand(fn, c, reflect.Float64, false)
 	case runtime.OpAddX, runtime.OpSubX, runtime.OpSubInvX, runtime.OpMulX, runtime.OpDivX, runtime.OpRemX, runtime.OpLeftShiftX, runtime.OpRightShiftX:
 		kind := reflect.Kind(a)
 		s += " " + kind.String()
@@ -808,13 +790,8 @@ var operationName = [...]string{
 
 	runtime.OpNone: "Nop",
 
-	runtime.OpAddInt64:   "Add",
-	runtime.OpAddInt8:    "Add8",
-	runtime.OpAddInt16:   "Add16",
-	runtime.OpAddInt32:   "Add32",
-	runtime.OpAddFloat32: "Add32",
-	runtime.OpAddFloat64: "Add",
-	runtime.OpAddX:       "Add",
+	runtime.OpAdd:  "Add",
+	runtime.OpAddX: "Add",
 
 	runtime.OpAddr: "Addr",
 

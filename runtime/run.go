@@ -84,23 +84,8 @@ func (vm *VM) run() (Addr, bool) {
 		switch op {
 
 		// Add
-		case OpAddInt8, -OpAddInt8:
-			vm.setInt(c, int64(int8(vm.int(a)+vm.intk(b, op < 0))))
-		case OpAddInt16, -OpAddInt16:
-			vm.setInt(c, int64(int16(vm.int(a)+vm.intk(b, op < 0))))
-		case OpAddInt32, -OpAddInt32:
-			vm.setInt(c, int64(int32(vm.int(a)+vm.intk(b, op < 0))))
-		case OpAddInt64:
-			vm.setInt(c, vm.int(a)+vm.int(b))
-		case -OpAddInt64:
-			vm.setInt(c, vm.int(a)+int64(b))
-		case OpAddFloat32, -OpAddFloat32:
-			vm.setFloat(c, float64(float32(vm.float(a)+vm.floatk(b, op < 0))))
-		case OpAddFloat64:
-			vm.setFloat(c, vm.float(a)+vm.float(b))
-		case -OpAddFloat64:
-			vm.setFloat(c, vm.float(a)+float64(b))
-
+		case OpAdd, -OpAdd:
+			vm.setInt(c, vm.int(a)+vm.intk(b, op < 0))
 		case OpAddX, -OpAddX:
 			switch reflect.Kind(a) {
 			case reflect.Int8:
