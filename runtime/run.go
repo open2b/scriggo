@@ -593,7 +593,7 @@ func (vm *VM) run() (Addr, bool) {
 				}
 			} else {
 				v1 := vm.int(a)
-				v2 := int64(vm.intk(c, op < 0))
+				v2 := vm.intk(c, op < 0)
 				switch Condition(b) {
 				case ConditionEqual:
 					cond = v1 == v2
