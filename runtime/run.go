@@ -641,7 +641,7 @@ func (vm *VM) run() (Addr, bool) {
 		case OpIfString, -OpIfString:
 			var cond bool
 			v1 := vm.string(a)
-			if Condition(b) < ConditionEqualLen {
+			if Condition(b) < ConditionLenEqual {
 				v2 := vm.stringk(c, op < 0)
 				switch Condition(b) {
 				case ConditionEqual:
@@ -660,17 +660,17 @@ func (vm *VM) run() (Addr, bool) {
 			} else {
 				v2 := int(vm.intk(c, op < 0))
 				switch Condition(b) {
-				case ConditionEqualLen:
+				case ConditionLenEqual:
 					cond = len(v1) == v2
-				case ConditionNotEqualLen:
+				case ConditionLenNotEqual:
 					cond = len(v1) != v2
-				case ConditionLessLen:
+				case ConditionLenLess:
 					cond = len(v1) < v2
-				case ConditionLessOrEqualLen:
+				case ConditionLenLessOrEqual:
 					cond = len(v1) <= v2
-				case ConditionGreaterLen:
+				case ConditionLenGreater:
 					cond = len(v1) > v2
-				case ConditionGreaterOrEqualLen:
+				case ConditionLenGreaterOrEqual:
 					cond = len(v1) >= v2
 				}
 			}

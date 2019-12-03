@@ -1280,12 +1280,12 @@ const (
 	ConditionLessOrEqualU                       // x <= y (unsigned)
 	ConditionGreaterU                           // x >  y (unsigned)
 	ConditionGreaterOrEqualU                    // x >= y (unsigned)
-	ConditionEqualLen                           // len(x) == y
-	ConditionNotEqualLen                        // len(x) != y
-	ConditionLessLen                            // len(x) <  y
-	ConditionLessOrEqualLen                     // len(x) <= y
-	ConditionGreaterLen                         // len(x) >  y
-	ConditionGreaterOrEqualLen                  // len(x) >= y
+	ConditionLenEqual                           // len(x) == y
+	ConditionLenNotEqual                        // len(x) != y
+	ConditionLenLess                            // len(x) <  y
+	ConditionLenLessOrEqual                     // len(x) <= y
+	ConditionLenGreater                         // len(x) >  y
+	ConditionLenGreaterOrEqual                  // len(x) >= y
 	ConditionInterfaceNil                       // x == nil
 	ConditionInterfaceNotNil                    // x != nil
 	ConditionNil                                // x == nil

@@ -865,12 +865,12 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 				typ := em.typ(expr)
 				v2, k2 := em.emitExprK(expr, typ)
 				condType := map[ast.OperatorType]runtime.Condition{
-					ast.OperatorEqual:          runtime.ConditionEqualLen,
-					ast.OperatorNotEqual:       runtime.ConditionNotEqualLen,
-					ast.OperatorLess:           runtime.ConditionLessLen,
-					ast.OperatorLessOrEqual:    runtime.ConditionLessOrEqualLen,
-					ast.OperatorGreater:        runtime.ConditionGreaterLen,
-					ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqualLen,
+					ast.OperatorEqual:          runtime.ConditionLenEqual,
+					ast.OperatorNotEqual:       runtime.ConditionLenNotEqual,
+					ast.OperatorLess:           runtime.ConditionLenLess,
+					ast.OperatorLessOrEqual:    runtime.ConditionLenLessOrEqual,
+					ast.OperatorGreater:        runtime.ConditionLenGreater,
+					ast.OperatorGreaterOrEqual: runtime.ConditionLenGreaterOrEqual,
 				}[cond.Operator()]
 				em.fb.emitIf(k2, v1, condType, v2, reflect.String, cond.Pos())
 				return

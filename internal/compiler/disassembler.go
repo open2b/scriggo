@@ -440,7 +440,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	case runtime.OpIfString:
 		s += " " + disassembleOperand(fn, a, reflect.String, false)
 		s += " " + conditionName[b]
-		if runtime.Condition(b) < runtime.ConditionEqualLen {
+		if runtime.Condition(b) < runtime.ConditionLenEqual {
 			if k && c >= 0 {
 				s += " " + strconv.Quote(string(c))
 			} else {
@@ -1004,12 +1004,12 @@ var conditionName = [...]string{
 	runtime.ConditionLessOrEqual:       "LessOrEqual",
 	runtime.ConditionGreater:           "Greater",
 	runtime.ConditionGreaterOrEqual:    "GreaterOrEqual",
-	runtime.ConditionEqualLen:          "EqualLen",
-	runtime.ConditionNotEqualLen:       "NotEqualLen",
-	runtime.ConditionLessLen:           "LessLen",
-	runtime.ConditionLessOrEqualLen:    "LessOrEqualLen",
-	runtime.ConditionGreaterLen:        "GreaterOrEqualLen",
-	runtime.ConditionGreaterOrEqualLen: "GreaterOrEqualLen",
+	runtime.ConditionLenEqual:          "LenEqual",
+	runtime.ConditionLenNotEqual:       "LenNotEqual",
+	runtime.ConditionLenLess:           "LenLess",
+	runtime.ConditionLenLessOrEqual:    "LenLessOrEqual",
+	runtime.ConditionLenGreater:        "LenGreater",
+	runtime.ConditionLenGreaterOrEqual: "LenGreaterOrEqual",
 	runtime.ConditionLessU:             "ConditionLess",
 	runtime.ConditionLessOrEqualU:      "ConditionLessOrEqual",
 	runtime.ConditionGreaterU:          "ConditionGreater",
