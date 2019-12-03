@@ -1347,16 +1347,7 @@ const (
 
 	OpDelete
 
-	OpDivInt8
-	OpDivInt16
-	OpDivInt32
-	OpDivInt64
-	OpDivUint8
-	OpDivUint16
-	OpDivUint32
-	OpDivUint64
-	OpDivFloat32
-	OpDivFloat64
+	OpDiv
 	OpDivX
 
 	OpField

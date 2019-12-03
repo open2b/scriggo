@@ -498,31 +498,8 @@ func (vm *VM) run() (Addr, bool) {
 			vm.general(a).SetMapIndex(vm.general(b), reflect.Value{})
 
 		// Div
-		case OpDivInt8, -OpDivInt8:
-			vm.setInt(c, int64(int8(vm.int(a))/int8(vm.intk(b, op < 0))))
-		case OpDivInt16, -OpDivInt16:
-			vm.setInt(c, int64(int16(vm.int(a))/int16(vm.intk(b, op < 0))))
-		case OpDivInt32, -OpDivInt32:
-			vm.setInt(c, int64(int32(vm.int(a))/int32(vm.intk(b, op < 0))))
-		case OpDivInt64:
-			vm.setInt(c, vm.int(a)/vm.int(b))
-		case -OpDivInt64:
-			vm.setInt(c, vm.int(a)/int64(b))
-		case OpDivUint8, -OpDivUint8:
-			vm.setInt(c, int64(uint8(vm.int(a))/uint8(vm.intk(b, op < 0))))
-		case OpDivUint16, -OpDivUint16:
-			vm.setInt(c, int64(uint16(vm.int(a))/uint16(vm.intk(b, op < 0))))
-		case OpDivUint32, -OpDivUint32:
-			vm.setInt(c, int64(uint32(vm.int(a))/uint32(vm.intk(b, op < 0))))
-		case OpDivUint64, -OpDivUint64:
-			vm.setInt(c, int64(uint64(vm.int(a))/uint64(vm.intk(b, op < 0))))
-		case OpDivFloat32, -OpDivFloat32:
-			vm.setFloat(c, float64(float32(vm.float(a))/float32(vm.floatk(b, op < 0))))
-		case OpDivFloat64:
-			vm.setFloat(c, vm.float(a)/vm.float(b))
-		case -OpDivFloat64:
-			vm.setFloat(c, vm.float(a)/float64(b))
-
+		case OpDiv, -OpDiv:
+			vm.setInt(c, vm.int(a)/vm.intk(b, op < 0))
 		case OpDivX, -OpDivX:
 			switch reflect.Kind(a) {
 			case reflect.Int8:

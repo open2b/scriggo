@@ -297,47 +297,8 @@ func (builder *functionBuilder) emitDelete(m, k int8) {
 //     z = x / y
 //
 func (builder *functionBuilder) emitDivInt(ky bool, x, y, z int8, kind reflect.Kind, pos *ast.Position) {
-
-	if kind != reflect.Int {
-		panic("BUG")
-	}
-
+	op := runtime.OpDiv
 	builder.addPosAndPath(pos)
-	var op runtime.Operation
-	switch kind {
-	case reflect.Int:
-		op = runtime.OpDivInt64
-		if strconv.IntSize == 32 {
-			op = runtime.OpDivInt32
-		}
-	case reflect.Int64:
-		op = runtime.OpDivInt64
-	case reflect.Int32:
-		op = runtime.OpDivInt32
-	case reflect.Int16:
-		op = runtime.OpDivInt16
-	case reflect.Int8:
-		op = runtime.OpDivInt8
-	case reflect.Uint, reflect.Uintptr:
-		op = runtime.OpDivUint64
-		if strconv.IntSize == 32 {
-			op = runtime.OpDivUint32
-		}
-	case reflect.Uint64:
-		op = runtime.OpDivUint64
-	case reflect.Uint32:
-		op = runtime.OpDivUint32
-	case reflect.Uint16:
-		op = runtime.OpDivUint16
-	case reflect.Uint8:
-		op = runtime.OpDivUint8
-	case reflect.Float64:
-		op = runtime.OpDivFloat64
-	case reflect.Float32:
-		op = runtime.OpDivFloat32
-	default:
-		panic(fmt.Errorf("BUG: invalid kind %s", kind))
-	}
 	if ky {
 		op = -op
 	}

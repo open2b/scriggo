@@ -840,17 +840,8 @@ var operationName = [...]string{
 
 	runtime.OpDelete: "Delete",
 
-	runtime.OpDivInt64:   "Div",
-	runtime.OpDivInt8:    "Div8",
-	runtime.OpDivInt16:   "Div16",
-	runtime.OpDivInt32:   "Div32",
-	runtime.OpDivUint8:   "DivU8",
-	runtime.OpDivUint16:  "DivU16",
-	runtime.OpDivUint32:  "DivU32",
-	runtime.OpDivUint64:  "DivU64",
-	runtime.OpDivFloat32: "Div32",
-	runtime.OpDivFloat64: "Div",
-	runtime.OpDivX:       "Div",
+	runtime.OpDiv:  "Div",
+	runtime.OpDivX: "Div",
 
 	runtime.OpGetVar: "GetVar",
 
