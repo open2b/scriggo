@@ -1298,6 +1298,7 @@ const (
 	OpNone Operation = iota
 
 	OpAddInt
+	OpAddFloat64
 	OpAddx
 
 	OpAddr
@@ -1348,6 +1349,7 @@ const (
 	OpDelete
 
 	OpDivInt
+	OpDivFloat64
 	OpDivx
 
 	OpField
@@ -1396,6 +1398,7 @@ const (
 	OpMove
 
 	OpMulInt
+	OpMulFloat64
 	OpMulx
 
 	OpNew
@@ -1440,9 +1443,11 @@ const (
 	OpStringSlice
 
 	OpSubInt
+	OpSubFloat64
 	OpSubx
 
 	OpSubInvInt
+	OpSubInvFloat64
 	OpSubInvx
 
 	OpTailCall

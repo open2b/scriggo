@@ -286,6 +286,11 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + disassembleOperand(fn, a, reflect.Int, false)
 		s += " " + disassembleOperand(fn, b, reflect.Int, k)
 		s += " " + disassembleOperand(fn, c, reflect.Int, false)
+	case runtime.OpAddFloat64, runtime.OpSubFloat64, runtime.OpSubInvFloat64, runtime.OpMulFloat64,
+		runtime.OpDivFloat64:
+		s += " " + disassembleOperand(fn, a, reflect.Float64, false)
+		s += " " + disassembleOperand(fn, b, reflect.Float64, k)
+		s += " " + disassembleOperand(fn, c, reflect.Float64, false)
 	case runtime.OpAddx, runtime.OpSubx, runtime.OpSubInvx, runtime.OpMulx,
 		runtime.OpDivx, runtime.OpRemx, runtime.OpLeftShiftx, runtime.OpRightShiftx:
 		kind := reflect.Kind(a)
@@ -796,8 +801,9 @@ var operationName = [...]string{
 
 	runtime.OpNone: "Nop",
 
-	runtime.OpAddInt: "Add",
-	runtime.OpAddx:   "Add",
+	runtime.OpAddInt:     "Add",
+	runtime.OpAddx:       "Add",
+	runtime.OpAddFloat64: "Add",
 
 	runtime.OpAddr: "Addr",
 
@@ -846,8 +852,9 @@ var operationName = [...]string{
 
 	runtime.OpDelete: "Delete",
 
-	runtime.OpDivInt: "Div",
-	runtime.OpDivx:   "Div",
+	runtime.OpDivInt:     "Div",
+	runtime.OpDivx:       "Div",
+	runtime.OpDivFloat64: "Div",
 
 	runtime.OpGetVar: "GetVar",
 
@@ -890,8 +897,9 @@ var operationName = [...]string{
 
 	runtime.OpMove: "Move",
 
-	runtime.OpMulInt: "Mul",
-	runtime.OpMulx:   "Mul",
+	runtime.OpMulInt:     "Mul",
+	runtime.OpMulx:       "Mul",
+	runtime.OpMulFloat64: "Mul",
 
 	runtime.OpNew: "New",
 
@@ -939,11 +947,13 @@ var operationName = [...]string{
 
 	runtime.OpStringSlice: "Slice",
 
-	runtime.OpSubInt: "Sub",
-	runtime.OpSubx:   "Sub",
+	runtime.OpSubInt:     "Sub",
+	runtime.OpSubx:       "Sub",
+	runtime.OpSubFloat64: "Sub",
 
-	runtime.OpSubInvInt: "SubInv",
-	runtime.OpSubInvx:   "SubInv",
+	runtime.OpSubInvInt:     "SubInv",
+	runtime.OpSubInvx:       "SubInv",
+	runtime.OpSubInvFloat64: "SubInv",
 
 	runtime.OpTailCall: "TailCall",
 

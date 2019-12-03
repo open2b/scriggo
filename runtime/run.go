@@ -86,6 +86,8 @@ func (vm *VM) run() (Addr, bool) {
 		// Add
 		case OpAddInt, -OpAddInt:
 			vm.setInt(c, vm.int(a)+vm.intk(b, op < 0))
+		case OpAddFloat64, -OpAddFloat64:
+			vm.setFloat(c, vm.float(a)+vm.floatk(b, op < 0))
 		case OpAddx, -OpAddx:
 			switch reflect.Kind(a) {
 			case reflect.Int8:
