@@ -18,7 +18,7 @@ import (
 //
 //     z = x + y
 //
-func (builder *functionBuilder) emitAddInt(k bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitAdd(k bool, x, y, z int8) {
 	op := runtime.OpAdd
 	if k {
 		op = -op
@@ -295,7 +295,7 @@ func (builder *functionBuilder) emitDelete(m, k int8) {
 //
 //     z = x / y
 //
-func (builder *functionBuilder) emitDivInt(ky bool, x, y, z int8, kind reflect.Kind, pos *ast.Position) {
+func (builder *functionBuilder) emitDivInt(ky bool, x, y, z int8, pos *ast.Position) {
 	op := runtime.OpDiv
 	builder.addPosAndPath(pos)
 	if ky {
@@ -516,7 +516,7 @@ func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType r
 //
 //     z = x << y
 //
-func (builder *functionBuilder) emitLeftShiftInt(k bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitLeftShift(k bool, x, y, z int8) {
 	op := runtime.OpLeftShift
 	if k {
 		op = -op
@@ -739,7 +739,7 @@ func (builder *functionBuilder) emitMove(k bool, x, z int8, kind reflect.Kind, c
 //
 //     z = x * y
 //
-func (builder *functionBuilder) emitMulInt(ky bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitMul(ky bool, x, y, z int8) {
 	op := runtime.OpMul
 	if ky {
 		op = -op
@@ -866,7 +866,7 @@ func (builder *functionBuilder) emitRecover(r int8, down bool) {
 //
 //     z = x % y
 //
-func (builder *functionBuilder) emitRemInt(ky bool, x, y, z int8, kind reflect.Kind, pos *ast.Position) {
+func (builder *functionBuilder) emitRemInt(ky bool, x, y, z int8, pos *ast.Position) {
 	builder.addPosAndPath(pos)
 	op := runtime.OpRem
 	if ky {
@@ -904,7 +904,7 @@ func (builder *functionBuilder) emitReturn() {
 //
 //     z = x >> y
 //
-func (builder *functionBuilder) emitRightShiftInt(k bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitRightShift(k bool, x, y, z int8) {
 	op := runtime.OpRightShift
 	if k {
 		op = -op
@@ -1070,7 +1070,7 @@ func (builder *functionBuilder) emitStringSlice(klow, khigh bool, src, dst, low,
 //
 //     z = x - y
 //
-func (builder *functionBuilder) emitSubInt(k bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitSub(k bool, x, y, z int8) {
 	op := runtime.OpSub
 	if k {
 		op = -op
@@ -1099,7 +1099,7 @@ func (builder *functionBuilder) emitSubX(kb bool, b, c int8, kind reflect.Kind) 
 //
 //     z = y - x
 //
-func (builder *functionBuilder) emitSubInvInt(k bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitSubInvInt(k bool, x, y, z int8) {
 	op := runtime.OpSubInv
 	if k {
 		op = -op
