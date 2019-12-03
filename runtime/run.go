@@ -84,7 +84,7 @@ func (vm *VM) run() (Addr, bool) {
 		switch op {
 
 		// Add
-		case OpAdd, -OpAdd:
+		case OpAddInt, -OpAddInt:
 			vm.setInt(c, vm.int(a)+vm.intk(b, op < 0))
 		case OpAddx, -OpAddx:
 			switch reflect.Kind(a) {
@@ -498,7 +498,7 @@ func (vm *VM) run() (Addr, bool) {
 			vm.general(a).SetMapIndex(vm.general(b), reflect.Value{})
 
 		// Div
-		case OpDiv, -OpDiv:
+		case OpDivInt, -OpDivInt:
 			vm.setInt(c, vm.int(a)/vm.intk(b, op < 0))
 		case OpDivx, -OpDivx:
 			switch reflect.Kind(a) {
@@ -700,7 +700,7 @@ func (vm *VM) run() (Addr, bool) {
 			vm.setFromReflectValue(c, v.Index(i))
 
 		// LeftShift
-		case OpLeftShift, -OpLeftShift:
+		case OpLeftShiftInt, -OpLeftShiftInt:
 			vm.setInt(c, vm.int(a)<<uint(vm.intk(b, op < 0)))
 		case OpLeftShiftx, -OpLeftShiftx:
 			switch reflect.Kind(a) {
@@ -855,7 +855,7 @@ func (vm *VM) run() (Addr, bool) {
 			}
 
 		// Mul
-		case OpMul, -OpMul:
+		case OpMulInt, -OpMulInt:
 			vm.setInt(c, vm.int(a)*vm.intk(b, op < 0))
 		case OpMulx, -OpMulx:
 			switch reflect.Kind(a) {
@@ -1297,7 +1297,7 @@ func (vm *VM) run() (Addr, bool) {
 			}
 
 		// Rem
-		case OpRem, -OpRem:
+		case OpRemInt, -OpRemInt:
 			vm.setInt(c, vm.int(a)%vm.intk(b, op < 0))
 		case OpRemx, -OpRemx:
 			switch reflect.Kind(a) {
@@ -1353,7 +1353,7 @@ func (vm *VM) run() (Addr, bool) {
 			}
 
 		// RightShift
-		case OpRightShift, -OpRightShift:
+		case OpRightShiftInt, -OpRightShiftInt:
 			vm.setInt(c, vm.int(a)>>uint(vm.intk(b, op < 0)))
 		case OpRightShiftx, -OpRightShiftx:
 			switch reflect.Kind(a) {
@@ -1617,7 +1617,7 @@ func (vm *VM) run() (Addr, bool) {
 			vm.pc++
 
 		// Sub
-		case OpSub, -OpSub:
+		case OpSubInt, -OpSubInt:
 			vm.setInt(c, vm.int(a)-vm.intk(b, op < 0))
 		case OpSubx, -OpSubx:
 			switch reflect.Kind(a) {
@@ -1646,7 +1646,7 @@ func (vm *VM) run() (Addr, bool) {
 			}
 
 		// SubInv
-		case OpSubInv, -OpSubInv:
+		case OpSubInvInt, -OpSubInvInt:
 			vm.setInt(c, vm.intk(b, op < 0)-vm.int(a))
 		case OpSubInvx, -OpSubInvx:
 			panic("TODO: not implemented") // TODO(Gianluca): to implement.

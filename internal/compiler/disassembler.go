@@ -791,8 +791,8 @@ var operationName = [...]string{
 
 	runtime.OpNone: "Nop",
 
-	runtime.OpAdd:  "Add",
-	runtime.OpAddx: "Add",
+	runtime.OpAddInt: "Add",
+	runtime.OpAddx:   "Add",
 
 	runtime.OpAddr: "Addr",
 
@@ -841,8 +841,8 @@ var operationName = [...]string{
 
 	runtime.OpDelete: "Delete",
 
-	runtime.OpDiv:  "Div",
-	runtime.OpDivx: "Div",
+	runtime.OpDivInt: "Div",
+	runtime.OpDivx:   "Div",
 
 	runtime.OpGetVar: "GetVar",
 
@@ -862,8 +862,8 @@ var operationName = [...]string{
 
 	runtime.OpIndexRef: "IndexRef",
 
-	runtime.OpLeftShift:  "LeftShift",
-	runtime.OpLeftShiftx: "LeftShift",
+	runtime.OpLeftShiftInt: "LeftShift",
+	runtime.OpLeftShiftx:   "LeftShift",
 
 	runtime.OpLen: "Len",
 
@@ -885,8 +885,8 @@ var operationName = [...]string{
 
 	runtime.OpMove: "Move",
 
-	runtime.OpMul:  "Mul",
-	runtime.OpMulx: "Mul",
+	runtime.OpMulInt: "Mul",
+	runtime.OpMulx:   "Mul",
 
 	runtime.OpNew: "New",
 
@@ -906,13 +906,13 @@ var operationName = [...]string{
 
 	runtime.OpRecover: "Recover",
 
-	runtime.OpRem:  "Rem",
-	runtime.OpRemx: "Rem",
+	runtime.OpRemInt: "Rem",
+	runtime.OpRemx:   "Rem",
 
 	runtime.OpReturn: "Return",
 
-	runtime.OpRightShift:  "RightShift",
-	runtime.OpRightShiftx: "RightShift",
+	runtime.OpRightShiftInt: "RightShift",
+	runtime.OpRightShiftx:   "RightShift",
 
 	runtime.OpSelect: "Select",
 
@@ -934,11 +934,11 @@ var operationName = [...]string{
 
 	runtime.OpStringSlice: "Slice",
 
-	runtime.OpSub:  "Sub",
-	runtime.OpSubx: "Sub",
+	runtime.OpSubInt: "Sub",
+	runtime.OpSubx:   "Sub",
 
-	runtime.OpSubInv:  "SubInv",
-	runtime.OpSubInvx: "SubInv",
+	runtime.OpSubInvInt: "SubInv",
+	runtime.OpSubInvx:   "SubInv",
 
 	runtime.OpTailCall: "TailCall",
 

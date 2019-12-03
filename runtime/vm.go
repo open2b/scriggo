@@ -1297,7 +1297,7 @@ type Operation int8
 const (
 	OpNone Operation = iota
 
-	OpAdd
+	OpAddInt
 	OpAddx
 
 	OpAddr
@@ -1347,7 +1347,7 @@ const (
 
 	OpDelete
 
-	OpDiv
+	OpDivInt
 	OpDivx
 
 	OpField
@@ -1372,7 +1372,7 @@ const (
 
 	OpIndexRef
 
-	OpLeftShift
+	OpLeftShiftInt
 	OpLeftShiftx
 
 	OpLen
@@ -1395,7 +1395,7 @@ const (
 
 	OpMove
 
-	OpMul
+	OpMulInt
 	OpMulx
 
 	OpNew
@@ -1416,12 +1416,12 @@ const (
 
 	OpRecover
 
-	OpRem
+	OpRemInt
 	OpRemx
 
 	OpReturn
 
-	OpRightShift
+	OpRightShiftInt
 	OpRightShiftx
 
 	OpSelect
@@ -1439,10 +1439,10 @@ const (
 
 	OpStringSlice
 
-	OpSub
+	OpSubInt
 	OpSubx
 
-	OpSubInv
+	OpSubInvInt
 	OpSubInvx
 
 	OpTailCall

@@ -19,7 +19,7 @@ import (
 //     z = x + y
 //
 func (builder *functionBuilder) emitAdd(k bool, x, y, z int8) {
-	op := runtime.OpAdd
+	op := runtime.OpAddInt
 	if k {
 		op = -op
 	}
@@ -297,7 +297,7 @@ func (builder *functionBuilder) emitDelete(m, k int8) {
 //     z = x / y
 //
 func (builder *functionBuilder) emitDivInt(ky bool, x, y, z int8, pos *ast.Position) {
-	op := runtime.OpDiv
+	op := runtime.OpDivInt
 	builder.addPosAndPath(pos)
 	if ky {
 		op = -op
@@ -519,7 +519,7 @@ func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType r
 //     z = x << y
 //
 func (builder *functionBuilder) emitLeftShift(k bool, x, y, z int8) {
-	op := runtime.OpLeftShift
+	op := runtime.OpLeftShiftInt
 	if k {
 		op = -op
 	}
@@ -743,7 +743,7 @@ func (builder *functionBuilder) emitMove(k bool, x, z int8, kind reflect.Kind, c
 //     z = x * y
 //
 func (builder *functionBuilder) emitMul(ky bool, x, y, z int8) {
-	op := runtime.OpMul
+	op := runtime.OpMulInt
 	if ky {
 		op = -op
 	}
@@ -872,7 +872,7 @@ func (builder *functionBuilder) emitRecover(r int8, down bool) {
 //
 func (builder *functionBuilder) emitRemInt(ky bool, x, y, z int8, pos *ast.Position) {
 	builder.addPosAndPath(pos)
-	op := runtime.OpRem
+	op := runtime.OpRemInt
 	if ky {
 		op = -op
 	}
@@ -910,7 +910,7 @@ func (builder *functionBuilder) emitReturn() {
 //     z = x >> y
 //
 func (builder *functionBuilder) emitRightShift(k bool, x, y, z int8) {
-	op := runtime.OpRightShift
+	op := runtime.OpRightShiftInt
 	if k {
 		op = -op
 	}
@@ -1077,7 +1077,7 @@ func (builder *functionBuilder) emitStringSlice(klow, khigh bool, src, dst, low,
 //     z = x - y
 //
 func (builder *functionBuilder) emitSub(k bool, x, y, z int8) {
-	op := runtime.OpSub
+	op := runtime.OpSubInt
 	if k {
 		op = -op
 	}
@@ -1107,7 +1107,7 @@ func (builder *functionBuilder) emitSubx(kb bool, b, c int8, kind reflect.Kind) 
 //     z = y - x
 //
 func (builder *functionBuilder) emitSubInvInt(k bool, x, y, z int8) {
-	op := runtime.OpSubInv
+	op := runtime.OpSubInvInt
 	if k {
 		op = -op
 	}
