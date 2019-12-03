@@ -46,9 +46,9 @@ var intOperators = [21]bool{
 	ast.OperatorEqual:          true,
 	ast.OperatorNotEqual:       true,
 	ast.OperatorLess:           true,
-	ast.OperatorLessOrEqual:    true,
+	ast.OperatorLessEqual:      true,
 	ast.OperatorGreater:        true,
-	ast.OperatorGreaterOrEqual: true,
+	ast.OperatorGreaterEqual:   true,
 	ast.OperatorAddition:       true,
 	ast.OperatorSubtraction:    true,
 	ast.OperatorMultiplication: true,
@@ -66,9 +66,9 @@ var floatOperators = [21]bool{
 	ast.OperatorEqual:          true,
 	ast.OperatorNotEqual:       true,
 	ast.OperatorLess:           true,
-	ast.OperatorLessOrEqual:    true,
+	ast.OperatorLessEqual:      true,
 	ast.OperatorGreater:        true,
-	ast.OperatorGreaterOrEqual: true,
+	ast.OperatorGreaterEqual:   true,
 	ast.OperatorAddition:       true,
 	ast.OperatorSubtraction:    true,
 	ast.OperatorMultiplication: true,
@@ -85,13 +85,13 @@ var complexOperators = [21]bool{
 }
 
 var stringOperators = [21]bool{
-	ast.OperatorEqual:          true,
-	ast.OperatorNotEqual:       true,
-	ast.OperatorLess:           true,
-	ast.OperatorLessOrEqual:    true,
-	ast.OperatorGreater:        true,
-	ast.OperatorGreaterOrEqual: true,
-	ast.OperatorAddition:       true,
+	ast.OperatorEqual:        true,
+	ast.OperatorNotEqual:     true,
+	ast.OperatorLess:         true,
+	ast.OperatorLessEqual:    true,
+	ast.OperatorGreater:      true,
+	ast.OperatorGreaterEqual: true,
+	ast.OperatorAddition:     true,
 }
 
 var interfaceOperators = [21]bool{
@@ -100,14 +100,14 @@ var interfaceOperators = [21]bool{
 }
 
 var evalToBoolOperators = [21]bool{
-	ast.OperatorEqual:          true,
-	ast.OperatorNotEqual:       true,
-	ast.OperatorLess:           true,
-	ast.OperatorLessOrEqual:    true,
-	ast.OperatorGreater:        true,
-	ast.OperatorGreaterOrEqual: true,
-	ast.OperatorAndAnd:         true,
-	ast.OperatorOrOr:           true,
+	ast.OperatorEqual:        true,
+	ast.OperatorNotEqual:     true,
+	ast.OperatorLess:         true,
+	ast.OperatorLessEqual:    true,
+	ast.OperatorGreater:      true,
+	ast.OperatorGreaterEqual: true,
+	ast.OperatorAndAnd:       true,
+	ast.OperatorOrOr:         true,
 }
 
 var operatorsOfKind = [...][21]bool{
@@ -413,7 +413,7 @@ func isPeriodImport(impor *ast.Import) bool {
 
 // isComparison reports whether op is a comparison operator.
 func isComparison(op ast.OperatorType) bool {
-	return op >= ast.OperatorEqual && op <= ast.OperatorGreaterOrEqual
+	return op >= ast.OperatorEqual && op <= ast.OperatorGreaterEqual
 }
 
 // isComplex reports whether a reflect kind is complex.

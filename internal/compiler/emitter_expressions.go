@@ -433,26 +433,26 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 		em.changeRegister(false, tmp, reg, exprType, dstType)
 		em.fb.exitStack()
 		return reg, false
-	case ast.OperatorEqual, ast.OperatorNotEqual, ast.OperatorLess, ast.OperatorLessOrEqual,
-		ast.OperatorGreaterOrEqual, ast.OperatorGreater:
+	case ast.OperatorEqual, ast.OperatorNotEqual, ast.OperatorLess, ast.OperatorLessEqual,
+		ast.OperatorGreaterEqual, ast.OperatorGreater:
 		var cond runtime.Condition
 		if kind := t1.Kind(); reflect.Uint <= kind && kind <= reflect.Uintptr {
 			cond = map[ast.OperatorType]runtime.Condition{
-				ast.OperatorEqual:          runtime.ConditionEqual,    // same as signed integers
-				ast.OperatorNotEqual:       runtime.ConditionNotEqual, // same as signed integers
-				ast.OperatorLess:           runtime.ConditionLessU,
-				ast.OperatorLessOrEqual:    runtime.ConditionLessEqualU,
-				ast.OperatorGreater:        runtime.ConditionGreaterU,
-				ast.OperatorGreaterOrEqual: runtime.ConditionGreaterEqualU,
+				ast.OperatorEqual:        runtime.ConditionEqual,    // same as signed integers
+				ast.OperatorNotEqual:     runtime.ConditionNotEqual, // same as signed integers
+				ast.OperatorLess:         runtime.ConditionLessU,
+				ast.OperatorLessEqual:    runtime.ConditionLessEqualU,
+				ast.OperatorGreater:      runtime.ConditionGreaterU,
+				ast.OperatorGreaterEqual: runtime.ConditionGreaterEqualU,
 			}[expr.Operator()]
 		} else {
 			cond = map[ast.OperatorType]runtime.Condition{
-				ast.OperatorEqual:          runtime.ConditionEqual,
-				ast.OperatorNotEqual:       runtime.ConditionNotEqual,
-				ast.OperatorLess:           runtime.ConditionLess,
-				ast.OperatorLessOrEqual:    runtime.ConditionLessEqual,
-				ast.OperatorGreater:        runtime.ConditionGreater,
-				ast.OperatorGreaterOrEqual: runtime.ConditionGreaterEqual,
+				ast.OperatorEqual:        runtime.ConditionEqual,
+				ast.OperatorNotEqual:     runtime.ConditionNotEqual,
+				ast.OperatorLess:         runtime.ConditionLess,
+				ast.OperatorLessEqual:    runtime.ConditionLessEqual,
+				ast.OperatorGreater:      runtime.ConditionGreater,
+				ast.OperatorGreaterEqual: runtime.ConditionGreaterEqual,
 			}[expr.Operator()]
 		}
 		pos := expr.Pos()

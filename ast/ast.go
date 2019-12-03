@@ -57,9 +57,9 @@ const (
 	OperatorEqual          OperatorType = iota // ==
 	OperatorNotEqual                           // !=
 	OperatorLess                               // <
-	OperatorLessOrEqual                        // <=
+	OperatorLessEqual                          // <=
 	OperatorGreater                            // >
-	OperatorGreaterOrEqual                     // >=
+	OperatorGreaterEqual                       // >=
 	OperatorNot                                // !
 	OperatorAnd                                // &
 	OperatorOr                                 // |
@@ -893,8 +893,8 @@ func (n *BinaryOperator) Precedence() int {
 		return 5
 	case OperatorAddition, OperatorSubtraction, OperatorOr, OperatorXor:
 		return 4
-	case OperatorEqual, OperatorNotEqual, OperatorLess, OperatorLessOrEqual,
-		OperatorGreater, OperatorGreaterOrEqual:
+	case OperatorEqual, OperatorNotEqual, OperatorLess, OperatorLessEqual,
+		OperatorGreater, OperatorGreaterEqual:
 		return 3
 	case OperatorAndAnd:
 		return 2
