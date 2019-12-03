@@ -478,16 +478,16 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 			// directly.
 			em.fb.enterStack()
 			tmp := em.fb.newRegister(exprType.Kind())
-			em.changeRegister(false, v1, tmp, exprType, exprType)
-			emitFn(k, v2, tmp, exprType.Kind())
+			em.changeRegister(k, v2, tmp, exprType, exprType)
+			emitFn(false, v1, tmp, exprType.Kind())
 			em.changeRegister(false, tmp, reg, exprType, dstType)
 			em.fb.exitStack()
 			return reg, false
 		}
 		em.fb.enterStack()
 		tmp := em.fb.newRegister(exprType.Kind())
-		em.changeRegister(false, v1, tmp, exprType, exprType)
-		emitFn(k, v2, tmp, exprType.Kind())
+		em.changeRegister(k, v2, tmp, exprType, exprType)
+		emitFn(false, v1, tmp, exprType.Kind())
 		em.changeRegister(false, tmp, reg, exprType, dstType)
 		em.fb.exitStack()
 		return reg, false
@@ -784,14 +784,12 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		}
 		if canEmitDirectly(unOpType.Kind(), dstType.Kind()) {
 			em.emitExprR(operand, operandType, reg)
-			// TODO: emitSubInt should be replaced by emitSubKind
-			em.fb.emitSubInt(true, reg, int8(1), reg, reflect.Int)
+			em.fb.emitSubX(true, 1, reg, dstType.Kind())
 			return
 		}
 		em.fb.enterScope()
 		tmp := em.emitExpr(operand, operandType)
-		// TODO: emitSubInt should be replaced by emitSubKind
-		em.fb.emitSubInt(true, tmp, int8(1), tmp, reflect.Int)
+		em.fb.emitSubX(true, 1, tmp, dstType.Kind())
 		em.changeRegister(false, tmp, reg, operandType, dstType)
 		em.fb.exitScope()
 
@@ -913,15 +911,13 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		}
 		if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
 			em.emitExprR(operand, dstType, reg)
-			// TODO: emitSubInt should be replaced by emitSubKind
-			em.fb.emitSubInt(true, reg, 0, reg, dstType.Kind())
+			em.fb.emitSubX(true, 0, reg, dstType.Kind())
 			return
 		}
 		em.fb.enterStack()
 		tmp := em.fb.newRegister(operandType.Kind())
 		em.emitExprR(operand, operandType, tmp)
-		// TODO: emitSubInt should be replaced by emitSubKind
-		em.fb.emitSubInt(true, tmp, 0, tmp, operandType.Kind())
+		em.fb.emitSubX(true, 0, tmp, dstType.Kind())
 		em.changeRegister(false, tmp, reg, operandType, dstType)
 		em.fb.exitStack()
 

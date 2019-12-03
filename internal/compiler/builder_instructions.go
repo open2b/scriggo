@@ -372,7 +372,13 @@ func (builder *functionBuilder) emitDivInt(ky bool, x, y, z int8, kind reflect.K
 //
 func (builder *functionBuilder) emitDivX(kb bool, b, c int8, kind reflect.Kind, pos *ast.Position) {
 	kind = flattenIntegerKind(kind)
-	panic("TODO: not implemented") // TODO(Gianluca): to implement.
+	in := runtime.Instruction{
+		Op: runtime.OpDivX,
+		A:  int8(kind),
+		B:  b,
+		C:  c,
+	}
+	builder.fn.Body = append(builder.fn.Body, in)
 }
 
 // emitRange appends a new "Range" instruction to the function body.
@@ -598,7 +604,13 @@ func (builder *functionBuilder) emitLeftShiftInt(k bool, x, y, z int8, kind refl
 //
 func (builder *functionBuilder) emitLeftShiftX(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
-	panic("TODO: not implemented") // TODO(Gianluca): to implement.
+	in := runtime.Instruction{
+		Op: runtime.OpLeftShiftX,
+		A:  int8(kind),
+		B:  b,
+		C:  c,
+	}
+	builder.fn.Body = append(builder.fn.Body, in)
 }
 
 // emitLen appends a new "len" instruction to the function body.
@@ -838,7 +850,13 @@ func (builder *functionBuilder) emitMulInt(ky bool, x, y, z int8, kind reflect.K
 //
 func (builder *functionBuilder) emitMulX(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
-	panic("TODO: not implemented") // TODO(Gianluca): to implement.
+	in := runtime.Instruction{
+		Op: runtime.OpMulX,
+		A:  int8(kind),
+		B:  b,
+		C:  c,
+	}
+	builder.fn.Body = append(builder.fn.Body, in)
 }
 
 // emitNew appends a new "new" instruction to the function body.
@@ -992,7 +1010,13 @@ func (builder *functionBuilder) emitRemInt(ky bool, x, y, z int8, kind reflect.K
 //
 func (builder *functionBuilder) emitRemX(kb bool, b, c int8, kind reflect.Kind, pos *ast.Position) {
 	kind = flattenIntegerKind(kind)
-	panic("TODO: not implemented") // TODO(Gianluca): to implement.
+	in := runtime.Instruction{
+		Op: runtime.OpRemX,
+		A:  int8(kind),
+		B:  b,
+		C:  c,
+	}
+	builder.fn.Body = append(builder.fn.Body, in)
 }
 
 // emitReturn appends a new "return" instruction to the function body.
@@ -1029,7 +1053,13 @@ func (builder *functionBuilder) emitRightShiftInt(k bool, x, y, z int8, kind ref
 //
 func (builder *functionBuilder) emitRightShiftX(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
-	panic("TODO: not implemented") // TODO(Gianluca): to implement.
+	in := runtime.Instruction{
+		Op: runtime.OpRightShiftX,
+		A:  int8(kind),
+		B:  b,
+		C:  c,
+	}
+	builder.fn.Body = append(builder.fn.Body, in)
 }
 
 // emitSelect appends a new "Select" instruction to the function body.
@@ -1212,7 +1242,13 @@ func (builder *functionBuilder) emitSubInt(k bool, x, y, z int8, kind reflect.Ki
 //
 func (builder *functionBuilder) emitSubX(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
-	panic("TODO: not implemented") // TODO(Gianluca): to implement.
+	in := runtime.Instruction{
+		Op: runtime.OpSubX,
+		A:  int8(kind),
+		B:  b,
+		C:  c,
+	}
+	builder.fn.Body = append(builder.fn.Body, in)
 }
 
 // emitSubInv appends a new "SubInv" instruction to the function body.
@@ -1255,7 +1291,13 @@ func (builder *functionBuilder) emitSubInvInt(k bool, x, y, z int8, kind reflect
 
 func (builder *functionBuilder) emitSubInvX(ka bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
-	panic("TODO: not implemented") // TODO(Gianluca): to implement.
+	in := runtime.Instruction{
+		Op: runtime.OpSubInvX,
+		A:  int8(kind),
+		B:  b,
+		C:  c,
+	}
+	builder.fn.Body = append(builder.fn.Body, in)
 }
 
 // emitTypify appends a new "Typify" instruction to the function body.

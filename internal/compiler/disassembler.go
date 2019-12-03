@@ -299,6 +299,11 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + disassembleOperand(fn, a, reflect.Float64, false)
 		s += " " + disassembleOperand(fn, b, reflect.Float64, k)
 		s += " " + disassembleOperand(fn, c, reflect.Float64, false)
+	case runtime.OpAddX, runtime.OpSubX, runtime.OpSubInvX, runtime.OpMulX, runtime.OpDivX, runtime.OpRemX, runtime.OpLeftShiftX, runtime.OpRightShiftX:
+		kind := reflect.Kind(a)
+		s += " " + kind.String()
+		s += " " + disassembleOperand(fn, b, kind, k)
+		s += " " + disassembleOperand(fn, c, kind, false)
 	case runtime.OpAddr:
 		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 		s += " " + disassembleOperand(fn, b, reflect.Int, false)
@@ -809,7 +814,7 @@ var operationName = [...]string{
 	runtime.OpAddInt32:   "Add32",
 	runtime.OpAddFloat32: "Add32",
 	runtime.OpAddFloat64: "Add",
-	runtime.OpAddX:       "AddX",
+	runtime.OpAddX:       "Add",
 
 	runtime.OpAddr: "Addr",
 
@@ -868,7 +873,7 @@ var operationName = [...]string{
 	runtime.OpDivUint64:  "DivU64",
 	runtime.OpDivFloat32: "Div32",
 	runtime.OpDivFloat64: "Div",
-	runtime.OpDivX:       "DivX",
+	runtime.OpDivX:       "Div",
 
 	runtime.OpGetVar: "GetVar",
 
@@ -892,7 +897,7 @@ var operationName = [...]string{
 	runtime.OpLeftShift8:  "LeftShift8",
 	runtime.OpLeftShift16: "LeftShift16",
 	runtime.OpLeftShift32: "LeftShift32",
-	runtime.OpLeftShiftX:  "LeftShiftX",
+	runtime.OpLeftShiftX:  "LeftShift",
 
 	runtime.OpLen: "Len",
 
@@ -920,7 +925,7 @@ var operationName = [...]string{
 	runtime.OpMulInt32:   "Mul32",
 	runtime.OpMulFloat32: "Mul32",
 	runtime.OpMulFloat64: "Mul",
-	runtime.OpMulX:       "MulX",
+	runtime.OpMulX:       "Mul",
 
 	runtime.OpNew: "New",
 
@@ -948,13 +953,13 @@ var operationName = [...]string{
 	runtime.OpRemUint16: "RemU16",
 	runtime.OpRemUint32: "RemU32",
 	runtime.OpRemUint64: "RemU64",
-	runtime.OpRemX:      "RemX",
+	runtime.OpRemX:      "Rem",
 
 	runtime.OpReturn: "Return",
 
 	runtime.OpRightShift:  "RightShift",
 	runtime.OpRightShiftU: "RightShiftU",
-	runtime.OpRightShiftX: "RightShiftX",
+	runtime.OpRightShiftX: "RightShift",
 
 	runtime.OpSelect: "Select",
 
@@ -982,7 +987,7 @@ var operationName = [...]string{
 	runtime.OpSubInt32:   "Sub32",
 	runtime.OpSubFloat32: "Sub32",
 	runtime.OpSubFloat64: "Sub",
-	runtime.OpSubX:       "SubX",
+	runtime.OpSubX:       "Sub",
 
 	runtime.OpSubInvInt64:   "SubInv",
 	runtime.OpSubInvInt8:    "SubInv8",
@@ -990,7 +995,7 @@ var operationName = [...]string{
 	runtime.OpSubInvInt32:   "SubInv32",
 	runtime.OpSubInvFloat32: "SubInv32",
 	runtime.OpSubInvFloat64: "SubInv",
-	runtime.OpSubInvX:       "SubX",
+	runtime.OpSubInvX:       "Sub",
 
 	runtime.OpTailCall: "TailCall",
 
