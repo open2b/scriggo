@@ -8,6 +8,7 @@ package compiler
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"strconv"
 
@@ -612,13 +613,17 @@ func divComplex(c1, c2 interface{}) interface{} {
 	return v3.Interface()
 }
 
+// TODO: find a better name and description for this function.
 func flattenIntegerKind(k reflect.Kind) reflect.Kind {
-	// TODO: also handle uintptr; the following expressions can be useful:
-	// 		const MaxUintptr = ^uintptr(0)
-	// 		const PtrSize = 32 << uintptr(^uintptr(0)>>63)
+	if k == reflect.Uintptr {
+		if ^uintptr(0) == math.MaxUint32 {
+			return reflect.Uint32
+		} else {
+			return reflect.Uint64
+		}
+	}
 	if k == reflect.Bool {
-		// TODO: is this code ok?
-		return reflect.Int64
+		return reflect.Int64 // TODO: is this code ok?
 	}
 	if strconv.IntSize == 32 {
 		switch k {
