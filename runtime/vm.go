@@ -1297,6 +1297,7 @@ type Operation int8
 const (
 	OpNone Operation = iota
 
+	// TODO: remove unnecessary instructions
 	OpAddInt8
 	OpAddInt16
 	OpAddInt32
