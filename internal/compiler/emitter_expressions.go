@@ -454,24 +454,24 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 		return reg, false
 	}
 
-	// Arithmetic operations on generic kind.
+	// Arithmetic operations on non reflect.Int kinds.
 	if op := expr.Operator(); ast.OperatorAnd <= op && op <= ast.OperatorRightShift {
 		var emitFn func(bool, int8, int8, reflect.Kind)
 		switch expr.Operator() {
 		case ast.OperatorAddition:
-			emitFn = em.fb.emitAddX
+			emitFn = em.fb.emitAddx
 		case ast.OperatorSubtraction:
-			emitFn = em.fb.emitSubX
+			emitFn = em.fb.emitSubx
 		case ast.OperatorMultiplication:
-			emitFn = em.fb.emitMulX
+			emitFn = em.fb.emitMulx
 		case ast.OperatorDivision:
-			emitFn = func(k bool, y, z int8, kind reflect.Kind) { em.fb.emitDivX(k, y, z, kind, expr.Pos()) }
+			emitFn = func(k bool, y, z int8, kind reflect.Kind) { em.fb.emitDivx(k, y, z, kind, expr.Pos()) }
 		case ast.OperatorModulo:
-			emitFn = func(k bool, y, z int8, kind reflect.Kind) { em.fb.emitRemX(k, y, z, kind, expr.Pos()) }
+			emitFn = func(k bool, y, z int8, kind reflect.Kind) { em.fb.emitRemx(k, y, z, kind, expr.Pos()) }
 		case ast.OperatorLeftShift:
-			emitFn = em.fb.emitLeftShiftX
+			emitFn = em.fb.emitLeftShiftx
 		case ast.OperatorRightShift:
-			emitFn = em.fb.emitRightShiftX
+			emitFn = em.fb.emitRightShiftx
 		}
 		if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
 			// TODO: consider the removal of the 'tmp' register, using 'reg'
@@ -784,12 +784,12 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		}
 		if canEmitDirectly(unOpType.Kind(), dstType.Kind()) {
 			em.emitExprR(operand, operandType, reg)
-			em.fb.emitSubX(true, 1, reg, operandType.Kind())
+			em.fb.emitSubx(true, 1, reg, operandType.Kind())
 			return
 		}
 		em.fb.enterScope()
 		tmp := em.emitExpr(operand, operandType)
-		em.fb.emitSubX(true, 1, tmp, dstType.Kind())
+		em.fb.emitSubx(true, 1, tmp, dstType.Kind())
 		em.changeRegister(false, tmp, reg, operandType, dstType)
 		em.fb.exitScope()
 
@@ -911,13 +911,13 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		}
 		if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
 			em.emitExprR(operand, dstType, reg)
-			em.fb.emitSubX(true, 0, reg, dstType.Kind())
+			em.fb.emitSubx(true, 0, reg, dstType.Kind())
 			return
 		}
 		em.fb.enterStack()
 		tmp := em.fb.newRegister(operandType.Kind())
 		em.emitExprR(operand, operandType, tmp)
-		em.fb.emitSubX(true, 0, tmp, dstType.Kind())
+		em.fb.emitSubx(true, 0, tmp, dstType.Kind())
 		em.changeRegister(false, tmp, reg, operandType, dstType)
 		em.fb.exitStack()
 

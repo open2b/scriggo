@@ -86,7 +86,7 @@ func (vm *VM) run() (Addr, bool) {
 		// Add
 		case OpAdd, -OpAdd:
 			vm.setInt(c, vm.int(a)+vm.intk(b, op < 0))
-		case OpAddX, -OpAddX:
+		case OpAddx, -OpAddx:
 			switch reflect.Kind(a) {
 			case reflect.Int8:
 				vm.setInt(c, int64(int8(vm.intk(b, op < 0)+vm.int(c))))
@@ -500,7 +500,7 @@ func (vm *VM) run() (Addr, bool) {
 		// Div
 		case OpDiv, -OpDiv:
 			vm.setInt(c, vm.int(a)/vm.intk(b, op < 0))
-		case OpDivX, -OpDivX:
+		case OpDivx, -OpDivx:
 			switch reflect.Kind(a) {
 			case reflect.Int8:
 				vm.setInt(c, int64(int8(vm.intk(b, op < 0))/int8(vm.int(c))))
@@ -702,7 +702,7 @@ func (vm *VM) run() (Addr, bool) {
 		// LeftShift
 		case OpLeftShift, -OpLeftShift:
 			vm.setInt(c, vm.int(a)<<uint(vm.intk(b, op < 0)))
-		case OpLeftShiftX, -OpLeftShiftX:
+		case OpLeftShiftx, -OpLeftShiftx:
 			switch reflect.Kind(a) {
 			case reflect.Int8:
 				vm.setInt(c, int64(int8(vm.intk(b, op < 0)<<uint(vm.int(c)))))
@@ -857,7 +857,7 @@ func (vm *VM) run() (Addr, bool) {
 		// Mul
 		case OpMul, -OpMul:
 			vm.setInt(c, vm.int(a)*vm.intk(b, op < 0))
-		case OpMulX, -OpMulX:
+		case OpMulx, -OpMulx:
 			switch reflect.Kind(a) {
 			case reflect.Int8:
 				vm.setInt(c, int64(int8(vm.intk(b, op < 0)*vm.int(c))))
@@ -1299,7 +1299,7 @@ func (vm *VM) run() (Addr, bool) {
 		// Rem
 		case OpRem, -OpRem:
 			vm.setInt(c, vm.int(a)%vm.intk(b, op < 0))
-		case OpRemX, -OpRemX:
+		case OpRemx, -OpRemx:
 			switch reflect.Kind(a) {
 			case reflect.Int8:
 				vm.setInt(c, int64(int8(vm.intk(b, op < 0))%int8(vm.int(c))))
@@ -1355,7 +1355,7 @@ func (vm *VM) run() (Addr, bool) {
 		// RightShift
 		case OpRightShift, -OpRightShift:
 			vm.setInt(c, vm.int(a)>>uint(vm.intk(b, op < 0)))
-		case OpRightShiftX, -OpRightShiftX:
+		case OpRightShiftx, -OpRightShiftx:
 			switch reflect.Kind(a) {
 			case reflect.Int8:
 				vm.setInt(c, int64(int8(vm.intk(b, op < 0)>>uint(vm.int(c)))))
@@ -1619,7 +1619,7 @@ func (vm *VM) run() (Addr, bool) {
 		// Sub
 		case OpSub, -OpSub:
 			vm.setInt(c, vm.int(a)-vm.intk(b, op < 0))
-		case OpSubX, -OpSubX:
+		case OpSubx, -OpSubx:
 			switch reflect.Kind(a) {
 			case reflect.Int8:
 				vm.setInt(c, int64(int8(vm.intk(b, op < 0)-vm.int(c))))
@@ -1648,7 +1648,7 @@ func (vm *VM) run() (Addr, bool) {
 		// SubInv
 		case OpSubInv, -OpSubInv:
 			vm.setInt(c, vm.intk(b, op < 0)-vm.int(a))
-		case OpSubInvX, -OpSubInvX:
+		case OpSubInvx, -OpSubInvx:
 			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 
 		// TailCall

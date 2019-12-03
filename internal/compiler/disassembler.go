@@ -281,7 +281,8 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	}
 	s := operationName[op]
 	switch op {
-	case runtime.OpAddX, runtime.OpSubX, runtime.OpSubInvX, runtime.OpMulX, runtime.OpDivX, runtime.OpRemX, runtime.OpLeftShiftX, runtime.OpRightShiftX:
+	case runtime.OpAddx, runtime.OpSubx, runtime.OpSubInvx, runtime.OpMulx,
+		runtime.OpDivx, runtime.OpRemx, runtime.OpLeftShiftx, runtime.OpRightShiftx:
 		kind := reflect.Kind(a)
 		s += " " + kind.String()
 		s += " " + disassembleOperand(fn, b, kind, k)
@@ -791,7 +792,7 @@ var operationName = [...]string{
 	runtime.OpNone: "Nop",
 
 	runtime.OpAdd:  "Add",
-	runtime.OpAddX: "Add",
+	runtime.OpAddx: "Add",
 
 	runtime.OpAddr: "Addr",
 
@@ -841,7 +842,7 @@ var operationName = [...]string{
 	runtime.OpDelete: "Delete",
 
 	runtime.OpDiv:  "Div",
-	runtime.OpDivX: "Div",
+	runtime.OpDivx: "Div",
 
 	runtime.OpGetVar: "GetVar",
 
@@ -862,7 +863,7 @@ var operationName = [...]string{
 	runtime.OpIndexRef: "IndexRef",
 
 	runtime.OpLeftShift:  "LeftShift",
-	runtime.OpLeftShiftX: "LeftShift",
+	runtime.OpLeftShiftx: "LeftShift",
 
 	runtime.OpLen: "Len",
 
@@ -885,7 +886,7 @@ var operationName = [...]string{
 	runtime.OpMove: "Move",
 
 	runtime.OpMul:  "Mul",
-	runtime.OpMulX: "Mul",
+	runtime.OpMulx: "Mul",
 
 	runtime.OpNew: "New",
 
@@ -906,12 +907,12 @@ var operationName = [...]string{
 	runtime.OpRecover: "Recover",
 
 	runtime.OpRem:  "Rem",
-	runtime.OpRemX: "Rem",
+	runtime.OpRemx: "Rem",
 
 	runtime.OpReturn: "Return",
 
 	runtime.OpRightShift:  "RightShift",
-	runtime.OpRightShiftX: "RightShift",
+	runtime.OpRightShiftx: "RightShift",
 
 	runtime.OpSelect: "Select",
 
@@ -934,10 +935,10 @@ var operationName = [...]string{
 	runtime.OpStringSlice: "Slice",
 
 	runtime.OpSub:  "Sub",
-	runtime.OpSubX: "Sub",
+	runtime.OpSubx: "Sub",
 
-	runtime.OpSubInv:  "Sub",
-	runtime.OpSubInvX: "Sub",
+	runtime.OpSubInv:  "SubInv",
+	runtime.OpSubInvx: "SubInv",
 
 	runtime.OpTailCall: "TailCall",
 
