@@ -9,7 +9,6 @@ package compiler
 import (
 	"fmt"
 	"reflect"
-	"strconv"
 
 	"scriggo/ast"
 	"scriggo/runtime"
@@ -518,22 +517,7 @@ func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType r
 //     z = x << y
 //
 func (builder *functionBuilder) emitLeftShiftInt(k bool, x, y, z int8, kind reflect.Kind) {
-	var op runtime.Operation
-	switch kind {
-	case reflect.Int, reflect.Uint, reflect.Uintptr:
-		op = runtime.OpLeftShift64
-		if strconv.IntSize == 32 {
-			op = runtime.OpLeftShift32
-		}
-	case reflect.Int8, reflect.Uint8:
-		op = runtime.OpLeftShift8
-	case reflect.Int16, reflect.Uint16:
-		op = runtime.OpLeftShift16
-	case reflect.Int32, reflect.Uint32:
-		op = runtime.OpLeftShift32
-	case reflect.Int64, reflect.Uint64:
-		op = runtime.OpLeftShift64
-	}
+	op := runtime.OpLeftShift
 	if k {
 		op = -op
 	}

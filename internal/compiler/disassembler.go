@@ -861,11 +861,8 @@ var operationName = [...]string{
 
 	runtime.OpIndexRef: "IndexRef",
 
-	runtime.OpLeftShift64: "LeftShift",
-	runtime.OpLeftShift8:  "LeftShift8",
-	runtime.OpLeftShift16: "LeftShift16",
-	runtime.OpLeftShift32: "LeftShift32",
-	runtime.OpLeftShiftX:  "LeftShift",
+	runtime.OpLeftShift:  "LeftShift",
+	runtime.OpLeftShiftX: "LeftShift",
 
 	runtime.OpLen: "Len",
 
