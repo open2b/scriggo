@@ -1391,7 +1391,7 @@ const (
 	OpLeftShift16
 	OpLeftShift32
 	OpLeftShift64
-	OpLeftShiftKind
+	OpLeftShiftX
 
 	OpLen
 
@@ -1419,7 +1419,7 @@ const (
 	OpMulInt64
 	OpMulFloat32
 	OpMulFloat64
-	OpMulKind
+	OpMulX
 
 	OpNew
 
@@ -1447,13 +1447,13 @@ const (
 	OpRemUint16
 	OpRemUint32
 	OpRemUint64
-	OpRemKind
+	OpRemX
 
 	OpReturn
 
 	OpRightShift
 	OpRightShiftU
-	OpRightShiftKind
+	OpRightShiftX
 
 	OpSelect
 

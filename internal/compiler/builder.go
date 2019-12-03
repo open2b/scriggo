@@ -9,6 +9,7 @@ package compiler
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 
 	"scriggo/ast"
 	"scriggo/internal/compiler/types"
@@ -609,4 +610,26 @@ func divComplex(c1, c2 interface{}) interface{} {
 	v3 := reflect.New(v1.Type()).Elem()
 	v3.SetComplex(v1.Complex() / v2.Complex())
 	return v3.Interface()
+}
+
+func flattenIntegerKind(k reflect.Kind) reflect.Kind {
+	// TODO: also handle uintptr; the following expressions can be useful:
+	// 		const MaxUintptr = ^uintptr(0)
+	// 		const PtrSize = 32 << uintptr(^uintptr(0)>>63)
+	if strconv.IntSize == 32 {
+		switch k {
+		case reflect.Int:
+			return reflect.Int32
+		case reflect.Uint:
+			return reflect.Uint32
+		}
+		return k
+	}
+	switch k {
+	case reflect.Int:
+		return reflect.Int64
+	case reflect.Uint:
+		return reflect.Uint64
+	}
+	return k
 }

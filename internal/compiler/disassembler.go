@@ -809,7 +809,7 @@ var operationName = [...]string{
 	runtime.OpAddInt32:   "Add32",
 	runtime.OpAddFloat32: "Add32",
 	runtime.OpAddFloat64: "Add",
-	runtime.OpAddX:       "AddKind",
+	runtime.OpAddX:       "AddX",
 
 	runtime.OpAddr: "Addr",
 
@@ -868,7 +868,7 @@ var operationName = [...]string{
 	runtime.OpDivUint64:  "DivU64",
 	runtime.OpDivFloat32: "Div32",
 	runtime.OpDivFloat64: "Div",
-	runtime.OpDivX:       "DivKind",
+	runtime.OpDivX:       "DivX",
 
 	runtime.OpGetVar: "GetVar",
 
@@ -888,11 +888,11 @@ var operationName = [...]string{
 
 	runtime.OpIndexRef: "IndexRef",
 
-	runtime.OpLeftShift64:   "LeftShift",
-	runtime.OpLeftShift8:    "LeftShift8",
-	runtime.OpLeftShift16:   "LeftShift16",
-	runtime.OpLeftShift32:   "LeftShift32",
-	runtime.OpLeftShiftKind: "LeftShiftKind",
+	runtime.OpLeftShift64: "LeftShift",
+	runtime.OpLeftShift8:  "LeftShift8",
+	runtime.OpLeftShift16: "LeftShift16",
+	runtime.OpLeftShift32: "LeftShift32",
+	runtime.OpLeftShiftX:  "LeftShiftX",
 
 	runtime.OpLen: "Len",
 
@@ -920,7 +920,7 @@ var operationName = [...]string{
 	runtime.OpMulInt32:   "Mul32",
 	runtime.OpMulFloat32: "Mul32",
 	runtime.OpMulFloat64: "Mul",
-	runtime.OpMulKind:    "MulKind",
+	runtime.OpMulX:       "MulX",
 
 	runtime.OpNew: "New",
 
@@ -948,13 +948,13 @@ var operationName = [...]string{
 	runtime.OpRemUint16: "RemU16",
 	runtime.OpRemUint32: "RemU32",
 	runtime.OpRemUint64: "RemU64",
-	runtime.OpRemKind:   "RemKind",
+	runtime.OpRemX:      "RemX",
 
 	runtime.OpReturn: "Return",
 
-	runtime.OpRightShift:     "RightShift",
-	runtime.OpRightShiftU:    "RightShiftU",
-	runtime.OpRightShiftKind: "RightShiftKind",
+	runtime.OpRightShift:  "RightShift",
+	runtime.OpRightShiftU: "RightShiftU",
+	runtime.OpRightShiftX: "RightShiftX",
 
 	runtime.OpSelect: "Select",
 
@@ -982,7 +982,7 @@ var operationName = [...]string{
 	runtime.OpSubInt32:   "Sub32",
 	runtime.OpSubFloat32: "Sub32",
 	runtime.OpSubFloat64: "Sub",
-	runtime.OpSubX:       "SubKind",
+	runtime.OpSubX:       "SubX",
 
 	runtime.OpSubInvInt64:   "SubInv",
 	runtime.OpSubInvInt8:    "SubInv8",
@@ -990,7 +990,7 @@ var operationName = [...]string{
 	runtime.OpSubInvInt32:   "SubInv32",
 	runtime.OpSubInvFloat32: "SubInv32",
 	runtime.OpSubInvFloat64: "SubInv",
-	runtime.OpSubInvX:       "SubKind",
+	runtime.OpSubInvX:       "SubX",
 
 	runtime.OpTailCall: "TailCall",
 

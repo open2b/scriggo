@@ -57,6 +57,7 @@ func (builder *functionBuilder) emitAddInt(k bool, x, y, z int8, kind reflect.Ki
 //    c = b + c
 //
 func (builder *functionBuilder) emitAddX(kb bool, b, c int8, kind reflect.Kind) {
+	kind = flattenIntegerKind(kind)
 	in := runtime.Instruction{
 		Op: runtime.OpAddX,
 		A:  int8(kind),
@@ -370,6 +371,7 @@ func (builder *functionBuilder) emitDivInt(ky bool, x, y, z int8, kind reflect.K
 //    c = b / c
 //
 func (builder *functionBuilder) emitDivX(kb bool, b, c int8, kind reflect.Kind, pos *ast.Position) {
+	kind = flattenIntegerKind(kind)
 	panic("TODO: not implemented") // TODO(Gianluca): to implement.
 }
 
@@ -595,6 +597,7 @@ func (builder *functionBuilder) emitLeftShiftInt(k bool, x, y, z int8, kind refl
 //    c = b << c
 //
 func (builder *functionBuilder) emitLeftShiftX(kb bool, b, c int8, kind reflect.Kind) {
+	kind = flattenIntegerKind(kind)
 	panic("TODO: not implemented") // TODO(Gianluca): to implement.
 }
 
@@ -834,6 +837,7 @@ func (builder *functionBuilder) emitMulInt(ky bool, x, y, z int8, kind reflect.K
 //    c = b * c
 //
 func (builder *functionBuilder) emitMulX(kb bool, b, c int8, kind reflect.Kind) {
+	kind = flattenIntegerKind(kind)
 	panic("TODO: not implemented") // TODO(Gianluca): to implement.
 }
 
@@ -987,6 +991,7 @@ func (builder *functionBuilder) emitRemInt(ky bool, x, y, z int8, kind reflect.K
 //    c = b % c
 //
 func (builder *functionBuilder) emitRemX(kb bool, b, c int8, kind reflect.Kind, pos *ast.Position) {
+	kind = flattenIntegerKind(kind)
 	panic("TODO: not implemented") // TODO(Gianluca): to implement.
 }
 
@@ -1023,6 +1028,7 @@ func (builder *functionBuilder) emitRightShiftInt(k bool, x, y, z int8, kind ref
 //    c = b >> c
 //
 func (builder *functionBuilder) emitRightShiftX(kb bool, b, c int8, kind reflect.Kind) {
+	kind = flattenIntegerKind(kind)
 	panic("TODO: not implemented") // TODO(Gianluca): to implement.
 }
 
@@ -1205,6 +1211,7 @@ func (builder *functionBuilder) emitSubInt(k bool, x, y, z int8, kind reflect.Ki
 //    c = b - c
 //
 func (builder *functionBuilder) emitSubX(kb bool, b, c int8, kind reflect.Kind) {
+	kind = flattenIntegerKind(kind)
 	panic("TODO: not implemented") // TODO(Gianluca): to implement.
 }
 
@@ -1247,9 +1254,7 @@ func (builder *functionBuilder) emitSubInvInt(k bool, x, y, z int8, kind reflect
 }
 
 func (builder *functionBuilder) emitSubInvX(ka bool, b, c int8, kind reflect.Kind) {
-
-	// TODO: should this function exist? How is it made?
-
+	kind = flattenIntegerKind(kind)
 	panic("TODO: not implemented") // TODO(Gianluca): to implement.
 }
 
