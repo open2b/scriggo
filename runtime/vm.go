@@ -1407,12 +1407,7 @@ const (
 
 	OpMove
 
-	OpMulInt8
-	OpMulInt16
-	OpMulInt32
-	OpMulInt64
-	OpMulFloat32
-	OpMulFloat64
+	OpMul
 	OpMulX
 
 	OpNew

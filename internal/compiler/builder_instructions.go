@@ -795,33 +795,7 @@ func (builder *functionBuilder) emitMove(k bool, x, z int8, kind reflect.Kind, c
 //     z = x * y
 //
 func (builder *functionBuilder) emitMulInt(ky bool, x, y, z int8, kind reflect.Kind) {
-
-	if kind != reflect.Int {
-		panic("BUG")
-	}
-
-	var op runtime.Operation
-	switch kind {
-	case reflect.Int, reflect.Uint, reflect.Uintptr:
-		op = runtime.OpMulInt64
-		if strconv.IntSize == 32 {
-			op = runtime.OpMulInt32
-		}
-	case reflect.Int64, reflect.Uint64:
-		op = runtime.OpMulInt64
-	case reflect.Int32, reflect.Uint32:
-		op = runtime.OpMulInt32
-	case reflect.Int16, reflect.Uint16:
-		op = runtime.OpMulInt16
-	case reflect.Int8, reflect.Uint8:
-		op = runtime.OpMulInt8
-	case reflect.Float64:
-		op = runtime.OpMulFloat64
-	case reflect.Float32:
-		op = runtime.OpMulFloat32
-	default:
-		panic("mul: invalid type")
-	}
+	op := runtime.OpMul
 	if ky {
 		op = -op
 	}

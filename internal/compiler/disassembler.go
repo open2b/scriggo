@@ -896,13 +896,8 @@ var operationName = [...]string{
 
 	runtime.OpMove: "Move",
 
-	runtime.OpMulInt64:   "Mul",
-	runtime.OpMulInt8:    "Mul8",
-	runtime.OpMulInt16:   "Mul16",
-	runtime.OpMulInt32:   "Mul32",
-	runtime.OpMulFloat32: "Mul32",
-	runtime.OpMulFloat64: "Mul",
-	runtime.OpMulX:       "Mul",
+	runtime.OpMul:  "Mul",
+	runtime.OpMulX: "Mul",
 
 	runtime.OpNew: "New",
 

@@ -885,23 +885,8 @@ func (vm *VM) run() (Addr, bool) {
 			}
 
 		// Mul
-		case OpMulInt8, -OpMulInt8:
-			vm.setInt(c, int64(int8(vm.int(a)*vm.intk(b, op < 0))))
-		case OpMulInt16, -OpMulInt16:
-			vm.setInt(c, int64(int16(vm.int(a)*vm.intk(b, op < 0))))
-		case OpMulInt32, -OpMulInt32:
-			vm.setInt(c, int64(int32(vm.int(a)*vm.intk(b, op < 0))))
-		case OpMulInt64:
-			vm.setInt(c, vm.int(a)*vm.int(b))
-		case -OpMulInt64:
-			vm.setInt(c, vm.int(a)*int64(b))
-		case OpMulFloat32, -OpMulFloat32:
-			vm.setFloat(c, float64(float32(vm.float(a))*float32(vm.floatk(b, op < 0))))
-		case OpMulFloat64:
-			vm.setFloat(c, vm.float(a)*vm.float(b))
-		case -OpMulFloat64:
-			vm.setFloat(c, vm.float(a)*float64(b))
-
+		case OpMul, -OpMul:
+			vm.setInt(c, vm.int(a)*vm.intk(b, op < 0))
 		case OpMulX, -OpMulX:
 			switch reflect.Kind(a) {
 			case reflect.Int8:
