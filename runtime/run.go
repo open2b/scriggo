@@ -583,17 +583,17 @@ func (vm *VM) run() (Addr, bool) {
 				cond = vm.int(a) == 0
 			case ConditionNotZero:
 				cond = vm.int(a) != 0
-			case ConditionLessU, ConditionLessOrEqualU, ConditionGreaterU, ConditionGreaterOrEqualU:
+			case ConditionLessU, ConditionLessEqualU, ConditionGreaterU, ConditionGreaterEqualU:
 				v1 := uint64(vm.int(a))
 				v2 := uint64(vm.intk(c, op < 0))
 				switch Condition(b) {
 				case ConditionLessU:
 					cond = v1 < v2
-				case ConditionLessOrEqualU:
+				case ConditionLessEqualU:
 					cond = v1 <= v2
 				case ConditionGreaterU:
 					cond = v1 > v2
-				case ConditionGreaterOrEqualU:
+				case ConditionGreaterEqualU:
 					cond = v1 >= v2
 				}
 			default:
@@ -606,11 +606,11 @@ func (vm *VM) run() (Addr, bool) {
 					cond = v1 != v2
 				case ConditionLess:
 					cond = v1 < v2
-				case ConditionLessOrEqual:
+				case ConditionLessEqual:
 					cond = v1 <= v2
 				case ConditionGreater:
 					cond = v1 > v2
-				case ConditionGreaterOrEqual:
+				case ConditionGreaterEqual:
 					cond = v1 >= v2
 				}
 			}
@@ -628,11 +628,11 @@ func (vm *VM) run() (Addr, bool) {
 				cond = v1 != v2
 			case ConditionLess:
 				cond = v1 < v2
-			case ConditionLessOrEqual:
+			case ConditionLessEqual:
 				cond = v1 <= v2
 			case ConditionGreater:
 				cond = v1 > v2
-			case ConditionGreaterOrEqual:
+			case ConditionGreaterEqual:
 				cond = v1 >= v2
 			}
 			if cond {
@@ -650,11 +650,11 @@ func (vm *VM) run() (Addr, bool) {
 					cond = v1 != v2
 				case ConditionLess:
 					cond = v1 < v2
-				case ConditionLessOrEqual:
+				case ConditionLessEqual:
 					cond = v1 <= v2
 				case ConditionGreater:
 					cond = v1 > v2
-				case ConditionGreaterOrEqual:
+				case ConditionGreaterEqual:
 					cond = v1 >= v2
 				}
 			} else {
@@ -666,11 +666,11 @@ func (vm *VM) run() (Addr, bool) {
 					cond = len(v1) != v2
 				case ConditionLenLess:
 					cond = len(v1) < v2
-				case ConditionLenLessOrEqual:
+				case ConditionLenLessEqual:
 					cond = len(v1) <= v2
 				case ConditionLenGreater:
 					cond = len(v1) > v2
-				case ConditionLenGreaterOrEqual:
+				case ConditionLenGreaterEqual:
 					cond = len(v1) >= v2
 				}
 			}

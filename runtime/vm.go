@@ -1268,30 +1268,30 @@ func kindToType(k reflect.Kind) registerType {
 type Condition int8
 
 const (
-	ConditionZero              Condition = iota // x == 0
-	ConditionNotZero                            // x != 0
-	ConditionEqual                              // x == y
-	ConditionNotEqual                           // x != y
-	ConditionLess                               // x <  y
-	ConditionLessOrEqual                        // x <= y
-	ConditionGreater                            // x >  y
-	ConditionGreaterOrEqual                     // x >= y
-	ConditionLessU                              // x <  y (unsigned)
-	ConditionLessOrEqualU                       // x <= y (unsigned)
-	ConditionGreaterU                           // x >  y (unsigned)
-	ConditionGreaterOrEqualU                    // x >= y (unsigned)
-	ConditionLenEqual                           // len(x) == y
-	ConditionLenNotEqual                        // len(x) != y
-	ConditionLenLess                            // len(x) <  y
-	ConditionLenLessOrEqual                     // len(x) <= y
-	ConditionLenGreater                         // len(x) >  y
-	ConditionLenGreaterOrEqual                  // len(x) >= y
-	ConditionInterfaceNil                       // x == nil
-	ConditionInterfaceNotNil                    // x != nil
-	ConditionNil                                // x == nil
-	ConditionNotNil                             // x != nil
-	ConditionOK                                 // [vm.ok]
-	ConditionNotOK                              // ![vm.ok]
+	ConditionZero            Condition = iota // x == 0
+	ConditionNotZero                          // x != 0
+	ConditionEqual                            // x == y
+	ConditionNotEqual                         // x != y
+	ConditionLess                             // x <  y
+	ConditionLessEqual                        // x <= y
+	ConditionGreater                          // x >  y
+	ConditionGreaterEqual                     // x >= y
+	ConditionLessU                            // x <  y (unsigned)
+	ConditionLessEqualU                       // x <= y (unsigned)
+	ConditionGreaterU                         // x >  y (unsigned)
+	ConditionGreaterEqualU                    // x >= y (unsigned)
+	ConditionLenEqual                         // len(x) == y
+	ConditionLenNotEqual                      // len(x) != y
+	ConditionLenLess                          // len(x) <  y
+	ConditionLenLessEqual                     // len(x) <= y
+	ConditionLenGreater                       // len(x) >  y
+	ConditionLenGreaterEqual                  // len(x) >= y
+	ConditionInterfaceNil                     // x == nil
+	ConditionInterfaceNotNil                  // x != nil
+	ConditionNil                              // x == nil
+	ConditionNotNil                           // x != nil
+	ConditionOK                               // [vm.ok]
+	ConditionNotOK                            // ![vm.ok]
 )
 
 type Operation int8

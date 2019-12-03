@@ -441,18 +441,18 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 				ast.OperatorEqual:          runtime.ConditionEqual,    // same as signed integers
 				ast.OperatorNotEqual:       runtime.ConditionNotEqual, // same as signed integers
 				ast.OperatorLess:           runtime.ConditionLessU,
-				ast.OperatorLessOrEqual:    runtime.ConditionLessOrEqualU,
+				ast.OperatorLessOrEqual:    runtime.ConditionLessEqualU,
 				ast.OperatorGreater:        runtime.ConditionGreaterU,
-				ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqualU,
+				ast.OperatorGreaterOrEqual: runtime.ConditionGreaterEqualU,
 			}[expr.Operator()]
 		} else {
 			cond = map[ast.OperatorType]runtime.Condition{
 				ast.OperatorEqual:          runtime.ConditionEqual,
 				ast.OperatorNotEqual:       runtime.ConditionNotEqual,
 				ast.OperatorLess:           runtime.ConditionLess,
-				ast.OperatorLessOrEqual:    runtime.ConditionLessOrEqual,
+				ast.OperatorLessOrEqual:    runtime.ConditionLessEqual,
 				ast.OperatorGreater:        runtime.ConditionGreater,
-				ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqual,
+				ast.OperatorGreaterOrEqual: runtime.ConditionGreaterEqual,
 			}[expr.Operator()]
 		}
 		pos := expr.Pos()
