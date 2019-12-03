@@ -1304,25 +1304,8 @@ func (vm *VM) run() (Addr, bool) {
 			}
 
 		// Rem
-		case OpRemInt8, -OpRemInt8:
-			vm.setInt(c, int64(int8(vm.int(a))%int8(vm.intk(b, op < 0))))
-		case OpRemInt16, -OpRemInt16:
-			vm.setInt(c, int64(int16(vm.int(a))%int16(vm.intk(b, op < 0))))
-		case OpRemInt32, -OpRemInt32:
-			vm.setInt(c, int64(int32(vm.int(a))%int32(vm.intk(b, op < 0))))
-		case OpRemInt64:
-			vm.setInt(c, vm.int(a)%vm.int(b))
-		case -OpRemInt64:
-			vm.setInt(c, vm.int(a)%int64(b))
-		case OpRemUint8, -OpRemUint8:
-			vm.setInt(c, int64(uint8(vm.int(a))%uint8(vm.intk(b, op < 0))))
-		case OpRemUint16, -OpRemUint16:
-			vm.setInt(c, int64(uint16(vm.int(a))%uint16(vm.intk(b, op < 0))))
-		case OpRemUint32, -OpRemUint32:
-			vm.setInt(c, int64(uint32(vm.int(a))%uint32(vm.intk(b, op < 0))))
-		case OpRemUint64, -OpRemUint64:
-			vm.setInt(c, int64(uint64(vm.int(a))%uint64(vm.intk(b, op < 0))))
-
+		case OpRem, -OpRem:
+			vm.setInt(c, vm.int(a)%vm.intk(b, op < 0))
 		case OpRemX, -OpRemX:
 			switch reflect.Kind(a) {
 			case reflect.Int8:

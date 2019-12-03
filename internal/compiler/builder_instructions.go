@@ -883,43 +883,8 @@ func (builder *functionBuilder) emitRecover(r int8, down bool) {
 //     z = x % y
 //
 func (builder *functionBuilder) emitRemInt(ky bool, x, y, z int8, kind reflect.Kind, pos *ast.Position) {
-
-	if kind != reflect.Int {
-		panic("BUG")
-	}
-
 	builder.addPosAndPath(pos)
-	var op runtime.Operation
-	switch kind {
-	case reflect.Int:
-		op = runtime.OpRemInt64
-		if strconv.IntSize == 32 {
-			op = runtime.OpRemInt32
-		}
-	case reflect.Int64:
-		op = runtime.OpRemInt64
-	case reflect.Int32:
-		op = runtime.OpRemInt32
-	case reflect.Int16:
-		op = runtime.OpRemInt16
-	case reflect.Int8:
-		op = runtime.OpRemInt8
-	case reflect.Uint, reflect.Uintptr:
-		op = runtime.OpRemUint64
-		if strconv.IntSize == 32 {
-			op = runtime.OpRemUint32
-		}
-	case reflect.Uint64:
-		op = runtime.OpRemUint64
-	case reflect.Uint32:
-		op = runtime.OpRemUint32
-	case reflect.Uint16:
-		op = runtime.OpRemUint16
-	case reflect.Uint8:
-		op = runtime.OpRemUint8
-	default:
-		panic("rem: invalid type")
-	}
+	op := runtime.OpRem
 	if ky {
 		op = -op
 	}

@@ -1419,14 +1419,7 @@ const (
 
 	OpRecover
 
-	OpRemInt8
-	OpRemInt16
-	OpRemInt32
-	OpRemInt64
-	OpRemUint8
-	OpRemUint16
-	OpRemUint32
-	OpRemUint64
+	OpRem
 	OpRemX
 
 	OpReturn

@@ -908,15 +908,8 @@ var operationName = [...]string{
 
 	runtime.OpRecover: "Recover",
 
-	runtime.OpRemInt64:  "Rem",
-	runtime.OpRemInt8:   "Rem8",
-	runtime.OpRemInt16:  "Rem16",
-	runtime.OpRemInt32:  "Rem32",
-	runtime.OpRemUint8:  "RemU8",
-	runtime.OpRemUint16: "RemU16",
-	runtime.OpRemUint32: "RemU32",
-	runtime.OpRemUint64: "RemU64",
-	runtime.OpRemX:      "Rem",
+	runtime.OpRem:  "Rem",
+	runtime.OpRemX: "Rem",
 
 	runtime.OpReturn: "Return",
 
