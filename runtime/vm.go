@@ -1268,7 +1268,9 @@ func kindToType(k reflect.Kind) registerType {
 type Condition int8
 
 const (
-	ConditionEqual             Condition = iota // x == y
+	ConditionZero              Condition = iota // x == 0
+	ConditionNotZero                            // x != 0
+	ConditionEqual                              // x == y
 	ConditionNotEqual                           // x != y
 	ConditionLess                               // x <  y
 	ConditionLessOrEqual                        // x <= y

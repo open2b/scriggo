@@ -578,7 +578,12 @@ func (vm *VM) run() (Addr, bool) {
 			}
 		case OpIfInt, -OpIfInt:
 			var cond bool
-			if ConditionLessU <= Condition(b) && Condition(b) <= ConditionGreaterOrEqualU {
+			switch Condition(b) {
+			case ConditionZero:
+				cond = vm.int(a) == 0
+			case ConditionNotZero:
+				cond = vm.int(a) != 0
+			case ConditionLessU, ConditionLessOrEqualU, ConditionGreaterU, ConditionGreaterOrEqualU:
 				v1 := uint64(vm.int(a))
 				v2 := uint64(vm.intk(c, op < 0))
 				switch Condition(b) {
@@ -591,7 +596,7 @@ func (vm *VM) run() (Addr, bool) {
 				case ConditionGreaterOrEqualU:
 					cond = v1 >= v2
 				}
-			} else {
+			default:
 				v1 := vm.int(a)
 				v2 := vm.intk(c, op < 0)
 				switch Condition(b) {

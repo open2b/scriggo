@@ -456,8 +456,8 @@ func (builder *functionBuilder) emitGoto(lab label) {
 
 // emitIf appends a new "If" instruction to the function body.
 //
-//     x
-//     !x
+//     x == 0
+//     x != 0
 //     x == y
 //     x != y
 //     x <  y
