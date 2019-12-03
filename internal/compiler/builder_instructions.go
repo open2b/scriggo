@@ -921,16 +921,7 @@ func (builder *functionBuilder) emitReturn() {
 //     z = x >> y
 //
 func (builder *functionBuilder) emitRightShiftInt(k bool, x, y, z int8, kind reflect.Kind) {
-
-	if kind != reflect.Int {
-		panic("BUG")
-	}
-
 	op := runtime.OpRightShift
-	switch kind {
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		op = runtime.OpRightShiftU
-	}
 	if k {
 		op = -op
 	}

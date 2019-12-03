@@ -1362,9 +1362,6 @@ func (vm *VM) run() (Addr, bool) {
 		// RightShift
 		case OpRightShift, -OpRightShift:
 			vm.setInt(c, vm.int(a)>>uint(vm.intk(b, op < 0)))
-		case OpRightShiftU, -OpRightShiftU:
-			vm.setInt(c, int64(uint64(vm.int(a))>>uint(vm.intk(b, op < 0))))
-
 		case OpRightShiftX, -OpRightShiftX:
 			switch reflect.Kind(a) {
 			case reflect.Int8:

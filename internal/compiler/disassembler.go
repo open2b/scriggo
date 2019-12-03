@@ -914,7 +914,6 @@ var operationName = [...]string{
 	runtime.OpReturn: "Return",
 
 	runtime.OpRightShift:  "RightShift",
-	runtime.OpRightShiftU: "RightShiftU",
 	runtime.OpRightShiftX: "RightShift",
 
 	runtime.OpSelect: "Select",

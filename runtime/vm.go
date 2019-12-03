@@ -1425,7 +1425,6 @@ const (
 	OpReturn
 
 	OpRightShift
-	OpRightShiftU
 	OpRightShiftX
 
 	OpSelect
