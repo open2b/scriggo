@@ -784,7 +784,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		}
 		if canEmitDirectly(unOpType.Kind(), dstType.Kind()) {
 			em.emitExprR(operand, operandType, reg)
-			em.fb.emitSubX(true, 1, reg, dstType.Kind())
+			em.fb.emitSubX(true, 1, reg, operandType.Kind())
 			return
 		}
 		em.fb.enterScope()

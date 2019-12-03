@@ -64,6 +64,9 @@ func (builder *functionBuilder) emitAddX(kb bool, b, c int8, kind reflect.Kind) 
 		B:  b,
 		C:  c,
 	}
+	if kb {
+		in.Op = -in.Op
+	}
 	builder.fn.Body = append(builder.fn.Body, in)
 }
 
@@ -378,6 +381,9 @@ func (builder *functionBuilder) emitDivX(kb bool, b, c int8, kind reflect.Kind, 
 		B:  b,
 		C:  c,
 	}
+	if kb {
+		in.Op = -in.Op
+	}
 	builder.fn.Body = append(builder.fn.Body, in)
 }
 
@@ -609,6 +615,9 @@ func (builder *functionBuilder) emitLeftShiftX(kb bool, b, c int8, kind reflect.
 		A:  int8(kind),
 		B:  b,
 		C:  c,
+	}
+	if kb {
+		in.Op = -in.Op
 	}
 	builder.fn.Body = append(builder.fn.Body, in)
 }
@@ -856,6 +865,9 @@ func (builder *functionBuilder) emitMulX(kb bool, b, c int8, kind reflect.Kind) 
 		B:  b,
 		C:  c,
 	}
+	if kb {
+		in.Op = -in.Op
+	}
 	builder.fn.Body = append(builder.fn.Body, in)
 }
 
@@ -1016,6 +1028,9 @@ func (builder *functionBuilder) emitRemX(kb bool, b, c int8, kind reflect.Kind, 
 		B:  b,
 		C:  c,
 	}
+	if kb {
+		in.Op = -in.Op
+	}
 	builder.fn.Body = append(builder.fn.Body, in)
 }
 
@@ -1058,6 +1073,9 @@ func (builder *functionBuilder) emitRightShiftX(kb bool, b, c int8, kind reflect
 		A:  int8(kind),
 		B:  b,
 		C:  c,
+	}
+	if kb {
+		in.Op = -in.Op
 	}
 	builder.fn.Body = append(builder.fn.Body, in)
 }
@@ -1248,6 +1266,9 @@ func (builder *functionBuilder) emitSubX(kb bool, b, c int8, kind reflect.Kind) 
 		B:  b,
 		C:  c,
 	}
+	if kb {
+		in.Op = -in.Op
+	}
 	builder.fn.Body = append(builder.fn.Body, in)
 }
 
@@ -1296,6 +1317,9 @@ func (builder *functionBuilder) emitSubInvX(ka bool, b, c int8, kind reflect.Kin
 		A:  int8(kind),
 		B:  b,
 		C:  c,
+	}
+	if ka {
+		in.Op = -in.Op
 	}
 	builder.fn.Body = append(builder.fn.Body, in)
 }

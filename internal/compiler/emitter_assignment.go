@@ -244,7 +244,7 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 		em.fb.emitField(addr.op1, addr.op2, lhReg, typ.Kind(), false)
 	}
 
-	// Emit the code that evaluataes the right side of the assignment.
+	// Emit the code that evaluates the right side of the assignment.
 	rhReg := em.emitExpr(rh, typ)
 
 	// Emit the code that computes the result of the operation; such result will

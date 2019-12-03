@@ -616,6 +616,10 @@ func flattenIntegerKind(k reflect.Kind) reflect.Kind {
 	// TODO: also handle uintptr; the following expressions can be useful:
 	// 		const MaxUintptr = ^uintptr(0)
 	// 		const PtrSize = 32 << uintptr(^uintptr(0)>>63)
+	if k == reflect.Bool {
+		// TODO: is this code ok?
+		return reflect.Int64
+	}
 	if strconv.IntSize == 32 {
 		switch k {
 		case reflect.Int:
