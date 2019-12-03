@@ -281,6 +281,11 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	}
 	s := operationName[op]
 	switch op {
+	case runtime.OpAddInt, runtime.OpSubInt, runtime.OpSubInvInt, runtime.OpMulInt,
+		runtime.OpDivInt, runtime.OpRemInt, runtime.OpLeftShiftInt, runtime.OpRightShiftInt:
+		s += " " + disassembleOperand(fn, a, reflect.Int, false)
+		s += " " + disassembleOperand(fn, b, reflect.Int, k)
+		s += " " + disassembleOperand(fn, c, reflect.Int, false)
 	case runtime.OpAddx, runtime.OpSubx, runtime.OpSubInvx, runtime.OpMulx,
 		runtime.OpDivx, runtime.OpRemx, runtime.OpLeftShiftx, runtime.OpRightShiftx:
 		kind := reflect.Kind(a)
