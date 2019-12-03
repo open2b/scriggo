@@ -459,19 +459,19 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 		var emitFn func(bool, int8, int8, reflect.Kind)
 		switch expr.Operator() {
 		case ast.OperatorAddition:
-			emitFn = em.fb.emitAddKind
+			emitFn = em.fb.emitAddX
 		case ast.OperatorSubtraction:
-			emitFn = em.fb.emitSubKind
+			emitFn = em.fb.emitSubX
 		case ast.OperatorMultiplication:
-			emitFn = em.fb.emitMulKind
+			emitFn = em.fb.emitMulX
 		case ast.OperatorDivision:
-			emitFn = func(k bool, y, z int8, kind reflect.Kind) { em.fb.emitDivKind(k, y, z, kind, expr.Pos()) }
+			emitFn = func(k bool, y, z int8, kind reflect.Kind) { em.fb.emitDivX(k, y, z, kind, expr.Pos()) }
 		case ast.OperatorModulo:
-			emitFn = func(k bool, y, z int8, kind reflect.Kind) { em.fb.emitRemKind(k, y, z, kind, expr.Pos()) }
+			emitFn = func(k bool, y, z int8, kind reflect.Kind) { em.fb.emitRemX(k, y, z, kind, expr.Pos()) }
 		case ast.OperatorLeftShift:
-			emitFn = em.fb.emitLeftShiftKind
+			emitFn = em.fb.emitLeftShiftX
 		case ast.OperatorRightShift:
-			emitFn = em.fb.emitRightShiftKind
+			emitFn = em.fb.emitRightShiftX
 		}
 		if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
 			// TODO: consider the removal of the 'tmp' register, using 'reg'

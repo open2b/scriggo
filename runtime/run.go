@@ -101,6 +101,14 @@ func (vm *VM) run() (Addr, bool) {
 		case -OpAddFloat64:
 			vm.setFloat(c, vm.float(a)+float64(b))
 
+		case OpAddX, -OpAddX:
+			switch reflect.Kind(a) {
+			case reflect.Int8:
+				vm.setInt(c, int64(int8(vm.intk(b, op < 0)+vm.int(c))))
+			default:
+				panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			}
+
 		// Addr
 		case OpAddr:
 			v := vm.general(a)
@@ -513,6 +521,9 @@ func (vm *VM) run() (Addr, bool) {
 			vm.setFloat(c, vm.float(a)/vm.float(b))
 		case -OpDivFloat64:
 			vm.setFloat(c, vm.float(a)/float64(b))
+
+		case OpDivX, -OpDivX:
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 
 		// Field
 		case OpField:
@@ -1582,6 +1593,9 @@ func (vm *VM) run() (Addr, bool) {
 		case -OpSubFloat64:
 			vm.setFloat(c, vm.float(a)-float64(b))
 
+		case OpSubX, -OpSubX:
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+
 		// SubInv
 		case OpSubInvInt8, -OpSubInvInt8:
 			vm.setInt(c, int64(int8(vm.intk(b, op < 0)-vm.int(a))))
@@ -1597,6 +1611,9 @@ func (vm *VM) run() (Addr, bool) {
 			vm.setFloat(c, vm.float(b)-vm.float(a))
 		case -OpSubInvFloat64:
 			vm.setFloat(c, float64(b)-vm.float(a))
+
+		case OpSubInvX, -OpSubInvX:
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 
 		// TailCall
 		case OpTailCall:

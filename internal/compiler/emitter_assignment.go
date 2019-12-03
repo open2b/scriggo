@@ -272,16 +272,16 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 			if typ.Kind() == reflect.String {
 				em.fb.emitConcat(lhReg, rhReg, rhReg)
 			} else {
-				em.fb.emitAddKind(false, lhReg, rhReg, typ.Kind())
+				em.fb.emitAddX(false, lhReg, rhReg, typ.Kind())
 			}
 		case ast.AssignmentSubtraction:
-			em.fb.emitSubKind(false, lhReg, rhReg, typ.Kind())
+			em.fb.emitSubX(false, lhReg, rhReg, typ.Kind())
 		case ast.AssignmentMultiplication:
-			em.fb.emitMulKind(false, lhReg, rhReg, typ.Kind())
+			em.fb.emitMulX(false, lhReg, rhReg, typ.Kind())
 		case ast.AssignmentDivision:
-			em.fb.emitDivKind(false, lhReg, rhReg, typ.Kind(), addr.pos)
+			em.fb.emitDivX(false, lhReg, rhReg, typ.Kind(), addr.pos)
 		case ast.AssignmentModulo:
-			em.fb.emitRemKind(false, lhReg, rhReg, typ.Kind(), addr.pos)
+			em.fb.emitRemX(false, lhReg, rhReg, typ.Kind(), addr.pos)
 		case ast.AssignmentAnd:
 			em.fb.emitAnd(false, lhReg, rhReg, rhReg, typ.Kind())
 		case ast.AssignmentOr:
@@ -291,9 +291,9 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 		case ast.AssignmentAndNot:
 			em.fb.emitAndNot(false, lhReg, rhReg, rhReg, typ.Kind())
 		case ast.AssignmentLeftShift:
-			em.fb.emitLeftShiftKind(false, lhReg, rhReg, typ.Kind())
+			em.fb.emitLeftShiftX(false, lhReg, rhReg, typ.Kind())
 		case ast.AssignmentRightShift:
-			em.fb.emitRightShiftKind(false, lhReg, rhReg, typ.Kind())
+			em.fb.emitRightShiftX(false, lhReg, rhReg, typ.Kind())
 		}
 	}
 
