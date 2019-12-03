@@ -1711,21 +1711,8 @@ func (vm *VM) run() (Addr, bool) {
 			}
 
 		// SubInv
-		case OpSubInvInt8, -OpSubInvInt8:
-			vm.setInt(c, int64(int8(vm.intk(b, op < 0)-vm.int(a))))
-		case OpSubInvInt16, -OpSubInvInt16:
-			vm.setInt(c, int64(int16(vm.intk(b, op < 0)-vm.int(a))))
-		case OpSubInvInt32, -OpSubInvInt32:
-			vm.setInt(c, int64(int32(vm.intk(b, op < 0)-vm.int(a))))
-		case OpSubInvInt64, -OpSubInvInt64:
+		case OpSubInv, -OpSubInv:
 			vm.setInt(c, vm.intk(b, op < 0)-vm.int(a))
-		case OpSubInvFloat32, -OpSubInvFloat32:
-			vm.setFloat(c, float64(float32(vm.floatk(b, op < 0))-float32(vm.float(a))))
-		case OpSubInvFloat64:
-			vm.setFloat(c, vm.float(b)-vm.float(a))
-		case -OpSubInvFloat64:
-			vm.setFloat(c, float64(b)-vm.float(a))
-
 		case OpSubInvX, -OpSubInvX:
 			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 

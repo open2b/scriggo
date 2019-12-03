@@ -961,13 +961,8 @@ var operationName = [...]string{
 	runtime.OpSub:  "Sub",
 	runtime.OpSubX: "Sub",
 
-	runtime.OpSubInvInt64:   "SubInv",
-	runtime.OpSubInvInt8:    "SubInv8",
-	runtime.OpSubInvInt16:   "SubInv16",
-	runtime.OpSubInvInt32:   "SubInv32",
-	runtime.OpSubInvFloat32: "SubInv32",
-	runtime.OpSubInvFloat64: "SubInv",
-	runtime.OpSubInvX:       "Sub",
+	runtime.OpSubInv:  "Sub",
+	runtime.OpSubInvX: "Sub",
 
 	runtime.OpTailCall: "TailCall",
 

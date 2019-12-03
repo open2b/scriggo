@@ -1225,33 +1225,7 @@ func (builder *functionBuilder) emitSubX(kb bool, b, c int8, kind reflect.Kind) 
 //     z = y - x
 //
 func (builder *functionBuilder) emitSubInvInt(k bool, x, y, z int8, kind reflect.Kind) {
-
-	if kind != reflect.Int {
-		panic("BUG")
-	}
-
-	var op runtime.Operation
-	switch kind {
-	case reflect.Int, reflect.Uint, reflect.Uintptr:
-		op = runtime.OpSubInvInt64
-		if strconv.IntSize == 32 {
-			op = runtime.OpSubInvInt32
-		}
-	case reflect.Int64, reflect.Uint64:
-		op = runtime.OpSubInvInt64
-	case reflect.Int32, reflect.Uint32:
-		op = runtime.OpSubInvInt32
-	case reflect.Int16, reflect.Uint16:
-		op = runtime.OpSubInvInt16
-	case reflect.Int8, reflect.Uint8:
-		op = runtime.OpSubInvInt8
-	case reflect.Float64:
-		op = runtime.OpSubInvFloat64
-	case reflect.Float32:
-		op = runtime.OpSubInvFloat32
-	default:
-		panic("subInv: invalid type")
-	}
+	op := runtime.OpSubInv
 	if k {
 		op = -op
 	}

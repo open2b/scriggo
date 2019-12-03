@@ -1467,12 +1467,7 @@ const (
 	OpSub
 	OpSubX
 
-	OpSubInvInt8
-	OpSubInvInt16
-	OpSubInvInt32
-	OpSubInvInt64
-	OpSubInvFloat32
-	OpSubInvFloat64
+	OpSubInv
 	OpSubInvX
 
 	OpTailCall
