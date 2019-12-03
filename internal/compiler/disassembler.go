@@ -958,13 +958,8 @@ var operationName = [...]string{
 
 	runtime.OpStringSlice: "Slice",
 
-	runtime.OpSubInt64:   "Sub",
-	runtime.OpSubInt8:    "Sub8",
-	runtime.OpSubInt16:   "Sub16",
-	runtime.OpSubInt32:   "Sub32",
-	runtime.OpSubFloat32: "Sub32",
-	runtime.OpSubFloat64: "Sub",
-	runtime.OpSubX:       "Sub",
+	runtime.OpSub:  "Sub",
+	runtime.OpSubX: "Sub",
 
 	runtime.OpSubInvInt64:   "SubInv",
 	runtime.OpSubInvInt8:    "SubInv8",

@@ -1682,23 +1682,8 @@ func (vm *VM) run() (Addr, bool) {
 			vm.pc++
 
 		// Sub
-		case OpSubInt8, -OpSubInt8:
-			vm.setInt(c, int64(int8(vm.int(a)-vm.intk(b, op < 0))))
-		case OpSubInt16, -OpSubInt16:
-			vm.setInt(c, int64(int16(vm.int(a)-vm.intk(b, op < 0))))
-		case OpSubInt32, -OpSubInt32:
-			vm.setInt(c, int64(int32(vm.int(a)-vm.intk(b, op < 0))))
-		case OpSubFloat32, -OpSubFloat32:
-			vm.setFloat(c, float64(float32(vm.float(a))-float32(vm.floatk(b, op < 0))))
-		case OpSubInt64:
-			vm.setInt(c, vm.int(a)-vm.int(b))
-		case -OpSubInt64:
-			vm.setInt(c, vm.int(a)-int64(b))
-		case OpSubFloat64:
-			vm.setFloat(c, vm.float(a)-vm.float(b))
-		case -OpSubFloat64:
-			vm.setFloat(c, vm.float(a)-float64(b))
-
+		case OpSub, -OpSub:
+			vm.setInt(c, vm.int(a)-vm.intk(b, op < 0))
 		case OpSubX, -OpSubX:
 			switch reflect.Kind(a) {
 			case reflect.Int8:

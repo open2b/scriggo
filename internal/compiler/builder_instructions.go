@@ -1196,33 +1196,7 @@ func (builder *functionBuilder) emitStringSlice(klow, khigh bool, src, dst, low,
 //     z = x - y
 //
 func (builder *functionBuilder) emitSubInt(k bool, x, y, z int8, kind reflect.Kind) {
-
-	if kind != reflect.Int {
-		panic("BUG")
-	}
-
-	var op runtime.Operation
-	switch kind {
-	case reflect.Int, reflect.Uint, reflect.Uintptr:
-		op = runtime.OpSubInt64
-		if strconv.IntSize == 32 {
-			op = runtime.OpSubInt32
-		}
-	case reflect.Int64, reflect.Uint64:
-		op = runtime.OpSubInt64
-	case reflect.Int32, reflect.Uint32:
-		op = runtime.OpSubInt32
-	case reflect.Int16, reflect.Uint16:
-		op = runtime.OpSubInt16
-	case reflect.Int8, reflect.Uint8:
-		op = runtime.OpSubInt8
-	case reflect.Float64:
-		op = runtime.OpSubFloat64
-	case reflect.Float32:
-		op = runtime.OpSubFloat32
-	default:
-		panic("sub: invalid type")
-	}
+	op := runtime.OpSub
 	if k {
 		op = -op
 	}

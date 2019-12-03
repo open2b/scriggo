@@ -1464,12 +1464,7 @@ const (
 
 	OpStringSlice
 
-	OpSubInt8
-	OpSubInt16
-	OpSubInt32
-	OpSubInt64
-	OpSubFloat32
-	OpSubFloat64
+	OpSub
 	OpSubX
 
 	OpSubInvInt8
