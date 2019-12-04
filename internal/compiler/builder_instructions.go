@@ -40,16 +40,11 @@ func (builder *functionBuilder) emitAdd(k bool, x, y, z int8, kind reflect.Kind)
 //
 func (builder *functionBuilder) emitAddx(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
-	in := runtime.Instruction{
-		Op: runtime.OpAddx,
-		A:  int8(kind),
-		B:  b,
-		C:  c,
-	}
+	op := runtime.OpAddx
 	if kb {
-		in.Op = -in.Op
+		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, in)
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(kind), B: b, C: c})
 }
 
 // emitAddr appends a new "Addr" instruction to the function body.
@@ -327,16 +322,11 @@ func (builder *functionBuilder) emitDiv(ky bool, x, y, z int8, kind reflect.Kind
 //
 func (builder *functionBuilder) emitDivx(kb bool, b, c int8, kind reflect.Kind, pos *ast.Position) {
 	kind = flattenIntegerKind(kind)
-	in := runtime.Instruction{
-		Op: runtime.OpDivx,
-		A:  int8(kind),
-		B:  b,
-		C:  c,
-	}
+	op := runtime.OpDivx
 	if kb {
-		in.Op = -in.Op
+		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, in)
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(kind), B: b, C: c})
 }
 
 // emitRange appends a new "Range" instruction to the function body.
@@ -548,16 +538,11 @@ func (builder *functionBuilder) emitLeftShift(k bool, x, y, z int8) {
 //
 func (builder *functionBuilder) emitLeftShiftx(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
-	in := runtime.Instruction{
-		Op: runtime.OpLeftShiftx,
-		A:  int8(kind),
-		B:  b,
-		C:  c,
-	}
+	op := runtime.OpLeftShiftx
 	if kb {
-		in.Op = -in.Op
+		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, in)
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(kind), B: b, C: c})
 }
 
 // emitLen appends a new "len" instruction to the function body.
@@ -780,16 +765,11 @@ func (builder *functionBuilder) emitMul(ky bool, x, y, z int8, kind reflect.Kind
 //
 func (builder *functionBuilder) emitMulx(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
-	in := runtime.Instruction{
-		Op: runtime.OpMulx,
-		A:  int8(kind),
-		B:  b,
-		C:  c,
-	}
+	op := runtime.OpMulx
 	if kb {
-		in.Op = -in.Op
+		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, in)
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(kind), B: b, C: c})
 }
 
 // emitNew appends a new "new" instruction to the function body.
@@ -909,16 +889,11 @@ func (builder *functionBuilder) emitRem(ky bool, x, y, z int8, pos *ast.Position
 //
 func (builder *functionBuilder) emitRemx(kb bool, b, c int8, kind reflect.Kind, pos *ast.Position) {
 	kind = flattenIntegerKind(kind)
-	in := runtime.Instruction{
-		Op: runtime.OpRemx,
-		A:  int8(kind),
-		B:  b,
-		C:  c,
-	}
+	op := runtime.OpRemx
 	if kb {
-		in.Op = -in.Op
+		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, in)
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(kind), B: b, C: c})
 }
 
 // emitReturn appends a new "return" instruction to the function body.
@@ -947,16 +922,11 @@ func (builder *functionBuilder) emitRightShift(k bool, x, y, z int8) {
 //
 func (builder *functionBuilder) emitRightShiftx(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
-	in := runtime.Instruction{
-		Op: runtime.OpRightShiftx,
-		A:  int8(kind),
-		B:  b,
-		C:  c,
-	}
+	op := runtime.OpRightShiftx
 	if kb {
-		in.Op = -in.Op
+		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, in)
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(kind), B: b, C: c})
 }
 
 // emitSelect appends a new "Select" instruction to the function body.
@@ -1122,16 +1092,11 @@ func (builder *functionBuilder) emitSub(k bool, x, y, z int8, kind reflect.Kind)
 //
 func (builder *functionBuilder) emitSubx(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
-	in := runtime.Instruction{
-		Op: runtime.OpSubx,
-		A:  int8(kind),
-		B:  b,
-		C:  c,
-	}
+	op := runtime.OpSubx
 	if kb {
-		in.Op = -in.Op
+		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, in)
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(kind), B: b, C: c})
 }
 
 // emitSubInv appends a new "SubInv" instruction to the function body.
@@ -1160,16 +1125,11 @@ func (builder *functionBuilder) emitSubInvInt(k bool, x, y, z int8, kind reflect
 //
 func (builder *functionBuilder) emitSubInvx(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
-	in := runtime.Instruction{
-		Op: runtime.OpSubInvx,
-		A:  int8(kind),
-		B:  b,
-		C:  c,
-	}
+	op := runtime.OpSubInvx
 	if kb {
-		in.Op = -in.Op
+		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, in)
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(kind), B: b, C: c})
 }
 
 // emitTypify appends a new "Typify" instruction to the function body.
