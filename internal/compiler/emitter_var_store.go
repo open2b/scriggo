@@ -13,7 +13,7 @@ import (
 	"scriggo/runtime"
 )
 
-// A varStore holds informations about closure variables, predefined variables
+// A varStore holds information about closure variables, predefined variables
 // and package-level variables during the emission.
 type varStore struct {
 

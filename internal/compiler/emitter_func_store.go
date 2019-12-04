@@ -13,7 +13,7 @@ import (
 	"scriggo/runtime"
 )
 
-// A functionStore holds informations about functions defined in Scriggo and
+// A functionStore holds information about functions defined in Scriggo and
 // predefined functions during the emission.
 type functionStore struct {
 

@@ -20,7 +20,7 @@ type address struct {
 	em            *emitter           // a reference to the current emitter.
 	target        assignmentTarget   // target of the assignment.
 	addressedType reflect.Type       // type of the addressed type (see the methods below).
-	op1, op2      int8               // two bytes for store addressing informations (see the methods below).
+	op1, op2      int8               // two bytes for store addressing information (see the methods below).
 	pos           *ast.Position      // position of the addressed element in the source code.
 	operator      ast.AssignmentType // type of the assignment that involves this address.
 }
