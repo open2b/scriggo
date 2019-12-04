@@ -246,7 +246,8 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 
 	// Emit the code that evaluates the right side of the assignment.
 	// TODO: use k?
-	c := em.emitExpr(rh, typ)
+	c := em.fb.newRegister(typ.Kind())
+	em.emitExprR(rh, typ, c)
 
 	// Emit the code that computes the result of the operation; such result will
 	// be put back into the left side.
