@@ -1632,7 +1632,9 @@ func (vm *VM) run() (Addr, bool) {
 			case reflect.Int32:
 				vm.setInt(c, int64(int32(vm.intk(b, op < 0)-vm.int(c))))
 			case reflect.Int64:
-				vm.setInt(c, vm.intk(b, op < 0)-vm.int(c))
+				bv := vm.intk(b, op < 0)
+				cv := vm.int(c)
+				vm.setInt(c, bv-cv)
 			case reflect.Uint8:
 				vm.setInt(c, int64(uint8(vm.intk(b, op < 0)-vm.int(c))))
 			case reflect.Uint16:

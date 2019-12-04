@@ -244,15 +244,15 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 		em.fb.emitField(addr.op1, addr.op2, lhReg, typ.Kind(), false)
 	}
 
+	b := em.fb.newRegister(typ.Kind())
+	em.changeRegister(false, lhReg, b, typ, typ)
+
 	// Emit the code that evaluates the right side of the assignment.
 	// TODO: use k?
 	c := em.emitExpr(rh, typ)
 
 	// Emit the code that computes the result of the operation; such result will
 	// be put back into the left side.
-
-	b := em.fb.newRegister(typ.Kind())
-	em.changeRegister(false, lhReg, b, typ, typ)
 
 	//
 	// TODO: review this documentation and this code.
@@ -268,9 +268,9 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 		em.changeRegister(false, c, c2, typ, typ)
 		index := em.fb.complexOperationIndex(operatorFromAssignmentType(addr.operator), false)
 		em.fb.emitCallPredefined(index, 0, stackShift, addr.pos)
-		em.changeRegister(false, ret, b, typ, typ)
+		em.changeRegister(false, ret, c, typ, typ)
 		em.fb.exitScope()
-		addr.assign(false, b, typ)
+		addr.assign(false, c, typ)
 	} else {
 		switch addr.operator {
 		case ast.AssignmentAddition:

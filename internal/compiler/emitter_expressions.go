@@ -782,14 +782,9 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 			em.emitExprR(operand, operandType, 0)
 			return
 		}
-		if canEmitDirectly(unOpType.Kind(), dstType.Kind()) {
-			em.emitExprR(operand, operandType, reg)
-			em.fb.emitSubx(true, 1, reg, operandType.Kind())
-			return
-		}
 		em.fb.enterScope()
 		tmp := em.emitExpr(operand, operandType)
-		em.fb.emitSubx(true, 1, tmp, dstType.Kind())
+		em.fb.emitSubx(true, 1, tmp, operandType.Kind())
 		em.changeRegister(false, tmp, reg, operandType, dstType)
 		em.fb.exitScope()
 
@@ -909,15 +904,10 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 			em.emitExprR(operand, dstType, 0)
 			return
 		}
-		if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
-			em.emitExprR(operand, dstType, reg)
-			em.fb.emitSubx(true, 0, reg, dstType.Kind())
-			return
-		}
 		em.fb.enterStack()
 		tmp := em.fb.newRegister(operandType.Kind())
 		em.emitExprR(operand, operandType, tmp)
-		em.fb.emitSubx(true, 0, tmp, dstType.Kind())
+		em.fb.emitSubx(true, 0, tmp, operandType.Kind())
 		em.changeRegister(false, tmp, reg, operandType, dstType)
 		em.fb.exitStack()
 
