@@ -623,7 +623,7 @@ func flattenIntegerKind(k reflect.Kind) reflect.Kind {
 		}
 	}
 	if k == reflect.Bool {
-		return reflect.Int64 // TODO: is this code ok?
+		return reflect.Int64
 	}
 	if strconv.IntSize == 32 {
 		switch k {
