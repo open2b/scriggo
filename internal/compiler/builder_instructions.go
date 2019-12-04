@@ -18,8 +18,16 @@ import (
 //
 //     z = x + y
 //
-func (builder *functionBuilder) emitAdd(k bool, x, y, z int8) {
-	op := runtime.OpAddInt
+func (builder *functionBuilder) emitAdd(k bool, x, y, z int8, kind reflect.Kind) {
+	var op runtime.Operation
+	switch kind {
+	case reflect.Int:
+		op = runtime.OpAddInt
+	case reflect.Float64:
+		op = runtime.OpAddFloat64
+	default:
+		panic(fmt.Errorf("BUG: this method does not support kind %s", kind))
+	}
 	if k {
 		op = -op
 	}
@@ -296,8 +304,16 @@ func (builder *functionBuilder) emitDelete(m, k int8) {
 //
 //     z = x / y
 //
-func (builder *functionBuilder) emitDivInt(ky bool, x, y, z int8, pos *ast.Position) {
-	op := runtime.OpDivInt
+func (builder *functionBuilder) emitDiv(ky bool, x, y, z int8, kind reflect.Kind, pos *ast.Position) {
+	var op runtime.Operation
+	switch kind {
+	case reflect.Int:
+		op = runtime.OpDivInt
+	case reflect.Float64:
+		op = runtime.OpDivFloat64
+	default:
+		panic(fmt.Errorf("BUG: this method does not support kind %s", kind))
+	}
 	builder.addPosAndPath(pos)
 	if ky {
 		op = -op
@@ -742,8 +758,16 @@ func (builder *functionBuilder) emitMove(k bool, x, z int8, kind reflect.Kind, c
 //
 //     z = x * y
 //
-func (builder *functionBuilder) emitMul(ky bool, x, y, z int8) {
-	op := runtime.OpMulInt
+func (builder *functionBuilder) emitMul(ky bool, x, y, z int8, kind reflect.Kind) {
+	var op runtime.Operation
+	switch kind {
+	case reflect.Int:
+		op = runtime.OpMulInt
+	case reflect.Float64:
+		op = runtime.OpMulFloat64
+	default:
+		panic(fmt.Errorf("BUG: this method does not support kind %s", kind))
+	}
 	if ky {
 		op = -op
 	}
@@ -866,11 +890,11 @@ func (builder *functionBuilder) emitRecover(r int8, down bool) {
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpRecover, A: a, C: r})
 }
 
-// emitRem appends a new "rem" instruction to the function body.
+// emitRem appends a new "Rem" instruction to the function body.
 //
 //     z = x % y
 //
-func (builder *functionBuilder) emitRemInt(ky bool, x, y, z int8, pos *ast.Position) {
+func (builder *functionBuilder) emitRem(ky bool, x, y, z int8, pos *ast.Position) {
 	builder.addPosAndPath(pos)
 	op := runtime.OpRemInt
 	if ky {
@@ -1076,8 +1100,16 @@ func (builder *functionBuilder) emitStringSlice(klow, khigh bool, src, dst, low,
 //
 //     z = x - y
 //
-func (builder *functionBuilder) emitSub(k bool, x, y, z int8) {
-	op := runtime.OpSubInt
+func (builder *functionBuilder) emitSub(k bool, x, y, z int8, kind reflect.Kind) {
+	var op runtime.Operation
+	switch kind {
+	case reflect.Int:
+		op = runtime.OpSubInt
+	case reflect.Float64:
+		op = runtime.OpSubFloat64
+	default:
+		panic(fmt.Errorf("BUG: this method does not support kind %s", kind))
+	}
 	if k {
 		op = -op
 	}
@@ -1106,8 +1138,16 @@ func (builder *functionBuilder) emitSubx(kb bool, b, c int8, kind reflect.Kind) 
 //
 //     z = y - x
 //
-func (builder *functionBuilder) emitSubInvInt(k bool, x, y, z int8) {
-	op := runtime.OpSubInvInt
+func (builder *functionBuilder) emitSubInvInt(k bool, x, y, z int8, kind reflect.Kind) {
+	var op runtime.Operation
+	switch kind {
+	case reflect.Int:
+		op = runtime.OpSubInvInt
+	case reflect.Float64:
+		op = runtime.OpSubInvFloat64
+	default:
+		panic(fmt.Errorf("BUG: this method does not support kind %s", kind))
+	}
 	if k {
 		op = -op
 	}

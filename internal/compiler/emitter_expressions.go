@@ -423,20 +423,20 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 		return reg, false
 	}
 
-	// Arithmetic operations on reflect.Int.
+	// Arithmetic operations on reflect.Int or reflect.Float64.
 	if op := expr.Operator(); ast.OperatorAnd <= op && op <= ast.OperatorRightShift && exprType.Kind() == reflect.Int {
 		var emitFn func(bool, int8, int8, int8)
 		switch expr.Operator() {
 		case ast.OperatorAddition:
-			emitFn = em.fb.emitAdd
+			emitFn = func(k bool, x, y, z int8) { em.fb.emitAdd(k, x, y, z, exprType.Kind()) }
 		case ast.OperatorSubtraction:
-			emitFn = em.fb.emitSub
+			emitFn = func(k bool, x, y, z int8) { em.fb.emitSub(k, x, y, z, exprType.Kind()) }
 		case ast.OperatorMultiplication:
-			emitFn = em.fb.emitMul
+			emitFn = func(k bool, x, y, z int8) { em.fb.emitMul(k, x, y, z, exprType.Kind()) }
 		case ast.OperatorDivision:
-			emitFn = func(k bool, x, y, z int8) { em.fb.emitDivInt(k, x, y, z, expr.Pos()) }
+			emitFn = func(k bool, x, y, z int8) { em.fb.emitDiv(k, x, y, z, exprType.Kind(), expr.Pos()) }
 		case ast.OperatorModulo:
-			emitFn = func(k bool, x, y, z int8) { em.fb.emitRemInt(k, x, y, z, expr.Pos()) }
+			emitFn = func(k bool, x, y, z int8) { em.fb.emitRem(k, x, y, z, expr.Pos()) }
 		case ast.OperatorLeftShift:
 			emitFn = em.fb.emitLeftShift
 		case ast.OperatorRightShift:
@@ -454,7 +454,7 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 		return reg, false
 	}
 
-	// Arithmetic operations on non reflect.Int kinds.
+	// Arithmetic operations on non reflect.Int and non reflect.FLoat64 kinds.
 	if op := expr.Operator(); ast.OperatorAnd <= op && op <= ast.OperatorRightShift {
 		var emitFn func(bool, int8, int8, reflect.Kind)
 		switch expr.Operator() {
