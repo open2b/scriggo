@@ -227,25 +227,22 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 	typ := addr.targetType()      // type of the "target" (eg. type of the slice element).
 
 	// Emit the code that evaluates the left side of the assignment.
-	lhReg := em.fb.newRegister(typ.Kind())
+	b := em.fb.newRegister(typ.Kind())
 	switch addr.target {
 	case assignBlank, assignNewIndirectVar:
 		panic("Type checking BUG")
 	case assignNonLocalVar:
-		em.fb.emitGetVar(int(decodeInt16(addr.op1, addr.op2)), lhReg, addrTyp.Kind())
+		em.fb.emitGetVar(int(decodeInt16(addr.op1, addr.op2)), b, addrTyp.Kind())
 	case assignLocalVar:
-		em.changeRegister(false, addr.op1, lhReg, addrTyp, typ)
+		em.changeRegister(false, addr.op1, b, addrTyp, typ)
 	case assignMapIndex,
 		assignSliceIndex:
-		em.fb.emitIndex(false, addr.op1, addr.op2, lhReg, addrTyp, addr.pos, false)
+		em.fb.emitIndex(false, addr.op1, addr.op2, b, addrTyp, addr.pos, false)
 	case assignPtrIndirection:
-		em.changeRegister(false, -addr.op1, lhReg, addrTyp, addrTyp)
+		em.changeRegister(false, -addr.op1, b, addrTyp, addrTyp)
 	case assignStructSelector:
-		em.fb.emitField(addr.op1, addr.op2, lhReg, typ.Kind(), false)
+		em.fb.emitField(addr.op1, addr.op2, b, typ.Kind(), false)
 	}
-
-	b := em.fb.newRegister(typ.Kind())
-	em.changeRegister(false, lhReg, b, typ, typ)
 
 	// Emit the code that evaluates the right side of the assignment.
 	// TODO: use k?
@@ -264,7 +261,7 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 		ret := em.fb.newRegister(reflect.Complex128)
 		c1 := em.fb.newRegister(reflect.Complex128)
 		c2 := em.fb.newRegister(reflect.Complex128)
-		em.changeRegister(false, lhReg, c1, typ, typ)
+		em.changeRegister(false, b, c1, typ, typ)
 		em.changeRegister(false, c, c2, typ, typ)
 		index := em.fb.complexOperationIndex(operatorFromAssignmentType(addr.operator), false)
 		em.fb.emitCallPredefined(index, 0, stackShift, addr.pos)
