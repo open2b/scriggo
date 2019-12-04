@@ -1,5 +1,3 @@
-// skip
-
 // run
 
 package main
