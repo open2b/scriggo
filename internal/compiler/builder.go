@@ -615,30 +615,28 @@ func divComplex(c1, c2 interface{}) interface{} {
 
 // TODO: find a better name and description for this function.
 func flattenIntegerKind(k reflect.Kind) reflect.Kind {
-	if k == reflect.Uintptr {
+	switch k {
+	case reflect.Bool:
+		return reflect.Int64
+	case reflect.Int:
+		if strconv.IntSize == 32 {
+			return reflect.Int32
+		} else {
+			return reflect.Int64
+		}
+	case reflect.Uint:
+		if strconv.IntSize == 32 {
+			return reflect.Uint32
+		} else {
+			return reflect.Uint64
+		}
+	case reflect.Uintptr:
 		if ^uintptr(0) == math.MaxUint32 {
 			return reflect.Uint32
 		} else {
 			return reflect.Uint64
 		}
-	}
-	if k == reflect.Bool {
-		return reflect.Int64
-	}
-	if strconv.IntSize == 32 {
-		switch k {
-		case reflect.Int:
-			return reflect.Int32
-		case reflect.Uint:
-			return reflect.Uint32
-		}
+	default:
 		return k
 	}
-	switch k {
-	case reflect.Int:
-		return reflect.Int64
-	case reflect.Uint:
-		return reflect.Uint64
-	}
-	return k
 }
