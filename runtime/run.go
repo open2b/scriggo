@@ -88,7 +88,7 @@ func (vm *VM) run() (Addr, bool) {
 			vm.setInt(c, vm.int(a)+vm.intk(b, op < 0))
 		case OpAddFloat64, -OpAddFloat64:
 			vm.setFloat(c, vm.float(a)+vm.floatk(b, op < 0))
-		case OpAddx, -OpAddx:
+		case OpAdd, -OpAdd:
 			switch a := reflect.Kind(a); a {
 			case reflect.Float64:
 				vm.setFloat(c, vm.float(c)+vm.floatk(b, op < 0))
@@ -505,7 +505,7 @@ func (vm *VM) run() (Addr, bool) {
 		// Div
 		case OpDivInt, -OpDivInt:
 			vm.setInt(c, vm.int(a)/vm.intk(b, op < 0))
-		case OpDivx, -OpDivx:
+		case OpDiv, -OpDiv:
 			switch a := reflect.Kind(a); a {
 			case reflect.Float32:
 				vm.setFloat(c, float64(float32(vm.floatk(b, op < 0))/float32(vm.float(c))))
@@ -714,7 +714,7 @@ func (vm *VM) run() (Addr, bool) {
 		// LeftShift
 		case OpLeftShiftInt, -OpLeftShiftInt:
 			vm.setInt(c, vm.int(a)<<uint(vm.intk(b, op < 0)))
-		case OpLeftShiftx, -OpLeftShiftx:
+		case OpLeftShift, -OpLeftShift:
 			v := vm.intk(b, op < 0) << uint(vm.int(c))
 			switch reflect.Kind(a) {
 			case reflect.Int8:
@@ -869,7 +869,7 @@ func (vm *VM) run() (Addr, bool) {
 		// Mul
 		case OpMulInt, -OpMulInt:
 			vm.setInt(c, vm.int(a)*vm.intk(b, op < 0))
-		case OpMulx, -OpMulx:
+		case OpMul, -OpMul:
 			switch a := reflect.Kind(a); a {
 			case reflect.Float32:
 				vm.setFloat(c, float64(float32(vm.floatk(b, op < 0)*vm.float(c))))
@@ -1314,7 +1314,7 @@ func (vm *VM) run() (Addr, bool) {
 		// Rem
 		case OpRemInt, -OpRemInt:
 			vm.setInt(c, vm.int(a)%vm.intk(b, op < 0))
-		case OpRemx, -OpRemx:
+		case OpRem, -OpRem:
 			bv := vm.intk(b, op < 0)
 			cv := vm.int(c)
 			var v int64
@@ -1374,7 +1374,7 @@ func (vm *VM) run() (Addr, bool) {
 		// RightShift
 		case OpRightShiftInt, -OpRightShiftInt:
 			vm.setInt(c, vm.int(a)>>uint(vm.intk(b, op < 0)))
-		case OpRightShiftx, -OpRightShiftx:
+		case OpRightShift, -OpRightShift:
 			bv := vm.intk(b, op < 0)
 			cv := uint(vm.int(c))
 			var v int64
@@ -1629,7 +1629,7 @@ func (vm *VM) run() (Addr, bool) {
 		// Sub
 		case OpSubInt, -OpSubInt:
 			vm.setInt(c, vm.int(a)-vm.intk(b, op < 0))
-		case OpSubx, -OpSubx:
+		case OpSub, -OpSub:
 			switch a := reflect.Kind(a); a {
 			case reflect.Float32:
 				vm.setFloat(c, float64(float32(vm.floatk(b, op < 0)-vm.float(c))))
@@ -1659,7 +1659,7 @@ func (vm *VM) run() (Addr, bool) {
 		// SubInv
 		case OpSubInvInt, -OpSubInvInt:
 			vm.setInt(c, vm.intk(b, op < 0)-vm.int(a))
-		case OpSubInvx, -OpSubInvx:
+		case OpSubInv, -OpSubInv:
 			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 
 		// TailCall

@@ -40,7 +40,7 @@ func (builder *functionBuilder) emitAdd(k bool, x, y, z int8, kind reflect.Kind)
 //
 func (builder *functionBuilder) emitAddx(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
-	op := runtime.OpAddx
+	op := runtime.OpAdd
 	if kb {
 		op = -op
 	}
@@ -322,7 +322,7 @@ func (builder *functionBuilder) emitDiv(ky bool, x, y, z int8, kind reflect.Kind
 //
 func (builder *functionBuilder) emitDivx(kb bool, b, c int8, kind reflect.Kind, pos *ast.Position) {
 	kind = flattenIntegerKind(kind)
-	op := runtime.OpDivx
+	op := runtime.OpDiv
 	if kb {
 		op = -op
 	}
@@ -538,7 +538,7 @@ func (builder *functionBuilder) emitLeftShift(k bool, x, y, z int8) {
 //
 func (builder *functionBuilder) emitLeftShiftx(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
-	op := runtime.OpLeftShiftx
+	op := runtime.OpLeftShift
 	if kb {
 		op = -op
 	}
@@ -765,7 +765,7 @@ func (builder *functionBuilder) emitMul(ky bool, x, y, z int8, kind reflect.Kind
 //
 func (builder *functionBuilder) emitMulx(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
-	op := runtime.OpMulx
+	op := runtime.OpMul
 	if kb {
 		op = -op
 	}
@@ -889,7 +889,7 @@ func (builder *functionBuilder) emitRem(ky bool, x, y, z int8, pos *ast.Position
 //
 func (builder *functionBuilder) emitRemx(kb bool, b, c int8, kind reflect.Kind, pos *ast.Position) {
 	kind = flattenIntegerKind(kind)
-	op := runtime.OpRemx
+	op := runtime.OpRem
 	if kb {
 		op = -op
 	}
@@ -922,7 +922,7 @@ func (builder *functionBuilder) emitRightShift(k bool, x, y, z int8) {
 //
 func (builder *functionBuilder) emitRightShiftx(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
-	op := runtime.OpRightShiftx
+	op := runtime.OpRightShift
 	if kb {
 		op = -op
 	}
@@ -1092,7 +1092,7 @@ func (builder *functionBuilder) emitSub(k bool, x, y, z int8, kind reflect.Kind)
 //
 func (builder *functionBuilder) emitSubx(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
-	op := runtime.OpSubx
+	op := runtime.OpSub
 	if kb {
 		op = -op
 	}
@@ -1125,7 +1125,7 @@ func (builder *functionBuilder) emitSubInvInt(k bool, x, y, z int8, kind reflect
 //
 func (builder *functionBuilder) emitSubInvx(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
-	op := runtime.OpSubInvx
+	op := runtime.OpSubInv
 	if kb {
 		op = -op
 	}

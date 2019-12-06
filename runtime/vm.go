@@ -1299,7 +1299,7 @@ const (
 
 	OpAddInt
 	OpAddFloat64
-	OpAddx
+	OpAdd
 
 	OpAddr
 
@@ -1350,7 +1350,7 @@ const (
 
 	OpDivInt
 	OpDivFloat64
-	OpDivx
+	OpDiv
 
 	OpField
 
@@ -1375,7 +1375,7 @@ const (
 	OpIndexRef
 
 	OpLeftShiftInt
-	OpLeftShiftx
+	OpLeftShift
 
 	OpLen
 
@@ -1399,7 +1399,7 @@ const (
 
 	OpMulInt
 	OpMulFloat64
-	OpMulx
+	OpMul
 
 	OpNew
 
@@ -1420,12 +1420,12 @@ const (
 	OpRecover
 
 	OpRemInt
-	OpRemx
+	OpRem
 
 	OpReturn
 
 	OpRightShiftInt
-	OpRightShiftx
+	OpRightShift
 
 	OpSelect
 
@@ -1444,11 +1444,11 @@ const (
 
 	OpSubInt
 	OpSubFloat64
-	OpSubx
+	OpSub
 
 	OpSubInvInt
 	OpSubInvFloat64
-	OpSubInvx
+	OpSubInv
 
 	OpTailCall
 

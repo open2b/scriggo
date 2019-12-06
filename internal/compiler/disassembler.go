@@ -291,8 +291,8 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + disassembleOperand(fn, a, reflect.Float64, false)
 		s += " " + disassembleOperand(fn, b, reflect.Float64, k)
 		s += " " + disassembleOperand(fn, c, reflect.Float64, false)
-	case runtime.OpAddx, runtime.OpSubx, runtime.OpSubInvx, runtime.OpMulx,
-		runtime.OpDivx, runtime.OpRemx, runtime.OpLeftShiftx, runtime.OpRightShiftx:
+	case runtime.OpAdd, runtime.OpSub, runtime.OpSubInv, runtime.OpMul,
+		runtime.OpDiv, runtime.OpRem, runtime.OpLeftShift, runtime.OpRightShift:
 		kind := reflect.Kind(a)
 		s += " " + kind.String()
 		s += " " + disassembleOperand(fn, b, kind, k)
@@ -802,7 +802,7 @@ var operationName = [...]string{
 	runtime.OpNone: "Nop",
 
 	runtime.OpAddInt:     "Add",
-	runtime.OpAddx:       "Add",
+	runtime.OpAdd:        "Add",
 	runtime.OpAddFloat64: "Add",
 
 	runtime.OpAddr: "Addr",
@@ -853,7 +853,7 @@ var operationName = [...]string{
 	runtime.OpDelete: "Delete",
 
 	runtime.OpDivInt:     "Div",
-	runtime.OpDivx:       "Div",
+	runtime.OpDiv:        "Div",
 	runtime.OpDivFloat64: "Div",
 
 	runtime.OpGetVar: "GetVar",
@@ -875,7 +875,7 @@ var operationName = [...]string{
 	runtime.OpIndexRef: "IndexRef",
 
 	runtime.OpLeftShiftInt: "LeftShift",
-	runtime.OpLeftShiftx:   "LeftShift",
+	runtime.OpLeftShift:    "LeftShift",
 
 	runtime.OpLen: "Len",
 
@@ -898,7 +898,7 @@ var operationName = [...]string{
 	runtime.OpMove: "Move",
 
 	runtime.OpMulInt:     "Mul",
-	runtime.OpMulx:       "Mul",
+	runtime.OpMul:        "Mul",
 	runtime.OpMulFloat64: "Mul",
 
 	runtime.OpNew: "New",
@@ -920,12 +920,12 @@ var operationName = [...]string{
 	runtime.OpRecover: "Recover",
 
 	runtime.OpRemInt: "Rem",
-	runtime.OpRemx:   "Rem",
+	runtime.OpRem:    "Rem",
 
 	runtime.OpReturn: "Return",
 
 	runtime.OpRightShiftInt: "RightShift",
-	runtime.OpRightShiftx:   "RightShift",
+	runtime.OpRightShift:    "RightShift",
 
 	runtime.OpSelect: "Select",
 
@@ -948,11 +948,11 @@ var operationName = [...]string{
 	runtime.OpStringSlice: "Slice",
 
 	runtime.OpSubInt:     "Sub",
-	runtime.OpSubx:       "Sub",
+	runtime.OpSub:        "Sub",
 	runtime.OpSubFloat64: "Sub",
 
 	runtime.OpSubInvInt:     "SubInv",
-	runtime.OpSubInvx:       "SubInv",
+	runtime.OpSubInv:        "SubInv",
 	runtime.OpSubInvFloat64: "SubInv",
 
 	runtime.OpTailCall: "TailCall",
