@@ -1662,7 +1662,31 @@ func (vm *VM) run() (Addr, bool) {
 
 		// SubInv
 		case OpSubInv, -OpSubInv:
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			switch a := reflect.Kind(a); a {
+			case reflect.Float32:
+				vm.setFloat(c, float64(float32(vm.float(c)-vm.floatk(b, op < 0))))
+			case reflect.Float64:
+				vm.setFloat(c, vm.float(c)-vm.floatk(b, op < 0))
+			default:
+				v := vm.int(c) - vm.intk(b, op < 0)
+				switch a {
+				case reflect.Int8:
+					v = int64(int8(v))
+				case reflect.Int16:
+					v = int64(int16(v))
+				case reflect.Int32:
+					v = int64(int32(v))
+				case reflect.Uint8:
+					v = int64(uint8(v))
+				case reflect.Uint16:
+					v = int64(uint16(v))
+				case reflect.Uint32:
+					v = int64(uint32(v))
+				case reflect.Uint64:
+					v = int64(uint64(v))
+				}
+				vm.setInt(c, v)
+			}
 		case OpSubInvInt, -OpSubInvInt:
 			vm.setInt(c, vm.intk(b, op < 0)-vm.int(a))
 		case OpSubInvFloat64, -OpSubInvFloat64:
