@@ -895,6 +895,8 @@ func (vm *VM) run() (Addr, bool) {
 			}
 		case OpMulInt, -OpMulInt:
 			vm.setInt(c, vm.int(a)*vm.intk(b, op < 0))
+		case OpMulFloat64, -OpMulFloat64:
+			vm.setFloat(c, vm.float(a)*vm.floatk(b, op < 0))
 
 		// New
 		case OpNew:
@@ -1655,12 +1657,16 @@ func (vm *VM) run() (Addr, bool) {
 			}
 		case OpSubInt, -OpSubInt:
 			vm.setInt(c, vm.int(a)-vm.intk(b, op < 0))
+		case OpSubFloat64, -OpSubFloat64:
+			vm.setFloat(c, vm.float(a)-vm.floatk(b, op < 0))
 
 		// SubInv
 		case OpSubInv, -OpSubInv:
 			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		case OpSubInvInt, -OpSubInvInt:
 			vm.setInt(c, vm.intk(b, op < 0)-vm.int(a))
+		case OpSubInvFloat64, -OpSubInvFloat64:
+			vm.setFloat(c, vm.float(b)-vm.floatk(a, op < 0))
 
 		// TailCall
 		case OpTailCall:
