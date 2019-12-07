@@ -1374,8 +1374,8 @@ const (
 
 	OpIndexRef
 
-	OpLeftShift
-	OpLeftShiftInt
+	OpShl
+	OpShlInt
 
 	OpLen
 
@@ -1424,8 +1424,8 @@ const (
 
 	OpReturn
 
-	OpRightShift
-	OpRightShiftInt
+	OpShr
+	OpShrInt
 
 	OpSelect
 

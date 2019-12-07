@@ -282,13 +282,13 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	s := operationName[op]
 	switch op {
 	case runtime.OpAdd, runtime.OpSub, runtime.OpSubInv, runtime.OpMul,
-		runtime.OpDiv, runtime.OpRem, runtime.OpLeftShift, runtime.OpRightShift:
+		runtime.OpDiv, runtime.OpRem, runtime.OpShl, runtime.OpShr:
 		kind := reflect.Kind(a)
 		s += " " + kind.String()
 		s += " " + disassembleOperand(fn, b, kind, k)
 		s += " " + disassembleOperand(fn, c, kind, false)
 	case runtime.OpAddInt, runtime.OpSubInt, runtime.OpSubInvInt, runtime.OpMulInt,
-		runtime.OpDivInt, runtime.OpRemInt, runtime.OpLeftShiftInt, runtime.OpRightShiftInt:
+		runtime.OpDivInt, runtime.OpRemInt, runtime.OpShlInt, runtime.OpShrInt:
 		s += " " + disassembleOperand(fn, a, reflect.Int, false)
 		s += " " + disassembleOperand(fn, b, reflect.Int, k)
 		s += " " + disassembleOperand(fn, c, reflect.Int, false)
@@ -874,8 +874,8 @@ var operationName = [...]string{
 
 	runtime.OpIndexRef: "IndexRef",
 
-	runtime.OpLeftShift:    "LeftShift",
-	runtime.OpLeftShiftInt: "LeftShift",
+	runtime.OpShl:    "Shl",
+	runtime.OpShlInt: "Shl",
 
 	runtime.OpLen: "Len",
 
@@ -924,8 +924,8 @@ var operationName = [...]string{
 
 	runtime.OpReturn: "Return",
 
-	runtime.OpRightShift:    "RightShift",
-	runtime.OpRightShiftInt: "RightShift",
+	runtime.OpShr:    "Shr",
+	runtime.OpShrInt: "Shr",
 
 	runtime.OpSelect: "Select",
 

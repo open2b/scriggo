@@ -294,9 +294,9 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 		case ast.AssignmentAndNot:
 			em.fb.emitAndNot(false, b, c, c, typ.Kind())
 		case ast.AssignmentLeftShift:
-			em.fb.emitLeftShiftx(false, b, c, typ.Kind())
+			em.fb.emitShlx(false, b, c, typ.Kind())
 		case ast.AssignmentRightShift:
-			em.fb.emitRightShiftx(false, b, c, typ.Kind())
+			em.fb.emitShrx(false, b, c, typ.Kind())
 		}
 	}
 

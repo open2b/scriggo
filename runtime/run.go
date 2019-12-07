@@ -711,8 +711,8 @@ func (vm *VM) run() (Addr, bool) {
 			i := int(vm.intk(b, op < 0))
 			vm.setFromReflectValue(c, v.Index(i))
 
-		// LeftShift
-		case OpLeftShift, -OpLeftShift:
+		// Shl
+		case OpShl, -OpShl:
 			v := vm.intk(b, op < 0) << uint(vm.int(c))
 			switch reflect.Kind(a) {
 			case reflect.Int8:
@@ -731,7 +731,7 @@ func (vm *VM) run() (Addr, bool) {
 				v = int64(uint64(v))
 			}
 			vm.setInt(c, v)
-		case OpLeftShiftInt, -OpLeftShiftInt:
+		case OpShlInt, -OpShlInt:
 			vm.setInt(c, vm.int(a)<<uint(vm.intk(b, op < 0)))
 
 		// Len
@@ -1371,8 +1371,8 @@ func (vm *VM) run() (Addr, bool) {
 				return maxUint32, false
 			}
 
-		// RightShift
-		case OpRightShift, -OpRightShift:
+		// Shr
+		case OpShr, -OpShr:
 			bv := vm.intk(b, op < 0)
 			cv := uint(vm.int(c))
 			var v int64
@@ -1382,7 +1382,7 @@ func (vm *VM) run() (Addr, bool) {
 				v = int64(uint64(bv) >> cv)
 			}
 			vm.setInt(c, v)
-		case OpRightShiftInt, -OpRightShiftInt:
+		case OpShrInt, -OpShrInt:
 			vm.setInt(c, vm.int(a)>>uint(vm.intk(b, op < 0)))
 
 		// Select

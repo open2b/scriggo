@@ -520,25 +520,25 @@ func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType r
 	fn.Body = append(fn.Body, runtime.Instruction{Op: op, A: expr, B: i, C: dst})
 }
 
-// emitLeftShift appends a new "LeftShift" instruction to the function body.
+// emitShl appends a new "Shl" instruction to the function body.
 //
 //     z = x << y
 //
-func (builder *functionBuilder) emitLeftShift(k bool, x, y, z int8) {
-	op := runtime.OpLeftShiftInt
+func (builder *functionBuilder) emitShl(k bool, x, y, z int8) {
+	op := runtime.OpShlInt
 	if k {
 		op = -op
 	}
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
 }
 
-// emitLeftShiftx appends a new "LeftShiftx" instruction to the function body.
+// emitShlx appends a new "Shlx" instruction to the function body.
 //
 //    c = b << c
 //
-func (builder *functionBuilder) emitLeftShiftx(kb bool, b, c int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitShlx(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
-	op := runtime.OpLeftShift
+	op := runtime.OpShl
 	if kb {
 		op = -op
 	}
@@ -904,25 +904,25 @@ func (builder *functionBuilder) emitReturn() {
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpReturn})
 }
 
-// emitRightShift appends a new "RightShift" instruction to the function body.
+// emitShr appends a new "Shr" instruction to the function body.
 //
 //     z = x >> y
 //
-func (builder *functionBuilder) emitRightShift(k bool, x, y, z int8) {
-	op := runtime.OpRightShiftInt
+func (builder *functionBuilder) emitShr(k bool, x, y, z int8) {
+	op := runtime.OpShrInt
 	if k {
 		op = -op
 	}
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
 }
 
-// emitRightShiftx appends a new "RightShiftx" instruction to the function body.
+// emitShrx appends a new "Shrx" instruction to the function body.
 //
 //    c = b >> c
 //
-func (builder *functionBuilder) emitRightShiftx(kb bool, b, c int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitShrx(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
-	op := runtime.OpRightShift
+	op := runtime.OpShr
 	if kb {
 		op = -op
 	}

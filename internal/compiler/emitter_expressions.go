@@ -438,9 +438,9 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 		case ast.OperatorModulo:
 			emitFn = func(k bool, x, y, z int8) { em.fb.emitRem(k, x, y, z, expr.Pos()) }
 		case ast.OperatorLeftShift:
-			emitFn = em.fb.emitLeftShift
+			emitFn = em.fb.emitShl
 		case ast.OperatorRightShift:
-			emitFn = em.fb.emitRightShift
+			emitFn = em.fb.emitShr
 		}
 		if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
 			emitFn(k, v1, v2, reg)
@@ -469,9 +469,9 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 		case ast.OperatorModulo:
 			emitFn = func(k bool, y, z int8, kind reflect.Kind) { em.fb.emitRemx(k, y, z, kind, expr.Pos()) }
 		case ast.OperatorLeftShift:
-			emitFn = em.fb.emitLeftShiftx
+			emitFn = em.fb.emitShlx
 		case ast.OperatorRightShift:
-			emitFn = em.fb.emitRightShiftx
+			emitFn = em.fb.emitShrx
 		}
 		if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
 			// TODO: consider the removal of the 'tmp' register, using 'reg'
