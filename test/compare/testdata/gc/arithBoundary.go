@@ -506,6 +506,7 @@ var int8_data []itd8 = []itd8{itd8{a: -128, b: -128, add: 0, sub: 0, mul: 0, div
 	itd8{a: 127, b: 127, add: -2, sub: 0, mul: 1, div: 1, mod: 0},
 }
 
+// Test boundary results for arithmetic operations.
 func main() {
 
 	for _, v := range uint64_data {
@@ -525,6 +526,7 @@ func main() {
 			if got := mod_uint64_ssa(v.a, v.b); got != v.mod {
 				log.Fatalf("mod_uint64 %d%%%d = %d, wanted %d\n", v.a, v.b, got, v.mod)
 			}
+
 		}
 		if got := mul_uint64_ssa(v.a, v.b); got != v.mul {
 			log.Fatalf("mul_uint64 %d*%d = %d, wanted %d\n", v.a, v.b, got, v.mul)
