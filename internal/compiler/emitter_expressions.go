@@ -505,10 +505,10 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 		}
 		var index int64 = -1
 		for _, kv := range expr.KeyValues {
-			if kv.Key != nil {
-				index = em.ti(kv.Key).Constant.int64()
-			} else {
+			if kv.Key == nil {
 				index++
+			} else {
+				index = em.ti(kv.Key).Constant.int64()
 			}
 			em.fb.enterStack()
 			indexReg := em.fb.newRegister(reflect.Int)
