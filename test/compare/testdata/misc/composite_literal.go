@@ -60,4 +60,20 @@ func main() {
 		_ = MyStruct{A: 1, B: 54.3}
 		_ = MyStruct{A: 1, C: -43.0}
 	}
+
+	a := [5]int{0, 1, 3: 1, 4: 0}
+	fmt.Println(a[0] == 0, a[1] == 1, a[2] == 0, a[3] == 1, a[4] == 0)
+
+	b := []int{2: 1, 4: 0, 0}
+	fmt.Println(b[0] == 0, b[1] == 0, b[2] == 1, b[3] == 0, b[4] == 0, b[5] == 0)
+
+	c := []string{"a", "", 3: "", 4: "b"}
+	fmt.Println(c[0] == "a", c[1] == "", c[2] == "", c[3] == "", c[4] == "b")
+
+	d := []interface{}{1: nil, 0, nil, 4: []int(nil), 5: "a"}
+	fmt.Println(d[0] == nil, d[1] == nil, d[2] == nil, d[3] == nil, d[4] == nil, d[5] == nil)
+
+	e := [3][]int{{}, nil, []int(nil)}
+	fmt.Println(e[0] == nil, e[1] == nil, e[2] == nil)
+
 }

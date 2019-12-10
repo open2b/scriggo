@@ -503,12 +503,28 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 			arrayZero := em.fb.makeGeneralConstant(em.types.New(typ).Elem().Interface())
 			em.changeRegister(true, arrayZero, reg, typ, typ)
 		}
+		elemKind := typ.Elem().Kind()
 		var index int64 = -1
 		for _, kv := range expr.KeyValues {
 			if kv.Key == nil {
 				index++
 			} else {
 				index = em.ti(kv.Key).Constant.int64()
+			}
+			// Don't emit code for the zero value.
+			if ti := em.ti(kv.Value); ti.HasValue() {
+				var isZero bool
+				switch elemKind {
+				case reflect.Interface:
+					isZero = ti.value == nil
+				case reflect.Ptr, reflect.Slice, reflect.Map, reflect.Chan, reflect.Func:
+					isZero = reflect.ValueOf(ti.value).IsNil()
+				default:
+					isZero = ti.IsConstant() && ti.Constant.zero()
+				}
+				if isZero {
+					continue
+				}
 			}
 			em.fb.enterStack()
 			indexReg := em.fb.newRegister(reflect.Int)
@@ -519,7 +535,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 			}
 			elem, k := em.emitExprK(kv.Value, typ.Elem())
 			if reg != 0 {
-				em.fb.emitSetSlice(k, reg, elem, indexReg, expr.Pos(), typ.Elem().Kind())
+				em.fb.emitSetSlice(k, reg, elem, indexReg, expr.Pos(), elemKind)
 			}
 			em.fb.exitStack()
 		}
