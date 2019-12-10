@@ -392,7 +392,7 @@ func (builder *functionBuilder) makeStringConstant(c string) int8 {
 // c must be the zero of it's type.
 //
 // If the VM's internal representation of c is different from the external, c
-// must always have the external representation. Any convertion, if needed, will
+// must always have the external representation. Any conversion, if needed, will
 // be internally handled.
 func (builder *functionBuilder) makeGeneralConstant(c interface{}) int8 {
 	// Check if a constant with the same value has already been added to the
