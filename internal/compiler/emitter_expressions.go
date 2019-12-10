@@ -513,7 +513,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 			em.fb.enterStack()
 			indexReg := em.fb.newRegister(reflect.Int)
 			if index > 126 {
-				em.fb.emitLoadNumber(intRegister, em.fb.makeIntConstant(int64(index)), indexReg)
+				em.fb.emitLoadNumber(intRegister, em.fb.makeIntConstant(index), indexReg)
 			} else {
 				em.fb.emitMove(true, int8(index), indexReg, reflect.Int, true)
 			}
