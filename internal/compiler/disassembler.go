@@ -770,8 +770,10 @@ func registerKindToLabel(kind reflect.Kind) string {
 func disassembleOperand(fn *runtime.Function, op int8, kind reflect.Kind, constant bool) string {
 	if constant {
 		switch {
-		case reflect.Int <= kind && kind <= reflect.Uintptr:
+		case reflect.Int <= kind && kind <= reflect.Int64:
 			return strconv.Itoa(int(op))
+		case reflect.Uint <= kind && kind <= reflect.Uintptr:
+			return strconv.Itoa(int(uint8(op)))
 		case kind == reflect.Float64:
 			return strconv.FormatFloat(float64(op), 'f', -1, 64)
 		case kind == reflect.Float32:
