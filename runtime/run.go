@@ -522,6 +522,8 @@ func (vm *VM) run() (Addr, bool) {
 			i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
 			v := vm.general(a).FieldByIndex(i)
 			vm.setFromReflectValue(c, v)
+
+		// FieldRef
 		case OpFieldRef:
 			i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
 			v := vm.general(a).FieldByIndex(i)
