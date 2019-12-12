@@ -101,10 +101,10 @@ nodesLoop:
 		case *ast.Text:
 
 		case *ast.Include:
-			backup := tc.path
+			currentPath := tc.path
 			tc.path = node.Path
 			tc.checkNodes(node.Tree.Nodes)
-			tc.path = backup
+			tc.path = currentPath
 
 		case *ast.Block:
 			tc.checkNodesInNewScope(node.Nodes)
