@@ -179,7 +179,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 	// Type check a template page which extends another page.
 	if extends, ok := getExtends(tree.Nodes); ok {
 		// First: all macro definitions in extending pages are declared but not
-		// inizialized. This is necessary because the extended page can refer to
+		// initialized. This is necessary because the extended page can refer to
 		// macro defined in the extending one, but these macro can contain
 		// references to variables defined outside them.
 		for _, d := range tree.Nodes[1:] {
