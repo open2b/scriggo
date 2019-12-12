@@ -102,9 +102,11 @@ nodesLoop:
 
 		case *ast.Include:
 			currentPath := tc.path
-			tc.path = node.Path
+			tc.path = node.Tree.Path
+			tc.paths = append(tc.paths, checkerPath{currentPath, node})
 			tc.checkNodes(node.Tree.Nodes)
 			tc.path = currentPath
+			tc.paths = tc.paths[:len(tc.paths)-1]
 
 		case *ast.Block:
 			tc.checkNodesInNewScope(node.Nodes)

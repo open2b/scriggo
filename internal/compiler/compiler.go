@@ -109,14 +109,15 @@ type EmitterOptions struct {
 // CheckingError records a type checking error with the path and the position
 // where the error occurred.
 type CheckingError struct {
-	path string
-	pos  ast.Position
-	err  error
+	path    string
+	parents string
+	pos     ast.Position
+	err     error
 }
 
 // Error returns a string representation of the type checking error.
 func (e *CheckingError) Error() string {
-	return fmt.Sprintf("%s:%s: %s", e.path, e.pos, e.err)
+	return fmt.Sprintf("%s:%s: %s%s", e.path, e.pos, e.err, e.parents)
 }
 
 // Message returns the message of the type checking error, without position and
@@ -191,11 +192,13 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 		// Second: type check the extended page in a new scope.
 		currentPath := tc.path
 		tc.path = extends.Tree.Path
+		tc.paths = []checkerPath{{currentPath, extends}}
 		err := tc.checkNodesInNewScopeError(extends.Tree.Nodes)
 		if err != nil {
 			return nil, err
 		}
 		tc.path = currentPath
+		tc.paths = tc.paths[0:0]
 		// Third: extending page is converted to a "package", that means that
 		// out of order initialization is allowed and only certain statements
 		// are permitted.
