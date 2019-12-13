@@ -1181,12 +1181,14 @@ func (n *Var) String() string {
 	if n.Type != nil {
 		s += " " + n.Type.String()
 	}
-	s += " = "
-	for i, value := range n.Rhs {
-		if i > 0 {
-			s += " "
+	if len(n.Rhs) > 0 {
+		s += " = "
+		for i, value := range n.Rhs {
+			if i > 0 {
+				s += " "
+			}
+			s += value.String()
 		}
-		s += value.String()
 	}
 	return s
 }
