@@ -221,7 +221,7 @@ The instructions are:
 
         As for 'IMPORT <package>' but the path with which it can be imported
         is named <as>. INCLUDING and EXCLUDING can be used as for the other
-        forms of IMPORT at the end of the instruction. Is not possibile to use
+        forms of IMPORT at the end of the instruction. Is not possible to use
         a path <as> that would conflict with a Go standard library package path,
         even if this latter is not imported in the Scriggofile.
     
