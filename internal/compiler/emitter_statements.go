@@ -125,6 +125,13 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 		case *ast.ForRange:
 			em.fb.enterScope()
 			vars := node.Assignment.Lhs
+			expr := node.Assignment.Rhs[0]
+			exprType := em.typ(expr)
+			exprReg, kExpr := em.emitExprK(expr, exprType)
+			if exprType.Kind() != reflect.String && kExpr {
+				kExpr = false
+				exprReg = em.emitExpr(expr, exprType)
+			}
 			indexReg := int8(0)
 			if len(vars) >= 1 && !isBlankIdentifier(vars[0]) {
 				name := vars[0].(*ast.Identifier).Name
@@ -144,13 +151,6 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				} else {
 					elem = em.fb.scopeLookup(name)
 				}
-			}
-			expr := node.Assignment.Rhs[0]
-			exprType := em.typ(expr)
-			exprReg, kExpr := em.emitExprK(expr, exprType)
-			if exprType.Kind() != reflect.String && kExpr {
-				kExpr = false
-				exprReg = em.emitExpr(expr, exprType)
 			}
 			rangeLabel := em.fb.newLabel()
 			em.fb.setLabelAddr(rangeLabel)

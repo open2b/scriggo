@@ -179,11 +179,11 @@ func (c1 stringConst) binaryOp(op ast.OperatorType, c2 constant) (constant, erro
 		return boolConst(s1 != s2), nil
 	case ast.OperatorLess:
 		return boolConst(s1 < s2), nil
-	case ast.OperatorLessOrEqual:
+	case ast.OperatorLessEqual:
 		return boolConst(s1 <= s2), nil
 	case ast.OperatorGreater:
 		return boolConst(s1 > s2), nil
-	case ast.OperatorGreaterOrEqual:
+	case ast.OperatorGreaterEqual:
 		return boolConst(s1 >= s2), nil
 	case ast.OperatorAddition:
 		return s1 + s2, nil
@@ -277,11 +277,11 @@ func (c1 int64Const) binaryOp(op ast.OperatorType, c2 constant) (constant, error
 		return boolConst(n1 != n2), nil
 	case ast.OperatorLess:
 		return boolConst(n1 < n2), nil
-	case ast.OperatorLessOrEqual:
+	case ast.OperatorLessEqual:
 		return boolConst(n1 <= n2), nil
 	case ast.OperatorGreater:
 		return boolConst(n1 > n2), nil
-	case ast.OperatorGreaterOrEqual:
+	case ast.OperatorGreaterEqual:
 		return boolConst(n1 >= n2), nil
 	case ast.OperatorAddition:
 		n := n1 + n2
@@ -478,11 +478,11 @@ func (c1 intConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error) 
 			return boolConst(cmp != 0), nil
 		case ast.OperatorLess:
 			return boolConst(cmp < 0), nil
-		case ast.OperatorLessOrEqual:
+		case ast.OperatorLessEqual:
 			return boolConst(cmp <= 0), nil
 		case ast.OperatorGreater:
 			return boolConst(cmp > 0), nil
-		case ast.OperatorGreaterOrEqual:
+		case ast.OperatorGreaterEqual:
 			return boolConst(cmp >= 0), nil
 		}
 	case ast.OperatorAddition:
@@ -616,11 +616,11 @@ func (c1 float64Const) binaryOp(op ast.OperatorType, c2 constant) (constant, err
 		return boolConst(n1 != n2), nil
 	case ast.OperatorLess:
 		return boolConst(n1 < n2), nil
-	case ast.OperatorLessOrEqual:
+	case ast.OperatorLessEqual:
 		return boolConst(n1 <= n2), nil
 	case ast.OperatorGreater:
 		return boolConst(n1 > n2), nil
-	case ast.OperatorGreaterOrEqual:
+	case ast.OperatorGreaterEqual:
 		return boolConst(n1 >= n2), nil
 	case ast.OperatorAddition:
 		if n1 == 0 {
@@ -767,11 +767,11 @@ func (c1 floatConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error
 			return boolConst(cmp != 0), nil
 		case ast.OperatorLess:
 			return boolConst(cmp < 0), nil
-		case ast.OperatorLessOrEqual:
+		case ast.OperatorLessEqual:
 			return boolConst(cmp <= 0), nil
 		case ast.OperatorGreater:
 			return boolConst(cmp > 0), nil
-		case ast.OperatorGreaterOrEqual:
+		case ast.OperatorGreaterEqual:
 			return boolConst(cmp >= 0), nil
 		}
 	case ast.OperatorAddition:
@@ -896,11 +896,11 @@ func (c1 ratConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error) 
 			return boolConst(cmp != 0), nil
 		case ast.OperatorLess:
 			return boolConst(cmp < 0), nil
-		case ast.OperatorLessOrEqual:
+		case ast.OperatorLessEqual:
 			return boolConst(cmp <= 0), nil
 		case ast.OperatorGreater:
 			return boolConst(cmp > 0), nil
-		case ast.OperatorGreaterOrEqual:
+		case ast.OperatorGreaterEqual:
 			return boolConst(cmp >= 0), nil
 		}
 	case ast.OperatorAddition:
@@ -1177,7 +1177,7 @@ var errConstantOverflowUint = errors.New("constant overflows uint")
 func shiftConstError(op ast.OperatorType, c constant) error {
 	if c, _ := c.representedBy(uintType); c != nil {
 		if op == ast.OperatorLeftShift {
-			if ok, _ := c.binaryOp(ast.OperatorGreaterOrEqual, int64Const(512)); ok.bool() {
+			if ok, _ := c.binaryOp(ast.OperatorGreaterEqual, int64Const(512)); ok.bool() {
 				return errShiftCountTooLarge
 			}
 		}

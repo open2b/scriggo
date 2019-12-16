@@ -497,21 +497,21 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 	var cond runtime.Condition
 	if kind := t1.Kind(); reflect.Uint <= kind && kind <= reflect.Uintptr {
 		cond = map[ast.OperatorType]runtime.Condition{
-			ast.OperatorEqual:          runtime.ConditionEqual,    // same as signed integers
-			ast.OperatorNotEqual:       runtime.ConditionNotEqual, // same as signed integers
-			ast.OperatorLess:           runtime.ConditionLessU,
-			ast.OperatorLessOrEqual:    runtime.ConditionLessOrEqualU,
-			ast.OperatorGreater:        runtime.ConditionGreaterU,
-			ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqualU,
+			ast.OperatorEqual:        runtime.ConditionEqual,    // same as signed integers
+			ast.OperatorNotEqual:     runtime.ConditionNotEqual, // same as signed integers
+			ast.OperatorLess:         runtime.ConditionLessU,
+			ast.OperatorLessEqual:    runtime.ConditionLessEqualU,
+			ast.OperatorGreater:      runtime.ConditionGreaterU,
+			ast.OperatorGreaterEqual: runtime.ConditionGreaterEqualU,
 		}[expr.Operator()]
 	} else {
 		cond = map[ast.OperatorType]runtime.Condition{
-			ast.OperatorEqual:          runtime.ConditionEqual,
-			ast.OperatorNotEqual:       runtime.ConditionNotEqual,
-			ast.OperatorLess:           runtime.ConditionLess,
-			ast.OperatorLessOrEqual:    runtime.ConditionLessOrEqual,
-			ast.OperatorGreater:        runtime.ConditionGreater,
-			ast.OperatorGreaterOrEqual: runtime.ConditionGreaterOrEqual,
+			ast.OperatorEqual:        runtime.ConditionEqual,
+			ast.OperatorNotEqual:     runtime.ConditionNotEqual,
+			ast.OperatorLess:         runtime.ConditionLess,
+			ast.OperatorLessEqual:    runtime.ConditionLessEqual,
+			ast.OperatorGreater:      runtime.ConditionGreater,
+			ast.OperatorGreaterEqual: runtime.ConditionGreaterEqual,
 		}[expr.Operator()]
 	}
 	pos := expr.Pos()
@@ -560,23 +560,39 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 			arrayZero := em.fb.makeGeneralConstant(em.types.New(typ).Elem().Interface())
 			em.changeRegister(true, arrayZero, reg, typ, typ)
 		}
+		elemKind := typ.Elem().Kind()
 		var index int64 = -1
 		for _, kv := range expr.KeyValues {
-			if kv.Key != nil {
-				index = em.ti(kv.Key).Constant.int64()
-			} else {
+			if kv.Key == nil {
 				index++
+			} else {
+				index = em.ti(kv.Key).Constant.int64()
+			}
+			// Don't emit code for the zero value.
+			if ti := em.ti(kv.Value); ti.HasValue() {
+				var isZero bool
+				switch elemKind {
+				case reflect.Interface:
+					isZero = ti.value == nil
+				case reflect.Ptr, reflect.Slice, reflect.Map, reflect.Chan, reflect.Func:
+					isZero = reflect.ValueOf(ti.value).IsNil()
+				default:
+					isZero = ti.IsConstant() && ti.Constant.zero()
+				}
+				if isZero {
+					continue
+				}
 			}
 			em.fb.enterStack()
 			indexReg := em.fb.newRegister(reflect.Int)
 			if index > 126 {
-				em.fb.emitLoadNumber(intRegister, em.fb.makeIntConstant(int64(index)), indexReg)
+				em.fb.emitLoadNumber(intRegister, em.fb.makeIntConstant(index), indexReg)
 			} else {
 				em.fb.emitMove(true, int8(index), indexReg, reflect.Int, true)
 			}
 			elem, k := em.emitExprK(kv.Value, typ.Elem())
 			if reg != 0 {
-				em.fb.emitSetSlice(k, reg, elem, indexReg, expr.Pos(), typ.Elem().Kind())
+				em.fb.emitSetSlice(k, reg, elem, indexReg, expr.Pos(), elemKind)
 			}
 			em.fb.exitStack()
 		}

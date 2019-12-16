@@ -13,9 +13,15 @@ import (
 	"scriggo/internal/compiler/types"
 )
 
+type checkerPath struct {
+	path string
+	node ast.Node
+}
+
 // typechecker represents the state of the type checking.
 type typechecker struct {
 	path           string
+	paths          []checkerPath
 	predefinedPkgs PackageLoader
 
 	// universe is the outermost scope.
@@ -427,8 +433,19 @@ func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...inte
 	} else {
 		pos = nodeOrPos.(*ast.Position)
 	}
+	var parents string
+	for i := len(tc.paths) - 1; i >= 0; i-- {
+		parent := tc.paths[i]
+		verb := "included"
+		if _, ok := parent.node.(*ast.Extends); ok {
+			verb = "extended"
+		}
+		pos := parent.node.Pos()
+		parents += fmt.Sprintf("\n\t%s by %s:%d:%d", verb, parent.path, pos.Line, pos.Column)
+	}
 	var err = &CheckingError{
-		path: tc.path,
+		path:    tc.path,
+		parents: parents,
 		pos: ast.Position{
 			Line:   pos.Line,
 			Column: pos.Column,

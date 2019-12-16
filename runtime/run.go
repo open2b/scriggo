@@ -544,6 +544,8 @@ func (vm *VM) run() (Addr, bool) {
 			i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
 			v := vm.general(a).FieldByIndex(i)
 			vm.setFromReflectValue(c, v)
+
+		// FieldRef
 		case OpFieldRef:
 			i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
 			v := vm.general(a).FieldByIndex(i)
@@ -600,22 +602,27 @@ func (vm *VM) run() (Addr, bool) {
 			}
 		case OpIfInt, -OpIfInt:
 			var cond bool
-			if ConditionLessU <= Condition(b) && Condition(b) <= ConditionGreaterOrEqualU {
+			switch Condition(b) {
+			case ConditionZero:
+				cond = vm.int(a) == 0
+			case ConditionNotZero:
+				cond = vm.int(a) != 0
+			case ConditionLessU, ConditionLessEqualU, ConditionGreaterU, ConditionGreaterEqualU:
 				v1 := uint64(vm.int(a))
 				v2 := uint64(vm.intk(c, op < 0))
 				switch Condition(b) {
 				case ConditionLessU:
 					cond = v1 < v2
-				case ConditionLessOrEqualU:
+				case ConditionLessEqualU:
 					cond = v1 <= v2
 				case ConditionGreaterU:
 					cond = v1 > v2
-				case ConditionGreaterOrEqualU:
+				case ConditionGreaterEqualU:
 					cond = v1 >= v2
 				}
-			} else {
+			default:
 				v1 := vm.int(a)
-				v2 := int64(vm.intk(c, op < 0))
+				v2 := vm.intk(c, op < 0)
 				switch Condition(b) {
 				case ConditionEqual:
 					cond = v1 == v2
@@ -623,11 +630,11 @@ func (vm *VM) run() (Addr, bool) {
 					cond = v1 != v2
 				case ConditionLess:
 					cond = v1 < v2
-				case ConditionLessOrEqual:
+				case ConditionLessEqual:
 					cond = v1 <= v2
 				case ConditionGreater:
 					cond = v1 > v2
-				case ConditionGreaterOrEqual:
+				case ConditionGreaterEqual:
 					cond = v1 >= v2
 				}
 			}
@@ -645,11 +652,11 @@ func (vm *VM) run() (Addr, bool) {
 				cond = v1 != v2
 			case ConditionLess:
 				cond = v1 < v2
-			case ConditionLessOrEqual:
+			case ConditionLessEqual:
 				cond = v1 <= v2
 			case ConditionGreater:
 				cond = v1 > v2
-			case ConditionGreaterOrEqual:
+			case ConditionGreaterEqual:
 				cond = v1 >= v2
 			}
 			if cond {
@@ -658,7 +665,7 @@ func (vm *VM) run() (Addr, bool) {
 		case OpIfString, -OpIfString:
 			var cond bool
 			v1 := vm.string(a)
-			if Condition(b) < ConditionEqualLen {
+			if Condition(b) < ConditionLenEqual {
 				v2 := vm.stringk(c, op < 0)
 				switch Condition(b) {
 				case ConditionEqual:
@@ -667,27 +674,27 @@ func (vm *VM) run() (Addr, bool) {
 					cond = v1 != v2
 				case ConditionLess:
 					cond = v1 < v2
-				case ConditionLessOrEqual:
+				case ConditionLessEqual:
 					cond = v1 <= v2
 				case ConditionGreater:
 					cond = v1 > v2
-				case ConditionGreaterOrEqual:
+				case ConditionGreaterEqual:
 					cond = v1 >= v2
 				}
 			} else {
 				v2 := int(vm.intk(c, op < 0))
 				switch Condition(b) {
-				case ConditionEqualLen:
+				case ConditionLenEqual:
 					cond = len(v1) == v2
-				case ConditionNotEqualLen:
+				case ConditionLenNotEqual:
 					cond = len(v1) != v2
-				case ConditionLessLen:
+				case ConditionLenLess:
 					cond = len(v1) < v2
-				case ConditionLessOrEqualLen:
+				case ConditionLenLessEqual:
 					cond = len(v1) <= v2
-				case ConditionGreaterLen:
+				case ConditionLenGreater:
 					cond = len(v1) > v2
-				case ConditionGreaterOrEqualLen:
+				case ConditionLenGreaterEqual:
 					cond = len(v1) >= v2
 				}
 			}

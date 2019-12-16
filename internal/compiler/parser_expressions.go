@@ -647,11 +647,11 @@ func operatorFromTokenType(typ tokenTyp) ast.OperatorType {
 	case tokenLess:
 		return ast.OperatorLess
 	case tokenLessOrEqual:
-		return ast.OperatorLessOrEqual
+		return ast.OperatorLessEqual
 	case tokenGreater:
 		return ast.OperatorGreater
 	case tokenGreaterOrEqual:
-		return ast.OperatorGreaterOrEqual
+		return ast.OperatorGreaterEqual
 	case tokenAndAnd:
 		return ast.OperatorAndAnd
 	case tokenOrOr:

@@ -422,9 +422,13 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 		}
 	case runtime.OpIfInt:
-		s += " " + disassembleOperand(fn, a, reflect.Int, false)
-		s += " " + conditionName[b]
-		if runtime.Condition(b) >= runtime.ConditionEqual {
+		switch runtime.Condition(b) {
+		case runtime.ConditionZero, runtime.ConditionNotZero:
+			s += " " + conditionName[b]
+			s += " " + disassembleOperand(fn, a, reflect.Int, false)
+		default:
+			s += " " + disassembleOperand(fn, a, reflect.Int, false)
+			s += " " + conditionName[b]
 			s += " " + disassembleOperand(fn, c, reflect.Int, k)
 		}
 	case runtime.OpIfFloat:
@@ -434,7 +438,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	case runtime.OpIfString:
 		s += " " + disassembleOperand(fn, a, reflect.String, false)
 		s += " " + conditionName[b]
-		if runtime.Condition(b) < runtime.ConditionEqualLen {
+		if runtime.Condition(b) < runtime.ConditionLenEqual {
 			if k && c >= 0 {
 				s += " " + strconv.Quote(string(c))
 			} else {
@@ -764,8 +768,10 @@ func registerKindToLabel(kind reflect.Kind) string {
 func disassembleOperand(fn *runtime.Function, op int8, kind reflect.Kind, constant bool) string {
 	if constant {
 		switch {
-		case reflect.Int <= kind && kind <= reflect.Uintptr:
+		case reflect.Int <= kind && kind <= reflect.Int64:
 			return strconv.Itoa(int(op))
+		case reflect.Uint <= kind && kind <= reflect.Uintptr:
+			return strconv.Itoa(int(uint8(op)))
 		case kind == reflect.Float64:
 			return strconv.FormatFloat(float64(op), 'f', -1, 64)
 		case kind == reflect.Float32:
@@ -963,26 +969,28 @@ var operationName = [...]string{
 }
 
 var conditionName = [...]string{
-	runtime.ConditionEqual:             "Equal",
-	runtime.ConditionNotEqual:          "NotEqual",
-	runtime.ConditionLess:              "Less",
-	runtime.ConditionLessOrEqual:       "LessOrEqual",
-	runtime.ConditionGreater:           "Greater",
-	runtime.ConditionGreaterOrEqual:    "GreaterOrEqual",
-	runtime.ConditionEqualLen:          "EqualLen",
-	runtime.ConditionNotEqualLen:       "NotEqualLen",
-	runtime.ConditionLessLen:           "LessLen",
-	runtime.ConditionLessOrEqualLen:    "LessOrEqualLen",
-	runtime.ConditionGreaterLen:        "GreaterOrEqualLen",
-	runtime.ConditionGreaterOrEqualLen: "GreaterOrEqualLen",
-	runtime.ConditionLessU:             "ConditionLessU",
-	runtime.ConditionLessOrEqualU:      "ConditionLessOrEqualU",
-	runtime.ConditionGreaterU:          "ConditionGreaterU",
-	runtime.ConditionGreaterOrEqualU:   "ConditionGreaterOrEqualU",
-	runtime.ConditionInterfaceNil:      "InterfaceNil",
-	runtime.ConditionInterfaceNotNil:   "InterfaceNotNil",
-	runtime.ConditionNil:               "Nil",
-	runtime.ConditionNotNil:            "NotNil",
-	runtime.ConditionOK:                "OK",
-	runtime.ConditionNotOK:             "NotOK",
+	runtime.ConditionZero:            "Zero",
+	runtime.ConditionNotZero:         "NotZero",
+	runtime.ConditionEqual:           "Equal",
+	runtime.ConditionNotEqual:        "NotEqual",
+	runtime.ConditionLess:            "Less",
+	runtime.ConditionLessEqual:       "LessEqual",
+	runtime.ConditionGreater:         "Greater",
+	runtime.ConditionGreaterEqual:    "GreaterEqual",
+	runtime.ConditionLessU:           "Less",
+	runtime.ConditionLessEqualU:      "LessEqual",
+	runtime.ConditionGreaterU:        "Greater",
+	runtime.ConditionGreaterEqualU:   "GreaterEqual",
+	runtime.ConditionLenEqual:        "LenEqual",
+	runtime.ConditionLenNotEqual:     "LenNotEqual",
+	runtime.ConditionLenLess:         "LenLess",
+	runtime.ConditionLenLessEqual:    "LenLessEqual",
+	runtime.ConditionLenGreater:      "LenGreater",
+	runtime.ConditionLenGreaterEqual: "LenGreaterEqual",
+	runtime.ConditionInterfaceNil:    "InterfaceNil",
+	runtime.ConditionInterfaceNotNil: "InterfaceNotNil",
+	runtime.ConditionNil:             "Nil",
+	runtime.ConditionNotNil:          "NotNil",
+	runtime.ConditionOK:              "OK",
+	runtime.ConditionNotOK:           "NotOK",
 }
