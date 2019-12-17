@@ -87,11 +87,11 @@ func (vm *VM) run() (Addr, bool) {
 		case OpAdd, -OpAdd:
 			switch a := reflect.Kind(a); a {
 			case reflect.Float64:
-				vm.setFloat(c, vm.float(c)+vm.floatk(b, op < 0))
+				vm.setFloat(c, vm.floatk(b, op < 0)+vm.float(c))
 			case reflect.Float32:
-				vm.setFloat(c, float64(float32(vm.float(c)+vm.floatk(b, op < 0))))
+				vm.setFloat(c, float64(float32(vm.floatk(b, op < 0)+vm.float(c))))
 			default:
-				v := vm.int(c) + vm.intk(b, op < 0)
+				v := vm.intk(b, op < 0) + vm.int(c)
 				switch a {
 				case reflect.Int8:
 					v = int64(int8(v))
@@ -506,30 +506,30 @@ func (vm *VM) run() (Addr, bool) {
 		case OpDiv, -OpDiv:
 			switch a := reflect.Kind(a); a {
 			case reflect.Float32:
-				vm.setFloat(c, float64(float32(vm.floatk(b, op < 0))/float32(vm.float(c))))
+				vm.setFloat(c, float64(float32(vm.float(c))/float32(vm.floatk(b, op < 0))))
 			case reflect.Float64:
-				vm.setFloat(c, vm.floatk(b, op < 0)/vm.float(c))
+				vm.setFloat(c, vm.float(c)/vm.floatk(b, op < 0))
 			default:
 				var bv = vm.intk(b, op < 0)
 				var cv = vm.int(c)
 				var v int64
 				switch a {
 				case reflect.Int8:
-					v = int64(int8(bv) / int8(cv))
+					v = int64(int8(cv) / int8(bv))
 				case reflect.Int16:
-					v = int64(int16(bv) / int16(cv))
+					v = int64(int16(cv) / int16(bv))
 				case reflect.Int32:
-					v = int64(int32(bv) / int32(cv))
+					v = int64(int32(cv) / int32(bv))
 				case reflect.Int64:
-					v = bv / cv
+					v = cv / bv
 				case reflect.Uint8:
-					v = int64(uint8(bv) / uint8(cv))
+					v = int64(uint8(cv) / uint8(bv))
 				case reflect.Uint16:
-					v = int64(uint16(bv) / uint16(cv))
+					v = int64(uint16(cv) / uint16(bv))
 				case reflect.Uint32:
-					v = int64(uint32(bv) / uint32(cv))
+					v = int64(uint32(cv) / uint32(bv))
 				case reflect.Uint64:
-					v = int64(uint64(bv) / uint64(cv))
+					v = int64(uint64(cv) / uint64(bv))
 				}
 				vm.setInt(c, v)
 			}
@@ -720,7 +720,7 @@ func (vm *VM) run() (Addr, bool) {
 
 		// Shl
 		case OpShl, -OpShl:
-			v := vm.intk(b, op < 0) << uint(vm.int(c))
+			v := vm.int(c) << uint(vm.intk(b, op < 0))
 			switch reflect.Kind(a) {
 			case reflect.Int8:
 				v = int64(int8(v))
@@ -877,11 +877,11 @@ func (vm *VM) run() (Addr, bool) {
 		case OpMul, -OpMul:
 			switch a := reflect.Kind(a); a {
 			case reflect.Float32:
-				vm.setFloat(c, float64(float32(vm.floatk(b, op < 0)*vm.float(c))))
+				vm.setFloat(c, float64(float32(vm.float(c)*vm.floatk(b, op < 0))))
 			case reflect.Float64:
-				vm.setFloat(c, vm.floatk(b, op < 0)*vm.float(c))
+				vm.setFloat(c, vm.float(c)*vm.floatk(b, op < 0))
 			default:
-				v := vm.intk(b, op < 0) * vm.int(c)
+				v := vm.int(c) * vm.intk(b, op < 0)
 				switch a {
 				case reflect.Int8:
 					v = int64(int8(v))
@@ -1327,21 +1327,21 @@ func (vm *VM) run() (Addr, bool) {
 			var v int64
 			switch reflect.Kind(a) {
 			case reflect.Int8:
-				v = int64(int8(bv) % int8(cv))
+				v = int64(int8(cv) % int8(bv))
 			case reflect.Int16:
-				v = int64(int16(bv) % int16(cv))
+				v = int64(int16(cv) % int16(bv))
 			case reflect.Int32:
-				v = int64(int32(bv) % int32(cv))
+				v = int64(int32(cv) % int32(bv))
 			case reflect.Int64:
-				v = bv % cv
+				v = cv % bv
 			case reflect.Uint8:
-				v = int64(uint8(bv) % uint8(cv))
+				v = int64(uint8(cv) % uint8(bv))
 			case reflect.Uint16:
-				v = int64(uint16(bv) % uint16(cv))
+				v = int64(uint16(cv) % uint16(bv))
 			case reflect.Uint32:
-				v = int64(uint32(bv) % uint32(cv))
+				v = int64(uint32(cv) % uint32(bv))
 			case reflect.Uint64:
-				v = int64(uint64(bv) % uint64(cv))
+				v = int64(uint64(cv) % uint64(bv))
 			}
 			vm.setInt(c, v)
 		case OpRemInt, -OpRemInt:
@@ -1382,13 +1382,13 @@ func (vm *VM) run() (Addr, bool) {
 
 		// Shr
 		case OpShr, -OpShr:
-			bv := vm.intk(b, op < 0)
-			cv := uint(vm.int(c))
+			bv := uint(vm.intk(b, op < 0))
+			cv := vm.int(c)
 			var v int64
 			if reflect.Kind(a) < reflect.Uint8 {
-				v = bv >> cv
+				v = cv >> bv
 			} else {
-				v = int64(uint64(bv) >> cv)
+				v = int64(uint64(cv) >> bv)
 			}
 			vm.setInt(c, v)
 		case OpShrInt, -OpShrInt:
@@ -1639,11 +1639,11 @@ func (vm *VM) run() (Addr, bool) {
 		case OpSub, -OpSub:
 			switch a := reflect.Kind(a); a {
 			case reflect.Float32:
-				vm.setFloat(c, float64(float32(vm.floatk(b, op < 0)-vm.float(c))))
+				vm.setFloat(c, float64(float32(vm.float(c)-vm.floatk(b, op < 0))))
 			case reflect.Float64:
-				vm.setFloat(c, vm.floatk(b, op < 0)-vm.float(c))
+				vm.setFloat(c, vm.float(c)-vm.floatk(b, op < 0))
 			default:
-				v := vm.intk(b, op < 0) - vm.int(c)
+				v := vm.int(c) - vm.intk(b, op < 0)
 				switch a {
 				case reflect.Int8:
 					v = int64(int8(v))
@@ -1671,11 +1671,11 @@ func (vm *VM) run() (Addr, bool) {
 		case OpSubInv, -OpSubInv:
 			switch a := reflect.Kind(a); a {
 			case reflect.Float32:
-				vm.setFloat(c, float64(float32(vm.float(c)-vm.floatk(b, op < 0))))
+				vm.setFloat(c, float64(float32(vm.floatk(b, op < 0)-vm.float(c))))
 			case reflect.Float64:
-				vm.setFloat(c, vm.float(c)-vm.floatk(b, op < 0))
+				vm.setFloat(c, vm.floatk(b, op < 0)-vm.float(c))
 			default:
-				v := vm.int(c) - vm.intk(b, op < 0)
+				v := vm.intk(b, op < 0) - vm.int(c)
 				switch a {
 				case reflect.Int8:
 					v = int64(int8(v))

@@ -227,27 +227,27 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 	typ := addr.targetType()      // type of the "target" (eg. type of the slice element).
 
 	// Emit the code that evaluates the left side of the assignment.
-	b := em.fb.newRegister(typ.Kind())
+	c := em.fb.newRegister(typ.Kind())
 	switch addr.target {
 	case assignBlank, assignNewIndirectVar:
 		panic("Type checking BUG")
 	case assignNonLocalVar:
-		em.fb.emitGetVar(int(decodeInt16(addr.op1, addr.op2)), b, addrTyp.Kind())
+		em.fb.emitGetVar(int(decodeInt16(addr.op1, addr.op2)), c, addrTyp.Kind())
 	case assignLocalVar:
-		em.changeRegister(false, addr.op1, b, addrTyp, typ)
+		em.changeRegister(false, addr.op1, c, addrTyp, typ)
 	case assignMapIndex,
 		assignSliceIndex:
-		em.fb.emitIndex(false, addr.op1, addr.op2, b, addrTyp, addr.pos, false)
+		em.fb.emitIndex(false, addr.op1, addr.op2, c, addrTyp, addr.pos, false)
 	case assignPtrIndirection:
-		em.changeRegister(false, -addr.op1, b, addrTyp, addrTyp)
+		em.changeRegister(false, -addr.op1, c, addrTyp, addrTyp)
 	case assignStructSelector:
-		em.fb.emitField(addr.op1, addr.op2, b, typ.Kind(), false)
+		em.fb.emitField(addr.op1, addr.op2, c, typ.Kind(), false)
 	}
 
 	// Emit the code that evaluates the right side of the assignment.
 	// TODO: use k?
-	c := em.fb.newRegister(typ.Kind())
-	em.emitExprR(rh, typ, c)
+	b := em.fb.newRegister(typ.Kind())
+	em.emitExprR(rh, typ, b)
 
 	// Emit the code that computes the result of the operation; such result will
 	// be put back into the left side.
@@ -273,7 +273,7 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 		switch addr.operator {
 		case ast.AssignmentAddition:
 			if typ.Kind() == reflect.String {
-				em.fb.emitConcat(b, c, c)
+				em.fb.emitConcat(c, b, c)
 			} else {
 				em.fb.emitAddx(false, b, c, typ.Kind())
 			}
@@ -286,13 +286,13 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 		case ast.AssignmentModulo:
 			em.fb.emitRemx(false, b, c, typ.Kind(), addr.pos)
 		case ast.AssignmentAnd:
-			em.fb.emitAnd(false, b, c, c, typ.Kind())
+			em.fb.emitAnd(false, c, b, c, typ.Kind())
 		case ast.AssignmentOr:
-			em.fb.emitOr(false, b, c, c, typ.Kind())
+			em.fb.emitOr(false, c, b, c, typ.Kind())
 		case ast.AssignmentXor:
-			em.fb.emitXor(false, b, c, c, typ.Kind())
+			em.fb.emitXor(false, c, b, c, typ.Kind())
 		case ast.AssignmentAndNot:
-			em.fb.emitAndNot(false, b, c, c, typ.Kind())
+			em.fb.emitAndNot(false, c, b, c, typ.Kind())
 		case ast.AssignmentLeftShift:
 			em.fb.emitShlx(false, b, c, typ.Kind())
 		case ast.AssignmentRightShift:

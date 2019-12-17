@@ -478,16 +478,16 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 			// directly.
 			em.fb.enterStack()
 			tmp := em.fb.newRegister(exprType.Kind())
-			em.changeRegister(k, v2, tmp, exprType, exprType)
-			emitFn(false, v1, tmp, exprType.Kind())
+			em.changeRegister(false, v1, tmp, exprType, exprType)
+			emitFn(k, v2, tmp, exprType.Kind())
 			em.changeRegister(false, tmp, reg, exprType, dstType)
 			em.fb.exitStack()
 			return reg, false
 		}
 		em.fb.enterStack()
 		tmp := em.fb.newRegister(exprType.Kind())
-		em.changeRegister(k, v2, tmp, exprType, exprType)
-		emitFn(false, v1, tmp, exprType.Kind())
+		em.changeRegister(false, v1, tmp, exprType, exprType)
+		emitFn(k, v2, tmp, exprType.Kind())
 		em.changeRegister(false, tmp, reg, exprType, dstType)
 		em.fb.exitStack()
 		return reg, false
@@ -799,9 +799,12 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 			return
 		}
 		em.fb.enterScope()
+		// TODO: improve this code.
 		tmp := em.emitExpr(operand, operandType)
-		em.fb.emitSubx(true, 1, tmp, operandType.Kind())
-		em.changeRegister(false, tmp, reg, operandType, dstType)
+		tmp2 := em.fb.newRegister(reflect.Int)
+		em.changeRegister(true, 1, tmp2, intType, intType)
+		em.fb.emitSubx(false, tmp, tmp2, operandType.Kind())
+		em.changeRegister(false, tmp2, reg, operandType, dstType)
 		em.fb.exitScope()
 
 	// *operand
@@ -921,10 +924,13 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 			return
 		}
 		em.fb.enterStack()
+		// TODO: improve this code:
 		tmp := em.fb.newRegister(operandType.Kind())
 		em.emitExprR(operand, operandType, tmp)
-		em.fb.emitSubx(true, 0, tmp, operandType.Kind())
-		em.changeRegister(false, tmp, reg, operandType, dstType)
+		tmp2 := em.fb.newRegister(operandType.Kind())
+		em.changeRegister(true, 0, tmp2, operandType, operandType)
+		em.fb.emitSubx(false, tmp, tmp2, operandType.Kind())
+		em.changeRegister(false, tmp2, reg, operandType, dstType)
 		em.fb.exitStack()
 
 	default:

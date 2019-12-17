@@ -36,7 +36,7 @@ func (builder *functionBuilder) emitAdd(k bool, x, y, z int8, kind reflect.Kind)
 
 // emitAddx appends a new "Addx" instruction to the function body.
 //
-//    c = b + c
+//    c += b
 //
 func (builder *functionBuilder) emitAddx(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
@@ -318,7 +318,7 @@ func (builder *functionBuilder) emitDiv(ky bool, x, y, z int8, kind reflect.Kind
 
 // emitDivx appends a new "Divx" instruction to the function body.
 //
-//     c = b / c
+//     c /= b
 //
 func (builder *functionBuilder) emitDivx(kb bool, b, c int8, kind reflect.Kind, pos *ast.Position) {
 	kind = flattenIntegerKind(kind)
@@ -534,7 +534,7 @@ func (builder *functionBuilder) emitShl(k bool, x, y, z int8) {
 
 // emitShlx appends a new "Shlx" instruction to the function body.
 //
-//    c = b << c
+//    c <<= b
 //
 func (builder *functionBuilder) emitShlx(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
@@ -761,7 +761,7 @@ func (builder *functionBuilder) emitMul(ky bool, x, y, z int8, kind reflect.Kind
 
 // emitMulx appends a new "Mulx" instruction to the function body.
 //
-//    c = b * c
+//    c *= b
 //
 func (builder *functionBuilder) emitMulx(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
@@ -885,7 +885,7 @@ func (builder *functionBuilder) emitRem(ky bool, x, y, z int8, pos *ast.Position
 
 // emitRemx appends a new "Remx" instruction to the function body.
 //
-//    c = b % c
+//    c %= b
 //
 func (builder *functionBuilder) emitRemx(kb bool, b, c int8, kind reflect.Kind, pos *ast.Position) {
 	kind = flattenIntegerKind(kind)
@@ -918,7 +918,7 @@ func (builder *functionBuilder) emitShr(k bool, x, y, z int8) {
 
 // emitShrx appends a new "Shrx" instruction to the function body.
 //
-//    c = b >> c
+//    c >>= b
 //
 func (builder *functionBuilder) emitShrx(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
@@ -1088,7 +1088,7 @@ func (builder *functionBuilder) emitSub(k bool, x, y, z int8, kind reflect.Kind)
 
 // emitSubx appends a new "Subx" instruction to the function body.
 //
-//    c = b - c
+//    c -= b
 //
 func (builder *functionBuilder) emitSubx(kb bool, b, c int8, kind reflect.Kind) {
 	kind = flattenIntegerKind(kind)
