@@ -251,10 +251,6 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 
 	// Emit the code that computes the result of the operation; such result will
 	// be put back into the left side.
-
-	//
-	// TODO: review this documentation and this code.
-	//
 	if k := typ.Kind(); k == reflect.Complex64 || k == reflect.Complex128 {
 		// Operation on complex numbers.
 		stackShift := em.fb.currentStackShift()
