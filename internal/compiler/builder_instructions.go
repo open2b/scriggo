@@ -26,25 +26,16 @@ func (builder *functionBuilder) emitAdd(k bool, x, y, z int8, kind reflect.Kind)
 	case reflect.Float64:
 		op = runtime.OpAddFloat64
 	default:
-		panic(fmt.Errorf("BUG: this method does not support kind %s", kind))
+		if z != x {
+			panic(fmt.Errorf("z must be == x for kind %s", kind))
+		}
+		x = int8(flattenIntegerKind(kind))
+		op = runtime.OpAdd
 	}
 	if k {
 		op = -op
 	}
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
-}
-
-// emitAddx appends a new "Addx" instruction to the function body.
-//
-//    c += b
-//
-func (builder *functionBuilder) emitAddx(kb bool, b, c int8, kind reflect.Kind) {
-	kind = flattenIntegerKind(kind)
-	op := runtime.OpAdd
-	if kb {
-		op = -op
-	}
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(kind), B: b, C: c})
 }
 
 // emitAddr appends a new "Addr" instruction to the function body.
@@ -307,26 +298,17 @@ func (builder *functionBuilder) emitDiv(ky bool, x, y, z int8, kind reflect.Kind
 	case reflect.Float64:
 		op = runtime.OpDivFloat64
 	default:
-		panic(fmt.Errorf("BUG: this method does not support kind %s", kind))
+		if z != x {
+			panic(fmt.Errorf("z must be == x for kind %s", kind))
+		}
+		x = int8(flattenIntegerKind(kind))
+		op = runtime.OpDiv
 	}
 	builder.addPosAndPath(pos)
 	if ky {
 		op = -op
 	}
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
-}
-
-// emitDivx appends a new "Divx" instruction to the function body.
-//
-//     c /= b
-//
-func (builder *functionBuilder) emitDivx(kb bool, b, c int8, kind reflect.Kind, pos *ast.Position) {
-	kind = flattenIntegerKind(kind)
-	op := runtime.OpDiv
-	if kb {
-		op = -op
-	}
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(kind), B: b, C: c})
 }
 
 // emitRange appends a new "Range" instruction to the function body.
@@ -524,25 +506,22 @@ func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType r
 //
 //     z = x << y
 //
-func (builder *functionBuilder) emitShl(k bool, x, y, z int8) {
-	op := runtime.OpShlInt
+func (builder *functionBuilder) emitShl(k bool, x, y, z int8, kind reflect.Kind) {
+	var op runtime.Operation
+	switch kind {
+	case reflect.Int:
+		op = runtime.OpShlInt
+	default:
+		if z != x {
+			panic(fmt.Errorf("z must be == x for kind %s", kind))
+		}
+		x = int8(flattenIntegerKind(kind))
+		op = runtime.OpShl
+	}
 	if k {
 		op = -op
 	}
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
-}
-
-// emitShlx appends a new "Shlx" instruction to the function body.
-//
-//    c <<= b
-//
-func (builder *functionBuilder) emitShlx(kb bool, b, c int8, kind reflect.Kind) {
-	kind = flattenIntegerKind(kind)
-	op := runtime.OpShl
-	if kb {
-		op = -op
-	}
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(kind), B: b, C: c})
 }
 
 // emitLen appends a new "len" instruction to the function body.
@@ -751,25 +730,16 @@ func (builder *functionBuilder) emitMul(ky bool, x, y, z int8, kind reflect.Kind
 	case reflect.Float64:
 		op = runtime.OpMulFloat64
 	default:
-		panic(fmt.Errorf("BUG: this method does not support kind %s", kind))
+		if z != x {
+			panic(fmt.Errorf("z must be == x for kind %s", kind))
+		}
+		x = int8(flattenIntegerKind(kind))
+		op = runtime.OpMul
 	}
 	if ky {
 		op = -op
 	}
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
-}
-
-// emitMulx appends a new "Mulx" instruction to the function body.
-//
-//    c *= b
-//
-func (builder *functionBuilder) emitMulx(kb bool, b, c int8, kind reflect.Kind) {
-	kind = flattenIntegerKind(kind)
-	op := runtime.OpMul
-	if kb {
-		op = -op
-	}
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(kind), B: b, C: c})
 }
 
 // emitNew appends a new "new" instruction to the function body.
@@ -874,26 +844,23 @@ func (builder *functionBuilder) emitRecover(r int8, down bool) {
 //
 //     z = x % y
 //
-func (builder *functionBuilder) emitRem(ky bool, x, y, z int8, pos *ast.Position) {
+func (builder *functionBuilder) emitRem(ky bool, x, y, z int8, kind reflect.Kind, pos *ast.Position) {
 	builder.addPosAndPath(pos)
-	op := runtime.OpRemInt
+	var op runtime.Operation
+	switch kind {
+	case reflect.Int:
+		op = runtime.OpRemInt
+	default:
+		if z != x {
+			panic(fmt.Errorf("z must be == x for kind %s", kind))
+		}
+		x = int8(flattenIntegerKind(kind))
+		op = runtime.OpRem
+	}
 	if ky {
 		op = -op
 	}
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
-}
-
-// emitRemx appends a new "Remx" instruction to the function body.
-//
-//    c %= b
-//
-func (builder *functionBuilder) emitRemx(kb bool, b, c int8, kind reflect.Kind, pos *ast.Position) {
-	kind = flattenIntegerKind(kind)
-	op := runtime.OpRem
-	if kb {
-		op = -op
-	}
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(kind), B: b, C: c})
 }
 
 // emitReturn appends a new "return" instruction to the function body.
@@ -908,25 +875,22 @@ func (builder *functionBuilder) emitReturn() {
 //
 //     z = x >> y
 //
-func (builder *functionBuilder) emitShr(k bool, x, y, z int8) {
-	op := runtime.OpShrInt
+func (builder *functionBuilder) emitShr(k bool, x, y, z int8, kind reflect.Kind) {
+	var op runtime.Operation
+	switch kind {
+	case reflect.Int:
+		op = runtime.OpShrInt
+	default:
+		if z != x {
+			panic(fmt.Errorf("z must be == x for kind %s", kind))
+		}
+		x = int8(flattenIntegerKind(kind))
+		op = runtime.OpShr
+	}
 	if k {
 		op = -op
 	}
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
-}
-
-// emitShrx appends a new "Shrx" instruction to the function body.
-//
-//    c >>= b
-//
-func (builder *functionBuilder) emitShrx(kb bool, b, c int8, kind reflect.Kind) {
-	kind = flattenIntegerKind(kind)
-	op := runtime.OpShr
-	if kb {
-		op = -op
-	}
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(kind), B: b, C: c})
 }
 
 // emitSelect appends a new "Select" instruction to the function body.
@@ -1078,25 +1042,16 @@ func (builder *functionBuilder) emitSub(k bool, x, y, z int8, kind reflect.Kind)
 	case reflect.Float64:
 		op = runtime.OpSubFloat64
 	default:
-		panic(fmt.Errorf("BUG: this method does not support kind %s", kind))
+		if z != x {
+			panic(fmt.Errorf("z must be == x for kind %s", kind))
+		}
+		x = int8(flattenIntegerKind(kind))
+		op = runtime.OpSub
 	}
 	if k {
 		op = -op
 	}
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
-}
-
-// emitSubx appends a new "Subx" instruction to the function body.
-//
-//    c -= b
-//
-func (builder *functionBuilder) emitSubx(kb bool, b, c int8, kind reflect.Kind) {
-	kind = flattenIntegerKind(kind)
-	op := runtime.OpSub
-	if kb {
-		op = -op
-	}
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(kind), B: b, C: c})
 }
 
 // emitSubInv appends a new "SubInv" instruction to the function body.
@@ -1111,25 +1066,16 @@ func (builder *functionBuilder) emitSubInvInt(k bool, x, y, z int8, kind reflect
 	case reflect.Float64:
 		op = runtime.OpSubInvFloat64
 	default:
-		panic(fmt.Errorf("BUG: this method does not support kind %s", kind))
+		if z != x {
+			panic(fmt.Errorf("z must be == x for kind %s", kind))
+		}
+		x = int8(flattenIntegerKind(kind))
+		op = runtime.OpSubInv
 	}
 	if k {
 		op = -op
 	}
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
-}
-
-// emitSubInv appends a new "SubInv" instruction to the function body.
-//
-//   c = c - b
-//
-func (builder *functionBuilder) emitSubInvx(kb bool, b, c int8, kind reflect.Kind) {
-	kind = flattenIntegerKind(kind)
-	op := runtime.OpSubInv
-	if kb {
-		op = -op
-	}
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(kind), B: b, C: c})
 }
 
 // emitTypify appends a new "Typify" instruction to the function body.

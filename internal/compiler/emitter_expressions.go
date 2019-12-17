@@ -424,31 +424,32 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 	}
 
 	// Arithmetic operations on reflect.Int or reflect.Float64.
-	if op := expr.Operator(); ast.OperatorAnd <= op && op <= ast.OperatorRightShift && exprType.Kind() == reflect.Int {
-		var emitFn func(bool, int8, int8, int8)
+	// TODO: also add reflect.Float64, excluding them from unsupported operations.
+	if op := expr.Operator(); ast.OperatorAnd <= op && op <= ast.OperatorRightShift && (exprType.Kind() == reflect.Int) {
+		var emitFn func(bool, int8, int8, int8, reflect.Kind)
 		switch expr.Operator() {
 		case ast.OperatorAddition:
-			emitFn = func(k bool, x, y, z int8) { em.fb.emitAdd(k, x, y, z, exprType.Kind()) }
+			emitFn = em.fb.emitAdd
 		case ast.OperatorSubtraction:
-			emitFn = func(k bool, x, y, z int8) { em.fb.emitSub(k, x, y, z, exprType.Kind()) }
+			emitFn = em.fb.emitSub
 		case ast.OperatorMultiplication:
-			emitFn = func(k bool, x, y, z int8) { em.fb.emitMul(k, x, y, z, exprType.Kind()) }
+			emitFn = em.fb.emitMul
 		case ast.OperatorDivision:
-			emitFn = func(k bool, x, y, z int8) { em.fb.emitDiv(k, x, y, z, exprType.Kind(), expr.Pos()) }
+			emitFn = func(k bool, x, y, z int8, kind reflect.Kind) { em.fb.emitDiv(k, x, y, z, exprType.Kind(), expr.Pos()) }
 		case ast.OperatorModulo:
-			emitFn = func(k bool, x, y, z int8) { em.fb.emitRem(k, x, y, z, expr.Pos()) }
+			emitFn = func(k bool, x, y, z int8, kind reflect.Kind) { em.fb.emitRem(k, x, y, z, exprType.Kind(), expr.Pos()) }
 		case ast.OperatorLeftShift:
 			emitFn = em.fb.emitShl
 		case ast.OperatorRightShift:
 			emitFn = em.fb.emitShr
 		}
 		if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
-			emitFn(k, v1, v2, reg)
+			emitFn(k, v1, v2, reg, exprType.Kind())
 			return reg, false
 		}
 		em.fb.enterStack()
 		tmp := em.fb.newRegister(exprType.Kind())
-		emitFn(k, v1, v2, tmp)
+		emitFn(k, v1, v2, tmp, exprType.Kind())
 		em.changeRegister(false, tmp, reg, exprType, dstType)
 		em.fb.exitStack()
 		return reg, false
@@ -456,22 +457,22 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 
 	// Arithmetic operations on non reflect.Int and non reflect.FLoat64 kinds.
 	if op := expr.Operator(); ast.OperatorAnd <= op && op <= ast.OperatorRightShift {
-		var emitFn func(bool, int8, int8, reflect.Kind)
+		var emitFn func(bool, int8, int8, int8, reflect.Kind)
 		switch expr.Operator() {
 		case ast.OperatorAddition:
-			emitFn = em.fb.emitAddx
+			emitFn = em.fb.emitAdd
 		case ast.OperatorSubtraction:
-			emitFn = em.fb.emitSubx
+			emitFn = em.fb.emitSub
 		case ast.OperatorMultiplication:
-			emitFn = em.fb.emitMulx
+			emitFn = em.fb.emitMul
 		case ast.OperatorDivision:
-			emitFn = func(k bool, y, z int8, kind reflect.Kind) { em.fb.emitDivx(k, y, z, kind, expr.Pos()) }
+			emitFn = func(k bool, x, y, z int8, kind reflect.Kind) { em.fb.emitDiv(k, x, y, z, kind, expr.Pos()) }
 		case ast.OperatorModulo:
-			emitFn = func(k bool, y, z int8, kind reflect.Kind) { em.fb.emitRemx(k, y, z, kind, expr.Pos()) }
+			emitFn = func(k bool, x, y, z int8, kind reflect.Kind) { em.fb.emitRem(k, x, y, z, kind, expr.Pos()) }
 		case ast.OperatorLeftShift:
-			emitFn = em.fb.emitShlx
+			emitFn = em.fb.emitShl
 		case ast.OperatorRightShift:
-			emitFn = em.fb.emitShrx
+			emitFn = em.fb.emitShr
 		}
 		if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
 			// TODO: consider the removal of the 'tmp' register, using 'reg'
@@ -479,7 +480,7 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 			em.fb.enterStack()
 			tmp := em.fb.newRegister(exprType.Kind())
 			em.changeRegister(false, v1, tmp, exprType, exprType)
-			emitFn(k, v2, tmp, exprType.Kind())
+			emitFn(k, tmp, v2, tmp, exprType.Kind())
 			em.changeRegister(false, tmp, reg, exprType, dstType)
 			em.fb.exitStack()
 			return reg, false
@@ -487,7 +488,7 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 		em.fb.enterStack()
 		tmp := em.fb.newRegister(exprType.Kind())
 		em.changeRegister(false, v1, tmp, exprType, exprType)
-		emitFn(k, v2, tmp, exprType.Kind())
+		emitFn(k, tmp, v2, tmp, exprType.Kind())
 		em.changeRegister(false, tmp, reg, exprType, dstType)
 		em.fb.exitStack()
 		return reg, false
@@ -803,7 +804,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		tmp := em.emitExpr(operand, operandType)
 		tmp2 := em.fb.newRegister(reflect.Int)
 		em.changeRegister(true, 1, tmp2, intType, intType)
-		em.fb.emitSubx(false, tmp, tmp2, operandType.Kind())
+		em.fb.emitSub(false, tmp2, tmp, tmp2, operandType.Kind())
 		em.changeRegister(false, tmp2, reg, operandType, dstType)
 		em.fb.exitScope()
 
@@ -929,7 +930,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		em.emitExprR(operand, operandType, tmp)
 		tmp2 := em.fb.newRegister(operandType.Kind())
 		em.changeRegister(true, 0, tmp2, operandType, operandType)
-		em.fb.emitSubx(false, tmp, tmp2, operandType.Kind())
+		em.fb.emitSub(false, tmp2, tmp, tmp2, operandType.Kind())
 		em.changeRegister(false, tmp2, reg, operandType, dstType)
 		em.fb.exitStack()
 
