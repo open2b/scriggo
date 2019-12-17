@@ -535,6 +535,8 @@ func (vm *VM) run() (Addr, bool) {
 			}
 		case OpDivInt, -OpDivInt:
 			vm.setInt(c, vm.int(a)/vm.intk(b, op < 0))
+		case OpDivFloat64, -OpDivFloat64:
+			vm.setFloat(c, vm.float(a)/vm.floatk(b, op < 0))
 
 		// Field
 		case OpField:
