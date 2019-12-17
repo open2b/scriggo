@@ -393,7 +393,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.assignValuesToAddresses(addresses, node.Rhs)
 
 		case ast.Expression:
+			em.fb.enterStack()
 			em.emitExprR(node, reflect.Type(nil), 0)
+			em.fb.exitStack()
 
 		default:
 			panic(fmt.Sprintf("BUG: node %T not supported", node)) // remove.
