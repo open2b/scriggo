@@ -221,7 +221,7 @@ The instructions are:
 
         As for 'IMPORT <package>' but the path with which it can be imported
         is named <as>. INCLUDING and EXCLUDING can be used as for the other
-        forms of IMPORT at the end of the instruction. Is not possibile to use
+        forms of IMPORT at the end of the instruction. Is not possible to use
         a path <as> that would conflict with a Go standard library package path,
         even if this latter is not imported in the Scriggofile.
     
@@ -256,7 +256,7 @@ The instructions are:
         the name of the package is 'main'. This instruction is read only by the
         command 'scriggo embed'.
 
-    GOOS <linux> <windows>
+    GOOS linux windows
 
         Specifies the operating systems that will be supported by the built
         interpreter. If the GOOS at the time the Scriggofile is parsed is not
