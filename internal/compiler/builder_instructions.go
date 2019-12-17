@@ -1058,7 +1058,7 @@ func (builder *functionBuilder) emitSub(k bool, x, y, z int8, kind reflect.Kind)
 //
 //     z = y - x
 //
-func (builder *functionBuilder) emitSubInvInt(k bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitSubInv(k bool, x, y, z int8, kind reflect.Kind) {
 	var op runtime.Operation
 	switch kind {
 	case reflect.Int:
