@@ -256,7 +256,7 @@ The instructions are:
         the name of the package is 'main'. This instruction is read only by the
         command 'scriggo embed'.
 
-    GOOS <linux> <windows>
+    GOOS linux windows
 
         Specifies the operating systems that will be supported by the built
         interpreter. If the GOOS at the time the Scriggofile is parsed is not
