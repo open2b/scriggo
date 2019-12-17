@@ -202,13 +202,6 @@ func (vm *VM) SetPrint(p func(interface{})) {
 	vm.env.print = p
 }
 
-// SetTraceFunc sets the trace stack function.
-//
-// SetTraceFunc must not be called after vm has been started.
-func (vm *VM) SetTraceFunc(fn TraceFunc) {
-	vm.env.trace = fn
-}
-
 // Stack returns the current stack trace.
 func (vm *VM) Stack(buf []byte, all bool) int {
 	// TODO(marco): implement all == true
@@ -757,30 +750,6 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 	vm.fp = fp // Restore the frame pointer.
 
 	return
-}
-
-//go:noinline
-func (vm *VM) invokeTraceFunc() {
-
-	// TODO: this code converts vm.regs.general ([]reflect.Value) into a
-	// []interface. If in a future commit Registers.General will become a
-	// []reflect.Value and this code will be removed.
-	generalInterf := []interface{}{}
-	for _, rv := range vm.regs.general[vm.fp[3]+1 : vm.fp[3]+Addr(vm.fn.NumReg[3])+1] {
-		if rv.IsValid() {
-			generalInterf = append(generalInterf, rv.Interface())
-		} else {
-			generalInterf = append(generalInterf, nil)
-		}
-	}
-
-	regs := Registers{
-		Int:     vm.regs.int[vm.fp[0]+1 : vm.fp[0]+Addr(vm.fn.NumReg[0])+1],
-		Float:   vm.regs.float[vm.fp[1]+1 : vm.fp[1]+Addr(vm.fn.NumReg[1])+1],
-		String:  vm.regs.string[vm.fp[2]+1 : vm.fp[2]+Addr(vm.fn.NumReg[2])+1],
-		General: generalInterf,
-	}
-	vm.env.trace(vm.fn, vm.pc, regs)
 }
 
 func (vm *VM) moreIntStack() {

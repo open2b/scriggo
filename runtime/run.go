@@ -69,10 +69,6 @@ func (vm *VM) run() (Addr, bool) {
 			}
 		}
 
-		if vm.env.trace != nil {
-			vm.invokeTraceFunc()
-		}
-
 		in := vm.fn.Body[vm.pc]
 
 		vm.pc++

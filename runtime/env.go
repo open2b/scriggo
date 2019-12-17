@@ -12,7 +12,6 @@ import (
 	"sync"
 )
 
-type TraceFunc func(fn *Function, pc Addr, regs Registers)
 type PrintFunc func(interface{})
 
 // Env represents an execution environment.
@@ -25,7 +24,6 @@ type Env struct {
 
 	ctx         context.Context // context.
 	globals     []interface{}   // global variables.
-	trace       TraceFunc       // trace function.
 	print       PrintFunc       // custom print builtin.
 	freeMemory  int             // free memory.
 	limitMemory bool            // reports whether memory is limited.

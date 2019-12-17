@@ -83,7 +83,6 @@ type RunOptions struct {
 	MaxMemorySize int
 	DontPanic     bool
 	PrintFunc     runtime.PrintFunc
-	TraceFunc     runtime.TraceFunc
 }
 
 // Run starts the program and waits for it to complete.
@@ -184,9 +183,6 @@ func newVM(options *RunOptions) *runtime.VM {
 		}
 		if options.PrintFunc != nil {
 			vm.SetPrint(options.PrintFunc)
-		}
-		if options.TraceFunc != nil {
-			vm.SetTraceFunc(options.TraceFunc)
 		}
 	}
 	return vm

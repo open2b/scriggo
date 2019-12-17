@@ -35,7 +35,7 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 			"scriggo/runtime"
 		)
 
-		const usage = "usage: %s [-S] [-mem 250K] [-time 50ms] [-trace] filename\n"
+		const usage = "usage: %s [-S] [-mem 250K] [-time 50ms] filename\n"
 
 		var packages scriggo.Packages
 		var Main *scriggo.Package
@@ -69,7 +69,6 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 			var asm = flag.Bool("S", false, "print assembly listing")
 			var timeout = flag.String("time", "", "limit the execution time; zero is no limit")
 			var mem = flag.String("mem", "", "limit the allocable memory; zero is no limit")
-			var trace = flag.Bool("trace", false, "print an execution trace")
 
 			flag.Parse()
 
@@ -114,19 +113,6 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 					runOptions.MaxMemorySize *= 1024 * 1024
 				case 'G':
 					runOptions.MaxMemorySize *= 1024 * 1024 * 1024
-				}
-			}
-
-			if *trace {
-				runOptions.TraceFunc = func(fn *runtime.Function, pc runtime.Addr, regs runtime.Registers) {
-					funcName := fn.Name
-					if funcName != "" {
-						funcName += ":"
-					}
-					_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\t%s\t", regs.Int, regs.Float, funcName)
-					// https://github.com/open2b/scriggo/issues/363
-					// _, _ = compiler.DisassembleInstruction(os.Stderr, fn, []compiler.Global{}, pc)
-					println()
 				}
 			}
 
@@ -260,7 +246,6 @@ const templateSkel = `r := template.DirReader(filepath.Dir(absFile))
 			options := &template.RenderOptions{
 				Context:       runOptions.Context,
 				MaxMemorySize: runOptions.MaxMemorySize,
-				TraceFunc:     runOptions.TraceFunc,
 			}
 			err = t.Render(os.Stdout, nil, options)
 			if err != nil {
