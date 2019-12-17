@@ -297,6 +297,10 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + disassembleOperand(fn, a, reflect.Float64, false)
 		s += " " + disassembleOperand(fn, b, reflect.Float64, k)
 		s += " " + disassembleOperand(fn, c, reflect.Float64, false)
+	case runtime.OpAnd, runtime.OpAndNot, runtime.OpOr, runtime.OpXor:
+		s += " " + disassembleOperand(fn, a, reflect.Int, false)
+		s += " " + disassembleOperand(fn, b, reflect.Int, k)
+		s += " " + disassembleOperand(fn, c, reflect.Int, false)
 	case runtime.OpAddr:
 		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 		s += " " + disassembleOperand(fn, b, reflect.Int, false)
