@@ -374,23 +374,32 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 
 		case *ast.Var:
 			addresses := make([]address, len(node.Lhs))
+			// Variable names must be bind to the corresponding register after
+			// emitting the code that evaluates the expression, otherwise the
+			// declaration of a variable on the left side of = would shadow a
+			// variable with the same name on the right (they are two different
+			// variables).
+			varsToBind := make(map[string]int8, len(node.Lhs))
 			for i, v := range node.Lhs {
 				if isBlankIdentifier(v) {
 					addresses[i] = em.addressBlankIdent(v.Pos())
 				} else {
 					staticType := em.typ(v)
+					var varr int8
 					if em.varStore.mustBeDeclaredAsIndirect(v) {
-						varr := em.fb.newIndirectRegister()
-						em.fb.bindVarReg(v.Name, varr)
+						varr = em.fb.newIndirectRegister()
 						addresses[i] = em.addressNewIndirectVar(varr, staticType, v.Pos(), 0)
 					} else {
-						varr := em.fb.newRegister(staticType.Kind())
-						em.fb.bindVarReg(v.Name, varr)
+						varr = em.fb.newRegister(staticType.Kind())
 						addresses[i] = em.addressLocalVar(varr, staticType, v.Pos(), 0)
 					}
+					varsToBind[v.Name] = varr
 				}
 			}
 			em.assignValuesToAddresses(addresses, node.Rhs)
+			for name, reg := range varsToBind {
+				em.fb.bindVarReg(name, reg)
+			}
 
 		case ast.Expression:
 			em.fb.enterStack()

@@ -224,7 +224,7 @@ var rendererBuiltinTestsInHTMLContext = []builtinTest{
 	{"{{ replaceAll(`abcbcba`, `b`, `e`) }}", "aececea", nil},
 
 	// reverse
-	// These tests pass accidentally. See https://github.com/open2b/scriggo/issues/235.
+	// TODO: investigate on these tests.
 	// {"{% s := reverse(s) %}{{ sprint(s) }}", "[]", Vars{"s": []int(nil)}},
 	// {"{% s := reverse(s) %}{{ sprint(s) }}", "[]", Vars{"s": []int{}}},
 	// {"{% s := reverse(s) %}{{ sprint(s) }}", "[1]", Vars{"s": []int{1}}},
