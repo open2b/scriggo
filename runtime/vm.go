@@ -1268,11 +1268,8 @@ type Operation int8
 const (
 	OpNone Operation = iota
 
-	OpAddInt8
-	OpAddInt16
-	OpAddInt32
-	OpAddInt64
-	OpAddFloat32
+	OpAdd
+	OpAddInt
 	OpAddFloat64
 
 	OpAddr
@@ -1322,15 +1319,8 @@ const (
 
 	OpDelete
 
-	OpDivInt8
-	OpDivInt16
-	OpDivInt32
-	OpDivInt64
-	OpDivUint8
-	OpDivUint16
-	OpDivUint32
-	OpDivUint64
-	OpDivFloat32
+	OpDiv
+	OpDivInt
 	OpDivFloat64
 
 	OpField
@@ -1355,10 +1345,8 @@ const (
 
 	OpIndexRef
 
-	OpLeftShift8
-	OpLeftShift16
-	OpLeftShift32
-	OpLeftShift64
+	OpShl
+	OpShlInt
 
 	OpLen
 
@@ -1380,11 +1368,8 @@ const (
 
 	OpMove
 
-	OpMulInt8
-	OpMulInt16
-	OpMulInt32
-	OpMulInt64
-	OpMulFloat32
+	OpMul
+	OpMulInt
 	OpMulFloat64
 
 	OpNew
@@ -1405,19 +1390,13 @@ const (
 
 	OpRecover
 
-	OpRemInt8
-	OpRemInt16
-	OpRemInt32
-	OpRemInt64
-	OpRemUint8
-	OpRemUint16
-	OpRemUint32
-	OpRemUint64
+	OpRem
+	OpRemInt
 
 	OpReturn
 
-	OpRightShift
-	OpRightShiftU
+	OpShr
+	OpShrInt
 
 	OpSelect
 
@@ -1434,18 +1413,12 @@ const (
 
 	OpStringSlice
 
-	OpSubInt8
-	OpSubInt16
-	OpSubInt32
-	OpSubInt64
-	OpSubFloat32
+	OpSub
+	OpSubInt
 	OpSubFloat64
 
-	OpSubInvInt8
-	OpSubInvInt16
-	OpSubInvInt32
-	OpSubInvInt64
-	OpSubInvFloat32
+	OpSubInv
+	OpSubInvInt
 	OpSubInvFloat64
 
 	OpTailCall

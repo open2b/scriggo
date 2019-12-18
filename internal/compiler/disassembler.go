@@ -281,24 +281,26 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	}
 	s := operationName[op]
 	switch op {
-	case runtime.OpAddInt64, runtime.OpAddInt8, runtime.OpAddInt16, runtime.OpAddInt32,
-		runtime.OpAnd, runtime.OpAndNot, runtime.OpOr, runtime.OpXor,
-		runtime.OpDivInt64, runtime.OpDivInt8, runtime.OpDivInt16, runtime.OpDivInt32, runtime.OpDivUint8, runtime.OpDivUint16, runtime.OpDivUint32, runtime.OpDivUint64,
-		runtime.OpMulInt64, runtime.OpMulInt8, runtime.OpMulInt16, runtime.OpMulInt32,
-		runtime.OpRemInt64, runtime.OpRemInt8, runtime.OpRemInt16, runtime.OpRemInt32, runtime.OpRemUint8, runtime.OpRemUint16, runtime.OpRemUint32, runtime.OpRemUint64,
-		runtime.OpSubInt64, runtime.OpSubInt8, runtime.OpSubInt16, runtime.OpSubInt32,
-		runtime.OpSubInvInt64, runtime.OpSubInvInt8, runtime.OpSubInvInt16, runtime.OpSubInvInt32,
-		runtime.OpLeftShift64, runtime.OpLeftShift8, runtime.OpLeftShift16, runtime.OpLeftShift32,
-		runtime.OpRightShift, runtime.OpRightShiftU:
+	case runtime.OpAdd, runtime.OpSub, runtime.OpSubInv, runtime.OpMul,
+		runtime.OpDiv, runtime.OpRem, runtime.OpShl, runtime.OpShr:
+		kind := reflect.Kind(a)
+		s += " " + kind.String()
+		s += " " + disassembleOperand(fn, b, kind, k)
+		s += " " + disassembleOperand(fn, c, kind, false)
+	case runtime.OpAddInt, runtime.OpSubInt, runtime.OpSubInvInt, runtime.OpMulInt,
+		runtime.OpDivInt, runtime.OpRemInt, runtime.OpShlInt, runtime.OpShrInt:
 		s += " " + disassembleOperand(fn, a, reflect.Int, false)
 		s += " " + disassembleOperand(fn, b, reflect.Int, k)
 		s += " " + disassembleOperand(fn, c, reflect.Int, false)
-	case runtime.OpAddFloat32, runtime.OpAddFloat64, runtime.OpDivFloat32, runtime.OpDivFloat64,
-		runtime.OpMulFloat32, runtime.OpMulFloat64,
-		runtime.OpSubFloat32, runtime.OpSubFloat64, runtime.OpSubInvFloat32, runtime.OpSubInvFloat64:
+	case runtime.OpAddFloat64, runtime.OpSubFloat64, runtime.OpSubInvFloat64, runtime.OpMulFloat64,
+		runtime.OpDivFloat64:
 		s += " " + disassembleOperand(fn, a, reflect.Float64, false)
 		s += " " + disassembleOperand(fn, b, reflect.Float64, k)
 		s += " " + disassembleOperand(fn, c, reflect.Float64, false)
+	case runtime.OpAnd, runtime.OpAndNot, runtime.OpOr, runtime.OpXor:
+		s += " " + disassembleOperand(fn, a, reflect.Int, false)
+		s += " " + disassembleOperand(fn, b, reflect.Int, k)
+		s += " " + disassembleOperand(fn, c, reflect.Int, false)
 	case runtime.OpAddr:
 		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 		s += " " + disassembleOperand(fn, b, reflect.Int, false)
@@ -809,11 +811,8 @@ var operationName = [...]string{
 
 	runtime.OpNone: "Nop",
 
-	runtime.OpAddInt64:   "Add",
-	runtime.OpAddInt8:    "Add8",
-	runtime.OpAddInt16:   "Add16",
-	runtime.OpAddInt32:   "Add32",
-	runtime.OpAddFloat32: "Add32",
+	runtime.OpAdd:        "Add",
+	runtime.OpAddInt:     "Add",
 	runtime.OpAddFloat64: "Add",
 
 	runtime.OpAddr: "Addr",
@@ -863,15 +862,8 @@ var operationName = [...]string{
 
 	runtime.OpDelete: "Delete",
 
-	runtime.OpDivInt64:   "Div",
-	runtime.OpDivInt8:    "Div8",
-	runtime.OpDivInt16:   "Div16",
-	runtime.OpDivInt32:   "Div32",
-	runtime.OpDivUint8:   "DivU8",
-	runtime.OpDivUint16:  "DivU16",
-	runtime.OpDivUint32:  "DivU32",
-	runtime.OpDivUint64:  "DivU64",
-	runtime.OpDivFloat32: "Div32",
+	runtime.OpDiv:        "Div",
+	runtime.OpDivInt:     "Div",
 	runtime.OpDivFloat64: "Div",
 
 	runtime.OpGetVar: "GetVar",
@@ -892,10 +884,8 @@ var operationName = [...]string{
 
 	runtime.OpIndexRef: "IndexRef",
 
-	runtime.OpLeftShift64: "LeftShift",
-	runtime.OpLeftShift8:  "LeftShift8",
-	runtime.OpLeftShift16: "LeftShift16",
-	runtime.OpLeftShift32: "LeftShift32",
+	runtime.OpShl:    "Shl",
+	runtime.OpShlInt: "Shl",
 
 	runtime.OpLen: "Len",
 
@@ -917,11 +907,8 @@ var operationName = [...]string{
 
 	runtime.OpMove: "Move",
 
-	runtime.OpMulInt64:   "Mul",
-	runtime.OpMulInt8:    "Mul8",
-	runtime.OpMulInt16:   "Mul16",
-	runtime.OpMulInt32:   "Mul32",
-	runtime.OpMulFloat32: "Mul32",
+	runtime.OpMul:        "Mul",
+	runtime.OpMulInt:     "Mul",
 	runtime.OpMulFloat64: "Mul",
 
 	runtime.OpNew: "New",
@@ -942,19 +929,13 @@ var operationName = [...]string{
 
 	runtime.OpRecover: "Recover",
 
-	runtime.OpRemInt64:  "Rem",
-	runtime.OpRemInt8:   "Rem8",
-	runtime.OpRemInt16:  "Rem16",
-	runtime.OpRemInt32:  "Rem32",
-	runtime.OpRemUint8:  "RemU8",
-	runtime.OpRemUint16: "RemU16",
-	runtime.OpRemUint32: "RemU32",
-	runtime.OpRemUint64: "RemU64",
+	runtime.OpRem:    "Rem",
+	runtime.OpRemInt: "Rem",
 
 	runtime.OpReturn: "Return",
 
-	runtime.OpRightShift:  "RightShift",
-	runtime.OpRightShiftU: "RightShiftU",
+	runtime.OpShr:    "Shr",
+	runtime.OpShrInt: "Shr",
 
 	runtime.OpSelect: "Select",
 
@@ -976,18 +957,12 @@ var operationName = [...]string{
 
 	runtime.OpStringSlice: "Slice",
 
-	runtime.OpSubInt64:   "Sub",
-	runtime.OpSubInt8:    "Sub8",
-	runtime.OpSubInt16:   "Sub16",
-	runtime.OpSubInt32:   "Sub32",
-	runtime.OpSubFloat32: "Sub32",
+	runtime.OpSub:        "Sub",
+	runtime.OpSubInt:     "Sub",
 	runtime.OpSubFloat64: "Sub",
 
-	runtime.OpSubInvInt64:   "SubInv",
-	runtime.OpSubInvInt8:    "SubInv8",
-	runtime.OpSubInvInt16:   "SubInv16",
-	runtime.OpSubInvInt32:   "SubInv32",
-	runtime.OpSubInvFloat32: "SubInv32",
+	runtime.OpSubInv:        "SubInv",
+	runtime.OpSubInvInt:     "SubInv",
 	runtime.OpSubInvFloat64: "SubInv",
 
 	runtime.OpTailCall: "TailCall",

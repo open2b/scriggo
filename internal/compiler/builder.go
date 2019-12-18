@@ -8,7 +8,9 @@ package compiler
 
 import (
 	"fmt"
+	"math"
 	"reflect"
+	"strconv"
 
 	"scriggo/ast"
 	"scriggo/internal/compiler/types"
@@ -609,4 +611,32 @@ func divComplex(c1, c2 interface{}) interface{} {
 	v3 := reflect.New(v1.Type()).Elem()
 	v3.SetComplex(v1.Complex() / v2.Complex())
 	return v3.Interface()
+}
+
+// TODO: find a better name and description for this function.
+func flattenIntegerKind(k reflect.Kind) reflect.Kind {
+	switch k {
+	case reflect.Bool:
+		return reflect.Int64
+	case reflect.Int:
+		if strconv.IntSize == 32 {
+			return reflect.Int32
+		} else {
+			return reflect.Int64
+		}
+	case reflect.Uint:
+		if strconv.IntSize == 32 {
+			return reflect.Uint32
+		} else {
+			return reflect.Uint64
+		}
+	case reflect.Uintptr:
+		if ^uintptr(0) == math.MaxUint32 {
+			return reflect.Uint32
+		} else {
+			return reflect.Uint64
+		}
+	default:
+		return k
+	}
 }

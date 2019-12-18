@@ -9,7 +9,6 @@ package compiler
 import (
 	"fmt"
 	"reflect"
-	"strconv"
 
 	"scriggo/ast"
 	"scriggo/runtime"
@@ -22,25 +21,16 @@ import (
 func (builder *functionBuilder) emitAdd(k bool, x, y, z int8, kind reflect.Kind) {
 	var op runtime.Operation
 	switch kind {
-	case reflect.Int, reflect.Uint, reflect.Uintptr:
-		op = runtime.OpAddInt64
-		if strconv.IntSize == 32 {
-			op = runtime.OpAddInt32
-		}
-	case reflect.Int64, reflect.Uint64:
-		op = runtime.OpAddInt64
-	case reflect.Int32, reflect.Uint32:
-		op = runtime.OpAddInt32
-	case reflect.Int16, reflect.Uint16:
-		op = runtime.OpAddInt16
-	case reflect.Int8, reflect.Uint8:
-		op = runtime.OpAddInt8
+	case reflect.Int:
+		op = runtime.OpAddInt
 	case reflect.Float64:
 		op = runtime.OpAddFloat64
-	case reflect.Float32:
-		op = runtime.OpAddFloat32
 	default:
-		panic(fmt.Errorf("BUG: add: invalid kind %s", kind))
+		if z != x {
+			panic(fmt.Errorf("z must be == x for kind %s", kind))
+		}
+		x = int8(flattenIntegerKind(kind))
+		op = runtime.OpAdd
 	}
 	if k {
 		op = -op
@@ -301,42 +291,20 @@ func (builder *functionBuilder) emitDelete(m, k int8) {
 //     z = x / y
 //
 func (builder *functionBuilder) emitDiv(ky bool, x, y, z int8, kind reflect.Kind, pos *ast.Position) {
-	builder.addPosAndPath(pos)
 	var op runtime.Operation
 	switch kind {
 	case reflect.Int:
-		op = runtime.OpDivInt64
-		if strconv.IntSize == 32 {
-			op = runtime.OpDivInt32
-		}
-	case reflect.Int64:
-		op = runtime.OpDivInt64
-	case reflect.Int32:
-		op = runtime.OpDivInt32
-	case reflect.Int16:
-		op = runtime.OpDivInt16
-	case reflect.Int8:
-		op = runtime.OpDivInt8
-	case reflect.Uint, reflect.Uintptr:
-		op = runtime.OpDivUint64
-		if strconv.IntSize == 32 {
-			op = runtime.OpDivUint32
-		}
-	case reflect.Uint64:
-		op = runtime.OpDivUint64
-	case reflect.Uint32:
-		op = runtime.OpDivUint32
-	case reflect.Uint16:
-		op = runtime.OpDivUint16
-	case reflect.Uint8:
-		op = runtime.OpDivUint8
+		op = runtime.OpDivInt
 	case reflect.Float64:
 		op = runtime.OpDivFloat64
-	case reflect.Float32:
-		op = runtime.OpDivFloat32
 	default:
-		panic(fmt.Errorf("BUG: invalid kind %s", kind))
+		if z != x {
+			panic(fmt.Errorf("z must be == x for kind %s", kind))
+		}
+		x = int8(flattenIntegerKind(kind))
+		op = runtime.OpDiv
 	}
+	builder.addPosAndPath(pos)
 	if ky {
 		op = -op
 	}
@@ -534,26 +502,21 @@ func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType r
 	fn.Body = append(fn.Body, runtime.Instruction{Op: op, A: expr, B: i, C: dst})
 }
 
-// emitLeftShift appends a new "LeftShift" instruction to the function body.
+// emitShl appends a new "Shl" instruction to the function body.
 //
 //     z = x << y
 //
-func (builder *functionBuilder) emitLeftShift(k bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitShl(k bool, x, y, z int8, kind reflect.Kind) {
 	var op runtime.Operation
 	switch kind {
-	case reflect.Int, reflect.Uint, reflect.Uintptr:
-		op = runtime.OpLeftShift64
-		if strconv.IntSize == 32 {
-			op = runtime.OpLeftShift32
+	case reflect.Int:
+		op = runtime.OpShlInt
+	default:
+		if z != x {
+			panic(fmt.Errorf("z must be == x for kind %s", kind))
 		}
-	case reflect.Int8, reflect.Uint8:
-		op = runtime.OpLeftShift8
-	case reflect.Int16, reflect.Uint16:
-		op = runtime.OpLeftShift16
-	case reflect.Int32, reflect.Uint32:
-		op = runtime.OpLeftShift32
-	case reflect.Int64, reflect.Uint64:
-		op = runtime.OpLeftShift64
+		x = int8(flattenIntegerKind(kind))
+		op = runtime.OpShl
 	}
 	if k {
 		op = -op
@@ -762,25 +725,16 @@ func (builder *functionBuilder) emitMove(k bool, x, z int8, kind reflect.Kind, c
 func (builder *functionBuilder) emitMul(ky bool, x, y, z int8, kind reflect.Kind) {
 	var op runtime.Operation
 	switch kind {
-	case reflect.Int, reflect.Uint, reflect.Uintptr:
-		op = runtime.OpMulInt64
-		if strconv.IntSize == 32 {
-			op = runtime.OpMulInt32
-		}
-	case reflect.Int64, reflect.Uint64:
-		op = runtime.OpMulInt64
-	case reflect.Int32, reflect.Uint32:
-		op = runtime.OpMulInt32
-	case reflect.Int16, reflect.Uint16:
-		op = runtime.OpMulInt16
-	case reflect.Int8, reflect.Uint8:
-		op = runtime.OpMulInt8
+	case reflect.Int:
+		op = runtime.OpMulInt
 	case reflect.Float64:
 		op = runtime.OpMulFloat64
-	case reflect.Float32:
-		op = runtime.OpMulFloat32
 	default:
-		panic("mul: invalid type")
+		if z != x {
+			panic(fmt.Errorf("z must be == x for kind %s", kind))
+		}
+		x = int8(flattenIntegerKind(kind))
+		op = runtime.OpMul
 	}
 	if ky {
 		op = -op
@@ -886,7 +840,7 @@ func (builder *functionBuilder) emitRecover(r int8, down bool) {
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpRecover, A: a, C: r})
 }
 
-// emitRem appends a new "rem" instruction to the function body.
+// emitRem appends a new "Rem" instruction to the function body.
 //
 //     z = x % y
 //
@@ -895,33 +849,13 @@ func (builder *functionBuilder) emitRem(ky bool, x, y, z int8, kind reflect.Kind
 	var op runtime.Operation
 	switch kind {
 	case reflect.Int:
-		op = runtime.OpRemInt64
-		if strconv.IntSize == 32 {
-			op = runtime.OpRemInt32
-		}
-	case reflect.Int64:
-		op = runtime.OpRemInt64
-	case reflect.Int32:
-		op = runtime.OpRemInt32
-	case reflect.Int16:
-		op = runtime.OpRemInt16
-	case reflect.Int8:
-		op = runtime.OpRemInt8
-	case reflect.Uint, reflect.Uintptr:
-		op = runtime.OpRemUint64
-		if strconv.IntSize == 32 {
-			op = runtime.OpRemUint32
-		}
-	case reflect.Uint64:
-		op = runtime.OpRemUint64
-	case reflect.Uint32:
-		op = runtime.OpRemUint32
-	case reflect.Uint16:
-		op = runtime.OpRemUint16
-	case reflect.Uint8:
-		op = runtime.OpRemUint8
+		op = runtime.OpRemInt
 	default:
-		panic("rem: invalid type")
+		if z != x {
+			panic(fmt.Errorf("z must be == x for kind %s", kind))
+		}
+		x = int8(flattenIntegerKind(kind))
+		op = runtime.OpRem
 	}
 	if ky {
 		op = -op
@@ -937,15 +871,21 @@ func (builder *functionBuilder) emitReturn() {
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpReturn})
 }
 
-// emitRightShift appends a new "RightShift" instruction to the function body.
+// emitShr appends a new "Shr" instruction to the function body.
 //
 //     z = x >> y
 //
-func (builder *functionBuilder) emitRightShift(k bool, x, y, z int8, kind reflect.Kind) {
-	op := runtime.OpRightShift
+func (builder *functionBuilder) emitShr(k bool, x, y, z int8, kind reflect.Kind) {
+	var op runtime.Operation
 	switch kind {
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		op = runtime.OpRightShiftU
+	case reflect.Int:
+		op = runtime.OpShrInt
+	default:
+		if z != x {
+			panic(fmt.Errorf("z must be == x for kind %s", kind))
+		}
+		x = int8(flattenIntegerKind(kind))
+		op = runtime.OpShr
 	}
 	if k {
 		op = -op
@@ -1097,25 +1037,16 @@ func (builder *functionBuilder) emitStringSlice(klow, khigh bool, src, dst, low,
 func (builder *functionBuilder) emitSub(k bool, x, y, z int8, kind reflect.Kind) {
 	var op runtime.Operation
 	switch kind {
-	case reflect.Int, reflect.Uint, reflect.Uintptr:
-		op = runtime.OpSubInt64
-		if strconv.IntSize == 32 {
-			op = runtime.OpSubInt32
-		}
-	case reflect.Int64, reflect.Uint64:
-		op = runtime.OpSubInt64
-	case reflect.Int32, reflect.Uint32:
-		op = runtime.OpSubInt32
-	case reflect.Int16, reflect.Uint16:
-		op = runtime.OpSubInt16
-	case reflect.Int8, reflect.Uint8:
-		op = runtime.OpSubInt8
+	case reflect.Int:
+		op = runtime.OpSubInt
 	case reflect.Float64:
 		op = runtime.OpSubFloat64
-	case reflect.Float32:
-		op = runtime.OpSubFloat32
 	default:
-		panic("sub: invalid type")
+		if z != x {
+			panic(fmt.Errorf("z must be == x for kind %s", kind))
+		}
+		x = int8(flattenIntegerKind(kind))
+		op = runtime.OpSub
 	}
 	if k {
 		op = -op
@@ -1130,25 +1061,16 @@ func (builder *functionBuilder) emitSub(k bool, x, y, z int8, kind reflect.Kind)
 func (builder *functionBuilder) emitSubInv(k bool, x, y, z int8, kind reflect.Kind) {
 	var op runtime.Operation
 	switch kind {
-	case reflect.Int, reflect.Uint, reflect.Uintptr:
-		op = runtime.OpSubInvInt64
-		if strconv.IntSize == 32 {
-			op = runtime.OpSubInvInt32
-		}
-	case reflect.Int64, reflect.Uint64:
-		op = runtime.OpSubInvInt64
-	case reflect.Int32, reflect.Uint32:
-		op = runtime.OpSubInvInt32
-	case reflect.Int16, reflect.Uint16:
-		op = runtime.OpSubInvInt16
-	case reflect.Int8, reflect.Uint8:
-		op = runtime.OpSubInvInt8
+	case reflect.Int:
+		op = runtime.OpSubInvInt
 	case reflect.Float64:
 		op = runtime.OpSubInvFloat64
-	case reflect.Float32:
-		op = runtime.OpSubInvFloat32
 	default:
-		panic("subInv: invalid type")
+		if z != x {
+			panic(fmt.Errorf("z must be == x for kind %s", kind))
+		}
+		x = int8(flattenIntegerKind(kind))
+		op = runtime.OpSubInv
 	}
 	if k {
 		op = -op

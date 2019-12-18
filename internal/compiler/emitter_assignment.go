@@ -20,7 +20,7 @@ type address struct {
 	em            *emitter           // a reference to the current emitter.
 	target        assignmentTarget   // target of the assignment.
 	addressedType reflect.Type       // type of the addressed type (see the methods below).
-	op1, op2      int8               // two bytes for store addressing informations (see the methods below).
+	op1, op2      int8               // two bytes for store addressing information (see the methods below).
 	pos           *ast.Position      // position of the addressed element in the source code.
 	operator      ast.AssignmentType // type of the assignment that involves this address.
 }
@@ -227,29 +227,30 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 	typ := addr.targetType()      // type of the "target" (eg. type of the slice element).
 
 	// Emit the code that evaluates the left side of the assignment.
-	lhReg := em.fb.newRegister(typ.Kind())
+	c := em.fb.newRegister(typ.Kind())
 	switch addr.target {
 	case assignBlank, assignNewIndirectVar:
 		panic("Type checking BUG")
 	case assignNonLocalVar:
-		em.fb.emitGetVar(int(decodeInt16(addr.op1, addr.op2)), lhReg, addrTyp.Kind())
+		em.fb.emitGetVar(int(decodeInt16(addr.op1, addr.op2)), c, addrTyp.Kind())
 	case assignLocalVar:
-		em.changeRegister(false, addr.op1, lhReg, addrTyp, typ)
+		em.changeRegister(false, addr.op1, c, addrTyp, typ)
 	case assignMapIndex,
 		assignSliceIndex:
-		em.fb.emitIndex(false, addr.op1, addr.op2, lhReg, addrTyp, addr.pos, false)
+		em.fb.emitIndex(false, addr.op1, addr.op2, c, addrTyp, addr.pos, false)
 	case assignPtrIndirection:
-		em.changeRegister(false, -addr.op1, lhReg, addrTyp, addrTyp)
+		em.changeRegister(false, -addr.op1, c, addrTyp, addrTyp)
 	case assignStructSelector:
-		em.fb.emitField(addr.op1, addr.op2, lhReg, typ.Kind(), false)
+		em.fb.emitField(addr.op1, addr.op2, c, typ.Kind(), false)
 	}
 
-	// Emit the code that evaluataes the right side of the assignment.
-	rhReg := em.emitExpr(rh, typ)
+	// Emit the code that evaluates the right side of the assignment.
+	// TODO: use k?
+	b := em.fb.newRegister(typ.Kind())
+	em.emitExprR(rh, typ, b)
 
 	// Emit the code that computes the result of the operation; such result will
 	// be put back into the left side.
-	result := em.fb.newRegister(typ.Kind())
 	if k := typ.Kind(); k == reflect.Complex64 || k == reflect.Complex128 {
 		// Operation on complex numbers.
 		stackShift := em.fb.currentStackShift()
@@ -257,46 +258,46 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 		ret := em.fb.newRegister(reflect.Complex128)
 		c1 := em.fb.newRegister(reflect.Complex128)
 		c2 := em.fb.newRegister(reflect.Complex128)
-		em.changeRegister(false, lhReg, c1, typ, typ)
-		em.changeRegister(false, rhReg, c2, typ, typ)
+		em.changeRegister(false, b, c1, typ, typ)
+		em.changeRegister(false, c, c2, typ, typ)
 		index := em.fb.complexOperationIndex(operatorFromAssignmentType(addr.operator), false)
 		em.fb.emitCallPredefined(index, 0, stackShift, addr.pos)
-		em.changeRegister(false, ret, result, typ, typ)
+		em.changeRegister(false, ret, c, typ, typ)
 		em.fb.exitScope()
-		addr.assign(false, result, typ)
+		addr.assign(false, c, typ)
 	} else {
 		switch addr.operator {
 		case ast.AssignmentAddition:
 			if typ.Kind() == reflect.String {
-				em.fb.emitConcat(lhReg, rhReg, result)
+				em.fb.emitConcat(c, b, c)
 			} else {
-				em.fb.emitAdd(false, lhReg, rhReg, result, typ.Kind())
+				em.fb.emitAdd(false, c, b, c, typ.Kind())
 			}
 		case ast.AssignmentSubtraction:
-			em.fb.emitSub(false, lhReg, rhReg, result, typ.Kind())
+			em.fb.emitSub(false, c, b, c, typ.Kind())
 		case ast.AssignmentMultiplication:
-			em.fb.emitMul(false, lhReg, rhReg, result, typ.Kind())
+			em.fb.emitMul(false, c, b, c, typ.Kind())
 		case ast.AssignmentDivision:
-			em.fb.emitDiv(false, lhReg, rhReg, result, typ.Kind(), addr.pos)
+			em.fb.emitDiv(false, c, b, c, typ.Kind(), addr.pos)
 		case ast.AssignmentModulo:
-			em.fb.emitRem(false, lhReg, rhReg, result, typ.Kind(), addr.pos)
+			em.fb.emitRem(false, c, b, c, typ.Kind(), addr.pos)
 		case ast.AssignmentAnd:
-			em.fb.emitAnd(false, lhReg, rhReg, result, typ.Kind())
+			em.fb.emitAnd(false, c, b, c, typ.Kind())
 		case ast.AssignmentOr:
-			em.fb.emitOr(false, lhReg, rhReg, result, typ.Kind())
+			em.fb.emitOr(false, c, b, c, typ.Kind())
 		case ast.AssignmentXor:
-			em.fb.emitXor(false, lhReg, rhReg, result, typ.Kind())
+			em.fb.emitXor(false, c, b, c, typ.Kind())
 		case ast.AssignmentAndNot:
-			em.fb.emitAndNot(false, lhReg, rhReg, result, typ.Kind())
+			em.fb.emitAndNot(false, c, b, c, typ.Kind())
 		case ast.AssignmentLeftShift:
-			em.fb.emitLeftShift(false, lhReg, rhReg, result, typ.Kind())
+			em.fb.emitShl(false, c, b, c, typ.Kind())
 		case ast.AssignmentRightShift:
-			em.fb.emitRightShift(false, lhReg, rhReg, result, typ.Kind())
+			em.fb.emitShr(false, c, b, c, typ.Kind())
 		}
 	}
 
 	// Put back the result into the left side of the assignment.
-	addr.assign(false, result, typ)
+	addr.assign(false, c, typ)
 
 }
 

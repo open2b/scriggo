@@ -171,8 +171,7 @@ func (vm *VM) convertPanic(msg interface{}) error {
 				return vm.newPanic(runtimeError(s))
 			}
 		}
-	case OpDivInt8, OpDivInt16, OpDivInt32, OpDivInt64, OpDivFloat32, OpDivFloat64, OpRemInt8,
-		OpRemInt16, OpRemInt32, OpRemInt64, OpRemUint8, OpRemUint16, OpRemUint32, OpRemUint64:
+	case OpDivInt, OpDiv, OpRemInt, OpRem:
 		if err, ok := msg.(runtime.Error); ok {
 			if s := err.Error(); s == "runtime error: integer divide by zero" {
 				return vm.newPanic(runtimeError(s))

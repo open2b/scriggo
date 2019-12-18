@@ -21,6 +21,12 @@ func main() {
 				println(i, "%", j, "=", i%j)
 			}
 		}
+		for j := 0; j <= 64; j++ {
+			println(i, "<<", j, "=", i<<j)
+		}
+		for j := 0; j <= 64; j++ {
+			println(i, ">>", j, "=", i>>j)
+		}
 	}
 
 	values16 := []uint16{0, 1, 2, max8 - 1, max8, max8 + 1, max16 - 2, max16 - 1, max16}
@@ -34,6 +40,12 @@ func main() {
 				println(i, "/", j, "=", i/j)
 				println(i, "%", j, "=", i%j)
 			}
+		}
+		for j := 0; j <= 64; j++ {
+			println(i, "<<", j, "=", i<<j)
+		}
+		for j := 0; j <= 64; j++ {
+			println(i, ">>", j, "=", i>>j)
 		}
 	}
 
@@ -49,6 +61,12 @@ func main() {
 				println(i, "%", j, "=", i%j)
 			}
 		}
+		for j := 0; j <= 64; j++ {
+			println(i, "<<", j, "=", i<<j)
+		}
+		for j := 0; j <= 64; j++ {
+			println(i, ">>", j, "=", i>>j)
+		}
 	}
 
 	values64 := []uint64{0, 1, 2, max8 - 1, max8, max8 + 1, max16 - 1, max16, max16 + 1, max32 - 1, max32, max32 - 1,
@@ -63,6 +81,12 @@ func main() {
 				println(i, "/", j, "=", i/j)
 				println(i, "%", j, "=", i%j)
 			}
+		}
+		for j := 0; j <= 64; j++ {
+			println(i, "<<", j, "=", i<<j)
+		}
+		for j := 0; j <= 64; j++ {
+			println(i, ">>", j, "=", i>>j)
 		}
 	}
 
