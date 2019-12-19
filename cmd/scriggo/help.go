@@ -72,7 +72,7 @@ The name of the executable is the last element of the module's path or
 directory path. For example if the module's path is 'boo/foo' the name of the
 executable will be 'foo' or 'foo.exe'.
 
-The compiler is build from the instructions in the Scriggofile. For example:
+The interpreter is build from the instructions in the Scriggofile. For example:
 
     scriggo build github.com/example/foo
 
