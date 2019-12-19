@@ -47,7 +47,7 @@ Additional help topics:
 `
 
 const helpBuild = `
-usage: scriggo build [-f Scriggofile] [-w] [-v] [-x] [-work] [-o output] module
+usage: scriggo build [-f Scriggofile] [-w] [-v] [-x] [-work] [-o output] [module]
 
 Build compiles an interpreter for Scriggo programs, scripts and templates from
 a Scriggofile in a module.
@@ -66,7 +66,7 @@ If the argument is a directory path, it must be rooted or must begin with
 a . or .. element and the directory must be the root of a module. The build
 command looks for a Scriggofile named 'Scriggofile' in that directory.
 
-If no argument is given, the action apply to the current directory.
+If no argument is given, the action applies to the current directory.
 
 The name of the executable is the last element of the module's path or
 directory path. For example if the module's path is 'boo/foo' the name of the
@@ -113,7 +113,7 @@ See also: scriggo install and scriggo embed.
 `
 
 const helpInstall = `
-usage: scriggo install [-f Scriggofile] [-w] [-v] [-x] [-work] module
+usage: scriggo install [-f Scriggofile] [-w] [-v] [-x] [-work] [module]
 
 Install compiles and installs an interpreter for Scriggo programs, scripts
 and templates from a Scriggofile in a module.
@@ -130,7 +130,7 @@ See also: scriggo build and scriggo embed.
 `
 
 const helpEmbed = `
-usage: scriggo embed [-f Scriggofile] [-v] [-x] [-o output] module
+usage: scriggo embed [-f Scriggofile] [-v] [-x] [-o output] [module]
 
 Embed makes a Go source file from a Scriggofile in a module, containing the
 exported declarations of the packages imported in the Scriggofile. The
@@ -143,7 +143,7 @@ If an argument is given, it must be a local rooted path or must begin with
 a . or .. element and it must be a module root directory. embed looks for
 a Scriggofile named 'Scriggofile' in that directory.
 
-If no argument is given, the action apply to the current directory.
+If no argument is given, the action applies to the current directory.
 
 The -f flag forces embed to read the given Scriggofile instead of the
 Scriggofile of the module.
