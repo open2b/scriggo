@@ -301,6 +301,9 @@ func (l *lexer) scan() {
 					}
 					l.ctx = ast.ContextTag
 					l.attr = ""
+					if c == '>' {
+						continue
+					}
 				}
 
 			case ast.ContextCSS:
