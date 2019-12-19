@@ -31,8 +31,6 @@ type emitter struct {
 	// Should be accessed using method 'ti'.
 	typeInfos map[ast.Node]*TypeInfo
 
-	// Index in the Function VarRefs field for each closure variable.
-
 	options EmitterOptions
 
 	// isTemplate reports whether the emitter is currently emitting a template.
