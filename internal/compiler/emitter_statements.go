@@ -52,7 +52,12 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			if node.Label != nil {
 				panic("TODO(Gianluca): not implemented")
 			}
-			em.fb.emitContinue(em.rangeLabels[len(em.rangeLabels)-1][0])
+			forHead := em.rangeLabels[len(em.rangeLabels)-1][0]
+			if em.inForRange {
+				em.fb.emitContinue(forHead)
+			} else {
+				em.fb.emitGoto(forHead)
+			}
 
 		case *ast.Defer:
 			call := node.Call.(*ast.Call)
@@ -95,25 +100,32 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				em.emitNodes([]ast.Node{node.Init})
 			}
 			if node.Condition != nil {
-				forLabel := em.fb.newLabel()
-				em.fb.setLabelAddr(forLabel)
+				forHead := em.fb.newLabel()
+				forPost := em.fb.newLabel()
+				em.fb.setLabelAddr(forHead)
 				em.emitCondition(node.Condition)
 				endForLabel := em.fb.newLabel()
 				em.fb.emitGoto(endForLabel)
+				em.rangeLabels = append(em.rangeLabels, [2]label{forPost, endForLabel})
+				em.emitNodes(node.Body)
+				em.rangeLabels = em.rangeLabels[:len(em.rangeLabels)-1]
+				em.fb.setLabelAddr(forPost)
+				if node.Post != nil {
+					em.emitNodes([]ast.Node{node.Post})
+				}
+				em.fb.emitGoto(forHead)
+				em.fb.setLabelAddr(endForLabel)
+			} else {
+				forLabel := em.fb.newLabel()
+				em.fb.setLabelAddr(forLabel)
+				endForLabel := em.fb.newLabel()
+				em.rangeLabels = append(em.rangeLabels, [2]label{forLabel, endForLabel})
 				em.emitNodes(node.Body)
 				if node.Post != nil {
 					em.emitNodes([]ast.Node{node.Post})
 				}
 				em.fb.emitGoto(forLabel)
 				em.fb.setLabelAddr(endForLabel)
-			} else {
-				forLabel := em.fb.newLabel()
-				em.fb.setLabelAddr(forLabel)
-				em.emitNodes(node.Body)
-				if node.Post != nil {
-					em.emitNodes([]ast.Node{node.Post})
-				}
-				em.fb.emitGoto(forLabel)
 			}
 			em.fb.exitScope()
 			if em.breakLabel != nil {
@@ -123,6 +135,8 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.breakLabel = currentBreakLabel
 
 		case *ast.ForRange:
+			inForRange := em.inForRange
+			em.inForRange = true
 			em.fb.enterScope()
 			vars := node.Assignment.Lhs
 			expr := node.Assignment.Rhs[0]
@@ -165,6 +179,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.rangeLabels = em.rangeLabels[:len(em.rangeLabels)-1]
 			em.fb.exitScope()
 			em.fb.exitScope()
+			em.inForRange = inForRange
 
 		case *ast.Go:
 			call := node.Call.(*ast.Call)

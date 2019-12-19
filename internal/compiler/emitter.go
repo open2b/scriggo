@@ -47,6 +47,10 @@ type emitter struct {
 	// which implements his own "breaking" system).
 	breakable bool
 
+	// inForRange reports whether the emitter is currently emitting the body of
+	// a ForRange node.
+	inForRange bool
+
 	// breakLabel, if not nil, is the label to which pre-stated "breaks" must
 	// jump.
 	breakLabel *label
