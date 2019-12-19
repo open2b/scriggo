@@ -800,14 +800,10 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 	// binary operation as condition, any boolean constant expressions 'b' is
 	// converted to 'b == true'.
 	if ti := em.ti(cond); ti != nil && ti.HasValue() {
-		if ti.Type.Kind() != reflect.Bool {
-			panic("BUG: expected a boolean constant") // remove.
-		}
-		v1 := em.emitExpr(cond, ti.Type)
-		k2 := em.fb.makeIntConstant(1) // true
-		v2 := em.fb.newRegister(reflect.Bool)
-		em.fb.emitLoadNumber(intRegister, k2, v2)
-		em.fb.emitIf(false, v1, runtime.ConditionEqual, v2, reflect.Bool, cond.Pos()) // v1 == true
+		num := em.fb.makeIntConstant(ti.value.(int64))
+		tmp := em.fb.newRegister(reflect.Int)
+		em.fb.emitLoadNumber(intRegister, num, tmp)
+		em.fb.emitIf(false, tmp, runtime.ConditionNotZero, 0, reflect.Int, cond.Pos())
 		return
 	}
 
