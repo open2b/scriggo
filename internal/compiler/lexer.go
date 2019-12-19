@@ -271,7 +271,6 @@ func (l *lexer) scan() {
 								p = 0
 								lin = l.line
 								col = l.column
-								continue
 							} else {
 								if quote == 0 {
 									l.ctx = ast.ContextUnquotedAttribute
@@ -513,9 +512,6 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 		} else {
 			return "", p
 		}
-	}
-	if p == len(l.src) {
-		return "", p
 	}
 	// Reads the quote.
 	for ; p < len(l.src); p++ {
