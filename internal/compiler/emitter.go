@@ -918,14 +918,16 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 		}
 	}
 
-	// // Any other binary condition is evaluated and compared to 'true'. For
-	// // example 'if a == b || c == d' becomes 'if (a == b || c == d) == 1'.
-	v1 := em.emitExpr(cond, em.typ(cond))
-	k2 := em.fb.makeIntConstant(1)
-	v2 := em.fb.newRegister(reflect.Bool)
-	em.fb.emitLoadNumber(intRegister, k2, v2)
-	em.fb.emitIf(false, v1, runtime.ConditionEqual, v2, reflect.Bool, cond.Pos())
-	return
+	// if !cond
+	if unOp, ok := cond.(*ast.UnaryOperator); ok && unOp.Operator() == ast.OperatorNot {
+		c := em.emitExpr(unOp.Expr, em.typ(unOp.Expr))
+		em.fb.emitIf(false, c, runtime.ConditionZero, 0, reflect.Bool, cond.Pos())
+		return
+	}
+
+	// if cond
+	c := em.emitExpr(cond, em.typ(cond))
+	em.fb.emitIf(false, c, runtime.ConditionNotZero, 0, reflect.Bool, cond.Pos())
 
 }
 
