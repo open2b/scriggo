@@ -807,6 +807,20 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 		return
 	}
 
+	if expr, op := em.comparisonWithZeroInteger(cond); expr != nil {
+		exprType := em.typ(expr)
+		exprReg := em.emitExpr(expr, exprType)
+		var cond runtime.Condition
+		switch op {
+		case ast.OperatorEqual:
+			cond = runtime.ConditionZero
+		case ast.OperatorNotEqual:
+			cond = runtime.ConditionNotZero
+		}
+		em.fb.emitIf(false, exprReg, cond, 0, exprType.Kind(), expr.Pos())
+		return
+	}
+
 	// if v   == nil
 	// if v   != nil
 	// if nil == v
