@@ -441,7 +441,7 @@ func (builder *functionBuilder) emitGoto(lab label) {
 //     len(x) >  y
 //     len(x) >= y
 //
-func (builder *functionBuilder) emitIf(k bool, x int8, o runtime.Condition, y int8, kind reflect.Kind, pos *ast.Position) {
+func (builder *functionBuilder) emitIf(ky bool, x int8, o runtime.Condition, y int8, kind reflect.Kind, pos *ast.Position) {
 	builder.addPosAndPath(pos)
 	var op runtime.Operation
 	switch kindToType(kind) {
@@ -454,7 +454,7 @@ func (builder *functionBuilder) emitIf(k bool, x int8, o runtime.Condition, y in
 	case generalRegister:
 		op = runtime.OpIf
 	}
-	if k {
+	if ky {
 		op = -op
 	}
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: int8(o), C: y})
