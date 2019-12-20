@@ -100,11 +100,9 @@ func (fs *functionStore) predefFunc(fn ast.Expression, allowMethod bool) (int8, 
 	case *ast.Identifier:
 		name = fn.Name
 	case *ast.Selector:
-		switch e := fn.Expr.(type) {
+		switch fn.Expr.(type) {
 		case *ast.Identifier:
-			name = e.Name // TODO: why just name? Where is the dot?
-			// default: // TODO
-			// 	return 0, false
+			name = fn.Ident
 		}
 	default:
 		// return 0, false // TODO
