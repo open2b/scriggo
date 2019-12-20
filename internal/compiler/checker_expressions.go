@@ -117,21 +117,29 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 		}
 	}
 
-	// Handle predeclared identifier "iota".
-	i, ok := tc.lookupScopes(ident.Name, false)
-	if ok && i == universe["iota"].t && tc.iota >= 0 {
-		return &TypeInfo{
-			Constant:   int64Const(tc.iota),
-			Type:       intType,
-			Properties: PropertyUntyped,
+	ti, found := tc.lookupScopes(ident.Name, false)
+
+	// Check if the identifier is the builtin 'iota'.
+	if found && ti == universe["iota"].t {
+		// Check if iota is defined in the current expression evaluation
+		if tc.iota >= 0 {
+			return &TypeInfo{
+				Constant:   int64Const(tc.iota),
+				Type:       intType,
+				Properties: PropertyUntyped,
+			}
 		}
+		// The identifier is the builtin 'iota', but 'iota' is not defined in
+		// the current expression evaluation, so the identifier 'iota' is
+		// undefined.
+		found = false
 	}
 
 	// If identifiers is a ShowMacro identifier, first needs to check if
 	// ShowMacro contains a "or ignore" or "or todo" option. In such cases,
 	// error should not be returned, and function call should be removed
 	// from tree.
-	if !ok {
+	if !found {
 		for _, sm := range tc.showMacros {
 			if sm.Macro == ident {
 				switch sm.Or {
@@ -152,7 +160,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
 	}
 
-	if i.IsBuiltinFunction() {
+	if ti.IsBuiltinFunction() {
 		panic(tc.errorf(ident, "use of builtin %s not in function call", ident.Name))
 	}
 
@@ -178,8 +186,8 @@ unusedLoop:
 		}
 	}
 
-	tc.typeInfos[ident] = i
-	return i
+	tc.typeInfos[ident] = ti
+	return ti
 }
 
 // checkArrayType checks an array type. If the array node is used in a composite
