@@ -121,7 +121,7 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 		panic(tc.errorf(node, "extra expression in const declaration"))
 	}
 
-	tc.iota = node.Iota
+	tc.iota = node.Index
 
 	// Type check every Rh expression: they must be constant.
 	rhs := make([]*TypeInfo, len(node.Rhs))

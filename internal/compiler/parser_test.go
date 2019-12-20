@@ -2135,8 +2135,8 @@ func equals(n1, n2 ast.Node, p int) error {
 				return err
 			}
 		}
-		if nn1.Iota != nn2.Iota {
-			return fmt.Errorf("unexpected iota value %d, expecting %d", nn1.Iota, nn2.Iota)
+		if nn1.Index != nn2.Index {
+			return fmt.Errorf("unexpected index value %d, expecting %d", nn1.Index, nn2.Index)
 		}
 
 	case *ast.Switch:

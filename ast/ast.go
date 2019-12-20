@@ -1199,7 +1199,7 @@ type Const struct {
 	Lhs       []*Identifier // left-hand side identifiers.
 	Type      Expression    // nil for non-typed constant declarations.
 	Rhs       []Expression  // nil for implicit-value constant declarations.
-	Iota      int           // value of the 'iota' constant when evaluating the right side.
+	Index     int           // index of the declaration in the constant declaration group or 0 if not in a group.
 }
 
 func NewConst(pos *Position, identifiers []*Identifier, typ Expression, values []Expression, iotaValue int) *Const {
