@@ -113,11 +113,10 @@ func main() {
 	assert(s == "a", "s")
 	assert(t == "b", "t")
 
-	// https://github.com/open2b/scriggo/issues/209
-	// assert(abit == 1, "abit")
-	// assert(amask == 0, "amask")
-	// assert(bbit == 2, "bbit")
-	// assert(bmask == 1, "bmask")
-	// assert(cbit == 4, "cbit")
-	// assert(cmask == 3, "cmask")
+	assert(abit == 1, "abit")
+	assert(amask == 0, "amask")
+	assert(bbit == 2, "bbit")
+	assert(bmask == 1, "bmask")
+	assert(cbit == 4, "cbit")
+	assert(cmask == 3, "cmask")
 }

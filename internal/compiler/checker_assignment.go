@@ -121,12 +121,7 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 		panic(tc.errorf(node, "extra expression in const declaration"))
 	}
 
-	if tc.lastConstPosition != node.Pos() {
-		tc.iota = -1
-	}
-
-	tc.lastConstPosition = node.Pos()
-	tc.iota++
+	tc.iota = node.Iota
 
 	// Type check every Rh expression: they must be constant.
 	rhs := make([]*TypeInfo, len(node.Rhs))
@@ -140,6 +135,8 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 		}
 		rhs[i] = rh
 	}
+
+	tc.iota = -1
 
 	var typ *TypeInfo
 

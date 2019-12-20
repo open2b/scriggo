@@ -1199,20 +1199,11 @@ type Const struct {
 	Lhs       []*Identifier // left-hand side identifiers.
 	Type      Expression    // nil for non-typed constant declarations.
 	Rhs       []Expression  // nil for implicit-value constant declarations.
-	Group     *Group        // nil means no group.
+	Iota      int           // value of the 'iota' constant when evaluating the right side.
 }
 
-func NewGroup() *Group {
-	return &Group{}
-}
-
-// Group represents a declaration group.
-type Group struct {
-	dummy int // a not empty struct guarantees different instances.
-}
-
-func NewConst(pos *Position, identifiers []*Identifier, typ Expression, values []Expression, group *Group) *Const {
-	return &Const{pos, identifiers, typ, values, group}
+func NewConst(pos *Position, identifiers []*Identifier, typ Expression, values []Expression, iotaValue int) *Const {
+	return &Const{pos, identifiers, typ, values, iotaValue}
 }
 
 // Index node represents an index expression.

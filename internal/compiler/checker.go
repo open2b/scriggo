@@ -76,10 +76,6 @@ type typechecker struct {
 	// iota holds the current iota value.
 	iota int
 
-	// lastConstPosition is the position of the last constant declaration
-	// encountered. When it changes, iota is reset.
-	lastConstPosition *ast.Position
-
 	// showMacros is the list of all ast.ShowMacro nodes. This is needed because
 	// the ast.ShowMacro nodes are handled in a special way: if an ast.ShowMacro
 	// node points to a not-defined macro, an error will be returned depending on

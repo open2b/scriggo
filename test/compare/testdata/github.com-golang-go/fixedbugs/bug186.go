@@ -1,5 +1,3 @@
-// skip : expected error on iota, got nothing https://github.com/open2b/scriggo/issues/426
-
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.
