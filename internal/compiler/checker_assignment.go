@@ -283,9 +283,6 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 		}
 	}
 	if len(node.Lhs) == len(isAlreadyDeclared) {
-		if tc.opts.SyntaxType == ScriptSyntax && tc.isScriptFuncDecl {
-			panic(tc.errorf(node, "%s already declared in script", node.Lhs[0]))
-		}
 		panic(tc.errorf(node, "no new variables on left side of :="))
 	}
 

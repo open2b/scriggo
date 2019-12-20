@@ -746,23 +746,31 @@ nodesLoop:
 					// use it during the assignment.
 					ident := fun.Ident
 					fun.Ident = nil
-					node := ast.NewAssignment(
+					varDecl := ast.NewVar(
+						fun.Pos(),
+						[]*ast.Identifier{ident},
+						fun.Type,
+						nil,
+					)
+					nodeAssign := ast.NewAssignment(
 						fun.Pos(),
 						[]ast.Expression{ident},
-						ast.AssignmentDeclaration,
+						ast.AssignmentSimple,
 						[]ast.Expression{fun},
 					)
 					// Check the new node, informing the type checker that the
 					// current assignment is a script function declaration.
 					backup := tc.isScriptFuncDecl
 					tc.isScriptFuncDecl = true
-					_ = tc.checkNodes([]ast.Node{node})
+					newNodes := []ast.Node{varDecl, nodeAssign}
+					_ = tc.checkNodes(newNodes)
+					// Append the new nodes removing the function literal.
+					nodes = append(nodes[:i], append(newNodes, nodes[i+1:]...)...)
 					tc.isScriptFuncDecl = backup
-					nodes[i] = node
 					// Avoid error 'declared and not used' by "using" the
 					// identifier.
 					tc.checkIdentifier(ident, true)
-					i++
+					i += 2
 					continue nodesLoop
 				}
 			}

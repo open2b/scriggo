@@ -213,6 +213,9 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*TypeIn
 func (tc *typechecker) assignScope(name string, value *TypeInfo, declNode *ast.Identifier) {
 
 	if tc.declaredInThisBlock(name) {
+		if tc.opts.SyntaxType == ScriptSyntax && tc.isScriptFuncDecl {
+			panic(tc.errorf(declNode, "%s already declared in script", declNode))
+		}
 		previousDecl, _ := tc.lookupScopesElem(name, true)
 		s := name + " redeclared in this block"
 		if decl := previousDecl.decl; decl != nil {
