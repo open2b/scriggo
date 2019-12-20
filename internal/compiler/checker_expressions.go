@@ -121,7 +121,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 
 	// Check if the identifier is the builtin 'iota'.
 	if found && ti == universe["iota"].t {
-		// Check if iota is defined in the current expression evaluation
+		// Check if iota is defined in the current expression evaluation.
 		if tc.iota >= 0 {
 			return &TypeInfo{
 				Constant:   int64Const(tc.iota),
