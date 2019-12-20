@@ -2,7 +2,10 @@
 
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"testpkg"
+)
 
 func main() {
 	t := true
@@ -21,5 +24,10 @@ func main() {
 	}
 	if !f {
 		fmt.Println("!f: ok")
+	}
+	if testpkg.BooleanValue {
+		fmt.Println("testpkg.BooleanValue is true")
+	} else {
+		fmt.Println("testpkg.BooleanValue is false")
 	}
 }

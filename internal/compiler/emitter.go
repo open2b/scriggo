@@ -799,7 +799,7 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 	// cond is a boolean constant. Given that the 'if' instruction requires a
 	// binary operation as condition, any boolean constant expressions 'b' is
 	// converted to 'b == true'.
-	if ti := em.ti(cond); ti != nil && ti.HasValue() {
+	if ti := em.ti(cond); ti != nil && ti.HasValue() && !ti.IsPredefined() {
 		num := em.fb.makeIntConstant(ti.value.(int64))
 		tmp := em.fb.newRegister(reflect.Int)
 		em.fb.emitLoadNumber(intRegister, num, tmp)

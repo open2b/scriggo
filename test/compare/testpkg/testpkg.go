@@ -112,3 +112,5 @@ func RuntimeError() {
 func (t *T) Method() { }
 
 var Value T
+
+var BooleanValue bool
