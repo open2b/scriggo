@@ -740,7 +740,7 @@ nodesLoop:
 		case ast.Expression:
 
 			// Handle function declarations in scripts.
-			if fun, ok := node.(*ast.Func); ok {
+			if fun, ok := node.(*ast.Func); tc.opts.SyntaxType == ScriptSyntax && ok {
 				if fun.Ident != nil {
 					// Remove the identifier from the function expression and
 					// use it during the assignment.
