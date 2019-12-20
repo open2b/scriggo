@@ -44,22 +44,20 @@ func test4() {
 	}
 }
 
-// https://github.com/open2b/scriggo/issues/298
-//
-// func test5() {
-//  var i interface{}
-//  switch x := i.(type) {
-//  case nil:
-//      fmt.Println("test4: i =", i, ", x =", x)
-//  default:
-//      panic("default")
-//  }
-// }
+func test5() {
+	var i interface{}
+	switch x := i.(type) {
+	case nil:
+		fmt.Println("test4: i =", i, ", x =", x)
+	default:
+		panic("default")
+	}
+}
 
 func main() {
 	test1()
 	test2()
 	test3()
 	test4()
-	//test5() // https://github.com/open2b/scriggo/issues/298
+	test5()
 }

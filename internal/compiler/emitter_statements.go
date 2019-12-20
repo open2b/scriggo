@@ -851,85 +851,100 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 	typeAssertion := node.Assignment.Rhs[0].(*ast.TypeAssertion)
 	expr := em.emitExpr(typeAssertion.Expr, em.typ(typeAssertion.Expr))
 
-	bodyLabels := make([]label, len(node.Cases))
-	endSwitchLabel := em.fb.newLabel()
+	var newVarName string
+	if len(node.Assignment.Lhs) == 1 {
+		newVarName = node.Assignment.Lhs[0].(*ast.Identifier).Name
+	}
 
-	var defaultLabel label
+	intReg := em.fb.newRegister(reflect.Int)
+	floatReg := em.fb.newRegister(reflect.Float64)
+	stringReg := em.fb.newRegister(reflect.String)
+	generalReg := em.fb.newRegister(reflect.Interface)
+
+	clauseBody := make([]label, len(node.Cases))
+	end := em.fb.newLabel()
+
 	hasDefault := false
 
-	for i, cas := range node.Cases {
-		bodyLabels[i] = em.fb.newLabel()
-		hasDefault = hasDefault || cas.Expressions == nil
-		if len(cas.Expressions) == 1 {
-			// If the type switch has an assignment, assign to the variable
-			// using the type of the case.
-			pos := cas.Expressions[0].Pos()
-			if len(node.Assignment.Lhs) == 1 && !em.ti(cas.Expressions[0]).Nil() {
-				ta := ast.NewTypeAssertion(pos, typeAssertion.Expr, cas.Expressions[0])
-				em.typeInfos[ta] = &TypeInfo{
-					Type: em.typ(cas.Expressions[0]),
-				}
-				blank := ast.NewIdentifier(pos, "_")
-				n := ast.NewAssignment(pos,
-					[]ast.Expression{
-						node.Assignment.Lhs[0], // the variable
-						blank,                  // a dummy blank identifier that prevent panicking
-					},
-					node.Assignment.Type,
-					[]ast.Expression{ta},
-				)
-				em.emitNodes([]ast.Node{n})
-			}
-		} else {
-			// If the type switch has an assignment, assign to the variable
-			// keeping the type. Note that this assignment does not involve type
-			// assertion statements, just takes the expression from the type
-			// assertion of the type switch.
-			if len(node.Assignment.Lhs) == 1 {
-				pos := node.Assignment.Lhs[0].Pos()
-				n := ast.NewAssignment(pos,
-					[]ast.Expression{node.Assignment.Lhs[0]},
-					node.Assignment.Type,
-					[]ast.Expression{typeAssertion.Expr},
-				)
-				em.emitNodes([]ast.Node{n})
-			}
-		}
-		for _, caseExpr := range cas.Expressions {
-			if em.ti(caseExpr).Nil() {
-				pos := caseExpr.Pos()
-				em.fb.emitIf(false, expr, runtime.ConditionInterfaceNil, 0, reflect.Interface, pos)
+	for i, clause := range node.Cases {
+		clauseBody[i] = em.fb.newLabel()
+		switch {
+		case isDefault(clause):
+			hasDefault = true
+		case len(clause.Expressions) == 1:
+			if em.isPredeclNil(clause.Expressions[0]) {
+				em.fb.emitIf(false, expr, runtime.ConditionInterfaceNil, 0, reflect.Interface, clause.Expressions[0].Pos())
 			} else {
-				caseType := em.typ(caseExpr)
-				em.fb.emitAssert(expr, caseType, 0)
+				typ := em.ti(clause.Expressions[0]).Type
+				var reg int8
+				switch kindToType(typ.Kind()) {
+				case intRegister:
+					reg = intReg
+				case floatRegister:
+					reg = floatReg
+				case stringRegister:
+					reg = stringReg
+				case generalRegister:
+					reg = generalReg
+				}
+				em.fb.emitAssert(expr, typ, reg)
 			}
 			next := em.fb.newLabel()
-			em.fb.emitGoto(next)
-			em.fb.emitGoto(bodyLabels[i])
+			em.fb.emitGoto(next)          // assert failed
+			em.fb.emitGoto(clauseBody[i]) // assert ok
 			em.fb.setLabelAddr(next)
+		default: // case type1, type2 .. typeN:
+			for _, typExpr := range clause.Expressions {
+				if em.isPredeclNil(typExpr) {
+					em.fb.emitIf(false, expr, runtime.ConditionInterfaceNil, 0, reflect.Interface, typExpr.Pos())
+				} else {
+					typ := em.ti(typExpr).Type
+					em.fb.emitAssert(expr, typ, 0)
+				}
+				nextClause := em.fb.newLabel()
+				em.fb.emitGoto(nextClause)    // assert failed
+				em.fb.emitGoto(clauseBody[i]) // assert ok
+				em.fb.setLabelAddr(nextClause)
+			}
 		}
 	}
 
+	var defaultClause label
 	if hasDefault {
-		defaultLabel = em.fb.newLabel()
-		em.fb.emitGoto(defaultLabel)
+		defaultClause = em.fb.newLabel()
+		em.fb.emitGoto(defaultClause)
 	} else {
-		em.fb.emitGoto(endSwitchLabel)
+		em.fb.emitGoto(end)
 	}
 
 	for i, cas := range node.Cases {
-		if cas.Expressions == nil {
-			em.fb.setLabelAddr(defaultLabel)
+		if isDefault(cas) {
+			em.fb.setLabelAddr(defaultClause)
 		}
-		em.fb.setLabelAddr(bodyLabels[i])
+		em.fb.setLabelAddr(clauseBody[i])
 		em.fb.enterScope()
+		if newVarName != "" {
+			if len(cas.Expressions) == 1 && !em.isPredeclNil(cas.Expressions[0]) {
+				switch kindToType(em.ti(cas.Expressions[0]).Type.Kind()) {
+				case intRegister:
+					em.fb.bindVarReg(newVarName, intReg)
+				case floatRegister:
+					em.fb.bindVarReg(newVarName, floatReg)
+				case stringRegister:
+					em.fb.bindVarReg(newVarName, stringReg)
+				case generalRegister:
+					em.fb.bindVarReg(newVarName, generalReg)
+				}
+			} else {
+				em.fb.bindVarReg(newVarName, expr)
+			}
+		}
 		em.emitNodes(cas.Body)
 		em.fb.exitScope()
-		em.fb.emitGoto(endSwitchLabel)
+		em.fb.emitGoto(end)
 	}
 
-	em.fb.setLabelAddr(endSwitchLabel)
+	em.fb.setLabelAddr(end)
 	em.fb.exitScope()
 
-	return
 }
