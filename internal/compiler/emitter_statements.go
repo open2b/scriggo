@@ -844,22 +844,54 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 
 	em.fb.enterScope()
 
+	// Emit the init simple statement, if present.
 	if node.Init != nil {
 		em.emitNodes([]ast.Node{node.Init})
 	}
 
-	typeAssertion := node.Assignment.Rhs[0].(*ast.TypeAssertion)
-	expr := em.emitExpr(typeAssertion.Expr, em.typ(typeAssertion.Expr))
+	// Emit the type switch guard expression.
+	guardExpr := node.Assignment.Rhs[0].(*ast.TypeAssertion).Expr
+	expr := em.emitExpr(guardExpr, em.typ(guardExpr))
 
-	var newVarName string
+	// Store the name of the variable declared in the guard, if present.
+	guardNewVar := ""
 	if len(node.Assignment.Lhs) == 1 {
-		newVarName = node.Assignment.Lhs[0].(*ast.Identifier).Name
+		guardNewVar = node.Assignment.Lhs[0].(*ast.Identifier).Name
 	}
 
-	intReg := em.fb.newRegister(reflect.Int)
-	floatReg := em.fb.newRegister(reflect.Float64)
-	stringReg := em.fb.newRegister(reflect.String)
-	generalReg := em.fb.newRegister(reflect.Interface)
+	var intReg int8
+	var floatReg int8
+	var stringReg int8
+	var generalReg int8
+
+	// Allocate only the necessary register.
+	// Note that 'expr' has already been allocated; these registers are
+	// necessary only when the type switch declares a new variable and such
+	// variable is used in a case body with just one type.
+	if guardNewVar != "" {
+		for _, clause := range node.Cases {
+			if types := clause.Expressions; len(types) == 1 && !em.isPredeclNil(types[0]) {
+				switch kindToType(em.ti(clause.Expressions[0]).Type.Kind()) {
+				case intRegister:
+					if intReg == 0 {
+						intReg = em.fb.newRegister(reflect.Int)
+					}
+				case floatRegister:
+					if floatReg == 0 {
+						floatReg = em.fb.newRegister(reflect.Float64)
+					}
+				case stringRegister:
+					if stringReg == 0 {
+						stringReg = em.fb.newRegister(reflect.String)
+					}
+				case generalRegister:
+					if generalReg == 0 {
+						generalReg = em.fb.newRegister(reflect.Interface)
+					}
+				}
+			}
+		}
+	}
 
 	clauseBody := make([]label, len(node.Cases))
 	end := em.fb.newLabel()
@@ -909,6 +941,7 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 		}
 	}
 
+	// Jump to the default case (if present) or to the end.
 	var defaultClause label
 	if hasDefault {
 		defaultClause = em.fb.newLabel()
@@ -917,29 +950,30 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 		em.fb.emitGoto(end)
 	}
 
-	for i, cas := range node.Cases {
-		if isDefault(cas) {
+	// Emit the bodies of the case clauses.
+	for i, clause := range node.Cases {
+		if isDefault(clause) {
 			em.fb.setLabelAddr(defaultClause)
 		}
 		em.fb.setLabelAddr(clauseBody[i])
 		em.fb.enterScope()
-		if newVarName != "" {
-			if len(cas.Expressions) == 1 && !em.isPredeclNil(cas.Expressions[0]) {
-				switch kindToType(em.ti(cas.Expressions[0]).Type.Kind()) {
+		if guardNewVar != "" {
+			if len(clause.Expressions) == 1 && !em.isPredeclNil(clause.Expressions[0]) {
+				switch kindToType(em.ti(clause.Expressions[0]).Type.Kind()) {
 				case intRegister:
-					em.fb.bindVarReg(newVarName, intReg)
+					em.fb.bindVarReg(guardNewVar, intReg)
 				case floatRegister:
-					em.fb.bindVarReg(newVarName, floatReg)
+					em.fb.bindVarReg(guardNewVar, floatReg)
 				case stringRegister:
-					em.fb.bindVarReg(newVarName, stringReg)
+					em.fb.bindVarReg(guardNewVar, stringReg)
 				case generalRegister:
-					em.fb.bindVarReg(newVarName, generalReg)
+					em.fb.bindVarReg(guardNewVar, generalReg)
 				}
 			} else {
-				em.fb.bindVarReg(newVarName, expr)
+				em.fb.bindVarReg(guardNewVar, expr)
 			}
 		}
-		em.emitNodes(cas.Body)
+		em.emitNodes(clause.Body)
 		em.fb.exitScope()
 		em.fb.emitGoto(end)
 	}
