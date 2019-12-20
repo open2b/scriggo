@@ -297,8 +297,7 @@ var goContextTreeTests = []struct {
 				[]ast.Expression{
 					ast.NewBasicLiteral(p(1, 11, 10, 10), ast.IntLiteral, "4"),
 				},
-				nil, // no group
-				0,   // iota
+				0, // iota
 			),
 		}, ast.ContextGo),
 	},
@@ -313,9 +312,6 @@ var goContextTreeTests = []struct {
 			[]ast.Expression{
 				ast.NewBasicLiteral(p(2, 5, 12, 13), ast.IntLiteral, "42"),
 			},
-			// no matter if different from the other NewConst call (cannot be
-			// tested), it just have to be != nil.
-			ast.NewGroup(),
 			0, // iota
 		),
 		ast.NewConst(
@@ -327,9 +323,6 @@ var goContextTreeTests = []struct {
 			[]ast.Expression{
 				ast.NewBasicLiteral(p(2, 5, 12, 13), ast.IntLiteral, "42"),
 			},
-			// no matter if different from the other NewConst call (cannot be
-			// tested), it just have to be != nil.
-			ast.NewGroup(),
 			1, // iota
 		),
 	}, ast.ContextGo)},
@@ -2142,16 +2135,6 @@ func equals(n1, n2 ast.Node, p int) error {
 				return err
 			}
 		}
-		if nn1.Group == nil && nn2.Group != nil {
-			return fmt.Errorf("expected constant declaration group %p, got nil", nn2.Group)
-		}
-		if nn1.Group != nil && nn2.Group == nil {
-			return fmt.Errorf("unexpected constant declaration group, got %p", nn1.Group)
-		}
-		// It's not possibile to test if a group is correct, because
-		// ast.NewGroup is called twice: first by the parser, then by the test.
-		// So, here we're only checking if a group is defined for a given
-		// constant declaration, not if that group is correct.
 		if nn1.Iota != nn2.Iota {
 			return fmt.Errorf("unexpected iota value %d, expecting %d", nn1.Iota, nn2.Iota)
 		}

@@ -234,11 +234,11 @@ func sortDeclarations(pkg *ast.Package) error {
 		case *ast.Const:
 			if len(decl.Rhs) == 0 {
 				for i := range decl.Lhs {
-					consts = append(consts, ast.NewConst(decl.Pos(), decl.Lhs[i:i+1], decl.Type, nil, decl.Group, decl.Iota))
+					consts = append(consts, ast.NewConst(decl.Pos(), decl.Lhs[i:i+1], decl.Type, nil, decl.Iota))
 				}
 			} else {
 				for i := range decl.Lhs {
-					consts = append(consts, ast.NewConst(decl.Pos(), decl.Lhs[i:i+1], decl.Type, decl.Rhs[i:i+1], decl.Group, decl.Iota))
+					consts = append(consts, ast.NewConst(decl.Pos(), decl.Lhs[i:i+1], decl.Type, decl.Rhs[i:i+1], decl.Iota))
 				}
 			}
 		case *ast.TypeDeclaration:
