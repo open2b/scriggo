@@ -810,10 +810,6 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 
 	// *operand
 	case ast.OperatorMultiplication:
-		if reg == 0 {
-			em.emitExprR(operand, operandType, 0)
-			return
-		}
 		if canEmitDirectly(unOpType.Kind(), dstType.Kind()) {
 			exprReg := em.emitExpr(operand, operandType)
 			em.changeRegister(false, -exprReg, reg, operandType.Elem(), dstType)
