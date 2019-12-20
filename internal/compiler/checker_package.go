@@ -566,7 +566,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 					tc.assignScope(ret.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 				}
 			}
-			err = tc.checkNodesError(d.Body.Nodes)
+			d.Body.Nodes, err = tc.checkNodesError(d.Body.Nodes)
 			if err != nil {
 				return err
 			}

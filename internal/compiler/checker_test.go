@@ -1527,7 +1527,7 @@ func TestCheckerStatements(t *testing.T) {
 			tc := newTypechecker("", CheckerOptions{SyntaxType: ScriptSyntax}, nil)
 			tc.scopes = append(tc.scopes, scope)
 			tc.enterScope()
-			tc.checkNodes(tree.Nodes)
+			tree.Nodes = tc.checkNodes(tree.Nodes)
 			tc.exitScope()
 		}()
 	}
@@ -2151,7 +2151,7 @@ func TestFunctionUpVars(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		tc.checkNodes(tree.Nodes)
+		tree.Nodes = tc.checkNodes(tree.Nodes)
 		fn := tree.Nodes[len(tree.Nodes)-1].(*ast.Assignment).Rhs[0].(*ast.Func)
 		got := make([]string, len(fn.Upvars))
 		for i := range fn.Upvars {

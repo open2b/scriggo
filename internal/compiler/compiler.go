@@ -193,7 +193,8 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 		currentPath := tc.path
 		tc.path = extends.Tree.Path
 		tc.paths = []checkerPath{{currentPath, extends}}
-		err := tc.checkNodesInNewScopeError(extends.Tree.Nodes)
+		var err error
+		extends.Tree.Nodes, err = tc.checkNodesInNewScopeError(extends.Tree.Nodes)
 		if err != nil {
 			return nil, err
 		}
@@ -228,7 +229,8 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 
 	// Type check a template page or a script.
 	tc.predefinedPkgs = packages
-	err := tc.checkNodesInNewScopeError(tree.Nodes)
+	var err error
+	tree.Nodes, err = tc.checkNodesInNewScopeError(tree.Nodes)
 	if err != nil {
 		return nil, err
 	}

@@ -540,7 +540,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *TypeInfo 
 				tc.assignScope(f.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 			}
 		}
-		tc.checkNodes(expr.Body.Nodes)
+		expr.Body.Nodes = tc.checkNodes(expr.Body.Nodes)
 		// «If the function's signature declares result parameters, the
 		// function body's statement list must end in a terminating
 		// statement.»

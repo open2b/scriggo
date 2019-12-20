@@ -47,26 +47,27 @@ func (tc *typechecker) templatePageToPackage(tree *ast.Tree, path string) error 
 }
 
 // checkNodesInNewScopeError calls checkNodesInNewScope returning checking errors.
-func (tc *typechecker) checkNodesInNewScopeError(nodes []ast.Node) error {
+func (tc *typechecker) checkNodesInNewScopeError(nodes []ast.Node) ([]ast.Node, error) {
 	tc.enterScope()
-	err := tc.checkNodesError(nodes)
+	nodes, err := tc.checkNodesError(nodes)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	tc.exitScope()
-	return nil
+	return nodes, nil
 }
 
 // checkNodesInNewScope type checks nodes in a new scope. Panics on error.
-func (tc *typechecker) checkNodesInNewScope(nodes []ast.Node) {
+func (tc *typechecker) checkNodesInNewScope(nodes []ast.Node) []ast.Node {
 	tc.enterScope()
-	tc.checkNodes(nodes)
+	nodes = tc.checkNodes(nodes)
 	tc.exitScope()
+	return nodes
 }
 
 // checkNodesError calls checkNodes catching panics and returning their errors
 // as return parameter.
-func (tc *typechecker) checkNodesError(nodes []ast.Node) (err error) {
+func (tc *typechecker) checkNodesError(nodes []ast.Node) (newNodes []ast.Node, err error) {
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -77,18 +78,26 @@ func (tc *typechecker) checkNodesError(nodes []ast.Node) (err error) {
 				}
 			}
 		}()
-		tc.checkNodes(nodes)
+		newNodes = tc.checkNodes(nodes)
 	}()
-	return err
+	return nodes, err
 }
 
-// checkNodes type checks one or more statements. Panics on error.
-func (tc *typechecker) checkNodes(nodes []ast.Node) {
+// checkNodes type checks one or more statements, returning the new tree branch
+// with transformations, if any. Panics on error.
+func (tc *typechecker) checkNodes(nodes []ast.Node) []ast.Node {
 
 	tc.terminating = false
 
+	i := 0
+
 nodesLoop:
-	for i, node := range nodes {
+	for {
+
+		if i >= len(nodes) {
+			break nodesLoop
+		}
+		node := nodes[i]
 
 		switch node := node.(type) {
 
@@ -104,12 +113,12 @@ nodesLoop:
 			currentPath := tc.path
 			tc.path = node.Tree.Path
 			tc.paths = append(tc.paths, checkerPath{currentPath, node})
-			tc.checkNodes(node.Tree.Nodes)
+			node.Tree.Nodes = tc.checkNodes(node.Tree.Nodes)
 			tc.path = currentPath
 			tc.paths = tc.paths[:len(tc.paths)-1]
 
 		case *ast.Block:
-			tc.checkNodesInNewScope(node.Nodes)
+			node.Nodes = tc.checkNodesInNewScope(node.Nodes)
 
 		case *ast.If:
 			tc.enterScope()
@@ -121,16 +130,16 @@ nodesLoop:
 				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, ti.ShortString()))
 			}
 			ti.setValue(nil)
-			tc.checkNodesInNewScope(node.Then.Nodes)
+			node.Then.Nodes = tc.checkNodesInNewScope(node.Then.Nodes)
 			terminating := tc.terminating
 			if node.Else == nil {
 				terminating = false
 			} else {
 				switch els := node.Else.(type) {
 				case *ast.Block:
-					tc.checkNodesInNewScope(els.Nodes)
+					els.Nodes = tc.checkNodesInNewScope(els.Nodes)
 				case *ast.If:
-					tc.checkNodes([]ast.Node{els})
+					_ = tc.checkNodes([]ast.Node{els})
 				}
 				terminating = terminating && tc.terminating
 			}
@@ -153,7 +162,7 @@ nodesLoop:
 			if node.Post != nil {
 				tc.checkGenericAssignmentNode(node.Post)
 			}
-			tc.checkNodesInNewScope(node.Body)
+			node.Body = tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()
 			tc.exitScope()
 			tc.terminating = node.Condition == nil && !tc.hasBreak[node]
@@ -212,7 +221,7 @@ nodesLoop:
 					tc.obsoleteForRangeAssign(node.Assignment, lhs[1], valuePh, nil, declaration, false)
 				}
 			}
-			tc.checkNodesInNewScope(node.Body)
+			node.Body = tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()
 			tc.exitScope()
 			tc.terminating = !tc.hasBreak[node]
@@ -390,7 +399,7 @@ nodesLoop:
 				}
 				tc.enterScope()
 				tc.addToAncestors(cas)
-				tc.checkNodes(cas.Body)
+				cas.Body = tc.checkNodes(cas.Body)
 				tc.removeLastAncestor()
 				tc.exitScope()
 				if !hasFallthrough && len(cas.Body) > 0 {
@@ -488,7 +497,7 @@ nodesLoop:
 				}
 				tc.enterScope()
 				tc.addToAncestors(cas)
-				tc.checkNodes(cas.Body)
+				cas.Body = tc.checkNodes(cas.Body)
 				tc.removeLastAncestor()
 				tc.exitScope()
 				terminating = terminating && tc.terminating
@@ -524,9 +533,9 @@ nodesLoop:
 						panic(tc.errorf(node, "select case must be receive, send or assign recv"))
 					}
 				case *ast.Send:
-					tc.checkNodes([]ast.Node{comm})
+					_ = tc.checkNodes([]ast.Node{comm})
 				}
-				tc.checkNodesInNewScope(cas.Body)
+				cas.Body = tc.checkNodesInNewScope(cas.Body)
 				terminating = terminating && tc.terminating
 			}
 			tc.removeLastAncestor()
@@ -600,11 +609,11 @@ nodesLoop:
 		case *ast.ShowMacro:
 			tc.showMacros = append(tc.showMacros, node)
 			nodes[i] = ast.NewCall(node.Pos(), node.Macro, node.Args, node.IsVariadic)
-			tc.checkNodes(nodes[i : i+1])
+			continue nodesLoop // check nodes[i]
 
 		case *ast.Macro:
 			nodes[i] = macroToFunc(node)
-			tc.checkNodes(nodes[i : i+1])
+			continue nodesLoop // check nodes[i]
 
 		case *ast.Call:
 			tis, isBuiltin, _ := tc.checkCallExpression(node, true)
@@ -703,7 +712,7 @@ nodesLoop:
 
 		case *ast.URL:
 			// https://github.com/open2b/scriggo/issues/389
-			tc.checkNodes(node.Value)
+			node.Value = tc.checkNodes(node.Value)
 
 		case *ast.UnaryOperator:
 			ti := tc.checkExpr(node)
@@ -723,7 +732,7 @@ nodesLoop:
 				}
 			}
 			if node.Statement != nil {
-				tc.checkNodes([]ast.Node{node.Statement})
+				_ = tc.checkNodes([]ast.Node{node.Statement})
 			}
 
 		case *ast.Comment:
@@ -747,12 +756,13 @@ nodesLoop:
 					// current assignment is a script function declaration.
 					backup := tc.isScriptFuncDecl
 					tc.isScriptFuncDecl = true
-					tc.checkNodes([]ast.Node{node})
+					_ = tc.checkNodes([]ast.Node{node})
 					tc.isScriptFuncDecl = backup
 					nodes[i] = node
 					// Avoid error 'declared and not used' by "using" the
 					// identifier.
 					tc.checkIdentifier(ident, true)
+					i++
 					continue nodesLoop
 				}
 			}
@@ -761,6 +771,7 @@ nodesLoop:
 			if tc.opts.SyntaxType == TemplateSyntax {
 				if node, ok := node.(*ast.Func); ok {
 					tc.assignScope(node.Ident.Name, ti, node.Ident)
+					i++
 					continue nodesLoop
 				}
 			}
@@ -771,7 +782,11 @@ nodesLoop:
 
 		}
 
+		i++
+
 	}
+
+	return nodes
 
 }
 
