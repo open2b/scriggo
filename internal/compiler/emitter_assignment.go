@@ -330,11 +330,8 @@ func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Exp
 		ks := make([]bool, len(values))
 		for i := range values {
 			types[i] = em.typ(values[i])
-			regs[i], ks[i] = em.emitExprK(values[i], types[i])
-			if !ks[i] {
-				regs[i] = em.fb.newRegister(types[i].Kind())
-				em.emitExprR(values[i], types[i], regs[i])
-			}
+			regs[i] = em.fb.newRegister(types[i].Kind())
+			em.emitExprR(values[i], types[i], regs[i])
 		}
 		for i, addr := range addresses {
 			addr.assign(ks[i], regs[i], types[i])
