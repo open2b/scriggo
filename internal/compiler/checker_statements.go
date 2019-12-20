@@ -80,7 +80,7 @@ func (tc *typechecker) checkNodesError(nodes []ast.Node) (newNodes []ast.Node, e
 		}()
 		newNodes = tc.checkNodes(nodes)
 	}()
-	return nodes, err
+	return newNodes, err
 }
 
 // checkNodes type checks one or more statements, returning the new tree branch
