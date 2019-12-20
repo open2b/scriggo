@@ -51,7 +51,7 @@ func main() {
 	test15c()
 	test15d()
 	test15e()
-	// test16() // expected "runtime error: invalid memory address or nil pointer dereference", got nothing
+	test16()
 	test17()
 	test18()
 	test19()
