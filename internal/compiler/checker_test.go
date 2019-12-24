@@ -433,7 +433,7 @@ var checkerExprs = []struct {
 	{`cap([]int{})`, tiInt(), nil},
 	{`cap([...]byte{})`, tiIntConst(0), nil},
 	{`cap(s)`, tiInt(), map[string]*TypeInfo{"s": {Type: reflect.TypeOf(definedIntSlice{})}}},
-	//{`cap(new([1]byte))`, tiInt(), nil}, // TODO. See https://github.com/open2b/scriggo/issues/369
+	{`cap(new([1]byte))`, tiInt(), nil},
 
 	// copy
 	{`copy([]int{}, []int{})`, tiInt(), nil},
@@ -460,7 +460,7 @@ var checkerExprs = []struct {
 	{`len(map[string]int{})`, tiInt(), nil},
 	{`len([...]byte{})`, tiIntConst(0), nil},
 	{`len(s)`, tiInt(), map[string]*TypeInfo{"s": {Type: reflect.TypeOf(definedIntSlice{})}}},
-	//{`len(new([1]byte))`, tiInt(), nil}, // TODO. See https://github.com/open2b/scriggo/issues/369
+	{`len(new([1]byte))`, tiInt(), nil},
 
 	// recover
 	{`recover()`, tiInterface(), nil},
