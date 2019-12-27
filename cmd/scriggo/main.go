@@ -38,19 +38,35 @@ func main() {
 
 	cmdArg := os.Args[1]
 
-	// Used by flag.Parse.
-	os.Args = append(os.Args[:1], os.Args[2:]...)
+	// Check if the first argument is a sub-command.
+	subcmd := true
+	last := len(cmdArg)
+	for i, c := range cmdArg {
+		if ( c < 'a' || c > 'z' )  && ( i == 0 || i == last || c != '-' ) {
+			subcmd =  false
+			break
+		}
+	}
 
-	cmd, ok := commands[cmdArg]
-	if !ok {
-		stderr(
-			fmt.Sprintf("scriggo %s: unknown command", cmdArg),
-			`Run 'scriggo help' for usage.`,
-		)
-		exit(1)
+	if subcmd {
+		// Used by flag.Parse.
+		os.Args = append(os.Args[:1], os.Args[2:]...)
+		cmd, ok := commands[cmdArg]
+		if !ok {
+			stderr(
+				fmt.Sprintf("scriggo %s: unknown command", cmdArg),
+				`Run 'scriggo help' for usage.`,
+			)
+			exit(1)
+			return
+		}
+		cmd()
 		return
 	}
-	cmd()
+
+	run()
+
+	return
 }
 
 // TestEnvironment is true when testing the scriggo command, false otherwise.
@@ -153,7 +169,7 @@ var commands = map[string]func(){
 			flag.Usage()
 			exitError(`bad number of arguments`)
 		}
-		err := build("build", path, buildFlags{f: *f, work: *work, v: *v, x: *x, o: *o, w: *w})
+		err := _build("build", path, buildFlags{f: *f, work: *work, v: *v, x: *x, o: *o, w: *w})
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -176,7 +192,7 @@ var commands = map[string]func(){
 			flag.Usage()
 			exitError(`bad number of arguments`)
 		}
-		err := build("install", path, buildFlags{f: *f, work: *work, v: *v, x: *x, w: *w})
+		err := _build("install", path, buildFlags{f: *f, work: *work, v: *v, x: *x, w: *w})
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -346,7 +362,7 @@ type buildFlags struct {
 }
 
 // build executes the commands "build" and "install".
-func build(cmd string, path string, flags buildFlags) error {
+func _build(cmd string, path string, flags buildFlags) error {
 
 	_, err := exec.LookPath("go")
 	if err != nil {
