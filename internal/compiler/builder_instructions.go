@@ -311,31 +311,6 @@ func (builder *functionBuilder) emitDiv(ky bool, x, y, z int8, kind reflect.Kind
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
 }
 
-// emitRange appends a new "Range" instruction to the function body.
-//
-//	for i, e := range s
-//
-func (builder *functionBuilder) emitRange(k bool, s, i, e int8, kind reflect.Kind) {
-	fn := builder.fn
-	var op runtime.Operation
-	switch kind {
-	case reflect.String:
-		op = runtime.OpRangeString
-		if k {
-			op = -op
-		}
-	default:
-		if k {
-			panic("bug on emitter: emitRange with k = true is compatible only with kind == reflect.String")
-		}
-		op = runtime.OpRange
-	}
-	if builder.allocs != nil {
-		fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, C: 100})
-	}
-	fn.Body = append(fn.Body, runtime.Instruction{Op: op, A: s, B: i, C: e})
-}
-
 // emitField appends a new "Field" or a "FielRef" instruction to the function
 // body. If ref is set then the result of the "field operation" is a reference
 // to that field (i.e. is an addressable reflect.Value with the same underlying
@@ -500,28 +475,6 @@ func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType r
 		op = -op
 	}
 	fn.Body = append(fn.Body, runtime.Instruction{Op: op, A: expr, B: i, C: dst})
-}
-
-// emitShl appends a new "Shl" instruction to the function body.
-//
-//     z = x << y
-//
-func (builder *functionBuilder) emitShl(k bool, x, y, z int8, kind reflect.Kind) {
-	var op runtime.Operation
-	switch kind {
-	case reflect.Int:
-		op = runtime.OpShlInt
-	default:
-		if z != x {
-			panic(fmt.Errorf("z must be == x for kind %s", kind))
-		}
-		x = int8(flattenIntegerKind(kind))
-		op = runtime.OpShl
-	}
-	if k {
-		op = -op
-	}
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
 }
 
 // emitLen appends a new "len" instruction to the function body.
@@ -804,6 +757,31 @@ func (builder *functionBuilder) emitPrint(arg int8) {
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpPrint, A: arg})
 }
 
+// emitRange appends a new "Range" instruction to the function body.
+//
+//	for i, e := range s
+//
+func (builder *functionBuilder) emitRange(k bool, s, i, e int8, kind reflect.Kind) {
+	fn := builder.fn
+	var op runtime.Operation
+	switch kind {
+	case reflect.String:
+		op = runtime.OpRangeString
+		if k {
+			op = -op
+		}
+	default:
+		if k {
+			panic("bug on emitter: emitRange with k = true is compatible only with kind == reflect.String")
+		}
+		op = runtime.OpRange
+	}
+	if builder.allocs != nil {
+		fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, C: 100})
+	}
+	fn.Body = append(fn.Body, runtime.Instruction{Op: op, A: s, B: i, C: e})
+}
+
 // emitRealImag appends a new "RealImag" instruction to the function body.
 //
 //	y, z = real(x), imag(x)
@@ -869,28 +847,6 @@ func (builder *functionBuilder) emitRem(ky bool, x, y, z int8, kind reflect.Kind
 //
 func (builder *functionBuilder) emitReturn() {
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpReturn})
-}
-
-// emitShr appends a new "Shr" instruction to the function body.
-//
-//     z = x >> y
-//
-func (builder *functionBuilder) emitShr(k bool, x, y, z int8, kind reflect.Kind) {
-	var op runtime.Operation
-	switch kind {
-	case reflect.Int:
-		op = runtime.OpShrInt
-	default:
-		if z != x {
-			panic(fmt.Errorf("z must be == x for kind %s", kind))
-		}
-		x = int8(flattenIntegerKind(kind))
-		op = runtime.OpShr
-	}
-	if k {
-		op = -op
-	}
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
 }
 
 // emitSelect appends a new "Select" instruction to the function body.
@@ -989,6 +945,50 @@ func (builder *functionBuilder) emitSetSlice(k bool, slice, value, index int8, p
 		in.Op = -in.Op
 	}
 	builder.fn.Body = append(builder.fn.Body, in)
+}
+
+// emitShl appends a new "Shl" instruction to the function body.
+//
+//     z = x << y
+//
+func (builder *functionBuilder) emitShl(k bool, x, y, z int8, kind reflect.Kind) {
+	var op runtime.Operation
+	switch kind {
+	case reflect.Int:
+		op = runtime.OpShlInt
+	default:
+		if z != x {
+			panic(fmt.Errorf("z must be == x for kind %s", kind))
+		}
+		x = int8(flattenIntegerKind(kind))
+		op = runtime.OpShl
+	}
+	if k {
+		op = -op
+	}
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
+}
+
+// emitShr appends a new "Shr" instruction to the function body.
+//
+//     z = x >> y
+//
+func (builder *functionBuilder) emitShr(k bool, x, y, z int8, kind reflect.Kind) {
+	var op runtime.Operation
+	switch kind {
+	case reflect.Int:
+		op = runtime.OpShrInt
+	default:
+		if z != x {
+			panic(fmt.Errorf("z must be == x for kind %s", kind))
+		}
+		x = int8(flattenIntegerKind(kind))
+		op = runtime.OpShr
+	}
+	if k {
+		op = -op
+	}
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
 }
 
 // emitSlice appends a new "Slice" instruction to the function body.
