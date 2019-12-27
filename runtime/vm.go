@@ -156,8 +156,14 @@ func (vm *VM) Run(fn *Function, globals []interface{}) error {
 	vm.env.globals = globals
 	err := vm.runFunc(fn, globals)
 	vm.env.exit()
-	if fatal, ok := err.(*FatalError); ok {
-		panic(fatal.msg)
+	switch e := err.(type) {
+	case *FatalError:
+		panic(e.msg)
+	case *ExitError:
+		if e.err != nil {
+			vm.env.Println(e.err.Error())
+		}
+		err = nil
 	}
 	return err
 }
@@ -1322,6 +1328,8 @@ const (
 	OpDiv
 	OpDivInt
 	OpDivFloat64
+
+	OpExit
 
 	OpField
 

@@ -1452,6 +1452,17 @@ var checkerStmts = map[string]string{
 	`a := 5i; _ = imag(a)`:              ok,
 	`a := complex64(3+2i); _ = imag(a)`: ok,
 
+	// Builtin function 'exit'.
+	`exit()`:          ok,
+	`exit(0)`:         ok,
+	`exit(1)`:         ok,
+	`exit(int8(1))`:   ok,
+	`exit(2.0)`:       ok,
+	`exit(err)`:       ok,
+	`_ = exit + exit`: `use of builtin exit not in function call`,
+	`exit(0, 1)`:      `too many arguments to exit`,
+	`exit(true)`:      `invalid argument true (type untyped bool) for exit`,
+
 	// Type definitions.
 	`type  ( T1 int ; T2 string; T3 map[T1]T2 ) ; _ = T3{0:"a"}`: ok,
 	`type T int            ; var _ T = T(0)`:                     ok,
@@ -1492,6 +1503,8 @@ func (p *pointInt) SetX(newX int) {
 
 func TestCheckerStatements(t *testing.T) {
 	scope := typeCheckerScope{
+		"exit":       {t: &TypeInfo{Properties: PropertyPredeclared}},
+		"err":        {t: &TypeInfo{Type: errorType}},
 		"boolType":   {t: &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(definedBool(false))}},
 		"aString":    {t: &TypeInfo{Type: reflect.TypeOf(definedString(""))}},
 		"stringType": {t: &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(definedString(""))}},

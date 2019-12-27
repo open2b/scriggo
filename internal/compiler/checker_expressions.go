@@ -31,6 +31,7 @@ var uintType = reflect.TypeOf(uint(0))
 var uint8Type = reflect.TypeOf(uint8(0))
 var int32Type = reflect.TypeOf(int32(0))
 var byteSliceType = reflect.TypeOf([]byte(nil))
+var errorType = reflect.TypeOf(&[]error{nil}[0]).Elem()
 
 var uint8TypeInfo = &TypeInfo{Type: uint8Type, Properties: PropertyIsType | PropertyPredeclared}
 var int32TypeInfo = &TypeInfo{Type: int32Type, Properties: PropertyIsType | PropertyPredeclared}
@@ -1321,6 +1322,31 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			}
 		}
 		key.setValue(keyType)
+		return nil
+
+	case "exit":
+		if len(expr.Args) == 0 {
+			return nil
+		}
+		if len(expr.Args) > 1 {
+			panic(tc.errorf(expr, "too many arguments to exit: %s", expr))
+		}
+		arg := expr.Args[0]
+		t := tc.checkExpr(arg)
+		if t.Nil() {
+			panic(tc.errorf(expr, "use of untyped nil"))
+		}
+		if t.Untyped() && !t.IsNumeric() || !t.Untyped() && !(t.IsInteger() || t.Type.Implements(errorType)) {
+			panic(tc.errorf(expr, "invalid argument %s (type %s) for exit", arg, t))
+		}
+		t.setValue(intType)
+		if t.IsConstant() {
+			_, err := t.Constant.representedBy(intType)
+			if err != nil {
+				panic(tc.errorf(expr, "%s", err))
+			}
+		}
+		tc.terminating = true
 		return nil
 
 	case "len":

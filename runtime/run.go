@@ -534,6 +534,24 @@ func (vm *VM) run() (Addr, bool) {
 		case OpDivFloat64, -OpDivFloat64:
 			vm.setFloat(c, vm.float(a)/vm.floatk(b, op < 0))
 
+		// Exit
+		case OpExit, -OpExit:
+			var code int
+			var err error
+			if a != 0 {
+				code = int(vm.intk(a, op < 0))
+			}
+			if b != 0 {
+				e := vm.general(b)
+				if e.IsValid() {
+					err = e.Interface().(error)
+					if a == 0 {
+						code = 1
+					}
+				}
+			}
+			panic(&ExitError{vm.env, code, err})
+
 		// Field
 		case OpField:
 			// TODO: OpField currently returns the reference to the struct

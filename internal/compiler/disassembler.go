@@ -413,6 +413,9 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	case runtime.OpDelete:
 		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 		s += " " + disassembleOperand(fn, b, reflect.Interface, false)
+	case runtime.OpExit:
+		s += " " + disassembleOperand(fn, a, reflect.Int, k)
+		s += " " + disassembleOperand(fn, b, reflect.Interface, false)
 	case runtime.OpIf:
 		switch runtime.Condition(b) {
 		case runtime.ConditionOK, runtime.ConditionNotOK:
@@ -865,6 +868,8 @@ var operationName = [...]string{
 	runtime.OpDiv:        "Div",
 	runtime.OpDivInt:     "Div",
 	runtime.OpDivFloat64: "Div",
+
+	runtime.OpExit: "Exit",
 
 	runtime.OpGetVar: "GetVar",
 

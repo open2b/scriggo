@@ -257,6 +257,17 @@ func deferGoBuiltin(name string) *TypeInfo {
 		fun = func(m interface{}, key interface{}) {
 			reflect.ValueOf(m).SetMapIndex(reflect.ValueOf(key), reflect.Value{})
 		}
+	case "exit":
+		fun = func(env *runtime.Env, v ...interface{}) {
+			if len(v) == 0 || v[0] == nil {
+				env.Exit(0, nil)
+			} else if err, ok := v[0].(error); ok {
+				env.Exit(1, err)
+			} else {
+				rv := reflect.ValueOf(v[0])
+				env.Exit(int(rv.Int()), nil)
+			}
+		}
 	case "panic":
 		fun = func(env *runtime.Env, v interface{}) {
 			if env.Exited() {

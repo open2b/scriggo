@@ -64,6 +64,12 @@ func (env *Env) Exited() bool {
 	return exited
 }
 
+// Exit exits the environment with with the given status code. If err is not
+// nil, err.Error() is printed with env.Println.
+func (env *Env) Exit(code int, err error) {
+	panic(&ExitError{env, code, err})
+}
+
 // ExitFunc calls f in its own goroutine after the execution of the
 // environment is terminated.
 func (env *Env) ExitFunc(f func()) {

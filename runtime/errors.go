@@ -66,6 +66,20 @@ func errTypeAssertion(interfac, concrete, asserted reflect.Type, missingMethod s
 	return runtimeError(s + "packages)")
 }
 
+// ExitError represents an exit error.
+type ExitError struct {
+	env  *Env
+	code int
+	err  error
+}
+
+func (err ExitError) Error() string {
+	if err.err != nil {
+		return err.err.Error()
+	}
+	return ""
+}
+
 // OutOfTimeError represents a runtime out of time error.
 type OutOfTimeError struct {
 	env *Env
@@ -122,6 +136,9 @@ func (vm *VM) newPanic(msg interface{}) *Panic {
 
 // convertPanic converts a panic to an error.
 func (vm *VM) convertPanic(msg interface{}) error {
+	if err, ok := msg.(*ExitError); ok {
+		return err
+	}
 	switch vm.fn.Body[vm.pc-1].Op {
 	case OpAddr, OpIndex, -OpIndex, OpIndexRef, -OpIndexRef, OpSetSlice, -OpSetSlice:
 		switch err := msg.(type) {

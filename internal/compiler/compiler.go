@@ -175,6 +175,17 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 			globalScope = toTypeCheckerScope(main.(predefinedPackage), 0, opts)
 		}
 	}
+
+	// Add the builtin "exit" to the script global scope.
+	if opts.SyntaxType == ScriptSyntax {
+		exit := scopeElement{t: &TypeInfo{Properties: PropertyPredeclared}}
+		if globalScope == nil {
+			globalScope = typeCheckerScope{"exit": exit}
+		} else if _, ok := globalScope["exit"]; !ok {
+			globalScope["exit"] = exit
+		}
+	}
+
 	tc := newTypechecker(tree.Path, opts, globalScope)
 
 	// Type check a template page which extends another page.

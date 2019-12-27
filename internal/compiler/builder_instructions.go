@@ -311,6 +311,18 @@ func (builder *functionBuilder) emitDiv(ky bool, x, y, z int8, kind reflect.Kind
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
 }
 
+// emitExit appends a new "Exit" instruction to the function body.
+//
+//     exit(v)
+//
+func (builder *functionBuilder) emitExit(kcode bool, code, err int8) {
+	op := runtime.OpExit
+	if kcode {
+		op = -op
+	}
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: code, B: err})
+}
+
 // emitField appends a new "Field" or a "FielRef" instruction to the function
 // body. If ref is set then the result of the "field operation" is a reference
 // to that field (i.e. is an addressable reflect.Value with the same underlying
