@@ -126,8 +126,8 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 
 			file := args[0]
 			ext := filepath.Ext(file)
-			if ext != ".go" && ext != ".sgo" && ext != ".html" {
-				fmt.Printf("%s: extension must be \".go\" for main packages, \".sgo\" for scripts and \".html\" for template pages\n", file)
+			if ext != ".go" && ext != ".sg" && ext != ".html" {
+				fmt.Printf("%s: extension must be \".go\" for main packages, \".sg\" for scripts and \".html\" for template pages\n", file)
 				os.Exit(-1)
 			}
 
@@ -138,7 +138,7 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 			}
 
 			switch ext {
-			case ".sgo":
+			case ".sg":
 				{{ script }}
 			case ".go":
 				{{ program }}
