@@ -1454,15 +1454,17 @@ var checkerStmts = map[string]string{
 	`a := complex64(3+2i); _ = imag(a)`: ok,
 
 	// Builtin function 'exit'.
-	`exit()`:          ok,
-	`exit(0)`:         ok,
-	`exit(1)`:         ok,
-	`exit(int8(1))`:   ok,
-	`exit(2.0)`:       ok,
-	`exit(err)`:       ok,
-	`_ = exit + exit`: `use of builtin exit not in function call`,
-	`exit(0, 1)`:      `too many arguments to exit`,
-	`exit(true)`:      `invalid argument true (type untyped bool) for exit`,
+	`exit()`:              ok,
+	`exit(0)`:             ok,
+	`exit(1)`:             ok,
+	`exit(int8(1))`:       ok,
+	`exit(2.0)`:           ok,
+	`exit(err)`:           ok,
+	`_ = exit + exit`:     `use of builtin exit not in function call`,
+	`exit(0, 1)`:          `too many arguments to exit`,
+	`exit(true)`:          `invalid argument true (type untyped bool) for exit`,
+	`if true { exit() }`:  ok,
+	`func f() { exit() }`: `use of builtin exit in function body`,
 
 	// Type definitions.
 	`type  ( T1 int ; T2 string; T3 map[T1]T2 ) ; _ = T3{0:"a"}`: ok,

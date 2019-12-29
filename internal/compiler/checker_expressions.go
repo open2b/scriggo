@@ -1326,26 +1326,28 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		return nil
 
 	case "exit":
-		if len(expr.Args) == 0 {
-			return nil
-		}
-		if len(expr.Args) > 1 {
-			panic(tc.errorf(expr, "too many arguments to exit: %s", expr))
-		}
-		arg := expr.Args[0]
-		t := tc.checkExpr(arg)
-		if t.Nil() {
-			panic(tc.errorf(expr, "use of untyped nil"))
-		}
-		if t.Untyped() && !t.IsNumeric() || !t.Untyped() && !(t.IsInteger() || t.Type.Implements(errorType)) {
-			panic(tc.errorf(expr, "invalid argument %s (type %s) for exit", arg, t))
-		}
-		t.setValue(intType)
-		if t.IsConstant() {
-			_, err := t.Constant.representedBy(intType)
-			if err != nil {
-				panic(tc.errorf(expr, "%s", err))
+		if len(expr.Args) > 0 {
+			if len(expr.Args) > 1 {
+				panic(tc.errorf(expr, "too many arguments to exit: %s", expr))
 			}
+			arg := expr.Args[0]
+			t := tc.checkExpr(arg)
+			if t.Nil() {
+				panic(tc.errorf(expr, "use of untyped nil"))
+			}
+			if t.Untyped() && !t.IsNumeric() || !t.Untyped() && !(t.IsInteger() || t.Type.Implements(errorType)) {
+				panic(tc.errorf(expr, "invalid argument %s (type %s) for exit", arg, t))
+			}
+			t.setValue(intType)
+			if t.IsConstant() {
+				_, err := t.Constant.representedBy(intType)
+				if err != nil {
+					panic(tc.errorf(expr, "%s", err))
+				}
+			}
+		}
+		if len(tc.ancestors) > 0 {
+			panic(tc.errorf(expr, "use of builtin exit in function body"))
 		}
 		tc.terminating = true
 		return nil
