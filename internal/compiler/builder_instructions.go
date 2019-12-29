@@ -315,12 +315,12 @@ func (builder *functionBuilder) emitDiv(ky bool, x, y, z int8, kind reflect.Kind
 //
 //     exit(v)
 //
-func (builder *functionBuilder) emitExit(kcode bool, code, err int8) {
+func (builder *functionBuilder) emitExit(kcode bool, err, code int8) {
 	op := runtime.OpExit
 	if kcode {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: code, B: err})
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: err, B: code})
 }
 
 // emitField appends a new "Field" or a "FielRef" instruction to the function

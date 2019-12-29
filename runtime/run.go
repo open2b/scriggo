@@ -538,14 +538,14 @@ func (vm *VM) run() (Addr, bool) {
 		case OpExit, -OpExit:
 			var code int
 			var err error
-			if a != 0 {
-				code = int(vm.intk(a, op < 0))
-			}
 			if b != 0 {
-				e := vm.general(b)
+				code = int(vm.intk(b, op < 0))
+			}
+			if a != 0 {
+				e := vm.general(a)
 				if e.IsValid() {
 					err = e.Interface().(error)
-					if a == 0 {
+					if b == 0 {
 						code = 1
 					}
 				}
