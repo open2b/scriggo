@@ -1327,6 +1327,7 @@ var checkerStmts = map[string]string{
 	`append([]int{}, 0)`:         evaluatedButNotUsed("append([]int literal, 0)"),
 	`append(0)`:                  `first argument to append must be slice; have untyped number`,
 	`append(nil)`:                `first argument to append must be typed slice; have untyped nil`,
+	`append([]string{}, nil)`:    `cannot use nil as type string in append`,
 
 	// Builtin function 'copy'.
 	`_ = copy([]int{}, []int{})`:     ok,

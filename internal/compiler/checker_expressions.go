@@ -1130,16 +1130,17 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			}
 		} else if len(expr.Args) > 1 {
 			elemType := slice.Type.Elem()
-			for i, el := range expr.Args {
-				if i == 0 {
-					continue
-				}
+			for _, el := range expr.Args[1:] {
 				t := tc.checkExpr(el)
 				if err := tc.isAssignableTo(t, el, elemType); err != nil {
-					if _, ok := err.(invalidTypeInAssignment); ok {
+					switch err.(type) {
+					case invalidTypeInAssignment:
 						panic(tc.errorf(expr, "%s in append", err))
+					case nilConvertionError:
+						panic(tc.errorf(expr, "cannot use nil as type %s in append", elemType))
+					default:
+						panic(tc.errorf(expr, "%s", err))
 					}
-					panic(tc.errorf(expr, "%s", err))
 				}
 				t.setValue(elemType)
 			}
