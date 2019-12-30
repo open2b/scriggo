@@ -80,7 +80,7 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 				if err != nil {
 					_, _ = fmt.Fprintf(os.Stderr, usage, os.Args[0])
 					flag.PrintDefaults()
-					os.Exit(-1)
+					os.Exit(1)
 				}
 				if d != 0 {
 					var cancel context.CancelFunc
@@ -104,7 +104,7 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 				if err != nil {
 					_, _ = fmt.Fprintf(os.Stderr, usage, os.Args[0])
 					flag.PrintDefaults()
-					os.Exit(-1)
+					os.Exit(1)
 				}
 				switch unit {
 				case 'K':
@@ -121,20 +121,20 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 			if len(args) != 1 {
 				_, _ = fmt.Fprintf(os.Stderr, usage, os.Args[0])
 				flag.PrintDefaults()
-				os.Exit(-1)
+				os.Exit(1)
 			}
 
 			file := args[0]
 			ext := filepath.Ext(file)
 			if ext != ".go" && ext != ".sg" && ext != ".html" {
 				fmt.Printf("%s: extension must be \".go\" for main packages, \".sg\" for scripts and \".html\" for template pages\n", file)
-				os.Exit(-1)
+				os.Exit(1)
 			}
 
 			absFile, err := filepath.Abs(file)
 			if err != nil {
 				fmt.Printf("%s: %s\n", file, err)
-				os.Exit(-1)
+				os.Exit(1)
 			}
 
 			switch ext {
@@ -216,7 +216,7 @@ const templateSkel = `r := template.DirReader(filepath.Dir(absFile))
 		loadedMain, err := packages.Load("main")
 		if err != nil {
 			fmt.Println(err)
-			os.Exit(-1)
+			os.Exit(1)
 		}
 		var main scriggo.Package
 		if loadedMain == nil {
@@ -234,7 +234,7 @@ const templateSkel = `r := template.DirReader(filepath.Dir(absFile))
 		t, err := template.Load(path, r, main, template.ContextHTML, &template.LoadOptions{LimitMemorySize: loadOptions.LimitMemorySize})
 		if err != nil {
 			fmt.Println(err)
-			os.Exit(-1)
+			os.Exit(1)
 		}
 		if *asm {
 			_, err := t.Disassemble(os.Stdout)
@@ -253,7 +253,7 @@ const templateSkel = `r := template.DirReader(filepath.Dir(absFile))
 					panic(renderPanics(p))
 				}
 				fmt.Println(err)
-				os.Exit(-1)
+				os.Exit(1)
 			}
 		}
 		os.Exit(0)`
@@ -268,19 +268,19 @@ func makeInterpreterSource(targets Target) []byte {
 		out = strings.Replace(out, "{{ script }}", scriptSkel, 1)
 	} else {
 		out = strings.Replace(out, "{{ script }}", `fmt.Println("script support not included in this interpreter.")
-		os.Exit(-1)`, 1)
+		os.Exit(1)`, 1)
 	}
 	if targets&targetTemplates != 0 {
 		out = strings.Replace(out, "{{ template }}", templateSkel, 1)
 	} else {
 		out = strings.Replace(out, "{{ template }}", `fmt.Println("program support not included in this interpreter.")
-		os.Exit(-1)`, 1)
+		os.Exit(1)`, 1)
 	}
 	if targets&targetPrograms != 0 {
 		out = strings.Replace(out, "{{ program }}", programSkel, 1)
 	} else {
 		out = strings.Replace(out, "{{ program }}", `fmt.Println("template support not included in this interpreter.")
-		os.Exit(-1)`, 1)
+		os.Exit(1)`, 1)
 	}
 
 	return []byte(out)
