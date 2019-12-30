@@ -61,13 +61,13 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			switch v := ti.value.(type) {
 			case int64:
 				if canEmitDirectly(reflect.Int, dstType.Kind()) {
-					if -127 < v && v < 126 {
+					if -128 <= v && v <= 127 {
 						return int8(v), true
 					}
 				}
 			case float64:
 				if canEmitDirectly(reflect.Float64, dstType.Kind()) {
-					if math.Floor(v) == v && -127 < v && v < 126 {
+					if math.Floor(v) == v && -128 <= v && v <= 127 {
 						return int8(v), true
 					}
 				}
@@ -547,7 +547,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 		length := em.compositeLiteralLen(expr)
 		var k bool
 		var length8 int8
-		if length > 126 {
+		if length > 127 {
 			length8 = em.fb.newRegister(reflect.Int)
 			em.fb.emitLoadNumber(intRegister, em.fb.makeIntConstant(int64(length)), length8)
 			k = false
@@ -586,7 +586,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 			}
 			em.fb.enterStack()
 			indexReg := em.fb.newRegister(reflect.Int)
-			if index > 126 {
+			if index > 127 {
 				em.fb.emitLoadNumber(intRegister, em.fb.makeIntConstant(index), indexReg)
 			} else {
 				em.fb.emitMove(true, int8(index), indexReg, reflect.Int, true)
@@ -654,7 +654,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 		}
 		tmp := em.fb.newRegister(reflect.Map)
 		size := len(expr.KeyValues)
-		if 0 <= size && size < 126 {
+		if 0 <= size && size <= 127 {
 			em.fb.emitMakeMap(typ, true, int8(size), tmp)
 		} else {
 			sizeReg := em.fb.makeIntConstant(int64(size))

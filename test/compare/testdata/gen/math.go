@@ -51,13 +51,13 @@ func main() {
 
 		isUnsigned := strings.HasPrefix(typ, "u")
 
-		initial := "-127"
+		initial := "-128"
 		if isUnsigned {
 			initial = "0"
 		}
 
 		fmt.Fprintf(w, "\n\t// %s\n", typ)
-		fmt.Fprintf(w, "\t"+`for i := %s(%s); i <= 126; i++ {`+"\n", typ, initial)
+		fmt.Fprintf(w, "\t"+`for i := %s(%s); ; i++ {`+"\n", typ, initial)
 		for _, op := range ops {
 			if isUnsigned {
 				var consts []uint64
@@ -93,7 +93,8 @@ func main() {
 				}
 			}
 		}
-		fmt.Fprintf(w, "\t}\n")
+
+		fmt.Fprintf(w, "\t\tif i == 127 {\n\t\t\tbreak\n\t\t}\n\t}\n")
 	}
 	fmt.Fprintf(w, "}\n")
 
