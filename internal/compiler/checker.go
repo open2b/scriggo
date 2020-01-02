@@ -89,10 +89,10 @@ type typechecker struct {
 	storedValidGoto int
 	labels          [][]string
 
-	// isScriptFuncDecl reports whether the type checker is currently checking a
-	// script function declaration, that has been transformed into an assignment
-	// node.
-	isScriptFuncDecl bool
+	// packageLessFuncDecl reports whether the type checker is currently
+	// checking a function declaration in a package-less program, that has been
+	// transformed into an assignment node.
+	packageLessFuncDecl bool
 
 	// types refers the types of the current compilation and it is used to
 	// create and manipulate types and values, both predefined and defined only
@@ -213,8 +213,8 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*TypeIn
 func (tc *typechecker) assignScope(name string, value *TypeInfo, declNode *ast.Identifier) {
 
 	if tc.declaredInThisBlock(name) {
-		if tc.opts.PackageLess && tc.isScriptFuncDecl {
-			panic(tc.errorf(declNode, "%s already declared in script", declNode))
+		if tc.opts.PackageLess && tc.packageLessFuncDecl {
+			panic(tc.errorf(declNode, "%s already declared in this program", declNode))
 		}
 		previousDecl, _ := tc.lookupScopesElem(name, true)
 		s := name + " redeclared in this block"

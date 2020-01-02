@@ -218,7 +218,7 @@ const templateSkel = `r := template.DirReader(filepath.Dir(absFile))
 		os.Exit(0)`
 
 // makeInterpreterSource returns a Go source code that interprets a Scriggo
-// program, script or template.
+// program or template.
 func makeInterpreterSource(targets Target) []byte {
 
 	out := interpreterSkel

@@ -177,7 +177,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 		}
 	}
 
-	// Add the builtin "exit" to the script global scope.
+	// Add the builtin "exit" to the package-less program global scope.
 	if opts.PackageLess {
 		exit := scopeElement{t: &TypeInfo{Properties: PropertyPredeclared}}
 		if globalScope == nil {
@@ -239,7 +239,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 		return map[string]*PackageInfo{"main": mainPkgInfo}, nil
 	}
 
-	// Type check a template page or a script.
+	// Type check a template page or a package-less program.
 	tc.predefinedPkgs = packages
 	var err error
 	tree.Nodes, err = tc.checkNodesInNewScopeError(tree.Nodes)
@@ -288,10 +288,10 @@ func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 	return pkg
 }
 
-// EmitScript emits the code for a script given its tree, the type info and
-// indirect variables. alloc reports whether Alloc instructions must be
+// EmitScript emits the code for a package-less program given its tree, the type
+// info and indirect variables. alloc reports whether Alloc instructions must be
 // emitted. EmitScript returns a function that is the entry point of the
-// script and the global variables.
+// package-less program and the global variables.
 func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)), tree.Path)

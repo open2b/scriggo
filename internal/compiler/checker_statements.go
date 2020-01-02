@@ -759,7 +759,8 @@ nodesLoop:
 						[]ast.Expression{fun},
 					)
 					// Check the new node, informing the type checker that the
-					// current assignment is a script function declaration.
+					// current assignment is a function declaration in a
+					// package-less program.
 					backup := tc.isScriptFuncDecl
 					tc.isScriptFuncDecl = true
 					newNodes := []ast.Node{varDecl, nodeAssign}
@@ -801,7 +802,7 @@ nodesLoop:
 // TODO: improve this code, making it more readable.
 func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkgInfos map[string]*PackageInfo, packageLevel bool) error {
 
-	// Import statement in a script.
+	// Import statement in a package-less program.
 	if tc.opts.PackageLess {
 		if impor.Tree != nil {
 			panic("cannot import precompiled packages in scripts") // TODO: review this panic.
