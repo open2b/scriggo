@@ -28,6 +28,7 @@ const usage = "usage: %s [-S] [-mem 250K] [-time 50ms] filename\n"
 var packages scriggo.Packages
 var Main *scriggo.Package
 
+// TODO: remove mainLoader
 type mainLoader []byte
 
 func (b mainLoader) Load(path string) (interface{}, error) {
@@ -131,7 +132,7 @@ func run() {
 		if err != nil {
 			panic(err)
 		}
-		program, err := scriggo.Load(scriggo.Loaders(mainLoader(main), packages), loadOptions)
+		program, err := scriggo.Load(bytes.NewReader(main), scriggo.Loaders(packages), loadOptions)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)

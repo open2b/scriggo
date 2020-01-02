@@ -7,11 +7,11 @@
 package scriggo
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"reflect"
 
 	"scriggo/ast"
@@ -25,7 +25,6 @@ type LoadOptions struct {
 	AllowShebangLine bool // allow shebang line; only for scripts.
 	Unspec           struct {
 		PackageLess bool
-		ScriptSrc   []byte
 	}
 }
 
@@ -48,19 +47,22 @@ type CompilerError interface {
 
 // Load loads a Go program with the given options, loading the main package and
 // the imported packages from loader. A main package have path "main".
-func Load(loader PackageLoader, options *LoadOptions) (*Program, error) {
+func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, error) {
 
 	var tree *ast.Tree
 
 	if options != nil && options.Unspec.PackageLess {
 		var err error
-		tree, err = compiler.ParseScript(bytes.NewReader(options.Unspec.ScriptSrc), loader, options.AllowShebangLine)
+		tree, err = compiler.ParseScript(src, loader, options.AllowShebangLine)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		var err error
-		tree, err = compiler.ParseProgram(loader)
+		mainSrc, err := ioutil.ReadAll(src)
+		if err != nil {
+			return nil, err
+		}
+		tree, err = compiler.ParseProgram(CombinedLoader{MapStringLoader{"main": string(mainSrc)}, loader})
 		if err != nil {
 			return nil, err
 		}

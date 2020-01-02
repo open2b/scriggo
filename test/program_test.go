@@ -9,6 +9,7 @@ package test
 import (
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"scriggo"
@@ -33,18 +34,16 @@ func TestIssue403(t *testing.T) {
 					},
 				},
 			},
-			&scriggo.MapStringLoader{
-				"main": `
-					package main
-
-					import "pkg"
-		
-					func main() {
-						pkg.Value.Method()
-					}`,
-			},
 		}
-		program, err := scriggo.Load(loaders, nil)
+		main := `
+		package main
+
+		import "pkg"
+
+		func main() {
+			pkg.Value.Method()
+		}`
+		program, err := scriggo.Load(strings.NewReader(main), loaders, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -63,19 +62,17 @@ func TestIssue403(t *testing.T) {
 					},
 				},
 			},
-			&scriggo.MapStringLoader{
-				"main": `
-				package main
-	
-				import "pkg"
-				
-				func main() {
-					t := pkg.Type{}
-					t.Method()
-				}`,
-			},
 		}
-		program, err := scriggo.Load(loaders, nil)
+		main := `
+		package main
+
+		import "pkg"
+		
+		func main() {
+			t := pkg.Type{}
+			t.Method()
+		}`
+		program, err := scriggo.Load(strings.NewReader(main), loaders, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -94,21 +91,19 @@ func TestIssue403(t *testing.T) {
 					},
 				},
 			},
-			&scriggo.MapStringLoader{
-				"main": `
-	
-				package main
-	
-				import "pkg"
-				
-				func main() {
-					t := struct{}{}
-					pkg.F(t)
-				}
-				`,
-			},
 		}
-		program, err := scriggo.Load(loaders, nil)
+		main := `
+	
+		package main
+
+		import "pkg"
+		
+		func main() {
+			t := struct{}{}
+			pkg.F(t)
+		}
+		`
+		program, err := scriggo.Load(strings.NewReader(main), loaders, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -127,21 +122,19 @@ func TestIssue403(t *testing.T) {
 					},
 				},
 			},
-			&scriggo.MapStringLoader{
-				"main": `
-	
-				package main
-	
-				import "pkg"
-				
-				func main() {
-					a := [3]int{}
-					pkg.F(a)
-				}
-				`,
-			},
 		}
-		program, err := scriggo.Load(loaders, nil)
+		main := `
+	
+		package main
+
+		import "pkg"
+		
+		func main() {
+			a := [3]int{}
+			pkg.F(a)
+		}
+		`
+		program, err := scriggo.Load(strings.NewReader(main), loaders, nil)
 		if err != nil {
 			t.Fatal(err)
 		}

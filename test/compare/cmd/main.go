@@ -12,6 +12,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -147,7 +148,7 @@ func main() {
 			LimitMemorySize: limitMemorySize,
 			DisallowGoStmt:  *disallowGoStmt,
 		}
-		_, err := scriggo.Load(scriggo.Loaders(stdinLoader{os.Stdin}, predefPkgs), loadOpts)
+		_, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -156,17 +157,12 @@ func main() {
 		if timeout != nil {
 			panic("timeout not supported when compiling a script")
 		}
-		src, err := ioutil.ReadAll(os.Stdin)
-		if err != nil {
-			panic(err)
-		}
 		loadOpts := &scriggo.LoadOptions{
 			LimitMemorySize: limitMemorySize,
 			DisallowGoStmt:  *disallowGoStmt,
 		}
 		loadOpts.Unspec.PackageLess = true
-		loadOpts.Unspec.ScriptSrc = src
-		_, err = scriggo.Load(predefPkgs, loadOpts)
+		_, err = scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -176,7 +172,7 @@ func main() {
 			LimitMemorySize: limitMemorySize,
 			DisallowGoStmt:  *disallowGoStmt,
 		}
-		program, err := scriggo.Load(scriggo.Loaders(stdinLoader{os.Stdin}, predefPkgs), loadOpts)
+		program, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -193,17 +189,12 @@ func main() {
 			panic(err)
 		}
 	case "run script":
-		src, err := ioutil.ReadAll(os.Stdin)
-		if err != nil {
-			panic(err)
-		}
 		loadOpts := &scriggo.LoadOptions{
 			LimitMemorySize: limitMemorySize,
 			DisallowGoStmt:  *disallowGoStmt,
 		}
 		loadOpts.Unspec.PackageLess = true
-		loadOpts.Unspec.ScriptSrc = src
-		script, err := scriggo.Load(predefPkgs, loadOpts)
+		script, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -226,7 +217,11 @@ func main() {
 		}
 		dirPath := flag.Args()[1]
 		dl := dirLoader(dirPath)
-		prog, err := scriggo.Load(scriggo.CombinedLoader{dl, predefPkgs}, loadOpts)
+		main, err := dl.Load("main")
+		if err != nil {
+			panic(err)
+		}
+		prog, err := scriggo.Load(main.(io.Reader), scriggo.CombinedLoader{dl, predefPkgs}, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)

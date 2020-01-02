@@ -190,8 +190,7 @@ func TestScript(t *testing.T) {
 			}
 			loadOpts := &scriggo.LoadOptions{}
 			loadOpts.Unspec.PackageLess = true
-			loadOpts.Unspec.ScriptSrc = []byte(cas.src)
-			script, err := scriggo.Load(cas.pkgs, loadOpts)
+			script, err := scriggo.Load(strings.NewReader(cas.src), cas.pkgs, loadOpts)
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
@@ -224,8 +223,7 @@ func TestScriptSum(t *testing.T) {
 	init := map[string]interface{}{"Sum": &Sum}
 	loadOpts := &scriggo.LoadOptions{}
 	loadOpts.Unspec.PackageLess = true
-	loadOpts.Unspec.ScriptSrc = []byte(src)
-	script, err := scriggo.Load(pkgs, loadOpts)
+	script, err := scriggo.Load(strings.NewReader(src), pkgs, loadOpts)
 	if err != nil {
 		t.Fatalf("unable to load script: %s", err)
 	}
@@ -252,18 +250,14 @@ func TestScriptChainMessages(t *testing.T) {
 			},
 		},
 	}
-	loadOpts1 := &scriggo.LoadOptions{}
-	loadOpts1.Unspec.PackageLess = true
-	loadOpts1.Unspec.ScriptSrc = []byte(src1)
+	loadOpts := &scriggo.LoadOptions{}
+	loadOpts.Unspec.PackageLess = true
 	init := map[string]interface{}{"Message": &Message}
-	script1, err := scriggo.Load(pkgs, loadOpts1)
+	script1, err := scriggo.Load(strings.NewReader(src1), pkgs, loadOpts)
 	if err != nil {
 		t.Fatalf("unable to load script 1: %s", err)
 	}
-	loadOpts2 := &scriggo.LoadOptions{}
-	loadOpts2.Unspec.PackageLess = true
-	loadOpts2.Unspec.ScriptSrc = []byte(src2)
-	script2, err := scriggo.Load(pkgs, loadOpts2)
+	script2, err := scriggo.Load(strings.NewReader(src2), pkgs, loadOpts)
 	if err != nil {
 		t.Fatalf("unable to load script 2: %s", err)
 	}
