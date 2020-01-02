@@ -101,7 +101,7 @@ type typechecker struct {
 }
 
 // newTypechecker creates a new type checker. A global scope may be provided for
-// scripts and templates.
+// package-less programs and templates.
 func newTypechecker(path string, opts CheckerOptions, globalScope typeCheckerScope) *typechecker {
 	return &typechecker{
 		path:             path,

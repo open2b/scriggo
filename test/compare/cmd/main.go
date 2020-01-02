@@ -2,8 +2,8 @@
 // interface. It just aims to simplicity, speed and robustness.
 
 // In case of success the standard output contains the output of the execution
-// of the program/script or the rendering of the template. Else, in case of
-// error, the stderr contains the error.
+// of the program or the rendering of the template. Else, in case of error, the
+// stderr contains the error.
 
 package main
 
@@ -155,7 +155,7 @@ func main() {
 		}
 	case "compile script":
 		if timeout != nil {
-			panic("timeout not supported when compiling a script")
+			panic("timeout not supported when compiling a package-less program")
 		}
 		loadOpts := &scriggo.LoadOptions{
 			LimitMemorySize: limitMemorySize,
