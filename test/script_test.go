@@ -7,7 +7,6 @@
 package test
 
 import (
-	"bytes"
 	"fmt"
 	"math"
 	"strings"
@@ -189,11 +188,16 @@ func TestScript(t *testing.T) {
 					scriptStdout.WriteString(fmt.Sprint(a))
 				}
 			}
-			script, err := scriggo.LoadScript(bytes.NewReader([]byte(cas.src)), cas.pkgs, nil)
+			loadOpts := &scriggo.LoadOptions{}
+			loadOpts.Unspec.PackageLess = true
+			loadOpts.Unspec.ScriptSrc = []byte(cas.src)
+			script, err := scriggo.Load(cas.pkgs, loadOpts)
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
-			err = script.Run(cas.init, nil)
+			runOpts := &scriggo.RunOptions{}
+			runOpts.Unspec.Builtins = cas.init
+			err = script.Run(runOpts)
 			if err != nil {
 				t.Fatalf("execution error: %s", err)
 			}
@@ -218,11 +222,16 @@ func TestScriptSum(t *testing.T) {
 		},
 	}
 	init := map[string]interface{}{"Sum": &Sum}
-	script, err := scriggo.LoadScript(bytes.NewReader([]byte(src)), pkgs, nil)
+	loadOpts := &scriggo.LoadOptions{}
+	loadOpts.Unspec.PackageLess = true
+	loadOpts.Unspec.ScriptSrc = []byte(src)
+	script, err := scriggo.Load(pkgs, loadOpts)
 	if err != nil {
 		t.Fatalf("unable to load script: %s", err)
 	}
-	err = script.Run(init, nil)
+	runOpts := &scriggo.RunOptions{}
+	runOpts.Unspec.Builtins = init
+	err = script.Run(runOpts)
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}
@@ -243,23 +252,31 @@ func TestScriptChainMessages(t *testing.T) {
 			},
 		},
 	}
+	loadOpts1 := &scriggo.LoadOptions{}
+	loadOpts1.Unspec.PackageLess = true
+	loadOpts1.Unspec.ScriptSrc = []byte(src1)
 	init := map[string]interface{}{"Message": &Message}
-	script1, err := scriggo.LoadScript(bytes.NewReader([]byte(src1)), pkgs, nil)
+	script1, err := scriggo.Load(pkgs, loadOpts1)
 	if err != nil {
 		t.Fatalf("unable to load script 1: %s", err)
 	}
-	script2, err := scriggo.LoadScript(bytes.NewReader([]byte(src2)), pkgs, nil)
+	loadOpts2 := &scriggo.LoadOptions{}
+	loadOpts2.Unspec.PackageLess = true
+	loadOpts2.Unspec.ScriptSrc = []byte(src2)
+	script2, err := scriggo.Load(pkgs, loadOpts2)
 	if err != nil {
 		t.Fatalf("unable to load script 2: %s", err)
 	}
-	err = script1.Run(init, nil)
+	runOpts := &scriggo.RunOptions{}
+	runOpts.Unspec.Builtins = init
+	err = script1.Run(runOpts)
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}
 	if Message != "external,script1," {
 		t.Fatalf("Message should be %q, got %q", "external,script1,", Message)
 	}
-	err = script2.Run(init, nil)
+	err = script2.Run(runOpts)
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}

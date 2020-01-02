@@ -164,7 +164,9 @@ func main() {
 			LimitMemorySize: limitMemorySize,
 			DisallowGoStmt:  *disallowGoStmt,
 		}
-		_, err = scriggo.LoadScript(bytes.NewReader(src), predefPkgs, loadOpts)
+		loadOpts.Unspec.PackageLess = true
+		loadOpts.Unspec.ScriptSrc = src
+		_, err = scriggo.Load(predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -191,11 +193,17 @@ func main() {
 			panic(err)
 		}
 	case "run script":
+		src, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			panic(err)
+		}
 		loadOpts := &scriggo.LoadOptions{
 			LimitMemorySize: limitMemorySize,
 			DisallowGoStmt:  *disallowGoStmt,
 		}
-		script, err := scriggo.LoadScript(os.Stdin, predefPkgs, loadOpts)
+		loadOpts.Unspec.PackageLess = true
+		loadOpts.Unspec.ScriptSrc = src
+		script, err := scriggo.Load(predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -204,7 +212,7 @@ func main() {
 			Context:       timeout,
 			MaxMemorySize: maxMemorySize,
 		}
-		err = script.Run(nil, runOpts)
+		err = script.Run(runOpts)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
 				panic(renderPanics(p))

@@ -77,7 +77,6 @@ type SyntaxType int8
 const (
 	// https://github.com/open2b/scriggo/issues/364
 	TemplateSyntax SyntaxType = iota + 1
-	ScriptSyntax
 	ProgramSyntax
 )
 
@@ -97,6 +96,8 @@ type CheckerOptions struct {
 	// FailOnTODO makes compilation fail when a ShowMacro statement with "or
 	// todo" option cannot be resolved.
 	FailOnTODO bool
+
+	PackageLess bool
 }
 
 // EmitterOptions contains the options for the emitter.
@@ -151,7 +152,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 	pkgPathToIndex = map[string]int{}
 
 	// Type check a program.
-	if opts.SyntaxType == ProgramSyntax {
+	if opts.SyntaxType == ProgramSyntax && !opts.PackageLess {
 		pkgInfos := map[string]*PackageInfo{}
 		pkg := tree.Nodes[0].(*ast.Package)
 		if pkg.Name != "main" {
@@ -177,7 +178,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 	}
 
 	// Add the builtin "exit" to the script global scope.
-	if opts.SyntaxType == ScriptSyntax {
+	if opts.PackageLess {
 		exit := scopeElement{t: &TypeInfo{Properties: PropertyPredeclared}}
 		if globalScope == nil {
 			globalScope = typeCheckerScope{"exit": exit}

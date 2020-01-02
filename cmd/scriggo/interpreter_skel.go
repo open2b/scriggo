@@ -138,8 +138,6 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 			}
 
 			switch ext {
-			case ".sg":
-				{{ script }}
 			case ".go":
 				{{ program }}
 			case ".html":
@@ -171,36 +169,6 @@ const programSkel = `main, err := ioutil.ReadFile(absFile)
 				}
 				if err == context.DeadlineExceeded {
 					err = errors.New("process took too long")
-				}
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
-			}
-		}
-		os.Exit(0)`
-
-const scriptSkel = `r, err := os.Open(absFile)
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-			os.Exit(2)
-		}
-		loadOptions.AllowShebangLine = true
-		script, err := scriggo.LoadScript(r, packages, loadOptions)
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-			os.Exit(2)
-		}
-		_ = r.Close()
-		if *asm {
-			_, err := script.Disassemble(os.Stdout)
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
-			}
-		} else {
-			err = script.Run(nil, runOptions)
-			if err != nil {
-				if p, ok := err.(*runtime.Panic); ok {
-					panic(renderPanics(p))
 				}
 				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 				os.Exit(2)
@@ -264,12 +232,6 @@ func makeInterpreterSource(targets Target) []byte {
 
 	out := interpreterSkel
 
-	if targets&targetScripts != 0 {
-		out = strings.Replace(out, "{{ script }}", scriptSkel, 1)
-	} else {
-		out = strings.Replace(out, "{{ script }}", `fmt.Println("script support not included in this interpreter.")
-		os.Exit(1)`, 1)
-	}
 	if targets&targetTemplates != 0 {
 		out = strings.Replace(out, "{{ template }}", templateSkel, 1)
 	} else {

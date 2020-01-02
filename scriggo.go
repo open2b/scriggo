@@ -7,6 +7,7 @@
 package scriggo
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -22,6 +23,10 @@ type LoadOptions struct {
 	LimitMemorySize  bool // limit allocable memory size.
 	DisallowGoStmt   bool // disallow "go" statement.
 	AllowShebangLine bool // allow shebang line; only for scripts.
+	Unspec           struct {
+		PackageLess bool
+		ScriptSrc   []byte
+	}
 }
 
 // UntypedConstant represents an untyped constant.
@@ -45,12 +50,26 @@ type CompilerError interface {
 // the imported packages from loader. A main package have path "main".
 func Load(loader PackageLoader, options *LoadOptions) (*Program, error) {
 
-	tree, err := compiler.ParseProgram(loader)
-	if err != nil {
-		return nil, err
+	var tree *ast.Tree
+
+	if options != nil && options.Unspec.PackageLess {
+		var err error
+		tree, err = compiler.ParseScript(bytes.NewReader(options.Unspec.ScriptSrc), loader, options.AllowShebangLine)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		var err error
+		tree, err = compiler.ParseProgram(loader)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	checkerOpts := compiler.CheckerOptions{SyntaxType: compiler.ProgramSyntax}
+	if options != nil {
+		checkerOpts.PackageLess = options.Unspec.PackageLess
+	}
 	emitterOpts := compiler.EmitterOptions{}
 	if options != nil {
 		checkerOpts.DisallowGoStmt = options.DisallowGoStmt
@@ -68,9 +87,15 @@ func Load(loader PackageLoader, options *LoadOptions) (*Program, error) {
 		}
 	}
 
-	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars, emitterOpts)
+	if options != nil && options.Unspec.PackageLess {
+		packageLess := compiler.EmitScript(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
+		return &Program{fn: packageLess.Main, globals: packageLess.Globals, options: options}, nil
 
+	}
+
+	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars, emitterOpts)
 	return &Program{fn: pkgMain.Main, globals: pkgMain.Globals, options: options}, nil
+
 }
 
 // Options returns the options with which the program has been loaded.
@@ -83,6 +108,9 @@ type RunOptions struct {
 	MaxMemorySize int
 	DontPanic     bool
 	PrintFunc     runtime.PrintFunc
+	Unspec        struct {
+		Builtins map[string]interface{}
+	}
 }
 
 // Run starts the program and waits for it to complete.
@@ -94,6 +122,9 @@ func (p *Program) Run(options *RunOptions) error {
 		panic("scriggo: program not loaded with LimitMemorySize option")
 	}
 	vm := newVM(options)
+	if options != nil && options.Unspec.Builtins != nil {
+		return vm.Run(p.fn, initGlobals(p.globals, options.Unspec.Builtins))
+	}
 	return vm.Run(p.fn, initGlobals(p.globals, nil))
 }
 
@@ -112,64 +143,8 @@ func (p *Program) Disassemble(w io.Writer, pkgPath string) (int64, error) {
 	return int64(n), err
 }
 
-type Script struct {
-	fn      *runtime.Function
-	globals []compiler.Global
-	options *LoadOptions
-}
-
-// LoadScript loads a script from src with the given options, loading the
-// imported packages from loader.
-func LoadScript(src io.Reader, loader PackageLoader, options *LoadOptions) (*Script, error) {
-
-	checkerOpts := compiler.CheckerOptions{
-		SyntaxType: compiler.ScriptSyntax,
-	}
-	emitterOpts := compiler.EmitterOptions{}
-	shebang := false
-	if options != nil {
-		shebang = options.AllowShebangLine
-		checkerOpts.DisallowGoStmt = options.DisallowGoStmt
-		emitterOpts.MemoryLimit = options.LimitMemorySize
-	}
-
-	tree, err := compiler.ParseScript(src, loader, shebang)
-	if err != nil {
-		return nil, err
-	}
-
-	tci, err := compiler.Typecheck(tree, loader, checkerOpts)
-	if err != nil {
-		return nil, err
-	}
-
-	code := compiler.EmitScript(tree, tci["main"].TypeInfos, tci["main"].IndirectVars, emitterOpts)
-
-	return &Script{fn: code.Main, globals: code.Globals, options: options}, nil
-}
-
-// Options returns the options with which the script has been loaded.
-func (s *Script) Options() *LoadOptions {
-	return s.options
-}
-
+// TODO: still used?
 var emptyInit = map[string]interface{}{}
-
-// Run starts the script, with initialization values for the global variables,
-// and waits for it to complete.
-//
-// Panics if the option MaxMemorySize is greater than zero but the script has
-// not been loaded with option LimitMemorySize.
-func (s *Script) Run(init map[string]interface{}, options *RunOptions) error {
-	if options != nil && options.MaxMemorySize > 0 && !s.options.LimitMemorySize {
-		panic("scriggo: script not loaded with LimitMemorySize option")
-	}
-	if init == nil {
-		init = emptyInit
-	}
-	vm := newVM(options)
-	return vm.Run(s.fn, initGlobals(s.globals, init))
-}
 
 // newVM returns a new vm with the given options.
 func newVM(options *RunOptions) *runtime.VM {
@@ -230,11 +205,6 @@ func initGlobals(globals []compiler.Global, init map[string]interface{}) []inter
 		}
 	}
 	return values
-}
-
-// Disassemble disassembles a script.
-func (s *Script) Disassemble(w io.Writer) (int64, error) {
-	return compiler.DisassembleFunction(w, s.fn, s.globals)
 }
 
 // PrintFunc returns a function that print its argument to the writer w with

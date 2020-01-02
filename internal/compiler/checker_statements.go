@@ -740,7 +740,7 @@ nodesLoop:
 		case ast.Expression:
 
 			// Handle function declarations in scripts.
-			if fun, ok := node.(*ast.Func); tc.opts.SyntaxType == ScriptSyntax && ok {
+			if fun, ok := node.(*ast.Func); tc.opts.PackageLess && ok {
 				if fun.Ident != nil {
 					// Remove the identifier from the function expression and
 					// use it during the assignment.
@@ -802,7 +802,7 @@ nodesLoop:
 func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkgInfos map[string]*PackageInfo, packageLevel bool) error {
 
 	// Import statement in a script.
-	if tc.opts.SyntaxType == ScriptSyntax {
+	if tc.opts.PackageLess {
 		if impor.Tree != nil {
 			panic("cannot import precompiled packages in scripts") // TODO: review this panic.
 		}

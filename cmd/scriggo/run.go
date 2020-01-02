@@ -126,36 +126,6 @@ func run() {
 	}
 
 	switch ext {
-	case ".sg":
-		r, err := os.Open(absFile)
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-			os.Exit(2)
-		}
-		loadOptions.AllowShebangLine = true
-		script, err := scriggo.LoadScript(r, packages, loadOptions)
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-			os.Exit(2)
-		}
-		_ = r.Close()
-		if *asm {
-			_, err := script.Disassemble(os.Stdout)
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
-			}
-		} else {
-			err = script.Run(nil, runOptions)
-			if err != nil {
-				if p, ok := err.(*runtime.Panic); ok {
-					panic(renderPanics(p))
-				}
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
-			}
-		}
-		os.Exit(0)
 	case ".go":
 		main, err := ioutil.ReadFile(absFile)
 		if err != nil {
@@ -236,4 +206,3 @@ func run() {
 		os.Exit(0)
 	}
 }
-	
