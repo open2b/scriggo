@@ -165,7 +165,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 		return pkgInfos, nil
 	}
 
-	// Prepare type checking for scripts and templates.
+	// Prepare the type checking for package-less programs and templates.
 	var globalScope typeCheckerScope
 	if packages != nil {
 		main, err := packages.Load("main")
