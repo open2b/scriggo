@@ -150,7 +150,7 @@ const programSkel = `main, err := ioutil.ReadFile(absFile)
 		if err != nil {
 			panic(err)
 		}
-		program, err := scriggo.Load(scriggo.Loaders(mainLoader(main), packages), loadOptions)
+		program, err := scriggo.Load(bytes.NewReader(main), packages, loadOptions)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
