@@ -90,7 +90,7 @@ func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, 
 	}
 
 	if options != nil && options.Unspec.PackageLess {
-		packageLess := compiler.EmitScript(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
+		packageLess := compiler.EmitPackageLessProgram(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
 		return &Program{fn: packageLess.Main, globals: packageLess.Globals, options: options}, nil
 
 	}

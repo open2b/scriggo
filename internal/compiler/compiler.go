@@ -25,7 +25,7 @@
 // To emit a tree after it has been type checked, use:
 //
 //  EmitPackageMain(..)
-//  EmitScript(..)
+//  EmitPackageLessProgram(..)
 //  EmitTemplate(..)
 //
 package compiler
@@ -288,11 +288,11 @@ func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 	return pkg
 }
 
-// EmitScript emits the code for a package-less program given its tree, the type
-// info and indirect variables. alloc reports whether Alloc instructions must be
-// emitted. EmitScript returns a function that is the entry point of the
-// package-less program and the global variables.
-func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
+// EmitPackageLessProgram emits the code for a package-less program given its
+// tree, the type info and indirect variables. alloc reports whether Alloc
+// instructions must be emitted. EmitPackageLessProgram returns a function that
+// is the entry point of the package-less program and the global variables.
+func EmitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)), tree.Path)
 	e.fb.emitSetAlloc(opts.MemoryLimit)
