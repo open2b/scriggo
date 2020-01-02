@@ -28,10 +28,10 @@ type typechecker struct {
 	universe typeCheckerScope
 
 	// A globalScope is a scope between the universe and the file/package block.
-	// In Go there is not an equivalent concept. In scripts and templates, the
-	// declarations of the predefined package 'main' are added to this scope;
-	// this makes possible, in templates, to access such declarations from
-	// every page, including imported and extended ones.
+	// In Go there is not an equivalent concept. In package-less programs and
+	// templates, the declarations of the predefined package 'main' are added to
+	// this scope; this makes possible, in templates, to access such
+	// declarations from every page, including imported and extended ones.
 	globalScope typeCheckerScope
 
 	// filePackageBlock is a scope that holds the declarations from both the

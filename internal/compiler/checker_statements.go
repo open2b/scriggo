@@ -739,7 +739,7 @@ nodesLoop:
 
 		case ast.Expression:
 
-			// Handle function declarations in scripts.
+			// Handle function declarations in package-less programs.
 			if fun, ok := node.(*ast.Func); tc.opts.PackageLess && ok {
 				if fun.Ident != nil {
 					// Remove the identifier from the function expression and
@@ -805,7 +805,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 	// Import statement in a package-less program.
 	if tc.opts.PackageLess {
 		if impor.Tree != nil {
-			panic("cannot import precompiled packages in scripts") // TODO: review this panic.
+			panic("cannot only import precompiled packages in package-less program") // TODO: review this panic.
 		}
 		pkg, err := tc.predefinedPkgs.Load(impor.Path)
 		if err != nil {

@@ -49,7 +49,7 @@ Additional help topics:
 const helpBuild = `
 usage: scriggo build [-f Scriggofile] [-w] [-v] [-x] [-work] [-o output] [module]
 
-Build compiles an interpreter for Scriggo programs, scripts and templates from
+Build compiles an interpreter for Scriggo programs and templates from
 a Scriggofile in a module.
 
 Executables are created in the current directory. To install the executables in
@@ -115,7 +115,7 @@ See also: scriggo install and scriggo embed.
 const helpInstall = `
 usage: scriggo install [-f Scriggofile] [-w] [-v] [-x] [-work] [module]
 
-Install compiles and installs an interpreter for Scriggo programs, scripts
+Install compiles and installs an interpreter for Scriggo programs
 and templates from a Scriggofile in a module.
 
 Executables are installed in the directory GOBIN as for the go install
@@ -238,7 +238,7 @@ The instructions are:
         will be imported not capitalized. For example a name 'FooFoo' declared
         in the package will be imported in the package-less program or template as 'fooFoo'.
 
-    TARGET PROGRAMS SCRIPTS TEMPLATES
+    TARGET PROGRAMS TEMPLATES
 
         Indicates witch are the targets of the interpreter. It will be able to
         execute only the type of sources listed in the TARGET instruction. This

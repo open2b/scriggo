@@ -117,8 +117,8 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 
 			file := args[0]
 			ext := filepath.Ext(file)
-			if ext != ".go" && ext != ".sg" && ext != ".html" {
-				fmt.Printf("%s: extension must be \".go\" for main packages, \".sg\" for scripts and \".html\" for template pages\n", file)
+			if ext != ".go" && ext != ".html" {
+				fmt.Printf("%s: extension must be \".go\" for main packages and \".html\" for template pages\n", file)
 				os.Exit(1)
 			}
 

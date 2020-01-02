@@ -26,11 +26,10 @@ type Target int
 
 const (
 	targetPrograms Target = 1 << (3 - 1 - iota)
-	targetScripts
 	targetTemplates
 )
 
-const targetAll = targetPrograms | targetScripts | targetTemplates
+const targetAll = targetPrograms | targetTemplates
 
 // scriggofile represents the content of a Scriggofile.
 type scriggofile struct {
@@ -86,7 +85,7 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 		switch strings.ToUpper(tokens[0]) {
 		case "TARGET":
 			if len(tokens) == 1 {
-				return nil, fmt.Errorf("after %s expecting PROGRAMS, SCRIPTS or TEMPLATES at line %d", tokens[0], ln)
+				return nil, fmt.Errorf("after %s expecting PROGRAMS or TEMPLATES at line %d", tokens[0], ln)
 			}
 			for _, tok := range tokens[1:] {
 				target := strings.ToUpper(tok)
@@ -96,11 +95,6 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 						return nil, fmt.Errorf("repeated target %s at line %d", target, ln)
 					}
 					sf.target |= targetPrograms
-				case "SCRIPTS":
-					if sf.target&targetScripts != 0 {
-						return nil, fmt.Errorf("repeated target %s at line %d", target, ln)
-					}
-					sf.target |= targetScripts
 				case "TEMPLATES":
 					if sf.target&targetTemplates != 0 {
 						return nil, fmt.Errorf("repeated target %s at line %d", target, ln)
