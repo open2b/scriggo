@@ -143,9 +143,6 @@ func (p *Program) Disassemble(w io.Writer, pkgPath string) (int64, error) {
 	return int64(n), err
 }
 
-// TODO: still used?
-var emptyInit = map[string]interface{}{}
-
 // newVM returns a new vm with the given options.
 func newVM(options *RunOptions) *runtime.VM {
 	vm := runtime.NewVM()
