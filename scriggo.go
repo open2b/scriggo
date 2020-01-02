@@ -53,7 +53,7 @@ func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, 
 
 	if options != nil && options.Unspec.PackageLess {
 		var err error
-		tree, err = compiler.ParseScript(src, loader, options.AllowShebangLine)
+		tree, err = compiler.ParsePackageLessProgram(src, loader, options.AllowShebangLine)
 		if err != nil {
 			return nil, err
 		}

@@ -11,7 +11,7 @@
 // Parsing is done using
 //
 //  ParseProgram(..)
-//  ParseScript(..)
+//  ParsePackageLessProgram(..)
 //  ParseTemplate(..)
 //
 // Typechecking

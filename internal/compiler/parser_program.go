@@ -116,10 +116,10 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
 	return main.Tree, nil
 }
 
-// ParseScript parses a script reading its source from src and the imported
-// packages form the loader. shebang reports whether the script can have the
-// shebang as first line.
-func ParseScript(src io.Reader, loader PackageLoader, shebang bool) (*ast.Tree, error) {
+// ParsePackageLessProgram parses a script reading its source from src and the
+// imported packages form the loader. shebang reports whether the script can
+// have the shebang as first line.
+func ParsePackageLessProgram(src io.Reader, loader PackageLoader, shebang bool) (*ast.Tree, error) {
 
 	packages := map[string]bool{}
 
