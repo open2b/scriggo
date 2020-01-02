@@ -28,16 +28,6 @@ const usage = "usage: %s [-S] [-mem 250K] [-time 50ms] filename\n"
 var packages scriggo.Packages
 var Main *scriggo.Package
 
-// TODO: remove mainLoader
-type mainLoader []byte
-
-func (b mainLoader) Load(path string) (interface{}, error) {
-	if path == "main" {
-		return bytes.NewReader(b), nil
-	}
-	return nil, nil
-}
-
 func renderPanics(p *runtime.Panic) string {
 	var msg string
 	for ; p != nil; p = p.Next() {
