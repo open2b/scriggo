@@ -2,9 +2,9 @@
 
 func F() {}
 
-func F() {} // ERROR "F already declared in script"
+func F() {} // ERROR "F already declared in this program"
 
 var F = "hello" // ERROR "F redeclared in this block"
 
-var G = 10 ; func G() {} // ERROR "G already declared in script"
+var G = 10 ; func G() {} // ERROR "G already declared in this program"
 
