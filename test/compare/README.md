@@ -52,18 +52,18 @@ If you want, for example, test a program source code with the mode **errorcheck*
 
 Mode | Supported extensions | Expected behaviour
 ---|---|---
-**skip** | `.go` <br> `.sgo` <br> `.html` | Nothing. The test is skipped. Everything after the `skip` keyword is ignored.
-**compile** <br> **build** | `.go` <br> `.sgo` <br> `.html` | The test compiles successfully.
+**skip** | `.go` <br> `.script` <br> `.html` | Nothing. The test is skipped. Everything after the `skip` keyword is ignored.
+**compile** <br> **build** | `.go` <br> `.script` <br> `.html` | The test compiles successfully.
 **run** | `.go` | The test compiles and runs successfully and the standard output is the same as the one returned by gc
-**run** | `.sgo` | The test compiles and runs successfully and the standard output matches the content of the  _golden file_ associated to the test (see below).
+**run** | `.script` | The test compiles and runs successfully and the standard output matches the content of the  _golden file_ associated to the test (see below).
 **rundir** | `.go` | The test inside the _dir-directory_ (see below) associated to the test compiles and runs successfully and the standard output matches the content of the  _golden file_ associated to the test (see below).
 **paniccheck** | `.go` | The test panics and the error message matches the content of the _golden file_ associated to the test (see below).
-**errorcheck** | `.go` <br> `.sgo` <br> `.html` | For each row ending with a comment `// ERROR error message`, the compilation fails with the error message reported in the comment. Error message must be enclosed between **\`** characters or **\"** characters. While the former takes the error message as is, the latter support regular expression syntax. For instance, if the error message contains a **"** character, you can both enclose the error message in double quotes (escaping the character) or use the backtick without having to escape it.
+**errorcheck** | `.go` <br> `.script` <br> `.html` | For each row ending with a comment `// ERROR error message`, the compilation fails with the error message reported in the comment. Error message must be enclosed between **\`** characters or **\"** characters. While the former takes the error message as is, the latter support regular expression syntax. For instance, if the error message contains a **"** character, you can both enclose the error message in double quotes (escaping the character) or use the backtick without having to escape it.
 **render**  | `.html` | The test compiles and runs successfully and the rendered output is the same as the content of the _golden file_ associated to the test  (see below).
 **renderdir**  | `.html` | The test inside the _dir-directory_ (see below) associated to the test compiles and runs successfully and the rendered output is the same as the content of the _golden file_ associated to the test (see below).
 
 
-- A **golden file** associated to a test is a text file with the same path as the test but with extension `.golden` instead of `.sgo` or `.html`. Golden files can have comments, that are lines that get replaced by empty lines during comparison. A comment line must start with `//`. **Important**: when comparing the output of a test with its _goldenfile_, leading and trailing space is removed.
+- A **golden file** associated to a test is a text file with the same path as the test but with extension `.golden` instead of `.script` or `.html`. Golden files can have comments, that are lines that get replaced by empty lines during comparison. A comment line must start with `//`. **Important**: when comparing the output of a test with its _goldenfile_, leading and trailing space is removed.
 
 - A **dir-directory** associated to a test is a directory with the same path as the test, but which ends in `.dir` instead of `.go` or `.html`. For instance, a test located at `test/path/testname.go` has an associated _dir-directory_ with path `test/path/testname.dir`.
 
