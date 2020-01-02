@@ -761,13 +761,13 @@ nodesLoop:
 					// Check the new node, informing the type checker that the
 					// current assignment is a function declaration in a
 					// package-less program.
-					backup := tc.isScriptFuncDecl
-					tc.isScriptFuncDecl = true
+					backup := tc.packageLessFuncDecl
+					tc.packageLessFuncDecl = true
 					newNodes := []ast.Node{varDecl, nodeAssign}
 					_ = tc.checkNodes(newNodes)
 					// Append the new nodes removing the function literal.
 					nodes = append(nodes[:i], append(newNodes, nodes[i+1:]...)...)
-					tc.isScriptFuncDecl = backup
+					tc.packageLessFuncDecl = backup
 					// Avoid error 'declared and not used' by "using" the
 					// identifier.
 					tc.checkIdentifier(ident, true)
