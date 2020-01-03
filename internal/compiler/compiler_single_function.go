@@ -19,54 +19,29 @@ type Options struct {
 	DisallowGoStmt   bool
 	LimitMemorySize  bool
 	PackageLess      bool
+	TemplateContext  ast.Context
 	TreeTransformer  func(*ast.Tree) error
-	Template         struct {
-		Path    string
-		Context ast.Context
-	}
 }
 
-// Compiles compiles a program or a template returning the compiled code. If
-// compiling a program then r must be an io.Reader; otherwise, when compiling a
-// template, r must be a Reader.
-// Importer is a package loader that makes available packages for the import;
-// importer can also have a package with path "main" that holds the definitions
-// of the package level declarations of a package-less program or template.
-// In case of compilation error such error is returned.
-func Compile(r interface{}, importer PackageLoader, opts Options) (*Code, error) {
-
+func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, error) {
 	var tree *ast.Tree
-	var isTemplate bool
 
 	// Parse the source code.
-	switch r := r.(type) {
-	case io.Reader:
-		isTemplate = false
-		if opts.PackageLess {
-			var err error
-			tree, err = ParsePackageLessProgram(r, importer, opts.AllowShebangLine)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			mainSrc, err := ioutil.ReadAll(r)
-			if err != nil {
-				return nil, err
-			}
-			tree, err = ParseProgram(mainCombiner{mainSrc, importer})
-			if err != nil {
-				return nil, err
-			}
-		}
-	case Reader:
-		isTemplate = true
+	if opts.PackageLess {
 		var err error
-		tree, err = ParseTemplate(opts.Template.Path, r, ast.Context(opts.Template.Context))
+		tree, err = ParsePackageLessProgram(r, importer, opts.AllowShebangLine)
 		if err != nil {
 			return nil, err
 		}
-	default:
-		panic("invalid type for argument r: expecting an io.Reader or a Reader")
+	} else {
+		mainSrc, err := ioutil.ReadAll(r)
+		if err != nil {
+			return nil, err
+		}
+		tree, err = ParseProgram(mainCombiner{mainSrc, importer})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Transform the tree.
@@ -80,12 +55,7 @@ func Compile(r interface{}, importer PackageLoader, opts Options) (*Code, error)
 	// Type check the tree.
 	checkerOpts := CheckerOptions{PackageLess: opts.PackageLess}
 	checkerOpts.DisallowGoStmt = opts.DisallowGoStmt
-	if isTemplate {
-		checkerOpts.SyntaxType = TemplateSyntax
-		checkerOpts.AllowNotUsed = true
-	} else {
-		checkerOpts.SyntaxType = ProgramSyntax
-	}
+	checkerOpts.SyntaxType = ProgramSyntax
 	tci, err := Typecheck(tree, importer, checkerOpts)
 	if err != nil {
 		return nil, err
@@ -100,19 +70,57 @@ func Compile(r interface{}, importer PackageLoader, opts Options) (*Code, error)
 	// Emit the code.
 	var code *Code
 	emitterOpts := EmitterOptions{}
-	checkerOpts.DisallowGoStmt = opts.DisallowGoStmt
 	emitterOpts.MemoryLimit = opts.LimitMemorySize
-	switch {
-	case isTemplate:
-		code = EmitTemplate(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
-	case opts.PackageLess:
+	if opts.PackageLess {
 		code = EmitPackageLessProgram(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
-	default:
+	} else {
 		code = EmitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars, emitterOpts)
 	}
 
 	return code, nil
+}
 
+func CompileTemplate(r Reader, path string, main PackageLoader, opts Options) (*Code, error) {
+
+	var tree *ast.Tree
+
+	// Parse the source code.
+	var err error
+	tree, err = ParseTemplate(path, r, ast.Context(opts.TemplateContext))
+	if err != nil {
+		return nil, err
+	}
+
+	// Transform the tree.
+	if opts.TreeTransformer != nil {
+		err := opts.TreeTransformer(tree)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Type check the tree.
+	checkerOpts := CheckerOptions{PackageLess: opts.PackageLess}
+	checkerOpts.DisallowGoStmt = opts.DisallowGoStmt
+	checkerOpts.SyntaxType = TemplateSyntax
+	checkerOpts.AllowNotUsed = true
+	tci, err := Typecheck(tree, main, checkerOpts)
+	if err != nil {
+		return nil, err
+	}
+	typeInfos := map[ast.Node]*TypeInfo{}
+	for _, pkgInfos := range tci {
+		for node, ti := range pkgInfos.TypeInfos {
+			typeInfos[node] = ti
+		}
+	}
+
+	// Emit the code.
+	emitterOpts := EmitterOptions{}
+	emitterOpts.MemoryLimit = opts.LimitMemorySize
+	code := EmitTemplate(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
+
+	return code, nil
 }
 
 type mainCombiner struct {

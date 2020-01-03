@@ -54,7 +54,7 @@ func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, 
 		compileOpts.LimitMemorySize = options.LimitMemorySize
 		compileOpts.PackageLess = options.Unspec.PackageLess
 	}
-	code, err := compiler.Compile(src, loader, compileOpts)
+	code, err := compiler.CompileProgram(src, loader, compileOpts)
 	if err != nil {
 		return nil, err
 	}

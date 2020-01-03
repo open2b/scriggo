@@ -55,18 +55,18 @@ type Template struct {
 // to read the files of the template. Package main declares constants, types,
 // variables and functions that are accessible from the code in the template.
 func Load(path string, reader Reader, main scriggo.Package, ctx Context, options *LoadOptions) (*Template, error) {
-	compileOpts := compiler.Options{}
-	compileOpts.Template.Context = ast.Context(ctx)
-	compileOpts.Template.Path = path
+	compileOpts := compiler.Options{
+		TemplateContext: ast.Context(ctx),
+	}
 	if options != nil {
 		compileOpts.LimitMemorySize = options.LimitMemorySize
 		compileOpts.TreeTransformer = options.TreeTransformer
 	}
-	var importer scriggo.Packages
+	var mainImporter scriggo.Packages
 	if main != nil {
-		importer = scriggo.Packages{"main": main}
+		mainImporter = scriggo.Packages{"main": main}
 	}
-	code, err := compiler.Compile(reader, importer, compileOpts)
+	code, err := compiler.CompileTemplate(reader, path, mainImporter, compileOpts)
 	if err != nil {
 		return nil, err
 	}
