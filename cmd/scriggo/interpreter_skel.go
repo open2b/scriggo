@@ -154,7 +154,7 @@ const programSkel = `main, err := ioutil.ReadFile(absFile)
 			}
 			return
 		}
-		code, err = program.Run(runOptions)
+		code, err := program.Run(runOptions)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
 				panic(renderPanics(p))
