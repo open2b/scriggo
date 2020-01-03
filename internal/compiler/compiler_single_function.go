@@ -122,7 +122,7 @@ func CompileTemplate(r Reader, path string, main PackageLoader, opts Options) (*
 	// Emit the code.
 	emitterOpts := EmitterOptions{}
 	emitterOpts.MemoryLimit = opts.LimitMemorySize
-	code := EmitTemplate(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
+	code := emitTemplate(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
 
 	return code, nil
 }

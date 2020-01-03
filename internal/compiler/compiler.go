@@ -304,11 +304,11 @@ func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, in
 	return &Code{Main: e.fb.fn, Globals: e.varStore.getGlobals()}
 }
 
-// EmitTemplate emits the code for a template given its tree, the type info and
+// emitTemplate emits the code for a template given its tree, the type info and
 // indirect variables. alloc reports whether Alloc instructions must be
-// emitted. EmitTemplate returns a function that is the entry point of the
+// emitted. emitTemplate returns a function that is the entry point of the
 // template and the global variables.
-func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
+func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
 
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.pkg = &ast.Package{}
