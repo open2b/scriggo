@@ -152,20 +152,20 @@ func (vm *VM) Reset() {
 // If a context has been set and the context is canceled, Run returns
 // as soon as possible with the error returned by the Err method of the
 // context.
-func (vm *VM) Run(fn *Function, globals []interface{}) error {
+func (vm *VM) Run(fn *Function, globals []interface{}) (int, error) {
 	vm.env.globals = globals
 	err := vm.runFunc(fn, globals)
 	vm.env.exit()
-	switch e := err.(type) {
-	case *FatalError:
-		panic(e.msg)
-	case *ExitError:
-		if e.err != nil {
-			vm.env.Println(e.err.Error())
+	if err != nil {
+		switch e := err.(type) {
+		case *FatalError:
+			panic(e.msg)
+		case *ExitError:
+			return e.code, nil
 		}
-		err = nil
+		return 1, err
 	}
-	return err
+	return 0, nil
 }
 
 // SetContext sets the context.
@@ -1328,8 +1328,6 @@ const (
 	OpDiv
 	OpDivInt
 	OpDivFloat64
-
-	OpExit
 
 	OpField
 

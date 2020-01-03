@@ -175,7 +175,7 @@ func main() {
 			Context:       timeout,
 			MaxMemorySize: maxMemorySize,
 		}
-		err = program.Run(runOpts)
+		_, err = program.Run(runOpts)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
 				panic(renderPanics(p))
@@ -195,7 +195,7 @@ func main() {
 			Context:       timeout,
 			MaxMemorySize: maxMemorySize,
 		}
-		err = script.Run(runOpts)
+		_, err = script.Run(runOpts)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
 				panic(renderPanics(p))
@@ -220,7 +220,7 @@ func main() {
 			Context:       timeout,
 			MaxMemorySize: maxMemorySize,
 		}
-		err = prog.Run(runOpts)
+		_, err = prog.Run(runOpts)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
 				panic(renderPanics(p))

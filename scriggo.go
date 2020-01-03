@@ -80,7 +80,7 @@ type RunOptions struct {
 //
 // Panics if the option MaxMemorySize is greater than zero but the program has
 // not been loaded with option LimitMemorySize.
-func (p *Program) Run(options *RunOptions) error {
+func (p *Program) Run(options *RunOptions) (int, error) {
 	if options != nil && options.MaxMemorySize > 0 && !p.options.LimitMemorySize {
 		panic("scriggo: program not loaded with LimitMemorySize option")
 	}

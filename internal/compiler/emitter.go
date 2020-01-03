@@ -688,19 +688,6 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		mapp := em.emitExpr(args[0], emptyInterfaceType)
 		key := em.emitExpr(args[1], emptyInterfaceType)
 		em.fb.emitDelete(mapp, key)
-	case "exit":
-		if len(args) == 0 {
-			em.fb.emitExit(true, 0, 0)
-			return
-		}
-		typ := em.typ(args[0])
-		if typ.Kind() == reflect.Interface {
-			err := em.emitExpr(args[0], typ)
-			em.fb.emitExit(false, err, 0)
-		} else {
-			code, k := em.emitExprK(args[0], typ)
-			em.fb.emitExit(k, 0, code)
-		}
 	case "len":
 		typ := em.typ(args[0])
 		s := em.emitExpr(args[0], typ)

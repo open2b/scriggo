@@ -70,13 +70,9 @@ func errTypeAssertion(interfac, concrete, asserted reflect.Type, missingMethod s
 type ExitError struct {
 	env  *Env
 	code int
-	err  error
 }
 
 func (err ExitError) Error() string {
-	if err.err != nil {
-		return err.err.Error()
-	}
 	return ""
 }
 

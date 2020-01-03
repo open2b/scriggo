@@ -196,7 +196,7 @@ func TestPackageLessPrograms(t *testing.T) {
 			}
 			runOpts := &scriggo.RunOptions{}
 			runOpts.Unspec.Builtins = cas.init
-			err = script.Run(runOpts)
+			_, err = script.Run(runOpts)
 			if err != nil {
 				t.Fatalf("execution error: %s", err)
 			}
@@ -229,7 +229,7 @@ func TestScriptSum(t *testing.T) {
 	}
 	runOpts := &scriggo.RunOptions{}
 	runOpts.Unspec.Builtins = init
-	err = script.Run(runOpts)
+	_, err = script.Run(runOpts)
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}
@@ -263,14 +263,14 @@ func TestPackageLessProgramChainMessages(t *testing.T) {
 	}
 	runOpts := &scriggo.RunOptions{}
 	runOpts.Unspec.Builtins = init
-	err = script1.Run(runOpts)
+	_, err = script1.Run(runOpts)
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}
 	if Message != "external,script1," {
 		t.Fatalf("Message should be %q, got %q", "external,script1,", Message)
 	}
-	err = script2.Run(runOpts)
+	_, err = script2.Run(runOpts)
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}

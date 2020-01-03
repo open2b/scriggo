@@ -646,7 +646,7 @@ nodesLoop:
 				case "recover":
 					// The statement "defer recover()" is a special case
 					// implemented by the emitter.
-				case "close", "delete", "exit", "panic", "print", "println":
+				case "close", "delete", "panic", "print", "println":
 					tc.typeInfos[call.Func] = deferGoBuiltin(name)
 				}
 			}
@@ -669,7 +669,7 @@ nodesLoop:
 				switch name {
 				case "append", "cap", "len", "make", "new":
 					panic(tc.errorf(node, "go discards result of %s", call))
-				case "close", "delete", "exit", "panic", "print", "println", "recover":
+				case "close", "delete", "panic", "print", "println", "recover":
 					tc.typeInfos[call.Func] = deferGoBuiltin(name)
 				}
 			}

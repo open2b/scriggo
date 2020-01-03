@@ -55,6 +55,12 @@ func (env *Env) Context() context.Context {
 	return env.ctx
 }
 
+// Exit exits the environment with the given status code. Deferred functions
+// are not run.
+func (env *Env) Exit(code int) {
+	panic(&ExitError{env, code})
+}
+
 // Exited reports whether the environment is exited.
 func (env *Env) Exited() bool {
 	var exited bool
@@ -62,12 +68,6 @@ func (env *Env) Exited() bool {
 	exited = env.exited
 	env.mu.Unlock()
 	return exited
-}
-
-// Exit exits the environment with with the given status code. If err is not
-// nil, err.Error() is printed with env.Println.
-func (env *Env) Exit(code int, err error) {
-	panic(&ExitError{env, code, err})
 }
 
 // ExitFunc calls f in its own goroutine after the execution of the

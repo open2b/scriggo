@@ -134,7 +134,7 @@ func run() {
 				os.Exit(2)
 			}
 		} else {
-			err = program.Run(runOptions)
+			code, err := program.Run(runOptions)
 			if err != nil {
 				if p, ok := err.(*runtime.Panic); ok {
 					panic(renderPanics(p))
@@ -145,6 +145,7 @@ func run() {
 				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 				os.Exit(2)
 			}
+			os.Exit(code)
 		}
 		os.Exit(0)
 	case ".html":

@@ -152,20 +152,20 @@ const programSkel = `main, err := ioutil.ReadFile(absFile)
 				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 				os.Exit(2)
 			}
-		} else {
-			err = program.Run(runOptions)
-			if err != nil {
-				if p, ok := err.(*runtime.Panic); ok {
-					panic(renderPanics(p))
-				}
-				if err == context.DeadlineExceeded {
-					err = errors.New("process took too long")
-				}
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
-			}
+			return
 		}
-		os.Exit(0)`
+		code, err = program.Run(runOptions)
+		if err != nil {
+			if p, ok := err.(*runtime.Panic); ok {
+				panic(renderPanics(p))
+			}
+			if err == context.DeadlineExceeded {
+				err = errors.New("process took too long")
+			}
+			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+			os.Exit(1)
+		}
+		os.Exit(code)`
 
 // https://github.com/open2b/scriggo/commit/4974dd3d69e1f66da40b068507ca50c91a69f7f2#r34270334.
 
@@ -201,19 +201,19 @@ const templateSkel = `r := template.DirReader(filepath.Dir(absFile))
 				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 				os.Exit(2)
 			}
-		} else {
-			options := &template.RenderOptions{
-				Context:       runOptions.Context,
-				MaxMemorySize: runOptions.MaxMemorySize,
+			return
+		}
+		options := &template.RenderOptions{
+			Context:       runOptions.Context,
+			MaxMemorySize: runOptions.MaxMemorySize,
+		}
+		err = t.Render(os.Stdout, nil, options)
+		if err != nil {
+			if p, ok := err.(*runtime.Panic); ok {
+				panic(renderPanics(p))
 			}
-			err = t.Render(os.Stdout, nil, options)
-			if err != nil {
-				if p, ok := err.(*runtime.Panic); ok {
-					panic(renderPanics(p))
-				}
-				fmt.Println(err)
-				os.Exit(1)
-			}
+			fmt.Println(err)
+			os.Exit(1)
 		}
 		os.Exit(0)`
 
