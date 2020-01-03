@@ -24,7 +24,7 @@ type LoadOptions struct {
 	Unspec          struct {
 		AllowShebangLine bool // allow shebang line; only for package-less programs.
 		DisallowGoStmt   bool // disallow "go" statement.
-		PackageLess      bool
+		PackageLess      bool // enable the package-less syntax.
 	}
 }
 
