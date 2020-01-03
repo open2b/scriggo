@@ -15,12 +15,13 @@ import (
 )
 
 type Options struct {
-	AllowShebangLine bool
-	DisallowGoStmt   bool
-	LimitMemorySize  bool
-	PackageLess      bool
-	TemplateContext  ast.Context
-	TreeTransformer  func(*ast.Tree) error
+	AllowShebangLine   bool
+	DisallowGoStmt     bool
+	LimitMemorySize    bool
+	PackageLess        bool
+	TemplateContext    ast.Context
+	TemplateFailOnTODO bool
+	TreeTransformer    func(*ast.Tree) error
 }
 
 func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, error) {
@@ -100,10 +101,13 @@ func CompileTemplate(r Reader, path string, main PackageLoader, opts Options) (*
 	}
 
 	// Type check the tree.
-	checkerOpts := CheckerOptions{PackageLess: opts.PackageLess}
-	checkerOpts.DisallowGoStmt = opts.DisallowGoStmt
-	checkerOpts.SyntaxType = TemplateSyntax
-	checkerOpts.AllowNotUsed = true
+	checkerOpts := CheckerOptions{
+		AllowNotUsed:   true,
+		DisallowGoStmt: opts.DisallowGoStmt,
+		FailOnTODO:     opts.TemplateFailOnTODO,
+		PackageLess:    opts.PackageLess,
+		SyntaxType:     TemplateSyntax,
+	}
 	tci, err := Typecheck(tree, main, checkerOpts)
 	if err != nil {
 		return nil, err
