@@ -104,13 +104,13 @@ func Test_readMode(t *testing.T) {
 		},
 		{
 			src:          `// compile -time=3s`,
-			ext:          `.sg`,
+			ext:          `.script`,
 			expectedMode: `compile`,
 			expectedArgs: []string{"-time=3s"},
 		},
 		{
 			src:          `// compile -time = 3s`,
-			ext:          `.sg`,
+			ext:          `.script`,
 			expectedMode: `compile`,
 			expectedArgs: []string{"-time", "=", "3s"},
 		},

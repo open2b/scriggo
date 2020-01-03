@@ -40,15 +40,6 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 		var packages scriggo.Packages
 		var Main *scriggo.Package
 
-		type mainLoader []byte
-
-		func (b mainLoader) Load(path string) (interface{}, error) {
-			if path == "main" {
-				return bytes.NewReader(b), nil
-			}
-			return nil, nil
-		}
-
 		func renderPanics(p *runtime.Panic) string {
 			var msg string
 			for ; p != nil; p = p.Next() {
@@ -126,8 +117,8 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 
 			file := args[0]
 			ext := filepath.Ext(file)
-			if ext != ".go" && ext != ".sg" && ext != ".html" {
-				fmt.Printf("%s: extension must be \".go\" for main packages, \".sg\" for scripts and \".html\" for template pages\n", file)
+			if ext != ".go" && ext != ".html" {
+				fmt.Printf("%s: extension must be \".go\" for main packages and \".html\" for template pages\n", file)
 				os.Exit(1)
 			}
 
@@ -138,8 +129,6 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 			}
 
 			switch ext {
-			case ".sg":
-				{{ script }}
 			case ".go":
 				{{ program }}
 			case ".html":
@@ -152,7 +141,7 @@ const programSkel = `main, err := ioutil.ReadFile(absFile)
 		if err != nil {
 			panic(err)
 		}
-		program, err := scriggo.Load(scriggo.Loaders(mainLoader(main), packages), loadOptions)
+		program, err := scriggo.Load(bytes.NewReader(main), packages, loadOptions)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
@@ -171,36 +160,6 @@ const programSkel = `main, err := ioutil.ReadFile(absFile)
 				}
 				if err == context.DeadlineExceeded {
 					err = errors.New("process took too long")
-				}
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
-			}
-		}
-		os.Exit(0)`
-
-const scriptSkel = `r, err := os.Open(absFile)
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-			os.Exit(2)
-		}
-		loadOptions.AllowShebangLine = true
-		script, err := scriggo.LoadScript(r, packages, loadOptions)
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-			os.Exit(2)
-		}
-		_ = r.Close()
-		if *asm {
-			_, err := script.Disassemble(os.Stdout)
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
-			}
-		} else {
-			err = script.Run(nil, runOptions)
-			if err != nil {
-				if p, ok := err.(*runtime.Panic); ok {
-					panic(renderPanics(p))
 				}
 				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 				os.Exit(2)
@@ -259,17 +218,11 @@ const templateSkel = `r := template.DirReader(filepath.Dir(absFile))
 		os.Exit(0)`
 
 // makeInterpreterSource returns a Go source code that interprets a Scriggo
-// program, script or template.
+// program or template.
 func makeInterpreterSource(targets Target) []byte {
 
 	out := interpreterSkel
 
-	if targets&targetScripts != 0 {
-		out = strings.Replace(out, "{{ script }}", scriptSkel, 1)
-	} else {
-		out = strings.Replace(out, "{{ script }}", `fmt.Println("script support not included in this interpreter.")
-		os.Exit(1)`, 1)
-	}
 	if targets&targetTemplates != 0 {
 		out = strings.Replace(out, "{{ template }}", templateSkel, 1)
 	} else {

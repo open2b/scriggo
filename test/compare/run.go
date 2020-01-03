@@ -213,12 +213,12 @@ func errorcheck(src []byte, ext string, opts []string) {
 		panic("no // ERROR comments found")
 	}
 	for _, test := range tests {
-		// Get output from program/script/templates and check if it matches with
+		// Get output from program/templates and check if it matches with the
 		// expected error.
 		arg := map[string]string{
-			".go":   "run program",
-			".sg":   "run script",
-			".html": "render html",
+			".go":     "run program",
+			".script": "run script",
+			".html":   "render html",
 		}[ext]
 		exitCode, stdout, stderr := cmd([]byte(test.src), opts, arg)
 		if exitCode == 0 {
@@ -243,9 +243,9 @@ func errorcheck(src []byte, ext string, opts []string) {
 // all the '// ERROR' comments.
 func testWithoutErrorLines(src []byte, ext string, opts []string) {
 	arg := map[string]string{
-		".go":   "run program",
-		".sg":  "run script",
-		".html": "render html",
+		".go":     "run program",
+		".script": "run script",
+		".html":   "render html",
 	}[ext]
 	linesWithoutError := []byte{}
 	for _, line := range bytes.Split(src, []byte{'\n'}) {
@@ -307,7 +307,7 @@ func getAllFilepaths(pattern string) []string {
 // given data.
 func goldenCompare(testPath string, got []byte) {
 	ext := filepath.Ext(testPath)
-	if ext != ".go" && ext != ".sg" && ext != ".html" {
+	if ext != ".go" && ext != ".script" && ext != ".html" {
 		panic("unsupported ext: " + ext)
 	}
 	goldenPath := strings.TrimSuffix(testPath, ext) + ".golden"
@@ -371,7 +371,7 @@ func isBuildConstraints(line string) bool {
 
 // isTestPath reports whether path is a valid test path.
 func isTestPath(path string) bool {
-	if filepath.Ext(path) != ".go" && filepath.Ext(path) != ".sg" && filepath.Ext(path) != ".html" {
+	if filepath.Ext(path) != ".go" && filepath.Ext(path) != ".script" && filepath.Ext(path) != ".html" {
 		return false
 	}
 	if strings.Contains(path, ".dir"+string(filepath.Separator)) {
@@ -410,7 +410,7 @@ func readMode(src []byte, ext string) (mode string, opts []string) {
 		return ss[0], ss[1:]
 	}
 	switch ext {
-	case ".go", ".sg":
+	case ".go", ".script":
 		for _, l := range strings.Split(string(src), "\n") {
 			l = strings.TrimSpace(l)
 			if l == "" {
@@ -642,13 +642,13 @@ func test(src []byte, opts []string, path, mode, ext string, keepTestingOnFail b
 	// Just compile.
 	case "compile .go", "build .go":
 		mustBeOK(cmd(src, opts, "compile program"))
-	case "compile .sg", "build .sg":
+	case "compile .script", "build .script":
 		mustBeOK(cmd(src, opts, "compile script"))
 	case "compile .html", "build .html":
 		mustBeOK(cmd(src, opts, "compile html"))
 
 	// Error check.
-	case "errorcheck .go", "errorcheck .sg", "errorcheck .html":
+	case "errorcheck .go", "errorcheck .script", "errorcheck .html":
 		errorcheck(src, ext, opts)
 
 	// Panic check.
@@ -701,7 +701,7 @@ func test(src []byte, opts []string, path, mode, ext string, keepTestingOnFail b
 				cmd(nil, opts, "run program directory", dirPath),
 			),
 		)
-	case "run .sg":
+	case "run .script":
 		goldenCompare(
 			path,
 			unwrapStdout(

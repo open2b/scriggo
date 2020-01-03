@@ -14,7 +14,7 @@ source files useful to embed Scriggo in an application.
 The scriggo tool is not required to embed Scriggo in an application but it is
 useful to generate the code for a package loader used by the Scriggo Load
 functions to load the packages that can be imported during the execution of a
-program, script or template.
+program or template.
 
 For more about the use of the scriggo command to embed Scriggo in an
 application, see 'scriggo help embed'.
@@ -49,7 +49,7 @@ Additional help topics:
 const helpBuild = `
 usage: scriggo build [-f Scriggofile] [-w] [-v] [-x] [-work] [-o output] [module]
 
-Build compiles an interpreter for Scriggo programs, scripts and templates from
+Build compiles an interpreter for Scriggo programs and templates from
 a Scriggofile in a module.
 
 Executables are created in the current directory. To install the executables in
@@ -115,7 +115,7 @@ See also: scriggo install and scriggo embed.
 const helpInstall = `
 usage: scriggo install [-f Scriggofile] [-w] [-v] [-x] [-work] [module]
 
-Install compiles and installs an interpreter for Scriggo programs, scripts
+Install compiles and installs an interpreter for Scriggo programs
 and templates from a Scriggofile in a module.
 
 Executables are installed in the directory GOBIN as for the go install
@@ -179,8 +179,8 @@ A Scriggofile is a file with a specific format used by the scriggo command.
 The scriggo command uses the instructions in a Scriggofile to build an
 interpreter or a Go source file used in an application that embeds Scriggo.
 
-A Scriggofile defines which packages an interpreted program or script can
-import, what exported declarations in a package are accessible and so on.
+A Scriggofile defines which packages an interpreted program can import,
+what exported declarations in a package are accessible and so on.
 
 The format of the Scriggofile is:
 
@@ -199,7 +199,7 @@ The instructions are:
     IMPORT STANDARD LIBRARY 
 
         Makes the packages in the Go standard library (almost all) importable
-        in a program or script executed by the interpreter.
+        in a program executed by the interpreter.
 
         To view all packages imported run 'scriggo stdlib'.
 
@@ -228,7 +228,7 @@ The instructions are:
     IMPORT <package> AS main
 
         Make the package with path <package> imported as the main package in a
-        script or template. It is the same as writing 'import . "<package>"'
+        package-less program or template. It is the same as writing 'import . "<package>"'
         in a Go program. INCLUDING and EXCLUDING can be used as for the other
         forms of IMPORT at the end of the instruction.
 
@@ -236,9 +236,9 @@ The instructions are:
 
         As for 'IMPORT <package> AS main' but the exported names in the package
         will be imported not capitalized. For example a name 'FooFoo' declared
-        in the package will be imported in the script or template as 'fooFoo'.
+        in the package will be imported in the package-less program or template as 'fooFoo'.
 
-    TARGET PROGRAMS SCRIPTS TEMPLATES
+    TARGET PROGRAMS TEMPLATES
 
         Indicates witch are the targets of the interpreter. It will be able to
         execute only the type of sources listed in the TARGET instruction. This

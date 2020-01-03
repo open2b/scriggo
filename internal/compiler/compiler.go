@@ -11,7 +11,7 @@
 // Parsing is done using
 //
 //  ParseProgram(..)
-//  ParseScript(..)
+//  ParsePackageLessProgram(..)
 //  ParseTemplate(..)
 //
 // Typechecking
@@ -25,7 +25,7 @@
 // To emit a tree after it has been type checked, use:
 //
 //  EmitPackageMain(..)
-//  EmitScript(..)
+//  EmitPackageLessProgram(..)
 //  EmitTemplate(..)
 //
 package compiler
@@ -77,7 +77,6 @@ type SyntaxType int8
 const (
 	// https://github.com/open2b/scriggo/issues/364
 	TemplateSyntax SyntaxType = iota + 1
-	ScriptSyntax
 	ProgramSyntax
 )
 
@@ -97,6 +96,9 @@ type CheckerOptions struct {
 	// FailOnTODO makes compilation fail when a ShowMacro statement with "or
 	// todo" option cannot be resolved.
 	FailOnTODO bool
+
+	// PackageLess reports whether the package-less syntax is enabled.
+	PackageLess bool
 }
 
 // EmitterOptions contains the options for the emitter.
@@ -151,7 +153,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 	pkgPathToIndex = map[string]int{}
 
 	// Type check a program.
-	if opts.SyntaxType == ProgramSyntax {
+	if opts.SyntaxType == ProgramSyntax && !opts.PackageLess {
 		pkgInfos := map[string]*PackageInfo{}
 		pkg := tree.Nodes[0].(*ast.Package)
 		if pkg.Name != "main" {
@@ -164,7 +166,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 		return pkgInfos, nil
 	}
 
-	// Prepare type checking for scripts and templates.
+	// Prepare the type checking for package-less programs and templates.
 	var globalScope typeCheckerScope
 	if packages != nil {
 		main, err := packages.Load("main")
@@ -176,8 +178,8 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 		}
 	}
 
-	// Add the builtin "exit" to the script global scope.
-	if opts.SyntaxType == ScriptSyntax {
+	// Add the builtin "exit" to the package-less program global scope.
+	if opts.PackageLess {
 		exit := scopeElement{t: &TypeInfo{Properties: PropertyPredeclared}}
 		if globalScope == nil {
 			globalScope = typeCheckerScope{"exit": exit}
@@ -238,7 +240,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 		return map[string]*PackageInfo{"main": mainPkgInfo}, nil
 	}
 
-	// Type check a template page or a script.
+	// Type check a template page or a package-less program.
 	tc.predefinedPkgs = packages
 	var err error
 	tree.Nodes, err = tc.checkNodesInNewScopeError(tree.Nodes)
@@ -287,11 +289,11 @@ func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 	return pkg
 }
 
-// EmitScript emits the code for a script given its tree, the type info and
-// indirect variables. alloc reports whether Alloc instructions must be
-// emitted. EmitScript returns a function that is the entry point of the
-// script and the global variables.
-func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
+// EmitPackageLessProgram emits the code for a package-less program given its
+// tree, the type info and indirect variables. alloc reports whether Alloc
+// instructions must be emitted. EmitPackageLessProgram returns a function that
+// is the entry point of the package-less program and the global variables.
+func EmitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)), tree.Path)
 	e.fb.emitSetAlloc(opts.MemoryLimit)

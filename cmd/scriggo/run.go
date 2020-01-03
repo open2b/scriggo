@@ -28,15 +28,6 @@ const usage = "usage: %s [-S] [-mem 250K] [-time 50ms] filename\n"
 var packages scriggo.Packages
 var Main *scriggo.Package
 
-type mainLoader []byte
-
-func (b mainLoader) Load(path string) (interface{}, error) {
-	if path == "main" {
-		return bytes.NewReader(b), nil
-	}
-	return nil, nil
-}
-
 func renderPanics(p *runtime.Panic) string {
 	var msg string
 	for ; p != nil; p = p.Next() {
@@ -115,7 +106,7 @@ func run() {
 	file := args[0]
 	ext := filepath.Ext(file)
 	if ext != ".go" && ext != ".sg" && ext != ".html" {
-		fmt.Printf("%s: extension must be \".go\" for main packages, \".sg\" for scripts and \".html\" for template pages\n", file)
+		fmt.Printf("%s: extension must be \".go\" for main packages and \".html\" for template pages\n", file)
 		os.Exit(1)
 	}
 
@@ -126,42 +117,12 @@ func run() {
 	}
 
 	switch ext {
-	case ".sg":
-		r, err := os.Open(absFile)
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-			os.Exit(2)
-		}
-		loadOptions.AllowShebangLine = true
-		script, err := scriggo.LoadScript(r, packages, loadOptions)
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-			os.Exit(2)
-		}
-		_ = r.Close()
-		if *asm {
-			_, err := script.Disassemble(os.Stdout)
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
-			}
-		} else {
-			err = script.Run(nil, runOptions)
-			if err != nil {
-				if p, ok := err.(*runtime.Panic); ok {
-					panic(renderPanics(p))
-				}
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
-			}
-		}
-		os.Exit(0)
 	case ".go":
 		main, err := ioutil.ReadFile(absFile)
 		if err != nil {
 			panic(err)
 		}
-		program, err := scriggo.Load(scriggo.Loaders(mainLoader(main), packages), loadOptions)
+		program, err := scriggo.Load(bytes.NewReader(main), scriggo.Loaders(packages), loadOptions)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
@@ -236,4 +197,3 @@ func run() {
 		os.Exit(0)
 	}
 }
-	

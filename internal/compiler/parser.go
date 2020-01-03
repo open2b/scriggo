@@ -103,8 +103,8 @@ type parsing struct {
 	// Reports whether it is a template.
 	isTemplate bool
 
-	// Report whether it is a script.
-	isScript bool
+	// Report whether it is a package-less program.
+	isPackageLessProgram bool
 
 	// Reports whether it has an extend statement.
 	hasExtend bool
@@ -148,22 +148,22 @@ func (p *parsing) next() token {
 	return tok
 }
 
-// ParseSource parses a program or script and returns its tree. isScript
-// reports whether it is a script and shebang reports whether a script can
-// have the shebang as first line.
-func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, err error) {
+// ParseSource parses a program or a package-less program and returns its tree.
+// isPackageLessProgram reports whether it is a package-less program and shebang
+// reports whether a package-less program can have the shebang as first line.
+func ParseSource(src []byte, isPackageLessProgram, shebang bool) (tree *ast.Tree, err error) {
 
-	if shebang && !isScript {
-		return nil, errors.New("scriggo/parser: shebang can be true only for scripts")
+	if shebang && !isPackageLessProgram {
+		return nil, errors.New("scriggo/parser: shebang can be true only for package-less programs")
 	}
 
 	tree = ast.NewTree("", nil, ast.ContextGo)
 
 	var p = &parsing{
-		lex:       newLexer(src, ast.ContextGo),
-		isScript:  isScript,
-		ctx:       ast.ContextGo,
-		ancestors: []ast.Node{tree},
+		lex:                  newLexer(src, ast.ContextGo),
+		isPackageLessProgram: isPackageLessProgram,
+		ctx:                  ast.ContextGo,
+		ancestors:            []ast.Node{tree},
 	}
 
 	defer func() {
@@ -191,7 +191,7 @@ func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, err error)
 	}
 
 	if len(p.ancestors) == 1 {
-		if !isScript && len(tree.Nodes) == 0 {
+		if !isPackageLessProgram && len(tree.Nodes) == 0 {
 			panic(syntaxError(tok.pos, "expected 'package', found 'EOF'"))
 		}
 	} else {
@@ -396,7 +396,7 @@ LABEL:
 	} else {
 		switch s := p.parent().(type) {
 		case *ast.Tree:
-			if !p.isScript && tok.typ != tokenPackage {
+			if !p.isPackageLessProgram && tok.typ != tokenPackage {
 				panic(syntaxError(tok.pos, "expected 'package', found '%s'", tok))
 			}
 		case *ast.Package:
@@ -432,7 +432,7 @@ LABEL:
 	// package
 	case tokenPackage:
 		pos := tok.pos
-		if tree, ok := p.parent().(*ast.Tree); !ok || p.isTemplate || p.isScript || len(tree.Nodes) > 0 {
+		if tree, ok := p.parent().(*ast.Tree); !ok || p.isTemplate || p.isPackageLessProgram || len(tree.Nodes) > 0 {
 			panic(syntaxError(tok.pos, "unexpected package, expecting statement"))
 		}
 		tok = p.next()
@@ -719,7 +719,7 @@ LABEL:
 		if p.ctx != ast.ContextGo {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting statement", tok))
 		}
-		if p.isScript && len(p.ancestors) == 1 {
+		if p.isPackageLessProgram && len(p.ancestors) == 1 {
 			panic(syntaxError(tok.pos, "unexpected }, expecting statement"))
 		}
 		if _, ok := p.parent().(*ast.Label); ok {
@@ -828,7 +828,7 @@ LABEL:
 	// return
 	case tokenReturn:
 		pos := tok.pos
-		if p.isScript || p.isTemplate {
+		if p.isPackageLessProgram || p.isTemplate {
 			var inFunction bool
 			for i := len(p.ancestors) - 1; i > 0; i-- {
 				if _, ok := p.ancestors[i].(*ast.Func); ok {

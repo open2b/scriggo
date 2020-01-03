@@ -739,8 +739,8 @@ nodesLoop:
 
 		case ast.Expression:
 
-			// Handle function declarations in scripts.
-			if fun, ok := node.(*ast.Func); tc.opts.SyntaxType == ScriptSyntax && ok {
+			// Handle function declarations in package-less programs.
+			if fun, ok := node.(*ast.Func); tc.opts.PackageLess && ok {
 				if fun.Ident != nil {
 					// Remove the identifier from the function expression and
 					// use it during the assignment.
@@ -759,14 +759,15 @@ nodesLoop:
 						[]ast.Expression{fun},
 					)
 					// Check the new node, informing the type checker that the
-					// current assignment is a script function declaration.
-					backup := tc.isScriptFuncDecl
-					tc.isScriptFuncDecl = true
+					// current assignment is a function declaration in a
+					// package-less program.
+					backup := tc.packageLessFuncDecl
+					tc.packageLessFuncDecl = true
 					newNodes := []ast.Node{varDecl, nodeAssign}
 					_ = tc.checkNodes(newNodes)
 					// Append the new nodes removing the function literal.
 					nodes = append(nodes[:i], append(newNodes, nodes[i+1:]...)...)
-					tc.isScriptFuncDecl = backup
+					tc.packageLessFuncDecl = backup
 					// Avoid error 'declared and not used' by "using" the
 					// identifier.
 					tc.checkIdentifier(ident, true)
@@ -801,10 +802,10 @@ nodesLoop:
 // TODO: improve this code, making it more readable.
 func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkgInfos map[string]*PackageInfo, packageLevel bool) error {
 
-	// Import statement in a script.
-	if tc.opts.SyntaxType == ScriptSyntax {
+	// Import statement in a package-less program.
+	if tc.opts.PackageLess {
 		if impor.Tree != nil {
-			panic("cannot import precompiled packages in scripts") // TODO: review this panic.
+			panic("cannot only import precompiled packages in package-less program") // TODO: review this panic.
 		}
 		pkg, err := tc.predefinedPkgs.Load(impor.Path)
 		if err != nil {

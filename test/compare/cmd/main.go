@@ -2,8 +2,8 @@
 // interface. It just aims to simplicity, speed and robustness.
 
 // In case of success the standard output contains the output of the execution
-// of the program/script or the rendering of the template. Else, in case of
-// error, the stderr contains the error.
+// of the program or the rendering of the template. Else, in case of error, the
+// stderr contains the error.
 
 package main
 
@@ -12,6 +12,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -143,38 +144,29 @@ func main() {
 		if timeout != nil {
 			panic("timeout not supported when compiling a program")
 		}
-		loadOpts := &scriggo.LoadOptions{
-			LimitMemorySize: limitMemorySize,
-			DisallowGoStmt:  *disallowGoStmt,
-		}
-		_, err := scriggo.Load(scriggo.Loaders(stdinLoader{os.Stdin}, predefPkgs), loadOpts)
+		loadOpts := &scriggo.LoadOptions{LimitMemorySize: limitMemorySize}
+		loadOpts.Unspec.DisallowGoStmt = *disallowGoStmt
+		_, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
 	case "compile script":
 		if timeout != nil {
-			panic("timeout not supported when compiling a script")
+			panic("timeout not supported when compiling a package-less program")
 		}
-		src, err := ioutil.ReadAll(os.Stdin)
-		if err != nil {
-			panic(err)
-		}
-		loadOpts := &scriggo.LoadOptions{
-			LimitMemorySize: limitMemorySize,
-			DisallowGoStmt:  *disallowGoStmt,
-		}
-		_, err = scriggo.LoadScript(bytes.NewReader(src), predefPkgs, loadOpts)
+		loadOpts := &scriggo.LoadOptions{LimitMemorySize: limitMemorySize}
+		loadOpts.Unspec.DisallowGoStmt = *disallowGoStmt
+		loadOpts.Unspec.PackageLess = true
+		_, err = scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
 	case "run program":
-		loadOpts := &scriggo.LoadOptions{
-			LimitMemorySize: limitMemorySize,
-			DisallowGoStmt:  *disallowGoStmt,
-		}
-		program, err := scriggo.Load(scriggo.Loaders(stdinLoader{os.Stdin}, predefPkgs), loadOpts)
+		loadOpts := &scriggo.LoadOptions{LimitMemorySize: limitMemorySize}
+		loadOpts.Unspec.DisallowGoStmt = *disallowGoStmt
+		program, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -191,11 +183,10 @@ func main() {
 			panic(err)
 		}
 	case "run script":
-		loadOpts := &scriggo.LoadOptions{
-			LimitMemorySize: limitMemorySize,
-			DisallowGoStmt:  *disallowGoStmt,
-		}
-		script, err := scriggo.LoadScript(os.Stdin, predefPkgs, loadOpts)
+		loadOpts := &scriggo.LoadOptions{LimitMemorySize: limitMemorySize}
+		loadOpts.Unspec.DisallowGoStmt = *disallowGoStmt
+		loadOpts.Unspec.PackageLess = true
+		script, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -204,7 +195,7 @@ func main() {
 			Context:       timeout,
 			MaxMemorySize: maxMemorySize,
 		}
-		err = script.Run(nil, runOpts)
+		err = script.Run(runOpts)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
 				panic(renderPanics(p))
@@ -212,13 +203,15 @@ func main() {
 			panic(err)
 		}
 	case "run program directory":
-		loadOpts := &scriggo.LoadOptions{
-			LimitMemorySize: limitMemorySize,
-			DisallowGoStmt:  *disallowGoStmt,
-		}
+		loadOpts := &scriggo.LoadOptions{LimitMemorySize: limitMemorySize}
+		loadOpts.Unspec.DisallowGoStmt = *disallowGoStmt
 		dirPath := flag.Args()[1]
 		dl := dirLoader(dirPath)
-		prog, err := scriggo.Load(scriggo.CombinedLoader{dl, predefPkgs}, loadOpts)
+		main, err := dl.Load("main")
+		if err != nil {
+			panic(err)
+		}
+		prog, err := scriggo.Load(main.(io.Reader), scriggo.CombinedLoader{dl, predefPkgs}, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)

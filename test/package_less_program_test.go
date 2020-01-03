@@ -7,7 +7,6 @@
 package test
 
 import (
-	"bytes"
 	"fmt"
 	"math"
 	"strings"
@@ -16,7 +15,7 @@ import (
 	"scriggo"
 )
 
-var scriptCases = map[string]struct {
+var packageLessPrograms = map[string]struct {
 	src  string
 	pkgs scriggo.Packages
 	init map[string]interface{}
@@ -55,7 +54,7 @@ var scriptCases = map[string]struct {
 				PkgName: "pkg",
 				Declarations: map[string]interface{}{
 					"F": func() {
-						scriptStdout.WriteString("pkg.F called!")
+						packageLessProgramsStdout.WriteString("pkg.F called!")
 					},
 				},
 			},
@@ -113,7 +112,7 @@ var scriptCases = map[string]struct {
 	// 	out: "5",
 	// },
 
-	"Usage test: using a script to perfom a sum of numbers": {
+	"Usage test: using a package-less program to perfom a sum of numbers": {
 		src: `
 			for i := 0; i < 10; i++ {
 				Sum += i
@@ -172,11 +171,11 @@ var scriptCases = map[string]struct {
 	// },
 }
 
-// Holds scripts output.
-var scriptStdout strings.Builder
+// Holds output of package-less programs.
+var packageLessProgramsStdout strings.Builder
 
-func TestScript(t *testing.T) {
-	for name, cas := range scriptCases {
+func TestPackageLessPrograms(t *testing.T) {
+	for name, cas := range packageLessPrograms {
 		t.Run(name, func(t *testing.T) {
 			if cas.pkgs == nil {
 				cas.pkgs = scriggo.Packages{}
@@ -186,19 +185,23 @@ func TestScript(t *testing.T) {
 			}
 			cas.pkgs["main"].(*scriggo.MapPackage).Declarations["Print"] = func(args ...interface{}) {
 				for _, a := range args {
-					scriptStdout.WriteString(fmt.Sprint(a))
+					packageLessProgramsStdout.WriteString(fmt.Sprint(a))
 				}
 			}
-			script, err := scriggo.LoadScript(bytes.NewReader([]byte(cas.src)), cas.pkgs, nil)
+			loadOpts := &scriggo.LoadOptions{}
+			loadOpts.Unspec.PackageLess = true
+			script, err := scriggo.Load(strings.NewReader(cas.src), cas.pkgs, loadOpts)
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
-			err = script.Run(cas.init, nil)
+			runOpts := &scriggo.RunOptions{}
+			runOpts.Unspec.Builtins = cas.init
+			err = script.Run(runOpts)
 			if err != nil {
 				t.Fatalf("execution error: %s", err)
 			}
-			out := scriptStdout.String()
-			scriptStdout.Reset()
+			out := packageLessProgramsStdout.String()
+			packageLessProgramsStdout.Reset()
 			if out != cas.out {
 				t.Fatalf("expecting output %q, got %q", cas.out, out)
 			}
@@ -218,11 +221,15 @@ func TestScriptSum(t *testing.T) {
 		},
 	}
 	init := map[string]interface{}{"Sum": &Sum}
-	script, err := scriggo.LoadScript(bytes.NewReader([]byte(src)), pkgs, nil)
+	loadOpts := &scriggo.LoadOptions{}
+	loadOpts.Unspec.PackageLess = true
+	script, err := scriggo.Load(strings.NewReader(src), pkgs, loadOpts)
 	if err != nil {
 		t.Fatalf("unable to load script: %s", err)
 	}
-	err = script.Run(init, nil)
+	runOpts := &scriggo.RunOptions{}
+	runOpts.Unspec.Builtins = init
+	err = script.Run(runOpts)
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}
@@ -231,7 +238,7 @@ func TestScriptSum(t *testing.T) {
 	}
 }
 
-func TestScriptChainMessages(t *testing.T) {
+func TestPackageLessProgramChainMessages(t *testing.T) {
 	src1 := `Message = Message + "script1,"`
 	src2 := `Message = Message + "script2"`
 	Message := "external,"
@@ -243,23 +250,27 @@ func TestScriptChainMessages(t *testing.T) {
 			},
 		},
 	}
+	loadOpts := &scriggo.LoadOptions{}
+	loadOpts.Unspec.PackageLess = true
 	init := map[string]interface{}{"Message": &Message}
-	script1, err := scriggo.LoadScript(bytes.NewReader([]byte(src1)), pkgs, nil)
+	script1, err := scriggo.Load(strings.NewReader(src1), pkgs, loadOpts)
 	if err != nil {
 		t.Fatalf("unable to load script 1: %s", err)
 	}
-	script2, err := scriggo.LoadScript(bytes.NewReader([]byte(src2)), pkgs, nil)
+	script2, err := scriggo.Load(strings.NewReader(src2), pkgs, loadOpts)
 	if err != nil {
 		t.Fatalf("unable to load script 2: %s", err)
 	}
-	err = script1.Run(init, nil)
+	runOpts := &scriggo.RunOptions{}
+	runOpts.Unspec.Builtins = init
+	err = script1.Run(runOpts)
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}
 	if Message != "external,script1," {
 		t.Fatalf("Message should be %q, got %q", "external,script1,", Message)
 	}
-	err = script2.Run(init, nil)
+	err = script2.Run(runOpts)
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}
