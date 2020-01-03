@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"reflect"
 
 	"scriggo/ast"
@@ -48,56 +47,18 @@ type CompilerError interface {
 // Load loads a Go program with the given options, loading the main package and
 // the imported packages from loader. A main package have path "main".
 func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, error) {
-
-	var tree *ast.Tree
-
-	if options != nil && options.Unspec.PackageLess {
-		var err error
-		tree, err = compiler.ParsePackageLessProgram(src, loader, options.Unspec.AllowShebangLine)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		mainSrc, err := ioutil.ReadAll(src)
-		if err != nil {
-			return nil, err
-		}
-		tree, err = compiler.ParseProgram(CombinedLoader{MapStringLoader{"main": string(mainSrc)}, loader})
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	checkerOpts := compiler.CheckerOptions{SyntaxType: compiler.ProgramSyntax}
+	compileOpts := compiler.Options{}
 	if options != nil {
-		checkerOpts.PackageLess = options.Unspec.PackageLess
+		compileOpts.AllowShebangLine = options.Unspec.AllowShebangLine
+		compileOpts.DisallowGoStmt = options.Unspec.DisallowGoStmt
+		compileOpts.LimitMemorySize = options.LimitMemorySize
+		compileOpts.PackageLess = options.Unspec.PackageLess
 	}
-	emitterOpts := compiler.EmitterOptions{}
-	if options != nil {
-		checkerOpts.DisallowGoStmt = options.Unspec.DisallowGoStmt
-		emitterOpts.MemoryLimit = options.LimitMemorySize
-	}
-
-	tci, err := compiler.Typecheck(tree, loader, checkerOpts)
+	code, err := compiler.Compile(src, loader, compileOpts)
 	if err != nil {
 		return nil, err
 	}
-	typeInfos := map[ast.Node]*compiler.TypeInfo{}
-	for _, pkgInfos := range tci {
-		for node, ti := range pkgInfos.TypeInfos {
-			typeInfos[node] = ti
-		}
-	}
-
-	if options != nil && options.Unspec.PackageLess {
-		packageLess := compiler.EmitPackageLessProgram(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
-		return &Program{fn: packageLess.Main, globals: packageLess.Globals, options: options}, nil
-
-	}
-
-	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars, emitterOpts)
-	return &Program{fn: pkgMain.Main, globals: pkgMain.Globals, options: options}, nil
-
+	return &Program{fn: code.Main, globals: code.Globals, options: options}, nil
 }
 
 // Options returns the options with which the program has been loaded.

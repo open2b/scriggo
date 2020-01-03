@@ -55,41 +55,21 @@ type Template struct {
 // to read the files of the template. Package main declares constants, types,
 // variables and functions that are accessible from the code in the template.
 func Load(path string, reader Reader, main scriggo.Package, ctx Context, options *LoadOptions) (*Template, error) {
-	tree, err := compiler.ParseTemplate(path, reader, ast.Context(ctx))
-	if err != nil {
-		return nil, err
+	compileOpts := compiler.Options{}
+	compileOpts.Template.Context = ast.Context(ctx)
+	compileOpts.Template.Path = path
+	if options != nil {
+		compileOpts.LimitMemorySize = options.LimitMemorySize
+		compileOpts.TreeTransformer = options.TreeTransformer
 	}
-	if options == nil {
-		options = &LoadOptions{}
-	}
-	checkerOpts := compiler.CheckerOptions{
-		SyntaxType:   compiler.TemplateSyntax,
-		AllowNotUsed: true,
-	}
-	var pkgs scriggo.Packages
+	var importer scriggo.Packages
 	if main != nil {
-		pkgs = scriggo.Packages{"main": main}
+		importer = scriggo.Packages{"main": main}
 	}
-	if options.TreeTransformer != nil {
-		err := options.TreeTransformer(tree)
-		if err != nil {
-			return nil, err
-		}
-	}
-	tci, err := compiler.Typecheck(tree, pkgs, checkerOpts)
+	code, err := compiler.Compile(reader, importer, compileOpts)
 	if err != nil {
 		return nil, err
 	}
-	typeInfos := map[ast.Node]*compiler.TypeInfo{}
-	for _, pkgInfos := range tci {
-		for node, ti := range pkgInfos.TypeInfos {
-			typeInfos[node] = ti
-		}
-	}
-	emitterOpts := compiler.EmitterOptions{
-		MemoryLimit: options.LimitMemorySize,
-	}
-	code := compiler.EmitTemplate(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
 	return &Template{fn: code.Main, globals: code.Globals, options: options}, nil
 }
 
