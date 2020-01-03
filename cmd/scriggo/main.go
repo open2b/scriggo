@@ -18,12 +18,16 @@ import (
 	_path "path"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/rogpeppe/go-internal/modfile"
 	"github.com/rogpeppe/go-internal/module"
 	"github.com/rogpeppe/go-internal/semver"
 )
+
+//go:generate go run ./sources_gen
+var sources map[string][]byte
 
 func main() {
 
@@ -557,7 +561,7 @@ func _build(cmd string, path string, flags buildFlags) error {
 	}
 
 	// Create the package declarations file.
-	packagesPath := filepath.Join(dir, "packages.go")
+	packagesPath := filepath.Join(dir, "run-packages.go")
 	fi, err = os.OpenFile(packagesPath, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0666)
 	if err != nil {
 		return err
@@ -572,11 +576,36 @@ func _build(cmd string, path string, flags buildFlags) error {
 		return fmt.Errorf("scriggo: can't render packages: %s", err)
 	}
 
-	// Create the other installer files main file.
-	mainPath := filepath.Join(dir, "main.go")
-	err = ioutil.WriteFile(mainPath, makeInterpreterSource(sf.target), 0666)
+	// Create the other files.
+	var b bytes.Buffer
+	b.WriteString(sourcesHeaader)
+	for name, src := range sources {
+		srcPath := filepath.Join(dir, name)
+		err = ioutil.WriteFile(srcPath, src, 0666)
+		if err != nil {
+			return fmt.Errorf("scriggo: can't write file %s: %s", srcPath, err)
+		}
+		b.WriteString("\tsources[")
+		b.WriteString(strconv.Quote(name))
+		b.WriteString("] = []byte(`")
+		src = bytes.ReplaceAll(src, []byte("`"), []byte("` + \"`\" + `"))
+		b.Write(src)
+		b.WriteString("`)\n")
+	}
+	b.WriteString(sourcesFooter)
+	sourcesPath := filepath.Join(dir, "sources.go")
+	dest, err := os.OpenFile(sourcesPath, os.O_WRONLY | os.O_CREATE | os.O_EXCL, 0666)
 	if err != nil {
-		return fmt.Errorf("scriggo: can't create go.mod: %s", err)
+		return fmt.Errorf("scriggo: can't open file %s: %s", sourcesPath, err)
+	}
+	defer dest.Close()
+	_, err = b.WriteTo(dest)
+	if err != nil {
+		return fmt.Errorf("scriggo: can't write file %s: %s", sourcesPath, err)
+	}
+	err = dest.Close()
+	if err != nil {
+		return fmt.Errorf("scriggo: can't write file %s: %s", sourcesPath, err)
 	}
 
 	// Build or install the package.
