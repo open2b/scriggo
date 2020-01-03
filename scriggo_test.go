@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"testing"
 
-	"scriggo/internal/compiler"
+	"scriggo/compiler"
 )
 
 func TestInitGlobals(t *testing.T) {

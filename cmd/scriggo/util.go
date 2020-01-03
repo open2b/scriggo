@@ -240,7 +240,7 @@ func checkGOOS(os string) error {
 // checkPackagePath checks that a given package path is valid.
 //
 // This function must be in sync with the function validPackagePath in the
-// file "scriggo/internal/compiler/path".
+// file "scriggo/compiler/path".
 func checkPackagePath(path string) error {
 	if path == "main" {
 		return nil
@@ -280,7 +280,7 @@ func checkExportedName(name string) error {
 // path must be already a valid path.
 //
 // This function must be in sync with the function cleanPath in the file
-// "scriggo/internal/compiler/path".
+// "scriggo/compiler/path".
 func cleanPath(path string) string {
 	if !strings.Contains(path, "..") {
 		return path

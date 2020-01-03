@@ -14,7 +14,7 @@ import (
 	"unicode/utf8"
 
 	"scriggo/ast"
-	"scriggo/internal/compiler/types"
+	"scriggo/compiler/types"
 	"scriggo/runtime"
 )
 

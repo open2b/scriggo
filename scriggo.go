@@ -14,7 +14,7 @@ import (
 	"reflect"
 
 	"scriggo/ast"
-	"scriggo/internal/compiler"
+	"scriggo/compiler"
 	"scriggo/runtime"
 )
 

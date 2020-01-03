@@ -13,7 +13,7 @@ import (
 	"strconv"
 
 	"scriggo/ast"
-	"scriggo/internal/compiler/types"
+	"scriggo/compiler/types"
 	"scriggo/runtime"
 )
 

@@ -15,7 +15,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"scriggo/internal/compiler"
+	"scriggo/compiler"
 )
 
 type Reader interface {

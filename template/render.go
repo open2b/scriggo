@@ -17,7 +17,7 @@ import (
 	"unicode/utf8"
 
 	"scriggo/ast"
-	"scriggo/internal/compiler"
+	"scriggo/compiler"
 	"scriggo/runtime"
 )
 
@@ -34,7 +34,7 @@ func (err PrintTypeError) RuntimeError() {}
 
 // render renders value in the context ctx and writes to out.
 //
-// Keep in sync with scriggo/internal/compiler.renderFuncType.
+// Keep in sync with scriggo/compiler.renderFuncType.
 //
 func render(_ *runtime.Env, out io.Writer, value interface{}, ctx ast.Context) {
 

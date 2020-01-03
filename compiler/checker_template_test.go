@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"scriggo/internal/compiler"
+	"scriggo/compiler"
 	"scriggo/template"
 )
 

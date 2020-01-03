@@ -450,7 +450,7 @@ type urlEscaper struct {
 // of URLs is to be escaped. quoted reports whether the attribute is quoted
 // and isSet reports whether the value of the attribute is a set of URLs.
 //
-// Keep in sync with scriggo/internal/compiler.urlEscaperStartURLType.
+// Keep in sync with scriggo/compiler.urlEscaperStartURLType.
 //
 func (w *urlEscaper) StartURL(quoted, isSet bool) {
 	w.path = true

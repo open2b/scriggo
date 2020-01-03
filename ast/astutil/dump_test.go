@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"scriggo/ast"
 	"scriggo/ast/astutil"
-	"scriggo/internal/compiler"
+	"scriggo/compiler"
 )
 
 func ExampleDump() {

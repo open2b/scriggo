@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"scriggo/ast"
-	"scriggo/internal/compiler/types"
+	"scriggo/compiler/types"
 )
 
 // typecheck makes a type check on tree. A map of predefined packages may be

@@ -10,7 +10,7 @@ import (
 	"reflect"
 
 	"scriggo/ast"
-	"scriggo/internal/compiler/types"
+	"scriggo/compiler/types"
 	"scriggo/runtime"
 )
 
