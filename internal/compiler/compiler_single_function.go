@@ -75,7 +75,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 	if opts.PackageLess {
 		code = EmitPackageLessProgram(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
 	} else {
-		code = EmitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars, emitterOpts)
+		code = emitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars, emitterOpts)
 	}
 
 	return code, nil

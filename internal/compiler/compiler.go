@@ -273,11 +273,11 @@ type Code struct {
 	Main *runtime.Function
 }
 
-// EmitPackageMain emits the code for a package main given its ast node, the
+// emitPackageMain emits the code for a package main given its ast node, the
 // type info and indirect variables. alloc reports whether Alloc instructions
-// must be emitted. EmitPackageMain returns an emittedPackage instance with
+// must be emitted. emitPackageMain returns an emittedPackage instance with
 // the global variables and the main function.
-func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
+func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
 	functions, _, _ := e.emitPackage(pkgMain, false, "main")
 	main, _ := e.fnStore.availableScriggoFn(pkgMain, "main")
