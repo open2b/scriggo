@@ -7,11 +7,157 @@
 package compiler
 
 import (
+	"errors"
 	"fmt"
 
 	"scriggo/ast"
 	"scriggo/internal/compiler/types"
 )
+
+// typecheck makes a type check on tree. A map of predefined packages may be
+// provided. deps must contain dependencies in case of package initialization
+// (program or template import/extend).
+// tree may be altered during the type checking.
+func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map[string]*packageInfo, error) {
+
+	if opts.SyntaxType == 0 {
+		panic("unspecified syntax type")
+	}
+
+	// Reset the global variable that holds the map of package paths to unique
+	// indexes.
+	pkgPathToIndex = map[string]int{}
+
+	// Type check a program.
+	if opts.SyntaxType == ProgramSyntax && !opts.PackageLess {
+		pkgInfos := map[string]*packageInfo{}
+		pkg := tree.Nodes[0].(*ast.Package)
+		if pkg.Name != "main" {
+			return nil, &CheckingError{path: tree.Path, pos: *pkg.Pos(), err: errors.New("package name must be main")}
+		}
+		err := checkPackage(pkg, tree.Path, packages, pkgInfos, opts, nil)
+		if err != nil {
+			return nil, err
+		}
+		return pkgInfos, nil
+	}
+
+	// Prepare the type checking for package-less programs and templates.
+	var globalScope typeCheckerScope
+	if packages != nil {
+		main, err := packages.Load("main")
+		if err != nil {
+			return nil, err
+		}
+		if main != nil {
+			globalScope = toTypeCheckerScope(main.(predefinedPackage), 0, opts)
+		}
+	}
+
+	// Add the builtin "exit" to the package-less program global scope.
+	if opts.PackageLess {
+		exit := scopeElement{t: &typeInfo{Properties: propertyPredeclared}}
+		if globalScope == nil {
+			globalScope = typeCheckerScope{"exit": exit}
+		} else if _, ok := globalScope["exit"]; !ok {
+			globalScope["exit"] = exit
+		}
+	}
+
+	tc := newTypechecker(tree.Path, opts, globalScope)
+
+	// Type check a template page which extends another page.
+	if extends, ok := getExtends(tree.Nodes); ok {
+		// First: all macro definitions in extending pages are declared but not
+		// initialized. This is necessary because the extended page can refer to
+		// macro defined in the extending one, but these macro can contain
+		// references to variables defined outside them.
+		for _, d := range tree.Nodes[1:] {
+			if m, ok := d.(*ast.Macro); ok {
+				f := macroToFunc(m)
+				tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &typeInfo{Type: tc.checkType(f.Type).Type}}
+			}
+		}
+		// Second: type check the extended page in a new scope.
+		currentPath := tc.path
+		tc.path = extends.Tree.Path
+		tc.paths = []checkerPath{{currentPath, extends}}
+		var err error
+		extends.Tree.Nodes, err = tc.checkNodesInNewScopeError(extends.Tree.Nodes)
+		if err != nil {
+			return nil, err
+		}
+		tc.path = currentPath
+		tc.paths = tc.paths[0:0]
+		// Third: extending page is converted to a "package", that means that
+		// out of order initialization is allowed and only certain statements
+		// are permitted.
+		err = tc.templatePageToPackage(tree, tree.Path)
+		if err != nil {
+			return nil, err
+		}
+		pkgInfos := map[string]*packageInfo{}
+		err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, nil, pkgInfos, opts, tc.globalScope)
+		if err != nil {
+			return nil, err
+		}
+		// Collect data from the type checker and return it.
+		mainPkgInfo := &packageInfo{}
+		mainPkgInfo.IndirectVars = tc.indirectVars
+		mainPkgInfo.TypeInfos = tc.typeInfos
+		for _, pkgInfo := range pkgInfos {
+			for k, v := range pkgInfo.TypeInfos {
+				mainPkgInfo.TypeInfos[k] = v
+			}
+			for k, v := range pkgInfo.IndirectVars {
+				mainPkgInfo.IndirectVars[k] = v
+			}
+		}
+		return map[string]*packageInfo{"main": mainPkgInfo}, nil
+	}
+
+	// Type check a template page or a package-less program.
+	tc.predefinedPkgs = packages
+	var err error
+	tree.Nodes, err = tc.checkNodesInNewScopeError(tree.Nodes)
+	if err != nil {
+		return nil, err
+	}
+	mainPkgInfo := &packageInfo{}
+	mainPkgInfo.IndirectVars = tc.indirectVars
+	mainPkgInfo.TypeInfos = tc.typeInfos
+	return map[string]*packageInfo{"main": mainPkgInfo}, nil
+}
+
+// https://github.com/open2b/scriggo/issues/364
+type SyntaxType int8
+
+const (
+	// https://github.com/open2b/scriggo/issues/364
+	TemplateSyntax SyntaxType = iota + 1
+	ProgramSyntax
+)
+
+// checkerOptions contains the options for the type checker.
+type checkerOptions struct {
+
+	// https://github.com/open2b/scriggo/issues/364
+	SyntaxType SyntaxType
+
+	// DisallowGoStmt disables the "go" statement.
+	DisallowGoStmt bool
+
+	// AllowNotUsed does not return a checking error if a variable is declared
+	// and not used or a package is imported and not used.
+	AllowNotUsed bool
+
+	// FailOnTODO makes compilation fail when a ShowMacro statement with "or
+	// todo" option cannot be resolved.
+	FailOnTODO bool
+
+	// PackageLess reports whether the package-less syntax is enabled.
+	PackageLess bool
+}
 
 type checkerPath struct {
 	path string
