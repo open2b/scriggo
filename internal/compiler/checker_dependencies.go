@@ -125,9 +125,9 @@ func (d deps) analyzeGlobalTypeDeclaration(td *ast.TypeDeclaration) {
 	d.addDepsToGlobal(td.Identifier, td.Type, nil)
 }
 
-// AnalyzeTree analyzes tree returning a data structure holding all dependencies
+// analyzeTree analyzes tree returning a data structure holding all dependencies
 // information.
-func AnalyzeTree(pkg *ast.Package) packageDeclsDeps {
+func analyzeTree(pkg *ast.Package) packageDeclsDeps {
 	d := deps{}
 	for _, n := range pkg.Declarations {
 		switch n := n.(type) {

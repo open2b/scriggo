@@ -46,7 +46,7 @@ func TestInitializationLoop(t *testing.T) {
 			if err != nil {
 				t.Fatalf("parsing error: %s", err)
 			}
-			deps := AnalyzeTree(tree.Nodes[0].(*ast.Package))
+			deps := analyzeTree(tree.Nodes[0].(*ast.Package))
 			pkg := tree.Nodes[0].(*ast.Package)
 			vars := []*ast.Var{}
 			consts := []*ast.Const{}

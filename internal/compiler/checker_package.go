@@ -255,7 +255,7 @@ func sortDeclarations(pkg *ast.Package) error {
 	}
 
 	// Removes from deps all non-global dependencies.
-	deps := AnalyzeTree(pkg)
+	deps := analyzeTree(pkg)
 	for decl, ds := range deps {
 		newDs := []*ast.Identifier{}
 		for _, d := range ds {

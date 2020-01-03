@@ -745,7 +745,7 @@ func TestDependencies(t *testing.T) {
 			if err != nil {
 				t.Fatalf("parsing error: %s", err)
 			}
-			got := AnalyzeTree(tree.Nodes[0].(*ast.Package))
+			got := analyzeTree(tree.Nodes[0].(*ast.Package))
 			gotIdentifiers := map[string][]string{}
 			for symbol, deps := range got {
 				if symbol.Name == "_" {
