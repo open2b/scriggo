@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -42,6 +43,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("cannot read directory: %s", err)
 	}
+	sort.Strings(names)
 	var b bytes.Buffer
 	b.WriteString(header)
 	for _, name := range names {
@@ -61,7 +63,7 @@ func main() {
 		b.WriteString("`)\n")
 	}
 	b.WriteString(footer)
-	dest, err := os.OpenFile("sources.go", os.O_WRONLY | os.O_TRUNC | os.O_CREATE, 0666)
+	dest, err := os.OpenFile("sources.go", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
 	if err != nil {
 		log.Fatalf("cannot open file sources.go: %s", err)
 	}

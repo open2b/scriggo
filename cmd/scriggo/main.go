@@ -18,6 +18,7 @@ import (
 	_path "path"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -579,7 +580,13 @@ func _build(cmd string, path string, flags buildFlags) error {
 	// Create the other files.
 	var b bytes.Buffer
 	b.WriteString(sourcesHeaader)
-	for name, src := range sources {
+	names := make([]string, 0, len(sources))
+	for name := range sources {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		src := sources[name]
 		srcPath := filepath.Join(dir, name)
 		err = ioutil.WriteFile(srcPath, src, 0666)
 		if err != nil {
