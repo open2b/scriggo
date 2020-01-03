@@ -37,7 +37,7 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) ty
 			if depth > 0 {
 				panic(fmt.Errorf("scriggo: cannot have an auto-imported package inside another auto-imported package"))
 			}
-			autoPkg := &PackageInfo{}
+			autoPkg := &packageInfo{}
 			autoPkg.Declarations = map[string]*typeInfo{}
 			for n, d := range toTypeCheckerScope(p, depth+1, opts) {
 				autoPkg.Declarations[n] = d.t
@@ -116,7 +116,7 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) ty
 //
 var pkgPathToIndex = map[string]int{}
 
-type PackageInfo struct {
+type packageInfo struct {
 	Name         string
 	Declarations map[string]*typeInfo
 	IndirectVars map[*ast.Identifier]bool
@@ -473,7 +473,7 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos map[string]*PackageInfo, opts checkerOptions, globalScope typeCheckerScope) (err error) {
+func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos map[string]*packageInfo, opts checkerOptions, globalScope typeCheckerScope) (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -604,7 +604,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 		}
 	}
 
-	pkgInfo := &PackageInfo{
+	pkgInfo := &packageInfo{
 		Name:         pkg.Name,
 		Declarations: make(map[string]*typeInfo, len(pkg.Declarations)),
 		TypeInfos:    tc.typeInfos,

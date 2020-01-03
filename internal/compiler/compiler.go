@@ -259,7 +259,7 @@ func (e *CheckingError) Position() ast.Position {
 // provided. deps must contain dependencies in case of package initialization
 // (program or template import/extend).
 // tree may be altered during the type checking.
-func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map[string]*PackageInfo, error) {
+func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map[string]*packageInfo, error) {
 
 	if opts.SyntaxType == 0 {
 		panic("unspecified syntax type")
@@ -271,7 +271,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 
 	// Type check a program.
 	if opts.SyntaxType == ProgramSyntax && !opts.PackageLess {
-		pkgInfos := map[string]*PackageInfo{}
+		pkgInfos := map[string]*packageInfo{}
 		pkg := tree.Nodes[0].(*ast.Package)
 		if pkg.Name != "main" {
 			return nil, &CheckingError{path: tree.Path, pos: *pkg.Pos(), err: errors.New("package name must be main")}
@@ -337,13 +337,13 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		if err != nil {
 			return nil, err
 		}
-		pkgInfos := map[string]*PackageInfo{}
+		pkgInfos := map[string]*packageInfo{}
 		err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, nil, pkgInfos, opts, tc.globalScope)
 		if err != nil {
 			return nil, err
 		}
 		// Collect data from the type checker and return it.
-		mainPkgInfo := &PackageInfo{}
+		mainPkgInfo := &packageInfo{}
 		mainPkgInfo.IndirectVars = tc.indirectVars
 		mainPkgInfo.TypeInfos = tc.typeInfos
 		for _, pkgInfo := range pkgInfos {
@@ -354,7 +354,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 				mainPkgInfo.IndirectVars[k] = v
 			}
 		}
-		return map[string]*PackageInfo{"main": mainPkgInfo}, nil
+		return map[string]*packageInfo{"main": mainPkgInfo}, nil
 	}
 
 	// Type check a template page or a package-less program.
@@ -364,10 +364,10 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 	if err != nil {
 		return nil, err
 	}
-	mainPkgInfo := &PackageInfo{}
+	mainPkgInfo := &packageInfo{}
 	mainPkgInfo.IndirectVars = tc.indirectVars
 	mainPkgInfo.TypeInfos = tc.typeInfos
-	return map[string]*PackageInfo{"main": mainPkgInfo}, nil
+	return map[string]*packageInfo{"main": mainPkgInfo}, nil
 }
 
 // Global represents a global variable with a package, name, type (only for

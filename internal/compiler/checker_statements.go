@@ -800,7 +800,7 @@ nodesLoop:
 }
 
 // TODO: improve this code, making it more readable.
-func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkgInfos map[string]*PackageInfo, packageLevel bool) error {
+func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkgInfos map[string]*packageInfo, packageLevel bool) error {
 
 	// Import statement in a package-less program.
 	if tc.opts.PackageLess {
@@ -815,7 +815,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 		if predefPkg.Name() == "main" {
 			return tc.programImportError(impor)
 		}
-		imported := &PackageInfo{}
+		imported := &packageInfo{}
 		imported.Declarations = make(map[string]*typeInfo, len(predefPkg.DeclarationNames()))
 		for n, d := range toTypeCheckerScope(predefPkg, 0, tc.opts) {
 			imported.Declarations[n] = d.t
@@ -845,7 +845,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 	}
 
 	// Get the package info.
-	imported := &PackageInfo{}
+	imported := &packageInfo{}
 	if impor.Tree == nil {
 		// Predefined package.
 		if packageLevel {
@@ -892,7 +892,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 			if err != nil {
 				return err
 			}
-			pkgInfos := map[string]*PackageInfo{}
+			pkgInfos := map[string]*packageInfo{}
 			if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
 				return tc.programImportError(impor)
 			}

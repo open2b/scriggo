@@ -692,7 +692,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 					if !unicode.Is(unicode.Lu, []rune(expr.Ident)[0]) {
 						panic(tc.errorf(expr, "cannot refer to unexported name %s", expr))
 					}
-					pkg := ti.value.(*PackageInfo)
+					pkg := ti.value.(*packageInfo)
 					v, ok := pkg.Declarations[expr.Ident]
 					if !ok {
 						// If identifiers is a ShowMacro identifier, first needs to check if
