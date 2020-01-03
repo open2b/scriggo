@@ -210,14 +210,14 @@ nodesLoop:
 				if len(lhs) > maxLhs {
 					panic(tc.errorf(node, "too many variables in range"))
 				}
-				ti1 := &TypeInfo{Type: typ1, Properties: PropertyAddressable}
+				ti1 := &typeInfo{Type: typ1, Properties: PropertyAddressable}
 				declaration := node.Assignment.Type == ast.AssignmentDeclaration
 				indexPh := ast.NewPlaceholder()
 				tc.typeInfos[indexPh] = ti1
 				tc.obsoleteForRangeAssign(node.Assignment, lhs[0], indexPh, nil, declaration, false)
 				if len(lhs) == 2 {
 					valuePh := ast.NewPlaceholder()
-					tc.typeInfos[valuePh] = &TypeInfo{Type: typ2}
+					tc.typeInfos[valuePh] = &typeInfo{Type: typ2}
 					tc.obsoleteForRangeAssign(node.Assignment, lhs[1], valuePh, nil, declaration, false)
 				}
 			}
@@ -327,9 +327,9 @@ nodesLoop:
 				tc.checkGenericAssignmentNode(node.Init.(*ast.Assignment))
 			}
 			// Check the expression.
-			var texpr *TypeInfo
+			var texpr *typeInfo
 			if node.Expr == nil {
-				texpr = &TypeInfo{Type: boolType, Constant: boolConst(true)}
+				texpr = &typeInfo{Type: boolType, Constant: boolConst(true)}
 				texpr.setValue(nil)
 			} else {
 				texpr = tc.checkExpr(node.Expr)
@@ -342,7 +342,7 @@ nodesLoop:
 					if err != nil {
 						panic(tc.errorf(node.Expr, "%s", err))
 					}
-					texpr = &TypeInfo{Type: texpr.Type, Constant: c}
+					texpr = &typeInfo{Type: texpr.Type, Constant: c}
 				}
 			}
 			// Check the cases.
@@ -374,7 +374,7 @@ nodesLoop:
 						if !tcase.Nil() {
 							tcase.setValue(texpr.Type)
 						}
-						tcase = &TypeInfo{Type: texpr.Type, Constant: c}
+						tcase = &typeInfo{Type: texpr.Type, Constant: c}
 					} else {
 						if tc.isAssignableTo(tcase, ex, texpr.Type) != nil && tc.isAssignableTo(texpr, ex, tcase.Type) != nil {
 							panic(tc.errorf(cas, "invalid case %s in switch%s (mismatched types %s and %s)", ex, ne, tcase.ShortString(), texpr.ShortString()))
@@ -816,7 +816,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 			return tc.programImportError(impor)
 		}
 		imported := &PackageInfo{}
-		imported.Declarations = make(map[string]*TypeInfo, len(predefPkg.DeclarationNames()))
+		imported.Declarations = make(map[string]*typeInfo, len(predefPkg.DeclarationNames()))
 		for n, d := range toTypeCheckerScope(predefPkg, 0, tc.opts) {
 			imported.Declarations[n] = d.t
 		}
@@ -839,7 +839,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 		} else {
 			name = impor.Ident.Name // import name "pkg".
 		}
-		tc.filePackageBlock[name] = scopeElement{t: &TypeInfo{value: imported, Properties: PropertyIsPackage | PropertyHasValue}}
+		tc.filePackageBlock[name] = scopeElement{t: &typeInfo{value: imported, Properties: PropertyIsPackage | PropertyHasValue}}
 		tc.unusedImports[name] = nil
 		return nil
 	}
@@ -858,7 +858,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 				return tc.programImportError(impor)
 			}
 			declarations := predefinedPkg.DeclarationNames()
-			imported.Declarations = make(map[string]*TypeInfo, len(declarations))
+			imported.Declarations = make(map[string]*typeInfo, len(declarations))
 			for n, d := range toTypeCheckerScope(predefinedPkg, 0, tc.opts) {
 				imported.Declarations[n] = d.t
 			}
@@ -925,7 +925,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 			}
 		default:
 			tc.filePackageBlock[impor.Ident.Name] = scopeElement{
-				t: &TypeInfo{
+				t: &typeInfo{
 					value:      imported,
 					Properties: PropertyIsPackage | PropertyHasValue,
 				},
@@ -943,7 +943,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 		// No name provided.
 		if impor.Ident == nil {
 			tc.filePackageBlock[imported.Name] = scopeElement{
-				t: &TypeInfo{value: imported, Properties: PropertyIsPackage | PropertyHasValue},
+				t: &typeInfo{value: imported, Properties: PropertyIsPackage | PropertyHasValue},
 			}
 			tc.unusedImports[imported.Name] = nil
 			return nil
@@ -958,7 +958,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 		}
 		// Import statement with a name.
 		tc.filePackageBlock[impor.Ident.Name] = scopeElement{
-			t: &TypeInfo{
+			t: &typeInfo{
 				value:      imported,
 				Properties: PropertyIsPackage | PropertyHasValue,
 			},
@@ -1110,7 +1110,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) ast.Node {
 //  type Int int
 //  type Int = int
 //
-func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) (string, *TypeInfo) {
+func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) (string, *typeInfo) {
 	typ := tc.checkType(node.Type)
 	if isBlankIdentifier(node.Identifier) {
 		return "", nil
@@ -1121,7 +1121,7 @@ func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) (string, 
 		return name, typ
 	}
 	// Create and return a new Scriggo type.
-	return name, &TypeInfo{
+	return name, &typeInfo{
 		Type:       tc.types.DefinedOf(name, typ.Type),
 		Properties: PropertyIsType,
 	}

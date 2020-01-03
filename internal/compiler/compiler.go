@@ -77,7 +77,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 	if err != nil {
 		return nil, err
 	}
-	typeInfos := map[ast.Node]*TypeInfo{}
+	typeInfos := map[ast.Node]*typeInfo{}
 	for _, pkgInfos := range tci {
 		for node, ti := range pkgInfos.TypeInfos {
 			typeInfos[node] = ti
@@ -129,7 +129,7 @@ func CompileTemplate(r Reader, path string, main PackageLoader, opts Options) (*
 	if err != nil {
 		return nil, err
 	}
-	typeInfos := map[ast.Node]*TypeInfo{}
+	typeInfos := map[ast.Node]*typeInfo{}
 	for _, pkgInfos := range tci {
 		for node, ti := range pkgInfos.TypeInfos {
 			typeInfos[node] = ti
@@ -297,7 +297,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 
 	// Add the builtin "exit" to the package-less program global scope.
 	if opts.PackageLess {
-		exit := scopeElement{t: &TypeInfo{Properties: PropertyPredeclared}}
+		exit := scopeElement{t: &typeInfo{Properties: PropertyPredeclared}}
 		if globalScope == nil {
 			globalScope = typeCheckerScope{"exit": exit}
 		} else if _, ok := globalScope["exit"]; !ok {
@@ -316,7 +316,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		for _, d := range tree.Nodes[1:] {
 			if m, ok := d.(*ast.Macro); ok {
 				f := macroToFunc(m)
-				tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: tc.checkType(f.Type).Type}}
+				tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &typeInfo{Type: tc.checkType(f.Type).Type}}
 			}
 		}
 		// Second: type check the extended page in a new scope.
@@ -394,7 +394,7 @@ type Code struct {
 // type info and indirect variables. alloc reports whether Alloc instructions
 // must be emitted. emitPackageMain returns an emittedPackage instance with
 // the global variables and the main function.
-func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) *Code {
+func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
 	functions, _, _ := e.emitPackage(pkgMain, false, "main")
 	main, _ := e.fnStore.availableScriggoFn(pkgMain, "main")
@@ -410,7 +410,7 @@ func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 // tree, the type info and indirect variables. alloc reports whether Alloc
 // instructions must be emitted. emitPackageLessProgram returns a function that
 // is the entry point of the package-less program and the global variables.
-func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) *Code {
+func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)), tree.Path)
 	e.fb.emitSetAlloc(opts.MemoryLimit)
@@ -425,7 +425,7 @@ func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, in
 // indirect variables. alloc reports whether Alloc instructions must be
 // emitted. emitTemplate returns a function that is the entry point of the
 // template and the global variables.
-func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) *Code {
+func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) *Code {
 
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.pkg = &ast.Package{}

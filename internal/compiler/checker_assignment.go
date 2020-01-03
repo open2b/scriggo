@@ -29,13 +29,13 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 	}
 
 	// Type check the left side.
-	lhs := make([]*TypeInfo, len(node.Lhs))
+	lhs := make([]*typeInfo, len(node.Lhs))
 	for i, lhExpr := range node.Lhs {
 		if isBlankIdentifier(lhExpr) {
 			continue
 		}
 		// Determine the Lh type info.
-		var lh *TypeInfo
+		var lh *typeInfo
 		if ident, ok := lhExpr.(*ast.Identifier); ok {
 			lh = tc.checkIdentifier(ident, false) // Use checkIdentifier to avoid marking 'ident' as used.
 		} else {
@@ -54,7 +54,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 	}
 
 	// Type check the right side.
-	rhs := make([]*TypeInfo, len(nodeRhs))
+	rhs := make([]*typeInfo, len(nodeRhs))
 	for i := range nodeRhs {
 		rhs[i] = tc.checkExpr(nodeRhs[i])
 	}
@@ -124,7 +124,7 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 	tc.iota = node.Index
 
 	// Type check every Rh expression: they must be constant.
-	rhs := make([]*TypeInfo, len(node.Rhs))
+	rhs := make([]*typeInfo, len(node.Rhs))
 	for i, rhExpr := range node.Rhs {
 		rh := tc.checkExpr(rhExpr)
 		if !rh.IsConstant() {
@@ -138,7 +138,7 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 
 	tc.iota = -1
 
-	var typ *TypeInfo
+	var typ *typeInfo
 
 	if node.Type != nil {
 		typ = tc.checkType(node.Type)
@@ -172,7 +172,7 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 		}
 
 		// Declare the constant in the current block/scope.
-		constTi := &TypeInfo{Type: constType, Constant: constValue}
+		constTi := &typeInfo{Type: constType, Constant: constValue}
 		if rh.Untyped() && typ == nil {
 			constTi.Properties = PropertyUntyped
 		}
@@ -269,7 +269,7 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 	}
 
 	// Type check the right side of :=.
-	rhs := make([]*TypeInfo, len(nodeRhs))
+	rhs := make([]*typeInfo, len(nodeRhs))
 	for i, rhExpr := range nodeRhs {
 		rhs[i] = tc.checkExpr(rhExpr)
 	}
@@ -316,7 +316,7 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 
 	// Type check the explicit type, if present.
-	var typ *TypeInfo
+	var typ *typeInfo
 	if node.Type != nil {
 		typ = tc.checkType(node.Type)
 	}
@@ -339,7 +339,7 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 	}
 
 	// Type check expressions on the right side.
-	rhs := make([]*TypeInfo, len(nodeRhs))
+	rhs := make([]*typeInfo, len(nodeRhs))
 	for i := range nodeRhs {
 		rhs[i] = tc.checkExpr(nodeRhs[i])
 	}
@@ -397,7 +397,7 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 // given type. Note that a variabile declaration may come from both 'var'
 // statements and short variable declaration statements.
 func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
-	ti := &TypeInfo{
+	ti := &typeInfo{
 		Type:       typ,
 		Properties: PropertyAddressable,
 	}
@@ -437,21 +437,21 @@ func (tc *typechecker) mustBeAssignableTo(rhExpr ast.Expression, typ reflect.Typ
 // that holds the zero for the given type.
 func (tc *typechecker) newPlaceholderFor(typ reflect.Type) *ast.Placeholder {
 	k := typ.Kind()
-	var ti *TypeInfo
+	var ti *typeInfo
 	switch {
 	case reflect.Int <= k && k <= reflect.Complex128:
-		ti = &TypeInfo{Type: typ, Constant: int64Const(0), Properties: PropertyUntyped}
+		ti = &typeInfo{Type: typ, Constant: int64Const(0), Properties: PropertyUntyped}
 		ti.setValue(typ)
 	case k == reflect.String:
-		ti = &TypeInfo{Type: typ, Constant: stringConst(""), Properties: PropertyUntyped}
+		ti = &typeInfo{Type: typ, Constant: stringConst(""), Properties: PropertyUntyped}
 		ti.setValue(typ)
 	case k == reflect.Bool:
-		ti = &TypeInfo{Type: typ, Constant: boolConst(false), Properties: PropertyUntyped}
+		ti = &typeInfo{Type: typ, Constant: boolConst(false), Properties: PropertyUntyped}
 		ti.setValue(typ)
 	case k == reflect.Interface, k == reflect.Func:
 		ti = tc.nilOf(typ)
 	default:
-		ti = &TypeInfo{Type: typ, value: tc.types.Zero(typ).Interface(), Properties: PropertyHasValue}
+		ti = &typeInfo{Type: typ, value: tc.types.Zero(typ).Interface(), Properties: PropertyHasValue}
 		ti.setValue(typ)
 	}
 	ph := ast.NewPlaceholder()
@@ -507,14 +507,14 @@ func (tc *typechecker) rebalancedRightSide(node ast.Node) []ast.Expression {
 			v1 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
 			v2 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
 			ti := tc.checkExpr(rhExpr)
-			tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
+			tc.typeInfos[v1] = &typeInfo{Type: ti.Type}
 			tc.typeInfos[v2] = untypedBoolTypeInfo
 			return []ast.Expression{v1, v2}
 		case *ast.Index:
 			v1 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			v2 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			ti := tc.checkExpr(rhExpr)
-			tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
+			tc.typeInfos[v1] = &typeInfo{Type: ti.Type}
 			tc.typeInfos[v2] = untypedBoolTypeInfo
 			return []ast.Expression{v1, v2}
 		case *ast.UnaryOperator:
@@ -522,7 +522,7 @@ func (tc *typechecker) rebalancedRightSide(node ast.Node) []ast.Expression {
 				v1 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
 				v2 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
 				ti := tc.checkExpr(rhExpr)
-				tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
+				tc.typeInfos[v1] = &typeInfo{Type: ti.Type}
 				tc.typeInfos[v2] = untypedBoolTypeInfo
 				return []ast.Expression{v1, v2}
 			}

@@ -10,7 +10,7 @@ import "scriggo/ast"
 
 // TODO: this method is obsolete and must be removed when changing the type
 // checking of ForRange nodes.
-func (tc *typechecker) obsoleteForRangeAssign(node ast.Node, leftExpr, rightExpr ast.Expression, typ *TypeInfo, isVariableDecl, isConstDecl bool) string {
+func (tc *typechecker) obsoleteForRangeAssign(node ast.Node, leftExpr, rightExpr ast.Expression, typ *typeInfo, isVariableDecl, isConstDecl bool) string {
 
 	right := tc.checkExpr(rightExpr)
 
@@ -64,7 +64,7 @@ func (tc *typechecker) obsoleteForRangeAssign(node ast.Node, leftExpr, rightExpr
 		}
 
 		if isConstDecl {
-			newRight := &TypeInfo{}
+			newRight := &typeInfo{}
 			if typ == nil {
 				if right.Nil() {
 					panic(tc.errorf(node, "use of untyped nil"))
@@ -86,7 +86,7 @@ func (tc *typechecker) obsoleteForRangeAssign(node ast.Node, leftExpr, rightExpr
 		}
 
 		if isVariableDecl {
-			newRight := &TypeInfo{}
+			newRight := &typeInfo{}
 			if typ == nil {
 				if right.Nil() {
 					panic(tc.errorf(node, "use of untyped nil"))

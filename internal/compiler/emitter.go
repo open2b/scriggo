@@ -29,7 +29,7 @@ type emitter struct {
 
 	// typeInfos maps nodes to their type info.
 	// Should be accessed using method 'ti'.
-	typeInfos map[ast.Node]*TypeInfo
+	typeInfos map[ast.Node]*typeInfo
 
 	options emitterOptions
 
@@ -71,7 +71,7 @@ type emitter struct {
 
 // newEmitter returns a new emitter with the given type infos, indirect
 // variables and options.
-func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) *emitter {
+func newEmitter(typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) *emitter {
 	em := &emitter{
 		labels:              make(map[*runtime.Function]map[string]label),
 		options:             opts,
@@ -85,7 +85,7 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 }
 
 // ti returns the type info of node n.
-func (em *emitter) ti(n ast.Node) *TypeInfo {
+func (em *emitter) ti(n ast.Node) *typeInfo {
 	if ti, ok := em.typeInfos[n]; ok {
 		if ti.valueType != nil {
 			ti.Type = ti.valueType

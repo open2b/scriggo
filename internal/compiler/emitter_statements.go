@@ -731,7 +731,7 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 				em.fb.emitIf(false, 0, runtime.ConditionOK, 0, reflect.Interface, assignment.Pos())
 				em.fb.emitMove(true, 0, ok, reflect.Bool, false)
 				okExpr := ast.NewIdentifier(pos, "$ok")
-				em.typeInfos[okExpr] = &TypeInfo{
+				em.typeInfos[okExpr] = &typeInfo{
 					Type: boolType,
 				}
 				em.fb.bindVarReg("$ok", ok)
@@ -771,7 +771,7 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 		expr = em.fb.newRegister(typ.Kind())
 		em.fb.emitMove(true, 1, expr, typ.Kind(), true)
 		node.Expr = ast.NewIdentifier(node.Pos(), "true")
-		em.typeInfos[node.Expr] = &TypeInfo{
+		em.typeInfos[node.Expr] = &typeInfo{
 			Constant:   boolConst(true),
 			Type:       boolType,
 			value:      int64(1), // true
@@ -796,7 +796,7 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 			em.fb.enterStack()
 			pos := caseExpr.Pos()
 			binOp := ast.NewBinaryOperator(pos, ast.OperatorNotEqual, node.Expr, caseExpr)
-			em.typeInfos[binOp] = &TypeInfo{
+			em.typeInfos[binOp] = &typeInfo{
 				Type: boolType,
 			}
 			em.emitCondition(binOp)

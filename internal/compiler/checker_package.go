@@ -38,12 +38,12 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) ty
 				panic(fmt.Errorf("scriggo: cannot have an auto-imported package inside another auto-imported package"))
 			}
 			autoPkg := &PackageInfo{}
-			autoPkg.Declarations = map[string]*TypeInfo{}
+			autoPkg.Declarations = map[string]*typeInfo{}
 			for n, d := range toTypeCheckerScope(p, depth+1, opts) {
 				autoPkg.Declarations[n] = d.t
 			}
 			autoPkg.Name = p.Name()
-			s[ident] = scopeElement{t: &TypeInfo{
+			s[ident] = scopeElement{t: &typeInfo{
 				value:      autoPkg,
 				Properties: PropertyIsPackage | PropertyHasValue,
 			}}
@@ -51,7 +51,7 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) ty
 		}
 		// Import a type.
 		if t, ok := value.(reflect.Type); ok {
-			s[ident] = scopeElement{t: &TypeInfo{
+			s[ident] = scopeElement{t: &typeInfo{
 				Type:              t,
 				Properties:        PropertyIsType | PropertyIsPredefined,
 				PredefPackageName: pkgName,
@@ -61,7 +61,7 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) ty
 		// Import a variable.
 		if reflect.TypeOf(value).Kind() == reflect.Ptr {
 			v := reflect.ValueOf(value)
-			s[ident] = scopeElement{t: &TypeInfo{
+			s[ident] = scopeElement{t: &typeInfo{
 				Type:              reflect.TypeOf(value).Elem(),
 				value:             &v,
 				Properties:        PropertyAddressable | PropertyIsPredefined | PropertyHasValue,
@@ -71,7 +71,7 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) ty
 		}
 		// Import a function.
 		if typ := reflect.TypeOf(value); typ.Kind() == reflect.Func {
-			s[ident] = scopeElement{t: &TypeInfo{
+			s[ident] = scopeElement{t: &typeInfo{
 				Type:              removeEnvArg(typ, false),
 				value:             reflect.ValueOf(value),
 				Properties:        PropertyIsPredefined | PropertyHasValue,
@@ -85,7 +85,7 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) ty
 			if err != nil {
 				panic(fmt.Errorf("scriggo: invalid untyped constant %q for %s.%s", c, pp.Name(), ident))
 			}
-			s[ident] = scopeElement{t: &TypeInfo{
+			s[ident] = scopeElement{t: &typeInfo{
 				Type:              typ,
 				Properties:        PropertyUntyped,
 				Constant:          constant,
@@ -98,7 +98,7 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) ty
 		if constant == nil {
 			panic(fmt.Errorf("scriggo: invalid constant value %v for %s.%s", value, pkgName, ident))
 		}
-		s[ident] = scopeElement{t: &TypeInfo{
+		s[ident] = scopeElement{t: &typeInfo{
 			Type:              reflect.TypeOf(value),
 			Constant:          constant,
 			PredefPackageName: pkgName,
@@ -118,9 +118,9 @@ var pkgPathToIndex = map[string]int{}
 
 type PackageInfo struct {
 	Name         string
-	Declarations map[string]*TypeInfo
+	Declarations map[string]*typeInfo
 	IndirectVars map[*ast.Identifier]bool
-	TypeInfos    map[ast.Node]*TypeInfo
+	TypeInfos    map[ast.Node]*typeInfo
 }
 
 func depsOf(name string, deps PackageDeclsDeps) []*ast.Identifier {
@@ -535,7 +535,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 			if _, ok := tc.filePackageBlock[f.Ident.Name]; ok {
 				return tc.errorf(f.Ident, "%s redeclared in this block", f.Ident.Name)
 			}
-			tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: funcType}}
+			tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &typeInfo{Type: funcType}}
 		}
 	}
 
@@ -553,9 +553,9 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 				t := tc.checkType(param.Type)
 				if param.Ident != nil && !isBlankIdentifier(param.Ident) {
 					if isVariadic && i == len(d.Type.Parameters)-1 {
-						tc.assignScope(param.Ident.Name, &TypeInfo{Type: tc.types.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
+						tc.assignScope(param.Ident.Name, &typeInfo{Type: tc.types.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
 					} else {
-						tc.assignScope(param.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
+						tc.assignScope(param.Ident.Name, &typeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 					}
 				}
 			}
@@ -563,7 +563,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 			for _, ret := range d.Type.Result {
 				t := tc.checkType(ret.Type)
 				if ret.Ident != nil && !isBlankIdentifier(ret.Ident) {
-					tc.assignScope(ret.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
+					tc.assignScope(ret.Ident.Name, &typeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 				}
 			}
 			d.Body.Nodes, err = tc.checkNodesError(d.Body.Nodes)
@@ -606,10 +606,10 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 
 	pkgInfo := &PackageInfo{
 		Name:         pkg.Name,
-		Declarations: make(map[string]*TypeInfo, len(pkg.Declarations)),
+		Declarations: make(map[string]*typeInfo, len(pkg.Declarations)),
 		TypeInfos:    tc.typeInfos,
 	}
-	pkgInfo.Declarations = make(map[string]*TypeInfo)
+	pkgInfo.Declarations = make(map[string]*typeInfo)
 	for ident, ti := range tc.filePackageBlock {
 		pkgInfo.Declarations[ident] = ti.t
 	}

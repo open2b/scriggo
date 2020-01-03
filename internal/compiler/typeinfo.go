@@ -22,11 +22,11 @@ const (
 	PropertyHasValue                            // has a value
 )
 
-// A TypeInfo holds the type checking information. For example, every expression
-// in the AST has an associated TypeInfo. The TypeInfo is also used in the type
+// A typeInfo holds the type checking information. For example, every expression
+// in the AST has an associated typeInfo. The typeInfo is also used in the type
 // checker scopes to associate the declarations to the type checking
 // information.
-type TypeInfo struct {
+type typeInfo struct {
 	Type              reflect.Type // Type.
 	Properties        Properties   // Properties.
 	Constant          constant     // Constant value.
@@ -49,68 +49,68 @@ const (
 )
 
 // Nil reports whether it is the predeclared nil.
-func (ti *TypeInfo) Nil() bool {
+func (ti *typeInfo) Nil() bool {
 	return ti.Predeclared() && ti.Untyped() && ti.Type == nil
 }
 
 // Untyped reports whether it is untyped.
-func (ti *TypeInfo) Untyped() bool {
+func (ti *typeInfo) Untyped() bool {
 	return ti.Properties&PropertyUntyped != 0
 }
 
 // IsConstant reports whether it is a constant.
-func (ti *TypeInfo) IsConstant() bool {
+func (ti *typeInfo) IsConstant() bool {
 	return ti.Constant != nil
 }
 
 // IsUntypedConstant reports whether it is an untyped constant.
-func (ti *TypeInfo) IsUntypedConstant() bool {
+func (ti *typeInfo) IsUntypedConstant() bool {
 	return ti.Properties&PropertyUntyped != 0 && ti.Constant != nil
 }
 
 // IsType reports whether it is a type.
-func (ti *TypeInfo) IsType() bool {
+func (ti *typeInfo) IsType() bool {
 	return ti.Properties&PropertyIsType != 0
 }
 
 // IsPackage reports whether it is a package.
-func (ti *TypeInfo) IsPackage() bool {
+func (ti *typeInfo) IsPackage() bool {
 	return ti.Properties&PropertyIsPackage != 0
 }
 
 // Predeclared reports whether it is predeclared.
-func (ti *TypeInfo) Predeclared() bool {
+func (ti *typeInfo) Predeclared() bool {
 	return ti.Properties&PropertyPredeclared != 0
 }
 
 // Addressable reports whether it is addressable.
-func (ti *TypeInfo) Addressable() bool {
+func (ti *typeInfo) Addressable() bool {
 	return ti.Properties&PropertyAddressable != 0
 }
 
 // IsPredefined reports whether it is predefined.
-func (ti *TypeInfo) IsPredefined() bool {
+func (ti *typeInfo) IsPredefined() bool {
 	return ti.Properties&PropertyIsPredefined != 0
 }
 
 // IsBuiltinFunction reports whether it is a builtin function.
-func (ti *TypeInfo) IsBuiltinFunction() bool {
+func (ti *typeInfo) IsBuiltinFunction() bool {
 	return ti.Properties&PropertyPredeclared != 0 && ti.Properties&PropertyUntyped == 0 && ti.Type == nil
 }
 
-func (ti *TypeInfo) UntypedNonConstantNumber() bool {
+func (ti *typeInfo) UntypedNonConstantNumber() bool {
 	return ti.IsNumeric() && !ti.IsConstant() && ti.Untyped()
 }
 
 // TODO: to remove?
-func (ti *TypeInfo) UntypedNonConstantInteger() bool {
+func (ti *typeInfo) UntypedNonConstantInteger() bool {
 	return ti.IsInteger() && !ti.IsConstant() && ti.Untyped()
 }
 
 var runeType = reflect.TypeOf(rune(0))
 
 // String returns a string representation.
-func (ti *TypeInfo) String() string {
+func (ti *typeInfo) String() string {
 	if ti.Nil() {
 		return "nil"
 	}
@@ -127,7 +127,7 @@ func (ti *TypeInfo) String() string {
 }
 
 // ShortString returns a short string representation.
-func (ti *TypeInfo) ShortString() string {
+func (ti *typeInfo) ShortString() string {
 	if ti.Nil() {
 		return "nil"
 	}
@@ -142,7 +142,7 @@ func (ti *TypeInfo) ShortString() string {
 
 // StringWithNumber returns the string representation of ti in the context of
 // a function call, return statement and type switch assertion.
-func (ti *TypeInfo) StringWithNumber(explicitUntyped bool) string {
+func (ti *typeInfo) StringWithNumber(explicitUntyped bool) string {
 	if ti.Nil() {
 		return "nil"
 	}
@@ -156,12 +156,12 @@ func (ti *TypeInfo) StringWithNumber(explicitUntyped bool) string {
 }
 
 // IsBoolean reports whether it is boolean.
-func (ti *TypeInfo) IsBoolean() bool {
+func (ti *typeInfo) IsBoolean() bool {
 	return !ti.Nil() && ti.Type.Kind() == reflect.Bool
 }
 
 // IsNumeric reports whether it is numeric.
-func (ti *TypeInfo) IsNumeric() bool {
+func (ti *typeInfo) IsNumeric() bool {
 	if ti.Nil() {
 		return false
 	}
@@ -170,7 +170,7 @@ func (ti *TypeInfo) IsNumeric() bool {
 }
 
 // IsInteger reports whether it is an integer.
-func (ti *TypeInfo) IsInteger() bool {
+func (ti *typeInfo) IsInteger() bool {
 	if ti.Nil() {
 		return false
 	}
@@ -179,7 +179,7 @@ func (ti *TypeInfo) IsInteger() bool {
 }
 
 // HasValue reports whether it has a value.
-func (ti *TypeInfo) HasValue() bool {
+func (ti *typeInfo) HasValue() bool {
 	return ti.Properties&PropertyHasValue != 0
 }
 
@@ -205,7 +205,7 @@ func (ti *TypeInfo) HasValue() bool {
 //      x + 3                call setValue on '3'     ctxType = typeof(x)
 //      x + y                no need to call setValue
 //
-func (ti *TypeInfo) setValue(ctxType reflect.Type) {
+func (ti *typeInfo) setValue(ctxType reflect.Type) {
 	typ := ctxType
 	if ctxType == nil || ctxType.Kind() == reflect.Interface {
 		typ = ti.Type

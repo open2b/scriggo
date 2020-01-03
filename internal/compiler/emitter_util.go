@@ -350,7 +350,7 @@ var urlEscaperStartURLType = reflect.FuncOf([]reflect.Type{
 	reflect.TypeOf(bool(false)), // isSet bool
 }, nil, false)
 
-func (em *emitter) emitValueNotPredefined(ti *TypeInfo, reg int8, dstType reflect.Type) (int8, bool) {
+func (em *emitter) emitValueNotPredefined(ti *typeInfo, reg int8, dstType reflect.Type) (int8, bool) {
 	typ := ti.Type
 	if reg == 0 {
 		return reg, false

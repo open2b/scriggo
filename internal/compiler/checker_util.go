@@ -159,7 +159,7 @@ var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
 // non-constant right operand. In this case t2 is the type the left operand
 // would assume if the shift expressions were replaced by its left operand
 // alone.
-func (tc *typechecker) convert(ti *TypeInfo, expr ast.Expression, t2 reflect.Type) (constant, error) {
+func (tc *typechecker) convert(ti *typeInfo, expr ast.Expression, t2 reflect.Type) (constant, error) {
 
 	switch k2 := t2.Kind(); {
 
@@ -205,7 +205,7 @@ func (tc *typechecker) convert(ti *TypeInfo, expr ast.Expression, t2 reflect.Typ
 			}
 			typ = ti.Type
 		}
-		tc.typeInfos[expr] = &TypeInfo{Type: typ}
+		tc.typeInfos[expr] = &typeInfo{Type: typ}
 
 		switch expr := expr.(type) {
 
@@ -246,7 +246,7 @@ func (tc *typechecker) declaredInThisBlock(name string) bool {
 
 // deferGoBuiltin returns a type info suitable to be embedded into the 'defer'
 // and 'go' statements with a builtin call as argument.
-func deferGoBuiltin(name string) *TypeInfo {
+func deferGoBuiltin(name string) *typeInfo {
 	var fun interface{}
 	switch name {
 	case "close":
@@ -278,7 +278,7 @@ func deferGoBuiltin(name string) *TypeInfo {
 		fun = func() {}
 	}
 	rv := reflect.ValueOf(fun)
-	return &TypeInfo{
+	return &typeInfo{
 		Properties: PropertyHasValue | PropertyIsPredefined,
 		Type:       removeEnvArg(rv.Type(), false),
 		value:      rv,
@@ -296,7 +296,7 @@ func (tc *typechecker) emptyMethodSet(interf reflect.Type) bool {
 // If name is unexported and the type is predefined, name is transformed and the
 // new name is returned. For further information about this check the
 // documentation of the type checking of an *ast.StructType.
-func (tc *typechecker) fieldByName(t *TypeInfo, name string) (*TypeInfo, string, bool) {
+func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string, bool) {
 	newName := name
 	firstChar, _ := utf8.DecodeRuneInString(name)
 	if !t.IsPredefined() && !unicode.Is(unicode.Lu, firstChar) {
@@ -306,13 +306,13 @@ func (tc *typechecker) fieldByName(t *TypeInfo, name string) (*TypeInfo, string,
 	if t.Type.Kind() == reflect.Struct {
 		field, ok := t.Type.FieldByName(name)
 		if ok {
-			return &TypeInfo{Type: field.Type, Properties: t.Properties & PropertyAddressable}, newName, true
+			return &typeInfo{Type: field.Type, Properties: t.Properties & PropertyAddressable}, newName, true
 		}
 	}
 	if t.Type.Kind() == reflect.Ptr {
 		field, ok := t.Type.Elem().FieldByName(name)
 		if ok {
-			return &TypeInfo{Type: field.Type, Properties: PropertyAddressable}, newName, true
+			return &typeInfo{Type: field.Type, Properties: PropertyAddressable}, newName, true
 		}
 	}
 	return nil, newName, false
@@ -370,13 +370,13 @@ func (err invalidTypeInAssignment) Error() string {
 	return string(err)
 }
 
-func newInvalidTypeInAssignment(x *TypeInfo, expr ast.Expression, t reflect.Type) invalidTypeInAssignment {
+func newInvalidTypeInAssignment(x *typeInfo, expr ast.Expression, t reflect.Type) invalidTypeInAssignment {
 	return invalidTypeInAssignment(fmt.Sprintf("cannot use %s (type %s) as type %s", expr, x.Type, t))
 }
 
 // isAssignableTo reports whether x is assignable to type t.
 // See https://golang.org/ref/spec#Assignability for details.
-func (tc *typechecker) isAssignableTo(x *TypeInfo, expr ast.Expression, t reflect.Type) error {
+func (tc *typechecker) isAssignableTo(x *typeInfo, expr ast.Expression, t reflect.Type) error {
 	if x.Untyped() {
 		_, err := tc.convert(x, expr, t)
 		if err == errNotRepresentable || err == errTypeConversion {
@@ -437,7 +437,7 @@ func isBoolean(k reflect.Kind) bool {
 }
 
 // isOrdered reports whether t is ordered.
-func isOrdered(t *TypeInfo) bool {
+func isOrdered(t *typeInfo) bool {
 	k := t.Type.Kind()
 	return isNumeric(k) || k == reflect.String
 }
@@ -490,7 +490,7 @@ const (
 //
 // Only for type classes, the returned function type has the method's
 // receiver as first argument.
-func (tc *typechecker) methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, bool) {
+func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiverTransformation, bool) {
 
 	if t.IsType() {
 		// Method expression on interface type.
@@ -509,7 +509,7 @@ func (tc *typechecker) methodByName(t *TypeInfo, name string) (*TypeInfo, receiv
 					return args[0].MethodByName(method.Name).Call(args[1:])
 				}
 				methExpr := reflect.MakeFunc(reflect.FuncOf(in, out, method.Type.IsVariadic()), f)
-				ti := &TypeInfo{
+				ti := &typeInfo{
 					Type:       removeEnvArg(methExpr.Type(), false),
 					value:      methExpr,
 					Properties: PropertyIsPredefined | PropertyHasValue,
@@ -520,7 +520,7 @@ func (tc *typechecker) methodByName(t *TypeInfo, name string) (*TypeInfo, receiv
 
 		// Method expression on concrete type.
 		if method, ok := t.Type.MethodByName(name); ok {
-			return &TypeInfo{
+			return &typeInfo{
 				Type:       removeEnvArg(method.Type, true),
 				value:      method.Func,
 				Properties: PropertyIsPredefined | PropertyHasValue,
@@ -532,7 +532,7 @@ func (tc *typechecker) methodByName(t *TypeInfo, name string) (*TypeInfo, receiv
 	// Method calls and method values on interfaces.
 	if t.Type.Kind() == reflect.Interface {
 		if method, ok := t.Type.MethodByName(name); ok {
-			ti := &TypeInfo{
+			ti := &typeInfo{
 				Type:       removeEnvArg(method.Type, true),
 				value:      name,
 				MethodType: MethodValueInterface,
@@ -547,7 +547,7 @@ func (tc *typechecker) methodByName(t *TypeInfo, name string) (*TypeInfo, receiv
 	method := tc.types.Zero(t.Type).MethodByName(name)
 	methodExplicitRcvr, _ := t.Type.MethodByName(name)
 	if method.IsValid() {
-		ti := &TypeInfo{
+		ti := &typeInfo{
 			Type:       removeEnvArg(method.Type(), false),
 			value:      methodExplicitRcvr.Func,
 			Properties: PropertyIsPredefined | PropertyHasValue,
@@ -573,7 +573,7 @@ func (tc *typechecker) methodByName(t *TypeInfo, name string) (*TypeInfo, receiv
 		method = tc.types.Zero(tc.types.PtrTo(t.Type)).MethodByName(name)
 		methodExplicitRcvr, _ := tc.types.PtrTo(t.Type).MethodByName(name)
 		if method.IsValid() {
-			return &TypeInfo{
+			return &typeInfo{
 				Type:       removeEnvArg(method.Type(), false),
 				value:      methodExplicitRcvr.Func,
 				Properties: PropertyIsPredefined | PropertyHasValue,
@@ -693,7 +693,7 @@ func removeEnvArg(typ reflect.Type, hasReceiver bool) reflect.Type {
 
 // representedBy returns t1 ( a constant or an untyped boolean value )
 // represented as a value of type t2. t2 can not be an interface.
-func representedBy(t1 *TypeInfo, t2 reflect.Type) (constant, error) {
+func representedBy(t1 *typeInfo, t2 reflect.Type) (constant, error) {
 	if t1.IsConstant() {
 		if t2.Kind() == reflect.Interface {
 			if t1.Type.Implements(t2) {
@@ -718,22 +718,22 @@ func representedBy(t1 *TypeInfo, t2 reflect.Type) (constant, error) {
 
 // nilOf returns a new type info representing a 'typed nil', that is the zero of
 // type t.
-func (tc *typechecker) nilOf(t reflect.Type) *TypeInfo {
+func (tc *typechecker) nilOf(t reflect.Type) *typeInfo {
 	switch t.Kind() {
 	case reflect.Func:
-		return &TypeInfo{
+		return &typeInfo{
 			Properties: PropertyHasValue | PropertyIsPredefined,
 			Type:       t,
 			value:      tc.types.Zero(t),
 		}
 	case reflect.Interface:
-		return &TypeInfo{
+		return &typeInfo{
 			Properties: PropertyHasValue,
 			Type:       t,
 			value:      nil,
 		}
 	default:
-		return &TypeInfo{
+		return &typeInfo{
 			Properties: PropertyHasValue,
 			Type:       t,
 			value:      tc.types.Zero(t).Interface(),
@@ -744,7 +744,7 @@ func (tc *typechecker) nilOf(t reflect.Type) *TypeInfo {
 
 // typedValue returns a constant type info value represented with a given
 // type.
-func (tc *typechecker) typedValue(ti *TypeInfo, t reflect.Type) interface{} {
+func (tc *typechecker) typedValue(ti *typeInfo, t reflect.Type) interface{} {
 	k := t.Kind()
 	if k == reflect.Interface {
 		t = ti.Type

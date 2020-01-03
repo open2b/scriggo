@@ -64,7 +64,7 @@ type typechecker struct {
 
 	// typeInfos associates a TypeInfo to the nodes of the AST that is currently
 	// being type checked.
-	typeInfos map[ast.Node]*TypeInfo
+	typeInfos map[ast.Node]*typeInfo
 
 	// indirectVars contains the list of all declarations of variables which
 	// must be emitted as "indirect".
@@ -108,7 +108,7 @@ func newTypechecker(path string, opts checkerOptions, globalScope typeCheckerSco
 		filePackageBlock: typeCheckerScope{},
 		globalScope:      globalScope,
 		hasBreak:         map[ast.Node]bool{},
-		typeInfos:        map[ast.Node]*TypeInfo{},
+		typeInfos:        map[ast.Node]*typeInfo{},
 		universe:         universe,
 		unusedImports:    map[string][]string{},
 		indirectVars:     map[*ast.Identifier]bool{},
@@ -197,7 +197,7 @@ func (tc *typechecker) lookupScopesElem(name string, justCurrentScope bool) (sco
 // lookupScopes looks up name in the scopes. Returns the type info of the name or
 // false if the name does not exist. If justCurrentScope is true, lookupScopes
 // looks up only in the current scope.
-func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*TypeInfo, bool) {
+func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*typeInfo, bool) {
 	elem, ok := tc.lookupScopesElem(name, justCurrentScope)
 	if !ok {
 		return nil, false
@@ -210,7 +210,7 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*TypeIn
 //
 // assignScope panics a type checking error "redeclared in this block" if name
 // is already defined in the current scope.
-func (tc *typechecker) assignScope(name string, value *TypeInfo, declNode *ast.Identifier) {
+func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.Identifier) {
 
 	if tc.declaredInThisBlock(name) {
 		if tc.opts.PackageLess && tc.packageLessFuncDecl {
