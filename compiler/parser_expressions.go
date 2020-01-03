@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"unicode/utf8"
 
-	"scriggo/ast"
+	"scriggo/compiler/ast"
 )
 
 // parseExpr parses an expression and returns its tree and the last read token

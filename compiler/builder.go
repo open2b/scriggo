@@ -12,7 +12,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"scriggo/ast"
+	"scriggo/compiler/ast"
 	"scriggo/compiler/types"
 	"scriggo/runtime"
 )

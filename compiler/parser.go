@@ -13,8 +13,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"scriggo/ast"
-	"scriggo/ast/astutil"
+	"scriggo/compiler/ast"
+	"scriggo/compiler/ast/astutil"
 )
 
 type Reader interface {

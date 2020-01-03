@@ -9,7 +9,7 @@ package compiler
 import (
 	"sync"
 
-	"scriggo/ast"
+	"scriggo/compiler/ast"
 )
 
 // cache implements a trees cache used by the parser.

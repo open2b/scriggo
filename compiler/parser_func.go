@@ -7,7 +7,7 @@
 package compiler
 
 import (
-	"scriggo/ast"
+	"scriggo/compiler/ast"
 )
 
 type funcKindToParse int

@@ -8,7 +8,7 @@ package compiler
 
 import (
 	"reflect"
-	"scriggo/ast"
+	"scriggo/compiler/ast"
 	"sort"
 	"strconv"
 	"testing"

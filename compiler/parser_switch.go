@@ -7,7 +7,7 @@
 package compiler
 
 import (
-	"scriggo/ast"
+	"scriggo/compiler/ast"
 )
 
 // isTypeGuard reports whether node is a switch type guard, as x.(type) and

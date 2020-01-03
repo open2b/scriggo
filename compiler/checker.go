@@ -10,7 +10,7 @@ import (
 	"errors"
 	"fmt"
 
-	"scriggo/ast"
+	"scriggo/compiler/ast"
 	"scriggo/compiler/types"
 )
 

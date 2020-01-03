@@ -13,8 +13,8 @@ import (
 	"os"
 
 	"scriggo"
-	"scriggo/ast"
 	"scriggo/compiler"
+	"scriggo/compiler/ast"
 )
 
 func ExampleParseSource() {

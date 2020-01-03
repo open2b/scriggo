@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"scriggo/ast"
+	"scriggo/compiler/ast"
 )
 
 // Sync with scriggo.Package.

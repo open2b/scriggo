@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"scriggo/ast"
+	"scriggo/compiler/ast"
 	"scriggo/runtime"
 )
 

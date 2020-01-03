@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"strings"
 
-	"scriggo/ast"
+	"scriggo/compiler/ast"
 )
 
 // ParseTemplate parses the template with the given path, reading the template

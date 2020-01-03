@@ -13,7 +13,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"scriggo/ast"
+	"scriggo/compiler/ast"
 	"scriggo/compiler/types"
 	"scriggo/runtime"
 )

@@ -13,7 +13,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"scriggo/ast"
+	"scriggo/compiler/ast"
 )
 
 // validatePackagePath validates path at the position pos and panics if path

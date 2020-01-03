@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"strings"
 
-	"scriggo/ast"
+	"scriggo/compiler/ast"
 )
 
 // templatePageToPackage extract first-level declarations in tree and appends them

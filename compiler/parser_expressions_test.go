@@ -9,7 +9,7 @@ package compiler
 import (
 	"testing"
 
-	"scriggo/ast"
+	"scriggo/compiler/ast"
 )
 
 var maxInt64Plus1 = "9223372036854775808"

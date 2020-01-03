@@ -11,7 +11,7 @@ import (
 	"math"
 	"reflect"
 
-	"scriggo/ast"
+	"scriggo/compiler/ast"
 	"scriggo/runtime"
 )
 

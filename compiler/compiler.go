@@ -23,7 +23,7 @@ import (
 	"io/ioutil"
 	"reflect"
 
-	"scriggo/ast"
+	"scriggo/compiler/ast"
 	"scriggo/runtime"
 )
 

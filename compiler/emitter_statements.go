@@ -9,7 +9,7 @@ package compiler
 import (
 	"fmt"
 	"reflect"
-	"scriggo/ast"
+	"scriggo/compiler/ast"
 	"scriggo/runtime"
 )
 

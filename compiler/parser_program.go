@@ -11,7 +11,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	"scriggo/ast"
+	"scriggo/compiler/ast"
 )
 
 // ParseProgram parses a program reading its sources from loaders.

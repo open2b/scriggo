@@ -6,7 +6,7 @@
 
 package compiler
 
-import "scriggo/ast"
+import "scriggo/compiler/ast"
 
 // TODO: this method is obsolete and must be removed when changing the type
 // checking of ForRange nodes.
