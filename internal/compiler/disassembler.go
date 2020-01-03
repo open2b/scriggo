@@ -245,11 +245,6 @@ func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global
 	}
 }
 
-func DisassembleInstruction(w io.Writer, fn *runtime.Function, globals []Global, addr runtime.Addr) (int64, error) {
-	n, err := io.WriteString(w, disassembleInstruction(fn, globals, addr))
-	return int64(n), err
-}
-
 // getKind returns the kind of the given operand (which can be 'a', 'b' or 'c')
 // of the instruction at the given address. If the information about the kind of
 // the operands have not been added by the emitter/builder, then the
