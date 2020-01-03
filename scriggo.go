@@ -22,7 +22,7 @@ import (
 type LoadOptions struct {
 	LimitMemorySize  bool // limit allocable memory size.
 	DisallowGoStmt   bool // disallow "go" statement.
-	AllowShebangLine bool // allow shebang line; only for scripts.
+	AllowShebangLine bool // allow shebang line; only for package-less programs.
 	Unspec           struct {
 		PackageLess bool
 	}

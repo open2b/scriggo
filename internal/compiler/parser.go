@@ -154,7 +154,7 @@ func (p *parsing) next() token {
 func ParseSource(src []byte, isPackageLessProgram, shebang bool) (tree *ast.Tree, err error) {
 
 	if shebang && !isPackageLessProgram {
-		return nil, errors.New("scriggo/parser: shebang can be true only for scripts")
+		return nil, errors.New("scriggo/parser: shebang can be true only for package-less programs")
 	}
 
 	tree = ast.NewTree("", nil, ast.ContextGo)

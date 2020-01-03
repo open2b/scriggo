@@ -213,7 +213,7 @@ func errorcheck(src []byte, ext string, opts []string) {
 		panic("no // ERROR comments found")
 	}
 	for _, test := range tests {
-		// Get output from program/script/templates and check if it matches with
+		// Get output from program/templates and check if it matches with the
 		// expected error.
 		arg := map[string]string{
 			".go":     "run program",

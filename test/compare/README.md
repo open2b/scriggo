@@ -24,7 +24,7 @@ Every test source code must specify a _testing mode_. See the section **Testing 
 
 A testing mode can be specified using a comment at the first non-empty line of the test file.
 
-For **programs** and **scripts**:
+For **programs**:
 
 ```
 // mode [options]

@@ -15,7 +15,7 @@ import (
 	"scriggo"
 )
 
-var scriptCases = map[string]struct {
+var packageLessPrograms = map[string]struct {
 	src  string
 	pkgs scriggo.Packages
 	init map[string]interface{}
@@ -54,7 +54,7 @@ var scriptCases = map[string]struct {
 				PkgName: "pkg",
 				Declarations: map[string]interface{}{
 					"F": func() {
-						scriptStdout.WriteString("pkg.F called!")
+						packageLessProgramsStdout.WriteString("pkg.F called!")
 					},
 				},
 			},
@@ -112,7 +112,7 @@ var scriptCases = map[string]struct {
 	// 	out: "5",
 	// },
 
-	"Usage test: using a script to perfom a sum of numbers": {
+	"Usage test: using a package-less program to perfom a sum of numbers": {
 		src: `
 			for i := 0; i < 10; i++ {
 				Sum += i
@@ -171,11 +171,11 @@ var scriptCases = map[string]struct {
 	// },
 }
 
-// Holds scripts output.
-var scriptStdout strings.Builder
+// Holds output of package-less programs.
+var packageLessProgramsStdout strings.Builder
 
-func TestScript(t *testing.T) {
-	for name, cas := range scriptCases {
+func TestPackageLessPrograms(t *testing.T) {
+	for name, cas := range packageLessPrograms {
 		t.Run(name, func(t *testing.T) {
 			if cas.pkgs == nil {
 				cas.pkgs = scriggo.Packages{}
@@ -185,7 +185,7 @@ func TestScript(t *testing.T) {
 			}
 			cas.pkgs["main"].(*scriggo.MapPackage).Declarations["Print"] = func(args ...interface{}) {
 				for _, a := range args {
-					scriptStdout.WriteString(fmt.Sprint(a))
+					packageLessProgramsStdout.WriteString(fmt.Sprint(a))
 				}
 			}
 			loadOpts := &scriggo.LoadOptions{}
@@ -200,8 +200,8 @@ func TestScript(t *testing.T) {
 			if err != nil {
 				t.Fatalf("execution error: %s", err)
 			}
-			out := scriptStdout.String()
-			scriptStdout.Reset()
+			out := packageLessProgramsStdout.String()
+			packageLessProgramsStdout.Reset()
 			if out != cas.out {
 				t.Fatalf("expecting output %q, got %q", cas.out, out)
 			}
@@ -238,7 +238,7 @@ func TestScriptSum(t *testing.T) {
 	}
 }
 
-func TestScriptChainMessages(t *testing.T) {
+func TestPackageLessProgramChainMessages(t *testing.T) {
 	src1 := `Message = Message + "script1,"`
 	src2 := `Message = Message + "script2"`
 	Message := "external,"
