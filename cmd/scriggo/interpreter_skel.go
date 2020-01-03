@@ -31,7 +31,6 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 			"time"
 
 			"scriggo"
-			"scriggo/template"
 			"scriggo/runtime"
 		)
 
@@ -117,8 +116,8 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 
 			file := args[0]
 			ext := filepath.Ext(file)
-			if ext != ".go" && ext != ".html" {
-				fmt.Printf("%s: extension must be \".go\" for main packages and \".html\" for template pages\n", file)
+			if ext != ".go" {
+				fmt.Printf("%s: extension must be \".go\"\n", file)
 				os.Exit(1)
 			}
 
@@ -131,8 +130,6 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 			switch ext {
 			case ".go":
 				{{ program }}
-			case ".html":
-				{{ template }}
 			}
 		}
 	`
@@ -169,66 +166,12 @@ const programSkel = `main, err := ioutil.ReadFile(absFile)
 
 // https://github.com/open2b/scriggo/commit/4974dd3d69e1f66da40b068507ca50c91a69f7f2#r34270334.
 
-const templateSkel = `r := template.DirReader(filepath.Dir(absFile))
-		path := "/" + filepath.Base(absFile)
-		builtins := template.Builtins()
-		loadedMain, err := packages.Load("main")
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		var main scriggo.Package
-		if loadedMain == nil {
-			main = builtins
-		} else {
-			mp := &scriggo.MapPackage{PkgName: "main", Declarations: map[string]interface{}{}}
-			for _, name := range builtins.DeclarationNames() {
-				mp.Declarations[name] = builtins.Lookup(name)
-			}
-			for _, name := range loadedMain.(scriggo.Package).DeclarationNames() {
-				mp.Declarations[name] = builtins.Lookup(name)
-			}
-			main = mp
-		}
-		t, err := template.Load(path, r, main, template.ContextHTML, &template.LoadOptions{LimitMemorySize: loadOptions.LimitMemorySize})
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		if *asm {
-			_, err := t.Disassemble(os.Stdout)
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
-			}
-			return
-		}
-		options := &template.RenderOptions{
-			Context:       runOptions.Context,
-			MaxMemorySize: runOptions.MaxMemorySize,
-		}
-		err = t.Render(os.Stdout, nil, options)
-		if err != nil {
-			if p, ok := err.(*runtime.Panic); ok {
-				panic(renderPanics(p))
-			}
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		os.Exit(0)`
-
 // makeInterpreterSource returns a Go source code that interprets a Scriggo
 // program or template.
 func makeInterpreterSource(targets Target) []byte {
 
 	out := interpreterSkel
 
-	if targets&targetTemplates != 0 {
-		out = strings.Replace(out, "{{ template }}", templateSkel, 1)
-	} else {
-		out = strings.Replace(out, "{{ template }}", `fmt.Println("program support not included in this interpreter.")
-		os.Exit(1)`, 1)
-	}
 	if targets&targetPrograms != 0 {
 		out = strings.Replace(out, "{{ program }}", programSkel, 1)
 	} else {

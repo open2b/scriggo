@@ -20,7 +20,6 @@ import (
 
 	"scriggo"
 	"scriggo/runtime"
-	"scriggo/template"
 )
 
 const usage = "usage: %s [-S] [-mem 250K] [-time 50ms] filename\n"
@@ -146,54 +145,6 @@ func run() {
 				os.Exit(2)
 			}
 			os.Exit(code)
-		}
-		os.Exit(0)
-	case ".html":
-		r := template.DirReader(filepath.Dir(absFile))
-		path := "/" + filepath.Base(absFile)
-		builtins := template.Builtins()
-		loadedMain, err := packages.Load("main")
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		var main scriggo.Package
-		if loadedMain == nil {
-			main = builtins
-		} else {
-			mp := &scriggo.MapPackage{PkgName: "main", Declarations: map[string]interface{}{}}
-			for _, name := range builtins.DeclarationNames() {
-				mp.Declarations[name] = builtins.Lookup(name)
-			}
-			for _, name := range loadedMain.(scriggo.Package).DeclarationNames() {
-				mp.Declarations[name] = builtins.Lookup(name)
-			}
-			main = mp
-		}
-		t, err := template.Load(path, r, main, template.ContextHTML, &template.LoadOptions{LimitMemorySize: loadOptions.LimitMemorySize})
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		if *asm {
-			_, err := t.Disassemble(os.Stdout)
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
-			}
-		} else {
-			options := &template.RenderOptions{
-				Context:       runOptions.Context,
-				MaxMemorySize: runOptions.MaxMemorySize,
-			}
-			err = t.Render(os.Stdout, nil, options)
-			if err != nil {
-				if p, ok := err.(*runtime.Panic); ok {
-					panic(renderPanics(p))
-				}
-				fmt.Println(err)
-				os.Exit(1)
-			}
 		}
 		os.Exit(0)
 	}

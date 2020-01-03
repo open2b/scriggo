@@ -296,7 +296,7 @@ func main() {
 		if timeout != nil {
 			panic("timeout not supported when compiling a html page")
 		}
-		r := template.MapReader{"/index.html": src}
+		r := mapReader{"/index.html": src}
 		main := scriggo.CombinedPackage{templateMain, template.Builtins()}
 		_, err = template.Load("/index.html", r, main, template.ContextHTML, loadOpts)
 		if err != nil {
@@ -306,4 +306,15 @@ func main() {
 	default:
 		panic("invalid argument: %s" + flag.Args()[0])
 	}
+}
+
+type mapReader map[string][]byte
+
+
+func (r mapReader) Read(path string) ([]byte, error) {
+	src, ok := r[path]
+	if !ok {
+		panic("not existing")
+	}
+	return src, nil
 }
