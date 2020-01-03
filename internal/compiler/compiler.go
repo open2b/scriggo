@@ -5,6 +5,15 @@
 // license that can be found in the LICENSE file.
 
 // Package compiler implements parsing, type checking and emitting of sources.
+//
+// A program can be compiled using
+//
+//	CompileProgram
+//
+// while a template is compiled through
+//
+//  CompileTemplate
+//
 package compiler
 
 import (
@@ -19,6 +28,7 @@ import (
 	"scriggo/runtime"
 )
 
+// Options represents a set of options used during the compilation.
 type Options struct {
 	AllowShebangLine   bool
 	DisallowGoStmt     bool
@@ -29,6 +39,7 @@ type Options struct {
 	TreeTransformer    func(*ast.Tree) error
 }
 
+// CompileProgram compiles a program.
 func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, error) {
 	var tree *ast.Tree
 
@@ -86,6 +97,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 	return code, nil
 }
 
+// CompileTemplate compiles a template.
 func CompileTemplate(r Reader, path string, main PackageLoader, opts Options) (*Code, error) {
 
 	var tree *ast.Tree
