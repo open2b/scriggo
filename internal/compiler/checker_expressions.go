@@ -1500,10 +1500,10 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*t
 	t := tc.checkExprOrType(expr.Func)
 
 	switch t.MethodType {
-	case MethodValueConcrete:
-		t.MethodType = MethodCallConcrete
-	case MethodValueInterface:
-		t.MethodType = MethodCallInterface
+	case methodValueConcrete:
+		t.MethodType = methodCallConcrete
+	case methodValueInterface:
+		t.MethodType = methodCallInterface
 	}
 
 	// expr is a ShowMacro expression which is not defined and which has been

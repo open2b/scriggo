@@ -86,7 +86,7 @@ func (fs *functionStore) predefFunc(fn ast.Expression, allowMethod bool) (int8, 
 	if (ti == nil) || (!ti.IsPredefined()) {
 		return 0, false
 	}
-	if !allowMethod && ti.MethodType != NoMethod {
+	if !allowMethod && ti.MethodType != noMethod {
 		return 0, false
 	}
 	if ti.Type.Kind() != reflect.Func {

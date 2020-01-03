@@ -467,7 +467,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 	funTi := em.ti(call.Func)
 
 	// Method call on a interface value.
-	if funTi.MethodType == MethodCallInterface {
+	if funTi.MethodType == methodCallInterface {
 		rcvrExpr := call.Func.(*ast.Selector).Expr
 		rcvrType := em.typ(rcvrExpr)
 		rcvr := em.emitExpr(rcvrExpr, rcvrType)
@@ -502,14 +502,14 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 	// Calls of predefined functions stored in builtin variables are handled as
 	// common "indirect" calls.
 	if funTi.IsPredefined() && !funTi.Addressable() {
-		if funTi.MethodType == MethodCallConcrete {
+		if funTi.MethodType == methodCallConcrete {
 			rcv := call.Func.(*ast.Selector).Expr // TODO(Gianluca): is this correct?
 			call.Args = append([]ast.Expression{rcv}, call.Args...)
 		}
 		stackShift := em.fb.currentStackShift()
 		opts := callOptions{
 			predefined:    true,
-			receiverAsArg: funTi.MethodType == MethodCallConcrete,
+			receiverAsArg: funTi.MethodType == methodCallConcrete,
 			callHasDots:   call.IsVariadic,
 		}
 		regs, types := em.prepareCallParameters(funTi.Type, call.Args, opts)

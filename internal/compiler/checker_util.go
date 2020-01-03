@@ -535,7 +535,7 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 			ti := &typeInfo{
 				Type:       removeEnvArg(method.Type, true),
 				value:      name,
-				MethodType: MethodValueInterface,
+				MethodType: methodValueInterface,
 				Properties: propertyIsPredefined | propertyHasValue,
 			}
 			return ti, receiverNoTransform, true
@@ -551,7 +551,7 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 			Type:       removeEnvArg(method.Type(), false),
 			value:      methodExplicitRcvr.Func,
 			Properties: propertyIsPredefined | propertyHasValue,
-			MethodType: MethodValueConcrete,
+			MethodType: methodValueConcrete,
 		}
 		// Check if pointer is defined on T or *T when called on a *T receiver.
 		if t.Type.Kind() == reflect.Ptr {
@@ -577,7 +577,7 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 				Type:       removeEnvArg(method.Type(), false),
 				value:      methodExplicitRcvr.Func,
 				Properties: propertyIsPredefined | propertyHasValue,
-				MethodType: MethodValueConcrete,
+				MethodType: methodValueConcrete,
 			}, receiverAddAddress, true
 		}
 	}

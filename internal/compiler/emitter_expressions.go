@@ -679,7 +679,7 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 	ti := em.ti(expr)
 
 	// Method value on concrete and interface values.
-	if ti.MethodType == MethodValueConcrete || ti.MethodType == MethodValueInterface {
+	if ti.MethodType == methodValueConcrete || ti.MethodType == methodValueInterface {
 		rcvrExpr := expr.Expr
 		rcvrType := em.typ(rcvrExpr)
 		rcvr := em.emitExpr(rcvrExpr, rcvrType)

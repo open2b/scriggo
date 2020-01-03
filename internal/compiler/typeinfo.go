@@ -31,21 +31,21 @@ type typeInfo struct {
 	Properties        properties   // Properties.
 	Constant          constant     // Constant value.
 	PredefPackageName string       // Name of the package. Empty string if not predefined.
-	MethodType        MethodType   // Method type.
+	MethodType        methodType   // Method type.
 	value             interface{}  // value; for packages has type *Package.
 	valueType         reflect.Type // When value is a predeclared type holds the original type of value.
 }
 
-// MethodType represents the type of a method, intended as a combination of a
+// methodType represents the type of a method, intended as a combination of a
 // method call/value/expression and a receiver type (concrete or interface).
-type MethodType uint8
+type methodType uint8
 
 const (
-	NoMethod             MethodType = iota // Not a method.
-	MethodValueConcrete                    // Method value on a concrete receiver.
-	MethodValueInterface                   // Method value on an interface receiver.
-	MethodCallConcrete                     // Method call on concrete receiver.
-	MethodCallInterface                    // Method call on interface receiver.
+	noMethod             methodType = iota // Not a method.
+	methodValueConcrete                    // Method value on a concrete receiver.
+	methodValueInterface                   // Method value on an interface receiver.
+	methodCallConcrete                     // Method call on concrete receiver.
+	methodCallInterface                    // Method call on interface receiver.
 )
 
 // Nil reports whether it is the predeclared nil.
