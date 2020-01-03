@@ -235,12 +235,11 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		r := template.MapReader{"/index.html": src}
+		r := mapReader{"/index.html": src}
 		loadOpts := &template.LoadOptions{
 			LimitMemorySize: limitMemorySize,
 		}
-		main := scriggo.CombinedPackage{templateMain, template.Builtins()}
-		templ, err := template.Load("/index.html", r, main, template.ContextHTML, loadOpts)
+		templ, err := template.Load("/index.html", r, templateMain, template.ContextHTML, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -261,12 +260,11 @@ func main() {
 			panic("disallow Go statement not supported when rendering a html directory")
 		}
 		dirPath := flag.Args()[1]
-		r := template.DirReader(dirPath)
+		r := dirReader(dirPath)
 		loadOpts := &template.LoadOptions{
 			LimitMemorySize: limitMemorySize,
 		}
-		main := scriggo.CombinedPackage{templateMain, template.Builtins()}
-		templ, err := template.Load("/index.html", r, main, template.ContextHTML, loadOpts)
+		templ, err := template.Load("/index.html", r, templateMain, template.ContextHTML, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -297,7 +295,7 @@ func main() {
 			panic("timeout not supported when compiling a html page")
 		}
 		r := mapReader{"/index.html": src}
-		main := scriggo.CombinedPackage{templateMain, template.Builtins()}
+		main := scriggo.CombinedPackage{templateMain}
 		_, err = template.Load("/index.html", r, main, template.ContextHTML, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
@@ -315,6 +313,19 @@ func (r mapReader) Read(path string) ([]byte, error) {
 	src, ok := r[path]
 	if !ok {
 		panic("not existing")
+	}
+	return src, nil
+}
+
+type dirReader string
+
+func (dir dirReader) Read(path string) ([]byte, error) {
+	src, err := ioutil.ReadFile(filepath.Join(string(dir), path))
+	if err != nil {
+		if os.IsNotExist(err) {
+			panic("not existing")
+		}
+		return nil, err
 	}
 	return src, nil
 }
