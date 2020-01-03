@@ -31,7 +31,7 @@ type emitter struct {
 	// Should be accessed using method 'ti'.
 	typeInfos map[ast.Node]*TypeInfo
 
-	options EmitterOptions
+	options emitterOptions
 
 	// isTemplate reports whether the emitter is currently emitting a template.
 	isTemplate bool
@@ -71,7 +71,7 @@ type emitter struct {
 
 // newEmitter returns a new emitter with the given type infos, indirect
 // variables and options.
-func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *emitter {
+func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) *emitter {
 	em := &emitter{
 		labels:              make(map[*runtime.Function]map[string]label),
 		options:             opts,

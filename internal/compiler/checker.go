@@ -71,7 +71,7 @@ type typechecker struct {
 	indirectVars map[*ast.Identifier]bool
 
 	// opts holds the options that define the behaviour of the type checker.
-	opts CheckerOptions
+	opts checkerOptions
 
 	// iota holds the current iota value.
 	iota int
@@ -102,7 +102,7 @@ type typechecker struct {
 
 // newTypechecker creates a new type checker. A global scope may be provided for
 // package-less programs and templates.
-func newTypechecker(path string, opts CheckerOptions, globalScope typeCheckerScope) *typechecker {
+func newTypechecker(path string, opts checkerOptions, globalScope typeCheckerScope) *typechecker {
 	return &typechecker{
 		path:             path,
 		filePackageBlock: typeCheckerScope{},

@@ -11,7 +11,7 @@ import (
 var templateCases = []struct {
 	src      string
 	expected string
-	opts     *compiler.CheckerOptions
+	opts     *compiler.Options
 }{
 
 	// Misc.
@@ -85,18 +85,16 @@ var templateCases = []struct {
 	{
 		src:      `{% show M or todo %}`,
 		expected: ok,
-		opts: &compiler.CheckerOptions{
-			SyntaxType: compiler.TemplateSyntax,
-			FailOnTODO: false,
+		opts: &compiler.Options{
+			TemplateFailOnTODO: false,
 		},
 	},
 
 	{
 		src:      `{% show M or todo %}`,
 		expected: `macro M is not defined: must be implemented`,
-		opts: &compiler.CheckerOptions{
-			SyntaxType: compiler.TemplateSyntax,
-			FailOnTODO: true,
+		opts: &compiler.Options{
+			TemplateFailOnTODO: true,
 		},
 	},
 }
@@ -109,10 +107,9 @@ func TestTemplate(t *testing.T) {
 		expected := cas.expected
 		t.Run(src, func(t *testing.T) {
 			r := template.MapReader{"/index.html": []byte(src)}
-			compileOpts := compiler.Options{}
+			var compileOpts compiler.Options
 			if cas.opts != nil {
-				compileOpts.DisallowGoStmt = cas.opts.DisallowGoStmt
-				compileOpts.TemplateFailOnTODO = cas.opts.FailOnTODO
+				compileOpts = *cas.opts
 			}
 			_, err := compiler.CompileTemplate(r, "/index.html", nil, compileOpts)
 			switch {

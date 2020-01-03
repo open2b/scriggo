@@ -22,7 +22,7 @@ type scriggoPackage interface {
 
 // toTypeCheckerScope generates a type checker scope given a predefined package.
 // depth must be 0 unless toTypeCheckerScope is called recursively.
-func toTypeCheckerScope(pp predefinedPackage, depth int, opts CheckerOptions) typeCheckerScope {
+func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) typeCheckerScope {
 	pkgName := pp.Name()
 	declarations := pp.DeclarationNames()
 	s := make(typeCheckerScope, len(declarations))
@@ -473,7 +473,7 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos map[string]*PackageInfo, opts CheckerOptions, globalScope typeCheckerScope) (err error) {
+func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos map[string]*PackageInfo, opts checkerOptions, globalScope typeCheckerScope) (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {

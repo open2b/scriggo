@@ -70,7 +70,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 	}
 
 	// Type check the tree.
-	checkerOpts := CheckerOptions{PackageLess: opts.PackageLess}
+	checkerOpts := checkerOptions{PackageLess: opts.PackageLess}
 	checkerOpts.DisallowGoStmt = opts.DisallowGoStmt
 	checkerOpts.SyntaxType = ProgramSyntax
 	tci, err := typecheck(tree, importer, checkerOpts)
@@ -86,7 +86,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 
 	// Emit the code.
 	var code *Code
-	emitterOpts := EmitterOptions{}
+	emitterOpts := emitterOptions{}
 	emitterOpts.MemoryLimit = opts.LimitMemorySize
 	if opts.PackageLess {
 		code = emitPackageLessProgram(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
@@ -118,7 +118,7 @@ func CompileTemplate(r Reader, path string, main PackageLoader, opts Options) (*
 	}
 
 	// Type check the tree.
-	checkerOpts := CheckerOptions{
+	checkerOpts := checkerOptions{
 		AllowNotUsed:   true,
 		DisallowGoStmt: opts.DisallowGoStmt,
 		FailOnTODO:     opts.TemplateFailOnTODO,
@@ -137,7 +137,7 @@ func CompileTemplate(r Reader, path string, main PackageLoader, opts Options) (*
 	}
 
 	// Emit the code.
-	emitterOpts := EmitterOptions{}
+	emitterOpts := emitterOptions{}
 	emitterOpts.MemoryLimit = opts.LimitMemorySize
 	code := emitTemplate(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
 
@@ -197,8 +197,8 @@ const (
 	ProgramSyntax
 )
 
-// CheckerOptions contains the options for the type checker.
-type CheckerOptions struct {
+// checkerOptions contains the options for the type checker.
+type checkerOptions struct {
 
 	// https://github.com/open2b/scriggo/issues/364
 	SyntaxType SyntaxType
@@ -218,8 +218,8 @@ type CheckerOptions struct {
 	PackageLess bool
 }
 
-// EmitterOptions contains the options for the emitter.
-type EmitterOptions struct {
+// emitterOptions contains the options for the emitter.
+type emitterOptions struct {
 
 	// MemoryLimit adds Alloc instructions during compilation.
 	MemoryLimit bool
@@ -259,7 +259,7 @@ func (e *CheckingError) Position() ast.Position {
 // provided. deps must contain dependencies in case of package initialization
 // (program or template import/extend).
 // tree may be altered during the type checking.
-func typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map[string]*PackageInfo, error) {
+func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map[string]*PackageInfo, error) {
 
 	if opts.SyntaxType == 0 {
 		panic("unspecified syntax type")
@@ -394,7 +394,7 @@ type Code struct {
 // type info and indirect variables. alloc reports whether Alloc instructions
 // must be emitted. emitPackageMain returns an emittedPackage instance with
 // the global variables and the main function.
-func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
+func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
 	functions, _, _ := e.emitPackage(pkgMain, false, "main")
 	main, _ := e.fnStore.availableScriggoFn(pkgMain, "main")
@@ -410,7 +410,7 @@ func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 // tree, the type info and indirect variables. alloc reports whether Alloc
 // instructions must be emitted. emitPackageLessProgram returns a function that
 // is the entry point of the package-less program and the global variables.
-func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
+func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)), tree.Path)
 	e.fb.emitSetAlloc(opts.MemoryLimit)
@@ -425,7 +425,7 @@ func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, in
 // indirect variables. alloc reports whether Alloc instructions must be
 // emitted. emitTemplate returns a function that is the entry point of the
 // template and the global variables.
-func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
+func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) *Code {
 
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.pkg = &ast.Package{}
