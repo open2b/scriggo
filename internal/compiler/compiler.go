@@ -289,11 +289,11 @@ func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 	return pkg
 }
 
-// EmitPackageLessProgram emits the code for a package-less program given its
+// emitPackageLessProgram emits the code for a package-less program given its
 // tree, the type info and indirect variables. alloc reports whether Alloc
-// instructions must be emitted. EmitPackageLessProgram returns a function that
+// instructions must be emitted. emitPackageLessProgram returns a function that
 // is the entry point of the package-less program and the global variables.
-func EmitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
+func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)), tree.Path)
 	e.fb.emitSetAlloc(opts.MemoryLimit)

@@ -73,7 +73,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 	emitterOpts := EmitterOptions{}
 	emitterOpts.MemoryLimit = opts.LimitMemorySize
 	if opts.PackageLess {
-		code = EmitPackageLessProgram(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
+		code = emitPackageLessProgram(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
 	} else {
 		code = emitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars, emitterOpts)
 	}
