@@ -5,29 +5,6 @@
 // license that can be found in the LICENSE file.
 
 // Package compiler implements parsing, type checking and emitting of sources.
-//
-// Parsing
-//
-// Parsing is done using
-//
-//  ParseProgram(..)
-//  ParsePackageLessProgram(..)
-//  ParseTemplate(..)
-//
-// Typechecking
-//
-// When parsing is done, tree can be type-checked by:
-//
-//  Typecheck(...)
-//
-// Emitting
-//
-// To emit a tree after it has been type checked, use:
-//
-//  EmitPackageMain(..)
-//  EmitPackageLessProgram(..)
-//  EmitTemplate(..)
-//
 package compiler
 
 import (
