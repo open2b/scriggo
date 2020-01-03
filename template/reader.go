@@ -176,7 +176,7 @@ type MapReader map[string][]byte
 
 // Read implements the Read method of Reader.
 func (r MapReader) Read(path string) ([]byte, error) {
-	if !compiler.ValidPath(path) {
+	if !compiler.ValidTemplatePath(path) {
 		return nil, ErrInvalidPath
 	}
 	// https://github.com/open2b/scriggo/issues/386
@@ -194,7 +194,7 @@ func (r MapReader) Read(path string) ([]byte, error) {
 // and DirLimitedReader.
 func ValidDirReaderPath(path string) bool {
 	// Must be a valid path
-	if !compiler.ValidPath(path) {
+	if !compiler.ValidTemplatePath(path) {
 		return false
 	}
 	// Splits the path in the various names.

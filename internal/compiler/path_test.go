@@ -15,14 +15,14 @@ var validPaths = []string{"a", "/a", "a/b", "/a/b", "../a", "a/../a", ".", "..."
 var invalidPaths = []string{"\xf0", "", "..", "/", "a/", "//", "a//", "//a",
 	"/..", "a/.."}
 
-func TestValidPath(t *testing.T) {
+func TestValidTemplatePath(t *testing.T) {
 	for _, p := range validPaths {
-		if !ValidPath(p) {
+		if !ValidTemplatePath(p) {
 			t.Errorf("path: %q, expected valid, but invalid\n", p)
 		}
 	}
 	for _, p := range invalidPaths {
-		if ValidPath(p) {
+		if ValidTemplatePath(p) {
 			t.Errorf("path: %q, expected invalid, but valid\n", p)
 		}
 	}

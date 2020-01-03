@@ -865,7 +865,7 @@ LABEL:
 			panic(syntaxError(tok.pos, "unexpected %s, expecting string", tok))
 		}
 		var path = unquoteString(tok.txt)
-		if !ValidPath(path) {
+		if !ValidTemplatePath(path) {
 			panic(fmt.Errorf("invalid path %q at %s", path, tok.pos))
 		}
 		pos.End = tok.pos.End
@@ -976,7 +976,7 @@ LABEL:
 			panic(syntaxError(tok.pos, "unexpected %s, expecting string", tok))
 		}
 		var path = unquoteString(tok.txt)
-		if !ValidPath(path) {
+		if !ValidTemplatePath(path) {
 			panic(syntaxError(tok.pos, "invalid extends path %q", path))
 		}
 		pos.End = tok.pos.End
@@ -1502,7 +1502,7 @@ func (p *parsing) parseImport(tok token) *ast.Import {
 	if p.ctx == ast.ContextGo {
 		validatePackagePath(path, tok.pos)
 	} else {
-		if !ValidPath(path) {
+		if !ValidTemplatePath(path) {
 			panic(syntaxError(tok.pos, "invalid import path: %q", path))
 		}
 		// Further restrictions on the validity of a path can be imposed by a

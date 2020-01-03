@@ -22,7 +22,7 @@ func validatePackagePath(path string, pos *ast.Position) {
 	if path == "main" {
 		return
 	}
-	if !ValidPath(path) {
+	if !ValidTemplatePath(path) {
 		panic(syntaxError(pos, "invalid import path: %q", path))
 	}
 	for _, r := range path {
@@ -41,9 +41,8 @@ func validatePackagePath(path string, pos *ast.Position) {
 	return
 }
 
-// ValidPath indicates whether path is valid path for Extends, Import and
-// Include paths.
-func ValidPath(path string) bool {
+// ValidTemplatePath indicates whether path is a valid template path.
+func ValidTemplatePath(path string) bool {
 	return utf8.ValidString(path) &&
 		path != "" && path != ".." &&
 		path[len(path)-1] != '/' &&
