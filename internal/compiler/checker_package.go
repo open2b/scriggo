@@ -123,7 +123,7 @@ type packageInfo struct {
 	TypeInfos    map[ast.Node]*typeInfo
 }
 
-func depsOf(name string, deps PackageDeclsDeps) []*ast.Identifier {
+func depsOf(name string, deps packageDeclsDeps) []*ast.Identifier {
 	for g, d := range deps {
 		if g.Name == name {
 			return d
@@ -132,7 +132,7 @@ func depsOf(name string, deps PackageDeclsDeps) []*ast.Identifier {
 	return nil
 }
 
-func checkDepsPath(path []*ast.Identifier, deps PackageDeclsDeps) []*ast.Identifier {
+func checkDepsPath(path []*ast.Identifier, deps packageDeclsDeps) []*ast.Identifier {
 	last := path[len(path)-1]
 	for _, dep := range depsOf(last.Name, deps) {
 		for _, p := range path {
@@ -158,7 +158,7 @@ func (loopErr initLoopError) Error() string {
 	return loopErr.node.Pos().String() + ": " + loopErr.msg
 }
 
-func detectConstantsLoop(consts []*ast.Const, deps PackageDeclsDeps) error {
+func detectConstantsLoop(consts []*ast.Const, deps packageDeclsDeps) error {
 	for _, c := range consts {
 		path := []*ast.Identifier{c.Lhs[0]}
 		loopPath := checkDepsPath(path, deps)
@@ -175,7 +175,7 @@ func detectConstantsLoop(consts []*ast.Const, deps PackageDeclsDeps) error {
 	return nil
 }
 
-func detectVarsLoop(vars []*ast.Var, deps PackageDeclsDeps) error {
+func detectVarsLoop(vars []*ast.Var, deps packageDeclsDeps) error {
 	for _, v := range vars {
 		for _, left := range v.Lhs {
 			path := []*ast.Identifier{left}
@@ -192,7 +192,7 @@ func detectVarsLoop(vars []*ast.Var, deps PackageDeclsDeps) error {
 	return nil
 }
 
-func detectTypeLoop(types []*ast.TypeDeclaration, deps PackageDeclsDeps) error {
+func detectTypeLoop(types []*ast.TypeDeclaration, deps packageDeclsDeps) error {
 	for _, t := range types {
 		if !t.IsAliasDeclaration {
 			// TODO: currently the initialization loop check for type

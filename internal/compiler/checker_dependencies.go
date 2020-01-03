@@ -15,10 +15,10 @@ import (
 // Makes a dependency analysis after parsing and before the type checking. See
 // https://golang.org/ref/spec#Package_initialization for further information.
 
-// PackageDeclsDeps is the result of a dependency analysis performed on a tree.
-type PackageDeclsDeps map[*ast.Identifier][]*ast.Identifier
+// packageDeclsDeps is the result of a dependency analysis performed on a tree.
+type packageDeclsDeps map[*ast.Identifier][]*ast.Identifier
 
-type deps PackageDeclsDeps
+type deps packageDeclsDeps
 
 // addDepsToGlobal adds all identifiers that appear in node and in its children
 // as dependency of the global identifier ident.
@@ -127,7 +127,7 @@ func (d deps) analyzeGlobalTypeDeclaration(td *ast.TypeDeclaration) {
 
 // AnalyzeTree analyzes tree returning a data structure holding all dependencies
 // information.
-func AnalyzeTree(pkg *ast.Package) PackageDeclsDeps {
+func AnalyzeTree(pkg *ast.Package) packageDeclsDeps {
 	d := deps{}
 	for _, n := range pkg.Declarations {
 		switch n := n.(type) {
@@ -141,7 +141,7 @@ func AnalyzeTree(pkg *ast.Package) PackageDeclsDeps {
 			d.analyzeGlobalTypeDeclaration(n)
 		}
 	}
-	return PackageDeclsDeps(d)
+	return packageDeclsDeps(d)
 }
 
 // depScopes represents a set of scopes used in dependency analysis.
