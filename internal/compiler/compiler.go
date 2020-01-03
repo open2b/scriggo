@@ -97,6 +97,7 @@ type CheckerOptions struct {
 	// todo" option cannot be resolved.
 	FailOnTODO bool
 
+	// PackageLess reports whether the package-less syntax is enabled.
 	PackageLess bool
 }
 
