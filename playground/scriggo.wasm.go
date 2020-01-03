@@ -3,6 +3,7 @@
 package main
 
 import (
+	"strings"
 	"syscall/js"
 
 	"scriggo"
@@ -17,9 +18,8 @@ func main() {
 
 	button.Call("addEventListener", "click", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 
-		main := scriggo.MapStringLoader{"main": source.Get("value").String()}
-
-		program, err := scriggo.Load(main, 0)
+		src := strings.NewReader(source.Get("value").String())
+		program, err := scriggo.Load(src, nil, nil)
 		if err != nil {
 			window.Call("alert", err.Error())
 			return nil
