@@ -20,11 +20,11 @@ import (
 )
 
 type LoadOptions struct {
-	LimitMemorySize  bool // limit allocable memory size.
-	DisallowGoStmt   bool // disallow "go" statement.
-	AllowShebangLine bool // allow shebang line; only for package-less programs.
-	Unspec           struct {
-		PackageLess bool
+	LimitMemorySize bool // limit allocable memory size.
+	Unspec          struct {
+		AllowShebangLine bool // allow shebang line; only for package-less programs.
+		DisallowGoStmt   bool // disallow "go" statement.
+		PackageLess      bool
 	}
 }
 
@@ -53,7 +53,7 @@ func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, 
 
 	if options != nil && options.Unspec.PackageLess {
 		var err error
-		tree, err = compiler.ParsePackageLessProgram(src, loader, options.AllowShebangLine)
+		tree, err = compiler.ParsePackageLessProgram(src, loader, options.Unspec.AllowShebangLine)
 		if err != nil {
 			return nil, err
 		}
@@ -74,7 +74,7 @@ func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, 
 	}
 	emitterOpts := compiler.EmitterOptions{}
 	if options != nil {
-		checkerOpts.DisallowGoStmt = options.DisallowGoStmt
+		checkerOpts.DisallowGoStmt = options.Unspec.DisallowGoStmt
 		emitterOpts.MemoryLimit = options.LimitMemorySize
 	}
 
