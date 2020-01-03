@@ -1602,7 +1602,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 	opts := CheckerOptions{
 		SyntaxType: ProgramSyntax,
 	}
-	_, err = Typecheck(tree, predefined, opts)
+	_, err = typecheck(tree, predefined, opts)
 	if err != nil {
 		t.Errorf("TestCheckerRemoveEnv returned type check error: %s", err)
 		return

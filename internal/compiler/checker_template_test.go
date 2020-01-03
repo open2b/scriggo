@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"scriggo/ast"
 	"scriggo/internal/compiler"
 	"scriggo/template"
 )
@@ -110,15 +109,12 @@ func TestTemplate(t *testing.T) {
 		expected := cas.expected
 		t.Run(src, func(t *testing.T) {
 			r := template.MapReader{"/index.html": []byte(src)}
-			tree, err := compiler.ParseTemplate("/index.html", r, ast.ContextText)
-			if err != nil {
-				t.Fatalf("parsing error: %s", err)
-			}
-			opts := compiler.CheckerOptions{SyntaxType: compiler.TemplateSyntax}
+			compileOpts := compiler.Options{}
 			if cas.opts != nil {
-				opts = *cas.opts
+				compileOpts.DisallowGoStmt = cas.opts.DisallowGoStmt
+				compileOpts.TemplateFailOnTODO = cas.opts.FailOnTODO
 			}
-			_, err = compiler.Typecheck(tree, nil, opts)
+			_, err := compiler.CompileTemplate(r, "/index.html", nil, compileOpts)
 			switch {
 			case expected == "" && err != nil:
 				t.Fatalf("unexpected error: %q", err)

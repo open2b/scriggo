@@ -138,11 +138,11 @@ func (e *CheckingError) Position() ast.Position {
 	return e.pos
 }
 
-// Typecheck makes a type check on tree. A map of predefined packages may be
+// typecheck makes a type check on tree. A map of predefined packages may be
 // provided. deps must contain dependencies in case of package initialization
 // (program or template import/extend).
 // tree may be altered during the type checking.
-func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map[string]*PackageInfo, error) {
+func typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map[string]*PackageInfo, error) {
 
 	if opts.SyntaxType == 0 {
 		panic("unspecified syntax type")

@@ -57,7 +57,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 	checkerOpts := CheckerOptions{PackageLess: opts.PackageLess}
 	checkerOpts.DisallowGoStmt = opts.DisallowGoStmt
 	checkerOpts.SyntaxType = ProgramSyntax
-	tci, err := Typecheck(tree, importer, checkerOpts)
+	tci, err := typecheck(tree, importer, checkerOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func CompileTemplate(r Reader, path string, main PackageLoader, opts Options) (*
 		PackageLess:    opts.PackageLess,
 		SyntaxType:     TemplateSyntax,
 	}
-	tci, err := Typecheck(tree, main, checkerOpts)
+	tci, err := typecheck(tree, main, checkerOpts)
 	if err != nil {
 		return nil, err
 	}
