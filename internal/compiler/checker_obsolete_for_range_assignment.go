@@ -79,7 +79,7 @@ func (tc *typechecker) obsoleteForRangeAssign(node ast.Node, leftExpr, rightExpr
 			}
 			newRight.Constant = right.Constant
 			if right.Untyped() {
-				newRight.Properties = PropertyUntyped
+				newRight.Properties = propertyUntyped
 			}
 			tc.assignScope(leftExpr.Name, newRight, nil)
 			return leftExpr.Name
@@ -99,7 +99,7 @@ func (tc *typechecker) obsoleteForRangeAssign(node ast.Node, leftExpr, rightExpr
 			if _, alreadyInCurrentScope := tc.lookupScopes(leftExpr.Name, true); alreadyInCurrentScope {
 				return ""
 			}
-			newRight.Properties |= PropertyAddressable
+			newRight.Properties |= propertyAddressable
 			tc.assignScope(leftExpr.Name, newRight, leftExpr)
 			if !tc.opts.AllowNotUsed {
 				tc.unusedVars = append(tc.unusedVars, &scopeVariable{

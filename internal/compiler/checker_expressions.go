@@ -32,53 +32,53 @@ var uint8Type = reflect.TypeOf(uint8(0))
 var int32Type = reflect.TypeOf(int32(0))
 var byteSliceType = reflect.TypeOf([]byte(nil))
 
-var uint8TypeInfo = &typeInfo{Type: uint8Type, Properties: PropertyIsType | PropertyPredeclared}
-var int32TypeInfo = &typeInfo{Type: int32Type, Properties: PropertyIsType | PropertyPredeclared}
+var uint8TypeInfo = &typeInfo{Type: uint8Type, Properties: propertyIsType | propertyPredeclared}
+var int32TypeInfo = &typeInfo{Type: int32Type, Properties: propertyIsType | propertyPredeclared}
 
-var untypedBoolTypeInfo = &typeInfo{Type: boolType, Properties: PropertyUntyped}
+var untypedBoolTypeInfo = &typeInfo{Type: boolType, Properties: propertyUntyped}
 
 var envType = reflect.TypeOf(&runtime.Env{})
 
 var universe = typeCheckerScope{
-	"append":     {t: &typeInfo{Properties: PropertyPredeclared}},
-	"cap":        {t: &typeInfo{Properties: PropertyPredeclared}},
-	"close":      {t: &typeInfo{Properties: PropertyPredeclared}},
-	"complex":    {t: &typeInfo{Properties: PropertyPredeclared}},
-	"copy":       {t: &typeInfo{Properties: PropertyPredeclared}},
-	"delete":     {t: &typeInfo{Properties: PropertyPredeclared}},
-	"imag":       {t: &typeInfo{Properties: PropertyPredeclared}},
-	"iota":       {t: &typeInfo{Properties: PropertyPredeclared, Type: intType}},
-	"len":        {t: &typeInfo{Properties: PropertyPredeclared}},
-	"make":       {t: &typeInfo{Properties: PropertyPredeclared}},
-	"new":        {t: &typeInfo{Properties: PropertyPredeclared}},
-	"nil":        {t: &typeInfo{Properties: PropertyUntyped | PropertyPredeclared}},
-	"panic":      {t: &typeInfo{Properties: PropertyPredeclared}},
-	"print":      {t: &typeInfo{Properties: PropertyPredeclared}},
-	"println":    {t: &typeInfo{Properties: PropertyPredeclared}},
-	"real":       {t: &typeInfo{Properties: PropertyPredeclared}},
-	"recover":    {t: &typeInfo{Properties: PropertyPredeclared}},
+	"append":     {t: &typeInfo{Properties: propertyPredeclared}},
+	"cap":        {t: &typeInfo{Properties: propertyPredeclared}},
+	"close":      {t: &typeInfo{Properties: propertyPredeclared}},
+	"complex":    {t: &typeInfo{Properties: propertyPredeclared}},
+	"copy":       {t: &typeInfo{Properties: propertyPredeclared}},
+	"delete":     {t: &typeInfo{Properties: propertyPredeclared}},
+	"imag":       {t: &typeInfo{Properties: propertyPredeclared}},
+	"iota":       {t: &typeInfo{Properties: propertyPredeclared, Type: intType}},
+	"len":        {t: &typeInfo{Properties: propertyPredeclared}},
+	"make":       {t: &typeInfo{Properties: propertyPredeclared}},
+	"new":        {t: &typeInfo{Properties: propertyPredeclared}},
+	"nil":        {t: &typeInfo{Properties: propertyUntyped | propertyPredeclared}},
+	"panic":      {t: &typeInfo{Properties: propertyPredeclared}},
+	"print":      {t: &typeInfo{Properties: propertyPredeclared}},
+	"println":    {t: &typeInfo{Properties: propertyPredeclared}},
+	"real":       {t: &typeInfo{Properties: propertyPredeclared}},
+	"recover":    {t: &typeInfo{Properties: propertyPredeclared}},
 	"byte":       {t: uint8TypeInfo},
-	"bool":       {t: &typeInfo{Type: boolType, Properties: PropertyIsType | PropertyPredeclared}},
-	"complex128": {t: &typeInfo{Type: complex128Type, Properties: PropertyIsType | PropertyPredeclared}},
-	"complex64":  {t: &typeInfo{Type: complex64Type, Properties: PropertyIsType | PropertyPredeclared}},
-	"error":      {t: &typeInfo{Type: reflect.TypeOf((*error)(nil)).Elem(), Properties: PropertyIsType | PropertyPredeclared}},
-	"float32":    {t: &typeInfo{Type: reflect.TypeOf(float32(0)), Properties: PropertyIsType | PropertyPredeclared}},
-	"float64":    {t: &typeInfo{Type: float64Type, Properties: PropertyIsType | PropertyPredeclared}},
-	"false":      {t: &typeInfo{Type: boolType, Properties: PropertyUntyped, Constant: boolConst(false)}},
-	"int":        {t: &typeInfo{Type: intType, Properties: PropertyIsType | PropertyPredeclared}},
-	"int16":      {t: &typeInfo{Type: reflect.TypeOf(int16(0)), Properties: PropertyIsType | PropertyPredeclared}},
+	"bool":       {t: &typeInfo{Type: boolType, Properties: propertyIsType | propertyPredeclared}},
+	"complex128": {t: &typeInfo{Type: complex128Type, Properties: propertyIsType | propertyPredeclared}},
+	"complex64":  {t: &typeInfo{Type: complex64Type, Properties: propertyIsType | propertyPredeclared}},
+	"error":      {t: &typeInfo{Type: reflect.TypeOf((*error)(nil)).Elem(), Properties: propertyIsType | propertyPredeclared}},
+	"float32":    {t: &typeInfo{Type: reflect.TypeOf(float32(0)), Properties: propertyIsType | propertyPredeclared}},
+	"float64":    {t: &typeInfo{Type: float64Type, Properties: propertyIsType | propertyPredeclared}},
+	"false":      {t: &typeInfo{Type: boolType, Properties: propertyUntyped, Constant: boolConst(false)}},
+	"int":        {t: &typeInfo{Type: intType, Properties: propertyIsType | propertyPredeclared}},
+	"int16":      {t: &typeInfo{Type: reflect.TypeOf(int16(0)), Properties: propertyIsType | propertyPredeclared}},
 	"int32":      {t: int32TypeInfo},
-	"int64":      {t: &typeInfo{Type: reflect.TypeOf(int64(0)), Properties: PropertyIsType | PropertyPredeclared}},
-	"int8":       {t: &typeInfo{Type: reflect.TypeOf(int8(0)), Properties: PropertyIsType | PropertyPredeclared}},
+	"int64":      {t: &typeInfo{Type: reflect.TypeOf(int64(0)), Properties: propertyIsType | propertyPredeclared}},
+	"int8":       {t: &typeInfo{Type: reflect.TypeOf(int8(0)), Properties: propertyIsType | propertyPredeclared}},
 	"rune":       {t: int32TypeInfo},
-	"string":     {t: &typeInfo{Type: stringType, Properties: PropertyIsType | PropertyPredeclared}},
-	"true":       {t: &typeInfo{Type: boolType, Properties: PropertyUntyped, Constant: boolConst(true)}},
-	"uint":       {t: &typeInfo{Type: uintType, Properties: PropertyIsType | PropertyPredeclared}},
-	"uint16":     {t: &typeInfo{Type: reflect.TypeOf(uint16(0)), Properties: PropertyIsType | PropertyPredeclared}},
-	"uint32":     {t: &typeInfo{Type: reflect.TypeOf(uint32(0)), Properties: PropertyIsType | PropertyPredeclared}},
-	"uint64":     {t: &typeInfo{Type: reflect.TypeOf(uint64(0)), Properties: PropertyIsType | PropertyPredeclared}},
+	"string":     {t: &typeInfo{Type: stringType, Properties: propertyIsType | propertyPredeclared}},
+	"true":       {t: &typeInfo{Type: boolType, Properties: propertyUntyped, Constant: boolConst(true)}},
+	"uint":       {t: &typeInfo{Type: uintType, Properties: propertyIsType | propertyPredeclared}},
+	"uint16":     {t: &typeInfo{Type: reflect.TypeOf(uint16(0)), Properties: propertyIsType | propertyPredeclared}},
+	"uint32":     {t: &typeInfo{Type: reflect.TypeOf(uint32(0)), Properties: propertyIsType | propertyPredeclared}},
+	"uint64":     {t: &typeInfo{Type: reflect.TypeOf(uint64(0)), Properties: propertyIsType | propertyPredeclared}},
 	"uint8":      {t: uint8TypeInfo},
-	"uintptr":    {t: &typeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: PropertyIsType | PropertyPredeclared}},
+	"uintptr":    {t: &typeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: propertyIsType | propertyPredeclared}},
 }
 
 type scopeVariable struct {
@@ -126,7 +126,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *typeI
 			return &typeInfo{
 				Constant:   int64Const(tc.iota),
 				Type:       intType,
-				Properties: PropertyUntyped,
+				Properties: propertyUntyped,
 			}
 		}
 		// The identifier is the builtin 'iota', but 'iota' is not defined in
@@ -199,7 +199,7 @@ func (tc *typechecker) checkArrayType(array *ast.ArrayType, length int) *typeInf
 		if length == -1 {
 			panic(tc.errorf(array, "use of [...] array outside of array literal"))
 		}
-		tc.typeInfos[array] = &typeInfo{Properties: PropertyIsType, Type: tc.types.ArrayOf(length, elem.Type)}
+		tc.typeInfos[array] = &typeInfo{Properties: propertyIsType, Type: tc.types.ArrayOf(length, elem.Type)}
 		return tc.typeInfos[array]
 	}
 	len := tc.checkExpr(array.Len)
@@ -217,7 +217,7 @@ func (tc *typechecker) checkArrayType(array *ast.ArrayType, length int) *typeInf
 	if b < length {
 		panic(tc.errorf(array, "array index %d out of bounds [0:%d]", length-1, b))
 	}
-	tc.typeInfos[array] = &typeInfo{Properties: PropertyIsType, Type: tc.types.ArrayOf(b, elem.Type)}
+	tc.typeInfos[array] = &typeInfo{Properties: propertyIsType, Type: tc.types.ArrayOf(b, elem.Type)}
 	return tc.typeInfos[array]
 }
 
@@ -288,7 +288,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		}
 		return &typeInfo{
 			Type:       typ,
-			Properties: PropertyUntyped,
+			Properties: propertyUntyped,
 			Constant:   c,
 		}
 
@@ -296,13 +296,13 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		t := tc.checkExprOrType(expr.Expr)
 		if t.IsType() {
 			if expr.Op == ast.OperatorMultiplication {
-				return &typeInfo{Properties: PropertyIsType, Type: tc.types.PtrTo(t.Type)}
+				return &typeInfo{Properties: propertyIsType, Type: tc.types.PtrTo(t.Type)}
 			}
 			panic(tc.errorf(expr, "type %s is not an expression", t))
 		}
 		ti := &typeInfo{
 			Type:       t.Type,
-			Properties: t.Properties & PropertyUntyped,
+			Properties: t.Properties & propertyUntyped,
 		}
 		var k reflect.Kind
 		if !t.Nil() {
@@ -341,7 +341,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				panic(tc.errorf(expr, "invalid indirect of %s (type %s)", expr.Expr, t))
 			}
 			ti.Type = t.Type.Elem()
-			ti.Properties = ti.Properties | PropertyAddressable
+			ti.Properties = ti.Properties | propertyAddressable
 		case ast.OperatorAnd:
 			if _, ok := expr.Expr.(*ast.CompositeLiteral); !ok && !t.Addressable() {
 				panic(tc.errorf(expr, "cannot take the address of %s", expr.Expr))
@@ -442,7 +442,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		t := tc.types.StructOf(fields)
 		return &typeInfo{
 			Type:       t,
-			Properties: PropertyIsType,
+			Properties: propertyIsType,
 		}
 
 	case *ast.MapType:
@@ -453,11 +453,11 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				panic(tc.errorf(expr, "invalid map key type %s", key))
 			}
 		}()
-		return &typeInfo{Properties: PropertyIsType, Type: tc.types.MapOf(key.Type, value.Type)}
+		return &typeInfo{Properties: propertyIsType, Type: tc.types.MapOf(key.Type, value.Type)}
 
 	case *ast.SliceType:
 		elem := tc.checkType(expr.ElementType)
-		return &typeInfo{Properties: PropertyIsType, Type: tc.types.SliceOf(elem.Type)}
+		return &typeInfo{Properties: propertyIsType, Type: tc.types.SliceOf(elem.Type)}
 
 	case *ast.ArrayType:
 		return tc.checkArrayType(expr, -1)
@@ -473,13 +473,13 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			dir = reflect.SendDir
 		}
 		elem := tc.checkType(expr.ElementType)
-		return &typeInfo{Properties: PropertyIsType, Type: tc.types.ChanOf(dir, elem.Type)}
+		return &typeInfo{Properties: propertyIsType, Type: tc.types.ChanOf(dir, elem.Type)}
 
 	case *ast.CompositeLiteral:
 		return tc.checkCompositeLiteral(expr, nil)
 
 	case *ast.Interface:
-		return &typeInfo{Type: emptyInterfaceType, Properties: PropertyIsType | PropertyPredeclared}
+		return &typeInfo{Type: emptyInterfaceType, Properties: propertyIsType | propertyPredeclared}
 
 	case *ast.FuncType:
 		variadic := expr.IsVariadic
@@ -512,7 +512,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			}
 		}
 		expr.Reflect = tc.types.FuncOf(in, out, variadic)
-		return &typeInfo{Type: expr.Reflect, Properties: PropertyIsType}
+		return &typeInfo{Type: expr.Reflect, Properties: propertyIsType}
 
 	case *ast.Func:
 		tc.enterScope()
@@ -527,17 +527,17 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			t := tc.checkType(f.Type)
 			if f.Ident != nil && !isBlankIdentifier(f.Ident) {
 				if isVariadic && i == len(expr.Type.Parameters)-1 {
-					tc.assignScope(f.Ident.Name, &typeInfo{Type: tc.types.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
+					tc.assignScope(f.Ident.Name, &typeInfo{Type: tc.types.SliceOf(t.Type), Properties: propertyAddressable}, nil)
 					continue
 				}
-				tc.assignScope(f.Ident.Name, &typeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
+				tc.assignScope(f.Ident.Name, &typeInfo{Type: t.Type, Properties: propertyAddressable}, nil)
 			}
 		}
 		// Adds named return values to the function body scope.
 		for _, f := range expr.Type.Result {
 			t := tc.checkType(f.Type)
 			if f.Ident != nil && !isBlankIdentifier(f.Ident) {
-				tc.assignScope(f.Ident.Name, &typeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
+				tc.assignScope(f.Ident.Name, &typeInfo{Type: t.Type, Properties: propertyAddressable}, nil)
 			}
 		}
 		expr.Body.Nodes = tc.checkNodes(expr.Body.Nodes)
@@ -576,12 +576,12 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			return &typeInfo{Type: uint8Type}
 		case reflect.Slice:
 			tc.checkIndex(expr.Index, t, false)
-			return &typeInfo{Type: t.Type.Elem(), Properties: PropertyAddressable}
+			return &typeInfo{Type: t.Type.Elem(), Properties: propertyAddressable}
 		case reflect.Array:
 			tc.checkIndex(expr.Index, t, false)
 			ti := &typeInfo{Type: t.Type.Elem()}
 			if t.Addressable() {
-				ti.Properties = PropertyAddressable
+				ti.Properties = propertyAddressable
 			}
 			return ti
 		case reflect.Ptr:
@@ -594,7 +594,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			unOp := ast.NewUnaryOperator(expr.Expr.Pos(), ast.OperatorMultiplication, expr.Expr)
 			tc.typeInfos[unOp] = &typeInfo{Type: elemType}
 			expr.Expr = unOp
-			return &typeInfo{Type: elemType.Elem(), Properties: PropertyAddressable}
+			return &typeInfo{Type: elemType.Elem(), Properties: propertyAddressable}
 		case reflect.Map:
 			key := tc.checkExpr(expr.Index)
 			if err := tc.isAssignableTo(key, expr.Index, t.Type.Key()); err != nil {
@@ -804,7 +804,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		typ := tc.checkType(expr.Type)
 		return &typeInfo{
 			Type:       typ.Type,
-			Properties: t.Properties & PropertyAddressable,
+			Properties: t.Properties & propertyAddressable,
 		}
 
 	}
@@ -965,7 +965,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		}
 		ti := &typeInfo{Type: typ, Constant: c}
 		if t1.Untyped() || isComparison(op) {
-			ti.Properties = PropertyUntyped
+			ti.Properties = propertyUntyped
 		}
 
 		return ti, nil
@@ -982,7 +982,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		}
 		ti := &typeInfo{Type: t1.Type}
 		if t1.Untyped() {
-			ti.Properties = PropertyUntyped
+			ti.Properties = propertyUntyped
 			ti.Type = t1.Type
 		}
 		t1.setValue(nil)
@@ -1030,7 +1030,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		if isComparison(op) {
 			typ = boolType
 		}
-		return &typeInfo{Type: typ, Properties: PropertyUntyped}, nil
+		return &typeInfo{Type: typ, Properties: propertyUntyped}, nil
 	}
 
 	t1.setValue(nil)
@@ -1226,7 +1226,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 			ti := &typeInfo{
 				Type:       complex128Type,
 				Constant:   newComplexConst(re.Constant, im.Constant),
-				Properties: PropertyUntyped,
+				Properties: propertyUntyped,
 			}
 			return []*typeInfo{ti}
 		}
@@ -1452,7 +1452,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 			if !isNumeric(t.Type.Kind()) {
 				panic(tc.errorf(expr, "invalid argument %s (type %s) for %s", expr.Args[0], t, ident.Name))
 			}
-			ti.Properties = PropertyUntyped
+			ti.Properties = propertyUntyped
 		} else {
 			switch t.Type.Kind() {
 			case reflect.Complex64:
@@ -1769,7 +1769,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 	// Handle composite literal nodes with implicit type.
 	if node.Type == nil {
 		node.Type = ast.NewPlaceholder()
-		tc.typeInfos[node.Type] = &typeInfo{Properties: PropertyIsType, Type: typ}
+		tc.typeInfos[node.Type] = &typeInfo{Properties: propertyIsType, Type: typ}
 	}
 
 	maxIndex := -1

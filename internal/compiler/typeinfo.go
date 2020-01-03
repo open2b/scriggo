@@ -10,16 +10,16 @@ import (
 	"reflect"
 )
 
-type Properties uint8
+type properties uint8
 
 const (
-	PropertyUntyped      Properties = 1 << iota // is untyped
-	PropertyIsType                              // is a type
-	PropertyIsPackage                           // is a package
-	PropertyPredeclared                         // is predeclared
-	PropertyAddressable                         // is addressable
-	PropertyIsPredefined                        // is predefined
-	PropertyHasValue                            // has a value
+	propertyUntyped      properties = 1 << iota // is untyped
+	propertyIsType                              // is a type
+	propertyIsPackage                           // is a package
+	propertyPredeclared                         // is predeclared
+	propertyAddressable                         // is addressable
+	propertyIsPredefined                        // is predefined
+	propertyHasValue                            // has a value
 )
 
 // A typeInfo holds the type checking information. For example, every expression
@@ -28,7 +28,7 @@ const (
 // information.
 type typeInfo struct {
 	Type              reflect.Type // Type.
-	Properties        Properties   // Properties.
+	Properties        properties   // Properties.
 	Constant          constant     // Constant value.
 	PredefPackageName string       // Name of the package. Empty string if not predefined.
 	MethodType        MethodType   // Method type.
@@ -55,7 +55,7 @@ func (ti *typeInfo) Nil() bool {
 
 // Untyped reports whether it is untyped.
 func (ti *typeInfo) Untyped() bool {
-	return ti.Properties&PropertyUntyped != 0
+	return ti.Properties&propertyUntyped != 0
 }
 
 // IsConstant reports whether it is a constant.
@@ -65,37 +65,37 @@ func (ti *typeInfo) IsConstant() bool {
 
 // IsUntypedConstant reports whether it is an untyped constant.
 func (ti *typeInfo) IsUntypedConstant() bool {
-	return ti.Properties&PropertyUntyped != 0 && ti.Constant != nil
+	return ti.Properties&propertyUntyped != 0 && ti.Constant != nil
 }
 
 // IsType reports whether it is a type.
 func (ti *typeInfo) IsType() bool {
-	return ti.Properties&PropertyIsType != 0
+	return ti.Properties&propertyIsType != 0
 }
 
 // IsPackage reports whether it is a package.
 func (ti *typeInfo) IsPackage() bool {
-	return ti.Properties&PropertyIsPackage != 0
+	return ti.Properties&propertyIsPackage != 0
 }
 
 // Predeclared reports whether it is predeclared.
 func (ti *typeInfo) Predeclared() bool {
-	return ti.Properties&PropertyPredeclared != 0
+	return ti.Properties&propertyPredeclared != 0
 }
 
 // Addressable reports whether it is addressable.
 func (ti *typeInfo) Addressable() bool {
-	return ti.Properties&PropertyAddressable != 0
+	return ti.Properties&propertyAddressable != 0
 }
 
 // IsPredefined reports whether it is predefined.
 func (ti *typeInfo) IsPredefined() bool {
-	return ti.Properties&PropertyIsPredefined != 0
+	return ti.Properties&propertyIsPredefined != 0
 }
 
 // IsBuiltinFunction reports whether it is a builtin function.
 func (ti *typeInfo) IsBuiltinFunction() bool {
-	return ti.Properties&PropertyPredeclared != 0 && ti.Properties&PropertyUntyped == 0 && ti.Type == nil
+	return ti.Properties&propertyPredeclared != 0 && ti.Properties&propertyUntyped == 0 && ti.Type == nil
 }
 
 func (ti *typeInfo) UntypedNonConstantNumber() bool {
@@ -180,7 +180,7 @@ func (ti *typeInfo) IsInteger() bool {
 
 // HasValue reports whether it has a value.
 func (ti *typeInfo) HasValue() bool {
-	return ti.Properties&PropertyHasValue != 0
+	return ti.Properties&propertyHasValue != 0
 }
 
 // setValue sets the 'value' and 'valueType' fields of 'ti' if this is constant.
@@ -239,7 +239,7 @@ func (ti *typeInfo) setValue(ctxType reflect.Type) {
 			ti.value = ti.Constant.string()
 		}
 		ti.valueType = typ
-		ti.Properties |= PropertyHasValue
+		ti.Properties |= propertyHasValue
 		return
 	}
 	if ti.Nil() {

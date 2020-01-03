@@ -210,7 +210,7 @@ nodesLoop:
 				if len(lhs) > maxLhs {
 					panic(tc.errorf(node, "too many variables in range"))
 				}
-				ti1 := &typeInfo{Type: typ1, Properties: PropertyAddressable}
+				ti1 := &typeInfo{Type: typ1, Properties: propertyAddressable}
 				declaration := node.Assignment.Type == ast.AssignmentDeclaration
 				indexPh := ast.NewPlaceholder()
 				tc.typeInfos[indexPh] = ti1
@@ -839,7 +839,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 		} else {
 			name = impor.Ident.Name // import name "pkg".
 		}
-		tc.filePackageBlock[name] = scopeElement{t: &typeInfo{value: imported, Properties: PropertyIsPackage | PropertyHasValue}}
+		tc.filePackageBlock[name] = scopeElement{t: &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}}
 		tc.unusedImports[name] = nil
 		return nil
 	}
@@ -927,7 +927,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 			tc.filePackageBlock[impor.Ident.Name] = scopeElement{
 				t: &typeInfo{
 					value:      imported,
-					Properties: PropertyIsPackage | PropertyHasValue,
+					Properties: propertyIsPackage | propertyHasValue,
 				},
 			}
 			tc.unusedImports[impor.Ident.Name] = nil
@@ -943,7 +943,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 		// No name provided.
 		if impor.Ident == nil {
 			tc.filePackageBlock[imported.Name] = scopeElement{
-				t: &typeInfo{value: imported, Properties: PropertyIsPackage | PropertyHasValue},
+				t: &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue},
 			}
 			tc.unusedImports[imported.Name] = nil
 			return nil
@@ -960,7 +960,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 		tc.filePackageBlock[impor.Ident.Name] = scopeElement{
 			t: &typeInfo{
 				value:      imported,
-				Properties: PropertyIsPackage | PropertyHasValue,
+				Properties: propertyIsPackage | propertyHasValue,
 			},
 		}
 		tc.unusedImports[impor.Ident.Name] = nil
@@ -1123,6 +1123,6 @@ func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) (string, 
 	// Create and return a new Scriggo type.
 	return name, &typeInfo{
 		Type:       tc.types.DefinedOf(name, typ.Type),
-		Properties: PropertyIsType,
+		Properties: propertyIsType,
 	}
 }

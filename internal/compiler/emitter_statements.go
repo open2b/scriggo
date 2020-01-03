@@ -776,7 +776,7 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 			Type:       boolType,
 			value:      int64(1), // true
 			valueType:  boolType,
-			Properties: PropertyUntyped | PropertyHasValue,
+			Properties: propertyUntyped | propertyHasValue,
 		}
 	} else {
 		typ = em.typ(node.Expr)

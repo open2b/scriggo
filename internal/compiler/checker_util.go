@@ -279,7 +279,7 @@ func deferGoBuiltin(name string) *typeInfo {
 	}
 	rv := reflect.ValueOf(fun)
 	return &typeInfo{
-		Properties: PropertyHasValue | PropertyIsPredefined,
+		Properties: propertyHasValue | propertyIsPredefined,
 		Type:       removeEnvArg(rv.Type(), false),
 		value:      rv,
 	}
@@ -306,13 +306,13 @@ func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string,
 	if t.Type.Kind() == reflect.Struct {
 		field, ok := t.Type.FieldByName(name)
 		if ok {
-			return &typeInfo{Type: field.Type, Properties: t.Properties & PropertyAddressable}, newName, true
+			return &typeInfo{Type: field.Type, Properties: t.Properties & propertyAddressable}, newName, true
 		}
 	}
 	if t.Type.Kind() == reflect.Ptr {
 		field, ok := t.Type.Elem().FieldByName(name)
 		if ok {
-			return &typeInfo{Type: field.Type, Properties: PropertyAddressable}, newName, true
+			return &typeInfo{Type: field.Type, Properties: propertyAddressable}, newName, true
 		}
 	}
 	return nil, newName, false
@@ -512,7 +512,7 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 				ti := &typeInfo{
 					Type:       removeEnvArg(methExpr.Type(), false),
 					value:      methExpr,
-					Properties: PropertyIsPredefined | PropertyHasValue,
+					Properties: propertyIsPredefined | propertyHasValue,
 				}
 				return ti, receiverNoTransform, true
 			}
@@ -523,7 +523,7 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 			return &typeInfo{
 				Type:       removeEnvArg(method.Type, true),
 				value:      method.Func,
-				Properties: PropertyIsPredefined | PropertyHasValue,
+				Properties: propertyIsPredefined | propertyHasValue,
 			}, receiverNoTransform, true
 		}
 		return nil, receiverNoTransform, false
@@ -536,7 +536,7 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 				Type:       removeEnvArg(method.Type, true),
 				value:      name,
 				MethodType: MethodValueInterface,
-				Properties: PropertyIsPredefined | PropertyHasValue,
+				Properties: propertyIsPredefined | propertyHasValue,
 			}
 			return ti, receiverNoTransform, true
 		}
@@ -550,7 +550,7 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 		ti := &typeInfo{
 			Type:       removeEnvArg(method.Type(), false),
 			value:      methodExplicitRcvr.Func,
-			Properties: PropertyIsPredefined | PropertyHasValue,
+			Properties: propertyIsPredefined | propertyHasValue,
 			MethodType: MethodValueConcrete,
 		}
 		// Check if pointer is defined on T or *T when called on a *T receiver.
@@ -563,7 +563,7 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 				// Needs indirection: x.m -> (*x).m
 				ti.Type = removeEnvArg(reflect.Zero(t.Type).MethodByName(name).Type(), false)
 				ti.value = method.Func
-				ti.Properties |= PropertyHasValue
+				ti.Properties |= propertyHasValue
 				return ti, receiverAddIndirect, true
 			}
 		}
@@ -576,7 +576,7 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 			return &typeInfo{
 				Type:       removeEnvArg(method.Type(), false),
 				value:      methodExplicitRcvr.Func,
-				Properties: PropertyIsPredefined | PropertyHasValue,
+				Properties: propertyIsPredefined | propertyHasValue,
 				MethodType: MethodValueConcrete,
 			}, receiverAddAddress, true
 		}
@@ -722,19 +722,19 @@ func (tc *typechecker) nilOf(t reflect.Type) *typeInfo {
 	switch t.Kind() {
 	case reflect.Func:
 		return &typeInfo{
-			Properties: PropertyHasValue | PropertyIsPredefined,
+			Properties: propertyHasValue | propertyIsPredefined,
 			Type:       t,
 			value:      tc.types.Zero(t),
 		}
 	case reflect.Interface:
 		return &typeInfo{
-			Properties: PropertyHasValue,
+			Properties: propertyHasValue,
 			Type:       t,
 			value:      nil,
 		}
 	default:
 		return &typeInfo{
-			Properties: PropertyHasValue,
+			Properties: propertyHasValue,
 			Type:       t,
 			value:      tc.types.Zero(t).Interface(),
 		}

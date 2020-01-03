@@ -297,7 +297,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 
 	// Add the builtin "exit" to the package-less program global scope.
 	if opts.PackageLess {
-		exit := scopeElement{t: &typeInfo{Properties: PropertyPredeclared}}
+		exit := scopeElement{t: &typeInfo{Properties: propertyPredeclared}}
 		if globalScope == nil {
 			globalScope = typeCheckerScope{"exit": exit}
 		} else if _, ok := globalScope["exit"]; !ok {

@@ -174,7 +174,7 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 		// Declare the constant in the current block/scope.
 		constTi := &typeInfo{Type: constType, Constant: constValue}
 		if rh.Untyped() && typ == nil {
-			constTi.Properties = PropertyUntyped
+			constTi.Properties = propertyUntyped
 		}
 		tc.assignScope(node.Lhs[i].Name, constTi, node.Lhs[i])
 
@@ -399,7 +399,7 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 	ti := &typeInfo{
 		Type:       typ,
-		Properties: PropertyAddressable,
+		Properties: propertyAddressable,
 	}
 	tc.typeInfos[lh] = ti
 	tc.assignScope(lh.Name, ti, lh)
@@ -440,18 +440,18 @@ func (tc *typechecker) newPlaceholderFor(typ reflect.Type) *ast.Placeholder {
 	var ti *typeInfo
 	switch {
 	case reflect.Int <= k && k <= reflect.Complex128:
-		ti = &typeInfo{Type: typ, Constant: int64Const(0), Properties: PropertyUntyped}
+		ti = &typeInfo{Type: typ, Constant: int64Const(0), Properties: propertyUntyped}
 		ti.setValue(typ)
 	case k == reflect.String:
-		ti = &typeInfo{Type: typ, Constant: stringConst(""), Properties: PropertyUntyped}
+		ti = &typeInfo{Type: typ, Constant: stringConst(""), Properties: propertyUntyped}
 		ti.setValue(typ)
 	case k == reflect.Bool:
-		ti = &typeInfo{Type: typ, Constant: boolConst(false), Properties: PropertyUntyped}
+		ti = &typeInfo{Type: typ, Constant: boolConst(false), Properties: propertyUntyped}
 		ti.setValue(typ)
 	case k == reflect.Interface, k == reflect.Func:
 		ti = tc.nilOf(typ)
 	default:
-		ti = &typeInfo{Type: typ, value: tc.types.Zero(typ).Interface(), Properties: PropertyHasValue}
+		ti = &typeInfo{Type: typ, value: tc.types.Zero(typ).Interface(), Properties: propertyHasValue}
 		ti.setValue(typ)
 	}
 	ph := ast.NewPlaceholder()
