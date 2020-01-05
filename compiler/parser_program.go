@@ -41,6 +41,9 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
 		}
 
 		// Load the package.
+		if packages == nil {
+			return nil, syntaxError(n.Pos(), "cannot find package %q", n.Path)
+		}
 		pkg, err := packages.Load(n.Path)
 		if err != nil {
 			return nil, err
