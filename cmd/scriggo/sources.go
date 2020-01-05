@@ -2153,7 +2153,7 @@ func run() {
 
 	file := args[0]
 	ext := filepath.Ext(file)
-	if ext != ".go" && ext != ".sg" && ext != ".html" {
+	if ext != ".go" && ext != ".html" {
 		fmt.Printf("%s: extension must be \".go\" for main packages and \".html\" for template pages\n", file)
 		os.Exit(1)
 	}
