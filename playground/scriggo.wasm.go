@@ -9,31 +9,52 @@ import (
 	"scriggo"
 )
 
+var packages scriggo.Packages
+
+type Program struct {
+	js.Value
+}
+
+func newProgram(program *scriggo.Program) Program {
+	value := map[string]interface{}{}
+	value["run"] = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		_, err := program.Run(nil)
+		if err != nil {
+			return err.Error()
+		}
+		return nil
+	})
+	value["release"] = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		value["run"].(js.Func).Release()
+		return nil
+	})
+	return Program{Value: js.ValueOf(value)}
+}
+
 func main() {
 
-	window := js.Global().Get("window")
-	document := js.Global().Get("document")
-	source := document.Call("getElementById", "Source")
-	button := document.Call("getElementById", "Execute")
+	Scriggo := js.ValueOf(map[string]interface{}{})
 
-	button.Call("addEventListener", "click", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-
-		src := strings.NewReader(source.Get("value").String())
-		program, err := scriggo.Load(src, nil, nil)
-		if err != nil {
-			window.Call("alert", err.Error())
+	Scriggo.Set("load", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		var src string
+		if len(args) > 0 {
+			src = args[0].String()
+		}
+		program, err := scriggo.Load(strings.NewReader(src), packages, nil)
+		if len(args) == 1 {
 			return nil
 		}
-		_, err = program.Run(nil)
+		cb := args[1]
 		if err != nil {
-			window.Call("alert", err.Error())
+			cb.Invoke(nil, err.Error());
 			return nil
 		}
-
-		print("ok")
-
+		cb.Invoke(newProgram(program), nil);
 		return nil
 	}))
+
+	window := js.Global().Get("window")
+	window.Set("Scriggo", Scriggo)
 
 	select {}
 }
