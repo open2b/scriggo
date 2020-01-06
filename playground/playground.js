@@ -15,7 +15,6 @@
         if ( last != null ) {
             i = parseInt(last.textContent) + 1;
         }
-        console.log(nn.offsetHeight, source.offsetHeight);
         while ( nn.offsetHeight < source.offsetHeight + source.scrollTop ) {
             var n = document.createElement("div");
             n.textContent = i;
