@@ -4,19 +4,18 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package test
+package template
 
 import (
 	"bytes"
-	"scriggo/template"
 	"testing"
 )
 
 func TestFullTemplate(t *testing.T) {
-	r := template.DirReader("./full_template")
+	r := DirReader("./full_template")
 	for page, expectedOutput := range expectedPagesOutput {
 		t.Run(page, func(t *testing.T) {
-			templ, err := template.Load(page, r, nil, template.ContextHTML, nil)
+			templ, err := Load(page, r, nil, ContextHTML, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
