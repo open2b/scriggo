@@ -1538,7 +1538,13 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 			tok = p.next()
 		} else {
 			values = make([]ast.Expression, 1)
-			values[0], tok = p.parseExpr(p.next(), false, false, false)
+			var expr ast.Expression
+			nextTok := p.next()
+			expr, tok = p.parseExpr(nextTok, false, false, false)
+			if expr == nil {
+				panic(syntaxError(nextTok.pos, "unexpected %s, expecting expression", nextTok))
+			}
+			values[0] = expr
 			pos.End = values[0].Pos().End
 		}
 	}
