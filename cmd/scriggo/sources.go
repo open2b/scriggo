@@ -425,7 +425,7 @@ source files useful to embed Scriggo in an application.
 The scriggo tool is not required to embed Scriggo in an application but it is
 useful to generate the code for a package loader used by the Scriggo Load
 functions to load the packages that can be imported during the execution of a
-program or template.
+program.
 
 For more about the use of the scriggo command to embed Scriggo in an
 application, see 'scriggo help embed'.
@@ -460,8 +460,7 @@ Additional help topics:
 const helpBuild = ` + "`" + `
 usage: scriggo build [-f Scriggofile] [-w] [-v] [-x] [-work] [-o output] [module]
 
-Build compiles an interpreter for Scriggo programs and templates from
-a Scriggofile in a module.
+Build compiles an interpreter for Scriggo programs from a Scriggofile in a module.
 
 Executables are created in the current directory. To install the executables in
 the directory GOBIN, see the command: scriggo install.
@@ -527,7 +526,7 @@ const helpInstall = ` + "`" + `
 usage: scriggo install [-f Scriggofile] [-w] [-v] [-x] [-work] [module]
 
 Install compiles and installs an interpreter for Scriggo programs
-and templates from a Scriggofile in a module.
+from a Scriggofile in a module.
 
 Executables are installed in the directory GOBIN as for the go install
 command.
@@ -638,18 +637,18 @@ The instructions are:
     
     IMPORT <package> AS main
 
-        Make the package with path <package> imported as the main package in a
-        package-less program or template. It is the same as writing 'import . "<package>"'
-        in a Go program. INCLUDING and EXCLUDING can be used as for the other
-        forms of IMPORT at the end of the instruction.
+        Make the package with path <package> imported as the main package.
+        It is the same as writing 'import . "<package>"' in a Go program.
+        INCLUDING and EXCLUDING can be used as for the other forms of IMPORT at
+        the end of the instruction.
 
     IMPORT <package> AS main NOT CAPITALIZED
 
         As for 'IMPORT <package> AS main' but the exported names in the package
         will be imported not capitalized. For example a name 'FooFoo' declared
-        in the package will be imported in the package-less program or template as 'fooFoo'.
+        in the package will be imported in the package-less program as 'fooFoo'.
 
-    TARGET PROGRAMS TEMPLATES
+    TARGET PROGRAMS
 
         Indicates witch are the targets of the interpreter. It will be able to
         execute only the type of sources listed in the TARGET instruction. This
@@ -847,7 +846,7 @@ const programSkel = ` + "`" + `main, err := ioutil.ReadFile(absFile)
 // https://github.com/open2b/scriggo/commit/4974dd3d69e1f66da40b068507ca50c91a69f7f2#r34270334.
 
 // makeInterpreterSource returns a Go source code that interprets a Scriggo
-// program or template.
+// program.
 func makeInterpreterSource(targets Target) []byte {
 
 	out := interpreterSkel
@@ -1783,10 +1782,9 @@ type Target int
 
 const (
 	targetPrograms Target = 1 << (3 - 1 - iota)
-	targetTemplates
 )
 
-const targetAll = targetPrograms | targetTemplates
+const targetAll = targetPrograms
 
 // scriggofile represents the content of a Scriggofile.
 type scriggofile struct {
@@ -1842,7 +1840,7 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 		switch strings.ToUpper(tokens[0]) {
 		case "TARGET":
 			if len(tokens) == 1 {
-				return nil, fmt.Errorf("after %s expecting PROGRAMS or TEMPLATES at line %d", tokens[0], ln)
+				return nil, fmt.Errorf("after %s expecting PROGRAMS at line %d", tokens[0], ln)
 			}
 			for _, tok := range tokens[1:] {
 				target := strings.ToUpper(tok)
@@ -1852,11 +1850,6 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 						return nil, fmt.Errorf("repeated target %s at line %d", target, ln)
 					}
 					sf.target |= targetPrograms
-				case "TEMPLATES":
-					if sf.target&targetTemplates != 0 {
-						return nil, fmt.Errorf("repeated target %s at line %d", target, ln)
-					}
-					sf.target |= targetTemplates
 				default:
 					return nil, fmt.Errorf("unexpected %q as TARGET at line %d", tok, ln)
 				}
@@ -2030,16 +2023,6 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 		}
 	}
 
-	// When making an interpreter that reads only template sources, sf
-	// cannot contain only packages.
-	if sf.target == targetTemplates && len(sf.imports) > 0 {
-		for _, imp := range sf.imports {
-			if imp.asPath != "main" {
-				return nil, fmt.Errorf("cannot have packages if making a template interpreter")
-			}
-		}
-	}
-
 	if sf.target == 0 {
 		sf.target = targetAll
 	}
@@ -2153,8 +2136,8 @@ func run() {
 
 	file := args[0]
 	ext := filepath.Ext(file)
-	if ext != ".go" && ext != ".html" {
-		fmt.Printf("%s: extension must be \".go\" for main packages and \".html\" for template pages\n", file)
+	if ext != ".go" {
+		fmt.Printf("%s: extension must be \".go\"\n", file)
 		os.Exit(1)
 	}
 
@@ -2164,39 +2147,36 @@ func run() {
 		os.Exit(1)
 	}
 
-	switch ext {
-	case ".go":
-		main, err := ioutil.ReadFile(absFile)
-		if err != nil {
-			panic(err)
-		}
-		program, err := scriggo.Load(bytes.NewReader(main), scriggo.Loaders(packages), loadOptions)
+	main, err := ioutil.ReadFile(absFile)
+	if err != nil {
+		panic(err)
+	}
+	program, err := scriggo.Load(bytes.NewReader(main), scriggo.Loaders(packages), loadOptions)
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+		os.Exit(2)
+	}
+	if *asm {
+		_, err := program.Disassemble(os.Stdout, "main")
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
 		}
-		if *asm {
-			_, err := program.Disassemble(os.Stdout, "main")
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
+	} else {
+		code, err := program.Run(runOptions)
+		if err != nil {
+			if p, ok := err.(*runtime.Panic); ok {
+				panic(renderPanics(p))
 			}
-		} else {
-			code, err := program.Run(runOptions)
-			if err != nil {
-				if p, ok := err.(*runtime.Panic); ok {
-					panic(renderPanics(p))
-				}
-				if err == context.DeadlineExceeded {
-					err = errors.New("process took too long")
-				}
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
+			if err == context.DeadlineExceeded {
+				err = errors.New("process took too long")
 			}
-			os.Exit(code)
+			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+			os.Exit(2)
 		}
-		os.Exit(0)
+		os.Exit(code)
 	}
+	os.Exit(0)
 }
 `)
 	sources["util.go"] = []byte(`// Copyright (c) 2019 Open2b Software Snc. All rights reserved.

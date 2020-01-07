@@ -104,8 +104,8 @@ func run() {
 
 	file := args[0]
 	ext := filepath.Ext(file)
-	if ext != ".go" && ext != ".html" {
-		fmt.Printf("%s: extension must be \".go\" for main packages and \".html\" for template pages\n", file)
+	if ext != ".go" {
+		fmt.Printf("%s: extension must be \".go\"\n", file)
 		os.Exit(1)
 	}
 
@@ -115,37 +115,34 @@ func run() {
 		os.Exit(1)
 	}
 
-	switch ext {
-	case ".go":
-		main, err := ioutil.ReadFile(absFile)
-		if err != nil {
-			panic(err)
-		}
-		program, err := scriggo.Load(bytes.NewReader(main), scriggo.Loaders(packages), loadOptions)
+	main, err := ioutil.ReadFile(absFile)
+	if err != nil {
+		panic(err)
+	}
+	program, err := scriggo.Load(bytes.NewReader(main), scriggo.Loaders(packages), loadOptions)
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+		os.Exit(2)
+	}
+	if *asm {
+		_, err := program.Disassemble(os.Stdout, "main")
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
 		}
-		if *asm {
-			_, err := program.Disassemble(os.Stdout, "main")
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
+	} else {
+		code, err := program.Run(runOptions)
+		if err != nil {
+			if p, ok := err.(*runtime.Panic); ok {
+				panic(renderPanics(p))
 			}
-		} else {
-			code, err := program.Run(runOptions)
-			if err != nil {
-				if p, ok := err.(*runtime.Panic); ok {
-					panic(renderPanics(p))
-				}
-				if err == context.DeadlineExceeded {
-					err = errors.New("process took too long")
-				}
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
+			if err == context.DeadlineExceeded {
+				err = errors.New("process took too long")
 			}
-			os.Exit(code)
+			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+			os.Exit(2)
 		}
-		os.Exit(0)
+		os.Exit(code)
 	}
+	os.Exit(0)
 }

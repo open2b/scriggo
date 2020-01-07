@@ -47,8 +47,6 @@ func TestParse(t *testing.T) {
 		{commandEmbed, "SET PACKAGE pkg", &scriggofile{pkgName: "pkg", target: targetAll, variable: "packages"}},
 		{commandInstall, "", &scriggofile{pkgName: "main", target: targetAll, variable: "packages"}},
 		{commandGenerate, "TARGET PROGRAMS", &scriggofile{pkgName: "main", target: targetPrograms, variable: "packages"}},
-		{commandGenerate, "TARGET TEMPLATES PROGRAMS", &scriggofile{pkgName: "main", target: targetAll, variable: "packages"}},
-		{commandGenerate, "TARGET TEMPLATES", &scriggofile{pkgName: "main", target: targetTemplates, variable: "packages"}},
 		{commandEmbed, "IMPORT a", &scriggofile{pkgName: "main", target: targetAll, imports: []*importCommand{{path: "a"}}, variable: "packages"}},
 		{commandEmbed, "IMPORT a AS main", &scriggofile{pkgName: "main", target: targetAll, imports: []*importCommand{{path: "a", asPath: "main"}}, variable: "packages"}},
 		{commandEmbed, "IMPORT a AS main NOT CAPITALIZED", &scriggofile{pkgName: "main", target: targetAll, imports: []*importCommand{{path: "a", asPath: "main", notCapitalized: true}}, variable: "packages"}},

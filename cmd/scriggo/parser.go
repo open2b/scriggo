@@ -26,10 +26,9 @@ type Target int
 
 const (
 	targetPrograms Target = 1 << (3 - 1 - iota)
-	targetTemplates
 )
 
-const targetAll = targetPrograms | targetTemplates
+const targetAll = targetPrograms
 
 // scriggofile represents the content of a Scriggofile.
 type scriggofile struct {
@@ -85,7 +84,7 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 		switch strings.ToUpper(tokens[0]) {
 		case "TARGET":
 			if len(tokens) == 1 {
-				return nil, fmt.Errorf("after %s expecting PROGRAMS or TEMPLATES at line %d", tokens[0], ln)
+				return nil, fmt.Errorf("after %s expecting PROGRAMS at line %d", tokens[0], ln)
 			}
 			for _, tok := range tokens[1:] {
 				target := strings.ToUpper(tok)
@@ -95,11 +94,6 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 						return nil, fmt.Errorf("repeated target %s at line %d", target, ln)
 					}
 					sf.target |= targetPrograms
-				case "TEMPLATES":
-					if sf.target&targetTemplates != 0 {
-						return nil, fmt.Errorf("repeated target %s at line %d", target, ln)
-					}
-					sf.target |= targetTemplates
 				default:
 					return nil, fmt.Errorf("unexpected %q as TARGET at line %d", tok, ln)
 				}
@@ -270,16 +264,6 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 		}
 		if !found {
 			return nil, fmt.Errorf("GOOS %s not supported in Scriggofile", goos)
-		}
-	}
-
-	// When making an interpreter that reads only template sources, sf
-	// cannot contain only packages.
-	if sf.target == targetTemplates && len(sf.imports) > 0 {
-		for _, imp := range sf.imports {
-			if imp.asPath != "main" {
-				return nil, fmt.Errorf("cannot have packages if making a template interpreter")
-			}
 		}
 	}
 

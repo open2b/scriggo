@@ -49,8 +49,7 @@ Additional help topics:
 const helpBuild = `
 usage: scriggo build [-f Scriggofile] [-w] [-v] [-x] [-work] [-o output] [module]
 
-Build compiles an interpreter for Scriggo programs and templates from
-a Scriggofile in a module.
+Build compiles an interpreter for Scriggo programs from a Scriggofile in a module.
 
 Executables are created in the current directory. To install the executables in
 the directory GOBIN, see the command: scriggo install.
@@ -116,7 +115,7 @@ const helpInstall = `
 usage: scriggo install [-f Scriggofile] [-w] [-v] [-x] [-work] [module]
 
 Install compiles and installs an interpreter for Scriggo programs
-and templates from a Scriggofile in a module.
+from a Scriggofile in a module.
 
 Executables are installed in the directory GOBIN as for the go install
 command.
@@ -227,18 +226,18 @@ The instructions are:
     
     IMPORT <package> AS main
 
-        Make the package with path <package> imported as the main package in a
-        package-less program or template. It is the same as writing 'import . "<package>"'
-        in a Go program. INCLUDING and EXCLUDING can be used as for the other
-        forms of IMPORT at the end of the instruction.
+        Make the package with path <package> imported as the main package.
+        It is the same as writing 'import . "<package>"' in a Go program.
+        INCLUDING and EXCLUDING can be used as for the other forms of IMPORT at
+        the end of the instruction.
 
     IMPORT <package> AS main NOT CAPITALIZED
 
         As for 'IMPORT <package> AS main' but the exported names in the package
         will be imported not capitalized. For example a name 'FooFoo' declared
-        in the package will be imported in the package-less program or template as 'fooFoo'.
+        in the package will be imported in the package-less program as 'fooFoo'.
 
-    TARGET PROGRAMS TEMPLATES
+    TARGET PROGRAMS
 
         Indicates witch are the targets of the interpreter. It will be able to
         execute only the type of sources listed in the TARGET instruction. This
