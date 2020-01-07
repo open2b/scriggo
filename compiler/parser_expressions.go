@@ -193,7 +193,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			tokenAnd:            // &e
 			operator = ast.NewUnaryOperator(tok.pos, operatorFromTokenType(tok.typ), nil)
 			if mustBeType && tok.typ != tokenMultiplication {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting type", operator))
+				panic(syntaxError(tok.pos, "unexpected %s, expecting type", tok.txt))
 			}
 			tok = p.next()
 		case
