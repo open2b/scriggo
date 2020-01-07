@@ -13,9 +13,10 @@
     #Execute { display: block; background-color: #ebb951; border: none; border-radius: 3px; color: #333; font-size: 15px; font-weight: bold; margin-top: 4px; outline: none; padding: 6px 20px; text-align: center; text-transform: uppercase; }
     section.canvas { bottom: 25%; left: 0; position: absolute; right: 0; top: 50px; }
     section.canvas > div { height: 100%; overflow: hidden; }
-    section.canvas .line-numbers { background: #21333e; color: #82949e; float: left; font-family: 'Roboto Mono'; font-size: 14px; padding: 10px 6px 0 0; text-align: right; width: 3%; }
-    section.canvas textarea { background: transparent; border: 0; font-family: 'Roboto Mono'; color: #f8f8f8; float: right; font-size: 14px; height: 100%; overflow-wrap: normal; outline: none; padding: 10px; resize: none; tab-size: 4; width: 97%; }
-    section#Output { border-top: 1px solid #21333e; bottom: 0; font-family: 'Roboto Mono'; font-size: 14px; left: 0; position: absolute; right: 0; top: 75%; padding: 10px; white-space: pre; }
+    section.canvas .line-numbers { background: #21333e; color: #82949e; float: left; padding: 10px 6px 0 0; text-align: right; width: 3%; }
+    section.canvas textarea { background: transparent; border: 0; color: #f8f8f8; float: right; height: 100%; overflow-wrap: normal; outline: none; padding: 10px; resize: none; tab-size: 4; width: 97%; }
+    section#Output { border-top: 1px solid #21333e; bottom: 0; left: 0; position: absolute; right: 0; top: 75%; padding: 10px; white-space: pre; }
+    section.canvas, section.canvas textarea, section#Output { font-family: SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace; font-size: 14px; }
     section#Output .stderr { color: #f96f4e; }
   </style>
   <script src="wasm_exec.js"></script>
