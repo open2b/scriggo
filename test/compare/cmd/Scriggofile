@@ -21,13 +21,14 @@ IMPORT net/http
 IMPORT net/url
 IMPORT os
 IMPORT os/exec
+IMPORT path/filepath
 IMPORT reflect
 IMPORT regexp
 IMPORT runtime
-IMPORT sync
 IMPORT sort
 IMPORT strconv
 IMPORT strings
+IMPORT sync
 IMPORT time
 IMPORT unicode
 IMPORT unicode/utf8
