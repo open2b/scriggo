@@ -22,18 +22,9 @@ const (
 	commandInstall
 )
 
-type Target int
-
-const (
-	targetPrograms Target = 1 << (3 - 1 - iota)
-)
-
-const targetAll = targetPrograms
-
 // scriggofile represents the content of a Scriggofile.
 type scriggofile struct {
 	pkgName  string           // name of the package to be generated.
-	target   Target           // target.
 	variable string           // variable name for embedded packages.
 	goos     []string         // target GOOSs.
 	imports  []*importCommand // list of imports defined in file.
@@ -82,22 +73,6 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 		}
 
 		switch strings.ToUpper(tokens[0]) {
-		case "TARGET":
-			if len(tokens) == 1 {
-				return nil, fmt.Errorf("after %s expecting PROGRAMS at line %d", tokens[0], ln)
-			}
-			for _, tok := range tokens[1:] {
-				target := strings.ToUpper(tok)
-				switch target {
-				case "PROGRAMS":
-					if sf.target&targetPrograms != 0 {
-						return nil, fmt.Errorf("repeated target %s at line %d", target, ln)
-					}
-					sf.target |= targetPrograms
-				default:
-					return nil, fmt.Errorf("unexpected %q as TARGET at line %d", tok, ln)
-				}
-			}
 		case "SET":
 			if len(tokens) == 1 {
 				return nil, fmt.Errorf("expecting VARIABLE or PACKAGE after %s at line %d", tokens[0], ln)
@@ -265,10 +240,6 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 		if !found {
 			return nil, fmt.Errorf("GOOS %s not supported in Scriggofile", goos)
 		}
-	}
-
-	if sf.target == 0 {
-		sf.target = targetAll
 	}
 
 	return &sf, nil

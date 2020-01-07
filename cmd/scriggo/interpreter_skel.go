@@ -168,16 +168,10 @@ const programSkel = `main, err := ioutil.ReadFile(absFile)
 
 // makeInterpreterSource returns a Go source code that interprets a Scriggo
 // program.
-func makeInterpreterSource(targets Target) []byte {
+func makeInterpreterSource() []byte {
 
 	out := interpreterSkel
-
-	if targets&targetPrograms != 0 {
-		out = strings.Replace(out, "{{ program }}", programSkel, 1)
-	} else {
-		out = strings.Replace(out, "{{ program }}", `fmt.Println("template support not included in this interpreter.")
-		os.Exit(1)`, 1)
-	}
+	out = strings.Replace(out, "{{ program }}", programSkel, 1)
 
 	return []byte(out)
 }

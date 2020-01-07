@@ -648,12 +648,6 @@ The instructions are:
         will be imported not capitalized. For example a name 'FooFoo' declared
         in the package will be imported in the package-less program as 'fooFoo'.
 
-    TARGET PROGRAMS
-
-        Indicates witch are the targets of the interpreter. It will be able to
-        execute only the type of sources listed in the TARGET instruction. This
-        instruction is only read by the 'build' and 'install' commands.
-
     SET VARIABLE <name> 
 
         Set the name of the variable to witch is assigned the value of type
@@ -847,16 +841,10 @@ const programSkel = ` + "`" + `main, err := ioutil.ReadFile(absFile)
 
 // makeInterpreterSource returns a Go source code that interprets a Scriggo
 // program.
-func makeInterpreterSource(targets Target) []byte {
+func makeInterpreterSource() []byte {
 
 	out := interpreterSkel
-
-	if targets&targetPrograms != 0 {
-		out = strings.Replace(out, "{{ program }}", programSkel, 1)
-	} else {
-		out = strings.Replace(out, "{{ program }}", ` + "`" + `fmt.Println("template support not included in this interpreter.")
-		os.Exit(1)` + "`" + `, 1)
-	}
+	out = strings.Replace(out, "{{ program }}", programSkel, 1)
 
 	return []byte(out)
 }
@@ -1778,18 +1766,9 @@ const (
 	commandInstall
 )
 
-type Target int
-
-const (
-	targetPrograms Target = 1 << (3 - 1 - iota)
-)
-
-const targetAll = targetPrograms
-
 // scriggofile represents the content of a Scriggofile.
 type scriggofile struct {
 	pkgName  string           // name of the package to be generated.
-	target   Target           // target.
 	variable string           // variable name for embedded packages.
 	goos     []string         // target GOOSs.
 	imports  []*importCommand // list of imports defined in file.
@@ -1838,22 +1817,6 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 		}
 
 		switch strings.ToUpper(tokens[0]) {
-		case "TARGET":
-			if len(tokens) == 1 {
-				return nil, fmt.Errorf("after %s expecting PROGRAMS at line %d", tokens[0], ln)
-			}
-			for _, tok := range tokens[1:] {
-				target := strings.ToUpper(tok)
-				switch target {
-				case "PROGRAMS":
-					if sf.target&targetPrograms != 0 {
-						return nil, fmt.Errorf("repeated target %s at line %d", target, ln)
-					}
-					sf.target |= targetPrograms
-				default:
-					return nil, fmt.Errorf("unexpected %q as TARGET at line %d", tok, ln)
-				}
-			}
 		case "SET":
 			if len(tokens) == 1 {
 				return nil, fmt.Errorf("expecting VARIABLE or PACKAGE after %s at line %d", tokens[0], ln)
@@ -2021,10 +1984,6 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 		if !found {
 			return nil, fmt.Errorf("GOOS %s not supported in Scriggofile", goos)
 		}
-	}
-
-	if sf.target == 0 {
-		sf.target = targetAll
 	}
 
 	return &sf, nil

@@ -237,12 +237,6 @@ The instructions are:
         will be imported not capitalized. For example a name 'FooFoo' declared
         in the package will be imported in the package-less program as 'fooFoo'.
 
-    TARGET PROGRAMS
-
-        Indicates witch are the targets of the interpreter. It will be able to
-        execute only the type of sources listed in the TARGET instruction. This
-        instruction is only read by the 'build' and 'install' commands.
-
     SET VARIABLE <name> 
 
         Set the name of the variable to witch is assigned the value of type

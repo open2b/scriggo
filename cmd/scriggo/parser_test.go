@@ -18,7 +18,6 @@ func TestParseErrors(t *testing.T) {
 		src  string
 		want string
 	}{
-		{commandInstall, "TARGET plugin", `unexpected "plugin" as TARGET at line 1`},
 		{commandInstall, "GOOS linux", `GOOS windows not supported in Scriggofile`},
 		{commandInstall, "IMPORT a NOT CAPITALIZED", `NOT CAPITALIZED can appear only after 'AS main' at line 1`},
 	}
@@ -41,25 +40,24 @@ func TestParse(t *testing.T) {
 		src  string
 		want *scriggofile
 	}{
-		{commandEmbed, "", &scriggofile{pkgName: "main", target: targetAll, variable: "packages"}},
-		{commandEmbed, "GOOS linux darwin", &scriggofile{pkgName: "main", target: targetAll, goos: []string{"linux", "darwin"}, variable: "packages"}},
-		{commandEmbed, "SET VARIABLE pkgs", &scriggofile{pkgName: "main", target: targetAll, variable: "pkgs"}},
-		{commandEmbed, "SET PACKAGE pkg", &scriggofile{pkgName: "pkg", target: targetAll, variable: "packages"}},
-		{commandInstall, "", &scriggofile{pkgName: "main", target: targetAll, variable: "packages"}},
-		{commandGenerate, "TARGET PROGRAMS", &scriggofile{pkgName: "main", target: targetPrograms, variable: "packages"}},
-		{commandEmbed, "IMPORT a", &scriggofile{pkgName: "main", target: targetAll, imports: []*importCommand{{path: "a"}}, variable: "packages"}},
-		{commandEmbed, "IMPORT a AS main", &scriggofile{pkgName: "main", target: targetAll, imports: []*importCommand{{path: "a", asPath: "main"}}, variable: "packages"}},
-		{commandEmbed, "IMPORT a AS main NOT CAPITALIZED", &scriggofile{pkgName: "main", target: targetAll, imports: []*importCommand{{path: "a", asPath: "main", notCapitalized: true}}, variable: "packages"}},
-		{commandEmbed, "IMPORT a INCLUDING Sleep", &scriggofile{pkgName: "main", target: targetAll, imports: []*importCommand{{path: "a", including: []string{"Sleep"}}}, variable: "packages"}},
-		{commandEmbed, "IMPORT a AS main INCLUDING Sleep", &scriggofile{pkgName: "main", target: targetAll, imports: []*importCommand{{path: "a", asPath: "main", including: []string{"Sleep"}}}, variable: "packages"}},
-		{commandEmbed, "IMPORT a AS main NOT CAPITALIZED INCLUDING Sleep", &scriggofile{pkgName: "main", target: targetAll, imports: []*importCommand{{path: "a", asPath: "main", notCapitalized: true, including: []string{"Sleep"}}}, variable: "packages"}},
-		{commandEmbed, "IMPORT a INCLUDING Sleep Duration", &scriggofile{pkgName: "main", target: targetAll, imports: []*importCommand{{path: "a", including: []string{"Sleep", "Duration"}}}, variable: "packages"}},
-		{commandEmbed, "IMPORT a AS main NOT CAPITALIZED EXCLUDING Sleep", &scriggofile{pkgName: "main", target: targetAll, imports: []*importCommand{{path: "a", asPath: "main", notCapitalized: true, excluding: []string{"Sleep"}}}, variable: "packages"}},
-		{commandEmbed, "IMPORT a AS test", &scriggofile{pkgName: "main", target: targetAll, imports: []*importCommand{{path: "a", asPath: "test"}}, variable: "packages"}},
-		{commandEmbed, "IMPORT a AS newpath INCLUDING Sleep", &scriggofile{pkgName: "main", target: targetAll, imports: []*importCommand{{path: "a", asPath: "newpath", including: []string{"Sleep"}}}, variable: "packages"}},
-		{commandEmbed, "IMPORT a AS mypath/to/pkg INCLUDING Sleep", &scriggofile{pkgName: "main", target: targetAll, imports: []*importCommand{{path: "a", asPath: "mypath/to/pkg", including: []string{"Sleep"}}}, variable: "packages"}},
-		{commandEmbed, "IMPORT a AS mypath/to/test INCLUDING Sleep", &scriggofile{pkgName: "main", target: targetAll, imports: []*importCommand{{path: "a", asPath: "mypath/to/test", including: []string{"Sleep"}}}, variable: "packages"}},
-		{commandEmbed, "IMPORT STANDARD LIBRARY", &scriggofile{pkgName: "main", target: targetAll, imports: []*importCommand{{stdlib: true}}, variable: "packages"}},
+		{commandEmbed, "", &scriggofile{pkgName: "main", variable: "packages"}},
+		{commandEmbed, "GOOS linux darwin", &scriggofile{pkgName: "main", goos: []string{"linux", "darwin"}, variable: "packages"}},
+		{commandEmbed, "SET VARIABLE pkgs", &scriggofile{pkgName: "main", variable: "pkgs"}},
+		{commandEmbed, "SET PACKAGE pkg", &scriggofile{pkgName: "pkg", variable: "packages"}},
+		{commandInstall, "", &scriggofile{pkgName: "main", variable: "packages"}},
+		{commandEmbed, "IMPORT a", &scriggofile{pkgName: "main", imports: []*importCommand{{path: "a"}}, variable: "packages"}},
+		{commandEmbed, "IMPORT a AS main", &scriggofile{pkgName: "main", imports: []*importCommand{{path: "a", asPath: "main"}}, variable: "packages"}},
+		{commandEmbed, "IMPORT a AS main NOT CAPITALIZED", &scriggofile{pkgName: "main", imports: []*importCommand{{path: "a", asPath: "main", notCapitalized: true}}, variable: "packages"}},
+		{commandEmbed, "IMPORT a INCLUDING Sleep", &scriggofile{pkgName: "main", imports: []*importCommand{{path: "a", including: []string{"Sleep"}}}, variable: "packages"}},
+		{commandEmbed, "IMPORT a AS main INCLUDING Sleep", &scriggofile{pkgName: "main", imports: []*importCommand{{path: "a", asPath: "main", including: []string{"Sleep"}}}, variable: "packages"}},
+		{commandEmbed, "IMPORT a AS main NOT CAPITALIZED INCLUDING Sleep", &scriggofile{pkgName: "main", imports: []*importCommand{{path: "a", asPath: "main", notCapitalized: true, including: []string{"Sleep"}}}, variable: "packages"}},
+		{commandEmbed, "IMPORT a INCLUDING Sleep Duration", &scriggofile{pkgName: "main", imports: []*importCommand{{path: "a", including: []string{"Sleep", "Duration"}}}, variable: "packages"}},
+		{commandEmbed, "IMPORT a AS main NOT CAPITALIZED EXCLUDING Sleep", &scriggofile{pkgName: "main", imports: []*importCommand{{path: "a", asPath: "main", notCapitalized: true, excluding: []string{"Sleep"}}}, variable: "packages"}},
+		{commandEmbed, "IMPORT a AS test", &scriggofile{pkgName: "main", imports: []*importCommand{{path: "a", asPath: "test"}}, variable: "packages"}},
+		{commandEmbed, "IMPORT a AS newpath INCLUDING Sleep", &scriggofile{pkgName: "main", imports: []*importCommand{{path: "a", asPath: "newpath", including: []string{"Sleep"}}}, variable: "packages"}},
+		{commandEmbed, "IMPORT a AS mypath/to/pkg INCLUDING Sleep", &scriggofile{pkgName: "main", imports: []*importCommand{{path: "a", asPath: "mypath/to/pkg", including: []string{"Sleep"}}}, variable: "packages"}},
+		{commandEmbed, "IMPORT a AS mypath/to/test INCLUDING Sleep", &scriggofile{pkgName: "main", imports: []*importCommand{{path: "a", asPath: "mypath/to/test", including: []string{"Sleep"}}}, variable: "packages"}},
+		{commandEmbed, "IMPORT STANDARD LIBRARY", &scriggofile{pkgName: "main", imports: []*importCommand{{stdlib: true}}, variable: "packages"}},
 	}
 	for _, cas := range cases {
 		t.Run(cas.src, func(t *testing.T) {
