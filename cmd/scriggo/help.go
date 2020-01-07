@@ -14,7 +14,7 @@ source files useful to embed Scriggo in an application.
 The scriggo tool is not required to embed Scriggo in an application but it is
 useful to generate the code for a package loader used by the Scriggo Load
 functions to load the packages that can be imported during the execution of a
-program or template.
+program.
 
 For more about the use of the scriggo command to embed Scriggo in an
 application, see 'scriggo help embed'.

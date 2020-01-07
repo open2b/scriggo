@@ -21,7 +21,6 @@ import (
 
 	"scriggo"
 	"scriggo/runtime"
-	"scriggo/template"
 )
 
 //go:generate scriggo embed -v -o predefPkgs.go
@@ -236,19 +235,12 @@ func main() {
 			panic(err)
 		}
 		r := mapReader{"/index.html": src}
-		loadOpts := &template.LoadOptions{
-			LimitMemorySize: limitMemorySize,
-		}
-		templ, err := template.Load("/index.html", r, templateMain, template.ContextHTML, loadOpts)
+		templ, err := compileTemplate(r, limitMemorySize)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
-		renderOpts := &template.RenderOptions{
-			Context:       timeout,
-			MaxMemorySize: maxMemorySize,
-		}
-		err = templ.Render(os.Stdout, nil, renderOpts)
+		err = templ.render(timeout, maxMemorySize)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
 				panic(renderPanics(p))
@@ -261,19 +253,12 @@ func main() {
 		}
 		dirPath := flag.Args()[1]
 		r := dirReader(dirPath)
-		loadOpts := &template.LoadOptions{
-			LimitMemorySize: limitMemorySize,
-		}
-		templ, err := template.Load("/index.html", r, templateMain, template.ContextHTML, loadOpts)
+		templ, err := compileTemplate(r, limitMemorySize)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
-		renderOpts := &template.RenderOptions{
-			Context:       timeout,
-			MaxMemorySize: maxMemorySize,
-		}
-		err = templ.Render(os.Stdout, nil, renderOpts)
+		err = templ.render(timeout, maxMemorySize)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
 				panic(renderPanics(p))
@@ -288,15 +273,11 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		loadOpts := &template.LoadOptions{
-			LimitMemorySize: limitMemorySize,
-		}
 		if timeout != nil {
 			panic("timeout not supported when compiling a html page")
 		}
 		r := mapReader{"/index.html": src}
-		main := scriggo.CombinedPackage{templateMain}
-		_, err = template.Load("/index.html", r, main, template.ContextHTML, loadOpts)
+		_, err = compileTemplate(r, limitMemorySize)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -304,28 +285,4 @@ func main() {
 	default:
 		panic("invalid argument: %s" + flag.Args()[0])
 	}
-}
-
-type mapReader map[string][]byte
-
-
-func (r mapReader) Read(path string) ([]byte, error) {
-	src, ok := r[path]
-	if !ok {
-		panic("not existing")
-	}
-	return src, nil
-}
-
-type dirReader string
-
-func (dir dirReader) Read(path string) ([]byte, error) {
-	src, err := ioutil.ReadFile(filepath.Join(string(dir), path))
-	if err != nil {
-		if os.IsNotExist(err) {
-			panic("not existing")
-		}
-		return nil, err
-	}
-	return src, nil
 }

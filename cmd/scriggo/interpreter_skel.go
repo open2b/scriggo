@@ -167,7 +167,7 @@ const programSkel = `main, err := ioutil.ReadFile(absFile)
 // https://github.com/open2b/scriggo/commit/4974dd3d69e1f66da40b068507ca50c91a69f7f2#r34270334.
 
 // makeInterpreterSource returns a Go source code that interprets a Scriggo
-// program or template.
+// program.
 func makeInterpreterSource(targets Target) []byte {
 
 	out := interpreterSkel

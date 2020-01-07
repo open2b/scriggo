@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"scriggo/compiler"
-	"scriggo/template"
 )
 
 var templateCases = []struct {
@@ -106,7 +105,7 @@ func TestTemplate(t *testing.T) {
 		src := cas.src
 		expected := cas.expected
 		t.Run(src, func(t *testing.T) {
-			r := template.MapReader{"/index.html": []byte(src)}
+			r := mapReader{"/index.html": []byte(src)}
 			var compileOpts compiler.Options
 			if cas.opts != nil {
 				compileOpts = *cas.opts
@@ -122,4 +121,14 @@ func TestTemplate(t *testing.T) {
 			}
 		})
 	}
+}
+
+type mapReader map[string][]byte
+
+func (r mapReader) Read(path string) ([]byte, error) {
+	src, ok := r[path]
+	if !ok {
+		panic("not existing")
+	}
+	return src, nil
 }
