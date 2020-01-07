@@ -1534,15 +1534,13 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 		if len(variables) > 1 {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting := or = or comma", tok))
 		}
-		if typ == ast.AssignmentIncrement || typ == ast.AssignmentDecrement {
-			tok = p.next()
-		} else {
+		tok = p.next()
+		if typ != ast.AssignmentIncrement && typ != ast.AssignmentDecrement {
 			values = make([]ast.Expression, 1)
 			var expr ast.Expression
-			nextTok := p.next()
-			expr, tok = p.parseExpr(nextTok, false, false, false)
+			expr, tok = p.parseExpr(tok, false, false, false)
 			if expr == nil {
-				panic(syntaxError(nextTok.pos, "unexpected %s, expecting expression", nextTok))
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
 			values[0] = expr
 			pos.End = values[0].Pos().End
