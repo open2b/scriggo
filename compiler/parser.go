@@ -1411,6 +1411,9 @@ func (p *parsing) parseTypeDecl(tok token) (*ast.TypeDeclaration, token) {
 	}
 	var typ ast.Expression
 	typ, tok = p.parseExpr(tok, false, true, false)
+	if typ == nil {
+		panic(syntaxError(tok.pos, "unexpected %s in type declaration", tok))
+	}
 	node := ast.NewTypeDeclaration(pos, ident, typ, alias)
 	return node, tok
 }
