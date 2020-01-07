@@ -373,9 +373,6 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				case tokenIdentifier:
 					// e.ident
 					ident := string(tok.txt)
-					if ident == "_" {
-						panic(syntaxError(tok.pos, "cannot refer to blank field"))
-					}
 					pos.End = tok.pos.End
 					operand = ast.NewSelector(pos, operand, ident)
 				case tokenLeftParenthesis:

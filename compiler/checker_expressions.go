@@ -747,6 +747,9 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			}
 		}
 		t := tc.checkExprOrType(expr.Expr)
+		if expr.Ident == "_" {
+			panic(tc.errorf(expr, "cannot refer to blank field or method"))
+		}
 		if t.IsType() {
 			method, _, ok := tc.methodByName(t, expr.Ident)
 			if !ok {
