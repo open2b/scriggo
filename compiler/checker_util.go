@@ -131,17 +131,9 @@ var operatorsOfKind = [...][21]bool{
 	reflect.Interface:  interfaceOperators,
 }
 
-type HTML string
-type CSS string
-type JavaScript string
-
-type HTMLStringer interface{ HTML() HTML }
-type CSSStringer interface{ CSS() CSS }
-type JavaScriptStringer interface{ JavaScript() JavaScript }
-
-var HTMLType = reflect.TypeOf(HTML(""))
-var CSSType = reflect.TypeOf(CSS(""))
-var JavaScriptType = reflect.TypeOf(JavaScript(""))
+type HTMLStringer interface{ HTML() string }
+type CSSStringer interface{ CSS() string }
+type JavaScriptStringer interface{ JavaScript() string }
 
 var stringerType = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
 var htmlStringerType = reflect.TypeOf((*HTMLStringer)(nil)).Elem()
@@ -618,7 +610,7 @@ func operatorFromAssignmentType(assignmentType ast.AssignmentType) ast.OperatorT
 func printedAsJavaScript(t reflect.Type) error {
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
-		t == JavaScriptType || t.Implements(javaScriptStringerType) {
+		t.Implements(javaScriptStringerType) {
 		return nil
 	}
 	switch kind {

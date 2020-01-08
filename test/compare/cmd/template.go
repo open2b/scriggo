@@ -200,11 +200,8 @@ func toString(v reflect.Value) string {
 func renderInHTML(out io.Writer, value interface{}) error {
 	w := newStringWriter(out)
 	switch v := value.(type) {
-	case compiler.HTML:
-		_, err := w.WriteString(string(v))
-		return err
 	case compiler.HTMLStringer:
-		_, err := w.WriteString(string(v.HTML()))
+		_, err := w.WriteString(v.HTML())
 		return err
 	case fmt.Stringer:
 		return htmlEscape(w, v.String())
