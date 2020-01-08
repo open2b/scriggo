@@ -579,7 +579,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + disassembleOperand(fn, b, reflect.Interface, false)
 		s += " " + disassembleOperand(fn, c, reflect.Int, false)
 	case runtime.OpSetVar:
-		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), op < 0)
+		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), k)
 		s += " " + disassembleVarRef(fn, globals, int16(int(b)<<8|int(uint8(c))))
 	case runtime.OpSlice:
 		khigh := b&2 != 0
