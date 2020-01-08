@@ -58,7 +58,7 @@ type compiledTemplate struct {
 	globals []compiler.Global
 }
 
-func compileTemplate(reader Reader, limitMemorySize bool) (*compiledTemplate, error) {
+func compileTemplate(reader compiler.Reader, limitMemorySize bool) (*compiledTemplate, error) {
 	opts := compiler.Options{
 		TemplateContext: ast.ContextHTML,
 		LimitMemorySize: limitMemorySize,
@@ -107,10 +107,6 @@ func render(_ *runtime.Env, out io.Writer, value interface{}, ctx ast.Context) {
 		panic(err)
 	}
 	return
-}
-
-type Reader interface {
-	Read(path string) ([]byte, error)
 }
 
 func initGlobals(globals []compiler.Global) []interface{} {
