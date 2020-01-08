@@ -8,7 +8,6 @@ package compiler
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -63,7 +62,7 @@ func toAbsolutePath(dir, path string) (string, error) {
 		if b[i] == '/' {
 			if b[i+1] == '.' && b[i+2] == '.' {
 				if i == 0 {
-					return "", fmt.Errorf("scriggo: invalid path %q", path)
+					return "", ErrInvalidPath
 				}
 				s := bytes.LastIndexByte(b[:i], '/')
 				b = append(b[:s+1], b[i+4:]...)
