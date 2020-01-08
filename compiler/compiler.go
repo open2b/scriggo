@@ -97,7 +97,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 }
 
 // CompileTemplate compiles a template.
-func CompileTemplate(r Reader, path string, main PackageLoader, opts Options) (*Code, error) {
+func CompileTemplate(path string, r Reader, main PackageLoader, opts Options) (*Code, error) {
 
 	var tree *ast.Tree
 

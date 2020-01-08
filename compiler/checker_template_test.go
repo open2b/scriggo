@@ -110,7 +110,7 @@ func TestTemplate(t *testing.T) {
 			if cas.opts != nil {
 				compileOpts = *cas.opts
 			}
-			_, err := compiler.CompileTemplate(r, "/index.html", nil, compileOpts)
+			_, err := compiler.CompileTemplate("/index.html", r, nil, compileOpts)
 			switch {
 			case expected == "" && err != nil:
 				t.Fatalf("unexpected error: %q", err)
