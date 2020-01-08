@@ -527,17 +527,17 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			t := tc.checkType(f.Type)
 			if f.Ident != nil && !isBlankIdentifier(f.Ident) {
 				if isVariadic && i == len(expr.Type.Parameters)-1 {
-					tc.assignScope(f.Ident.Name, &typeInfo{Type: tc.types.SliceOf(t.Type), Properties: propertyAddressable}, nil)
+					tc.assignScope(f.Ident.Name, &typeInfo{Type: tc.types.SliceOf(t.Type), Properties: propertyAddressable}, f.Ident)
 					continue
 				}
-				tc.assignScope(f.Ident.Name, &typeInfo{Type: t.Type, Properties: propertyAddressable}, nil)
+				tc.assignScope(f.Ident.Name, &typeInfo{Type: t.Type, Properties: propertyAddressable}, f.Ident)
 			}
 		}
 		// Adds named return values to the function body scope.
 		for _, f := range expr.Type.Result {
 			t := tc.checkType(f.Type)
 			if f.Ident != nil && !isBlankIdentifier(f.Ident) {
-				tc.assignScope(f.Ident.Name, &typeInfo{Type: t.Type, Properties: propertyAddressable}, nil)
+				tc.assignScope(f.Ident.Name, &typeInfo{Type: t.Type, Properties: propertyAddressable}, f.Ident)
 			}
 		}
 		expr.Body.Nodes = tc.checkNodes(expr.Body.Nodes)

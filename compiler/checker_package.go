@@ -553,9 +553,9 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 				t := tc.checkType(param.Type)
 				if param.Ident != nil && !isBlankIdentifier(param.Ident) {
 					if isVariadic && i == len(d.Type.Parameters)-1 {
-						tc.assignScope(param.Ident.Name, &typeInfo{Type: tc.types.SliceOf(t.Type), Properties: propertyAddressable}, nil)
+						tc.assignScope(param.Ident.Name, &typeInfo{Type: tc.types.SliceOf(t.Type), Properties: propertyAddressable}, param.Ident)
 					} else {
-						tc.assignScope(param.Ident.Name, &typeInfo{Type: t.Type, Properties: propertyAddressable}, nil)
+						tc.assignScope(param.Ident.Name, &typeInfo{Type: t.Type, Properties: propertyAddressable}, param.Ident)
 					}
 				}
 			}
@@ -563,7 +563,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 			for _, ret := range d.Type.Result {
 				t := tc.checkType(ret.Type)
 				if ret.Ident != nil && !isBlankIdentifier(ret.Ident) {
-					tc.assignScope(ret.Ident.Name, &typeInfo{Type: t.Type, Properties: propertyAddressable}, nil)
+					tc.assignScope(ret.Ident.Name, &typeInfo{Type: t.Type, Properties: propertyAddressable}, ret.Ident)
 				}
 			}
 			d.Body.Nodes, err = tc.checkNodesError(d.Body.Nodes)
