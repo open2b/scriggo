@@ -4,10 +4,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// This file contains some code rearranged from the Scriggo 'template'.
-// The content of this file should be kepts as minimal as possible; it just have
-// to compile/render the templates in the tests.
-
 package main
 
 import (
