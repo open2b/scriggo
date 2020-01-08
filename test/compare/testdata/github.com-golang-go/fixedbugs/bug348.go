@@ -1,4 +1,4 @@
-// skip : import "runtime"
+// skip : import "runtime" https://github.com/open2b/scriggo/issues/524
 
 // run
 
