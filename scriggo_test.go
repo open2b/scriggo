@@ -8,6 +8,7 @@ package scriggo
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"scriggo/compiler"
@@ -191,4 +192,16 @@ func TestCombinedPackage(t *testing.T) {
 			t.Fatalf("missing name %s from declarations", name)
 		}
 	}
+}
+
+func TestIssue523(t *testing.T) {
+	// See https://github.com/open2b/scriggo/issues/523.
+	src := `package main
+
+	import "fmt"
+
+	func main() {
+		fmt.Println("hello")
+	}`
+	_, _ = Load(strings.NewReader(src), nil, nil)
 }

@@ -152,7 +152,10 @@ func (ml mainCombiner) Load(path string) (interface{}, error) {
 	if path == "main" {
 		return bytes.NewReader(ml.mainSrc), nil
 	}
-	return ml.otherImports.Load(path)
+	if ml.otherImports != nil {
+		return ml.otherImports.Load(path)
+	}
+	return nil, nil
 }
 
 // UntypedConst represents an untyped constant.
