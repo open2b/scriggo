@@ -26,8 +26,8 @@ var (
 	// path argument is not valid.
 	ErrInvalidPath = errors.New("scriggo: invalid path")
 
-	// ErrNotExist is returned from the Parse method and a Reader when the
-	// path does not exist.
+	// ErrNotExist is returned from a Reader, and consequently by the parser,
+	// when the path does not exist.
 	ErrNotExist = errors.New("scriggo: path does not exist")
 
 	// ErrReadTooLarge is returned from a DirLimitedReader when a limit is
