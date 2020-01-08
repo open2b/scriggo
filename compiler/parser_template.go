@@ -14,15 +14,15 @@ import (
 	"scriggo/compiler/ast"
 )
 
-// ParseTemplate parses the template with the given path, reading the template
-// files from the reader, in context ctx.
+// ParseTemplate parses the template file with the given path, reading the
+// template files from the reader, in context ctx. path, if not absolute, is
+// relative to the root of the template.
 //
 // ParseTemplate expands the nodes Extends, Import and Include parsing the
 // relative trees. The parsed trees are cached so only one call per
 // combination of path and context is made to the reader.
 func ParseTemplate(path string, reader Reader, ctx ast.Context) (*ast.Tree, error) {
 
-	// Path must be absolute.
 	if path == "" {
 		return nil, ErrInvalidPath
 	}

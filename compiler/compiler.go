@@ -95,7 +95,9 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 	return code, nil
 }
 
-// CompileTemplate compiles a template.
+// CompileTemplate compiles the template file with the given path, reading the
+// template files from the reader, in context ctx. path, if not absolute, is
+// relative to the root of the template.
 func CompileTemplate(path string, r Reader, main PackageLoader, ctx ast.Context, opts Options) (*Code, error) {
 
 	var tree *ast.Tree
