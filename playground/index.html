@@ -10,12 +10,16 @@
     body { background: #132733; color: #fff; height: 100%; margin: 0; padding: 0; position: relative; }
     header { background: #132733; border-bottom: 1px solid #21333e; height: 50px; padding: 5px; }
     header .logo { color: #ebb951; display: block; float: left; font-family: muli,avenir,helvetica neue,helvetica,ubuntu,roboto,noto,segoe ui,arial,sans-serif; font-size: 1.6rem; font-weight: bold; margin: 2px 36px 0 20px; }
-    #Execute { display: block; background-color: #ebb951; border: none; border-radius: 3px; color: #333; font-size: 15px; font-weight: bold; margin-top: 4px; outline: none; padding: 6px 20px; text-align: center; text-transform: uppercase; }
-    section.canvas { bottom: 25%; left: 0; position: absolute; right: 0; top: 50px; }
+    #Execute, #Disassemble { display: block; background-color: #ebb951; border: none; border-radius: 3px; color: #333; font-size: 15px; font-weight: bold; margin-top: 4px; outline: none; padding: 6px 20px; text-align: center; text-transform: uppercase; }
+    #Disassemble { float: right; margin-right: 20px; }
+    section.canvas { bottom: 25%; left: 0; line-height: 20px; position: absolute; right: 0; top: 50px; }
     section.canvas > div { height: 100%; overflow: hidden; }
     section.canvas .line-numbers { background: #21333e; color: #82949e; float: left; padding: 10px 6px 0 0; text-align: right; width: 3%; }
-    section.canvas textarea { background: transparent; border: 0; color: #f8f8f8; float: right; height: 100%; overflow-wrap: normal; outline: none; padding: 10px; resize: none; tab-size: 4; width: 97%; }
-    section#Output { border-top: 1px solid #21333e; bottom: 0; left: 0; position: absolute; right: 0; top: 75%; padding: 10px; white-space: pre; }
+    section.canvas textarea { background: transparent; border: 0; color: #f4f7f9; float: left; height: 100%; line-height: 20px; overflow-wrap: normal; outline: none; padding: 10px; resize: none; tab-size: 4; width: 97%; }
+    body.disassembled section.canvas textarea { width: 50%; }
+    body.disassembled section.canvas .bytecode { display: block; }
+    section.canvas .bytecode { background: #21333e; color: #f4f7f9; display: none; float: right; height: 100%; overflow: auto; padding: 10px; width: 47%; white-space: pre; }
+    section#Output { border-top: 1px solid #21333e; bottom: 0; left: 0; line-height: 20px; position: absolute; right: 0; top: 75%; padding: 10px; white-space: pre; }
     section.canvas, section.canvas textarea, section#Output { font-family: SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace; font-size: 14px; }
     section#Output .stderr { color: #f96f4e; }
   </style>
@@ -26,6 +30,7 @@
 
 <header>
   <a class="logo" href="https://www.scriggo.com/">Scriggo</a>
+  <button id="Disassemble">Disassemble</button>
   <button id="Execute">Run</button>
 </header>
 
@@ -43,6 +48,7 @@ func main() {
 	fmt.Println("Hello, playground")
 }
 </textarea>
+  <div id="ByteCode" class="bytecode"></div>
   </div>
 </section>
 

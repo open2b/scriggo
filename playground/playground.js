@@ -7,6 +7,7 @@
 (function() {
 
     var source;
+    var program;
 
     function refreshLineNumbers() {
         var i = 1;
@@ -39,15 +40,35 @@
 
     window.onload = function () {
 
+        var body = document.getElementsByTagName("body")[0];
+        var bytecode = document.getElementById("ByteCode");
         source = document.getElementById("Source");
 
         refreshLineNumbers();
         source.addEventListener('scroll', refreshLineNumbers);
         window.addEventListener('resize', refreshLineNumbers);
 
+        function loadProgram() {
+            Scriggo.load(source.value, function (prog, error) {
+                if (program != null) {
+                    program.release();
+                }
+                if (error != null) {
+                    program = null;
+                    global.fs.writeSync(2, error);
+                    return;
+                }
+                program = prog;
+                if ( body.className === "disassembled" ) {
+                    bytecode.textContent = program.disassemble();
+                }
+            });
+        }
+
         mod.then(function (instance) {
             go.run(instance);
-            var button = document.getElementById("Execute");
+            var run = document.getElementById("Execute");
+            var disassemble = document.getElementById("Disassemble");
             var output = document.getElementById("Output");
             const decoder = new TextDecoder("utf-8");
             global.fs.writeSync = function (fd, buf) {
@@ -58,30 +79,31 @@
                 output.appendChild(span);
                 return str.length;
             };
-            button.addEventListener("click", function () {
+            run.addEventListener("click", function () {
+                if ( program == null ) return;
                 output.innerHTML = "";
-                Scriggo.load(source.value, function (program, error) {
-                    if (error != null) {
-                        global.fs.writeSync(2, error);
-                        return;
-                    }
-                    error = program.run();
-                    program.release();
-                    if (error != null) {
-                        global.fs.writeSync(2, error);
-                    }
-                });
+                var error = program.run();
+                if (error != null) {
+                    global.fs.writeSync(2, error);
+                }
+            });
+            disassemble.addEventListener("click", function () {
+                if ( body.className === "disassembled" ) {
+                    body.className = "";
+                    bytecode.textContent = "";
+                    return;
+                }
+                body.className = "disassembled";
+                if ( program == null ) return;
+                bytecode.textContent = program.disassemble();
+                body.className = "disassembled";
             });
             source.addEventListener("keyup", function () {
                 output.innerHTML = "";
-                Scriggo.load(source.value, function (program, error) {
-                    if (error != null) {
-                        global.fs.writeSync(2, error);
-                        return;
-                    }
-                    program.release();
-                });
+                loadProgram();
+
             });
+            loadProgram();
         });
 
     };

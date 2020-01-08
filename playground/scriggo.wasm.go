@@ -24,8 +24,14 @@ func newProgram(program *scriggo.Program) Program {
 		}
 		return nil
 	})
+	value["disassemble"] = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		b := strings.Builder{}
+		_, _ = program.Disassemble(&b, "main")
+		return js.ValueOf(b.String())
+	})
 	value["release"] = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		value["run"].(js.Func).Release()
+		value["disassemble"].(js.Func).Release()
 		return nil
 	})
 	return Program{Value: js.ValueOf(value)}
