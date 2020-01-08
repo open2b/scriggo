@@ -1,4 +1,4 @@
-// skip : invalid memory address in the emitter
+// skip : indirect function parameters https://github.com/open2b/scriggo/issues/278
 
 // run
 
