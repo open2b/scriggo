@@ -99,7 +99,7 @@ func Disassemble(main *runtime.Function, globals []Global) (assembler map[string
 
 	for path, funcs := range functionsByPkg {
 
-		_, _ = b.WriteString("\nPackage ")
+		_, _ = b.WriteString("Package ")
 		_, _ = b.WriteString(packageName(path))
 		_, _ = b.WriteRune('\n')
 
@@ -128,7 +128,6 @@ func Disassemble(main *runtime.Function, globals []Global) (assembler map[string
 			_, _ = b.WriteString(fn.Name)
 			disassembleFunction(&b, fn, globals, 0)
 		}
-		_, _ = b.WriteRune('\n')
 
 		assembler[path] = b.String()
 
