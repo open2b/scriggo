@@ -42,6 +42,7 @@
 
         var body = document.getElementsByTagName("body")[0];
         var bytecode = document.getElementById("ByteCode");
+        var lineNumbers = document.getElementById("LineNumbers");
         source = document.getElementById("Source");
 
         refreshLineNumbers();
@@ -52,6 +53,14 @@
             Scriggo.load(source.value, function (prog, error) {
                 if (program != null) {
                     program.release();
+                }
+                var line = 0;
+                if (error != null) {
+                    var m = error.match(/:(\d+):/);
+                    line = m == null ? 0 : parseInt(m[1]);
+                }
+                for ( var i = 0; i < lineNumbers.children.length; i++ ) {
+                    lineNumbers.children[i].className = i+1 === line ? "error" : "";
                 }
                 if (error != null) {
                     program = null;
