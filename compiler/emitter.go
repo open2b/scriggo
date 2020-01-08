@@ -436,7 +436,11 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 		kind := em.typ(res.Type).Kind()
 		ret := em.fb.newRegister(kind)
 		if res.Ident != nil && !isBlankIdentifier(res.Ident) {
-			em.fb.bindVarReg(res.Ident.Name, ret)
+			if em.varStore.mustBeDeclaredAsIndirect(res.Ident) {
+				panic("BUG: not supported")
+			} else {
+				em.fb.bindVarReg(res.Ident.Name, ret)
+			}
 		}
 	}
 	// Bind the function argument names to pre-allocated registers.
@@ -447,7 +451,11 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 		}
 		arg := em.fb.newRegister(kind)
 		if par.Ident != nil && !isBlankIdentifier(par.Ident) {
-			em.fb.bindVarReg(par.Ident.Name, arg)
+			if em.varStore.mustBeDeclaredAsIndirect(par.Ident) {
+				panic("BUG: not supported")
+			} else {
+				em.fb.bindVarReg(par.Ident.Name, arg)
+			}
 		}
 	}
 
