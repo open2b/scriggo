@@ -33,7 +33,6 @@ type Options struct {
 	DisallowGoStmt     bool
 	LimitMemorySize    bool
 	PackageLess        bool
-	TemplateContext    ast.Context
 	TemplateFailOnTODO bool
 	TreeTransformer    func(*ast.Tree) error
 }
@@ -97,13 +96,13 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 }
 
 // CompileTemplate compiles a template.
-func CompileTemplate(path string, r Reader, main PackageLoader, opts Options) (*Code, error) {
+func CompileTemplate(path string, r Reader, main PackageLoader, ctx ast.Context, opts Options) (*Code, error) {
 
 	var tree *ast.Tree
 
 	// Parse the source code.
 	var err error
-	tree, err = ParseTemplate(path, r, ast.Context(opts.TemplateContext))
+	tree, err = ParseTemplate(path, r, ctx)
 	if err != nil {
 		return nil, err
 	}
