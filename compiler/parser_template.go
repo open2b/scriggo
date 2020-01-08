@@ -8,6 +8,7 @@ package compiler
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"scriggo/compiler/ast"
@@ -46,6 +47,8 @@ func ParseTemplate(path string, reader Reader, ctx ast.Context) (*ast.Tree, erro
 			err2.path = path
 		} else if err2, ok := err.(cycleError); ok {
 			err = cycleError(path + "\n\t" + string(err2))
+		} else if os.IsNotExist(err) {
+			err = ErrNotExist
 		}
 		return nil, err
 	}
@@ -212,7 +215,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 			if err != nil {
 				if err == ErrInvalidPath {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
-				} else if err == ErrNotExist {
+				} else if os.IsNotExist(err) {
 					err = syntaxError(n.Pos(), "extends path %q does not exist", absPath)
 				} else if err2, ok := err.(cycleError); ok {
 					err = cycleError("imports " + string(err2))
@@ -230,7 +233,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 			if err != nil {
 				if err == ErrInvalidPath {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
-				} else if err == ErrNotExist {
+				} else if os.IsNotExist(err) {
 					err = syntaxError(n.Pos(), "import path %q does not exist", absPath)
 				} else if err2, ok := err.(cycleError); ok {
 					err = cycleError("imports " + string(err2))
@@ -248,7 +251,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 			if err != nil {
 				if err == ErrInvalidPath {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
-				} else if err == ErrNotExist {
+				} else if os.IsNotExist(err) {
 					err = syntaxError(n.Pos(), "included path %q does not exist", absPath)
 				} else if err2, ok := err.(cycleError); ok {
 					err = cycleError("include " + string(err2))
