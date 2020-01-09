@@ -91,10 +91,11 @@
             run.addEventListener("click", function () {
                 if ( program == null ) return;
                 output.innerHTML = "";
-                var error = program.run();
-                if (error != null) {
-                    global.fs.writeSync(2, error);
-                }
+                program.run(function(error) {
+                    if (error != null) {
+                        global.fs.writeSync(2, error);
+                    }
+                });
             });
             disassemble.addEventListener("click", function () {
                 if ( body.className === "disassembled" ) {

@@ -18,10 +18,21 @@ type Program struct {
 func newProgram(program *scriggo.Program) Program {
 	value := map[string]interface{}{}
 	value["run"] = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		_, err := program.Run(nil)
-		if err != nil {
-			return err.Error()
+		var cb js.Value
+		if len(args) > 0 {
+			cb = args[0]
 		}
+		go func() {
+			_, err := program.Run(nil)
+			if !cb.Truthy() {
+				return
+			}
+			if err != nil {
+				cb.Invoke(err.Error());
+				return
+			}
+			cb.Invoke(nil);
+		}()
 		return nil
 	})
 	value["disassemble"] = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -44,19 +55,24 @@ func main() {
 
 	Scriggo.Set("load", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		var src string
+		var cb js.Value
 		if len(args) > 0 {
 			src = args[0].String()
+			if len(args) > 1 {
+				cb = args[1]
+			}
 		}
-		program, err := scriggo.Load(strings.NewReader(src), packages, nil)
-		if len(args) == 1 {
-			return nil
-		}
-		cb := args[1]
-		if err != nil {
-			cb.Invoke(nil, err.Error());
-			return nil
-		}
-		cb.Invoke(newProgram(program), nil);
+		go func() {
+			program, err := scriggo.Load(strings.NewReader(src), packages, nil)
+			if !cb.Truthy() {
+				return
+			}
+			if err != nil {
+				cb.Invoke(nil, err.Error());
+				return
+			}
+			cb.Invoke(newProgram(program), nil);
+		}()
 		return nil
 	}))
 
