@@ -1,4 +1,4 @@
-// skip : unexpected syntax error
+// skip : unexpected syntax error https://github.com/open2b/scriggo/issues/535
 
 // run
 
