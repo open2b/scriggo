@@ -1,4 +1,4 @@
-// skip : should be a type checking error, got runtime panic
+// skip : should be a type checking error, got runtime panic https://github.com/open2b/scriggo/issues/530
 
 // errorcheck
 
