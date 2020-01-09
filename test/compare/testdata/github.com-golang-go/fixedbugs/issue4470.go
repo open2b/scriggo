@@ -1,5 +1,3 @@
-// skip : syntax error
-
 // errorcheck
 
 // Copyright 2012 The Go Authors. All rights reserved.
@@ -12,7 +10,6 @@ package main
 
 func main() {
 	var i interface{}
-	switch (i.(type)) { // ERROR "outside type switch"
-	default:
-	}
+	_ = i
+	switch (i.(type)) { default: }// ERROR "outside type switch"
 }
