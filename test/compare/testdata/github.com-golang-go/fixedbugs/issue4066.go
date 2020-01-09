@@ -1,5 +1,3 @@
-// skip : index out of range at runtime
-
 // run
 
 // Copyright 2012 The Go Authors. All rights reserved.
