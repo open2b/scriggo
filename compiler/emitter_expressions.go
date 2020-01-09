@@ -318,7 +318,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 	default:
 
-		panic(fmt.Sprintf("emitExpr currently does not support %T nodes (expr: %s)", expr, expr))
+		panic(fmt.Sprintf("scriggo/emitter: unexpected node type %T (expr: %s)", expr, expr))
 
 	}
 
