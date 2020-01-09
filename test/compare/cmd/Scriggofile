@@ -30,5 +30,6 @@ IMPORT strconv
 IMPORT strings
 IMPORT sync
 IMPORT time
+IMPORT testing
 IMPORT unicode
 IMPORT unicode/utf8
