@@ -1,5 +1,3 @@
-// skip : error message is different from gc
-
 // errorcheck
 
 // Copyright 2013 The Go Authors. All rights reserved.
@@ -8,5 +6,7 @@
 
 // Issue 4776: missing package declaration error should be fatal.
 
-type MyInt int32 // ERROR "package statement must be first|package clause"
+type MyInt int32 // ERROR `expected 'package', found 'type'`
 
+package main
+func main() { }
