@@ -1,5 +1,3 @@
-// skip : should return error, got nothing
-
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.
