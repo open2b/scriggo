@@ -1,4 +1,4 @@
-// skip : a type checker bug panics the emitter
+// skip : review builtin 'complex' https://github.com/open2b/scriggo/issues/527
 
 // compile
 
