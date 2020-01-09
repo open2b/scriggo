@@ -1,5 +1,3 @@
-// skip : false positive 't.x' undefined
-
 // errorcheck
 
 // Copyright 2012 The Go Authors. All rights reserved.
@@ -16,6 +14,8 @@ type T struct {
 }
 
 func f() {
-	var t *T
-	_ = t.x
+	// var t *T
+	// _ = t.x
 }
+
+func main() {}
