@@ -1,5 +1,3 @@
-// skip : struct field '_'
-
 // errorcheck
 
 // Copyright 2017 The Go Authors. All rights reserved.
@@ -30,8 +28,7 @@ var (
 )
 
 func bad() {
-	var z = T{_: "verse"} // ERROR "invalid field name _ in struct initializer"
-	_ = z
+	var z = T{_: "verse"} ; _ = z // ERROR "invalid field name _ in struct initializer"
 	_ = T{_: "itinerary"} // ERROR "invalid field name _ in struct initializer"
 }
 
