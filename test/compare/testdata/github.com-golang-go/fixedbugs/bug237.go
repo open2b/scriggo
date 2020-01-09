@@ -1,4 +1,4 @@
-// skip : unexpected error from the parser
+// skip : simple statement in for https://github.com/open2b/scriggo/issues/234
 
 // run
 
