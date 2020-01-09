@@ -1,4 +1,4 @@
-// skip : runtime panic
+// skip : runtime panic https://github.com/open2b/scriggo/issues/526
 
 // run
 
