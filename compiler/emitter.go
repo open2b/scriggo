@@ -679,15 +679,23 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 	case "copy":
 		dst := em.emitExpr(args[0], em.typ(args[0]))
 		src := em.emitExpr(args[1], em.typ(args[1]))
+		em.fb.enterStack()
+		// If src is a string, replace the 'src' register with a slice of byte
+		// that contains such string.
+		if stringType := em.typ(args[1]); stringType.Kind() == reflect.String {
+			byteSlice := em.fb.newRegister(reflect.Slice)
+			em.changeRegister(false, src, byteSlice, stringType, em.typ(args[0]))
+			src = byteSlice
+		}
 		if reg == 0 {
 			em.fb.emitCopy(dst, src, 0)
 			return
 		}
 		if canEmitDirectly(reflect.Int, dstType.Kind()) {
 			em.fb.emitCopy(dst, src, reg)
+			em.fb.exitStack()
 			return
 		}
-		em.fb.enterStack()
 		tmp := em.fb.newRegister(reflect.Int)
 		em.fb.emitCopy(dst, src, tmp)
 		em.changeRegister(false, tmp, reg, intType, dstType)

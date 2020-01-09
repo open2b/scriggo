@@ -1288,6 +1288,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 		if (sk == reflect.String && dst.Type.Elem() != uint8Type) || (sk == reflect.Slice && dst.Type.Elem() != src.Type.Elem()) {
 			panic(tc.errorf(expr, "arguments to copy have different element types: %s and %s", dst, src))
 		}
+		src.setValue(nil)
 		return []*typeInfo{{Type: intType}}
 
 	case "delete":
