@@ -1,4 +1,4 @@
-// skip : type checking error not reported
+// skip : type checking error not reported https://github.com/open2b/scriggo/issues/532
 
 // errorcheck
 
