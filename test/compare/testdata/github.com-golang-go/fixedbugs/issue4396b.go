@@ -1,5 +1,3 @@
-// skip : emitter panic: interface conversion: reflect.Type is types.definedType, not *reflect.rtype
-
 // run
 
 // Copyright 2012 The Go Authors. All rights reserved.

@@ -889,7 +889,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 			field, _ := operandExprType.FieldByName(operand.Ident)
 			index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
 			pos := operand.Expr.Pos()
-			if canEmitDirectly(reflect.PtrTo(field.Type).Kind(), dstType.Kind()) {
+			if canEmitDirectly(em.types.PtrTo(field.Type).Kind(), dstType.Kind()) {
 				em.fb.emitAddr(expr, index, reg, pos)
 				return
 			}
