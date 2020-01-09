@@ -1,5 +1,3 @@
-// skip : error not returned https://github.com/open2b/scriggo/issues/430
-
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.
