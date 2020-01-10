@@ -275,7 +275,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	}
 	s := operationName[op]
 	switch op {
-	case runtime.OpAdd, runtime.OpSub, runtime.OpSubInv, runtime.OpMul,
+	case runtime.OpAdd, runtime.OpSub, runtime.OpSubInv, runtime.OpMul, runtime.OpNeg,
 		runtime.OpDiv, runtime.OpRem, runtime.OpShl, runtime.OpShr:
 		kind := reflect.Kind(a)
 		s += " " + kind.String()
@@ -904,6 +904,8 @@ var operationName = [...]string{
 	runtime.OpMul:        "Mul",
 	runtime.OpMulInt:     "Mul",
 	runtime.OpMulFloat64: "Mul",
+
+	runtime.OpNeg: "Neg",
 
 	runtime.OpNew: "New",
 

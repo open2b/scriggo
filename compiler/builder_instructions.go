@@ -695,6 +695,15 @@ func (builder *functionBuilder) emitMul(ky bool, x, y, z int8, kind reflect.Kind
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
 }
 
+// emitNeg appends a new "neg" instruction to the function body.
+//
+//     z = -y
+//
+func (builder *functionBuilder) emitNeg(y, z int8, kind reflect.Kind) {
+	x := int8(kind)
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpNeg, A: x, B: y, C: z})
+}
+
 // emitNew appends a new "new" instruction to the function body.
 //
 //     z = new(t)
