@@ -117,6 +117,7 @@ var typeTests = map[string][]tokenTyp{
 	"{{ 0o51701 }}":          {tokenStartValue, tokenInt, tokenEndValue},
 	"{{ 0O51701 }}":          {tokenStartValue, tokenInt, tokenEndValue},
 	"{{ 0x1b6F.c2Ap15 }}":    {tokenStartValue, tokenFloat, tokenEndValue},
+	"{{ 0.8e-45 }}":          {tokenStartValue, tokenFloat, tokenEndValue},
 	"{{ 1_2 }}":              {tokenStartValue, tokenInt, tokenEndValue},
 	"{{ 1_23_456_789 }}":     {tokenStartValue, tokenInt, tokenEndValue},
 	"{{ 1_2.3_4 }}":          {tokenStartValue, tokenFloat, tokenEndValue},
