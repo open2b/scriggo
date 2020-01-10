@@ -594,6 +594,9 @@ func (c1 float64Const) unaryOp(op ast.OperatorType) (constant, error) {
 	case ast.OperatorAddition:
 		return c1, nil
 	case ast.OperatorSubtraction:
+		if c1 == 0 {
+			return c1, nil
+		}
 		return -c1, nil
 	}
 	return nil, errInvalidOperation
@@ -737,6 +740,9 @@ func (c1 floatConst) unaryOp(op ast.OperatorType) (constant, error) {
 	case ast.OperatorAddition:
 		return c1, nil
 	case ast.OperatorSubtraction:
+		if c1.f.Sign() == 0 {
+			return c1, nil
+		}
 		f := bigFloat().Set(c1.f)
 		return floatConst{f: f.Neg(f)}, nil
 	}
