@@ -1752,9 +1752,19 @@ func tiUntypedBool() *typeInfo {
 // float type infos.
 
 func tiUntypedFloatConst(lit string) *typeInfo {
+	neg := lit[0] == '-'
+	if neg {
+		lit = lit[1:]
+	}
 	c, err := parseBasicLiteral(ast.FloatLiteral, lit)
 	if err != nil {
 		panic("unexpected error: " + err.Error())
+	}
+	if neg {
+		c, err = c.unaryOp(ast.OperatorSubtraction)
+		if err != nil {
+			panic("unexpected error: " + err.Error())
+		}
 	}
 	return &typeInfo{
 		Type:       float64Type,
@@ -1791,24 +1801,41 @@ func intVariable() *typeInfo {
 func tiUntypedComplexConst(lit string) *typeInfo {
 	var re, im constant
 	if lit[len(lit)-1] == 'i' {
-		s := strings.LastIndexAny(lit, "+-")
-		if s == -1 {
-			s = 0
-		}
-		c, err := parseBasicLiteral(ast.ImaginaryLiteral, lit[s:])
+		s := strings.IndexAny(lit, "+-")
+		c, err := parseBasicLiteral(ast.ImaginaryLiteral, lit[s+1:])
 		if err != nil {
 			panic("unexpected error: " + err.Error())
 		}
 		im = c.imag()
-		lit = lit[:s]
+		if s >= 0 {
+			if lit[s] == '-' {
+				im, err = im.unaryOp(ast.OperatorSubtraction)
+				if err != nil {
+					panic("unexpected error: " + err.Error())
+				}
+			}
+			lit = lit[:s]
+		} else {
+			lit = ""
+		}
 	} else {
 		im = int64Const(0)
 	}
 	if len(lit) > 0 {
+		neg := lit[0] == '-'
+		if neg {
+			lit = lit[1:]
+		}
 		var err error
 		re, err = parseBasicLiteral(ast.FloatLiteral, lit)
 		if err != nil {
 			panic("unexpected error: " + err.Error())
+		}
+		if neg {
+			re, err = re.unaryOp(ast.OperatorSubtraction)
+			if err != nil {
+				panic("unexpected error: " + err.Error())
+			}
 		}
 	} else {
 		re = int64Const(0)
