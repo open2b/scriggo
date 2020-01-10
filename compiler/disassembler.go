@@ -275,7 +275,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	}
 	s := operationName[op]
 	switch op {
-	case runtime.OpAdd, runtime.OpSub, runtime.OpSubInv, runtime.OpMul, runtime.OpNeg,
+	case runtime.OpAdd, runtime.OpSub, runtime.OpSubInv, runtime.OpMul,
 		runtime.OpDiv, runtime.OpRem, runtime.OpShl, runtime.OpShr:
 		kind := reflect.Kind(a)
 		s += " " + kind.String()
@@ -539,6 +539,13 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			s += " " + disassembleOperand(fn, b, reflect.Interface, k)
 			s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 		}
+	case runtime.OpNeg:
+		kind := reflect.Kind(a)
+		if kind != reflect.Int && kind != reflect.Float64 {
+			s += " " + kind.String()
+		}
+		s += " " + disassembleOperand(fn, b, kind, false)
+		s += " " + disassembleOperand(fn, c, kind, false)
 	case runtime.OpNew:
 		s += " " + fn.Types[int(uint(b))].String()
 		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
