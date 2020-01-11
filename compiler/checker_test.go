@@ -737,6 +737,14 @@ var checkerStmts = map[string]string{
 	`_ = 4 + _`:                       cannotUseBlankAsValue,
 	`_ = []_{}`:                       cannotUseBlankAsValue,
 
+	// Division by zero.
+	`a := 1; _ = a / 0`:               `division by zero`,
+	`a := 1.0; _ = a / 0.0`:           `division by zero`,
+	`a := 1i; _ = a / 0i`:             `division by zero`,
+	`var a int8 = 1; _ = a / int8(0)`: `division by zero`,
+	`a := 1.0; _ = a / -0.0`:          `division by zero`,
+	`a := 1; _ = a % 0`:               `division by zero`,
+
 	// Equality
 	`type S = struct{ A func() }; _ = interface{}(nil) == S{}`: `invalid operation: interface{}(nil) == S literal (struct { A func() } cannot be compared)`,
 	`var a interface{}; _ = a == 9223372036854775808`:          `invalid operation: a == 9223372036854775808 (constant 9223372036854775808 overflows int)`,

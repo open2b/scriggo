@@ -97,6 +97,9 @@ func (tc *typechecker) checkAssignmentOperation(node *ast.Assignment) {
 	op := operatorFromAssignmentType(node.Type)
 	_, err := tc.binaryOp(node.Lhs[0], op, node.Rhs[0])
 	if err != nil {
+		if err == errDivisionByZero {
+			panic(tc.errorf(node, "%s", err))
+		}
 		panic(tc.errorf(node, "invalid operation: %s (%s)", node, err))
 	}
 

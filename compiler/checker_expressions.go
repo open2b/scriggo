@@ -391,6 +391,9 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 	case *ast.BinaryOperator:
 		t, err := tc.binaryOp(expr.Expr1, expr.Op, expr.Expr2)
 		if err != nil {
+			if err == errDivisionByZero {
+				panic(tc.errorf(expr, "%s", err))
+			}
 			panic(tc.errorf(expr, "invalid operation: %v (%s)", expr, err))
 		}
 		return t
@@ -1064,6 +1067,10 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 
 	if kind := t1.Type.Kind(); !operatorsOfKind[kind][op] {
 		return nil, fmt.Errorf("operator %s not defined on %s)", op, kind)
+	}
+
+	if (op == ast.OperatorDivision || op == ast.OperatorModulo) && t2.IsConstant() && t2.Constant.zero() {
+		return nil, errDivisionByZero
 	}
 
 	return &typeInfo{Type: t1.Type}, nil
