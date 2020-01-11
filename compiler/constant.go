@@ -586,7 +586,13 @@ func (c1 float64Const) bool() bool             { return false }
 func (c1 float64Const) string() string         { return "" }
 func (c1 float64Const) int64() int64           { return int64(c1) }
 func (c1 float64Const) uint64() uint64         { return uint64(c1) }
-func (c1 float64Const) float64() float64       { return float64(c1) }
+func (c1 float64Const) float64() float64       {
+	// Return 0 if it is -0.
+	if c1 == 0 {
+		return 0
+	}
+	return float64(c1)
+}
 func (c1 float64Const) complex128() complex128 { return complex(float64(c1), 0) }
 
 func (c1 float64Const) unaryOp(op ast.OperatorType) (constant, error) {
@@ -594,9 +600,6 @@ func (c1 float64Const) unaryOp(op ast.OperatorType) (constant, error) {
 	case ast.OperatorAddition:
 		return c1, nil
 	case ast.OperatorSubtraction:
-		if c1 == 0 {
-			return c1, nil
-		}
 		return -c1, nil
 	}
 	return nil, errInvalidOperation
@@ -732,7 +735,14 @@ func (c1 floatConst) bool() bool             { return false }
 func (c1 floatConst) string() string         { return "" }
 func (c1 floatConst) int64() int64           { n, _ := c1.f.Int64(); return n }
 func (c1 floatConst) uint64() uint64         { n, _ := c1.f.Uint64(); return n }
-func (c1 floatConst) float64() float64       { f, _ := c1.f.Float64(); return f }
+func (c1 floatConst) float64() float64       {
+	f, _ := c1.f.Float64()
+	// Return 0 if it is -0.
+	if f == 0 {
+		return 0
+	}
+	return f
+}
 func (c1 floatConst) complex128() complex128 { return complex(c1.float64(), 0) }
 
 func (c1 floatConst) unaryOp(op ast.OperatorType) (constant, error) {
@@ -740,9 +750,6 @@ func (c1 floatConst) unaryOp(op ast.OperatorType) (constant, error) {
 	case ast.OperatorAddition:
 		return c1, nil
 	case ast.OperatorSubtraction:
-		if c1.f.Sign() == 0 {
-			return c1, nil
-		}
 		f := bigFloat().Set(c1.f)
 		return floatConst{f: f.Neg(f)}, nil
 	}
