@@ -812,7 +812,7 @@ func (c1 floatConst) representedBy(typ reflect.Type) (constant, error) {
 		}
 		return nil, fmt.Errorf("constant %s truncated to integer", c1)
 	}
-	if f, _ := c1.f.Float64(); !math.IsInf(f, 1) {
+	if f, _ := c1.f.Float64(); !math.IsInf(f, 0) {
 		return float64Const(f).representedBy(typ)
 	}
 	if reflect.Float32 <= kind && kind <= reflect.Complex128 {

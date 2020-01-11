@@ -828,9 +828,11 @@ var checkerStmts = map[string]string{
 	`var a int; b := &a; *b++`:  ok,
 	`var a int = (*int)(nil)`:   `cannot use (*int)(nil) (type *int) as type int in assignment`,
 	`var a int = chan int(nil)`: `cannot use (chan int)(nil) (type chan int) as type int in assignment`,
-	`f := func() (int, int) { return 0, 0 }; var a bool; _, a = f()`: `cannot assign int to a (type bool) in multiple assignment`,
-	`f := func() (int, int) { return 0, 0 }; var a bool; a, _ = f()`: `cannot assign int to a (type bool) in multiple assignment`,
-	`var a int = 1<<63; _ = a`:                                       `constant 9223372036854775808 overflows int`,
+	`f := func() (int, int) { return 0, 0 }; var a bool; _, a = f()`:  `cannot assign int to a (type bool) in multiple assignment`,
+	`f := func() (int, int) { return 0, 0 }; var a bool; a, _ = f()`:  `cannot assign int to a (type bool) in multiple assignment`,
+	`var a int = 1<<63; _ = a`:                                        `constant 9223372036854775808 overflows int`,
+	`a := +1.797693134862315708145274237317043567981e+308 * 2; _ = a`: `constant 3.59538627e+308 overflows float64`,
+	`a := -1.797693134862315708145274237317043567981e+308 * 2; _ = a`: `constant -3.59538627e+308 overflows float64`,
 
 	// Slicing
 	`_ = []int{1,2,3,4,5}[:]`:             ok,
