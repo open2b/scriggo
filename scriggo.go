@@ -20,7 +20,7 @@ import (
 
 type LoadOptions struct {
 	LimitMemorySize bool // limit allocable memory size.
-	Unspec          struct {
+	OutOfSpec       struct {
 		AllowShebangLine bool // allow shebang line; only for package-less programs.
 		DisallowGoStmt   bool // disallow "go" statement.
 		PackageLess      bool // enable the package-less syntax.
@@ -49,10 +49,10 @@ type CompilerError interface {
 func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, error) {
 	compileOpts := compiler.Options{}
 	if options != nil {
-		compileOpts.AllowShebangLine = options.Unspec.AllowShebangLine
-		compileOpts.DisallowGoStmt = options.Unspec.DisallowGoStmt
+		compileOpts.AllowShebangLine = options.OutOfSpec.AllowShebangLine
+		compileOpts.DisallowGoStmt = options.OutOfSpec.DisallowGoStmt
 		compileOpts.LimitMemorySize = options.LimitMemorySize
-		compileOpts.PackageLess = options.Unspec.PackageLess
+		compileOpts.PackageLess = options.OutOfSpec.PackageLess
 	}
 	code, err := compiler.CompileProgram(src, loader, compileOpts)
 	if err != nil {
@@ -71,7 +71,7 @@ type RunOptions struct {
 	MaxMemorySize int
 	DontPanic     bool
 	PrintFunc     runtime.PrintFunc
-	Unspec        struct {
+	OutOfSpec     struct {
 		Builtins map[string]interface{}
 	}
 }
@@ -85,8 +85,8 @@ func (p *Program) Run(options *RunOptions) (int, error) {
 		panic("scriggo: program not loaded with LimitMemorySize option")
 	}
 	vm := newVM(options)
-	if options != nil && options.Unspec.Builtins != nil {
-		return vm.Run(p.fn, initGlobals(p.globals, options.Unspec.Builtins))
+	if options != nil && options.OutOfSpec.Builtins != nil {
+		return vm.Run(p.fn, initGlobals(p.globals, options.OutOfSpec.Builtins))
 	}
 	return vm.Run(p.fn, initGlobals(p.globals, nil))
 }

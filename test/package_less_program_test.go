@@ -189,13 +189,13 @@ func TestPackageLessPrograms(t *testing.T) {
 				}
 			}
 			loadOpts := &scriggo.LoadOptions{}
-			loadOpts.Unspec.PackageLess = true
+			loadOpts.OutOfSpec.PackageLess = true
 			script, err := scriggo.Load(strings.NewReader(cas.src), cas.pkgs, loadOpts)
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
 			runOpts := &scriggo.RunOptions{}
-			runOpts.Unspec.Builtins = cas.init
+			runOpts.OutOfSpec.Builtins = cas.init
 			_, err = script.Run(runOpts)
 			if err != nil {
 				t.Fatalf("execution error: %s", err)
@@ -222,13 +222,13 @@ func TestScriptSum(t *testing.T) {
 	}
 	init := map[string]interface{}{"Sum": &Sum}
 	loadOpts := &scriggo.LoadOptions{}
-	loadOpts.Unspec.PackageLess = true
+	loadOpts.OutOfSpec.PackageLess = true
 	script, err := scriggo.Load(strings.NewReader(src), pkgs, loadOpts)
 	if err != nil {
 		t.Fatalf("unable to load script: %s", err)
 	}
 	runOpts := &scriggo.RunOptions{}
-	runOpts.Unspec.Builtins = init
+	runOpts.OutOfSpec.Builtins = init
 	_, err = script.Run(runOpts)
 	if err != nil {
 		t.Fatalf("run: %s", err)
@@ -251,7 +251,7 @@ func TestPackageLessProgramChainMessages(t *testing.T) {
 		},
 	}
 	loadOpts := &scriggo.LoadOptions{}
-	loadOpts.Unspec.PackageLess = true
+	loadOpts.OutOfSpec.PackageLess = true
 	init := map[string]interface{}{"Message": &Message}
 	script1, err := scriggo.Load(strings.NewReader(src1), pkgs, loadOpts)
 	if err != nil {
@@ -262,7 +262,7 @@ func TestPackageLessProgramChainMessages(t *testing.T) {
 		t.Fatalf("unable to load script 2: %s", err)
 	}
 	runOpts := &scriggo.RunOptions{}
-	runOpts.Unspec.Builtins = init
+	runOpts.OutOfSpec.Builtins = init
 	_, err = script1.Run(runOpts)
 	if err != nil {
 		t.Fatalf("run: %s", err)
