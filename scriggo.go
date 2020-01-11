@@ -27,8 +27,14 @@ type LoadOptions struct {
 	}
 }
 
-// UntypedConstant represents an untyped constant.
-type UntypedConstant = compiler.UntypedConstant
+// UntypedStringConst represents an untyped string constant.
+type UntypedStringConst = compiler.UntypedStringConst
+
+// UntypedBooleanConst represents an untyped boolean constant.
+type UntypedBooleanConst = compiler.UntypedBooleanConst
+
+// UntypedNumericConst represents an untyped numeric constant.
+type UntypedNumericConst = compiler.UntypedNumericConst
 
 type Program struct {
 	fn      *runtime.Function

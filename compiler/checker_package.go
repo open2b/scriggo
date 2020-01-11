@@ -80,7 +80,24 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) ty
 			continue
 		}
 		// Import an untyped constant.
-		if c, ok := value.(UntypedConstant); ok {
+		switch c := value.(type) {
+		case UntypedBooleanConst:
+			s[ident] = scopeElement{t: &typeInfo{
+				Type:              boolType,
+				Properties:        propertyUntyped,
+				Constant:          boolConst(c),
+				PredefPackageName: pkgName,
+			}}
+			continue
+		case UntypedStringConst:
+			s[ident] = scopeElement{t: &typeInfo{
+				Type:              stringType,
+				Properties:        propertyUntyped,
+				Constant:          stringConst(c),
+				PredefPackageName: pkgName,
+			}}
+			continue
+		case UntypedNumericConst:
 			constant, typ, err := parseConstant(string(c))
 			if err != nil {
 				panic(fmt.Errorf("scriggo: invalid untyped constant %q for %s.%s", c, pp.Name(), ident))
