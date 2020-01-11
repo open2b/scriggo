@@ -582,11 +582,11 @@ func (c1 float64Const) String() string {
 	return strconv.FormatFloat(float64(c1), 'f', -1, 64)
 }
 
-func (c1 float64Const) bool() bool             { return false }
-func (c1 float64Const) string() string         { return "" }
-func (c1 float64Const) int64() int64           { return int64(c1) }
-func (c1 float64Const) uint64() uint64         { return uint64(c1) }
-func (c1 float64Const) float64() float64       {
+func (c1 float64Const) bool() bool     { return false }
+func (c1 float64Const) string() string { return "" }
+func (c1 float64Const) int64() int64   { return int64(c1) }
+func (c1 float64Const) uint64() uint64 { return uint64(c1) }
+func (c1 float64Const) float64() float64 {
 	// Return 0 if it is -0.
 	if c1 == 0 {
 		return 0
@@ -731,11 +731,11 @@ func newFloatConst(x float64) floatConst {
 	return floatConst{f: bigFloat().SetFloat64(x)}
 }
 
-func (c1 floatConst) bool() bool             { return false }
-func (c1 floatConst) string() string         { return "" }
-func (c1 floatConst) int64() int64           { n, _ := c1.f.Int64(); return n }
-func (c1 floatConst) uint64() uint64         { n, _ := c1.f.Uint64(); return n }
-func (c1 floatConst) float64() float64       {
+func (c1 floatConst) bool() bool     { return false }
+func (c1 floatConst) string() string { return "" }
+func (c1 floatConst) int64() int64   { n, _ := c1.f.Int64(); return n }
+func (c1 floatConst) uint64() uint64 { n, _ := c1.f.Uint64(); return n }
+func (c1 floatConst) float64() float64 {
 	f, _ := c1.f.Float64()
 	// Return 0 if it is -0.
 	if f == 0 {
