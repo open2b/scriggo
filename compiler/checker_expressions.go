@@ -1444,8 +1444,11 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 
 	case "print", "println":
 		for _, arg := range expr.Args {
-			tc.checkExpr(arg)
-			tc.typeInfos[arg].setValue(nil)
+			ti := tc.checkExpr(arg)
+			if ti.Nil() {
+				panic(tc.errorf(expr, "use of untyped nil"))
+			}
+			ti.setValue(nil)
 		}
 		return nil
 
