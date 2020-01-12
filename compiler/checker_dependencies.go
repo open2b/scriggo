@@ -314,7 +314,7 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 		return []*ast.Identifier{n}
 	case *ast.If:
 		scopes = enterScope(scopes)
-		deps := nodeDeps(n.Assignment, scopes)
+		deps := nodeDeps(n.Init, scopes)
 		deps = append(deps, nodeDeps(n.Condition, scopes)...)
 		scopes = enterScope(scopes)
 		deps = append(deps, nodeDeps(n.Then, scopes)...)

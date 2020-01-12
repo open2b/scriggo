@@ -57,9 +57,9 @@ func CloneNode(node ast.Node) ast.Node {
 		}
 		return b
 	case *ast.If:
-		var assignment *ast.Assignment
-		if n.Assignment != nil {
-			assignment = CloneNode(n.Assignment).(*ast.Assignment)
+		var init ast.Node
+		if n.Init != nil {
+			init = CloneNode(n.Init)
 		}
 		var then *ast.Block
 		if n.Then != nil {
@@ -69,7 +69,7 @@ func CloneNode(node ast.Node) ast.Node {
 		if n.Else != nil {
 			els = CloneNode(n.Else)
 		}
-		return ast.NewIf(ClonePosition(n.Position), assignment, CloneExpression(n.Condition), then, els)
+		return ast.NewIf(ClonePosition(n.Position), init, CloneExpression(n.Condition), then, els)
 	case *ast.For:
 		var body = make([]ast.Node, len(n.Body))
 		for i, n2 := range n.Body {

@@ -2029,7 +2029,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
-		err = equals(nn1.Assignment, nn2.Assignment, p)
+		err = equals(nn1.Init, nn2.Init, p)
 		if err != nil {
 			return err
 		}

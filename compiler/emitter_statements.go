@@ -205,8 +205,8 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 
 		case *ast.If:
 			em.fb.enterScope()
-			if node.Assignment != nil {
-				em.emitNodes([]ast.Node{node.Assignment})
+			if node.Init != nil {
+				em.emitNodes([]ast.Node{node.Init})
 			}
 			em.emitCondition(node.Condition)
 			if node.Else == nil {

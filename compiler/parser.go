@@ -787,15 +787,15 @@ LABEL:
 		if expressions == nil {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
-		var assignment *ast.Assignment
+		var init ast.Node
 		var expr ast.Expression
 		if len(expressions) > 1 || tok.typ == tokenSimpleAssignment || tok.typ == tokenDeclaration {
-			assignment, tok = p.parseAssignment(expressions, tok, false, false)
-			if assignment == nil {
+			init, tok = p.parseAssignment(expressions, tok, false, false)
+			if init == nil {
 				panic(syntaxError(tok.pos, "expecting expression"))
 			}
 			if tok.typ != tokenSemicolon {
-				panic(syntaxError(tok.pos, "%s used as value", assignment))
+				panic(syntaxError(tok.pos, "%s used as value", init))
 			}
 			expr, tok = p.parseExpr(p.next(), false, false, true)
 			if expr == nil {
@@ -813,7 +813,7 @@ LABEL:
 			ifPos = pos
 			ifPos.End = tok.pos.End
 		}
-		node := ast.NewIf(ifPos, assignment, expr, then, nil)
+		node := ast.NewIf(ifPos, init, expr, then, nil)
 		p.addChild(node)
 		p.addToAncestors(node)
 		p.addToAncestors(then)

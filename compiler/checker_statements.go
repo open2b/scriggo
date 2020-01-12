@@ -122,8 +122,12 @@ nodesLoop:
 
 		case *ast.If:
 			tc.enterScope()
-			if node.Assignment != nil {
-				tc.checkGenericAssignmentNode(node.Assignment)
+			if node.Init != nil {
+				if assignment, ok := node.Init.(*ast.Assignment); ok {
+					tc.checkGenericAssignmentNode(assignment)
+				} else {
+					panic("not yet implemented")
+				}
 			}
 			ti := tc.checkExpr(node.Condition)
 			if ti.Type.Kind() != reflect.Bool {
