@@ -787,27 +787,26 @@ LABEL:
 	case tokenIf:
 		pos := tok.pos
 		ifPos := tok.pos
-		var expressions []ast.Expression
-		expressions, tok = p.parseExprList(p.next(), false, false, true)
-		if expressions == nil {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
-		}
 		var init ast.Node
 		var expr ast.Expression
-		if len(expressions) > 1 || tok.typ == tokenSimpleAssignment || tok.typ == tokenDeclaration {
-			init, tok = p.parseAssignment(expressions, tok, false, false)
-			if init == nil {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
-			}
-			if tok.typ != tokenSemicolon {
+		init, tok = p.parseSimpleStatement(p.next())
+		if tok.typ == tokenSemicolon {
+			expr, tok = p.parseExpr(p.next(), false, false, true)
+		} else if init != nil {
+			expr, _ = init.(ast.Expression)
+			if expr == nil {
+				if a, ok := init.(*ast.Assignment); ok && a.Type == ast.AssignmentSimple {
+					panic(syntaxError(tok.pos, "assignment %s used as value", init))
+				}
 				panic(syntaxError(tok.pos, "%s used as value", init))
 			}
-			expr, tok = p.parseExpr(p.next(), false, false, true)
-			if expr == nil {
+			init = nil
+		}
+		if expr == nil {
+			if p.ctx == ast.ContextGo && tok.typ == tokenLeftBraces || p.ctx != ast.ContextGo && tok.typ == tokenEndBlock {
 				panic(syntaxError(tok.pos, "missing condition in if statement"))
 			}
-		} else {
-			expr = expressions[0]
+			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
 		var blockPos *ast.Position
 		if p.ctx == ast.ContextGo {
@@ -1379,6 +1378,40 @@ func (p *parsing) parseEnd(tok token, want tokenTyp) token {
 		panic(syntaxError(tok.pos, "unexpected %s, expecting %s", tok, want))
 	}
 	return p.next()
+}
+
+// parseSimpleStatement parses a simple statement. tok is the next token read.
+func (p *parsing) parseSimpleStatement(tok token) (ast.Node, token) {
+	pos := tok.pos
+	expressions, tok := p.parseExprList(tok, false, false, true)
+	if expressions == nil {
+		// Empty statement.
+		return nil, tok
+	}
+	if len(expressions) > 1 || isAssignmentToken(tok) {
+		// Assignment statement.
+		var assignment *ast.Assignment
+		assignment, tok = p.parseAssignment(expressions, tok, false, true)
+		if assignment == nil {
+			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
+		}
+		assignment.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: assignment.Pos().End}
+		return assignment, tok
+	}
+	if tok.typ == tokenArrow {
+		// Send statement.
+		channel := expressions[0]
+		var value ast.Expression
+		value, tok = p.parseExpr(p.next(), false, false, true)
+		if value == nil {
+			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
+		}
+		send := ast.NewSend(pos, channel, value)
+		send.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: value.Pos().End}
+		return send, tok
+	}
+	// Expression statement.
+	return expressions[0], tok
 }
 
 // parseIdentifiersList returns a list of identifiers separated by commas and
