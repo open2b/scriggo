@@ -556,7 +556,7 @@ LABEL:
 					pos := tok.pos
 					post, tok = p.parseAssignment(variables, tok, false, true)
 					if post == nil {
-						panic(syntaxError(tok.pos, "expecting expression"))
+						panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 					}
 					if post.Type == ast.AssignmentDeclaration {
 						panic(syntaxError(pos, "cannot declare in post statement of for loop"))
@@ -636,7 +636,12 @@ LABEL:
 			}
 			var comm ast.Node
 			if len(expressions) > 1 || isAssignmentToken(tok) {
-				comm, tok = p.parseAssignment(expressions, tok, false, false)
+				var assignment *ast.Assignment
+				assignment, tok = p.parseAssignment(expressions, tok, false, false)
+				if assignment == nil {
+					panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
+				}
+				comm = assignment
 			} else {
 				if tok.typ == tokenArrow {
 					sendPos := tok.pos
@@ -792,7 +797,7 @@ LABEL:
 		if len(expressions) > 1 || tok.typ == tokenSimpleAssignment || tok.typ == tokenDeclaration {
 			init, tok = p.parseAssignment(expressions, tok, false, false)
 			if init == nil {
-				panic(syntaxError(tok.pos, "expecting expression"))
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
 			if tok.typ != tokenSemicolon {
 				panic(syntaxError(tok.pos, "%s used as value", init))
@@ -1303,7 +1308,7 @@ LABEL:
 			var assignment *ast.Assignment
 			assignment, tok = p.parseAssignment(expressions, tok, false, false)
 			if assignment == nil {
-				panic(syntaxError(tok.pos, "expecting expression"))
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
 			assignment.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: assignment.Pos().End}
 			p.addChild(assignment)
