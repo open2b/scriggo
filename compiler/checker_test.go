@@ -1320,13 +1320,18 @@ var checkerStmts = map[string]string{
 	`a := 0; var _ a`: `a is not a type`,
 
 	// Builtin functions 'print' and 'println'.
-	`print()`:         ok,
-	`print("a")`:      ok,
-	`print("a", 5)`:   ok,
-	`println()`:       ok,
-	`println("a")`:    ok,
-	`println("a", 5)`: ok,
-	`println = 0`:     `use of builtin println not in function call`,
+	`print()`:            ok,
+	`print("a")`:         ok,
+	`print("a", 5)`:      ok,
+	`print(nil)`:         `use of untyped nil`,
+	`print(1<<64 - 1)`:   `constant 18446744073709551615 overflows int`,
+	`print = 0`:          `use of builtin print not in function call`,
+	`println()`:          ok,
+	`println("a")`:       ok,
+	`println("a", 5)`:    ok,
+	`println(nil)`:       `use of untyped nil`,
+	`println(1<<64 - 1)`: `constant 18446744073709551615 overflows int`,
+	`println = 0`:        `use of builtin println not in function call`,
 
 	// Builtin function 'append'.
 	`_ = append([]int{}, 0)`:     ok,

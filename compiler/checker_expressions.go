@@ -1438,6 +1438,9 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 			ti = tc.nilOf(emptyInterfaceType)
 			tc.typeInfos[expr.Args[0]] = ti
 		} else {
+			if err := tc.isAssignableTo(ti, expr.Args[0], emptyInterfaceType); err != nil {
+				panic(tc.errorf(expr, "%s", err))
+			}
 			ti.setValue(nil)
 		}
 		return nil
@@ -1447,6 +1450,9 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 			ti := tc.checkExpr(arg)
 			if ti.Nil() {
 				panic(tc.errorf(expr, "use of untyped nil"))
+			}
+			if err := tc.isAssignableTo(ti, arg, emptyInterfaceType); err != nil {
+				panic(tc.errorf(expr, "%s", err))
 			}
 			ti.setValue(nil)
 		}
