@@ -1066,7 +1066,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 	}
 
 	if kind := t1.Type.Kind(); !operatorsOfKind[kind][op] {
-		return nil, fmt.Errorf("operator %s not defined on %s)", op, kind)
+		return nil, fmt.Errorf("operator %s not defined on %s", op, kind)
 	}
 
 	if (op == ast.OperatorDivision || op == ast.OperatorModulo) && t2.IsConstant() && t2.Constant.zero() {
