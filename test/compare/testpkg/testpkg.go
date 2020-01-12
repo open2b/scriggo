@@ -7,6 +7,16 @@ import (
 	"scriggo/runtime"
 )
 
+const C1 = "a\t|\"c"
+const C2 = true
+const C3 = 1982717381
+const C4 = 1.319382
+const C5 = 3.90i
+const C6 = 'a'
+const C7 = 1.0261 + 2.845i
+const C8 = 1 + 1.3 - 'b' + 1i
+const C9 = 1 + 0i
+
 func G00()          {}
 func G01() int      { return 40 }
 func G10(a int)     {}
@@ -109,7 +119,7 @@ func RuntimeError() {
 	_ = 1 / a
 }
 
-func (t *T) Method() { }
+func (t *T) Method() {}
 
 var Value T
 

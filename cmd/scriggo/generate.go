@@ -353,7 +353,7 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 					value = "UntypedStringConst(" + s + ")"
 				case constant.Bool:
 					value = "UntypedBooleanConst(" + s + ")"
-				case constant.Int, constant.Complex:
+				case constant.Int:
 					value = "UntypedNumericConst(" + strconv.Quote(s) + ")"
 				case constant.Float:
 					if strings.Contains(s, "/") {
@@ -365,7 +365,12 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 								}
 							}
 						}
+					} else if !strings.Contains(s, ".") {
+						s += ".0"
 					}
+					value = "UntypedNumericConst(" + strconv.Quote(s) + ")"
+				case constant.Complex:
+					s = strings.ReplaceAll(s[1:len(s)-1], " ", "")
 					value = "UntypedNumericConst(" + strconv.Quote(s) + ")"
 				default:
 					panic(fmt.Sprintf("Unexpected constant kind %d", val.Kind()))

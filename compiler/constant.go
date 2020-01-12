@@ -578,6 +578,10 @@ func (c1 intConst) setInt(n *big.Int) constant { c1.i.Set(n); return c1 }
 // values.
 type float64Const float64
 
+func newFloat64Const(x float64) float64Const {
+	return float64Const(x)
+}
+
 func (c1 float64Const) String() string {
 	return strconv.FormatFloat(float64(c1), 'f', -1, 64)
 }
@@ -1237,85 +1241,15 @@ func convertToConstant(value interface{}) constant {
 	return nil
 }
 
-// parseConstant parses a string s representing a constant and returns the
-// constant and its type. s can be a basic literal, "true", "false" or "a/b"
-// with a and b integers.
-//
-// If the string s cannot be parsed, it returns the error strconv.ErrSyntax.
-func parseConstant(s string) (constant, reflect.Type, error) {
-	if len(s) == 0 {
-		return nil, nil, strconv.ErrSyntax
-	}
-	switch s[0] {
-	case 't':
-		if s == "true" {
-			return boolConst(true), boolType, nil
-		}
-	case 'f':
-		if s == "false" {
-			return boolConst(false), boolType, nil
-		}
-	case '"', '`':
-		str, err := strconv.Unquote(s)
-		if err == nil {
-			return stringConst(str), stringType, nil
-		}
-	case '\'':
-		r, _, tail, err := strconv.UnquoteChar(s[1:], '\'')
-		if err == nil && tail == "'" {
-			return int64Const(r), int32Type, nil
-		}
-	default:
-		if strings.Contains(s, "/") {
-			r, ok := new(big.Rat).SetString(s)
-			if ok {
-				return ratConst{r: r}, float64Type, nil
-			}
-		} else if s[len(s)-1] == 'i' {
-			if strings.ContainsAny(s, ".eEpP") {
-				i, _, err := parseConstant(s[:len(s)-1])
-				if err == nil {
-					return complexConst{r: int64Const(0), i: i}, complex128Type, nil
-				}
-			} else if len(s) >= 2 {
-				if s[0] == '0' && ('0' <= s[1] && s[1] <= '9' || s[1] == '_') {
-					s = strings.TrimLeft(s, "0_")
-					if s == "i" {
-						return int64Const(0), intType, nil
-					}
-				}
-				i, _, err := parseConstant(s[:len(s)-1])
-				if err == nil {
-					return complexConst{r: int64Const(0), i: i}, complex128Type, nil
-				}
-			}
-		} else if strings.ContainsAny(s, ".eEpE") {
-			n, ok := bigFloat().SetString(s[:len(s)-1])
-			if ok {
-				if f, _ := n.Float64(); !math.IsInf(f, 1) {
-					return float64Const(f), float64Type, nil
-				}
-				return floatConst{f: n}, float64Type, nil
-			}
-		} else {
-			n, ok := new(big.Int).SetString(s, 0)
-			if ok {
-				if n.IsInt64() {
-					return int64Const(n.Int64()), intType, nil
-				}
-				return intConst{i: n}, intType, nil
-			}
-		}
-	}
-	return nil, nil, strconv.ErrSyntax
-}
-
 // parseBasicLiteral parses a basic literal and returns the represented
 // constant. Returns an error if an integer cannot be represented or if a
 // floating-point or complex cannot be represented due to overflow.
 //
-// As for spec, a basic literal have no sign. If the parsed string is not a
-// basic literal the behaviour is undefined.
+// As as special case the basic literal can be preceded by a "+" or "-" sign
+// and for float literals it parses also the form "a/b" as accepted by the
+// method big.Rat.SetString.
+//
+// If the parsed string has not a valid form, the behaviour is undefined.
 func parseBasicLiteral(typ ast.LiteralType, s string) (constant, error) {
 	switch typ {
 	case ast.StringLiteral:
@@ -1341,6 +1275,13 @@ func parseBasicLiteral(typ ast.LiteralType, s string) (constant, error) {
 		}
 		return n, nil
 	case ast.FloatLiteral:
+		if i := strings.Index(s, "/"); i >= 0 {
+			r, ok := new(big.Rat).SetString(s)
+			if !ok {
+				return nil, fmt.Errorf("malformed constant: %s", s)
+			}
+			return ratConst{r: r}, nil
+		}
 		n, _, err := bigFloat().Parse(s, 0)
 		if err != nil {
 			return nil, fmt.Errorf("malformed constant: %s (%v)", s, err)

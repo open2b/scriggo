@@ -42,7 +42,7 @@ var checkerExprs = []struct {
 	{`0`, tiUntypedIntConst("0"), nil},
 	{`7`, tiUntypedIntConst("7"), nil},
 	{`'a'`, tiUntypedRuneConst('a'), nil},
-	{`0.0`, tiUntypedFloatConst("0"), nil},
+	{`0.0`, tiUntypedFloatConst("0.0"), nil},
 	{`123.794`, tiUntypedFloatConst("123.794"), nil},
 	{`0i`, tiUntypedComplexConst("0i"), nil},
 	{`0.0i`, tiUntypedComplexConst("0i"), nil},
@@ -466,31 +466,31 @@ var checkerExprs = []struct {
 	{`recover()`, tiInterface(), nil},
 
 	// complex
-	{`complex(0, 0)`, tiUntypedComplexConst("0"), nil},
-	{`complex(1, 0)`, tiUntypedComplexConst("1"), nil},
-	{`complex(1.2, 0)`, tiUntypedComplexConst("1.2"), nil},
+	{`complex(0, 0)`, tiUntypedComplexConst("0i"), nil},
+	{`complex(1, 0)`, tiUntypedComplexConst("1+0i"), nil},
+	{`complex(1.2, 0)`, tiUntypedComplexConst("1.2+0i"), nil},
 	{`complex(1.2, 1)`, tiUntypedComplexConst("1.2+1i"), nil},
 	{`complex(1.2, 1.5)`, tiUntypedComplexConst("1.2+1.5i"), nil},
-	{`complex(1.2, 0i)`, tiUntypedComplexConst("1.2"), nil},
+	{`complex(1.2, 0i)`, tiUntypedComplexConst("1.2+0i"), nil},
 	{`complex(0i, 2)`, tiUntypedComplexConst("2i"), nil},
-	{`complex(0.0i, 0.0i)`, tiUntypedComplexConst("0"), nil},
-	{`complex(0.0i, 0.0i)`, tiUntypedComplexConst("0"), nil},
+	{`complex(0.0i, 0.0i)`, tiUntypedComplexConst("0i"), nil},
+	{`complex(0.0i, 0.0i)`, tiUntypedComplexConst("0i"), nil},
 
 	// real
-	{`real(0)`, tiUntypedFloatConst("0"), nil},
-	{`real(289)`, tiUntypedFloatConst("289"), nil},
-	{`real(1i)`, tiUntypedFloatConst("0"), nil},
-	{`real(3+5i)`, tiUntypedFloatConst("3"), nil},
+	{`real(0)`, tiUntypedFloatConst("0.0"), nil},
+	{`real(289)`, tiUntypedFloatConst("289.0"), nil},
+	{`real(1i)`, tiUntypedFloatConst("0.0"), nil},
+	{`real(3+5i)`, tiUntypedFloatConst("3.0"), nil},
 	{`real(complex128(3+5i))`, tiFloat64Const(3), nil},
 	{`real(complex64(3+5i))`, tiFloat32Const(3), nil},
 	{`imag(c)`, tiFloat64(), map[string]*typeInfo{"c": tiAddrComplex128()}},
 	{`imag(c)`, tiFloat32(), map[string]*typeInfo{"c": tiAddrComplex64()}},
 
 	// imag
-	{`imag(0)`, tiUntypedFloatConst("0"), nil},
-	{`imag(289)`, tiUntypedFloatConst("0"), nil},
-	{`imag(1i)`, tiUntypedFloatConst("1"), nil},
-	{`imag(3+5i)`, tiUntypedFloatConst("5"), nil},
+	{`imag(0)`, tiUntypedFloatConst("0.0"), nil},
+	{`imag(289)`, tiUntypedFloatConst("0.0"), nil},
+	{`imag(1i)`, tiUntypedFloatConst("1.0"), nil},
+	{`imag(3+5i)`, tiUntypedFloatConst("5.0"), nil},
 	{`imag(complex128(3+5i))`, tiFloat64Const(5), nil},
 	{`imag(complex64(3+5i))`, tiFloat32Const(5), nil},
 	{`imag(c)`, tiFloat64(), map[string]*typeInfo{"c": tiAddrComplex128()}},
@@ -1775,23 +1775,16 @@ func tiUntypedBool() *typeInfo {
 // float type infos.
 
 func tiUntypedFloatConst(lit string) *typeInfo {
-	neg := lit[0] == '-'
-	if neg {
-		lit = lit[1:]
-	}
-	c, err := parseBasicLiteral(ast.FloatLiteral, lit)
+	constant, typ, err := parseNumericConst(lit)
 	if err != nil {
 		panic("unexpected error: " + err.Error())
 	}
-	if neg {
-		c, err = c.unaryOp(ast.OperatorSubtraction)
-		if err != nil {
-			panic("unexpected error: " + err.Error())
-		}
+	if typ != float64Type {
+		panic(fmt.Sprintf("lit %q: unexpected type %s, expected float64", lit, typ))
 	}
 	return &typeInfo{
 		Type:       float64Type,
-		Constant:   c,
+		Constant:   constant,
 		Properties: propertyUntyped,
 	}
 }
@@ -1822,50 +1815,16 @@ func intVariable() *typeInfo {
 // complex type infos.
 
 func tiUntypedComplexConst(lit string) *typeInfo {
-	var re, im constant
-	if lit[len(lit)-1] == 'i' {
-		s := strings.IndexAny(lit, "+-")
-		c, err := parseBasicLiteral(ast.ImaginaryLiteral, lit[s+1:])
-		if err != nil {
-			panic("unexpected error: " + err.Error())
-		}
-		im = c.imag()
-		if s >= 0 {
-			if lit[s] == '-' {
-				im, err = im.unaryOp(ast.OperatorSubtraction)
-				if err != nil {
-					panic("unexpected error: " + err.Error())
-				}
-			}
-			lit = lit[:s]
-		} else {
-			lit = ""
-		}
-	} else {
-		im = int64Const(0)
+	constant, typ, err := parseNumericConst(lit)
+	if err != nil {
+		panic("unexpected error: " + err.Error())
 	}
-	if len(lit) > 0 {
-		neg := lit[0] == '-'
-		if neg {
-			lit = lit[1:]
-		}
-		var err error
-		re, err = parseBasicLiteral(ast.FloatLiteral, lit)
-		if err != nil {
-			panic("unexpected error: " + err.Error())
-		}
-		if neg {
-			re, err = re.unaryOp(ast.OperatorSubtraction)
-			if err != nil {
-				panic("unexpected error: " + err.Error())
-			}
-		}
-	} else {
-		re = int64Const(0)
+	if typ != complex128Type {
+		panic(fmt.Sprintf("lit %q: unexpected type %s, expected complex128", lit, typ))
 	}
 	return &typeInfo{
-		Type:       complex128Type,
-		Constant:   newComplexConst(re, im),
+		Type:       typ,
+		Constant:   constant,
 		Properties: propertyUntyped,
 	}
 }
@@ -1928,13 +1887,16 @@ func tiStringConst(s string) *typeInfo {
 // int type infos.
 
 func tiUntypedIntConst(lit string) *typeInfo {
-	c, typ, err := parseConstant(lit)
-	if err != nil || typ != intType {
-		panic("invalid integer literal value")
+	constant, typ, err := parseNumericConst(lit)
+	if err != nil {
+		panic("unexpected error: " + err.Error())
+	}
+	if typ != intType {
+		panic(fmt.Sprintf("lit %q: unexpected type %s, expected int", lit, typ))
 	}
 	return &typeInfo{
-		Type:       intType,
-		Constant:   c,
+		Type:       typ,
+		Constant:   constant,
 		Properties: propertyUntyped,
 	}
 }

@@ -9,6 +9,8 @@ package compiler
 import (
 	"fmt"
 	"reflect"
+	"strconv"
+	"strings"
 
 	"scriggo/compiler/ast"
 )
@@ -18,6 +20,63 @@ type scriggoPackage interface {
 	Name() string
 	Lookup(declName string) interface{}
 	DeclarationNames() []string
+}
+
+// UntypedStringConst represents an untyped string constant.
+type UntypedStringConst string
+
+// UntypedBooleanConst represents an untyped boolean constant.
+type UntypedBooleanConst bool
+
+// UntypedNumericConst represents an untyped numeric constant.
+type UntypedNumericConst string
+
+// parseNumericCost parses an expression representing an untyped number
+// constant and return the represented constant, it type.
+func parseNumericConst(s string) (constant, reflect.Type, error) {
+	if s[0] == '\'' {
+		r, err := parseBasicLiteral(ast.RuneLiteral, s)
+		if err != nil {
+			return nil, nil, err
+		}
+		return r, runeType, nil
+	}
+	r, _, tail, err := strconv.UnquoteChar(s[1:], '\'')
+	if err == nil && tail == "'" {
+		return int64Const(r), int32Type, nil
+	}
+	if last := len(s) - 1; s[last] == 'i' {
+		p := strings.LastIndexAny(s, "+-")
+		if p == -1 {
+			p = 0
+		}
+		im, err := parseBasicLiteral(ast.FloatLiteral, s[p:last])
+		if err != nil {
+			return nil, nil, err
+		}
+		var re constant
+		if p > 0 {
+			re, err = parseBasicLiteral(ast.FloatLiteral, s[0:p])
+			if err != nil {
+				return nil, nil, err
+			}
+		} else {
+			re = newFloat64Const(0)
+		}
+		return newComplexConst(re, im), complex128Type, nil
+	}
+	if strings.ContainsAny(s, "/.") {
+		n, err := parseBasicLiteral(ast.FloatLiteral, s)
+		if err != nil {
+			return nil, nil, err
+		}
+		return n, float64Type, nil
+	}
+	n, err := parseBasicLiteral(ast.IntLiteral, s)
+	if err != nil {
+		return nil, nil, err
+	}
+	return n, intType, nil
 }
 
 // toTypeCheckerScope generates a type checker scope given a predefined package.
@@ -98,7 +157,7 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) ty
 			}}
 			continue
 		case UntypedNumericConst:
-			constant, typ, err := parseConstant(string(c))
+			constant, typ, err := parseNumericConst(string(c))
 			if err != nil {
 				panic(fmt.Errorf("scriggo: invalid untyped constant %q for %s.%s", c, pp.Name(), ident))
 			}
