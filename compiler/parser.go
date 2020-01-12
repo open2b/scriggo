@@ -486,7 +486,7 @@ LABEL:
 			node = ast.NewForRange(pos, assignment, nil)
 		case tokenLeftBraces, tokenEndBlock:
 			if (p.ctx == ast.ContextGo) != (tok.typ == tokenLeftBraces) {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting expression or %%}", tok))
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
 			// Parses statement "for".
 			if len(variables) > 1 {
@@ -567,7 +567,7 @@ LABEL:
 			}
 		}
 		if node == nil {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting expression or %%}", tok))
+			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
 		p.addChild(node)
 		p.addToAncestors(node)
