@@ -115,6 +115,9 @@ func Walk(v Visitor, node ast.Node) {
 		}
 
 	case *ast.If:
+		if n.Assignment != nil {
+			Walk(v, n.Assignment)
+		}
 		Walk(v, n.Condition)
 		if n.Then != nil {
 			Walk(v, n.Then)
