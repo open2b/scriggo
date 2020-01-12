@@ -1319,6 +1319,14 @@ var checkerStmts = map[string]string{
 	`var _ int`:       ok,
 	`a := 0; var _ a`: `a is not a type`,
 
+	// Builtin function 'panic'.
+	`panic()`:          `missing argument to panic: panic()`,
+	`panic("a")`:       ok,
+	`panic("a", 5)`:    `too many arguments to panic: panic("a", 5)`,
+	`panic(nil)`:       ok,
+	`panic(1<<64 - 1)`: `constant 18446744073709551615 overflows int`,
+	`panic = 0`:        `use of builtin panic not in function call`,
+
 	// Builtin functions 'print' and 'println'.
 	`print()`:            ok,
 	`print("a")`:         ok,
