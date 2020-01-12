@@ -459,14 +459,14 @@ LABEL:
 		case tokenIn:
 			// Parses statement "for ident in expr".
 			if variables == nil {
-				panic(syntaxError(tok.pos, "unexpected in, expected expression"))
+				panic(syntaxError(tok.pos, "unexpected in, expecting expression"))
 			}
 			if len(variables) > 1 {
 				panic(syntaxError(variables[1].Pos(), "expected only one expression"))
 			}
 			ident, ok := variables[0].(*ast.Identifier)
 			if !ok {
-				panic(syntaxError(tok.pos, "unexpected in, expected assignment"))
+				panic(syntaxError(tok.pos, "unexpected in, expecting assignment"))
 			}
 			if ident.Name == "_" {
 				panic(syntaxError(ident.Pos(), "cannot use _ as value"))
