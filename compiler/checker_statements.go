@@ -150,7 +150,7 @@ nodesLoop:
 			tc.enterScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
-				tc.checkGenericAssignmentNode(node.Init)
+				tc.checkNodes([]ast.Node{node.Init})
 			}
 			if node.Condition != nil {
 				ti := tc.checkExpr(node.Condition)
@@ -160,7 +160,7 @@ nodesLoop:
 				ti.setValue(nil)
 			}
 			if node.Post != nil {
-				tc.checkGenericAssignmentNode(node.Post)
+				tc.checkNodes([]ast.Node{node.Post})
 			}
 			node.Body = tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()

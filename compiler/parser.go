@@ -451,7 +451,7 @@ LABEL:
 	case tokenFor:
 		pos := tok.pos
 		var node ast.Node
-		var init *ast.Assignment
+		var init ast.Node
 		var assignmentType ast.AssignmentType
 		var variables []ast.Expression
 		variables, tok = p.parseExprList(p.next(), false, false, true)
@@ -550,17 +550,19 @@ LABEL:
 					panic(syntaxError(tok.pos, "unexpected %s, expected semicolon", tok))
 				}
 				// Parses the post iteration statement.
-				var post *ast.Assignment
+				var post ast.Node
 				variables, tok = p.parseExprList(p.next(), false, false, true)
 				if variables != nil {
 					pos := tok.pos
-					post, tok = p.parseAssignment(variables, tok, false, true)
-					if post == nil {
+					var assignment *ast.Assignment
+					assignment, tok = p.parseAssignment(variables, tok, false, true)
+					if assignment == nil {
 						panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 					}
-					if post.Type == ast.AssignmentDeclaration {
+					if assignment.Type == ast.AssignmentDeclaration {
 						panic(syntaxError(pos, "cannot declare in post statement of for loop"))
 					}
+					post = assignment
 				}
 				pos.End = tok.pos.End
 				node = ast.NewFor(pos, init, condition, post, nil)
