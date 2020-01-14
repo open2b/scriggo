@@ -434,6 +434,11 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 					if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
 						name = "𝗽" + strconv.Itoa(tc.currentPkgIndex()) + ident.Name
 					}
+					for _, field := range fields {
+						if field.Name == name {
+							panic(tc.errorf(ident, "duplicate field %s", ident.Name))
+						}
+					}
 					fields = append(fields, reflect.StructField{
 						Name:      name,
 						Type:      typ,
