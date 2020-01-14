@@ -49,6 +49,26 @@ func testComplex() {
 		var c complex64 = complex(1, -3.02)
 		fmt.Println(c, typeof(c))
 	}
+	{
+		r := 20.0
+		c := complex(r, 10)
+		fmt.Println(c)
+	}
+	{
+		i := 14.0
+		c := complex(2.5, i)
+		fmt.Println(c)
+	}
+	{
+		r := 20.0
+		c := complex(r, float64(10.0))
+		fmt.Println(c)
+	}
+	{
+		i := 14.0
+		c := complex(float64(2.5), i)
+		fmt.Println(c)
+	}
 }
 
 func testReal() {

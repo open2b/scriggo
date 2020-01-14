@@ -1245,12 +1245,14 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 			if err != nil {
 				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", re.Constant, re, im))
 			}
+			re.setValue(im.Type)
 			re = &typeInfo{Type: im.Type, Constant: c}
 		} else if im.IsUntypedConstant() {
 			c, err := tc.convert(im, expr.Args[1], re.Type)
 			if err != nil {
 				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", im.Constant, im, re))
 			}
+			im.setValue(re.Type)
 			im = &typeInfo{Type: re.Type, Constant: c}
 		} else if reKind != imKind {
 			panic(tc.errorf(expr, "invalid operation: %s (mismatched types %s and %s)", expr, re, im))
@@ -1266,6 +1268,9 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 		}
 		if re.IsConstant() && im.IsConstant() {
 			ti.Constant = newComplexConst(re.Constant, im.Constant)
+		} else {
+			im.setValue(nil)
+			re.setValue(nil)
 		}
 		return []*typeInfo{ti}
 
