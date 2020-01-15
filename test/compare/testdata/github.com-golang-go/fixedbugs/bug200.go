@@ -1,5 +1,3 @@
-// skip : missing function body https://github.com/open2b/scriggo/issues/416
-
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.

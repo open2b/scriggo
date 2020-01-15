@@ -1,5 +1,3 @@
-// skip : syntax error: missing function body https://github.com/open2b/scriggo/issues/416
-
 // compile
 
 // Copyright 2017 The Go Authors. All rights reserved.
@@ -9,8 +7,10 @@
 // Issue 20145: some func types weren't dowidth-ed by the front end,
 // leading to races in the backend.
 
-package p
+package main
 
 func f() {
 	_ = (func())(nil)
 }
+
+func main() {}
