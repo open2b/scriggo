@@ -489,14 +489,14 @@ func NewReturn(pos *Position, values []Expression) *Return {
 
 // For node represents a statement {% for ... %}.
 type For struct {
-	*Position             // position in the source.
-	Init      *Assignment // initialization statement.
-	Condition Expression  // condition expression.
-	Post      *Assignment // post iteration statement.
-	Body      []Node      // nodes of the body.
+	*Position            // position in the source.
+	Init      Node       // initialization statement.
+	Condition Expression // condition expression.
+	Post      Node       // post iteration statement.
+	Body      []Node     // nodes of the body.
 }
 
-func NewFor(pos *Position, init *Assignment, condition Expression, post *Assignment, body []Node) *For {
+func NewFor(pos *Position, init Node, condition Expression, post Node, body []Node) *For {
 	if body == nil {
 		body = []Node{}
 	}

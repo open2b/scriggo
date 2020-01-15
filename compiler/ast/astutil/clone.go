@@ -75,12 +75,12 @@ func CloneNode(node ast.Node) ast.Node {
 		for i, n2 := range n.Body {
 			body[i] = CloneNode(n2)
 		}
-		var init, post *ast.Assignment
+		var init, post ast.Node
 		if n.Init != nil {
-			init = CloneNode(n.Init).(*ast.Assignment)
+			init = CloneNode(n.Init)
 		}
 		if n.Post != nil {
-			post = CloneNode(n.Post).(*ast.Assignment)
+			post = CloneNode(n.Post)
 		}
 		return ast.NewFor(ClonePosition(n.Position), init, CloneExpression(n.Condition), post, body)
 	case *ast.ForRange:
