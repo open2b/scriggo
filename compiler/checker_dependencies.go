@@ -102,7 +102,9 @@ func (d deps) analyzeGlobalFunc(n *ast.Func) {
 		}
 	}
 	d.addDepsToGlobal(n.Ident, n.Type, scopes)
-	d.addDepsToGlobal(n.Ident, n.Body, scopes)
+	if n.Body != nil {
+		d.addDepsToGlobal(n.Ident, n.Body, scopes)
+	}
 }
 
 // analyzeGlobalMacro analyzes a global macro declaration.
@@ -293,7 +295,10 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 			}
 		}
 		deps := nodeDeps(n.Type, scopes)
-		return append(deps, nodeDeps(n.Body, scopes)...)
+		if n.Body != nil {
+			deps = append(deps, nodeDeps(n.Body, scopes)...)
+		}
+		return deps
 	case *ast.FuncType:
 		deps := []*ast.Identifier{}
 		for _, in := range n.Parameters {

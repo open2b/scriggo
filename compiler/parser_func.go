@@ -64,15 +64,12 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 		return typ, tok
 	}
 	// Parses the function body.
+	node := ast.NewFunc(pos, ident, typ, nil)
 	if tok.typ != tokenLeftBraces {
-		p := pos
-		if ident != nil {
-			p = ident.Position
-		}
-		panic(syntaxError(p, "missing function body"))
+		return node, tok
 	}
 	body := ast.NewBlock(tok.pos, nil)
-	node := ast.NewFunc(pos, ident, typ, body)
+	node.Body = body
 	p.addToAncestors(node)
 	p.addToAncestors(body)
 	depth := len(p.ancestors)

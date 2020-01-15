@@ -593,6 +593,9 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 	// declarations.
 	for _, d := range pkg.Declarations {
 		if f, ok := d.(*ast.Func); ok {
+			if f.Body == nil {
+				return tc.errorf(f.Ident.Pos(), "missing function body")
+			}
 			if isBlankIdentifier(f.Ident) {
 				continue
 			}
