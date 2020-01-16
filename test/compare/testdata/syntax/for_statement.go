@@ -34,6 +34,7 @@ func main() {
 	for ; ; true {} // ERROR `true evaluated but not used`
 	for ; ; i := 0 {} // ERROR `syntax error: cannot declare in post statement of for loop`
 	for ; ; i = 0 { break }
+	for ; ; i += 1 { break }
 	for ; ; i++ { break }
 	for false {}
 	for 1 + 2 == 5 {}

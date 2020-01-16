@@ -1548,7 +1548,7 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeRa
 		if typ != ast.AssignmentIncrement && typ != ast.AssignmentDecrement {
 			values = make([]ast.Expression, 1)
 			var expr ast.Expression
-			expr, tok = p.parseExpr(tok, false, false, false)
+			expr, tok = p.parseExpr(tok, false, false, nextIsBlockOpen)
 			if expr == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
