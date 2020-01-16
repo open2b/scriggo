@@ -390,8 +390,8 @@ func (builder *functionBuilder) makeStringConstant(c string) int8 {
 }
 
 // makeGeneralConstant makes a new general constant, returning it's index.
-// The argument c must be nil or must be a complex number or must be the zero
-// value of its type.
+// c must be nil or must have a comparable type or must be the zero value of
+// its type.
 //
 // If the VM's internal representation of c is different from the external, c
 // must always have the external representation. Any conversion, if needed, will
@@ -399,13 +399,7 @@ func (builder *functionBuilder) makeStringConstant(c string) int8 {
 func (builder *functionBuilder) makeGeneralConstant(c interface{}) int8 {
 	// Check if a constant with the same value has already been added to the
 	// general Constants slice.
-	var t reflect.Type
-	var k reflect.Kind
-	if c != nil {
-		t = reflect.TypeOf(c)
-		k = t.Kind()
-	}
-	if c == nil || k == reflect.Complex64 || k == reflect.Complex128 {
+	if t := reflect.TypeOf(c); c == nil || t.Comparable() {
 		for i, v := range builder.fn.Constants.General {
 			if c == v {
 				return int8(i)
