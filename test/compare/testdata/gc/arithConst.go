@@ -1,4 +1,4 @@
-// skip : general refs limit reached
+// skip : int refs limit reached
 
 // run
 
