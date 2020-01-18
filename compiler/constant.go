@@ -1245,7 +1245,7 @@ func convertToConstant(value interface{}) constant {
 // constant. Returns an error if an integer cannot be represented or if a
 // floating-point or complex cannot be represented due to overflow.
 //
-// As as special case the basic literal can be preceded by a "+" or "-" sign
+// As a special case the basic literal can be preceded by a "+" or "-" sign
 // and for float literals it parses also the form "a/b" as accepted by the
 // method big.Rat.SetString.
 //
