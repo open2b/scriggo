@@ -1,4 +1,4 @@
-// skip : unary xor not implemented https://github.com/open2b/scriggo/issues/241
+// skip : panic: BUG: not supported
 
 // run
 

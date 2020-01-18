@@ -314,7 +314,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				panic(tc.errorf(expr, "invalid operation: ! %s", t))
 			}
 			if t.IsConstant() {
-				ti.Constant, _ = t.Constant.unaryOp(ast.OperatorNot)
+				ti.Constant, _ = t.Constant.unaryOp(ast.OperatorNot, nil)
 			}
 		case ast.OperatorAddition:
 			if t.Nil() || !isNumeric(k) {
@@ -328,7 +328,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				panic(tc.errorf(expr, "invalid operation: - %s", t))
 			}
 			if t.IsConstant() {
-				ti.Constant, _ = t.Constant.unaryOp(ast.OperatorSubtraction)
+				ti.Constant, _ = t.Constant.unaryOp(ast.OperatorSubtraction, nil)
 				if !t.Untyped() {
 					if _, err := ti.Constant.representedBy(ti.Type); err != nil {
 						panic(tc.errorf(expr, "%s", err))
@@ -370,7 +370,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				panic(tc.errorf(expr, "invalid operation: ^ %s", t))
 			}
 			if t.IsConstant() {
-				ti.Constant, _ = t.Constant.unaryOp(ast.OperatorXor)
+				ti.Constant, _ = t.Constant.unaryOp(ast.OperatorXor, t.Type)
 			}
 		case ast.OperatorReceive:
 			if t.Nil() {

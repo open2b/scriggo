@@ -55,9 +55,10 @@ type constant interface {
 	// representable by a complex128 value, the result is undefined.
 	complex128() complex128
 
-	// unaryOp executes the unary operation op c1 and returns the result.
-	// Returns an error if the operation cannot be executed.
-	unaryOp(op ast.OperatorType) (constant, error)
+	// unaryOp executes the unary operation op c1 and returns the result. typ
+	// is the type of the constant and it is significant only if op is
+	// ast.OperatorXor. Returns an error if the operation cannot be executed.
+	unaryOp(op ast.OperatorType, typ reflect.Type) (constant, error)
 
 	// binaryOp executes the binary operation c1 op c2 and returns the result.
 	// Returns an error if the operation cannot be executed. If c1 and c2 are
@@ -85,6 +86,36 @@ type constant interface {
 	imag() constant
 }
 
+var negativeOne = big.NewInt(-1)
+
+var maxUnsignedValues = [...]uint64{
+	uint64(^uint(0)),
+	uint64(^uint8(0)),
+	uint64(^uint16(0)),
+	uint64(^uint32(0)),
+	^uint64(0),
+}
+
+var maxBigUnsignedValues = [...]*big.Int{
+	new(big.Int).SetUint64(uint64(^uint(0))),
+	big.NewInt(1<<8 - 1),
+	big.NewInt(1<<16 - 1),
+	big.NewInt(1<<32 - 1),
+	new(big.Int).SetUint64(1<<64 - 1),
+}
+
+// maxUnsigned returns the maximum value, as uint64, for an unsigned integer
+// given its kind.
+func maxUnsigned(kind reflect.Kind) uint64 {
+	return maxUnsignedValues[kind-reflect.Uint]
+}
+
+// maxBigUnsigned returns the maximum value, as *big.Int, for an unsigned
+// integer given its kind.
+func maxBigUnsigned(kind reflect.Kind) *big.Int {
+	return maxBigUnsignedValues[kind-reflect.Uint]
+}
+
 // boolConst represents a boolean constant.
 type boolConst bool
 
@@ -102,7 +133,7 @@ func (c1 boolConst) uint64() uint64         { return 0 }
 func (c1 boolConst) float64() float64       { return 0 }
 func (c1 boolConst) complex128() complex128 { return 0 }
 
-func (c1 boolConst) unaryOp(op ast.OperatorType) (constant, error) {
+func (c1 boolConst) unaryOp(op ast.OperatorType, typ reflect.Type) (constant, error) {
 	if op != ast.OperatorNot {
 		return nil, errInvalidOperation
 	}
@@ -165,7 +196,7 @@ func (c1 stringConst) uint64() uint64         { return 0 }
 func (c1 stringConst) float64() float64       { return 0 }
 func (c1 stringConst) complex128() complex128 { return 0 }
 
-func (c1 stringConst) unaryOp(op ast.OperatorType) (constant, error) {
+func (c1 stringConst) unaryOp(op ast.OperatorType, typ reflect.Type) (constant, error) {
 	return nil, errInvalidOperation
 }
 
@@ -231,7 +262,7 @@ func (c1 int64Const) uint64() uint64         { return uint64(c1) }
 func (c1 int64Const) float64() float64       { return float64(c1) }
 func (c1 int64Const) complex128() complex128 { return complex(float64(c1), 0) }
 
-func (c1 int64Const) unaryOp(op ast.OperatorType) (constant, error) {
+func (c1 int64Const) unaryOp(op ast.OperatorType, typ reflect.Type) (constant, error) {
 	switch op {
 	case ast.OperatorAddition:
 		return c1, nil
@@ -242,8 +273,15 @@ func (c1 int64Const) unaryOp(op ast.OperatorType) (constant, error) {
 		}
 		return -c1, nil
 	case ast.OperatorXor:
-		// TODO(marco)
-		panic("unary xor not yet implemented")
+		kind := typ.Kind()
+		if isSigned(kind) {
+			return ^c1, nil
+		}
+		c := maxUnsigned(kind) ^ uint64(c1)
+		if c > maxInt64 {
+			return newIntConst(int64(c1)).unaryOp(op, typ)
+		}
+		return int64Const(c), nil
 	}
 	return nil, errInvalidOperation
 }
@@ -432,7 +470,7 @@ func (c1 intConst) float64() float64 {
 }
 func (c1 intConst) complex128() complex128 { return complex(c1.float64(), 0) }
 
-func (c1 intConst) unaryOp(op ast.OperatorType) (constant, error) {
+func (c1 intConst) unaryOp(op ast.OperatorType, typ reflect.Type) (constant, error) {
 	switch op {
 	case ast.OperatorAddition:
 		return c1, nil
@@ -440,8 +478,14 @@ func (c1 intConst) unaryOp(op ast.OperatorType) (constant, error) {
 		i := new(big.Int).Set(c1.i)
 		return intConst{i: i.Neg(i)}, nil
 	case ast.OperatorXor:
-		// TODO(marco)
-		panic("unary xor not yet implemented")
+		var m *big.Int
+		if k := typ.Kind(); isSigned(k) {
+			m = negativeOne
+		} else {
+			m = maxBigUnsigned(k)
+		}
+		i := new(big.Int).Set(c1.i)
+		return intConst{i: i.Xor(m, i)}, nil
 	}
 	return nil, errInvalidOperation
 }
@@ -599,7 +643,7 @@ func (c1 float64Const) float64() float64 {
 }
 func (c1 float64Const) complex128() complex128 { return complex(float64(c1), 0) }
 
-func (c1 float64Const) unaryOp(op ast.OperatorType) (constant, error) {
+func (c1 float64Const) unaryOp(op ast.OperatorType, typ reflect.Type) (constant, error) {
 	switch op {
 	case ast.OperatorAddition:
 		return c1, nil
@@ -749,7 +793,7 @@ func (c1 floatConst) float64() float64 {
 }
 func (c1 floatConst) complex128() complex128 { return complex(c1.float64(), 0) }
 
-func (c1 floatConst) unaryOp(op ast.OperatorType) (constant, error) {
+func (c1 floatConst) unaryOp(op ast.OperatorType, typ reflect.Type) (constant, error) {
 	switch op {
 	case ast.OperatorAddition:
 		return c1, nil
@@ -878,7 +922,7 @@ func (c1 ratConst) uint64() uint64         { return c1.r.Num().Uint64() }
 func (c1 ratConst) float64() float64       { f, _ := c1.r.Float64(); return f }
 func (c1 ratConst) complex128() complex128 { return complex(c1.float64(), 0) }
 
-func (c1 ratConst) unaryOp(op ast.OperatorType) (constant, error) {
+func (c1 ratConst) unaryOp(op ast.OperatorType, typ reflect.Type) (constant, error) {
 	switch op {
 	case ast.OperatorAddition:
 		return c1, nil
@@ -1010,13 +1054,13 @@ func (c1 complexConst) uint64() uint64         { return c1.r.uint64() }
 func (c1 complexConst) float64() float64       { return c1.r.float64() }
 func (c1 complexConst) complex128() complex128 { return complex(c1.r.float64(), c1.i.float64()) }
 
-func (c1 complexConst) unaryOp(op ast.OperatorType) (constant, error) {
+func (c1 complexConst) unaryOp(op ast.OperatorType, typ reflect.Type) (constant, error) {
 	switch op {
 	case ast.OperatorAddition:
 		return c1, nil
 	case ast.OperatorSubtraction:
-		r, _ := c1.r.unaryOp(op)
-		i, _ := c1.i.unaryOp(op)
+		r, _ := c1.r.unaryOp(op, nil)
+		i, _ := c1.i.unaryOp(op, nil)
 		return complexConst{r: r, i: i}, nil
 	}
 	return nil, errInvalidOperation
