@@ -930,6 +930,28 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		em.changeRegister(false, tmp2, reg, operandType, dstType)
 		em.fb.exitStack()
 
+	// ^operand
+	case ast.OperatorXor:
+		if reg == 0 {
+			em.emitExprR(operand, dstType, 0)
+			return
+		}
+		kind := operandType.Kind()
+		em.fb.enterStack()
+		// TODO: improve this code:
+		tmp := em.fb.newRegister(kind)
+		em.emitExprR(operand, operandType, tmp)
+		tmp2 := em.fb.newRegister(kind)
+		if isSigned(kind) {
+			em.changeRegister(true, -1, tmp2, operandType, operandType)
+		} else {
+			m := maxUnsigned(kind)
+			em.fb.emitLoadNumber(intRegister, em.fb.makeIntConstant(int64(m)), tmp2)
+		}
+		em.fb.emitXor(false, tmp2, tmp, tmp2, kind)
+		em.changeRegister(false, tmp2, reg, operandType, dstType)
+		em.fb.exitStack()
+
 	default:
 		panic(fmt.Errorf("BUG: not implemented operator %s", unOp.Operator()))
 	}
