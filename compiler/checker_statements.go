@@ -709,7 +709,6 @@ nodesLoop:
 			}
 
 		case *ast.URL:
-			// https://github.com/open2b/scriggo/issues/389
 			node.Value = tc.checkNodes(node.Value)
 
 		case *ast.UnaryOperator:
