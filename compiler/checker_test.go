@@ -700,6 +700,8 @@ var checkerStmts = map[string]string{
 	`const a = 3.14 / 0.0`:                   `division by zero`,
 	`const _ = uint(-1)`:                     `constant -1 overflows uint`,
 	`const _ = int(3.14)`:                    `constant 3.14 truncated to integer`,
+	`const b uint64 = 1<<64-1; _ = -b`:       `constant -18446744073709551615 overflows uint64`,
+	`const b int64 = -1<<63; _ = -b`:         `constant 9223372036854775808 overflows int64`,
 	`const c = 15 / 4.0; const Θ float64 = 3/2; const ic = complex(0, c)`: ok,
 	`const d = 1 << 3.0`:                                  ok,
 	`const e = 1.0 << 3`:                                  ok,

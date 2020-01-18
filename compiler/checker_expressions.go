@@ -329,6 +329,11 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			}
 			if t.IsConstant() {
 				ti.Constant, _ = t.Constant.unaryOp(ast.OperatorSubtraction)
+				if !t.Untyped() {
+					if _, err := ti.Constant.representedBy(ti.Type); err != nil {
+						panic(tc.errorf(expr, "%s", err))
+					}
+				}
 			}
 		case ast.OperatorMultiplication:
 			if t.Nil() {
