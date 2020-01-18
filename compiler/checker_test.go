@@ -89,6 +89,7 @@ var checkerExprs = []struct {
 	{`-5i`, tiUntypedComplexConst("-5i"), nil},
 	{`-5.7i`, tiUntypedComplexConst("-5.7i"), nil},
 	{`-'a'`, tiUntypedRuneConst(-'a'), nil},
+	{`^1`, tiUntypedIntConst("-2"), nil},
 
 	// Operations ( typed constant )
 	{`!a`, tiBoolConst(false), map[string]*typeInfo{"a": tiBoolConst(true)}},
@@ -103,6 +104,7 @@ var checkerExprs = []struct {
 	{`-a`, tiInt32Const(-'a'), map[string]*typeInfo{"a": tiInt32Const('a')}},
 	{`-a`, tiComplex128Const(-2 - 5.7i), map[string]*typeInfo{"a": tiComplex128Const(2 + 5.7i)}},
 	{`-a`, tiComplex64Const(2 + 5.7i), map[string]*typeInfo{"a": tiComplex64Const(-2 - 5.7i)}},
+	{`^a`, tiIntConst(-2), map[string]*typeInfo{"a": tiIntConst(1)}},
 
 	// Operations ( typed )
 	{`!a`, tiBool(), map[string]*typeInfo{"a": tiBool()}},
@@ -114,6 +116,7 @@ var checkerExprs = []struct {
 	{`-a`, tiFloat64(), map[string]*typeInfo{"a": tiFloat64()}},
 	{`-a`, tiInt32(), map[string]*typeInfo{"a": tiInt32()}},
 	{`-a`, tiComplex128(), map[string]*typeInfo{"a": tiComplex128()}},
+	{`^a`, tiInt(), map[string]*typeInfo{"a": tiInt()}},
 	{`*a`, tiAddrInt(), map[string]*typeInfo{"a": tiIntPtr()}},
 	{`&a`, tiIntPtr(), map[string]*typeInfo{"a": tiAddrInt()}},
 	{`&[]int{}`, &typeInfo{Type: reflect.PtrTo(reflect.SliceOf(intType))}, nil},
@@ -889,6 +892,7 @@ var checkerStmts = map[string]string{
 	`*nil`:  `invalid indirect of nil`,
 	`&nil`:  `cannot take the address of nil`,
 	`<-nil`: `use of untyped nil`,
+	`^nil`:  `invalid operation: ^ nil`,
 
 	// Increments (++) and decrements (--).
 	`a := 1; a++`:   ok,
