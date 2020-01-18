@@ -20,6 +20,7 @@ func main() {
 				println(i, "/", j, "=", i/j)
 				println(i, "%", j, "=", i%j)
 			}
+			println(i, "^", j, "=", i^j)
 		}
 		for j := 0; j <= 64; j++ {
 			println(i, "<<", j, "=", i<<j)
@@ -40,6 +41,7 @@ func main() {
 				println(i, "/", j, "=", i/j)
 				println(i, "%", j, "=", i%j)
 			}
+			println(i, "^", j, "=", i^j)
 		}
 		for j := 0; j <= 64; j++ {
 			println(i, "<<", j, "=", i<<j)
@@ -60,6 +62,7 @@ func main() {
 				println(i, "/", j, "=", i/j)
 				println(i, "%", j, "=", i%j)
 			}
+			println(i, "^", j, "=", i^j)
 		}
 		for j := 0; j <= 64; j++ {
 			println(i, "<<", j, "=", i<<j)
@@ -81,6 +84,7 @@ func main() {
 				println(i, "/", j, "=", i/j)
 				println(i, "%", j, "=", i%j)
 			}
+			println(i, "^", j, "=", i^j)
 		}
 		for j := 0; j <= 64; j++ {
 			println(i, "<<", j, "=", i<<j)
