@@ -275,7 +275,7 @@ func detectTypeLoop(types []*ast.TypeDeclaration, deps packageDeclsDeps) error {
 			// definitions is the same as for type declarations. Is this
 			// correct?
 		}
-		path := []*ast.Identifier{t.Identifier}
+		path := []*ast.Identifier{t.Ident}
 		loopPath := checkDepsPath(path, deps)
 		if loopPath != nil {
 			msg := "invalid recursive type alias " + t.String() + "\n"
@@ -342,7 +342,7 @@ func sortDeclarations(pkg *ast.Package) error {
 				}
 			}
 			for _, t := range types {
-				if t.Identifier.Name == d.Name {
+				if t.Ident.Name == d.Name {
 					newDs = append(newDs, d)
 				}
 			}
@@ -382,10 +382,10 @@ typesLoop:
 		// Searches for next type declaration with resolved deps.
 		for i, t := range types {
 			depsOk := true
-			for _, dep := range deps[t.Identifier] {
+			for _, dep := range deps[t.Ident] {
 				found := false
 				for _, resolvedT := range sortedTypes {
-					if dep.Name == resolvedT.Identifier.Name {
+					if dep.Name == resolvedT.Ident.Name {
 						// This dependency has been resolved: move
 						// on checking for next one.
 						found = true
@@ -430,7 +430,7 @@ constsLoop:
 					}
 				}
 				for _, t := range sortedTypes {
-					if dep.Name == t.Identifier.Name {
+					if dep.Name == t.Ident.Name {
 						// This dependency has been resolved: move
 						// on checking for next one.
 						found = true
@@ -496,7 +496,7 @@ varsLoop:
 					}
 				}
 				for _, t := range sortedTypes {
-					if dep.Name == t.Identifier.Name {
+					if dep.Name == t.Ident.Name {
 						// This dependency has been resolved: move
 						// on checking for next one.
 						found = true
@@ -579,7 +579,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 				}
 			}
 		case *ast.TypeDeclaration:
-			if name := decl.Identifier.Name; name == "init" || name == "main" {
+			if name := decl.Ident.Name; name == "init" || name == "main" {
 				panic(tc.errorf(decl.Pos(), "cannot declare %s - must be func", name))
 			}
 		case *ast.Import:
@@ -610,7 +610,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 		if td, ok := d.(*ast.TypeDeclaration); ok {
 			name, ti := tc.checkTypeDeclaration(td)
 			if ti != nil {
-				tc.assignScope(name, ti, td.Identifier)
+				tc.assignScope(name, ti, td.Ident)
 			}
 		}
 	}

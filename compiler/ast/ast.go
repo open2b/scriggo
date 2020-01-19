@@ -632,21 +632,21 @@ func NewSelectCase(pos *Position, comm Node, body []Node) *SelectCase {
 // declaration or a type definition.
 type TypeDeclaration struct {
 	*Position                      // position in the source.
-	Identifier         *Identifier // identifier of the type.
+	Ident              *Identifier // identifier of the type.
 	Type               Expression  // expression representing the type.
 	IsAliasDeclaration bool        // reports whether it is an alias declaration or a type definition.
 }
 
 func (n *TypeDeclaration) String() string {
 	if n.IsAliasDeclaration {
-		return fmt.Sprintf("type %s = %s", n.Identifier.Name, n.Type.String())
+		return fmt.Sprintf("type %s = %s", n.Ident.Name, n.Type.String())
 	}
-	return fmt.Sprintf("type %s %s", n.Identifier.Name, n.Type.String())
+	return fmt.Sprintf("type %s %s", n.Ident.Name, n.Type.String())
 }
 
 // NewTypeDeclaration returns a new TypeDeclaration node.
-func NewTypeDeclaration(pos *Position, identifier *Identifier, typ Expression, isAliasDeclaration bool) *TypeDeclaration {
-	return &TypeDeclaration{pos, identifier, typ, isAliasDeclaration}
+func NewTypeDeclaration(pos *Position, ident *Identifier, typ Expression, isAliasDeclaration bool) *TypeDeclaration {
+	return &TypeDeclaration{pos, ident, typ, isAliasDeclaration}
 }
 
 // Macro node represents a statement {% macro ... %}.

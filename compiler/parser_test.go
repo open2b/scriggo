@@ -1869,7 +1869,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
-		err := equals(nn1.Identifier, nn2.Identifier, p)
+		err := equals(nn1.Ident, nn2.Ident, p)
 		if err != nil {
 			return err
 		}

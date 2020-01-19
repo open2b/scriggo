@@ -124,7 +124,7 @@ func (d deps) analyzeGlobalMacro(n *ast.Macro) {
 
 // analyzeGlobalTypeDeclaration analyzes a global type declaration.
 func (d deps) analyzeGlobalTypeDeclaration(td *ast.TypeDeclaration) {
-	d.addDepsToGlobal(td.Identifier, td.Type, nil)
+	d.addDepsToGlobal(td.Ident, td.Type, nil)
 }
 
 // analyzeTree analyzes tree returning a data structure holding all dependencies

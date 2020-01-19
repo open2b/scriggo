@@ -554,7 +554,7 @@ nodesLoop:
 		case *ast.TypeDeclaration:
 			name, ti := tc.checkTypeDeclaration(node)
 			if ti != nil {
-				tc.assignScope(name, ti, node.Identifier)
+				tc.assignScope(name, ti, node.Ident)
 			}
 
 		case *ast.Show:
@@ -1109,10 +1109,10 @@ func (tc *typechecker) checkReturn(node *ast.Return) ast.Node {
 //
 func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) (string, *typeInfo) {
 	typ := tc.checkType(node.Type)
-	if isBlankIdentifier(node.Identifier) {
+	if isBlankIdentifier(node.Ident) {
 		return "", nil
 	}
-	name := node.Identifier.Name
+	name := node.Ident.Name
 	if node.IsAliasDeclaration {
 		// Return the base type.
 		return name, typ
