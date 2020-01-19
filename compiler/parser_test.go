@@ -1854,8 +1854,8 @@ func equals(n1, n2 ast.Node, p int) error {
 		for i := range nn1.Fields {
 			fd1 := nn1.Fields[i]
 			fd2 := nn2.Fields[i]
-			if len(fd1.IdentifierList) != len(fd2.IdentifierList) {
-				return fmt.Errorf("struct type: field %d: expecting %d identifiers, got %d", i, len(fd2.IdentifierList), len(fd1.IdentifierList))
+			if len(fd1.Idents) != len(fd2.Idents) {
+				return fmt.Errorf("struct type: field %d: expecting %d identifiers, got %d", i, len(fd2.Idents), len(fd1.Idents))
 			}
 			err := equals(fd1.Type, fd2.Type, p)
 			if err != nil {

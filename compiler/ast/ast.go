@@ -932,21 +932,21 @@ func (n *StructType) String() string {
 // declaration can be explicit (having an identifier list and a type) or
 // implicit (having a type only).
 type Field struct {
-	IdentifierList []*Identifier // if nil is an embedded field.
-	Type           Expression
-	Tag            *string
+	Idents []*Identifier // identifiers. If nil is an embedded field.
+	Type   Expression
+	Tag    *string
 }
 
 // NewField returns a new NewField node.
-func NewField(identifierList []*Identifier, typ Expression, tag *string) *Field {
-	return &Field{identifierList, typ, tag}
+func NewField(idents []*Identifier, typ Expression, tag *string) *Field {
+	return &Field{idents, typ, tag}
 }
 
 func (n *Field) String() string {
 	s := ""
-	for i, ident := range n.IdentifierList {
+	for i, ident := range n.Idents {
 		s += ident.String()
-		if i != len(n.IdentifierList)-1 {
+		if i != len(n.Idents)-1 {
 			s += ","
 		}
 		s += " "

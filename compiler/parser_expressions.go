@@ -114,13 +114,13 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 						if tok.typ == tokenSemicolon {
 							tok = p.next()
 						}
-						fieldDecl.IdentifierList = make([]*ast.Identifier, len(exprs))
+						fieldDecl.Idents = make([]*ast.Identifier, len(exprs))
 						for i, e := range exprs {
 							ident, ok := e.(*ast.Identifier)
 							if !ok {
 								panic(syntaxError(tok.pos, "unexpected %s, expecting field name or embedded type ", e))
 							}
-							fieldDecl.IdentifierList[i] = ident
+							fieldDecl.Idents[i] = ident
 						}
 						fieldDecl.Type = typ
 					}

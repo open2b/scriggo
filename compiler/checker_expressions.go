@@ -414,11 +414,11 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		fields := []reflect.StructField{}
 		for _, fd := range expr.Fields {
 			typ := tc.checkType(fd.Type).Type
-			if fd.IdentifierList == nil {
+			if fd.Idents == nil {
 				// Not implemented: see https://github.com/open2b/scriggo/issues/367
 			} else {
 				// Explicit field declaration.
-				for _, ident := range fd.IdentifierList {
+				for _, ident := range fd.Idents {
 					// If the field name is unexported, it's impossible to
 					// create an new reflect.Type due to the limits that the
 					// package 'reflect' currently has. The solution adopted is
