@@ -222,7 +222,7 @@ func Walk(v Visitor, node ast.Node) {
 		Walk(v, n.Call)
 
 	case *ast.Label:
-		Walk(v, n.Name)
+		Walk(v, n.Ident)
 		Walk(v, n.Statement)
 
 	case *ast.Goto:

@@ -719,11 +719,11 @@ nodesLoop:
 			tc.gotos = append(tc.gotos, node.Label.Name)
 
 		case *ast.Label:
-			tc.labels[len(tc.labels)-1] = append(tc.labels[len(tc.labels)-1], node.Name.Name)
+			tc.labels[len(tc.labels)-1] = append(tc.labels[len(tc.labels)-1], node.Ident.Name)
 			for i, g := range tc.gotos {
-				if g == node.Name.Name {
+				if g == node.Ident.Name {
 					if i < tc.nextValidGoto {
-						panic(tc.errorf(node, "goto %s jumps over declaration of ? at ?", node.Name.Name)) // TODO(Gianluca).
+						panic(tc.errorf(node, "goto %s jumps over declaration of ? at ?", node.Ident.Name)) // TODO(Gianluca).
 					}
 					break
 				}
