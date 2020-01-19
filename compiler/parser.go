@@ -1018,29 +1018,24 @@ LABEL:
 
 	// import
 	case tokenImport:
-		var outOfOrder bool
-		switch p := p.parent().(type) {
+		switch parent := p.parent().(type) {
 		case *ast.Tree:
-			for i := len(p.Nodes) - 1; i >= 0; i-- {
-				switch p.Nodes[i].(type) {
+			for i := len(parent.Nodes) - 1; i >= 0; i-- {
+				switch parent.Nodes[i].(type) {
 				case *ast.Extends, *ast.Import:
 					break
 				case *ast.Text, *ast.Comment:
 				default:
-					outOfOrder = true
-					break
+					panic(syntaxError(tok.pos, "unexpected import, expecting statement"))
 				}
 			}
 		case *ast.Package:
-			if len(p.Declarations) > 0 {
-				if _, ok := p.Declarations[0].(*ast.Import); !ok {
-					outOfOrder = true
+			for _, declaration := range parent.Declarations {
+				if _, ok := declaration.(*ast.Import); !ok {
+					panic(syntaxError(tok.pos, "non-declaration statement outside function body"))
 				}
 			}
 		default:
-			outOfOrder = true
-		}
-		if outOfOrder {
 			if p.isTemplate {
 				panic(syntaxError(tok.pos, "unexpected import, expecting statement"))
 			}
