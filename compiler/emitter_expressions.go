@@ -654,7 +654,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 		}
 		tmp := em.fb.newRegister(reflect.Map)
 		size := len(expr.KeyValues)
-		if 0 <= size && size <= 127 {
+		if size <= 127 {
 			em.fb.emitMakeMap(typ, true, int8(size), tmp)
 		} else {
 			sizeReg := em.fb.makeIntConstant(int64(size))
