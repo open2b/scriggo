@@ -548,16 +548,6 @@ varsLoop:
 
 }
 
-// checkPackageLevelName checks package level names for "init" and "main".
-func (tc *typechecker) checkPackageLevelName(pos *ast.Position, name string) {
-	switch name {
-	case "init":
-		panic(tc.errorf(pos, "cannot declare init - must be func"))
-	case "main":
-		panic(tc.errorf(pos, "cannot declare main - must be func"))
-	}
-}
-
 // checkPackage type checks a package.
 func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos map[string]*packageInfo, opts checkerOptions, globalScope typeCheckerScope) (err error) {
 
@@ -578,14 +568,24 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 		switch decl := decl.(type) {
 		case *ast.Var:
 			for _, d := range decl.Lhs {
-				tc.checkPackageLevelName(d.Pos(), d.Name)
+				if d.Name == "init" || d.Name == "main" {
+					panic(tc.errorf(d.Pos(), "cannot declare %s - must be func", d.Name))
+				}
 			}
 		case *ast.Const:
 			for _, d := range decl.Lhs {
-				tc.checkPackageLevelName(d.Pos(), d.Name)
+				if d.Name == "init" || d.Name == "main" {
+					panic(tc.errorf(d.Pos(), "cannot declare %s - must be func", d.Name))
+				}
 			}
 		case *ast.TypeDeclaration:
-			tc.checkPackageLevelName(decl.Pos(), decl.Identifier.Name)
+			if name := decl.Identifier.Name; name == "init" || name == "main" {
+				panic(tc.errorf(decl.Pos(), "cannot declare %s - must be func", name))
+			}
+		case *ast.Import:
+			if decl.Ident != nil && decl.Ident.Name == "init" {
+				panic(tc.errorf(decl.Pos(), "cannot import package as init - init must be a func"))
+			}
 		}
 	}
 

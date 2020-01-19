@@ -2,6 +2,10 @@
 
 package main
 
+import (
+	init "os"  // ERROR `cannot import package as init - init must be a func`
+)
+
 var init = 5 // ERROR `cannot declare init - must be func`
 var main = 5 // ERROR `cannot declare main - must be func`
 
