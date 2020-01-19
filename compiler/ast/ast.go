@@ -1202,8 +1202,8 @@ type Const struct {
 	Index     int           // index of the declaration in the constant declaration group or 0 if not in a group.
 }
 
-func NewConst(pos *Position, identifiers []*Identifier, typ Expression, values []Expression, iotaValue int) *Const {
-	return &Const{pos, identifiers, typ, values, iotaValue}
+func NewConst(pos *Position, lhs []*Identifier, typ Expression, rhs []Expression, index int) *Const {
+	return &Const{pos, lhs, typ, rhs, index}
 }
 
 // Index node represents an index expression.
