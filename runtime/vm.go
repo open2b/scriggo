@@ -1378,6 +1378,8 @@ const (
 	OpMulInt
 	OpMulFloat64
 
+	OpNeg
+
 	OpNew
 
 	OpOr

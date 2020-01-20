@@ -903,6 +903,36 @@ func (vm *VM) run() (Addr, bool) {
 		case OpMulFloat64, -OpMulFloat64:
 			vm.setFloat(c, vm.float(a)*vm.floatk(b, op < 0))
 
+		// Neg
+		case OpNeg:
+			switch a := reflect.Kind(a); a {
+			case reflect.Float32:
+				vm.setFloat(c, float64(-float32(vm.float(b))))
+			case reflect.Float64:
+				vm.setFloat(c, -vm.float(b))
+			default:
+				v := vm.int(b)
+				switch a {
+				case reflect.Int8:
+					v = int64(-int8(v))
+				case reflect.Int16:
+					v = int64(-int16(v))
+				case reflect.Int32:
+					v = int64(-int32(v))
+				case reflect.Int64:
+					v = -v
+				case reflect.Uint8:
+					v = int64(-uint8(v))
+				case reflect.Uint16:
+					v = int64(-uint16(v))
+				case reflect.Uint32:
+					v = int64(-uint32(v))
+				case reflect.Uint64:
+					v = int64(-uint64(v))
+				}
+				vm.setInt(c, v)
+			}
+
 		// New
 		case OpNew:
 			t := vm.fn.Types[uint8(b)]

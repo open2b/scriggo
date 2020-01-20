@@ -539,6 +539,13 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			s += " " + disassembleOperand(fn, b, reflect.Interface, k)
 			s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 		}
+	case runtime.OpNeg:
+		kind := reflect.Kind(a)
+		if kind != reflect.Int && kind != reflect.Float64 {
+			s += " " + kind.String()
+		}
+		s += " " + disassembleOperand(fn, b, kind, false)
+		s += " " + disassembleOperand(fn, c, kind, false)
 	case runtime.OpNew:
 		s += " " + fn.Types[int(uint(b))].String()
 		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
@@ -904,6 +911,8 @@ var operationName = [...]string{
 	runtime.OpMul:        "Mul",
 	runtime.OpMulInt:     "Mul",
 	runtime.OpMulFloat64: "Mul",
+
+	runtime.OpNeg: "Neg",
 
 	runtime.OpNew: "New",
 

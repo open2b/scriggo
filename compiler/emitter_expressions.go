@@ -920,15 +920,16 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 			em.emitExprR(operand, dstType, 0)
 			return
 		}
-		em.fb.enterStack()
-		// TODO: improve this code:
-		tmp := em.fb.newRegister(operandType.Kind())
-		em.emitExprR(operand, operandType, tmp)
-		tmp2 := em.fb.newRegister(operandType.Kind())
-		em.changeRegister(true, 0, tmp2, operandType, operandType)
-		em.fb.emitSub(false, tmp2, tmp, tmp2, operandType.Kind())
-		em.changeRegister(false, tmp2, reg, operandType, dstType)
-		em.fb.exitStack()
+		em.fb.enterScope()
+		op := em.emitExpr(operand, operandType)
+		if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
+			em.fb.emitNeg(op, reg, dstType.Kind())
+		} else {
+			tmp := em.fb.newRegister(operandType.Kind())
+			em.fb.emitNeg(op, tmp, operandType.Kind())
+			em.changeRegister(false, tmp, reg, operandType, dstType)
+		}
+		em.fb.exitScope()
 
 	// ^operand
 	case ast.OperatorXor:
