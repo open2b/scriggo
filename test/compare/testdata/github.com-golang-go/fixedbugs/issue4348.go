@@ -1,3 +1,5 @@
+// skip : out of memory https://github.com/open2b/scriggo/issues/545
+
 // compile
 
 // Copyright 2012 The Go Authors. All rights reserved.
