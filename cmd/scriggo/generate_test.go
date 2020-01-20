@@ -11,7 +11,7 @@ import (
 )
 
 func Test_renderPackages(t *testing.T) {
-	t.Skip() // TODO.
+	t.Skip() // TODO:https://github.com/open2b/scriggo/issues/546
 	// NOTE: these tests ignores whitespaces, imports and comments.
 	cases := map[string]struct {
 		sf       *scriggofile
@@ -250,7 +250,7 @@ func _cleanOutput(s string) string {
 }
 
 func Test_parseGoPackage(t *testing.T) {
-	t.Skip() // TODO
+	t.Skip() // TODO:https://github.com/open2b/scriggo/issues/546
 	cases := map[string]struct {
 		name  string            // package name.
 		decls map[string]string // package declarations.

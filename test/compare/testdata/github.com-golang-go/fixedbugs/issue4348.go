@@ -1,4 +1,4 @@
-// skip
+// skip : out of memory https://github.com/open2b/scriggo/issues/545
 
 // compile
 
