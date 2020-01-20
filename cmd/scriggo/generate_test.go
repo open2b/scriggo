@@ -11,7 +11,6 @@ import (
 )
 
 func Test_renderPackages(t *testing.T) {
-	t.Skip() // TODO:https://github.com/open2b/scriggo/issues/546
 	// NOTE: these tests ignores whitespaces, imports and comments.
 	cases := map[string]struct {
 		sf       *scriggofile
@@ -105,20 +104,20 @@ func Test_renderPackages(t *testing.T) {
 				decs["NewReader"] = tar.NewReader
 				decs["NewWriter"] = tar.NewWriter
 				decs["Reader"] = reflect.TypeOf((*tar.Reader)(nil)).Elem()
-				decs["TypeBlock"] = UntypedConstant("52")
-				decs["TypeChar"] = UntypedConstant("51")
-				decs["TypeCont"] = UntypedConstant("55")
-				decs["TypeDir"] = UntypedConstant("53")
-				decs["TypeFifo"] = UntypedConstant("54")
-				decs["TypeGNULongLink"] = UntypedConstant("75")
-				decs["TypeGNULongName"] = UntypedConstant("76")
-				decs["TypeGNUSparse"] = UntypedConstant("83")
-				decs["TypeLink"] = UntypedConstant("49")
-				decs["TypeReg"] = UntypedConstant("48")
-				decs["TypeRegA"] = UntypedConstant("0")
-				decs["TypeSymlink"] = UntypedConstant("50")
-				decs["TypeXGlobalHeader"] = UntypedConstant("103")
-				decs["TypeXHeader"] = UntypedConstant("120")
+				decs["TypeBlock"] = UntypedNumericConst("52")
+				decs["TypeChar"] = UntypedNumericConst("51")
+				decs["TypeCont"] = UntypedNumericConst("55")
+				decs["TypeDir"] = UntypedNumericConst("53")
+				decs["TypeFifo"] = UntypedNumericConst("54")
+				decs["TypeGNULongLink"] = UntypedNumericConst("75")
+				decs["TypeGNULongName"] = UntypedNumericConst("76")
+				decs["TypeGNUSparse"] = UntypedNumericConst("83")
+				decs["TypeLink"] = UntypedNumericConst("49")
+				decs["TypeReg"] = UntypedNumericConst("48")
+				decs["TypeRegA"] = UntypedNumericConst("0")
+				decs["TypeSymlink"] = UntypedNumericConst("50")
+				decs["TypeXGlobalHeader"] = UntypedNumericConst("103")
+				decs["TypeXHeader"] = UntypedNumericConst("120")
 				decs["Writer"] = reflect.TypeOf((*tar.Writer)(nil)).Elem()
 				packages["archive/tar"] = &MapPackage{
 					PkgName: "tar",
@@ -250,7 +249,6 @@ func _cleanOutput(s string) string {
 }
 
 func Test_parseGoPackage(t *testing.T) {
-	t.Skip() // TODO:https://github.com/open2b/scriggo/issues/546
 	cases := map[string]struct {
 		name  string            // package name.
 		decls map[string]string // package declarations.
@@ -302,20 +300,20 @@ func Test_parseGoPackage(t *testing.T) {
 				"NewReader":          "tar.NewReader",
 				"NewWriter":          "tar.NewWriter",
 				"Reader":             "reflect.TypeOf((*tar.Reader)(nil)).Elem()",
-				"TypeBlock":          "UntypedConstant(\"52\")",
-				"TypeChar":           "UntypedConstant(\"51\")",
-				"TypeCont":           "UntypedConstant(\"55\")",
-				"TypeDir":            "UntypedConstant(\"53\")",
-				"TypeFifo":           "UntypedConstant(\"54\")",
-				"TypeGNULongLink":    "UntypedConstant(\"75\")",
-				"TypeGNULongName":    "UntypedConstant(\"76\")",
-				"TypeGNUSparse":      "UntypedConstant(\"83\")",
-				"TypeLink":           "UntypedConstant(\"49\")",
-				"TypeReg":            "UntypedConstant(\"48\")",
-				"TypeRegA":           "UntypedConstant(\"0\")",
-				"TypeSymlink":        "UntypedConstant(\"50\")",
-				"TypeXGlobalHeader":  "UntypedConstant(\"103\")",
-				"TypeXHeader":        "UntypedConstant(\"120\")",
+				"TypeBlock":          "UntypedNumericConst(\"52\")",
+				"TypeChar":           "UntypedNumericConst(\"51\")",
+				"TypeCont":           "UntypedNumericConst(\"55\")",
+				"TypeDir":            "UntypedNumericConst(\"53\")",
+				"TypeFifo":           "UntypedNumericConst(\"54\")",
+				"TypeGNULongLink":    "UntypedNumericConst(\"75\")",
+				"TypeGNULongName":    "UntypedNumericConst(\"76\")",
+				"TypeGNUSparse":      "UntypedNumericConst(\"83\")",
+				"TypeLink":           "UntypedNumericConst(\"49\")",
+				"TypeReg":            "UntypedNumericConst(\"48\")",
+				"TypeRegA":           "UntypedNumericConst(\"0\")",
+				"TypeSymlink":        "UntypedNumericConst(\"50\")",
+				"TypeXGlobalHeader":  "UntypedNumericConst(\"103\")",
+				"TypeXHeader":        "UntypedNumericConst(\"120\")",
 				"Writer":             "reflect.TypeOf((*tar.Writer)(nil)).Elem()",
 			},
 		},
