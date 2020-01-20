@@ -700,7 +700,7 @@ func (builder *functionBuilder) emitMul(ky bool, x, y, z int8, kind reflect.Kind
 //     z = -y
 //
 func (builder *functionBuilder) emitNeg(y, z int8, kind reflect.Kind) {
-	x := int8(kind)
+	x := int8(flattenIntegerKind(kind))
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpNeg, A: x, B: y, C: z})
 }
 
