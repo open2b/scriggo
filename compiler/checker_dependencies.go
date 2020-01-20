@@ -102,7 +102,9 @@ func (d deps) analyzeGlobalFunc(n *ast.Func) {
 		}
 	}
 	d.addDepsToGlobal(n.Ident, n.Type, scopes)
-	d.addDepsToGlobal(n.Ident, n.Body, scopes)
+	if n.Body != nil {
+		d.addDepsToGlobal(n.Ident, n.Body, scopes)
+	}
 }
 
 // analyzeGlobalMacro analyzes a global macro declaration.
@@ -122,7 +124,7 @@ func (d deps) analyzeGlobalMacro(n *ast.Macro) {
 
 // analyzeGlobalTypeDeclaration analyzes a global type declaration.
 func (d deps) analyzeGlobalTypeDeclaration(td *ast.TypeDeclaration) {
-	d.addDepsToGlobal(td.Identifier, td.Type, nil)
+	d.addDepsToGlobal(td.Ident, td.Type, nil)
 }
 
 // analyzeTree analyzes tree returning a data structure holding all dependencies
@@ -293,7 +295,10 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 			}
 		}
 		deps := nodeDeps(n.Type, scopes)
-		return append(deps, nodeDeps(n.Body, scopes)...)
+		if n.Body != nil {
+			deps = append(deps, nodeDeps(n.Body, scopes)...)
+		}
+		return deps
 	case *ast.FuncType:
 		deps := []*ast.Identifier{}
 		for _, in := range n.Parameters {
@@ -314,7 +319,7 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 		return []*ast.Identifier{n}
 	case *ast.If:
 		scopes = enterScope(scopes)
-		deps := nodeDeps(n.Assignment, scopes)
+		deps := nodeDeps(n.Init, scopes)
 		deps = append(deps, nodeDeps(n.Condition, scopes)...)
 		scopes = enterScope(scopes)
 		deps = append(deps, nodeDeps(n.Then, scopes)...)

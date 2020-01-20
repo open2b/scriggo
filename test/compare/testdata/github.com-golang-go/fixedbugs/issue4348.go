@@ -1,5 +1,3 @@
-// skip : unary xor not implemented
-
 // compile
 
 // Copyright 2012 The Go Authors. All rights reserved.

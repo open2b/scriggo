@@ -144,7 +144,7 @@ func main() {
 			panic("timeout not supported when compiling a program")
 		}
 		loadOpts := &scriggo.LoadOptions{LimitMemorySize: limitMemorySize}
-		loadOpts.Unspec.DisallowGoStmt = *disallowGoStmt
+		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
 		_, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
@@ -155,8 +155,8 @@ func main() {
 			panic("timeout not supported when compiling a package-less program")
 		}
 		loadOpts := &scriggo.LoadOptions{LimitMemorySize: limitMemorySize}
-		loadOpts.Unspec.DisallowGoStmt = *disallowGoStmt
-		loadOpts.Unspec.PackageLess = true
+		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
+		loadOpts.OutOfSpec.PackageLess = true
 		_, err = scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
@@ -164,7 +164,7 @@ func main() {
 		}
 	case "run program":
 		loadOpts := &scriggo.LoadOptions{LimitMemorySize: limitMemorySize}
-		loadOpts.Unspec.DisallowGoStmt = *disallowGoStmt
+		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
 		program, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
@@ -183,8 +183,8 @@ func main() {
 		}
 	case "run script":
 		loadOpts := &scriggo.LoadOptions{LimitMemorySize: limitMemorySize}
-		loadOpts.Unspec.DisallowGoStmt = *disallowGoStmt
-		loadOpts.Unspec.PackageLess = true
+		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
+		loadOpts.OutOfSpec.PackageLess = true
 		script, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
@@ -203,7 +203,7 @@ func main() {
 		}
 	case "run program directory":
 		loadOpts := &scriggo.LoadOptions{LimitMemorySize: limitMemorySize}
-		loadOpts.Unspec.DisallowGoStmt = *disallowGoStmt
+		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
 		dirPath := flag.Args()[1]
 		dl := dirLoader(dirPath)
 		main, err := dl.Load("main")

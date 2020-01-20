@@ -1,4 +1,4 @@
-// skip : unary xor not implemented https://github.com/open2b/scriggo/issues/241
+// skip : panic: cannot allocate a new int register
 
 // run
 

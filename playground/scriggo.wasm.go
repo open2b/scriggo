@@ -1,4 +1,4 @@
-// +build js,wasm
+// +build js,wasm,go1.14
 
 package main
 
@@ -24,14 +24,14 @@ func newProgram(program *scriggo.Program) Program {
 		}
 		go func() {
 			_, err := program.Run(nil)
-			if !cb.Truthy() {
+			if cb.IsNull() || cb.IsUndefined() {
 				return
 			}
 			if err != nil {
-				cb.Invoke(err.Error());
+				cb.Invoke(err.Error())
 				return
 			}
-			cb.Invoke(nil);
+			cb.Invoke(nil)
 		}()
 		return nil
 	})
@@ -64,14 +64,14 @@ func main() {
 		}
 		go func() {
 			program, err := scriggo.Load(strings.NewReader(src), packages, nil)
-			if !cb.Truthy() {
+			if cb.IsNull() || cb.IsUndefined() {
 				return
 			}
 			if err != nil {
-				cb.Invoke(nil, err.Error());
+				cb.Invoke(nil, err.Error())
 				return
 			}
-			cb.Invoke(newProgram(program), nil);
+			cb.Invoke(newProgram(program), nil)
 		}()
 		return nil
 	}))

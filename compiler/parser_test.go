@@ -1854,8 +1854,8 @@ func equals(n1, n2 ast.Node, p int) error {
 		for i := range nn1.Fields {
 			fd1 := nn1.Fields[i]
 			fd2 := nn2.Fields[i]
-			if len(fd1.IdentifierList) != len(fd2.IdentifierList) {
-				return fmt.Errorf("struct type: field %d: expecting %d identifiers, got %d", i, len(fd2.IdentifierList), len(fd1.IdentifierList))
+			if len(fd1.Idents) != len(fd2.Idents) {
+				return fmt.Errorf("struct type: field %d: expecting %d identifiers, got %d", i, len(fd2.Idents), len(fd1.Idents))
 			}
 			err := equals(fd1.Type, fd2.Type, p)
 			if err != nil {
@@ -1869,7 +1869,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
-		err := equals(nn1.Identifier, nn2.Identifier, p)
+		err := equals(nn1.Ident, nn2.Ident, p)
 		if err != nil {
 			return err
 		}
@@ -2029,7 +2029,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
-		err = equals(nn1.Assignment, nn2.Assignment, p)
+		err = equals(nn1.Init, nn2.Init, p)
 		if err != nil {
 			return err
 		}
@@ -2401,7 +2401,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
-		err := equals(nn1.Name, nn2.Name, p)
+		err := equals(nn1.Ident, nn2.Ident, p)
 		if err != nil {
 			return err
 		}

@@ -1,4 +1,4 @@
-// skip : missing function body
+// skip : cannot be tested
 
 // errorcheck
 

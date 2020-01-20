@@ -347,17 +347,35 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 			if basic, ok := t.(*types.Basic); ok && basic.Info()&types.IsUntyped != 0 {
 				val := v.Val()
 				s := val.ExactString()
-				if val.Kind() == constant.Float && strings.Contains(s, "/") {
-					if rat, ok := new(big.Rat).SetString(s); ok {
-						s2 := rat.FloatString(512)
-						if rat2, ok := new(big.Rat).SetString(s2); ok && rat.Cmp(rat2) == 0 {
-							if f, ok := new(big.Float).SetPrec(512).SetString(s2); ok {
-								s = f.Text('g', -1)
+				var value string
+				switch val.Kind() {
+				case constant.String:
+					value = "UntypedStringConst(" + s + ")"
+				case constant.Bool:
+					value = "UntypedBooleanConst(" + s + ")"
+				case constant.Int:
+					value = "UntypedNumericConst(" + strconv.Quote(s) + ")"
+				case constant.Float:
+					if strings.Contains(s, "/") {
+						if rat, ok := new(big.Rat).SetString(s); ok {
+							s2 := rat.FloatString(512)
+							if rat2, ok := new(big.Rat).SetString(s2); ok && rat.Cmp(rat2) == 0 {
+								if f, ok := new(big.Float).SetPrec(512).SetString(s2); ok {
+									s = f.Text('g', -1)
+								}
 							}
 						}
+					} else if !strings.Contains(s, ".") {
+						s += ".0"
 					}
+					value = "UntypedNumericConst(" + strconv.Quote(s) + ")"
+				case constant.Complex:
+					s = strings.ReplaceAll(s[1:len(s)-1], " ", "")
+					value = "UntypedNumericConst(" + strconv.Quote(s) + ")"
+				default:
+					panic(fmt.Sprintf("Unexpected constant kind %d", val.Kind()))
 				}
-				decl[v.Name()] = "UntypedConstant(" + strconv.Quote(s) + ")"
+				decl[v.Name()] = value
 				numUntyped++
 			} else {
 				decl[v.Name()] = fmt.Sprintf("%s.%s", pkgBase, v.Name())

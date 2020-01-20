@@ -450,124 +450,99 @@ LABEL:
 	// for
 	case tokenFor:
 		pos := tok.pos
-		var node ast.Node
-		var init *ast.Assignment
-		var assignmentType ast.AssignmentType
-		var variables []ast.Expression
-		variables, tok = p.parseExprList(p.next(), false, false, true)
+		var node, init ast.Node
+		init, tok = p.parseSimpleStatement(p.next(), true, true)
 		switch tok.typ {
-		case tokenIn:
-			// Parses statement "for ident in expr".
-			if variables == nil {
-				panic(syntaxError(tok.pos, "unexpected in, expected expression"))
-			}
-			if len(variables) > 1 {
-				panic(syntaxError(variables[1].Pos(), "expected only one expression"))
-			}
-			ident, ok := variables[0].(*ast.Identifier)
-			if !ok {
-				panic(syntaxError(tok.pos, "unexpected in, expected assignment"))
-			}
-			if ident.Name == "_" {
-				panic(syntaxError(ident.Pos(), "cannot use _ as value"))
-			}
-			ipos := ident.Pos()
-			blank := ast.NewIdentifier(&ast.Position{Line: ipos.Line, Column: ipos.Column, Start: ipos.Start, End: ipos.Start}, "_")
-			// Parses the slice expression.
-			// TODO (Gianluca): nextIsBlockOpen should be true?
-			var expr ast.Expression
-			expr, tok = p.parseExpr(p.next(), false, false, false)
-			if expr == nil {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
-			}
-			assignment := ast.NewAssignment(&ast.Position{Line: ipos.Line, Column: ipos.Column, Start: ipos.Start, End: expr.Pos().End},
-				[]ast.Expression{blank, ident}, ast.AssignmentDeclaration, []ast.Expression{expr})
-			pos.End = tok.pos.End
-			node = ast.NewForRange(pos, assignment, nil)
-		case tokenLeftBraces, tokenEndBlock:
-			if (p.ctx == ast.ContextGo) != (tok.typ == tokenLeftBraces) {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting expression or %%}", tok))
-			}
-			// Parses statement "for".
-			if len(variables) > 1 {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
+		case tokenSemicolon:
+			// Parse:    for init ; cond ; post {
+			//        {% for init ; cond ; post %}
+			var cond ast.Node
+			cond, tok = p.parseSimpleStatement(p.next(), false, true)
+			if tok.typ != tokenSemicolon {
+				if cond == nil {
+					panic(syntaxError(tok.pos, "unexpected %s, expecting for loop condition", tok))
+				}
+				panic(syntaxError(tok.pos, "unexpected %s, expecting semicolon or newline", tok))
 			}
 			var condition ast.Expression
-			if len(variables) == 1 {
-				condition = variables[0]
+			if cond != nil {
+				condition, _ = cond.(ast.Expression)
+				if condition == nil {
+					if a, ok := cond.(*ast.Assignment); ok && a.Type == ast.AssignmentSimple {
+						panic(syntaxError(tok.pos, "assignment %s used as value", init))
+					}
+					panic(syntaxError(tok.pos, "%s used as value", init))
+				}
+			}
+			var post ast.Node
+			post, tok = p.parseSimpleStatement(p.next(), false, true)
+			if post != nil {
+				if a, ok := post.(*ast.Assignment); ok && a.Type == ast.AssignmentDeclaration {
+					panic(syntaxError(pos, "cannot declare in post statement of for loop"))
+				}
+			}
+			pos.End = tok.pos.End
+			node = ast.NewFor(pos, init, condition, post, nil)
+		case tokenLeftBraces, tokenEndBlock:
+			// Parse:    for cond {
+			//        {% for cond %}
+			var condition ast.Expression
+			if init != nil {
+				condition, _ = init.(ast.Expression)
+				if condition == nil {
+					if a, ok := init.(*ast.Assignment); ok && a.Type == ast.AssignmentSimple {
+						panic(syntaxError(tok.pos, "assignment %s used as value", init))
+					}
+					panic(syntaxError(tok.pos, "%s used as value", init))
+				}
 			}
 			pos.End = tok.pos.End
 			node = ast.NewFor(pos, nil, condition, nil, nil)
 		case tokenRange:
-			// Parses "for range expr".
-			if len(variables) > 0 {
-				panic(syntaxError(tok.pos, "unexpected range, expecting := or = or comma"))
+			// Parse:    for i, v := range expr {
+			//        {% for i, v := range expr %}
+			var assignment *ast.Assignment
+			if init == nil {
+				tpos := tok.pos
+				assignment = ast.NewAssignment(tpos, nil, ast.AssignmentSimple, nil)
+			} else {
+				assignment, _ = init.(*ast.Assignment)
+				if assignment == nil || assignment.Rhs != nil {
+					panic(syntaxError(tok.pos, "unexpected range, expecting {"))
+				}
 			}
-			tpos := tok.pos
-			// TODO (Gianluca): nextIsBlockOpen should be true?
 			var expr ast.Expression
 			expr, tok = p.parseExpr(p.next(), false, false, true)
 			if expr == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
-			tpos.End = expr.Pos().End
-			assignment := ast.NewAssignment(tpos, nil, ast.AssignmentSimple, []ast.Expression{expr})
+			assignment.Rhs = []ast.Expression{expr}
+			assignment.End = expr.Pos().End
 			pos.End = tok.pos.End
 			node = ast.NewForRange(pos, assignment, nil)
-		case tokenSimpleAssignment, tokenDeclaration, tokenIncrement, tokenDecrement:
-			if len(variables) == 0 {
+		case tokenIn:
+			// Parse: {% for id in expr %}
+			if init == nil {
+				panic(syntaxError(tok.pos, "unexpected in, expecting expression"))
+			}
+			ident, ok := init.(ast.Expression)
+			if !ok {
+				panic(syntaxError(tok.pos, "unexpected in, expecting {"))
+			}
+			var expr ast.Expression
+			expr, tok = p.parseExpr(p.next(), false, false, true)
+			if expr == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
-			if tok.typ == tokenDeclaration {
-				assignmentType = ast.AssignmentDeclaration
-			}
-			init, tok = p.parseAssignment(variables, tok, false, false)
-			if init == nil && tok.typ != tokenRange {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
-			}
-			fallthrough
-		case tokenSemicolon:
-			if tok.typ == tokenRange {
-				// Parses statements
-				//     "for index[, ident] = range expr" and
-				//     "for index[, ident] := range expr".
-				var expr ast.Expression
-				expr, tok = p.parseExpr(p.next(), false, false, true)
-				if expr == nil {
-					panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
-				}
-				vpos := variables[0].Pos()
-				assignment := ast.NewAssignment(&ast.Position{Line: vpos.Line, Column: vpos.Column, Start: vpos.Start, End: expr.Pos().End},
-					variables, assignmentType, []ast.Expression{expr})
-				pos.End = tok.pos.End
-				node = ast.NewForRange(pos, assignment, nil)
-			} else {
-				// Parses statement "for [init]; [condition]; [post]".
-				// Parses the condition expression.
-				var condition ast.Expression
-				condition, tok = p.parseExpr(p.next(), false, false, true)
-				if tok.typ != tokenSemicolon {
-					panic(syntaxError(tok.pos, "unexpected %s, expected semicolon", tok))
-				}
-				// Parses the post iteration statement.
-				var post *ast.Assignment
-				variables, tok = p.parseExprList(p.next(), false, false, true)
-				if variables != nil {
-					pos := tok.pos
-					post, tok = p.parseAssignment(variables, tok, false, true)
-					if post == nil {
-						panic(syntaxError(tok.pos, "expecting expression"))
-					}
-					if post.Type == ast.AssignmentDeclaration {
-						panic(syntaxError(pos, "cannot declare in post statement of for loop"))
-					}
-				}
-				pos.End = tok.pos.End
-				node = ast.NewFor(pos, init, condition, post, nil)
-			}
-		}
-		if node == nil {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting expression or %%}", tok))
+			ipos := ident.Pos()
+			blank := ast.NewIdentifier(&ast.Position{Line: ipos.Line, Column: ipos.Column,
+				Start: ipos.Start, End: ipos.Start}, "_")
+			aPos := &ast.Position{Line: ipos.Line, Column: ipos.Column, Start: ipos.Start, End: expr.Pos().End}
+			assignment := ast.NewAssignment(aPos, []ast.Expression{blank, ident}, ast.AssignmentDeclaration, []ast.Expression{expr})
+			assignment.End = expr.Pos().End
+			node = ast.NewForRange(pos, assignment, nil)
+		default:
+			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
 		p.addChild(node)
 		p.addToAncestors(node)
@@ -636,7 +611,9 @@ LABEL:
 			}
 			var comm ast.Node
 			if len(expressions) > 1 || isAssignmentToken(tok) {
-				comm, tok = p.parseAssignment(expressions, tok, false, false)
+				var assignment *ast.Assignment
+				assignment, tok = p.parseAssignment(expressions, tok, false, false, false)
+				comm = assignment
 			} else {
 				if tok.typ == tokenArrow {
 					sendPos := tok.pos
@@ -782,27 +759,26 @@ LABEL:
 	case tokenIf:
 		pos := tok.pos
 		ifPos := tok.pos
-		var expressions []ast.Expression
-		expressions, tok = p.parseExprList(p.next(), false, false, true)
-		if expressions == nil {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
-		}
-		var assignment *ast.Assignment
+		var init ast.Node
 		var expr ast.Expression
-		if len(expressions) > 1 || tok.typ == tokenSimpleAssignment || tok.typ == tokenDeclaration {
-			assignment, tok = p.parseAssignment(expressions, tok, false, false)
-			if assignment == nil {
-				panic(syntaxError(tok.pos, "expecting expression"))
-			}
-			if tok.typ != tokenSemicolon {
-				panic(syntaxError(tok.pos, "%s used as value", assignment))
-			}
+		init, tok = p.parseSimpleStatement(p.next(), false, true)
+		if tok.typ == tokenSemicolon {
 			expr, tok = p.parseExpr(p.next(), false, false, true)
+		} else if init != nil {
+			expr, _ = init.(ast.Expression)
 			if expr == nil {
+				if a, ok := init.(*ast.Assignment); ok && a.Type == ast.AssignmentSimple {
+					panic(syntaxError(tok.pos, "assignment %s used as value", init))
+				}
+				panic(syntaxError(tok.pos, "%s used as value", init))
+			}
+			init = nil
+		}
+		if expr == nil {
+			if p.ctx == ast.ContextGo && tok.typ == tokenLeftBraces || p.ctx != ast.ContextGo && tok.typ == tokenEndBlock {
 				panic(syntaxError(tok.pos, "missing condition in if statement"))
 			}
-		} else {
-			expr = expressions[0]
+			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
 		var blockPos *ast.Position
 		if p.ctx == ast.ContextGo {
@@ -813,7 +789,7 @@ LABEL:
 			ifPos = pos
 			ifPos.End = tok.pos.End
 		}
-		node := ast.NewIf(ifPos, assignment, expr, then, nil)
+		node := ast.NewIf(ifPos, init, expr, then, nil)
 		p.addChild(node)
 		p.addToAncestors(node)
 		p.addToAncestors(then)
@@ -1042,29 +1018,24 @@ LABEL:
 
 	// import
 	case tokenImport:
-		var outOfOrder bool
-		switch p := p.parent().(type) {
+		switch parent := p.parent().(type) {
 		case *ast.Tree:
-			for i := len(p.Nodes) - 1; i >= 0; i-- {
-				switch p.Nodes[i].(type) {
+			for i := len(parent.Nodes) - 1; i >= 0; i-- {
+				switch parent.Nodes[i].(type) {
 				case *ast.Extends, *ast.Import:
 					break
 				case *ast.Text, *ast.Comment:
 				default:
-					outOfOrder = true
-					break
+					panic(syntaxError(tok.pos, "unexpected import, expecting statement"))
 				}
 			}
 		case *ast.Package:
-			if len(p.Declarations) > 0 {
-				if _, ok := p.Declarations[0].(*ast.Import); !ok {
-					outOfOrder = true
+			for _, declaration := range parent.Declarations {
+				if _, ok := declaration.(*ast.Import); !ok {
+					panic(syntaxError(tok.pos, "non-declaration statement outside function body"))
 				}
 			}
 		default:
-			outOfOrder = true
-		}
-		if outOfOrder {
 			if p.isTemplate {
 				panic(syntaxError(tok.pos, "unexpected import, expecting statement"))
 			}
@@ -1301,10 +1272,7 @@ LABEL:
 		if len(expressions) > 1 || isAssignmentToken(tok) {
 			// Parse assignment.
 			var assignment *ast.Assignment
-			assignment, tok = p.parseAssignment(expressions, tok, false, false)
-			if assignment == nil {
-				panic(syntaxError(tok.pos, "expecting expression"))
-			}
+			assignment, tok = p.parseAssignment(expressions, tok, false, false, false)
 			assignment.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: assignment.Pos().End}
 			p.addChild(assignment)
 			p.cutSpacesToken = true
@@ -1374,6 +1342,39 @@ func (p *parsing) parseEnd(tok token, want tokenTyp) token {
 		panic(syntaxError(tok.pos, "unexpected %s, expecting %s", tok, want))
 	}
 	return p.next()
+}
+
+// parseSimpleStatement parses a simple statement. tok is the next token read.
+// If canBeRange is true, as a special case, parseSimpleStatement parses an
+// assignment where the assignment token is followed by a range token.
+func (p *parsing) parseSimpleStatement(tok token, canBeRange, nextIsBlockOpen bool) (ast.Node, token) {
+	pos := tok.pos
+	expressions, tok := p.parseExprList(tok, false, false, nextIsBlockOpen)
+	if expressions == nil {
+		// Empty statement.
+		return nil, tok
+	}
+	if len(expressions) > 1 || isAssignmentToken(tok) {
+		// Assignment statement.
+		var assignment *ast.Assignment
+		assignment, tok = p.parseAssignment(expressions, tok, canBeRange, false, nextIsBlockOpen)
+		assignment.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: assignment.Pos().End}
+		return assignment, tok
+	}
+	if tok.typ == tokenArrow {
+		// Send statement.
+		channel := expressions[0]
+		var value ast.Expression
+		value, tok = p.parseExpr(p.next(), false, false, nextIsBlockOpen)
+		if value == nil {
+			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
+		}
+		send := ast.NewSend(pos, channel, value)
+		send.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: value.Pos().End}
+		return send, tok
+	}
+	// Expression statement.
+	return expressions[0], tok
 }
 
 // parseIdentifiersList returns a list of identifiers separated by commas and
@@ -1512,9 +1513,11 @@ func (p *parsing) parseImport(tok token) *ast.Import {
 }
 
 // parseAssignment parses an assignment and returns an assignment or, if there
-// is no expression, returns nil. tok can be the assignment, declaration,
-// increment or decrement token. Panics on error.
-func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSwitchGuard bool, nextIsBlockOpen bool) (*ast.Assignment, token) {
+// is no expression, returns nil. tok is the assignment, declaration,
+// increment or decrement token. canBeRange reports whether a rangeToken token
+// is accepted after tok. canBeSwitchGuard and nextIsBlockOpen are passed to
+// the parseExprList method. Panics on error.
+func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeRange, canBeSwitchGuard, nextIsBlockOpen bool) (*ast.Assignment, token) {
 	typ, ok := assignmentType(tok)
 	if !ok {
 		panic(syntaxError(tok.pos, "unexpected %s, expecting := or = or comma", tok))
@@ -1524,11 +1527,14 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 	var values []ast.Expression
 	switch typ {
 	case ast.AssignmentSimple, ast.AssignmentDeclaration:
-		values, tok = p.parseExprList(p.next(), canBeSwitchGuard, false, nextIsBlockOpen)
-		if values == nil {
-			return nil, tok
+		tok = p.next()
+		if tok.typ != tokenRange || !canBeRange {
+			values, tok = p.parseExprList(tok, canBeSwitchGuard, false, nextIsBlockOpen)
+			if values == nil {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
+			}
+			pos.End = values[len(values)-1].Pos().End
 		}
-		pos.End = values[len(values)-1].Pos().End
 	default:
 		if len(variables) > 1 {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting := or = or comma", tok))
@@ -1537,7 +1543,7 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 		if typ != ast.AssignmentIncrement && typ != ast.AssignmentDecrement {
 			values = make([]ast.Expression, 1)
 			var expr ast.Expression
-			expr, tok = p.parseExpr(tok, false, false, false)
+			expr, tok = p.parseExpr(tok, false, false, nextIsBlockOpen)
 			if expr == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}

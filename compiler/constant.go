@@ -55,9 +55,10 @@ type constant interface {
 	// representable by a complex128 value, the result is undefined.
 	complex128() complex128
 
-	// unaryOp executes the unary operation op c1 and returns the result.
-	// Returns an error if the operation cannot be executed.
-	unaryOp(op ast.OperatorType) (constant, error)
+	// unaryOp executes the unary operation op c1 and returns the result. typ
+	// is the type of the constant and it is significant only if op is
+	// ast.OperatorXor. Returns an error if the operation cannot be executed.
+	unaryOp(op ast.OperatorType, typ reflect.Type) (constant, error)
 
 	// binaryOp executes the binary operation c1 op c2 and returns the result.
 	// Returns an error if the operation cannot be executed. If c1 and c2 are
@@ -85,6 +86,36 @@ type constant interface {
 	imag() constant
 }
 
+var negativeOne = big.NewInt(-1)
+
+var maxUnsignedValues = [...]uint64{
+	uint64(^uint(0)),
+	uint64(^uint8(0)),
+	uint64(^uint16(0)),
+	uint64(^uint32(0)),
+	^uint64(0),
+}
+
+var maxBigUnsignedValues = [...]*big.Int{
+	new(big.Int).SetUint64(uint64(^uint(0))),
+	big.NewInt(1<<8 - 1),
+	big.NewInt(1<<16 - 1),
+	big.NewInt(1<<32 - 1),
+	new(big.Int).SetUint64(1<<64 - 1),
+}
+
+// maxUnsigned returns the maximum value, as uint64, for an unsigned integer
+// given its kind.
+func maxUnsigned(kind reflect.Kind) uint64 {
+	return maxUnsignedValues[kind-reflect.Uint]
+}
+
+// maxBigUnsigned returns the maximum value, as *big.Int, for an unsigned
+// integer given its kind.
+func maxBigUnsigned(kind reflect.Kind) *big.Int {
+	return maxBigUnsignedValues[kind-reflect.Uint]
+}
+
 // boolConst represents a boolean constant.
 type boolConst bool
 
@@ -102,7 +133,7 @@ func (c1 boolConst) uint64() uint64         { return 0 }
 func (c1 boolConst) float64() float64       { return 0 }
 func (c1 boolConst) complex128() complex128 { return 0 }
 
-func (c1 boolConst) unaryOp(op ast.OperatorType) (constant, error) {
+func (c1 boolConst) unaryOp(op ast.OperatorType, typ reflect.Type) (constant, error) {
 	if op != ast.OperatorNot {
 		return nil, errInvalidOperation
 	}
@@ -165,7 +196,7 @@ func (c1 stringConst) uint64() uint64         { return 0 }
 func (c1 stringConst) float64() float64       { return 0 }
 func (c1 stringConst) complex128() complex128 { return 0 }
 
-func (c1 stringConst) unaryOp(op ast.OperatorType) (constant, error) {
+func (c1 stringConst) unaryOp(op ast.OperatorType, typ reflect.Type) (constant, error) {
 	return nil, errInvalidOperation
 }
 
@@ -231,7 +262,7 @@ func (c1 int64Const) uint64() uint64         { return uint64(c1) }
 func (c1 int64Const) float64() float64       { return float64(c1) }
 func (c1 int64Const) complex128() complex128 { return complex(float64(c1), 0) }
 
-func (c1 int64Const) unaryOp(op ast.OperatorType) (constant, error) {
+func (c1 int64Const) unaryOp(op ast.OperatorType, typ reflect.Type) (constant, error) {
 	switch op {
 	case ast.OperatorAddition:
 		return c1, nil
@@ -242,8 +273,15 @@ func (c1 int64Const) unaryOp(op ast.OperatorType) (constant, error) {
 		}
 		return -c1, nil
 	case ast.OperatorXor:
-		// TODO(marco)
-		panic("unary xor not yet implemented")
+		kind := typ.Kind()
+		if isSigned(kind) {
+			return ^c1, nil
+		}
+		c := maxUnsigned(kind) ^ uint64(c1)
+		if c > maxInt64 {
+			return newIntConst(int64(c1)).unaryOp(op, typ)
+		}
+		return int64Const(c), nil
 	}
 	return nil, errInvalidOperation
 }
@@ -432,7 +470,7 @@ func (c1 intConst) float64() float64 {
 }
 func (c1 intConst) complex128() complex128 { return complex(c1.float64(), 0) }
 
-func (c1 intConst) unaryOp(op ast.OperatorType) (constant, error) {
+func (c1 intConst) unaryOp(op ast.OperatorType, typ reflect.Type) (constant, error) {
 	switch op {
 	case ast.OperatorAddition:
 		return c1, nil
@@ -440,8 +478,14 @@ func (c1 intConst) unaryOp(op ast.OperatorType) (constant, error) {
 		i := new(big.Int).Set(c1.i)
 		return intConst{i: i.Neg(i)}, nil
 	case ast.OperatorXor:
-		// TODO(marco)
-		panic("unary xor not yet implemented")
+		var m *big.Int
+		if k := typ.Kind(); isSigned(k) {
+			m = negativeOne
+		} else {
+			m = maxBigUnsigned(k)
+		}
+		i := new(big.Int).Set(c1.i)
+		return intConst{i: i.Xor(m, i)}, nil
 	}
 	return nil, errInvalidOperation
 }
@@ -578,18 +622,28 @@ func (c1 intConst) setInt(n *big.Int) constant { c1.i.Set(n); return c1 }
 // values.
 type float64Const float64
 
+func newFloat64Const(x float64) float64Const {
+	return float64Const(x)
+}
+
 func (c1 float64Const) String() string {
 	return strconv.FormatFloat(float64(c1), 'f', -1, 64)
 }
 
-func (c1 float64Const) bool() bool             { return false }
-func (c1 float64Const) string() string         { return "" }
-func (c1 float64Const) int64() int64           { return int64(c1) }
-func (c1 float64Const) uint64() uint64         { return uint64(c1) }
-func (c1 float64Const) float64() float64       { return float64(c1) }
+func (c1 float64Const) bool() bool     { return false }
+func (c1 float64Const) string() string { return "" }
+func (c1 float64Const) int64() int64   { return int64(c1) }
+func (c1 float64Const) uint64() uint64 { return uint64(c1) }
+func (c1 float64Const) float64() float64 {
+	// Return 0 if it is -0.
+	if c1 == 0 {
+		return 0
+	}
+	return float64(c1)
+}
 func (c1 float64Const) complex128() complex128 { return complex(float64(c1), 0) }
 
-func (c1 float64Const) unaryOp(op ast.OperatorType) (constant, error) {
+func (c1 float64Const) unaryOp(op ast.OperatorType, typ reflect.Type) (constant, error) {
 	switch op {
 	case ast.OperatorAddition:
 		return c1, nil
@@ -725,14 +779,21 @@ func newFloatConst(x float64) floatConst {
 	return floatConst{f: bigFloat().SetFloat64(x)}
 }
 
-func (c1 floatConst) bool() bool             { return false }
-func (c1 floatConst) string() string         { return "" }
-func (c1 floatConst) int64() int64           { n, _ := c1.f.Int64(); return n }
-func (c1 floatConst) uint64() uint64         { n, _ := c1.f.Uint64(); return n }
-func (c1 floatConst) float64() float64       { f, _ := c1.f.Float64(); return f }
+func (c1 floatConst) bool() bool     { return false }
+func (c1 floatConst) string() string { return "" }
+func (c1 floatConst) int64() int64   { n, _ := c1.f.Int64(); return n }
+func (c1 floatConst) uint64() uint64 { n, _ := c1.f.Uint64(); return n }
+func (c1 floatConst) float64() float64 {
+	f, _ := c1.f.Float64()
+	// Return 0 if it is -0.
+	if f == 0 {
+		return 0
+	}
+	return f
+}
 func (c1 floatConst) complex128() complex128 { return complex(c1.float64(), 0) }
 
-func (c1 floatConst) unaryOp(op ast.OperatorType) (constant, error) {
+func (c1 floatConst) unaryOp(op ast.OperatorType, typ reflect.Type) (constant, error) {
 	switch op {
 	case ast.OperatorAddition:
 		return c1, nil
@@ -806,7 +867,7 @@ func (c1 floatConst) representedBy(typ reflect.Type) (constant, error) {
 		}
 		return nil, fmt.Errorf("constant %s truncated to integer", c1)
 	}
-	if f, _ := c1.f.Float64(); !math.IsInf(f, 1) {
+	if f, _ := c1.f.Float64(); !math.IsInf(f, 0) {
 		return float64Const(f).representedBy(typ)
 	}
 	if reflect.Float32 <= kind && kind <= reflect.Complex128 {
@@ -861,7 +922,7 @@ func (c1 ratConst) uint64() uint64         { return c1.r.Num().Uint64() }
 func (c1 ratConst) float64() float64       { f, _ := c1.r.Float64(); return f }
 func (c1 ratConst) complex128() complex128 { return complex(c1.float64(), 0) }
 
-func (c1 ratConst) unaryOp(op ast.OperatorType) (constant, error) {
+func (c1 ratConst) unaryOp(op ast.OperatorType, typ reflect.Type) (constant, error) {
 	switch op {
 	case ast.OperatorAddition:
 		return c1, nil
@@ -993,13 +1054,13 @@ func (c1 complexConst) uint64() uint64         { return c1.r.uint64() }
 func (c1 complexConst) float64() float64       { return c1.r.float64() }
 func (c1 complexConst) complex128() complex128 { return complex(c1.r.float64(), c1.i.float64()) }
 
-func (c1 complexConst) unaryOp(op ast.OperatorType) (constant, error) {
+func (c1 complexConst) unaryOp(op ast.OperatorType, typ reflect.Type) (constant, error) {
 	switch op {
 	case ast.OperatorAddition:
 		return c1, nil
 	case ast.OperatorSubtraction:
-		r, _ := c1.r.unaryOp(op)
-		i, _ := c1.i.unaryOp(op)
+		r, _ := c1.r.unaryOp(op, nil)
+		i, _ := c1.i.unaryOp(op, nil)
 		return complexConst{r: r, i: i}, nil
 	}
 	return nil, errInvalidOperation
@@ -1224,83 +1285,15 @@ func convertToConstant(value interface{}) constant {
 	return nil
 }
 
-// parseConstant parses a string s representing a constant and returns the
-// constant and its type. s can be a basic literal, "true", "false" or "a/b"
-// with a and b integers.
-//
-// If the string s cannot be parsed, it returns the error strconv.ErrSyntax.
-func parseConstant(s string) (constant, reflect.Type, error) {
-	if len(s) == 0 {
-		return nil, nil, strconv.ErrSyntax
-	}
-	switch s[0] {
-	case 't':
-		if s == "true" {
-			return boolConst(true), boolType, nil
-		}
-	case 'f':
-		if s == "false" {
-			return boolConst(false), boolType, nil
-		}
-	case '"', '`':
-		str, err := strconv.Unquote(s)
-		if err == nil {
-			return stringConst(str), stringType, nil
-		}
-	case '\'':
-		r, _, tail, err := strconv.UnquoteChar(s[1:], '\'')
-		if err == nil && tail == "'" {
-			return int64Const(r), int32Type, nil
-		}
-	default:
-		if strings.Contains(s, "/") {
-			r, ok := new(big.Rat).SetString(s)
-			if ok {
-				return ratConst{r: r}, float64Type, nil
-			}
-		} else if s[len(s)-1] == 'i' {
-			if strings.ContainsAny(s, ".eEpP") {
-				i, _, err := parseConstant(s[:len(s)-1])
-				if err == nil {
-					return complexConst{r: int64Const(0), i: i}, complex128Type, nil
-				}
-			} else if len(s) >= 2 {
-				if s[0] == '0' && ('0' <= s[1] && s[1] <= '9' || s[1] == '_') {
-					s = strings.TrimLeft(s, "0_")
-					if s == "i" {
-						return int64Const(0), intType, nil
-					}
-				}
-				i, _, err := parseConstant(s[:len(s)-1])
-				if err == nil {
-					return complexConst{r: int64Const(0), i: i}, complex128Type, nil
-				}
-			}
-		} else if strings.ContainsAny(s, ".eEpE") {
-			n, ok := bigFloat().SetString(s[:len(s)-1])
-			if ok {
-				if f, _ := n.Float64(); !math.IsInf(f, 1) {
-					return float64Const(f), float64Type, nil
-				}
-				return floatConst{f: n}, float64Type, nil
-			}
-		} else {
-			n, ok := new(big.Int).SetString(s, 0)
-			if ok {
-				if n.IsInt64() {
-					return int64Const(n.Int64()), intType, nil
-				}
-				return intConst{i: n}, intType, nil
-			}
-		}
-	}
-	return nil, nil, strconv.ErrSyntax
-}
-
 // parseBasicLiteral parses a basic literal and returns the represented
 // constant. Returns an error if an integer cannot be represented or if a
-// floating-point or complex cannot be represented due to overflow. If the
-// parsed string is not a basic literal the behaviour is undefined.
+// floating-point or complex cannot be represented due to overflow.
+//
+// As a special case the basic literal can be preceded by a "+" or "-" sign
+// and for float literals it parses also the form "a/b" as accepted by the
+// method big.Rat.SetString.
+//
+// If the parsed string has not a valid form, the behaviour is undefined.
 func parseBasicLiteral(typ ast.LiteralType, s string) (constant, error) {
 	switch typ {
 	case ast.StringLiteral:
@@ -1326,6 +1319,13 @@ func parseBasicLiteral(typ ast.LiteralType, s string) (constant, error) {
 		}
 		return n, nil
 	case ast.FloatLiteral:
+		if i := strings.Index(s, "/"); i >= 0 {
+			r, ok := new(big.Rat).SetString(s)
+			if !ok {
+				return nil, fmt.Errorf("malformed constant: %s", s)
+			}
+			return ratConst{r: r}, nil
+		}
 		n, _, err := bigFloat().Parse(s, 0)
 		if err != nil {
 			return nil, fmt.Errorf("malformed constant: %s (%v)", s, err)

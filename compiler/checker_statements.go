@@ -122,8 +122,8 @@ nodesLoop:
 
 		case *ast.If:
 			tc.enterScope()
-			if node.Assignment != nil {
-				tc.checkGenericAssignmentNode(node.Assignment)
+			if node.Init != nil {
+				tc.checkNodes([]ast.Node{node.Init})
 			}
 			ti := tc.checkExpr(node.Condition)
 			if ti.Type.Kind() != reflect.Bool {
@@ -150,7 +150,7 @@ nodesLoop:
 			tc.enterScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
-				tc.checkGenericAssignmentNode(node.Init)
+				tc.checkNodes([]ast.Node{node.Init})
 			}
 			if node.Condition != nil {
 				ti := tc.checkExpr(node.Condition)
@@ -160,7 +160,7 @@ nodesLoop:
 				ti.setValue(nil)
 			}
 			if node.Post != nil {
-				tc.checkGenericAssignmentNode(node.Post)
+				tc.checkNodes([]ast.Node{node.Post})
 			}
 			node.Body = tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()
@@ -554,7 +554,7 @@ nodesLoop:
 		case *ast.TypeDeclaration:
 			name, ti := tc.checkTypeDeclaration(node)
 			if ti != nil {
-				tc.assignScope(name, ti, node.Identifier)
+				tc.assignScope(name, ti, node.Ident)
 			}
 
 		case *ast.Show:
@@ -709,7 +709,6 @@ nodesLoop:
 			}
 
 		case *ast.URL:
-			// https://github.com/open2b/scriggo/issues/389
 			node.Value = tc.checkNodes(node.Value)
 
 		case *ast.UnaryOperator:
@@ -720,11 +719,11 @@ nodesLoop:
 			tc.gotos = append(tc.gotos, node.Label.Name)
 
 		case *ast.Label:
-			tc.labels[len(tc.labels)-1] = append(tc.labels[len(tc.labels)-1], node.Name.Name)
+			tc.labels[len(tc.labels)-1] = append(tc.labels[len(tc.labels)-1], node.Ident.Name)
 			for i, g := range tc.gotos {
-				if g == node.Name.Name {
+				if g == node.Ident.Name {
 					if i < tc.nextValidGoto {
-						panic(tc.errorf(node, "goto %s jumps over declaration of ? at ?", node.Name.Name)) // TODO(Gianluca).
+						panic(tc.errorf(node, "goto %s jumps over declaration of ? at ?", node.Ident.Name)) // TODO(Gianluca).
 					}
 					break
 				}
@@ -1110,10 +1109,10 @@ func (tc *typechecker) checkReturn(node *ast.Return) ast.Node {
 //
 func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) (string, *typeInfo) {
 	typ := tc.checkType(node.Type)
-	if isBlankIdentifier(node.Identifier) {
+	if isBlankIdentifier(node.Ident) {
 		return "", nil
 	}
-	name := node.Identifier.Name
+	name := node.Ident.Name
 	if node.IsAliasDeclaration {
 		// Return the base type.
 		return name, typ

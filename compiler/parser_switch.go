@@ -105,7 +105,7 @@ func (p *parsing) parseSwitch(tok token) ast.Node {
 		// switch x := 3; x + y {
 		// switch x = y.(type) {
 		// switch x := 2; x = y.(type) {
-		assignment, tok = p.parseAssignment(expressions, tok, true, true)
+		assignment, tok = p.parseAssignment(expressions, tok, false, true, true)
 		switch tok.typ {
 		case tokenSemicolon:
 
@@ -124,7 +124,7 @@ func (p *parsing) parseSwitch(tok token) ast.Node {
 				// This is the only valid case where there is an assignment
 				// before and after the semicolon token:
 				//     switch x := 2; x = y.(type) {
-				assignment, tok = p.parseAssignment(expressions, tok, true, true)
+				assignment, tok = p.parseAssignment(expressions, tok, false, true, true)
 				ta, ok := assignment.Rhs[0].(*ast.TypeAssertion)
 				// TODO (Gianluca): should error contain the position of the
 				// expression which caused the error instead of the token (as Go

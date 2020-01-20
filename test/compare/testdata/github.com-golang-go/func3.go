@@ -1,4 +1,4 @@
-// skip : missing function body
+// skip : https://github.com/open2b/scriggo/issues/541
 
 // errorcheck
 

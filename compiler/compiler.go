@@ -159,9 +159,6 @@ func (ml mainCombiner) Load(path string) (interface{}, error) {
 	return nil, nil
 }
 
-// UntypedConst represents an untyped constant.
-type UntypedConstant string
-
 // predefinedPackage represents a predefined package.
 type predefinedPackage interface {
 

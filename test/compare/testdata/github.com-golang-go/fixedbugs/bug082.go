@@ -1,5 +1,3 @@
-// skip : unary xor operator not implemented https://github.com/open2b/scriggo/issues/241
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.

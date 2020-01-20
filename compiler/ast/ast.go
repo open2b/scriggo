@@ -489,14 +489,14 @@ func NewReturn(pos *Position, values []Expression) *Return {
 
 // For node represents a statement {% for ... %}.
 type For struct {
-	*Position             // position in the source.
-	Init      *Assignment // initialization statement.
-	Condition Expression  // condition expression.
-	Post      *Assignment // post iteration statement.
-	Body      []Node      // nodes of the body.
+	*Position            // position in the source.
+	Init      Node       // initialization statement.
+	Condition Expression // condition expression.
+	Post      Node       // post iteration statement.
+	Body      []Node     // nodes of the body.
 }
 
-func NewFor(pos *Position, init *Assignment, condition Expression, post *Assignment, body []Node) *For {
+func NewFor(pos *Position, init Node, condition Expression, post Node, body []Node) *For {
 	if body == nil {
 		body = []Node{}
 	}
@@ -540,18 +540,18 @@ func NewContinue(pos *Position, label *Identifier) *Continue {
 
 // If node represents a statement {% if ... %}.
 type If struct {
-	*Position              // position in the source.
-	Assignment *Assignment // assignment.
-	Condition  Expression  // condition that once evaluated returns true or false.
-	Then       *Block      // nodes to run if the expression is evaluated to true.
-	Else       Node        // nodes to run if the expression is evaluated to false. Can be Block or If.
+	*Position            // position in the source.
+	Init      Node       // init simple statement.
+	Condition Expression // condition that once evaluated returns true or false.
+	Then      *Block     // nodes to run if the expression is evaluated to true.
+	Else      Node       // nodes to run if the expression is evaluated to false. Can be Block or If.
 }
 
-func NewIf(pos *Position, assignment *Assignment, cond Expression, then *Block, els Node) *If {
+func NewIf(pos *Position, init Node, cond Expression, then *Block, els Node) *If {
 	if then == nil {
 		then = NewBlock(nil, []Node{})
 	}
-	return &If{pos, assignment, cond, then, els}
+	return &If{pos, init, cond, then, els}
 }
 
 // Switch node represents a statement {% switch ... %}.
@@ -632,21 +632,21 @@ func NewSelectCase(pos *Position, comm Node, body []Node) *SelectCase {
 // declaration or a type definition.
 type TypeDeclaration struct {
 	*Position                      // position in the source.
-	Identifier         *Identifier // identifier of the type.
+	Ident              *Identifier // identifier of the type.
 	Type               Expression  // expression representing the type.
 	IsAliasDeclaration bool        // reports whether it is an alias declaration or a type definition.
 }
 
 func (n *TypeDeclaration) String() string {
 	if n.IsAliasDeclaration {
-		return fmt.Sprintf("type %s = %s", n.Identifier.Name, n.Type.String())
+		return fmt.Sprintf("type %s = %s", n.Ident.Name, n.Type.String())
 	}
-	return fmt.Sprintf("type %s %s", n.Identifier.Name, n.Type.String())
+	return fmt.Sprintf("type %s %s", n.Ident.Name, n.Type.String())
 }
 
 // NewTypeDeclaration returns a new TypeDeclaration node.
-func NewTypeDeclaration(pos *Position, identifier *Identifier, typ Expression, isAliasDeclaration bool) *TypeDeclaration {
-	return &TypeDeclaration{pos, identifier, typ, isAliasDeclaration}
+func NewTypeDeclaration(pos *Position, ident *Identifier, typ Expression, isAliasDeclaration bool) *TypeDeclaration {
+	return &TypeDeclaration{pos, ident, typ, isAliasDeclaration}
 }
 
 // Macro node represents a statement {% macro ... %}.
@@ -932,21 +932,21 @@ func (n *StructType) String() string {
 // declaration can be explicit (having an identifier list and a type) or
 // implicit (having a type only).
 type Field struct {
-	IdentifierList []*Identifier // if nil is an embedded field.
-	Type           Expression
-	Tag            *string
+	Idents []*Identifier // identifiers. If nil is an embedded field.
+	Type   Expression
+	Tag    *string
 }
 
 // NewField returns a new NewField node.
-func NewField(identifierList []*Identifier, typ Expression, tag *string) *Field {
-	return &Field{identifierList, typ, tag}
+func NewField(idents []*Identifier, typ Expression, tag *string) *Field {
+	return &Field{idents, typ, tag}
 }
 
 func (n *Field) String() string {
 	s := ""
-	for i, ident := range n.IdentifierList {
+	for i, ident := range n.Idents {
 		s += ident.String()
-		if i != len(n.IdentifierList)-1 {
+		if i != len(n.Idents)-1 {
 			s += ","
 		}
 		s += " "
@@ -1150,12 +1150,12 @@ func (n *Goto) String() string {
 // Label node represents a label statement.
 type Label struct {
 	*Position             // position in the source.
-	Name      *Identifier // name.
+	Ident     *Identifier // identifier.
 	Statement Node        // statement.
 }
 
-func NewLabel(pos *Position, name *Identifier, statement Node) *Label {
-	return &Label{pos, name, statement}
+func NewLabel(pos *Position, ident *Identifier, statement Node) *Label {
+	return &Label{pos, ident, statement}
 }
 
 // Var node represent a variable declaration by keyword "var".
@@ -1202,8 +1202,8 @@ type Const struct {
 	Index     int           // index of the declaration in the constant declaration group or 0 if not in a group.
 }
 
-func NewConst(pos *Position, identifiers []*Identifier, typ Expression, values []Expression, iotaValue int) *Const {
-	return &Const{pos, identifiers, typ, values, iotaValue}
+func NewConst(pos *Position, lhs []*Identifier, typ Expression, rhs []Expression, index int) *Const {
+	return &Const{pos, lhs, typ, rhs, index}
 }
 
 // Index node represents an index expression.

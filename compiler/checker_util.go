@@ -35,6 +35,11 @@ const (
 	maxUint  = ^uint(0)
 )
 
+// isSigned reports whether kind is a signed integer kind.
+func isSigned(kind reflect.Kind) bool {
+	return reflect.Int <= kind && kind <= reflect.Int64
+}
+
 var boolOperators = [21]bool{
 	ast.OperatorEqual:    true,
 	ast.OperatorNotEqual: true,

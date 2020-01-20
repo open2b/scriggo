@@ -115,6 +115,9 @@ func Walk(v Visitor, node ast.Node) {
 		}
 
 	case *ast.If:
+		if n.Init != nil {
+			Walk(v, n.Init)
+		}
 		Walk(v, n.Condition)
 		if n.Then != nil {
 			Walk(v, n.Then)
@@ -219,7 +222,7 @@ func Walk(v Visitor, node ast.Node) {
 		Walk(v, n.Call)
 
 	case *ast.Label:
-		Walk(v, n.Name)
+		Walk(v, n.Ident)
 		Walk(v, n.Statement)
 
 	case *ast.Goto:

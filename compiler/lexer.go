@@ -1221,7 +1221,7 @@ DIGITS:
 	imaginary := p < len(l.src) && l.src[p] == 'i'
 	if imaginary {
 		p++
-	} else if p > 0 && base == 10 && l.src[0] == '0' {
+	} else if p > 0 && base == 10 && l.src[0] == '0' && !dot && !exponent {
 		for _, c := range l.src[1:p] {
 			if c == '8' || c == '9' {
 				return l.errorf("invalid digit '%d' in octal literal", c)

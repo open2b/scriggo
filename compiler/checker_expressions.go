@@ -314,7 +314,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				panic(tc.errorf(expr, "invalid operation: ! %s", t))
 			}
 			if t.IsConstant() {
-				ti.Constant, _ = t.Constant.unaryOp(ast.OperatorNot)
+				ti.Constant, _ = t.Constant.unaryOp(ast.OperatorNot, nil)
 			}
 		case ast.OperatorAddition:
 			if t.Nil() || !isNumeric(k) {
@@ -328,7 +328,12 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				panic(tc.errorf(expr, "invalid operation: - %s", t))
 			}
 			if t.IsConstant() {
-				ti.Constant, _ = t.Constant.unaryOp(ast.OperatorSubtraction)
+				ti.Constant, _ = t.Constant.unaryOp(ast.OperatorSubtraction, nil)
+				if !t.Untyped() {
+					if _, err := ti.Constant.representedBy(ti.Type); err != nil {
+						panic(tc.errorf(expr, "%s", err))
+					}
+				}
 			}
 		case ast.OperatorMultiplication:
 			if t.Nil() {
@@ -365,7 +370,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				panic(tc.errorf(expr, "invalid operation: ^ %s", t))
 			}
 			if t.IsConstant() {
-				ti.Constant, _ = t.Constant.unaryOp(ast.OperatorXor)
+				ti.Constant, _ = t.Constant.unaryOp(ast.OperatorXor, t.Type)
 			}
 		case ast.OperatorReceive:
 			if t.Nil() {
@@ -391,6 +396,9 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 	case *ast.BinaryOperator:
 		t, err := tc.binaryOp(expr.Expr1, expr.Op, expr.Expr2)
 		if err != nil {
+			if err == errDivisionByZero {
+				panic(tc.errorf(expr, "%s", err))
+			}
 			panic(tc.errorf(expr, "invalid operation: %v (%s)", expr, err))
 		}
 		return t
@@ -406,11 +414,11 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		fields := []reflect.StructField{}
 		for _, fd := range expr.Fields {
 			typ := tc.checkType(fd.Type).Type
-			if fd.IdentifierList == nil {
+			if fd.Idents == nil {
 				// Not implemented: see https://github.com/open2b/scriggo/issues/367
 			} else {
 				// Explicit field declaration.
-				for _, ident := range fd.IdentifierList {
+				for _, ident := range fd.Idents {
 					// If the field name is unexported, it's impossible to
 					// create an new reflect.Type due to the limits that the
 					// package 'reflect' currently has. The solution adopted is
@@ -430,6 +438,11 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 					name := ident.Name
 					if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
 						name = "𝗽" + strconv.Itoa(tc.currentPkgIndex()) + ident.Name
+					}
+					for _, field := range fields {
+						if field.Name == name {
+							panic(tc.errorf(ident, "duplicate field %s", ident.Name))
+						}
 					}
 					fields = append(fields, reflect.StructField{
 						Name:      name,
@@ -1063,7 +1076,11 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 	}
 
 	if kind := t1.Type.Kind(); !operatorsOfKind[kind][op] {
-		return nil, fmt.Errorf("operator %s not defined on %s)", op, kind)
+		return nil, fmt.Errorf("operator %s not defined on %s", op, kind)
+	}
+
+	if (op == ast.OperatorDivision || op == ast.OperatorModulo) && t2.IsConstant() && t2.Constant.zero() {
+		return nil, errDivisionByZero
 	}
 
 	return &typeInfo{Type: t1.Type}, nil
@@ -1238,12 +1255,14 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 			if err != nil {
 				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", re.Constant, re, im))
 			}
+			re.setValue(im.Type)
 			re = &typeInfo{Type: im.Type, Constant: c}
 		} else if im.IsUntypedConstant() {
 			c, err := tc.convert(im, expr.Args[1], re.Type)
 			if err != nil {
 				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", im.Constant, im, re))
 			}
+			im.setValue(re.Type)
 			im = &typeInfo{Type: re.Type, Constant: c}
 		} else if reKind != imKind {
 			panic(tc.errorf(expr, "invalid operation: %s (mismatched types %s and %s)", expr, re, im))
@@ -1259,6 +1278,9 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 		}
 		if re.IsConstant() && im.IsConstant() {
 			ti.Constant = newComplexConst(re.Constant, im.Constant)
+		} else {
+			im.setValue(nil)
+			re.setValue(nil)
 		}
 		return []*typeInfo{ti}
 
@@ -1431,14 +1453,23 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 			ti = tc.nilOf(emptyInterfaceType)
 			tc.typeInfos[expr.Args[0]] = ti
 		} else {
+			if err := tc.isAssignableTo(ti, expr.Args[0], emptyInterfaceType); err != nil {
+				panic(tc.errorf(expr, "%s", err))
+			}
 			ti.setValue(nil)
 		}
 		return nil
 
 	case "print", "println":
 		for _, arg := range expr.Args {
-			tc.checkExpr(arg)
-			tc.typeInfos[arg].setValue(nil)
+			ti := tc.checkExpr(arg)
+			if ti.Nil() {
+				panic(tc.errorf(expr, "use of untyped nil"))
+			}
+			if err := tc.isAssignableTo(ti, arg, emptyInterfaceType); err != nil {
+				panic(tc.errorf(expr, "%s", err))
+			}
+			ti.setValue(nil)
 		}
 		return nil
 

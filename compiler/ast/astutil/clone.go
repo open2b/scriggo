@@ -57,9 +57,9 @@ func CloneNode(node ast.Node) ast.Node {
 		}
 		return b
 	case *ast.If:
-		var assignment *ast.Assignment
-		if n.Assignment != nil {
-			assignment = CloneNode(n.Assignment).(*ast.Assignment)
+		var init ast.Node
+		if n.Init != nil {
+			init = CloneNode(n.Init)
 		}
 		var then *ast.Block
 		if n.Then != nil {
@@ -69,18 +69,18 @@ func CloneNode(node ast.Node) ast.Node {
 		if n.Else != nil {
 			els = CloneNode(n.Else)
 		}
-		return ast.NewIf(ClonePosition(n.Position), assignment, CloneExpression(n.Condition), then, els)
+		return ast.NewIf(ClonePosition(n.Position), init, CloneExpression(n.Condition), then, els)
 	case *ast.For:
 		var body = make([]ast.Node, len(n.Body))
 		for i, n2 := range n.Body {
 			body[i] = CloneNode(n2)
 		}
-		var init, post *ast.Assignment
+		var init, post ast.Node
 		if n.Init != nil {
-			init = CloneNode(n.Init).(*ast.Assignment)
+			init = CloneNode(n.Init)
 		}
 		if n.Post != nil {
-			post = CloneNode(n.Post).(*ast.Assignment)
+			post = CloneNode(n.Post)
 		}
 		return ast.NewFor(ClonePosition(n.Position), init, CloneExpression(n.Condition), post, body)
 	case *ast.ForRange:
@@ -270,7 +270,7 @@ func CloneNode(node ast.Node) ast.Node {
 	case *ast.Goto:
 		return ast.NewGoto(ClonePosition(n.Position), CloneExpression(n.Label).(*ast.Identifier))
 	case *ast.Label:
-		return ast.NewLabel(ClonePosition(n.Position), CloneExpression(n.Name).(*ast.Identifier), CloneNode(n.Statement))
+		return ast.NewLabel(ClonePosition(n.Position), CloneExpression(n.Ident).(*ast.Identifier), CloneNode(n.Statement))
 	case *ast.Send:
 		return ast.NewSend(ClonePosition(n.Position), CloneExpression(n.Channel), CloneExpression(n.Value))
 	case ast.Expression:

@@ -14,8 +14,7 @@ var (
 	_ = []byte("foo",) // was syntax error: unexpected comma
 	_ = chan int(nil,) // was syntax error: unexpected comma
 
-	// https://github.com/open2b/scriggo/issues/416
-	// _ = (func())(nil,) // was syntax error: unexpected comma
+	_ = (func())(nil,) // was syntax error: unexpected comma
 )
 
 func main() { }

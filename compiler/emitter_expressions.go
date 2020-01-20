@@ -654,7 +654,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 		}
 		tmp := em.fb.newRegister(reflect.Map)
 		size := len(expr.KeyValues)
-		if 0 <= size && size <= 127 {
+		if size <= 127 {
 			em.fb.emitMakeMap(typ, true, int8(size), tmp)
 		} else {
 			sizeReg := em.fb.makeIntConstant(int64(size))
@@ -927,6 +927,28 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		tmp2 := em.fb.newRegister(operandType.Kind())
 		em.changeRegister(true, 0, tmp2, operandType, operandType)
 		em.fb.emitSub(false, tmp2, tmp, tmp2, operandType.Kind())
+		em.changeRegister(false, tmp2, reg, operandType, dstType)
+		em.fb.exitStack()
+
+	// ^operand
+	case ast.OperatorXor:
+		if reg == 0 {
+			em.emitExprR(operand, dstType, 0)
+			return
+		}
+		kind := operandType.Kind()
+		em.fb.enterStack()
+		// TODO: improve this code:
+		tmp := em.fb.newRegister(kind)
+		em.emitExprR(operand, operandType, tmp)
+		tmp2 := em.fb.newRegister(kind)
+		if isSigned(kind) {
+			em.changeRegister(true, -1, tmp2, operandType, operandType)
+		} else {
+			m := maxUnsigned(kind)
+			em.fb.emitLoadNumber(intRegister, em.fb.makeIntConstant(int64(m)), tmp2)
+		}
+		em.fb.emitXor(false, tmp2, tmp, tmp2, kind)
 		em.changeRegister(false, tmp2, reg, operandType, dstType)
 		em.fb.exitStack()
 

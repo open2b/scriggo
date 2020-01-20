@@ -314,7 +314,7 @@ func TestPackageOrdering(t *testing.T) {
 				case *ast.Func:
 					got += d.Ident.Name + ","
 				case *ast.TypeDeclaration:
-					got += d.Identifier.Name + ","
+					got += d.Ident.Name + ","
 				}
 			}
 			if cas.expected != got {

@@ -390,8 +390,8 @@ func (builder *functionBuilder) makeStringConstant(c string) int8 {
 }
 
 // makeGeneralConstant makes a new general constant, returning it's index.
-//
-// c must be the zero of it's type.
+// c must be nil or must have a comparable type or must be the zero value of
+// its type.
 //
 // If the VM's internal representation of c is different from the external, c
 // must always have the external representation. Any conversion, if needed, will
@@ -399,10 +399,15 @@ func (builder *functionBuilder) makeStringConstant(c string) int8 {
 func (builder *functionBuilder) makeGeneralConstant(c interface{}) int8 {
 	// Check if a constant with the same value has already been added to the
 	// general Constants slice.
-	if typ := reflect.TypeOf(c); c != nil && typ.Comparable() {
-		kind := typ.Kind()
+	if t := reflect.TypeOf(c); c == nil || t.Comparable() {
 		for i, v := range builder.fn.Constants.General {
-			if v != nil && reflect.TypeOf(v).Kind() == kind && c == v {
+			if c == v {
+				return int8(i)
+			}
+		}
+	} else {
+		for i, v := range builder.fn.Constants.General {
+			if v != nil && t == reflect.TypeOf(v) {
 				return int8(i)
 			}
 		}

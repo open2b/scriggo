@@ -205,8 +205,8 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 
 		case *ast.If:
 			em.fb.enterScope()
-			if node.Assignment != nil {
-				em.emitNodes([]ast.Node{node.Assignment})
+			if node.Init != nil {
+				em.emitNodes([]ast.Node{node.Init})
 			}
 			em.emitCondition(node.Condition)
 			if node.Else == nil {
@@ -242,13 +242,13 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.changePath(path)
 
 		case *ast.Label:
-			if _, found := em.labels[em.fb.fn][node.Name.Name]; !found {
+			if _, found := em.labels[em.fb.fn][node.Ident.Name]; !found {
 				if em.labels[em.fb.fn] == nil {
 					em.labels[em.fb.fn] = make(map[string]label)
 				}
-				em.labels[em.fb.fn][node.Name.Name] = em.fb.newLabel()
+				em.labels[em.fb.fn][node.Ident.Name] = em.fb.newLabel()
 			}
-			em.fb.setLabelAddr(em.labels[em.fb.fn][node.Name.Name])
+			em.fb.setLabelAddr(em.labels[em.fb.fn][node.Ident.Name])
 			if node.Statement != nil {
 				em.emitNodes([]ast.Node{node.Statement})
 			}

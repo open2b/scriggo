@@ -9,6 +9,8 @@ package compiler
 import (
 	"fmt"
 	"reflect"
+	"strconv"
+	"strings"
 
 	"scriggo/compiler/ast"
 )
@@ -18,6 +20,63 @@ type scriggoPackage interface {
 	Name() string
 	Lookup(declName string) interface{}
 	DeclarationNames() []string
+}
+
+// UntypedStringConst represents an untyped string constant.
+type UntypedStringConst string
+
+// UntypedBooleanConst represents an untyped boolean constant.
+type UntypedBooleanConst bool
+
+// UntypedNumericConst represents an untyped numeric constant.
+type UntypedNumericConst string
+
+// parseNumericCost parses an expression representing an untyped number
+// constant and return the represented constant, it type.
+func parseNumericConst(s string) (constant, reflect.Type, error) {
+	if s[0] == '\'' {
+		r, err := parseBasicLiteral(ast.RuneLiteral, s)
+		if err != nil {
+			return nil, nil, err
+		}
+		return r, runeType, nil
+	}
+	r, _, tail, err := strconv.UnquoteChar(s[1:], '\'')
+	if err == nil && tail == "'" {
+		return int64Const(r), int32Type, nil
+	}
+	if last := len(s) - 1; s[last] == 'i' {
+		p := strings.LastIndexAny(s, "+-")
+		if p == -1 {
+			p = 0
+		}
+		im, err := parseBasicLiteral(ast.FloatLiteral, s[p:last])
+		if err != nil {
+			return nil, nil, err
+		}
+		var re constant
+		if p > 0 {
+			re, err = parseBasicLiteral(ast.FloatLiteral, s[0:p])
+			if err != nil {
+				return nil, nil, err
+			}
+		} else {
+			re = newFloat64Const(0)
+		}
+		return newComplexConst(re, im), complex128Type, nil
+	}
+	if strings.ContainsAny(s, "/.") {
+		n, err := parseBasicLiteral(ast.FloatLiteral, s)
+		if err != nil {
+			return nil, nil, err
+		}
+		return n, float64Type, nil
+	}
+	n, err := parseBasicLiteral(ast.IntLiteral, s)
+	if err != nil {
+		return nil, nil, err
+	}
+	return n, intType, nil
 }
 
 // toTypeCheckerScope generates a type checker scope given a predefined package.
@@ -80,8 +139,25 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) ty
 			continue
 		}
 		// Import an untyped constant.
-		if c, ok := value.(UntypedConstant); ok {
-			constant, typ, err := parseConstant(string(c))
+		switch c := value.(type) {
+		case UntypedBooleanConst:
+			s[ident] = scopeElement{t: &typeInfo{
+				Type:              boolType,
+				Properties:        propertyUntyped,
+				Constant:          boolConst(c),
+				PredefPackageName: pkgName,
+			}}
+			continue
+		case UntypedStringConst:
+			s[ident] = scopeElement{t: &typeInfo{
+				Type:              stringType,
+				Properties:        propertyUntyped,
+				Constant:          stringConst(c),
+				PredefPackageName: pkgName,
+			}}
+			continue
+		case UntypedNumericConst:
+			constant, typ, err := parseNumericConst(string(c))
 			if err != nil {
 				panic(fmt.Errorf("scriggo: invalid untyped constant %q for %s.%s", c, pp.Name(), ident))
 			}
@@ -199,7 +275,7 @@ func detectTypeLoop(types []*ast.TypeDeclaration, deps packageDeclsDeps) error {
 			// definitions is the same as for type declarations. Is this
 			// correct?
 		}
-		path := []*ast.Identifier{t.Identifier}
+		path := []*ast.Identifier{t.Ident}
 		loopPath := checkDepsPath(path, deps)
 		if loopPath != nil {
 			msg := "invalid recursive type alias " + t.String() + "\n"
@@ -266,7 +342,7 @@ func sortDeclarations(pkg *ast.Package) error {
 				}
 			}
 			for _, t := range types {
-				if t.Identifier.Name == d.Name {
+				if t.Ident.Name == d.Name {
 					newDs = append(newDs, d)
 				}
 			}
@@ -306,10 +382,10 @@ typesLoop:
 		// Searches for next type declaration with resolved deps.
 		for i, t := range types {
 			depsOk := true
-			for _, dep := range deps[t.Identifier] {
+			for _, dep := range deps[t.Ident] {
 				found := false
 				for _, resolvedT := range sortedTypes {
-					if dep.Name == resolvedT.Identifier.Name {
+					if dep.Name == resolvedT.Ident.Name {
 						// This dependency has been resolved: move
 						// on checking for next one.
 						found = true
@@ -354,7 +430,7 @@ constsLoop:
 					}
 				}
 				for _, t := range sortedTypes {
-					if dep.Name == t.Identifier.Name {
+					if dep.Name == t.Ident.Name {
 						// This dependency has been resolved: move
 						// on checking for next one.
 						found = true
@@ -420,7 +496,7 @@ varsLoop:
 					}
 				}
 				for _, t := range sortedTypes {
-					if dep.Name == t.Identifier.Name {
+					if dep.Name == t.Ident.Name {
 						// This dependency has been resolved: move
 						// on checking for next one.
 						found = true
@@ -487,6 +563,32 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 
 	tc := newTypechecker(path, opts, globalScope)
 
+	// Checks package level names for "init" and "main".
+	for _, decl := range pkg.Declarations {
+		switch decl := decl.(type) {
+		case *ast.Var:
+			for _, d := range decl.Lhs {
+				if d.Name == "init" || d.Name == "main" {
+					panic(tc.errorf(d.Pos(), "cannot declare %s - must be func", d.Name))
+				}
+			}
+		case *ast.Const:
+			for _, d := range decl.Lhs {
+				if d.Name == "init" || d.Name == "main" {
+					panic(tc.errorf(d.Pos(), "cannot declare %s - must be func", d.Name))
+				}
+			}
+		case *ast.TypeDeclaration:
+			if name := decl.Ident.Name; name == "init" || name == "main" {
+				panic(tc.errorf(decl.Pos(), "cannot declare %s - must be func", name))
+			}
+		case *ast.Import:
+			if decl.Ident != nil && decl.Ident.Name == "init" {
+				panic(tc.errorf(decl.Pos(), "cannot import package as init - init must be a func"))
+			}
+		}
+	}
+
 	err = sortDeclarations(pkg)
 	if err != nil {
 		loopErr := err.(initLoopError)
@@ -508,7 +610,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 		if td, ok := d.(*ast.TypeDeclaration); ok {
 			name, ti := tc.checkTypeDeclaration(td)
 			if ti != nil {
-				tc.assignScope(name, ti, td.Identifier)
+				tc.assignScope(name, ti, td.Ident)
 			}
 		}
 	}
@@ -517,6 +619,9 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 	// declarations.
 	for _, d := range pkg.Declarations {
 		if f, ok := d.(*ast.Func); ok {
+			if f.Body == nil {
+				return tc.errorf(f.Ident.Pos(), "missing function body")
+			}
 			if isBlankIdentifier(f.Ident) {
 				continue
 			}
@@ -599,7 +704,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 		if !ok {
 			return tc.errorf(new(ast.Position), "function main is undeclared in the main package")
 		}
-		if main.t.Type.Kind() != reflect.Func || main.t.Addressable() {
+		if main.t.Addressable() {
 			return tc.errorf(new(ast.Position), "cannot declare main - must be func")
 		}
 	}

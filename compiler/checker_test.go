@@ -42,7 +42,7 @@ var checkerExprs = []struct {
 	{`0`, tiUntypedIntConst("0"), nil},
 	{`7`, tiUntypedIntConst("7"), nil},
 	{`'a'`, tiUntypedRuneConst('a'), nil},
-	{`0.0`, tiUntypedFloatConst("0"), nil},
+	{`0.0`, tiUntypedFloatConst("0.0"), nil},
 	{`123.794`, tiUntypedFloatConst("123.794"), nil},
 	{`0i`, tiUntypedComplexConst("0i"), nil},
 	{`0.0i`, tiUntypedComplexConst("0i"), nil},
@@ -89,6 +89,7 @@ var checkerExprs = []struct {
 	{`-5i`, tiUntypedComplexConst("-5i"), nil},
 	{`-5.7i`, tiUntypedComplexConst("-5.7i"), nil},
 	{`-'a'`, tiUntypedRuneConst(-'a'), nil},
+	{`^1`, tiUntypedIntConst("-2"), nil},
 
 	// Operations ( typed constant )
 	{`!a`, tiBoolConst(false), map[string]*typeInfo{"a": tiBoolConst(true)}},
@@ -103,6 +104,7 @@ var checkerExprs = []struct {
 	{`-a`, tiInt32Const(-'a'), map[string]*typeInfo{"a": tiInt32Const('a')}},
 	{`-a`, tiComplex128Const(-2 - 5.7i), map[string]*typeInfo{"a": tiComplex128Const(2 + 5.7i)}},
 	{`-a`, tiComplex64Const(2 + 5.7i), map[string]*typeInfo{"a": tiComplex64Const(-2 - 5.7i)}},
+	{`^a`, tiIntConst(-2), map[string]*typeInfo{"a": tiIntConst(1)}},
 
 	// Operations ( typed )
 	{`!a`, tiBool(), map[string]*typeInfo{"a": tiBool()}},
@@ -114,6 +116,7 @@ var checkerExprs = []struct {
 	{`-a`, tiFloat64(), map[string]*typeInfo{"a": tiFloat64()}},
 	{`-a`, tiInt32(), map[string]*typeInfo{"a": tiInt32()}},
 	{`-a`, tiComplex128(), map[string]*typeInfo{"a": tiComplex128()}},
+	{`^a`, tiInt(), map[string]*typeInfo{"a": tiInt()}},
 	{`*a`, tiAddrInt(), map[string]*typeInfo{"a": tiIntPtr()}},
 	{`&a`, tiIntPtr(), map[string]*typeInfo{"a": tiAddrInt()}},
 	{`&[]int{}`, &typeInfo{Type: reflect.PtrTo(reflect.SliceOf(intType))}, nil},
@@ -466,31 +469,31 @@ var checkerExprs = []struct {
 	{`recover()`, tiInterface(), nil},
 
 	// complex
-	{`complex(0, 0)`, tiUntypedComplexConst("0"), nil},
-	{`complex(1, 0)`, tiUntypedComplexConst("1"), nil},
-	{`complex(1.2, 0)`, tiUntypedComplexConst("1.2"), nil},
+	{`complex(0, 0)`, tiUntypedComplexConst("0i"), nil},
+	{`complex(1, 0)`, tiUntypedComplexConst("1+0i"), nil},
+	{`complex(1.2, 0)`, tiUntypedComplexConst("1.2+0i"), nil},
 	{`complex(1.2, 1)`, tiUntypedComplexConst("1.2+1i"), nil},
 	{`complex(1.2, 1.5)`, tiUntypedComplexConst("1.2+1.5i"), nil},
-	{`complex(1.2, 0i)`, tiUntypedComplexConst("1.2"), nil},
+	{`complex(1.2, 0i)`, tiUntypedComplexConst("1.2+0i"), nil},
 	{`complex(0i, 2)`, tiUntypedComplexConst("2i"), nil},
-	{`complex(0.0i, 0.0i)`, tiUntypedComplexConst("0"), nil},
-	{`complex(0.0i, 0.0i)`, tiUntypedComplexConst("0"), nil},
+	{`complex(0.0i, 0.0i)`, tiUntypedComplexConst("0i"), nil},
+	{`complex(0.0i, 0.0i)`, tiUntypedComplexConst("0i"), nil},
 
 	// real
-	{`real(0)`, tiUntypedFloatConst("0"), nil},
-	{`real(289)`, tiUntypedFloatConst("289"), nil},
-	{`real(1i)`, tiUntypedFloatConst("0"), nil},
-	{`real(3+5i)`, tiUntypedFloatConst("3"), nil},
+	{`real(0)`, tiUntypedFloatConst("0.0"), nil},
+	{`real(289)`, tiUntypedFloatConst("289.0"), nil},
+	{`real(1i)`, tiUntypedFloatConst("0.0"), nil},
+	{`real(3+5i)`, tiUntypedFloatConst("3.0"), nil},
 	{`real(complex128(3+5i))`, tiFloat64Const(3), nil},
 	{`real(complex64(3+5i))`, tiFloat32Const(3), nil},
 	{`imag(c)`, tiFloat64(), map[string]*typeInfo{"c": tiAddrComplex128()}},
 	{`imag(c)`, tiFloat32(), map[string]*typeInfo{"c": tiAddrComplex64()}},
 
 	// imag
-	{`imag(0)`, tiUntypedFloatConst("0"), nil},
-	{`imag(289)`, tiUntypedFloatConst("0"), nil},
-	{`imag(1i)`, tiUntypedFloatConst("1"), nil},
-	{`imag(3+5i)`, tiUntypedFloatConst("5"), nil},
+	{`imag(0)`, tiUntypedFloatConst("0.0"), nil},
+	{`imag(289)`, tiUntypedFloatConst("0.0"), nil},
+	{`imag(1i)`, tiUntypedFloatConst("1.0"), nil},
+	{`imag(3+5i)`, tiUntypedFloatConst("5.0"), nil},
 	{`imag(complex128(3+5i))`, tiFloat64Const(5), nil},
 	{`imag(complex64(3+5i))`, tiFloat32Const(5), nil},
 	{`imag(c)`, tiFloat64(), map[string]*typeInfo{"c": tiAddrComplex128()}},
@@ -700,6 +703,8 @@ var checkerStmts = map[string]string{
 	`const a = 3.14 / 0.0`:                   `division by zero`,
 	`const _ = uint(-1)`:                     `constant -1 overflows uint`,
 	`const _ = int(3.14)`:                    `constant 3.14 truncated to integer`,
+	`const b uint64 = 1<<64-1; _ = -b`:       `constant -18446744073709551615 overflows uint64`,
+	`const b int64 = -1<<63; _ = -b`:         `constant 9223372036854775808 overflows int64`,
 	`const c = 15 / 4.0; const Θ float64 = 3/2; const ic = complex(0, c)`: ok,
 	`const d = 1 << 3.0`:                                  ok,
 	`const e = 1.0 << 3`:                                  ok,
@@ -736,6 +741,14 @@ var checkerStmts = map[string]string{
 	`_ += 0`:                          cannotUseBlankAsValue,
 	`_ = 4 + _`:                       cannotUseBlankAsValue,
 	`_ = []_{}`:                       cannotUseBlankAsValue,
+
+	// Division by zero.
+	`a := 1; _ = a / 0`:               `division by zero`,
+	`a := 1.0; _ = a / 0.0`:           `division by zero`,
+	`a := 1i; _ = a / 0i`:             `division by zero`,
+	`var a int8 = 1; _ = a / int8(0)`: `division by zero`,
+	`a := 1.0; _ = a / -0.0`:          `division by zero`,
+	`a := 1; _ = a % 0`:               `division by zero`,
 
 	// Equality
 	`type S = struct{ A func() }; _ = interface{}(nil) == S{}`: `invalid operation: interface{}(nil) == S literal (struct { A func() } cannot be compared)`,
@@ -828,9 +841,11 @@ var checkerStmts = map[string]string{
 	`var a int; b := &a; *b++`:  ok,
 	`var a int = (*int)(nil)`:   `cannot use (*int)(nil) (type *int) as type int in assignment`,
 	`var a int = chan int(nil)`: `cannot use (chan int)(nil) (type chan int) as type int in assignment`,
-	`f := func() (int, int) { return 0, 0 }; var a bool; _, a = f()`: `cannot assign int to a (type bool) in multiple assignment`,
-	`f := func() (int, int) { return 0, 0 }; var a bool; a, _ = f()`: `cannot assign int to a (type bool) in multiple assignment`,
-	`var a int = 1<<63; _ = a`:                                       `constant 9223372036854775808 overflows int`,
+	`f := func() (int, int) { return 0, 0 }; var a bool; _, a = f()`:  `cannot assign int to a (type bool) in multiple assignment`,
+	`f := func() (int, int) { return 0, 0 }; var a bool; a, _ = f()`:  `cannot assign int to a (type bool) in multiple assignment`,
+	`var a int = 1<<63; _ = a`:                                        `constant 9223372036854775808 overflows int`,
+	`a := +1.797693134862315708145274237317043567981e+308 * 2; _ = a`: `constant 3.59538627e+308 overflows float64`,
+	`a := -1.797693134862315708145274237317043567981e+308 * 2; _ = a`: `constant -3.59538627e+308 overflows float64`,
 
 	// Slicing
 	`_ = []int{1,2,3,4,5}[:]`:             ok,
@@ -877,6 +892,7 @@ var checkerStmts = map[string]string{
 	`*nil`:  `invalid indirect of nil`,
 	`&nil`:  `cannot take the address of nil`,
 	`<-nil`: `use of untyped nil`,
+	`^nil`:  `invalid operation: ^ nil`,
 
 	// Increments (++) and decrements (--).
 	`a := 1; a++`:   ok,
@@ -1309,14 +1325,27 @@ var checkerStmts = map[string]string{
 	`var _ int`:       ok,
 	`a := 0; var _ a`: `a is not a type`,
 
+	// Builtin function 'panic'.
+	`panic()`:          `missing argument to panic: panic()`,
+	`panic("a")`:       ok,
+	`panic("a", 5)`:    `too many arguments to panic: panic("a", 5)`,
+	`panic(nil)`:       ok,
+	`panic(1<<64 - 1)`: `constant 18446744073709551615 overflows int`,
+	`panic = 0`:        `use of builtin panic not in function call`,
+
 	// Builtin functions 'print' and 'println'.
-	`print()`:         ok,
-	`print("a")`:      ok,
-	`print("a", 5)`:   ok,
-	`println()`:       ok,
-	`println("a")`:    ok,
-	`println("a", 5)`: ok,
-	`println = 0`:     `use of builtin println not in function call`,
+	`print()`:            ok,
+	`print("a")`:         ok,
+	`print("a", 5)`:      ok,
+	`print(nil)`:         `use of untyped nil`,
+	`print(1<<64 - 1)`:   `constant 18446744073709551615 overflows int`,
+	`print = 0`:          `use of builtin print not in function call`,
+	`println()`:          ok,
+	`println("a")`:       ok,
+	`println("a", 5)`:    ok,
+	`println(nil)`:       `use of untyped nil`,
+	`println(1<<64 - 1)`: `constant 18446744073709551615 overflows int`,
+	`println = 0`:        `use of builtin println not in function call`,
 
 	// Builtin function 'append'.
 	`_ = append([]int{}, 0)`:     ok,
@@ -1752,13 +1781,16 @@ func tiUntypedBool() *typeInfo {
 // float type infos.
 
 func tiUntypedFloatConst(lit string) *typeInfo {
-	c, err := parseBasicLiteral(ast.FloatLiteral, lit)
+	constant, typ, err := parseNumericConst(lit)
 	if err != nil {
 		panic("unexpected error: " + err.Error())
 	}
+	if typ != float64Type {
+		panic(fmt.Sprintf("lit %q: unexpected type %s, expected float64", lit, typ))
+	}
 	return &typeInfo{
 		Type:       float64Type,
-		Constant:   c,
+		Constant:   constant,
 		Properties: propertyUntyped,
 	}
 }
@@ -1789,33 +1821,16 @@ func intVariable() *typeInfo {
 // complex type infos.
 
 func tiUntypedComplexConst(lit string) *typeInfo {
-	var re, im constant
-	if lit[len(lit)-1] == 'i' {
-		s := strings.LastIndexAny(lit, "+-")
-		if s == -1 {
-			s = 0
-		}
-		c, err := parseBasicLiteral(ast.ImaginaryLiteral, lit[s:])
-		if err != nil {
-			panic("unexpected error: " + err.Error())
-		}
-		im = c.imag()
-		lit = lit[:s]
-	} else {
-		im = int64Const(0)
+	constant, typ, err := parseNumericConst(lit)
+	if err != nil {
+		panic("unexpected error: " + err.Error())
 	}
-	if len(lit) > 0 {
-		var err error
-		re, err = parseBasicLiteral(ast.FloatLiteral, lit)
-		if err != nil {
-			panic("unexpected error: " + err.Error())
-		}
-	} else {
-		re = int64Const(0)
+	if typ != complex128Type {
+		panic(fmt.Sprintf("lit %q: unexpected type %s, expected complex128", lit, typ))
 	}
 	return &typeInfo{
-		Type:       complex128Type,
-		Constant:   newComplexConst(re, im),
+		Type:       typ,
+		Constant:   constant,
 		Properties: propertyUntyped,
 	}
 }
@@ -1878,13 +1893,16 @@ func tiStringConst(s string) *typeInfo {
 // int type infos.
 
 func tiUntypedIntConst(lit string) *typeInfo {
-	c, typ, err := parseConstant(lit)
-	if err != nil || typ != intType {
-		panic("invalid integer literal value")
+	constant, typ, err := parseNumericConst(lit)
+	if err != nil {
+		panic("unexpected error: " + err.Error())
+	}
+	if typ != intType {
+		panic(fmt.Sprintf("lit %q: unexpected type %s, expected int", lit, typ))
 	}
 	return &typeInfo{
-		Type:       intType,
-		Constant:   c,
+		Type:       typ,
+		Constant:   constant,
 		Properties: propertyUntyped,
 	}
 }

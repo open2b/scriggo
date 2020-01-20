@@ -12,3 +12,4 @@ is an int
 {% i2 := interface{}(-42) %}
 {% res := i.(int) - i2.(int) %}
 res is {{ res }}
+{% for i in []int{1,2,3} %}{{ i }}{% end %}
