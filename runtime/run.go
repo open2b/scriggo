@@ -919,6 +919,8 @@ func (vm *VM) run() (Addr, bool) {
 					v = int64(-int16(v))
 				case reflect.Int32:
 					v = int64(-int32(v))
+				case reflect.Int64:
+					v = -v
 				case reflect.Uint8:
 					v = int64(-uint8(v))
 				case reflect.Uint16:
