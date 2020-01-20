@@ -29,6 +29,7 @@ func main() {
 			println(i, ">>", j, "=", i>>j)
 		}
 		println("^", i, "=", ^i)
+		println("-", i, "=", -i)
 	}
 
 	values16 := []int16{min16, min16 + 1, min16 + 2, min8 - 1, min8, min8 + 1, -2, -1, 0, 1, 2,
@@ -52,6 +53,7 @@ func main() {
 			println(i, ">>", j, "=", i>>j)
 		}
 		println("^", i, "=", ^i)
+		println("-", i, "=", -i)
 	}
 
 	values32 := []int32{min32, min32 + 1, min32 + 2, min16 - 1, min16, min16 + 1, min8 - 1, min8, min8 + 1,
@@ -75,6 +77,7 @@ func main() {
 			println(i, ">>", j, "=", i>>j)
 		}
 		println("^", i, "=", ^i)
+		println("-", i, "=", -i)
 	}
 
 	values64 := []int64{min64, min64 + 1, min64 + 2, min32 - 1, min32, min32 + 1, min16 - 1, min16, min16 + 1,
@@ -100,6 +103,7 @@ func main() {
 			println(i, ">>", j, "=", i>>j)
 		}
 		println("^", i, "=", ^i)
+		println("-", i, "=", -i)
 	}
 
 }
