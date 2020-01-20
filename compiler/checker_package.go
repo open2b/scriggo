@@ -700,12 +700,8 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 	}
 
 	if pkg.Name == "main" {
-		main, ok := tc.filePackageBlock["main"]
-		if !ok {
+		if _, ok := tc.filePackageBlock["main"]; !ok {
 			return tc.errorf(new(ast.Position), "function main is undeclared in the main package")
-		}
-		if main.t.Addressable() {
-			return tc.errorf(new(ast.Position), "cannot declare main - must be func")
 		}
 	}
 
