@@ -1,5 +1,3 @@
-// skip : runtime panic https://github.com/open2b/scriggo/issues/526
-
 // run
 
 // Copyright 2018 The Go Authors. All rights reserved.

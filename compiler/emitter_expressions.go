@@ -544,6 +544,11 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 			}
 			return reg, false
 		}
+		em.fb.enterScope()
+		workingReg := reg
+		if !canEmitDirectly(typ.Kind(), dstType.Kind()) {
+			workingReg = em.fb.newRegister(typ.Kind())
+		}
 		length := em.compositeLiteralLen(expr)
 		var k bool
 		var length8 int8
@@ -556,10 +561,10 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 			k = true
 		}
 		if typ.Kind() == reflect.Slice {
-			em.fb.emitMakeSlice(k, k, typ, length8, length8, reg, expr.Pos())
+			em.fb.emitMakeSlice(k, k, typ, length8, length8, workingReg, expr.Pos())
 		} else {
 			arrayZero := em.fb.makeGeneralConstant(em.types.New(typ).Elem().Interface())
-			em.changeRegister(true, arrayZero, reg, typ, typ)
+			em.changeRegister(true, arrayZero, workingReg, typ, typ)
 		}
 		elemKind := typ.Elem().Kind()
 		var index int64 = -1
@@ -592,12 +597,15 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 				em.fb.emitMove(true, int8(index), indexReg, reflect.Int, true)
 			}
 			elem, k := em.emitExprK(kv.Value, typ.Elem())
-			if reg != 0 {
-				em.fb.emitSetSlice(k, reg, elem, indexReg, expr.Pos(), elemKind)
+			if workingReg != 0 {
+				em.fb.emitSetSlice(k, workingReg, elem, indexReg, expr.Pos(), elemKind)
 			}
 			em.fb.exitStack()
 		}
-		em.changeRegister(false, reg, reg, em.typ(expr.Type), dstType)
+		if !canEmitDirectly(typ.Kind(), dstType.Kind()) {
+			em.changeRegister(false, workingReg, reg, typ, dstType)
+		}
+		em.fb.exitScope()
 	case reflect.Struct:
 		// Struct should no be created, but its values must be emitted.
 		if reg == 0 {
@@ -627,7 +635,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 			name := kv.Key.(*ast.Identifier).Name
 			field, _ := typ.FieldByName(name)
 			valueType := em.typ(kv.Value)
-			if canEmitDirectly(field.Type.Kind(), valueType.Kind()) {
+			if canEmitDirectly(valueType.Kind(), field.Type.Kind()) {
 				value, k := em.emitExprK(kv.Value, valueType)
 				index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
 				em.fb.emitSetField(k, structt, index, value, field.Type.Kind())
