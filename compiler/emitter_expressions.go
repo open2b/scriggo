@@ -661,12 +661,12 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 			em.fb.emitMakeMap(typ, false, sizeReg, tmp)
 		}
 		for _, kv := range expr.KeyValues {
-			key := em.fb.newRegister(typ.Key().Kind())
 			em.fb.enterStack()
+			key := em.fb.newRegister(typ.Key().Kind())
 			em.emitExprR(kv.Key, typ.Key(), key)
 			value, k := em.emitExprK(kv.Value, typ.Elem())
-			em.fb.exitStack()
 			em.fb.emitSetMap(k, tmp, value, key, typ, expr.Pos())
+			em.fb.exitStack()
 		}
 		em.changeRegister(false, tmp, reg, typ, dstType)
 	}
