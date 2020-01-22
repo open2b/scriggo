@@ -469,9 +469,11 @@ func (builder *functionBuilder) setLabelAddr(lab label) {
 
 func (builder *functionBuilder) end() {
 	fn := builder.fn
-	if len(fn.Body) == 0 || fn.Body[len(fn.Body)-1].Op != runtime.OpReturn {
-		builder.emitReturn()
-	}
+	builder.emitReturn()
+	// https://github.com/open2b/scriggo/issues/537
+	// if len(fn.Body) == 0 || fn.Body[len(fn.Body)-1].Op != runtime.OpReturn {
+	// 	builder.emitReturn()
+	// }
 	for addr, label := range builder.gotos {
 		i := fn.Body[addr]
 		i.A, i.B, i.C = encodeUint24(uint32(builder.labelAddrs[label-1]))
