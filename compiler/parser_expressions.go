@@ -378,9 +378,6 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				case tokenLeftParenthesis:
 					// e.(ident), e.(pkg.ident)
 					tok = p.next()
-					if len(tok.txt) == 1 && tok.txt[0] == '_' {
-						panic(syntaxError(tok.pos, "cannot use _ as value"))
-					}
 					var typ ast.Expression
 					switch tok.typ {
 					case tokenType:
