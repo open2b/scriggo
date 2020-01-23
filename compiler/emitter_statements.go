@@ -331,7 +331,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					// implements interface io.Writer.
 					em.fb.enterStack()
 					writeFun = em.fb.newRegister(reflect.Func)
-					em.fb.emitMethodValue("WriteText", em.fb.templateRegs.gF, writeFun)
+					em.fb.emitMethodValue("WriteText", em.fb.templateRegs.gF, writeFun, node.Pos())
 					em.fb.exitStack()
 				} else {
 					writeFun = em.fb.templateRegs.gB
@@ -367,7 +367,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			// Call method Reset of urlWriter.
 			em.fb.enterStack()
 			method := em.fb.newRegister(reflect.Func)
-			em.fb.emitMethodValue("StartURL", em.fb.templateRegs.gF, method)
+			em.fb.emitMethodValue("StartURL", em.fb.templateRegs.gF, method, node.Pos())
 			ss := em.fb.currentStackShift()
 			quoteArg := em.fb.newRegister(reflect.Bool)
 			isSetArg := em.fb.newRegister(reflect.Bool)

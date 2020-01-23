@@ -698,7 +698,7 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 			em.fb.emitTypify(false, rcvrType, oldRcvr, rcvr)
 		}
 		if kindToType(dstType.Kind()) == generalRegister {
-			em.fb.emitMethodValue(expr.Ident, rcvr, reg)
+			em.fb.emitMethodValue(expr.Ident, rcvr, reg, expr.Pos())
 		} else {
 			panic("not implemented")
 		}

@@ -638,7 +638,8 @@ func (builder *functionBuilder) emitMakeSlice(kLen, kCap bool, sliceType reflect
 //
 //     dst = receiver.name
 //
-func (builder *functionBuilder) emitMethodValue(name string, receiver int8, dst int8) {
+func (builder *functionBuilder) emitMethodValue(name string, receiver int8, dst int8, pos *ast.Position) {
+	builder.addPosAndPath(pos)
 	str := builder.makeStringConstant(name)
 	fn := builder.fn
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpMethodValue, A: receiver, B: str, C: dst})
