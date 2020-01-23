@@ -393,6 +393,9 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 						fallthrough
 					default:
 						typ, tok = p.parseExpr(tok, true, true, false)
+						if typ == nil {
+							panic(syntaxError(tok.pos, "unexpected %s, expecting type", tok))
+						}
 					}
 					if tok.typ != tokenRightParenthesis {
 						panic(syntaxError(tok.pos, "unexpected %s, expecting )", tok))
