@@ -179,14 +179,12 @@ func (vm *VM) run() (Addr, bool) {
 				in := vm.fn.Body[vm.pc]
 				if in.Op == OpPanic {
 					var concrete reflect.Type
+					var method string
 					if v.IsValid() {
 						concrete = v.Type()
-					} else {
-						panic(errTypeAssertion(vm.fn.Types[uint8(in.C)], concrete, t, ""))
-					}
-					var method string
-					if t.Kind() == reflect.Interface {
-						method = missingMethod(concrete, t)
+						if t.Kind() == reflect.Interface {
+							method = missingMethod(concrete, t)
+						}
 					}
 					panic(errTypeAssertion(vm.fn.Types[uint8(in.C)], concrete, t, method))
 				}
