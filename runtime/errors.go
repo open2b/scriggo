@@ -270,7 +270,7 @@ type Panic struct {
 func (p *Panic) Error() string {
 	// TODO: this code is a temporary substitution of the code above and should
 	// be removed. Also, it adds a dependency from 'fmt'.
-	return fmt.Sprint(p.path, p.position, p.message)
+	return fmt.Sprintf("%s:%s: %s", p.path, p.position, p.message)
 }
 
 // Message returns the message.
