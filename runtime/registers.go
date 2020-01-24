@@ -52,7 +52,7 @@ func (vm *VM) intk(r int8, k bool) int64 {
 func (vm *VM) intIndirect(r int8) int64 {
 	v := vm.regs.general[vm.fp[3]+Addr(r)]
 	if v.IsNil() {
-		panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
+		panic(errNilPointer)
 	}
 	elem := v.Elem()
 	k := elem.Kind()
@@ -111,7 +111,7 @@ func (vm *VM) boolk(r int8, k bool) bool {
 func (vm *VM) boolIndirect(r int8) bool {
 	v := vm.regs.general[vm.fp[3]+Addr(r)]
 	if v.IsNil() {
-		panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
+		panic(errNilPointer)
 	}
 	return v.Elem().Bool()
 }
@@ -153,7 +153,7 @@ func (vm *VM) floatk(r int8, k bool) float64 {
 func (vm *VM) floatIndirect(r int8) float64 {
 	v := vm.regs.general[vm.fp[3]+Addr(r)]
 	if v.IsNil() {
-		panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
+		panic(errNilPointer)
 	}
 	return v.Elem().Float()
 }
@@ -191,7 +191,7 @@ func (vm *VM) stringk(r int8, k bool) string {
 func (vm *VM) stringIndirect(r int8) string {
 	v := vm.regs.general[vm.fp[3]+Addr(r)]
 	if v.IsNil() {
-		panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
+		panic(errNilPointer)
 	}
 	return v.Elem().String()
 }
@@ -230,7 +230,7 @@ func (vm *VM) generalk(r int8, k bool) reflect.Value {
 func (vm *VM) generalIndirect(r int8) reflect.Value {
 	v := vm.regs.general[vm.fp[3]+Addr(r)]
 	if v.IsNil() {
-		panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
+		panic(errNilPointer)
 	}
 	elem := v.Elem()
 	if elem.Kind() == reflect.Func {

@@ -845,7 +845,7 @@ func (vm *VM) run() (Addr, bool) {
 		case OpMethodValue:
 			receiver := vm.general(a)
 			if !receiver.IsValid() {
-				panic(runtimeError("runtime error: invalid memory address or nil pointer dereference"))
+				panic(errNilPointer)
 			}
 			method := vm.stringk(b, true)
 			vm.setGeneral(c, reflect.ValueOf(&callable{receiver: receiver.Interface(), method: method}))
