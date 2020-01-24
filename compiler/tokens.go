@@ -231,11 +231,15 @@ type token struct {
 
 // String returns the string that represents the token.
 func (tok token) String() string {
-	if tok.typ == tokenText {
+	switch tok.typ {
+	case tokenText:
 		return fmt.Sprintf("%q", tok.txt)
-	}
-	if tok.typ == tokenIdentifier {
+	case tokenIdentifier:
 		return string(tok.txt)
+	case tokenSemicolon:
+		if tok.txt == nil {
+			return "newline"
+		}
 	}
 	return tok.typ.String()
 }
