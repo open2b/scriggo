@@ -41,29 +41,32 @@ type runtimeError string
 func (err runtimeError) Error() string { return string(err) }
 func (err runtimeError) RuntimeError() {}
 
-// errTypeAssertion returns a runtime error for a failed type assertion. The
-// Go runtime returns a runtime.TypeAssertionError, Scriggo cannot return an
-// error with this type because it has unexported fields.
+// errTypeAssertion returns a runtime error for a failed type assertion x.(T).
+// interfaceType is the type of x, dynamicType is dynamic type of x or nil if
+// x is nil and assertedType is the type T. If T is an interface type,
+// missingMethod is the missing method name.
 //
-// See also https://github.com/golang/go/issues/14443
-func errTypeAssertion(interfac, concrete, asserted reflect.Type, missingMethod string) runtimeError {
+// The Go runtime returns a runtime.TypeAssertionError, Scriggo cannot return
+// an error with this type because it has unexported fields. See also:
+// https://github.com/golang/go/issues/14443
+func errTypeAssertion(interfaceType, dynamicType, assertedType reflect.Type, missingMethod string) runtimeError {
 	s := "interface conversion: "
-	if concrete == nil {
-		if asserted.Kind() == reflect.Interface {
-			return runtimeError(s + "interface is nil, not " + asserted.String())
+	if dynamicType == nil {
+		if assertedType.Kind() == reflect.Interface {
+			return runtimeError(s + "interface is nil, not " + assertedType.String())
 		}
-		return runtimeError(s + interfac.String() + " is nil, not " + asserted.String())
+		return runtimeError(s + interfaceType.String() + " is nil, not " + assertedType.String())
 	}
 	if missingMethod != "" {
-		return runtimeError(s + concrete.String() + " is not " + asserted.String() +
+		return runtimeError(s + dynamicType.String() + " is not " + assertedType.String() +
 			": missing method " + missingMethod)
 	}
-	s += interfac.String() + " is " + concrete.String() + ", not " + asserted.String()
-	if concrete.String() != asserted.String() {
+	s += interfaceType.String() + " is " + dynamicType.String() + ", not " + assertedType.String()
+	if dynamicType.String() != assertedType.String() {
 		return runtimeError(s)
 	}
 	s += " (types from different "
-	if concrete.PkgPath() == interfac.PkgPath() {
+	if dynamicType.PkgPath() == interfaceType.PkgPath() {
 		return runtimeError(s + "scopes)")
 	}
 	return runtimeError(s + "packages)")
