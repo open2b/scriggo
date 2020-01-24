@@ -181,6 +181,8 @@ func (vm *VM) run() (Addr, bool) {
 					var concrete reflect.Type
 					if v.IsValid() {
 						concrete = v.Type()
+					} else {
+						panic(errTypeAssertion(vm.fn.Types[uint8(in.C)], concrete, t, ""))
 					}
 					var method string
 					if t.Kind() == reflect.Interface {

@@ -49,6 +49,9 @@ func (err runtimeError) RuntimeError() {}
 func errTypeAssertion(interfac, concrete, asserted reflect.Type, missingMethod string) runtimeError {
 	s := "interface conversion: "
 	if concrete == nil {
+		if asserted.Kind() == reflect.Interface {
+			return runtimeError(s + "interface is nil, not " + asserted.String())
+		}
 		return runtimeError(s + interfac.String() + " is nil, not " + asserted.String())
 	}
 	if missingMethod != "" {
