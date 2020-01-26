@@ -285,18 +285,23 @@ func (vm *VM) getIntoReflectValue(r int8, v reflect.Value, k bool) {
 	}
 }
 
-func (vm *VM) setFromReflectValue(r int8, v reflect.Value) {
+func (vm *VM) setFromReflectValue(r int8, v reflect.Value) registerType {
 	switch v.Kind() {
 	case reflect.Bool:
 		vm.setBool(r, v.Bool())
+		return intRegister
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		vm.setInt(r, v.Int())
+		return intRegister
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		vm.setInt(r, int64(v.Uint()))
+		return intRegister
 	case reflect.Float32, reflect.Float64:
 		vm.setFloat(r, v.Float())
+		return floatRegister
 	case reflect.String:
 		vm.setString(r, v.String())
+		return stringRegister
 	case reflect.Func:
 		c := &callable{
 			predefined: &PredefinedFunction{
@@ -305,10 +310,13 @@ func (vm *VM) setFromReflectValue(r int8, v reflect.Value) {
 			},
 		}
 		vm.setGeneral(r, reflect.ValueOf(c))
+		return generalRegister
 	case reflect.Interface:
 		vm.setGeneral(r, v.Elem())
+		return generalRegister
 	default:
 		vm.setGeneral(r, v)
+		return generalRegister
 	}
 }
 
