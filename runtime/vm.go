@@ -532,7 +532,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 		nOut := typ.NumOut()
 		for i := 0; i < nOut; i++ {
 			k := typ.Out(i).Kind()
-			fn.outOff[kindToType(k)]++
+			fn.outOff[kindToType[k]]++
 		}
 	}
 	fn.mx.Unlock()
@@ -1086,11 +1086,11 @@ func (c *callable) Value(env *Env) reflect.Value {
 			for i := 0; i < nOut; i++ {
 				typ := fn.Type.Out(i)
 				results[i] = reflect.New(typ).Elem()
-				t := kindToType(typ.Kind())
+				t := kindToType[typ.Kind()]
 				r[t]++
 			}
 			for _, arg := range args {
-				t := kindToType(arg.Kind())
+				t := kindToType[arg.Kind()]
 				nvm.setFromReflectValue(r[t], arg)
 				r[t]++
 			}
@@ -1114,7 +1114,7 @@ func (c *callable) Value(env *Env) reflect.Value {
 			}
 			r = [4]int8{1, 1, 1, 1}
 			for _, result := range results {
-				t := kindToType(result.Kind())
+				t := kindToType[result.Kind()]
 				nvm.getIntoReflectValue(r[t], result, false)
 				r[t]++
 			}
@@ -1173,19 +1173,23 @@ const (
 	generalRegister
 )
 
-// kindToType returns the internal register type of a reflect kind.
-func kindToType(k reflect.Kind) registerType {
-	switch k {
-	case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return intRegister
-	case reflect.Float32, reflect.Float64:
-		return floatRegister
-	case reflect.String:
-		return stringRegister
-	default:
-		return generalRegister
-	}
+// kindToType maps a reflect kind to the corresponding internal register type.
+var kindToType = [...]registerType{
+	reflect.Invalid:       -1,
+	reflect.Float32:       1,
+	reflect.Float64:       1,
+	reflect.Complex64:     3,
+	reflect.Complex128:    3,
+	reflect.Array:         3,
+	reflect.Chan:          3,
+	reflect.Func:          3,
+	reflect.Interface:     3,
+	reflect.Map:           3,
+	reflect.Ptr:           3,
+	reflect.Slice:         3,
+	reflect.String:        2,
+	reflect.Struct:        3,
+	reflect.UnsafePointer: 3,
 }
 
 type Condition int8
