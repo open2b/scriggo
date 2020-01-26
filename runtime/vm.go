@@ -530,35 +530,9 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 			}
 		}
 		nOut := typ.NumOut()
-		fn.out = make([]parameterKind, nOut)
 		for i := 0; i < nOut; i++ {
 			k := typ.Out(i).Kind()
-			switch {
-			case k == reflect.Bool:
-				fn.out[i] = boolParameter
-				fn.outOff[0]++
-			case reflect.Int <= k && k <= reflect.Int64:
-				fn.out[i] = intParameter
-				fn.outOff[0]++
-			case reflect.Uint <= k && k <= reflect.Uintptr:
-				fn.out[i] = uintParameter
-				fn.outOff[0]++
-			case k == reflect.Float64 || k == reflect.Float32:
-				fn.out[i] = float64Parameter
-				fn.outOff[1]++
-			case k == reflect.String:
-				fn.out[i] = stringParameter
-				fn.outOff[2]++
-			case k == reflect.Func:
-				fn.out[i] = funcParameter
-				fn.outOff[3]++
-			case k == reflect.Interface:
-				fn.out[i] = interfaceParameter
-				fn.outOff[3]++
-			default:
-				fn.out[i] = otherParameter
-				fn.outOff[3]++
-			}
+			fn.outOff[kindToType(k)]++
 		}
 	}
 	fn.mx.Unlock()
@@ -716,8 +690,8 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 		} else {
 			out = fn.value.Call(args)
 		}
-		for i := range fn.out {
-			r := vm.setFromReflectValue(1, out[i])
+		for _, arg := range out {
+			r := vm.setFromReflectValue(1, arg)
 			vm.fp[r]++
 		}
 		if args != nil {
@@ -991,7 +965,6 @@ type PredefinedFunction struct {
 	Func   interface{}
 	mx     sync.RWMutex // synchronize access to the following fields.
 	in     []parameterKind
-	out    []parameterKind
 	args   [][]reflect.Value
 	outOff [4]int8
 	value  reflect.Value
