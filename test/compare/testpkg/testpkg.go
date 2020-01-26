@@ -114,6 +114,10 @@ func CallFunction(f func()) {
 	f()
 }
 
+func ReturnFunction() func(int) int {
+	return func(i int) int { return i + 1 }
+}
+
 func RuntimeError() {
 	var a = 0
 	_ = 1 / a

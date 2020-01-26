@@ -710,40 +710,15 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 	} else {
 
 		// Call the function and get the results.
-		var ret []reflect.Value
+		var out []reflect.Value
 		if variadic {
-			ret = fn.value.CallSlice(args)
+			out = fn.value.CallSlice(args)
 		} else {
-			ret = fn.value.Call(args)
+			out = fn.value.Call(args)
 		}
-		for i, k := range fn.out {
-			switch k {
-			case boolParameter:
-				vm.setBool(1, ret[i].Bool())
-				vm.fp[0]++
-			case intParameter:
-				vm.setInt(1, ret[i].Int())
-				vm.fp[0]++
-			case uintParameter:
-				vm.setInt(1, int64(ret[i].Uint()))
-				vm.fp[0]++
-			case float64Parameter:
-				vm.setFloat(1, ret[i].Float())
-				vm.fp[1]++
-			case stringParameter:
-				vm.setString(1, ret[i].String())
-				vm.fp[2]++
-			case funcParameter:
-				panic("BUG: not implemented") // TODO: fix.
-			case interfaceParameter:
-				vm.setGeneral(1, ret[i].Elem())
-				vm.fp[3]++
-			case otherParameter:
-				vm.setGeneral(1, ret[i])
-				vm.fp[3]++
-			default:
-				panic("BUG: unexpected") // TODO: remove.
-			}
+		for i := range fn.out {
+			r := vm.setFromReflectValue(1, out[i])
+			vm.fp[r]++
 		}
 		if args != nil {
 			fn.mx.Lock()
