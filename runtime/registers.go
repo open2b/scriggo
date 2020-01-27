@@ -256,20 +256,26 @@ func (vm *VM) setGeneralIndirect(r int8, v reflect.Value) {
 	vm.regs.general[vm.fp[3]+Addr(r)].Elem().Set(v)
 }
 
-func (vm *VM) getIntoReflectValue(r int8, v reflect.Value, k bool) {
+func (vm *VM) getIntoReflectValue(r int8, v reflect.Value, k bool) registerType {
 	switch v.Kind() {
 	case reflect.Bool:
 		v.SetBool(vm.boolk(r, k))
+		return intRegister
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		v.SetInt(vm.intk(r, k))
+		return intRegister
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		v.SetUint(uint64(vm.intk(r, k)))
+		return intRegister
 	case reflect.Float32, reflect.Float64:
 		v.SetFloat(vm.floatk(r, k))
+		return floatRegister
 	case reflect.String:
 		v.SetString(vm.stringk(r, k))
+		return stringRegister
 	case reflect.Func:
 		v.Set(vm.generalk(r, k).Interface().(*callable).Value(vm.env))
+		return generalRegister
 	case reflect.Interface:
 		if g := vm.generalk(r, k); !g.IsValid() { // TODO: check if it is correct.
 			if t := v.Type(); t == emptyInterfaceType {
@@ -280,8 +286,10 @@ func (vm *VM) getIntoReflectValue(r int8, v reflect.Value, k bool) {
 		} else {
 			v.Set(g)
 		}
+		return generalRegister
 	default:
 		v.Set(vm.generalk(r, k))
+		return generalRegister
 	}
 }
 
