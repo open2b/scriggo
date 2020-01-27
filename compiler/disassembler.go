@@ -346,13 +346,11 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			s += " ..." + strconv.Itoa(int(c))
 		}
 		for i := 0; i < 4; i++ {
+			_, fn := funcNameType(fn, a, addr, op)
 			s += " "
-			if stackShift[i] == 0 {
-				_, fn := funcNameType(fn, a, addr, op)
-				if fn != nil && !funcHasParameterInRegister(fn, registerType(i)) {
-					s += "_"
-					continue
-				}
+			if fn == nil || !funcHasParameterInRegister(fn, registerType(i)) {
+				s += "_"
+				continue
 			}
 			s += string("ifsg"[i])
 			s += strconv.Itoa(int(stackShift[i] + 1))
