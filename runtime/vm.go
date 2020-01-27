@@ -539,9 +539,12 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 
 	// Call the function with reflect.
 	var args []reflect.Value
-	variadic := fn.value.Type().IsVariadic()
 
-	if len(fn.in) > 0 {
+	typ := fn.value.Type()
+	nunIn := typ.NumIn()
+	variadic := typ.IsVariadic()
+
+	if nunIn > 0 {
 
 		// Shift the frame pointer.
 		vm.fp[0] += Addr(fn.outOff[0])
@@ -553,10 +556,8 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 		fn.mx.Lock()
 		if len(fn.args) == 0 {
 			fn.mx.Unlock()
-			nIn := len(fn.in)
-			typ := fn.value.Type()
-			args = make([]reflect.Value, nIn)
-			for i := 0; i < nIn; i++ {
+			args = make([]reflect.Value, nunIn)
+			for i := 0; i < nunIn; i++ {
 				t := typ.In(i)
 				args[i] = reflect.New(t).Elem()
 			}
@@ -568,50 +569,17 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 		}
 
 		// Prepare the arguments.
-		lastNonVariadic := len(fn.in)
+		lastNonVariadic := nunIn
 		if variadic && numVariadic != NoVariadicArgs {
 			lastNonVariadic--
 		}
-		for i, k := range fn.in {
+		for i := 0; i < nunIn; i++ {
 			if i < lastNonVariadic {
-				switch k {
-				case boolParameter:
-					args[i].SetBool(vm.bool(1))
-					vm.fp[0]++
-				case intParameter:
-					args[i].SetInt(vm.int(1))
-					vm.fp[0]++
-				case uintParameter:
-					args[i].SetUint(uint64(vm.int(1)))
-					vm.fp[0]++
-				case float64Parameter:
-					args[i].SetFloat(vm.float(1))
-					vm.fp[1]++
-				case stringParameter:
-					args[i].SetString(vm.string(1))
-					vm.fp[2]++
-				case funcParameter:
-					f := vm.general(1).Interface().(*callable)
-					args[i].Set(f.Value(vm.env))
-					vm.fp[3]++
-				case envParameter:
+				if i < 2 && typ.In(i) == envType {
 					args[i].Set(vm.envArg)
-				case interfaceParameter:
-					if v := vm.general(1); !v.IsValid() {
-						if t := args[i].Type(); t == emptyInterfaceType {
-							args[i] = emptyInterfaceNil
-						} else {
-							args[i].Set(reflect.Zero(t))
-						}
-					} else {
-						args[i].Set(v)
-					}
-					vm.fp[3]++
-				case otherParameter:
-					args[i].Set(vm.general(1))
-					vm.fp[3]++
-				default:
-					panic("BUG") // TODO: remove.
+				} else {
+					r := vm.getIntoReflectValue(1, args[i], false)
+					vm.fp[r]++
 				}
 			} else {
 				sliceType := args[i].Type()
@@ -968,6 +936,10 @@ type PredefinedFunction struct {
 	args   [][]reflect.Value
 	outOff [4]int8
 	value  reflect.Value
+}
+
+func newPredefined() {
+
 }
 
 // Function represents a function.
