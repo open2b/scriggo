@@ -578,9 +578,9 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 			if ti := em.ti(kv.Value); ti.HasValue() {
 				var isZero bool
 				switch elemKind {
-				case reflect.Interface:
+				case reflect.Interface, reflect.Func:
 					isZero = ti.value == nil
-				case reflect.Ptr, reflect.Slice, reflect.Map, reflect.Chan, reflect.Func:
+				case reflect.Ptr, reflect.Slice, reflect.Map, reflect.Chan:
 					isZero = reflect.ValueOf(ti.value).IsNil()
 				default:
 					isZero = ti.IsConstant() && ti.Constant.zero()
