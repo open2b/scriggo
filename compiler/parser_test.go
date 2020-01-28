@@ -2037,6 +2037,9 @@ func equals(n1, n2 ast.Node, p int) error {
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
+		if nn1.Not != nn2.Not {
+			return fmt.Errorf("unexpected .Not = %t, expecting .Not = %T", nn1.Not, nn2.Not)
+		}
 		err := equals(nn1.Condition, nn2.Condition, p)
 		if err != nil {
 			return err
