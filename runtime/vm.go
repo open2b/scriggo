@@ -446,37 +446,6 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 				vm.setString(1, f(vm.string(2), int(vm.int(1))))
 			case func(string, string) bool:
 				vm.setBool(1, f(vm.string(1), vm.string(2)))
-			// TODO: modify or remove these optimizations.
-			//case func([]byte) []byte:
-			//	if f == nil {
-			//		vm.fp = fp
-			//		panic(errNilPointer)
-			//	}
-			//	vm.setGeneral(1, f(vm.general(2).([]byte)))
-			//case func([]byte, []byte) int:
-			//	if f == nil {
-			//		vm.fp = fp
-			//		panic(errNilPointer)
-			//	}
-			//	vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
-			//case func([]byte, []byte) bool:
-			//	if f == nil {
-			//		vm.fp = fp
-			//		panic(errNilPointer)
-			//	}
-			//	vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
-			//case func(interface{}, interface{}) interface{}:
-			//	if f == nil {
-			//		vm.fp = fp
-			//		panic(errNilPointer)
-			//	}
-			//	vm.setGeneral(1, f(vm.general(2), vm.general(3)))
-			//case func(interface{}) interface{}:
-			//	if f == nil {
-			//		vm.fp = fp
-			//		panic(errNilPointer)
-			//	}
-			//	vm.setGeneral(1, f(vm.general(2)))
 			default:
 				panic("unexpected")
 			}
