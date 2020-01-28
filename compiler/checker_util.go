@@ -145,11 +145,11 @@ var htmlStringerType = reflect.TypeOf((*HTMLStringer)(nil)).Elem()
 var cssStringerType = reflect.TypeOf((*CSSStringer)(nil)).Elem()
 var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
 
-// declareAsBoolBuiltin declares the "$asBool" builtin in the global scope,
-// that takes an argument of type interface{} and returns a boolean value that
-// indicates if such value is different from the zero of the argument or not.
-// If the "$asBool" builtin has already been declared in the global scope then
-// calling this method is a no-op.
+// declareAsBoolBuiltin declares the "$asBool" builtin in the global scope if it
+// has not already been declared.
+//
+// The "$asBool" builtin has type func(interface{}) bool and reports whether its
+// argument is not the zero value for its dinamic type.
 func (tc *typechecker) declareAsBoolBuiltin() {
 	if _, ok := tc.globalScope["$asBool"]; ok {
 		return
@@ -164,7 +164,7 @@ func (tc *typechecker) declareAsBoolBuiltin() {
 			return cond != 0
 		case string:
 			return cond != ""
-		// Do NOT join these cases.
+		// Do NOT join the following cases.
 		// If joined, the 'nil' on the left of '!=' becomes the zero of the
 		// empty interface, not the zero on the type on the left.
 		case []int:
@@ -185,10 +185,9 @@ func (tc *typechecker) declareAsBoolBuiltin() {
 		Properties: propertyIsPredefined | propertyHasValue,
 	}
 	if tc.globalScope == nil {
-		tc.globalScope = typeCheckerScope{}
-	}
-	tc.globalScope["$asBool"] = scopeElement{
-		t: ti,
+		tc.globalScope = typeCheckerScope{"$asBool": scopeElement{t: ti}}
+	} else {
+		tc.globalScope["$asBool"] = scopeElement{t: ti}
 	}
 }
 

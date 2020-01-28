@@ -761,13 +761,13 @@ LABEL:
 		ifPos := tok.pos
 		var init ast.Node
 		var expr ast.Expression
-		nextTok := p.next()
+		tok = p.next()
 		not := false
-		if nextTok.typ == tokenNotIf {
+		if tok.typ == tokenNotIf {
 			not = true
-			nextTok = p.next()
+			tok = p.next()
 		}
-		init, tok = p.parseSimpleStatement(nextTok, false, true)
+		init, tok = p.parseSimpleStatement(tok, false, true)
 		if tok.typ == tokenSemicolon {
 			expr, tok = p.parseExpr(p.next(), false, false, true)
 		} else if init != nil {
