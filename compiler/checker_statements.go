@@ -126,6 +126,9 @@ nodesLoop:
 				tc.checkNodes([]ast.Node{node.Init})
 			}
 			ti := tc.checkExpr(node.Condition)
+			if ti.Nil() {
+				panic(tc.errorf(node.Condition, "use of untyped nil"))
+			}
 			if ti.Type.Kind() != reflect.Bool {
 				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, ti.ShortString()))
 			}
