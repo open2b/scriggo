@@ -16,3 +16,6 @@ if not s2
 if []int{1, 2, 3}
 if []int{}
 ([]int(nil))
+
+
+    else if 42

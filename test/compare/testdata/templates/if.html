@@ -22,3 +22,15 @@
 {% if []int{1, 2, 3} %}if []int{1, 2, 3}{% end %}
 {% if []int{} %}if []int{}{% end %}
 {% if []int(nil) %}bad{% else %}([]int(nil)){% end %}
+
+{% if "" %}
+	bad
+{% else if "" %}
+	bad
+{% end %}
+
+{% if 0 %}
+	bad
+{% else if 42 %}
+    else if 42
+{% end %}
