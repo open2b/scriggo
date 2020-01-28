@@ -86,9 +86,9 @@ func Disassemble(main *runtime.Function, globals []Global) (assembler map[string
 		}
 		for _, nf := range fn.Predefined {
 			if packages, ok := importsByPkg[fn.Pkg]; ok {
-				packages[nf.Pkg] = struct{}{}
+				packages[nf.Package()] = struct{}{}
 			} else {
-				importsByPkg[fn.Pkg] = map[string]struct{}{nf.Pkg: {}}
+				importsByPkg[fn.Pkg] = map[string]struct{}{nf.Package(): {}}
 			}
 		}
 	}
@@ -335,7 +335,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 				s += ")"
 			case runtime.OpCallPredefined:
 				nf := fn.Predefined[uint8(a)]
-				s += " " + packageName(nf.Pkg) + "." + nf.Name
+				s += " " + packageName(nf.Package()) + "." + nf.Name()
 			case runtime.OpDefer:
 				s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 			}
@@ -484,7 +484,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			}
 		} else { // LoadFunc (predefined).
 			f := fn.Predefined[uint8(b)]
-			s += " " + packageName(f.Pkg) + "." + f.Name
+			s += " " + packageName(f.Package()) + "." + f.Name()
 			s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 		}
 	case runtime.OpLoadNumber:
@@ -634,8 +634,8 @@ func funcNameType(fn *runtime.Function, index int8, addr runtime.Addr, op runtim
 		name := fn.Functions[index].Name
 		return name, typ
 	case runtime.OpCallPredefined:
-		name := fn.Predefined[index].Name
-		typ := reflect.TypeOf(fn.Predefined[index].Func)
+		name := fn.Predefined[index].Name()
+		typ := reflect.TypeOf(fn.Predefined[index].Func())
 		return name, typ
 	case runtime.OpCallIndirect, runtime.OpDefer:
 		return "", fn.DebugInfo[addr].FuncType

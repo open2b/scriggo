@@ -128,6 +128,10 @@ nodesLoop:
 
 			ti := tc.checkExpr(node.Condition)
 
+			if ti.Nil() {
+				panic(tc.errorf(node.Condition, "use of untyped nil"))
+			}
+
 			// Handle if statements in templates that have the 'not' keyword or
 			// have a non-boolean condition.
 			if boolCond := ti.Type.Kind() == reflect.Bool; tc.opts.SyntaxType == TemplateSyntax && !boolCond || node.Not {

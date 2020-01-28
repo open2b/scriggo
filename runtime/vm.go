@@ -404,6 +404,10 @@ func (vm *VM) alloc() {
 // whether the function must be started as a goroutine.
 func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift StackShift, asGoroutine bool) {
 
+	if fn.value.IsNil() {
+		panic(errNilPointer)
+	}
+
 	// Make a copy of the frame pointer.
 	fp := vm.fp
 
@@ -413,129 +417,42 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 	vm.fp[2] += Addr(shift[2])
 	vm.fp[3] += Addr(shift[3])
 
-	// Try to call the function without the reflect.
-	if !asGoroutine {
-		fn.mx.RLock()
-		in := fn.in
-		fn.mx.RUnlock()
-		if in == nil {
-			called := true
-			switch f := fn.Func.(type) {
+	// Call the function without the reflect.
+	if !fn.reflectCall {
+		if asGoroutine {
+			switch f := fn.function.(type) {
 			case func(string) int:
-				if f == nil {
-					vm.fp = fp
-					panic(errNilPointer)
-				}
+				go f(vm.string(1))
+			case func(string) string:
+				go f(vm.string(2))
+			case func(string, string) int:
+				go f(vm.string(1), vm.string(2))
+			case func(string, int) string:
+				go f(vm.string(2), int(vm.int(1)))
+			case func(string, string) bool:
+				go f(vm.string(1), vm.string(2))
+			default:
+				panic("unexpected")
+			}
+		} else {
+			switch f := fn.function.(type) {
+			case func(string) int:
 				vm.setInt(1, int64(f(vm.string(1))))
 			case func(string) string:
-				if f == nil {
-					vm.fp = fp
-					panic(errNilPointer)
-				}
 				vm.setString(1, f(vm.string(2)))
 			case func(string, string) int:
-				if f == nil {
-					vm.fp = fp
-					panic(errNilPointer)
-				}
 				vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
 			case func(string, int) string:
-				if f == nil {
-					vm.fp = fp
-					panic(errNilPointer)
-				}
 				vm.setString(1, f(vm.string(2), int(vm.int(1))))
 			case func(string, string) bool:
-				if f == nil {
-					vm.fp = fp
-					panic(errNilPointer)
-				}
 				vm.setBool(1, f(vm.string(1), vm.string(2)))
-			// TODO: modify or remove these optimizations.
-			//case func([]byte) []byte:
-			//	if f == nil {
-			//		vm.fp = fp
-			//		panic(errNilPointer)
-			//	}
-			//	vm.setGeneral(1, f(vm.general(2).([]byte)))
-			//case func([]byte, []byte) int:
-			//	if f == nil {
-			//		vm.fp = fp
-			//		panic(errNilPointer)
-			//	}
-			//	vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
-			//case func([]byte, []byte) bool:
-			//	if f == nil {
-			//		vm.fp = fp
-			//		panic(errNilPointer)
-			//	}
-			//	vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
-			//case func(interface{}, interface{}) interface{}:
-			//	if f == nil {
-			//		vm.fp = fp
-			//		panic(errNilPointer)
-			//	}
-			//	vm.setGeneral(1, f(vm.general(2), vm.general(3)))
-			//case func(interface{}) interface{}:
-			//	if f == nil {
-			//		vm.fp = fp
-			//		panic(errNilPointer)
-			//	}
-			//	vm.setGeneral(1, f(vm.general(2)))
 			default:
-				called = false
-			}
-			if called {
-				vm.fp = fp
-				return
+				panic("unexpected")
 			}
 		}
+		vm.fp = fp
+		return
 	}
-
-	// Prepare the function to be be called with reflect.
-	fn.mx.Lock()
-	if fn.in == nil {
-		fn.value = reflect.ValueOf(fn.Func)
-		if fn.value.IsNil() {
-			fn.mx.Unlock()
-			vm.fp = fp
-			panic(errNilPointer)
-		}
-		typ := fn.value.Type()
-		nIn := typ.NumIn()
-		fn.in = make([]parameterKind, nIn)
-		for i := 0; i < nIn; i++ {
-			var k = typ.In(i).Kind()
-			switch {
-			case k == reflect.Bool:
-				fn.in[i] = boolParameter
-			case reflect.Int <= k && k <= reflect.Int64:
-				fn.in[i] = intParameter
-			case reflect.Uint <= k && k <= reflect.Uintptr:
-				fn.in[i] = uintParameter
-			case k == reflect.Float64 || k == reflect.Float32:
-				fn.in[i] = float64Parameter
-			case k == reflect.String:
-				fn.in[i] = stringParameter
-			case k == reflect.Func:
-				fn.in[i] = funcParameter
-			case k == reflect.Interface:
-				fn.in[i] = interfaceParameter
-			default:
-				if i < 2 && typ.In(i) == envType {
-					fn.in[i] = envParameter
-				} else {
-					fn.in[i] = otherParameter
-				}
-			}
-		}
-		nOut := typ.NumOut()
-		for i := 0; i < nOut; i++ {
-			k := typ.Out(i).Kind()
-			fn.outOff[kindToType[k]]++
-		}
-	}
-	fn.mx.Unlock()
 
 	// Call the function with reflect.
 	var args []reflect.Value
@@ -553,20 +470,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 		vm.fp[3] += Addr(fn.outOff[3])
 
 		// Get a slice of reflect.Value for the arguments.
-		fn.mx.Lock()
-		if len(fn.args) == 0 {
-			fn.mx.Unlock()
-			args = make([]reflect.Value, nunIn)
-			for i := 0; i < nunIn; i++ {
-				t := typ.In(i)
-				args[i] = reflect.New(t).Elem()
-			}
-		} else {
-			last := len(fn.args) - 1
-			args = fn.args[last]
-			fn.args = fn.args[:last]
-			fn.mx.Unlock()
-		}
+		args = fn.argsPool.Get().([]reflect.Value)
 
 		// Prepare the arguments.
 		lastNonVariadic := nunIn
@@ -662,10 +566,9 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 			r := vm.setFromReflectValue(1, arg)
 			vm.fp[r]++
 		}
+
 		if args != nil {
-			fn.mx.Lock()
-			fn.args = append(fn.args, args)
-			fn.mx.Unlock()
+			fn.argsPool.Put(args)
 		}
 
 	}
@@ -912,34 +815,71 @@ type Registers struct {
 	General []interface{}
 }
 
-// parameterKind is the kind of a parameter of a predefined function.
-type parameterKind uint8
-
-const (
-	boolParameter = iota
-	intParameter
-	uintParameter
-	float64Parameter
-	stringParameter
-	funcParameter
-	envParameter
-	interfaceParameter
-	otherParameter
-)
-
 type PredefinedFunction struct {
-	Pkg    string
-	Name   string
-	Func   interface{}
-	mx     sync.RWMutex // synchronize access to the following fields.
-	in     []parameterKind
-	args   [][]reflect.Value
-	outOff [4]int8
-	value  reflect.Value
+	pkg         string        // package.
+	name        string        // name.
+	function    interface{}   // value.
+	outOff      [4]int8       // offset of out arguments.
+	value       reflect.Value // reflect value.
+	reflectCall bool          // reports whether it can be called only with reflect.
+	argsPool    *sync.Pool    // pool of arguments for reflect.Call and reflect.CallSlice.
 }
 
-func newPredefined() {
+// NewPredefinedFunction returns a new predefined function given its package and
+// name and the function value or its reflect value. pkg and name can be empty
+// strings.
+func NewPredefinedFunction(pkg, name string, function interface{}) *PredefinedFunction {
+	fn := &PredefinedFunction{
+		pkg:  pkg,
+		name: name,
+	}
+	if value, ok := function.(reflect.Value); ok {
+		fn.function = value.Interface()
+		fn.value = value
+	} else {
+		fn.function = function
+		fn.value = reflect.ValueOf(function)
+	}
+	typ := fn.value.Type()
+	nOut := typ.NumOut()
+	for i := 0; i < nOut; i++ {
+		k := typ.Out(i).Kind()
+		fn.outOff[kindToType[k]]++
+	}
+	switch fn.function.(type) {
+	case func(string) int:
+	case func(string) string:
+	case func(string, string) int:
+	case func(string, int) string:
+	case func(string, string) bool:
+	default:
+		fn.reflectCall = true
+		if numIn := typ.NumIn(); numIn > 0 {
+			fn.argsPool = &sync.Pool{
+				New: func() interface{} {
+					args := make([]reflect.Value, numIn)
+					for i := 0; i < numIn; i++ {
+						t := typ.In(i)
+						args[i] = reflect.New(t).Elem()
+					}
+					return args
+				},
+			}
+		}
+	}
+	return fn
+}
 
+func (fn *PredefinedFunction) Package() string {
+	return fn.pkg
+}
+
+func (fn *PredefinedFunction) Name() string {
+	return fn.name
+}
+
+func (fn *PredefinedFunction) Func() interface{} {
+	return fn.function
 }
 
 // Function represents a function.
@@ -1026,10 +966,7 @@ func (c *callable) Predefined() *PredefinedFunction {
 		c.receiver = nil
 		c.method = ""
 	}
-	c.predefined = &PredefinedFunction{
-		Func:  c.value.Interface(),
-		value: c.value,
-	}
+	c.predefined = NewPredefinedFunction("", "", c.value)
 	return c.predefined
 }
 
@@ -1043,7 +980,7 @@ func (c *callable) Value(env *Env) reflect.Value {
 	}
 	if c.predefined != nil {
 		// It is a predefined function.
-		c.value = reflect.ValueOf(c.predefined.Func)
+		c.value = reflect.ValueOf(c.predefined.function)
 		return c.value
 	}
 	if c.method == "" {
