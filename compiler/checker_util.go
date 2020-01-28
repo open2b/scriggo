@@ -145,6 +145,34 @@ var htmlStringerType = reflect.TypeOf((*HTMLStringer)(nil)).Elem()
 var cssStringerType = reflect.TypeOf((*CSSStringer)(nil)).Elem()
 var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
 
+func (tc *typechecker) declareAsBool() {
+	var as_bool *typeInfo // REVIEW: rimuovere?
+	if as_b, ok := tc.filePackageBlock["$as_bool"]; ok {
+		as_bool = as_b.t
+	} else {
+		as_bool = &typeInfo{
+			Type: reflect.TypeOf(func(interface{}) bool { return false }),
+			value: reflect.ValueOf(func(cond interface{}) bool {
+				switch cond.(type) {
+				case int:
+					return cond != 0
+				case string:
+					return cond != ""
+				case bool:
+					return cond != false
+				default:
+					// TODO: handle interfaces.
+					return !reflect.ValueOf(cond).IsZero()
+				}
+			}),
+			Properties: propertyIsPredefined | propertyHasValue,
+		}
+		tc.filePackageBlock["$as_bool"] = scopeElement{
+			t: as_bool,
+		}
+	}
+}
+
 // convert implicitly converts an untyped value. If the converted value is a
 // constant, convert returns its value, otherwise returns nil.
 //

@@ -96,6 +96,31 @@ var templateCases = []struct {
 			TemplateFailOnTODO: true,
 		},
 	},
+
+	{
+		src:      `{% if 43 %}{% end %}`,
+		expected: ok,
+	},
+
+	{
+		src:      `{% if not 43 %}{% end %}`,
+		expected: ok,
+	},
+
+	{
+		src:      `{% if x := 0; x %}{% end %}`,
+		expected: `cannot have init in if statement with non-bool condition`,
+	},
+
+	{
+		src:      `{% if x := 0; not x %}{% end %}`,
+		expected: `syntax error: unexpected not, expecting expression`,
+	},
+
+	{
+		src:      `{% if x := 0; not true %}{% end %}`,
+		expected: `syntax error: unexpected not, expecting expression`,
+	},
 }
 
 const ok = ""

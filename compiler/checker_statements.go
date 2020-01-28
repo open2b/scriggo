@@ -128,48 +128,38 @@ nodesLoop:
 
 			ti := tc.checkExpr(node.Condition)
 
-			if tc.opts.SyntaxType == TemplateSyntax && ti.Type.Kind() != reflect.Bool || node.Not {
+			// Handle if statements in templates that have the 'not' keyword or
+			// have a non-boolean condition.
+			if boolCond := ti.Type.Kind() == reflect.Bool; tc.opts.SyntaxType == TemplateSyntax && !boolCond || node.Not {
+				switch {
 
-				// REVIEW: cannot have init if using this special syntax.
-
-				var as_bool *typeInfo
-
-				if as_b, ok := tc.filePackageBlock["$as_bool"]; ok {
-					as_bool = as_b.t
-				} else {
-					as_bool = &typeInfo{
-						Type: reflect.TypeOf(func(interface{}) bool { return false }),
-						value: reflect.ValueOf(func(cond interface{}) bool {
-							switch cond.(type) {
-							case int:
-								return cond != 0
-							case string:
-								return cond != ""
-							case bool:
-								return cond != false
-							default:
-								// TODO: handle interfaces.
-								return !reflect.ValueOf(cond).IsZero()
-							}
-						}),
-						Properties: propertyIsPredefined | propertyHasValue,
+				case !boolCond && !node.Not: // {% if 30 %}
+					if node.Init != nil {
+						panic(tc.errorf(node.Init, "cannot have init in if statement with non-bool condition"))
 					}
-					tc.filePackageBlock["$as_bool"] = scopeElement{
-						t: as_bool,
-					}
-				}
-
-				as_bool_call := ast.NewCall(node.Condition.Pos(), ast.NewIdentifier(node.Condition.Pos(), "$as_bool"), []ast.Expression{node.Condition}, false)
-				// tis, _, _ := tc.checkCallExpression(as_bool_call, false)
-
-				if node.Not {
-					node.Condition = ast.NewUnaryOperator(node.Condition.Pos(), ast.OperatorNot, as_bool_call)
-				} else {
+					tc.declareAsBool()
+					as_bool_call := ast.NewCall(node.Condition.Pos(), ast.NewIdentifier(node.Condition.Pos(), "$as_bool"), []ast.Expression{node.Condition}, false)
 					node.Condition = as_bool_call
-				}
+					ti = tc.checkExpr(node.Condition)
+					tc.typeInfos[node.Condition] = ti
 
-				ti = tc.checkExpr(node.Condition)
-				tc.typeInfos[node.Condition] = ti
+				case !boolCond && node.Not: // {% if not 30 %}
+
+					if node.Init != nil {
+						panic(tc.errorf(node.Init, "cannot have init in if statement with non-bool condition"))
+					}
+					tc.declareAsBool()
+					as_bool_call := ast.NewCall(node.Condition.Pos(), ast.NewIdentifier(node.Condition.Pos(), "$as_bool"), []ast.Expression{node.Condition}, false)
+					node.Condition = ast.NewUnaryOperator(node.Condition.Pos(), ast.OperatorNot, as_bool_call)
+					ti = tc.checkExpr(node.Condition)
+					tc.typeInfos[node.Condition] = ti
+
+				case boolCond && node.Not: // {% if not false %}
+
+					node.Condition = ast.NewUnaryOperator(node.Condition.Pos(), ast.OperatorNot, node.Condition)
+					ti = tc.checkExpr(node.Condition)
+					tc.typeInfos[node.Condition] = ti
+				}
 
 			}
 
