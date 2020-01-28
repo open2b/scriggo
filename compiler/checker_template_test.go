@@ -121,6 +121,16 @@ var templateCases = []struct {
 		src:      `{% if x := 0; not true %}{% end %}`,
 		expected: `syntax error: unexpected not, expecting expression`,
 	},
+
+	{
+		src:      `{% if nil %}{% end %}`,
+		expected: `use of untyped nil`,
+	},
+
+	{
+		src:      `{% if not nil %}{% end %}`,
+		expected: `use of untyped nil`,
+	},
 }
 
 const ok = ""
