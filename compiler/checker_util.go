@@ -174,7 +174,8 @@ func (tc *typechecker) declareAsBoolBuiltin() {
 		case []string:
 			return cond != nil
 		default:
-			return !reflect.ValueOf(cond).IsZero()
+			rv := reflect.ValueOf(cond)
+			return rv.IsValid() && !rv.IsZero()
 		}
 	}
 	rv := reflect.ValueOf(asBool)
