@@ -801,6 +801,22 @@ var treeTests = []struct {
 					ast.NewBasicLiteral(p(1, 12, 11, 11), ast.IntLiteral, "5"),
 				), nil, nil),
 		}, ast.ContextHTML)},
+	{"{% if 10 %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewIf(p(1, 4, 3, 16), nil,
+				false,
+				ast.NewBasicLiteral(p(1, 7, 6, 7), ast.IntLiteral, "10"),
+				nil, nil),
+		}, ast.ContextHTML),
+	},
+	{"{% if not 10 %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewIf(p(1, 4, 3, 20), nil,
+				true,
+				ast.NewBasicLiteral(p(1, 11, 10, 11), ast.IntLiteral, "10"),
+				nil, nil),
+		}, ast.ContextHTML),
+	},
 	{"{% for %}{% end %}",
 		ast.NewTree("", []ast.Node{
 			ast.NewFor(&ast.Position{Line: 1, Column: 4, Start: 3, End: 14}, nil, nil, nil, nil),
