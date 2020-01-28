@@ -417,84 +417,56 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 	vm.fp[2] += Addr(shift[2])
 	vm.fp[3] += Addr(shift[3])
 
-	// Try to call the function without the reflect.
-	//if !asGoroutine {
-	//	fn.mx.RLock()
-	//	in := fn.in
-	//	fn.mx.RUnlock()
-	//	if in == nil {
-	//		called := true
-	//		switch f := fn.Func.(type) {
-	//		case func(string) int:
-	//			if f == nil {
-	//				vm.fp = fp
-	//				panic(errNilPointer)
-	//			}
-	//			vm.setInt(1, int64(f(vm.string(1))))
-	//		case func(string) string:
-	//			if f == nil {
-	//				vm.fp = fp
-	//				panic(errNilPointer)
-	//			}
-	//			vm.setString(1, f(vm.string(2)))
-	//		case func(string, string) int:
-	//			if f == nil {
-	//				vm.fp = fp
-	//				panic(errNilPointer)
-	//			}
-	//			vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
-	//		case func(string, int) string:
-	//			if f == nil {
-	//				vm.fp = fp
-	//				panic(errNilPointer)
-	//			}
-	//			vm.setString(1, f(vm.string(2), int(vm.int(1))))
-	//		case func(string, string) bool:
-	//			if f == nil {
-	//				vm.fp = fp
-	//				panic(errNilPointer)
-	//			}
-	//			vm.setBool(1, f(vm.string(1), vm.string(2)))
-	//		// TODO: modify or remove these optimizations.
-	//		//case func([]byte) []byte:
-	//		//	if f == nil {
-	//		//		vm.fp = fp
-	//		//		panic(errNilPointer)
-	//		//	}
-	//		//	vm.setGeneral(1, f(vm.general(2).([]byte)))
-	//		//case func([]byte, []byte) int:
-	//		//	if f == nil {
-	//		//		vm.fp = fp
-	//		//		panic(errNilPointer)
-	//		//	}
-	//		//	vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
-	//		//case func([]byte, []byte) bool:
-	//		//	if f == nil {
-	//		//		vm.fp = fp
-	//		//		panic(errNilPointer)
-	//		//	}
-	//		//	vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
-	//		//case func(interface{}, interface{}) interface{}:
-	//		//	if f == nil {
-	//		//		vm.fp = fp
-	//		//		panic(errNilPointer)
-	//		//	}
-	//		//	vm.setGeneral(1, f(vm.general(2), vm.general(3)))
-	//		//case func(interface{}) interface{}:
-	//		//	if f == nil {
-	//		//		vm.fp = fp
-	//		//		panic(errNilPointer)
-	//		//	}
-	//		//	vm.setGeneral(1, f(vm.general(2)))
-	//		default:
-	//			called = false
-	//		}
-	//		if called {
-	//			vm.fp = fp
-	//			return
-	//		}
-	//	}
-	//}
+	// Call the function without the reflect.
+	if !asGoroutine && !fn.reflectCall {
+		switch f := fn.function.(type) {
+		case func(string) int:
+			vm.setInt(1, int64(f(vm.string(1))))
+		case func(string) string:
+			vm.setString(1, f(vm.string(2)))
+		case func(string, string) int:
+			vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
+		case func(string, int) string:
+			vm.setString(1, f(vm.string(2), int(vm.int(1))))
+		case func(string, string) bool:
+			vm.setBool(1, f(vm.string(1), vm.string(2)))
+		// TODO: modify or remove these optimizations.
+		//case func([]byte) []byte:
+		//	if f == nil {
+		//		vm.fp = fp
+		//		panic(errNilPointer)
+		//	}
+		//	vm.setGeneral(1, f(vm.general(2).([]byte)))
+		//case func([]byte, []byte) int:
+		//	if f == nil {
+		//		vm.fp = fp
+		//		panic(errNilPointer)
+		//	}
+		//	vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
+		//case func([]byte, []byte) bool:
+		//	if f == nil {
+		//		vm.fp = fp
+		//		panic(errNilPointer)
+		//	}
+		//	vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
+		//case func(interface{}, interface{}) interface{}:
+		//	if f == nil {
+		//		vm.fp = fp
+		//		panic(errNilPointer)
+		//	}
+		//	vm.setGeneral(1, f(vm.general(2), vm.general(3)))
+		//case func(interface{}) interface{}:
+		//	if f == nil {
+		//		vm.fp = fp
+		//		panic(errNilPointer)
+		//	}
+		//	vm.setGeneral(1, f(vm.general(2)))
+		default:
+			panic("unexpected")
+		}
+		vm.fp = fp
+		return
+	}
 
 	// Call the function with reflect.
 	var args []reflect.Value
@@ -872,13 +844,14 @@ type Registers struct {
 }
 
 type PredefinedFunction struct {
-	Pkg    string
-	Name   string
-	Func   interface{}
-	mx     sync.RWMutex // synchronize access to the following fields.
-	args   [][]reflect.Value
-	outOff [4]int8
-	value  reflect.Value
+	pkg         string            // package.
+	name        string            // name.
+	function    interface{}       // value.
+	outOff      [4]int8           // offset of out arguments.
+	value       reflect.Value     // reflect value.
+	reflectCall bool              // reports whether it can be called only with reflect.
+	mx          sync.RWMutex      // synchronize access to the args field.
+	args        [][]reflect.Value // slice of arguments for reflect.Call and reflect.CallSlice.
 }
 
 // NewPredefinedFunction returns a new predefined function given its package and
@@ -886,14 +859,14 @@ type PredefinedFunction struct {
 // strings.
 func NewPredefinedFunction(pkg, name string, function interface{}) *PredefinedFunction {
 	fn := &PredefinedFunction{
-		Pkg:  pkg,
-		Name: name,
+		pkg:  pkg,
+		name: name,
 	}
 	if value, ok := function.(reflect.Value); ok {
-		fn.Func = value.Interface()
+		fn.function = value.Interface()
 		fn.value = value
 	} else {
-		fn.Func = function
+		fn.function = function
 		fn.value = reflect.ValueOf(function)
 	}
 	typ := fn.value.Type()
@@ -902,7 +875,28 @@ func NewPredefinedFunction(pkg, name string, function interface{}) *PredefinedFu
 		k := typ.Out(i).Kind()
 		fn.outOff[kindToType[k]]++
 	}
+	switch fn.function.(type) {
+	case func(string) int:
+	case func(string) string:
+	case func(string, string) int:
+	case func(string, int) string:
+	case func(string, string) bool:
+	default:
+		fn.reflectCall = true
+	}
 	return fn
+}
+
+func (fn *PredefinedFunction) Package() string {
+	return fn.pkg
+}
+
+func (fn *PredefinedFunction) Name() string {
+	return fn.name
+}
+
+func (fn *PredefinedFunction) Func() interface{} {
+	return fn.function
 }
 
 // Function represents a function.
@@ -1003,7 +997,7 @@ func (c *callable) Value(env *Env) reflect.Value {
 	}
 	if c.predefined != nil {
 		// It is a predefined function.
-		c.value = reflect.ValueOf(c.predefined.Func)
+		c.value = reflect.ValueOf(c.predefined.function)
 		return c.value
 	}
 	if c.method == "" {
