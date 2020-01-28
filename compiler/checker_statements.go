@@ -131,38 +131,26 @@ nodesLoop:
 			// Handle if statements in templates that have the 'not' keyword or
 			// have a non-boolean condition.
 			if boolCond := ti.Type.Kind() == reflect.Bool; tc.opts.SyntaxType == TemplateSyntax && !boolCond || node.Not {
+				if node.Init != nil {
+					// node.Not with node.Init cannot arrive to the type
+					// checker, has been stopped by the parser.
+					panic(tc.errorf(node.Init, "cannot have init in if statement with non-bool condition"))
+				}
 				switch {
-
 				case !boolCond && !node.Not: // {% if 30 %}
-					if node.Init != nil {
-						panic(tc.errorf(node.Init, "cannot have init in if statement with non-bool condition"))
-					}
 					tc.declareAsBoolBuiltin()
 					pos := node.Condition.Pos()
-					asBoolCall := ast.NewCall(pos, ast.NewIdentifier(pos, "$asBool"), []ast.Expression{node.Condition}, false)
-					node.Condition = asBoolCall
-					ti = tc.checkExpr(node.Condition)
-					tc.typeInfos[node.Condition] = ti
-
+					node.Condition = ast.NewCall(pos, ast.NewIdentifier(pos, "$asBool"), []ast.Expression{node.Condition}, false)
 				case !boolCond && node.Not: // {% if not 30 %}
-
-					if node.Init != nil {
-						panic(tc.errorf(node.Init, "cannot have init in if statement with non-bool condition"))
-					}
 					tc.declareAsBoolBuiltin()
 					pos := node.Condition.Pos()
 					asBoolCall := ast.NewCall(pos, ast.NewIdentifier(pos, "$asBool"), []ast.Expression{node.Condition}, false)
 					node.Condition = ast.NewUnaryOperator(pos, ast.OperatorNot, asBoolCall)
-					ti = tc.checkExpr(node.Condition)
-					tc.typeInfos[node.Condition] = ti
-
 				case boolCond && node.Not: // {% if not false %}
-
 					node.Condition = ast.NewUnaryOperator(node.Condition.Pos(), ast.OperatorNot, node.Condition)
-					ti = tc.checkExpr(node.Condition)
-					tc.typeInfos[node.Condition] = ti
 				}
-
+				ti = tc.checkExpr(node.Condition)
+				tc.typeInfos[node.Condition] = ti
 			}
 
 			if ti.Type.Kind() != reflect.Bool {
