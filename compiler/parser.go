@@ -798,8 +798,7 @@ LABEL:
 			ifPos = pos
 			ifPos.End = tok.pos.End
 		}
-		node := ast.NewIf(ifPos, init, expr, then, nil)
-		node.Not = not
+		node := ast.NewIf(ifPos, init, not, expr, then, nil)
 		p.addChild(node)
 		p.addToAncestors(node)
 		p.addToAncestors(then)

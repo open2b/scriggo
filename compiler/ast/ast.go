@@ -550,12 +550,11 @@ type If struct {
 	Else      Node       // nodes to run if the expression is evaluated to false. Can be Block or If.
 }
 
-// REVIEW: it's ok to not pass the 'not' argument to NewIf?
-func NewIf(pos *Position, init Node, cond Expression, then *Block, els Node) *If {
+func NewIf(pos *Position, init Node, not bool, cond Expression, then *Block, els Node) *If {
 	if then == nil {
 		then = NewBlock(nil, []Node{})
 	}
-	return &If{pos, init, false, cond, then, els}
+	return &If{pos, init, not, cond, then, els}
 }
 
 // Switch node represents a statement {% switch ... %}.
