@@ -234,12 +234,7 @@ func (vm *VM) generalIndirect(r int8) reflect.Value {
 	}
 	elem := v.Elem()
 	if elem.Kind() == reflect.Func {
-		return reflect.ValueOf(&callable{
-			predefined: &PredefinedFunction{
-				Func:  elem.Interface(),
-				value: elem,
-			},
-		})
+		return reflect.ValueOf(&callable{predefined: NewPredefinedFunction("", "", elem)})
 	}
 	return elem
 }
@@ -311,12 +306,7 @@ func (vm *VM) setFromReflectValue(r int8, v reflect.Value) registerType {
 		vm.setString(r, v.String())
 		return stringRegister
 	case reflect.Func:
-		c := &callable{
-			predefined: &PredefinedFunction{
-				Func:  v.Interface(),
-				value: v,
-			},
-		}
+		c := &callable{predefined: NewPredefinedFunction("", "", v)}
 		vm.setGeneral(r, reflect.ValueOf(c))
 		return generalRegister
 	case reflect.Interface:
