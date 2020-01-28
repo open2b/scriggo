@@ -1041,6 +1041,8 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenGoto, p)
 	case "if":
 		l.emit(tokenIf, p)
+	case "not":
+		l.emit(tokenNotIf, p)
 	case "import":
 		l.emit(tokenImport, p)
 	case "interface":

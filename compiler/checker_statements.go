@@ -128,7 +128,9 @@ nodesLoop:
 
 			ti := tc.checkExpr(node.Condition)
 
-			if tc.opts.SyntaxType == TemplateSyntax && ti.Type.Kind() != reflect.Bool {
+			if tc.opts.SyntaxType == TemplateSyntax && ti.Type.Kind() != reflect.Bool || node.Not {
+
+				// REVIEW: cannot have init if using this special syntax.
 
 				var as_bool *typeInfo
 
@@ -143,9 +145,11 @@ nodesLoop:
 								return cond != 0
 							case string:
 								return cond != ""
+							case bool:
+								return cond != false
 							default:
 								// TODO: handle interfaces.
-								return reflect.ValueOf(cond).IsZero()
+								return !reflect.ValueOf(cond).IsZero()
 							}
 						}),
 						Properties: propertyIsPredefined | propertyHasValue,
@@ -156,9 +160,15 @@ nodesLoop:
 				}
 
 				as_bool_call := ast.NewCall(node.Condition.Pos(), ast.NewIdentifier(node.Condition.Pos(), "$as_bool"), []ast.Expression{node.Condition}, false)
-				node.Condition = as_bool_call
-				tis, _, _ := tc.checkCallExpression(as_bool_call, false)
-				ti = tis[0]
+				// tis, _, _ := tc.checkCallExpression(as_bool_call, false)
+
+				if node.Not {
+					node.Condition = ast.NewUnaryOperator(node.Condition.Pos(), ast.OperatorNot, as_bool_call)
+				} else {
+					node.Condition = as_bool_call
+				}
+
+				ti = tc.checkExpr(node.Condition)
 				tc.typeInfos[node.Condition] = ti
 
 			}

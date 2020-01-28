@@ -538,20 +538,24 @@ func NewContinue(pos *Position, label *Identifier) *Continue {
 	return &Continue{pos, label}
 }
 
+// REVIEW: test {% if not %} in the parser and in the lexer
+
 // If node represents a statement {% if ... %}.
 type If struct {
 	*Position            // position in the source.
 	Init      Node       // init simple statement.
+	Not       bool       // {% if not cond %} in templates. // REVIEW.
 	Condition Expression // condition that once evaluated returns true or false.
 	Then      *Block     // nodes to run if the expression is evaluated to true.
 	Else      Node       // nodes to run if the expression is evaluated to false. Can be Block or If.
 }
 
+// REVIEW: it's ok to not pass the 'not' argument to NewIf?
 func NewIf(pos *Position, init Node, cond Expression, then *Block, els Node) *If {
 	if then == nil {
 		then = NewBlock(nil, []Node{})
 	}
-	return &If{pos, init, cond, then, els}
+	return &If{pos, init, false, cond, then, els}
 }
 
 // Switch node represents a statement {% switch ... %}.
