@@ -17,5 +17,11 @@ if []int{1, 2, 3}
 if []int{}
 ([]int(nil))
 
+(interface{}(nil))
+not interface{}(nil)
+interface{}(5)
+
+((*int)(nil))
+
 
     else if 42

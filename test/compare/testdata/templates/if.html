@@ -23,6 +23,14 @@
 {% if []int{} %}if []int{}{% end %}
 {% if []int(nil) %}bad{% else %}([]int(nil)){% end %}
 
+{# interfaces #}
+{% if interface{}(nil) %}bad{% else %}(interface{}(nil)){% end %}
+{% if not interface{}(nil) %}not interface{}(nil){% end %}
+{% if interface{}(5) %}interface{}(5){% end %}
+
+{# pointers #}
+{% if (*int)(nil) %}bad{% else %}((*int)(nil)){% end %}
+
 {% if "" %}
 	bad
 {% else if "" %}
