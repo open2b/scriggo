@@ -155,7 +155,7 @@ func (tc *typechecker) declareAsBoolBuiltin() {
 		return
 	}
 	asBool := func(cond interface{}) bool {
-		switch cond.(type) {
+		switch cond := cond.(type) {
 		case bool:
 			return cond != false
 		case byte, complex128, complex64, float32, float64,
@@ -164,7 +164,14 @@ func (tc *typechecker) declareAsBoolBuiltin() {
 			return cond != 0
 		case string:
 			return cond != ""
-		case []int, []string, []byte:
+		// Do NOT join these cases.
+		// If joined, the 'nil' on the left of '!=' becomes the zero of the
+		// empty interface, not the zero on the type on the left.
+		case []int:
+			return cond != nil
+		case []byte:
+			return cond != nil
+		case []string:
 			return cond != nil
 		default:
 			return !reflect.ValueOf(cond).IsZero()
@@ -175,6 +182,9 @@ func (tc *typechecker) declareAsBoolBuiltin() {
 		Type:       rv.Type(),
 		value:      rv,
 		Properties: propertyIsPredefined | propertyHasValue,
+	}
+	if tc.globalScope == nil {
+		tc.globalScope = typeCheckerScope{}
 	}
 	tc.globalScope["$asBool"] = scopeElement{
 		t: ti,
