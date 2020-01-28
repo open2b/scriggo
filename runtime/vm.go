@@ -418,51 +418,37 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 	vm.fp[3] += Addr(shift[3])
 
 	// Call the function without the reflect.
-	if !asGoroutine && !fn.reflectCall {
-		switch f := fn.function.(type) {
-		case func(string) int:
-			vm.setInt(1, int64(f(vm.string(1))))
-		case func(string) string:
-			vm.setString(1, f(vm.string(2)))
-		case func(string, string) int:
-			vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
-		case func(string, int) string:
-			vm.setString(1, f(vm.string(2), int(vm.int(1))))
-		case func(string, string) bool:
-			vm.setBool(1, f(vm.string(1), vm.string(2)))
-		// TODO: modify or remove these optimizations.
-		//case func([]byte) []byte:
-		//	if f == nil {
-		//		vm.fp = fp
-		//		panic(errNilPointer)
-		//	}
-		//	vm.setGeneral(1, f(vm.general(2).([]byte)))
-		//case func([]byte, []byte) int:
-		//	if f == nil {
-		//		vm.fp = fp
-		//		panic(errNilPointer)
-		//	}
-		//	vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
-		//case func([]byte, []byte) bool:
-		//	if f == nil {
-		//		vm.fp = fp
-		//		panic(errNilPointer)
-		//	}
-		//	vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
-		//case func(interface{}, interface{}) interface{}:
-		//	if f == nil {
-		//		vm.fp = fp
-		//		panic(errNilPointer)
-		//	}
-		//	vm.setGeneral(1, f(vm.general(2), vm.general(3)))
-		//case func(interface{}) interface{}:
-		//	if f == nil {
-		//		vm.fp = fp
-		//		panic(errNilPointer)
-		//	}
-		//	vm.setGeneral(1, f(vm.general(2)))
-		default:
-			panic("unexpected")
+	if !fn.reflectCall {
+		if asGoroutine {
+			switch f := fn.function.(type) {
+			case func(string) int:
+				go f(vm.string(1))
+			case func(string) string:
+				go f(vm.string(2))
+			case func(string, string) int:
+				go f(vm.string(1), vm.string(2))
+			case func(string, int) string:
+				go f(vm.string(2), int(vm.int(1)))
+			case func(string, string) bool:
+				go f(vm.string(1), vm.string(2))
+			default:
+				panic("unexpected")
+			}
+		} else {
+			switch f := fn.function.(type) {
+			case func(string) int:
+				vm.setInt(1, int64(f(vm.string(1))))
+			case func(string) string:
+				vm.setString(1, f(vm.string(2)))
+			case func(string, string) int:
+				vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
+			case func(string, int) string:
+				vm.setString(1, f(vm.string(2), int(vm.int(1))))
+			case func(string, string) bool:
+				vm.setBool(1, f(vm.string(1), vm.string(2)))
+			default:
+				panic("unexpected")
+			}
 		}
 		vm.fp = fp
 		return
@@ -484,20 +470,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 		vm.fp[3] += Addr(fn.outOff[3])
 
 		// Get a slice of reflect.Value for the arguments.
-		fn.mx.Lock()
-		if len(fn.args) == 0 {
-			fn.mx.Unlock()
-			args = make([]reflect.Value, nunIn)
-			for i := 0; i < nunIn; i++ {
-				t := typ.In(i)
-				args[i] = reflect.New(t).Elem()
-			}
-		} else {
-			last := len(fn.args) - 1
-			args = fn.args[last]
-			fn.args = fn.args[:last]
-			fn.mx.Unlock()
-		}
+		args = fn.argsPool.Get().([]reflect.Value)
 
 		// Prepare the arguments.
 		lastNonVariadic := nunIn
@@ -593,10 +566,9 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 			r := vm.setFromReflectValue(1, arg)
 			vm.fp[r]++
 		}
+
 		if args != nil {
-			fn.mx.Lock()
-			fn.args = append(fn.args, args)
-			fn.mx.Unlock()
+			fn.argsPool.Put(args)
 		}
 
 	}
@@ -844,14 +816,13 @@ type Registers struct {
 }
 
 type PredefinedFunction struct {
-	pkg         string            // package.
-	name        string            // name.
-	function    interface{}       // value.
-	outOff      [4]int8           // offset of out arguments.
-	value       reflect.Value     // reflect value.
-	reflectCall bool              // reports whether it can be called only with reflect.
-	mx          sync.RWMutex      // synchronize access to the args field.
-	args        [][]reflect.Value // slice of arguments for reflect.Call and reflect.CallSlice.
+	pkg         string        // package.
+	name        string        // name.
+	function    interface{}   // value.
+	outOff      [4]int8       // offset of out arguments.
+	value       reflect.Value // reflect value.
+	reflectCall bool          // reports whether it can be called only with reflect.
+	argsPool    *sync.Pool    // pool of arguments for reflect.Call and reflect.CallSlice.
 }
 
 // NewPredefinedFunction returns a new predefined function given its package and
@@ -883,6 +854,18 @@ func NewPredefinedFunction(pkg, name string, function interface{}) *PredefinedFu
 	case func(string, string) bool:
 	default:
 		fn.reflectCall = true
+		if numIn := typ.NumIn(); numIn > 0 {
+			fn.argsPool = &sync.Pool{
+				New: func() interface{} {
+					args := make([]reflect.Value, numIn)
+					for i := 0; i < numIn; i++ {
+						t := typ.In(i)
+						args[i] = reflect.New(t).Elem()
+					}
+					return args
+				},
+			}
+		}
 	}
 	return fn
 }
