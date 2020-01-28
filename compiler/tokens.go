@@ -53,7 +53,7 @@ const (
 	tokenMap                               // map
 	tokenChan                              // chan
 	tokenIf                                // if
-	tokenNotIf                             // not // REVIEW: find a better name for the token
+	tokenNotIf                             // not
 	tokenElse                              // else
 	tokenDefer                             // defer
 	tokenGo                                // go

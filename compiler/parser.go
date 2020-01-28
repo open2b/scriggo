@@ -756,21 +756,18 @@ LABEL:
 		fallthrough
 
 	// if
-
-	// REVIEW: review this code.
-
 	case tokenIf:
 		pos := tok.pos
 		ifPos := tok.pos
 		var init ast.Node
 		var expr ast.Expression
-		next := p.next()
+		nextTok := p.next()
 		not := false
-		if next.typ == tokenNotIf {
+		if nextTok.typ == tokenNotIf {
 			not = true
-			next = p.next()
+			nextTok = p.next()
 		}
-		init, tok = p.parseSimpleStatement(next, false, true)
+		init, tok = p.parseSimpleStatement(nextTok, false, true)
 		if tok.typ == tokenSemicolon {
 			expr, tok = p.parseExpr(p.next(), false, false, true)
 		} else if init != nil {
