@@ -125,7 +125,44 @@ nodesLoop:
 			if node.Init != nil {
 				tc.checkNodes([]ast.Node{node.Init})
 			}
+
 			ti := tc.checkExpr(node.Condition)
+
+			if tc.opts.SyntaxType == TemplateSyntax && ti.Type.Kind() != reflect.Bool {
+
+				var as_bool *typeInfo
+
+				if as_b, ok := tc.filePackageBlock["$as_bool"]; ok {
+					as_bool = as_b.t
+				} else {
+					as_bool = &typeInfo{
+						Type: reflect.TypeOf(func(interface{}) bool { return false }),
+						value: reflect.ValueOf(func(cond interface{}) bool {
+							switch cond.(type) {
+							case int:
+								return cond != 0
+							case string:
+								return cond != ""
+							default:
+								// TODO: handle interfaces.
+								return reflect.ValueOf(cond).IsZero()
+							}
+						}),
+						Properties: propertyIsPredefined | propertyHasValue,
+					}
+					tc.filePackageBlock["$as_bool"] = scopeElement{
+						t: as_bool,
+					}
+				}
+
+				as_bool_call := ast.NewCall(node.Condition.Pos(), ast.NewIdentifier(node.Condition.Pos(), "$as_bool"), []ast.Expression{node.Condition}, false)
+				node.Condition = as_bool_call
+				tis, _, _ := tc.checkCallExpression(as_bool_call, false)
+				ti = tis[0]
+				tc.typeInfos[node.Condition] = ti
+
+			}
+
 			if ti.Type.Kind() != reflect.Bool {
 				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, ti.ShortString()))
 			}

@@ -1,0 +1,6 @@
+if true
+
+if 42
+if 0 (else)
+
+if "something"
