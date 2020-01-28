@@ -154,24 +154,26 @@ func (tc *typechecker) declareAsBoolBuiltin() {
 	if _, ok := tc.globalScope["$as_bool"]; ok {
 		return
 	}
+	asBool := func(cond interface{}) bool {
+		switch cond.(type) {
+		case bool:
+			return cond != false
+		case byte, complex128, complex64, float32, float64,
+			int, int16, int32, int64, int8,
+			uint, uint16, uint32, uint64, uintptr:
+			return cond != 0
+		case string:
+			return cond != ""
+		case []int, []string, []byte:
+			return cond != nil
+		default:
+			return !reflect.ValueOf(cond).IsZero()
+		}
+	}
+	rv := reflect.ValueOf(asBool)
 	ti := &typeInfo{
-		Type: reflect.TypeOf(func(interface{}) bool { return false }),
-		value: reflect.ValueOf(func(cond interface{}) bool {
-			switch cond.(type) {
-			case bool:
-				return cond != false
-			case byte, complex128, complex64, float32, float64,
-				int, int16, int32, int64, int8,
-				uint, uint16, uint32, uint64, uintptr:
-				return cond != 0
-			case string:
-				return cond != ""
-			case []int, []string, []byte:
-				return cond != nil
-			default:
-				return !reflect.ValueOf(cond).IsZero()
-			}
-		}),
+		Type:       rv.Type(),
+		value:      rv,
 		Properties: propertyIsPredefined | propertyHasValue,
 	}
 	tc.globalScope["$as_bool"] = scopeElement{
