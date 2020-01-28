@@ -145,31 +145,37 @@ var htmlStringerType = reflect.TypeOf((*HTMLStringer)(nil)).Elem()
 var cssStringerType = reflect.TypeOf((*CSSStringer)(nil)).Elem()
 var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
 
-func (tc *typechecker) declareAsBool() {
-	var as_bool *typeInfo // REVIEW: rimuovere?
-	if as_b, ok := tc.filePackageBlock["$as_bool"]; ok {
-		as_bool = as_b.t
-	} else {
-		as_bool = &typeInfo{
-			Type: reflect.TypeOf(func(interface{}) bool { return false }),
-			value: reflect.ValueOf(func(cond interface{}) bool {
-				switch cond.(type) {
-				case int:
-					return cond != 0
-				case string:
-					return cond != ""
-				case bool:
-					return cond != false
-				default:
-					// TODO: handle interfaces.
-					return !reflect.ValueOf(cond).IsZero()
-				}
-			}),
-			Properties: propertyIsPredefined | propertyHasValue,
-		}
-		tc.filePackageBlock["$as_bool"] = scopeElement{
-			t: as_bool,
-		}
+// declareAsBoolBuiltin declares the "$as_bool" builtin in the global scope,
+// that takes an argument of type interface{} and returns a boolean value that
+// indicates if such value is different from the zero of the argument or not.
+// If the "$as_bool" builtin has already been declared in the global scope then
+// calling this method is a no-op.
+func (tc *typechecker) declareAsBoolBuiltin() {
+	if _, ok := tc.globalScope["$as_bool"]; ok {
+		return
+	}
+	ti := &typeInfo{
+		Type: reflect.TypeOf(func(interface{}) bool { return false }),
+		value: reflect.ValueOf(func(cond interface{}) bool {
+			switch cond.(type) {
+			case bool:
+				return cond != false
+			case byte, complex128, complex64, float32, float64,
+				int, int16, int32, int64, int8,
+				uint, uint16, uint32, uint64, uintptr:
+				return cond != 0
+			case string:
+				return cond != ""
+			case []int, []string, []byte:
+				return cond != nil
+			default:
+				return !reflect.ValueOf(cond).IsZero()
+			}
+		}),
+		Properties: propertyIsPredefined | propertyHasValue,
+	}
+	tc.globalScope["$as_bool"] = scopeElement{
+		t: ti,
 	}
 }
 
