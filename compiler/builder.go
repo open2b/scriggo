@@ -120,7 +120,7 @@ func newFunction(pkg, name string, typ reflect.Type) *runtime.Function {
 // newPredefinedFunction returns a new predefined function with a given
 // package, name and implementation. fn must be a function type.
 func newPredefinedFunction(pkg, name string, fn interface{}) *runtime.PredefinedFunction {
-	return &runtime.PredefinedFunction{Pkg: pkg, Name: name, Func: fn}
+	return runtime.NewPredefinedFunction(pkg, name, fn)
 }
 
 type functionBuilder struct {

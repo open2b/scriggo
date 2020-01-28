@@ -404,6 +404,10 @@ func (vm *VM) alloc() {
 // whether the function must be started as a goroutine.
 func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift StackShift, asGoroutine bool) {
 
+	if fn.value.IsNil() {
+		panic(errNilPointer)
+	}
+
 	// Make a copy of the frame pointer.
 	fp := vm.fp
 
@@ -414,128 +418,83 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 	vm.fp[3] += Addr(shift[3])
 
 	// Try to call the function without the reflect.
-	if !asGoroutine {
-		fn.mx.RLock()
-		in := fn.in
-		fn.mx.RUnlock()
-		if in == nil {
-			called := true
-			switch f := fn.Func.(type) {
-			case func(string) int:
-				if f == nil {
-					vm.fp = fp
-					panic(errNilPointer)
-				}
-				vm.setInt(1, int64(f(vm.string(1))))
-			case func(string) string:
-				if f == nil {
-					vm.fp = fp
-					panic(errNilPointer)
-				}
-				vm.setString(1, f(vm.string(2)))
-			case func(string, string) int:
-				if f == nil {
-					vm.fp = fp
-					panic(errNilPointer)
-				}
-				vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
-			case func(string, int) string:
-				if f == nil {
-					vm.fp = fp
-					panic(errNilPointer)
-				}
-				vm.setString(1, f(vm.string(2), int(vm.int(1))))
-			case func(string, string) bool:
-				if f == nil {
-					vm.fp = fp
-					panic(errNilPointer)
-				}
-				vm.setBool(1, f(vm.string(1), vm.string(2)))
-			// TODO: modify or remove these optimizations.
-			//case func([]byte) []byte:
-			//	if f == nil {
-			//		vm.fp = fp
-			//		panic(errNilPointer)
-			//	}
-			//	vm.setGeneral(1, f(vm.general(2).([]byte)))
-			//case func([]byte, []byte) int:
-			//	if f == nil {
-			//		vm.fp = fp
-			//		panic(errNilPointer)
-			//	}
-			//	vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
-			//case func([]byte, []byte) bool:
-			//	if f == nil {
-			//		vm.fp = fp
-			//		panic(errNilPointer)
-			//	}
-			//	vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
-			//case func(interface{}, interface{}) interface{}:
-			//	if f == nil {
-			//		vm.fp = fp
-			//		panic(errNilPointer)
-			//	}
-			//	vm.setGeneral(1, f(vm.general(2), vm.general(3)))
-			//case func(interface{}) interface{}:
-			//	if f == nil {
-			//		vm.fp = fp
-			//		panic(errNilPointer)
-			//	}
-			//	vm.setGeneral(1, f(vm.general(2)))
-			default:
-				called = false
-			}
-			if called {
-				vm.fp = fp
-				return
-			}
-		}
-	}
-
-	// Prepare the function to be be called with reflect.
-	fn.mx.Lock()
-	if fn.in == nil {
-		fn.value = reflect.ValueOf(fn.Func)
-		if fn.value.IsNil() {
-			fn.mx.Unlock()
-			vm.fp = fp
-			panic(errNilPointer)
-		}
-		typ := fn.value.Type()
-		nIn := typ.NumIn()
-		fn.in = make([]parameterKind, nIn)
-		for i := 0; i < nIn; i++ {
-			var k = typ.In(i).Kind()
-			switch {
-			case k == reflect.Bool:
-				fn.in[i] = boolParameter
-			case reflect.Int <= k && k <= reflect.Int64:
-				fn.in[i] = intParameter
-			case reflect.Uint <= k && k <= reflect.Uintptr:
-				fn.in[i] = uintParameter
-			case k == reflect.Float64 || k == reflect.Float32:
-				fn.in[i] = float64Parameter
-			case k == reflect.String:
-				fn.in[i] = stringParameter
-			case k == reflect.Func:
-				fn.in[i] = funcParameter
-			case k == reflect.Interface:
-				fn.in[i] = interfaceParameter
-			default:
-				if i < 2 && typ.In(i) == envType {
-					fn.in[i] = envParameter
-				} else {
-					fn.in[i] = otherParameter
-				}
-			}
-		}
-		nOut := typ.NumOut()
-		for i := 0; i < nOut; i++ {
-			k := typ.Out(i).Kind()
-			fn.outOff[kindToType[k]]++
-		}
-	}
-	fn.mx.Unlock()
+	//if !asGoroutine {
+	//	fn.mx.RLock()
+	//	in := fn.in
+	//	fn.mx.RUnlock()
+	//	if in == nil {
+	//		called := true
+	//		switch f := fn.Func.(type) {
+	//		case func(string) int:
+	//			if f == nil {
+	//				vm.fp = fp
+	//				panic(errNilPointer)
+	//			}
+	//			vm.setInt(1, int64(f(vm.string(1))))
+	//		case func(string) string:
+	//			if f == nil {
+	//				vm.fp = fp
+	//				panic(errNilPointer)
+	//			}
+	//			vm.setString(1, f(vm.string(2)))
+	//		case func(string, string) int:
+	//			if f == nil {
+	//				vm.fp = fp
+	//				panic(errNilPointer)
+	//			}
+	//			vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
+	//		case func(string, int) string:
+	//			if f == nil {
+	//				vm.fp = fp
+	//				panic(errNilPointer)
+	//			}
+	//			vm.setString(1, f(vm.string(2), int(vm.int(1))))
+	//		case func(string, string) bool:
+	//			if f == nil {
+	//				vm.fp = fp
+	//				panic(errNilPointer)
+	//			}
+	//			vm.setBool(1, f(vm.string(1), vm.string(2)))
+	//		// TODO: modify or remove these optimizations.
+	//		//case func([]byte) []byte:
+	//		//	if f == nil {
+	//		//		vm.fp = fp
+	//		//		panic(errNilPointer)
+	//		//	}
+	//		//	vm.setGeneral(1, f(vm.general(2).([]byte)))
+	//		//case func([]byte, []byte) int:
+	//		//	if f == nil {
+	//		//		vm.fp = fp
+	//		//		panic(errNilPointer)
+	//		//	}
+	//		//	vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
+	//		//case func([]byte, []byte) bool:
+	//		//	if f == nil {
+	//		//		vm.fp = fp
+	//		//		panic(errNilPointer)
+	//		//	}
+	//		//	vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
+	//		//case func(interface{}, interface{}) interface{}:
+	//		//	if f == nil {
+	//		//		vm.fp = fp
+	//		//		panic(errNilPointer)
+	//		//	}
+	//		//	vm.setGeneral(1, f(vm.general(2), vm.general(3)))
+	//		//case func(interface{}) interface{}:
+	//		//	if f == nil {
+	//		//		vm.fp = fp
+	//		//		panic(errNilPointer)
+	//		//	}
+	//		//	vm.setGeneral(1, f(vm.general(2)))
+	//		default:
+	//			called = false
+	//		}
+	//		if called {
+	//			vm.fp = fp
+	//			return
+	//		}
+	//	}
+	//}
 
 	// Call the function with reflect.
 	var args []reflect.Value
@@ -912,30 +871,38 @@ type Registers struct {
 	General []interface{}
 }
 
-// parameterKind is the kind of a parameter of a predefined function.
-type parameterKind uint8
-
-const (
-	boolParameter = iota
-	intParameter
-	uintParameter
-	float64Parameter
-	stringParameter
-	funcParameter
-	envParameter
-	interfaceParameter
-	otherParameter
-)
-
 type PredefinedFunction struct {
 	Pkg    string
 	Name   string
 	Func   interface{}
 	mx     sync.RWMutex // synchronize access to the following fields.
-	in     []parameterKind
 	args   [][]reflect.Value
 	outOff [4]int8
 	value  reflect.Value
+}
+
+// NewPredefinedFunction returns a new predefined function given its package and
+// name and the function value or its reflect value. pkg and name can be empty
+// strings.
+func NewPredefinedFunction(pkg, name string, function interface{}) *PredefinedFunction {
+	fn := &PredefinedFunction{
+		Pkg:  pkg,
+		Name: name,
+	}
+	if value, ok := function.(reflect.Value); ok {
+		fn.Func = value.Interface()
+		fn.value = value
+	} else {
+		fn.Func = function
+		fn.value = reflect.ValueOf(function)
+	}
+	typ := fn.value.Type()
+	nOut := typ.NumOut()
+	for i := 0; i < nOut; i++ {
+		k := typ.Out(i).Kind()
+		fn.outOff[kindToType[k]]++
+	}
+	return fn
 }
 
 // Function represents a function.
@@ -1022,10 +989,7 @@ func (c *callable) Predefined() *PredefinedFunction {
 		c.receiver = nil
 		c.method = ""
 	}
-	c.predefined = &PredefinedFunction{
-		Func:  c.value.Interface(),
-		value: c.value,
-	}
+	c.predefined = NewPredefinedFunction("", "", c.value)
 	return c.predefined
 }
 
