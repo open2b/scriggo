@@ -938,10 +938,6 @@ type PredefinedFunction struct {
 	value  reflect.Value
 }
 
-func newPredefined() {
-
-}
-
 // Function represents a function.
 type Function struct {
 	Pkg        string
