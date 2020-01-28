@@ -138,8 +138,9 @@ nodesLoop:
 						panic(tc.errorf(node.Init, "cannot have init in if statement with non-bool condition"))
 					}
 					tc.declareAsBoolBuiltin()
-					as_bool_call := ast.NewCall(node.Condition.Pos(), ast.NewIdentifier(node.Condition.Pos(), "$asBool"), []ast.Expression{node.Condition}, false)
-					node.Condition = as_bool_call
+					pos := node.Condition.Pos()
+					asBoolCall := ast.NewCall(pos, ast.NewIdentifier(pos, "$asBool"), []ast.Expression{node.Condition}, false)
+					node.Condition = asBoolCall
 					ti = tc.checkExpr(node.Condition)
 					tc.typeInfos[node.Condition] = ti
 
@@ -149,8 +150,9 @@ nodesLoop:
 						panic(tc.errorf(node.Init, "cannot have init in if statement with non-bool condition"))
 					}
 					tc.declareAsBoolBuiltin()
-					as_bool_call := ast.NewCall(node.Condition.Pos(), ast.NewIdentifier(node.Condition.Pos(), "$asBool"), []ast.Expression{node.Condition}, false)
-					node.Condition = ast.NewUnaryOperator(node.Condition.Pos(), ast.OperatorNot, as_bool_call)
+					pos := node.Condition.Pos()
+					asBoolCall := ast.NewCall(pos, ast.NewIdentifier(pos, "$asBool"), []ast.Expression{node.Condition}, false)
+					node.Condition = ast.NewUnaryOperator(pos, ast.OperatorNot, asBoolCall)
 					ti = tc.checkExpr(node.Condition)
 					tc.typeInfos[node.Condition] = ti
 
