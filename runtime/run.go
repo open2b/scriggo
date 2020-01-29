@@ -741,7 +741,6 @@ func (vm *VM) run() (Addr, bool) {
 
 		// Len
 		case OpLen:
-			// TODO(marco): add other cases
 			var length int
 			if registerType(a) == stringRegister {
 				length = len(vm.string(b))
