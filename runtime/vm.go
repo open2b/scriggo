@@ -972,8 +972,6 @@ func (c *callable) Predefined() *PredefinedFunction {
 
 // Value returns a reflect Value of a callable, so it can be called from a
 // predefined code and passed to a predefined code.
-//
-// TODO(marco): implement for variadic functions.
 func (c *callable) Value(env *Env) reflect.Value {
 	if c.value.IsValid() {
 		return c.value

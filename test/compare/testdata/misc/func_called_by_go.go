@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"testpkg"
 	"unicode"
 )
 
@@ -38,5 +39,11 @@ func main() {
 		if _, ok := f.(func(x int) int); ok {
 			fmt.Println("ok")
 		}
+	}
+	{
+		f := func(s string, n ...int) {
+			fmt.Printf("%#v\n%#v\n", s, n)
+		}
+		testpkg.CallVariadicFunction(f)
 	}
 }
