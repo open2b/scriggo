@@ -67,35 +67,40 @@ var templateCases = []struct {
 		src:      `{% show M %}`,
 		expected: `undefined: M`,
 	},
-	{
-		src:      `{% show M or error %}`,
-		expected: `undefined: M`,
-	},
-	{
-		src:      `{% show M or ignore %}`,
-		expected: ok,
-	},
+
+	// REVIEW: enable these tests
+
+	// {
+	// 	src:      `{% show M or error %}`,
+	// 	expected: `undefined: M`,
+	// },
+	// {
+	// 	src:      `{% show M or ignore %}`,
+	// 	expected: ok,
+	// },
 
 	{
 		src:      `{% a := 10 %}{% a %}`,
 		expected: `a evaluated but not used`,
 	},
 
-	{
-		src:      `{% show M or todo %}`,
-		expected: ok,
-		opts: &compiler.Options{
-			TemplateFailOnTODO: false,
-		},
-	},
+	// REVIEW: enable these tests
 
-	{
-		src:      `{% show M or todo %}`,
-		expected: `macro M is not defined: must be implemented`,
-		opts: &compiler.Options{
-			TemplateFailOnTODO: true,
-		},
-	},
+	// {
+	// 	src:      `{% show M or todo %}`,
+	// 	expected: ok,
+	// 	opts: &compiler.Options{
+	// 		TemplateFailOnTODO: false,
+	// 	},
+	// },
+
+	// {
+	// 	src:      `{% show M or todo %}`,
+	// 	expected: `macro M is not defined: must be implemented`,
+	// 	opts: &compiler.Options{
+	// 		TemplateFailOnTODO: true,
+	// 	},
+	// },
 }
 
 const ok = ""
