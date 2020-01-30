@@ -1079,6 +1079,12 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 				l.emit(tokenMacro, p)
 			case "show":
 				l.emit(tokenShow, p)
+			case "and":
+				l.emit(tokenTemplateAnd, p)
+			case "or":
+				l.emit(tokenTemplateOr, p)
+			case "not":
+				l.emit(tokenTemplateNot, p)
 			default:
 				l.emit(tokenIdentifier, p)
 				endLineAsSemicolon = true

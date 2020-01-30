@@ -111,6 +111,11 @@ const (
 	tokenRightShift                        // >>
 	tokenStruct                            // struct
 	tokenEOF                               // eof
+
+	// REVIEW: find better names and move into the right position.
+	tokenTemplateAnd
+	tokenTemplateNot
+	tokenTemplateOr
 )
 
 var tokenString = map[tokenTyp]string{
@@ -209,6 +214,9 @@ var tokenString = map[tokenTyp]string{
 	tokenRightShift:               ">>",
 	tokenStruct:                   "struct",
 	tokenEOF:                      "EOF",
+	tokenTemplateAnd:              "and",
+	tokenTemplateNot:              "not",
+	tokenTemplateOr:               "or",
 }
 
 func (tt tokenTyp) String() string {
