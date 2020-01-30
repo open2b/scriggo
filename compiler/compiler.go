@@ -27,6 +27,14 @@ import (
 	"scriggo/runtime"
 )
 
+// REVIEW: document.
+// REVIEW: here we use OperatorTemplateNot as last operator. If we change the
+// position of OperatorTemplateNot then this code must be updated.
+const (
+	internalOperatorZero ast.OperatorType = ast.OperatorTemplateNot + iota + 1
+	internalOperatorNotZero
+)
+
 // Options represents a set of options used during the compilation.
 type Options struct {
 	AllowShebangLine   bool

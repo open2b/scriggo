@@ -582,29 +582,6 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 	return nil, receiverNoTransform, false
 }
 
-func (tc *typechecker) notZero(expr ast.Expression, context ast.OperatorType) ast.Expression {
-	ti := tc.checkExpr(expr)
-	if ti.Type.Kind() == reflect.Bool {
-		return expr
-	}
-	if ti.IsConstant() {
-		switch context {
-		case ast.OperatorTemplateNot:
-			panic(tc.errorf(expr, "non-bool constant %s not allowed with operator not", expr))
-		case ast.OperatorTemplateAnd:
-			panic(tc.errorf(expr, "non-bool constant %s not allowed with operator and", expr))
-		case ast.OperatorTemplateOr:
-			panic(tc.errorf(expr, "non-bool constant %s not allowed with operator or", expr))
-		default:
-			panic(tc.errorf(expr, "non-bool constant %s not allowed as condition in if statement", expr))
-		}
-
-	}
-	pos := expr.Pos()
-	// Return $notZero(expr)
-	return ast.NewCall(pos, ast.NewIdentifier(pos, "$notZero"), []ast.Expression{expr}, false)
-}
-
 // operatorFromAssignmentType returns an operator type from an assignment type.
 func operatorFromAssignmentType(assignmentType ast.AssignmentType) ast.OperatorType {
 	switch assignmentType {

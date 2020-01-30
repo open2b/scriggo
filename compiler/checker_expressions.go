@@ -295,8 +295,19 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 
 	case *ast.UnaryOperator:
 		if expr.Op == ast.OperatorTemplateNot {
-			expr.Expr = tc.notZero(expr.Expr, expr.Op)
-			expr.Op = ast.OperatorNot
+			ti := tc.checkExpr(expr.Expr)
+			if ti.IsConstant() && ti.Type.Kind() != reflect.Bool {
+				panic(tc.errorf(expr.Expr, "invalid not-bool operator..")) // REVIEW.
+			}
+			expr.Op = internalOperatorZero
+		}
+		if expr.Op == internalOperatorZero || expr.Op == internalOperatorNotZero {
+			ti := tc.checkExpr(expr.Expr)
+			ti.setValue(nil)
+			return &typeInfo{
+				Type:       boolType,
+				Properties: propertyUntyped,
+			}
 		}
 		t := tc.checkExprOrType(expr.Expr)
 		if t.IsType() {
@@ -401,8 +412,12 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 	case *ast.BinaryOperator:
 
 		if expr.Op == ast.OperatorTemplateAnd || expr.Op == ast.OperatorTemplateOr {
-			expr.Expr1 = tc.notZero(expr.Expr1, expr.Op)
-			expr.Expr2 = tc.notZero(expr.Expr2, expr.Op)
+			t1 := tc.checkExpr(expr.Expr1)
+			t2 := tc.checkExpr(expr.Expr2)
+			_ = t1 // REVIEW: cannot be non-bool constant.
+			_ = t2 // REVIEW: cannot be non-bool constant.
+			expr.Expr1 = ast.NewUnaryOperator(expr.Expr1.Pos(), internalOperatorNotZero, expr.Expr1)
+			expr.Expr2 = ast.NewUnaryOperator(expr.Expr2.Pos(), internalOperatorNotZero, expr.Expr2)
 			if expr.Op == ast.OperatorTemplateAnd {
 				expr.Op = ast.OperatorAndAnd
 			} else {
@@ -1140,10 +1155,6 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 	}
 
 	switch ident.Name {
-
-	case "$notZero":
-		tc.checkExpr(expr.Args[0])
-		return []*typeInfo{&typeInfo{Type: boolType}}
 
 	case "append":
 		if len(expr.Args) == 0 {

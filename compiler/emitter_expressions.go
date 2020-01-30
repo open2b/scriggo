@@ -757,6 +757,23 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 	operandType := em.typ(operand)
 	unOpType := em.typ(unOp)
 
+	if unOp.Op == internalOperatorZero || unOp.Op == internalOperatorNotZero {
+		not := unOp.Op == internalOperatorNotZero
+		typ := em.typ(operand)
+		em.fb.enterStack()
+		src := em.emitExpr(operand, typ)
+		if canEmitDirectly(typ.Kind(), dstType.Kind()) {
+			em.fb.emitZero(not, typ.Kind(), reg, src)
+			em.fb.exitStack()
+			return
+		}
+		tmp := em.fb.newRegister(reflect.Bool)
+		em.fb.emitZero(not, typ.Kind(), tmp, src)
+		em.changeRegister(false, tmp, reg, boolType, dstType)
+		em.fb.exitStack()
+		return
+	}
+
 	// Receive operation on channel.
 	//
 	//	v     = <- ch
