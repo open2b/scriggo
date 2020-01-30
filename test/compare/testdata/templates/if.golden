@@ -1,0 +1,31 @@
+if true
+(if not true)
+(if false)
+if not false
+
+if 42
+if -300
+(if 0)
+(if 0 + 0)
+
+if "something"
+(if not "something")
+(if s1)
+if not s2
+
+if []int{1, 2, 3}
+if []int{}
+([]int(nil))
+
+(interface{}(nil))
+not interface{}(nil)
+interface{}(5)
+
+((*int)(nil))
+
+([3]int{})
+(not [3]int{1, 2, 3})
+not [3]int{}
+
+
+    else if 42

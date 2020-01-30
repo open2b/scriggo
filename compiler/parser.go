@@ -761,7 +761,13 @@ LABEL:
 		ifPos := tok.pos
 		var init ast.Node
 		var expr ast.Expression
-		init, tok = p.parseSimpleStatement(p.next(), false, true)
+		tok = p.next()
+		not := false
+		if tok.typ == tokenNotIf {
+			not = true
+			tok = p.next()
+		}
+		init, tok = p.parseSimpleStatement(tok, false, true)
 		if tok.typ == tokenSemicolon {
 			expr, tok = p.parseExpr(p.next(), false, false, true)
 		} else if init != nil {
@@ -789,7 +795,7 @@ LABEL:
 			ifPos = pos
 			ifPos.End = tok.pos.End
 		}
-		node := ast.NewIf(ifPos, init, expr, then, nil)
+		node := ast.NewIf(ifPos, init, not, expr, then, nil)
 		p.addChild(node)
 		p.addToAncestors(node)
 		p.addToAncestors(then)

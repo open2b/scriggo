@@ -129,9 +129,29 @@ nodesLoop:
 			if ti.Nil() {
 				panic(tc.errorf(node.Condition, "use of untyped nil"))
 			}
+			// Handle if statements in templates that have the 'not' keyword or
+			// have a non-boolean condition.
+			if boolCond := ti.Type.Kind() == reflect.Bool; tc.opts.SyntaxType == TemplateSyntax && !boolCond || node.Not {
+				if node.Init != nil {
+					// node.Not with node.Init cannot arrive to the type
+					// checker, has been stopped by the parser.
+					panic(tc.errorf(node.Init, "cannot have init in if statement with non-bool condition"))
+				}
+				if !boolCond {
+					tc.declareAsBoolBuiltin()
+					pos := node.Condition.Pos()
+					node.Condition = ast.NewCall(pos, ast.NewIdentifier(pos, "$asBool"), []ast.Expression{node.Condition}, false)
+				}
+				if node.Not {
+					node.Condition = ast.NewUnaryOperator(node.Condition.Pos(), ast.OperatorNot, node.Condition)
+				}
+				ti = tc.checkExpr(node.Condition)
+				tc.typeInfos[node.Condition] = ti
+			}
 			if ti.Type.Kind() != reflect.Bool {
 				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, ti.ShortString()))
 			}
+
 			ti.setValue(nil)
 			node.Then.Nodes = tc.checkNodesInNewScope(node.Then.Nodes)
 			terminating := tc.terminating

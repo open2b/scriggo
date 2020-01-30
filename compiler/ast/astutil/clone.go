@@ -69,7 +69,7 @@ func CloneNode(node ast.Node) ast.Node {
 		if n.Else != nil {
 			els = CloneNode(n.Else)
 		}
-		return ast.NewIf(ClonePosition(n.Position), init, CloneExpression(n.Condition), then, els)
+		return ast.NewIf(ClonePosition(n.Position), init, n.Not, CloneExpression(n.Condition), then, els)
 	case *ast.For:
 		var body = make([]ast.Node, len(n.Body))
 		for i, n2 := range n.Body {
