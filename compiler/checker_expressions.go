@@ -40,6 +40,7 @@ var untypedBoolTypeInfo = &typeInfo{Type: boolType, Properties: propertyUntyped}
 var envType = reflect.TypeOf(&runtime.Env{})
 
 var universe = typeCheckerScope{
+	"$notZero":   {t: &typeInfo{Properties: propertyPredeclared}},
 	"append":     {t: &typeInfo{Properties: propertyPredeclared}},
 	"cap":        {t: &typeInfo{Properties: propertyPredeclared}},
 	"close":      {t: &typeInfo{Properties: propertyPredeclared}},
@@ -293,6 +294,10 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		}
 
 	case *ast.UnaryOperator:
+		if expr.Op == ast.OperatorTemplateNot {
+			expr.Expr = tc.notZero(expr.Expr, expr.Op)
+			expr.Op = ast.OperatorNot
+		}
 		t := tc.checkExprOrType(expr.Expr)
 		if t.IsType() {
 			if expr.Op == ast.OperatorMultiplication {
@@ -394,6 +399,17 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		return ti
 
 	case *ast.BinaryOperator:
+
+		if expr.Op == ast.OperatorTemplateAnd || expr.Op == ast.OperatorTemplateOr {
+			expr.Expr1 = tc.notZero(expr.Expr1, expr.Op)
+			expr.Expr2 = tc.notZero(expr.Expr2, expr.Op)
+			if expr.Op == ast.OperatorTemplateAnd {
+				expr.Op = ast.OperatorAndAnd
+			} else {
+				expr.Op = ast.OperatorOrOr
+			}
+		}
+
 		t, err := tc.binaryOp(expr.Expr1, expr.Op, expr.Expr2)
 		if err != nil {
 			if err == errDivisionByZero {
@@ -1124,6 +1140,10 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 	}
 
 	switch ident.Name {
+
+	case "$notZero":
+		tc.checkExpr(expr.Args[0])
+		return []*typeInfo{&typeInfo{Type: boolType}}
 
 	case "append":
 		if len(expr.Args) == 0 {

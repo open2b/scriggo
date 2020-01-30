@@ -101,6 +101,36 @@ var templateCases = []struct {
 	// 		TemplateFailOnTODO: true,
 	// 	},
 	// },
+
+	{
+		src:      `{% a := 20 %}{{ a and a }}`,
+		expected: ok,
+	},
+
+	{
+		src:      `{% a := 20 %}{{ a or a }}`,
+		expected: ok,
+	},
+
+	{
+		src:      `{% a := 20 %}{% b := "" %}{{ a or b and (not b) }}`,
+		expected: ok,
+	},
+
+	{
+		src:      `{% a := 20 %}{{ 3 and a }}`,
+		expected: `non-bool constant 3 not allowed with operator and`,
+	},
+
+	{
+		src:      `{% const a = 20 %}{{ not a }}`,
+		expected: `non-bool constant a not allowed with operator not`,
+	},
+
+	{
+		src:      `{% a := 20 %}{% b := 100 %}{% a and b %}`,
+		expected: ok,
+	},
 }
 
 const ok = ""

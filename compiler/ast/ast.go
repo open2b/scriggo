@@ -103,7 +103,7 @@ const (
 
 func (op OperatorType) String() string {
 	return []string{"==", "!=", "<", "<=", ">", ">=", "!", "&", "|", "&&", "||",
-		"+", "-", "*", "/", "%", "^", "&^", "<<", ">>", "<-"}[op]
+		"+", "-", "*", "/", "%", "^", "&^", "<<", ">>", "<-", "and", "or", "not"}[op]
 }
 
 // Context indicates the context in which a value statement must be valuated.
@@ -900,9 +900,9 @@ func (n *BinaryOperator) Precedence() int {
 	case OperatorEqual, OperatorNotEqual, OperatorLess, OperatorLessEqual,
 		OperatorGreater, OperatorGreaterEqual:
 		return 3
-	case OperatorAndAnd:
+	case OperatorAndAnd, OperatorTemplateAnd:
 		return 2
-	case OperatorOrOr:
+	case OperatorOrOr, OperatorTemplateOr:
 		return 1
 	}
 	panic("invalid operator type")
