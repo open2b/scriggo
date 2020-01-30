@@ -75,6 +75,10 @@ const (
 	OperatorLeftShift                          // <<
 	OperatorRightShift                         // >>
 	OperatorReceive                            // <-
+	// REVIEW: find a better name for these:
+	OperatorTemplateAnd // and
+	OperatorTemplateOr  // or
+	OperatorTemplateNot // not
 )
 
 type AssignmentType int

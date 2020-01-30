@@ -113,6 +113,44 @@ var exprTests = []struct {
 	{"1>=2", ast.NewBinaryOperator(p(1, 2, 0, 3), ast.OperatorGreaterEqual, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 4, 3, 3), ast.IntLiteral, "2"))},
 	{"a&&b", ast.NewBinaryOperator(p(1, 2, 0, 3), ast.OperatorAndAnd, ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 3), "b"))},
 	{"a||b", ast.NewBinaryOperator(p(1, 2, 0, 3), ast.OperatorOrOr, ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 3), "b"))},
+
+	// REVIEW: fix positions.
+	{"a and b", ast.NewBinaryOperator(p(1, 3, 0, 6), ast.OperatorTemplateAnd,
+		ast.NewIdentifier(p(1, 1, 0, 0), "a"),
+		ast.NewIdentifier(p(1, 7, 6, 6), "b")),
+	},
+	{"a or b", ast.NewBinaryOperator(p(1, 3, 0, 5), ast.OperatorTemplateOr,
+		ast.NewIdentifier(p(1, 1, 0, 0), "a"),
+		ast.NewIdentifier(p(1, 6, 5, 5), "b"),
+	)},
+	{"a or not b", ast.NewBinaryOperator(nil,
+		ast.OperatorTemplateOr,
+		ast.NewIdentifier(nil, "a"),
+		ast.NewUnaryOperator(
+			nil,
+			ast.OperatorTemplateNot,
+			ast.NewIdentifier(nil, "b"),
+		),
+	)},
+	{"[]int{} and !x.F", ast.NewBinaryOperator(
+		nil,
+		ast.OperatorTemplateAnd,
+		ast.NewCompositeLiteral(
+			nil,
+			ast.NewSliceType(nil, ast.NewIdentifier(nil, "int")),
+			nil,
+		),
+		ast.NewUnaryOperator(
+			nil,
+			ast.OperatorNot,
+			ast.NewSelector(
+				nil,
+				ast.NewIdentifier(nil, "x"),
+				"F",
+			),
+		),
+	)},
+
 	{"1&2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorAnd, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 3, 2, 2), ast.IntLiteral, "2"))},
 	{"1|2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorOr, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 3, 2, 2), ast.IntLiteral, "2"))},
 	{"1^2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorXor, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 3, 2, 2), ast.IntLiteral, "2"))},
