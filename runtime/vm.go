@@ -1292,4 +1292,6 @@ const (
 	OpTypify
 
 	OpXor
+
+	OpZero
 )

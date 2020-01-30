@@ -286,6 +286,15 @@ func (builder *functionBuilder) emitDelete(m, k int8) {
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpDelete, A: m, B: k})
 }
 
+// REVIEW: document.
+func (builder *functionBuilder) emitZero(not bool, kind reflect.Kind, dst, src int8) {
+	regType := int8(kindToType(kind))
+	if not {
+		regType += 10
+	}
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpZero, A: regType, B: src, C: dst})
+}
+
 // emitDiv appends a new "div" instruction to the function body.
 //
 //     z = x / y

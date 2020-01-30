@@ -1794,6 +1794,36 @@ func (vm *VM) run() (Addr, bool) {
 		case OpXor, -OpXor:
 			vm.setInt(c, vm.int(a)^vm.intk(b, op < 0))
 
+		// Zero
+		case OpZero:
+			not := false
+			if a >= 10 {
+				a -= 10
+				not = true
+			}
+			var res bool
+			switch registerType(a) {
+			case intRegister:
+				res = vm.int(b) == 0
+			case floatRegister:
+				res = vm.float(b) == 0
+			case stringRegister:
+				res = vm.string(b) == ""
+			case generalRegister:
+				rv := vm.general(b)
+				switch {
+				case !rv.IsValid(): // nil interface
+					res = true
+				case rv.Kind() == reflect.Interface:
+					panic("TODO: not implemented") // REVIEW: to implement.
+				default:
+					res = rv.IsZero()
+				}
+			}
+			if not {
+				res = !res
+			}
+			vm.setBool(c, res)
 		}
 
 	}
