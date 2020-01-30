@@ -17,3 +17,11 @@
 {% n1 := 4 %}{{ not n1 }}
 {% n2 := 0 %}{{ not n2 }}
 {% n3 := 0 %}{{ not not n3 }}
+
+## MISC
+
+{% m1 := 4 %}{% m2 := "hello" %}
+{{ m1 and m2 }}
+{{ m1 and not m2 }}
+{{ not m1 and not m2 }}
+{{ m1 and true or not m2}}
