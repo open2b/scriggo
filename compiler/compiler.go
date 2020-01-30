@@ -212,7 +212,7 @@ func (e *CheckingError) Error() string {
 // Message returns the message of the type checking error, without position and
 // path.
 func (e *CheckingError) Message() string {
-	return e.err.Error()
+	return e.err.Error() + e.parents
 }
 
 // Path returns the path of the type checking error.

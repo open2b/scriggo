@@ -464,7 +464,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + disassembleOperand(fn, c, reflect.Int, false)
 	case runtime.OpLen:
 		s += " " + strconv.Itoa(int(a))
-		if a == 0 {
+		if registerType(a) == stringRegister {
 			s += " " + disassembleOperand(fn, b, reflect.String, false)
 		} else {
 			s += " " + disassembleOperand(fn, b, reflect.Interface, false)

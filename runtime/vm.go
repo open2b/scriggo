@@ -972,8 +972,6 @@ func (c *callable) Predefined() *PredefinedFunction {
 
 // Value returns a reflect Value of a callable, so it can be called from a
 // predefined code and passed to a predefined code.
-//
-// TODO(marco): implement for variadic functions.
 func (c *callable) Value(env *Env) reflect.Value {
 	if c.value.IsValid() {
 		return c.value
@@ -1084,21 +1082,20 @@ const (
 
 // kindToType maps a reflect kind to the corresponding internal register type.
 var kindToType = [...]registerType{
-	reflect.Invalid:       -1,
-	reflect.Float32:       1,
-	reflect.Float64:       1,
-	reflect.Complex64:     3,
-	reflect.Complex128:    3,
-	reflect.Array:         3,
-	reflect.Chan:          3,
-	reflect.Func:          3,
-	reflect.Interface:     3,
-	reflect.Map:           3,
-	reflect.Ptr:           3,
-	reflect.Slice:         3,
-	reflect.String:        2,
-	reflect.Struct:        3,
-	reflect.UnsafePointer: 3,
+	reflect.Float32:       floatRegister,
+	reflect.Float64:       floatRegister,
+	reflect.Complex64:     generalRegister,
+	reflect.Complex128:    generalRegister,
+	reflect.Array:         generalRegister,
+	reflect.Chan:          generalRegister,
+	reflect.Func:          generalRegister,
+	reflect.Interface:     generalRegister,
+	reflect.Map:           generalRegister,
+	reflect.Ptr:           generalRegister,
+	reflect.Slice:         generalRegister,
+	reflect.String:        stringRegister,
+	reflect.Struct:        generalRegister,
+	reflect.UnsafePointer: generalRegister,
 }
 
 type Condition int8

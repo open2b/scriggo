@@ -482,11 +482,11 @@ func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType r
 //     l = len(s)
 //
 func (builder *functionBuilder) emitLen(s, l int8, t reflect.Type) {
-	var a int8
+	a := stringRegister
 	if t.Kind() != reflect.String {
-		a = 1
+		a = generalRegister
 	}
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpLen, A: a, B: s, C: l})
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpLen, A: int8(a), B: s, C: l})
 }
 
 // Load data appends a new "LoadData" instruction to the function body.

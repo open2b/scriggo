@@ -114,6 +114,12 @@ func CallFunction(f func()) {
 	f()
 }
 
+func CallVariadicFunction(f func(s string, n ...int)) {
+	f("abc", )
+	f("abc", 5)
+	f("abc", 5,9,12)
+}
+
 func ReturnFunction() func(int) int {
 	return func(i int) int { return i + 1 }
 }

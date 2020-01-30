@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"testpkg"
 	"unicode"
 )
 
@@ -31,13 +32,18 @@ func main() {
 	{
 		var s = make([]interface{}, 1)
 		s[0] = func(x int) int { return x + 1 }
-		// https://github.com/open2b/scriggo/issues/320
-		//fmt.Printf("%T %d\n", s[0], s[0].(func(x int) int)(3))
+		fmt.Printf("%T %d\n", s[0], s[0].(func(x int) int)(3))
 	}
 	{
 		var f interface{} = func(x int) int { return x + 1 }
 		if _, ok := f.(func(x int) int); ok {
 			fmt.Println("ok")
 		}
+	}
+	{
+		f := func(s string, n ...int) {
+			fmt.Printf("%#v\n%#v\n", s, n)
+		}
+		testpkg.CallVariadicFunction(f)
 	}
 }
