@@ -51,8 +51,6 @@ var typeTests = map[string][]tokenTyp{
 	"{% if a %}":                   {tokenStartBlock, tokenIf, tokenIdentifier, tokenEndBlock},
 	"{% if a = b; a %}":            {tokenStartBlock, tokenIf, tokenIdentifier, tokenSimpleAssignment, tokenIdentifier, tokenSemicolon, tokenIdentifier, tokenEndBlock},
 	"{% if a, ok = b.c; a %}":      {tokenStartBlock, tokenIf, tokenIdentifier, tokenComma, tokenIdentifier, tokenSimpleAssignment, tokenIdentifier, tokenPeriod, tokenIdentifier, tokenSemicolon, tokenIdentifier, tokenEndBlock},
-	"{% if not a %}":               {tokenStartBlock, tokenIf, tokenNotIf, tokenIdentifier, tokenEndBlock},
-	"{% if not 10 + 3 %}":          {tokenStartBlock, tokenIf, tokenNotIf, tokenInt, tokenAddition, tokenInt, tokenEndBlock},
 	"{% case 42 %}":                {tokenStartBlock, tokenCase, tokenInt, tokenEndBlock},
 	"{% case a %}":                 {tokenStartBlock, tokenCase, tokenIdentifier, tokenEndBlock},
 	"{% case a < 20 %}":            {tokenStartBlock, tokenCase, tokenIdentifier, tokenLess, tokenInt, tokenEndBlock},

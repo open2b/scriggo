@@ -53,7 +53,6 @@ const (
 	tokenMap                               // map
 	tokenChan                              // chan
 	tokenIf                                // if
-	tokenNotIf                             // not
 	tokenElse                              // else
 	tokenDefer                             // defer
 	tokenGo                                // go
@@ -152,7 +151,6 @@ var tokenString = map[tokenTyp]string{
 	tokenMap:                      "map",
 	tokenChan:                     "chan",
 	tokenIf:                       "if",
-	tokenNotIf:                    "not",
 	tokenElse:                     "else",
 	tokenDefer:                    "defer",
 	tokenGo:                       "go",

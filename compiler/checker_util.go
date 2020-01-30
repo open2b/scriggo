@@ -145,52 +145,6 @@ var htmlStringerType = reflect.TypeOf((*HTMLStringer)(nil)).Elem()
 var cssStringerType = reflect.TypeOf((*CSSStringer)(nil)).Elem()
 var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
 
-// declareAsBoolBuiltin declares the "$asBool" builtin in the global scope if it
-// has not already been declared.
-//
-// The "$asBool" builtin has type func(interface{}) bool and reports whether its
-// argument is not the zero value for its dinamic type.
-func (tc *typechecker) declareAsBoolBuiltin() {
-	if _, ok := tc.globalScope["$asBool"]; ok {
-		return
-	}
-	asBool := func(cond interface{}) bool {
-		switch cond := cond.(type) {
-		case bool:
-			return cond != false
-		case byte, complex128, complex64, float32, float64,
-			int, int16, int32, int64, int8,
-			uint, uint16, uint32, uint64, uintptr:
-			return cond != 0
-		case string:
-			return cond != ""
-		// Do NOT join the following cases.
-		// If joined, the 'nil' on the left of '!=' becomes the zero of the
-		// empty interface, not the zero on the type on the left.
-		case []int:
-			return cond != nil
-		case []byte:
-			return cond != nil
-		case []string:
-			return cond != nil
-		default:
-			rv := reflect.ValueOf(cond)
-			return rv.IsValid() && !rv.IsZero()
-		}
-	}
-	rv := reflect.ValueOf(asBool)
-	ti := &typeInfo{
-		Type:       rv.Type(),
-		value:      rv,
-		Properties: propertyIsPredefined | propertyHasValue,
-	}
-	if tc.globalScope == nil {
-		tc.globalScope = typeCheckerScope{"$asBool": scopeElement{t: ti}}
-	} else {
-		tc.globalScope["$asBool"] = scopeElement{t: ti}
-	}
-}
-
 // convert implicitly converts an untyped value. If the converted value is a
 // constant, convert returns its value, otherwise returns nil.
 //
