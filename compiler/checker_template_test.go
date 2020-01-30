@@ -128,7 +128,12 @@ var templateCases = []struct {
 	},
 
 	{
-		src:      `{% a := 20 %}{% b := 100 %}{% a and b %}`,
+		src:      `{% a := true %}{% b := true %}{{ a and b or b and b }}`,
+		expected: ok,
+	},
+
+	{
+		src:      `{% n := 10 %}{% var a bool = not n %}`,
 		expected: ok,
 	},
 }
