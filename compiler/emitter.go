@@ -617,8 +617,20 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 	args := call.Args
 	switch call.Func.(*ast.Identifier).Name {
-	case "$notZero":
-		// REVIEW: implement.
+	case "$zero", "$notZero":
+		not := call.Func.(*ast.Identifier).Name == "$notZero"
+		typ := em.typ(args[0])
+		em.fb.enterStack()
+		src := em.emitExpr(args[0], typ)
+		if canEmitDirectly(typ.Kind(), dstType.Kind()) {
+			em.fb.emitZero(not, typ.Kind(), reg, src)
+			em.fb.exitStack()
+			return
+		}
+		tmp := em.fb.newRegister(reflect.Bool)
+		em.fb.emitZero(not, typ.Kind(), tmp, src)
+		em.changeRegister(false, tmp, reg, boolType, dstType)
+		em.fb.exitStack()
 	case "append":
 		sliceType := em.typ(args[0])
 		slice := em.emitExpr(args[0], sliceType)
