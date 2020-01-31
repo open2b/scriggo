@@ -126,7 +126,7 @@ var exprTests = []struct {
 		ast.NewIdentifier(p(1, 1, 0, 0), "a"),
 		ast.NewUnaryOperator(
 			p(1, 6, 5, 9),
-			ast.OperatorTemplateNot,
+			ast.OperatorRelaxedNot,
 			ast.NewIdentifier(p(1, 10, 9, 9), "b"),
 		),
 	)},

@@ -79,7 +79,7 @@ const (
 	OperatorPointer                            // *
 	OperatorRelaxedAnd                         // and
 	OperatorRelaxedOr                          // or
-	OperatorTemplateNot                        // not
+	OperatorRelaxedNot                         // not
 )
 
 type AssignmentType int

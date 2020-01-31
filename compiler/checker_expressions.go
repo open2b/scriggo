@@ -295,7 +295,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 
 	case *ast.UnaryOperator:
 		// Handle 'not a' expressions.
-		if expr.Op == ast.OperatorTemplateNot {
+		if expr.Op == ast.OperatorRelaxedNot {
 			ti := tc.checkExpr(expr.Expr)
 			// Non-boolean constant expressions are not allowed as operand of
 			// 'not' operator.
