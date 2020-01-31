@@ -304,6 +304,8 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			// If the operand has kind bool then the operators is replaced with
 			// '!', else the operator is replaced with an unary operator that
 			// returns true only if the value is the zero of its type.
+			// In the former case the syntax `not a` it's semantically
+			// equivalent to `!a`.
 			if ti.Type.Kind() == reflect.Bool {
 				expr.Op = ast.OperatorNot
 			} else {
