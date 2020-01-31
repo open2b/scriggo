@@ -191,7 +191,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			tokenXor,            // ^e
 			tokenMultiplication, // *t, *T
 			tokenAmpersand,      // &e
-			tokenTemplateNot:    // not
+			tokenRelaxedNot:    // not
 			operator = ast.NewUnaryOperator(tok.pos, operatorFromTokenType(tok.typ, false), nil)
 			if mustBeType && tok.typ != tokenMultiplication {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting type", tok.txt))
@@ -426,8 +426,8 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				tokenAndNot,         // e &^
 				tokenLeftShift,      // e <<
 				tokenRightShift,     // e >>
-				tokenTemplateAnd,    // e and
-				tokenTemplateOr:     // e or
+				tokenRelaxedAnd,     // e and
+				tokenRelaxedOr:     // e or
 				operator = ast.NewBinaryOperator(tok.pos, operatorFromTokenType(tok.typ, true), nil, nil)
 			default:
 				if mustBeSwitchGuard && !isTypeGuard(operand) {
@@ -684,11 +684,11 @@ func operatorFromTokenType(typ tokenTyp, binary bool) ast.OperatorType {
 	case tokenRightShift:
 		return ast.OperatorRightShift
 	// REVIEW: order according the name of the tokens.
-	case tokenTemplateAnd:
+	case tokenRelaxedAnd:
 		return ast.OperatorRelaxedAnd
-	case tokenTemplateOr:
+	case tokenRelaxedOr:
 		return ast.OperatorRelaxedOr
-	case tokenTemplateNot:
+	case tokenRelaxedNot:
 		return ast.OperatorTemplateNot
 
 	default:

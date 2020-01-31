@@ -51,8 +51,8 @@ var typeTests = map[string][]tokenTyp{
 	"{% if a %}":                   {tokenStartBlock, tokenIf, tokenIdentifier, tokenEndBlock},
 	"{% if a = b; a %}":            {tokenStartBlock, tokenIf, tokenIdentifier, tokenSimpleAssignment, tokenIdentifier, tokenSemicolon, tokenIdentifier, tokenEndBlock},
 	"{% if a, ok = b.c; a %}":      {tokenStartBlock, tokenIf, tokenIdentifier, tokenComma, tokenIdentifier, tokenSimpleAssignment, tokenIdentifier, tokenPeriod, tokenIdentifier, tokenSemicolon, tokenIdentifier, tokenEndBlock},
-	"{% if not a %}":               {tokenStartBlock, tokenIf, tokenTemplateNot, tokenIdentifier, tokenEndBlock},
-	"{% if not 10 + 3 %}":          {tokenStartBlock, tokenIf, tokenTemplateNot, tokenInt, tokenAddition, tokenInt, tokenEndBlock},
+	"{% if not a %}":               {tokenStartBlock, tokenIf, tokenRelaxedNot, tokenIdentifier, tokenEndBlock},
+	"{% if not 10 + 3 %}":          {tokenStartBlock, tokenIf, tokenRelaxedNot, tokenInt, tokenAddition, tokenInt, tokenEndBlock},
 	"{% case 42 %}":                {tokenStartBlock, tokenCase, tokenInt, tokenEndBlock},
 	"{% case a %}":                 {tokenStartBlock, tokenCase, tokenIdentifier, tokenEndBlock},
 	"{% case a < 20 %}":            {tokenStartBlock, tokenCase, tokenIdentifier, tokenLess, tokenInt, tokenEndBlock},
@@ -191,9 +191,9 @@ var typeTests = map[string][]tokenTyp{
 	"{{ map{} }}":       {tokenStartValue, tokenMap, tokenLeftBraces, tokenRightBraces, tokenEndValue},
 	"{{ map{`a`: 6} }}": {tokenStartValue, tokenMap, tokenLeftBraces, tokenRawString, tokenColon, tokenInt, tokenRightBraces, tokenEndValue},
 	"{{ interface{} }}": {tokenStartValue, tokenInterface, tokenLeftBraces, tokenRightBraces, tokenEndValue},
-	"{{ a and b }}":     {tokenStartValue, tokenIdentifier, tokenTemplateAnd, tokenIdentifier, tokenEndValue},
-	"{{ a or b }}":      {tokenStartValue, tokenIdentifier, tokenTemplateOr, tokenIdentifier, tokenEndValue},
-	"{{ a or not b }}":  {tokenStartValue, tokenIdentifier, tokenTemplateOr, tokenTemplateNot, tokenIdentifier, tokenEndValue},
+	"{{ a and b }}":     {tokenStartValue, tokenIdentifier, tokenRelaxedAnd, tokenIdentifier, tokenEndValue},
+	"{{ a or b }}":      {tokenStartValue, tokenIdentifier, tokenRelaxedOr, tokenIdentifier, tokenEndValue},
+	"{{ a or not b }}":  {tokenStartValue, tokenIdentifier, tokenRelaxedOr, tokenRelaxedNot, tokenIdentifier, tokenEndValue},
 }
 
 var typeTestsGoContext = map[string][]tokenTyp{

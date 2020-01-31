@@ -111,11 +111,9 @@ const (
 	tokenRightShift                        // >>
 	tokenStruct                            // struct
 	tokenEOF                               // eof
-
-	// X MARCO: quali nomi dare a questi token?
-	tokenTemplateAnd
-	tokenTemplateNot
-	tokenTemplateOr
+	tokenRelaxedAnd                        // and
+	tokenRelaxedNot                        // not
+	tokenRelaxedOr                         // or
 )
 
 var tokenString = map[tokenTyp]string{
@@ -214,9 +212,9 @@ var tokenString = map[tokenTyp]string{
 	tokenRightShift:               ">>",
 	tokenStruct:                   "struct",
 	tokenEOF:                      "EOF",
-	tokenTemplateAnd:              "and",
-	tokenTemplateNot:              "not",
-	tokenTemplateOr:               "or",
+	tokenRelaxedAnd:               "and",
+	tokenRelaxedNot:               "not",
+	tokenRelaxedOr:                "or",
 }
 
 func (tt tokenTyp) String() string {

@@ -1072,13 +1072,13 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 			if l.andOrNot {
 				switch id {
 				case "and":
-					l.emit(tokenTemplateAnd, p)
+					l.emit(tokenRelaxedAnd, p)
 					emitted = true
 				case "or":
-					l.emit(tokenTemplateOr, p)
+					l.emit(tokenRelaxedOr, p)
 					emitted = true
 				case "not":
-					l.emit(tokenTemplateNot, p)
+					l.emit(tokenRelaxedNot, p)
 					emitted = true
 				}
 			}
