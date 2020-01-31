@@ -641,9 +641,8 @@ func operatorFromTokenType(typ tokenTyp, binary bool) ast.OperatorType {
 	case tokenAmpersand:
 		if binary {
 			return ast.OperatorBitAnd
-		} else {
-			return ast.OperatorAddress
 		}
+		return ast.OperatorAddress
 	case tokenVerticalBar:
 		return ast.OperatorBitOr
 	case tokenLess:
