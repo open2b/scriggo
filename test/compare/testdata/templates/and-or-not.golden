@@ -23,3 +23,29 @@ true
 false
 false
 true
+
+## INTERFACES
+
+false nil
+true 10
+false ""
+true "hello"
+true []int{1, 2, 3}
+true []int{}
+false []int(nil)
+
+false nil
+true 10
+false ""
+true "hello"
+true []int{1, 2, 3}
+true []int{}
+false []int(nil)
+
+false nil
+true 10
+false ""
+true "hello"
+true []int{1, 2, 3}
+true []int{}
+false []int(nil)

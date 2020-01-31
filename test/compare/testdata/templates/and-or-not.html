@@ -25,3 +25,29 @@
 {{ m1 and not m2 }}
 {{ not m1 and not m2 }}
 {{ m1 and true or not m2}}
+
+## INTERFACES
+
+{{ true and interface{}(nil) }} nil
+{{ true and interface{}(10) }} 10
+{{ true and interface{}("") }} ""
+{{ true and interface{}("hello") }} "hello"
+{{ true and interface{}([]int{1, 2, 3}) }} []int{1, 2, 3}
+{{ true and interface{}([]int{}) }} []int{}
+{{ true and interface{}([]int(nil))}} []int(nil)
+
+{{ interface{}(nil) or false }} nil
+{{ interface{}(10) or false }} 10
+{{ interface{}("") or false }} ""
+{{ interface{}("hello") or false }} "hello"
+{{ interface{}([]int{1, 2, 3}) or false }} []int{1, 2, 3}
+{{ interface{}([]int{}) or false }} []int{}
+{{ interface{}([]int(nil)) or false }} []int(nil)
+
+{{ not not interface{}(nil) }} nil
+{{ not not interface{}(10) }} 10
+{{ not not interface{}("") }} ""
+{{ not not interface{}("hello") }} "hello"
+{{ not not interface{}([]int{1, 2, 3}) }} []int{1, 2, 3}
+{{ not not interface{}([]int{}) }} []int{}
+{{ not not interface{}([]int(nil)) }} []int(nil)
