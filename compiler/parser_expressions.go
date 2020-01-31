@@ -676,8 +676,7 @@ func operatorFromTokenType(typ tokenTyp) ast.OperatorType {
 		return ast.OperatorLeftShift
 	case tokenRightShift:
 		return ast.OperatorRightShift
-
-	// REVIEW: order.
+	// REVIEW: order according the name of the tokens.
 	case tokenTemplateAnd:
 		return ast.OperatorTemplateAnd
 	case tokenTemplateOr:

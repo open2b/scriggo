@@ -6,8 +6,6 @@
 
 package compiler
 
-// REVIEW: implement Zero and NotZero in the disassembler
-
 import (
 	"bytes"
 	"fmt"

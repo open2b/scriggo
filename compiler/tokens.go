@@ -112,7 +112,7 @@ const (
 	tokenStruct                            // struct
 	tokenEOF                               // eof
 
-	// REVIEW: find better names and move into the right position.
+	// X MARCO: quali nomi dare a questi token?
 	tokenTemplateAnd
 	tokenTemplateNot
 	tokenTemplateOr

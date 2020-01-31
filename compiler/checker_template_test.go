@@ -68,8 +68,7 @@ var templateCases = []struct {
 		expected: `undefined: M`,
 	},
 
-	// TODO: these tests have been disabled after the introduction of the token
-	// 'or' in templates.
+	// https://github.com/open2b/scriggo/issues/560
 
 	// {
 	// 	src:      `{% show M or error %}`,
@@ -85,8 +84,7 @@ var templateCases = []struct {
 		expected: `a evaluated but not used`,
 	},
 
-	// TODO: these tests have been disabled after the introduction of the token
-	// 'or' in templates.
+	// https://github.com/open2b/scriggo/issues/560
 
 	// {
 	// 	src:      `{% show M or todo %}`,

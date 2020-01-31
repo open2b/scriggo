@@ -1239,7 +1239,7 @@ var treeTests = []struct {
 		ast.NewShowMacro(p(1, 4, 3, 16), ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Expression{
 			ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")}, true, ast.ShowMacroOrError, ast.ContextHTML)}, ast.ContextHTML)},
 
-	// REVIEW: enable these tests
+	// https://github.com/open2b/scriggo/issues/560
 
 	// {"{% show M or todo %}", ast.NewTree("", []ast.Node{
 	// 	ast.NewShowMacro(p(1, 4, 3, 16), ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrTodo, ast.ContextHTML),
