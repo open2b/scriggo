@@ -505,7 +505,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			addresses[i] = em.addressStructSelector(reg, index, typ, pos, node.Type)
 			break
 		case *ast.UnaryOperator:
-			if v.Operator() != ast.OperatorMultiplication {
+			if v.Operator() != ast.OperatorPointer {
 				panic("BUG.") // remove.
 			}
 			typ := em.typ(v.Expr)

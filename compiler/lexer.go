@@ -779,7 +779,7 @@ LOOP:
 			if len(l.src) > 1 {
 				switch l.src[1] {
 				case '&':
-					l.emit(tokenAndAnd, 2)
+					l.emit(tokenAnd, 2)
 					l.column += 2
 					endLineAsSemicolon = false
 					continue LOOP
@@ -800,18 +800,18 @@ LOOP:
 					continue LOOP
 				}
 			}
-			l.emit(tokenAnd, 1)
+			l.emit(tokenAmpersand, 1)
 			l.column++
 			endLineAsSemicolon = false
 		case '|':
 			if len(l.src) > 1 && l.src[1] == '|' {
-				l.emit(tokenOrOr, 2)
+				l.emit(tokenOr, 2)
 				l.column += 2
 			} else if len(l.src) > 1 && l.src[1] == '=' {
 				l.emit(tokenOrAssignment, 2)
 				l.column += 2
 			} else {
-				l.emit(tokenOr, 1)
+				l.emit(tokenVerticalBar, 1)
 				l.column++
 			}
 			endLineAsSemicolon = false

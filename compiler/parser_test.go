@@ -532,7 +532,7 @@ var goContextTreeTests = []struct {
 						nil,
 						ast.NewUnaryOperator(
 							p(1, 22, 21, 22),
-							ast.OperatorMultiplication,
+							ast.OperatorPointer,
 							ast.NewIdentifier(p(1, 23, 22, 22), "D"),
 						),
 						nil,
@@ -1390,7 +1390,7 @@ var treeTests = []struct {
 		ast.NewAssignment(p(1, 4, 3, 8),
 			[]ast.Expression{
 				ast.NewUnaryOperator(p(1, 4, 3, 4),
-					ast.OperatorMultiplication,
+					ast.OperatorPointer,
 					ast.NewIdentifier(p(1, 5, 4, 4), "a"),
 				)},
 			ast.AssignmentSimple,

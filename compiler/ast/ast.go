@@ -61,10 +61,10 @@ const (
 	OperatorGreater                            // >
 	OperatorGreaterEqual                       // >=
 	OperatorNot                                // !
-	OperatorAnd                                // &
-	OperatorOr                                 // |
-	OperatorAndAnd                             // &&
-	OperatorOrOr                               // ||
+	OperatorBitAnd                             // &
+	OperatorBitOr                              // |
+	OperatorAnd                                // &&
+	OperatorOr                                 // ||
 	OperatorAddition                           // +
 	OperatorSubtraction                        // -
 	OperatorMultiplication                     // *
@@ -75,10 +75,11 @@ const (
 	OperatorLeftShift                          // <<
 	OperatorRightShift                         // >>
 	OperatorReceive                            // <-
-	// X MARCO: trovare un nome migliore.
-	OperatorTemplateAnd // and
-	OperatorTemplateOr  // or
-	OperatorTemplateNot // not
+	OperatorAddress                            // &
+	OperatorPointer                            // *
+	OperatorTemplateAnd                        // and
+	OperatorTemplateOr                         // or
+	OperatorTemplateNot                        // not
 )
 
 type AssignmentType int
@@ -103,7 +104,7 @@ const (
 
 func (op OperatorType) String() string {
 	return []string{"==", "!=", "<", "<=", ">", ">=", "!", "&", "|", "&&", "||",
-		"+", "-", "*", "/", "%", "^", "&^", "<<", ">>", "<-", "and", "or", "not"}[op]
+		"+", "-", "*", "/", "%", "^", "&^", "<<", ">>", "<-", "&", "*", "and", "or", "not"}[op]
 }
 
 // Context indicates the context in which a value statement must be valuated.
@@ -893,16 +894,16 @@ func (n *BinaryOperator) Operator() OperatorType {
 func (n *BinaryOperator) Precedence() int {
 	switch n.Op {
 	case OperatorMultiplication, OperatorDivision, OperatorModulo,
-		OperatorLeftShift, OperatorRightShift, OperatorAnd, OperatorAndNot:
+		OperatorLeftShift, OperatorRightShift, OperatorBitAnd, OperatorAndNot:
 		return 5
-	case OperatorAddition, OperatorSubtraction, OperatorOr, OperatorXor:
+	case OperatorAddition, OperatorSubtraction, OperatorBitOr, OperatorXor:
 		return 4
 	case OperatorEqual, OperatorNotEqual, OperatorLess, OperatorLessEqual,
 		OperatorGreater, OperatorGreaterEqual:
 		return 3
-	case OperatorAndAnd, OperatorTemplateAnd:
+	case OperatorAnd, OperatorTemplateAnd:
 		return 2
-	case OperatorOrOr, OperatorTemplateOr:
+	case OperatorOr, OperatorTemplateOr:
 		return 1
 	}
 	panic("invalid operator type")
@@ -1088,7 +1089,7 @@ func (n *Call) String() string {
 	s := n.Func.String()
 	switch fn := n.Func.(type) {
 	case *UnaryOperator:
-		if fn.Op == OperatorMultiplication || fn.Op == OperatorReceive {
+		if fn.Op == OperatorPointer || fn.Op == OperatorReceive {
 			s = "(" + s + ")"
 		}
 	case *FuncType:

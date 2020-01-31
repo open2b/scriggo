@@ -148,9 +148,9 @@ func (c1 boolConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error)
 		return boolConst(b1 == b2), nil
 	case ast.OperatorNotEqual:
 		return boolConst(b1 != b2), nil
-	case ast.OperatorAndAnd:
+	case ast.OperatorAnd:
 		return b1 && b2, nil
-	case ast.OperatorOrOr:
+	case ast.OperatorOr:
 		return b1 || b2, nil
 	}
 	return nil, errInvalidOperation
@@ -352,9 +352,9 @@ func (c1 int64Const) binaryOp(op ast.OperatorType, c2 constant) (constant, error
 			return nil, errDivisionByZero
 		}
 		return n1 % n2, nil
-	case ast.OperatorAnd:
+	case ast.OperatorBitAnd:
 		return n1 & n2, nil
-	case ast.OperatorOr:
+	case ast.OperatorBitOr:
 		return n1 | n2, nil
 	case ast.OperatorXor:
 		return n1 ^ n2, nil
@@ -557,9 +557,9 @@ func (c1 intConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error) 
 			return nil, errDivisionByZero
 		}
 		return intConst{i: new(big.Int).Rem(n1.i, n2.i)}, nil
-	case ast.OperatorAnd:
+	case ast.OperatorBitAnd:
 		return intConst{i: new(big.Int).And(n1.i, n2.i)}, nil
-	case ast.OperatorOr:
+	case ast.OperatorBitOr:
 		return intConst{i: new(big.Int).Or(n1.i, n2.i)}, nil
 	case ast.OperatorXor:
 		return intConst{i: new(big.Int).Xor(n1.i, n2.i)}, nil

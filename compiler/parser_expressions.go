@@ -190,9 +190,9 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			tokenNot,            // !e
 			tokenXor,            // ^e
 			tokenMultiplication, // *t, *T
-			tokenAnd,            // &e
-			tokenTemplateNot:    // !e
-			operator = ast.NewUnaryOperator(tok.pos, operatorFromTokenType(tok.typ), nil)
+			tokenAmpersand,      // &e
+			tokenTemplateNot:    // not
+			operator = ast.NewUnaryOperator(tok.pos, operatorFromTokenType(tok.typ, false), nil)
 			if mustBeType && tok.typ != tokenMultiplication {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting type", tok.txt))
 			}
@@ -413,22 +413,22 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				tokenLessOrEqual,    // e <=
 				tokenGreater,        // e >
 				tokenGreaterOrEqual, // e >=
-				tokenAndAnd,         // e &&
-				tokenOrOr,           // e ||
+				tokenAnd,            // e &&
+				tokenOr,             // e ||
 				tokenAddition,       // e +
 				tokenSubtraction,    // e -
 				tokenMultiplication, // e *
 				tokenDivision,       // e /
 				tokenModulo,         // e %
-				tokenAnd,            // e &
-				tokenOr,             // e |
+				tokenAmpersand,      // e &
+				tokenVerticalBar,    // e |
 				tokenXor,            // e ^
 				tokenAndNot,         // e &^
 				tokenLeftShift,      // e <<
 				tokenRightShift,     // e >>
 				tokenTemplateAnd,    // e and
 				tokenTemplateOr:     // e or
-				operator = ast.NewBinaryOperator(tok.pos, operatorFromTokenType(tok.typ), nil, nil)
+				operator = ast.NewBinaryOperator(tok.pos, operatorFromTokenType(tok.typ, true), nil, nil)
 			default:
 				if mustBeSwitchGuard && !isTypeGuard(operand) {
 					panic(syntaxError(tok.pos, "use of .(type) outside type switch"))
@@ -631,8 +631,9 @@ func literalType(typ tokenTyp) ast.LiteralType {
 	}
 }
 
-// operatorFromTokenType returns a operator type from a token type.
-func operatorFromTokenType(typ tokenTyp) ast.OperatorType {
+// operatorFromTokenType returns a operator type from a token type. binary
+// reports if the operator is used in a binary expression.
+func operatorFromTokenType(typ tokenTyp, binary bool) ast.OperatorType {
 	switch typ {
 	case tokenEqual:
 		return ast.OperatorEqual
@@ -640,10 +641,13 @@ func operatorFromTokenType(typ tokenTyp) ast.OperatorType {
 		return ast.OperatorNotEqual
 	case tokenNot:
 		return ast.OperatorNot
-	case tokenAnd:
-		return ast.OperatorAnd
-	case tokenOr:
-		return ast.OperatorOr
+	case tokenAmpersand:
+		if binary {
+			return ast.OperatorBitAnd
+		}
+		return ast.OperatorAddress
+	case tokenVerticalBar:
+		return ast.OperatorBitOr
 	case tokenLess:
 		return ast.OperatorLess
 	case tokenLessOrEqual:
@@ -652,16 +656,19 @@ func operatorFromTokenType(typ tokenTyp) ast.OperatorType {
 		return ast.OperatorGreater
 	case tokenGreaterOrEqual:
 		return ast.OperatorGreaterEqual
-	case tokenAndAnd:
-		return ast.OperatorAndAnd
-	case tokenOrOr:
-		return ast.OperatorOrOr
+	case tokenAnd:
+		return ast.OperatorAnd
+	case tokenOr:
+		return ast.OperatorOr
 	case tokenAddition:
 		return ast.OperatorAddition
 	case tokenSubtraction:
 		return ast.OperatorSubtraction
 	case tokenMultiplication:
-		return ast.OperatorMultiplication
+		if binary {
+			return ast.OperatorMultiplication
+		}
+		return ast.OperatorPointer
 	case tokenDivision:
 		return ast.OperatorDivision
 	case tokenModulo:
