@@ -40,7 +40,6 @@ var untypedBoolTypeInfo = &typeInfo{Type: boolType, Properties: propertyUntyped}
 var envType = reflect.TypeOf(&runtime.Env{})
 
 var universe = typeCheckerScope{
-	"$notZero":   {t: &typeInfo{Properties: propertyPredeclared}},
 	"append":     {t: &typeInfo{Properties: propertyPredeclared}},
 	"cap":        {t: &typeInfo{Properties: propertyPredeclared}},
 	"close":      {t: &typeInfo{Properties: propertyPredeclared}},
