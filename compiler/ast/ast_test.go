@@ -102,7 +102,7 @@ var expressionStringTests = []struct {
 			{NewBasicLiteral(nil, IntLiteral, "3"), NewIdentifier(nil, "true")},
 			{NewBasicLiteral(nil, IntLiteral, "6"), NewIdentifier(nil, "false")},
 		}), NewBasicLiteral(nil, IntLiteral, "32"))},
-	{"&x", NewUnaryOperator(nil, OperatorAnd, NewIdentifier(nil, "x"))},
+	{"&x", NewUnaryOperator(nil, OperatorBitAnd, NewIdentifier(nil, "x"))},
 	{`pkg.Struct{Key1: value1, Key2: "value2", Key3: 33}`,
 		NewCompositeLiteral(nil,
 			NewSelector(nil, NewIdentifier(nil, "pkg"), "Struct"),

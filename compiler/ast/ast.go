@@ -61,10 +61,10 @@ const (
 	OperatorGreater                            // >
 	OperatorGreaterEqual                       // >=
 	OperatorNot                                // !
-	OperatorAnd                                // &
-	OperatorOr                                 // |
-	OperatorAndAnd                             // &&
-	OperatorOrOr                               // ||
+	OperatorBitAnd                             // &
+	OperatorBitOr                              // |
+	OperatorAnd                                // &&
+	OperatorOr                                 // ||
 	OperatorAddition                           // +
 	OperatorSubtraction                        // -
 	OperatorMultiplication                     // *
@@ -889,16 +889,16 @@ func (n *BinaryOperator) Operator() OperatorType {
 func (n *BinaryOperator) Precedence() int {
 	switch n.Op {
 	case OperatorMultiplication, OperatorDivision, OperatorModulo,
-		OperatorLeftShift, OperatorRightShift, OperatorAnd, OperatorAndNot:
+		OperatorLeftShift, OperatorRightShift, OperatorBitAnd, OperatorAndNot:
 		return 5
-	case OperatorAddition, OperatorSubtraction, OperatorOr, OperatorXor:
+	case OperatorAddition, OperatorSubtraction, OperatorBitOr, OperatorXor:
 		return 4
 	case OperatorEqual, OperatorNotEqual, OperatorLess, OperatorLessEqual,
 		OperatorGreater, OperatorGreaterEqual:
 		return 3
-	case OperatorAndAnd:
+	case OperatorAnd:
 		return 2
-	case OperatorOrOr:
+	case OperatorOr:
 		return 1
 	}
 	panic("invalid operator type")

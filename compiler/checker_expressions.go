@@ -347,7 +347,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			}
 			ti.Type = t.Type.Elem()
 			ti.Properties = ti.Properties | propertyAddressable
-		case ast.OperatorAnd:
+		case ast.OperatorBitAnd:
 			if _, ok := expr.Expr.(*ast.CompositeLiteral); !ok && !t.Addressable() {
 				panic(tc.errorf(expr, "cannot take the address of %s", expr.Expr))
 			}
@@ -777,7 +777,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				if t.Addressable() {
 					elem, _ := tc.lookupScopesElem(expr.Expr.(*ast.Identifier).Name, false)
 					tc.indirectVars[elem.decl] = true
-					expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorAnd, expr.Expr)
+					expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorBitAnd, expr.Expr)
 					tc.typeInfos[expr.Expr] = &typeInfo{
 						Type:       tc.types.PtrTo(t.Type),
 						MethodType: t.MethodType,

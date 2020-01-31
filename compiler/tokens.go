@@ -89,14 +89,14 @@ const (
 	tokenEqual                             // ==
 	tokenNotEqual                          // !=
 	tokenNot                               // !
-	tokenAnd                               // &
-	tokenOr                                // |
+	tokenAmpersand                         // &
+	tokenVerticalBar                       // |
 	tokenLess                              // <
 	tokenLessOrEqual                       // <=
 	tokenGreater                           // >
 	tokenGreaterOrEqual                    // >=
-	tokenAndAnd                            // &&
-	tokenOrOr                              // ||
+	tokenAnd                               // &&
+	tokenOr                                // ||
 	tokenAddition                          // +
 	tokenSubtraction                       // -
 	tokenMultiplication                    // *
@@ -187,14 +187,14 @@ var tokenString = map[tokenTyp]string{
 	tokenEqual:                    "==",
 	tokenNotEqual:                 "!=",
 	tokenNot:                      "!",
-	tokenAnd:                      "&",
-	tokenOr:                       "|",
+	tokenAmpersand:                "&",
+	tokenVerticalBar:              "|",
 	tokenLess:                     "<",
 	tokenLessOrEqual:              "<=",
 	tokenGreater:                  ">",
 	tokenGreaterOrEqual:           ">=",
-	tokenAndAnd:                   "&&",
-	tokenOrOr:                     "||",
+	tokenAnd:                      "&&",
+	tokenOr:                       "||",
 	tokenAddition:                 "+",
 	tokenSubtraction:              "-",
 	tokenMultiplication:           "*",

@@ -43,8 +43,8 @@ func isSigned(kind reflect.Kind) bool {
 var boolOperators = [21]bool{
 	ast.OperatorEqual:    true,
 	ast.OperatorNotEqual: true,
-	ast.OperatorAndAnd:   true,
-	ast.OperatorOrOr:     true,
+	ast.OperatorAnd:      true,
+	ast.OperatorOr:       true,
 }
 
 var intOperators = [21]bool{
@@ -59,8 +59,8 @@ var intOperators = [21]bool{
 	ast.OperatorMultiplication: true,
 	ast.OperatorDivision:       true,
 	ast.OperatorModulo:         true,
-	ast.OperatorAnd:            true,
-	ast.OperatorOr:             true,
+	ast.OperatorBitAnd:         true,
+	ast.OperatorBitOr:          true,
 	ast.OperatorXor:            true,
 	ast.OperatorAndNot:         true,
 	ast.OperatorLeftShift:      true,
@@ -111,8 +111,8 @@ var evalToBoolOperators = [21]bool{
 	ast.OperatorLessEqual:    true,
 	ast.OperatorGreater:      true,
 	ast.OperatorGreaterEqual: true,
-	ast.OperatorAndAnd:       true,
-	ast.OperatorOrOr:         true,
+	ast.OperatorAnd:          true,
+	ast.OperatorOr:           true,
 }
 
 var operatorsOfKind = [...][21]bool{
@@ -595,9 +595,9 @@ func operatorFromAssignmentType(assignmentType ast.AssignmentType) ast.OperatorT
 	case ast.AssignmentModulo:
 		return ast.OperatorModulo
 	case ast.AssignmentAnd:
-		return ast.OperatorAnd
+		return ast.OperatorBitAnd
 	case ast.AssignmentOr:
-		return ast.OperatorOr
+		return ast.OperatorBitOr
 	case ast.AssignmentXor:
 		return ast.OperatorXor
 	case ast.AssignmentAndNot:

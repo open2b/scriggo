@@ -334,9 +334,9 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 	}
 
 	// Binary && and ||.
-	if op := expr.Operator(); op == ast.OperatorAndAnd || op == ast.OperatorOrOr {
+	if op := expr.Operator(); op == ast.OperatorAnd || op == ast.OperatorOr {
 		cmp := int8(0)
-		if op == ast.OperatorAndAnd {
+		if op == ast.OperatorAnd {
 			cmp = 1
 		}
 		if canEmitDirectly(dstType.Kind(), reflect.Bool) {
@@ -396,15 +396,15 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 	}
 
 	// Bit operations.
-	if op := expr.Operator(); op == ast.OperatorAnd ||
-		op == ast.OperatorOr ||
+	if op := expr.Operator(); op == ast.OperatorBitAnd ||
+		op == ast.OperatorBitOr ||
 		op == ast.OperatorXor ||
 		op == ast.OperatorAndNot {
 		var emitFn func(bool, int8, int8, int8, reflect.Kind)
 		switch expr.Operator() {
-		case ast.OperatorAnd:
+		case ast.OperatorBitAnd:
 			emitFn = em.fb.emitAnd
-		case ast.OperatorOr:
+		case ast.OperatorBitOr:
 			emitFn = em.fb.emitOr
 		case ast.OperatorXor:
 			emitFn = em.fb.emitXor
@@ -425,7 +425,7 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 
 	// Arithmetic operations on reflect.Int or reflect.Float64.
 	// TODO: also add reflect.Float64, excluding them from unsupported operations.
-	if op := expr.Operator(); ast.OperatorAnd <= op && op <= ast.OperatorRightShift && (exprType.Kind() == reflect.Int) {
+	if op := expr.Operator(); ast.OperatorBitAnd <= op && op <= ast.OperatorRightShift && (exprType.Kind() == reflect.Int) {
 		var emitFn func(bool, int8, int8, int8, reflect.Kind)
 		switch expr.Operator() {
 		case ast.OperatorAddition:
@@ -456,7 +456,7 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 	}
 
 	// Arithmetic operations on non reflect.Int and non reflect.FLoat64 kinds.
-	if op := expr.Operator(); ast.OperatorAnd <= op && op <= ast.OperatorRightShift {
+	if op := expr.Operator(); ast.OperatorBitAnd <= op && op <= ast.OperatorRightShift {
 		var emitFn func(bool, int8, int8, int8, reflect.Kind)
 		switch expr.Operator() {
 		case ast.OperatorAddition:
@@ -829,7 +829,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		em.changeRegister(false, tmp, reg, operandType.Elem(), dstType)
 
 	// &operand
-	case ast.OperatorAnd:
+	case ast.OperatorBitAnd:
 		switch operand := operand.(type) {
 
 		// &a

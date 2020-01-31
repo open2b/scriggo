@@ -190,7 +190,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			tokenNot,            // !e
 			tokenXor,            // ^e
 			tokenMultiplication, // *t, *T
-			tokenAnd:            // &e
+			tokenAmpersand:      // &e
 			operator = ast.NewUnaryOperator(tok.pos, operatorFromTokenType(tok.typ), nil)
 			if mustBeType && tok.typ != tokenMultiplication {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting type", tok.txt))
@@ -412,15 +412,15 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				tokenLessOrEqual,    // e <=
 				tokenGreater,        // e >
 				tokenGreaterOrEqual, // e >=
-				tokenAndAnd,         // e &&
-				tokenOrOr,           // e ||
+				tokenAnd,            // e &&
+				tokenOr,             // e ||
 				tokenAddition,       // e +
 				tokenSubtraction,    // e -
 				tokenMultiplication, // e *
 				tokenDivision,       // e /
 				tokenModulo,         // e %
-				tokenAnd,            // e &
-				tokenOr,             // e |
+				tokenAmpersand,      // e &
+				tokenVerticalBar,    // e |
 				tokenXor,            // e ^
 				tokenAndNot,         // e &^
 				tokenLeftShift,      // e <<
@@ -637,10 +637,10 @@ func operatorFromTokenType(typ tokenTyp) ast.OperatorType {
 		return ast.OperatorNotEqual
 	case tokenNot:
 		return ast.OperatorNot
-	case tokenAnd:
-		return ast.OperatorAnd
-	case tokenOr:
-		return ast.OperatorOr
+	case tokenAmpersand:
+		return ast.OperatorBitAnd
+	case tokenVerticalBar:
+		return ast.OperatorBitOr
 	case tokenLess:
 		return ast.OperatorLess
 	case tokenLessOrEqual:
@@ -649,10 +649,10 @@ func operatorFromTokenType(typ tokenTyp) ast.OperatorType {
 		return ast.OperatorGreater
 	case tokenGreaterOrEqual:
 		return ast.OperatorGreaterEqual
-	case tokenAndAnd:
-		return ast.OperatorAndAnd
-	case tokenOrOr:
-		return ast.OperatorOrOr
+	case tokenAnd:
+		return ast.OperatorAnd
+	case tokenOr:
+		return ast.OperatorOr
 	case tokenAddition:
 		return ast.OperatorAddition
 	case tokenSubtraction:
