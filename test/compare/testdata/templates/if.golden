@@ -31,4 +31,4 @@ interface{}(5)
 not [3]int{}
 
 
-    else if 42
+    else if n2

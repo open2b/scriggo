@@ -37,14 +37,14 @@
 {% if not [3]int{1, 2, 3} %}bad{% else %}(not [3]int{1, 2, 3}){% end %}
 {% if not [3]int{} %}not [3]int{}{% end %}
 
-{% if "" %}
+{% if s := ""; s %}
 	bad
-{% else if "" %}
+{% else if s %}
 	bad
 {% end %}
 
-{% if 0 %}
+{% if n := 20 - 20; n %}
 	bad
-{% else if 42 %}
-    else if 42
+{% else if n2 := 20 + 22; n2 %}
+    else if n2
 {% end %}
