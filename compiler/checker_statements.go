@@ -129,7 +129,7 @@ nodesLoop:
 			if ti.Nil() {
 				panic(tc.errorf(node.Condition, "use of untyped nil"))
 			}
-			if ti.Type.Kind() != reflect.Bool && tc.opts.SyntaxType == TemplateSyntax {
+			if ti.Type.Kind() != reflect.Bool && tc.opts.RelaxedBoolean && tc.opts.SyntaxType == TemplateSyntax {
 				if ti.IsConstant() {
 					panic(tc.errorf(node.Condition, "non-bool constant %s cannot be used as if condition", node.Condition))
 				}

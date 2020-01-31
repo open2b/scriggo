@@ -167,6 +167,19 @@ var templateCases = []struct {
 	},
 
 	{
+		src:      `{% a := []int(nil) %}{% if a %}{% end %}`,
+		expected: ``,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
+
+	{
+		src:      `{% a := []int(nil) %}{% if a %}{% end %}`,
+		expected: `non-bool a (type []int) used as if condition`,
+	},
+
+	{
 		src:      `{% if 20 %}{% end %}`,
 		expected: `non-bool constant 20 cannot be used as if condition`,
 		opts: &compiler.Options{
