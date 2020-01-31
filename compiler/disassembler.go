@@ -625,7 +625,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	case runtime.OpZero:
 		if a >= 10 {
 			a -= 10
-			s = "Not Zero"
+			s = "NotZero"
 		}
 		var kind reflect.Kind
 		switch registerType(a) {
