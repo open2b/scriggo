@@ -542,17 +542,16 @@ func NewContinue(pos *Position, label *Identifier) *Continue {
 type If struct {
 	*Position            // position in the source.
 	Init      Node       // init simple statement.
-	Not       bool       // reports whether the if statement has the 'not' keyword in templates.
 	Condition Expression // condition that once evaluated returns true or false.
 	Then      *Block     // nodes to run if the expression is evaluated to true.
 	Else      Node       // nodes to run if the expression is evaluated to false. Can be Block or If.
 }
 
-func NewIf(pos *Position, init Node, not bool, cond Expression, then *Block, els Node) *If {
+func NewIf(pos *Position, init Node, cond Expression, then *Block, els Node) *If {
 	if then == nil {
 		then = NewBlock(nil, []Node{})
 	}
-	return &If{pos, init, not, cond, then, els}
+	return &If{pos, init, cond, then, els}
 }
 
 // Switch node represents a statement {% switch ... %}.
