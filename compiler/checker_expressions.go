@@ -445,9 +445,9 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			// Change the 'and' and 'or' operators to '&&' and '||', because the
 			// two expressions are now both booleans.
 			if expr.Op == ast.OperatorTemplateAnd {
-				expr.Op = ast.OperatorAndAnd
+				expr.Op = ast.OperatorAnd
 			} else {
-				expr.Op = ast.OperatorOrOr
+				expr.Op = ast.OperatorOr
 			}
 		}
 

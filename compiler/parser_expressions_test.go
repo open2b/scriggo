@@ -149,8 +149,8 @@ var exprTests = []struct {
 		),
 	)},
 
-	{"1&2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorAnd, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 3, 2, 2), ast.IntLiteral, "2"))},
-	{"1|2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorOr, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 3, 2, 2), ast.IntLiteral, "2"))},
+	{"1&2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorBitAnd, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 3, 2, 2), ast.IntLiteral, "2"))},
+	{"1|2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorBitOr, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 3, 2, 2), ast.IntLiteral, "2"))},
 	{"1^2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorXor, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 3, 2, 2), ast.IntLiteral, "2"))},
 	{"a&^b", ast.NewBinaryOperator(p(1, 2, 0, 3), ast.OperatorAndNot, ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 3), "b"))},
 	{"a<<b", ast.NewBinaryOperator(p(1, 2, 0, 3), ast.OperatorLeftShift, ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 3), "b"))},
