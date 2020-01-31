@@ -1,0 +1,34 @@
+## Bool.
+
+if true
+(if not true)
+(if false)
+if not false
+
+## Integers.
+
+if i1
+if i2
+(if i3)
+
+if s3
+(if not s3)
+(if s1)
+if not s2
+
+if []int{1, 2, 3}
+if []int{}
+([]int(nil))
+
+(interface{}(nil))
+not interface{}(nil)
+interface{}(5)
+
+((*int)(nil))
+
+([3]int{})
+(not [3]int{1, 2, 3})
+not [3]int{}
+
+
+    else if 42

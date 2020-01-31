@@ -297,7 +297,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		if expr.Op == ast.OperatorTemplateNot {
 			ti := tc.checkExpr(expr.Expr)
 			if ti.IsConstant() && ti.Type.Kind() != reflect.Bool {
-				panic(tc.errorf(expr.Expr, "invalid not-bool operator..")) // REVIEW.
+				panic(tc.errorf(expr.Expr, "not-bool constant %s not allowed with operator not", expr.Expr)) // REVIEW.
 			}
 			expr.Op = internalOperatorZero
 		}
@@ -416,6 +416,9 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			t2 := tc.checkExpr(expr.Expr2)
 			_ = t1 // REVIEW: cannot be non-bool constant.
 			_ = t2 // REVIEW: cannot be non-bool constant.
+			// REVIEW: do not make the transformation to the operands that are
+			// already bool! For this purpose may be useful the addition of a
+			// method to the type checker, something like 'notZero'.
 			expr.Expr1 = ast.NewUnaryOperator(expr.Expr1.Pos(), internalOperatorNotZero, expr.Expr1)
 			expr.Expr2 = ast.NewUnaryOperator(expr.Expr2.Pos(), internalOperatorNotZero, expr.Expr2)
 			if expr.Op == ast.OperatorTemplateAnd {

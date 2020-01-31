@@ -129,6 +129,12 @@ nodesLoop:
 			if ti.Nil() {
 				panic(tc.errorf(node.Condition, "use of untyped nil"))
 			}
+			if ti.Type.Kind() != reflect.Bool && tc.opts.SyntaxType == TemplateSyntax {
+				// REVIEW: check for invalid use of constants
+				node.Condition = ast.NewUnaryOperator(node.Condition.Pos(), internalOperatorNotZero, node.Condition)
+				ti = tc.checkExpr(node.Condition)
+				tc.typeInfos[node.Condition] = ti
+			}
 			if ti.Type.Kind() != reflect.Bool {
 				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, ti.ShortString()))
 			}

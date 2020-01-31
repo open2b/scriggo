@@ -1,0 +1,50 @@
+{# render #}
+
+## Bool.
+
+{% if true %}if true{% end %}
+{% if not true %}bad{% else %}(if not true){% end %}
+{% if false %}bad{% else %}(if false){% end %}
+{% if not false %}if not false{% end %}
+
+## Integers.
+
+{% i1 := 42 %}{% if i1 %}if i1{% end %}
+{% i2 := -300 %}{% if i2 %}if i2{% end %}
+{% i3 := 0 %}{% if i3 %}bad{% else %}(if i3){% end %}
+
+{# strings #}
+{% s3 := "something" %}{% if s3 %}if s3{% end %}
+{% if not s3 %}bad{% else %}(if not s3){% end %}
+{% s1 := "" %}{% if s1 %}bad{% else %}(if s1){% end %}
+{% s2 := "" %}{% if not s2 %}if not s2{% end %}
+
+{# slices #}
+{% if []int{1, 2, 3} %}if []int{1, 2, 3}{% end %}
+{% if []int{} %}if []int{}{% end %}
+{% if []int(nil) %}bad{% else %}([]int(nil)){% end %}
+
+{# interfaces #}
+{% if interface{}(nil) %}bad{% else %}(interface{}(nil)){% end %}
+{% if not interface{}(nil) %}not interface{}(nil){% end %}
+{% if interface{}(5) %}interface{}(5){% end %}
+
+{# pointers #}
+{% if (*int)(nil) %}bad{% else %}((*int)(nil)){% end %}
+
+{# arrays #}
+{% if [3]int{} %}bad{% else %}([3]int{}){% end %}
+{% if not [3]int{1, 2, 3} %}bad{% else %}(not [3]int{1, 2, 3}){% end %}
+{% if not [3]int{} %}not [3]int{}{% end %}
+
+{% if "" %}
+	bad
+{% else if "" %}
+	bad
+{% end %}
+
+{% if 0 %}
+	bad
+{% else if 42 %}
+    else if 42
+{% end %}
