@@ -48,3 +48,11 @@
 {% else if n2 := 20 + 22; n2 %}
     else if n2
 {% end %}
+
+## Defined types.
+
+{% type Int int %}
+{% var t Int %}
+{% if t %}t is true{% else %}t is false{% end %}
+t and t: {{ t and t }}
+not t and not t: {{ not t and not t }}

@@ -32,3 +32,11 @@ not [3]int{}
 
 
     else if n2
+
+## Defined types.
+
+
+
+t is false
+t and t: false
+not t and not t: true
