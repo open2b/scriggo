@@ -186,6 +186,15 @@ var templateCases = []struct {
 			RelaxedBoolean: true,
 		},
 	},
+
+	// REVIEW: handle the predeclared identifier 'nil' and enable this test.
+	// {
+	// 	src:      `{% v := 10 %}{{ v and nil }}`,
+	// 	expected: `error`,
+	// 	opts: &compiler.Options{
+	// 		RelaxedBoolean: true,
+	// 	},
+	// },
 }
 
 const ok = ""
