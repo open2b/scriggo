@@ -35,8 +35,6 @@ import (
 // As a special case, if the operand is an interface type then its value is
 // compared with the zero of the dynamic type of the interface.
 const (
-	// REVIEW: here we use OperatorTemplateNot as last operator. If we change the
-	// position of OperatorTemplateNot then this code must be updated.
 	internalOperatorZero ast.OperatorType = ast.OperatorTemplateNot + iota + 1
 	internalOperatorNotZero
 )

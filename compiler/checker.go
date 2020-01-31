@@ -158,7 +158,6 @@ type checkerOptions struct {
 	// PackageLess reports whether the package-less syntax is enabled.
 	PackageLess bool
 
-	// REVIEW: choose the same name used in compiler.Options.
 	ExtendedBoolean bool
 }
 
