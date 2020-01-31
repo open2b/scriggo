@@ -68,7 +68,8 @@ var templateCases = []struct {
 		expected: `undefined: M`,
 	},
 
-	// REVIEW: enable these tests
+	// TODO: these tests have been disabled after the introduction of the token
+	// 'or' in templates.
 
 	// {
 	// 	src:      `{% show M or error %}`,
@@ -84,7 +85,8 @@ var templateCases = []struct {
 		expected: `a evaluated but not used`,
 	},
 
-	// REVIEW: enable these tests
+	// TODO: these tests have been disabled after the introduction of the token
+	// 'or' in templates.
 
 	// {
 	// 	src:      `{% show M or todo %}`,
@@ -140,6 +142,11 @@ var templateCases = []struct {
 	{
 		src:      `{% n := 10 %}{% var a bool = not n %}`,
 		expected: ok,
+	},
+
+	{
+		src:      `{% if 20 %}{% end %}`,
+		expected: `non-bool constant 20 cannot be used as if condition`,
 	},
 }
 
