@@ -439,7 +439,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			if t1.Type.Kind() != reflect.Bool {
 				expr.Expr1 = ast.NewUnaryOperator(expr.Expr1.Pos(), internalOperatorNotZero, expr.Expr1)
 			}
-			if t1.Type.Kind() != reflect.Bool {
+			if t2.Type.Kind() != reflect.Bool {
 				expr.Expr2 = ast.NewUnaryOperator(expr.Expr2.Pos(), internalOperatorNotZero, expr.Expr2)
 			}
 			// Change the 'and' and 'or' operators to '&&' and '||', because the
