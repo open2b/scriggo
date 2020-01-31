@@ -19,27 +19,29 @@ var cdataEnd = []byte("]]>")
 
 // lexer maintains the scanner status.
 type lexer struct {
-	text   []byte      // text on which the scans are performed
-	src    []byte      // slice of the text used during the scan
-	line   int         // current line starting from 1
-	column int         // current column starting from 1
-	ctx    ast.Context // current context used during the scan
-	tag    string      // current tag
-	attr   string      // current attribute
-	tokens chan token  // tokens, is closed at the end of the scan
-	err    error       // error, reports whether there was an error
+	text     []byte      // text on which the scans are performed
+	src      []byte      // slice of the text used during the scan
+	line     int         // current line starting from 1
+	column   int         // current column starting from 1
+	ctx      ast.Context // current context used during the scan
+	tag      string      // current tag
+	attr     string      // current attribute
+	tokens   chan token  // tokens, is closed at the end of the scan
+	err      error       // error, reports whether there was an error
+	andOrNot bool        // support tokens 'and', 'or' and 'not'.
 }
 
 // newLexer creates a new lexer.
-func newLexer(text []byte, ctx ast.Context) *lexer {
+func newLexer(text []byte, ctx ast.Context, andOrNot bool) *lexer {
 	tokens := make(chan token, 20)
 	lex := &lexer{
-		text:   text,
-		src:    text,
-		line:   1,
-		column: 1,
-		ctx:    ctx,
-		tokens: tokens,
+		text:     text,
+		src:      text,
+		line:     1,
+		column:   1,
+		ctx:      ctx,
+		tokens:   tokens,
+		andOrNot: andOrNot,
 	}
 	go lex.scan()
 	return lex
@@ -1066,6 +1068,20 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenVar, p)
 	default:
 		if l.ctx != ast.ContextGo {
+			emitted := false
+			if l.andOrNot {
+				switch id {
+				case "and":
+					l.emit(tokenTemplateAnd, p)
+					emitted = true
+				case "or":
+					l.emit(tokenTemplateOr, p)
+					emitted = true
+				case "not":
+					l.emit(tokenTemplateNot, p)
+					emitted = true
+				}
+			}
 			switch id {
 			case "end":
 				l.emit(tokenEnd, p)
@@ -1079,15 +1095,11 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 				l.emit(tokenMacro, p)
 			case "show":
 				l.emit(tokenShow, p)
-			case "and":
-				l.emit(tokenTemplateAnd, p)
-			case "or":
-				l.emit(tokenTemplateOr, p)
-			case "not":
-				l.emit(tokenTemplateNot, p)
 			default:
-				l.emit(tokenIdentifier, p)
-				endLineAsSemicolon = true
+				if !emitted {
+					l.emit(tokenIdentifier, p)
+					endLineAsSemicolon = true
+				}
 			}
 		} else {
 			l.emit(tokenIdentifier, p)

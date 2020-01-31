@@ -48,6 +48,7 @@ type Options struct {
 	LimitMemorySize    bool
 	PackageLess        bool
 	TemplateFailOnTODO bool
+	ExtendedBoolean    bool
 	TreeTransformer    func(*ast.Tree) error
 }
 
@@ -85,6 +86,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 	checkerOpts := checkerOptions{PackageLess: opts.PackageLess}
 	checkerOpts.DisallowGoStmt = opts.DisallowGoStmt
 	checkerOpts.SyntaxType = ProgramSyntax
+	checkerOpts.ExtendedBoolean = opts.ExtendedBoolean
 	tci, err := typecheck(tree, importer, checkerOpts)
 	if err != nil {
 		return nil, err
@@ -118,7 +120,7 @@ func CompileTemplate(path string, r Reader, main PackageLoader, ctx ast.Context,
 
 	// Parse the source code.
 	var err error
-	tree, err = ParseTemplate(path, r, ctx)
+	tree, err = ParseTemplate(path, r, ctx, opts.ExtendedBoolean)
 	if err != nil {
 		return nil, err
 	}
@@ -133,11 +135,12 @@ func CompileTemplate(path string, r Reader, main PackageLoader, ctx ast.Context,
 
 	// Type check the tree.
 	checkerOpts := checkerOptions{
-		AllowNotUsed:   true,
-		DisallowGoStmt: opts.DisallowGoStmt,
-		FailOnTODO:     opts.TemplateFailOnTODO,
-		PackageLess:    opts.PackageLess,
-		SyntaxType:     TemplateSyntax,
+		AllowNotUsed:    true,
+		DisallowGoStmt:  opts.DisallowGoStmt,
+		FailOnTODO:      opts.TemplateFailOnTODO,
+		PackageLess:     opts.PackageLess,
+		SyntaxType:      TemplateSyntax,
+		ExtendedBoolean: opts.ExtendedBoolean,
 	}
 	tci, err := typecheck(tree, main, checkerOpts)
 	if err != nil {

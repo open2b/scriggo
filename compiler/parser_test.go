@@ -1481,7 +1481,7 @@ func TestShebang(t *testing.T) {
 
 func TestTrees(t *testing.T) {
 	for _, tree := range treeTests {
-		node, err := ParseTemplateSource([]byte(tree.src), ast.ContextHTML)
+		node, err := ParseTemplateSource([]byte(tree.src), ast.ContextHTML, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", tree.src, err)
 			continue

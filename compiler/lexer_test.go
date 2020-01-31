@@ -387,7 +387,7 @@ var scanAttributeTests = []struct {
 func testLexerTypes(t *testing.T, test map[string][]tokenTyp, ctx ast.Context) {
 TYPES:
 	for source, types := range test {
-		var lex = newLexer([]byte(source), ctx)
+		var lex = newLexer([]byte(source), ctx, true)
 		var i int
 		for tok := range lex.tokens {
 			if tok.typ == tokenEOF {
@@ -424,7 +424,7 @@ func TestLexerContexts(t *testing.T) {
 CONTEXTS:
 	for ctx, tests := range contextTests {
 		for source, contexts := range tests {
-			var lex = newLexer([]byte(source), ctx)
+			var lex = newLexer([]byte(source), ctx, false)
 			var i int
 			for tok := range lex.tokens {
 				if tok.typ == tokenEOF {
@@ -452,7 +452,7 @@ CONTEXTS:
 
 func TestPositions(t *testing.T) {
 	for _, test := range positionTests {
-		var lex = newLexer([]byte(test.src), ast.ContextHTML)
+		var lex = newLexer([]byte(test.src), ast.ContextHTML, false)
 		var i int
 		for tok := range lex.tokens {
 			if tok.typ == tokenEOF {

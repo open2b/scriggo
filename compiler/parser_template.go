@@ -21,7 +21,7 @@ import (
 // ParseTemplate expands the nodes Extends, Import and Include parsing the
 // relative trees. The parsed trees are cached so only one call per
 // combination of path and context is made to the reader.
-func ParseTemplate(path string, reader Reader, ctx ast.Context) (*ast.Tree, error) {
+func ParseTemplate(path string, reader Reader, ctx ast.Context, extendedBoolean bool) (*ast.Tree, error) {
 
 	if path == "" {
 		return nil, ErrInvalidPath
@@ -36,9 +36,10 @@ func ParseTemplate(path string, reader Reader, ctx ast.Context) (*ast.Tree, erro
 	}
 
 	pp := &templateExpansion{
-		reader: reader,
-		trees:  &cache{},
-		paths:  []string{},
+		reader:          reader,
+		trees:           &cache{},
+		paths:           []string{},
+		extendedBoolean: extendedBoolean,
 	}
 
 	tree, err := pp.parsePath(path, ctx)
@@ -58,9 +59,10 @@ func ParseTemplate(path string, reader Reader, ctx ast.Context) (*ast.Tree, erro
 
 // templateExpansion represents the state of a template expansion.
 type templateExpansion struct {
-	reader Reader
-	trees  *cache
-	paths  []string
+	reader          Reader
+	trees           *cache
+	paths           []string
+	extendedBoolean bool
 }
 
 // abs returns path as absolute.
@@ -98,7 +100,7 @@ func (pp *templateExpansion) parsePath(path string, ctx ast.Context) (*ast.Tree,
 		return nil, err
 	}
 
-	tree, err := ParseTemplateSource(src, ctx)
+	tree, err := ParseTemplateSource(src, ctx, pp.extendedBoolean)
 	if err != nil {
 		if se, ok := err.(*SyntaxError); ok {
 			se.path = path

@@ -502,7 +502,7 @@ var checkerExprs = []struct {
 
 func TestCheckerExpressions(t *testing.T) {
 	for _, expr := range checkerExprs {
-		var lex = newLexer([]byte(expr.src), ast.ContextGo)
+		var lex = newLexer([]byte(expr.src), ast.ContextGo, false)
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -579,7 +579,7 @@ var checkerExprErrors = []struct {
 
 func TestCheckerExpressionErrors(t *testing.T) {
 	for _, expr := range checkerExprErrors {
-		var lex = newLexer([]byte(expr.src), ast.ContextGo)
+		var lex = newLexer([]byte(expr.src), ast.ContextGo, false)
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
