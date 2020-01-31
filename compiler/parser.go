@@ -117,7 +117,7 @@ type parsing struct {
 
 	// Support 'and', 'or' and 'not' operators as well as if statements with non
 	// boolean conditions.
-	extendedBoolean bool
+	relaxedBoolean bool
 }
 
 // addToAncestors adds node to the ancestors.
@@ -214,7 +214,7 @@ func ParseSource(src []byte, isPackageLessProgram, shebang bool) (tree *ast.Tree
 // ContextJavaScript.
 //
 // ParseTemplateSource does not expand the nodes Extends, Include and Import.
-func ParseTemplateSource(src []byte, ctx ast.Context, extendedBoolean bool) (tree *ast.Tree, err error) {
+func ParseTemplateSource(src []byte, ctx ast.Context, relaxedBoolean bool) (tree *ast.Tree, err error) {
 
 	switch ctx {
 	case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript:
@@ -225,11 +225,11 @@ func ParseTemplateSource(src []byte, ctx ast.Context, extendedBoolean bool) (tre
 	tree = ast.NewTree("", nil, ctx)
 
 	var p = &parsing{
-		lex:             newLexer(src, ctx, extendedBoolean),
-		ctx:             ctx,
-		ancestors:       []ast.Node{tree},
-		isTemplate:      true,
-		extendedBoolean: extendedBoolean,
+		lex:            newLexer(src, ctx, relaxedBoolean),
+		ctx:            ctx,
+		ancestors:      []ast.Node{tree},
+		isTemplate:     true,
+		relaxedBoolean: relaxedBoolean,
 	}
 
 	defer func() {

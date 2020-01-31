@@ -106,7 +106,7 @@ var templateCases = []struct {
 		src:      `{% a := 20 %}{{ a and a }}`,
 		expected: ok,
 		opts: &compiler.Options{
-			ExtendedBoolean: true,
+			RelaxedBoolean: true,
 		},
 	},
 
@@ -114,7 +114,7 @@ var templateCases = []struct {
 		src:      `{% a := 20 %}{{ a or a }}`,
 		expected: ok,
 		opts: &compiler.Options{
-			ExtendedBoolean: true,
+			RelaxedBoolean: true,
 		},
 	},
 
@@ -122,7 +122,7 @@ var templateCases = []struct {
 		src:      `{% a := 20 %}{% b := "" %}{{ a or b and (not b) }}`,
 		expected: ok,
 		opts: &compiler.Options{
-			ExtendedBoolean: true,
+			RelaxedBoolean: true,
 		},
 	},
 
@@ -130,7 +130,7 @@ var templateCases = []struct {
 		src:      `{% a := 20 %}{{ 3 and a }}`,
 		expected: `non-bool constant 3 not allowed with operator and`,
 		opts: &compiler.Options{
-			ExtendedBoolean: true,
+			RelaxedBoolean: true,
 		},
 	},
 
@@ -138,7 +138,7 @@ var templateCases = []struct {
 		src:      `{% a := 20 %}{{ 3 or a }}`,
 		expected: `non-bool constant 3 not allowed with operator or`,
 		opts: &compiler.Options{
-			ExtendedBoolean: true,
+			RelaxedBoolean: true,
 		},
 	},
 
@@ -146,7 +146,7 @@ var templateCases = []struct {
 		src:      `{% const a = 20 %}{{ not a }}`,
 		expected: `non-bool constant a not allowed with operator not`,
 		opts: &compiler.Options{
-			ExtendedBoolean: true,
+			RelaxedBoolean: true,
 		},
 	},
 
@@ -154,7 +154,7 @@ var templateCases = []struct {
 		src:      `{% a := true %}{% b := true %}{{ a and b or b and b }}`,
 		expected: ok,
 		opts: &compiler.Options{
-			ExtendedBoolean: true,
+			RelaxedBoolean: true,
 		},
 	},
 
@@ -162,7 +162,7 @@ var templateCases = []struct {
 		src:      `{% n := 10 %}{% var a bool = not n %}`,
 		expected: ok,
 		opts: &compiler.Options{
-			ExtendedBoolean: true,
+			RelaxedBoolean: true,
 		},
 	},
 
@@ -170,7 +170,7 @@ var templateCases = []struct {
 		src:      `{% if 20 %}{% end %}`,
 		expected: `non-bool constant 20 cannot be used as if condition`,
 		opts: &compiler.Options{
-			ExtendedBoolean: true,
+			RelaxedBoolean: true,
 		},
 	},
 }

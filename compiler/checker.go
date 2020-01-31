@@ -158,7 +158,7 @@ type checkerOptions struct {
 	// PackageLess reports whether the package-less syntax is enabled.
 	PackageLess bool
 
-	ExtendedBoolean bool
+	RelaxedBoolean bool
 }
 
 type checkerPath struct {

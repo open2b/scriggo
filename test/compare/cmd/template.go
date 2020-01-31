@@ -57,7 +57,7 @@ type compiledTemplate struct {
 func compileTemplate(reader compiler.Reader, limitMemorySize bool) (*compiledTemplate, error) {
 	opts := compiler.Options{
 		LimitMemorySize: limitMemorySize,
-		ExtendedBoolean: true,
+		RelaxedBoolean: true,
 	}
 	mainImporter := scriggo.Packages{"main": templateMain}
 	code, err := compiler.CompileTemplate("/index.html", reader, mainImporter, ast.ContextHTML, opts)
