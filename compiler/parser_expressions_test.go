@@ -90,7 +90,7 @@ var exprTests = []struct {
 	{"`\\t`", ast.NewBasicLiteral(p(1, 1, 0, 3), ast.StringLiteral, "`\\t`")},
 	{"`\uFFFD`", ast.NewBasicLiteral(p(1, 1, 0, 4), ast.StringLiteral, "`\uFFFD`")},
 	{"!a", ast.NewUnaryOperator(p(1, 1, 0, 1), ast.OperatorNot, ast.NewIdentifier(p(1, 2, 1, 1), "a"))},
-	{"&a", ast.NewUnaryOperator(p(1, 1, 0, 1), ast.OperatorBitAnd, ast.NewIdentifier(p(1, 2, 1, 1), "a"))},
+	{"&a", ast.NewUnaryOperator(p(1, 1, 0, 1), ast.OperatorAddress, ast.NewIdentifier(p(1, 2, 1, 1), "a"))},
 	{"*a", ast.NewUnaryOperator(p(1, 1, 0, 1), ast.OperatorMultiplication, ast.NewIdentifier(p(1, 2, 1, 1), "a"))},
 	{"^a", ast.NewUnaryOperator(p(1, 1, 0, 1), ast.OperatorXor, ast.NewIdentifier(p(1, 2, 1, 1), "a"))},
 	{"1+2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorAddition, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 3, 2, 2), ast.IntLiteral, "2"))},
@@ -410,7 +410,7 @@ var exprTests = []struct {
 					),
 					ast.NewUnaryOperator( // &a
 						p(1, 36, 35, 36),
-						ast.OperatorBitAnd,
+						ast.OperatorAddress,
 						ast.NewIdentifier(p(1, 37, 36, 36), "a"),
 					),
 				),

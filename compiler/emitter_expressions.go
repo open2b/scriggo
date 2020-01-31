@@ -829,7 +829,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		em.changeRegister(false, tmp, reg, operandType.Elem(), dstType)
 
 	// &operand
-	case ast.OperatorBitAnd:
+	case ast.OperatorAddress:
 		switch operand := operand.(type) {
 
 		// &a

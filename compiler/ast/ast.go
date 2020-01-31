@@ -75,6 +75,7 @@ const (
 	OperatorLeftShift                          // <<
 	OperatorRightShift                         // >>
 	OperatorReceive                            // <-
+	OperatorAddress                            // &
 )
 
 type AssignmentType int
@@ -99,7 +100,7 @@ const (
 
 func (op OperatorType) String() string {
 	return []string{"==", "!=", "<", "<=", ">", ">=", "!", "&", "|", "&&", "||",
-		"+", "-", "*", "/", "%", "^", "&^", "<<", ">>", "<-"}[op]
+		"+", "-", "*", "/", "%", "^", "&^", "<<", ">>", "<-", "&"}[op]
 }
 
 // Context indicates the context in which a value statement must be valuated.
