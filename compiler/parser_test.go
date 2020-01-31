@@ -1556,36 +1556,34 @@ func equals(n1, n2 ast.Node, p int) error {
 		return fmt.Errorf("unexpected node %#v, expecting nil", n1)
 	}
 
-	// REVIEW: re-enable tests on positions
-
-	// var pos1 = n1.Pos()
-	// var pos2 = n2.Pos()
-	// if pos1 == nil && pos2 != nil {
-	// 	return fmt.Errorf("unexpected nil pos, expecting %#v", pos2)
-	// }
-	// if pos1 != nil && pos2 == nil {
-	// 	return fmt.Errorf("expected nil pos, got %#v", pos1)
-	// }
-	// if pos1 != nil && pos2 != nil {
-	// 	if pos1.Line != pos2.Line {
-	// 		return fmt.Errorf("unexpected line %d, expecting %d", pos1.Line, pos2.Line)
-	// 	}
-	// 	if pos1.Line == 1 {
-	// 		if pos1.Column-p != pos2.Column {
-	// 			return fmt.Errorf("unexpected column %d, expecting %d", pos1.Column-p, pos2.Column)
-	// 		}
-	// 	} else {
-	// 		if pos1.Column != pos2.Column {
-	// 			return fmt.Errorf("unexpected column %d, expecting %d", pos1.Column, pos2.Column)
-	// 		}
-	// 	}
-	// 	if pos1.Start-p != pos2.Start {
-	// 		return fmt.Errorf("unexpected start %d, expecting %d", pos1.Start-p, pos2.Start)
-	// 	}
-	// 	if pos1.End-p != pos2.End {
-	// 		return fmt.Errorf("unexpected end %d, expecting %d", pos1.End-p, pos2.End)
-	// 	}
-	// }
+	var pos1 = n1.Pos()
+	var pos2 = n2.Pos()
+	if pos1 == nil && pos2 != nil {
+		return fmt.Errorf("unexpected nil pos, expecting %#v", pos2)
+	}
+	if pos1 != nil && pos2 == nil {
+		return fmt.Errorf("expected nil pos, got %#v", pos1)
+	}
+	if pos1 != nil && pos2 != nil {
+		if pos1.Line != pos2.Line {
+			return fmt.Errorf("unexpected line %d, expecting %d", pos1.Line, pos2.Line)
+		}
+		if pos1.Line == 1 {
+			if pos1.Column-p != pos2.Column {
+				return fmt.Errorf("unexpected column %d, expecting %d", pos1.Column-p, pos2.Column)
+			}
+		} else {
+			if pos1.Column != pos2.Column {
+				return fmt.Errorf("unexpected column %d, expecting %d", pos1.Column, pos2.Column)
+			}
+		}
+		if pos1.Start-p != pos2.Start {
+			return fmt.Errorf("unexpected start %d, expecting %d", pos1.Start-p, pos2.Start)
+		}
+		if pos1.End-p != pos2.End {
+			return fmt.Errorf("unexpected end %d, expecting %d", pos1.End-p, pos2.End)
+		}
+	}
 
 	if e1, ok := n1.(ast.Expression); ok {
 		if e2, ok := n2.(ast.Expression); ok {
