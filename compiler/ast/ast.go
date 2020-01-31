@@ -75,7 +75,7 @@ const (
 	OperatorLeftShift                          // <<
 	OperatorRightShift                         // >>
 	OperatorReceive                            // <-
-	// REVIEW: find a better name for these:
+	// X MARCO: trovare un nome migliore.
 	OperatorTemplateAnd // and
 	OperatorTemplateOr  // or
 	OperatorTemplateNot // not
