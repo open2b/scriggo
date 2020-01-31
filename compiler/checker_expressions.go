@@ -294,13 +294,21 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		}
 
 	case *ast.UnaryOperator:
+		// Handle 'not a' expressions.
 		if expr.Op == ast.OperatorTemplateNot {
 			ti := tc.checkExpr(expr.Expr)
+			// Non-boolean constant expressions are not allowed as operand of
+			// 'not' operator.
 			if ti.IsConstant() && ti.Type.Kind() != reflect.Bool {
-				panic(tc.errorf(expr.Expr, "non-bool constant %s not allowed with operator not", expr.Expr)) // REVIEW.
+				panic(tc.errorf(expr.Expr, "non-bool constant %s not allowed with operator not", expr.Expr))
 			}
-			expr.Op = internalOperatorZero
+			// Replace the non-boolean operand with an unary operator that
+			// returns true only if the value is the zero of its type.
+			if ti.Type.Kind() != reflect.Bool {
+				expr.Op = internalOperatorZero
+			}
 		}
+		// Handle the 'zero' and the 'notZero' internal operators.
 		if expr.Op == internalOperatorZero || expr.Op == internalOperatorNotZero {
 			ti := tc.checkExpr(expr.Expr)
 			ti.setValue(nil)
@@ -411,21 +419,28 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 
 	case *ast.BinaryOperator:
 
+		// Handle 'a and b' and 'a or b' expressions.
 		if expr.Op == ast.OperatorTemplateAnd || expr.Op == ast.OperatorTemplateOr {
 			t1 := tc.checkExpr(expr.Expr1)
 			t2 := tc.checkExpr(expr.Expr2)
+			// Non-boolean constant expressions are not allowed in left or right
+			// side of the 'and' and 'or' operator.
 			if t1.IsConstant() && t1.Type.Kind() != reflect.Bool {
 				panic(tc.errorf(expr.Expr1, "non-bool constant %s not allowed with operator %s", expr.Expr1, expr.Op))
 			}
 			if t2.IsConstant() && t2.Type.Kind() != reflect.Bool {
 				panic(tc.errorf(expr.Expr2, "non-bool constant %s not allowed with operator %s", expr.Expr2, expr.Op))
 			}
+			// Replace the non-boolean expressions with an unary operator that
+			// returns true only if the value is not the zero of its type.
 			if t1.Type.Kind() != reflect.Bool {
 				expr.Expr1 = ast.NewUnaryOperator(expr.Expr1.Pos(), internalOperatorNotZero, expr.Expr1)
 			}
 			if t1.Type.Kind() != reflect.Bool {
 				expr.Expr2 = ast.NewUnaryOperator(expr.Expr2.Pos(), internalOperatorNotZero, expr.Expr2)
 			}
+			// Change the 'and' and 'or' operators to '&&' and '||', because the
+			// two expressions are now both booleans.
 			if expr.Op == ast.OperatorTemplateAnd {
 				expr.Op = ast.OperatorAndAnd
 			} else {

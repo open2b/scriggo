@@ -27,10 +27,16 @@ import (
 	"scriggo/runtime"
 )
 
-// REVIEW: document.
-// REVIEW: here we use OperatorTemplateNot as last operator. If we change the
-// position of OperatorTemplateNot then this code must be updated.
+// internalOperatorZero and internalOperatorNotZero are two internal operators
+// that are inserted in the tree by the type checker and that are handled by the
+// emitter as two unary operators that returns true if the operand is,
+// respectively, the zero or not the zero of its type.
+//
+// As a special case, if the operand is an interface type then its value is
+// compared with the zero of the dynamic type of the interface.
 const (
+	// REVIEW: here we use OperatorTemplateNot as last operator. If we change the
+	// position of OperatorTemplateNot then this code must be updated.
 	internalOperatorZero ast.OperatorType = ast.OperatorTemplateNot + iota + 1
 	internalOperatorNotZero
 )
