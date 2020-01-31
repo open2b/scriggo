@@ -286,7 +286,7 @@ func (builder *functionBuilder) emitDelete(m, k int8) {
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpDelete, A: m, B: k})
 }
 
-// REVIEW: document.
+// emitZero appends a new "Zero" or "NotZero" instruction to the function body.
 func (builder *functionBuilder) emitZero(not bool, kind reflect.Kind, dst, src int8) {
 	regType := int8(kindToType(kind))
 	if not {
