@@ -286,19 +286,6 @@ func (builder *functionBuilder) emitDelete(m, k int8) {
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpDelete, A: m, B: k})
 }
 
-// emitZero appends a new "Zero" instruction to the function body.
-func (builder *functionBuilder) emitZero(kind reflect.Kind, dst, src int8) {
-	regType := int8(kindToType(kind))
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpZero, A: regType, B: src, C: dst})
-}
-
-// emitZero appends a new "NotZero" instruction to the function body.
-func (builder *functionBuilder) emitNotZero(kind reflect.Kind, dst, src int8) {
-	regType := int8(kindToType(kind))
-	regType += 10 // to distinguish "NotZero" from "Zero".
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpZero, A: regType, B: src, C: dst})
-}
-
 // emitDiv appends a new "div" instruction to the function body.
 //
 //     z = x / y
@@ -743,6 +730,13 @@ func (builder *functionBuilder) emitNop() {
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpNone})
 }
 
+// emitZero appends a new "NotZero" instruction to the function body.
+func (builder *functionBuilder) emitNotZero(kind reflect.Kind, dst, src int8) {
+	regType := int8(kindToType(kind))
+	regType += 10 // to distinguish "NotZero" from "Zero".
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpZero, A: regType, B: src, C: dst})
+}
+
 // emitOr appends a new "Or" instruction to the function body.
 //
 //     z = x | y
@@ -1131,4 +1125,10 @@ func (builder *functionBuilder) emitXor(k bool, x, y, z int8, kind reflect.Kind)
 		op = -op
 	}
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
+}
+
+// emitZero appends a new "Zero" instruction to the function body.
+func (builder *functionBuilder) emitZero(kind reflect.Kind, dst, src int8) {
+	regType := int8(kindToType(kind))
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpZero, A: regType, B: src, C: dst})
 }
