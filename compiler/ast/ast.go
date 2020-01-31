@@ -77,8 +77,8 @@ const (
 	OperatorReceive                            // <-
 	OperatorAddress                            // &
 	OperatorPointer                            // *
-	OperatorTemplateAnd                        // and
-	OperatorTemplateOr                         // or
+	OperatorRelaxedAnd                         // and
+	OperatorRelaxedOr                          // or
 	OperatorTemplateNot                        // not
 )
 
@@ -901,9 +901,9 @@ func (n *BinaryOperator) Precedence() int {
 	case OperatorEqual, OperatorNotEqual, OperatorLess, OperatorLessEqual,
 		OperatorGreater, OperatorGreaterEqual:
 		return 3
-	case OperatorAnd, OperatorTemplateAnd:
+	case OperatorAnd, OperatorRelaxedAnd:
 		return 2
-	case OperatorOr, OperatorTemplateOr:
+	case OperatorOr, OperatorRelaxedOr:
 		return 1
 	}
 	panic("invalid operator type")

@@ -685,9 +685,9 @@ func operatorFromTokenType(typ tokenTyp, binary bool) ast.OperatorType {
 		return ast.OperatorRightShift
 	// REVIEW: order according the name of the tokens.
 	case tokenTemplateAnd:
-		return ast.OperatorTemplateAnd
+		return ast.OperatorRelaxedAnd
 	case tokenTemplateOr:
-		return ast.OperatorTemplateOr
+		return ast.OperatorRelaxedOr
 	case tokenTemplateNot:
 		return ast.OperatorTemplateNot
 

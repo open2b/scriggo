@@ -113,16 +113,16 @@ var exprTests = []struct {
 	{"1>=2", ast.NewBinaryOperator(p(1, 2, 0, 3), ast.OperatorGreaterEqual, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 4, 3, 3), ast.IntLiteral, "2"))},
 	{"a&&b", ast.NewBinaryOperator(p(1, 2, 0, 3), ast.OperatorAnd, ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 3), "b"))},
 	{"a||b", ast.NewBinaryOperator(p(1, 2, 0, 3), ast.OperatorOr, ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 3), "b"))},
-	{"a and b", ast.NewBinaryOperator(p(1, 3, 0, 6), ast.OperatorTemplateAnd,
+	{"a and b", ast.NewBinaryOperator(p(1, 3, 0, 6), ast.OperatorRelaxedAnd,
 		ast.NewIdentifier(p(1, 1, 0, 0), "a"),
 		ast.NewIdentifier(p(1, 7, 6, 6), "b")),
 	},
-	{"a or b", ast.NewBinaryOperator(p(1, 3, 0, 5), ast.OperatorTemplateOr,
+	{"a or b", ast.NewBinaryOperator(p(1, 3, 0, 5), ast.OperatorRelaxedOr,
 		ast.NewIdentifier(p(1, 1, 0, 0), "a"),
 		ast.NewIdentifier(p(1, 6, 5, 5), "b"),
 	)},
 	{"a or not b", ast.NewBinaryOperator(p(1, 3, 0, 9),
-		ast.OperatorTemplateOr,
+		ast.OperatorRelaxedOr,
 		ast.NewIdentifier(p(1, 1, 0, 0), "a"),
 		ast.NewUnaryOperator(
 			p(1, 6, 5, 9),
@@ -132,7 +132,7 @@ var exprTests = []struct {
 	)},
 	{"[]int{} and !x.F", ast.NewBinaryOperator(
 		p(1, 9, 0, 15),
-		ast.OperatorTemplateAnd,
+		ast.OperatorRelaxedAnd,
 		ast.NewCompositeLiteral(
 			p(1, 6, 0, 6),
 			ast.NewSliceType(p(1, 1, 0, 4), ast.NewIdentifier(p(1, 3, 2, 4), "int")),

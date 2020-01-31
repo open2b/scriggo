@@ -423,7 +423,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 	case *ast.BinaryOperator:
 
 		// Handle 'a and b' and 'a or b' expressions.
-		if expr.Op == ast.OperatorTemplateAnd || expr.Op == ast.OperatorTemplateOr {
+		if expr.Op == ast.OperatorRelaxedAnd || expr.Op == ast.OperatorRelaxedOr {
 			t1 := tc.checkExpr(expr.Expr1)
 			t2 := tc.checkExpr(expr.Expr2)
 			// Non-boolean constant expressions are not allowed in left or right
@@ -444,7 +444,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			}
 			// Change the 'and' and 'or' operators to '&&' and '||', because the
 			// two expressions are now both booleans.
-			if expr.Op == ast.OperatorTemplateAnd {
+			if expr.Op == ast.OperatorRelaxedAnd {
 				expr.Op = ast.OperatorAnd
 			} else {
 				expr.Op = ast.OperatorOr
