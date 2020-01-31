@@ -757,18 +757,26 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 	operandType := em.typ(operand)
 	unOpType := em.typ(unOp)
 
+	// Emit the internal operators Zero and NotZero.
 	if unOp.Op == internalOperatorZero || unOp.Op == internalOperatorNotZero {
-		not := unOp.Op == internalOperatorNotZero
 		typ := em.typ(operand)
 		em.fb.enterStack()
 		src := em.emitExpr(operand, typ)
 		if canEmitDirectly(typ.Kind(), dstType.Kind()) {
-			em.fb.emitZero(not, typ.Kind(), reg, src)
+			if unOp.Op == internalOperatorNotZero {
+				em.fb.emitNotZero(typ.Kind(), reg, src)
+			} else {
+				em.fb.emitZero(typ.Kind(), reg, src)
+			}
 			em.fb.exitStack()
 			return
 		}
 		tmp := em.fb.newRegister(reflect.Bool)
-		em.fb.emitZero(not, typ.Kind(), tmp, src)
+		if unOp.Op == internalOperatorNotZero {
+			em.fb.emitNotZero(typ.Kind(), tmp, src)
+		} else {
+			em.fb.emitZero(typ.Kind(), tmp, src)
+		}
 		em.changeRegister(false, tmp, reg, boolType, dstType)
 		em.fb.exitStack()
 		return

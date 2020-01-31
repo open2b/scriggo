@@ -286,12 +286,16 @@ func (builder *functionBuilder) emitDelete(m, k int8) {
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpDelete, A: m, B: k})
 }
 
-// emitZero appends a new "Zero" or "NotZero" instruction to the function body.
-func (builder *functionBuilder) emitZero(not bool, kind reflect.Kind, dst, src int8) {
+// emitZero appends a new "Zero" instruction to the function body.
+func (builder *functionBuilder) emitZero(kind reflect.Kind, dst, src int8) {
 	regType := int8(kindToType(kind))
-	if not {
-		regType += 10
-	}
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpZero, A: regType, B: src, C: dst})
+}
+
+// emitZero appends a new "NotZero" instruction to the function body.
+func (builder *functionBuilder) emitNotZero(kind reflect.Kind, dst, src int8) {
+	regType := int8(kindToType(kind))
+	regType += 10 // to distinguish "NotZero" from "Zero".
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpZero, A: regType, B: src, C: dst})
 }
 
