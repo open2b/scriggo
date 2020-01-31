@@ -295,7 +295,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 	case *ast.UnaryOperator:
 		t := tc.checkExprOrType(expr.Expr)
 		if t.IsType() {
-			if expr.Op == ast.OperatorMultiplication {
+			if expr.Op == ast.OperatorPointer {
 				return &typeInfo{Properties: propertyIsType, Type: tc.types.PtrTo(t.Type)}
 			}
 			panic(tc.errorf(expr, "type %s is not an expression", t))
@@ -335,7 +335,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 					}
 				}
 			}
-		case ast.OperatorMultiplication:
+		case ast.OperatorPointer:
 			if t.Nil() {
 				panic(tc.errorf(expr, "invalid indirect of nil"))
 			}
@@ -604,7 +604,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			}
 			tc.checkIndex(expr.Index, t, false)
 			// Transform pa[i] to (*pa)[i].
-			unOp := ast.NewUnaryOperator(expr.Expr.Pos(), ast.OperatorMultiplication, expr.Expr)
+			unOp := ast.NewUnaryOperator(expr.Expr.Pos(), ast.OperatorPointer, expr.Expr)
 			tc.typeInfos[unOp] = &typeInfo{Type: elemType}
 			expr.Expr = unOp
 			return &typeInfo{Type: elemType.Elem(), Properties: propertyAddressable}
@@ -682,7 +682,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		// shorthand for (*a)[low : high]; also, if a is a pointer to an array,
 		// a[low : high : max] is shorthand for (*a)[low : high : max].
 		if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Array {
-			unOp := ast.NewUnaryOperator(expr.Expr.Pos(), ast.OperatorMultiplication, expr.Expr)
+			unOp := ast.NewUnaryOperator(expr.Expr.Pos(), ast.OperatorPointer, expr.Expr)
 			tc.typeInfos[unOp] = &typeInfo{
 				Type: t.Type.Elem(),
 			}
@@ -784,7 +784,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 					}
 				}
 			case receiverAddIndirect:
-				expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorMultiplication, expr.Expr)
+				expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorPointer, expr.Expr)
 				tc.typeInfos[expr.Expr] = &typeInfo{
 					Type:       t.Type.Elem(),
 					MethodType: t.MethodType,
@@ -799,7 +799,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			// (*ps).F is a valid selector expression denoting a field (but not
 			// a method).
 			if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Struct {
-				unOp := ast.NewUnaryOperator(expr.Expr.Pos(), ast.OperatorMultiplication, expr.Expr)
+				unOp := ast.NewUnaryOperator(expr.Expr.Pos(), ast.OperatorPointer, expr.Expr)
 				tc.typeInfos[unOp] = &typeInfo{
 					Type: t.Type.Elem(),
 				}

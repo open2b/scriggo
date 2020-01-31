@@ -76,6 +76,7 @@ const (
 	OperatorRightShift                         // >>
 	OperatorReceive                            // <-
 	OperatorAddress                            // &
+	OperatorPointer                            // *
 )
 
 type AssignmentType int
@@ -100,7 +101,7 @@ const (
 
 func (op OperatorType) String() string {
 	return []string{"==", "!=", "<", "<=", ">", ">=", "!", "&", "|", "&&", "||",
-		"+", "-", "*", "/", "%", "^", "&^", "<<", ">>", "<-", "&"}[op]
+		"+", "-", "*", "/", "%", "^", "&^", "<<", ">>", "<-", "&", "*"}[op]
 }
 
 // Context indicates the context in which a value statement must be valuated.
@@ -1085,7 +1086,7 @@ func (n *Call) String() string {
 	s := n.Func.String()
 	switch fn := n.Func.(type) {
 	case *UnaryOperator:
-		if fn.Op == OperatorMultiplication || fn.Op == OperatorReceive {
+		if fn.Op == OperatorPointer || fn.Op == OperatorReceive {
 			s = "(" + s + ")"
 		}
 	case *FuncType:

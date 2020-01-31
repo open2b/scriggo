@@ -817,7 +817,7 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		em.fb.exitScope()
 
 	// *operand
-	case ast.OperatorMultiplication:
+	case ast.OperatorPointer:
 		if canEmitDirectly(unOpType.Kind(), dstType.Kind()) {
 			exprReg := em.emitExpr(operand, operandType)
 			em.changeRegister(false, -exprReg, reg, operandType.Elem(), dstType)

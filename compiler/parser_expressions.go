@@ -663,7 +663,10 @@ func operatorFromTokenType(typ tokenTyp, binary bool) ast.OperatorType {
 	case tokenSubtraction:
 		return ast.OperatorSubtraction
 	case tokenMultiplication:
-		return ast.OperatorMultiplication
+		if binary {
+			return ast.OperatorMultiplication
+		}
+		return ast.OperatorPointer
 	case tokenDivision:
 		return ast.OperatorDivision
 	case tokenModulo:

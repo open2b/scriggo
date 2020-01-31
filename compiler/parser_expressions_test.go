@@ -91,7 +91,7 @@ var exprTests = []struct {
 	{"`\uFFFD`", ast.NewBasicLiteral(p(1, 1, 0, 4), ast.StringLiteral, "`\uFFFD`")},
 	{"!a", ast.NewUnaryOperator(p(1, 1, 0, 1), ast.OperatorNot, ast.NewIdentifier(p(1, 2, 1, 1), "a"))},
 	{"&a", ast.NewUnaryOperator(p(1, 1, 0, 1), ast.OperatorAddress, ast.NewIdentifier(p(1, 2, 1, 1), "a"))},
-	{"*a", ast.NewUnaryOperator(p(1, 1, 0, 1), ast.OperatorMultiplication, ast.NewIdentifier(p(1, 2, 1, 1), "a"))},
+	{"*a", ast.NewUnaryOperator(p(1, 1, 0, 1), ast.OperatorPointer, ast.NewIdentifier(p(1, 2, 1, 1), "a"))},
 	{"^a", ast.NewUnaryOperator(p(1, 1, 0, 1), ast.OperatorXor, ast.NewIdentifier(p(1, 2, 1, 1), "a"))},
 	{"1+2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorAddition, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 3, 2, 2), ast.IntLiteral, "2"))},
 	{"1-2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorSubtraction, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 3, 2, 2), ast.IntLiteral, "2"))},
@@ -132,12 +132,12 @@ var exprTests = []struct {
 		ast.OperatorAddition,
 		ast.NewUnaryOperator(
 			p(1, 1, 1, 1),
-			ast.OperatorMultiplication,
+			ast.OperatorPointer,
 			ast.NewIdentifier(p(1, 2, 1, 1), "a"),
 		),
 		ast.NewUnaryOperator(
 			p(1, 4, 3, 4),
-			ast.OperatorMultiplication,
+			ast.OperatorPointer,
 			ast.NewIdentifier(p(1, 5, 4, 4), "b"),
 		))},
 	{"(a)", parenthesized(ast.NewIdentifier(p(1, 2, 0, 2), "a"))},
@@ -351,7 +351,7 @@ var exprTests = []struct {
 	{"[]*int", ast.NewSliceType(p(1, 1, 0, 5),
 		ast.NewUnaryOperator(
 			p(1, 3, 2, 5),
-			ast.OperatorMultiplication,
+			ast.OperatorPointer,
 			ast.NewIdentifier(p(1, 4, 3, 5), "int"),
 		))},
 	{"[]*[]*int",
@@ -360,12 +360,12 @@ var exprTests = []struct {
 
 			ast.NewUnaryOperator(
 				p(1, 3, 2, 8),
-				ast.OperatorMultiplication,
+				ast.OperatorPointer,
 				ast.NewSliceType(
 					p(1, 4, 3, 8),
 					ast.NewUnaryOperator(
 						p(1, 6, 5, 8),
-						ast.OperatorMultiplication,
+						ast.OperatorPointer,
 						ast.NewIdentifier(p(1, 7, 6, 8), "int"),
 					),
 				),
@@ -388,7 +388,7 @@ var exprTests = []struct {
 							p(1, 5, 4, 16),
 							ast.NewUnaryOperator( // *int
 								p(1, 9, 8, 11),
-								ast.OperatorMultiplication,
+								ast.OperatorPointer,
 								ast.NewIdentifier(p(1, 10, 9, 11), "int"),
 							),
 							ast.NewIdentifier(p(1, 14, 13, 16), "Type"),
@@ -398,7 +398,7 @@ var exprTests = []struct {
 								ast.NewIdentifier(p(1, 19, 18, 19), "k1"), // k1
 								ast.NewUnaryOperator( // *v1
 									p(1, 23, 22, 24),
-									ast.OperatorMultiplication,
+									ast.OperatorPointer,
 									ast.NewIdentifier(p(1, 24, 23, 24), "v1"),
 								),
 							},
