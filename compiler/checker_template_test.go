@@ -123,6 +123,11 @@ var templateCases = []struct {
 	},
 
 	{
+		src:      `{% a := 20 %}{{ 3 or a }}`,
+		expected: `non-bool constant 3 not allowed with operator or`,
+	},
+
+	{
 		src:      `{% const a = 20 %}{{ not a }}`,
 		expected: `non-bool constant a not allowed with operator not`,
 	},
