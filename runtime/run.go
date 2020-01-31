@@ -1812,11 +1812,9 @@ func (vm *VM) run() (Addr, bool) {
 			case generalRegister:
 				rv := vm.general(b)
 				switch {
-				case !rv.IsValid(): // nil interface
+				case !rv.IsValid(): // nil interface.
 					res = true
-				case rv.Kind() == reflect.Interface:
-					panic("TODO: not implemented") // REVIEW: to implement.
-				default:
+				default: // also handles values that have static type interface.
 					res = rv.IsZero()
 				}
 			}
