@@ -21,6 +21,9 @@ import (
 // ParseTemplate expands the nodes Extends, Import and Include parsing the
 // relative trees. The parsed trees are cached so only one call per
 // combination of path and context is made to the reader.
+//
+// relaxedBoolean reports whether the operators 'and', 'or' and 'not' as well as
+// non-boolean conditions in the if statement are allowed.
 func ParseTemplate(path string, reader Reader, ctx ast.Context, relaxedBoolean bool) (*ast.Tree, error) {
 
 	if path == "" {

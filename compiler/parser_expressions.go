@@ -415,6 +415,8 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				tokenGreaterOrEqual, // e >=
 				tokenAnd,            // e &&
 				tokenOr,             // e ||
+				tokenRelaxedAnd,     // e and
+				tokenRelaxedOr,      // e or
 				tokenAddition,       // e +
 				tokenSubtraction,    // e -
 				tokenMultiplication, // e *
@@ -425,9 +427,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				tokenXor,            // e ^
 				tokenAndNot,         // e &^
 				tokenLeftShift,      // e <<
-				tokenRightShift,     // e >>
-				tokenRelaxedAnd,     // e and
-				tokenRelaxedOr:      // e or
+				tokenRightShift:     // e >>
 				operator = ast.NewBinaryOperator(tok.pos, operatorFromTokenType(tok.typ, true), nil, nil)
 			default:
 				if mustBeSwitchGuard && !isTypeGuard(operand) {
@@ -689,7 +689,6 @@ func operatorFromTokenType(typ tokenTyp, binary bool) ast.OperatorType {
 		return ast.OperatorLeftShift
 	case tokenRightShift:
 		return ast.OperatorRightShift
-
 	default:
 		panic("invalid token type")
 	}

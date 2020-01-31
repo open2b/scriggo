@@ -214,6 +214,9 @@ func ParseSource(src []byte, isPackageLessProgram, shebang bool) (tree *ast.Tree
 // ContextJavaScript.
 //
 // ParseTemplateSource does not expand the nodes Extends, Include and Import.
+//
+// relaxedBoolean reports whether the operators 'and', 'or' and 'not' as well as
+// non-boolean conditions in the if statement are allowed.
 func ParseTemplateSource(src []byte, ctx ast.Context, relaxedBoolean bool) (tree *ast.Tree, err error) {
 
 	switch ctx {

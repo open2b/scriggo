@@ -158,6 +158,8 @@ type checkerOptions struct {
 	// PackageLess reports whether the package-less syntax is enabled.
 	PackageLess bool
 
+	// RelaxedBoolean reports whether the if statements can have a non-boolean
+	// non-constant condition.
 	RelaxedBoolean bool
 }
 
