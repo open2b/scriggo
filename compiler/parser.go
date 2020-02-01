@@ -826,8 +826,10 @@ LABEL:
 	// include
 	case tokenInclude:
 		pos := tok.pos
-		if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
-			panic(syntaxError(tok.pos, "include statement inside an attribute value"))
+		switch tok.ctx {
+		case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript:
+		default:
+			panic(syntaxError(tok.pos, "include statement inside %s", tok.ctx))
 		}
 		// path
 		tok = p.next()
