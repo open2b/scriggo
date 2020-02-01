@@ -419,7 +419,7 @@ LABEL:
 
 	// ;
 	case tokenSemicolon:
-		if p.language != ast.LanguageGo {
+		if !p.inGo {
 			panic(syntaxError(tok.pos, "unexpected semicolon, expecting statement"))
 		}
 		return p.next()
@@ -677,7 +677,7 @@ LABEL:
 
 	// {
 	case tokenLeftBraces:
-		if p.language != ast.LanguageGo {
+		if !p.inGo {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting statement", tok))
 		}
 		node := ast.NewBlock(tok.pos, nil)
@@ -688,7 +688,7 @@ LABEL:
 
 	// }
 	case tokenRightBraces:
-		if p.language != ast.LanguageGo {
+		if !p.inGo {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting statement", tok))
 		}
 		if p.isPackageLessProgram && len(p.ancestors) == 1 {
@@ -725,7 +725,7 @@ LABEL:
 
 	// else
 	case tokenElse:
-		if p.language != ast.LanguageGo {
+		if !p.inGo {
 			// Close the "then" block.
 			if _, ok := p.parent().(*ast.Block); !ok {
 				panic(syntaxError(tok.pos, "unexpected else"))
@@ -737,10 +737,10 @@ LABEL:
 		}
 		p.cutSpacesToken = true
 		tok = p.next()
-		if p.language == ast.LanguageGo && tok.typ == tokenLeftBraces || p.language != ast.LanguageGo && tok.typ == tokenEndBlock {
+		if p.inGo && tok.typ == tokenLeftBraces || !p.inGo && tok.typ == tokenEndBlock {
 			// "else"
 			var blockPos *ast.Position
-			if p.language == ast.LanguageGo {
+			if p.inGo {
 				blockPos = tok.pos
 			}
 			elseBlock := ast.NewBlock(blockPos, nil)
@@ -774,13 +774,13 @@ LABEL:
 			init = nil
 		}
 		if expr == nil {
-			if p.language == ast.LanguageGo && tok.typ == tokenLeftBraces || p.language != ast.LanguageGo && tok.typ == tokenEndBlock {
+			if p.inGo && tok.typ == tokenLeftBraces || !p.inGo && tok.typ == tokenEndBlock {
 				panic(syntaxError(tok.pos, "missing condition in if statement"))
 			}
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
 		var blockPos *ast.Position
-		if p.language == ast.LanguageGo {
+		if p.inGo {
 			blockPos = tok.pos
 		}
 		then := ast.NewBlock(blockPos, nil)
@@ -1046,7 +1046,7 @@ LABEL:
 			panic(syntaxError(tok.pos, "import not in %s content", ast.Context(p.language)))
 		}
 		tok = p.next()
-		if tok.typ == tokenLeftParenthesis && p.language == ast.LanguageGo {
+		if tok.typ == tokenLeftParenthesis && p.inGo {
 			tok = p.next()
 			for tok.typ != tokenRightParenthesis {
 				node := p.parseImport(tok)
@@ -1234,7 +1234,7 @@ LABEL:
 
 	// func
 	case tokenFunc:
-		if p.language == ast.LanguageGo {
+		if p.inGo {
 			// Note that parseFunc does not consume the next token in this case
 			// because kind is not parseType.
 			switch p.parent().(type) {
@@ -1499,7 +1499,7 @@ func (p *parsing) parseImport(tok token) *ast.Import {
 		panic(syntaxError(tok.pos, "unexpected %s, expecting string", tok))
 	}
 	var path = unquoteString(tok.txt)
-	if p.language == ast.LanguageGo {
+	if p.inGo {
 		validatePackagePath(path, tok.pos)
 	} else {
 		if !ValidTemplatePath(path) {
