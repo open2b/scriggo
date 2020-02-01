@@ -125,23 +125,23 @@ func (ctx Context) String() string {
 	case ContextGo:
 		return "Go"
 	case ContextText:
-		return "Text"
+		return "text"
 	case ContextHTML:
 		return "HTML"
 	case ContextTag:
-		return "Tag"
+		return "tag"
 	case ContextAttribute:
-		return "Attribute"
+		return "attribute"
 	case ContextUnquotedAttribute:
-		return "UnquotedAttribute"
+		return "unquoted attribute"
 	case ContextCSS:
 		return "CSS"
 	case ContextCSSString:
-		return "CSSString"
+		return "CSS string"
 	case ContextJavaScript:
 		return "JavaScript"
 	case ContextJavaScriptString:
-		return "JavaScriptString"
+		return "JavaScript string"
 	}
 	panic("invalid context")
 }
