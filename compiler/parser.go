@@ -153,7 +153,7 @@ func ParseSource(src []byte, isPackageLessProgram, shebang bool) (tree *ast.Tree
 		return nil, errors.New("scriggo/parser: shebang can be true only for package-less programs")
 	}
 
-	tree = ast.NewTree("", nil, ast.ContextGo)
+	tree = ast.NewTree("", nil, ast.LanguageGo)
 
 	var p = &parsing{
 		lex:                  newLexer(src, ast.ContextGo),
@@ -205,24 +205,22 @@ func ParseSource(src []byte, isPackageLessProgram, shebang bool) (tree *ast.Tree
 	return tree, nil
 }
 
-// ParseTemplateSource parses a template with source src in the context ctx
-// and returns its tree. ctx can be ContextText, ContextHTML, ContextCSS or
-// ContextJavaScript.
+// ParseTemplateSource parses a template with source src written in the
+// language lang and returns its tree. language can be Text, HTML, CSS or
+// JavaScript.
 //
 // ParseTemplateSource does not expand the nodes Extends, Include and Import.
-func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
+func ParseTemplateSource(src []byte, lang ast.Language) (tree *ast.Tree, err error) {
 
-	switch ctx {
-	case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript:
-	default:
-		return nil, errors.New("scriggo: invalid context. Valid contexts are Text, HTML, CSS and JavaScript")
+	if lang < ast.LanguageText || lang > ast.LanguageJavaScript {
+		return nil, errors.New("scriggo: invalid language")
 	}
 
-	tree = ast.NewTree("", nil, ctx)
+	tree = ast.NewTree("", nil, lang)
 
 	var p = &parsing{
-		lex:        newLexer(src, ctx),
-		ctx:        ctx,
+		lex:        newLexer(src, ast.Context(lang)),
+		ctx:        ast.Context(lang),
 		ancestors:  []ast.Node{tree},
 		isTemplate: true,
 	}
@@ -952,7 +950,7 @@ LABEL:
 			panic(syntaxError(tok.pos, "invalid extends path %q", path))
 		}
 		pos.End = tok.pos.End
-		node := ast.NewExtends(pos, path, tree.Context)
+		node := ast.NewExtends(pos, path, tok.ctx)
 		p.addChild(node)
 		p.hasExtend = true
 		tok = p.next()

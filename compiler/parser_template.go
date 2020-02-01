@@ -14,14 +14,15 @@ import (
 	"scriggo/compiler/ast"
 )
 
-// ParseTemplate parses the template file with the given path, reading the
-// template files from the reader, in context ctx. path, if not absolute, is
-// relative to the root of the template.
+// ParseTemplate parses the template file with the given path and written in
+// language lang, reading the template files from the reader. path, if not
+// absolute, is relative to the root of the template. lang can be Text, HTML,
+// CSS or JavaScript.
 //
 // ParseTemplate expands the nodes Extends, Import and Include parsing the
 // relative trees. The parsed trees are cached so only one call per
 // combination of path and context is made to the reader.
-func ParseTemplate(path string, reader Reader, ctx ast.Context) (*ast.Tree, error) {
+func ParseTemplate(path string, reader Reader, lang ast.Language) (*ast.Tree, error) {
 
 	if path == "" {
 		return nil, ErrInvalidPath
@@ -41,7 +42,7 @@ func ParseTemplate(path string, reader Reader, ctx ast.Context) (*ast.Tree, erro
 		paths:  []string{},
 	}
 
-	tree, err := pp.parsePath(path, ctx)
+	tree, err := pp.parsePath(path, lang)
 	if err != nil {
 		if err2, ok := err.(*SyntaxError); ok && err2.path == "" {
 			err2.path = path
@@ -76,9 +77,9 @@ func (pp *templateExpansion) abs(path string) (string, error) {
 	return path, err
 }
 
-// parsePath parses the source at the given path in context ctx. path must be
-// absolute and cleared.
-func (pp *templateExpansion) parsePath(path string, ctx ast.Context) (*ast.Tree, error) {
+// parsePath parses the source, written in language lang, at the given path.
+// path must be absolute and cleared.
+func (pp *templateExpansion) parsePath(path string, lang ast.Language) (*ast.Tree, error) {
 
 	// Check if there is a cycle.
 	for _, p := range pp.paths {
@@ -88,17 +89,17 @@ func (pp *templateExpansion) parsePath(path string, ctx ast.Context) (*ast.Tree,
 	}
 
 	// Check if it has already been parsed.
-	if tree, ok := pp.trees.Get(path, ctx); ok {
+	if tree, ok := pp.trees.Get(path, lang); ok {
 		return tree, nil
 	}
-	defer pp.trees.Done(path, ctx)
+	defer pp.trees.Done(path, lang)
 
 	src, err := pp.reader.Read(path)
 	if err != nil {
 		return nil, err
 	}
 
-	tree, err := ParseTemplateSource(src, ctx)
+	tree, err := ParseTemplateSource(src, lang)
 	if err != nil {
 		if se, ok := err.(*SyntaxError); ok {
 			se.path = path
@@ -119,7 +120,7 @@ func (pp *templateExpansion) parsePath(path string, ctx ast.Context) (*ast.Tree,
 	pp.paths = pp.paths[:len(pp.paths)-1]
 
 	// Add the tree to the cache.
-	pp.trees.Add(path, ctx, tree)
+	pp.trees.Add(path, lang, tree)
 
 	return tree, nil
 }
@@ -211,7 +212,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 			if err != nil {
 				return err
 			}
-			n.Tree, err = pp.parsePath(absPath, n.Context)
+			n.Tree, err = pp.parsePath(absPath, ast.Language(n.Context))
 			if err != nil {
 				if err == ErrInvalidPath {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
@@ -229,7 +230,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 			if err != nil {
 				return err
 			}
-			n.Tree, err = pp.parsePath(absPath, n.Context)
+			n.Tree, err = pp.parsePath(absPath, ast.Language(n.Context))
 			if err != nil {
 				if err == ErrInvalidPath {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
@@ -247,7 +248,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 			if err != nil {
 				return err
 			}
-			n.Tree, err = pp.parsePath(absPath, n.Context)
+			n.Tree, err = pp.parsePath(absPath, ast.Language(n.Context))
 			if err != nil {
 				if err == ErrInvalidPath {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())

@@ -21,16 +21,16 @@ type cache struct {
 
 // treeCacheEntry implements a trees cache entry.
 type treeCacheEntry struct {
-	path string
-	ctx  ast.Context
+	path     string
+	language ast.Language
 }
 
 // Get returns a tree and true if the tree exists in cache.
 //
 // If the tree does not exist it returns false and in this
 // case a call to Done must be made.
-func (c *cache) Get(path string, ctx ast.Context) (*ast.Tree, bool) {
-	entry := treeCacheEntry{path, ctx}
+func (c *cache) Get(path string, language ast.Language) (*ast.Tree, bool) {
+	entry := treeCacheEntry{path, language}
 	c.Lock()
 	t, ok := c.trees[entry]
 	if !ok {
@@ -38,7 +38,7 @@ func (c *cache) Get(path string, ctx ast.Context) (*ast.Tree, bool) {
 		if wait, ok = c.waits[entry]; ok {
 			c.Unlock()
 			wait.Wait()
-			return c.Get(path, ctx)
+			return c.Get(path, language)
 		}
 		wait = &sync.WaitGroup{}
 		wait.Add(1)
@@ -55,8 +55,8 @@ func (c *cache) Get(path string, ctx ast.Context) (*ast.Tree, bool) {
 // Add adds a tree to the cache.
 //
 // Can be called only after a previous call to Get has returned false.
-func (c *cache) Add(path string, ctx ast.Context, tree *ast.Tree) {
-	entry := treeCacheEntry{path, ctx}
+func (c *cache) Add(path string, language ast.Language, tree *ast.Tree) {
+	entry := treeCacheEntry{path, language}
 	c.Lock()
 	if c.trees == nil {
 		c.trees = map[treeCacheEntry]*ast.Tree{entry: tree}
@@ -69,8 +69,8 @@ func (c *cache) Add(path string, ctx ast.Context, tree *ast.Tree) {
 
 // Done must be called only and only if a previous call to Get has returned
 // false.
-func (c *cache) Done(path string, ctx ast.Context) {
-	entry := treeCacheEntry{path, ctx}
+func (c *cache) Done(path string, language ast.Language) {
+	entry := treeCacheEntry{path, language}
 	c.Lock()
 	c.waits[entry].Done()
 	delete(c.waits, entry)
