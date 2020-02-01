@@ -109,7 +109,7 @@ func (pp *templateExpansion) parsePath(path string, ctx ast.Context) (*ast.Tree,
 
 	// Expand the nodes.
 	pp.paths = append(pp.paths, path)
-	err = pp.expand(tree.Nodes, ctx)
+	err = pp.expand(tree.Nodes)
 	if err != nil {
 		if e, ok := err.(*SyntaxError); ok && e.path == "" {
 			e.path = path
@@ -124,8 +124,8 @@ func (pp *templateExpansion) parsePath(path string, ctx ast.Context) (*ast.Tree,
 	return tree, nil
 }
 
-// expand expands the nodes parsing the sub-trees in context ctx.
-func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
+// expand expands the nodes parsing the sub-trees.
+func (pp *templateExpansion) expand(nodes []ast.Node) error {
 
 	for _, node := range nodes {
 
@@ -134,7 +134,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 		case *ast.If:
 
 			for {
-				err := pp.expand(n.Then.Nodes, ctx)
+				err := pp.expand(n.Then.Nodes)
 				if err != nil {
 					return err
 				}
@@ -143,7 +143,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 					n = e
 					continue
 				case *ast.Block:
-					err := pp.expand(e.Nodes, ctx)
+					err := pp.expand(e.Nodes)
 					if err != nil {
 						return err
 					}
@@ -153,14 +153,14 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 
 		case *ast.For:
 
-			err := pp.expand(n.Body, ctx)
+			err := pp.expand(n.Body)
 			if err != nil {
 				return err
 			}
 
 		case *ast.ForRange:
 
-			err := pp.expand(n.Body, ctx)
+			err := pp.expand(n.Body)
 			if err != nil {
 				return err
 			}
@@ -169,7 +169,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 
 			var err error
 			for _, c := range n.Cases {
-				err = pp.expand(c.Body, ctx)
+				err = pp.expand(c.Body)
 				if err != nil {
 					return err
 				}
@@ -179,7 +179,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 
 			var err error
 			for _, c := range n.Cases {
-				err = pp.expand(c.Body, ctx)
+				err = pp.expand(c.Body)
 				if err != nil {
 					return err
 				}
@@ -189,7 +189,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 
 			var err error
 			for _, c := range n.Cases {
-				err = pp.expand(c.Body, ctx)
+				err = pp.expand(c.Body)
 				if err != nil {
 					return err
 				}
@@ -197,7 +197,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 
 		case *ast.Macro:
 
-			err := pp.expand(n.Body, ctx)
+			err := pp.expand(n.Body)
 			if err != nil {
 				return err
 			}
@@ -261,7 +261,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 
 		case *ast.Label:
 
-			err := pp.expand([]ast.Node{n.Statement}, ctx)
+			err := pp.expand([]ast.Node{n.Statement})
 			if err != nil {
 				return err
 			}
