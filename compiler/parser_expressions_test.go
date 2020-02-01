@@ -595,7 +595,7 @@ func TestExpressions(t *testing.T) {
 			}()
 			var p = &parsing{
 				lex:       lex,
-				ctx:       ast.ContextGo,
+				inGo:      true,
 				ancestors: nil,
 			}
 			node, tok := p.parseExpr(p.next(), false, false, false)
