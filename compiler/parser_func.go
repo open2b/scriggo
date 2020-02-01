@@ -84,8 +84,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 			if len(p.ancestors) == depth {
 				break
 			}
-		}
-		if tok.typ == tokenEOF {
+		} else if tok.typ == tokenEOF {
 			if _, ok := p.parent().(*ast.Label); ok {
 				panic(syntaxError(tok.pos, "missing statement after label"))
 			}
