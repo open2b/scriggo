@@ -715,6 +715,8 @@ LABEL:
 					return tok
 				}
 			}
+		case tokenEndValue, tokenEndBlock:
+			return tok
 		case tokenEOF:
 			// TODO(marco): check if it is correct.
 			return p.next()

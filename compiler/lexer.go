@@ -884,11 +884,12 @@ LOOP:
 			}
 		case '}':
 			if isShow {
-				if unclosedLeftBraces == 0 {
-					if len(l.src) > 1 && l.src[1] == '}' {
+				if len(l.src) > 1 && l.src[1] == '}' {
+					if unclosedLeftBraces == 0 || len(l.src) == 2 || l.src[2] != '}' {
 						break LOOP
 					}
-				} else {
+				}
+				if unclosedLeftBraces > 0 {
 					unclosedLeftBraces--
 				}
 			}
