@@ -1,0 +1,27 @@
+{# compile #}
+
+{% _ = func() { } %}
+
+{% _ = func() {
+} %}
+
+{% _ = func() {
+    a := 5
+    _ = 5
+} %}
+
+{% func() { }() %}
+
+{% func() {
+}() %}
+
+{% func() {
+    a := 5
+    _ = a
+}() %}
+
+{{ func() int { return 5 }() }}
+
+{{ func() int {
+    return 5
+}() }}

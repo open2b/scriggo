@@ -922,9 +922,7 @@ LOOP:
 			l.column++
 		case '\n':
 			if endLineAsSemicolon {
-				if l.ctx == ast.ContextGo {
-					l.emit(tokenSemicolon, 0)
-				}
+				l.emit(tokenSemicolon, 0)
 				endLineAsSemicolon = false
 			}
 			l.newline()
