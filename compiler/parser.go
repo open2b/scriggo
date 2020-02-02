@@ -966,9 +966,6 @@ LABEL:
 	case tokenVar, tokenConst:
 		pos := tok.pos
 		decType := tok.typ
-		if tok.ctx != ast.Context(p.language) {
-			panic(syntaxError(tok.pos, "%s declaration not in %s content", decType, ast.Context(p.language)))
-		}
 		tok = p.next()
 		if tok.typ == tokenLeftParenthesis {
 			// var ( ... )
