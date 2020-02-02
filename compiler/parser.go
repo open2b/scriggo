@@ -1263,7 +1263,7 @@ LABEL:
 				case *ast.Label:
 					panic(syntaxError(tok.pos, "missing statement after label"))
 				}
-				panic(syntaxError(tok.pos, "unexpected %s, expected }", tok))
+				panic(syntaxError(tok.pos, "unexpected %s, expecting }", tok))
 			}
 			if tok.typ == tokenEndBlock {
 				panic(syntaxError(tok.pos, "missing statement"))
