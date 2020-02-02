@@ -1268,7 +1268,7 @@ LABEL:
 			if tok.typ == tokenEndBlock {
 				panic(syntaxError(tok.pos, "missing statement"))
 			}
-			panic(syntaxError(tok.pos, "unexpected %s, expected statement", tok))
+			panic(syntaxError(tok.pos, "unexpected %s, expecting statement", tok))
 		}
 		if len(expressions) > 1 || isAssignmentToken(tok) {
 			// Parse assignment.
