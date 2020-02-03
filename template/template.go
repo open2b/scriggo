@@ -103,7 +103,7 @@ func Load(path string, reader Reader, main Package, ctx Context, options *LoadOp
 	if main != nil {
 		mainImporter = scriggo.Packages{"main": main}
 	}
-	code, err := compiler.CompileTemplate(reader, path, mainImporter, compileOpts)
+	code, err := compiler.CompileTemplate(path, reader, mainImporter, compileOpts)
 	if err != nil {
 		if err == compiler.ErrInvalidPath {
 			return nil, ErrInvalidPath
