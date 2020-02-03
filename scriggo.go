@@ -18,6 +18,14 @@ import (
 	"scriggo/runtime"
 )
 
+// CompilerError represents an error returned by the compiler.
+type CompilerError interface {
+	error
+	Position() ast.Position
+	Path() string
+	Message() string
+}
+
 type LoadOptions struct {
 	LimitMemorySize bool // limit allocable memory size.
 	OutOfSpec       struct {
@@ -27,27 +35,20 @@ type LoadOptions struct {
 	}
 }
 
-// UntypedStringConst represents an untyped string constant.
-type UntypedStringConst = compiler.UntypedStringConst
-
-// UntypedBooleanConst represents an untyped boolean constant.
-type UntypedBooleanConst = compiler.UntypedBooleanConst
-
-// UntypedNumericConst represents an untyped numeric constant.
-type UntypedNumericConst = compiler.UntypedNumericConst
+type RunOptions struct {
+	Context       context.Context
+	MaxMemorySize int
+	DontPanic     bool
+	PrintFunc     runtime.PrintFunc
+	OutOfSpec     struct {
+		Builtins map[string]interface{}
+	}
+}
 
 type Program struct {
 	fn      *runtime.Function
 	globals []compiler.Global
 	options *LoadOptions
-}
-
-// CompilerError represents an error returned by the compiler.
-type CompilerError interface {
-	error
-	Position() ast.Position
-	Path() string
-	Message() string
 }
 
 // Load loads a Go program with the given options, loading the main package and
@@ -67,19 +68,24 @@ func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, 
 	return &Program{fn: code.Main, globals: code.Globals, options: options}, nil
 }
 
+// Disassemble disassembles the package with the given path. Predefined
+// packages can not be disassembled.
+func (p *Program) Disassemble(w io.Writer, pkgPath string) (int64, error) {
+	packages, err := compiler.Disassemble(p.fn, p.globals)
+	if err != nil {
+		return 0, err
+	}
+	asm, ok := packages[pkgPath]
+	if !ok {
+		return 0, errors.New("scriggo: package path does not exist")
+	}
+	n, err := io.WriteString(w, asm)
+	return int64(n), err
+}
+
 // Options returns the options with which the program has been loaded.
 func (p *Program) Options() *LoadOptions {
 	return p.options
-}
-
-type RunOptions struct {
-	Context       context.Context
-	MaxMemorySize int
-	DontPanic     bool
-	PrintFunc     runtime.PrintFunc
-	OutOfSpec     struct {
-		Builtins map[string]interface{}
-	}
 }
 
 // Run starts the program and waits for it to complete.
@@ -97,19 +103,33 @@ func (p *Program) Run(options *RunOptions) (int, error) {
 	return vm.Run(p.fn, initGlobals(p.globals, nil))
 }
 
-// Disassemble disassembles the package with the given path. Predefined
-// packages can not be disassembled.
-func (p *Program) Disassemble(w io.Writer, pkgPath string) (int64, error) {
-	packages, err := compiler.Disassemble(p.fn, p.globals)
-	if err != nil {
-		return 0, err
+// PrintFunc returns a function that print its argument to the writer w with
+// the same format used by the builtin print to print to the standard error.
+// The returned function can be used for the PrintFunc option.
+func PrintFunc(w io.Writer) runtime.PrintFunc {
+	return func(v interface{}) {
+		r := reflect.ValueOf(v)
+		switch r.Kind() {
+		case reflect.Invalid, reflect.Array, reflect.Func, reflect.Interface, reflect.Ptr, reflect.Struct:
+			_, _ = fmt.Fprintf(w, "%#x", reflect.ValueOf(&v).Elem().InterfaceData()[1])
+		case reflect.Bool:
+			_, _ = fmt.Fprintf(w, "%t", r.Bool())
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			_, _ = fmt.Fprintf(w, "%d", r.Int())
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			_, _ = fmt.Fprintf(w, "%d", r.Uint())
+		case reflect.Float32, reflect.Float64:
+			_, _ = fmt.Fprintf(w, "%e", r.Float())
+		case reflect.Complex64, reflect.Complex128:
+			fmt.Printf("%e", r.Complex())
+		case reflect.Chan, reflect.Map, reflect.UnsafePointer:
+			_, _ = fmt.Fprintf(w, "%#x", r.Pointer())
+		case reflect.Slice:
+			_, _ = fmt.Fprintf(w, "[%d/%d] %#x", r.Len(), r.Cap(), r.Pointer())
+		case reflect.String:
+			_, _ = fmt.Fprint(w, r.String())
+		}
 	}
-	asm, ok := packages[pkgPath]
-	if !ok {
-		return 0, errors.New("scriggo: package path does not exist")
-	}
-	n, err := io.WriteString(w, asm)
-	return int64(n), err
 }
 
 // newVM returns a new vm with the given options.
@@ -171,33 +191,4 @@ func initGlobals(globals []compiler.Global, init map[string]interface{}) []inter
 		}
 	}
 	return values
-}
-
-// PrintFunc returns a function that print its argument to the writer w with
-// the same format used by the builtin print to print to the standard error.
-// The returned function can be used for the PrintFunc option.
-func PrintFunc(w io.Writer) runtime.PrintFunc {
-	return func(v interface{}) {
-		r := reflect.ValueOf(v)
-		switch r.Kind() {
-		case reflect.Invalid, reflect.Array, reflect.Func, reflect.Interface, reflect.Ptr, reflect.Struct:
-			_, _ = fmt.Fprintf(w, "%#x", reflect.ValueOf(&v).Elem().InterfaceData()[1])
-		case reflect.Bool:
-			_, _ = fmt.Fprintf(w, "%t", r.Bool())
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			_, _ = fmt.Fprintf(w, "%d", r.Int())
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-			_, _ = fmt.Fprintf(w, "%d", r.Uint())
-		case reflect.Float32, reflect.Float64:
-			_, _ = fmt.Fprintf(w, "%e", r.Float())
-		case reflect.Complex64, reflect.Complex128:
-			fmt.Printf("%e", r.Complex())
-		case reflect.Chan, reflect.Map, reflect.UnsafePointer:
-			_, _ = fmt.Fprintf(w, "%#x", r.Pointer())
-		case reflect.Slice:
-			_, _ = fmt.Fprintf(w, "[%d/%d] %#x", r.Len(), r.Cap(), r.Pointer())
-		case reflect.String:
-			_, _ = fmt.Fprint(w, r.String())
-		}
-	}
 }
