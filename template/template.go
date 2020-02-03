@@ -22,15 +22,15 @@ import (
 var (
 	// ErrInvalidPath is returned from the Load function and a Reader when the
 	// path argument is not valid.
-	ErrInvalidPath = errors.New("scritto: invalid path")
+	ErrInvalidPath = errors.New("scriggo: invalid path")
 
 	// ErrNotExist is returned from the Load function when the path does not
 	// exist.
-	ErrNotExist = errors.New("scritto: path does not exist")
+	ErrNotExist = errors.New("scriggo: path does not exist")
 
 	// ErrReadTooLarge is returned from the Load function when a limit is
 	// exceeded reading a path.
-	ErrReadTooLarge = errors.New("scritto: read too large")
+	ErrReadTooLarge = errors.New("scriggo: read too large")
 )
 
 // HTMStringer is implemented by values that are not escaped in HTML context.
