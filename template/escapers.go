@@ -317,7 +317,7 @@ func pathEscape(w strWriter, s string, quoted bool) (int, error) {
 		}
 		var esc string
 		switch c {
-		case '!', '#', '$', '*', ',', '-', '.', '/', ':', ';', '=', '?', '@', '[', ']', '_':
+		case '!', '#', '$', '*', ',', '-', '.', '/', ':', ';', '=', '?', '@', '[', ']', '_', '~':
 			continue
 		case '&':
 			esc = "&amp;"
