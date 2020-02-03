@@ -91,7 +91,7 @@ type Template struct {
 // Load loads a template given its path. Load calls the method Read of reader
 // to read the files of the template. Package main declares constants, types,
 // variables and functions that are accessible from the code in the template.
-func Load(path string, reader Reader, main scriggo.Package, ctx Context, options *LoadOptions) (*Template, error) {
+func Load(path string, reader Reader, main Package, ctx Context, options *LoadOptions) (*Template, error) {
 	compileOpts := compiler.Options{
 		TemplateContext: ast.Context(ctx),
 	}
