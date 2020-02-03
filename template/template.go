@@ -93,7 +93,6 @@ type LoadOptions struct {
 type RenderOptions struct {
 	Context       context.Context
 	MaxMemorySize int
-	DontPanic     bool
 	PrintFunc     runtime.PrintFunc
 }
 
