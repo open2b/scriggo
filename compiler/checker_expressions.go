@@ -391,6 +391,9 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			}
 			ti.Type = t.Type.Elem()
 		case ast.OperatorRelaxedNot:
+			if t.Nil() {
+				panic(tc.errorf(expr, "invalid operation: %s (operator '%s' not defined on nil)", expr, expr.Op))
+			}
 			if t.IsConstant() && t.Type.Kind() != reflect.Bool {
 				panic(tc.errorf(expr.Expr, "non-bool constant %s not allowed with operator not", expr.Expr))
 			}
@@ -420,6 +423,9 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		if expr.Op == ast.OperatorRelaxedAnd || expr.Op == ast.OperatorRelaxedOr {
 			t1 := tc.checkExpr(expr.Expr1)
 			t2 := tc.checkExpr(expr.Expr2)
+			if t1.Nil() || t2.Nil() {
+				panic(tc.errorf(expr, "invalid operation: %s (operator '%s' not defined on nil)", expr, expr.Op))
+			}
 			// Non-boolean constant expressions are not allowed in left or right
 			// side of the 'and' and 'or' operator.
 			if t1.IsConstant() && t1.Type.Kind() != reflect.Bool {

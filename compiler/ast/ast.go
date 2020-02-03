@@ -863,6 +863,9 @@ func NewUnaryOperator(pos *Position, op OperatorType, expr Expression) *UnaryOpe
 
 func (n *UnaryOperator) String() string {
 	s := n.Op.String()
+	if n.Op == OperatorRelaxedNot {
+		s += " "
+	}
 	if e, ok := n.Expr.(Operator); ok && (n.Op == OperatorReceive || e.Precedence() <= n.Precedence()) {
 		s += "(" + n.Expr.String() + ")"
 	} else {

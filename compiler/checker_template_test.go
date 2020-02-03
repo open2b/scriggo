@@ -188,14 +188,45 @@ var templateCases = []struct {
 		},
 	},
 
-	// REVIEW: handle the predeclared identifier 'nil' and enable this test.
-	// {
-	// 	src:      `{% v := 10 %}{{ v and nil }}`,
-	// 	expected: `error`,
-	// 	opts: &compiler.Options{
-	// 		RelaxedBoolean: true,
-	// 	},
-	// },
+	{
+		src:      `{{ true and nil }}`,
+		expected: `invalid operation: true and nil (operator 'and' not defined on nil)`,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
+
+	{
+		src:      `{{ nil and false }}`,
+		expected: `invalid operation: nil and false (operator 'and' not defined on nil)`,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
+
+	{
+		src:      `{{ true or nil }}`,
+		expected: `invalid operation: true or nil (operator 'or' not defined on nil)`,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
+
+	{
+		src:      `{{ not nil }}`,
+		expected: `invalid operation: not nil (operator 'not' not defined on nil)`,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
+
+	{
+		src:      `{% v := 10 %}{{ v and nil }}`,
+		expected: `invalid operation: v and nil (operator 'and' not defined on nil)`,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
 }
 
 const ok = ""
