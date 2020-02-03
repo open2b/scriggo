@@ -149,7 +149,8 @@ func (dr *DirLimitedReader) Read(path string) ([]byte, error) {
 }
 
 // MapReader implements a Reader where sources are read from a map.
-// Map keys are the paths.
+// Map keys are the paths. If a path is present both relative and
+// absolute, the file of the absolute one is returned.
 type MapReader map[string][]byte
 
 // Read implements the Read method of Reader.
@@ -157,13 +158,15 @@ func (r MapReader) Read(path string) ([]byte, error) {
 	if !compiler.ValidTemplatePath(path) {
 		return nil, ErrInvalidPath
 	}
-	// https://github.com/open2b/scriggo/issues/386
-	// if path[0] == '/' {
-	// 	path = path[1:]
-	// }
+	if path[0] != '/' {
+		path = "/" + path
+	}
 	src, ok := r[path]
 	if !ok {
-		return nil, os.ErrNotExist
+		src, ok = r[path[1:]]
+		if !ok {
+			return nil, os.ErrNotExist
+		}
 	}
 	return src, nil
 }

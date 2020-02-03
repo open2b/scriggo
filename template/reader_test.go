@@ -7,6 +7,7 @@
 package template
 
 import (
+	"bytes"
 	"io"
 	"io/ioutil"
 	"os"
@@ -111,4 +112,44 @@ func TestValidDirReaderPath(t *testing.T) {
 			t.Errorf("path: %q, expected invalid, but valid\n", p)
 		}
 	}
+}
+
+func TestMapReader(t *testing.T) {
+
+	r := MapReader{"a": []byte("a")}
+	_, err := r.Read("a")
+	if err != nil {
+		t.Fatalf("path: a, unexpected error %q\n", err)
+	}
+	_, err = r.Read("/a")
+	if err != nil {
+		t.Fatalf("path: /a, unexpected error %q\n", err)
+	}
+
+	r = MapReader{"/a": []byte("/a")}
+	_, err = r.Read("a")
+	if err != nil {
+		t.Fatalf("path: a, unexpected error %q\n", err)
+	}
+	_, err = r.Read("/a")
+	if err != nil {
+		t.Fatalf("path: /a, unexpected error %q\n", err)
+	}
+
+	r = MapReader{"a": []byte("a"), "/a": []byte("/a")}
+	f, err := r.Read("a")
+	if err != nil {
+		t.Fatalf("path: a, unexpected error %q\n", err)
+	}
+	if !bytes.Equal(f, []byte("/a")) {
+		t.Fatalf("path: a, expected \"/a\", but %q", string(f))
+	}
+	f, err = r.Read("/a")
+	if err != nil {
+		t.Fatalf("path: /a, unexpected error %q\n", err)
+	}
+	if !bytes.Equal(f, []byte("/a")) {
+		t.Fatalf("path: /a, expected \"/a\", but %q", string(f))
+	}
+
 }
