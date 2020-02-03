@@ -29,7 +29,7 @@ import (
 
 // internalOperatorZero and internalOperatorNotZero are two internal operators
 // that are inserted in the tree by the type checker and that are handled by the
-// emitter as two unary operators that returns true if the operand is,
+// emitter as two unary operators that return true if the operand is,
 // respectively, the zero or not the zero of its type.
 //
 // As a special case, if the operand is an interface type then its value is
