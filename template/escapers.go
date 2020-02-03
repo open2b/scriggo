@@ -300,6 +300,10 @@ func javaScriptStringEscape(w strWriter, s string) error {
 	return nil
 }
 
+func isHexDigit(c byte) bool {
+	return '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F'
+}
+
 // pathEscape escapes the string s so it can be placed inside an attribute
 // value as URL path, and write it to w. quoted reports whether the attribute
 // is quoted. It returns the number of bytes written and the first error
@@ -328,6 +332,11 @@ func pathEscape(w strWriter, s string, quoted bool) (int, error) {
 				continue
 			}
 			esc = "&#32;"
+		case '%':
+			if i+2 < len(s) && isHexDigit(s[i+1]) && isHexDigit(s[i+2]) {
+				continue
+			}
+			fallthrough
 		default:
 			if buf == nil {
 				buf = make([]byte, 3)

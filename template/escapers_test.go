@@ -168,6 +168,10 @@ var urlEscapeCases = []struct {
 		src:      "<a href=\"{{ `p?&` }}?b={{ `=` }}\">",
 		expected: `<a href="p?&amp;b=%3d">`,
 	},
+	{
+		src:      "<a href=\"{{ `%5G%5F` }}\">",
+		expected: `<a href="%255G%5F">`,
+	},
 }
 
 func TestURLEscape(t *testing.T) {
