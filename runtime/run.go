@@ -1801,27 +1801,30 @@ func (vm *VM) run() (Addr, bool) {
 				a -= 10
 				not = true
 			}
-			var res bool
+			zero := true
 			switch registerType(a) {
 			case intRegister:
-				res = vm.int(b) == 0
+				zero = vm.int(b) == 0
 			case floatRegister:
-				res = vm.float(b) == 0
+				zero = vm.float(b) == 0
 			case stringRegister:
-				res = vm.string(b) == ""
+				zero = vm.string(b) == ""
 			case generalRegister:
 				rv := vm.general(b)
-				switch {
-				case !rv.IsValid(): // nil interface.
-					res = true
-				default: // also handles values that have static type interface.
-					res = rv.IsZero()
+				// rv is not valid when the register addressed by b stores the
+				// nil interface.
+				if rv.IsValid() {
+					// rv.IsZero() also handles values that have static type
+					// interface because the interface is lost when the value is
+					// inserted into the register, so IsZero checks for the zero
+					// of the dynamic type.
+					zero = rv.IsZero()
 				}
 			}
 			if not {
-				res = !res
+				zero = !zero
 			}
-			vm.setBool(c, res)
+			vm.setBool(c, zero)
 		}
 
 	}
