@@ -1301,25 +1301,39 @@ LABEL:
 		} else {
 			// Parse a label or an expression.
 			expr := expressions[0]
-			if ident, ok := expr.(*ast.Identifier); ok && tok.typ == tokenColon {
-				// Parse a label.
-				node := ast.NewLabel(pos, ident, nil)
-				node.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: tok.pos.End}
-				p.addChild(node)
-				p.addToAncestors(node)
-				p.cutSpacesToken = true
-				tok = p.next()
-				if !p.inGo {
-					if tok.typ == tokenEndBlock || tok.typ == tokenEOF {
-						panic(syntaxError(tok.pos, "missing statement after label"))
+			if ident, ok := expr.(*ast.Identifier); ok {
+				switch tok.typ {
+				case tokenColon:
+					// Parse a label.
+					node := ast.NewLabel(pos, ident, nil)
+					node.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: tok.pos.End}
+					p.addChild(node)
+					p.addToAncestors(node)
+					p.cutSpacesToken = true
+					tok = p.next()
+					if !p.inGo {
+						if tok.typ == tokenEndBlock || tok.typ == tokenEOF {
+							panic(syntaxError(tok.pos, "missing statement after label"))
+						}
+						goto LABEL
 					}
-					goto LABEL
+					return tok
+				case tokenIdentifier:
+					if !p.inGo {
+						tok2 := p.next() // It is safe to consume the next token because there is anyway a syntax error.
+						if tok2.typ == tokenInterpretedString || tok2.typ == tokenRawString {
+							panic(syntaxError(ident.Pos(), "unexpected %s, expecting import", ident.Name))
+						}
+					}
+				case tokenInterpretedString, tokenRawString:
+					if !p.inGo {
+						panic(syntaxError(ident.Pos(), "unexpected %s, expecting extends, import or include", ident.Name))
+					}
 				}
-			} else {
-				p.addChild(expr)
-				p.cutSpacesToken = true
-				tok = p.parseEnd(tok, tokenSemicolon)
 			}
+			p.addChild(expr)
+			p.cutSpacesToken = true
+			tok = p.parseEnd(tok, tokenSemicolon)
 		}
 		return tok
 	}
