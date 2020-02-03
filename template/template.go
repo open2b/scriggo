@@ -88,6 +88,14 @@ type Template struct {
 	globals []compiler.Global
 }
 
+// CompilerError represents an error returned by the compiler.
+type CompilerError interface {
+	error
+	Position() ast.Position
+	Path() string
+	Message() string
+}
+
 // Load loads a template given its path. Load calls the method Read of reader
 // to read the files of the template. Package main declares constants, types,
 // variables and functions that are accessible from the code in the template.
