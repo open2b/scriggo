@@ -81,9 +81,9 @@ func recoverRuntimePanic(err string) {
 		typ := reflect.TypeOf(e)
 		if typ.PkgPath() != "scriggo/runtime" {
 			if typ.Name() == "TypeAssertionError" {
-				log.Printf("expected type scritto/runtime.TypeAssertionError, got %s.TypeAssertionError for error %q", typ.PkgPath(), err)
+				log.Printf("expected type scriggo/runtime.TypeAssertionError, got %s.TypeAssertionError for error %q", typ.PkgPath(), err)
 			} else {
-				log.Printf("expected type scritto/runtime.runtimeError, got %s.%s for error %q", typ.PkgPath(), typ.Name(), err)
+				log.Printf("expected type scriggo/runtime.runtimeError, got %s.%s for error %q", typ.PkgPath(), typ.Name(), err)
 			}
 			os.Exit(1)
 		}
