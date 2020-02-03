@@ -74,10 +74,10 @@ func (js JavaScript) JavaScript() string {
 type Language int
 
 const (
-	LanguageText       = Language(ast.LanguageText)
-	LanguageHTML       = Language(ast.LanguageHTML)
-	LanguageCSS        = Language(ast.LanguageCSS)
-	LanguageJavaScript = Language(ast.LanguageJavaScript)
+	LanguageText = iota
+	LanguageHTML
+	LanguageCSS
+	LanguageJavaScript
 )
 
 func (language Language) String() string {
