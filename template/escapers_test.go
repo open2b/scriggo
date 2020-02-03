@@ -173,8 +173,8 @@ var urlEscapeCases = []struct {
 func TestURLEscape(t *testing.T) {
 	for _, cas := range urlEscapeCases {
 		t.Run("", func(t *testing.T) {
-			r := MapReader{"/index.html": []byte(cas.src)}
-			templ, err := Load("/index.html", r, Builtins(), ContextHTML, nil)
+			r := MapReader{"index.html": []byte(cas.src)}
+			templ, err := Load("index.html", r, Builtins(), ContextHTML, nil)
 			if err != nil {
 				t.Fatalf("compilation error: %s", err)
 			}
