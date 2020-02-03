@@ -227,6 +227,20 @@ var templateCases = []struct {
 			RelaxedBoolean: true,
 		},
 	},
+
+	{
+		// Check that the 'and' operator returns an untyped bool even if its two
+		// operands are both typed booleans. The same applies to the 'or' and
+		// 'not' operators.
+		src: `
+			{% type Bool bool %}
+			{% var _ bool = Bool(true) and Bool(false) %}
+		`,
+		expected: ok,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
 }
 
 const ok = ""
