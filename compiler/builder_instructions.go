@@ -730,7 +730,7 @@ func (builder *functionBuilder) emitNop() {
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpNone})
 }
 
-// emitZero appends a new "NotZero" instruction to the function body.
+// emitNotZero appends a new "NotZero" instruction to the function body.
 func (builder *functionBuilder) emitNotZero(kind reflect.Kind, dst, src int8) {
 	regType := int8(kindToType(kind))
 	regType += 10 // to distinguish "NotZero" from "Zero".
