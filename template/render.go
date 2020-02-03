@@ -16,7 +16,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"scriggo/compiler"
 	"scriggo/compiler/ast"
 	"scriggo/runtime"
 )
@@ -165,8 +164,8 @@ func renderInHTML(out io.Writer, value interface{}) error {
 	case HTML:
 		_, err := w.WriteString(string(v))
 		return err
-	case compiler.HTMLStringer:
-		_, err := w.WriteString(string(v.HTML()))
+	case HTMLStringer:
+		_, err := w.WriteString(v.HTML())
 		return err
 	case fmt.Stringer:
 		return htmlEscape(w, v.String())
@@ -226,8 +225,8 @@ func renderInCSS(out io.Writer, value interface{}) error {
 	case CSS:
 		_, err := w.WriteString(string(v))
 		return err
-	case compiler.CSSStringer:
-		_, err := w.WriteString(string(v.CSS()))
+	case CSSStringer:
+		_, err := w.WriteString(v.CSS())
 		return err
 	}
 	v := reflect.ValueOf(value)
@@ -274,8 +273,8 @@ func renderInJavaScript(out io.Writer, value interface{}) error {
 	case JavaScript:
 		_, err := w.WriteString(string(v))
 		return err
-	case compiler.JavaScriptStringer:
-		_, err := w.WriteString(string(v.JavaScript()))
+	case JavaScriptStringer:
+		_, err := w.WriteString(v.JavaScript())
 		return err
 	}
 

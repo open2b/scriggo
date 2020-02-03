@@ -18,6 +18,43 @@ import (
 	"scriggo/runtime"
 )
 
+// HTMStringer is implemented by values that are not escaped in HTML context.
+type HTMLStringer interface {
+	HTML() string
+}
+
+// CSSStringer is implemented by values that are not escaped in CSS context.
+type CSSStringer interface {
+	CSS() string
+}
+
+// JavaScriptStringer is implemented by values that are not escaped in
+// JavaScript context.
+type JavaScriptStringer interface {
+	JavaScript() string
+}
+
+// HTML implements the HTMLStringer interface.
+type HTML string
+
+func (html HTML) HTML() string {
+	return string(html)
+}
+
+// CSS implements the CSSStringer interface.
+type CSS string
+
+func (css CSS) CSS() string {
+	return string(css)
+}
+
+// JavaScript implements the JavaScriptStringer interface.
+type JavaScript string
+
+func (js JavaScript) JavaScript() string {
+	return string(js)
+}
+
 // Context indicates the type of source that has to be rendered and controls
 // how to escape the values to render.
 type Context int
