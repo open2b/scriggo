@@ -7,6 +7,7 @@
 package template
 
 import (
+	"errors"
 	"io"
 	"io/ioutil"
 	"os"
@@ -31,9 +32,9 @@ var (
 	// path does not exist.
 	ErrNotExist = compiler.ErrNotExist
 
-	// ErrReadTooLarge is returned from a DirLimitedReader when a limit is
-	// exceeded.
-	ErrReadTooLarge = compiler.ErrReadTooLarge
+	// ErrReadTooLarge is returned from a DirLimitedReader, and consequently
+	// from the Load method, when a limit is exceeded.
+	ErrReadTooLarge = errors.New("scritto: read too large")
 )
 
 // DirReader implements a Reader that reads a source from files in a
