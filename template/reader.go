@@ -18,12 +18,14 @@ import (
 	"scriggo/compiler"
 )
 
+// Reader is implemented by values that can read files of a template. path, if
+// not absolute, is relative to the root of the template. If the file with the
+// given path does not exist, it returns nil and an os not found error.
 type Reader interface {
 	Read(path string) ([]byte, error)
 }
 
-// DirReader implements a Reader that reads a source from files in a
-// directory.
+// DirReader implements a Reader that reads the files in a directory.
 //
 // To limit the size of read files, use DirLimitedReader instead.
 type DirReader string
@@ -87,7 +89,7 @@ func (dr *DirLimitedReader) Read(path string) ([]byte, error) {
 		max = dr.remaining
 	}
 	dr.mutex.Unlock()
-	// Tries to gets the file size.
+	// Try to gets the file size.
 	var size int64
 	if fi, err := f.Stat(); err == nil {
 		size = fi.Size()
@@ -103,12 +105,12 @@ func (dr *DirLimitedReader) Read(path string) ([]byte, error) {
 			size = 512
 		}
 	}
-	// Wraps the file reader in case of a test.
+	// Wrap the file reader in case of a test.
 	var r io.Reader = f
 	if testReader != nil {
 		r = testReader(r)
 	}
-	// Reads the source from the file.
+	// Read the source from the file.
 	n := 0
 	src := make([]byte, size)
 	for n < max && err == nil {
@@ -130,7 +132,7 @@ func (dr *DirLimitedReader) Read(path string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		// Expects 0 and EOF from next read.
+		// Expect 0 and EOF from next read.
 		if nn, err2 := r.Read(make([]byte, 1)); nn != 0 || err2 != io.EOF {
 			if nn != 0 {
 				return nil, ErrReadTooLarge
@@ -166,14 +168,14 @@ func (r MapReader) Read(path string) ([]byte, error) {
 	return src, nil
 }
 
-// ValidDirReaderPath indicates whether path is valid as path for DirReader
+// ValidDirReaderPath reports whether path is valid as path for DirReader
 // and DirLimitedReader.
 func ValidDirReaderPath(path string) bool {
-	// Must be a valid path
+	// Check if it is a valid template path.
 	if !compiler.ValidTemplatePath(path) {
 		return false
 	}
-	// Splits the path in the various names.
+	// Split the path in the various names.
 	var names = strings.Split(path, "/")
 	last := len(names) - 1
 	for i, name := range names {
