@@ -38,7 +38,6 @@ type LoadOptions struct {
 type RunOptions struct {
 	Context       context.Context
 	MaxMemorySize int
-	DontPanic     bool
 	PrintFunc     runtime.PrintFunc
 	OutOfSpec     struct {
 		Builtins map[string]interface{}
