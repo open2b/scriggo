@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="initial-scale=1.0, width=device-width, user-scalable=no">
+  {% show Head %}
+</head>
+<body>
+
+<div class="body-content">
+
+{% include "/includes/header.html" %}
+
+{% include "/includes/navigation.html" %}
+
+<div class="main" role="main">
+    {% show Main %}
+</div>
+
+</div>
+
+{% include "/includes/footer.html" %}
+
+<div id="design-overlay" class="overlay"></div>
+<div id="filters-overlay" class="overlay"></div>
+
+</body>
+</html>
