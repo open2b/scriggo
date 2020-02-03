@@ -73,8 +73,8 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	p.addToAncestors(node)
 	p.addToAncestors(body)
 	depth := len(p.ancestors)
-	isTemplate := p.isTemplate
-	p.isTemplate = false
+	inGo := p.inGo
+	p.inGo = true
 	tok = p.next()
 	for {
 		if tok.typ == tokenRightBraces {
@@ -84,8 +84,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 			if len(p.ancestors) == depth {
 				break
 			}
-		}
-		if tok.typ == tokenEOF {
+		} else if tok.typ == tokenEOF {
 			if _, ok := p.parent().(*ast.Label); ok {
 				panic(syntaxError(tok.pos, "missing statement after label"))
 			}
@@ -97,7 +96,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	node.Position.End = tok.pos.End
 	p.removeLastAncestor()
 	p.removeLastAncestor()
-	p.isTemplate = isTemplate
+	p.inGo = inGo
 	return node, p.next()
 }
 

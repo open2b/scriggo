@@ -9,7 +9,6 @@ package compiler
 import (
 	"fmt"
 	"reflect"
-	"strings"
 
 	"scriggo/compiler/ast"
 )
@@ -25,24 +24,55 @@ func (tc *typechecker) templatePageToPackage(tree *ast.Tree, path string) error 
 		}
 	}
 	currentPath := tc.path
+	defer func() {
+		tc.path = currentPath
+	}()
 	tc.path = path
+	var hasExtends bool
+	var hasDeclarations bool
 	nodes := []ast.Node{}
 	for _, n := range tree.Nodes {
 		switch n := n.(type) {
 		case *ast.Comment:
-		case *ast.Macro, *ast.Var, *ast.TypeDeclaration, *ast.Const, *ast.Import, *ast.Extends:
+		case *ast.Extends:
+			hasExtends = true
+			nodes = append(nodes, n)
+		case *ast.Import:
+			nodes = append(nodes, n)
+		case *ast.Macro, *ast.Var, *ast.Const, *ast.TypeDeclaration:
+			hasDeclarations = true
 			nodes = append(nodes, n)
 		default:
-			if txt, ok := n.(*ast.Text); ok && len(strings.TrimSpace(string(txt.Text))) == 0 {
-				continue
+			pos := n.Pos()
+			var unexpected string
+			switch n := n.(type) {
+			case *ast.Text:
+				pos = noSpacePosition(n)
+				if pos == nil {
+					continue
+				}
+				unexpected = "text"
+			case *ast.Include:
+				unexpected = "include"
+			case *ast.Show:
+				unexpected = "show"
+			default:
+				unexpected = "statement"
 			}
-			return tc.errorf(n, "template declarations can only contain extends, import or declaration statements")
+			msg := "unexpected " + unexpected + ", expecting "
+			if !hasExtends {
+				msg += "extends, "
+			}
+			if !hasDeclarations {
+				msg += "import, "
+			}
+			msg += "macro, var, const or type statement"
+			return tc.errorf(pos, msg)
 		}
 	}
 	tree.Nodes = []ast.Node{
 		ast.NewPackage(tree.Pos(), "", nodes),
 	}
-	tc.path = currentPath
 	return nil
 }
 

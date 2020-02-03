@@ -15,8 +15,8 @@ import (
 )
 
 func ExampleDump() {
-	cases := map[ast.Context][]string{
-		ast.ContextHTML: {
+	cases := map[ast.Language][]string{
+		ast.LanguageHTML: {
 			"{{ (4 + 5) * value() }}",
 			"{% var x = 10 %}",
 			"{% for i in x %} some text, blah blah blah {% end %}",
@@ -27,21 +27,21 @@ func ExampleDump() {
 			`{% y = 10 %}`,
 			`{% y = (4 + 5) %}`,
 		},
-		ast.ContextGo: {
+		ast.LanguageGo: {
 			"5 + 6",
 			"map[string]([]interface{})",
 		},
 	}
 
-	for _, ctx := range []ast.Context{ast.ContextHTML, ast.ContextGo} {
-		stringCases := cases[ctx]
+	for _, language := range []ast.Language{ast.LanguageHTML, ast.LanguageGo} {
+		stringCases := cases[language]
 		for _, c := range stringCases {
 			var tree *ast.Tree
 			var err error
-			if ctx == ast.ContextGo {
+			if language == ast.LanguageGo {
 				tree, err = compiler.ParseSource([]byte(c), true, false)
 			} else {
-				tree, err = compiler.ParseTemplateSource([]byte(c), ctx, false)
+				tree, err = compiler.ParseTemplateSource([]byte(c), language, false)
 			}
 			if err != nil {
 				panic(err)

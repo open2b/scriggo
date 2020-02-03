@@ -109,16 +109,17 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 	return code, nil
 }
 
-// CompileTemplate compiles the template file with the given path, reading the
-// template files from the reader, in context ctx. path, if not absolute, is
-// relative to the root of the template.
-func CompileTemplate(path string, r Reader, main PackageLoader, ctx ast.Context, opts Options) (*Code, error) {
+// CompileTemplate compiles the template file with the given path and written
+// in language lang. It reads the template files from the reader. path, if not
+// absolute, is relative to the root of the template. lang can be Text, HTML,
+// CSS or JavaScript.
+func CompileTemplate(path string, r Reader, main PackageLoader, lang ast.Language, opts Options) (*Code, error) {
 
 	var tree *ast.Tree
 
 	// Parse the source code.
 	var err error
-	tree, err = ParseTemplate(path, r, ctx, opts.RelaxedBoolean)
+	tree, err = ParseTemplate(path, r, lang, opts.RelaxedBoolean)
 	if err != nil {
 		return nil, err
 	}

@@ -60,7 +60,7 @@ func compileTemplate(reader compiler.Reader, limitMemorySize bool) (*compiledTem
 		RelaxedBoolean: true,
 	}
 	mainImporter := scriggo.Packages{"main": templateMain}
-	code, err := compiler.CompileTemplate("/index.html", reader, mainImporter, ast.ContextHTML, opts)
+	code, err := compiler.CompileTemplate("/index.html", reader, mainImporter, ast.LanguageHTML, opts)
 	if err != nil {
 		return nil, err
 	}

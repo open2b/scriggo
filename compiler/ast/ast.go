@@ -107,20 +107,47 @@ func (op OperatorType) String() string {
 		"+", "-", "*", "/", "%", "^", "&^", "<<", ">>", "<-", "&", "*", "and", "or", "not"}[op]
 }
 
+// A Language represents a source language.
+type Language int
+
+const (
+	LanguageText Language = iota
+	LanguageHTML
+	LanguageCSS
+	LanguageJavaScript
+	LanguageGo // TODO(marco): move in first position.
+)
+
+func (lang Language) String() string {
+	switch lang {
+	case LanguageGo:
+		return "Go"
+	case LanguageText:
+		return "text"
+	case LanguageHTML:
+		return "HTML"
+	case LanguageCSS:
+		return "CSS"
+	case LanguageJavaScript:
+		return "JavaScript"
+	}
+	panic("invalid language")
+}
+
 // Context indicates the context in which a value statement must be valuated.
 type Context int
 
 const (
 	ContextText Context = iota
 	ContextHTML
+	ContextCSS
+	ContextJavaScript
+	ContextGo // TODO(marco): move in first position.
 	ContextTag
 	ContextAttribute
 	ContextUnquotedAttribute
-	ContextCSS
 	ContextCSSString
-	ContextJavaScript
 	ContextJavaScriptString
-	ContextGo
 )
 
 func (ctx Context) String() string {
@@ -128,23 +155,23 @@ func (ctx Context) String() string {
 	case ContextGo:
 		return "Go"
 	case ContextText:
-		return "Text"
+		return "text"
 	case ContextHTML:
 		return "HTML"
-	case ContextTag:
-		return "Tag"
-	case ContextAttribute:
-		return "Attribute"
-	case ContextUnquotedAttribute:
-		return "UnquotedAttribute"
 	case ContextCSS:
 		return "CSS"
-	case ContextCSSString:
-		return "CSSString"
 	case ContextJavaScript:
 		return "JavaScript"
+	case ContextTag:
+		return "tag"
+	case ContextAttribute:
+		return "attribute"
+	case ContextUnquotedAttribute:
+		return "unquoted attribute"
+	case ContextCSSString:
+		return "CSS string"
 	case ContextJavaScriptString:
-		return "JavaScriptString"
+		return "JavaScript string"
 	}
 	panic("invalid context")
 }
@@ -218,12 +245,12 @@ func (e *expression) SetParenthesis(n int) {
 // Tree node represents a tree.
 type Tree struct {
 	*Position
-	Path    string  // path of the tree.
-	Nodes   []Node  // nodes of the first level of the tree.
-	Context Context // context.
+	Path     string   // path of the tree.
+	Nodes    []Node   // nodes of the first level of the tree.
+	Language Language // source language.
 }
 
-func NewTree(path string, nodes []Node, ctx Context) *Tree {
+func NewTree(path string, nodes []Node, language Language) *Tree {
 	if nodes == nil {
 		nodes = []Node{}
 	}
@@ -231,7 +258,7 @@ func NewTree(path string, nodes []Node, ctx Context) *Tree {
 		Position: &Position{1, 1, 0, 0},
 		Path:     path,
 		Nodes:    nodes,
-		Context:  ctx,
+		Language: language,
 	}
 	return tree
 }

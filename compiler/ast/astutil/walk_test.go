@@ -63,7 +63,7 @@ func TestWalk(t *testing.T) {
 	}
 
 	for _, c := range stringCases {
-		tree, err := compiler.ParseTemplateSource([]byte(c.input), ast.ContextHTML, false)
+		tree, err := compiler.ParseTemplateSource([]byte(c.input), ast.LanguageHTML, false)
 		if err != nil {
 			panic(err)
 		}

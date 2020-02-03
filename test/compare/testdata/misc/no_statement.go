@@ -10,7 +10,7 @@ package main
 }  // ERROR `non-declaration statement outside function body`
 
 func main() {
-	:  // ERROR `unexpected :, expected }`
+	:  // ERROR `unexpected :, expecting }`
 	∞  // ERROR `illegal character U+221E '∞'`
 }
 
