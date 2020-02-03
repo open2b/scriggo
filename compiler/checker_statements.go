@@ -162,11 +162,18 @@ nodesLoop:
 			if ti.Type.Kind() != reflect.Bool {
 				if tc.opts.RelaxedBoolean && tc.opts.SyntaxType == TemplateSyntax {
 					if ti.IsConstant() {
-						panic(tc.errorf(node.Condition, "non-bool constant %s cannot be used as if condition", node.Condition))
+						c := &typeInfo{
+							Constant:   boolConst(!ti.Constant.zero()),
+							Properties: propertyUntyped,
+							Type:       boolType,
+						}
+						tc.typeInfos[node.Condition] = c
+						ti = c
+					} else {
+						node.Condition = ast.NewUnaryOperator(node.Condition.Pos(), internalOperatorNotZero, node.Condition)
+						ti = tc.checkExpr(node.Condition)
+						tc.typeInfos[node.Condition] = ti
 					}
-					node.Condition = ast.NewUnaryOperator(node.Condition.Pos(), internalOperatorNotZero, node.Condition)
-					ti = tc.checkExpr(node.Condition)
-					tc.typeInfos[node.Condition] = ti
 				} else {
 					panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, ti.ShortString()))
 				}

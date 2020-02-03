@@ -129,7 +129,7 @@ var templateCases = []struct {
 
 	{
 		src:      `{% a := 20 %}{{ 3 and a }}`,
-		expected: `non-bool constant 3 not allowed with operator and`,
+		expected: ok,
 		opts: &compiler.Options{
 			RelaxedBoolean: true,
 		},
@@ -137,7 +137,7 @@ var templateCases = []struct {
 
 	{
 		src:      `{% a := 20 %}{{ 3 or a }}`,
-		expected: `non-bool constant 3 not allowed with operator or`,
+		expected: ok,
 		opts: &compiler.Options{
 			RelaxedBoolean: true,
 		},
@@ -145,7 +145,7 @@ var templateCases = []struct {
 
 	{
 		src:      `{% const a = 20 %}{{ not a }}`,
-		expected: `non-bool constant a not allowed with operator not`,
+		expected: ok,
 		opts: &compiler.Options{
 			RelaxedBoolean: true,
 		},
@@ -182,7 +182,7 @@ var templateCases = []struct {
 
 	{
 		src:      `{% if 20 %}{% end %}`,
-		expected: `non-bool constant 20 cannot be used as if condition`,
+		expected: ``,
 		opts: &compiler.Options{
 			RelaxedBoolean: true,
 		},

@@ -164,7 +164,7 @@ func (c1 boolConst) representedBy(typ reflect.Type) (constant, error) {
 }
 
 func (c1 boolConst) zero() bool {
-	return bool(c1)
+	return !bool(c1)
 }
 
 func (c1 boolConst) real() constant {

@@ -394,8 +394,12 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			if t.Nil() {
 				panic(tc.errorf(expr, "invalid operation: %s (operator '%s' not defined on nil)", expr, expr.Op))
 			}
-			if t.IsConstant() && t.Type.Kind() != reflect.Bool {
-				panic(tc.errorf(expr.Expr, "non-bool constant %s not allowed with operator not", expr.Expr))
+			if t.IsConstant() {
+				return &typeInfo{
+					Constant:   boolConst(t.Constant.zero()),
+					Properties: propertyUntyped,
+					Type:       boolType,
+				}
 			}
 			// If the operand has kind bool then the operator is replaced with
 			// '!', else the operator is replaced with an unary operator that
@@ -426,13 +430,27 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			if t1.Nil() || t2.Nil() {
 				panic(tc.errorf(expr, "invalid operation: %s (operator '%s' not defined on nil)", expr, expr.Op))
 			}
-			// Non-boolean constant expressions are not allowed in left or right
-			// side of the 'and' and 'or' operator.
-			if t1.IsConstant() && t1.Type.Kind() != reflect.Bool {
-				panic(tc.errorf(expr.Expr1, "non-bool constant %s not allowed with operator %s", expr.Expr1, expr.Op))
+			if t1.IsConstant() && t2.IsConstant() {
+				nz1 := !t1.Constant.zero()
+				nz2 := !t2.Constant.zero()
+				var nz bool
+				if expr.Op == ast.OperatorRelaxedAnd {
+					nz = nz1 && nz2
+				} else {
+					nz = nz1 || nz2
+				}
+				c := &typeInfo{
+					Constant:   boolConst(nz),
+					Properties: propertyUntyped,
+					Type:       boolType,
+				}
+				return c
 			}
-			if t2.IsConstant() && t2.Type.Kind() != reflect.Bool {
-				panic(tc.errorf(expr.Expr2, "non-bool constant %s not allowed with operator %s", expr.Expr2, expr.Op))
+			if t1.IsConstant() {
+				t1.setValue(nil)
+			}
+			if t2.IsConstant() {
+				t2.setValue(nil)
 			}
 			// Replace the non-boolean expressions with an unary operator that
 			// returns true only if the value is not the zero of its type.
