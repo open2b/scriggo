@@ -7,17 +7,25 @@
 {% if false %}bad{% else %}(if false){% end %}
 {% if not false %}if not false{% end %}
 
-## Integers.
+## Numbers.
 
 {% i1 := 42 %}{% if i1 %}if i1{% end %}
 {% i2 := -300 %}{% if i2 %}if i2{% end %}
 {% i3 := 0 %}{% if i3 %}bad{% else %}(if i3){% end %}
+{% if 20 %}if 20{% end %}
+{% if -20 %}if -20{% end %}
+{% if -20.02 %}if -20.02{% end %}
+{% if 0 %}bad{% else %}(if 0){% end %}
+{% if 0.0 %}bad{% else %}(if 0.0){% end %}
+{% if -0.0 %}bad{% else %}(if -0.0){% end %}
 
 {# strings #}
 {% s3 := "something" %}{% if s3 %}if s3{% end %}
 {% if not s3 %}bad{% else %}(if not s3){% end %}
 {% s1 := "" %}{% if s1 %}bad{% else %}(if s1){% end %}
 {% s2 := "" %}{% if not s2 %}if not s2{% end %}
+{% if "x" %}if "x"{% end %}
+{% if "" %}bad{% else %}(if ""){% end %}
 
 {# slices #}
 {% if []int{1, 2, 3} %}if []int{1, 2, 3}{% end %}

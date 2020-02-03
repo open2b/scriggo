@@ -5,16 +5,24 @@ if true
 (if false)
 if not false
 
-## Integers.
+## Numbers.
 
 if i1
 if i2
 (if i3)
+if 20
+if -20
+if -20.02
+(if 0)
+(if 0.0)
+(if -0.0)
 
 if s3
 (if not s3)
 (if s1)
 if not s2
+if "x"
+(if "")
 
 if []int{1, 2, 3}
 if []int{}
