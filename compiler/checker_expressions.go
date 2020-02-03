@@ -293,34 +293,6 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		}
 
 	case *ast.UnaryOperator:
-		// Handle 'not a' expressions.
-		if expr.Op == ast.OperatorRelaxedNot {
-			ti := tc.checkExpr(expr.Expr)
-			// Non-boolean constant expressions are not allowed as operand of
-			// 'not' operator.
-			if ti.IsConstant() && ti.Type.Kind() != reflect.Bool {
-				panic(tc.errorf(expr.Expr, "non-bool constant %s not allowed with operator not", expr.Expr))
-			}
-			// If the operand has kind bool then the operator is replaced with
-			// '!', else the operator is replaced with an unary operator that
-			// returns true only if the value is the zero of its type. In the
-			// former case the syntax `not a` it's semantically equivalent to
-			// `!a`.
-			if ti.Type.Kind() == reflect.Bool {
-				expr.Op = ast.OperatorNot
-			} else {
-				expr.Op = internalOperatorZero
-			}
-		}
-		// Handle the 'zero' and the 'notZero' internal operators.
-		if expr.Op == internalOperatorZero || expr.Op == internalOperatorNotZero {
-			ti := tc.checkExpr(expr.Expr)
-			ti.setValue(nil)
-			return &typeInfo{
-				Type:       boolType,
-				Properties: propertyUntyped,
-			}
-		}
 		t := tc.checkExprOrType(expr.Expr)
 		if t.IsType() {
 			if expr.Op == ast.OperatorPointer {
@@ -418,6 +390,27 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				panic(tc.errorf(expr, "invalid operation: %s (receive from send-only type %s)", s, t.Type))
 			}
 			ti.Type = t.Type.Elem()
+		case ast.OperatorRelaxedNot:
+			if t.IsConstant() && t.Type.Kind() != reflect.Bool {
+				panic(tc.errorf(expr.Expr, "non-bool constant %s not allowed with operator not", expr.Expr))
+			}
+			// If the operand has kind bool then the operator is replaced with
+			// '!', else the operator is replaced with an unary operator that
+			// returns true only if the value is the zero of its type. In the
+			// former case the syntax `not a` it's semantically equivalent to
+			// `!a`.
+			if t.Type.Kind() == reflect.Bool {
+				expr.Op = ast.OperatorNot
+			} else {
+				expr.Op = internalOperatorZero
+			}
+			ti.Type = boolType
+			ti.setValue(nil)
+			return ti
+		case internalOperatorZero, internalOperatorNotZero:
+			ti.Type = boolType
+			ti.setValue(nil)
+			return ti
 		}
 		return ti
 
