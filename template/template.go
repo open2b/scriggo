@@ -8,6 +8,7 @@ package template
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -16,6 +17,20 @@ import (
 	"scriggo/compiler"
 	"scriggo/compiler/ast"
 	"scriggo/runtime"
+)
+
+var (
+	// ErrInvalidPath is returned from the Load function and a Reader when the
+	// path argument is not valid.
+	ErrInvalidPath = errors.New("scritto: invalid path")
+
+	// ErrNotExist is returned from the Load function when the path does not
+	// exist.
+	ErrNotExist = errors.New("scritto: path does not exist")
+
+	// ErrReadTooLarge is returned from the Load function when a limit is
+	// exceeded reading a path.
+	ErrReadTooLarge = errors.New("scritto: read too large")
 )
 
 // HTMStringer is implemented by values that are not escaped in HTML context.
