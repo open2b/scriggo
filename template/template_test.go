@@ -285,7 +285,7 @@ func TestRenderExpressions(t *testing.T) {
 	for _, cas := range rendererExprTests {
 		t.Run(cas.src, func(t *testing.T) {
 			r := MapReader{"index.html": []byte("{{" + cas.src + "}}")}
-			templ, err := Load("index.html", r, nil, ContextText, nil)
+			templ, err := Load("index.html", r, nil, LanguageText, nil)
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
@@ -508,7 +508,7 @@ func TestRenderStatements(t *testing.T) {
 	for _, cas := range rendererStmtTests {
 		t.Run(cas.src, func(t *testing.T) {
 			r := MapReader{"index.html": []byte(cas.src)}
-			templ, err := Load("index.html", r, nil, ContextText, nil)
+			templ, err := Load("index.html", r, nil, LanguageText, nil)
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
@@ -664,7 +664,7 @@ var templateMultiPageCases = map[string]struct {
 	expected   string                 // default to ""
 	main       *scriggo.MapPackage    // default to nil
 	vars       map[string]interface{} // default to nil
-	ctx        Context                // default to ContextText
+	lang       Language               // default to LanguageText
 	entryPoint string                 // default to "index.html"
 }{
 
@@ -1165,7 +1165,7 @@ var templateMultiPageCases = map[string]struct {
 			"includes/products.html": `{% macro M(s []int) %}{% end %}`,
 		},
 		expected:   "\n",
-		ctx:        ContextHTML,
+		lang:       LanguageHTML,
 		entryPoint: "product.html",
 	},
 
@@ -1174,7 +1174,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.html": `text{% macro M(s []int) %}{% end %}text`,
 		},
 		expected: `texttext`,
-		ctx:      ContextHTML,
+		lang:     LanguageHTML,
 	},
 
 	"https://github.com/open2b/scriggo/issues/392 (invalid memory address)": {
@@ -1182,7 +1182,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.html": `{% macro M(s []int) %}{% end %}text`,
 		},
 		expected: `text`,
-		ctx:      ContextHTML,
+		lang:     LanguageHTML,
 	},
 
 	"https://github.com/open2b/scriggo/issues/393": {
@@ -1192,7 +1192,7 @@ var templateMultiPageCases = map[string]struct {
 			"includes/products.html": `{% macro M(s []int) %}{% end %}`,
 		},
 		expected:   "",
-		ctx:        ContextHTML,
+		lang:       LanguageHTML,
 		entryPoint: "product.html",
 	},
 	"Auto imported packages - Function call": {
@@ -1290,7 +1290,7 @@ func TestMultiPageTemplate(t *testing.T) {
 			if entryPoint == "" {
 				entryPoint = "index.html"
 			}
-			templ, err := Load(entryPoint, r, builtins, cas.ctx, nil)
+			templ, err := Load(entryPoint, r, builtins, cas.lang, nil)
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}

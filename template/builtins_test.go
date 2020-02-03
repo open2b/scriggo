@@ -25,7 +25,7 @@ type builtinTest struct {
 	vars Vars
 }
 
-var rendererBuiltinTestsInHTMLContext = []builtinTest{
+var rendererBuiltinTestsInHTMLLanguage = []builtinTest{
 	// Hasher
 	{"{% var a Hasher %}{{ a }}", "0", nil},
 
@@ -367,10 +367,10 @@ var rendererBuiltinTestsInHTMLContext = []builtinTest{
 	{"{{ trimSuffix(`bb a`, `a`) }}", "bb ", nil},
 }
 
-func TestRenderBuiltinInHTMLContext(t *testing.T) {
-	for _, expr := range rendererBuiltinTestsInHTMLContext {
+func TestRenderBuiltinInHTMLLanguage(t *testing.T) {
+	for _, expr := range rendererBuiltinTestsInHTMLLanguage {
 		r := MapReader{"index.html": []byte(expr.src)}
-		tmpl, err := Load("index.html", r, mainPackage(expr.vars), ContextHTML, &LoadOptions{LimitMemorySize: true})
+		tmpl, err := Load("index.html", r, mainPackage(expr.vars), LanguageHTML, &LoadOptions{LimitMemorySize: true})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -388,7 +388,7 @@ func TestRenderBuiltinInHTMLContext(t *testing.T) {
 	}
 }
 
-var rendererBuiltinTestsInJavaScriptContext = []builtinTest{
+var rendererBuiltinTestsInJavaScriptLanguage = []builtinTest{
 	// Time
 	{"var t = {{ t }};", "var t = new Date(\"2006-01-02T15:04:05.123Z\");", Vars{"t": Time(testTime)}},
 	{"var t = new Date(\"{{ t }}\");", "var t = new Date(\"2006-01-02 15:04:05.123456 +0000 UTC\");", Vars{"t": Time(testTime)}},
@@ -398,10 +398,10 @@ var rendererBuiltinTestsInJavaScriptContext = []builtinTest{
 	{"var t = new Date(\"{{ t }}\");", "var t = new Date(\"2006-01-02 15:04:05.123456789 -0800 PST\");", Vars{"t": Time(testTime3)}},
 }
 
-func TestRenderBuiltinInJavaScriptContext(t *testing.T) {
-	for _, expr := range rendererBuiltinTestsInJavaScriptContext {
+func TestRenderBuiltinInJavaScriptLanguage(t *testing.T) {
+	for _, expr := range rendererBuiltinTestsInJavaScriptLanguage {
 		r := MapReader{"index.html": []byte(expr.src)}
-		tmpl, err := Load("index.html", r, mainPackage(expr.vars), ContextJavaScript, &LoadOptions{LimitMemorySize: true})
+		tmpl, err := Load("index.html", r, mainPackage(expr.vars), LanguageJavaScript, &LoadOptions{LimitMemorySize: true})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -458,7 +458,7 @@ var rendererRandomBuiltinTests = []struct {
 func TestRenderRandomBuiltin(t *testing.T) {
 	for _, expr := range rendererRandomBuiltinTests {
 		r := MapReader{"index.html": []byte(expr.src)}
-		tmpl, err := Load("index.html", r, mainPackage(expr.vars), ContextHTML, &LoadOptions{LimitMemorySize: true})
+		tmpl, err := Load("index.html", r, mainPackage(expr.vars), LanguageHTML, &LoadOptions{LimitMemorySize: true})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue

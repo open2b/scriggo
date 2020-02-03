@@ -178,7 +178,7 @@ func TestURLEscape(t *testing.T) {
 	for _, cas := range urlEscapeCases {
 		t.Run("", func(t *testing.T) {
 			r := MapReader{"index.html": []byte(cas.src)}
-			templ, err := Load("index.html", r, Builtins(), ContextHTML, nil)
+			templ, err := Load("index.html", r, Builtins(), LanguageHTML, nil)
 			if err != nil {
 				t.Fatalf("compilation error: %s", err)
 			}

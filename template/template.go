@@ -70,19 +70,18 @@ func (js JavaScript) JavaScript() string {
 	return string(js)
 }
 
-// Context indicates the type of source that has to be rendered and controls
-// how to escape the values to render.
-type Context int
+// A Language represents a source language.
+type Language int
 
 const (
-	ContextText       = Context(ast.ContextText)
-	ContextHTML       = Context(ast.ContextHTML)
-	ContextCSS        = Context(ast.ContextCSS)
-	ContextJavaScript = Context(ast.ContextJavaScript)
+	LanguageText       = Language(ast.LanguageText)
+	LanguageHTML       = Language(ast.LanguageHTML)
+	LanguageCSS        = Language(ast.LanguageCSS)
+	LanguageJavaScript = Language(ast.LanguageJavaScript)
 )
 
-func (ctx Context) String() string {
-	return ast.Context(ctx).String()
+func (language Language) String() string {
+	return ast.Language(language).String()
 }
 
 type LoadOptions struct {
@@ -114,7 +113,7 @@ type CompilerError interface {
 // Load loads a template given its path. Load calls the method Read of reader
 // to read the files of the template. Package main declares constants, types,
 // variables and functions that are accessible from the code in the template.
-func Load(path string, reader Reader, main Package, ctx Context, options *LoadOptions) (*Template, error) {
+func Load(path string, reader Reader, main Package, lang Language, options *LoadOptions) (*Template, error) {
 	compileOpts := compiler.Options{}
 	if options != nil {
 		compileOpts.LimitMemorySize = options.LimitMemorySize
@@ -124,7 +123,7 @@ func Load(path string, reader Reader, main Package, ctx Context, options *LoadOp
 	if main != nil {
 		mainImporter = scriggo.Packages{"main": main}
 	}
-	code, err := compiler.CompileTemplate(path, reader, mainImporter, ast.Context(ctx), compileOpts)
+	code, err := compiler.CompileTemplate(path, reader, mainImporter, ast.Language(lang), compileOpts)
 	if err != nil {
 		if err == compiler.ErrInvalidPath {
 			return nil, ErrInvalidPath
