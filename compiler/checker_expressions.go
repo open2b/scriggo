@@ -301,11 +301,11 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			if ti.IsConstant() && ti.Type.Kind() != reflect.Bool {
 				panic(tc.errorf(expr.Expr, "non-bool constant %s not allowed with operator not", expr.Expr))
 			}
-			// If the operand has kind bool then the operators is replaced with
+			// If the operand has kind bool then the operator is replaced with
 			// '!', else the operator is replaced with an unary operator that
-			// returns true only if the value is the zero of its type.
-			// In the former case the syntax `not a` it's semantically
-			// equivalent to `!a`.
+			// returns true only if the value is the zero of its type. In the
+			// former case the syntax `not a` it's semantically equivalent to
+			// `!a`.
 			if ti.Type.Kind() == reflect.Bool {
 				expr.Op = ast.OperatorNot
 			} else {
