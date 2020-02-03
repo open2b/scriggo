@@ -41,7 +41,7 @@ func ExampleDump() {
 			if language == ast.LanguageGo {
 				tree, err = compiler.ParseSource([]byte(c), true, false)
 			} else {
-				tree, err = compiler.ParseTemplateSource([]byte(c), language)
+				tree, err = compiler.ParseTemplateSource([]byte(c), language, false)
 			}
 			if err != nil {
 				panic(err)

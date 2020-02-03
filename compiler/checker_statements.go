@@ -160,7 +160,23 @@ nodesLoop:
 				panic(tc.errorf(node.Condition, "use of untyped nil"))
 			}
 			if ti.Type.Kind() != reflect.Bool {
-				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, ti.ShortString()))
+				if tc.opts.RelaxedBoolean && tc.opts.SyntaxType == TemplateSyntax {
+					if ti.IsConstant() {
+						c := &typeInfo{
+							Constant:   boolConst(!ti.Constant.zero()),
+							Properties: propertyUntyped,
+							Type:       boolType,
+						}
+						tc.typeInfos[node.Condition] = c
+						ti = c
+					} else {
+						node.Condition = ast.NewUnaryOperator(node.Condition.Pos(), internalOperatorNotZero, node.Condition)
+						ti = tc.checkExpr(node.Condition)
+						tc.typeInfos[node.Condition] = ti
+					}
+				} else {
+					panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, ti.ShortString()))
+				}
 			}
 			ti.setValue(nil)
 			node.Then.Nodes = tc.checkNodesInNewScope(node.Then.Nodes)

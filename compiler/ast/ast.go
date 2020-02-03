@@ -77,6 +77,9 @@ const (
 	OperatorReceive                            // <-
 	OperatorAddress                            // &
 	OperatorPointer                            // *
+	OperatorRelaxedAnd                         // and
+	OperatorRelaxedOr                          // or
+	OperatorRelaxedNot                         // not
 )
 
 type AssignmentType int
@@ -101,7 +104,7 @@ const (
 
 func (op OperatorType) String() string {
 	return []string{"==", "!=", "<", "<=", ">", ">=", "!", "&", "|", "&&", "||",
-		"+", "-", "*", "/", "%", "^", "&^", "<<", ">>", "<-", "&", "*"}[op]
+		"+", "-", "*", "/", "%", "^", "&^", "<<", ">>", "<-", "&", "*", "and", "or", "not"}[op]
 }
 
 // A Language represents a source language.
@@ -860,6 +863,9 @@ func NewUnaryOperator(pos *Position, op OperatorType, expr Expression) *UnaryOpe
 
 func (n *UnaryOperator) String() string {
 	s := n.Op.String()
+	if n.Op == OperatorRelaxedNot {
+		s += " "
+	}
 	if e, ok := n.Expr.(Operator); ok && (n.Op == OperatorReceive || e.Precedence() <= n.Precedence()) {
 		s += "(" + n.Expr.String() + ")"
 	} else {
@@ -925,9 +931,9 @@ func (n *BinaryOperator) Precedence() int {
 	case OperatorEqual, OperatorNotEqual, OperatorLess, OperatorLessEqual,
 		OperatorGreater, OperatorGreaterEqual:
 		return 3
-	case OperatorAnd:
+	case OperatorAnd, OperatorRelaxedAnd:
 		return 2
-	case OperatorOr:
+	case OperatorOr, OperatorRelaxedOr:
 		return 1
 	}
 	panic("invalid operator type")

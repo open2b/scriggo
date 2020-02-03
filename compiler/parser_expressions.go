@@ -188,6 +188,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			tokenAddition,       // +e
 			tokenSubtraction,    // -e
 			tokenNot,            // !e
+			tokenRelaxedNot,     // not e
 			tokenXor,            // ^e
 			tokenMultiplication, // *t, *T
 			tokenAmpersand:      // &e
@@ -414,6 +415,8 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				tokenGreaterOrEqual, // e >=
 				tokenAnd,            // e &&
 				tokenOr,             // e ||
+				tokenRelaxedAnd,     // e and
+				tokenRelaxedOr,      // e or
 				tokenAddition,       // e +
 				tokenSubtraction,    // e -
 				tokenMultiplication, // e *
@@ -657,6 +660,12 @@ func operatorFromTokenType(typ tokenTyp, binary bool) ast.OperatorType {
 		return ast.OperatorAnd
 	case tokenOr:
 		return ast.OperatorOr
+	case tokenRelaxedAnd:
+		return ast.OperatorRelaxedAnd
+	case tokenRelaxedOr:
+		return ast.OperatorRelaxedOr
+	case tokenRelaxedNot:
+		return ast.OperatorRelaxedNot
 	case tokenAddition:
 		return ast.OperatorAddition
 	case tokenSubtraction:

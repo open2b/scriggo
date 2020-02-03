@@ -68,33 +68,177 @@ var templateCases = []struct {
 		src:      `{% show M %}`,
 		expected: `undefined: M`,
 	},
-	{
-		src:      `{% show M or error %}`,
-		expected: `undefined: M`,
-	},
-	{
-		src:      `{% show M or ignore %}`,
-		expected: ok,
-	},
+
+	// https://github.com/open2b/scriggo/issues/560
+
+	// {
+	// 	src:      `{% show M or error %}`,
+	// 	expected: `undefined: M`,
+	// },
+	// {
+	// 	src:      `{% show M or ignore %}`,
+	// 	expected: ok,
+	// },
 
 	{
 		src:      `{% a := 10 %}{% a %}`,
 		expected: `a evaluated but not used`,
 	},
 
+	// https://github.com/open2b/scriggo/issues/560
+
+	// {
+	// 	src:      `{% show M or todo %}`,
+	// 	expected: ok,
+	// 	opts: &compiler.Options{
+	// 		TemplateFailOnTODO: false,
+	// 	},
+	// },
+
+	// {
+	// 	src:      `{% show M or todo %}`,
+	// 	expected: `macro M is not defined: must be implemented`,
+	// 	opts: &compiler.Options{
+	// 		TemplateFailOnTODO: true,
+	// 	},
+	// },
+
 	{
-		src:      `{% show M or todo %}`,
+		src:      `{% a := 20 %}{{ a and a }}`,
 		expected: ok,
 		opts: &compiler.Options{
-			TemplateFailOnTODO: false,
+			RelaxedBoolean: true,
 		},
 	},
 
 	{
-		src:      `{% show M or todo %}`,
-		expected: `macro M is not defined: must be implemented`,
+		src:      `{% a := 20 %}{{ a or a }}`,
+		expected: ok,
 		opts: &compiler.Options{
-			TemplateFailOnTODO: true,
+			RelaxedBoolean: true,
+		},
+	},
+
+	{
+		src:      `{% a := 20 %}{% b := "" %}{{ a or b and (not b) }}`,
+		expected: ok,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
+
+	{
+		src:      `{% a := 20 %}{{ 3 and a }}`,
+		expected: ok,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
+
+	{
+		src:      `{% a := 20 %}{{ 3 or a }}`,
+		expected: ok,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
+
+	{
+		src:      `{% const a = 20 %}{{ not a }}`,
+		expected: ok,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
+
+	{
+		src:      `{% a := true %}{% b := true %}{{ a and b or b and b }}`,
+		expected: ok,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
+
+	{
+		src:      `{% n := 10 %}{% var a bool = not n %}`,
+		expected: ok,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
+
+	{
+		src:      `{% a := []int(nil) %}{% if a %}{% end %}`,
+		expected: ``,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
+
+	{
+		src:      `{% a := []int(nil) %}{% if a %}{% end %}`,
+		expected: `non-bool a (type []int) used as if condition`,
+	},
+
+	{
+		src:      `{% if 20 %}{% end %}`,
+		expected: ``,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
+
+	{
+		src:      `{{ true and nil }}`,
+		expected: `invalid operation: true and nil (operator 'and' not defined on nil)`,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
+
+	{
+		src:      `{{ nil and false }}`,
+		expected: `invalid operation: nil and false (operator 'and' not defined on nil)`,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
+
+	{
+		src:      `{{ true or nil }}`,
+		expected: `invalid operation: true or nil (operator 'or' not defined on nil)`,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
+
+	{
+		src:      `{{ not nil }}`,
+		expected: `invalid operation: not nil (operator 'not' not defined on nil)`,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
+
+	{
+		src:      `{% v := 10 %}{{ v and nil }}`,
+		expected: `invalid operation: v and nil (operator 'and' not defined on nil)`,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
+		},
+	},
+
+	{
+		// Check that the 'and' operator returns an untyped bool even if its two
+		// operands are both typed booleans. The same applies to the 'or' and
+		// 'not' operators.
+		src: `
+			{% type Bool bool %}
+			{% var _ bool = Bool(true) and Bool(false) %}
+		`,
+		expected: ok,
+		opts: &compiler.Options{
+			RelaxedBoolean: true,
 		},
 	},
 }

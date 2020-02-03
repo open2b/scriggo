@@ -1,0 +1,35 @@
+{# compile #}
+
+{% s := "" %}
+{% i := 0 %}
+{% const c = true %}
+
+{{ true and true }}
+{{ true and false }}
+{{ true and 10 }}
+{{ -20 and 10 }}
+{{ "" and 10 }}
+{{ "" and (not false) }}
+{{ "" and (not not not not true) }}
+{{ "something" and (not not not not true) }}
+{{ s and 10 }}
+{{ 10 and s }}
+{{ (10 + i) and s }}
+{{ (10 + i) and (s + s) }}
+{{ (10 + i) and (s + s) }}
+{{ c and not c }}
+
+{{ true or true }}
+{{ true or false }}
+{{ true or 10 }}
+{{ -20 or 10 }}
+{{ "" or 10 }}
+{{ "" or (not false) }}
+{{ "" or (not not not not true) }}
+{{ "something" or (not not not not true) }}
+{{ s or 10 }}
+{{ 10 or s }}
+{{ (10 + i) or s }}
+{{ (10 + i) or (s + s) }}
+{{ (10 + i) or (s + s) }}
+{{ c or not c }}

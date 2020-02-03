@@ -27,6 +27,18 @@ import (
 	"scriggo/runtime"
 )
 
+// internalOperatorZero and internalOperatorNotZero are two internal operators
+// that are inserted in the tree by the type checker and that are handled by the
+// emitter as two unary operators that return true if the operand is,
+// respectively, the zero or not the zero of its type.
+//
+// As a special case, if the operand is an interface type then its value is
+// compared with the zero of the dynamic type of the interface.
+const (
+	internalOperatorZero ast.OperatorType = ast.OperatorRelaxedNot + iota + 1
+	internalOperatorNotZero
+)
+
 // Options represents a set of options used during the compilation.
 type Options struct {
 	AllowShebangLine   bool
@@ -34,6 +46,7 @@ type Options struct {
 	LimitMemorySize    bool
 	PackageLess        bool
 	TemplateFailOnTODO bool
+	RelaxedBoolean     bool
 	TreeTransformer    func(*ast.Tree) error
 }
 
@@ -71,6 +84,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 	checkerOpts := checkerOptions{PackageLess: opts.PackageLess}
 	checkerOpts.DisallowGoStmt = opts.DisallowGoStmt
 	checkerOpts.SyntaxType = ProgramSyntax
+	checkerOpts.RelaxedBoolean = opts.RelaxedBoolean
 	tci, err := typecheck(tree, importer, checkerOpts)
 	if err != nil {
 		return nil, err
@@ -105,7 +119,7 @@ func CompileTemplate(path string, r Reader, main PackageLoader, lang ast.Languag
 
 	// Parse the source code.
 	var err error
-	tree, err = ParseTemplate(path, r, lang)
+	tree, err = ParseTemplate(path, r, lang, opts.RelaxedBoolean)
 	if err != nil {
 		return nil, err
 	}
@@ -125,6 +139,7 @@ func CompileTemplate(path string, r Reader, main PackageLoader, lang ast.Languag
 		FailOnTODO:     opts.TemplateFailOnTODO,
 		PackageLess:    opts.PackageLess,
 		SyntaxType:     TemplateSyntax,
+		RelaxedBoolean: opts.RelaxedBoolean,
 	}
 	tci, err := typecheck(tree, main, checkerOpts)
 	if err != nil {

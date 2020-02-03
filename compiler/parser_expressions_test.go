@@ -113,6 +113,42 @@ var exprTests = []struct {
 	{"1>=2", ast.NewBinaryOperator(p(1, 2, 0, 3), ast.OperatorGreaterEqual, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 4, 3, 3), ast.IntLiteral, "2"))},
 	{"a&&b", ast.NewBinaryOperator(p(1, 2, 0, 3), ast.OperatorAnd, ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 3), "b"))},
 	{"a||b", ast.NewBinaryOperator(p(1, 2, 0, 3), ast.OperatorOr, ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 3), "b"))},
+	{"a and b", ast.NewBinaryOperator(p(1, 3, 0, 6), ast.OperatorRelaxedAnd,
+		ast.NewIdentifier(p(1, 1, 0, 0), "a"),
+		ast.NewIdentifier(p(1, 7, 6, 6), "b")),
+	},
+	{"a or b", ast.NewBinaryOperator(p(1, 3, 0, 5), ast.OperatorRelaxedOr,
+		ast.NewIdentifier(p(1, 1, 0, 0), "a"),
+		ast.NewIdentifier(p(1, 6, 5, 5), "b"),
+	)},
+	{"a or not b", ast.NewBinaryOperator(p(1, 3, 0, 9),
+		ast.OperatorRelaxedOr,
+		ast.NewIdentifier(p(1, 1, 0, 0), "a"),
+		ast.NewUnaryOperator(
+			p(1, 6, 5, 9),
+			ast.OperatorRelaxedNot,
+			ast.NewIdentifier(p(1, 10, 9, 9), "b"),
+		),
+	)},
+	{"[]int{} and !x.F", ast.NewBinaryOperator(
+		p(1, 9, 0, 15),
+		ast.OperatorRelaxedAnd,
+		ast.NewCompositeLiteral(
+			p(1, 6, 0, 6),
+			ast.NewSliceType(p(1, 1, 0, 4), ast.NewIdentifier(p(1, 3, 2, 4), "int")),
+			nil,
+		),
+		ast.NewUnaryOperator(
+			p(1, 13, 12, 15),
+			ast.OperatorNot,
+			ast.NewSelector(
+				p(1, 15, 13, 15),
+				ast.NewIdentifier(p(1, 14, 13, 13), "x"),
+				"F",
+			),
+		),
+	)},
+
 	{"1&2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorBitAnd, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 3, 2, 2), ast.IntLiteral, "2"))},
 	{"1|2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorBitOr, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 3, 2, 2), ast.IntLiteral, "2"))},
 	{"1^2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorXor, ast.NewBasicLiteral(p(1, 1, 0, 0), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 3, 2, 2), ast.IntLiteral, "2"))},
@@ -581,7 +617,7 @@ var exprTests = []struct {
 
 func TestExpressions(t *testing.T) {
 	for _, expr := range exprTests {
-		var lex = newLexer([]byte("{{"+expr.src+"}}"), ast.ContextText)
+		var lex = newLexer([]byte("{{"+expr.src+"}}"), ast.ContextText, true)
 		<-lex.tokens
 		func() {
 			defer func() {

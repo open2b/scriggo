@@ -390,10 +390,85 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				panic(tc.errorf(expr, "invalid operation: %s (receive from send-only type %s)", s, t.Type))
 			}
 			ti.Type = t.Type.Elem()
+		case ast.OperatorRelaxedNot:
+			if t.Nil() {
+				panic(tc.errorf(expr, "invalid operation: %s (operator '%s' not defined on nil)", expr, expr.Op))
+			}
+			if t.IsConstant() {
+				return &typeInfo{
+					Constant:   boolConst(t.Constant.zero()),
+					Properties: propertyUntyped,
+					Type:       boolType,
+				}
+			}
+			// If the operand has kind bool then the operator is replaced with
+			// '!', else the operator is replaced with an unary operator that
+			// returns true only if the value is the zero of its type. In the
+			// former case the syntax `not a` it's semantically equivalent to
+			// `!a`.
+			if t.Type.Kind() == reflect.Bool {
+				expr.Op = ast.OperatorNot
+			} else {
+				expr.Op = internalOperatorZero
+			}
+			ti.Type = boolType
+			ti.setValue(nil)
+			return ti
+		case internalOperatorZero, internalOperatorNotZero:
+			ti.Type = boolType
+			ti.setValue(nil)
+			return ti
 		}
 		return ti
 
 	case *ast.BinaryOperator:
+
+		// Handle 'a and b' and 'a or b' expressions.
+		if expr.Op == ast.OperatorRelaxedAnd || expr.Op == ast.OperatorRelaxedOr {
+			t1 := tc.checkExpr(expr.Expr1)
+			t2 := tc.checkExpr(expr.Expr2)
+			if t1.Nil() || t2.Nil() {
+				panic(tc.errorf(expr, "invalid operation: %s (operator '%s' not defined on nil)", expr, expr.Op))
+			}
+			if t1.IsConstant() && t2.IsConstant() {
+				nz1 := !t1.Constant.zero()
+				nz2 := !t2.Constant.zero()
+				var nz bool
+				if expr.Op == ast.OperatorRelaxedAnd {
+					nz = nz1 && nz2
+				} else {
+					nz = nz1 || nz2
+				}
+				c := &typeInfo{
+					Constant:   boolConst(nz),
+					Properties: propertyUntyped,
+					Type:       boolType,
+				}
+				return c
+			}
+			if t1.IsConstant() {
+				t1.setValue(nil)
+			}
+			if t2.IsConstant() {
+				t2.setValue(nil)
+			}
+			// Replace the non-boolean expressions with an unary operator that
+			// returns true only if the value is not the zero of its type.
+			if t1.Type.Kind() != reflect.Bool {
+				expr.Expr1 = ast.NewUnaryOperator(expr.Expr1.Pos(), internalOperatorNotZero, expr.Expr1)
+			}
+			if t2.Type.Kind() != reflect.Bool {
+				expr.Expr2 = ast.NewUnaryOperator(expr.Expr2.Pos(), internalOperatorNotZero, expr.Expr2)
+			}
+			// Change the 'and' and 'or' operator to '&&' and '||', because the
+			// two expressions are now both booleans.
+			if expr.Op == ast.OperatorRelaxedAnd {
+				expr.Op = ast.OperatorAnd
+			} else {
+				expr.Op = ast.OperatorOr
+			}
+		}
+
 		t, err := tc.binaryOp(expr.Expr1, expr.Op, expr.Expr2)
 		if err != nil {
 			if err == errDivisionByZero {

@@ -1238,15 +1238,19 @@ var treeTests = []struct {
 	{"{% show a(b,c...) %}", ast.NewTree("", []ast.Node{
 		ast.NewShowMacro(p(1, 4, 3, 16), ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Expression{
 			ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")}, true, ast.ShowMacroOrError, ast.ContextHTML)}, ast.LanguageHTML)},
-	{"{% show M or todo %}", ast.NewTree("", []ast.Node{
-		ast.NewShowMacro(p(1, 4, 3, 16), ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrTodo, ast.ContextHTML),
-	}, ast.LanguageHTML)},
-	{"{% show M    or  ignore    %}", ast.NewTree("", []ast.Node{
-		ast.NewShowMacro(p(1, 4, 3, 22), ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrIgnore, ast.ContextHTML),
-	}, ast.LanguageHTML)},
-	{"{% show M  or  error %}", ast.NewTree("", []ast.Node{
-		ast.NewShowMacro(p(1, 4, 3, 19), ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrError, ast.ContextHTML),
-	}, ast.LanguageHTML)},
+
+	// https://github.com/open2b/scriggo/issues/560
+
+	// {"{% show M or todo %}", ast.NewTree("", []ast.Node{
+	// 	ast.NewShowMacro(p(1, 4, 3, 16), ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrTodo, ast.ContextHTML),
+	// }, ast.ContextHTML)},
+	// {"{% show M    or  ignore    %}", ast.NewTree("", []ast.Node{
+	// 	ast.NewShowMacro(p(1, 4, 3, 22), ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrIgnore, ast.ContextHTML),
+	// }, ast.ContextHTML)},
+	// {"{% show M  or  error %}", ast.NewTree("", []ast.Node{
+	// 	ast.NewShowMacro(p(1, 4, 3, 19), ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrError, ast.ContextHTML),
+	// }, ast.ContextHTML)},
+
 	{"{% for v in e %}b{% end for %}", ast.NewTree("", []ast.Node{
 		ast.NewForRange(p(1, 4, 3, 26), ast.NewAssignment(p(1, 8, 7, 12), []ast.Expression{
 			ast.NewIdentifier(p(1, 8, 7, 7), "_"), ast.NewIdentifier(p(1, 8, 7, 7), "v")},
@@ -1477,7 +1481,7 @@ func TestShebang(t *testing.T) {
 
 func TestTrees(t *testing.T) {
 	for _, tree := range treeTests {
-		node, err := ParseTemplateSource([]byte(tree.src), ast.LanguageHTML)
+		node, err := ParseTemplateSource([]byte(tree.src), ast.LanguageHTML, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", tree.src, err)
 			continue

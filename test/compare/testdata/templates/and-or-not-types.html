@@ -1,0 +1,29 @@
+{# compile #}
+
+{% type Bool bool %}
+{% type Int int %}
+{% type SliceByte []byte %}
+
+{{ not Bool(true) }}
+{{ not not not not not not not Bool(true) }}
+{{ Bool(true) and Bool(false) }}
+{{ Bool(true) or Bool(false) }}
+{{ not Bool(true) and not Bool(false) }}
+{{ not Bool(true) or not Bool(false) }}
+{{ true and SliceByte(nil) }}
+{{ false or SliceByte(nil) }}
+{{ not Int(10) }}
+{{ not Int(10 + 20) }}
+
+{% True := Bool(true) %}
+{% False := Bool(false) %}
+{{ not True }}
+{{ not not not not not not not True }}
+{{ True and False }}
+{{ True or False }}
+{{ not True and not False }}
+{{ not True or not False }}
+{{ true and SliceByte(nil) }}
+{{ false or SliceByte(nil) }}
+{{ not Int(10) }}
+{{ not Int(10 + 20) }}

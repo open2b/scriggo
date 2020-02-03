@@ -115,6 +115,10 @@ type parsing struct {
 
 	// Ancestors from the root up to the parent.
 	ancestors []ast.Node
+
+	// Support 'and', 'or' and 'not' operators as well as if statements with
+	// non-boolean conditions.
+	relaxedBoolean bool
 }
 
 // addToAncestors adds node to the ancestors.
@@ -157,7 +161,7 @@ func ParseSource(src []byte, isPackageLessProgram, shebang bool) (tree *ast.Tree
 	tree = ast.NewTree("", nil, ast.LanguageGo)
 
 	var p = &parsing{
-		lex:                  newLexer(src, ast.ContextGo),
+		lex:                  newLexer(src, ast.ContextGo, false),
 		language:             ast.LanguageGo,
 		inGo:                 true,
 		isPackageLessProgram: isPackageLessProgram,
@@ -212,7 +216,10 @@ func ParseSource(src []byte, isPackageLessProgram, shebang bool) (tree *ast.Tree
 // JavaScript.
 //
 // ParseTemplateSource does not expand the nodes Extends, Include and Import.
-func ParseTemplateSource(src []byte, lang ast.Language) (tree *ast.Tree, err error) {
+//
+// relaxedBoolean reports whether the operators 'and', 'or' and 'not' as well as
+// non-boolean conditions in the if statement are allowed.
+func ParseTemplateSource(src []byte, lang ast.Language, relaxedBoolean bool) (tree *ast.Tree, err error) {
 
 	if lang < ast.LanguageText || lang > ast.LanguageJavaScript {
 		return nil, errors.New("scriggo: invalid language")
@@ -221,9 +228,10 @@ func ParseTemplateSource(src []byte, lang ast.Language) (tree *ast.Tree, err err
 	tree = ast.NewTree("", nil, lang)
 
 	var p = &parsing{
-		lex:       newLexer(src, ast.Context(lang)),
-		language:  lang,
-		ancestors: []ast.Node{tree},
+		lex:            newLexer(src, ast.Context(lang), relaxedBoolean),
+		language:       lang,
+		ancestors:      []ast.Node{tree},
+		relaxedBoolean: relaxedBoolean,
 	}
 
 	defer func() {

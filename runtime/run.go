@@ -1794,6 +1794,37 @@ func (vm *VM) run() (Addr, bool) {
 		case OpXor, -OpXor:
 			vm.setInt(c, vm.int(a)^vm.intk(b, op < 0))
 
+		// Zero
+		case OpZero:
+			not := false
+			if a >= 10 {
+				a -= 10
+				not = true
+			}
+			zero := true
+			switch registerType(a) {
+			case intRegister:
+				zero = vm.int(b) == 0
+			case floatRegister:
+				zero = vm.float(b) == 0
+			case stringRegister:
+				zero = vm.string(b) == ""
+			case generalRegister:
+				rv := vm.general(b)
+				// rv is not valid when the register addressed by b stores the
+				// nil interface.
+				if rv.IsValid() {
+					// rv.IsZero() also handles values that have static type
+					// interface because the interface is lost when the value is
+					// inserted into the register, so IsZero checks for the zero
+					// of the dynamic type.
+					zero = rv.IsZero()
+				}
+			}
+			if not {
+				zero = !zero
+			}
+			vm.setBool(c, zero)
 		}
 
 	}

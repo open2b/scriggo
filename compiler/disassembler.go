@@ -620,6 +620,24 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + typ.String()
 		s += " " + disassembleOperand(fn, b, reflectToRegisterKind(typ.Kind()), k)
 		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
+	case runtime.OpZero:
+		if a >= 10 {
+			a -= 10
+			s = "NotZero"
+		}
+		var kind reflect.Kind
+		switch registerType(a) {
+		case intRegister:
+			kind = reflect.Int
+		case floatRegister:
+			kind = reflect.Float64
+		case stringRegister:
+			kind = reflect.String
+		case generalRegister:
+			kind = reflect.Interface
+		}
+		s += " " + disassembleOperand(fn, b, kind, false)
+		s += " " + disassembleOperand(fn, c, reflect.Bool, false)
 	}
 	return s
 }
@@ -971,6 +989,8 @@ var operationName = [...]string{
 	runtime.OpTypify: "Typify",
 
 	runtime.OpXor: "Xor",
+
+	runtime.OpZero: "Zero",
 }
 
 var conditionName = [...]string{
