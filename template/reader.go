@@ -24,16 +24,16 @@ type Reader interface {
 }
 
 var (
-	// ErrInvalidPath is returned from the Parse method and a Reader when the
+	// ErrInvalidPath is returned from the Load function and a Reader when the
 	// path argument is not valid.
 	ErrInvalidPath = compiler.ErrInvalidPath
 
-	// ErrNotExist is returned from the Parse method and a Reader when the
-	// path does not exist.
+	// ErrNotExist is returned from the Load function when the path does not
+	// exist.
 	ErrNotExist = compiler.ErrNotExist
 
 	// ErrReadTooLarge is returned from a DirLimitedReader, and consequently
-	// from the Load method, when a limit is exceeded.
+	// from the Load function, when a limit is exceeded.
 	ErrReadTooLarge = errors.New("scritto: read too large")
 )
 
@@ -48,14 +48,7 @@ func (dir DirReader) Read(path string) ([]byte, error) {
 	if !ValidDirReaderPath(path) {
 		return nil, ErrInvalidPath
 	}
-	src, err := ioutil.ReadFile(filepath.Join(string(dir), path))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, ErrNotExist
-		}
-		return nil, err
-	}
-	return src, nil
+	return ioutil.ReadFile(filepath.Join(string(dir), path))
 }
 
 // DirLimitedReader implements a Reader that reads a source from files in a
@@ -99,9 +92,6 @@ func (dr *DirLimitedReader) Read(path string) ([]byte, error) {
 	// Opens the file.
 	f, err := os.Open(filepath.Join(dr.dir, path))
 	if err != nil {
-		if os.IsNotExist(err) {
-			err = ErrNotExist
-		}
 		return nil, err
 	}
 	defer f.Close()
@@ -186,7 +176,7 @@ func (r MapReader) Read(path string) ([]byte, error) {
 	// }
 	src, ok := r[path]
 	if !ok {
-		return nil, ErrNotExist
+		return nil, os.ErrNotExist
 	}
 	return src, nil
 }
