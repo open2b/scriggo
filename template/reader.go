@@ -26,14 +26,14 @@ type Reader interface {
 var (
 	// ErrInvalidPath is returned from the Load function and a Reader when the
 	// path argument is not valid.
-	ErrInvalidPath = compiler.ErrInvalidPath
+	ErrInvalidPath = errors.New("scritto: invalid path")
 
 	// ErrNotExist is returned from the Load function when the path does not
 	// exist.
-	ErrNotExist = compiler.ErrNotExist
+	ErrNotExist = errors.New("scritto: path does not exist")
 
-	// ErrReadTooLarge is returned from a DirLimitedReader, and consequently
-	// from the Load function, when a limit is exceeded.
+	// ErrReadTooLarge is returned from the Load function when a limit is
+	// exceeded reading a path.
 	ErrReadTooLarge = errors.New("scritto: read too large")
 )
 

@@ -105,6 +105,12 @@ func Load(path string, reader Reader, main Package, ctx Context, options *LoadOp
 	}
 	code, err := compiler.CompileTemplate(reader, path, mainImporter, compileOpts)
 	if err != nil {
+		if err == compiler.ErrInvalidPath {
+			return nil, ErrInvalidPath
+		}
+		if err == compiler.ErrNotExist {
+			return nil, ErrNotExist
+		}
 		return nil, err
 	}
 	return &Template{fn: code.Main, globals: code.Globals, options: options}, nil
