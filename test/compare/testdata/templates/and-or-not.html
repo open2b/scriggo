@@ -51,3 +51,17 @@
 {{ not not interface{}([]int{1, 2, 3}) }} []int{1, 2, 3}
 {{ not not interface{}([]int{}) }} []int{}
 {{ not not interface{}([]int(nil)) }} []int(nil)
+
+## SLICES
+
+[]int(nil):           {{ not not ([]int)(nil) }}
+[]int{}:              {{ not not []int{} }}
+[]int{1, 2, 3}:       {{ not not []int{1, 2, 3} }}
+[]string{"", "", ""}: {{ not not []string{"", "", ""} }}
+
+## CHANNELS
+
+(chan int)(nil): {{ not not (chan int)(nil)}}
+(chan []int)(nil): {{ not not (chan []int)(nil)}}
+make(chan string, 0): {{ not not make(chan string, 0) }}
+make(chan string, 10): {{ not not make(chan string, 10) }} 

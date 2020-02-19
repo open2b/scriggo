@@ -29,7 +29,7 @@
 
 {# slices #}
 {% if []int{1, 2, 3} %}if []int{1, 2, 3}{% end %}
-{% if []int{} %}if []int{}{% end %}
+{% if []int{} %}bad{% else %}([]int{}){% end %}
 {% if []int(nil) %}bad{% else %}([]int(nil)){% end %}
 
 {# interfaces #}

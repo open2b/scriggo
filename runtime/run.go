@@ -1814,11 +1814,21 @@ func (vm *VM) run() (Addr, bool) {
 				// rv is not valid when the register addressed by b stores the
 				// nil interface.
 				if rv.IsValid() {
-					// rv.IsZero() also handles values that have static type
-					// interface because the interface is lost when the value is
-					// inserted into the register, so IsZero checks for the zero
-					// of the dynamic type.
+					// Note that rv.IsZero() also handles values that have
+					// static type interface because the interface is lost when
+					// the value is inserted into the register, so IsZero checks
+					// for the zero of the dynamic type.
 					zero = rv.IsZero()
+					// Not-nil channels and slices are zero if they contain
+					// zero elements.
+					if rv.Kind() == reflect.Slice || rv.Kind() == reflect.Chan {
+						// Note that rv.Len() == 0 also handles values that have
+						// static type interface because the interface is lost
+						// when the value is inserted into the register, so
+						// rv.Len() returns the number of elements of the
+						// dynamic value.
+						zero = zero || rv.Len() == 0
+					}
 				}
 			}
 			if not {
