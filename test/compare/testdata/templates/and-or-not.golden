@@ -56,3 +56,10 @@ false []int(nil)
 []int{}:              false
 []int{1, 2, 3}:       true
 []string{"", "", ""}: true
+
+## CHANNELS
+
+(chan int)(nil): false
+(chan []int)(nil): false
+make(chan string, 0): false
+make(chan string, 10): false
