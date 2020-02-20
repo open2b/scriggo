@@ -789,8 +789,7 @@ func (vm *VM) run() (Addr, bool) {
 		// MakeArray
 		case OpMakeArray:
 			t := vm.fn.Types[uint8(b)]
-			// REVIEW: should the generated value be addressable?
-			vm.setGeneral(c, reflect.Zero(t))
+			vm.setGeneral(c, reflect.New(t).Elem())
 
 		// MakeChan
 		case OpMakeChan, -OpMakeChan:
@@ -834,8 +833,7 @@ func (vm *VM) run() (Addr, bool) {
 		// MakeStruct
 		case OpMakeStruct:
 			t := vm.fn.Types[uint8(b)]
-			// REVIEW: should the generated value be addressable?
-			vm.setGeneral(c, reflect.Zero(t))
+			vm.setGeneral(c, reflect.New(t).Elem())
 
 		// MapIndex
 		case OpMapIndex, -OpMapIndex:
