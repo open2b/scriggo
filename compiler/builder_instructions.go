@@ -526,6 +526,28 @@ func (builder *functionBuilder) emitLoadNumber(typ registerType, index, dst int8
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpLoadNumber, A: a, B: index, C: dst})
 }
 
+// emitMakeArray appends a new "MakeArray" instruction to the function body.
+func (builder *functionBuilder) emitMakeArray(typ reflect.Type, dst int8) {
+	if typ.Kind() != reflect.Array {
+		panic("BUG: not an array type")
+	}
+	// NOTE: the code of emitMakeArray, emitMakeStruct and emitNew is very
+	// similar. If you change this code remember to review/change the code of
+	// the other methods.
+	fn := builder.fn
+	b := builder.addType(typ, false)
+	if builder.allocs != nil {
+		bytes := int(typ.Size())
+		if bytes <= maxUint24 {
+			a, b, c := encodeUint24(uint32(bytes))
+			fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, A: a, B: b, C: c})
+		} else {
+			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
+		}
+	}
+	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpMakeArray, B: int8(b), C: dst})
+}
+
 // emitMakeChan appends a new "MakeChan" instruction to the function body.
 //
 //     dst = make(typ, capacity)
@@ -634,6 +656,28 @@ func (builder *functionBuilder) emitMakeSlice(kLen, kCap bool, sliceType reflect
 	}
 }
 
+// emitMakeStruct appends a new "MakeArray" instruction to the function body.
+func (builder *functionBuilder) emitMakeStruct(typ reflect.Type, dst int8) {
+	if typ.Kind() != reflect.Struct {
+		panic("BUG: not a struct type")
+	}
+	// NOTE: the code of emitMakeArray, emitMakeStruct and emitNew is very
+	// similar. If you change this code remember to review/change the code of
+	// the other methods.
+	fn := builder.fn
+	b := builder.addType(typ, false)
+	if builder.allocs != nil {
+		bytes := int(typ.Size())
+		if bytes <= maxUint24 {
+			a, b, c := encodeUint24(uint32(bytes))
+			fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, A: a, B: b, C: c})
+		} else {
+			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
+		}
+	}
+	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpMakeStruct, B: int8(b), C: dst})
+}
+
 // emitMethodValue appends a new "MethodValue" instruction to the function body.
 //
 //     dst = receiver.name
@@ -710,6 +754,9 @@ func (builder *functionBuilder) emitNeg(y, z int8, kind reflect.Kind) {
 //     z = new(t)
 //
 func (builder *functionBuilder) emitNew(typ reflect.Type, z int8) {
+	// NOTE: the code of emitMakeArray, emitMakeStruct and emitNew is very
+	// similar. If you change this code remember to review/change the code of
+	// the other methods.
 	fn := builder.fn
 	b := builder.addType(typ, false)
 	if builder.allocs != nil {

@@ -335,6 +335,8 @@ func (vm *VM) alloc() {
 		if bytes < aLen {
 			panic(OutOfMemoryError{vm.env})
 		}
+	case OpMakeArray:
+		panic("TODO: not implemented") // REVIEW: to implement.
 	case OpMakeChan:
 		typ := vm.fn.Types[uint8(a)]
 		capacity := int(vm.intk(b, k))
@@ -371,6 +373,8 @@ func (vm *VM) alloc() {
 		if bytes < 0 {
 			panic(OutOfMemoryError{vm.env})
 		}
+	case OpMakeStruct:
+		panic("TODO: not implemented") // REVIEW: to implement.
 	case OpNew:
 		t := vm.fn.Types[uint8(b)]
 		bytes = int(t.Size())
@@ -1220,11 +1224,15 @@ const (
 
 	OpLoadNumber
 
+	OpMakeArray
+
 	OpMakeChan
 
 	OpMakeMap
 
 	OpMakeSlice
+
+	OpMakeStruct
 
 	OpMapIndex
 
