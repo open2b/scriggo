@@ -497,15 +497,10 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			s += " " + fmt.Sprintf("%f", fn.Constants.Float[uint8(b)])
 			s += " " + disassembleOperand(fn, c, reflect.Float64, false)
 		}
-	case runtime.OpMakeArray,
-		runtime.OpMakeStruct:
+	case runtime.OpMakeArray, runtime.OpMakeStruct, runtime.OpNew:
 		s += " " + fn.Types[int(uint(b))].String()
 		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
-	case runtime.OpMakeChan:
-		s += " " + fn.Types[int(uint(a))].String()
-		s += " " + disassembleOperand(fn, b, reflect.Int, k)
-		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
-	case runtime.OpMakeMap:
+	case runtime.OpMakeChan, runtime.OpMakeMap:
 		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, b, reflect.Int, k)
 		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
@@ -548,9 +543,6 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		}
 		s += " " + disassembleOperand(fn, b, kind, false)
 		s += " " + disassembleOperand(fn, c, kind, false)
-	case runtime.OpNew:
-		s += " " + fn.Types[int(uint(b))].String()
-		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpRange:
 		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 		s += " " + disassembleOperand(fn, b, reflect.Int, false)
