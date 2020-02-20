@@ -786,6 +786,11 @@ func (vm *VM) run() (Addr, bool) {
 				vm.setFloat(c, vm.fn.Constants.Float[uint8(b)])
 			}
 
+		// MakeArray
+		case OpMakeArray:
+			t := vm.fn.Types[uint8(b)]
+			vm.setGeneral(c, reflect.New(t).Elem())
+
 		// MakeChan
 		case OpMakeChan, -OpMakeChan:
 			typ := vm.fn.Types[uint8(a)]
@@ -824,6 +829,11 @@ func (vm *VM) run() (Addr, bool) {
 			if b > 0 {
 				vm.pc++
 			}
+
+		// MakeStruct
+		case OpMakeStruct:
+			t := vm.fn.Types[uint8(b)]
+			vm.setGeneral(c, reflect.New(t).Elem())
 
 		// MapIndex
 		case OpMapIndex, -OpMapIndex:

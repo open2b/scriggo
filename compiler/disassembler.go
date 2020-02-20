@@ -497,6 +497,10 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			s += " " + fmt.Sprintf("%f", fn.Constants.Float[uint8(b)])
 			s += " " + disassembleOperand(fn, c, reflect.Float64, false)
 		}
+	case runtime.OpMakeArray,
+		runtime.OpMakeStruct:
+		s += " " + fn.Types[int(uint(b))].String()
+		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpMakeChan:
 		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, b, reflect.Int, k)
@@ -912,11 +916,15 @@ var operationName = [...]string{
 
 	runtime.OpLoadNumber: "LoadNumber",
 
+	runtime.OpMakeArray: "MakeArray",
+
 	runtime.OpMakeChan: "MakeChan",
 
 	runtime.OpMakeMap: "MakeMap",
 
 	runtime.OpMakeSlice: "MakeSlice",
+
+	runtime.OpMakeStruct: "MakeStruct",
 
 	runtime.OpMapIndex: "MapIndex",
 

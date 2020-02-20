@@ -398,15 +398,33 @@ func (em *emitter) emitValueNotPredefined(ti *typeInfo, reg int8, dstType reflec
 	switch v.Kind() {
 	case reflect.Interface:
 		panic("BUG: not implemented") // remove.
+	case reflect.Array:
+		if canEmitDirectly(typ.Kind(), dstType.Kind()) {
+			em.fb.emitMakeArray(typ, reg)
+			return reg, false
+		}
+		em.fb.enterStack()
+		tmp := em.fb.newRegister(typ.Kind())
+		em.fb.emitMakeArray(typ, tmp)
+		em.changeRegister(false, tmp, reg, typ, dstType)
+		em.fb.exitStack()
+	case reflect.Struct:
+		if canEmitDirectly(typ.Kind(), dstType.Kind()) {
+			em.fb.emitMakeStruct(typ, reg)
+			return reg, false
+		}
+		em.fb.enterStack()
+		tmp := em.fb.newRegister(typ.Kind())
+		em.fb.emitMakeStruct(typ, tmp)
+		em.changeRegister(false, tmp, reg, typ, dstType)
+		em.fb.exitStack()
 	case reflect.Slice,
 		reflect.Complex64,
 		reflect.Complex128,
-		reflect.Array,
 		reflect.Chan,
 		reflect.Func,
 		reflect.Map,
-		reflect.Ptr,
-		reflect.Struct:
+		reflect.Ptr:
 		c := em.fb.makeGeneralConstant(v.Interface())
 		em.changeRegister(true, c, reg, typ, dstType)
 	case reflect.UnsafePointer:

@@ -1,5 +1,3 @@
-// skip : the test pass but it slows down tests execution https://github.com/open2b/scriggo/issues/503
-
 // compile
 
 // Copyright 2011 The Go Authors. All rights reserved.

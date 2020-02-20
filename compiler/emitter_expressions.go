@@ -563,8 +563,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 		if typ.Kind() == reflect.Slice {
 			em.fb.emitMakeSlice(k, k, typ, length8, length8, workingReg, expr.Pos())
 		} else {
-			arrayZero := em.fb.makeGeneralConstant(em.types.New(typ).Elem().Interface())
-			em.changeRegister(true, arrayZero, workingReg, typ, typ)
+			em.fb.emitMakeArray(typ, workingReg)
 		}
 		elemKind := typ.Elem().Kind()
 		var index int64 = -1
@@ -614,13 +613,18 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 			}
 			return reg, false
 		}
-		// TODO: the types instance should be the same of the type checker!
-		structZero := em.fb.makeGeneralConstant(em.types.New(typ).Elem().Interface())
 		// When there are no values in the composite literal, optimize the
 		// creation of the struct.
 		if len(expr.KeyValues) == 0 {
-			em.changeRegister(true, structZero, reg, typ, dstType)
-			return reg, false
+			if canEmitDirectly(typ.Kind(), dstType.Kind()) {
+				em.fb.emitMakeStruct(typ, reg)
+				return reg, false
+			}
+			em.fb.enterStack()
+			tmp := em.fb.newRegister(typ.Kind())
+			em.fb.emitMakeStruct(typ, tmp)
+			em.changeRegister(false, tmp, reg, typ, dstType)
+			em.fb.exitStack()
 		}
 		// Assign key-value pairs to the struct fields.
 		em.fb.enterStack()
@@ -630,7 +634,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 		} else {
 			structt = reg
 		}
-		em.changeRegister(true, structZero, structt, typ, typ)
+		em.fb.emitMakeStruct(typ, structt)
 		for _, kv := range expr.KeyValues {
 			name := kv.Key.(*ast.Identifier).Name
 			field, _ := typ.FieldByName(name)
