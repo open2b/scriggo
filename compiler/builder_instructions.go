@@ -656,7 +656,7 @@ func (builder *functionBuilder) emitMakeSlice(kLen, kCap bool, sliceType reflect
 	}
 }
 
-// emitMakeStruct appends a new "MakeArray" instruction to the function body.
+// emitMakeStruct appends a new "MakeStruct" instruction to the function body.
 func (builder *functionBuilder) emitMakeStruct(typ reflect.Type, dst int8) {
 	if typ.Kind() != reflect.Struct {
 		panic("BUG: not a struct type")

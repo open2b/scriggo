@@ -415,7 +415,7 @@ func (em *emitter) emitValueNotPredefined(ti *typeInfo, reg int8, dstType reflec
 		}
 		em.fb.enterStack()
 		tmp := em.fb.newRegister(typ.Kind())
-		em.fb.emitMakeArray(typ, tmp)
+		em.fb.emitMakeStruct(typ, tmp)
 		em.changeRegister(false, tmp, reg, typ, dstType)
 		em.fb.exitStack()
 	case reflect.Slice,
