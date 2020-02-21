@@ -416,7 +416,7 @@ func (builder *functionBuilder) makeStringConstant(c string) int8 {
 	}
 	r := len(builder.fn.Constants.String)
 	if r > maxStringConstantsCount {
-		panic(newLimitExceededError(builder.fn.Pos, builder.path, "string constants count exceeded %d", maxStringConstantsCount))
+		panic(newLimitExceededError(builder.fn.Pos, builder.path, "string count exceeded %d", maxStringConstantsCount))
 	}
 	builder.fn.Constants.String = append(builder.fn.Constants.String, c)
 	return int8(r)
@@ -462,7 +462,8 @@ func (builder *functionBuilder) makeFloatConstant(c float64) int8 {
 	}
 	r := len(builder.fn.Constants.Float)
 	if r > maxFloatConstantsCount {
-		panic(newLimitExceededError(builder.fn.Pos, builder.path, "float constants count exceeded %d", maxFloatConstantsCount))
+		// REVIEW.
+		panic(newLimitExceededError(builder.fn.Pos, builder.path, "floating-point count exceeded %d", maxFloatConstantsCount))
 	}
 	builder.fn.Constants.Float = append(builder.fn.Constants.Float, c)
 	return int8(r)
@@ -477,7 +478,7 @@ func (builder *functionBuilder) makeIntConstant(c int64) int8 {
 	}
 	r := len(builder.fn.Constants.Int)
 	if r > maxIntConstantsCount {
-		panic(newLimitExceededError(builder.fn.Pos, builder.path, "int constants count exceeded %d", maxIntConstantsCount))
+		panic(newLimitExceededError(builder.fn.Pos, builder.path, "integer count exceeded %d", maxIntConstantsCount))
 	}
 	builder.fn.Constants.Int = append(builder.fn.Constants.Int, c)
 	return int8(r)
