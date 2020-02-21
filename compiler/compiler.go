@@ -383,3 +383,33 @@ func getExtends(nodes []ast.Node) (*ast.Extends, bool) {
 	}
 	return nil, false
 }
+
+type LimitError struct {
+	pos  ast.Position
+	path string
+	msg  string
+}
+
+func (e *LimitError) Position() ast.Position {
+	return e.pos
+}
+
+func (e *LimitError) Path() string {
+	return e.path
+}
+
+func (e *LimitError) Message() string {
+	return e.msg
+}
+
+func (e *LimitError) Error() string {
+	return fmt.Sprintf("%s:%s: limit error: %s", e.path, e.pos, e.msg)
+}
+
+func newLimitError(pos ast.Position, path, message string) *LimitError {
+	return &LimitError{
+		pos:  pos,
+		path: path,
+		msg:  message,
+	}
+}

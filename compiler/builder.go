@@ -236,6 +236,7 @@ func (builder *functionBuilder) newRegister(kind reflect.Kind) int8 {
 	t := kindToType(kind)
 	num := builder.numRegs[t]
 	if num == 127 {
+		// REVIEW.
 		panic(fmt.Errorf("cannot allocate a new %s register", t))
 	}
 	builder.allocRegister(t, num+1)
@@ -357,6 +358,7 @@ func (builder *functionBuilder) addType(typ reflect.Type, preserveType bool) int
 	}
 	index := len(fn.Types)
 	if index > 255 {
+		// REVIEW.
 		panic("types limit reached")
 	}
 	fn.Types = append(fn.Types, typ)
@@ -368,6 +370,7 @@ func (builder *functionBuilder) addPredefinedFunction(f *runtime.PredefinedFunct
 	fn := builder.fn
 	r := len(fn.Predefined)
 	if r > 255 {
+		// REVIEW.
 		panic("predefined functions limit reached")
 	}
 	fn.Predefined = append(fn.Predefined, f)
@@ -379,6 +382,7 @@ func (builder *functionBuilder) addFunction(f *runtime.Function) uint8 {
 	fn := builder.fn
 	r := len(fn.Functions)
 	if r > 255 {
+		// REVIEW.
 		panic("Scriggo functions limit reached")
 	}
 	fn.Functions = append(fn.Functions, f)
@@ -394,6 +398,7 @@ func (builder *functionBuilder) makeStringConstant(c string) int8 {
 	}
 	r := len(builder.fn.Constants.String)
 	if r > 255 {
+		// REVIEW.
 		panic("string refs limit reached")
 	}
 	builder.fn.Constants.String = append(builder.fn.Constants.String, c)
@@ -425,6 +430,7 @@ func (builder *functionBuilder) makeGeneralConstant(c interface{}) int8 {
 	}
 	r := len(builder.fn.Constants.General)
 	if r > 255 {
+		// REVIEW.
 		panic("general refs limit reached")
 	}
 	builder.fn.Constants.General = append(builder.fn.Constants.General, c)
@@ -440,6 +446,7 @@ func (builder *functionBuilder) makeFloatConstant(c float64) int8 {
 	}
 	r := len(builder.fn.Constants.Float)
 	if r > 255 {
+		// REVIEW.
 		panic("float refs limit reached")
 	}
 	builder.fn.Constants.Float = append(builder.fn.Constants.Float, c)
@@ -455,6 +462,7 @@ func (builder *functionBuilder) makeIntConstant(c int64) int8 {
 	}
 	r := len(builder.fn.Constants.Int)
 	if r > 255 {
+		// REVIEW.
 		panic("int refs limit reached")
 	}
 	builder.fn.Constants.Int = append(builder.fn.Constants.Int, c)

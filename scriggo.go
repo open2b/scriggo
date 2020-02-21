@@ -26,6 +26,9 @@ type CompilerError interface {
 	Message() string
 }
 
+// REVIEW: use an interface?
+type LimitError = compiler.LimitError
+
 type LoadOptions struct {
 	LimitMemorySize bool // limit allocable memory size.
 	OutOfSpec       struct {
