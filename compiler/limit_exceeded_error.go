@@ -40,13 +40,12 @@ func newLimitExceededError(pos *runtime.Position, path, format string, a ...inte
 	}
 }
 
-// Position returns the position of the function whose body caused the
-// LimitError.
+// Position returns the position of the function that caused the LimitError.
 func (e *LimitExceededError) Position() ast.Position {
 	return *e.pos
 }
 
-// Path returns the path of the file that caused the LimitError.
+// Path returns the path of the source code that caused the LimitError.
 func (e *LimitExceededError) Path() string {
 	return e.path
 }

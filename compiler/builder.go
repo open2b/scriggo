@@ -17,22 +17,21 @@ import (
 	"scriggo/runtime"
 )
 
-// Define some constants that defined limits of the implementation.
+// Define some constants that define limits of the implementation.
 //
-// WARNING! chaning the values of these constant may lead to compilation panics
-// and/or unexpected behaviors.
+// WARNING! changing the values of these constants may lead to compilation
+// panics and/or unexpected behaviors.
 //
-// REVIEW: uniform 'exceeded' and 'max' values (not just in names but in
-// usages!).
 const (
 	// Functions.
-	exceededFunctionsCount      = 256
-	exceededRegistersCount      = 127
+	maxFunctionsCount           = 255
+	maxRegistersCount           = 127
 	maxPredefinedFunctionsCount = 255
 	maxScriggoFunctionsCount    = 255
 
 	// Types.
 	maxTypesCount = 255
+
 	// Constants
 	maxIntConstantsCount     = 255
 	maxStringConstantsCount  = maxIntConstantsCount
@@ -258,8 +257,8 @@ func (builder *functionBuilder) exitStack() {
 func (builder *functionBuilder) newRegister(kind reflect.Kind) int8 {
 	t := kindToType(kind)
 	num := builder.numRegs[t]
-	if num == exceededRegistersCount {
-		panic(newLimitExceededError(builder.fn.Pos, builder.path, "%s registers count exceeded %d", t, exceededRegistersCount-1))
+	if num > maxRegistersCount {
+		panic(newLimitExceededError(builder.fn.Pos, builder.path, "%s registers count exceeded %d", t, maxRegistersCount))
 	}
 	builder.allocRegister(t, num+1)
 	return num + 1

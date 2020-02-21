@@ -51,6 +51,7 @@ type Options struct {
 }
 
 // CompileProgram compiles a program.
+// Any error related to the compilation itself is returned as a CompilerError.
 func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, error) {
 	var tree *ast.Tree
 
@@ -113,6 +114,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 // in language lang. It reads the template files from the reader. path, if not
 // absolute, is relative to the root of the template. lang can be Text, HTML,
 // CSS or JavaScript.
+// Any error related to the compilation itself is returned as a CompilerError.
 func CompileTemplate(path string, r Reader, main PackageLoader, lang ast.Language, opts Options) (*Code, error) {
 
 	var tree *ast.Tree
@@ -316,6 +318,7 @@ func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, in
 // template and the global variables.
 func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) (_ *Code, err error) {
 
+	// Recover and return LimitExceededErrors.
 	defer func() {
 		if r := recover(); r != nil {
 			if limitErr, ok := r.(*LimitExceededError); ok {
