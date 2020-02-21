@@ -26,8 +26,15 @@ type CompilerError interface {
 	Message() string
 }
 
-// REVIEW: use an interface?
-type LimitError = compiler.LimitError
+// A LimitError is a CompilerError reporting that the compilation has reached a
+// limit imposed by the implementation.
+type LimitError interface {
+	error
+	limitError()
+	Position() ast.Position
+	Path() string
+	Message() string
+}
 
 type LoadOptions struct {
 	LimitMemorySize bool // limit allocable memory size.
