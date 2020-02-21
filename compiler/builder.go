@@ -18,10 +18,6 @@ import (
 )
 
 // Define some constants that define limits of the implementation.
-//
-// WARNING! changing the values of these constants may lead to compilation
-// panics and/or unexpected behaviors.
-//
 const (
 	// Functions.
 	maxFunctionsCount           = 255
