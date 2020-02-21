@@ -7,6 +7,7 @@
 package runtime
 
 import (
+	"errors"
 	"reflect"
 )
 
@@ -310,6 +311,11 @@ func (vm *VM) run() (Addr, bool) {
 		case OpCase, -OpCase:
 			dir := reflect.SelectDir(a)
 			i := len(vm.cases)
+			// The method reflect.Select will fatal if there are more that 65536 cases.
+			if i == 1<<16 {
+				msg := errors.New("slice bounds out of range")
+				panic(&FatalError{env: vm.env, msg: msg})
+			}
 			if i == cap(vm.cases) {
 				vm.cases = append(vm.cases, reflect.SelectCase{Dir: dir})
 			} else {
