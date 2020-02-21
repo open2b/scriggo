@@ -406,10 +406,16 @@ func (e *LimitError) Error() string {
 	return fmt.Sprintf("%s:%s: limit error: %s", e.path, e.pos, e.msg)
 }
 
-func newLimitError(pos ast.Position, path, message string) *LimitError {
+// REVIEW: ensure that the error messages of all calls to newLimitError are
+// consistent.
+
+// REVIEW: check all the arguments of all calls to newLimitError. What is
+// function.Line (in the builder)? Also consider the possibility of making
+// newLimitError a method of the builder.
+func newLimitError(pos ast.Position, path, format string, a ...interface{}) *LimitError {
 	return &LimitError{
 		pos:  pos,
 		path: path,
-		msg:  message,
+		msg:  fmt.Sprintf(format, a...),
 	}
 }
