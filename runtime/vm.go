@@ -893,7 +893,7 @@ type Function struct {
 	Pkg        string
 	Name       string
 	File       string
-	Line       int
+	Pos        *Position // position of the function declaration.
 	Type       reflect.Type
 	Parent     *Function
 	VarRefs    []int16

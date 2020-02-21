@@ -61,9 +61,9 @@ func Disassemble(main *runtime.Function, globals []Global) (assembler map[string
 	for i := 0; i < len(allFunctions); i++ {
 		fn := allFunctions[i]
 		if p, ok := functionsByPkg[fn.Pkg]; ok {
-			p[fn] = fn.Line
+			p[fn] = fn.Pos.Line
 		} else {
-			functionsByPkg[fn.Pkg] = map[*runtime.Function]int{fn: fn.Line}
+			functionsByPkg[fn.Pkg] = map[*runtime.Function]int{fn: fn.Pos.Line}
 		}
 		for _, sf := range fn.Functions {
 			if sf.Pkg != fn.Pkg {
@@ -121,7 +121,7 @@ func Disassemble(main *runtime.Function, globals []Global) (assembler map[string
 		for fn := range funcs {
 			functions = append(functions, fn)
 		}
-		sort.Slice(functions, func(i, j int) bool { return functions[i].Line < functions[i].Line })
+		sort.Slice(functions, func(i, j int) bool { return functions[i].Pos.Line < functions[i].Pos.Line })
 
 		for _, fn := range functions {
 			_, _ = b.WriteString("\nFunc ")

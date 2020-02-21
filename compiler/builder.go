@@ -113,8 +113,19 @@ func decodeUint24(a, b, c int8) uint32 {
 }
 
 // newFunction returns a new function with a given package, name and type.
-func newFunction(pkg, name string, typ reflect.Type) *runtime.Function {
-	return &runtime.Function{Pkg: pkg, Name: name, Type: typ}
+// file and pos are, respectively, the file and the position where the function
+// is declared.
+func newFunction(pkg, name string, typ reflect.Type, file string, pos *ast.Position) *runtime.Function {
+	var runtimePos *runtime.Position
+	if pos != nil {
+		runtimePos = &runtime.Position{
+			Line:   pos.Line,
+			Column: pos.Column,
+			Start:  pos.Start,
+			End:    pos.End,
+		}
+	}
+	return &runtime.Function{Pkg: pkg, Name: name, Type: typ, File: file, Pos: runtimePos}
 }
 
 // newPredefinedFunction returns a new predefined function with a given
