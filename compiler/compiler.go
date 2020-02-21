@@ -318,7 +318,7 @@ func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, in
 // template and the global variables.
 func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) (_ *Code, err error) {
 
-	// Recover and return LimitExceededErrors.
+	// Recover and eventually return a LimitExceededError.
 	defer func() {
 		if r := recover(); r != nil {
 			if limitErr, ok := r.(*LimitExceededError); ok {
