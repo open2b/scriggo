@@ -327,7 +327,7 @@ func (builder *functionBuilder) emitField(a, field, c int8, dstKind reflect.Kind
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: a, B: field, C: c})
 }
 
-// emitFunc appends a new "Func" instruction to the function body.
+// emitFunc appends a new "LoadFunc" instruction to the function body.
 //
 //     r = func() { ... }
 //
