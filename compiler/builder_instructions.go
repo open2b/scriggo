@@ -629,17 +629,13 @@ func (builder *functionBuilder) emitMakeSlice(kLen, kCap bool, sliceType reflect
 		if kCap {
 			ts := int(sliceType.Elem().Size())
 			bytes := ts * int(cap)
-			if bytes/ts != int(cap) {
-				panic("out of memory")
-			}
-			bytes += 24
-			if bytes < 0 {
-				panic("out of memory")
-			}
-			if bytes <= maxUint24 {
-				a, b, c := encodeUint24(uint32(bytes))
-				fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, A: a, B: b, C: c})
-				constantAlloc = true
+			if overflow := bytes/ts != int(cap); !overflow {
+				bytes += 24
+				if overflow = bytes < 0; !overflow && bytes <= maxUint24 {
+					a, b, c := encodeUint24(uint32(bytes))
+					fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, A: a, B: b, C: c})
+					constantAlloc = true
+				}
 			}
 		}
 		if !constantAlloc {
