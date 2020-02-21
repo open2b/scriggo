@@ -565,17 +565,13 @@ func (builder *functionBuilder) emitMakeChan(typ reflect.Type, kCapacity bool, c
 		if kCapacity {
 			size := int(typ.Size())
 			bytes := size * int(capacity)
-			if bytes/size != int(capacity) {
-				panic("out of memory")
-			}
-			bytes += 10 * 8
-			if bytes < 0 {
-				panic("out of memory")
-			}
-			if bytes <= maxUint24 {
-				a, b, c := encodeUint24(uint32(bytes))
-				fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, A: a, B: b, C: c})
-				constantAlloc = true
+			if overflow := bytes/size != int(capacity); !overflow {
+				bytes += 10 * 8
+				if overflow = bytes < 0; !overflow && bytes <= maxUint24 {
+					a, b, c := encodeUint24(uint32(bytes))
+					fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, A: a, B: b, C: c})
+					constantAlloc = true
+				}
 			}
 		}
 		if !constantAlloc {
