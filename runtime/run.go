@@ -777,7 +777,7 @@ func (vm *VM) run() (Addr, bool) {
 				vm.setGeneral(c, reflect.ValueOf(&callable{fn: fn, vars: vars}))
 			}
 
-		// LoadNumber.
+		// LoadNumber
 		case OpLoadNumber:
 			switch a {
 			case 0:
