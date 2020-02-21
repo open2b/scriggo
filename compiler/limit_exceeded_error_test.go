@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func Test_REVIEW(t *testing.T) {
+func Test_LimitExceededError(t *testing.T) {
 	src := `
 	package main
 
