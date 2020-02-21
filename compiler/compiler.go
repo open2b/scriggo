@@ -384,24 +384,34 @@ func getExtends(nodes []ast.Node) (*ast.Extends, bool) {
 	return nil, false
 }
 
+// A LimitError is an error returned by the compiler reporting that the
+// compilation has reached a limit imposed by the user or by the implementation.
 type LimitError struct {
-	pos  ast.Position
+	// pos is the position of the function whose body caused the error.
+	pos *ast.Position
+	// path of the file that caused the error.
 	path string
-	msg  string
+	// msg is the error message. Does not include file/position.
+	msg string
 }
 
+// Position returns the position of the function whose body caused the
+// LimitError.
 func (e *LimitError) Position() ast.Position {
-	return e.pos
+	return *e.pos
 }
 
+// Path returns the path of the file that caused the LimitError.
 func (e *LimitError) Path() string {
 	return e.path
 }
 
+// Message returns the error message of the LimitError.
 func (e *LimitError) Message() string {
 	return e.msg
 }
 
+// Error implements the interface error for the LimitError.
 func (e *LimitError) Error() string {
 	return fmt.Sprintf("%s:%s: limit error: %s", e.path, e.pos, e.msg)
 }
@@ -409,12 +419,17 @@ func (e *LimitError) Error() string {
 // REVIEW: ensure that the error messages of all calls to newLimitError are
 // consistent.
 
-// REVIEW: check all the arguments of all calls to newLimitError. What is
-// function.Line (in the builder)? Also consider the possibility of making
-// newLimitError a method of the builder.
-func newLimitError(pos ast.Position, path, format string, a ...interface{}) *LimitError {
+// newLimitError returns a new LimitError that occurred in the file path inside
+// a function declared at the given pos.
+func newLimitError(pos *runtime.Position, path, format string, a ...interface{}) *LimitError {
+	astPos := &ast.Position{
+		Line:   pos.Line,
+		Column: pos.Column,
+		Start:  pos.Start,
+		End:    pos.End,
+	}
 	return &LimitError{
-		pos:  pos,
+		pos:  astPos,
 		path: path,
 		msg:  fmt.Sprintf(format, a...),
 	}
