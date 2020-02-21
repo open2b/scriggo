@@ -32,11 +32,14 @@ const (
 	// Types.
 	maxTypesCount = 255
 
-	// Constants
+	// Constants.
 	maxIntConstantsCount     = 255
 	maxStringConstantsCount  = maxIntConstantsCount
 	maxGeneralConstantsCount = maxIntConstantsCount
 	maxFloatConstantsCount   = maxIntConstantsCount
+
+	// Instructions.
+	maxNumberOfInstructions = 2<<32 - 1 // X MARCO: what is the correct value?
 )
 
 const maxUint24 = 16777215
@@ -508,6 +511,11 @@ func (builder *functionBuilder) end() {
 	// if len(fn.Body) == 0 || fn.Body[len(fn.Body)-1].Op != runtime.OpReturn {
 	// 	builder.emitReturn()
 	// }
+	// Ensure that the number of instructions in the function body is not too
+	// big for the runtime.
+	if len(fn.Body) > maxNumberOfInstructions {
+		panic(newLimitExceededError(fn.Pos, fn.File, "instructions count exceeded %d", maxNumberOfInstructions))
+	}
 	for addr, label := range builder.gotos {
 		i := fn.Body[addr]
 		i.A, i.B, i.C = encodeUint24(uint32(builder.labelAddrs[label-1]))
