@@ -130,6 +130,9 @@ var commandsHelp = map[string]func(){
 	"install": func() {
 		txtToHelp(helpInstall)
 	},
+	"limits": func() {
+		txtToHelp(helpLimits)
+	},
 	"stdlib": func() {
 		stderr(
 			`usage: scriggo stdlib`,

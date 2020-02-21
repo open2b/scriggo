@@ -44,6 +44,9 @@ Use 'scriggo help <command>' for more information about a command.
 Additional help topics:
 
     Scriggofile     syntax of the Scriggofile
+    
+    limits          limits of the Scriggo compiler/runtime.
+    
 `
 
 const helpBuild = `
@@ -258,4 +261,45 @@ The instructions are:
         supported. 
 
         To view possible GOOS values run 'go tool dist list'.
+`
+
+// REVIEW: this is just a draft.
+
+const helpLimits = `
+The compilation and the execution of Scriggo code can be limited by the compiler
+or by the runtime.
+
+A limit can be imposed by the implementation (eg. too many registers used) or by
+the user (eg. Scriggo is running inside a sandbox).
+
+# TODO
+
+The compilation of Scriggo can return an error due to a limit of the compiler
+or the runtime.
+
+This happens when:
+
+    1. the number of types used in a function is greater that a 255.
+
+    2. the number of registers of a certain type (integers, float, strings or
+    general) is greater that 126.
+    
+    3. the number of function declarations added to unique functions calls is
+    greater than 255.
+
+    4. the number of unique predefined functions called inside a function is
+    greater than 255.
+
+    5. the number of integer values is greater than 255.
+
+    6. the number of string values is greater than 255.
+
+    7. the number of floating-point values is greater than 255.
+
+    8. the number of general values is greater than 255.
+
+    # TODO.
+
+
+For more information about the limits of Scriggo see www.scriggo.com/doc/limits # TODO
 `
