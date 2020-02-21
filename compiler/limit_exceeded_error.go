@@ -58,6 +58,5 @@ func (e *LimitExceededError) Message() string {
 
 // Error implements the interface error for the LimitError.
 func (e *LimitExceededError) Error() string {
-	// REVIEW:
 	return fmt.Sprintf("%s:%s: %s", e.path, e.pos, e.msg)
 }
