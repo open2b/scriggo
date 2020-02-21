@@ -25,7 +25,7 @@ import (
 const (
 	// Functions.
 	maxFunctionsCount           = 255
-	maxRegistersCount           = 127
+	maxRegistersCount           = 126
 	maxPredefinedFunctionsCount = 255
 	maxScriggoFunctionsCount    = 255
 
