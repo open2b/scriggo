@@ -192,9 +192,8 @@ func initGlobals(globals []compiler.Global, init map[string]interface{}) []inter
 	return values
 }
 
-// IsLimitExceeded returns a boolean indicating whether the error is known to
-// report that the compilation cannot be completed due to an implementation
-// limit exceeded.
+// IsLimitExceeded reports whether the error is a limit exceeded compiler error.
+// TODO: add more information; see #579.
 func IsLimitExceeded(err error) bool {
 	_, ok := err.(*compiler.LimitExceededError)
 	return ok
