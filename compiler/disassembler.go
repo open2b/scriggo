@@ -121,7 +121,7 @@ func Disassemble(main *runtime.Function, globals []Global) (assembler map[string
 		for fn := range funcs {
 			functions = append(functions, fn)
 		}
-		sort.Slice(functions, func(i, j int) bool { return functions[i].Pos.Line < functions[i].Pos.Line })
+		sort.Slice(functions, func(i, j int) bool { return functions[i].Pos.Line < functions[j].Pos.Line })
 
 		for _, fn := range functions {
 			_, _ = b.WriteString("\nFunc ")
