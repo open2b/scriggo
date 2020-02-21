@@ -18,7 +18,7 @@ import (
 type LimitExceededError struct {
 	// pos is the position of the function that cannot be compiled.
 	pos *ast.Position
-	// path of the file that caused the error.
+	// path of file in which the function is defined.
 	path string
 	// msg is the error message. Does not include file/position.
 	msg string
