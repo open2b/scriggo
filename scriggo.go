@@ -26,16 +26,6 @@ type CompilerError interface {
 	Message() string
 }
 
-// A LimitError is a CompilerError reporting that the compilation has reached a
-// limit imposed by the implementation.
-type LimitError interface {
-	error
-	limitError()
-	Position() ast.Position
-	Path() string
-	Message() string
-}
-
 type LoadOptions struct {
 	LimitMemorySize bool // limit allocable memory size.
 	OutOfSpec       struct {
@@ -200,4 +190,12 @@ func initGlobals(globals []compiler.Global, init map[string]interface{}) []inter
 		}
 	}
 	return values
+}
+
+// IsLimitExceeded returns a boolean indicating whether the error is known to
+// report that the compilation cannot be completed due to an implementation
+// limit exceeded.
+func IsLimitExceeded(err error) bool {
+	_, ok := err.(*compiler.LimitExceededError)
+	return ok
 }

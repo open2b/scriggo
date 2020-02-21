@@ -268,7 +268,7 @@ type Code struct {
 func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) (_ *Code, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			if limitErr, ok := r.(*LimitError); ok {
+			if limitErr, ok := r.(*LimitExceededError); ok {
 				err = limitErr
 				return
 			}
@@ -293,7 +293,7 @@ func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*typeInfo, ind
 func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) (_ *Code, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			if limitErr, ok := r.(*LimitError); ok {
+			if limitErr, ok := r.(*LimitExceededError); ok {
 				err = limitErr
 				return
 			}
@@ -318,7 +318,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 
 	defer func() {
 		if r := recover(); r != nil {
-			if limitErr, ok := r.(*LimitError); ok {
+			if limitErr, ok := r.(*LimitExceededError); ok {
 				err = limitErr
 				return
 			}
