@@ -302,8 +302,6 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	case runtime.OpAlloc:
 		if k {
 			s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
-		} else {
-			s += " *"
 		}
 	case runtime.OpAppend:
 		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), false)
