@@ -142,8 +142,8 @@ var emptyVars = map[string]interface{}{}
 // Render renders the template and write the output to out. vars contains the values for the
 // variables of the main package.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *RenderOptions) error {
-	if options != nil {
-		if options.MaxMemorySize > 0 && !t.options.LimitMemorySize {
+	if options != nil && options.MaxMemorySize > 0 {
+		if t.options == nil || !t.options.LimitMemorySize {
 			panic("scriggo: template not loaded with LimitMemorySize option")
 		}
 	}
