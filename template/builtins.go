@@ -71,7 +71,7 @@ func (t Time) String() string {
 }
 
 func (t Time) UTC(env *runtime.Env) Time {
-	env.Alloc(24)
+	env.ReserveMemory(24)
 	return Time(time.Time(t).UTC())
 }
 
@@ -190,8 +190,8 @@ func abbreviate(env *runtime.Env, s string, n int) string {
 	if l := len(s) - 1; l >= 0 && (s[l] == '.' || s[l] == ',') {
 		s = s[:l]
 	}
-	env.Alloc(3)
-	env.Alloc(len(s))
+	env.ReserveMemory(3)
+	env.ReserveMemory(len(s))
 	return s + "..."
 }
 
@@ -212,7 +212,7 @@ func base64(env *runtime.Env, s string) string {
 	if bytes < 0 {
 		bytes = maxInt
 	}
-	env.Alloc(bytes)
+	env.ReserveMemory(bytes)
 	return _base64.StdEncoding.EncodeToString([]byte(s))
 }
 
@@ -236,7 +236,7 @@ func escapeHTML(env *runtime.Env, s string) HTML {
 	if more == 0 {
 		return HTML(s)
 	}
-	env.Alloc(len(s) + more)
+	env.ReserveMemory(len(s) + more)
 	b := make([]byte, len(s)+more)
 	for i, j := 0, 0; i < len(s); i++ {
 		switch c := s[i]; c {
@@ -293,11 +293,11 @@ func escapeQuery(env *runtime.Env, s string) string {
 		return s
 	}
 	// Alloc memory.
-	env.Alloc(len(s))
+	env.ReserveMemory(len(s))
 	if 2*numHex < 0 {
-		env.Alloc(maxInt)
+		env.ReserveMemory(maxInt)
 	}
-	env.Alloc(2 * numHex)
+	env.ReserveMemory(2 * numHex)
 	// Fill buffer.
 	j := 0
 	b := make([]byte, len(s)+2*numHex)
@@ -327,13 +327,13 @@ func hash(env *runtime.Env, hasher hasher, s string) string {
 	switch hasher {
 	case _MD5:
 		h = md5.New()
-		env.Alloc(16)
+		env.ReserveMemory(16)
 	case _SHA1:
 		h = sha1.New()
-		env.Alloc(28)
+		env.ReserveMemory(28)
 	case _SHA256:
 		h = sha256.New()
-		env.Alloc(64)
+		env.ReserveMemory(64)
 	default:
 		panic("call of hash with unknown hasher")
 	}
@@ -350,7 +350,7 @@ func hex(env *runtime.Env, s string) string {
 	if bytes < 0 {
 		bytes = maxInt
 	}
-	env.Alloc(bytes)
+	env.ReserveMemory(bytes)
 	return _hex.EncodeToString([]byte(s))
 }
 
@@ -360,13 +360,13 @@ func hmac(env *runtime.Env, hasher hasher, message, key string) string {
 	switch hasher {
 	case _MD5:
 		h = md5.New
-		env.Alloc(24)
+		env.ReserveMemory(24)
 	case _SHA1:
 		h = sha1.New
-		env.Alloc(28)
+		env.ReserveMemory(28)
 	case _SHA256:
 		h = sha256.New
-		env.Alloc(44)
+		env.ReserveMemory(44)
 	default:
 		panic("call of hmac with unknown hasher")
 	}
@@ -397,7 +397,7 @@ func indexAny(s, chars string) int {
 // itoa is the builtin function "itoa".
 func itoa(env *runtime.Env, i int) string {
 	s := strconv.Itoa(i)
-	env.Alloc(len(s))
+	env.ReserveMemory(len(s))
 	return s
 }
 
@@ -408,9 +408,9 @@ func join(env *runtime.Env, a []string, sep string) string {
 		if bytes/(n-1) != len(sep) {
 			bytes = maxInt
 		}
-		env.Alloc(bytes)
+		env.ReserveMemory(bytes)
 		for _, s := range a {
-			env.Alloc(len(s))
+			env.ReserveMemory(len(s))
 		}
 	}
 	return strings.Join(a, sep)
@@ -490,7 +490,7 @@ func repeat(env *runtime.Env, s string, count int) string {
 	if bytes/count != len(s) {
 		bytes = maxInt
 	}
-	env.Alloc(bytes)
+	env.ReserveMemory(bytes)
 	return strings.Repeat(s, count)
 }
 
@@ -501,12 +501,16 @@ func replace(env *runtime.Env, s, old, new string, n int) string {
 			if n > 0 && c > n {
 				c = n
 			}
-			env.Alloc(len(s))
+			env.ReserveMemory(len(s))
 			bytes := (len(new) - len(old)) * c
 			if bytes/c != len(new)-len(old) {
 				bytes = maxInt
 			}
-			env.Alloc(bytes)
+			if bytes > 0 {
+				env.ReserveMemory(bytes)
+			} else if bytes < 0 {
+				env.ReleaseMemory(-bytes)
+			}
 		}
 	}
 	return strings.Replace(s, old, new, n)
@@ -554,7 +558,7 @@ func shuffle(env *runtime.Env, slice interface{}) {
 	v := reflect.ValueOf(slice)
 	if v.Kind() != reflect.Slice {
 		err := fmt.Sprintf("call of shuffle on %s value", v.Kind())
-		env.Alloc(len(err))
+		env.ReserveMemory(len(err))
 		panic(err)
 	}
 	// Swap.
@@ -608,7 +612,7 @@ func splitN(env *runtime.Env, s, sep string, n int) []string {
 				if i == n {
 					break
 				}
-				env.Alloc(16 + utf8.RuneLen(r)) // string head and bytes.
+				env.ReserveMemory(16 + utf8.RuneLen(r)) // string head and bytes.
 				i++
 			}
 		} else {
@@ -620,8 +624,8 @@ func splitN(env *runtime.Env, s, sep string, n int) []string {
 			if bytes < 0 {
 				bytes = maxInt
 			}
-			env.Alloc(bytes)
-			env.Alloc(len(s) - len(sep)*c) // string bytes.
+			env.ReserveMemory(bytes)
+			env.ReserveMemory(len(s) - len(sep)*c) // string bytes.
 		}
 	}
 	return strings.SplitN(s, sep, n)
@@ -641,35 +645,39 @@ func sprintf(format string, a ...interface{}) string {
 
 // title is the builtin function "title".
 func title(env *runtime.Env, s string) string {
-	return withAlloc(env, strings.Title, s)
+	return withMemoryLimit(env, strings.Title, s)
 }
 
 // toLower is the builtin function "toLower".
 func toLower(env *runtime.Env, s string) string {
-	return withAlloc(env, strings.ToLower, s)
+	return withMemoryLimit(env, strings.ToLower, s)
 }
 
 // toTitle is the builtin function "toTitle".
 func toTitle(env *runtime.Env, s string) string {
-	return withAlloc(env, strings.ToTitle, s)
+	return withMemoryLimit(env, strings.ToTitle, s)
 }
 
 // toUpper is the builtin function "toUpper".
 func toUpper(env *runtime.Env, s string) string {
-	return withAlloc(env, strings.ToUpper, s)
+	return withMemoryLimit(env, strings.ToUpper, s)
 }
 
-// withAlloc wraps a function that get a string and return a string,
+// withMemoryLimit wraps a function that get a string and return a string,
 // allocating memory only if necessary. Should be used only if the function f
 // guarantees that if the output string is a new allocated string it is not
 // equal to the input string.
-func withAlloc(env *runtime.Env, f func(string) string, s string) string {
-	env.Alloc(len(s))
+func withMemoryLimit(env *runtime.Env, f func(string) string, s string) string {
+	env.ReserveMemory(len(s))
 	t := f(s)
 	if t == s {
-		env.Alloc(-len(s))
+		env.ReleaseMemory(len(s))
 	} else {
-		env.Alloc(len(t) - len(s))
+		if diff := len(t) - len(s); diff > 0 {
+			env.ReserveMemory(diff)
+		} else if diff < 0 {
+			env.ReleaseMemory(-diff)
+		}
 	}
 	return t
 }

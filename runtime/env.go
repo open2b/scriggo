@@ -8,6 +8,7 @@ package runtime
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"sync"
 )
@@ -16,38 +17,16 @@ type PrintFunc func(interface{})
 
 // Env represents an execution environment.
 type Env struct {
+	ctx     context.Context // context.
+	globals []interface{}   // global variables.
+	print   PrintFunc       // custom print builtin.
+	memory  MemoryLimiter   // memory limiter.
 
-	// Only freeMemory, exited and exits fields can be changed after the vm
-	// has been started and access to these three fields must be done with
-	// this mutex.
-	mu sync.Mutex
-
-	ctx         context.Context // context.
-	globals     []interface{}   // global variables.
-	print       PrintFunc       // custom print builtin.
-	freeMemory  int             // free memory.
-	limitMemory bool            // reports whether memory is limited.
-	exited      bool            // reports whether it is exited.
-	exits       []func()        // exit functions.
-
-}
-
-// Alloc allocates, or if bytes is negative, deallocates memory. Alloc does
-// nothing if there is no memory limit. If there is no free memory, Alloc
-// panics with the OutOfMemory error.
-func (env *Env) Alloc(bytes int) {
-	if env.limitMemory {
-		env.mu.Lock()
-		free := env.freeMemory
-		if free >= 0 {
-			free -= int(bytes)
-			env.freeMemory = free
-		}
-		env.mu.Unlock()
-		if free < 0 {
-			panic(OutOfMemoryError{env})
-		}
-	}
+	// Only exited and exits fields can be changed after the vm has been
+	// started and access to these three fields must be done with this mutex.
+	mu     sync.Mutex
+	exited bool     // reports whether it is exited.
+	exits  []func() // exit functions.
 }
 
 // Context returns the context of the environment.
@@ -88,19 +67,9 @@ func (env *Env) Fatal(v interface{}) {
 	panic(&FatalError{env: env, msg: v})
 }
 
-// FreeMemory returns the current free memory in bytes and true if the maximum
-// memory has been limited. Otherwise returns zero and false.
-//
-// A negative value means that an out of memory error has been occurred and in
-// this case bytes represents the number of bytes that were not available.
-func (env *Env) FreeMemory() (bytes int, limitedMemory bool) {
-	if env.limitMemory {
-		env.mu.Lock()
-		free := env.freeMemory
-		env.mu.Unlock()
-		return free, true
-	}
-	return 0, false
+// MemoryLimiter returns the memory limiter.
+func (env *Env) MemoryLimiter() MemoryLimiter {
+	return env.memory
 }
 
 // Print calls the print built-in function with args as argument.
@@ -119,6 +88,31 @@ func (env *Env) Println(args ...interface{}) {
 		env.doPrint(arg)
 	}
 	env.doPrint("\n")
+}
+
+// ReleaseMemory releases a previously reserved memory. It panics if bytes is
+// negative.
+func (env *Env) ReleaseMemory(bytes int) {
+	if bytes < 0 {
+		panic(errors.New("scriggo: release of negative bytes"))
+	}
+	if env.memory != nil {
+		env.memory.Release(env, bytes)
+	}
+}
+
+// ReserveMemory reserves memory. If the memory can not be reserved, it panics
+// with an OutOfMemory error. It panics if bytes is negative.
+func (env *Env) ReserveMemory(bytes int) {
+	if bytes < 0 {
+		panic(errors.New("scriggo: reserve of negative bytes"))
+	}
+	if env.memory != nil {
+		err := env.memory.Reserve(env, bytes)
+		if err != nil {
+			panic(OutOfMemoryError{env, err})
+		}
+	}
 }
 
 func (env *Env) doPrint(arg interface{}) {

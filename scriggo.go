@@ -37,7 +37,7 @@ type LoadOptions struct {
 
 type RunOptions struct {
 	Context       context.Context
-	MaxMemorySize int
+	MemoryLimiter runtime.MemoryLimiter
 	PrintFunc     runtime.PrintFunc
 	OutOfSpec     struct {
 		Builtins map[string]interface{}
@@ -89,10 +89,10 @@ func (p *Program) Options() *LoadOptions {
 
 // Run starts the program and waits for it to complete.
 //
-// Panics if the option MaxMemorySize is greater than zero but the program has
-// not been loaded with option LimitMemorySize.
+// Panics if the option MemoryLimiter is not nil but the program has not been
+// loaded with option LimitMemorySize.
 func (p *Program) Run(options *RunOptions) (int, error) {
-	if options != nil && options.MaxMemorySize > 0 {
+	if options != nil && options.MemoryLimiter != nil {
 		if p.options == nil || !p.options.LimitMemorySize {
 			panic("scriggo: program not loaded with LimitMemorySize option")
 		}
@@ -140,9 +140,7 @@ func newVM(options *RunOptions) *runtime.VM {
 		if options.Context != nil {
 			vm.SetContext(options.Context)
 		}
-		if options.MaxMemorySize > 0 {
-			vm.SetMaxMemory(options.MaxMemorySize)
-		}
+		vm.SetMemoryLimiter(options.MemoryLimiter)
 		if options.PrintFunc != nil {
 			vm.SetPrint(options.PrintFunc)
 		}

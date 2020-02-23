@@ -2077,7 +2077,6 @@ func run() {
 	}
 
 	if *mem != "" {
-		loadOptions.LimitMemorySize = true
 		var unit = (*mem)[len(*mem)-1]
 		if unit > 'Z' {
 			unit -= 'z' - 'Z'
@@ -2086,8 +2085,7 @@ func run() {
 		case 'B', 'K', 'M', 'G':
 			*mem = (*mem)[:len(*mem)-1]
 		}
-		var err error
-		runOptions.MaxMemorySize, err = strconv.Atoi(*mem)
+		max, err := strconv.Atoi(*mem)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, usage, os.Args[0])
 			flag.PrintDefaults()
@@ -2095,12 +2093,14 @@ func run() {
 		}
 		switch unit {
 		case 'K':
-			runOptions.MaxMemorySize *= 1024
+			max *= 1024
 		case 'M':
-			runOptions.MaxMemorySize *= 1024 * 1024
+			max *= 1024 * 1024
 		case 'G':
-			runOptions.MaxMemorySize *= 1024 * 1024 * 1024
+			max *= 1024 * 1024 * 1024
 		}
+		loadOptions.LimitMemorySize = true
+		runOptions.MemoryLimiter = scriggo.NewSingleMemoryLimiter(max)
 	}
 
 	var args = flag.Args()

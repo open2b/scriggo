@@ -376,7 +376,7 @@ func TestRenderBuiltinInHTMLLanguage(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Render(b, expr.vars, &RenderOptions{MaxMemorySize: 1000})
+		err = tmpl.Render(b, expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -407,7 +407,7 @@ func TestRenderBuiltinInJavaScriptLanguage(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Render(b, expr.vars, &RenderOptions{MaxMemorySize: 1000})
+		err = tmpl.Render(b, expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -465,7 +465,7 @@ func TestRenderRandomBuiltin(t *testing.T) {
 		}
 		var b = &bytes.Buffer{}
 		testSeed = expr.seed
-		err = tmpl.Render(b, expr.vars, &RenderOptions{MaxMemorySize: 1000})
+		err = tmpl.Render(b, expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue

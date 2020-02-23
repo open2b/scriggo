@@ -91,14 +91,11 @@ func main() {
 	var memArg = flag.String("mem", "", "limit the allocable memory; zero is no limit; suffixes [BKMG] are supported")
 	var disallowGoStmt = flag.Bool("disallowGoStatement", false, "disallow the 'go' statement")
 
-	var limitMemorySize bool
-	var maxMemorySize = -1
-	var timeout context.Context
-
 	flag.Parse()
 
 	// TODO: this is a copy-paste from cmd/scriggo/interpreter_skel.go. When
 	// these code will be implemented as a support function, call it.
+	var timeout context.Context
 	if *timeoutArg != "" {
 		d, err := time.ParseDuration(*timeoutArg)
 		if err != nil {
@@ -113,8 +110,8 @@ func main() {
 
 	// TODO: this is a copy-paste from cmd/scriggo/interpreter_skel.go. When
 	// these code will be implemented as a support function, call it.
+	var memoryLimiter runtime.MemoryLimiter
 	if *memArg != "" {
-		limitMemorySize = true
 		var unit = (*memArg)[len(*memArg)-1]
 		if unit > 'Z' {
 			unit -= 'z' - 'Z'
@@ -123,19 +120,19 @@ func main() {
 		case 'B', 'K', 'M', 'G':
 			*memArg = (*memArg)[:len(*memArg)-1]
 		}
-		var err error
-		maxMemorySize, err = strconv.Atoi(*memArg)
+		max, err := strconv.Atoi(*memArg)
 		if err != nil {
 			panic(err)
 		}
 		switch unit {
 		case 'K':
-			maxMemorySize *= 1024
+			max *= 1024
 		case 'M':
-			maxMemorySize *= 1024 * 1024
+			max *= 1024 * 1024
 		case 'G':
-			maxMemorySize *= 1024 * 1024 * 1024
+			max *= 1024 * 1024 * 1024
 		}
+		memoryLimiter = scriggo.NewSingleMemoryLimiter(max)
 	}
 
 	switch flag.Args()[0] {
@@ -143,7 +140,7 @@ func main() {
 		if timeout != nil {
 			panic("timeout not supported when compiling a program")
 		}
-		loadOpts := &scriggo.LoadOptions{LimitMemorySize: limitMemorySize}
+		loadOpts := &scriggo.LoadOptions{LimitMemorySize: memoryLimiter != nil}
 		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
 		_, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
@@ -154,7 +151,7 @@ func main() {
 		if timeout != nil {
 			panic("timeout not supported when compiling a package-less program")
 		}
-		loadOpts := &scriggo.LoadOptions{LimitMemorySize: limitMemorySize}
+		loadOpts := &scriggo.LoadOptions{LimitMemorySize: memoryLimiter != nil}
 		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
 		loadOpts.OutOfSpec.PackageLess = true
 		_, err = scriggo.Load(os.Stdin, predefPkgs, loadOpts)
@@ -163,7 +160,7 @@ func main() {
 			os.Exit(1)
 		}
 	case "run program":
-		loadOpts := &scriggo.LoadOptions{LimitMemorySize: limitMemorySize}
+		loadOpts := &scriggo.LoadOptions{LimitMemorySize: memoryLimiter != nil}
 		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
 		program, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
@@ -172,7 +169,7 @@ func main() {
 		}
 		runOpts := &scriggo.RunOptions{
 			Context:       timeout,
-			MaxMemorySize: maxMemorySize,
+			MemoryLimiter: memoryLimiter,
 		}
 		_, err = program.Run(runOpts)
 		if err != nil {
@@ -182,7 +179,7 @@ func main() {
 			panic(err)
 		}
 	case "run script":
-		loadOpts := &scriggo.LoadOptions{LimitMemorySize: limitMemorySize}
+		loadOpts := &scriggo.LoadOptions{LimitMemorySize: memoryLimiter != nil}
 		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
 		loadOpts.OutOfSpec.PackageLess = true
 		script, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
@@ -192,7 +189,7 @@ func main() {
 		}
 		runOpts := &scriggo.RunOptions{
 			Context:       timeout,
-			MaxMemorySize: maxMemorySize,
+			MemoryLimiter: memoryLimiter,
 		}
 		_, err = script.Run(runOpts)
 		if err != nil {
@@ -202,7 +199,7 @@ func main() {
 			panic(err)
 		}
 	case "run program directory":
-		loadOpts := &scriggo.LoadOptions{LimitMemorySize: limitMemorySize}
+		loadOpts := &scriggo.LoadOptions{LimitMemorySize: memoryLimiter != nil}
 		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
 		dirPath := flag.Args()[1]
 		dl := dirLoader(dirPath)
@@ -217,7 +214,7 @@ func main() {
 		}
 		runOpts := &scriggo.RunOptions{
 			Context:       timeout,
-			MaxMemorySize: maxMemorySize,
+			MemoryLimiter: memoryLimiter,
 		}
 		_, err = prog.Run(runOpts)
 		if err != nil {
@@ -235,12 +232,12 @@ func main() {
 			panic(err)
 		}
 		r := mapReader{"/index.html": src}
-		templ, err := compileTemplate(r, limitMemorySize)
+		templ, err := compileTemplate(r, memoryLimiter != nil)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
-		err = templ.render(timeout, maxMemorySize)
+		err = templ.render(timeout, memoryLimiter)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
 				panic(renderPanics(p))
@@ -253,12 +250,12 @@ func main() {
 		}
 		dirPath := flag.Args()[1]
 		r := dirReader(dirPath)
-		templ, err := compileTemplate(r, limitMemorySize)
+		templ, err := compileTemplate(r, memoryLimiter != nil)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
-		err = templ.render(timeout, maxMemorySize)
+		err = templ.render(timeout, memoryLimiter)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
 				panic(renderPanics(p))
@@ -277,7 +274,7 @@ func main() {
 			panic("timeout not supported when compiling a html page")
 		}
 		r := mapReader{"/index.html": src}
-		_, err = compileTemplate(r, limitMemorySize)
+		_, err = compileTemplate(r, memoryLimiter != nil)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)

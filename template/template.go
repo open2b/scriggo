@@ -92,7 +92,7 @@ type LoadOptions struct {
 
 type RenderOptions struct {
 	Context       context.Context
-	MaxMemorySize int
+	MemoryLimiter runtime.MemoryLimiter
 	PrintFunc     runtime.PrintFunc
 }
 
@@ -142,7 +142,7 @@ var emptyVars = map[string]interface{}{}
 // Render renders the template and write the output to out. vars contains the values for the
 // variables of the main package.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *RenderOptions) error {
-	if options != nil && options.MaxMemorySize > 0 {
+	if options != nil && options.MemoryLimiter != nil {
 		if t.options == nil || !t.options.LimitMemorySize {
 			panic("scriggo: template not loaded with LimitMemorySize option")
 		}
@@ -179,9 +179,7 @@ func newVM(options *RenderOptions) *runtime.VM {
 		if options.Context != nil {
 			vm.SetContext(options.Context)
 		}
-		if options.MaxMemorySize > 0 {
-			vm.SetMaxMemory(options.MaxMemorySize)
-		}
+		vm.SetMemoryLimiter(options.MemoryLimiter)
 		if options.PrintFunc != nil {
 			vm.SetPrint(options.PrintFunc)
 		}

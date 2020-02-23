@@ -88,6 +88,19 @@ func decodeFieldIndex(i int64) []int {
 	return ns
 }
 
+// A MemoryLimiter limits the maximum amount of memory that can be allocated
+// during executions. A virtual machine calls Reserve before allocating memory
+// and calls Release when a memory is released.
+type MemoryLimiter interface {
+
+	// Reserve reserves bytes of memory. If the memory can not be reserved, it
+	// returns an error.
+	Reserve(env *Env, bytes int) error
+
+	// Release releases a previously reserved memory.
+	Release(env *Env, bytes int)
+}
+
 // VM represents a Scriggo virtual machine.
 type VM struct {
 	fp       [4]Addr              // frame pointers.
@@ -187,18 +200,12 @@ func (vm *VM) SetContext(ctx context.Context) {
 	vm.doneCase = reflect.SelectCase{}
 }
 
-// SetMaxMemory sets the maximum available memory. Set bytes to zero or
-// negative for no limits.
+// SetMemoryLimiter sets the memory limiter to limit memory during the
+// execution.
 //
-// SetMaxMemory must not be called after vm has been started.
-func (vm *VM) SetMaxMemory(bytes int) {
-	if bytes > 0 {
-		vm.env.limitMemory = true
-		vm.env.freeMemory = bytes
-	} else {
-		vm.env.limitMemory = false
-		vm.env.freeMemory = 0
-	}
+// SetMemoryLimiter must not be called after vm has been started.
+func (vm *VM) SetMemoryLimiter(limiter MemoryLimiter) {
+	vm.env.memory = limiter
 }
 
 // SetPrint sets the "print" builtin function.
@@ -259,8 +266,8 @@ func (vm *VM) Stack(buf []byte, all bool) int {
 	return len(b)
 }
 
-func (vm *VM) alloc() {
-	if !vm.env.limitMemory {
+func (vm *VM) reserve() {
+	if vm.env.memory == nil {
 		return
 	}
 	in := vm.fn.Body[vm.pc]
@@ -278,12 +285,12 @@ func (vm *VM) alloc() {
 		l := int(b)
 		if l > sc-sl {
 			if sl+l < 0 {
-				panic(OutOfMemoryError{vm.env})
+				panic(OutOfMemoryError{vm.env, nil})
 			}
 			capacity := appendCap(sc, sl, sl+l)
 			bytes = capacity * elemSize
 			if bytes/capacity != elemSize {
-				panic(OutOfMemoryError{vm.env})
+				panic(OutOfMemoryError{vm.env, nil})
 			}
 		}
 	case OpAppendSlice:
@@ -296,12 +303,12 @@ func (vm *VM) alloc() {
 		if l > sc-sl {
 			nl := sl + l
 			if nl < sl {
-				panic(OutOfMemoryError{vm.env})
+				panic(OutOfMemoryError{vm.env, nil})
 			}
 			capacity := appendCap(sc, sl, nl)
 			bytes = capacity * elemSize
 			if bytes/capacity != elemSize {
-				panic(OutOfMemoryError{vm.env})
+				panic(OutOfMemoryError{vm.env, nil})
 			}
 		}
 	case OpConvert: // TODO(marco): implement in the builder.
@@ -323,7 +330,7 @@ func (vm *VM) alloc() {
 			length := len([]rune(vm.string(a)))
 			bytes = length * 4
 			if bytes/4 != length {
-				panic(OutOfMemoryError{vm.env})
+				panic(OutOfMemoryError{vm.env, nil})
 			}
 		} else {
 			bytes = len(vm.string(a))
@@ -333,7 +340,7 @@ func (vm *VM) alloc() {
 		bLen := len(vm.string(b))
 		bytes = aLen + bLen
 		if bytes < aLen {
-			panic(OutOfMemoryError{vm.env})
+			panic(OutOfMemoryError{vm.env, nil})
 		}
 	case OpMakeArray:
 		t := vm.fn.Types[uint8(b)]
@@ -344,11 +351,11 @@ func (vm *VM) alloc() {
 		ts := int(typ.Size())
 		bytes = ts * capacity
 		if bytes/ts != capacity {
-			panic(OutOfMemoryError{vm.env})
+			panic(OutOfMemoryError{vm.env, nil})
 		}
 		bytes += 10 * 8
 		if bytes < 0 {
-			panic(OutOfMemoryError{vm.env})
+			panic(OutOfMemoryError{vm.env, nil})
 		}
 	case OpMakeMap:
 		// The size is approximated. The actual size depend on the type and
@@ -356,11 +363,11 @@ func (vm *VM) alloc() {
 		n := int(vm.int(b))
 		bytes = 50 * n
 		if bytes/50 != n {
-			panic(OutOfMemoryError{vm.env})
+			panic(OutOfMemoryError{vm.env, nil})
 		}
 		bytes += 24
 		if bytes < 0 {
-			panic(OutOfMemoryError{vm.env})
+			panic(OutOfMemoryError{vm.env, nil})
 		}
 	case OpMakeSlice:
 		typ := vm.fn.Types[uint8(a)]
@@ -368,11 +375,11 @@ func (vm *VM) alloc() {
 		ts := int(typ.Elem().Size())
 		bytes = ts * capacity
 		if bytes/ts != capacity {
-			panic(OutOfMemoryError{vm.env})
+			panic(OutOfMemoryError{vm.env, nil})
 		}
 		bytes += 24
 		if bytes < 0 {
-			panic(OutOfMemoryError{vm.env})
+			panic(OutOfMemoryError{vm.env, nil})
 		}
 	case OpMakeStruct:
 		t := vm.fn.Types[uint8(b)]
@@ -386,20 +393,13 @@ func (vm *VM) alloc() {
 		eSize := int(t.Elem().Size())
 		bytes = kSize + eSize
 		if bytes < 0 {
-			panic(OutOfMemoryError{vm.env})
+			panic(OutOfMemoryError{vm.env, nil})
 		}
 	}
 	if bytes != 0 {
-		var free int
-		vm.env.mu.Lock()
-		free = vm.env.freeMemory
-		if free >= 0 {
-			free -= bytes
-			vm.env.freeMemory = free
-		}
-		vm.env.mu.Unlock()
-		if free < 0 {
-			panic(OutOfMemoryError{vm.env})
+		err := vm.env.memory.Reserve(vm.env, bytes)
+		if err != nil {
+			panic(OutOfMemoryError{vm.env, err})
 		}
 	}
 	return
@@ -1144,8 +1144,6 @@ const (
 
 	OpAddr
 
-	OpAlloc
-
 	OpAnd
 
 	OpAndNot
@@ -1268,6 +1266,8 @@ const (
 
 	OpRem
 	OpRemInt
+
+	OpReserve
 
 	OpReturn
 

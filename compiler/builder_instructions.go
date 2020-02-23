@@ -77,8 +77,8 @@ func (builder *functionBuilder) emitAndNot(k bool, x, y, z int8, kind reflect.Ki
 func (builder *functionBuilder) emitAppend(start, end, s int8, elementsKind reflect.Kind) {
 	builder.addOperandKinds(elementsKind, elementsKind, 0)
 	fn := builder.fn
-	if builder.allocs != nil {
-		fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
+	if builder.reserves != nil {
+		fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpReserve})
 	}
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAppend, A: start, B: end, C: s})
 }
@@ -90,8 +90,8 @@ func (builder *functionBuilder) emitAppend(start, end, s int8, elementsKind refl
 func (builder *functionBuilder) emitAppendSlice(t, s int8, pos *ast.Position) {
 	builder.addPosAndPath(pos)
 	fn := builder.fn
-	if builder.allocs != nil {
-		fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
+	if builder.reserves != nil {
+		fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpReserve})
 	}
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAppendSlice, A: t, C: s})
 }
@@ -111,7 +111,7 @@ func (builder *functionBuilder) emitAssert(e int8, typ reflect.Type, z int8) {
 //
 func (builder *functionBuilder) emitBreak(lab label) {
 	addr := builder.labelAddrs[lab-1]
-	if builder.allocs != nil {
+	if builder.reserves != nil {
 		addr += 1
 	}
 	a, b, c := encodeUint24(uint32(addr))
@@ -201,8 +201,8 @@ func (builder *functionBuilder) emitComplex(x, y, z int8, kind reflect.Kind) {
 //
 func (builder *functionBuilder) emitConcat(s, t, z int8) {
 	fn := builder.fn
-	if builder.allocs != nil {
-		fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
+	if builder.reserves != nil {
+		fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpReserve})
 	}
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpConcat, A: s, B: t, C: z})
 }
@@ -213,7 +213,7 @@ func (builder *functionBuilder) emitConcat(s, t, z int8) {
 //
 func (builder *functionBuilder) emitContinue(lab label) {
 	addr := builder.labelAddrs[lab-1]
-	if builder.allocs != nil {
+	if builder.reserves != nil {
 		addr += 1
 	}
 	a, b, c := encodeUint24(uint32(addr))
@@ -231,8 +231,8 @@ func (builder *functionBuilder) emitConvert(src int8, typ reflect.Type, dst int8
 	switch kindToType(srcKind) {
 	case generalRegister:
 		op = runtime.OpConvert
-		if builder.allocs != nil {
-			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
+		if builder.reserves != nil {
+			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpReserve})
 		}
 	case intRegister:
 		switch srcKind {
@@ -248,8 +248,8 @@ func (builder *functionBuilder) emitConvert(src int8, typ reflect.Type, dst int8
 		}
 	case stringRegister:
 		op = runtime.OpConvertString
-		if builder.allocs != nil {
-			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
+		if builder.reserves != nil {
+			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpReserve})
 		}
 	case floatRegister:
 		op = runtime.OpConvertFloat
@@ -342,9 +342,9 @@ func (builder *functionBuilder) emitFunc(r int8, typ reflect.Type) *runtime.Func
 		Parent: fn,
 	}
 	fn.Functions = append(fn.Functions, scriggoFunc)
-	if builder.allocs != nil {
-		builder.allocs = append(builder.allocs, runtime.Addr(len(fn.Body)))
-		fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
+	if builder.reserves != nil {
+		builder.reserves = append(builder.reserves, runtime.Addr(len(fn.Body)))
+		fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpReserve})
 	}
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpLoadFunc, B: int8(b), C: r})
 	return scriggoFunc
@@ -465,8 +465,8 @@ func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType r
 		op = runtime.OpMapIndex
 	case reflect.String:
 		op = runtime.OpIndexString
-		if builder.allocs != nil {
-			fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, C: 8})
+		if builder.reserves != nil {
+			fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpReserve, C: 8})
 		}
 	default:
 		panic(fmt.Errorf("BUG: invalid type %s", exprType))
@@ -505,8 +505,8 @@ func (builder *functionBuilder) emitLoadFunc(predefined bool, f int8, z int8) {
 	if predefined {
 		a = 1
 	}
-	if builder.allocs != nil {
-		fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, C: 32})
+	if builder.reserves != nil {
+		fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpReserve, C: 32})
 	}
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpLoadFunc, A: a, B: f, C: z})
 }
@@ -536,13 +536,13 @@ func (builder *functionBuilder) emitMakeArray(typ reflect.Type, dst int8) {
 	// the other methods.
 	fn := builder.fn
 	b := builder.addType(typ, false)
-	if builder.allocs != nil {
+	if builder.reserves != nil {
 		bytes := int(typ.Size())
 		if bytes <= maxUint24 {
 			a, b, c := encodeUint24(uint32(bytes))
-			fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, A: a, B: b, C: c})
+			fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpReserve, A: a, B: b, C: c})
 		} else {
-			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
+			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpReserve})
 		}
 	}
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpMakeArray, B: int8(b), C: dst})
@@ -560,7 +560,7 @@ func (builder *functionBuilder) emitMakeChan(typ reflect.Type, kCapacity bool, c
 	if kCapacity {
 		op = -op
 	}
-	if builder.allocs != nil {
+	if builder.reserves != nil {
 		constantAlloc := false
 		if kCapacity {
 			size := int(typ.Size())
@@ -569,13 +569,13 @@ func (builder *functionBuilder) emitMakeChan(typ reflect.Type, kCapacity bool, c
 				bytes += 10 * 8
 				if overflow = bytes < 0; !overflow && bytes <= maxUint24 {
 					a, b, c := encodeUint24(uint32(bytes))
-					fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, A: a, B: b, C: c})
+					fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpReserve, A: a, B: b, C: c})
 					constantAlloc = true
 				}
 			}
 		}
 		if !constantAlloc {
-			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
+			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpReserve})
 		}
 	}
 	fn.Body = append(fn.Body, runtime.Instruction{Op: op, A: int8(t), B: capacity, C: dst})
@@ -592,13 +592,13 @@ func (builder *functionBuilder) emitMakeMap(typ reflect.Type, kSize bool, size i
 	if kSize {
 		op = -op
 	}
-	if builder.allocs != nil {
+	if builder.reserves != nil {
 		if kSize {
 			bytes := 24 + 50*int(size)
 			a, b, c := encodeUint24(uint32(bytes))
-			fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, A: a, B: b, C: c})
+			fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpReserve, A: a, B: b, C: c})
 		} else {
-			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
+			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpReserve})
 		}
 	}
 	fn.Body = append(fn.Body, runtime.Instruction{Op: op, A: int8(t), B: size, C: dst})
@@ -624,7 +624,7 @@ func (builder *functionBuilder) emitMakeSlice(kLen, kCap bool, sliceType reflect
 			k |= 1 << 2
 		}
 	}
-	if builder.allocs != nil {
+	if builder.reserves != nil {
 		constantAlloc := false
 		if kCap {
 			ts := int(sliceType.Elem().Size())
@@ -633,13 +633,13 @@ func (builder *functionBuilder) emitMakeSlice(kLen, kCap bool, sliceType reflect
 				bytes += 24
 				if overflow = bytes < 0; !overflow && bytes <= maxUint24 {
 					a, b, c := encodeUint24(uint32(bytes))
-					fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, A: a, B: b, C: c})
+					fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpReserve, A: a, B: b, C: c})
 					constantAlloc = true
 				}
 			}
 		}
 		if !constantAlloc {
-			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
+			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpReserve})
 		}
 	}
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpMakeSlice, A: int8(t), B: k, C: dst})
@@ -658,13 +658,13 @@ func (builder *functionBuilder) emitMakeStruct(typ reflect.Type, dst int8) {
 	// the other methods.
 	fn := builder.fn
 	b := builder.addType(typ, false)
-	if builder.allocs != nil {
+	if builder.reserves != nil {
 		bytes := int(typ.Size())
 		if bytes <= maxUint24 {
 			a, b, c := encodeUint24(uint32(bytes))
-			fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, A: a, B: b, C: c})
+			fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpReserve, A: a, B: b, C: c})
 		} else {
-			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
+			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpReserve})
 		}
 	}
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpMakeStruct, B: int8(b), C: dst})
@@ -751,13 +751,13 @@ func (builder *functionBuilder) emitNew(typ reflect.Type, z int8) {
 	// the other methods.
 	fn := builder.fn
 	b := builder.addType(typ, false)
-	if builder.allocs != nil {
+	if builder.reserves != nil {
 		bytes := int(typ.Size())
 		if bytes <= maxUint24 {
 			a, b, c := encodeUint24(uint32(bytes))
-			fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, A: a, B: b, C: c})
+			fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpReserve, A: a, B: b, C: c})
 		} else {
-			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
+			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpReserve})
 		}
 	}
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpNew, B: int8(b), C: z})
@@ -832,8 +832,8 @@ func (builder *functionBuilder) emitRange(k bool, s, i, e int8, kind reflect.Kin
 		}
 		op = runtime.OpRange
 	}
-	if builder.allocs != nil {
-		fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, C: 100})
+	if builder.reserves != nil {
+		fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpReserve, C: 100})
 	}
 	fn.Body = append(fn.Body, runtime.Instruction{Op: op, A: s, B: i, C: e})
 }
@@ -926,9 +926,9 @@ func (builder *functionBuilder) emitSend(ch, v int8, pos *ast.Position, chanElem
 // emitSetAlloc sets the alloc property. If true, an Alloc instruction will be
 // inserted where necessary.
 func (builder *functionBuilder) emitSetAlloc(alloc bool) {
-	if alloc && builder.allocs == nil {
-		builder.allocs = append(builder.allocs, 0)
-		builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
+	if alloc && builder.reserves == nil {
+		builder.reserves = append(builder.reserves, 0)
+		builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpReserve})
 	}
 }
 
@@ -972,7 +972,7 @@ func (builder *functionBuilder) emitSetMap(k bool, m, value, key int8, mapType r
 	if k {
 		op = -op
 	}
-	if builder.allocs != nil {
+	if builder.reserves != nil {
 		kSize := int(keyType.Size())
 		eSize := int(valueType.Size())
 		bytes := kSize + eSize
@@ -981,9 +981,9 @@ func (builder *functionBuilder) emitSetMap(k bool, m, value, key int8, mapType r
 		}
 		if bytes <= maxUint24 {
 			a, b, c := encodeUint24(uint32(bytes))
-			fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpAlloc, A: a, B: b, C: c})
+			fn.Body = append(fn.Body, runtime.Instruction{Op: -runtime.OpReserve, A: a, B: b, C: c})
 		} else {
-			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpAlloc})
+			fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpReserve})
 		}
 	}
 	fn.Body = append(fn.Body, runtime.Instruction{Op: op, A: value, B: m, C: key})

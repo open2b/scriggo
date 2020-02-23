@@ -67,7 +67,7 @@ func compileTemplate(reader compiler.Reader, limitMemorySize bool) (*compiledTem
 	return &compiledTemplate{fn: code.Main, globals: code.Globals, options: &opts}, nil
 }
 
-func (t *compiledTemplate) render(ctx context.Context, maxMemorySize int) error {
+func (t *compiledTemplate) render(ctx context.Context, memoryLimiter runtime.MemoryLimiter) error {
 	out := os.Stdout
 	writeFunc := out.Write
 	renderFunc := render
@@ -78,7 +78,7 @@ func (t *compiledTemplate) render(ctx context.Context, maxMemorySize int) error 
 	t.globals[3].Value = &uw
 	vm := runtime.NewVM()
 	vm.SetContext(ctx)
-	vm.SetMaxMemory(maxMemorySize)
+	vm.SetMemoryLimiter(memoryLimiter)
 	_, err := vm.Run(t.fn, initGlobals(t.globals))
 	return err
 }

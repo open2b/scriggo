@@ -124,25 +124,6 @@ func (vm *VM) run() (Addr, bool) {
 				vm.setGeneral(c, v.FieldByIndex(i).Addr())
 			}
 
-		// Alloc
-		case OpAlloc:
-			vm.alloc()
-		case -OpAlloc:
-			if vm.env.limitMemory {
-				bytes := decodeUint24(a, b, c)
-				var free int
-				vm.env.mu.Lock()
-				free = vm.env.freeMemory
-				if free >= 0 {
-					free -= int(bytes)
-					vm.env.freeMemory = free
-				}
-				vm.env.mu.Unlock()
-				if free < 0 {
-					panic(OutOfMemoryError{vm.env})
-				}
-			}
-
 		// And
 		case OpAnd, -OpAnd:
 			vm.setInt(c, vm.int(a)&vm.intk(b, op < 0))
@@ -1389,19 +1370,27 @@ func (vm *VM) run() (Addr, bool) {
 		case OpRemInt, -OpRemInt:
 			vm.setInt(c, vm.int(a)%vm.intk(b, op < 0))
 
+		// Reserve
+		case OpReserve:
+			vm.reserve()
+		case -OpReserve:
+			if vm.env.memory != nil {
+				bytes := decodeUint24(a, b, c)
+				err := vm.env.memory.Reserve(vm.env, int(bytes))
+				if err != nil {
+					panic(OutOfMemoryError{vm.env, err})
+				}
+			}
+
 		// Return
 		case OpReturn:
-			if vm.env.limitMemory {
+			if vm.env.memory != nil {
 				in := vm.fn.Body[0]
-				if in.Op == -OpAlloc {
+				if in.Op == -OpReserve {
 					bytes := decodeUint24(in.A, in.B, in.C)
 					in = vm.fn.Body[vm.pc-2]
 					if bytes > 0 && in.Op != OpTailCall {
-						vm.env.mu.Lock()
-						if vm.env.freeMemory >= 0 {
-							vm.env.freeMemory += int(bytes)
-						}
-						vm.env.mu.Unlock()
+						vm.env.memory.Release(vm.env, int(bytes))
 					}
 				}
 			}
@@ -1743,16 +1732,12 @@ func (vm *VM) run() (Addr, bool) {
 
 		// TailCall
 		case OpTailCall:
-			if vm.env.limitMemory {
+			if vm.env.memory != nil {
 				in := vm.fn.Body[0]
-				if in.Op == -OpAlloc {
+				if in.Op == -OpReserve {
 					bytes := decodeUint24(in.A, in.B, in.C)
 					if bytes > 0 {
-						vm.env.mu.Lock()
-						if vm.env.freeMemory >= 0 {
-							vm.env.freeMemory -= int(bytes)
-						}
-						vm.env.mu.Unlock()
+						vm.env.memory.Reserve(vm.env, int(bytes))
 					}
 				}
 			}

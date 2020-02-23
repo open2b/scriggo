@@ -96,11 +96,15 @@ func (err OutOfTimeError) RuntimeError() {}
 // OutOfMemoryError represents a runtime out of memory error.
 type OutOfMemoryError struct {
 	env *Env
+	err error
 }
 
 func (err OutOfMemoryError) Error() string {
-	return "runtime error: out of memory: cannot allocate " +
-		strconv.Itoa(-err.env.freeMemory) + " bytes"
+	s := "runtime error: out of memory"
+	if err.err != nil {
+		s += ": " + err.err.Error()
+	}
+	return s
 }
 
 func (err OutOfMemoryError) RuntimeError() {}

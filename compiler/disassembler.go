@@ -299,10 +299,6 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 		s += " " + disassembleOperand(fn, b, reflect.Int, false)
 		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
-	case runtime.OpAlloc:
-		if k {
-			s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
-		}
 	case runtime.OpAppend:
 		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), false)
 		s += " " + disassembleOperand(fn, b-1, getKind('b', fn, addr), false)
@@ -563,6 +559,10 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		}
 		if c != 0 {
 			s += " " + disassembleOperand(fn, c, reflect.Interface, false)
+		}
+	case runtime.OpReserve:
+		if k {
+			s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
 		}
 	case runtime.OpSetField:
 		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), k)
@@ -828,8 +828,6 @@ var operationName = [...]string{
 
 	runtime.OpAddr: "Addr",
 
-	runtime.OpAlloc: "Alloc",
-
 	runtime.OpAnd: "And",
 
 	runtime.OpAndNot: "AndNot",
@@ -948,6 +946,8 @@ var operationName = [...]string{
 
 	runtime.OpRem:    "Rem",
 	runtime.OpRemInt: "Rem",
+
+	runtime.OpReserve: "Reserve",
 
 	runtime.OpReturn: "Return",
 
