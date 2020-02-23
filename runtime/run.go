@@ -1399,7 +1399,7 @@ func (vm *VM) run() (Addr, bool) {
 					if bytes > 0 && in.Op != OpTailCall {
 						vm.env.mu.Lock()
 						if vm.env.freeMemory >= 0 {
-							vm.env.freeMemory -= int(bytes)
+							vm.env.freeMemory += int(bytes)
 						}
 						vm.env.mu.Unlock()
 					}
