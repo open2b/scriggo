@@ -280,6 +280,7 @@ Limitations
     * labeled continue and break statements                https://github.com/open2b/scriggo/issues/83
     * struct type declarations with implicit fields        https://github.com/open2b/scriggo/issues/367
     * struct type declarations with tags                   https://github.com/open2b/scriggo/issues/61
+    * some kinds of pointer shorthands                     https://github.com/open2b/scriggo/issues/383
 
     For a comprehensive list of not-yet-implemented features
     see https://github.com/open2b/scriggo/labels/missing-feature.
