@@ -534,7 +534,7 @@ func TestCheckerExpressions(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{scope}
 			}
-			tc := newTypechecker("", checkerOptions{}, nil)
+			tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil)
 			tc.scopes = scopes
 			tc.enterScope()
 			ti := tc.checkExpr(node)
@@ -616,7 +616,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{scope}
 			}
-			tc := newTypechecker("", checkerOptions{}, nil)
+			tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil)
 			tc.scopes = scopes
 			tc.enterScope()
 			ti := tc.checkExpr(node)
@@ -1556,7 +1556,7 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			tc := newTypechecker("", checkerOptions{PackageLess: true}, nil)
+			tc := newTypechecker(newCompilation(), "", checkerOptions{PackageLess: true}, nil)
 			tc.scopes = append(tc.scopes, scope)
 			tc.enterScope()
 			tree.Nodes = tc.checkNodes(tree.Nodes)
@@ -2053,7 +2053,7 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 		"[]T{x, x, x, 9: x}": 9,
 		"[]T{x, 9: x, x, x}": 11,
 	}
-	tc := newTypechecker("", checkerOptions{}, nil)
+	tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil)
 	for src, expected := range cases {
 		tree, err := ParseSource([]byte(src), true, false)
 		if err != nil {
@@ -2127,7 +2127,7 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 		{x: tiUntypedIntConst("10"), T: byteType, assignable: true},
 		// {x: tiUntypedIntConst("300"), T: byteType, assignable: false},
 	}
-	tc := newTypechecker("", checkerOptions{}, nil)
+	tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil)
 	for _, c := range cases {
 		err := tc.isAssignableTo(c.x, nil, c.T)
 		if c.assignable && err != nil {
@@ -2166,7 +2166,7 @@ func TestFunctionUpVars(t *testing.T) {
 		`: {"A"},
 	}
 	for src, expected := range cases {
-		tc := newTypechecker("", checkerOptions{}, nil)
+		tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil)
 		tc.enterScope()
 		tree, err := ParseSource([]byte(src), true, false)
 		if err != nil {
@@ -2291,7 +2291,7 @@ func TestGotoLabels(t *testing.T) {
 				return
 			}
 			pkgInfos := map[string]*packageInfo{}
-			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, nil, pkgInfos, checkerOptions{SyntaxType: ProgramSyntax}, nil)
+			err = checkPackage(newCompilation(), tree.Nodes[0].(*ast.Package), tree.Path, nil, pkgInfos, checkerOptions{SyntaxType: ProgramSyntax}, nil)
 			switch {
 			case err == nil && cas.errorMsg == "":
 				// Ok.
