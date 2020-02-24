@@ -35,7 +35,8 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		if pkg.Name != "main" {
 			return nil, &CheckingError{path: tree.Path, pos: *pkg.Pos(), err: errors.New("package name must be main")}
 		}
-		err := checkPackage(pkg, tree.Path, packages, pkgInfos, opts, nil)
+		compilation := newCompilation()
+		err := checkPackage(compilation, pkg, tree.Path, packages, pkgInfos, opts, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -64,7 +65,8 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		}
 	}
 
-	tc := newTypechecker(tree.Path, opts, globalScope)
+	compilation := newCompilation()
+	tc := newTypechecker(compilation, tree.Path, opts, globalScope)
 
 	// Type check a template page which extends another page.
 	if extends, ok := getExtends(tree.Nodes); ok {
@@ -97,7 +99,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 			return nil, err
 		}
 		pkgInfos := map[string]*packageInfo{}
-		err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, nil, pkgInfos, opts, tc.globalScope)
+		err = checkPackage(compilation, tree.Nodes[0].(*ast.Package), tree.Path, nil, pkgInfos, opts, tc.globalScope)
 		if err != nil {
 			return nil, err
 		}
@@ -170,6 +172,8 @@ type checkerPath struct {
 
 // typechecker represents the state of the type checking.
 type typechecker struct {
+	compilation *compilation
+
 	path           string
 	paths          []checkerPath
 	predefinedPkgs PackageLoader
@@ -252,8 +256,9 @@ type typechecker struct {
 
 // newTypechecker creates a new type checker. A global scope may be provided for
 // package-less programs and templates.
-func newTypechecker(path string, opts checkerOptions, globalScope typeCheckerScope) *typechecker {
+func newTypechecker(compilation *compilation, path string, opts checkerOptions, globalScope typeCheckerScope) *typechecker {
 	return &typechecker{
+		compilation:      compilation,
 		path:             path,
 		filePackageBlock: typeCheckerScope{},
 		globalScope:      globalScope,

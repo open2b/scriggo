@@ -549,7 +549,7 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos map[string]*packageInfo, opts checkerOptions, globalScope typeCheckerScope) (err error) {
+func checkPackage(compilation *compilation, pkg *ast.Package, path string, imports PackageLoader, pkgInfos map[string]*packageInfo, opts checkerOptions, globalScope typeCheckerScope) (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -561,7 +561,7 @@ func checkPackage(pkg *ast.Package, path string, imports PackageLoader, pkgInfos
 		}
 	}()
 
-	tc := newTypechecker(path, opts, globalScope)
+	tc := newTypechecker(compilation, path, opts, globalScope)
 
 	// Checks package level names for "init" and "main".
 	for _, decl := range pkg.Declarations {
