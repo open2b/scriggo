@@ -47,8 +47,8 @@ func main() {
 	subcmd := true
 	last := len(cmdArg)
 	for i, c := range cmdArg {
-		if ( c < 'a' || c > 'z' )  && ( i == 0 || i == last || c != '-' ) {
-			subcmd =  false
+		if (c < 'a' || c > 'z') && (i == 0 || i == last || c != '-') {
+			subcmd = false
 			break
 		}
 	}
@@ -601,7 +601,7 @@ func _build(cmd string, path string, flags buildFlags) error {
 	}
 	b.WriteString(sourcesFooter)
 	sourcesPath := filepath.Join(dir, "sources.go")
-	dest, err := os.OpenFile(sourcesPath, os.O_WRONLY | os.O_CREATE | os.O_EXCL, 0666)
+	dest, err := os.OpenFile(sourcesPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
 	if err != nil {
 		return fmt.Errorf("scriggo: can't open file %s: %s", sourcesPath, err)
 	}
