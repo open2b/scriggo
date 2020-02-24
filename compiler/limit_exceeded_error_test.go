@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-func test_builder() *functionBuilder {
+func new_test_builder() *functionBuilder {
 	fn := newFunction("", "", reflect.FuncOf(nil, nil, false), "", &ast.Position{})
 	return newBuilder(fn, "")
 }
@@ -47,7 +47,7 @@ func TestRegistersLimit(t *testing.T) {
 				}
 			}()
 
-			fb := test_builder()
+			fb := new_test_builder()
 			for i = 0; i < 1000; i++ {
 				fb.newRegister(kind)
 			}
@@ -77,7 +77,7 @@ func TestFunctionsLimit(t *testing.T) {
 		}
 	}()
 
-	fb := test_builder()
+	fb := new_test_builder()
 	for i = 0; i < 1000; i++ {
 		fb.emitFunc(1, reflect.FuncOf(nil, nil, false))
 	}
@@ -105,7 +105,7 @@ func TestTypesLimit(t *testing.T) {
 		}
 	}()
 
-	fb := test_builder()
+	fb := new_test_builder()
 	for i = 0; i < 1000; i++ {
 		typ := reflect.ArrayOf(i, intType)
 		fb.emitNew(typ, 0)
@@ -153,7 +153,7 @@ func TestConstantsLimit(t *testing.T) {
 				}
 			}()
 
-			fb := test_builder()
+			fb := new_test_builder()
 			for i = 0; i < 1000; i++ {
 				switch kind {
 				case reflect.Int:
