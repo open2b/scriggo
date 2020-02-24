@@ -296,7 +296,7 @@ Limitations due to mantain the interoperability with Go official compiler 'gc'
       the value in 'v' before passing it to gc.
 
     * not exported fields of struct types defined in Scriggo are still
-      accessible from the oustide.
+      accessible from the outside.
       This is caused by the function 'reflect.StructOf' that requires that all
       fields are exported before creating the type.  By the way, such fields
       (that should be not exported) are exported with a particular prefix to
