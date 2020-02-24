@@ -318,14 +318,15 @@ Arbitrary limitations
     These limitations have been arbitrarily added to Scriggo to enhance
     performances:
 
-    * 256 types available per function
     * 127 registers of a given type (integer, floating point, string or
-      general) per function
-    * 255 function literal declarations plus unique functions calls per
-      function
-    * 255 integer values per function
-    * 255 string values per function
-    * 255 floating-point values per function
-    * 255 general values per function
+        general) per function
+        * 256 function literal declarations plus unique functions calls per
+        function
+    * 256 types available per function
+    * 256 unique predefined functions per function
+    * 256 integer values per function
+    * 256 string values per function
+    * 256 floating-point values per function
+    * 256 general values per function
 
 `
