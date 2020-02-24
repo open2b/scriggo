@@ -115,9 +115,9 @@ func CallFunction(f func()) {
 }
 
 func CallVariadicFunction(f func(s string, n ...int)) {
-	f("abc", )
+	f("abc")
 	f("abc", 5)
-	f("abc", 5,9,12)
+	f("abc", 5, 9, 12)
 }
 
 func ReturnFunction() func(int) int {
