@@ -20,22 +20,19 @@ import (
 // Define some constants that define limits of the implementation.
 const (
 	// Functions.
-	maxFunctionsCount           = 255
-	maxRegistersCount           = 126
-	maxPredefinedFunctionsCount = 255
-	maxScriggoFunctionsCount    = 255
+	maxFunctionsCount           = 256
+	maxRegistersCount           = 127
+	maxPredefinedFunctionsCount = 256
+	maxScriggoFunctionsCount    = 256
 
 	// Types.
-	maxTypesCount = 255
+	maxTypesCount = 256
 
 	// Constants.
-	maxIntConstantsCount     = 255
+	maxIntConstantsCount     = 256
 	maxStringConstantsCount  = maxIntConstantsCount
 	maxGeneralConstantsCount = maxIntConstantsCount
 	maxFloatConstantsCount   = maxIntConstantsCount
-
-	// Instructions.
-	maxNumberOfInstructions = math.MaxUint32
 )
 
 const maxUint24 = 16777215
@@ -258,7 +255,7 @@ func (builder *functionBuilder) newRegister(kind reflect.Kind) int8 {
 	num := builder.numRegs[t]
 	// num is the number of currently allocated registers; the '+1' is necessary
 	// because the register has not been allocated yet.
-	if num+1 > maxRegistersCount {
+	if int(num)+1 > maxRegistersCount {
 		panic(newLimitExceededError(builder.fn.Pos, builder.path, "%s registers count exceeded %d", t, maxRegistersCount))
 	}
 	builder.allocRegister(t, num+1)
@@ -519,8 +516,8 @@ func (builder *functionBuilder) end() {
 	// }
 	// Ensure that the number of instructions in the function body is not too
 	// big for the runtime.
-	if len(fn.Body) > maxNumberOfInstructions {
-		panic(newLimitExceededError(fn.Pos, fn.File, "instructions count exceeded %d", maxNumberOfInstructions))
+	if len(fn.Body) > math.MaxUint32 {
+		panic(newLimitExceededError(fn.Pos, fn.File, "instructions count exceeded %d", math.MaxUint32))
 	}
 	for addr, label := range builder.gotos {
 		i := fn.Body[addr]

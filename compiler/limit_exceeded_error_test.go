@@ -28,11 +28,7 @@ func TestRegistersLimit(t *testing.T) {
 	for _, kind := range cases {
 		t.Run(kind.String(), func(t *testing.T) {
 
-			// This should be ok.
-			fb := test_builder()
-			for i := 0; i < 126; i++ {
-				fb.newRegister(kind)
-			}
+			var i int
 
 			defer func() {
 				r := recover()
@@ -40,16 +36,19 @@ func TestRegistersLimit(t *testing.T) {
 					t.Fatal("test should have failed")
 				} else {
 					if _, ok := r.(*LimitExceededError); ok {
-						// Test passed.
+						// The type of the error is correct. Now check if the
+						// test panicked at the correct index.
+						if maxRegistersCount != i {
+							t.Fatalf("test should have panicked at index %d, but it panicked at index %d", maxRegistersCount, i)
+						}
 					} else {
 						t.Fatalf("expecting a LimitExceededError, got error %s (of type %T)", r, r)
 					}
 				}
 			}()
 
-			// This should fail.
-			fb = test_builder()
-			for i := 0; i < 127; i++ {
+			fb := test_builder()
+			for i = 0; i < 1000; i++ {
 				fb.newRegister(kind)
 			}
 
@@ -67,20 +66,7 @@ func TestConstantsLimit(t *testing.T) {
 	for _, kind := range cases {
 		t.Run(kind.String(), func(t *testing.T) {
 
-			// This should be ok.
-			fb := test_builder()
-			for i := 0; i < 255; i++ {
-				switch kind {
-				case reflect.Int:
-					fb.makeIntConstant(int64(i))
-				case reflect.String:
-					fb.makeStringConstant(strconv.Itoa(i))
-				case reflect.Float64:
-					fb.makeFloatConstant(float64(i))
-				case reflect.Interface:
-					fb.makeGeneralConstant(interface{}(i))
-				}
-			}
+			var i int
 
 			defer func() {
 				r := recover()
@@ -88,16 +74,30 @@ func TestConstantsLimit(t *testing.T) {
 					t.Fatal("test should have failed")
 				} else {
 					if _, ok := r.(*LimitExceededError); ok {
-						// Test passed.
+						// The type of the error is correct. Now check if the
+						// test panicked at the correct index.
+						var expectedIndex int
+						switch kind {
+						case reflect.Int:
+							expectedIndex = maxIntConstantsCount
+						case reflect.Float64:
+							expectedIndex = maxFloatConstantsCount
+						case reflect.String:
+							expectedIndex = maxStringConstantsCount
+						case reflect.Interface:
+							expectedIndex = maxGeneralConstantsCount
+						}
+						if expectedIndex != i {
+							t.Fatalf("test should have panicked at index %d, but it panicked at index %d", expectedIndex, i)
+						}
 					} else {
 						t.Fatalf("expecting a LimitExceededError, got error %s (of type %T)", r, r)
 					}
 				}
 			}()
 
-			// This should fail.
-			fb = test_builder()
-			for i := 0; i < 256; i++ {
+			fb := test_builder()
+			for i = 0; i < 1000; i++ {
 				switch kind {
 				case reflect.Int:
 					fb.makeIntConstant(int64(i))
