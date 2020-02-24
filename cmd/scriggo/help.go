@@ -45,7 +45,7 @@ Additional help topics:
 
     Scriggofile     syntax of the Scriggofile
     
-    limits          limits of the Scriggo compiler/runtime.
+    limitations     limitations of the Scriggo compiler/runtime.
     
 `
 
@@ -263,43 +263,67 @@ The instructions are:
         To view possible GOOS values run 'go tool dist list'.
 `
 
-// REVIEW: this is just a draft.
-
 const helpLimits = `
-The compilation and the execution of Scriggo code can be limited by the compiler
-or by the runtime.
 
-A limit can be imposed by the implementation (eg. too many registers used) or by
-the user (eg. Scriggo is running inside a sandbox).
+Limitations
 
-# TODO
+    These limitations are features that Scriggo currently lacks but that are
+    under development.  To check the state of a limitation please refer to the
+    Github issue linked in the list below.
 
-The compilation of Scriggo can return an error due to a limit of the compiler
-or the runtime.
+    * methods declarations                                 https://github.com/open2b/scriggo/issues/458
+    * interface types definition                           https://github.com/open2b/scriggo/issues/218
+    * assigning return values from a deferred closure      https://github.com/open2b/scriggo/issues/278
+    * assigning to non-variables in 'for range' statements https://github.com/open2b/scriggo/issues/182
+    * importing the "unsafe" package from Scriggo          https://github.com/open2b/scriggo/issues/288
+    * importing the "runtime" package from Scriggo         https://github.com/open2b/scriggo/issues/524
+    * labeled continue and break statements                https://github.com/open2b/scriggo/issues/83
+    * struct type declarations with implicit fields        https://github.com/open2b/scriggo/issues/367
+    * struct type declarations with tags                   https://github.com/open2b/scriggo/issues/61
 
-This happens when:
+    For a comprehensive list of not-yet-implemented features
+    see https://github.com/open2b/scriggo/labels/missing-feature.
 
-    1. the number of types used in a function is greater that a 255.
+Limitations caused by interoperability and gc
 
-    2. the number of registers of a certain type (integers, float, strings or
-    general) is greater that 126.
-    
-    3. the number of function declarations added to unique functions calls is
-    greater than 255.
+    These limitations are caused by the requirement of interoperability with gc
+    and by some restrictions of the gc runtime and/or of the package 'reflect'.
 
-    4. the number of unique predefined functions called inside a function is
-    greater than 255.
+    * types defined in Scriggo are not correctly seen by the 'reflect' package.
+      This manifests itself, for example, when calling the function
+      'fmt.Printf("%T", v)' where 'v' is a value with a Scriggo defined type.
+      The user expects to see the name of the type but 'fmt' (which internally
+      relies on the package 'reflect') prints the name of the type that wrapped
+      the value in 'v' before passing it to gc.
 
-    5. the number of integer values is greater than 255.
+    * not exported fields of struct types defined in Scriggo are still
+      accessible from the oustide.
+      This is caused by the function 'reflect.StructOf' that requires that all
+      fields are exported before creating the type.  By the way, such fields
+      (that should be not exported) are exported with a particular prefix to
+      avoid accidental accessing.
 
-    6. the number of string values is greater than 255.
+    * cannot define functions without a body (REVIEW)
 
-    7. the number of floating-point values is greater than 255.
+    * Go packages can be imported only if they have been precompiled into the
+      Scriggo interpreter/execution environment.
+      Also see the commands 'scriggo embed' and 'scriggo build'.
 
-    8. the number of general values is greater than 255.
+    * the debugger 'delve' is not compatible with Scriggo.
 
-    # TODO.
+Arbitrary limitations
 
+    These limitations have been arbitrarily added to Scriggo to enhance
+    performances:
 
-For more information about the limits of Scriggo see www.scriggo.com/doc/limits # TODO
+    * 256 types available per function
+    * 127 registers of a given type (integer, floating point, string or
+      general) per function
+    * 255 function literal declarations plus unique functions calls per
+      function
+    * 255 integer values per function
+    * 255 string values per function
+    * 255 floating-point values per function
+    * 255 general values per function
+
 `
