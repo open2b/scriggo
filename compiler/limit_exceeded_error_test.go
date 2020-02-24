@@ -8,9 +8,10 @@ package compiler
 
 import (
 	"reflect"
-	"scriggo/compiler/ast"
 	"strconv"
 	"testing"
+
+	"scriggo/compiler/ast"
 )
 
 func new_test_builder() *functionBuilder {
