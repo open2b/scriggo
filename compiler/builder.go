@@ -17,6 +17,24 @@ import (
 	"scriggo/runtime"
 )
 
+// Define some constants that define limits of the implementation.
+const (
+	// Functions.
+	maxFunctionsCount           = 256
+	maxRegistersCount           = 127
+	maxPredefinedFunctionsCount = 256
+	maxScriggoFunctionsCount    = 256
+
+	// Types.
+	maxTypesCount = 256
+
+	// Constants.
+	maxIntConstantsCount     = 256
+	maxStringConstantsCount  = maxIntConstantsCount
+	maxGeneralConstantsCount = maxIntConstantsCount
+	maxFloatConstantsCount   = maxIntConstantsCount
+)
+
 const maxUint24 = 16777215
 
 var intType = reflect.TypeOf(0)
@@ -235,8 +253,8 @@ func (builder *functionBuilder) exitStack() {
 func (builder *functionBuilder) newRegister(kind reflect.Kind) int8 {
 	t := kindToType(kind)
 	num := builder.numRegs[t]
-	if num == 127 {
-		panic(fmt.Errorf("cannot allocate a new %s register", t))
+	if num == maxRegistersCount {
+		panic(newLimitExceededError(builder.fn.Pos, builder.path, "%s registers count exceeded %d", t, maxRegistersCount))
 	}
 	builder.allocRegister(t, num+1)
 	return num + 1
@@ -356,8 +374,8 @@ func (builder *functionBuilder) addType(typ reflect.Type, preserveType bool) int
 		}
 	}
 	index := len(fn.Types)
-	if index > 255 {
-		panic("types limit reached")
+	if index == maxTypesCount {
+		panic(newLimitExceededError(builder.fn.Pos, builder.path, "types count exceeded %d", maxTypesCount))
 	}
 	fn.Types = append(fn.Types, typ)
 	return index
@@ -367,8 +385,8 @@ func (builder *functionBuilder) addType(typ reflect.Type, preserveType bool) int
 func (builder *functionBuilder) addPredefinedFunction(f *runtime.PredefinedFunction) uint8 {
 	fn := builder.fn
 	r := len(fn.Predefined)
-	if r > 255 {
-		panic("predefined functions limit reached")
+	if r == maxPredefinedFunctionsCount {
+		panic(newLimitExceededError(builder.fn.Pos, builder.path, "predefined functions count exceeded %d", maxPredefinedFunctionsCount))
 	}
 	fn.Predefined = append(fn.Predefined, f)
 	return uint8(r)
@@ -378,8 +396,8 @@ func (builder *functionBuilder) addPredefinedFunction(f *runtime.PredefinedFunct
 func (builder *functionBuilder) addFunction(f *runtime.Function) uint8 {
 	fn := builder.fn
 	r := len(fn.Functions)
-	if r > 255 {
-		panic("Scriggo functions limit reached")
+	if r == maxScriggoFunctionsCount {
+		panic(newLimitExceededError(builder.fn.Pos, builder.path, "Scriggo functions count exceeded %d", maxScriggoFunctionsCount))
 	}
 	fn.Functions = append(fn.Functions, f)
 	return uint8(r)
@@ -393,8 +411,8 @@ func (builder *functionBuilder) makeStringConstant(c string) int8 {
 		}
 	}
 	r := len(builder.fn.Constants.String)
-	if r > 255 {
-		panic("string refs limit reached")
+	if r == maxStringConstantsCount {
+		panic(newLimitExceededError(builder.fn.Pos, builder.path, "string count exceeded %d", maxStringConstantsCount))
 	}
 	builder.fn.Constants.String = append(builder.fn.Constants.String, c)
 	return int8(r)
@@ -424,8 +442,8 @@ func (builder *functionBuilder) makeGeneralConstant(c interface{}) int8 {
 		}
 	}
 	r := len(builder.fn.Constants.General)
-	if r > 255 {
-		panic("general refs limit reached")
+	if r == maxGeneralConstantsCount {
+		panic(newLimitExceededError(builder.fn.Pos, builder.path, "general constants count exceeded %d", maxGeneralConstantsCount))
 	}
 	builder.fn.Constants.General = append(builder.fn.Constants.General, c)
 	return int8(r)
@@ -439,8 +457,8 @@ func (builder *functionBuilder) makeFloatConstant(c float64) int8 {
 		}
 	}
 	r := len(builder.fn.Constants.Float)
-	if r > 255 {
-		panic("float refs limit reached")
+	if r == maxFloatConstantsCount {
+		panic(newLimitExceededError(builder.fn.Pos, builder.path, "floating-point count exceeded %d", maxFloatConstantsCount))
 	}
 	builder.fn.Constants.Float = append(builder.fn.Constants.Float, c)
 	return int8(r)
@@ -454,8 +472,8 @@ func (builder *functionBuilder) makeIntConstant(c int64) int8 {
 		}
 	}
 	r := len(builder.fn.Constants.Int)
-	if r > 255 {
-		panic("int refs limit reached")
+	if r == maxIntConstantsCount {
+		panic(newLimitExceededError(builder.fn.Pos, builder.path, "integer count exceeded %d", maxIntConstantsCount))
 	}
 	builder.fn.Constants.Int = append(builder.fn.Constants.Int, c)
 	return int8(r)
@@ -485,6 +503,9 @@ func (builder *functionBuilder) end() {
 	// if len(fn.Body) == 0 || fn.Body[len(fn.Body)-1].Op != runtime.OpReturn {
 	// 	builder.emitReturn()
 	// }
+	if len(fn.Body) > math.MaxUint32 {
+		panic(newLimitExceededError(fn.Pos, fn.File, "instructions count exceeded %d", math.MaxUint32))
+	}
 	for addr, label := range builder.gotos {
 		i := fn.Body[addr]
 		i.A, i.B, i.C = encodeUint24(uint32(builder.labelAddrs[label-1]))

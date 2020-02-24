@@ -51,6 +51,7 @@ type Options struct {
 }
 
 // CompileProgram compiles a program.
+// Any error related to the compilation itself is returned as a CompilerError.
 func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, error) {
 	var tree *ast.Tree
 
@@ -101,18 +102,19 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 	emitterOpts := emitterOptions{}
 	emitterOpts.MemoryLimit = opts.LimitMemorySize
 	if opts.PackageLess {
-		code = emitPackageLessProgram(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
+		code, err = emitPackageLessProgram(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
 	} else {
-		code = emitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars, emitterOpts)
+		code, err = emitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars, emitterOpts)
 	}
 
-	return code, nil
+	return code, err
 }
 
 // CompileTemplate compiles the template file with the given path and written
 // in language lang. It reads the template files from the reader. path, if not
 // absolute, is relative to the root of the template. lang can be Text, HTML,
 // CSS or JavaScript.
+// Any error related to the compilation itself is returned as a CompilerError.
 func CompileTemplate(path string, r Reader, main PackageLoader, lang ast.Language, opts Options) (*Code, error) {
 
 	var tree *ast.Tree
@@ -155,9 +157,9 @@ func CompileTemplate(path string, r Reader, main PackageLoader, lang ast.Languag
 	// Emit the code.
 	emitterOpts := emitterOptions{}
 	emitterOpts.MemoryLimit = opts.LimitMemorySize
-	code := emitTemplate(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
+	code, err := emitTemplate(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
 
-	return code, nil
+	return code, err
 }
 
 type mainCombiner struct {
@@ -265,7 +267,16 @@ type Code struct {
 // type info and indirect variables. alloc reports whether Alloc instructions
 // must be emitted. emitPackageMain returns an emittedPackage instance with
 // the global variables and the main function.
-func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) *Code {
+func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) (_ *Code, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(*LimitExceededError); ok {
+				err = e
+				return
+			}
+			panic(err)
+		}
+	}()
 	e := newEmitter(typeInfos, indirectVars, opts)
 	functions, _, _ := e.emitPackage(pkgMain, false, "main")
 	main, _ := e.fnStore.availableScriggoFn(pkgMain, "main")
@@ -274,14 +285,23 @@ func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*typeInfo, ind
 		Functions: functions,
 		Main:      main,
 	}
-	return pkg
+	return pkg, nil
 }
 
 // emitPackageLessProgram emits the code for a package-less program given its
 // tree, the type info and indirect variables. alloc reports whether Alloc
 // instructions must be emitted. emitPackageLessProgram returns a function that
 // is the entry point of the package-less program and the global variables.
-func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) *Code {
+func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) (_ *Code, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(*LimitExceededError); ok {
+				err = e
+				return
+			}
+			panic(err)
+		}
+	}()
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false), tree.Path, tree.Pos()), tree.Path)
 	e.fb.emitSetAlloc(opts.MemoryLimit)
@@ -289,14 +309,25 @@ func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, in
 	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()
 	e.fb.end()
-	return &Code{Main: e.fb.fn, Globals: e.varStore.getGlobals()}
+	return &Code{Main: e.fb.fn, Globals: e.varStore.getGlobals()}, nil
 }
 
 // emitTemplate emits the code for a template given its tree, the type info and
 // indirect variables. alloc reports whether Alloc instructions must be
 // emitted. emitTemplate returns a function that is the entry point of the
 // template and the global variables.
-func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) *Code {
+func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) (_ *Code, err error) {
+
+	// Recover and eventually return a LimitExceededError.
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(*LimitExceededError); ok {
+				err = e
+				return
+			}
+			panic(err)
+		}
+	}()
 
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.pkg = &ast.Package{}
@@ -355,7 +386,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 				nopBuilder.end()
 				e.fb.fn.Functions[0] = nopFunction
 			}
-			return &Code{Main: e.fb.fn, Globals: e.varStore.getGlobals()}
+			return &Code{Main: e.fb.fn, Globals: e.varStore.getGlobals()}, nil
 		}
 	}
 
@@ -365,7 +396,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()
 	e.fb.end()
-	return &Code{Main: e.fb.fn, Globals: e.varStore.getGlobals()}
+	return &Code{Main: e.fb.fn, Globals: e.varStore.getGlobals()}, nil
 
 }
 

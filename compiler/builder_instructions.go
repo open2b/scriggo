@@ -334,8 +334,8 @@ func (builder *functionBuilder) emitField(a, field, c int8, dstKind reflect.Kind
 func (builder *functionBuilder) emitFunc(r int8, typ reflect.Type) *runtime.Function {
 	fn := builder.fn
 	b := len(fn.Functions)
-	if b == 256 {
-		panic("Functions limit reached")
+	if b == maxFunctionsCount {
+		panic(newLimitExceededError(builder.fn.Pos, builder.path, "functions count exceeded %d", maxFunctionsCount))
 	}
 	scriggoFunc := &runtime.Function{
 		Type:   typ,
@@ -977,7 +977,7 @@ func (builder *functionBuilder) emitSetMap(k bool, m, value, key int8, mapType r
 		eSize := int(valueType.Size())
 		bytes := kSize + eSize
 		if bytes < 0 {
-			panic("out of memory")
+			panic(newLimitExceededError(builder.fn.Pos, builder.path, "out of memory"))
 		}
 		if bytes <= maxUint24 {
 			a, b, c := encodeUint24(uint32(bytes))
