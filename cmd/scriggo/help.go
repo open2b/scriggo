@@ -310,7 +310,8 @@ Limitations caused by interoperability and gc
       Scriggo interpreter/execution environment.
       Also see the commands 'scriggo embed' and 'scriggo build'.
 
-    * the debugger 'delve' is not compatible with Scriggo.
+    * the debugger 'delve' is not compatible with Scriggo; currently there are
+      not debugger available for Scriggo.
 
 Arbitrary limitations
 
