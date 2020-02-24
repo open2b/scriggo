@@ -466,7 +466,6 @@ func (builder *functionBuilder) makeFloatConstant(c float64) int8 {
 	// Check if allocating a new constant will exceed the maximum number of
 	// constants for this kind.
 	if r+1 > maxFloatConstantsCount {
-		// REVIEW.
 		panic(newLimitExceededError(builder.fn.Pos, builder.path, "floating-point count exceeded %d", maxFloatConstantsCount))
 	}
 	builder.fn.Constants.Float = append(builder.fn.Constants.Float, c)
