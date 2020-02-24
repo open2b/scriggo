@@ -271,16 +271,17 @@ Limitations
     under development.  To check the state of a limitation please refer to the
     Github issue linked in the list below.
 
-    * methods declarations                                 https://github.com/open2b/scriggo/issues/458
-    * interface types definition                           https://github.com/open2b/scriggo/issues/218
-    * assigning return values from a deferred closure      https://github.com/open2b/scriggo/issues/278
-    * assigning to non-variables in 'for range' statements https://github.com/open2b/scriggo/issues/182
-    * importing the "unsafe" package from Scriggo          https://github.com/open2b/scriggo/issues/288
-    * importing the "runtime" package from Scriggo         https://github.com/open2b/scriggo/issues/524
-    * labeled continue and break statements                https://github.com/open2b/scriggo/issues/83
-    * struct type declarations with implicit fields        https://github.com/open2b/scriggo/issues/367
-    * struct type declarations with tags                   https://github.com/open2b/scriggo/issues/61
-    * some kinds of pointer shorthands                     https://github.com/open2b/scriggo/issues/383
+    * methods declarations                                    https://github.com/open2b/scriggo/issues/458
+    * interface types definition                              https://github.com/open2b/scriggo/issues/218
+    * assigning return values from a deferred closure         https://github.com/open2b/scriggo/issues/278
+    * assigning to non-variables in 'for range' statements    https://github.com/open2b/scriggo/issues/182
+    * importing the "unsafe" package from Scriggo             https://github.com/open2b/scriggo/issues/288
+    * importing the "runtime" package from Scriggo            https://github.com/open2b/scriggo/issues/524
+    * labeled continue and break statements                   https://github.com/open2b/scriggo/issues/83
+    * struct type declarations with implicit fields           https://github.com/open2b/scriggo/issues/367
+    * struct type declarations with tags                      https://github.com/open2b/scriggo/issues/61
+    * some kinds of pointer shorthands                        https://github.com/open2b/scriggo/issues/383
+    * compilation of non-main packages without importing them https://github.com/open2b/scriggo/issues/521
 
     For a comprehensive list of not-yet-implemented features
     see https://github.com/open2b/scriggo/labels/missing-feature.
