@@ -473,6 +473,9 @@ Use 'scriggo help <command>' for more information about a command.
 Additional help topics:
 
     Scriggofile     syntax of the Scriggofile
+    
+    limitations     limitations of the Scriggo compiler/runtime.
+    
 ` + "`" + `
 
 const helpBuild = ` + "`" + `
@@ -687,6 +690,72 @@ The instructions are:
         supported. 
 
         To view possible GOOS values run 'go tool dist list'.
+` + "`" + `
+
+const helpLimitations = ` + "`" + `
+
+Limitations
+
+    These limitations are features that Scriggo currently lacks but that are
+    under development. To check the state of a limitation please refer to the
+    Github issue linked in the list below.
+
+    * methods declarations (issue #458)
+    * interface types definition (issue #218)
+    * assigning return values from a deferred closure (issue #278)
+    * assigning to non-variables in 'for range' statements (issue #182)
+    * importing the "unsafe" package from Scriggo (issue #288)
+    * importing the "runtime" package from Scriggo (issue #524)
+    * labeled continue and break statements (issue #83)
+    * struct type declarations with implicit fields (issue #367)
+    * struct type declarations with tags (issue #61)
+    * some kinds of pointer shorthands (issue #383)
+    * compilation of non-main packages without importing them (issue #521)
+
+    For a comprehensive list of not-yet-implemented features
+    see https://github.com/open2b/scriggo/labels/missing-feature.
+
+Limitations due to mantain the interoperability with Go official compiler 'gc'
+
+    * types defined in Scriggo are not correctly seen by the 'reflect' package.
+      This manifests itself, for example, when calling the function
+      'fmt.Printf("%T", v)' where 'v' is a value with a Scriggo defined type.
+      The user expects to see the name of the type but 'fmt' (which internally
+      relies on the package 'reflect') prints the name of the type that wrapped
+      the value in 'v' before passing it to gc.
+
+    * not exported fields of struct types defined in Scriggo are still
+      accessible from the outside.
+      This is caused by the function 'reflect.StructOf' that requires that all
+      fields are exported before creating the type.  By the way, such fields
+      (that should be not exported) are exported with a particular prefix to
+      avoid accidental accessing.
+
+    * cannot define functions without a body (TODO)
+
+    * Go packages can be imported only if they have been precompiled into the
+      Scriggo interpreter/execution environment.
+      Also see the commands 'scriggo embed' and 'scriggo build'.
+
+    * the debugger 'delve' is not compatible with Scriggo; currently there are
+      no debuggers available for Scriggo.
+
+Arbitrary limitations
+
+    These limitations have been arbitrarily added to Scriggo to enhance
+    performances:
+
+    * 127 registers of a given type (integer, floating point, string or
+        general) per function
+        * 256 function literal declarations plus unique functions calls per
+        function
+    * 256 types available per function
+    * 256 unique predefined functions per function
+    * 256 integer values per function
+    * 256 string values per function
+    * 256 floating-point values per function
+    * 256 general values per function
+
 ` + "`" + `
 `)
 	sources["interpreter_skel.go"] = []byte(`// Copyright (c) 2019 Open2b Software Snc. All rights reserved.
@@ -998,6 +1067,9 @@ var commandsHelp = map[string]func(){
 	},
 	"install": func() {
 		txtToHelp(helpInstall)
+	},
+	"limitations": func() {
+		txtToHelp(helpLimitations)
 	},
 	"stdlib": func() {
 		stderr(
