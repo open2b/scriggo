@@ -1068,7 +1068,7 @@ var commandsHelp = map[string]func(){
 	"install": func() {
 		txtToHelp(helpInstall)
 	},
-	"limits": func() {
+	"limitations": func() {
 		txtToHelp(helpLimitations)
 	},
 	"stdlib": func() {
