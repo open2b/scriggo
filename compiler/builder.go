@@ -253,9 +253,7 @@ func (builder *functionBuilder) exitStack() {
 func (builder *functionBuilder) newRegister(kind reflect.Kind) int8 {
 	t := kindToType(kind)
 	num := builder.numRegs[t]
-	// num is the number of currently allocated registers; the '+1' is necessary
-	// because the register has not been allocated yet.
-	if int(num)+1 > maxRegistersCount {
+	if num == maxRegistersCount {
 		panic(newLimitExceededError(builder.fn.Pos, builder.path, "%s registers count exceeded %d", t, maxRegistersCount))
 	}
 	builder.allocRegister(t, num+1)
@@ -376,7 +374,7 @@ func (builder *functionBuilder) addType(typ reflect.Type, preserveType bool) int
 		}
 	}
 	index := len(fn.Types)
-	if index > maxTypesCount {
+	if index == maxTypesCount {
 		panic(newLimitExceededError(builder.fn.Pos, builder.path, "types count exceeded %d", maxTypesCount))
 	}
 	fn.Types = append(fn.Types, typ)
@@ -387,7 +385,7 @@ func (builder *functionBuilder) addType(typ reflect.Type, preserveType bool) int
 func (builder *functionBuilder) addPredefinedFunction(f *runtime.PredefinedFunction) uint8 {
 	fn := builder.fn
 	r := len(fn.Predefined)
-	if r > maxPredefinedFunctionsCount {
+	if r == maxPredefinedFunctionsCount {
 		panic(newLimitExceededError(builder.fn.Pos, builder.path, "predefined functions count exceeded %d", maxPredefinedFunctionsCount))
 	}
 	fn.Predefined = append(fn.Predefined, f)
@@ -398,7 +396,7 @@ func (builder *functionBuilder) addPredefinedFunction(f *runtime.PredefinedFunct
 func (builder *functionBuilder) addFunction(f *runtime.Function) uint8 {
 	fn := builder.fn
 	r := len(fn.Functions)
-	if r > maxScriggoFunctionsCount {
+	if r == maxScriggoFunctionsCount {
 		panic(newLimitExceededError(builder.fn.Pos, builder.path, "Scriggo functions count exceeded %d", maxScriggoFunctionsCount))
 	}
 	fn.Functions = append(fn.Functions, f)
@@ -413,9 +411,7 @@ func (builder *functionBuilder) makeStringConstant(c string) int8 {
 		}
 	}
 	r := len(builder.fn.Constants.String)
-	// Check if allocating a new constant will exceed the maximum number of
-	// constants for this kind.
-	if r+1 > maxStringConstantsCount {
+	if r == maxStringConstantsCount {
 		panic(newLimitExceededError(builder.fn.Pos, builder.path, "string count exceeded %d", maxStringConstantsCount))
 	}
 	builder.fn.Constants.String = append(builder.fn.Constants.String, c)
@@ -446,9 +442,7 @@ func (builder *functionBuilder) makeGeneralConstant(c interface{}) int8 {
 		}
 	}
 	r := len(builder.fn.Constants.General)
-	// Check if allocating a new constant will exceed the maximum number of
-	// constants for this kind.
-	if r+1 > maxGeneralConstantsCount {
+	if r == maxGeneralConstantsCount {
 		panic(newLimitExceededError(builder.fn.Pos, builder.path, "general constants count exceeded %d", maxGeneralConstantsCount))
 	}
 	builder.fn.Constants.General = append(builder.fn.Constants.General, c)
@@ -463,9 +457,7 @@ func (builder *functionBuilder) makeFloatConstant(c float64) int8 {
 		}
 	}
 	r := len(builder.fn.Constants.Float)
-	// Check if allocating a new constant will exceed the maximum number of
-	// constants for this kind.
-	if r+1 > maxFloatConstantsCount {
+	if r == maxFloatConstantsCount {
 		panic(newLimitExceededError(builder.fn.Pos, builder.path, "floating-point count exceeded %d", maxFloatConstantsCount))
 	}
 	builder.fn.Constants.Float = append(builder.fn.Constants.Float, c)
@@ -480,9 +472,7 @@ func (builder *functionBuilder) makeIntConstant(c int64) int8 {
 		}
 	}
 	r := len(builder.fn.Constants.Int)
-	// Check if allocating a new constant will exceed the maximum number of
-	// constants for this kind.
-	if r+1 > maxIntConstantsCount {
+	if r == maxIntConstantsCount {
 		panic(newLimitExceededError(builder.fn.Pos, builder.path, "integer count exceeded %d", maxIntConstantsCount))
 	}
 	builder.fn.Constants.Int = append(builder.fn.Constants.Int, c)
@@ -513,8 +503,6 @@ func (builder *functionBuilder) end() {
 	// if len(fn.Body) == 0 || fn.Body[len(fn.Body)-1].Op != runtime.OpReturn {
 	// 	builder.emitReturn()
 	// }
-	// Ensure that the number of instructions in the function body is not too
-	// big for the runtime.
 	if len(fn.Body) > math.MaxUint32 {
 		panic(newLimitExceededError(fn.Pos, fn.File, "instructions count exceeded %d", math.MaxUint32))
 	}

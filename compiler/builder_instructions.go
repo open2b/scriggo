@@ -334,7 +334,7 @@ func (builder *functionBuilder) emitField(a, field, c int8, dstKind reflect.Kind
 func (builder *functionBuilder) emitFunc(r int8, typ reflect.Type) *runtime.Function {
 	fn := builder.fn
 	b := len(fn.Functions)
-	if b > maxFunctionsCount {
+	if b == maxFunctionsCount {
 		panic(newLimitExceededError(builder.fn.Pos, builder.path, "functions count exceeded %d", maxFunctionsCount))
 	}
 	scriggoFunc := &runtime.Function{

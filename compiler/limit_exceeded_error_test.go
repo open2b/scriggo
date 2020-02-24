@@ -56,6 +56,63 @@ func TestRegistersLimit(t *testing.T) {
 	}
 }
 
+func TestFunctionsLimit(t *testing.T) {
+
+	var i int
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("test should have failed")
+		} else {
+			if _, ok := r.(*LimitExceededError); ok {
+				// The type of the error is correct. Now check if the
+				// test panicked at the correct index.
+				if maxFunctionsCount != i {
+					t.Fatalf("test should have panicked at index %d, but it panicked at index %d", maxFunctionsCount, i)
+				}
+			} else {
+				t.Fatalf("expecting a LimitExceededError, got error %s (of type %T)", r, r)
+			}
+		}
+	}()
+
+	fb := test_builder()
+	for i = 0; i < 1000; i++ {
+		fb.emitFunc(1, reflect.FuncOf(nil, nil, false))
+	}
+
+}
+
+func TestTypesLimit(t *testing.T) {
+
+	var i int
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("test should have failed")
+		} else {
+			if _, ok := r.(*LimitExceededError); ok {
+				// The type of the error is correct. Now check if the
+				// test panicked at the correct index.
+				if maxTypesCount != i {
+					t.Fatalf("test should have panicked at index %d, but it panicked at index %d", maxTypesCount, i)
+				}
+			} else {
+				t.Fatalf("expecting a LimitExceededError, got error %s (of type %T)", r, r)
+			}
+		}
+	}()
+
+	fb := test_builder()
+	for i = 0; i < 1000; i++ {
+		typ := reflect.ArrayOf(i, intType)
+		fb.emitNew(typ, 0)
+	}
+
+}
+
 func TestConstantsLimit(t *testing.T) {
 	cases := []reflect.Kind{
 		reflect.Int,
