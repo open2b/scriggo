@@ -35,7 +35,7 @@ const (
 	maxFloatConstantsCount   = maxIntConstantsCount
 
 	// Instructions.
-	maxNumberOfInstructions = 2<<32 - 1 // X MARCO: what is the correct value?
+	maxNumberOfInstructions = math.MaxUint32
 )
 
 const maxUint24 = 16777215
