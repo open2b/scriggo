@@ -193,7 +193,21 @@ func initGlobals(globals []compiler.Global, init map[string]interface{}) []inter
 }
 
 // IsLimitExceeded reports whether the error is a limit exceeded compiler error.
-// TODO: add more information to this documentation; see #579.
+//
+// These limitations have been arbitrarily added to Scriggo to enhance
+// performances:
+//
+// * 127 registers of a given type (integer, floating point, string or
+// 	general) per function
+// 	* 256 function literal declarations plus unique functions calls per
+// 	function
+// * 256 types available per function
+// * 256 unique predefined functions per function
+// * 256 integer values per function
+// * 256 string values per function
+// * 256 floating-point values per function
+// * 256 general values per function
+//
 func IsLimitExceeded(err error) bool {
 	_, ok := err.(*compiler.LimitExceededError)
 	return ok
