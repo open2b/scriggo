@@ -474,7 +474,7 @@ Additional help topics:
 
     Scriggofile     syntax of the Scriggofile
     
-    limits          limits of the Scriggo compiler/runtime.
+    limitations     limitations of the Scriggo compiler/runtime.
     
 ` + "`" + `
 
@@ -692,41 +692,70 @@ The instructions are:
         To view possible GOOS values run 'go tool dist list'.
 ` + "`" + `
 
-const helpLimits = ` + "`" + `
-The compilation and the execution of Scriggo code can be limited by the compiler
-or by the runtime.
+const helpLimitations = ` + "`" + `
 
-A limit can be imposed by the implementation (eg. too many registers used) or by
-the user (eg. Scriggo is running inside a sandbox).
+Limitations
 
-# TODO
+    These limitations are features that Scriggo currently lacks but that are
+    under development. To check the state of a limitation please refer to the
+    Github issue linked in the list below.
 
-The compilation of Scriggo can return an error due to a limit of the compiler
-or the runtime.
+    * methods declarations (issue #458)
+    * interface types definition (issue #218)
+    * assigning return values from a deferred closure (issue #278)
+    * assigning to non-variables in 'for range' statements (issue #182)
+    * importing the "unsafe" package from Scriggo (issue #288)
+    * importing the "runtime" package from Scriggo (issue #524)
+    * labeled continue and break statements (issue #83)
+    * struct type declarations with implicit fields (issue #367)
+    * struct type declarations with tags (issue #61)
+    * some kinds of pointer shorthands (issue #383)
+    * compilation of non-main packages without importing them (issue #521)
 
-This happens when:
+    For a comprehensive list of not-yet-implemented features
+    see https://github.com/open2b/scriggo/labels/missing-feature.
 
-    1. the number of types used in a function is greater that a 255.
+Limitations due to mantain the interoperability with Go official compiler 'gc'
 
-    2. the number of registers of a certain type (integers, float, strings or
-    general) is greater that 126.
-    
-    3. the number of function declarations added to unique functions calls is
-    greater than 255.
+    * types defined in Scriggo are not correctly seen by the 'reflect' package.
+      This manifests itself, for example, when calling the function
+      'fmt.Printf("%T", v)' where 'v' is a value with a Scriggo defined type.
+      The user expects to see the name of the type but 'fmt' (which internally
+      relies on the package 'reflect') prints the name of the type that wrapped
+      the value in 'v' before passing it to gc.
 
-    4. the number of unique predefined functions called inside a function is
-    greater than 255.
+    * not exported fields of struct types defined in Scriggo are still
+      accessible from the outside.
+      This is caused by the function 'reflect.StructOf' that requires that all
+      fields are exported before creating the type.  By the way, such fields
+      (that should be not exported) are exported with a particular prefix to
+      avoid accidental accessing.
 
-    5. the number of integer values is greater than 255.
+    * cannot define functions without a body (TODO)
 
-    6. the number of string values is greater than 255.
+    * Go packages can be imported only if they have been precompiled into the
+      Scriggo interpreter/execution environment.
+      Also see the commands 'scriggo embed' and 'scriggo build'.
 
-    7. the number of floating-point values is greater than 255.
+    * the debugger 'delve' is not compatible with Scriggo; currently there are
+      no debuggers available for Scriggo.
 
-    8. the number of general values is greater than 255.
+Arbitrary limitations
 
+    These limitations have been arbitrarily added to Scriggo to enhance
+    performances:
 
-For more information about the limits of Scriggo see www.scriggo.com/doc/limits # TODO
+    * 127 registers of a given type (integer, floating point, string or
+        general) per function
+        * 256 function literal declarations plus unique functions calls per
+        function
+    * 256 types available per function
+    * 256 unique predefined functions per function
+    * 256 integer values per function
+    * 256 string values per function
+    * 256 floating-point values per function
+    * 256 general values per function
+
 ` + "`" + `
 `)
 	sources["interpreter_skel.go"] = []byte(`// Copyright (c) 2019 Open2b Software Snc. All rights reserved.
@@ -1040,7 +1069,7 @@ var commandsHelp = map[string]func(){
 		txtToHelp(helpInstall)
 	},
 	"limits": func() {
-		txtToHelp(helpLimits)
+		txtToHelp(helpLimitations)
 	},
 	"stdlib": func() {
 		stderr(

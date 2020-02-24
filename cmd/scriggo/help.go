@@ -263,7 +263,7 @@ The instructions are:
         To view possible GOOS values run 'go tool dist list'.
 `
 
-const helpLimits = `
+const helpLimitations = `
 
 Limitations
 
