@@ -256,7 +256,9 @@ func (builder *functionBuilder) exitStack() {
 func (builder *functionBuilder) newRegister(kind reflect.Kind) int8 {
 	t := kindToType(kind)
 	num := builder.numRegs[t]
-	if num > maxRegistersCount {
+	// num is the number of currently allocated registers; the '+1' is necessary
+	// because the register has not been allocated yet.
+	if num+1 > maxRegistersCount {
 		panic(newLimitExceededError(builder.fn.Pos, builder.path, "%s registers count exceeded %d", t, maxRegistersCount))
 	}
 	builder.allocRegister(t, num+1)
@@ -414,7 +416,9 @@ func (builder *functionBuilder) makeStringConstant(c string) int8 {
 		}
 	}
 	r := len(builder.fn.Constants.String)
-	if r > maxStringConstantsCount {
+	// Check if allocating a new constant will exceed the maximum number of
+	// constants for this kind.
+	if r+1 > maxStringConstantsCount {
 		panic(newLimitExceededError(builder.fn.Pos, builder.path, "string count exceeded %d", maxStringConstantsCount))
 	}
 	builder.fn.Constants.String = append(builder.fn.Constants.String, c)
@@ -445,7 +449,9 @@ func (builder *functionBuilder) makeGeneralConstant(c interface{}) int8 {
 		}
 	}
 	r := len(builder.fn.Constants.General)
-	if r > maxGeneralConstantsCount {
+	// Check if allocating a new constant will exceed the maximum number of
+	// constants for this kind.
+	if r+1 > maxGeneralConstantsCount {
 		panic(newLimitExceededError(builder.fn.Pos, builder.path, "general constants count exceeded %d", maxGeneralConstantsCount))
 	}
 	builder.fn.Constants.General = append(builder.fn.Constants.General, c)
@@ -460,7 +466,9 @@ func (builder *functionBuilder) makeFloatConstant(c float64) int8 {
 		}
 	}
 	r := len(builder.fn.Constants.Float)
-	if r > maxFloatConstantsCount {
+	// Check if allocating a new constant will exceed the maximum number of
+	// constants for this kind.
+	if r+1 > maxFloatConstantsCount {
 		// REVIEW.
 		panic(newLimitExceededError(builder.fn.Pos, builder.path, "floating-point count exceeded %d", maxFloatConstantsCount))
 	}
@@ -476,7 +484,9 @@ func (builder *functionBuilder) makeIntConstant(c int64) int8 {
 		}
 	}
 	r := len(builder.fn.Constants.Int)
-	if r > maxIntConstantsCount {
+	// Check if allocating a new constant will exceed the maximum number of
+	// constants for this kind.
+	if r+1 > maxIntConstantsCount {
 		panic(newLimitExceededError(builder.fn.Pos, builder.path, "integer count exceeded %d", maxIntConstantsCount))
 	}
 	builder.fn.Constants.Int = append(builder.fn.Constants.Int, c)
