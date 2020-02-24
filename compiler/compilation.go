@@ -6,8 +6,12 @@
 
 package compiler
 
-type compilation struct{}
+type compilation struct {
+	pkgPathToIndex map[string]int
+}
 
 func newCompilation() *compilation {
-	return &compilation{}
+	return &compilation{
+		pkgPathToIndex: map[string]int{},
+	}
 }

@@ -24,10 +24,6 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		panic("unspecified syntax type")
 	}
 
-	// Reset the global variable that holds the map of package paths to unique
-	// indexes.
-	pkgPathToIndex = map[string]int{}
-
 	// Type check a program.
 	if opts.SyntaxType == ProgramSyntax && !opts.PackageLess {
 		pkgInfos := map[string]*packageInfo{}
@@ -395,17 +391,17 @@ func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.I
 // TODO(Gianluca): we should keep an index of the last (or the next) package
 // index, instead of recalculate it every time.
 func (tc *typechecker) currentPkgIndex() int {
-	i, ok := pkgPathToIndex[tc.path]
+	i, ok := tc.compilation.pkgPathToIndex[tc.path]
 	if ok {
 		return i
 	}
 	max := -1
-	for _, i := range pkgPathToIndex {
+	for _, i := range tc.compilation.pkgPathToIndex {
 		if i > max {
 			max = i
 		}
 	}
-	pkgPathToIndex[tc.path] = max + 1
+	tc.compilation.pkgPathToIndex[tc.path] = max + 1
 	return max + 1
 }
 
