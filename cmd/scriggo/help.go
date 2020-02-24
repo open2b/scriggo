@@ -268,28 +268,25 @@ const helpLimits = `
 Limitations
 
     These limitations are features that Scriggo currently lacks but that are
-    under development.  To check the state of a limitation please refer to the
+    under development. To check the state of a limitation please refer to the
     Github issue linked in the list below.
 
-    * methods declarations                                    https://github.com/open2b/scriggo/issues/458
-    * interface types definition                              https://github.com/open2b/scriggo/issues/218
-    * assigning return values from a deferred closure         https://github.com/open2b/scriggo/issues/278
-    * assigning to non-variables in 'for range' statements    https://github.com/open2b/scriggo/issues/182
-    * importing the "unsafe" package from Scriggo             https://github.com/open2b/scriggo/issues/288
-    * importing the "runtime" package from Scriggo            https://github.com/open2b/scriggo/issues/524
-    * labeled continue and break statements                   https://github.com/open2b/scriggo/issues/83
-    * struct type declarations with implicit fields           https://github.com/open2b/scriggo/issues/367
-    * struct type declarations with tags                      https://github.com/open2b/scriggo/issues/61
-    * some kinds of pointer shorthands                        https://github.com/open2b/scriggo/issues/383
-    * compilation of non-main packages without importing them https://github.com/open2b/scriggo/issues/521
+    * methods declarations (issue #458)
+    * interface types definition (issue #218)
+    * assigning return values from a deferred closure (issue #278)
+    * assigning to non-variables in 'for range' statements (issue #182)
+    * importing the "unsafe" package from Scriggo (issue #288)
+    * importing the "runtime" package from Scriggo (issue #524)
+    * labeled continue and break statements (issue #83)
+    * struct type declarations with implicit fields (issue #367)
+    * struct type declarations with tags (issue #61)
+    * some kinds of pointer shorthands (issue #383)
+    * compilation of non-main packages without importing them (issue #521)
 
     For a comprehensive list of not-yet-implemented features
     see https://github.com/open2b/scriggo/labels/missing-feature.
 
-Limitations caused by interoperability and gc
-
-    These limitations are caused by the requirement of interoperability with gc
-    and by some restrictions of the gc runtime and/or of the package 'reflect'.
+Limitations due to mantain the interoperability with Go official compiler 'gc'
 
     * types defined in Scriggo are not correctly seen by the 'reflect' package.
       This manifests itself, for example, when calling the function
@@ -305,7 +302,7 @@ Limitations caused by interoperability and gc
       (that should be not exported) are exported with a particular prefix to
       avoid accidental accessing.
 
-    * cannot define functions without a body (REVIEW)
+    * cannot define functions without a body (TODO)
 
     * Go packages can be imported only if they have been precompiled into the
       Scriggo interpreter/execution environment.
