@@ -297,7 +297,7 @@ func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string,
 	newName := name
 	firstChar, _ := utf8.DecodeRuneInString(name)
 	if !t.IsPredefined() && !unicode.Is(unicode.Lu, firstChar) {
-		name = "𝗽" + strconv.Itoa(tc.currentPkgIndex()) + name
+		name = "𝗽" + strconv.Itoa(tc.compilation.UniqueIndex(tc.path)) + name
 		newName = name
 	}
 	if t.Type.Kind() == reflect.Struct {

@@ -512,7 +512,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 					// types.
 					name := ident.Name
 					if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
-						name = "𝗽" + strconv.Itoa(tc.currentPkgIndex()) + ident.Name
+						name = "𝗽" + strconv.Itoa(tc.compilation.UniqueIndex(tc.path)) + ident.Name
 					}
 					for _, field := range fields {
 						if field.Name == name {

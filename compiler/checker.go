@@ -385,26 +385,6 @@ func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.I
 
 }
 
-// currentPkgIndex returns an index related to the current package; such index
-// is unique for every package path.
-//
-// TODO(Gianluca): we should keep an index of the last (or the next) package
-// index, instead of recalculate it every time.
-func (tc *typechecker) currentPkgIndex() int {
-	i, ok := tc.compilation.pkgPathToIndex[tc.path]
-	if ok {
-		return i
-	}
-	max := -1
-	for _, i := range tc.compilation.pkgPathToIndex {
-		if i > max {
-			max = i
-		}
-	}
-	tc.compilation.pkgPathToIndex[tc.path] = max + 1
-	return max + 1
-}
-
 // An ancestor is an AST node with a scope level associated. The type checker
 // holds a list of ancestors to keep track of the current position and depth
 // inside the full AST tree.
