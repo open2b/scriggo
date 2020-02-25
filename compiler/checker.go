@@ -168,6 +168,9 @@ type checkerPath struct {
 
 // typechecker represents the state of the type checking.
 type typechecker struct {
+
+	// compilation holds the state of a single compilation across multiple
+	// instances of 'typechecker'.
 	compilation *compilation
 
 	path           string
