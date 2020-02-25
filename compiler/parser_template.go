@@ -20,8 +20,7 @@ import (
 // CSS or JavaScript.
 //
 // ParseTemplate expands the nodes Extends, Import and Include parsing the
-// relative trees. The parsed trees are cached so only one call per
-// combination of path and context is made to the reader.
+// relative trees.
 //
 // relaxedBoolean reports whether the operators 'and', 'or' and 'not' as well as
 // non-boolean conditions in the if statement are allowed.
@@ -41,7 +40,6 @@ func ParseTemplate(path string, reader Reader, lang ast.Language, relaxedBoolean
 
 	pp := &templateExpansion{
 		reader:         reader,
-		trees:          &cache{},
 		paths:          []string{},
 		relaxedBoolean: relaxedBoolean,
 	}
@@ -64,7 +62,6 @@ func ParseTemplate(path string, reader Reader, lang ast.Language, relaxedBoolean
 // templateExpansion represents the state of a template expansion.
 type templateExpansion struct {
 	reader         Reader
-	trees          *cache
 	paths          []string
 	relaxedBoolean bool
 }
@@ -93,12 +90,6 @@ func (pp *templateExpansion) parsePath(path string, lang ast.Language) (*ast.Tre
 		}
 	}
 
-	// Check if it has already been parsed.
-	if tree, ok := pp.trees.Get(path, lang); ok {
-		return tree, nil
-	}
-	defer pp.trees.Done(path, lang)
-
 	src, err := pp.reader.Read(path)
 	if err != nil {
 		return nil, err
@@ -123,9 +114,6 @@ func (pp *templateExpansion) parsePath(path string, lang ast.Language) (*ast.Tre
 		return nil, err
 	}
 	pp.paths = pp.paths[:len(pp.paths)-1]
-
-	// Add the tree to the cache.
-	pp.trees.Add(path, lang, tree)
 
 	return tree, nil
 }
