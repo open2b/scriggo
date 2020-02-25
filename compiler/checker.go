@@ -24,10 +24,6 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		panic("unspecified syntax type")
 	}
 
-	// Reset the global variable that holds the map of package paths to unique
-	// indexes.
-	pkgPathToIndex = map[string]int{}
-
 	// Type check a program.
 	if opts.SyntaxType == ProgramSyntax && !opts.PackageLess {
 		pkgInfos := map[string]*packageInfo{}
@@ -35,7 +31,8 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		if pkg.Name != "main" {
 			return nil, &CheckingError{path: tree.Path, pos: *pkg.Pos(), err: errors.New("package name must be main")}
 		}
-		err := checkPackage(pkg, tree.Path, packages, pkgInfos, opts, nil)
+		compilation := newCompilation()
+		err := checkPackage(compilation, pkg, tree.Path, packages, pkgInfos, opts, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -64,7 +61,8 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		}
 	}
 
-	tc := newTypechecker(tree.Path, opts, globalScope)
+	compilation := newCompilation()
+	tc := newTypechecker(compilation, tree.Path, opts, globalScope)
 
 	// Type check a template page which extends another page.
 	if extends, ok := getExtends(tree.Nodes); ok {
@@ -97,7 +95,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 			return nil, err
 		}
 		pkgInfos := map[string]*packageInfo{}
-		err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, nil, pkgInfos, opts, tc.globalScope)
+		err = checkPackage(compilation, tree.Nodes[0].(*ast.Package), tree.Path, nil, pkgInfos, opts, tc.globalScope)
 		if err != nil {
 			return nil, err
 		}
@@ -170,6 +168,11 @@ type checkerPath struct {
 
 // typechecker represents the state of the type checking.
 type typechecker struct {
+
+	// compilation holds the state of a single compilation across multiple
+	// instances of 'typechecker'.
+	compilation *compilation
+
 	path           string
 	paths          []checkerPath
 	predefinedPkgs PackageLoader
@@ -252,8 +255,9 @@ type typechecker struct {
 
 // newTypechecker creates a new type checker. A global scope may be provided for
 // package-less programs and templates.
-func newTypechecker(path string, opts checkerOptions, globalScope typeCheckerScope) *typechecker {
+func newTypechecker(compilation *compilation, path string, opts checkerOptions, globalScope typeCheckerScope) *typechecker {
 	return &typechecker{
+		compilation:      compilation,
 		path:             path,
 		filePackageBlock: typeCheckerScope{},
 		globalScope:      globalScope,
@@ -382,26 +386,6 @@ func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.I
 		tc.scopes[len(tc.scopes)-1][name] = scopeElement{t: value, decl: declNode}
 	}
 
-}
-
-// currentPkgIndex returns an index related to the current package; such index
-// is unique for every package path.
-//
-// TODO(Gianluca): we should keep an index of the last (or the next) package
-// index, instead of recalculate it every time.
-func (tc *typechecker) currentPkgIndex() int {
-	i, ok := pkgPathToIndex[tc.path]
-	if ok {
-		return i
-	}
-	max := -1
-	for _, i := range pkgPathToIndex {
-		if i > max {
-			max = i
-		}
-	}
-	pkgPathToIndex[tc.path] = max + 1
-	return max + 1
 }
 
 // An ancestor is an AST node with a scope level associated. The type checker

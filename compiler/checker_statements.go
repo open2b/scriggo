@@ -921,7 +921,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 		if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
 			return tc.programImportError(impor)
 		}
-		err := checkPackage(impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, imports, pkgInfos, tc.opts, tc.globalScope)
+		err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, imports, pkgInfos, tc.opts, tc.globalScope)
 		if err != nil {
 			return err
 		}
@@ -942,7 +942,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 			if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
 				return tc.programImportError(impor)
 			}
-			err = checkPackage(impor.Tree.Nodes[0].(*ast.Package), impor.Path, nil, pkgInfos, tc.opts, tc.globalScope)
+			err = checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Path, nil, pkgInfos, tc.opts, tc.globalScope)
 			if err != nil {
 				return err
 			}
