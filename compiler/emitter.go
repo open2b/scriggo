@@ -133,8 +133,8 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 		em.pkg = pkg
 	}
 
-	// https://github.com/open2b/scriggo/issues/476
-	inits := []*runtime.Function{} // List of all "init" functions in current package.
+	// List of all "init" functions in current package.
+	inits := []*runtime.Function{}
 
 	// Emit the imports.
 	for _, decl := range pkg.Declarations {
