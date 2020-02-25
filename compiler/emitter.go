@@ -67,17 +67,29 @@ type emitter struct {
 	// imported by two different packages.
 	// TODO: consider moving this field to the funcStore.
 	alreadyEmittedFuncs map[*ast.Func]*runtime.Function
+
+	// alreadyInitializedVars maps the identifiers of package variable
+	// declarations to their index (used in the SetVar/GetVar instructions).
+	// This map has three purposes:
+	//
+	//  - speed up the compilation avoiding emitting a variable twice.
+	//  - avoid emitting the same variable with two different indexes, that
+	//    would result in an invalid behavior.
+	//  - avoid initializing the same variable more than once, that would
+	//    result in an invalid behavior.
+	alreadyInitializedVars map[*ast.Identifier]int16
 }
 
 // newEmitter returns a new emitter with the given type infos, indirect
 // variables and options.
 func newEmitter(typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) *emitter {
 	em := &emitter{
-		labels:              make(map[*runtime.Function]map[string]label),
-		options:             opts,
-		typeInfos:           typeInfos,
-		types:               types.NewTypes(), // TODO: this is wrong: the instance should be taken from the type checker.
-		alreadyEmittedFuncs: map[*ast.Func]*runtime.Function{},
+		labels:                 make(map[*runtime.Function]map[string]label),
+		options:                opts,
+		typeInfos:              typeInfos,
+		types:                  types.NewTypes(), // TODO: this is wrong: the instance should be taken from the type checker.
+		alreadyEmittedFuncs:    map[*ast.Func]*runtime.Function{},
+		alreadyInitializedVars: map[*ast.Identifier]int16{},
 	}
 	em.fnStore = newFunctionStore(em)
 	em.varStore = newVarStore(em, indirectVars)
@@ -216,6 +228,13 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 					addresses[i] = em.addressBlankIdent(v.Pos())
 					continue
 				}
+				// This variable has already been emitted and initialized; just
+				// add it to the 'vars' slice, everything else has already been
+				// done.
+				if index, ok := em.alreadyInitializedVars[v]; ok {
+					vars[v.Name] = index
+					continue
+				}
 				varType := em.typ(v)
 				varr := em.fb.newRegister(varType.Kind())
 				addresses[i] = em.addressLocalVar(varr, varType, v.Pos(), 0)
@@ -224,6 +243,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				pkgVarRegs[v.Name] = varr
 				pkgVarTypes[v.Name] = varType
 				index := em.varStore.createScriggoPackageVar(em.pkg, newGlobal(pkg.Name, v.Name, varType, nil))
+				em.alreadyInitializedVars[v] = index
 				vars[v.Name] = index
 			}
 			em.assignValuesToAddresses(addresses, n.Rhs)
