@@ -540,11 +540,10 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(compilation *compilation, pkg *ast.Package, path string, imports PackageLoader, pkgInfos map[string]*packageInfo, opts checkerOptions, globalScope typeCheckerScope) (err error) {
+func checkPackage(compilation *compilation, pkg *ast.Package, path string, imports PackageLoader, opts checkerOptions, globalScope typeCheckerScope) (err error) {
 
-	// If the package has already been checked just return the pkgInfo.
-	if pkgInfo, ok := compilation.pkgInfos[path]; ok {
-		pkgInfos[path] = pkgInfo
+	// If the package has already been checked just return.
+	if _, ok := compilation.pkgInfos[path]; ok {
 		return
 	}
 
@@ -595,7 +594,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, impor
 	// First: import packages.
 	for _, d := range pkg.Declarations {
 		if d, ok := d.(*ast.Import); ok {
-			err := tc.checkImport(d, imports, pkgInfos, true)
+			err := tc.checkImport(d, imports, true)
 			if err != nil {
 				return err
 			}
@@ -702,6 +701,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, impor
 		}
 	}
 
+	// Create a package info and store it into the compilation.
 	pkgInfo := &packageInfo{
 		Name:         pkg.Name,
 		Declarations: make(map[string]*typeInfo, len(pkg.Declarations)),
@@ -712,10 +712,6 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, impor
 		pkgInfo.Declarations[ident] = ti.t
 	}
 	pkgInfo.IndirectVars = tc.indirectVars
-
-	// TODO: consider removing pkgInfos and use only compilation.pkgInfos.
-	pkgInfos[path] = pkgInfo
-
 	compilation.pkgInfos[path] = pkgInfo
 
 	return nil

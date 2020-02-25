@@ -26,17 +26,16 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 
 	// Type check a program.
 	if opts.SyntaxType == ProgramSyntax && !opts.PackageLess {
-		pkgInfos := map[string]*packageInfo{}
 		pkg := tree.Nodes[0].(*ast.Package)
 		if pkg.Name != "main" {
 			return nil, &CheckingError{path: tree.Path, pos: *pkg.Pos(), err: errors.New("package name must be main")}
 		}
 		compilation := newCompilation()
-		err := checkPackage(compilation, pkg, tree.Path, packages, pkgInfos, opts, nil)
+		err := checkPackage(compilation, pkg, tree.Path, packages, opts, nil)
 		if err != nil {
 			return nil, err
 		}
-		return pkgInfos, nil
+		return compilation.pkgInfos, nil
 	}
 
 	// Prepare the type checking for package-less programs and templates.
@@ -94,8 +93,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		if err != nil {
 			return nil, err
 		}
-		pkgInfos := map[string]*packageInfo{}
-		err = checkPackage(compilation, tree.Nodes[0].(*ast.Package), tree.Path, nil, pkgInfos, opts, tc.globalScope)
+		err = checkPackage(compilation, tree.Nodes[0].(*ast.Package), tree.Path, nil, opts, tc.globalScope)
 		if err != nil {
 			return nil, err
 		}
@@ -103,7 +101,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		mainPkgInfo := &packageInfo{}
 		mainPkgInfo.IndirectVars = tc.indirectVars
 		mainPkgInfo.TypeInfos = tc.typeInfos
-		for _, pkgInfo := range pkgInfos {
+		for _, pkgInfo := range compilation.pkgInfos {
 			for k, v := range pkgInfo.TypeInfos {
 				mainPkgInfo.TypeInfos[k] = v
 			}

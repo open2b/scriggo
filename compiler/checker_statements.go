@@ -132,7 +132,7 @@ nodesLoop:
 		switch node := node.(type) {
 
 		case *ast.Import:
-			err := tc.checkImport(node, nil, nil, false)
+			err := tc.checkImport(node, nil, false)
 			if err != nil {
 				panic(err)
 			}
@@ -846,7 +846,7 @@ nodesLoop:
 }
 
 // TODO: improve this code, making it more readable.
-func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkgInfos map[string]*packageInfo, packageLevel bool) error {
+func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, packageLevel bool) error {
 
 	// Import statement in a package-less program.
 	if tc.opts.PackageLess {
@@ -921,11 +921,11 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 		if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
 			return tc.programImportError(impor)
 		}
-		err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, imports, pkgInfos, tc.opts, tc.globalScope)
+		err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, imports, tc.opts, tc.globalScope)
 		if err != nil {
 			return err
 		}
-		imported = pkgInfos[impor.Tree.Path]
+		imported = tc.compilation.pkgInfos[impor.Tree.Path]
 	}
 
 	// Import statement in a template.
@@ -938,20 +938,19 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pkg
 			if err != nil {
 				return err
 			}
-			pkgInfos := map[string]*packageInfo{}
 			if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
 				return tc.programImportError(impor)
 			}
-			err = checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Path, nil, pkgInfos, tc.opts, tc.globalScope)
+			err = checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Path, nil, tc.opts, tc.globalScope)
 			if err != nil {
 				return err
 			}
 			// TypeInfos of imported packages in templates are
 			// "manually" added to the map of typeinfos of typechecker.
-			for k, v := range pkgInfos[impor.Path].TypeInfos {
+			for k, v := range tc.compilation.pkgInfos[impor.Path].TypeInfos {
 				tc.typeInfos[k] = v
 			}
-			imported = pkgInfos[impor.Path]
+			imported = tc.compilation.pkgInfos[impor.Path]
 		}
 		if impor.Ident == nil {
 			tc.unusedImports[imported.Name] = nil
