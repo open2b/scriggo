@@ -1,4 +1,4 @@
-// skip : invalid behaviour https://github.com/open2b/scriggo/issues/533
+// skip : invalid behaviour (needs investigation)
 
 // run
 

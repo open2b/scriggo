@@ -255,8 +255,38 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 
 		case *ast.Return:
 			offset := [4]int8{}
+			// Emit return statements with a function call that returns more
+			// than one value.
+			//
+			// Example:
+			//
+			//	return fmt.Println("text")
+			//
+			fnType := em.fb.fn.Type
+			if len(node.Values) == 1 && fnType.NumOut() > 1 {
+				returnedRegs, types := em.emitCallNode(node.Values[0].(*ast.Call), false, false)
+				for i, typ := range types {
+					var dstReg int8
+					switch kindToType(typ.Kind()) {
+					case intRegister:
+						offset[0]++
+						dstReg = offset[0]
+					case floatRegister:
+						offset[1]++
+						dstReg = offset[1]
+					case stringRegister:
+						offset[2]++
+						dstReg = offset[2]
+					case generalRegister:
+						offset[3]++
+						dstReg = offset[3]
+					}
+					em.changeRegister(false, returnedRegs[i], dstReg, typ, fnType.Out(i))
+				}
+				continue
+			}
 			for i, v := range node.Values {
-				typ := em.fb.fn.Type.Out(i)
+				typ := fnType.Out(i)
 				var reg int8
 				switch kindToType(typ.Kind()) {
 				case intRegister:
