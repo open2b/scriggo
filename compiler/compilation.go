@@ -17,11 +17,15 @@ package compiler
 type compilation struct {
 	// pkgPathToIndex maps the path of a package to an unique int identifier.
 	pkgPathToIndex map[string]int
+
+	// pkgInfos maps the packages path to their respective package infos.
+	pkgInfos map[string]*packageInfo
 }
 
 // newCompilation returns a new compilation.
 func newCompilation() *compilation {
 	return &compilation{
+		pkgInfos:       map[string]*packageInfo{},
 		pkgPathToIndex: map[string]int{},
 	}
 }

@@ -542,6 +542,12 @@ varsLoop:
 // checkPackage type checks a package.
 func checkPackage(compilation *compilation, pkg *ast.Package, path string, imports PackageLoader, pkgInfos map[string]*packageInfo, opts checkerOptions, globalScope typeCheckerScope) (err error) {
 
+	// If the package has already been checked just return the pkgInfo.
+	if pkgInfo, ok := compilation.pkgInfos[path]; ok {
+		pkgInfos[path] = pkgInfo
+		return
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			if rerr, ok := r.(*CheckingError); ok {
@@ -707,7 +713,10 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, impor
 	}
 	pkgInfo.IndirectVars = tc.indirectVars
 
+	// TODO: consider removing pkgInfos and use only compilation.pkgInfos.
 	pkgInfos[path] = pkgInfo
+
+	compilation.pkgInfos[path] = pkgInfo
 
 	return nil
 }
