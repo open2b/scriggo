@@ -62,6 +62,11 @@ func (vm *VM) run() (Addr, bool) {
 
 	for {
 
+		in := vm.fn.Body[vm.pc]
+
+		vm.pc++
+		op, a, b, c = in.Op, in.A, in.B, in.C
+
 		if vm.done != nil {
 			select {
 			case <-vm.done:
@@ -69,11 +74,6 @@ func (vm *VM) run() (Addr, bool) {
 			default:
 			}
 		}
-
-		in := vm.fn.Body[vm.pc]
-
-		vm.pc++
-		op, a, b, c = in.Op, in.A, in.B, in.C
 
 		// If an instruction needs to change the program counter,
 		// it must be changed, if possible, at the end of the instruction execution.
