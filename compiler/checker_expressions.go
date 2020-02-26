@@ -1881,12 +1881,15 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 //
 // when checking the elements of the slice the typ argument passed to
 // checkCompositeLiteral is 'T', and it is considered because the elements does
-// not have an explicit type.
-// In this other situation:
+// not have an explicit type. In this other situation:
 //
 //     []T{T{}, T{}, T{}}
 //
 // every element specifies the type, so the argument 'typ' is simply ignored.
+//
+// The only case that cannot be handled by checkCompositeLiteral is when a
+// composite literal element has an implicit type of kind pointer; in such case
+// a tree transformation must be done externally.
 func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ reflect.Type) *typeInfo {
 
 	// Handle composite literal nodes with implicit type.
@@ -2018,7 +2021,15 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			}
 			var elemTi *typeInfo
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
-				elemTi = tc.checkCompositeLiteral(cl, ti.Type.Elem())
+				if ti.Type.Elem().Kind() == reflect.Ptr {
+					// The array as element *T, so the value '{..}' must be
+					// replaced with '&T{..}'.
+					kv.Value = ast.NewUnaryOperator(cl.Pos(), ast.OperatorAddress, cl)
+					tc.checkCompositeLiteral(cl, ti.Type.Elem().Elem()) // [3]*T -> T
+					elemTi = tc.checkExpr(kv.Value)
+				} else {
+					elemTi = tc.checkCompositeLiteral(cl, ti.Type.Elem())
+				}
 			} else {
 				elemTi = tc.checkExpr(kv.Value)
 			}
@@ -2057,7 +2068,15 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			}
 			var elemTi *typeInfo
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
-				elemTi = tc.checkCompositeLiteral(cl, ti.Type.Elem())
+				if ti.Type.Elem().Kind() == reflect.Ptr {
+					// The slice as element *T, so the value '{..}' must be
+					// replaced with '&T{..}'.
+					kv.Value = ast.NewUnaryOperator(cl.Pos(), ast.OperatorAddress, cl)
+					tc.checkCompositeLiteral(cl, ti.Type.Elem().Elem()) // []*T -> T
+					elemTi = tc.checkExpr(kv.Value)
+				} else {
+					elemTi = tc.checkCompositeLiteral(cl, ti.Type.Elem())
+				}
 			} else {
 				elemTi = tc.checkExpr(kv.Value)
 			}
@@ -2091,7 +2110,15 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			}
 			var keyTi *typeInfo
 			if compLit, ok := kv.Key.(*ast.CompositeLiteral); ok {
-				keyTi = tc.checkCompositeLiteral(compLit, keyType)
+				if keyType.Kind() == reflect.Ptr {
+					// The map as the key type *T, so the value '{..}' must be
+					// replaced with '&T{..}'.
+					kv.Key = ast.NewUnaryOperator(compLit.Pos(), ast.OperatorAddress, compLit)
+					tc.checkCompositeLiteral(compLit, keyType.Elem()) // *T -> T
+					keyTi = tc.checkExpr(kv.Key)
+				} else {
+					keyTi = tc.checkCompositeLiteral(compLit, keyType)
+				}
 			} else {
 				keyTi = tc.checkExpr(kv.Key)
 			}
@@ -2116,7 +2143,15 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			}
 			var valueTi *typeInfo
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
-				valueTi = tc.checkCompositeLiteral(cl, elemType)
+				if elemType.Kind() == reflect.Ptr {
+					// The map as the element type *T, so the value '{..}' must
+					// be replaced with '&T{..}'.
+					kv.Value = ast.NewUnaryOperator(cl.Pos(), ast.OperatorAddress, cl)
+					tc.checkCompositeLiteral(cl, elemType.Elem()) // *T -> T
+					valueTi = tc.checkExpr(kv.Value)
+				} else {
+					valueTi = tc.checkCompositeLiteral(cl, elemType)
+				}
 			} else {
 				valueTi = tc.checkExpr(kv.Value)
 			}
