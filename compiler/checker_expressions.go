@@ -1872,8 +1872,21 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 	return maxIndex
 }
 
-// checkCompositeLiteral type checks a composite literal. typ is the type of
-// the composite literal.
+// checkCompositeLiteral type checks a composite literal.
+//
+// typ is the type of the composite literal, and it is taken in account only
+// when node does not have a type. For example, given the following expression:
+//
+//     []T{{}, {}, {}}
+//
+// when checking the elements of the slice the typ argument passed to
+// checkCompositeLiteral is 'T', and it is considered because the elements does
+// not have an explicit type.
+// In this other situation:
+//
+//     []T{T{}, T{}, T{}}
+//
+// every element specifies the type, so the argument 'typ' is simply ignored.
 func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ reflect.Type) *typeInfo {
 
 	// Handle composite literal nodes with implicit type.
