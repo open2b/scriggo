@@ -1880,7 +1880,7 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 //     []T{{}, {}, {}}
 //
 // when checking the elements of the slice the typ argument passed to
-// checkCompositeLiteral is 'T', and it is considered because the elements does
+// checkCompositeLiteral is 'T', and it is considered because the elements do
 // not have an explicit type. In this other situation:
 //
 //     []T{T{}, T{}, T{}}
