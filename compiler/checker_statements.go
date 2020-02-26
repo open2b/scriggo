@@ -1139,7 +1139,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) ast.Node {
 		for i := range expected {
 			lhs[i] = expected[i].Ident
 		}
-		assign := ast.NewAssignment(nil, lhs, ast.AssignmentSimple, got)
+		assign := ast.NewAssignment(nil, lhs, ast.AssignmentSimple, node.Values)
 		tc.checkAssignment(assign)
 		return assign
 	}
