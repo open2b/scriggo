@@ -670,13 +670,7 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 	// the 'select' statement will be released at the end of it.
 	em.fb.enterStack()
 
-	// Create some shared registers; preallocation is not a problem: when the
-	// emission of the select statement will is completed, all registers are
-	// released.
 	chs := make([]int8, len(selectNode.Cases))
-	for i := 0; i < len(selectNode.Cases); i++ {
-		chs[i] = em.fb.newRegister(reflect.Chan)
-	}
 	ok := em.fb.newRegister(reflect.Bool)
 	value := [4]int8{
 		intRegister:     em.fb.newRegister(reflect.Int),
@@ -692,17 +686,17 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 		case *ast.UnaryOperator:
 			// <- ch
 			chExpr := cas.Expr
-			em.emitExprR(chExpr, em.typ(chExpr), chs[i])
+			chs[i] = em.emitExpr(chExpr, em.typ(chExpr))
 		case *ast.Assignment:
 			// v [, ok ] = <- ch
 			chExpr := cas.Rhs[0].(*ast.UnaryOperator).Expr
-			em.emitExprR(chExpr, em.typ(chExpr), chs[i])
+			chs[i] = em.emitExpr(chExpr, em.typ(chExpr))
 		case *ast.Send:
 			// ch <- v
 			chExpr := cas.Channel
 			chType := em.typ(chExpr)
 			elemType := chType.Elem()
-			em.emitExprR(chExpr, chType, chs[i])
+			chs[i] = em.emitExpr(chExpr, chType)
 			em.emitExprR(cas.Value, elemType, value[kindToType(elemType.Kind())])
 		}
 	}
