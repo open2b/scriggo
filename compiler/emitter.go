@@ -354,11 +354,19 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 			if g, ok := args[0].(*ast.Call); ok {
 				if numOut, ok := em.numOut(g); ok && numOut > 1 {
 					if opts.predefined {
+						// Reserve the registers for the input parameters of 'f'
+						// before emitting the call node 'g(..)', otherwise if
+						// 'g' accepts some arguments (eg. 'f(g(arg1, arg2))')
+						// then the continuity between the output and the input
+						// regs of 'f' is lost.
+						dstType := fnTyp.In(0).Elem()
+						fInParams := make([]int8, numOut)
+						for i := 0; i < numOut; i++ {
+							fInParams[i] = em.fb.newRegister(dstType.Kind())
+						}
 						argRegs, argTypes := em.emitCallNode(g, false, false)
 						for i := range argRegs {
-							dstType := fnTyp.In(0).Elem()
-							reg := em.fb.newRegister(dstType.Kind())
-							em.changeRegister(false, argRegs[i], reg, argTypes[i], dstType)
+							em.changeRegister(false, argRegs[i], fInParams[i], argTypes[i], dstType)
 						}
 						return regs, types
 					}
