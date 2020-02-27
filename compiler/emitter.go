@@ -325,22 +325,27 @@ type callOptions struct {
 
 // prepareCallParameters prepares the input and the output parameters for a
 // function call.
-
-// Returns the index (and their respective type) of the registers that will hold
-// the function return parameters.
+//
+// Returns the index (and the type) of the registers that will hold the function
+// return parameters.
 //
 // Note that while prepareCallParameters is called before calling the function,
 // prepareFunctionBodyParameters is called before emitting its body.
 func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expression, opts callOptions) ([]int8, []reflect.Type) {
+
 	numOut := fnTyp.NumOut()
 	numIn := fnTyp.NumIn()
 	regs := make([]int8, numOut)
 	types := make([]reflect.Type, numOut)
+
+	// Reserve space for the output parameters.
 	for i := 0; i < numOut; i++ {
 		t := fnTyp.Out(i)
 		regs[i] = em.fb.newRegister(t.Kind())
 		types[i] = t
 	}
+
+	// Emit the receiver, if necessary.
 	if opts.receiverAsArg {
 		reg := em.fb.newRegister(em.typ(args[0]).Kind())
 		em.fb.enterStack()
@@ -348,8 +353,11 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 		em.fb.exitStack()
 		args = args[1:]
 	}
+
+	// Emit variadic function calls.
 	if fnTyp.IsVariadic() {
-		// f(g()) where f is variadic.
+
+		// f(g()) where f is variadic and g returns more that one value.
 		if fnTyp.NumIn() == 1 && len(args) == 1 {
 			if g, ok := args[0].(*ast.Call); ok {
 				if numOut, ok := em.numOut(g); ok && numOut > 1 {
@@ -359,14 +367,14 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 						// 'g' accepts some arguments (eg. 'f(g(arg1, arg2))')
 						// then the continuity between the output and the input
 						// regs of 'f' is lost.
-						dstType := fnTyp.In(0).Elem()
+						fParamsType := fnTyp.In(0).Elem()
 						fInParams := make([]int8, numOut)
 						for i := 0; i < numOut; i++ {
-							fInParams[i] = em.fb.newRegister(dstType.Kind())
+							fInParams[i] = em.fb.newRegister(fParamsType.Kind())
 						}
 						argRegs, argTypes := em.emitCallNode(g, false, false)
 						for i := range argRegs {
-							em.changeRegister(false, argRegs[i], fInParams[i], argTypes[i], dstType)
+							em.changeRegister(false, argRegs[i], fInParams[i], argTypes[i], fParamsType)
 						}
 						return regs, types
 					}
@@ -431,25 +439,30 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 				}
 			}
 		}
-	} else { // No-variadic function.
-		if numIn > 1 && len(args) == 1 { // f(g()), where f takes more than 1 argument.
-			regs, types := em.emitCallNode(args[0].(*ast.Call), false, false)
-			for i := range regs {
-				dstType := fnTyp.In(i)
-				reg := em.fb.newRegister(dstType.Kind())
-				em.changeRegister(false, regs[i], reg, types[i], dstType)
-			}
-		} else {
-			for i := 0; i < numIn; i++ {
-				t := fnTyp.In(i)
-				reg := em.fb.newRegister(t.Kind())
-				em.fb.enterStack()
-				em.emitExprR(args[i], t, reg)
-				em.fb.exitStack()
-			}
+		return regs, types
+	}
+
+	// Non-variadic function call.
+	if numIn > 1 && len(args) == 1 { // f(g()), where f takes more than 1 argument.
+		gOutRegs, gOutTypes := em.emitCallNode(args[0].(*ast.Call), false, false)
+		for i := range gOutRegs {
+			dstType := fnTyp.In(i)
+			reg := em.fb.newRegister(dstType.Kind())
+			em.changeRegister(false, gOutRegs[i], reg, gOutTypes[i], dstType)
 		}
+		return regs, types
+	}
+
+	// Simple function call: no variadic/dot calls/f(g()) special cases involved.
+	for i := 0; i < numIn; i++ {
+		t := fnTyp.In(i)
+		reg := em.fb.newRegister(t.Kind())
+		em.fb.enterStack()
+		em.emitExprR(args[i], t, reg)
+		em.fb.exitStack()
 	}
 	return regs, types
+
 }
 
 // prepareFunctionBodyParameters prepares fun's parameters (in and out) before
