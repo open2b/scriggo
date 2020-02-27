@@ -85,6 +85,7 @@ func (language Language) String() string {
 }
 
 type LoadOptions struct {
+	DisallowGoStmt  bool
 	LimitMemorySize bool
 	TreeTransformer func(*ast.Tree) error // if not nil transforms tree after parsing.
 	RelaxedBoolean  bool
@@ -119,6 +120,7 @@ func Load(path string, reader Reader, main Package, lang Language, options *Load
 		compileOpts.LimitMemorySize = options.LimitMemorySize
 		compileOpts.TreeTransformer = options.TreeTransformer
 		compileOpts.RelaxedBoolean = options.RelaxedBoolean
+		compileOpts.DisallowGoStmt = options.DisallowGoStmt
 	}
 	var mainImporter scriggo.Packages
 	if main != nil {
