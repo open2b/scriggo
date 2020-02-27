@@ -164,6 +164,14 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *R
 	return err
 }
 
+// MustRender is like Render but panics if the rendering fails.
+func (t *Template) MustRender(out io.Writer, vars map[string]interface{}, options *RenderOptions) {
+	err := t.Render(out, vars, options)
+	if err != nil {
+		panic(err)
+	}
+}
+
 // Options returns the options with which the template has been loaded.
 func (t *Template) Options() *LoadOptions {
 	return t.options

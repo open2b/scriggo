@@ -104,6 +104,15 @@ func (p *Program) Run(options *RunOptions) (int, error) {
 	return vm.Run(p.fn, initGlobals(p.globals, nil))
 }
 
+// MustRun is like Run but panics if the run fails.
+func (p *Program) MustRun(options *RunOptions) int {
+	code, err := p.Run(options)
+	if err != nil {
+		panic(err)
+	}
+	return code
+}
+
 // PrintFunc returns a function that print its argument to the writer w with
 // the same format used by the builtin print to print to the standard error.
 // The returned function can be used for the PrintFunc option.
