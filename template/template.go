@@ -141,8 +141,8 @@ func Load(path string, reader Reader, main Package, lang Language, options *Load
 
 var emptyVars = map[string]interface{}{}
 
-// Render renders the template and write the output to out. vars contains the values for the
-// variables of the main package.
+// Render renders the template and write the output to out. vars contains the
+// values for the variables of the main package.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *RenderOptions) error {
 	if options != nil && options.MemoryLimiter != nil {
 		if t.options == nil || !t.options.LimitMemorySize {
