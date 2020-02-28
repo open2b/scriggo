@@ -74,7 +74,7 @@ func (js JavaScript) JavaScript() string {
 type Language int
 
 const (
-	LanguageText = iota
+	LanguageText Language = iota
 	LanguageHTML
 	LanguageCSS
 	LanguageJavaScript
