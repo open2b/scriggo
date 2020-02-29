@@ -37,6 +37,8 @@ var int32TypeInfo = &typeInfo{Type: int32Type, Properties: propertyIsType | prop
 
 var untypedBoolTypeInfo = &typeInfo{Type: boolType, Properties: propertyUntyped}
 
+var errorType = reflect.TypeOf((*error)(nil)).Elem()
+
 var envType = reflect.TypeOf(&runtime.Env{})
 
 var universe = typeCheckerScope{
@@ -61,7 +63,7 @@ var universe = typeCheckerScope{
 	"bool":       {t: &typeInfo{Type: boolType, Properties: propertyIsType | propertyPredeclared}},
 	"complex128": {t: &typeInfo{Type: complex128Type, Properties: propertyIsType | propertyPredeclared}},
 	"complex64":  {t: &typeInfo{Type: complex64Type, Properties: propertyIsType | propertyPredeclared}},
-	"error":      {t: &typeInfo{Type: reflect.TypeOf((*error)(nil)).Elem(), Properties: propertyIsType | propertyPredeclared}},
+	"error":      {t: &typeInfo{Type: errorType, Properties: propertyIsType | propertyPredeclared}},
 	"float32":    {t: &typeInfo{Type: reflect.TypeOf(float32(0)), Properties: propertyIsType | propertyPredeclared}},
 	"float64":    {t: &typeInfo{Type: float64Type, Properties: propertyIsType | propertyPredeclared}},
 	"false":      {t: &typeInfo{Type: boolType, Properties: propertyUntyped, Constant: boolConst(false)}},

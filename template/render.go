@@ -147,9 +147,12 @@ func toString(v reflect.Value) string {
 // renderInText renders value in the Text context.
 func renderInText(out io.Writer, value interface{}) error {
 	var s string
-	if v, ok := value.(fmt.Stringer); ok {
+	switch v := value.(type) {
+	case fmt.Stringer:
 		s = v.String()
-	} else {
+	case error:
+		s = v.Error()
+	default:
 		s = toString(reflect.ValueOf(value))
 	}
 	w := newStringWriter(out)
@@ -169,6 +172,8 @@ func renderInHTML(out io.Writer, value interface{}) error {
 		return err
 	case fmt.Stringer:
 		return htmlEscape(w, v.String())
+	case error:
+		return htmlEscape(w, v.Error())
 	default:
 		return htmlEscape(w, toString(reflect.ValueOf(value)))
 	}
@@ -177,9 +182,12 @@ func renderInHTML(out io.Writer, value interface{}) error {
 // renderInTag renders value in Tag context.
 func renderInTag(out io.Writer, value interface{}) error {
 	var s string
-	if v, ok := value.(fmt.Stringer); ok {
+	switch v := value.(type) {
+	case fmt.Stringer:
 		s = v.String()
-	} else {
+	case error:
+		s = v.Error()
+	default:
 		s = toString(reflect.ValueOf(value))
 	}
 	i := 0
@@ -210,9 +218,12 @@ func renderInTag(out io.Writer, value interface{}) error {
 // depending on quoted value.
 func renderInAttribute(out io.Writer, value interface{}, quoted bool) error {
 	var s string
-	if v, ok := value.(fmt.Stringer); ok {
+	switch v := value.(type) {
+	case fmt.Stringer:
 		s = v.String()
-	} else {
+	case error:
+		s = v.Error()
+	default:
 		s = toString(reflect.ValueOf(value))
 	}
 	return attributeEscape(newStringWriter(out), s, quoted)
@@ -230,6 +241,8 @@ func renderInCSS(out io.Writer, value interface{}) error {
 		return err
 	case fmt.Stringer:
 		value = v.String()
+	case error:
+		value = v.Error()
 	}
 	v := reflect.ValueOf(value)
 	switch v.Kind() {
@@ -253,9 +266,12 @@ func renderInCSS(out io.Writer, value interface{}) error {
 // renderInCSSString renders value in CSSString context.
 func renderInCSSString(out io.Writer, value interface{}) error {
 	var s string
-	if v, ok := value.(fmt.Stringer); ok {
-		s = v.String()
-	} else {
+	switch value := value.(type) {
+	case fmt.Stringer:
+		s = value.String()
+	case error:
+		s = value.Error()
+	default:
 		v := reflect.ValueOf(value)
 		if v.Type() == byteSliceType {
 			w := newStringWriter(out)
@@ -278,6 +294,8 @@ func renderInJavaScript(out io.Writer, value interface{}) error {
 	case JavaScriptStringer:
 		_, err := w.WriteString(v.JavaScript())
 		return err
+	case error:
+		value = v.Error()
 	}
 
 	v := reflect.ValueOf(value)
@@ -433,9 +451,12 @@ func renderInJavaScript(out io.Writer, value interface{}) error {
 // renderInJavaScriptString renders value in JavaScriptString context.
 func renderInJavaScriptString(out io.Writer, value interface{}) error {
 	var s string
-	if v, ok := value.(fmt.Stringer); ok {
+	switch v := value.(type) {
+	case fmt.Stringer:
 		s = v.String()
-	} else {
+	case error:
+		s = v.Error()
+	default:
 		s = toString(reflect.ValueOf(value))
 	}
 	return javaScriptStringEscape(newStringWriter(out), s)

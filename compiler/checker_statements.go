@@ -621,6 +621,7 @@ nodesLoop:
 				case ti.Type == emptyInterfaceType:
 				case node.Context == ast.ContextCSSString && ti.Type == byteSliceType:
 				case ti.Type.Implements(stringerType):
+				case ti.Type.Implements(errorType):
 				default:
 					panic(tc.errorf(node, "cannot print %s (type %s cannot be printed as text)", node.Expr, ti))
 				}
@@ -631,6 +632,7 @@ nodesLoop:
 				case ti.Type == emptyInterfaceType:
 				case ti.Type.Implements(stringerType):
 				case ti.Type.Implements(htmlStringerType):
+				case ti.Type.Implements(errorType):
 				default:
 					panic(tc.errorf(node, "cannot print %s (type %s cannot be printed as HTML)", node.Expr, ti))
 				}
@@ -642,6 +644,7 @@ nodesLoop:
 				case ti.Type == byteSliceType:
 				case ti.Type.Implements(stringerType):
 				case ti.Type.Implements(cssStringerType):
+				case ti.Type.Implements(errorType):
 				default:
 					panic(tc.errorf(node, "cannot print %s (type %s cannot be printed as CSS)", node.Expr, ti))
 				}
