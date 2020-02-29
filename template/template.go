@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	_sort "sort"
 
 	"scriggo"
 	"scriggo/compiler"
@@ -180,6 +181,17 @@ func (t *Template) Options() *LoadOptions {
 // Disassemble disassembles a template.
 func (t *Template) Disassemble(w io.Writer) (int64, error) {
 	return compiler.DisassembleFunction(w, t.fn, t.globals)
+}
+
+// Vars returns the names of the variables declared in the main package and
+// used in the template.
+func (t *Template) Vars() []string {
+	vars := make([]string, len(t.globals)-4)
+	for i, global := range t.globals[4:] {
+		vars[i] = global.Name
+	}
+	_sort.Strings(vars)
+	return vars
 }
 
 // newVM returns a new vm with the given options.

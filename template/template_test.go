@@ -1305,3 +1305,41 @@ func TestMultiPageTemplate(t *testing.T) {
 		})
 	}
 }
+
+func TestVars(t *testing.T) {
+	var a int
+	var b int
+	var c int
+	var d = func() {}
+	var e = func() {}
+	var f = 5
+	var g = 7
+	reader := MapReader{"example.txt": []byte(`{% _, _, _, _, _ = a, c, d, e, f %}`)}
+	main := &MapPackage{
+		PkgName: "main",
+		Declarations: map[string]interface{}{
+			"a": &a, // expected
+			"b": &b,
+			"c": c,
+			"d": &d, // expected
+			"e": &e, // expected
+			"f": f,
+			"g": g,
+		},
+	}
+	tmpl, err := Load("example.txt", reader, main, LanguageText, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	vars := tmpl.Vars()
+	if len(vars) != 3 {
+		t.Fatalf("expecting 3 variable names, got %d", len(vars))
+	}
+	for _, v := range vars {
+		switch v {
+		case "a", "d", "e":
+		default:
+			t.Fatalf("expecting variable name \"a\", \"d\" or \"e\", got %q", v)
+		}
+	}
+}
