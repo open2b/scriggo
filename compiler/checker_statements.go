@@ -640,6 +640,7 @@ nodesLoop:
 				case reflect.Int <= kind && kind <= reflect.Float64:
 				case ti.Type == emptyInterfaceType:
 				case ti.Type == byteSliceType:
+				case ti.Type.Implements(stringerType):
 				case ti.Type.Implements(cssStringerType):
 				default:
 					panic(tc.errorf(node, "cannot print %s (type %s cannot be printed as CSS)", node.Expr, ti))

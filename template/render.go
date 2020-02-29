@@ -228,6 +228,8 @@ func renderInCSS(out io.Writer, value interface{}) error {
 	case CSSStringer:
 		_, err := w.WriteString(v.CSS())
 		return err
+	case fmt.Stringer:
+		value = v.String()
 	}
 	v := reflect.ValueOf(value)
 	switch v.Kind() {
