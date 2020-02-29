@@ -309,17 +309,18 @@ func (vm *VM) run() (Addr, bool) {
 					vm.cases[i].Send = reflect.Value{}
 				}
 			}
-			if dir == reflect.SelectDefault {
-				hasDefaultCase = true
-			} else {
+			switch dir {
+			case reflect.SelectSend:
 				vm.cases[i].Chan = vm.general(c)
-				if dir == reflect.SelectSend {
-					t := vm.cases[i].Chan.Type().Elem()
-					if !vm.cases[i].Send.IsValid() || t != vm.cases[i].Send.Type() {
-						vm.cases[i].Send = reflect.New(t).Elem()
-					}
-					vm.getIntoReflectValue(b, vm.cases[i].Send, op < 0)
+				t := vm.cases[i].Chan.Type().Elem()
+				if !vm.cases[i].Send.IsValid() || t != vm.cases[i].Send.Type() {
+					vm.cases[i].Send = reflect.New(t).Elem()
 				}
+				vm.getIntoReflectValue(b, vm.cases[i].Send, op < 0)
+			case reflect.SelectRecv:
+				vm.cases[i].Chan = vm.general(b)
+			case reflect.SelectDefault:
+				hasDefaultCase = true
 			}
 			vm.pc++
 
@@ -1437,7 +1438,7 @@ func (vm *VM) run() (Addr, bool) {
 			if step > 0 {
 				pc = vm.pc - 2*Addr(step)
 				if vm.cases[chosen].Dir == reflect.SelectRecv {
-					r := vm.fn.Body[pc-1].B
+					r := vm.fn.Body[pc-1].C
 					if r != 0 {
 						vm.setFromReflectValue(r, recv)
 					}

@@ -167,11 +167,19 @@ func (builder *functionBuilder) emitCap(s, z int8) {
 //     default
 //
 func (builder *functionBuilder) emitCase(kvalue bool, dir reflect.SelectDir, value, ch int8) {
-	op := runtime.OpCase
+	in := runtime.Instruction{Op: runtime.OpCase, A: int8(dir)}
 	if kvalue {
-		op = -op
+		in.Op = -in.Op
 	}
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(dir), B: value, C: ch})
+	switch dir {
+	case reflect.SelectSend:
+		in.B = value
+		in.C = ch
+	case reflect.SelectRecv:
+		in.B = ch
+		in.C = value
+	}
+	builder.fn.Body = append(builder.fn.Body, in)
 }
 
 // emitClose appends a new "Close" instruction to the function body.
