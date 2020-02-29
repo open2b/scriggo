@@ -166,7 +166,7 @@ func (builder *functionBuilder) emitCap(s, z int8) {
 //     case value = <-ch
 //     default
 //
-func (builder *functionBuilder) emitCase(kvalue bool, dir reflect.SelectDir, value, ch int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitCase(kvalue bool, dir reflect.SelectDir, value, ch int8) {
 	op := runtime.OpCase
 	if kvalue {
 		op = -op

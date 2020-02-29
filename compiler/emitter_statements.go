@@ -708,24 +708,22 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 		switch comm := cas.Comm.(type) {
 		case nil:
 			// default
-			em.fb.emitCase(false, reflect.SelectDefault, 0, 0, reflect.Invalid)
+			em.fb.emitCase(false, reflect.SelectDefault, 0, 0)
 		case *ast.UnaryOperator:
 			// <- ch
-			chExpr := comm.Expr
-			elemType := em.typ(chExpr).Elem()
-			em.fb.emitCase(false, reflect.SelectRecv, 0, chs[i], elemType.Kind())
+			em.fb.emitCase(false, reflect.SelectRecv, 0, chs[i])
 		case *ast.Assignment:
 			// v [, ok ] = <- ch
 			chExpr := comm.Rhs[0].(*ast.UnaryOperator).Expr
 			chType := em.typ(chExpr)
 			elemType := chType.Elem()
-			em.fb.emitCase(false, reflect.SelectRecv, value[kindToType(elemType.Kind())], chs[i], elemType.Kind())
+			em.fb.emitCase(false, reflect.SelectRecv, value[kindToType(elemType.Kind())], chs[i])
 		case *ast.Send:
 			// ch <- v
 			chExpr := comm.Channel
 			chType := em.typ(chExpr)
 			elemType := chType.Elem()
-			em.fb.emitCase(false, reflect.SelectSend, value[kindToType(elemType.Kind())], chs[i], elemType.Kind())
+			em.fb.emitCase(false, reflect.SelectSend, value[kindToType(elemType.Kind())], chs[i])
 		}
 		em.fb.emitGoto(casesLabel[i])
 	}
