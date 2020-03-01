@@ -82,10 +82,12 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 	}
 
 	// Type check the tree.
-	checkerOpts := checkerOptions{PackageLess: opts.PackageLess}
-	checkerOpts.DisallowGoStmt = opts.DisallowGoStmt
-	checkerOpts.SyntaxType = ProgramSyntax
-	checkerOpts.RelaxedBoolean = opts.RelaxedBoolean
+	checkerOpts := checkerOptions{
+		SyntaxType:     ProgramSyntax,
+		DisallowGoStmt: opts.DisallowGoStmt,
+		PackageLess:    opts.PackageLess,
+		RelaxedBoolean: opts.RelaxedBoolean,
+	}
 	tci, err := typecheck(tree, importer, checkerOpts)
 	if err != nil {
 		return nil, err
