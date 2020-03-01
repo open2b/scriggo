@@ -90,7 +90,7 @@ func run() {
 		case 'G':
 			max *= 1024 * 1024 * 1024
 		}
-		loadOptions.LimitMemorySize = true
+		loadOptions.LimitMemory = true
 		runOptions.MemoryLimiter = scriggo.NewSingleMemoryLimiter(max)
 	}
 

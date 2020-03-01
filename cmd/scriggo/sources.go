@@ -840,7 +840,7 @@ const interpreterSkel = ` + "`" + `// Copyright (c) 2019 Open2b Software Snc. Al
 			}
 
 			if *mem != "" {
-				loadOptions.LimitMemorySize = true
+				loadOptions.LimitMemory = true
 				var unit = (*mem)[len(*mem)-1]
 				if unit > 'Z' {
 					unit -= 'z' - 'Z'
@@ -2171,7 +2171,7 @@ func run() {
 		case 'G':
 			max *= 1024 * 1024 * 1024
 		}
-		loadOptions.LimitMemorySize = true
+		loadOptions.LimitMemory = true
 		runOptions.MemoryLimiter = scriggo.NewSingleMemoryLimiter(max)
 	}
 

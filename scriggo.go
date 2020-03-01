@@ -27,8 +27,8 @@ type CompilerError interface {
 }
 
 type LoadOptions struct {
-	LimitMemorySize bool // limit allocable memory size.
-	OutOfSpec       struct {
+	LimitMemory bool // limit the execution memory size.
+	OutOfSpec   struct {
 		AllowShebangLine bool // allow shebang line; only for package-less programs.
 		DisallowGoStmt   bool // disallow "go" statement.
 		PackageLess      bool // enable the package-less syntax.
@@ -57,7 +57,7 @@ func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, 
 	if options != nil {
 		co.AllowShebangLine = options.OutOfSpec.AllowShebangLine
 		co.DisallowGoStmt = options.OutOfSpec.DisallowGoStmt
-		co.LimitMemorySize = options.LimitMemorySize
+		co.LimitMemory = options.LimitMemory
 		co.PackageLess = options.OutOfSpec.PackageLess
 	}
 	code, err := compiler.CompileProgram(src, loader, co)
@@ -90,11 +90,11 @@ func (p *Program) Options() *LoadOptions {
 // Run starts the program and waits for it to complete.
 //
 // Panics if the option MemoryLimiter is not nil but the program has not been
-// loaded with option LimitMemorySize.
+// loaded with option LimitMemory.
 func (p *Program) Run(options *RunOptions) (int, error) {
 	if options != nil && options.MemoryLimiter != nil {
-		if p.options == nil || !p.options.LimitMemorySize {
-			panic("scriggo: program not loaded with LimitMemorySize option")
+		if p.options == nil || !p.options.LimitMemory {
+			panic("scriggo: program not loaded with LimitMemory option")
 		}
 	}
 	vm := newVM(options)

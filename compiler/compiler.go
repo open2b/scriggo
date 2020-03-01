@@ -43,7 +43,7 @@ const (
 type Options struct {
 	AllowShebangLine   bool
 	DisallowGoStmt     bool
-	LimitMemorySize    bool
+	LimitMemory        bool
 	PackageLess        bool
 	TemplateFailOnTODO bool
 	RelaxedBoolean     bool
@@ -100,7 +100,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 	// Emit the code.
 	var code *Code
 	emitterOpts := emitterOptions{}
-	emitterOpts.MemoryLimit = opts.LimitMemorySize
+	emitterOpts.LimitMemory = opts.LimitMemory
 	if opts.PackageLess {
 		code, err = emitPackageLessProgram(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
 	} else {
@@ -156,7 +156,7 @@ func CompileTemplate(path string, r Reader, main PackageLoader, lang ast.Languag
 
 	// Emit the code.
 	emitterOpts := emitterOptions{}
-	emitterOpts.MemoryLimit = opts.LimitMemorySize
+	emitterOpts.LimitMemory = opts.LimitMemory
 	code, err := emitTemplate(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
 
 	return code, err
@@ -209,8 +209,9 @@ type PackageLoader interface {
 // emitterOptions contains the options for the emitter.
 type emitterOptions struct {
 
-	// MemoryLimit adds Alloc instructions during compilation.
-	MemoryLimit bool
+	// LimitMemory limits the execution memory size by adding Reserve
+	// instructions during compilation.
+	LimitMemory bool
 }
 
 // CheckingError records a type checking error with the path and the position
@@ -304,7 +305,7 @@ func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, in
 	}()
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false), tree.Path, tree.Pos()), tree.Path)
-	e.fb.emitSetAlloc(opts.MemoryLimit)
+	e.fb.emitSetAlloc(opts.LimitMemory)
 	e.fb.enterScope()
 	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()
@@ -340,7 +341,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$Write", reflect.FuncOf(nil, nil, false), nil))
 	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$Render", reflect.FuncOf(nil, nil, false), nil))
 	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$urlWriter", reflect.TypeOf(&struct{}{}), nil))
-	e.fb.emitSetAlloc(opts.MemoryLimit)
+	e.fb.emitSetAlloc(opts.LimitMemory)
 
 	// If page is a package, then page extends another page.
 	if len(tree.Nodes) == 1 {

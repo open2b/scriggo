@@ -80,7 +80,7 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 			}
 
 			if *mem != "" {
-				loadOptions.LimitMemorySize = true
+				loadOptions.LimitMemory = true
 				var unit = (*mem)[len(*mem)-1]
 				if unit > 'Z' {
 					unit -= 'z' - 'Z'

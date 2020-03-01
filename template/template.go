@@ -87,7 +87,7 @@ func (language Language) String() string {
 
 type LoadOptions struct {
 	DisallowGoStmt  bool
-	LimitMemorySize bool
+	LimitMemory     bool                  // limit the execution memory size.
 	TreeTransformer func(*ast.Tree) error // if not nil transforms tree after parsing.
 	RelaxedBoolean  bool
 }
@@ -118,7 +118,7 @@ type CompilerError interface {
 func Load(path string, reader Reader, main Package, lang Language, options *LoadOptions) (*Template, error) {
 	co := compiler.Options{}
 	if options != nil {
-		co.LimitMemorySize = options.LimitMemorySize
+		co.LimitMemory = options.LimitMemory
 		co.TreeTransformer = options.TreeTransformer
 		co.RelaxedBoolean = options.RelaxedBoolean
 		co.DisallowGoStmt = options.DisallowGoStmt
@@ -146,8 +146,8 @@ var emptyVars = map[string]interface{}{}
 // values for the variables of the main package.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *RenderOptions) error {
 	if options != nil && options.MemoryLimiter != nil {
-		if t.options == nil || !t.options.LimitMemorySize {
-			panic("scriggo: template not loaded with LimitMemorySize option")
+		if t.options == nil || !t.options.LimitMemory {
+			panic("scriggo: template not loaded with LimitMemory option")
 		}
 	}
 	writeFunc := out.Write
