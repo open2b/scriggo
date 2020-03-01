@@ -112,11 +112,11 @@ type CompilerError interface {
 	Message() string
 }
 
-// Load loads a template given its path. Load calls the method ReadFile of
-// reader to read the files of the template. Package main declares constants,
+// Load loads a template given its file name. Load calls the method ReadFile of
+// files to read the files of the template. Package main declares constants,
 // types, variables and functions that are accessible from the code in the
 // template.
-func Load(path string, reader FileReader, main Package, lang Language, options *LoadOptions) (*Template, error) {
+func Load(name string, files FileReader, main Package, lang Language, options *LoadOptions) (*Template, error) {
 	co := compiler.Options{}
 	if options != nil {
 		co.LimitMemory = options.LimitMemory
@@ -128,7 +128,7 @@ func Load(path string, reader FileReader, main Package, lang Language, options *
 	if main != nil {
 		mainImporter = scriggo.Packages{"main": main}
 	}
-	code, err := compiler.CompileTemplate(path, reader, mainImporter, ast.Language(lang), co)
+	code, err := compiler.CompileTemplate(name, files, mainImporter, ast.Language(lang), co)
 	if err != nil {
 		if err == compiler.ErrInvalidPath {
 			return nil, ErrInvalidPath
