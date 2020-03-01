@@ -143,7 +143,7 @@ func Load(name string, files FileReader, builtins Declarations, lang Language, o
 var emptyVars = map[string]interface{}{}
 
 // Render renders the template and write the output to out. vars contains the
-// values for the variables of the main package.
+// values of the template builtin variables.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *RenderOptions) error {
 	if options != nil && options.MemoryLimiter != nil && !t.limitMemory {
 		panic("scriggo: template not loaded with LimitMemory option")
@@ -176,8 +176,8 @@ func (t *Template) Disassemble(w io.Writer) (int64, error) {
 	return compiler.DisassembleFunction(w, t.fn, t.globals)
 }
 
-// Vars returns the names of the variables declared in the main package and
-// used in the template.
+// Vars returns the names of the template builtin variables that are used in
+// the template.
 func (t *Template) Vars() []string {
 	vars := make([]string, len(t.globals)-4)
 	for i, global := range t.globals[4:] {
