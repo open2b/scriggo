@@ -40,14 +40,12 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 
 	// Prepare the type checking for package-less programs and templates.
 	var globalScope typeCheckerScope
-	if packages != nil {
-		main, err := packages.Load("main")
-		if err != nil {
-			return nil, err
+	if opts.Builtins != nil {
+		builtins := &mapPackage{
+			PkgName:      "main",
+			Declarations: opts.Builtins,
 		}
-		if main != nil {
-			globalScope = toTypeCheckerScope(main.(predefinedPackage), 0, opts)
-		}
+		globalScope = toTypeCheckerScope(builtins, 0, opts)
 	}
 
 	// Add the builtin "exit" to the package-less program global scope.
@@ -153,6 +151,9 @@ type checkerOptions struct {
 
 	// PackageLess reports whether the package-less syntax is enabled.
 	PackageLess bool
+
+	// Builtins.
+	Builtins Declarations
 
 	// RelaxedBoolean reports whether the if statements can have a non-boolean
 	// non-constant condition.
@@ -586,4 +587,27 @@ func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...inte
 		err: fmt.Errorf(format, args...),
 	}
 	return err
+}
+
+type mapPackage struct {
+	// Package name.
+	PkgName string
+	// Package declarations.
+	Declarations Declarations
+}
+
+func (p *mapPackage) Name() string {
+	return p.PkgName
+}
+
+func (p *mapPackage) Lookup(declName string) interface{} {
+	return p.Declarations[declName]
+}
+
+func (p *mapPackage) DeclarationNames() []string {
+	declarations := make([]string, 0, len(p.Declarations))
+	for name := range p.Declarations {
+		declarations = append(declarations, name)
+	}
+	return declarations
 }

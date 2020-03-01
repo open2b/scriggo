@@ -19,7 +19,6 @@ import (
 	"unicode"
 	utf8 "unicode/utf8"
 
-	"scriggo"
 	"scriggo/compiler"
 	"scriggo/compiler/ast"
 	"scriggo/runtime"
@@ -57,10 +56,10 @@ type compiledTemplate struct {
 func compileTemplate(reader compiler.FileReader, limitMemory bool) (*compiledTemplate, error) {
 	opts := compiler.Options{
 		LimitMemory:    limitMemory,
+		Builtins: builtins,
 		RelaxedBoolean: true,
 	}
-	mainImporter := scriggo.Packages{"main": templateMain}
-	code, err := compiler.CompileTemplate("/index.html", reader, mainImporter, ast.LanguageHTML, opts)
+	code, err := compiler.CompileTemplate("/index.html", reader, ast.LanguageHTML, opts)
 	if err != nil {
 		return nil, err
 	}

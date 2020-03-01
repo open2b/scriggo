@@ -10,8 +10,6 @@ import (
 	"bytes"
 	"reflect"
 	"testing"
-
-	"scriggo"
 )
 
 type Vars map[string]interface{}
@@ -51,7 +49,7 @@ var htmlContextTests = []struct {
 func TestHTMLContext(t *testing.T) {
 	for _, expr := range htmlContextTests {
 		r := MapReader{"index.html": []byte("{{" + expr.src + "}}")}
-		tmpl, err := Load("index.html", r, mainPackage(expr.vars), LanguageHTML, &LoadOptions{LimitMemory: true})
+		tmpl, err := Load("index.html", r, asDeclarations(expr.vars), LanguageHTML, &LoadOptions{LimitMemory: true})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -101,7 +99,7 @@ var attributeContextTests = []struct {
 func TestAttributeContext(t *testing.T) {
 	for _, expr := range attributeContextTests {
 		r := MapReader{"index.html": []byte(`<z x="{{` + expr.src + `}}">`)}
-		tmpl, err := Load("index.html", r, mainPackage(expr.vars), LanguageHTML, &LoadOptions{LimitMemory: true})
+		tmpl, err := Load("index.html", r, asDeclarations(expr.vars), LanguageHTML, &LoadOptions{LimitMemory: true})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -132,7 +130,7 @@ var unquotedAttributeContextTests = []struct {
 func TestUnquotedAttributeContext(t *testing.T) {
 	for _, expr := range unquotedAttributeContextTests {
 		r := MapReader{"index.html": []byte(`<z x={{` + expr.src + `}}>`)}
-		tmpl, err := Load("index.html", r, mainPackage(expr.vars), LanguageHTML, &LoadOptions{LimitMemory: true})
+		tmpl, err := Load("index.html", r, asDeclarations(expr.vars), LanguageHTML, &LoadOptions{LimitMemory: true})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -207,7 +205,7 @@ var javaScriptContextTests = []struct {
 func TestScriptContext(t *testing.T) {
 	for _, expr := range javaScriptContextTests {
 		r := MapReader{"index.html": []byte("<script>{{" + expr.src + "}}</script>")}
-		tmpl, err := Load("index.html", r, mainPackage(expr.vars), LanguageHTML, &LoadOptions{LimitMemory: true})
+		tmpl, err := Load("index.html", r, asDeclarations(expr.vars), LanguageHTML, &LoadOptions{LimitMemory: true})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -250,7 +248,7 @@ func TestJavaScriptStringContext(t *testing.T) {
 	for _, q := range []string{"\"", "'"} {
 		for _, expr := range javaScriptStringContextTests {
 			r := MapReader{"index.html": []byte("<script>" + q + "{{" + expr.src + "}}" + q + "</script>")}
-			tmpl, err := Load("index.html", r, mainPackage(expr.vars), LanguageHTML, &LoadOptions{LimitMemory: true})
+			tmpl, err := Load("index.html", r, asDeclarations(expr.vars), LanguageHTML, &LoadOptions{LimitMemory: true})
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue
@@ -286,7 +284,7 @@ var cssContextTests = []struct {
 func TestCSSContext(t *testing.T) {
 	for _, expr := range cssContextTests {
 		r := MapReader{"index.html": []byte("<style>{{" + expr.src + "}}</style>")}
-		tmpl, err := Load("index.html", r, mainPackage(expr.vars), LanguageHTML, &LoadOptions{LimitMemory: true})
+		tmpl, err := Load("index.html", r, asDeclarations(expr.vars), LanguageHTML, &LoadOptions{LimitMemory: true})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -333,7 +331,7 @@ func TestCSSStringContext(t *testing.T) {
 	for _, q := range []string{"\"", "'"} {
 		for _, expr := range cssStringContextTests {
 			r := MapReader{"index.html": []byte("<style>" + q + "{{" + expr.src + "}}" + q + "</style>")}
-			tmpl, err := Load("index.html", r, mainPackage(expr.vars), LanguageHTML, &LoadOptions{LimitMemory: true})
+			tmpl, err := Load("index.html", r, asDeclarations(expr.vars), LanguageHTML, &LoadOptions{LimitMemory: true})
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue
@@ -352,16 +350,10 @@ func TestCSSStringContext(t *testing.T) {
 	}
 }
 
-func mainPackage(vars Vars) scriggo.Package {
-	p := scriggo.MapPackage{
-		PkgName:      "main",
-		Declarations: map[string]interface{}{},
-	}
-	for _, name := range main.DeclarationNames() {
-		p.Declarations[name] = main.Lookup(name)
-	}
+func asDeclarations(vars Vars) Declarations {
+	declarations := Builtins()
 	for name, value := range vars {
-		p.Declarations[name] = reflect.Zero(reflect.PtrTo(reflect.TypeOf(value))).Interface()
+		declarations[name] = reflect.Zero(reflect.PtrTo(reflect.TypeOf(value))).Interface()
 	}
-	return &p
+	return declarations
 }

@@ -1274,17 +1274,9 @@ func TestMultiPageTemplate(t *testing.T) {
 			}
 			builtins := Builtins()
 			if cas.main != nil {
-				b := scriggo.MapPackage{
-					PkgName:      "main",
-					Declarations: map[string]interface{}{},
-				}
-				for _, name := range builtins.DeclarationNames() {
-					b.Declarations[name] = builtins.Lookup(name)
-				}
 				for k, v := range cas.main.Declarations {
-					b.Declarations[k] = v
+					builtins[k] = v
 				}
-				builtins = &b
 			}
 			entryPoint := cas.entryPoint
 			if entryPoint == "" {
@@ -1315,19 +1307,16 @@ func TestVars(t *testing.T) {
 	var f = 5
 	var g = 7
 	reader := MapReader{"example.txt": []byte(`{% _, _, _, _, _ = a, c, d, e, f %}`)}
-	main := &MapPackage{
-		PkgName: "main",
-		Declarations: map[string]interface{}{
-			"a": &a, // expected
-			"b": &b,
-			"c": c,
-			"d": &d, // expected
-			"e": &e, // expected
-			"f": f,
-			"g": g,
-		},
+	builtins := Declarations{
+		"a": &a, // expected
+		"b": &b,
+		"c": c,
+		"d": &d, // expected
+		"e": &e, // expected
+		"f": f,
+		"g": g,
 	}
-	tmpl, err := Load("example.txt", reader, main, LanguageText, nil)
+	tmpl, err := Load("example.txt", reader, builtins, LanguageText, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

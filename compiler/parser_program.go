@@ -126,19 +126,6 @@ func ParsePackageLessProgram(src io.Reader, loader PackageLoader, shebang bool) 
 
 	packages := map[string]bool{}
 
-	// Load package main.
-	if loader != nil {
-		main, err := loader.Load("main")
-		if err != nil {
-			return nil, err
-		}
-		switch main.(type) {
-		case nil, predefinedPackage:
-		default:
-			return nil, fmt.Errorf("scriggo: unexpected type %T for package \"main\"", main)
-		}
-	}
-
 	// Parse the source.
 	buf, err := ioutil.ReadAll(src)
 	if r, ok := src.(io.Closer); ok {

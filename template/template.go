@@ -14,7 +14,6 @@ import (
 	"reflect"
 	_sort "sort"
 
-	"scriggo"
 	"scriggo/compiler"
 	"scriggo/compiler/ast"
 	"scriggo/runtime"
@@ -92,6 +91,9 @@ type LoadOptions struct {
 	RelaxedBoolean  bool
 }
 
+// Declarations.
+type Declarations map[string]interface{}
+
 type RenderOptions struct {
 	Context       context.Context
 	MemoryLimiter runtime.MemoryLimiter
@@ -113,22 +115,19 @@ type CompilerError interface {
 }
 
 // Load loads a template given its file name. Load calls the method ReadFile of
-// files to read the files of the template. Package main declares constants,
-// types, variables and functions that are accessible from the code in the
-// template.
-func Load(name string, files FileReader, main Package, lang Language, options *LoadOptions) (*Template, error) {
-	co := compiler.Options{}
+// files to read the files of the template. builtins declares constants, types,
+// variables and functions that are accessible from the code in the template.
+func Load(name string, files FileReader, builtins Declarations, lang Language, options *LoadOptions) (*Template, error) {
+	co := compiler.Options{
+		Builtins: compiler.Declarations(builtins),
+	}
 	if options != nil {
 		co.LimitMemory = options.LimitMemory
 		co.TreeTransformer = options.TreeTransformer
 		co.RelaxedBoolean = options.RelaxedBoolean
 		co.DisallowGoStmt = options.DisallowGoStmt
 	}
-	var mainImporter scriggo.Packages
-	if main != nil {
-		mainImporter = scriggo.Packages{"main": main}
-	}
-	code, err := compiler.CompileTemplate(name, files, mainImporter, ast.Language(lang), co)
+	code, err := compiler.CompileTemplate(name, files, ast.Language(lang), co)
 	if err != nil {
 		if err == compiler.ErrInvalidPath {
 			return nil, ErrInvalidPath

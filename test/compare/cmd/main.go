@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"scriggo"
+	"scriggo/compiler"
 	"scriggo/runtime"
 )
 
@@ -73,11 +74,8 @@ func renderPanics(p *runtime.Panic) string {
 	return msg
 }
 
-var templateMain = &scriggo.MapPackage{
-	PkgName: "main",
-	Declarations: map[string]interface{}{
-		"MainSum": func(a, b int) int { return a + b },
-	},
+var builtins = compiler.Declarations{
+	"MainSum": func(a, b int) int { return a + b },
 }
 
 func main() {

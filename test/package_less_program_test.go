@@ -16,9 +16,10 @@ import (
 )
 
 var packageLessPrograms = map[string]struct {
-	src  string
-	pkgs scriggo.Packages
-	init map[string]interface{}
+	src      string
+	pkgs     scriggo.Packages
+	init     map[string]interface{}
+	builtins scriggo.Declarations
 
 	out string
 }{
@@ -62,35 +63,25 @@ var packageLessPrograms = map[string]struct {
 		out: "pkg.F called!",
 	},
 
-	"Read variables declared in predefined package main": {
+	"Read variables declared as builtins": {
 		src: `
 			Print("A is ", A)
 		`,
 		out: "A is 0",
-		pkgs: scriggo.Packages{
-			"main": &scriggo.MapPackage{
-				PkgName: "main",
-				Declarations: map[string]interface{}{
-					"A": (*int)(nil),
-				},
-			},
+		builtins: scriggo.Declarations{
+			"A": (*int)(nil),
 		},
 	},
 
-	"Read and write variables declared in external main": {
+	"Read and write variables declared as builtins": {
 		src: `
 			Print("default: ", A, ", ")
 			A = 20
 			Print("new: ", A)
 		`,
 		out: "default: 0, new: 20",
-		pkgs: scriggo.Packages{
-			"main": &scriggo.MapPackage{
-				PkgName: "main",
-				Declarations: map[string]interface{}{
-					"A": (*int)(nil),
-				},
-			},
+		builtins: scriggo.Declarations{
+			"A": (*int)(nil),
 		},
 	},
 
@@ -119,13 +110,8 @@ var packageLessPrograms = map[string]struct {
 			}
 			Print(Sum)
 		`,
-		pkgs: scriggo.Packages{
-			"main": &scriggo.MapPackage{
-				PkgName: "main",
-				Declarations: map[string]interface{}{
-					"Sum": (*int)(nil),
-				},
-			},
+		builtins: scriggo.Declarations{
+			"Sum": (*int)(nil),
 		},
 		out: "45",
 	},
@@ -138,22 +124,18 @@ var packageLessPrograms = map[string]struct {
 			v := math.MaxInt8 * 2
 			Print(v)
 		`,
-		pkgs: scriggo.Packages{
-			"main": &scriggo.MapPackage{
-				PkgName: "main",
+		builtins: scriggo.Declarations{
+
+			"strings": &scriggo.MapPackage{
+				PkgName: "strings",
 				Declarations: map[string]interface{}{
-					"strings": &scriggo.MapPackage{
-						PkgName: "strings",
-						Declarations: map[string]interface{}{
-							"ToLower": strings.ToLower,
-						},
-					},
-					"math": &scriggo.MapPackage{
-						PkgName: "math",
-						Declarations: map[string]interface{}{
-							"MaxInt8": math.MaxInt8,
-						},
-					},
+					"ToLower": strings.ToLower,
+				},
+			},
+			"math": &scriggo.MapPackage{
+				PkgName: "math",
+				Declarations: map[string]interface{}{
+					"MaxInt8": math.MaxInt8,
 				},
 			},
 		},
@@ -177,19 +159,18 @@ var packageLessProgramsStdout strings.Builder
 func TestPackageLessPrograms(t *testing.T) {
 	for name, cas := range packageLessPrograms {
 		t.Run(name, func(t *testing.T) {
-			if cas.pkgs == nil {
-				cas.pkgs = scriggo.Packages{}
+			builtins := cas.builtins
+			if builtins == nil {
+				builtins = scriggo.Declarations{}
 			}
-			if _, ok := cas.pkgs["main"]; !ok {
-				cas.pkgs["main"] = &scriggo.MapPackage{Declarations: make(map[string]interface{})}
-			}
-			cas.pkgs["main"].(*scriggo.MapPackage).Declarations["Print"] = func(args ...interface{}) {
+			builtins["Print"] = func(args ...interface{}) {
 				for _, a := range args {
 					packageLessProgramsStdout.WriteString(fmt.Sprint(a))
 				}
 			}
 			loadOpts := &scriggo.LoadOptions{}
 			loadOpts.OutOfSpec.PackageLess = true
+			loadOpts.OutOfSpec.Builtins = builtins
 			script, err := scriggo.Load(strings.NewReader(cas.src), cas.pkgs, loadOpts)
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
@@ -212,18 +193,13 @@ func TestPackageLessPrograms(t *testing.T) {
 func TestScriptSum(t *testing.T) {
 	src := `for i := 0; i < 10; i++ { Sum += i }`
 	Sum := 0
-	pkgs := scriggo.Packages{
-		"main": &scriggo.MapPackage{
-			PkgName: "main",
-			Declarations: map[string]interface{}{
-				"Sum": (*int)(nil),
-			},
-		},
-	}
 	init := map[string]interface{}{"Sum": &Sum}
 	loadOpts := &scriggo.LoadOptions{}
 	loadOpts.OutOfSpec.PackageLess = true
-	script, err := scriggo.Load(strings.NewReader(src), pkgs, loadOpts)
+	loadOpts.OutOfSpec.Builtins = scriggo.Declarations{
+		"Sum": (*int)(nil),
+	}
+	script, err := scriggo.Load(strings.NewReader(src), nil, loadOpts)
 	if err != nil {
 		t.Fatalf("unable to load script: %s", err)
 	}
@@ -242,22 +218,17 @@ func TestPackageLessProgramChainMessages(t *testing.T) {
 	src1 := `Message = Message + "script1,"`
 	src2 := `Message = Message + "script2"`
 	Message := "external,"
-	pkgs := scriggo.Packages{
-		"main": &scriggo.MapPackage{
-			PkgName: "main",
-			Declarations: map[string]interface{}{
-				"Message": (*string)(nil),
-			},
-		},
-	}
 	loadOpts := &scriggo.LoadOptions{}
 	loadOpts.OutOfSpec.PackageLess = true
+	loadOpts.OutOfSpec.Builtins = scriggo.Declarations{
+		"Message": (*string)(nil),
+	}
 	init := map[string]interface{}{"Message": &Message}
-	script1, err := scriggo.Load(strings.NewReader(src1), pkgs, loadOpts)
+	script1, err := scriggo.Load(strings.NewReader(src1), nil, loadOpts)
 	if err != nil {
 		t.Fatalf("unable to load script 1: %s", err)
 	}
-	script2, err := scriggo.Load(strings.NewReader(src2), pkgs, loadOpts)
+	script2, err := scriggo.Load(strings.NewReader(src2), nil, loadOpts)
 	if err != nil {
 		t.Fatalf("unable to load script 2: %s", err)
 	}

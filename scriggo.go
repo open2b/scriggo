@@ -29,11 +29,15 @@ type CompilerError interface {
 type LoadOptions struct {
 	LimitMemory bool // limit the execution memory size.
 	OutOfSpec   struct {
-		AllowShebangLine bool // allow shebang line; only for package-less programs.
-		DisallowGoStmt   bool // disallow "go" statement.
-		PackageLess      bool // enable the package-less syntax.
+		AllowShebangLine bool         // allow shebang line; only for package-less programs.
+		DisallowGoStmt   bool         // disallow "go" statement.
+		PackageLess      bool         // enable the package-less syntax.
+		Builtins         Declarations // builtins.
 	}
 }
+
+// Declarations.
+type Declarations map[string]interface{}
 
 type RunOptions struct {
 	Context       context.Context
@@ -50,15 +54,19 @@ type Program struct {
 	limitMemory bool
 }
 
-// Load loads a Go program with the given options, loading the main package and
-// the imported packages from loader. A main package have path "main".
+// Load loads a Go program with the given options, loading the imported
+// packages from loader.
 func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, error) {
 	co := compiler.Options{}
 	if options != nil {
+		if options.OutOfSpec.Builtins != nil && !options.OutOfSpec.PackageLess {
+			panic("scriggo: PackageLess option is required for builtins")
+		}
 		co.AllowShebangLine = options.OutOfSpec.AllowShebangLine
 		co.DisallowGoStmt = options.OutOfSpec.DisallowGoStmt
 		co.LimitMemory = options.LimitMemory
 		co.PackageLess = options.OutOfSpec.PackageLess
+		co.Builtins = compiler.Declarations(options.OutOfSpec.Builtins)
 	}
 	code, err := compiler.CompileProgram(src, loader, co)
 	if err != nil {

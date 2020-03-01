@@ -45,10 +45,14 @@ type Options struct {
 	DisallowGoStmt     bool
 	LimitMemory        bool
 	PackageLess        bool
+	Builtins           Declarations
 	TemplateFailOnTODO bool
 	RelaxedBoolean     bool
 	TreeTransformer    func(*ast.Tree) error
 }
+
+// Declarations.
+type Declarations map[string]interface{}
 
 // CompileProgram compiles a program.
 // Any error related to the compilation itself is returned as a CompilerError.
@@ -86,6 +90,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 		SyntaxType:     ProgramSyntax,
 		DisallowGoStmt: opts.DisallowGoStmt,
 		PackageLess:    opts.PackageLess,
+		Builtins:       opts.Builtins,
 		RelaxedBoolean: opts.RelaxedBoolean,
 	}
 	tci, err := typecheck(tree, importer, checkerOpts)
@@ -117,7 +122,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 // absolute, is relative to the root of the template. lang can be Text, HTML,
 // CSS or JavaScript.
 // Any error related to the compilation itself is returned as a CompilerError.
-func CompileTemplate(path string, r FileReader, main PackageLoader, lang ast.Language, opts Options) (*Code, error) {
+func CompileTemplate(path string, r FileReader, lang ast.Language, opts Options) (*Code, error) {
 
 	var tree *ast.Tree
 
@@ -142,10 +147,11 @@ func CompileTemplate(path string, r FileReader, main PackageLoader, lang ast.Lan
 		DisallowGoStmt: opts.DisallowGoStmt,
 		FailOnTODO:     opts.TemplateFailOnTODO,
 		PackageLess:    opts.PackageLess,
+		Builtins:       opts.Builtins,
 		SyntaxType:     TemplateSyntax,
 		RelaxedBoolean: opts.RelaxedBoolean,
 	}
-	tci, err := typecheck(tree, main, checkerOpts)
+	tci, err := typecheck(tree, nil, checkerOpts)
 	if err != nil {
 		return nil, err
 	}

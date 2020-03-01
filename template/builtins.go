@@ -27,7 +27,6 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"scriggo"
 	"scriggo/runtime"
 )
 
@@ -50,8 +49,12 @@ var errNoSlice = errors.New("no slice")
 
 const spaces = " \n\r\t\f" // https://infra.spec.whatwg.org/#ascii-whitespace
 
-func Builtins() scriggo.Package {
-	return main
+func Builtins() Declarations {
+	declarations := make(Declarations, len(builtins))
+	for name, value := range builtins {
+		declarations[name] = value
+	}
+	return declarations
 }
 
 var htmlType = reflect.TypeOf(HTML(""))
@@ -102,61 +105,58 @@ func (t Time) JavaScript() string {
 	return fmt.Sprintf(format, y, tt.Month(), tt.Day(), tt.Hour(), tt.Minute(), tt.Second(), ms, h, m)
 }
 
-var main = &scriggo.MapPackage{
-	PkgName: "main",
-	Declarations: map[string]interface{}{
-		"CSS":         cssType,
-		"Hasher":      hasherType,
-		"JavaScript":  javaScriptType,
-		"MD5":         _MD5,
-		"HTML":        htmlType,
-		"SHA1":        _SHA1,
-		"SHA256":      _SHA256,
-		"Time":        timeType,
-		"abbreviate":  abbreviate,
-		"abs":         abs,
-		"atoi":        strconv.Atoi,
-		"base64":      base64,
-		"contains":    strings.Contains,
-		"errorf":      errorf,
-		"escapeHTML":  escapeHTML,
-		"escapeQuery": escapeQuery,
-		"hash":        hash,
-		"hasPrefix":   strings.HasPrefix,
-		"hasSuffix":   strings.HasSuffix,
-		"hex":         hex,
-		"hmac":        hmac,
-		"index":       index,
-		"indexAny":    indexAny,
-		"itoa":        itoa,
-		"join":        join,
-		"lastIndex":   lastIndex,
-		"max":         max,
-		"min":         min,
-		"now":         now,
-		"rand":        rand,
-		"randFloat":   randFloat,
-		"repeat":      repeat,
-		"replace":     replace,
-		"replaceAll":  replaceAll,
-		"reverse":     reverse,
-		"round":       round,
-		"shuffle":     shuffle,
-		"sort":        sort,
-		"split":       split,
-		"splitN":      splitN,
-		"sprint":      sprint,
-		"sprintf":     sprintf,
-		"title":       title,
-		"toLower":     toLower,
-		"toTitle":     toTitle,
-		"toUpper":     toUpper,
-		"trim":        strings.Trim,
-		"trimLeft":    strings.TrimLeft,
-		"trimPrefix":  strings.TrimPrefix,
-		"trimRight":   strings.TrimRight,
-		"trimSuffix":  strings.TrimSuffix,
-	},
+var builtins = Declarations{
+	"CSS":         cssType,
+	"Hasher":      hasherType,
+	"JavaScript":  javaScriptType,
+	"MD5":         _MD5,
+	"HTML":        htmlType,
+	"SHA1":        _SHA1,
+	"SHA256":      _SHA256,
+	"Time":        timeType,
+	"abbreviate":  abbreviate,
+	"abs":         abs,
+	"atoi":        strconv.Atoi,
+	"base64":      base64,
+	"contains":    strings.Contains,
+	"errorf":      errorf,
+	"escapeHTML":  escapeHTML,
+	"escapeQuery": escapeQuery,
+	"hash":        hash,
+	"hasPrefix":   strings.HasPrefix,
+	"hasSuffix":   strings.HasSuffix,
+	"hex":         hex,
+	"hmac":        hmac,
+	"index":       index,
+	"indexAny":    indexAny,
+	"itoa":        itoa,
+	"join":        join,
+	"lastIndex":   lastIndex,
+	"max":         max,
+	"min":         min,
+	"now":         now,
+	"rand":        rand,
+	"randFloat":   randFloat,
+	"repeat":      repeat,
+	"replace":     replace,
+	"replaceAll":  replaceAll,
+	"reverse":     reverse,
+	"round":       round,
+	"shuffle":     shuffle,
+	"sort":        sort,
+	"split":       split,
+	"splitN":      splitN,
+	"sprint":      sprint,
+	"sprintf":     sprintf,
+	"title":       title,
+	"toLower":     toLower,
+	"toTitle":     toTitle,
+	"toUpper":     toUpper,
+	"trim":        strings.Trim,
+	"trimLeft":    strings.TrimLeft,
+	"trimPrefix":  strings.TrimPrefix,
+	"trimRight":   strings.TrimRight,
+	"trimSuffix":  strings.TrimSuffix,
 }
 
 // abbreviate is the builtin function "abbreviate".
