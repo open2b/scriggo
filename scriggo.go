@@ -45,9 +45,9 @@ type RunOptions struct {
 }
 
 type Program struct {
-	fn      *runtime.Function
-	globals []compiler.Global
-	options *LoadOptions
+	fn          *runtime.Function
+	globals     []compiler.Global
+	limitMemory bool
 }
 
 // Load loads a Go program with the given options, loading the main package and
@@ -64,7 +64,7 @@ func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, 
 	if err != nil {
 		return nil, err
 	}
-	return &Program{fn: code.Main, globals: code.Globals, options: options}, nil
+	return &Program{fn: code.Main, globals: code.Globals, limitMemory: co.LimitMemory}, nil
 }
 
 // Disassemble disassembles the package with the given path. Predefined
@@ -82,20 +82,13 @@ func (p *Program) Disassemble(w io.Writer, pkgPath string) (int64, error) {
 	return int64(n), err
 }
 
-// Options returns the options with which the program has been loaded.
-func (p *Program) Options() *LoadOptions {
-	return p.options
-}
-
 // Run starts the program and waits for it to complete.
 //
 // Panics if the option MemoryLimiter is not nil but the program has not been
 // loaded with option LimitMemory.
 func (p *Program) Run(options *RunOptions) (int, error) {
-	if options != nil && options.MemoryLimiter != nil {
-		if p.options == nil || !p.options.LimitMemory {
-			panic("scriggo: program not loaded with LimitMemory option")
-		}
+	if options != nil && options.MemoryLimiter != nil && !p.limitMemory {
+		panic("scriggo: program not loaded with LimitMemory option")
 	}
 	vm := newVM(options)
 	if options != nil && options.OutOfSpec.Builtins != nil {
