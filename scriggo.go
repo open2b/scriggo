@@ -53,14 +53,14 @@ type Program struct {
 // Load loads a Go program with the given options, loading the main package and
 // the imported packages from loader. A main package have path "main".
 func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, error) {
-	compileOpts := compiler.Options{}
+	co := compiler.Options{}
 	if options != nil {
-		compileOpts.AllowShebangLine = options.OutOfSpec.AllowShebangLine
-		compileOpts.DisallowGoStmt = options.OutOfSpec.DisallowGoStmt
-		compileOpts.LimitMemorySize = options.LimitMemorySize
-		compileOpts.PackageLess = options.OutOfSpec.PackageLess
+		co.AllowShebangLine = options.OutOfSpec.AllowShebangLine
+		co.DisallowGoStmt = options.OutOfSpec.DisallowGoStmt
+		co.LimitMemorySize = options.LimitMemorySize
+		co.PackageLess = options.OutOfSpec.PackageLess
 	}
-	code, err := compiler.CompileProgram(src, loader, compileOpts)
+	code, err := compiler.CompileProgram(src, loader, co)
 	if err != nil {
 		return nil, err
 	}

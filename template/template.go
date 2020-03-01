@@ -116,18 +116,18 @@ type CompilerError interface {
 // to read the files of the template. Package main declares constants, types,
 // variables and functions that are accessible from the code in the template.
 func Load(path string, reader Reader, main Package, lang Language, options *LoadOptions) (*Template, error) {
-	compileOpts := compiler.Options{}
+	co := compiler.Options{}
 	if options != nil {
-		compileOpts.LimitMemorySize = options.LimitMemorySize
-		compileOpts.TreeTransformer = options.TreeTransformer
-		compileOpts.RelaxedBoolean = options.RelaxedBoolean
-		compileOpts.DisallowGoStmt = options.DisallowGoStmt
+		co.LimitMemorySize = options.LimitMemorySize
+		co.TreeTransformer = options.TreeTransformer
+		co.RelaxedBoolean = options.RelaxedBoolean
+		co.DisallowGoStmt = options.DisallowGoStmt
 	}
 	var mainImporter scriggo.Packages
 	if main != nil {
 		mainImporter = scriggo.Packages{"main": main}
 	}
-	code, err := compiler.CompileTemplate(path, reader, mainImporter, ast.Language(lang), compileOpts)
+	code, err := compiler.CompileTemplate(path, reader, mainImporter, ast.Language(lang), co)
 	if err != nil {
 		if err == compiler.ErrInvalidPath {
 			return nil, ErrInvalidPath
