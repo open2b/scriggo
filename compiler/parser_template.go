@@ -44,7 +44,7 @@ func ParseTemplate(path string, reader FileReader, lang ast.Language, relaxedBoo
 		relaxedBoolean: relaxedBoolean,
 	}
 
-	tree, err := pp.parsePath(path, lang)
+	tree, err := pp.parseFile(path, lang)
 	if err != nil {
 		if err2, ok := err.(*SyntaxError); ok && err2.path == "" {
 			err2.path = path
@@ -79,18 +79,18 @@ func (pp *templateExpansion) abs(path string) (string, error) {
 	return path, err
 }
 
-// parsePath parses the source, written in language lang, at the given path.
-// path must be absolute and cleared.
-func (pp *templateExpansion) parsePath(path string, lang ast.Language) (*ast.Tree, error) {
+// parseFile parses the file, written in language lang, with the given name.
+// name must be absolute and cleared.
+func (pp *templateExpansion) parseFile(name string, lang ast.Language) (*ast.Tree, error) {
 
 	// Check if there is a cycle.
 	for _, p := range pp.paths {
-		if p == path {
-			return nil, cycleError(path)
+		if p == name {
+			return nil, cycleError(name)
 		}
 	}
 
-	src, err := pp.reader.ReadFile(path)
+	src, err := pp.reader.ReadFile(name)
 	if err != nil {
 		return nil, err
 	}
@@ -98,18 +98,18 @@ func (pp *templateExpansion) parsePath(path string, lang ast.Language) (*ast.Tre
 	tree, err := ParseTemplateSource(src, lang, pp.relaxedBoolean)
 	if err != nil {
 		if se, ok := err.(*SyntaxError); ok {
-			se.path = path
+			se.path = name
 		}
 		return nil, err
 	}
-	tree.Path = path
+	tree.Path = name
 
 	// Expand the nodes.
-	pp.paths = append(pp.paths, path)
+	pp.paths = append(pp.paths, name)
 	err = pp.expand(tree.Nodes)
 	if err != nil {
 		if e, ok := err.(*SyntaxError); ok && e.path == "" {
-			e.path = path
+			e.path = name
 		}
 		return nil, err
 	}
@@ -205,7 +205,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 			if err != nil {
 				return err
 			}
-			n.Tree, err = pp.parsePath(absPath, ast.Language(n.Context))
+			n.Tree, err = pp.parseFile(absPath, ast.Language(n.Context))
 			if err != nil {
 				if err == ErrInvalidPath {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
@@ -223,7 +223,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 			if err != nil {
 				return err
 			}
-			n.Tree, err = pp.parsePath(absPath, ast.Language(n.Context))
+			n.Tree, err = pp.parseFile(absPath, ast.Language(n.Context))
 			if err != nil {
 				if err == ErrInvalidPath {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
@@ -241,7 +241,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 			if err != nil {
 				return err
 			}
-			n.Tree, err = pp.parsePath(absPath, ast.Language(n.Context))
+			n.Tree, err = pp.parseFile(absPath, ast.Language(n.Context))
 			if err != nil {
 				if err == ErrInvalidPath {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
