@@ -17,7 +17,7 @@ import (
 	"scriggo/compiler/ast/astutil"
 )
 
-type Reader interface {
+type FileReader interface {
 	Read(path string) ([]byte, error)
 }
 

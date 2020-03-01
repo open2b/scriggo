@@ -115,7 +115,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 // absolute, is relative to the root of the template. lang can be Text, HTML,
 // CSS or JavaScript.
 // Any error related to the compilation itself is returned as a CompilerError.
-func CompileTemplate(path string, r Reader, main PackageLoader, lang ast.Language, opts Options) (*Code, error) {
+func CompileTemplate(path string, r FileReader, main PackageLoader, lang ast.Language, opts Options) (*Code, error) {
 
 	var tree *ast.Tree
 

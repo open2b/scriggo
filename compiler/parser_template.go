@@ -24,7 +24,7 @@ import (
 //
 // relaxedBoolean reports whether the operators 'and', 'or' and 'not' as well as
 // non-boolean conditions in the if statement are allowed.
-func ParseTemplate(path string, reader Reader, lang ast.Language, relaxedBoolean bool) (*ast.Tree, error) {
+func ParseTemplate(path string, reader FileReader, lang ast.Language, relaxedBoolean bool) (*ast.Tree, error) {
 
 	if path == "" {
 		return nil, ErrInvalidPath
@@ -61,7 +61,7 @@ func ParseTemplate(path string, reader Reader, lang ast.Language, relaxedBoolean
 
 // templateExpansion represents the state of a template expansion.
 type templateExpansion struct {
-	reader         Reader
+	reader         FileReader
 	paths          []string
 	relaxedBoolean bool
 }

@@ -54,7 +54,7 @@ type compiledTemplate struct {
 	globals []compiler.Global
 }
 
-func compileTemplate(reader compiler.Reader, limitMemory bool) (*compiledTemplate, error) {
+func compileTemplate(reader compiler.FileReader, limitMemory bool) (*compiledTemplate, error) {
 	opts := compiler.Options{
 		LimitMemory:    limitMemory,
 		RelaxedBoolean: true,
