@@ -99,9 +99,9 @@ type RenderOptions struct {
 }
 
 type Template struct {
-	fn      *runtime.Function
-	options *LoadOptions
-	globals []compiler.Global
+	fn          *runtime.Function
+	globals     []compiler.Global
+	limitMemory bool
 }
 
 // CompilerError represents an error returned by the compiler.
@@ -137,7 +137,7 @@ func Load(path string, reader Reader, main Package, lang Language, options *Load
 		}
 		return nil, err
 	}
-	return &Template{fn: code.Main, globals: code.Globals, options: options}, nil
+	return &Template{fn: code.Main, globals: code.Globals, limitMemory: co.LimitMemory}, nil
 }
 
 var emptyVars = map[string]interface{}{}
@@ -145,10 +145,8 @@ var emptyVars = map[string]interface{}{}
 // Render renders the template and write the output to out. vars contains the
 // values for the variables of the main package.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *RenderOptions) error {
-	if options != nil && options.MemoryLimiter != nil {
-		if t.options == nil || !t.options.LimitMemory {
-			panic("scriggo: template not loaded with LimitMemory option")
-		}
+	if options != nil && options.MemoryLimiter != nil && !t.limitMemory {
+		panic("scriggo: template not loaded with LimitMemory option")
 	}
 	writeFunc := out.Write
 	renderFunc := render
@@ -171,11 +169,6 @@ func (t *Template) MustRender(out io.Writer, vars map[string]interface{}, option
 	if err != nil {
 		panic(err)
 	}
-}
-
-// Options returns the options with which the template has been loaded.
-func (t *Template) Options() *LoadOptions {
-	return t.options
 }
 
 // Disassemble disassembles a template.
