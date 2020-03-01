@@ -63,7 +63,7 @@ func TestDirLimitedReader(t *testing.T) {
 			}
 			testReader = file.read
 			dir := NewDirLimitedReader(filepath.Dir(f.Name()), file.max, file.max)
-			_, err = dir.Read(filepath.Base(f.Name()))
+			_, err = dir.ReadFile(filepath.Base(f.Name()))
 			if file.size <= file.max {
 				if err == ErrReadTooLarge {
 					t.Errorf("unexpected error %q", ErrReadTooLarge)
@@ -117,34 +117,34 @@ func TestValidDirReaderPath(t *testing.T) {
 func TestMapReader(t *testing.T) {
 
 	r := MapReader{"a": []byte("a")}
-	_, err := r.Read("a")
+	_, err := r.ReadFile("a")
 	if err != nil {
 		t.Fatalf("path: a, unexpected error %q\n", err)
 	}
-	_, err = r.Read("/a")
+	_, err = r.ReadFile("/a")
 	if err != nil {
 		t.Fatalf("path: /a, unexpected error %q\n", err)
 	}
 
 	r = MapReader{"/a": []byte("/a")}
-	_, err = r.Read("a")
+	_, err = r.ReadFile("a")
 	if err != nil {
 		t.Fatalf("path: a, unexpected error %q\n", err)
 	}
-	_, err = r.Read("/a")
+	_, err = r.ReadFile("/a")
 	if err != nil {
 		t.Fatalf("path: /a, unexpected error %q\n", err)
 	}
 
 	r = MapReader{"a": []byte("a"), "/a": []byte("/a")}
-	f, err := r.Read("a")
+	f, err := r.ReadFile("a")
 	if err != nil {
 		t.Fatalf("path: a, unexpected error %q\n", err)
 	}
 	if !bytes.Equal(f, []byte("/a")) {
 		t.Fatalf("path: a, expected \"/a\", but %q", string(f))
 	}
-	f, err = r.Read("/a")
+	f, err = r.ReadFile("/a")
 	if err != nil {
 		t.Fatalf("path: /a, unexpected error %q\n", err)
 	}

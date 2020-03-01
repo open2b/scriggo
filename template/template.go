@@ -112,9 +112,10 @@ type CompilerError interface {
 	Message() string
 }
 
-// Load loads a template given its path. Load calls the method Read of reader
-// to read the files of the template. Package main declares constants, types,
-// variables and functions that are accessible from the code in the template.
+// Load loads a template given its path. Load calls the method ReadFile of
+// reader to read the files of the template. Package main declares constants,
+// types, variables and functions that are accessible from the code in the
+// template.
 func Load(path string, reader FileReader, main Package, lang Language, options *LoadOptions) (*Template, error) {
 	co := compiler.Options{}
 	if options != nil {

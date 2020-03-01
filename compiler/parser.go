@@ -18,7 +18,7 @@ import (
 )
 
 type FileReader interface {
-	Read(path string) ([]byte, error)
+	ReadFile(name string) ([]byte, error)
 }
 
 var (

@@ -90,7 +90,7 @@ func (pp *templateExpansion) parsePath(path string, lang ast.Language) (*ast.Tre
 		}
 	}
 
-	src, err := pp.reader.Read(path)
+	src, err := pp.reader.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}

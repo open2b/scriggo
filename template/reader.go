@@ -19,11 +19,11 @@ import (
 )
 
 // FileReader is implemented by values that can read files of a template.
-// path, if not absolute, is relative to the root of the template. If the file
-// with the given path does not exist, it returns nil and an os not found
+// name, if not absolute, is relative to the root of the template. If the file
+// with the given name does not exist, it returns nil and an os not found
 // error.
 type FileReader interface {
-	Read(path string) ([]byte, error)
+	ReadFile(name string) ([]byte, error)
 }
 
 // DirReader implements a FileReader that reads the files in a directory.
@@ -31,12 +31,12 @@ type FileReader interface {
 // To limit the size of read files, use DirLimitedReader instead.
 type DirReader string
 
-// Read implements the Read method of FileReader.
-func (dir DirReader) Read(path string) ([]byte, error) {
-	if !ValidDirReaderPath(path) {
+// ReadFile implements the ReadFile method of FileReader.
+func (dir DirReader) ReadFile(name string) ([]byte, error) {
+	if !ValidDirReaderPath(name) {
 		return nil, ErrInvalidPath
 	}
-	return ioutil.ReadFile(filepath.Join(string(dir), path))
+	return ioutil.ReadFile(filepath.Join(string(dir), name))
 }
 
 // DirLimitedReader implements a FileReader that reads a source from files in
@@ -44,7 +44,7 @@ func (dir DirReader) Read(path string) ([]byte, error) {
 // all reads.
 //
 // Use DirLimitedReader, instead of DirReader, when you do not have control
-// of file sizes. As a Parser reads a path with a specific context only once,
+// of file sizes. As a Parser reads a file with a specific context only once,
 // DirLimitedReader can be passed to a Parser to prevent it
 // from allocating too much memory.
 type DirLimitedReader struct {
@@ -71,14 +71,14 @@ func NewDirLimitedReader(dir string, maxFile, maxTotal int) *DirLimitedReader {
 // testReader is set only for testing.
 var testReader func(io.Reader) io.Reader
 
-// Read implements the Read method of FileReader.
+// ReadFile implements the ReadFile method of FileReader.
 // If a limit is exceeded it returns the error ErrReadTooLarge.
-func (dr *DirLimitedReader) Read(path string) ([]byte, error) {
-	if !ValidDirReaderPath(path) {
+func (dr *DirLimitedReader) ReadFile(name string) ([]byte, error) {
+	if !ValidDirReaderPath(name) {
 		return nil, ErrInvalidPath
 	}
 	// Opens the file.
-	f, err := os.Open(filepath.Join(dr.dir, path))
+	f, err := os.Open(filepath.Join(dr.dir, name))
 	if err != nil {
 		return nil, err
 	}
@@ -150,21 +150,21 @@ func (dr *DirLimitedReader) Read(path string) ([]byte, error) {
 }
 
 // MapReader implements a FileReader where sources are read from a map.
-// Map keys are the paths. If a path is present both relative and
+// Map keys are the file names. If a name is present both relative and
 // absolute, the file of the absolute one is returned.
 type MapReader map[string][]byte
 
-// Read implements the Read method of FileReader.
-func (r MapReader) Read(path string) ([]byte, error) {
-	if !compiler.ValidTemplatePath(path) {
+// ReadFile implements the ReadFile method of FileReader.
+func (r MapReader) ReadFile(name string) ([]byte, error) {
+	if !compiler.ValidTemplatePath(name) {
 		return nil, ErrInvalidPath
 	}
-	if path[0] != '/' {
-		path = "/" + path
+	if name[0] != '/' {
+		name = "/" + name
 	}
-	src, ok := r[path]
+	src, ok := r[name]
 	if !ok {
-		src, ok = r[path[1:]]
+		src, ok = r[name[1:]]
 		if !ok {
 			return nil, os.ErrNotExist
 		}
@@ -172,7 +172,7 @@ func (r MapReader) Read(path string) ([]byte, error) {
 	return src, nil
 }
 
-// ValidDirReaderPath reports whether path is valid as path for DirReader
+// ValidDirReaderPath reports whether path is valid as name for DirReader
 // and DirLimitedReader.
 func ValidDirReaderPath(path string) bool {
 	// Check if it is a valid template path.

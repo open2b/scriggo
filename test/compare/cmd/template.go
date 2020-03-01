@@ -27,8 +27,8 @@ import (
 
 type mapReader map[string][]byte
 
-func (r mapReader) Read(path string) ([]byte, error) {
-	src, ok := r[path]
+func (r mapReader) ReadFile(name string) ([]byte, error) {
+	src, ok := r[name]
 	if !ok {
 		panic("not existing")
 	}
@@ -37,8 +37,8 @@ func (r mapReader) Read(path string) ([]byte, error) {
 
 type dirReader string
 
-func (dir dirReader) Read(path string) ([]byte, error) {
-	src, err := ioutil.ReadFile(filepath.Join(string(dir), path))
+func (dir dirReader) ReadFile(name string) ([]byte, error) {
+	src, err := ioutil.ReadFile(filepath.Join(string(dir), name))
 	if err != nil {
 		if os.IsNotExist(err) {
 			panic("not existing")
