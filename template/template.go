@@ -21,8 +21,8 @@ import (
 )
 
 var (
-	// ErrInvalidPath is returned from the Load function and a Reader when the
-	// path argument is not valid.
+	// ErrInvalidPath is returned from the Load function and a FileReader when
+	// the path argument is not valid.
 	ErrInvalidPath = errors.New("scriggo: invalid path")
 
 	// ErrNotExist is returned from the Load function when the path does not
@@ -115,7 +115,7 @@ type CompilerError interface {
 // Load loads a template given its path. Load calls the method Read of reader
 // to read the files of the template. Package main declares constants, types,
 // variables and functions that are accessible from the code in the template.
-func Load(path string, reader Reader, main Package, lang Language, options *LoadOptions) (*Template, error) {
+func Load(path string, reader FileReader, main Package, lang Language, options *LoadOptions) (*Template, error) {
 	co := compiler.Options{}
 	if options != nil {
 		co.LimitMemory = options.LimitMemory
