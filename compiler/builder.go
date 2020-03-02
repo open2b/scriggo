@@ -342,7 +342,7 @@ func (builder *functionBuilder) addFunctionType(typ reflect.Type) {
 // changePath changes the current path. Note that the path is initially set at
 // the creation of the function builder; this method should be called only when
 // the path changes during the building of the same function, for example when
-// emitting an 'include' statement.
+// emitting a 'show file' statement.
 func (builder *functionBuilder) changePath(newPath string) {
 	builder.path = newPath
 }

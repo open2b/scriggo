@@ -995,7 +995,7 @@ var templateMultiPageCases = map[string]struct {
 		expected: `Ignored macro:  ok.`,
 	},
 
-	"Include - Only text": {
+	"ShowFile - Only text": {
 		sources: map[string]string{
 			"index.html":    `a{% show "/included.html" %}c`,
 			"included.html": `b`,
@@ -1003,7 +1003,7 @@ var templateMultiPageCases = map[string]struct {
 		expected: "abc",
 	},
 
-	"Include - Included file uses external variable": {
+	"ShowFile - Shown file uses external variable": {
 		sources: map[string]string{
 			"index.html":    `{% var a = 10 %}a: {% show "/included.html" %}`,
 			"included.html": `{{ a }}`,
@@ -1011,7 +1011,7 @@ var templateMultiPageCases = map[string]struct {
 		expected: "a: 10",
 	},
 
-	"Include - File including uses included variable": {
+	"ShowFile - File including uses included variable": {
 		sources: map[string]string{
 			"index.html":    `{% show "/included.html" %}included a: {{ a }}`,
 			"included.html": `{% var a = 20 %}`,
@@ -1019,7 +1019,7 @@ var templateMultiPageCases = map[string]struct {
 		expected: "included a: 20",
 	},
 
-	"Include - Including a file which includes another file": {
+	"ShowFile - Showing a file which includes another file": {
 		sources: map[string]string{
 			"index.html":              `indexstart,{% show "/dir1/included.html" %}indexend,`,
 			"dir1/included.html":      `i1start,{% show "/dir1/dir2/included.html" %}i1end,`,

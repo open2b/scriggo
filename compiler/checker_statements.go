@@ -53,7 +53,7 @@ func (tc *typechecker) templatePageToPackage(tree *ast.Tree, path string) error 
 				}
 				unexpected = "text"
 			case *ast.ShowFile:
-				unexpected = "include"
+				unexpected = "show file"
 			case *ast.Show:
 				unexpected = "show"
 			default:

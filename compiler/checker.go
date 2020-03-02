@@ -568,7 +568,7 @@ func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...inte
 	var parents string
 	for i := len(tc.paths) - 1; i >= 0; i-- {
 		parent := tc.paths[i]
-		verb := "included"
+		verb := "shown by"
 		if _, ok := parent.node.(*ast.Extends); ok {
 			verb = "extended"
 		}
