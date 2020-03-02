@@ -287,21 +287,21 @@ func ParseTemplateSource(src []byte, lang ast.Language, relaxedBoolean bool) (tr
 					if containsOnlySpaces(text.Text) {
 						n.LeadingText = text
 					}
-					return nil, syntaxError(tok.pos, "unexpected text, expecting case of default or {%% end %%}")
+					return nil, syntaxError(tok.pos, "unexpected text, expecting case or default or {%% end %%}")
 				}
 			case *ast.TypeSwitch:
 				if len(n.Cases) == 0 {
 					if containsOnlySpaces(text.Text) {
 						n.LeadingText = text
 					}
-					return nil, syntaxError(tok.pos, "unexpected text, expecting case of default or {%% end %%}")
+					return nil, syntaxError(tok.pos, "unexpected text, expecting case or default or {%% end %%}")
 				}
 			case *ast.Select:
 				if len(n.Cases) == 0 {
 					if containsOnlySpaces(text.Text) {
 						n.LeadingText = text
 					}
-					return nil, syntaxError(tok.pos, "unexpected text, expecting case of default or {%% end %%}")
+					return nil, syntaxError(tok.pos, "unexpected text, expecting case or default or {%% end %%}")
 				}
 			}
 			p.addChild(text)
