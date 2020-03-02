@@ -12,6 +12,7 @@ import (
 	"io"
 	"math"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -1265,6 +1266,119 @@ var templateMultiPageCases = map[string]struct {
 			},
 		},
 		expected: "127",
+	},
+
+	// Test the syntax {{ f() }}, where 'f' returns a value and an error.
+
+	"HTML (int) - No error returned": {
+		sources: map[string]string{
+			"index.html": `{{ atoi("42") }}`,
+		},
+		lang:     LanguageHTML,
+		main:     functionReturningErrorPackage,
+		expected: "42",
+	},
+	"HTML (int) - Error returned": {
+		sources: map[string]string{
+			"index.html": `{{ atoi("what?") }}`,
+		},
+		lang:     LanguageHTML,
+		main:     functionReturningErrorPackage,
+		expected: "0<!-- strconv.Atoi: parsing \"what?\": invalid syntax -->",
+	},
+	"HTML (string) - No error returned": {
+		sources: map[string]string{
+			"index.html": `{{ uitoa(42) }}`,
+		},
+		lang:     LanguageHTML,
+		main:     functionReturningErrorPackage,
+		expected: "42",
+	},
+	"HTML (string) - Error returned": {
+		sources: map[string]string{
+			"index.html": `{{ uitoa(-32) }}`,
+		},
+		lang:     LanguageHTML,
+		main:     functionReturningErrorPackage,
+		expected: "<!-- uitoa requires a positive integer as argument -->",
+	},
+	"CSS - No error returned": {
+		sources: map[string]string{
+			"index.css": `{{ atoi("42") }}`,
+		},
+		entryPoint: "index.css",
+		lang:       LanguageCSS,
+		main:       functionReturningErrorPackage,
+		expected:   "42",
+	},
+	"CSS - Error returned": {
+		sources: map[string]string{
+			"index.css": `{{ atoi("what?") }}`,
+		},
+		entryPoint: "index.css",
+		lang:       LanguageCSS,
+		main:       functionReturningErrorPackage,
+		expected:   "0/* strconv.Atoi: parsing \"what?\": invalid syntax */",
+	},
+	"Javascript (int) - No error returned": {
+		sources: map[string]string{
+			"index.js": `{{ atoi("42") }}`,
+		},
+		entryPoint: "index.js",
+		lang:       LanguageJavaScript,
+		main:       functionReturningErrorPackage,
+		expected:   "42",
+	},
+	"Javascript (int) - Error returned": {
+		sources: map[string]string{
+			"index.js": `{{ atoi("what?") }}`,
+		},
+		entryPoint: "index.js",
+		lang:       LanguageJavaScript,
+		main:       functionReturningErrorPackage,
+		expected:   "0/* strconv.Atoi: parsing \"what?\": invalid syntax */",
+	},
+	"Javascript (string) - No error returned": {
+		sources: map[string]string{
+			"index.js": `{{ uitoa(42) }}`,
+		},
+		entryPoint: "index.js",
+		lang:       LanguageJavaScript,
+		main:       functionReturningErrorPackage,
+		expected:   "\"42\"",
+	},
+	"Javascript (string) - Error returned": {
+		sources: map[string]string{
+			"index.js": `{{ uitoa(-432) }}`,
+		},
+		entryPoint: "index.js",
+		lang:       LanguageJavaScript,
+		main:       functionReturningErrorPackage,
+		expected:   "\"\"/* uitoa requires a positive integer as argument */",
+	},
+	"HTML - Error containing the comment close tag": {
+		sources: map[string]string{
+			"index.html": `{{ baderror() }}`,
+		},
+		lang:     LanguageHTML,
+		main:     functionReturningErrorPackage,
+		expected: "0<!-- i'm a bad error -- > -->",
+	},
+}
+
+var functionReturningErrorPackage = &scriggo.MapPackage{
+	PkgName: "main",
+	Declarations: map[string]interface{}{
+		"atoi": func(v string) (int, error) { return strconv.Atoi(v) },
+		"uitoa": func(n int) (string, error) {
+			if n < 0 {
+				return "", errors.New("uitoa requires a positive integer as argument")
+			}
+			return strconv.Itoa(n), nil
+		},
+		"baderror": func() (int, error) {
+			return 0, errors.New("i'm a bad error -->")
+		},
 	},
 }
 

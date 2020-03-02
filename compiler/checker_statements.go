@@ -607,6 +607,52 @@ nodesLoop:
 			}
 
 		case *ast.Show:
+
+			// Handle {{ f() }} where f returns two values and the second value
+			// implements 'error'.
+			if call, ok := node.Expr.(*ast.Call); ok {
+				tis, _, _ := tc.checkCallExpression(call)
+				if len(tis) == 2 && tis[1].Type.Implements(errorType) {
+					// Change the tree:
+					//
+					//     from: {{ f(..) }}
+					//
+					//     to:   {% if v, err := f(arg1, arg2); true %}{{ v }}{{ $commentedError{err} }}{% end if %}
+					//
+					pos := call.Pos()
+					init := ast.NewAssignment( // v, err := f(..)
+						pos,
+						[]ast.Expression{
+							ast.NewIdentifier(pos, "v"),
+							ast.NewIdentifier(pos, "err"),
+						},
+						ast.AssignmentDeclaration,
+						[]ast.Expression{call}, // f(..)
+					)
+					cond := ast.NewIdentifier(pos, "true")
+					commentedErrorIdent := ast.NewIdentifier(pos, "$commentedError")
+					tc.typeInfos[commentedErrorIdent] = &typeInfo{
+						Properties: propertyIsType,
+						Type:       commentedErrorType,
+					}
+					then := ast.NewBlock( // {{ v }}{{ $commentedErr{err} }}
+						pos,
+						[]ast.Node{
+							ast.NewShow(pos, ast.NewIdentifier(pos, "v"), node.Context),
+							ast.NewShow(pos, ast.NewCompositeLiteral(
+								pos,
+								commentedErrorIdent,
+								[]ast.KeyValue{
+									{Value: ast.NewIdentifier(pos, "err")},
+								},
+							), node.Context),
+						},
+					)
+					nodes[i] = ast.NewIf(pos, init, cond, then, nil)
+					continue nodesLoop // check nodes[i]
+				}
+			}
+
 			ti := tc.checkExpr(node.Expr)
 			if ti.Nil() {
 				panic(tc.errorf(node, "use of untyped nil"))
