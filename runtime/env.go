@@ -22,8 +22,9 @@ type Env struct {
 	print   PrintFunc       // custom print builtin.
 	memory  MemoryLimiter   // memory limiter.
 
-	// Only exited and exits fields can be changed after the vm has been
-	// started and access to these four fields must be done with this mutex.
+	// Only exited, exits and filePath fields can be changed after the vm has
+	// been started and access to these three fields must be done with this
+	// mutex.
 	mu       sync.Mutex
 	exited   bool     // reports whether it is exited.
 	exits    []func() // exit functions.
