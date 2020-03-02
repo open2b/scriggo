@@ -1384,9 +1384,7 @@ var envFilePathCases = []struct {
 			"index.html":    `{% extends "extended.html" %}{% macro Path %}{{ path() }}{% end %}`,
 			"extended.html": `{{ path() }}, {% show Path %}`,
 		},
-		// X MARCO: extend paths does not have a leading /, while
-		// imported/included paths have.
-		want: `extended.html, /index.html`,
+		want: `/extended.html, /index.html`,
 	},
 }
 
