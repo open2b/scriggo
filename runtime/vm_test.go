@@ -136,7 +136,8 @@ var swapStackTests = []struct {
 func TestSwapStack(t *testing.T) {
 
 	for n, sst := range swapStackTests {
-		m := create(nil, true)
+		m := create(nil)
+		m.main = true
 		for i := 0; i < len(sst.regs.int); i++ {
 			m.regs.int[i] = sst.regs.int[i]
 		}

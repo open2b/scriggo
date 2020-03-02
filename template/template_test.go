@@ -12,11 +12,11 @@ import (
 	"io"
 	"math"
 	"reflect"
-	"scriggo/runtime"
 	"strings"
 	"testing"
 
 	"scriggo"
+	"scriggo/runtime"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -1353,30 +1353,40 @@ var envFilePathCases = []struct {
 	{
 		name: "File including another file",
 		sources: map[string]string{
-			"index.html":    `{{ path() }}{% include "included.html"%}{{ path() }}`,
+			"index.html":    `{{ path() }}, {% include "included.html"%}, {{ path() }}`,
 			"included.html": `{{ path() }}`,
 		},
-		want: `/index.html/included.html/index.html`,
+		want: `/index.html, /included.html, /index.html`,
+	},
+
+	{
+		name: "File including another file in a sub-directory",
+		sources: map[string]string{
+			"index.html":              `{{ path() }}, {% include "includes/included1.html"%}, {{ path() }}`,
+			"includes/included1.html": `{{ path() }}, {% include "included2.html" %}`,
+			"includes/included2.html": `{{ path() }}`,
+		},
+		want: `/index.html, /includes/included1.html, /includes/included2.html, /index.html`,
 	},
 
 	{
 		name: "File importing another file, which defines a macro",
 		sources: map[string]string{
-			"index.html":    `{% import "imported.html" %}{{ path() }}{% show Path %}{{ path() }}`,
+			"index.html":    `{% import "imported.html" %}{{ path() }}, {% show Path %}, {{ path() }}`,
 			"imported.html": `{% macro Path %}{{ path() }}{% end %}`,
 		},
-		want: `/index.html/imported.html/index.html`,
+		want: `/index.html, /imported.html, /index.html`,
 	},
 
 	{
 		name: "File extending another file",
 		sources: map[string]string{
 			"index.html":    `{% extends "extended.html" %}{% macro Path %}{{ path() }}{% end %}`,
-			"extended.html": `{{ path() }}{% show Path %}`,
+			"extended.html": `{{ path() }}, {% show Path %}`,
 		},
 		// X MARCO: extend paths does not have a leading /, while
 		// imported/included paths have.
-		want: `extended.html/index.html`,
+		want: `extended.html, /index.html`,
 	},
 }
 
