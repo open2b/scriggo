@@ -6,14 +6,19 @@
 
 package compiler
 
-import "strings"
+import (
+	"reflect"
+	"strings"
+)
 
-// A value with type commentedError is a value containing an error that will be
-// rendered as a comment.
+// A value with type commentedError contains an error that will be rendered as a
+// comment.
 //
 // If the language where the commentedError value is rendered does not support
 // comments then such value is rendered as the empty string.
 type commentedError struct{ Err error }
+
+var commentedErrorType = reflect.TypeOf((*commentedError)(nil)).Elem()
 
 func (ce commentedError) CSS() string {
 	if ce.Err == nil {
