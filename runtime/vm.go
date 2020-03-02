@@ -117,11 +117,14 @@ type VM struct {
 	done     <-chan struct{}      // done.
 	doneCase reflect.SelectCase   // done, as reflect case.
 	panic    *Panic               // panic.
+	main     bool                 // reports whether this VM is executing the the main goroutine.
 }
 
 // NewVM returns a new virtual machine.
 func NewVM() *VM {
-	return create(&Env{})
+	vm := create(&Env{})
+	vm.main = true
+	return vm
 }
 
 // Env returns the execution environment of vm.
@@ -408,6 +411,9 @@ func (vm *VM) reserve() {
 // callPredefined calls a predefined function. numVariadic is the number of
 // variadic arguments, shift is the stack shift and asGoroutine reports
 // whether the function must be started as a goroutine.
+//
+// When callPredefined is called, vm.pc must be the address of the call
+// instruction plus one.
 func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift StackShift, asGoroutine bool) {
 
 	if fn.value.IsNil() {
@@ -486,6 +492,13 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 		for i := 0; i < nunIn; i++ {
 			if i < lastNonVariadic {
 				if i < 2 && typ.In(i) == envType {
+					// Set the path of the file that contains the call.
+					if vm.main {
+						env := vm.env
+						env.mu.Lock()
+						env.filePath = vm.fn.DebugInfo[vm.pc-1].Path
+						env.mu.Unlock()
+					}
 					args[i].Set(vm.envArg)
 				} else {
 					r := vm.getIntoReflectValue(1, args[i], false)

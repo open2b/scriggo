@@ -23,10 +23,11 @@ type Env struct {
 	memory  MemoryLimiter   // memory limiter.
 
 	// Only exited and exits fields can be changed after the vm has been
-	// started and access to these three fields must be done with this mutex.
-	mu     sync.Mutex
-	exited bool     // reports whether it is exited.
-	exits  []func() // exit functions.
+	// started and access to these four fields must be done with this mutex.
+	mu       sync.Mutex
+	exited   bool     // reports whether it is exited.
+	exits    []func() // exit functions.
+	filePath string   // path of the file where the main goroutine is in.
 }
 
 // Context returns the context of the environment.
@@ -70,6 +71,17 @@ func (env *Env) Fatal(v interface{}) {
 // MemoryLimiter returns the memory limiter.
 func (env *Env) MemoryLimiter() MemoryLimiter {
 	return env.memory
+}
+
+// FilePath can be called from a builtin function to get the absolute path of
+// the file where such builtin was called. If the builtin function was not
+// called by the main virtual machine goroutine, the returned value is not
+// significant.
+func (env *Env) FilePath() string {
+	env.mu.Lock()
+	filePath := env.filePath
+	env.mu.Unlock()
+	return filePath
 }
 
 // Print calls the print built-in function with args as argument.
