@@ -3,9 +3,9 @@
 {% extend "layout.html" %} // ERROR `syntax error: unexpected extend, expecting extends, import or include`
 {% imports "macros.html" %} // ERROR `syntax error: unexpected imports, expecting extends, import or include`
 {% imports m "macros.html" %} // ERROR `syntax error: unexpected imports, expecting import`
-{% includes "include.html" %} // ERROR `syntax error: unexpected includes, expecting extends, import or include`
+{% shows "include.html" %} // ERROR `syntax error: unexpected includes, expecting extends, import or include`
 
 {% extend `layout.html` %} // ERROR `syntax error: unexpected extend, expecting extends, import or include`
 {% imports `macros.html` %} // ERROR `syntax error: unexpected imports, expecting extends, import or include`
 {% imports m `macros.html` %} // ERROR `syntax error: unexpected imports, expecting import`
-{% includes `include.html` %} // ERROR `syntax error: unexpected includes, expecting extends, import or include`
+{% shows `include.html` %} // ERROR `syntax error: unexpected includes, expecting extends, import or include`

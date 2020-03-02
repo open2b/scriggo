@@ -997,7 +997,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Include - Only text": {
 		sources: map[string]string{
-			"index.html":    `a{% include "/included.html" %}c`,
+			"index.html":    `a{% show "/included.html" %}c`,
 			"included.html": `b`,
 		},
 		expected: "abc",
@@ -1005,7 +1005,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Include - Included file uses external variable": {
 		sources: map[string]string{
-			"index.html":    `{% var a = 10 %}a: {% include "/included.html" %}`,
+			"index.html":    `{% var a = 10 %}a: {% show "/included.html" %}`,
 			"included.html": `{{ a }}`,
 		},
 		expected: "a: 10",
@@ -1013,7 +1013,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Include - File including uses included variable": {
 		sources: map[string]string{
-			"index.html":    `{% include "/included.html" %}included a: {{ a }}`,
+			"index.html":    `{% show "/included.html" %}included a: {{ a }}`,
 			"included.html": `{% var a = 20 %}`,
 		},
 		expected: "included a: 20",
@@ -1021,8 +1021,8 @@ var templateMultiPageCases = map[string]struct {
 
 	"Include - Including a file which includes another file": {
 		sources: map[string]string{
-			"index.html":              `indexstart,{% include "/dir1/included.html" %}indexend,`,
-			"dir1/included.html":      `i1start,{% include "/dir1/dir2/included.html" %}i1end,`,
+			"index.html":              `indexstart,{% show "/dir1/included.html" %}indexend,`,
+			"dir1/included.html":      `i1start,{% show "/dir1/dir2/included.html" %}i1end,`,
 			"dir1/dir2/included.html": `i2,`,
 		},
 		expected: "indexstart,i1start,i2,i1end,indexend,",
@@ -1164,7 +1164,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"https://github.com/open2b/scriggo/issues/392": {
 		sources: map[string]string{
-			"product.html": `{{ "" }}{% include "includes/products.html" %}
+			"product.html": `{{ "" }}{% show "includes/products.html" %}
 `, // this newline is intentional
 			"includes/products.html": `{% macro M(s []int) %}{% end %}`,
 		},
@@ -1191,7 +1191,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"https://github.com/open2b/scriggo/issues/393": {
 		sources: map[string]string{
-			"product.html": `{% include "includes/products.html" %}
+			"product.html": `{% show "includes/products.html" %}
 `, // this newline is intentional
 			"includes/products.html": `{% macro M(s []int) %}{% end %}`,
 		},
@@ -1467,7 +1467,7 @@ var envFilePathCases = []struct {
 	{
 		name: "File including another file",
 		sources: map[string]string{
-			"index.html":    `{{ path() }}, {% include "included.html"%}, {{ path() }}`,
+			"index.html":    `{{ path() }}, {% show "included.html"%}, {{ path() }}`,
 			"included.html": `{{ path() }}`,
 		},
 		want: `/index.html, /included.html, /index.html`,
@@ -1476,8 +1476,8 @@ var envFilePathCases = []struct {
 	{
 		name: "File including another file in a sub-directory",
 		sources: map[string]string{
-			"index.html":              `{{ path() }}, {% include "includes/included1.html"%}, {{ path() }}`,
-			"includes/included1.html": `{{ path() }}, {% include "included2.html" %}`,
+			"index.html":              `{{ path() }}, {% show "includes/included1.html"%}, {{ path() }}`,
+			"includes/included1.html": `{{ path() }}, {% show "included2.html" %}`,
 			"includes/included2.html": `{{ path() }}`,
 		},
 		want: `/index.html, /includes/included1.html, /includes/included2.html, /index.html`,

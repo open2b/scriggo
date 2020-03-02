@@ -164,7 +164,7 @@ type functionBuilder struct {
 	complexBinaryOpIndexes map[ast.OperatorType]int8 // indexes of complex binary op. functions.
 	complexUnaryOpIndex    int8                      // index of complex negation function.
 
-	// path of the current file. For example, when emitting an {% include ".." %}
+	// path of the current file. For example, when emitting an {% show ".." %}
 	// statement in a template the file path changes even if the function
 	// remains the same.
 	path string

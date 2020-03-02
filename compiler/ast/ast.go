@@ -737,7 +737,7 @@ func NewShowMacro(pos *Position, macro Expression, args []Expression, isVariadic
 	return &ShowMacro{Position: pos, Macro: macro, Args: args, IsVariadic: isVariadic, Or: or, Context: ctx}
 }
 
-// ShowFile node represents a statement {% include <path> %}.
+// ShowFile node represents a statement {% show <path> %}.
 type ShowFile struct {
 	*Position         // position in the source.
 	Path      string  // path of the source to include.

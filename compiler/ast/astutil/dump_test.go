@@ -21,7 +21,7 @@ func ExampleDump() {
 			"{% var x = 10 %}",
 			"{% for i in x %} some text, blah blah blah {% end %}",
 			"{% for i in x %} some very very very very very very very very long text, blah blah blah {% end %}",
-			`{% include "ciao.txt" %}`,
+			`{% show "ciao.txt" %}`,
 			"{{5+6}}",
 			`{% var x = 10 %}`,
 			`{% y = 10 %}`,
