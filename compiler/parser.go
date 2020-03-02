@@ -834,38 +834,63 @@ LABEL:
 		tok = p.parseEnd(tok, tokenSemicolon)
 		return tok
 
-	// include
-	case tokenInclude:
-		pos := tok.pos
-		switch tok.ctx {
-		case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript:
-		default:
-			panic(syntaxError(tok.pos, "include statement inside %s", tok.ctx))
-		}
-		// path
-		tok = p.next()
-		if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting string", tok))
-		}
-		var path = unquoteString(tok.txt)
-		if !ValidTemplatePath(path) {
-			panic(fmt.Errorf("invalid path %q at %s", path, tok.pos))
-		}
-		pos.End = tok.pos.End
-		node := ast.NewShowFile(pos, path, tok.ctx)
-		p.addChild(node)
-		p.cutSpacesToken = true
-		tok = p.next()
-		tok = p.parseEnd(tok, tokenEndBlock)
-		return tok
+	// REVIEW: move this code into case tokenShow
+	// // include
+	// case tokenInclude:
+	// 	pos := tok.pos
+	// 	switch tok.ctx {
+	// 	case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript:
+	// 	default:
+	// 		panic(syntaxError(tok.pos, "include statement inside %s", tok.ctx))
+	// 	}
+	// 	// path
+	// 	tok = p.next()
+	// 	if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
+	// 		panic(syntaxError(tok.pos, "unexpected %s, expecting string", tok))
+	// 	}
+	// 	var path = unquoteString(tok.txt)
+	// 	if !ValidTemplatePath(path) {
+	// 		panic(fmt.Errorf("invalid path %q at %s", path, tok.pos))
+	// 	}
+	// 	pos.End = tok.pos.End
+	// 	node := ast.NewShowFile(pos, path, tok.ctx)
+	// 	p.addChild(node)
+	// 	p.cutSpacesToken = true
+	// 	tok = p.next()
+	// 	tok = p.parseEnd(tok, tokenEndBlock)
+	// 	return tok
 
 	// show
 	case tokenShow:
 		pos := tok.pos
-		if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
-			panic(syntaxError(tok.pos, "show statement inside an attribute value"))
+		nextTok := p.next()
+		isShowFile := nextTok.typ == tokenInterpretedString || nextTok.typ == tokenRawString
+		if isShowFile {
+			switch tok.ctx {
+			case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript:
+			default:
+				panic(syntaxError(tok.pos, "show file statement inside %s", tok.ctx))
+			}
+		} else {
+			if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
+				panic(syntaxError(tok.pos, "show statement inside an attribute value"))
+			}
 		}
-		tok = p.next()
+		tok = nextTok
+		// {% show <filepath> %}
+		if isShowFile {
+			var path = unquoteString(tok.txt)
+			if !ValidTemplatePath(path) {
+				panic(fmt.Errorf("invalid path %q at %s", path, tok.pos))
+			}
+			pos.End = tok.pos.End
+			node := ast.NewShowFile(pos, path, tok.ctx)
+			p.addChild(node)
+			p.cutSpacesToken = true
+			tok = p.next()
+			tok = p.parseEnd(tok, tokenEndBlock)
+			return tok
+		}
 		if tok.typ != tokenIdentifier {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier", tok))
 		}
