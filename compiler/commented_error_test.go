@@ -50,6 +50,12 @@ func Test_commentedError(t *testing.T) {
 			wantHTML:       "<!-- bad -- > error -->",
 			wantJavascript: "/* bad --> error */",
 		},
+		{
+			input:          commentedError{errors.New("invalid char: \xc5; end")},
+			wantCSS:        "/* invalid char: �; end */",
+			wantHTML:       "<!-- invalid char: �; end -->",
+			wantJavascript: "/* invalid char: �; end */",
+		},
 	}
 	for _, cas := range cases {
 		t.Run("", func(t *testing.T) {

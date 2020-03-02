@@ -9,6 +9,7 @@ package compiler
 import (
 	"reflect"
 	"strings"
+	"unicode/utf8"
 )
 
 // A value with type commentedError contains an error that will be rendered as a
@@ -26,6 +27,7 @@ func (ce commentedError) CSS() string {
 	}
 	// See https://drafts.csswg.org/css-syntax-3/#consume-comment.
 	msg := ce.Err.Error()
+	msg = toValidUTF8(msg)
 	msg = strings.ReplaceAll(msg, "*/", "* /")
 	return "/* " + msg + " */"
 
@@ -37,6 +39,7 @@ func (ce commentedError) HTML() string {
 	}
 	// See https://html.spec.whatwg.org/multipage/syntax.html#comments.
 	msg := " " + ce.Err.Error() + " "
+	msg = toValidUTF8(msg)
 	msg = strings.NewReplacer(
 		"<!--", "< !--",
 		"-->", "-- >",
@@ -51,10 +54,26 @@ func (ce commentedError) JavaScript() string {
 	}
 	// See https://www.ecma-international.org/ecma-262/5.1/#sec-7.4
 	msg := ce.Err.Error()
+	msg = toValidUTF8(msg)
 	msg = strings.ReplaceAll(msg, "*/", "* /")
 	return "/* " + msg + " */"
 }
 
 func (ce commentedError) String() string {
 	return ""
+}
+
+func toValidUTF8(in string) string {
+	if utf8.ValidString(in) {
+		return in
+	}
+	out := &strings.Builder{}
+	for _, r := range in {
+		if r == 0xFFFD {
+			out.WriteString("�")
+			continue
+		}
+		out.WriteRune(r)
+	}
+	return out.String()
 }
