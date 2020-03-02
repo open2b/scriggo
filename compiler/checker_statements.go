@@ -667,7 +667,7 @@ nodesLoop:
 			continue nodesLoop // check nodes[i]
 
 		case *ast.Call:
-			tis, isBuiltin, _ := tc.checkCallExpression(node, true)
+			tis, isBuiltin, _ := tc.checkCallExpression(node)
 			if isBuiltin {
 				switch node.Func.(*ast.Identifier).Name {
 				case "copy", "recover":
@@ -688,7 +688,7 @@ nodesLoop:
 			if !ok {
 				panic(tc.errorf(node.Call, "expression in defer must be function call"))
 			}
-			_, isBuiltin, isConversion := tc.checkCallExpression(call, true)
+			_, isBuiltin, isConversion := tc.checkCallExpression(call)
 			if isBuiltin {
 				name := call.Func.(*ast.Identifier).Name
 				switch name {
@@ -714,7 +714,7 @@ nodesLoop:
 			if !ok {
 				panic(tc.errorf(node.Call, "expression in go must be function call"))
 			}
-			_, isBuiltin, isConversion := tc.checkCallExpression(call, true)
+			_, isBuiltin, isConversion := tc.checkCallExpression(call)
 			if isBuiltin {
 				name := call.Func.(*ast.Identifier).Name
 				switch name {
@@ -1078,7 +1078,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) ast.Node {
 	needsCheck := true
 	if len(expected) > 1 && len(got) == 1 {
 		if c, ok := got[0].(*ast.Call); ok {
-			tis, _, _ := tc.checkCallExpression(c, false)
+			tis, _, _ := tc.checkCallExpression(c)
 			got = nil
 			for _, ti := range tis {
 				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)

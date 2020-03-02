@@ -489,7 +489,7 @@ func (tc *typechecker) rebalancedRightSide(node ast.Node) []ast.Expression {
 	rhExpr := nodeRhs[0]
 
 	if call, ok := rhExpr.(*ast.Call); ok {
-		tis, isBuiltin, _ := tc.checkCallExpression(call, false)
+		tis, isBuiltin, _ := tc.checkCallExpression(call)
 		if len(nodeLhs) != len(tis) {
 			if isBuiltin {
 				panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(nodeLhs), len(tis)))
