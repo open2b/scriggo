@@ -615,7 +615,7 @@ func operatorFromAssignmentType(assignmentType ast.AssignmentType) ast.OperatorT
 func printedAsJavaScript(t reflect.Type) error {
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
-		t.Implements(javaScriptStringerType) {
+		t.Implements(javaScriptStringerType) || t.Implements(errorType) {
 		return nil
 	}
 	switch kind {
