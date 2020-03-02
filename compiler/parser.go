@@ -852,7 +852,7 @@ LABEL:
 			panic(fmt.Errorf("invalid path %q at %s", path, tok.pos))
 		}
 		pos.End = tok.pos.End
-		node := ast.NewInclude(pos, path, tok.ctx)
+		node := ast.NewShowFile(pos, path, tok.ctx)
 		p.addChild(node)
 		p.cutSpacesToken = true
 		tok = p.next()

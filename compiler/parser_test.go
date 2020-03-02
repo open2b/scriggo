@@ -1354,7 +1354,7 @@ var treeTests = []struct {
 		),
 	}, ast.LanguageHTML)},
 	{"{% extends \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtends(p(1, 4, 3, 16), "/a.b", ast.ContextHTML)}, ast.LanguageHTML)},
-	{"{% include \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewInclude(p(1, 4, 3, 16), "/a.b", ast.ContextHTML)}, ast.LanguageHTML)},
+	{"{% include \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewShowFile(p(1, 4, 3, 16), "/a.b", ast.ContextHTML)}, ast.LanguageHTML)},
 	{"{% extends \"a.e\" %}{% macro b %}c{% end macro %}", ast.NewTree("", []ast.Node{
 		ast.NewExtends(p(1, 4, 3, 15), "a.e", ast.ContextHTML),
 		ast.NewMacro(p(1, 23, 22, 44), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
@@ -1403,7 +1403,7 @@ func pageTests() map[string]struct {
 	src  string
 	tree *ast.Tree
 } {
-	var include = ast.NewInclude(p(3, 7, 29, 58), "/include2.html", ast.ContextHTML)
+	var include = ast.NewShowFile(p(3, 7, 29, 58), "/include2.html", ast.ContextHTML)
 	include.Tree = ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 4), []byte("<div>"), ast.Cut{}),
 		ast.NewShow(p(1, 6, 5, 17), ast.NewIdentifier(p(1, 9, 8, 14), "content"), ast.ContextHTML),
@@ -1629,8 +1629,8 @@ func equals(n1, n2 ast.Node, p int) error {
 			return err
 		}
 
-	case *ast.Include:
-		nn2, ok := n2.(*ast.Include)
+	case *ast.ShowFile:
+		nn2, ok := n2.(*ast.ShowFile)
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}

@@ -53,7 +53,7 @@ func (d *dumper) Visit(node ast.Node) Visitor {
 		tree = n.Tree
 	case *ast.Extends:
 		tree = n.Tree
-	case *ast.Include:
+	case *ast.ShowFile:
 		tree = n.Tree
 	default:
 		// No reference to add, it continues without doing anything.

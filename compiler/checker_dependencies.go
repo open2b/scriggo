@@ -328,7 +328,7 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 		return deps
 	case *ast.Import:
 		return nil
-	case *ast.Include:
+	case *ast.ShowFile:
 		return nil
 	case *ast.Index:
 		deps := nodeDeps(n.Expr, scopes)

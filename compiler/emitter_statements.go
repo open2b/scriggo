@@ -235,7 +235,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			}
 			em.fb.exitScope()
 
-		case *ast.Include:
+		case *ast.ShowFile:
 			path := em.fb.getPath()
 			em.fb.changePath(node.Tree.Path)
 			em.emitNodes(node.Tree.Nodes)

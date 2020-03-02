@@ -235,7 +235,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 				return err
 			}
 
-		case *ast.Include:
+		case *ast.ShowFile:
 
 			absPath, err := pp.abs(n.Path)
 			if err != nil {

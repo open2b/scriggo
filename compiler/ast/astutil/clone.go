@@ -216,8 +216,8 @@ func CloneNode(node ast.Node) ast.Node {
 			imp.Tree = CloneTree(n.Tree)
 		}
 		return imp
-	case *ast.Include:
-		sp := ast.NewInclude(ClonePosition(n.Position), n.Path, n.Context)
+	case *ast.ShowFile:
+		sp := ast.NewShowFile(ClonePosition(n.Position), n.Path, n.Context)
 		if n.Tree != nil {
 			sp.Tree = CloneTree(n.Tree)
 		}

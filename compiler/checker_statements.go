@@ -52,7 +52,7 @@ func (tc *typechecker) templatePageToPackage(tree *ast.Tree, path string) error 
 					continue
 				}
 				unexpected = "text"
-			case *ast.Include:
+			case *ast.ShowFile:
 				unexpected = "include"
 			case *ast.Show:
 				unexpected = "show"
@@ -139,7 +139,7 @@ nodesLoop:
 
 		case *ast.Text:
 
-		case *ast.Include:
+		case *ast.ShowFile:
 			currentPath := tc.path
 			tc.path = node.Tree.Path
 			tc.paths = append(tc.paths, checkerPath{currentPath, node})
