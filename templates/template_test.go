@@ -989,12 +989,13 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: `a`,
 	},
 
-	"ShowMacro of a not-defined macro with 'or ignore' option": {
-		sources: map[string]string{
-			"index.html": `Ignored macro: {% show M or ignore %} ok.`,
-		},
-		expectedOut: `Ignored macro:  ok.`,
-	},
+	// https://github.com/open2b/scriggo/issues/609
+	// "ShowMacro of a not-defined macro with 'or ignore' option": {
+	// 	sources: map[string]string{
+	// 		"index.html": `Ignored macro: {% show M or ignore %} ok.`,
+	// 	},
+	// 	expectedOut: `Ignored macro:  ok.`,
+	// },
 
 	"Include - Only text": {
 		sources: map[string]string{
