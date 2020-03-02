@@ -294,7 +294,7 @@ func (builder *functionBuilder) scopeLookup(n string) int8 {
 }
 
 func (builder *functionBuilder) addPosAndPath(pos *ast.Position) {
-	pc := runtime.Addr(len(builder.fn.Body)) + 1
+	pc := runtime.Addr(len(builder.fn.Body))
 	if builder.fn.DebugInfo == nil {
 		builder.fn.DebugInfo = map[runtime.Addr]runtime.DebugInfo{}
 	}
