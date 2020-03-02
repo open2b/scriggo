@@ -12,10 +12,13 @@ import (
 	"io"
 	"math"
 	"reflect"
+	"scriggo/runtime"
 	"strings"
 	"testing"
 
 	"scriggo"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 var rendererExprTests = []struct {
@@ -1330,5 +1333,75 @@ func TestVars(t *testing.T) {
 		default:
 			t.Fatalf("expecting variable name \"a\", \"d\" or \"e\", got %q", v)
 		}
+	}
+}
+
+var envFilePathCases = []struct {
+	name    string
+	sources map[string]string
+	want    string
+}{
+
+	{
+		name: "Just one file",
+		sources: map[string]string{
+			"index.html": `{{ path() }}`,
+		},
+		want: "/index.html",
+	},
+
+	{
+		name: "File including another file",
+		sources: map[string]string{
+			"index.html":    `{{ path() }}{% include "included.html"%}{{ path() }}`,
+			"included.html": `{{ path() }}`,
+		},
+		want: `/index.html/included.html/index.html`,
+	},
+
+	{
+		name: "File importing another file, which defines a macro",
+		sources: map[string]string{
+			"index.html":    `{% import "imported.html" %}{{ path() }}{% show Path %}{{ path() }}`,
+			"imported.html": `{% macro Path %}{{ path() }}{% end %}`,
+		},
+		want: `/index.html/imported.html/index.html`,
+	},
+
+	{
+		name: "File extending another file",
+		sources: map[string]string{
+			"index.html":    `{% extends "extended.html" %}{% macro Path %}{{ path() }}{% end %}`,
+			"extended.html": `{{ path() }}{% show Path %}`,
+		},
+		// X MARCO: extend paths does not have a leading /, while
+		// imported/included paths have.
+		want: `extended.html/index.html`,
+	},
+}
+
+func Test_envFilePath(t *testing.T) {
+	builtins := Declarations{
+		"path": func(env *runtime.Env) string { return env.FilePath() },
+	}
+	for _, cas := range envFilePathCases {
+		t.Run(cas.name, func(t *testing.T) {
+			r := MapReader{}
+			for p, src := range cas.sources {
+				r[p] = []byte(src)
+			}
+			template, err := Load("index.html", r, builtins, LanguageHTML, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			w := &bytes.Buffer{}
+			err = template.Render(w, nil, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(cas.want, w.String()); diff != "" {
+				t.Fatalf("(-want, +got):\n%s", diff)
+			}
+		})
 	}
 }

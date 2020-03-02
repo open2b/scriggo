@@ -27,6 +27,9 @@ type Env struct {
 	mu     sync.Mutex
 	exited bool     // reports whether it is exited.
 	exits  []func() // exit functions.
+
+	// filePath is path of the file where the main goroutine is in.
+	filePath string
 }
 
 // Context returns the context of the environment.
@@ -70,6 +73,11 @@ func (env *Env) Fatal(v interface{}) {
 // MemoryLimiter returns the memory limiter.
 func (env *Env) MemoryLimiter() MemoryLimiter {
 	return env.memory
+}
+
+// FilePath returns the path of the file where the main goroutine is in.
+func (env *Env) FilePath() string {
+	return env.filePath
 }
 
 // Print calls the print built-in function with args as argument.

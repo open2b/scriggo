@@ -103,25 +103,26 @@ type MemoryLimiter interface {
 
 // VM represents a Scriggo virtual machine.
 type VM struct {
-	fp       [4]Addr              // frame pointers.
-	st       [4]Addr              // stack tops.
-	pc       Addr                 // program counter.
-	ok       bool                 // ok flag.
-	regs     registers            // registers.
-	fn       *Function            // running function.
-	vars     []interface{}        // global and closure variables.
-	env      *Env                 // execution environment.
-	envArg   reflect.Value        // execution environment as argument.
-	calls    []callFrame          // call stack frame.
-	cases    []reflect.SelectCase // select cases.
-	done     <-chan struct{}      // done.
-	doneCase reflect.SelectCase   // done, as reflect case.
-	panic    *Panic               // panic.
+	fp            [4]Addr              // frame pointers.
+	st            [4]Addr              // stack tops.
+	pc            Addr                 // program counter.
+	ok            bool                 // ok flag.
+	regs          registers            // registers.
+	fn            *Function            // running function.
+	vars          []interface{}        // global and closure variables.
+	env           *Env                 // execution environment.
+	envArg        reflect.Value        // execution environment as argument.
+	calls         []callFrame          // call stack frame.
+	cases         []reflect.SelectCase // select cases.
+	done          <-chan struct{}      // done.
+	doneCase      reflect.SelectCase   // done, as reflect case.
+	panic         *Panic               // panic.
+	mainGoroutine bool                 // reports whether this VM is the main goroutine.
 }
 
 // NewVM returns a new virtual machine.
 func NewVM() *VM {
-	return create(&Env{})
+	return create(&Env{}, true)
 }
 
 // Env returns the execution environment of vm.
@@ -408,6 +409,8 @@ func (vm *VM) reserve() {
 // callPredefined calls a predefined function. numVariadic is the number of
 // variadic arguments, shift is the stack shift and asGoroutine reports
 // whether the function must be started as a goroutine.
+// callPredefined must be called when the program counter has been incremented
+// only by one.
 func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift StackShift, asGoroutine bool) {
 
 	if fn.value.IsNil() {
@@ -486,6 +489,14 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 		for i := 0; i < nunIn; i++ {
 			if i < lastNonVariadic {
 				if i < 2 && typ.In(i) == envType {
+					// Get the path of the file that contains the call.
+					if vm.mainGoroutine {
+						if info, ok := vm.fn.DebugInfo[vm.pc-1]; ok {
+							vm.env.mu.Lock()
+							vm.env.filePath = info.Path
+							vm.env.mu.Unlock()
+						}
+					}
 					args[i].Set(vm.envArg)
 				} else {
 					r := vm.getIntoReflectValue(1, args[i], false)
@@ -696,7 +707,9 @@ func (vm *VM) nextCall() bool {
 }
 
 // create creates a new virtual machine with the execution environment env.
-func create(env *Env) *VM {
+// mainGoroutine reports whether the created virtual machine handles the
+// execution of the main goroutine or not.
+func create(env *Env, mainGoroutine bool) *VM {
 	vm := &VM{
 		st: [4]Addr{stackSize, stackSize, stackSize, stackSize},
 		regs: registers{
@@ -705,6 +718,7 @@ func create(env *Env) *VM {
 			string:  make([]string, stackSize),
 			general: make([]reflect.Value, stackSize),
 		},
+		mainGoroutine: mainGoroutine,
 	}
 	if env != nil {
 		vm.env = env
@@ -734,7 +748,7 @@ func (vm *VM) startGoroutine() bool {
 	default:
 		return true
 	}
-	nvm := create(vm.env)
+	nvm := create(vm.env, false)
 	vm.pc++
 	off := vm.fn.Body[vm.pc]
 	copy(nvm.regs.int, vm.regs.int[vm.fp[0]+Addr(off.Op):vm.fp[0]+127])
@@ -992,7 +1006,7 @@ func (c *callable) Value(env *Env) reflect.Value {
 		fn := c.fn
 		vars := c.vars
 		c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
-			nvm := create(env)
+			nvm := create(env, false)
 			nOut := fn.Type.NumOut()
 			results := make([]reflect.Value, nOut)
 			var r = [4]int8{1, 1, 1, 1}
