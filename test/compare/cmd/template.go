@@ -56,7 +56,7 @@ type compiledTemplate struct {
 func compileTemplate(reader compiler.FileReader, limitMemory bool) (*compiledTemplate, error) {
 	opts := compiler.Options{
 		LimitMemory:    limitMemory,
-		Builtins: builtins,
+		Builtins:       builtins,
 		RelaxedBoolean: true,
 	}
 	code, err := compiler.CompileTemplate("/index.html", reader, ast.LanguageHTML, opts)
