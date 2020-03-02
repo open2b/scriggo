@@ -87,7 +87,7 @@ func ExampleDump() {
 	// │    │    Text (1:17) " some very very very very very..."
 	//
 	// Tree: "":1:1
-	// │    Include (1:4) 1:4
+	// │    ShowFile (1:4) 1:4
 	//
 	// Tree: "":1:1
 	// │    Show (1:1) {{ 5 + 6 }}

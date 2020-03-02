@@ -1354,7 +1354,7 @@ var treeTests = []struct {
 		),
 	}, ast.LanguageHTML)},
 	{"{% extends \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtends(p(1, 4, 3, 16), "/a.b", ast.ContextHTML)}, ast.LanguageHTML)},
-	{"{% show \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewShowFile(p(1, 4, 3, 16), "/a.b", ast.ContextHTML)}, ast.LanguageHTML)},
+	{"{% show \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewShowFile(p(1, 4, 3, 13), "/a.b", ast.ContextHTML)}, ast.LanguageHTML)},
 	{"{% extends \"a.e\" %}{% macro b %}c{% end macro %}", ast.NewTree("", []ast.Node{
 		ast.NewExtends(p(1, 4, 3, 15), "a.e", ast.ContextHTML),
 		ast.NewMacro(p(1, 23, 22, 44), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
