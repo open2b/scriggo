@@ -88,7 +88,6 @@ type LoadOptions struct {
 	DisallowGoStmt  bool
 	LimitMemory     bool                  // limit the execution memory size.
 	TreeTransformer func(*ast.Tree) error // if not nil transforms tree after parsing.
-	RelaxedBoolean  bool
 }
 
 // Declarations.
@@ -119,12 +118,12 @@ type CompilerError interface {
 // variables and functions that are accessible from the code in the template.
 func Load(name string, files FileReader, builtins Declarations, lang Language, options *LoadOptions) (*Template, error) {
 	co := compiler.Options{
-		Builtins: compiler.Declarations(builtins),
+		Builtins:       compiler.Declarations(builtins),
+		RelaxedBoolean: true,
 	}
 	if options != nil {
 		co.LimitMemory = options.LimitMemory
 		co.TreeTransformer = options.TreeTransformer
-		co.RelaxedBoolean = options.RelaxedBoolean
 		co.DisallowGoStmt = options.DisallowGoStmt
 	}
 	code, err := compiler.CompileTemplate(name, files, ast.Language(lang), co)
