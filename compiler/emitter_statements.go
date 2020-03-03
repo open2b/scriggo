@@ -236,7 +236,6 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.exitScope()
 
 		case *ast.Include:
-
 			// The including scope must be hidden from the included file,
 			// otherwise the included file would see the variables in the
 			// including scope instead of global variables (note that the

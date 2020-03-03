@@ -144,15 +144,18 @@ nodesLoop:
 			// Check the included tree in a separate scope, that cannot access
 			// to variables declared in the including scope or even add
 			// declarations to it.
+
 			path := tc.path
 			tc.path = node.Tree.Path
 			tc.paths = append(tc.paths, checkerPath{path, node})
 			scopes := tc.scopes
 			tc.scopes = nil
+
 			node.Tree.Nodes = tc.checkNodesInNewScope(node.Tree.Nodes)
-			tc.scopes = scopes
+
 			tc.path = path
 			tc.paths = tc.paths[:len(tc.paths)-1]
+			tc.scopes = scopes
 
 		case *ast.Block:
 			node.Nodes = tc.checkNodesInNewScope(node.Nodes)
