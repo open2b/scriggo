@@ -1,0 +1,11 @@
+{# errorcheck #}
+
+{% switch %}
+abc // ERROR `unexpected text, expecting case or default or {% end %}`
+{% end %}
+
+{% switch (interface{}(nil)).(type) %}
+abc // ERROR `unexpected text, expecting case or default or {% end %}`
+{% end %}
+
+{% select %} abc {% end %} // ERROR `unexpected text, expecting case or default or {% end %}`

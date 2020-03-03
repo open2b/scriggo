@@ -1,0 +1,27 @@
+{# compile #}
+
+{% switch %}
+{% end %}
+
+{% switch %}
+{% case true %}
+  abc
+{% end %}
+
+
+{% switch (interface{}(nil)).(type) %}
+{% end %}
+
+{% switch (interface{}(nil)).(type) %}
+{% case int %}
+abc
+{% end %}
+
+
+{% select %}
+{% end %}
+
+{% select %}
+{% default %}
+abc
+{% end %}
