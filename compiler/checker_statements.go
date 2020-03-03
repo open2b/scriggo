@@ -713,6 +713,8 @@ nodesLoop:
 				if err != nil {
 					panic(tc.errorf(node, "cannot print %s (%s)", node.Expr, err))
 				}
+			case ast.ContextJSON:
+				panic("TODO: not implemented") // REVIEW: to implement.
 			}
 			ti.setValue(nil)
 			tc.terminating = false

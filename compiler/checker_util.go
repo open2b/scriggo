@@ -141,6 +141,7 @@ type (
 	HTMLStringer       interface{ HTML() string }
 	CSSStringer        interface{ CSS() string }
 	JavaScriptStringer interface{ JavaScript() string }
+	JSONStringer       interface{ JSON() string }
 )
 
 // These interfaces are like HTMLStringer, CSSStringer and JavaScriptStringer,

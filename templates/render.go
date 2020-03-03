@@ -59,6 +59,8 @@ func render(env runtime.Env, out io.Writer, value interface{}, ctx ast.Context) 
 		err = renderInJavaScript(env, out, value)
 	case ast.ContextJavaScriptString:
 		err = renderInJavaScriptString(env, out, value)
+	case ast.ContextJSON:
+		err = renderInJSON(env, out, value)
 	default:
 		panic("scriggo: unknown context")
 	}
@@ -360,6 +362,197 @@ func renderInJavaScript(env runtime.Env, out io.Writer, value interface{}) error
 	case reflect.String:
 		_, err := w.WriteString("\"")
 		if err == nil {
+			err = javaScriptStringEscape(w, v.String())
+		}
+		if err == nil {
+			_, err = w.WriteString("\"")
+		}
+		return err
+	case reflect.Slice:
+		if v.Type() == byteSliceType {
+			w := newStringWriter(out)
+			return escapeBytes(w, v.Interface().([]byte), true)
+		}
+		if v.IsNil() {
+			s = "null"
+			break
+		}
+		fallthrough
+	case reflect.Array:
+		if v.Len() == 0 {
+			s = "[]"
+			break
+		}
+		_, err := w.WriteString("[")
+		for i := 0; i < v.Len(); i++ {
+			if err != nil {
+				return err
+			}
+			if i > 0 {
+				_, err = w.WriteString(",")
+			}
+			if err == nil {
+				err = renderInJavaScript(env, out, v.Index(i).Interface())
+			}
+		}
+		if err == nil {
+			_, err = w.WriteString("]")
+		}
+		return err
+	case reflect.Ptr, reflect.UnsafePointer:
+		if v.IsNil() {
+			s = "null"
+			break
+		}
+		return renderInJavaScript(env, out, v.Elem().Interface())
+	case reflect.Struct:
+		t := v.Type()
+		n := t.NumField()
+		first := true
+		_, err := w.WriteString(`{`)
+		for i := 0; i < n; i++ {
+			if err != nil {
+				return err
+			}
+			if field := t.Field(i); field.PkgPath == "" {
+				name := field.Name
+				value := v.Field(i)
+				if tag := field.Tag.Get("json"); tag != "" {
+					if tag == "-" {
+						continue
+					}
+					tagName, tagOptions := parseTag(tag)
+					if tagOptions.Contains("omitempty") && isEmptyJSONValue(value) {
+						continue
+					}
+					if tagName != "" {
+						name = tagName
+					}
+				}
+				if first {
+					_, err = w.WriteString(`"`)
+				} else {
+					_, err = w.WriteString(`,"`)
+				}
+				if err == nil {
+					err = javaScriptStringEscape(w, name)
+				}
+				if err == nil {
+					_, err = w.WriteString(`":`)
+				}
+				if err == nil {
+					err = renderInJavaScript(env, w, value.Interface())
+				}
+				first = false
+			}
+		}
+		if err == nil {
+			_, err = w.WriteString(`}`)
+		}
+		return err
+	case reflect.Map:
+		if v.IsNil() {
+			s = "null"
+			break
+		}
+		type keyPair struct {
+			key string
+			val interface{}
+		}
+		keyPairs := make([]keyPair, v.Len())
+		iter := v.MapRange()
+		for i := 0; iter.Next(); i++ {
+			key := iter.Key()
+			switch k := key.Interface().(type) {
+			case fmt.Stringer:
+				keyPairs[i].key = k.String()
+			case EnvStringer:
+				keyPairs[i].key = k.String(env)
+			default:
+				keyPairs[i].key = toString(key)
+			}
+			keyPairs[i].val = iter.Value().Interface()
+		}
+		_sort.Slice(keyPairs, func(i, j int) bool {
+			return keyPairs[i].key < keyPairs[j].key
+		})
+		_, err := w.WriteString("{")
+		for i, keyPair := range keyPairs {
+			if err != nil {
+				return err
+			}
+			if i == 0 {
+				_, err = w.WriteString(`"`)
+			} else {
+				_, err = w.WriteString(`,"`)
+			}
+			if err == nil {
+				err = javaScriptStringEscape(w, keyPair.key)
+			}
+			if err == nil {
+				_, err = w.WriteString(`":`)
+			}
+			if err == nil {
+				err = renderInJavaScript(env, out, keyPair.val)
+			}
+		}
+		if err == nil {
+			_, err = w.WriteString("}")
+		}
+		return err
+	default:
+		s = fmt.Sprintf("undefined/* scriggo: cannot represent a %s value */", v.Type())
+	}
+
+	_, err := w.WriteString(s)
+	return err
+}
+
+// renderInJSON renders value in JSON context.
+// REVIEW: this function is a copy-paste from 'renderInJavascript', with some
+// minor changes.
+func renderInJSON(env runtime.Env, out io.Writer, value interface{}) error {
+
+	w := newStringWriter(out)
+
+	switch v := value.(type) {
+	case JSON:
+		_, err := w.WriteString(string(v))
+		return err
+	case JSONStringer:
+		_, err := w.WriteString(v.JSON())
+		return err
+	case time.Time:
+		_, err := w.WriteString(renderTimeInJavaScript(v))
+		return err
+	case error:
+		value = v.Error()
+	}
+
+	v := reflect.ValueOf(value)
+
+	var s string
+
+	switch v.Kind() {
+	case reflect.Invalid:
+		s = "null"
+	case reflect.Bool:
+		s = "false"
+		if v.Bool() {
+			s = "true"
+		}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		s = strconv.FormatInt(v.Int(), 10)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		s = strconv.FormatUint(v.Uint(), 10)
+	case reflect.Float32:
+		s = strconv.FormatFloat(v.Float(), 'f', -1, 32)
+	case reflect.Float64:
+		s = strconv.FormatFloat(v.Float(), 'f', -1, 64)
+	case reflect.String:
+		_, err := w.WriteString("\"")
+		if err == nil {
+			// REVIEW: it's ok to escape strings as javascript?
 			err = javaScriptStringEscape(w, v.String())
 		}
 		if err == nil {

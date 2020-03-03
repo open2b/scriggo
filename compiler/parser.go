@@ -221,7 +221,7 @@ func ParseSource(src []byte, isPackageLessProgram, shebang bool) (tree *ast.Tree
 // non-boolean conditions in the if statement are allowed.
 func ParseTemplateSource(src []byte, lang ast.Language, relaxedBoolean bool) (tree *ast.Tree, err error) {
 
-	if lang < ast.LanguageText || lang > ast.LanguageJavaScript {
+	if lang < ast.LanguageText || lang > ast.LanguageJSON {
 		return nil, errors.New("scriggo: invalid language")
 	}
 
@@ -844,7 +844,7 @@ LABEL:
 	case tokenInclude:
 		pos := tok.pos
 		switch tok.ctx {
-		case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript:
+		case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript, ast.ContextJSON:
 		default:
 			panic(syntaxError(tok.pos, "include statement inside %s", tok.ctx))
 		}

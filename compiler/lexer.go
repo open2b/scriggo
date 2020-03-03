@@ -245,6 +245,12 @@ func (l *lexer) scan() {
 						l.ctx = ast.ContextTag
 						switch l.tag.name {
 						case "script":
+							// REVIEW: handle:
+							//
+							// 		<script type="application/json">
+							// and
+							// 		<script type="application/ld+json">
+							//
 							l.tag.ctx = ast.ContextJavaScript
 						case "style":
 							l.tag.ctx = ast.ContextCSS
