@@ -237,28 +237,18 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 
 		case *ast.Include:
 
-			// Backup and change the path.
+			// The including scope must be hidden from the included file,
+			// otherwise the included file would see the variables in the
+			// including scope instead of global variables (note that the
+			// emitter gives precedence to local variables respect to global
+			// variables).
 			path := em.fb.getPath()
 			em.fb.changePath(node.Tree.Path)
-
-			// If the included file refers to a builtin symbol with the same
-			// name of a local variable in the scope of the including file then
-			// the emitter emits the code for such variable instead of such
-			// global variable. This happens because the emitter gives the
-			// precedence to local variables respect to builtin variables. For
-			// this reason the emitter must hide the scopes to the included file
-			// (as the type checker does).
 			scopes := em.fb.scopes
 			em.fb.scopes = nil
-
-			// The emitter must use another scope when emitting the included
-			// file, otherwise such file can overwrite the variables of the
-			// including file.
 			em.fb.enterScope()
 			em.emitNodes(node.Tree.Nodes)
 			em.fb.exitScope()
-
-			// Restore path and scopes.
 			em.fb.changePath(path)
 			em.fb.scopes = scopes
 

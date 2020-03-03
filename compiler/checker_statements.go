@@ -141,20 +141,15 @@ nodesLoop:
 
 		case *ast.Include:
 
-			// Backup and change the path.
+			// Check the included tree in a separate scope, that cannot access
+			// to variables declared in the including scope or even add
+			// declarations to it.
 			path := tc.path
 			tc.path = node.Tree.Path
 			tc.paths = append(tc.paths, checkerPath{path, node})
-
-			// Hide the scopes to the included file.
 			scopes := tc.scopes
 			tc.scopes = nil
-
-			// Check the included file in a new scope, so the including file
-			// won't see anything of it.
 			node.Tree.Nodes = tc.checkNodesInNewScope(node.Tree.Nodes)
-
-			// Restore values.
 			tc.scopes = scopes
 			tc.path = path
 			tc.paths = tc.paths[:len(tc.paths)-1]
