@@ -236,10 +236,20 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.exitScope()
 
 		case *ast.Include:
+			// The including scope must be hidden from the included file,
+			// otherwise the included file would see the variables in the
+			// including scope instead of global variables (note that the
+			// emitter gives precedence to local variables respect to global
+			// variables).
 			path := em.fb.getPath()
 			em.fb.changePath(node.Tree.Path)
+			scopes := em.fb.scopes
+			em.fb.scopes = nil
+			em.fb.enterScope()
 			em.emitNodes(node.Tree.Nodes)
+			em.fb.exitScope()
 			em.fb.changePath(path)
+			em.fb.scopes = scopes
 
 		case *ast.Label:
 			if _, found := em.labels[em.fb.fn][node.Ident.Name]; !found {

@@ -1010,7 +1010,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.html":    `{% var a = 10 %}a: {% include "/included.html" %}`,
 			"included.html": `{{ a }}`,
 		},
-		expectedOut: "a: 10",
+		expectedLoadErr: "undefined: a",
 	},
 
 	"Include - File including uses included variable": {
@@ -1018,7 +1018,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.html":    `{% include "/included.html" %}included a: {{ a }}`,
 			"included.html": `{% var a = 20 %}`,
 		},
-		expectedOut: "included a: 20",
+		expectedLoadErr: "undefined: a",
 	},
 
 	"Include - Including a file which includes another file": {
@@ -1372,7 +1372,40 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedLoadErr: "undefined: name",
 	},
+
+	"Included file tries to overwrite a variable of the including file": {
+		// The emitter must use another scope when emitting the included file,
+		// otherwise such file can overwrite the variables of the including
+		// file.
+		sources: map[string]string{
+			"index.html":    `{% v := "including" %}{% include "included.html" %}{{ v }}`,
+			"included.html": `{% v := "included" %}`,
+		},
+		expectedOut: "including",
+	},
+
+	"The included file must see the builtin variable, not the local variable of the including file": {
+		// If the included file refers to a builtin symbol with the same name of
+		// a local variable in the scope of the including file then the emitter
+		// emits the code for such variable instead of such global variable.
+		// This happens because the emitter gives the precedence to local
+		// variables respect to builtin variables. For this reason the emitter
+		// must hide the scopes to the included file (as the type checker does).
+		sources: map[string]string{
+			"index.html":    `{% v := "including" %}{% include "included.html" %}, {{ v }}`,
+			"included.html": "{{ v }}",
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"v": &builtinVariable,
+			},
+		},
+		expectedOut: "builtin variable, including",
+	},
 }
+
+var builtinVariable = "builtin variable"
 
 var functionReturningErrorPackage = &scriggo.MapPackage{
 	PkgName: "main",
