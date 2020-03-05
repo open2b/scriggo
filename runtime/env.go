@@ -51,14 +51,14 @@ type Env interface {
 	// limiter, it returns nil.
 	MemoryLimiter() MemoryLimiter
 
-	// ReleaseMemory releases a previously reserved memory. It panics if bytes
-	// is negative. If there is no memory limiter, it does nothing.
-	ReleaseMemory(bytes int)
-
 	// ReserveMemory reserves memory. It panics if bytes is negative. If there
 	// is no memory limiter, it does nothing. If the memory can not be
 	// reserved, it panics with an OutOfMemory error.
 	ReserveMemory(bytes int)
+
+	// ReleaseMemory releases a previously reserved memory. It panics if bytes
+	// is negative. If there is no memory limiter, it does nothing.
+	ReleaseMemory(bytes int)
 }
 
 // The env type implements the Env interface.
@@ -108,15 +108,15 @@ func (env *env) Fatal(v interface{}) {
 	panic(&FatalError{env: env, msg: v})
 }
 
-func (env *env) MemoryLimiter() MemoryLimiter {
-	return env.memory
-}
-
 func (env *env) FilePath() string {
 	env.mu.Lock()
 	filePath := env.filePath
 	env.mu.Unlock()
 	return filePath
+}
+
+func (env *env) MemoryLimiter() MemoryLimiter {
+	return env.memory
 }
 
 func (env *env) Print(args ...interface{}) {
