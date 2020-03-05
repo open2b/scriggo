@@ -47,15 +47,17 @@ type Env interface {
 	// Println calls the println built-in function with args as argument.
 	Println(args ...interface{})
 
-	// MemoryLimiter returns the memory limiter.
+	// MemoryLimiter returns the memory limiter. If there is no memory
+	// limiter, it returns nil.
 	MemoryLimiter() MemoryLimiter
 
 	// ReleaseMemory releases a previously reserved memory. It panics if bytes
-	// is negative.
+	// is negative. If there is no memory limiter, it does nothing.
 	ReleaseMemory(bytes int)
 
-	// ReserveMemory reserves memory. If the memory can not be reserved, it
-	// panics with an OutOfMemory error. It panics if bytes is negative.
+	// ReserveMemory reserves memory. It panics if bytes is negative. If there
+	// is no memory limiter, it does nothing. If the memory can not be
+	// reserved, it panics with an OutOfMemory error.
 	ReserveMemory(bytes int)
 }
 
