@@ -34,7 +34,7 @@ func NewSingleMemoryLimiter(max int) *SingleMemoryLimiter {
 
 // Reserve reserves bytes of memory. If the memory can not be reserved, it
 // returns an error.
-func (m *SingleMemoryLimiter) Reserve(env *runtime.Env, bytes int) error {
+func (m *SingleMemoryLimiter) Reserve(env runtime.Env, bytes int) error {
 	m.mu.Lock()
 	free := m.free
 	if free >= 0 {
@@ -49,7 +49,7 @@ func (m *SingleMemoryLimiter) Reserve(env *runtime.Env, bytes int) error {
 }
 
 // Release releases a previously reserved memory.
-func (m *SingleMemoryLimiter) Release(env *runtime.Env, bytes int) {
+func (m *SingleMemoryLimiter) Release(env runtime.Env, bytes int) {
 	m.mu.Lock()
 	m.free += bytes
 	m.mu.Unlock()

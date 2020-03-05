@@ -73,7 +73,7 @@ func (t Time) String() string {
 	return time.Time(t).String()
 }
 
-func (t Time) UTC(env *runtime.Env) Time {
+func (t Time) UTC(env runtime.Env) Time {
 	env.ReserveMemory(24)
 	return Time(time.Time(t).UTC())
 }
@@ -160,7 +160,7 @@ var builtins = Declarations{
 }
 
 // abbreviate is the builtin function "abbreviate".
-func abbreviate(env *runtime.Env, s string, n int) string {
+func abbreviate(env runtime.Env, s string, n int) string {
 	s = strings.TrimRight(s, spaces)
 	if len(s) <= n {
 		return s
@@ -204,7 +204,7 @@ func abs(x int) int {
 }
 
 // base64 is the builtin function "base64".
-func base64(env *runtime.Env, s string) string {
+func base64(env runtime.Env, s string) string {
 	if s == "" {
 		return s
 	}
@@ -223,7 +223,7 @@ func errorf(format string, a ...interface{}) {
 }
 
 // escapeHTML is the builtin function "escapeHTML".
-func escapeHTML(env *runtime.Env, s string) HTML {
+func escapeHTML(env runtime.Env, s string) HTML {
 	more := 0
 	for i := 0; i < len(s); i++ {
 		switch c := s[i]; c {
@@ -277,7 +277,7 @@ func escapeHTML(env *runtime.Env, s string) HTML {
 }
 
 // escapeQuery is the builtin function "escapeQuery".
-func escapeQuery(env *runtime.Env, s string) string {
+func escapeQuery(env runtime.Env, s string) string {
 	last := 0
 	numHex := 0
 	for i := 0; i < len(s); i++ {
@@ -322,7 +322,7 @@ func escapeQuery(env *runtime.Env, s string) string {
 }
 
 // hash is the builtin function "hash".
-func hash(env *runtime.Env, hasher hasher, s string) string {
+func hash(env runtime.Env, hasher hasher, s string) string {
 	var h _hash.Hash
 	switch hasher {
 	case _MD5:
@@ -342,7 +342,7 @@ func hash(env *runtime.Env, hasher hasher, s string) string {
 }
 
 // hex is the builtin function "hex".
-func hex(env *runtime.Env, s string) string {
+func hex(env runtime.Env, s string) string {
 	if s == "" {
 		return s
 	}
@@ -355,7 +355,7 @@ func hex(env *runtime.Env, s string) string {
 }
 
 // hmac is the builtin function "hmac".
-func hmac(env *runtime.Env, hasher hasher, message, key string) string {
+func hmac(env runtime.Env, hasher hasher, message, key string) string {
 	var h func() _hash.Hash
 	switch hasher {
 	case _MD5:
@@ -395,14 +395,14 @@ func indexAny(s, chars string) int {
 }
 
 // itoa is the builtin function "itoa".
-func itoa(env *runtime.Env, i int) string {
+func itoa(env runtime.Env, i int) string {
 	s := strconv.Itoa(i)
 	env.ReserveMemory(len(s))
 	return s
 }
 
 // join is the builtin function "join".
-func join(env *runtime.Env, a []string, sep string) string {
+func join(env runtime.Env, a []string, sep string) string {
 	if n := len(a); n > 1 {
 		bytes := (n - 1) * len(sep)
 		if bytes/(n-1) != len(sep) {
@@ -442,7 +442,7 @@ func min(x, y int) int {
 }
 
 // now is the builtin function "now".
-func now(env *runtime.Env) Time {
+func now(env runtime.Env) Time {
 	if env.Context() == nil {
 		return Time(time.Now())
 	}
@@ -479,7 +479,7 @@ func randFloat() float64 {
 }
 
 // repeat is the builtin function "repeat".
-func repeat(env *runtime.Env, s string, count int) string {
+func repeat(env runtime.Env, s string, count int) string {
 	if count < 0 {
 		panic("call of repeat with negative count")
 	}
@@ -495,7 +495,7 @@ func repeat(env *runtime.Env, s string, count int) string {
 }
 
 // replace is the builtin function "replace".
-func replace(env *runtime.Env, s, old, new string, n int) string {
+func replace(env runtime.Env, s, old, new string, n int) string {
 	if old != new && n != 0 {
 		if c := strings.Count(s, old); c > 0 {
 			if n > 0 && c > n {
@@ -517,7 +517,7 @@ func replace(env *runtime.Env, s, old, new string, n int) string {
 }
 
 // replaceAll is the builtin function "replaceAll".
-func replaceAll(env *runtime.Env, s, old, new string) string {
+func replaceAll(env runtime.Env, s, old, new string) string {
 	return replace(env, s, old, new, -1)
 }
 
@@ -551,7 +551,7 @@ func round(x float64) float64 {
 }
 
 // shuffle is the builtin function "shuffle".
-func shuffle(env *runtime.Env, slice interface{}) {
+func shuffle(env runtime.Env, slice interface{}) {
 	if slice == nil {
 		return
 	}
@@ -598,12 +598,12 @@ func sort(slice interface{}) {
 }
 
 // split is the builtin function "split".
-func split(env *runtime.Env, s, sep string) []string {
+func split(env runtime.Env, s, sep string) []string {
 	return splitN(env, s, sep, -1)
 }
 
 // splitN is the builtin function "splitN".
-func splitN(env *runtime.Env, s, sep string, n int) []string {
+func splitN(env runtime.Env, s, sep string, n int) []string {
 	if n != 0 {
 		if sep == "" {
 			// Invalid UTF-8 sequences are replaced with RuneError.
@@ -644,22 +644,22 @@ func sprintf(format string, a ...interface{}) string {
 }
 
 // title is the builtin function "title".
-func title(env *runtime.Env, s string) string {
+func title(env runtime.Env, s string) string {
 	return withMemoryLimit(env, strings.Title, s)
 }
 
 // toLower is the builtin function "toLower".
-func toLower(env *runtime.Env, s string) string {
+func toLower(env runtime.Env, s string) string {
 	return withMemoryLimit(env, strings.ToLower, s)
 }
 
 // toTitle is the builtin function "toTitle".
-func toTitle(env *runtime.Env, s string) string {
+func toTitle(env runtime.Env, s string) string {
 	return withMemoryLimit(env, strings.ToTitle, s)
 }
 
 // toUpper is the builtin function "toUpper".
-func toUpper(env *runtime.Env, s string) string {
+func toUpper(env runtime.Env, s string) string {
 	return withMemoryLimit(env, strings.ToUpper, s)
 }
 
@@ -667,7 +667,7 @@ func toUpper(env *runtime.Env, s string) string {
 // allocating memory only if necessary. Should be used only if the function f
 // guarantees that if the output string is a new allocated string it is not
 // equal to the input string.
-func withMemoryLimit(env *runtime.Env, f func(string) string, s string) string {
+func withMemoryLimit(env runtime.Env, f func(string) string, s string) string {
 	env.ReserveMemory(len(s))
 	t := f(s)
 	if t == s {

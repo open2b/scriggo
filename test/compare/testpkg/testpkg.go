@@ -106,7 +106,7 @@ func F11(a string, b float64, c []string) (string, error) {
 	return "", nil
 }
 
-func Fatal(env *runtime.Env, v interface{}) {
+func Fatal(env runtime.Env, v interface{}) {
 	env.Fatal(v)
 }
 

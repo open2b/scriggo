@@ -39,7 +39,7 @@ var untypedBoolTypeInfo = &typeInfo{Type: boolType, Properties: propertyUntyped}
 
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
-var envType = reflect.TypeOf(&runtime.Env{})
+var envType = reflect.TypeOf((*runtime.Env)(nil)).Elem()
 
 var universe = typeCheckerScope{
 	"append":     {t: &typeInfo{Properties: propertyPredeclared}},
