@@ -25,7 +25,7 @@ var errNilPointer = runtimeError("runtime error: invalid memory address or nil p
 // FatalError represents a fatal error. A fatal error cannot be recovered by
 // the running program.
 type FatalError struct {
-	env  Env
+	env  *env
 	msg  interface{}
 	pos  Position
 	path string
@@ -84,18 +84,18 @@ func (err ExitError) Error() string {
 
 // OutOfTimeError represents a runtime out of time error.
 type OutOfTimeError struct {
-	env Env
+	env *env
 }
 
 func (err OutOfTimeError) Error() string {
-	return "runtime error: out of time: " + err.env.Context().Err().Error()
+	return "runtime error: out of time: " + err.env.ctx.Err().Error()
 }
 
 func (err OutOfTimeError) RuntimeError() {}
 
 // OutOfMemoryError represents a runtime out of memory error.
 type OutOfMemoryError struct {
-	env Env
+	env *env
 	err error
 }
 
