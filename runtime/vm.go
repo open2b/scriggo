@@ -20,7 +20,7 @@ const maxUint32 = 1<<31 - 1
 
 const stackSize = 512
 
-var envType = reflect.TypeOf(&Env{})
+var envType = reflect.TypeOf((*Env)(nil)).Elem()
 var emptyInterfaceType = reflect.TypeOf(&[]interface{}{nil}[0]).Elem()
 var emptyInterfaceNil = reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
 
@@ -95,10 +95,10 @@ type MemoryLimiter interface {
 
 	// Reserve reserves bytes of memory. If the memory can not be reserved, it
 	// returns an error.
-	Reserve(env *Env, bytes int) error
+	Reserve(env Env, bytes int) error
 
 	// Release releases a previously reserved memory.
-	Release(env *Env, bytes int)
+	Release(env Env, bytes int)
 }
 
 // VM represents a Scriggo virtual machine.
@@ -110,7 +110,7 @@ type VM struct {
 	regs     registers            // registers.
 	fn       *Function            // running function.
 	vars     []interface{}        // global and closure variables.
-	env      *Env                 // execution environment.
+	env      *env                 // execution environment.
 	envArg   reflect.Value        // execution environment as argument.
 	calls    []callFrame          // call stack frame.
 	cases    []reflect.SelectCase // select cases.
@@ -122,13 +122,13 @@ type VM struct {
 
 // NewVM returns a new virtual machine.
 func NewVM() *VM {
-	vm := create(&Env{})
+	vm := create(&env{})
 	vm.main = true
 	return vm
 }
 
 // Env returns the execution environment of vm.
-func (vm *VM) Env() *Env {
+func (vm *VM) Env() Env {
 	return vm.env
 }
 
@@ -143,7 +143,7 @@ func (vm *VM) Reset() {
 	vm.ok = false
 	vm.fn = nil
 	vm.vars = nil
-	vm.env = &Env{}
+	vm.env = &env{}
 	vm.envArg = reflect.ValueOf(vm.env)
 	if vm.calls != nil {
 		vm.calls = vm.calls[:0]
@@ -709,7 +709,7 @@ func (vm *VM) nextCall() bool {
 }
 
 // create creates a new virtual machine with the execution environment env.
-func create(env *Env) *VM {
+func create(env *env) *VM {
 	vm := &VM{
 		st: [4]Addr{stackSize, stackSize, stackSize, stackSize},
 		regs: registers{
@@ -991,7 +991,7 @@ func (c *callable) Predefined() *PredefinedFunction {
 
 // Value returns a reflect Value of a callable, so it can be called from a
 // predefined code and passed to a predefined code.
-func (c *callable) Value(env *Env) reflect.Value {
+func (c *callable) Value(env *env) reflect.Value {
 	if c.value.IsValid() {
 		return c.value
 	}

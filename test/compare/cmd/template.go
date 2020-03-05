@@ -82,7 +82,7 @@ func (t *compiledTemplate) render(ctx context.Context, memoryLimiter runtime.Mem
 	return err
 }
 
-func render(_ *runtime.Env, out io.Writer, value interface{}, ctx ast.Context) {
+func render(_ runtime.Env, out io.Writer, value interface{}, ctx ast.Context) {
 	var err error
 	switch ctx {
 	case ast.ContextText:

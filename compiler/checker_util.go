@@ -255,18 +255,18 @@ func deferGoBuiltin(name string) *typeInfo {
 			reflect.ValueOf(m).SetMapIndex(reflect.ValueOf(key), reflect.Value{})
 		}
 	case "panic":
-		fun = func(env *runtime.Env, v interface{}) {
+		fun = func(env runtime.Env, v interface{}) {
 			if env.Exited() {
 				return
 			}
 			panic(v)
 		}
 	case "print":
-		fun = func(env *runtime.Env, args ...interface{}) {
+		fun = func(env runtime.Env, args ...interface{}) {
 			env.Print(args...)
 		}
 	case "println":
-		fun = func(env *runtime.Env, args ...interface{}) {
+		fun = func(env runtime.Env, args ...interface{}) {
 			env.Println(args...)
 		}
 	case "recover":

@@ -16,7 +16,51 @@ import (
 type PrintFunc func(interface{})
 
 // Env represents an execution environment.
-type Env struct {
+type Env interface {
+
+	// Context returns the context of the environment.
+	Context() context.Context
+
+	// Exit exits the environment with the given status code. Deferred functions
+	// are not run.
+	Exit(code int)
+
+	// Exited reports whether the environment is exited.
+	Exited() bool
+
+	// ExitFunc calls f in its own goroutine after the execution of the
+	// environment is terminated.
+	ExitFunc(f func())
+
+	// Fatal calls panic() with a FatalError error.
+	Fatal(v interface{})
+
+	// FilePath can be called from a builtin function to get the absolute path
+	// of the file where such builtin was called. If the builtin function was
+	// not called by the main virtual machine goroutine, the returned value is
+	// not significant.
+	FilePath() string
+
+	// Print calls the print built-in function with args as argument.
+	Print(args ...interface{})
+
+	// Println calls the println built-in function with args as argument.
+	Println(args ...interface{})
+
+	// MemoryLimiter returns the memory limiter.
+	MemoryLimiter() MemoryLimiter
+
+	// ReleaseMemory releases a previously reserved memory. It panics if bytes
+	// is negative.
+	ReleaseMemory(bytes int)
+
+	// ReserveMemory reserves memory. If the memory can not be reserved, it
+	// panics with an OutOfMemory error. It panics if bytes is negative.
+	ReserveMemory(bytes int)
+}
+
+// The env type implements the Env interface.
+type env struct {
 	ctx     context.Context // context.
 	globals []interface{}   // global variables.
 	print   PrintFunc       // custom print builtin.
@@ -31,19 +75,15 @@ type Env struct {
 	filePath string   // path of the file where the main goroutine is in.
 }
 
-// Context returns the context of the environment.
-func (env *Env) Context() context.Context {
+func (env *env) Context() context.Context {
 	return env.ctx
 }
 
-// Exit exits the environment with the given status code. Deferred functions
-// are not run.
-func (env *Env) Exit(code int) {
+func (env *env) Exit(code int) {
 	panic(&ExitError{env, code})
 }
 
-// Exited reports whether the environment is exited.
-func (env *Env) Exited() bool {
+func (env *env) Exited() bool {
 	var exited bool
 	env.mu.Lock()
 	exited = env.exited
@@ -51,9 +91,7 @@ func (env *Env) Exited() bool {
 	return exited
 }
 
-// ExitFunc calls f in its own goroutine after the execution of the
-// environment is terminated.
-func (env *Env) ExitFunc(f func()) {
+func (env *env) ExitFunc(f func()) {
 	env.mu.Lock()
 	if env.exited {
 		go f()
@@ -64,36 +102,28 @@ func (env *Env) ExitFunc(f func()) {
 	return
 }
 
-// Fatal calls panic() with a FatalError error.
-func (env *Env) Fatal(v interface{}) {
+func (env *env) Fatal(v interface{}) {
 	panic(&FatalError{env: env, msg: v})
 }
 
-// MemoryLimiter returns the memory limiter.
-func (env *Env) MemoryLimiter() MemoryLimiter {
+func (env *env) MemoryLimiter() MemoryLimiter {
 	return env.memory
 }
 
-// FilePath can be called from a builtin function to get the absolute path of
-// the file where such builtin was called. If the builtin function was not
-// called by the main virtual machine goroutine, the returned value is not
-// significant.
-func (env *Env) FilePath() string {
+func (env *env) FilePath() string {
 	env.mu.Lock()
 	filePath := env.filePath
 	env.mu.Unlock()
 	return filePath
 }
 
-// Print calls the print built-in function with args as argument.
-func (env *Env) Print(args ...interface{}) {
+func (env *env) Print(args ...interface{}) {
 	for _, arg := range args {
 		env.doPrint(arg)
 	}
 }
 
-// Println calls the println built-in function with args as argument.
-func (env *Env) Println(args ...interface{}) {
+func (env *env) Println(args ...interface{}) {
 	for i, arg := range args {
 		if i > 0 {
 			env.doPrint(" ")
@@ -103,9 +133,7 @@ func (env *Env) Println(args ...interface{}) {
 	env.doPrint("\n")
 }
 
-// ReleaseMemory releases a previously reserved memory. It panics if bytes is
-// negative.
-func (env *Env) ReleaseMemory(bytes int) {
+func (env *env) ReleaseMemory(bytes int) {
 	if bytes < 0 {
 		panic(errors.New("scriggo: release of negative bytes"))
 	}
@@ -114,9 +142,7 @@ func (env *Env) ReleaseMemory(bytes int) {
 	}
 }
 
-// ReserveMemory reserves memory. If the memory can not be reserved, it panics
-// with an OutOfMemory error. It panics if bytes is negative.
-func (env *Env) ReserveMemory(bytes int) {
+func (env *env) ReserveMemory(bytes int) {
 	if bytes < 0 {
 		panic(errors.New("scriggo: reserve of negative bytes"))
 	}
@@ -128,7 +154,7 @@ func (env *Env) ReserveMemory(bytes int) {
 	}
 }
 
-func (env *Env) doPrint(arg interface{}) {
+func (env *env) doPrint(arg interface{}) {
 	if env.print != nil {
 		env.print(arg)
 		return
@@ -158,7 +184,7 @@ func (env *Env) doPrint(arg interface{}) {
 	}
 }
 
-func (env *Env) exit() {
+func (env *env) exit() {
 	env.mu.Lock()
 	if !env.exited {
 		for _, f := range env.exits {

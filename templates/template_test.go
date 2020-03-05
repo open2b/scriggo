@@ -1560,7 +1560,7 @@ var envFilePathCases = []struct {
 
 func Test_envFilePath(t *testing.T) {
 	builtins := Declarations{
-		"path": func(env *runtime.Env) string { return env.FilePath() },
+		"path": func(env runtime.Env) string { return env.FilePath() },
 	}
 	for _, cas := range envFilePathCases {
 		t.Run(cas.name, func(t *testing.T) {
