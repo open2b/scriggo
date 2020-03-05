@@ -222,3 +222,15 @@ func IsLimitExceeded(err error) bool {
 	_, ok := err.(*compiler.LimitExceededError)
 	return ok
 }
+
+// Errorf formats according to a format specifier, reserves the memory for the
+// string if the memory is limited and returns the string as a value that
+// satisfies error.
+//
+// Unlike the function fmt.Errorf, Errorf does not recognize the %w verb in
+// format.
+func Errorf(env runtime.Env, format string, a ...interface{}) error {
+	err := fmt.Sprintf(format, a...)
+	env.ReserveMemory(24 + len(err))
+	return errors.New(err)
+}
