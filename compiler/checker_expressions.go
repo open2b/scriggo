@@ -1220,9 +1220,32 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 				panic(tc.errorf(expr, "too many arguments to append"))
 			}
 			t := tc.checkExpr(expr.Args[1])
-			isSpecialCase := t.Type.Kind() == reflect.String && slice.Type.Elem() == uint8Type
-			if !isSpecialCase && tc.isAssignableTo(t, expr.Args[1], slice.Type) != nil {
-				panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", expr.Args[1], t, slice.Type))
+			// Handle the special case:
+			//
+			//     append(t, s...)
+			//
+			// where 't' is a value with type 'T' (assignable to '[]byte'), and
+			// 's' is a value with kind 'string'.
+			//
+			// In this case the expression:
+			//
+			//     append(t, s...)
+			//
+			// is transformed into:
+			//
+			//     append(t, T(s)...)
+			//
+			if isSpecialCase := t.Type.Kind() == reflect.String && slice.Type.Elem() == uint8Type; isSpecialCase {
+				pos := expr.Args[1].Pos()
+				T := ast.NewPlaceholder() // T
+				tc.typeInfos[T] = &typeInfo{Properties: propertyIsType, Type: slice.Type}
+				conversion := ast.NewCall(pos, T, []ast.Expression{expr.Args[1]}, false) // T(s)
+				expr.Args[1] = conversion
+				tc.checkExpr(expr.Args[1])
+			} else {
+				if tc.isAssignableTo(t, expr.Args[1], slice.Type) != nil {
+					panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", expr.Args[1], t, slice.Type))
+				}
 			}
 		} else if len(expr.Args) > 1 {
 			elemType := slice.Type.Elem()
