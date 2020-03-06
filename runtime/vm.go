@@ -90,11 +90,11 @@ func decodeFieldIndex(i int64) []int {
 
 // A MemoryLimiter limits the maximum amount of memory that can be allocated
 // during executions. A virtual machine calls ChangeReserved before allocating
-// memory and after a memory is released.
+// memory and when memory is released.
 type MemoryLimiter interface {
 	// ChangeReserved changes the reserved memory increasing it by the given
 	// bytes, if positive, or decrementing it if negative. If the memory can
-	// not be reserved, it panics with an OutOfMemory error.
+	// not be reserved, it returns an error.
 	ChangeReserved(env Env, bytes int) error
 }
 
