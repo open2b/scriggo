@@ -32,9 +32,10 @@ func NewSingleMemoryLimiter(max int) *SingleMemoryLimiter {
 	return &SingleMemoryLimiter{sync.Mutex{}, max}
 }
 
-// Reserve reserves bytes of memory. If the memory can not be reserved, it
-// returns an error.
-func (m *SingleMemoryLimiter) Reserve(env runtime.Env, bytes int) error {
+// ChangeReserved changes the reserved memory increasing it by the given
+// bytes, if positive, or decrementing it if negative. If the memory can not
+// be reserved, it panics with an OutOfMemory error.
+func (m *SingleMemoryLimiter) ChangeReserved(env runtime.Env, bytes int) error {
 	m.mu.Lock()
 	free := m.free
 	if free >= 0 {
@@ -46,11 +47,4 @@ func (m *SingleMemoryLimiter) Reserve(env runtime.Env, bytes int) error {
 		return errors.New("cannot allocate " + strconv.Itoa(-m.free) + " bytes")
 	}
 	return nil
-}
-
-// Release releases a previously reserved memory.
-func (m *SingleMemoryLimiter) Release(env runtime.Env, bytes int) {
-	m.mu.Lock()
-	m.free += bytes
-	m.mu.Unlock()
 }

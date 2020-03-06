@@ -89,16 +89,13 @@ func decodeFieldIndex(i int64) []int {
 }
 
 // A MemoryLimiter limits the maximum amount of memory that can be allocated
-// during executions. A virtual machine calls Reserve before allocating memory
-// and calls Release when a memory is released.
+// during executions. A virtual machine calls ChangeReserved before allocating
+// memory and after a memory is released.
 type MemoryLimiter interface {
-
-	// Reserve reserves bytes of memory. If the memory can not be reserved, it
-	// returns an error.
-	Reserve(env Env, bytes int) error
-
-	// Release releases a previously reserved memory.
-	Release(env Env, bytes int)
+	// ChangeReserved changes the reserved memory increasing it by the given
+	// bytes, if positive, or decrementing it if negative. If the memory can
+	// not be reserved, it panics with an OutOfMemory error.
+	ChangeReserved(env Env, bytes int) error
 }
 
 // VM represents a Scriggo virtual machine.
@@ -400,7 +397,7 @@ func (vm *VM) reserve() {
 		}
 	}
 	if bytes != 0 {
-		err := vm.env.memory.Reserve(vm.env, bytes)
+		err := vm.env.memory.ChangeReserved(vm.env, bytes)
 		if err != nil {
 			panic(OutOfMemoryError{vm.env, err})
 		}

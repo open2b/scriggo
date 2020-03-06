@@ -140,7 +140,7 @@ func (env *env) ReleaseMemory(bytes int) {
 		panic(errors.New("scriggo: release of negative bytes"))
 	}
 	if env.memory != nil {
-		env.memory.Release(env, bytes)
+		_ = env.memory.ChangeReserved(env, -bytes)
 	}
 }
 
@@ -149,7 +149,7 @@ func (env *env) ReserveMemory(bytes int) {
 		panic(errors.New("scriggo: reserve of negative bytes"))
 	}
 	if env.memory != nil {
-		err := env.memory.Reserve(env, bytes)
+		err := env.memory.ChangeReserved(env, bytes)
 		if err != nil {
 			panic(OutOfMemoryError{env, err})
 		}

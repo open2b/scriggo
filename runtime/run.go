@@ -1377,7 +1377,7 @@ func (vm *VM) run() (Addr, bool) {
 		case -OpReserve:
 			if vm.env.memory != nil {
 				bytes := decodeUint24(a, b, c)
-				err := vm.env.memory.Reserve(vm.env, int(bytes))
+				err := vm.env.memory.ChangeReserved(vm.env, int(bytes))
 				if err != nil {
 					panic(OutOfMemoryError{vm.env, err})
 				}
@@ -1391,7 +1391,7 @@ func (vm *VM) run() (Addr, bool) {
 					bytes := decodeUint24(in.A, in.B, in.C)
 					in = vm.fn.Body[vm.pc-2]
 					if bytes > 0 && in.Op != OpTailCall {
-						vm.env.memory.Release(vm.env, int(bytes))
+						_ = vm.env.memory.ChangeReserved(vm.env, -int(bytes))
 					}
 				}
 			}
@@ -1738,7 +1738,10 @@ func (vm *VM) run() (Addr, bool) {
 				if in.Op == -OpReserve {
 					bytes := decodeUint24(in.A, in.B, in.C)
 					if bytes > 0 {
-						vm.env.memory.Reserve(vm.env, int(bytes))
+						err := vm.env.memory.ChangeReserved(vm.env, int(bytes))
+						if err != nil {
+							panic(OutOfMemoryError{vm.env, err})
+						}
 					}
 				}
 			}
