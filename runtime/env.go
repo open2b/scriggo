@@ -50,15 +50,34 @@ type Env interface {
 	// MemoryLimiter returns the memory limiter. If there is no memory
 	// limiter, it returns nil.
 	MemoryLimiter() MemoryLimiter
+}
 
-	// ReserveMemory reserves memory. It panics if bytes is negative. If there
-	// is no memory limiter, it does nothing. If the memory can not be
-	// reserved, it panics with an OutOfMemory error.
-	ReserveMemory(bytes int)
+type _env = env
 
-	// ReleaseMemory releases a previously reserved memory. It panics if bytes
-	// is negative. If there is no memory limiter, it does nothing.
-	ReleaseMemory(bytes int)
+// ReserveMemory reserves memory. It panics if bytes is negative. If there
+// is no memory limiter, it does nothing. If the memory can not be
+// reserved, it panics with an OutOfMemory error.
+func ReserveMemory(env Env, bytes int) {
+	if bytes < 0 {
+		panic(errors.New("scriggo: reserve of negative bytes"))
+	}
+	if ml := env.MemoryLimiter(); ml != nil {
+		err := ml.ChangeReserved(env, bytes)
+		if err != nil {
+			panic(OutOfMemoryError{env.(*_env), err})
+		}
+	}
+}
+
+// ReleaseMemory releases a previously reserved memory. It panics if bytes
+// is negative. If there is no memory limiter, it does nothing.
+func ReleaseMemory(env Env, bytes int) {
+	if bytes < 0 {
+		panic(errors.New("scriggo: release of negative bytes"))
+	}
+	if ml := env.MemoryLimiter(); ml != nil {
+		_ = ml.ChangeReserved(env, -bytes)
+	}
 }
 
 // The env type implements the Env interface.
@@ -133,27 +152,6 @@ func (env *env) Println(args ...interface{}) {
 		env.doPrint(arg)
 	}
 	env.doPrint("\n")
-}
-
-func (env *env) ReleaseMemory(bytes int) {
-	if bytes < 0 {
-		panic(errors.New("scriggo: release of negative bytes"))
-	}
-	if env.memory != nil {
-		_ = env.memory.ChangeReserved(env, -bytes)
-	}
-}
-
-func (env *env) ReserveMemory(bytes int) {
-	if bytes < 0 {
-		panic(errors.New("scriggo: reserve of negative bytes"))
-	}
-	if env.memory != nil {
-		err := env.memory.ChangeReserved(env, bytes)
-		if err != nil {
-			panic(OutOfMemoryError{env, err})
-		}
-	}
 }
 
 func (env *env) doPrint(arg interface{}) {

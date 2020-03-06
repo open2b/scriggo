@@ -231,6 +231,6 @@ func IsLimitExceeded(err error) bool {
 // format.
 func Errorf(env runtime.Env, format string, a ...interface{}) error {
 	err := fmt.Sprintf(format, a...)
-	env.ReserveMemory(24 + len(err))
+	runtime.ReserveMemory(env, 24+len(err))
 	return errors.New(err)
 }
