@@ -69,6 +69,18 @@ func ReserveMemory(env Env, bytes int) {
 	}
 }
 
+// ChangeReservedMemory changes the reserved memory increasing it by the given
+// bytes, if positive, or decrementing it if negative. If the memory can not
+// be reserved, it panics with an OutOfMemory error.
+func ChangeReservedMemory(env Env, bytes int) {
+	if ml := env.MemoryLimiter(); ml != nil {
+		err := ml.ChangeReserved(env, bytes)
+		if err != nil {
+			panic(OutOfMemoryError{env.(*_env), err})
+		}
+	}
+}
+
 // ReleaseMemory releases a previously reserved memory. It panics if bytes
 // is negative. If there is no memory limiter, it does nothing.
 func ReleaseMemory(env Env, bytes int) {

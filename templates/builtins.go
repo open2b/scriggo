@@ -506,11 +506,7 @@ func replace(env runtime.Env, s, old, new string, n int) string {
 			if bytes/c != len(new)-len(old) {
 				bytes = maxInt
 			}
-			if bytes > 0 {
-				runtime.ReserveMemory(env, bytes)
-			} else if bytes < 0 {
-				runtime.ReleaseMemory(env, -bytes)
-			}
+			runtime.ChangeReservedMemory(env, bytes)
 		}
 	}
 	return strings.Replace(s, old, new, n)
@@ -673,11 +669,7 @@ func withMemoryLimit(env runtime.Env, f func(string) string, s string) string {
 	if t == s {
 		runtime.ReleaseMemory(env, len(s))
 	} else {
-		if diff := len(t) - len(s); diff > 0 {
-			runtime.ReserveMemory(env, diff)
-		} else if diff < 0 {
-			runtime.ReleaseMemory(env, -diff)
-		}
+		runtime.ChangeReservedMemory(env, len(t)-len(s))
 	}
 	return t
 }
