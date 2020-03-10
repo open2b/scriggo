@@ -82,6 +82,11 @@ const (
 	OperatorRelaxedNot                         // not
 )
 
+func (op OperatorType) String() string {
+	return []string{"==", "!=", "<", "<=", ">", ">=", "!", "&", "|", "&&", "||",
+		"+", "-", "*", "/", "%", "^", "&^", "<<", ">>", "<-", "&", "*", "and", "or", "not"}[op]
+}
+
 type AssignmentType int
 
 const (
@@ -101,11 +106,6 @@ const (
 	AssignmentIncrement                            // ++
 	AssignmentDecrement                            // --
 )
-
-func (op OperatorType) String() string {
-	return []string{"==", "!=", "<", "<=", ">", ">=", "!", "&", "|", "&&", "||",
-		"+", "-", "*", "/", "%", "^", "&^", "<<", ">>", "<-", "&", "*", "and", "or", "not"}[op]
-}
 
 // A Language represents a source language.
 type Language int
