@@ -1403,6 +1403,22 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: "builtin variable, including",
 	},
+
+	"The included file defines a macro, which should not be accessible from the including file": {
+		sources: map[string]string{
+			"index.html":    `{% include "included.html" %}{% show IncludedMacro %}`,
+			"included.html": `{% macro IncludedMacro %}{% end macro %}`,
+		},
+		expectedLoadErr: "undefined: IncludedMacro",
+	},
+
+	"The including file defines a macro, which should not be accessible from the included file": {
+		sources: map[string]string{
+			"index.html":    `{% macro IncludedMacro %}{% end macro %}{% include "included.html" %}`,
+			"included.html": `{% show IncludedMacro %}`,
+		},
+		expectedLoadErr: "undefined: IncludedMacro",
+	},
 }
 
 var builtinVariable = "builtin variable"
