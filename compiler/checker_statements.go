@@ -685,6 +685,7 @@ nodesLoop:
 				switch {
 				case kind == reflect.String:
 				case reflect.Bool <= kind && kind <= reflect.Complex128:
+				case ti.Type.Kind() == reflect.Slice && ti.Type.Elem().Kind() == reflect.Uint8: // []byte, []uint8, []Byte...
 				case ti.Type == emptyInterfaceType:
 				case ti.Type.Implements(stringerType):
 				case ti.Type.Implements(htmlStringerType):

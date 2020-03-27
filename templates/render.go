@@ -172,10 +172,18 @@ func renderInHTML(out io.Writer, value interface{}) error {
 		return err
 	case fmt.Stringer:
 		return htmlEscape(w, v.String())
+	case []byte:
+		_, err := out.Write(v)
+		return err
 	case error:
 		return htmlEscape(w, v.Error())
 	default:
-		return htmlEscape(w, toString(reflect.ValueOf(value)))
+		rv := reflect.ValueOf(value)
+		if rv.Kind() == reflect.Slice && rv.Type().Elem().Kind() == reflect.Uint8 {
+			_, err := out.Write(rv.Bytes())
+			return err
+		}
+		return htmlEscape(w, toString(rv))
 	}
 }
 
