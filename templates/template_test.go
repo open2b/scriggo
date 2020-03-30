@@ -1435,25 +1435,6 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: `abc<hello>`,
 	},
 
-	"Byte slices are rendered as they are in context HTML - composite types containing defined types": {
-		sources: map[string]string{
-			"index.html": `{{ Byte }} {{ Uint8 }} {{ Slicebyte }} {{ SliceByte }} {{ Sliceuint8 }} {{ SliceUint8 }}`,
-		},
-		lang: LanguageHTML,
-		main: &scriggo.MapPackage{
-			PkgName: "main",
-			Declarations: map[string]interface{}{
-				"Byte":       &[]Byte{97, 98, 99},
-				"Uint8":      &[]Uint8{97, 98, 99},
-				"Slicebyte":  &Slicebyte{97, 98, 99},
-				"SliceByte":  &SliceByte{97, 98, 99},
-				"Sliceuint8": &Sliceuint8{97, 98, 99},
-				"SliceUint8": &SliceUint8{97, 98, 99},
-			},
-		},
-		expectedOut: `abc abc abc abc abc abc`,
-	},
-
 	"Cannot render byte slices in text context": {
 		sources: map[string]string{
 			"index.html": `{{ sb1 }}{{ sb2 }}`,
@@ -1469,13 +1450,6 @@ var templateMultiPageCases = map[string]struct {
 		expectedLoadErr: `cannot print sb1 (type []uint8 cannot be printed as text)`,
 	},
 }
-
-type Byte byte
-type Uint8 uint8
-type Slicebyte []byte
-type SliceByte []Byte
-type Sliceuint8 []uint8
-type SliceUint8 []Uint8
 
 var builtinVariable = "builtin variable"
 
