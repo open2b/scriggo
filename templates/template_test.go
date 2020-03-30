@@ -1419,6 +1419,36 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedLoadErr: "undefined: IncludedMacro",
 	},
+
+	"Byte slices are rendered as they are in context HTML": {
+		sources: map[string]string{
+			"index.html": `{{ sb1 }}{{ sb2 }}`,
+		},
+		lang: LanguageHTML,
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"sb1": &[]byte{97, 98, 99},                      // abc
+				"sb2": &[]byte{60, 104, 101, 108, 108, 111, 62}, // <hello>
+			},
+		},
+		expectedOut: `abc<hello>`,
+	},
+
+	"Cannot render byte slices in text context": {
+		sources: map[string]string{
+			"index.html": `{{ sb1 }}{{ sb2 }}`,
+		},
+		lang: LanguageText,
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"sb1": &[]byte{97, 98, 99},                      // abc
+				"sb2": &[]byte{60, 104, 101, 108, 108, 111, 62}, // <hello>
+			},
+		},
+		expectedLoadErr: `cannot print sb1 (type []uint8 cannot be printed as text)`,
+	},
 }
 
 var builtinVariable = "builtin variable"

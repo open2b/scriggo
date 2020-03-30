@@ -172,6 +172,9 @@ func renderInHTML(out io.Writer, value interface{}) error {
 		return err
 	case fmt.Stringer:
 		return htmlEscape(w, v.String())
+	case []byte:
+		_, err := out.Write(v)
+		return err
 	case error:
 		return htmlEscape(w, v.Error())
 	default:
