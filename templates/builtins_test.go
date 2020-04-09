@@ -184,6 +184,13 @@ var rendererBuiltinTestsInHTMLLanguage = []builtinTest{
 	{"{{ lastIndex(`ab€acb€`,`b€`) }}", "5", nil},
 	{"{{ lastIndex(`ab€acb€`,`bc`) }}", "-1", nil},
 
+	// length
+	{"{{ length(``) }}", "0", nil},
+	{"{{ length(`a`) }}", "1", nil},
+	{"{{ length(`ab`) }}", "2", nil},
+	{"{{ length(`à`) }}", "1", nil},
+	{"{{ length(`èÈ`) }}", "2", nil},
+
 	// max
 	{"{{ max(0, 0) }}", "0", nil},
 	{"{{ max(5, 0) }}", "5", nil},

@@ -132,6 +132,7 @@ var builtins = Declarations{
 	"itoa":        itoa,
 	"join":        join,
 	"lastIndex":   lastIndex,
+	"length":      length,
 	"max":         max,
 	"min":         min,
 	"now":         now,
@@ -423,6 +424,11 @@ func lastIndex(s, sep string) int {
 		return n
 	}
 	return utf8.RuneCountInString(s[0:n])
+}
+
+// length is the builtin function "length".
+func length(s string) int {
+	return utf8.RuneCountInString(s)
 }
 
 // max is the builtin function "max".
