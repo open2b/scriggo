@@ -33,9 +33,21 @@ var (
 	ErrReadTooLarge = errors.New("scriggo: read too large")
 )
 
+// EnvStringer is a variant of fmt.Stringer where the String method takes a
+// runtime.Env parameter.
+type EnvStringer interface {
+	String(runtime.Env) string
+}
+
 // HTMStringer is implemented by values that are not escaped in HTML context.
 type HTMLStringer interface {
 	HTML() string
+}
+
+// HTMLEnvStringer is a variant of HTMStringer where the HTML method takes a
+// runtime.Env parameter.
+type HTMLEnvStringer interface {
+	HTML(runtime.Env) string
 }
 
 // CSSStringer is implemented by values that are not escaped in CSS context.
@@ -43,10 +55,22 @@ type CSSStringer interface {
 	CSS() string
 }
 
+// CSSEnvStringer is a variant of CSSStringer where the CSS method takes a
+// runtime.Env parameter.
+type CSSEnvStringer interface {
+	CSS(runtime.Env) string
+}
+
 // JavaScriptStringer is implemented by values that are not escaped in
 // JavaScript context.
 type JavaScriptStringer interface {
 	JavaScript() string
+}
+
+// JavaScriptEnvStringer is a variant of JavaScriptStringer where the
+// JavaScript method takes a runtime.Env parameter.
+type JavaScriptEnvStringer interface {
+	JavaScript(runtime.Env) string
 }
 
 // HTML implements the HTMLStringer interface.
