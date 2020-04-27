@@ -23,7 +23,6 @@ import (
 	_sort "sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -41,7 +40,6 @@ const (
 )
 
 var hasherType = reflect.TypeOf(_MD5)
-var timeType = reflect.TypeOf(Time{})
 
 var testSeed int64 = -1
 
@@ -61,49 +59,6 @@ var htmlType = reflect.TypeOf(HTML(""))
 var cssType = reflect.TypeOf(CSS(""))
 var javaScriptType = reflect.TypeOf(JavaScript(""))
 
-var times sync.Map
-
-type Time time.Time
-
-func (t Time) Format(layout string) string {
-	return time.Time(t).Format(layout)
-}
-
-func (t Time) String() string {
-	return time.Time(t).String()
-}
-
-func (t Time) UTC(env runtime.Env) Time {
-	return Time(time.Time(t).UTC())
-}
-
-func (t Time) JavaScript() string {
-	tt := time.Time(t)
-	y := tt.Year()
-	if y < -999999 || y > 999999 {
-		panic("not representable year in JavaScript")
-	}
-	ms := int64(tt.Nanosecond()) / int64(time.Millisecond)
-	name, offset := tt.Zone()
-	if name == "UTC" {
-		format := `new Date("%0.4d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3dZ")`
-		if y < 0 || y > 9999 {
-			format = `new Date("%+0.6d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3dZ")`
-		}
-		return fmt.Sprintf(format, y, tt.Month(), tt.Day(), tt.Hour(), tt.Minute(), tt.Second(), ms)
-	}
-	zone := offset / 60
-	h, m := zone/60, zone%60
-	if m < 0 {
-		m = -m
-	}
-	format := `new Date("%0.4d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3d%+0.2d:%0.2d")`
-	if y < 0 || y > 9999 {
-		format = `new Date("%+0.6d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3d%+0.2d:%0.2d")`
-	}
-	return fmt.Sprintf(format, y, tt.Month(), tt.Day(), tt.Hour(), tt.Minute(), tt.Second(), ms, h, m)
-}
-
 var builtins = Declarations{
 	"CSS":         cssType,
 	"Hasher":      hasherType,
@@ -112,7 +67,6 @@ var builtins = Declarations{
 	"HTML":        htmlType,
 	"SHA1":        _SHA1,
 	"SHA256":      _SHA256,
-	"Time":        timeType,
 	"abbreviate":  abbreviate,
 	"abs":         abs,
 	"atoi":        strconv.Atoi,
@@ -134,7 +88,6 @@ var builtins = Declarations{
 	"length":      length,
 	"max":         max,
 	"min":         min,
-	"now":         now,
 	"rand":        rand,
 	"randFloat":   randFloat,
 	"repeat":      repeat,
@@ -411,21 +364,6 @@ func min(x, y int) int {
 		return y
 	}
 	return x
-}
-
-// now is the builtin function "now".
-func now(env runtime.Env) Time {
-	if env.Context() == nil {
-		return Time(time.Now())
-	}
-	t := Time(time.Now().Round(1 * time.Millisecond))
-	actual, loaded := times.LoadOrStore(env, t)
-	if loaded {
-		env.ExitFunc(func() {
-			times.Delete(env)
-		})
-	}
-	return actual.(Time)
 }
 
 // rand is the builtin function "rand".
