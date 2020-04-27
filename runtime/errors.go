@@ -93,22 +93,6 @@ func (err OutOfTimeError) Error() string {
 
 func (err OutOfTimeError) RuntimeError() {}
 
-// OutOfMemoryError represents a runtime out of memory error.
-type OutOfMemoryError struct {
-	env *env
-	err error
-}
-
-func (err OutOfMemoryError) Error() string {
-	s := "runtime error: out of memory"
-	if err.err != nil {
-		s += ": " + err.err.Error()
-	}
-	return s
-}
-
-func (err OutOfMemoryError) RuntimeError() {}
-
 // errIndexOutOfRange returns an index of range runtime error for the
 // currently running virtual machine instruction.
 func (vm *VM) errIndexOutOfRange() runtimeError {

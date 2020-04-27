@@ -794,7 +794,7 @@ const interpreterSkel = ` + "`" + `// Copyright (c) 2019 Open2b Software Snc. Al
 			"scriggo/runtime"
 		)
 
-		const usage = "usage: %s [-S] [-mem 250K] [-time 50ms] filename\n"
+		const usage = "usage: %s [-S] [-time 50ms] filename\n"
 
 		var packages scriggo.Packages
 		var Main *scriggo.Package
@@ -818,7 +818,6 @@ const interpreterSkel = ` + "`" + `// Copyright (c) 2019 Open2b Software Snc. Al
 
 			var asm = flag.Bool("S", false, "print assembly listing")
 			var timeout = flag.String("time", "", "limit the execution time; zero is no limit")
-			var mem = flag.String("mem", "", "limit the allocable memory; zero is no limit")
 
 			flag.Parse()
 
@@ -836,33 +835,6 @@ const interpreterSkel = ` + "`" + `// Copyright (c) 2019 Open2b Software Snc. Al
 					var cancel context.CancelFunc
 					runOptions.Context, cancel = context.WithTimeout(context.Background(), d)
 					defer cancel()
-				}
-			}
-
-			if *mem != "" {
-				loadOptions.LimitMemory = true
-				var unit = (*mem)[len(*mem)-1]
-				if unit > 'Z' {
-					unit -= 'z' - 'Z'
-				}
-				switch unit {
-				case 'B', 'K', 'M', 'G':
-					*mem = (*mem)[:len(*mem)-1]
-				}
-				var err error
-				runOptions.MaxMemorySize, err = strconv.Atoi(*mem)
-				if err != nil {
-					_, _ = fmt.Fprintf(os.Stderr, usage, os.Args[0])
-					flag.PrintDefaults()
-					os.Exit(1)
-				}
-				switch unit {
-				case 'K':
-					runOptions.MaxMemorySize *= 1024
-				case 'M':
-					runOptions.MaxMemorySize *= 1024 * 1024
-				case 'G':
-					runOptions.MaxMemorySize *= 1024 * 1024 * 1024
 				}
 			}
 
@@ -2096,14 +2068,13 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"scriggo"
 	"scriggo/runtime"
 )
 
-const usage = "usage: %s [-S] [-mem 250K] [-time 50ms] filename\n"
+const usage = "usage: %s [-S] [-time 50ms] filename\n"
 
 var packages scriggo.Packages
 var Main *scriggo.Package
@@ -2127,7 +2098,6 @@ func run() {
 
 	var asm = flag.Bool("S", false, "print assembly listing")
 	var timeout = flag.String("time", "", "limit the execution time; zero is no limit")
-	var mem = flag.String("mem", "", "limit the allocable memory; zero is no limit")
 
 	flag.Parse()
 
@@ -2146,33 +2116,6 @@ func run() {
 			runOptions.Context, cancel = context.WithTimeout(context.Background(), d)
 			defer cancel()
 		}
-	}
-
-	if *mem != "" {
-		var unit = (*mem)[len(*mem)-1]
-		if unit > 'Z' {
-			unit -= 'z' - 'Z'
-		}
-		switch unit {
-		case 'B', 'K', 'M', 'G':
-			*mem = (*mem)[:len(*mem)-1]
-		}
-		max, err := strconv.Atoi(*mem)
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, usage, os.Args[0])
-			flag.PrintDefaults()
-			os.Exit(1)
-		}
-		switch unit {
-		case 'K':
-			max *= 1024
-		case 'M':
-			max *= 1024 * 1024
-		case 'G':
-			max *= 1024 * 1024 * 1024
-		}
-		loadOptions.LimitMemory = true
-		runOptions.MemoryLimiter = scriggo.NewSingleMemoryLimiter(max)
 	}
 
 	var args = flag.Args()

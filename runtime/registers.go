@@ -338,7 +338,7 @@ func (vm *VM) appendSlice(first int8, length int, slice reflect.Value) reflect.V
 		ol := len(s)
 		nl := ol + length
 		if nl < ol {
-			panic(OutOfMemoryError{vm.env, nil})
+			panic("scriggo: slice overflow")
 		}
 		if c := cap(s); nl <= c {
 			s = s[:nl]
@@ -358,7 +358,7 @@ func (vm *VM) appendSlice(first int8, length int, slice reflect.Value) reflect.V
 		ol := len(s)
 		nl := ol + length
 		if nl < ol {
-			panic(OutOfMemoryError{vm.env, nil})
+			panic("scriggo: slice overflow")
 		}
 		if c := cap(s); nl <= c {
 			s = s[:nl]
@@ -378,7 +378,7 @@ func (vm *VM) appendSlice(first int8, length int, slice reflect.Value) reflect.V
 		ol := len(s)
 		nl := ol + length
 		if nl < ol {
-			panic(OutOfMemoryError{vm.env, nil})
+			panic("scriggo: slice overflow")
 		}
 		if c := cap(s); nl <= c {
 			s = s[:nl]

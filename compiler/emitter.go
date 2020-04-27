@@ -31,8 +31,6 @@ type emitter struct {
 	// Should be accessed using method 'ti'.
 	typeInfos map[ast.Node]*typeInfo
 
-	options emitterOptions
-
 	// isTemplate reports whether the emitter is currently emitting a template.
 	isTemplate bool
 
@@ -82,10 +80,9 @@ type emitter struct {
 
 // newEmitter returns a new emitter with the given type infos, indirect
 // variables and options.
-func newEmitter(typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) *emitter {
+func newEmitter(typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool) *emitter {
 	em := &emitter{
 		labels:                 make(map[*runtime.Function]map[string]label),
-		options:                opts,
 		typeInfos:              typeInfos,
 		types:                  types.NewTypes(), // TODO: this is wrong: the instance should be taken from the type checker.
 		alreadyEmittedFuncs:    map[*ast.Func]*runtime.Function{},
@@ -217,7 +214,6 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				initVarsFn = newFunction("main", "$initvars", reflect.FuncOf(nil, nil, false), path, nil)
 				em.fnStore.makeAvailableScriggoFn(em.pkg, "$initvars", initVarsFn)
 				initVarsFb = newBuilder(initVarsFn, path)
-				initVarsFb.emitSetAlloc(em.options.LimitMemory)
 			}
 			em.fb = initVarsFb
 			addresses := make([]address, len(n.Lhs))
@@ -275,7 +271,6 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				fn, _ = em.fnStore.availableScriggoFn(em.pkg, n.Ident.Name)
 			}
 			em.fb = newBuilder(fn, path)
-			em.fb.emitSetAlloc(em.options.LimitMemory)
 			em.fb.enterScope()
 			// If this is the main function, functions that initialize variables
 			// must be called before executing every other statement of the main

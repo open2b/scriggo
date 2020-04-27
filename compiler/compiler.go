@@ -43,7 +43,6 @@ const (
 type Options struct {
 	AllowShebangLine   bool
 	DisallowGoStmt     bool
-	LimitMemory        bool
 	PackageLess        bool
 	Builtins           Declarations
 	TemplateFailOnTODO bool
@@ -106,12 +105,10 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 
 	// Emit the code.
 	var code *Code
-	emitterOpts := emitterOptions{}
-	emitterOpts.LimitMemory = opts.LimitMemory
 	if opts.PackageLess {
-		code, err = emitPackageLessProgram(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
+		code, err = emitPackageLessProgram(tree, typeInfos, tci["main"].IndirectVars)
 	} else {
-		code, err = emitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars, emitterOpts)
+		code, err = emitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars)
 	}
 
 	return code, err
@@ -163,9 +160,7 @@ func CompileTemplate(path string, r FileReader, lang ast.Language, opts Options)
 	}
 
 	// Emit the code.
-	emitterOpts := emitterOptions{}
-	emitterOpts.LimitMemory = opts.LimitMemory
-	code, err := emitTemplate(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
+	code, err := emitTemplate(tree, typeInfos, tci["main"].IndirectVars)
 
 	return code, err
 }
@@ -212,14 +207,6 @@ type predefinedPackage interface {
 // returns nil and the error.
 type PackageLoader interface {
 	Load(pkgPath string) (interface{}, error)
-}
-
-// emitterOptions contains the options for the emitter.
-type emitterOptions struct {
-
-	// LimitMemory limits the execution memory size by adding Reserve
-	// instructions during compilation.
-	LimitMemory bool
 }
 
 // CheckingError records a type checking error with the path and the position
@@ -273,10 +260,9 @@ type Code struct {
 }
 
 // emitPackageMain emits the code for a package main given its ast node, the
-// type info and indirect variables. alloc reports whether Alloc instructions
-// must be emitted. emitPackageMain returns an emittedPackage instance with
-// the global variables and the main function.
-func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) (_ *Code, err error) {
+// type info and indirect variables. emitPackageMain returns an emittedPackage
+// instance with the global variables and the main function.
+func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool) (_ *Code, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if e, ok := r.(*LimitExceededError); ok {
@@ -286,7 +272,7 @@ func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*typeInfo, ind
 			panic(err)
 		}
 	}()
-	e := newEmitter(typeInfos, indirectVars, opts)
+	e := newEmitter(typeInfos, indirectVars)
 	functions, _, _ := e.emitPackage(pkgMain, false, "main")
 	main, _ := e.fnStore.availableScriggoFn(pkgMain, "main")
 	pkg := &Code{
@@ -298,10 +284,10 @@ func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*typeInfo, ind
 }
 
 // emitPackageLessProgram emits the code for a package-less program given its
-// tree, the type info and indirect variables. alloc reports whether Alloc
-// instructions must be emitted. emitPackageLessProgram returns a function that
-// is the entry point of the package-less program and the global variables.
-func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) (_ *Code, err error) {
+// tree, the type info and indirect variables. emitPackageLessProgram returns a
+// function that is the entry point of the package-less program and the global
+// variables.
+func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool) (_ *Code, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if e, ok := r.(*LimitExceededError); ok {
@@ -311,9 +297,8 @@ func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, in
 			panic(err)
 		}
 	}()
-	e := newEmitter(typeInfos, indirectVars, opts)
+	e := newEmitter(typeInfos, indirectVars)
 	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false), tree.Path, tree.Pos()), tree.Path)
-	e.fb.emitSetAlloc(opts.LimitMemory)
 	e.fb.enterScope()
 	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()
@@ -322,10 +307,9 @@ func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, in
 }
 
 // emitTemplate emits the code for a template given its tree, the type info and
-// indirect variables. alloc reports whether Alloc instructions must be
-// emitted. emitTemplate returns a function that is the entry point of the
-// template and the global variables.
-func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, opts emitterOptions) (_ *Code, err error) {
+// indirect variables. emitTemplate returns a function that is the entry point
+// of the template and the global variables.
+func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool) (_ *Code, err error) {
 
 	// Recover and eventually return a LimitExceededError.
 	defer func() {
@@ -338,7 +322,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 		}
 	}()
 
-	e := newEmitter(typeInfos, indirectVars, opts)
+	e := newEmitter(typeInfos, indirectVars)
 	e.pkg = &ast.Package{}
 	e.isTemplate = true
 	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false), tree.Path, tree.Pos()), tree.Path)
@@ -349,7 +333,6 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$Write", reflect.FuncOf(nil, nil, false), nil))
 	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$Render", reflect.FuncOf(nil, nil, false), nil))
 	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$urlWriter", reflect.TypeOf(&struct{}{}), nil))
-	e.fb.emitSetAlloc(opts.LimitMemory)
 
 	// If page is a package, then page extends another page.
 	if len(tree.Nodes) == 1 {

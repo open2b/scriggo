@@ -88,16 +88,6 @@ func decodeFieldIndex(i int64) []int {
 	return ns
 }
 
-// A MemoryLimiter limits the maximum amount of memory that can be allocated
-// during executions. A virtual machine calls ChangeReserved before allocating
-// memory and when memory is released.
-type MemoryLimiter interface {
-	// ChangeReserved changes the reserved memory increasing it by the given
-	// bytes, if positive, or decrementing it if negative. If the memory can
-	// not be reserved, it returns an error.
-	ChangeReserved(env Env, bytes int) error
-}
-
 // VM represents a Scriggo virtual machine.
 type VM struct {
 	fp       [4]Addr              // frame pointers.
@@ -159,9 +149,6 @@ func (vm *VM) Reset() {
 // During the execution if a panic occurs and has not been recovered, by
 // default Run panics with the panic message.
 //
-// If a maximum available memory has been set and the memory is exhausted,
-// Run returns immediately with the an OutOfMemoryError error.
-//
 // If a context has been set and the context is canceled, Run returns
 // as soon as possible with the error returned by the Err method of the
 // context.
@@ -198,14 +185,6 @@ func (vm *VM) SetContext(ctx context.Context) {
 	}
 	vm.done = nil
 	vm.doneCase = reflect.SelectCase{}
-}
-
-// SetMemoryLimiter sets the memory limiter to limit memory during the
-// execution.
-//
-// SetMemoryLimiter must not be called after vm has been started.
-func (vm *VM) SetMemoryLimiter(limiter MemoryLimiter) {
-	vm.env.memory = limiter
 }
 
 // SetPrint sets the "print" builtin function.
@@ -264,145 +243,6 @@ func (vm *VM) Stack(buf []byte, all bool) int {
 		}
 	}
 	return len(b)
-}
-
-func (vm *VM) reserve() {
-	if vm.env.memory == nil {
-		return
-	}
-	in := vm.fn.Body[vm.pc]
-	op, a, b, c := in.Op, in.A, in.B, in.C
-	k := op < 0
-	if k {
-		op = -op
-	}
-	var bytes int
-	switch op {
-	case OpAppend:
-		s := vm.general(c)
-		elemSize := int(s.Type().Size())
-		sl, sc := s.Len(), s.Cap()
-		l := int(b)
-		if l > sc-sl {
-			if sl+l < 0 {
-				panic(OutOfMemoryError{vm.env, nil})
-			}
-			capacity := appendCap(sc, sl, sl+l)
-			bytes = capacity * elemSize
-			if bytes/capacity != elemSize {
-				panic(OutOfMemoryError{vm.env, nil})
-			}
-		}
-	case OpAppendSlice:
-		src := vm.general(a)
-		s := vm.general(c)
-		elemSize := int(s.Type().Size())
-		l := src.Len()
-		sl := s.Len()
-		sc := s.Cap()
-		if l > sc-sl {
-			nl := sl + l
-			if nl < sl {
-				panic(OutOfMemoryError{vm.env, nil})
-			}
-			capacity := appendCap(sc, sl, nl)
-			bytes = capacity * elemSize
-			if bytes/capacity != elemSize {
-				panic(OutOfMemoryError{vm.env, nil})
-			}
-		}
-	case OpConvert: // TODO(marco): implement in the builder.
-		t := vm.fn.Types[uint8(b)]
-		switch t.Kind() {
-		case reflect.Func:
-			call := vm.general(a).Interface().(*callable)
-			if !call.value.IsValid() {
-				// Approximated size based on makeFuncImpl in
-				// https://golang.org/src/reflect/makefunc.go
-				bytes = 100
-			}
-		default:
-			bytes = int(vm.general(a).Type().Size())
-		}
-	case OpConvertString: // TODO(marco): implement in the builder.
-		t := vm.fn.Types[uint8(b)]
-		if t.Kind() == reflect.Slice && t.Elem().Kind() == reflect.Int32 {
-			length := len([]rune(vm.string(a)))
-			bytes = length * 4
-			if bytes/4 != length {
-				panic(OutOfMemoryError{vm.env, nil})
-			}
-		} else {
-			bytes = len(vm.string(a))
-		}
-	case OpConcat:
-		aLen := len(vm.string(a))
-		bLen := len(vm.string(b))
-		bytes = aLen + bLen
-		if bytes < aLen {
-			panic(OutOfMemoryError{vm.env, nil})
-		}
-	case OpMakeArray:
-		t := vm.fn.Types[uint8(b)]
-		bytes = int(t.Size())
-	case OpMakeChan:
-		typ := vm.fn.Types[uint8(a)]
-		capacity := int(vm.intk(b, k))
-		ts := int(typ.Size())
-		bytes = ts * capacity
-		if bytes/ts != capacity {
-			panic(OutOfMemoryError{vm.env, nil})
-		}
-		bytes += 10 * 8
-		if bytes < 0 {
-			panic(OutOfMemoryError{vm.env, nil})
-		}
-	case OpMakeMap:
-		// The size is approximated. The actual size depend on the type and
-		// architecture.
-		n := int(vm.int(b))
-		bytes = 50 * n
-		if bytes/50 != n {
-			panic(OutOfMemoryError{vm.env, nil})
-		}
-		bytes += 24
-		if bytes < 0 {
-			panic(OutOfMemoryError{vm.env, nil})
-		}
-	case OpMakeSlice:
-		typ := vm.fn.Types[uint8(a)]
-		capacity := int(vm.intk(vm.fn.Body[vm.pc+1].B, k))
-		ts := int(typ.Elem().Size())
-		bytes = ts * capacity
-		if bytes/ts != capacity {
-			panic(OutOfMemoryError{vm.env, nil})
-		}
-		bytes += 24
-		if bytes < 0 {
-			panic(OutOfMemoryError{vm.env, nil})
-		}
-	case OpMakeStruct:
-		t := vm.fn.Types[uint8(b)]
-		bytes = int(t.Size())
-	case OpNew:
-		t := vm.fn.Types[uint8(b)]
-		bytes = int(t.Size())
-	case OpSetMap:
-		t := vm.general(a).Type()
-		kSize := int(t.Key().Size())
-		eSize := int(t.Elem().Size())
-		bytes = kSize + eSize
-		if bytes < 0 {
-			panic(OutOfMemoryError{vm.env, nil})
-		}
-	}
-	if bytes != 0 {
-		err := vm.env.memory.ChangeReserved(vm.env, bytes)
-		if err != nil {
-			panic(OutOfMemoryError{vm.env, err})
-		}
-	}
-	return
 }
 
 // callPredefined calls a predefined function. numVariadic is the number of
@@ -1276,8 +1116,6 @@ const (
 
 	OpRem
 	OpRemInt
-
-	OpReserve
 
 	OpReturn
 

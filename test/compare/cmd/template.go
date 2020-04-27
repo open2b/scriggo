@@ -53,9 +53,8 @@ type compiledTemplate struct {
 	globals []compiler.Global
 }
 
-func compileTemplate(reader compiler.FileReader, limitMemory bool) (*compiledTemplate, error) {
+func compileTemplate(reader compiler.FileReader) (*compiledTemplate, error) {
 	opts := compiler.Options{
-		LimitMemory:    limitMemory,
 		Builtins:       builtins,
 		RelaxedBoolean: true,
 	}
@@ -66,7 +65,7 @@ func compileTemplate(reader compiler.FileReader, limitMemory bool) (*compiledTem
 	return &compiledTemplate{fn: code.Main, globals: code.Globals, options: &opts}, nil
 }
 
-func (t *compiledTemplate) render(ctx context.Context, memoryLimiter runtime.MemoryLimiter) error {
+func (t *compiledTemplate) render(ctx context.Context) error {
 	out := os.Stdout
 	writeFunc := out.Write
 	renderFunc := render
@@ -77,7 +76,6 @@ func (t *compiledTemplate) render(ctx context.Context, memoryLimiter runtime.Mem
 	t.globals[3].Value = &uw
 	vm := runtime.NewVM()
 	vm.SetContext(ctx)
-	vm.SetMemoryLimiter(memoryLimiter)
 	_, err := vm.Run(t.fn, initGlobals(t.globals))
 	return err
 }

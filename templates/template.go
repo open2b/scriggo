@@ -110,7 +110,6 @@ func (language Language) String() string {
 
 type LoadOptions struct {
 	DisallowGoStmt  bool
-	LimitMemory     bool                  // limit the execution memory size.
 	TreeTransformer func(*ast.Tree) error // if not nil transforms tree after parsing.
 }
 
@@ -118,15 +117,13 @@ type LoadOptions struct {
 type Declarations map[string]interface{}
 
 type RenderOptions struct {
-	Context       context.Context
-	MemoryLimiter runtime.MemoryLimiter
-	PrintFunc     runtime.PrintFunc
+	Context   context.Context
+	PrintFunc runtime.PrintFunc
 }
 
 type Template struct {
-	fn          *runtime.Function
-	globals     []compiler.Global
-	limitMemory bool
+	fn      *runtime.Function
+	globals []compiler.Global
 }
 
 // CompilerError represents an error returned by the compiler.
@@ -146,7 +143,6 @@ func Load(name string, files FileReader, builtins Declarations, lang Language, o
 		RelaxedBoolean: true,
 	}
 	if options != nil {
-		co.LimitMemory = options.LimitMemory
 		co.TreeTransformer = options.TreeTransformer
 		co.DisallowGoStmt = options.DisallowGoStmt
 	}
@@ -160,7 +156,7 @@ func Load(name string, files FileReader, builtins Declarations, lang Language, o
 		}
 		return nil, err
 	}
-	return &Template{fn: code.Main, globals: code.Globals, limitMemory: co.LimitMemory}, nil
+	return &Template{fn: code.Main, globals: code.Globals}, nil
 }
 
 var emptyVars = map[string]interface{}{}
@@ -168,9 +164,6 @@ var emptyVars = map[string]interface{}{}
 // Render renders the template and write the output to out. vars contains the
 // values of the template builtin variables.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *RenderOptions) error {
-	if options != nil && options.MemoryLimiter != nil && !t.limitMemory {
-		panic("scriggo: template not loaded with LimitMemory option")
-	}
 	writeFunc := out.Write
 	renderFunc := render
 	uw := &urlEscaper{w: out}
@@ -217,7 +210,6 @@ func newVM(options *RenderOptions) *runtime.VM {
 		if options.Context != nil {
 			vm.SetContext(options.Context)
 		}
-		vm.SetMemoryLimiter(options.MemoryLimiter)
 		if options.PrintFunc != nil {
 			vm.SetPrint(options.PrintFunc)
 		}

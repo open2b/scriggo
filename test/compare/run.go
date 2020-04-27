@@ -394,7 +394,7 @@ func isTestPath(path string) bool {
 // After the mode keyword, some arguments may be provided using the syntax
 // accepted by function flag.Parse.
 //
-// 	// run -time 10s -mem 34K
+// 	// run -time 10s
 //
 // As a special case, the 'skip' comment can be followed by any sequence of
 // characters (after a whitespace character) that will be ignored. This is
