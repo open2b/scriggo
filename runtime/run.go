@@ -1371,30 +1371,8 @@ func (vm *VM) run() (Addr, bool) {
 		case OpRemInt, -OpRemInt:
 			vm.setInt(c, vm.int(a)%vm.intk(b, op < 0))
 
-		// Reserve
-		case OpReserve:
-			vm.reserve()
-		case -OpReserve:
-			if vm.env.memory != nil {
-				bytes := decodeUint24(a, b, c)
-				err := vm.env.memory.ChangeReserved(vm.env, int(bytes))
-				if err != nil {
-					panic(OutOfMemoryError{vm.env, err})
-				}
-			}
-
 		// Return
 		case OpReturn:
-			if vm.env.memory != nil {
-				in := vm.fn.Body[0]
-				if in.Op == -OpReserve {
-					bytes := decodeUint24(in.A, in.B, in.C)
-					in = vm.fn.Body[vm.pc-2]
-					if bytes > 0 && in.Op != OpTailCall {
-						_ = vm.env.memory.ChangeReserved(vm.env, -int(bytes))
-					}
-				}
-			}
 			i := len(vm.calls) - 1
 			if i == -1 {
 				// TODO(marco): call finalizer.
@@ -1733,18 +1711,6 @@ func (vm *VM) run() (Addr, bool) {
 
 		// TailCall
 		case OpTailCall:
-			if vm.env.memory != nil {
-				in := vm.fn.Body[0]
-				if in.Op == -OpReserve {
-					bytes := decodeUint24(in.A, in.B, in.C)
-					if bytes > 0 {
-						err := vm.env.memory.ChangeReserved(vm.env, int(bytes))
-						if err != nil {
-							panic(OutOfMemoryError{vm.env, err})
-						}
-					}
-				}
-			}
 			vm.calls = append(vm.calls, callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, pc: vm.pc, status: tailed})
 			if a != CurrentFunction {
 				var fn *Function

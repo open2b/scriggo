@@ -8,7 +8,6 @@ package runtime
 
 import (
 	"context"
-	"errors"
 	"reflect"
 	"sync"
 )
@@ -46,58 +45,15 @@ type Env interface {
 
 	// Println calls the println built-in function with args as argument.
 	Println(args ...interface{})
-
-	// MemoryLimiter returns the memory limiter. If there is no memory
-	// limiter, it returns nil.
-	MemoryLimiter() MemoryLimiter
 }
 
 type _env = env
-
-// ReserveMemory reserves memory. It panics if bytes is negative. If there
-// is no memory limiter, it does nothing. If the memory can not be
-// reserved, it panics with an OutOfMemory error.
-func ReserveMemory(env Env, bytes int) {
-	if bytes < 0 {
-		panic(errors.New("scriggo: reserve of negative bytes"))
-	}
-	if ml := env.MemoryLimiter(); ml != nil {
-		err := ml.ChangeReserved(env, bytes)
-		if err != nil {
-			panic(OutOfMemoryError{env.(*_env), err})
-		}
-	}
-}
-
-// ChangeReservedMemory changes the reserved memory increasing it by the given
-// bytes, if positive, or decrementing it if negative. If the memory can not
-// be reserved, it panics with an OutOfMemory error.
-func ChangeReservedMemory(env Env, bytes int) {
-	if ml := env.MemoryLimiter(); ml != nil {
-		err := ml.ChangeReserved(env, bytes)
-		if err != nil {
-			panic(OutOfMemoryError{env.(*_env), err})
-		}
-	}
-}
-
-// ReleaseMemory releases a previously reserved memory. It panics if bytes
-// is negative. If there is no memory limiter, it does nothing.
-func ReleaseMemory(env Env, bytes int) {
-	if bytes < 0 {
-		panic(errors.New("scriggo: release of negative bytes"))
-	}
-	if ml := env.MemoryLimiter(); ml != nil {
-		_ = ml.ChangeReserved(env, -bytes)
-	}
-}
 
 // The env type implements the Env interface.
 type env struct {
 	ctx     context.Context // context.
 	globals []interface{}   // global variables.
 	print   PrintFunc       // custom print builtin.
-	memory  MemoryLimiter   // memory limiter.
 
 	// Only exited, exits and filePath fields can be changed after the vm has
 	// been started and access to these three fields must be done with this
@@ -144,10 +100,6 @@ func (env *env) FilePath() string {
 	filePath := env.filePath
 	env.mu.Unlock()
 	return filePath
-}
-
-func (env *env) MemoryLimiter() MemoryLimiter {
-	return env.memory
 }
 
 func (env *env) Print(args ...interface{}) {

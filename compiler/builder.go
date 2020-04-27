@@ -160,7 +160,6 @@ type functionBuilder struct {
 	numRegs                map[registerType]int8
 	scopes                 []map[string]int8
 	scopeShifts            []runtime.StackShift
-	reserves               []runtime.Addr
 	complexBinaryOpIndexes map[ast.OperatorType]int8 // indexes of complex binary op. functions.
 	complexUnaryOpIndex    int8                      // index of complex negation function.
 
@@ -515,23 +514,6 @@ func (builder *functionBuilder) end() {
 	for typ, num := range builder.maxRegs {
 		if num > fn.NumReg[typ] {
 			fn.NumReg[typ] = num
-		}
-	}
-	if builder.reserves != nil {
-		for _, addr := range builder.reserves {
-			var bytes int
-			if addr == 0 {
-				bytes = runtime.CallFrameSize + 8*int(fn.NumReg[intRegister]+fn.NumReg[floatRegister]) +
-					16*int(fn.NumReg[stringRegister]+fn.NumReg[generalRegister])
-			} else {
-				in := fn.Body[addr+1]
-				if in.Op == runtime.OpLoadFunc {
-					f := fn.Functions[uint8(in.B)]
-					bytes = 32 + len(f.VarRefs)*16
-				}
-			}
-			a, b, c := encodeUint24(uint32(bytes))
-			fn.Body[addr] = runtime.Instruction{Op: -runtime.OpReserve, A: a, B: b, C: c}
 		}
 	}
 }

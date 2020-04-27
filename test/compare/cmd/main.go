@@ -16,7 +16,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"scriggo"
@@ -86,7 +85,6 @@ func main() {
 	}
 
 	var timeoutArg = flag.String("time", "", "limit the execution time; zero is no limit; the argument is parsed using function time.ParseDuration")
-	var memArg = flag.String("mem", "", "limit the allocable memory; zero is no limit; suffixes [BKMG] are supported")
 	var disallowGoStmt = flag.Bool("disallowGoStatement", false, "disallow the 'go' statement")
 
 	flag.Parse()
@@ -106,39 +104,12 @@ func main() {
 		}
 	}
 
-	// TODO: this is a copy-paste from cmd/scriggo/interpreter_skel.go. When
-	// these code will be implemented as a support function, call it.
-	var memoryLimiter runtime.MemoryLimiter
-	if *memArg != "" {
-		var unit = (*memArg)[len(*memArg)-1]
-		if unit > 'Z' {
-			unit -= 'z' - 'Z'
-		}
-		switch unit {
-		case 'B', 'K', 'M', 'G':
-			*memArg = (*memArg)[:len(*memArg)-1]
-		}
-		max, err := strconv.Atoi(*memArg)
-		if err != nil {
-			panic(err)
-		}
-		switch unit {
-		case 'K':
-			max *= 1024
-		case 'M':
-			max *= 1024 * 1024
-		case 'G':
-			max *= 1024 * 1024 * 1024
-		}
-		memoryLimiter = scriggo.NewSingleMemoryLimiter(max)
-	}
-
 	switch flag.Args()[0] {
 	case "compile program":
 		if timeout != nil {
 			panic("timeout not supported when compiling a program")
 		}
-		loadOpts := &scriggo.LoadOptions{LimitMemory: memoryLimiter != nil}
+		loadOpts := &scriggo.LoadOptions{}
 		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
 		_, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
@@ -149,7 +120,7 @@ func main() {
 		if timeout != nil {
 			panic("timeout not supported when compiling a package-less program")
 		}
-		loadOpts := &scriggo.LoadOptions{LimitMemory: memoryLimiter != nil}
+		loadOpts := &scriggo.LoadOptions{}
 		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
 		loadOpts.OutOfSpec.PackageLess = true
 		_, err = scriggo.Load(os.Stdin, predefPkgs, loadOpts)
@@ -158,7 +129,7 @@ func main() {
 			os.Exit(1)
 		}
 	case "run program":
-		loadOpts := &scriggo.LoadOptions{LimitMemory: memoryLimiter != nil}
+		loadOpts := &scriggo.LoadOptions{}
 		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
 		program, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
@@ -166,8 +137,7 @@ func main() {
 			os.Exit(1)
 		}
 		runOpts := &scriggo.RunOptions{
-			Context:       timeout,
-			MemoryLimiter: memoryLimiter,
+			Context: timeout,
 		}
 		_, err = program.Run(runOpts)
 		if err != nil {
@@ -177,7 +147,7 @@ func main() {
 			panic(err)
 		}
 	case "run script":
-		loadOpts := &scriggo.LoadOptions{LimitMemory: memoryLimiter != nil}
+		loadOpts := &scriggo.LoadOptions{}
 		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
 		loadOpts.OutOfSpec.PackageLess = true
 		script, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
@@ -186,8 +156,7 @@ func main() {
 			os.Exit(1)
 		}
 		runOpts := &scriggo.RunOptions{
-			Context:       timeout,
-			MemoryLimiter: memoryLimiter,
+			Context: timeout,
 		}
 		_, err = script.Run(runOpts)
 		if err != nil {
@@ -197,7 +166,7 @@ func main() {
 			panic(err)
 		}
 	case "run program directory":
-		loadOpts := &scriggo.LoadOptions{LimitMemory: memoryLimiter != nil}
+		loadOpts := &scriggo.LoadOptions{}
 		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
 		dirPath := flag.Args()[1]
 		dl := dirLoader(dirPath)
@@ -211,8 +180,7 @@ func main() {
 			os.Exit(1)
 		}
 		runOpts := &scriggo.RunOptions{
-			Context:       timeout,
-			MemoryLimiter: memoryLimiter,
+			Context: timeout,
 		}
 		_, err = prog.Run(runOpts)
 		if err != nil {
@@ -230,12 +198,12 @@ func main() {
 			panic(err)
 		}
 		r := mapReader{"/index.html": src}
-		templ, err := compileTemplate(r, memoryLimiter != nil)
+		templ, err := compileTemplate(r)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
-		err = templ.render(timeout, memoryLimiter)
+		err = templ.render(timeout)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
 				panic(renderPanics(p))
@@ -248,12 +216,12 @@ func main() {
 		}
 		dirPath := flag.Args()[1]
 		r := dirReader(dirPath)
-		templ, err := compileTemplate(r, memoryLimiter != nil)
+		templ, err := compileTemplate(r)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
-		err = templ.render(timeout, memoryLimiter)
+		err = templ.render(timeout)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
 				panic(renderPanics(p))
@@ -272,7 +240,7 @@ func main() {
 			panic("timeout not supported when compiling a html page")
 		}
 		r := mapReader{"/index.html": src}
-		_, err = compileTemplate(r, memoryLimiter != nil)
+		_, err = compileTemplate(r)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)

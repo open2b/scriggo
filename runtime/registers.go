@@ -337,9 +337,6 @@ func (vm *VM) appendSlice(first int8, length int, slice reflect.Value) reflect.V
 	case []int:
 		ol := len(s)
 		nl := ol + length
-		if nl < ol {
-			panic(OutOfMemoryError{vm.env, nil})
-		}
 		if c := cap(s); nl <= c {
 			s = s[:nl]
 		} else {
@@ -357,9 +354,6 @@ func (vm *VM) appendSlice(first int8, length int, slice reflect.Value) reflect.V
 	case []byte:
 		ol := len(s)
 		nl := ol + length
-		if nl < ol {
-			panic(OutOfMemoryError{vm.env, nil})
-		}
 		if c := cap(s); nl <= c {
 			s = s[:nl]
 		} else {
@@ -377,9 +371,6 @@ func (vm *VM) appendSlice(first int8, length int, slice reflect.Value) reflect.V
 	case []rune:
 		ol := len(s)
 		nl := ol + length
-		if nl < ol {
-			panic(OutOfMemoryError{vm.env, nil})
-		}
 		if c := cap(s); nl <= c {
 			s = s[:nl]
 		} else {

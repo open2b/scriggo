@@ -40,8 +40,6 @@ The options that are currently available are:
 
 - `-time <duration>`: limit the execution time; zero is no limit; `<duration>`
   is parsed using the Go function `time.ParseDuration`
-- `-mem <mem>[BKMG]`: limit the allocable memory; zero is no limit; suffixes
-  [BKMG] are supported
 - `-disallowGoStatement`: disallow the `go` statement
 
 Note that in templates the line that specifies the mode cannot contain anything but the comment.

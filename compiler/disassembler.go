@@ -560,10 +560,6 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		if c != 0 {
 			s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 		}
-	case runtime.OpReserve:
-		if k {
-			s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
-		}
 	case runtime.OpSetField:
 		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), k)
 		s += " " + disassembleOperand(fn, b, reflect.Interface, false)
@@ -946,8 +942,6 @@ var operationName = [...]string{
 
 	runtime.OpRem:    "Rem",
 	runtime.OpRemInt: "Rem",
-
-	runtime.OpReserve: "Reserve",
 
 	runtime.OpReturn: "Return",
 

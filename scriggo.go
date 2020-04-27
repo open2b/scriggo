@@ -27,8 +27,7 @@ type CompilerError interface {
 }
 
 type LoadOptions struct {
-	LimitMemory bool // limit the execution memory size.
-	OutOfSpec   struct {
+	OutOfSpec struct {
 		AllowShebangLine bool         // allow shebang line; only for package-less programs.
 		DisallowGoStmt   bool         // disallow "go" statement.
 		PackageLess      bool         // enable the package-less syntax.
@@ -40,18 +39,16 @@ type LoadOptions struct {
 type Declarations map[string]interface{}
 
 type RunOptions struct {
-	Context       context.Context
-	MemoryLimiter runtime.MemoryLimiter
-	PrintFunc     runtime.PrintFunc
-	OutOfSpec     struct {
+	Context   context.Context
+	PrintFunc runtime.PrintFunc
+	OutOfSpec struct {
 		Builtins map[string]interface{}
 	}
 }
 
 type Program struct {
-	fn          *runtime.Function
-	globals     []compiler.Global
-	limitMemory bool
+	fn      *runtime.Function
+	globals []compiler.Global
 }
 
 // Load loads a Go program with the given options, loading the imported
@@ -64,7 +61,6 @@ func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, 
 		}
 		co.AllowShebangLine = options.OutOfSpec.AllowShebangLine
 		co.DisallowGoStmt = options.OutOfSpec.DisallowGoStmt
-		co.LimitMemory = options.LimitMemory
 		co.PackageLess = options.OutOfSpec.PackageLess
 		co.Builtins = compiler.Declarations(options.OutOfSpec.Builtins)
 	}
@@ -72,7 +68,7 @@ func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, 
 	if err != nil {
 		return nil, err
 	}
-	return &Program{fn: code.Main, globals: code.Globals, limitMemory: co.LimitMemory}, nil
+	return &Program{fn: code.Main, globals: code.Globals}, nil
 }
 
 // Disassemble disassembles the package with the given path. Predefined
@@ -91,13 +87,7 @@ func (p *Program) Disassemble(w io.Writer, pkgPath string) (int64, error) {
 }
 
 // Run starts the program and waits for it to complete.
-//
-// Panics if the option MemoryLimiter is not nil but the program has not been
-// loaded with option LimitMemory.
 func (p *Program) Run(options *RunOptions) (int, error) {
-	if options != nil && options.MemoryLimiter != nil && !p.limitMemory {
-		panic("scriggo: program not loaded with LimitMemory option")
-	}
 	vm := newVM(options)
 	if options != nil && options.OutOfSpec.Builtins != nil {
 		return vm.Run(p.fn, initGlobals(p.globals, options.OutOfSpec.Builtins))
@@ -150,7 +140,6 @@ func newVM(options *RunOptions) *runtime.VM {
 		if options.Context != nil {
 			vm.SetContext(options.Context)
 		}
-		vm.SetMemoryLimiter(options.MemoryLimiter)
 		if options.PrintFunc != nil {
 			vm.SetPrint(options.PrintFunc)
 		}
@@ -223,14 +212,12 @@ func IsLimitExceeded(err error) bool {
 	return ok
 }
 
-// Errorf formats according to a format specifier, reserves the memory for the
-// string if the memory is limited and returns the string as a value that
-// satisfies error.
+// Errorf formats according to a format specifier, and returns the string as a
+// value that satisfies error.
 //
 // Unlike the function fmt.Errorf, Errorf does not recognize the %w verb in
 // format.
 func Errorf(env runtime.Env, format string, a ...interface{}) error {
 	err := fmt.Sprintf(format, a...)
-	runtime.ReserveMemory(env, 24+len(err))
 	return errors.New(err)
 }

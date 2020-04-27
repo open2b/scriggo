@@ -97,7 +97,7 @@ func TestProgramImport(t *testing.T) {
 			if err != nil {
 				panic(err)
 			}
-			program, err := scriggo.Load(main.(*strings.Reader), loader, &scriggo.LoadOptions{LimitMemory: true})
+			program, err := scriggo.Load(main.(*strings.Reader), loader, nil)
 			if err != nil {
 				t.Errorf("compiling error: %s", err)
 				return

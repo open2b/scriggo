@@ -187,7 +187,6 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			fb := em.fb
 			em.setFunctionVarRefs(macroFn, expr.Upvars)
 			em.fb = newBuilder(macroFn, em.fb.getPath())
-			em.fb.emitSetAlloc(em.options.LimitMemory)
 			em.fb.enterScope()
 			em.prepareFunctionBodyParameters(expr)
 			em.emitNodes(expr.Body.Nodes)
@@ -212,7 +211,6 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		em.setFunctionVarRefs(fn, expr.Upvars)
 
 		funcLitBuilder := newBuilder(fn, em.fb.getPath())
-		funcLitBuilder.emitSetAlloc(em.options.LimitMemory)
 		currFB := em.fb
 		em.fb = funcLitBuilder
 
