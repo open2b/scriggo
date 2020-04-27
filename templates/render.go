@@ -35,29 +35,29 @@ func (err PrintTypeError) RuntimeError() {}
 //
 // Keep in sync with scriggo/compiler.renderFuncType.
 //
-func render(_ runtime.Env, out io.Writer, value interface{}, ctx ast.Context) {
+func render(env runtime.Env, out io.Writer, value interface{}, ctx ast.Context) {
 
 	var err error
 
 	switch ctx {
 	case ast.ContextText:
-		err = renderInText(out, value)
+		err = renderInText(env, out, value)
 	case ast.ContextHTML:
-		err = renderInHTML(out, value)
+		err = renderInHTML(env, out, value)
 	case ast.ContextTag:
-		err = renderInTag(out, value)
+		err = renderInTag(env, out, value)
 	case ast.ContextAttribute:
-		err = renderInAttribute(out, value, true)
+		err = renderInAttribute(env, out, value, true)
 	case ast.ContextUnquotedAttribute:
-		err = renderInAttribute(out, value, false)
+		err = renderInAttribute(env, out, value, false)
 	case ast.ContextCSS:
-		err = renderInCSS(out, value)
+		err = renderInCSS(env, out, value)
 	case ast.ContextCSSString:
-		err = renderInCSSString(out, value)
+		err = renderInCSSString(env, out, value)
 	case ast.ContextJavaScript:
-		err = renderInJavaScript(out, value)
+		err = renderInJavaScript(env, out, value)
 	case ast.ContextJavaScriptString:
-		err = renderInJavaScriptString(out, value)
+		err = renderInJavaScriptString(env, out, value)
 	default:
 		panic("scriggo: unknown context")
 	}
@@ -145,11 +145,13 @@ func toString(v reflect.Value) string {
 }
 
 // renderInText renders value in the Text context.
-func renderInText(out io.Writer, value interface{}) error {
+func renderInText(env runtime.Env, out io.Writer, value interface{}) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
 		s = v.String()
+	case EnvStringer:
+		s = v.String(env)
 	case error:
 		s = v.Error()
 	default:
@@ -161,7 +163,7 @@ func renderInText(out io.Writer, value interface{}) error {
 }
 
 // renderInHTML renders value in HTML context.
-func renderInHTML(out io.Writer, value interface{}) error {
+func renderInHTML(env runtime.Env, out io.Writer, value interface{}) error {
 	w := newStringWriter(out)
 	switch v := value.(type) {
 	case HTML:
@@ -170,8 +172,13 @@ func renderInHTML(out io.Writer, value interface{}) error {
 	case HTMLStringer:
 		_, err := w.WriteString(v.HTML())
 		return err
+	case HTMLEnvStringer:
+		_, err := w.WriteString(v.HTML(env))
+		return err
 	case fmt.Stringer:
 		return htmlEscape(w, v.String())
+	case EnvStringer:
+		return htmlEscape(w, v.String(env))
 	case []byte:
 		_, err := out.Write(v)
 		return err
@@ -183,11 +190,13 @@ func renderInHTML(out io.Writer, value interface{}) error {
 }
 
 // renderInTag renders value in Tag context.
-func renderInTag(out io.Writer, value interface{}) error {
+func renderInTag(env runtime.Env, out io.Writer, value interface{}) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
 		s = v.String()
+	case EnvStringer:
+		s = v.String(env)
 	case error:
 		s = v.Error()
 	default:
@@ -219,11 +228,13 @@ func renderInTag(out io.Writer, value interface{}) error {
 
 // renderInAttribute renders value in Attribute context quoted or unquoted
 // depending on quoted value.
-func renderInAttribute(out io.Writer, value interface{}, quoted bool) error {
+func renderInAttribute(env runtime.Env, out io.Writer, value interface{}, quoted bool) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
 		s = v.String()
+	case EnvStringer:
+		s = v.String(env)
 	case error:
 		s = v.Error()
 	default:
@@ -233,7 +244,7 @@ func renderInAttribute(out io.Writer, value interface{}, quoted bool) error {
 }
 
 // renderInCSS renders value in CSS context.
-func renderInCSS(out io.Writer, value interface{}) error {
+func renderInCSS(env runtime.Env, out io.Writer, value interface{}) error {
 	w := newStringWriter(out)
 	switch v := value.(type) {
 	case CSS:
@@ -242,8 +253,13 @@ func renderInCSS(out io.Writer, value interface{}) error {
 	case CSSStringer:
 		_, err := w.WriteString(v.CSS())
 		return err
+	case CSSEnvStringer:
+		_, err := w.WriteString(v.CSS(env))
+		return err
 	case fmt.Stringer:
 		value = v.String()
+	case EnvStringer:
+		value = v.String(env)
 	case error:
 		value = v.Error()
 	}
@@ -267,11 +283,13 @@ func renderInCSS(out io.Writer, value interface{}) error {
 }
 
 // renderInCSSString renders value in CSSString context.
-func renderInCSSString(out io.Writer, value interface{}) error {
+func renderInCSSString(env runtime.Env, out io.Writer, value interface{}) error {
 	var s string
 	switch value := value.(type) {
 	case fmt.Stringer:
 		s = value.String()
+	case EnvStringer:
+		s = value.String(env)
 	case error:
 		s = value.Error()
 	default:
@@ -286,7 +304,7 @@ func renderInCSSString(out io.Writer, value interface{}) error {
 }
 
 // renderInJavaScript renders value in JavaScript context.
-func renderInJavaScript(out io.Writer, value interface{}) error {
+func renderInJavaScript(env runtime.Env, out io.Writer, value interface{}) error {
 
 	w := newStringWriter(out)
 
@@ -296,6 +314,9 @@ func renderInJavaScript(out io.Writer, value interface{}) error {
 		return err
 	case JavaScriptStringer:
 		_, err := w.WriteString(v.JavaScript())
+		return err
+	case JavaScriptEnvStringer:
+		_, err := w.WriteString(v.JavaScript(env))
 		return err
 	case error:
 		value = v.Error()
@@ -354,7 +375,7 @@ func renderInJavaScript(out io.Writer, value interface{}) error {
 				_, err = w.WriteString(",")
 			}
 			if err == nil {
-				err = renderInJavaScript(out, v.Index(i).Interface())
+				err = renderInJavaScript(env, out, v.Index(i).Interface())
 			}
 		}
 		if err == nil {
@@ -366,7 +387,7 @@ func renderInJavaScript(out io.Writer, value interface{}) error {
 			s = "null"
 			break
 		}
-		return renderInJavaScript(out, v.Elem().Interface())
+		return renderInJavaScript(env, out, v.Elem().Interface())
 	case reflect.Struct:
 		t := v.Type()
 		n := t.NumField()
@@ -389,7 +410,7 @@ func renderInJavaScript(out io.Writer, value interface{}) error {
 					_, err = w.WriteString(`":`)
 				}
 				if err == nil {
-					err = renderInJavaScript(w, v.Field(i).Interface())
+					err = renderInJavaScript(env, w, v.Field(i).Interface())
 				}
 				first = false
 			}
@@ -411,9 +432,12 @@ func renderInJavaScript(out io.Writer, value interface{}) error {
 		iter := v.MapRange()
 		for i := 0; iter.Next(); i++ {
 			key := iter.Key()
-			if k, ok := key.Interface().(fmt.Stringer); ok {
+			switch k := key.Interface().(type) {
+			case fmt.Stringer:
 				keyPairs[i].key = k.String()
-			} else {
+			case EnvStringer:
+				keyPairs[i].key = k.String(env)
+			default:
 				keyPairs[i].key = toString(key)
 			}
 			keyPairs[i].val = iter.Value().Interface()
@@ -436,7 +460,7 @@ func renderInJavaScript(out io.Writer, value interface{}) error {
 				_, err = w.WriteString(":")
 			}
 			if err == nil {
-				err = renderInJavaScript(out, keyPair.val)
+				err = renderInJavaScript(env, out, keyPair.val)
 			}
 		}
 		if err == nil {
@@ -452,11 +476,13 @@ func renderInJavaScript(out io.Writer, value interface{}) error {
 }
 
 // renderInJavaScriptString renders value in JavaScriptString context.
-func renderInJavaScriptString(out io.Writer, value interface{}) error {
+func renderInJavaScriptString(env runtime.Env, out io.Writer, value interface{}) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
 		s = v.String()
+	case EnvStringer:
+		s = v.String(env)
 	case error:
 		s = v.Error()
 	default:

@@ -136,14 +136,36 @@ var operatorsOfKind = [...][21]bool{
 	reflect.Interface:  interfaceOperators,
 }
 
-type HTMLStringer interface{ HTML() string }
-type CSSStringer interface{ CSS() string }
-type JavaScriptStringer interface{ JavaScript() string }
+type (
+	HTMLStringer       interface{ HTML() string }
+	CSSStringer        interface{ CSS() string }
+	JavaScriptStringer interface{ JavaScript() string }
+)
+
+// These interfaces are like HTMLStringer, CSSStringer and JavaScriptStringer,
+// but their method accepts a runtime.Env parameter that can be used inside the
+// method's body to access some environment information.
+type (
+	HTMLEnvStringer       interface{ HTML(runtime.Env) string }
+	CSSEnvStringer        interface{ CSS(runtime.Env) string }
+	JavaScriptEnvStringer interface{ JavaScript(runtime.Env) string }
+)
+
+// EnvStringer is like fmt.Stringer, but its method accepts a runtime.Env as
+// parameter.
+type EnvStringer interface{ String(runtime.Env) string }
 
 var stringerType = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
+var envStringerType = reflect.TypeOf((*EnvStringer)(nil)).Elem()
+
 var htmlStringerType = reflect.TypeOf((*HTMLStringer)(nil)).Elem()
+var htmlEnvStringerType = reflect.TypeOf((*HTMLEnvStringer)(nil)).Elem()
+
 var cssStringerType = reflect.TypeOf((*CSSStringer)(nil)).Elem()
+var cssEnvStringerType = reflect.TypeOf((*CSSEnvStringer)(nil)).Elem()
+
 var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
+var javaScriptEnvStringerType = reflect.TypeOf((*JavaScriptEnvStringer)(nil)).Elem()
 
 // convert implicitly converts an untyped value. If the converted value is a
 // constant, convert returns its value, otherwise returns nil.
@@ -615,7 +637,9 @@ func operatorFromAssignmentType(assignmentType ast.AssignmentType) ast.OperatorT
 func printedAsJavaScript(t reflect.Type) error {
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
-		t.Implements(javaScriptStringerType) || t.Implements(errorType) {
+		t.Implements(javaScriptStringerType) ||
+		t.Implements(javaScriptEnvStringerType) ||
+		t.Implements(errorType) {
 		return nil
 	}
 	switch kind {
@@ -630,6 +654,7 @@ func printedAsJavaScript(t reflect.Type) error {
 		case key == reflect.String:
 		case reflect.Bool <= key && key <= reflect.Complex128:
 		case t.Implements(stringerType):
+		case t.Implements(envStringerType):
 		default:
 			return fmt.Errorf("map with %s key cannot be printed as JavaScript", t.Key())
 		}
