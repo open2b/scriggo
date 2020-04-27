@@ -12,9 +12,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
-
 	"scriggo/runtime"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 // EnvStringer.

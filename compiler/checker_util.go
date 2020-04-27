@@ -136,18 +136,22 @@ var operatorsOfKind = [...][21]bool{
 	reflect.Interface:  interfaceOperators,
 }
 
-type HTMLStringer interface{ HTML() string }
-type CSSStringer interface{ CSS() string }
-type JavaScriptStringer interface{ JavaScript() string }
+type (
+	HTMLStringer       interface{ HTML() string }
+	CSSStringer        interface{ CSS() string }
+	JavaScriptStringer interface{ JavaScript() string }
+)
 
-// These interfaces are like the ones above, but their method accepts a
-// runtime.Env parameter that can be used inside the method's body to access
-// some environment information.
-type HTMLEnvStringer interface{ HTML(runtime.Env) string }
-type CSSEnvStringer interface{ CSS(runtime.Env) string }
-type JavaScriptEnvStringer interface{ JavaScript(runtime.Env) string }
+// These interfaces are like HTMLStringer, CSSStringer and JavaScriptStringer,
+// but their method accepts a runtime.Env parameter that can be used inside the
+// method's body to access some environment information.
+type (
+	HTMLEnvStringer       interface{ HTML(runtime.Env) string }
+	CSSEnvStringer        interface{ CSS(runtime.Env) string }
+	JavaScriptEnvStringer interface{ JavaScript(runtime.Env) string }
+)
 
-// This interface is like fmt.Stringer, but its method accepts a runtime.Env as
+// EnvStringer is like fmt.Stringer, but its method accepts a runtime.Env as
 // parameter.
 type EnvStringer interface{ String(runtime.Env) string }
 
