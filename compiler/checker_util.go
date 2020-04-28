@@ -168,7 +168,7 @@ var cssEnvStringerType = reflect.TypeOf((*CSSEnvStringer)(nil)).Elem()
 var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
 var javaScriptEnvStringerType = reflect.TypeOf((*JavaScriptEnvStringer)(nil)).Elem()
 
-var timeTimeType = reflect.TypeOf(time.Time{})
+var timeType = reflect.TypeOf(time.Time{})
 
 // convert implicitly converts an untyped value. If the converted value is a
 // constant, convert returns its value, otherwise returns nil.
@@ -640,10 +640,10 @@ func operatorFromAssignmentType(assignmentType ast.AssignmentType) ast.OperatorT
 func printedAsJavaScript(t reflect.Type) error {
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
+		t == timeType ||
 		t.Implements(javaScriptStringerType) ||
 		t.Implements(javaScriptEnvStringerType) ||
-		t.Implements(errorType) ||
-		t == timeTimeType {
+		t.Implements(errorType) {
 		return nil
 	}
 	switch kind {
