@@ -206,7 +206,7 @@ import (
 {{- end}}
 )
 
-import . "scriggo"
+import . "github.com/open2b/scriggo"
 {{ if not .ImportReflect}}import "reflect"{{end}}
 
 func init() {

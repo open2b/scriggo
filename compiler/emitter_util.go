@@ -13,9 +13,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"scriggo/compiler/ast"
-	"scriggo/compiler/types"
-	"scriggo/runtime"
+	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/compiler/types"
+	"github.com/open2b/scriggo/runtime"
 )
 
 // changeRegister emits the code that move the content of register src to

@@ -9,8 +9,8 @@ package compiler
 import (
 	"fmt"
 
-	"scriggo/compiler/ast"
-	"scriggo/runtime"
+	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/runtime"
 )
 
 // A LimitExceededError is an error returned by the compiler reporting that the

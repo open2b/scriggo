@@ -9,8 +9,8 @@ package compiler
 import (
 	"reflect"
 
-	"scriggo/compiler/ast"
-	"scriggo/runtime"
+	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/runtime"
 )
 
 // A functionStore holds information about functions defined in Scriggo and

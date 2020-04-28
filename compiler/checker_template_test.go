@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"scriggo/compiler"
-	"scriggo/compiler/ast"
+	"github.com/open2b/scriggo/compiler"
+	"github.com/open2b/scriggo/compiler/ast"
 )
 
 var templateCases = []struct {

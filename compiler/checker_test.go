@@ -13,8 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	"scriggo/compiler/ast"
-	"scriggo/runtime"
+	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/runtime"
 )
 
 func tierr(line, column int, text string) *CheckingError {

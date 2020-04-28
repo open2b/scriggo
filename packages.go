@@ -9,7 +9,7 @@ package scriggo
 import (
 	"strings"
 
-	"scriggo/compiler"
+	"github.com/open2b/scriggo/compiler"
 )
 
 // Package represents a predefined package.

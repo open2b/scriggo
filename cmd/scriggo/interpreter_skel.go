@@ -30,8 +30,8 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 			"strconv"
 			"time"
 
-			"scriggo"
-			"scriggo/runtime"
+			"github.com/open2b/scriggo"
+			"github.com/open2b/scriggo/runtime"
 		)
 
 		const usage = "usage: %s [-S] [-time 50ms] filename\n"

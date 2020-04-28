@@ -6,7 +6,7 @@ import (
 	"strings"
 	"syscall/js"
 
-	"scriggo"
+	"github.com/open2b/scriggo"
 )
 
 var packages scriggo.Packages

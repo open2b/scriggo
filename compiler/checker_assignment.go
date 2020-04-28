@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"strings"
 
-	"scriggo/compiler/ast"
+	"github.com/open2b/scriggo/compiler/ast"
 )
 
 // checkAssignment type checks an assignment node with the operator '='.

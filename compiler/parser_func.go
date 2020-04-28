@@ -7,7 +7,7 @@
 package compiler
 
 import (
-	"scriggo/compiler/ast"
+	"github.com/open2b/scriggo/compiler/ast"
 )
 
 type funcKindToParse int

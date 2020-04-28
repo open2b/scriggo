@@ -23,8 +23,8 @@ import (
 	"io/ioutil"
 	"reflect"
 
-	"scriggo/compiler/ast"
-	"scriggo/runtime"
+	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/runtime"
 )
 
 // internalOperatorZero and internalOperatorNotZero are two internal operators

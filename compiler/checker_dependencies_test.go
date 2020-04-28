@@ -8,10 +8,11 @@ package compiler
 
 import (
 	"reflect"
-	"scriggo/compiler/ast"
 	"sort"
 	"strconv"
 	"testing"
+
+	"github.com/open2b/scriggo/compiler/ast"
 )
 
 var cases = map[string]struct {

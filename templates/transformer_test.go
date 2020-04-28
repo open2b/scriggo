@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"scriggo/compiler/ast"
+	"github.com/open2b/scriggo/compiler/ast"
 )
 
 func Test_treeTransformer(t *testing.T) {

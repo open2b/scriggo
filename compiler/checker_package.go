@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"scriggo/compiler/ast"
+	"github.com/open2b/scriggo/compiler/ast"
 )
 
 // Sync with scriggo.Package.

@@ -550,7 +550,7 @@ func _build(cmd string, path string, flags buildFlags) error {
 			panic("scriggo: empty gopath not supported")
 		}
 		scriggoPath := filepath.Join(goPaths[0], "src/scriggo")
-		err = goMod.AddReplace("scriggo", "", scriggoPath, "")
+		err = goMod.AddReplace("github.com/open2b/scriggo", "", scriggoPath, "")
 		if err != nil {
 			panic("scriggo: can't create go.mod: %s")
 		}

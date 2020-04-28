@@ -9,9 +9,10 @@ package astutil_test
 import (
 	"bytes"
 	"fmt"
-	"scriggo/compiler"
-	"scriggo/compiler/ast"
-	"scriggo/compiler/ast/astutil"
+
+	"github.com/open2b/scriggo/compiler"
+	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/compiler/ast/astutil"
 )
 
 func ExampleDump() {

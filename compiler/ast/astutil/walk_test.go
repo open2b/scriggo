@@ -7,10 +7,11 @@
 package astutil_test
 
 import (
-	"scriggo/compiler"
-	"scriggo/compiler/ast"
-	"scriggo/compiler/ast/astutil"
 	"testing"
+
+	"github.com/open2b/scriggo/compiler"
+	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/compiler/ast/astutil"
 )
 
 type TestVisitor struct {

@@ -9,8 +9,8 @@ package compiler
 import (
 	"reflect"
 
-	"scriggo/compiler/ast"
-	"scriggo/runtime"
+	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/runtime"
 )
 
 // address represents an element on the left side of an assignment.

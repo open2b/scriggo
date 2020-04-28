@@ -12,9 +12,9 @@ import (
 	"log"
 	"os"
 
-	"scriggo"
-	"scriggo/compiler"
-	"scriggo/compiler/ast"
+	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/compiler"
+	"github.com/open2b/scriggo/compiler/ast"
 )
 
 func ExampleParseSource() {

@@ -9,7 +9,7 @@ package compiler
 import (
 	"testing"
 
-	"scriggo/compiler/ast"
+	"github.com/open2b/scriggo/compiler/ast"
 )
 
 func TestInitializationLoop(t *testing.T) {

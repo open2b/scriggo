@@ -7,7 +7,7 @@
 package compiler
 
 import (
-	"scriggo/compiler/ast"
+	"github.com/open2b/scriggo/compiler/ast"
 )
 
 // isTypeGuard reports whether node is a switch type guard, as x.(type) and

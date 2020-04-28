@@ -6,7 +6,7 @@
 
 package compiler
 
-import "scriggo/compiler/ast"
+import "github.com/open2b/scriggo/compiler/ast"
 
 // TODO: this method is obsolete and must be removed when changing the type
 // checking of ForRange nodes.

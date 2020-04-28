@@ -13,9 +13,9 @@ import (
 	"io"
 	"reflect"
 
-	"scriggo/compiler"
-	"scriggo/compiler/ast"
-	"scriggo/runtime"
+	"github.com/open2b/scriggo/compiler"
+	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/runtime"
 )
 
 // CompilerError represents an error returned by the compiler.

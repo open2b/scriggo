@@ -1,7 +1,7 @@
 module testpkg
 
-replace scriggo => ../../../
+require github.com/open2b/scriggo v0.0.0
+
+replace github.com/open2b/scriggo => ../../../
 
 go 1.12
-
-require scriggo v0.0.0-00010101000000-000000000000

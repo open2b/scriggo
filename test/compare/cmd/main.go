@@ -18,9 +18,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"scriggo"
-	"scriggo/compiler"
-	"scriggo/runtime"
+	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/compiler"
+	"github.com/open2b/scriggo/runtime"
 )
 
 //go:generate scriggo embed -v -o predefPkgs.go

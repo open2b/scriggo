@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"scriggo"
+	"github.com/open2b/scriggo"
 )
 
 var packageLessPrograms = map[string]struct {

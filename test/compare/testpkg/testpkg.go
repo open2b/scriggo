@@ -4,7 +4,7 @@ package testpkg
 import (
 	"fmt"
 
-	"scriggo/runtime"
+	"github.com/open2b/scriggo/runtime"
 )
 
 const C1 = "a\t|\"c"

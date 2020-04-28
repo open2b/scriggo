@@ -15,7 +15,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"scriggo/compiler"
+	"github.com/open2b/scriggo/compiler"
 )
 
 // FileReader is implemented by values that can read files of a template.

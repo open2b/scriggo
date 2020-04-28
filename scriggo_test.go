@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"scriggo/compiler"
+	"github.com/open2b/scriggo/compiler"
 )
 
 func TestInitGlobals(t *testing.T) {

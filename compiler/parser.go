@@ -13,8 +13,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"scriggo/compiler/ast"
-	"scriggo/compiler/ast/astutil"
+	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/compiler/ast/astutil"
 )
 
 type FileReader interface {

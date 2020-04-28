@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"scriggo/compiler/ast"
+	"github.com/open2b/scriggo/compiler/ast"
 )
 
 // templatePageToPackage extract first-level declarations in tree and appends them

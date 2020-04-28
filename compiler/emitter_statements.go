@@ -8,9 +8,9 @@ package compiler
 
 import (
 	"fmt"
+	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/runtime"
 	"reflect"
-	"scriggo/compiler/ast"
-	"scriggo/runtime"
 )
 
 // emitNodes emits instructions for nodes.

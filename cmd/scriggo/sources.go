@@ -218,7 +218,7 @@ import (
 {{- end}}
 )
 
-import . "scriggo"
+import . "github.com/open2b/scriggo"
 {{ if not .ImportReflect}}import "reflect"{{end}}
 
 func init() {
@@ -790,8 +790,8 @@ const interpreterSkel = ` + "`" + `// Copyright (c) 2019 Open2b Software Snc. Al
 			"strconv"
 			"time"
 
-			"scriggo"
-			"scriggo/runtime"
+			"github.com/open2b/scriggo"
+			"github.com/open2b/scriggo/runtime"
 		)
 
 		const usage = "usage: %s [-S] [-time 50ms] filename\n"
@@ -1460,7 +1460,7 @@ func _build(cmd string, path string, flags buildFlags) error {
 			panic("scriggo: empty gopath not supported")
 		}
 		scriggoPath := filepath.Join(goPaths[0], "src/scriggo")
-		err = goMod.AddReplace("scriggo", "", scriggoPath, "")
+		err = goMod.AddReplace("github.com/open2b/scriggo", "", scriggoPath, "")
 		if err != nil {
 			panic("scriggo: can't create go.mod: %s")
 		}
@@ -2070,8 +2070,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"scriggo"
-	"scriggo/runtime"
+	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/runtime"
 )
 
 const usage = "usage: %s [-S] [-time 50ms] filename\n"

@@ -27,7 +27,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"scriggo/runtime"
+	"github.com/open2b/scriggo/runtime"
 )
 
 const maxInt = int(^uint(0) >> 1)

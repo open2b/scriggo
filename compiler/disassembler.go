@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"strings"
 
-	"scriggo/runtime"
+	"github.com/open2b/scriggo/runtime"
 )
 
 type registerType int8

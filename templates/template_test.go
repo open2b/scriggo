@@ -16,8 +16,8 @@ import (
 	"strings"
 	"testing"
 
-	"scriggo"
-	"scriggo/runtime"
+	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/runtime"
 
 	"github.com/google/go-cmp/cmp"
 )

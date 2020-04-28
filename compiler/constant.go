@@ -16,7 +16,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"scriggo/compiler/ast"
+	"github.com/open2b/scriggo/compiler/ast"
 )
 
 var errNotRepresentable = errors.New("not representable")

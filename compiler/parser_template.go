@@ -11,7 +11,7 @@ import (
 	"os"
 	"strings"
 
-	"scriggo/compiler/ast"
+	"github.com/open2b/scriggo/compiler/ast"
 )
 
 // ParseTemplate parses the template file with the given path and written in

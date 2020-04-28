@@ -17,8 +17,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"scriggo"
-	"scriggo/runtime"
+	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/runtime"
 )
 
 const usage = "usage: %s [-S] [-time 50ms] filename\n"

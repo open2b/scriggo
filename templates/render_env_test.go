@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"testing"
 
-	"scriggo/runtime"
+	"github.com/open2b/scriggo/runtime"
 
 	"github.com/google/go-cmp/cmp"
 )

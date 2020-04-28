@@ -10,8 +10,8 @@ import (
 	"errors"
 	"fmt"
 
-	"scriggo/compiler/ast"
-	"scriggo/compiler/types"
+	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/compiler/types"
 )
 
 // typecheck makes a type check on tree. A map of predefined packages may be

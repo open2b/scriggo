@@ -11,8 +11,8 @@ import (
 	"math"
 	"reflect"
 
-	"scriggo/compiler/ast"
-	"scriggo/runtime"
+	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/runtime"
 )
 
 // emitExpr emits expr into a register of a given type. emitExpr tries to not

@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"testing"
 
-	"scriggo/compiler/ast"
+	"github.com/open2b/scriggo/compiler/ast"
 )
 
 func new_test_builder() *functionBuilder {

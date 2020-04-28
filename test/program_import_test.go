@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"scriggo"
+	"github.com/open2b/scriggo"
 )
 
 func TestProgramImport(t *testing.T) {

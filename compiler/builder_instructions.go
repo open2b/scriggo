@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"scriggo/compiler/ast"
-	"scriggo/runtime"
+	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/runtime"
 )
 
 // emitAdd appends a new "Add" instruction to the function body.

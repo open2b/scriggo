@@ -139,7 +139,7 @@ import (
 	utf8 "unicode/utf8"
 )
 
-import . "scriggo"
+import . "github.com/open2b/scriggo"
 
 
 func init() {

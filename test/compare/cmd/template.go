@@ -19,9 +19,9 @@ import (
 	"unicode"
 	utf8 "unicode/utf8"
 
-	"scriggo/compiler"
-	"scriggo/compiler/ast"
-	"scriggo/runtime"
+	"github.com/open2b/scriggo/compiler"
+	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/runtime"
 )
 
 type mapReader map[string][]byte
