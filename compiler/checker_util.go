@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
@@ -166,6 +167,8 @@ var cssEnvStringerType = reflect.TypeOf((*CSSEnvStringer)(nil)).Elem()
 
 var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
 var javaScriptEnvStringerType = reflect.TypeOf((*JavaScriptEnvStringer)(nil)).Elem()
+
+var timeTimeType = reflect.TypeOf(time.Time{})
 
 // convert implicitly converts an untyped value. If the converted value is a
 // constant, convert returns its value, otherwise returns nil.
@@ -639,7 +642,8 @@ func printedAsJavaScript(t reflect.Type) error {
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
 		t.Implements(javaScriptStringerType) ||
 		t.Implements(javaScriptEnvStringerType) ||
-		t.Implements(errorType) {
+		t.Implements(errorType) ||
+		t == timeTimeType {
 		return nil
 	}
 	switch kind {
