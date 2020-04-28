@@ -156,7 +156,7 @@ func ParsePackageLessProgram(src io.Reader, loader PackageLoader, shebang bool) 
 		case nil:
 			return nil, syntaxError(imp.Pos(), "cannot find package %q", imp.Path)
 		default:
-			return nil, fmt.Errorf("scriggo: unexpected type %T package loader", pkg)
+			return nil, fmt.Errorf("scriggo: unexpected type %T returned by the package loader", pkg)
 		}
 	}
 
