@@ -13,6 +13,7 @@ import (
 	_sort "sort"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
@@ -318,6 +319,9 @@ func renderInJavaScript(env runtime.Env, out io.Writer, value interface{}) error
 	case JavaScriptEnvStringer:
 		_, err := w.WriteString(v.JavaScript(env))
 		return err
+	case time.Time:
+		_, err := w.WriteString(renderTimeInJavaScript(v))
+		return err
 	case error:
 		value = v.Error()
 	}
@@ -489,4 +493,32 @@ func renderInJavaScriptString(env runtime.Env, out io.Writer, value interface{})
 		s = toString(reflect.ValueOf(value))
 	}
 	return javaScriptStringEscape(newStringWriter(out), s)
+}
+
+// renderTimeInJavaScript renders a value of type time.Time in a JavaScript
+// context.
+func renderTimeInJavaScript(tt time.Time) string {
+	y := tt.Year()
+	if y < -999999 || y > 999999 {
+		panic("not representable year in JavaScript")
+	}
+	ms := int64(tt.Nanosecond()) / int64(time.Millisecond)
+	name, offset := tt.Zone()
+	if name == "UTC" {
+		format := `new Date("%0.4d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3dZ")`
+		if y < 0 || y > 9999 {
+			format = `new Date("%+0.6d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3dZ")`
+		}
+		return fmt.Sprintf(format, y, tt.Month(), tt.Day(), tt.Hour(), tt.Minute(), tt.Second(), ms)
+	}
+	zone := offset / 60
+	h, m := zone/60, zone%60
+	if m < 0 {
+		m = -m
+	}
+	format := `new Date("%0.4d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3d%+0.2d:%0.2d")`
+	if y < 0 || y > 9999 {
+		format = `new Date("%+0.6d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3d%+0.2d:%0.2d")`
+	}
+	return fmt.Sprintf(format, y, tt.Month(), tt.Day(), tt.Hour(), tt.Minute(), tt.Second(), ms, h, m)
 }

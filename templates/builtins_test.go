@@ -14,10 +14,10 @@ import (
 
 var loc, _ = time.LoadLocation("America/Los_Angeles")
 var testTime, _ = time.Parse(time.RFC3339, "2006-01-02T15:04:05.123456Z")
-var testTime1 = Time(time.Date(2006, 1, 02, 15, 4, 5, 123456789, time.UTC))
-var testTime2 = Time(time.Date(12365, 3, 22, 15, 19, 5, 123456789, time.UTC))
-var testTime3 = Time(time.Date(2006, 1, 02, 15, 4, 5, 123456789, loc))
-var testTime4 = Time(time.Date(-12365, 3, 22, 15, 19, 5, 123456789, loc))
+var testTime1 = time.Date(2006, 1, 02, 15, 4, 5, 123456789, time.UTC)
+var testTime2 = time.Date(12365, 3, 22, 15, 19, 5, 123456789, time.UTC)
+var testTime3 = time.Date(2006, 1, 02, 15, 4, 5, 123456789, loc)
+var testTime4 = time.Date(-12365, 3, 22, 15, 19, 5, 123456789, loc)
 
 type builtinTest struct {
 	src  string
@@ -35,10 +35,9 @@ var rendererBuiltinTestsInHTMLLanguage = []builtinTest{
 	{"{% var h = SHA256 %}{{ h }}", "2", nil},
 
 	// Time
-	{"{% var t Time %}{{ t }}", "0001-01-01 00:00:00 +0000 UTC", nil},
-	{"{{ t }}", "2006-01-02 15:04:05.123456 +0000 UTC", Vars{"t": Time(testTime)}},
-	{"<div data-time=\"{{ t }}\">", "<div data-time=\"2006-01-02 15:04:05.123456 +0000 UTC\">", Vars{"t": Time(testTime)}},
-	{"<div data-time={{ t }}>", "<div data-time=2006-01-02&#32;15:04:05.123456&#32;+0000&#32;UTC>", Vars{"t": Time(testTime)}},
+	{"{{ t }}", "2006-01-02 15:04:05.123456 +0000 UTC", Vars{"t": testTime}},
+	{"<div data-time=\"{{ t }}\">", "<div data-time=\"2006-01-02 15:04:05.123456 +0000 UTC\">", Vars{"t": testTime}},
+	{"<div data-time={{ t }}>", "<div data-time=2006-01-02&#32;15:04:05.123456&#32;+0000&#32;UTC>", Vars{"t": testTime}},
 
 	// abbreviate
 	{"{{ abbreviate(``,0) }}", "", nil},
@@ -397,12 +396,12 @@ func TestRenderBuiltinInHTMLLanguage(t *testing.T) {
 
 var rendererBuiltinTestsInJavaScriptLanguage = []builtinTest{
 	// Time
-	{"var t = {{ t }};", "var t = new Date(\"2006-01-02T15:04:05.123Z\");", Vars{"t": Time(testTime)}},
-	{"var t = new Date(\"{{ t }}\");", "var t = new Date(\"2006-01-02 15:04:05.123456 +0000 UTC\");", Vars{"t": Time(testTime)}},
-	{"var t = {{ t }};", "var t = new Date(\"+012365-03-22T15:19:05.123Z\");", Vars{"t": Time(testTime2)}},
-	{"var t = new Date(\"{{ t }}\");", "var t = new Date(\"12365-03-22 15:19:05.123456789 +0000 UTC\");", Vars{"t": Time(testTime2)}},
-	{"var t = {{ t }};", "var t = new Date(\"2006-01-02T15:04:05.123-08:00\");", Vars{"t": Time(testTime3)}},
-	{"var t = new Date(\"{{ t }}\");", "var t = new Date(\"2006-01-02 15:04:05.123456789 -0800 PST\");", Vars{"t": Time(testTime3)}},
+	{"var t = {{ t }};", "var t = new Date(\"2006-01-02T15:04:05.123Z\");", Vars{"t": testTime}},
+	{"var t = new Date(\"{{ t }}\");", "var t = new Date(\"2006-01-02 15:04:05.123456 +0000 UTC\");", Vars{"t": testTime}},
+	{"var t = {{ t }};", "var t = new Date(\"+012365-03-22T15:19:05.123Z\");", Vars{"t": testTime2}},
+	{"var t = new Date(\"{{ t }}\");", "var t = new Date(\"12365-03-22 15:19:05.123456789 +0000 UTC\");", Vars{"t": testTime2}},
+	{"var t = {{ t }};", "var t = new Date(\"2006-01-02T15:04:05.123-08:00\");", Vars{"t": testTime3}},
+	{"var t = new Date(\"{{ t }}\");", "var t = new Date(\"2006-01-02 15:04:05.123456789 -0800 PST\");", Vars{"t": testTime3}},
 }
 
 func TestRenderBuiltinInJavaScriptLanguage(t *testing.T) {
