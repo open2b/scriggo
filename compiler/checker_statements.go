@@ -917,7 +917,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pac
 	// Import statement in a package-less program.
 	if tc.opts.PackageLess {
 		if impor.Tree != nil {
-			panic("cannot only import precompiled packages in package-less program") // TODO: review this panic.
+			panic("BUG: only precompiled packages can be imported in package-less program")
 		}
 		pkg, err := tc.predefinedPkgs.Load(impor.Path)
 		if err != nil {
