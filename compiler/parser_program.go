@@ -124,8 +124,6 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
 // package-less program can have the shebang as first line.
 func ParsePackageLessProgram(src io.Reader, loader PackageLoader, shebang bool) (*ast.Tree, error) {
 
-	packages := map[string]bool{}
-
 	// Parse the source.
 	buf, err := ioutil.ReadAll(src)
 	if r, ok := src.(io.Closer); ok {
@@ -155,7 +153,6 @@ func ParsePackageLessProgram(src io.Reader, loader PackageLoader, shebang bool) 
 		}
 		switch pkg := pkg.(type) {
 		case predefinedPackage:
-			packages[imp.Path] = true
 		case nil:
 			return nil, syntaxError(imp.Pos(), "cannot find package %q", imp.Path)
 		default:
