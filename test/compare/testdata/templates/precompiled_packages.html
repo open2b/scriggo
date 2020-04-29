@@ -1,0 +1,12 @@
+{# render #}
+
+{% import "fmt" %}
+{% import . "math" %}
+{% import s "strings" %}
+
+{{ fmt.Sprint(10, 20) }}
+
+{% x := -123.1 %}
+The absolute value of {{ x }} is {{ Abs(x) }}
+
+{% for part in s.Split("this is a Scriggo template", " ") %}{{ part }},{% end for %}
