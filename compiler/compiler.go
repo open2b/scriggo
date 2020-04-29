@@ -41,10 +41,17 @@ const (
 
 // Options represents a set of options used during the compilation.
 type Options struct {
-	AllowShebangLine   bool
-	DisallowGoStmt     bool
-	PackageLess        bool
-	Builtins           Declarations
+	AllowShebangLine bool
+	DisallowGoStmt   bool
+	PackageLess      bool
+	Builtins         Declarations
+
+	// Loader loads Scriggo packages and precompiled packages.
+	//
+	// For template files, Loader only loads precompiled packages; the template
+	// files are read from the FileReader.
+	Loader PackageLoader
+
 	TemplateFailOnTODO bool
 	RelaxedBoolean     bool
 	TreeTransformer    func(*ast.Tree) error
@@ -125,7 +132,7 @@ func CompileTemplate(path string, r FileReader, lang ast.Language, opts Options)
 
 	// Parse the source code.
 	var err error
-	tree, err = ParseTemplate(path, r, lang, opts.RelaxedBoolean)
+	tree, err = ParseTemplate(path, r, lang, opts.RelaxedBoolean, opts.Loader)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +155,7 @@ func CompileTemplate(path string, r FileReader, lang ast.Language, opts Options)
 		SyntaxType:     TemplateSyntax,
 		RelaxedBoolean: opts.RelaxedBoolean,
 	}
-	tci, err := typecheck(tree, nil, checkerOpts)
+	tci, err := typecheck(tree, opts.Loader, checkerOpts)
 	if err != nil {
 		return nil, err
 	}

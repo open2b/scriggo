@@ -9,6 +9,7 @@ package compiler
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/open2b/scriggo/compiler/ast"
@@ -24,7 +25,7 @@ import (
 //
 // relaxedBoolean reports whether the operators 'and', 'or' and 'not' as well as
 // non-boolean conditions in the if statement are allowed.
-func ParseTemplate(path string, reader FileReader, lang ast.Language, relaxedBoolean bool) (*ast.Tree, error) {
+func ParseTemplate(path string, reader FileReader, lang ast.Language, relaxedBoolean bool, loader PackageLoader) (*ast.Tree, error) {
 
 	if path == "" {
 		return nil, ErrInvalidPath
@@ -40,6 +41,7 @@ func ParseTemplate(path string, reader FileReader, lang ast.Language, relaxedBoo
 
 	pp := &templateExpansion{
 		reader:         reader,
+		loader:         loader,
 		paths:          []string{},
 		relaxedBoolean: relaxedBoolean,
 	}
@@ -62,6 +64,7 @@ func ParseTemplate(path string, reader FileReader, lang ast.Language, relaxedBoo
 // templateExpansion represents the state of a template expansion.
 type templateExpansion struct {
 	reader         FileReader
+	loader         PackageLoader
 	paths          []string
 	relaxedBoolean bool
 }
@@ -219,20 +222,39 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 
 		case *ast.Import:
 
-			absPath, err := pp.abs(n.Path)
-			if err != nil {
-				return err
-			}
-			n.Tree, err = pp.parseFile(absPath, ast.Language(n.Context))
-			if err != nil {
-				if err == ErrInvalidPath {
-					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
-				} else if os.IsNotExist(err) {
-					err = syntaxError(n.Pos(), "import path %q does not exist", absPath)
-				} else if err2, ok := err.(cycleError); ok {
-					err = cycleError("imports " + string(err2))
+			if ext := filepath.Ext(n.Path); ext == "" {
+				// Import a precompiled package (the path has no extension).
+				if pp.loader == nil {
+					return syntaxError(n.Pos(), "cannot find package %q", n.Path)
 				}
-				return err
+				pkg, err := pp.loader.Load(n.Path)
+				if err != nil {
+					return err
+				}
+				switch pkg := pkg.(type) {
+				case predefinedPackage:
+				case nil:
+					return syntaxError(n.Pos(), "cannot find package %q", n.Path)
+				default:
+					return fmt.Errorf("scriggo: unexpected type %T returned by the package loader", pkg)
+				}
+			} else {
+				// Import a template file (the path has an extension).
+				absPath, err := pp.abs(n.Path)
+				if err != nil {
+					return err
+				}
+				n.Tree, err = pp.parseFile(absPath, ast.Language(n.Context))
+				if err != nil {
+					if err == ErrInvalidPath {
+						err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
+					} else if os.IsNotExist(err) {
+						err = syntaxError(n.Pos(), "import path %q does not exist", absPath)
+					} else if err2, ok := err.(cycleError); ok {
+						err = cycleError("imports " + string(err2))
+					}
+					return err
+				}
 			}
 
 		case *ast.Include:

@@ -14,6 +14,7 @@ import (
 	"reflect"
 	_sort "sort"
 
+	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/compiler"
 	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/runtime"
@@ -115,6 +116,17 @@ type LoadOptions struct {
 	// Builtins declares constants, types, variables and functions that are
 	// accessible from the code in the template.
 	Builtins Declarations
+
+	// Loader is a package loader that makes precompiled packages available in
+	// the template through the 'import' statement.
+	//
+	// Note that an import statement refers to a precompiled package read from
+	// the Loader if its path has no extension.
+	//
+	//     {%  import  "my/package"   %}    Import a precompiled package.
+	//     {%  import  "my/file.html  %}    Import a template file.
+	//
+	Loader scriggo.PackageLoader
 }
 
 // Declarations.
@@ -148,6 +160,7 @@ func Load(name string, files FileReader, lang Language, options *LoadOptions) (*
 		co.Builtins = compiler.Declarations(options.Builtins)
 		co.TreeTransformer = options.TreeTransformer
 		co.DisallowGoStmt = options.DisallowGoStmt
+		co.Loader = options.Loader
 	}
 	code, err := compiler.CompileTemplate(name, files, ast.Language(lang), co)
 	if err != nil {

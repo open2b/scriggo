@@ -9,6 +9,7 @@ package templates
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"reflect"
@@ -671,6 +672,7 @@ var templateMultiPageCases = map[string]struct {
 	vars            map[string]interface{} // default to nil
 	lang            Language               // default to LanguageText
 	entryPoint      string                 // default to "index.html"
+	loader          scriggo.PackageLoader  // default to nil
 }{
 
 	"Empty template": {
@@ -1449,6 +1451,69 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedLoadErr: `cannot print sb1 (type []uint8 cannot be printed as text)`,
 	},
+
+	"Using the precompiled package 'fmt'": {
+		sources: map[string]string{
+			"index.html": `{% import "fmt" %}{{ fmt.Sprint(10, 20) }}`,
+		},
+		loader:      testLoader,
+		expectedOut: "10 20",
+	},
+
+	"Using the precompiled packages 'fmt' and 'math'": {
+		sources: map[string]string{
+			"index.html": `{% import "fmt" %}{% import m "math" %}{{ fmt.Sprint(-42, m.Abs(-42)) }}`,
+		},
+		loader:      testLoader,
+		expectedOut: "-42 42",
+	},
+
+	"Importing the precompiled package 'fmt' with '.'": {
+		sources: map[string]string{
+			"index.html": `{% import . "fmt" %}{{ Sprint(50, 70) }}`,
+		},
+		loader:      testLoader,
+		expectedOut: "50 70",
+	},
+
+	"Trying to import a precompiled package that is not available in the loader": {
+		sources: map[string]string{
+			"index.html": `{% import "mypackage" %}{{ mypackage.F() }}`,
+		},
+		loader:          testLoader,
+		expectedLoadErr: "/index.html:1:11: syntax error: cannot find package \"mypackage\"",
+	},
+
+	"Trying to access a precompiled function 'SuperPrint' that is not available in the package 'fmt'": {
+		sources: map[string]string{
+			"index.html": `{% import "fmt" %}{{ fmt.SuperPrint(42) }}`,
+		},
+		loader:          testLoader,
+		expectedLoadErr: "/index.html:1:25: undefined: fmt.SuperPrint",
+	},
+
+	"Using the precompiled package 'fmt' without importing it returns an error": {
+		sources: map[string]string{
+			"index.html": `{{ fmt.Sprint(10, 20) }}`,
+		},
+		loader:          testLoader,
+		expectedLoadErr: "/index.html:1:4: undefined: fmt",
+	},
+}
+
+var testLoader = scriggo.Packages{
+	"fmt": &scriggo.MapPackage{
+		PkgName: "fmt",
+		Declarations: map[string]interface{}{
+			"Sprint": fmt.Sprint,
+		},
+	},
+	"math": &scriggo.MapPackage{
+		PkgName: "math",
+		Declarations: map[string]interface{}{
+			"Abs": math.Abs,
+		},
+	},
 }
 
 var builtinVariable = "builtin variable"
@@ -1491,6 +1556,7 @@ func TestMultiPageTemplate(t *testing.T) {
 			}
 			opts := &LoadOptions{
 				Builtins: builtins,
+				Loader:   cas.loader,
 			}
 			templ, err := Load(entryPoint, r, cas.lang, opts)
 			switch {

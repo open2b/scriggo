@@ -8,9 +8,11 @@ package compiler
 
 import (
 	"fmt"
+	"path/filepath"
+	"reflect"
+
 	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/runtime"
-	"reflect"
 )
 
 // emitNodes emits instructions for nodes.
@@ -83,7 +85,12 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 
 		case *ast.Import:
 			if em.isTemplate {
-				em.emitImport(node, true)
+				// Import a template file.
+				// Precompiled packages have been already handled by the type
+				// checker and should be ignored by the emitter.
+				if ext := filepath.Ext(node.Path); ext != "" {
+					em.emitImport(node, true)
+				}
 			}
 
 		case *ast.Fallthrough:

@@ -914,8 +914,9 @@ nodesLoop:
 // TODO: improve this code, making it more readable.
 func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, packageLevel bool) error {
 
-	// Import statement in a package-less program.
-	if tc.opts.PackageLess {
+	// Import a precompiled package from a package-less program or a template
+	// page.
+	if tc.opts.PackageLess || (tc.opts.SyntaxType == TemplateSyntax && impor.Tree == nil) {
 		if impor.Tree != nil {
 			panic("BUG: only precompiled packages can be imported in package-less program")
 		}
@@ -994,7 +995,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pac
 		imported = tc.compilation.pkgInfos[impor.Tree.Path]
 	}
 
-	// Import statement in a template.
+	// Import a template file from a template.
 	if tc.opts.SyntaxType == TemplateSyntax {
 		if !packageLevel {
 			if impor.Ident != nil && impor.Ident.Name == "_" {
