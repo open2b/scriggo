@@ -1460,6 +1460,15 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "10 20",
 	},
 
+	"Using the precompiled package 'fmt' from a file that extends another file": {
+		sources: map[string]string{
+			"index.html":    `{% extends "extended.html" %}{% import "fmt" %}{% macro M %}{{ fmt.Sprint(321, 11) }}{% end macro %}`,
+			"extended.html": `{% show M %}`,
+		},
+		loader:      testLoader,
+		expectedOut: "321 11",
+	},
+
 	"Using the precompiled packages 'fmt' and 'math'": {
 		sources: map[string]string{
 			"index.html": `{% import "fmt" %}{% import m "math" %}{{ fmt.Sprint(-42, m.Abs(-42)) }}`,

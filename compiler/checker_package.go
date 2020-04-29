@@ -592,6 +592,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, impor
 	}
 
 	// First: import packages.
+	tc.predefinedPkgs = imports
 	for _, d := range pkg.Declarations {
 		if d, ok := d.(*ast.Import); ok {
 			err := tc.checkImport(d, imports, true)

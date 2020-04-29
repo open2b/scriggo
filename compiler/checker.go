@@ -91,7 +91,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		if err != nil {
 			return nil, err
 		}
-		err = checkPackage(compilation, tree.Nodes[0].(*ast.Package), tree.Path, nil, opts, tc.globalScope)
+		err = checkPackage(compilation, tree.Nodes[0].(*ast.Package), tree.Path, packages, opts, tc.globalScope)
 		if err != nil {
 			return nil, err
 		}
@@ -172,8 +172,11 @@ type typechecker struct {
 	// instances of 'typechecker'.
 	compilation *compilation
 
-	path           string
-	paths          []checkerPath
+	path  string
+	paths []checkerPath
+
+	// TODO: the PackageLoader is a field of 'typechecker' and it is also
+	// passed as argument to some functions. Standardize the code.
 	predefinedPkgs PackageLoader
 
 	// universe is the outermost scope.
