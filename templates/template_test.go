@@ -289,7 +289,7 @@ func TestRenderExpressions(t *testing.T) {
 	for _, cas := range rendererExprTests {
 		t.Run(cas.src, func(t *testing.T) {
 			r := MapReader{"index.html": []byte("{{" + cas.src + "}}")}
-			templ, err := Load("index.html", r, nil, LanguageText, nil)
+			templ, err := Load("index.html", r, LanguageText, nil)
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
@@ -512,7 +512,7 @@ func TestRenderStatements(t *testing.T) {
 	for _, cas := range rendererStmtTests {
 		t.Run(cas.src, func(t *testing.T) {
 			r := MapReader{"index.html": []byte(cas.src)}
-			templ, err := Load("index.html", r, nil, LanguageText, nil)
+			templ, err := Load("index.html", r, LanguageText, nil)
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
@@ -1489,7 +1489,10 @@ func TestMultiPageTemplate(t *testing.T) {
 			if entryPoint == "" {
 				entryPoint = "index.html"
 			}
-			templ, err := Load(entryPoint, r, builtins, cas.lang, nil)
+			opts := &LoadOptions{
+				Builtins: builtins,
+			}
+			templ, err := Load(entryPoint, r, cas.lang, opts)
 			switch {
 			case err == nil && cas.expectedLoadErr == "":
 				// Ok, no errors expected: continue with the test.
@@ -1535,7 +1538,10 @@ func TestVars(t *testing.T) {
 		"f": f,
 		"g": g,
 	}
-	tmpl, err := Load("example.txt", reader, builtins, LanguageText, nil)
+	opts := &LoadOptions{
+		Builtins: builtins,
+	}
+	tmpl, err := Load("example.txt", reader, LanguageText, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1614,7 +1620,10 @@ func Test_envFilePath(t *testing.T) {
 			for p, src := range cas.sources {
 				r[p] = []byte(src)
 			}
-			template, err := Load("index.html", r, builtins, LanguageHTML, nil)
+			opts := &LoadOptions{
+				Builtins: builtins,
+			}
+			template, err := Load("index.html", r, LanguageHTML, opts)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -15,7 +15,7 @@ func TestFullTemplate(t *testing.T) {
 	r := DirReader("./full_template_test")
 	for page, expectedOutput := range expectedPagesOutput {
 		t.Run(page, func(t *testing.T) {
-			templ, err := Load(page, r, nil, LanguageHTML, nil)
+			templ, err := Load(page, r, LanguageHTML, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

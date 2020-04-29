@@ -122,7 +122,10 @@ func TestEnvStringer(t *testing.T) {
 			for p, src := range cas.sources {
 				r[p] = []byte(src)
 			}
-			template, err := Load("index.html", r, cas.builtins, cas.language, nil)
+			opts := &LoadOptions{
+				Builtins: cas.builtins,
+			}
+			template, err := Load("index.html", r, cas.language, opts)
 			if err != nil {
 				t.Fatal(err)
 			}
