@@ -1791,7 +1791,7 @@ func (vm *VM) run() (Addr, bool) {
 					// not.
 					if rv.Type().Implements(isZeroType) {
 						isZero := rv.MethodByName("IsZero")
-						zero = isZero.Call(nil)[0].Interface().(bool)
+						zero = isZero.Call(nil)[0].Bool()
 					} else {
 						// Note that rv.IsZero() also handles values that have
 						// static type interface because the interface is lost when
