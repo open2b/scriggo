@@ -1508,6 +1508,62 @@ var templateMultiPageCases = map[string]struct {
 		loader:          testLoader,
 		expectedLoadErr: "/index.html:1:4: undefined: fmt",
 	},
+
+	"Check if a value that has a method 'IsZero() bool' is zero or not": {
+		sources: map[string]string{
+			"index.html": "{% if (NeverZero{}) %}OK{% else %}BUG{% end %}\n" +
+				"{% if (AlwaysZero{}) %}BUG{% else %}OK{% end %}\n" +
+				"{% if (struct{}{}) %}BUG{% else %}OK{% end %}\n" +
+				"{% if (struct{Value int}{}) %}BUG{% else %}OK{% end %}\n" +
+				"{% if (struct{Value int}{Value: 42}) %}OK{% else %}BUG{% end %}\n" +
+				"{% if (ZeroIf42{}) %}OK{% else %}BUG{% end %}\n" +
+				"{% if (ZeroIf42{Value: 42}) %}BUG{% else %}OK{% end %}\n" +
+				"{% if (NotImplIsZero{}) %}BUG{% else %}OK{% end %}",
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"NeverZero":     reflect.TypeOf((*testNeverZero)(nil)).Elem(),
+				"AlwaysZero":    reflect.TypeOf((*testAlwaysZero)(nil)).Elem(),
+				"ZeroIf42":      reflect.TypeOf((*testZeroIf42)(nil)).Elem(),
+				"NotImplIsZero": reflect.TypeOf((*testNotImplementIsZero)(nil)).Elem(),
+			},
+		},
+		expectedOut: "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK",
+	},
+}
+
+// testAlwaysZero is always considered zero.
+type testAlwaysZero struct{}
+
+func (testAlwaysZero) IsZero() bool {
+	return true
+}
+
+// testNeverZero is never considered zero.
+type testNeverZero struct{}
+
+func (testNeverZero) IsZero() bool {
+	return false
+}
+
+// testZeroIf42 is zero only if its field Value is 42.
+type testZeroIf42 struct {
+	Value int
+}
+
+func (s testZeroIf42) IsZero() bool {
+	return s.Value == 42
+}
+
+// testNotImplementIsZero has as method called 'IsZero', but its type is
+// 'IsZero() int' instead of 'IsZero() bool' so it cannot be used to check if a
+// value of its type is zero. This is not an error: simply such method will be
+// ignored by the Scriggo runtime.
+type testNotImplementIsZero struct{}
+
+func (testNotImplementIsZero) IsZero() int {
+	panic("BUG: this method should never be called")
 }
 
 var testLoader = scriggo.Packages{
