@@ -40,7 +40,7 @@ type EnvStringer interface {
 	String(runtime.Env) string
 }
 
-// HTMStringer is implemented by values that are not escaped in HTML context.
+// HTMLStringer is implemented by values that are not escaped in HTML context.
 type HTMLStringer interface {
 	HTML() string
 }
