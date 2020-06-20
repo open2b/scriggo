@@ -82,17 +82,6 @@ func (err ExitError) Error() string {
 	return ""
 }
 
-// OutOfTimeError represents a runtime out of time error.
-type OutOfTimeError struct {
-	env *env
-}
-
-func (err OutOfTimeError) Error() string {
-	return "runtime error: out of time: " + err.env.ctx.Err().Error()
-}
-
-func (err OutOfTimeError) RuntimeError() {}
-
 // errIndexOutOfRange returns an index of range runtime error for the
 // currently running virtual machine instruction.
 func (vm *VM) errIndexOutOfRange() runtimeError {

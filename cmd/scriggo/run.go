@@ -15,13 +15,12 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/runtime"
 )
 
-const usage = "usage: %s [-S] [-time 50ms] filename\n"
+const usage = "usage: %s [-S] filename\n"
 
 var packages scriggo.Packages
 var Main *scriggo.Package
@@ -44,26 +43,10 @@ func renderPanics(p *runtime.Panic) string {
 func run() {
 
 	var asm = flag.Bool("S", false, "print assembly listing")
-	var timeout = flag.String("time", "", "limit the execution time; zero is no limit")
 
 	flag.Parse()
 
 	var loadOptions = &scriggo.LoadOptions{}
-	var runOptions = &scriggo.RunOptions{}
-
-	if *timeout != "" {
-		d, err := time.ParseDuration(*timeout)
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, usage, os.Args[0])
-			flag.PrintDefaults()
-			os.Exit(1)
-		}
-		if d != 0 {
-			var cancel context.CancelFunc
-			runOptions.Context, cancel = context.WithTimeout(context.Background(), d)
-			defer cancel()
-		}
-	}
 
 	var args = flag.Args()
 
@@ -102,7 +85,7 @@ func run() {
 			os.Exit(2)
 		}
 	} else {
-		code, err := program.Run(runOptions)
+		code, err := program.Run(nil)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
 				panic(renderPanics(p))

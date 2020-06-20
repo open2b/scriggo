@@ -9,14 +9,12 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/compiler"
@@ -84,31 +82,12 @@ func main() {
 		panic(err)
 	}
 
-	var timeoutArg = flag.String("time", "", "limit the execution time; zero is no limit; the argument is parsed using function time.ParseDuration")
 	var disallowGoStmt = flag.Bool("disallowGoStatement", false, "disallow the 'go' statement")
 
 	flag.Parse()
 
-	// TODO: this is a copy-paste from cmd/scriggo/interpreter_skel.go. When
-	// these code will be implemented as a support function, call it.
-	var timeout context.Context
-	if *timeoutArg != "" {
-		d, err := time.ParseDuration(*timeoutArg)
-		if err != nil {
-			panic(err)
-		}
-		if d != 0 {
-			var cancel context.CancelFunc
-			timeout, cancel = context.WithTimeout(context.Background(), d)
-			defer cancel()
-		}
-	}
-
 	switch flag.Args()[0] {
 	case "compile program":
-		if timeout != nil {
-			panic("timeout not supported when compiling a program")
-		}
 		loadOpts := &scriggo.LoadOptions{}
 		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
 		_, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
@@ -117,9 +96,6 @@ func main() {
 			os.Exit(1)
 		}
 	case "compile script":
-		if timeout != nil {
-			panic("timeout not supported when compiling a package-less program")
-		}
 		loadOpts := &scriggo.LoadOptions{}
 		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
 		loadOpts.OutOfSpec.PackageLess = true
@@ -136,10 +112,7 @@ func main() {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
-		runOpts := &scriggo.RunOptions{
-			Context: timeout,
-		}
-		_, err = program.Run(runOpts)
+		_, err = program.Run(nil)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
 				panic(renderPanics(p))
@@ -155,10 +128,7 @@ func main() {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
-		runOpts := &scriggo.RunOptions{
-			Context: timeout,
-		}
-		_, err = script.Run(runOpts)
+		_, err = script.Run(nil)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
 				panic(renderPanics(p))
@@ -179,10 +149,7 @@ func main() {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
-		runOpts := &scriggo.RunOptions{
-			Context: timeout,
-		}
-		_, err = prog.Run(runOpts)
+		_, err = prog.Run(nil)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
 				panic(renderPanics(p))
@@ -203,7 +170,7 @@ func main() {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
-		err = templ.render(timeout)
+		err = templ.render(nil)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
 				panic(renderPanics(p))
@@ -221,7 +188,7 @@ func main() {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
-		err = templ.render(timeout)
+		err = templ.render(nil)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
 				panic(renderPanics(p))
@@ -235,9 +202,6 @@ func main() {
 		src, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
 			panic(err)
-		}
-		if timeout != nil {
-			panic("timeout not supported when compiling a html page")
 		}
 		r := mapReader{"/index.html": src}
 		_, err = compileTemplate(r)

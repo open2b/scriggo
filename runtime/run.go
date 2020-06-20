@@ -55,7 +55,6 @@ func (vm *VM) runRecoverable() (err error) {
 func (vm *VM) run() (Addr, bool) {
 
 	var startPredefinedGoroutine bool
-	var hasDefaultCase bool
 
 	var op Operation
 	var a, b, c int8
@@ -66,14 +65,6 @@ func (vm *VM) run() (Addr, bool) {
 
 		vm.pc++
 		op, a, b, c = in.Op, in.A, in.B, in.C
-
-		if vm.done != nil {
-			select {
-			case <-vm.done:
-				panic(OutOfTimeError{vm.env})
-			default:
-			}
-		}
 
 		// If an instruction needs to change the program counter,
 		// it must be changed, if possible, at the end of the instruction execution.
@@ -319,8 +310,6 @@ func (vm *VM) run() (Addr, bool) {
 				vm.getIntoReflectValue(b, vm.cases[i].Send, op < 0)
 			case reflect.SelectRecv:
 				vm.cases[i].Chan = vm.general(b)
-			case reflect.SelectDefault:
-				hasDefaultCase = true
 			}
 			vm.pc++
 
@@ -1226,89 +1215,36 @@ func (vm *VM) run() (Addr, bool) {
 			switch ch := channel.Interface().(type) {
 			case chan bool:
 				var v bool
-				if vm.done == nil {
-					v, vm.ok = <-ch
-				} else {
-					select {
-					case v, vm.ok = <-ch:
-					case <-vm.done:
-						panic(OutOfTimeError{vm.env})
-					}
-				}
+				v, vm.ok = <-ch
 				if c != 0 {
 					vm.setBool(c, v)
 				}
 			case chan int:
 				var v int
-				if vm.done == nil {
-					v, vm.ok = <-ch
-				} else {
-					select {
-					case v, vm.ok = <-ch:
-					case <-vm.done:
-						panic(OutOfTimeError{vm.env})
-					}
-				}
+				v, vm.ok = <-ch
 				if c != 0 {
 					vm.setInt(c, int64(v))
 				}
 			case chan rune:
 				var v rune
-				if vm.done == nil {
-					v, vm.ok = <-ch
-				} else {
-					select {
-					case v, vm.ok = <-ch:
-					case <-vm.done:
-						panic(OutOfTimeError{vm.env})
-					}
-				}
+				v, vm.ok = <-ch
 				if c != 0 {
 					vm.setInt(c, int64(v))
 				}
 			case chan string:
 				var v string
-				if vm.done == nil {
-					v, vm.ok = <-ch
-				} else {
-					select {
-					case v, vm.ok = <-ch:
-					case <-vm.done:
-						panic(OutOfTimeError{vm.env})
-					}
-				}
+				v, vm.ok = <-ch
 				if c != 0 {
 					vm.setString(c, v)
 				}
 			case chan struct{}:
-				if vm.done == nil {
-					_, vm.ok = <-ch
-				} else {
-					select {
-					case _, vm.ok = <-ch:
-					case <-vm.done:
-						panic(OutOfTimeError{vm.env})
-					}
-				}
+				_, vm.ok = <-ch
 				if c != 0 {
 					vm.setGeneral(c, reflect.ValueOf(struct{}{}))
 				}
 			default:
 				var v reflect.Value
-				if vm.done == nil {
-					v, vm.ok = channel.Recv()
-				} else {
-					var chosen int
-					cas := reflect.SelectCase{Dir: reflect.SelectRecv, Chan: channel}
-					vm.cases = append(vm.cases, cas, vm.doneCase)
-					chosen, v, vm.ok = reflect.Select(vm.cases)
-					vm.cases[0].Chan = reflect.Value{}
-					vm.cases[1].Chan = reflect.Value{}
-					vm.cases = vm.cases[:0]
-					if chosen == 1 {
-						panic(OutOfTimeError{vm.env})
-					}
-				}
+				v, vm.ok = channel.Recv()
 				if c != 0 {
 					vm.setFromReflectValue(c, v)
 				}
@@ -1407,9 +1343,6 @@ func (vm *VM) run() (Addr, bool) {
 		// Select
 		case OpSelect:
 			numCase := len(vm.cases)
-			if vm.done != nil && !hasDefaultCase {
-				vm.cases = append(vm.cases, vm.doneCase)
-			}
 			chosen, recv, recvOK := reflect.Select(vm.cases)
 			step := numCase - chosen
 			var pc Addr
@@ -1422,7 +1355,6 @@ func (vm *VM) run() (Addr, bool) {
 					}
 					vm.ok = recvOK
 				}
-				hasDefaultCase = false
 			}
 			for _, c := range vm.cases {
 				if c.Dir != reflect.SelectDefault {
@@ -1434,9 +1366,6 @@ func (vm *VM) run() (Addr, bool) {
 				}
 			}
 			vm.cases = vm.cases[:0]
-			if step == 0 {
-				panic(OutOfTimeError{vm.env})
-			}
 			vm.pc = pc
 
 		// Send
@@ -1445,73 +1374,20 @@ func (vm *VM) run() (Addr, bool) {
 			channel := vm.generalk(c, k)
 			switch ch := channel.Interface().(type) {
 			case chan bool:
-				if vm.done == nil {
-					ch <- vm.boolk(a, k)
-				} else {
-					select {
-					case ch <- vm.boolk(a, k):
-					case <-vm.done:
-						panic(OutOfTimeError{vm.env})
-					}
-				}
+				ch <- vm.boolk(a, k)
 			case chan int:
-				if vm.done == nil {
-					ch <- int(vm.intk(a, k))
-				} else {
-					select {
-					case ch <- int(vm.intk(a, k)):
-					case <-vm.done:
-						panic(OutOfTimeError{vm.env})
-					}
-				}
+				ch <- int(vm.intk(a, k))
 			case chan rune:
-				if vm.done == nil {
-					ch <- rune(vm.intk(a, k))
-				} else {
-					select {
-					case ch <- rune(vm.intk(a, k)):
-					case <-vm.done:
-						panic(OutOfTimeError{vm.env})
-					}
-				}
+				ch <- rune(vm.intk(a, k))
 			case chan string:
-				if vm.done == nil {
-					ch <- vm.stringk(a, k)
-				} else {
-					select {
-					case ch <- vm.stringk(a, k):
-					case <-vm.done:
-						panic(OutOfTimeError{vm.env})
-					}
-				}
+				ch <- vm.stringk(a, k)
 			case chan struct{}:
-				if vm.done == nil {
-					ch <- struct{}{}
-				} else {
-					select {
-					case ch <- struct{}{}:
-					case <-vm.done:
-						panic(OutOfTimeError{vm.env})
-					}
-				}
+				ch <- struct{}{}
 			default:
 				elemType := channel.Type().Elem()
 				v := reflect.New(elemType).Elem()
 				vm.getIntoReflectValue(a, v, k)
-				if vm.done == nil {
-					channel.Send(v)
-				} else {
-					cas := reflect.SelectCase{Dir: reflect.SelectSend, Chan: channel, Send: v}
-					vm.cases = append(vm.cases, cas, vm.doneCase)
-					chosen, _, _ := reflect.Select(vm.cases)
-					vm.cases[0].Send.Set(reflect.Zero(elemType))
-					vm.cases[0].Chan = reflect.Value{}
-					vm.cases[1].Chan = reflect.Value{}
-					vm.cases = vm.cases[:0]
-					if chosen == 1 {
-						panic(OutOfTimeError{vm.env})
-					}
-				}
+				channel.Send(v)
 			}
 
 		// SetField
