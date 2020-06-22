@@ -1,13 +1,15 @@
 # Running tests
 
-To run the compare tests, run the following commands in the `test/compare` directory:
+First of all, ensure that the latest version of the `scriggo` executable is installed and available in your system.
+
+Then, to run the compare tests, run the following commands in the `test/compare` directory:
 
 ```bash
-> cd ./cmd
-> go generate
-> cd ./..
-> go build
-> ./compare
+$ cd ./cmd
+$ go generate
+$ cd ./..
+$ go build
+$ ./compare
 ```
 
 Run `./compare -h` to see the available options.
