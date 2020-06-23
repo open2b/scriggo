@@ -100,21 +100,19 @@ func decodeFieldIndex(i int64) []int {
 
 // VM represents a Scriggo virtual machine.
 type VM struct {
-	fp       [4]Addr              // frame pointers.
-	st       [4]Addr              // stack tops.
-	pc       Addr                 // program counter.
-	ok       bool                 // ok flag.
-	regs     registers            // registers.
-	fn       *Function            // running function.
-	vars     []interface{}        // global and closure variables.
-	env      *env                 // execution environment.
-	envArg   reflect.Value        // execution environment as argument.
-	calls    []callFrame          // call stack frame.
-	cases    []reflect.SelectCase // select cases.
-	done     <-chan struct{}      // done.
-	doneCase reflect.SelectCase   // done, as reflect case.
-	panic    *Panic               // panic.
-	main     bool                 // reports whether this VM is executing the the main goroutine.
+	fp     [4]Addr              // frame pointers.
+	st     [4]Addr              // stack tops.
+	pc     Addr                 // program counter.
+	ok     bool                 // ok flag.
+	regs   registers            // registers.
+	fn     *Function            // running function.
+	vars   []interface{}        // global and closure variables.
+	env    *env                 // execution environment.
+	envArg reflect.Value        // execution environment as argument.
+	calls  []callFrame          // call stack frame.
+	cases  []reflect.SelectCase // select cases.
+	panic  *Panic               // panic.
+	main   bool                 // reports whether this VM is executing the the main goroutine.
 }
 
 // NewVM returns a new virtual machine.
@@ -148,8 +146,6 @@ func (vm *VM) Reset() {
 	if vm.cases != nil {
 		vm.cases = vm.cases[:0]
 	}
-	vm.done = nil
-	vm.doneCase = reflect.SelectCase{}
 	vm.panic = nil
 }
 
@@ -183,18 +179,6 @@ func (vm *VM) Run(fn *Function, globals []interface{}) (int, error) {
 // SetContext must not be called after vm has been started.
 func (vm *VM) SetContext(ctx context.Context) {
 	vm.env.ctx = ctx
-	if ctx != nil {
-		if done := ctx.Done(); done != nil {
-			vm.done = done
-			vm.doneCase = reflect.SelectCase{
-				Dir:  reflect.SelectRecv,
-				Chan: reflect.ValueOf(done),
-			}
-			return
-		}
-	}
-	vm.done = nil
-	vm.doneCase = reflect.SelectCase{}
 }
 
 // SetPrint sets the "print" builtin function.
