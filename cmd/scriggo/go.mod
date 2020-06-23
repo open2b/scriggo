@@ -1,6 +1,6 @@
 module scriggo/cmd/scriggo
 
-go 1.13
+go 1.14
 
 replace github.com/open2b/scriggo => ../../
 
