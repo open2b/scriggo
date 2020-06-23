@@ -38,10 +38,8 @@ for **templates**:
 {# mode [options] #}
 ```
 
-The options that are currently available are:
+The option that is currently available is:
 
-- `-time <duration>`: limit the execution time; zero is no limit; `<duration>`
-  is parsed using the Go function `time.ParseDuration`
 - `-disallowGoStatement`: disallow the `go` statement
 
 Note that in templates the line that specifies the mode cannot contain anything but the comment.
