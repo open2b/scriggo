@@ -147,14 +147,12 @@ nodesLoop:
 
 			path := tc.path
 			tc.path = node.Tree.Path
-			tc.paths = append(tc.paths, checkerPath{path, node})
 			scopes := tc.scopes
 			tc.scopes = nil
 
 			node.Tree.Nodes = tc.checkNodesInNewScope(node.Tree.Nodes)
 
 			tc.path = path
-			tc.paths = tc.paths[:len(tc.paths)-1]
 			tc.scopes = scopes
 
 		case *ast.Block:
