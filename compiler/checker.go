@@ -76,14 +76,12 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		// Second: type check the extended page in a new scope.
 		currentPath := tc.path
 		tc.path = extends.Tree.Path
-		tc.paths = []checkerPath{{currentPath, extends}}
 		var err error
 		extends.Tree.Nodes, err = tc.checkNodesInNewScopeError(extends.Tree.Nodes)
 		if err != nil {
 			return nil, err
 		}
 		tc.path = currentPath
-		tc.paths = tc.paths[0:0]
 		// Third: extending page is converted to a "package", that means that
 		// out of order initialization is allowed and only certain statements
 		// are permitted.
@@ -160,11 +158,6 @@ type checkerOptions struct {
 	RelaxedBoolean bool
 }
 
-type checkerPath struct {
-	path string
-	node ast.Node
-}
-
 // typechecker represents the state of the type checking.
 type typechecker struct {
 
@@ -172,8 +165,7 @@ type typechecker struct {
 	// instances of 'typechecker'.
 	compilation *compilation
 
-	path  string
-	paths []checkerPath
+	path string
 
 	// TODO: the PackageLoader is a field of 'typechecker' and it is also
 	// passed as argument to some functions. Standardize the code.
@@ -568,19 +560,8 @@ func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...inte
 	} else {
 		pos = nodeOrPos.(*ast.Position)
 	}
-	var parents string
-	for i := len(tc.paths) - 1; i >= 0; i-- {
-		parent := tc.paths[i]
-		verb := "included"
-		if _, ok := parent.node.(*ast.Extends); ok {
-			verb = "extended"
-		}
-		pos := parent.node.Pos()
-		parents += fmt.Sprintf("\n\t%s by %s:%d:%d", verb, parent.path, pos.Line, pos.Column)
-	}
 	var err = &CheckingError{
-		path:    tc.path,
-		parents: parents,
+		path: tc.path,
 		pos: ast.Position{
 			Line:   pos.Line,
 			Column: pos.Column,

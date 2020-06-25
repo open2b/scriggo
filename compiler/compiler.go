@@ -219,21 +219,20 @@ type PackageLoader interface {
 // CheckingError records a type checking error with the path and the position
 // where the error occurred.
 type CheckingError struct {
-	path    string
-	parents string
-	pos     ast.Position
-	err     error
+	path string
+	pos  ast.Position
+	err  error
 }
 
 // Error returns a string representation of the type checking error.
 func (e *CheckingError) Error() string {
-	return fmt.Sprintf("%s:%s: %s%s", e.path, e.pos, e.err, e.parents)
+	return fmt.Sprintf("%s:%s: %s", e.path, e.pos, e.err)
 }
 
 // Message returns the message of the type checking error, without position and
 // path.
 func (e *CheckingError) Message() string {
-	return e.err.Error() + e.parents
+	return e.err.Error()
 }
 
 // Path returns the path of the type checking error.
