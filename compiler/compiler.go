@@ -324,7 +324,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 				err = e
 				return
 			}
-			panic(err)
+			panic(r)
 		}
 	}()
 
