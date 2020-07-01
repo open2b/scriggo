@@ -1531,6 +1531,27 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK",
 	},
+
+	// https://github.com/open2b/scriggo/issues/640
+	"Importing a file that imports a file that declares a variable": {
+		sources: map[string]string{
+			"index.html":     `{% import "imported1.html" %}`,
+			"imported1.html": `{% import "imported2.html" %}`,
+			"imported2.html": `{% var X = 0 %}`,
+		},
+		lang: LanguageHTML,
+	},
+
+	// https://github.com/open2b/scriggo/issues/640
+	"Importing a file that imports a file that declares a macro": {
+		sources: map[string]string{
+			"index.html":     `{% import "imported1.html" %}{% show M1(42) %}`,
+			"imported1.html": `{% import "imported2.html" %}{% macro M1(a int) %}{% show M2(a) %}{% end macro %}`,
+			"imported2.html": `{% macro M2(b int) %}b is {{ b }}{% end macro %}`,
+		},
+		lang:        LanguageHTML,
+		expectedOut: "b is 42",
+	},
 }
 
 // testAlwaysZero is always considered zero.

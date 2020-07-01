@@ -595,7 +595,12 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, impor
 	tc.predefinedPkgs = imports
 	for _, d := range pkg.Declarations {
 		if d, ok := d.(*ast.Import); ok {
-			err := tc.checkImport(d, imports, true)
+			// This is a workaround to fix
+			// https://github.com/open2b/scriggo/issues/640. This assignment to
+			// 'packageLevel', as well as the method 'checkImport', should be
+			// reviewed and maybe rewritten.
+			packageLevel := tc.opts.SyntaxType != TemplateSyntax
+			err := tc.checkImport(d, imports, packageLevel)
 			if err != nil {
 				return err
 			}
