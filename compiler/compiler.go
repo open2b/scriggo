@@ -275,7 +275,7 @@ func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*typeInfo, ind
 				err = e
 				return
 			}
-			panic(err)
+			panic(r)
 		}
 	}()
 	e := newEmitter(typeInfos, indirectVars)
