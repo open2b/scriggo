@@ -89,7 +89,10 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				// Precompiled packages have been already handled by the type
 				// checker and should be ignored by the emitter.
 				if ext := filepath.Ext(node.Path); ext != "" {
-					em.emitImport(node, true)
+					inits := em.emitImport(node, true)
+					if len(inits) > 0 {
+						panic("BUG: cannot import file that contains init functions. See https://github.com/open2b/scriggo/issues/643")
+					}
 				}
 			}
 
