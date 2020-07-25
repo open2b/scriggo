@@ -402,19 +402,33 @@ func renderInJavaScript(env runtime.Env, out io.Writer, value interface{}) error
 				return err
 			}
 			if field := t.Field(i); field.PkgPath == "" {
+				name := field.Name
+				value := v.Field(i)
+				if tag := field.Tag.Get("json"); tag != "" {
+					if tag == "-" {
+						continue
+					}
+					tagName, tagOptions := parseTag(tag)
+					if tagOptions.Contains("omitempty") && isEmptyJSONValue(value) {
+						continue
+					}
+					if tagName != "" {
+						name = tagName
+					}
+				}
 				if first {
 					_, err = w.WriteString(`"`)
 				} else {
 					_, err = w.WriteString(`,"`)
 				}
 				if err == nil {
-					err = javaScriptStringEscape(w, field.Name)
+					err = javaScriptStringEscape(w, name)
 				}
 				if err == nil {
 					_, err = w.WriteString(`":`)
 				}
 				if err == nil {
-					err = renderInJavaScript(env, w, v.Field(i).Interface())
+					err = renderInJavaScript(env, w, value.Interface())
 				}
 				first = false
 			}
