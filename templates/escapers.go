@@ -265,13 +265,14 @@ func javaScriptStringEscape(w strWriter, s string) error {
 	for i, c := range s {
 		var esc string
 		switch {
-		case int(c) < len(javaScriptStringEscapes) && javaScriptStringEscapes[c] != "":
+		case int(c) < len(javaScriptStringEscapes):
 			esc = javaScriptStringEscapes[c]
 		case c == '\u2028':
 			esc = `\u2028`
 		case c == '\u2029':
 			esc = `\u2029`
-		default:
+		}
+		if esc == "" {
 			continue
 		}
 		if last != i {
