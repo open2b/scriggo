@@ -262,7 +262,6 @@ var javaScriptStringEscapes = []string{
 // JavaScript and JSON string with single or double quotes, and write it to w.
 func javaScriptStringEscape(w strWriter, s string) error {
 	last := 0
-	var buf []byte
 	for i, c := range s {
 		var esc string
 		switch {
@@ -281,12 +280,7 @@ func javaScriptStringEscape(w strWriter, s string) error {
 				return err
 			}
 		}
-		var err error
-		if esc == "" {
-			_, err = w.Write(buf)
-		} else {
-			_, err = w.WriteString(esc)
-		}
+		_, err := w.WriteString(esc)
 		if err != nil {
 			return err
 		}

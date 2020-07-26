@@ -9,6 +9,7 @@ package templates
 import (
 	"bytes"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -211,6 +212,7 @@ var javaScriptContextTests = []struct {
 	{`s["a"]`, "null", Vars{"s": map[interface{}]interface{}{}}},
 	{`a`, `{"A":5,"B":2,"C":7,"D":3}`, Vars{"a": map[string]interface{}{"A": 5, "B": 2, "C": 7, "D": 3}}},
 	{`a`, `{"":"c","\"\u0027":5}`, Vars{"a": map[string]interface{}{"\"'": 5, "": "c"}}},
+	{`a`, `{"a\u0027b":3}`, Vars{"a": map[string]interface{}{"a'b": 3}}},
 }
 
 func TestScriptContext(t *testing.T) {
@@ -234,6 +236,18 @@ func TestScriptContext(t *testing.T) {
 		if len(res) < 17 || res[8:len(res)-9] != expr.res {
 			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[8:len(res)-9], expr.res)
 		}
+	}
+}
+
+func TestJavaScriptStringEscape(t *testing.T) {
+	b := strings.Builder{}
+	s := "a\u2028b&\u2029c"
+	err := javaScriptStringEscape(&b, s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b.String() != `a\u2028b\u0026\u2029c` {
+		t.Errorf("unexpected %q, expecting %q\n", b.String(), s)
 	}
 }
 
