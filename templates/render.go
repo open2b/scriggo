@@ -461,21 +461,23 @@ func renderInJavaScript(env runtime.Env, out io.Writer, value interface{}) error
 			keyPairs[i].val = iter.Value().Interface()
 		}
 		_sort.Slice(keyPairs, func(i, j int) bool {
-			return keyPairs[i].key < keyPairs[i].key
+			return keyPairs[i].key < keyPairs[j].key
 		})
 		_, err := w.WriteString("{")
 		for i, keyPair := range keyPairs {
 			if err != nil {
 				return err
 			}
-			if i > 0 {
-				_, err = w.WriteString(",")
+			if i == 0 {
+				_, err = w.WriteString(`"`)
+			} else {
+				_, err = w.WriteString(`,"`)
 			}
 			if err == nil {
 				err = javaScriptStringEscape(w, keyPair.key)
 			}
 			if err == nil {
-				_, err = w.WriteString(":")
+				_, err = w.WriteString(`":`)
 			}
 			if err == nil {
 				err = renderInJavaScript(env, out, keyPair.val)

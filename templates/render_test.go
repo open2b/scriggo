@@ -209,6 +209,8 @@ var javaScriptContextTests = []struct {
 		B *struct{ C string }
 	}{A: 5, B: &struct{ C string }{C: "C"}}}},
 	{`s["a"]`, "null", Vars{"s": map[interface{}]interface{}{}}},
+	{`a`, `{"A":5,"B":2,"C":7,"D":3}`, Vars{"a": map[string]interface{}{"A": 5, "B": 2, "C": 7, "D": 3}}},
+	{`a`, `{"":"c","\"\u0027":5}`, Vars{"a": map[string]interface{}{"\"'": 5, "": "c"}}},
 }
 
 func TestScriptContext(t *testing.T) {
