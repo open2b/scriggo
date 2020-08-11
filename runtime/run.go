@@ -9,6 +9,7 @@ package runtime
 import (
 	"errors"
 	"reflect"
+	"unicode"
 )
 
 func (vm *VM) runFunc(fn *Function, vars []interface{}) error {
@@ -379,7 +380,11 @@ func (vm *VM) run() (Addr, bool) {
 			case reflect.Float64:
 				vm.setFloat(c, float64(v))
 			case reflect.String:
-				vm.setString(c, string(v))
+				s := string(unicode.ReplacementChar)
+				if 0 <= v && v <= unicode.MaxRune {
+					s = string(rune(v))
+				}
+				vm.setString(c, s)
 			}
 		case OpConvertUint:
 			t := vm.fn.Types[uint8(b)]
@@ -410,7 +415,11 @@ func (vm *VM) run() (Addr, bool) {
 			case reflect.Float64:
 				vm.setFloat(c, float64(v))
 			case reflect.String:
-				vm.setString(c, string(v))
+				s := string(unicode.ReplacementChar)
+				if v <= unicode.MaxRune {
+					s = string(rune(v))
+				}
+				vm.setString(c, s)
 			}
 		case OpConvertFloat:
 			t := vm.fn.Types[uint8(b)]

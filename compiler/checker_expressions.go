@@ -1823,11 +1823,11 @@ func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *typeInfo {
 			case k == reflect.String && isInteger(argKind):
 				// As a special case, an integer constant can be explicitly
 				// converted to a string type.
-				n, _ := arg.Constant.representedBy(int64Type)
+				n, _ := arg.Constant.representedBy(runeType)
 				if n == nil {
-					c = stringConst("\uFFFD")
+					c = stringConst(string(unicode.ReplacementChar))
 				} else {
-					c = stringConst(n.int64())
+					c = stringConst(rune(n.int64()))
 				}
 			case k == reflect.Slice && argKind == reflect.String:
 				// As a special case, a string constant can be explicitly converted

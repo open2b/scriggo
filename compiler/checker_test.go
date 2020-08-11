@@ -10,8 +10,10 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
+	"unicode"
 
 	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/runtime"
@@ -350,7 +352,10 @@ var checkerExprs = []struct {
 	{`complex128(complex128(3.7+2.8i))`, tiComplex128Const(complex128(3.7 + 2.8i)), nil},
 	{`int(5.0)`, tiIntConst(5), nil},
 	{`int(15/3)`, tiIntConst(5), nil},
-	{`string(5)`, tiStringConst(string(5)), nil},
+	{`string(5)`, tiStringConst(string(rune(5))), nil},
+	{`string(` + strconv.Itoa(unicode.MaxRune) + `)`, tiStringConst(string(unicode.MaxRune)), nil},
+	{`string(` + strconv.Itoa(unicode.MaxRune+1) + `)`, tiStringConst(string(unicode.MaxRune + 1)), nil},
+	{`string(-1)`, tiStringConst(string(rune(-1))), nil},
 	{`[]byte("abc")`, &typeInfo{Type: reflect.SliceOf(uint8Type)}, nil},
 	{`[]rune("abc")`, &typeInfo{Type: reflect.SliceOf(int32Type)}, nil},
 
@@ -371,6 +376,10 @@ var checkerExprs = []struct {
 	{`float64(a)`, tiFloat64Const(float64(float32(5.3))), map[string]*typeInfo{"a": tiFloat32Const(5.3)}},
 	{`float32(a)`, tiFloat32Const(float32(float64(5.3))), map[string]*typeInfo{"a": tiFloat64Const(5.3)}},
 	{`int(a)`, tiIntConst(5), map[string]*typeInfo{"a": tiFloat64Const(5.0)}},
+	{`string(a)`, tiStringConst(string(rune(5))), map[string]*typeInfo{"a": tiIntConst(5)}},
+	{`string(a)`, tiStringConst(string(unicode.MaxRune)), map[string]*typeInfo{"a": tiIntConst(unicode.MaxRune)}},
+	{`string(a)`, tiStringConst(string(unicode.MaxRune + 1)), map[string]*typeInfo{"a": tiIntConst(unicode.MaxRune + 1)}},
+	{`string(a)`, tiStringConst(string(rune(-1))), map[string]*typeInfo{"a": tiIntConst(-1)}},
 	{`[]byte(a)`, &typeInfo{Type: reflect.SliceOf(uint8Type)}, map[string]*typeInfo{"a": tiStringConst("abc")}},
 	{`[]rune(a)`, &typeInfo{Type: reflect.SliceOf(int32Type)}, map[string]*typeInfo{"a": tiStringConst("abc")}},
 
@@ -390,6 +399,7 @@ var checkerExprs = []struct {
 	{`float64(a)`, tiFloat64(), map[string]*typeInfo{"a": tiFloat64()}},
 	{`float32(a)`, tiFloat32(), map[string]*typeInfo{"a": tiFloat64()}},
 	{`int(a)`, tiInt(), map[string]*typeInfo{"a": tiFloat64()}},
+	{`string(a)`, tiString(), map[string]*typeInfo{"a": tiInt()}},
 	{`[]byte(a)`, &typeInfo{Type: reflect.SliceOf(uint8Type)}, map[string]*typeInfo{"a": tiString()}},
 	{`[]rune(a)`, &typeInfo{Type: reflect.SliceOf(int32Type)}, map[string]*typeInfo{"a": tiString()}},
 	{`string([]byte{1,2,3})`, tiString(), nil},

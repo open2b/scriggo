@@ -430,7 +430,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + conditionName[b]
 		if runtime.Condition(b) < runtime.ConditionLenEqual {
 			if k && c >= 0 {
-				s += " " + strconv.Quote(string(c))
+				s += " " + strconv.Quote(string(byte(c)))
 			} else {
 				s += " " + disassembleOperand(fn, c, reflect.String, k)
 			}
