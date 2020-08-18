@@ -60,12 +60,52 @@ func htmlEscape(w strWriter, s string) error {
 	return nil
 }
 
+// htmlNoEntitiesEscape escapes and writes to w the string s as htmlEscape
+// does but without escaping the HTML entities.
+func htmlNoEntitiesEscape(w strWriter, s string) error {
+	last := 0
+	for i := 0; i < len(s); i++ {
+		var esc string
+		switch s[i] {
+		case '"':
+			esc = "&#34;"
+		case '\'':
+			esc = "&#39;"
+		case '<':
+			esc = "&lt;"
+		case '>':
+			esc = "&gt;"
+		default:
+			continue
+		}
+		if last != i {
+			_, err := w.WriteString(s[last:i])
+			if err != nil {
+				return err
+			}
+		}
+		_, err := w.WriteString(esc)
+		if err != nil {
+			return err
+		}
+		last = i + 1
+	}
+	if last != len(s) {
+		_, err := w.WriteString(s[last:])
+		return err
+	}
+	return nil
+}
+
 // attributeEscape escapes the string s, so it can be placed inside an HTML
-// attribute value, and write it to w. quoted reports whether the attribute is
-// quoted.
-func attributeEscape(w strWriter, s string, quoted bool) error {
+// attribute value, and write it to w. If escapeEntities is true it escapes
+// also the HTML entities. quoted reports whether the attribute is quoted.
+func attributeEscape(w strWriter, s string, escapeEntities, quoted bool) error {
 	if quoted {
-		return htmlEscape(w, s)
+		if escapeEntities {
+			return htmlEscape(w, s)
+		}
+		return htmlNoEntitiesEscape(w, s)
 	}
 	last := 0
 	for i := 0; i < len(s); i++ {
@@ -76,7 +116,9 @@ func attributeEscape(w strWriter, s string, quoted bool) error {
 		case '>':
 			esc = "&gt;"
 		case '&':
-			esc = "&amp;"
+			if escapeEntities {
+				esc = "&amp;"
+			}
 		case '\t':
 			esc = "&#09;"
 		case '\n':
@@ -95,7 +137,8 @@ func attributeEscape(w strWriter, s string, quoted bool) error {
 			esc = "&#61;"
 		case '`':
 			esc = "&#96;"
-		default:
+		}
+		if esc == "" {
 			continue
 		}
 		if last != i {

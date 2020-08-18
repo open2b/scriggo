@@ -231,17 +231,28 @@ func renderInTag(env runtime.Env, out io.Writer, value interface{}) error {
 // depending on quoted value.
 func renderInAttribute(env runtime.Env, out io.Writer, value interface{}, quoted bool) error {
 	var s string
+	var escapeEntities bool
 	switch v := value.(type) {
 	case fmt.Stringer:
 		s = v.String()
+		escapeEntities = true
 	case EnvStringer:
 		s = v.String(env)
+		escapeEntities = true
+	case HTML:
+		s = string(v)
+	case HTMLStringer:
+		s = v.HTML()
+	case HTMLEnvStringer:
+		s = v.HTML(env)
 	case error:
 		s = v.Error()
+		escapeEntities = true
 	default:
 		s = toString(reflect.ValueOf(value))
+		escapeEntities = true
 	}
-	return attributeEscape(newStringWriter(out), s, quoted)
+	return attributeEscape(newStringWriter(out), s, escapeEntities, quoted)
 }
 
 // renderInCSS renders value in CSS context.

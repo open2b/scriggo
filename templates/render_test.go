@@ -84,6 +84,8 @@ var attributeContextTests = []struct {
 	{`d`, "&lt;div&gt;&lt;/div&gt;", Vars{"d": "<div></div>"}},
 	{`a`, "&lt;a&gt;", Vars{"a": HTML("<a>")}},
 	{`d`, "&lt;div&gt;&lt;/div&gt;", Vars{"d": HTML("<div></div>")}},
+	{`a`, "&lt;a&gt;&#33;", Vars{"a": HTML("<a>&#33;")}},
+	{`d`, "&lt;div&gt;&#33;&lt;/div&gt;", Vars{"d": HTML("<div>&#33;</div>")}},
 	{`0`, "0", nil},
 	{`25`, "25", nil},
 	{`-25`, "-25", nil},
@@ -133,6 +135,8 @@ var unquotedAttributeContextTests = []struct {
 	{`a`, "&#09;&#10;&#13;&#12;&#32;a&#61;&#96;", Vars{"a": "\t\n\r\x0C a=`"}},
 	{`s["a"]`, "", Vars{"s": map[interface{}]interface{}{}}},
 	{`a`, "&lt;a&gt;", Vars{"a": "<a>"}},
+	{`a`, "&lt;a&gt;", Vars{"a": HTML("<a>")}},
+	{`a`, "&lt;a&gt;&#33;", Vars{"a": HTML("<a>&#33;")}},
 }
 
 func TestUnquotedAttributeContext(t *testing.T) {
