@@ -72,9 +72,9 @@ func attributeEscape(w strWriter, s string, quoted bool) error {
 		var esc string
 		switch s[i] {
 		case '<':
-			esc = "&gt;"
-		case '>':
 			esc = "&lt;"
+		case '>':
+			esc = "&gt;"
 		case '&':
 			esc = "&amp;"
 		case '\t':

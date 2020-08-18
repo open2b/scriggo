@@ -132,6 +132,7 @@ var unquotedAttributeContextTests = []struct {
 	{`a`, "&#32;a&#32;", Vars{"a": " a "}},
 	{`a`, "&#09;&#10;&#13;&#12;&#32;a&#61;&#96;", Vars{"a": "\t\n\r\x0C a=`"}},
 	{`s["a"]`, "", Vars{"s": map[interface{}]interface{}{}}},
+	{`a`, "&lt;a&gt;", Vars{"a": "<a>"}},
 }
 
 func TestUnquotedAttributeContext(t *testing.T) {
