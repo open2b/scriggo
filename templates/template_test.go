@@ -1532,19 +1532,15 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK",
 	},
 
-	//
-	// Disabled until https://github.com/open2b/scriggo/issues/643
-	// is resolved:
-	//
 	// https://github.com/open2b/scriggo/issues/640
-	// "Importing a file that imports a file that declares a variable": {
-	// 	sources: map[string]string{
-	// 		"index.html":     `{% import "imported1.html" %}`,
-	// 		"imported1.html": `{% import "imported2.html" %}`,
-	// 		"imported2.html": `{% var X = 0 %}`,
-	// 	},
-	// 	lang: LanguageHTML,
-	// },
+	"Importing a file that imports a file that declares a variable": {
+		sources: map[string]string{
+			"index.html":     `{% import "imported1.html" %}`,
+			"imported1.html": `{% import "imported2.html" %}`,
+			"imported2.html": `{% var X = 0 %}`,
+		},
+		lang: LanguageHTML,
+	},
 
 	// https://github.com/open2b/scriggo/issues/640
 	"Importing a file that imports a file that declares a macro": {
@@ -1557,10 +1553,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "b is 42",
 	},
 
-	//
-	// Disabled until https://github.com/open2b/scriggo/issues/643
-	// is resolved:
-	//
+	// Disabled because panics:
 	// https://github.com/open2b/scriggo/issues/641
 	// "File imported by two files - test compilation": {
 	// 	sources: map[string]string{
@@ -1593,53 +1586,53 @@ var templateMultiPageCases = map[string]struct {
 	},
 
 	// https://github.com/open2b/scriggo/issues/643
-	// "Invalid variable value when imported": {
-	// 	sources: map[string]string{
-	// 		"index.html": `{% import "/v.html" %}{{ V }}`,
-	// 		"v.html":     `{% var V = 42 %}`,
-	// 	},
-	// 	expectedOut: "42",
-	// 	lang:        LanguageHTML,
-	// },
+	"Invalid variable value when imported": {
+		sources: map[string]string{
+			"index.html": `{% import "/v.html" %}{{ V }}`,
+			"v.html":     `{% var V = 42 %}`,
+		},
+		expectedOut: "42",
+		lang:        LanguageHTML,
+	},
 
-	// // https://github.com/open2b/scriggo/issues/643
-	// "Invalid variable value with multiple imports": {
-	// 	sources: map[string]string{
-	// 		"index.html":    `{% import "/v.html" %}{% include "/included.html" %}V is {{ V }}`,
-	// 		"included.html": `{% import "/v.html" %}`,
-	// 		"v.html":        `{% var V = 42 %}`,
-	// 	},
-	// 	expectedOut: "V is 42",
-	// 	lang:        LanguageHTML,
-	// },
+	// https://github.com/open2b/scriggo/issues/643
+	"Invalid variable value with multiple imports": {
+		sources: map[string]string{
+			"index.html":    `{% import "/v.html" %}{% include "/included.html" %}V is {{ V }}`,
+			"included.html": `{% import "/v.html" %}`,
+			"v.html":        `{% var V = 42 %}`,
+		},
+		expectedOut: "V is 42",
+		lang:        LanguageHTML,
+	},
 
-	// // https://github.com/open2b/scriggo/issues/643
-	// "Init function called more than once": {
-	// 	sources: map[string]string{
-	// 		"index.html":    `{% import "/v.html" %}{% include "/included.html" %}{{ V }}`,
-	// 		"included.html": `{% import "/v.html" %}`,
-	// 		"v.html":        `{% var V = GetValue() %}`,
-	// 	},
-	// 	expectedOut: "42",
-	// 	lang:        LanguageHTML,
-	// 	main: &scriggo.MapPackage{
-	// 		PkgName: "main",
-	// 		Declarations: map[string]interface{}{
-	// 			"GetValue": func() int {
-	// 				if testGetValueCalled {
-	// 					panic("already called!")
-	// 				}
-	// 				testGetValueCalled = true
-	// 				return 42
-	// 			},
-	// 		},
-	// 	},
-	// },
+	// https://github.com/open2b/scriggo/issues/643
+	"Init function called more than once": {
+		sources: map[string]string{
+			"index.html":    `{% import "/v.html" %}{% include "/included.html" %}{{ V }}`,
+			"included.html": `{% import "/v.html" %}`,
+			"v.html":        `{% var V = GetValue() %}`,
+		},
+		expectedOut: "42",
+		lang:        LanguageHTML,
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"GetValue": func() int {
+					if testGetValueCalled {
+						panic("already called!")
+					}
+					testGetValueCalled = true
+					return 42
+				},
+			},
+		},
+	},
 }
 
-// // testGetValueCalled is used in a test.
-// // See https://github.com/open2b/scriggo/issues/643
-// var testGetValueCalled = false
+// testGetValueCalled is used in a test.
+// See https://github.com/open2b/scriggo/issues/643
+var testGetValueCalled = false
 
 // testAlwaysZero is always considered zero.
 type testAlwaysZero struct{}

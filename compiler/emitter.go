@@ -76,6 +76,10 @@ type emitter struct {
 	//  - avoid initializing the same variable more than once, that would
 	//    result in an invalid behavior.
 	alreadyInitializedVars map[*ast.Identifier]int16
+
+	// alreadyInitializedPackages keeps track of the packages for which the
+	// initialization code has already been emitted.
+	alreadyInitializedPkgs map[string]bool
 }
 
 // newEmitter returns a new emitter with the given type infos, indirect
@@ -87,6 +91,7 @@ func newEmitter(typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifi
 		types:                  types.NewTypes(), // TODO: this is wrong: the instance should be taken from the type checker.
 		alreadyEmittedFuncs:    map[*ast.Func]*runtime.Function{},
 		alreadyInitializedVars: map[*ast.Identifier]int16{},
+		alreadyInitializedPkgs: map[string]bool{},
 	}
 	em.fnStore = newFunctionStore(em)
 	em.varStore = newVarStore(em, indirectVars)

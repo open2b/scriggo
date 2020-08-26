@@ -25,6 +25,9 @@ import (
 //
 // relaxedBoolean reports whether the operators 'and', 'or' and 'not' as well as
 // non-boolean conditions in the if statement are allowed.
+//
+// The parsed trees are cached so only one call per combination of path and
+// context is made to the reader.
 func ParseTemplate(path string, reader FileReader, lang ast.Language, relaxedBoolean bool, loader PackageLoader) (*ast.Tree, error) {
 
 	if path == "" {
@@ -42,6 +45,7 @@ func ParseTemplate(path string, reader FileReader, lang ast.Language, relaxedBoo
 	pp := &templateExpansion{
 		reader:         reader,
 		loader:         loader,
+		trees:          &cache{},
 		paths:          []string{},
 		relaxedBoolean: relaxedBoolean,
 	}
@@ -64,6 +68,7 @@ func ParseTemplate(path string, reader FileReader, lang ast.Language, relaxedBoo
 // templateExpansion represents the state of a template expansion.
 type templateExpansion struct {
 	reader         FileReader
+	trees          *cache
 	loader         PackageLoader
 	paths          []string
 	relaxedBoolean bool
@@ -93,6 +98,12 @@ func (pp *templateExpansion) parseFile(name string, lang ast.Language) (*ast.Tre
 		}
 	}
 
+	// Check if it has already been parsed.
+	if tree, ok := pp.trees.Get(name, lang); ok {
+		return tree, nil
+	}
+	defer pp.trees.Done(name, lang)
+
 	src, err := pp.reader.ReadFile(name)
 	if err != nil {
 		return nil, err
@@ -117,6 +128,9 @@ func (pp *templateExpansion) parseFile(name string, lang ast.Language) (*ast.Tre
 		return nil, err
 	}
 	pp.paths = pp.paths[:len(pp.paths)-1]
+
+	// Add the tree to the cache.
+	pp.trees.Add(name, lang, tree)
 
 	return tree, nil
 }

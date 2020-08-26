@@ -91,7 +91,18 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				if ext := filepath.Ext(node.Path); ext != "" {
 					inits := em.emitImport(node, true)
 					if len(inits) > 0 {
-						panic("BUG: cannot import file that contains init functions. See https://github.com/open2b/scriggo/issues/643")
+						if em.alreadyInitializedPkgs[node.Path] {
+							// The code that calls the init functions of the
+							// imported package node.Path has already been
+							// emitted, so emitting it twice would lead to
+							// invalid behaviors.
+						} else {
+							for _, initFunc := range inits {
+								index := em.fb.addFunction(initFunc)
+								em.fb.emitCall(int8(index), runtime.StackShift{}, nil)
+							}
+							em.alreadyInitializedPkgs[node.Path] = true
+						}
 					}
 				}
 			}
