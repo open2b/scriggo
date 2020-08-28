@@ -90,12 +90,12 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				// checker and should be ignored by the emitter.
 				if ext := filepath.Ext(node.Path); ext != "" {
 					inits := em.emitImport(node, true)
-					if len(inits) > 0 && !em.alreadyInitializedPkgs[node.Tree.Path] {
+					if len(inits) > 0 && !em.alreadyInitializedTemplatePkgs[node.Tree.Path] {
 						for _, initFunc := range inits {
 							index := em.fb.addFunction(initFunc)
 							em.fb.emitCall(int8(index), runtime.StackShift{}, nil)
 						}
-						em.alreadyInitializedPkgs[node.Path] = true
+						em.alreadyInitializedTemplatePkgs[node.Path] = true
 					}
 				}
 			}
