@@ -393,7 +393,7 @@ func TestCSSStringContext(t *testing.T) {
 }
 
 func asDeclarations(vars Vars) Declarations {
-	declarations := Builtins()
+	declarations := builtins()
 	for name, value := range vars {
 		declarations[name] = reflect.Zero(reflect.PtrTo(reflect.TypeOf(value))).Interface()
 	}

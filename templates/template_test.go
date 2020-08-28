@@ -13,6 +13,7 @@ import (
 	"io"
 	"math"
 	"reflect"
+	_sort "sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -22,6 +23,43 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 )
+
+func builtins() Declarations {
+	return Declarations{
+		"max": func(x, y int) int {
+			if x < y {
+				return y
+			}
+			return x
+		},
+		"sort": func(slice interface{}) {
+			// no reflect
+			switch s := slice.(type) {
+			case nil:
+			case []string:
+				_sort.Strings(s)
+			case []rune:
+				_sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
+			case []byte:
+				_sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
+			case []HTML:
+				_sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
+			case []int:
+				_sort.Ints(s)
+			case []float64:
+				_sort.Float64s(s)
+			}
+			// reflect
+			sortSlice(slice)
+		},
+		"sprint": func(a ...interface{}) string {
+			return fmt.Sprint(a...)
+		},
+		"title": func(env runtime.Env, s string) string {
+			return strings.Title(s)
+		},
+	}
+}
 
 var rendererExprTests = []struct {
 	src      string
@@ -1710,7 +1748,7 @@ func TestMultiPageTemplate(t *testing.T) {
 			for p, src := range cas.sources {
 				r[p] = []byte(src)
 			}
-			builtins := Builtins()
+			builtins := builtins()
 			if cas.main != nil {
 				for k, v := range cas.main.Declarations {
 					builtins[k] = v
