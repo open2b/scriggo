@@ -91,7 +91,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				if ext := filepath.Ext(node.Path); ext != "" {
 					inits := em.emitImport(node, true)
 					if len(inits) > 0 {
-						if em.alreadyInitializedPkgs[node.Path] {
+						if em.alreadyInitializedPkgs[node.Tree.Path] {
 							// The code that calls the init functions of the
 							// imported package node.Path has already been
 							// emitted, so emitting it twice would lead to
