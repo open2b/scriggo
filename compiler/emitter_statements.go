@@ -90,19 +90,12 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				// checker and should be ignored by the emitter.
 				if ext := filepath.Ext(node.Path); ext != "" {
 					inits := em.emitImport(node, true)
-					if len(inits) > 0 {
-						if em.alreadyInitializedPkgs[node.Tree.Path] {
-							// The code that calls the init functions of the
-							// imported package node.Path has already been
-							// emitted, so emitting it twice would lead to
-							// invalid behaviors.
-						} else {
-							for _, initFunc := range inits {
-								index := em.fb.addFunction(initFunc)
-								em.fb.emitCall(int8(index), runtime.StackShift{}, nil)
-							}
-							em.alreadyInitializedPkgs[node.Path] = true
+					if len(inits) > 0 && !em.alreadyInitializedPkgs[node.Tree.Path] {
+						for _, initFunc := range inits {
+							index := em.fb.addFunction(initFunc)
+							em.fb.emitCall(int8(index), runtime.StackShift{}, nil)
 						}
+						em.alreadyInitializedPkgs[node.Path] = true
 					}
 				}
 			}
