@@ -593,7 +593,7 @@ func (l *lexer) lexBlock() error {
 func (l *lexer) lexComment() error {
 	p := bytes.Index(l.src[2:], []byte("#}"))
 	if p == -1 {
-		return l.errorf("unexpected EOF, expecting #}")
+		return l.errorf("comment not terminated")
 	}
 	line := l.line
 	column := l.column
