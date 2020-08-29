@@ -1,0 +1,36 @@
+{# errorcheck #}
+
+{% for false %} {% end %}
+{% for false %} {% end for %}
+{% for false %} {% end if %}       // ERROR `syntax error: unexpected if, expecting for or %}`
+{% for false %} {% end for abc %}  // ERROR `syntax error: unexpected abc, expecting %}`
+
+{% for range []int{} %} {% end %}
+{% for range []int{} %} {% end for %}
+{% for range []int{} %} {% end if %}       // ERROR `syntax error: unexpected if, expecting for or %}`
+{% for range []int{} %} {% end for abc %}  // ERROR `syntax error: unexpected abc, expecting %}`
+
+{% if true %} {% end %}
+{% if true %} {% end if %}
+{% if true %} {% end for %}     // ERROR `syntax error: unexpected for, expecting if or %}`
+{% if true %} {% end if abc %}  // ERROR `syntax error: unexpected abc, expecting %}`
+
+{% macro A %} {% end %}
+{% macro B %} {% end macro %}
+{% macro C %} {% end for %}        // ERROR `syntax error: unexpected for, expecting macro or %}`
+{% macro D %} {% end macro abc %}  // ERROR `syntax error: unexpected abc, expecting %}`
+
+{% switch %} {% end %}
+{% switch %} {% end switch %}
+{% switch %} {% end macro %}       // ERROR `syntax error: unexpected macro, expecting switch or %}`
+{% switch %} {% end switch abc %}  // ERROR `syntax error: unexpected abc, expecting %}`
+
+{% switch interface{}(nil).(type) %} {% end %}
+{% switch interface{}(nil).(type) %} {% end switch %}
+{% switch interface{}(nil).(type) %} {% end if %}          // ERROR `syntax error: unexpected if, expecting switch or %}`
+{% switch interface{}(nil).(type) %} {% end switch abc %}  // ERROR `syntax error: unexpected abc, expecting %}`
+
+{% select %} {% default %} {% end %}
+{% select %} {% default %} {% end select %}
+{% select %} {% default %} {% end switch %}      // ERROR `syntax error: unexpected switch, expecting select or %}`
+{% select %} {% default %} {% end select abc %}  // ERROR `syntax error: unexpected abc, expecting %}`

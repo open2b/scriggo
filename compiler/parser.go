@@ -1134,32 +1134,32 @@ LABEL:
 		pos := tok.pos
 		tok = p.next()
 		if tok.typ != tokenEndBlock {
-			parentTok := tok
-			pos = parentTok.pos
+			statementTok := tok
+			pos = statementTok.pos
 			tok = p.next()
 			if tok.typ != tokenEndBlock {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
 			}
 			switch p.parent().(type) {
-			case ast.For:
-				if parentTok.typ != tokenFor {
-					panic(syntaxError(parentTok.pos, "unexpected %s, expecting for or %%}", tok))
+			case *ast.For, *ast.ForRange:
+				if statementTok.typ != tokenFor {
+					panic(syntaxError(pos, "unexpected %s, expecting for or %%}", statementTok))
 				}
 			case *ast.If:
-				if parentTok.typ != tokenIf {
-					panic(syntaxError(parentTok.pos, "unexpected %s, expecting if or %%}", tok))
+				if statementTok.typ != tokenIf {
+					panic(syntaxError(pos, "unexpected %s, expecting if or %%}", statementTok))
 				}
 			case *ast.Macro:
-				if parentTok.typ != tokenMacro {
-					panic(syntaxError(parentTok.pos, "unexpected %s, expecting macro or %%}", tok))
+				if statementTok.typ != tokenMacro {
+					panic(syntaxError(pos, "unexpected %s, expecting macro or %%}", statementTok))
 				}
-			case ast.Switch, ast.TypeSwitch:
-				if parentTok.typ != tokenSwitch {
-					panic(syntaxError(parentTok.pos, "unexpected %s, expecting switch or %%}", tok))
+			case *ast.Switch, *ast.TypeSwitch:
+				if statementTok.typ != tokenSwitch {
+					panic(syntaxError(pos, "unexpected %s, expecting switch or %%}", statementTok))
 				}
-			case ast.Select:
-				if parentTok.typ != tokenSelect {
-					panic(syntaxError(parentTok.pos, "unexpected %s, expecting select or %%}", tok))
+			case *ast.Select:
+				if statementTok.typ != tokenSelect {
+					panic(syntaxError(pos, "unexpected %s, expecting select or %%}", statementTok))
 				}
 			}
 		}
