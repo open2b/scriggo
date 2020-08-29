@@ -46,16 +46,16 @@ func CloneNode(node ast.Node) ast.Node {
 		}
 		return ast.NewURL(ClonePosition(n.Position), n.Tag, n.Attribute, value, n.Context)
 	case *ast.Show:
-		return *ast.NewShow(ClonePosition(n.Position), CloneExpression(n.Expr), n.Context)
+		return ast.NewShow(ClonePosition(n.Position), CloneExpression(n.Expr), n.Context)
 	case *ast.Block:
-		var b *ast.Block
+		var nodes []ast.Node
 		if n.Nodes != nil {
-			b.Nodes = make([]ast.Node, len(n.Nodes))
+			nodes = make([]ast.Node, len(n.Nodes))
 			for i := range n.Nodes {
-				b.Nodes[i] = CloneNode(n.Nodes[i])
+				nodes[i] = CloneNode(n.Nodes[i])
 			}
 		}
-		return b
+		return ast.NewBlock(ClonePosition(n.Position), nodes)
 	case *ast.If:
 		var init ast.Node
 		if n.Init != nil {
