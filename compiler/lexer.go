@@ -198,6 +198,9 @@ func (l *lexer) scan() {
 					col = l.column
 					continue
 				}
+			} else if c == '#' && p+1 < len(l.src) && l.src[p+1] == '}' {
+				l.err = l.errorf("unexpected #}")
+				break LOOP
 			}
 
 			switch l.ctx {
