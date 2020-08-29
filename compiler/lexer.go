@@ -591,21 +591,32 @@ func (l *lexer) lexBlock() error {
 
 // lexComment emits a comment token knowing that src starts with '{#'.
 func (l *lexer) lexComment() error {
-	p := bytes.Index(l.src[2:], []byte("#}"))
-	if p == -1 {
-		return l.errorf("comment not terminated")
+	nested := 0
+	p := 2
+	for nested >= 0 {
+		i := bytes.Index(l.src[p:], []byte("#"))
+		if i == -1 {
+			return l.errorf("comment not terminated")
+		}
+		if i > 0 && l.src[p+i-1] == '{' {
+			nested++
+		} else if i < len(l.src)-p && l.src[p+i+1] == '}' {
+			nested--
+			p++
+		}
+		p += i + 1
 	}
 	line := l.line
 	column := l.column
 	l.column += 4
-	for i := 2; i < p+2; i++ {
+	for i := 2; i < p-2; i++ {
 		if c := l.src[i]; c == '\n' {
 			l.newline()
 		} else if isStartChar(c) {
 			l.column++
 		}
 	}
-	l.emitAtLineColumn(line, column, tokenComment, p+4)
+	l.emitAtLineColumn(line, column, tokenComment, p)
 	return nil
 }
 
