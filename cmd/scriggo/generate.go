@@ -37,12 +37,13 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 	// Import the packages of the Go standard library.
 	for i, imp := range sf.imports {
 		if imp.stdlib {
-			imports := make([]*importCommand, len(sf.imports)+len(stdlibPaths)-1)
+			paths := stdLibPaths()
+			imports := make([]*importCommand, len(sf.imports)+len(paths)-1)
 			copy(imports[:i], sf.imports[:i])
-			for j, path := range stdlibPaths {
+			for j, path := range paths {
 				imports[i+j] = &importCommand{path: path}
 			}
-			copy(imports[i+len(stdlibPaths):], sf.imports[i+1:])
+			copy(imports[i+len(paths):], sf.imports[i+1:])
 			sf.imports = imports
 		}
 	}

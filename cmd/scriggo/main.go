@@ -658,7 +658,7 @@ func _build(cmd string, path string, flags buildFlags) error {
 }
 
 func stdlib() (err error) {
-	for _, path := range stdlibPaths {
+	for _, path := range stdLibPaths() {
 		_, err = fmt.Println(path)
 		if err != nil {
 			break
@@ -753,6 +753,19 @@ func execGoCommand(dir string, args ...string) (out io.Reader, err error) {
 		return nil, err
 	}
 	return stdout, nil
+}
+
+// stdLibPaths returns a copy of stdlibPaths with the packages for the runtime
+// Go version.
+func stdLibPaths() []string {
+	version := goBaseVersion(runtime.Version())
+	paths := make([]string, 0, len(stdlibPaths))
+	for _, path := range stdlibPaths {
+		if version == "go1.15" || path != "time/tzdata" {
+			paths = append(paths, path)
+		}
+	}
+	return paths
 }
 
 // stdlibPaths contains the paths of the packages of the Go standard library
@@ -889,6 +902,7 @@ var stdlibPaths = []string{
 	"text/template",
 	"text/template/parse",
 	"time",
+	"time/tzdata", // Go version 1.15
 	"unicode",
 	"unicode/utf16",
 	"unicode/utf8",
