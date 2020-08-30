@@ -25,9 +25,10 @@ type lexer struct {
 	column int         // current column starting from 1
 	ctx    ast.Context // current context used during the scan
 	tag    struct {    // current tag
-		name string      // name
-		attr string      // current attribute name
-		ctx  ast.Context // context inside the tag content
+		name  string      // name
+		attr  string      // current attribute name
+		index int         // index of first byte of the current attribute value in src
+		ctx   ast.Context // context of the tag's content
 	}
 	tokens   chan token // tokens, is closed at the end of the scan
 	err      error      // error, reports whether there was an error
@@ -119,6 +120,9 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 		l.src = l.src[length:]
 	}
 }
+
+var javaScriptMimeType = []byte("text/javascript")
+var cssMimeType = []byte("text/css")
 
 // scan scans the text by placing the tokens on the tokens channel. If an
 // error occurs, it puts the error in err, closes the channel and returns.
@@ -284,6 +288,7 @@ func (l *lexer) scan() {
 								lin = l.line
 								col = l.column
 							} else {
+								l.tag.index = p
 								if quote == 0 {
 									l.ctx = ast.ContextUnquotedAttribute
 								} else {
@@ -309,9 +314,22 @@ func (l *lexer) scan() {
 						p = 0
 						lin = l.line
 						col = l.column
+					} else if (l.tag.name == "script" || l.tag.name == "style") && l.tag.attr == "type" {
+						if typ := bytes.TrimSpace(l.src[l.tag.index:p]); len(typ) > 0 {
+							if l.tag.name == "script" {
+								if !bytes.EqualFold(typ, javaScriptMimeType) {
+									l.tag.ctx = ast.ContextHTML
+								}
+							} else {
+								if !bytes.EqualFold(typ, cssMimeType) {
+									l.tag.ctx = ast.ContextHTML
+								}
+							}
+						}
 					}
 					l.ctx = ast.ContextTag
 					l.tag.attr = ""
+					l.tag.index = 0
 					if c == '>' {
 						continue
 					}
