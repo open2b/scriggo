@@ -188,7 +188,7 @@ func (l *lexer) scan() {
 					if p > 0 {
 						l.emitAtLineColumn(lin, col, tokenText, p)
 					}
-					err := l.lexComment()
+					err := l.lexCommentOrVerbatim()
 					if err != nil {
 						l.err = err
 						break LOOP
@@ -592,13 +592,17 @@ func (l *lexer) lexBlock() error {
 	return nil
 }
 
-// lexComment emits a comment token knowing that src starts with '{#'.
-func (l *lexer) lexComment() error {
+// lexCommentOrVerbatim emits a comment or a verbatim token knowing that src
+// starts with '{#'.
+func (l *lexer) lexCommentOrVerbatim() error {
 	nested := 0
 	p := 2
 	for nested >= 0 {
 		i := bytes.IndexByte(l.src[p:], '#')
 		if i == -1 {
+			if len(l.src) > 2 && l.src[2] == '#' {
+				return l.errorf("verbatim not terminated")
+			}
 			return l.errorf("comment not terminated")
 		}
 		if i > 0 && l.src[p+i-1] == '{' {
@@ -619,7 +623,11 @@ func (l *lexer) lexComment() error {
 			l.column++
 		}
 	}
-	l.emitAtLineColumn(line, column, tokenComment, p)
+	tok := tokenComment
+	if len(l.src) > 4 && l.src[2] == '#' {
+		tok = tokenVerbatim
+	}
+	l.emitAtLineColumn(line, column, tok, p)
 	return nil
 }
 

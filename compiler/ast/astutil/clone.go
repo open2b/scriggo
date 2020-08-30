@@ -310,6 +310,13 @@ func CloneNode(node ast.Node) ast.Node {
 		}
 		return ast.NewVar(ClonePosition(n.Position), idents, typ, values)
 
+	case *ast.Verbatim:
+		var text *ast.Text
+		if n.Text != nil {
+			text = CloneNode(n.Text).(*ast.Text)
+		}
+		return ast.NewVerbatim(ClonePosition(n.Position), text)
+
 	default:
 		panic(fmt.Sprintf("unexpected node type %#v", node))
 	}

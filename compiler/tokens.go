@@ -68,6 +68,7 @@ const (
 	tokenVar                               // var
 	tokenConst                             // const
 	tokenComment                           // comment
+	tokenVerbatim                          // verbatim
 	tokenInterpretedString                 // "abc"
 	tokenRawString                         // `abc`
 	tokenRune                              // 'a'

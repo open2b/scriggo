@@ -1370,6 +1370,9 @@ var treeTests = []struct {
 			}, nil, false),
 			[]ast.Node{ast.NewText(p(1, 43, 42, 44), []byte("txt"), ast.Cut{})}, ast.ContextHTML)}, ast.LanguageHTML)},
 	{"{# comment\ncomment #}", ast.NewTree("", []ast.Node{ast.NewComment(p(1, 1, 0, 20), " comment\ncomment ")}, ast.LanguageHTML)},
+	{"{## verbatim\nverbatim #}", ast.NewTree("", []ast.Node{
+		ast.NewVerbatim(p(1, 1, 0, 23),
+			ast.NewText(p(1, 4, 3, 21), []byte(" verbatim\nverbatim "), ast.Cut{}))}, ast.LanguageHTML)},
 	{"{% macro a(i int) %}c{% end macro %}", ast.NewTree("", []ast.Node{
 		ast.NewMacro(p(1, 4, 3, 32), ast.NewIdentifier(p(1, 10, 9, 9), "a"),
 			ast.NewFuncType(&ast.Position{Line: 1, Column: 4, Start: 3, End: 32}, []*ast.Parameter{
@@ -1680,6 +1683,16 @@ func equals(n1, n2 ast.Node, p int) error {
 		}
 		if nn1.Text != nn2.Text {
 			return fmt.Errorf("unexpected text %q, expecting %q", nn1.Text, nn2.Text)
+		}
+
+	case *ast.Verbatim:
+		nn2, ok := n2.(*ast.Verbatim)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Text, nn2.Text, p)
+		if err != nil {
+			return err
 		}
 
 	case *ast.URL:

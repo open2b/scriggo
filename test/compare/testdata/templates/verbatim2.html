@@ -1,0 +1,16 @@
+{# render #}
+{##
+    {% extends "layout.html" %}
+    {% import "banners.html" %}
+    {% macro Body %}
+    <ul>
+        {% for _, product := range products %}
+        <li><a href="{{ product.URL }}">{{ product.Name }}</a></li>
+        {% end %}
+    </ul>
+    {% include "pagination.html" %}
+    {# show the banner #}
+    {% show Banner() %}
+    {## verbatim text #}
+    {% end %}
+#}

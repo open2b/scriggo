@@ -845,7 +845,7 @@ nodesLoop:
 				_ = tc.checkNodes([]ast.Node{node.Statement})
 			}
 
-		case *ast.Comment:
+		case *ast.Comment, *ast.Verbatim:
 
 		case ast.Expression:
 

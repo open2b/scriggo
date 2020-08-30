@@ -358,6 +358,22 @@ func ParseTemplateSource(src []byte, lang ast.Language, relaxedBoolean bool) (tr
 			p.cutSpacesToken = true
 			tok = p.next()
 
+		// verbatim
+		case tokenVerbatim:
+			numTokenInLine++
+			textPos := &ast.Position{
+				Line:   tok.pos.Line,
+				Column: tok.pos.Column + 3,
+				Start:  tok.pos.Start + 3,
+				End:    tok.pos.End - 2,
+			}
+			text := ast.NewText(textPos, tok.txt[3:len(tok.txt)-2], ast.Cut{})
+			cutSpaces(text, text)
+			node := ast.NewVerbatim(tok.pos, text)
+			p.addChild(node)
+			p.cutSpacesToken = true
+			tok = p.next()
+
 		default:
 			return nil, syntaxError(tok.pos, "unexpected %s", tok)
 

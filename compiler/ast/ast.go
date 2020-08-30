@@ -811,6 +811,16 @@ func NewComment(pos *Position, text string) *Comment {
 	return &Comment{pos, text}
 }
 
+// Verbatim node represents a statement {## ... #}.
+type Verbatim struct {
+	*Position       // position in the source.
+	Text      *Text // verbatim text.
+}
+
+func NewVerbatim(pos *Position, text *Text) *Verbatim {
+	return &Verbatim{pos, text}
+}
+
 type BasicLiteral struct {
 	expression
 	*Position             // position in the source.

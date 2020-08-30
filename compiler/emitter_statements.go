@@ -470,6 +470,11 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				em.fb.bindVarReg(name, reg)
 			}
 
+		case *ast.Verbatim:
+			if node.Text != nil {
+				em.emitNodes([]ast.Node{node.Text})
+			}
+
 		case ast.Expression:
 			em.fb.enterStack()
 			em.emitExprR(node, reflect.Type(nil), 0)
