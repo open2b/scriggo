@@ -19,16 +19,19 @@ var cdataEnd = []byte("]]>")
 
 // lexer maintains the scanner status.
 type lexer struct {
-	text     []byte      // text on which the scans are performed
-	src      []byte      // slice of the text used during the scan
-	line     int         // current line starting from 1
-	column   int         // current column starting from 1
-	ctx      ast.Context // current context used during the scan
-	tag      string      // current tag
-	attr     string      // current attribute
-	tokens   chan token  // tokens, is closed at the end of the scan
-	err      error       // error, reports whether there was an error
-	andOrNot bool        // support tokens 'and', 'or' and 'not'.
+	text   []byte      // text on which the scans are performed
+	src    []byte      // slice of the text used during the scan
+	line   int         // current line starting from 1
+	column int         // current column starting from 1
+	ctx    ast.Context // current context used during the scan
+	tag    struct {    // current tag
+		name string      // name
+		attr string      // current attribute name
+		ctx  ast.Context // context inside the tag content
+	}
+	tokens   chan token // tokens, is closed at the end of the scan
+	err      error      // error, reports whether there was an error
+	andOrNot bool       // support tokens 'and', 'or' and 'not'.
 }
 
 // newLexer creates a new lexer.
@@ -46,6 +49,7 @@ func newLexer(text []byte, ctx ast.Context, andOrNot bool) *lexer {
 		tokens:   tokens,
 		andOrNot: andOrNot,
 	}
+	lex.tag.ctx = ast.ContextHTML
 	go lex.scan()
 	return lex
 }
@@ -108,8 +112,8 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 		txt: txt,
 		lin: l.line,
 		ctx: ctx,
-		tag: l.tag,
-		att: l.attr,
+		tag: l.tag.name,
+		att: l.tag.attr,
 	}
 	if length > 0 {
 		l.src = l.src[length:]
@@ -232,9 +236,15 @@ func (l *lexer) scan() {
 					// Start tag.
 					p++
 					l.column++
-					l.tag, p = l.scanTag(p)
-					if l.tag != "" {
+					l.tag.name, p = l.scanTag(p)
+					if l.tag.name != "" {
 						l.ctx = ast.ContextTag
+						switch l.tag.name {
+						case "script":
+							l.tag.ctx = ast.ContextJavaScript
+						case "style":
+							l.tag.ctx = ast.ContextCSS
+						}
 					}
 					continue
 				}
@@ -242,15 +252,9 @@ func (l *lexer) scan() {
 			case ast.ContextTag:
 				if c == '>' || c == '/' && p < len(l.src) && l.src[p] == '>' {
 					// End tag.
-					switch l.tag {
-					case "script":
-						l.ctx = ast.ContextJavaScript
-					case "style":
-						l.ctx = ast.ContextCSS
-					default:
-						l.ctx = ast.ContextHTML
-					}
-					l.tag = ""
+					l.ctx = l.tag.ctx
+					l.tag.name = ""
+					l.tag.ctx = ast.ContextHTML
 					if c == '/' {
 						p++
 						l.column++
@@ -258,16 +262,16 @@ func (l *lexer) scan() {
 				} else if !isASCIISpace(c) {
 					// Check if it is an attribute.
 					var next int
-					if l.attr, next = l.scanAttribute(p); next > p {
+					if l.tag.attr, next = l.scanAttribute(p); next > p {
 						p = next
-						if l.attr != "" && p < len(l.src) {
+						if l.tag.attr != "" && p < len(l.src) {
 							// Start attribute value.
 							if c := l.src[p]; c == '"' || c == '\'' {
 								quote = c
 								p++
 								l.column++
 							}
-							if containsURL(l.tag, l.attr) {
+							if containsURL(l.tag.name, l.tag.attr) {
 								l.emitAtLineColumn(lin, col, tokenText, p)
 								if quote == 0 {
 									l.ctx = ast.ContextUnquotedAttribute
@@ -307,7 +311,7 @@ func (l *lexer) scan() {
 						col = l.column
 					}
 					l.ctx = ast.ContextTag
-					l.attr = ""
+					l.tag.attr = ""
 					if c == '>' {
 						continue
 					}
