@@ -597,7 +597,7 @@ func (l *lexer) lexComment() error {
 	nested := 0
 	p := 2
 	for nested >= 0 {
-		i := bytes.Index(l.src[p:], []byte("#"))
+		i := bytes.IndexByte(l.src[p:], '#')
 		if i == -1 {
 			return l.errorf("comment not terminated")
 		}
