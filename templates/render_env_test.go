@@ -57,6 +57,16 @@ func (*testJavaScriptEnvStringer) JavaScript(env runtime.Env) string {
 
 var testJavaScriptEnvStringerValue = &testJavaScriptEnvStringer{}
 
+// JSONEnvStringer.
+
+type testJSONEnvStringer struct{}
+
+func (*testJSONEnvStringer) JSON(env runtime.Env) string {
+	return fmt.Sprint(env.Context().Value("forty-two"))
+}
+
+var testJSONEnvStringerValue = &testJSONEnvStringer{}
+
 // ---
 
 var envStringerCases = map[string]struct {
@@ -105,6 +115,16 @@ var envStringerCases = map[string]struct {
 		language: LanguageJavaScript,
 		want:     "var x = 42;",
 	},
+	"JSONEnvStringer": {
+		sources: map[string]string{
+			"index.html": "var x = {{ v }};",
+		},
+		builtins: map[string]interface{}{
+			"v": &testJSONEnvStringerValue,
+		},
+		language: LanguageJSON,
+		want:     "var x = 42;",
+	},
 }
 
 // TestEnvStringer tests these interfaces:
@@ -113,6 +133,7 @@ var envStringerCases = map[string]struct {
 //  * HTMLEnvStringer
 //  * CSSEnvStringer
 //  * JavaScriptEnvStringer
+//  * JSONEnvStringer
 //
 func TestEnvStringer(t *testing.T) {
 	for name, cas := range envStringerCases {

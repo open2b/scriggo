@@ -522,6 +522,9 @@ func renderInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 	case JSONStringer:
 		_, err := w.WriteString(v.JSON())
 		return err
+	case JSONEnvStringer:
+		_, err := w.WriteString(v.JSON(env))
+		return err
 	case time.Time:
 		_, err := w.WriteString("\"")
 		if err == nil {
