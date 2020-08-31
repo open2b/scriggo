@@ -49,12 +49,13 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 	// Import the packages of the Go standard library.
 	for i, imp := range sf.imports {
 		if imp.stdlib {
-			imports := make([]*importCommand, len(sf.imports)+len(stdlibPaths)-1)
+			paths := stdLibPaths()
+			imports := make([]*importCommand, len(sf.imports)+len(paths)-1)
 			copy(imports[:i], sf.imports[:i])
-			for j, path := range stdlibPaths {
+			for j, path := range paths {
 				imports[i+j] = &importCommand{path: path}
 			}
-			copy(imports[i+len(stdlibPaths):], sf.imports[i+1:])
+			copy(imports[i+len(paths):], sf.imports[i+1:])
 			sf.imports = imports
 		}
 	}
@@ -1553,7 +1554,7 @@ func _build(cmd string, path string, flags buildFlags) error {
 }
 
 func stdlib() (err error) {
-	for _, path := range stdlibPaths {
+	for _, path := range stdLibPaths() {
 		_, err = fmt.Println(path)
 		if err != nil {
 			break
@@ -1650,6 +1651,23 @@ func execGoCommand(dir string, args ...string) (out io.Reader, err error) {
 	return stdout, nil
 }
 
+// stdLibPaths returns a copy of stdlibPaths with the packages for the runtime
+// Go version.
+func stdLibPaths() []string {
+	version := goBaseVersion(runtime.Version())
+	paths := make([]string, 0, len(stdlibPaths))
+	for _, path := range stdlibPaths {
+		if path == "time/tzdata" && version != "go1.15" {
+			continue
+		}
+		if path == "hash/maphash" && version != "go1.14" && version != "go1.15" {
+			continue
+		}
+		paths = append(paths, path)
+	}
+	return paths
+}
+
 // stdlibPaths contains the paths of the packages of the Go standard library
 // except the packages "database", "plugin", "testing", "runtime/cgo",
 // "runtime/race",  "syscall", "unsafe" and their sub packages.
@@ -1724,6 +1742,7 @@ var stdlibPaths = []string{
 	"hash/crc32",
 	"hash/crc64",
 	"hash/fnv",
+	"hash/maphash", // Go version 1.14
 	"html",
 	"html/template",
 	"image",
@@ -1784,6 +1803,7 @@ var stdlibPaths = []string{
 	"text/template",
 	"text/template/parse",
 	"time",
+	"time/tzdata", // Go version 1.15
 	"unicode",
 	"unicode/utf16",
 	"unicode/utf8",
