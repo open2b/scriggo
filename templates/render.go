@@ -511,8 +511,6 @@ func renderInJavaScript(env runtime.Env, out io.Writer, value interface{}) error
 }
 
 // renderInJSON renders value in JSON context.
-// REVIEW: this function is a copy-paste from 'renderInJavascript', with some
-// minor changes.
 func renderInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 
 	w := newStringWriter(out)

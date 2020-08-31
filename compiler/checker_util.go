@@ -641,7 +641,7 @@ func operatorFromAssignmentType(assignmentType ast.AssignmentType) ast.OperatorT
 }
 
 // printedAsJavaScript reports whether a type can be printed as JavaScript.
-// It returns an error it the type cannot be printed.
+// It returns an error if the type cannot be printed.
 func printedAsJavaScript(t reflect.Type) error {
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
@@ -694,7 +694,7 @@ func printedAsJavaScript(t reflect.Type) error {
 }
 
 // printedAsJSON reports whether a type can be printed as JSON. It returns an
-// error it the type cannot be printed.
+// error if the type cannot be printed.
 func printedAsJSON(t reflect.Type) error {
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
