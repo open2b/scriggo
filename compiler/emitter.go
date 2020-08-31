@@ -77,7 +77,7 @@ type emitter struct {
 	//    result in an invalid behavior.
 	alreadyInitializedVars map[*ast.Identifier]int16
 
-	// alreadyInitializedPackages keeps track of the template packages for
+	// alreadyInitializedTemplatePkgs keeps track of the template packages for
 	// which the initialization code has already been emitted.
 	alreadyInitializedTemplatePkgs map[string]bool
 }
