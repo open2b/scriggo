@@ -1362,7 +1362,7 @@ var templateMultiPageCases = map[string]struct {
 		main:        functionReturningErrorPackage,
 		expectedOut: "0/* strconv.Atoi: parsing \"what?\": invalid syntax */",
 	},
-	"Javascript (int) - No error returned": {
+	"JavaScript (int) - No error returned": {
 		sources: map[string]string{
 			"index.js": `{{ atoi("42") }}`,
 		},
@@ -1371,7 +1371,7 @@ var templateMultiPageCases = map[string]struct {
 		main:        functionReturningErrorPackage,
 		expectedOut: "42",
 	},
-	"Javascript (int) - Error returned": {
+	"JavaScript (int) - Error returned": {
 		sources: map[string]string{
 			"index.js": `{{ atoi("what?") }}`,
 		},
@@ -1380,7 +1380,7 @@ var templateMultiPageCases = map[string]struct {
 		main:        functionReturningErrorPackage,
 		expectedOut: "0/* strconv.Atoi: parsing \"what?\": invalid syntax */",
 	},
-	"Javascript (string) - No error returned": {
+	"JavaScript (string) - No error returned": {
 		sources: map[string]string{
 			"index.js": `{{ uitoa(42) }}`,
 		},
@@ -1389,7 +1389,7 @@ var templateMultiPageCases = map[string]struct {
 		main:        functionReturningErrorPackage,
 		expectedOut: "\"42\"",
 	},
-	"Javascript (string) - Error returned": {
+	"JavaScript (string) - Error returned": {
 		sources: map[string]string{
 			"index.js": `{{ uitoa(-432) }}`,
 		},

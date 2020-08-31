@@ -16,45 +16,45 @@ func Test_commentedError(t *testing.T) {
 		input          commentedError
 		wantCSS        string
 		wantHTML       string
-		wantJavascript string
+		wantJavaScript string
 	}{
 		{
 			input:          commentedError{errors.New("an error occurred")},
 			wantCSS:        "/* an error occurred */",
 			wantHTML:       "<!-- an error occurred -->",
-			wantJavascript: "/* an error occurred */",
+			wantJavaScript: "/* an error occurred */",
 		},
 
 		{
 			input:          commentedError{nil},
 			wantCSS:        "",
 			wantHTML:       "",
-			wantJavascript: "",
+			wantJavaScript: "",
 		},
 
 		{
 			input:          commentedError{errors.New("*int returned an error")},
 			wantCSS:        "/* *int returned an error */",
 			wantHTML:       "<!-- *int returned an error -->",
-			wantJavascript: "/* *int returned an error */",
+			wantJavaScript: "/* *int returned an error */",
 		},
 		{
 			input:          commentedError{errors.New("bad */ error")},
 			wantCSS:        "/* bad * / error */",
 			wantHTML:       "<!-- bad */ error -->",
-			wantJavascript: "/* bad * / error */",
+			wantJavaScript: "/* bad * / error */",
 		},
 		{
 			input:          commentedError{errors.New("bad --> error")},
 			wantCSS:        "/* bad --> error */",
 			wantHTML:       "<!-- bad -- > error -->",
-			wantJavascript: "/* bad --> error */",
+			wantJavaScript: "/* bad --> error */",
 		},
 		{
 			input:          commentedError{errors.New("invalid char: \xc5; end")},
 			wantCSS:        "/* invalid char: �; end */",
 			wantHTML:       "<!-- invalid char: �; end -->",
-			wantJavascript: "/* invalid char: �; end */",
+			wantJavaScript: "/* invalid char: �; end */",
 		},
 	}
 	for _, cas := range cases {
@@ -72,10 +72,10 @@ func Test_commentedError(t *testing.T) {
 				t.Errorf("HTML: got %q, want %q", gotHTML, cas.wantHTML)
 			}
 
-			// Javascript.
-			gotJavascript := cas.input.JavaScript()
-			if gotJavascript != cas.wantJavascript {
-				t.Errorf("Javascript: got %q, want %q", gotJavascript, cas.wantJavascript)
+			// JavaScript.
+			gotJavaScript := cas.input.JavaScript()
+			if gotJavaScript != cas.wantJavaScript {
+				t.Errorf("JavaScript: got %q, want %q", gotJavaScript, cas.wantJavaScript)
 			}
 
 			// Plain text.
