@@ -59,6 +59,10 @@ func (ce commentedError) JavaScript() string {
 	return "/* " + msg + " */"
 }
 
+func (ce commentedError) JSON() string {
+	return ""
+}
+
 func (ce commentedError) String() string {
 	return ""
 }

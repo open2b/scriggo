@@ -61,6 +61,8 @@ func render(env runtime.Env, out io.Writer, value interface{}, ctx ast.Context) 
 		err = renderInJavaScriptString(env, out, value)
 	case ast.ContextJSON:
 		err = renderInJSON(env, out, value)
+	case ast.ContextJSONString:
+		err = renderInJSONString(env, out, value)
 	default:
 		panic("scriggo: unknown context")
 	}
@@ -523,7 +525,13 @@ func renderInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 		_, err := w.WriteString(v.JSON())
 		return err
 	case time.Time:
-		_, err := w.WriteString(renderTimeInJavaScript(v))
+		_, err := w.WriteString("\"")
+		if err == nil {
+			_, err = w.WriteString(v.Format(time.RFC3339))
+		}
+		if err == nil {
+			_, err = w.WriteString("\"")
+		}
 		return err
 	case error:
 		value = v.Error()
@@ -552,8 +560,7 @@ func renderInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 	case reflect.String:
 		_, err := w.WriteString("\"")
 		if err == nil {
-			// REVIEW: it's ok to escape strings as javascript?
-			err = javaScriptStringEscape(w, v.String())
+			err = jsonStringEscape(w, v.String())
 		}
 		if err == nil {
 			_, err = w.WriteString("\"")
@@ -583,7 +590,7 @@ func renderInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 				_, err = w.WriteString(",")
 			}
 			if err == nil {
-				err = renderInJavaScript(env, out, v.Index(i).Interface())
+				err = renderInJSON(env, out, v.Index(i).Interface())
 			}
 		}
 		if err == nil {
@@ -595,7 +602,7 @@ func renderInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 			s = "null"
 			break
 		}
-		return renderInJavaScript(env, out, v.Elem().Interface())
+		return renderInJSON(env, out, v.Elem().Interface())
 	case reflect.Struct:
 		t := v.Type()
 		n := t.NumField()
@@ -626,13 +633,13 @@ func renderInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 					_, err = w.WriteString(`,"`)
 				}
 				if err == nil {
-					err = javaScriptStringEscape(w, name)
+					err = jsonStringEscape(w, name)
 				}
 				if err == nil {
 					_, err = w.WriteString(`":`)
 				}
 				if err == nil {
-					err = renderInJavaScript(env, w, value.Interface())
+					err = renderInJSON(env, w, value.Interface())
 				}
 				first = false
 			}
@@ -678,13 +685,13 @@ func renderInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 				_, err = w.WriteString(`,"`)
 			}
 			if err == nil {
-				err = javaScriptStringEscape(w, keyPair.key)
+				err = jsonStringEscape(w, keyPair.key)
 			}
 			if err == nil {
 				_, err = w.WriteString(`":`)
 			}
 			if err == nil {
-				err = renderInJavaScript(env, out, keyPair.val)
+				err = renderInJSON(env, out, keyPair.val)
 			}
 		}
 		if err == nil {
@@ -692,7 +699,7 @@ func renderInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 		}
 		return err
 	default:
-		s = fmt.Sprintf("undefined/* scriggo: cannot represent a %s value */", v.Type())
+		s = "null"
 	}
 
 	_, err := w.WriteString(s)
@@ -713,6 +720,11 @@ func renderInJavaScriptString(env runtime.Env, out io.Writer, value interface{})
 		s = toString(reflect.ValueOf(value))
 	}
 	return javaScriptStringEscape(newStringWriter(out), s)
+}
+
+// renderInJSONString renders value in JSONString context.
+func renderInJSONString(env runtime.Env, out io.Writer, value interface{}) error {
+	return renderInJavaScriptString(env, out, value)
 }
 
 // renderTimeInJavaScript renders a value of type time.Time in a JavaScript

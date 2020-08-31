@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 type Vars map[string]interface{}
@@ -163,7 +164,7 @@ func TestUnquotedAttributeContext(t *testing.T) {
 	}
 }
 
-var javaScriptContextTests = []struct {
+var scriptContextTests = []struct {
 	src  string
 	res  string
 	vars Vars
@@ -221,6 +222,40 @@ var javaScriptContextTests = []struct {
 }
 
 func TestScriptContext(t *testing.T) {
+	for _, typ := range []string{"text/javascript", "application/ld+json"} {
+		for _, expr := range scriptContextTests {
+			r := MapReader{"index.html": []byte(`<script type="` + typ + `">{{` + expr.src + `}}</script>`)}
+			opts := &LoadOptions{
+				Builtins: asDeclarations(expr.vars),
+			}
+			tmpl, err := Load("index.html", r, LanguageHTML, opts)
+			if err != nil {
+				t.Errorf("type: %s, source: %q, %s\n", typ, expr.src, err)
+				continue
+			}
+			var b = &bytes.Buffer{}
+			err = tmpl.Render(b, expr.vars, nil)
+			if err != nil {
+				t.Errorf("type: %s, source: %q, %s\n", typ, expr.src, err)
+				continue
+			}
+			var res = b.String()
+			if len(res) < 25+len(typ) || res[16+len(typ):len(res)-9] != expr.res {
+				t.Errorf("type: %s, source: %q, unexpected %q, expecting %q\n", typ, expr.src, res[16+len(typ):len(res)-9], expr.res)
+			}
+		}
+	}
+}
+
+var javaScriptContextTests = []struct {
+	src  string
+	res  string
+	vars Vars
+}{
+	{"t", `new Date("2016-01-02T15:04:05.000Z")`, Vars{"t": time.Date(2016, 1, 2, 15, 04, 05, 0, time.UTC)}},
+}
+
+func TestJavaScriptContext(t *testing.T) {
 	for _, expr := range javaScriptContextTests {
 		r := MapReader{"index.html": []byte("<script>{{" + expr.src + "}}</script>")}
 		opts := &LoadOptions{
@@ -240,6 +275,38 @@ func TestScriptContext(t *testing.T) {
 		var res = b.String()
 		if len(res) < 17 || res[8:len(res)-9] != expr.res {
 			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[8:len(res)-9], expr.res)
+		}
+	}
+}
+
+var jsonContextTests = []struct {
+	src  string
+	res  string
+	vars Vars
+}{
+	{"t", `"2016-01-02T15:04:05Z"`, Vars{"t": time.Date(2016, 1, 2, 15, 04, 05, 0, time.UTC)}},
+}
+
+func TestJSONContext(t *testing.T) {
+	for _, expr := range jsonContextTests {
+		r := MapReader{"index.html": []byte(`<script type="application/ld+json">{{` + expr.src + `}}</script>`)}
+		opts := &LoadOptions{
+			Builtins: asDeclarations(expr.vars),
+		}
+		tmpl, err := Load("index.html", r, LanguageHTML, opts)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var b = &bytes.Buffer{}
+		err = tmpl.Render(b, expr.vars, nil)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var res = b.String()
+		if len(res) < 44 || res[35:len(res)-9] != expr.res {
+			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[35:len(res)-9], expr.res)
 		}
 	}
 }

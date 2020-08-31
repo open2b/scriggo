@@ -341,6 +341,15 @@ func javaScriptStringEscape(w strWriter, s string) error {
 	return nil
 }
 
+// jsonStringEscape escapes the string s so it can be placed within a JSON
+// string, and write it to w.
+//
+// jsonStringEscape calls the javaScriptStringEscape function that can also
+// escape JSON.
+func jsonStringEscape(w strWriter, s string) error {
+	return javaScriptStringEscape(w, s)
+}
+
 func isHexDigit(c byte) bool {
 	return '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F'
 }

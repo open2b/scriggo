@@ -122,6 +122,7 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 }
 
 var javaScriptMimeType = []byte("text/javascript")
+var jsonLDMimeType = []byte("application/ld+json")
 var cssMimeType = []byte("text/css")
 
 // scan scans the text by placing the tokens on the tokens channel. If an
@@ -245,12 +246,6 @@ func (l *lexer) scan() {
 						l.ctx = ast.ContextTag
 						switch l.tag.name {
 						case "script":
-							// REVIEW: handle:
-							//
-							// 		<script type="application/json">
-							// and
-							// 		<script type="application/ld+json">
-							//
 							l.tag.ctx = ast.ContextJavaScript
 						case "style":
 							l.tag.ctx = ast.ContextCSS
@@ -323,7 +318,9 @@ func (l *lexer) scan() {
 					} else if (l.tag.name == "script" || l.tag.name == "style") && l.tag.attr == "type" {
 						if typ := bytes.TrimSpace(l.src[l.tag.index:p]); len(typ) > 0 {
 							if l.tag.name == "script" {
-								if !bytes.EqualFold(typ, javaScriptMimeType) {
+								if bytes.EqualFold(typ, jsonLDMimeType) {
+									l.tag.ctx = ast.ContextJSON
+								} else if !bytes.EqualFold(typ, javaScriptMimeType) {
 									l.tag.ctx = ast.ContextHTML
 								}
 							} else {

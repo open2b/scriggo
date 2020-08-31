@@ -145,13 +145,14 @@ const (
 	ContextHTML
 	ContextCSS
 	ContextJavaScript
-	ContextJSON // TODO(gianluca): it is necessary to add the ContextJSONString?
-	ContextGo   // TODO(marco): move in first position.
+	ContextJSON
+	ContextGo // TODO(marco): move in first position.
 	ContextTag
 	ContextAttribute
 	ContextUnquotedAttribute
 	ContextCSSString
 	ContextJavaScriptString
+	ContextJSONString
 )
 
 func (ctx Context) String() string {
@@ -178,6 +179,8 @@ func (ctx Context) String() string {
 		return "CSS string"
 	case ContextJavaScriptString:
 		return "JavaScript string"
+	case ContextJSONString:
+		return "JSON string"
 	}
 	panic("invalid context")
 }

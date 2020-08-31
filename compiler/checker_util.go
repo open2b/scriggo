@@ -144,13 +144,14 @@ type (
 	JSONStringer       interface{ JSON() string }
 )
 
-// These interfaces are like HTMLStringer, CSSStringer and JavaScriptStringer,
-// but their method accepts a runtime.Env parameter that can be used inside the
+// These interfaces are like HTMLStringer, CSSStringer, JavaScriptStringer and
+// JSONStringer, but their method accepts a runtime.Env parameter that can be used inside the
 // method's body to access some environment information.
 type (
 	HTMLEnvStringer       interface{ HTML(runtime.Env) string }
 	CSSEnvStringer        interface{ CSS(runtime.Env) string }
 	JavaScriptEnvStringer interface{ JavaScript(runtime.Env) string }
+	JSONEnvStringer       interface{ JSON(runtime.Env) string }
 )
 
 // EnvStringer is like fmt.Stringer, but its method accepts a runtime.Env as
@@ -168,6 +169,9 @@ var cssEnvStringerType = reflect.TypeOf((*CSSEnvStringer)(nil)).Elem()
 
 var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
 var javaScriptEnvStringerType = reflect.TypeOf((*JavaScriptEnvStringer)(nil)).Elem()
+
+var jsonStringerType = reflect.TypeOf((*JSONStringer)(nil)).Elem()
+var jsonEnvStringerType = reflect.TypeOf((*JSONEnvStringer)(nil)).Elem()
 
 var timeType = reflect.TypeOf(time.Time{})
 
@@ -685,6 +689,59 @@ func printedAsJavaScript(t reflect.Type) error {
 		}
 	default:
 		return fmt.Errorf("type %s cannot be printed as JavaScript", t)
+	}
+	return nil
+}
+
+// printedAsJSON reports whether a type can be printed as JSON. It returns an
+// error it the type cannot be printed.
+func printedAsJSON(t reflect.Type) error {
+	kind := t.Kind()
+	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
+		t == timeType ||
+		t.Implements(jsonStringerType) ||
+		t.Implements(jsonEnvStringerType) ||
+		t.Implements(errorType) {
+		return nil
+	}
+	switch kind {
+	case reflect.Array:
+		if err := printedAsJSON(t.Elem()); err != nil {
+			return fmt.Errorf("array of %s cannot be printed as JSON", t.Elem())
+		}
+	case reflect.Interface:
+	case reflect.Map:
+		key := t.Key().Kind()
+		switch {
+		case key == reflect.String:
+		case reflect.Bool <= key && key <= reflect.Complex128:
+		case t.Implements(stringerType):
+		case t.Implements(envStringerType):
+		default:
+			return fmt.Errorf("map with %s key cannot be printed as JSON", t.Key())
+		}
+		err := printedAsJSON(t.Elem())
+		if err != nil {
+			return fmt.Errorf("map with %s element cannot be printed as JSON", t.Elem())
+		}
+	case reflect.Ptr, reflect.UnsafePointer:
+		return printedAsJSON(t.Elem())
+	case reflect.Slice:
+		if err := printedAsJSON(t.Elem()); err != nil {
+			return fmt.Errorf("slice of %s cannot be printed as JSON", t.Elem())
+		}
+	case reflect.Struct:
+		n := t.NumField()
+		for i := 0; i < n; i++ {
+			field := t.Field(i)
+			if field.PkgPath == "" {
+				if err := printedAsJSON(field.Type); err != nil {
+					return fmt.Errorf("struct containing %s cannot be printed as JSON", field.Type)
+				}
+			}
+		}
+	default:
+		return fmt.Errorf("type %s cannot be printed as JSON", t)
 	}
 	return nil
 }

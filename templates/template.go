@@ -79,7 +79,7 @@ type JSONStringer interface {
 	JSON() string
 }
 
-// JSONEnvStringer is like JSONStringer where the JavaScript method takes a
+// JSONEnvStringer is like JSONStringer where the JSON method takes a
 // runtime.Env parameter.
 type JSONEnvStringer interface {
 	JSON(runtime.Env) string

@@ -78,6 +78,12 @@ func Test_commentedError(t *testing.T) {
 				t.Errorf("Javascript: got %q, want %q", gotJavascript, cas.wantJavascript)
 			}
 
+			// JSON.
+			gotJSON := cas.input.String()
+			if gotJSON != "" {
+				t.Errorf("JSON: got %q, want \"\"", gotJSON)
+			}
+
 			// Plain text.
 			gotPlainText := cas.input.String()
 			if gotPlainText != "" {
