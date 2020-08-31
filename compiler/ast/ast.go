@@ -817,6 +817,7 @@ type Verbatim struct {
 	Text      *Text // verbatim text.
 }
 
+// NewVerbatim returns a new Verbatim node.
 func NewVerbatim(pos *Position, text *Text) *Verbatim {
 	return &Verbatim{pos, text}
 }
