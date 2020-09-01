@@ -365,9 +365,9 @@ func ParseTemplateSource(src []byte, lang ast.Language, relaxedBoolean bool) (tr
 				Line:   tok.pos.Line,
 				Column: tok.pos.Column + 3,
 				Start:  tok.pos.Start + 3,
-				End:    tok.pos.End - 2,
+				End:    tok.pos.End - 3,
 			}
-			text := ast.NewText(textPos, tok.txt[3:len(tok.txt)-2], ast.Cut{})
+			text := ast.NewText(textPos, tok.txt[3:len(tok.txt)-3], ast.Cut{})
 			cutSpaces(text, text)
 			node := ast.NewVerbatim(tok.pos, text)
 			p.addChild(node)

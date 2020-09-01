@@ -1370,8 +1370,8 @@ var treeTests = []struct {
 			}, nil, false),
 			[]ast.Node{ast.NewText(p(1, 43, 42, 44), []byte("txt"), ast.Cut{})}, ast.ContextHTML)}, ast.LanguageHTML)},
 	{"{# comment\ncomment #}", ast.NewTree("", []ast.Node{ast.NewComment(p(1, 1, 0, 20), " comment\ncomment ")}, ast.LanguageHTML)},
-	{"{## verbatim\nverbatim #}", ast.NewTree("", []ast.Node{
-		ast.NewVerbatim(p(1, 1, 0, 23),
+	{"{## verbatim\nverbatim ##}", ast.NewTree("", []ast.Node{
+		ast.NewVerbatim(p(1, 1, 0, 24),
 			ast.NewText(p(1, 4, 3, 21), []byte(" verbatim\nverbatim "), ast.Cut{}))}, ast.LanguageHTML)},
 	{"{% macro a(i int) %}c{% end macro %}", ast.NewTree("", []ast.Node{
 		ast.NewMacro(p(1, 4, 3, 32), ast.NewIdentifier(p(1, 10, 9, 9), "a"),

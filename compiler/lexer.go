@@ -188,7 +188,12 @@ func (l *lexer) scan() {
 					if p > 0 {
 						l.emitAtLineColumn(lin, col, tokenText, p)
 					}
-					err := l.lexCommentOrVerbatim()
+					var err error
+					if len(l.src) == 2 || l.src[2] != '#' || (len(l.src) >= 4 && l.src[3] == '}') {
+						err = l.lexComment()
+					} else {
+						err = l.lexVerbatim()
+					}
 					if err != nil {
 						l.err = err
 						break LOOP
@@ -592,42 +597,125 @@ func (l *lexer) lexBlock() error {
 	return nil
 }
 
-// lexCommentOrVerbatim emits a comment or a verbatim token knowing that src
-// starts with '{#'.
-func (l *lexer) lexCommentOrVerbatim() error {
-	nested := 0
-	p := 2
-	for nested >= 0 {
-		i := bytes.IndexByte(l.src[p:], '#')
-		if i == -1 {
-			if len(l.src) > 2 && l.src[2] == '#' {
-				return l.errorf("verbatim not terminated")
+// indexCommentTag returns the index of the first instance of '{#' or '#}' in
+// s, or -1 if they are not present in s. It does not index '{##' and '##}'.
+func indexCommentTag(s []byte) int {
+	if len(s) < 2 {
+		return -1
+	}
+	for i := 0; i < len(s); i++ {
+		p := bytes.IndexByte(s[i:], byte('#'))
+		if p == -1 {
+			return -1
+		}
+		i += p
+		if p > 0 && s[i-1] == '{' {
+			if i+1 == len(s) || s[i+1] != '#' {
+				// Found '{#'.
+				return i - 1
 			}
+			// Found '{##'.
+			i++
+		} else if i+1 < len(s) {
+			if c := s[i+1]; c == '}' {
+				// Found '#}'.
+				return i
+			} else if c == '#' && i+2 < len(s) && s[i+2] == '}' {
+				// Found '##}'.
+				i += 2
+			}
+		}
+	}
+	return -1
+}
+
+var doubleHash = []byte("##")
+
+// indexVerbatimTag returns the index of the first instance of '{##' or '##}'
+// in s, or -1 if they are not present in s.
+func indexVerbatimTag(s []byte) int {
+	if len(s) < 3 {
+		return -1
+	}
+	for i := 0; i < len(s); i++ {
+		p := bytes.Index(s[i:], doubleHash)
+		if p == -1 {
+			return -1
+		}
+		i += p
+		if p > 0 && s[i-1] == '{' {
+			// Found '{##'.
+			return i - 1
+		} else if i+2 < len(s) {
+			if c := s[i+2]; c == '}' {
+				// Found '##}'.
+				return i
+			} else if c != '#' {
+				i++
+			}
+		}
+	}
+	return -1
+}
+
+// lexComment emits a comment token knowing that src starts with '{#' and
+// don't start with '{##'.
+func (l *lexer) lexComment() error {
+	nested := 0
+	var i int
+	for i = 2; i < len(l.src) && nested >= 0; i += 2 {
+		p := indexCommentTag(l.src[i:])
+		if p == -1 {
 			return l.errorf("comment not terminated")
 		}
-		if i > 0 && l.src[p+i-1] == '{' {
+		i += p
+		if l.src[i] == '{' {
 			nested++
-		} else if i < len(l.src)-p && l.src[p+i+1] == '}' {
+		} else {
 			nested--
-			p++
 		}
-		p += i + 1
 	}
 	line := l.line
 	column := l.column
 	l.column += 4
-	for i := 2; i < p-2; i++ {
-		if c := l.src[i]; c == '\n' {
+	for j := 2; j < i-2; j++ {
+		if c := l.src[j]; c == '\n' {
 			l.newline()
 		} else if isStartChar(c) {
 			l.column++
 		}
 	}
-	tok := tokenComment
-	if len(l.src) > 4 && l.src[2] == '#' {
-		tok = tokenVerbatim
+	l.emitAtLineColumn(line, column, tokenComment, i)
+	return nil
+}
+
+// lexVerbatim emits a verbatim token knowing that src starts with '{##'.
+func (l *lexer) lexVerbatim() error {
+	nested := 0
+	var i int
+	for i = 3; i < len(l.src) && nested >= 0; i += 3 {
+		p := indexVerbatimTag(l.src[i:])
+		if p == -1 {
+			return l.errorf("verbatim not terminated")
+		}
+		i += p
+		if l.src[i] == '{' {
+			nested++
+		} else {
+			nested--
+		}
 	}
-	l.emitAtLineColumn(line, column, tok, p)
+	line := l.line
+	column := l.column
+	l.column += 6
+	for j := 3; j < i-3; j++ {
+		if c := l.src[j]; c == '\n' {
+			l.newline()
+		} else if isStartChar(c) {
+			l.column++
+		}
+	}
+	l.emitAtLineColumn(line, column, tokenVerbatim, i)
 	return nil
 }
 
