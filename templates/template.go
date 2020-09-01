@@ -74,6 +74,17 @@ type JavaScriptEnvStringer interface {
 	JavaScript(runtime.Env) string
 }
 
+// JSONStringer is implemented by values that are not escaped in JSON context.
+type JSONStringer interface {
+	JSON() string
+}
+
+// JSONEnvStringer is like JSONStringer where the JSON method takes a
+// runtime.Env parameter.
+type JSONEnvStringer interface {
+	JSON(runtime.Env) string
+}
+
 // HTML implements the HTMLStringer interface.
 type HTML string
 
@@ -95,6 +106,13 @@ func (js JavaScript) JavaScript() string {
 	return string(js)
 }
 
+// JSON implements the JSONStringer interface.
+type JSON string
+
+func (json JSON) JSON() string {
+	return string(json)
+}
+
 // A Language represents a source language.
 type Language int
 
@@ -103,6 +121,7 @@ const (
 	LanguageHTML
 	LanguageCSS
 	LanguageJavaScript
+	LanguageJSON
 )
 
 func (language Language) String() string {

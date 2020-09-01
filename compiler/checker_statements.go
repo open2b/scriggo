@@ -667,8 +667,8 @@ nodesLoop:
 			}
 			kind := ti.Type.Kind()
 			switch node.Context {
-			case ast.ContextText, ast.ContextTag, ast.ContextAttribute,
-				ast.ContextUnquotedAttribute, ast.ContextCSSString, ast.ContextJavaScriptString:
+			case ast.ContextText, ast.ContextTag, ast.ContextAttribute, ast.ContextUnquotedAttribute,
+				ast.ContextCSSString, ast.ContextJavaScriptString, ast.ContextJSONString:
 				switch {
 				case kind == reflect.String:
 				case reflect.Bool <= kind && kind <= reflect.Complex128:
@@ -710,6 +710,11 @@ nodesLoop:
 				}
 			case ast.ContextJavaScript:
 				err := printedAsJavaScript(ti.Type)
+				if err != nil {
+					panic(tc.errorf(node, "cannot print %s (%s)", node.Expr, err))
+				}
+			case ast.ContextJSON:
+				err := printedAsJSON(ti.Type)
 				if err != nil {
 					panic(tc.errorf(node, "cannot print %s (%s)", node.Expr, err))
 				}

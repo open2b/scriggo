@@ -115,6 +115,7 @@ const (
 	LanguageHTML
 	LanguageCSS
 	LanguageJavaScript
+	LanguageJSON
 	LanguageGo // TODO(marco): move in first position.
 )
 
@@ -130,6 +131,8 @@ func (lang Language) String() string {
 		return "CSS"
 	case LanguageJavaScript:
 		return "JavaScript"
+	case LanguageJSON:
+		return "JSON"
 	}
 	panic("invalid language")
 }
@@ -142,12 +145,14 @@ const (
 	ContextHTML
 	ContextCSS
 	ContextJavaScript
+	ContextJSON
 	ContextGo // TODO(marco): move in first position.
 	ContextTag
 	ContextAttribute
 	ContextUnquotedAttribute
 	ContextCSSString
 	ContextJavaScriptString
+	ContextJSONString
 )
 
 func (ctx Context) String() string {
@@ -162,6 +167,8 @@ func (ctx Context) String() string {
 		return "CSS"
 	case ContextJavaScript:
 		return "JavaScript"
+	case ContextJSON:
+		return "JSON"
 	case ContextTag:
 		return "tag"
 	case ContextAttribute:
@@ -172,6 +179,8 @@ func (ctx Context) String() string {
 		return "CSS string"
 	case ContextJavaScriptString:
 		return "JavaScript string"
+	case ContextJSONString:
+		return "JSON string"
 	}
 	panic("invalid context")
 }
