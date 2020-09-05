@@ -398,6 +398,36 @@ func (l *lexer) scan() {
 					}
 				}
 
+			case ast.ContextJSON:
+				if isHTML && c == '<' && isEndScript(l.src[p:]) {
+					// </script>
+					l.ctx = ast.ContextHTML
+					p += 8
+					l.column += 8
+				} else if c == '"' {
+					l.ctx = ast.ContextJSONString
+					quote = '"'
+				}
+
+			case ast.ContextJSONString:
+				switch c {
+				case '\\':
+					if p+1 < len(l.src) && l.src[p+1] == '"' {
+						p++
+						l.column++
+					}
+				case '"':
+					l.ctx = ast.ContextJSON
+					quote = 0
+				case '<':
+					if isHTML && isEndScript(l.src[p:]) {
+						l.ctx = ast.ContextHTML
+						quote = 0
+						p += 8
+						l.column += 8
+					}
+				}
+
 			}
 
 			p++

@@ -279,6 +279,20 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		`<script>"</script>"{{a}}</script>`:            {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
 		`<script async></script>{{ "a" }}`:             {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 
+		`<script type="application/ld+json">s{{a}}t</script>{{a}}`:     {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="application/ld+json">{{a}}"{{a}}"</script>`:     {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextJSONString, ast.ContextJSONString, ast.ContextJSONString, ast.ContextText},
+		`<script type="application/ld+json">"{{a}}"{{a}}</script>`:     {ast.ContextText, ast.ContextJSONString, ast.ContextJSONString, ast.ContextJSONString, ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText},
+		`<script type="application/ld+json">{{a}}'{{a}}'</script>`:     {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText},
+		`<script type="application/ld+json">'{{a}}'{{a}}</script>`:     {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText},
+		`<script type="application/ld+json">'</script>'{{a}}</script>`: {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
+		`<script type="application/ld+json">"</script>"{{a}}</script>`: {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
+		`<script type="application/ld+json" async></script>{{ "a" }}`:  {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+
+		`<script type="application/ld+json">s{{a}}</script>{{a}}`:       {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script type="application/ld+json">s{{include "a"}}t</script>`: {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText},
+		`<script type="application/ld+json" a="{{b}}"></script>`:        {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
+		`<script type="application/ld+json" a="b">{{1}}</script>`:       {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText},
+
 		// Script tag with type attribute.
 		`<script type="text/javascript">s{{a}}</script>{{a}}`:   {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 		`<script type=" text/JavaScript ">s{{a}}</script>{{a}}`: {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
@@ -320,6 +334,18 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 	ast.ContextJavaScriptString: {
 		`a`:       {ast.ContextText},
 		`a{{a}}a`: {ast.ContextText, ast.ContextJavaScriptString, ast.ContextJavaScriptString, ast.ContextJavaScriptString, ast.ContextText},
+	},
+	ast.ContextJSON: {
+		`a`:                             {ast.ContextText},
+		`{{a}}`:                         {ast.ContextJSON, ast.ContextJSON, ast.ContextJSON},
+		"<script></script>":             {ast.ContextText},
+		"<style></style>":               {ast.ContextText},
+		"<script>s{{a}}t</script>{{a}}": {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON},
+		"<style>s{{a}}t</style>{{a}}":   {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON},
+	},
+	ast.ContextJSONString: {
+		`a`:       {ast.ContextText},
+		`a{{a}}a`: {ast.ContextText, ast.ContextJSONString, ast.ContextJSONString, ast.ContextJSONString, ast.ContextText},
 	},
 }
 
