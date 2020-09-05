@@ -868,9 +868,6 @@ LABEL:
 	// show
 	case tokenShow:
 		pos := tok.pos
-		if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
-			panic(syntaxError(tok.pos, "show statement inside an attribute value"))
-		}
 		tok = p.next()
 		if tok.typ != tokenIdentifier {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier", tok))
