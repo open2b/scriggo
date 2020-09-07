@@ -47,8 +47,6 @@ type Env interface {
 	Println(args ...interface{})
 }
 
-type _env = env
-
 // The env type implements the Env interface.
 type env struct {
 	ctx     context.Context // context.
