@@ -250,9 +250,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.exitScope()
 
 		case *ast.ShowPartial:
-			// The including scope must be hidden from the included file,
-			// otherwise the included file would see the variables in the
-			// including scope instead of global variables (note that the
+			// The scope that shows the partial file must be hidden from such
+			// file, otherwise the shown file would see the variables in the
+			// scope that shows it instead of global variables (note that the
 			// emitter gives precedence to local variables respect to global
 			// variables).
 			path := em.fb.getPath()

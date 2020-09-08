@@ -20,7 +20,7 @@ import (
 // absolute, is relative to the root of the template. lang can be Text, HTML,
 // CSS or JavaScript.
 //
-// ParseTemplate expands the nodes Extends, Import and Include parsing the
+// ParseTemplate expands the nodes Extends, Import and ShowPartial parsing the
 // relative trees.
 //
 // relaxedBoolean reports whether the operators 'and', 'or' and 'not' as well as

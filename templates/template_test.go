@@ -1421,9 +1421,9 @@ var templateMultiPageCases = map[string]struct {
 	},
 
 	"Included file tries to overwrite a variable of the including file": {
-		// The emitter must use another scope when emitting the included file,
-		// otherwise such file can overwrite the variables of the including
-		// file.
+		// The emitter must use another scope when emitting the shown partial
+		// file, otherwise such file can overwrite the variables of the file
+		// that shows it.
 		sources: map[string]string{
 			"index.html":    `{% v := "including" %}{% include "included.html" %}{{ v }}`,
 			"included.html": `{% v := "included" %}`,
@@ -1432,12 +1432,13 @@ var templateMultiPageCases = map[string]struct {
 	},
 
 	"The included file must see the builtin variable, not the local variable of the including file": {
-		// If the included file refers to a builtin symbol with the same name of
-		// a local variable in the scope of the including file then the emitter
-		// emits the code for such variable instead of such global variable.
-		// This happens because the emitter gives the precedence to local
-		// variables respect to builtin variables. For this reason the emitter
-		// must hide the scopes to the included file (as the type checker does).
+		// If the shown partial file refers to a builtin symbol with the same
+		// name of a local variable in the scope of the file that shows it then
+		// the emitter emits the code for such variable instead of such global
+		// variable. This happens because the emitter gives the precedence to
+		// local variables respect to builtin variables. For this reason the
+		// emitter must hide the scopes to the shown partial file (as the type
+		// checker does).
 		sources: map[string]string{
 			"index.html":    `{% v := "including" %}{% include "included.html" %}, {{ v }}`,
 			"included.html": "{{ v }}",

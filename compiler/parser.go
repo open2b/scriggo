@@ -215,7 +215,8 @@ func ParseSource(src []byte, isPackageLessProgram, shebang bool) (tree *ast.Tree
 // language lang and returns its tree. language can be Text, HTML, CSS or
 // JavaScript.
 //
-// ParseTemplateSource does not expand the nodes Extends, Include and Import.
+// ParseTemplateSource does not expand the nodes Extends, ShowPartial and
+// Import.
 //
 // relaxedBoolean reports whether the operators 'and', 'or' and 'not' as well as
 // non-boolean conditions in the if statement are allowed.

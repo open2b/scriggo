@@ -141,8 +141,8 @@ nodesLoop:
 
 		case *ast.ShowPartial:
 
-			// Check the included tree in a separate scope, that cannot access
-			// to variables declared in the including scope or even add
+			// Check the shown tree in a separate scope, that cannot access to
+			// variables declared in the scope of the partial file or even add
 			// declarations to it.
 
 			path := tc.path

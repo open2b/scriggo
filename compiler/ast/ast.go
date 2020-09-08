@@ -746,10 +746,10 @@ func NewShowMacro(pos *Position, macro Expression, args []Expression, isVariadic
 	return &ShowMacro{Position: pos, Macro: macro, Args: args, IsVariadic: isVariadic, Or: or, Context: ctx}
 }
 
-// Include node represents a statement {% include <path> %}.
+// ShowPartial node represents a statement {% show <path> %}.
 type ShowPartial struct {
 	*Position         // position in the source.
-	Path      string  // path of the source to include.
+	Path      string  // path of the partial source to show.
 	Context   Context // context.
 	Tree      *Tree   // expanded tree of <path>.
 }
