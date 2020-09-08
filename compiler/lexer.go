@@ -1146,8 +1146,6 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 				l.emit(tokenExtends, p)
 			case "in":
 				l.emit(tokenIn, p)
-			case "include":
-				l.emit(tokenInclude, p)
 			case "macro":
 				l.emit(tokenMacro, p)
 			case "show":

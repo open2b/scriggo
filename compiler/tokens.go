@@ -59,7 +59,6 @@ const (
 	tokenGoto                              // goto
 	tokenExtends                           // extends
 	tokenImport                            // import
-	tokenInclude                           // include
 	tokenShow                              // show
 	tokenMacro                             // macro
 	tokenFunc                              // func
@@ -160,7 +159,6 @@ var tokenString = map[tokenTyp]string{
 	tokenGoto:                     "goto",
 	tokenExtends:                  "extends",
 	tokenImport:                   "import",
-	tokenInclude:                  "include",
 	tokenShow:                     "show",
 	tokenFunc:                     "func",
 	tokenReturn:                   "return",

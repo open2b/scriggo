@@ -840,31 +840,6 @@ LABEL:
 		tok = p.parseEnd(tok, tokenSemicolon)
 		return tok
 
-	// include
-	case tokenInclude:
-		pos := tok.pos
-		switch tok.ctx {
-		case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript, ast.ContextJSON:
-		default:
-			panic(syntaxError(tok.pos, "include statement inside %s", tok.ctx))
-		}
-		// path
-		tok = p.next()
-		if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting string", tok))
-		}
-		var path = unquoteString(tok.txt)
-		if !ValidTemplatePath(path) {
-			panic(fmt.Errorf("invalid path %q at %s", path, tok.pos))
-		}
-		pos.End = tok.pos.End
-		node := ast.NewShowPartial(pos, path, tok.ctx)
-		p.addChild(node)
-		p.cutSpacesToken = true
-		tok = p.next()
-		tok = p.parseEnd(tok, tokenEndBlock)
-		return tok
-
 	// show
 	case tokenShow:
 		pos := tok.pos
