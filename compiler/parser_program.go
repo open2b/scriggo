@@ -88,7 +88,7 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
 								}
 								err += imp.Path
 							}
-							err += "\n\timports " + p.Path
+							err += "\n\timports " + p.Path + ": import cycle not allowed"
 							return nil, cycleError(err)
 						}
 					}

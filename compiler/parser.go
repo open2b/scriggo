@@ -76,7 +76,7 @@ func syntaxError(pos *ast.Position, format string, a ...interface{}) *SyntaxErro
 type cycleError string
 
 func (e cycleError) Error() string {
-	return fmt.Sprintf("cycle not allowed\n%s", string(e))
+	return string(e)
 }
 
 // containsOnlySpaces reports whether b contains only white space characters
