@@ -50,7 +50,7 @@ const cyclicTemplateErrorMessage = `file /index.html
 	includes /includes/include.html
 	imports  /macros/macro.html: cycle not allowed`
 
-func TestTCyclicTemplate(t *testing.T) {
+func TestCyclicTemplate(t *testing.T) {
 	_, err := ParseTemplate("index.html", cyclicTemplate, ast.LanguageHTML, false, nil)
 	if err == nil {
 		t.Fatal("expecting cycle error, got no error")
