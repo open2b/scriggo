@@ -1629,8 +1629,8 @@ func equals(n1, n2 ast.Node, p int) error {
 			return err
 		}
 
-	case *ast.Include:
-		nn2, ok := n2.(*ast.Include)
+	case *ast.ShowPartial:
+		nn2, ok := n2.(*ast.ShowPartial)
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}

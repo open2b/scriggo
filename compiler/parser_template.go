@@ -271,7 +271,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 				}
 			}
 
-		case *ast.Include:
+		case *ast.ShowPartial:
 
 			absPath, err := pp.abs(n.Path)
 			if err != nil {
