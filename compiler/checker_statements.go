@@ -893,7 +893,7 @@ nodesLoop:
 
 			ti := tc.checkExpr(node)
 			if tc.opts.SyntaxType == TemplateSyntax {
-				if node, ok := node.(*ast.Func); ok {
+				if node, ok := node.(*ast.Func); ok && node.Ident != nil {
 					tc.assignScope(node.Ident.Name, ti, node.Ident)
 					i++
 					continue nodesLoop

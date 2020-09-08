@@ -795,6 +795,13 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: `[a c b] sorted is [a b c]`,
 	},
 
+	"Function literal": {
+		sources: map[string]string{
+			"index.html": `{% func() {} %}`,
+		},
+		expectedLoadErr: "func literal evaluated but not used",
+	},
+
 	"Function call": {
 		sources: map[string]string{
 			"index.html": `{% func() { print(5) }() %}`,
