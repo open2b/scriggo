@@ -1,7 +1,7 @@
 {% extends "layouts/home.html" %}
 
-{% import "includes/banners.html" %}
-{% import "includes/products.html" %}
+{% import "partials/banners.html" %}
+{% import "partials/products.html" %}
 
 {% macro Head %}Page head{% end macro %}
 
@@ -19,7 +19,7 @@
   {% promotions := make([]int, 20) %}
   {% if len(promotions) > 0 %}
   <h2>{{ translate("Home promotions") }}</h2>
-  {# {% include "includes/promotions.html" %} #}
+  {# {% show "partials/promotions.html" %} #}
   {% end if %}
   {% topSellers := make([]string, 10) %}
   {% topSellersColumns := make([]int, 10) %}
@@ -32,6 +32,6 @@
   {% blogPosts := make([]string, 10) %}
   {% if len(blogPosts) > 0 %}
   <h2>{{ translate("News") }}</h2>
-  {# {% include "includes/blog-posts.html" %} #}
+  {# {% show "partials/blog-posts.html" %} #}
   {% end if %}
 {% end macro %}
