@@ -52,9 +52,7 @@ func (tc *typechecker) templatePageToPackage(tree *ast.Tree, path string) error 
 					continue
 				}
 				unexpected = "text"
-			case *ast.ShowPartial:
-				unexpected = "include"
-			case *ast.Show:
+			case *ast.ShowPartial, *ast.Show:
 				unexpected = "show"
 			default:
 				unexpected = "statement"
