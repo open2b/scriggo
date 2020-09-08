@@ -6,6 +6,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// TODO: the tests in this file are not run because it is excluded from the
+// build. Re-enable this file or remove it.
+
 package test
 
 import (
@@ -81,7 +84,7 @@ func ExampleDirRenderer() {
 func ExampleMapRenderer() {
 	sources := map[string][]byte{
 		"header.csv": []byte("Name"),
-		"names.csv":  []byte("{% include `header.csv` %}\n{% for name in names %}{{ name }}\n{% end %}"),
+		"names.csv":  []byte("{% show `header.csv` %}\n{% for name in names %}{{ name }}\n{% end %}"),
 	}
 
 	vars := map[string]interface{}{
