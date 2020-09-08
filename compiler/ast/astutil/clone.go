@@ -162,7 +162,7 @@ func CloneNode(node ast.Node) ast.Node {
 		return imp
 
 	case *ast.ShowPartial:
-		sp := ast.NewInclude(ClonePosition(n.Position), n.Path, n.Context)
+		sp := ast.NewShowPartial(ClonePosition(n.Position), n.Path, n.Context)
 		if n.Tree != nil {
 			sp.Tree = CloneTree(n.Tree)
 		}

@@ -754,7 +754,7 @@ type ShowPartial struct {
 	Tree      *Tree   // expanded tree of <path>.
 }
 
-func NewInclude(pos *Position, path string, ctx Context) *ShowPartial {
+func NewShowPartial(pos *Position, path string, ctx Context) *ShowPartial {
 	return &ShowPartial{Position: pos, Path: path, Context: ctx}
 }
 
