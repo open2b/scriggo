@@ -1044,35 +1044,35 @@ var templateMultiPageCases = map[string]struct {
 	// 	expectedOut: `Ignored macro:  ok.`,
 	// },
 
-	"Include - Only text": {
+	"Show partial - Only text": {
 		sources: map[string]string{
-			"index.html":    `a{% include "/included.html" %}c`,
-			"included.html": `b`,
+			"index.html":   `a{% show "/partial.html" %}c`,
+			"partial.html": `b`,
 		},
 		expectedOut: "abc",
 	},
 
-	"Include - Included file uses external variable": {
+	"Show partial - Partial file uses external variable": {
 		sources: map[string]string{
-			"index.html":    `{% var a = 10 %}a: {% include "/included.html" %}`,
-			"included.html": `{{ a }}`,
+			"index.html":   `{% var a = 10 %}a: {% show "/partial.html" %}`,
+			"partial.html": `{{ a }}`,
 		},
 		expectedLoadErr: "undefined: a",
 	},
 
-	"Include - File including uses included variable": {
+	"Show partial - File showing partial file try to use a variable declared in the partial file": {
 		sources: map[string]string{
-			"index.html":    `{% include "/included.html" %}included a: {{ a }}`,
-			"included.html": `{% var a = 20 %}`,
+			"index.html":   `{% show "/partial.html" %}partial a: {{ a }}`,
+			"partial.html": `{% var a = 20 %}`,
 		},
 		expectedLoadErr: "undefined: a",
 	},
 
-	"Include - Including a file which includes another file": {
+	"Show partial - File showing a partial file which shows another partial file": {
 		sources: map[string]string{
-			"index.html":              `indexstart,{% include "/dir1/included.html" %}indexend,`,
-			"dir1/included.html":      `i1start,{% include "/dir1/dir2/included.html" %}i1end,`,
-			"dir1/dir2/included.html": `i2,`,
+			"index.html":             `indexstart,{% show "/dir1/partial.html" %}indexend,`,
+			"dir1/partial.html":      `i1start,{% show "/dir1/dir2/partial.html" %}i1end,`,
+			"dir1/dir2/partial.html": `i2,`,
 		},
 		expectedOut: "indexstart,i1start,i2,i1end,indexend,",
 	},
@@ -1213,9 +1213,9 @@ var templateMultiPageCases = map[string]struct {
 
 	"https://github.com/open2b/scriggo/issues/392": {
 		sources: map[string]string{
-			"product.html": `{{ "" }}{% include "includes/products.html" %}
+			"product.html": `{{ "" }}{% show "partials/products.html" %}
 `, // this newline is intentional
-			"includes/products.html": `{% macro M(s []int) %}{% end %}`,
+			"partials/products.html": `{% macro M(s []int) %}{% end %}`,
 		},
 		expectedOut: "\n",
 		lang:        LanguageHTML,
@@ -1240,9 +1240,9 @@ var templateMultiPageCases = map[string]struct {
 
 	"https://github.com/open2b/scriggo/issues/393": {
 		sources: map[string]string{
-			"product.html": `{% include "includes/products.html" %}
+			"product.html": `{% show "partials/products.html" %}
 `, // this newline is intentional
-			"includes/products.html": `{% macro M(s []int) %}{% end %}`,
+			"partials/products.html": `{% macro M(s []int) %}{% end %}`,
 		},
 		expectedOut: "",
 		lang:        LanguageHTML,
@@ -1420,18 +1420,18 @@ var templateMultiPageCases = map[string]struct {
 		expectedLoadErr: "undefined: name",
 	},
 
-	"Included file tries to overwrite a variable of the including file": {
+	"Shown partial file tries to overwrite a variable of the file that shows it": {
 		// The emitter must use another scope when emitting the shown partial
 		// file, otherwise such file can overwrite the variables of the file
 		// that shows it.
 		sources: map[string]string{
-			"index.html":    `{% v := "including" %}{% include "included.html" %}{{ v }}`,
-			"included.html": `{% v := "included" %}`,
+			"index.html":   `{% v := "showing" %}{% show "partial.html" %}{{ v }}`,
+			"partial.html": `{% v := "partial" %}`,
 		},
-		expectedOut: "including",
+		expectedOut: "showing",
 	},
 
-	"The included file must see the builtin variable, not the local variable of the including file": {
+	"The file that shows a partial files must see the builtin variable, not the local variable of the shown partial file": {
 		// If the shown partial file refers to a builtin symbol with the same
 		// name of a local variable in the scope of the file that shows it then
 		// the emitter emits the code for such variable instead of such global
@@ -1440,8 +1440,8 @@ var templateMultiPageCases = map[string]struct {
 		// emitter must hide the scopes to the shown partial file (as the type
 		// checker does).
 		sources: map[string]string{
-			"index.html":    `{% v := "including" %}{% include "included.html" %}, {{ v }}`,
-			"included.html": "{{ v }}",
+			"index.html":   `{% v := "showing" %}{% show "partial.html" %}, {{ v }}`,
+			"partial.html": "{{ v }}",
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1449,23 +1449,23 @@ var templateMultiPageCases = map[string]struct {
 				"v": &builtinVariable,
 			},
 		},
-		expectedOut: "builtin variable, including",
+		expectedOut: "builtin variable, showing",
 	},
 
-	"The included file defines a macro, which should not be accessible from the including file": {
+	"The partial file defines a macro, which should not be accessible from the file that shows it": {
 		sources: map[string]string{
-			"index.html":    `{% include "included.html" %}{% show IncludedMacro %}`,
-			"included.html": `{% macro IncludedMacro %}{% end macro %}`,
+			"index.html":   `{% show "partial.html" %}{% show MacroInPartialFile %}`,
+			"partial.html": `{% macro MacroInPartialFile %}{% end macro %}`,
 		},
-		expectedLoadErr: "undefined: IncludedMacro",
+		expectedLoadErr: "undefined: MacroInPartialFile",
 	},
 
-	"The including file defines a macro, which should not be accessible from the included file": {
+	"The file that shows a partial file defines a macro, which should not be accessible from the shown file": {
 		sources: map[string]string{
-			"index.html":    `{% macro IncludedMacro %}{% end macro %}{% include "included.html" %}`,
-			"included.html": `{% show IncludedMacro %}`,
+			"index.html":   `{% macro MacroInShowingFile %}{% end macro %}{% show "partial.html" %}`,
+			"partial.html": `{% show MacroInShowingFile %}`,
 		},
-		expectedLoadErr: "undefined: IncludedMacro",
+		expectedLoadErr: "undefined: MacroInShowingFile",
 	},
 
 	"Byte slices are rendered as they are in context HTML": {
@@ -1603,8 +1603,8 @@ var templateMultiPageCases = map[string]struct {
 	// https://github.com/open2b/scriggo/issues/641
 	// "File imported by two files - test compilation": {
 	// 	sources: map[string]string{
-	// 		"index.html":    `{% import "/v.html" %}{% include "/included.html" %}`,
-	// 		"included.html": `{% import "/v.html" %}`,
+	// 		"index.html":    `{% import "/v.html" %}{% show "/partial.html" %}`,
+	// 		"partial.html": `{% import "/v.html" %}`,
 	// 		"v.html":        `{% var V int %}`,
 	// 	},
 	// 	lang: LanguageHTML,
@@ -1644,9 +1644,9 @@ var templateMultiPageCases = map[string]struct {
 	// https://github.com/open2b/scriggo/issues/643
 	"Invalid variable value with multiple imports": {
 		sources: map[string]string{
-			"index.html":    `{% import "/v.html" %}{% include "/included.html" %}V is {{ V }}`,
-			"included.html": `{% import "/v.html" %}`,
-			"v.html":        `{% var V = 42 %}`,
+			"index.html":   `{% import "/v.html" %}{% show "/partial.html" %}V is {{ V }}`,
+			"partial.html": `{% import "/v.html" %}`,
+			"v.html":       `{% var V = 42 %}`,
 		},
 		expectedOut: "V is 42",
 		lang:        LanguageHTML,
@@ -1655,9 +1655,9 @@ var templateMultiPageCases = map[string]struct {
 	// https://github.com/open2b/scriggo/issues/643
 	"Init function called more than once": {
 		sources: map[string]string{
-			"index.html":    `{% import "/v.html" %}{% include "/included.html" %}{{ V }}`,
-			"included.html": `{% import "/v.html" %}`,
-			"v.html":        `{% var V = GetValue() %}`,
+			"index.html":   `{% import "/v.html" %}{% show "/partial.html" %}{{ V }}`,
+			"partial.html": `{% import "/v.html" %}`,
+			"v.html":       `{% var V = GetValue() %}`,
 		},
 		expectedOut: "42",
 		lang:        LanguageHTML,
@@ -1851,22 +1851,22 @@ var envFilePathCases = []struct {
 	},
 
 	{
-		name: "File including another file",
+		name: "File showing a partial file",
 		sources: map[string]string{
-			"index.html":    `{{ path() }}, {% include "included.html"%}, {{ path() }}`,
-			"included.html": `{{ path() }}`,
+			"index.html":   `{{ path() }}, {% show "partial.html"%}, {{ path() }}`,
+			"partial.html": `{{ path() }}`,
 		},
-		want: `/index.html, /included.html, /index.html`,
+		want: `/index.html, /partial.html, /index.html`,
 	},
 
 	{
-		name: "File including another file in a sub-directory",
+		name: "File showing a partial file in a sub-directory",
 		sources: map[string]string{
-			"index.html":              `{{ path() }}, {% include "includes/included1.html"%}, {{ path() }}`,
-			"includes/included1.html": `{{ path() }}, {% include "included2.html" %}`,
-			"includes/included2.html": `{{ path() }}`,
+			"index.html":             `{{ path() }}, {% show "partials/partial1.html"%}, {{ path() }}`,
+			"partials/partial1.html": `{{ path() }}, {% show "partial2.html" %}`,
+			"partials/partial2.html": `{{ path() }}`,
 		},
-		want: `/index.html, /includes/included1.html, /includes/included2.html, /index.html`,
+		want: `/index.html, /partials/partial1.html, /partials/partial2.html, /index.html`,
 	},
 
 	{
