@@ -216,7 +216,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 		case *ast.Extends:
 
 			if len(pp.paths) > 1 {
-				return syntaxError(n.Pos(), "extended, imported and included paths can not have extends")
+				return syntaxError(n.Pos(), "extended, imported and shown paths can not have extends")
 			}
 			absPath, err := pp.abs(n.Path)
 			if err != nil {
@@ -282,9 +282,9 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 				if err == ErrInvalidPath {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
 				} else if os.IsNotExist(err) {
-					err = syntaxError(n.Pos(), "included path %q does not exist", absPath)
+					err = syntaxError(n.Pos(), "path of partial file %q does not exist", absPath)
 				} else if err2, ok := err.(cycleError); ok {
-					err = cycleError("\n\tincludes " + absPath + string(err2))
+					err = cycleError("\n\tshows " + absPath + string(err2))
 				}
 				return err
 			}

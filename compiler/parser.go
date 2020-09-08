@@ -843,7 +843,22 @@ LABEL:
 	// show
 	case tokenShow:
 		pos := tok.pos
-		tok = p.next()
+		nextTok := p.next()
+		tok = nextTok
+		// {% show <filepath> %}
+		if nextTok.typ == tokenInterpretedString || nextTok.typ == tokenRawString {
+			var path = unquoteString(tok.txt)
+			if !ValidTemplatePath(path) {
+				panic(fmt.Errorf("invalid path %q at %s", path, tok.pos))
+			}
+			pos.End = tok.pos.End
+			node := ast.NewShowPartial(pos, path, tok.ctx)
+			p.addChild(node)
+			p.cutSpacesToken = true
+			tok = p.next()
+			tok = p.parseEnd(tok, tokenEndBlock)
+			return tok
+		}
 		if tok.typ != tokenIdentifier {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier", tok))
 		}
@@ -1305,7 +1320,7 @@ LABEL:
 					}
 				case tokenInterpretedString, tokenRawString:
 					if !p.inGo {
-						panic(syntaxError(ident.Pos(), "unexpected %s, expecting extends, import or include", ident.Name))
+						panic(syntaxError(ident.Pos(), "unexpected %s, expecting extends, import or show", ident.Name))
 					}
 				}
 			}
