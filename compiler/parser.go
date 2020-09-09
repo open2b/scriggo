@@ -844,10 +844,9 @@ LABEL:
 	// show
 	case tokenShow:
 		pos := tok.pos
-		nextTok := p.next()
-		tok = nextTok
+		tok := p.next()
 		// {% show <filepath> %}
-		if nextTok.typ == tokenInterpretedString || nextTok.typ == tokenRawString {
+		if tok.typ == tokenInterpretedString || tok.typ == tokenRawString {
 			var path = unquoteString(tok.txt)
 			if !ValidTemplatePath(path) {
 				panic(fmt.Errorf("invalid path %q at %s", path, tok.pos))
@@ -860,8 +859,9 @@ LABEL:
 			tok = p.parseEnd(tok, tokenEndBlock)
 			return tok
 		}
+		// {% show macro %}
 		if tok.typ != tokenIdentifier {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier", tok))
+			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier or string", tok))
 		}
 		macro := ast.NewIdentifier(tok.pos, string(tok.txt))
 		pos.End = tok.pos.End
