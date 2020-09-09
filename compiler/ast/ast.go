@@ -749,7 +749,7 @@ func NewShowMacro(pos *Position, macro Expression, args []Expression, isVariadic
 // ShowPartial node represents a statement {% show <path> %}.
 type ShowPartial struct {
 	*Position         // position in the source.
-	Path      string  // path of the partial source to show.
+	Path      string  // path of the file to show.
 	Context   Context // context.
 	Tree      *Tree   // expanded tree of <path>.
 }
