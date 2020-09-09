@@ -74,8 +74,8 @@ func syntaxError(pos *ast.Position, format string, a ...interface{}) *SyntaxErro
 
 // CycleError implements an error indicating the presence of a cycle.
 type CycleError struct {
-	pos  ast.Position
 	path string
+	pos  ast.Position
 	msg  string
 }
 
@@ -83,14 +83,15 @@ func (e *CycleError) Error() string {
 	return e.msg
 }
 
-// Position returns the position of the cycle error.
-func (e *CycleError) Position() ast.Position {
-	return e.pos
-}
-
 // Path returns the path of the first referenced file in the cycle.
 func (e *CycleError) Path() string {
 	return e.path
+}
+
+// Position returns the position of the extends, import or include statement
+// referring the second file in the cycle.
+func (e *CycleError) Position() ast.Position {
+	return e.pos
 }
 
 // Message returns the message of cycle error, without position and path.
