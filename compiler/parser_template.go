@@ -284,7 +284,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 				} else if os.IsNotExist(err) {
 					err = syntaxError(n.Pos(), "path of partial file %q does not exist", absPath)
 				} else if err2, ok := err.(cycleError); ok {
-					err = cycleError("\n\tshows " + absPath + string(err2))
+					err = cycleError("\n\tshows    " + absPath + string(err2))
 				}
 				return err
 			}

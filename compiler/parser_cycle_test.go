@@ -40,14 +40,14 @@ func TestCyclicProgram(t *testing.T) {
 var cyclicTemplate = mapStringReader{
 	"/index.html":            `{% extends "/layout.html" %}`,
 	"/layout.html":           `{% import "/macros/macro.html" %}`,
-	"/includes/include.html": `{% import "/macros/macro.html" %}`,
-	"/macros/macro.html":     `{% macro A() %}\n\t{% include "/includes/include.html" %}\n{% end %}`,
+	"/partials/partial.html": `{% import "/macros/macro.html" %}`,
+	"/macros/macro.html":     `{% macro A() %}\n\t{% show "/partials/partial.html" %}\n{% end %}`,
 }
 
 const cyclicTemplateErrorMessage = `file /index.html
 	extends  /layout.html
 	imports  /macros/macro.html
-	includes /includes/include.html
+	shows    /partials/partial.html
 	imports  /macros/macro.html: cycle not allowed`
 
 func TestCyclicTemplate(t *testing.T) {
