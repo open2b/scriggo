@@ -88,7 +88,7 @@ func (e *CycleError) Path() string {
 	return e.path
 }
 
-// Position returns the position of the extends, import or include statement
+// Position returns the position of the extends, import or show statement
 // referring the second file in the cycle.
 func (e *CycleError) Position() ast.Position {
 	return e.pos
