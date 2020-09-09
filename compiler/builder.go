@@ -163,7 +163,7 @@ type functionBuilder struct {
 	complexBinaryOpIndexes map[ast.OperatorType]int8 // indexes of complex binary op. functions.
 	complexUnaryOpIndex    int8                      // index of complex negation function.
 
-	// path of the current file. For example, when emitting an {% include ".." %}
+	// path of the current file. For example, when emitting a {% show ".." %}
 	// statement in a template the file path changes even if the function
 	// remains the same.
 	path string
@@ -341,7 +341,7 @@ func (builder *functionBuilder) addFunctionType(typ reflect.Type) {
 // changePath changes the current path. Note that the path is initially set at
 // the creation of the function builder; this method should be called only when
 // the path changes during the building of the same function, for example when
-// emitting an 'include' statement.
+// emitting a 'show partial' statement.
 func (builder *functionBuilder) changePath(newPath string) {
 	builder.path = newPath
 }

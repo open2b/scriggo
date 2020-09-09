@@ -1354,7 +1354,7 @@ var treeTests = []struct {
 		),
 	}, ast.LanguageHTML)},
 	{"{% extends \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtends(p(1, 4, 3, 16), "/a.b", ast.ContextHTML)}, ast.LanguageHTML)},
-	{"{% include \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewInclude(p(1, 4, 3, 16), "/a.b", ast.ContextHTML)}, ast.LanguageHTML)},
+	{"{% show \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewShowPartial(p(1, 4, 3, 13), "/a.b", ast.ContextHTML)}, ast.LanguageHTML)},
 	{"{% extends \"a.e\" %}{% macro b %}c{% end macro %}", ast.NewTree("", []ast.Node{
 		ast.NewExtends(p(1, 4, 3, 15), "a.e", ast.ContextHTML),
 		ast.NewMacro(p(1, 23, 22, 44), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
@@ -1399,12 +1399,14 @@ var treeTests = []struct {
 			})}, ast.LanguageHTML)},
 }
 
+// TODO: this function is never called, because it is referenced in commented
+// code. Uncomment the call or delete this function.
 func pageTests() map[string]struct {
 	src  string
 	tree *ast.Tree
 } {
-	var include = ast.NewInclude(p(3, 7, 29, 58), "/include2.html", ast.ContextHTML)
-	include.Tree = ast.NewTree("", []ast.Node{
+	var showPartial = ast.NewShowPartial(p(3, 7, 29, 58), "/partial2.html", ast.ContextHTML)
+	showPartial.Tree = ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 4), []byte("<div>"), ast.Cut{}),
 		ast.NewShow(p(1, 6, 5, 17), ast.NewIdentifier(p(1, 9, 8, 14), "content"), ast.ContextHTML),
 		ast.NewText(p(1, 19, 18, 23), []byte("</div>"), ast.Cut{}),
@@ -1424,14 +1426,14 @@ func pageTests() map[string]struct {
 			}, ast.LanguageHTML),
 		},
 		"/simple2.html": {
-			"<!DOCTYPE html>\n<html>\n<body>{% include \"/include2.html\" %}</body>\n</html>",
+			"<!DOCTYPE html>\n<html>\n<body>{% show \"/partial2.html\" %}</body>\n</html>",
 			ast.NewTree("", []ast.Node{
 				ast.NewText(p(1, 1, 0, 28), []byte("<!DOCTYPE html>\n<html>\n<body>"), ast.Cut{}),
-				include,
+				showPartial,
 				ast.NewText(p(3, 37, 59, 73), []byte("</body>\n</html>"), ast.Cut{}),
 			}, ast.LanguageHTML),
 		},
-		"/include2.html": {
+		"/partial2.html": {
 			"<div>{{ content }}</div>",
 			nil,
 		},
@@ -1629,8 +1631,8 @@ func equals(n1, n2 ast.Node, p int) error {
 			return err
 		}
 
-	case *ast.Include:
-		nn2, ok := n2.(*ast.Include)
+	case *ast.ShowPartial:
+		nn2, ok := n2.(*ast.ShowPartial)
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}

@@ -215,7 +215,8 @@ func ParseSource(src []byte, isPackageLessProgram, shebang bool) (tree *ast.Tree
 // language lang and returns its tree. language can be Text, HTML, CSS or
 // JavaScript.
 //
-// ParseTemplateSource does not expand the nodes Extends, Include and Import.
+// ParseTemplateSource does not expand the nodes Extends, ShowPartial and
+// Import.
 //
 // relaxedBoolean reports whether the operators 'and', 'or' and 'not' as well as
 // non-boolean conditions in the if statement are allowed.
@@ -840,37 +841,27 @@ LABEL:
 		tok = p.parseEnd(tok, tokenSemicolon)
 		return tok
 
-	// include
-	case tokenInclude:
-		pos := tok.pos
-		switch tok.ctx {
-		case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript, ast.ContextJSON:
-		default:
-			panic(syntaxError(tok.pos, "include statement inside %s", tok.ctx))
-		}
-		// path
-		tok = p.next()
-		if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting string", tok))
-		}
-		var path = unquoteString(tok.txt)
-		if !ValidTemplatePath(path) {
-			panic(fmt.Errorf("invalid path %q at %s", path, tok.pos))
-		}
-		pos.End = tok.pos.End
-		node := ast.NewInclude(pos, path, tok.ctx)
-		p.addChild(node)
-		p.cutSpacesToken = true
-		tok = p.next()
-		tok = p.parseEnd(tok, tokenEndBlock)
-		return tok
-
 	// show
 	case tokenShow:
 		pos := tok.pos
-		tok = p.next()
+		tok := p.next()
+		// {% show <filepath> %}
+		if tok.typ == tokenInterpretedString || tok.typ == tokenRawString {
+			var path = unquoteString(tok.txt)
+			if !ValidTemplatePath(path) {
+				panic(fmt.Errorf("invalid path %q at %s", path, tok.pos))
+			}
+			pos.End = tok.pos.End
+			node := ast.NewShowPartial(pos, path, tok.ctx)
+			p.addChild(node)
+			p.cutSpacesToken = true
+			tok = p.next()
+			tok = p.parseEnd(tok, tokenEndBlock)
+			return tok
+		}
+		// {% show macro %}
 		if tok.typ != tokenIdentifier {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier", tok))
+			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier or string", tok))
 		}
 		macro := ast.NewIdentifier(tok.pos, string(tok.txt))
 		pos.End = tok.pos.End
@@ -1330,7 +1321,7 @@ LABEL:
 					}
 				case tokenInterpretedString, tokenRawString:
 					if !p.inGo {
-						panic(syntaxError(ident.Pos(), "unexpected %s, expecting extends, import or include", ident.Name))
+						panic(syntaxError(ident.Pos(), "unexpected %s, expecting extends, import or show", ident.Name))
 					}
 				}
 			}

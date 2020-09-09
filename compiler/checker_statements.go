@@ -52,9 +52,7 @@ func (tc *typechecker) templatePageToPackage(tree *ast.Tree, path string) error 
 					continue
 				}
 				unexpected = "text"
-			case *ast.Include:
-				unexpected = "include"
-			case *ast.Show:
+			case *ast.ShowPartial, *ast.Show:
 				unexpected = "show"
 			default:
 				unexpected = "statement"
@@ -139,10 +137,10 @@ nodesLoop:
 
 		case *ast.Text:
 
-		case *ast.Include:
+		case *ast.ShowPartial:
 
-			// Check the included tree in a separate scope, that cannot access
-			// to variables declared in the including scope or even add
+			// Check the shown tree in a separate scope, that cannot access to
+			// variables declared in the scope of the partial file or even add
 			// declarations to it.
 
 			path := tc.path
