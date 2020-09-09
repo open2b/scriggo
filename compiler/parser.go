@@ -72,11 +72,30 @@ func syntaxError(pos *ast.Position, format string, a ...interface{}) *SyntaxErro
 	return &SyntaxError{"", *pos, fmt.Sprintf(format, a...)}
 }
 
-// cycleError implements an error indicating the presence of a cycle.
-type cycleError string
+// CycleError implements an error indicating the presence of a cycle.
+type CycleError struct {
+	pos  ast.Position
+	path string
+	msg  string
+}
 
-func (e cycleError) Error() string {
-	return string(e)
+func (e *CycleError) Error() string {
+	return e.msg
+}
+
+// Position returns the position of the cycle error.
+func (e *CycleError) Position() ast.Position {
+	return e.pos
+}
+
+// Path returns the path of the first referenced file in the cycle.
+func (e *CycleError) Path() string {
+	return e.path
+}
+
+// Message returns the message of cycle error, without position and path.
+func (e *CycleError) Message() string {
+	return e.msg
 }
 
 // containsOnlySpaces reports whether b contains only white space characters

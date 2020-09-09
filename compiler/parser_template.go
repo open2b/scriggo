@@ -54,8 +54,8 @@ func ParseTemplate(path string, reader FileReader, lang ast.Language, relaxedBoo
 	if err != nil {
 		if err2, ok := err.(*SyntaxError); ok && err2.path == "" {
 			err2.path = path
-		} else if err2, ok := err.(cycleError); ok {
-			err = cycleError("file " + path + string(err2) + ": cycle not allowed")
+		} else if e, ok := err.(*CycleError); ok {
+			e.msg = "file " + path + e.msg + ": cycle not allowed"
 		} else if os.IsNotExist(err) {
 			err = ErrNotExist
 		}
@@ -94,7 +94,7 @@ func (pp *templateExpansion) parseFile(name string, lang ast.Language) (*ast.Tre
 	// Check if there is a cycle.
 	for _, p := range pp.paths {
 		if p == name {
-			return nil, cycleError("")
+			return nil, &CycleError{path: p}
 		}
 	}
 
@@ -121,13 +121,13 @@ func (pp *templateExpansion) parseFile(name string, lang ast.Language) (*ast.Tre
 	// Expand the nodes.
 	pp.paths = append(pp.paths, name)
 	err = pp.expand(tree.Nodes)
+	pp.paths = pp.paths[:len(pp.paths)-1]
 	if err != nil {
 		if e, ok := err.(*SyntaxError); ok && e.path == "" {
 			e.path = name
 		}
 		return nil, err
 	}
-	pp.paths = pp.paths[:len(pp.paths)-1]
 
 	// Add the tree to the cache.
 	pp.trees.Add(name, lang, tree)
@@ -228,8 +228,11 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
 				} else if os.IsNotExist(err) {
 					err = syntaxError(n.Pos(), "extends path %q does not exist", absPath)
-				} else if err2, ok := err.(cycleError); ok {
-					err = cycleError("\n\textends  " + absPath + string(err2))
+				} else if e, ok := err.(*CycleError); ok {
+					e.msg = "\n\textends " + absPath + e.msg
+					if e.path == pp.paths[len(pp.paths)-1] {
+						e.pos = *(n.Pos())
+					}
 				}
 				return err
 			}
@@ -264,8 +267,11 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 						err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
 					} else if os.IsNotExist(err) {
 						err = syntaxError(n.Pos(), "import path %q does not exist", absPath)
-					} else if err2, ok := err.(cycleError); ok {
-						err = cycleError("\n\timports  " + absPath + string(err2))
+					} else if e, ok := err.(*CycleError); ok {
+						e.msg = "\n\timports " + absPath + e.msg
+						if e.path == pp.paths[len(pp.paths)-1] {
+							e.pos = *(n.Pos())
+						}
 					}
 					return err
 				}
@@ -283,8 +289,11 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
 				} else if os.IsNotExist(err) {
 					err = syntaxError(n.Pos(), "shown path %q does not exist", absPath)
-				} else if err2, ok := err.(cycleError); ok {
-					err = cycleError("\n\tshows    " + absPath + string(err2))
+				} else if e, ok := err.(*CycleError); ok {
+					e.msg = "\n\tshows   " + absPath + e.msg
+					if e.path == pp.paths[len(pp.paths)-1] {
+						e.pos = *(n.Pos())
+					}
 				}
 				return err
 			}
