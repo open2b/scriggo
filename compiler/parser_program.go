@@ -81,15 +81,19 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
 					for i, p := range imports {
 						if p.Path == imp.Path {
 							// There is a cycle.
-							err := "package "
+							err := &CycleError{
+								path: p.Path,
+								pos:  *(imp.Pos()),
+							}
+							err.msg = "package "
 							for i, imp = range imports {
 								if i > 0 {
-									err += "\n\timports "
+									err.msg += "\n\timports "
 								}
-								err += imp.Path
+								err.msg += imp.Path
 							}
-							err += "\n\timports " + p.Path + ": import cycle not allowed"
-							return nil, cycleError(err)
+							err.msg += "\n\timports " + p.Path + ": import cycle not allowed"
+							return nil, err
 						}
 					}
 					imp.Tree = tree
