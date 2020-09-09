@@ -1420,10 +1420,10 @@ var templateMultiPageCases = map[string]struct {
 		expectedLoadErr: "undefined: name",
 	},
 
-	"Shown partial file tries to overwrite a variable of the file that shows it": {
-		// The emitter must use another scope when emitting the shown partial
-		// file, otherwise such file can overwrite the variables of the file
-		// that shows it.
+	"Shown file tries to overwrite a variable of the file that shows it": {
+		// The emitter must use another scope when emitting the shown file,
+		// otherwise such file can overwrite the variables of the file that
+		// shows it.
 		sources: map[string]string{
 			"index.html":   `{% v := "showing" %}{% show "partial.html" %}{{ v }}`,
 			"partial.html": `{% v := "partial" %}`,
@@ -1431,14 +1431,14 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "showing",
 	},
 
-	"The file that shows a partial files must see the builtin variable, not the local variable of the shown partial file": {
-		// If the shown partial file refers to a builtin symbol with the same
-		// name of a local variable in the scope of the file that shows it then
-		// the emitter emits the code for such variable instead of such global
+	"The shown file must see the builtin variable 'v', not the local variable 'v' of the showing file": {
+		// If the shown file refers to a builtin symbol with the same name of a
+		// local variable in the scope of the file that shows it, then the
+		// emitter emits the code for such variable instead of such global
 		// variable. This happens because the emitter gives the precedence to
 		// local variables respect to builtin variables. For this reason the
-		// emitter must hide the scopes to the shown partial file (as the type
-		// checker does).
+		// emitter must hide the scopes to the shown file (as the type checker
+		// does).
 		sources: map[string]string{
 			"index.html":   `{% v := "showing" %}{% show "partial.html" %}, {{ v }}`,
 			"partial.html": "{{ v }}",
@@ -1452,7 +1452,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "builtin variable, showing",
 	},
 
-	"The partial file defines a macro, which should not be accessible from the file that shows it": {
+	"A file that is shown defines a macro, which should not be accessible from the file that shows it": {
 		sources: map[string]string{
 			"index.html":   `{% show "partial.html" %}{% show MacroInPartialFile %}`,
 			"partial.html": `{% macro MacroInPartialFile %}{% end macro %}`,
@@ -1460,7 +1460,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedLoadErr: "undefined: MacroInPartialFile",
 	},
 
-	"The file that shows a partial file defines a macro, which should not be accessible from the shown file": {
+	"The file that shows another file defines a macro, which should not be accessible from the file shown": {
 		sources: map[string]string{
 			"index.html":   `{% macro MacroInShowingFile %}{% end macro %}{% show "partial.html" %}`,
 			"partial.html": `{% show MacroInShowingFile %}`,
@@ -1851,7 +1851,7 @@ var envFilePathCases = []struct {
 	},
 
 	{
-		name: "File showing a partial file",
+		name: "File showing another file",
 		sources: map[string]string{
 			"index.html":   `{{ path() }}, {% show "partial.html"%}, {{ path() }}`,
 			"partial.html": `{{ path() }}`,
