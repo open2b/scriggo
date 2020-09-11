@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -320,13 +321,36 @@ func (tc *typechecker) emptyMethodSet(interf reflect.Type) bool {
 // fieldByName returns the struct field with the given name and a boolean
 // indicating if the field was found.
 //
-// If name is unexported and the type is predefined, name is transformed and the
-// new name is returned. For further information about this check the
-// documentation of the type checking of an *ast.StructType.
+// If name is unexported and the type is declared in Scriggo then name is
+// transformed and the new name is returned. For further information about this
+// check the documentation of the type checking of an *ast.StructType.
 func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string, bool) {
+
 	newName := name
 	firstChar, _ := utf8.DecodeRuneInString(name)
-	if !t.IsPredefined() && !unicode.Is(unicode.Lu, firstChar) {
+
+	// Check if the type has at least one field that begins with the special
+	// character "𝗽"; that would mean that such struct type has at least one
+	// unexported field declared in Scriggo.
+	unexportedDeclaredInScriggo := false
+	{
+		var structType reflect.Type
+		if t.Type.Kind() == reflect.Struct {
+			structType = t.Type
+		} else if t.Type.Kind() == reflect.Ptr {
+			structType = t.Type.Elem()
+		}
+		if structType != nil {
+			for i := 0; i < structType.NumField(); i++ {
+				if strings.HasPrefix(structType.Field(i).Name, "𝗽") {
+					unexportedDeclaredInScriggo = true
+					break
+				}
+			}
+		}
+	}
+
+	if unexportedDeclaredInScriggo && !unicode.Is(unicode.Lu, firstChar) {
 		name = "𝗽" + strconv.Itoa(tc.compilation.UniqueIndex(tc.path)) + name
 		newName = name
 	}
@@ -342,6 +366,7 @@ func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string,
 			return &typeInfo{Type: field.Type, Properties: propertyAddressable}, newName, true
 		}
 	}
+
 	return nil, newName, false
 }
 
