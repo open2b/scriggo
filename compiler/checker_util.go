@@ -333,8 +333,8 @@ func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string,
 	// character "𝗽"; that would mean that such struct type has at least one
 	// unexported field declared in Scriggo.
 	unexportedDeclaredInScriggo := false
+	var structType reflect.Type
 	{
-		var structType reflect.Type
 		if t.Type.Kind() == reflect.Struct {
 			structType = t.Type
 		} else if t.Type.Kind() == reflect.Ptr {
@@ -350,7 +350,17 @@ func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string,
 		}
 	}
 
-	if unexportedDeclaredInScriggo && !unicode.Is(unicode.Lu, firstChar) {
+	nameIsExported := unicode.Is(unicode.Lu, firstChar)
+
+	declaredInThisPackage := tc.structDeclPkg[structType] == tc.path
+
+	// If the name is unexported and it has been declared in another package,
+	// just return.
+	if !nameIsExported && !declaredInThisPackage {
+		return nil, "", false
+	}
+
+	if unexportedDeclaredInScriggo && !nameIsExported {
 		name = "𝗽" + strconv.Itoa(tc.compilation.UniqueIndex(tc.path)) + name
 		newName = name
 	}

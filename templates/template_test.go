@@ -1674,7 +1674,52 @@ var templateMultiPageCases = map[string]struct {
 			},
 		},
 	},
+
+	"Can access to unexported struct field declared in the same page - struct literal": {
+		sources: map[string]string{
+			"index.html": `{% var s struct { a int } %}{% s.a = 42 %}{{ s.a }}`,
+		},
+		expectedOut: "42",
+	},
+
+	"Can access to unexported struct field declared in the same page - defined type": {
+		sources: map[string]string{
+			"index.html": `{% type t struct { a int } %}{% var s t %}{% s.a = 84 %}{{ s.a }}`,
+		},
+		expectedOut: "84",
+	},
+
+	"Cannot access to unexported struct fields of a precompiled value": {
+		sources: map[string]string{
+			"index.html": `{{ s.field }}`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"s": &structWithUnexportedFields,
+			},
+		},
+		// REVIEW: this error message is not correct
+		expectedLoadErr: `s.field undefined (type struct { field int } has no field or method field)`,
+	},
+
+	"Cannot access to an unexported field declared in another page": {
+		sources: map[string]string{
+			// Note the statement: {% type _ struct { field int } %}: we try to
+			// deceive the type checker into thinking that the type `struct {
+			// field int }` can be fully accessed because is the same declared
+			// in this package.
+			"index.html":    `{% import "imported.html" %}{% type _ struct { field int } %}{{ S.field }}`,
+			"imported.html": `{% var S struct { field int } %}`,
+		},
+		// REVIEW: this error message is not correct
+		expectedLoadErr: `S.field undefined (type struct { 𝗽0field int } has no field or method field)`,
+	},
 }
+
+var structWithUnexportedFields = struct {
+	field int
+}{field: 100}
 
 // testGetValueCalled is used in a test.
 // See https://github.com/open2b/scriggo/issues/643

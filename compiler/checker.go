@@ -9,6 +9,7 @@ package compiler
 import (
 	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/compiler/types"
@@ -245,6 +246,19 @@ type typechecker struct {
 	// create and manipulate types and values, both predefined and defined only
 	// by Scriggo.
 	types *types.Types
+
+	// structDeclPkg contains, for every struct literal and defined type with
+	// underlying type 'struct' denoted in Scriggo, the package in which it has
+	// been denoted.
+	//
+	// In theory, we should keep track of the package in which the field
+	// identifier (and not the struct type) has been declared, because the Go
+	// type checker checks the package where the identifier has been declared
+	// to see if if accessible or not. But, since embedded fields are not
+	// supported in Scriggo yet (see
+	// https://github.com/open2b/scriggo/issues/367), the package in which the
+	// struct literal and the identifier has been declared correspond.
+	structDeclPkg map[reflect.Type]string
 }
 
 // newTypechecker creates a new type checker. A global scope may be provided for
@@ -263,6 +277,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		opts:             opts,
 		iota:             -1,
 		types:            types.NewTypes(),
+		structDeclPkg:    map[reflect.Type]string{},
 	}
 }
 

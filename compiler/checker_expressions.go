@@ -512,6 +512,11 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 					// name; this makes the field unique to a given package,
 					// resulting in the unability of make comparisons with that
 					// types.
+					//
+					// Adding the unique index also is also used to check if an
+					// unexported field of a struct can be accessed from a
+					// package (see the documentation of
+					// typechecker.structDeclPkg).
 					name := ident.Name
 					if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
 						name = "𝗽" + strconv.Itoa(tc.compilation.UniqueIndex(tc.path)) + ident.Name
@@ -530,6 +535,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			}
 		}
 		t := tc.types.StructOf(fields)
+		tc.structDeclPkg[t] = tc.path
 		return &typeInfo{
 			Type:       t,
 			Properties: propertyIsType,
