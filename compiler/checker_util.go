@@ -334,7 +334,7 @@ func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string,
 	{
 		if t.Type.Kind() == reflect.Struct {
 			structType = t.Type
-		} else if t.Type.Kind() == reflect.Ptr {
+		} else if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Struct {
 			structType = t.Type.Elem()
 		}
 		if structType != nil {
