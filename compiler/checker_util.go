@@ -326,9 +326,6 @@ func (tc *typechecker) emptyMethodSet(interf reflect.Type) bool {
 // check the documentation of the type checking of an *ast.StructType.
 func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string, error) {
 
-	newName := name
-	firstChar, _ := utf8.DecodeRuneInString(name)
-
 	// Check if the type has at least one field that begins with the special
 	// character "𝗽"; that would mean that such struct type has at least one
 	// unexported field declared in Scriggo.
@@ -350,17 +347,20 @@ func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string,
 		}
 	}
 
-	nameIsExported := unicode.Is(unicode.Lu, firstChar)
+	// Check if the field is exported.
+	firstChar, _ := utf8.DecodeRuneInString(name)
+	fieldIsExported := unicode.Is(unicode.Lu, firstChar)
 
 	declaredInThisPackage := tc.structDeclPkg[structType] == tc.path
 
 	// If the name is unexported and it has been declared in another package,
 	// just return.
-	if !nameIsExported && !declaredInThisPackage {
+	if !fieldIsExported && !declaredInThisPackage {
 		return nil, "", fmt.Errorf("cannot refer to unexported field or method %s", name)
 	}
 
-	if unexportedDeclaredInScriggo && !nameIsExported {
+	newName := name
+	if unexportedDeclaredInScriggo && !fieldIsExported {
 		name = "𝗽" + strconv.Itoa(tc.compilation.UniqueIndex(tc.path)) + name
 		newName = name
 	}
