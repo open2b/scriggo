@@ -1677,19 +1677,34 @@ var templateMultiPageCases = map[string]struct {
 
 	"Can access to unexported struct field declared in the same page - struct literal": {
 		sources: map[string]string{
-			"index.html": `{% var s struct { a int } %}{% s.a = 42 %}{{ s.a }}`,
+			"index.html": `{% var s struct { a int } %}{% s.a = 42 %}{{ s.a }}
+			{% s2 := &s %}{{ s2.a }}`,
 		},
-		expectedOut: "42",
+		expectedOut: "42\n\t\t\t42",
 	},
 
 	"Can access to unexported struct field declared in the same page - defined type": {
 		sources: map[string]string{
-			"index.html": `{% type t struct { a int } %}{% var s t %}{% s.a = 84 %}{{ s.a }}`,
+			"index.html": `{% type t struct { a int } %}{% var s t %}{% s.a = 84 %}{{ s.a }}
+			{% s2 := &s %}{{ s2.a }}`,
 		},
-		expectedOut: "84",
+		expectedOut: "84\n\t\t\t84",
 	},
 
-	"Cannot access to unexported struct fields of a precompiled value": {
+	"Cannot access to unexported struct fields of a precompiled value (struct)": {
+		sources: map[string]string{
+			"index.html": `{{ s.foo }}`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"s": structWithUnexportedFields,
+			},
+		},
+		expectedLoadErr: `s.foo undefined (cannot refer to unexported field or method foo)`,
+	},
+
+	"Cannot access to unexported struct fields of a precompiled value (*struct)": {
 		sources: map[string]string{
 			"index.html": `{{ s.foo }}`,
 		},
@@ -1702,7 +1717,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedLoadErr: `s.foo undefined (cannot refer to unexported field or method foo)`,
 	},
 
-	"Cannot access to an unexported field declared in another page": {
+	"Cannot access to an unexported field declared in another page (struct)": {
 		sources: map[string]string{
 			// Note the statement: {% type _ struct { bar int } %}: we try to
 			// deceive the type checker into thinking that the type `struct {
@@ -1713,9 +1728,21 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedLoadErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
 	},
+
+	"Cannot access to an unexported field declared in another page (*struct)": {
+		sources: map[string]string{
+			// Note the statement: {% type _ struct { bar int } %}: we try to
+			// deceive the type checker into thinking that the type `struct {
+			// field int }` can be fully accessed because is the same declared
+			// in this package.
+			"index.html":    `{% import "imported.html" %}{% type _ *struct { bar int } %}{{ S.bar }}`,
+			"imported.html": `{% var S *struct { bar int } %}`,
+		},
+		expectedLoadErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
+	},
 }
 
-var structWithUnexportedFields = struct {
+var structWithUnexportedFields = &struct {
 	foo int
 }{foo: 100}
 
