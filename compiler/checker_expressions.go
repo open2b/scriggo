@@ -513,8 +513,8 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 					// resulting in the unability of make comparisons with that
 					// types.
 					//
-					// Adding the unique index also is also used to check if an
-					// unexported field of a struct can be accessed from a
+					// Adding the unique index also is also used to check if a
+					// non-exported field of a struct can be accessed from a
 					// package (see the documentation of
 					// typechecker.structDeclPkg).
 					name := ident.Name

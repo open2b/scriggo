@@ -321,15 +321,15 @@ func (tc *typechecker) emptyMethodSet(interf reflect.Type) bool {
 // fieldByName returns the struct field with the given name if such field
 // exists and can be accessed, else returns an error.
 //
-// If name is unexported and the type is declared in Scriggo then name is
+// If name is non-exported and the type is declared in Scriggo then name is
 // transformed and the new name is returned. For further information about this
 // check the documentation of the type checking of an *ast.StructType.
 func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string, error) {
 
 	// Check if the type has at least one field that begins with the special
 	// character "𝗽"; that would mean that such struct type has at least one
-	// unexported field declared in Scriggo.
-	unexportedDeclaredInScriggo := false
+	// non-exported field declared in Scriggo.
+	nonExportedDeclaredInScriggo := false
 	var structType reflect.Type
 	{
 		if t.Type.Kind() == reflect.Struct {
@@ -340,7 +340,7 @@ func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string,
 		if structType != nil {
 			for i := 0; i < structType.NumField(); i++ {
 				if strings.HasPrefix(structType.Field(i).Name, "𝗽") {
-					unexportedDeclaredInScriggo = true
+					nonExportedDeclaredInScriggo = true
 					break
 				}
 			}
@@ -353,14 +353,14 @@ func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string,
 
 	declaredInThisPackage := tc.structDeclPkg[structType] == tc.path
 
-	// If the name is unexported and it has been declared in another package,
+	// If the name is non-exported and it has been declared in another package,
 	// just return.
 	if !fieldIsExported && !declaredInThisPackage {
 		return nil, "", fmt.Errorf("cannot refer to unexported field or method %s", name)
 	}
 
 	newName := name
-	if unexportedDeclaredInScriggo && !fieldIsExported {
+	if nonExportedDeclaredInScriggo && !fieldIsExported {
 		name = "𝗽" + strconv.Itoa(tc.compilation.UniqueIndex(tc.path)) + name
 		newName = name
 	}
