@@ -12,8 +12,7 @@ func main() {
 		// time.Time is a struct type declared in a predeclared package, so its
 		// unexported fields cannot be accessed.
 
-		// REVIEW: the error should be `time.Now().loc undefined (cannot refer to unexported field or method loc)`
-		_ = time.Now().loc // ERROR `time.Now().loc undefined (type time.Time has no field or method loc)`
+		_ = time.Now().loc // ERROR `time.Now().loc undefined (cannot refer to unexported field or method loc)`
 	}
 
 	{

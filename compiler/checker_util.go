@@ -318,13 +318,13 @@ func (tc *typechecker) emptyMethodSet(interf reflect.Type) bool {
 	return interf == emptyInterfaceType || tc.types.ConvertibleTo(intType, interf)
 }
 
-// fieldByName returns the struct field with the given name and a boolean
-// indicating if the field was found.
+// fieldByName returns the struct field with the given name if such field
+// exists and can be accessed, else returns an error.
 //
 // If name is unexported and the type is declared in Scriggo then name is
 // transformed and the new name is returned. For further information about this
 // check the documentation of the type checking of an *ast.StructType.
-func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string, bool) {
+func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string, error) {
 
 	newName := name
 	firstChar, _ := utf8.DecodeRuneInString(name)
@@ -357,7 +357,7 @@ func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string,
 	// If the name is unexported and it has been declared in another package,
 	// just return.
 	if !nameIsExported && !declaredInThisPackage {
-		return nil, "", false
+		return nil, "", fmt.Errorf("cannot refer to unexported field or method %s", name)
 	}
 
 	if unexportedDeclaredInScriggo && !nameIsExported {
@@ -367,17 +367,17 @@ func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string,
 	if t.Type.Kind() == reflect.Struct {
 		field, ok := t.Type.FieldByName(name)
 		if ok {
-			return &typeInfo{Type: field.Type, Properties: t.Properties & propertyAddressable}, newName, true
+			return &typeInfo{Type: field.Type, Properties: t.Properties & propertyAddressable}, newName, nil
 		}
 	}
 	if t.Type.Kind() == reflect.Ptr {
 		field, ok := t.Type.Elem().FieldByName(name)
 		if ok {
-			return &typeInfo{Type: field.Type, Properties: propertyAddressable}, newName, true
+			return &typeInfo{Type: field.Type, Properties: propertyAddressable}, newName, nil
 		}
 	}
 
-	return nil, newName, false
+	return nil, newName, fmt.Errorf("type %s has no field or method %s", t.Type, name)
 }
 
 // checkDuplicateParams checks if a function type contains duplicate
