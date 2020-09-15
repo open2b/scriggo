@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -326,58 +325,42 @@ func (tc *typechecker) emptyMethodSet(interf reflect.Type) bool {
 // check the documentation of the type checking of an *ast.StructType.
 func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string, error) {
 
-	// Check if the type has at least one field that begins with the special
-	// character "𝗽"; that would mean that such struct type has at least one
-	// non-exported field declared in Scriggo.
-	nonExportedDeclaredInScriggo := false
-	var structType reflect.Type
-	{
-		if t.Type.Kind() == reflect.Struct {
-			structType = t.Type
-		} else if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Struct {
-			structType = t.Type.Elem()
+	typ := t.Type
+	if typ.Kind() == reflect.Ptr {
+		typ = t.Type.Elem()
+	}
+	if typ.Kind() != reflect.Struct {
+		return nil, "", fmt.Errorf("type %s has no field or method %s", t.Type, name)
+	}
+
+	var innerName string
+	if r, _ := utf8.DecodeRuneInString(name); unicode.Is(unicode.Lu, r) {
+		// Exported field.
+		innerName = name
+	} else {
+		// Non-exported field.
+		if tc.structDeclPkg[typ] != tc.path {
+			return nil, "", fmt.Errorf("cannot refer to unexported field or method %s", name)
 		}
-		if structType != nil {
-			for i := 0; i < structType.NumField(); i++ {
-				if strings.HasPrefix(structType.Field(i).Name, "𝗽") {
-					nonExportedDeclaredInScriggo = true
-					break
-				}
-			}
-		}
+		innerName = "𝗽" + strconv.Itoa(tc.compilation.UniqueIndex(tc.path)) + name
 	}
 
-	// Check if the field is exported.
-	firstChar, _ := utf8.DecodeRuneInString(name)
-	fieldIsExported := unicode.Is(unicode.Lu, firstChar)
-
-	declaredInThisPackage := tc.structDeclPkg[structType] == tc.path
-
-	// If the name is non-exported and it has been declared in another package,
-	// just return.
-	if !fieldIsExported && !declaredInThisPackage {
-		return nil, "", fmt.Errorf("cannot refer to unexported field or method %s", name)
+	field, ok := typ.FieldByName(innerName)
+	if !ok {
+		return nil, "", fmt.Errorf("type %s has no field or method %s", t.Type, name)
 	}
 
-	newName := name
-	if nonExportedDeclaredInScriggo && !fieldIsExported {
-		name = "𝗽" + strconv.Itoa(tc.compilation.UniqueIndex(tc.path)) + name
-		newName = name
-	}
-	if t.Type.Kind() == reflect.Struct {
-		field, ok := t.Type.FieldByName(name)
-		if ok {
-			return &typeInfo{Type: field.Type, Properties: t.Properties & propertyAddressable}, newName, nil
-		}
-	}
-	if t.Type.Kind() == reflect.Ptr {
-		field, ok := t.Type.Elem().FieldByName(name)
-		if ok {
-			return &typeInfo{Type: field.Type, Properties: propertyAddressable}, newName, nil
-		}
+	// Create the type info of the field.
+	ti := &typeInfo{Type: field.Type}
+	if t.Type.Kind() == reflect.Struct && t.Addressable() {
+		// Struct fields are addressable only if the struct is addressable.
+		ti.Properties = propertyAddressable
+	} else if t.Type.Kind() == reflect.Ptr {
+		// Pointer to struct fields are always addressable.
+		ti.Properties = propertyAddressable
 	}
 
-	return nil, newName, fmt.Errorf("type %s has no field or method %s", t.Type, name)
+	return ti, innerName, nil
 }
 
 // checkDuplicateParams checks if a function type contains duplicate
