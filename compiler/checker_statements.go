@@ -1233,9 +1233,18 @@ func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) (string, 
 		// Return the base type.
 		return name, typ
 	}
-	// Create and return a new Scriggo type.
+	// Create a new Scriggo type.
+	defType := tc.types.DefinedOf(name, typ.Type)
+	// Associate to
+	//
+	//    type T struct { .. }
+	//
+	// the package in which the type T is declared.
+	if defType.Kind() == reflect.Struct {
+		tc.structDeclPkg[defType] = tc.path
+	}
 	return name, &typeInfo{
-		Type:       tc.types.DefinedOf(name, typ.Type),
+		Type:       defType,
 		Properties: propertyIsType,
 	}
 }

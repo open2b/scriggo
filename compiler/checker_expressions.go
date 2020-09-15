@@ -512,6 +512,11 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 					// name; this makes the field unique to a given package,
 					// resulting in the unability of make comparisons with that
 					// types.
+					//
+					// Adding the unique index also is also used to check if a
+					// non-exported field of a struct can be accessed from a
+					// package (see the documentation of
+					// typechecker.structDeclPkg).
 					name := ident.Name
 					if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
 						name = "𝗽" + strconv.Itoa(tc.compilation.UniqueIndex(tc.path)) + ident.Name
@@ -530,6 +535,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			}
 		}
 		t := tc.types.StructOf(fields)
+		tc.structDeclPkg[t] = tc.path
 		return &typeInfo{
 			Type:       t,
 			Properties: propertyIsType,
@@ -869,22 +875,22 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			}
 			return method
 		}
-		field, newName, ok := tc.fieldByName(t, expr.Ident)
-		if ok {
-			expr.Ident = newName
-			// Transform ps.F to (*ps).F, if ps is a defined pointer type and
-			// (*ps).F is a valid selector expression denoting a field (but not
-			// a method).
-			if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Struct {
-				unOp := ast.NewUnaryOperator(expr.Expr.Pos(), ast.OperatorPointer, expr.Expr)
-				tc.typeInfos[unOp] = &typeInfo{
-					Type: t.Type.Elem(),
-				}
-				expr.Expr = unOp
-			}
-			return field
+		field, newName, err := tc.fieldByName(t, expr.Ident)
+		if err != nil {
+			panic(tc.errorf(expr, "%v undefined (%s)", expr, err))
 		}
-		panic(tc.errorf(expr, "%v undefined (type %s has no field or method %s)", expr, t, expr.Ident))
+		expr.Ident = newName
+		// Transform ps.F to (*ps).F, if ps is a defined pointer type and
+		// (*ps).F is a valid selector expression denoting a field (but not
+		// a method).
+		if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Struct {
+			unOp := ast.NewUnaryOperator(expr.Expr.Pos(), ast.OperatorPointer, expr.Expr)
+			tc.typeInfos[unOp] = &typeInfo{
+				Type: t.Type.Elem(),
+			}
+			expr.Expr = unOp
+		}
+		return field
 
 	case *ast.TypeAssertion:
 		t := tc.checkExpr(expr.Expr)
@@ -1972,8 +1978,8 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					panic(tc.errorf(node, "duplicate field name in struct literal: %s", keyValue.Key))
 				}
 				hasField[ident.Name] = struct{}{}
-				fieldTi, newName, ok := tc.fieldByName(ti, ident.Name)
-				if !ok {
+				fieldTi, newName, err := tc.fieldByName(ti, ident.Name)
+				if err != nil {
 					panic(tc.errorf(node, "unknown field '%s' in struct literal of type %s", keyValue.Key, ti))
 				}
 				valueTi := tc.checkExpr(keyValue.Value)
