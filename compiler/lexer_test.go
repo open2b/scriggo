@@ -197,6 +197,37 @@ var typeTests = map[string][]tokenTyp{
 	"{{ a or not b }}":  {tokenStartValue, tokenIdentifier, tokenRelaxedOr, tokenRelaxedNot, tokenIdentifier, tokenEndValue},
 }
 
+var tagWithURLTypes = []tokenTyp{tokenText, tokenStartURL, tokenText, tokenEndURL, tokenText}
+
+var typeTestsHTMLContext = map[string][]tokenTyp{
+	`<form action="u">`:       tagWithURLTypes,
+	`<blockquote cite="u">`:   tagWithURLTypes,
+	`<del cite="u">`:          tagWithURLTypes,
+	`<ins cite="u">`:          tagWithURLTypes,
+	`<q cite="u">`:            tagWithURLTypes,
+	`<object data="u">`:       tagWithURLTypes,
+	`<button formaction="u">`: tagWithURLTypes,
+	`<input formaction="u">`:  tagWithURLTypes,
+	`<a href="u">`:            tagWithURLTypes,
+	`<area href="u">`:         tagWithURLTypes,
+	`<link href="u">`:         tagWithURLTypes,
+	`<base href="u">`:         tagWithURLTypes,
+	`<img longdesc="u">`:      tagWithURLTypes,
+	`<html manifest="u">`:     tagWithURLTypes,
+	`<video poster="u">`:      tagWithURLTypes,
+	`<audio src="u">`:         tagWithURLTypes,
+	`<embed src="u">`:         tagWithURLTypes,
+	`<iframe src="u">`:        tagWithURLTypes,
+	`<img src="u">`:           tagWithURLTypes,
+	`<input src="u">`:         tagWithURLTypes,
+	`<script src="u">`:        tagWithURLTypes,
+	`<source src="u">`:        tagWithURLTypes,
+	`<track src="u">`:         tagWithURLTypes,
+	`<video src="u">`:         tagWithURLTypes,
+	`<img srcset="u">`:        tagWithURLTypes,
+	`<source srcset="u">`:     tagWithURLTypes,
+}
+
 var typeTestsGoContext = map[string][]tokenTyp{
 	``:                {},
 	"a := 3":          {tokenIdentifier, tokenDeclaration, tokenInt, tokenSemicolon},
@@ -461,6 +492,10 @@ TYPES:
 
 func TestLexerTypes(t *testing.T) {
 	testLexerTypes(t, typeTests, ast.ContextText)
+}
+
+func TestLexerTypesHTMLContext(t *testing.T) {
+	testLexerTypes(t, typeTestsHTMLContext, ast.ContextHTML)
 }
 
 func TestLexerTypesGoContext(t *testing.T) {

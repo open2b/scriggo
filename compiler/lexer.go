@@ -473,7 +473,7 @@ func containsURL(tag string, attr string) bool {
 	case "data":
 		return tag == "object"
 	case "formaction":
-		return attr == "button" || attr == "input"
+		return tag == "button" || tag == "input"
 	case "href":
 		switch tag {
 		case "a", "area", "link", "base":
