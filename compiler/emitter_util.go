@@ -337,7 +337,7 @@ var ioWriterWriteType = reflect.FuncOf(
 	false,
 )
 
-// urlEscaperStartURLType is a reflect.Type that sotres the type of the method
+// urlEscaperStartURLType is a reflect.Type representing the type of the method
 //
 //		func (w *urlEscaper) StartURL(quoted, isSet bool)
 //
