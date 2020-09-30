@@ -554,6 +554,12 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 			}
 			p += size - 1
 		}
+		if c == '{' && p+1 < len(l.src) {
+			switch l.src[p+1] {
+			case '{', '%', '#':
+				return "", p
+			}
+		}
 		l.column++
 	}
 	if p == s || p == len(l.src) {

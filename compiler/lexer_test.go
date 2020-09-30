@@ -195,6 +195,11 @@ var typeTests = map[string][]tokenTyp{
 	"{{ a and b }}":     {tokenStartValue, tokenIdentifier, tokenRelaxedAnd, tokenIdentifier, tokenEndValue},
 	"{{ a or b }}":      {tokenStartValue, tokenIdentifier, tokenRelaxedOr, tokenIdentifier, tokenEndValue},
 	"{{ a or not b }}":  {tokenStartValue, tokenIdentifier, tokenRelaxedOr, tokenRelaxedNot, tokenIdentifier, tokenEndValue},
+
+	"<a {% if a %}{% end %}>":       {tokenText, tokenStartBlock, tokenIf, tokenIdentifier, tokenEndBlock, tokenStartBlock, tokenEnd, tokenEndBlock, tokenText},
+	"<a {% if a %}b{% end %}>":      {tokenText, tokenStartBlock, tokenIf, tokenIdentifier, tokenEndBlock, tokenText, tokenStartBlock, tokenEnd, tokenEndBlock, tokenText},
+	"<a {% if a %}b=\"\"{% end %}>": {tokenText, tokenStartBlock, tokenIf, tokenIdentifier, tokenEndBlock, tokenText, tokenStartBlock, tokenEnd, tokenEndBlock, tokenText},
+	"<a {% if a %}b=''{% end %}>":   {tokenText, tokenStartBlock, tokenIf, tokenIdentifier, tokenEndBlock, tokenText, tokenStartBlock, tokenEnd, tokenEndBlock, tokenText},
 }
 
 var tagWithURLTypes = []tokenTyp{tokenText, tokenStartURL, tokenText, tokenEndURL, tokenText}
@@ -290,6 +295,10 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		`<a href={{ u }}>`:                             {ast.ContextText, ast.ContextUnquotedAttribute, ast.ContextUnquotedAttribute, ast.ContextUnquotedAttribute, ast.ContextUnquotedAttribute, ast.ContextUnquotedAttribute, ast.ContextText},
 		`<a href="a{{ p }}">`:                          {ast.ContextText, ast.ContextAttribute, ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
 		`<a href="{% if a %}b{% end %}">`:              {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
+		`<a {% if a %}{% end %}>`:                      {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText},
+		`<a {% if a %}b{% end %}>`:                     {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText},
+		`<a {% if a %}b=""{% end %}>`:                  {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText},
+		`<a {% if a %}b=''{% end %}>`:                  {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText},
 		`<a class="{{ a }}">`:                          {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
 		`<a class="c">{{ a }}`:                         {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 		`<a class='c'>{{ a }}`:                         {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
