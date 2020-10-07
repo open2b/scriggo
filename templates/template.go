@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	_sort "sort"
+	"sort"
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/compiler"
@@ -234,7 +234,7 @@ func (t *Template) Vars() []string {
 	for i, global := range t.globals[4:] {
 		vars[i] = global.Name
 	}
-	_sort.Strings(vars)
+	sort.Strings(vars)
 	return vars
 }
 

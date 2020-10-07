@@ -13,7 +13,7 @@ import (
 	"io"
 	"math"
 	"reflect"
-	_sort "sort"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -37,17 +37,17 @@ func builtins() Declarations {
 			switch s := slice.(type) {
 			case nil:
 			case []string:
-				_sort.Strings(s)
+				sort.Strings(s)
 			case []rune:
-				_sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
+				sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
 			case []byte:
-				_sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
+				sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
 			case []HTML:
-				_sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
+				sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
 			case []int:
-				_sort.Ints(s)
+				sort.Ints(s)
 			case []float64:
-				_sort.Float64s(s)
+				sort.Float64s(s)
 			}
 			// reflect
 			sortSlice(slice)

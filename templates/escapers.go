@@ -8,7 +8,7 @@ package templates
 
 import (
 	"bytes"
-	_base64 "encoding/base64"
+	"encoding/base64"
 	"html"
 	"io"
 	"strings"
@@ -475,7 +475,7 @@ func escapeBytes(w strWriter, b []byte, addQuote bool) error {
 			return err
 		}
 	}
-	encoder := _base64.NewEncoder(_base64.StdEncoding, w)
+	encoder := base64.NewEncoder(base64.StdEncoding, w)
 	_, _ = encoder.Write(b)
 	err := encoder.Close()
 	if addQuote && err == nil {

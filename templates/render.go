@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	_sort "sort"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -475,7 +475,7 @@ func renderInJavaScript(env runtime.Env, out io.Writer, value interface{}) error
 			}
 			keyPairs[i].val = iter.Value().Interface()
 		}
-		_sort.Slice(keyPairs, func(i, j int) bool {
+		sort.Slice(keyPairs, func(i, j int) bool {
 			return keyPairs[i].key < keyPairs[j].key
 		})
 		_, err := w.WriteString("{")
@@ -672,7 +672,7 @@ func renderInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 			}
 			keyPairs[i].val = iter.Value().Interface()
 		}
-		_sort.Slice(keyPairs, func(i, j int) bool {
+		sort.Slice(keyPairs, func(i, j int) bool {
 			return keyPairs[i].key < keyPairs[j].key
 		})
 		_, err := w.WriteString("{")
