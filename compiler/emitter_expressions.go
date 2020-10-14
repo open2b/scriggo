@@ -185,7 +185,18 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			macroFn := newFunction("", expr.Ident.Name, expr.Type.Reflect, em.fb.getPath(), expr.Pos())
 			em.fnStore.makeAvailableScriggoFn(em.pkg, expr.Ident.Name, macroFn)
 			fb := em.fb
-			em.setFunctionVarRefs(macroFn, expr.Upvars)
+			// Macro declarations are handled as function declarations at
+			// package level, so the parameter 'closureVar' is always nil for
+			// macros.
+			// In fact this works because macros are called using the 'OpCall'
+			// instruction (which sets vm.vars from the global vars) while the
+			// emission of function literals needs the parameter 'closureVar'
+			// because vm.vars is set from the vars stored in the function by
+			// setFunctionVarRefs.
+			if expr.Upvars != nil {
+				panic("BUG: expr.Upvars should be nil for macro declarations")
+			}
+			em.setFunctionVarRefs(macroFn, nil)
 			em.fb = newBuilder(macroFn, em.fb.getPath())
 			em.fb.enterScope()
 			em.prepareFunctionBodyParameters(expr)
