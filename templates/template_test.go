@@ -1740,6 +1740,19 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedLoadErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
 	},
+
+	"Accessing builtin variable from macro's body": {
+		sources: map[string]string{
+			"index.html": `{% macro M %}{{ builtinVariable }}{% end %}{% show M %}`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"builtinVariable": &([]string{"<b>builtin</b>"}[0]),
+			},
+		},
+		expectedOut: "<b>builtin</b>",
+	},
 }
 
 var structWithUnexportedFields = &struct {
