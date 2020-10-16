@@ -1759,6 +1759,16 @@ var templateMultiPageCases = map[string]struct {
 			"shown.html": `{% var v int %}`,
 		},
 	},
+	"https://github.com/open2b/scriggo/issues/661": {
+		sources: map[string]string{
+			"index.html": `{% extends "extended.html" %}
+{% macro M %}
+{% show "/shown.html" %}
+{% end macro %}`,
+			"extended.html": `{% show "/shown.html" %}`,
+			"shown.html":    `{% var v int %}`,
+		},
+	},
 }
 
 var structWithUnexportedFields = &struct {

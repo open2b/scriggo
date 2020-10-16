@@ -173,12 +173,12 @@ nodesLoop:
 							Properties: propertyUntyped,
 							Type:       boolType,
 						}
-						tc.typeInfos[node.Condition] = c
+						tc.compilation.typeInfos[node.Condition] = c
 						ti = c
 					} else {
 						node.Condition = ast.NewUnaryOperator(node.Condition.Pos(), internalOperatorNotZero, node.Condition)
 						ti = tc.checkExpr(node.Condition)
-						tc.typeInfos[node.Condition] = ti
+						tc.compilation.typeInfos[node.Condition] = ti
 					}
 				} else {
 					panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, ti.ShortString()))
@@ -268,11 +268,11 @@ nodesLoop:
 				ti1 := &typeInfo{Type: typ1, Properties: propertyAddressable}
 				declaration := node.Assignment.Type == ast.AssignmentDeclaration
 				indexPh := ast.NewPlaceholder()
-				tc.typeInfos[indexPh] = ti1
+				tc.compilation.typeInfos[indexPh] = ti1
 				tc.obsoleteForRangeAssign(node.Assignment, lhs[0], indexPh, nil, declaration, false)
 				if len(lhs) == 2 {
 					valuePh := ast.NewPlaceholder()
-					tc.typeInfos[valuePh] = &typeInfo{Type: typ2}
+					tc.compilation.typeInfos[valuePh] = &typeInfo{Type: typ2}
 					tc.obsoleteForRangeAssign(node.Assignment, lhs[1], valuePh, nil, declaration, false)
 				}
 			}
@@ -515,7 +515,7 @@ nodesLoop:
 				tc.enterScope()
 				// Case has only one expression (one type), so in its body the
 				// type switch variable has the same type of the case type.
-				if len(cas.Expressions) == 1 && !tc.typeInfos[cas.Expressions[0]].Nil() {
+				if len(cas.Expressions) == 1 && !tc.compilation.typeInfos[cas.Expressions[0]].Nil() {
 					if len(node.Assignment.Lhs) == 1 {
 						lh := node.Assignment.Lhs[0]
 						n := ast.NewAssignment(
@@ -637,7 +637,7 @@ nodesLoop:
 					)
 					cond := ast.NewIdentifier(pos, "true")
 					commentedErrorIdent := ast.NewIdentifier(pos, "$commentedError")
-					tc.typeInfos[commentedErrorIdent] = &typeInfo{
+					tc.compilation.typeInfos[commentedErrorIdent] = &typeInfo{
 						Properties: propertyIsType,
 						Type:       commentedErrorType,
 					}
@@ -761,7 +761,7 @@ nodesLoop:
 					// The statement "defer recover()" is a special case
 					// implemented by the emitter.
 				case "close", "delete", "panic", "print", "println":
-					tc.typeInfos[call.Func] = deferGoBuiltin(name)
+					tc.compilation.typeInfos[call.Func] = deferGoBuiltin(name)
 				}
 			}
 			if isConversion {
@@ -784,7 +784,7 @@ nodesLoop:
 				case "append", "cap", "len", "make", "new":
 					panic(tc.errorf(node, "go discards result of %s", call))
 				case "close", "delete", "panic", "print", "println", "recover":
-					tc.typeInfos[call.Func] = deferGoBuiltin(name)
+					tc.compilation.typeInfos[call.Func] = deferGoBuiltin(name)
 				}
 			}
 			if isConversion {
@@ -819,7 +819,7 @@ nodesLoop:
 			}
 			if tiv.Nil() {
 				tiv = tc.nilOf(elemType)
-				tc.typeInfos[node.Value] = tiv
+				tc.compilation.typeInfos[node.Value] = tiv
 			} else {
 				tiv.setValue(elemType)
 			}
@@ -1016,7 +1016,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pac
 			// TypeInfos of imported packages in templates are
 			// "manually" added to the map of typeinfos of typechecker.
 			for k, v := range tc.compilation.pkgInfos[impor.Path].TypeInfos {
-				tc.typeInfos[k] = v
+				tc.compilation.typeInfos[k] = v
 			}
 			imported = tc.compilation.pkgInfos[impor.Path]
 		}
@@ -1146,7 +1146,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) ast.Node {
 			got = nil
 			for _, ti := range tis {
 				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
-				tc.typeInfos[v] = ti
+				tc.compilation.typeInfos[v] = ti
 				got = append(got, v)
 				needsCheck = false
 			}
@@ -1169,7 +1169,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) ast.Node {
 		}
 		msg += "\n\thave ("
 		for i, x := range got {
-			msg += tc.typeInfos[x].StringWithNumber(false)
+			msg += tc.compilation.typeInfos[x].StringWithNumber(false)
 			if i != len(got)-1 {
 				msg += ", "
 			}
@@ -1187,7 +1187,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) ast.Node {
 
 	for i, typ := range expectedTypes {
 		x := got[i]
-		ti := tc.typeInfos[x]
+		ti := tc.compilation.typeInfos[x]
 		if err := tc.isAssignableTo(ti, x, typ); err != nil {
 			if _, ok := err.(invalidTypeInAssignment); ok {
 				panic(tc.errorf(node, "%s in return argument", err))
@@ -1196,7 +1196,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) ast.Node {
 		}
 		if ti.Nil() {
 			ti = tc.nilOf(typ)
-			tc.typeInfos[x] = ti
+			tc.compilation.typeInfos[x] = ti
 		} else {
 			ti.setValue(typ)
 		}

@@ -232,16 +232,16 @@ func (tc *typechecker) convert(ti *typeInfo, expr ast.Expression, t2 reflect.Typ
 			}
 			typ = ti.Type
 		}
-		tc.typeInfos[expr] = &typeInfo{Type: typ}
+		tc.compilation.typeInfos[expr] = &typeInfo{Type: typ}
 
 		switch expr := expr.(type) {
 
 		case *ast.UnaryOperator:
-			return tc.convert(tc.typeInfos[expr.Expr], expr.Expr, typ)
+			return tc.convert(tc.compilation.typeInfos[expr.Expr], expr.Expr, typ)
 
 		case *ast.BinaryOperator:
 			if op := expr.Operator(); op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
-				_, err := tc.convert(tc.typeInfos[expr.Expr1], expr.Expr1, typ)
+				_, err := tc.convert(tc.compilation.typeInfos[expr.Expr1], expr.Expr1, typ)
 				if err != nil {
 					return nil, err
 				}
@@ -250,11 +250,11 @@ func (tc *typechecker) convert(ti *typeInfo, expr ast.Expression, t2 reflect.Typ
 				}
 				return nil, nil
 			}
-			_, err := tc.convert(tc.typeInfos[expr.Expr1], expr.Expr1, typ)
+			_, err := tc.convert(tc.compilation.typeInfos[expr.Expr1], expr.Expr1, typ)
 			if err != nil {
 				return nil, err
 			}
-			return tc.convert(tc.typeInfos[expr.Expr2], expr.Expr2, typ)
+			return tc.convert(tc.compilation.typeInfos[expr.Expr2], expr.Expr2, typ)
 
 		default:
 			panic(fmt.Errorf("BUG: unexpected expr %s (type %T) with type info %s", expr, expr, ti))

@@ -6,6 +6,8 @@
 
 package compiler
 
+import "github.com/open2b/scriggo/compiler/ast"
+
 // A compilation holds the state of a single compilation.
 //
 // This is necessary to store information across compilation of different
@@ -20,6 +22,14 @@ type compilation struct {
 
 	// pkgInfos maps the packages path to their respective package infos.
 	pkgInfos map[string]*packageInfo
+
+	// typeInfos associates a TypeInfo to the nodes of the AST that is
+	// currently being type checked.
+	//
+	// It is correct to store type infos in the compilation because we
+	// guarantee that an AST node is type checked always in the same way, no
+	// matter what "path" is taken to reach it.
+	typeInfos map[ast.Node]*typeInfo
 }
 
 // newCompilation returns a new compilation.
@@ -27,6 +37,7 @@ func newCompilation() *compilation {
 	return &compilation{
 		pkgInfos:       map[string]*packageInfo{},
 		pkgPathToIndex: map[string]int{},
+		typeInfos:      map[ast.Node]*typeInfo{},
 	}
 }
 

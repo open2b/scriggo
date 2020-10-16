@@ -74,7 +74,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		tc.mustBeAssignableTo(nodeRhs[i], lhs[i].Type, len(node.Lhs) != len(node.Rhs), node.Lhs[i])
 		// Update the type info for the emitter.
 		if rh.Nil() {
-			tc.typeInfos[nodeRhs[i]] = tc.nilOf(lhs[i].Type)
+			tc.compilation.typeInfos[nodeRhs[i]] = tc.nilOf(lhs[i].Type)
 		} else {
 			rh.setValue(nil)
 		}
@@ -381,7 +381,7 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 
 		// Set the type info of the right operand.
 		if rh.Nil() {
-			tc.typeInfos[nodeRhs[i]] = tc.nilOf(typ.Type)
+			tc.compilation.typeInfos[nodeRhs[i]] = tc.nilOf(typ.Type)
 		} else if rh.IsConstant() {
 			rh.setValue(varTyp)
 		}
@@ -404,7 +404,7 @@ func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 		Type:       typ,
 		Properties: propertyAddressable,
 	}
-	tc.typeInfos[lh] = ti
+	tc.compilation.typeInfos[lh] = ti
 	tc.assignScope(lh.Name, ti, lh)
 	if !tc.opts.AllowNotUsed {
 		tc.unusedVars = append(tc.unusedVars, &scopeVariable{
@@ -420,7 +420,7 @@ func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 // unbalanced and in this case unbalancedLh is its left expression that is
 // assigned.
 func (tc *typechecker) mustBeAssignableTo(rhExpr ast.Expression, typ reflect.Type, unbalanced bool, unbalancedLh ast.Expression) {
-	rh := tc.typeInfos[rhExpr]
+	rh := tc.compilation.typeInfos[rhExpr]
 	err := tc.isAssignableTo(rh, rhExpr, typ)
 	if err != nil {
 		if unbalanced {
@@ -458,7 +458,7 @@ func (tc *typechecker) newPlaceholderFor(typ reflect.Type) *ast.Placeholder {
 		ti.setValue(typ)
 	}
 	ph := ast.NewPlaceholder()
-	tc.typeInfos[ph] = ti
+	tc.compilation.typeInfos[ph] = ti
 	return ph
 }
 
@@ -499,7 +499,7 @@ func (tc *typechecker) rebalancedRightSide(node ast.Node) []ast.Expression {
 		rhsExpr := make([]ast.Expression, len(tis))
 		for i, ti := range tis {
 			rhsExpr[i] = ast.NewCall(call.Pos(), call.Func, call.Args, false)
-			tc.typeInfos[rhsExpr[i]] = ti
+			tc.compilation.typeInfos[rhsExpr[i]] = ti
 		}
 		return rhsExpr
 	}
@@ -510,23 +510,23 @@ func (tc *typechecker) rebalancedRightSide(node ast.Node) []ast.Expression {
 			v1 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
 			v2 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
 			ti := tc.checkExpr(rhExpr)
-			tc.typeInfos[v1] = &typeInfo{Type: ti.Type}
-			tc.typeInfos[v2] = untypedBoolTypeInfo
+			tc.compilation.typeInfos[v1] = &typeInfo{Type: ti.Type}
+			tc.compilation.typeInfos[v2] = untypedBoolTypeInfo
 			return []ast.Expression{v1, v2}
 		case *ast.Index:
 			v1 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			v2 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			ti := tc.checkExpr(rhExpr)
-			tc.typeInfos[v1] = &typeInfo{Type: ti.Type}
-			tc.typeInfos[v2] = untypedBoolTypeInfo
+			tc.compilation.typeInfos[v1] = &typeInfo{Type: ti.Type}
+			tc.compilation.typeInfos[v2] = untypedBoolTypeInfo
 			return []ast.Expression{v1, v2}
 		case *ast.UnaryOperator:
 			if v.Op == ast.OperatorReceive {
 				v1 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
 				v2 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
 				ti := tc.checkExpr(rhExpr)
-				tc.typeInfos[v1] = &typeInfo{Type: ti.Type}
-				tc.typeInfos[v2] = untypedBoolTypeInfo
+				tc.compilation.typeInfos[v1] = &typeInfo{Type: ti.Type}
+				tc.compilation.typeInfos[v2] = untypedBoolTypeInfo
 				return []ast.Expression{v1, v2}
 			}
 		}

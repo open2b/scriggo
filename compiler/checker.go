@@ -97,7 +97,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		// Collect data from the type checker and return it.
 		mainPkgInfo := &packageInfo{}
 		mainPkgInfo.IndirectVars = tc.indirectVars
-		mainPkgInfo.TypeInfos = tc.typeInfos
+		mainPkgInfo.TypeInfos = tc.compilation.typeInfos
 		for _, pkgInfo := range compilation.pkgInfos {
 			for k, v := range pkgInfo.TypeInfos {
 				mainPkgInfo.TypeInfos[k] = v
@@ -118,7 +118,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 	}
 	mainPkgInfo := &packageInfo{}
 	mainPkgInfo.IndirectVars = tc.indirectVars
-	mainPkgInfo.TypeInfos = tc.typeInfos
+	mainPkgInfo.TypeInfos = tc.compilation.typeInfos
 	return map[string]*packageInfo{"main": mainPkgInfo}, nil
 }
 
@@ -210,10 +210,6 @@ type typechecker struct {
 	// unusedImports keeps track of all imported but not used packages.
 	unusedImports map[string][]string
 
-	// typeInfos associates a TypeInfo to the nodes of the AST that is currently
-	// being type checked.
-	typeInfos map[ast.Node]*typeInfo
-
 	// indirectVars contains the list of all declarations of variables which
 	// must be emitted as "indirect".
 	indirectVars map[*ast.Identifier]bool
@@ -270,7 +266,6 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		filePackageBlock: typeCheckerScope{},
 		globalScope:      globalScope,
 		hasBreak:         map[ast.Node]bool{},
-		typeInfos:        map[ast.Node]*typeInfo{},
 		universe:         universe,
 		unusedImports:    map[string][]string{},
 		indirectVars:     map[*ast.Identifier]bool{},

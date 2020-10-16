@@ -188,7 +188,7 @@ unusedLoop:
 		}
 	}
 
-	tc.typeInfos[ident] = ti
+	tc.compilation.typeInfos[ident] = ti
 	return ti
 }
 
@@ -201,8 +201,8 @@ func (tc *typechecker) checkArrayType(array *ast.ArrayType, length int) *typeInf
 		if length == -1 {
 			panic(tc.errorf(array, "use of [...] array outside of array literal"))
 		}
-		tc.typeInfos[array] = &typeInfo{Properties: propertyIsType, Type: tc.types.ArrayOf(length, elem.Type)}
-		return tc.typeInfos[array]
+		tc.compilation.typeInfos[array] = &typeInfo{Properties: propertyIsType, Type: tc.types.ArrayOf(length, elem.Type)}
+		return tc.compilation.typeInfos[array]
 	}
 	len := tc.checkExpr(array.Len)
 	if !len.IsConstant() {
@@ -219,8 +219,8 @@ func (tc *typechecker) checkArrayType(array *ast.ArrayType, length int) *typeInf
 	if b < length {
 		panic(tc.errorf(array, "array index %d out of bounds [0:%d]", length-1, b))
 	}
-	tc.typeInfos[array] = &typeInfo{Properties: propertyIsType, Type: tc.types.ArrayOf(b, elem.Type)}
-	return tc.typeInfos[array]
+	tc.compilation.typeInfos[array] = &typeInfo{Properties: propertyIsType, Type: tc.types.ArrayOf(b, elem.Type)}
+	return tc.compilation.typeInfos[array]
 }
 
 // checkExpr type checks an expression and returns its type info.
@@ -229,7 +229,7 @@ func (tc *typechecker) checkExpr(expr ast.Expression) *typeInfo {
 	if ti.IsType() {
 		panic(tc.errorf(expr, "type %s is not an expression", ti))
 	}
-	tc.typeInfos[expr] = ti
+	tc.compilation.typeInfos[expr] = ti
 	return ti
 }
 
@@ -239,7 +239,7 @@ func (tc *typechecker) checkType(expr ast.Expression) *typeInfo {
 	if !ti.IsType() {
 		panic(tc.errorf(expr, "%s is not a type", expr))
 	}
-	tc.typeInfos[expr] = ti
+	tc.compilation.typeInfos[expr] = ti
 	return ti
 }
 
@@ -247,7 +247,7 @@ func (tc *typechecker) checkType(expr ast.Expression) *typeInfo {
 // info.
 func (tc *typechecker) checkExprOrType(expr ast.Expression) *typeInfo {
 	ti := tc.typeof(expr, true)
-	tc.typeInfos[expr] = ti
+	tc.compilation.typeInfos[expr] = ti
 	return ti
 }
 
@@ -263,7 +263,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		panic(tc.errorf(expr, "cannot use _ as value"))
 	}
 
-	ti := tc.typeInfos[expr]
+	ti := tc.compilation.typeInfos[expr]
 	if ti != nil {
 		return ti
 	}
@@ -384,7 +384,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			if t.Type.ChanDir() == reflect.SendDir {
 				// Expression <-make(...) is printed as <-(make(...)) in the error message.
 				var s string
-				if call, ok := expr.Expr.(*ast.Call); ok && tc.typeInfos[call.Func].IsBuiltinFunction() {
+				if call, ok := expr.Expr.(*ast.Call); ok && tc.compilation.typeInfos[call.Func].IsBuiltinFunction() {
 					s = expr.Op.String() + "(" + expr.Expr.String() + ")"
 				} else {
 					s = expr.String()
@@ -688,7 +688,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			tc.checkIndex(expr.Index, t, false)
 			// Transform pa[i] to (*pa)[i].
 			unOp := ast.NewUnaryOperator(expr.Expr.Pos(), ast.OperatorPointer, expr.Expr)
-			tc.typeInfos[unOp] = &typeInfo{Type: elemType}
+			tc.compilation.typeInfos[unOp] = &typeInfo{Type: elemType}
 			expr.Expr = unOp
 			return &typeInfo{Type: elemType.Elem(), Properties: propertyAddressable}
 		case reflect.Map:
@@ -701,7 +701,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			}
 			if key.Nil() {
 				key = tc.nilOf(t.Type.Key())
-				tc.typeInfos[expr.Index] = key
+				tc.compilation.typeInfos[expr.Index] = key
 			} else {
 				key.setValue(t.Type.Key())
 			}
@@ -766,7 +766,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		// a[low : high : max] is shorthand for (*a)[low : high : max].
 		if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Array {
 			unOp := ast.NewUnaryOperator(expr.Expr.Pos(), ast.OperatorPointer, expr.Expr)
-			tc.typeInfos[unOp] = &typeInfo{
+			tc.compilation.typeInfos[unOp] = &typeInfo{
 				Type: t.Type.Elem(),
 			}
 			expr.Expr = unOp
@@ -837,7 +837,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 							}
 						}
 					}
-					tc.typeInfos[expr] = v
+					tc.compilation.typeInfos[expr] = v
 					return v
 				}
 			}
@@ -861,14 +861,14 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 					elem, _ := tc.lookupScopesElem(expr.Expr.(*ast.Identifier).Name, false)
 					tc.indirectVars[elem.decl] = true
 					expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorAddress, expr.Expr)
-					tc.typeInfos[expr.Expr] = &typeInfo{
+					tc.compilation.typeInfos[expr.Expr] = &typeInfo{
 						Type:       tc.types.PtrTo(t.Type),
 						MethodType: t.MethodType,
 					}
 				}
 			case receiverAddIndirect:
 				expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorPointer, expr.Expr)
-				tc.typeInfos[expr.Expr] = &typeInfo{
+				tc.compilation.typeInfos[expr.Expr] = &typeInfo{
 					Type:       t.Type.Elem(),
 					MethodType: t.MethodType,
 				}
@@ -885,7 +885,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		// a method).
 		if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Struct {
 			unOp := ast.NewUnaryOperator(expr.Expr.Pos(), ast.OperatorPointer, expr.Expr)
-			tc.typeInfos[unOp] = &typeInfo{
+			tc.compilation.typeInfos[unOp] = &typeInfo{
 				Type: t.Type.Elem(),
 			}
 			expr.Expr = unOp
@@ -1244,7 +1244,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 			if isSpecialCase := t.Type.Kind() == reflect.String && slice.Type.Elem() == uint8Type; isSpecialCase {
 				pos := expr.Args[1].Pos()
 				T := ast.NewPlaceholder() // T
-				tc.typeInfos[T] = &typeInfo{Properties: propertyIsType, Type: slice.Type}
+				tc.compilation.typeInfos[T] = &typeInfo{Properties: propertyIsType, Type: slice.Type}
 				conversion := ast.NewCall(pos, T, []ast.Expression{expr.Args[1]}, false) // T(s)
 				expr.Args[1] = conversion
 				tc.checkExpr(expr.Args[1])
@@ -1557,7 +1557,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 		ti := tc.checkExpr(expr.Args[0])
 		if ti.Nil() {
 			ti = tc.nilOf(emptyInterfaceType)
-			tc.typeInfos[expr.Args[0]] = ti
+			tc.compilation.typeInfos[expr.Args[0]] = ti
 		} else {
 			if err := tc.isAssignableTo(ti, expr.Args[0], emptyInterfaceType); err != nil {
 				panic(tc.errorf(expr, "%s", err))
@@ -1633,7 +1633,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) ([]*typeInfo, bool, b
 	// Check a builtin function call.
 	if ident, ok := expr.Func.(*ast.Identifier); ok {
 		if ti, ok := tc.lookupScopes(ident.Name, false); ok && ti.IsBuiltinFunction() {
-			tc.typeInfos[expr.Func] = ti
+			tc.compilation.typeInfos[expr.Func] = ti
 			return tc.checkBuiltinCall(expr), true, false
 		}
 	}
@@ -1684,11 +1684,11 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) ([]*typeInfo, bool, b
 			args = nil
 			tis, _, _ := tc.checkCallExpression(c)
 			if len(tis) == 1 {
-				tc.typeInfos[c] = tis[0]
+				tc.compilation.typeInfos[c] = tis[0]
 			}
 			for _, ti := range tis {
 				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
-				tc.typeInfos[v] = ti
+				tc.compilation.typeInfos[v] = ti
 				args = append(args, v)
 			}
 		}
@@ -1697,11 +1697,11 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) ([]*typeInfo, bool, b
 			args = nil
 			tis, _, _ := tc.checkCallExpression(c)
 			if len(tis) == 1 {
-				tc.typeInfos[c] = tis[0]
+				tc.compilation.typeInfos[c] = tis[0]
 			}
 			for _, ti := range tis {
 				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
-				tc.typeInfos[v] = ti
+				tc.compilation.typeInfos[v] = ti
 				args = append(args, v)
 			}
 		}
@@ -1713,7 +1713,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) ([]*typeInfo, bool, b
 			if i > 0 {
 				have += ", "
 			}
-			c := tc.typeInfos[arg]
+			c := tc.compilation.typeInfos[arg]
 			if c == nil {
 				c = tc.checkExpr(arg)
 			}
@@ -1753,7 +1753,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) ([]*typeInfo, bool, b
 			in = t.Type.In(lastIn).Elem()
 		}
 		if isSpecialCase {
-			a := tc.typeInfos[arg]
+			a := tc.compilation.typeInfos[arg]
 			if err := tc.isAssignableTo(a, arg, in); err != nil {
 				if _, ok := err.(invalidTypeInAssignment); ok {
 					panic(tc.errorf(args[i], "cannot use %s as type %s in argument to %s", a, in, expr.Func))
@@ -1783,7 +1783,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) ([]*typeInfo, bool, b
 		}
 		if a.Nil() {
 			a := tc.nilOf(in)
-			tc.typeInfos[expr.Args[i]] = a
+			tc.compilation.typeInfos[expr.Args[i]] = a
 		} else {
 			a.setValue(in)
 		}
@@ -1800,7 +1800,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) ([]*typeInfo, bool, b
 
 func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *typeInfo {
 
-	t := tc.typeInfos[expr.Func]
+	t := tc.compilation.typeInfos[expr.Func]
 
 	if len(expr.Args) == 0 {
 		panic(tc.errorf(expr, "missing argument to conversion to %s: %s", t, expr))
@@ -1926,7 +1926,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 	// Handle composite literal nodes with implicit type.
 	if node.Type == nil {
 		node.Type = ast.NewPlaceholder()
-		tc.typeInfos[node.Type] = &typeInfo{Properties: propertyIsType, Type: typ}
+		tc.compilation.typeInfos[node.Type] = &typeInfo{Properties: propertyIsType, Type: typ}
 	}
 
 	maxIndex := -1
@@ -1944,7 +1944,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 	} else {
 		ti = tc.checkType(node.Type)
 	}
-	// tc.typeInfos[node.Type] = ti
+	// tc.compilation.typeInfos[node.Type] = ti
 
 	switch ti.Type.Kind() {
 
@@ -1991,7 +1991,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				}
 				if valueTi.Nil() {
 					valueTi = tc.nilOf(fieldTi.Type)
-					tc.typeInfos[keyValue.Value] = valueTi
+					tc.compilation.typeInfos[keyValue.Value] = valueTi
 				} else {
 					valueTi.setValue(fieldTi.Type)
 				}
@@ -2000,7 +2000,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 		case false: // struct with implicit fields.
 			if len(node.KeyValues) == 0 {
 				ti := &typeInfo{Type: ti.Type}
-				tc.typeInfos[node] = ti
+				tc.compilation.typeInfos[node] = ti
 				return ti
 			}
 			if len(node.KeyValues) < ti.Type.NumField() {
@@ -2025,7 +2025,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				keyValue.Key = ast.NewIdentifier(node.Pos(), fieldTi.Name)
 				if valueTi.Nil() {
 					valueTi = tc.nilOf(fieldTi.Type)
-					tc.typeInfos[keyValue.Value] = valueTi
+					tc.compilation.typeInfos[keyValue.Value] = valueTi
 				} else {
 					valueTi.setValue(fieldTi.Type)
 				}
@@ -2073,7 +2073,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			}
 			if elemTi.Nil() {
 				elemTi = tc.nilOf(ti.Type.Elem())
-				tc.typeInfos[kv.Value] = elemTi
+				tc.compilation.typeInfos[kv.Value] = elemTi
 			} else {
 				elemTi.setValue(ti.Type.Elem())
 			}
@@ -2123,7 +2123,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			}
 			if elemTi.Nil() {
 				elemTi = tc.nilOf(ti.Type.Elem())
-				tc.typeInfos[kv.Value] = elemTi
+				tc.compilation.typeInfos[kv.Value] = elemTi
 			} else {
 				elemTi.setValue(ti.Type.Elem())
 			}
@@ -2168,7 +2168,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			}
 			if keyTi.Nil() {
 				keyTi = tc.nilOf(keyType)
-				tc.typeInfos[kv.Key] = keyTi
+				tc.compilation.typeInfos[kv.Key] = keyTi
 			} else {
 				keyTi.setValue(keyType)
 			}
@@ -2194,7 +2194,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			}
 			if valueTi.Nil() {
 				valueTi = tc.nilOf(elemType)
-				tc.typeInfos[kv.Value] = valueTi
+				tc.compilation.typeInfos[kv.Value] = valueTi
 			} else {
 				valueTi.setValue(elemType)
 			}
@@ -2207,7 +2207,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 	}
 
 	nodeTi := &typeInfo{Type: ti.Type}
-	tc.typeInfos[node] = nodeTi
+	tc.compilation.typeInfos[node] = nodeTi
 
 	return nodeTi
 }
@@ -2216,7 +2216,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 // expression. If expr is not a call expression or the function is not a
 // builtin, it returns an empty string.
 func (tc *typechecker) builtinCallName(expr ast.Expression) string {
-	if call, ok := expr.(*ast.Call); ok && tc.typeInfos[call.Func].IsBuiltinFunction() {
+	if call, ok := expr.(*ast.Call); ok && tc.compilation.typeInfos[call.Func].IsBuiltinFunction() {
 		return call.Func.(*ast.Identifier).Name
 	}
 	return ""
@@ -2225,14 +2225,14 @@ func (tc *typechecker) builtinCallName(expr ast.Expression) string {
 // isCompileConstant reports whether expr does not contain channel receives or
 // non-constant function calls.
 func (tc *typechecker) isCompileConstant(expr ast.Expression) bool {
-	if ti := tc.typeInfos[expr]; ti.IsConstant() {
+	if ti := tc.compilation.typeInfos[expr]; ti.IsConstant() {
 		return true
 	}
 	switch expr := expr.(type) {
 	case *ast.BinaryOperator:
 		return tc.isCompileConstant(expr.Expr1) && tc.isCompileConstant(expr.Expr2)
 	case *ast.Call:
-		ti := tc.typeInfos[expr.Func]
+		ti := tc.compilation.typeInfos[expr.Func]
 		if ti.IsType() {
 			return tc.isCompileConstant(expr.Args[0])
 		}

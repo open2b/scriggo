@@ -17,12 +17,12 @@ func (tc *typechecker) obsoleteForRangeAssign(node ast.Node, leftExpr, rightExpr
 	if !isVariableDecl && !isConstDecl && right.Nil() {
 		left := tc.checkExpr(leftExpr)
 		right = tc.nilOf(left.Type)
-		tc.typeInfos[rightExpr] = right
+		tc.compilation.typeInfos[rightExpr] = right
 	}
 
 	if isVariableDecl && typ != nil && right.Nil() {
 		right = tc.nilOf(typ.Type)
-		tc.typeInfos[rightExpr] = right
+		tc.compilation.typeInfos[rightExpr] = right
 	}
 
 	if typ == nil {
@@ -73,7 +73,7 @@ func (tc *typechecker) obsoleteForRangeAssign(node ast.Node, leftExpr, rightExpr
 			} else {
 				newRight.Type = typ.Type
 			}
-			tc.typeInfos[leftExpr] = newRight
+			tc.compilation.typeInfos[leftExpr] = newRight
 			if _, alreadyInCurrentScope := tc.lookupScopes(leftExpr.Name, true); alreadyInCurrentScope {
 				return ""
 			}
@@ -95,7 +95,7 @@ func (tc *typechecker) obsoleteForRangeAssign(node ast.Node, leftExpr, rightExpr
 			} else {
 				newRight.Type = typ.Type
 			}
-			tc.typeInfos[leftExpr] = newRight
+			tc.compilation.typeInfos[leftExpr] = newRight
 			if _, alreadyInCurrentScope := tc.lookupScopes(leftExpr.Name, true); alreadyInCurrentScope {
 				return ""
 			}
@@ -123,7 +123,7 @@ func (tc *typechecker) obsoleteForRangeAssign(node ast.Node, leftExpr, rightExpr
 			panic(tc.errorf(node, "%s in assignment", err))
 		}
 		right.setValue(left.Type)
-		tc.typeInfos[leftExpr] = left
+		tc.compilation.typeInfos[leftExpr] = left
 	default:
 		panic(tc.errorf(node, "BUG"))
 	}
