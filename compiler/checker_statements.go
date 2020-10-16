@@ -138,20 +138,18 @@ nodesLoop:
 		case *ast.Text:
 
 		case *ast.ShowPartial:
-
-			// Check the shown tree in a separate scope, that cannot access to
-			// variables declared in the scope of the partial file or even add
-			// declarations to it.
-
-			path := tc.path
-			tc.path = node.Tree.Path
-			scopes := tc.scopes
-			tc.scopes = nil
-
-			node.Tree.Nodes = tc.checkNodesInNewScope(node.Tree.Nodes)
-
-			tc.path = path
-			tc.scopes = scopes
+			// Type check the shown tree with a separate type checker.
+			// The scope of the shown file is independent from the scope of the
+			// file that shows it (except for global declarations).
+			// Also, the use of a different type checker ensures that the
+			// fields of 'tc' are not altered nor inherited.
+			tc2 := newTypechecker(
+				tc.compilation,
+				node.Tree.Path,
+				tc.opts,
+				tc.globalScope,
+			)
+			tc2.checkNodes(node.Tree.Nodes)
 
 		case *ast.Block:
 			node.Nodes = tc.checkNodesInNewScope(node.Nodes)
