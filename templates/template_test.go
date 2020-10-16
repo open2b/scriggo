@@ -1753,6 +1753,12 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: "<b>builtin</b>",
 	},
+	"Double type checking of shown file": {
+		sources: map[string]string{
+			"index.html": `{% show "/shown.html" %}{% show "/shown.html" %}`,
+			"shown.html": `{% var v int %}`,
+		},
+	},
 }
 
 var structWithUnexportedFields = &struct {
