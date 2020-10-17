@@ -1341,14 +1341,14 @@ func (l *lexer) lexInterpretedString() error {
 LOOP:
 	for {
 		if p == len(l.src) {
-			return l.errorf("not closed string literal")
+			return l.errorf("string not terminated")
 		}
 		switch l.src[p] {
 		case '"':
 			break LOOP
 		case '\\':
 			if p+1 == len(l.src) {
-				return l.errorf("not closed string literal")
+				return l.errorf("string not terminated")
 			}
 			switch c := l.src[p+1]; c {
 			case 'u', 'U':
@@ -1357,7 +1357,7 @@ LOOP:
 					n = 8
 				}
 				if p+1+n >= len(l.src) {
-					return l.errorf("not closed string literal")
+					return l.errorf("string not terminated")
 				}
 				var r rune
 				for i := 0; i < n; i++ {
@@ -1372,12 +1372,12 @@ LOOP:
 						r += rune(c - 'A' + 10)
 					default:
 						l.src = l.src[p:]
-						return l.errorf("invalid hex digit in string literal")
+						return l.errorf("invalid character %q in hexadecimal escape", c)
 					}
 				}
 				if 0xD800 <= r && r < 0xE000 || r > '\U0010FFFF' {
 					l.src = l.src[p:]
-					return l.errorf("escape sequence is invalid Unicode code point")
+					return l.errorf("escape is invalid Unicode code point U+%X", r)
 				}
 				p += 2 + n
 				cols += 2 + n
@@ -1388,11 +1388,11 @@ LOOP:
 				for i := 0; i < 2; i++ {
 					if p+2+i == len(l.src) {
 						l.src = l.src[p:]
-						return l.errorf("non-hex character in escape sequence: ")
+						return l.errorf("string not terminated")
 					}
 					if c := l.src[p+2+i]; !isHexDigit(c) {
 						l.src = l.src[p:]
-						return l.errorf("non-hex character in escape sequence: %s", string(c))
+						return l.errorf("invalid character %q in hexadecimal escape", c)
 					}
 				}
 				p += 4
@@ -1402,34 +1402,34 @@ LOOP:
 				for i := 0; i < 2; i++ {
 					if p+2+i == len(l.src) {
 						l.src = l.src[p:]
-						return l.errorf("non-octal character in escape sequence: ")
+						return l.errorf("string not terminated")
 					}
 					r = r * 8
 					c = l.src[p+2+i]
 					if c < '0' || c > '7' {
 						l.src = l.src[p:]
-						return l.errorf("non-octal character in escape sequence: %s", string(c))
+						return l.errorf("invalid character %q in octal escape", c)
 					}
 					r += rune(c - '0')
 				}
 				if r > 255 {
 					l.src = l.src[p:]
-					return l.errorf("octal escape value > 255: %d", r)
+					return l.errorf("octal escape value %d > 255", r)
 				}
 				p += 4
 				cols += 4
 			default:
 				l.src = l.src[p:]
-				return l.errorf("invalid escape in string literal")
+				return l.errorf("unknown escape")
 			}
 		case '\n':
 			l.src = l.src[p:]
-			return l.errorf("invalid new line in string literal")
+			return l.errorf("newline in string")
 		default:
 			r, s := utf8.DecodeRune(l.src[p:])
 			if r == utf8.RuneError && s == 1 {
 				l.src = l.src[p:]
-				return l.errorf("invalid byte in string literal")
+				return l.errorf("invalid UTF-8 encoding")
 			}
 			p += s
 			cols++
@@ -1450,7 +1450,7 @@ func (l *lexer) lexRawString() error {
 STRING:
 	for {
 		if p == len(l.src) {
-			return l.errorf("not closed string literal")
+			return l.errorf("string not terminated")
 		}
 		switch l.src[p] {
 		case '`':
@@ -1462,7 +1462,7 @@ STRING:
 			r, s := utf8.DecodeRune(l.src[p:])
 			if r == utf8.RuneError && s == 1 {
 				l.src = l.src[p:]
-				return l.errorf("invalid byte in string literal")
+				return l.errorf("invalid UTF-8 encoding")
 			}
 			p += s
 			l.column++
