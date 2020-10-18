@@ -44,6 +44,10 @@ var templateCases = []struct {
 		src:      `{% macro M(a) %}{% end %}`,
 		expected: "undefined: a",
 	},
+	{
+		src:      `{% macro M %}{% end %}{% macro M %}{% end %}`,
+		expected: "M redeclared in this block\n\tprevious declaration at 1:10",
+	},
 
 	// Show macro.
 	{
