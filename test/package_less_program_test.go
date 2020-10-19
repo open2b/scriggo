@@ -152,6 +152,19 @@ var packageLessPrograms = map[string]struct {
 		`,
 		out: "i'm f",
 	},
+
+	"Function literal body refers to a closure variable": {
+		src: `
+		func F() {
+			var V = 42
+			func() {
+				Print(V);
+			}()
+		}
+		F()
+		`,
+		out: "42",
+	},
 }
 
 // Holds output of package-less programs.
