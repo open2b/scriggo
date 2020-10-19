@@ -588,10 +588,15 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, impor
 		}
 	}
 
-	err = sortDeclarations(pkg)
-	if err != nil {
-		loopErr := err.(initLoopError)
-		return tc.errorf(loopErr.node, loopErr.msg)
+	// Sort the declarations in the package 'pkg' if it has not already been
+	// sorted.
+	if !compilation.alreadySortedPkgs[pkg] {
+		err := sortDeclarations(pkg)
+		if err != nil {
+			loopErr := err.(initLoopError)
+			return tc.errorf(loopErr.node, loopErr.msg)
+		}
+		compilation.alreadySortedPkgs[pkg] = true
 	}
 
 	// First: import packages.

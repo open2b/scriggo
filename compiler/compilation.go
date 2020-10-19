@@ -30,14 +30,20 @@ type compilation struct {
 	// guarantee that an AST node is type checked always in the same way, no
 	// matter what "path" is taken to reach it.
 	typeInfos map[ast.Node]*typeInfo
+
+	// alreadySortedPkgs tracks the packages that have already been sorted.
+	// Sorting a package twice is wrong because it may have been transformed by
+	// the type checker.
+	alreadySortedPkgs map[*ast.Package]bool
 }
 
 // newCompilation returns a new compilation.
 func newCompilation() *compilation {
 	return &compilation{
-		pkgInfos:       map[string]*packageInfo{},
-		pkgPathToIndex: map[string]int{},
-		typeInfos:      map[ast.Node]*typeInfo{},
+		pkgInfos:          map[string]*packageInfo{},
+		pkgPathToIndex:    map[string]int{},
+		typeInfos:         map[ast.Node]*typeInfo{},
+		alreadySortedPkgs: map[*ast.Package]bool{},
 	}
 }
 

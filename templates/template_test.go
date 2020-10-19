@@ -1211,6 +1211,14 @@ var templateMultiPageCases = map[string]struct {
 		},
 	},
 
+	"File imported twice - Variable declaration": {
+		sources: map[string]string{
+			"index.html": `{% import "b.html" %}{% import "c.html" %}`,
+			"b.html":     `{% import "c.html" %}`,
+			"c.html":     `{% var V int %}`,
+		},
+	},
+
 	"https://github.com/open2b/scriggo/issues/392": {
 		sources: map[string]string{
 			"product.html": `{{ "" }}{% show "partials/products.html" %}
