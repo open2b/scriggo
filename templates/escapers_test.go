@@ -11,6 +11,29 @@ import (
 	"testing"
 )
 
+var htmlEscapeCases = []struct {
+	src      string
+	expected string
+}{
+	{"", ""},
+	{"abc", "abc"},
+	{"\"'&<>", "&#34;&#39;&amp;&lt;&gt;"},
+	{"<abc", "&lt;abc"},
+	{"abc'de\"fg", "abc&#39;de&#34;fg"},
+	{"abc>", "abc&gt;"},
+	{"<a href=\"https://domain\">click</a>", "&lt;a href=&#34;https://domain&#34;&gt;click&lt;/a&gt;"},
+	{"<script>alert('foo')</script>", "&lt;script&gt;alert(&#39;foo&#39;)&lt;/script&gt;"},
+}
+
+func TestHTMLEscape(t *testing.T) {
+	for _, cas := range htmlEscapeCases {
+		got := HTMLEscape(cas.src)
+		if got != cas.expected {
+			t.Fatalf("src: %q: expecting %q, got %q", cas.src, cas.expected, got)
+		}
+	}
+}
+
 var urlEscapeCases = []struct {
 	src      string
 	expected string
