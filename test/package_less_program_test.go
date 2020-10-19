@@ -165,6 +165,19 @@ var packageLessPrograms = map[string]struct {
 		`,
 		out: "42",
 	},
+
+	// https://github.com/open2b/scriggo/issues/659
+	"Accessing a builtin variable from a function literal": {
+		src: `
+		func F() {
+			_ = V
+		}
+		F()
+		`,
+		builtins: scriggo.Declarations{
+			"V": (*int)(nil),
+		},
+	},
 }
 
 // Holds output of package-less programs.

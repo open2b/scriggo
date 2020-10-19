@@ -436,6 +436,14 @@ func (tc *typechecker) isUpVar(name string) bool {
 		return elem.t.Addressable()
 	}
 
+	// Check if name is a builtin variable in a template or package-less
+	// program.
+	if tc.opts.SyntaxType == TemplateSyntax || tc.opts.PackageLess {
+		if elem, ok := tc.globalScope[name]; ok {
+			return elem.t.Addressable()
+		}
+	}
+
 	// name is not a package variable; check if has been declared outside
 	// current function.
 	_, funcBound := tc.currentFunction()

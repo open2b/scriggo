@@ -166,6 +166,48 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *typeI
 		panic(tc.errorf(ident, "use of builtin %s not in function call", ident.Name))
 	}
 
+	// Handle predeclared variables in templates and package-less programs.
+	if tc.opts.SyntaxType == TemplateSyntax || tc.opts.PackageLess {
+		// The identifier refers to a predefined value that is an up value for
+		// the current function.
+		if ti.IsPredefined() && tc.isUpVar(ident.Name) {
+			// The type info contains a *reflect.Value, so it is a variable.
+			if rv, ok := ti.value.(*reflect.Value); ok {
+				// Get the list of the nested functions, from the outermost to
+				// the innermost (which is the function that refers to the
+				// identifier).
+				if nestedFuncs := tc.nestedFuncs(); len(nestedFuncs) > 0 {
+					// Se the Upvar if:
+					//   * the current function is a function literal in a template
+					//   * the current function is a function in a package-less program
+					funcLiteralInTemplate := tc.opts.SyntaxType == TemplateSyntax && nestedFuncs[0].Ident == nil
+					if funcLiteralInTemplate || tc.opts.PackageLess {
+						upvar := ast.Upvar{
+							PredefinedName:  ident.Name,
+							PredefinedPkg:   ident.Name,
+							PredefinedValue: rv,
+							Index:           -1,
+						}
+						for _, fn := range nestedFuncs {
+							add := true
+							for i, uv := range fn.Upvars {
+								if uv.PredefinedValue == upvar.PredefinedValue {
+									upvar.Index = int16(i)
+									add = false
+									break
+								}
+							}
+							if add {
+								upvar.Index = int16(len(fn.Upvars) - 1)
+								fn.Upvars = append(fn.Upvars, upvar)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	// Mark identifier as "used".
 	if using {
 		for i := len(tc.unusedVars) - 1; i >= 0; i-- {

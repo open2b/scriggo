@@ -1775,6 +1775,44 @@ var templateMultiPageCases = map[string]struct {
 			"shown.html": `{% var v int %}{% _ = v %}`,
 		},
 	},
+
+	// https://github.com/open2b/scriggo/issues/659
+	"Accessing builtin variable from function literal's body": {
+		sources: map[string]string{
+			"index.html": `{%
+				func(){
+					_ = builtinVariable
+				}() 
+			%}`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"builtinVariable": (*int)(nil),
+			},
+		},
+	},
+
+	// https://github.com/open2b/scriggo/issues/659
+	"Accessing builtin variable from function literal's body - nested": {
+		sources: map[string]string{
+			"index.html": `{%
+				func(){
+					func() {
+						func() {
+							_ = builtinVariable
+						}()
+					}()
+				}()
+			%}`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"builtinVariable": (*int)(nil),
+			},
+		},
+	},
 }
 
 var structWithUnexportedFields = &struct {
