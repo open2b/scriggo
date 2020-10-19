@@ -143,14 +143,15 @@ var packageLessPrograms = map[string]struct {
 	},
 
 	// https://github.com/open2b/scriggo/issues/317
-	// "Function definitions": {
-	// 	src: `
-	// 	func F() {
-	// 		Print("i'm f")
-	// 	}
-	// 	F()
-	// 	`,
-	// },
+	"Function definitions": {
+		src: `
+		func F() {
+			Print("i'm f")
+		}
+		F()
+		`,
+		out: "i'm f",
+	},
 }
 
 // Holds output of package-less programs.
