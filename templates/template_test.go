@@ -1821,6 +1821,18 @@ var templateMultiPageCases = map[string]struct {
 			},
 		},
 	},
+
+	"Cannot declare macros inside macros": {
+		sources: map[string]string{
+			"index.html": `
+				{% macro M1 %}
+					{% macro M2 %}
+					{% end macro %}
+				{% end macro %}
+			`,
+		},
+		expectedLoadErr: "syntax error: unexpected macro in statement scope",
+	},
 }
 
 var structWithUnexportedFields = &struct {
