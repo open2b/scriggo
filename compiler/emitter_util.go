@@ -486,3 +486,48 @@ func (em *emitter) emitComparison(op ast.OperatorType, ky bool, x, y int8, tx, t
 		em.fb.exitStack()
 	}
 }
+
+// emitContains emits a contains expression 'x contains y' as a sequence of
+// instructions where the last one is an 'if' instruction. If 'not' is true,
+// it emits 'x not contains y'. ky indicates if y is a constant.
+//
+// ty is nil if the expression is 'x contains nil' or 'x not contains nil'.
+func (em *emitter) emitContains(not, ky bool, x, y int8, tx, ty reflect.Type, pos *ast.Position) {
+	var condition runtime.Condition
+	var t reflect.Type
+	switch tx.Kind() {
+	case reflect.String:
+		condition = runtime.ConditionContainsRune
+		if ty.Kind() == reflect.String {
+			condition = runtime.ConditionContainsSubstring
+		}
+		t = ty
+	case reflect.Slice, reflect.Array:
+		condition = runtime.ConditionContainsElement
+		t = tx.Elem()
+	case reflect.Map:
+		condition = runtime.ConditionContainsKey
+		t = tx.Key()
+	default:
+		panic("unexpected type")
+	}
+	if ty == nil {
+		condition = runtime.ConditionContainsNil
+	}
+	if not {
+		condition += runtime.ConditionNotContainsSubstring - runtime.ConditionContainsSubstring
+	}
+	changeReg := t.Kind() == reflect.Interface && ty != nil && ty.Kind() != reflect.Interface
+	if changeReg {
+		em.fb.enterStack()
+		g := em.fb.newRegister(reflect.Interface)
+		em.changeRegister(ky, y, g, ty, t)
+		y = g
+		ky = false
+	}
+	em.fb.emitIf(ky, x, condition, y, t.Kind(), pos)
+	if changeReg {
+		em.fb.exitStack()
+	}
+	return
+}

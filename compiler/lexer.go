@@ -1169,6 +1169,9 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 					case "and":
 						l.emit(tokenRelaxedAnd, p)
 						emitted = true
+					case "contains":
+						l.emit(tokenContains, p)
+						emitted = true
 					case "or":
 						l.emit(tokenRelaxedOr, p)
 						emitted = true

@@ -398,6 +398,7 @@ func (builder *functionBuilder) emitGoto(lab label) {
 //     len(x) <= y
 //     len(x) >  y
 //     len(x) >= y
+//     x contains y
 //
 func (builder *functionBuilder) emitIf(ky bool, x int8, o runtime.Condition, y int8, kind reflect.Kind, pos *ast.Position) {
 	builder.addPosAndPath(pos)

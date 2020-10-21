@@ -41,14 +41,14 @@ func isSigned(kind reflect.Kind) bool {
 	return reflect.Int <= kind && kind <= reflect.Int64
 }
 
-var boolOperators = [21]bool{
+var boolOperators = [22]bool{
 	ast.OperatorEqual:    true,
 	ast.OperatorNotEqual: true,
 	ast.OperatorAnd:      true,
 	ast.OperatorOr:       true,
 }
 
-var intOperators = [21]bool{
+var intOperators = [22]bool{
 	ast.OperatorEqual:          true,
 	ast.OperatorNotEqual:       true,
 	ast.OperatorLess:           true,
@@ -68,7 +68,7 @@ var intOperators = [21]bool{
 	ast.OperatorRightShift:     true,
 }
 
-var floatOperators = [21]bool{
+var floatOperators = [22]bool{
 	ast.OperatorEqual:          true,
 	ast.OperatorNotEqual:       true,
 	ast.OperatorLess:           true,
@@ -81,7 +81,7 @@ var floatOperators = [21]bool{
 	ast.OperatorDivision:       true,
 }
 
-var complexOperators = [21]bool{
+var complexOperators = [22]bool{
 	ast.OperatorEqual:          true,
 	ast.OperatorNotEqual:       true,
 	ast.OperatorAddition:       true,
@@ -90,7 +90,7 @@ var complexOperators = [21]bool{
 	ast.OperatorDivision:       true,
 }
 
-var stringOperators = [21]bool{
+var stringOperators = [22]bool{
 	ast.OperatorEqual:        true,
 	ast.OperatorNotEqual:     true,
 	ast.OperatorLess:         true,
@@ -98,14 +98,16 @@ var stringOperators = [21]bool{
 	ast.OperatorGreater:      true,
 	ast.OperatorGreaterEqual: true,
 	ast.OperatorAddition:     true,
+	ast.OperatorContains:     true,
+	ast.OperatorNotContains:  true,
 }
 
-var interfaceOperators = [21]bool{
+var interfaceOperators = [22]bool{
 	ast.OperatorEqual:    true,
 	ast.OperatorNotEqual: true,
 }
 
-var evalToBoolOperators = [21]bool{
+var evalToBoolOperators = [22]bool{
 	ast.OperatorEqual:        true,
 	ast.OperatorNotEqual:     true,
 	ast.OperatorLess:         true,
@@ -114,9 +116,11 @@ var evalToBoolOperators = [21]bool{
 	ast.OperatorGreaterEqual: true,
 	ast.OperatorAnd:          true,
 	ast.OperatorOr:           true,
+	ast.OperatorContains:     true,
+	ast.OperatorNotContains:  true,
 }
 
-var operatorsOfKind = [...][21]bool{
+var operatorsOfKind = [...][22]bool{
 	reflect.Bool:       boolOperators,
 	reflect.Int:        intOperators,
 	reflect.Int8:       intOperators,
@@ -458,7 +462,8 @@ func isPeriodImport(impor *ast.Import) bool {
 
 // isComparison reports whether op is a comparison operator.
 func isComparison(op ast.OperatorType) bool {
-	return op >= ast.OperatorEqual && op <= ast.OperatorGreaterEqual
+	return op >= ast.OperatorEqual && op <= ast.OperatorGreaterEqual ||
+		op == ast.OperatorContains || op == ast.OperatorNotContains
 }
 
 // isComplex reports whether a reflect kind is complex.

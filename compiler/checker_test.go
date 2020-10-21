@@ -24,6 +24,7 @@ func tierr(line, column int, text string) *CheckingError {
 }
 
 type definedBool bool
+type definedInt int
 type definedString string
 type definedIntSlice []int
 type definedIntSlice2 []int
@@ -1881,6 +1882,15 @@ func tiUntypedRuneConst(r rune) *typeInfo {
 		Properties: propertyUntyped,
 	}
 }
+
+func tiRuneConst(r rune) *typeInfo {
+	return &typeInfo{
+		Type:     int32Type,
+		Constant: int64Const(r),
+	}
+}
+
+func tiRune() *typeInfo { return &typeInfo{Type: int32Type} }
 
 // string type infos.
 

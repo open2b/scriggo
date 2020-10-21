@@ -74,6 +74,8 @@ const (
 	OperatorAndNot                             // &^
 	OperatorLeftShift                          // <<
 	OperatorRightShift                         // >>
+	OperatorContains                           // contains
+	OperatorNotContains                        // not contains
 	OperatorReceive                            // <-
 	OperatorAddress                            // &
 	OperatorPointer                            // *
@@ -84,7 +86,8 @@ const (
 
 func (op OperatorType) String() string {
 	return []string{"==", "!=", "<", "<=", ">", ">=", "!", "&", "|", "&&", "||",
-		"+", "-", "*", "/", "%", "^", "&^", "<<", ">>", "<-", "&", "*", "and", "or", "not"}[op]
+		"+", "-", "*", "/", "%", "^", "&^", "<<", ">>", "contains", "not contains",
+		"<-", "&", "*", "and", "or", "not"}[op]
 }
 
 type AssignmentType int
@@ -938,7 +941,7 @@ func (n *BinaryOperator) Precedence() int {
 	case OperatorAddition, OperatorSubtraction, OperatorBitOr, OperatorXor:
 		return 4
 	case OperatorEqual, OperatorNotEqual, OperatorLess, OperatorLessEqual,
-		OperatorGreater, OperatorGreaterEqual:
+		OperatorGreater, OperatorGreaterEqual, OperatorContains, OperatorNotContains:
 		return 3
 	case OperatorAnd, OperatorRelaxedAnd:
 		return 2

@@ -1,0 +1,35 @@
+
+[]int{3,7,2} contains 3
+[]I{3,7,2} contains I(3)
+
+a contains "à"
+a contains 'à'
+a contains 224
+a contains 224.0
+a contains 224+0i
+
+a contains a
+a contains a2
+a contains a3
+
+[]string{"à"} contains "à"
+[]byte{0,1,2,3} contains '\x02'
+! (b contains true)
+b contains false
+d contains d
+[]bool{true} contains true
+[]interface{}{5} contains 5
+[]interface{}{struct{}{}} contains struct{}{}
+[]S{S{5}} contains s
+[]interface{}{S{5}} contains s
+[]interface{}{s} contains interface{}{s}
+[]interface{}{nil, s} contains interface{}{s}
+[]interface{}{nil, s} contains nil
+[]*S{nil} contains nil
+c contains nil
+
+[]*int(nil) not contains nil
+[]interface{}{1, "a", true} not contains nil
+[]interface{}{(*int)(nil)} not contains nil
+[]interface{}{(*int)(nil)} contains (*int)(nil)
+[]interface{}{(*int)(nil)} not contains (*string)(nil)

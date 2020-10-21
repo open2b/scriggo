@@ -404,10 +404,15 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		case runtime.ConditionOK, runtime.ConditionNotOK:
 			s += " " + conditionName[b]
 		case runtime.ConditionEqual, runtime.ConditionNotEqual,
-			runtime.ConditionInterfaceEqual, runtime.ConditionInterfaceNotEqual:
+			runtime.ConditionInterfaceEqual, runtime.ConditionInterfaceNotEqual,
+			runtime.ConditionContainsElement, runtime.ConditionContainsKey,
+			runtime.ConditionNotContainsElement, runtime.ConditionNotContainsKey:
 			s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 			s += " " + conditionName[b]
 			s += " " + disassembleOperand(fn, c, reflect.Interface, k)
+		case runtime.ConditionContainsNil, runtime.ConditionNotContainsNil:
+			s += " " + disassembleOperand(fn, a, reflect.Interface, false)
+			s += " " + conditionName[b]
 		default:
 			s += " " + conditionName[b]
 			s += " " + disassembleOperand(fn, a, reflect.Interface, false)
@@ -417,26 +422,38 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		case runtime.ConditionZero, runtime.ConditionNotZero:
 			s += " " + conditionName[b]
 			s += " " + disassembleOperand(fn, a, reflect.Int, false)
+		case runtime.ConditionContainsRune, runtime.ConditionNotContainsRune:
+			s += " " + disassembleOperand(fn, a, reflect.String, false)
+			s += " " + conditionName[b]
+			s += " " + disassembleOperand(fn, c, reflect.Int32, k)
+		case runtime.ConditionContainsElement, runtime.ConditionContainsKey,
+			runtime.ConditionNotContainsElement, runtime.ConditionNotContainsKey:
+			s += " " + disassembleOperand(fn, a, reflect.Interface, false)
+			s += " " + conditionName[b]
+			s += " " + disassembleOperand(fn, c, reflect.Int, k)
 		default:
 			s += " " + disassembleOperand(fn, a, reflect.Int, false)
 			s += " " + conditionName[b]
 			s += " " + disassembleOperand(fn, c, reflect.Int, k)
 		}
-	case runtime.OpIfFloat:
-		s += " " + disassembleOperand(fn, a, reflect.Float64, false)
-		s += " " + conditionName[b]
-		s += " " + disassembleOperand(fn, c, reflect.Float64, k)
 	case runtime.OpIfString:
-		s += " " + disassembleOperand(fn, a, reflect.String, false)
-		s += " " + conditionName[b]
-		if runtime.Condition(b) < runtime.ConditionLenEqual {
-			if k && c >= 0 {
-				s += " " + strconv.Quote(string(byte(c)))
+		cond := runtime.Condition(b)
+		if cond <= runtime.ConditionContainsSubstring {
+			s += " " + disassembleOperand(fn, a, reflect.String, false)
+			s += " " + conditionName[b]
+			if cond <= runtime.ConditionLenEqual || cond == runtime.ConditionContainsSubstring {
+				if k && c >= 0 {
+					s += " " + strconv.Quote(string(byte(c)))
+				} else {
+					s += " " + disassembleOperand(fn, c, reflect.String, k)
+				}
 			} else {
-				s += " " + disassembleOperand(fn, c, reflect.String, k)
+				s += " " + disassembleOperand(fn, c, reflect.Int, k)
 			}
 		} else {
-			s += " " + disassembleOperand(fn, c, reflect.Int, k)
+			s += " " + disassembleOperand(fn, a, reflect.Interface, false)
+			s += " " + conditionName[b]
+			s += " " + disassembleOperand(fn, a, reflect.String, k)
 		}
 	case runtime.OpField, runtime.OpFieldRef:
 		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
@@ -987,28 +1004,38 @@ var operationName = [...]string{
 }
 
 var conditionName = [...]string{
-	runtime.ConditionZero:            "Zero",
-	runtime.ConditionNotZero:         "NotZero",
-	runtime.ConditionEqual:           "Equal",
-	runtime.ConditionNotEqual:        "NotEqual",
-	runtime.ConditionLess:            "Less",
-	runtime.ConditionLessEqual:       "LessEqual",
-	runtime.ConditionGreater:         "Greater",
-	runtime.ConditionGreaterEqual:    "GreaterEqual",
-	runtime.ConditionLessU:           "Less",
-	runtime.ConditionLessEqualU:      "LessEqual",
-	runtime.ConditionGreaterU:        "Greater",
-	runtime.ConditionGreaterEqualU:   "GreaterEqual",
-	runtime.ConditionLenEqual:        "LenEqual",
-	runtime.ConditionLenNotEqual:     "LenNotEqual",
-	runtime.ConditionLenLess:         "LenLess",
-	runtime.ConditionLenLessEqual:    "LenLessEqual",
-	runtime.ConditionLenGreater:      "LenGreater",
-	runtime.ConditionLenGreaterEqual: "LenGreaterEqual",
-	runtime.ConditionInterfaceNil:    "InterfaceNil",
-	runtime.ConditionInterfaceNotNil: "InterfaceNotNil",
-	runtime.ConditionNil:             "Nil",
-	runtime.ConditionNotNil:          "NotNil",
-	runtime.ConditionOK:              "OK",
-	runtime.ConditionNotOK:           "NotOK",
+	runtime.ConditionZero:                 "Zero",
+	runtime.ConditionNotZero:              "NotZero",
+	runtime.ConditionEqual:                "Equal",
+	runtime.ConditionNotEqual:             "NotEqual",
+	runtime.ConditionLess:                 "Less",
+	runtime.ConditionLessEqual:            "LessEqual",
+	runtime.ConditionGreater:              "Greater",
+	runtime.ConditionGreaterEqual:         "GreaterEqual",
+	runtime.ConditionLessU:                "Less",
+	runtime.ConditionLessEqualU:           "LessEqual",
+	runtime.ConditionGreaterU:             "Greater",
+	runtime.ConditionGreaterEqualU:        "GreaterEqual",
+	runtime.ConditionLenEqual:             "LenEqual",
+	runtime.ConditionLenNotEqual:          "LenNotEqual",
+	runtime.ConditionLenLess:              "LenLess",
+	runtime.ConditionLenLessEqual:         "LenLessEqual",
+	runtime.ConditionLenGreater:           "LenGreater",
+	runtime.ConditionLenGreaterEqual:      "LenGreaterEqual",
+	runtime.ConditionInterfaceNil:         "InterfaceNil",
+	runtime.ConditionInterfaceNotNil:      "InterfaceNotNil",
+	runtime.ConditionNil:                  "Nil",
+	runtime.ConditionNotNil:               "NotNil",
+	runtime.ConditionContainsSubstring:    "ContainsSubstring",
+	runtime.ConditionContainsRune:         "ContainsRune",
+	runtime.ConditionContainsElement:      "ContainsElement",
+	runtime.ConditionContainsKey:          "ContainsKey",
+	runtime.ConditionContainsNil:          "ContainsNil",
+	runtime.ConditionNotContainsSubstring: "NotContainsSubstring",
+	runtime.ConditionNotContainsRune:      "NotContainsRune",
+	runtime.ConditionNotContainsElement:   "NotContainsElement",
+	runtime.ConditionNotContainsKey:       "NotContainsKey",
+	runtime.ConditionNotContainsNil:       "NotContainsNil",
+	runtime.ConditionOK:                   "OK",
+	runtime.ConditionNotOK:                "NotOK",
 }

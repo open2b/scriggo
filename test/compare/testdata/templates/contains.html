@@ -1,0 +1,177 @@
+{# render #}
+
+{% type S struct{A int} %}
+
+{% var str0 = "" %}
+{% var str1 = "abc" %}
+{% var str2 = "bc" %}
+{% var str3 = "cd" %}
+{% var rune1 = 'a' %}
+{% var rune2 = 'd' %}
+{% var int1 = 97 %}
+{% var int2 = 100 %}
+{% var uint1 uint = 97 %}
+{% var uint2 uint = 100 %}
+{% var float1 = 12.67 %}
+{% var float2 = 5.03 %}
+{% var struct1 = S{5} %}
+{% var struct2 = S{8} %}
+{% var sliceNil []int = nil %}
+{% var slice0 = []int{} %}
+{% var slice1 = []int{97, 98} %}
+{% var usliceNil []uint = nil %}
+{% var uslice0 = []uint{} %}
+{% var uslice1 = []uint{97, 98} %}
+{% var array0 = [1]int{0} %}
+{% var array1 = [2]int{97, 98} %}
+{% var uarray = [2]uint{97, 98} %}
+{% var map0 = map[int]bool{} %}
+{% var map1 = map[int]bool{97:true, 98: true} %}
+{% var mapNil map[int]bool = nil %}
+{% var mapS0 = map[string]bool{} %}
+{% var mapS1 = map[string]bool{"abc":true, "cd": true} %}
+{% var mapSNil map[string]bool = nil %}
+{% var mapF0 = map[float64]bool{} %}
+{% var mapF1 = map[float64]bool{12.67:true, 9.12: true} %}
+{% var mapFNil map[float64]bool = nil %}
+{% var mapSt0 = map[S]bool{} %}
+{% var mapSt1 = map[S]bool{S{A: 5}: true, S{A: 7}: true} %}
+{% var mapStNil map[S]bool = nil %}
+
+## String/String
+
+{% if str1 contains str0 %}str1 contains str0{% end %}
+{% if str1 contains str2 %}str1 contains str2{% end %}
+{% if str1 contains str3 %}str1 contains str3{% end %}
+{% if str0 contains str3 %}str0 contains str3{% end %}
+
+{% if str1 contains ""   %}str1 contains ""{% end %}
+{% if str1 contains "bc" %}str1 contains "bc"{% end %}
+{% if str1 contains "cd" %}str1 contains "cd"{% end %}
+{% if str0 contains "cd" %}str0 contains "cd"{% end %}
+
+{% if "abc" contains str0 %}"abc" contains str0{% end %}
+{% if "abc" contains str2 %}"abc" contains str2{% end %}
+{% if "abc" contains str3 %}"abc" contains str3{% end %}
+{% if ""    contains str3 %}"" contains str3{% end %}
+
+{% if "abc" contains ""   %}"abc" contains ""{% end %}
+{% if "abc" contains "bc" %}"abc" contains "bc"{% end %}
+{% if "abc" contains "cd" %}"abc" contains "cd"{% end %}
+{% if ""    contains "cd" %}"" contains "cd"{% end %}
+
+## String/Rune
+
+{% if str1 contains rune1 %}str1 contains rune1{% end %}
+{% if str1 contains rune2 %}str1 contains rune2{% end %}
+{% if str0 contains rune1 %}str0 contains rune1{% end %}
+
+{% if str1 contains 'a' %}str1 contains 'a'{% end %}
+{% if str1 contains 'd' %}str1 contains 'd'{% end %}
+{% if str0 contains 'a' %}str0 contains 'a'{% end %}
+
+{% if "abc" contains rune1 %}"abc" contains rune1{% end %}
+{% if "abc" contains rune2 %}"abc" contains rune2{% end %}
+{% if ""    contains rune1 %}"" contains rune1{% end %}
+
+{% if "abc" contains 'a' %}"abc" contains 'a'{% end %}
+{% if "abc" contains 'd' %}"abc" contains 'd'{% end %}
+{% if ""    contains 'a' %}"" contains 'a'{% end %}
+
+## String/Integer
+
+{% if str1 contains int1 %}str1 contains int1{% end %}
+{% if str1 contains int2 %}str1 contains int2{% end %}
+{% if str0 contains int1 %}str0 contains int3{% end %}
+
+{% if str1 contains 97 %}str1 contains 97{% end %}
+{% if str1 contains 100 %}str1 contains 100{% end %}
+{% if str0 contains 97 %}str0 contains 97{% end %}
+
+{% if "abc" contains int1 %}"abc" contains int1{% end %}
+{% if "abc" contains int2 %}"abc" contains int2{% end %}
+{% if ""    contains int1 %}"" contains int1{% end %}
+
+{% if "abc" contains 97 %}"abc" contains 97{% end %}
+{% if "abc" contains 100 %}"abc" contains 100{% end %}
+{% if ""    contains 97 %}"" contains 97{% end %}
+
+## Slice
+
+{% if slice1 contains int1 %}slice1 contains int1{% end %}
+{% if slice1 contains int2 %}slice1 contains int2{% end %}
+{% if slice0 contains int1 %}slice0 contains int1{% end %}
+{% if sliceNil contains int1 %}sliceNil contains int1{% end %}
+
+{% if slice1 contains 97 %}slice1 contains 97{% end %}
+{% if slice1 contains 100 %}slice1 contains 100{% end %}
+{% if slice0 contains 97 %}slice0 contains 97{% end %}
+{% if sliceNil contains 97 %}sliceNil contains 97{% end %}
+
+{% if uslice1 contains uint1 %}uslice1 contains uint1{% end %}
+{% if uslice1 contains uint2 %}uslice1 contains uint2{% end %}
+{% if uslice0 contains uint1 %}uslice0 contains uint1{% end %}
+{% if usliceNil contains uint1 %}usliceNil contains uint1{% end %}
+
+{% if uslice1 contains 97 %}uslice1 contains 97{% end %}
+{% if uslice1 contains 100 %}uslice1 contains 100{% end %}
+{% if uslice0 contains 97 %}uslice0 contains 97{% end %}
+{% if usliceNil contains 97 %}usliceNil contains 97{% end %}
+
+## Array
+
+{% if array1 contains int1 %}array1 contains int1{% end %}
+{% if array1 contains int2 %}array1 contains int2{% end %}
+{% if array0 contains int1 %}array0 contains int1{% end %}
+
+{% if array1 contains 97 %}array1 contains 97{% end %}
+{% if array1 contains 100 %}array1 contains 100{% end %}
+{% if array0 contains 97 %}array0 contains 97{% end %}
+
+## Map/Integer
+
+{% if map1 contains int1 %}map1 contains int1{% end %}
+{% if map1 contains int2 %}map1 contains int2{% end %}
+{% if map0 contains int1 %}map0 contains int1{% end %}
+{% if mapNil contains int1 %}mapNil contains int1{% end %}
+
+{% if map1 contains 97 %}map1 contains 97{% end %}
+{% if map1 contains 100 %}map1 contains 100{% end %}
+{% if map0 contains 97 %}map0 contains 97{% end %}
+{% if mapNil contains 97 %}mapNil contains 97{% end %}
+
+## Map/String
+
+{% if mapS1 contains str1 %}mapS1 contains str1{% end %}
+{% if mapS1 contains str2 %}mapS1 contains str2{% end %}
+{% if mapS0 contains str1 %}mapS0 contains str1{% end %}
+{% if mapSNil contains str1 %}mapSNil contains str1{% end %}
+
+{% if mapS1 contains "abc" %}mapS1 contains "abc"{% end %}
+{% if mapS1 contains "bc" %}mapS1 contains "bc"{% end %}
+{% if mapS0 contains "abc" %}mapS0 contains "abc"{% end %}
+{% if mapSNil contains "abc" %}mapSNil contains "abc"{% end %}
+
+## Map/Float
+
+{% if mapF1 contains float1 %}mapF1 contains float1{% end %}
+{% if mapF1 contains float2 %}mapF1 contains float2{% end %}
+{% if mapF0 contains float1 %}mapF0 contains float1{% end %}
+{% if mapFNil contains float1 %}mapFNil contains float1{% end %}
+
+{% if mapF1 contains 12.67 %}mapF1 contains 12.67{% end %}
+{% if mapF1 contains 5.03 %}mapF1 contains 5.03{% end %}
+{% if mapF0 contains 12.67 %}mapF0 contains 12.67{% end %}
+{% if mapFNil contains 5.03 %}mapFNil contains 5.03{% end %}
+
+## Map/Struct
+
+{% if mapSt1 contains struct1 %}mapSt1 contains struct1{% end %}
+{% if mapSt1 contains struct2 %}mapSt1 contains struct2{% end %}
+{% if mapSt0 contains struct1 %}mapSt0 contains struct1{% end %}
+{% if mapStNil contains struct1 %}mapStNil contains struct1{% end %}
+
+{% if mapSt1 contains struct{A int}{A: 5} %}mapSt1 contains struct{A int}{A: 5}{% end %}
+{% if mapSt1 contains struct{A int}{A: 8} %}mapSt1 contains struct{B string}{B: "b"}{% end %}
+{% if mapSt0 contains struct{A int}{A: 5} %}mapSt0 contains struct{A int}{A: 5}{% end %}
+{% if mapStNil contains struct{A int}{A: 5} %}mapStNil contains struct{A int}{A: 5}{% end %}

@@ -1,0 +1,136 @@
+
+## String/String
+
+str1 contains str0
+str1 contains str2
+
+
+
+str1 contains ""
+str1 contains "bc"
+
+
+
+"abc" contains str0
+"abc" contains str2
+
+
+
+"abc" contains ""
+"abc" contains "bc"
+
+
+
+## String/Rune
+
+str1 contains rune1
+
+
+
+str1 contains 'a'
+
+
+
+"abc" contains rune1
+
+
+
+"abc" contains 'a'
+
+
+
+## String/Integer
+
+str1 contains int1
+
+
+
+str1 contains 97
+
+
+
+"abc" contains int1
+
+
+
+"abc" contains 97
+
+
+
+## Slice
+
+slice1 contains int1
+
+
+
+
+slice1 contains 97
+
+
+
+
+uslice1 contains uint1
+
+
+
+
+uslice1 contains 97
+
+
+
+
+## Array
+
+array1 contains int1
+
+
+
+array1 contains 97
+
+
+
+## Map/Integer
+
+map1 contains int1
+
+
+
+
+map1 contains 97
+
+
+
+
+## Map/String
+
+mapS1 contains str1
+
+
+
+
+mapS1 contains "abc"
+
+
+
+
+## Map/Float
+
+mapF1 contains float1
+
+
+
+
+mapF1 contains 12.67
+
+
+
+
+## Map/Struct
+
+mapSt1 contains struct1
+
+
+
+
+mapSt1 contains struct{A int}{A: 5}
+

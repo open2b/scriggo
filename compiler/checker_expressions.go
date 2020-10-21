@@ -962,6 +962,18 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 	t1 := tc.checkExpr(expr1)
 	t2 := tc.checkExpr(expr2)
 
+	var isStringContains bool
+	if op == ast.OperatorContains || op == ast.OperatorNotContains {
+		switch t1.Type.Kind() {
+		case reflect.String:
+			isStringContains = true
+		case reflect.Slice, reflect.Array:
+			t1 = &typeInfo{Type: t1.Type.Elem()}
+		case reflect.Map:
+			t1 = &typeInfo{Type: t1.Type.Key()}
+		}
+	}
+
 	isShift := op == ast.OperatorLeftShift || op == ast.OperatorRightShift
 	isUntyped := t1.Untyped() && t2.Untyped()
 
@@ -975,6 +987,23 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		if !(t2.Untyped() && t2.IsNumeric() || !t2.Untyped() && t2.IsInteger()) {
 			return nil, fmt.Errorf("shift count type %s, must be integer", t2.ShortString())
 		}
+	} else if isStringContains {
+		if t1.Nil() || t1.Type.Kind() != reflect.String {
+			return nil, fmt.Errorf("contains of type %s", t1)
+		}
+		if t2.Nil() {
+			return nil, errors.New("cannot convert nil to type rune")
+		}
+		if t2.IsNumeric() {
+			if !(t2.Untyped() || !t2.Untyped() && t2.IsInteger()) {
+				return nil, fmt.Errorf("contains element type %s, must be integer", t2.ShortString())
+			}
+		} else if t2.Type.Kind() != reflect.String {
+			if t2.IsConstant() {
+				return nil, fmt.Errorf("cannot compare %v (type %s) to type %s", t2.Constant, t2, t1)
+			}
+			return nil, fmt.Errorf("cannot compare type %s to type %s", t2, t1)
+		}
 	} else if t1.Untyped() != t2.Untyped() {
 		// Make both typed.
 		if t1.Untyped() {
@@ -986,7 +1015,8 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 				return nil, err
 			}
 			if t1.Nil() {
-				if op != ast.OperatorEqual && op != ast.OperatorNotEqual {
+				if op != ast.OperatorEqual && op != ast.OperatorNotEqual &&
+					op != ast.OperatorContains && op != ast.OperatorNotContains {
 					return nil, fmt.Errorf("operator %s not defined on %s", op, t2.Type.Kind())
 				}
 				return untypedBoolTypeInfo, nil
@@ -1002,7 +1032,8 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 				return nil, err
 			}
 			if t2.Nil() {
-				if op != ast.OperatorEqual && op != ast.OperatorNotEqual {
+				if op != ast.OperatorEqual && op != ast.OperatorNotEqual &&
+					op != ast.OperatorContains && op != ast.OperatorNotContains {
 					return nil, fmt.Errorf("operator %s not defined on %s", op, t1.Type.Kind())
 				}
 				return untypedBoolTypeInfo, nil
@@ -1014,7 +1045,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 
 	if t1.IsConstant() && t2.IsConstant() {
 
-		if isShift {
+		if isShift || isStringContains {
 			t1.setValue(nil)
 			t2.setValue(nil)
 		} else {
@@ -1088,6 +1119,20 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		return ti, nil
 	}
 
+	if isStringContains {
+		t1.setValue(nil)
+		if t2.IsConstant() && t2.IsNumeric() {
+			_, err := t2.Constant.representedBy(runeType)
+			if err != nil {
+				return nil, err
+			}
+			t2.setValue(runeType)
+		} else {
+			t2.setValue(nil)
+		}
+		return untypedBoolTypeInfo, nil
+	}
+
 	if isUntyped {
 		if t1.Nil() && t2.Nil() {
 			return nil, fmt.Errorf("operator %s not defined on nil", op)
@@ -1138,7 +1183,8 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		if tc.isAssignableTo(t1, expr1, t2.Type) != nil && tc.isAssignableTo(t2, expr2, t1.Type) != nil {
 			return nil, fmt.Errorf("mismatched types %s and %s", t1.ShortString(), t2.ShortString())
 		}
-		if op == ast.OperatorEqual || op == ast.OperatorNotEqual {
+		if op == ast.OperatorEqual || op == ast.OperatorNotEqual ||
+			op == ast.OperatorContains || op == ast.OperatorNotContains {
 			if !t1.Type.Comparable() {
 				// https://github.com/open2b/scriggo/issues/368
 				return nil, fmt.Errorf("%s cannot be compared", t1.Type)

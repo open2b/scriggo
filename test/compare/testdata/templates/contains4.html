@@ -1,0 +1,26 @@
+{# render #}
+
+{{ "a" contains "a" }}
+{{ "a" contains "b" }}
+{{ "a" not contains "a" }}
+{{ "a" not contains "b" }}
+
+{{ "a" contains 'a' }}
+{{ "a" contains 'b' }}
+{{ "a" not contains 'a' }}
+{{ "a" not contains 'b' }}
+
+{{ []int{1} contains 1 }}
+{{ []int{1} contains 2 }}
+{{ []int{1} not contains 1 }}
+{{ []int{1} not contains 2 }}
+
+{{ map[int]bool{1:false} contains 1 }}
+{{ map[int]bool{1:false} contains 2 }}
+{{ map[int]bool{1:false} not contains 1 }}
+{{ map[int]bool{1:false} not contains 2 }}
+
+{{ []interface{}{nil} contains nil }}
+{{ []interface{}{nil} contains 2 }}
+{{ []interface{}{nil} not contains nil }}
+{{ []interface{}{nil} not contains 2 }}
