@@ -318,6 +318,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				}
 				pos.End = tok.pos.End
 				operand = ast.NewCompositeLiteral(pos, operand, keyValues)
+				tok = p.next()
 			case tokenLeftParenthesis: // e(...)
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
@@ -337,6 +338,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				pos.End = tok.pos.End
 				operand = ast.NewCall(pos, operand, args, isVariadic)
 				canCompositeLiteral = false
+				tok = p.next()
 			case tokenLeftBrackets: // e[...], e[.. : ..], e[.. : .. : ..],
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
@@ -366,6 +368,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 					pos.End = tok.pos.End
 					operand = ast.NewIndex(pos, operand, index)
 				}
+				tok = p.next()
 			case tokenPeriod: // e.
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
@@ -406,6 +409,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				default:
 					panic(syntaxError(tok.pos, "unexpected %s, expecting name or (", tok))
 				}
+				tok = p.next()
 			case tokenGlobalAssertion: // id::
 				pos := operand.Pos()
 				if operand.Parenthesis() > 0 {
@@ -452,6 +456,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				tokenLeftShift,      // e <<
 				tokenRightShift:     // e >>
 				operator = ast.NewBinaryOperator(tok.pos, operatorFromTokenType(tok.typ, true), nil, nil)
+				tok = p.next()
 			default:
 				if mustBeSwitchGuard && !isTypeGuard(operand) {
 					panic(syntaxError(tok.pos, "use of .(type) outside type switch"))
@@ -459,8 +464,6 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				operand = addLastOperand(operand, path)
 				return operand, tok
 			}
-
-			tok = p.next()
 
 		}
 
