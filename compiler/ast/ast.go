@@ -1370,7 +1370,7 @@ func NewGlobalAssertion(pos *Position, ident string, typ Expression) *GlobalAsse
 }
 
 func (n *GlobalAssertion) String() string {
-	return n.Ident + ".(" + n.Type.String() + ")"
+	return n.Ident + "::(" + n.Type.String() + ")"
 }
 
 // Placeholder node represent a special placeholder node.
