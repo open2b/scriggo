@@ -1360,17 +1360,17 @@ func (n *TypeAssertion) String() string {
 // GlobalAssertion node represents a global assertion expression.
 type GlobalAssertion struct {
 	*expression
-	*Position            // position in the source.
-	Ident     string     // identifier.
-	Type      Expression // type.
+	*Position             // position in the source.
+	Ident     *Identifier // identifier.
+	Type      Expression  // type.
 }
 
-func NewGlobalAssertion(pos *Position, ident string, typ Expression) *GlobalAssertion {
+func NewGlobalAssertion(pos *Position, ident *Identifier, typ Expression) *GlobalAssertion {
 	return &GlobalAssertion{&expression{}, pos, ident, typ}
 }
 
 func (n *GlobalAssertion) String() string {
-	return n.Ident + "::(" + n.Type.String() + ")"
+	return n.Ident.String() + "::(" + n.Type.String() + ")"
 }
 
 // Placeholder node represent a special placeholder node.

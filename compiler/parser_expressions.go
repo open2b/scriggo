@@ -432,7 +432,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 					panic(syntaxError(tok.pos, "unexpected %s, expecting type", tok))
 				}
 				pos.End = typ.Pos().End
-				operand = ast.NewGlobalAssertion(pos, ident.Name, typ)
+				operand = ast.NewGlobalAssertion(pos, ident, typ)
 			case
 				tokenEqual,          // e ==
 				tokenNotEqual,       // e !=

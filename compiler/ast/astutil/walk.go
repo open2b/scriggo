@@ -282,6 +282,7 @@ func Walk(v Visitor, node ast.Node) {
 		// Nothing to do
 
 	case *ast.GlobalAssertion:
+		Walk(v, n.Ident)
 		Walk(v, n.Type)
 
 	default:
