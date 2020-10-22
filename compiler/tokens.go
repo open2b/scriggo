@@ -113,6 +113,7 @@ const (
 	tokenRelaxedAnd                        // and
 	tokenRelaxedNot                        // not
 	tokenRelaxedOr                         // or
+	tokenGlobalAssertion                   // ::
 )
 
 var tokenString = map[tokenTyp]string{

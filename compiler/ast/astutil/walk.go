@@ -278,7 +278,8 @@ func Walk(v Visitor, node ast.Node) {
 		*ast.Text,
 		*ast.Placeholder,
 		*ast.Interface,
-		*ast.Fallthrough:
+		*ast.Fallthrough,
+		*ast.GlobalAssertion:
 		// Nothing to do
 
 	default:

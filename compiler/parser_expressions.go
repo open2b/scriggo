@@ -406,6 +406,29 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				default:
 					panic(syntaxError(tok.pos, "unexpected %s, expecting name or (", tok))
 				}
+			case tokenGlobalAssertion: // id::
+				pos := operand.Pos()
+				if operand.Parenthesis() > 0 {
+					panic(syntaxError(operand.Pos(), "cannot parenthesize identifier in global assertion"))
+				}
+				ident, ok := operand.(*ast.Identifier)
+				if !ok {
+					panic(syntaxError(ident.Pos(), "cannot use %s as identifier in global assertion", ident))
+				}
+				if ident.Name == "_" {
+					panic(syntaxError(ident.Pos(), "cannot use _ as value"))
+				}
+				tok = p.next()
+				if len(tok.txt) == 1 && tok.txt[0] == '_' {
+					panic(syntaxError(tok.pos, "cannot use _ as value"))
+				}
+				var typ ast.Expression
+				typ, tok = p.parseExpr(tok, false, true, false)
+				if typ == nil {
+					panic(syntaxError(tok.pos, "unexpected %s, expecting type", tok))
+				}
+				pos.End = typ.Pos().End
+				operand = ast.NewGlobalAssertion(pos, ident.Name, typ)
 			case
 				tokenEqual,          // e ==
 				tokenNotEqual,       // e !=

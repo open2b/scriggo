@@ -2467,6 +2467,19 @@ func equals(n1, n2 ast.Node, p int) error {
 			return err
 		}
 
+	case *ast.GlobalAssertion:
+		nn2, ok := n2.(*ast.GlobalAssertion)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		if nn1.Ident != nn2.Ident {
+			return fmt.Errorf("unexpected ident %q, expecting %q", nn1.Ident, nn2.Ident)
+		}
+		err := equals(nn1.Type, nn2.Type, p)
+		if err != nil {
+			return err
+		}
+
 	case *ast.ShowMacro:
 		nn2, ok := n2.(*ast.ShowMacro)
 		if !ok {

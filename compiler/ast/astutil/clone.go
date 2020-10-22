@@ -388,6 +388,9 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 		}
 		expr2 = ast.NewFuncType(ClonePosition(e.Position), parameters, result, e.IsVariadic)
 
+	case *ast.GlobalAssertion:
+		expr2 = ast.NewGlobalAssertion(ClonePosition(e.Position), e.Ident, CloneExpression(e.Type))
+
 	case *ast.Identifier:
 		expr2 = ast.NewIdentifier(ClonePosition(e.Position), e.Name)
 

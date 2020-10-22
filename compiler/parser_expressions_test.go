@@ -130,6 +130,9 @@ var exprTests = []struct {
 			ast.NewIdentifier(p(1, 10, 9, 9), "b"),
 		),
 	)},
+	{"x::T", ast.NewGlobalAssertion(p(1, 1, 0, 3), "x", ast.NewIdentifier(p(1, 4, 3, 3), "T"))},
+	{"x::p.T", ast.NewGlobalAssertion(p(1, 1, 0, 5), "x", ast.NewSelector(p(1, 6, 5, 5),
+		ast.NewIdentifier(p(1, 4, 3, 3), "p"), "T"))},
 	{"[]int{} and !x.F", ast.NewBinaryOperator(
 		p(1, 9, 0, 15),
 		ast.OperatorRelaxedAnd,
@@ -617,6 +620,9 @@ var exprTests = []struct {
 
 func TestExpressions(t *testing.T) {
 	for _, expr := range exprTests {
+		if expr.src != "x::p.T" {
+			continue
+		}
 		var lex = newLexer([]byte("{{"+expr.src+"}}"), ast.ContextText, true)
 		<-lex.tokens
 		func() {
