@@ -691,6 +691,9 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		tc.exitScope()
 		return &typeInfo{Type: t.Type}
 
+	case *ast.GlobalAssertion:
+		return tc.checkGlobalAssertion(expr)
+
 	case *ast.Call:
 		types, _, _ := tc.checkCallExpression(expr)
 		if len(types) == 0 {
@@ -2314,4 +2317,32 @@ func (tc *typechecker) isCompileConstant(expr ast.Expression) bool {
 		return expr.Op != ast.OperatorReceive && tc.isCompileConstant(expr.Expr)
 	}
 	return true
+}
+
+// checkGlobalAssertion type checks a global assertion x::T, returning the
+// corresponding type info.
+func (tc *typechecker) checkGlobalAssertion(expr *ast.GlobalAssertion) *typeInfo {
+
+	// Check the type of T.
+	T := tc.checkType(expr.Type)
+
+	// x is a local identifier: this is a type checking error.
+	if tc.isLocallyDeclared(expr.Ident.Name) {
+		panic(tc.errorf(expr, "use of a local identifier %s within global assertion", expr.Ident))
+	}
+
+	// 'x' is a global identifier.
+	if x, isGlobal := tc.globalScope[expr.Ident.Name]; isGlobal {
+		// The value of x has type T.
+		if x.t.Type == T.Type {
+			return tc.checkIdentifier(expr.Ident, true)
+		}
+	}
+
+	// x is not a global declaration or the type of x is not T: the global
+	// assertion evaluates to the zero of T.
+	ph := tc.newPlaceholderFor(T.Type)
+	ti := tc.checkExpr(ph)
+	tc.compilation.typeInfos[expr.Ident] = ti
+	return ti
 }

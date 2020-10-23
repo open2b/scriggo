@@ -487,6 +487,16 @@ func isOrdered(t *typeInfo) bool {
 	return isNumeric(k) || k == reflect.String
 }
 
+// isLocallyDeclared reports whether name is declared in a local scope or not.
+func (tc *typechecker) isLocallyDeclared(name string) bool {
+	for i := len(tc.scopes) - 1; i >= 0; i-- {
+		if _, ok := tc.scopes[i][name]; ok {
+			return true
+		}
+	}
+	return false
+}
+
 // isMapIndexing reports whether the given expression has the form
 //
 //		m[key]
