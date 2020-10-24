@@ -130,7 +130,8 @@ var exprTests = []struct {
 			ast.NewIdentifier(p(1, 10, 9, 9), "b"),
 		),
 	)},
-	{"x::T", ast.NewGlobalAssertion(p(1, 1, 0, 3), ast.NewIdentifier(p(1, 1, 0, 0), "x"), ast.NewIdentifier(p(1, 4, 3, 3), "T"))},
+
+	{"x::T", ast.NewGlobalAssertion(p(1, 1, 0, 3), ast.NewIdentifier(p(1, 1, 0, 3), "x"), ast.NewIdentifier(p(1, 4, 3, 3), "T"))},
 	// TODO: the position here is changed according to the identifier returned
 	// by the parser to make the test pass, but it seems to be wrong.
 	// The identifier 'x' should end at byte '0', but Scriggo says that it ends
