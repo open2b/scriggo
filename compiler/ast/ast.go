@@ -228,6 +228,13 @@ func (p Position) String() string {
 	return strconv.Itoa(p.Line) + ":" + strconv.Itoa(p.Column)
 }
 
+// WithEnd returns a copy of the position but with the given end.
+func (p *Position) WithEnd(end int) *Position {
+	pp := *p
+	pp.End = end
+	return &pp
+}
+
 // Expression node represents an expression.
 type Expression interface {
 	Parenthesis() int
