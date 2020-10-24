@@ -624,9 +624,6 @@ var exprTests = []struct {
 
 func TestExpressions(t *testing.T) {
 	for _, expr := range exprTests {
-		if expr.src != "x::p.T" {
-			continue
-		}
 		var lex = newLexer([]byte("{{"+expr.src+"}}"), ast.ContextText, true)
 		<-lex.tokens
 		func() {
