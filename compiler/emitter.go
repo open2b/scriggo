@@ -853,10 +853,10 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 // emitted is always the "If" instruction.
 func (em *emitter) emitCondition(cond ast.Expression) {
 
-	// cond is a boolean constant. Given that the 'if' instruction requires a
-	// binary operation as condition, any boolean constant expressions 'b' is
-	// converted to 'b == true'.
+	// Emit code for a boolean constant condition.
 	if ti := em.ti(cond); ti != nil && ti.HasValue() && !ti.IsPredefined() {
+		// The condition of the 'if' instruction of VM is a binary operation,
+		// so the boolean constant expression 'x' is emitted as 'x == true'.
 		num := em.fb.makeIntConstant(ti.value.(int64))
 		tmp := em.fb.newRegister(reflect.Int)
 		em.fb.emitLoadNumber(intRegister, num, tmp)
@@ -864,62 +864,75 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 		return
 	}
 
-	if expr, op := em.comparisonWithZeroInteger(cond); expr != nil {
-		exprType := em.typ(expr)
-		exprReg := em.emitExpr(expr, exprType)
-		var cond runtime.Condition
-		switch op {
-		case ast.OperatorEqual:
-			cond = runtime.ConditionZero
-		case ast.OperatorNotEqual:
-			cond = runtime.ConditionNotZero
-		}
-		em.fb.emitIf(false, exprReg, cond, 0, exprType.Kind(), expr.Pos())
-		return
-	}
+	switch cond := cond.(type) {
 
-	// if v   == nil
-	// if v   != nil
-	// if nil == v
-	// if nil != v
-	if cond, ok := cond.(*ast.BinaryOperator); ok {
+	case *ast.BinaryOperator:
+
+		// Emit code for comparison with 0.
+		//
+		//   x == 0
+		//   0 == x
+		//   x != 0
+		//   0 != x
+		//
+		if expr, op := em.comparisonWithZeroInteger(cond); expr != nil {
+			typ := em.typ(expr)
+			x := em.emitExpr(expr, typ)
+			condition := runtime.ConditionZero
+			if op == ast.OperatorNotEqual {
+				condition = runtime.ConditionNotZero
+			}
+			em.fb.emitIf(false, x, condition, 0, typ.Kind(), expr.Pos())
+			return
+		}
+
+		// Emit code for comparison with nil.
+		//
+		//   x == nil
+		//   x != nil
+		//   nil == x
+		//   nil != x
+		//
 		if em.ti(cond.Expr1).Nil() != em.ti(cond.Expr2).Nil() {
 			expr := cond.Expr1
 			if em.ti(cond.Expr1).Nil() {
 				expr = cond.Expr2
 			}
 			typ := em.typ(expr)
-			v := em.emitExpr(expr, typ)
-			condType := runtime.ConditionNotNil
-			if cond.Operator() == ast.OperatorEqual {
-				condType = runtime.ConditionNil
-			}
+			x := em.emitExpr(expr, typ)
+			var condition runtime.Condition
 			if typ.Kind() == reflect.Interface {
-				if condType == runtime.ConditionNil {
-					condType = runtime.ConditionInterfaceNil
-				} else {
-					condType = runtime.ConditionInterfaceNotNil
+				condition = runtime.ConditionInterfaceNil
+				if cond.Operator() == ast.OperatorNotEqual {
+					condition = runtime.ConditionInterfaceNotNil
+				}
+			} else {
+				condition = runtime.ConditionNil
+				if cond.Operator() == ast.OperatorNotEqual {
+					condition = runtime.ConditionNotNil
 				}
 			}
-			em.fb.emitIf(false, v, condType, 0, typ.Kind(), cond.Pos())
+			em.fb.emitIf(false, x, condition, 0, typ.Kind(), cond.Pos())
 			return
 		}
-	}
 
-	// if len("str") == v
-	// if len("str") != v
-	// if len("str") <  v
-	// if len("str") <= v
-	// if len("str") >  v
-	// if len("str") >= v
-	// if v == len("str")
-	// if v != len("str")
-	// if v <  len("str")
-	// if v <= len("str")
-	// if v >  len("str")
-	// if v >= len("str")
-	if cond, ok := cond.(*ast.BinaryOperator); ok {
-		name1, name2 := em.builtinCallName(cond.Expr1), em.builtinCallName(cond.Expr2)
+		// Emit code for comparing the length of a string to a value.
+		//
+		//   len(x) == y
+		//   len(x) != y
+		//   len(x) <  y
+		//   len(x) <= y
+		//   len(x) >  y
+		//   len(x) >= y
+		//   x == len(y)
+		//   x != len(y)
+		//   x <  len(y)
+		//   x <= len(y)
+		//   x >  len(y)
+		//   x >= len(y)
+		//
+		name1 := em.builtinCallName(cond.Expr1)
+		name2 := em.builtinCallName(cond.Expr2)
 		if (name1 == "len") != (name2 == "len") {
 			var lenArg, expr ast.Expression
 			if name1 == "len" {
@@ -930,76 +943,103 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 				expr = cond.Expr1
 			}
 			if em.typ(lenArg).Kind() == reflect.String { // len is optimized for strings only.
-				v1 := em.emitExpr(lenArg, em.typ(lenArg))
+				x := em.emitExpr(lenArg, em.typ(lenArg))
 				typ := em.typ(expr)
-				v2, k2 := em.emitExprK(expr, typ)
-				condType := map[ast.OperatorType]runtime.Condition{
-					ast.OperatorEqual:        runtime.ConditionLenEqual,
-					ast.OperatorNotEqual:     runtime.ConditionLenNotEqual,
-					ast.OperatorLess:         runtime.ConditionLenLess,
-					ast.OperatorLessEqual:    runtime.ConditionLenLessEqual,
-					ast.OperatorGreater:      runtime.ConditionLenGreater,
-					ast.OperatorGreaterEqual: runtime.ConditionLenGreaterEqual,
-				}[cond.Operator()]
-				em.fb.emitIf(k2, v1, condType, v2, reflect.String, cond.Pos())
+				y, ky := em.emitExprK(expr, typ)
+				var condition runtime.Condition
+				switch cond.Operator() {
+				case ast.OperatorEqual:
+					condition = runtime.ConditionLenEqual
+				case ast.OperatorNotEqual:
+					condition = runtime.ConditionLenNotEqual
+				case ast.OperatorLess:
+					condition = runtime.ConditionLenLess
+				case ast.OperatorLessEqual:
+					condition = runtime.ConditionLenLessEqual
+				case ast.OperatorGreater:
+					condition = runtime.ConditionLenGreater
+				case ast.OperatorGreaterEqual:
+					condition = runtime.ConditionLenGreaterEqual
+				default:
+					panic("unexpected operator")
+				}
+				em.fb.emitIf(ky, x, condition, y, reflect.String, cond.Pos())
 				return
 			}
 		}
-	}
 
-	// Binary operations that involves specific kinds of values that are
-	// optimized in the VM.
-	//
-	// if v1 == v2
-	// if v1 != v2
-	// if v1 <  v2
-	// if v1 <= v2
-	// if v1 >  v2
-	// if v1 >= v2
-	if cond, ok := cond.(*ast.BinaryOperator); ok {
+		// Emit code to compare two values.
+		//
+		//   x == y
+		//   x != y
+		//   x <  y
+		//   x <= y
+		//   x >  y
+		//   x >= y
+		//
 		t1 := em.typ(cond.Expr1)
 		t2 := em.typ(cond.Expr2)
-		if t1.Kind() == t2.Kind() {
-			if kind := t1.Kind(); reflect.Int <= kind && kind <= reflect.Float64 {
-				v1 := em.emitExpr(cond.Expr1, t1)
-				v2, k2 := em.emitExprK(cond.Expr2, t2)
-				var condType runtime.Condition
-				if k := t1.Kind(); reflect.Uint <= k && k <= reflect.Uintptr {
-					condType = map[ast.OperatorType]runtime.Condition{
-						ast.OperatorEqual:        runtime.ConditionEqual,    // same as for signed integers
-						ast.OperatorNotEqual:     runtime.ConditionNotEqual, // same as for signed integers
-						ast.OperatorLess:         runtime.ConditionLessU,
-						ast.OperatorLessEqual:    runtime.ConditionLessEqualU,
-						ast.OperatorGreater:      runtime.ConditionGreaterU,
-						ast.OperatorGreaterEqual: runtime.ConditionGreaterEqualU,
-					}[cond.Operator()]
+		if kind := t1.Kind(); kind == t2.Kind() && reflect.Int <= kind && kind <= reflect.Float64 {
+			x := em.emitExpr(cond.Expr1, t1)
+			y, ky := em.emitExprK(cond.Expr2, t2)
+			var condition runtime.Condition
+			switch cond.Operator() {
+			case ast.OperatorEqual:
+				condition = runtime.ConditionEqual
+			case ast.OperatorNotEqual:
+				condition = runtime.ConditionNotEqual
+			default:
+				if reflect.Uint <= kind && kind <= reflect.Uintptr {
+					switch cond.Operator() {
+					case ast.OperatorLess:
+						condition = runtime.ConditionLessU
+					case ast.OperatorLessEqual:
+						condition = runtime.ConditionLessEqualU
+					case ast.OperatorGreater:
+						condition = runtime.ConditionGreaterU
+					case ast.OperatorGreaterEqual:
+						condition = runtime.ConditionGreaterEqualU
+					default:
+						panic("unexpected operator")
+					}
 				} else {
-					condType = map[ast.OperatorType]runtime.Condition{
-						ast.OperatorEqual:        runtime.ConditionEqual,
-						ast.OperatorNotEqual:     runtime.ConditionNotEqual,
-						ast.OperatorLess:         runtime.ConditionLess,
-						ast.OperatorLessEqual:    runtime.ConditionLessEqual,
-						ast.OperatorGreater:      runtime.ConditionGreater,
-						ast.OperatorGreaterEqual: runtime.ConditionGreaterEqual,
-					}[cond.Operator()]
+					switch cond.Operator() {
+					case ast.OperatorLess:
+						condition = runtime.ConditionLess
+					case ast.OperatorLessEqual:
+						condition = runtime.ConditionLessEqual
+					case ast.OperatorGreater:
+						condition = runtime.ConditionGreater
+					case ast.OperatorGreaterEqual:
+						condition = runtime.ConditionGreaterEqual
+					default:
+						panic("unexpected operator")
+					}
 				}
-				em.fb.emitIf(k2, v1, condType, v2, kind, cond.Pos())
-				return
 			}
+			em.fb.emitIf(ky, x, condition, y, kind, cond.Pos())
+			return
 		}
+
+	case *ast.UnaryOperator:
+
+		// Emit code for the negation of a value.
+		//
+		//   !x
+		//
+		if cond.Operator() == ast.OperatorNot {
+			c := em.emitExpr(cond.Expr, em.typ(cond.Expr))
+			em.fb.emitIf(false, c, runtime.ConditionZero, 0, reflect.Bool, cond.Pos())
+			return
+		}
+
 	}
 
-	// if !cond
-	if unOp, ok := cond.(*ast.UnaryOperator); ok && unOp.Operator() == ast.OperatorNot {
-		c := em.emitExpr(unOp.Expr, em.typ(unOp.Expr))
-		em.fb.emitIf(false, c, runtime.ConditionZero, 0, reflect.Bool, cond.Pos())
-		return
-	}
+	// Emit code for all other conditions.
+	x := em.emitExpr(cond, em.typ(cond))
+	em.fb.emitIf(false, x, runtime.ConditionNotZero, 0, reflect.Bool, cond.Pos())
 
-	// if cond
-	c := em.emitExpr(cond, em.typ(cond))
-	em.fb.emitIf(false, c, runtime.ConditionNotZero, 0, reflect.Bool, cond.Pos())
-
+	return
 }
 
 // emitComplexOperation emits the operation on the given complex numbers putting

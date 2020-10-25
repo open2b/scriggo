@@ -89,16 +89,10 @@ func (em *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, d
 //
 // If the previous condition does not apply, nil and 0 are returned.
 //
-func (em *emitter) comparisonWithZeroInteger(cond ast.Expression) (ast.Expression, ast.OperatorType) {
-
-	// The condition must be a binary operator.
-	binOp, ok := cond.(*ast.BinaryOperator)
-	if !ok {
-		return nil, 0
-	}
+func (em *emitter) comparisonWithZeroInteger(cond *ast.BinaryOperator) (ast.Expression, ast.OperatorType) {
 
 	// The binary operator must be == or !=.
-	op := binOp.Operator()
+	op := cond.Operator()
 	if op != ast.OperatorEqual && op != ast.OperatorNotEqual {
 		return nil, 0
 	}
@@ -106,12 +100,12 @@ func (em *emitter) comparisonWithZeroInteger(cond ast.Expression) (ast.Expressio
 	// The binary operator must be a comparison between a constant and an
 	// expression (non constant).
 	var expr, constant ast.Expression
-	if ti2 := em.ti(binOp.Expr2); ti2 != nil && ti2.IsConstant() {
-		constant = binOp.Expr2
-		expr = binOp.Expr1
-	} else if ti1 := em.ti(binOp.Expr1); ti1 != nil && ti1.IsConstant() {
-		constant = binOp.Expr1
-		expr = binOp.Expr2
+	if ti2 := em.ti(cond.Expr2); ti2 != nil && ti2.IsConstant() {
+		constant = cond.Expr2
+		expr = cond.Expr1
+	} else if ti1 := em.ti(cond.Expr1); ti1 != nil && ti1.IsConstant() {
+		constant = cond.Expr1
+		expr = cond.Expr2
 	}
 
 	// The expression can't be nil.
