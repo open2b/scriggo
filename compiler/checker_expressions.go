@@ -2332,7 +2332,7 @@ func (tc *typechecker) checkGlobalAssertion(expr *ast.GlobalAssertion) *typeInfo
 	T := tc.checkType(expr.Type)
 
 	// The global assertion evaluates to the value of x if the global
-	// identifier x exists.
+	// identifier x exists and has type T.
 	if x, isGlobal := tc.globalScope[expr.Ident.Name]; isGlobal && x.t.Type == T.Type {
 		return tc.checkIdentifier(expr.Ident, true)
 	}
