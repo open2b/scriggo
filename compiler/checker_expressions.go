@@ -2319,7 +2319,7 @@ func (tc *typechecker) isCompileConstant(expr ast.Expression) bool {
 	return true
 }
 
-// checkGlobalAssertion type checks a global assertion x::T, returning the
+// checkGlobalAssertion type checks a global assertion x::(T), returning the
 // corresponding type info.
 func (tc *typechecker) checkGlobalAssertion(expr *ast.GlobalAssertion) *typeInfo {
 

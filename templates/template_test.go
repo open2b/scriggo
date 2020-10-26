@@ -1836,21 +1836,21 @@ var templateMultiPageCases = map[string]struct {
 
 	"Global assertion - Global does not exist": {
 		sources: map[string]string{
-			"index.html": `{{ notExistingGlobal::int }}`,
+			"index.html": `{{ notExistingGlobal::(int) }}`,
 		},
 		expectedOut: "0",
 	},
 
 	"Global assertion - Evaluation of a not existing global is not addressable": {
 		sources: map[string]string{
-			"index.html": `{% notExistingGlobal::int = 42 %}`,
+			"index.html": `{% notExistingGlobal::(int) = 42 %}`,
 		},
 		expectedLoadErr: `cannot assign to notExistingGlobal::(int)`,
 	},
 
 	"Global assertion - Global exists (it is a variable) and has its zero as value": {
 		sources: map[string]string{
-			"index.html": `{{ zeroGlobal::int }}`,
+			"index.html": `{{ zeroGlobal::(int) }}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1863,7 +1863,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Global assertion - Global exists (it is a variable) and has a non-zero value": {
 		sources: map[string]string{
-			"index.html": `{{ nonZeroGlobal::int }}`,
+			"index.html": `{{ nonZeroGlobal::(int) }}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1876,7 +1876,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Global assertion - Global exists (it is a constant) and has a non-zero value": {
 		sources: map[string]string{
-			"index.html": `{{ nonZeroGlobal::int }}`,
+			"index.html": `{{ nonZeroGlobal::(int) }}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1889,7 +1889,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Global assertion - Evaluation of existing global variable is not addressable": {
 		sources: map[string]string{
-			"index.html": `{% nonZeroGlobal::int = 53 %}`,
+			"index.html": `{% nonZeroGlobal::(int) = 53 %}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1902,7 +1902,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Global assertion - Global exists (it is a variable) but has another type": {
 		sources: map[string]string{
-			"index.html": `{{ stringGlobal::int }}`,
+			"index.html": `{{ stringGlobal::(int) }}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1915,14 +1915,14 @@ var templateMultiPageCases = map[string]struct {
 
 	"Global assertion - Use of local identifier in a global assertion (global does not exist)": {
 		sources: map[string]string{
-			"index.html": `{% var X = 42 %}{{ X::int }}`,
+			"index.html": `{% var X = 42 %}{{ X::(int) }}`,
 		},
 		expectedLoadErr: `use of a local identifier X within global assertion`,
 	},
 
 	"Global assertion - Use of local identifier in a global assertion (global exists and it's a variable)": {
 		sources: map[string]string{
-			"index.html": `{% var X = 42 %}{{ X::int }}`,
+			"index.html": `{% var X = 42 %}{{ X::(int) }}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
