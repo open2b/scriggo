@@ -1932,6 +1932,20 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedLoadErr: `use of a local identifier X within global assertion`,
 	},
+
+	"Global assertion - Cannot use type on the left side": {
+		sources: map[string]string{
+			"index.html": `{% _ = int::(int) %}`,
+		},
+		expectedLoadErr: `unexpected type on left side of global assertion`,
+	},
+
+	"Global assertion - Use of builtin not in function call": {
+		sources: map[string]string{
+			"index.html": `{% _ = cap::(int) %}`,
+		},
+		expectedLoadErr: `use of builtin cap not in function call`,
+	},
 }
 
 var structWithUnexportedFields = &struct {

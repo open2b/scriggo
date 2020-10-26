@@ -2323,9 +2323,19 @@ func (tc *typechecker) isCompileConstant(expr ast.Expression) bool {
 // corresponding type info.
 func (tc *typechecker) checkGlobalAssertion(expr *ast.GlobalAssertion) *typeInfo {
 
-	// Check that x is not a local identifier.
-	if tc.isLocallyDeclared(expr.Ident.Name) {
-		panic(tc.errorf(expr, "use of a local identifier %s within global assertion", expr.Ident))
+	if ti, ok := tc.lookupScopes(expr.Ident.Name, false); ok {
+		// Check that x is not a Go builtin function.
+		if ti.IsBuiltinFunction() {
+			panic(tc.errorf(expr.Ident, "use of builtin %s not in function call", expr.Ident))
+		}
+		// Check that x is not a type.
+		if ti.IsType() {
+			panic(tc.errorf(expr.Ident, "unexpected type on left side of global assertion"))
+		}
+		// Check that x is not a local identifier.
+		if tc.isLocallyDeclared(expr.Ident.Name) {
+			panic(tc.errorf(expr, "use of a local identifier %s within global assertion", expr.Ident))
+		}
 	}
 
 	// Check the type of T.
