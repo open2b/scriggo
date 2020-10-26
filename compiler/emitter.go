@@ -849,6 +849,25 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 	}
 }
 
+// invertedOperatorType returns the inverted operator type of op.
+func invertedOperatorType(op ast.OperatorType) ast.OperatorType {
+	switch op {
+	case ast.OperatorEqual:
+		return ast.OperatorEqual
+	case ast.OperatorNotEqual:
+		return ast.OperatorNotEqual
+	case ast.OperatorLess:
+		return ast.OperatorGreater
+	case ast.OperatorLessEqual:
+		return ast.OperatorGreaterEqual
+	case ast.OperatorGreater:
+		return ast.OperatorLess
+	case ast.OperatorGreaterEqual:
+		return ast.OperatorLessEqual
+	}
+	panic("unexpected operator")
+}
+
 // emitCondition emits the instructions for a condition. The last instruction
 // emitted is always the "If" instruction.
 func (em *emitter) emitCondition(cond ast.Expression) {
@@ -934,6 +953,7 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 		name1 := em.builtinCallName(cond.Expr1)
 		name2 := em.builtinCallName(cond.Expr2)
 		if (name1 == "len") != (name2 == "len") {
+			op := cond.Operator()
 			var lenArg, expr ast.Expression
 			if name1 == "len" {
 				lenArg = cond.Expr1.(*ast.Call).Args[0]
@@ -941,13 +961,14 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 			} else {
 				lenArg = cond.Expr2.(*ast.Call).Args[0]
 				expr = cond.Expr1
+				op = invertedOperatorType(op)
 			}
 			if em.typ(lenArg).Kind() == reflect.String { // len is optimized for strings only.
 				x := em.emitExpr(lenArg, em.typ(lenArg))
 				typ := em.typ(expr)
 				y, ky := em.emitExprK(expr, typ)
 				var condition runtime.Condition
-				switch cond.Operator() {
+				switch op {
 				case ast.OperatorEqual:
 					condition = runtime.ConditionLenEqual
 				case ast.OperatorNotEqual:
