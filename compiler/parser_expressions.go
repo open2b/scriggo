@@ -407,7 +407,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 					panic(syntaxError(tok.pos, "unexpected %s, expecting name or (", tok))
 				}
 			case tokenGlobalAssertion: // id::
-			    // id::(T)
+				// id::(T)
 				pos := operand.Pos()
 				if operand.Parenthesis() > 0 {
 					panic(syntaxError(pos, "cannot parenthesize identifier in global assertion"))
