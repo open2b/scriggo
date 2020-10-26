@@ -149,6 +149,10 @@ var exprTests = []struct {
 		ast.NewGlobalAssertion(p(1, 1, 0, 5), ast.NewIdentifier(p(1, 1, 0, 0), "x"), ast.NewIdentifier(p(1, 5, 4, 4), "T")),
 		ast.NewBasicLiteral(p(1, 8, 7, 7), ast.IntLiteral, "1")),
 	},
+	{"a[x::(T)]", ast.NewIndex(p(1, 2, 0, 8),
+		ast.NewIdentifier(p(1, 1, 0, 0), "a"),
+		ast.NewGlobalAssertion(p(1, 3, 2, 7), ast.NewIdentifier(p(1, 3, 2, 2), "x"), ast.NewIdentifier(p(1, 7, 6, 6), "T"))),
+	},
 	{"[]int{} and !x.F", ast.NewBinaryOperator(
 		p(1, 9, 0, 15),
 		ast.OperatorRelaxedAnd,
