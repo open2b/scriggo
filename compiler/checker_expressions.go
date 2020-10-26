@@ -2323,22 +2323,22 @@ func (tc *typechecker) isCompileConstant(expr ast.Expression) bool {
 // corresponding type info.
 func (tc *typechecker) checkGlobalAssertion(expr *ast.GlobalAssertion) *typeInfo {
 
-	// If 'x' is a local identifier then the global assertion is invalid.
+	// If x is a local identifier then the global assertion is invalid.
 	if tc.isLocallyDeclared(expr.Ident.Name) {
 		panic(tc.errorf(expr, "use of a local identifier %s within global assertion", expr.Ident))
 	}
 
-	// Check the type of 'T'.
+	// Check the type of T.
 	T := tc.checkType(expr.Type)
 
-	// If 'x' is a global identifier with type 'T' then the global assertion
-	// evaluates to the value of 'x'.
+	// If x is a global identifier with type T then the global assertion
+	// evaluates to the value of x.
 	if x, isGlobal := tc.globalScope[expr.Ident.Name]; isGlobal && x.t.Type == T.Type {
 		return tc.checkIdentifier(expr.Ident, true)
 	}
 
 	// If none of the conditions above applied then evaluate the global
-	// assertion as the zero of the type 'T'.
+	// assertion as the zero of the type T.
 	ph := tc.newPlaceholderFor(T.Type)
 	ti := tc.checkExpr(ph)
 	tc.compilation.typeInfos[expr.Ident] = ti
