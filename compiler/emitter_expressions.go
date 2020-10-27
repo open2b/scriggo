@@ -349,11 +349,11 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType refl
 			cmp = 1
 		}
 		if canEmitDirectly(dstType.Kind(), reflect.Bool) {
-			em.emitExprR(expr.Expr1, dstType, reg)
+			em.emitExprR(expr.Expr1, boolType, reg)
 			endIf := em.fb.newLabel()
 			em.fb.emitIf(true, reg, runtime.ConditionEqual, cmp, reflect.Int, expr.Pos())
 			em.fb.emitGoto(endIf)
-			em.emitExprR(expr.Expr2, dstType, reg)
+			em.emitExprR(expr.Expr2, boolType, reg)
 			em.fb.setLabelAddr(endIf)
 			return reg, false
 		}
