@@ -1874,6 +1874,32 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "42",
 	},
 
+	"Global assertion - Cannot assign to global assertion": {
+		sources: map[string]string{
+			"index.html": `{% nonZeroGlobal::(int) = 42 %}`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"nonZeroGlobal": &([]int{42}[0]),
+			},
+		},
+		expectedLoadErr: `cannot assign to nonZeroGlobal::(int)`,
+	},
+
+	"Global assertion - Cannot take the address of a global assertion": {
+		sources: map[string]string{
+			"index.html": `{% _ = &(nonZeroGlobal::(int)) %}`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"nonZeroGlobal": &([]int{42}[0]),
+			},
+		},
+		expectedLoadErr: `cannot take the address of nonZeroGlobal::(int)`,
+	},
+
 	//
 	//  See the issue https://github.com/open2b/scriggo/issues/674
 	//

@@ -2348,6 +2348,8 @@ func (tc *typechecker) checkGlobalAssertion(expr *ast.GlobalAssertion) *typeInfo
 		if ti.IsConstant() {
 			panic(tc.errorf(expr.Ident, "use of constants in global assertions still not supported (see https://github.com/open2b/scriggo/issues/674)"))
 		}
+		// Remove the property addressable, if present.
+		ti.Properties &^= propertyAddressable
 		return ti
 	}
 
