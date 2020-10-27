@@ -175,7 +175,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 	case *ast.UnaryOperator:
 
 		// Emit a generic unary operator.
-		em.emitUnaryOperator(expr, reg, dstType)
+		em.emitUnaryOp(expr, reg, dstType)
 
 		return reg, false
 
@@ -775,80 +775,83 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 	return
 }
 
-func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType reflect.Type) {
+// emitUnaryOp emits the code for the unary expression expr and stores the
+// result in the register reg of type regType.
+func (em *emitter) emitUnaryOp(expr *ast.UnaryOperator, reg int8, regType reflect.Type) {
 
-	operand := unOp.Expr
-	operandType := em.typ(operand)
-	unOpType := em.typ(unOp)
+	var (
+		exprType    = em.typ(expr)
+		exprKind    = exprType.Kind()
+		operand     = expr.Expr
+		operandType = em.typ(operand)
+		operandKind = operandType.Kind()
+		op          = expr.Operator()
+	)
 
 	// Emit the internal operators Zero and NotZero.
-	if unOp.Op == internalOperatorZero || unOp.Op == internalOperatorNotZero {
-		typ := em.typ(operand)
+	if op == internalOperatorZero || op == internalOperatorNotZero {
+		directly := canEmitDirectly(operandKind, regType.Kind())
 		em.fb.enterStack()
-		src := em.emitExpr(operand, typ)
-		if canEmitDirectly(typ.Kind(), dstType.Kind()) {
-			if unOp.Op == internalOperatorNotZero {
-				em.fb.emitNotZero(typ.Kind(), reg, src)
-			} else {
-				em.fb.emitZero(typ.Kind(), reg, src)
-			}
-			em.fb.exitStack()
-			return
+		src := em.emitExpr(operand, operandType)
+		dst := reg
+		if !directly {
+			dst = em.fb.newRegister(reflect.Bool)
 		}
-		tmp := em.fb.newRegister(reflect.Bool)
-		if unOp.Op == internalOperatorNotZero {
-			em.fb.emitNotZero(typ.Kind(), tmp, src)
+		if op == internalOperatorNotZero {
+			em.fb.emitNotZero(operandKind, dst, src)
 		} else {
-			em.fb.emitZero(typ.Kind(), tmp, src)
+			em.fb.emitZero(operandKind, dst, src)
 		}
-		em.changeRegister(false, tmp, reg, boolType, dstType)
+		if !directly {
+			em.changeRegister(false, dst, reg, boolType, regType)
+		}
 		em.fb.exitStack()
 		return
 	}
 
-	// Receive operation on channel.
+	// Emit code for a receive operation.
 	//
-	//	v     = <- ch
-	//  v, ok = <- ch
 	//          <- ch
-	if unOp.Operator() == ast.OperatorReceive {
-		chanType := em.typ(unOp.Expr)
-		valueType := unOpType
-		chann := em.emitExpr(unOp.Expr, chanType)
+	//  v     = <- ch
+	//  v, ok = <- ch
+	//
+	if op == ast.OperatorReceive {
+		ch := em.emitExpr(operand, operandType)
 		if reg == 0 {
-			em.fb.emitReceive(chann, 0, 0)
+			em.fb.emitReceive(ch, 0, 0)
 			return
 		}
-		if canEmitDirectly(valueType.Kind(), dstType.Kind()) {
-			em.fb.emitReceive(chann, 0, reg)
+		if canEmitDirectly(exprKind, regType.Kind()) {
+			em.fb.emitReceive(ch, 0, reg)
 			return
 		}
-		tmp := em.fb.newRegister(valueType.Kind())
-		em.fb.emitReceive(chann, 0, tmp)
-		em.changeRegister(false, tmp, reg, valueType, dstType)
+		dst := em.fb.newRegister(exprKind)
+		em.fb.emitReceive(ch, 0, dst)
+		em.changeRegister(false, dst, reg, exprType, regType)
 		return
 	}
 
-	// Unary operation (negation) on a complex number.
-	if exprType := unOpType; exprType.Kind() == reflect.Complex64 || exprType.Kind() == reflect.Complex128 {
-		if unOp.Operator() != ast.OperatorSubtraction {
+	// Emit code for the negation of a complex number.
+	if exprKind == reflect.Complex64 || exprKind == reflect.Complex128 {
+		if op != ast.OperatorSubtraction {
 			panic("bug: expected operator subtraction")
 		}
 		stackShift := em.fb.currentStackShift()
 		em.fb.enterScope()
 		index := em.fb.complexOperationIndex(ast.OperatorSubtraction, true)
-		ret := em.fb.newRegister(reflect.Complex128)
+		src := em.fb.newRegister(reflect.Complex128)
 		arg := em.fb.newRegister(reflect.Complex128)
 		em.fb.enterScope()
-		em.emitExprR(unOp.Expr, exprType, arg)
+		em.emitExprR(operand, exprType, arg)
 		em.fb.exitScope()
-		em.fb.emitCallPredefined(index, 0, stackShift, unOp.Pos())
-		em.changeRegister(false, ret, reg, exprType, dstType)
+		em.fb.emitCallPredefined(index, 0, stackShift, expr.Pos())
+		em.changeRegister(false, src, reg, exprType, regType)
 		em.fb.exitScope()
 		return
 	}
 
-	switch unOp.Operator() {
+	// Emit code for the other operand types.
+	switch op {
 
 	// !operand
 	case ast.OperatorNot:
@@ -857,25 +860,24 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 			return
 		}
 		em.fb.enterScope()
-		// TODO: improve this code.
-		tmp := em.emitExpr(operand, operandType)
-		tmp2 := em.fb.newRegister(reflect.Int)
-		em.changeRegister(true, 1, tmp2, intType, intType)
-		em.fb.emitSub(false, tmp2, tmp, tmp2, operandType.Kind())
-		em.changeRegister(false, tmp2, reg, operandType, dstType)
+		// TODO(gianluca): improve this code.
+		y := em.emitExpr(operand, operandType)
+		x := em.fb.newRegister(reflect.Int)
+		em.changeRegister(true, 1, x, intType, intType)
+		em.fb.emitSub(false, x, y, x, operandKind)
+		em.changeRegister(false, x, reg, operandType, regType)
 		em.fb.exitScope()
 
 	// *operand
 	case ast.OperatorPointer:
-		if canEmitDirectly(unOpType.Kind(), dstType.Kind()) {
-			exprReg := em.emitExpr(operand, operandType)
-			em.changeRegister(false, -exprReg, reg, operandType.Elem(), dstType)
+		exprReg := em.emitExpr(operand, operandType)
+		if canEmitDirectly(exprType.Kind(), regType.Kind()) {
+			em.changeRegister(false, -exprReg, reg, operandType.Elem(), regType)
 			return
 		}
-		exprReg := em.emitExpr(operand, operandType)
-		tmp := em.fb.newRegister(operandType.Elem().Kind())
-		em.changeRegister(false, -exprReg, tmp, operandType.Elem(), operandType.Elem())
-		em.changeRegister(false, tmp, reg, operandType.Elem(), dstType)
+		r := em.fb.newRegister(operandType.Elem().Kind())
+		em.changeRegister(false, -exprReg, r, operandType.Elem(), operandType.Elem())
+		em.changeRegister(false, r, reg, operandType.Elem(), regType)
 
 	// &operand
 	case ast.OperatorAddress:
@@ -884,34 +886,34 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 		// &a
 		case *ast.Identifier:
 			if em.fb.isLocalVariable(operand.Name) {
-				varr := em.fb.scopeLookup(operand.Name)
-				em.fb.emitNew(em.types.PtrTo(unOpType), reg)
-				em.fb.emitMove(false, -varr, reg, dstType.Kind(), false)
+				r := em.fb.scopeLookup(operand.Name)
+				em.fb.emitNew(em.types.PtrTo(exprType), reg)
+				em.fb.emitMove(false, -r, reg, regType.Kind(), false)
 				return
 			}
 			// Address of a non-local variable.
-			if index, ok := em.varStore.nonLocalVarIndex(operand); ok {
-				em.fb.enterStack()
-				tmp := em.fb.newRegister(reflect.Ptr)
-				em.fb.emitGetVarAddr(index, tmp)
-				em.changeRegister(false, tmp, reg, reflect.PtrTo(operandType), dstType)
-				em.fb.exitStack()
-				return
+			index, ok := em.varStore.nonLocalVarIndex(operand)
+			if !ok {
+				panic("BUG")
 			}
-			panic("BUG")
+			em.fb.enterStack()
+			r := em.fb.newRegister(reflect.Ptr)
+			em.fb.emitGetVarAddr(index, r)
+			em.changeRegister(false, r, reg, reflect.PtrTo(operandType), regType)
+			em.fb.exitStack()
 
 		// &*a
 		case *ast.UnaryOperator:
 			// Deference the pointer to check for "invalid memory address"
 			// errors, then discard the result.
 			em.fb.enterStack()
-			pointedElemType := dstType.Elem()
+			pointedElemType := regType.Elem()
 			pointer := em.emitExpr(operand, pointedElemType)
-			tmp := em.fb.newRegister(pointedElemType.Kind())
-			em.changeRegister(false, -pointer, tmp, pointedElemType, pointedElemType)
+			dst := em.fb.newRegister(pointedElemType.Kind())
+			em.changeRegister(false, -pointer, dst, pointedElemType, pointedElemType)
 			em.fb.exitStack()
 			// The pointer is valid, so &*a is equivalent to a.
-			em.emitExprR(operand.Expr, dstType, reg)
+			em.emitExprR(operand.Expr, regType, reg)
 
 		// &v[i]
 		// (where v is a slice or an addressable array)
@@ -919,26 +921,26 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 			expr := em.emitExpr(operand.Expr, em.typ(operand.Expr))
 			index := em.emitExpr(operand.Index, intType)
 			pos := operand.Expr.Pos()
-			if canEmitDirectly(unOpType.Kind(), dstType.Kind()) {
+			if canEmitDirectly(exprType.Kind(), regType.Kind()) {
 				em.fb.emitAddr(expr, index, reg, pos)
 			}
 			em.fb.enterStack()
-			tmp := em.fb.newRegister(unOpType.Kind())
-			em.fb.emitAddr(expr, index, tmp, pos)
-			em.changeRegister(false, tmp, reg, unOpType, dstType)
+			dest := em.fb.newRegister(exprType.Kind())
+			em.fb.emitAddr(expr, index, dest, pos)
+			em.changeRegister(false, dest, reg, exprType, regType)
 			em.fb.exitStack()
 
 		// &s.Field
 		case *ast.Selector:
 			// Address of a non-local variable.
 			if index, ok := em.varStore.nonLocalVarIndex(operand); ok {
-				if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
+				if canEmitDirectly(operandKind, regType.Kind()) {
 					em.fb.emitGetVarAddr(index, reg)
 					return
 				}
-				tmp := em.fb.newRegister(operandType.Kind())
-				em.fb.emitGetVarAddr(index, tmp)
-				em.changeRegister(false, tmp, reg, operandType, dstType)
+				r := em.fb.newRegister(operandKind)
+				em.fb.emitGetVarAddr(index, r)
+				em.changeRegister(false, r, reg, operandType, regType)
 				return
 			}
 			operandExprType := em.typ(operand.Expr)
@@ -946,25 +948,25 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 			field, _ := operandExprType.FieldByName(operand.Ident)
 			index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
 			pos := operand.Expr.Pos()
-			if canEmitDirectly(em.types.PtrTo(field.Type).Kind(), dstType.Kind()) {
+			if canEmitDirectly(em.types.PtrTo(field.Type).Kind(), regType.Kind()) {
 				em.fb.emitAddr(expr, index, reg, pos)
 				return
 			}
 			em.fb.enterStack()
-			tmp := em.fb.newRegister(reflect.Ptr)
-			em.fb.emitAddr(expr, index, tmp, pos)
-			em.changeRegister(false, tmp, reg, em.types.PtrTo(field.Type), dstType)
+			dest := em.fb.newRegister(reflect.Ptr)
+			em.fb.emitAddr(expr, index, dest, pos)
+			em.changeRegister(false, dest, reg, em.types.PtrTo(field.Type), regType)
 			em.fb.exitStack()
 
 		// &T{..}
 		case *ast.CompositeLiteral:
-			tmp := em.fb.newRegister(reflect.Ptr)
-			em.fb.emitNew(operandType, tmp)
-			em.emitExprR(operand, operandType, -tmp)
-			em.changeRegister(false, tmp, reg, unOpType, dstType)
+			z := em.fb.newRegister(reflect.Ptr)
+			em.fb.emitNew(operandType, z)
+			em.emitExprR(operand, operandType, -z)
+			em.changeRegister(false, z, reg, exprType, regType)
 
 		default:
-			panic("TODO(Gianluca): not implemented")
+			panic("unexpected operand")
 		}
 
 	// +operand
@@ -974,46 +976,45 @@ func (em *emitter) emitUnaryOperator(unOp *ast.UnaryOperator, reg int8, dstType 
 	// -operand
 	case ast.OperatorSubtraction:
 		if reg == 0 {
-			em.emitExprR(operand, dstType, 0)
+			em.emitExprR(operand, regType, 0)
 			return
 		}
 		em.fb.enterScope()
-		op := em.emitExpr(operand, operandType)
-		if canEmitDirectly(operandType.Kind(), dstType.Kind()) {
-			em.fb.emitNeg(op, reg, dstType.Kind())
+		y := em.emitExpr(operand, operandType)
+		if canEmitDirectly(operandKind, regType.Kind()) {
+			em.fb.emitNeg(y, reg, regType.Kind())
 		} else {
-			tmp := em.fb.newRegister(operandType.Kind())
-			em.fb.emitNeg(op, tmp, operandType.Kind())
-			em.changeRegister(false, tmp, reg, operandType, dstType)
+			z := em.fb.newRegister(operandKind)
+			em.fb.emitNeg(y, z, operandKind)
+			em.changeRegister(false, z, reg, operandType, regType)
 		}
 		em.fb.exitScope()
 
 	// ^operand
 	case ast.OperatorXor:
 		if reg == 0 {
-			em.emitExprR(operand, dstType, 0)
+			em.emitExprR(operand, regType, 0)
 			return
 		}
-		kind := operandType.Kind()
 		em.fb.enterStack()
-		// TODO: improve this code:
-		tmp := em.fb.newRegister(kind)
-		em.emitExprR(operand, operandType, tmp)
-		tmp2 := em.fb.newRegister(kind)
-		if isSigned(kind) {
-			em.changeRegister(true, -1, tmp2, operandType, operandType)
+		// TODO(gianluca): improve this code.
+		y := em.fb.newRegister(operandKind)
+		em.emitExprR(operand, operandType, y)
+		x := em.fb.newRegister(operandKind)
+		if isSigned(operandKind) {
+			em.changeRegister(true, -1, x, operandType, operandType)
 		} else {
-			m := maxUnsigned(kind)
-			em.fb.emitLoadNumber(intRegister, em.fb.makeIntConstant(int64(m)), tmp2)
+			m := maxUnsigned(operandKind)
+			em.fb.emitLoadNumber(intRegister, em.fb.makeIntConstant(int64(m)), x)
 		}
-		em.fb.emitXor(false, tmp2, tmp, tmp2, kind)
-		em.changeRegister(false, tmp2, reg, operandType, dstType)
+		em.fb.emitXor(false, x, y, x, operandKind)
+		em.changeRegister(false, x, reg, operandType, regType)
 		em.fb.exitStack()
 
 	default:
-		panic(fmt.Errorf("BUG: not implemented operator %s", unOp.Operator()))
+		panic("unexpected operator")
+
 	}
 
 	return
-
 }
