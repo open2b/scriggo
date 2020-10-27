@@ -889,10 +889,10 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 
 		// Emit code for comparison with 0.
 		//
-		//   x == 0
-		//   0 == x
-		//   x != 0
-		//   0 != x
+		//   if x == 0
+		//   if 0 == x
+		//   if x != 0
+		//   if 0 != x
 		//
 		if expr, op := em.comparisonWithZeroInteger(cond); expr != nil {
 			typ := em.typ(expr)
@@ -907,10 +907,10 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 
 		// Emit code for comparison with nil.
 		//
-		//   x == nil
-		//   x != nil
-		//   nil == x
-		//   nil != x
+		//   if x == nil
+		//   if x != nil
+		//   if nil == x
+		//   if nil != x
 		//
 		if em.ti(cond.Expr1).Nil() != em.ti(cond.Expr2).Nil() {
 			expr := cond.Expr1
@@ -937,18 +937,18 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 
 		// Emit code for comparing the length of a string to a value.
 		//
-		//   len(x) == y
-		//   len(x) != y
-		//   len(x) <  y
-		//   len(x) <= y
-		//   len(x) >  y
-		//   len(x) >= y
-		//   x == len(y)
-		//   x != len(y)
-		//   x <  len(y)
-		//   x <= len(y)
-		//   x >  len(y)
-		//   x >= len(y)
+		//   if len(x) == y
+		//   if len(x) != y
+		//   if len(x) <  y
+		//   if len(x) <= y
+		//   if len(x) >  y
+		//   if len(x) >= y
+		//   if x == len(y)
+		//   if x != len(y)
+		//   if x <  len(y)
+		//   if x <= len(y)
+		//   if x >  len(y)
+		//   if x >= len(y)
 		//
 		name1 := em.builtinCallName(cond.Expr1)
 		name2 := em.builtinCallName(cond.Expr2)
@@ -991,12 +991,12 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 
 		// Emit code to compare two values.
 		//
-		//   x == y
-		//   x != y
-		//   x <  y
-		//   x <= y
-		//   x >  y
-		//   x >= y
+		//   if x == y
+		//   if x != y
+		//   if x <  y
+		//   if x <= y
+		//   if x >  y
+		//   if x >= y
 		//
 		t1 := em.typ(cond.Expr1)
 		t2 := em.typ(cond.Expr2)
@@ -1046,7 +1046,7 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 
 		// Emit code for the negation of a value.
 		//
-		//   !x
+		//   if !x
 		//
 		if cond.Operator() == ast.OperatorNot {
 			c := em.emitExpr(cond.Expr, em.typ(cond.Expr))
