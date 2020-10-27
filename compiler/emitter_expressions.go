@@ -101,7 +101,8 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 	case *ast.BinaryOperator:
 
-		return em.emitBinaryOp(expr, reg, dstType)
+		em.emitBinaryOp(expr, reg, dstType)
+		return reg, false
 
 	case *ast.Call:
 
@@ -334,212 +335,220 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 	return reg, false
 }
 
-func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, dstType reflect.Type) (int8, bool) {
-	ti := em.ti(expr)
-	// Binary operations on complex numbers.
-	if exprType := ti.Type; exprType.Kind() == reflect.Complex64 || exprType.Kind() == reflect.Complex128 {
-		em.emitComplexOperation(exprType, expr.Expr1, expr.Operator(), expr.Expr2, reg, dstType)
-		return reg, false
+// emitBinaryOp emits the code for the binary expression expr and stores the
+// result in the register reg of type regType.
+func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, regType reflect.Type) {
+
+	var (
+		ti   = em.ti(expr)
+		typ  = ti.Type
+		kind = typ.Kind()
+		op   = expr.Operator()
+		pos  = expr.Pos()
+	)
+
+	// Emit code for complex numbers.
+	if kind == reflect.Complex64 || kind == reflect.Complex128 {
+		em.emitComplexOperation(typ, expr.Expr1, op, expr.Expr2, reg, regType)
+		return
 	}
 
-	// Binary && and ||.
-	if op := expr.Operator(); op == ast.OperatorAnd || op == ast.OperatorOr {
-		cmp := int8(0)
+	// Emit code for the operators && and ||.
+	if op == ast.OperatorAnd || op == ast.OperatorOr {
+		x := reg
+		y := int8(0)
+		direct := canEmitDirectly(regType.Kind(), reflect.Bool)
+		if !direct {
+			em.fb.enterStack()
+			x = em.fb.newRegister(reflect.Bool)
+		}
 		if op == ast.OperatorAnd {
-			cmp = 1
+			y = 1
 		}
-		if canEmitDirectly(dstType.Kind(), reflect.Bool) {
-			em.emitExprR(expr.Expr1, boolType, reg)
-			endIf := em.fb.newLabel()
-			em.fb.emitIf(true, reg, runtime.ConditionEqual, cmp, reflect.Int, expr.Pos())
-			em.fb.emitGoto(endIf)
-			em.emitExprR(expr.Expr2, boolType, reg)
-			em.fb.setLabelAddr(endIf)
-			return reg, false
-		}
-		em.fb.enterStack()
-		tmp := em.fb.newRegister(reflect.Bool)
-		em.emitExprR(expr.Expr1, boolType, tmp)
+		em.emitExprR(expr.Expr1, boolType, x)
 		endIf := em.fb.newLabel()
-		em.fb.emitIf(true, tmp, runtime.ConditionEqual, cmp, reflect.Int, expr.Pos())
+		em.fb.emitIf(true, x, runtime.ConditionEqual, y, reflect.Int, pos)
 		em.fb.emitGoto(endIf)
-		em.emitExprR(expr.Expr2, boolType, tmp)
+		em.emitExprR(expr.Expr2, boolType, x)
 		em.fb.setLabelAddr(endIf)
-		em.changeRegister(false, tmp, reg, boolType, dstType)
-		em.fb.exitStack()
-		return reg, false
+		if !direct {
+			em.changeRegister(false, x, reg, boolType, regType)
+			em.fb.exitStack()
+		}
+		return
 	}
 
-	// Equality (or not-equality) checking with the predeclared identifier 'nil'.
+	// Emit code where an operand is the predeclared nil.
 	if em.ti(expr.Expr1).Nil() || em.ti(expr.Expr2).Nil() {
-		em.changeRegister(true, 1, reg, boolType, dstType)
+		em.changeRegister(true, 1, reg, boolType, regType)
 		em.emitCondition(expr)
-		em.changeRegister(true, 0, reg, boolType, dstType)
-		return reg, false
+		em.changeRegister(true, 0, reg, boolType, regType)
+		return
 	}
 
-	// ==, !=, <, <=, >=, >, &&, ||, +, -, *, /, %, ^, &^, <<, >>.
-	exprType := ti.Type
+	// Emit code for the two operands.
 	t1 := em.typ(expr.Expr1)
 	t2 := em.typ(expr.Expr2)
-	v1 := em.emitExpr(expr.Expr1, t1)
-	v2, k := em.emitExprK(expr.Expr2, t2)
+	x := em.emitExpr(expr.Expr1, t1)
+	y, ky := em.emitExprK(expr.Expr2, t2)
 	if reg == 0 {
-		return reg, false
-	}
-	// String concatenation.
-	if expr.Operator() == ast.OperatorAddition && t1.Kind() == reflect.String {
-		if k {
-			v2 = em.emitExpr(expr.Expr2, t2)
-		}
-		if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
-			em.fb.emitConcat(v1, v2, reg)
-			return reg, false
-		}
-		em.fb.enterStack()
-		tmp := em.fb.newRegister(exprType.Kind())
-		em.fb.emitConcat(v1, v2, tmp)
-		em.changeRegister(false, tmp, reg, exprType, dstType)
-		em.fb.exitStack()
-		return reg, false
+		return
 	}
 
-	// Bit operations.
-	if op := expr.Operator(); op == ast.OperatorBitAnd ||
-		op == ast.OperatorBitOr ||
-		op == ast.OperatorXor ||
-		op == ast.OperatorAndNot {
-		var emitFn func(bool, int8, int8, int8, reflect.Kind)
-		switch expr.Operator() {
-		case ast.OperatorBitAnd:
-			emitFn = em.fb.emitAnd
-		case ast.OperatorBitOr:
-			emitFn = em.fb.emitOr
-		case ast.OperatorXor:
-			emitFn = em.fb.emitXor
-		case ast.OperatorAndNot:
-			emitFn = em.fb.emitAndNot
+	// Emit code for concatenate the two operands.
+	if op == ast.OperatorAddition && t1.Kind() == reflect.String {
+		if ky {
+			y = em.emitExpr(expr.Expr2, t2)
 		}
-		if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
-			emitFn(k, v1, v2, reg, exprType.Kind())
-			return reg, false
+		if canEmitDirectly(kind, regType.Kind()) {
+			em.fb.emitConcat(x, y, reg)
+			return
 		}
 		em.fb.enterStack()
-		tmp := em.fb.newRegister(exprType.Kind())
-		emitFn(k, v1, v2, tmp, exprType.Kind())
-		em.changeRegister(false, tmp, reg, exprType, dstType)
+		tmp := em.fb.newRegister(kind)
+		em.fb.emitConcat(x, y, tmp)
+		em.changeRegister(false, tmp, reg, typ, regType)
 		em.fb.exitStack()
-		return reg, false
+		return
 	}
 
-	// Arithmetic operations on reflect.Int or reflect.Float64.
-	// TODO: also add reflect.Float64, excluding them from unsupported operations.
-	if op := expr.Operator(); ast.OperatorBitAnd <= op && op <= ast.OperatorRightShift && (exprType.Kind() == reflect.Int) {
-		var emitFn func(bool, int8, int8, int8, reflect.Kind)
-		switch expr.Operator() {
-		case ast.OperatorAddition:
-			emitFn = em.fb.emitAdd
-		case ast.OperatorSubtraction:
-			emitFn = em.fb.emitSub
-		case ast.OperatorMultiplication:
-			emitFn = em.fb.emitMul
-		case ast.OperatorDivision:
-			emitFn = func(k bool, x, y, z int8, kind reflect.Kind) { em.fb.emitDiv(k, x, y, z, exprType.Kind(), expr.Pos()) }
-		case ast.OperatorModulo:
-			emitFn = func(k bool, x, y, z int8, kind reflect.Kind) { em.fb.emitRem(k, x, y, z, exprType.Kind(), expr.Pos()) }
-		case ast.OperatorLeftShift:
-			emitFn = em.fb.emitShl
-		case ast.OperatorRightShift:
-			emitFn = em.fb.emitShr
-		}
-		if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
-			emitFn(k, v1, v2, reg, exprType.Kind())
-			return reg, false
-		}
-		em.fb.enterStack()
-		tmp := em.fb.newRegister(exprType.Kind())
-		emitFn(k, v1, v2, tmp, exprType.Kind())
-		em.changeRegister(false, tmp, reg, exprType, dstType)
-		em.fb.exitStack()
-		return reg, false
-	}
-
-	// Arithmetic operations on non reflect.Int and non reflect.FLoat64 kinds.
-	if op := expr.Operator(); ast.OperatorBitAnd <= op && op <= ast.OperatorRightShift {
-		var emitFn func(bool, int8, int8, int8, reflect.Kind)
-		switch expr.Operator() {
-		case ast.OperatorAddition:
-			emitFn = em.fb.emitAdd
-		case ast.OperatorSubtraction:
-			emitFn = em.fb.emitSub
-		case ast.OperatorMultiplication:
-			emitFn = em.fb.emitMul
-		case ast.OperatorDivision:
-			emitFn = func(k bool, x, y, z int8, kind reflect.Kind) { em.fb.emitDiv(k, x, y, z, kind, expr.Pos()) }
-		case ast.OperatorModulo:
-			emitFn = func(k bool, x, y, z int8, kind reflect.Kind) { em.fb.emitRem(k, x, y, z, kind, expr.Pos()) }
-		case ast.OperatorLeftShift:
-			emitFn = em.fb.emitShl
-		case ast.OperatorRightShift:
-			emitFn = em.fb.emitShr
-		}
-		if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
-			// TODO: consider the removal of the 'tmp' register, using 'reg'
-			// directly.
+	// Emit code for bit operations on the two operands.
+	switch op {
+	case ast.OperatorBitAnd, ast.OperatorBitOr, ast.OperatorXor, ast.OperatorAndNot:
+		z := reg
+		direct := canEmitDirectly(kind, regType.Kind())
+		if !direct {
 			em.fb.enterStack()
-			tmp := em.fb.newRegister(exprType.Kind())
-			em.changeRegister(false, v1, tmp, exprType, exprType)
-			emitFn(k, tmp, v2, tmp, exprType.Kind())
-			em.changeRegister(false, tmp, reg, exprType, dstType)
-			em.fb.exitStack()
-			return reg, false
+			z = em.fb.newRegister(kind)
 		}
+		switch op {
+		case ast.OperatorBitAnd:
+			em.fb.emitAnd(ky, x, y, z, kind)
+		case ast.OperatorBitOr:
+			em.fb.emitOr(ky, x, y, z, kind)
+		case ast.OperatorXor:
+			em.fb.emitXor(ky, x, y, z, kind)
+		case ast.OperatorAndNot:
+			em.fb.emitAndNot(ky, x, y, z, kind)
+		}
+		if !direct {
+			em.changeRegister(false, z, reg, typ, regType)
+			em.fb.exitStack()
+		}
+		return
+	}
+
+	// Emit code for arithmetic operations on integers.
+	// TODO(gianluca): also add reflect.Float64, excluding them from unsupported operations.
+	if kind == reflect.Int && ast.OperatorBitAnd <= op && op <= ast.OperatorRightShift {
+		z := reg
+		direct := canEmitDirectly(kind, regType.Kind())
+		if !direct {
+			em.fb.enterStack()
+			z = em.fb.newRegister(kind)
+		}
+		switch op {
+		case ast.OperatorAddition:
+			em.fb.emitAdd(ky, x, y, z, kind)
+		case ast.OperatorSubtraction:
+			em.fb.emitSub(ky, x, y, z, kind)
+		case ast.OperatorMultiplication:
+			em.fb.emitMul(ky, x, y, z, kind)
+		case ast.OperatorDivision:
+			em.fb.emitDiv(ky, x, y, z, kind, pos)
+		case ast.OperatorModulo:
+			em.fb.emitRem(ky, x, y, z, kind, pos)
+		case ast.OperatorLeftShift:
+			em.fb.emitShl(ky, x, y, z, kind)
+		case ast.OperatorRightShift:
+			em.fb.emitShr(ky, x, y, z, kind)
+		}
+		if !direct {
+			em.changeRegister(false, z, reg, typ, regType)
+			em.fb.exitStack()
+		}
+		return
+	}
+
+	// Emit code for arithmetic operations for the other types of operands.
+	if ast.OperatorBitAnd <= op && op <= ast.OperatorRightShift {
+		// TODO(gianluca): consider the removal of the temporary register, using 'reg'.
 		em.fb.enterStack()
-		tmp := em.fb.newRegister(exprType.Kind())
-		em.changeRegister(false, v1, tmp, exprType, exprType)
-		emitFn(k, tmp, v2, tmp, exprType.Kind())
-		em.changeRegister(false, tmp, reg, exprType, dstType)
+		z := em.fb.newRegister(kind)
+		em.changeRegister(false, x, z, typ, typ)
+		switch op {
+		case ast.OperatorAddition:
+			em.fb.emitAdd(ky, z, y, z, kind)
+		case ast.OperatorSubtraction:
+			em.fb.emitSub(ky, z, y, z, kind)
+		case ast.OperatorMultiplication:
+			em.fb.emitMul(ky, z, y, z, kind)
+		case ast.OperatorDivision:
+			em.fb.emitDiv(ky, z, y, z, kind, pos)
+		case ast.OperatorModulo:
+			em.fb.emitRem(ky, z, y, z, kind, pos)
+		case ast.OperatorLeftShift:
+			em.fb.emitShl(ky, z, y, z, kind)
+		case ast.OperatorRightShift:
+			em.fb.emitShr(ky, z, y, z, kind)
+		}
+		em.changeRegister(false, z, reg, typ, regType)
 		em.fb.exitStack()
-		return reg, false
+		return
 	}
 
-	// Comparison operators.
-	var cond runtime.Condition
-	if kind := t1.Kind(); reflect.Uint <= kind && kind <= reflect.Uintptr {
-		cond = map[ast.OperatorType]runtime.Condition{
-			ast.OperatorEqual:        runtime.ConditionEqual,    // same as signed integers
-			ast.OperatorNotEqual:     runtime.ConditionNotEqual, // same as signed integers
-			ast.OperatorLess:         runtime.ConditionLessU,
-			ast.OperatorLessEqual:    runtime.ConditionLessEqualU,
-			ast.OperatorGreater:      runtime.ConditionGreaterU,
-			ast.OperatorGreaterEqual: runtime.ConditionGreaterEqualU,
-		}[expr.Operator()]
-	} else {
-		cond = map[ast.OperatorType]runtime.Condition{
-			ast.OperatorEqual:        runtime.ConditionEqual,
-			ast.OperatorNotEqual:     runtime.ConditionNotEqual,
-			ast.OperatorLess:         runtime.ConditionLess,
-			ast.OperatorLessEqual:    runtime.ConditionLessEqual,
-			ast.OperatorGreater:      runtime.ConditionGreater,
-			ast.OperatorGreaterEqual: runtime.ConditionGreaterEqual,
-		}[expr.Operator()]
+	// Emit code for comparison operators.
+	var condition runtime.Condition
+	switch op {
+	case ast.OperatorEqual:
+		condition = runtime.ConditionEqual
+	case ast.OperatorNotEqual:
+		condition = runtime.ConditionNotEqual
+	default:
+		k := t1.Kind()
+		if reflect.Uint <= k && k <= reflect.Uintptr {
+			switch op {
+			case ast.OperatorLess:
+				condition = runtime.ConditionLessU
+			case ast.OperatorLessEqual:
+				condition = runtime.ConditionLessEqualU
+			case ast.OperatorGreater:
+				condition = runtime.ConditionGreaterU
+			case ast.OperatorGreaterEqual:
+				condition = runtime.ConditionGreaterEqualU
+			default:
+				panic("unexpected operator")
+			}
+		} else {
+			switch op {
+			case ast.OperatorLess:
+				condition = runtime.ConditionLess
+			case ast.OperatorLessEqual:
+				condition = runtime.ConditionLessEqual
+			case ast.OperatorGreater:
+				condition = runtime.ConditionGreater
+			case ast.OperatorGreaterEqual:
+				condition = runtime.ConditionGreaterEqual
+			default:
+				panic("unexpected operator")
+			}
+		}
 	}
-	pos := expr.Pos()
-	if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
-		em.fb.emitMove(true, 1, reg, reflect.Bool, false)
-		em.fb.emitIf(k, v1, cond, v2, t1.Kind(), pos)
-		em.fb.emitMove(true, 0, reg, reflect.Bool, false)
-		return reg, false
+	z := reg
+	directly := canEmitDirectly(kind, regType.Kind())
+	if !directly {
+		em.fb.enterStack()
+		z = em.fb.newRegister(kind)
 	}
-	em.fb.enterStack()
-	tmp := em.fb.newRegister(exprType.Kind())
-	em.fb.emitMove(true, 1, tmp, reflect.Bool, false)
-	em.fb.emitIf(k, v1, cond, v2, t1.Kind(), pos)
-	em.fb.emitMove(true, 0, tmp, reflect.Bool, false)
-	em.changeRegister(false, tmp, reg, exprType, dstType)
-	em.fb.exitStack()
-	return reg, false
+	em.fb.emitMove(true, 1, z, reflect.Bool, false)
+	em.fb.emitIf(ky, x, condition, y, t1.Kind(), pos)
+	em.fb.emitMove(true, 0, z, reflect.Bool, false)
+	if !directly {
+		em.changeRegister(false, z, reg, typ, regType)
+		em.fb.exitStack()
+	}
 
+	return
 }
 
 func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, dstType reflect.Type) (int8, bool) {
