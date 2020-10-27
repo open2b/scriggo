@@ -2344,7 +2344,11 @@ func (tc *typechecker) checkGlobalAssertion(expr *ast.GlobalAssertion) *typeInfo
 	// The global assertion evaluates to the value of x if the global
 	// identifier x exists and has type T.
 	if x, isGlobal := tc.globalScope[expr.Ident.Name]; isGlobal && x.t.Type == T.Type {
-		return tc.checkIdentifier(expr.Ident, true)
+		ti := tc.checkIdentifier(expr.Ident, true)
+		if ti.IsConstant() {
+			panic(tc.errorf(expr.Ident, "use of constants in global assertions still not supported (see https://github.com/open2b/scriggo/issues/674)"))
+		}
+		return ti
 	}
 
 	// The global assertion evaluates to the zero value of T.

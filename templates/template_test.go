@@ -1874,31 +1874,37 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "42",
 	},
 
-	"Global assertion - Global exists (it is a constant) and has a non-zero value": {
-		sources: map[string]string{
-			"index.html": `{{ nonZeroGlobal::(int) }}`,
-		},
-		main: &scriggo.MapPackage{
-			PkgName: "main",
-			Declarations: map[string]interface{}{
-				"nonZeroGlobal": 420,
-			},
-		},
-		expectedOut: "420",
-	},
+	//
+	//  See the issue https://github.com/open2b/scriggo/issues/674
+	//
+	// "Global assertion - Global exists (it is a constant) and has a non-zero value": {
+	// 	sources: map[string]string{
+	// 		"index.html": `{{ nonZeroGlobal::(int) }}`,
+	// 	},
+	// 	main: &scriggo.MapPackage{
+	// 		PkgName: "main",
+	// 		Declarations: map[string]interface{}{
+	// 			"nonZeroGlobal": 420,
+	// 		},
+	// 	},
+	// 	expectedOut: "420",
+	// },
 
-	"Global assertion - Evaluation of existing global variable is not addressable": {
-		sources: map[string]string{
-			"index.html": `{% nonZeroGlobal::(int) = 53 %}`,
-		},
-		main: &scriggo.MapPackage{
-			PkgName: "main",
-			Declarations: map[string]interface{}{
-				"nonZeroGlobal": 53,
-			},
-		},
-		expectedLoadErr: `cannot assign to nonZeroGlobal::(int)`,
-	},
+	//
+	//  See the issue https://github.com/open2b/scriggo/issues/674
+	//
+	// "Global assertion - A global constant must be evaluated as a non-constant": {
+	// 	sources: map[string]string{
+	// 		"index.html": `{% const _ = fortyTwo::(int) %}`,
+	// 	},
+	// 	main: &scriggo.MapPackage{
+	// 		PkgName: "main",
+	// 		Declarations: map[string]interface{}{
+	// 			"fortyTwo": 42,
+	// 		},
+	// 	},
+	// 	expectedLoadErr: "...",
+	// },
 
 	"Global assertion - Global exists (it is a variable) but has another type": {
 		sources: map[string]string{
