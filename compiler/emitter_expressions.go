@@ -438,44 +438,43 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, regType refl
 		return
 	}
 
-	// Emit code for arithmetic operations on integers.
-	// TODO(gianluca): also add reflect.Float64, excluding them from unsupported operations.
-	if kind == reflect.Int && (ast.OperatorAddition <= op && op <= ast.OperatorModulo ||
-		op == ast.OperatorLeftShift || op == ast.OperatorRightShift) {
-		z := reg
-		direct := canEmitDirectly(kind, regType.Kind())
-		if !direct {
-			em.fb.enterStack()
-			z = em.fb.newRegister(kind)
-		}
-		switch op {
-		case ast.OperatorAddition:
-			em.fb.emitAdd(ky, x, y, z, kind)
-		case ast.OperatorSubtraction:
-			em.fb.emitSub(ky, x, y, z, kind)
-		case ast.OperatorMultiplication:
-			em.fb.emitMul(ky, x, y, z, kind)
-		case ast.OperatorDivision:
-			em.fb.emitDiv(ky, x, y, z, kind, pos)
-		case ast.OperatorModulo:
-			em.fb.emitRem(ky, x, y, z, kind, pos)
-		case ast.OperatorLeftShift:
-			em.fb.emitShl(ky, x, y, z, kind)
-		case ast.OperatorRightShift:
-			em.fb.emitShr(ky, x, y, z, kind)
-		}
-		if !direct {
-			em.changeRegister(false, z, reg, typ, regType)
-			em.fb.exitStack()
-		}
-		return
-	}
-
-	// Emit code for arithmetic operations for the other types of operands.
+	// Emit code for arithmetic operations.
 	if ast.OperatorAddition <= op && op <= ast.OperatorModulo ||
 		op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
-		// TODO(gianluca): consider the removal of the temporary register, using 'reg'.
+
+		if kind == reflect.Int {
+			// TODO(gianluca): also add reflect.Float64.
+			z := reg
+			direct := canEmitDirectly(kind, regType.Kind())
+			if !direct {
+				em.fb.enterStack()
+				z = em.fb.newRegister(kind)
+			}
+			switch op {
+			case ast.OperatorAddition:
+				em.fb.emitAdd(ky, x, y, z, kind)
+			case ast.OperatorSubtraction:
+				em.fb.emitSub(ky, x, y, z, kind)
+			case ast.OperatorMultiplication:
+				em.fb.emitMul(ky, x, y, z, kind)
+			case ast.OperatorDivision:
+				em.fb.emitDiv(ky, x, y, z, kind, pos)
+			case ast.OperatorModulo:
+				em.fb.emitRem(ky, x, y, z, kind, pos)
+			case ast.OperatorLeftShift:
+				em.fb.emitShl(ky, x, y, z, kind)
+			case ast.OperatorRightShift:
+				em.fb.emitShr(ky, x, y, z, kind)
+			}
+			if !direct {
+				em.changeRegister(false, z, reg, typ, regType)
+				em.fb.exitStack()
+			}
+			return
+		}
+
 		em.fb.enterStack()
+		// TODO(gianluca): consider the removal of the allocation of register z using reg directly.
 		z := em.fb.newRegister(kind)
 		em.changeRegister(false, x, z, typ, typ)
 		switch op {
@@ -497,6 +496,7 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, regType refl
 		em.changeRegister(false, z, reg, typ, regType)
 		em.fb.exitStack()
 		return
+
 	}
 
 	// Emit code for comparison operators.
