@@ -440,7 +440,8 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, regType refl
 
 	// Emit code for arithmetic operations on integers.
 	// TODO(gianluca): also add reflect.Float64, excluding them from unsupported operations.
-	if kind == reflect.Int && ast.OperatorBitAnd <= op && op <= ast.OperatorRightShift {
+	if kind == reflect.Int && (ast.OperatorAddition <= op && op <= ast.OperatorModulo ||
+		op == ast.OperatorLeftShift || op == ast.OperatorRightShift) {
 		z := reg
 		direct := canEmitDirectly(kind, regType.Kind())
 		if !direct {
@@ -471,7 +472,8 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, regType refl
 	}
 
 	// Emit code for arithmetic operations for the other types of operands.
-	if ast.OperatorBitAnd <= op && op <= ast.OperatorRightShift {
+	if ast.OperatorAddition <= op && op <= ast.OperatorModulo ||
+		op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
 		// TODO(gianluca): consider the removal of the temporary register, using 'reg'.
 		em.fb.enterStack()
 		z := em.fb.newRegister(kind)
