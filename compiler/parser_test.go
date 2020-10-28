@@ -799,6 +799,14 @@ var treeTests = []struct {
 					ast.NewBasicLiteral(p(1, 12, 11, 11), ast.IntLiteral, "5"),
 				), nil, nil),
 		}, ast.LanguageHTML)},
+	{"{% if x::(T) %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewIf(&ast.Position{Line: 1, Column: 4, Start: 3, End: 20}, nil,
+				ast.NewGlobalAssertion(p(1, 7, 6, 11),
+					ast.NewIdentifier(p(1, 7, 6, 6), "x"),
+					ast.NewIdentifier(p(1, 11, 10, 10), "T"),
+				), nil, nil),
+		}, ast.LanguageHTML)},
 	{"{% for %}{% end %}",
 		ast.NewTree("", []ast.Node{
 			ast.NewFor(&ast.Position{Line: 1, Column: 4, Start: 3, End: 14}, nil, nil, nil, nil),
@@ -1483,7 +1491,7 @@ func TestShebang(t *testing.T) {
 
 func TestTrees(t *testing.T) {
 	for _, tree := range treeTests {
-		node, err := ParseTemplateSource([]byte(tree.src), ast.LanguageHTML, false)
+		node, err := ParseTemplateSource([]byte(tree.src), ast.LanguageHTML, true)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", tree.src, err)
 			continue
@@ -2459,6 +2467,20 @@ func equals(n1, n2 ast.Node, p int) error {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 		err := equals(nn1.Expr, nn2.Expr, p)
+		if err != nil {
+			return err
+		}
+		err = equals(nn1.Type, nn2.Type, p)
+		if err != nil {
+			return err
+		}
+
+	case *ast.GlobalAssertion:
+		nn2, ok := n2.(*ast.GlobalAssertion)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Ident, nn2.Ident, p)
 		if err != nil {
 			return err
 		}

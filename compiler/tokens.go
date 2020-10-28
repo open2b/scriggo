@@ -113,6 +113,7 @@ const (
 	tokenRelaxedAnd                        // and
 	tokenRelaxedNot                        // not
 	tokenRelaxedOr                         // or
+	tokenGlobalAssertion                   // ::
 )
 
 var tokenString = map[tokenTyp]string{
@@ -213,6 +214,7 @@ var tokenString = map[tokenTyp]string{
 	tokenRelaxedAnd:               "and",
 	tokenRelaxedNot:               "not",
 	tokenRelaxedOr:                "or",
+	tokenGlobalAssertion:          "::",
 }
 
 func (tt tokenTyp) String() string {

@@ -989,6 +989,9 @@ LOOP:
 			if len(l.src) > 1 && l.src[1] == '=' {
 				l.emit(tokenDeclaration, 2)
 				l.column += 2
+			} else if l.andOrNot && len(l.src) > 1 && l.src[1] == ':' {
+				l.emit(tokenGlobalAssertion, 2)
+				l.column += 2
 			} else {
 				l.emit(tokenColon, 1)
 				l.column++

@@ -281,6 +281,10 @@ func Walk(v Visitor, node ast.Node) {
 		*ast.Fallthrough:
 		// Nothing to do
 
+	case *ast.GlobalAssertion:
+		Walk(v, n.Ident)
+		Walk(v, n.Type)
+
 	default:
 		panic(fmt.Sprintf("No cases were defined for type %T on function Walk", n))
 	}
