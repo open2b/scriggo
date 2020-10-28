@@ -894,11 +894,11 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 		//   if x != 0
 		//   if 0 != x
 		//
-		if expr, op := em.comparisonWithZeroInteger(cond); expr != nil {
+		if expr := em.comparisonWithZeroInteger(cond); expr != nil {
 			typ := em.typ(expr)
 			x := em.emitExpr(expr, typ)
 			condition := runtime.ConditionZero
-			if op == ast.OperatorNotEqual {
+			if cond.Operator() == ast.OperatorNotEqual {
 				condition = runtime.ConditionNotZero
 			}
 			em.fb.emitIf(false, x, condition, 0, typ.Kind(), expr.Pos())

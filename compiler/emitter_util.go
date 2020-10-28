@@ -78,27 +78,25 @@ func (em *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, d
 
 }
 
-// comparisonWithZeroInteger returns the non-constant integer expression and the
-// binary operator if cond is a binary operator expression with one of the
-// following forms:
+// comparisonWithZeroInteger returns the non-constant integer expression if
+// cond is a binary operator expression with one of the following forms:
 //
 //    expr == 0
 //    0    == expr
 //    expr != 0
 //    0    != expr
 //
-// If the previous condition does not apply, nil and 0 are returned.
+// If the previous condition does not apply, nil is returned.
 //
-func (em *emitter) comparisonWithZeroInteger(cond *ast.BinaryOperator) (ast.Expression, ast.OperatorType) {
+func (em *emitter) comparisonWithZeroInteger(cond *ast.BinaryOperator) ast.Expression {
 
-	// The binary operator must be == or !=.
-	op := cond.Operator()
-	if op != ast.OperatorEqual && op != ast.OperatorNotEqual {
-		return nil, 0
+	// The operator must be == or !=.
+	if op := cond.Operator(); op != ast.OperatorEqual && op != ast.OperatorNotEqual {
+		return nil
 	}
 
-	// The binary operator must be a comparison between a constant and an
-	// expression (non constant).
+	// The operator must be a comparison between a constant and a non-constant
+	// expression.
 	var expr, constant ast.Expression
 	if ti2 := em.ti(cond.Expr2); ti2 != nil && ti2.IsConstant() {
 		constant = cond.Expr2
@@ -110,38 +108,33 @@ func (em *emitter) comparisonWithZeroInteger(cond *ast.BinaryOperator) (ast.Expr
 
 	// The expression can't be nil.
 	if expr == nil {
-		return nil, 0
+		return nil
 	}
 
 	// The expression must have an associated type info.
 	exprTi := em.ti(expr)
 	if exprTi == nil {
-		return nil, 0
+		return nil
 	}
 
 	// The expression type can't be nil.
-	exprType := exprTi.Type
-	if exprType == nil {
-		return nil, 0
+	if exprTi.Type == nil {
+		return nil
 	}
 
 	// The expression kind must be an integer.
-	if kind := exprType.Kind(); !(reflect.Int <= kind && kind <= reflect.Uintptr) {
-		return nil, 0
+	if k := exprTi.Type.Kind(); k < reflect.Int || k > reflect.Uintptr {
+		return nil
 	}
 
 	// The constant must be 0.
-	if constTi := em.ti(constant); constTi != nil && constTi.HasValue() {
-		i64, ok := constTi.value.(int64)
-		if ok {
-			if i64 != 0 {
-				return nil, 0
-			}
+	if ti := em.ti(constant); ti != nil && ti.HasValue() {
+		if i64, ok := ti.value.(int64); ok && i64 != 0 {
+			return nil
 		}
 	}
 
-	return expr, op
-
+	return expr
 }
 
 // compositeLiteralLen returns the length of a composite literal.
