@@ -2357,5 +2357,6 @@ func (tc *typechecker) checkGlobalAssertion(expr *ast.GlobalAssertion) *typeInfo
 	ph := tc.newPlaceholderFor(T.Type)
 	ti := tc.checkExpr(ph)
 	tc.compilation.typeInfos[expr.Ident] = ti
-	return ti
+
+	return &typeInfo{Type: T.Type}
 }

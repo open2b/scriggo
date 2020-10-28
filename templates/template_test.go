@@ -1978,6 +1978,46 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedLoadErr: `use of builtin cap not in function call`,
 	},
+
+	"Global assertion - Cannot use a declared global as untyped constant": {
+		sources: map[string]string{
+			"index.html": `{{ intGlobal::(int) + int8(3) }}`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"intGlobal": &([]int{5}[0]),
+			},
+		},
+		expectedLoadErr: "mismatched types int and int8",
+	},
+
+	"Global assertion - Cannot use a not declared global as untyped constant": {
+		sources: map[string]string{
+			"index.html": `{{ intGlobal::(int) + int8(3) }}`,
+		},
+		expectedLoadErr: "mismatched types int and int8",
+	},
+
+	"Global assertion - Cannot use declared global as constant": {
+		sources: map[string]string{
+			"index.html": `{% const _ = int8Global::(int8) %}`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"int8Global": &([]int8{127}[0]),
+			},
+		},
+		expectedLoadErr: "const initializer int8Global::(int8) is not a constant",
+	},
+
+	"Global assertion - Cannot use not declared global as constant": {
+		sources: map[string]string{
+			"index.html": `{% const _ =  int8Global::(int8) %}`,
+		},
+		expectedLoadErr: "const initializer int8Global::(int8) is not a constant",
+	},
 }
 
 var structWithUnexportedFields = &struct {
