@@ -76,7 +76,7 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 	}
 
 	packages := map[string]*packageType{}
-	for _, imp := range sf.imports {
+	for i, imp := range sf.imports {
 		if flags.v {
 			_, _ = fmt.Fprintf(os.Stderr, "%s\n", imp.path)
 		}
@@ -85,7 +85,7 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 			return err
 		}
 		if !refToImport {
-			explicitImports[len(explicitImports)-1].Name = "_"
+			explicitImports[i].Name = "_"
 		}
 		// No declarations at path: move on to next import path.
 		if len(decls) == 0 {
@@ -2293,6 +2293,10 @@ func isGoKeyword(s string) bool {
 
 // uniquePackageName generates an unique package name for every package path.
 func uniquePackageName(pkgPath string) string {
+
+	//if pkgPath == "time/tzdata" {
+	//	return "_"
+	//}
 
 	pkgName := filepath.Base(pkgPath)
 	done := false
