@@ -2294,10 +2294,6 @@ func isGoKeyword(s string) bool {
 // uniquePackageName generates an unique package name for every package path.
 func uniquePackageName(pkgPath string) string {
 
-	//if pkgPath == "time/tzdata" {
-	//	return "_"
-	//}
-
 	pkgName := filepath.Base(pkgPath)
 	done := false
 	for !done {
