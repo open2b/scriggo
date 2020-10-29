@@ -862,10 +862,14 @@ type DollarIdentifier struct {
 	*expression
 	*Position             // position in the source.
 	Ident     *Identifier // identifier.
+
+	IR struct {
+		Ident Expression
+	}
 }
 
 func NewDollarIdentifier(pos *Position, ident *Identifier) *DollarIdentifier {
-	return &DollarIdentifier{&expression{}, pos, ident}
+	return &DollarIdentifier{&expression{}, pos, ident, struct{ Ident Expression }{}}
 }
 
 func (n *DollarIdentifier) String() string {
