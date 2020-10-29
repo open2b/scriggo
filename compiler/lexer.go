@@ -939,6 +939,12 @@ LOOP:
 				l.column++
 			}
 			endLineAsSemicolon = false
+		case '$':
+			if l.andOrNot {
+				l.emit(tokenDollar, 1)
+				l.column++
+				endLineAsSemicolon = false
+			}
 		case '(':
 			l.emit(tokenLeftParenthesis, 1)
 			l.column++

@@ -807,6 +807,13 @@ var treeTests = []struct {
 					ast.NewIdentifier(p(1, 11, 10, 10), "T"),
 				), nil, nil),
 		}, ast.LanguageHTML)},
+	{"{% if $x %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewIf(&ast.Position{Line: 1, Column: 4, Start: 3, End: 16}, nil,
+				ast.NewDollarIdentifier(p(1, 7, 6, 7),
+					ast.NewIdentifier(p(1, 8, 7, 7), "x"),
+				), nil, nil),
+		}, ast.LanguageHTML)},
 	{"{% for %}{% end %}",
 		ast.NewTree("", []ast.Node{
 			ast.NewFor(&ast.Position{Line: 1, Column: 4, Start: 3, End: 14}, nil, nil, nil, nil),
@@ -1720,6 +1727,16 @@ func equals(n1, n2 ast.Node, p int) error {
 		}
 		if nn1.Name != nn2.Name {
 			return fmt.Errorf("unexpected %q, expecting %q", nn1.Name, nn2.Name)
+		}
+
+	case *ast.DollarIdentifier:
+		nn2, ok := n2.(*ast.DollarIdentifier)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Ident, nn2.Ident, p)
+		if err != nil {
+			return err
 		}
 
 	case *ast.BasicLiteral:

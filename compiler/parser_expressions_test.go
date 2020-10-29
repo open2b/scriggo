@@ -131,6 +131,11 @@ var exprTests = []struct {
 		),
 	)},
 
+	{"$a", ast.NewDollarIdentifier(p(1, 1, 0, 1), ast.NewIdentifier(p(1, 2, 1, 1), "a"))},
+	{"$a.(string)", ast.NewTypeAssertion(p(1, 3, 0, 10),
+		ast.NewDollarIdentifier(p(1, 1, 0, 1), ast.NewIdentifier(p(1, 2, 1, 1), "a")),
+		ast.NewIdentifier(p(1, 5, 4, 9), "string"))},
+
 	{"x::(T)", ast.NewGlobalAssertion(p(1, 1, 0, 5), ast.NewIdentifier(p(1, 1, 0, 0), "x"), ast.NewIdentifier(p(1, 5, 4, 4), "T"))},
 	{"x::(p.T)", ast.NewGlobalAssertion(p(1, 1, 0, 7), ast.NewIdentifier(p(1, 1, 0, 0), "x"), ast.NewSelector(p(1, 7, 6, 6),
 		ast.NewIdentifier(p(1, 5, 4, 4), "p"), "T"))},

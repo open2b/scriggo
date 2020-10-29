@@ -169,6 +169,7 @@ var typeTests = map[string][]tokenTyp{
 		tokenAmpersand, tokenIdentifier, tokenLeftParenthesis, tokenInt, tokenRightParenthesis, tokenEndValue},
 	"{{ *a }}":              {tokenStartValue, tokenMultiplication, tokenIdentifier, tokenEndValue},
 	"{{ []*int{} }}":        {tokenStartValue, tokenLeftBrackets, tokenRightBrackets, tokenMultiplication, tokenIdentifier, tokenLeftBraces, tokenRightBraces, tokenEndValue},
+	"{{ $a }}":              {tokenStartValue, tokenDollar, tokenIdentifier, tokenEndValue},
 	"{{ a[\"5\"] }}":        {tokenStartValue, tokenIdentifier, tokenLeftBrackets, tokenInterpretedString, tokenRightBrackets, tokenEndValue},
 	"{{ a[:] }}":            {tokenStartValue, tokenIdentifier, tokenLeftBrackets, tokenColon, tokenRightBrackets, tokenEndValue},
 	"{{ a[:8] }}":           {tokenStartValue, tokenIdentifier, tokenLeftBrackets, tokenColon, tokenInt, tokenRightBrackets, tokenEndValue},

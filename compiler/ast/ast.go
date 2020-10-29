@@ -857,6 +857,21 @@ func (n *Identifier) String() string {
 	return n.Name
 }
 
+// DollarIdentifier node represents a dollar identifier $id.
+type DollarIdentifier struct {
+	*expression
+	*Position             // position in the source.
+	Ident     *Identifier // identifier.
+}
+
+func NewDollarIdentifier(pos *Position, ident *Identifier) *DollarIdentifier {
+	return &DollarIdentifier{&expression{}, pos, ident}
+}
+
+func (n *DollarIdentifier) String() string {
+	return "$" + n.Ident.String()
+}
+
 // Operator represents an operator expression. It is implemented by
 // the nodes UnaryOperator and BinaryOperator.
 type Operator interface {
