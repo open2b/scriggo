@@ -265,6 +265,9 @@ func Walk(v Visitor, node ast.Node) {
 	case *ast.Continue:
 		Walk(v, n.Label)
 
+	case *ast.DollarIdentifier:
+		Walk(v, n.Ident)
+
 	case *ast.Extends:
 	case *ast.Import:
 	case *ast.ShowPartial:

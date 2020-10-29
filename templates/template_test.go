@@ -2018,6 +2018,126 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedLoadErr: "const initializer int8Global::(int8) is not a constant",
 	},
+
+	"Dollar identifier - Referencing to a global variable that does not exist": {
+		sources: map[string]string{
+			"index.html": `{% var _ interface{} = $notExisting %}{{ $notExisting2 == nil }}`,
+		},
+		expectedOut: "true",
+	},
+
+	"Dollar identifier - Referencing to a global variable that exists": {
+		sources: map[string]string{
+			"index.html": `{{ $forthyTwo }}`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"forthyTwo": &([]int8{42}[0]),
+			},
+		},
+		expectedOut: "42",
+	},
+
+	"Dollar identifier - Type assertion on a global variable that exists (1)": {
+		sources: map[string]string{
+			"index.html": `{{ $forthyThree.(int) }}`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"forthyThree": &([]int{43}[0]),
+			},
+		},
+		expectedOut: "43",
+	},
+
+	"Dollar identifier - Type assertion on a global variable that exists (2)": {
+		sources: map[string]string{
+			"index.html": `{% var n, ok = $forthyThree.(int) %}{{ n * 32 }}{{ ok }}`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"forthyThree": &([]int{42}[0]),
+			},
+		},
+		expectedOut: "1344true",
+	},
+
+	"Dollar identifier - Cannot use an type": {
+		sources: map[string]string{
+			"index.html": `{% _ = $int %}`,
+		},
+		expectedLoadErr: `unexpected type in dollar identifier`,
+	},
+
+	"Dollar identifier - Cannot use a Go builtin": {
+		sources: map[string]string{
+			"index.html": `{% _ = $println %}`,
+		},
+		expectedLoadErr: `use of builtin println not in function call`,
+	},
+
+	"Dollar identifier - Cannot use a local identifier": {
+		sources: map[string]string{
+			"index.html": `{% var local = 10 %}{% _ = $local %}`,
+		},
+		expectedLoadErr: `use of local identifier within dollar identifier`,
+	},
+
+	"Dollar identifier - Cannot take the address (variable exists)": {
+		sources: map[string]string{
+			"index.html": `{% _ = &($fortyTwo) %}`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"forthyTwo": &([]int8{42}[0]),
+			},
+		},
+		expectedLoadErr: `cannot take the address of $fortyTwo`,
+	},
+
+	"Dollar identifier - Cannot take the address (variable does not exist)": {
+		sources: map[string]string{
+			"index.html": `{% _ = &($notExisting) %}`,
+		},
+		expectedLoadErr: `cannot take the address of $notExisting`,
+	},
+
+	"Dollar identifier - Cannot assign to dollar identifier (variable exists)": {
+		sources: map[string]string{
+			"index.html": `{% $fortyTwo = 43 %}`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"forthyTwo": &([]int8{42}[0]),
+			},
+		},
+		expectedLoadErr: `cannot assign to $fortyTwo`,
+	},
+
+	"Dollar identifier - Cannot assign to dollar identifier (variable does not exist)": {
+		sources: map[string]string{
+			"index.html": `{% $notExisting = 43 %}`,
+		},
+		expectedLoadErr: `cannot assign to $notExisting`,
+	},
+
+	"Dollar identifier - Referencing to a constant returns a non-constant": {
+		sources: map[string]string{
+			"index.html": `{% const _ = $constant %}`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"constant": 42,
+			},
+		},
+		expectedLoadErr: `const initializer $constant is not a constant`,
+	},
 }
 
 var structWithUnexportedFields = &struct {

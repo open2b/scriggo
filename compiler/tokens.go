@@ -113,6 +113,7 @@ const (
 	tokenRelaxedAnd                        // and
 	tokenRelaxedNot                        // not
 	tokenRelaxedOr                         // or
+	tokenDollar                            // $
 	tokenGlobalAssertion                   // ::
 )
 
@@ -214,6 +215,7 @@ var tokenString = map[tokenTyp]string{
 	tokenRelaxedAnd:               "and",
 	tokenRelaxedNot:               "not",
 	tokenRelaxedOr:                "or",
+	tokenDollar:                   "$",
 	tokenGlobalAssertion:          "::",
 }
 

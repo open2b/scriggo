@@ -354,6 +354,9 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 		}
 		return ast.NewCompositeLiteral(ClonePosition(e.Pos()), CloneExpression(e.Type), keyValues)
 
+	case *ast.DollarIdentifier:
+		expr2 = ast.NewDollarIdentifier(ClonePosition(e.Position), CloneExpression(e.Ident).(*ast.Identifier))
+
 	case *ast.Func:
 		var ident *ast.Identifier
 		if e.Ident != nil {
