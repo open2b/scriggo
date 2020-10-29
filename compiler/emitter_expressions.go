@@ -245,9 +245,6 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 		em.changeRegister(false, tmp, reg, ti.Type, dstType)
 
-	case *ast.GlobalAssertion:
-		return em._emitExpr(expr.Ident, dstType, reg, useGivenReg, allowK)
-
 	case *ast.Identifier:
 
 		// An identifier evaluation cannot have side effects.

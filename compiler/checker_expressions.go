@@ -694,9 +694,6 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		tc.exitScope()
 		return &typeInfo{Type: t.Type}
 
-	case *ast.GlobalAssertion:
-		return tc.checkGlobalAssertion(expr)
-
 	case *ast.Call:
 		types, _, _ := tc.checkCallExpression(expr)
 		if len(types) == 0 {
@@ -2320,48 +2317,6 @@ func (tc *typechecker) isCompileConstant(expr ast.Expression) bool {
 		return expr.Op != ast.OperatorReceive && tc.isCompileConstant(expr.Expr)
 	}
 	return true
-}
-
-// checkGlobalAssertion type checks a global assertion x::(T), returning the
-// corresponding type info.
-func (tc *typechecker) checkGlobalAssertion(expr *ast.GlobalAssertion) *typeInfo {
-
-	if ti, ok := tc.lookupScopes(expr.Ident.Name, false); ok {
-		// Check that x is not a Go builtin function.
-		if ti.IsBuiltinFunction() {
-			panic(tc.errorf(expr.Ident, "use of builtin %s not in function call", expr.Ident))
-		}
-		// Check that x is not a type.
-		if ti.IsType() {
-			panic(tc.errorf(expr.Ident, "unexpected type on left side of global assertion"))
-		}
-		// Check that x is not a local identifier.
-		if tc.isLocallyDeclared(expr.Ident.Name) {
-			panic(tc.errorf(expr, "use of a local identifier %s within global assertion", expr.Ident))
-		}
-	}
-
-	// Check the type of T.
-	T := tc.checkType(expr.Type)
-
-	// The global assertion evaluates to the value of x if the global
-	// identifier x exists and has type T.
-	if x, isGlobal := tc.globalScope[expr.Ident.Name]; isGlobal && x.t.Type == T.Type {
-		ti := tc.checkIdentifier(expr.Ident, true)
-		if ti.IsConstant() {
-			panic(tc.errorf(expr.Ident, "use of constants in global assertions still not supported (see https://github.com/open2b/scriggo/issues/674)"))
-		}
-		// Remove the property addressable, if present.
-		ti.Properties &^= propertyAddressable
-		return ti
-	}
-
-	// The global assertion evaluates to the zero value of T.
-	ph := tc.newPlaceholderFor(T.Type)
-	ti := tc.checkExpr(ph)
-	tc.compilation.typeInfos[expr.Ident] = ti
-
-	return &typeInfo{Type: T.Type}
 }
 
 // checkDollarIdentifier type checks a dollar identifier $x.
