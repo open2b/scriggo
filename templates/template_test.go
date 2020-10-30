@@ -1953,6 +1953,45 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedLoadErr: `const initializer $constant is not a constant`,
 	},
+
+	"https://github.com/open2b/scriggo/issues/679 (1)": {
+		sources: map[string]string{
+			"index.html": `{% global := interface{}(global) %}ok`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"global": &[]string{"ciao"},
+			},
+		},
+		expectedOut: "ok",
+	},
+
+	"https://github.com/open2b/scriggo/issues/679 (2)": {
+		sources: map[string]string{
+			"index.html": `{% var global = interface{}(global) %}ok`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"global": &[]string{},
+			},
+		},
+		expectedOut: "ok",
+	},
+
+	"https://github.com/open2b/scriggo/issues/679 (3)": {
+		sources: map[string]string{
+			"index.html": `{% _ = []int{} %}{% global := interface{}(global) %}ok`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"global": &[]string{},
+			},
+		},
+		expectedOut: "ok",
+	},
 }
 
 var structWithUnexportedFields = &struct {

@@ -490,6 +490,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 	// Emit a short declaration.
 	if node.Type == ast.AssignmentDeclaration {
 		addresses := make([]address, len(node.Lhs))
+		varsToBind := make(map[string]int8, len(node.Lhs))
 		for i, v := range node.Lhs {
 			pos := v.Pos()
 			if isBlankIdentifier(v) {
@@ -501,16 +502,19 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			// Declare an indirect local variable.
 			if em.varStore.mustBeDeclaredAsIndirect(v) {
 				varr := em.fb.newIndirectRegister()
-				em.fb.bindVarReg(v.Name, varr)
+				varsToBind[v.Name] = varr
 				addresses[i] = em.addressNewIndirectVar(varr, varType, pos, node.Type)
 				continue
 			}
 			// Declare a local variable.
 			varr := em.fb.newRegister(varType.Kind())
-			em.fb.bindVarReg(v.Name, varr)
+			varsToBind[v.Name] = varr
 			addresses[i] = em.addressLocalVar(varr, varType, pos, node.Type)
 		}
 		em.assignValuesToAddresses(addresses, node.Rhs)
+		for name, reg := range varsToBind {
+			em.fb.bindVarReg(name, reg)
+		}
 		return
 	}
 
