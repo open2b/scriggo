@@ -558,7 +558,12 @@ func (vm *VM) run() (Addr, bool) {
 			vm.pc = Addr(decodeUint24(a, b, c))
 
 		// If
-		case OpIf:
+		case OpIf, -OpIf:
+			if op < 0 {
+				// See issues https://github.com/open2b/scriggo/issues/358
+				// and https://github.com/open2b/scriggo/issues/489.
+				continue
+			}
 			var cond bool
 			switch Condition(b) {
 			case ConditionOK, ConditionNotOK:
