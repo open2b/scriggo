@@ -1001,8 +1001,8 @@ func (tc *typechecker) checkIndex(expr ast.Expression, t *typeInfo, isSlice bool
 	return nil
 }
 
-// binaryOp executes the binary expression t1 op t2 and returns its result.
-// Returns an error if the operation can not be executed.
+// binaryOp type checks the binary expression t1 op t2 and returns its type
+// info. Returns an error if the operation can not be executed.
 func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2 ast.Expression) (*typeInfo, error) {
 
 	t1 := tc.checkExpr(expr1)
