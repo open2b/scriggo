@@ -183,66 +183,61 @@ func (ti *typeInfo) HasValue() bool {
 	return ti.Properties&propertyHasValue != 0
 }
 
-// setValue sets the 'value' and 'valueType' fields of 'ti' if this is constant.
-// If ti is not constant, setValue is a no-op.
+// setValue sets the value field with the ti's constant represented with the
+// type typ. If typ is nil or is an interface type, the constant is
+// represented with the type of ti. The valueType field is set with the type
+// of value.
 //
-// This method should be called at every point where a constant expression is
-// used in a non-constant expression or in a statement.
+// If ti is not a constant, setValue does nothing. setValue panics if ti
+// represents the predefined nil.
 //
-// The type of 'value' is determined in the following way:
+// setValue is called at every point where a constant expression is used in a
+// non-constant expression or in a statement. The following examples clarify
+// the use of this method:
 //
-//      - if a ctxType is given, the value takes type from the context. This is the
-//      case, for example, of integer constants assigned to float numbers. As a special case,
-//      if context type is interface the type of ti is used.
+//   var i int64 = 20     call setValue on '20'    ctxType = int
+//   x + 3                call setValue on '3'     ctxType = typeof(x)
+//   x + y                no need to call setValue
 //
-//      - if ctxType is nil, the value is implicitly taken from ti. This is the case
-//      of a context that does not provide an explicit type, as a variable
-//      declaration without type.
-//
-// The following examples should clarify the use of this method:
-//
-// 		var i int64 = 20     call setValue on '20'    ctxType = int
-//      x + 3                call setValue on '3'     ctxType = typeof(x)
-//      x + y                no need to call setValue
-//
-func (ti *typeInfo) setValue(ctxType reflect.Type) {
-	typ := ctxType
-	if ctxType == nil || ctxType.Kind() == reflect.Interface {
-		typ = ti.Type
+func (ti *typeInfo) setValue(typ reflect.Type) {
+	if ti.Nil() {
+		panic("setValue called on the predeclared nil")
 	}
-	if ti.IsConstant() {
-		switch typ.Kind() {
-		case reflect.Bool:
-			if ti.Constant.bool() {
-				ti.value = int64(1)
-			} else {
-				ti.value = int64(0)
-			}
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			ti.value = ti.Constant.int64()
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-			ti.value = int64(int(ti.Constant.uint64()))
-		case reflect.Float32, reflect.Float64:
-			ti.value = ti.Constant.float64()
-		case reflect.Complex64, reflect.Complex128:
-			switch c := ti.Constant.complex128(); typ {
-			case complex64Type:
-				ti.value = complex64(c)
-			case complex128Type:
-				ti.value = c
-			default:
-				rv := reflect.New(typ).Elem()
-				rv.SetComplex(c)
-				ti.value = rv.Interface()
-			}
-		case reflect.String:
-			ti.value = ti.Constant.string()
-		}
-		ti.valueType = typ
-		ti.Properties |= propertyHasValue
+	if !ti.IsConstant() {
 		return
 	}
-	if ti.Nil() {
-		panic("BUG: cannot call method setValue on a type info representing the predeclared nil") // remove.
+	ti.Properties |= propertyHasValue
+	ti.valueType = ti.Type
+	if typ != nil && typ.Kind() != reflect.Interface {
+		ti.valueType = typ
 	}
+	switch ti.valueType.Kind() {
+	case reflect.Bool:
+		if ti.Constant.bool() {
+			ti.value = int64(1)
+		} else {
+			ti.value = int64(0)
+		}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		ti.value = ti.Constant.int64()
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		ti.value = int64(int(ti.Constant.uint64()))
+	case reflect.Float32, reflect.Float64:
+		ti.value = ti.Constant.float64()
+	case reflect.Complex64, reflect.Complex128:
+		c := ti.Constant.complex128()
+		switch ti.valueType {
+		case complex64Type:
+			ti.value = complex64(c)
+		case complex128Type:
+			ti.value = c
+		default:
+			rv := reflect.New(ti.valueType).Elem()
+			rv.SetComplex(c)
+			ti.value = rv.Interface()
+		}
+	case reflect.String:
+		ti.value = ti.Constant.string()
+	}
+	return
 }
