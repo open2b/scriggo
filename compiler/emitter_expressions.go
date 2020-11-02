@@ -546,6 +546,27 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, regType refl
 			}
 		}
 	}
+	// If an operand has interface type and the other operand
+	// is not in a general register, typify the other operand.
+	ifKind := t1.Kind()
+	var typify bool
+	if t1.Kind() == reflect.Interface {
+		if typify = kindToType(t2.Kind()) != generalRegister; typify {
+			em.fb.enterStack()
+			g := em.fb.newRegister(reflect.Interface)
+			em.fb.emitTypify(ky, t2, y, g)
+			y = g
+			ky = false
+		}
+	} else if t2.Kind() == reflect.Interface {
+		if typify = kindToType(t1.Kind()) != generalRegister; typify {
+			em.fb.enterStack()
+			g := em.fb.newRegister(reflect.Interface)
+			em.fb.emitTypify(false, t1, x, g)
+			x = g
+			ifKind = reflect.Interface
+		}
+	}
 	z := reg
 	directly := canEmitDirectly(kind, regType.Kind())
 	if !directly {
@@ -553,10 +574,13 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, regType refl
 		z = em.fb.newRegister(kind)
 	}
 	em.fb.emitMove(true, 1, z, reflect.Bool, false)
-	em.fb.emitIf(ky, x, condition, y, t1.Kind(), pos)
+	em.fb.emitIf(ky, x, condition, y, ifKind, pos)
 	em.fb.emitMove(true, 0, z, reflect.Bool, false)
 	if !directly {
 		em.changeRegister(false, z, reg, typ, regType)
+		em.fb.exitStack()
+	}
+	if typify {
 		em.fb.exitStack()
 	}
 
