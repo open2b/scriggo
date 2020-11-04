@@ -286,7 +286,12 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 
 			dontEatLeftBraces := tok.typ == tokenLeftBraces && nextIsBlockBrace && !canCompositeLiteral
 			if dontEatLeftBraces || mustBeType {
-				operand = addLastOperand(operand, path)
+				if len(path) > 0 {
+					if operand == nil {
+						panic(syntaxError(tok.pos, "unexpected {, expecting expression"))
+					}
+					operand = addLastOperand(operand, path)
+				}
 				return operand, tok
 			}
 
@@ -445,7 +450,9 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				if mustBeSwitchGuard && !isTypeGuard(operand) {
 					panic(syntaxError(tok.pos, "use of .(type) outside type switch"))
 				}
-				operand = addLastOperand(operand, path)
+				if len(path) > 0 {
+					operand = addLastOperand(operand, path)
+				}
 				return operand, tok
 			}
 
@@ -545,9 +552,6 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 // addLastOperand adds the last operand to the expression parsing path and
 // returns the operand resulting from the parsing of the entire expression.
 func addLastOperand(op ast.Expression, path []ast.Operator) ast.Expression {
-	if len(path) == 0 {
-		return op
-	}
 	// Add the operand as a child of the leaf operator.
 	switch leaf := path[len(path)-1].(type) {
 	case *ast.UnaryOperator:
