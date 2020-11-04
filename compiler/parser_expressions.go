@@ -286,9 +286,6 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 
 			dontEatLeftBraces := tok.typ == tokenLeftBraces && nextIsBlockBrace && !canCompositeLiteral
 			if dontEatLeftBraces || mustBeType {
-				if operand == nil {
-					panic(syntaxError(tok.pos, "unexpected {, expecting expression"))
-				}
 				operand = addLastOperand(operand, path)
 				return operand, tok
 			}
