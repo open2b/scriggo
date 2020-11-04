@@ -305,6 +305,10 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 			deps = append(deps, nodeDeps(out.Type, scopes)...)
 		}
 		return deps
+	case *ast.DollarIdentifier:
+		// A valid dollar identifier can at most depend upon global
+		// identifiers, so it is not considered in the dependency analysis.
+		return nil
 	case *ast.Go:
 		return nodeDeps(n.Call, scopes)
 	case *ast.Goto:

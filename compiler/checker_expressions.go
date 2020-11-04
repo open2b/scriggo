@@ -2336,6 +2336,12 @@ func (tc *typechecker) checkDollarIdentifier(expr *ast.DollarIdentifier) *typeIn
 		if tc.isLocallyDeclared(expr.Ident.Name) {
 			panic(tc.errorf(expr, "use of local identifier within dollar identifier"))
 		}
+		// Check that x is not declared in the file/package block, that
+		// contains, for example, the variable declarations at the top level of
+		// an imported or extending file.
+		if tc.isDeclaredInFilePackageBlock(expr.Ident.Name) {
+			panic(tc.errorf(expr, "use of top-level identifier within dollar identifier"))
+		}
 	}
 
 	// Set the IR of the expression.

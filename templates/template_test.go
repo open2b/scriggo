@@ -1992,6 +1992,36 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: "ok",
 	},
+
+	"Dollar identifier referring to package declaration in imported file": {
+		sources: map[string]string{
+			"index.html":    `{% import "imported.html" %}`,
+			"imported.html": `{% var X = 10 %}{% var _ = $X %}`,
+		},
+		expectedLoadErr: `use of top-level identifier within dollar identifier`,
+	},
+
+	"Dollar identifier referring to package declaration in extending file": {
+		sources: map[string]string{
+			"index.html":    `{% extends "extended.html" %}{% var X = 10 %}{% var _ = $X %}`,
+			"extended.html": ``,
+		},
+		expectedLoadErr: `use of top-level identifier within dollar identifier`,
+	},
+
+	"https://github.com/open2b/scriggo/issues/680 - Import": {
+		sources: map[string]string{
+			"index.html":    `{% import "imported.html" %}`,
+			"imported.html": `{% var x = $global %}`,
+		},
+	},
+
+	"https://github.com/open2b/scriggo/issues/680 - Extends": {
+		sources: map[string]string{
+			"index.html":    `{% extends "extended.html" %}{% var x = $global %}`,
+			"extended.html": ``,
+		},
+	},
 }
 
 var structWithUnexportedFields = &struct {
