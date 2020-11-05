@@ -93,7 +93,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					if len(inits) > 0 && !em.alreadyInitializedTemplatePkgs[node.Tree.Path] {
 						for _, initFunc := range inits {
 							index := em.fb.addFunction(initFunc)
-							em.fb.emitCall(int8(index), runtime.StackShift{}, nil)
+							em.fb.emitCall(int8(index), em.fb.currentStackShift(), nil)
 						}
 						em.alreadyInitializedTemplatePkgs[node.Path] = true
 					}

@@ -2022,6 +2022,23 @@ var templateMultiPageCases = map[string]struct {
 			"extended.html": ``,
 		},
 	},
+
+	"Panic after importing file that declares a variable in general register (1)": {
+		sources: map[string]string{
+			"index.html":    `before{% import "imported.html" %}after`,
+			"imported.html": `{% var a []int %}`,
+		},
+		expectedOut: "beforeafter",
+	},
+
+	"Panic after importing file that declares a variable in general register (2)": {
+		sources: map[string]string{
+			"index.html":     `a{% import "imported1.html" %}{% import "imported2.html" %}b`,
+			"imported1.html": `{% var X []int %}`,
+			"imported2.html": `{% var Y []string %}`,
+		},
+		expectedOut: "ab",
+	},
 }
 
 var structWithUnexportedFields = &struct {
