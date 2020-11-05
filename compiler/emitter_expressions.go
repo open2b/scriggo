@@ -554,7 +554,7 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, regType refl
 		if typify = kindToType(t2.Kind()) != generalRegister; typify {
 			em.fb.enterStack()
 			g := em.fb.newRegister(reflect.Interface)
-			em.fb.emitTypify(ky, t2, y, g)
+			em.changeRegister(ky, y, g, t2, t1)
 			y = g
 			ky = false
 		}
@@ -562,7 +562,7 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, regType refl
 		if typify = kindToType(t1.Kind()) != generalRegister; typify {
 			em.fb.enterStack()
 			g := em.fb.newRegister(reflect.Interface)
-			em.fb.emitTypify(false, t1, x, g)
+			em.changeRegister(false, x, g, t1, t2)
 			x = g
 			ifKind = reflect.Interface
 		}
