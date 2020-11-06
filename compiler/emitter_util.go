@@ -421,3 +421,70 @@ func (em *emitter) emitValueNotPredefined(ti *typeInfo, reg int8, dstType reflec
 	}
 	return reg, false
 }
+
+// emitComparison emits the comparison expression x op y as a sequence of
+// instructions where the last one is an 'if' instruction. ky indicates if y
+// is a constant.
+func (em *emitter) emitComparison(op ast.OperatorType, ky bool, x, y int8, tx, ty reflect.Type, pos *ast.Position) {
+	var condition runtime.Condition
+	switch op {
+	case ast.OperatorEqual:
+		condition = runtime.ConditionEqual
+	case ast.OperatorNotEqual:
+		condition = runtime.ConditionNotEqual
+	default:
+		k := tx.Kind()
+		if reflect.Uint <= k && k <= reflect.Uintptr {
+			switch op {
+			case ast.OperatorLess:
+				condition = runtime.ConditionLessU
+			case ast.OperatorLessEqual:
+				condition = runtime.ConditionLessEqualU
+			case ast.OperatorGreater:
+				condition = runtime.ConditionGreaterU
+			case ast.OperatorGreaterEqual:
+				condition = runtime.ConditionGreaterEqualU
+			default:
+				panic("unexpected operator")
+			}
+		} else {
+			switch op {
+			case ast.OperatorLess:
+				condition = runtime.ConditionLess
+			case ast.OperatorLessEqual:
+				condition = runtime.ConditionLessEqual
+			case ast.OperatorGreater:
+				condition = runtime.ConditionGreater
+			case ast.OperatorGreaterEqual:
+				condition = runtime.ConditionGreaterEqual
+			default:
+				panic("unexpected operator")
+			}
+		}
+	}
+	// If an operand has interface type and the other operand
+	// is not in a general register, typify the other operand.
+	ifKind := tx.Kind()
+	var typify bool
+	if tx.Kind() == reflect.Interface {
+		if typify = kindToType(ty.Kind()) != generalRegister; typify {
+			em.fb.enterStack()
+			g := em.fb.newRegister(reflect.Interface)
+			em.changeRegister(ky, y, g, ty, tx)
+			y = g
+			ky = false
+		}
+	} else if ty.Kind() == reflect.Interface {
+		if typify = kindToType(tx.Kind()) != generalRegister; typify {
+			em.fb.enterStack()
+			g := em.fb.newRegister(reflect.Interface)
+			em.changeRegister(false, x, g, tx, ty)
+			x = g
+			ifKind = reflect.Interface
+		}
+	}
+	em.fb.emitIf(ky, x, condition, y, ifKind, pos)
+	if typify {
+		em.fb.exitStack()
+	}
+}

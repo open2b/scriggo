@@ -998,47 +998,12 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 		//   if x >  y
 		//   if x >= y
 		//
-		t1 := em.typ(cond.Expr1)
-		t2 := em.typ(cond.Expr2)
-		if kind := t1.Kind(); kind == t2.Kind() && reflect.Int <= kind && kind <= reflect.Float64 {
+		if ast.OperatorEqual <= cond.Op && cond.Op <= ast.OperatorGreaterEqual {
+			t1 := em.typ(cond.Expr1)
+			t2 := em.typ(cond.Expr2)
 			x := em.emitExpr(cond.Expr1, t1)
 			y, ky := em.emitExprK(cond.Expr2, t2)
-			var condition runtime.Condition
-			switch cond.Operator() {
-			case ast.OperatorEqual:
-				condition = runtime.ConditionEqual
-			case ast.OperatorNotEqual:
-				condition = runtime.ConditionNotEqual
-			default:
-				if reflect.Uint <= kind && kind <= reflect.Uintptr {
-					switch cond.Operator() {
-					case ast.OperatorLess:
-						condition = runtime.ConditionLessU
-					case ast.OperatorLessEqual:
-						condition = runtime.ConditionLessEqualU
-					case ast.OperatorGreater:
-						condition = runtime.ConditionGreaterU
-					case ast.OperatorGreaterEqual:
-						condition = runtime.ConditionGreaterEqualU
-					default:
-						panic("unexpected operator")
-					}
-				} else {
-					switch cond.Operator() {
-					case ast.OperatorLess:
-						condition = runtime.ConditionLess
-					case ast.OperatorLessEqual:
-						condition = runtime.ConditionLessEqual
-					case ast.OperatorGreater:
-						condition = runtime.ConditionGreater
-					case ast.OperatorGreaterEqual:
-						condition = runtime.ConditionGreaterEqual
-					default:
-						panic("unexpected operator")
-					}
-				}
-			}
-			em.fb.emitIf(ky, x, condition, y, kind, cond.Pos())
+			em.emitComparison(cond.Operator(), ky, x, y, t1, t2, cond.Pos())
 			return
 		}
 
