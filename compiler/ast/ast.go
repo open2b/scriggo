@@ -714,43 +714,17 @@ func NewMacro(pos *Position, name *Identifier, typ *FuncType, body []Node, ctx C
 	return &Macro{pos, name, typ, body, nil, ctx}
 }
 
-// ShowMacroOr specifies behavior when macro is not defined.
-type ShowMacroOr int8
-
-const (
-	// ShowMacroOrIgnore ignores if not defined.
-	ShowMacroOrIgnore ShowMacroOr = iota
-	// ShowMacroOrTodo returns error if compiled with "fail on todo" option.
-	ShowMacroOrTodo
-	// ShowMacroOrError is the default behavior: returns an error.
-	ShowMacroOrError
-)
-
-func (s ShowMacroOr) String() string {
-	switch s {
-	case ShowMacroOrIgnore:
-		return "ShowMacroOrIgnore"
-	case ShowMacroOrTodo:
-		return "ShowMacroOrTodo"
-	case ShowMacroOrError:
-		return "ShowMacroOrError"
-	default:
-		panic("not defined")
-	}
-}
-
 // ShowMacro node represents a statement {% show <macro> %}.
 type ShowMacro struct {
 	*Position               // position in the source.
 	Macro      Expression   // macro.
 	Args       []Expression // arguments.
 	IsVariadic bool         // reports whether it is variadic.
-	Or         ShowMacroOr  // when macro is not defined.
 	Context    Context      // context.
 }
 
-func NewShowMacro(pos *Position, macro Expression, args []Expression, isVariadic bool, or ShowMacroOr, ctx Context) *ShowMacro {
-	return &ShowMacro{Position: pos, Macro: macro, Args: args, IsVariadic: isVariadic, Or: or, Context: ctx}
+func NewShowMacro(pos *Position, macro Expression, args []Expression, isVariadic bool, ctx Context) *ShowMacro {
+	return &ShowMacro{Position: pos, Macro: macro, Args: args, IsVariadic: isVariadic, Context: ctx}
 }
 
 // ShowPartial node represents a statement {% show <path> %}.

@@ -7,7 +7,6 @@
 package compiler
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"unicode"
@@ -29,13 +28,6 @@ var (
 	// ErrNotExist is returned from the ParseTemplate function when when the path
 	// argument does not exist.
 	ErrNotExist = errors.New("scriggo: path does not exist")
-)
-
-var (
-	orIdent     = []byte("or")
-	ignoreIdent = []byte("ignore")
-	todoIdent   = []byte("todo")
-	errorIdent  = []byte("error")
 )
 
 // SyntaxError records a parsing error with the path and the position where the
@@ -921,30 +913,11 @@ LABEL:
 			pos.End = tok.pos.End
 			tok = p.next()
 		}
-		or := ast.ShowMacroOrError
-		if tok.typ == tokenIdentifier && bytes.Equal(tok.txt, orIdent) {
-			tok = p.next()
-			if tok.typ != tokenIdentifier {
-				panic(syntaxError(tok.pos, "unexpected %s after or in show macro, expecting ignore, todo or error", tok))
-			}
-			switch {
-			case bytes.Equal(tok.txt, ignoreIdent):
-				or = ast.ShowMacroOrIgnore
-			case bytes.Equal(tok.txt, todoIdent):
-				or = ast.ShowMacroOrTodo
-			case bytes.Equal(tok.txt, errorIdent):
-				or = ast.ShowMacroOrError
-			default:
-				panic(syntaxError(tok.pos, "unexpected %s after or in show macro, expecting ignore, todo or error", tok))
-			}
-			pos.End = tok.pos.End
-			tok = p.next()
-		}
 		var node ast.Node
 		if impor == nil {
-			node = ast.NewShowMacro(pos, macro, args, isVariadic, or, tok.ctx)
+			node = ast.NewShowMacro(pos, macro, args, isVariadic, tok.ctx)
 		} else {
-			node = ast.NewShowMacro(pos, ast.NewSelector(macro.Pos(), impor, macro.Name), args, isVariadic, or, tok.ctx)
+			node = ast.NewShowMacro(pos, ast.NewSelector(macro.Pos(), impor, macro.Name), args, isVariadic, tok.ctx)
 		}
 		p.addChild(node)
 		p.cutSpacesToken = true

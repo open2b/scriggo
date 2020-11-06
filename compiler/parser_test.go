@@ -1238,26 +1238,13 @@ var treeTests = []struct {
 		ast.NewAssignment(p(1, 4, 3, 8), []ast.Expression{ast.NewIdentifier(p(1, 4, 3, 3), "a")},
 			ast.AssignmentModulo, []ast.Expression{ast.NewBasicLiteral(p(1, 9, 8, 8), ast.IntLiteral, "1")})}, ast.LanguageHTML)},
 	{"{% show a %}", ast.NewTree("", []ast.Node{
-		ast.NewShowMacro(p(1, 4, 3, 8), ast.NewIdentifier(p(1, 9, 8, 8), "a"), nil, false, ast.ShowMacroOrError, ast.ContextHTML)}, ast.LanguageHTML)},
+		ast.NewShowMacro(p(1, 4, 3, 8), ast.NewIdentifier(p(1, 9, 8, 8), "a"), nil, false, ast.ContextHTML)}, ast.LanguageHTML)},
 	{"{% show a(b,c) %}", ast.NewTree("", []ast.Node{
 		ast.NewShowMacro(p(1, 4, 3, 13), ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Expression{
-			ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")}, false, ast.ShowMacroOrError, ast.ContextHTML)}, ast.LanguageHTML)},
+			ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")}, false, ast.ContextHTML)}, ast.LanguageHTML)},
 	{"{% show a(b,c...) %}", ast.NewTree("", []ast.Node{
 		ast.NewShowMacro(p(1, 4, 3, 16), ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Expression{
-			ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")}, true, ast.ShowMacroOrError, ast.ContextHTML)}, ast.LanguageHTML)},
-
-	// https://github.com/open2b/scriggo/issues/560
-
-	// {"{% show M or todo %}", ast.NewTree("", []ast.Node{
-	// 	ast.NewShowMacro(p(1, 4, 3, 16), ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrTodo, ast.ContextHTML),
-	// }, ast.ContextHTML)},
-	// {"{% show M    or  ignore    %}", ast.NewTree("", []ast.Node{
-	// 	ast.NewShowMacro(p(1, 4, 3, 22), ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrIgnore, ast.ContextHTML),
-	// }, ast.ContextHTML)},
-	// {"{% show M  or  error %}", ast.NewTree("", []ast.Node{
-	// 	ast.NewShowMacro(p(1, 4, 3, 19), ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrError, ast.ContextHTML),
-	// }, ast.ContextHTML)},
-
+			ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")}, true, ast.ContextHTML)}, ast.LanguageHTML)},
 	{"{% for v in e %}b{% end for %}", ast.NewTree("", []ast.Node{
 		ast.NewForRange(p(1, 4, 3, 26), ast.NewAssignment(p(1, 8, 7, 12), []ast.Expression{
 			ast.NewIdentifier(p(1, 8, 7, 7), "_"), ast.NewIdentifier(p(1, 8, 7, 7), "v")},
@@ -2492,9 +2479,6 @@ func equals(n1, n2 ast.Node, p int) error {
 		err := equals(nn1.Macro, nn2.Macro, p)
 		if err != nil {
 			return err
-		}
-		if nn1.Or != nn2.Or {
-			return fmt.Errorf("unexpected %s, expecting %s", nn1.Or, nn2.Or)
 		}
 		if len(nn1.Args) != len(nn2.Args) {
 			return fmt.Errorf("unexpected arguments len %d, expecting %d", len(nn1.Args), len(nn2.Args))

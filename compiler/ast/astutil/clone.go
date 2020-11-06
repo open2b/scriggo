@@ -234,7 +234,7 @@ func CloneNode(node ast.Node) ast.Node {
 				arguments[i] = CloneExpression(a)
 			}
 		}
-		return ast.NewShowMacro(ClonePosition(n.Position), macro, arguments, n.IsVariadic, n.Or, n.Context)
+		return ast.NewShowMacro(ClonePosition(n.Position), macro, arguments, n.IsVariadic, n.Context)
 
 	case *ast.Switch:
 		var init ast.Node

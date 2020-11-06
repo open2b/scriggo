@@ -63,10 +63,6 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 
 		case *ast.Defer:
 			call := node.Call.(*ast.Call)
-			if em.ti(call.Func) == showMacroIgnoredTi {
-				// Nothing to do
-				continue
-			}
 			if em.builtinCallName(call) == "recover" {
 				stackShift := em.fb.currentStackShift()
 				backup := em.fb
@@ -197,10 +193,6 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 
 		case *ast.Go:
 			call := node.Call.(*ast.Call)
-			if em.ti(call.Func) == showMacroIgnoredTi {
-				// Nothing to do
-				continue
-			}
 			em.fb.enterStack()
 			_, _ = em.emitCallNode(call, true, false)
 			em.fb.exitStack()

@@ -89,10 +89,6 @@ type scopeVariable struct {
 	node       ast.Node
 }
 
-// showMacroIgnoredTi is the TypeInfo of a ShowMacro identifier which is
-// undefined but has been marked as to be ignored or "todo".
-var showMacroIgnoredTi = &typeInfo{}
-
 // checkIdentifier checks an identifier. If using, ident is marked as "used".
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *typeInfo {
 
@@ -137,28 +133,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *typeI
 		found = false
 	}
 
-	// If identifiers is a ShowMacro identifier, first needs to check if
-	// ShowMacro contains a "or ignore" or "or todo" option. In such cases,
-	// error should not be returned, and function call should be removed
-	// from tree.
 	if !found {
-		for _, sm := range tc.showMacros {
-			if sm.Macro == ident {
-				switch sm.Or {
-				case ast.ShowMacroOrIgnore:
-					return showMacroIgnoredTi
-				case ast.ShowMacroOrTodo:
-					if tc.opts.FailOnTODO {
-						panic(tc.errorf(ident, "macro %s is not defined: must be implemented", ident.Name))
-					}
-					return showMacroIgnoredTi
-				case ast.ShowMacroOrError:
-					// Do not handle this identifier in a special way: just
-					// return an 'undefined' error; this is the default
-					// behaviour.
-				}
-			}
-		}
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
 	}
 
@@ -836,27 +811,6 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 					pkg := ti.value.(*packageInfo)
 					v, ok := pkg.Declarations[expr.Ident]
 					if !ok {
-						// If identifiers is a ShowMacro identifier, first needs to check if
-						// ShowMacro contains a "or ignore" or "or todo" option. In such cases,
-						// error should not be returned, and function call should be removed
-						// from tree.
-						for _, sm := range tc.showMacros {
-							if sm.Macro == ident {
-								switch sm.Or {
-								case ast.ShowMacroOrIgnore:
-									return showMacroIgnoredTi
-								case ast.ShowMacroOrTodo:
-									if tc.opts.FailOnTODO {
-										panic(tc.errorf(ident, "macro %s is not defined: must be implemented", ident.Name))
-									}
-									return showMacroIgnoredTi
-								case ast.ShowMacroOrError:
-									// Do not handle this identifier in a special way: just
-									// return an 'undefined' error; this is the default
-									// behaviour.
-								}
-							}
-						}
 						panic(tc.errorf(expr, "undefined: %v", expr))
 					}
 					// v is a predefined variable.
@@ -1690,12 +1644,6 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) ([]*typeInfo, bool, b
 		t.MethodType = methodCallConcrete
 	case methodValueInterface:
 		t.MethodType = methodCallInterface
-	}
-
-	// expr is a ShowMacro expression which is not defined and which has been
-	// marked as "to be ignored" or "to do".
-	if t == showMacroIgnoredTi {
-		return nil, false, false
 	}
 
 	if t.Nil() {

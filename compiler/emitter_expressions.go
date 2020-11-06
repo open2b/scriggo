@@ -106,11 +106,6 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 	case *ast.Call:
 
-		// ShowMacro which must be ignored (cannot be resolved).
-		if em.ti(expr.Func) == showMacroIgnoredTi {
-			return reg, false
-		}
-
 		// Predeclared built-in function call.
 		if em.ti(expr.Func).IsBuiltinFunction() {
 			em.emitBuiltin(expr, reg, dstType)
