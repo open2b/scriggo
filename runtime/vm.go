@@ -24,6 +24,9 @@ var envType = reflect.TypeOf((*Env)(nil)).Elem()
 var emptyInterfaceType = reflect.TypeOf(&[]interface{}{nil}[0]).Elem()
 var emptyInterfaceNil = reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
 
+// A TypeOfFunc function returns a type of a value.
+type TypeOfFunc func(reflect.Value) reflect.Type
+
 // A Wrapper wraps and unwraps Scriggo types into Go types. A wrapper is used
 // when an internal implementation of a value must be typified or when an
 // external Go value must be imported into Scriggo.
@@ -107,6 +110,7 @@ type VM struct {
 	regs   registers            // registers.
 	fn     *Function            // running function.
 	vars   []interface{}        // global and closure variables.
+	typeof TypeOfFunc           // typeof function.
 	env    *env                 // execution environment.
 	envArg reflect.Value        // execution environment as argument.
 	calls  []callFrame          // call stack frame.
@@ -137,6 +141,7 @@ func (vm *VM) Reset() {
 	vm.pc = 0
 	vm.ok = false
 	vm.fn = nil
+	vm.typeof = nil
 	vm.vars = nil
 	vm.env = &env{}
 	vm.envArg = reflect.ValueOf(vm.env)
@@ -158,9 +163,9 @@ func (vm *VM) Reset() {
 // If a context has been set and the context is canceled, Run returns
 // as soon as possible with the error returned by the Err method of the
 // context.
-func (vm *VM) Run(fn *Function, globals []interface{}) (int, error) {
+func (vm *VM) Run(fn *Function, typeOf TypeOfFunc, globals []interface{}) (int, error) {
 	vm.env.globals = globals
-	err := vm.runFunc(fn, globals)
+	err := vm.runFunc(fn, typeOf, globals)
 	vm.env.exit()
 	if err != nil {
 		switch e := err.(type) {
@@ -585,7 +590,7 @@ func (vm *VM) startGoroutine() bool {
 	copy(nvm.regs.float, vm.regs.float[vm.fp[1]+Addr(off.A):vm.fp[1]+127])
 	copy(nvm.regs.string, vm.regs.string[vm.fp[2]+Addr(off.B):vm.fp[2]+127])
 	copy(nvm.regs.general, vm.regs.general[vm.fp[3]+Addr(off.C):vm.fp[3]+127])
-	go nvm.runFunc(fn, vars)
+	go nvm.runFunc(fn, vm.typeof, vars)
 	vm.pc++
 	return false
 }
@@ -801,9 +806,10 @@ type callable struct {
 	value      reflect.Value       // reflect value.
 	fn         *Function           // function, if it is a Scriggo function.
 	predefined *PredefinedFunction // predefined function.
-	receiver   interface{}         // receiver, if it is a method value.
-	method     string              // method name, if it is a method value.
-	vars       []interface{}       // non-local (global and closure) variables.
+	typeof     TypeOfFunc
+	receiver   interface{}   // receiver, if it is a method value.
+	method     string        // method name, if it is a method value.
+	vars       []interface{} // non-local (global and closure) variables.
 }
 
 // Predefined returns the predefined function of a callable.
@@ -851,7 +857,7 @@ func (c *callable) Value(env *env) reflect.Value {
 				nvm.setFromReflectValue(r[t], arg)
 				r[t]++
 			}
-			err := nvm.runFunc(fn, vars)
+			err := nvm.runFunc(fn, c.typeof, vars)
 			if err != nil {
 				if p, ok := err.(*Panic); ok {
 					var msg string

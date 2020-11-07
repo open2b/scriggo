@@ -12,8 +12,9 @@ import (
 	"unicode"
 )
 
-func (vm *VM) runFunc(fn *Function, vars []interface{}) error {
+func (vm *VM) runFunc(fn *Function, typeof TypeOfFunc, vars []interface{}) error {
 	vm.fn = fn
+	vm.typeof = typeof
 	vm.vars = vars
 	for {
 		err := vm.runRecoverable()

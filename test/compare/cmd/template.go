@@ -49,6 +49,7 @@ func (dir dirReader) ReadFile(name string) ([]byte, error) {
 
 type compiledTemplate struct {
 	fn      *runtime.Function
+	typeof  runtime.TypeOfFunc
 	options *compiler.Options
 	globals []compiler.Global
 }
@@ -63,7 +64,7 @@ func compileTemplate(reader compiler.FileReader) (*compiledTemplate, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &compiledTemplate{fn: code.Main, globals: code.Globals, options: &opts}, nil
+	return &compiledTemplate{fn: code.Main, typeof: code.TypeOf, globals: code.Globals, options: &opts}, nil
 }
 
 func (t *compiledTemplate) render(ctx context.Context) error {
@@ -77,7 +78,7 @@ func (t *compiledTemplate) render(ctx context.Context) error {
 	t.globals[3].Value = &uw
 	vm := runtime.NewVM()
 	vm.SetContext(ctx)
-	_, err := vm.Run(t.fn, initGlobals(t.globals))
+	_, err := vm.Run(t.fn, t.typeof, initGlobals(t.globals))
 	return err
 }
 

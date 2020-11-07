@@ -263,6 +263,8 @@ type Code struct {
 	Functions map[string]*runtime.Function
 	// Main is the Code entry point.
 	Main *runtime.Function
+	// TypeOf returns a type of a value.
+	TypeOf runtime.TypeOfFunc
 }
 
 // emitPackageMain emits the code for a package main given its ast node, the
@@ -285,6 +287,7 @@ func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*typeInfo, ind
 		Globals:   e.varStore.getGlobals(),
 		Functions: functions,
 		Main:      main,
+		TypeOf:    e.types.TypeOf,
 	}
 	return pkg, nil
 }
@@ -309,7 +312,7 @@ func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, in
 	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()
 	e.fb.end()
-	return &Code{Main: e.fb.fn, Globals: e.varStore.getGlobals()}, nil
+	return &Code{Main: e.fb.fn, TypeOf: e.types.TypeOf, Globals: e.varStore.getGlobals()}, nil
 }
 
 // emitTemplate emits the code for a template given its tree, the type info and
@@ -394,7 +397,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()
 	e.fb.end()
-	return &Code{Main: e.fb.fn, Globals: e.varStore.getGlobals()}, nil
+	return &Code{Main: e.fb.fn, TypeOf: e.types.TypeOf, Globals: e.varStore.getGlobals()}, nil
 
 }
 

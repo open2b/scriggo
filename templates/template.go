@@ -158,6 +158,7 @@ type RenderOptions struct {
 
 type Template struct {
 	fn      *runtime.Function
+	typeof  runtime.TypeOfFunc
 	globals []compiler.Global
 }
 
@@ -191,7 +192,7 @@ func Load(name string, files FileReader, lang Language, options *LoadOptions) (*
 		}
 		return nil, err
 	}
-	return &Template{fn: code.Main, globals: code.Globals}, nil
+	return &Template{fn: code.Main, typeof: code.TypeOf, globals: code.Globals}, nil
 }
 
 var emptyVars = map[string]interface{}{}
@@ -210,7 +211,7 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *R
 		vars = emptyVars
 	}
 	vm := newVM(options)
-	_, err := vm.Run(t.fn, initGlobals(t.globals, vars))
+	_, err := vm.Run(t.fn, t.typeof, initGlobals(t.globals, vars))
 	return err
 }
 

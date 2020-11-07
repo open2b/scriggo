@@ -134,6 +134,14 @@ func (types *Types) Implements(x, u reflect.Type) bool {
 
 }
 
+// TypeOf returns the type of v.
+func (types *Types) TypeOf(v reflect.Value) reflect.Type {
+	if p, ok := v.Interface().(emptyInterfaceProxy); ok {
+		return p.sign
+	}
+	return v.Type()
+}
+
 // TODO: this function will be removed when the development of this package is
 //  concluded.
 func assertNotScriggoType(t reflect.Type) {
