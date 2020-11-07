@@ -571,11 +571,7 @@ func (vm *VM) run() (Addr, bool) {
 			case ConditionEqual, ConditionNotEqual:
 				x := vm.general(a)
 				y := vm.generalk(c, op < 0)
-				if !x.IsValid() && !y.IsValid() { // both nil interfaces.
-					cond = true
-				} else if x.IsValid() && y.IsValid() { // both != nil.
-					cond = x.Interface() == y.Interface()
-				}
+				cond = x.IsValid() == y.IsValid() && (!x.IsValid() || x.Interface() == y.Interface())
 			}
 			switch Condition(b) {
 			case ConditionNotOK, ConditionInterfaceNotNil, ConditionNotNil, ConditionNotEqual:
