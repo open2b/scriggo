@@ -426,12 +426,20 @@ func (em *emitter) emitValueNotPredefined(ti *typeInfo, reg int8, dstType reflec
 // instructions where the last one is an 'if' instruction. ky indicates if y
 // is a constant.
 func (em *emitter) emitComparison(op ast.OperatorType, ky bool, x, y int8, tx, ty reflect.Type, pos *ast.Position) {
+	xKind := tx.Kind()
+	yKind := ty.Kind()
 	var condition runtime.Condition
 	switch op {
 	case ast.OperatorEqual:
 		condition = runtime.ConditionEqual
+		if xKind == reflect.Interface || yKind == reflect.Interface {
+			condition = runtime.ConditionInterfaceEqual
+		}
 	case ast.OperatorNotEqual:
 		condition = runtime.ConditionNotEqual
+		if xKind == reflect.Interface || yKind == reflect.Interface {
+			condition = runtime.ConditionInterfaceNotEqual
+		}
 	default:
 		k := tx.Kind()
 		if reflect.Uint <= k && k <= reflect.Uintptr {
@@ -462,29 +470,24 @@ func (em *emitter) emitComparison(op ast.OperatorType, ky bool, x, y int8, tx, t
 			}
 		}
 	}
-	// If an operand has interface type and the other operand
-	// is not in a general register, typify the other operand.
-	ifKind := tx.Kind()
-	var typify bool
-	if tx.Kind() == reflect.Interface {
-		if typify = kindToType(ty.Kind()) != generalRegister; typify {
-			em.fb.enterStack()
-			g := em.fb.newRegister(reflect.Interface)
+	// If an operand has interface type and the other operand not,
+	// change the register of the other operand.
+	changeReg := (xKind == reflect.Interface) != (yKind == reflect.Interface)
+	if changeReg {
+		em.fb.enterStack()
+		g := em.fb.newRegister(reflect.Interface)
+		if xKind == reflect.Interface {
 			em.changeRegister(ky, y, g, ty, tx)
 			y = g
 			ky = false
-		}
-	} else if ty.Kind() == reflect.Interface {
-		if typify = kindToType(tx.Kind()) != generalRegister; typify {
-			em.fb.enterStack()
-			g := em.fb.newRegister(reflect.Interface)
+		} else {
 			em.changeRegister(false, x, g, tx, ty)
 			x = g
-			ifKind = reflect.Interface
+			xKind = reflect.Interface
 		}
 	}
-	em.fb.emitIf(ky, x, condition, y, ifKind, pos)
-	if typify {
+	em.fb.emitIf(ky, x, condition, y, xKind, pos)
+	if changeReg {
 		em.fb.exitStack()
 	}
 }

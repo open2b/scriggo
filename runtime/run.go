@@ -572,10 +572,30 @@ func (vm *VM) run() (Addr, bool) {
 			case ConditionEqual, ConditionNotEqual:
 				x := vm.general(a)
 				y := vm.generalk(c, op < 0)
-				cond = x.IsValid() == y.IsValid() && (!x.IsValid() || x.Interface() == y.Interface())
+				cond = x.Interface() == y.Interface()
+			case ConditionInterfaceEqual, ConditionInterfaceNotEqual:
+				x := vm.general(a)
+				y := vm.generalk(c, op < 0)
+				if !x.IsValid() && !y.IsValid() {
+					cond = true
+				} else if x.IsValid() && y.IsValid() {
+					tx := vm.typeof(x)
+					ty := vm.typeof(y)
+					if tx == ty {
+						if t, ok := tx.(Wrapper); ok {
+							if !tx.Comparable() {
+								panic("runtime error: comparing uncomparable type " + tx.String())
+							}
+							x, _ = t.Unwrap(x)
+							y, _ = t.Unwrap(y)
+						}
+						cond = x.Interface() == y.Interface()
+					}
+				}
 			}
 			switch Condition(b) {
-			case ConditionNotOK, ConditionInterfaceNotNil, ConditionNotNil, ConditionNotEqual:
+			case ConditionNotOK, ConditionInterfaceNotNil, ConditionNotNil,
+				ConditionNotEqual, ConditionInterfaceNotEqual:
 				cond = !cond
 			}
 			if cond {

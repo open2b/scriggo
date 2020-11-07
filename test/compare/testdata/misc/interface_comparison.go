@@ -74,14 +74,29 @@ func main() {
 		println(16)
 	}
 
-	//var rr interface{} = R{1}
-	//var rr1 = R{1}
-	//var rr2 = R{2}
-	//if rr == rr2 {
-	//	println(17)
-	//}
-	//if rr != rr1 {
-	//	println(18)
-	//}
+	var rr interface{} = R{1}
+	var rr1 = R{1}
+	var rr2 = R{2}
+	if rr == rr2 {
+		println(17)
+	}
+	if rr != rr1 {
+		println(18)
+	}
+	if rr2 == rr {
+		println(19)
+	}
+	if rr1 != rr {
+		println(20)
+	}
+
+	var pp interface{} = R{1}
+	var qq interface{} = R{3}
+	if pp == rr {
+		println(21)
+	}
+	if qq != rr {
+		println(22)
+	}
 
 }

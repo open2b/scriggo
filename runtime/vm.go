@@ -961,6 +961,8 @@ const (
 	ConditionNotZero                          // x != 0
 	ConditionEqual                            // x == y
 	ConditionNotEqual                         // x != y
+	ConditionInterfaceEqual                   // x == y
+	ConditionInterfaceNotEqual                // x != y
 	ConditionLess                             // x <  y
 	ConditionLessEqual                        // x <= y
 	ConditionGreater                          // x >  y
