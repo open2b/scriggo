@@ -887,124 +887,130 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 
 	case *ast.BinaryOperator:
 
-		// Emit code for comparison with 0.
-		//
-		//   if x == 0
-		//   if 0 == x
-		//   if x != 0
-		//   if 0 != x
-		//
-		if expr := em.comparisonWithZeroInteger(cond); expr != nil {
-			typ := em.typ(expr)
-			x := em.emitExpr(expr, typ)
-			condition := runtime.ConditionZero
-			if cond.Operator() == ast.OperatorNotEqual {
-				condition = runtime.ConditionNotZero
-			}
-			em.fb.emitIf(false, x, condition, 0, typ.Kind(), expr.Pos())
-			return
-		}
+		if cond.Op == ast.OperatorEqual || cond.Op == ast.OperatorNotEqual {
 
-		// Emit code for comparison with nil.
-		//
-		//   if x == nil
-		//   if x != nil
-		//   if nil == x
-		//   if nil != x
-		//
-		if em.ti(cond.Expr1).Nil() != em.ti(cond.Expr2).Nil() {
-			expr := cond.Expr1
-			if em.ti(cond.Expr1).Nil() {
-				expr = cond.Expr2
-			}
-			typ := em.typ(expr)
-			x := em.emitExpr(expr, typ)
-			var condition runtime.Condition
-			if typ.Kind() == reflect.Interface {
-				condition = runtime.ConditionInterfaceNil
-				if cond.Operator() == ast.OperatorNotEqual {
-					condition = runtime.ConditionInterfaceNotNil
-				}
-			} else {
-				condition = runtime.ConditionNil
-				if cond.Operator() == ast.OperatorNotEqual {
-					condition = runtime.ConditionNotNil
-				}
-			}
-			em.fb.emitIf(false, x, condition, 0, typ.Kind(), cond.Pos())
-			return
-		}
-
-		// Emit code for comparing the length of a string to a value.
-		//
-		//   if len(x) == y
-		//   if len(x) != y
-		//   if len(x) <  y
-		//   if len(x) <= y
-		//   if len(x) >  y
-		//   if len(x) >= y
-		//   if x == len(y)
-		//   if x != len(y)
-		//   if x <  len(y)
-		//   if x <= len(y)
-		//   if x >  len(y)
-		//   if x >= len(y)
-		//
-		name1 := em.builtinCallName(cond.Expr1)
-		name2 := em.builtinCallName(cond.Expr2)
-		if (name1 == "len") != (name2 == "len") {
-			op := cond.Operator()
-			var lenArg, expr ast.Expression
-			if name1 == "len" {
-				lenArg = cond.Expr1.(*ast.Call).Args[0]
-				expr = cond.Expr2
-			} else {
-				lenArg = cond.Expr2.(*ast.Call).Args[0]
-				expr = cond.Expr1
-				op = invertedOperatorType(op)
-			}
-			if em.typ(lenArg).Kind() == reflect.String { // len is optimized for strings only.
-				x := em.emitExpr(lenArg, em.typ(lenArg))
+			// Emit code for comparison with 0.
+			//
+			//   if x == 0
+			//   if 0 == x
+			//   if x != 0
+			//   if 0 != x
+			//
+			if expr := em.comparisonWithZeroInteger(cond); expr != nil {
 				typ := em.typ(expr)
-				y, ky := em.emitExprK(expr, typ)
-				var condition runtime.Condition
-				switch op {
-				case ast.OperatorEqual:
-					condition = runtime.ConditionLenEqual
-				case ast.OperatorNotEqual:
-					condition = runtime.ConditionLenNotEqual
-				case ast.OperatorLess:
-					condition = runtime.ConditionLenLess
-				case ast.OperatorLessEqual:
-					condition = runtime.ConditionLenLessEqual
-				case ast.OperatorGreater:
-					condition = runtime.ConditionLenGreater
-				case ast.OperatorGreaterEqual:
-					condition = runtime.ConditionLenGreaterEqual
-				default:
-					panic("unexpected operator")
+				x := em.emitExpr(expr, typ)
+				condition := runtime.ConditionZero
+				if cond.Operator() == ast.OperatorNotEqual {
+					condition = runtime.ConditionNotZero
 				}
-				em.fb.emitIf(ky, x, condition, y, reflect.String, cond.Pos())
+				em.fb.emitIf(false, x, condition, 0, typ.Kind(), expr.Pos())
 				return
 			}
+
+			// Emit code for comparison with nil.
+			//
+			//   if x == nil
+			//   if x != nil
+			//   if nil == x
+			//   if nil != x
+			//
+			if em.ti(cond.Expr1).Nil() != em.ti(cond.Expr2).Nil() {
+				expr := cond.Expr1
+				if em.ti(cond.Expr1).Nil() {
+					expr = cond.Expr2
+				}
+				typ := em.typ(expr)
+				x := em.emitExpr(expr, typ)
+				var condition runtime.Condition
+				if typ.Kind() == reflect.Interface {
+					condition = runtime.ConditionInterfaceNil
+					if cond.Operator() == ast.OperatorNotEqual {
+						condition = runtime.ConditionInterfaceNotNil
+					}
+				} else {
+					condition = runtime.ConditionNil
+					if cond.Operator() == ast.OperatorNotEqual {
+						condition = runtime.ConditionNotNil
+					}
+				}
+				em.fb.emitIf(false, x, condition, 0, typ.Kind(), cond.Pos())
+				return
+			}
+
 		}
 
-		// Emit code to compare two values.
-		//
-		//   if x == y
-		//   if x != y
-		//   if x <  y
-		//   if x <= y
-		//   if x >  y
-		//   if x >= y
-		//
 		if ast.OperatorEqual <= cond.Op && cond.Op <= ast.OperatorGreaterEqual {
+
+			// Emit code for comparing the length of a string to a value.
+			//
+			//   if len(x) == y
+			//   if len(x) != y
+			//   if len(x) <  y
+			//   if len(x) <= y
+			//   if len(x) >  y
+			//   if len(x) >= y
+			//   if x == len(y)
+			//   if x != len(y)
+			//   if x <  len(y)
+			//   if x <= len(y)
+			//   if x >  len(y)
+			//   if x >= len(y)
+			//
+			name1 := em.builtinCallName(cond.Expr1)
+			name2 := em.builtinCallName(cond.Expr2)
+			if (name1 == "len") != (name2 == "len") {
+				op := cond.Operator()
+				var lenArg, expr ast.Expression
+				if name1 == "len" {
+					lenArg = cond.Expr1.(*ast.Call).Args[0]
+					expr = cond.Expr2
+				} else {
+					lenArg = cond.Expr2.(*ast.Call).Args[0]
+					expr = cond.Expr1
+					op = invertedOperatorType(op)
+				}
+				if em.typ(lenArg).Kind() == reflect.String { // len is optimized for strings only.
+					x := em.emitExpr(lenArg, em.typ(lenArg))
+					typ := em.typ(expr)
+					y, ky := em.emitExprK(expr, typ)
+					var condition runtime.Condition
+					switch op {
+					case ast.OperatorEqual:
+						condition = runtime.ConditionLenEqual
+					case ast.OperatorNotEqual:
+						condition = runtime.ConditionLenNotEqual
+					case ast.OperatorLess:
+						condition = runtime.ConditionLenLess
+					case ast.OperatorLessEqual:
+						condition = runtime.ConditionLenLessEqual
+					case ast.OperatorGreater:
+						condition = runtime.ConditionLenGreater
+					case ast.OperatorGreaterEqual:
+						condition = runtime.ConditionLenGreaterEqual
+					default:
+						panic("unexpected operator")
+					}
+					em.fb.emitIf(ky, x, condition, y, reflect.String, cond.Pos())
+					return
+				}
+			}
+
+			// Emit code to compare two values.
+			//
+			//   if x == y
+			//   if x != y
+			//   if x <  y
+			//   if x <= y
+			//   if x >  y
+			//   if x >= y
+			//
 			t1 := em.typ(cond.Expr1)
 			t2 := em.typ(cond.Expr2)
 			x := em.emitExpr(cond.Expr1, t1)
 			y, ky := em.emitExprK(cond.Expr2, t2)
 			em.emitComparison(cond.Operator(), ky, x, y, t1, t2, cond.Pos())
 			return
+
 		}
 
 	case *ast.UnaryOperator:

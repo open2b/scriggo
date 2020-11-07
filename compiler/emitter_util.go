@@ -90,11 +90,6 @@ func (em *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, d
 //
 func (em *emitter) comparisonWithZeroInteger(cond *ast.BinaryOperator) ast.Expression {
 
-	// The operator must be == or !=.
-	if op := cond.Operator(); op != ast.OperatorEqual && op != ast.OperatorNotEqual {
-		return nil
-	}
-
 	// The operator must be a comparison between a constant and a non-constant
 	// expression.
 	var expr, constant ast.Expression
