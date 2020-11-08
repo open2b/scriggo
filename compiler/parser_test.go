@@ -1736,7 +1736,7 @@ func equals(n1, n2 ast.Node, p int) error {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 		if nn1.Op != nn2.Op {
-			return fmt.Errorf("unexpected operator %d, expecting %d", nn1.Op, nn2.Op)
+			return fmt.Errorf("unexpected operator %q, expecting %q", nn1.Op.String(), nn2.Op.String())
 		}
 		err := equals(nn1.Expr, nn2.Expr, p)
 		if err != nil {
@@ -1749,7 +1749,7 @@ func equals(n1, n2 ast.Node, p int) error {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 		if nn1.Op != nn2.Op {
-			return fmt.Errorf("unexpected operator %d, expecting %d", nn1.Op, nn2.Op)
+			return fmt.Errorf("unexpected operator %q, expecting %q", nn1.Op.String(), nn2.Op.String())
 		}
 		err := equals(nn1.Expr1, nn2.Expr1, p)
 		if err != nil {
