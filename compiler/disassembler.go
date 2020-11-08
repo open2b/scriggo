@@ -403,7 +403,8 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		switch runtime.Condition(b) {
 		case runtime.ConditionOK, runtime.ConditionNotOK:
 			s += " " + conditionName[b]
-		case runtime.ConditionEqual, runtime.ConditionNotEqual:
+		case runtime.ConditionEqual, runtime.ConditionNotEqual,
+			runtime.ConditionInterfaceEqual, runtime.ConditionInterfaceNotEqual:
 			s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 			s += " " + conditionName[b]
 			s += " " + disassembleOperand(fn, c, reflect.Interface, k)
