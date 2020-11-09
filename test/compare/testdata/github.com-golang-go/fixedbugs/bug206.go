@@ -1,5 +1,3 @@
-// skip : undefined: ast (but go/ast is imported) https://github.com/open2b/scriggo/issues/318
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.

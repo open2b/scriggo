@@ -1,4 +1,4 @@
-// skip : int refs limit reached
+// skip : panic: runtime error: invalid memory address or nil pointer dereference
 
 // run
 

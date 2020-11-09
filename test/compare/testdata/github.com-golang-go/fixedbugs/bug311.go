@@ -1,4 +1,4 @@
-// skip : runtime panic
+// skip : panic: reflect.Value.Slice3: slice of unaddressable array
 
 // run
 

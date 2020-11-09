@@ -1,4 +1,4 @@
-// skip : panic: reflect: call of reflect.Value.Elem on struct Value
+// skip : Scriggo and gc returned two different stdout/stderr
 
 // run
 

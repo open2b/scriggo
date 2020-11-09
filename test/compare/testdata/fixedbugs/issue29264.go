@@ -1,5 +1,3 @@
-// skip : panic 'cannot allocate a new int register'
-
 // run
 
 // Copyright 2018 The Go Authors. All rights reserved.

@@ -1,5 +1,3 @@
-// skip : panics the emitter https://github.com/open2b/scriggo/issues/525
-
 // run
 
 // Copyright 2012 The Go Authors. All rights reserved.
