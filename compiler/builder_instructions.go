@@ -318,13 +318,25 @@ func (builder *functionBuilder) emitField(a, field, c int8, dstKind reflect.Kind
 //
 //     r = func() { ... }
 //
-func (builder *functionBuilder) emitFunc(r int8, typ reflect.Type) *runtime.Function {
+func (builder *functionBuilder) emitFunc(r int8, typ reflect.Type, pos *ast.Position) *runtime.Function {
 	fn := builder.fn
 	b := len(fn.Functions)
 	if b == maxFunctionsCount {
 		panic(newLimitExceededError(builder.fn.Pos, builder.path, "functions count exceeded %d", maxFunctionsCount))
 	}
+	var runtimePos *runtime.Position
+	if pos != nil {
+		runtimePos = &runtime.Position{
+			Line:   pos.Line,
+			Column: pos.Column,
+			Start:  pos.Start,
+			End:    pos.End,
+		}
+	}
 	scriggoFunc := &runtime.Function{
+		Pkg:    fn.Pkg,
+		File:   fn.File,
+		Pos:    runtimePos,
 		Type:   typ,
 		Parent: fn,
 	}
