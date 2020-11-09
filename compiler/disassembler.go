@@ -60,12 +60,22 @@ func Disassemble(main *runtime.Function, globals []Global) (assembler map[string
 
 	for i := 0; i < len(allFunctions); i++ {
 		fn := allFunctions[i]
-		if p, ok := functionsByPkg[fn.Pkg]; ok {
-			p[fn] = fn.Pos.Line
+		var line int
+		if fn.Pos == nil {
+			line = i + 1
 		} else {
-			functionsByPkg[fn.Pkg] = map[*runtime.Function]int{fn: fn.Pos.Line}
+			line = fn.Pos.Line
+		}
+		if p, ok := functionsByPkg[fn.Pkg]; ok {
+			p[fn] = line
+		} else {
+			functionsByPkg[fn.Pkg] = map[*runtime.Function]int{fn: line}
 		}
 		for _, sf := range fn.Functions {
+			if sf.Name == "" {
+				// Function literal.
+				continue
+			}
 			if sf.Pkg != fn.Pkg {
 				if packages, ok := importsByPkg[fn.Pkg]; ok {
 					packages[sf.Pkg] = struct{}{}
@@ -121,7 +131,7 @@ func Disassemble(main *runtime.Function, globals []Global) (assembler map[string
 		for fn := range funcs {
 			functions = append(functions, fn)
 		}
-		sort.Slice(functions, func(i, j int) bool { return functions[i].Pos.Line < functions[j].Pos.Line })
+		sort.Slice(functions, func(i, j int) bool { return funcs[functions[i]] < funcs[functions[j]] })
 
 		for _, fn := range functions {
 			_, _ = b.WriteString("\nFunc ")
