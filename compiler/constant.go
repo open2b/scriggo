@@ -202,6 +202,18 @@ func (c1 stringConst) unaryOp(op ast.OperatorType, typ reflect.Type) (constant, 
 
 func (c1 stringConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error) {
 	s1 := c1
+	if op == ast.OperatorContains || op == ast.OperatorNotContains {
+		var b bool
+		if s2, ok := c2.(stringConst); ok {
+			b = strings.Contains(string(s1), string(s2))
+		} else {
+			b = strings.ContainsRune(string(s1), rune(c2.int64()))
+		}
+		if op == ast.OperatorNotContains {
+			b = !b
+		}
+		return boolConst(b), nil
+	}
 	s2 := c2.(stringConst)
 	switch op {
 	case ast.OperatorEqual:

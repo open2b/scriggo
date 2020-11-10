@@ -114,6 +114,7 @@ const (
 	tokenRelaxedNot                        // not
 	tokenRelaxedOr                         // or
 	tokenDollar                            // $
+	tokenContains                          // contains
 )
 
 var tokenString = map[tokenTyp]string{
@@ -215,6 +216,7 @@ var tokenString = map[tokenTyp]string{
 	tokenRelaxedNot:               "not",
 	tokenRelaxedOr:                "or",
 	tokenDollar:                   "$",
+	tokenContains:                 "contains",
 }
 
 func (tt tokenTyp) String() string {

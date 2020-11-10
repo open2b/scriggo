@@ -444,8 +444,17 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				tokenXor,            // e ^
 				tokenAndNot,         // e &^
 				tokenLeftShift,      // e <<
-				tokenRightShift:     // e >>
+				tokenRightShift,     // e >>
+				tokenContains:       // e contains
 				operator = ast.NewBinaryOperator(tok.pos, operatorFromTokenType(tok.typ, true), nil, nil)
+			case tokenRelaxedNot: // e not contains
+				next := p.next()
+				if next.typ == tokenContains {
+					pos := tok.pos.WithEnd(next.pos.End)
+					operator = ast.NewBinaryOperator(pos, ast.OperatorNotContains, nil, nil)
+					break
+				}
+				fallthrough
 			default:
 				if mustBeSwitchGuard && !isTypeGuard(operand) {
 					panic(syntaxError(tok.pos, "use of .(type) outside type switch"))
@@ -682,6 +691,8 @@ func operatorFromTokenType(typ tokenTyp, binary bool) ast.OperatorType {
 		return ast.OperatorRelaxedOr
 	case tokenRelaxedNot:
 		return ast.OperatorRelaxedNot
+	case tokenContains:
+		return ast.OperatorContains
 	case tokenAddition:
 		return ast.OperatorAddition
 	case tokenSubtraction:

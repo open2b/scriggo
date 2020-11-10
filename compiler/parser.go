@@ -128,8 +128,8 @@ type parsing struct {
 	// Ancestors from the root up to the parent.
 	ancestors []ast.Node
 
-	// Support 'and', 'or' and 'not' operators as well as if statements with
-	// non-boolean conditions.
+	// Support 'and', 'or', 'not', 'contains' and 'not contains' operators as
+	// well as if statements with non-boolean conditions.
 	relaxedBoolean bool
 }
 

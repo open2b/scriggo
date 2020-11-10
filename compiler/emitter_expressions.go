@@ -504,6 +504,25 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, regType refl
 
 	}
 
+	// Emit code for a contains operator.
+	if op == ast.OperatorContains || op == ast.OperatorNotContains {
+		not := op == ast.OperatorNotContains
+		z := reg
+		directly := canEmitDirectly(reflect.Bool, regType.Kind())
+		if !directly {
+			em.fb.enterStack()
+			z = em.fb.newRegister(reflect.Bool)
+		}
+		em.fb.emitMove(true, 1, z, reflect.Bool, false)
+		em.emitContains(not, ky, x, y, t1, t2, pos)
+		em.fb.emitMove(true, 0, z, reflect.Bool, false)
+		if !directly {
+			em.changeRegister(false, z, reg, typ, regType)
+			em.fb.exitStack()
+		}
+		return
+	}
+
 	// Emit code for comparison operators.
 	z := reg
 	directly := canEmitDirectly(kind, regType.Kind())

@@ -1,0 +1,53 @@
+{# render #}
+
+{% type T bool %}
+{% type B map[T]string %}
+{% type C map[*int]bool %}
+{% type I int %}
+{% type S struct{a int} %}
+
+{% var a = "à" %}
+{% var a2 = 'à' %}
+{% var a3 = 224 %}
+{% var a4 = 224.0 %}
+{% var a5 = 224 +0i %}
+{% var b = B{false: "false"} %}
+{% var c = C{nil: false} %}
+{% var d = "" %}
+{% var i = 3 %}
+{% var s = S{5} %}
+
+{% if []int{3,7,2} contains 3 %}[]int{3,7,2} contains 3{% end %}
+{% if []I{3,7,2} contains I(3) %}[]I{3,7,2} contains I(3){% end %}
+
+{% if a contains "à" %}a contains "à"{% end %}
+{% if a contains 'à' %}a contains 'à'{% end %}
+{% if a contains 224 %}a contains 224{% end %}
+{% if a contains 224.0 %}a contains 224.0{% end %}
+{% if a contains 224+0i %}a contains 224+0i{% end %}
+
+{% if a contains a %}a contains a{% end %}
+{% if a contains a2 %}a contains a2{% end %}
+{% if a contains a3 %}a contains a3{% end %}
+
+{% if []string{"à"} contains "à" %}[]string{"à"} contains "à"{% end %}
+{% if []byte{0,1,2,3} contains '\x02' %}[]byte{0,1,2,3} contains '\x02'{% end %}
+{% if b contains true %}b contains true{% else %}! (b contains true){% end %}
+{% if b contains false %}b contains false{% end %}
+{% if d contains d %}d contains d{% end %}
+{% if []bool{true} contains true %}[]bool{true} contains true{% end %}
+{% if []interface{}{5} contains 5 %}[]interface{}{5} contains 5{% end %}
+{% if []interface{}{struct{}{}} contains struct{}{} %}[]interface{}{struct{}{}} contains struct{}{}{% end %}
+{% if []S{S{5}} contains s %}[]S{S{5}} contains s{% end %}
+{% if []interface{}{S{5}} contains s %}[]interface{}{S{5}} contains s{% end %}
+{% if []interface{}{s} contains interface{}(s) %}[]interface{}{s} contains interface{}{s}{% end %}
+{% if []interface{}{nil, s} contains interface{}(s) %}[]interface{}{nil, s} contains interface{}{s}{% end %}
+{% if []interface{}{nil, s} contains nil %}[]interface{}{nil, s} contains nil{% end %}
+{% if []*S{nil} contains nil %}[]*S{nil} contains nil{% end %}
+{% if c contains nil %}c contains nil{% end %}
+
+{% if []*int(nil) not contains nil %}[]*int(nil) not contains nil{% end %}
+{% if []interface{}{1, "a", true} not contains nil %}[]interface{}{1, "a", true} not contains nil{% end %}
+{% if []interface{}{(*int)(nil)} not contains nil %}[]interface{}{(*int)(nil)} not contains nil{% end %}
+{% if []interface{}{(*int)(nil)} contains (*int)(nil) %}[]interface{}{(*int)(nil)} contains (*int)(nil){% end %}
+{% if []interface{}{(*int)(nil)} not contains (*string)(nil) %}[]interface{}{(*int)(nil)} not contains (*string)(nil){% end %}

@@ -433,6 +433,33 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 	return
 }
 
+// equals reports whether x and y are equal.
+// It panics if x and y are not comparable.
+//
+// If x and y are not interfaces and are guaranteed to have the same type,
+// x.Interface() == y.Interface() can be used as a faster alternative.
+func (vm *VM) equals(x, y reflect.Value) bool {
+	if x.IsValid() != y.IsValid() {
+		return false
+	}
+	if !x.IsValid() {
+		return true
+	}
+	tx := vm.typeof(x)
+	ty := vm.typeof(y)
+	if tx != ty {
+		return false
+	}
+	if t, ok := tx.(Wrapper); ok {
+		if !tx.Comparable() {
+			panic("runtime error: comparing uncomparable type " + tx.String())
+		}
+		x, _ = t.Unwrap(x)
+		y, _ = t.Unwrap(y)
+	}
+	return x.Interface() == y.Interface()
+}
+
 func (vm *VM) moreIntStack() {
 	top := len(vm.regs.int) * 2
 	stack := make([]int64, top)
@@ -957,32 +984,42 @@ var kindToType = [...]registerType{
 type Condition int8
 
 const (
-	ConditionZero            Condition = iota // x == 0
-	ConditionNotZero                          // x != 0
-	ConditionEqual                            // x == y
-	ConditionNotEqual                         // x != y
-	ConditionInterfaceEqual                   // x == y
-	ConditionInterfaceNotEqual                // x != y
-	ConditionLess                             // x <  y
-	ConditionLessEqual                        // x <= y
-	ConditionGreater                          // x >  y
-	ConditionGreaterEqual                     // x >= y
-	ConditionLessU                            // x <  y (unsigned)
-	ConditionLessEqualU                       // x <= y (unsigned)
-	ConditionGreaterU                         // x >  y (unsigned)
-	ConditionGreaterEqualU                    // x >= y (unsigned)
-	ConditionLenEqual                         // len(x) == y
-	ConditionLenNotEqual                      // len(x) != y
-	ConditionLenLess                          // len(x) <  y
-	ConditionLenLessEqual                     // len(x) <= y
-	ConditionLenGreater                       // len(x) >  y
-	ConditionLenGreaterEqual                  // len(x) >= y
-	ConditionInterfaceNil                     // x == nil
-	ConditionInterfaceNotNil                  // x != nil
-	ConditionNil                              // x == nil
-	ConditionNotNil                           // x != nil
-	ConditionOK                               // [vm.ok]
-	ConditionNotOK                            // ![vm.ok]
+	ConditionZero                 Condition = iota // x == 0
+	ConditionNotZero                               // x != 0
+	ConditionEqual                                 // x == y
+	ConditionNotEqual                              // x != y
+	ConditionInterfaceEqual                        // x == y
+	ConditionInterfaceNotEqual                     // x != y
+	ConditionLess                                  // x <  y
+	ConditionLessEqual                             // x <= y
+	ConditionGreater                               // x >  y
+	ConditionGreaterEqual                          // x >= y
+	ConditionLessU                                 // x <  y (unsigned)
+	ConditionLessEqualU                            // x <= y (unsigned)
+	ConditionGreaterU                              // x >  y (unsigned)
+	ConditionGreaterEqualU                         // x >= y (unsigned)
+	ConditionLenEqual                              // len(x) == y
+	ConditionLenNotEqual                           // len(x) != y
+	ConditionLenLess                               // len(x) <  y
+	ConditionLenLessEqual                          // len(x) <= y
+	ConditionLenGreater                            // len(x) >  y
+	ConditionLenGreaterEqual                       // len(x) >= y
+	ConditionInterfaceNil                          // x == nil
+	ConditionInterfaceNotNil                       // x != nil
+	ConditionNil                                   // x == nil
+	ConditionNotNil                                // x != nil
+	ConditionContainsSubstring                     // x contains y
+	ConditionContainsRune                          // x contains y
+	ConditionContainsElement                       // x contains y
+	ConditionContainsKey                           // x contains y
+	ConditionContainsNil                           // x contains nil
+	ConditionNotContainsSubstring                  // x not contains y
+	ConditionNotContainsRune                       // x not contains y
+	ConditionNotContainsElement                    // x not contains y
+	ConditionNotContainsKey                        // x not contains y
+	ConditionNotContainsNil                        // x not contains nil
+	ConditionOK                                    // [vm.ok]
+	ConditionNotOK                                 // ![vm.ok]
 )
 
 type Operation int8

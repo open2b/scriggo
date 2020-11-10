@@ -1013,6 +1013,24 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 
 		}
 
+		// Emit code for a contains expression.
+		//
+		//  x contains y
+		//
+		if cond.Op == ast.OperatorContains || cond.Op == ast.OperatorNotContains {
+			not := cond.Op == ast.OperatorNotContains
+			t1 := em.typ(cond.Expr1)
+			t2 := em.typ(cond.Expr2)
+			x := em.emitExpr(cond.Expr1, t1)
+			if t2 == nil {
+				em.emitContains(not, false, x, 0, t1, nil, cond.Pos())
+			} else {
+				y, ky := em.emitExprK(cond.Expr2, t2)
+				em.emitContains(not, ky, x, y, t1, t2, cond.Pos())
+			}
+			return
+		}
+
 	case *ast.UnaryOperator:
 
 		// Emit code for the negation of a value.

@@ -9,6 +9,7 @@ package runtime
 import (
 	"errors"
 	"reflect"
+	"strings"
 	"unicode"
 )
 
@@ -576,26 +577,52 @@ func (vm *VM) run() (Addr, bool) {
 			case ConditionInterfaceEqual, ConditionInterfaceNotEqual:
 				x := vm.general(a)
 				y := vm.generalk(c, op < 0)
-				if x.IsValid() && y.IsValid() {
-					tx := vm.typeof(x)
-					ty := vm.typeof(y)
-					if tx == ty {
-						if t, ok := tx.(Wrapper); ok {
-							if !tx.Comparable() {
-								panic("runtime error: comparing uncomparable type " + tx.String())
-							}
-							x, _ = t.Unwrap(x)
-							y, _ = t.Unwrap(y)
+				cond = vm.equals(x, y)
+			case ConditionContainsElement, ConditionNotContainsElement:
+				x := vm.general(a)
+				y := vm.generalk(c, op < 0)
+				n := x.Len()
+				k := x.Type().Elem().Kind()
+				if k == reflect.Interface {
+					for i := 0; i < n; i++ {
+						if vm.equals(x.Index(i).Elem(), y) {
+							cond = true
+							break
 						}
-						cond = x.Interface() == y.Interface()
 					}
 				} else {
-					cond = !x.IsValid() && !y.IsValid()
+					e := y.Interface()
+					for i := 0; i < n; i++ {
+						if x.Index(i).Interface() == e {
+							cond = true
+							break
+						}
+					}
+				}
+			case ConditionContainsKey, ConditionNotContainsKey:
+				x := vm.general(a)
+				y := vm.generalk(c, op < 0)
+				cond = x.MapIndex(y).IsValid()
+			case ConditionContainsNil, ConditionNotContainsNil:
+				x := vm.general(a)
+				if x.Kind() == reflect.Map {
+					zero := reflect.Zero(x.Type().Key())
+					cond = x.MapIndex(zero).IsValid()
+				} else {
+					n := x.Len()
+					for i := 0; i < n; i++ {
+						if x.Index(i).IsZero() {
+							cond = true
+							break
+						}
+					}
 				}
 			}
 			switch Condition(b) {
 			case ConditionNotOK, ConditionInterfaceNotNil, ConditionNotNil,
-				ConditionNotEqual, ConditionInterfaceNotEqual:
+				ConditionNotEqual, ConditionInterfaceNotEqual, ConditionNotContainsSubstring,
+				ConditionNotContainsRune, ConditionNotContainsKey, ConditionNotContainsElement,
+				ConditionNotContainsNil:
 				cond = !cond
 			}
 			if cond {
@@ -621,6 +648,65 @@ func (vm *VM) run() (Addr, bool) {
 				case ConditionGreaterEqualU:
 					cond = v1 >= v2
 				}
+			case ConditionContainsElement, ConditionNotContainsElement:
+				x := vm.general(a)
+				if s, ok := x.Interface().([]int); ok {
+					y := int(vm.intk(c, op < 0))
+					for _, e := range s {
+						if e == y {
+							cond = true
+							break
+						}
+					}
+				} else {
+					n := x.Len()
+					k := x.Type().Elem().Kind()
+					switch {
+					case k == reflect.Bool:
+						y := vm.boolk(c, op < 0)
+						for i := 0; i < n; i++ {
+							if cond = x.Index(i).Bool() == y; cond {
+								break
+							}
+						}
+					case reflect.Int <= k && k <= reflect.Int64:
+						y := vm.intk(c, op < 0)
+						for i := 0; i < n; i++ {
+							if cond = x.Index(i).Int() == y; cond {
+								break
+							}
+						}
+					default:
+						y := uint64(vm.intk(c, op < 0))
+						for i := 0; i < n; i++ {
+							if cond = x.Index(i).Uint() == y; cond {
+								break
+							}
+						}
+					}
+				}
+				if Condition(b) == ConditionNotContainsElement {
+					cond = !cond
+				}
+			case ConditionContainsKey, ConditionNotContainsKey:
+				x := vm.general(a)
+				if x.Len() > 0 {
+					v := reflect.New(x.Type().Key()).Elem()
+					_ = vm.getIntoReflectValue(c, v, op < 0)
+					cond = x.MapIndex(v).IsValid()
+				}
+				if Condition(b) == ConditionNotContainsKey {
+					cond = !cond
+				}
+			case ConditionContainsRune, ConditionNotContainsRune:
+				x := vm.string(a)
+				if x != "" {
+					y := vm.intk(c, op < 0)
+					cond = strings.ContainsRune(x, rune(y))
+				}
+				if Condition(b) == ConditionNotContainsRune {
+					cond = !cond
+				}
 			default:
 				v1 := vm.int(a)
 				v2 := vm.intk(c, op < 0)
@@ -644,31 +730,67 @@ func (vm *VM) run() (Addr, bool) {
 			}
 		case OpIfFloat, -OpIfFloat:
 			var cond bool
-			v1 := vm.float(a)
-			v2 := vm.floatk(c, op < 0)
-			switch Condition(b) {
-			case ConditionEqual:
-				cond = v1 == v2
-			case ConditionNotEqual:
-				cond = v1 != v2
-			case ConditionLess:
-				cond = v1 < v2
-			case ConditionLessEqual:
-				cond = v1 <= v2
-			case ConditionGreater:
-				cond = v1 > v2
-			case ConditionGreaterEqual:
-				cond = v1 >= v2
+			switch bb := Condition(b); bb {
+			case ConditionContainsElement, ConditionNotContainsElement:
+				x := vm.general(a)
+				y := vm.floatk(c, op < 0)
+				if s, ok := x.Interface().([]float64); ok {
+					for _, e := range s {
+						if e == y {
+							cond = true
+							break
+						}
+					}
+				} else {
+					n := x.Len()
+					for i := 0; i < n; i++ {
+						if x.Index(i).Float() == y {
+							cond = true
+							break
+						}
+					}
+				}
+				if bb == ConditionNotContainsElement {
+					cond = !cond
+				}
+			case ConditionContainsKey, ConditionNotContainsKey:
+				x := vm.general(a)
+				if x.Len() > 0 {
+					v := reflect.New(x.Type().Key()).Elem()
+					_ = vm.getIntoReflectValue(c, v, op < 0)
+					cond = x.MapIndex(v).IsValid()
+				}
+				if bb == ConditionNotContainsKey {
+					cond = !cond
+				}
+			default:
+				x := vm.float(a)
+				y := vm.floatk(c, op < 0)
+				switch bb {
+				case ConditionEqual:
+					cond = x == y
+				case ConditionNotEqual:
+					cond = x != y
+				case ConditionLess:
+					cond = x < y
+				case ConditionLessEqual:
+					cond = x <= y
+				case ConditionGreater:
+					cond = x > y
+				case ConditionGreaterEqual:
+					cond = x >= y
+				}
 			}
 			if cond {
 				vm.pc++
 			}
 		case OpIfString, -OpIfString:
 			var cond bool
-			v1 := vm.string(a)
-			if Condition(b) < ConditionLenEqual {
+			bb := Condition(b)
+			if bb <= ConditionGreaterEqual {
+				v1 := vm.string(a)
 				v2 := vm.stringk(c, op < 0)
-				switch Condition(b) {
+				switch bb {
 				case ConditionEqual:
 					cond = v1 == v2
 				case ConditionNotEqual:
@@ -682,9 +804,10 @@ func (vm *VM) run() (Addr, bool) {
 				case ConditionGreaterEqual:
 					cond = v1 >= v2
 				}
-			} else {
+			} else if bb <= ConditionLenGreaterEqual {
+				v1 := vm.string(a)
 				v2 := int(vm.intk(c, op < 0))
-				switch Condition(b) {
+				switch bb {
 				case ConditionLenEqual:
 					cond = len(v1) == v2
 				case ConditionLenNotEqual:
@@ -697,6 +820,39 @@ func (vm *VM) run() (Addr, bool) {
 					cond = len(v1) > v2
 				case ConditionLenGreaterEqual:
 					cond = len(v1) >= v2
+				}
+			} else if bb == ConditionContainsSubstring || bb == ConditionNotContainsSubstring {
+				x := vm.string(a)
+				y := vm.stringk(c, op < 0)
+				cond = strings.Contains(x, y)
+				if bb == ConditionNotContainsSubstring {
+					cond = !cond
+				}
+			} else if bb == ConditionContainsElement || bb == ConditionNotContainsElement {
+				x := vm.general(a)
+				n := x.Len()
+				if n > 0 {
+					y := vm.stringk(c, op < 0)
+					for i := 0; i < n; i++ {
+						if x.Index(i).String() == y {
+							cond = true
+							break
+						}
+					}
+				}
+				if bb == ConditionNotContainsElement {
+					cond = !cond
+				}
+			} else {
+				// ConditionContainsKey, ConditionNotContainsKey
+				x := vm.general(a)
+				if x.Len() > 0 {
+					v := reflect.New(x.Type().Key()).Elem()
+					_ = vm.getIntoReflectValue(c, v, op < 0)
+					cond = x.MapIndex(v).IsValid()
+				}
+				if bb == ConditionNotContainsKey {
+					cond = !cond
 				}
 			}
 			if cond {
