@@ -151,7 +151,7 @@ const (
 	ContextJSON
 	ContextGo // TODO(marco): move in first position.
 	ContextTag
-	ContextAttribute
+	ContextQuotedAttribute
 	ContextUnquotedAttribute
 	ContextCSSString
 	ContextJavaScriptString
@@ -174,8 +174,8 @@ func (ctx Context) String() string {
 		return "JSON"
 	case ContextTag:
 		return "tag"
-	case ContextAttribute:
-		return "attribute"
+	case ContextQuotedAttribute:
+		return "quoted attribute"
 	case ContextUnquotedAttribute:
 		return "unquoted attribute"
 	case ContextCSSString:

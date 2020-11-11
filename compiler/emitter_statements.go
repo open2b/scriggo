@@ -418,7 +418,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			quoteArg := em.fb.newRegister(reflect.Bool)
 			isSetArg := em.fb.newRegister(reflect.Bool)
 			var quote, isSet int8
-			if node.Context == ast.ContextAttribute {
+			if node.Context == ast.ContextQuotedAttribute {
 				quote = 1
 			}
 			if node.Attribute == "srcset" {

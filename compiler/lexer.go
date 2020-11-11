@@ -281,7 +281,7 @@ func (l *lexer) scan() {
 								if quote == 0 {
 									l.ctx = ast.ContextUnquotedAttribute
 								} else {
-									l.ctx = ast.ContextAttribute
+									l.ctx = ast.ContextQuotedAttribute
 								}
 								l.emit(tokenStartURL, 0)
 								emittedURL = true
@@ -293,7 +293,7 @@ func (l *lexer) scan() {
 								if quote == 0 {
 									l.ctx = ast.ContextUnquotedAttribute
 								} else {
-									l.ctx = ast.ContextAttribute
+									l.ctx = ast.ContextQuotedAttribute
 								}
 							}
 						}
@@ -301,8 +301,8 @@ func (l *lexer) scan() {
 					}
 				}
 
-			case ast.ContextAttribute, ast.ContextUnquotedAttribute:
-				if l.ctx == ast.ContextAttribute && c == quote ||
+			case ast.ContextQuotedAttribute, ast.ContextUnquotedAttribute:
+				if l.ctx == ast.ContextQuotedAttribute && c == quote ||
 					l.ctx == ast.ContextUnquotedAttribute && (c == '>' || isASCIISpace(c)) {
 					// End attribute.
 					quote = 0

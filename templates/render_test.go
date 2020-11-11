@@ -72,7 +72,7 @@ func TestHTMLContext(t *testing.T) {
 	}
 }
 
-var attributeContextTests = []struct {
+var quotedAttributeContextTests = []struct {
 	src  string
 	res  string
 	vars Vars
@@ -103,8 +103,8 @@ var attributeContextTests = []struct {
 	{`s["a"]`, "", Vars{"s": map[interface{}]interface{}{}}},
 }
 
-func TestAttributeContext(t *testing.T) {
-	for _, expr := range attributeContextTests {
+func TestQuotedAttributeContext(t *testing.T) {
+	for _, expr := range quotedAttributeContextTests {
 		r := MapReader{"index.html": []byte(`<z x="{{` + expr.src + `}}">`)}
 		opts := &LoadOptions{
 			Builtins: asDeclarations(expr.vars),

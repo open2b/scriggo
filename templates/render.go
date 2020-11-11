@@ -47,7 +47,7 @@ func render(env runtime.Env, out io.Writer, value interface{}, ctx ast.Context) 
 		err = renderInHTML(env, out, value)
 	case ast.ContextTag:
 		err = renderInTag(env, out, value)
-	case ast.ContextAttribute:
+	case ast.ContextQuotedAttribute:
 		err = renderInAttribute(env, out, value, true)
 	case ast.ContextUnquotedAttribute:
 		err = renderInAttribute(env, out, value, false)
