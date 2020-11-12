@@ -407,15 +407,15 @@ LABEL:
 				panic(syntaxError(tok.pos, "non-declaration statement outside function body"))
 			}
 		case *ast.Switch:
-			if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenRightBraces {
+			if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenRightBrace {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting case or default or }", tok))
 			}
 		case *ast.TypeSwitch:
-			if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenRightBraces {
+			if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenRightBrace {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting case or default or }", tok))
 			}
 		case *ast.Select:
-			if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenRightBraces {
+			if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenRightBrace {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting case or default or }", tok))
 			}
 		}
@@ -509,7 +509,7 @@ LABEL:
 			}
 			pos.End = tok.pos.End
 			node = ast.NewFor(pos, init, condition, post, nil)
-		case tokenLeftBraces, tokenEndStatement:
+		case tokenLeftBrace, tokenEndStatement:
 			// Parse:    for cond {
 			//        {% for cond %}
 			var condition ast.Expression
@@ -573,7 +573,7 @@ LABEL:
 		p.addChild(node)
 		p.addToAncestors(node)
 		p.cutSpacesToken = true
-		tok = p.parseEnd(tok, tokenLeftBraces)
+		tok = p.parseEnd(tok, tokenLeftBrace)
 		return tok
 
 	// break
@@ -658,7 +658,7 @@ LABEL:
 			node = ast.NewSelectCase(pos, comm, nil)
 		default:
 			// Panic with a syntax error.
-			p.parseEnd(tok, tokenRightBraces)
+			p.parseEnd(tok, tokenRightBrace)
 		}
 		p.addChild(node)
 		tok = p.parseEnd(tok, tokenColon)
@@ -675,7 +675,7 @@ LABEL:
 			node = ast.NewSelectCase(pos, nil, nil)
 		default:
 			// Panic with a syntax error.
-			p.parseEnd(tok, tokenRightBraces)
+			p.parseEnd(tok, tokenRightBrace)
 		}
 		p.addChild(node)
 		p.cutSpacesToken = true
@@ -699,11 +699,11 @@ LABEL:
 		p.addToAncestors(node)
 		p.cutSpacesToken = true
 		tok = p.next()
-		tok = p.parseEnd(tok, tokenLeftBraces)
+		tok = p.parseEnd(tok, tokenLeftBrace)
 		return tok
 
 	// {
-	case tokenLeftBraces:
+	case tokenLeftBrace:
 		if !p.inGo {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting statement", tok))
 		}
@@ -714,7 +714,7 @@ LABEL:
 		return p.next()
 
 	// }
-	case tokenRightBraces:
+	case tokenRightBrace:
 		if !p.inGo {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting statement", tok))
 		}
@@ -733,7 +733,7 @@ LABEL:
 		case tokenSemicolon:
 			tok = p.next()
 			fallthrough
-		case tokenRightBraces:
+		case tokenRightBrace:
 			for {
 				if n, ok := p.parent().(*ast.If); ok {
 					n.Pos().End = bracesEnd
@@ -766,7 +766,7 @@ LABEL:
 		}
 		p.cutSpacesToken = true
 		tok = p.next()
-		if p.inGo && tok.typ == tokenLeftBraces || !p.inGo && tok.typ == tokenEndStatement {
+		if p.inGo && tok.typ == tokenLeftBrace || !p.inGo && tok.typ == tokenEndStatement {
 			// "else"
 			var blockPos *ast.Position
 			if p.inGo {
@@ -803,7 +803,7 @@ LABEL:
 			init = nil
 		}
 		if expr == nil {
-			if p.inGo && tok.typ == tokenLeftBraces || !p.inGo && tok.typ == tokenEndStatement {
+			if p.inGo && tok.typ == tokenLeftBrace || !p.inGo && tok.typ == tokenEndStatement {
 				panic(syntaxError(tok.pos, "missing condition in if statement"))
 			}
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
@@ -822,7 +822,7 @@ LABEL:
 		p.addToAncestors(node)
 		p.addToAncestors(then)
 		p.cutSpacesToken = true
-		tok = p.parseEnd(tok, tokenLeftBraces)
+		tok = p.parseEnd(tok, tokenLeftBrace)
 		return tok
 
 	// return
@@ -1333,7 +1333,7 @@ func (p *parsing) parseEnd(tok token, want tokenTyp) token {
 			if tok.typ == tokenSemicolon {
 				return p.next()
 			}
-			if tok.typ != tokenRightBraces {
+			if tok.typ != tokenRightBrace {
 				panic(syntaxError(tok.pos, "unexpected %s at end of statement", tok))
 			}
 			return tok
@@ -1446,7 +1446,7 @@ func (p *parsing) parseVarOrConst(tok token, pos *ast.Position, decType tokenTyp
 		if exprs == nil {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
-	case tokenIdentifier, tokenFunc, tokenMap, tokenLeftParenthesis, tokenLeftBrackets, tokenInterface, tokenMultiplication, tokenChan, tokenArrow, tokenStruct:
+	case tokenIdentifier, tokenFunc, tokenMap, tokenLeftParenthesis, tokenLeftBracket, tokenInterface, tokenMultiplication, tokenChan, tokenArrow, tokenStruct:
 		// var  a     int
 		// var  a, b  int
 		// var/const  a     int  =  ...

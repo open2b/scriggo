@@ -52,20 +52,20 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 		result, _, endPos = p.parseFuncParameters(tok, true)
 		pos.End = endPos.End
 		tok = p.next()
-	case tokenLeftBrackets, tokenFunc, tokenIdentifier, tokenInterface, tokenMap, tokenMultiplication, tokenStruct, tokenChan:
+	case tokenLeftBracket, tokenFunc, tokenIdentifier, tokenInterface, tokenMap, tokenMultiplication, tokenStruct, tokenChan:
 		expr, tok = p.parseExpr(tok, false, true, true)
 		pos.End = expr.Pos().End
 		result = []*ast.Parameter{ast.NewParameter(nil, expr)}
 	}
 	// Makes the function type.
 	typ := ast.NewFuncType(nil, parameters, result, isVariadic)
-	if kind == parseFuncType || kind&parseFuncType != 0 && tok.typ != tokenLeftBraces {
+	if kind == parseFuncType || kind&parseFuncType != 0 && tok.typ != tokenLeftBrace {
 		typ.Position = &ast.Position{pos.Line, pos.Column, pos.Start, pos.End}
 		return typ, tok
 	}
 	// Parses the function body.
 	node := ast.NewFunc(pos, ident, typ, nil)
-	if tok.typ != tokenLeftBraces {
+	if tok.typ != tokenLeftBrace {
 		return node, tok
 	}
 	body := ast.NewBlock(tok.pos, nil)
@@ -77,7 +77,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	p.inGo = true
 	tok = p.next()
 	for {
-		if tok.typ == tokenRightBraces {
+		if tok.typ == tokenRightBrace {
 			if _, ok := p.parent().(*ast.Label); ok {
 				p.removeLastAncestor()
 			}

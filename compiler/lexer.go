@@ -954,15 +954,15 @@ LOOP:
 			l.column++
 			endLineAsSemicolon = true
 		case '[':
-			l.emit(tokenLeftBrackets, 1)
+			l.emit(tokenLeftBracket, 1)
 			l.column++
 			endLineAsSemicolon = false
 		case ']':
-			l.emit(tokenRightBrackets, 1)
+			l.emit(tokenRightBracket, 1)
 			l.column++
 			endLineAsSemicolon = true
 		case '{':
-			l.emit(tokenLeftBraces, 1)
+			l.emit(tokenLeftBrace, 1)
 			l.column++
 			endLineAsSemicolon = false
 			if isShow {
@@ -979,7 +979,7 @@ LOOP:
 					unclosedLeftBraces--
 				}
 			}
-			l.emit(tokenRightBraces, 1)
+			l.emit(tokenRightBrace, 1)
 			l.column++
 			endLineAsSemicolon = true
 		case '^':

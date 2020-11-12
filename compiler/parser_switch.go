@@ -40,7 +40,7 @@ func (p *parsing) parseSwitch(tok token) ast.Node {
 
 	expressions, tok := p.parseExprList(p.next(), true, false, true)
 
-	end := tokenLeftBraces
+	end := tokenLeftBrace
 	if !p.inGo {
 		end = tokenEndStatement
 	}

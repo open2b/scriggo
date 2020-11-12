@@ -74,10 +74,10 @@ const (
 	tokenPeriod                            // .
 	tokenLeftParenthesis                   // (
 	tokenRightParenthesis                  // )
-	tokenLeftBrackets                      // [
-	tokenRightBrackets                     // ]
-	tokenLeftBraces                        // {
-	tokenRightBraces                       // }
+	tokenLeftBracket                       // [
+	tokenRightBracket                      // ]
+	tokenLeftBrace                         // {
+	tokenRightBrace                        // }
 	tokenColon                             // :
 	tokenComma                             // ,
 	tokenSemicolon                         // ;
@@ -176,10 +176,10 @@ var tokenString = map[tokenTyp]string{
 	tokenPeriod:                   ".",
 	tokenLeftParenthesis:          "(",
 	tokenRightParenthesis:         ")",
-	tokenLeftBrackets:             "[",
-	tokenRightBrackets:            "]",
-	tokenLeftBraces:               "{",
-	tokenRightBraces:              "}",
+	tokenLeftBracket:              "[",
+	tokenRightBracket:             "]",
+	tokenLeftBrace:                "{",
+	tokenRightBrace:               "}",
 	tokenColon:                    ":",
 	tokenComma:                    "comma",
 	tokenSemicolon:                "semicolon",
