@@ -261,9 +261,11 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				em.fb.emitGetVar(index, reg, dstType.Kind())
 				return reg, false
 			}
+			em.fb.enterStack()
 			tmp := em.fb.newRegister(typ.Kind())
 			em.fb.emitGetVar(index, tmp, typ.Kind())
 			em.changeRegister(false, tmp, reg, typ, dstType)
+			em.fb.exitStack()
 			return reg, false
 		}
 
