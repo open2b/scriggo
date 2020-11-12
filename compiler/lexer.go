@@ -618,7 +618,7 @@ func isEndScript(s []byte) bool {
 
 // lexShow emits tokens knowing that src starts with '{{'.
 func (l *lexer) lexShow() error {
-	l.emit(tokenStartValue, 2)
+	l.emit(tokenLeftBraces, 2)
 	l.column += 2
 	err := l.lexCode(true)
 	if err != nil {
@@ -630,7 +630,7 @@ func (l *lexer) lexShow() error {
 	if l.src[0] != '}' || l.src[1] != '}' {
 		return l.errorf("unexpected %s, expecting }}", l.src[:2])
 	}
-	l.emit(tokenEndValue, 2)
+	l.emit(tokenRightBraces, 2)
 	l.column += 2
 	return nil
 }

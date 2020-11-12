@@ -22,8 +22,8 @@ const (
 	tokenEndURL                            // and url
 	tokenStartStatement                    // {%
 	tokenEndStatement                      // %}
-	tokenStartValue                        // {{
-	tokenEndValue                          // }}
+	tokenLeftBraces                        // {{
+	tokenRightBraces                       // }}
 	tokenDeclaration                       // :=
 	tokenSimpleAssignment                  // =
 	tokenAdditionAssignment                // +=
@@ -124,8 +124,8 @@ var tokenString = map[tokenTyp]string{
 	tokenEndURL:                   "end url",
 	tokenStartStatement:           "{%",
 	tokenEndStatement:             "%}",
-	tokenStartValue:               "{{",
-	tokenEndValue:                 "}}",
+	tokenLeftBraces:               "{{",
+	tokenRightBraces:              "}}",
 	tokenDeclaration:              ":=",
 	tokenSimpleAssignment:         "=",
 	tokenAdditionAssignment:       "+=",

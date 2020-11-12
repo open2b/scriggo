@@ -333,7 +333,7 @@ func ParseTemplateSource(src []byte, lang ast.Language, relaxedBoolean bool) (tr
 			tok = p.parse(tok)
 
 		// {{
-		case tokenStartValue:
+		case tokenLeftBraces:
 			numTokenInLine++
 			pos := tok.pos
 			var expr ast.Expression
@@ -341,7 +341,7 @@ func ParseTemplateSource(src []byte, lang ast.Language, relaxedBoolean bool) (tr
 			if expr == nil {
 				return nil, syntaxError(tok.pos, "unexpected %s, expecting expression", tok)
 			}
-			if tok.typ != tokenEndValue {
+			if tok.typ != tokenRightBraces {
 				return nil, syntaxError(tok.pos, "unexpected %s, expecting }}", tok)
 			}
 			pos.End = tok.pos.End
@@ -742,7 +742,7 @@ LABEL:
 					return tok
 				}
 			}
-		case tokenEndValue, tokenEndStatement:
+		case tokenRightBraces, tokenEndStatement:
 			return tok
 		case tokenEOF:
 			// TODO(marco): check if it is correct.

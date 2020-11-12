@@ -126,13 +126,13 @@ func TestCheckerContainsExpressions(t *testing.T) {
 				ancestors:      nil,
 				relaxedBoolean: true,
 			}
-			p.next() // discard tokenStartValue.
+			p.next() // discard tokenLeftBraces.
 			node, tok := p.parseExpr(p.next(), false, false, false)
 			if node == nil {
 				t.Errorf("source: %q, unexpected %s, expecting expression\n", expr.src, tok)
 				return
 			}
-			if tok.typ != tokenEndValue {
+			if tok.typ != tokenRightBraces {
 				t.Errorf("source: %q, unexpected %s, expecting }}\n", expr.src, tok)
 				return
 			}
@@ -196,13 +196,13 @@ func TestCheckerContainsExpressionErrors(t *testing.T) {
 				ancestors:      nil,
 				relaxedBoolean: true,
 			}
-			p.next() // discard tokenStartValue.
+			p.next() // discard tokenLeftBraces.
 			node, tok := p.parseExpr(p.next(), false, false, false)
 			if node == nil {
 				t.Errorf("source: %q, unexpected %s, expecting expression\n", expr.src, tok)
 				return
 			}
-			if tok.typ != tokenEndValue {
+			if tok.typ != tokenRightBraces {
 				t.Errorf("source: %q, unexpected %s, expecting }}\n", expr.src, tok)
 				return
 			}
