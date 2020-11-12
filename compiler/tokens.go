@@ -20,8 +20,8 @@ const (
 	tokenShebangLine                       // #!
 	tokenStartURL                          // start url
 	tokenEndURL                            // and url
-	tokenStartBlock                        // {%
-	tokenEndBlock                          // %}
+	tokenStartStatement                    // {%
+	tokenEndStatement                      // %}
 	tokenStartValue                        // {{
 	tokenEndValue                          // }}
 	tokenDeclaration                       // :=
@@ -122,8 +122,8 @@ var tokenString = map[tokenTyp]string{
 	tokenShebangLine:              "#!",
 	tokenStartURL:                 "start url",
 	tokenEndURL:                   "end url",
-	tokenStartBlock:               "{%",
-	tokenEndBlock:                 "%}",
+	tokenStartStatement:           "{%",
+	tokenEndStatement:             "%}",
 	tokenStartValue:               "{{",
 	tokenEndValue:                 "}}",
 	tokenDeclaration:              ":=",

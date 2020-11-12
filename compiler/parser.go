@@ -327,7 +327,7 @@ func ParseTemplateSource(src []byte, lang ast.Language, relaxedBoolean bool) (tr
 			tok = p.next()
 
 		// {%
-		case tokenStartBlock:
+		case tokenStartStatement:
 			numTokenInLine++
 			tok = p.next()
 			tok = p.parse(tok)
@@ -509,7 +509,7 @@ LABEL:
 			}
 			pos.End = tok.pos.End
 			node = ast.NewFor(pos, init, condition, post, nil)
-		case tokenLeftBraces, tokenEndBlock:
+		case tokenLeftBraces, tokenEndStatement:
 			// Parse:    for cond {
 			//        {% for cond %}
 			var condition ast.Expression
@@ -742,7 +742,7 @@ LABEL:
 					return tok
 				}
 			}
-		case tokenEndValue, tokenEndBlock:
+		case tokenEndValue, tokenEndStatement:
 			return tok
 		case tokenEOF:
 			// TODO(marco): check if it is correct.
@@ -766,7 +766,7 @@ LABEL:
 		}
 		p.cutSpacesToken = true
 		tok = p.next()
-		if p.inGo && tok.typ == tokenLeftBraces || !p.inGo && tok.typ == tokenEndBlock {
+		if p.inGo && tok.typ == tokenLeftBraces || !p.inGo && tok.typ == tokenEndStatement {
 			// "else"
 			var blockPos *ast.Position
 			if p.inGo {
@@ -803,7 +803,7 @@ LABEL:
 			init = nil
 		}
 		if expr == nil {
-			if p.inGo && tok.typ == tokenLeftBraces || !p.inGo && tok.typ == tokenEndBlock {
+			if p.inGo && tok.typ == tokenLeftBraces || !p.inGo && tok.typ == tokenEndStatement {
 				panic(syntaxError(tok.pos, "missing condition in if statement"))
 			}
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
@@ -868,7 +868,7 @@ LABEL:
 			p.addChild(node)
 			p.cutSpacesToken = true
 			tok = p.next()
-			tok = p.parseEnd(tok, tokenEndBlock)
+			tok = p.parseEnd(tok, tokenEndStatement)
 			return tok
 		}
 		// {% show macro %}
@@ -921,7 +921,7 @@ LABEL:
 		}
 		p.addChild(node)
 		p.cutSpacesToken = true
-		tok = p.parseEnd(tok, tokenEndBlock)
+		tok = p.parseEnd(tok, tokenEndStatement)
 		return tok
 
 	// extends
@@ -954,7 +954,7 @@ LABEL:
 		p.addChild(node)
 		p.hasExtend = true
 		tok = p.next()
-		tok = p.parseEnd(tok, tokenEndBlock)
+		tok = p.parseEnd(tok, tokenEndStatement)
 		return tok
 
 	// var or const
@@ -1091,7 +1091,7 @@ LABEL:
 			pos.End = endPos.End
 			tok = p.next()
 		}
-		if tok.typ != tokenEndBlock {
+		if tok.typ != tokenEndStatement {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
 		}
 		// Makes the macro node.
@@ -1114,11 +1114,11 @@ LABEL:
 		}
 		pos := tok.pos
 		tok = p.next()
-		if tok.typ != tokenEndBlock {
+		if tok.typ != tokenEndStatement {
 			statementTok := tok
 			pos = statementTok.pos
 			tok = p.next()
-			if tok.typ != tokenEndBlock {
+			if tok.typ != tokenEndStatement {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
 			}
 			switch p.parent().(type) {
@@ -1259,7 +1259,7 @@ LABEL:
 				}
 				panic(syntaxError(tok.pos, "unexpected %s, expecting }", tok))
 			}
-			if tok.typ == tokenEndBlock {
+			if tok.typ == tokenEndStatement {
 				panic(syntaxError(tok.pos, "missing statement"))
 			}
 			panic(syntaxError(tok.pos, "unexpected %s, expecting statement", tok))
@@ -1299,7 +1299,7 @@ LABEL:
 					p.cutSpacesToken = true
 					tok = p.next()
 					if !p.inGo {
-						if tok.typ == tokenEndBlock || tok.typ == tokenEOF {
+						if tok.typ == tokenEndStatement || tok.typ == tokenEOF {
 							panic(syntaxError(tok.pos, "missing statement after label"))
 						}
 						goto LABEL
@@ -1346,7 +1346,7 @@ func (p *parsing) parseEnd(tok token, want tokenTyp) token {
 	if tok.typ == tokenSemicolon && tok.txt == nil {
 		tok = p.next()
 	}
-	if tok.typ != tokenEndBlock {
+	if tok.typ != tokenEndStatement {
 		if want == tokenSemicolon {
 			panic(syntaxError(tok.pos, "unexpected %s at end of statement", tok))
 		}

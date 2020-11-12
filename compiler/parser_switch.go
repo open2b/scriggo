@@ -42,7 +42,7 @@ func (p *parsing) parseSwitch(tok token) ast.Node {
 
 	end := tokenLeftBraces
 	if !p.inGo {
-		end = tokenEndBlock
+		end = tokenEndStatement
 	}
 
 	switch {
