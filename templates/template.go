@@ -196,7 +196,7 @@ func Load(name string, files FileReader, lang Language, options *LoadOptions) (*
 var emptyVars = map[string]interface{}{}
 
 // Render renders the template and write the output to out. vars contains the
-// values of the template builtin variables.
+// values of the template global variables.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *RenderOptions) error {
 	writeFunc := out.Write
 	renderFunc := render
