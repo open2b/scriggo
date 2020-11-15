@@ -27,23 +27,12 @@ type CompilerError interface {
 }
 
 type LoadOptions struct {
-	OutOfSpec struct {
-		AllowShebangLine bool         // allow shebang line; only for scripts.
-		DisallowGoStmt   bool         // disallow "go" statement.
-		Script           bool         // enable the script syntax.
-		Globals          Declarations // globals.
-	}
+	DisallowGoStmt bool // disallow "go" statement.
 }
-
-// Declarations.
-type Declarations map[string]interface{}
 
 type RunOptions struct {
 	Context   context.Context
 	PrintFunc runtime.PrintFunc
-	OutOfSpec struct {
-		Globals map[string]interface{}
-	}
 }
 
 type Program struct {
@@ -56,23 +45,10 @@ type Program struct {
 // packages from loader.
 func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, error) {
 	co := compiler.Options{}
-	var script bool
 	if options != nil {
-		if options.OutOfSpec.Globals != nil && !options.OutOfSpec.Script {
-			panic("scriggo: Script option is required for globals")
-		}
-		co.AllowShebangLine = options.OutOfSpec.AllowShebangLine
-		co.DisallowGoStmt = options.OutOfSpec.DisallowGoStmt
-		co.Globals = compiler.Declarations(options.OutOfSpec.Globals)
-		script = options.OutOfSpec.Script
+		co.DisallowGoStmt = options.DisallowGoStmt
 	}
-	var err error
-	var code *compiler.Code
-	if script {
-		code, err = compiler.CompileScript(src, loader, co)
-	} else {
-		code, err = compiler.CompileProgram(src, loader, co)
-	}
+	code, err := compiler.CompileProgram(src, loader, co)
 	if err != nil {
 		return nil, err
 	}
@@ -96,11 +72,16 @@ func (p *Program) Disassemble(w io.Writer, pkgPath string) (int64, error) {
 
 // Run starts the program and waits for it to complete.
 func (p *Program) Run(options *RunOptions) (int, error) {
-	vm := newVM(options)
-	if options != nil && options.OutOfSpec.Globals != nil {
-		return vm.Run(p.fn, p.typeof, initGlobals(p.globals, options.OutOfSpec.Globals))
+	vm := runtime.NewVM()
+	if options != nil {
+		if options.Context != nil {
+			vm.SetContext(options.Context)
+		}
+		if options.PrintFunc != nil {
+			vm.SetPrint(options.PrintFunc)
+		}
 	}
-	return vm.Run(p.fn, p.typeof, initGlobals(p.globals, nil))
+	return vm.Run(p.fn, p.typeof, initPackageLevelVariables(p.globals))
 }
 
 // MustRun is like Run but panics if the run fails.
@@ -141,55 +122,15 @@ func PrintFunc(w io.Writer) runtime.PrintFunc {
 	}
 }
 
-// newVM returns a new vm with the given options.
-func newVM(options *RunOptions) *runtime.VM {
-	vm := runtime.NewVM()
-	if options != nil {
-		if options.Context != nil {
-			vm.SetContext(options.Context)
-		}
-		if options.PrintFunc != nil {
-			vm.SetPrint(options.PrintFunc)
-		}
-	}
-	return vm
-}
-
-// initGlobals initializes the global variables and returns the values. It
-// panics if init is not valid.
-func initGlobals(globals []compiler.Global, init map[string]interface{}) []interface{} {
+// initPackageLevelVariables initializes the package level variables and
+// returns the values.
+func initPackageLevelVariables(globals []compiler.Global) []interface{} {
 	n := len(globals)
 	if n == 0 {
 		return nil
 	}
 	values := make([]interface{}, n)
 	for i, global := range globals {
-		if global.Pkg == "main" {
-			if value, ok := init[global.Name]; ok {
-				if global.Value != nil {
-					panic(fmt.Sprintf("variable %q already initialized", global.Name))
-				}
-				if value == nil {
-					panic(fmt.Sprintf("variable initializer %q cannot be nil", global.Name))
-				}
-				val := reflect.ValueOf(value)
-				if typ := val.Type(); typ == global.Type {
-					v := reflect.New(typ).Elem()
-					v.Set(val)
-					values[i] = v.Addr().Interface()
-				} else {
-					if typ.Kind() != reflect.Ptr || typ.Elem() != global.Type {
-						panic(fmt.Sprintf("variable initializer %q must have type %s or %s, but have %s",
-							global.Name, global.Type, reflect.PtrTo(global.Type), typ))
-					}
-					if val.IsNil() {
-						panic(fmt.Sprintf("variable initializer %q cannot be a nil pointer", global.Name))
-					}
-					values[i] = value
-				}
-				continue
-			}
-		}
 		if global.Value == nil {
 			values[i] = reflect.New(global.Type).Interface()
 		} else {

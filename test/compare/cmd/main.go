@@ -19,6 +19,7 @@ import (
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/compiler"
 	"github.com/open2b/scriggo/runtime"
+	"github.com/open2b/scriggo/scripts"
 )
 
 //go:generate scriggo embed -v -o predefPkgs.go
@@ -89,24 +90,23 @@ func main() {
 	switch flag.Args()[0] {
 	case "compile program":
 		loadOpts := &scriggo.LoadOptions{}
-		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
+		loadOpts.DisallowGoStmt = *disallowGoStmt
 		_, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
 	case "compile script":
-		loadOpts := &scriggo.LoadOptions{}
-		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
-		loadOpts.OutOfSpec.Script = true
-		_, err = scriggo.Load(os.Stdin, predefPkgs, loadOpts)
+		loadOpts := &scripts.LoadOptions{}
+		loadOpts.DisallowGoStmt = *disallowGoStmt
+		_, err = scripts.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
 	case "run program":
 		loadOpts := &scriggo.LoadOptions{}
-		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
+		loadOpts.DisallowGoStmt = *disallowGoStmt
 		program, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
@@ -120,10 +120,9 @@ func main() {
 			panic(err)
 		}
 	case "run script":
-		loadOpts := &scriggo.LoadOptions{}
-		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
-		loadOpts.OutOfSpec.Script = true
-		script, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
+		loadOpts := &scripts.LoadOptions{}
+		loadOpts.DisallowGoStmt = *disallowGoStmt
+		script, err := scripts.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -137,7 +136,7 @@ func main() {
 		}
 	case "run program directory":
 		loadOpts := &scriggo.LoadOptions{}
-		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
+		loadOpts.DisallowGoStmt = *disallowGoStmt
 		dirPath := flag.Args()[1]
 		dl := dirLoader(dirPath)
 		main, err := dl.Load("main")

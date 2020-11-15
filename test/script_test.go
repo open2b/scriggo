@@ -13,13 +13,14 @@ import (
 	"testing"
 
 	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/scripts"
 )
 
-var scripts = map[string]struct {
+var scriptTests = map[string]struct {
 	src     string
 	pkgs    scriggo.Packages
 	init    map[string]interface{}
-	globals scriggo.Declarations
+	globals scripts.Declarations
 
 	out string
 }{
@@ -68,7 +69,7 @@ var scripts = map[string]struct {
 			Print("A is ", A)
 		`,
 		out: "A is 0",
-		globals: scriggo.Declarations{
+		globals: scripts.Declarations{
 			"A": (*int)(nil),
 		},
 	},
@@ -80,7 +81,7 @@ var scripts = map[string]struct {
 			Print("new: ", A)
 		`,
 		out: "default: 0, new: 20",
-		globals: scriggo.Declarations{
+		globals: scripts.Declarations{
 			"A": (*int)(nil),
 		},
 	},
@@ -110,7 +111,7 @@ var scripts = map[string]struct {
 			}
 			Print(Sum)
 		`,
-		globals: scriggo.Declarations{
+		globals: scripts.Declarations{
 			"Sum": (*int)(nil),
 		},
 		out: "45",
@@ -124,7 +125,7 @@ var scripts = map[string]struct {
 			v := math.MaxInt8 * 2
 			Print(v)
 		`,
-		globals: scriggo.Declarations{
+		globals: scripts.Declarations{
 
 			"strings": &scriggo.MapPackage{
 				PkgName: "strings",
@@ -174,36 +175,35 @@ var scripts = map[string]struct {
 		}
 		F()
 		`,
-		globals: scriggo.Declarations{
+		globals: scripts.Declarations{
 			"V": (*int)(nil),
 		},
 	},
 }
 
-// Holds output of scripts.
+// Holds output of scriptTests.
 var scriptsStdout strings.Builder
 
 func TestScripts(t *testing.T) {
-	for name, cas := range scripts {
+	for name, cas := range scriptTests {
 		t.Run(name, func(t *testing.T) {
 			globals := cas.globals
 			if globals == nil {
-				globals = scriggo.Declarations{}
+				globals = scripts.Declarations{}
 			}
 			globals["Print"] = func(args ...interface{}) {
 				for _, a := range args {
 					scriptsStdout.WriteString(fmt.Sprint(a))
 				}
 			}
-			loadOpts := &scriggo.LoadOptions{}
-			loadOpts.OutOfSpec.Script = true
-			loadOpts.OutOfSpec.Globals = globals
-			script, err := scriggo.Load(strings.NewReader(cas.src), cas.pkgs, loadOpts)
+			loadOpts := &scripts.LoadOptions{}
+			loadOpts.Globals = globals
+			script, err := scripts.Load(strings.NewReader(cas.src), cas.pkgs, loadOpts)
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
-			runOpts := &scriggo.RunOptions{}
-			runOpts.OutOfSpec.Globals = cas.init
+			runOpts := &scripts.RunOptions{}
+			runOpts.Globals = cas.init
 			_, err = script.Run(runOpts)
 			if err != nil {
 				t.Fatalf("execution error: %s", err)
@@ -221,17 +221,16 @@ func TestScriptSum(t *testing.T) {
 	src := `for i := 0; i < 10; i++ { Sum += i }`
 	Sum := 0
 	init := map[string]interface{}{"Sum": &Sum}
-	loadOpts := &scriggo.LoadOptions{}
-	loadOpts.OutOfSpec.Script = true
-	loadOpts.OutOfSpec.Globals = scriggo.Declarations{
+	loadOpts := &scripts.LoadOptions{}
+	loadOpts.Globals = scripts.Declarations{
 		"Sum": (*int)(nil),
 	}
-	script, err := scriggo.Load(strings.NewReader(src), nil, loadOpts)
+	script, err := scripts.Load(strings.NewReader(src), nil, loadOpts)
 	if err != nil {
 		t.Fatalf("unable to load script: %s", err)
 	}
-	runOpts := &scriggo.RunOptions{}
-	runOpts.OutOfSpec.Globals = init
+	runOpts := &scripts.RunOptions{}
+	runOpts.Globals = init
 	_, err = script.Run(runOpts)
 	if err != nil {
 		t.Fatalf("run: %s", err)
@@ -245,22 +244,21 @@ func TestScriptsChainMessages(t *testing.T) {
 	src1 := `Message = Message + "script1,"`
 	src2 := `Message = Message + "script2"`
 	Message := "external,"
-	loadOpts := &scriggo.LoadOptions{}
-	loadOpts.OutOfSpec.Script = true
-	loadOpts.OutOfSpec.Globals = scriggo.Declarations{
+	loadOpts := &scripts.LoadOptions{}
+	loadOpts.Globals = scripts.Declarations{
 		"Message": (*string)(nil),
 	}
 	init := map[string]interface{}{"Message": &Message}
-	script1, err := scriggo.Load(strings.NewReader(src1), nil, loadOpts)
+	script1, err := scripts.Load(strings.NewReader(src1), nil, loadOpts)
 	if err != nil {
 		t.Fatalf("unable to load script 1: %s", err)
 	}
-	script2, err := scriggo.Load(strings.NewReader(src2), nil, loadOpts)
+	script2, err := scripts.Load(strings.NewReader(src2), nil, loadOpts)
 	if err != nil {
 		t.Fatalf("unable to load script 2: %s", err)
 	}
-	runOpts := &scriggo.RunOptions{}
-	runOpts.OutOfSpec.Globals = init
+	runOpts := &scripts.RunOptions{}
+	runOpts.Globals = init
 	_, err = script1.Run(runOpts)
 	if err != nil {
 		t.Fatalf("run: %s", err)
