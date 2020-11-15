@@ -71,7 +71,7 @@ var testJSONEnvStringerValue = &testJSONEnvStringer{}
 
 var envStringerCases = map[string]struct {
 	sources  map[string]string
-	builtins map[string]interface{}
+	globals  map[string]interface{}
 	language Language
 	want     string
 }{
@@ -79,7 +79,7 @@ var envStringerCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": "value read from env is {{ v }}",
 		},
-		builtins: map[string]interface{}{
+		globals: map[string]interface{}{
 			"v": &testEnvStringerValue,
 		},
 		language: LanguageText,
@@ -89,7 +89,7 @@ var envStringerCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": "value read from env is {{ v }}",
 		},
-		builtins: map[string]interface{}{
+		globals: map[string]interface{}{
 			"v": &testHTMLEnvStringerValue,
 		},
 		language: LanguageHTML,
@@ -99,7 +99,7 @@ var envStringerCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": "border-radius: {{ v }};",
 		},
-		builtins: map[string]interface{}{
+		globals: map[string]interface{}{
 			"v": &testCSSEnvStringerValue,
 		},
 		language: LanguageCSS,
@@ -109,7 +109,7 @@ var envStringerCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": "var x = {{ v }};",
 		},
-		builtins: map[string]interface{}{
+		globals: map[string]interface{}{
 			"v": &testJavaScriptEnvStringerValue,
 		},
 		language: LanguageJavaScript,
@@ -119,7 +119,7 @@ var envStringerCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": "var x = {{ v }};",
 		},
-		builtins: map[string]interface{}{
+		globals: map[string]interface{}{
 			"v": &testJSONEnvStringerValue,
 		},
 		language: LanguageJSON,
@@ -144,7 +144,7 @@ func TestEnvStringer(t *testing.T) {
 				r[p] = []byte(src)
 			}
 			opts := &LoadOptions{
-				Builtins: cas.builtins,
+				Globals: cas.globals,
 			}
 			template, err := Load("index.html", r, cas.language, opts)
 			if err != nil {

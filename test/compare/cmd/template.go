@@ -56,8 +56,8 @@ type compiledTemplate struct {
 
 func compileTemplate(reader compiler.FileReader) (*compiledTemplate, error) {
 	opts := compiler.Options{
-		Builtins: builtins,
-		Loader:   predefPkgs,
+		Globals: globals,
+		Loader:  predefPkgs,
 	}
 	code, err := compiler.CompileTemplate("/index.html", reader, ast.LanguageHTML, opts)
 	if err != nil {

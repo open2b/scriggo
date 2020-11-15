@@ -16,10 +16,10 @@ import (
 )
 
 var scripts = map[string]struct {
-	src      string
-	pkgs     scriggo.Packages
-	init     map[string]interface{}
-	builtins scriggo.Declarations
+	src     string
+	pkgs    scriggo.Packages
+	init    map[string]interface{}
+	globals scriggo.Declarations
 
 	out string
 }{
@@ -27,7 +27,7 @@ var scripts = map[string]struct {
 		src: ``,
 	},
 
-	"Don't use anything but Scriggo builtins": {
+	"Don't use anything but builtins": {
 		src: `println("hi!")`,
 	},
 
@@ -63,24 +63,24 @@ var scripts = map[string]struct {
 		out: "pkg.F called!",
 	},
 
-	"Read variables declared as builtins": {
+	"Read variables declared as global": {
 		src: `
 			Print("A is ", A)
 		`,
 		out: "A is 0",
-		builtins: scriggo.Declarations{
+		globals: scriggo.Declarations{
 			"A": (*int)(nil),
 		},
 	},
 
-	"Read and write variables declared as builtins": {
+	"Read and write variables declared as globals": {
 		src: `
 			Print("default: ", A, ", ")
 			A = 20
 			Print("new: ", A)
 		`,
 		out: "default: 0, new: 20",
-		builtins: scriggo.Declarations{
+		globals: scriggo.Declarations{
 			"A": (*int)(nil),
 		},
 	},
@@ -110,7 +110,7 @@ var scripts = map[string]struct {
 			}
 			Print(Sum)
 		`,
-		builtins: scriggo.Declarations{
+		globals: scriggo.Declarations{
 			"Sum": (*int)(nil),
 		},
 		out: "45",
@@ -124,7 +124,7 @@ var scripts = map[string]struct {
 			v := math.MaxInt8 * 2
 			Print(v)
 		`,
-		builtins: scriggo.Declarations{
+		globals: scriggo.Declarations{
 
 			"strings": &scriggo.MapPackage{
 				PkgName: "strings",
@@ -167,14 +167,14 @@ var scripts = map[string]struct {
 	},
 
 	// https://github.com/open2b/scriggo/issues/659
-	"Accessing a builtin variable from a function literal": {
+	"Accessing a global variable from a function literal": {
 		src: `
 		func F() {
 			_ = V
 		}
 		F()
 		`,
-		builtins: scriggo.Declarations{
+		globals: scriggo.Declarations{
 			"V": (*int)(nil),
 		},
 	},
@@ -186,24 +186,24 @@ var scriptsStdout strings.Builder
 func TestScripts(t *testing.T) {
 	for name, cas := range scripts {
 		t.Run(name, func(t *testing.T) {
-			builtins := cas.builtins
-			if builtins == nil {
-				builtins = scriggo.Declarations{}
+			globals := cas.globals
+			if globals == nil {
+				globals = scriggo.Declarations{}
 			}
-			builtins["Print"] = func(args ...interface{}) {
+			globals["Print"] = func(args ...interface{}) {
 				for _, a := range args {
 					scriptsStdout.WriteString(fmt.Sprint(a))
 				}
 			}
 			loadOpts := &scriggo.LoadOptions{}
 			loadOpts.OutOfSpec.Script = true
-			loadOpts.OutOfSpec.Builtins = builtins
+			loadOpts.OutOfSpec.Globals = globals
 			script, err := scriggo.Load(strings.NewReader(cas.src), cas.pkgs, loadOpts)
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
 			runOpts := &scriggo.RunOptions{}
-			runOpts.OutOfSpec.Builtins = cas.init
+			runOpts.OutOfSpec.Globals = cas.init
 			_, err = script.Run(runOpts)
 			if err != nil {
 				t.Fatalf("execution error: %s", err)
@@ -223,7 +223,7 @@ func TestScriptSum(t *testing.T) {
 	init := map[string]interface{}{"Sum": &Sum}
 	loadOpts := &scriggo.LoadOptions{}
 	loadOpts.OutOfSpec.Script = true
-	loadOpts.OutOfSpec.Builtins = scriggo.Declarations{
+	loadOpts.OutOfSpec.Globals = scriggo.Declarations{
 		"Sum": (*int)(nil),
 	}
 	script, err := scriggo.Load(strings.NewReader(src), nil, loadOpts)
@@ -231,7 +231,7 @@ func TestScriptSum(t *testing.T) {
 		t.Fatalf("unable to load script: %s", err)
 	}
 	runOpts := &scriggo.RunOptions{}
-	runOpts.OutOfSpec.Builtins = init
+	runOpts.OutOfSpec.Globals = init
 	_, err = script.Run(runOpts)
 	if err != nil {
 		t.Fatalf("run: %s", err)
@@ -247,7 +247,7 @@ func TestScriptsChainMessages(t *testing.T) {
 	Message := "external,"
 	loadOpts := &scriggo.LoadOptions{}
 	loadOpts.OutOfSpec.Script = true
-	loadOpts.OutOfSpec.Builtins = scriggo.Declarations{
+	loadOpts.OutOfSpec.Globals = scriggo.Declarations{
 		"Message": (*string)(nil),
 	}
 	init := map[string]interface{}{"Message": &Message}
@@ -260,7 +260,7 @@ func TestScriptsChainMessages(t *testing.T) {
 		t.Fatalf("unable to load script 2: %s", err)
 	}
 	runOpts := &scriggo.RunOptions{}
-	runOpts.OutOfSpec.Builtins = init
+	runOpts.OutOfSpec.Globals = init
 	_, err = script1.Run(runOpts)
 	if err != nil {
 		t.Fatalf("run: %s", err)

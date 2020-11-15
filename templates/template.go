@@ -132,9 +132,9 @@ type LoadOptions struct {
 	DisallowGoStmt  bool
 	TreeTransformer func(*ast.Tree) error // if not nil transforms tree after parsing.
 
-	// Builtins declares constants, types, variables and functions that are
+	// Globals declares constants, types, variables and functions that are
 	// accessible from the code in the template.
-	Builtins Declarations
+	Globals Declarations
 
 	// Loader is a package loader that makes precompiled packages available in
 	// the template through the 'import' statement.
@@ -175,7 +175,7 @@ type CompilerError interface {
 func Load(name string, files FileReader, lang Language, options *LoadOptions) (*Template, error) {
 	co := compiler.Options{}
 	if options != nil {
-		co.Builtins = compiler.Declarations(options.Builtins)
+		co.Globals = compiler.Declarations(options.Globals)
 		co.TreeTransformer = options.TreeTransformer
 		co.DisallowGoStmt = options.DisallowGoStmt
 		co.Loader = options.Loader

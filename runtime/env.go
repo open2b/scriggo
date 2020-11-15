@@ -34,8 +34,8 @@ type Env interface {
 	// Fatal calls panic() with a FatalError error.
 	Fatal(v interface{})
 
-	// FilePath can be called from a builtin function to get the absolute path
-	// of the file where such builtin was called. If the builtin function was
+	// FilePath can be called from a global function to get the absolute path
+	// of the file where such global was called. If the global function was
 	// not called by the main virtual machine goroutine, the returned value is
 	// not significant.
 	FilePath() string

@@ -71,7 +71,7 @@ func renderPanics(p *runtime.Panic) string {
 	return msg
 }
 
-var builtins = compiler.Declarations{
+var globals = compiler.Declarations{
 	"MainSum": func(a, b int) int { return a + b },
 }
 

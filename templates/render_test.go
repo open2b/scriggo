@@ -52,7 +52,7 @@ func TestHTMLContext(t *testing.T) {
 	for _, expr := range htmlContextTests {
 		r := MapReader{"index.html": []byte("{{" + expr.src + "}}")}
 		opts := &LoadOptions{
-			Builtins: asDeclarations(expr.vars),
+			Globals: asDeclarations(expr.vars),
 		}
 		tmpl, err := Load("index.html", r, LanguageHTML, opts)
 		if err != nil {
@@ -107,7 +107,7 @@ func TestQuotedAttributeContext(t *testing.T) {
 	for _, expr := range quotedAttributeContextTests {
 		r := MapReader{"index.html": []byte(`<z x="{{` + expr.src + `}}">`)}
 		opts := &LoadOptions{
-			Builtins: asDeclarations(expr.vars),
+			Globals: asDeclarations(expr.vars),
 		}
 		tmpl, err := Load("index.html", r, LanguageHTML, opts)
 		if err != nil {
@@ -144,7 +144,7 @@ func TestUnquotedAttributeContext(t *testing.T) {
 	for _, expr := range unquotedAttributeContextTests {
 		r := MapReader{"index.html": []byte(`<z x={{` + expr.src + `}}>`)}
 		opts := &LoadOptions{
-			Builtins: asDeclarations(expr.vars),
+			Globals: asDeclarations(expr.vars),
 		}
 		tmpl, err := Load("index.html", r, LanguageHTML, opts)
 		if err != nil {
@@ -226,7 +226,7 @@ func TestScriptContext(t *testing.T) {
 		for _, expr := range scriptContextTests {
 			r := MapReader{"index.html": []byte(`<script type="` + typ + `">{{` + expr.src + `}}</script>`)}
 			opts := &LoadOptions{
-				Builtins: asDeclarations(expr.vars),
+				Globals: asDeclarations(expr.vars),
 			}
 			tmpl, err := Load("index.html", r, LanguageHTML, opts)
 			if err != nil {
@@ -259,7 +259,7 @@ func TestJavaScriptContext(t *testing.T) {
 	for _, expr := range javaScriptContextTests {
 		r := MapReader{"index.html": []byte("<script>{{" + expr.src + "}}</script>")}
 		opts := &LoadOptions{
-			Builtins: asDeclarations(expr.vars),
+			Globals: asDeclarations(expr.vars),
 		}
 		tmpl, err := Load("index.html", r, LanguageHTML, opts)
 		if err != nil {
@@ -291,7 +291,7 @@ func TestJSONContext(t *testing.T) {
 	for _, expr := range jsonContextTests {
 		r := MapReader{"index.html": []byte(`<script type="application/ld+json">{{` + expr.src + `}}</script>`)}
 		opts := &LoadOptions{
-			Builtins: asDeclarations(expr.vars),
+			Globals: asDeclarations(expr.vars),
 		}
 		tmpl, err := Load("index.html", r, LanguageHTML, opts)
 		if err != nil {
@@ -349,7 +349,7 @@ func TestJavaScriptStringContext(t *testing.T) {
 		for _, expr := range javaScriptStringContextTests {
 			r := MapReader{"index.html": []byte("<script>" + q + "{{" + expr.src + "}}" + q + "</script>")}
 			opts := &LoadOptions{
-				Builtins: asDeclarations(expr.vars),
+				Globals: asDeclarations(expr.vars),
 			}
 			tmpl, err := Load("index.html", r, LanguageHTML, opts)
 			if err != nil {
@@ -388,7 +388,7 @@ func TestCSSContext(t *testing.T) {
 	for _, expr := range cssContextTests {
 		r := MapReader{"index.html": []byte("<style>{{" + expr.src + "}}</style>")}
 		opts := &LoadOptions{
-			Builtins: asDeclarations(expr.vars),
+			Globals: asDeclarations(expr.vars),
 		}
 		tmpl, err := Load("index.html", r, LanguageHTML, opts)
 		if err != nil {
@@ -438,7 +438,7 @@ func TestCSSStringContext(t *testing.T) {
 		for _, expr := range cssStringContextTests {
 			r := MapReader{"index.html": []byte("<style>" + q + "{{" + expr.src + "}}" + q + "</style>")}
 			opts := &LoadOptions{
-				Builtins: asDeclarations(expr.vars),
+				Globals: asDeclarations(expr.vars),
 			}
 			tmpl, err := Load("index.html", r, LanguageHTML, opts)
 			if err != nil {
@@ -460,7 +460,7 @@ func TestCSSStringContext(t *testing.T) {
 }
 
 func asDeclarations(vars Vars) Declarations {
-	declarations := builtins()
+	declarations := globals()
 	for name, value := range vars {
 		declarations[name] = reflect.Zero(reflect.PtrTo(reflect.TypeOf(value))).Interface()
 	}

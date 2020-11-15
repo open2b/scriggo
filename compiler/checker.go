@@ -50,15 +50,15 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 
 	// Prepare the type checking for scripts and templates.
 	var globalScope typeCheckerScope
-	if opts.builtins != nil {
-		builtins := &mapPackage{
+	if opts.globals != nil {
+		globals := &mapPackage{
 			PkgName:      "main",
-			Declarations: opts.builtins,
+			Declarations: opts.globals,
 		}
-		globalScope = toTypeCheckerScope(builtins, 0, opts)
+		globalScope = toTypeCheckerScope(globals, 0, opts)
 	}
 
-	// Add the builtin "exit" to script global scope.
+	// Add the global "exit" to script global scope.
 	if opts.modality == scriptMod {
 		exit := scopeElement{t: &typeInfo{Properties: propertyPredeclared}}
 		if globalScope == nil {
@@ -144,8 +144,8 @@ type checkerOptions struct {
 	// and not used or a package is imported and not used.
 	allowNotUsed bool
 
-	// builtins.
-	builtins Declarations
+	// globals.
+	globals Declarations
 }
 
 // typechecker represents the state of the type checking.
@@ -425,7 +425,7 @@ func (tc *typechecker) isUpVar(name string) bool {
 		return elem.t.Addressable()
 	}
 
-	// Check if name is a builtin variable in a template or script.
+	// Check if name is a global variable in a template or script.
 	if tc.opts.modality == templateMod || tc.opts.modality == scriptMod {
 		if elem, ok := tc.globalScope[name]; ok {
 			return elem.t.Addressable()

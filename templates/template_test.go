@@ -24,7 +24,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func builtins() Declarations {
+func globals() Declarations {
 	return Declarations{
 		"max": func(x, y int) int {
 			if x < y {
@@ -781,14 +781,14 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "For loop: 0, 1, 2, 3, 4, ",
 	},
 
-	"Template builtin - max": {
+	"Template global - max": {
 		sources: map[string]string{
 			"index.html": `Maximum between 10 and -3 is {{ max(10, -3) }}`,
 		},
 		expectedOut: `Maximum between 10 and -3 is 10`,
 	},
 
-	"Template builtin - sort": {
+	"Template global - sort": {
 		sources: map[string]string{
 			"index.html": `{% s := []string{"a", "c", "b"} %}{{ sprint(s) }} sorted is {% sort(s) %}{{ sprint(s) }}`,
 		},
@@ -882,7 +882,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: `42`,
 	},
 
-	"Calling a builtin function": {
+	"Calling a global function": {
 		sources: map[string]string{
 			"index.html": `{{ lowercase("HellO ScrIgGo!") }}{% x := "A String" %}{{ lowercase(x) }}`,
 		},
@@ -897,7 +897,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: `hello scriggo!a string`,
 	},
 
-	"Calling a function stored in a builtin variable": {
+	"Calling a function stored in a global variable": {
 		sources: map[string]string{
 			"index.html": `{{ lowercase("HellO ScrIgGo!") }}{% x := "A String" %}{{ lowercase(x) }}`,
 		},
@@ -1015,7 +1015,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: `123`,
 	},
 
-	"Template builtin - title": {
+	"Template global - title": {
 		sources: map[string]string{
 			"index.html": `{% s := "hello, world" %}{{ s }} converted to title is {{ title(s) }}`,
 		},
@@ -1431,12 +1431,12 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "showing",
 	},
 
-	"The shown file must see the builtin variable 'v', not the local variable 'v' of the showing file": {
-		// If the shown file refers to a builtin symbol with the same name of a
+	"The shown file must see the global variable 'v', not the local variable 'v' of the showing file": {
+		// If the shown file refers to a global symbol with the same name of a
 		// local variable in the scope of the file that shows it, then the
 		// emitter emits the code for such variable instead of such global
 		// variable. This happens because the emitter gives the precedence to
-		// local variables respect to builtin variables. For this reason the
+		// local variables respect to global variables. For this reason the
 		// emitter must hide the scopes to the shown file (as the type checker
 		// does).
 		sources: map[string]string{
@@ -1446,10 +1446,10 @@ var templateMultiPageCases = map[string]struct {
 		main: &scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
-				"v": &builtinVariable,
+				"v": &globalVariable,
 			},
 		},
-		expectedOut: "builtin variable, showing",
+		expectedOut: "global variable, showing",
 	},
 
 	"A file that is shown defines a macro, which should not be accessible from the file that shows it": {
@@ -1741,17 +1741,17 @@ var templateMultiPageCases = map[string]struct {
 		expectedLoadErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
 	},
 
-	"Accessing builtin variable from macro's body": {
+	"Accessing global variable from macro's body": {
 		sources: map[string]string{
-			"index.html": `{% macro M %}{{ builtinVariable }}{% end %}{% show M %}`,
+			"index.html": `{% macro M %}{{ globalVariable }}{% end %}{% show M %}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
-				"builtinVariable": &([]string{"<b>builtin</b>"}[0]),
+				"globalVariable": &([]string{"<b>global</b>"}[0]),
 			},
 		},
-		expectedOut: "<b>builtin</b>",
+		expectedOut: "<b>global</b>",
 	},
 	"Double type checking of shown file": {
 		sources: map[string]string{
@@ -1777,30 +1777,30 @@ var templateMultiPageCases = map[string]struct {
 	},
 
 	// https://github.com/open2b/scriggo/issues/659
-	"Accessing builtin variable from function literal's body": {
+	"Accessing global variable from function literal's body": {
 		sources: map[string]string{
 			"index.html": `{%
 				func(){
-					_ = builtinVariable
+					_ = globalVariable
 				}() 
 			%}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
-				"builtinVariable": (*int)(nil),
+				"globalVariable": (*int)(nil),
 			},
 		},
 	},
 
 	// https://github.com/open2b/scriggo/issues/659
-	"Accessing builtin variable from function literal's body - nested": {
+	"Accessing global variable from function literal's body - nested": {
 		sources: map[string]string{
 			"index.html": `{%
 				func(){
 					func() {
 						func() {
-							_ = builtinVariable
+							_ = globalVariable
 						}()
 					}()
 				}()
@@ -1809,7 +1809,7 @@ var templateMultiPageCases = map[string]struct {
 		main: &scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
-				"builtinVariable": (*int)(nil),
+				"globalVariable": (*int)(nil),
 			},
 		},
 	},
@@ -1879,7 +1879,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedLoadErr: `unexpected type in dollar identifier`,
 	},
 
-	"Dollar identifier - Cannot use a Go builtin": {
+	"Dollar identifier - Cannot use a builtin": {
 		sources: map[string]string{
 			"index.html": `{% _ = $println %}`,
 		},
@@ -2089,7 +2089,7 @@ var testLoader = scriggo.Packages{
 	},
 }
 
-var builtinVariable = "builtin variable"
+var globalVariable = "global variable"
 
 var functionReturningErrorPackage = &scriggo.MapPackage{
 	PkgName: "main",
@@ -2117,10 +2117,10 @@ func TestMultiPageTemplate(t *testing.T) {
 			for p, src := range cas.sources {
 				r[p] = []byte(src)
 			}
-			builtins := builtins()
+			globals := globals()
 			if cas.main != nil {
 				for k, v := range cas.main.Declarations {
-					builtins[k] = v
+					globals[k] = v
 				}
 			}
 			entryPoint := cas.entryPoint
@@ -2128,8 +2128,8 @@ func TestMultiPageTemplate(t *testing.T) {
 				entryPoint = "index.html"
 			}
 			opts := &LoadOptions{
-				Builtins: builtins,
-				Loader:   cas.loader,
+				Globals: globals,
+				Loader:  cas.loader,
 			}
 			templ, err := Load(entryPoint, r, cas.lang, opts)
 			switch {
@@ -2168,7 +2168,7 @@ func TestVars(t *testing.T) {
 	var f = 5
 	var g = 7
 	reader := MapReader{"example.txt": []byte(`{% _, _, _, _, _ = a, c, d, e, f %}`)}
-	builtins := Declarations{
+	globals := Declarations{
 		"a": &a, // expected
 		"b": &b,
 		"c": c,
@@ -2178,7 +2178,7 @@ func TestVars(t *testing.T) {
 		"g": g,
 	}
 	opts := &LoadOptions{
-		Builtins: builtins,
+		Globals: globals,
 	}
 	tmpl, err := Load("example.txt", reader, LanguageText, opts)
 	if err != nil {
@@ -2250,7 +2250,7 @@ var envFilePathCases = []struct {
 }
 
 func Test_envFilePath(t *testing.T) {
-	builtins := Declarations{
+	globals := Declarations{
 		"path": func(env runtime.Env) string { return env.FilePath() },
 	}
 	for _, cas := range envFilePathCases {
@@ -2260,7 +2260,7 @@ func Test_envFilePath(t *testing.T) {
 				r[p] = []byte(src)
 			}
 			opts := &LoadOptions{
-				Builtins: builtins,
+				Globals: globals,
 			}
 			template, err := Load("index.html", r, LanguageHTML, opts)
 			if err != nil {

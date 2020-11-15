@@ -31,7 +31,7 @@ type LoadOptions struct {
 		AllowShebangLine bool         // allow shebang line; only for scripts.
 		DisallowGoStmt   bool         // disallow "go" statement.
 		Script           bool         // enable the script syntax.
-		Builtins         Declarations // builtins.
+		Globals          Declarations // globals.
 	}
 }
 
@@ -42,7 +42,7 @@ type RunOptions struct {
 	Context   context.Context
 	PrintFunc runtime.PrintFunc
 	OutOfSpec struct {
-		Builtins map[string]interface{}
+		Globals map[string]interface{}
 	}
 }
 
@@ -58,12 +58,12 @@ func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, 
 	co := compiler.Options{}
 	var script bool
 	if options != nil {
-		if options.OutOfSpec.Builtins != nil && !options.OutOfSpec.Script {
-			panic("scriggo: Script option is required for builtins")
+		if options.OutOfSpec.Globals != nil && !options.OutOfSpec.Script {
+			panic("scriggo: Script option is required for globals")
 		}
 		co.AllowShebangLine = options.OutOfSpec.AllowShebangLine
 		co.DisallowGoStmt = options.OutOfSpec.DisallowGoStmt
-		co.Builtins = compiler.Declarations(options.OutOfSpec.Builtins)
+		co.Globals = compiler.Declarations(options.OutOfSpec.Globals)
 		script = options.OutOfSpec.Script
 	}
 	var err error
@@ -97,8 +97,8 @@ func (p *Program) Disassemble(w io.Writer, pkgPath string) (int64, error) {
 // Run starts the program and waits for it to complete.
 func (p *Program) Run(options *RunOptions) (int, error) {
 	vm := newVM(options)
-	if options != nil && options.OutOfSpec.Builtins != nil {
-		return vm.Run(p.fn, p.typeof, initGlobals(p.globals, options.OutOfSpec.Builtins))
+	if options != nil && options.OutOfSpec.Globals != nil {
+		return vm.Run(p.fn, p.typeof, initGlobals(p.globals, options.OutOfSpec.Globals))
 	}
 	return vm.Run(p.fn, p.typeof, initGlobals(p.globals, nil))
 }

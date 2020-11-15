@@ -2318,7 +2318,7 @@ func (tc *typechecker) checkDollarIdentifier(expr *ast.DollarIdentifier) *typeIn
 
 	// Check that x is a valid identifier.
 	if ti, ok := tc.lookupScopes(expr.Ident.Name, false); ok {
-		// Check that x is not a Go builtin function.
+		// Check that x is not a builtin function.
 		if ti.IsBuiltinFunction() {
 			panic(tc.errorf(expr.Ident, "use of builtin %s not in function call", expr.Ident))
 		}

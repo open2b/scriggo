@@ -43,7 +43,7 @@ const (
 type Options struct {
 	AllowShebangLine bool
 	DisallowGoStmt   bool
-	Builtins         Declarations
+	Globals          Declarations
 
 	// Loader loads Scriggo packages and precompiled packages.
 	//
@@ -84,7 +84,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 	checkerOpts := checkerOptions{
 		modality:       programMod,
 		disallowGoStmt: opts.DisallowGoStmt,
-		builtins:       opts.Builtins,
+		globals:        opts.Globals,
 	}
 	tci, err := typecheck(tree, importer, checkerOpts)
 	if err != nil {
@@ -127,7 +127,7 @@ func CompileScript(r io.Reader, importer PackageLoader, opts Options) (*Code, er
 	checkerOpts := checkerOptions{
 		modality:       scriptMod,
 		disallowGoStmt: opts.DisallowGoStmt,
-		builtins:       opts.Builtins,
+		globals:        opts.Globals,
 	}
 	tci, err := typecheck(tree, importer, checkerOpts)
 	if err != nil {
@@ -174,7 +174,7 @@ func CompileTemplate(path string, r FileReader, lang ast.Language, opts Options)
 	checkerOpts := checkerOptions{
 		allowNotUsed:   true,
 		disallowGoStmt: opts.DisallowGoStmt,
-		builtins:       opts.Builtins,
+		globals:        opts.Globals,
 		modality:       templateMod,
 	}
 	tci, err := typecheck(tree, opts.Loader, checkerOpts)

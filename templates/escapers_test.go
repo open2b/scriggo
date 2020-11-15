@@ -202,7 +202,7 @@ func TestURLEscape(t *testing.T) {
 		t.Run("", func(t *testing.T) {
 			r := MapReader{"index.html": []byte(cas.src)}
 			opts := &LoadOptions{
-				Builtins: builtins(),
+				Globals: globals(),
 			}
 			templ, err := Load("index.html", r, LanguageHTML, opts)
 			if err != nil {
