@@ -130,7 +130,7 @@ func CompileScript(r io.Reader, importer PackageLoader, opts Options) (*Code, er
 		DisallowGoStmt: opts.DisallowGoStmt,
 		Script:         true,
 		Builtins:       opts.Builtins,
-		RelaxedBoolean: false,
+		RelaxedBoolean: true,
 	}
 	tci, err := typecheck(tree, importer, checkerOpts)
 	if err != nil {

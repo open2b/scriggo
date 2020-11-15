@@ -29,6 +29,22 @@ func scanProgram(text []byte) *lexer {
 	return lex
 }
 
+// scanScript scans a script file and returns a lexer.
+func scanScript(text []byte) *lexer {
+	tokens := make(chan token, 20)
+	lex := &lexer{
+		text:     text,
+		src:      text,
+		line:     1,
+		column:   1,
+		ctx:      ast.ContextGo,
+		toks:     tokens,
+		extended: true,
+	}
+	go lex.scan()
+	return lex
+}
+
 // scanTemplate scans a template page and returns a lexer.
 func scanTemplate(text []byte, language ast.Language) *lexer {
 	tokens := make(chan token, 20)

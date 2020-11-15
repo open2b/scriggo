@@ -174,10 +174,14 @@ func parseSource(src []byte, script, shebang bool) (tree *ast.Tree, err error) {
 	tree = ast.NewTree("", nil, ast.LanguageGo)
 
 	var p = &parsing{
-		lex:       scanProgram(src),
 		language:  ast.LanguageGo,
 		isScript:  script,
 		ancestors: []ast.Node{tree},
+	}
+	if script {
+		p.lex = scanScript(src)
+	} else {
+		p.lex = scanProgram(src)
 	}
 
 	defer func() {
