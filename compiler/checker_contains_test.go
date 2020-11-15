@@ -124,7 +124,7 @@ func TestCheckerContainsExpressions(t *testing.T) {
 				language:       ast.LanguageText,
 				inGo:           true,
 				ancestors:      nil,
-				relaxedBoolean: true,
+				extendedSyntax: true,
 			}
 			p.next() // discard tokenLeftBraces.
 			node, tok := p.parseExpr(p.next(), false, false, false)
@@ -194,7 +194,7 @@ func TestCheckerContainsExpressionErrors(t *testing.T) {
 				language:       ast.LanguageText,
 				inGo:           true,
 				ancestors:      nil,
-				relaxedBoolean: true,
+				extendedSyntax: true,
 			}
 			p.next() // discard tokenLeftBraces.
 			node, tok := p.parseExpr(p.next(), false, false, false)

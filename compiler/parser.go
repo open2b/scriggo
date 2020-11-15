@@ -128,9 +128,9 @@ type parsing struct {
 	// Ancestors from the root up to the parent.
 	ancestors []ast.Node
 
-	// Support 'and', 'or', 'not', 'contains' and 'not contains' operators as
-	// well as if statements with non-boolean conditions.
-	relaxedBoolean bool
+	// Support 'and', 'or', 'not', 'contains' and 'not contains' operators,
+	// dollar identifiers and not-boolean conditions.
+	extendedSyntax bool
 }
 
 // addToAncestors adds node to the ancestors.
@@ -230,7 +230,7 @@ func ParseSource(src []byte, isPackageLessProgram, shebang bool) (tree *ast.Tree
 // ParseTemplateSource does not expand the nodes Extends, ShowPartial and
 // Import.
 //
-// relaxedBoolean reports whether the operators 'and', 'or' and 'not' as well as
+// extendedSyntax reports whether the operators 'and', 'or' and 'not' as well as
 // non-boolean conditions in the if statement are allowed.
 func ParseTemplateSource(src []byte, lang ast.Language, relaxedBoolean bool) (tree *ast.Tree, err error) {
 
@@ -244,7 +244,7 @@ func ParseTemplateSource(src []byte, lang ast.Language, relaxedBoolean bool) (tr
 		lex:            scanTemplate(src, lang),
 		language:       lang,
 		ancestors:      []ast.Node{tree},
-		relaxedBoolean: relaxedBoolean,
+		extendedSyntax: relaxedBoolean,
 	}
 
 	defer func() {
