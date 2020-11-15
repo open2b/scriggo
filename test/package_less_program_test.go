@@ -103,7 +103,7 @@ var packageLessPrograms = map[string]struct {
 	// 	out: "5",
 	// },
 
-	"Usage test: using a package-less program to perfom a sum of numbers": {
+	"Usage test: using a package-less program to perform a sum of numbers": {
 		src: `
 			for i := 0; i < 10; i++ {
 				Sum += i
