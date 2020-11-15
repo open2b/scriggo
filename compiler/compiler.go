@@ -82,10 +82,10 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 
 	// Type check the tree.
 	checkerOpts := checkerOptions{
-		Modality:       programMod,
-		DisallowGoStmt: opts.DisallowGoStmt,
-		Builtins:       opts.Builtins,
-		RelaxedBoolean: false,
+		modality:       programMod,
+		disallowGoStmt: opts.DisallowGoStmt,
+		builtins:       opts.Builtins,
+		relaxedBoolean: false,
 	}
 	tci, err := typecheck(tree, importer, checkerOpts)
 	if err != nil {
@@ -126,10 +126,10 @@ func CompileScript(r io.Reader, importer PackageLoader, opts Options) (*Code, er
 
 	// Type check the tree.
 	checkerOpts := checkerOptions{
-		Modality:       scriptMod,
-		DisallowGoStmt: opts.DisallowGoStmt,
-		Builtins:       opts.Builtins,
-		RelaxedBoolean: true,
+		modality:       scriptMod,
+		disallowGoStmt: opts.DisallowGoStmt,
+		builtins:       opts.Builtins,
+		relaxedBoolean: true,
 	}
 	tci, err := typecheck(tree, importer, checkerOpts)
 	if err != nil {
@@ -174,11 +174,11 @@ func CompileTemplate(path string, r FileReader, lang ast.Language, opts Options)
 
 	// Type check the tree.
 	checkerOpts := checkerOptions{
-		AllowNotUsed:   true,
-		DisallowGoStmt: opts.DisallowGoStmt,
-		Builtins:       opts.Builtins,
-		Modality:       templateMod,
-		RelaxedBoolean: true,
+		allowNotUsed:   true,
+		disallowGoStmt: opts.DisallowGoStmt,
+		builtins:       opts.Builtins,
+		modality:       templateMod,
+		relaxedBoolean: true,
 	}
 	tci, err := typecheck(tree, opts.Loader, checkerOpts)
 	if err != nil {

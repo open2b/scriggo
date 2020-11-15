@@ -406,7 +406,7 @@ func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 	}
 	tc.compilation.typeInfos[lh] = ti
 	tc.assignScope(lh.Name, ti, lh)
-	if !tc.opts.AllowNotUsed {
+	if !tc.opts.allowNotUsed {
 		tc.unusedVars = append(tc.unusedVars, &scopeVariable{
 			ident:      lh.Name,
 			scopeLevel: len(tc.scopes) - 1,

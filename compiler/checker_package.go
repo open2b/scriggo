@@ -89,7 +89,7 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) ty
 		value := pp.Lookup(ident)
 		// Import an auto-imported package. This is supported in scripts and templates only.
 		if p, ok := value.(scriggoPackage); ok {
-			if opts.Modality == programMod {
+			if opts.modality == programMod {
 				panic(fmt.Errorf("scriggo: auto-imported packages are supported only for scripts and templates"))
 			}
 			if depth > 0 {
@@ -606,7 +606,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, impor
 			// https://github.com/open2b/scriggo/issues/640. This assignment to
 			// 'packageLevel', as well as the method 'checkImport', should be
 			// reviewed and maybe rewritten.
-			packageLevel := tc.opts.Modality != templateMod
+			packageLevel := tc.opts.modality != templateMod
 			err := tc.checkImport(d, imports, packageLevel)
 			if err != nil {
 				return err
@@ -701,7 +701,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, impor
 		}
 	}
 
-	if !tc.opts.AllowNotUsed {
+	if !tc.opts.allowNotUsed {
 		for pkg := range tc.unusedImports {
 			// https://github.com/open2b/scriggo/issues/309.
 			return tc.errorf(new(ast.Position), "imported and not used: \"%s\"", pkg)

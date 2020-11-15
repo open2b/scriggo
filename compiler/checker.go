@@ -30,12 +30,12 @@ const (
 // tree may be altered during the type checking.
 func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map[string]*packageInfo, error) {
 
-	if opts.Modality == 0 {
+	if opts.modality == 0 {
 		panic("unspecified modality")
 	}
 
 	// Type check a program.
-	if opts.Modality == programMod {
+	if opts.modality == programMod {
 		pkg := tree.Nodes[0].(*ast.Package)
 		if pkg.Name != "main" {
 			return nil, &CheckingError{path: tree.Path, pos: *pkg.Pos(), err: errors.New("package name must be main")}
@@ -50,16 +50,16 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 
 	// Prepare the type checking for scripts and templates.
 	var globalScope typeCheckerScope
-	if opts.Builtins != nil {
+	if opts.builtins != nil {
 		builtins := &mapPackage{
 			PkgName:      "main",
-			Declarations: opts.Builtins,
+			Declarations: opts.builtins,
 		}
 		globalScope = toTypeCheckerScope(builtins, 0, opts)
 	}
 
 	// Add the builtin "exit" to script global scope.
-	if opts.Modality == scriptMod {
+	if opts.modality == scriptMod {
 		exit := scopeElement{t: &typeInfo{Properties: propertyPredeclared}}
 		if globalScope == nil {
 			globalScope = typeCheckerScope{"exit": exit}
@@ -134,22 +134,22 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 // checkerOptions contains the options for the type checker.
 type checkerOptions struct {
 
-	// Modality is the checking modality.
-	Modality checkingMod
+	// modality is the checking modality.
+	modality checkingMod
 
-	// DisallowGoStmt disables the "go" statement.
-	DisallowGoStmt bool
+	// disallowGoStmt disables the "go" statement.
+	disallowGoStmt bool
 
-	// AllowNotUsed does not return a checking error if a variable is declared
+	// allowNotUsed does not return a checking error if a variable is declared
 	// and not used or a package is imported and not used.
-	AllowNotUsed bool
+	allowNotUsed bool
 
-	// Builtins.
-	Builtins Declarations
+	// builtins.
+	builtins Declarations
 
-	// RelaxedBoolean reports whether the if statements can have a non-boolean
+	// relaxedBoolean reports whether the if statements can have a non-boolean
 	// non-constant condition.
-	RelaxedBoolean bool
+	relaxedBoolean bool
 }
 
 // typechecker represents the state of the type checking.
@@ -280,7 +280,7 @@ func (tc *typechecker) enterScope() {
 // exitScope exits from the current scope.
 func (tc *typechecker) exitScope() {
 	// Check if some variables declared in the closing scope are still unused.
-	if !tc.opts.AllowNotUsed {
+	if !tc.opts.allowNotUsed {
 		unused := []struct {
 			node  ast.Node
 			ident string
@@ -364,7 +364,7 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*typeIn
 func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.Identifier) {
 
 	if tc.declaredInThisBlock(name) {
-		if tc.opts.Modality == scriptMod && tc.scriptFuncDecl {
+		if tc.opts.modality == scriptMod && tc.scriptFuncDecl {
 			panic(tc.errorf(declNode, "%s already declared in this program", declNode))
 		}
 		previousDecl, _ := tc.lookupScopesElem(name, true)
@@ -430,7 +430,7 @@ func (tc *typechecker) isUpVar(name string) bool {
 	}
 
 	// Check if name is a builtin variable in a template or script.
-	if tc.opts.Modality == templateMod || tc.opts.Modality == scriptMod {
+	if tc.opts.modality == templateMod || tc.opts.modality == scriptMod {
 		if elem, ok := tc.globalScope[name]; ok {
 			return elem.t.Addressable()
 		}
