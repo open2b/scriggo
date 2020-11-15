@@ -532,7 +532,7 @@ CONTEXTS:
 				column:   1,
 				ctx:      ctx,
 				toks:     make(chan token, 20),
-				andOrNot: true,
+				extended: true,
 			}
 			lex.tag.ctx = ast.ContextHTML
 			go lex.scan()

@@ -39,7 +39,7 @@ func scanTemplate(text []byte, language ast.Language) *lexer {
 		column:   1,
 		ctx:      ast.Context(language),
 		toks:     tokens,
-		andOrNot: true,
+		extended: true,
 	}
 	lex.tag.ctx = ast.ContextHTML
 	go lex.scan()
@@ -80,7 +80,7 @@ type lexer struct {
 	}
 	toks     chan token // tokens, is closed at the end of the scan
 	err      error      // error, reports whether there was an error
-	andOrNot bool       // support tokens 'and', 'or' and 'not'.
+	extended bool       // support tokens 'and', 'or', 'not', 'contains' and 'dollar'
 }
 
 func (l *lexer) newline() {
@@ -961,7 +961,7 @@ LOOP:
 			}
 			endLineAsSemicolon = false
 		case '$':
-			if l.andOrNot {
+			if l.extended {
 				l.emit(tokenDollar, 1)
 				l.column++
 				endLineAsSemicolon = false
@@ -1185,7 +1185,7 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 				l.emit(tokenShow, p)
 			default:
 				emitted := false
-				if l.andOrNot {
+				if l.extended {
 					switch id {
 					case "and":
 						l.emit(tokenRelaxedAnd, p)
