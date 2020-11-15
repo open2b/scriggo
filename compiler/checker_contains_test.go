@@ -145,7 +145,7 @@ func TestCheckerContainsExpressions(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{scope}
 			}
-			tc := newTypechecker(newCompilation(), "", checkerOptions{relaxedBoolean: true}, nil)
+			tc := newTypechecker(newCompilation(), "", checkerOptions{modality: templateMod}, nil)
 			tc.scopes = scopes
 			tc.enterScope()
 			ti := tc.checkExpr(node)
@@ -214,7 +214,7 @@ func TestCheckerContainsExpressionErrors(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{scope}
 			}
-			tc := newTypechecker(newCompilation(), "", checkerOptions{relaxedBoolean: true}, nil)
+			tc := newTypechecker(newCompilation(), "", checkerOptions{modality: templateMod}, nil)
 			tc.scopes = scopes
 			tc.enterScope()
 			ti := tc.checkExpr(node)

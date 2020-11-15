@@ -146,10 +146,6 @@ type checkerOptions struct {
 
 	// builtins.
 	builtins Declarations
-
-	// relaxedBoolean reports whether the if statements can have a non-boolean
-	// non-constant condition.
-	relaxedBoolean bool
 }
 
 // typechecker represents the state of the type checking.

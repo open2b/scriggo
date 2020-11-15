@@ -164,7 +164,7 @@ nodesLoop:
 				panic(tc.errorf(node.Condition, "use of untyped nil"))
 			}
 			if ti.Type.Kind() != reflect.Bool {
-				if tc.opts.relaxedBoolean && tc.opts.modality == templateMod {
+				if tc.opts.modality != programMod {
 					if ti.IsConstant() {
 						c := &typeInfo{
 							Constant:   boolConst(!ti.Constant.zero()),

@@ -85,7 +85,6 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 		modality:       programMod,
 		disallowGoStmt: opts.DisallowGoStmt,
 		builtins:       opts.Builtins,
-		relaxedBoolean: false,
 	}
 	tci, err := typecheck(tree, importer, checkerOpts)
 	if err != nil {
@@ -129,7 +128,6 @@ func CompileScript(r io.Reader, importer PackageLoader, opts Options) (*Code, er
 		modality:       scriptMod,
 		disallowGoStmt: opts.DisallowGoStmt,
 		builtins:       opts.Builtins,
-		relaxedBoolean: true,
 	}
 	tci, err := typecheck(tree, importer, checkerOpts)
 	if err != nil {
@@ -178,7 +176,6 @@ func CompileTemplate(path string, r FileReader, lang ast.Language, opts Options)
 		disallowGoStmt: opts.DisallowGoStmt,
 		builtins:       opts.Builtins,
 		modality:       templateMod,
-		relaxedBoolean: true,
 	}
 	tci, err := typecheck(tree, opts.Loader, checkerOpts)
 	if err != nil {
