@@ -144,10 +144,6 @@ type checkerOptions struct {
 	// and not used or a package is imported and not used.
 	AllowNotUsed bool
 
-	// FailOnTODO makes compilation fail when a ShowMacro statement with "or
-	// todo" option cannot be resolved.
-	FailOnTODO bool
-
 	// PackageLess reports whether the package-less syntax is enabled.
 	PackageLess bool
 

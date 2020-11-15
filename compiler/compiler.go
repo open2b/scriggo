@@ -52,8 +52,7 @@ type Options struct {
 	// files are read from the FileReader.
 	Loader PackageLoader
 
-	TemplateFailOnTODO bool
-	TreeTransformer    func(*ast.Tree) error
+	TreeTransformer func(*ast.Tree) error
 }
 
 // Declarations.
@@ -148,7 +147,6 @@ func CompileTemplate(path string, r FileReader, lang ast.Language, opts Options)
 	checkerOpts := checkerOptions{
 		AllowNotUsed:   true,
 		DisallowGoStmt: opts.DisallowGoStmt,
-		FailOnTODO:     opts.TemplateFailOnTODO,
 		PackageLess:    opts.PackageLess,
 		Builtins:       opts.Builtins,
 		SyntaxType:     TemplateSyntax,
