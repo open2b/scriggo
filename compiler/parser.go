@@ -392,7 +392,28 @@ func (p *parsing) parse(tok token) token {
 
 LABEL:
 
-	if !p.singleStatement {
+	if p.singleStatement {
+		switch s := p.parent().(type) {
+		case *ast.Switch:
+			if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting case or default or end", tok))
+			}
+		case *ast.TypeSwitch:
+			if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting case or default or end", tok))
+			}
+		case *ast.Select:
+			if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting case or default or end", tok))
+			}
+		case *ast.Label:
+			switch tok.typ {
+			case tokenFor, tokenSwitch, tokenSelect:
+			default:
+				panic(syntaxError(tok.pos, "unexpected %s, expecting for, switch or select", tok))
+			}
+		}
+	} else {
 		switch s := p.parent().(type) {
 		case *ast.Tree:
 			if !p.isPackageLessProgram && tok.typ != tokenPackage {
@@ -415,27 +436,6 @@ LABEL:
 		case *ast.Select:
 			if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenRightBrace {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting case or default or }", tok))
-			}
-		}
-	} else {
-		switch s := p.parent().(type) {
-		case *ast.Switch:
-			if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting case or default or end", tok))
-			}
-		case *ast.TypeSwitch:
-			if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting case or default or end", tok))
-			}
-		case *ast.Select:
-			if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting case or default or end", tok))
-			}
-		case *ast.Label:
-			switch tok.typ {
-			case tokenFor, tokenSwitch, tokenSelect:
-			default:
-				panic(syntaxError(tok.pos, "unexpected %s, expecting for, switch or select", tok))
 			}
 		}
 	}
@@ -764,7 +764,7 @@ LABEL:
 		}
 		p.cutSpacesToken = true
 		tok = p.next()
-		if !p.singleStatement && tok.typ == tokenLeftBrace || p.singleStatement && tok.typ == tokenEndStatement {
+		if p.singleStatement && tok.typ == tokenEndStatement || !p.singleStatement && tok.typ == tokenLeftBrace {
 			// "else"
 			var blockPos *ast.Position
 			if !p.singleStatement {
@@ -801,7 +801,7 @@ LABEL:
 			init = nil
 		}
 		if expr == nil {
-			if !p.singleStatement && tok.typ == tokenLeftBrace || p.singleStatement && tok.typ == tokenEndStatement {
+			if p.singleStatement && tok.typ == tokenEndStatement || !p.singleStatement && tok.typ == tokenLeftBrace {
 				panic(syntaxError(tok.pos, "missing condition in if statement"))
 			}
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
@@ -1326,29 +1326,29 @@ LABEL:
 }
 
 func (p *parsing) parseEnd(tok token, want tokenTyp) token {
-	if !p.singleStatement {
-		if want == tokenSemicolon {
-			if tok.typ == tokenSemicolon {
-				return p.next()
-			}
-			if tok.typ != tokenRightBrace {
+	if p.singleStatement {
+		if tok.typ == tokenSemicolon && tok.txt == nil {
+			tok = p.next()
+		}
+		if tok.typ != tokenEndStatement {
+			if want == tokenSemicolon {
 				panic(syntaxError(tok.pos, "unexpected %s at end of statement", tok))
 			}
-			return tok
-		}
-		if tok.typ != want {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting %s", tok, want))
+			panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
 		}
 		return p.next()
 	}
-	if tok.typ == tokenSemicolon && tok.txt == nil {
-		tok = p.next()
-	}
-	if tok.typ != tokenEndStatement {
-		if want == tokenSemicolon {
+	if want == tokenSemicolon {
+		if tok.typ == tokenSemicolon {
+			return p.next()
+		}
+		if tok.typ != tokenRightBrace {
 			panic(syntaxError(tok.pos, "unexpected %s at end of statement", tok))
 		}
-		panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
+		return tok
+	}
+	if tok.typ != want {
+		panic(syntaxError(tok.pos, "unexpected %s, expecting %s", tok, want))
 	}
 	return p.next()
 }
@@ -1508,14 +1508,14 @@ func (p *parsing) parseImport(tok token) *ast.Import {
 		panic(syntaxError(tok.pos, "unexpected %s, expecting string", tok))
 	}
 	var path = unquoteString(tok.txt)
-	if !p.singleStatement {
-		validatePackagePath(path, tok.pos)
-	} else {
+	if p.singleStatement {
 		if !ValidTemplatePath(path) {
 			panic(syntaxError(tok.pos, "invalid import path: %q", path))
 		}
 		// Further restrictions on the validity of a path can be imposed by a
 		// reader.
+	} else {
+		validatePackagePath(path, tok.pos)
 	}
 	pos.End = tok.pos.End
 	return ast.NewImport(pos, ident, path, tok.ctx)
