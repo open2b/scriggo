@@ -151,7 +151,7 @@ func (p *parsing) parent() ast.Node {
 // next returns the next token from the lexer. Panics if the lexer channel is
 // closed.
 func (p *parsing) next() token {
-	tok, ok := <-p.lex.tokens
+	tok, ok := <-p.lex.tokens()
 	if !ok {
 		if p.lex.err == nil {
 			panic("next called after EOF")
@@ -173,7 +173,7 @@ func ParseSource(src []byte, isPackageLessProgram, shebang bool) (tree *ast.Tree
 	tree = ast.NewTree("", nil, ast.LanguageGo)
 
 	var p = &parsing{
-		lex:                  newLexer(src, ast.ContextGo, false),
+		lex:                  scanProgram(src),
 		language:             ast.LanguageGo,
 		inGo:                 true,
 		isPackageLessProgram: isPackageLessProgram,
@@ -181,7 +181,7 @@ func ParseSource(src []byte, isPackageLessProgram, shebang bool) (tree *ast.Tree
 	}
 
 	defer func() {
-		p.lex.drain()
+		p.lex.stop()
 		if r := recover(); r != nil {
 			if e, ok := r.(*SyntaxError); ok {
 				tree = nil
@@ -241,14 +241,14 @@ func ParseTemplateSource(src []byte, lang ast.Language, relaxedBoolean bool) (tr
 	tree = ast.NewTree("", nil, lang)
 
 	var p = &parsing{
-		lex:            newLexer(src, ast.Context(lang), relaxedBoolean),
+		lex:            scanTemplate(src, lang),
 		language:       lang,
 		ancestors:      []ast.Node{tree},
 		relaxedBoolean: relaxedBoolean,
 	}
 
 	defer func() {
-		p.lex.drain()
+		p.lex.stop()
 		if r := recover(); r != nil {
 			if e, ok := r.(*SyntaxError); ok {
 				tree = nil

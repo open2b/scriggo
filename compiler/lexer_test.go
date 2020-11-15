@@ -475,13 +475,17 @@ var scanAttributeTests = []struct {
 	{"5c=\"", "5c", '"', 3, 1, 4},
 }
 
-func testLexerTypes(t *testing.T, test map[string][]tokenTyp, ctx ast.Context) {
+func testLexerTypes(t *testing.T, test map[string][]tokenTyp, lang ast.Language) {
 TYPES:
 	for source, types := range test {
-		andOrNot := ctx != ast.ContextGo
-		var lex = newLexer([]byte(source), ctx, andOrNot)
+		var lex *lexer
+		if lang == ast.LanguageGo {
+			lex = scanProgram([]byte(source))
+		} else {
+			lex = scanTemplate([]byte(source), lang)
+		}
 		var i int
-		for tok := range lex.tokens {
+		for tok := range lex.tokens() {
 			if tok.typ == tokenEOF {
 				break
 			}
@@ -505,24 +509,35 @@ TYPES:
 }
 
 func TestLexerTypes(t *testing.T) {
-	testLexerTypes(t, typeTests, ast.ContextText)
+	testLexerTypes(t, typeTests, ast.LanguageText)
 }
 
-func TestLexerTypesHTMLContext(t *testing.T) {
-	testLexerTypes(t, typeTestsHTMLContext, ast.ContextHTML)
+func TestLexerTypesHTMLLanguage(t *testing.T) {
+	testLexerTypes(t, typeTestsHTMLContext, ast.LanguageHTML)
 }
 
-func TestLexerTypesGoContext(t *testing.T) {
-	testLexerTypes(t, typeTestsGoContext, ast.ContextGo)
+func TestLexerTypesGoLanguage(t *testing.T) {
+	testLexerTypes(t, typeTestsGoContext, ast.LanguageGo)
 }
 
 func TestLexerContexts(t *testing.T) {
 CONTEXTS:
 	for ctx, tests := range contextTests {
 		for source, contexts := range tests {
-			var lex = newLexer([]byte(source), ctx, false)
+			text := []byte(source)
+			lex := &lexer{
+				text:     text,
+				src:      text,
+				line:     1,
+				column:   1,
+				ctx:      ctx,
+				toks:     make(chan token, 20),
+				andOrNot: true,
+			}
+			lex.tag.ctx = ast.ContextHTML
+			go lex.scan()
 			var i int
-			for tok := range lex.tokens {
+			for tok := range lex.tokens() {
 				if tok.typ == tokenEOF {
 					break
 				}
@@ -548,9 +563,9 @@ CONTEXTS:
 
 func TestPositions(t *testing.T) {
 	for _, test := range positionTests {
-		var lex = newLexer([]byte(test.src), ast.ContextHTML, false)
+		var lex = scanTemplate([]byte(test.src), ast.LanguageHTML)
 		var i int
-		for tok := range lex.tokens {
+		for tok := range lex.tokens() {
 			if tok.typ == tokenEOF {
 				break
 			}

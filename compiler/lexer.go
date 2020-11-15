@@ -14,6 +14,54 @@ import (
 	"github.com/open2b/scriggo/compiler/ast"
 )
 
+// scanProgram scans a program file and returns a lexer.
+func scanProgram(text []byte) *lexer {
+	tokens := make(chan token, 20)
+	lex := &lexer{
+		text:   text,
+		src:    text,
+		line:   1,
+		column: 1,
+		ctx:    ast.ContextGo,
+		toks:   tokens,
+	}
+	go lex.scan()
+	return lex
+}
+
+// scanTemplate scans a template page and returns a lexer.
+func scanTemplate(text []byte, language ast.Language) *lexer {
+	tokens := make(chan token, 20)
+	lex := &lexer{
+		text:     text,
+		src:      text,
+		line:     1,
+		column:   1,
+		ctx:      ast.Context(language),
+		toks:     tokens,
+		andOrNot: true,
+	}
+	lex.tag.ctx = ast.ContextHTML
+	go lex.scan()
+	return lex
+}
+
+// tokens returns a channel to read the scanned tokens.
+func (l *lexer) tokens() <-chan token {
+	return l.toks
+}
+
+// error returns the last occurred error or nil if no error occurred.
+func (l *lexer) error() error {
+	return l.err
+}
+
+// stop stops the lexing and closes the tokens channel.
+func (l *lexer) stop() {
+	for range l.toks {
+	}
+}
+
 var cdataStart = []byte("<![CDATA[")
 var cdataEnd = []byte("]]>")
 
@@ -30,36 +78,9 @@ type lexer struct {
 		index int         // index of first byte of the current attribute value in src
 		ctx   ast.Context // context of the tag's content
 	}
-	tokens   chan token // tokens, is closed at the end of the scan
+	toks     chan token // tokens, is closed at the end of the scan
 	err      error      // error, reports whether there was an error
 	andOrNot bool       // support tokens 'and', 'or' and 'not'.
-}
-
-// newLexer creates a new lexer.
-func newLexer(text []byte, ctx ast.Context, andOrNot bool) *lexer {
-	if ctx == ast.ContextGo && andOrNot {
-		panic("unexpected option andOrNot with context Go")
-	}
-	tokens := make(chan token, 20)
-	lex := &lexer{
-		text:     text,
-		src:      text,
-		line:     1,
-		column:   1,
-		ctx:      ctx,
-		tokens:   tokens,
-		andOrNot: andOrNot,
-	}
-	lex.tag.ctx = ast.ContextHTML
-	go lex.scan()
-	return lex
-}
-
-// drain drains the tokens. Called by the parser to terminate the lexer
-// goroutine.
-func (l *lexer) drain() {
-	for range l.tokens {
-	}
 }
 
 func (l *lexer) newline() {
@@ -102,7 +123,7 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 		}
 		end = start
 	}
-	l.tokens <- token{
+	l.toks <- token{
 		typ: typ,
 		pos: &ast.Position{
 			Line:   line,
@@ -125,7 +146,7 @@ var javaScriptMimeType = []byte("text/javascript")
 var jsonLDMimeType = []byte("application/ld+json")
 var cssMimeType = []byte("text/css")
 
-// scan scans the text by placing the tokens on the tokens channel. If an
+// scan scans the text by placing the tokens on the toks channel. If an
 // error occurs, it puts the error in err, closes the channel and returns.
 func (l *lexer) scan() {
 
@@ -454,7 +475,7 @@ func (l *lexer) scan() {
 	l.text = nil
 	l.src = nil
 
-	close(l.tokens)
+	close(l.toks)
 }
 
 // containsURL reports whether the attribute attr of tag contains an URL or a
