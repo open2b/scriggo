@@ -122,7 +122,6 @@ func TestCheckerContainsExpressions(t *testing.T) {
 			var p = &parsing{
 				lex:            lex,
 				language:       ast.LanguageText,
-				inGo:           true,
 				ancestors:      nil,
 				extendedSyntax: true,
 			}
@@ -192,7 +191,6 @@ func TestCheckerContainsExpressionErrors(t *testing.T) {
 			var p = &parsing{
 				lex:            lex,
 				language:       ast.LanguageText,
-				inGo:           true,
 				ancestors:      nil,
 				extendedSyntax: true,
 			}

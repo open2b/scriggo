@@ -111,9 +111,10 @@ type parsing struct {
 	// Tree source language.
 	language ast.Language
 
-	// Reports whether the tree source language is Go or
-	// the parsing is in a function body.
-	inGo bool
+	// Reports whether the single statement syntax is used. The single
+	// statement syntax is used in {% ... %} statements but not in function
+	// literal bodies.
+	singleStatement bool
 
 	// Report whether it is a package-less program.
 	isPackageLessProgram bool
@@ -175,7 +176,6 @@ func ParseSource(src []byte, isPackageLessProgram, shebang bool) (tree *ast.Tree
 	var p = &parsing{
 		lex:                  scanProgram(src),
 		language:             ast.LanguageGo,
-		inGo:                 true,
 		isPackageLessProgram: isPackageLessProgram,
 		ancestors:            []ast.Node{tree},
 	}
@@ -238,10 +238,11 @@ func ParseTemplateSource(src []byte, lang ast.Language) (tree *ast.Tree, err err
 	tree = ast.NewTree("", nil, lang)
 
 	var p = &parsing{
-		lex:            scanTemplate(src, lang),
-		language:       lang,
-		ancestors:      []ast.Node{tree},
-		extendedSyntax: true,
+		lex:             scanTemplate(src, lang),
+		language:        lang,
+		ancestors:       []ast.Node{tree},
+		singleStatement: true,
+		extendedSyntax:  true,
 	}
 
 	defer func() {
@@ -391,7 +392,7 @@ func (p *parsing) parse(tok token) token {
 
 LABEL:
 
-	if p.inGo {
+	if !p.singleStatement {
 		switch s := p.parent().(type) {
 		case *ast.Tree:
 			if !p.isPackageLessProgram && tok.typ != tokenPackage {
@@ -443,7 +444,7 @@ LABEL:
 
 	// ;
 	case tokenSemicolon:
-		if !p.inGo {
+		if p.singleStatement {
 			panic(syntaxError(tok.pos, "unexpected semicolon, expecting statement"))
 		}
 		return p.next()
@@ -451,7 +452,7 @@ LABEL:
 	// package
 	case tokenPackage:
 		pos := tok.pos
-		if tree, ok := p.parent().(*ast.Tree); !ok || !p.inGo || p.isPackageLessProgram || len(tree.Nodes) > 0 {
+		if tree, ok := p.parent().(*ast.Tree); !ok || p.singleStatement || p.isPackageLessProgram || len(tree.Nodes) > 0 {
 			panic(syntaxError(tok.pos, "unexpected package, expecting statement"))
 		}
 		tok = p.next()
@@ -701,7 +702,7 @@ LABEL:
 
 	// {
 	case tokenLeftBrace:
-		if !p.inGo {
+		if p.singleStatement {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting statement", tok))
 		}
 		node := ast.NewBlock(tok.pos, nil)
@@ -712,7 +713,7 @@ LABEL:
 
 	// }
 	case tokenRightBrace:
-		if !p.inGo {
+		if p.singleStatement {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting statement", tok))
 		}
 		if p.isPackageLessProgram && len(p.ancestors) == 1 {
@@ -751,7 +752,7 @@ LABEL:
 
 	// else
 	case tokenElse:
-		if !p.inGo {
+		if p.singleStatement {
 			// Close the "then" block.
 			if _, ok := p.parent().(*ast.Block); !ok {
 				panic(syntaxError(tok.pos, "unexpected else"))
@@ -763,10 +764,10 @@ LABEL:
 		}
 		p.cutSpacesToken = true
 		tok = p.next()
-		if p.inGo && tok.typ == tokenLeftBrace || !p.inGo && tok.typ == tokenEndStatement {
+		if !p.singleStatement && tok.typ == tokenLeftBrace || p.singleStatement && tok.typ == tokenEndStatement {
 			// "else"
 			var blockPos *ast.Position
-			if p.inGo {
+			if !p.singleStatement {
 				blockPos = tok.pos
 			}
 			elseBlock := ast.NewBlock(blockPos, nil)
@@ -800,13 +801,13 @@ LABEL:
 			init = nil
 		}
 		if expr == nil {
-			if p.inGo && tok.typ == tokenLeftBrace || !p.inGo && tok.typ == tokenEndStatement {
+			if !p.singleStatement && tok.typ == tokenLeftBrace || p.singleStatement && tok.typ == tokenEndStatement {
 				panic(syntaxError(tok.pos, "missing condition in if statement"))
 			}
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
 		var blockPos *ast.Position
-		if p.inGo {
+		if !p.singleStatement {
 			blockPos = tok.pos
 		}
 		then := ast.NewBlock(blockPos, nil)
@@ -825,7 +826,7 @@ LABEL:
 	// return
 	case tokenReturn:
 		pos := tok.pos
-		if !p.inGo || p.isPackageLessProgram {
+		if p.singleStatement || p.isPackageLessProgram {
 			var inFunction bool
 			for i := len(p.ancestors) - 1; i > 0; i-- {
 				if _, ok := p.ancestors[i].(*ast.Func); ok {
@@ -1028,7 +1029,7 @@ LABEL:
 				}
 			}
 		default:
-			if p.inGo {
+			if !p.singleStatement {
 				panic(syntaxError(tok.pos, "unexpected import, expecting }"))
 			}
 			panic(syntaxError(tok.pos, "unexpected import, expecting statement"))
@@ -1037,7 +1038,7 @@ LABEL:
 			panic(syntaxError(tok.pos, "import not in %s content", ast.Context(p.language)))
 		}
 		tok = p.next()
-		if tok.typ == tokenLeftParenthesis && p.inGo {
+		if tok.typ == tokenLeftParenthesis && !p.singleStatement {
 			tok = p.next()
 			for tok.typ != tokenRightParenthesis {
 				node := p.parseImport(tok)
@@ -1225,7 +1226,7 @@ LABEL:
 
 	// func
 	case tokenFunc:
-		if p.inGo {
+		if !p.singleStatement {
 			// Note that parseFunc does not consume the next token in this case
 			// because kind is not parseType.
 			switch p.parent().(type) {
@@ -1247,7 +1248,7 @@ LABEL:
 		expressions, tok = p.parseExprList(tok, false, false, false)
 		if expressions == nil {
 			// There is no statement or it is not a statement.
-			if p.inGo {
+			if !p.singleStatement {
 				switch p.parent().(type) {
 				case *ast.Tree:
 					panic(syntaxError(tok.pos, "unexpected %s, expected statement", tok))
@@ -1295,7 +1296,7 @@ LABEL:
 					p.addToAncestors(node)
 					p.cutSpacesToken = true
 					tok = p.next()
-					if !p.inGo {
+					if p.singleStatement {
 						if tok.typ == tokenEndStatement || tok.typ == tokenEOF {
 							panic(syntaxError(tok.pos, "missing statement after label"))
 						}
@@ -1303,14 +1304,14 @@ LABEL:
 					}
 					return tok
 				case tokenIdentifier:
-					if !p.inGo {
+					if p.singleStatement {
 						tok2 := p.next() // It is safe to consume the next token because there is anyway a syntax error.
 						if tok2.typ == tokenInterpretedString || tok2.typ == tokenRawString {
 							panic(syntaxError(ident.Pos(), "unexpected %s, expecting import", ident.Name))
 						}
 					}
 				case tokenInterpretedString, tokenRawString:
-					if !p.inGo {
+					if p.singleStatement {
 						panic(syntaxError(ident.Pos(), "unexpected %s, expecting extends, import or show", ident.Name))
 					}
 				}
@@ -1325,7 +1326,7 @@ LABEL:
 }
 
 func (p *parsing) parseEnd(tok token, want tokenTyp) token {
-	if p.inGo {
+	if !p.singleStatement {
 		if want == tokenSemicolon {
 			if tok.typ == tokenSemicolon {
 				return p.next()
@@ -1507,7 +1508,7 @@ func (p *parsing) parseImport(tok token) *ast.Import {
 		panic(syntaxError(tok.pos, "unexpected %s, expecting string", tok))
 	}
 	var path = unquoteString(tok.txt)
-	if p.inGo {
+	if !p.singleStatement {
 		validatePackagePath(path, tok.pos)
 	} else {
 		if !ValidTemplatePath(path) {
