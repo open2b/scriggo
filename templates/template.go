@@ -209,7 +209,7 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *R
 		vars = emptyVars
 	}
 	vm := newVM(options)
-	_, err := vm.Run(t.fn, t.typeof, initGlobals(t.globals, vars))
+	_, err := vm.Run(t.fn, t.typeof, initGlobalVariables(t.globals, vars))
 	return err
 }
 
@@ -251,47 +251,47 @@ func newVM(options *RenderOptions) *runtime.VM {
 	return vm
 }
 
-// initGlobals initializes the global variables and returns the values. It
-// panics if init is not valid.
+// initGlobalVariables initializes the global variables and returns their
+// values. It panics if init is not valid.
 //
-// This function is a copy of the function in the scriggo package.
-func initGlobals(globals []compiler.Global, init map[string]interface{}) []interface{} {
-	n := len(globals)
+// This function is a copy of the function in the scripts package.
+func initGlobalVariables(variables []compiler.Global, init map[string]interface{}) []interface{} {
+	n := len(variables)
 	if n == 0 {
 		return nil
 	}
 	values := make([]interface{}, n)
-	for i, global := range globals {
-		if global.Pkg == "main" {
-			if value, ok := init[global.Name]; ok {
-				if global.Value != nil {
-					panic(fmt.Sprintf("variable %q already initialized", global.Name))
+	for i, variable := range variables {
+		if variable.Pkg == "main" {
+			if value, ok := init[variable.Name]; ok {
+				if variable.Value != nil {
+					panic(fmt.Sprintf("variable %q already initialized", variable.Name))
 				}
 				if value == nil {
-					panic(fmt.Sprintf("variable initializer %q cannot be nil", global.Name))
+					panic(fmt.Sprintf("variable initializer %q cannot be nil", variable.Name))
 				}
 				val := reflect.ValueOf(value)
-				if typ := val.Type(); typ == global.Type {
+				if typ := val.Type(); typ == variable.Type {
 					v := reflect.New(typ).Elem()
 					v.Set(val)
 					values[i] = v.Addr().Interface()
 				} else {
-					if typ.Kind() != reflect.Ptr || typ.Elem() != global.Type {
+					if typ.Kind() != reflect.Ptr || typ.Elem() != variable.Type {
 						panic(fmt.Sprintf("variable initializer %q must have type %s or %s, but have %s",
-							global.Name, global.Type, reflect.PtrTo(global.Type), typ))
+							variable.Name, variable.Type, reflect.PtrTo(variable.Type), typ))
 					}
 					if val.IsNil() {
-						panic(fmt.Sprintf("variable initializer %q cannot be a nil pointer", global.Name))
+						panic(fmt.Sprintf("variable initializer %q cannot be a nil pointer", variable.Name))
 					}
 					values[i] = value
 				}
 				continue
 			}
 		}
-		if global.Value == nil {
-			values[i] = reflect.New(global.Type).Interface()
+		if variable.Value == nil {
+			values[i] = reflect.New(variable.Type).Interface()
 		} else {
-			values[i] = global.Value
+			values[i] = variable.Value
 		}
 	}
 	return values

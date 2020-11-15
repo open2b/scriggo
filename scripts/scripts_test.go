@@ -17,7 +17,7 @@ import (
 func TestInitGlobals(t *testing.T) {
 
 	// Test no globals.
-	globals := initGlobals([]compiler.Global{}, nil)
+	globals := initGlobalVariables([]compiler.Global{}, nil)
 	if globals != nil {
 		t.Fatalf("expected nil, got %v", globals)
 	}
@@ -28,7 +28,7 @@ func TestInitGlobals(t *testing.T) {
 		Name: "a",
 		Type: reflect.TypeOf(0),
 	}
-	globals = initGlobals([]compiler.Global{global}, nil)
+	globals = initGlobalVariables([]compiler.Global{global}, nil)
 	g, ok := globals[0].(*int)
 	if !ok {
 		t.Fatalf("unexpected type %T, expecting *int", g)
@@ -45,7 +45,7 @@ func TestInitGlobals(t *testing.T) {
 		Type:  reflect.TypeOf(n),
 		Value: &n,
 	}
-	globals = initGlobals([]compiler.Global{global}, nil)
+	globals = initGlobalVariables([]compiler.Global{global}, nil)
 	n = 2
 	g, ok = globals[0].(*int)
 	if !ok {
@@ -62,7 +62,7 @@ func TestInitGlobals(t *testing.T) {
 		Type: reflect.TypeOf(n),
 	}
 	init := map[string]interface{}{"a": &n}
-	globals = initGlobals([]compiler.Global{global}, init)
+	globals = initGlobalVariables([]compiler.Global{global}, init)
 	if globals == nil {
 		t.Fatalf("unexpected %v, expecting nil", globals)
 	}
@@ -82,7 +82,7 @@ func TestInitGlobals(t *testing.T) {
 		Type: reflect.TypeOf(n),
 	}
 	init = map[string]interface{}{"a": n}
-	globals = initGlobals([]compiler.Global{global}, init)
+	globals = initGlobalVariables([]compiler.Global{global}, init)
 	if globals == nil {
 		t.Fatalf("unexpected %v, expecting nil", globals)
 	}
@@ -120,7 +120,7 @@ func TestInitGlobalsAlreadyInitializedError(t *testing.T) {
 		Value: &n,
 	}
 	init := map[string]interface{}{"a": 5}
-	_ = initGlobals([]compiler.Global{global}, init)
+	_ = initGlobalVariables([]compiler.Global{global}, init)
 }
 
 func TestInitGlobalsNilError(t *testing.T) {
@@ -131,7 +131,7 @@ func TestInitGlobalsNilError(t *testing.T) {
 		Type: reflect.TypeOf(0),
 	}
 	init := map[string]interface{}{"a": nil}
-	_ = initGlobals([]compiler.Global{global}, init)
+	_ = initGlobalVariables([]compiler.Global{global}, init)
 }
 
 func TestInitGlobalsInvalidTypeError(t *testing.T) {
@@ -142,7 +142,7 @@ func TestInitGlobalsInvalidTypeError(t *testing.T) {
 		Type: reflect.TypeOf(0),
 	}
 	init := map[string]interface{}{"a": true}
-	_ = initGlobals([]compiler.Global{global}, init)
+	_ = initGlobalVariables([]compiler.Global{global}, init)
 }
 
 func TestInitGlobalsNilPointerError(t *testing.T) {
@@ -153,7 +153,7 @@ func TestInitGlobalsNilPointerError(t *testing.T) {
 		Type: reflect.TypeOf(0),
 	}
 	init := map[string]interface{}{"a": (*int)(nil)}
-	_ = initGlobals([]compiler.Global{global}, init)
+	_ = initGlobalVariables([]compiler.Global{global}, init)
 }
 
 func TestCombinedPackage(t *testing.T) {
