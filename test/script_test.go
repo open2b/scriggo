@@ -202,9 +202,7 @@ func TestScripts(t *testing.T) {
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
-			runOpts := &scripts.RunOptions{}
-			runOpts.Globals = cas.init
-			_, err = script.Run(runOpts)
+			_, err = script.Run(cas.init, nil)
 			if err != nil {
 				t.Fatalf("execution error: %s", err)
 			}
@@ -229,9 +227,7 @@ func TestScriptSum(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to load script: %s", err)
 	}
-	runOpts := &scripts.RunOptions{}
-	runOpts.Globals = init
-	_, err = script.Run(runOpts)
+	_, err = script.Run(init, nil)
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}
@@ -257,16 +253,14 @@ func TestScriptsChainMessages(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to load script 2: %s", err)
 	}
-	runOpts := &scripts.RunOptions{}
-	runOpts.Globals = init
-	_, err = script1.Run(runOpts)
+	_, err = script1.Run(init, nil)
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}
 	if Message != "external,script1," {
 		t.Fatalf("Message should be %q, got %q", "external,script1,", Message)
 	}
-	_, err = script2.Run(runOpts)
+	_, err = script2.Run(init, nil)
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}

@@ -127,7 +127,7 @@ func main() {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
-		_, err = script.Run(nil)
+		_, err = script.Run(nil, nil)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
 				panic(renderPanics(p))

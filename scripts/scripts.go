@@ -29,7 +29,6 @@ type Declarations map[string]interface{}
 type RunOptions struct {
 	Context   context.Context
 	PrintFunc runtime.PrintFunc
-	Globals   map[string]interface{}
 }
 
 type Script struct {
@@ -64,10 +63,10 @@ func (p *Script) Disassemble(w io.Writer) (int64, error) {
 	return int64(n), err
 }
 
-// Run starts the script and waits for it to complete.
-func (p *Script) Run(options *RunOptions) (int, error) {
+// Run starts the script and waits for it to complete. vars contains the
+// values of the global variables.
+func (p *Script) Run(vars map[string]interface{}, options *RunOptions) (int, error) {
 	vm := runtime.NewVM()
-	var init map[string]interface{}
 	if options != nil {
 		if options.Context != nil {
 			vm.SetContext(options.Context)
@@ -75,21 +74,20 @@ func (p *Script) Run(options *RunOptions) (int, error) {
 		if options.PrintFunc != nil {
 			vm.SetPrint(options.PrintFunc)
 		}
-		if options.Globals != nil {
-			init = options.Globals
-		}
 	}
-	return vm.Run(p.fn, p.typeof, initGlobalVariables(p.globals, init))
+	return vm.Run(p.fn, p.typeof, initGlobalVariables(p.globals, vars))
 }
 
 // MustRun is like Run but panics if the run fails.
-func (p *Script) MustRun(options *RunOptions) int {
-	code, err := p.Run(options)
+func (p *Script) MustRun(vars map[string]interface{}, options *RunOptions) int {
+	code, err := p.Run(vars, options)
 	if err != nil {
 		panic(err)
 	}
 	return code
 }
+
+var emptyInit = map[string]interface{}{}
 
 // initGlobalVariables initializes the global variables and returns their
 // values. It panics if init is not valid.
@@ -97,6 +95,9 @@ func initGlobalVariables(variables []compiler.Global, init map[string]interface{
 	n := len(variables)
 	if n == 0 {
 		return nil
+	}
+	if init == nil {
+		init = emptyInit
 	}
 	values := make([]interface{}, n)
 	for i, variable := range variables {

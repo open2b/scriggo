@@ -193,10 +193,8 @@ func Load(name string, files FileReader, lang Language, options *LoadOptions) (*
 	return &Template{fn: code.Main, typeof: code.TypeOf, globals: code.Globals}, nil
 }
 
-var emptyVars = map[string]interface{}{}
-
 // Render renders the template and write the output to out. vars contains the
-// values of the template global variables.
+// values of the global variables.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *RenderOptions) error {
 	writeFunc := out.Write
 	renderFunc := render
@@ -205,9 +203,6 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *R
 	t.globals[1].Value = &writeFunc
 	t.globals[2].Value = &renderFunc
 	t.globals[3].Value = &uw
-	if vars == nil {
-		vars = emptyVars
-	}
 	vm := newVM(options)
 	_, err := vm.Run(t.fn, t.typeof, initGlobalVariables(t.globals, vars))
 	return err
@@ -251,6 +246,8 @@ func newVM(options *RenderOptions) *runtime.VM {
 	return vm
 }
 
+var emptyInit = map[string]interface{}{}
+
 // initGlobalVariables initializes the global variables and returns their
 // values. It panics if init is not valid.
 //
@@ -259,6 +256,9 @@ func initGlobalVariables(variables []compiler.Global, init map[string]interface{
 	n := len(variables)
 	if n == 0 {
 		return nil
+	}
+	if init == nil {
+		init = emptyInit
 	}
 	values := make([]interface{}, n)
 	for i, variable := range variables {
