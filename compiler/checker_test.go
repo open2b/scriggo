@@ -1565,7 +1565,7 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			tc := newTypechecker(newCompilation(), "", checkerOptions{SyntaxType: ScriptSyntax}, nil)
+			tc := newTypechecker(newCompilation(), "", checkerOptions{Modality: scriptMod}, nil)
 			tc.scopes = append(tc.scopes, scope)
 			tc.enterScope()
 			tree.Nodes = tc.checkNodes(tree.Nodes)
@@ -1625,7 +1625,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 		return
 	}
 	opts := checkerOptions{
-		SyntaxType: ProgramSyntax,
+		Modality: programMod,
 	}
 	_, err = typecheck(tree, predefined, opts)
 	if err != nil {
@@ -2308,7 +2308,7 @@ func TestGotoLabels(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			err = checkPackage(newCompilation(), tree.Nodes[0].(*ast.Package), tree.Path, nil, checkerOptions{SyntaxType: ProgramSyntax}, nil)
+			err = checkPackage(newCompilation(), tree.Nodes[0].(*ast.Package), tree.Path, nil, checkerOptions{Modality: programMod}, nil)
 			switch {
 			case err == nil && cas.errorMsg == "":
 				// Ok.

@@ -164,7 +164,7 @@ nodesLoop:
 				panic(tc.errorf(node.Condition, "use of untyped nil"))
 			}
 			if ti.Type.Kind() != reflect.Bool {
-				if tc.opts.RelaxedBoolean && tc.opts.SyntaxType == TemplateSyntax {
+				if tc.opts.RelaxedBoolean && tc.opts.Modality == templateMod {
 					if ti.IsConstant() {
 						c := &typeInfo{
 							Constant:   boolConst(!ti.Constant.zero()),
@@ -851,7 +851,7 @@ nodesLoop:
 		case ast.Expression:
 
 			// Handle function declarations in scripts.
-			if fun, ok := node.(*ast.Func); tc.opts.SyntaxType == ScriptSyntax && ok {
+			if fun, ok := node.(*ast.Func); tc.opts.Modality == scriptMod && ok {
 				if fun.Ident != nil {
 					// Remove the identifier from the function expression and
 					// use it during the assignment.
@@ -887,7 +887,7 @@ nodesLoop:
 			}
 
 			ti := tc.checkExpr(node)
-			if tc.opts.SyntaxType == TemplateSyntax {
+			if tc.opts.Modality == templateMod {
 				if node, ok := node.(*ast.Func); ok && node.Ident != nil {
 					tc.assignScope(node.Ident.Name, ti, node.Ident)
 					i++
@@ -913,7 +913,7 @@ nodesLoop:
 func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, packageLevel bool) error {
 
 	// Import a precompiled package from a script or a template page.
-	if tc.opts.SyntaxType == ScriptSyntax || (tc.opts.SyntaxType == TemplateSyntax && impor.Tree == nil) {
+	if tc.opts.Modality == scriptMod || (tc.opts.Modality == templateMod && impor.Tree == nil) {
 		if impor.Tree != nil {
 			panic("BUG: only precompiled packages can be imported in script")
 		}
@@ -976,7 +976,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pac
 		}
 	} else if packageLevel {
 		// Not predefined package.
-		if tc.opts.SyntaxType == TemplateSyntax {
+		if tc.opts.Modality == templateMod {
 			err := tc.templatePageToPackage(impor.Tree, impor.Tree.Path)
 			if err != nil {
 				return err
@@ -993,7 +993,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pac
 	}
 
 	// Import a template file from a template.
-	if tc.opts.SyntaxType == TemplateSyntax {
+	if tc.opts.Modality == templateMod {
 		if !packageLevel {
 			if impor.Ident != nil && impor.Ident.Name == "_" {
 				return nil
@@ -1045,7 +1045,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pac
 	}
 
 	// Import statement in a program.
-	if tc.opts.SyntaxType == ProgramSyntax || tc.opts.SyntaxType == ScriptSyntax {
+	if tc.opts.Modality == programMod || tc.opts.Modality == scriptMod {
 		if impor.Ident != nil && isBlankIdentifier(impor.Ident) {
 			return nil // nothing to do.
 		}

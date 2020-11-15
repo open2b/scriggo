@@ -82,7 +82,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 
 	// Type check the tree.
 	checkerOpts := checkerOptions{
-		SyntaxType:     ProgramSyntax,
+		Modality:       programMod,
 		DisallowGoStmt: opts.DisallowGoStmt,
 		Builtins:       opts.Builtins,
 		RelaxedBoolean: false,
@@ -126,7 +126,7 @@ func CompileScript(r io.Reader, importer PackageLoader, opts Options) (*Code, er
 
 	// Type check the tree.
 	checkerOpts := checkerOptions{
-		SyntaxType:     ScriptSyntax,
+		Modality:       scriptMod,
 		DisallowGoStmt: opts.DisallowGoStmt,
 		Builtins:       opts.Builtins,
 		RelaxedBoolean: true,
@@ -177,7 +177,7 @@ func CompileTemplate(path string, r FileReader, lang ast.Language, opts Options)
 		AllowNotUsed:   true,
 		DisallowGoStmt: opts.DisallowGoStmt,
 		Builtins:       opts.Builtins,
-		SyntaxType:     TemplateSyntax,
+		Modality:       templateMod,
 		RelaxedBoolean: true,
 	}
 	tci, err := typecheck(tree, opts.Loader, checkerOpts)

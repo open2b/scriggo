@@ -15,18 +15,27 @@ import (
 	"github.com/open2b/scriggo/compiler/types"
 )
 
+// checkingMod represents the checking modality.
+type checkingMod int
+
+const (
+	programMod checkingMod = iota + 1
+	scriptMod
+	templateMod
+)
+
 // typecheck makes a type check on tree. A map of predefined packages may be
 // provided. deps must contain dependencies in case of package initialization
 // (program or template import/extend).
 // tree may be altered during the type checking.
 func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map[string]*packageInfo, error) {
 
-	if opts.SyntaxType == 0 {
-		panic("unspecified syntax type")
+	if opts.Modality == 0 {
+		panic("unspecified modality")
 	}
 
 	// Type check a program.
-	if opts.SyntaxType == ProgramSyntax {
+	if opts.Modality == programMod {
 		pkg := tree.Nodes[0].(*ast.Package)
 		if pkg.Name != "main" {
 			return nil, &CheckingError{path: tree.Path, pos: *pkg.Pos(), err: errors.New("package name must be main")}
@@ -50,7 +59,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 	}
 
 	// Add the builtin "exit" to script global scope.
-	if opts.SyntaxType == ScriptSyntax {
+	if opts.Modality == scriptMod {
 		exit := scopeElement{t: &typeInfo{Properties: propertyPredeclared}}
 		if globalScope == nil {
 			globalScope = typeCheckerScope{"exit": exit}
@@ -122,21 +131,11 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 	return map[string]*packageInfo{"main": mainPkgInfo}, nil
 }
 
-// https://github.com/open2b/scriggo/issues/364
-type SyntaxType int8
-
-const (
-	// https://github.com/open2b/scriggo/issues/364
-	ProgramSyntax SyntaxType = iota + 1
-	ScriptSyntax
-	TemplateSyntax
-)
-
 // checkerOptions contains the options for the type checker.
 type checkerOptions struct {
 
-	// https://github.com/open2b/scriggo/issues/364
-	SyntaxType SyntaxType
+	// Modality is the checking modality.
+	Modality checkingMod
 
 	// DisallowGoStmt disables the "go" statement.
 	DisallowGoStmt bool
@@ -365,7 +364,7 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*typeIn
 func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.Identifier) {
 
 	if tc.declaredInThisBlock(name) {
-		if tc.opts.SyntaxType == ScriptSyntax && tc.scriptFuncDecl {
+		if tc.opts.Modality == scriptMod && tc.scriptFuncDecl {
 			panic(tc.errorf(declNode, "%s already declared in this program", declNode))
 		}
 		previousDecl, _ := tc.lookupScopesElem(name, true)
@@ -431,7 +430,7 @@ func (tc *typechecker) isUpVar(name string) bool {
 	}
 
 	// Check if name is a builtin variable in a template or script.
-	if tc.opts.SyntaxType == TemplateSyntax || tc.opts.SyntaxType == ScriptSyntax {
+	if tc.opts.Modality == templateMod || tc.opts.Modality == scriptMod {
 		if elem, ok := tc.globalScope[name]; ok {
 			return elem.t.Addressable()
 		}
