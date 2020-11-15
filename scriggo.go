@@ -56,16 +56,23 @@ type Program struct {
 // packages from loader.
 func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, error) {
 	co := compiler.Options{}
+	var packageLess bool
 	if options != nil {
 		if options.OutOfSpec.Builtins != nil && !options.OutOfSpec.PackageLess {
 			panic("scriggo: PackageLess option is required for builtins")
 		}
 		co.AllowShebangLine = options.OutOfSpec.AllowShebangLine
 		co.DisallowGoStmt = options.OutOfSpec.DisallowGoStmt
-		co.PackageLess = options.OutOfSpec.PackageLess
 		co.Builtins = compiler.Declarations(options.OutOfSpec.Builtins)
+		packageLess = options.OutOfSpec.PackageLess
 	}
-	code, err := compiler.CompileProgram(src, loader, co)
+	var err error
+	var code *compiler.Code
+	if packageLess {
+		code, err = compiler.CompileScript(src, loader, co)
+	} else {
+		code, err = compiler.CompileProgram(src, loader, co)
+	}
 	if err != nil {
 		return nil, err
 	}

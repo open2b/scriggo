@@ -43,7 +43,6 @@ const (
 type Options struct {
 	AllowShebangLine bool
 	DisallowGoStmt   bool
-	PackageLess      bool
 	Builtins         Declarations
 
 	// Loader loads Scriggo packages and precompiled packages.
@@ -64,21 +63,13 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 	var tree *ast.Tree
 
 	// Parse the source code.
-	if opts.PackageLess {
-		var err error
-		tree, err = ParsePackageLessProgram(r, importer, opts.AllowShebangLine)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		mainSrc, err := ioutil.ReadAll(r)
-		if err != nil {
-			return nil, err
-		}
-		tree, err = ParseProgram(mainCombiner{mainSrc, importer})
-		if err != nil {
-			return nil, err
-		}
+	mainSrc, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	tree, err = ParseProgram(mainCombiner{mainSrc, importer})
+	if err != nil {
+		return nil, err
 	}
 
 	// Transform the tree.
@@ -93,7 +84,6 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 	checkerOpts := checkerOptions{
 		SyntaxType:     ProgramSyntax,
 		DisallowGoStmt: opts.DisallowGoStmt,
-		PackageLess:    opts.PackageLess,
 		Builtins:       opts.Builtins,
 		RelaxedBoolean: false,
 	}
@@ -109,12 +99,52 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 	}
 
 	// Emit the code.
-	var code *Code
-	if opts.PackageLess {
-		code, err = emitPackageLessProgram(tree, typeInfos, tci["main"].IndirectVars)
-	} else {
-		code, err = emitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars)
+	code, err := emitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars)
+
+	return code, err
+}
+
+// CompileScript compiles a script.
+// Any error related to the compilation itself is returned as a CompilerError.
+func CompileScript(r io.Reader, importer PackageLoader, opts Options) (*Code, error) {
+	var tree *ast.Tree
+
+	// Parse the source code.
+	var err error
+	tree, err = ParsePackageLessProgram(r, importer, opts.AllowShebangLine)
+	if err != nil {
+		return nil, err
 	}
+
+	// Transform the tree.
+	if opts.TreeTransformer != nil {
+		err := opts.TreeTransformer(tree)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Type check the tree.
+	checkerOpts := checkerOptions{
+		SyntaxType:     ProgramSyntax,
+		DisallowGoStmt: opts.DisallowGoStmt,
+		PackageLess:    true,
+		Builtins:       opts.Builtins,
+		RelaxedBoolean: false,
+	}
+	tci, err := typecheck(tree, importer, checkerOpts)
+	if err != nil {
+		return nil, err
+	}
+	typeInfos := map[ast.Node]*typeInfo{}
+	for _, pkgInfos := range tci {
+		for node, ti := range pkgInfos.TypeInfos {
+			typeInfos[node] = ti
+		}
+	}
+
+	// Emit the code.
+	code, err := emitPackageLessProgram(tree, typeInfos, tci["main"].IndirectVars)
 
 	return code, err
 }
