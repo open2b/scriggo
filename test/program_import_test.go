@@ -91,13 +91,13 @@ func TestProgramImport(t *testing.T) {
 				var V = 10`,
 		},
 	}
-	for name, loader := range cases {
+	for name, packages := range cases {
 		t.Run(name, func(t *testing.T) {
-			main, err := loader.Load("main")
+			main, err := packages.Load("main")
 			if err != nil {
 				panic(err)
 			}
-			program, err := scriggo.Load(main.(*strings.Reader), loader, nil)
+			program, err := scriggo.Load(main.(*strings.Reader), packages, nil)
 			if err != nil {
 				t.Errorf("compiling error: %s", err)
 				return

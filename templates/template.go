@@ -136,16 +136,16 @@ type LoadOptions struct {
 	// accessible from the code in the template.
 	Globals Declarations
 
-	// Loader is a package loader that makes precompiled packages available in
-	// the template through the 'import' statement.
+	// Packages is a PackageLoader that makes precompiled packages available
+	// in the template through the 'import' statement.
 	//
 	// Note that an import statement refers to a precompiled package read from
-	// the Loader if its path has no extension.
+	// Packages if its path has no extension.
 	//
 	//     {%  import  "my/package"   %}    Import a precompiled package.
 	//     {%  import  "my/file.html  %}    Import a template file.
 	//
-	Loader scriggo.PackageLoader
+	Packages scriggo.PackageLoader
 }
 
 // Declarations.
@@ -178,7 +178,7 @@ func Load(name string, files FileReader, lang Language, options *LoadOptions) (*
 		co.Globals = compiler.Declarations(options.Globals)
 		co.TreeTransformer = options.TreeTransformer
 		co.DisallowGoStmt = options.DisallowGoStmt
-		co.Loader = options.Loader
+		co.Packages = options.Packages
 	}
 	code, err := compiler.CompileTemplate(name, files, ast.Language(lang), co)
 	if err != nil {

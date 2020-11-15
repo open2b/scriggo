@@ -84,8 +84,8 @@ func Loaders(loaders ...PackageLoader) PackageLoader {
 	return CombinedLoader(loaders)
 }
 
-// Packages is a Loader that load packages from a map where the key is a
-// package path and the value is a *Package value.
+// Packages is a PackageLoader that load packages from a map where the key is
+// a package path and the value is a Package value.
 type Packages map[string]Package
 
 func (pp Packages) Load(path string) (interface{}, error) {

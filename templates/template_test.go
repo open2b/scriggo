@@ -710,7 +710,7 @@ var templateMultiPageCases = map[string]struct {
 	vars            map[string]interface{} // default to nil
 	lang            Language               // default to LanguageText
 	entryPoint      string                 // default to "index.html"
-	loader          scriggo.PackageLoader  // default to nil
+	packages        scriggo.PackageLoader  // default to nil
 }{
 
 	"Empty template": {
@@ -1502,7 +1502,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `{% import "fmt" %}{{ fmt.Sprint(10, 20) }}`,
 		},
-		loader:      testLoader,
+		packages:    testPackages,
 		expectedOut: "10 20",
 	},
 
@@ -1511,7 +1511,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.html":    `{% extends "extended.html" %}{% import "fmt" %}{% macro M %}{{ fmt.Sprint(321, 11) }}{% end macro %}`,
 			"extended.html": `{% show M %}`,
 		},
-		loader:      testLoader,
+		packages:    testPackages,
 		expectedOut: "321 11",
 	},
 
@@ -1519,7 +1519,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `{% import "fmt" %}{% import m "math" %}{{ fmt.Sprint(-42, m.Abs(-42)) }}`,
 		},
-		loader:      testLoader,
+		packages:    testPackages,
 		expectedOut: "-42 42",
 	},
 
@@ -1527,7 +1527,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `{% import . "fmt" %}{{ Sprint(50, 70) }}`,
 		},
-		loader:      testLoader,
+		packages:    testPackages,
 		expectedOut: "50 70",
 	},
 
@@ -1535,7 +1535,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `{% import "mypackage" %}{{ mypackage.F() }}`,
 		},
-		loader:          testLoader,
+		packages:        testPackages,
 		expectedLoadErr: "/index.html:1:11: syntax error: cannot find package \"mypackage\"",
 	},
 
@@ -1543,7 +1543,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `{% import "fmt" %}{{ fmt.SuperPrint(42) }}`,
 		},
-		loader:          testLoader,
+		packages:        testPackages,
 		expectedLoadErr: "/index.html:1:25: undefined: fmt.SuperPrint",
 	},
 
@@ -1551,7 +1551,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `{{ fmt.Sprint(10, 20) }}`,
 		},
-		loader:          testLoader,
+		packages:        testPackages,
 		expectedLoadErr: "/index.html:1:4: undefined: fmt",
 	},
 
@@ -2074,7 +2074,7 @@ func (testNotImplementIsZero) IsZero() int {
 	panic("BUG: this method should never be called")
 }
 
-var testLoader = scriggo.Packages{
+var testPackages = scriggo.Packages{
 	"fmt": &scriggo.MapPackage{
 		PkgName: "fmt",
 		Declarations: map[string]interface{}{
@@ -2128,8 +2128,8 @@ func TestMultiPageTemplate(t *testing.T) {
 				entryPoint = "index.html"
 			}
 			opts := &LoadOptions{
-				Globals: globals,
-				Loader:  cas.loader,
+				Globals:  globals,
+				Packages: cas.packages,
 			}
 			templ, err := Load(entryPoint, r, cas.lang, opts)
 			switch {

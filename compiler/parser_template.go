@@ -25,7 +25,7 @@ import (
 //
 // The parsed trees are cached so only one call per combination of path and
 // context is made to the reader.
-func ParseTemplate(path string, reader FileReader, lang ast.Language, loader PackageLoader) (*ast.Tree, error) {
+func ParseTemplate(path string, reader FileReader, lang ast.Language, packages PackageLoader) (*ast.Tree, error) {
 
 	if path == "" {
 		return nil, ErrInvalidPath
@@ -40,10 +40,10 @@ func ParseTemplate(path string, reader FileReader, lang ast.Language, loader Pac
 	}
 
 	pp := &templateExpansion{
-		reader: reader,
-		loader: loader,
-		trees:  &cache{},
-		paths:  []string{},
+		reader:   reader,
+		packages: packages,
+		trees:    &cache{},
+		paths:    []string{},
 	}
 
 	tree, err := pp.parseFile(path, lang)
@@ -63,10 +63,10 @@ func ParseTemplate(path string, reader FileReader, lang ast.Language, loader Pac
 
 // templateExpansion represents the state of a template expansion.
 type templateExpansion struct {
-	reader FileReader
-	trees  *cache
-	loader PackageLoader
-	paths  []string
+	reader   FileReader
+	trees    *cache
+	packages PackageLoader
+	paths    []string
 }
 
 // abs returns path as absolute.
@@ -236,10 +236,10 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 
 			if ext := filepath.Ext(n.Path); ext == "" {
 				// Import a precompiled package (the path has no extension).
-				if pp.loader == nil {
+				if pp.packages == nil {
 					return syntaxError(n.Pos(), "cannot find package %q", n.Path)
 				}
-				pkg, err := pp.loader.Load(n.Path)
+				pkg, err := pp.packages.Load(n.Path)
 				if err != nil {
 					return err
 				}

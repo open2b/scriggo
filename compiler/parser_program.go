@@ -126,7 +126,7 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
 // ParseScript parses a script reading its source from src and the imported
 // packages form the loader. shebang reports whether the script can have the
 // shebang as first line.
-func ParseScript(src io.Reader, loader PackageLoader, shebang bool) (*ast.Tree, error) {
+func ParseScript(src io.Reader, packages PackageLoader, shebang bool) (*ast.Tree, error) {
 
 	// Parse the source.
 	buf, err := ioutil.ReadAll(src)
@@ -148,10 +148,10 @@ func ParseScript(src io.Reader, loader PackageLoader, shebang bool) (*ast.Tree, 
 			break
 		}
 		// Load the package.
-		if loader == nil {
+		if packages == nil {
 			return nil, syntaxError(imp.Pos(), "cannot find package %q", imp.Path)
 		}
-		pkg, err := loader.Load(imp.Path)
+		pkg, err := packages.Load(imp.Path)
 		if err != nil {
 			return nil, err
 		}

@@ -910,7 +910,7 @@ nodesLoop:
 }
 
 // TODO: improve this code, making it more readable.
-func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, packageLevel bool) error {
+func (tc *typechecker) checkImport(impor *ast.Import, packages PackageLoader, packageLevel bool) error {
 
 	// Import a precompiled package from a script or a template page.
 	if tc.opts.modality == scriptMod || (tc.opts.modality == templateMod && impor.Tree == nil) {
@@ -959,7 +959,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pac
 	if impor.Tree == nil {
 		// Predefined package.
 		if packageLevel {
-			pkg, err := imports.Load(impor.Path)
+			pkg, err := packages.Load(impor.Path)
 			if err != nil {
 				return tc.errorf(impor, "%s", err)
 			}
@@ -985,7 +985,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pac
 		if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
 			return tc.programImportError(impor)
 		}
-		err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, imports, tc.opts, tc.globalScope)
+		err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, packages, tc.opts, tc.globalScope)
 		if err != nil {
 			return err
 		}

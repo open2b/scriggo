@@ -25,7 +25,7 @@ func (t TypeStruct) Method() {}
 // hard to reproduce without writing host code
 func TestIssue403(t *testing.T) {
 	t.Run("Method call on predefined variable", func(t *testing.T) {
-		loaders := scriggo.CombinedLoader{
+		packages := scriggo.CombinedLoader{
 			scriggo.Packages{
 				"pkg": &scriggo.MapPackage{
 					PkgName: "pkg",
@@ -43,7 +43,7 @@ func TestIssue403(t *testing.T) {
 		func main() {
 			pkg.Value.Method()
 		}`
-		program, err := scriggo.Load(strings.NewReader(main), loaders, nil)
+		program, err := scriggo.Load(strings.NewReader(main), packages, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -53,7 +53,7 @@ func TestIssue403(t *testing.T) {
 		}
 	})
 	t.Run("Method call on not-predefined variable", func(t *testing.T) {
-		loaders := scriggo.CombinedLoader{
+		packages := scriggo.CombinedLoader{
 			scriggo.Packages{
 				"pkg": &scriggo.MapPackage{
 					PkgName: "pkg",
@@ -72,7 +72,7 @@ func TestIssue403(t *testing.T) {
 			t := pkg.Type{}
 			t.Method()
 		}`
-		program, err := scriggo.Load(strings.NewReader(main), loaders, nil)
+		program, err := scriggo.Load(strings.NewReader(main), packages, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -82,7 +82,7 @@ func TestIssue403(t *testing.T) {
 		}
 	})
 	t.Run("Function that takes a struct as argument", func(t *testing.T) {
-		loaders := scriggo.CombinedLoader{
+		packages := scriggo.CombinedLoader{
 			scriggo.Packages{
 				"pkg": &scriggo.MapPackage{
 					PkgName: "pkg",
@@ -103,7 +103,7 @@ func TestIssue403(t *testing.T) {
 			pkg.F(t)
 		}
 		`
-		program, err := scriggo.Load(strings.NewReader(main), loaders, nil)
+		program, err := scriggo.Load(strings.NewReader(main), packages, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -113,7 +113,7 @@ func TestIssue403(t *testing.T) {
 		}
 	})
 	t.Run("Function taking an array", func(t *testing.T) {
-		loaders := scriggo.CombinedLoader{
+		packages := scriggo.CombinedLoader{
 			scriggo.Packages{
 				"pkg": &scriggo.MapPackage{
 					PkgName: "pkg",
@@ -134,7 +134,7 @@ func TestIssue403(t *testing.T) {
 			pkg.F(a)
 		}
 		`
-		program, err := scriggo.Load(strings.NewReader(main), loaders, nil)
+		program, err := scriggo.Load(strings.NewReader(main), packages, nil)
 		if err != nil {
 			t.Fatal(err)
 		}

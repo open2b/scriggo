@@ -539,7 +539,7 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(compilation *compilation, pkg *ast.Package, path string, imports PackageLoader, opts checkerOptions, globalScope typeCheckerScope) (err error) {
+func checkPackage(compilation *compilation, pkg *ast.Package, path string, packages PackageLoader, opts checkerOptions, globalScope typeCheckerScope) (err error) {
 
 	// TODO: This cache has been disabled as a workaround to the issues #641 and
 	// #624. We should find a better solution in the future.
@@ -599,7 +599,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, impor
 	}
 
 	// First: import packages.
-	tc.predefinedPkgs = imports
+	tc.predefinedPkgs = packages
 	for _, d := range pkg.Declarations {
 		if d, ok := d.(*ast.Import); ok {
 			// This is a workaround to fix
@@ -607,7 +607,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, impor
 			// 'packageLevel', as well as the method 'checkImport', should be
 			// reviewed and maybe rewritten.
 			packageLevel := tc.opts.modality != templateMod
-			err := tc.checkImport(d, imports, packageLevel)
+			err := tc.checkImport(d, packages, packageLevel)
 			if err != nil {
 				return err
 			}

@@ -45,11 +45,11 @@ type Options struct {
 	DisallowGoStmt   bool
 	Globals          Declarations
 
-	// Loader loads Scriggo packages and precompiled packages.
+	// Packages loads Scriggo packages and precompiled packages.
 	//
-	// For template files, Loader only loads precompiled packages; the template
+	// For template files, Packages only loads precompiled packages; the template
 	// files are read from the FileReader.
-	Loader PackageLoader
+	Packages PackageLoader
 
 	TreeTransformer func(*ast.Tree) error
 }
@@ -59,7 +59,7 @@ type Declarations map[string]interface{}
 
 // CompileProgram compiles a program.
 // Any error related to the compilation itself is returned as a CompilerError.
-func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, error) {
+func CompileProgram(r io.Reader, packages PackageLoader, opts Options) (*Code, error) {
 	var tree *ast.Tree
 
 	// Parse the source code.
@@ -67,7 +67,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 	if err != nil {
 		return nil, err
 	}
-	tree, err = ParseProgram(mainCombiner{mainSrc, importer})
+	tree, err = ParseProgram(mainCombiner{mainSrc, packages})
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 		disallowGoStmt: opts.DisallowGoStmt,
 		globals:        opts.Globals,
 	}
-	tci, err := typecheck(tree, importer, checkerOpts)
+	tci, err := typecheck(tree, packages, checkerOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -105,12 +105,12 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 
 // CompileScript compiles a script.
 // Any error related to the compilation itself is returned as a CompilerError.
-func CompileScript(r io.Reader, importer PackageLoader, opts Options) (*Code, error) {
+func CompileScript(r io.Reader, packages PackageLoader, opts Options) (*Code, error) {
 	var tree *ast.Tree
 
 	// Parse the source code.
 	var err error
-	tree, err = ParseScript(r, importer, opts.AllowShebangLine)
+	tree, err = ParseScript(r, packages, opts.AllowShebangLine)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func CompileScript(r io.Reader, importer PackageLoader, opts Options) (*Code, er
 		disallowGoStmt: opts.DisallowGoStmt,
 		globals:        opts.Globals,
 	}
-	tci, err := typecheck(tree, importer, checkerOpts)
+	tci, err := typecheck(tree, packages, checkerOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +157,7 @@ func CompileTemplate(path string, r FileReader, lang ast.Language, opts Options)
 
 	// Parse the source code.
 	var err error
-	tree, err = ParseTemplate(path, r, lang, opts.Loader)
+	tree, err = ParseTemplate(path, r, lang, opts.Packages)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func CompileTemplate(path string, r FileReader, lang ast.Language, opts Options)
 		globals:        opts.Globals,
 		modality:       templateMod,
 	}
-	tci, err := typecheck(tree, opts.Loader, checkerOpts)
+	tci, err := typecheck(tree, opts.Packages, checkerOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -195,16 +195,16 @@ func CompileTemplate(path string, r FileReader, lang ast.Language, opts Options)
 }
 
 type mainCombiner struct {
-	mainSrc      []byte
-	otherImports PackageLoader
+	mainSrc       []byte
+	otherPackages PackageLoader
 }
 
 func (ml mainCombiner) Load(path string) (interface{}, error) {
 	if path == "main" {
 		return bytes.NewReader(ml.mainSrc), nil
 	}
-	if ml.otherImports != nil {
-		return ml.otherImports.Load(path)
+	if ml.otherPackages != nil {
+		return ml.otherPackages.Load(path)
 	}
 	return nil, nil
 }

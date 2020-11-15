@@ -42,13 +42,13 @@ type Program struct {
 }
 
 // Load loads a Go program with the given options, loading the imported
-// packages from loader.
-func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, error) {
+// packages from packages.
+func Load(src io.Reader, packages PackageLoader, options *LoadOptions) (*Program, error) {
 	co := compiler.Options{}
 	if options != nil {
 		co.DisallowGoStmt = options.DisallowGoStmt
 	}
-	code, err := compiler.CompileProgram(src, loader, co)
+	code, err := compiler.CompileProgram(src, packages, co)
 	if err != nil {
 		return nil, err
 	}

@@ -38,15 +38,15 @@ type Script struct {
 }
 
 // Load loads a script with the given options, loading the imported packages
-// from loader.
-func Load(src io.Reader, loader scriggo.PackageLoader, options *LoadOptions) (*Script, error) {
+// from packages.
+func Load(src io.Reader, packages scriggo.PackageLoader, options *LoadOptions) (*Script, error) {
 	co := compiler.Options{}
 	if options != nil {
 		co.Globals = compiler.Declarations(options.Globals)
 		co.AllowShebangLine = options.AllowShebangLine
 		co.DisallowGoStmt = options.DisallowGoStmt
 	}
-	code, err := compiler.CompileScript(src, loader, co)
+	code, err := compiler.CompileScript(src, packages, co)
 	if err != nil {
 		return nil, err
 	}
