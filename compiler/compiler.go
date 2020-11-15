@@ -147,7 +147,6 @@ func CompileTemplate(path string, r FileReader, lang ast.Language, opts Options)
 	checkerOpts := checkerOptions{
 		AllowNotUsed:   true,
 		DisallowGoStmt: opts.DisallowGoStmt,
-		PackageLess:    opts.PackageLess,
 		Builtins:       opts.Builtins,
 		SyntaxType:     TemplateSyntax,
 		RelaxedBoolean: true,
