@@ -23,12 +23,9 @@ import (
 // ParseTemplate expands the nodes Extends, Import and ShowPartial parsing the
 // relative trees.
 //
-// relaxedBoolean reports whether the operators 'and', 'or' and 'not' as well as
-// non-boolean conditions in the if statement are allowed.
-//
 // The parsed trees are cached so only one call per combination of path and
 // context is made to the reader.
-func ParseTemplate(path string, reader FileReader, lang ast.Language, relaxedBoolean bool, loader PackageLoader) (*ast.Tree, error) {
+func ParseTemplate(path string, reader FileReader, lang ast.Language, loader PackageLoader) (*ast.Tree, error) {
 
 	if path == "" {
 		return nil, ErrInvalidPath
@@ -43,11 +40,10 @@ func ParseTemplate(path string, reader FileReader, lang ast.Language, relaxedBoo
 	}
 
 	pp := &templateExpansion{
-		reader:         reader,
-		loader:         loader,
-		trees:          &cache{},
-		paths:          []string{},
-		relaxedBoolean: relaxedBoolean,
+		reader: reader,
+		loader: loader,
+		trees:  &cache{},
+		paths:  []string{},
 	}
 
 	tree, err := pp.parseFile(path, lang)
@@ -67,11 +63,10 @@ func ParseTemplate(path string, reader FileReader, lang ast.Language, relaxedBoo
 
 // templateExpansion represents the state of a template expansion.
 type templateExpansion struct {
-	reader         FileReader
-	trees          *cache
-	loader         PackageLoader
-	paths          []string
-	relaxedBoolean bool
+	reader FileReader
+	trees  *cache
+	loader PackageLoader
+	paths  []string
 }
 
 // abs returns path as absolute.
@@ -109,7 +104,7 @@ func (pp *templateExpansion) parseFile(name string, lang ast.Language) (*ast.Tre
 		return nil, err
 	}
 
-	tree, err := ParseTemplateSource(src, lang, pp.relaxedBoolean)
+	tree, err := ParseTemplateSource(src, lang)
 	if err != nil {
 		if se, ok := err.(*SyntaxError); ok {
 			se.path = name

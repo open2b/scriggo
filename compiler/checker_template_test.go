@@ -11,7 +11,6 @@ import (
 var templateCases = []struct {
 	src      string
 	expected string
-	opts     *compiler.Options
 }{
 
 	// Misc.
@@ -81,126 +80,76 @@ var templateCases = []struct {
 	{
 		src:      `{% a := 20 %}{{ a and a }}`,
 		expected: ok,
-		opts: &compiler.Options{
-			RelaxedBoolean: true,
-		},
 	},
 
 	{
 		src:      `{% a := 20 %}{{ a or a }}`,
 		expected: ok,
-		opts: &compiler.Options{
-			RelaxedBoolean: true,
-		},
 	},
 
 	{
 		src:      `{% a := 20 %}{% b := "" %}{{ a or b and (not b) }}`,
 		expected: ok,
-		opts: &compiler.Options{
-			RelaxedBoolean: true,
-		},
 	},
 
 	{
 		src:      `{% a := 20 %}{{ 3 and a }}`,
 		expected: ok,
-		opts: &compiler.Options{
-			RelaxedBoolean: true,
-		},
 	},
 
 	{
 		src:      `{% a := 20 %}{{ 3 or a }}`,
 		expected: ok,
-		opts: &compiler.Options{
-			RelaxedBoolean: true,
-		},
 	},
 
 	{
 		src:      `{% const a = 20 %}{{ not a }}`,
 		expected: ok,
-		opts: &compiler.Options{
-			RelaxedBoolean: true,
-		},
 	},
 
 	{
 		src:      `{% a := true %}{% b := true %}{{ a and b or b and b }}`,
 		expected: ok,
-		opts: &compiler.Options{
-			RelaxedBoolean: true,
-		},
 	},
 
 	{
 		src:      `{% n := 10 %}{% var a bool = not n %}`,
 		expected: ok,
-		opts: &compiler.Options{
-			RelaxedBoolean: true,
-		},
 	},
 
 	{
 		src:      `{% a := []int(nil) %}{% if a %}{% end %}`,
 		expected: ``,
-		opts: &compiler.Options{
-			RelaxedBoolean: true,
-		},
-	},
-
-	{
-		src:      `{% a := []int(nil) %}{% if a %}{% end %}`,
-		expected: `non-bool a (type []int) used as if condition`,
 	},
 
 	{
 		src:      `{% if 20 %}{% end %}`,
 		expected: ``,
-		opts: &compiler.Options{
-			RelaxedBoolean: true,
-		},
 	},
 
 	{
 		src:      `{{ true and nil }}`,
 		expected: `invalid operation: true and nil (operator 'and' not defined on nil)`,
-		opts: &compiler.Options{
-			RelaxedBoolean: true,
-		},
 	},
 
 	{
 		src:      `{{ nil and false }}`,
 		expected: `invalid operation: nil and false (operator 'and' not defined on nil)`,
-		opts: &compiler.Options{
-			RelaxedBoolean: true,
-		},
 	},
 
 	{
 		src:      `{{ true or nil }}`,
 		expected: `invalid operation: true or nil (operator 'or' not defined on nil)`,
-		opts: &compiler.Options{
-			RelaxedBoolean: true,
-		},
 	},
 
 	{
 		src:      `{{ not nil }}`,
 		expected: `invalid operation: not nil (operator 'not' not defined on nil)`,
-		opts: &compiler.Options{
-			RelaxedBoolean: true,
-		},
 	},
 
 	{
 		src:      `{% v := 10 %}{{ v and nil }}`,
 		expected: `invalid operation: v and nil (operator 'and' not defined on nil)`,
-		opts: &compiler.Options{
-			RelaxedBoolean: true,
-		},
 	},
 
 	{
@@ -212,9 +161,6 @@ var templateCases = []struct {
 			{% var _ bool = Bool(true) and Bool(false) %}
 		`,
 		expected: ok,
-		opts: &compiler.Options{
-			RelaxedBoolean: true,
-		},
 	},
 }
 
@@ -226,11 +172,7 @@ func TestTemplate(t *testing.T) {
 		expected := cas.expected
 		t.Run(src, func(t *testing.T) {
 			r := mapReader{"/index.html": []byte(src)}
-			var compileOpts compiler.Options
-			if cas.opts != nil {
-				compileOpts = *cas.opts
-			}
-			_, err := compiler.CompileTemplate("/index.html", r, ast.LanguageHTML, compileOpts)
+			_, err := compiler.CompileTemplate("/index.html", r, ast.LanguageHTML, compiler.Options{})
 			switch {
 			case expected == "" && err != nil:
 				t.Fatalf("unexpected error: %q", err)

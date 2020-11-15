@@ -229,10 +229,7 @@ func ParseSource(src []byte, isPackageLessProgram, shebang bool) (tree *ast.Tree
 //
 // ParseTemplateSource does not expand the nodes Extends, ShowPartial and
 // Import.
-//
-// extendedSyntax reports whether the operators 'and', 'or' and 'not' as well as
-// non-boolean conditions in the if statement are allowed.
-func ParseTemplateSource(src []byte, lang ast.Language, relaxedBoolean bool) (tree *ast.Tree, err error) {
+func ParseTemplateSource(src []byte, lang ast.Language) (tree *ast.Tree, err error) {
 
 	if lang < ast.LanguageText || lang > ast.LanguageJSON {
 		return nil, errors.New("scriggo: invalid language")
@@ -244,7 +241,7 @@ func ParseTemplateSource(src []byte, lang ast.Language, relaxedBoolean bool) (tr
 		lex:            scanTemplate(src, lang),
 		language:       lang,
 		ancestors:      []ast.Node{tree},
-		extendedSyntax: relaxedBoolean,
+		extendedSyntax: true,
 	}
 
 	defer func() {

@@ -53,7 +53,6 @@ type Options struct {
 	Loader PackageLoader
 
 	TemplateFailOnTODO bool
-	RelaxedBoolean     bool
 	TreeTransformer    func(*ast.Tree) error
 }
 
@@ -97,7 +96,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 		DisallowGoStmt: opts.DisallowGoStmt,
 		PackageLess:    opts.PackageLess,
 		Builtins:       opts.Builtins,
-		RelaxedBoolean: opts.RelaxedBoolean,
+		RelaxedBoolean: false,
 	}
 	tci, err := typecheck(tree, importer, checkerOpts)
 	if err != nil {
@@ -132,7 +131,7 @@ func CompileTemplate(path string, r FileReader, lang ast.Language, opts Options)
 
 	// Parse the source code.
 	var err error
-	tree, err = ParseTemplate(path, r, lang, opts.RelaxedBoolean, opts.Loader)
+	tree, err = ParseTemplate(path, r, lang, opts.Loader)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +152,7 @@ func CompileTemplate(path string, r FileReader, lang ast.Language, opts Options)
 		PackageLess:    opts.PackageLess,
 		Builtins:       opts.Builtins,
 		SyntaxType:     TemplateSyntax,
-		RelaxedBoolean: opts.RelaxedBoolean,
+		RelaxedBoolean: true,
 	}
 	tci, err := typecheck(tree, opts.Loader, checkerOpts)
 	if err != nil {
