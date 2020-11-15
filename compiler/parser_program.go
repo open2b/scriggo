@@ -63,7 +63,7 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
 			if err != nil {
 				return nil, err
 			}
-			n.Tree, err = ParseSource(src, false, false)
+			n.Tree, err = parseSource(src, false, false)
 			if err != nil {
 				return nil, err
 			}
@@ -136,7 +136,7 @@ func ParsePackageLessProgram(src io.Reader, loader PackageLoader, shebang bool) 
 	if err != nil {
 		return nil, err
 	}
-	tree, err := ParseSource(buf, true, shebang)
+	tree, err := parseSource(buf, true, shebang)
 	if err != nil {
 		return nil, err
 	}

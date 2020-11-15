@@ -1560,7 +1560,7 @@ func TestCheckerStatements(t *testing.T) {
 					}
 				}
 			}()
-			tree, err := ParseSource([]byte(src), true, false)
+			tree, err := parseSource([]byte(src), true, false)
 			if err != nil {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
@@ -2073,7 +2073,7 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 	}
 	tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil)
 	for src, expected := range cases {
-		tree, err := ParseSource([]byte(src), true, false)
+		tree, err := parseSource([]byte(src), true, false)
 		if err != nil {
 			t.Error(err)
 		}
@@ -2186,7 +2186,7 @@ func TestFunctionUpVars(t *testing.T) {
 	for src, expected := range cases {
 		tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil)
 		tc.enterScope()
-		tree, err := ParseSource([]byte(src), true, false)
+		tree, err := parseSource([]byte(src), true, false)
 		if err != nil {
 			t.Error(err)
 		}
@@ -2303,7 +2303,7 @@ func TestGotoLabels(t *testing.T) {
 	}
 	for _, cas := range cases {
 		t.Run(cas.name, func(t *testing.T) {
-			tree, err := ParseSource([]byte(cas.src), false, false)
+			tree, err := parseSource([]byte(cas.src), false, false)
 			if err != nil {
 				t.Error(err)
 				return

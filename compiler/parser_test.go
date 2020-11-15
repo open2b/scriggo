@@ -1436,7 +1436,7 @@ func pageTests() map[string]struct {
 
 func TestGoContextTrees(t *testing.T) {
 	for _, tree := range goContextTreeTests {
-		node, err := ParseSource([]byte(tree.src), true, false)
+		node, err := parseSource([]byte(tree.src), true, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", tree.src, err)
 			continue
@@ -1461,7 +1461,7 @@ var shebangTests = []struct {
 
 func TestShebang(t *testing.T) {
 	for _, test := range shebangTests {
-		_, err := ParseSource([]byte(test.src), true, test.shebang)
+		_, err := parseSource([]byte(test.src), true, test.shebang)
 		if err == nil {
 			if test.err != "" {
 				t.Errorf("source: %q, expected error %q, got nothing\n", test.src, test.err)

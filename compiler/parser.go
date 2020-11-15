@@ -162,10 +162,10 @@ func (p *parsing) next() token {
 	return tok
 }
 
-// ParseSource parses a program or a package-less program and returns its tree.
+// parseSource parses a program or a package-less program and returns its tree.
 // isPackageLessProgram reports whether it is a package-less program and shebang
 // reports whether a package-less program can have the shebang as first line.
-func ParseSource(src []byte, isPackageLessProgram, shebang bool) (tree *ast.Tree, err error) {
+func parseSource(src []byte, isPackageLessProgram, shebang bool) (tree *ast.Tree, err error) {
 
 	if shebang && !isPackageLessProgram {
 		return nil, errors.New("scriggo/parser: shebang can be true only for package-less programs")
