@@ -99,7 +99,7 @@ func CompileProgram(r io.Reader, importer PackageLoader, opts Options) (*Code, e
 	}
 
 	// Emit the code.
-	code, err := emitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars)
+	code, err := emitProgram(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars)
 
 	return code, err
 }
@@ -293,10 +293,10 @@ type Code struct {
 	TypeOf runtime.TypeOfFunc
 }
 
-// emitPackageMain emits the code for a package main given its ast node, the
-// type info and indirect variables. emitPackageMain returns an emittedPackage
-// instance with the global variables and the main function.
-func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool) (_ *Code, err error) {
+// emitProgram emits the code for a program given its ast node, the type info
+// and indirect variables. emitProgram returns an emittedPackage  instance
+// with the global variables and the main function.
+func emitProgram(pkgMain *ast.Package, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool) (_ *Code, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if e, ok := r.(*LimitExceededError); ok {
