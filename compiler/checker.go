@@ -26,7 +26,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 	}
 
 	// Type check a program.
-	if opts.SyntaxType == ProgramSyntax && !opts.Script {
+	if opts.SyntaxType == ProgramSyntax {
 		pkg := tree.Nodes[0].(*ast.Package)
 		if pkg.Name != "main" {
 			return nil, &CheckingError{path: tree.Path, pos: *pkg.Pos(), err: errors.New("package name must be main")}
@@ -50,7 +50,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 	}
 
 	// Add the builtin "exit" to script global scope.
-	if opts.Script {
+	if opts.SyntaxType == ScriptSyntax {
 		exit := scopeElement{t: &typeInfo{Properties: propertyPredeclared}}
 		if globalScope == nil {
 			globalScope = typeCheckerScope{"exit": exit}
@@ -127,8 +127,9 @@ type SyntaxType int8
 
 const (
 	// https://github.com/open2b/scriggo/issues/364
-	TemplateSyntax SyntaxType = iota + 1
-	ProgramSyntax
+	ProgramSyntax SyntaxType = iota + 1
+	ScriptSyntax
+	TemplateSyntax
 )
 
 // checkerOptions contains the options for the type checker.
@@ -143,9 +144,6 @@ type checkerOptions struct {
 	// AllowNotUsed does not return a checking error if a variable is declared
 	// and not used or a package is imported and not used.
 	AllowNotUsed bool
-
-	// Script reports whether the script syntax is enabled.
-	Script bool
 
 	// Builtins.
 	Builtins Declarations
@@ -367,7 +365,7 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*typeIn
 func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.Identifier) {
 
 	if tc.declaredInThisBlock(name) {
-		if tc.opts.Script && tc.scriptFuncDecl {
+		if tc.opts.SyntaxType == ScriptSyntax && tc.scriptFuncDecl {
 			panic(tc.errorf(declNode, "%s already declared in this program", declNode))
 		}
 		previousDecl, _ := tc.lookupScopesElem(name, true)
@@ -433,7 +431,7 @@ func (tc *typechecker) isUpVar(name string) bool {
 	}
 
 	// Check if name is a builtin variable in a template or script.
-	if tc.opts.SyntaxType == TemplateSyntax || tc.opts.Script {
+	if tc.opts.SyntaxType == TemplateSyntax || tc.opts.SyntaxType == ScriptSyntax {
 		if elem, ok := tc.globalScope[name]; ok {
 			return elem.t.Addressable()
 		}

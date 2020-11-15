@@ -851,7 +851,7 @@ nodesLoop:
 		case ast.Expression:
 
 			// Handle function declarations in scripts.
-			if fun, ok := node.(*ast.Func); tc.opts.Script && ok {
+			if fun, ok := node.(*ast.Func); tc.opts.SyntaxType == ScriptSyntax && ok {
 				if fun.Ident != nil {
 					// Remove the identifier from the function expression and
 					// use it during the assignment.
@@ -913,7 +913,7 @@ nodesLoop:
 func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, packageLevel bool) error {
 
 	// Import a precompiled package from a script or a template page.
-	if tc.opts.Script || (tc.opts.SyntaxType == TemplateSyntax && impor.Tree == nil) {
+	if tc.opts.SyntaxType == ScriptSyntax || (tc.opts.SyntaxType == TemplateSyntax && impor.Tree == nil) {
 		if impor.Tree != nil {
 			panic("BUG: only precompiled packages can be imported in script")
 		}
@@ -1045,7 +1045,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, pac
 	}
 
 	// Import statement in a program.
-	if tc.opts.SyntaxType == ProgramSyntax {
+	if tc.opts.SyntaxType == ProgramSyntax || tc.opts.SyntaxType == ScriptSyntax {
 		if impor.Ident != nil && isBlankIdentifier(impor.Ident) {
 			return nil // nothing to do.
 		}

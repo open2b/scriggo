@@ -1565,7 +1565,7 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			tc := newTypechecker(newCompilation(), "", checkerOptions{Script: true}, nil)
+			tc := newTypechecker(newCompilation(), "", checkerOptions{SyntaxType: ScriptSyntax}, nil)
 			tc.scopes = append(tc.scopes, scope)
 			tc.enterScope()
 			tree.Nodes = tc.checkNodes(tree.Nodes)

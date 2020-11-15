@@ -126,9 +126,8 @@ func CompileScript(r io.Reader, importer PackageLoader, opts Options) (*Code, er
 
 	// Type check the tree.
 	checkerOpts := checkerOptions{
-		SyntaxType:     ProgramSyntax,
+		SyntaxType:     ScriptSyntax,
 		DisallowGoStmt: opts.DisallowGoStmt,
-		Script:         true,
 		Builtins:       opts.Builtins,
 		RelaxedBoolean: true,
 	}
