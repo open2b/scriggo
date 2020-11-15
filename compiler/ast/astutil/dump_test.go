@@ -9,6 +9,7 @@ package astutil_test
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/open2b/scriggo/compiler"
 	"github.com/open2b/scriggo/compiler/ast"
@@ -40,7 +41,7 @@ func ExampleDump() {
 			var tree *ast.Tree
 			var err error
 			if language == ast.LanguageGo {
-				tree, err = compiler.ParseSource([]byte(c), true, false)
+				tree, err = compiler.ParsePackageLessProgram(strings.NewReader(c), nil, false)
 			} else {
 				tree, err = compiler.ParseTemplateSource([]byte(c), language)
 			}
