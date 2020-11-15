@@ -87,11 +87,10 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) ty
 	s := make(typeCheckerScope, len(declarations))
 	for _, ident := range declarations {
 		value := pp.Lookup(ident)
-		// Import an auto-imported package. This is supported in package-less
-		// programs and templates only.
+		// Import an auto-imported package. This is supported in scripts and templates only.
 		if p, ok := value.(scriggoPackage); ok {
-			if opts.SyntaxType == ProgramSyntax && !opts.PackageLess {
-				panic(fmt.Errorf("scriggo: auto-imported packages are supported only for package-less programs and templates"))
+			if opts.SyntaxType == ProgramSyntax && !opts.Script {
+				panic(fmt.Errorf("scriggo: auto-imported packages are supported only for scripts and templates"))
 			}
 			if depth > 0 {
 				panic(fmt.Errorf("scriggo: cannot have an auto-imported package inside another auto-imported package"))

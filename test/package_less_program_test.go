@@ -15,7 +15,7 @@ import (
 	"github.com/open2b/scriggo"
 )
 
-var packageLessPrograms = map[string]struct {
+var scripts = map[string]struct {
 	src      string
 	pkgs     scriggo.Packages
 	init     map[string]interface{}
@@ -55,7 +55,7 @@ var packageLessPrograms = map[string]struct {
 				PkgName: "pkg",
 				Declarations: map[string]interface{}{
 					"F": func() {
-						packageLessProgramsStdout.WriteString("pkg.F called!")
+						scriptsStdout.WriteString("pkg.F called!")
 					},
 				},
 			},
@@ -103,7 +103,7 @@ var packageLessPrograms = map[string]struct {
 	// 	out: "5",
 	// },
 
-	"Usage test: using a package-less program to perform a sum of numbers": {
+	"Usage test: using a script to perform a sum of numbers": {
 		src: `
 			for i := 0; i < 10; i++ {
 				Sum += i
@@ -180,11 +180,11 @@ var packageLessPrograms = map[string]struct {
 	},
 }
 
-// Holds output of package-less programs.
-var packageLessProgramsStdout strings.Builder
+// Holds output of scripts.
+var scriptsStdout strings.Builder
 
-func TestPackageLessPrograms(t *testing.T) {
-	for name, cas := range packageLessPrograms {
+func TestScripts(t *testing.T) {
+	for name, cas := range scripts {
 		t.Run(name, func(t *testing.T) {
 			builtins := cas.builtins
 			if builtins == nil {
@@ -192,11 +192,11 @@ func TestPackageLessPrograms(t *testing.T) {
 			}
 			builtins["Print"] = func(args ...interface{}) {
 				for _, a := range args {
-					packageLessProgramsStdout.WriteString(fmt.Sprint(a))
+					scriptsStdout.WriteString(fmt.Sprint(a))
 				}
 			}
 			loadOpts := &scriggo.LoadOptions{}
-			loadOpts.OutOfSpec.PackageLess = true
+			loadOpts.OutOfSpec.Script = true
 			loadOpts.OutOfSpec.Builtins = builtins
 			script, err := scriggo.Load(strings.NewReader(cas.src), cas.pkgs, loadOpts)
 			if err != nil {
@@ -208,8 +208,8 @@ func TestPackageLessPrograms(t *testing.T) {
 			if err != nil {
 				t.Fatalf("execution error: %s", err)
 			}
-			out := packageLessProgramsStdout.String()
-			packageLessProgramsStdout.Reset()
+			out := scriptsStdout.String()
+			scriptsStdout.Reset()
 			if out != cas.out {
 				t.Fatalf("expecting output %q, got %q", cas.out, out)
 			}
@@ -222,7 +222,7 @@ func TestScriptSum(t *testing.T) {
 	Sum := 0
 	init := map[string]interface{}{"Sum": &Sum}
 	loadOpts := &scriggo.LoadOptions{}
-	loadOpts.OutOfSpec.PackageLess = true
+	loadOpts.OutOfSpec.Script = true
 	loadOpts.OutOfSpec.Builtins = scriggo.Declarations{
 		"Sum": (*int)(nil),
 	}
@@ -241,12 +241,12 @@ func TestScriptSum(t *testing.T) {
 	}
 }
 
-func TestPackageLessProgramChainMessages(t *testing.T) {
+func TestScriptsChainMessages(t *testing.T) {
 	src1 := `Message = Message + "script1,"`
 	src2 := `Message = Message + "script2"`
 	Message := "external,"
 	loadOpts := &scriggo.LoadOptions{}
-	loadOpts.OutOfSpec.PackageLess = true
+	loadOpts.OutOfSpec.Script = true
 	loadOpts.OutOfSpec.Builtins = scriggo.Declarations{
 		"Message": (*string)(nil),
 	}

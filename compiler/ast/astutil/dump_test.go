@@ -41,7 +41,7 @@ func ExampleDump() {
 			var tree *ast.Tree
 			var err error
 			if language == ast.LanguageGo {
-				tree, err = compiler.ParsePackageLessProgram(strings.NewReader(c), nil, false)
+				tree, err = compiler.ParseScript(strings.NewReader(c), nil, false)
 			} else {
 				tree, err = compiler.ParseTemplateSource([]byte(c), language)
 			}

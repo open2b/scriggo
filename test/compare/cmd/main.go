@@ -98,7 +98,7 @@ func main() {
 	case "compile script":
 		loadOpts := &scriggo.LoadOptions{}
 		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
-		loadOpts.OutOfSpec.PackageLess = true
+		loadOpts.OutOfSpec.Script = true
 		_, err = scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
@@ -122,7 +122,7 @@ func main() {
 	case "run script":
 		loadOpts := &scriggo.LoadOptions{}
 		loadOpts.OutOfSpec.DisallowGoStmt = *disallowGoStmt
-		loadOpts.OutOfSpec.PackageLess = true
+		loadOpts.OutOfSpec.Script = true
 		script, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)

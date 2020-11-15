@@ -28,9 +28,9 @@ type CompilerError interface {
 
 type LoadOptions struct {
 	OutOfSpec struct {
-		AllowShebangLine bool         // allow shebang line; only for package-less programs.
+		AllowShebangLine bool         // allow shebang line; only for scripts.
 		DisallowGoStmt   bool         // disallow "go" statement.
-		PackageLess      bool         // enable the package-less syntax.
+		Script           bool         // enable the script syntax.
 		Builtins         Declarations // builtins.
 	}
 }
@@ -56,19 +56,19 @@ type Program struct {
 // packages from loader.
 func Load(src io.Reader, loader PackageLoader, options *LoadOptions) (*Program, error) {
 	co := compiler.Options{}
-	var packageLess bool
+	var script bool
 	if options != nil {
-		if options.OutOfSpec.Builtins != nil && !options.OutOfSpec.PackageLess {
-			panic("scriggo: PackageLess option is required for builtins")
+		if options.OutOfSpec.Builtins != nil && !options.OutOfSpec.Script {
+			panic("scriggo: Script option is required for builtins")
 		}
 		co.AllowShebangLine = options.OutOfSpec.AllowShebangLine
 		co.DisallowGoStmt = options.OutOfSpec.DisallowGoStmt
 		co.Builtins = compiler.Declarations(options.OutOfSpec.Builtins)
-		packageLess = options.OutOfSpec.PackageLess
+		script = options.OutOfSpec.Script
 	}
 	var err error
 	var code *compiler.Code
-	if packageLess {
+	if script {
 		code, err = compiler.CompileScript(src, loader, co)
 	} else {
 		code, err = compiler.CompileProgram(src, loader, co)

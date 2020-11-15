@@ -141,8 +141,8 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *typeI
 		panic(tc.errorf(ident, "use of builtin %s not in function call", ident.Name))
 	}
 
-	// Handle predeclared variables in templates and package-less programs.
-	if tc.opts.SyntaxType == TemplateSyntax || tc.opts.PackageLess {
+	// Handle predeclared variables in templates and scripts.
+	if tc.opts.SyntaxType == TemplateSyntax || tc.opts.Script {
 		// The identifier refers to a predefined value that is an up value for
 		// the current function.
 		if ti.IsPredefined() && tc.isUpVar(ident.Name) {
@@ -154,9 +154,9 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *typeI
 				if nestedFuncs := tc.nestedFuncs(); len(nestedFuncs) > 0 {
 					// Se the Upvar if:
 					//   * the current function is a function literal in a template
-					//   * the current function is a function in a package-less program
+					//   * the current function is a function in a script
 					funcLiteralInTemplate := tc.opts.SyntaxType == TemplateSyntax && nestedFuncs[0].Ident == nil
-					if funcLiteralInTemplate || tc.opts.PackageLess {
+					if funcLiteralInTemplate || tc.opts.Script {
 						upvar := ast.Upvar{
 							PredefinedName:  ident.Name,
 							PredefinedPkg:   ident.Name,

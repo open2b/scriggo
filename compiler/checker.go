@@ -26,7 +26,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 	}
 
 	// Type check a program.
-	if opts.SyntaxType == ProgramSyntax && !opts.PackageLess {
+	if opts.SyntaxType == ProgramSyntax && !opts.Script {
 		pkg := tree.Nodes[0].(*ast.Package)
 		if pkg.Name != "main" {
 			return nil, &CheckingError{path: tree.Path, pos: *pkg.Pos(), err: errors.New("package name must be main")}
@@ -39,7 +39,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		return compilation.pkgInfos, nil
 	}
 
-	// Prepare the type checking for package-less programs and templates.
+	// Prepare the type checking for scripts and templates.
 	var globalScope typeCheckerScope
 	if opts.Builtins != nil {
 		builtins := &mapPackage{
@@ -49,8 +49,8 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		globalScope = toTypeCheckerScope(builtins, 0, opts)
 	}
 
-	// Add the builtin "exit" to the package-less program global scope.
-	if opts.PackageLess {
+	// Add the builtin "exit" to script global scope.
+	if opts.Script {
 		exit := scopeElement{t: &typeInfo{Properties: propertyPredeclared}}
 		if globalScope == nil {
 			globalScope = typeCheckerScope{"exit": exit}
@@ -109,7 +109,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		return map[string]*packageInfo{"main": mainPkgInfo}, nil
 	}
 
-	// Type check a template page or a package-less program.
+	// Type check a template page or a script.
 	tc.predefinedPkgs = packages
 	var err error
 	tree.Nodes, err = tc.checkNodesInNewScopeError(tree.Nodes)
@@ -144,8 +144,8 @@ type checkerOptions struct {
 	// and not used or a package is imported and not used.
 	AllowNotUsed bool
 
-	// PackageLess reports whether the package-less syntax is enabled.
-	PackageLess bool
+	// Script reports whether the script syntax is enabled.
+	Script bool
 
 	// Builtins.
 	Builtins Declarations
@@ -172,10 +172,10 @@ type typechecker struct {
 	universe typeCheckerScope
 
 	// A globalScope is a scope between the universe and the file/package block.
-	// In Go there is not an equivalent concept. In package-less programs and
-	// templates, the declarations of the predefined package 'main' are added to
-	// this scope; this makes possible, in templates, to access such
-	// declarations from every page, including imported and extended ones.
+	// In Go there is not an equivalent concept. In scripts and templates, the
+	// declarations of the predefined package 'main' are added to this scope;
+	// this makes possible, in templates, to access such declarations from every
+	// page, including imported and extended ones.
 	globalScope typeCheckerScope
 
 	// filePackageBlock is a scope that holds the declarations from both the
@@ -229,10 +229,10 @@ type typechecker struct {
 	storedValidGoto int
 	labels          [][]string
 
-	// packageLessFuncDecl reports whether the type checker is currently
-	// checking a function declaration in a package-less program, that has been
+	// scriptFuncDecl reports whether the type checker is currently
+	// checking a function declaration in a script, that has been
 	// transformed into an assignment node.
-	packageLessFuncDecl bool
+	scriptFuncDecl bool
 
 	// types refers the types of the current compilation and it is used to
 	// create and manipulate types and values, both predefined and defined only
@@ -253,8 +253,8 @@ type typechecker struct {
 	structDeclPkg map[reflect.Type]string
 }
 
-// newTypechecker creates a new type checker. A global scope may be provided for
-// package-less programs and templates.
+// newTypechecker creates a new type checker. A global scope may be provided
+// for scripts and templates.
 func newTypechecker(compilation *compilation, path string, opts checkerOptions, globalScope typeCheckerScope) *typechecker {
 	return &typechecker{
 		compilation:      compilation,
@@ -367,7 +367,7 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*typeIn
 func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.Identifier) {
 
 	if tc.declaredInThisBlock(name) {
-		if tc.opts.PackageLess && tc.packageLessFuncDecl {
+		if tc.opts.Script && tc.scriptFuncDecl {
 			panic(tc.errorf(declNode, "%s already declared in this program", declNode))
 		}
 		previousDecl, _ := tc.lookupScopesElem(name, true)
@@ -432,9 +432,8 @@ func (tc *typechecker) isUpVar(name string) bool {
 		return elem.t.Addressable()
 	}
 
-	// Check if name is a builtin variable in a template or package-less
-	// program.
-	if tc.opts.SyntaxType == TemplateSyntax || tc.opts.PackageLess {
+	// Check if name is a builtin variable in a template or script.
+	if tc.opts.SyntaxType == TemplateSyntax || tc.opts.Script {
 		if elem, ok := tc.globalScope[name]; ok {
 			return elem.t.Addressable()
 		}

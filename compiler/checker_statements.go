@@ -850,8 +850,8 @@ nodesLoop:
 
 		case ast.Expression:
 
-			// Handle function declarations in package-less programs.
-			if fun, ok := node.(*ast.Func); tc.opts.PackageLess && ok {
+			// Handle function declarations in scripts.
+			if fun, ok := node.(*ast.Func); tc.opts.Script && ok {
 				if fun.Ident != nil {
 					// Remove the identifier from the function expression and
 					// use it during the assignment.
@@ -870,15 +870,14 @@ nodesLoop:
 						[]ast.Expression{fun},
 					)
 					// Check the new node, informing the type checker that the
-					// current assignment is a function declaration in a
-					// package-less program.
-					backup := tc.packageLessFuncDecl
-					tc.packageLessFuncDecl = true
+					// current assignment is a function declaration in a script.
+					backup := tc.scriptFuncDecl
+					tc.scriptFuncDecl = true
 					newNodes := []ast.Node{varDecl, nodeAssign}
 					_ = tc.checkNodes(newNodes)
 					// Append the new nodes removing the function literal.
 					nodes = append(nodes[:i], append(newNodes, nodes[i+1:]...)...)
-					tc.packageLessFuncDecl = backup
+					tc.scriptFuncDecl = backup
 					// Avoid error 'declared and not used' by "using" the
 					// identifier.
 					tc.checkIdentifier(ident, true)
@@ -913,11 +912,10 @@ nodesLoop:
 // TODO: improve this code, making it more readable.
 func (tc *typechecker) checkImport(impor *ast.Import, imports PackageLoader, packageLevel bool) error {
 
-	// Import a precompiled package from a package-less program or a template
-	// page.
-	if tc.opts.PackageLess || (tc.opts.SyntaxType == TemplateSyntax && impor.Tree == nil) {
+	// Import a precompiled package from a script or a template page.
+	if tc.opts.Script || (tc.opts.SyntaxType == TemplateSyntax && impor.Tree == nil) {
 		if impor.Tree != nil {
-			panic("BUG: only precompiled packages can be imported in package-less program")
+			panic("BUG: only precompiled packages can be imported in script")
 		}
 		pkg, err := tc.predefinedPkgs.Load(impor.Path)
 		if err != nil {

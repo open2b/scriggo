@@ -238,7 +238,7 @@ The instructions are:
 
         As for 'IMPORT <package> AS main' but the exported names in the package
         will be imported not capitalized. For example a name 'FooFoo' declared
-        in the package will be imported in the package-less program as 'fooFoo'.
+        in the package will be imported in the script as 'fooFoo'.
 
     SET VARIABLE <name> 
 

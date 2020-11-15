@@ -111,7 +111,7 @@ func CompileScript(r io.Reader, importer PackageLoader, opts Options) (*Code, er
 
 	// Parse the source code.
 	var err error
-	tree, err = ParsePackageLessProgram(r, importer, opts.AllowShebangLine)
+	tree, err = ParseScript(r, importer, opts.AllowShebangLine)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func CompileScript(r io.Reader, importer PackageLoader, opts Options) (*Code, er
 	checkerOpts := checkerOptions{
 		SyntaxType:     ProgramSyntax,
 		DisallowGoStmt: opts.DisallowGoStmt,
-		PackageLess:    true,
+		Script:         true,
 		Builtins:       opts.Builtins,
 		RelaxedBoolean: false,
 	}
@@ -144,7 +144,7 @@ func CompileScript(r io.Reader, importer PackageLoader, opts Options) (*Code, er
 	}
 
 	// Emit the code.
-	code, err := emitPackageLessProgram(tree, typeInfos, tci["main"].IndirectVars)
+	code, err := emitScript(tree, typeInfos, tci["main"].IndirectVars)
 
 	return code, err
 }
@@ -318,11 +318,10 @@ func emitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*typeInfo, ind
 	return pkg, nil
 }
 
-// emitPackageLessProgram emits the code for a package-less program given its
-// tree, the type info and indirect variables. emitPackageLessProgram returns a
-// function that is the entry point of the package-less program and the global
-// variables.
-func emitPackageLessProgram(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool) (_ *Code, err error) {
+// emitScript emits the code for a script given its tree, the type info and
+// indirect variables. emitScript returns a function that is the entry point
+// of the script and the global variables.
+func emitScript(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool) (_ *Code, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if e, ok := r.(*LimitExceededError); ok {
