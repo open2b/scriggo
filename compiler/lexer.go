@@ -672,7 +672,8 @@ func (l *lexer) lexShow() error {
 	return nil
 }
 
-// lexStatement emits the tokens of a block knowing that src starts with {%.
+// lexStatement emits the tokens of a statement knowing that src starts with
+// {%.
 func (l *lexer) lexStatement() error {
 	l.emit(tokenStartStatement, 2)
 	l.column += 2
