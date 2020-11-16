@@ -180,7 +180,7 @@ func (l *lexer) scan() {
 			}
 		}
 
-		err := l.lexCode(false)
+		err := l.lexCode(tokenEOF)
 		if err != nil {
 			l.err = err
 		}
@@ -657,7 +657,7 @@ func isEndScript(s []byte) bool {
 func (l *lexer) lexShow() error {
 	l.emit(tokenLeftBraces, 2)
 	l.column += 2
-	err := l.lexCode(true)
+	err := l.lexCode(tokenRightBraces)
 	if err != nil {
 		return err
 	}
@@ -677,7 +677,7 @@ func (l *lexer) lexShow() error {
 func (l *lexer) lexStatement() error {
 	l.emit(tokenStartStatement, 2)
 	l.column += 2
-	err := l.lexCode(false)
+	err := l.lexCode(tokenEndStatement)
 	if err != nil {
 		return err
 	}
@@ -722,8 +722,12 @@ func (l *lexer) lexComment() error {
 	return nil
 }
 
-// lexCode emits code tokens.
-func (l *lexer) lexCode(isShow bool) error {
+// lexCode emits code tokens returning as soon as encounters the given end
+// token. end token can be tokenEOF, tokenRightBraces or tokenEndStatement.
+//
+// As a special case, if the end token is not tokenEOF, lexCode always returns
+// when encounters tokenEOF or tokenEndStatement.
+func (l *lexer) lexCode(end tokenTyp) error {
 	if len(l.src) == 0 {
 		return nil
 	}
@@ -878,7 +882,7 @@ LOOP:
 			if len(l.src) > 1 {
 				switch l.src[1] {
 				case '}':
-					if l.ctx != ast.ContextGo {
+					if end != tokenEOF {
 						break LOOP
 					}
 				case '=':
@@ -1003,11 +1007,11 @@ LOOP:
 			l.emit(tokenLeftBrace, 1)
 			l.column++
 			endLineAsSemicolon = false
-			if isShow {
+			if end == tokenRightBraces {
 				unclosedLeftBraces++
 			}
 		case '}':
-			if isShow {
+			if end == tokenRightBraces {
 				if len(l.src) > 1 && l.src[1] == '}' {
 					if unclosedLeftBraces == 0 || len(l.src) == 2 || l.src[2] != '}' {
 						break LOOP
@@ -1073,7 +1077,7 @@ LOOP:
 			}
 		}
 	}
-	if endLineAsSemicolon && l.ctx == ast.ContextGo {
+	if endLineAsSemicolon && end == tokenEOF {
 		l.emit(tokenSemicolon, 0)
 	}
 	return nil
