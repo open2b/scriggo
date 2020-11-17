@@ -33,13 +33,13 @@ func scanProgram(text []byte) *lexer {
 func scanScript(text []byte) *lexer {
 	tokens := make(chan token, 20)
 	lex := &lexer{
-		text:     text,
-		src:      text,
-		line:     1,
-		column:   1,
-		ctx:      ast.ContextGo,
-		toks:     tokens,
-		extended: true,
+		text:           text,
+		src:            text,
+		line:           1,
+		column:         1,
+		ctx:            ast.ContextGo,
+		toks:           tokens,
+		extendedSyntax: true,
 	}
 	go lex.scan()
 	return lex
@@ -49,13 +49,13 @@ func scanScript(text []byte) *lexer {
 func scanTemplate(text []byte, language ast.Language) *lexer {
 	tokens := make(chan token, 20)
 	lex := &lexer{
-		text:     text,
-		src:      text,
-		line:     1,
-		column:   1,
-		ctx:      ast.Context(language),
-		toks:     tokens,
-		extended: true,
+		text:           text,
+		src:            text,
+		line:           1,
+		column:         1,
+		ctx:            ast.Context(language),
+		toks:           tokens,
+		extendedSyntax: true,
 	}
 	lex.tag.ctx = ast.ContextHTML
 	go lex.scan()
@@ -94,9 +94,9 @@ type lexer struct {
 		index int         // index of first byte of the current attribute value in src
 		ctx   ast.Context // context of the tag's content
 	}
-	toks     chan token // tokens, is closed at the end of the scan
-	err      error      // error, reports whether there was an error
-	extended bool       // support tokens 'and', 'or', 'not', 'contains' and 'dollar'
+	toks           chan token // tokens, is closed at the end of the scan
+	err            error      // error, reports whether there was an error
+	extendedSyntax bool       // support tokens 'and', 'or', 'not', 'contains' and 'dollar'
 }
 
 func (l *lexer) newline() {
@@ -982,7 +982,7 @@ LOOP:
 			}
 			endLineAsSemicolon = false
 		case '$':
-			if l.extended {
+			if l.extendedSyntax {
 				l.emit(tokenDollar, 1)
 				l.column++
 				endLineAsSemicolon = false
@@ -1206,7 +1206,7 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 				l.emit(tokenShow, p)
 			default:
 				emitted := false
-				if l.extended {
+				if l.extendedSyntax {
 					switch id {
 					case "and":
 						l.emit(tokenRelaxedAnd, p)

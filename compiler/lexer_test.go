@@ -526,13 +526,13 @@ CONTEXTS:
 		for source, contexts := range tests {
 			text := []byte(source)
 			lex := &lexer{
-				text:     text,
-				src:      text,
-				line:     1,
-				column:   1,
-				ctx:      ctx,
-				toks:     make(chan token, 20),
-				extended: true,
+				text:           text,
+				src:            text,
+				line:           1,
+				column:         1,
+				ctx:            ctx,
+				toks:           make(chan token, 20),
+				extendedSyntax: true,
 			}
 			lex.tag.ctx = ast.ContextHTML
 			go lex.scan()
