@@ -385,51 +385,42 @@ func (p *parsing) parse(tok token, end tokenTyp) token {
 
 LABEL:
 
-	if end == tokenEndStatement {
-		switch s := p.parent().(type) {
-		case *ast.Switch:
-			if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting case or default or end", tok))
+	wantCase := false
+	switch s := p.parent().(type) {
+	case *ast.Tree:
+		if end == tokenEOF && !p.isScript {
+			if tok.typ != tokenPackage {
+				panic(syntaxError(tok.pos, "expected 'package', found '%s'", tok))
 			}
-		case *ast.TypeSwitch:
-			if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting case or default or end", tok))
-			}
-		case *ast.Select:
-			if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting case or default or end", tok))
-			}
-		case *ast.Label:
+		}
+	case *ast.Package:
+		switch tok.typ {
+		case tokenImport, tokenFunc, tokenVar, tokenConst, tokenType:
+		default:
+			panic(syntaxError(tok.pos, "non-declaration statement outside function body"))
+		}
+	case *ast.Label:
+		if end == tokenEndStatement {
 			switch tok.typ {
 			case tokenFor, tokenSwitch, tokenSelect:
 			default:
 				panic(syntaxError(tok.pos, "unexpected %s, expecting for, switch or select", tok))
 			}
 		}
-	} else {
-		switch s := p.parent().(type) {
-		case *ast.Tree:
-			if !p.isScript && tok.typ != tokenPackage {
-				panic(syntaxError(tok.pos, "expected 'package', found '%s'", tok))
-			}
-		case *ast.Package:
-			switch tok.typ {
-			case tokenImport, tokenFunc, tokenVar, tokenConst, tokenType:
-			default:
-				panic(syntaxError(tok.pos, "non-declaration statement outside function body"))
-			}
-		case *ast.Switch:
-			if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenRightBrace {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting case or default or }", tok))
-			}
-		case *ast.TypeSwitch:
-			if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenRightBrace {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting case or default or }", tok))
-			}
-		case *ast.Select:
-			if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenRightBrace {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting case or default or }", tok))
-			}
+	case *ast.Switch:
+		wantCase = len(s.Cases) == 0
+	case *ast.TypeSwitch:
+		wantCase = len(s.Cases) == 0
+	case *ast.Select:
+		wantCase = len(s.Cases) == 0
+	}
+	if wantCase && tok.typ != tokenCase && tok.typ != tokenDefault {
+		want := tokenRightBrace
+		if end == tokenEndStatement {
+			want = tokenEnd
+		}
+		if tok.typ != want {
+			panic(syntaxError(tok.pos, "unexpected %s, expecting case or default or %s", tok, want))
 		}
 	}
 
