@@ -207,39 +207,39 @@ func (l *lexer) scan() {
 				case '{':
 					if p > 0 {
 						l.emitAtLineColumn(lin, col, tokenText, p)
+						p = 0
 					}
 					err := l.lexShow()
 					if err != nil {
 						l.err = err
 						break LOOP
 					}
-					p = 0
 					lin = l.line
 					col = l.column
 					continue
 				case '%':
 					if p > 0 {
 						l.emitAtLineColumn(lin, col, tokenText, p)
+						p = 0
 					}
 					err := l.lexStatement()
 					if err != nil {
 						l.err = err
 						break LOOP
 					}
-					p = 0
 					lin = l.line
 					col = l.column
 					continue
 				case '#':
 					if p > 0 {
 						l.emitAtLineColumn(lin, col, tokenText, p)
+						p = 0
 					}
 					err := l.lexComment()
 					if err != nil {
 						l.err = err
 						break LOOP
 					}
-					p = 0
 					lin = l.line
 					col = l.column
 					continue
