@@ -1314,27 +1314,27 @@ func (p *parsing) parseEnd(tok token, want, end tokenTyp) token {
 		if tok.typ == tokenSemicolon && tok.txt == nil {
 			tok = p.next()
 		}
-		if tok.typ != tokenEndStatement {
-			if want == tokenSemicolon {
-				panic(syntaxError(tok.pos, "unexpected %s at end of statement", tok))
-			}
-			panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
-		}
-		return p.next()
-	}
-	if want == tokenSemicolon {
-		if tok.typ == tokenSemicolon {
+		if tok.typ == tokenEndStatement {
 			return p.next()
 		}
-		if tok.typ != tokenRightBrace {
+		if want == tokenSemicolon {
 			panic(syntaxError(tok.pos, "unexpected %s at end of statement", tok))
 		}
-		return tok
+		panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
 	}
-	if tok.typ != want {
-		panic(syntaxError(tok.pos, "unexpected %s, expecting %s", tok, want))
+	if want == tokenSemicolon {
+		switch tok.typ {
+		case tokenSemicolon:
+			return p.next()
+		case tokenRightBrace:
+			return tok
+		}
+		panic(syntaxError(tok.pos, "unexpected %s at end of statement", tok))
 	}
-	return p.next()
+	if tok.typ == want {
+		return p.next()
+	}
+	panic(syntaxError(tok.pos, "unexpected %s, expecting %s", tok, want))
 }
 
 // parseSimpleStatement parses a simple statement. tok is the next token read.
