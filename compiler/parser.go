@@ -123,10 +123,6 @@ type parsing struct {
 
 	// Ancestors from the root up to the parent.
 	ancestors []ast.Node
-
-	// Support 'and', 'or', 'not', 'contains' and 'not contains' operators,
-	// dollar identifiers and not-boolean conditions.
-	extendedSyntax bool
 }
 
 // addToAncestors adds node to the ancestors.
@@ -237,10 +233,9 @@ func ParseTemplateSource(src []byte, lang ast.Language) (tree *ast.Tree, err err
 	tree = ast.NewTree("", nil, lang)
 
 	var p = &parsing{
-		lex:            scanTemplate(src, lang),
-		language:       lang,
-		ancestors:      []ast.Node{tree},
-		extendedSyntax: true,
+		lex:       scanTemplate(src, lang),
+		language:  lang,
+		ancestors: []ast.Node{tree},
 	}
 
 	defer func() {

@@ -120,10 +120,9 @@ func TestCheckerContainsExpressions(t *testing.T) {
 				}
 			}()
 			var p = &parsing{
-				lex:            lex,
-				language:       ast.LanguageText,
-				ancestors:      nil,
-				extendedSyntax: true,
+				lex:       lex,
+				language:  ast.LanguageText,
+				ancestors: nil,
 			}
 			p.next() // discard tokenLeftBraces.
 			node, tok := p.parseExpr(p.next(), false, false, false)
@@ -189,10 +188,9 @@ func TestCheckerContainsExpressionErrors(t *testing.T) {
 				}
 			}()
 			var p = &parsing{
-				lex:            lex,
-				language:       ast.LanguageText,
-				ancestors:      nil,
-				extendedSyntax: true,
+				lex:       lex,
+				language:  ast.LanguageText,
+				ancestors: nil,
 			}
 			p.next() // discard tokenLeftBraces.
 			node, tok := p.parseExpr(p.next(), false, false, false)
