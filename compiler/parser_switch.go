@@ -29,7 +29,7 @@ func isTypeGuard(node ast.Node) bool {
 
 // parseSwitch parses a switch statement and returns an Switch or TypeSwitch
 // node. Panics on error.
-func (p *parsing) parseSwitch(tok token) ast.Node {
+func (p *parsing) parseSwitch(tok token, end tokenTyp) ast.Node {
 
 	pos := tok.pos
 
@@ -40,14 +40,14 @@ func (p *parsing) parseSwitch(tok token) ast.Node {
 
 	expressions, tok := p.parseExprList(p.next(), true, false, true)
 
-	end := tokenLeftBrace
-	if p.singleStatement {
-		end = tokenEndStatement
+	want := tokenLeftBrace
+	if end == tokenEndStatement {
+		want = tokenEndStatement
 	}
 
 	switch {
 
-	case tok.typ == end:
+	case tok.typ == want:
 		switch len(expressions) {
 		case 0:
 			// switch {
@@ -59,7 +59,7 @@ func (p *parsing) parseSwitch(tok token) ast.Node {
 			afterSemicolon = expressions[0]
 		default:
 			// switch x + 2, y + 1 {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting := or = or comma", end))
+			panic(syntaxError(tok.pos, "unexpected %s, expecting := or = or comma", want))
 		}
 
 	case tok.typ == tokenSemicolon:
@@ -97,7 +97,7 @@ func (p *parsing) parseSwitch(tok token) ast.Node {
 			// switch x; a, b {
 			// switch ; a, b {
 			// switch ; a, b, c {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting := or = or comma", end))
+			panic(syntaxError(tok.pos, "unexpected %s, expecting := or = or comma", want))
 		}
 
 	case isAssignmentToken(tok):
@@ -150,15 +150,15 @@ func (p *parsing) parseSwitch(tok token) ast.Node {
 					afterSemicolon = expressions[0]
 				default:
 					// switch x := 2; x + y, y + z {
-					panic(syntaxError(tok.pos, "unexpected %s, expecting := or = or comma", end))
+					panic(syntaxError(tok.pos, "unexpected %s, expecting := or = or comma", want))
 				}
 			}
 
-		case end:
+		case want:
 			// switch x = y.(type) {
 			// switch x := y.(type) {
 			if len(assignment.Rhs) != 1 {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", end))
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", want))
 			}
 			if len(assignment.Lhs) != 1 {
 				panic(syntaxError(tok.pos, "%s used as value", assignment))
@@ -175,8 +175,8 @@ func (p *parsing) parseSwitch(tok token) ast.Node {
 
 	}
 
-	if tok.typ != end {
-		panic(syntaxError(tok.pos, "unexpected %s, expecting %s", tok, end))
+	if tok.typ != want {
+		panic(syntaxError(tok.pos, "unexpected %s, expecting %s", tok, want))
 	}
 
 	pos.End = tok.pos.End

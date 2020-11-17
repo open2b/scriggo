@@ -73,8 +73,6 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	p.addToAncestors(node)
 	p.addToAncestors(body)
 	depth := len(p.ancestors)
-	singleStatement := p.singleStatement
-	p.singleStatement = false
 	tok = p.next()
 	for {
 		if tok.typ == tokenRightBrace {
@@ -90,13 +88,12 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 			}
 			panic(syntaxError(tok.pos, "unexpected EOF, expecting }"))
 		}
-		tok = p.parse(tok)
+		tok = p.parse(tok, tokenEOF)
 	}
 	body.Position.End = tok.pos.End
 	node.Position.End = tok.pos.End
 	p.removeLastAncestor()
 	p.removeLastAncestor()
-	p.singleStatement = singleStatement
 	return node, p.next()
 }
 
