@@ -161,13 +161,6 @@ func CloneNode(node ast.Node) ast.Node {
 		}
 		return imp
 
-	case *ast.ShowPartial:
-		sp := ast.NewShowPartial(ClonePosition(n.Position), n.Path, n.Context)
-		if n.Tree != nil {
-			sp.Tree = CloneTree(n.Tree)
-		}
-		return sp
-
 	case *ast.Label:
 		return ast.NewLabel(ClonePosition(n.Position), CloneExpression(n.Ident).(*ast.Identifier), CloneNode(n.Statement))
 
@@ -235,6 +228,13 @@ func CloneNode(node ast.Node) ast.Node {
 			}
 		}
 		return ast.NewShowMacro(ClonePosition(n.Position), macro, arguments, n.IsVariadic, n.Context)
+
+	case *ast.ShowPartial:
+		sp := ast.NewShowPartial(ClonePosition(n.Position), n.Path, n.Context)
+		if n.Tree != nil {
+			sp.Tree = CloneTree(n.Tree)
+		}
+		return sp
 
 	case *ast.Switch:
 		var init ast.Node
