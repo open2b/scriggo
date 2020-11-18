@@ -997,10 +997,11 @@ LABEL:
 	case tokenImport:
 		switch parent := p.parent().(type) {
 		case *ast.Tree:
+		SIBLINGS:
 			for i := len(parent.Nodes) - 1; i >= 0; i-- {
 				switch parent.Nodes[i].(type) {
 				case *ast.Extends, *ast.Import:
-					break
+					break SIBLINGS
 				case *ast.Text, *ast.Comment:
 				default:
 					panic(syntaxError(tok.pos, "unexpected import, expecting statement"))
