@@ -281,39 +281,41 @@ func ParseTemplateSource(src []byte, lang ast.Language) (tree *ast.Tree, err err
 			numTokenInLine = 0
 		}
 
+		var wantCase bool
+		switch n := p.parent().(type) {
+		case *ast.Switch:
+			wantCase = len(n.Cases) == 0
+		case *ast.TypeSwitch:
+			wantCase = len(n.Cases) == 0
+		case *ast.Select:
+			wantCase = len(n.Cases) == 0
+		}
+		if wantCase {
+			switch tok.typ {
+			case tokenStartStatement:
+			case tokenText:
+				if !containsOnlySpaces(text.Text) {
+					return nil, syntaxError(tok.pos, "unexpected text, expecting {%%")
+				}
+				switch n := p.parent().(type) {
+				case *ast.Switch:
+					n.LeadingText = text
+				case *ast.TypeSwitch:
+					n.LeadingText = text
+				case *ast.Select:
+					n.LeadingText = text
+				}
+				tok = p.next()
+				continue
+			default:
+				return nil, syntaxError(tok.pos, "unexpected %s, expecting {%%", tok.typ)
+			}
+		}
+
 		switch tok.typ {
 
 		// Text
 		case tokenText:
-			switch n := p.parent().(type) {
-			case *ast.Switch:
-				if len(n.Cases) == 0 {
-					if !containsOnlySpaces(text.Text) {
-						return nil, syntaxError(tok.pos, "unexpected text, expecting case or default or {%% end %%}")
-					}
-					n.LeadingText = text
-					tok = p.next()
-					continue
-				}
-			case *ast.TypeSwitch:
-				if len(n.Cases) == 0 {
-					if !containsOnlySpaces(text.Text) {
-						return nil, syntaxError(tok.pos, "unexpected text, expecting case or default or {%% end %%}")
-					}
-					n.LeadingText = text
-					tok = p.next()
-					continue
-				}
-			case *ast.Select:
-				if len(n.Cases) == 0 {
-					if !containsOnlySpaces(text.Text) {
-						return nil, syntaxError(tok.pos, "unexpected text, expecting case or default or {%% end %%}")
-					}
-					n.LeadingText = text
-					tok = p.next()
-					continue
-				}
-			}
 			p.addChild(text)
 			tok = p.next()
 
