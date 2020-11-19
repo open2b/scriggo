@@ -999,15 +999,8 @@ LABEL:
 	case tokenImport:
 		switch parent := p.parent().(type) {
 		case *ast.Tree:
-		SIBLINGS:
-			for i := len(parent.Nodes) - 1; i >= 0; i-- {
-				switch parent.Nodes[i].(type) {
-				case *ast.Extends, *ast.Import:
-					break SIBLINGS
-				case *ast.Text, *ast.Comment:
-				default:
-					panic(syntaxError(tok.pos, "unexpected import, expecting statement"))
-				}
+			if !lastImportOrExtends(parent.Nodes) {
+				panic(syntaxError(tok.pos, "unexpected import, expecting statement"))
 			}
 		case *ast.Package:
 			for _, declaration := range parent.Declarations {
@@ -1478,6 +1471,24 @@ func (p *parsing) parseVarOrConst(tok token, pos *ast.Position, decType tokenTyp
 		return ast.NewVar(pos, idents, typ, exprs), tok
 	}
 	return ast.NewConst(pos, idents, typ, exprs, iotaValue), tok
+}
+
+// lastImportOrExtends reports whether the last node in nodes is import or
+// extends, excluding text and comment nodes.
+func lastImportOrExtends(nodes []ast.Node) bool {
+	if len(nodes) == 0 {
+		return true
+	}
+	for i := len(nodes) - 1; i >= 0; i-- {
+		switch nodes[i].(type) {
+		case *ast.Extends, *ast.Import:
+			return true
+		case *ast.Text, *ast.Comment:
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 func (p *parsing) parseImport(tok token, end tokenTyp) *ast.Import {
