@@ -42,6 +42,8 @@ func (tc *typechecker) templatePageToPackage(tree *ast.Tree, path string) error 
 		case *ast.Macro, *ast.Var, *ast.Const, *ast.TypeDeclaration:
 			hasDeclarations = true
 			nodes = append(nodes, n)
+		case *ast.Statements:
+			nodes = append(nodes, n.Nodes...)
 		default:
 			pos := n.Pos()
 			var unexpected string
@@ -52,7 +54,7 @@ func (tc *typechecker) templatePageToPackage(tree *ast.Tree, path string) error 
 					continue
 				}
 				unexpected = "text"
-			case *ast.ShowPartial, *ast.Show:
+			case *ast.ShowPartial, *ast.ShowExpr:
 				unexpected = "show"
 			default:
 				unexpected = "statement"
@@ -153,6 +155,9 @@ nodesLoop:
 
 		case *ast.Block:
 			node.Nodes = tc.checkNodesInNewScope(node.Nodes)
+
+		case *ast.Statements:
+			node.Nodes = tc.checkNodes(node.Nodes)
 
 		case *ast.If:
 			tc.enterScope()
@@ -610,7 +615,7 @@ nodesLoop:
 				tc.assignScope(name, ti, node.Ident)
 			}
 
-		case *ast.Show:
+		case *ast.ShowExpr:
 
 			// Handle {{ f() }} where f returns two values and the second value
 			// implements 'error'.
@@ -642,8 +647,8 @@ nodesLoop:
 					then := ast.NewBlock( // {{ v }}{{ $commentedErr{err} }}
 						pos,
 						[]ast.Node{
-							ast.NewShow(pos, ast.NewIdentifier(pos, "v"), node.Context),
-							ast.NewShow(pos, ast.NewCompositeLiteral(
+							ast.NewShowExpr(pos, ast.NewIdentifier(pos, "v"), node.Context),
+							ast.NewShowExpr(pos, ast.NewCompositeLiteral(
 								pos,
 								commentedErrorIdent,
 								[]ast.KeyValue{

@@ -70,6 +70,8 @@ var typeTests = map[string][]tokenTyp{
 	"{% macro a(b) %}":             {tokenStartStatement, tokenMacro, tokenIdentifier, tokenLeftParenthesis, tokenIdentifier, tokenRightParenthesis, tokenEndStatement},
 	"{% macro a(b...) %}":          {tokenStartStatement, tokenMacro, tokenIdentifier, tokenLeftParenthesis, tokenIdentifier, tokenEllipsis, tokenRightParenthesis, tokenEndStatement},
 	"{% show \"\" %}":              {tokenStartStatement, tokenShow, tokenInterpretedString, tokenEndStatement},
+	"{%% a := 1  %%}":              {tokenStartStatements, tokenIdentifier, tokenDeclaration, tokenInt, tokenSemicolon, tokenEndStatements},
+	"{%% var a int;\na = 1; %%}":   {tokenStartStatements, tokenVar, tokenIdentifier, tokenIdentifier, tokenSemicolon, tokenIdentifier, tokenSimpleAssignment, tokenInt, tokenSemicolon, tokenEndStatements},
 	"{# comment #}":                {tokenComment},
 	"{# nested {# comment #} #}":   {tokenComment},
 	`a{{b}}c`:                      {tokenText, tokenLeftBraces, tokenIdentifier, tokenRightBraces, tokenText},

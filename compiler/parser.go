@@ -325,6 +325,24 @@ func ParseTemplateSource(src []byte, lang ast.Language) (tree *ast.Tree, err err
 			tok = p.next()
 			tok = p.parse(tok, tokenEndStatement)
 
+		// {%%
+		case tokenStartStatements:
+			numTokenInLine++
+			pos := tok.pos
+			var statements = ast.NewStatements(pos, nil)
+			p.addChild(statements)
+			p.addToAncestors(statements)
+			tok = p.next()
+			for tok.typ != tokenEndStatements {
+				tok = p.parse(tok, tokenEndStatements)
+				if tok.typ == tokenEOF {
+					return nil, syntaxError(tok.pos, "unexpected EOF, expecting %%%%}")
+				}
+			}
+			pos.End = tok.pos.End
+			p.removeLastAncestor()
+			tok = p.next()
+
 		// {{
 		case tokenLeftBraces:
 			numTokenInLine++
@@ -338,7 +356,7 @@ func ParseTemplateSource(src []byte, lang ast.Language) (tree *ast.Tree, err err
 				return nil, syntaxError(tok.pos, "unexpected %s, expecting }}", tok)
 			}
 			pos.End = tok.pos.End
-			var node = ast.NewShow(pos, expr, tok.ctx)
+			var node = ast.NewShowExpr(pos, expr, tok.ctx)
 			p.addChild(node)
 			tok = p.next()
 
@@ -381,8 +399,8 @@ func ParseTemplateSource(src []byte, lang ast.Language) (tree *ast.Tree, err err
 // parse parses a statement or part of it given its first token. Returns the
 // first not parsed token.
 //
-// For a template the parsed code is the source code between {% and %},
-// and the returned token is the first token after %}.
+// For a template the parsed code is the source code between {% and %} or
+// between {%% and %%}, and the returned token is the first token after %} or %%}.
 func (p *parsing) parse(tok token, end tokenTyp) token {
 
 LABEL:
@@ -841,7 +859,7 @@ LABEL:
 	case tokenShow:
 		pos := tok.pos
 		tok := p.next()
-		// {% show <filepath> %}
+		// show <filepath>
 		if tok.typ == tokenInterpretedString || tok.typ == tokenRawString {
 			var path = unquoteString(tok.txt)
 			if !ValidTemplatePath(path) {
@@ -852,12 +870,30 @@ LABEL:
 			p.addChild(node)
 			p.cutSpacesToken = true
 			tok = p.next()
-			tok = p.parseEnd(tok, tokenEndStatement, end)
+			tok = p.parseEnd(tok, tokenSemicolon, end)
 			return tok
 		}
-		// {% show macro %}
+		// show(expr)
+		if tok.typ == tokenLeftParenthesis {
+			tok = p.next()
+			var expr ast.Expression
+			expr, tok = p.parseExpr(tok, false, false, false)
+			if expr == nil {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
+			}
+			if tok.typ != tokenRightParenthesis {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting )", tok))
+			}
+			pos.End = tok.pos.End
+			var node = ast.NewShowExpr(pos, expr, tok.ctx)
+			p.addChild(node)
+			tok = p.next()
+			tok = p.parseEnd(tok, tokenSemicolon, end)
+			return tok
+		}
+		// show macro
 		if tok.typ != tokenIdentifier {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier or string", tok))
+			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier, string or (", tok))
 		}
 		macro := ast.NewIdentifier(tok.pos, string(tok.txt))
 		pos.End = tok.pos.End
@@ -905,7 +941,7 @@ LABEL:
 		}
 		p.addChild(node)
 		p.cutSpacesToken = true
-		tok = p.parseEnd(tok, tokenEndStatement, end)
+		tok = p.parseEnd(tok, tokenSemicolon, end)
 		return tok
 
 	// extends
@@ -919,8 +955,12 @@ LABEL:
 		}
 		tree := p.ancestors[0].(*ast.Tree)
 		for _, node := range tree.Nodes {
-			switch node.(type) {
+			switch n := node.(type) {
 			case *ast.Text, *ast.Comment:
+			case *ast.Statements:
+				if len(n.Nodes) > 0 {
+					panic(syntaxError(tok.pos, "extends can only be the first statement"))
+				}
 			default:
 				panic(syntaxError(tok.pos, "extends can only be the first statement"))
 			}
@@ -938,7 +978,7 @@ LABEL:
 		p.addChild(node)
 		p.hasExtend = true
 		tok = p.next()
-		tok = p.parseEnd(tok, tokenEndStatement, end)
+		tok = p.parseEnd(tok, tokenSemicolon, end)
 		return tok
 
 	// var or const
@@ -1007,6 +1047,11 @@ LABEL:
 				if _, ok := declaration.(*ast.Import); !ok {
 					panic(syntaxError(tok.pos, "non-declaration statement outside function body"))
 				}
+			}
+		case *ast.Statements:
+			tree := p.ancestors[0].(*ast.Tree)
+			if len(p.ancestors) != 2 || !lastImportOrExtends(tree.Nodes) {
+				panic(syntaxError(tok.pos, "unexpected import, %%%%}"))
 			}
 		default:
 			if end != tokenEndStatement {
@@ -1473,16 +1518,25 @@ func (p *parsing) parseVarOrConst(tok token, pos *ast.Position, decType tokenTyp
 	return ast.NewConst(pos, idents, typ, exprs, iotaValue), tok
 }
 
-// lastImportOrExtends reports whether the last node in nodes is import or
-// extends, excluding text and comment nodes.
+// lastImportOrExtends reports whether the last node in nodes is Import or
+// Extends, excluding Text and Comment nodes. If a node is Statements, it
+// looks into that node.
 func lastImportOrExtends(nodes []ast.Node) bool {
 	if len(nodes) == 0 {
 		return true
 	}
 	for i := len(nodes) - 1; i >= 0; i-- {
-		switch nodes[i].(type) {
+		switch n := nodes[i].(type) {
 		case *ast.Extends, *ast.Import:
 			return true
+		case *ast.Statements:
+			if last := len(n.Nodes) - 1; last >= 0 {
+				switch n.Nodes[last].(type) {
+				case *ast.Extends, *ast.Import:
+					return true
+				}
+				return false
+			}
 		case *ast.Text, *ast.Comment:
 		default:
 			return false
@@ -1582,6 +1636,8 @@ func (p *parsing) addChild(child ast.Node) {
 		}
 		n.Else = child
 	case *ast.Block:
+		n.Nodes = append(n.Nodes, child)
+	case *ast.Statements:
 		n.Nodes = append(n.Nodes, child)
 	case *ast.Switch:
 		c, ok := child.(*ast.Case)

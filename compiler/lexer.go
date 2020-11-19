@@ -222,7 +222,12 @@ func (l *lexer) scan() {
 						l.emitAtLineColumn(lin, col, tokenText, p)
 						p = 0
 					}
-					err := l.lexStatement()
+					var err error
+					if len(l.src) > 2 && l.src[2] == '%' {
+						err = l.lexStatements()
+					} else {
+						err = l.lexStatement()
+					}
 					if err != nil {
 						l.err = err
 						break LOOP
@@ -691,6 +696,25 @@ func (l *lexer) lexStatement() error {
 	return nil
 }
 
+// lexStatements emits the tokens for statements knowing that src starts with
+// {%%.
+func (l *lexer) lexStatements() error {
+	l.emit(tokenStartStatements, 3)
+	l.column += 3
+	err := l.lexCode(tokenEndStatements)
+	if err != nil {
+		return err
+	}
+	if len(l.src) < 3 {
+		return l.errorf("unexpected EOF, expecting %%%%}")
+	} else if l.src[0] != '%' || l.src[1] != '%' || l.src[2] != '}' {
+		return l.errorf("unexpected %s, expecting %%%%}", l.src[:2])
+	}
+	l.emit(tokenEndStatements, 3)
+	l.column += 3
+	return nil
+}
+
 // lexComment emits a comment token knowing that src starts with '{#'.
 func (l *lexer) lexComment() error {
 	nested := 0
@@ -722,11 +746,17 @@ func (l *lexer) lexComment() error {
 	return nil
 }
 
-// lexCode emits code tokens returning as soon as encounters the given end
-// token. end token can be tokenEOF, tokenRightBraces or tokenEndStatement.
+// lexCode emits code tokens returning as soon as encounters a token based on
+// the given end parameter.
 //
-// As a special case, if the end token is not tokenEOF, lexCode always returns
-// when encounters tokenEOF or tokenEndStatement.
+//   if end is tokenEOF, it returns when encounters tokenEOF
+//
+//   if end is tokenEndStatement or tokenEndStatements, it returns when
+//   encounters tokenEOF, tokenEndStatement or tokenEndStatements
+//
+//   if end is tokenRightBraces, it returns when encounters tokenEOF,
+//   tokenEndStatement, tokenEndStatements or tokenRightBraces
+//
 func (l *lexer) lexCode(end tokenTyp) error {
 	if len(l.src) == 0 {
 		return nil
@@ -883,6 +913,10 @@ LOOP:
 				switch l.src[1] {
 				case '}':
 					if end != tokenEOF {
+						break LOOP
+					}
+				case '%':
+					if end != tokenEOF && len(l.src) > 2 && l.src[2] == '}' {
 						break LOOP
 					}
 				case '=':
@@ -1077,7 +1111,7 @@ LOOP:
 			}
 		}
 	}
-	if endLineAsSemicolon && end == tokenEOF {
+	if endLineAsSemicolon && (end == tokenEOF || end == tokenEndStatements) {
 		l.emit(tokenSemicolon, 0)
 	}
 	return nil

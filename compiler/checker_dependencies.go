@@ -367,7 +367,7 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 	case *ast.Send:
 		deps := nodeDeps(n.Channel, scopes)
 		return append(deps, nodeDeps(n.Value, scopes)...)
-	case *ast.Show:
+	case *ast.ShowExpr:
 		return nodeDeps(n.Expr, scopes)
 	case *ast.ShowMacro:
 		deps := nodeDeps(n.Macro, scopes)

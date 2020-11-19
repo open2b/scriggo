@@ -215,8 +215,8 @@ func CloneNode(node ast.Node) ast.Node {
 	case *ast.Send:
 		return ast.NewSend(ClonePosition(n.Position), CloneExpression(n.Channel), CloneExpression(n.Value))
 
-	case *ast.Show:
-		return ast.NewShow(ClonePosition(n.Position), CloneExpression(n.Expr), n.Context)
+	case *ast.ShowExpr:
+		return ast.NewShowExpr(ClonePosition(n.Position), CloneExpression(n.Expr), n.Context)
 
 	case *ast.ShowMacro:
 		var macro = CloneExpression(n.Macro)
@@ -235,6 +235,16 @@ func CloneNode(node ast.Node) ast.Node {
 			sp.Tree = CloneTree(n.Tree)
 		}
 		return sp
+
+	case *ast.Statements:
+		var nodes []ast.Node
+		if n.Nodes != nil {
+			nodes = make([]ast.Node, len(n.Nodes))
+			for i := range n.Nodes {
+				nodes[i] = CloneNode(n.Nodes[i])
+			}
+		}
+		return ast.NewStatements(ClonePosition(n.Position), nodes)
 
 	case *ast.Switch:
 		var init ast.Node

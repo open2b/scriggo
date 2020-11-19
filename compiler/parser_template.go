@@ -293,6 +293,13 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 				return err
 			}
 
+		case *ast.Statements:
+
+			err := pp.expand(n.Nodes)
+			if err != nil {
+				return err
+			}
+
 		case *ast.Label:
 
 			err := pp.expand([]ast.Node{n.Statement})

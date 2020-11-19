@@ -60,7 +60,7 @@ func ExampleDump() {
 	}
 
 	// Output: Tree: "":1:1
-	// │    Show (1:1) {{ (4 + 5) * value() }}
+	// │    ShowExpr (1:1) {{ (4 + 5) * value() }}
 	// │    │    BinaryOperator (1:12) (4 + 5) * value()
 	// │    │    │    BinaryOperator (1:7) 4 + 5
 	// │    │    │    │    BasicLiteral (1:5) 4
@@ -92,7 +92,7 @@ func ExampleDump() {
 	// │    ShowPartial (1:4) 1:4
 	//
 	// Tree: "":1:1
-	// │    Show (1:1) {{ 5 + 6 }}
+	// │    ShowExpr (1:1) {{ 5 + 6 }}
 	// │    │    BinaryOperator (1:4) 5 + 6
 	// │    │    │    BasicLiteral (1:3) 5
 	// │    │    │    BasicLiteral (1:5) 6

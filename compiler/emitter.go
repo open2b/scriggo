@@ -119,7 +119,7 @@ func (em *emitter) typ(expr ast.Expression) reflect.Type {
 func (em *emitter) reserveTemplateRegisters() {
 	// Sync with:
 	//
-	// - case *ast.Show of emitter.emitNodes
+	// - case *ast.ShowExpr of emitter.emitNodes
 	// - case *ast.Text of emitter.emitNodes
 	// - EmitTemplate
 	// - emitter.setClosureRefs

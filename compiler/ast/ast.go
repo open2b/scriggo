@@ -23,7 +23,7 @@
 //				nil,
 //				[]ast.Node{
 //					ast.NewText(&ast.Position{Line: 1, Column: 30, Start: 29, End: 34}, []byte("\n<div>"), ast.Cut{1,0}),
-//					ast.NewShow(
+//					ast.NewShowExpr(
 //						&ast.Position{Line: 2, Column: 6, Start: 35, End: 53},
 //						ast.NewSelector(
 //							&ast.Position{Line: 2, Column: 16, Start: 38, End: 50},
@@ -304,7 +304,7 @@ func (n *Text) String() string {
 	return string(n.Text)
 }
 
-// URL node represents an URL in an attribute value. Show nodes that are
+// URL node represents an URL in an attribute value. ShowExpr nodes that are
 // children of an URL node are rendered accordingly.
 type URL struct {
 	*Position         // position in the source.
@@ -338,6 +338,19 @@ type Package struct {
 
 func NewPackage(pos *Position, name string, nodes []Node) *Package {
 	return &Package{pos, name, nodes}
+}
+
+// Statements node represents a statement {%% ... %%}
+type Statements struct {
+	*Position
+	Nodes []Node // nodes of the statements.
+}
+
+func NewStatements(pos *Position, nodes []Node) *Statements {
+	if nodes == nil {
+		nodes = []Node{}
+	}
+	return &Statements{pos, nodes}
 }
 
 // Assignment node represents an assignment statement.
@@ -538,7 +551,7 @@ func NewReturn(pos *Position, values []Expression) *Return {
 	return &Return{pos, values}
 }
 
-// For node represents a statement {% for ... %}.
+// For node represents a statement "for ...".
 type For struct {
 	*Position            // position in the source.
 	Init      Node       // initialization statement.
@@ -554,8 +567,8 @@ func NewFor(pos *Position, init Node, condition Expression, post Node, body []No
 	return &For{pos, init, condition, post, body}
 }
 
-// ForRange node represents statements {% for ... range ... %} and
-// {% for ... in ... %}.
+// ForRange node represents statements "for ... range ..." and
+// "for ... in ...".
 type ForRange struct {
 	*Position              // position in the source.
 	Assignment *Assignment // assignment.
@@ -569,7 +582,7 @@ func NewForRange(pos *Position, assignment *Assignment, body []Node) *ForRange {
 	return &ForRange{pos, assignment, body}
 }
 
-// Break node represents a statement {% break %}.
+// Break node represents a statement "break".
 type Break struct {
 	*Position             // position in the source.
 	Label     *Identifier // label.
@@ -579,7 +592,7 @@ func NewBreak(pos *Position, label *Identifier) *Break {
 	return &Break{pos, label}
 }
 
-// Continue node represents a statement {% continue %}.
+// Continue node represents a statement "continue".
 type Continue struct {
 	*Position             // position in the source.
 	Label     *Identifier // label.
@@ -589,7 +602,7 @@ func NewContinue(pos *Position, label *Identifier) *Continue {
 	return &Continue{pos, label}
 }
 
-// If node represents a statement {% if ... %}.
+// If node represents a statement "if ...".
 type If struct {
 	*Position            // position in the source.
 	Init      Node       // init simple statement.
@@ -605,7 +618,7 @@ func NewIf(pos *Position, init Node, cond Expression, then *Block, els Node) *If
 	return &If{pos, init, cond, then, els}
 }
 
-// Switch node represents a statement {% switch ... %}.
+// Switch node represents a statement "switch ...".
 type Switch struct {
 	*Position
 	Init        Node
@@ -619,7 +632,7 @@ func NewSwitch(pos *Position, init Node, expr Expression, leadingText *Text, cas
 	return &Switch{pos, init, expr, leadingText, cases}
 }
 
-// TypeSwitch node represents a statement {% switch ... %} on types.
+// TypeSwitch node represents a statement "switch ..." on types.
 type TypeSwitch struct {
 	*Position
 	Init        Node
@@ -633,7 +646,7 @@ func NewTypeSwitch(pos *Position, init Node, assignment *Assignment, leadingText
 	return &TypeSwitch{pos, init, assignment, leadingText, cases}
 }
 
-// Case node represents a statement {% case ... %} or {% default %}.
+// Case node represents a statement "case ..." or "default".
 type Case struct {
 	*Position
 	Expressions []Expression
@@ -645,7 +658,7 @@ func NewCase(pos *Position, expressions []Expression, body []Node) *Case {
 	return &Case{pos, expressions, body}
 }
 
-// Fallthrough node represents a statement {% fallthrough %}.
+// Fallthrough node represents a statement "fallthrough".
 type Fallthrough struct {
 	*Position
 }
@@ -655,7 +668,7 @@ func NewFallthrough(pos *Position) *Fallthrough {
 	return &Fallthrough{pos}
 }
 
-// Select node represents a statement {% select ... %}.
+// Select node represents a statement "select ...".
 type Select struct {
 	*Position
 	LeadingText *Text
@@ -667,7 +680,7 @@ func NewSelect(pos *Position, leadingText *Text, cases []*SelectCase) *Select {
 	return &Select{pos, leadingText, cases}
 }
 
-// NewSelectCase represents a statement {% case ... %} in a select.
+// NewSelectCase represents a statement "case ..." in a select.
 type SelectCase struct {
 	*Position
 	Comm Node
@@ -717,7 +730,7 @@ func NewMacro(pos *Position, name *Identifier, typ *FuncType, body []Node, ctx C
 	return &Macro{pos, name, typ, body, nil, ctx}
 }
 
-// ShowMacro node represents a statement {% show <macro> %}.
+// ShowMacro node represents a statement "show <macro>".
 type ShowMacro struct {
 	*Position               // position in the source.
 	Macro      Expression   // macro.
@@ -730,7 +743,7 @@ func NewShowMacro(pos *Position, macro Expression, args []Expression, isVariadic
 	return &ShowMacro{Position: pos, Macro: macro, Args: args, IsVariadic: isVariadic, Context: ctx}
 }
 
-// ShowPartial node represents a statement {% show <path> %}.
+// ShowPartial node represents a statement "show <path>".
 type ShowPartial struct {
 	*Position         // position in the source.
 	Path      string  // path of the file to show.
@@ -742,22 +755,22 @@ func NewShowPartial(pos *Position, path string, ctx Context) *ShowPartial {
 	return &ShowPartial{Position: pos, Path: path, Context: ctx}
 }
 
-// Show node represents a statement {{ ... }}.
-type Show struct {
+// ShowExpr node represents a statement show(<expr>) or a statement {{ ... }}.
+type ShowExpr struct {
 	*Position            // position in the source.
 	Expr      Expression // expression that once evaluated returns the value to show.
 	Context   Context    // context.
 }
 
-func NewShow(pos *Position, expr Expression, ctx Context) *Show {
-	return &Show{pos, expr, ctx}
+func NewShowExpr(pos *Position, expr Expression, ctx Context) *ShowExpr {
+	return &ShowExpr{pos, expr, ctx}
 }
 
-func (n *Show) String() string {
+func (n *ShowExpr) String() string {
 	return fmt.Sprintf("{{ %v }}", n.Expr)
 }
 
-// Extends node represents a statement {% extends ... %}.
+// Extends node represents a statement "extends ...".
 type Extends struct {
 	*Position         // position in the source.
 	Path      string  // path to extend.
@@ -770,10 +783,10 @@ func NewExtends(pos *Position, path string, ctx Context) *Extends {
 }
 
 func (n *Extends) String() string {
-	return fmt.Sprintf("{%% extends %v %%}", strconv.Quote(n.Path))
+	return fmt.Sprintf("extends %v", strconv.Quote(n.Path))
 }
 
-// Import node represents a statement {% import ... %}.
+// Import node represents a statement "import ...".
 type Import struct {
 	*Position             // position in the source.
 	Ident     *Identifier // name (including "." and "_") or nil.
@@ -788,10 +801,9 @@ func NewImport(pos *Position, ident *Identifier, path string, ctx Context) *Impo
 
 func (n *Import) String() string {
 	if n.Ident == nil {
-		return fmt.Sprintf("{%% import %v %%}", strconv.Quote(n.Path))
+		return fmt.Sprintf("import %v", strconv.Quote(n.Path))
 	}
-
-	return fmt.Sprintf("{%% import %v %v %%}", n.Ident, strconv.Quote(n.Path))
+	return fmt.Sprintf("import %v %v", n.Ident, strconv.Quote(n.Path))
 }
 
 // Comment node represents a statement {# ... #}.

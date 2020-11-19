@@ -430,6 +430,12 @@ func getExtends(nodes []ast.Node) (*ast.Extends, bool) {
 		case *ast.Comment, *ast.Text:
 		case *ast.Extends:
 			return n, true
+		case *ast.Statements:
+			if len(n.Nodes) > 0 {
+				n, ok := n.Nodes[0].(*ast.Extends)
+				return n, ok
+			}
+			return nil, false
 		default:
 			return nil, false
 		}

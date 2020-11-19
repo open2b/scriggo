@@ -257,6 +257,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.changePath(path)
 			em.fb.scopes = scopes
 
+		case *ast.Statements:
+			em.emitNodes(node.Nodes)
+
 		case *ast.Label:
 			if _, found := em.labels[em.fb.fn][node.Ident.Name]; !found {
 				if em.labels[em.fb.fn] == nil {
@@ -337,7 +340,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			value := em.emitExpr(node.Value, chanType.Elem())
 			em.fb.emitSend(chann, value, node.Pos(), chanType.Elem().Kind())
 
-		case *ast.Show:
+		case *ast.ShowExpr:
 			// render([implicit *vm.Env,] gD io.Writer, gE interface{}, iA ast.Context)
 			em.emitExprR(node.Expr, emptyInterfaceType, em.fb.templateRegs.gE)
 			em.fb.emitMove(true, int8(node.Context), em.fb.templateRegs.iA, reflect.Int, false)
