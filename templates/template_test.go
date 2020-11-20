@@ -2031,6 +2031,63 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: "ab",
 	},
+
+	"https://github.com/open2b/scriggo/issues/686": {
+		sources: map[string]string{
+			"index.html":    `{% extends "extended.html" %}{% var _ = $global %}`,
+			"extended.html": `text`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"global": (*int)(nil),
+			},
+		},
+		expectedOut: "text",
+	},
+
+	"https://github.com/open2b/scriggo/issues/686 (2)": {
+		sources: map[string]string{
+			"index.html":    `{% extends "extended.html" %}{% var _ = interface{}(global) %}`,
+			"extended.html": `text`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"global": (*int)(nil),
+			},
+		},
+		expectedOut: "text",
+	},
+
+	"https://github.com/open2b/scriggo/issues/687": {
+		sources: map[string]string{
+			"index.html": `{% extends "extended.html" %}
+			
+				{% import "imported.html" %}`,
+
+			"extended.html": `
+				<head>
+				<script>....
+				{{ design.Base }}		
+				{{ design.Open2b }}		
+				fef`,
+
+			"imported.html": `
+				{% var filters, _ = $filters.([]int) %}
+			`,
+		},
+		main: &scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"design": &struct {
+					Base   string
+					Open2b string
+				}{},
+			},
+		},
+		expectedOut: "\n\t\t\t\t<head>\n\t\t\t\t<script>....\n\t\t\t\t\t\t\n\t\t\t\t\t\t\n\t\t\t\tfef",
+	},
 }
 
 var structWithUnexportedFields = &struct {
