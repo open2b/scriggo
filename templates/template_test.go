@@ -2088,6 +2088,22 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: "\n\t\t\t\t<head>\n\t\t\t\t<script>....\n\t\t\t\t\t\t\n\t\t\t\t\t\t\n\t\t\t\tfef",
 	},
+
+	"https://github.com/open2b/scriggo/issues/655": {
+		sources: map[string]string{
+			"index.html":  "{% extends \"layout.html\" %}\n{% var _ = func() { } %}",
+			"layout.html": `<a href="a">`,
+		},
+		expectedOut: "<a href=\"a\">",
+	},
+
+	"https://github.com/open2b/scriggo/issues/656": {
+		sources: map[string]string{
+			"index.html":  "{% extends \"layout.html\" %}\n{% var _ = func() { } %}",
+			"layout.html": `abc`,
+		},
+		expectedOut: "abc",
+	},
 }
 
 var structWithUnexportedFields = &struct {
