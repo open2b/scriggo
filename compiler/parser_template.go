@@ -92,6 +92,8 @@ func (pp *templateExpansion) abs(path string) (string, error) {
 	return path, err
 }
 
+// parseNodeFile parses the file referenced by an Extends, Import or
+// ShowPartial node and returns its tree.
 func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 
 	var err error
