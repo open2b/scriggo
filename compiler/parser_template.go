@@ -42,7 +42,7 @@ func ParseTemplate(path string, reader FileReader, lang ast.Language, packages P
 	pp := &templateExpansion{
 		reader:   reader,
 		packages: packages,
-		trees:    &cache{},
+		trees:    map[string]parsedTree{},
 		paths:    []string{},
 	}
 
@@ -64,9 +64,19 @@ func ParseTemplate(path string, reader FileReader, lang ast.Language, packages P
 // templateExpansion represents the state of a template expansion.
 type templateExpansion struct {
 	reader   FileReader
-	trees    *cache
+	trees    map[string]parsedTree
 	packages PackageLoader
 	paths    []string
+}
+
+// parsedTree represents a parsed tree. parent is the file path and node that
+// extends, imports or shows the tree.
+type parsedTree struct {
+	tree   *ast.Tree
+	parent struct {
+		path string
+		node ast.Node
+	}
 }
 
 // abs returns path as absolute.
@@ -82,24 +92,79 @@ func (pp *templateExpansion) abs(path string) (string, error) {
 	return path, err
 }
 
-// parseFile parses the file, written in language lang, with the given name.
-// name must be absolute and cleared.
-func (pp *templateExpansion) parseFile(name string, lang ast.Language) (*ast.Tree, error) {
+func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 
-	// Check if there is a cycle.
-	for _, p := range pp.paths {
-		if p == name {
-			return nil, &CycleError{path: p}
-		}
+	var err error
+	var path string
+	var lang ast.Language
+
+	// Get the file's absolute path and language.
+	switch n := node.(type) {
+	case *ast.Extends:
+		path = n.Path
+		lang = ast.Language(n.Context)
+	case *ast.Import:
+		path = n.Path
+		lang = ast.Language(n.Context)
+	case *ast.ShowPartial:
+		path = n.Path
+		lang = ast.Language(n.Context)
+	}
+	path, err = pp.abs(path)
+	if err != nil {
+		return nil, err
 	}
 
 	// Check if it has already been parsed.
-	if tree, ok := pp.trees.Get(name, lang); ok {
-		return tree, nil
+	var tree *ast.Tree
+	if parsed, ok := pp.trees[path]; ok {
+		switch n := parsed.parent.node.(type) {
+		case *ast.Extends:
+			switch node.(type) {
+			case *ast.Import:
+				return nil, syntaxError(node.Pos(), "import of file extended at %s:%s", parsed.parent.path, n.Pos())
+			case *ast.ShowPartial:
+				return nil, syntaxError(node.Pos(), "show of file extended at %s:%s", parsed.parent.path, n.Pos())
+			}
+		case *ast.Import:
+			if _, ok := node.(*ast.ShowPartial); ok {
+				return nil, syntaxError(node.Pos(), "show of file imported at %s:%s", parsed.parent.path, n.Pos())
+			}
+		case *ast.ShowPartial:
+			if _, ok := node.(*ast.Import); ok {
+				return nil, syntaxError(node.Pos(), "import of file showed at %s:%s", parsed.parent.path, n.Pos())
+			}
+		}
+		tree = parsed.tree
 	}
-	defer pp.trees.Done(name, lang)
 
-	src, err := pp.reader.ReadFile(name)
+	// Check if there is a cycle.
+	for _, p := range pp.paths {
+		if p == path {
+			return nil, &CycleError{path: path}
+		}
+	}
+
+	if tree == nil {
+		// Parse the file.
+		tree, err = pp.parseFile(path, lang)
+		if err != nil {
+			return nil, err
+		}
+		parsed := parsedTree{tree: tree}
+		parsed.parent.path = pp.paths[len(pp.paths)-1]
+		parsed.parent.node = node
+		pp.trees[path] = parsed
+	}
+
+	return tree, nil
+}
+
+// parseFile parses the file, written in language lang, with the given path.
+// path must be absolute and cleared.
+func (pp *templateExpansion) parseFile(path string, lang ast.Language) (*ast.Tree, error) {
+
+	src, err := pp.reader.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -107,25 +172,22 @@ func (pp *templateExpansion) parseFile(name string, lang ast.Language) (*ast.Tre
 	tree, err := ParseTemplateSource(src, lang)
 	if err != nil {
 		if se, ok := err.(*SyntaxError); ok {
-			se.path = name
+			se.path = path
 		}
 		return nil, err
 	}
-	tree.Path = name
+	tree.Path = path
 
 	// Expand the nodes.
-	pp.paths = append(pp.paths, name)
+	pp.paths = append(pp.paths, path)
 	err = pp.expand(tree.Nodes)
 	pp.paths = pp.paths[:len(pp.paths)-1]
 	if err != nil {
 		if e, ok := err.(*SyntaxError); ok && e.path == "" {
-			e.path = name
+			e.path = path
 		}
 		return nil, err
 	}
-
-	// Add the tree to the cache.
-	pp.trees.Add(name, lang, tree)
 
 	return tree, nil
 }
@@ -213,12 +275,10 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 			if len(pp.paths) > 1 {
 				return syntaxError(n.Pos(), "extended, imported and shown paths can not have extends")
 			}
-			absPath, err := pp.abs(n.Path)
+			var err error
+			n.Tree, err = pp.parseNodeFile(n)
 			if err != nil {
-				return err
-			}
-			n.Tree, err = pp.parseFile(absPath, ast.Language(n.Context))
-			if err != nil {
+				absPath, _ := pp.abs(n.Path)
 				if err == ErrInvalidPath {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
 				} else if os.IsNotExist(err) {
@@ -252,12 +312,10 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 				}
 			} else {
 				// Import a template file (the path has an extension).
-				absPath, err := pp.abs(n.Path)
+				var err error
+				n.Tree, err = pp.parseNodeFile(n)
 				if err != nil {
-					return err
-				}
-				n.Tree, err = pp.parseFile(absPath, ast.Language(n.Context))
-				if err != nil {
+					absPath, _ := pp.abs(n.Path)
 					if err == ErrInvalidPath {
 						err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
 					} else if os.IsNotExist(err) {
@@ -274,12 +332,10 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 
 		case *ast.ShowPartial:
 
-			absPath, err := pp.abs(n.Path)
+			var err error
+			n.Tree, err = pp.parseNodeFile(n)
 			if err != nil {
-				return err
-			}
-			n.Tree, err = pp.parseFile(absPath, ast.Language(n.Context))
-			if err != nil {
+				absPath, _ := pp.abs(n.Path)
 				if err == ErrInvalidPath {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
 				} else if os.IsNotExist(err) {

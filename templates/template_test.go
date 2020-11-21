@@ -2104,6 +2104,39 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: "abc",
 	},
+
+	"Show of a previously imported file": {
+		sources: map[string]string{
+			"index.html": `{% import "file.html" %}{% show "file.html" %}`,
+			"file.html":  ``,
+		},
+		expectedLoadErr: `syntax error: show of file imported at /index.html:1:11`,
+	},
+
+	"Show of a previously extended file": {
+		sources: map[string]string{
+			"index.html": `{% extends "file.html" %}{% show "file.html" %}`,
+			"file.html":  ``,
+		},
+		expectedLoadErr: `syntax error: show of file extended at /index.html:1:4`,
+	},
+
+	"Import of a previously extended file": {
+		sources: map[string]string{
+			"index.html": `{% extends "file.html" %}{% import "file.html" %}`,
+			"file.html":  ``,
+		},
+		expectedLoadErr: `syntax error: import of file extended at /index.html:1:4`,
+	},
+
+	"Import of a previously showed file": {
+		sources: map[string]string{
+			"index.html": `{% show "file1.html" %}{% show "file2.html" %}`,
+			"file1.html": ``,
+			"file2.html": `{% import "file1.html" %}`,
+		},
+		expectedLoadErr: `syntax error: import of file showed at /index.html:1:4`,
+	},
 }
 
 var structWithUnexportedFields = &struct {
@@ -2182,6 +2215,9 @@ var functionReturningErrorPackage = &scriggo.MapPackage{
 
 func TestMultiPageTemplate(t *testing.T) {
 	for name, cas := range templateMultiPageCases {
+		if name != "Import of a previously showed file" {
+			continue
+		}
 		if cas.expectedOut != "" && cas.expectedLoadErr != "" {
 			panic("invalid test: " + name)
 		}
