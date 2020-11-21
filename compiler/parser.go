@@ -140,6 +140,16 @@ func (p *parsing) parent() ast.Node {
 	return p.ancestors[len(p.ancestors)-1]
 }
 
+// inFunction reports whether it is in a function body.
+func (p *parsing) inFunction() bool {
+	for i := len(p.ancestors) - 1; i > 0; i-- {
+		if _, ok := p.ancestors[i].(*ast.Func); ok {
+			return true
+		}
+	}
+	return false
+}
+
 // next returns the next token from the lexer. Panics if the lexer channel is
 // closed.
 func (p *parsing) next() token {
@@ -642,7 +652,10 @@ LABEL:
 			node = ast.NewSelectCase(pos, comm, nil)
 		default:
 			// Panic with a syntax error.
-			p.parseEnd(tok, tokenRightBrace, end)
+			if p.inFunction() {
+				p.parseEnd(tok, tokenRightBrace, end)
+			}
+			panic(syntaxError(tok.pos, "case is not in a switch or select"))
 		}
 		p.addChild(node)
 		tok = p.parseEnd(tok, tokenColon, end)
@@ -658,8 +671,10 @@ LABEL:
 		case *ast.Select:
 			node = ast.NewSelectCase(pos, nil, nil)
 		default:
-			// Panic with a syntax error.
-			p.parseEnd(tok, tokenRightBrace, end)
+			if p.inFunction() {
+				p.parseEnd(tok, tokenRightBrace, end)
+			}
+			panic(syntaxError(tok.pos, "default is not in a switch or select"))
 		}
 		p.addChild(node)
 		p.cutSpacesToken = true
@@ -813,14 +828,7 @@ LABEL:
 	case tokenReturn:
 		pos := tok.pos
 		if end != tokenEOF || p.isScript {
-			var inFunction bool
-			for i := len(p.ancestors) - 1; i > 0; i-- {
-				if _, ok := p.ancestors[i].(*ast.Func); ok {
-					inFunction = true
-					break
-				}
-			}
-			if !inFunction {
+			if !p.inFunction() {
 				panic(syntaxError(tok.pos, "return statement outside function body"))
 			}
 		}
