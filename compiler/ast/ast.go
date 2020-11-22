@@ -706,7 +706,6 @@ type Macro struct {
 	Ident     *Identifier // name.
 	Type      *FuncType   // type.
 	Body      []Node      // body.
-	Upvars    []Upvar     // Upvars of macro.
 	Context   Context     // context.
 }
 
@@ -714,7 +713,7 @@ func NewMacro(pos *Position, name *Identifier, typ *FuncType, body []Node, ctx C
 	if body == nil {
 		body = []Node{}
 	}
-	return &Macro{pos, name, typ, body, nil, ctx}
+	return &Macro{pos, name, typ, body, ctx}
 }
 
 // ShowMacro node represents a statement {% show <macro> %}.
