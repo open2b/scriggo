@@ -2153,6 +2153,30 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedLoadErr: "syntax error: unexpected text, expecting declaration",
 	},
+
+	"Extends preceded by not empty text": {
+		sources: map[string]string{
+			"index.html":  `abc{% extends "layout.html" %}`,
+			"layout.html": ``,
+		},
+		expectedLoadErr: "syntax error: extends can only be the first statement",
+	},
+
+	"Extends preceded by another statement": {
+		sources: map[string]string{
+			"index.html":  `{% var a = 5 %}{% extends "layout.html" %}`,
+			"layout.html": ``,
+		},
+		expectedLoadErr: "syntax error: extends can only be the first statement",
+	},
+
+	"Extends preceded by comment": {
+		sources: map[string]string{
+			"index.html":  `{# comment #}{% extends "layout.html" %}`,
+			"layout.html": `abc`,
+		},
+		expectedLoadErr: "abc",
+	},
 }
 
 var structWithUnexportedFields = &struct {

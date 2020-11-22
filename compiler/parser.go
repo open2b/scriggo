@@ -942,10 +942,14 @@ LABEL:
 		}
 		tree := p.ancestors[0].(*ast.Tree)
 		for _, node := range tree.Nodes {
-			switch node.(type) {
-			case *ast.Text, *ast.Comment:
+			switch n := node.(type) {
+			case *ast.Comment:
+			case *ast.Text:
+				if !containsOnlySpaces(n.Text) {
+					panic(syntaxError(tok.pos, "extends is not at the beginning of the file"))
+				}
 			default:
-				panic(syntaxError(tok.pos, "extends can only be the first statement"))
+				panic(syntaxError(tok.pos, "extends is not at the beginning of the file"))
 			}
 		}
 		tok = p.next()
