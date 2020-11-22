@@ -2501,6 +2501,9 @@ func equals(n1, n2 ast.Node, p int) error {
 		if !nn1.IsVariadic && nn2.IsVariadic {
 			return fmt.Errorf("unexpected variadic, expecting not variadic")
 		}
+		if nn1.Context != nn2.Context {
+			return fmt.Errorf("unexpected context %s, expecting %s", nn1.Context, nn2.Context)
+		}
 
 	case *ast.Return:
 		nn2, ok := n2.(*ast.Return)
