@@ -868,7 +868,7 @@ LABEL:
 		if tok.typ == tokenInterpretedString || tok.typ == tokenRawString {
 			var path = unquoteString(tok.txt)
 			if !ValidTemplatePath(path) {
-				panic(fmt.Errorf("invalid path %q at %s", path, tok.pos))
+				panic(syntaxError(tok.pos, "invalid template path: %q", path))
 			}
 			pos.End = tok.pos.End
 			node := ast.NewShowPartial(pos, path, tok.ctx)
