@@ -377,7 +377,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 			}
 			// Emits extended page.
 			backupPath := e.fb.getPath()
-			extends, _ := getExtends(pkg.Declarations)
+			extends := pkg.Declarations[0].(*ast.Extends)
 			e.fb.changePath(extends.Tree.Path)
 			e.fb.enterScope()
 			e.reserveTemplateRegisters()
