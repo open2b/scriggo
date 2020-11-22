@@ -1,5 +1,12 @@
 {# errorcheck #}
 
-{{ _ }} // ERROR `cannot use _ as value`
+{{ _ }}        // ERROR `cannot use _ as value`
+{% show _ %}   // ERROR `cannot use _ as value`
+{% show(_) %}  // ERROR `cannot use _ as value`
 
-{% show "" %} // ERROR `syntax error: invalid template path: ""`
+{% show %}     // ERROR `syntax error: unexpected %}, expecting identifier, string or (`
+{% show() %}   // ERROR `syntax error: unexpected ), expecting expression`
+{% show "" %}  // ERROR `syntax error: invalid template path: ""`
+
+{% show(1, 2) %}        // ERROR `syntax error: unexpected comma, expecting )`
+{% show(if true {}) %}  // ERROR `syntax error: unexpected if, expecting expression`

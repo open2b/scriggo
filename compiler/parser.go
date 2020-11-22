@@ -878,9 +878,27 @@ LABEL:
 			tok = p.parseEnd(tok, tokenEndStatement, end)
 			return tok
 		}
+		// {% show(expr) %}
+		if tok.typ == tokenLeftParenthesis {
+			tok = p.next()
+			var expr ast.Expression
+			expr, tok = p.parseExpr(tok, false, false, false)
+			if expr == nil {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
+			}
+			if tok.typ != tokenRightParenthesis {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting )", tok))
+			}
+			pos.End = tok.pos.End
+			var node = ast.NewShow(pos, expr, tok.ctx)
+			p.addChild(node)
+			tok = p.next()
+			tok = p.parseEnd(tok, tokenSemicolon, end)
+			return tok
+		}
 		// {% show macro %}
 		if tok.typ != tokenIdentifier {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier or string", tok))
+			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier, string or (", tok))
 		}
 		macro := ast.NewIdentifier(tok.pos, string(tok.txt))
 		pos.End = tok.pos.End

@@ -742,7 +742,7 @@ func NewShowPartial(pos *Position, path string, ctx Context) *ShowPartial {
 	return &ShowPartial{Position: pos, Path: path, Context: ctx}
 }
 
-// Show node represents a statement {{ ... }}.
+// Show node represents statements {{ ... }} and {% show(<expr>) %}.
 type Show struct {
 	*Position            // position in the source.
 	Expr      Expression // expression that once evaluated returns the value to show.
