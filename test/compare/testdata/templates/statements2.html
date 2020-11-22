@@ -1,0 +1,33 @@
+{# render #}
+
+{%% var a = 5 %%}
+a = {{ a }}
+{%%
+    var b = a + 1 %%}
+b = {{ b }}
+{%% var c = b + 1
+%%}
+c = {{ c }}
+{%%var d = c * 2 %%}
+d = {{ d }}
+{%%
+    var e int
+    if a == 5 {
+        e = 3
+    } else {
+        e = 2
+    }
+    e *= 2
+%%}
+e = {{ e }}
+
+{% macro A %}A{% end %}
+{%% show A %%}
+
+{%%
+    if e == 6 {
+        show(e+4)
+    }
+%%}
+
+

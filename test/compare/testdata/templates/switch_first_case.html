@@ -6,6 +6,8 @@
 
 {% switch %}{% a := 5 %}{% end %} // ERROR `syntax error: unexpected a, expecting case or default or end`
 
+{% switch %}{%% a := 5 %%}{% end %} // ERROR `syntax error: unexpected {%%, expecting {%`
+
 {% switch %}{{ a }}{% end %} // ERROR `syntax error: unexpected {{, expecting {%`
 
 {% switch %}{# comment #}{% end %} // ERROR `syntax error: unexpected comment, expecting {%`

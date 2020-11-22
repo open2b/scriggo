@@ -2177,6 +2177,78 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedLoadErr: "abc",
 	},
+
+	"Multi line statements #1": {
+		sources: map[string]string{
+			"index.html": `{%%
+				extends "extended.html"
+			%%}{% var x = $global %}`,
+			"extended.html": ``,
+		},
+	},
+
+	"Multi line statements #2": {
+		sources: map[string]string{
+			"index.html": `before{%%
+	import "imported.html"
+	%%}after`,
+			"imported.html": `{%%
+				var a []int
+			%%}`,
+		},
+		expectedOut: "beforeafter",
+	},
+
+	"Multi line statements #3": {
+		sources: map[string]string{
+			"index.html":    `{%% import "imported.html" %%}`,
+			"imported.html": `{% var x = $global %}`,
+		},
+	},
+
+	"Multi line statements #4": {
+		sources: map[string]string{
+			"index.html":    `{% import "imported.html" %}`,
+			"imported.html": `{%% var x = $global %%}`,
+		},
+	},
+
+	"Multiline statements #5": {
+		sources: map[string]string{
+			"index.html":    `{%% extends "extended.html" %%}{% import "fmt" %}{% macro M %}{{ fmt.Sprint(321, 11) }}{% end macro %}`,
+			"extended.html": `{% show M %}`,
+		},
+		packages:    testPackages,
+		expectedOut: "321 11",
+	},
+
+	"Multiline statements #6": {
+		sources: map[string]string{
+			"index.html": `{%%
+				import "fmt"
+				import m "math"
+			%%}
+			{{ fmt.Sprint(-42, m.Abs(-42)) }}`,
+		},
+		packages:    testPackages,
+		expectedOut: "\t\t\t-42 42",
+	},
+
+	"Multi line statements #7": {
+		sources: map[string]string{
+			"index.html":    `{% import "imported.html" %}{% type _ struct { bar int } %}{{ S.bar }}`,
+			"imported.html": `{%% var S struct { bar int } %%}`,
+		},
+		expectedLoadErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
+	},
+
+	"Multi line statements #8": {
+		sources: map[string]string{
+			"index.html":    `{% import "imported.html" %}{% type _ *struct { bar int } %}{{ S.bar }}`,
+			"imported.html": `{%% var S *struct { bar int } %%}`,
+		},
+		expectedLoadErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
+	},
 }
 
 var structWithUnexportedFields = &struct {

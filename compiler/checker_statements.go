@@ -30,6 +30,8 @@ func (tc *typechecker) templatePageToPackage(tree *ast.Tree) {
 		case *ast.Text, *ast.Comment:
 		case *ast.Extends, *ast.Import, *ast.Macro, *ast.Var, *ast.Const, *ast.TypeDeclaration:
 			nodes = append(nodes, n)
+		case *ast.Statements:
+			nodes = append(nodes, n.Nodes...)
 		default:
 			panic(fmt.Sprintf("BUG: unexpected node %s", n))
 		}
@@ -119,6 +121,9 @@ nodesLoop:
 
 		case *ast.Block:
 			node.Nodes = tc.checkNodesInNewScope(node.Nodes)
+
+		case *ast.Statements:
+			node.Nodes = tc.checkNodes(node.Nodes)
 
 		case *ast.If:
 			tc.enterScope()

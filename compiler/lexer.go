@@ -222,7 +222,12 @@ func (l *lexer) scan() {
 						l.emitAtLineColumn(lin, col, tokenText, p)
 						p = 0
 					}
-					err := l.lexStatement()
+					var err error
+					if len(l.src) > 2 && l.src[2] == '%' {
+						err = l.lexStatements()
+					} else {
+						err = l.lexStatement()
+					}
 					if err != nil {
 						l.err = err
 						break LOOP
@@ -680,6 +685,20 @@ func (l *lexer) lexStatement() error {
 	return nil
 }
 
+// lexStatements emits the tokens for statements knowing that src starts with
+// {%%.
+func (l *lexer) lexStatements() error {
+	l.emit(tokenStartStatements, 3)
+	l.column += 3
+	err := l.lexCode(tokenEndStatements)
+	if err != nil {
+		return err
+	}
+	l.emit(tokenEndStatements, 3)
+	l.column += 3
+	return nil
+}
+
 // lexComment emits a comment token knowing that src starts with '{#'.
 func (l *lexer) lexComment() error {
 	nested := 0
@@ -711,11 +730,17 @@ func (l *lexer) lexComment() error {
 	return nil
 }
 
-// lexCode emits code tokens returning as soon as encounters the given end
-// token. end token can be tokenEOF, tokenRightBraces or tokenEndStatement.
+// lexCode emits code tokens returning as soon as encounters a token based on
+// the given end parameter.
 //
-// As a special case, if the end token is not tokenEOF, lexCode always returns
-// when encounters tokenEOF or tokenEndStatement.
+//   if end is tokenEOF, it returns when encounters tokenEOF
+//
+//   if end is tokenEndStatement or tokenEndStatements, it returns when
+//   encounters tokenEOF, tokenEndStatement or tokenEndStatements
+//
+//   if end is tokenRightBraces, it returns when encounters tokenEOF,
+//   tokenEndStatement, tokenEndStatements or tokenRightBraces
+//
 func (l *lexer) lexCode(end tokenTyp) error {
 	if len(l.src) == 0 {
 		return nil
@@ -871,11 +896,21 @@ LOOP:
 			if len(l.src) > 1 {
 				switch l.src[1] {
 				case '}':
-					if end == tokenEndStatement {
+					switch end {
+					case tokenEndStatement:
 						return nil
+					case tokenRightBraces, tokenEndStatements:
+						return l.errorf("unexpected %%}, expecting %s", end)
 					}
-					if end == tokenRightBraces {
-						return l.errorf("unexpected %%}, expecting }}")
+				case '%':
+					switch end {
+					case tokenEndStatements:
+						if endLineAsSemicolon {
+							l.emit(tokenSemicolon, 0)
+						}
+						return nil
+					case tokenRightBraces, tokenEndStatement:
+						return l.errorf("unexpected %%%%}, expecting %s", end)
 					}
 				case '=':
 					l.emit(tokenModuloAssignment, 2)

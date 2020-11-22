@@ -1,0 +1,28 @@
+{# errorcheck #}
+
+{%% package "p" %%}  // ERROR `syntax error: unexpected package, expecting statement`
+
+{%% macro B %%}                       // ERROR `syntax error: unexpected macro in statement scope`
+{% macro B %}{%% return %%}{% end %}  // ERROR `syntax error: return statement outside function body`
+
+{% switch %}{%% case %%}{% end %}                    // ERROR `syntax error: unexpected {%%, expecting {%`
+{% switch %}{%% default %%}{% end %}                 // ERROR `syntax error: unexpected {%%, expecting {%`
+{% switch %}{% default %}{%% case true %%}{% end %}  // ERROR `syntax error: case is not in a switch or select`
+{% switch %}{% case true %}{%% default %%}{% end %}  // ERROR `syntax error: default is not in a switch or select`
+
+{% select %}{%% case <-c %%}{% end %}               // ERROR `syntax error: unexpected {%%, expecting {%`
+{% select %}{%% default %%}{% end %}                // ERROR `syntax error: unexpected {%%, expecting {%`
+{% select %}{% default %}{%% case <-c %%}{% end %}  // ERROR `syntax error: case is not in a switch or select`
+{% select %}{% case <-c %}{%% default %%}{% end %}  // ERROR `syntax error: default is not in a switch or select`
+
+{%% { %%}                   // ERROR `syntax error: unexpected %%}, expecting }`
+{%% } %%}                   // ERROR `syntax error: unexpected }, expecting statement`
+{%% if true { %%}{% end %}  // ERROR `syntax error: unexpected %%}, expecting }`
+{% if true %}{%% } %%}      // ERROR `syntax error: unexpected }, expecting statement`
+
+{%% %} %%}  // ERROR `syntax error: unexpected %}, expecting %%}`
+{% %%} %}   // ERROR `syntax error: unexpected %%}, expecting %}`
+
+{%% var a int; extends "layout.html" %%}      // ERROR `syntax error: extends is not at the beginning of the file`
+{%% var a int %%}{% extends "layout.html" %}  // ERROR `syntax error: extends is not at the beginning of the file`
+{% var a int %}{%% extends "layout.html" %%}  // ERROR `syntax error: extends is not at the beginning of the file`

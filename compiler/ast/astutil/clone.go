@@ -236,6 +236,16 @@ func CloneNode(node ast.Node) ast.Node {
 		}
 		return sp
 
+	case *ast.Statements:
+		var nodes []ast.Node
+		if n.Nodes != nil {
+			nodes = make([]ast.Node, len(n.Nodes))
+			for i := range n.Nodes {
+				nodes[i] = CloneNode(n.Nodes[i])
+			}
+		}
+		return ast.NewStatements(ClonePosition(n.Position), nodes)
+
 	case *ast.Switch:
 		var init ast.Node
 		if n.Init != nil {
