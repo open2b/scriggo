@@ -117,6 +117,13 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 		return nil, err
 	}
 
+	// Check if there is a cycle.
+	for _, p := range pp.paths {
+		if p == path {
+			return nil, &CycleError{path: path}
+		}
+	}
+
 	// Check if it has already been parsed.
 	var tree *ast.Tree
 	if parsed, ok := pp.trees[path]; ok {
@@ -138,13 +145,6 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 			}
 		}
 		tree = parsed.tree
-	}
-
-	// Check if there is a cycle.
-	for _, p := range pp.paths {
-		if p == path {
-			return nil, &CycleError{path: path}
-		}
 	}
 
 	if tree == nil {
