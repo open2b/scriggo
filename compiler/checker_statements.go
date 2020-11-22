@@ -13,65 +13,31 @@ import (
 	"github.com/open2b/scriggo/compiler/ast"
 )
 
-// templatePageToPackage extract first-level declarations in tree and appends them
-// to a package, which will be the only node of tree. If tree is already a
+// templatePageToPackage transforms a tree of a declarations file to a package
+// tree, moving the top level nodes, excluding text and comment nodes, in a
+// package node that becomes the only node of tree. If tree already has a
 // package, templatePageToPackage does nothing.
-func (tc *typechecker) templatePageToPackage(tree *ast.Tree, path string) error {
-	// tree is already a package: do nothing and return.
+func (tc *typechecker) templatePageToPackage(tree *ast.Tree) {
 	if len(tree.Nodes) == 1 {
 		if _, ok := tree.Nodes[0].(*ast.Package); ok {
-			return nil
+			// tree has already a package, do nothing.
+			return
 		}
 	}
-	currentPath := tc.path
-	defer func() {
-		tc.path = currentPath
-	}()
-	tc.path = path
-	var hasExtends bool
-	var hasDeclarations bool
-	nodes := []ast.Node{}
+	nodes := make([]ast.Node, 0, len(tree.Nodes)/2)
 	for _, n := range tree.Nodes {
 		switch n := n.(type) {
-		case *ast.Comment:
-		case *ast.Extends:
-			hasExtends = true
-			nodes = append(nodes, n)
-		case *ast.Import:
-			nodes = append(nodes, n)
-		case *ast.Macro, *ast.Var, *ast.Const, *ast.TypeDeclaration:
-			hasDeclarations = true
+		case *ast.Text, *ast.Comment:
+		case *ast.Extends, *ast.Import, *ast.Macro, *ast.Var, *ast.Const, *ast.TypeDeclaration:
 			nodes = append(nodes, n)
 		default:
-			pos := n.Pos()
-			var unexpected string
-			switch n := n.(type) {
-			case *ast.Text:
-				pos = noSpacePosition(n)
-				if pos == nil {
-					continue
-				}
-				unexpected = "text"
-			case *ast.ShowPartial, *ast.Show:
-				unexpected = "show"
-			default:
-				unexpected = "statement"
-			}
-			msg := "unexpected " + unexpected + ", expecting "
-			if !hasExtends {
-				msg += "extends, "
-			}
-			if !hasDeclarations {
-				msg += "import, "
-			}
-			msg += "macro, var, const or type statement"
-			return tc.errorf(pos, msg)
+			panic(fmt.Sprintf("BUG: unexpected node %s", n))
 		}
 	}
 	tree.Nodes = []ast.Node{
 		ast.NewPackage(tree.Pos(), "", nodes),
 	}
-	return nil
+	return
 }
 
 // checkNodesInNewScopeError calls checkNodesInNewScope returning checking errors.
@@ -977,10 +943,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, packages PackageLoader, pa
 	} else if packageLevel {
 		// Not predefined package.
 		if tc.opts.modality == templateMod {
-			err := tc.templatePageToPackage(impor.Tree, impor.Tree.Path)
-			if err != nil {
-				return err
-			}
+			tc.templatePageToPackage(impor.Tree)
 		}
 		if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
 			return tc.programImportError(impor)
@@ -998,14 +961,11 @@ func (tc *typechecker) checkImport(impor *ast.Import, packages PackageLoader, pa
 			if impor.Ident != nil && impor.Ident.Name == "_" {
 				return nil
 			}
-			err := tc.templatePageToPackage(impor.Tree, impor.Tree.Path)
-			if err != nil {
-				return err
-			}
+			tc.templatePageToPackage(impor.Tree)
 			if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
 				return tc.programImportError(impor)
 			}
-			err = checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Path, nil, tc.opts, tc.globalScope)
+			err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Path, nil, tc.opts, tc.globalScope)
 			if err != nil {
 				return err
 			}

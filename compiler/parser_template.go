@@ -46,7 +46,7 @@ func ParseTemplate(path string, reader FileReader, lang ast.Language, packages P
 		paths:    []string{},
 	}
 
-	tree, err := pp.parseFile(path, lang)
+	tree, err := pp.parseFile(path, lang, false)
 	if err != nil {
 		if err2, ok := err.(*SyntaxError); ok && err2.path == "" {
 			err2.path = path
@@ -99,8 +99,10 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 	var err error
 	var path string
 	var lang ast.Language
+	var declarationsFile bool
 
-	// Get the file's absolute path and language.
+	// Get the file's absolute path, its language and if it should be
+	// a declarations file.
 	switch n := node.(type) {
 	case *ast.Extends:
 		path = n.Path
@@ -108,6 +110,7 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 	case *ast.Import:
 		path = n.Path
 		lang = ast.Language(n.Context)
+		declarationsFile = true
 	case *ast.ShowPartial:
 		path = n.Path
 		lang = ast.Language(n.Context)
@@ -149,7 +152,7 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 
 	if tree == nil {
 		// Parse the file.
-		tree, err = pp.parseFile(path, lang)
+		tree, err = pp.parseFile(path, lang, declarationsFile)
 		if err != nil {
 			return nil, err
 		}
@@ -162,16 +165,17 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 	return tree, nil
 }
 
-// parseFile parses the file, written in language lang, with the given path.
+// parseFile parses the file with the given path, written in language lang.
+// declarationsFile indicates whether src should be a declarations file.
 // path must be absolute and cleared.
-func (pp *templateExpansion) parseFile(path string, lang ast.Language) (*ast.Tree, error) {
+func (pp *templateExpansion) parseFile(path string, lang ast.Language, declarationsFile bool) (*ast.Tree, error) {
 
 	src, err := pp.reader.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	tree, err := ParseTemplateSource(src, lang)
+	tree, err := ParseTemplateSource(src, lang, declarationsFile)
 	if err != nil {
 		if se, ok := err.(*SyntaxError); ok {
 			se.path = path

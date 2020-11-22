@@ -93,12 +93,8 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		}
 		tc.path = currentPath
 		// Third: extending page is converted to a "package", that means that
-		// out of order initialization is allowed and only certain statements
-		// are permitted.
-		err = tc.templatePageToPackage(tree, tree.Path)
-		if err != nil {
-			return nil, err
-		}
+		// out of order initialization is allowed.
+		tc.templatePageToPackage(tree)
 		err = checkPackage(compilation, tree.Nodes[0].(*ast.Package), tree.Path, packages, opts, tc.globalScope)
 		if err != nil {
 			return nil, err

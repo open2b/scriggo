@@ -114,6 +114,9 @@ type parsing struct {
 	// Report whether it is a script.
 	isScript bool
 
+	// Report whether it should be a declarations file.
+	declarationsFile bool
+
 	// Reports whether it has an extend statement.
 	hasExtend bool
 
@@ -232,9 +235,13 @@ func parseSource(src []byte, script, shebang bool) (tree *ast.Tree, err error) {
 // language lang and returns its tree. language can be Text, HTML, CSS or
 // JavaScript.
 //
+// declarationsFile indicates whether src should be a declarations file and
+// therefore whether it should contains, at top level, only extends and import
+// statements, comments and macro, variable, constant and type declarations.
+//
 // ParseTemplateSource does not expand the nodes Extends, ShowPartial and
 // Import.
-func ParseTemplateSource(src []byte, lang ast.Language) (tree *ast.Tree, err error) {
+func ParseTemplateSource(src []byte, lang ast.Language, declarationsFile bool) (tree *ast.Tree, err error) {
 
 	if lang < ast.LanguageText || lang > ast.LanguageJSON {
 		return nil, errors.New("scriggo: invalid language")
@@ -243,9 +250,10 @@ func ParseTemplateSource(src []byte, lang ast.Language) (tree *ast.Tree, err err
 	tree = ast.NewTree("", nil, lang)
 
 	var p = &parsing{
-		lex:       scanTemplate(src, lang),
-		language:  lang,
-		ancestors: []ast.Node{tree},
+		lex:              scanTemplate(src, lang),
+		language:         lang,
+		declarationsFile: declarationsFile,
+		ancestors:        []ast.Node{tree},
 	}
 
 	defer func() {
@@ -278,6 +286,9 @@ func ParseTemplateSource(src []byte, lang ast.Language) (tree *ast.Tree, err err
 
 		var text *ast.Text
 		if tok.typ == tokenText {
+			if (declarationsFile || p.hasExtend) && len(p.ancestors) == 1 && !containsOnlySpaces(tok.txt) {
+				return nil, syntaxError(tok.pos, "unexpected text, expecting declaration")
+			}
 			text = ast.NewText(tok.pos, tok.txt, ast.Cut{})
 		}
 
@@ -400,10 +411,14 @@ LABEL:
 	wantCase := false
 	switch s := p.parent().(type) {
 	case *ast.Tree:
-		if end == tokenEOF && !p.isScript {
-			if tok.typ != tokenPackage {
-				panic(syntaxError(tok.pos, "expected 'package', found '%s'", tok))
+		if p.declarationsFile || p.hasExtend {
+			switch tok.typ {
+			case tokenExtends, tokenImport, tokenMacro, tokenVar, tokenConst, tokenType:
+			default:
+				panic(syntaxError(tok.pos, "non-declaration statement in a declaration file"))
 			}
+		} else if tok.typ != tokenPackage && end == tokenEOF && !p.isScript {
+			panic(syntaxError(tok.pos, "expected 'package', found '%s'", tok))
 		}
 	case *ast.Package:
 		switch tok.typ {

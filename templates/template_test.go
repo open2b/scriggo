@@ -2137,6 +2137,22 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedLoadErr: `syntax error: import of file showed at /index.html:1:4`,
 	},
+
+	"Not only spaces in a page that extends": {
+		sources: map[string]string{
+			"index.html":  `{% extends "layout.html" %}abc`,
+			"layout.html": ``,
+		},
+		expectedLoadErr: "syntax error: unexpected text, expecting declaration",
+	},
+
+	"Not only spaces in an imported file": {
+		sources: map[string]string{
+			"index.html":    `{% import "imported.html" %}`,
+			"imported.html": `abc`,
+		},
+		expectedLoadErr: "syntax error: unexpected text, expecting declaration",
+	},
 }
 
 var structWithUnexportedFields = &struct {

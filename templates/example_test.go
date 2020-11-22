@@ -68,7 +68,7 @@ func ExampleMapReader() {
 
 	src, _ := r.Read("names.csv", ast.ContextText)
 
-	tree := compiler.ParseTemplateSource(src, ast.ContextText)
+	tree := compiler.ParseTemplateSource(src, ast.ContextText, false)
 	if err != nil {
 		log.Printf("error: %s\n", err)
 	}
