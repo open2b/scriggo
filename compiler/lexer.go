@@ -661,12 +661,6 @@ func (l *lexer) lexShow() error {
 	if err != nil {
 		return err
 	}
-	if len(l.src) < 2 {
-		return l.errorf("unexpected EOF, expecting }}")
-	}
-	if l.src[0] != '}' || l.src[1] != '}' {
-		return l.errorf("unexpected %s, expecting }}", l.src[:2])
-	}
 	l.emit(tokenRightBraces, 2)
 	l.column += 2
 	return nil
@@ -680,11 +674,6 @@ func (l *lexer) lexStatement() error {
 	err := l.lexCode(tokenEndStatement)
 	if err != nil {
 		return err
-	}
-	if len(l.src) < 2 {
-		return l.errorf("unexpected EOF, expecting %%}")
-	} else if l.src[0] != '%' && l.src[1] != '}' {
-		return l.errorf("unexpected %s, expecting %%}", l.src[:2])
 	}
 	l.emit(tokenEndStatement, 2)
 	l.column += 2
@@ -882,8 +871,11 @@ LOOP:
 			if len(l.src) > 1 {
 				switch l.src[1] {
 				case '}':
-					if end != tokenEOF {
-						break LOOP
+					if end == tokenEndStatement {
+						return nil
+					}
+					if end == tokenRightBraces {
+						return l.errorf("unexpected %%}, expecting }}")
 					}
 				case '=':
 					l.emit(tokenModuloAssignment, 2)
@@ -1014,7 +1006,7 @@ LOOP:
 			if end == tokenRightBraces {
 				if len(l.src) > 1 && l.src[1] == '}' {
 					if unclosedLeftBraces == 0 || len(l.src) == 2 || l.src[2] != '}' {
-						break LOOP
+						return nil
 					}
 				}
 				if unclosedLeftBraces > 0 {
@@ -1077,7 +1069,10 @@ LOOP:
 			}
 		}
 	}
-	if endLineAsSemicolon && end == tokenEOF {
+	if end != tokenEOF {
+		return l.errorf("unexpected EOF, expecting %s", end)
+	}
+	if endLineAsSemicolon {
 		l.emit(tokenSemicolon, 0)
 	}
 	return nil
