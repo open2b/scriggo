@@ -990,6 +990,10 @@ LABEL:
 				if !containsOnlySpaces(n.Text) {
 					panic(syntaxError(tok.pos, "extends is not at the beginning of the file"))
 				}
+			case *ast.Statements:
+				if n != p.parent() || len(n.Nodes) > 0 {
+					panic(syntaxError(tok.pos, "extends is not at the beginning of the file"))
+				}
 			default:
 				panic(syntaxError(tok.pos, "extends is not at the beginning of the file"))
 			}
