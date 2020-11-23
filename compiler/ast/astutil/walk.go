@@ -180,6 +180,11 @@ func Walk(v Visitor, node ast.Node) {
 	case *ast.Show:
 		Walk(v, n.Expr)
 
+	case *ast.Statements:
+		for _, child := range n.Nodes {
+			Walk(v, child)
+		}
+
 	case *ast.UnaryOperator:
 		Walk(v, n.Expr)
 

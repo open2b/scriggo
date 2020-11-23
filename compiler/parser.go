@@ -346,6 +346,27 @@ func ParseTemplateSource(src []byte, lang ast.Language, declarationsFile bool) (
 			tok = p.next()
 			tok = p.parse(tok, tokenEndStatement)
 
+		// {%%
+		case tokenStartStatements:
+			numTokenInLine++
+			pos := tok.pos
+			var statements = ast.NewStatements(pos, nil)
+			p.addChild(statements)
+			p.addToAncestors(statements)
+			tok = p.next()
+			for tok.typ != tokenEndStatements {
+				tok = p.parse(tok, tokenEndStatements)
+				if tok.typ == tokenEOF {
+					return nil, syntaxError(tok.pos, "unexpected EOF, expecting %%%%}")
+				}
+			}
+			if _, ok := p.ancestors[len(p.ancestors)-1].(*ast.Statements); !ok {
+				return nil, syntaxError(tok.pos, "unexpected %%%%}, expecting }")
+			}
+			pos.End = tok.pos.End
+			p.removeLastAncestor()
+			tok = p.next()
+
 		// {{
 		case tokenLeftBraces:
 			numTokenInLine++
@@ -729,10 +750,18 @@ LABEL:
 
 	// }
 	case tokenRightBrace:
-		if end == tokenEndStatement {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting statement", tok))
+		var unexpected bool
+		switch end {
+		case tokenEOF:
+			unexpected = p.isScript && len(p.ancestors) == 1
+		case tokenEndStatement:
+			unexpected = true
+		case tokenEndStatements:
+			_, unexpected = p.parent().(*ast.Statements)
+		default:
+			panic(end)
 		}
-		if p.isScript && len(p.ancestors) == 1 {
+		if unexpected {
 			panic(syntaxError(tok.pos, "unexpected }, expecting statement"))
 		}
 		if _, ok := p.parent().(*ast.Label); ok {
@@ -864,7 +893,7 @@ LABEL:
 	case tokenShow:
 		pos := tok.pos
 		tok := p.next()
-		// {% show <filepath> %}
+		// show <filepath>
 		if tok.typ == tokenInterpretedString || tok.typ == tokenRawString {
 			var path = unquoteString(tok.txt)
 			if !ValidTemplatePath(path) {
@@ -875,10 +904,10 @@ LABEL:
 			p.addChild(node)
 			p.cutSpacesToken = true
 			tok = p.next()
-			tok = p.parseEnd(tok, tokenEndStatement, end)
+			tok = p.parseEnd(tok, tokenSemicolon, end)
 			return tok
 		}
-		// {% show(expr) %}
+		// show(expr)
 		if tok.typ == tokenLeftParenthesis {
 			tok = p.next()
 			var expr ast.Expression
@@ -896,7 +925,7 @@ LABEL:
 			tok = p.parseEnd(tok, tokenSemicolon, end)
 			return tok
 		}
-		// {% show macro %}
+		// show macro
 		if tok.typ != tokenIdentifier {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier, string or (", tok))
 		}
@@ -941,7 +970,7 @@ LABEL:
 		node := ast.NewShowMacro(pos, macro, args, isVariadic, tok.ctx)
 		p.addChild(node)
 		p.cutSpacesToken = true
-		tok = p.parseEnd(tok, tokenEndStatement, end)
+		tok = p.parseEnd(tok, tokenSemicolon, end)
 		return tok
 
 	// extends
@@ -978,7 +1007,7 @@ LABEL:
 		p.addChild(node)
 		p.hasExtend = true
 		tok = p.next()
-		tok = p.parseEnd(tok, tokenEndStatement, end)
+		tok = p.parseEnd(tok, tokenSemicolon, end)
 		return tok
 
 	// var or const
@@ -1047,6 +1076,11 @@ LABEL:
 				if _, ok := declaration.(*ast.Import); !ok {
 					panic(syntaxError(tok.pos, "non-declaration statement outside function body"))
 				}
+			}
+		case *ast.Statements:
+			tree := p.ancestors[0].(*ast.Tree)
+			if len(p.ancestors) != 2 || !lastImportOrExtends(tree.Nodes) {
+				panic(syntaxError(tok.pos, "unexpected import, expecting %%%%}"))
 			}
 		default:
 			if end != tokenEndStatement {
@@ -1513,16 +1547,25 @@ func (p *parsing) parseVarOrConst(tok token, pos *ast.Position, decType tokenTyp
 	return ast.NewConst(pos, idents, typ, exprs, iotaValue), tok
 }
 
-// lastImportOrExtends reports whether the last node in nodes is import or
-// extends, excluding text and comment nodes.
+// lastImportOrExtends reports whether the last node in nodes is Import or
+// Extends, excluding Text and Comment nodes. If a node is Statements, it
+// looks into that node.
 func lastImportOrExtends(nodes []ast.Node) bool {
 	if len(nodes) == 0 {
 		return true
 	}
 	for i := len(nodes) - 1; i >= 0; i-- {
-		switch nodes[i].(type) {
+		switch n := nodes[i].(type) {
 		case *ast.Extends, *ast.Import:
 			return true
+		case *ast.Statements:
+			if last := len(n.Nodes) - 1; last >= 0 {
+				switch n.Nodes[last].(type) {
+				case *ast.Extends, *ast.Import:
+					return true
+				}
+				return false
+			}
 		case *ast.Text, *ast.Comment:
 		default:
 			return false
@@ -1546,14 +1589,14 @@ func (p *parsing) parseImport(tok token, end tokenTyp) *ast.Import {
 		panic(syntaxError(tok.pos, "unexpected %s, expecting string", tok))
 	}
 	var path = unquoteString(tok.txt)
-	if end == tokenEndStatement {
+	if end == tokenEOF {
+		validatePackagePath(path, tok.pos)
+	} else {
 		if !ValidTemplatePath(path) {
 			panic(syntaxError(tok.pos, "invalid import path: %q", path))
 		}
 		// Further restrictions on the validity of a path can be imposed by a
 		// reader.
-	} else {
-		validatePackagePath(path, tok.pos)
 	}
 	pos.End = tok.pos.End
 	return ast.NewImport(pos, ident, path, tok.ctx)
@@ -1622,6 +1665,8 @@ func (p *parsing) addChild(child ast.Node) {
 		}
 		n.Else = child
 	case *ast.Block:
+		n.Nodes = append(n.Nodes, child)
+	case *ast.Statements:
 		n.Nodes = append(n.Nodes, child)
 	case *ast.Switch:
 		c, ok := child.(*ast.Case)

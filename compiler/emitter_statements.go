@@ -257,6 +257,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.changePath(path)
 			em.fb.scopes = scopes
 
+		case *ast.Statements:
+			em.emitNodes(node.Nodes)
+
 		case *ast.Label:
 			if _, found := em.labels[em.fb.fn][node.Ident.Name]; !found {
 				if em.labels[em.fb.fn] == nil {

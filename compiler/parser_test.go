@@ -1397,6 +1397,16 @@ var treeTests = []struct {
 			[]ast.Expression{
 				ast.NewBasicLiteral(p(1, 9, 8, 8), ast.IntLiteral, "3"),
 			})}, ast.LanguageHTML)},
+	{"{%% if x == 5 { } %%}",
+		ast.NewTree("", []ast.Node{
+			ast.NewStatements(&ast.Position{Line: 1, Column: 1, Start: 0, End: 20}, []ast.Node{
+				ast.NewIf(&ast.Position{Line: 1, Column: 5, Start: 4, End: 16}, nil,
+					ast.NewBinaryOperator(p(1, 10, 7, 12),
+						ast.OperatorEqual,
+						ast.NewIdentifier(p(1, 8, 7, 7), "x"),
+						ast.NewBasicLiteral(p(1, 13, 12, 12), ast.IntLiteral, "5"),
+					), nil, nil),
+			})}, ast.LanguageHTML)},
 }
 
 // TODO: this function is never called, because it is referenced in commented
@@ -2010,6 +2020,21 @@ func equals(n1, n2 ast.Node, p int) error {
 
 	case *ast.Block:
 		nn2, ok := n2.(*ast.Block)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		if len(nn1.Nodes) != len(nn2.Nodes) {
+			return fmt.Errorf("unexpected nodes len %d, expecting %d", len(nn1.Nodes), len(nn2.Nodes))
+		}
+		for i, node := range nn1.Nodes {
+			err := equals(node, nn2.Nodes[i], p)
+			if err != nil {
+				return err
+			}
+		}
+
+	case *ast.Statements:
+		nn2, ok := n2.(*ast.Statements)
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
