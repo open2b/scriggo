@@ -2176,6 +2176,20 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: "abc",
 	},
+
+	"EOF after {%": {
+		sources: map[string]string{
+			"index.html": `{%`,
+		},
+		expectedLoadErr: "syntax error: unexpected EOF, expecting %}",
+	},
+
+	"EOF after {{": {
+		sources: map[string]string{
+			"index.html": `{{`,
+		},
+		expectedLoadErr: "syntax error: unexpected EOF, expecting }}",
+	},
 }
 
 var structWithUnexportedFields = &struct {

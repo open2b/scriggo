@@ -718,6 +718,9 @@ func (l *lexer) lexComment() error {
 // when encounters tokenEOF or tokenEndStatement.
 func (l *lexer) lexCode(end tokenTyp) error {
 	if len(l.src) == 0 {
+		if end != tokenEOF {
+			return l.errorf("unexpected EOF, expecting %s", end)
+		}
 		return nil
 	}
 	// endLineAsSemicolon reports whether "\n" should be treated as ";".
