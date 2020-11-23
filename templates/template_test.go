@@ -1599,16 +1599,15 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "b is 42",
 	},
 
-	// Disabled because panics:
 	// https://github.com/open2b/scriggo/issues/641
-	// "File imported by two files - test compilation": {
-	// 	sources: map[string]string{
-	// 		"index.html":    `{% import "/v.html" %}{% show "/partial.html" %}`,
-	// 		"partial.html": `{% import "/v.html" %}`,
-	// 		"v.html":        `{% var V int %}`,
-	// 	},
-	// 	lang: LanguageHTML,
-	// },
+	"File imported by two files - test compilation": {
+		sources: map[string]string{
+			"index.html":   `{% import "/v.html" %}{% show "/partial.html" %}`,
+			"partial.html": `{% import "/v.html" %}`,
+			"v.html":       `{% var V int %}`,
+		},
+		lang: LanguageHTML,
+	},
 
 	// https://github.com/open2b/scriggo/issues/642
 	"Macro imported twice - test compilation": {
