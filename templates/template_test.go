@@ -1108,21 +1108,21 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "index-start,M1-start,M2,M1-end,index-end",
 	},
 
-	"Import/Macro - Importing a macro using an import statement with identifier": {
-		sources: map[string]string{
-			"index.html": `{% import pg "/page.html" %}{% show pg.M %}{% show pg.M %}`,
-			"page.html":  `{% macro M %}macro!{% end %}`,
-		},
-		expectedOut: "macro!macro!",
-	},
+	//"Import/Macro - Importing a macro using an import statement with identifier": {
+	//	sources: map[string]string{
+	//		"index.html": `{% import pg "/page.html" %}{% show pg.M %}{% show pg.M %}`,
+	//		"page.html":  `{% macro M %}macro!{% end %}`,
+	//	},
+	//	expectedOut: "macro!macro!",
+	//},
 
-	"Import/Macro - Importing a macro using an import statement with identifier (with comments)": {
-		sources: map[string]string{
-			"index.html": `{# a comment #}{% import pg "/page.html" %}{# a comment #}{% show pg.M %}{# a comment #}{% show pg.M %}{# a comment #}`,
-			"page.html":  `{# a comment #}{% macro M %}{# a comment #}macro!{# a comment #}{% end %}{# a comment #}`,
-		},
-		expectedOut: "macro!macro!",
-	},
+	//"Import/Macro - Importing a macro using an import statement with identifier (with comments)": {
+	//	sources: map[string]string{
+	//		"index.html": `{# a comment #}{% import pg "/page.html" %}{# a comment #}{% show pg.M %}{# a comment #}{% show pg.M %}{# a comment #}`,
+	//		"page.html":  `{# a comment #}{% macro M %}{# a comment #}macro!{# a comment #}{% end %}{# a comment #}`,
+	//	},
+	//	expectedOut: "macro!macro!",
+	//},
 
 	"Extends - Empty page extends a page containing only text": {
 		sources: map[string]string{
@@ -2115,7 +2115,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Show of a previously extended file": {
 		sources: map[string]string{
-			"index.html": `{% extends "file.html" %}{% show "file.html" %}`,
+			"index.html": `{% extends "file.html" %}{% macro A %}{% show "file.html" %}{% end %}`,
 			"file.html":  ``,
 		},
 		expectedLoadErr: `syntax error: show of file extended at /index.html:1:4`,
@@ -2159,7 +2159,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.html":  `abc{% extends "layout.html" %}`,
 			"layout.html": ``,
 		},
-		expectedLoadErr: "syntax error: extends can only be the first statement",
+		expectedLoadErr: "syntax error: extends is not at the beginning of the file",
 	},
 
 	"Extends preceded by another statement": {
@@ -2167,7 +2167,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.html":  `{% var a = 5 %}{% extends "layout.html" %}`,
 			"layout.html": ``,
 		},
-		expectedLoadErr: "syntax error: extends can only be the first statement",
+		expectedLoadErr: "syntax error: extends is not at the beginning of the file",
 	},
 
 	"Extends preceded by comment": {
@@ -2175,7 +2175,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.html":  `{# comment #}{% extends "layout.html" %}`,
 			"layout.html": `abc`,
 		},
-		expectedLoadErr: "abc",
+		expectedOut: "abc",
 	},
 }
 
@@ -2255,9 +2255,6 @@ var functionReturningErrorPackage = &scriggo.MapPackage{
 
 func TestMultiPageTemplate(t *testing.T) {
 	for name, cas := range templateMultiPageCases {
-		if name != "Import of a previously showed file" {
-			continue
-		}
 		if cas.expectedOut != "" && cas.expectedLoadErr != "" {
 			panic("invalid test: " + name)
 		}
