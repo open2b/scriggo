@@ -35,6 +35,10 @@ type compilation struct {
 	// Sorting a package twice is wrong because it may have been transformed by
 	// the type checker.
 	alreadySortedPkgs map[*ast.Package]bool
+
+	// indirectVars contains the list of all declarations of variables which
+	// must be emitted as "indirect".
+	indirectVars map[*ast.Identifier]bool
 }
 
 // newCompilation returns a new compilation.
@@ -44,6 +48,7 @@ func newCompilation() *compilation {
 		pkgPathToIndex:    map[string]int{},
 		typeInfos:         map[ast.Node]*typeInfo{},
 		alreadySortedPkgs: map[*ast.Package]bool{},
+		indirectVars:      map[*ast.Identifier]bool{},
 	}
 }
 

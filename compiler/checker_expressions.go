@@ -378,7 +378,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				for i := len(tc.scopes) - 1; i >= 0; i-- {
 					for n := range tc.scopes[i] {
 						if n == ident.Name {
-							tc.indirectVars[tc.scopes[i][n].decl] = true
+							tc.compilation.indirectVars[tc.scopes[i][n].decl] = true
 							break scopesLoop
 						}
 					}
@@ -858,7 +858,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			case receiverAddAddress:
 				if t.Addressable() {
 					elem, _ := tc.lookupScopesElem(expr.Expr.(*ast.Identifier).Name, false)
-					tc.indirectVars[elem.decl] = true
+					tc.compilation.indirectVars[elem.decl] = true
 					expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorAddress, expr.Expr)
 					tc.compilation.typeInfos[expr.Expr] = &typeInfo{
 						Type:       tc.types.PtrTo(t.Type),

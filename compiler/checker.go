@@ -101,7 +101,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		}
 		// Collect data from the type checker and return it.
 		mainPkgInfo := &packageInfo{}
-		mainPkgInfo.IndirectVars = tc.indirectVars
+		mainPkgInfo.IndirectVars = tc.compilation.indirectVars
 		mainPkgInfo.TypeInfos = tc.compilation.typeInfos
 		for _, pkgInfo := range compilation.pkgInfos {
 			for k, v := range pkgInfo.TypeInfos {
@@ -122,7 +122,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		return nil, err
 	}
 	mainPkgInfo := &packageInfo{}
-	mainPkgInfo.IndirectVars = tc.indirectVars
+	mainPkgInfo.IndirectVars = tc.compilation.indirectVars
 	mainPkgInfo.TypeInfos = tc.compilation.typeInfos
 	return map[string]*packageInfo{"main": mainPkgInfo}, nil
 }
@@ -195,10 +195,6 @@ type typechecker struct {
 	// unusedImports keeps track of all imported but not used packages.
 	unusedImports map[string][]string
 
-	// indirectVars contains the list of all declarations of variables which
-	// must be emitted as "indirect".
-	indirectVars map[*ast.Identifier]bool
-
 	// opts holds the options that define the behaviour of the type checker.
 	opts checkerOptions
 
@@ -253,7 +249,6 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		hasBreak:         map[ast.Node]bool{},
 		universe:         universe,
 		unusedImports:    map[string][]string{},
-		indirectVars:     map[*ast.Identifier]bool{},
 		opts:             opts,
 		iota:             -1,
 		types:            types.NewTypes(),
@@ -438,7 +433,7 @@ func (tc *typechecker) isUpVar(name string) bool {
 			}
 			if i < funcBound-1 { // out of current function scope.
 				if elem.t.Addressable() { // elem must be a variable.
-					tc.indirectVars[tc.scopes[i][n].decl] = true
+					tc.compilation.indirectVars[tc.scopes[i][n].decl] = true
 					return true
 				}
 			}
