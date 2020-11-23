@@ -117,7 +117,7 @@ nodesLoop:
 				tc.opts,
 				tc.globalScope,
 			)
-			tc2.checkNodes(node.Tree.Nodes)
+			tc2.checkNodesInNewScope(node.Tree.Nodes)
 
 		case *ast.Block:
 			node.Nodes = tc.checkNodesInNewScope(node.Nodes)

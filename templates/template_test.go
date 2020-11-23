@@ -2269,6 +2269,14 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedLoadErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
 	},
+
+	"https://github.com/open2b/scriggo/issues/694": {
+		sources: map[string]string{
+			"index.html":   `{% show "partial.html" %}`,
+			"partial.html": `{% var a int %}{% func() { a = 20 }() %}`,
+		},
+		expectedOut: ``,
+	},
 }
 
 var structWithUnexportedFields = &struct {
