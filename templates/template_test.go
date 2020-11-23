@@ -1108,21 +1108,21 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "index-start,M1-start,M2,M1-end,index-end",
 	},
 
-	//"Import/Macro - Importing a macro using an import statement with identifier": {
-	//	sources: map[string]string{
-	//		"index.html": `{% import pg "/page.html" %}{% show pg.M %}{% show pg.M %}`,
-	//		"page.html":  `{% macro M %}macro!{% end %}`,
-	//	},
-	//	expectedOut: "macro!macro!",
-	//},
+	"Import/Macro - Importing a macro using an import statement with identifier": {
+		sources: map[string]string{
+			"index.html": `{% import pg "/page.html" %}{% show pg.M %}{% show pg.M %}`,
+			"page.html":  `{% macro M %}macro!{% end %}`,
+		},
+		expectedOut: "macro!macro!",
+	},
 
-	//"Import/Macro - Importing a macro using an import statement with identifier (with comments)": {
-	//	sources: map[string]string{
-	//		"index.html": `{# a comment #}{% import pg "/page.html" %}{# a comment #}{% show pg.M %}{# a comment #}{% show pg.M %}{# a comment #}`,
-	//		"page.html":  `{# a comment #}{% macro M %}{# a comment #}macro!{# a comment #}{% end %}{# a comment #}`,
-	//	},
-	//	expectedOut: "macro!macro!",
-	//},
+	"Import/Macro - Importing a macro using an import statement with identifier (with comments)": {
+		sources: map[string]string{
+			"index.html": `{# a comment #}{% import pg "/page.html" %}{# a comment #}{% show pg.M %}{# a comment #}{% show pg.M %}{# a comment #}`,
+			"page.html":  `{# a comment #}{% macro M %}{# a comment #}macro!{# a comment #}{% end %}{# a comment #}`,
+		},
+		expectedOut: "macro!macro!",
+	},
 
 	"Extends - Empty page extends a page containing only text": {
 		sources: map[string]string{
