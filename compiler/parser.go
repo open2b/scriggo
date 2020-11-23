@@ -900,11 +900,11 @@ LABEL:
 		if tok.typ != tokenIdentifier {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier, string or (", tok))
 		}
-		macro := ast.NewIdentifier(tok.pos, string(tok.txt))
+		name := string(tok.txt)
+		var macro ast.Expression = ast.NewIdentifier(tok.pos, name)
 		pos.End = tok.pos.End
 		tok = p.next()
 		// import
-		var impor *ast.Identifier
 		if tok.typ == tokenPeriod {
 			tok = p.next()
 			if tok.typ != tokenIdentifier {
@@ -913,10 +913,10 @@ LABEL:
 			if len(tok.txt) == 1 && tok.txt[0] == '_' {
 				panic(syntaxError(tok.pos, "cannot use _ as value"))
 			}
-			impor = macro
-			macro = ast.NewIdentifier(tok.pos, string(tok.txt))
-			if fc, _ := utf8.DecodeRuneInString(macro.Name); !unicode.Is(unicode.Lu, fc) {
-				panic(syntaxError(tok.pos, "cannot refer to unexported macro %s", macro.Name))
+			name = string(tok.txt)
+			macro = ast.NewSelector(tok.pos, macro, name)
+			if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
+				panic(syntaxError(tok.pos, "cannot refer to unexported macro %s", name))
 			}
 			pos.End = tok.pos.End
 			tok = p.next()
@@ -938,12 +938,7 @@ LABEL:
 			pos.End = tok.pos.End
 			tok = p.next()
 		}
-		var node ast.Node
-		if impor == nil {
-			node = ast.NewShowMacro(pos, macro, args, isVariadic, tok.ctx)
-		} else {
-			node = ast.NewShowMacro(pos, ast.NewSelector(macro.Pos(), impor, macro.Name), args, isVariadic, tok.ctx)
-		}
+		node := ast.NewShowMacro(pos, macro, args, isVariadic, tok.ctx)
 		p.addChild(node)
 		p.cutSpacesToken = true
 		tok = p.parseEnd(tok, tokenEndStatement, end)
