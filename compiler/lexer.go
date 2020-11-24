@@ -856,6 +856,12 @@ LOOP:
 			}
 		case '/':
 			if len(l.src) > 1 && l.src[1] == '/' {
+				if end == tokenEndStatement {
+					return l.errorf("comments in {%% %%} not allowed")
+				}
+				if end == tokenRightBraces {
+					return l.errorf("comments in {{ }} not allowed")
+				}
 				p := bytes.Index(l.src, []byte("\n"))
 				if p == -1 {
 					break LOOP
@@ -870,6 +876,12 @@ LOOP:
 				continue LOOP
 			}
 			if len(l.src) > 1 && l.src[1] == '*' {
+				if end == tokenEndStatement {
+					return l.errorf("comments in {%% %%} not allowed")
+				}
+				if end == tokenRightBraces {
+					return l.errorf("comments in {{ }} not allowed")
+				}
 				p := bytes.Index(l.src, []byte("*/"))
 				if p == -1 {
 					return l.errorf("comment not terminated")

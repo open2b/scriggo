@@ -826,18 +826,45 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: `3`,
 	},
 
-	"Multi rows with comments": {
+	"Comments // between {% and %}": {
 		sources: map[string]string{
 			"index.html": `{%
 // pre comment
-/* pre comment */
 	print(3)
-/* post comment */
-// post comment
-
 %}`,
 		},
-		expectedOut: `3`,
+		expectedLoadErr: `comments in {% %} not allowed`,
+	},
+
+	"Comments /* */ between {% and %}": {
+		sources: map[string]string{
+			"index.html": `{% /* pre comment */ print(3) %}`,
+		},
+		expectedLoadErr: `comments in {% %} not allowed`,
+	},
+
+	"Comments /* */ in {% and %} (2)": {
+		sources: map[string]string{
+			"index.html": `{% print(6 /* pre comment */ 3) %}`,
+		},
+		expectedLoadErr: `comments in {% %} not allowed`,
+	},
+
+	"Comments // between {{ and }}": {
+		sources: map[string]string{
+			"index.html": `{{
+	// comment
+	5
+}}`,
+		},
+		expectedLoadErr: `comments in {{ }} not allowed`,
+	},
+
+	"Comments /* */ between {{ and }}": {
+		sources: map[string]string{
+			"index.html": `{{ /* comment */ 5 }}`,
+		},
+		expectedLoadErr: `comments in {{ }} not allowed`,
 	},
 
 	"Using a function declared in main": {
