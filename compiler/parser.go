@@ -283,7 +283,10 @@ func ParseTemplateSource(src []byte, lang ast.Language, imported bool) (tree *as
 		var text *ast.Text
 		if tok.typ == tokenText {
 			if (imported || p.hasExtend) && len(p.ancestors) == 1 && !containsOnlySpaces(tok.txt) {
-				return nil, syntaxError(tok.pos, "unexpected text, expecting declaration")
+				if imported {
+					return nil, syntaxError(tok.pos, "unexpected text in imported file")
+				}
+				return nil, syntaxError(tok.pos, "unexpected text in file with extends")
 			}
 			text = ast.NewText(tok.pos, tok.txt, ast.Cut{})
 		}
