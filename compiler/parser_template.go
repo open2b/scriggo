@@ -99,7 +99,7 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 	var err error
 	var path string
 	var lang ast.Language
-	var declarationsFile bool
+	var imported bool
 
 	// Get the file's absolute path, its language and if it should be
 	// a declarations file.
@@ -110,7 +110,7 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 	case *ast.Import:
 		path = n.Path
 		lang = ast.Language(n.Context)
-		declarationsFile = true
+		imported = true
 	case *ast.ShowPartial:
 		path = n.Path
 		lang = ast.Language(n.Context)
@@ -152,7 +152,7 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 
 	if tree == nil {
 		// Parse the file.
-		tree, err = pp.parseFile(path, lang, declarationsFile)
+		tree, err = pp.parseFile(path, lang, imported)
 		if err != nil {
 			return nil, err
 		}
@@ -166,16 +166,16 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 }
 
 // parseFile parses the file with the given path, written in language lang.
-// declarationsFile indicates whether src should be a declarations file.
+// imported indicates whether the file is imported.
 // path must be absolute and cleared.
-func (pp *templateExpansion) parseFile(path string, lang ast.Language, declarationsFile bool) (*ast.Tree, error) {
+func (pp *templateExpansion) parseFile(path string, lang ast.Language, imported bool) (*ast.Tree, error) {
 
 	src, err := pp.reader.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	tree, err := ParseTemplateSource(src, lang, declarationsFile)
+	tree, err := ParseTemplateSource(src, lang, imported)
 	if err != nil {
 		if se, ok := err.(*SyntaxError); ok {
 			se.path = path

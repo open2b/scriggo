@@ -114,8 +114,8 @@ type parsing struct {
 	// Report whether it is a script.
 	isScript bool
 
-	// Report whether it should be a declarations file.
-	declarationsFile bool
+	// Report whether it is imported.
+	imported bool
 
 	// Reports whether it has an extend statement.
 	hasExtend bool
@@ -233,15 +233,11 @@ func parseSource(src []byte, script, shebang bool) (tree *ast.Tree, err error) {
 
 // ParseTemplateSource parses a template with source src written in the
 // language lang and returns its tree. language can be Text, HTML, CSS or
-// JavaScript.
-//
-// declarationsFile indicates whether src should be a declarations file and
-// therefore whether it should contains, at top level, only extends and import
-// statements, comments and macro, variable, constant and type declarations.
+// JavaScript. imported indicates whether it is imported.
 //
 // ParseTemplateSource does not expand the nodes Extends, ShowPartial and
 // Import.
-func ParseTemplateSource(src []byte, lang ast.Language, declarationsFile bool) (tree *ast.Tree, err error) {
+func ParseTemplateSource(src []byte, lang ast.Language, imported bool) (tree *ast.Tree, err error) {
 
 	if lang < ast.LanguageText || lang > ast.LanguageJSON {
 		return nil, errors.New("scriggo: invalid language")
@@ -250,10 +246,10 @@ func ParseTemplateSource(src []byte, lang ast.Language, declarationsFile bool) (
 	tree = ast.NewTree("", nil, lang)
 
 	var p = &parsing{
-		lex:              scanTemplate(src, lang),
-		language:         lang,
-		declarationsFile: declarationsFile,
-		ancestors:        []ast.Node{tree},
+		lex:       scanTemplate(src, lang),
+		language:  lang,
+		imported:  imported,
+		ancestors: []ast.Node{tree},
 	}
 
 	defer func() {
@@ -286,7 +282,7 @@ func ParseTemplateSource(src []byte, lang ast.Language, declarationsFile bool) (
 
 		var text *ast.Text
 		if tok.typ == tokenText {
-			if (declarationsFile || p.hasExtend) && len(p.ancestors) == 1 && !containsOnlySpaces(tok.txt) {
+			if (imported || p.hasExtend) && len(p.ancestors) == 1 && !containsOnlySpaces(tok.txt) {
 				return nil, syntaxError(tok.pos, "unexpected text, expecting declaration")
 			}
 			text = ast.NewText(tok.pos, tok.txt, ast.Cut{})
@@ -432,7 +428,7 @@ LABEL:
 	wantCase := false
 	switch s := p.parent().(type) {
 	case *ast.Tree:
-		if p.declarationsFile || p.hasExtend {
+		if p.imported || p.hasExtend {
 			switch tok.typ {
 			case tokenExtends, tokenImport, tokenMacro, tokenVar, tokenConst, tokenType:
 			default:
