@@ -102,6 +102,27 @@ func containsOnlySpaces(bytes []byte) bool {
 	return true
 }
 
+// firstNonSpacePosition returns the position of the first non space character
+// in token. Returns nil if token does not contain non space characters.
+func firstNonSpacePosition(tok token) *ast.Position {
+	pos := *(tok.pos)
+	for i, b := range tok.txt {
+		switch b {
+		case ' ', '\t', '\r':
+			pos.Column++
+		case '\n':
+			pos.Line++
+			pos.Column = 1
+		default:
+			_, n := utf8.DecodeRune(tok.txt[i:])
+			pos.Start += i
+			pos.End = pos.Start + n
+			return &pos
+		}
+	}
+	return nil
+}
+
 // parsing is a parsing state.
 type parsing struct {
 
@@ -283,10 +304,11 @@ func ParseTemplateSource(src []byte, lang ast.Language, imported bool) (tree *as
 		var text *ast.Text
 		if tok.typ == tokenText {
 			if (imported || p.hasExtend) && len(p.ancestors) == 1 && !containsOnlySpaces(tok.txt) {
+				pos := firstNonSpacePosition(tok)
 				if imported {
-					return nil, syntaxError(tok.pos, "unexpected text in imported file")
+					return nil, syntaxError(pos, "unexpected text in imported file")
 				}
-				return nil, syntaxError(tok.pos, "unexpected text in file with extends")
+				return nil, syntaxError(pos, "unexpected text in file with extends")
 			}
 			text = ast.NewText(tok.pos, tok.txt, ast.Cut{})
 		}

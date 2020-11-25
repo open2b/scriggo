@@ -2277,6 +2277,14 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: ``,
 	},
+
+	"Error positioned in first non space character": {
+		sources: map[string]string{
+			"index.html":    `{% import "imported.html" %}`,
+			"imported.html": "\n \n\té",
+		},
+		expectedLoadErr: `3:2: syntax error: unexpected text in imported file`,
+	},
 }
 
 var structWithUnexportedFields = &struct {
