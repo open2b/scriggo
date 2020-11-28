@@ -13,48 +13,48 @@ import (
 
 func Test_commentedError(t *testing.T) {
 	cases := []struct {
-		input          commentedError
-		wantCSS        string
-		wantHTML       string
-		wantJavaScript string
+		input    commentedError
+		wantCSS  string
+		wantHTML string
+		wantJS   string
 	}{
 		{
-			input:          commentedError{errors.New("an error occurred")},
-			wantCSS:        "/* an error occurred */",
-			wantHTML:       "<!-- an error occurred -->",
-			wantJavaScript: "/* an error occurred */",
+			input:    commentedError{errors.New("an error occurred")},
+			wantCSS:  "/* an error occurred */",
+			wantHTML: "<!-- an error occurred -->",
+			wantJS:   "/* an error occurred */",
 		},
 
 		{
-			input:          commentedError{nil},
-			wantCSS:        "",
-			wantHTML:       "",
-			wantJavaScript: "",
+			input:    commentedError{nil},
+			wantCSS:  "",
+			wantHTML: "",
+			wantJS:   "",
 		},
 
 		{
-			input:          commentedError{errors.New("*int returned an error")},
-			wantCSS:        "/* *int returned an error */",
-			wantHTML:       "<!-- *int returned an error -->",
-			wantJavaScript: "/* *int returned an error */",
+			input:    commentedError{errors.New("*int returned an error")},
+			wantCSS:  "/* *int returned an error */",
+			wantHTML: "<!-- *int returned an error -->",
+			wantJS:   "/* *int returned an error */",
 		},
 		{
-			input:          commentedError{errors.New("bad */ error")},
-			wantCSS:        "/* bad * / error */",
-			wantHTML:       "<!-- bad */ error -->",
-			wantJavaScript: "/* bad * / error */",
+			input:    commentedError{errors.New("bad */ error")},
+			wantCSS:  "/* bad * / error */",
+			wantHTML: "<!-- bad */ error -->",
+			wantJS:   "/* bad * / error */",
 		},
 		{
-			input:          commentedError{errors.New("bad --> error")},
-			wantCSS:        "/* bad --> error */",
-			wantHTML:       "<!-- bad -- > error -->",
-			wantJavaScript: "/* bad --> error */",
+			input:    commentedError{errors.New("bad --> error")},
+			wantCSS:  "/* bad --> error */",
+			wantHTML: "<!-- bad -- > error -->",
+			wantJS:   "/* bad --> error */",
 		},
 		{
-			input:          commentedError{errors.New("invalid char: \xc5; end")},
-			wantCSS:        "/* invalid char: �; end */",
-			wantHTML:       "<!-- invalid char: �; end -->",
-			wantJavaScript: "/* invalid char: �; end */",
+			input:    commentedError{errors.New("invalid char: \xc5; end")},
+			wantCSS:  "/* invalid char: �; end */",
+			wantHTML: "<!-- invalid char: �; end -->",
+			wantJS:   "/* invalid char: �; end */",
 		},
 	}
 	for _, cas := range cases {
@@ -73,9 +73,9 @@ func Test_commentedError(t *testing.T) {
 			}
 
 			// JavaScript.
-			gotJavaScript := cas.input.JavaScript()
-			if gotJavaScript != cas.wantJavaScript {
-				t.Errorf("JavaScript: got %q, want %q", gotJavaScript, cas.wantJavaScript)
+			gotJS := cas.input.JS()
+			if gotJS != cas.wantJS {
+				t.Errorf("JavaScript: got %q, want %q", gotJS, cas.wantJS)
 			}
 
 			// JSON.

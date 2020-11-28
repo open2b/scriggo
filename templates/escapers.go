@@ -317,10 +317,10 @@ func cssStringEscape(w strWriter, s string) error {
 	return nil
 }
 
-// javaScriptStringEscapes contains the runes that must be escaped when placed
-// within a JavaScript and JSON string with single or double quotes, in
-// addition to the runes U+2028 and U+2029.
-var javaScriptStringEscapes = []string{
+// jsStringEscapes contains the runes that must be escaped when placed within
+// a JavaScript and JSON string with single or double quotes, in addition to
+// the runes U+2028 and U+2029.
+var jsStringEscapes = []string{
 	0:    `\u0000`,
 	1:    `\u0001`,
 	2:    `\u0002`,
@@ -361,15 +361,15 @@ var javaScriptStringEscapes = []string{
 	'\\': `\\`,
 }
 
-// javaScriptStringEscape escapes the string s so it can be placed within a
-// JavaScript and JSON string with single or double quotes, and write it to w.
-func javaScriptStringEscape(w strWriter, s string) error {
+// jsStringEscape escapes the string s so it can be placed within a JavaScript
+// and JSON string with single or double quotes, and write it to w.
+func jsStringEscape(w strWriter, s string) error {
 	last := 0
 	for i, c := range s {
 		var esc string
 		switch {
-		case int(c) < len(javaScriptStringEscapes):
-			esc = javaScriptStringEscapes[c]
+		case int(c) < len(jsStringEscapes):
+			esc = jsStringEscapes[c]
 		case c == '\u2028':
 			esc = `\u2028`
 		case c == '\u2029':
@@ -404,10 +404,10 @@ func javaScriptStringEscape(w strWriter, s string) error {
 // jsonStringEscape escapes the string s so it can be placed within a JSON
 // string, and write it to w.
 //
-// jsonStringEscape calls the javaScriptStringEscape function that can also
+// jsonStringEscape calls the jsStringEscape function that can also
 // escape JSON.
 func jsonStringEscape(w strWriter, s string) error {
-	return javaScriptStringEscape(w, s)
+	return jsStringEscape(w, s)
 }
 
 func isHexDigit(c byte) bool {

@@ -247,7 +247,7 @@ func TestScriptContext(t *testing.T) {
 	}
 }
 
-var javaScriptContextTests = []struct {
+var jsContextTests = []struct {
 	src  string
 	res  string
 	vars Vars
@@ -255,8 +255,8 @@ var javaScriptContextTests = []struct {
 	{"t", `new Date("2016-01-02T15:04:05.000Z")`, Vars{"t": time.Date(2016, 1, 2, 15, 04, 05, 0, time.UTC)}},
 }
 
-func TestJavaScriptContext(t *testing.T) {
-	for _, expr := range javaScriptContextTests {
+func TestJSContext(t *testing.T) {
+	for _, expr := range jsContextTests {
 		r := MapReader{"index.html": []byte("<script>{{" + expr.src + "}}</script>")}
 		opts := &LoadOptions{
 			Globals: asDeclarations(expr.vars),
@@ -311,10 +311,10 @@ func TestJSONContext(t *testing.T) {
 	}
 }
 
-func TestJavaScriptStringEscape(t *testing.T) {
+func TestJSStringEscape(t *testing.T) {
 	b := strings.Builder{}
 	s := "a\u2028b&\u2029c"
-	err := javaScriptStringEscape(&b, s)
+	err := jsStringEscape(&b, s)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -323,7 +323,7 @@ func TestJavaScriptStringEscape(t *testing.T) {
 	}
 }
 
-var javaScriptStringContextTests = []struct {
+var jsStringContextTests = []struct {
 	src  string
 	res  string
 	vars Vars
@@ -344,9 +344,9 @@ var javaScriptStringContextTests = []struct {
 	{`a`, `\u003c\u003e\"`, Vars{"a": "<>\""}},
 }
 
-func TestJavaScriptStringContext(t *testing.T) {
+func TestJSStringContext(t *testing.T) {
 	for _, q := range []string{"\"", "'"} {
-		for _, expr := range javaScriptStringContextTests {
+		for _, expr := range jsStringContextTests {
 			r := MapReader{"index.html": []byte("<script>" + q + "{{" + expr.src + "}}" + q + "</script>")}
 			opts := &LoadOptions{
 				Globals: asDeclarations(expr.vars),

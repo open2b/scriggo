@@ -635,7 +635,7 @@ nodesLoop:
 			kind := ti.Type.Kind()
 			switch node.Context {
 			case ast.ContextText, ast.ContextTag, ast.ContextQuotedAttribute, ast.ContextUnquotedAttribute,
-				ast.ContextCSSString, ast.ContextJavaScriptString, ast.ContextJSONString:
+				ast.ContextCSSString, ast.ContextJSString, ast.ContextJSONString:
 				switch {
 				case kind == reflect.String:
 				case reflect.Bool <= kind && kind <= reflect.Complex128:
@@ -675,8 +675,8 @@ nodesLoop:
 				default:
 					panic(tc.errorf(node, "cannot print %s (type %s cannot be printed as CSS)", node.Expr, ti))
 				}
-			case ast.ContextJavaScript:
-				err := printedAsJavaScript(ti.Type)
+			case ast.ContextJS:
+				err := printedAsJS(ti.Type)
 				if err != nil {
 					panic(tc.errorf(node, "cannot print %s (%s)", node.Expr, err))
 				}

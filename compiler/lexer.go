@@ -158,7 +158,7 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 	}
 }
 
-var javaScriptMimeType = []byte("text/javascript")
+var jsMimeType = []byte("text/javascript")
 var jsonLDMimeType = []byte("application/ld+json")
 var cssMimeType = []byte("text/css")
 
@@ -288,7 +288,7 @@ func (l *lexer) scan() {
 						l.ctx = ast.ContextTag
 						switch l.tag.name {
 						case "script":
-							l.tag.ctx = ast.ContextJavaScript
+							l.tag.ctx = ast.ContextJS
 						case "style":
 							l.tag.ctx = ast.ContextCSS
 						}
@@ -362,7 +362,7 @@ func (l *lexer) scan() {
 							if l.tag.name == "script" {
 								if bytes.EqualFold(typ, jsonLDMimeType) {
 									l.tag.ctx = ast.ContextJSON
-								} else if !bytes.EqualFold(typ, javaScriptMimeType) {
+								} else if !bytes.EqualFold(typ, jsMimeType) {
 									l.tag.ctx = ast.ContextHTML
 								}
 							} else {
@@ -410,18 +410,18 @@ func (l *lexer) scan() {
 					}
 				}
 
-			case ast.ContextJavaScript:
+			case ast.ContextJS:
 				if isHTML && c == '<' && isEndScript(l.src[p:]) {
 					// </script>
 					l.ctx = ast.ContextHTML
 					p += 8
 					l.column += 8
 				} else if c == '"' || c == '\'' {
-					l.ctx = ast.ContextJavaScriptString
+					l.ctx = ast.ContextJSString
 					quote = c
 				}
 
-			case ast.ContextJavaScriptString:
+			case ast.ContextJSString:
 				switch c {
 				case '\\':
 					if p+1 < len(l.src) && l.src[p+1] == quote {
@@ -429,7 +429,7 @@ func (l *lexer) scan() {
 						l.column++
 					}
 				case quote:
-					l.ctx = ast.ContextJavaScript
+					l.ctx = ast.ContextJS
 					quote = 0
 				case '<':
 					if isHTML && isEndScript(l.src[p:]) {

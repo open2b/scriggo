@@ -55,10 +55,10 @@ func render(env runtime.Env, out io.Writer, value interface{}, ctx ast.Context) 
 		err = renderInCSS(env, out, value)
 	case ast.ContextCSSString:
 		err = renderInCSSString(env, out, value)
-	case ast.ContextJavaScript:
-		err = renderInJavaScript(env, out, value)
-	case ast.ContextJavaScriptString:
-		err = renderInJavaScriptString(env, out, value)
+	case ast.ContextJS:
+		err = renderInJS(env, out, value)
+	case ast.ContextJSString:
+		err = renderInJSString(env, out, value)
 	case ast.ContextJSON:
 		err = renderInJSON(env, out, value)
 	case ast.ContextJSONString:
@@ -319,23 +319,23 @@ func renderInCSSString(env runtime.Env, out io.Writer, value interface{}) error 
 	return cssStringEscape(newStringWriter(out), s)
 }
 
-// renderInJavaScript renders value in JavaScript context.
-func renderInJavaScript(env runtime.Env, out io.Writer, value interface{}) error {
+// renderInJS renders value in JavaScript context.
+func renderInJS(env runtime.Env, out io.Writer, value interface{}) error {
 
 	w := newStringWriter(out)
 
 	switch v := value.(type) {
-	case JavaScript:
+	case JS:
 		_, err := w.WriteString(string(v))
 		return err
-	case JavaScriptStringer:
-		_, err := w.WriteString(v.JavaScript())
+	case JSStringer:
+		_, err := w.WriteString(v.JS())
 		return err
-	case JavaScriptEnvStringer:
-		_, err := w.WriteString(v.JavaScript(env))
+	case JSEnvStringer:
+		_, err := w.WriteString(v.JS(env))
 		return err
 	case time.Time:
-		_, err := w.WriteString(renderTimeInJavaScript(v))
+		_, err := w.WriteString(renderTimeInJS(v))
 		return err
 	case error:
 		value = v.Error()
@@ -364,7 +364,7 @@ func renderInJavaScript(env runtime.Env, out io.Writer, value interface{}) error
 	case reflect.String:
 		_, err := w.WriteString("\"")
 		if err == nil {
-			err = javaScriptStringEscape(w, v.String())
+			err = jsStringEscape(w, v.String())
 		}
 		if err == nil {
 			_, err = w.WriteString("\"")
@@ -394,7 +394,7 @@ func renderInJavaScript(env runtime.Env, out io.Writer, value interface{}) error
 				_, err = w.WriteString(",")
 			}
 			if err == nil {
-				err = renderInJavaScript(env, out, v.Index(i).Interface())
+				err = renderInJS(env, out, v.Index(i).Interface())
 			}
 		}
 		if err == nil {
@@ -406,7 +406,7 @@ func renderInJavaScript(env runtime.Env, out io.Writer, value interface{}) error
 			s = "null"
 			break
 		}
-		return renderInJavaScript(env, out, v.Elem().Interface())
+		return renderInJS(env, out, v.Elem().Interface())
 	case reflect.Struct:
 		t := v.Type()
 		n := t.NumField()
@@ -437,13 +437,13 @@ func renderInJavaScript(env runtime.Env, out io.Writer, value interface{}) error
 					_, err = w.WriteString(`,"`)
 				}
 				if err == nil {
-					err = javaScriptStringEscape(w, name)
+					err = jsStringEscape(w, name)
 				}
 				if err == nil {
 					_, err = w.WriteString(`":`)
 				}
 				if err == nil {
-					err = renderInJavaScript(env, w, value.Interface())
+					err = renderInJS(env, w, value.Interface())
 				}
 				first = false
 			}
@@ -489,13 +489,13 @@ func renderInJavaScript(env runtime.Env, out io.Writer, value interface{}) error
 				_, err = w.WriteString(`,"`)
 			}
 			if err == nil {
-				err = javaScriptStringEscape(w, keyPair.key)
+				err = jsStringEscape(w, keyPair.key)
 			}
 			if err == nil {
 				_, err = w.WriteString(`":`)
 			}
 			if err == nil {
-				err = renderInJavaScript(env, out, keyPair.val)
+				err = renderInJS(env, out, keyPair.val)
 			}
 		}
 		if err == nil {
@@ -707,8 +707,8 @@ func renderInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 	return err
 }
 
-// renderInJavaScriptString renders value in JavaScriptString context.
-func renderInJavaScriptString(env runtime.Env, out io.Writer, value interface{}) error {
+// renderInJSString renders value in JSString context.
+func renderInJSString(env runtime.Env, out io.Writer, value interface{}) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
@@ -720,17 +720,16 @@ func renderInJavaScriptString(env runtime.Env, out io.Writer, value interface{})
 	default:
 		s = toString(reflect.ValueOf(value))
 	}
-	return javaScriptStringEscape(newStringWriter(out), s)
+	return jsStringEscape(newStringWriter(out), s)
 }
 
 // renderInJSONString renders value in JSONString context.
 func renderInJSONString(env runtime.Env, out io.Writer, value interface{}) error {
-	return renderInJavaScriptString(env, out, value)
+	return renderInJSString(env, out, value)
 }
 
-// renderTimeInJavaScript renders a value of type time.Time in a JavaScript
-// context.
-func renderTimeInJavaScript(tt time.Time) string {
+// renderTimeInJS renders a value of type time.Time in a JavaScript context.
+func renderTimeInJS(tt time.Time) string {
 	y := tt.Year()
 	if y < -999999 || y > 999999 {
 		panic("not representable year in JavaScript")

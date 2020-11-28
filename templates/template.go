@@ -62,16 +62,16 @@ type CSSEnvStringer interface {
 	CSS(runtime.Env) string
 }
 
-// JavaScriptStringer is implemented by values that are not escaped in
-// JavaScript context.
-type JavaScriptStringer interface {
-	JavaScript() string
+// JSStringer is implemented by values that are not escaped in JavaScript
+// context.
+type JSStringer interface {
+	JS() string
 }
 
-// JavaScriptEnvStringer is like JavaScriptStringer where the JavaScript method
-// takes a runtime.Env parameter.
-type JavaScriptEnvStringer interface {
-	JavaScript(runtime.Env) string
+// JSEnvStringer is like JSStringer where the JS method takes a runtime.Env
+// parameter.
+type JSEnvStringer interface {
+	JS(runtime.Env) string
 }
 
 // JSONStringer is implemented by values that are not escaped in JSON context.
@@ -99,10 +99,10 @@ func (css CSS) CSS() string {
 	return string(css)
 }
 
-// JavaScript implements the JavaScriptStringer interface.
-type JavaScript string
+// JS implements the JSStringer interface.
+type JS string
 
-func (js JavaScript) JavaScript() string {
+func (js JS) JS() string {
 	return string(js)
 }
 
@@ -120,7 +120,7 @@ const (
 	LanguageText Language = iota
 	LanguageHTML
 	LanguageCSS
-	LanguageJavaScript
+	LanguageJS
 	LanguageJSON
 )
 

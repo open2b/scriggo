@@ -1248,7 +1248,7 @@ var treeTests = []struct {
 	{"{% show(a) %}", ast.NewTree("", []ast.Node{ast.NewShow(p(1, 4, 3, 9), ast.NewIdentifier(p(1, 9, 8, 8), "a"), ast.ContextHTML)}, ast.LanguageHTML)},
 	{"<script>{% show(a) %}</script>", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 7), []byte("<script>"), ast.Cut{}),
-		ast.NewShow(p(1, 12, 11, 17), ast.NewIdentifier(p(1, 17, 16, 16), "a"), ast.ContextJavaScript),
+		ast.NewShow(p(1, 12, 11, 17), ast.NewIdentifier(p(1, 17, 16, 16), "a"), ast.ContextJS),
 		ast.NewText(p(1, 22, 21, 29), []byte("</script>"), ast.Cut{}),
 	}, ast.LanguageHTML)},
 	{"{% for v in e %}b{% end for %}", ast.NewTree("", []ast.Node{

@@ -48,7 +48,7 @@ func (ce commentedError) HTML() string {
 	return "<!--" + msg + "-->"
 }
 
-func (ce commentedError) JavaScript() string {
+func (ce commentedError) JS() string {
 	if ce.Err == nil {
 		return ""
 	}

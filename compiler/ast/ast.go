@@ -117,7 +117,7 @@ const (
 	LanguageText Language = iota
 	LanguageHTML
 	LanguageCSS
-	LanguageJavaScript
+	LanguageJS
 	LanguageJSON
 	LanguageGo // TODO(marco): move in first position.
 )
@@ -132,7 +132,7 @@ func (lang Language) String() string {
 		return "HTML"
 	case LanguageCSS:
 		return "CSS"
-	case LanguageJavaScript:
+	case LanguageJS:
 		return "JavaScript"
 	case LanguageJSON:
 		return "JSON"
@@ -147,14 +147,14 @@ const (
 	ContextText Context = iota
 	ContextHTML
 	ContextCSS
-	ContextJavaScript
+	ContextJS
 	ContextJSON
 	ContextGo // TODO(marco): move in first position.
 	ContextTag
 	ContextQuotedAttribute
 	ContextUnquotedAttribute
 	ContextCSSString
-	ContextJavaScriptString
+	ContextJSString
 	ContextJSONString
 )
 
@@ -168,7 +168,7 @@ func (ctx Context) String() string {
 		return "HTML"
 	case ContextCSS:
 		return "CSS"
-	case ContextJavaScript:
+	case ContextJS:
 		return "JavaScript"
 	case ContextJSON:
 		return "JSON"
@@ -180,7 +180,7 @@ func (ctx Context) String() string {
 		return "unquoted attribute"
 	case ContextCSSString:
 		return "CSS string"
-	case ContextJavaScriptString:
+	case ContextJSString:
 		return "JavaScript string"
 	case ContextJSONString:
 		return "JSON string"

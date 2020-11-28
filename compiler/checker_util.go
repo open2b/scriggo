@@ -142,20 +142,20 @@ var operatorsOfKind = [...][22]bool{
 }
 
 type (
-	HTMLStringer       interface{ HTML() string }
-	CSSStringer        interface{ CSS() string }
-	JavaScriptStringer interface{ JavaScript() string }
-	JSONStringer       interface{ JSON() string }
+	HTMLStringer interface{ HTML() string }
+	CSSStringer  interface{ CSS() string }
+	JSStringer   interface{ JS() string }
+	JSONStringer interface{ JSON() string }
 )
 
-// These interfaces are like HTMLStringer, CSSStringer, JavaScriptStringer and
+// These interfaces are like HTMLStringer, CSSStringer, JSStringer and
 // JSONStringer, but their method accepts a runtime.Env parameter that can be used inside the
 // method's body to access some environment information.
 type (
-	HTMLEnvStringer       interface{ HTML(runtime.Env) string }
-	CSSEnvStringer        interface{ CSS(runtime.Env) string }
-	JavaScriptEnvStringer interface{ JavaScript(runtime.Env) string }
-	JSONEnvStringer       interface{ JSON(runtime.Env) string }
+	HTMLEnvStringer interface{ HTML(runtime.Env) string }
+	CSSEnvStringer  interface{ CSS(runtime.Env) string }
+	JSEnvStringer   interface{ JS(runtime.Env) string }
+	JSONEnvStringer interface{ JSON(runtime.Env) string }
 )
 
 // EnvStringer is like fmt.Stringer, but its method accepts a runtime.Env as
@@ -171,8 +171,8 @@ var htmlEnvStringerType = reflect.TypeOf((*HTMLEnvStringer)(nil)).Elem()
 var cssStringerType = reflect.TypeOf((*CSSStringer)(nil)).Elem()
 var cssEnvStringerType = reflect.TypeOf((*CSSEnvStringer)(nil)).Elem()
 
-var javaScriptStringerType = reflect.TypeOf((*JavaScriptStringer)(nil)).Elem()
-var javaScriptEnvStringerType = reflect.TypeOf((*JavaScriptEnvStringer)(nil)).Elem()
+var jsStringerType = reflect.TypeOf((*JSStringer)(nil)).Elem()
+var jsEnvStringerType = reflect.TypeOf((*JSEnvStringer)(nil)).Elem()
 
 var jsonStringerType = reflect.TypeOf((*JSONStringer)(nil)).Elem()
 var jsonEnvStringerType = reflect.TypeOf((*JSONEnvStringer)(nil)).Elem()
@@ -680,20 +680,20 @@ func operatorFromAssignmentType(assignmentType ast.AssignmentType) ast.OperatorT
 	panic("unexpected assignment type")
 }
 
-// printedAsJavaScript reports whether a type can be printed as JavaScript.
-// It returns an error if the type cannot be printed.
-func printedAsJavaScript(t reflect.Type) error {
+// printedAsJS reports whether a type can be printed as JavaScript. It returns
+// an error if the type cannot be printed.
+func printedAsJS(t reflect.Type) error {
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
 		t == timeType ||
-		t.Implements(javaScriptStringerType) ||
-		t.Implements(javaScriptEnvStringerType) ||
+		t.Implements(jsStringerType) ||
+		t.Implements(jsEnvStringerType) ||
 		t.Implements(errorType) {
 		return nil
 	}
 	switch kind {
 	case reflect.Array:
-		if err := printedAsJavaScript(t.Elem()); err != nil {
+		if err := printedAsJS(t.Elem()); err != nil {
 			return fmt.Errorf("array of %s cannot be printed as JavaScript", t.Elem())
 		}
 	case reflect.Interface:
@@ -707,14 +707,14 @@ func printedAsJavaScript(t reflect.Type) error {
 		default:
 			return fmt.Errorf("map with %s key cannot be printed as JavaScript", t.Key())
 		}
-		err := printedAsJavaScript(t.Elem())
+		err := printedAsJS(t.Elem())
 		if err != nil {
 			return fmt.Errorf("map with %s element cannot be printed as JavaScript", t.Elem())
 		}
 	case reflect.Ptr, reflect.UnsafePointer:
-		return printedAsJavaScript(t.Elem())
+		return printedAsJS(t.Elem())
 	case reflect.Slice:
-		if err := printedAsJavaScript(t.Elem()); err != nil {
+		if err := printedAsJS(t.Elem()); err != nil {
 			return fmt.Errorf("slice of %s cannot be printed as JavaScript", t.Elem())
 		}
 	case reflect.Struct:
@@ -722,7 +722,7 @@ func printedAsJavaScript(t reflect.Type) error {
 		for i := 0; i < n; i++ {
 			field := t.Field(i)
 			if field.PkgPath == "" {
-				if err := printedAsJavaScript(field.Type); err != nil {
+				if err := printedAsJS(field.Type); err != nil {
 					return fmt.Errorf("struct containing %s cannot be printed as JavaScript", field.Type)
 				}
 			}

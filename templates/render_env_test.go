@@ -47,15 +47,15 @@ func (*testCSSEnvStringer) CSS(env runtime.Env) string {
 
 var testCSSEnvStringerValue = &testCSSEnvStringer{}
 
-// JavaScriptEnvStringer.
+// JSEnvStringer.
 
-type testJavaScriptEnvStringer struct{}
+type testJSEnvStringer struct{}
 
-func (*testJavaScriptEnvStringer) JavaScript(env runtime.Env) string {
+func (*testJSEnvStringer) JS(env runtime.Env) string {
 	return fmt.Sprint(env.Context().Value("forty-two"))
 }
 
-var testJavaScriptEnvStringerValue = &testJavaScriptEnvStringer{}
+var testJSEnvStringerValue = &testJSEnvStringer{}
 
 // JSONEnvStringer.
 
@@ -105,14 +105,14 @@ var envStringerCases = map[string]struct {
 		language: LanguageCSS,
 		want:     "border-radius: 42;",
 	},
-	"JavaScriptEnvStringer": {
+	"JSEnvStringer": {
 		sources: map[string]string{
 			"index.html": "var x = {{ v }};",
 		},
 		globals: map[string]interface{}{
-			"v": &testJavaScriptEnvStringerValue,
+			"v": &testJSEnvStringerValue,
 		},
-		language: LanguageJavaScript,
+		language: LanguageJS,
 		want:     "var x = 42;",
 	},
 	"JSONEnvStringer": {
@@ -132,7 +132,7 @@ var envStringerCases = map[string]struct {
 //  * EnvStringer
 //  * HTMLEnvStringer
 //  * CSSEnvStringer
-//  * JavaScriptEnvStringer
+//  * JSEnvStringer
 //  * JSONEnvStringer
 //
 func TestEnvStringer(t *testing.T) {
