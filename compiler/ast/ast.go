@@ -79,9 +79,9 @@ const (
 	OperatorReceive                            // <-
 	OperatorAddress                            // &
 	OperatorPointer                            // *
-	OperatorRelaxedAnd                         // and
-	OperatorRelaxedOr                          // or
-	OperatorRelaxedNot                         // not
+	OperatorExtendedAnd                        // and
+	OperatorExtendedOr                         // or
+	OperatorExtendedNot                        // not
 )
 
 func (op OperatorType) String() string {
@@ -885,7 +885,7 @@ func NewUnaryOperator(pos *Position, op OperatorType, expr Expression) *UnaryOpe
 
 func (n *UnaryOperator) String() string {
 	s := n.Op.String()
-	if n.Op == OperatorRelaxedNot {
+	if n.Op == OperatorExtendedNot {
 		s += " "
 	}
 	if e, ok := n.Expr.(Operator); ok && (n.Op == OperatorReceive || e.Precedence() <= n.Precedence()) {
@@ -953,9 +953,9 @@ func (n *BinaryOperator) Precedence() int {
 	case OperatorEqual, OperatorNotEqual, OperatorLess, OperatorLessEqual,
 		OperatorGreater, OperatorGreaterEqual, OperatorContains, OperatorNotContains:
 		return 3
-	case OperatorAnd, OperatorRelaxedAnd:
+	case OperatorAnd, OperatorExtendedAnd:
 		return 2
-	case OperatorOr, OperatorRelaxedOr:
+	case OperatorOr, OperatorExtendedOr:
 		return 1
 	}
 	panic("invalid operator type")

@@ -35,7 +35,7 @@ import (
 // As a special case, if the operand is an interface type then its value is
 // compared with the zero of the dynamic type of the interface.
 const (
-	internalOperatorZero = ast.OperatorRelaxedNot + iota + 1
+	internalOperatorZero = ast.OperatorExtendedNot + iota + 1
 	internalOperatorNotZero
 )
 

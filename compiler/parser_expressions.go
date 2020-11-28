@@ -686,11 +686,11 @@ func operatorFromTokenType(typ tokenTyp, binary bool) ast.OperatorType {
 	case tokenOr:
 		return ast.OperatorOr
 	case tokenRelaxedAnd:
-		return ast.OperatorRelaxedAnd
+		return ast.OperatorExtendedAnd
 	case tokenRelaxedOr:
-		return ast.OperatorRelaxedOr
+		return ast.OperatorExtendedOr
 	case tokenRelaxedNot:
-		return ast.OperatorRelaxedNot
+		return ast.OperatorExtendedNot
 	case tokenContains:
 		return ast.OperatorContains
 	case tokenAddition:

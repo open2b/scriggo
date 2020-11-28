@@ -409,7 +409,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				panic(tc.errorf(expr, "invalid operation: %s (receive from send-only type %s)", s, t.Type))
 			}
 			ti.Type = t.Type.Elem()
-		case ast.OperatorRelaxedNot:
+		case ast.OperatorExtendedNot:
 			if t.Nil() {
 				panic(tc.errorf(expr, "invalid operation: %s (operator '%s' not defined on nil)", expr, expr.Op))
 			}
@@ -443,7 +443,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 	case *ast.BinaryOperator:
 
 		// Handle 'a and b' and 'a or b' expressions.
-		if expr.Op == ast.OperatorRelaxedAnd || expr.Op == ast.OperatorRelaxedOr {
+		if expr.Op == ast.OperatorExtendedAnd || expr.Op == ast.OperatorExtendedOr {
 			t1 := tc.checkExpr(expr.Expr1)
 			t2 := tc.checkExpr(expr.Expr2)
 			if t1.Nil() || t2.Nil() {
@@ -453,7 +453,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				nz1 := !t1.Constant.zero()
 				nz2 := !t2.Constant.zero()
 				var nz bool
-				if expr.Op == ast.OperatorRelaxedAnd {
+				if expr.Op == ast.OperatorExtendedAnd {
 					nz = nz1 && nz2
 				} else {
 					nz = nz1 || nz2
@@ -481,7 +481,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			}
 			// Change the 'and' and 'or' operator to '&&' and '||', because the
 			// two expressions are now both booleans.
-			if expr.Op == ast.OperatorRelaxedAnd {
+			if expr.Op == ast.OperatorExtendedAnd {
 				expr.Op = ast.OperatorAnd
 			} else {
 				expr.Op = ast.OperatorOr
