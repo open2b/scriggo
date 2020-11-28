@@ -112,9 +112,9 @@ const (
 	tokenRightShift                        // >>
 	tokenStruct                            // struct
 	tokenEOF                               // eof
-	tokenRelaxedAnd                        // and
-	tokenRelaxedNot                        // not
-	tokenRelaxedOr                         // or
+	tokenExtendedAnd                       // and
+	tokenExtendedNot                       // not
+	tokenExtendedOr                        // or
 	tokenDollar                            // $
 	tokenContains                          // contains
 )
@@ -216,9 +216,9 @@ var tokenString = map[tokenTyp]string{
 	tokenRightShift:               ">>",
 	tokenStruct:                   "struct",
 	tokenEOF:                      "EOF",
-	tokenRelaxedAnd:               "and",
-	tokenRelaxedNot:               "not",
-	tokenRelaxedOr:                "or",
+	tokenExtendedAnd:              "and",
+	tokenExtendedNot:              "not",
+	tokenExtendedOr:               "or",
 	tokenDollar:                   "$",
 	tokenContains:                 "contains",
 }

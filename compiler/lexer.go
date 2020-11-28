@@ -1242,16 +1242,16 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 				if l.extendedSyntax {
 					switch id {
 					case "and":
-						l.emit(tokenRelaxedAnd, p)
+						l.emit(tokenExtendedAnd, p)
 						emitted = true
 					case "contains":
 						l.emit(tokenContains, p)
 						emitted = true
 					case "or":
-						l.emit(tokenRelaxedOr, p)
+						l.emit(tokenExtendedOr, p)
 						emitted = true
 					case "not":
-						l.emit(tokenRelaxedNot, p)
+						l.emit(tokenExtendedNot, p)
 						emitted = true
 					}
 				}

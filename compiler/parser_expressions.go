@@ -188,7 +188,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			tokenAddition,       // +e
 			tokenSubtraction,    // -e
 			tokenNot,            // !e
-			tokenRelaxedNot,     // not e
+			tokenExtendedNot,    // not e
 			tokenXor,            // ^e
 			tokenMultiplication, // *t, *T
 			tokenAmpersand:      // &e
@@ -432,8 +432,8 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				tokenGreaterOrEqual, // e >=
 				tokenAnd,            // e &&
 				tokenOr,             // e ||
-				tokenRelaxedAnd,     // e and
-				tokenRelaxedOr,      // e or
+				tokenExtendedAnd,    // e and
+				tokenExtendedOr,     // e or
 				tokenAddition,       // e +
 				tokenSubtraction,    // e -
 				tokenMultiplication, // e *
@@ -447,7 +447,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				tokenRightShift,     // e >>
 				tokenContains:       // e contains
 				operator = ast.NewBinaryOperator(tok.pos, operatorFromTokenType(tok.typ, true), nil, nil)
-			case tokenRelaxedNot: // e not contains
+			case tokenExtendedNot: // e not contains
 				next := p.next()
 				if next.typ == tokenContains {
 					pos := tok.pos.WithEnd(next.pos.End)
@@ -685,11 +685,11 @@ func operatorFromTokenType(typ tokenTyp, binary bool) ast.OperatorType {
 		return ast.OperatorAnd
 	case tokenOr:
 		return ast.OperatorOr
-	case tokenRelaxedAnd:
+	case tokenExtendedAnd:
 		return ast.OperatorExtendedAnd
-	case tokenRelaxedOr:
+	case tokenExtendedOr:
 		return ast.OperatorExtendedOr
-	case tokenRelaxedNot:
+	case tokenExtendedNot:
 		return ast.OperatorExtendedNot
 	case tokenContains:
 		return ast.OperatorContains
