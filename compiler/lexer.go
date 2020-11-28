@@ -321,9 +321,9 @@ func (l *lexer) scan() {
 							if containsURL(l.tag.name, l.tag.attr) {
 								l.emitAtLineColumn(lin, col, tokenText, p)
 								if quote == 0 {
-									l.ctx = ast.ContextUnquotedAttribute
+									l.ctx = ast.ContextUnquotedAttr
 								} else {
-									l.ctx = ast.ContextQuotedAttribute
+									l.ctx = ast.ContextQuotedAttr
 								}
 								l.emit(tokenStartURL, 0)
 								emittedURL = true
@@ -333,9 +333,9 @@ func (l *lexer) scan() {
 							} else {
 								l.tag.index = p
 								if quote == 0 {
-									l.ctx = ast.ContextUnquotedAttribute
+									l.ctx = ast.ContextUnquotedAttr
 								} else {
-									l.ctx = ast.ContextQuotedAttribute
+									l.ctx = ast.ContextQuotedAttr
 								}
 							}
 						}
@@ -343,9 +343,9 @@ func (l *lexer) scan() {
 					}
 				}
 
-			case ast.ContextQuotedAttribute, ast.ContextUnquotedAttribute:
-				if l.ctx == ast.ContextQuotedAttribute && c == quote ||
-					l.ctx == ast.ContextUnquotedAttribute && (c == '>' || isASCIISpace(c)) {
+			case ast.ContextQuotedAttr, ast.ContextUnquotedAttr:
+				if l.ctx == ast.ContextQuotedAttr && c == quote ||
+					l.ctx == ast.ContextUnquotedAttr && (c == '>' || isASCIISpace(c)) {
 					// End attribute.
 					quote = 0
 					if emittedURL {

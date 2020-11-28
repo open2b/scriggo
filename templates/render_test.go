@@ -72,7 +72,7 @@ func TestHTMLContext(t *testing.T) {
 	}
 }
 
-var quotedAttributeContextTests = []struct {
+var quotedAttrContextTests = []struct {
 	src  string
 	res  string
 	vars Vars
@@ -103,8 +103,8 @@ var quotedAttributeContextTests = []struct {
 	{`s["a"]`, "", Vars{"s": map[interface{}]interface{}{}}},
 }
 
-func TestQuotedAttributeContext(t *testing.T) {
-	for _, expr := range quotedAttributeContextTests {
+func TestQuotedAttrContext(t *testing.T) {
+	for _, expr := range quotedAttrContextTests {
 		r := MapReader{"index.html": []byte(`<z x="{{` + expr.src + `}}">`)}
 		opts := &LoadOptions{
 			Globals: asDeclarations(expr.vars),
@@ -127,7 +127,7 @@ func TestQuotedAttributeContext(t *testing.T) {
 	}
 }
 
-var unquotedAttributeContextTests = []struct {
+var unquotedAttrContextTests = []struct {
 	src  string
 	res  string
 	vars Vars
@@ -140,8 +140,8 @@ var unquotedAttributeContextTests = []struct {
 	{`a`, "&lt;a&gt;&#33;", Vars{"a": HTML("<a>&#33;")}},
 }
 
-func TestUnquotedAttributeContext(t *testing.T) {
-	for _, expr := range unquotedAttributeContextTests {
+func TestUnquotedAttrContext(t *testing.T) {
+	for _, expr := range unquotedAttrContextTests {
 		r := MapReader{"index.html": []byte(`<z x={{` + expr.src + `}}>`)}
 		opts := &LoadOptions{
 			Globals: asDeclarations(expr.vars),

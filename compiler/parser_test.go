@@ -759,15 +759,15 @@ var treeTests = []struct {
 	{"<a href=\"/{{ a }}/b\">", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 8), []byte("<a href=\""), ast.Cut{}), ast.NewURL(p(1, 10, 9, 18), "a", "href", []ast.Node{
 			ast.NewText(p(1, 10, 9, 9), []byte("/"), ast.Cut{}),
-			ast.NewShow(p(1, 11, 10, 16), ast.NewIdentifier(p(1, 14, 13, 13), "a"), ast.ContextQuotedAttribute),
+			ast.NewShow(p(1, 11, 10, 16), ast.NewIdentifier(p(1, 14, 13, 13), "a"), ast.ContextQuotedAttr),
 			ast.NewText(p(1, 18, 17, 18), []byte("/b"), ast.Cut{}),
-		}, ast.ContextQuotedAttribute),
+		}, ast.ContextQuotedAttr),
 		ast.NewText(p(1, 20, 19, 20), []byte("\">"), ast.Cut{}),
 	}, ast.LanguageHTML)},
 	{"<a href=\"\n\">", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 8), []byte("<a href=\""), ast.Cut{}), ast.NewURL(p(1, 10, 9, 9), "a", "href", []ast.Node{
 			ast.NewText(p(1, 10, 9, 9), []byte("\n"), ast.Cut{}),
-		}, ast.ContextQuotedAttribute),
+		}, ast.ContextQuotedAttr),
 		ast.NewText(p(2, 1, 10, 11), []byte("\">"), ast.Cut{}),
 	}, ast.LanguageHTML)},
 	{"<div {{ a }}>", ast.NewTree("", []ast.Node{
@@ -780,14 +780,14 @@ var treeTests = []struct {
 	}, ast.LanguageHTML)},
 	{"<div 本=\"{{ class }}\">", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 9), []byte("<div 本=\""), ast.Cut{}), ast.NewShow(p(1, 9, 10, 20),
-			ast.NewIdentifier(p(1, 12, 13, 17), "class"), ast.ContextQuotedAttribute), ast.NewText(p(1, 20, 21, 22), []byte("\">"), ast.Cut{}),
+			ast.NewIdentifier(p(1, 12, 13, 17), "class"), ast.ContextQuotedAttr), ast.NewText(p(1, 20, 21, 22), []byte("\">"), ast.Cut{}),
 	}, ast.LanguageHTML)},
 	{"<div a=/{{ class }}\"{{ class }}>", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 7), []byte("<div a=/"), ast.Cut{}), ast.NewShow(p(1, 9, 8, 18),
-			ast.NewIdentifier(p(1, 12, 11, 15), "class"), ast.ContextUnquotedAttribute),
+			ast.NewIdentifier(p(1, 12, 11, 15), "class"), ast.ContextUnquotedAttr),
 		ast.NewText(p(1, 20, 19, 19), []byte("\""), ast.Cut{}),
 		ast.NewShow(p(1, 21, 20, 30),
-			ast.NewIdentifier(p(1, 24, 23, 27), "class"), ast.ContextUnquotedAttribute),
+			ast.NewIdentifier(p(1, 24, 23, 27), "class"), ast.ContextUnquotedAttr),
 		ast.NewText(p(1, 32, 31, 31), []byte(">"), ast.Cut{}),
 	}, ast.LanguageHTML)},
 	{"{% if x == 5 %}{% end %}",

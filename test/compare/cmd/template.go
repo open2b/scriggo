@@ -90,9 +90,9 @@ func render(_ runtime.Env, out io.Writer, value interface{}, ctx ast.Context) {
 		err = renderInHTML(out, value)
 	case ast.ContextTag:
 		err = renderInTag(out, value)
-	case ast.ContextQuotedAttribute:
+	case ast.ContextQuotedAttr:
 		err = renderInAttribute(out, value, true)
-	case ast.ContextUnquotedAttribute:
+	case ast.ContextUnquotedAttr:
 		err = renderInAttribute(out, value, false)
 	default:
 		panic("scriggo: unknown context")

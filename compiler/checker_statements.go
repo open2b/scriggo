@@ -634,7 +634,7 @@ nodesLoop:
 			}
 			kind := ti.Type.Kind()
 			switch node.Context {
-			case ast.ContextText, ast.ContextTag, ast.ContextQuotedAttribute, ast.ContextUnquotedAttribute,
+			case ast.ContextText, ast.ContextTag, ast.ContextQuotedAttr, ast.ContextUnquotedAttr,
 				ast.ContextCSSString, ast.ContextJSString, ast.ContextJSONString:
 				switch {
 				case kind == reflect.String:
