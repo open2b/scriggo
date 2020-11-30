@@ -44,7 +44,7 @@ type Options struct {
 	AllowShebangLine bool
 	DisallowGoStmt   bool
 	Globals          Declarations
-	RenderFunc       RenderFunc
+	ShowFunc         ShowFunc
 
 	// Packages loads Scriggo packages and precompiled packages.
 	//
@@ -176,7 +176,7 @@ func CompileTemplate(path string, r FileReader, lang ast.Language, opts Options)
 		allowNotUsed:   true,
 		disallowGoStmt: opts.DisallowGoStmt,
 		globals:        opts.Globals,
-		renderFunc:     opts.RenderFunc,
+		showFunc:       opts.ShowFunc,
 		modality:       templateMod,
 	}
 	tci, err := typecheck(tree, opts.Packages, checkerOpts)
@@ -363,7 +363,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 	// Globals.
 	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$io.Writer", emptyInterfaceType, nil))
 	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$Write", reflect.FuncOf(nil, nil, false), nil))
-	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$Render", reflect.FuncOf(nil, nil, false), nil))
+	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$Show", reflect.FuncOf(nil, nil, false), nil))
 	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$urlWriter", reflect.TypeOf(&struct{}{}), nil))
 
 	// If page is a package, then page extends another page.

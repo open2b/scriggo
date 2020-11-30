@@ -24,55 +24,55 @@ import (
 
 var byteSliceType = reflect.TypeOf([]byte(nil))
 
-type PrintTypeError struct {
+type ShowTypeError struct {
 	t reflect.Type
 }
 
-func (err PrintTypeError) Error() string {
-	return fmt.Sprintf("cannot print value of type %s", err.t)
+func (err ShowTypeError) Error() string {
+	return fmt.Sprintf("cannot show value of type %s", err.t)
 }
-func (err PrintTypeError) RuntimeError() {}
+func (err ShowTypeError) RuntimeError() {}
 
-// render renders value in the context ctx and writes to out. If env and out
-// are nil, it does not render the value but only checks that the type of
-// value can be rendered.
+// show shows value in the context ctx and writes to out. If env and out are
+// nil, it does not show the value but only checks that the type of value can
+// be showed.
 //
-// render has type scriggo/compiler.RenderFunc.
-func render(env runtime.Env, out io.Writer, value interface{}, ctx ast.Context) {
+// show has type scriggo/compiler.ShowFunc.
+func show(env runtime.Env, out io.Writer, value interface{}, ctx ast.Context) {
 
 	var err error
 
 	if env == nil && out == nil {
-		err = printedAs(reflect.TypeOf(value), ctx)
+		err = showedAs(reflect.TypeOf(value), ctx)
 		if err != nil {
-			panic(compiler.RenderTypeError(err))
+			panic(compiler.ShowTypeError(err))
 		}
 		return
 	}
 
 	switch ctx {
 	case ast.ContextText:
-		err = renderInText(env, out, value)
+		err = showInText(env, out, value)
 	case ast.ContextHTML:
-		err = renderInHTML(env, out, value)
+		err = showInHTML(env, out, value)
 	case ast.ContextTag:
-		err = renderInTag(env, out, value)
+		err = showInTag(env, out, value)
 	case ast.ContextQuotedAttr:
-		err = renderInAttribute(env, out, value, true)
+		err = showInAttribute(env, out, value, true)
 	case ast.ContextUnquotedAttr:
-		err = renderInAttribute(env, out, value, false)
+		err = showInAttribute(env, out, value, false)
 	case ast.ContextCSS:
-		err = renderInCSS(env, out, value)
+		err = showInCSS(env, out, value)
 	case ast.ContextCSSString:
-		err = renderInCSSString(env, out, value)
+		err = showInCSSString(env, out, value)
 	case ast.ContextJS:
-		err = renderInJS(env, out, value)
+		err = showInJS(env, out, value)
 	case ast.ContextJSString:
-		err = renderInJSString(env, out, value)
+		err = showInJSString(env, out, value)
 	case ast.ContextJSON:
-		err = renderInJSON(env, out, value)
+		err = showInJSON(env, out, value)
 	case ast.ContextJSONString:
-		err = renderInJSONString(env, out, value)
+		err = showInJSONString(env, out, value)
 	default:
 		panic("scriggo: unknown context")
 	}
@@ -155,12 +155,12 @@ func toString(v reflect.Value) string {
 		}
 		return s
 	default:
-		panic(PrintTypeError{t: v.Type()})
+		panic(ShowTypeError{t: v.Type()})
 	}
 }
 
-// renderInText renders value in the Text context.
-func renderInText(env runtime.Env, out io.Writer, value interface{}) error {
+// showInText shows value in the Text context.
+func showInText(env runtime.Env, out io.Writer, value interface{}) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
@@ -177,8 +177,8 @@ func renderInText(env runtime.Env, out io.Writer, value interface{}) error {
 	return err
 }
 
-// renderInHTML renders value in HTML context.
-func renderInHTML(env runtime.Env, out io.Writer, value interface{}) error {
+// showInHTML shiws value in HTML context.
+func showInHTML(env runtime.Env, out io.Writer, value interface{}) error {
 	w := newStringWriter(out)
 	switch v := value.(type) {
 	case HTML:
@@ -204,8 +204,8 @@ func renderInHTML(env runtime.Env, out io.Writer, value interface{}) error {
 	}
 }
 
-// renderInTag renders value in Tag context.
-func renderInTag(env runtime.Env, out io.Writer, value interface{}) error {
+// showInTag show value in Tag context.
+func showInTag(env runtime.Env, out io.Writer, value interface{}) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
@@ -241,9 +241,9 @@ func renderInTag(env runtime.Env, out io.Writer, value interface{}) error {
 	return err
 }
 
-// renderInAttribute renders value in the attribute context quoted or unquoted
+// showInAttribute shows value in the attribute context quoted or unquoted
 // depending on quoted value.
-func renderInAttribute(env runtime.Env, out io.Writer, value interface{}, quoted bool) error {
+func showInAttribute(env runtime.Env, out io.Writer, value interface{}, quoted bool) error {
 	var s string
 	var escapeEntities bool
 	switch v := value.(type) {
@@ -269,8 +269,8 @@ func renderInAttribute(env runtime.Env, out io.Writer, value interface{}, quoted
 	return attributeEscape(newStringWriter(out), s, escapeEntities, quoted)
 }
 
-// renderInCSS renders value in CSS context.
-func renderInCSS(env runtime.Env, out io.Writer, value interface{}) error {
+// showInCSS shows value in CSS context.
+func showInCSS(env runtime.Env, out io.Writer, value interface{}) error {
 	w := newStringWriter(out)
 	switch v := value.(type) {
 	case CSS:
@@ -308,8 +308,8 @@ func renderInCSS(env runtime.Env, out io.Writer, value interface{}) error {
 	}
 }
 
-// renderInCSSString renders value in CSSString context.
-func renderInCSSString(env runtime.Env, out io.Writer, value interface{}) error {
+// showInCSSString shows value in CSSString context.
+func showInCSSString(env runtime.Env, out io.Writer, value interface{}) error {
 	var s string
 	switch value := value.(type) {
 	case fmt.Stringer:
@@ -329,8 +329,8 @@ func renderInCSSString(env runtime.Env, out io.Writer, value interface{}) error 
 	return cssStringEscape(newStringWriter(out), s)
 }
 
-// renderInJS renders value in JavaScript context.
-func renderInJS(env runtime.Env, out io.Writer, value interface{}) error {
+// showInJS shows value in JavaScript context.
+func showInJS(env runtime.Env, out io.Writer, value interface{}) error {
 
 	w := newStringWriter(out)
 
@@ -345,7 +345,7 @@ func renderInJS(env runtime.Env, out io.Writer, value interface{}) error {
 		_, err := w.WriteString(v.JS(env))
 		return err
 	case time.Time:
-		_, err := w.WriteString(renderTimeInJS(v))
+		_, err := w.WriteString(showTimeInJS(v))
 		return err
 	case error:
 		value = v.Error()
@@ -404,7 +404,7 @@ func renderInJS(env runtime.Env, out io.Writer, value interface{}) error {
 				_, err = w.WriteString(",")
 			}
 			if err == nil {
-				err = renderInJS(env, out, v.Index(i).Interface())
+				err = showInJS(env, out, v.Index(i).Interface())
 			}
 		}
 		if err == nil {
@@ -416,7 +416,7 @@ func renderInJS(env runtime.Env, out io.Writer, value interface{}) error {
 			s = "null"
 			break
 		}
-		return renderInJS(env, out, v.Elem().Interface())
+		return showInJS(env, out, v.Elem().Interface())
 	case reflect.Struct:
 		t := v.Type()
 		n := t.NumField()
@@ -453,7 +453,7 @@ func renderInJS(env runtime.Env, out io.Writer, value interface{}) error {
 					_, err = w.WriteString(`":`)
 				}
 				if err == nil {
-					err = renderInJS(env, w, value.Interface())
+					err = showInJS(env, w, value.Interface())
 				}
 				first = false
 			}
@@ -505,7 +505,7 @@ func renderInJS(env runtime.Env, out io.Writer, value interface{}) error {
 				_, err = w.WriteString(`":`)
 			}
 			if err == nil {
-				err = renderInJS(env, out, keyPair.val)
+				err = showInJS(env, out, keyPair.val)
 			}
 		}
 		if err == nil {
@@ -520,8 +520,8 @@ func renderInJS(env runtime.Env, out io.Writer, value interface{}) error {
 	return err
 }
 
-// renderInJSON renders value in JSON context.
-func renderInJSON(env runtime.Env, out io.Writer, value interface{}) error {
+// showInJSON shows value in JSON context.
+func showInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 
 	w := newStringWriter(out)
 
@@ -601,7 +601,7 @@ func renderInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 				_, err = w.WriteString(",")
 			}
 			if err == nil {
-				err = renderInJSON(env, out, v.Index(i).Interface())
+				err = showInJSON(env, out, v.Index(i).Interface())
 			}
 		}
 		if err == nil {
@@ -613,7 +613,7 @@ func renderInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 			s = "null"
 			break
 		}
-		return renderInJSON(env, out, v.Elem().Interface())
+		return showInJSON(env, out, v.Elem().Interface())
 	case reflect.Struct:
 		t := v.Type()
 		n := t.NumField()
@@ -650,7 +650,7 @@ func renderInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 					_, err = w.WriteString(`":`)
 				}
 				if err == nil {
-					err = renderInJSON(env, w, value.Interface())
+					err = showInJSON(env, w, value.Interface())
 				}
 				first = false
 			}
@@ -702,7 +702,7 @@ func renderInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 				_, err = w.WriteString(`":`)
 			}
 			if err == nil {
-				err = renderInJSON(env, out, keyPair.val)
+				err = showInJSON(env, out, keyPair.val)
 			}
 		}
 		if err == nil {
@@ -717,8 +717,8 @@ func renderInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 	return err
 }
 
-// renderInJSString renders value in JSString context.
-func renderInJSString(env runtime.Env, out io.Writer, value interface{}) error {
+// showInJSString shows value in JSString context.
+func showInJSString(env runtime.Env, out io.Writer, value interface{}) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
@@ -733,13 +733,13 @@ func renderInJSString(env runtime.Env, out io.Writer, value interface{}) error {
 	return jsStringEscape(newStringWriter(out), s)
 }
 
-// renderInJSONString renders value in JSONString context.
-func renderInJSONString(env runtime.Env, out io.Writer, value interface{}) error {
-	return renderInJSString(env, out, value)
+// showInJSONString shows value in JSONString context.
+func showInJSONString(env runtime.Env, out io.Writer, value interface{}) error {
+	return showInJSString(env, out, value)
 }
 
-// renderTimeInJS renders a value of type time.Time in a JavaScript context.
-func renderTimeInJS(tt time.Time) string {
+// showTimeInJS shows a value of type time.Time in a JavaScript context.
+func showTimeInJS(tt time.Time) string {
 	y := tt.Year()
 	if y < -999999 || y > 999999 {
 		panic("not representable year in JavaScript")

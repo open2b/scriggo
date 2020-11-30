@@ -35,8 +35,8 @@ var timeType = reflect.TypeOf(time.Time{})
 
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
-// printedAs reports whether a type can be printed in context ctx.
-func printedAs(t reflect.Type, ctx ast.Context) error {
+// showedAs reports whether a type can be showed in context ctx.
+func showedAs(t reflect.Type, ctx ast.Context) error {
 	kind := t.Kind()
 	switch ctx {
 	case ast.ContextText, ast.ContextTag, ast.ContextQuotedAttr, ast.ContextUnquotedAttr,
@@ -49,7 +49,7 @@ func printedAs(t reflect.Type, ctx ast.Context) error {
 		case t.Implements(envStringerType):
 		case t.Implements(errorType):
 		default:
-			return fmt.Errorf("type %s cannot be printed as text", t)
+			return fmt.Errorf("cannot show type %s as text", t)
 		}
 	case ast.ContextHTML:
 		switch {
@@ -62,7 +62,7 @@ func printedAs(t reflect.Type, ctx ast.Context) error {
 		case t.Implements(htmlEnvStringerType):
 		case t.Implements(errorType):
 		default:
-			return fmt.Errorf("type %s cannot be printed as HTML", t)
+			return fmt.Errorf("cannot show type %s as HTML", t)
 		}
 	case ast.ContextCSS:
 		switch {
@@ -75,21 +75,21 @@ func printedAs(t reflect.Type, ctx ast.Context) error {
 		case t.Implements(cssEnvStringerType):
 		case t.Implements(errorType):
 		default:
-			return fmt.Errorf("type %s cannot be printed as CSS", t)
+			return fmt.Errorf("cannot show type %s as CSS", t)
 		}
 	case ast.ContextJS:
-		return printedAsJS(t)
+		return showedAsJS(t)
 	case ast.ContextJSON:
-		return printedAsJSON(t)
+		return showedAsJSON(t)
 	default:
 		panic("unexpected context")
 	}
 	return nil
 }
 
-// printedAsJS reports whether a type can be printed as JavaScript. It returns
-// an error if the type cannot be printed.
-func printedAsJS(t reflect.Type) error {
+// showedAsJS reports whether a type can be showed as JavaScript. It returns
+// an error if the type cannot be showed.
+func showedAsJS(t reflect.Type) error {
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
 		t == timeType ||
@@ -100,8 +100,8 @@ func printedAsJS(t reflect.Type) error {
 	}
 	switch kind {
 	case reflect.Array:
-		if err := printedAsJS(t.Elem()); err != nil {
-			return fmt.Errorf("array of %s cannot be printed as JavaScript", t.Elem())
+		if err := showedAsJS(t.Elem()); err != nil {
+			return fmt.Errorf("cannot show array of %s as JavaScript", t.Elem())
 		}
 	case reflect.Interface:
 	case reflect.Map:
@@ -112,37 +112,37 @@ func printedAsJS(t reflect.Type) error {
 		case t.Implements(stringerType):
 		case t.Implements(envStringerType):
 		default:
-			return fmt.Errorf("map with %s key cannot be printed as JavaScript", t.Key())
+			return fmt.Errorf("cannot show map with %s key as JavaScript", t.Key())
 		}
-		err := printedAsJS(t.Elem())
+		err := showedAsJS(t.Elem())
 		if err != nil {
-			return fmt.Errorf("map with %s element cannot be printed as JavaScript", t.Elem())
+			return fmt.Errorf("cannot show map with %s element as JavaScript", t.Elem())
 		}
 	case reflect.Ptr, reflect.UnsafePointer:
-		return printedAsJS(t.Elem())
+		return showedAsJS(t.Elem())
 	case reflect.Slice:
-		if err := printedAsJS(t.Elem()); err != nil {
-			return fmt.Errorf("slice of %s cannot be printed as JavaScript", t.Elem())
+		if err := showedAsJS(t.Elem()); err != nil {
+			return fmt.Errorf("cannot show slice of %s as JavaScript", t.Elem())
 		}
 	case reflect.Struct:
 		n := t.NumField()
 		for i := 0; i < n; i++ {
 			field := t.Field(i)
 			if field.PkgPath == "" {
-				if err := printedAsJS(field.Type); err != nil {
-					return fmt.Errorf("struct containing %s cannot be printed as JavaScript", field.Type)
+				if err := showedAsJS(field.Type); err != nil {
+					return fmt.Errorf("cannot show struct containing %s as JavaScript", field.Type)
 				}
 			}
 		}
 	default:
-		return fmt.Errorf("type %s cannot be printed as JavaScript", t)
+		return fmt.Errorf("cannot show type %s as JavaScript", t)
 	}
 	return nil
 }
 
-// printedAsJSON reports whether a type can be printed as JSON. It returns an
-// error if the type cannot be printed.
-func printedAsJSON(t reflect.Type) error {
+// showedAsJSON reports whether a type can be showed as JSON. It returns an
+// error if the type cannot be showed.
+func showedAsJSON(t reflect.Type) error {
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
 		t == timeType ||
@@ -153,8 +153,8 @@ func printedAsJSON(t reflect.Type) error {
 	}
 	switch kind {
 	case reflect.Array:
-		if err := printedAsJSON(t.Elem()); err != nil {
-			return fmt.Errorf("array of %s cannot be printed as JSON", t.Elem())
+		if err := showedAsJSON(t.Elem()); err != nil {
+			return fmt.Errorf("cannot show array of %s as JSON", t.Elem())
 		}
 	case reflect.Interface:
 	case reflect.Map:
@@ -165,30 +165,30 @@ func printedAsJSON(t reflect.Type) error {
 		case t.Implements(stringerType):
 		case t.Implements(envStringerType):
 		default:
-			return fmt.Errorf("map with %s key cannot be printed as JSON", t.Key())
+			return fmt.Errorf("cannot show map with %s key as JSON", t.Key())
 		}
-		err := printedAsJSON(t.Elem())
+		err := showedAsJSON(t.Elem())
 		if err != nil {
-			return fmt.Errorf("map with %s element cannot be printed as JSON", t.Elem())
+			return fmt.Errorf("cannot show map with %s element as JSON", t.Elem())
 		}
 	case reflect.Ptr, reflect.UnsafePointer:
-		return printedAsJSON(t.Elem())
+		return showedAsJSON(t.Elem())
 	case reflect.Slice:
-		if err := printedAsJSON(t.Elem()); err != nil {
-			return fmt.Errorf("slice of %s cannot be printed as JSON", t.Elem())
+		if err := showedAsJSON(t.Elem()); err != nil {
+			return fmt.Errorf("cannot show slice of %s as JSON", t.Elem())
 		}
 	case reflect.Struct:
 		n := t.NumField()
 		for i := 0; i < n; i++ {
 			field := t.Field(i)
 			if field.PkgPath == "" {
-				if err := printedAsJSON(field.Type); err != nil {
-					return fmt.Errorf("struct containing %s cannot be printed as JSON", field.Type)
+				if err := showedAsJSON(field.Type); err != nil {
+					return fmt.Errorf("cannot show struct containing %s as JSON", field.Type)
 				}
 			}
 		}
 	default:
-		return fmt.Errorf("type %s cannot be printed as JSON", t)
+		return fmt.Errorf("cannot show type %s as JSON", t)
 	}
 	return nil
 }

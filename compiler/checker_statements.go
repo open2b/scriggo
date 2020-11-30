@@ -633,18 +633,18 @@ nodesLoop:
 				panic(tc.errorf(node, "use of untyped nil"))
 			}
 
-			if tc.opts.renderFunc != nil && ti.Type != emptyInterfaceType {
+			if tc.opts.showFunc != nil && ti.Type != emptyInterfaceType {
 				zero := reflect.Zero(ti.Type).Interface()
 				func() {
 					defer func() {
 						if err := recover(); err != nil {
-							if e, ok := err.(RenderTypeError); ok {
-								err = tc.errorf(node, "cannot print %s (%s)", node.Expr, e)
+							if e, ok := err.(ShowTypeError); ok {
+								err = tc.errorf(node, "cannot show %s (%s)", node.Expr, e)
 							}
 							panic(err)
 						}
 					}()
-					tc.opts.renderFunc(nil, nil, zero, node.Context)
+					tc.opts.showFunc(nil, nil, zero, node.Context)
 				}()
 			}
 

@@ -1483,7 +1483,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: `abc<hello>`,
 	},
 
-	"Cannot render byte slices in text context": {
+	"Cannot show byte slices in text context": {
 		sources: map[string]string{
 			"index.html": `{{ sb1 }}{{ sb2 }}`,
 		},
@@ -1495,7 +1495,7 @@ var templateMultiPageCases = map[string]struct {
 				"sb2": &[]byte{60, 104, 101, 108, 108, 111, 62}, // <hello>
 			},
 		},
-		expectedLoadErr: `cannot print sb1 (type []uint8 cannot be printed as text)`,
+		expectedLoadErr: `cannot show sb1 (cannot show type []uint8 as text)`,
 	},
 
 	"Using the precompiled package 'fmt'": {

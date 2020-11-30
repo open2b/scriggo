@@ -173,7 +173,7 @@ type CompilerError interface {
 // Load loads a template given its file name. Load calls the method ReadFile of
 // files to read the files of the template.
 func Load(name string, files FileReader, lang Language, options *LoadOptions) (*Template, error) {
-	co := compiler.Options{RenderFunc: render}
+	co := compiler.Options{ShowFunc: show}
 	if options != nil {
 		co.Globals = compiler.Declarations(options.Globals)
 		co.TreeTransformer = options.TreeTransformer
@@ -197,11 +197,11 @@ func Load(name string, files FileReader, lang Language, options *LoadOptions) (*
 // values of the global variables.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *RenderOptions) error {
 	writeFunc := out.Write
-	renderFunc := render
+	showFunc := show
 	uw := &urlEscaper{w: out}
 	t.globals[0].Value = &out
 	t.globals[1].Value = &writeFunc
-	t.globals[2].Value = &renderFunc
+	t.globals[2].Value = &showFunc
 	t.globals[3].Value = &uw
 	vm := newVM(options)
 	_, err := vm.Run(t.fn, t.typeof, initGlobalVariables(t.globals, vars))

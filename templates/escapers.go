@@ -545,10 +545,9 @@ func escapeBytes(w strWriter, b []byte, addQuote bool) error {
 }
 
 // urlEscaper implements an io.Writer that escapes a URL or a set of URLs and
-// writes it to another writer. An urlEscaper is passed to a RenderFunc
-// function and to a ValueRenderer Render function when the context is
-// ContextAttr or ContextUnquotedAttr and the value of the attribute is an URL
-// or a set of URL.
+// writes it to another writer. An urlEscaper is passed to a ShowFunc function
+// when the context is ContextAttr or ContextUnquotedAttr and the value of the
+// attribute is an URL or a set of URL.
 type urlEscaper struct {
 	// query reports whether it is currently in the query string.
 	query bool
