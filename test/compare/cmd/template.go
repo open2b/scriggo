@@ -22,6 +22,7 @@ import (
 	"github.com/open2b/scriggo/compiler"
 	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/runtime"
+	"github.com/open2b/scriggo/templates"
 )
 
 type mapReader map[string][]byte
@@ -190,7 +191,7 @@ func toString(v reflect.Value) string {
 func renderInHTML(out io.Writer, value interface{}) error {
 	w := newStringWriter(out)
 	switch v := value.(type) {
-	case compiler.HTMLStringer:
+	case templates.HTMLStringer:
 		_, err := w.WriteString(v.HTML())
 		return err
 	case fmt.Stringer:

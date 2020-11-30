@@ -9,11 +9,17 @@ package compiler
 import (
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 
 	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/compiler/types"
+	"github.com/open2b/scriggo/runtime"
 )
+
+type RenderFunc func(runtime.Env, io.Writer, interface{}, ast.Context)
+
+type RenderTypeError error
 
 // checkingMod represents the checking modality.
 type checkingMod int
@@ -142,6 +148,9 @@ type checkerOptions struct {
 
 	// globals.
 	globals Declarations
+
+	// render function.
+	renderFunc RenderFunc
 }
 
 // typechecker represents the state of the type checking.

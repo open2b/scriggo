@@ -632,60 +632,22 @@ nodesLoop:
 			if ti.Nil() {
 				panic(tc.errorf(node, "use of untyped nil"))
 			}
-			kind := ti.Type.Kind()
-			switch node.Context {
-			case ast.ContextText, ast.ContextTag, ast.ContextQuotedAttr, ast.ContextUnquotedAttr,
-				ast.ContextCSSString, ast.ContextJSString, ast.ContextJSONString:
-				switch {
-				case kind == reflect.String:
-				case reflect.Bool <= kind && kind <= reflect.Complex128:
-				case ti.Type == emptyInterfaceType:
-				case node.Context == ast.ContextCSSString && ti.Type == byteSliceType:
-				case ti.Type.Implements(stringerType):
-				case ti.Type.Implements(envStringerType):
-				case ti.Type.Implements(errorType):
-				default:
-					panic(tc.errorf(node, "cannot print %s (type %s cannot be printed as text)", node.Expr, ti))
-				}
-			case ast.ContextHTML:
-				switch {
-				case kind == reflect.String:
-				case reflect.Bool <= kind && kind <= reflect.Complex128:
-				case ti.Type == byteSliceType:
-				case ti.Type == emptyInterfaceType:
-				case ti.Type.Implements(stringerType):
-				case ti.Type.Implements(envStringerType):
-				case ti.Type.Implements(htmlStringerType):
-				case ti.Type.Implements(htmlEnvStringerType):
-				case ti.Type.Implements(errorType):
-				default:
-					panic(tc.errorf(node, "cannot print %s (type %s cannot be printed as HTML)", node.Expr, ti))
-				}
-			case ast.ContextCSS:
-				switch {
-				case kind == reflect.String:
-				case reflect.Int <= kind && kind <= reflect.Float64:
-				case ti.Type == emptyInterfaceType:
-				case ti.Type == byteSliceType:
-				case ti.Type.Implements(stringerType):
-				case ti.Type.Implements(envStringerType):
-				case ti.Type.Implements(cssStringerType):
-				case ti.Type.Implements(cssEnvStringerType):
-				case ti.Type.Implements(errorType):
-				default:
-					panic(tc.errorf(node, "cannot print %s (type %s cannot be printed as CSS)", node.Expr, ti))
-				}
-			case ast.ContextJS:
-				err := printedAsJS(ti.Type)
-				if err != nil {
-					panic(tc.errorf(node, "cannot print %s (%s)", node.Expr, err))
-				}
-			case ast.ContextJSON:
-				err := printedAsJSON(ti.Type)
-				if err != nil {
-					panic(tc.errorf(node, "cannot print %s (%s)", node.Expr, err))
-				}
+
+			if tc.opts.renderFunc != nil && ti.Type != emptyInterfaceType {
+				zero := reflect.Zero(ti.Type).Interface()
+				func() {
+					defer func() {
+						if err := recover(); err != nil {
+							if e, ok := err.(RenderTypeError); ok {
+								err = tc.errorf(node, "cannot print %s (%s)", node.Expr, e)
+							}
+							panic(err)
+						}
+					}()
+					tc.opts.renderFunc(nil, nil, zero, node.Context)
+				}()
 			}
+
 			ti.setValue(nil)
 			tc.terminating = false
 

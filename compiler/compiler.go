@@ -44,6 +44,7 @@ type Options struct {
 	AllowShebangLine bool
 	DisallowGoStmt   bool
 	Globals          Declarations
+	RenderFunc       RenderFunc
 
 	// Packages loads Scriggo packages and precompiled packages.
 	//
@@ -175,6 +176,7 @@ func CompileTemplate(path string, r FileReader, lang ast.Language, opts Options)
 		allowNotUsed:   true,
 		disallowGoStmt: opts.DisallowGoStmt,
 		globals:        opts.Globals,
+		renderFunc:     opts.RenderFunc,
 		modality:       templateMod,
 	}
 	tci, err := typecheck(tree, opts.Packages, checkerOpts)
