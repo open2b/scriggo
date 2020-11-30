@@ -85,9 +85,11 @@ const (
 )
 
 func (op OperatorType) String() string {
+	// The last empty operators are compiler.internalOperatorZero and
+	// compiler.internalOperatorNotZero.
 	return []string{"==", "!=", "<", "<=", ">", ">=", "!", "&", "|", "&&", "||",
 		"+", "-", "*", "/", "%", "^", "&^", "<<", ">>", "contains", "not contains",
-		"<-", "&", "*", "and", "or", "not"}[op]
+		"<-", "&", "*", "and", "or", "not", "", ""}[op]
 }
 
 type AssignmentType int
