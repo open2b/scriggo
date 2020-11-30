@@ -429,7 +429,7 @@ func (tc *typechecker) mustBeAssignableTo(rhExpr ast.Expression, typ reflect.Typ
 		if strings.HasPrefix(err.Error(), "constant ") {
 			panic(tc.errorf(rhExpr, err.Error()))
 		}
-		if nilErr, ok := err.(nilConvertionError); ok {
+		if nilErr, ok := err.(nilConversionError); ok {
 			panic(tc.errorf(rhExpr, "cannot use nil as type %s in assignment", nilErr.typ))
 		}
 		panic(tc.errorf(rhExpr, "%s in assignment", err))

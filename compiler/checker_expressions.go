@@ -1306,7 +1306,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 					switch err.(type) {
 					case invalidTypeInAssignment:
 						panic(tc.errorf(expr, "%s in append", err))
-					case nilConvertionError:
+					case nilConversionError:
 						panic(tc.errorf(expr, "cannot use nil as type %s in append", elemType))
 					default:
 						panic(tc.errorf(expr, "%s", err))
@@ -1487,7 +1487,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 			if _, ok := err.(invalidTypeInAssignment); ok {
 				panic(tc.errorf(expr, "%s in delete", err))
 			}
-			if _, ok := err.(nilConvertionError); ok {
+			if _, ok := err.(nilConversionError); ok {
 				panic(tc.errorf(expr, "cannot use nil as type %s in delete", keyType))
 			}
 			panic(tc.errorf(expr, "%s", err))
@@ -1815,7 +1815,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) ([]*typeInfo, bool, b
 			if _, ok := err.(invalidTypeInAssignment); ok {
 				panic(tc.errorf(expr, "%s in argument to %s", err, expr.Func))
 			}
-			if _, ok := err.(nilConvertionError); ok {
+			if _, ok := err.(nilConversionError); ok {
 				panic(tc.errorf(args[i], "cannot use %s as type %s in argument to %s", a, in, expr.Func))
 			}
 			panic(tc.errorf(expr, "%s", err))

@@ -21,11 +21,11 @@ import (
 
 var errTypeConversion = errors.New("failed type conversion")
 
-type nilConvertionError struct {
+type nilConversionError struct {
 	typ reflect.Type
 }
 
-func (err nilConvertionError) Error() string {
+func (err nilConversionError) Error() string {
 	return "cannot convert nil to type " + err.typ.String()
 }
 
@@ -200,7 +200,7 @@ func (tc *typechecker) convert(ti *typeInfo, expr ast.Expression, t2 reflect.Typ
 		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
 			return nil, nil
 		}
-		return nil, nilConvertionError{t2}
+		return nil, nilConversionError{t2}
 
 	case ti.IsConstant():
 		// untyped constant.
