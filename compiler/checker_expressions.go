@@ -30,7 +30,6 @@ var boolType = reflect.TypeOf(false)
 var uintType = reflect.TypeOf(uint(0))
 var uint8Type = reflect.TypeOf(uint8(0))
 var int32Type = reflect.TypeOf(int32(0))
-var byteSliceType = reflect.TypeOf([]byte(nil))
 
 var uint8TypeInfo = &typeInfo{Type: uint8Type, Properties: propertyIsType | propertyPredeclared}
 var int32TypeInfo = &typeInfo{Type: int32Type, Properties: propertyIsType | propertyPredeclared}

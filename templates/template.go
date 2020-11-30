@@ -173,7 +173,7 @@ type CompilerError interface {
 // Load loads a template given its file name. Load calls the method ReadFile of
 // files to read the files of the template.
 func Load(name string, files FileReader, lang Language, options *LoadOptions) (*Template, error) {
-	co := compiler.Options{}
+	co := compiler.Options{RenderFunc: render}
 	if options != nil {
 		co.Globals = compiler.Declarations(options.Globals)
 		co.TreeTransformer = options.TreeTransformer

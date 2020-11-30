@@ -17,6 +17,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/open2b/scriggo/compiler"
 	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/runtime"
 )
@@ -32,13 +33,22 @@ func (err PrintTypeError) Error() string {
 }
 func (err PrintTypeError) RuntimeError() {}
 
-// render renders value in the context ctx and writes to out.
+// render renders value in the context ctx and writes to out. If env and out
+// are nil, it does not render the value but only checks that the type of
+// value can be rendered.
 //
-// Keep in sync with scriggo/compiler.renderFuncType.
-//
+// render has type scriggo/compiler.RenderFunc.
 func render(env runtime.Env, out io.Writer, value interface{}, ctx ast.Context) {
 
 	var err error
+
+	if env == nil && out == nil {
+		err = printedAs(reflect.TypeOf(value), ctx)
+		if err != nil {
+			panic(compiler.RenderTypeError(err))
+		}
+		return
+	}
 
 	switch ctx {
 	case ast.ContextText:
