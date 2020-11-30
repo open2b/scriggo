@@ -14,8 +14,6 @@ import (
 	"github.com/open2b/scriggo/compiler/ast"
 )
 
-var emptyInterfaceType = reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem()
-
 var stringerType = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
 var envStringerType = reflect.TypeOf((*EnvStringer)(nil)).Elem()
 
