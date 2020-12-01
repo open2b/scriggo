@@ -174,7 +174,7 @@ func TestTemplate(t *testing.T) {
 		src := cas.src
 		expected := cas.expected
 		t.Run(src, func(t *testing.T) {
-			r := mapReader{"/index.html": []byte(src)}
+			r := mapStringReader{"/index.html": src}
 			_, err := CompileTemplate("/index.html", r, ast.LanguageHTML, Options{})
 			switch {
 			case expected == "" && err != nil:
@@ -186,14 +186,4 @@ func TestTemplate(t *testing.T) {
 			}
 		})
 	}
-}
-
-type mapReader map[string][]byte
-
-func (r mapReader) ReadFile(name string) ([]byte, error) {
-	src, ok := r[name]
-	if !ok {
-		panic("not existing")
-	}
-	return src, nil
 }
