@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"path"
 	"reflect"
 	"sort"
 	"strconv"
@@ -328,7 +329,7 @@ func TestRenderExpressions(t *testing.T) {
 	for _, cas := range rendererExprTests {
 		t.Run(cas.src, func(t *testing.T) {
 			r := MapReader{"index.html": []byte("{{" + cas.src + "}}")}
-			templ, err := Load("index.html", r, LanguageText, nil)
+			templ, err := Load("index.html", r, nil)
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
@@ -551,7 +552,7 @@ func TestRenderStatements(t *testing.T) {
 	for _, cas := range rendererStmtTests {
 		t.Run(cas.src, func(t *testing.T) {
 			r := MapReader{"index.html": []byte(cas.src)}
-			templ, err := Load("index.html", r, LanguageText, nil)
+			templ, err := Load("index.html", r, nil)
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
@@ -708,110 +709,109 @@ var templateMultiPageCases = map[string]struct {
 	expectedOut     string                 // default to "". Mutually exclusive with expectedLoadErr.
 	main            *scriggo.MapPackage    // default to nil
 	vars            map[string]interface{} // default to nil
-	lang            Language               // default to LanguageText
 	entryPoint      string                 // default to "index.html"
 	packages        scriggo.PackageLoader  // default to nil
 }{
 
 	"Empty template": {
 		sources: map[string]string{
-			"index.html": ``,
+			"index.txt": ``,
 		},
 	},
 	"Text only": {
 		sources: map[string]string{
-			"index.html": `Hello, world!`,
+			"index.txt": `Hello, world!`,
 		},
 		expectedOut: `Hello, world!`,
 	},
 
 	"Template comments": {
 		sources: map[string]string{
-			"index.html": `{# this is a comment #}`,
+			"index.txt": `{# this is a comment #}`,
 		},
 		expectedOut: ``,
 	},
 
 	"Template comments with text": {
 		sources: map[string]string{
-			"index.html": `Text before comment{# comment #} text after comment{# another comment #}`,
+			"index.txt": `Text before comment{# comment #} text after comment{# another comment #}`,
 		},
 		expectedOut: `Text before comment text after comment`,
 	},
 
 	"'Show' node only": {
 		sources: map[string]string{
-			"index.html": `{{ "i am a show" }}`,
+			"index.txt": `{{ "i am a show" }}`,
 		},
 		expectedOut: `i am a show`,
 	},
 
 	"Text and show": {
 		sources: map[string]string{
-			"index.html": `Hello, {{ "world" }}!!`,
+			"index.txt": `Hello, {{ "world" }}!!`,
 		},
 		expectedOut: `Hello, world!!`,
 	},
 
 	"If statements - true": {
 		sources: map[string]string{
-			"index.html": `{% if true %}true{% else %}false{% end %}`,
+			"index.txt": `{% if true %}true{% else %}false{% end %}`,
 		},
 		expectedOut: `true`,
 	},
 
 	"If statements - false": {
 		sources: map[string]string{
-			"index.html": `{% if !true %}true{% else %}false{% end %}`,
+			"index.txt": `{% if !true %}true{% else %}false{% end %}`,
 		},
 		expectedOut: `false`,
 	},
 
 	"Variable declarations": {
 		sources: map[string]string{
-			"index.html": `{% var a = 10 %}{% var b = 20 %}{{ a + b }}`,
+			"index.txt": `{% var a = 10 %}{% var b = 20 %}{{ a + b }}`,
 		},
 		expectedOut: "30",
 	},
 
 	"For loop": {
 		sources: map[string]string{
-			"index.html": "For loop: {% for i := 0; i < 5; i++ %}{{ i }}, {% end %}",
+			"index.txt": "For loop: {% for i := 0; i < 5; i++ %}{{ i }}, {% end %}",
 		},
 		expectedOut: "For loop: 0, 1, 2, 3, 4, ",
 	},
 
 	"Template global - max": {
 		sources: map[string]string{
-			"index.html": `Maximum between 10 and -3 is {{ max(10, -3) }}`,
+			"index.txt": `Maximum between 10 and -3 is {{ max(10, -3) }}`,
 		},
 		expectedOut: `Maximum between 10 and -3 is 10`,
 	},
 
 	"Template global - sort": {
 		sources: map[string]string{
-			"index.html": `{% s := []string{"a", "c", "b"} %}{{ sprint(s) }} sorted is {% sort(s) %}{{ sprint(s) }}`,
+			"index.txt": `{% s := []string{"a", "c", "b"} %}{{ sprint(s) }} sorted is {% sort(s) %}{{ sprint(s) }}`,
 		},
 		expectedOut: `[a c b] sorted is [a b c]`,
 	},
 
 	"Function literal": {
 		sources: map[string]string{
-			"index.html": `{% func() {} %}`,
+			"index.txt": `{% func() {} %}`,
 		},
 		expectedLoadErr: "func literal evaluated but not used",
 	},
 
 	"Function call": {
 		sources: map[string]string{
-			"index.html": `{% func() { print(5) }() %}`,
+			"index.txt": `{% func() { print(5) }() %}`,
 		},
 		expectedOut: `5`,
 	},
 
 	"Multi rows": {
 		sources: map[string]string{
-			"index.html": `{%
+			"index.txt": `{%
 	print(3) %}`,
 		},
 		expectedOut: `3`,
@@ -819,7 +819,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Multi rows 2": {
 		sources: map[string]string{
-			"index.html": `{%
+			"index.txt": `{%
 	print(3)
 %}`,
 		},
@@ -828,7 +828,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Multi rows with comments": {
 		sources: map[string]string{
-			"index.html": `{%
+			"index.txt": `{%
 // pre comment
 /* pre comment */
 	print(3)
@@ -842,7 +842,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Using a function declared in main": {
 		sources: map[string]string{
-			"index.html": `calling f: {{ f() }}, done!`,
+			"index.txt": `calling f: {{ f() }}, done!`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -855,7 +855,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Reading a variable declared in main": {
 		sources: map[string]string{
-			"index.html": `{{ mainVar }}`,
+			"index.txt": `{{ mainVar }}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -868,7 +868,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Reading a variable declared in main and initialized with vars": {
 		sources: map[string]string{
-			"index.html": `{{ initMainVar }}`,
+			"index.txt": `{{ initMainVar }}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -884,7 +884,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Calling a global function": {
 		sources: map[string]string{
-			"index.html": `{{ lowercase("HellO ScrIgGo!") }}{% x := "A String" %}{{ lowercase(x) }}`,
+			"index.txt": `{{ lowercase("HellO ScrIgGo!") }}{% x := "A String" %}{{ lowercase(x) }}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -899,7 +899,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Calling a function stored in a global variable": {
 		sources: map[string]string{
-			"index.html": `{{ lowercase("HellO ScrIgGo!") }}{% x := "A String" %}{{ lowercase(x) }}`,
+			"index.txt": `{{ lowercase("HellO ScrIgGo!") }}{% x := "A String" %}{{ lowercase(x) }}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -917,7 +917,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"https://github.com/open2b/scriggo/issues/391": {
 		sources: map[string]string{
-			"index.html": `{{ a }}{{ b }}`,
+			"index.txt": `{{ a }}{{ b }}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -935,152 +935,152 @@ var templateMultiPageCases = map[string]struct {
 
 	"Macro definition (no arguments)": {
 		sources: map[string]string{
-			"index.html": `Macro def: {% macro M %}M's body{% end %}end.`,
+			"index.txt": `Macro def: {% macro M %}M's body{% end %}end.`,
 		},
 		expectedOut: `Macro def: end.`,
 	},
 
 	"Macro definition (no arguments) and show-macro": {
 		sources: map[string]string{
-			"index.html": `{% macro M %}body{% end %}{% show M %}`,
+			"index.txt": `{% macro M %}body{% end %}{% show M %}`,
 		},
 		expectedOut: `body`,
 	},
 
 	"Macro definition (with arguments)": {
 		sources: map[string]string{
-			"index.html": `{% macro M(v int) %}v is {{ v }}{% end %}`,
+			"index.txt": `{% macro M(v int) %}v is {{ v }}{% end %}`,
 		},
 	},
 
 	"Macro definition (with one string argument) and show-macro": {
 		sources: map[string]string{
-			"index.html": `{% macro M(v string) %}v is {{ v }}{% end %}{% show M("msg") %}`,
+			"index.txt": `{% macro M(v string) %}v is {{ v }}{% end %}{% show M("msg") %}`,
 		},
 		expectedOut: `v is msg`,
 	},
 
 	"Macro definition (with two string arguments) and show-macro": {
 		sources: map[string]string{
-			"index.html": `{% macro M(a, b string) %}a is {{ a }} and b is {{ b }}{% end %}{% show M("avalue", "bvalue") %}`,
+			"index.txt": `{% macro M(a, b string) %}a is {{ a }} and b is {{ b }}{% end %}{% show M("avalue", "bvalue") %}`,
 		},
 		expectedOut: `a is avalue and b is bvalue`,
 	},
 
 	"Macro definition (with one int argument) and show-macro": {
 		sources: map[string]string{
-			"index.html": `{% macro M(v int) %}v is {{ v }}{% end %}{% show M(42) %}`,
+			"index.txt": `{% macro M(v int) %}v is {{ v }}{% end %}{% show M(42) %}`,
 		},
 		expectedOut: `v is 42`,
 	},
 
 	"Macro definition (with one []int argument) and show-macro": {
 		sources: map[string]string{
-			"index.html": `{% macro M(v []int) %}v is {{ sprint(v) }}{% end %}{% show M([]int{42}) %}`,
+			"index.txt": `{% macro M(v []int) %}v is {{ sprint(v) }}{% end %}{% show M([]int{42}) %}`,
 		},
 		expectedOut: `v is [42]`,
 	},
 
 	"Two macro definitions": {
 		sources: map[string]string{
-			"index.html": `{% macro M1 %}M1's body{% end %}{% macro M2(i int, s string) %}i: {{ i }}, s: {{ s }}{% end %}`,
+			"index.txt": `{% macro M1 %}M1's body{% end %}{% macro M2(i int, s string) %}i: {{ i }}, s: {{ s }}{% end %}`,
 		},
 	},
 
 	"Two macro definitions and three show-macro": {
 		sources: map[string]string{
-			"index.html": `{% macro M1 %}M1's body{% end %}{% macro M2(i int, s string) %}i: {{ i }}, s: {{ s }}{% end %}Show macro: {% show M1 %} {% show M2(-30, "hello") %} ... {% show M1 %}`,
+			"index.txt": `{% macro M1 %}M1's body{% end %}{% macro M2(i int, s string) %}i: {{ i }}, s: {{ s }}{% end %}Show macro: {% show M1 %} {% show M2(-30, "hello") %} ... {% show M1 %}`,
 		},
 		expectedOut: `Show macro: M1's body i: -30, s: hello ... M1's body`,
 	},
 
 	"Macro definition and show-macro without parameters": {
 		sources: map[string]string{
-			"index.html": `{% macro M %}ok{% end %}{% show M() %}`,
+			"index.txt": `{% macro M %}ok{% end %}{% show M() %}`,
 		},
 		expectedOut: `ok`,
 	},
 
 	"Macro definition and show-macro without parentheses": {
 		sources: map[string]string{
-			"index.html": `{% macro M %}ok{% end %}{% show M %}`,
+			"index.txt": `{% macro M %}ok{% end %}{% show M %}`,
 		},
 		expectedOut: `ok`,
 	},
 
 	"Macro definition and show-macro variadic": {
 		sources: map[string]string{
-			"index.html": `{% macro M(v ...int) %}{% for _ , i := range v %}{{ i }}{% end for %}{% end macro %}{% show M([]int{1,2,3}...) %}`,
+			"index.txt": `{% macro M(v ...int) %}{% for _ , i := range v %}{{ i }}{% end for %}{% end macro %}{% show M([]int{1,2,3}...) %}`,
 		},
 		expectedOut: `123`,
 	},
 
 	"Template global - title": {
 		sources: map[string]string{
-			"index.html": `{% s := "hello, world" %}{{ s }} converted to title is {{ title(s) }}`,
+			"index.txt": `{% s := "hello, world" %}{{ s }} converted to title is {{ title(s) }}`,
 		},
 		expectedOut: `hello, world converted to title is Hello, World`,
 	},
 
 	"Label for": {
 		sources: map[string]string{
-			"index.html": `{% L: for %}a{% break L %}b{% end for %}`,
+			"index.txt": `{% L: for %}a{% break L %}b{% end for %}`,
 		},
 		expectedOut: `a`,
 	},
 
 	"Label switch": {
 		sources: map[string]string{
-			"index.html": `{% L: switch 1 %}{% case 1 %}a{% break L %}b{% end switch %}`,
+			"index.txt": `{% L: switch 1 %}{% case 1 %}a{% break L %}b{% end switch %}`,
 		},
 		expectedOut: `a`,
 	},
 
 	"Show partial - Only text": {
 		sources: map[string]string{
-			"index.html":   `a{% show "/partial.html" %}c`,
-			"partial.html": `b`,
+			"index.txt":   `a{% show "/partial.txt" %}c`,
+			"partial.txt": `b`,
 		},
 		expectedOut: "abc",
 	},
 
 	"Show partial - Partial file uses external variable": {
 		sources: map[string]string{
-			"index.html":   `{% var a = 10 %}a: {% show "/partial.html" %}`,
-			"partial.html": `{{ a }}`,
+			"index.txt":   `{% var a = 10 %}a: {% show "/partial.txt" %}`,
+			"partial.txt": `{{ a }}`,
 		},
 		expectedLoadErr: "undefined: a",
 	},
 
 	"Show partial - File showing partial file try to use a variable declared in the partial file": {
 		sources: map[string]string{
-			"index.html":   `{% show "/partial.html" %}partial a: {{ a }}`,
-			"partial.html": `{% var a = 20 %}`,
+			"index.txt":   `{% show "/partial.txt" %}partial a: {{ a }}`,
+			"partial.txt": `{% var a = 20 %}`,
 		},
 		expectedLoadErr: "undefined: a",
 	},
 
 	"Show partial - File showing a partial file which shows another partial file": {
 		sources: map[string]string{
-			"index.html":             `indexstart,{% show "/dir1/partial.html" %}indexend,`,
-			"dir1/partial.html":      `i1start,{% show "/dir1/dir2/partial.html" %}i1end,`,
-			"dir1/dir2/partial.html": `i2,`,
+			"index.txt":             `indexstart,{% show "/dir1/partial.txt" %}indexend,`,
+			"dir1/partial.txt":      `i1start,{% show "/dir1/dir2/partial.txt" %}i1end,`,
+			"dir1/dir2/partial.txt": `i2,`,
 		},
 		expectedOut: "indexstart,i1start,i2,i1end,indexend,",
 	},
 
 	"Import/Macro - Importing a macro defined in another page": {
 		sources: map[string]string{
-			"index.html": `{% import "/page.html" %}{% show M %}{% show M %}`,
-			"page.html":  `{% macro M %}macro!{% end %}{% macro M2 %}macro 2!{% end %}`,
+			"index.txt": `{% import "/page.txt" %}{% show M %}{% show M %}`,
+			"page.txt":  `{% macro M %}macro!{% end %}{% macro M2 %}macro 2!{% end %}`,
 		},
 		expectedOut: "macro!macro!",
 	},
 
 	"Import/Macro - Importing a macro defined in another page, where a function calls a before-declared function": {
 		sources: map[string]string{
-			"index.html": `{% import "/page.html" %}{% show M %}{% show M %}`,
-			"page.html": `
+			"index.txt": `{% import "/page.txt" %}{% show M %}{% show M %}`,
+			"page.txt": `
 				{% macro M2 %}macro 2!{% end %}
 				{% macro M %}{% show M2 %}{% end %}
 			`,
@@ -1090,8 +1090,8 @@ var templateMultiPageCases = map[string]struct {
 
 	"Import/Macro - Importing a macro defined in another page, where a function calls an after-declared function": {
 		sources: map[string]string{
-			"index.html": `{% import "/page.html" %}{% show M %}{% show M %}`,
-			"page.html": `
+			"index.txt": `{% import "/page.txt" %}{% show M %}{% show M %}`,
+			"page.txt": `
 				{% macro M %}{% show M2 %}{% end %}
 				{% macro M2 %}macro 2!{% end %}
 			`,
@@ -1101,113 +1101,113 @@ var templateMultiPageCases = map[string]struct {
 
 	"Import/Macro - Importing a macro defined in another page, which imports a third page": {
 		sources: map[string]string{
-			"index.html": `{% import "/page1.html" %}index-start,{% show M1 %}index-end`,
-			"page1.html": `{% import "/page2.html" %}{% macro M1 %}M1-start,{% show M2 %}M1-end,{% end %}`,
-			"page2.html": `{% macro M2 %}M2,{% end %}`,
+			"index.txt": `{% import "/page1.txt" %}index-start,{% show M1 %}index-end`,
+			"page1.txt": `{% import "/page2.txt" %}{% macro M1 %}M1-start,{% show M2 %}M1-end,{% end %}`,
+			"page2.txt": `{% macro M2 %}M2,{% end %}`,
 		},
 		expectedOut: "index-start,M1-start,M2,M1-end,index-end",
 	},
 
 	"Import/Macro - Importing a macro using an import statement with identifier": {
 		sources: map[string]string{
-			"index.html": `{% import pg "/page.html" %}{% show pg.M %}{% show pg.M %}`,
-			"page.html":  `{% macro M %}macro!{% end %}`,
+			"index.txt": `{% import pg "/page.txt" %}{% show pg.M %}{% show pg.M %}`,
+			"page.txt":  `{% macro M %}macro!{% end %}`,
 		},
 		expectedOut: "macro!macro!",
 	},
 
 	"Import/Macro - Importing a macro using an import statement with identifier (with comments)": {
 		sources: map[string]string{
-			"index.html": `{# a comment #}{% import pg "/page.html" %}{# a comment #}{% show pg.M %}{# a comment #}{% show pg.M %}{# a comment #}`,
-			"page.html":  `{# a comment #}{% macro M %}{# a comment #}macro!{# a comment #}{% end %}{# a comment #}`,
+			"index.txt": `{# a comment #}{% import pg "/page.txt" %}{# a comment #}{% show pg.M %}{# a comment #}{% show pg.M %}{# a comment #}`,
+			"page.txt":  `{# a comment #}{% macro M %}{# a comment #}macro!{# a comment #}{% end %}{# a comment #}`,
 		},
 		expectedOut: "macro!macro!",
 	},
 
 	"Extends - Empty page extends a page containing only text": {
 		sources: map[string]string{
-			"index.html": `{% extends "/page.html" %}`,
-			"page.html":  `I'm page!`,
+			"index.txt": `{% extends "/page.txt" %}`,
+			"page.txt":  `I'm page!`,
 		},
 		expectedOut: "I'm page!",
 	},
 
 	"Extends - Extending a page that calls a macro defined on current page": {
 		sources: map[string]string{
-			"index.html": `{% extends "/page.html" %}{% macro E %}E's body{% end %}`,
-			"page.html":  `{% show E %}`,
+			"index.txt": `{% extends "/page.txt" %}{% macro E %}E's body{% end %}`,
+			"page.txt":  `{% show E %}`,
 		},
 		expectedOut: "E's body",
 	},
 
 	"Extending an empty page": {
 		sources: map[string]string{
-			"index.html":    `{% extends "extended.html" %}`,
-			"extended.html": ``,
+			"index.txt":    `{% extends "extended.txt" %}`,
+			"extended.txt": ``,
 		},
 	},
 
 	"Extending a page that imports another file": {
 		sources: map[string]string{
-			"index.html":    `{% extends "/extended.html" %}`,
-			"extended.html": `{% import "/imported.html" %}`,
-			"imported.html": `{% macro Imported %}Imported macro{% end macro %}`,
+			"index.txt":    `{% extends "/extended.txt" %}`,
+			"extended.txt": `{% import "/imported.txt" %}`,
+			"imported.txt": `{% macro Imported %}Imported macro{% end macro %}`,
 		},
 	},
 
 	"Extending a page (that imports another file) while declaring a macro": {
 		sources: map[string]string{
-			"index.html":    `{% extends "/extended.html" %}{% macro Index %}{% end macro %}`,
-			"extended.html": `{% import "/imported.html" %}`,
-			"imported.html": `{% macro Imported %}Imported macro{% end macro %}`,
+			"index.txt":    `{% extends "/extended.txt" %}{% macro Index %}{% end macro %}`,
+			"extended.txt": `{% import "/imported.txt" %}`,
+			"imported.txt": `{% macro Imported %}Imported macro{% end macro %}`,
 		},
 	},
 
 	"Extends - Extending a page that calls two macros defined on current page": {
 		sources: map[string]string{
-			"index.html": `{% extends "/page.html" %}{% macro E1 %}E1's body{% end %}{% macro E2 %}E2's body{% end %}`,
-			"page.html":  `{% show E1 %}{% show E2 %}`,
+			"index.txt": `{% extends "/page.txt" %}{% macro E1 %}E1's body{% end %}{% macro E2 %}E2's body{% end %}`,
+			"page.txt":  `{% show E1 %}{% show E2 %}`,
 		},
 		expectedOut: "E1's bodyE2's body",
 	},
 
 	"Extends - Define a variable (with zero value) used in macro definition": {
 		sources: map[string]string{
-			"index.html": `{% extends "/page.html" %}{% var Local int %}{% macro E1 %}Local has value {{ Local }}{% end %}`,
-			"page.html":  `{% show E1 %}`,
+			"index.txt": `{% extends "/page.txt" %}{% var Local int %}{% macro E1 %}Local has value {{ Local }}{% end %}`,
+			"page.txt":  `{% show E1 %}`,
 		},
 		expectedOut: "Local has value 0",
 	},
 
 	"Extends - Define a variable (with non-zero value) used in macro definition": {
 		sources: map[string]string{
-			"index.html": `{% extends "/page.html" %}{% var Local = 50 %}{% macro E1 %}Local has value {{ Local }}{% end %}`,
-			"page.html":  `{% show E1 %}`,
+			"index.txt": `{% extends "/page.txt" %}{% var Local = 50 %}{% macro E1 %}Local has value {{ Local }}{% end %}`,
+			"page.txt":  `{% show E1 %}`,
 		},
 		expectedOut: "Local has value 50",
 	},
 
 	"Extends - Extending a file which contains text and shows": {
 		sources: map[string]string{
-			"index.html": `{% extends "/page.html" %}`,
-			"page.html":  `I am an {{ "extended" }} file.`,
+			"index.txt": `{% extends "/page.txt" %}`,
+			"page.txt":  `I am an {{ "extended" }} file.`,
 		},
 		expectedOut: "I am an extended file.",
 	},
 
 	"File imported twice": {
 		sources: map[string]string{
-			"index.html": `{% import "/a.html" %}{% import "/b.html" %}`,
-			"a.html":     `{% import "/b.html" %}`,
-			"b.html":     `{% macro M %}I'm b{% end %}`,
+			"index.txt": `{% import "/a.txt" %}{% import "/b.txt" %}`,
+			"a.txt":     `{% import "/b.txt" %}`,
+			"b.txt":     `{% macro M %}I'm b{% end %}`,
 		},
 	},
 
 	"File imported twice - Variable declaration": {
 		sources: map[string]string{
-			"index.html": `{% import "b.html" %}{% import "c.html" %}`,
-			"b.html":     `{% import "c.html" %}`,
-			"c.html":     `{% var V int %}`,
+			"index.txt": `{% import "b.txt" %}{% import "c.txt" %}`,
+			"b.txt":     `{% import "c.txt" %}`,
+			"c.txt":     `{% var V int %}`,
 		},
 	},
 
@@ -1218,7 +1218,6 @@ var templateMultiPageCases = map[string]struct {
 			"partials/products.html": `{% macro M(s []int) %}{% end %}`,
 		},
 		expectedOut: "\n",
-		lang:        LanguageHTML,
 		entryPoint:  "product.html",
 	},
 
@@ -1227,7 +1226,6 @@ var templateMultiPageCases = map[string]struct {
 			"index.html": `text{% macro M(s []int) %}{% end %}text`,
 		},
 		expectedOut: `texttext`,
-		lang:        LanguageHTML,
 	},
 
 	"https://github.com/open2b/scriggo/issues/392 (invalid memory address)": {
@@ -1235,7 +1233,6 @@ var templateMultiPageCases = map[string]struct {
 			"index.html": `{% macro M(s []int) %}{% end %}text`,
 		},
 		expectedOut: `text`,
-		lang:        LanguageHTML,
 	},
 
 	"https://github.com/open2b/scriggo/issues/393": {
@@ -1245,12 +1242,11 @@ var templateMultiPageCases = map[string]struct {
 			"partials/products.html": `{% macro M(s []int) %}{% end %}`,
 		},
 		expectedOut: "",
-		lang:        LanguageHTML,
 		entryPoint:  "product.html",
 	},
 	"Auto imported packages - Function call": {
 		sources: map[string]string{
-			"index.html": `{{ strings.ToLower("HELLO") }}`,
+			"index.txt": `{{ strings.ToLower("HELLO") }}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1267,7 +1263,7 @@ var templateMultiPageCases = map[string]struct {
 	},
 	"Auto imported packages - Variable": {
 		sources: map[string]string{
-			"index.html": `{{ data.Name }} Holmes`,
+			"index.txt": `{{ data.Name }} Holmes`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1284,7 +1280,7 @@ var templateMultiPageCases = map[string]struct {
 	},
 	"Auto imported packages - Type": {
 		sources: map[string]string{
-			"index.html": `{% b := &bytes.Buffer{} %}{% b.WriteString("oh!") %}{{ b.String() }}`,
+			"index.txt": `{% b := &bytes.Buffer{} %}{% b.WriteString("oh!") %}{{ b.String() }}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1301,7 +1297,7 @@ var templateMultiPageCases = map[string]struct {
 	},
 	"Auto imported packages - Constants": {
 		sources: map[string]string{
-			"index.html": `{{ math.MaxInt8 }}`,
+			"index.txt": `{{ math.MaxInt8 }}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1323,7 +1319,6 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `{{ atoi("42") }}`,
 		},
-		lang:        LanguageHTML,
 		main:        functionReturningErrorPackage,
 		expectedOut: "42",
 	},
@@ -1331,7 +1326,6 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `{{ atoi("what?") }}`,
 		},
-		lang:        LanguageHTML,
 		main:        functionReturningErrorPackage,
 		expectedOut: "0<!-- strconv.Atoi: parsing \"what?\": invalid syntax -->",
 	},
@@ -1339,7 +1333,6 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `{{ uitoa(42) }}`,
 		},
-		lang:        LanguageHTML,
 		main:        functionReturningErrorPackage,
 		expectedOut: "42",
 	},
@@ -1347,7 +1340,6 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `{{ uitoa(-32) }}`,
 		},
-		lang:        LanguageHTML,
 		main:        functionReturningErrorPackage,
 		expectedOut: "<!-- uitoa requires a positive integer as argument -->",
 	},
@@ -1355,8 +1347,6 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.css": `{{ atoi("42") }}`,
 		},
-		entryPoint:  "index.css",
-		lang:        LanguageCSS,
 		main:        functionReturningErrorPackage,
 		expectedOut: "42",
 	},
@@ -1364,8 +1354,6 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.css": `{{ atoi("what?") }}`,
 		},
-		entryPoint:  "index.css",
-		lang:        LanguageCSS,
 		main:        functionReturningErrorPackage,
 		expectedOut: "0/* strconv.Atoi: parsing \"what?\": invalid syntax */",
 	},
@@ -1373,8 +1361,6 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.js": `{{ atoi("42") }}`,
 		},
-		entryPoint:  "index.js",
-		lang:        LanguageJS,
 		main:        functionReturningErrorPackage,
 		expectedOut: "42",
 	},
@@ -1382,8 +1368,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.js": `{{ atoi("what?") }}`,
 		},
-		entryPoint:  "index.js",
-		lang:        LanguageJS,
+
 		main:        functionReturningErrorPackage,
 		expectedOut: "0/* strconv.Atoi: parsing \"what?\": invalid syntax */",
 	},
@@ -1391,8 +1376,6 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.js": `{{ uitoa(42) }}`,
 		},
-		entryPoint:  "index.js",
-		lang:        LanguageJS,
 		main:        functionReturningErrorPackage,
 		expectedOut: "\"42\"",
 	},
@@ -1400,8 +1383,6 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.js": `{{ uitoa(-432) }}`,
 		},
-		entryPoint:  "index.js",
-		lang:        LanguageJS,
 		main:        functionReturningErrorPackage,
 		expectedOut: "\"\"/* uitoa requires a positive integer as argument */",
 	},
@@ -1409,13 +1390,12 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `{{ baderror() }}`,
 		},
-		lang:        LanguageHTML,
 		main:        functionReturningErrorPackage,
 		expectedOut: "0<!-- i'm a bad error -- > -->",
 	},
 	"Undefined variable error": {
 		sources: map[string]string{
-			"index.html": `Name is {{ name }}`,
+			"index.txt": `Name is {{ name }}`,
 		},
 		expectedLoadErr: "undefined: name",
 	},
@@ -1425,8 +1405,8 @@ var templateMultiPageCases = map[string]struct {
 		// otherwise such file can overwrite the variables of the file that
 		// shows it.
 		sources: map[string]string{
-			"index.html":   `{% v := "showing" %}{% show "partial.html" %}{{ v }}`,
-			"partial.html": `{% v := "partial" %}`,
+			"index.txt":   `{% v := "showing" %}{% show "partial.txt" %}{{ v }}`,
+			"partial.txt": `{% v := "partial" %}`,
 		},
 		expectedOut: "showing",
 	},
@@ -1440,8 +1420,8 @@ var templateMultiPageCases = map[string]struct {
 		// emitter must hide the scopes to the shown file (as the type checker
 		// does).
 		sources: map[string]string{
-			"index.html":   `{% v := "showing" %}{% show "partial.html" %}, {{ v }}`,
-			"partial.html": "{{ v }}",
+			"index.txt":   `{% v := "showing" %}{% show "partial.txt" %}, {{ v }}`,
+			"partial.txt": "{{ v }}",
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1454,16 +1434,16 @@ var templateMultiPageCases = map[string]struct {
 
 	"A file that is shown defines a macro, which should not be accessible from the file that shows it": {
 		sources: map[string]string{
-			"index.html":   `{% show "partial.html" %}{% show MacroInPartialFile %}`,
-			"partial.html": `{% macro MacroInPartialFile %}{% end macro %}`,
+			"index.txt":   `{% show "partial.txt" %}{% show MacroInPartialFile %}`,
+			"partial.txt": `{% macro MacroInPartialFile %}{% end macro %}`,
 		},
 		expectedLoadErr: "undefined: MacroInPartialFile",
 	},
 
 	"The file that shows another file defines a macro, which should not be accessible from the file shown": {
 		sources: map[string]string{
-			"index.html":   `{% macro MacroInShowingFile %}{% end macro %}{% show "partial.html" %}`,
-			"partial.html": `{% show MacroInShowingFile %}`,
+			"index.txt":   `{% macro MacroInShowingFile %}{% end macro %}{% show "partial.txt" %}`,
+			"partial.txt": `{% show MacroInShowingFile %}`,
 		},
 		expectedLoadErr: "undefined: MacroInShowingFile",
 	},
@@ -1472,7 +1452,6 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `{{ sb1 }}{{ sb2 }}`,
 		},
-		lang: LanguageHTML,
 		main: &scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
@@ -1485,9 +1464,8 @@ var templateMultiPageCases = map[string]struct {
 
 	"Cannot show byte slices in text context": {
 		sources: map[string]string{
-			"index.html": `{{ sb1 }}{{ sb2 }}`,
+			"index.txt": `{{ sb1 }}{{ sb2 }}`,
 		},
-		lang: LanguageText,
 		main: &scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
@@ -1500,7 +1478,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Using the precompiled package 'fmt'": {
 		sources: map[string]string{
-			"index.html": `{% import "fmt" %}{{ fmt.Sprint(10, 20) }}`,
+			"index.txt": `{% import "fmt" %}{{ fmt.Sprint(10, 20) }}`,
 		},
 		packages:    testPackages,
 		expectedOut: "10 20",
@@ -1508,8 +1486,8 @@ var templateMultiPageCases = map[string]struct {
 
 	"Using the precompiled package 'fmt' from a file that extends another file": {
 		sources: map[string]string{
-			"index.html":    `{% extends "extended.html" %}{% import "fmt" %}{% macro M %}{{ fmt.Sprint(321, 11) }}{% end macro %}`,
-			"extended.html": `{% show M %}`,
+			"index.txt":    `{% extends "extended.txt" %}{% import "fmt" %}{% macro M %}{{ fmt.Sprint(321, 11) }}{% end macro %}`,
+			"extended.txt": `{% show M %}`,
 		},
 		packages:    testPackages,
 		expectedOut: "321 11",
@@ -1517,7 +1495,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Using the precompiled packages 'fmt' and 'math'": {
 		sources: map[string]string{
-			"index.html": `{% import "fmt" %}{% import m "math" %}{{ fmt.Sprint(-42, m.Abs(-42)) }}`,
+			"index.txt": `{% import "fmt" %}{% import m "math" %}{{ fmt.Sprint(-42, m.Abs(-42)) }}`,
 		},
 		packages:    testPackages,
 		expectedOut: "-42 42",
@@ -1525,7 +1503,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Importing the precompiled package 'fmt' with '.'": {
 		sources: map[string]string{
-			"index.html": `{% import . "fmt" %}{{ Sprint(50, 70) }}`,
+			"index.txt": `{% import . "fmt" %}{{ Sprint(50, 70) }}`,
 		},
 		packages:    testPackages,
 		expectedOut: "50 70",
@@ -1533,31 +1511,31 @@ var templateMultiPageCases = map[string]struct {
 
 	"Trying to import a precompiled package that is not available in the loader": {
 		sources: map[string]string{
-			"index.html": `{% import "mypackage" %}{{ mypackage.F() }}`,
+			"index.txt": `{% import "mypackage" %}{{ mypackage.F() }}`,
 		},
 		packages:        testPackages,
-		expectedLoadErr: "/index.html:1:11: syntax error: cannot find package \"mypackage\"",
+		expectedLoadErr: "/index.txt:1:11: syntax error: cannot find package \"mypackage\"",
 	},
 
 	"Trying to access a precompiled function 'SuperPrint' that is not available in the package 'fmt'": {
 		sources: map[string]string{
-			"index.html": `{% import "fmt" %}{{ fmt.SuperPrint(42) }}`,
+			"index.txt": `{% import "fmt" %}{{ fmt.SuperPrint(42) }}`,
 		},
 		packages:        testPackages,
-		expectedLoadErr: "/index.html:1:25: undefined: fmt.SuperPrint",
+		expectedLoadErr: "/index.txt:1:25: undefined: fmt.SuperPrint",
 	},
 
 	"Using the precompiled package 'fmt' without importing it returns an error": {
 		sources: map[string]string{
-			"index.html": `{{ fmt.Sprint(10, 20) }}`,
+			"index.txt": `{{ fmt.Sprint(10, 20) }}`,
 		},
 		packages:        testPackages,
-		expectedLoadErr: "/index.html:1:4: undefined: fmt",
+		expectedLoadErr: "/index.txt:1:4: undefined: fmt",
 	},
 
 	"Check if a value that has a method 'IsZero() bool' is zero or not": {
 		sources: map[string]string{
-			"index.html": "{% if (NeverZero{}) %}OK{% else %}BUG{% end %}\n" +
+			"index.txt": "{% if (NeverZero{}) %}OK{% else %}BUG{% end %}\n" +
 				"{% if (AlwaysZero{}) %}BUG{% else %}OK{% end %}\n" +
 				"{% if (struct{}{}) %}BUG{% else %}OK{% end %}\n" +
 				"{% if (struct{Value int}{}) %}BUG{% else %}OK{% end %}\n" +
@@ -1585,7 +1563,6 @@ var templateMultiPageCases = map[string]struct {
 			"imported1.html": `{% import "imported2.html" %}`,
 			"imported2.html": `{% var X = 0 %}`,
 		},
-		lang: LanguageHTML,
 	},
 
 	// https://github.com/open2b/scriggo/issues/640
@@ -1595,7 +1572,6 @@ var templateMultiPageCases = map[string]struct {
 			"imported1.html": `{% import "imported2.html" %}{% macro M1(a int) %}{% show M2(a) %}{% end macro %}`,
 			"imported2.html": `{% macro M2(b int) %}b is {{ b }}{% end macro %}`,
 		},
-		lang:        LanguageHTML,
 		expectedOut: "b is 42",
 	},
 
@@ -1606,7 +1582,6 @@ var templateMultiPageCases = map[string]struct {
 			"partial.html": `{% import "/v.html" %}`,
 			"v.html":       `{% var V int %}`,
 		},
-		lang: LanguageHTML,
 	},
 
 	// https://github.com/open2b/scriggo/issues/642
@@ -1616,7 +1591,6 @@ var templateMultiPageCases = map[string]struct {
 			"imported.html": `{% import "/macro.html" %}`,
 			"macro.html":    `{% macro M %}{% end macro %}`,
 		},
-		lang: LanguageHTML,
 	},
 
 	// https://github.com/open2b/scriggo/issues/642
@@ -1626,7 +1600,6 @@ var templateMultiPageCases = map[string]struct {
 			"imported.html": `{% import "/macro.html" %}`,
 			"macro.html":    `{% macro M(a int) %}a is {{ a }}{% end macro %}`,
 		},
-		lang:        LanguageHTML,
 		expectedOut: "a is 42",
 	},
 
@@ -1637,7 +1610,6 @@ var templateMultiPageCases = map[string]struct {
 			"v.html":     `{% var V = 42 %}`,
 		},
 		expectedOut: "42",
-		lang:        LanguageHTML,
 	},
 
 	// https://github.com/open2b/scriggo/issues/643
@@ -1648,7 +1620,6 @@ var templateMultiPageCases = map[string]struct {
 			"v.html":       `{% var V = 42 %}`,
 		},
 		expectedOut: "V is 42",
-		lang:        LanguageHTML,
 	},
 
 	// https://github.com/open2b/scriggo/issues/643
@@ -1659,7 +1630,6 @@ var templateMultiPageCases = map[string]struct {
 			"v.html":       `{% var V = GetValue() %}`,
 		},
 		expectedOut: "42",
-		lang:        LanguageHTML,
 		main: &scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
@@ -1676,7 +1646,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Can access to unexported struct field declared in the same page - struct literal": {
 		sources: map[string]string{
-			"index.html": `{% var s struct { a int } %}{% s.a = 42 %}{{ s.a }}
+			"index.txt": `{% var s struct { a int } %}{% s.a = 42 %}{{ s.a }}
 			{% s2 := &s %}{{ s2.a }}`,
 		},
 		expectedOut: "42\n\t\t\t42",
@@ -1684,7 +1654,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Can access to unexported struct field declared in the same page - defined type": {
 		sources: map[string]string{
-			"index.html": `{% type t struct { a int } %}{% var s t %}{% s.a = 84 %}{{ s.a }}
+			"index.txt": `{% type t struct { a int } %}{% var s t %}{% s.a = 84 %}{{ s.a }}
 			{% s2 := &s %}{{ s2.a }}`,
 		},
 		expectedOut: "84\n\t\t\t84",
@@ -1692,7 +1662,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Cannot access to unexported struct fields of a precompiled value (struct)": {
 		sources: map[string]string{
-			"index.html": `{{ s.foo }}`,
+			"index.txt": `{{ s.foo }}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1705,7 +1675,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Cannot access to unexported struct fields of a precompiled value (*struct)": {
 		sources: map[string]string{
-			"index.html": `{{ s.foo }}`,
+			"index.txt": `{{ s.foo }}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1722,8 +1692,8 @@ var templateMultiPageCases = map[string]struct {
 			// deceive the type checker into thinking that the type `struct {
 			// field int }` can be fully accessed because is the same declared
 			// in this package.
-			"index.html":    `{% import "imported.html" %}{% type _ struct { bar int } %}{{ S.bar }}`,
-			"imported.html": `{% var S struct { bar int } %}`,
+			"index.txt":    `{% import "imported.txt" %}{% type _ struct { bar int } %}{{ S.bar }}`,
+			"imported.txt": `{% var S struct { bar int } %}`,
 		},
 		expectedLoadErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
 	},
@@ -1734,15 +1704,15 @@ var templateMultiPageCases = map[string]struct {
 			// deceive the type checker into thinking that the type `struct {
 			// field int }` can be fully accessed because is the same declared
 			// in this package.
-			"index.html":    `{% import "imported.html" %}{% type _ *struct { bar int } %}{{ S.bar }}`,
-			"imported.html": `{% var S *struct { bar int } %}`,
+			"index.txt":    `{% import "imported.txt" %}{% type _ *struct { bar int } %}{{ S.bar }}`,
+			"imported.txt": `{% var S *struct { bar int } %}`,
 		},
 		expectedLoadErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
 	},
 
 	"Accessing global variable from macro's body": {
 		sources: map[string]string{
-			"index.html": `{% macro M %}{{ globalVariable }}{% end %}{% show M %}`,
+			"index.txt": `{% macro M %}{{ globalVariable }}{% end %}{% show M %}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1754,31 +1724,31 @@ var templateMultiPageCases = map[string]struct {
 	},
 	"Double type checking of shown file": {
 		sources: map[string]string{
-			"index.html": `{% show "/shown.html" %}{% show "/shown.html" %}`,
-			"shown.html": `{% var v int %}`,
+			"index.txt": `{% show "/shown.txt" %}{% show "/shown.txt" %}`,
+			"shown.txt": `{% var v int %}`,
 		},
 	},
 	"https://github.com/open2b/scriggo/issues/661": {
 		sources: map[string]string{
-			"index.html": `{% extends "extended.html" %}
+			"index.txt": `{% extends "extended.txt" %}
 {% macro M %}
-{% show "/shown.html" %}
+{% show "/shown.txt" %}
 {% end macro %}`,
-			"extended.html": `{% show "/shown.html" %}`,
-			"shown.html":    `{% var v int %}`,
+			"extended.txt": `{% show "/shown.txt" %}`,
+			"shown.txt":    `{% var v int %}`,
 		},
 	},
 	"https://github.com/open2b/scriggo/issues/660": {
 		sources: map[string]string{
-			"index.html": `{% macro M() %}{% show "shown.html" %}{% end macro %}`,
-			"shown.html": `{% var v int %}{% _ = v %}`,
+			"index.txt": `{% macro M() %}{% show "shown.txt" %}{% end macro %}`,
+			"shown.txt": `{% var v int %}{% _ = v %}`,
 		},
 	},
 
 	// https://github.com/open2b/scriggo/issues/659
 	"Accessing global variable from function literal's body": {
 		sources: map[string]string{
-			"index.html": `{%
+			"index.txt": `{%
 				func(){
 					_ = globalVariable
 				}() 
@@ -1795,7 +1765,7 @@ var templateMultiPageCases = map[string]struct {
 	// https://github.com/open2b/scriggo/issues/659
 	"Accessing global variable from function literal's body - nested": {
 		sources: map[string]string{
-			"index.html": `{%
+			"index.txt": `{%
 				func(){
 					func() {
 						func() {
@@ -1815,7 +1785,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Cannot declare macros inside macros": {
 		sources: map[string]string{
-			"index.html": `
+			"index.txt": `
 				{% macro M1 %}
 					{% macro M2 %}
 					{% end macro %}
@@ -1827,14 +1797,14 @@ var templateMultiPageCases = map[string]struct {
 
 	"Dollar identifier - Referencing to a global variable that does not exist": {
 		sources: map[string]string{
-			"index.html": `{% var _ interface{} = $notExisting %}{{ $notExisting2 == nil }}`,
+			"index.txt": `{% var _ interface{} = $notExisting %}{{ $notExisting2 == nil }}`,
 		},
 		expectedOut: "true",
 	},
 
 	"Dollar identifier - Referencing to a global variable that exists": {
 		sources: map[string]string{
-			"index.html": `{{ $forthyTwo }}`,
+			"index.txt": `{{ $forthyTwo }}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1847,7 +1817,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Dollar identifier - Type assertion on a global variable that exists (1)": {
 		sources: map[string]string{
-			"index.html": `{{ $forthyThree.(int) }}`,
+			"index.txt": `{{ $forthyThree.(int) }}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1860,7 +1830,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Dollar identifier - Type assertion on a global variable that exists (2)": {
 		sources: map[string]string{
-			"index.html": `{% var n, ok = $forthyThree.(int) %}{{ n * 32 }}{{ ok }}`,
+			"index.txt": `{% var n, ok = $forthyThree.(int) %}{{ n * 32 }}{{ ok }}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1873,28 +1843,28 @@ var templateMultiPageCases = map[string]struct {
 
 	"Dollar identifier - Cannot use an type": {
 		sources: map[string]string{
-			"index.html": `{% _ = $int %}`,
+			"index.txt": `{% _ = $int %}`,
 		},
 		expectedLoadErr: `unexpected type in dollar identifier`,
 	},
 
 	"Dollar identifier - Cannot use a builtin": {
 		sources: map[string]string{
-			"index.html": `{% _ = $println %}`,
+			"index.txt": `{% _ = $println %}`,
 		},
 		expectedLoadErr: `use of builtin println not in function call`,
 	},
 
 	"Dollar identifier - Cannot use a local identifier": {
 		sources: map[string]string{
-			"index.html": `{% var local = 10 %}{% _ = $local %}`,
+			"index.txt": `{% var local = 10 %}{% _ = $local %}`,
 		},
 		expectedLoadErr: `use of local identifier within dollar identifier`,
 	},
 
 	"Dollar identifier - Cannot take the address (variable exists)": {
 		sources: map[string]string{
-			"index.html": `{% _ = &($fortyTwo) %}`,
+			"index.txt": `{% _ = &($fortyTwo) %}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1907,14 +1877,14 @@ var templateMultiPageCases = map[string]struct {
 
 	"Dollar identifier - Cannot take the address (variable does not exist)": {
 		sources: map[string]string{
-			"index.html": `{% _ = &($notExisting) %}`,
+			"index.txt": `{% _ = &($notExisting) %}`,
 		},
 		expectedLoadErr: `cannot take the address of $notExisting`,
 	},
 
 	"Dollar identifier - Cannot assign to dollar identifier (variable exists)": {
 		sources: map[string]string{
-			"index.html": `{% $fortyTwo = 43 %}`,
+			"index.txt": `{% $fortyTwo = 43 %}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1927,14 +1897,14 @@ var templateMultiPageCases = map[string]struct {
 
 	"Dollar identifier - Cannot assign to dollar identifier (variable does not exist)": {
 		sources: map[string]string{
-			"index.html": `{% $notExisting = 43 %}`,
+			"index.txt": `{% $notExisting = 43 %}`,
 		},
 		expectedLoadErr: `cannot assign to $notExisting`,
 	},
 
 	"Dollar identifier - Referencing to a constant returns a non-constant": {
 		sources: map[string]string{
-			"index.html": `{% const _ = $constant %}`,
+			"index.txt": `{% const _ = $constant %}`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1947,7 +1917,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"https://github.com/open2b/scriggo/issues/679 (1)": {
 		sources: map[string]string{
-			"index.html": `{% global := interface{}(global) %}ok`,
+			"index.txt": `{% global := interface{}(global) %}ok`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1960,7 +1930,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"https://github.com/open2b/scriggo/issues/679 (2)": {
 		sources: map[string]string{
-			"index.html": `{% var global = interface{}(global) %}ok`,
+			"index.txt": `{% var global = interface{}(global) %}ok`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1973,7 +1943,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"https://github.com/open2b/scriggo/issues/679 (3)": {
 		sources: map[string]string{
-			"index.html": `{% _ = []int{} %}{% global := interface{}(global) %}ok`,
+			"index.txt": `{% _ = []int{} %}{% global := interface{}(global) %}ok`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -1986,55 +1956,55 @@ var templateMultiPageCases = map[string]struct {
 
 	"Dollar identifier referring to package declaration in imported file": {
 		sources: map[string]string{
-			"index.html":    `{% import "imported.html" %}`,
-			"imported.html": `{% var X = 10 %}{% var _ = $X %}`,
+			"index.txt":    `{% import "imported.txt" %}`,
+			"imported.txt": `{% var X = 10 %}{% var _ = $X %}`,
 		},
 		expectedLoadErr: `use of top-level identifier within dollar identifier`,
 	},
 
 	"Dollar identifier referring to package declaration in extending file": {
 		sources: map[string]string{
-			"index.html":    `{% extends "extended.html" %}{% var X = 10 %}{% var _ = $X %}`,
-			"extended.html": ``,
+			"index.txt":    `{% extends "extended.txt" %}{% var X = 10 %}{% var _ = $X %}`,
+			"extended.txt": ``,
 		},
 		expectedLoadErr: `use of top-level identifier within dollar identifier`,
 	},
 
 	"https://github.com/open2b/scriggo/issues/680 - Import": {
 		sources: map[string]string{
-			"index.html":    `{% import "imported.html" %}`,
-			"imported.html": `{% var x = $global %}`,
+			"index.txt":    `{% import "imported.txt" %}`,
+			"imported.txt": `{% var x = $global %}`,
 		},
 	},
 
 	"https://github.com/open2b/scriggo/issues/680 - Extends": {
 		sources: map[string]string{
-			"index.html":    `{% extends "extended.html" %}{% var x = $global %}`,
-			"extended.html": ``,
+			"index.txt":    `{% extends "extended.txt" %}{% var x = $global %}`,
+			"extended.txt": ``,
 		},
 	},
 
 	"Panic after importing file that declares a variable in general register (1)": {
 		sources: map[string]string{
-			"index.html":    `before{% import "imported.html" %}after`,
-			"imported.html": `{% var a []int %}`,
+			"index.txt":    `before{% import "imported.txt" %}after`,
+			"imported.txt": `{% var a []int %}`,
 		},
 		expectedOut: "beforeafter",
 	},
 
 	"Panic after importing file that declares a variable in general register (2)": {
 		sources: map[string]string{
-			"index.html":     `a{% import "imported1.html" %}{% import "imported2.html" %}b`,
-			"imported1.html": `{% var X []int %}`,
-			"imported2.html": `{% var Y []string %}`,
+			"index.txt":     `a{% import "imported1.txt" %}{% import "imported2.txt" %}b`,
+			"imported1.txt": `{% var X []int %}`,
+			"imported2.txt": `{% var Y []string %}`,
 		},
 		expectedOut: "ab",
 	},
 
 	"https://github.com/open2b/scriggo/issues/686": {
 		sources: map[string]string{
-			"index.html":    `{% extends "extended.html" %}{% var _ = $global %}`,
-			"extended.html": `text`,
+			"index.txt":    `{% extends "extended.txt" %}{% var _ = $global %}`,
+			"extended.txt": `text`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -2047,8 +2017,8 @@ var templateMultiPageCases = map[string]struct {
 
 	"https://github.com/open2b/scriggo/issues/686 (2)": {
 		sources: map[string]string{
-			"index.html":    `{% extends "extended.html" %}{% var _ = interface{}(global) %}`,
-			"extended.html": `text`,
+			"index.txt":    `{% extends "extended.txt" %}{% var _ = interface{}(global) %}`,
+			"extended.txt": `text`,
 		},
 		main: &scriggo.MapPackage{
 			PkgName: "main",
@@ -2085,7 +2055,7 @@ var templateMultiPageCases = map[string]struct {
 				}{},
 			},
 		},
-		expectedOut: "\n\t\t\t\t<head>\n\t\t\t\t<script>....\n\t\t\t\t\t\t\n\t\t\t\t\t\t\n\t\t\t\tfef",
+		expectedOut: "\n\t\t\t\t<head>\n\t\t\t\t<script>....\n\t\t\t\t\"\"\t\t\n\t\t\t\t\"\"\t\t\n\t\t\t\tfef",
 	},
 
 	"https://github.com/open2b/scriggo/issues/655": {
@@ -2098,121 +2068,121 @@ var templateMultiPageCases = map[string]struct {
 
 	"https://github.com/open2b/scriggo/issues/656": {
 		sources: map[string]string{
-			"index.html":  "{% extends \"layout.html\" %}\n{% var _ = func() { } %}",
-			"layout.html": `abc`,
+			"index.txt":  "{% extends \"layout.txt\" %}\n{% var _ = func() { } %}",
+			"layout.txt": `abc`,
 		},
 		expectedOut: "abc",
 	},
 
 	"Show of a previously imported file": {
 		sources: map[string]string{
-			"index.html": `{% import "file.html" %}{% show "file.html" %}`,
-			"file.html":  ``,
+			"index.txt": `{% import "file.txt" %}{% show "file.txt" %}`,
+			"file.txt":  ``,
 		},
-		expectedLoadErr: `syntax error: show of file imported at /index.html:1:11`,
+		expectedLoadErr: `syntax error: show of file imported at /index.txt:1:11`,
 	},
 
 	"Show of a previously extended file": {
 		sources: map[string]string{
-			"index.html": `{% extends "file.html" %}{% macro A %}{% show "file.html" %}{% end %}`,
-			"file.html":  ``,
+			"index.txt": `{% extends "file.txt" %}{% macro A %}{% show "file.txt" %}{% end %}`,
+			"file.txt":  ``,
 		},
-		expectedLoadErr: `syntax error: show of file extended at /index.html:1:4`,
+		expectedLoadErr: `syntax error: show of file extended at /index.txt:1:4`,
 	},
 
 	"Import of a previously extended file": {
 		sources: map[string]string{
-			"index.html": `{% extends "file.html" %}{% import "file.html" %}`,
-			"file.html":  ``,
+			"index.txt": `{% extends "file.txt" %}{% import "file.txt" %}`,
+			"file.txt":  ``,
 		},
-		expectedLoadErr: `syntax error: import of file extended at /index.html:1:4`,
+		expectedLoadErr: `syntax error: import of file extended at /index.txt:1:4`,
 	},
 
 	"Import of a previously shown file": {
 		sources: map[string]string{
-			"index.html": `{% show "file1.html" %}{% show "file2.html" %}`,
-			"file1.html": ``,
-			"file2.html": `{% import "file1.html" %}`,
+			"index.txt": `{% show "file1.txt" %}{% show "file2.txt" %}`,
+			"file1.txt": ``,
+			"file2.txt": `{% import "file1.txt" %}`,
 		},
-		expectedLoadErr: `syntax error: import of file shown at /index.html:1:4`,
+		expectedLoadErr: `syntax error: import of file shown at /index.txt:1:4`,
 	},
 
 	"Not only spaces in a page that extends": {
 		sources: map[string]string{
-			"index.html":  `{% extends "layout.html" %}abc`,
-			"layout.html": ``,
+			"index.txt":  `{% extends "layout.txt" %}abc`,
+			"layout.txt": ``,
 		},
 		expectedLoadErr: "syntax error: unexpected text in file with extends",
 	},
 
 	"Not only spaces in an imported file": {
 		sources: map[string]string{
-			"index.html":    `{% import "imported.html" %}`,
-			"imported.html": `abc`,
+			"index.txt":    `{% import "imported.txt" %}`,
+			"imported.txt": `abc`,
 		},
 		expectedLoadErr: "syntax error: unexpected text in imported file",
 	},
 
 	"Extends preceded by not empty text": {
 		sources: map[string]string{
-			"index.html":  `abc{% extends "layout.html" %}`,
-			"layout.html": ``,
+			"index.txt":  `abc{% extends "layout.txt" %}`,
+			"layout.txt": ``,
 		},
 		expectedLoadErr: "syntax error: extends is not at the beginning of the file",
 	},
 
 	"Extends preceded by another statement": {
 		sources: map[string]string{
-			"index.html":  `{% var a = 5 %}{% extends "layout.html" %}`,
-			"layout.html": ``,
+			"index.txt":  `{% var a = 5 %}{% extends "layout.txt" %}`,
+			"layout.txt": ``,
 		},
 		expectedLoadErr: "syntax error: extends is not at the beginning of the file",
 	},
 
 	"Extends preceded by comment": {
 		sources: map[string]string{
-			"index.html":  `{# comment #}{% extends "layout.html" %}`,
-			"layout.html": `abc`,
+			"index.txt":  `{# comment #}{% extends "layout.txt" %}`,
+			"layout.txt": `abc`,
 		},
 		expectedOut: "abc",
 	},
 
 	"EOF after {%": {
 		sources: map[string]string{
-			"index.html": `{%`,
+			"index.txt": `{%`,
 		},
 		expectedLoadErr: "syntax error: unexpected EOF, expecting %}",
 	},
 
 	"EOF after {%%": {
 		sources: map[string]string{
-			"index.html": `{%%`,
+			"index.txt": `{%%`,
 		},
 		expectedLoadErr: "syntax error: unexpected EOF, expecting %%}",
 	},
 
 	"EOF after {{": {
 		sources: map[string]string{
-			"index.html": `{{`,
+			"index.txt": `{{`,
 		},
 		expectedLoadErr: "syntax error: unexpected EOF, expecting }}",
 	},
 
 	"Multi line statements #1": {
 		sources: map[string]string{
-			"index.html": `{%%
-				extends "extended.html"
+			"index.txt": `{%%
+				extends "extended.txt"
 			%%}{% var x = $global %}`,
-			"extended.html": ``,
+			"extended.txt": ``,
 		},
 	},
 
 	"Multi line statements #2": {
 		sources: map[string]string{
-			"index.html": `before{%%
-	import "imported.html"
+			"index.txt": `before{%%
+	import "imported.txt"
 	%%}after`,
-			"imported.html": `{%%
+			"imported.txt": `{%%
 				var a []int
 			%%}`,
 		},
@@ -2221,22 +2191,22 @@ var templateMultiPageCases = map[string]struct {
 
 	"Multi line statements #3": {
 		sources: map[string]string{
-			"index.html":    `{%% import "imported.html" %%}`,
-			"imported.html": `{% var x = $global %}`,
+			"index.txt":    `{%% import "imported.txt" %%}`,
+			"imported.txt": `{% var x = $global %}`,
 		},
 	},
 
 	"Multi line statements #4": {
 		sources: map[string]string{
-			"index.html":    `{% import "imported.html" %}`,
-			"imported.html": `{%% var x = $global %%}`,
+			"index.txt":    `{% import "imported.txt" %}`,
+			"imported.txt": `{%% var x = $global %%}`,
 		},
 	},
 
 	"Multiline statements #5": {
 		sources: map[string]string{
-			"index.html":    `{%% extends "extended.html" %%}{% import "fmt" %}{% macro M %}{{ fmt.Sprint(321, 11) }}{% end macro %}`,
-			"extended.html": `{% show M %}`,
+			"index.txt":    `{%% extends "extended.txt" %%}{% import "fmt" %}{% macro M %}{{ fmt.Sprint(321, 11) }}{% end macro %}`,
+			"extended.txt": `{% show M %}`,
 		},
 		packages:    testPackages,
 		expectedOut: "321 11",
@@ -2244,7 +2214,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Multiline statements #6": {
 		sources: map[string]string{
-			"index.html": `{%%
+			"index.txt": `{%%
 				import "fmt"
 				import m "math"
 			%%}
@@ -2256,32 +2226,32 @@ var templateMultiPageCases = map[string]struct {
 
 	"Multi line statements #7": {
 		sources: map[string]string{
-			"index.html":    `{% import "imported.html" %}{% type _ struct { bar int } %}{{ S.bar }}`,
-			"imported.html": `{%% var S struct { bar int } %%}`,
+			"index.txt":    `{% import "imported.txt" %}{% type _ struct { bar int } %}{{ S.bar }}`,
+			"imported.txt": `{%% var S struct { bar int } %%}`,
 		},
 		expectedLoadErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
 	},
 
 	"Multi line statements #8": {
 		sources: map[string]string{
-			"index.html":    `{% import "imported.html" %}{% type _ *struct { bar int } %}{{ S.bar }}`,
-			"imported.html": `{%% var S *struct { bar int } %%}`,
+			"index.txt":    `{% import "imported.txt" %}{% type _ *struct { bar int } %}{{ S.bar }}`,
+			"imported.txt": `{%% var S *struct { bar int } %%}`,
 		},
 		expectedLoadErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
 	},
 
 	"https://github.com/open2b/scriggo/issues/694": {
 		sources: map[string]string{
-			"index.html":   `{% show "partial.html" %}`,
-			"partial.html": `{% var a int %}{% func() { a = 20 }() %}`,
+			"index.txt":   `{% show "partial.txt" %}`,
+			"partial.txt": `{% var a int %}{% func() { a = 20 }() %}`,
 		},
 		expectedOut: ``,
 	},
 
 	"Error positioned in first non space character": {
 		sources: map[string]string{
-			"index.html":    `{% import "imported.html" %}`,
-			"imported.html": "\n \n\té",
+			"index.txt":    `{% import "imported.txt" %}`,
+			"imported.txt": "\n \n\té",
 		},
 		expectedLoadErr: `3:2: syntax error: unexpected text in imported file`,
 	},
@@ -2367,9 +2337,15 @@ func TestMultiPageTemplate(t *testing.T) {
 			panic("invalid test: " + name)
 		}
 		t.Run(name, func(t *testing.T) {
+			entryPoint := cas.entryPoint
 			r := MapReader{}
 			for p, src := range cas.sources {
 				r[p] = []byte(src)
+				if entryPoint == "" {
+					if strings.TrimSuffix(p, path.Ext(p)) == "index" {
+						entryPoint = p
+					}
+				}
 			}
 			globals := globals()
 			if cas.main != nil {
@@ -2377,15 +2353,11 @@ func TestMultiPageTemplate(t *testing.T) {
 					globals[k] = v
 				}
 			}
-			entryPoint := cas.entryPoint
-			if entryPoint == "" {
-				entryPoint = "index.html"
-			}
 			opts := &LoadOptions{
 				Globals:  globals,
 				Packages: cas.packages,
 			}
-			templ, err := Load(entryPoint, r, cas.lang, opts)
+			templ, err := Load(entryPoint, r, opts)
 			switch {
 			case err == nil && cas.expectedLoadErr == "":
 				// Ok, no errors expected: continue with the test.
@@ -2434,7 +2406,7 @@ func TestVars(t *testing.T) {
 	opts := &LoadOptions{
 		Globals: globals,
 	}
-	tmpl, err := Load("example.txt", reader, LanguageText, opts)
+	tmpl, err := Load("example.txt", reader, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2516,7 +2488,7 @@ func Test_envFilePath(t *testing.T) {
 			opts := &LoadOptions{
 				Globals: globals,
 			}
-			template, err := Load("index.html", r, LanguageHTML, opts)
+			template, err := Load("index.html", r, opts)
 			if err != nil {
 				t.Fatal(err)
 			}

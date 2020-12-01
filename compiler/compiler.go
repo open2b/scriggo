@@ -147,18 +147,17 @@ func CompileScript(r io.Reader, packages PackageLoader, opts Options) (*Code, er
 	return code, err
 }
 
-// CompileTemplate compiles the template file with the given path and written
-// in language lang. It reads the template files from the reader. path, if not
-// absolute, is relative to the root of the template. lang can be Text, HTML,
-// CSS or JavaScript.
-// Any error related to the compilation itself is returned as a CompilerError.
-func CompileTemplate(path string, r FileReader, lang ast.Language, opts Options) (*Code, error) {
+// CompileTemplate compiles the template file with the given path. It reads
+// the template files from the reader. path, if not absolute, is relative to
+// the root of the template. Any error related to the compilation itself is
+// returned as a CompilerError.
+func CompileTemplate(path string, r FileReader, opts Options) (*Code, error) {
 
 	var tree *ast.Tree
 
 	// Parse the source code.
 	var err error
-	tree, err = ParseTemplate(path, r, lang, opts.Packages)
+	tree, err = ParseTemplate(path, r, opts.Packages)
 	if err != nil {
 		return nil, err
 	}

@@ -12,6 +12,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -27,25 +28,47 @@ import (
 
 type mapReader map[string][]byte
 
-func (r mapReader) ReadFile(name string) ([]byte, error) {
+func (r mapReader) ReadFile(name string) ([]byte, ast.Language, error) {
 	src, ok := r[name]
 	if !ok {
 		panic("not existing")
 	}
-	return src, nil
+	language := ast.LanguageText
+	switch path.Ext(name) {
+	case ".html":
+		language = ast.LanguageHTML
+	case ".css":
+		language = ast.LanguageCSS
+	case ".js":
+		language = ast.LanguageJS
+	case ".json":
+		language = ast.LanguageJSON
+	}
+	return src, language, nil
 }
 
 type dirReader string
 
-func (dir dirReader) ReadFile(name string) ([]byte, error) {
+func (dir dirReader) ReadFile(name string) ([]byte, ast.Language, error) {
 	src, err := ioutil.ReadFile(filepath.Join(string(dir), name))
 	if err != nil {
 		if os.IsNotExist(err) {
 			panic("not existing")
 		}
-		return nil, err
+		return nil, 0, err
 	}
-	return src, nil
+	language := ast.LanguageText
+	switch path.Ext(name) {
+	case ".html":
+		language = ast.LanguageHTML
+	case ".css":
+		language = ast.LanguageCSS
+	case ".js":
+		language = ast.LanguageJS
+	case ".json":
+		language = ast.LanguageJSON
+	}
+	return src, language, nil
 }
 
 type compiledTemplate struct {
@@ -60,7 +83,7 @@ func compileTemplate(reader compiler.FileReader) (*compiledTemplate, error) {
 		Globals:  globals,
 		Packages: predefPkgs,
 	}
-	code, err := compiler.CompileTemplate("/index.html", reader, ast.LanguageHTML, opts)
+	code, err := compiler.CompileTemplate("/index.html", reader, opts)
 	if err != nil {
 		return nil, err
 	}

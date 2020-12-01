@@ -77,7 +77,7 @@ var envStringerCases = map[string]struct {
 }{
 	"EnvStringer": {
 		sources: map[string]string{
-			"index.html": "value read from env is {{ v }}",
+			"index.txt": "value read from env is {{ v }}",
 		},
 		globals: map[string]interface{}{
 			"v": &testEnvStringerValue,
@@ -97,7 +97,7 @@ var envStringerCases = map[string]struct {
 	},
 	"CSSEnvStringer": {
 		sources: map[string]string{
-			"index.html": "border-radius: {{ v }};",
+			"index.css": "border-radius: {{ v }};",
 		},
 		globals: map[string]interface{}{
 			"v": &testCSSEnvStringerValue,
@@ -107,7 +107,7 @@ var envStringerCases = map[string]struct {
 	},
 	"JSEnvStringer": {
 		sources: map[string]string{
-			"index.html": "var x = {{ v }};",
+			"index.js": "var x = {{ v }};",
 		},
 		globals: map[string]interface{}{
 			"v": &testJSEnvStringerValue,
@@ -117,7 +117,7 @@ var envStringerCases = map[string]struct {
 	},
 	"JSONEnvStringer": {
 		sources: map[string]string{
-			"index.html": "var x = {{ v }};",
+			"index.json": "var x = {{ v }};",
 		},
 		globals: map[string]interface{}{
 			"v": &testJSONEnvStringerValue,
@@ -146,7 +146,18 @@ func TestEnvStringer(t *testing.T) {
 			opts := &LoadOptions{
 				Globals: cas.globals,
 			}
-			template, err := Load("index.html", r, cas.language, opts)
+			name := "index.txt"
+			switch cas.language {
+			case LanguageHTML:
+				name = "index.html"
+			case LanguageCSS:
+				name = "index.css"
+			case LanguageJS:
+				name = "index.js"
+			case LanguageJSON:
+				name = "index.json"
+			}
+			template, err := Load(name, r, opts)
 			if err != nil {
 				t.Fatal(err)
 			}

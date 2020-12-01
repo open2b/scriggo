@@ -7,6 +7,7 @@
 package compiler
 
 import (
+	"path"
 	"testing"
 
 	"github.com/open2b/scriggo/compiler/ast"
@@ -169,7 +170,7 @@ var cycleTemplateTests = []struct {
 func TestCyclicTemplates(t *testing.T) {
 	for _, test := range cycleTemplateTests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := ParseTemplate("index.html", test.template, ast.LanguageHTML, nil)
+			_, err := ParseTemplate("index.html", test.template, nil)
 			if err == nil {
 				t.Fatal("expecting cycle error, got no error")
 			}
@@ -192,10 +193,21 @@ func TestCyclicTemplates(t *testing.T) {
 
 type mapStringReader map[string]string
 
-func (r mapStringReader) ReadFile(name string) ([]byte, error) {
+func (r mapStringReader) ReadFile(name string) ([]byte, ast.Language, error) {
 	src, ok := r[name]
 	if !ok {
 		panic("not existing")
 	}
-	return []byte(src), nil
+	language := ast.LanguageText
+	switch path.Ext(name) {
+	case ".html":
+		language = ast.LanguageHTML
+	case ".css":
+		language = ast.LanguageCSS
+	case ".js":
+		language = ast.LanguageJS
+	case ".json":
+		language = ast.LanguageJSON
+	}
+	return []byte(src), language, nil
 }

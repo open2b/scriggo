@@ -25,7 +25,7 @@ func Test_treeTransformer(t *testing.T) {
 			return nil
 		},
 	}
-	template, err := Load("index.html", reader, LanguageText, loadOpts)
+	template, err := Load("index.html", reader, loadOpts)
 	if err != nil {
 		t.Fatal(err)
 	}

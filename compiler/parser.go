@@ -17,7 +17,7 @@ import (
 )
 
 type FileReader interface {
-	ReadFile(name string) ([]byte, error)
+	ReadFile(name string) ([]byte, ast.Language, error)
 }
 
 var (

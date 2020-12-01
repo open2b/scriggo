@@ -204,7 +204,7 @@ func TestURLEscape(t *testing.T) {
 			opts := &LoadOptions{
 				Globals: globals(),
 			}
-			templ, err := Load("index.html", r, LanguageHTML, opts)
+			templ, err := Load("index.html", r, opts)
 			if err != nil {
 				t.Fatalf("compilation error: %s", err)
 			}
