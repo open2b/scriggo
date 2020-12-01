@@ -33,8 +33,8 @@ var timeType = reflect.TypeOf(time.Time{})
 
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
-// showedAs reports whether a type can be showed in context ctx.
-func showedAs(t reflect.Type, ctx ast.Context) error {
+// shownAs reports whether a type can be shown in context ctx.
+func shownAs(t reflect.Type, ctx ast.Context) error {
 	kind := t.Kind()
 	switch ctx {
 	case ast.ContextText, ast.ContextTag, ast.ContextQuotedAttr, ast.ContextUnquotedAttr,
@@ -76,18 +76,18 @@ func showedAs(t reflect.Type, ctx ast.Context) error {
 			return fmt.Errorf("cannot show type %s as CSS", t)
 		}
 	case ast.ContextJS:
-		return showedAsJS(t)
+		return shownAsJS(t)
 	case ast.ContextJSON:
-		return showedAsJSON(t)
+		return shownAsJSON(t)
 	default:
 		panic("unexpected context")
 	}
 	return nil
 }
 
-// showedAsJS reports whether a type can be showed as JavaScript. It returns
-// an error if the type cannot be showed.
-func showedAsJS(t reflect.Type) error {
+// shownAsJS reports whether a type can be shown as JavaScript. It returns
+// an error if the type cannot be shown.
+func shownAsJS(t reflect.Type) error {
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
 		t == timeType ||
@@ -98,7 +98,7 @@ func showedAsJS(t reflect.Type) error {
 	}
 	switch kind {
 	case reflect.Array:
-		if err := showedAsJS(t.Elem()); err != nil {
+		if err := shownAsJS(t.Elem()); err != nil {
 			return fmt.Errorf("cannot show array of %s as JavaScript", t.Elem())
 		}
 	case reflect.Interface:
@@ -112,14 +112,14 @@ func showedAsJS(t reflect.Type) error {
 		default:
 			return fmt.Errorf("cannot show map with %s key as JavaScript", t.Key())
 		}
-		err := showedAsJS(t.Elem())
+		err := shownAsJS(t.Elem())
 		if err != nil {
 			return fmt.Errorf("cannot show map with %s element as JavaScript", t.Elem())
 		}
 	case reflect.Ptr, reflect.UnsafePointer:
-		return showedAsJS(t.Elem())
+		return shownAsJS(t.Elem())
 	case reflect.Slice:
-		if err := showedAsJS(t.Elem()); err != nil {
+		if err := shownAsJS(t.Elem()); err != nil {
 			return fmt.Errorf("cannot show slice of %s as JavaScript", t.Elem())
 		}
 	case reflect.Struct:
@@ -127,7 +127,7 @@ func showedAsJS(t reflect.Type) error {
 		for i := 0; i < n; i++ {
 			field := t.Field(i)
 			if field.PkgPath == "" {
-				if err := showedAsJS(field.Type); err != nil {
+				if err := shownAsJS(field.Type); err != nil {
 					return fmt.Errorf("cannot show struct containing %s as JavaScript", field.Type)
 				}
 			}
@@ -138,9 +138,9 @@ func showedAsJS(t reflect.Type) error {
 	return nil
 }
 
-// showedAsJSON reports whether a type can be showed as JSON. It returns an
-// error if the type cannot be showed.
-func showedAsJSON(t reflect.Type) error {
+// shownAsJSON reports whether a type can be shown as JSON. It returns an
+// error if the type cannot be shown.
+func shownAsJSON(t reflect.Type) error {
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
 		t == timeType ||
@@ -151,7 +151,7 @@ func showedAsJSON(t reflect.Type) error {
 	}
 	switch kind {
 	case reflect.Array:
-		if err := showedAsJSON(t.Elem()); err != nil {
+		if err := shownAsJSON(t.Elem()); err != nil {
 			return fmt.Errorf("cannot show array of %s as JSON", t.Elem())
 		}
 	case reflect.Interface:
@@ -165,14 +165,14 @@ func showedAsJSON(t reflect.Type) error {
 		default:
 			return fmt.Errorf("cannot show map with %s key as JSON", t.Key())
 		}
-		err := showedAsJSON(t.Elem())
+		err := shownAsJSON(t.Elem())
 		if err != nil {
 			return fmt.Errorf("cannot show map with %s element as JSON", t.Elem())
 		}
 	case reflect.Ptr, reflect.UnsafePointer:
-		return showedAsJSON(t.Elem())
+		return shownAsJSON(t.Elem())
 	case reflect.Slice:
-		if err := showedAsJSON(t.Elem()); err != nil {
+		if err := shownAsJSON(t.Elem()); err != nil {
 			return fmt.Errorf("cannot show slice of %s as JSON", t.Elem())
 		}
 	case reflect.Struct:
@@ -180,7 +180,7 @@ func showedAsJSON(t reflect.Type) error {
 		for i := 0; i < n; i++ {
 			field := t.Field(i)
 			if field.PkgPath == "" {
-				if err := showedAsJSON(field.Type); err != nil {
+				if err := shownAsJSON(field.Type); err != nil {
 					return fmt.Errorf("cannot show struct containing %s as JSON", field.Type)
 				}
 			}

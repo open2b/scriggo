@@ -35,7 +35,7 @@ func (err ShowTypeError) RuntimeError() {}
 
 // show shows value in the context ctx and writes to out. If env and out are
 // nil, it does not show the value but only checks that the type of value can
-// be showed.
+// be shown.
 //
 // show has type scriggo/compiler.ShowFunc.
 func show(env runtime.Env, out io.Writer, value interface{}, ctx ast.Context) {
@@ -43,7 +43,7 @@ func show(env runtime.Env, out io.Writer, value interface{}, ctx ast.Context) {
 	var err error
 
 	if env == nil && out == nil {
-		err = showedAs(reflect.TypeOf(value), ctx)
+		err = shownAs(reflect.TypeOf(value), ctx)
 		if err != nil {
 			panic(compiler.ShowTypeError(err))
 		}

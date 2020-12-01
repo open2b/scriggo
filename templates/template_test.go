@@ -2128,7 +2128,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedLoadErr: `syntax error: import of file extended at /index.html:1:4`,
 	},
 
-	"Import of a previously showed file": {
+	"Import of a previously shown file": {
 		sources: map[string]string{
 			"index.html": `{% show "file1.html" %}{% show "file2.html" %}`,
 			"file1.html": ``,
