@@ -1,10 +1,9 @@
-package compiler_test
+package compiler
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/open2b/scriggo/compiler"
 	"github.com/open2b/scriggo/compiler/ast"
 )
 
@@ -164,15 +163,13 @@ var templateCases = []struct {
 	},
 }
 
-const ok = ""
-
 func TestTemplate(t *testing.T) {
 	for _, cas := range templateCases {
 		src := cas.src
 		expected := cas.expected
 		t.Run(src, func(t *testing.T) {
 			r := mapReader{"/index.html": []byte(src)}
-			_, err := compiler.CompileTemplate("/index.html", r, ast.LanguageHTML, compiler.Options{})
+			_, err := CompileTemplate("/index.html", r, ast.LanguageHTML, Options{})
 			switch {
 			case expected == "" && err != nil:
 				t.Fatalf("unexpected error: %q", err)
