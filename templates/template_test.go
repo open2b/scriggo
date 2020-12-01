@@ -2134,7 +2134,7 @@ var templateMultiPageCases = map[string]struct {
 			"file1.html": ``,
 			"file2.html": `{% import "file1.html" %}`,
 		},
-		expectedLoadErr: `syntax error: import of file showed at /index.html:1:4`,
+		expectedLoadErr: `syntax error: import of file shown at /index.html:1:4`,
 	},
 
 	"Not only spaces in a page that extends": {

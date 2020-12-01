@@ -144,7 +144,7 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 			}
 		case *ast.ShowPartial:
 			if _, ok := node.(*ast.Import); ok {
-				return nil, syntaxError(node.Pos(), "import of file showed at %s:%s", parsed.parent.path, n.Pos())
+				return nil, syntaxError(node.Pos(), "import of file shown at %s:%s", parsed.parent.path, n.Pos())
 			}
 		}
 		tree = parsed.tree
