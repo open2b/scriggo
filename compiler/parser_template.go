@@ -45,7 +45,12 @@ func ParseTemplate(path string, reader FileReader, packages PackageLoader) (*ast
 		paths:    []string{},
 	}
 
-	tree, err := pp.parseFile(path, -1, false)
+	src, lang, err := reader.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	tree, err := pp.parseSource(src, path, lang, false)
 	if err != nil {
 		if err2, ok := err.(*SyntaxError); ok && err2.path == "" {
 			err2.path = path
@@ -97,7 +102,7 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 
 	var err error
 	var path string
-	var language ast.Language = -1
+	var language ast.Language
 	var imported bool
 
 	// Get the file's absolute path, its language and if it should be
@@ -156,15 +161,18 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 
 	if tree == nil {
 		// Parse the file.
-		tree, err = pp.parseFile(path, language, imported)
+		src, lang, err := pp.reader.ReadFile(path)
 		if err != nil {
-			if e, ok := err.(languageError); ok {
-				if _, ok := node.(*ast.Extends); ok {
-					err = syntaxError(node.Pos(), "extended file %q is %s instead of %s", path, e.lang, language)
-				} else {
-					err = syntaxError(node.Pos(), "shown file %q is %s instead of %s", path, e.lang, language)
-				}
+			return nil, err
+		}
+		if !imported && lang != language {
+			if _, ok := node.(*ast.Extends); ok {
+				return nil, syntaxError(node.Pos(), "extended file %q is %s instead of %s", path, lang, language)
 			}
+			return nil, syntaxError(node.Pos(), "shown file %q is %s instead of %s", path, lang, language)
+		}
+		tree, err = pp.parseSource(src, path, lang, imported)
+		if err != nil {
 			return nil, err
 		}
 		parsed := parsedTree{tree: tree}
@@ -176,27 +184,10 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 	return tree, nil
 }
 
-type languageError struct {
-	lang ast.Language
-}
-
-func (err languageError) Error() string {
-	return fmt.Sprintf("unexpected language %s", err.lang)
-}
-
-// parseFile parses the file with the given path. If language is not negative,
-// parseFile returns a languageError error if the file does not have the given
-// language. imported indicates whether the file is imported. path must be
-// absolute and cleared.
-func (pp *templateExpansion) parseFile(path string, language ast.Language, imported bool) (*ast.Tree, error) {
-
-	src, lang, err := pp.reader.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	if language >= 0 && lang != language {
-		return nil, languageError{lang}
-	}
+// parseSource parses src expanding Extends, Import and ShowPartial nodes.
+// path is the path of the file, lang is its language and imported indicates
+// whether the file is imported. path must be absolute and cleared.
+func (pp *templateExpansion) parseSource(src []byte, path string, lang ast.Language, imported bool) (*ast.Tree, error) {
 
 	tree, err := ParseTemplateSource(src, lang, imported)
 	if err != nil {
