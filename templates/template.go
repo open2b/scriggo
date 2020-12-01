@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path"
 	"reflect"
 	"sort"
 
@@ -170,9 +171,49 @@ type CompilerError interface {
 	Message() string
 }
 
+type fileLanguageReader struct {
+	r FileReader
+}
+
+func (f fileLanguageReader) ReadFile(name string) ([]byte, ast.Language, error) {
+	src, err := f.r.ReadFile(name)
+	if err != nil {
+		return nil, 0, err
+	}
+	language := ast.LanguageText
+	if files, ok := f.r.(interface {
+		Language(string) (Language, error)
+	}); ok {
+		lang, err := files.Language(name)
+		if err != nil {
+			return nil, 0, err
+		}
+		if lang < LanguageText || lang > LanguageJSON {
+			return nil, 0, fmt.Errorf("unkonwn language %d", lang)
+		}
+		language = ast.Language(lang)
+	} else {
+		switch path.Ext(name) {
+		case ".html":
+			language = ast.LanguageHTML
+		case ".css":
+			language = ast.LanguageCSS
+		case ".js":
+			language = ast.LanguageJS
+		case ".json":
+			language = ast.LanguageJSON
+		}
+	}
+	return src, language, nil
+}
+
 // Load loads a template given its file name. Load calls the method ReadFile of
 // files to read the files of the template.
-func Load(name string, files FileReader, lang Language, options *LoadOptions) (*Template, error) {
+//
+// The language of the file depends on the extension of name or, if files has
+// the method 'Language(string) (Language, error)', Load gets the language
+// from this method. If this method returns an error, this error is returned.
+func Load(name string, files FileReader, options *LoadOptions) (*Template, error) {
 	co := compiler.Options{ShowFunc: show}
 	if options != nil {
 		co.Globals = compiler.Declarations(options.Globals)
@@ -180,7 +221,7 @@ func Load(name string, files FileReader, lang Language, options *LoadOptions) (*
 		co.DisallowGoStmt = options.DisallowGoStmt
 		co.Packages = options.Packages
 	}
-	code, err := compiler.CompileTemplate(name, files, ast.Language(lang), co)
+	code, err := compiler.CompileTemplate(name, fileLanguageReader{files}, co)
 	if err != nil {
 		if err == compiler.ErrInvalidPath {
 			return nil, ErrInvalidPath

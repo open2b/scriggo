@@ -54,7 +54,7 @@ func TestHTMLContext(t *testing.T) {
 		opts := &LoadOptions{
 			Globals: asDeclarations(expr.vars),
 		}
-		tmpl, err := Load("index.html", r, LanguageHTML, opts)
+		tmpl, err := Load("index.html", r, opts)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -109,7 +109,7 @@ func TestQuotedAttrContext(t *testing.T) {
 		opts := &LoadOptions{
 			Globals: asDeclarations(expr.vars),
 		}
-		tmpl, err := Load("index.html", r, LanguageHTML, opts)
+		tmpl, err := Load("index.html", r, opts)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -146,7 +146,7 @@ func TestUnquotedAttrContext(t *testing.T) {
 		opts := &LoadOptions{
 			Globals: asDeclarations(expr.vars),
 		}
-		tmpl, err := Load("index.html", r, LanguageHTML, opts)
+		tmpl, err := Load("index.html", r, opts)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -228,7 +228,7 @@ func TestScriptContext(t *testing.T) {
 			opts := &LoadOptions{
 				Globals: asDeclarations(expr.vars),
 			}
-			tmpl, err := Load("index.html", r, LanguageHTML, opts)
+			tmpl, err := Load("index.html", r, opts)
 			if err != nil {
 				t.Errorf("type: %s, source: %q, %s\n", typ, expr.src, err)
 				continue
@@ -261,7 +261,7 @@ func TestJSContext(t *testing.T) {
 		opts := &LoadOptions{
 			Globals: asDeclarations(expr.vars),
 		}
-		tmpl, err := Load("index.html", r, LanguageHTML, opts)
+		tmpl, err := Load("index.html", r, opts)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -293,7 +293,7 @@ func TestJSONContext(t *testing.T) {
 		opts := &LoadOptions{
 			Globals: asDeclarations(expr.vars),
 		}
-		tmpl, err := Load("index.html", r, LanguageHTML, opts)
+		tmpl, err := Load("index.html", r, opts)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -351,7 +351,7 @@ func TestJSStringContext(t *testing.T) {
 			opts := &LoadOptions{
 				Globals: asDeclarations(expr.vars),
 			}
-			tmpl, err := Load("index.html", r, LanguageHTML, opts)
+			tmpl, err := Load("index.html", r, opts)
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue
@@ -390,7 +390,7 @@ func TestCSSContext(t *testing.T) {
 		opts := &LoadOptions{
 			Globals: asDeclarations(expr.vars),
 		}
-		tmpl, err := Load("index.html", r, LanguageHTML, opts)
+		tmpl, err := Load("index.html", r, opts)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -440,7 +440,7 @@ func TestCSSStringContext(t *testing.T) {
 			opts := &LoadOptions{
 				Globals: asDeclarations(expr.vars),
 			}
-			tmpl, err := Load("index.html", r, LanguageHTML, opts)
+			tmpl, err := Load("index.html", r, opts)
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue
