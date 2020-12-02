@@ -58,13 +58,13 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 		result = []*ast.Parameter{ast.NewParameter(nil, expr)}
 	}
 	// Makes the function type.
-	typ := ast.NewFuncType(nil, parameters, result, isVariadic)
+	typ := ast.NewFuncType(nil, false, parameters, result, isVariadic)
 	if kind == parseFuncType || kind&parseFuncType != 0 && tok.typ != tokenLeftBrace {
 		typ.Position = &ast.Position{pos.Line, pos.Column, pos.Start, pos.End}
 		return typ, tok
 	}
 	// Parses the function body.
-	node := ast.NewFunc(pos, ident, typ, nil)
+	node := ast.NewFunc(pos, ident, typ, nil, tok.ctx)
 	if tok.typ != tokenLeftBrace {
 		return node, tok
 	}

@@ -121,24 +121,18 @@ var expressionStringTests = []struct {
 	{"[]*int", NewSliceType(nil, NewUnaryOperator(
 		nil, OperatorMultiplication, NewIdentifier(nil, "int")),
 	)},
-	{"func()", NewFuncType(nil, nil, nil, false)},
-	{"func(int)", NewFuncType(nil, []*Parameter{NewParameter(nil, NewIdentifier(nil, "int"))}, nil, false)},
-	{"func(a int)", NewFuncType(nil, []*Parameter{NewParameter(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false)},
-	{"func() int", NewFuncType(nil, nil, []*Parameter{NewParameter(nil, NewIdentifier(nil, "int"))}, false)},
-	{"func() (n int)", NewFuncType(nil, nil, []*Parameter{NewParameter(NewIdentifier(nil, "n"), NewIdentifier(nil, "int"))}, false)},
-	{"func(a int, b bool) (n int, err error)", NewFuncType(nil,
-		[]*Parameter{
-			NewParameter(NewIdentifier(nil, "a"), NewIdentifier(nil, "int")),
-			NewParameter(NewIdentifier(nil, "b"), NewIdentifier(nil, "bool"))},
-		[]*Parameter{
-			NewParameter(NewIdentifier(nil, "n"), NewIdentifier(nil, "int")),
-			NewParameter(NewIdentifier(nil, "err"), NewIdentifier(nil, "error"))}, false)},
-	{"func literal", NewFunc(nil, nil, NewFuncType(nil,
-		[]*Parameter{NewParameter(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false),
-		NewBlock(nil, nil))},
-	{"func declaration", NewFunc(nil, NewIdentifier(nil, "f"), NewFuncType(nil,
-		[]*Parameter{NewParameter(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false),
-		NewBlock(nil, nil))},
+	{"func()", NewFuncType(nil, false, nil, nil, false)},
+	{"func(int)", NewFuncType(nil, false, []*Parameter{NewParameter(nil, NewIdentifier(nil, "int"))}, nil, false)},
+	{"func(a int)", NewFuncType(nil, false, []*Parameter{NewParameter(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false)},
+	{"func() int", NewFuncType(nil, false, nil, []*Parameter{NewParameter(nil, NewIdentifier(nil, "int"))}, false)},
+	{"func() (n int)", NewFuncType(nil, false, nil, []*Parameter{NewParameter(NewIdentifier(nil, "n"), NewIdentifier(nil, "int"))}, false)},
+	{"func(a int, b bool) (n int, err error)", NewFuncType(nil, false, []*Parameter{
+		NewParameter(NewIdentifier(nil, "a"), NewIdentifier(nil, "int")),
+		NewParameter(NewIdentifier(nil, "b"), NewIdentifier(nil, "bool"))}, []*Parameter{
+		NewParameter(NewIdentifier(nil, "n"), NewIdentifier(nil, "int")),
+		NewParameter(NewIdentifier(nil, "err"), NewIdentifier(nil, "error"))}, false)},
+	{"func literal", NewFunc(nil, nil, NewFuncType(nil, false, []*Parameter{NewParameter(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false), NewBlock(nil, nil), ContextText)},
+	{"func declaration", NewFunc(nil, NewIdentifier(nil, "f"), NewFuncType(nil, false, []*Parameter{NewParameter(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false), NewBlock(nil, nil), ContextText)},
 }
 
 func TestExpressionString(t *testing.T) {

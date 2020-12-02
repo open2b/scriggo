@@ -498,13 +498,6 @@ func (tc *typechecker) isSelectorOfMapIndexing(expr ast.Expression) bool {
 	return tc.isMapIndexing(selector.Expr)
 }
 
-// macroToFunc converts a macro node into a function node.
-func macroToFunc(macro *ast.Macro) *ast.Func {
-	pos := macro.Pos()
-	body := ast.NewBlock(pos, macro.Body)
-	return ast.NewFunc(pos, macro.Ident, macro.Type, body)
-}
-
 type receiverTransformation int
 
 const (

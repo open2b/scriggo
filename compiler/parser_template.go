@@ -283,9 +283,9 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 				}
 			}
 
-		case *ast.Macro:
+		case *ast.Func:
 
-			err := pp.expand(n.Body)
+			err := pp.expand(n.Body.Nodes)
 			if err != nil {
 				return err
 			}

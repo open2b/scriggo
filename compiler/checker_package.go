@@ -295,8 +295,6 @@ func sortDeclarations(pkg *ast.Package) error {
 			imports = append(imports, decl)
 		case *ast.Func:
 			funcs = append(funcs, decl)
-		case *ast.Macro:
-			funcs = append(funcs, macroToFunc(decl))
 		case *ast.Const:
 			if len(decl.Rhs) == 0 {
 				for i := range decl.Lhs {

@@ -167,8 +167,8 @@ func (p *parsing) parent() ast.Node {
 // inFunction reports whether it is in a function body.
 func (p *parsing) inFunction() bool {
 	for i := len(p.ancestors) - 1; i > 0; i-- {
-		if _, ok := p.ancestors[i].(*ast.Func); ok {
-			return true
+		if n, ok := p.ancestors[i].(*ast.Func); ok {
+			return !n.Type.Macro
 		}
 	}
 	return false
@@ -1172,12 +1172,15 @@ LABEL:
 			panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
 		}
 		// Makes the macro node.
-		typ := ast.NewFuncType(nil, parameters, nil, isVariadic)
+		typ := ast.NewFuncType(nil, true, parameters, nil, isVariadic)
 		pos.End = tok.pos.End
 		typ.Position = pos
-		node := ast.NewMacro(pos, ident, typ, nil, tok.ctx)
+		node := ast.NewFunc(pos, ident, typ, nil, tok.ctx)
+		body := ast.NewBlock(tok.pos, nil)
+		node.Body = body
 		p.addChild(node)
 		p.addToAncestors(node)
+		p.addToAncestors(body)
 		p.cutSpacesToken = true
 		return p.next()
 
@@ -1207,7 +1210,7 @@ LABEL:
 				if statementTok.typ != tokenIf {
 					panic(syntaxError(pos, "unexpected %s, expecting if or %%}", statementTok))
 				}
-			case *ast.Macro:
+			case *ast.Func:
 				if statementTok.typ != tokenMacro {
 					panic(syntaxError(pos, "unexpected %s, expecting macro or %%}", statementTok))
 				}
@@ -1678,8 +1681,6 @@ func (p *parsing) addChild(child ast.Node) {
 		n.Declarations = append(n.Declarations, child)
 	case *ast.URL:
 		n.Value = append(n.Value, child)
-	case *ast.Macro:
-		n.Body = append(n.Body, child)
 	case *ast.For:
 		n.Body = append(n.Body, child)
 	case *ast.ForRange:

@@ -84,9 +84,8 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		// macro defined in the extending one, but these macro can contain
 		// references to variables defined outside them.
 		for _, d := range tree.Nodes[1:] {
-			if m, ok := d.(*ast.Macro); ok {
-				f := macroToFunc(m)
-				tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &typeInfo{Type: tc.checkType(f.Type).Type}}
+			if m, ok := d.(*ast.Func); ok && m.Type.Macro {
+				tc.filePackageBlock[m.Ident.Name] = scopeElement{t: &typeInfo{Type: tc.checkType(m.Type).Type}}
 			}
 		}
 		// Second: type check the extended page in a new scope.

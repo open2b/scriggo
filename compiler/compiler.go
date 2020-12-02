@@ -371,7 +371,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 			mainBuilder := e.fb
 			// Macro declarations in extending page must be accessed by the extended page.
 			for _, dec := range pkg.Declarations {
-				if fun, ok := dec.(*ast.Func); ok {
+				if fun, ok := dec.(*ast.Func); ok && fun.Type.Macro {
 					fn := newFunction("main", fun.Ident.Name, fun.Type.Reflect, e.fb.getPath(), fun.Pos())
 					e.fnStore.makeAvailableScriggoFn(e.pkg, fun.Ident.Name, fn)
 				}

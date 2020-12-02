@@ -28,7 +28,7 @@ func (tc *typechecker) templatePageToPackage(tree *ast.Tree) {
 	for _, n := range tree.Nodes {
 		switch n := n.(type) {
 		case *ast.Text, *ast.Comment:
-		case *ast.Extends, *ast.Import, *ast.Macro, *ast.Var, *ast.Const, *ast.TypeDeclaration:
+		case *ast.Extends, *ast.Import, *ast.Func, *ast.Var, *ast.Const, *ast.TypeDeclaration:
 			nodes = append(nodes, n)
 		case *ast.Statements:
 			nodes = append(nodes, n.Nodes...)
@@ -654,10 +654,6 @@ nodesLoop:
 		case *ast.ShowMacro:
 			tc.showMacros = append(tc.showMacros, node)
 			nodes[i] = ast.NewCall(node.Pos(), node.Macro, node.Args, node.IsVariadic)
-			continue nodesLoop // check nodes[i]
-
-		case *ast.Macro:
-			nodes[i] = macroToFunc(node)
 			continue nodesLoop // check nodes[i]
 
 		case *ast.Call:

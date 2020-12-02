@@ -431,18 +431,22 @@ func (n *Parameter) String() string {
 type FuncType struct {
 	expression
 	*Position               // position in the source.
+	Macro      bool         // indicates whether it is declared as macro.
 	Parameters []*Parameter // parameters.
 	Result     []*Parameter // result.
 	IsVariadic bool         // reports whether it is variadic.
 	Reflect    reflect.Type // reflect type.
 }
 
-func NewFuncType(pos *Position, parameters []*Parameter, result []*Parameter, isVariadic bool) *FuncType {
-	return &FuncType{expression{}, pos, parameters, result, isVariadic, nil}
+func NewFuncType(pos *Position, macro bool, parameters []*Parameter, result []*Parameter, isVariadic bool) *FuncType {
+	return &FuncType{expression{}, pos, macro, parameters, result, isVariadic, nil}
 }
 
 func (n *FuncType) String() string {
 	s := "func("
+	if n.Macro {
+		s = "macro("
+	}
 	for i, param := range n.Parameters {
 		if i > 0 {
 			s += ", "
@@ -471,10 +475,11 @@ func (n *FuncType) String() string {
 type Func struct {
 	expression
 	*Position
-	Ident  *Identifier // name, nil for function literals.
-	Type   *FuncType   // type.
-	Body   *Block      // body.
-	Upvars []Upvar     // Upvars of func.
+	Ident   *Identifier // name, nil for function literals.
+	Type    *FuncType   // type.
+	Body    *Block      // body.
+	Upvars  []Upvar     // Upvars of func.
+	Context Context     // macro context.
 }
 
 // Upvar represents a variable defined outside function body. Even package level
@@ -532,11 +537,14 @@ type Upvar struct {
 	Index int16
 }
 
-func NewFunc(pos *Position, name *Identifier, typ *FuncType, body *Block) *Func {
-	return &Func{expression{}, pos, name, typ, body, nil}
+func NewFunc(pos *Position, name *Identifier, typ *FuncType, body *Block, ctx Context) *Func {
+	return &Func{expression{}, pos, name, typ, body, nil, ctx}
 }
 
 func (n *Func) String() string {
+	if n.Type.Macro {
+		return "macro declaration"
+	}
 	if n.Ident == nil {
 		return "func literal"
 	}
@@ -712,22 +720,6 @@ func (n *TypeDeclaration) String() string {
 // NewTypeDeclaration returns a new TypeDeclaration node.
 func NewTypeDeclaration(pos *Position, ident *Identifier, typ Expression, isAliasDeclaration bool) *TypeDeclaration {
 	return &TypeDeclaration{pos, ident, typ, isAliasDeclaration}
-}
-
-// Macro node represents a statement "macro".
-type Macro struct {
-	*Position             // position in the source.
-	Ident     *Identifier // name.
-	Type      *FuncType   // type.
-	Body      []Node      // body.
-	Context   Context     // context.
-}
-
-func NewMacro(pos *Position, name *Identifier, typ *FuncType, body []Node, ctx Context) *Macro {
-	if body == nil {
-		body = []Node{}
-	}
-	return &Macro{pos, name, typ, body, ctx}
 }
 
 // ShowMacro node represents a statement "show <macro>".

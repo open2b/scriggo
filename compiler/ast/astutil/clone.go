@@ -127,7 +127,7 @@ func CloneNode(node ast.Node) ast.Node {
 			ident = ast.NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
 		}
 		typ := CloneExpression(n.Type).(*ast.FuncType)
-		return ast.NewFunc(ClonePosition(n.Position), ident, typ, CloneNode(n.Body).(*ast.Block))
+		return ast.NewFunc(ClonePosition(n.Position), ident, typ, CloneNode(n.Body).(*ast.Block), ast.ContextText)
 
 	case *ast.Go:
 		return ast.NewGo(ClonePosition(n.Position), CloneExpression(n.Call))
@@ -163,19 +163,6 @@ func CloneNode(node ast.Node) ast.Node {
 
 	case *ast.Label:
 		return ast.NewLabel(ClonePosition(n.Position), CloneExpression(n.Ident).(*ast.Identifier), CloneNode(n.Statement))
-
-	case *ast.Macro:
-		var ident *ast.Identifier
-		if n.Ident != nil {
-			// Ident must be nil for a function literal, but clone it anyway.
-			ident = ast.NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
-		}
-		typ := CloneExpression(n.Type).(*ast.FuncType)
-		var body = make([]ast.Node, len(n.Body))
-		for i, n2 := range n.Body {
-			body[i] = CloneNode(n2)
-		}
-		return ast.NewMacro(ClonePosition(n.Position), ident, typ, body, n.Context)
 
 	case *ast.Package:
 		var nn = make([]ast.Node, 0, len(n.Declarations))
@@ -374,7 +361,7 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 			ident = ast.NewIdentifier(ClonePosition(e.Ident.Position), e.Ident.Name)
 		}
 		typ := CloneExpression(e.Type).(*ast.FuncType)
-		expr2 = ast.NewFunc(ClonePosition(e.Position), ident, typ, CloneNode(e.Body).(*ast.Block))
+		expr2 = ast.NewFunc(ClonePosition(e.Position), ident, typ, CloneNode(e.Body).(*ast.Block), e.Context)
 
 	case *ast.FuncType:
 		var parameters []*ast.Parameter
@@ -399,7 +386,7 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 				result[i] = &ast.Parameter{Ident: ident, Type: CloneExpression(res.Type)}
 			}
 		}
-		expr2 = ast.NewFuncType(ClonePosition(e.Position), parameters, result, e.IsVariadic)
+		expr2 = ast.NewFuncType(ClonePosition(e.Position), e.Macro, parameters, result, e.IsVariadic)
 
 	case *ast.Identifier:
 		expr2 = ast.NewIdentifier(ClonePosition(e.Position), e.Name)

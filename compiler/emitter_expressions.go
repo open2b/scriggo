@@ -187,7 +187,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 	case *ast.Func:
 
 		// Template macro definition.
-		if expr.Ident != nil && em.isTemplate {
+		if expr.Ident != nil && expr.Type.Macro {
 			macroFn := newFunction("", expr.Ident.Name, expr.Type.Reflect, em.fb.getPath(), expr.Pos())
 			em.fnStore.makeAvailableScriggoFn(em.pkg, expr.Ident.Name, macroFn)
 			fb := em.fb

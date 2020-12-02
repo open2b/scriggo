@@ -139,11 +139,6 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, res.Type)
 		}
 
-	case *ast.Macro:
-		for _, child := range n.Body {
-			Walk(v, child)
-		}
-
 	case *ast.Switch:
 		Walk(v, n.Init)
 		Walk(v, n.Expr)
