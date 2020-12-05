@@ -45,6 +45,12 @@ type Env interface {
 
 	// Println calls the println built-in function with args as argument.
 	Println(args ...interface{})
+
+	// TypeOf returns the reflect type of a reflect value. TypeOf is like the
+	// reflect.TypeOf function, but for values with a Scriggo type it returns
+	// its Scriggo reflect type instead of the reflect type of the proxy.
+	// TypeOf returns nil if v is the zero reflect.Value.
+	TypeOf(v reflect.Value) reflect.Type
 }
 
 // The env type implements the Env interface.
@@ -52,6 +58,7 @@ type env struct {
 	ctx     context.Context // context.
 	globals []interface{}   // global variables.
 	print   PrintFunc       // custom print builtin.
+	typeof  TypeOfFunc      // typeof function.
 
 	// Only exited, exits and filePath fields can be changed after the vm has
 	// been started and access to these three fields must be done with this
@@ -114,6 +121,13 @@ func (env *env) Println(args ...interface{}) {
 		env.doPrint(arg)
 	}
 	env.doPrint("\n")
+}
+
+func (env *env) TypeOf(v reflect.Value) reflect.Type {
+	if v.IsValid() {
+		return env.typeof(v)
+	}
+	return nil
 }
 
 func (env *env) doPrint(arg interface{}) {

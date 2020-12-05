@@ -110,7 +110,6 @@ type VM struct {
 	regs   registers            // registers.
 	fn     *Function            // running function.
 	vars   []interface{}        // global and closure variables.
-	typeof TypeOfFunc           // typeof function.
 	env    *env                 // execution environment.
 	envArg reflect.Value        // execution environment as argument.
 	calls  []callFrame          // call stack frame.
@@ -141,7 +140,6 @@ func (vm *VM) Reset() {
 	vm.pc = 0
 	vm.ok = false
 	vm.fn = nil
-	vm.typeof = nil
 	vm.vars = nil
 	vm.env = &env{}
 	vm.envArg = reflect.ValueOf(vm.env)
@@ -164,8 +162,9 @@ func (vm *VM) Reset() {
 // as soon as possible with the error returned by the Err method of the
 // context.
 func (vm *VM) Run(fn *Function, typeOf TypeOfFunc, globals []interface{}) (int, error) {
+	vm.env.typeof = typeOf
 	vm.env.globals = globals
-	err := vm.runFunc(fn, typeOf, globals)
+	err := vm.runFunc(fn, globals)
 	vm.env.exit()
 	if err != nil {
 		switch e := err.(type) {
@@ -445,8 +444,8 @@ func (vm *VM) equals(x, y reflect.Value) bool {
 	if !x.IsValid() {
 		return true
 	}
-	tx := vm.typeof(x)
-	ty := vm.typeof(y)
+	tx := vm.env.typeof(x)
+	ty := vm.env.typeof(y)
 	if tx != ty {
 		return false
 	}
@@ -617,7 +616,7 @@ func (vm *VM) startGoroutine() bool {
 	copy(nvm.regs.float, vm.regs.float[vm.fp[1]+Addr(off.A):vm.fp[1]+127])
 	copy(nvm.regs.string, vm.regs.string[vm.fp[2]+Addr(off.B):vm.fp[2]+127])
 	copy(nvm.regs.general, vm.regs.general[vm.fp[3]+Addr(off.C):vm.fp[3]+127])
-	go nvm.runFunc(fn, vm.typeof, vars)
+	go nvm.runFunc(fn, vars)
 	vm.pc++
 	return false
 }
@@ -884,7 +883,7 @@ func (c *callable) Value(env *env) reflect.Value {
 				nvm.setFromReflectValue(r[t], arg)
 				r[t]++
 			}
-			err := nvm.runFunc(fn, c.typeof, vars)
+			err := nvm.runFunc(fn, vars)
 			if err != nil {
 				if p, ok := err.(*Panic); ok {
 					var msg string
