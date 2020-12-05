@@ -7,6 +7,7 @@
 package compiler
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -822,3 +823,19 @@ func noSpacePosition(n *ast.Text) *ast.Position {
 	}
 	return &pos
 }
+
+// env implements runtime.Env and a value of env is used as parameter to a
+// showFunc function during the type checking of a template.
+type env struct {
+	typeof runtime.TypeOfFunc
+}
+
+func (env env) Context() context.Context            { return nil }
+func (env env) Exit(int)                            {}
+func (env env) Exited() bool                        { return false }
+func (env env) ExitFunc(func())                     { return }
+func (env env) Fatal(interface{})                   { return }
+func (env env) FilePath() string                    { return "" }
+func (env env) Print(...interface{})                { return }
+func (env env) Println(...interface{})              { return }
+func (env env) TypeOf(v reflect.Value) reflect.Type { return env.typeof(v) }

@@ -648,7 +648,7 @@ nodesLoop:
 							panic(err)
 						}
 					}()
-					tc.opts.showFunc(nil, nil, zero.Interface(), node.Context)
+					tc.opts.showFunc(tc.env, nil, zero.Interface(), node.Context)
 				}()
 			}
 

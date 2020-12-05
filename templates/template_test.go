@@ -2255,6 +2255,13 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedLoadErr: `3:2: syntax error: unexpected text in imported file`,
 	},
+
+	"Show a Scriggo defined type value": {
+		sources: map[string]string{
+			"index.txt": `{% type Int int %}{{ Int(5) }}`,
+		},
+		expectedOut: `5`,
+	},
 }
 
 var structWithUnexportedFields = &struct {

@@ -232,6 +232,9 @@ type typechecker struct {
 	// by Scriggo.
 	types *types.Types
 
+	// env is passed to the showFunc function and implements only the TypeOf method.
+	env runtime.Env
+
 	// structDeclPkg contains, for every struct literal and defined type with
 	// underlying type 'struct' denoted in Scriggo, the package in which it has
 	// been denoted.
@@ -249,7 +252,7 @@ type typechecker struct {
 // newTypechecker creates a new type checker. A global scope may be provided
 // for scripts and templates.
 func newTypechecker(compilation *compilation, path string, opts checkerOptions, globalScope typeCheckerScope) *typechecker {
-	return &typechecker{
+	tc := &typechecker{
 		compilation:      compilation,
 		path:             path,
 		filePackageBlock: typeCheckerScope{},
@@ -262,6 +265,8 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		types:            types.NewTypes(),
 		structDeclPkg:    map[reflect.Type]string{},
 	}
+	tc.env = env{tc.types.TypeOf}
+	return tc
 }
 
 // enterScope enters into a new empty scope.
