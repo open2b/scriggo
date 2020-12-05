@@ -293,6 +293,8 @@ func showInCSS(env runtime.Env, out io.Writer, value interface{}) error {
 		value = v.String()
 	case EnvStringer:
 		value = v.String(env)
+	case []byte:
+		return escapeBytes(w, v, false)
 	case error:
 		value = v.Error()
 	}
@@ -311,8 +313,6 @@ func showInCSS(env runtime.Env, out io.Writer, value interface{}) error {
 			_, err = w.WriteString(`"`)
 		}
 		return err
-	case reflect.Slice:
-		return escapeBytes(w, v.Interface().([]byte), false)
 	default:
 		_, err := w.WriteString(toString(env, v))
 		return err
