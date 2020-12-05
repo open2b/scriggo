@@ -11,6 +11,7 @@ import (
 	"reflect"
 
 	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/runtime"
 )
 
 // templatePageToPackage transforms a tree of a declarations file to a package
@@ -634,7 +635,10 @@ nodesLoop:
 			}
 
 			if tc.opts.showFunc != nil && ti.Type != emptyInterfaceType {
-				zero := reflect.Zero(ti.Type).Interface()
+				zero := tc.types.Zero(ti.Type)
+				if w, ok := ti.Type.(runtime.Wrapper); ok {
+					zero = w.Wrap(zero)
+				}
 				func() {
 					defer func() {
 						if err := recover(); err != nil {
@@ -644,7 +648,7 @@ nodesLoop:
 							panic(err)
 						}
 					}()
-					tc.opts.showFunc(nil, nil, zero, node.Context)
+					tc.opts.showFunc(nil, nil, zero.Interface(), node.Context)
 				}()
 			}
 
