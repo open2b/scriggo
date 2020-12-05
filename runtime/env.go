@@ -125,6 +125,9 @@ func (env *env) Println(args ...interface{}) {
 
 func (env *env) TypeOf(v reflect.Value) reflect.Type {
 	if v.IsValid() {
+		if env.typeof == nil {
+			return v.Type()
+		}
 		return env.typeof(v)
 	}
 	return nil
