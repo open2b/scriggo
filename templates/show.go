@@ -324,7 +324,7 @@ func showInCSSString(env runtime.Env, out io.Writer, value interface{}) error {
 			w := newStringWriter(out)
 			return escapeBytes(w, v.Interface().([]byte), false)
 		}
-		s = toString(reflect.ValueOf(value))
+		s = toString(v)
 	}
 	return cssStringEscape(newStringWriter(out), s)
 }
