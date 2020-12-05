@@ -177,7 +177,7 @@ func showInText(env runtime.Env, out io.Writer, value interface{}) error {
 	return err
 }
 
-// showInHTML shiws value in HTML context.
+// showInHTML shows value in HTML context.
 func showInHTML(env runtime.Env, out io.Writer, value interface{}) error {
 	w := newStringWriter(out)
 	switch v := value.(type) {
