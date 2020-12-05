@@ -177,7 +177,6 @@ func showInText(env runtime.Env, out io.Writer, value interface{}) error {
 		s = v.Error()
 	default:
 		s = toString(env, reflect.ValueOf(value))
-		s = toString(env, reflect.ValueOf(value))
 	}
 	w := newStringWriter(out)
 	_, err := w.WriteString(s)
