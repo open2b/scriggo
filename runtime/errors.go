@@ -340,6 +340,34 @@ func panicToString(msg interface{}) string {
 	}
 }
 
+// missingMethod returns a method in iface and not in typ.
+func missingMethod(typ reflect.Type, iface reflect.Type) string {
+	num := iface.NumMethod()
+	for i := 0; i < num; i++ {
+		mi := iface.Method(i)
+		mt, ok := typ.MethodByName(mi.Name)
+		if !ok {
+			return mi.Name
+		}
+		numIn := mi.Type.NumIn()
+		numOut := mi.Type.NumOut()
+		if mt.Type.NumIn()-1 != numIn || mt.Type.NumOut() != numOut {
+			return mi.Name
+		}
+		for j := 0; j < numIn; j++ {
+			if mt.Type.In(j+1) != mi.Type.In(j) {
+				return mi.Name
+			}
+		}
+		for j := 0; j < numOut; j++ {
+			if mt.Type.Out(j) != mi.Type.Out(j) {
+				return mi.Name
+			}
+		}
+	}
+	return ""
+}
+
 type stringer interface {
 	String() string
 }
