@@ -252,7 +252,8 @@ type typechecker struct {
 // newTypechecker creates a new type checker. A global scope may be provided
 // for scripts and templates.
 func newTypechecker(compilation *compilation, path string, opts checkerOptions, globalScope typeCheckerScope) *typechecker {
-	tc := &typechecker{
+	tt := types.NewTypes()
+	return &typechecker{
 		compilation:      compilation,
 		path:             path,
 		filePackageBlock: typeCheckerScope{},
@@ -262,11 +263,10 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		unusedImports:    map[string][]string{},
 		opts:             opts,
 		iota:             -1,
-		types:            types.NewTypes(),
+		types:            tt,
+		env:              env{tt.Runtime()},
 		structDeclPkg:    map[reflect.Type]string{},
 	}
-	tc.env = env{tc.types.TypeOf}
-	return tc
 }
 
 // enterScope enters into a new empty scope.

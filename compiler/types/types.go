@@ -134,6 +134,11 @@ func (types *Types) Implements(x, u reflect.Type) bool {
 
 }
 
+// Runtime returns a Runtime.
+func (types *Types) Runtime() Runtime {
+	return Runtime{types}
+}
+
 // TypeOf returns the type of v.
 func (types *Types) TypeOf(v reflect.Value) reflect.Type {
 	if !v.IsValid() {

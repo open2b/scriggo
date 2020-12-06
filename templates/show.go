@@ -43,7 +43,7 @@ func show(env runtime.Env, out io.Writer, value interface{}, ctx ast.Context) {
 	var err error
 
 	if out == nil {
-		err = shownAs(env.TypeOf(value), ctx)
+		err = shownAs(env.Types().TypeOf(value), ctx)
 		if err != nil {
 			panic(compiler.ShowTypeError(err))
 		}
@@ -104,7 +104,8 @@ func newStringWriter(wr io.Writer) strWriter {
 }
 
 func toString(env runtime.Env, i interface{}) string {
-	v := env.ValueOf(i)
+	types := env.Types()
+	v := types.ValueOf(i)
 	switch v.Kind() {
 	case reflect.Invalid:
 		return ""
@@ -156,7 +157,7 @@ func toString(env runtime.Env, i interface{}) string {
 		}
 		return s
 	default:
-		panic(ShowTypeError{t: env.TypeOf(i)})
+		panic(ShowTypeError{t: types.TypeOf(i)})
 	}
 }
 
@@ -292,7 +293,7 @@ func showInCSS(env runtime.Env, out io.Writer, value interface{}) error {
 	case error:
 		value = v.Error()
 	}
-	v := env.ValueOf(value)
+	v := env.Types().ValueOf(value)
 	switch v.Kind() {
 	case reflect.String:
 		_, err := w.WriteString(`"`)
@@ -355,7 +356,8 @@ func showInJS(env runtime.Env, out io.Writer, value interface{}) error {
 		value = v.Error()
 	}
 
-	v := env.ValueOf(value)
+	types := env.Types()
+	v := types.ValueOf(value)
 
 	var s string
 
@@ -515,7 +517,7 @@ func showInJS(env runtime.Env, out io.Writer, value interface{}) error {
 		}
 		return err
 	default:
-		t := env.TypeOf(value)
+		t := types.TypeOf(value)
 		s = fmt.Sprintf("undefined/* scriggo: cannot represent a %s value */", t)
 	}
 

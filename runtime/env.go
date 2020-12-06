@@ -46,6 +46,19 @@ type Env interface {
 	// Println calls the println built-in function with args as argument.
 	Println(args ...interface{})
 
+	// Types returns a Types value that allows to manipulate all the types,
+	// including new types defined in the executed code.
+	Types() Types
+}
+
+// A Types implementation allows to manipulate all the types, including new
+// types defined in a executed code.
+type Types interface {
+
+	// New is like reflect.New but if typ is a Scriggo type, the returned
+	// Value refers to the underling type of typ.
+	New(typ reflect.Type) reflect.Value
+
 	// TypeOf is like reflect.TypeOf but if i has a Scriggo type it returns
 	// its Scriggo reflect type instead of the reflect type of the proxy.
 	TypeOf(i interface{}) reflect.Type
@@ -60,7 +73,7 @@ type env struct {
 	ctx     context.Context // context.
 	globals []interface{}   // global variables.
 	print   PrintFunc       // custom print builtin.
-	typeof  TypeOfFunc      // typeof function.
+	types   Types           // types.
 
 	// Only exited, exits and filePath fields can be changed after the vm has
 	// been started and access to these three fields must be done with this
@@ -125,26 +138,23 @@ func (env *env) Println(args ...interface{}) {
 	env.doPrint("\n")
 }
 
-func (env *env) TypeOf(i interface{}) reflect.Type {
-	if env.typeof == nil {
-		return reflect.TypeOf(i)
-	}
-	return env.typeof(reflect.ValueOf(i))
+func (env *env) Types() Types {
+	return env.types
 }
 
-func (env *env) ValueOf(i interface{}) reflect.Value {
-	if i == nil {
-		return reflect.Value{}
-	}
-	v := reflect.ValueOf(i)
-	if env.typeof == nil {
-		return v
-	}
-	t := env.typeof(v)
-	if w, ok := t.(Wrapper); ok {
-		v, _ = w.Unwrap(v)
-	}
-	return v
+// reflectTypes implements Types based solely on the reflect package.
+type reflectTypes struct{}
+
+func (rt reflectTypes) New(typ reflect.Type) reflect.Value {
+	return reflect.New(typ)
+}
+
+func (rt reflectTypes) TypeOf(i interface{}) reflect.Type {
+	return reflect.TypeOf(i)
+}
+
+func (rt reflectTypes) ValueOf(i interface{}) reflect.Value {
+	return reflect.ValueOf(i)
 }
 
 func (env *env) doPrint(arg interface{}) {

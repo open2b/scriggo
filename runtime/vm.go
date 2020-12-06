@@ -24,9 +24,6 @@ var envType = reflect.TypeOf((*Env)(nil)).Elem()
 var emptyInterfaceType = reflect.TypeOf(&[]interface{}{nil}[0]).Elem()
 var emptyInterfaceNil = reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
 
-// A TypeOfFunc function returns a type of a value.
-type TypeOfFunc func(reflect.Value) reflect.Type
-
 // A Wrapper wraps and unwraps Scriggo types into Go types. A wrapper is used
 // when an internal implementation of a value must be typified or when an
 // external Go value must be imported into Scriggo.
@@ -161,8 +158,11 @@ func (vm *VM) Reset() {
 // If a context has been set and the context is canceled, Run returns
 // as soon as possible with the error returned by the Err method of the
 // context.
-func (vm *VM) Run(fn *Function, typeOf TypeOfFunc, globals []interface{}) (int, error) {
-	vm.env.typeof = typeOf
+func (vm *VM) Run(fn *Function, types Types, globals []interface{}) (int, error) {
+	if types == nil {
+		types = reflectTypes{}
+	}
+	vm.env.types = types
 	vm.env.globals = globals
 	err := vm.runFunc(fn, globals)
 	vm.env.exit()
@@ -444,15 +444,8 @@ func (vm *VM) equals(x, y reflect.Value) bool {
 	if !x.IsValid() {
 		return true
 	}
-	var tx reflect.Type
-	var ty reflect.Type
-	if typ := vm.env.typeof; typ == nil {
-		tx = x.Type()
-		ty = x.Type()
-	} else {
-		tx = typ(x)
-		ty = typ(x)
-	}
+	tx := vm.env.types.TypeOf(x.Interface())
+	ty := vm.env.types.TypeOf(y.Interface())
 	if tx != ty {
 		return false
 	}
@@ -839,10 +832,9 @@ type callable struct {
 	value      reflect.Value       // reflect value.
 	fn         *Function           // function, if it is a Scriggo function.
 	predefined *PredefinedFunction // predefined function.
-	typeof     TypeOfFunc
-	receiver   interface{}   // receiver, if it is a method value.
-	method     string        // method name, if it is a method value.
-	vars       []interface{} // non-local (global and closure) variables.
+	receiver   interface{}         // receiver, if it is a method value.
+	method     string              // method name, if it is a method value.
+	vars       []interface{}       // non-local (global and closure) variables.
 }
 
 // Predefined returns the predefined function of a callable.

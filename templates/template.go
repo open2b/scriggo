@@ -159,7 +159,7 @@ type RenderOptions struct {
 
 type Template struct {
 	fn      *runtime.Function
-	typeof  runtime.TypeOfFunc
+	types   runtime.Types
 	globals []compiler.Global
 }
 
@@ -231,7 +231,7 @@ func Load(name string, files FileReader, options *LoadOptions) (*Template, error
 		}
 		return nil, err
 	}
-	return &Template{fn: code.Main, typeof: code.TypeOf, globals: code.Globals}, nil
+	return &Template{fn: code.Main, types: code.Types, globals: code.Globals}, nil
 }
 
 // Render renders the template and write the output to out. vars contains the
@@ -245,7 +245,7 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *R
 	t.globals[2].Value = &showFunc
 	t.globals[3].Value = &uw
 	vm := newVM(options)
-	_, err := vm.Run(t.fn, t.typeof, initGlobalVariables(t.globals, vars))
+	_, err := vm.Run(t.fn, t.types, initGlobalVariables(t.globals, vars))
 	return err
 }
 

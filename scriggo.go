@@ -37,7 +37,7 @@ type RunOptions struct {
 
 type Program struct {
 	fn      *runtime.Function
-	typeof  runtime.TypeOfFunc
+	types   runtime.Types
 	globals []compiler.Global
 }
 
@@ -52,7 +52,7 @@ func Load(src io.Reader, packages PackageLoader, options *LoadOptions) (*Program
 	if err != nil {
 		return nil, err
 	}
-	return &Program{fn: code.Main, globals: code.Globals, typeof: code.TypeOf}, nil
+	return &Program{fn: code.Main, globals: code.Globals, types: code.Types}, nil
 }
 
 // Disassemble disassembles the package with the given path. Predefined
@@ -81,7 +81,7 @@ func (p *Program) Run(options *RunOptions) (int, error) {
 			vm.SetPrint(options.PrintFunc)
 		}
 	}
-	return vm.Run(p.fn, p.typeof, initPackageLevelVariables(p.globals))
+	return vm.Run(p.fn, p.types, initPackageLevelVariables(p.globals))
 }
 
 // MustRun is like Run but panics if the run fails.

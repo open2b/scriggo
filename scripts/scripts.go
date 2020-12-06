@@ -33,7 +33,7 @@ type RunOptions struct {
 
 type Script struct {
 	fn      *runtime.Function
-	typeof  runtime.TypeOfFunc
+	types   runtime.Types
 	globals []compiler.Global
 }
 
@@ -50,7 +50,7 @@ func Load(src io.Reader, packages scriggo.PackageLoader, options *LoadOptions) (
 	if err != nil {
 		return nil, err
 	}
-	return &Script{fn: code.Main, globals: code.Globals, typeof: code.TypeOf}, nil
+	return &Script{fn: code.Main, globals: code.Globals, types: code.Types}, nil
 }
 
 // Disassemble disassembles the script.
@@ -75,7 +75,7 @@ func (p *Script) Run(vars map[string]interface{}, options *RunOptions) (int, err
 			vm.SetPrint(options.PrintFunc)
 		}
 	}
-	return vm.Run(p.fn, p.typeof, initGlobalVariables(p.globals, vars))
+	return vm.Run(p.fn, p.types, initGlobalVariables(p.globals, vars))
 }
 
 // MustRun is like Run but panics if the run fails.
