@@ -444,8 +444,15 @@ func (vm *VM) equals(x, y reflect.Value) bool {
 	if !x.IsValid() {
 		return true
 	}
-	tx := vm.env.TypeOf(x)
-	ty := vm.env.TypeOf(y)
+	var tx reflect.Type
+	var ty reflect.Type
+	if typ := vm.env.typeof; typ == nil {
+		tx = x.Type()
+		ty = x.Type()
+	} else {
+		tx = typ(x)
+		ty = typ(x)
+	}
 	if tx != ty {
 		return false
 	}

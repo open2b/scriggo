@@ -830,12 +830,13 @@ type env struct {
 	typeof runtime.TypeOfFunc
 }
 
-func (env env) Context() context.Context            { return nil }
-func (env env) Exit(int)                            {}
-func (env env) Exited() bool                        { return false }
-func (env env) ExitFunc(func())                     { return }
-func (env env) Fatal(interface{})                   { return }
-func (env env) FilePath() string                    { return "" }
-func (env env) Print(...interface{})                { return }
-func (env env) Println(...interface{})              { return }
-func (env env) TypeOf(v reflect.Value) reflect.Type { return env.typeof(v) }
+func (env env) Context() context.Context          { return nil }
+func (env env) Exit(int)                          {}
+func (env env) Exited() bool                      { return false }
+func (env env) ExitFunc(func())                   { return }
+func (env env) Fatal(interface{})                 { return }
+func (env env) FilePath() string                  { return "" }
+func (env env) Print(...interface{})              { return }
+func (env env) Println(...interface{})            { return }
+func (env env) TypeOf(i interface{}) reflect.Type { return env.typeof(reflect.ValueOf(i)) }
+func (env env) ValueOf(interface{}) reflect.Value { return reflect.Value{} }

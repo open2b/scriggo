@@ -43,8 +43,7 @@ func show(env runtime.Env, out io.Writer, value interface{}, ctx ast.Context) {
 	var err error
 
 	if out == nil {
-		v := reflect.ValueOf(value)
-		err = shownAs(env.TypeOf(v), ctx)
+		err = shownAs(env.TypeOf(value), ctx)
 		if err != nil {
 			panic(compiler.ShowTypeError(err))
 		}
@@ -104,15 +103,11 @@ func newStringWriter(wr io.Writer) strWriter {
 	return strWriterWrapper{wr}
 }
 
-func toString(env runtime.Env, v reflect.Value) string {
-	t := env.TypeOf(v)
-	if t == nil {
+func toString(env runtime.Env, i interface{}) string {
+	v := env.ValueOf(i)
+	switch v.Kind() {
+	case reflect.Invalid:
 		return ""
-	}
-	if w, ok := t.(runtime.Wrapper); ok {
-		v, _ = w.Unwrap(v)
-	}
-	switch t.Kind() {
 	case reflect.Bool:
 		if v.Bool() {
 			return "true"
@@ -161,7 +156,7 @@ func toString(env runtime.Env, v reflect.Value) string {
 		}
 		return s
 	default:
-		panic(ShowTypeError{t: t})
+		panic(ShowTypeError{t: env.TypeOf(i)})
 	}
 }
 
@@ -176,7 +171,7 @@ func showInText(env runtime.Env, out io.Writer, value interface{}) error {
 	case error:
 		s = v.Error()
 	default:
-		s = toString(env, reflect.ValueOf(value))
+		s = toString(env, value)
 	}
 	w := newStringWriter(out)
 	_, err := w.WriteString(s)
@@ -206,7 +201,7 @@ func showInHTML(env runtime.Env, out io.Writer, value interface{}) error {
 	case error:
 		return htmlEscape(w, v.Error())
 	default:
-		return htmlEscape(w, toString(env, reflect.ValueOf(value)))
+		return htmlEscape(w, toString(env, value))
 	}
 }
 
@@ -221,7 +216,7 @@ func showInTag(env runtime.Env, out io.Writer, value interface{}) error {
 	case error:
 		s = v.Error()
 	default:
-		s = toString(env, reflect.ValueOf(value))
+		s = toString(env, value)
 	}
 	i := 0
 	var s2 *strings.Builder
@@ -269,7 +264,7 @@ func showInAttribute(env runtime.Env, out io.Writer, value interface{}, quoted b
 		s = v.Error()
 		escapeEntities = true
 	default:
-		s = toString(env, reflect.ValueOf(value))
+		s = toString(env, value)
 		escapeEntities = true
 	}
 	return attributeEscape(newStringWriter(out), s, escapeEntities, quoted)
@@ -297,12 +292,8 @@ func showInCSS(env runtime.Env, out io.Writer, value interface{}) error {
 	case error:
 		value = v.Error()
 	}
-	v := reflect.ValueOf(value)
-	t := env.TypeOf(v)
-	if w, ok := t.(runtime.Wrapper); ok {
-		v, _ = w.Unwrap(v)
-	}
-	switch t.Kind() {
+	v := env.ValueOf(value)
+	switch v.Kind() {
 	case reflect.String:
 		_, err := w.WriteString(`"`)
 		if err == nil {
@@ -313,7 +304,7 @@ func showInCSS(env runtime.Env, out io.Writer, value interface{}) error {
 		}
 		return err
 	default:
-		_, err := w.WriteString(toString(env, v))
+		_, err := w.WriteString(toString(env, value))
 		return err
 	}
 }
@@ -334,7 +325,7 @@ func showInCSSString(env runtime.Env, out io.Writer, value interface{}) error {
 			w := newStringWriter(out)
 			return escapeBytes(w, v.Interface().([]byte), false)
 		}
-		s = toString(env, v)
+		s = toString(env, value)
 	}
 	return cssStringEscape(newStringWriter(out), s)
 }
@@ -364,15 +355,11 @@ func showInJS(env runtime.Env, out io.Writer, value interface{}) error {
 		value = v.Error()
 	}
 
-	v := reflect.ValueOf(value)
-	t := env.TypeOf(v)
-	if w, ok := t.(runtime.Wrapper); ok {
-		v, _ = w.Unwrap(v)
-	}
+	v := env.ValueOf(value)
 
 	var s string
 
-	switch t.Kind() {
+	switch v.Kind() {
 	case reflect.Bool:
 		s = "false"
 		if v.Bool() {
@@ -396,9 +383,9 @@ func showInJS(env runtime.Env, out io.Writer, value interface{}) error {
 		}
 		return err
 	case reflect.Slice:
-		if t == byteSliceType {
+		if b, ok := value.([]byte); ok {
 			w := newStringWriter(out)
-			return escapeBytes(w, v.Interface().([]byte), true)
+			return escapeBytes(w, b, true)
 		}
 		if v.IsNil() {
 			s = "null"
@@ -433,6 +420,7 @@ func showInJS(env runtime.Env, out io.Writer, value interface{}) error {
 		}
 		return showInJS(env, out, v.Elem().Interface())
 	case reflect.Struct:
+		t := v.Type()
 		n := t.NumField()
 		first := true
 		_, err := w.WriteString(`{`)
@@ -495,7 +483,7 @@ func showInJS(env runtime.Env, out io.Writer, value interface{}) error {
 			case EnvStringer:
 				keyPairs[i].key = k.String(env)
 			default:
-				keyPairs[i].key = toString(env, key)
+				keyPairs[i].key = toString(env, k)
 			}
 			keyPairs[i].val = iter.Value().Interface()
 		}
@@ -527,6 +515,7 @@ func showInJS(env runtime.Env, out io.Writer, value interface{}) error {
 		}
 		return err
 	default:
+		t := env.TypeOf(value)
 		s = fmt.Sprintf("undefined/* scriggo: cannot represent a %s value */", t)
 	}
 
@@ -566,14 +555,10 @@ func showInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 	}
 
 	v := reflect.ValueOf(value)
-	t := env.TypeOf(v)
-	if w, ok := t.(runtime.Wrapper); ok {
-		v, _ = w.Unwrap(v)
-	}
 
 	var s string
 
-	switch t.Kind() {
+	switch v.Kind() {
 	case reflect.Bool:
 		s = "false"
 		if v.Bool() {
@@ -597,9 +582,9 @@ func showInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 		}
 		return err
 	case reflect.Slice:
-		if v.Type() == byteSliceType {
+		if b, ok := value.([]byte); ok {
 			w := newStringWriter(out)
-			return escapeBytes(w, v.Interface().([]byte), true)
+			return escapeBytes(w, b, true)
 		}
 		if v.IsNil() {
 			s = "null"
@@ -634,6 +619,7 @@ func showInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 		}
 		return showInJSON(env, out, v.Elem().Interface())
 	case reflect.Struct:
+		t := v.Type()
 		n := t.NumField()
 		first := true
 		_, err := w.WriteString(`{`)
@@ -696,7 +682,7 @@ func showInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 			case EnvStringer:
 				keyPairs[i].key = k.String(env)
 			default:
-				keyPairs[i].key = toString(env, key)
+				keyPairs[i].key = toString(env, k)
 			}
 			keyPairs[i].val = iter.Value().Interface()
 		}
@@ -746,7 +732,7 @@ func showInJSString(env runtime.Env, out io.Writer, value interface{}) error {
 	case error:
 		s = v.Error()
 	default:
-		s = toString(env, reflect.ValueOf(value))
+		s = toString(env, value)
 	}
 	return jsStringEscape(newStringWriter(out), s)
 }

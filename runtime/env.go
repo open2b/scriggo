@@ -46,11 +46,13 @@ type Env interface {
 	// Println calls the println built-in function with args as argument.
 	Println(args ...interface{})
 
-	// TypeOf returns the reflect type of a reflect value. TypeOf is like the
-	// reflect.TypeOf function, but for values with a Scriggo type it returns
+	// TypeOf is like reflect.TypeOf but if i has a Scriggo type it returns
 	// its Scriggo reflect type instead of the reflect type of the proxy.
-	// TypeOf returns nil if v is the zero reflect.Value.
-	TypeOf(v reflect.Value) reflect.Type
+	TypeOf(i interface{}) reflect.Type
+
+	// ValueOf is like reflect.ValueOf but if i has a Scriggo type it returns
+	// its underling value instead of the reflect value of the proxy.
+	ValueOf(i interface{}) reflect.Value
 }
 
 // The env type implements the Env interface.
@@ -123,14 +125,26 @@ func (env *env) Println(args ...interface{}) {
 	env.doPrint("\n")
 }
 
-func (env *env) TypeOf(v reflect.Value) reflect.Type {
-	if v.IsValid() {
-		if env.typeof == nil {
-			return v.Type()
-		}
-		return env.typeof(v)
+func (env *env) TypeOf(i interface{}) reflect.Type {
+	if env.typeof == nil {
+		return reflect.TypeOf(i)
 	}
-	return nil
+	return env.typeof(reflect.ValueOf(i))
+}
+
+func (env *env) ValueOf(i interface{}) reflect.Value {
+	if i == nil {
+		return reflect.Value{}
+	}
+	v := reflect.ValueOf(i)
+	if env.typeof == nil {
+		return v
+	}
+	t := env.typeof(v)
+	if w, ok := t.(Wrapper); ok {
+		v, _ = w.Unwrap(v)
+	}
+	return v
 }
 
 func (env *env) doPrint(arg interface{}) {
