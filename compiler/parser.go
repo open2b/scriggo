@@ -260,7 +260,7 @@ func parseSource(src []byte, script, shebang bool) (tree *ast.Tree, err error) {
 // Import.
 func ParseTemplateSource(src []byte, lang ast.Language, imported bool) (tree *ast.Tree, err error) {
 
-	if lang < ast.LanguageText || lang > ast.LanguageJSON {
+	if lang < ast.LanguageText || lang > ast.LanguageMarkdown {
 		return nil, errors.New("scriggo: invalid language")
 	}
 

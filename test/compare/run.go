@@ -342,7 +342,7 @@ func filePaths(pattern string) ([]string, error) {
 			return nil
 		}
 		switch filepath.Ext(path) {
-		case ".go", ".script", ".html", ".css", ".js", ".json":
+		case ".go", ".script", ".html", ".css", ".js", ".json", ".md":
 		default:
 			return nil
 		}

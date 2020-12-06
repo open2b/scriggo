@@ -221,3 +221,43 @@ func TestURLEscape(t *testing.T) {
 
 	}
 }
+
+var mdEscapeCases = []struct {
+	src      string
+	expected string
+}{
+	{``, ``},
+	{`a`, `a`},
+	{`*`, `\*`},
+	{`*+`, `\*\+`},
+	{`\`, `\\`},
+	{`\\`, `\\\\`},
+	{"\\`*_{}[]()#+-.!|<&", "\\\\\\`\\*\\_\\{\\}\\[\\]\\(\\)\\#\\+\\-\\.\\!\\|\\<\\&"},
+	{`a+è[]b\*c`, `a\+è\[\]b\\\*c`},
+	{" ", "\u00a0"},
+	{"  ", "\u00a0\u00a0"},
+	{" a", "\u00a0a"},
+	{"  a", "\u00a0 a"},
+	{"a ", "a\u00a0"},
+	{"a  ", "a\u00a0\u00a0"},
+	{"\t", "\u00a0"},
+	{"\t\t", "\u00a0\u00a0"},
+	{"\ta", "\u00a0a"},
+	{"\t\ta", "\u00a0\ta"},
+	{"a\t", "a\u00a0"},
+	{"a\t\t", "a\u00a0\u00a0"},
+	{" \ta\t ", "\u00a0\ta\u00a0\u00a0"},
+}
+
+func TestMarkdownEscape(t *testing.T) {
+	for _, cas := range mdEscapeCases {
+		out := &strings.Builder{}
+		err := markdownEscape(out, cas.src)
+		if err != nil {
+			t.Fatalf("escape error: %s", err)
+		}
+		if out.String() != cas.expected {
+			t.Fatalf("src: %q: expecting %q, got %q", cas.src, cas.expected, out.String())
+		}
+	}
+}

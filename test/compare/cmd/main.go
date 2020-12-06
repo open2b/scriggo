@@ -63,7 +63,7 @@ func main() {
 	ext := flag.Arg(1)
 	switch ext {
 	case ".go", ".script":
-	case ".html", ".css", ".js", ".json":
+	case ".html", ".css", ".js", ".json", ".md":
 		if *disallowGoStmt {
 			_, _ = fmt.Fprint(os.Stderr, "disallow Go statement not supported for templates")
 			os.Exit(1)

@@ -73,6 +73,8 @@ func show(env runtime.Env, out io.Writer, value interface{}, ctx ast.Context) {
 		err = showInJSON(env, out, value)
 	case ast.ContextJSONString:
 		err = showInJSONString(env, out, value)
+	case ast.ContextMarkdown:
+		err = showInMarkdown(env, out, value)
 	default:
 		panic("scriggo: unknown context")
 	}
@@ -742,6 +744,30 @@ func showInJSString(env runtime.Env, out io.Writer, value interface{}) error {
 // showInJSONString shows value in JSONString context.
 func showInJSONString(env runtime.Env, out io.Writer, value interface{}) error {
 	return showInJSString(env, out, value)
+}
+
+// showInMarkdown shows value in the Markdown context.
+func showInMarkdown(env runtime.Env, out io.Writer, value interface{}) error {
+	w := newStringWriter(out)
+	switch v := value.(type) {
+	case Markdown:
+		_, err := w.WriteString(string(v))
+		return err
+	case MarkdownStringer:
+		_, err := w.WriteString(v.Markdown())
+		return err
+	case MarkdownEnvStringer:
+		_, err := w.WriteString(v.Markdown(env))
+		return err
+	case fmt.Stringer:
+		return markdownEscape(w, v.String())
+	case EnvStringer:
+		return markdownEscape(w, v.String(env))
+	case error:
+		return markdownEscape(w, v.Error())
+	default:
+		return markdownEscape(w, toString(env, value))
+	}
 }
 
 // showTimeInJS shows a value of type time.Time in a JavaScript context.

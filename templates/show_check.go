@@ -29,6 +29,9 @@ var jsEnvStringerType = reflect.TypeOf((*JSEnvStringer)(nil)).Elem()
 var jsonStringerType = reflect.TypeOf((*JSONStringer)(nil)).Elem()
 var jsonEnvStringerType = reflect.TypeOf((*JSONEnvStringer)(nil)).Elem()
 
+var mdStringerType = reflect.TypeOf((*MarkdownStringer)(nil)).Elem()
+var mdEnvStringerType = reflect.TypeOf((*MarkdownEnvStringer)(nil)).Elem()
+
 var timeType = reflect.TypeOf(time.Time{})
 
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
@@ -79,6 +82,18 @@ func shownAs(t reflect.Type, ctx ast.Context) error {
 		return shownAsJS(t)
 	case ast.ContextJSON:
 		return shownAsJSON(t)
+	case ast.ContextMarkdown:
+		switch {
+		case kind == reflect.String:
+		case reflect.Bool <= kind && kind <= reflect.Complex128:
+		case t.Implements(stringerType):
+		case t.Implements(envStringerType):
+		case t.Implements(mdStringerType):
+		case t.Implements(mdEnvStringerType):
+		case t.Implements(errorType):
+		default:
+			return fmt.Errorf("cannot show type %s as Markdown", t)
+		}
 	default:
 		panic("unexpected context")
 	}

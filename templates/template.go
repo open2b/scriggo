@@ -86,6 +86,18 @@ type JSONEnvStringer interface {
 	JSON(runtime.Env) string
 }
 
+// MarkdownStringer is implemented by values that are not escaped in Markdown
+// context.
+type MarkdownStringer interface {
+	Markdown() string
+}
+
+// MarkdownEnvStringer is like MarkdownStringer where the Markdown method
+// takes a runtime.Env parameter.
+type MarkdownEnvStringer interface {
+	Markdown(runtime.Env) string
+}
+
 // HTML implements the HTMLStringer interface.
 type HTML string
 
@@ -114,6 +126,13 @@ func (json JSON) JSON() string {
 	return string(json)
 }
 
+// Markdown implements the MarkdownStringer interface.
+type Markdown string
+
+func (md Markdown) Markdown() string {
+	return string(md)
+}
+
 // A Language represents a source language.
 type Language int
 
@@ -123,6 +142,7 @@ const (
 	LanguageCSS
 	LanguageJS
 	LanguageJSON
+	LanguageMarkdown
 )
 
 func (language Language) String() string {
@@ -188,7 +208,7 @@ func (f fileLanguageReader) ReadFile(name string) ([]byte, ast.Language, error) 
 		if err != nil {
 			return nil, 0, err
 		}
-		if lang < LanguageText || lang > LanguageJSON {
+		if lang < LanguageText || lang > LanguageMarkdown {
 			return nil, 0, fmt.Errorf("unkonwn language %d", lang)
 		}
 		language = ast.Language(lang)
@@ -202,6 +222,8 @@ func (f fileLanguageReader) ReadFile(name string) ([]byte, ast.Language, error) 
 			language = ast.LanguageJS
 		case ".json":
 			language = ast.LanguageJSON
+		case ".md", ".markdown":
+			language = ast.LanguageMarkdown
 		}
 	}
 	return src, language, nil

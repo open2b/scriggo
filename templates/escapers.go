@@ -544,6 +544,50 @@ func escapeBytes(w strWriter, b []byte, addQuote bool) error {
 	return err
 }
 
+var slash = []byte(`\`)
+var nbsp = []byte("\u00a0")
+
+// markdownEscape escapes the string s, so it can be placed inside Markdown,
+// and writes it on w.
+func markdownEscape(w strWriter, s string) error {
+	last := 0
+	var esc []byte
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case '\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '=', '.', '!', '|', '<', '>', '&':
+			esc = slash
+		case ' ', '\t':
+			if 0 < i && i < len(s)-1 {
+				if c := s[i+1]; c != ' ' && c != '\t' {
+					continue
+				}
+			}
+			esc = nbsp
+		default:
+			continue
+		}
+		if last != i {
+			_, err := w.WriteString(s[last:i])
+			if err != nil {
+				return err
+			}
+			last = i
+		}
+		_, err := w.Write(esc)
+		if err != nil {
+			return err
+		}
+		if s[i] == ' ' || s[i] == '\t' {
+			last++
+		}
+	}
+	if last != len(s) {
+		_, err := w.WriteString(s[last:])
+		return err
+	}
+	return nil
+}
+
 // urlEscaper implements an io.Writer that escapes a URL or a set of URLs and
 // writes it to another writer. An urlEscaper is passed to a ShowFunc function
 // when the context is ContextAttr or ContextUnquotedAttr and the value of the
