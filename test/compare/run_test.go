@@ -40,7 +40,10 @@ func Test_errorcheck(t *testing.T) {
 	}
 
 	for _, test := range mustPass {
-		errorcheck([]byte(test.src), test.ext, nil)
+		err := errorcheck([]byte(test.src), test.ext, nil)
+		if err != nil {
+			t.Fatalf("unexpected error %v", err)
+		}
 	}
 
 	mustFail := []struct {
@@ -62,17 +65,14 @@ func Test_errorcheck(t *testing.T) {
 
 	for _, test := range mustFail {
 		func() {
-			defer func() {
-				r := recover()
-				if r == nil {
-					t.Fatal("should panic!")
-				}
-				got := r.(error).Error()
-				if test.panic != got {
-					t.Fatalf("expecting %q, got %q", test.panic, got)
-				}
-			}()
-			errorcheck([]byte(test.src), test.ext, nil)
+			err := errorcheck([]byte(test.src), test.ext, nil)
+			if err == nil {
+				t.Fatal("should return a not nil error")
+			}
+			got := err.Error()
+			if test.panic != got {
+				t.Fatalf("expecting %q, got %q", test.panic, got)
+			}
 		}()
 	}
 
@@ -124,7 +124,10 @@ text`,
 	}
 	for _, c := range cases {
 		t.Run(c.src, func(t *testing.T) {
-			mode, args := readMode([]byte(c.src), c.ext)
+			mode, args, err := readMode([]byte(c.src), c.ext)
+			if err != nil {
+				t.Errorf("expecting mode '%s', got error '%s'", c.expectedMode, err)
+			}
 			if mode != c.expectedMode {
 				t.Errorf("expecting mode '%s', got '%s'", c.expectedMode, mode)
 			}

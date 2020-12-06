@@ -8,6 +8,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -24,6 +25,13 @@ import (
 	"time"
 
 	"github.com/rogpeppe/go-internal/imports"
+)
+
+const (
+	colorInfo  = "\033[1;34m"
+	colorBad   = "\033[1;31m"
+	colorGood  = "\033[1;32m"
+	colorReset = "\033[0m"
 )
 
 func main() {
@@ -46,26 +54,66 @@ func main() {
 		*keepTestingOnFail = false
 	}
 
-	if len(flag.Args()) > 0 {
-		fmt.Fprintf(os.Stderr, "too many arguments on the command line\n")
+	if flag.NArg() > 0 {
+		_, _ = fmt.Fprintf(os.Stderr, "too many arguments on the command line\n")
 		flag.Usage()
 		os.Exit(1)
 	}
 
-	buildCmd()
+	// Fill the build tags.
+	var tags map[string]bool
+	{
+		goos := os.Getenv("GOOS")
+		if goos == "" {
+			goos = runtime.GOOS
+		}
+		goarch := os.Getenv("GOARCH")
+		if goarch == "" {
+			goarch = runtime.GOARCH
+		}
+		tags = map[string]bool{
+			goos:   true,
+			goarch: true,
+			"cgo":  cgoEnabled,
+		}
+		// Add the build tags from the first version of go to the current one.
+		goVersion := goBaseVersion(runtime.Version())
+		subv, err := strconv.Atoi(goVersion[len("go1."):])
+		if err != nil {
+			_, _ = fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		for i := 1; i <= subv; i++ {
+			tags[fmt.Sprintf("go1.%d", i)] = true
+		}
+	}
 
-	filepaths := getAllFilepaths(*pattern)
+	err := buildCmd()
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "cannot build cmd: %s\n", err)
+		os.Exit(1)
+	}
+
+	paths, err := filePaths(*pattern)
+	if err != nil {
+		_, _ = fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	if len(paths) == 0 {
+		_, _ = fmt.Fprintln(os.Stderr, "specified pattern does not match any path")
+		os.Exit(1)
+	}
 
 	// Look for the longest path; used when formatting output.
 	maxPathLen := 0
-	for _, fp := range filepaths {
+	for _, fp := range paths {
 		if len(fp) > maxPathLen {
 			maxPathLen = len(fp)
 		}
 	}
 
 	if *verbose || *stat {
-		fmt.Printf("%d tests found (including skipped and incompatible ones)\n", len(filepaths))
+		fmt.Printf("%d tests found (including skipped and incompatible ones)\n", len(paths))
 	}
 
 	wg := sync.WaitGroup{}
@@ -75,12 +123,11 @@ func main() {
 	countSkipped := int64(0)
 	countIncompatible := int64(0)
 
-	for _, path := range filepaths {
+	for _, path := range paths {
 
 		wg.Add(1)
 
 		go func(path string) {
-
 			queue <- true
 			atomic.AddInt64(&countTotal, 1)
 			src, err := ioutil.ReadFile(path)
@@ -90,19 +137,18 @@ func main() {
 			ext := filepath.Ext(path)
 			// Print output before running the test.
 			if *stat && !*verbose {
-				perc := strconv.Itoa(int(math.Floor(float64(countTotal) / float64(len(filepaths)) * 100)))
-				fmt.Printf("\r%s%% (test %d/%d)", perc, countTotal, len(filepaths))
+				percentage := strconv.Itoa(int(math.Floor(float64(countTotal) / float64(len(paths)) * 100)))
+				fmt.Printf("\r%s%% (test %d/%d)", percentage, countTotal, len(paths))
 			}
 			if *verbose {
 				if *color {
 					fmt.Print(colorInfo)
 				}
-				perc := strconv.Itoa(int(math.Floor(float64(countTotal) / float64(len(filepaths)) * 100)))
-				for i := len(perc); i < 4; i++ {
-					perc = " " + perc
+				percentage := strconv.Itoa(int(math.Floor(float64(countTotal) / float64(len(paths)) * 100)))
+				for i := len(percentage); i < 4; i++ {
+					percentage = " " + percentage
 				}
-				perc = "[" + perc + "%  ] "
-				fmt.Print(perc)
+				fmt.Print("[" + percentage + "%  ] ")
 				if *color {
 					fmt.Print(colorReset)
 				}
@@ -111,18 +157,29 @@ func main() {
 					fmt.Print(" ")
 				}
 			}
-			if !shouldBuild(src) {
+			if !imports.ShouldBuild(src, tags) {
 				atomic.AddInt64(&countIncompatible, 1)
+				if *verbose {
+					fmt.Println("[ skipped, not compatible ]")
+				}
 				<-queue
 				wg.Done()
 				return
 			}
-			mode, opts := readMode(src, ext)
+			mode, opts, err := readMode(src, ext)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "cannot read mode: %s\n", err)
+				os.Exit(1)
+			}
 			// Skip or run the test.
 			if mode == "skip" {
 				atomic.AddInt64(&countSkipped, 1)
 			} else {
-				test(src, opts, path, mode, ext, *keepTestingOnFail)
+				err = test(src, mode, path, opts, *keepTestingOnFail)
+				if err != nil {
+					_, _ = fmt.Fprintln(os.Stderr, err)
+					os.Exit(1)
+				}
 			}
 			// Print output when the test is completed.
 			if *verbose {
@@ -143,6 +200,7 @@ func main() {
 			<-queue
 			wg.Done()
 		}(path)
+
 	}
 
 	wg.Wait()
@@ -153,46 +211,42 @@ func main() {
 			fmt.Print(colorGood)
 		}
 		countExecuted := countTotal - countSkipped - countIncompatible
-		totalTime := time.Now().Sub(start).Truncate(time.Duration(time.Millisecond))
+		totalTime := time.Now().Sub(start).Truncate(time.Millisecond)
 		if countIncompatible > 0 {
-			fmt.Printf("\ndone!   %d tests executed, %d tests skipped (and %d not compatible) in %s\n", countExecuted, countSkipped, countIncompatible, totalTime)
+			fmt.Printf("\ndone!   %d tests executed, %d tests skipped (with %d not compatible) in %s\n",
+				countExecuted, countSkipped+countIncompatible, countIncompatible, totalTime)
 		} else {
-			fmt.Printf("\ndone!   %d tests executed, %d tests skipped in %s\n", countExecuted, countSkipped, totalTime)
+			fmt.Printf("\ndone!   %d tests executed, %d tests skipped in %s\n",
+				countExecuted, countSkipped, totalTime)
 		}
 		if *color {
 			fmt.Print(colorReset)
 		}
 	}
+
 }
 
-const (
-	colorInfo  = "\033[1;34m"
-	colorBad   = "\033[1;31m"
-	colorGood  = "\033[1;32m"
-	colorReset = "\033[0m"
-)
-
-// buildCmd executes 'go build' on the directory 'cmd'.
-func buildCmd() {
+// buildCmd builds the 'cmd' command.
+func buildCmd() error {
 	cmd := exec.Command("go", "build")
 	cmd.Dir = "./cmd"
-	stderr := &bytes.Buffer{}
-	cmd.Stderr = stderr
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
-		panic(stderr.String())
+		return errors.New(stderr.String())
 	}
+	return nil
 }
 
-// cmd calls the executable "./cmd/cmd" passing the given arguments and the
-// given stdin, if not nil.
+// cmd calls cmd with given stdin, options and arguments.
 func cmd(stdin []byte, opts []string, args ...string) (int, []byte, []byte) {
-	cmdArgs := []string{}
+	var cmdArgs []string
 	cmdArgs = append(cmdArgs, opts...)
 	cmdArgs = append(cmdArgs, args...)
 	cmd := exec.Command("./cmd/cmd", cmdArgs...)
-	stdout := bytes.Buffer{}
-	stderr := bytes.Buffer{}
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	cmd.Stdin = bytes.NewReader(stdin)
@@ -205,115 +259,116 @@ func cmd(stdin []byte, opts []string, args ...string) (int, []byte, []byte) {
 	return 0, stdout.Bytes(), stderr.Bytes()
 }
 
-// errorcheck run test with mode 'errorcheck' on the given source code.
-func errorcheck(src []byte, ext string, opts []string) {
+var lf = []byte{'\n'}
+var errorComment = []byte("// ERROR ")
+
+// errorcheck runs the tests with mode 'errorcheck' on the given source code.
+func errorcheck(src []byte, filePath string, opts []string) error {
+
+	ext := filepath.Ext(filePath)
+
 	tests := differentiateSources(string(src))
-	testWithoutErrorLines(src, ext, opts)
-	if len(tests) == 0 {
-		panic("no // ERROR comments found")
+
+	// First do a test without error lines.
+	var srcWithoutErrors []byte
+	for _, line := range bytes.SplitAfter(src, lf) {
+		if bytes.Contains(line, errorComment) {
+			srcWithoutErrors = append(srcWithoutErrors, '\n')
+		} else {
+			srcWithoutErrors = append(srcWithoutErrors, line...)
+		}
 	}
+	exitCode, _, stderr := cmd(srcWithoutErrors, opts, "build", ext)
+	if exitCode != 0 {
+		if p := bytes.Index(stderr, []byte{':'}); p > 0 {
+			return fmt.Errorf("%s%s", filePath, stderr[p:])
+		}
+		return fmt.Errorf("%s: %s", filePath, stderr)
+	}
+
+	if len(tests) == 0 {
+		return errors.New("no // ERROR comments found")
+	}
+
 	for _, test := range tests {
 		// Get output from program/templates and check if it matches with the
 		// expected error.
-		arg := map[string]string{
-			".go":     "run program",
-			".script": "run script",
-			".html":   "render html",
-		}[ext]
-		exitCode, stdout, stderr := cmd([]byte(test.src), opts, arg)
+		exitCode, stdout, stderr := cmd([]byte(test.src), opts, "build", ext)
 		if exitCode == 0 {
-			panic(fmt.Errorf("expecting error '%s' but exit code is 0", test.err))
+			return fmt.Errorf("expecting error '%s' but exit code is 0", test.err)
 		}
 		if len(stdout) > 0 {
-			panic("stdout should be empty")
+			return errors.New("stdout should be empty")
 		}
 		if len(stderr) == 0 {
-			panic(fmt.Errorf("expected error '%s', got nothing", test.err))
+			return fmt.Errorf("expected error '%s', got nothing", test.err)
 		}
 		re := regexp.MustCompile(test.err)
 		stderr = []byte(removePrefixFromError(string(stderr)))
 		if !re.Match(stderr) {
-			// panic(fmt.Errorf("error does not match:\n\n\texpecting match with:  %s\n\tgot:        %s", test.err, stderr))
-			panic(fmt.Errorf("output does not match with the given regular expression:\n\n\tregexp:    %s\n\toutput:    %s\n", test.err, stderr))
+			return fmt.Errorf("output does not match with the given regular expression:\n\n\tregexp:    %s\n\toutput:    %s\n", test.err, stderr)
 		}
 	}
-}
 
-// testWithoutErrorLines runs or renders src (using the given options) removing
-// all the '// ERROR' comments.
-func testWithoutErrorLines(src []byte, ext string, opts []string) {
-	arg := map[string]string{
-		".go":     "run program",
-		".script": "run script",
-		".html":   "render html",
-	}[ext]
-	linesWithoutError := []byte{}
-	for _, line := range bytes.Split(src, []byte{'\n'}) {
-		if !bytes.Contains(line, []byte("// ERROR ")) {
-			line = append(line, '\n')
-			linesWithoutError = append(linesWithoutError, line...)
-		}
-	}
-	exitCode, _, stderr := cmd([]byte(linesWithoutError), opts, arg)
-	if exitCode != 0 {
-		// TODO: return an error message that suggests which error was expected,
-		// something like:
-		//
-		//		Unexpected error, maybe you should add // ERROR: `undefined: x`
-		//
-		// Note that the error position must be removed from the output.
-		panic(fmt.Errorf("unexpected error (maybe you forgot to add an // ERROR comment or the test has some problems): '%s'", stderr))
-	}
+	return nil
 }
 
 // mustBeOK fails if at least one of the given streams is not empty or if the
 // exit code is not zero.
-func mustBeOK(exitCode int, stdout, stderr []byte) {
-	_ = unwrapStdout(exitCode, stdout, stderr)
-	if len(stderr) > 0 {
-		panic("unexpected standard output: " + string(stderr))
+func mustBeOK(exitCode int, stdout, stderr []byte) error {
+	_, err := unwrapStdout(exitCode, stdout, stderr)
+	if err != nil {
+		return err
 	}
+	if len(stderr) > 0 {
+		return errors.New("unexpected standard output: " + string(stderr))
+	}
+	return nil
 }
 
-// getAllFilepaths returns a list of filepaths matching the given pattern.
+// filePaths returns the file paths matching the given pattern.
 // If pattern is "", pattern matching is always assumed true.
-func getAllFilepaths(pattern string) []string {
-	filepaths := []string{}
+func filePaths(pattern string) ([]string, error) {
+	var paths []string
 	var re *regexp.Regexp
 	if pattern != "" {
 		re = regexp.MustCompile(pattern)
 	}
-	filepath.Walk("testdata", func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk("testdata", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			panic(err)
+			return err
 		}
-		if re != nil {
-			if !re.MatchString(path) {
-				return nil
-			}
+		if path[0] == '.' {
+			return nil
 		}
-		if isTestPath(path) {
-			filepaths = append(filepaths, path)
+		switch filepath.Ext(path) {
+		case ".go", ".script", ".html", ".css", ".js", ".json":
+		default:
+			return nil
 		}
+		if re != nil && !re.MatchString(path) {
+			return nil
+		}
+		if strings.Contains(path, ".dir"+string(filepath.Separator)) {
+			return nil
+		}
+		paths = append(paths, path)
 		return nil
 	})
-	if len(filepaths) == 0 {
-		panic("specified pattern does not match any path")
+	if err != nil {
+		return nil, err
 	}
-	return filepaths
+	return paths, nil
 }
 
 // goldenCompare compares the golden file related to the given path with the
 // given data.
-func goldenCompare(testPath string, got []byte) {
+func goldenCompare(testPath string, got []byte) error {
 	ext := filepath.Ext(testPath)
-	if ext != ".go" && ext != ".script" && ext != ".html" {
-		panic("unsupported ext: " + ext)
-	}
 	goldenPath := strings.TrimSuffix(testPath, ext) + ".golden"
 	goldenData, err := ioutil.ReadFile(goldenPath)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	// Remove everything after "//".
 	goldenData = regexp.MustCompile(`(?m)^//.*$`).ReplaceAll(goldenData, []byte{})
@@ -330,7 +385,7 @@ func goldenCompare(testPath string, got []byte) {
 		}
 		for i := 0; i < numLines; i++ {
 			if expectedLines[i] != gotLines[i] {
-				panic(fmt.Errorf("difference at line %d\nexpecting:  %q\ngot:        %q.\n\nFull output: \n------------------------\n%s", i+1, expectedLines[i], gotLines[i], got))
+				return fmt.Errorf("difference at line %d\nexpecting:  %q\ngot:        %q.\n\nFull output: \n------------------------\n%s", i+1, expectedLines[i], gotLines[i], got)
 			}
 		}
 		if len(expectedLines) != len(gotLines) {
@@ -347,14 +402,15 @@ func goldenCompare(testPath string, got []byte) {
 					err += fmt.Sprintf("> " + gotLines[i] + "\n")
 				}
 			}
-			panic(err)
+			return errors.New(err)
 		}
 	}
 	// Make an additional compare: any difference not catched by the previous
 	// check gets caught here.
 	if bytes.Compare(expected, got) != 0 {
-		panic(fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got))
+		return fmt.Errorf("\n\nexpecting:  %s\ngot:        %s", expected, got)
 	}
+	return nil
 }
 
 // isBuildConstraints reports whether line is a build contrain, as specified at
@@ -367,17 +423,6 @@ func isBuildConstraints(line string) bool {
 	line = strings.TrimPrefix(line, "//")
 	line = strings.TrimSpace(line)
 	return strings.HasPrefix(line, "+build")
-}
-
-// isTestPath reports whether path is a valid test path.
-func isTestPath(path string) bool {
-	if filepath.Ext(path) != ".go" && filepath.Ext(path) != ".script" && filepath.Ext(path) != ".html" {
-		return false
-	}
-	if strings.Contains(path, ".dir"+string(filepath.Separator)) {
-		return false
-	}
-	return true
 }
 
 // readMode reports the mode (and any options) associated to src.
@@ -404,11 +449,7 @@ func isTestPath(path string) bool {
 //  // skip because feature X is not supported
 //  // skip : enable when bug Y will be fixed
 //
-func readMode(src []byte, ext string) (mode string, opts []string) {
-	splitOpts := func(s string) (mode string, opts []string) {
-		ss := strings.Split(s, " ")
-		return ss[0], ss[1:]
-	}
+func readMode(src []byte, ext string) (string, []string, error) {
 	switch ext {
 	case ".go", ".script":
 		for _, l := range strings.Split(string(src), "\n") {
@@ -420,16 +461,17 @@ func readMode(src []byte, ext string) (mode string, opts []string) {
 				continue
 			}
 			if !strings.HasPrefix(l, "//") {
-				panic(fmt.Errorf("not a valid directive: '%s'", l))
+				return "", nil, fmt.Errorf("not a valid directive: %s", l)
 			}
 			l = strings.TrimPrefix(l, "//")
 			l = strings.TrimSpace(l)
 			if strings.HasPrefix(l, "skip ") {
-				return "skip", []string{}
+				return "skip", []string{}, nil
 			}
-			return splitOpts(l)
+			s := strings.Split(l, " ")
+			return s[0], s[1:], nil
 		}
-	case ".html":
+	default:
 		for _, l := range strings.Split(string(src), "\n") {
 			l = strings.TrimSpace(l)
 			if l == "" {
@@ -440,65 +482,60 @@ func readMode(src []byte, ext string) (mode string, opts []string) {
 				l = strings.TrimSuffix(l, "#}")
 				l = strings.TrimSpace(l)
 				if strings.HasPrefix(l, "skip ") {
-					return "skip", []string{}
+					return "skip", []string{}, nil
 				}
-				return splitOpts(l)
-			} else {
-				panic(fmt.Errorf("not a valid directive: '%s'", l))
+				s := strings.Split(l, " ")
+				return s[0], s[1:], nil
 			}
+			return "", nil, fmt.Errorf("not a valid directive: %s", l)
 		}
-	default:
-		panic("unsupported extension " + ext)
 	}
-	panic("mode not specified")
+	return "", nil, errors.New("mode not specified")
 }
 
 // runGc runs a Go program using gc and returns its output.
-func runGc(path string) (int, []byte, []byte) {
+func runGc(path string) (int, []byte, []byte, error) {
 	if ext := filepath.Ext(path); ext != ".go" {
-		panic("unsupported ext " + ext)
+		return 0, nil, nil, errors.New("unsupported ext " + ext)
 	}
 	tmpDir, err := ioutil.TempDir("", "scriggo-gc")
 	if err != nil {
-		panic(err)
+		return 0, nil, nil, err
 	}
 	// Create a temporary directory.
 	err = os.MkdirAll(tmpDir, 0755)
 	if err != nil {
-		panic(err)
+		return 0, nil, nil, err
 	}
 	defer func() {
-		err := os.RemoveAll(tmpDir)
-		if err != nil {
-			panic(err)
-		}
+		_ = os.RemoveAll(tmpDir)
 	}()
 	// Copy the test source into the temporary directory.
 	src, err := ioutil.ReadFile(path)
 	if err != nil {
-		panic(err)
+		return 0, nil, nil, err
 	}
 	err = ioutil.WriteFile(filepath.Join(tmpDir, "main.go"), src, 0664)
 	if err != nil {
-		panic(err)
+		return 0, nil, nil, err
 	}
 	scriggoAbsPath, err := filepath.Abs("../../../scriggo")
 	if err != nil {
-		panic(err)
+		return 0, nil, nil, err
 	}
 	// Copy the "testpkg" module into the directory.
 	{
 		data, err := ioutil.ReadFile("testpkg/testpkg.go")
 		if err != nil {
-			panic(err)
+			return 0, nil, nil, err
 		}
 		err = os.MkdirAll(filepath.Join(tmpDir, "testpkg"), 0755)
 		if err != nil {
-			panic(err)
+			return 0, nil, nil, err
 		}
 		err = ioutil.WriteFile(filepath.Join(tmpDir, "testpkg", "testpkg.go"), data, 0664)
 		if err != nil {
-			panic(err)
+			return 0, nil, nil, err
 		}
 		goMod := strings.Join([]string{
 			`module testpkg`,
@@ -507,7 +544,7 @@ func runGc(path string) (int, []byte, []byte) {
 		}, "\n")
 		err = ioutil.WriteFile(filepath.Join(tmpDir, "testpkg", "go.mod"), []byte(goMod), 0664)
 		if err != nil {
-			panic(err)
+			return 0, nil, nil, err
 		}
 	}
 	// Create a "go.mod" file inside the testing directory.
@@ -519,7 +556,7 @@ func runGc(path string) (int, []byte, []byte) {
 		}, "\n")
 		err := ioutil.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(data), 0664)
 		if err != nil {
-			panic(err)
+			return 0, nil, nil, err
 		}
 	}
 	// Build the test source.
@@ -533,9 +570,9 @@ func runGc(path string) (int, []byte, []byte) {
 		err = cmd.Run()
 		if err != nil {
 			if ee, ok := err.(*exec.ExitError); ok {
-				return ee.ProcessState.ExitCode(), stdout.Bytes(), stderr.Bytes()
+				return ee.ProcessState.ExitCode(), stdout.Bytes(), stderr.Bytes(), nil
 			}
-			panic(err)
+			return 0, nil, nil, err
 		}
 	}
 	// Run the test just compiled.
@@ -549,11 +586,11 @@ func runGc(path string) (int, []byte, []byte) {
 		err = cmd.Run()
 		if err != nil {
 			if ee, ok := err.(*exec.ExitError); ok {
-				return ee.ProcessState.ExitCode(), stdout.Bytes(), stderr.Bytes()
+				return ee.ProcessState.ExitCode(), stdout.Bytes(), stderr.Bytes(), nil
 			}
-			panic(err)
+			return 0, nil, nil, err
 		}
-		return 0, stdout.Bytes(), stderr.Bytes()
+		return 0, stdout.Bytes(), stderr.Bytes(), nil
 	}
 }
 
@@ -579,57 +616,15 @@ func goBaseVersion(v string) string {
 	return fmt.Sprintf("go1.%d", next)
 }
 
-var buildTags = map[string]bool{}
-
-func init() {
-	// Fill builtags.
-	goos := os.Getenv("GOOS")
-	if goos == "" {
-		goos = runtime.GOOS
-	}
-	goarch := os.Getenv("GOARCH")
-	if goarch == "" {
-		goarch = runtime.GOARCH
-	}
-	buildTags = map[string]bool{
-		goos:   true,
-		goarch: true,
-		"cgo":  cgoEnabled,
-	}
-	// Add the build tags from the first version of go to the current one.
-	cmd := exec.Command("go", "version")
-	stdout := &bytes.Buffer{}
-	cmd.Stdout = stdout
-	err := cmd.Run()
-	if err != nil {
-		panic(err)
-	}
-	rawVersion := strings.Split(stdout.String(), " ")[2]
-	rawVersion = strings.TrimSpace(rawVersion)
-	goVersion := goBaseVersion(rawVersion)
-	subv, err := strconv.Atoi(goVersion[len("go1."):])
-	if err != nil {
-		panic(err)
-	}
-	for i := 1; i <= subv; i++ {
-		buildTags[fmt.Sprintf("go1.%d", i)] = true
-	}
-}
-
-// shouldBuild reports whether a given source code should build or not.
-func shouldBuild(src []byte) bool {
-	return imports.ShouldBuild(src, buildTags)
-}
-
 // test execute test on the given source code with the specified mode.
 // When a test fails, test calls os.Exit with an non-zero error code, unless
 // keepTestingOnFail is set.
-func test(src []byte, opts []string, path, mode, ext string, keepTestingOnFail bool) {
+func test(src []byte, mode, filePath string, opts []string, keepTestingOnFail bool) error {
 
 	defer func() {
 		if r := recover(); r != nil {
-			absPath, _ := filepath.Abs(path)
-			fmt.Fprintf(os.Stderr, "\n%s: %s\n", absPath, r)
+			absPath, _ := filepath.Abs(filePath)
+			_, _ = fmt.Fprintf(os.Stderr, "\n%s: %s\n", absPath, r)
 			if keepTestingOnFail {
 				return
 			}
@@ -637,106 +632,107 @@ func test(src []byte, opts []string, path, mode, ext string, keepTestingOnFail b
 		}
 	}()
 
-	switch mode + " " + ext {
+	ext := filepath.Ext(filePath)
 
-	// Just compile.
-	case "compile .go", "build .go":
-		mustBeOK(cmd(src, opts, "compile program"))
-	case "compile .script", "build .script":
-		mustBeOK(cmd(src, opts, "compile script"))
-	case "compile .html", "build .html":
-		mustBeOK(cmd(src, opts, "compile html"))
-
-	// Error check.
-	case "errorcheck .go", "errorcheck .script", "errorcheck .html":
-		errorcheck(src, ext, opts)
-
-	// Panic check.
-	case "paniccheck .go":
-		exitCode, _, stderr := cmd(src, opts, "run program")
+	switch mode {
+	case "build", "compile":
+		return mustBeOK(cmd(src, opts, "build", ext))
+	case "errorcheck":
+		return errorcheck(src, filePath, opts)
+	case "paniccheck":
+		switch ext {
+		case ".go":
+		case ".script":
+			return fmt.Errorf("unsupported mode 'paniccheck' for scripts")
+		default:
+			return fmt.Errorf("unsupported mode 'paniccheck' for templates")
+		}
+		exitCode, _, stderr := cmd(src, opts, "run", ".go")
 		if exitCode == 0 {
-			panic("expected panic, got exit code == 0 (success)")
+			return errors.New("expected panic, got exit code == 0 (success)")
 		}
 		panicBody := bytes.Index(stderr, []byte("\n\ngoroutine "))
 		if panicBody == -1 {
-			panic(fmt.Errorf("expected panic on stderr, got %q", stderr))
+			return fmt.Errorf("expected panic on stderr, got %q", stderr)
 		}
 		panicHead := stderr[:panicBody]
-		goldenCompare(path, panicHead)
-
-	// Run or render.
-	case "run .go":
-		scriggoExitCode, scriggoStdout, scriggoStderr := cmd(src, opts, "run program")
-		gcExitCode, gcStdout, gcStderr := runGc(path)
-		panic := func(msg string) {
-			s := strings.Builder{}
-			s.WriteString(fmt.Sprintf("[ Scriggo exit code ] %d\n", scriggoExitCode))
-			s.WriteString(fmt.Sprintf("[ Scriggo stdout    ] '%s'\n", scriggoStdout))
-			s.WriteString(fmt.Sprintf("[ Scriggo stderr    ] '%s'\n", scriggoStderr))
-			s.WriteString(fmt.Sprintf("[ gc exit code      ] %d\n", gcExitCode))
-			s.WriteString(fmt.Sprintf("[ gc stdout         ] '%s'\n", gcStdout))
-			s.WriteString(fmt.Sprintf("[ gc stderr         ] '%s'\n", gcStderr))
-			panic(msg + "\n" + s.String())
+		return goldenCompare(filePath, panicHead)
+	case "run":
+		switch ext {
+		case ".go":
+			scriggoExitCode, scriggoStdout, scriggoStderr := cmd(src, opts, "run", ".go")
+			gcExitCode, gcStdout, gcStderr, err := runGc(filePath)
+			if err != nil {
+				return err
+			}
+			formatError := func(msg string) error {
+				var s strings.Builder
+				s.WriteString(fmt.Sprintf("[ Scriggo exit code ] %d\n", scriggoExitCode))
+				s.WriteString(fmt.Sprintf("[ Scriggo stdout    ] '%s'\n", scriggoStdout))
+				s.WriteString(fmt.Sprintf("[ Scriggo stderr    ] '%s'\n", scriggoStderr))
+				s.WriteString(fmt.Sprintf("[ gc exit code      ] %d\n", gcExitCode))
+				s.WriteString(fmt.Sprintf("[ gc stdout         ] '%s'\n", gcStdout))
+				s.WriteString(fmt.Sprintf("[ gc stderr         ] '%s'\n", gcStderr))
+				return fmt.Errorf("%s\n%s", msg, s.String())
+			}
+			if scriggoExitCode != 0 && gcExitCode != 0 {
+				return formatError("scriggo and gc returned a non-zero exit code")
+			}
+			if scriggoExitCode != 0 {
+				return formatError("scriggo returned a non-zero exit code, while gc succeded")
+			}
+			if gcExitCode != 0 {
+				return formatError("gc returned a non-zero exit code, while Scriggo succeded")
+			}
+			if bytes.Compare(scriggoStdout, gcStdout) != 0 || bytes.Compare(scriggoStderr, gcStderr) != 0 {
+				return formatError("Scriggo and gc returned two different stdout/stderr")
+			}
+			return nil
+		case ".script":
+			out, err := unwrapStdout(cmd(src, opts, "run", ".script"))
+			if err != nil {
+				return err
+			}
+			return goldenCompare(filePath, out)
 		}
-		if scriggoExitCode != 0 && gcExitCode != 0 {
-			panic("scriggo and gc returned a non-zero exit code")
+	case "render":
+		out, err := unwrapStdout(cmd(src, opts, "run", ext))
+		if err != nil {
+			return err
 		}
-		if scriggoExitCode != 0 {
-			panic("scriggo returned a non-zero exit code, while gc succeded")
+		return goldenCompare(filePath, out)
+	case "rundir":
+		if ext == ".go" {
+			dirPath := strings.TrimSuffix(filePath, ".go") + ".dir"
+			if _, err := os.Stat(dirPath); err != nil {
+				return err
+			}
+			out, err := unwrapStdout(cmd(nil, opts, "rundir", ".go", dirPath))
+			if err != nil {
+				return err
+			}
+			return goldenCompare(filePath, out)
 		}
-		if gcExitCode != 0 {
-			panic("gc returned a non-zero exit code, while Scriggo succeded")
+	case "renderdir":
+		dirPath := strings.TrimSuffix(filePath, ext) + ".dir"
+		out, err := unwrapStdout(cmd(nil, opts, "rundir", ext, dirPath))
+		if err != nil {
+			return err
 		}
-		if bytes.Compare(scriggoStdout, gcStdout) != 0 || bytes.Compare(scriggoStderr, gcStderr) != 0 {
-			panic("Scriggo and gc returned two different stdout/stderr")
-		}
-	case "rundir .go":
-		dirPath := strings.TrimSuffix(path, ".go") + ".dir"
-		if _, err := os.Stat(dirPath); err != nil {
-			panic(err)
-		}
-		goldenCompare(
-			path,
-			unwrapStdout(
-				cmd(nil, opts, "run program directory", dirPath),
-			),
-		)
-	case "run .script":
-		goldenCompare(
-			path,
-			unwrapStdout(
-				cmd(src, opts, "run script"),
-			),
-		)
-	case "render .html":
-		goldenCompare(
-			path,
-			unwrapStdout(
-				cmd(src, opts, "render html"),
-			),
-		)
-	case "renderdir .html":
-		goldenCompare(
-			path,
-			unwrapStdout(
-				cmd(nil, opts, "render html directory", strings.TrimSuffix(path, ".html")+".dir"),
-			),
-		)
-
-	default:
-		panic(fmt.Errorf("unsupported mode '%s' for test with extension '%s'", mode, ext))
+		return goldenCompare(dirPath, out)
 	}
 
+	return fmt.Errorf("unsupported mode %q for extension %q", mode, ext)
 }
 
-// unwrapStdout unwraps the given streams returning the stdout. Panics if stderr
-// is not empty or if exit code is not 0.
-func unwrapStdout(exitCode int, stdout, stderr []byte) []byte {
+// unwrapStdout unwraps the given streams returning the stdout. Returns an
+// error if stderr is not empty or if exit code is not 0.
+func unwrapStdout(exitCode int, stdout, stderr []byte) ([]byte, error) {
 	if exitCode != 0 {
-		panic(fmt.Errorf("exit code is %d, should be zero. stderr: %s", exitCode, stderr))
+		return nil, fmt.Errorf("exit code is %d, should be zero. stderr: %s", exitCode, stderr)
 	}
 	if len(stderr) > 0 {
-		panic("unexpected standard error: " + string(stderr))
+		return nil, errors.New("unexpected standard error: " + string(stderr))
 	}
-	return stdout
+	return stdout, nil
 }

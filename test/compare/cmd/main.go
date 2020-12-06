@@ -1,14 +1,14 @@
-// This executable is not meant to be human friendly or to have a nice CLI
-// interface. It just aims to simplicity, speed and robustness.
+// Copyright (c) 2019 Open2b Software Snc. All rights reserved.
+// https://www.open2b.com
 
-// In case of success the standard output contains the output of the execution
-// of the program or the rendering of the template. Else, in case of error, the
-// stderr contains the error.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
 package main
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -17,64 +17,21 @@ import (
 	"path/filepath"
 
 	"github.com/open2b/scriggo"
-	"github.com/open2b/scriggo/compiler"
 	"github.com/open2b/scriggo/runtime"
 	"github.com/open2b/scriggo/scripts"
+	"github.com/open2b/scriggo/templates"
 )
 
 //go:generate scriggo embed -v -o predefPkgs.go
 var predefPkgs scriggo.Packages
 
-type stdinLoader struct {
-	file *os.File
-}
-
-func (b stdinLoader) Load(path string) (interface{}, error) {
-	if path == "main" {
-		return b.file, nil
-	}
-	return nil, nil
-}
-
-type dirLoader string
-
-func (dl dirLoader) Load(path string) (interface{}, error) {
-	if path == "main" {
-		main, err := ioutil.ReadFile(filepath.Join(string(dl), "main.go"))
-		if err != nil {
-			panic(err)
-		}
-		return bytes.NewReader(main), nil
-	}
-	data, err := ioutil.ReadFile(filepath.Join(string(dl), path+".go"))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return bytes.NewReader(data), nil
-}
-
-func renderPanics(p *runtime.Panic) string {
-	var msg string
-	for p != nil {
-		msg = "\n" + msg
-		if p.Recovered() {
-			msg = " [recovered]" + msg
-		}
-		msg = p.String() + msg
-		if p.Next() != nil {
-			msg = "\tpanic: " + msg
-		}
-		p = p.Next()
-	}
-	return msg
-}
-
-var globals = compiler.Declarations{
+var globals = templates.Declarations{
 	"MainSum": func(a, b int) int { return a + b },
 }
+
+// In case of success the standard output contains the output of the execution
+// of the program or the rendering of the template. Else, in case of error, the
+// stderr contains the error.
 
 func main() {
 
@@ -87,128 +44,146 @@ func main() {
 
 	flag.Parse()
 
-	switch flag.Args()[0] {
-	case "compile program":
-		loadOpts := &scriggo.LoadOptions{}
-		loadOpts.DisallowGoStmt = *disallowGoStmt
-		_, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
-		if err != nil {
-			fmt.Fprint(os.Stderr, err)
+	// Read and validate command and extension arguments.
+	switch flag.NArg() {
+	case 0:
+		_, _ = fmt.Fprint(os.Stderr, "missing 'cmd' argument")
+		os.Exit(1)
+	case 1:
+		_, _ = fmt.Fprint(os.Stderr, "missing 'ext' argument")
+		os.Exit(1)
+	}
+	cmd := flag.Arg(0)
+	switch cmd {
+	case "build", "run", "rundir":
+	default:
+		_, _ = fmt.Fprintf(os.Stderr, "unknown command %s", cmd)
+		os.Exit(1)
+	}
+	ext := flag.Arg(1)
+	switch ext {
+	case ".go", ".script":
+	case ".html", ".css", ".js", ".json":
+		if *disallowGoStmt {
+			_, _ = fmt.Fprint(os.Stderr, "disallow Go statement not supported for templates")
 			os.Exit(1)
 		}
-	case "compile script":
-		loadOpts := &scripts.LoadOptions{}
-		loadOpts.DisallowGoStmt = *disallowGoStmt
-		_, err = scripts.Load(os.Stdin, predefPkgs, loadOpts)
-		if err != nil {
-			fmt.Fprint(os.Stderr, err)
-			os.Exit(1)
-		}
-	case "run program":
-		loadOpts := &scriggo.LoadOptions{}
-		loadOpts.DisallowGoStmt = *disallowGoStmt
-		program, err := scriggo.Load(os.Stdin, predefPkgs, loadOpts)
-		if err != nil {
-			fmt.Fprint(os.Stderr, err)
-			os.Exit(1)
-		}
-		_, err = program.Run(nil)
-		if err != nil {
-			if p, ok := err.(*runtime.Panic); ok {
-				panic(renderPanics(p))
+	default:
+		_, _ = fmt.Fprintf(os.Stderr, "invalid extension %s", cmd)
+		os.Exit(1)
+	}
+
+	// Execute the command.
+	switch ext {
+	case ".go":
+		var src io.Reader = os.Stdin
+		var packages scriggo.PackageLoader = predefPkgs
+		if cmd == "rundir" {
+			dir := dirLoader(flag.Args()[2])
+			main, err := dir.Load("main")
+			if err != nil {
+				panic(err)
 			}
-			panic(err)
+			src = main.(io.Reader)
+			packages = scriggo.CombinedLoader{dir, packages}
 		}
-	case "run script":
+		loadOpts := &scriggo.LoadOptions{}
+		loadOpts.DisallowGoStmt = *disallowGoStmt
+		program, err := scriggo.Load(src, packages, loadOpts)
+		if err != nil {
+			_, _ = fmt.Fprint(os.Stderr, err)
+			os.Exit(1)
+		}
+		if cmd != "build" {
+			_, err = program.Run(nil)
+			if err != nil {
+				panic(convertRunError(err))
+			}
+		}
+	case ".script":
 		loadOpts := &scripts.LoadOptions{}
 		loadOpts.DisallowGoStmt = *disallowGoStmt
 		script, err := scripts.Load(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
-			fmt.Fprint(os.Stderr, err)
+			_, _ = fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
-		_, err = script.Run(nil, nil)
-		if err != nil {
-			if p, ok := err.(*runtime.Panic); ok {
-				panic(renderPanics(p))
+		if cmd == "run" {
+			_, err = script.Run(nil, nil)
+			if err != nil {
+				panic(convertRunError(err))
 			}
-			panic(err)
-		}
-	case "run program directory":
-		loadOpts := &scriggo.LoadOptions{}
-		loadOpts.DisallowGoStmt = *disallowGoStmt
-		dirPath := flag.Args()[1]
-		dl := dirLoader(dirPath)
-		main, err := dl.Load("main")
-		if err != nil {
-			panic(err)
-		}
-		prog, err := scriggo.Load(main.(io.Reader), scriggo.CombinedLoader{dl, predefPkgs}, loadOpts)
-		if err != nil {
-			fmt.Fprint(os.Stderr, err)
-			os.Exit(1)
-		}
-		_, err = prog.Run(nil)
-		if err != nil {
-			if p, ok := err.(*runtime.Panic); ok {
-				panic(renderPanics(p))
-			}
-			panic(err)
-		}
-	case "render html":
-		if *disallowGoStmt {
-			panic("disallow Go statement not supported when rendering a html page")
-		}
-		src, err := ioutil.ReadAll(os.Stdin)
-		if err != nil {
-			panic(err)
-		}
-		r := mapReader{"/index.html": src}
-		templ, err := compileTemplate(r)
-		if err != nil {
-			fmt.Fprint(os.Stderr, err)
-			os.Exit(1)
-		}
-		err = templ.render(nil)
-		if err != nil {
-			if p, ok := err.(*runtime.Panic); ok {
-				panic(renderPanics(p))
-			}
-			panic(err)
-		}
-	case "render html directory":
-		if *disallowGoStmt {
-			panic("disallow Go statement not supported when rendering a html directory")
-		}
-		dirPath := flag.Args()[1]
-		r := dirReader(dirPath)
-		templ, err := compileTemplate(r)
-		if err != nil {
-			fmt.Fprint(os.Stderr, err)
-			os.Exit(1)
-		}
-		err = templ.render(nil)
-		if err != nil {
-			if p, ok := err.(*runtime.Panic); ok {
-				panic(renderPanics(p))
-			}
-			panic(err)
-		}
-	case "compile html":
-		if *disallowGoStmt {
-			panic("disallow Go statement not supported when compiling a html page")
-		}
-		src, err := ioutil.ReadAll(os.Stdin)
-		if err != nil {
-			panic(err)
-		}
-		r := mapReader{"/index.html": src}
-		_, err = compileTemplate(r)
-		if err != nil {
-			fmt.Fprint(os.Stderr, err)
-			os.Exit(1)
 		}
 	default:
-		panic("invalid argument: %s" + flag.Args()[0])
+		var r templates.FileReader
+		switch cmd {
+		case "build", "run":
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				panic(err)
+			}
+			r = templates.MapReader{"/index" + ext: src}
+		case "rundir":
+			r = templates.DirReader(flag.Args()[2])
+		}
+		opts := templates.LoadOptions{
+			Globals:  globals,
+			Packages: predefPkgs,
+		}
+		template, err := templates.Load("/index"+ext, r, &opts)
+		if err != nil {
+			_, _ = fmt.Fprint(os.Stderr, err)
+			os.Exit(1)
+		}
+		if cmd != "build" {
+			err = template.Render(os.Stdout, nil, nil)
+			if err != nil {
+				panic(convertRunError(err))
+			}
+		}
 	}
+
+	return
+}
+
+// convertRunError converts an error returned from a Run or Render method of
+// the VM, transforming a *runtime.Panic value to its string representation.
+func convertRunError(err error) error {
+	if p, ok := err.(*runtime.Panic); ok {
+		var msg string
+		for p != nil {
+			msg = "\n" + msg
+			if p.Recovered() {
+				msg = " [recovered]" + msg
+			}
+			msg = p.String() + msg
+			if p.Next() != nil {
+				msg = "\tpanic: " + msg
+			}
+			p = p.Next()
+		}
+		return errors.New(msg)
+	}
+	return err
+}
+
+// dirLoader implements the scriggo.PackageLoader interface.
+type dirLoader string
+
+func (dl dirLoader) Load(path string) (interface{}, error) {
+	if path == "main" {
+		main, err := ioutil.ReadFile(filepath.Join(string(dl), "main.go"))
+		if err != nil {
+			return nil, err
+		}
+		return bytes.NewReader(main), nil
+	}
+	data, err := ioutil.ReadFile(filepath.Join(string(dl), path+".go"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return bytes.NewReader(data), nil
 }
