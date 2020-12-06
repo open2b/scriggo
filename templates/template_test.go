@@ -2258,9 +2258,9 @@ var templateMultiPageCases = map[string]struct {
 
 	"Show a Scriggo defined type value": {
 		sources: map[string]string{
-			"index.txt": `{% type Int int %}{{ Int(5) }}`,
+			"index.txt": `{% type Bool bool %}{{ Bool(true) }}`,
 		},
-		expectedOut: `5`,
+		expectedOut: `true`,
 	},
 }
 

@@ -1798,25 +1798,12 @@ func (vm *VM) run() (Addr, bool) {
 		// Typify
 		case OpTypify, -OpTypify:
 			t := vm.fn.Types[uint8(a)]
+			v := vm.env.types.New(t).Elem()
+			vm.getIntoReflectValue(b, v, op < 0)
 			if w, ok := t.(Wrapper); ok {
-				var v reflect.Value
-				k := t.Kind()
-				switch {
-				case reflect.Bool <= k && k <= reflect.Uintptr:
-					v = reflect.ValueOf(vm.intk(b, op < 0))
-				case k == reflect.Float32 || k == reflect.Float64:
-					v = reflect.ValueOf(vm.floatk(b, op < 0))
-				case k == reflect.String:
-					v = reflect.ValueOf(vm.stringk(b, op < 0))
-				default:
-					v = vm.generalk(b, op < 0)
-				}
-				vm.setGeneral(c, w.Wrap(v))
-			} else {
-				v := reflect.New(t).Elem()
-				vm.getIntoReflectValue(b, v, op < 0)
-				vm.setGeneral(c, v)
+				v = w.Wrap(v)
 			}
+			vm.setGeneral(c, v)
 
 		// Xor
 		case OpXor, -OpXor:
