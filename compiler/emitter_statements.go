@@ -15,6 +15,8 @@ import (
 	"github.com/open2b/scriggo/runtime"
 )
 
+var showFuncType = reflect.TypeOf(ShowFunc(nil))
+
 // emitNodes emits instructions for nodes.
 func (em *emitter) emitNodes(nodes []ast.Node) {
 
@@ -352,7 +354,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				em.fb.emitMove(false, em.fb.templateRegs.gA, em.fb.templateRegs.gD, reflect.Interface, false)
 			}
 			shift := runtime.StackShift{em.fb.templateRegs.iA - 1, 0, 0, em.fb.templateRegs.gC}
-			em.fb.emitCallIndirect(em.fb.templateRegs.gC, 0, shift, node.Pos(), renderFuncType)
+			em.fb.emitCallIndirect(em.fb.templateRegs.gC, 0, shift, node.Pos(), showFuncType)
 
 		case *ast.Switch:
 			currentBreakable := em.breakable

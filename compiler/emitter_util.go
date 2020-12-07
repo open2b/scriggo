@@ -8,7 +8,6 @@ package compiler
 
 import (
 	"fmt"
-	"io"
 	"reflect"
 	"unicode"
 	"unicode/utf8"
@@ -289,18 +288,6 @@ func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Up
 	fn.VarRefs = closureRefs
 
 }
-
-// renderFuncType is a reflect.Type that stores the type of the render function
-// defined in the scriggo/template package.
-//
-// Keep in sync with scriggo/template.render.
-//
-var renderFuncType = reflect.FuncOf([]reflect.Type{
-	envType,                                  // _ runtime.Env
-	reflect.TypeOf((*io.Writer)(nil)).Elem(), // out io.Writer
-	reflect.TypeOf((*interface{})(nil)).Elem(), // value interface{}
-	reflect.TypeOf(ast.Context(0)),             // ctx ast.Context
-}, nil, false)
 
 // ioWriterWriteType is a reflect.Type that stores the type of the function
 //
