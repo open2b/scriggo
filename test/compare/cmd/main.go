@@ -87,9 +87,9 @@ func main() {
 			src = main.(io.Reader)
 			packages = scriggo.CombinedLoader{dir, packages}
 		}
-		loadOpts := &scriggo.LoadOptions{}
+		loadOpts := &scriggo.BuildOptions{}
 		loadOpts.DisallowGoStmt = *disallowGoStmt
-		program, err := scriggo.Load(src, packages, loadOpts)
+		program, err := scriggo.Build(src, packages, loadOpts)
 		if err != nil {
 			_, _ = fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -101,9 +101,9 @@ func main() {
 			}
 		}
 	case ".script":
-		loadOpts := &scripts.LoadOptions{}
+		loadOpts := &scripts.BuildOptions{}
 		loadOpts.DisallowGoStmt = *disallowGoStmt
-		script, err := scripts.Load(os.Stdin, predefPkgs, loadOpts)
+		script, err := scripts.Build(os.Stdin, predefPkgs, loadOpts)
 		if err != nil {
 			_, _ = fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -126,11 +126,11 @@ func main() {
 		case "rundir":
 			r = templates.DirReader(flag.Args()[2])
 		}
-		opts := templates.LoadOptions{
+		opts := templates.BuildOptions{
 			Globals:  globals,
 			Packages: predefPkgs,
 		}
-		template, err := templates.Load("/index"+ext, r, &opts)
+		template, err := templates.Build("/index"+ext, r, &opts)
 		if err != nil {
 			_, _ = fmt.Fprint(os.Stderr, err)
 			os.Exit(1)

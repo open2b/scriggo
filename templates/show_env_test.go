@@ -143,7 +143,7 @@ func TestEnvStringer(t *testing.T) {
 			for p, src := range cas.sources {
 				r[p] = []byte(src)
 			}
-			opts := &LoadOptions{
+			opts := &BuildOptions{
 				Globals: cas.globals,
 			}
 			name := "index.txt"
@@ -157,7 +157,7 @@ func TestEnvStringer(t *testing.T) {
 			case LanguageJSON:
 				name = "index.json"
 			}
-			template, err := Load(name, r, opts)
+			template, err := Build(name, r, opts)
 			if err != nil {
 				t.Fatal(err)
 			}

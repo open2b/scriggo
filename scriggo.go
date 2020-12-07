@@ -26,7 +26,7 @@ type CompilerError interface {
 	Message() string
 }
 
-type LoadOptions struct {
+type BuildOptions struct {
 	DisallowGoStmt bool // disallow "go" statement.
 }
 
@@ -41,14 +41,14 @@ type Program struct {
 	globals []compiler.Global
 }
 
-// Load loads a Go program with the given options, loading the imported
+// Build builds a Go program with the given options, loading the imported
 // packages from packages.
-func Load(src io.Reader, packages PackageLoader, options *LoadOptions) (*Program, error) {
+func Build(src io.Reader, packages PackageLoader, options *BuildOptions) (*Program, error) {
 	co := compiler.Options{}
 	if options != nil {
 		co.DisallowGoStmt = options.DisallowGoStmt
 	}
-	code, err := compiler.CompileProgram(src, packages, co)
+	code, err := compiler.BuildProgram(src, packages, co)
 	if err != nil {
 		return nil, err
 	}

@@ -17,7 +17,7 @@ import (
 	"github.com/open2b/scriggo/runtime"
 )
 
-type LoadOptions struct {
+type BuildOptions struct {
 	Globals          Declarations // globals.
 	AllowShebangLine bool         // allow shebang line
 	DisallowGoStmt   bool         // disallow "go" statement.
@@ -37,9 +37,9 @@ type Script struct {
 	globals []compiler.Global
 }
 
-// Load loads a script with the given options, loading the imported packages
+// Build builds a script with the given options, loading the imported packages
 // from packages.
-func Load(src io.Reader, packages scriggo.PackageLoader, options *LoadOptions) (*Script, error) {
+func Build(src io.Reader, packages scriggo.PackageLoader, options *BuildOptions) (*Script, error) {
 	co := compiler.Options{}
 	if options != nil {
 		co.Globals = compiler.Declarations(options.Globals)

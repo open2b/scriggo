@@ -2104,7 +2104,7 @@ func run() {
 
 	flag.Parse()
 
-	var loadOptions = &scriggo.LoadOptions{}
+	var loadOptions = &scriggo.BuildOptions{}
 
 	var args = flag.Args()
 
@@ -2131,7 +2131,7 @@ func run() {
 	if err != nil {
 		panic(err)
 	}
-	program, err := scriggo.Load(bytes.NewReader(main), scriggo.Loaders(packages), loadOptions)
+	program, err := scriggo.Build(bytes.NewReader(main), scriggo.Loaders(packages), loadOptions)
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 		os.Exit(2)

@@ -22,15 +22,15 @@ import (
 )
 
 var (
-	// ErrInvalidPath is returned from the Load function and a FileReader when
+	// ErrInvalidPath is returned from the Build function and a FileReader when
 	// the path argument is not valid.
 	ErrInvalidPath = errors.New("scriggo: invalid path")
 
-	// ErrNotExist is returned from the Load function when the path does not
+	// ErrNotExist is returned from the Build function when the path does not
 	// exist.
 	ErrNotExist = errors.New("scriggo: path does not exist")
 
-	// ErrReadTooLarge is returned from the Load function when a limit is
+	// ErrReadTooLarge is returned from the Build function when a limit is
 	// exceeded reading a path.
 	ErrReadTooLarge = errors.New("scriggo: read too large")
 )
@@ -149,7 +149,7 @@ func (language Language) String() string {
 	return ast.Language(language).String()
 }
 
-type LoadOptions struct {
+type BuildOptions struct {
 	DisallowGoStmt  bool
 	TreeTransformer func(*ast.Tree) error // if not nil transforms tree after parsing.
 
@@ -229,13 +229,13 @@ func (f fileLanguageReader) ReadFile(name string) ([]byte, ast.Language, error) 
 	return src, language, nil
 }
 
-// Load loads a template given its file name. Load calls the method ReadFile of
-// files to read the files of the template.
+// Build builds a template given its file name. Build calls the method
+// ReadFile of files to read the files of the template.
 //
 // The language of the file depends on the extension of name or, if files has
-// the method 'Language(string) (Language, error)', Load gets the language
+// the method 'Language(string) (Language, error)', Build gets the language
 // from this method. If this method returns an error, this error is returned.
-func Load(name string, files FileReader, options *LoadOptions) (*Template, error) {
+func Build(name string, files FileReader, options *BuildOptions) (*Template, error) {
 	co := compiler.Options{ShowFunc: show}
 	if options != nil {
 		co.Globals = compiler.Declarations(options.Globals)
@@ -243,7 +243,7 @@ func Load(name string, files FileReader, options *LoadOptions) (*Template, error
 		co.DisallowGoStmt = options.DisallowGoStmt
 		co.Packages = options.Packages
 	}
-	code, err := compiler.CompileTemplate(name, fileLanguageReader{files}, co)
+	code, err := compiler.BuildTemplate(name, fileLanguageReader{files}, co)
 	if err != nil {
 		if err == compiler.ErrInvalidPath {
 			return nil, ErrInvalidPath

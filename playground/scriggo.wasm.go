@@ -63,7 +63,7 @@ func main() {
 			}
 		}
 		go func() {
-			program, err := scriggo.Load(strings.NewReader(src), packages, nil)
+			program, err := scriggo.Build(strings.NewReader(src), packages, nil)
 			if cb.IsNull() || cb.IsUndefined() {
 				return
 			}

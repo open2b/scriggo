@@ -201,10 +201,10 @@ func TestURLEscape(t *testing.T) {
 	for _, cas := range urlEscapeCases {
 		t.Run("", func(t *testing.T) {
 			r := MapReader{"index.html": []byte(cas.src)}
-			opts := &LoadOptions{
+			opts := &BuildOptions{
 				Globals: globals(),
 			}
-			templ, err := Load("index.html", r, opts)
+			templ, err := Build("index.html", r, opts)
 			if err != nil {
 				t.Fatalf("compilation error: %s", err)
 			}

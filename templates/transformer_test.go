@@ -16,7 +16,7 @@ import (
 func Test_treeTransformer(t *testing.T) {
 	stdout := &strings.Builder{}
 	reader := MapReader{"index.html": []byte(`{% w := "hi, " %}{{ w }}world!`)}
-	loadOpts := &LoadOptions{
+	loadOpts := &BuildOptions{
 		TreeTransformer: func(tree *ast.Tree) error {
 			assignment := tree.Nodes[0].(*ast.Assignment)
 			assignment.Rhs[0].(*ast.BasicLiteral).Value = `"hello, "`
@@ -25,7 +25,7 @@ func Test_treeTransformer(t *testing.T) {
 			return nil
 		},
 	}
-	template, err := Load("index.html", reader, loadOpts)
+	template, err := Build("index.html", reader, loadOpts)
 	if err != nil {
 		t.Fatal(err)
 	}

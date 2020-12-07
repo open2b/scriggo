@@ -329,7 +329,7 @@ func TestRenderExpressions(t *testing.T) {
 	for _, cas := range rendererExprTests {
 		t.Run(cas.src, func(t *testing.T) {
 			r := MapReader{"index.html": []byte("{{" + cas.src + "}}")}
-			templ, err := Load("index.html", r, nil)
+			templ, err := Build("index.html", r, nil)
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
@@ -552,7 +552,7 @@ func TestRenderStatements(t *testing.T) {
 	for _, cas := range rendererStmtTests {
 		t.Run(cas.src, func(t *testing.T) {
 			r := MapReader{"index.html": []byte(cas.src)}
-			templ, err := Load("index.html", r, nil)
+			templ, err := Build("index.html", r, nil)
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
@@ -2360,21 +2360,21 @@ func TestMultiPageTemplate(t *testing.T) {
 					globals[k] = v
 				}
 			}
-			opts := &LoadOptions{
+			opts := &BuildOptions{
 				Globals:  globals,
 				Packages: cas.packages,
 			}
-			templ, err := Load(entryPoint, r, opts)
+			templ, err := Build(entryPoint, r, opts)
 			switch {
 			case err == nil && cas.expectedLoadErr == "":
 				// Ok, no errors expected: continue with the test.
 			case err != nil && cas.expectedLoadErr == "":
 				t.Fatalf("unexpected loading error: %q", err)
 			case err == nil && cas.expectedLoadErr != "":
-				t.Fatalf("expected error %q but not errors have been returned by Load", cas.expectedLoadErr)
+				t.Fatalf("expected error %q but not errors have been returned by Build", cas.expectedLoadErr)
 			case err != nil && cas.expectedLoadErr != "":
 				if strings.Contains(err.Error(), cas.expectedLoadErr) {
-					// Ok, the error returned by Load contains the expected error.
+					// Ok, the error returned by Build contains the expected error.
 					return // this test is end.
 				} else {
 					t.Fatalf("expected error %q, got %q", cas.expectedLoadErr, err)
@@ -2410,10 +2410,10 @@ func TestVars(t *testing.T) {
 		"f": f,
 		"g": g,
 	}
-	opts := &LoadOptions{
+	opts := &BuildOptions{
 		Globals: globals,
 	}
-	tmpl, err := Load("example.txt", reader, opts)
+	tmpl, err := Build("example.txt", reader, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2492,10 +2492,10 @@ func Test_envFilePath(t *testing.T) {
 			for p, src := range cas.sources {
 				r[p] = []byte(src)
 			}
-			opts := &LoadOptions{
+			opts := &BuildOptions{
 				Globals: globals,
 			}
-			template, err := Load("index.html", r, opts)
+			template, err := Build("index.html", r, opts)
 			if err != nil {
 				t.Fatal(err)
 			}
