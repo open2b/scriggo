@@ -209,7 +209,7 @@ func TestURLEscape(t *testing.T) {
 				t.Fatalf("compilation error: %s", err)
 			}
 			out := &strings.Builder{}
-			err = templ.Render(out, nil, nil)
+			err = templ.Run(out, nil, nil)
 			if err != nil {
 				t.Fatalf("rendering error: %s", err)
 			}

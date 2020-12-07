@@ -334,7 +334,7 @@ func TestRenderExpressions(t *testing.T) {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
 			b := &bytes.Buffer{}
-			err = templ.Render(b, nil, nil)
+			err = templ.Run(b, nil, nil)
 			if err != nil {
 				t.Fatalf("source %q: rendering error: %s", cas.src, err)
 			}
@@ -557,7 +557,7 @@ func TestRenderStatements(t *testing.T) {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
 			b := &bytes.Buffer{}
-			err = templ.Render(b, nil, nil)
+			err = templ.Run(b, nil, nil)
 			if err != nil {
 				t.Fatalf("source %q: rendering error: %s", cas.src, err)
 			}
@@ -2381,7 +2381,7 @@ func TestMultiPageTemplate(t *testing.T) {
 				}
 			}
 			w := &bytes.Buffer{}
-			err = templ.Render(w, cas.vars, &RenderOptions{PrintFunc: scriggo.PrintFunc(w)})
+			err = templ.Run(w, cas.vars, &RunOptions{PrintFunc: scriggo.PrintFunc(w)})
 			if err != nil {
 				t.Fatalf("rendering error: %s", err)
 			}
@@ -2500,7 +2500,7 @@ func Test_envFilePath(t *testing.T) {
 				t.Fatal(err)
 			}
 			w := &bytes.Buffer{}
-			err = template.Render(w, nil, nil)
+			err = template.Run(w, nil, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

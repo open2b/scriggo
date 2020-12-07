@@ -60,7 +60,7 @@ func TestHTMLContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Render(b, expr.vars, nil)
+		err = tmpl.Run(b, expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -115,7 +115,7 @@ func TestQuotedAttrContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Render(b, expr.vars, nil)
+		err = tmpl.Run(b, expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -152,7 +152,7 @@ func TestUnquotedAttrContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Render(b, expr.vars, nil)
+		err = tmpl.Run(b, expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -234,7 +234,7 @@ func TestScriptContext(t *testing.T) {
 				continue
 			}
 			var b = &bytes.Buffer{}
-			err = tmpl.Render(b, expr.vars, nil)
+			err = tmpl.Run(b, expr.vars, nil)
 			if err != nil {
 				t.Errorf("type: %s, source: %q, %s\n", typ, expr.src, err)
 				continue
@@ -267,7 +267,7 @@ func TestJSContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Render(b, expr.vars, nil)
+		err = tmpl.Run(b, expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -299,7 +299,7 @@ func TestJSONContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Render(b, expr.vars, nil)
+		err = tmpl.Run(b, expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -357,7 +357,7 @@ func TestJSStringContext(t *testing.T) {
 				continue
 			}
 			var b = &bytes.Buffer{}
-			err = tmpl.Render(b, expr.vars, nil)
+			err = tmpl.Run(b, expr.vars, nil)
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue
@@ -396,7 +396,7 @@ func TestCSSContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Render(b, expr.vars, nil)
+		err = tmpl.Run(b, expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -446,7 +446,7 @@ func TestCSSStringContext(t *testing.T) {
 				continue
 			}
 			var b = &bytes.Buffer{}
-			err = tmpl.Render(b, expr.vars, nil)
+			err = tmpl.Run(b, expr.vars, nil)
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue

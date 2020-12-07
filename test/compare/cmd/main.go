@@ -136,7 +136,7 @@ func main() {
 			os.Exit(1)
 		}
 		if cmd != "build" {
-			err = template.Render(os.Stdout, nil, nil)
+			err = template.Run(os.Stdout, nil, nil)
 			if err != nil {
 				panic(convertRunError(err))
 			}
@@ -146,7 +146,7 @@ func main() {
 	return
 }
 
-// convertRunError converts an error returned from a Run or Render method of
+// convertRunError converts an error returned from a Run or Run method of
 // the VM, transforming a *runtime.Panic value to its string representation.
 func convertRunError(err error) error {
 	if p, ok := err.(*runtime.Panic); ok {

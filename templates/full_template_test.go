@@ -20,7 +20,7 @@ func TestFullTemplate(t *testing.T) {
 				t.Fatal(err)
 			}
 			out := &bytes.Buffer{}
-			err = templ.Render(out, nil, nil)
+			err = templ.Run(out, nil, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -162,8 +162,8 @@ func TestEnvStringer(t *testing.T) {
 				t.Fatal(err)
 			}
 			w := &bytes.Buffer{}
-			options := &RenderOptions{Context: ctx}
-			err = template.Render(w, nil, options)
+			options := &RunOptions{Context: ctx}
+			err = template.Run(w, nil, options)
 			if diff := cmp.Diff(cas.want, w.String()); diff != "" {
 				t.Fatalf("(-want, +got):\n%s", diff)
 			}

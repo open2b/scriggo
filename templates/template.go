@@ -172,7 +172,7 @@ type BuildOptions struct {
 // Declarations.
 type Declarations map[string]interface{}
 
-type RenderOptions struct {
+type RunOptions struct {
 	Context   context.Context
 	PrintFunc runtime.PrintFunc
 }
@@ -256,9 +256,9 @@ func Build(name string, files FileReader, options *BuildOptions) (*Template, err
 	return &Template{fn: code.Main, types: code.Types, globals: code.Globals}, nil
 }
 
-// Render renders the template and write the output to out. vars contains the
-// values of the global variables.
-func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *RenderOptions) error {
+// Run runs the template and write the rendered code to out. vars contains
+// the values of the global variables.
+func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunOptions) error {
 	writeFunc := out.Write
 	showFunc := show
 	uw := &urlEscaper{w: out}
@@ -271,9 +271,9 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *R
 	return err
 }
 
-// MustRender is like Render but panics if the rendering fails.
-func (t *Template) MustRender(out io.Writer, vars map[string]interface{}, options *RenderOptions) {
-	err := t.Render(out, vars, options)
+// MustRun is like Run but panics if the execution fails.
+func (t *Template) MustRun(out io.Writer, vars map[string]interface{}, options *RunOptions) {
+	err := t.Run(out, vars, options)
 	if err != nil {
 		panic(err)
 	}
@@ -296,7 +296,7 @@ func (t *Template) Vars() []string {
 }
 
 // newVM returns a new vm with the given options.
-func newVM(options *RenderOptions) *runtime.VM {
+func newVM(options *RunOptions) *runtime.VM {
 	vm := runtime.NewVM()
 	if options != nil {
 		if options.Context != nil {
