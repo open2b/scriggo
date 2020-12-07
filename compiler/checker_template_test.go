@@ -173,7 +173,7 @@ func TestTemplate(t *testing.T) {
 		expected := cas.expected
 		t.Run(src, func(t *testing.T) {
 			r := mapStringReader{"/index.html": src}
-			_, err := CompileTemplate("/index.html", r, Options{})
+			_, err := BuildTemplate("/index.html", r, Options{})
 			switch {
 			case expected == "" && err != nil:
 				t.Fatalf("unexpected error: %q", err)

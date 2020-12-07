@@ -8,11 +8,11 @@
 //
 // A program can be compiled using
 //
-//	CompileProgram
+//	BuildProgram
 //
 // while a template is compiled through
 //
-//  CompileTemplate
+//  BuildTemplate
 //
 package compiler
 
@@ -58,9 +58,9 @@ type Options struct {
 // Declarations.
 type Declarations map[string]interface{}
 
-// CompileProgram compiles a program.
+// BuildProgram builds a program.
 // Any error related to the compilation itself is returned as a CompilerError.
-func CompileProgram(r io.Reader, packages PackageLoader, opts Options) (*Code, error) {
+func BuildProgram(r io.Reader, packages PackageLoader, opts Options) (*Code, error) {
 	var tree *ast.Tree
 
 	// Parse the source code.
@@ -104,9 +104,9 @@ func CompileProgram(r io.Reader, packages PackageLoader, opts Options) (*Code, e
 	return code, err
 }
 
-// CompileScript compiles a script.
+// BuildScript builds a script.
 // Any error related to the compilation itself is returned as a CompilerError.
-func CompileScript(r io.Reader, packages PackageLoader, opts Options) (*Code, error) {
+func BuildScript(r io.Reader, packages PackageLoader, opts Options) (*Code, error) {
 	var tree *ast.Tree
 
 	// Parse the source code.
@@ -147,11 +147,11 @@ func CompileScript(r io.Reader, packages PackageLoader, opts Options) (*Code, er
 	return code, err
 }
 
-// CompileTemplate compiles the template file with the given path. It reads
-// the template files from the reader. path, if not absolute, is relative to
-// the root of the template. Any error related to the compilation itself is
+// BuildTemplate builds the template file with the given path. It reads the
+// template files from the reader. path, if not absolute, is relative to the
+// root of the template. Any error related to the compilation itself is
 // returned as a CompilerError.
-func CompileTemplate(path string, r FileReader, opts Options) (*Code, error) {
+func BuildTemplate(path string, r FileReader, opts Options) (*Code, error) {
 
 	var tree *ast.Tree
 

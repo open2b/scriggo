@@ -46,7 +46,7 @@ func Build(src io.Reader, packages scriggo.PackageLoader, options *BuildOptions)
 		co.AllowShebangLine = options.AllowShebangLine
 		co.DisallowGoStmt = options.DisallowGoStmt
 	}
-	code, err := compiler.CompileScript(src, packages, co)
+	code, err := compiler.BuildScript(src, packages, co)
 	if err != nil {
 		return nil, err
 	}
