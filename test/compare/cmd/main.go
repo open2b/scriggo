@@ -146,8 +146,8 @@ func main() {
 	return
 }
 
-// convertRunError converts an error returned from a Run or Run method of
-// the VM, transforming a *runtime.Panic value to its string representation.
+// convertRunError converts an error returned from a Run method, transforming
+// a *runtime.Panic value to its string representation.
 func convertRunError(err error) error {
 	if p, ok := err.(*runtime.Panic); ok {
 		var msg string
