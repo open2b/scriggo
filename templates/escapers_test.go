@@ -204,12 +204,12 @@ func TestURLEscape(t *testing.T) {
 			opts := &BuildOptions{
 				Globals: globals(),
 			}
-			templ, err := Build("index.html", r, opts)
+			template, err := Build("index.html", r, opts)
 			if err != nil {
 				t.Fatalf("compilation error: %s", err)
 			}
 			out := &strings.Builder{}
-			err = templ.Run(out, nil, nil)
+			err = template.Run(out, nil, nil)
 			if err != nil {
 				t.Fatalf("rendering error: %s", err)
 			}

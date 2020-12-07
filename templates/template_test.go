@@ -329,12 +329,12 @@ func TestRenderExpressions(t *testing.T) {
 	for _, cas := range rendererExprTests {
 		t.Run(cas.src, func(t *testing.T) {
 			r := MapReader{"index.html": []byte("{{" + cas.src + "}}")}
-			templ, err := Build("index.html", r, nil)
+			template, err := Build("index.html", r, nil)
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
 			b := &bytes.Buffer{}
-			err = templ.Run(b, nil, nil)
+			err = template.Run(b, nil, nil)
 			if err != nil {
 				t.Fatalf("source %q: rendering error: %s", cas.src, err)
 			}
@@ -552,12 +552,12 @@ func TestRenderStatements(t *testing.T) {
 	for _, cas := range rendererStmtTests {
 		t.Run(cas.src, func(t *testing.T) {
 			r := MapReader{"index.html": []byte(cas.src)}
-			templ, err := Build("index.html", r, nil)
+			template, err := Build("index.html", r, nil)
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
 			b := &bytes.Buffer{}
-			err = templ.Run(b, nil, nil)
+			err = template.Run(b, nil, nil)
 			if err != nil {
 				t.Fatalf("source %q: rendering error: %s", cas.src, err)
 			}
@@ -2364,7 +2364,7 @@ func TestMultiPageTemplate(t *testing.T) {
 				Globals:  globals,
 				Packages: cas.packages,
 			}
-			templ, err := Build(entryPoint, r, opts)
+			template, err := Build(entryPoint, r, opts)
 			switch {
 			case err == nil && cas.expectedLoadErr == "":
 				// Ok, no errors expected: continue with the test.
@@ -2381,7 +2381,7 @@ func TestMultiPageTemplate(t *testing.T) {
 				}
 			}
 			w := &bytes.Buffer{}
-			err = templ.Run(w, cas.vars, &RunOptions{PrintFunc: scriggo.PrintFunc(w)})
+			err = template.Run(w, cas.vars, &RunOptions{PrintFunc: scriggo.PrintFunc(w)})
 			if err != nil {
 				t.Fatalf("rendering error: %s", err)
 			}

@@ -15,12 +15,12 @@ func TestFullTemplate(t *testing.T) {
 	r := DirReader("./full_template_test")
 	for page, expectedOutput := range expectedPagesOutput {
 		t.Run(page, func(t *testing.T) {
-			templ, err := Build(page, r, nil)
+			template, err := Build(page, r, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
 			out := &bytes.Buffer{}
-			err = templ.Run(out, nil, nil)
+			err = template.Run(out, nil, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
