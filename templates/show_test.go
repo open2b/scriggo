@@ -54,13 +54,13 @@ func TestHTMLContext(t *testing.T) {
 		opts := &BuildOptions{
 			Globals: asDeclarations(expr.vars),
 		}
-		tmpl, err := Build("index.html", r, opts)
+		template, err := Build("index.html", r, opts)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Run(b, expr.vars, nil)
+		err = template.Run(b, expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -109,13 +109,13 @@ func TestQuotedAttrContext(t *testing.T) {
 		opts := &BuildOptions{
 			Globals: asDeclarations(expr.vars),
 		}
-		tmpl, err := Build("index.html", r, opts)
+		template, err := Build("index.html", r, opts)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Run(b, expr.vars, nil)
+		err = template.Run(b, expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -146,13 +146,13 @@ func TestUnquotedAttrContext(t *testing.T) {
 		opts := &BuildOptions{
 			Globals: asDeclarations(expr.vars),
 		}
-		tmpl, err := Build("index.html", r, opts)
+		template, err := Build("index.html", r, opts)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Run(b, expr.vars, nil)
+		err = template.Run(b, expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -228,13 +228,13 @@ func TestScriptContext(t *testing.T) {
 			opts := &BuildOptions{
 				Globals: asDeclarations(expr.vars),
 			}
-			tmpl, err := Build("index.html", r, opts)
+			template, err := Build("index.html", r, opts)
 			if err != nil {
 				t.Errorf("type: %s, source: %q, %s\n", typ, expr.src, err)
 				continue
 			}
 			var b = &bytes.Buffer{}
-			err = tmpl.Run(b, expr.vars, nil)
+			err = template.Run(b, expr.vars, nil)
 			if err != nil {
 				t.Errorf("type: %s, source: %q, %s\n", typ, expr.src, err)
 				continue
@@ -261,13 +261,13 @@ func TestJSContext(t *testing.T) {
 		opts := &BuildOptions{
 			Globals: asDeclarations(expr.vars),
 		}
-		tmpl, err := Build("index.html", r, opts)
+		template, err := Build("index.html", r, opts)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Run(b, expr.vars, nil)
+		err = template.Run(b, expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -293,13 +293,13 @@ func TestJSONContext(t *testing.T) {
 		opts := &BuildOptions{
 			Globals: asDeclarations(expr.vars),
 		}
-		tmpl, err := Build("index.html", r, opts)
+		template, err := Build("index.html", r, opts)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Run(b, expr.vars, nil)
+		err = template.Run(b, expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -351,13 +351,13 @@ func TestJSStringContext(t *testing.T) {
 			opts := &BuildOptions{
 				Globals: asDeclarations(expr.vars),
 			}
-			tmpl, err := Build("index.html", r, opts)
+			template, err := Build("index.html", r, opts)
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue
 			}
 			var b = &bytes.Buffer{}
-			err = tmpl.Run(b, expr.vars, nil)
+			err = template.Run(b, expr.vars, nil)
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue
@@ -390,13 +390,13 @@ func TestCSSContext(t *testing.T) {
 		opts := &BuildOptions{
 			Globals: asDeclarations(expr.vars),
 		}
-		tmpl, err := Build("index.html", r, opts)
+		template, err := Build("index.html", r, opts)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Run(b, expr.vars, nil)
+		err = template.Run(b, expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -440,13 +440,13 @@ func TestCSSStringContext(t *testing.T) {
 			opts := &BuildOptions{
 				Globals: asDeclarations(expr.vars),
 			}
-			tmpl, err := Build("index.html", r, opts)
+			template, err := Build("index.html", r, opts)
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue
 			}
 			var b = &bytes.Buffer{}
-			err = tmpl.Run(b, expr.vars, nil)
+			err = template.Run(b, expr.vars, nil)
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue

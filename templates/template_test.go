@@ -2413,11 +2413,11 @@ func TestVars(t *testing.T) {
 	opts := &BuildOptions{
 		Globals: globals,
 	}
-	tmpl, err := Build("example.txt", reader, opts)
+	template, err := Build("example.txt", reader, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
-	vars := tmpl.Vars()
+	vars := template.Vars()
 	if len(vars) != 3 {
 		t.Fatalf("expecting 3 variable names, got %d", len(vars))
 	}
