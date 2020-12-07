@@ -35,10 +35,7 @@ const (
 	maxFloatConstantsCount   = maxIntConstantsCount
 )
 
-const maxUint24 = 16777215
-
 var intType = reflect.TypeOf(0)
-var int64Type = reflect.TypeOf(int64(0))
 var float64Type = reflect.TypeOf(0.0)
 var float32Type = reflect.TypeOf(float32(0.0))
 var complex128Type = reflect.TypeOf(0i)
