@@ -126,7 +126,7 @@ func (em *emitter) reserveTemplateRegisters() {
 	//
 	em.fb.templateRegs.gA = em.fb.newRegister(reflect.Interface) // w io.Writer
 	em.fb.templateRegs.gB = em.fb.newRegister(reflect.Interface) // Write
-	em.fb.templateRegs.gC = em.fb.newRegister(reflect.Interface) // Render
+	em.fb.templateRegs.gC = em.fb.newRegister(reflect.Interface) // Show
 	em.fb.templateRegs.gD = em.fb.newRegister(reflect.Interface) // free.
 	em.fb.templateRegs.gE = em.fb.newRegister(reflect.Interface) // free.
 	em.fb.templateRegs.gF = em.fb.newRegister(reflect.Interface) // urlWriter

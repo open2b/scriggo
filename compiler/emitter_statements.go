@@ -343,7 +343,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.emitSend(chann, value, node.Pos(), chanType.Elem().Kind())
 
 		case *ast.Show:
-			// render([implicit *vm.Env,] gD io.Writer, gE interface{}, iA ast.Context)
+			// show([implicit *vm.Env,] gD io.Writer, gE interface{}, iA ast.Context)
 			em.emitExprR(node.Expr, emptyInterfaceType, em.fb.templateRegs.gE)
 			em.fb.emitMove(true, int8(node.Context), em.fb.templateRegs.iA, reflect.Int, false)
 			if em.inURL {
