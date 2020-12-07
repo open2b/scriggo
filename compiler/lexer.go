@@ -58,6 +58,9 @@ func scanTemplate(text []byte, language ast.Language) *lexer {
 		extendedSyntax: true,
 	}
 	lex.tag.ctx = ast.ContextHTML
+	if lex.ctx == ast.ContextMarkdown {
+		lex.tag.ctx = ast.ContextMarkdown
+	}
 	go lex.scan()
 	return lex
 }
@@ -195,7 +198,9 @@ func (l *lexer) scan() {
 		var quote = byte(0)
 		var emittedURL bool
 
-		isHTML := l.ctx == ast.ContextHTML
+		fileContext := l.ctx
+
+		isHTML := l.ctx == ast.ContextHTML || l.ctx == ast.ContextMarkdown
 
 	LOOP:
 		for p < len(l.src) {
@@ -256,10 +261,10 @@ func (l *lexer) scan() {
 
 			switch l.ctx {
 
-			case ast.ContextHTML:
+			case ast.ContextHTML, ast.ContextMarkdown:
 				if c == '<' {
 					// <![CDATA[...]]>
-					if p+8 < len(l.src) && l.src[p+1] == '!' {
+					if l.ctx == ast.ContextHTML && p+8 < len(l.src) && l.src[p+1] == '!' {
 						if bytes.HasPrefix(l.src[p:], cdataStart) {
 							// Skips the CDATA section.
 							p += 6
@@ -301,7 +306,7 @@ func (l *lexer) scan() {
 					// End tag.
 					l.ctx = l.tag.ctx
 					l.tag.name = ""
-					l.tag.ctx = ast.ContextHTML
+					l.tag.ctx = fileContext
 					if c == '/' {
 						p++
 						l.column++
@@ -363,11 +368,11 @@ func (l *lexer) scan() {
 								if bytes.EqualFold(typ, jsonLDMimeType) {
 									l.tag.ctx = ast.ContextJSON
 								} else if !bytes.EqualFold(typ, jsMimeType) {
-									l.tag.ctx = ast.ContextHTML
+									l.tag.ctx = fileContext
 								}
 							} else {
 								if !bytes.EqualFold(typ, cssMimeType) {
-									l.tag.ctx = ast.ContextHTML
+									l.tag.ctx = fileContext
 								}
 							}
 						}
@@ -383,7 +388,7 @@ func (l *lexer) scan() {
 			case ast.ContextCSS:
 				if isHTML && c == '<' && isEndStyle(l.src[p:]) {
 					// </style>
-					l.ctx = ast.ContextHTML
+					l.ctx = fileContext
 					p += 7
 					l.column += 7
 				} else if c == '"' || c == '\'' {
@@ -403,7 +408,7 @@ func (l *lexer) scan() {
 					quote = 0
 				case '<':
 					if isHTML && isEndStyle(l.src[p:]) {
-						l.ctx = ast.ContextHTML
+						l.ctx = fileContext
 						quote = 0
 						p += 7
 						l.column += 7
@@ -413,7 +418,7 @@ func (l *lexer) scan() {
 			case ast.ContextJS:
 				if isHTML && c == '<' && isEndScript(l.src[p:]) {
 					// </script>
-					l.ctx = ast.ContextHTML
+					l.ctx = fileContext
 					p += 8
 					l.column += 8
 				} else if c == '"' || c == '\'' {
@@ -433,7 +438,7 @@ func (l *lexer) scan() {
 					quote = 0
 				case '<':
 					if isHTML && isEndScript(l.src[p:]) {
-						l.ctx = ast.ContextHTML
+						l.ctx = fileContext
 						quote = 0
 						p += 8
 						l.column += 8
@@ -443,7 +448,7 @@ func (l *lexer) scan() {
 			case ast.ContextJSON:
 				if isHTML && c == '<' && isEndScript(l.src[p:]) {
 					// </script>
-					l.ctx = ast.ContextHTML
+					l.ctx = fileContext
 					p += 8
 					l.column += 8
 				} else if c == '"' {
@@ -463,7 +468,7 @@ func (l *lexer) scan() {
 					quote = 0
 				case '<':
 					if isHTML && isEndScript(l.src[p:]) {
-						l.ctx = ast.ContextHTML
+						l.ctx = fileContext
 						quote = 0
 						p += 8
 						l.column += 8
