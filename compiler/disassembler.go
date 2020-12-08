@@ -879,6 +879,8 @@ var operationName = [...]string{
 	runtime.OpComplex64:  "Complex64",
 	runtime.OpComplex128: "Complex128",
 
+	runtime.OpConcat: "Concat",
+
 	runtime.OpContinue: "Continue",
 
 	runtime.OpConvert:       "Convert",
@@ -886,8 +888,6 @@ var operationName = [...]string{
 	runtime.OpConvertUint:   "ConvertU",
 	runtime.OpConvertFloat:  "Convert",
 	runtime.OpConvertString: "Convert",
-
-	runtime.OpConcat: "Concat",
 
 	runtime.OpCopy: "Copy",
 
@@ -898,6 +898,10 @@ var operationName = [...]string{
 	runtime.OpDiv:        "Div",
 	runtime.OpDivInt:     "Div",
 	runtime.OpDivFloat64: "Div",
+
+	runtime.OpField: "Field",
+
+	runtime.OpFieldRef: "FieldRef",
 
 	runtime.OpGetVar: "GetVar",
 
@@ -916,9 +920,6 @@ var operationName = [...]string{
 	runtime.OpIndexString: "Index",
 
 	runtime.OpIndexRef: "IndexRef",
-
-	runtime.OpShl:    "Shl",
-	runtime.OpShlInt: "Shl",
 
 	runtime.OpLen: "Len",
 
@@ -973,14 +974,7 @@ var operationName = [...]string{
 
 	runtime.OpReturn: "Return",
 
-	runtime.OpShr:    "Shr",
-	runtime.OpShrInt: "Shr",
-
 	runtime.OpSelect: "Select",
-
-	runtime.OpField: "Field",
-
-	runtime.OpFieldRef: "FieldRef",
 
 	runtime.OpSend: "Send",
 
@@ -991,6 +985,12 @@ var operationName = [...]string{
 	runtime.OpSetSlice: "SetSlice",
 
 	runtime.OpSetVar: "SetVar",
+
+	runtime.OpShl:    "Shl",
+	runtime.OpShlInt: "Shl",
+
+	runtime.OpShr:    "Shr",
+	runtime.OpShrInt: "Shr",
 
 	runtime.OpSlice: "Slice",
 
