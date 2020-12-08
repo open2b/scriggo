@@ -395,6 +395,13 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		`a`:       {ast.ContextText},
 		`a{{a}}a`: {ast.ContextText, ast.ContextJSONString, ast.ContextJSONString, ast.ContextJSONString, ast.ContextText},
 	},
+	ast.ContextMarkdown: {
+		`a`:                             {ast.ContextText},
+		`a{{a}}a`:                       {ast.ContextText, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextText},
+		"<style>s{{a}}t</style>{{a}}":   {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextMarkdown},
+		"<script>s{{a}}t</script>{{a}}": {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextMarkdown},
+		`<script type="application/ld+json">s{{a}}t</script>{{a}}`: {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextMarkdown},
+	},
 }
 
 var positionTests = []struct {
