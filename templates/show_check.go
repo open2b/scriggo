@@ -50,7 +50,7 @@ func shownAs(t reflect.Type, ctx ast.Context) error {
 		case t.Implements(envStringerType):
 		case t.Implements(errorType):
 		default:
-			return fmt.Errorf("cannot show type %s as text", t)
+			return fmt.Errorf("cannot show type %s as %s", t, ctx)
 		}
 	case ast.ContextHTML:
 		switch {
