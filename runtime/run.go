@@ -874,29 +874,6 @@ func (vm *VM) run() (Addr, bool) {
 			i := int(vm.intk(b, op < 0))
 			vm.setFromReflectValue(c, v.Index(i))
 
-		// Shl
-		case OpShl, -OpShl:
-			v := vm.int(c) << uint(vm.intk(b, op < 0))
-			switch reflect.Kind(a) {
-			case reflect.Int8:
-				v = int64(int8(v))
-			case reflect.Int16:
-				v = int64(int16(v))
-			case reflect.Int32:
-				v = int64(int32(v))
-			case reflect.Uint8:
-				v = int64(uint8(v))
-			case reflect.Uint16:
-				v = int64(uint16(v))
-			case reflect.Uint32:
-				v = int64(uint32(v))
-			case reflect.Uint64:
-				v = int64(uint64(v))
-			}
-			vm.setInt(c, v)
-		case OpShlInt, -OpShlInt:
-			vm.setInt(c, vm.int(a)<<uint(vm.intk(b, op < 0)))
-
 		// Len
 		case OpLen:
 			var length int
@@ -911,7 +888,7 @@ func (vm *VM) run() (Addr, bool) {
 		case OpLoadData:
 			vm.setGeneral(c, reflect.ValueOf(vm.fn.Data[decodeInt16(a, b)]))
 
-		// OpLoadFunc
+		// LoadFunc
 		case OpLoadFunc:
 			if a == 1 {
 				fn := callable{}
@@ -1378,7 +1355,7 @@ func (vm *VM) run() (Addr, bool) {
 				vm.pc = rangeAddress + 1
 			}
 
-		// OpRealImag
+		// RealImag
 		case OpRealImag, -OpRealImag:
 			v := vm.generalk(a, op < 0)
 			cmpx := v.Complex()
@@ -1506,20 +1483,6 @@ func (vm *VM) run() (Addr, bool) {
 			} else if !vm.nextCall() {
 				return maxUint32, false
 			}
-
-		// Shr
-		case OpShr, -OpShr:
-			bv := uint(vm.intk(b, op < 0))
-			cv := vm.int(c)
-			var v int64
-			if reflect.Kind(a) < reflect.Uint8 {
-				v = cv >> bv
-			} else {
-				v = int64(uint64(cv) >> bv)
-			}
-			vm.setInt(c, v)
-		case OpShrInt, -OpShrInt:
-			vm.setInt(c, vm.int(a)>>uint(vm.intk(b, op < 0)))
 
 		// Select
 		case OpSelect:
@@ -1669,6 +1632,43 @@ func (vm *VM) run() (Addr, bool) {
 				rv := reflect.ValueOf(v).Elem()
 				vm.getIntoReflectValue(a, rv, op < 0)
 			}
+
+		// Shl
+		case OpShl, -OpShl:
+			v := vm.int(c) << uint(vm.intk(b, op < 0))
+			switch reflect.Kind(a) {
+			case reflect.Int8:
+				v = int64(int8(v))
+			case reflect.Int16:
+				v = int64(int16(v))
+			case reflect.Int32:
+				v = int64(int32(v))
+			case reflect.Uint8:
+				v = int64(uint8(v))
+			case reflect.Uint16:
+				v = int64(uint16(v))
+			case reflect.Uint32:
+				v = int64(uint32(v))
+			case reflect.Uint64:
+				v = int64(uint64(v))
+			}
+			vm.setInt(c, v)
+		case OpShlInt, -OpShlInt:
+			vm.setInt(c, vm.int(a)<<uint(vm.intk(b, op < 0)))
+
+		// Shr
+		case OpShr, -OpShr:
+			bv := uint(vm.intk(b, op < 0))
+			cv := vm.int(c)
+			var v int64
+			if reflect.Kind(a) < reflect.Uint8 {
+				v = cv >> bv
+			} else {
+				v = int64(uint64(cv) >> bv)
+			}
+			vm.setInt(c, v)
+		case OpShrInt, -OpShrInt:
+			vm.setInt(c, vm.int(a)>>uint(vm.intk(b, op < 0)))
 
 		// Slice
 		case OpSlice:

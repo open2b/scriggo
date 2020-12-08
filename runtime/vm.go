@@ -1030,6 +1030,8 @@ const (
 	OpComplex64
 	OpComplex128
 
+	OpConcat
+
 	OpContinue
 
 	OpConvert
@@ -1037,8 +1039,6 @@ const (
 	OpConvertUint
 	OpConvertFloat
 	OpConvertString
-
-	OpConcat
 
 	OpCopy
 
@@ -1071,9 +1071,6 @@ const (
 	OpIndexString
 
 	OpIndexRef
-
-	OpShl
-	OpShlInt
 
 	OpLen
 
@@ -1128,19 +1125,23 @@ const (
 
 	OpReturn
 
-	OpShr
-	OpShrInt
-
 	OpSelect
 
 	OpSend
 
 	OpSetField
+
 	OpSetMap
 
 	OpSetSlice
 
 	OpSetVar
+
+	OpShl
+	OpShlInt
+
+	OpShr
+	OpShrInt
 
 	OpSlice
 
