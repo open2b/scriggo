@@ -398,9 +398,27 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 	ast.ContextMarkdown: {
 		`a`:                             {ast.ContextText},
 		`a{{a}}a`:                       {ast.ContextText, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextText},
+		"\ta{{a}}\na{{a}}":              {ast.ContextText, ast.ContextTabCodeBlock, ast.ContextTabCodeBlock, ast.ContextTabCodeBlock, ast.ContextText, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextMarkdown},
+		"\ta{{a}}\n\ta{{a}}":            {ast.ContextText, ast.ContextTabCodeBlock, ast.ContextTabCodeBlock, ast.ContextTabCodeBlock, ast.ContextText, ast.ContextTabCodeBlock, ast.ContextTabCodeBlock, ast.ContextTabCodeBlock},
+		"    a{{a}}\na{{a}}":            {ast.ContextText, ast.ContextSpacesCodeBlock, ast.ContextSpacesCodeBlock, ast.ContextSpacesCodeBlock, ast.ContextText, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextMarkdown},
+		"    a{{a}}\n    a{{a}}":        {ast.ContextText, ast.ContextSpacesCodeBlock, ast.ContextSpacesCodeBlock, ast.ContextSpacesCodeBlock, ast.ContextText, ast.ContextSpacesCodeBlock, ast.ContextSpacesCodeBlock, ast.ContextSpacesCodeBlock},
+		"a\n\t{{a}}":                    {ast.ContextText, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextMarkdown},
+		" \t\n\t{{a}}":                  {ast.ContextText, ast.ContextTabCodeBlock, ast.ContextTabCodeBlock, ast.ContextTabCodeBlock},
+		"\t \n    {{a}}":                {ast.ContextText, ast.ContextSpacesCodeBlock, ast.ContextSpacesCodeBlock, ast.ContextSpacesCodeBlock},
+		"{# #}\n\t{{a}}":                {ast.ContextMarkdown, ast.ContextText, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextMarkdown},
 		"<style>s{{a}}t</style>{{a}}":   {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextMarkdown},
 		"<script>s{{a}}t</script>{{a}}": {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextMarkdown},
 		`<script type="application/ld+json">s{{a}}t</script>{{a}}`: {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextMarkdown},
+	},
+	ast.ContextTabCodeBlock: {
+		`a`:       {ast.ContextText},
+		`{{a}}`:   {ast.ContextTabCodeBlock, ast.ContextTabCodeBlock, ast.ContextTabCodeBlock},
+		`a{{a}}a`: {ast.ContextText, ast.ContextTabCodeBlock, ast.ContextTabCodeBlock, ast.ContextTabCodeBlock, ast.ContextText},
+	},
+	ast.ContextSpacesCodeBlock: {
+		`a`:       {ast.ContextText},
+		`{{a}}`:   {ast.ContextSpacesCodeBlock, ast.ContextSpacesCodeBlock, ast.ContextSpacesCodeBlock},
+		`a{{a}}a`: {ast.ContextText, ast.ContextSpacesCodeBlock, ast.ContextSpacesCodeBlock, ast.ContextSpacesCodeBlock, ast.ContextText},
 	},
 }
 

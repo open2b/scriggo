@@ -200,12 +200,23 @@ func (l *lexer) scan() {
 
 		fileContext := l.ctx
 
+		// Indicates if the current line contains only spaces. Used only for Markdown context.
+		spacesOnlyLine := true
+
 		isHTML := l.ctx == ast.ContextHTML || l.ctx == ast.ContextMarkdown
+
+		if l.ctx == ast.ContextMarkdown {
+			p, l.ctx = l.scanCodeBlock(0)
+		}
 
 	LOOP:
 		for p < len(l.src) {
 
 			c := l.src[p]
+
+			if l.ctx == ast.ContextMarkdown {
+				spacesOnlyLine = spacesOnlyLine && isSpace(c)
+			}
 
 			if c == '{' && p+1 < len(l.src) {
 				switch l.src[p+1] {
@@ -483,6 +494,16 @@ func (l *lexer) scan() {
 				if p < len(l.src) && l.src[p] == '\r' {
 					p++
 				}
+				switch l.ctx {
+				case ast.ContextTabCodeBlock, ast.ContextSpacesCodeBlock:
+					p, l.ctx = l.scanCodeBlock(p)
+				case ast.ContextMarkdown:
+					if spacesOnlyLine {
+						p, l.ctx = l.scanCodeBlock(p)
+					} else {
+						spacesOnlyLine = true
+					}
+				}
 				continue
 			}
 			if isStartChar(c) {
@@ -505,6 +526,23 @@ func (l *lexer) scan() {
 	l.src = nil
 
 	close(l.toks)
+}
+
+// scanCodeBlock scans a tab or four spaces that start a Markdown code block.
+// It returns the next position and the next context. If there is no tab or
+// spaces, it returns p and the Markdown context.
+func (l *lexer) scanCodeBlock(p int) (int, ast.Context) {
+	if p < len(l.src) {
+		switch l.src[p] {
+		case '\t':
+			return p + 1, ast.ContextTabCodeBlock
+		case ' ':
+			if p+3 < len(l.src) && l.src[p+1] == ' ' && l.src[p+2] == ' ' && l.src[p+3] == ' ' {
+				return p + 4, ast.ContextSpacesCodeBlock
+			}
+		}
+	}
+	return p, ast.ContextMarkdown
 }
 
 // containsURL reports whether the attribute attr of tag contains an URL or a

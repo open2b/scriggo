@@ -588,6 +588,41 @@ func markdownEscape(w strWriter, s string) error {
 	return nil
 }
 
+var tab = []byte{'\t'}
+var fourSpaces = []byte{' ', ' ', ' ', ' '}
+
+// markdownCodeBlockEscape escapes the string s, so it can be placed inside
+// a Markdown code block, and writes it on w. spaces indicates if the line
+// is indented with spaces instead of a tab.
+func markdownCodeBlockEscape(w strWriter, s string, spaces bool) error {
+	last := 0
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\n' {
+			if i+1 < len(s) && s[i+1] == '\r' {
+				i++
+			}
+			_, err := w.WriteString(s[last : i+1])
+			if err != nil {
+				return err
+			}
+			if spaces {
+				_, err = w.Write(fourSpaces)
+			} else {
+				_, err = w.Write(tab)
+			}
+			if err != nil {
+				return err
+			}
+			last = i + 1
+		}
+	}
+	if last != len(s) {
+		_, err := w.WriteString(s[last:])
+		return err
+	}
+	return nil
+}
+
 // urlEscaper implements an io.Writer that escapes a URL or a set of URLs and
 // writes it to another writer. An urlEscaper is passed to a ShowFunc function
 // when the context is ContextAttr or ContextUnquotedAttr and the value of the

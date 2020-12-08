@@ -75,6 +75,10 @@ func show(env runtime.Env, out io.Writer, value interface{}, ctx ast.Context) {
 		err = showInJSONString(env, out, value)
 	case ast.ContextMarkdown:
 		err = showInMarkdown(env, out, value)
+	case ast.ContextTabCodeBlock:
+		err = showInMarkdownCodeBlock(env, out, value, false)
+	case ast.ContextSpacesCodeBlock:
+		err = showInMarkdownCodeBlock(env, out, value, true)
 	default:
 		panic("scriggo: unknown context")
 	}
@@ -768,6 +772,23 @@ func showInMarkdown(env runtime.Env, out io.Writer, value interface{}) error {
 	default:
 		return markdownEscape(w, toString(env, value))
 	}
+}
+
+// showInMarkdownCodeBlock shows value in the Markdown code block context.
+func showInMarkdownCodeBlock(env runtime.Env, out io.Writer, value interface{}, spaces bool) error {
+	var s string
+	switch v := value.(type) {
+	case fmt.Stringer:
+		s = v.String()
+	case EnvStringer:
+		s = v.String(env)
+	case error:
+		s = v.Error()
+	default:
+		s = toString(env, value)
+	}
+	w := newStringWriter(out)
+	return markdownCodeBlockEscape(w, s, spaces)
 }
 
 // showTimeInJS shows a value of type time.Time in a JavaScript context.

@@ -41,7 +41,8 @@ func shownAs(t reflect.Type, ctx ast.Context) error {
 	kind := t.Kind()
 	switch ctx {
 	case ast.ContextText, ast.ContextTag, ast.ContextQuotedAttr, ast.ContextUnquotedAttr,
-		ast.ContextCSSString, ast.ContextJSString, ast.ContextJSONString:
+		ast.ContextCSSString, ast.ContextJSString, ast.ContextJSONString,
+		ast.ContextTabCodeBlock, ast.ContextSpacesCodeBlock:
 		switch {
 		case kind == reflect.String:
 		case reflect.Bool <= kind && kind <= reflect.Complex128:

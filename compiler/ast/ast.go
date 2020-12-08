@@ -162,6 +162,8 @@ const (
 	ContextCSSString
 	ContextJSString
 	ContextJSONString
+	ContextTabCodeBlock
+	ContextSpacesCodeBlock
 )
 
 func (ctx Context) String() string {
@@ -192,6 +194,10 @@ func (ctx Context) String() string {
 		return "JavaScript string"
 	case ContextJSONString:
 		return "JSON string"
+	case ContextTabCodeBlock:
+		return "tab code block"
+	case ContextSpacesCodeBlock:
+		return "spaces code block"
 	}
 	panic("invalid context")
 }

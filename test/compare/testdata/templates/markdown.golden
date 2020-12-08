@@ -35,6 +35,14 @@ heading
 \`\`code\`\`
 \`\`\`code\`\`\`
 
+    code block
+ code block
+
+    a
+    ***b***
+	a
+	***b***
+
 \*\*\*
 \-\-\-
 \_\_\_
