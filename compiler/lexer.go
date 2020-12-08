@@ -480,6 +480,9 @@ func (l *lexer) scan() {
 			p++
 			if c == '\n' {
 				l.newline()
+				if p < len(l.src) && l.src[p] == '\r' {
+					p++
+				}
 				continue
 			}
 			if isStartChar(c) {
