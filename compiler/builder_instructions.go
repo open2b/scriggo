@@ -14,6 +14,12 @@ import (
 	"github.com/open2b/scriggo/runtime"
 )
 
+// emitNop appends a new "Nop" instruction to the function body.
+//
+func (builder *functionBuilder) emitNop() {
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpNone})
+}
+
 // emitAdd appends a new "Add" instruction to the function body.
 //
 //     z = x + y
@@ -120,17 +126,6 @@ func (builder *functionBuilder) emitCall(f int8, shift runtime.StackShift, pos *
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
 
-// emitCallPredefined appends a new "CallPredefined" instruction to the function body.
-//
-//     p.F()
-//
-func (builder *functionBuilder) emitCallPredefined(f int8, numVariadic int8, shift runtime.StackShift, pos *ast.Position) {
-	builder.addPosAndPath(pos)
-	fn := builder.fn
-	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCallPredefined, A: f, C: numVariadic})
-	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
-}
-
 // emitCallIndirect appends a new "cCallIndirect" instruction to the function body.
 //
 //     f()
@@ -140,6 +135,17 @@ func (builder *functionBuilder) emitCallIndirect(f int8, numVariadic int8, shift
 	builder.addFunctionType(funcType)
 	fn := builder.fn
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCallIndirect, A: f, C: numVariadic})
+	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
+}
+
+// emitCallPredefined appends a new "CallPredefined" instruction to the function body.
+//
+//     p.F()
+//
+func (builder *functionBuilder) emitCallPredefined(f int8, numVariadic int8, shift runtime.StackShift, pos *ast.Position) {
+	builder.addPosAndPath(pos)
+	fn := builder.fn
+	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCallPredefined, A: f, C: numVariadic})
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
 
@@ -681,12 +687,6 @@ func (builder *functionBuilder) emitNew(typ reflect.Type, z int8) {
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpNew, B: int8(b), C: z})
 }
 
-// emitNop appends a new "Nop" instruction to the function body.
-//
-func (builder *functionBuilder) emitNop() {
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpNone})
-}
-
 // emitNotZero appends a new "NotZero" instruction to the function body.
 func (builder *functionBuilder) emitNotZero(kind reflect.Kind, dst, src int8) {
 	regType := int8(kindToType(kind))
@@ -851,19 +851,6 @@ func (builder *functionBuilder) emitSetField(k bool, s, field, v int8, fieldKind
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: v, B: s, C: field})
 }
 
-// emitSetVar appends a new "SetVar" instruction to the function body.
-//
-//     v = r
-//
-func (builder *functionBuilder) emitSetVar(k bool, r int8, v int, dstKind reflect.Kind) {
-	builder.addOperandKinds(dstKind, 0, 0)
-	op := runtime.OpSetVar
-	if k {
-		op = -op
-	}
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: r, B: int8(v >> 8), C: int8(v)})
-}
-
 // emitSetMap appends a new "SetMap" instruction to the function body.
 //
 //	m[key] = value
@@ -893,6 +880,19 @@ func (builder *functionBuilder) emitSetSlice(k bool, slice, value, index int8, p
 		in.Op = -in.Op
 	}
 	builder.fn.Body = append(builder.fn.Body, in)
+}
+
+// emitSetVar appends a new "SetVar" instruction to the function body.
+//
+//     v = r
+//
+func (builder *functionBuilder) emitSetVar(k bool, r int8, v int, dstKind reflect.Kind) {
+	builder.addOperandKinds(dstKind, 0, 0)
+	op := runtime.OpSetVar
+	if k {
+		op = -op
+	}
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: r, B: int8(v >> 8), C: int8(v)})
 }
 
 // emitShl appends a new "Shl" instruction to the function body.
@@ -1026,16 +1026,6 @@ func (builder *functionBuilder) emitSubInv(k bool, x, y, z int8, kind reflect.Ki
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
 }
 
-// emitTypify appends a new "Typify" instruction to the function body.
-func (builder *functionBuilder) emitTypify(k bool, typ reflect.Type, x, z int8) {
-	t := builder.addType(typ, true)
-	op := runtime.OpTypify
-	if k {
-		op = -op
-	}
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(t), B: x, C: z})
-}
-
 // emitTailCall appends a new "TailCall" instruction to the function body.
 //
 //     f()
@@ -1044,6 +1034,16 @@ func (builder *functionBuilder) emitTailCall(f int8, pos *ast.Position) {
 	builder.addPosAndPath(pos)
 	fn := builder.fn
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpTailCall, A: f})
+}
+
+// emitTypify appends a new "Typify" instruction to the function body.
+func (builder *functionBuilder) emitTypify(k bool, typ reflect.Type, x, z int8) {
+	t := builder.addType(typ, true)
+	op := runtime.OpTypify
+	if k {
+		op = -op
+	}
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: int8(t), B: x, C: z})
 }
 
 // emitXor appends a new "Xor" instruction to the function body.
