@@ -9,17 +9,12 @@ package compiler
 import (
 	"errors"
 	"fmt"
-	"io"
 	"reflect"
 
 	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/compiler/types"
 	"github.com/open2b/scriggo/runtime"
 )
-
-type ShowFunc func(runtime.Env, io.Writer, interface{}, ast.Context)
-
-type ShowTypeError error
 
 // checkingMod represents the checking modality.
 type checkingMod int
@@ -148,8 +143,8 @@ type checkerOptions struct {
 	// globals.
 	globals Declarations
 
-	// show function.
-	showFunc ShowFunc
+	// renderer.
+	renderer runtime.Renderer
 }
 
 // typechecker represents the state of the type checking.
@@ -215,7 +210,7 @@ type typechecker struct {
 	// its 'Or' field.
 	showMacros []*ast.ShowMacro
 
-	// Data structures for Goto and Labels checking.
+	// Text structures for Goto and Labels checking.
 	gotos           []string
 	storedGotos     []string
 	nextValidGoto   int
@@ -233,7 +228,7 @@ type typechecker struct {
 	types *types.Types
 
 	// env is passed to the showFunc function and implements only the TypeOf method.
-	env runtime.Env
+	env *env
 
 	// structDeclPkg contains, for every struct literal and defined type with
 	// underlying type 'struct' denoted in Scriggo, the package in which it has
@@ -264,7 +259,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		opts:             opts,
 		iota:             -1,
 		types:            tt,
-		env:              env{tt.Runtime()},
+		env:              &env{tt.Runtime(), nil},
 		structDeclPkg:    map[reflect.Type]string{},
 	}
 }

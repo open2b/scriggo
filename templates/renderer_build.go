@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/runtime"
 )
 
 var stringerType = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
@@ -32,12 +33,29 @@ var jsonEnvStringerType = reflect.TypeOf((*JSONEnvStringer)(nil)).Elem()
 var mdStringerType = reflect.TypeOf((*MarkdownStringer)(nil)).Elem()
 var mdEnvStringerType = reflect.TypeOf((*MarkdownEnvStringer)(nil)).Elem()
 
+var byteSliceType = reflect.TypeOf([]byte(nil))
 var timeType = reflect.TypeOf(time.Time{})
-
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
-// shownAs reports whether a type can be shown in context ctx.
-func shownAs(t reflect.Type, ctx ast.Context) error {
+// decodeRenderContext decodes a runtime.Renderer context.
+// Keep in sync with the compiler.decodeRenderContext.
+func decodeRenderContext(c uint8) (ast.Context, bool, bool) {
+	ctx := ast.Context(c & 0b00001111)
+	inURL := c&0b10000000 != 0
+	isURLSet := false
+	if inURL {
+		isURLSet = c&0b01000000 != 0
+	}
+	return ctx, inURL, isURLSet
+}
+
+// buildRenderer implements the runtime.Renderer interface and it is used
+// during the build of the template to type checks a show statement.
+type buildRenderer struct{}
+
+func (r buildRenderer) Show(env runtime.Env, v interface{}, context uint8) {
+	t := env.Types().TypeOf(v)
+	ctx, _, _ := decodeRenderContext(context)
 	kind := t.Kind()
 	switch ctx {
 	case ast.ContextText, ast.ContextTag, ast.ContextQuotedAttr, ast.ContextUnquotedAttr,
@@ -51,7 +69,7 @@ func shownAs(t reflect.Type, ctx ast.Context) error {
 		case t.Implements(envStringerType):
 		case t.Implements(errorType):
 		default:
-			return fmt.Errorf("cannot show type %s as %s", t, ctx)
+			env.Fatal(fmt.Errorf("cannot show type %s as %s", t, ctx))
 		}
 	case ast.ContextHTML:
 		switch {
@@ -64,7 +82,7 @@ func shownAs(t reflect.Type, ctx ast.Context) error {
 		case t.Implements(htmlEnvStringerType):
 		case t.Implements(errorType):
 		default:
-			return fmt.Errorf("cannot show type %s as HTML", t)
+			env.Fatal(fmt.Errorf("cannot show type %s as HTML", t))
 		}
 	case ast.ContextCSS:
 		switch {
@@ -77,12 +95,18 @@ func shownAs(t reflect.Type, ctx ast.Context) error {
 		case t.Implements(cssEnvStringerType):
 		case t.Implements(errorType):
 		default:
-			return fmt.Errorf("cannot show type %s as CSS", t)
+			env.Fatal(fmt.Errorf("cannot show type %s as CSS", t))
 		}
 	case ast.ContextJS:
-		return shownAsJS(t)
+		err := shownAsJS(t)
+		if err != nil {
+			env.Fatal(err)
+		}
 	case ast.ContextJSON:
-		return shownAsJSON(t)
+		err := shownAsJSON(t)
+		if err != nil {
+			env.Fatal(err)
+		}
 	case ast.ContextMarkdown:
 		switch {
 		case kind == reflect.String:
@@ -93,13 +117,15 @@ func shownAs(t reflect.Type, ctx ast.Context) error {
 		case t.Implements(mdEnvStringerType):
 		case t.Implements(errorType):
 		default:
-			return fmt.Errorf("cannot show type %s as Markdown", t)
+			env.Fatal(fmt.Errorf("cannot show type %s as Markdown", t))
 		}
 	default:
 		panic("unexpected context")
 	}
-	return nil
+	return
 }
+
+func (r buildRenderer) Text(runtime.Env, []byte, uint8) {}
 
 // shownAsJS reports whether a type can be shown as JavaScript. It returns
 // an error if the type cannot be shown.

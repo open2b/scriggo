@@ -492,9 +492,6 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			s += " " + disassembleOperand(fn, b, reflect.Interface, false)
 		}
 		s += " " + disassembleOperand(fn, c, reflect.Int, false)
-	case runtime.OpLoadData:
-		s += " " + strconv.Itoa(int(decodeInt16(a, b)))
-		s += " " + disassembleOperand(fn, c, reflect.Func, false)
 	case runtime.OpLoadFunc:
 		if a == 0 {
 			f := fn.Functions[uint8(b)]
@@ -604,6 +601,10 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	case runtime.OpSetVar:
 		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), k)
 		s += " " + disassembleVarRef(fn, globals, int16(int(b)<<8|int(uint8(c))))
+	case runtime.OpShow:
+		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
+		ctx, _, _ := decodeRenderContext(uint8(c))
+		s += " " + fmt.Sprint(ctx.String())
 	case runtime.OpSlice:
 		khigh := b&2 != 0
 		high := fn.Body[addr+1].B
@@ -633,6 +634,10 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + disassembleOperand(fn, fn.Body[addr+1].A, reflect.Int, b&1 != 0)
 		s += " " + disassembleOperand(fn, high, reflect.Int, khigh)
 		s += " " + disassembleOperand(fn, c, reflect.String, false)
+	case runtime.OpText:
+		s += " " + strconv.Itoa(int(decodeUint16(a, b)))
+		ctx, _, _ := decodeRenderContext(uint8(c))
+		s += " " + fmt.Sprint(ctx.String())
 	case runtime.OpTypify:
 		typ := fn.Types[int(uint(a))]
 		s += " " + typ.String()
@@ -922,8 +927,6 @@ var operationName = [...]string{
 	runtime.OpIndexRef: "IndexRef",
 
 	runtime.OpLen: "Len",
-
-	runtime.OpLoadData: "LoadData",
 
 	runtime.OpLoadFunc: "LoadFunc",
 
