@@ -45,6 +45,50 @@ var emptyInterfaceType = reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Ele
 
 type label runtime.Addr
 
+// encodeRenderContext encodes a runtime.Renderer context.
+func encodeRenderContext(ctx ast.Context, inURL, isURLSet bool) uint8 {
+	c := uint8(ctx)
+	if inURL {
+		if isURLSet {
+			c |= 0b11000000
+		} else {
+			c |= 0b10000000
+		}
+	}
+	return c
+}
+
+// decodeRenderContext decodes a runtime.Renderer context.
+func decodeRenderContext(c uint8) (ast.Context, bool, bool) {
+	ctx := ast.Context(c & 0b00001111)
+	inURL := c&0b10000000 != 0
+	isURLSet := false
+	if inURL {
+		isURLSet = c&0b01000000 != 0
+	}
+	return ctx, inURL, isURLSet
+}
+
+func encodeInt16(v int16) (a, b int8) {
+	a = int8(v >> 8)
+	b = int8(v)
+	return
+}
+
+func decodeInt16(a, b int8) int16 {
+	return int16(int(a)<<8 | int(uint8(b)))
+}
+
+func encodeUint16(v uint16) (a, b int8) {
+	a = int8(uint8(v >> 8))
+	b = int8(uint8(v))
+	return
+}
+
+func decodeUint16(a, b int8) uint16 {
+	return uint16(uint8(a))<<8 | uint16(uint8(b))
+}
+
 func encodeUint24(v uint32) (a, b, c int8) {
 	a = int8(uint8(v >> 16))
 	b = int8(uint8(v >> 8))
@@ -52,10 +96,8 @@ func encodeUint24(v uint32) (a, b, c int8) {
 	return
 }
 
-func encodeInt16(v int16) (a, b int8) {
-	a = int8(v >> 8)
-	b = int8(v)
-	return
+func decodeUint24(a, b, c int8) uint32 {
+	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
 }
 
 // encodeFieldIndex encodes a field index slice used by reflect into an int64.
@@ -119,14 +161,6 @@ func decodeFieldIndex(i int64) []int {
 	return ns
 }
 
-func decodeInt16(a, b int8) int16 {
-	return int16(int(a)<<8 | int(uint8(b)))
-}
-
-func decodeUint24(a, b, c int8) uint32 {
-	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
-}
-
 // newFunction returns a new function with a given package, name and type.
 // file and pos are, respectively, the file and the position where the function
 // is declared.
@@ -164,11 +198,6 @@ type functionBuilder struct {
 	// statement in a template the file path changes even if the function
 	// remains the same.
 	path string
-
-	templateRegs struct {
-		gA, gB, gC, gD, gE, gF int8 // Reserved general registers.
-		iA                     int8 // Reserved int register.
-	}
 }
 
 // newBuilder returns a new function builder for the function fn in the given

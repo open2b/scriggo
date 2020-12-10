@@ -488,12 +488,6 @@ func (builder *functionBuilder) emitLen(s, l int8, t reflect.Type) {
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpLen, A: int8(a), B: s, C: l})
 }
 
-// Load data appends a new "LoadData" instruction to the function body.
-func (builder *functionBuilder) emitLoadData(i int16, dst int8) {
-	a, b := encodeInt16(i)
-	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpLoadData, A: a, B: b, C: dst})
-}
-
 // emitLoadFunc appends a new "LoadFunc" instruction to the function body.
 //
 //     z = p.f
@@ -917,6 +911,16 @@ func (builder *functionBuilder) emitShl(k bool, x, y, z int8, kind reflect.Kind)
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
 }
 
+// emitShow appends a new "Show" instruction to the function body.
+//
+//     show(type, value, ctx)
+//
+func (builder *functionBuilder) emitShow(typ reflect.Type, v int8, ctx ast.Context, inURL, isURLSet bool) {
+	t := builder.addType(typ, true)
+	c := encodeRenderContext(ctx, inURL, isURLSet)
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpShow, A: int8(t), B: v, C: int8(c)})
+}
+
 // emitShr appends a new "Shr" instruction to the function body.
 //
 //     z = x >> y
@@ -1024,6 +1028,16 @@ func (builder *functionBuilder) emitSubInv(k bool, x, y, z int8, kind reflect.Ki
 		op = -op
 	}
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
+}
+
+// emitText appends a new "Text" instruction to the function body.
+//
+//     text(txt, ctx)
+//
+func (builder *functionBuilder) emitText(i uint16, inURL, isURLSet bool) {
+	a, b := encodeUint16(i)
+	c := encodeRenderContext(ast.ContextText, inURL, isURLSet)
+	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpText, A: a, B: b, C: int8(c)})
 }
 
 // emitTailCall appends a new "TailCall" instruction to the function body.

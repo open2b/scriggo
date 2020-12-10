@@ -7,11 +7,7 @@
 package templates
 
 import (
-	"bytes"
 	"encoding/base64"
-	"html"
-	"io"
-	"strings"
 )
 
 const hexchars = "0123456789abcdef"
@@ -621,93 +617,4 @@ func markdownCodeBlockEscape(w strWriter, s string, spaces bool) error {
 		return err
 	}
 	return nil
-}
-
-// urlEscaper implements an io.Writer that escapes a URL or a set of URLs and
-// writes it to another writer. An urlEscaper is passed to a ShowFunc function
-// when the context is ContextAttr or ContextUnquotedAttr and the value of the
-// attribute is an URL or a set of URL.
-type urlEscaper struct {
-	// query reports whether it is currently in the query string.
-	query bool
-	// addAmpersand reports whether an ampersand must be added before the next
-	// written text.
-	addAmpersand bool
-	// removeQuestionMark reports whether a question mark must be removed
-	// before the next written text.
-	removeQuestionMark bool
-	// isSet reports whether the attribute is a set of URLs.
-	isSet bool
-	// quoted reports whether the attribute is quoted.
-	quoted bool
-	// w is the io.Writer to write to.
-	w io.Writer
-}
-
-// StartURL starts the escaping of a URL. It is called whenever a URL or a set
-// of URLs is to be escaped. quoted reports whether the attribute is quoted
-// and isSet reports whether the value of the attribute is a set of URLs.
-//
-// Keep in sync with scriggo/compiler.urlEscaperStartURLType.
-//
-func (w *urlEscaper) StartURL(quoted, isSet bool) {
-	w.query = false
-	w.addAmpersand = false
-	w.removeQuestionMark = false
-	w.quoted = quoted
-	w.isSet = isSet
-}
-
-// Write is called for each template {{ value }} in an URL attribute value.
-func (w *urlEscaper) Write(p []byte) (int, error) {
-	if len(p) == 0 {
-		return 0, nil
-	}
-	s := html.UnescapeString(string(p)) // TODO(Gianluca): optimize.
-	sw := newStringWriter(w.w)
-	if w.query {
-		if w.removeQuestionMark {
-			c := s[len(s)-1]
-			w.addAmpersand = c != '&'
-			return pathEscape(sw, s, w.quoted)
-		}
-		return queryEscape(sw, s)
-	}
-	if strings.Contains(s, "?") {
-		w.query = true
-		w.removeQuestionMark = true
-		if c := s[len(s)-1]; c != '&' && c != '?' {
-			w.addAmpersand = true
-		}
-	}
-	return pathEscape(sw, s, w.quoted)
-}
-
-// WriteText is called for each template text in an URL attribute value.
-func (w *urlEscaper) WriteText(p []byte) (int, error) {
-	if len(p) == 0 {
-		return 0, nil
-	}
-	n := 0
-	if w.isSet && bytes.ContainsRune(p, ',') {
-		w.query = false
-	} else if w.query {
-		if w.removeQuestionMark && p[0] == '?' {
-			p = p[1:]
-		}
-		if w.addAmpersand && len(p) > 0 && p[0] != '&' {
-			nn, err := io.WriteString(w.w, "&amp;")
-			n += nn
-			if err != nil {
-				return n, err
-			}
-		}
-		w.removeQuestionMark = false
-		w.addAmpersand = false
-	} else {
-		w.query = bytes.ContainsAny(p, "?#")
-	}
-	nn, err := w.w.Write(p)
-	n += nn
-	return n, err
 }

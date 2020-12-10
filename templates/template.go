@@ -236,7 +236,7 @@ func (f fileLanguageReader) ReadFile(name string) ([]byte, ast.Language, error) 
 // the method 'Language(string) (Language, error)', Build gets the language
 // from this method. If this method returns an error, this error is returned.
 func Build(name string, files FileReader, options *BuildOptions) (*Template, error) {
-	co := compiler.Options{ShowFunc: show}
+	co := compiler.Options{Renderer: buildRenderer{}}
 	if options != nil {
 		co.Globals = compiler.Declarations(options.Globals)
 		co.TreeTransformer = options.TreeTransformer
@@ -259,14 +259,16 @@ func Build(name string, files FileReader, options *BuildOptions) (*Template, err
 // Run runs the template and write the rendered code to out. vars contains
 // the values of the global variables.
 func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunOptions) error {
-	writeFunc := out.Write
-	showFunc := show
-	uw := &urlEscaper{w: out}
-	t.globals[0].Value = &out
-	t.globals[1].Value = &writeFunc
-	t.globals[2].Value = &showFunc
-	t.globals[3].Value = &uw
-	vm := newVM(options)
+	vm := runtime.NewVM()
+	if options != nil {
+		if options.Context != nil {
+			vm.SetContext(options.Context)
+		}
+		if options.PrintFunc != nil {
+			vm.SetPrint(options.PrintFunc)
+		}
+	}
+	vm.SetRenderer(newRenderer(out))
 	_, err := vm.Run(t.fn, t.types, initGlobalVariables(t.globals, vars))
 	return err
 }
@@ -293,20 +295,6 @@ func (t *Template) Vars() []string {
 	}
 	sort.Strings(vars)
 	return vars
-}
-
-// newVM returns a new vm with the given options.
-func newVM(options *RunOptions) *runtime.VM {
-	vm := runtime.NewVM()
-	if options != nil {
-		if options.Context != nil {
-			vm.SetContext(options.Context)
-		}
-		if options.PrintFunc != nil {
-			vm.SetPrint(options.PrintFunc)
-		}
-	}
-	return vm
 }
 
 var emptyInit = map[string]interface{}{}

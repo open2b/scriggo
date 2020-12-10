@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/open2b/scriggo/compiler/ast"
 )
 
 func TestEncodeDecodeFieldIndex(t *testing.T) {
@@ -251,4 +253,24 @@ func TestComplexNotPredeclared(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestEncodeDecodeRenderContext(t *testing.T) {
+	test := func(inURL, isURLSet bool) {
+		for ctx := ast.ContextText; ctx <= ast.ContextSpacesCodeBlock; ctx++ {
+			gotCtx, gotInURL, gotIsURLSet := decodeRenderContext(encodeRenderContext(ctx, inURL, isURLSet))
+			if gotCtx != ctx {
+				t.Fatalf("expected context %d, got %d\n", ctx, gotCtx)
+			}
+			if gotInURL != inURL {
+				t.Fatalf("expected inURL %t, got %t\n", inURL, gotInURL)
+			}
+			if gotIsURLSet != isURLSet {
+				t.Fatalf("expected isURLSet %t, got %t\n", isURLSet, gotIsURLSet)
+			}
+		}
+	}
+	test(false, false)
+	test(true, false)
+	test(true, true)
 }
