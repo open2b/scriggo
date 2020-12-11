@@ -66,6 +66,10 @@ func decodeInt16(a, b int8) int16 {
 	return int16(int(a)<<8 | int(uint8(b)))
 }
 
+func decodeUint16(a, b int8) uint16 {
+	return uint16(uint8(a))<<8 | uint16(uint8(b))
+}
+
 func decodeUint24(a, b, c int8) uint32 {
 	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
 }
@@ -190,6 +194,13 @@ func (vm *VM) SetContext(ctx context.Context) {
 // SetPrint must not be called after vm has been started.
 func (vm *VM) SetPrint(p func(interface{})) {
 	vm.env.print = p
+}
+
+// SetRenderer sets the renderer.
+//
+// SetRenderer must not be called after vm has been started.
+func (vm *VM) SetRenderer(r Renderer) {
+	vm.env.renderer = r
 }
 
 // Stack returns the current stack trace.
@@ -778,7 +789,7 @@ type Function struct {
 	Functions  []*Function
 	Predefined []*PredefinedFunction
 	Body       []Instruction
-	Data       [][]byte
+	Text       [][]byte
 	DebugInfo  map[Addr]DebugInfo
 }
 
@@ -1074,8 +1085,6 @@ const (
 
 	OpLen
 
-	OpLoadData
-
 	OpLoadFunc
 
 	OpLoadNumber
@@ -1140,6 +1149,8 @@ const (
 	OpShl
 	OpShlInt
 
+	OpShow
+
 	OpShr
 	OpShrInt
 
@@ -1156,6 +1167,8 @@ const (
 	OpSubInvFloat64
 
 	OpTailCall
+
+	OpText
 
 	OpTypify
 

@@ -7,7 +7,9 @@
 package templates
 
 import (
+	"bytes"
 	"fmt"
+	"html"
 	"io"
 	"reflect"
 	"sort"
@@ -17,77 +19,192 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/open2b/scriggo/compiler"
 	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/runtime"
 )
 
-var byteSliceType = reflect.TypeOf([]byte(nil))
+// renderer implements the runtime.Renderer interface.
+type renderer struct {
 
-type ShowTypeError struct {
-	t reflect.Type
+	// out is the io.Writer to write to.
+	out io.Writer
+
+	// inURL reports whether it is in a URL.
+	inURL bool
+
+	// query reports whether it is in the query string of an URL.
+	query bool
+
+	// addAmpersand reports whether an ampersand must be added before the next
+	// written text. It can be true only if it is in a URL.
+	addAmpersand bool
+
+	// removeQuestionMark reports whether a question mark must be removed
+	// before the next written text. It can be true only if it is in a URL.
+	removeQuestionMark bool
 }
 
-func (err ShowTypeError) Error() string {
-	return fmt.Sprintf("cannot show value of type %s", err.t)
+// newRenderer returns a new renderer that writes to out.
+func newRenderer(out io.Writer) *renderer {
+	return &renderer{out: out}
 }
-func (err ShowTypeError) RuntimeError() {}
 
-// show shows value in the context ctx and writes to out. If out is nil, it
-// does not show the value but only checks that the type of value can be
-// shown.
-//
-// show has type scriggo/compiler.ShowFunc.
-func show(env runtime.Env, out io.Writer, value interface{}, ctx ast.Context) {
+// Show shows v in the given context.
+func (r *renderer) Show(env runtime.Env, v interface{}, context uint8) {
 
-	var err error
+	ctx, inURL, _ := decodeRenderContext(context)
 
-	if out == nil {
-		err = shownAs(env.Types().TypeOf(value), ctx)
-		if err != nil {
-			panic(compiler.ShowTypeError(err))
+	// Check and eventually change the URL state.
+	if r.inURL != inURL {
+		if !inURL {
+			r.endURL()
 		}
+		r.inURL = inURL
+	}
+
+	if inURL {
+		r.showInURL(env, v, ctx)
 		return
 	}
 
+	var err error
+
 	switch ctx {
 	case ast.ContextText:
-		err = showInText(env, out, value)
+		err = showInText(env, r.out, v)
 	case ast.ContextHTML:
-		err = showInHTML(env, out, value)
+		err = showInHTML(env, r.out, v)
 	case ast.ContextTag:
-		err = showInTag(env, out, value)
+		err = showInTag(env, r.out, v)
 	case ast.ContextQuotedAttr:
-		err = showInAttribute(env, out, value, true)
+		err = showInAttribute(env, r.out, v, true)
 	case ast.ContextUnquotedAttr:
-		err = showInAttribute(env, out, value, false)
+		err = showInAttribute(env, r.out, v, false)
 	case ast.ContextCSS:
-		err = showInCSS(env, out, value)
+		err = showInCSS(env, r.out, v)
 	case ast.ContextCSSString:
-		err = showInCSSString(env, out, value)
+		err = showInCSSString(env, r.out, v)
 	case ast.ContextJS:
-		err = showInJS(env, out, value)
+		err = showInJS(env, r.out, v)
 	case ast.ContextJSString:
-		err = showInJSString(env, out, value)
+		err = showInJSString(env, r.out, v)
 	case ast.ContextJSON:
-		err = showInJSON(env, out, value)
+		err = showInJSON(env, r.out, v)
 	case ast.ContextJSONString:
-		err = showInJSONString(env, out, value)
+		err = showInJSONString(env, r.out, v)
 	case ast.ContextMarkdown:
-		err = showInMarkdown(env, out, value)
+		err = showInMarkdown(env, r.out, v)
 	case ast.ContextTabCodeBlock:
-		err = showInMarkdownCodeBlock(env, out, value, false)
+		err = showInMarkdownCodeBlock(env, r.out, v, false)
 	case ast.ContextSpacesCodeBlock:
-		err = showInMarkdownCodeBlock(env, out, value, true)
+		err = showInMarkdownCodeBlock(env, r.out, v, true)
 	default:
 		panic("scriggo: unknown context")
 	}
 
 	if err != nil {
-		panic(err)
+		env.Fatal(err)
 	}
 
 	return
+}
+
+// Text shows txt in the given context.
+func (r *renderer) Text(env runtime.Env, txt []byte, context uint8) {
+
+	_, inURL, isSet := decodeRenderContext(context)
+
+	// Check and eventually change the URL state.
+	if r.inURL != inURL {
+		if !inURL {
+			r.endURL()
+		}
+		r.inURL = inURL
+	}
+
+	if inURL {
+		if isSet && bytes.ContainsRune(txt, ',') {
+			r.query = false
+		} else if r.query {
+			if r.removeQuestionMark && txt[0] == '?' {
+				txt = txt[1:]
+			}
+			if r.addAmpersand && len(txt) > 0 && txt[0] != '&' {
+				_, err := io.WriteString(r.out, "&amp;")
+				if err != nil {
+					env.Fatal(err)
+				}
+			}
+			r.removeQuestionMark = false
+			r.addAmpersand = false
+		} else {
+			r.query = bytes.ContainsAny(txt, "?#")
+		}
+		_, err := r.out.Write(txt)
+		if err != nil {
+			env.Fatal(err)
+		}
+		return
+	}
+
+	_, err := r.out.Write(txt)
+	if err != nil {
+		env.Fatal(err)
+	}
+
+}
+
+// showInURL shows v in a URL in the given context.
+func (r *renderer) showInURL(env runtime.Env, v interface{}, ctx ast.Context) {
+
+	var b strings.Builder
+	err := showInHTML(env, &b, v)
+	if err != nil {
+		env.Fatal(err)
+		return
+	}
+
+	s := html.UnescapeString(b.String())
+	out := newStringWriter(r.out)
+
+	if r.query {
+		if r.removeQuestionMark {
+			c := s[len(s)-1]
+			r.addAmpersand = c != '&'
+			_, err := pathEscape(out, s, ctx == ast.ContextQuotedAttr)
+			if err != nil {
+				env.Fatal(err)
+			}
+			return
+		}
+		_, err := queryEscape(out, s)
+		if err != nil {
+			env.Fatal(err)
+		}
+		return
+	}
+
+	if strings.Contains(s, "?") {
+		r.query = true
+		r.removeQuestionMark = true
+		if c := s[len(s)-1]; c != '&' && c != '?' {
+			r.addAmpersand = true
+		}
+	}
+	_, err = pathEscape(out, s, ctx == ast.ContextQuotedAttr)
+	if err != nil {
+		env.Fatal(err)
+	}
+
+	return
+}
+
+// endURL is called when an URL ends.
+func (r *renderer) endURL() {
+	r.inURL = false
+	r.query = false
+	r.addAmpersand = false
+	r.removeQuestionMark = false
 }
 
 type strWriterWrapper struct {
@@ -109,31 +226,31 @@ func newStringWriter(wr io.Writer) strWriter {
 	return strWriterWrapper{wr}
 }
 
-func toString(env runtime.Env, i interface{}) string {
+func toString(env runtime.Env, i interface{}) (string, error) {
 	types := env.Types()
 	v := types.ValueOf(i)
 	switch v.Kind() {
 	case reflect.Invalid:
-		return ""
+		return "", nil
 	case reflect.Bool:
 		if v.Bool() {
-			return "true"
+			return "true", nil
 		}
-		return "false"
+		return "false", nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return strconv.FormatInt(v.Int(), 10)
+		return strconv.FormatInt(v.Int(), 10), nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return strconv.FormatUint(v.Uint(), 10)
+		return strconv.FormatUint(v.Uint(), 10), nil
 	case reflect.Float32:
-		return strconv.FormatFloat(v.Float(), 'f', -1, 32)
+		return strconv.FormatFloat(v.Float(), 'f', -1, 32), nil
 	case reflect.Float64:
-		return strconv.FormatFloat(v.Float(), 'f', -1, 64)
+		return strconv.FormatFloat(v.Float(), 'f', -1, 64), nil
 	case reflect.String:
-		return v.String()
+		return v.String(), nil
 	case reflect.Complex64:
 		c := v.Complex()
 		if c == 0 {
-			return "0"
+			return "0", nil
 		}
 		var s string
 		if r := real(c); r != 0 {
@@ -145,11 +262,11 @@ func toString(env runtime.Env, i interface{}) string {
 			}
 			s = strconv.FormatFloat(i, 'f', -1, 32) + "i"
 		}
-		return s
+		return s, nil
 	case reflect.Complex128:
 		c := v.Complex()
 		if c == 0 {
-			return "0"
+			return "0", nil
 		}
 		var s string
 		if r := real(c); r != 0 {
@@ -161,9 +278,9 @@ func toString(env runtime.Env, i interface{}) string {
 			}
 			s = strconv.FormatFloat(i, 'f', -1, 64) + "i"
 		}
-		return s
+		return s, nil
 	default:
-		panic(ShowTypeError{t: types.TypeOf(i)})
+		return "", fmt.Errorf("cannot show value of type %s", types.TypeOf(i))
 	}
 }
 
@@ -178,7 +295,11 @@ func showInText(env runtime.Env, out io.Writer, value interface{}) error {
 	case error:
 		s = v.Error()
 	default:
-		s = toString(env, value)
+		var err error
+		s, err = toString(env, value)
+		if err != nil {
+			return err
+		}
 	}
 	w := newStringWriter(out)
 	_, err := w.WriteString(s)
@@ -208,7 +329,11 @@ func showInHTML(env runtime.Env, out io.Writer, value interface{}) error {
 	case error:
 		return htmlEscape(w, v.Error())
 	default:
-		return htmlEscape(w, toString(env, value))
+		s, err := toString(env, value)
+		if err != nil {
+			return err
+		}
+		return htmlEscape(w, s)
 	}
 }
 
@@ -223,7 +348,11 @@ func showInTag(env runtime.Env, out io.Writer, value interface{}) error {
 	case error:
 		s = v.Error()
 	default:
-		s = toString(env, value)
+		var err error
+		s, err = toString(env, value)
+		if err != nil {
+			return err
+		}
 	}
 	i := 0
 	var s2 *strings.Builder
@@ -271,7 +400,11 @@ func showInAttribute(env runtime.Env, out io.Writer, value interface{}, quoted b
 		s = v.Error()
 		escapeEntities = true
 	default:
-		s = toString(env, value)
+		var err error
+		s, err = toString(env, value)
+		if err != nil {
+			return err
+		}
 		escapeEntities = true
 	}
 	return attributeEscape(newStringWriter(out), s, escapeEntities, quoted)
@@ -311,7 +444,11 @@ func showInCSS(env runtime.Env, out io.Writer, value interface{}) error {
 		}
 		return err
 	default:
-		_, err := w.WriteString(toString(env, value))
+		s, err := toString(env, value)
+		if err != nil {
+			return err
+		}
+		_, err = w.WriteString(s)
 		return err
 	}
 }
@@ -332,7 +469,11 @@ func showInCSSString(env runtime.Env, out io.Writer, value interface{}) error {
 			w := newStringWriter(out)
 			return escapeBytes(w, v.Interface().([]byte), false)
 		}
-		s = toString(env, value)
+		var err error
+		s, err = toString(env, value)
+		if err != nil {
+			return err
+		}
 	}
 	return cssStringEscape(newStringWriter(out), s)
 }
@@ -491,7 +632,11 @@ func showInJS(env runtime.Env, out io.Writer, value interface{}) error {
 			case EnvStringer:
 				keyPairs[i].key = k.String(env)
 			default:
-				keyPairs[i].key = toString(env, k)
+				s, err := toString(env, k)
+				if err != nil {
+					return err
+				}
+				keyPairs[i].key = s
 			}
 			keyPairs[i].val = iter.Value().Interface()
 		}
@@ -690,7 +835,11 @@ func showInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 			case EnvStringer:
 				keyPairs[i].key = k.String(env)
 			default:
-				keyPairs[i].key = toString(env, k)
+				s, err := toString(env, k)
+				if err != nil {
+					return err
+				}
+				keyPairs[i].key = s
 			}
 			keyPairs[i].val = iter.Value().Interface()
 		}
@@ -740,7 +889,11 @@ func showInJSString(env runtime.Env, out io.Writer, value interface{}) error {
 	case error:
 		s = v.Error()
 	default:
-		s = toString(env, value)
+		var err error
+		s, err = toString(env, value)
+		if err != nil {
+			return err
+		}
 	}
 	return jsStringEscape(newStringWriter(out), s)
 }
@@ -770,7 +923,11 @@ func showInMarkdown(env runtime.Env, out io.Writer, value interface{}) error {
 	case error:
 		return markdownEscape(w, v.Error())
 	default:
-		return markdownEscape(w, toString(env, value))
+		s, err := toString(env, value)
+		if err != nil {
+			return err
+		}
+		return markdownEscape(w, s)
 	}
 }
 
@@ -785,7 +942,11 @@ func showInMarkdownCodeBlock(env runtime.Env, out io.Writer, value interface{}, 
 	case error:
 		s = v.Error()
 	default:
-		s = toString(env, value)
+		var err error
+		s, err = toString(env, value)
+		if err != nil {
+			return err
+		}
 	}
 	w := newStringWriter(out)
 	return markdownCodeBlockEscape(w, s, spaces)

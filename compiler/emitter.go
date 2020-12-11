@@ -54,6 +54,9 @@ type emitter struct {
 	// inURL indicates if the emitter is currently inside an *ast.URL node.
 	inURL bool
 
+	// isURLSet reports whether the current URL, if inURL is true, is a set of URLs.
+	isURLSet bool
+
 	// types refers the types of the current compilation and it is used to
 	// create and manipulate types and values, both predefined and defined only
 	// by Scriggo.
@@ -112,29 +115,6 @@ func (em *emitter) ti(n ast.Node) *typeInfo {
 // typ returns the reflect.Type associated to the given expression.
 func (em *emitter) typ(expr ast.Expression) reflect.Type {
 	return em.ti(expr).Type
-}
-
-// reserveTemplateRegisters reverses the register used for implement
-// specific template functions.
-func (em *emitter) reserveTemplateRegisters() {
-	// Sync with:
-	//
-	// - case *ast.Show of emitter.emitNodes
-	// - case *ast.Text of emitter.emitNodes
-	// - EmitTemplate
-	// - emitter.setClosureRefs
-	//
-	em.fb.templateRegs.gA = em.fb.newRegister(reflect.Interface) // w io.Writer
-	em.fb.templateRegs.gB = em.fb.newRegister(reflect.Interface) // Write
-	em.fb.templateRegs.gC = em.fb.newRegister(reflect.Interface) // Show
-	em.fb.templateRegs.gD = em.fb.newRegister(reflect.Interface) // free.
-	em.fb.templateRegs.gE = em.fb.newRegister(reflect.Interface) // free.
-	em.fb.templateRegs.gF = em.fb.newRegister(reflect.Interface) // urlWriter
-	em.fb.templateRegs.iA = em.fb.newRegister(reflect.Int)       // free.
-	em.fb.emitGetVar(0, em.fb.templateRegs.gA, reflect.Interface)
-	em.fb.emitGetVar(1, em.fb.templateRegs.gB, reflect.Interface)
-	em.fb.emitGetVar(2, em.fb.templateRegs.gC, reflect.Interface)
-	em.fb.emitGetVar(3, em.fb.templateRegs.gF, reflect.Interface)
 }
 
 // emitPackage emits a package and returns the exported functions, the
@@ -498,10 +478,6 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 				em.fb.bindVarReg(par.Ident.Name, arg)
 			}
 		}
-	}
-
-	if em.isTemplate {
-		em.reserveTemplateRegisters()
 	}
 
 	return

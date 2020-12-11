@@ -884,10 +884,6 @@ func (vm *VM) run() (Addr, bool) {
 			}
 			vm.setInt(c, int64(length))
 
-		// LoadData
-		case OpLoadData:
-			vm.setGeneral(c, reflect.ValueOf(vm.fn.Data[decodeInt16(a, b)]))
-
 		// LoadFunc
 		case OpLoadFunc:
 			if a == 1 {
@@ -1670,6 +1666,20 @@ func (vm *VM) run() (Addr, bool) {
 		case OpShrInt, -OpShrInt:
 			vm.setInt(c, vm.int(a)>>uint(vm.intk(b, op < 0)))
 
+		// Show
+		case OpShow:
+			t := vm.fn.Types[uint8(a)]
+			rv := vm.env.types.New(t).Elem()
+			vm.getIntoReflectValue(b, rv, op < 0)
+			if w, ok := t.(Wrapper); ok {
+				rv = w.Wrap(rv)
+			}
+			var v interface{}
+			if rv.IsValid() {
+				v = rv.Interface()
+			}
+			vm.env.renderer.Show(vm.env, v, uint8(c))
+
 		// Slice
 		case OpSlice:
 			var i1, i2, i3 int
@@ -1794,6 +1804,11 @@ func (vm *VM) run() (Addr, bool) {
 				vm.fn = fn
 			}
 			vm.pc = 0
+
+		// Text
+		case OpText:
+			txt := vm.fn.Text[decodeUint16(a, b)]
+			vm.env.renderer.Text(vm.env, txt, uint8(c))
 
 		// Typify
 		case OpTypify, -OpTypify:

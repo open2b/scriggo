@@ -289,36 +289,6 @@ func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Up
 
 }
 
-// ioWriterWriteType is a reflect.Type that stores the type of the function
-//
-//		Write(p []byte) (n int, err error)
-//
-//  defined in the interface io.Writer.
-//
-var ioWriterWriteType = reflect.FuncOf(
-	[]reflect.Type{
-		reflect.TypeOf([]byte{}), // p []byte
-	},
-	[]reflect.Type{
-		reflect.TypeOf(int(0)),               // n int
-		reflect.TypeOf((*error)(nil)).Elem(), // err error
-	},
-	false,
-)
-
-// urlEscaperStartURLType is a reflect.Type representing the type of the method
-//
-//		func (w *urlEscaper) StartURL(quoted, isSet bool)
-//
-// defined on the type urlEscaper.
-//
-// Keep in sync with scriggo/template.urlEscaper.StartURL.
-//
-var urlEscaperStartURLType = reflect.FuncOf([]reflect.Type{
-	reflect.TypeOf(bool(false)), // quoted bool
-	reflect.TypeOf(bool(false)), // isSet bool
-}, nil, false)
-
 func (em *emitter) emitValueNotPredefined(ti *typeInfo, reg int8, dstType reflect.Type) (int8, bool) {
 	typ := ti.Type
 	if reg == 0 {

@@ -15,8 +15,6 @@ import (
 	"github.com/open2b/scriggo/runtime"
 )
 
-var showFuncType = reflect.TypeOf(ShowFunc(nil))
-
 // emitNodes emits instructions for nodes.
 func (em *emitter) emitNodes(nodes []ast.Node) {
 
@@ -343,18 +341,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.emitSend(chann, value, node.Pos(), chanType.Elem().Kind())
 
 		case *ast.Show:
-			// show([implicit *vm.Env,] gD io.Writer, gE interface{}, iA ast.Context)
-			em.emitExprR(node.Expr, emptyInterfaceType, em.fb.templateRegs.gE)
-			em.fb.emitMove(true, int8(node.Context), em.fb.templateRegs.iA, reflect.Int, false)
-			if em.inURL {
-				// In a URL context: use the urlWriter, that implements io.Writer.
-				em.fb.emitMove(false, em.fb.templateRegs.gF, em.fb.templateRegs.gD, reflect.Interface, false)
-			} else {
-				// Not in a URL context: use the default writer.
-				em.fb.emitMove(false, em.fb.templateRegs.gA, em.fb.templateRegs.gD, reflect.Interface, false)
-			}
-			shift := runtime.StackShift{em.fb.templateRegs.iA - 1, 0, 0, em.fb.templateRegs.gC}
-			em.fb.emitCallIndirect(em.fb.templateRegs.gC, 0, shift, node.Pos(), showFuncType)
+			t := em.typ(node.Expr)
+			r := em.emitExpr(node.Expr, t)
+			em.fb.emitShow(t, r, node.Context, em.inURL, em.isURLSet)
 
 		case *ast.Switch:
 			currentBreakable := em.breakable
@@ -369,31 +358,11 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.breakLabel = currentBreakLabel
 
 		case *ast.Text:
-			// Write(gE []byte) (iA int, gD error)
-			index := len(em.fb.fn.Data)
-			data := node.Text[node.Cut.Left : len(node.Text)-node.Cut.Right]
-			if len(data) != 0 {
-				em.fb.fn.Data = append(em.fb.fn.Data, data)
-				em.fb.emitLoadData(int16(index), em.fb.templateRegs.gE)
-				var writeFun int8
-				if em.inURL {
-					// In a URL context: getting the method WriteText of an the
-					// urlWriter, that has the same sign of the method Write which
-					// implements interface io.Writer.
-					em.fb.enterStack()
-					writeFun = em.fb.newRegister(reflect.Func)
-					em.fb.emitMethodValue("WriteText", em.fb.templateRegs.gF, writeFun, node.Pos())
-					em.fb.exitStack()
-				} else {
-					writeFun = em.fb.templateRegs.gB
-				}
-				em.fb.emitCallIndirect(
-					writeFun, // register
-					0,        // numVariadic
-					runtime.StackShift{em.fb.templateRegs.iA - 1, 0, 0, em.fb.templateRegs.gC},
-					node.Pos(),
-					ioWriterWriteType, // functionType
-				)
+			txt := node.Text[node.Cut.Left : len(node.Text)-node.Cut.Right]
+			if len(txt) != 0 {
+				index := uint16(len(em.fb.fn.Text))
+				em.fb.fn.Text = append(em.fb.fn.Text, txt)
+				em.fb.emitText(index, em.inURL, em.isURLSet)
 			}
 
 		case *ast.TypeDeclaration:
@@ -412,30 +381,10 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.breakLabel = currentBreakLabel
 
 		case *ast.URL:
-			// Entering inside an URL context; this will affect the way that
-			// values and text are rendered.
 			em.inURL = true
-			// Call method Reset of urlWriter.
-			em.fb.enterStack()
-			method := em.fb.newRegister(reflect.Func)
-			em.fb.emitMethodValue("StartURL", em.fb.templateRegs.gF, method, node.Pos())
-			ss := em.fb.currentStackShift()
-			quoteArg := em.fb.newRegister(reflect.Bool)
-			isSetArg := em.fb.newRegister(reflect.Bool)
-			var quote, isSet int8
-			if node.Context == ast.ContextQuotedAttr {
-				quote = 1
-			}
-			if node.Attribute == "srcset" {
-				isSet = 1
-			}
-			em.changeRegister(true, quote, quoteArg, boolType, boolType)
-			em.changeRegister(true, isSet, isSetArg, boolType, boolType)
-			em.fb.emitCallIndirect(method, 0, ss, node.Pos(), urlEscaperStartURLType)
-			em.fb.exitStack()
-			// Emit the nodes in the URL.
+			em.isURLSet = node.Attribute == "srcset"
 			em.emitNodes(node.Value)
-			// Exiting from an URL context.
+			em.isURLSet = false
 			em.inURL = false
 
 		case *ast.Var:

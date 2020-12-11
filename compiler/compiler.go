@@ -44,7 +44,7 @@ type Options struct {
 	AllowShebangLine bool
 	DisallowGoStmt   bool
 	Globals          Declarations
-	ShowFunc         ShowFunc
+	Renderer         runtime.Renderer
 
 	// Packages loads Scriggo packages and precompiled packages.
 	//
@@ -175,7 +175,7 @@ func BuildTemplate(path string, r FileReader, opts Options) (*Code, error) {
 		allowNotUsed:   true,
 		disallowGoStmt: opts.DisallowGoStmt,
 		globals:        opts.Globals,
-		showFunc:       opts.ShowFunc,
+		renderer:       opts.Renderer,
 		modality:       templateMod,
 	}
 	tci, err := typecheck(tree, opts.Packages, checkerOpts)
@@ -381,7 +381,6 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 			extends := pkg.Declarations[0].(*ast.Extends)
 			e.fb.changePath(extends.Tree.Path)
 			e.fb.enterScope()
-			e.reserveTemplateRegisters()
 			// Reserves first index of Functions for the function that
 			// initializes package variables. There is no guarantee that such
 			// function will exist: it depends on the presence or the absence of
@@ -415,7 +414,6 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 
 	// Default case: tree is a generic template page.
 	e.fb.enterScope()
-	e.reserveTemplateRegisters()
 	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()
 	e.fb.end()
