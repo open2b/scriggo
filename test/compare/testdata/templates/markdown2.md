@@ -10,3 +10,7 @@
 
     {{ "*** spaces code block ***" }}
 	{{ "*** tab code block ***" }}
+
+\{{ 1 }\}
+
+\<a b="{{ `"` }}"></a>

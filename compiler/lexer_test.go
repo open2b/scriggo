@@ -409,16 +409,24 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		"<style>s{{a}}t</style>{{a}}":   {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextMarkdown},
 		"<script>s{{a}}t</script>{{a}}": {ast.ContextText, ast.ContextJS, ast.ContextJS, ast.ContextJS, ast.ContextText, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextMarkdown},
 		`<script type="application/ld+json">s{{a}}t</script>{{a}}`: {ast.ContextText, ast.ContextJSON, ast.ContextJSON, ast.ContextJSON, ast.ContextText, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextMarkdown},
+		`a\{{a}\}a`:                {ast.ContextText},
+		`a\<a href="{{a}}}">s</a>`: {ast.ContextText, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextText},
+		"a\\\n{{a}}":               {ast.ContextText, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextMarkdown},
+		`a\`:                       {ast.ContextText},
+		"a\n\\[\n\t{{a}}":          {ast.ContextText, ast.ContextMarkdown, ast.ContextMarkdown, ast.ContextMarkdown},
+		"\t\\{{a}}":                {ast.ContextText, ast.ContextTabCodeBlock, ast.ContextTabCodeBlock, ast.ContextTabCodeBlock},
 	},
 	ast.ContextTabCodeBlock: {
 		`a`:       {ast.ContextText},
 		`{{a}}`:   {ast.ContextTabCodeBlock, ast.ContextTabCodeBlock, ast.ContextTabCodeBlock},
 		`a{{a}}a`: {ast.ContextText, ast.ContextTabCodeBlock, ast.ContextTabCodeBlock, ast.ContextTabCodeBlock, ast.ContextText},
+		`\{{a}}`:  {ast.ContextText, ast.ContextTabCodeBlock, ast.ContextTabCodeBlock, ast.ContextTabCodeBlock},
 	},
 	ast.ContextSpacesCodeBlock: {
 		`a`:       {ast.ContextText},
 		`{{a}}`:   {ast.ContextSpacesCodeBlock, ast.ContextSpacesCodeBlock, ast.ContextSpacesCodeBlock},
 		`a{{a}}a`: {ast.ContextText, ast.ContextSpacesCodeBlock, ast.ContextSpacesCodeBlock, ast.ContextSpacesCodeBlock, ast.ContextText},
+		`\{{a}}`:  {ast.ContextText, ast.ContextSpacesCodeBlock, ast.ContextSpacesCodeBlock, ast.ContextSpacesCodeBlock},
 	},
 }
 

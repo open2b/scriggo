@@ -216,6 +216,11 @@ func (l *lexer) scan() {
 
 			if l.ctx == ast.ContextMarkdown {
 				spacesOnlyLine = spacesOnlyLine && isSpace(c)
+				if c == '\\' && p+1 < len(l.src) && l.src[p+1] != '\n' {
+					p += 2
+					l.column += 2
+					continue
+				}
 			}
 
 			if c == '{' && p+1 < len(l.src) {
