@@ -7,7 +7,6 @@
 package test
 
 import (
-	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -135,10 +134,6 @@ func TestIssue403(t *testing.T) {
 		}
 		`
 		program, err := scriggo.Build(strings.NewReader(main), packages, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		_, err = program.Disassemble(os.Stdout, "main")
 		if err != nil {
 			t.Fatal(err)
 		}
