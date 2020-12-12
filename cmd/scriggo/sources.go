@@ -2137,7 +2137,8 @@ func run() {
 		os.Exit(2)
 	}
 	if *asm {
-		_, err := program.Disassemble(os.Stdout, "main")
+		asm, _ := program.Disassemble("main")
+		_, err := os.Stdout.Write(asm)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)

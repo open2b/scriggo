@@ -53,14 +53,10 @@ func Build(src io.Reader, packages scriggo.PackageLoader, options *BuildOptions)
 	return &Script{fn: code.Main, globals: code.Globals, types: code.Types}, nil
 }
 
-// Disassemble disassembles the script.
-func (p *Script) Disassemble(w io.Writer) (int64, error) {
-	packages, err := compiler.Disassemble(p.fn, p.globals)
-	if err != nil {
-		return 0, err
-	}
-	n, err := io.WriteString(w, packages["main"])
-	return int64(n), err
+// Disassemble disassembles the script and returns its assembly code.
+func (p *Script) Disassemble() []byte {
+	assemblies := compiler.Disassemble(p.fn, p.globals)
+	return assemblies["main"]
 }
 
 // Run starts the script and waits for it to complete. vars contains the

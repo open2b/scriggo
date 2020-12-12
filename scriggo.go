@@ -55,19 +55,15 @@ func Build(src io.Reader, packages PackageLoader, options *BuildOptions) (*Progr
 	return &Program{fn: code.Main, globals: code.Globals, types: code.Types}, nil
 }
 
-// Disassemble disassembles the package with the given path. Predefined
-// packages can not be disassembled.
-func (p *Program) Disassemble(w io.Writer, pkgPath string) (int64, error) {
-	packages, err := compiler.Disassemble(p.fn, p.globals)
-	if err != nil {
-		return 0, err
-	}
-	asm, ok := packages[pkgPath]
+// Disassemble disassembles the package with the given path and returns its
+// assembly code. Predefined packages can not be disassembled.
+func (p *Program) Disassemble(pkgPath string) ([]byte, error) {
+	assemblies := compiler.Disassemble(p.fn, p.globals)
+	asm, ok := assemblies[pkgPath]
 	if !ok {
-		return 0, errors.New("scriggo: package path does not exist")
+		return nil, errors.New("scriggo: package path does not exist")
 	}
-	n, err := io.WriteString(w, asm)
-	return int64(n), err
+	return asm, nil
 }
 
 // Run starts the program and waits for it to complete.

@@ -9,7 +9,6 @@ package compiler
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"reflect"
 	"sort"
 	"strconv"
@@ -46,7 +45,7 @@ func packageName(pkg string) string {
 	return pkg[i+1:]
 }
 
-func Disassemble(main *runtime.Function, globals []Global) (assembler map[string]string, err error) {
+func Disassemble(main *runtime.Function, globals []Global) map[string][]byte {
 
 	functionsByPkg := map[string]map[*runtime.Function]int{}
 	importsByPkg := map[string]map[string]struct{}{}
@@ -103,7 +102,7 @@ func Disassemble(main *runtime.Function, globals []Global) (assembler map[string
 		}
 	}
 
-	assembler = map[string]string{}
+	assemblies := map[string][]byte{}
 
 	var b bytes.Buffer
 
@@ -139,20 +138,22 @@ func Disassemble(main *runtime.Function, globals []Global) (assembler map[string
 			disassembleFunction(&b, fn, globals, 0)
 		}
 
-		assembler[path] = b.String()
+		assembly := make([]byte, b.Len())
+		copy(assembly, b.Bytes())
+		assemblies[path] = assembly
 
 		b.Reset()
 
 	}
 
-	return assembler, nil
+	return assemblies
 }
 
-func DisassembleFunction(w io.Writer, fn *runtime.Function, globals []Global) (int64, error) {
+func DisassembleFunction(fn *runtime.Function, globals []Global) []byte {
 	var b bytes.Buffer
 	_, _ = fmt.Fprintf(&b, "Func %s", fn.Name)
 	disassembleFunction(&b, fn, globals, 0)
-	return b.WriteTo(w)
+	return b.Bytes()
 }
 
 func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global, depth int) {
