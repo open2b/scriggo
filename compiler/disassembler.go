@@ -749,31 +749,36 @@ func disassembleFunctionCall(fn *runtime.Function, index int8, addr runtime.Addr
 		}
 		return str
 	}
-	out := ""
-	for i := 0; i < typ.NumOut(); i++ {
-		out += print(typ.Out(i))
-		if i < typ.NumOut()-1 {
-			out += ", "
-		}
+	s := "func("
+	lastIn := typ.NumIn() - 1
+	for i := 0; i < lastIn; i++ {
+		s += print(typ.In(i)) + ", "
 	}
-	in := ""
-	for i := 0; i < typ.NumIn()-1; i++ {
-		in += print(typ.In(i)) + ", "
-	}
-	if typ.NumIn()-1 >= 0 {
+	if lastIn >= 0 {
 		if variadic == runtime.NoVariadicArgs || variadic == 0 {
-			in += print(typ.In(typ.NumIn() - 1))
+			s += print(typ.In(lastIn))
 		} else {
-			varType := typ.In(typ.NumIn() - 1).Elem()
+			varType := typ.In(lastIn).Elem()
 			for i := int8(0); i < variadic; i++ {
-				in += print(varType)
+				s += print(varType)
 				if i < variadic-1 {
-					in += ", "
+					s += ", "
 				}
 			}
 		}
 	}
-	return fmt.Sprintf("func(%s) (%s)", in, out)
+	s += ")"
+	if nout := typ.NumOut(); nout > 0 {
+		s += " ("
+		for i := 0; i < nout; i++ {
+			if i > 0 {
+				s += ", "
+			}
+			s += print(typ.Out(i))
+		}
+		s += ")"
+	}
+	return s
 }
 
 func disassembleVarRef(fn *runtime.Function, globals []Global, ref int16) string {
