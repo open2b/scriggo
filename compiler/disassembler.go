@@ -47,7 +47,6 @@ func packageName(pkg string) string {
 	return pkg[i+1:]
 }
 
-
 // Disassemble disassembles the main function fn with the given globals,
 // returning the assembly code for each package. The returned map has a
 // package path as key and its assembly as value.
@@ -122,9 +121,9 @@ func Disassemble(main *runtime.Function, globals []Global, n int) map[string][]b
 
 	for path, funcs := range functionsByPkg {
 
-		_, _ = b.WriteString("Package ")
-		_, _ = b.WriteString(packageName(path))
-		_, _ = b.WriteRune('\n')
+		b.WriteString("Package ")
+		b.WriteString(packageName(path))
+		b.WriteRune('\n')
 
 		var packages []string
 		if imports, ok := importsByPkg[path]; ok {
@@ -133,9 +132,9 @@ func Disassemble(main *runtime.Function, globals []Global, n int) map[string][]b
 			}
 			sort.Slice(packages, func(i, j int) bool { return packages[i] < packages[j] })
 			for _, pkg := range packages {
-				_, _ = b.WriteString("\nImport ")
-				_, _ = b.WriteString(strconv.Quote(pkg))
-				_, _ = b.WriteRune('\n')
+				b.WriteString("\nImport ")
+				b.WriteString(strconv.Quote(pkg))
+				b.WriteRune('\n')
 			}
 			packages = packages[:]
 		}
@@ -148,11 +147,11 @@ func Disassemble(main *runtime.Function, globals []Global, n int) map[string][]b
 
 		for _, fn := range functions {
 			if fn.Macro {
-				_, _ = b.WriteString("\nMacro ")
+				b.WriteString("\nMacro ")
 			} else {
-				_, _ = b.WriteString("\nFunc ")
+				b.WriteString("\nFunc ")
 			}
-			_, _ = b.WriteString(fn.Name)
+			b.WriteString(fn.Name)
 			disassembleFunction(&b, globals, fn, n, 0)
 		}
 
@@ -188,7 +187,7 @@ func DisassembleFunction(fn *runtime.Function, globals []Global, n int) []byte {
 	return b.Bytes()
 }
 
-func disassembleFunction(w *bytes.Buffer, globals []Global, fn *runtime.Function, textSize int, depth int) {
+func disassembleFunction(b *bytes.Buffer, globals []Global, fn *runtime.Function, textSize int, depth int) {
 	indent := ""
 	if depth > 0 {
 		indent = strings.Repeat("\t", depth)
@@ -215,7 +214,7 @@ func disassembleFunction(w *bytes.Buffer, globals []Global, fn *runtime.Function
 
 	// Print input parameters.
 	if nIn := fn.Type.NumIn(); nIn > 0 || !fn.Macro {
-		_, _ = fmt.Fprintf(w, "(")
+		b.WriteByte('(')
 		if nIn > 0 {
 			out := map[registerType]int{intRegister: 0, floatRegister: 0, stringRegister: 0, generalRegister: 0}
 			for i := 0; i < fn.Type.NumOut(); i++ {
@@ -224,58 +223,60 @@ func disassembleFunction(w *bytes.Buffer, globals []Global, fn *runtime.Function
 			in := map[registerType]int{intRegister: 0, floatRegister: 0, stringRegister: 0, generalRegister: 0}
 			for i := 0; i < nIn; i++ {
 				if i > 0 {
-					_, _ = fmt.Fprint(w, ", ")
+					b.WriteString(", ")
 				}
 				typ := fn.Type.In(i)
 				label := registerKindToLabel(reflectToRegisterKind(typ.Kind()))
 				vmType := kindToType(fn.Type.In(i).Kind())
 				in[vmType]++
 				reg := out[vmType] + in[vmType]
-				_, _ = fmt.Fprintf(w, "%s%d %s", label, reg, typ)
+				_, _ = fmt.Fprintf(b, "%s%d %s", label, reg, typ)
 			}
 		}
-		_, _ = fmt.Fprint(w, ")")
+		b.WriteByte(')')
 	}
 
 	// Print output parameters.
 	if fn.Type.NumOut() > 0 {
 		out := map[registerType]int{intRegister: 0, floatRegister: 0, stringRegister: 0, generalRegister: 0}
-		_, _ = fmt.Fprint(w, " (")
+		b.WriteString(" (")
 		for i := 0; i < fn.Type.NumOut(); i++ {
 			if i > 0 {
-				_, _ = fmt.Fprint(w, ", ")
+				b.WriteString(", ")
 			}
 			typ := fn.Type.Out(i)
 			label := registerKindToLabel(reflectToRegisterKind(typ.Kind()))
 			vmType := kindToType(fn.Type.Out(i).Kind())
 			out[vmType]++
-			_, _ = fmt.Fprintf(w, "%s%d %s", label, out[vmType], fn.Type.Out(i))
+			_, _ = fmt.Fprintf(b, "%s%d %s", label, out[vmType], fn.Type.Out(i))
 		}
-		_, _ = fmt.Fprint(w, ")")
+		b.WriteByte(')')
 	}
 
-	_, _ = fmt.Fprint(w, "\n")
-	_, _ = fmt.Fprintf(w, "%s\t; regs(%d,%d,%d,%d)\n", indent,
+	b.WriteByte('\n')
+	_, _ = fmt.Fprintf(b, "%s\t; regs(%d,%d,%d,%d)\n", indent,
 		fn.NumReg[intRegister], fn.NumReg[floatRegister], fn.NumReg[stringRegister], fn.NumReg[generalRegister])
 	instrNum := runtime.Addr(len(fn.Body))
 	for addr := runtime.Addr(0); addr < instrNum; addr++ {
 		if label, ok := labelOf[runtime.Addr(addr)]; ok {
-			_, _ = fmt.Fprintf(w, "%s%d:", indent, label)
+			_, _ = fmt.Fprintf(b, "%s%d:", indent, label)
 		}
 		in := fn.Body[addr]
 		switch in.Op {
 		case runtime.OpBreak, runtime.OpContinue, runtime.OpGoto:
 			label := labelOf[runtime.Addr(decodeUint24(in.A, in.B, in.C))]
-			_, _ = fmt.Fprintf(w, "%s\t%s %d", indent, operationName[in.Op], label)
+			_, _ = fmt.Fprintf(b, "%s\t%s %d", indent, operationName[in.Op], label)
 		default:
-			_, _ = fmt.Fprintf(w, "%s\t%s", indent, disassembleInstruction(fn, globals, addr, textSize))
+			_, _ = fmt.Fprintf(b, "%s\t%s", indent, disassembleInstruction(fn, globals, addr, textSize))
 		}
 		// TODO: this part is not clear:
 		if in.Op == runtime.OpLoadFunc && (int(in.B) < len(fn.Functions)) && fn.Functions[uint8(in.B)].Parent != nil { // function literal
-			_, _ = fmt.Fprint(w, " ", disassembleOperand(fn, in.C, reflect.Interface, false), " func")
-			disassembleFunction(w, globals, fn.Functions[uint8(in.B)], 0, depth+1)
+			b.WriteByte(' ')
+			b.WriteString(disassembleOperand(fn, in.C, reflect.Interface, false))
+			b.WriteString(" func")
+			disassembleFunction(b, globals, fn.Functions[uint8(in.B)], 0, depth+1)
 		} else {
-			_, _ = fmt.Fprint(w, "\n")
+			b.WriteByte('\n')
 		}
 		switch in.Op {
 		case runtime.OpCall, runtime.OpCallIndirect, runtime.OpCallPredefined, runtime.OpTailCall, runtime.OpSlice, runtime.OpStringSlice:
