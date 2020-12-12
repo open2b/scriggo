@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/open2b/scriggo/runtime"
 )
@@ -135,7 +136,7 @@ func Disassemble(main *runtime.Function, globals []Global) map[string][]byte {
 		for _, fn := range functions {
 			_, _ = b.WriteString("\nFunc ")
 			_, _ = b.WriteString(fn.Name)
-			disassembleFunction(&b, fn, globals, 0)
+			disassembleFunction(&b, globals, fn, 0, 0)
 		}
 
 		assembly := make([]byte, b.Len())
@@ -149,14 +150,23 @@ func Disassemble(main *runtime.Function, globals []Global) map[string][]byte {
 	return assemblies
 }
 
-func DisassembleFunction(fn *runtime.Function, globals []Global) []byte {
+// DisassembleFunction disassembles the function fn with the given globals.
+//
+// n determines the maximum length, in runes, of the disassembled text in a
+// Text instruction:
+//
+//   n > 0: at most n runes; leading and trailing white space are removed
+//   n == 0: no text
+//   n < 0: all text
+//
+func DisassembleFunction(fn *runtime.Function, globals []Global, n int) []byte {
 	var b bytes.Buffer
 	_, _ = fmt.Fprintf(&b, "Func %s", fn.Name)
-	disassembleFunction(&b, fn, globals, 0)
+	disassembleFunction(&b, globals, fn, n, 0)
 	return b.Bytes()
 }
 
-func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global, depth int) {
+func disassembleFunction(w *bytes.Buffer, globals []Global, fn *runtime.Function, textSize int, depth int) {
 	indent := ""
 	if depth > 0 {
 		indent = strings.Repeat("\t", depth)
@@ -234,12 +244,12 @@ func disassembleFunction(w *bytes.Buffer, fn *runtime.Function, globals []Global
 			label := labelOf[runtime.Addr(decodeUint24(in.A, in.B, in.C))]
 			_, _ = fmt.Fprintf(w, "%s\t%s %d", indent, operationName[in.Op], label)
 		default:
-			_, _ = fmt.Fprintf(w, "%s\t%s", indent, disassembleInstruction(fn, globals, addr))
+			_, _ = fmt.Fprintf(w, "%s\t%s", indent, disassembleInstruction(fn, globals, addr, textSize))
 		}
 		// TODO: this part is not clear:
 		if in.Op == runtime.OpLoadFunc && (int(in.B) < len(fn.Functions)) && fn.Functions[uint8(in.B)].Parent != nil { // function literal
 			_, _ = fmt.Fprint(w, " ", disassembleOperand(fn, in.C, reflect.Interface, false), " func")
-			disassembleFunction(w, fn.Functions[uint8(in.B)], globals, depth+1)
+			disassembleFunction(w, globals, fn.Functions[uint8(in.B)], 0, depth+1)
 		} else {
 			_, _ = fmt.Fprint(w, "\n")
 		}
@@ -276,7 +286,7 @@ func getKind(operand rune, fn *runtime.Function, addr runtime.Addr) reflect.Kind
 	}
 }
 
-func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime.Addr) string {
+func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime.Addr, textSize int) string {
 	in := fn.Body[addr]
 	op, a, b, c := in.Op, in.A, in.B, in.C
 	k := false
@@ -638,9 +648,10 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + disassembleOperand(fn, high, reflect.Int, khigh)
 		s += " " + disassembleOperand(fn, c, reflect.String, false)
 	case runtime.OpText:
-		s += " " + strconv.Itoa(int(decodeUint16(a, b)))
-		ctx, _, _ := decodeRenderContext(uint8(c))
-		s += " " + "(" + ctx.String() + ")"
+		if textSize != 0 {
+			i := int(decodeUint16(a, b))
+			s += " " + disassembleText(fn.Text[i], textSize)
+		}
 	case runtime.OpTypify:
 		typ := fn.Types[int(uint(a))]
 		s += " " + typ.String()
@@ -780,6 +791,40 @@ func disassembleVarRef(fn *runtime.Function, globals []Global, ref int16) string
 		s += "@" + strconv.Itoa(depth)
 	}
 	return s
+}
+
+func disassembleText(txt []byte, size int) string {
+	if size < 0 {
+		size = maxInt
+	}
+	if len(txt) <= size {
+		return strconv.Quote(string(txt))
+	}
+	var b strings.Builder
+	if isSpace(txt[0]) {
+		b.WriteRune('…')
+		if size == 1 {
+			return strconv.Quote(b.String())
+		}
+		size--
+	}
+	truncated := isSpace(txt[len(txt)-1])
+	txt = bytes.TrimSpace(txt)
+	if len(txt) > size {
+		size--
+		var p int
+		for i := 0; i < size; i++ {
+			_, s := utf8.DecodeRune(txt)
+			p += s
+		}
+		txt = txt[:p]
+		truncated = true
+	}
+	b.Write(txt)
+	if truncated {
+		b.WriteRune('…')
+	}
+	return strconv.Quote(b.String())
 }
 
 func reflectToRegisterKind(kind reflect.Kind) reflect.Kind {

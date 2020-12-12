@@ -283,7 +283,7 @@ func (t *Template) MustRun(out io.Writer, vars map[string]interface{}, options *
 
 // Disassemble disassembles a template and returns its assembly code.
 func (t *Template) Disassemble() []byte {
-	return compiler.DisassembleFunction(t.fn, t.globals)
+	return compiler.DisassembleFunction(t.fn, t.globals, 0)
 }
 
 // Vars returns the names of the template builtin variables that are used in
