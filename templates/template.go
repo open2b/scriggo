@@ -282,8 +282,15 @@ func (t *Template) MustRun(out io.Writer, vars map[string]interface{}, options *
 }
 
 // Disassemble disassembles a template and returns its assembly code.
-func (t *Template) Disassemble() []byte {
-	return compiler.DisassembleFunction(t.fn, t.globals, 0)
+//
+// n determines the maximum length, in runes, of a disassembled text:
+//
+//   n > 0: at most n runes; leading and trailing white space are removed
+//   n == 0: no text
+//   n < 0: all text
+//
+func (t *Template) Disassemble(n int) []byte {
+	return compiler.DisassembleFunction(t.fn, t.globals, n)
 }
 
 // Vars returns the names of the template builtin variables that are used in
