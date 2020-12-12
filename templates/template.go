@@ -290,7 +290,8 @@ func (t *Template) MustRun(out io.Writer, vars map[string]interface{}, options *
 //   n < 0: all text
 //
 func (t *Template) Disassemble(n int) []byte {
-	return compiler.DisassembleFunction(t.fn, t.globals, n)
+	assemblies := compiler.Disassemble(t.fn, t.globals, n)
+	return assemblies["main"]
 }
 
 // Vars returns the names of the template builtin variables that are used in

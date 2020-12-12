@@ -47,7 +47,19 @@ func packageName(pkg string) string {
 	return pkg[i+1:]
 }
 
-func Disassemble(main *runtime.Function, globals []Global) map[string][]byte {
+
+// Disassemble disassembles the main function fn with the given globals,
+// returning the assembly code for each package. The returned map has a
+// package path as key and its assembly as value.
+//
+// n determines the maximum length, in runes, of the disassembled text in a
+// Text instruction:
+//
+//   n > 0: at most n runes; leading and trailing white space are removed
+//   n == 0: no text
+//   n < 0: all text
+//
+func Disassemble(main *runtime.Function, globals []Global, n int) map[string][]byte {
 
 	functionsByPkg := map[string]map[*runtime.Function]int{}
 	importsByPkg := map[string]map[string]struct{}{}
@@ -135,9 +147,13 @@ func Disassemble(main *runtime.Function, globals []Global) map[string][]byte {
 		sort.Slice(functions, func(i, j int) bool { return funcs[functions[i]] < funcs[functions[j]] })
 
 		for _, fn := range functions {
-			_, _ = b.WriteString("\nFunc ")
+			if fn.Macro {
+				_, _ = b.WriteString("\nMacro ")
+			} else {
+				_, _ = b.WriteString("\nFunc ")
+			}
 			_, _ = b.WriteString(fn.Name)
-			disassembleFunction(&b, globals, fn, 0, 0)
+			disassembleFunction(&b, globals, fn, n, 0)
 		}
 
 		assembly := make([]byte, b.Len())
@@ -162,7 +178,12 @@ func Disassemble(main *runtime.Function, globals []Global) map[string][]byte {
 //
 func DisassembleFunction(fn *runtime.Function, globals []Global, n int) []byte {
 	var b bytes.Buffer
-	_, _ = fmt.Fprintf(&b, "Func %s", fn.Name)
+	if fn.Macro {
+		b.WriteString("Macro ")
+	} else {
+		b.WriteString("Func ")
+	}
+	b.WriteString(fn.Name)
 	disassembleFunction(&b, globals, fn, n, 0)
 	return b.Bytes()
 }
@@ -193,26 +214,28 @@ func disassembleFunction(w *bytes.Buffer, globals []Global, fn *runtime.Function
 	}
 
 	// Print input parameters.
-	_, _ = fmt.Fprintf(w, "(")
-	if fn.Type.NumIn() > 0 {
-		out := map[registerType]int{intRegister: 0, floatRegister: 0, stringRegister: 0, generalRegister: 0}
-		for i := 0; i < fn.Type.NumOut(); i++ {
-			out[kindToType(fn.Type.Out(i).Kind())]++
-		}
-		in := map[registerType]int{intRegister: 0, floatRegister: 0, stringRegister: 0, generalRegister: 0}
-		for i := 0; i < fn.Type.NumIn(); i++ {
-			if i > 0 {
-				_, _ = fmt.Fprint(w, ", ")
+	if nIn := fn.Type.NumIn(); nIn > 0 || !fn.Macro {
+		_, _ = fmt.Fprintf(w, "(")
+		if nIn > 0 {
+			out := map[registerType]int{intRegister: 0, floatRegister: 0, stringRegister: 0, generalRegister: 0}
+			for i := 0; i < fn.Type.NumOut(); i++ {
+				out[kindToType(fn.Type.Out(i).Kind())]++
 			}
-			typ := fn.Type.In(i)
-			label := registerKindToLabel(reflectToRegisterKind(typ.Kind()))
-			vmType := kindToType(fn.Type.In(i).Kind())
-			in[vmType]++
-			reg := out[vmType] + in[vmType]
-			_, _ = fmt.Fprintf(w, "%s%d %s", label, reg, typ)
+			in := map[registerType]int{intRegister: 0, floatRegister: 0, stringRegister: 0, generalRegister: 0}
+			for i := 0; i < nIn; i++ {
+				if i > 0 {
+					_, _ = fmt.Fprint(w, ", ")
+				}
+				typ := fn.Type.In(i)
+				label := registerKindToLabel(reflectToRegisterKind(typ.Kind()))
+				vmType := kindToType(fn.Type.In(i).Kind())
+				in[vmType]++
+				reg := out[vmType] + in[vmType]
+				_, _ = fmt.Fprintf(w, "%s%d %s", label, reg, typ)
+			}
 		}
+		_, _ = fmt.Fprint(w, ")")
 	}
-	_, _ = fmt.Fprint(w, ")")
 
 	// Print output parameters.
 	if fn.Type.NumOut() > 0 {
@@ -362,7 +385,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			s += " ..." + strconv.Itoa(int(c))
 		}
 		for i := 0; i < 4; i++ {
-			_, fn := funcNameType(fn, a, addr, op)
+			_, _, fn := funcNameType(fn, a, addr, op)
 			s += " "
 			if fn == nil || !funcHasParameterInRegister(fn, registerType(i)) {
 				s += "_"
@@ -682,21 +705,22 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	return s
 }
 
-// funcNameType returns the name and the type of the specified function, if
-// available. Only one of index and addr is meaningful, depending on the
-// operation specified by op.
-func funcNameType(fn *runtime.Function, index int8, addr runtime.Addr, op runtime.Operation) (string, reflect.Type) {
+// funcNameType returns a boolean indications if the specific function is a
+// macro, its name and its type. If the function is not available. Only one of
+// index and addr is meaningful, depending on the operation specified by op.
+func funcNameType(fn *runtime.Function, index int8, addr runtime.Addr, op runtime.Operation) (bool, string, reflect.Type) {
 	switch op {
 	case runtime.OpCall:
+		macro := fn.Functions[index].Macro
 		typ := fn.Functions[index].Type
 		name := fn.Functions[index].Name
-		return name, typ
+		return macro, name, typ
 	case runtime.OpCallPredefined:
 		name := fn.Predefined[index].Name()
 		typ := reflect.TypeOf(fn.Predefined[index].Func())
-		return name, typ
+		return false, name, typ
 	case runtime.OpCallIndirect, runtime.OpDefer:
-		return "", fn.DebugInfo[addr].FuncType
+		return false, "", fn.DebugInfo[addr].FuncType
 	case runtime.OpTailCall:
 		panic("BUG: not implemented") // TODO.
 	default:
@@ -724,7 +748,7 @@ func funcHasParameterInRegister(fn reflect.Type, reg registerType) bool {
 // human-readable string representing the call. The result of this function is
 // used as a comment to the byte code.
 func disassembleFunctionCall(fn *runtime.Function, index int8, addr runtime.Addr, op runtime.Operation, stackShift runtime.StackShift, variadic int8) string {
-	name, typ := funcNameType(fn, index, addr, op)
+	macro, name, typ := funcNameType(fn, index, addr, op)
 	if typ == nil {
 		return ""
 	}
@@ -750,6 +774,12 @@ func disassembleFunctionCall(fn *runtime.Function, index int8, addr runtime.Addr
 		return str
 	}
 	s := "func("
+	if macro {
+		if typ.NumIn() == 0 {
+			return "macro"
+		}
+		s = "macro("
+	}
 	lastIn := typ.NumIn() - 1
 	for i := 0; i < lastIn; i++ {
 		s += print(typ.In(i)) + ", "

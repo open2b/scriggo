@@ -785,6 +785,7 @@ type Function struct {
 	VarRefs    []int16
 	Types      []reflect.Type
 	NumReg     [4]int8
+	Macro      bool
 	Constants  Registers
 	Functions  []*Function
 	Predefined []*PredefinedFunction

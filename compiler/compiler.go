@@ -329,7 +329,7 @@ func emitScript(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars m
 		}
 	}()
 	e := newEmitter(typeInfos, indirectVars)
-	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false), tree.Path, tree.Pos()), tree.Path)
+	e.fb = newBuilder(newFunction("main", "main", false, reflect.FuncOf(nil, nil, false), tree.Path, tree.Pos()), tree.Path)
 	e.fb.enterScope()
 	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()
@@ -356,7 +356,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 	e := newEmitter(typeInfos, indirectVars)
 	e.pkg = &ast.Package{}
 	e.isTemplate = true
-	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false), tree.Path, tree.Pos()), tree.Path)
+	e.fb = newBuilder(newFunction("main", "main", true, reflect.FuncOf(nil, nil, false), tree.Path, tree.Pos()), tree.Path)
 	e.fb.changePath(tree.Path)
 
 	// Globals.
@@ -372,7 +372,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 			// Macro declarations in extending page must be accessed by the extended page.
 			for _, dec := range pkg.Declarations {
 				if fun, ok := dec.(*ast.Func); ok && fun.Type.Macro {
-					fn := newFunction("main", fun.Ident.Name, fun.Type.Reflect, e.fb.getPath(), fun.Pos())
+					fn := newFunction("main", fun.Ident.Name, true, fun.Type.Reflect, e.fb.getPath(), fun.Pos())
 					e.fnStore.makeAvailableScriggoFn(e.pkg, fun.Ident.Name, fn)
 				}
 			}
@@ -403,7 +403,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 			} else {
 				// If there are no variables to initialize, a nop function is
 				// created because space has already been reserved for it.
-				nopFunction := newFunction("main", "$nop", reflect.FuncOf(nil, nil, false), "", nil)
+				nopFunction := newFunction("main", "$nop", false, reflect.FuncOf(nil, nil, false), "", nil)
 				nopBuilder := newBuilder(nopFunction, tree.Path)
 				nopBuilder.end()
 				e.fb.fn.Functions[0] = nopFunction

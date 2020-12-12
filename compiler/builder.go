@@ -162,9 +162,9 @@ func decodeFieldIndex(i int64) []int {
 }
 
 // newFunction returns a new function with a given package, name and type.
-// file and pos are, respectively, the file and the position where the function
-// is declared.
-func newFunction(pkg, name string, typ reflect.Type, file string, pos *ast.Position) *runtime.Function {
+// macro indicates if it is a macro. file and pos are, respectively, the file
+// and the position where the function is declared.
+func newFunction(pkg, name string, macro bool, typ reflect.Type, file string, pos *ast.Position) *runtime.Function {
 	var runtimePos *runtime.Position
 	if pos != nil {
 		runtimePos = &runtime.Position{
@@ -174,7 +174,7 @@ func newFunction(pkg, name string, typ reflect.Type, file string, pos *ast.Posit
 			End:    pos.End,
 		}
 	}
-	return &runtime.Function{Pkg: pkg, Name: name, Type: typ, File: file, Pos: runtimePos}
+	return &runtime.Function{Pkg: pkg, Name: name, Macro: macro, Type: typ, File: file, Pos: runtimePos}
 }
 
 // newPredefinedFunction returns a new predefined function with a given

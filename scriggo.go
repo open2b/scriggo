@@ -58,7 +58,7 @@ func Build(src io.Reader, packages PackageLoader, options *BuildOptions) (*Progr
 // Disassemble disassembles the package with the given path and returns its
 // assembly code. Predefined packages can not be disassembled.
 func (p *Program) Disassemble(pkgPath string) ([]byte, error) {
-	assemblies := compiler.Disassemble(p.fn, p.globals)
+	assemblies := compiler.Disassemble(p.fn, p.globals, 0)
 	asm, ok := assemblies[pkgPath]
 	if !ok {
 		return nil, errors.New("scriggo: package path does not exist")

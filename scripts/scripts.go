@@ -55,7 +55,7 @@ func Build(src io.Reader, packages scriggo.PackageLoader, options *BuildOptions)
 
 // Disassemble disassembles the script and returns its assembly code.
 func (p *Script) Disassemble() []byte {
-	assemblies := compiler.Disassemble(p.fn, p.globals)
+	assemblies := compiler.Disassemble(p.fn, p.globals, 0)
 	return assemblies["main"]
 }
 
