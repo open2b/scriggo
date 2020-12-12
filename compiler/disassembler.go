@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/open2b/scriggo/runtime"
@@ -801,14 +802,15 @@ func disassembleText(txt []byte, size int) string {
 		return strconv.Quote(string(txt))
 	}
 	var b strings.Builder
-	if isSpace(txt[0]) {
+	if r, _ := utf8.DecodeRune(txt); unicode.IsSpace(r) {
 		b.WriteRune('…')
 		if size == 1 {
 			return strconv.Quote(b.String())
 		}
 		size--
 	}
-	truncated := isSpace(txt[len(txt)-1])
+	r, _ := utf8.DecodeLastRune(txt)
+	truncated := unicode.IsSpace(r)
 	txt = bytes.TrimSpace(txt)
 	if len(txt) > size {
 		size--
