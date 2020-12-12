@@ -664,6 +664,8 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		}
 		s += " " + disassembleOperand(fn, b, kind, false)
 		s += " " + disassembleOperand(fn, c, reflect.Bool, false)
+	default:
+		panic(fmt.Sprintf("unknown operation %d", op))
 	}
 	return s
 }
