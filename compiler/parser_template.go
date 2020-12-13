@@ -45,12 +45,12 @@ func ParseTemplate(path string, reader FileReader, packages PackageLoader) (*ast
 		paths:    []string{},
 	}
 
-	src, lang, err := reader.ReadFile(path)
+	src, format, err := reader.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	tree, err := pp.parseSource(src, path, lang, false)
+	tree, err := pp.parseSource(src, path, format, false)
 	if err != nil {
 		if err2, ok := err.(*SyntaxError); ok && err2.path == "" {
 			err2.path = path
@@ -102,21 +102,21 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 
 	var err error
 	var path string
-	var language ast.Language
+	var format ast.Format
 	var imported bool
 
-	// Get the file's absolute path, its language and if it should be
+	// Get the file's absolute path, its format and if it should be
 	// a declarations file.
 	switch n := node.(type) {
 	case *ast.Extends:
 		path = n.Path
-		language = ast.Language(n.Context)
+		format = ast.Format(n.Context)
 	case *ast.Import:
 		path = n.Path
 		imported = true
 	case *ast.ShowPartial:
 		path = n.Path
-		language = ast.Language(n.Context)
+		format = ast.Format(n.Context)
 	}
 	path, err = pp.abs(path)
 	if err != nil {
@@ -141,10 +141,10 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 			case *ast.ShowPartial:
 				return nil, syntaxError(node.Pos(), "show of file extended at %s:%s", parsed.parent.path, n.Pos())
 			}
-			if language != parsed.tree.Language {
-				if !(language == ast.LanguageMarkdown && parsed.tree.Language == ast.LanguageHTML) {
+			if format != parsed.tree.Format {
+				if !(format == ast.FormatMarkdown && parsed.tree.Format == ast.FormatHTML) {
 					return nil, syntaxError(node.Pos(), "extended file %q is %s instead of %s",
-						path, parsed.tree.Language, language)
+						path, parsed.tree.Format, format)
 				}
 			}
 		case *ast.Import:
@@ -155,8 +155,8 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 			if _, ok := node.(*ast.Import); ok {
 				return nil, syntaxError(node.Pos(), "import of file shown at %s:%s", parsed.parent.path, n.Pos())
 			}
-			if language != parsed.tree.Language {
-				return nil, syntaxError(node.Pos(), "shown file %q is %s instead of %s", path, parsed.tree.Language, language)
+			if format != parsed.tree.Format {
+				return nil, syntaxError(node.Pos(), "shown file %q is %s instead of %s", path, parsed.tree.Format, format)
 			}
 		}
 		tree = parsed.tree
@@ -164,22 +164,22 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 
 	if tree == nil {
 		// Parse the file.
-		src, lang, err := pp.reader.ReadFile(path)
+		src, fo, err := pp.reader.ReadFile(path)
 		if err != nil {
 			return nil, err
 		}
-		if lang != language {
+		if fo != format {
 			switch node.(type) {
 			case *ast.Extends:
-				if !(language == ast.LanguageMarkdown && lang == ast.LanguageHTML) {
+				if !(format == ast.FormatMarkdown && fo == ast.FormatHTML) {
 					return nil, syntaxError(node.Pos(), "extended file %q is %s instead of %s",
-						path, lang, language)
+						path, fo, format)
 				}
 			case *ast.ShowPartial:
-				return nil, syntaxError(node.Pos(), "shown file %q is %s instead of %s", path, lang, language)
+				return nil, syntaxError(node.Pos(), "shown file %q is %s instead of %s", path, fo, format)
 			}
 		}
-		tree, err = pp.parseSource(src, path, lang, imported)
+		tree, err = pp.parseSource(src, path, fo, imported)
 		if err != nil {
 			return nil, err
 		}
@@ -193,11 +193,11 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 }
 
 // parseSource parses src expanding Extends, Import and ShowPartial nodes.
-// path is the path of the file, lang is its language and imported indicates
-// whether the file is imported. path must be absolute and cleared.
-func (pp *templateExpansion) parseSource(src []byte, path string, lang ast.Language, imported bool) (*ast.Tree, error) {
+// path is the path of the file, format is its content format and imported
+// indicates whether the file is imported. path must be absolute and cleared.
+func (pp *templateExpansion) parseSource(src []byte, path string, format ast.Format, imported bool) (*ast.Tree, error) {
 
-	tree, err := ParseTemplateSource(src, lang, imported)
+	tree, err := ParseTemplateSource(src, format, imported)
 	if err != nil {
 		if se, ok := err.(*SyntaxError); ok {
 			se.path = path

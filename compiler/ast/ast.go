@@ -112,37 +112,37 @@ const (
 	AssignmentDecrement                            // --
 )
 
-// A Language represents a source language.
-type Language int
+// A Format represents a content format.
+type Format int
 
 const (
-	LanguageText Language = iota
-	LanguageHTML
-	LanguageCSS
-	LanguageJS
-	LanguageJSON
-	LanguageMarkdown
-	LanguageGo // TODO(marco): move in first position.
+	FormatText Format = iota
+	FormatHTML
+	FormatCSS
+	FormatJS
+	FormatJSON
+	FormatMarkdown
+	FormatGo // TODO(marco): move in first position.
 )
 
-func (lang Language) String() string {
-	switch lang {
-	case LanguageGo:
+func (format Format) String() string {
+	switch format {
+	case FormatGo:
 		return "Go"
-	case LanguageText:
+	case FormatText:
 		return "text"
-	case LanguageHTML:
+	case FormatHTML:
 		return "HTML"
-	case LanguageCSS:
+	case FormatCSS:
 		return "CSS"
-	case LanguageJS:
+	case FormatJS:
 		return "JavaScript"
-	case LanguageJSON:
+	case FormatJSON:
 		return "JSON"
-	case LanguageMarkdown:
+	case FormatMarkdown:
 		return "Markdown"
 	}
-	panic("invalid language")
+	panic("invalid format")
 }
 
 // Context indicates the context in which a value statement must be valuated.
@@ -278,12 +278,12 @@ func (e *expression) SetParenthesis(n int) {
 // Tree node represents a tree.
 type Tree struct {
 	*Position
-	Path     string   // path of the tree.
-	Nodes    []Node   // nodes of the first level of the tree.
-	Language Language // source language.
+	Path   string // path of the tree.
+	Nodes  []Node // nodes of the first level of the tree.
+	Format Format // content format.
 }
 
-func NewTree(path string, nodes []Node, language Language) *Tree {
+func NewTree(path string, nodes []Node, format Format) *Tree {
 	if nodes == nil {
 		nodes = []Node{}
 	}
@@ -291,7 +291,7 @@ func NewTree(path string, nodes []Node, language Language) *Tree {
 		Position: &Position{1, 1, 0, 0},
 		Path:     path,
 		Nodes:    nodes,
-		Language: language,
+		Format:   format,
 	}
 	return tree
 }

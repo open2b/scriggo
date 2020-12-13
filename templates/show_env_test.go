@@ -70,10 +70,10 @@ var testJSONEnvStringerValue = &testJSONEnvStringer{}
 // ---
 
 var envStringerCases = map[string]struct {
-	sources  map[string]string
-	globals  map[string]interface{}
-	language Language
-	want     string
+	sources map[string]string
+	globals map[string]interface{}
+	format  Format
+	want    string
 }{
 	"EnvStringer": {
 		sources: map[string]string{
@@ -82,8 +82,8 @@ var envStringerCases = map[string]struct {
 		globals: map[string]interface{}{
 			"v": &testEnvStringerValue,
 		},
-		language: LanguageText,
-		want:     "value read from env is 42",
+		format: FormatText,
+		want:   "value read from env is 42",
 	},
 	"HTMLEnvStringer": {
 		sources: map[string]string{
@@ -92,8 +92,8 @@ var envStringerCases = map[string]struct {
 		globals: map[string]interface{}{
 			"v": &testHTMLEnvStringerValue,
 		},
-		language: LanguageHTML,
-		want:     "value read from env is 42",
+		format: FormatHTML,
+		want:   "value read from env is 42",
 	},
 	"CSSEnvStringer": {
 		sources: map[string]string{
@@ -102,8 +102,8 @@ var envStringerCases = map[string]struct {
 		globals: map[string]interface{}{
 			"v": &testCSSEnvStringerValue,
 		},
-		language: LanguageCSS,
-		want:     "border-radius: 42;",
+		format: FormatCSS,
+		want:   "border-radius: 42;",
 	},
 	"JSEnvStringer": {
 		sources: map[string]string{
@@ -112,8 +112,8 @@ var envStringerCases = map[string]struct {
 		globals: map[string]interface{}{
 			"v": &testJSEnvStringerValue,
 		},
-		language: LanguageJS,
-		want:     "var x = 42;",
+		format: FormatJS,
+		want:   "var x = 42;",
 	},
 	"JSONEnvStringer": {
 		sources: map[string]string{
@@ -122,8 +122,8 @@ var envStringerCases = map[string]struct {
 		globals: map[string]interface{}{
 			"v": &testJSONEnvStringerValue,
 		},
-		language: LanguageJSON,
-		want:     "var x = 42;",
+		format: FormatJSON,
+		want:   "var x = 42;",
 	},
 }
 
@@ -147,14 +147,14 @@ func TestEnvStringer(t *testing.T) {
 				Globals: cas.globals,
 			}
 			name := "index.txt"
-			switch cas.language {
-			case LanguageHTML:
+			switch cas.format {
+			case FormatHTML:
 				name = "index.html"
-			case LanguageCSS:
+			case FormatCSS:
 				name = "index.css"
-			case LanguageJS:
+			case FormatJS:
 				name = "index.js"
-			case LanguageJSON:
+			case FormatJSON:
 				name = "index.json"
 			}
 			template, err := Build(name, r, opts)

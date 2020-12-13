@@ -516,14 +516,14 @@ var scanAttributeTests = []struct {
 	{"5c=\"", "5c", '"', 3, 1, 4},
 }
 
-func testLexerTypes(t *testing.T, test map[string][]tokenTyp, lang ast.Language) {
+func testLexerTypes(t *testing.T, test map[string][]tokenTyp, format ast.Format) {
 TYPES:
 	for source, types := range test {
 		var lex *lexer
-		if lang == ast.LanguageGo {
+		if format == ast.FormatGo {
 			lex = scanProgram([]byte(source))
 		} else {
-			lex = scanTemplate([]byte(source), lang)
+			lex = scanTemplate([]byte(source), format)
 		}
 		var i int
 		for tok := range lex.tokens() {
@@ -550,15 +550,15 @@ TYPES:
 }
 
 func TestLexerTypes(t *testing.T) {
-	testLexerTypes(t, typeTests, ast.LanguageText)
+	testLexerTypes(t, typeTests, ast.FormatText)
 }
 
-func TestLexerTypesHTMLLanguage(t *testing.T) {
-	testLexerTypes(t, typeTestsHTMLContext, ast.LanguageHTML)
+func TestLexerTypesHTMLFormat(t *testing.T) {
+	testLexerTypes(t, typeTestsHTMLContext, ast.FormatHTML)
 }
 
-func TestLexerTypesGoLanguage(t *testing.T) {
-	testLexerTypes(t, typeTestsGoContext, ast.LanguageGo)
+func TestLexerTypesGoFormat(t *testing.T) {
+	testLexerTypes(t, typeTestsGoContext, ast.FormatGo)
 }
 
 func TestLexerContexts(t *testing.T) {
@@ -604,7 +604,7 @@ CONTEXTS:
 
 func TestPositions(t *testing.T) {
 	for _, test := range positionTests {
-		var lex = scanTemplate([]byte(test.src), ast.LanguageHTML)
+		var lex = scanTemplate([]byte(test.src), ast.FormatHTML)
 		var i int
 		for tok := range lex.tokens() {
 			if tok.typ == tokenEOF {

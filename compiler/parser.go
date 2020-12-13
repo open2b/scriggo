@@ -17,7 +17,7 @@ import (
 )
 
 type FileReader interface {
-	ReadFile(name string) ([]byte, ast.Language, error)
+	ReadFile(name string) ([]byte, ast.Format, error)
 }
 
 var (
@@ -129,8 +129,8 @@ type parsing struct {
 	// Lexer.
 	lex *lexer
 
-	// Tree source language.
-	language ast.Language
+	// Tree content format.
+	format ast.Format
 
 	// Report whether it is a script.
 	isScript bool
@@ -196,10 +196,10 @@ func parseSource(src []byte, script, shebang bool) (tree *ast.Tree, err error) {
 		return nil, errors.New("scriggo/parser: shebang can be true only for scripts")
 	}
 
-	tree = ast.NewTree("", nil, ast.LanguageGo)
+	tree = ast.NewTree("", nil, ast.FormatGo)
 
 	var p = &parsing{
-		language:  ast.LanguageGo,
+		format:    ast.FormatGo,
 		isScript:  script,
 		ancestors: []ast.Node{tree},
 	}
@@ -252,23 +252,23 @@ func parseSource(src []byte, script, shebang bool) (tree *ast.Tree, err error) {
 	return tree, nil
 }
 
-// ParseTemplateSource parses a template with source src written in the
-// language lang and returns its tree. language can be Text, HTML, CSS or
-// JavaScript. imported indicates whether it is imported.
+// ParseTemplateSource parses a template with content src in the given format
+// and returns its tree. format can be Text, HTML, CSS or JavaScript. imported
+// indicates whether it is imported.
 //
 // ParseTemplateSource does not expand the nodes Extends, ShowPartial and
 // Import.
-func ParseTemplateSource(src []byte, lang ast.Language, imported bool) (tree *ast.Tree, err error) {
+func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *ast.Tree, err error) {
 
-	if lang < ast.LanguageText || lang > ast.LanguageMarkdown {
-		return nil, errors.New("scriggo: invalid language")
+	if format < ast.FormatText || format > ast.FormatMarkdown {
+		return nil, errors.New("scriggo: invalid format")
 	}
 
-	tree = ast.NewTree("", nil, lang)
+	tree = ast.NewTree("", nil, format)
 
 	var p = &parsing{
-		lex:       scanTemplate(src, lang),
-		language:  lang,
+		lex:       scanTemplate(src, format),
+		format:    format,
 		imported:  imported,
 		ancestors: []ast.Node{tree},
 	}
@@ -997,8 +997,8 @@ LABEL:
 	// extends
 	case tokenExtends:
 		pos := tok.pos
-		if tok.ctx != ast.Context(p.language) {
-			panic(syntaxError(tok.pos, "extends not in %s content", ast.Context(p.language)))
+		if tok.ctx != ast.Context(p.format) {
+			panic(syntaxError(tok.pos, "extends not in %s content", ast.Context(p.format)))
 		}
 		if p.hasExtend {
 			panic(syntaxError(tok.pos, "extends already exists"))
@@ -1113,8 +1113,8 @@ LABEL:
 			}
 			panic(syntaxError(tok.pos, "unexpected import, expecting statement"))
 		}
-		if tok.ctx != ast.Context(p.language) {
-			panic(syntaxError(tok.pos, "import not in %s content", ast.Context(p.language)))
+		if tok.ctx != ast.Context(p.format) {
+			panic(syntaxError(tok.pos, "import not in %s content", ast.Context(p.format)))
 		}
 		tok = p.next()
 		if tok.typ == tokenLeftParenthesis && end != tokenEndStatement {
@@ -1149,8 +1149,8 @@ LABEL:
 		if len(p.ancestors) > 1 {
 			panic(syntaxError(tok.pos, "unexpected macro in statement scope"))
 		}
-		if tok.ctx != ast.Context(p.language) {
-			panic(syntaxError(tok.pos, "macro not in %s content", ast.Context(p.language)))
+		if tok.ctx != ast.Context(p.format) {
+			panic(syntaxError(tok.pos, "macro not in %s content", ast.Context(p.format)))
 		}
 		// Parses the macro name.
 		tok = p.next()

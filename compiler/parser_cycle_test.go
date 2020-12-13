@@ -193,21 +193,21 @@ func TestCyclicTemplates(t *testing.T) {
 
 type mapStringReader map[string]string
 
-func (r mapStringReader) ReadFile(name string) ([]byte, ast.Language, error) {
+func (r mapStringReader) ReadFile(name string) ([]byte, ast.Format, error) {
 	src, ok := r[name]
 	if !ok {
 		panic("not existing")
 	}
-	language := ast.LanguageText
+	format := ast.FormatText
 	switch path.Ext(name) {
 	case ".html":
-		language = ast.LanguageHTML
+		format = ast.FormatHTML
 	case ".css":
-		language = ast.LanguageCSS
+		format = ast.FormatCSS
 	case ".js":
-		language = ast.LanguageJS
+		format = ast.FormatJS
 	case ".json":
-		language = ast.LanguageJSON
+		format = ast.FormatJSON
 	}
-	return []byte(src), language, nil
+	return []byte(src), format, nil
 }

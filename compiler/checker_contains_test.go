@@ -108,7 +108,7 @@ var checkerContainsExprs = []struct {
 
 func TestCheckerContainsExpressions(t *testing.T) {
 	for _, expr := range checkerContainsExprs {
-		var lex = scanTemplate([]byte("{{ "+expr.src+" }}"), ast.LanguageText)
+		var lex = scanTemplate([]byte("{{ "+expr.src+" }}"), ast.FormatText)
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -121,7 +121,7 @@ func TestCheckerContainsExpressions(t *testing.T) {
 			}()
 			var p = &parsing{
 				lex:       lex,
-				language:  ast.LanguageText,
+				format:    ast.FormatText,
 				ancestors: nil,
 			}
 			p.next() // discard tokenLeftBraces.
@@ -172,7 +172,7 @@ var checkerContainsExprErrors = []struct {
 
 func TestCheckerContainsExpressionErrors(t *testing.T) {
 	for _, expr := range checkerContainsExprErrors {
-		var lex = scanTemplate([]byte("{{ "+expr.src+" }}"), ast.LanguageText)
+		var lex = scanTemplate([]byte("{{ "+expr.src+" }}"), ast.FormatText)
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -189,7 +189,7 @@ func TestCheckerContainsExpressionErrors(t *testing.T) {
 			}()
 			var p = &parsing{
 				lex:       lex,
-				language:  ast.LanguageText,
+				format:    ast.FormatText,
 				ancestors: nil,
 			}
 			p.next() // discard tokenLeftBraces.

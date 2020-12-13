@@ -286,7 +286,7 @@ func CloneNode(node ast.Node) ast.Node {
 		for _, n := range n.Nodes {
 			nn = append(nn, CloneNode(n))
 		}
-		return ast.NewTree(n.Path, nn, n.Language)
+		return ast.NewTree(n.Path, nn, n.Format)
 
 	case *ast.URL:
 		var value = make([]ast.Node, len(n.Value))

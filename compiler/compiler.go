@@ -357,7 +357,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 	e.pkg = &ast.Package{}
 	e.isTemplate = true
 	typ := reflect.FuncOf(nil, nil, false)
-	e.fb = newBuilder(newMacro("main", "main", typ, tree.Language, tree.Path, tree.Pos()), tree.Path)
+	e.fb = newBuilder(newMacro("main", "main", typ, tree.Format, tree.Path, tree.Pos()), tree.Path)
 	e.fb.changePath(tree.Path)
 
 	// Globals.
@@ -373,8 +373,8 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 			// Macro declarations in extending page must be accessed by the extended page.
 			for _, dec := range pkg.Declarations {
 				if fn, ok := dec.(*ast.Func); ok && fn.Type.Macro {
-					language := ast.Language(fn.Context)
-					macro := newMacro("main", fn.Ident.Name, fn.Type.Reflect, language, e.fb.getPath(), fn.Pos())
+					format := ast.Format(fn.Context)
+					macro := newMacro("main", fn.Ident.Name, fn.Type.Reflect, format, e.fb.getPath(), fn.Pos())
 					e.fnStore.makeAvailableScriggoFn(e.pkg, fn.Ident.Name, macro)
 				}
 			}
@@ -382,7 +382,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 			backupPath := e.fb.getPath()
 			extends := pkg.Declarations[0].(*ast.Extends)
 			e.fb.changePath(extends.Tree.Path)
-			e.fb.fn.Language = uint8(extends.Tree.Language)
+			e.fb.fn.Format = uint8(extends.Tree.Format)
 			e.fb.enterScope()
 			// Reserves first index of Functions for the function that
 			// initializes package variables. There is no guarantee that such

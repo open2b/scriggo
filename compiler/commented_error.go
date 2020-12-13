@@ -15,7 +15,7 @@ import (
 // A value with type commentedError contains an error that will be rendered as a
 // comment.
 //
-// If the language where the commentedError value is rendered does not support
+// If the format where the commentedError value is rendered does not support
 // comments then such value is rendered as the empty string.
 type commentedError struct{ Err error }
 

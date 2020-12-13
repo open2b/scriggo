@@ -182,17 +182,17 @@ func newFunction(pkg, name string, typ reflect.Type, file string, pos *ast.Posit
 	return &fn
 }
 
-// newMacro returns a new macro with a given package, name and type. language,
-// file and pos are, respectively, the language, the file and the position
-// where the macro is declared.
-func newMacro(pkg, name string, typ reflect.Type, language ast.Language, file string, pos *ast.Position) *runtime.Function {
+// newMacro returns a new macro with a given package, name and type. format,
+// file and pos are, respectively, the format, the file and the position where
+// the macro is declared.
+func newMacro(pkg, name string, typ reflect.Type, format ast.Format, file string, pos *ast.Position) *runtime.Function {
 	fn := runtime.Function{
-		Pkg:      pkg,
-		Name:     name,
-		Macro:    true,
-		Language: uint8(language),
-		Type:     typ,
-		File:     file,
+		Pkg:    pkg,
+		Name:   name,
+		Macro:  true,
+		Format: uint8(format),
+		Type:   typ,
+		File:   file,
 	}
 	if pos != nil {
 		fn.Pos = &runtime.Position{

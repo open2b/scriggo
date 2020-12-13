@@ -31,8 +31,8 @@ type renderer struct {
 	// out is the io.Writer to write to.
 	out io.Writer
 
-	// language.
-	language ast.Language
+	// format.
+	format ast.Format
 
 	// Markdown converter.
 	converter Converter
@@ -53,21 +53,21 @@ type renderer struct {
 }
 
 // newRenderer returns a new renderer that writes to out a source in the given
-// language possibly using markdownConverter to convert Markdown to HTML.
-func newRenderer(out io.Writer, language ast.Language, markdownConverter Converter) *renderer {
-	return &renderer{out: out, language: language, converter: markdownConverter}
+// format possibly using markdownConverter to convert Markdown to HTML.
+func newRenderer(out io.Writer, format ast.Format, markdownConverter Converter) *renderer {
+	return &renderer{out: out, format: format, converter: markdownConverter}
 }
 
-func (r *renderer) Enter(out io.Writer, language uint8) runtime.Renderer {
+func (r *renderer) Enter(out io.Writer, format uint8) runtime.Renderer {
 	if out == nil {
 		out = r.out
 	}
-	lang := ast.Language(language)
-	if lang == ast.LanguageMarkdown && r.language == ast.LanguageHTML {
+	fo := ast.Format(format)
+	if fo == ast.FormatMarkdown && r.format == ast.FormatHTML {
 		out = newMarkdownWriter(out, r.converter)
-		return newRenderer(out, lang, nil)
+		return newRenderer(out, fo, nil)
 	}
-	return newRenderer(out, lang, r.converter)
+	return newRenderer(out, fo, r.converter)
 }
 
 func (r *renderer) Exit() error {

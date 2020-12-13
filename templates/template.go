@@ -133,20 +133,20 @@ func (md Markdown) Markdown() string {
 	return string(md)
 }
 
-// A Language represents a source language.
-type Language int
+// A Format represents a content format.
+type Format int
 
 const (
-	LanguageText Language = iota
-	LanguageHTML
-	LanguageCSS
-	LanguageJS
-	LanguageJSON
-	LanguageMarkdown
+	FormatText Format = iota
+	FormatHTML
+	FormatCSS
+	FormatJS
+	FormatJSON
+	FormatMarkdown
 )
 
-func (language Language) String() string {
-	return ast.Language(language).String()
+func (format Format) String() string {
+	return ast.Format(format).String()
 }
 
 type BuildOptions struct {
@@ -172,7 +172,7 @@ type BuildOptions struct {
 // Declarations.
 type Declarations map[string]interface{}
 
-// Converter is implemented by language converters.
+// Converter is implemented by format converters.
 type Converter func(src []byte, out io.Writer) error
 
 type RunOptions struct {
@@ -197,49 +197,48 @@ type CompilerError interface {
 	Message() string
 }
 
-type fileLanguageReader struct {
+type fileFormatReader struct {
 	r FileReader
 }
 
-func (f fileLanguageReader) ReadFile(name string) ([]byte, ast.Language, error) {
+func (f fileFormatReader) ReadFile(name string) ([]byte, ast.Format, error) {
 	src, err := f.r.ReadFile(name)
 	if err != nil {
 		return nil, 0, err
 	}
-	language := ast.LanguageText
 	if files, ok := f.r.(interface {
-		Language(string) (Language, error)
+		Format(string) (Format, error)
 	}); ok {
-		lang, err := files.Language(name)
+		format, err := files.Format(name)
 		if err != nil {
 			return nil, 0, err
 		}
-		if lang < LanguageText || lang > LanguageMarkdown {
-			return nil, 0, fmt.Errorf("unkonwn language %d", lang)
+		if format < FormatText || format > FormatMarkdown {
+			return nil, 0, fmt.Errorf("unkonwn format %d", format)
 		}
-		language = ast.Language(lang)
-	} else {
-		switch path.Ext(name) {
-		case ".html":
-			language = ast.LanguageHTML
-		case ".css":
-			language = ast.LanguageCSS
-		case ".js":
-			language = ast.LanguageJS
-		case ".json":
-			language = ast.LanguageJSON
-		case ".md", ".markdown":
-			language = ast.LanguageMarkdown
-		}
+		return src, ast.Format(format), nil
 	}
-	return src, language, nil
+	format := ast.FormatText
+	switch path.Ext(name) {
+	case ".html":
+		format = ast.FormatHTML
+	case ".css":
+		format = ast.FormatCSS
+	case ".js":
+		format = ast.FormatJS
+	case ".json":
+		format = ast.FormatJSON
+	case ".md", ".markdown":
+		format = ast.FormatMarkdown
+	}
+	return src, format, nil
 }
 
 // Build builds a template given its file name. Build calls the method
 // ReadFile of files to read the files of the template.
 //
-// The language of the file depends on the extension of name or, if files has
-// the method 'Language(string) (Language, error)', Build gets the language
+// The format of the file depends on the extension of name or, if files has
+// the method 'Format(string) (Format, error)', Build gets the format
 // from this method. If this method returns an error, this error is returned.
 func Build(name string, files FileReader, options *BuildOptions) (*Template, error) {
 	co := compiler.Options{Renderer: buildRenderer{}}
@@ -249,7 +248,7 @@ func Build(name string, files FileReader, options *BuildOptions) (*Template, err
 		co.DisallowGoStmt = options.DisallowGoStmt
 		co.Packages = options.Packages
 	}
-	code, err := compiler.BuildTemplate(name, fileLanguageReader{files}, co)
+	code, err := compiler.BuildTemplate(name, fileFormatReader{files}, co)
 	if err != nil {
 		if err == compiler.ErrInvalidPath {
 			return nil, ErrInvalidPath
@@ -276,7 +275,7 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 		}
 		mdConverter = options.MarkdownConverter
 	}
-	renderer := newRenderer(out, ast.Language(t.fn.Language), mdConverter)
+	renderer := newRenderer(out, ast.Format(t.fn.Format), mdConverter)
 	vm.SetRenderer(renderer)
 	_, err := vm.Run(t.fn, t.types, initGlobalVariables(t.globals, vars))
 	return err

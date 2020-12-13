@@ -788,7 +788,7 @@ type Function struct {
 	Types      []reflect.Type
 	NumReg     [4]int8
 	Macro      bool
-	Language   uint8
+	Format     uint8
 	Constants  Registers
 	Functions  []*Function
 	Predefined []*PredefinedFunction

@@ -188,8 +188,8 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 		// Template macro definition.
 		if expr.Ident != nil && expr.Type.Macro {
-			language := ast.Language(expr.Context)
-			macroFn := newMacro("", expr.Ident.Name, expr.Type.Reflect, language, em.fb.getPath(), expr.Pos())
+			format := ast.Format(expr.Context)
+			macroFn := newMacro("", expr.Ident.Name, expr.Type.Reflect, format, em.fb.getPath(), expr.Pos())
 			em.fnStore.makeAvailableScriggoFn(em.pkg, expr.Ident.Name, macroFn)
 			fb := em.fb
 			// Macro declarations are handled as function declarations at

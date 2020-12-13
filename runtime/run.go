@@ -232,8 +232,8 @@ func (vm *VM) run() (Addr, bool) {
 			}
 			if vm.renderer != nil {
 				call.renderer = vm.renderer
-				if fn.Language != vm.fn.Language {
-					vm.renderer = vm.renderer.Enter(nil, fn.Language)
+				if fn.Format != vm.fn.Format {
+					vm.renderer = vm.renderer.Enter(nil, fn.Format)
 				}
 			}
 			vm.fn = fn
@@ -271,8 +271,8 @@ func (vm *VM) run() (Addr, bool) {
 				}
 				if vm.renderer != nil {
 					call.renderer = vm.renderer
-					if fn.Language != vm.fn.Language {
-						vm.renderer = vm.renderer.Enter(nil, fn.Language)
+					if fn.Format != vm.fn.Format {
+						vm.renderer = vm.renderer.Enter(nil, fn.Format)
 					}
 				}
 				vm.fn = fn

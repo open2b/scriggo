@@ -46,14 +46,14 @@ func scanScript(text []byte) *lexer {
 }
 
 // scanTemplate scans a template page and returns a lexer.
-func scanTemplate(text []byte, language ast.Language) *lexer {
+func scanTemplate(text []byte, format ast.Format) *lexer {
 	tokens := make(chan token, 20)
 	lex := &lexer{
 		text:           text,
 		src:            text,
 		line:           1,
 		column:         1,
-		ctx:            ast.Context(language),
+		ctx:            ast.Context(format),
 		toks:           tokens,
 		extendedSyntax: true,
 	}
