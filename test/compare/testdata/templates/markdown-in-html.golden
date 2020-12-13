@@ -1,0 +1,19 @@
+<html>
+<head>
+  <title>Markdown in HTML</title>
+</head>
+<body>
+
+--- start Markdown ---
+# title
+content
+--- end Markdown ---
+
+--- start Markdown ---
+## items
+* item 1
+* item 2
+* item 3
+--- end Markdown ---
+
+</body>

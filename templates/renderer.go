@@ -8,6 +8,7 @@ package templates
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"html"
 	"io"
@@ -23,11 +24,18 @@ import (
 	"github.com/open2b/scriggo/runtime"
 )
 
-// renderer implements the runtime.Renderer interface.
+// renderer implements the runtime.Renderer interface and it is used to render
+// template files.
 type renderer struct {
 
 	// out is the io.Writer to write to.
 	out io.Writer
+
+	// language.
+	language ast.Language
+
+	// Markdown converter.
+	converter Converter
 
 	// inURL reports whether it is in a URL.
 	inURL bool
@@ -44,9 +52,29 @@ type renderer struct {
 	removeQuestionMark bool
 }
 
-// newRenderer returns a new renderer that writes to out.
-func newRenderer(out io.Writer) *renderer {
-	return &renderer{out: out}
+// newRenderer returns a new renderer that writes to out a source in the given
+// language possibly using markdownConverter to convert Markdown to HTML.
+func newRenderer(out io.Writer, language ast.Language, markdownConverter Converter) *renderer {
+	return &renderer{out: out, language: language, converter: markdownConverter}
+}
+
+func (r *renderer) Enter(out io.Writer, language uint8) runtime.Renderer {
+	if out == nil {
+		out = r.out
+	}
+	lang := ast.Language(language)
+	if lang == ast.LanguageMarkdown && r.language == ast.LanguageHTML {
+		out = newMarkdownWriter(out, r.converter)
+		return newRenderer(out, lang, nil)
+	}
+	return newRenderer(out, lang, r.converter)
+}
+
+func (r *renderer) Exit() error {
+	if w, ok := r.out.(*markdownWriter); ok {
+		return w.Close()
+	}
+	return nil
 }
 
 // Show shows v in the given context.
@@ -205,6 +233,33 @@ func (r *renderer) endURL() {
 	r.query = false
 	r.addAmpersand = false
 	r.removeQuestionMark = false
+}
+
+// markdownWriter implements an io.WriteCloser that write in the buffer buf.
+// When the Close method is called, it converts the content in the buffer,
+// using converter, from Markdown to HTML and write the resulting code to out.
+type markdownWriter struct {
+	buf     bytes.Buffer
+	convert Converter
+	out     io.Writer
+}
+
+// newMarkdownWriter returns a *markdownWriter value that write to out the
+// Markdown code converted to HTML by converter.
+func newMarkdownWriter(out io.Writer, converter Converter) *markdownWriter {
+	var buf bytes.Buffer
+	return &markdownWriter{buf, converter, out}
+}
+
+func (w *markdownWriter) Write(p []byte) (int, error) {
+	return w.buf.Write(p)
+}
+
+func (w *markdownWriter) Close() error {
+	if w.convert == nil {
+		return errors.New("no Markdown convert available")
+	}
+	return w.convert(w.buf.Bytes(), w.out)
 }
 
 type strWriterWrapper struct {

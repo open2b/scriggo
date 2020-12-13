@@ -8,6 +8,7 @@ package templates
 
 import (
 	"fmt"
+	"io"
 	"reflect"
 	"time"
 
@@ -52,6 +53,10 @@ func decodeRenderContext(c uint8) (ast.Context, bool, bool) {
 // buildRenderer implements the runtime.Renderer interface and it is used
 // during the build of the template to type checks a show statement.
 type buildRenderer struct{}
+
+func (r buildRenderer) Enter(io.Writer, uint8) runtime.Renderer { return nil }
+
+func (r buildRenderer) Exit() error { return nil }
 
 func (r buildRenderer) Show(env runtime.Env, v interface{}, context uint8) {
 	t := env.Types().TypeOf(v)

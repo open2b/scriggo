@@ -136,7 +136,10 @@ func main() {
 			os.Exit(1)
 		}
 		if cmd != "build" {
-			err = template.Run(os.Stdout, nil, nil)
+			opts := &templates.RunOptions{
+				MarkdownConverter: markdownConverter,
+			}
+			err = template.Run(os.Stdout, nil, opts)
 			if err != nil {
 				panic(convertRunError(err))
 			}
@@ -163,6 +166,23 @@ func convertRunError(err error) error {
 			p = p.Next()
 		}
 		return errors.New(msg)
+	}
+	return err
+}
+
+var mdStart = []byte("--- start Markdown ---\n")
+var mdEnd = []byte("--- end Markdown ---\n")
+
+// markdownConverter is a templates.Converter that it used to check that the
+// markdown converter is called. To do this, markdownConverter does not
+// convert but only wraps the Markdown code.
+func markdownConverter(src []byte, out io.Writer) error {
+	_, err := out.Write(mdStart)
+	if err == nil {
+		_, err = out.Write(src)
+	}
+	if err == nil {
+		_, err = out.Write(mdEnd)
 	}
 	return err
 }

@@ -30,7 +30,7 @@ func (vm *VM) runFunc(fn *Function, vars []interface{}) error {
 		if len(vm.calls) == 0 {
 			break
 		}
-		vm.calls = append(vm.calls, callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: panicked})
+		vm.calls = append(vm.calls, callFrame{cl: callable{fn: vm.fn}, renderer: vm.renderer, fp: vm.fp, status: panicked})
 		vm.fn = nil
 	}
 	if vm.panic != nil {
@@ -230,6 +230,12 @@ func (vm *VM) run() (Addr, bool) {
 			if vm.fp[3]+Addr(fn.NumReg[3]) > vm.st[3] {
 				vm.moreGeneralStack()
 			}
+			if vm.renderer != nil {
+				call.renderer = vm.renderer
+				if fn.Language != vm.fn.Language {
+					vm.renderer = vm.renderer.Enter(nil, fn.Language)
+				}
+			}
 			vm.fn = fn
 			vm.vars = vm.env.globals
 			vm.calls = append(vm.calls, call)
@@ -262,6 +268,12 @@ func (vm *VM) run() (Addr, bool) {
 				vm.fp[3] += Addr(off.C)
 				if vm.fp[3]+Addr(fn.NumReg[3]) > vm.st[3] {
 					vm.moreGeneralStack()
+				}
+				if vm.renderer != nil {
+					call.renderer = vm.renderer
+					if fn.Language != vm.fn.Language {
+						vm.renderer = vm.renderer.Enter(nil, fn.Language)
+					}
 				}
 				vm.fn = fn
 				vm.vars = f.vars
@@ -478,7 +490,7 @@ func (vm *VM) run() (Addr, bool) {
 				vm.fp[3] + Addr(off.C),
 			}
 			vm.swapStack(&vm.fp, &fp, StackShift{int8(arg.Op), arg.A, arg.B, arg.C})
-			vm.calls = append(vm.calls, callFrame{cl: *cl, fp: fp, pc: 0, status: deferred, numVariadic: c})
+			vm.calls = append(vm.calls, callFrame{cl: *cl, renderer: vm.renderer, fp: fp, pc: 0, status: deferred, numVariadic: c})
 			vm.pc += 2
 
 		// Delete
@@ -1471,6 +1483,15 @@ func (vm *VM) run() (Addr, bool) {
 			call := vm.calls[i]
 			if call.status == started {
 				// TODO(marco): call finalizer.
+				if vm.renderer != nil {
+					if call.renderer != vm.renderer {
+						err := vm.renderer.Exit()
+						if err != nil {
+							panic(&FatalError{env: vm.env, msg: err})
+						}
+					}
+					vm.renderer = call.renderer
+				}
 				vm.calls = vm.calls[:i]
 				vm.fp = call.fp
 				vm.fn = call.cl.fn
@@ -1678,7 +1699,7 @@ func (vm *VM) run() (Addr, bool) {
 			if rv.IsValid() {
 				v = rv.Interface()
 			}
-			vm.env.renderer.Show(vm.env, v, uint8(c))
+			vm.renderer.Show(vm.env, v, uint8(c))
 
 		// Slice
 		case OpSlice:
@@ -1808,7 +1829,7 @@ func (vm *VM) run() (Addr, bool) {
 		// Text
 		case OpText:
 			txt := vm.fn.Text[decodeUint16(a, b)]
-			vm.env.renderer.Text(vm.env, txt, uint8(c))
+			vm.renderer.Text(vm.env, txt, uint8(c))
 
 		// Typify
 		case OpTypify, -OpTypify:

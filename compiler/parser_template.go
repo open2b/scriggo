@@ -142,7 +142,10 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 				return nil, syntaxError(node.Pos(), "show of file extended at %s:%s", parsed.parent.path, n.Pos())
 			}
 			if language != parsed.tree.Language {
-				return nil, syntaxError(node.Pos(), "extended file %q is %s instead of %s", path, parsed.tree.Language, language)
+				if !(language == ast.LanguageMarkdown && parsed.tree.Language == ast.LanguageHTML) {
+					return nil, syntaxError(node.Pos(), "extended file %q is %s instead of %s",
+						path, parsed.tree.Language, language)
+				}
 			}
 		case *ast.Import:
 			if _, ok := node.(*ast.ShowPartial); ok {
@@ -165,11 +168,16 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 		if err != nil {
 			return nil, err
 		}
-		if !imported && lang != language {
-			if _, ok := node.(*ast.Extends); ok {
-				return nil, syntaxError(node.Pos(), "extended file %q is %s instead of %s", path, lang, language)
+		if lang != language {
+			switch node.(type) {
+			case *ast.Extends:
+				if !(language == ast.LanguageMarkdown && lang == ast.LanguageHTML) {
+					return nil, syntaxError(node.Pos(), "extended file %q is %s instead of %s",
+						path, lang, language)
+				}
+			case *ast.ShowPartial:
+				return nil, syntaxError(node.Pos(), "shown file %q is %s instead of %s", path, lang, language)
 			}
-			return nil, syntaxError(node.Pos(), "shown file %q is %s instead of %s", path, lang, language)
 		}
 		tree, err = pp.parseSource(src, path, lang, imported)
 		if err != nil {

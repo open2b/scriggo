@@ -172,9 +172,15 @@ type BuildOptions struct {
 // Declarations.
 type Declarations map[string]interface{}
 
+// Converter is implemented by language converters.
+type Converter func(src []byte, out io.Writer) error
+
 type RunOptions struct {
 	Context   context.Context
 	PrintFunc runtime.PrintFunc
+
+	// MarkdownConverter converts a Markdown source code to HTML.
+	MarkdownConverter Converter
 }
 
 type Template struct {
@@ -260,6 +266,7 @@ func Build(name string, files FileReader, options *BuildOptions) (*Template, err
 // the values of the global variables.
 func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunOptions) error {
 	vm := runtime.NewVM()
+	var mdConverter Converter
 	if options != nil {
 		if options.Context != nil {
 			vm.SetContext(options.Context)
@@ -267,8 +274,10 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 		if options.PrintFunc != nil {
 			vm.SetPrint(options.PrintFunc)
 		}
+		mdConverter = options.MarkdownConverter
 	}
-	vm.SetRenderer(newRenderer(out))
+	renderer := newRenderer(out, ast.Language(t.fn.Language), mdConverter)
+	vm.SetRenderer(renderer)
 	_, err := vm.Run(t.fn, t.types, initGlobalVariables(t.globals, vars))
 	return err
 }

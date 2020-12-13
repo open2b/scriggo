@@ -104,19 +104,20 @@ func decodeFieldIndex(i int64) []int {
 
 // VM represents a Scriggo virtual machine.
 type VM struct {
-	fp     [4]Addr              // frame pointers.
-	st     [4]Addr              // stack tops.
-	pc     Addr                 // program counter.
-	ok     bool                 // ok flag.
-	regs   registers            // registers.
-	fn     *Function            // running function.
-	vars   []interface{}        // global and closure variables.
-	env    *env                 // execution environment.
-	envArg reflect.Value        // execution environment as argument.
-	calls  []callFrame          // call stack frame.
-	cases  []reflect.SelectCase // select cases.
-	panic  *Panic               // panic.
-	main   bool                 // reports whether this VM is executing the the main goroutine.
+	fp       [4]Addr              // frame pointers.
+	st       [4]Addr              // stack tops.
+	pc       Addr                 // program counter.
+	ok       bool                 // ok flag.
+	regs     registers            // registers.
+	fn       *Function            // running function.
+	vars     []interface{}        // global and closure variables.
+	env      *env                 // execution environment.
+	envArg   reflect.Value        // execution environment as argument.
+	renderer Renderer             // renderer
+	calls    []callFrame          // call stack frame.
+	cases    []reflect.SelectCase // select cases.
+	panic    *Panic               // panic.
+	main     bool                 // reports whether this VM is executing the the main goroutine.
 }
 
 // NewVM returns a new virtual machine.
@@ -200,7 +201,7 @@ func (vm *VM) SetPrint(p func(interface{})) {
 //
 // SetRenderer must not be called after vm has been started.
 func (vm *VM) SetRenderer(r Renderer) {
-	vm.env.renderer = r
+	vm.renderer = r
 }
 
 // Stack returns the current stack trace.
@@ -516,7 +517,7 @@ func (vm *VM) nextCall() bool {
 		case deferred:
 			// A call, that has deferred calls, is returned, its first
 			// deferred call will be executed.
-			current := callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: returned}
+			current := callFrame{cl: callable{fn: vm.fn}, renderer: vm.renderer, fp: vm.fp, status: returned}
 			vm.swapStack(&call.fp, &current.fp, current.cl.fn.NumReg)
 			vm.calls[i] = current
 			i++
@@ -572,6 +573,7 @@ func (vm *VM) nextCall() bool {
 				vm.pc = call.pc
 				vm.fn = call.cl.fn
 				vm.vars = call.cl.vars
+				vm.renderer = call.renderer
 				return true
 			}
 			vm.fp = call.fp
@@ -786,6 +788,7 @@ type Function struct {
 	Types      []reflect.Type
 	NumReg     [4]int8
 	Macro      bool
+	Language   uint8
 	Constants  Registers
 	Functions  []*Function
 	Predefined []*PredefinedFunction
@@ -834,6 +837,7 @@ const CallFrameSize = 88
 // If the size of callFrame changes, update the constant CallFrameSize.
 type callFrame struct {
 	cl          callable   // callable.
+	renderer    Renderer   // renderer
 	fp          [4]Addr    // frame pointers.
 	pc          Addr       // program counter.
 	status      callStatus // status.

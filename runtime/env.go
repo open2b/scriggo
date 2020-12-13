@@ -8,6 +8,7 @@ package runtime
 
 import (
 	"context"
+	"io"
 	"reflect"
 	"sync"
 )
@@ -69,17 +70,18 @@ type Types interface {
 }
 
 type Renderer interface {
+	Enter(out io.Writer, language uint8) Renderer
+	Exit() error
 	Show(env Env, v interface{}, ctx uint8)
 	Text(env Env, txt []byte, ctx uint8)
 }
 
 // The env type implements the Env interface.
 type env struct {
-	ctx      context.Context // context.
-	globals  []interface{}   // global variables.
-	print    PrintFunc       // custom print builtin.
-	renderer Renderer        // renderer.
-	types    Types           // types.
+	ctx     context.Context // context.
+	globals []interface{}   // global variables.
+	print   PrintFunc       // custom print builtin.
+	types   Types           // types.
 
 	// Only exited, exits and filePath fields can be changed after the vm has
 	// been started and access to these three fields must be done with this

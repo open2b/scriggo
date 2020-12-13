@@ -169,7 +169,8 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 					fn = emFn
 				} else {
 					if fun.Type.Macro {
-						fn = newMacro("main", fun.Ident.Name, fun.Type.Reflect, path, fun.Pos())
+						language := ast.Language(fun.Context)
+						fn = newMacro("main", fun.Ident.Name, fun.Type.Reflect, language, path, fun.Pos())
 					} else {
 						fn = newFunction("main", fun.Ident.Name, fun.Type.Reflect, path, fun.Pos())
 					}
