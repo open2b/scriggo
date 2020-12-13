@@ -168,7 +168,11 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				if emFn, ok := em.alreadyEmittedFuncs[fun]; ok {
 					fn = emFn
 				} else {
-					fn = newFunction("main", fun.Ident.Name, fun.Type.Macro, fun.Type.Reflect, path, fun.Pos())
+					if fun.Type.Macro {
+						fn = newMacro("main", fun.Ident.Name, fun.Type.Reflect, path, fun.Pos())
+					} else {
+						fn = newFunction("main", fun.Ident.Name, fun.Type.Reflect, path, fun.Pos())
+					}
 				}
 				if fun.Ident.Name == "init" {
 					inits = append(inits, fn)
@@ -196,7 +200,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 			// of collision with Scriggo defined functions.
 			backupFb := em.fb
 			if initVarsFn == nil {
-				initVarsFn = newFunction("main", "$initvars", false, reflect.FuncOf(nil, nil, false), path, nil)
+				initVarsFn = newFunction("main", "$initvars", reflect.FuncOf(nil, nil, false), path, nil)
 				em.fnStore.makeAvailableScriggoFn(em.pkg, "$initvars", initVarsFn)
 				initVarsFb = newBuilder(initVarsFn, path)
 			}

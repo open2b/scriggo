@@ -15,7 +15,7 @@ import (
 )
 
 func new_test_builder() *functionBuilder {
-	fn := newFunction("", "", false, reflect.FuncOf(nil, nil, false), "", &ast.Position{})
+	fn := newFunction("", "", reflect.FuncOf(nil, nil, false), "", &ast.Position{})
 	return newBuilder(fn, "")
 }
 
