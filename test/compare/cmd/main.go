@@ -87,9 +87,9 @@ func main() {
 			src = main.(io.Reader)
 			packages = scriggo.CombinedLoader{dir, packages}
 		}
-		loadOpts := &scriggo.BuildOptions{}
-		loadOpts.DisallowGoStmt = *disallowGoStmt
-		program, err := scriggo.Build(src, packages, loadOpts)
+		opts := &scriggo.BuildOptions{}
+		opts.DisallowGoStmt = *disallowGoStmt
+		program, err := scriggo.Build(src, packages, opts)
 		if err != nil {
 			_, _ = fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -101,9 +101,9 @@ func main() {
 			}
 		}
 	case ".script":
-		loadOpts := &scripts.BuildOptions{}
-		loadOpts.DisallowGoStmt = *disallowGoStmt
-		script, err := scripts.Build(os.Stdin, predefPkgs, loadOpts)
+		opts := &scripts.BuildOptions{}
+		opts.DisallowGoStmt = *disallowGoStmt
+		script, err := scripts.Build(os.Stdin, predefPkgs, opts)
 		if err != nil {
 			_, _ = fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
