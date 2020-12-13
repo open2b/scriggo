@@ -18,6 +18,8 @@ heading
 
 {{ "***bold and italic***" }}
 
+{{ "~strikethrough~" }}
+
 {{ "> blockquotes" }}
 {{ ">> nested blockquotes" }}
 

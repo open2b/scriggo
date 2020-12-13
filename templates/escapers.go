@@ -550,7 +550,7 @@ func markdownEscape(w strWriter, s string) error {
 	var esc []byte
 	for i := 0; i < len(s); i++ {
 		switch s[i] {
-		case '\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '=', '.', '!', '|', '<', '>', '&':
+		case '\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '=', '.', '!', '|', '<', '>', '&', '~':
 			esc = slash
 		case ' ', '\t':
 			if 0 < i && i < len(s)-1 {
