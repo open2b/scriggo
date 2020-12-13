@@ -235,16 +235,16 @@ func (r *renderer) endURL() {
 	r.removeQuestionMark = false
 }
 
-// markdownWriter implements an io.WriteCloser that write in the buffer buf.
+// markdownWriter implements an io.WriteCloser that writes to the buffer buf.
 // When the Close method is called, it converts the content in the buffer,
-// using converter, from Markdown to HTML and write the resulting code to out.
+// using converter, from Markdown to HTML and writes it to out.
 type markdownWriter struct {
 	buf     bytes.Buffer
 	convert Converter
 	out     io.Writer
 }
 
-// newMarkdownWriter returns a *markdownWriter value that write to out the
+// newMarkdownWriter returns a *markdownWriter value that writes to out the
 // Markdown code converted to HTML by converter.
 func newMarkdownWriter(out io.Writer, converter Converter) *markdownWriter {
 	var buf bytes.Buffer

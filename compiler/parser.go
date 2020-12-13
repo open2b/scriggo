@@ -253,8 +253,8 @@ func parseSource(src []byte, script, shebang bool) (tree *ast.Tree, err error) {
 }
 
 // ParseTemplateSource parses a template with content src in the given format
-// and returns its tree. format can be Text, HTML, CSS or JavaScript. imported
-// indicates whether it is imported.
+// and returns its tree. format can be Text, HTML, CSS, JavaScript and
+// Markdown. imported indicates whether it is imported.
 //
 // ParseTemplateSource does not expand the nodes Extends, ShowPartial and
 // Import.
