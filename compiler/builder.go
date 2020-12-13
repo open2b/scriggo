@@ -165,16 +165,22 @@ func decodeFieldIndex(i int64) []int {
 // macro indicates if it is a macro. file and pos are, respectively, the file
 // and the position where the function is declared.
 func newFunction(pkg, name string, macro bool, typ reflect.Type, file string, pos *ast.Position) *runtime.Function {
-	var runtimePos *runtime.Position
+	fn := runtime.Function{
+		Pkg:   pkg,
+		Name:  name,
+		Macro: macro,
+		Type:  typ,
+		File:  file,
+	}
 	if pos != nil {
-		runtimePos = &runtime.Position{
+		fn.Pos = &runtime.Position{
 			Line:   pos.Line,
 			Column: pos.Column,
 			Start:  pos.Start,
 			End:    pos.End,
 		}
 	}
-	return &runtime.Function{Pkg: pkg, Name: name, Macro: macro, Type: typ, File: file, Pos: runtimePos}
+	return &fn
 }
 
 // newPredefinedFunction returns a new predefined function with a given
