@@ -142,7 +142,7 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 				return nil, syntaxError(node.Pos(), "show of file extended at %s:%s", parsed.parent.path, n.Pos())
 			}
 			if language != parsed.tree.Language {
-				err = syntaxError(node.Pos(), "extended file %q is %s instead of %s", path, parsed.tree.Language, language)
+				return nil, syntaxError(node.Pos(), "extended file %q is %s instead of %s", path, parsed.tree.Language, language)
 			}
 		case *ast.Import:
 			if _, ok := node.(*ast.ShowPartial); ok {
@@ -153,7 +153,7 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 				return nil, syntaxError(node.Pos(), "import of file shown at %s:%s", parsed.parent.path, n.Pos())
 			}
 			if language != parsed.tree.Language {
-				err = syntaxError(node.Pos(), "shown file %q is %s instead of %s", path, parsed.tree.Language, language)
+				return nil, syntaxError(node.Pos(), "shown file %q is %s instead of %s", path, parsed.tree.Language, language)
 			}
 		}
 		tree = parsed.tree
