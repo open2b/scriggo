@@ -707,7 +707,7 @@ var templateMultiPageCases = map[string]struct {
 	sources         map[string]string
 	expectedLoadErr string                 // default to empty string (no load error). Mutually exclusive with expectedOut.
 	expectedOut     string                 // default to "". Mutually exclusive with expectedLoadErr.
-	main            *scriggo.MapPackage    // default to nil
+	main            scriggo.MapPackage     // default to nil
 	vars            map[string]interface{} // default to nil
 	entryPoint      string                 // default to "index.html"
 	packages        scriggo.PackageLoader  // default to nil
@@ -844,7 +844,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `calling f: {{ f() }}, done!`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"f": func() string { return "i'm f!" },
@@ -857,7 +857,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ mainVar }}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"mainVar": (*int)(nil),
@@ -870,7 +870,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ initMainVar }}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"initMainVar": (*int)(nil),
@@ -886,7 +886,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ lowercase("HellO ScrIgGo!") }}{% x := "A String" %}{{ lowercase(x) }}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"lowercase": func(s string) string {
@@ -901,7 +901,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ lowercase("HellO ScrIgGo!") }}{% x := "A String" %}{{ lowercase(x) }}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"lowercase": (*func(string) string)(nil),
@@ -919,7 +919,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ a }}{{ b }}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"a": (*string)(nil),
@@ -1248,10 +1248,10 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ strings.ToLower("HELLO") }}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
-				"strings": &scriggo.MapPackage{
+				"strings": scriggo.MapPackage{
 					PkgName: "strings",
 					Declarations: map[string]interface{}{
 						"ToLower": strings.ToLower,
@@ -1265,10 +1265,10 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ data.Name }} Holmes`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
-				"data": &scriggo.MapPackage{
+				"data": scriggo.MapPackage{
 					PkgName: "data",
 					Declarations: map[string]interface{}{
 						"Name": &[]string{"Sherlock"}[0],
@@ -1282,10 +1282,10 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% b := &bytes.Buffer{} %}{% b.WriteString("oh!") %}{{ b.String() }}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
-				"bytes": &scriggo.MapPackage{
+				"bytes": scriggo.MapPackage{
 					PkgName: "bytes",
 					Declarations: map[string]interface{}{
 						"Buffer": reflect.TypeOf(bytes.Buffer{}),
@@ -1299,10 +1299,10 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ math.MaxInt8 }}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
-				"math": &scriggo.MapPackage{
+				"math": scriggo.MapPackage{
 					PkgName: "math",
 					Declarations: map[string]interface{}{
 						"MaxInt8": math.MaxInt8,
@@ -1423,7 +1423,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt":   `{% v := "showing" %}{% show "partial.txt" %}, {{ v }}`,
 			"partial.txt": "{{ v }}",
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"v": &globalVariable,
@@ -1452,7 +1452,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `{{ sb1 }}{{ sb2 }}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"sb1": &[]byte{97, 98, 99},                      // abc
@@ -1466,7 +1466,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ sb1 }}{{ sb2 }}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"sb1": &[]byte{97, 98, 99},                      // abc
@@ -1544,7 +1544,7 @@ var templateMultiPageCases = map[string]struct {
 				"{% if (ZeroIf42{Value: 42}) %}BUG{% else %}OK{% end %}\n" +
 				"{% if (NotImplIsZero{}) %}BUG{% else %}OK{% end %}",
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"NeverZero":     reflect.TypeOf((*testNeverZero)(nil)).Elem(),
@@ -1630,7 +1630,7 @@ var templateMultiPageCases = map[string]struct {
 			"v.html":       `{% var V = GetValue() %}`,
 		},
 		expectedOut: "42",
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"GetValue": func() int {
@@ -1664,7 +1664,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ s.foo }}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"s": structWithUnexportedFields,
@@ -1677,7 +1677,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ s.foo }}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"s": &structWithUnexportedFields,
@@ -1714,7 +1714,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% macro M %}{{ globalVariable }}{% end %}{% show M %}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"globalVariable": &([]string{"<b>global</b>"}[0]),
@@ -1754,7 +1754,7 @@ var templateMultiPageCases = map[string]struct {
 				}() 
 			%}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"globalVariable": (*int)(nil),
@@ -1775,7 +1775,7 @@ var templateMultiPageCases = map[string]struct {
 				}()
 			%}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"globalVariable": (*int)(nil),
@@ -1806,7 +1806,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ $forthyTwo }}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"forthyTwo": &([]int8{42}[0]),
@@ -1819,7 +1819,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ $forthyThree.(int) }}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"forthyThree": &([]int{43}[0]),
@@ -1832,7 +1832,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% var n, ok = $forthyThree.(int) %}{{ n * 32 }}{{ ok }}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"forthyThree": &([]int{42}[0]),
@@ -1866,7 +1866,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% _ = &($fortyTwo) %}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"forthyTwo": &([]int8{42}[0]),
@@ -1886,7 +1886,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% $fortyTwo = 43 %}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"forthyTwo": &([]int8{42}[0]),
@@ -1906,7 +1906,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% const _ = $constant %}`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"constant": 42,
@@ -1919,7 +1919,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% global := interface{}(global) %}ok`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"global": &[]string{"ciao"},
@@ -1932,7 +1932,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% var global = interface{}(global) %}ok`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"global": &[]string{},
@@ -1945,7 +1945,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% _ = []int{} %}{% global := interface{}(global) %}ok`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"global": &[]string{},
@@ -2006,7 +2006,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt":    `{% extends "extended.txt" %}{% var _ = $global %}`,
 			"extended.txt": `text`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"global": (*int)(nil),
@@ -2020,7 +2020,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt":    `{% extends "extended.txt" %}{% var _ = interface{}(global) %}`,
 			"extended.txt": `text`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"global": (*int)(nil),
@@ -2046,7 +2046,7 @@ var templateMultiPageCases = map[string]struct {
 				{% var filters, _ = $filters.([]int) %}
 			`,
 		},
-		main: &scriggo.MapPackage{
+		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"design": &struct {
@@ -2306,13 +2306,13 @@ func (testNotImplementIsZero) IsZero() int {
 }
 
 var testPackages = scriggo.Packages{
-	"fmt": &scriggo.MapPackage{
+	"fmt": scriggo.MapPackage{
 		PkgName: "fmt",
 		Declarations: map[string]interface{}{
 			"Sprint": fmt.Sprint,
 		},
 	},
-	"math": &scriggo.MapPackage{
+	"math": scriggo.MapPackage{
 		PkgName: "math",
 		Declarations: map[string]interface{}{
 			"Abs": math.Abs,
@@ -2322,7 +2322,7 @@ var testPackages = scriggo.Packages{
 
 var globalVariable = "global variable"
 
-var functionReturningErrorPackage = &scriggo.MapPackage{
+var functionReturningErrorPackage = scriggo.MapPackage{
 	PkgName: "main",
 	Declarations: map[string]interface{}{
 		"atoi": func(v string) (int, error) { return strconv.Atoi(v) },
@@ -2355,7 +2355,7 @@ func TestMultiPageTemplate(t *testing.T) {
 				}
 			}
 			globals := globals()
-			if cas.main != nil {
+			if cas.main.PkgName != "" {
 				for k, v := range cas.main.Declarations {
 					globals[k] = v
 				}

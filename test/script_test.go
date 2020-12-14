@@ -52,7 +52,7 @@ var scriptTests = map[string]struct {
 			pkg.F()
 		`,
 		pkgs: scriggo.Packages{
-			"pkg": &scriggo.MapPackage{
+			"pkg": scriggo.MapPackage{
 				PkgName: "pkg",
 				Declarations: map[string]interface{}{
 					"F": func() {
@@ -127,13 +127,13 @@ var scriptTests = map[string]struct {
 		`,
 		globals: scripts.Declarations{
 
-			"strings": &scriggo.MapPackage{
+			"strings": scriggo.MapPackage{
 				PkgName: "strings",
 				Declarations: map[string]interface{}{
 					"ToLower": strings.ToLower,
 				},
 			},
-			"math": &scriggo.MapPackage{
+			"math": scriggo.MapPackage{
 				PkgName: "math",
 				Declarations: map[string]interface{}{
 					"MaxInt8": math.MaxInt8,

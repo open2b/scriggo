@@ -102,15 +102,15 @@ type MapPackage struct {
 	Declarations map[string]interface{}
 }
 
-func (p *MapPackage) Name() string {
+func (p MapPackage) Name() string {
 	return p.PkgName
 }
 
-func (p *MapPackage) Lookup(declName string) interface{} {
+func (p MapPackage) Lookup(declName string) interface{} {
 	return p.Declarations[declName]
 }
 
-func (p *MapPackage) DeclarationNames() []string {
+func (p MapPackage) DeclarationNames() []string {
 	declarations := make([]string, 0, len(p.Declarations))
 	for name := range p.Declarations {
 		declarations = append(declarations, name)
