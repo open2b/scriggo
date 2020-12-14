@@ -271,10 +271,6 @@ func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Up
 
 	// Second: update functionClosureVars with external-defined names.
 	closureRefs := make([]int16, len(closureVars))
-	// If it's a template, adds reserved global variables.
-	if em.isTemplate {
-		closureRefs = append(closureRefs, 0, 1, 2, 3)
-	}
 	for i, v := range closureVars {
 		closureRefs[i] = v.Index
 		if v.Declaration == nil {

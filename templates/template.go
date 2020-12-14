@@ -305,8 +305,8 @@ func (t *Template) Disassemble(n int) []byte {
 // Vars returns the names of the template builtin variables that are used in
 // the template.
 func (t *Template) Vars() []string {
-	vars := make([]string, len(t.globals)-4)
-	for i, global := range t.globals[4:] {
+	vars := make([]string, len(t.globals))
+	for i, global := range t.globals {
 		vars[i] = global.Name
 	}
 	sort.Strings(vars)

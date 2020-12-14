@@ -360,12 +360,6 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 	e.fb = newBuilder(newMacro("main", "main", typ, tree.Format, tree.Path, tree.Pos()), tree.Path)
 	e.fb.changePath(tree.Path)
 
-	// Globals.
-	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$io.Writer", emptyInterfaceType, nil))
-	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$Write", reflect.FuncOf(nil, nil, false), nil))
-	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$Show", reflect.FuncOf(nil, nil, false), nil))
-	_ = e.varStore.createScriggoPackageVar(e.pkg, newGlobal("$template", "$urlWriter", reflect.TypeOf(&struct{}{}), nil))
-
 	// If page is a package, then page extends another page.
 	if len(tree.Nodes) == 1 {
 		if pkg, ok := tree.Nodes[0].(*ast.Package); ok {
