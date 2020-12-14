@@ -302,9 +302,8 @@ func (t *Template) Disassemble(n int) []byte {
 	return assemblies["main"]
 }
 
-// Vars returns the names of the template builtin variables that are used in
-// the template.
-func (t *Template) Vars() []string {
+// UsedVars returns the names of the global variables used in the template.
+func (t *Template) UsedVars() []string {
 	vars := make([]string, len(t.globals))
 	for i, global := range t.globals {
 		vars[i] = global.Name

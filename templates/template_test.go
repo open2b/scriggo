@@ -2417,7 +2417,7 @@ func TestVars(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	vars := template.Vars()
+	vars := template.UsedVars()
 	if len(vars) != 3 {
 		t.Fatalf("expecting 3 variable names, got %d", len(vars))
 	}
