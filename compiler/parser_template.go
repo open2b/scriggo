@@ -47,6 +47,9 @@ func ParseTemplate(path string, reader FileReader, packages PackageLoader) (*ast
 
 	src, format, err := reader.ReadFile(path)
 	if err != nil {
+		if os.IsNotExist(err) {
+			err = ErrNotExist
+		}
 		return nil, err
 	}
 
