@@ -367,6 +367,12 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 		deps = append(deps, nodeDeps(n.Low, scopes)...)
 		deps = append(deps, nodeDeps(n.High, scopes)...)
 		return append(deps, nodeDeps(n.Max, scopes)...)
+	case *ast.Statements:
+		deps := []*ast.Identifier{}
+		for _, node := range n.Nodes {
+			deps = append(deps, nodeDeps(node, scopes)...)
+		}
+		return deps
 	case *ast.StructType:
 		deps := []*ast.Identifier{}
 		for _, fd := range n.Fields {

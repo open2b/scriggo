@@ -2262,6 +2262,21 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: `true`,
 	},
+
+	"https://github.com/open2b/scriggo/issues/708 (1)": {
+		sources: map[string]string{
+			"index.txt":    `{% extends "extended.txt" %}{% macro M %}{%% a := 10 %%}{% end macro %}`,
+			"extended.txt": `a`,
+		},
+		expectedOut: `a`,
+	},
+
+	"https://github.com/open2b/scriggo/issues/708 (2)": {
+		sources: map[string]string{
+			"index.txt":    `{% import "imported.txt" %}`,
+			"imported.txt": `{% macro M %}{%% a := 20 %%}{% end %}`,
+		},
+	},
 }
 
 var structWithUnexportedFields = &struct {
