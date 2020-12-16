@@ -1,0 +1,8 @@
+{# errorcheck #}
+
+{% var Article int %}
+
+{% Article %}   // ERROR `Article evaluated but not used`
+{% Article() %} // ERROR `cannot call non-function Article (type int)`
+{% article %}   // ERROR `undefined: article`
+{% end %}       // ERROR `syntax error: unexpected end`

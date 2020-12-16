@@ -2277,6 +2277,54 @@ var templateMultiPageCases = map[string]struct {
 			"imported.txt": `{% macro M %}{%% a := 20 %%}{% end %}`,
 		},
 	},
+
+	"Endless macro declaration": {
+		sources: map[string]string{
+			"index.html":  `{% extends "layout.html" %}{% Article %}content`,
+			"layout.html": `{% show Article %}`,
+		},
+		expectedOut: `content`,
+	},
+
+	"Endless macro declaration (2)": {
+		sources: map[string]string{
+			"index.html":  `{% extends "layout.html" %}{% Article %}{% Content %}`,
+			"layout.html": `{% show Article %}`,
+		},
+		expectedBuildErr: `undefined: Content`,
+	},
+
+	"Endless macro declaration (3)": {
+		sources: map[string]string{
+			"index.html":  `{% extends "layout.html" %}{% Article %}{% end macro %}`,
+			"layout.html": `{% show Article %}`,
+		},
+		expectedBuildErr: `syntax error: unexpected end`,
+	},
+
+	"Endless macro declaration (4)": {
+		sources: map[string]string{
+			"index.html":  `{% extends "layout.html" %}{% article %}{% end %}`,
+			"layout.html": `{% show Article %}`,
+		},
+		expectedBuildErr: `syntax error: unexpected article, expecting declaration statement`,
+	},
+
+	"Endless macro declaration (5)": {
+		sources: map[string]string{
+			"index.html":    `{% import "imported.html" %}{% show Article %}`,
+			"imported.html": `{% Article %}`,
+		},
+		expectedBuildErr: `syntax error: unexpected Article, expecting declaration statement`,
+	},
+
+	"Endless macro declaration (6)": {
+		sources: map[string]string{
+			"index.html":   `{% show "partial.html" %}`,
+			"partial.html": `{% Article %}`,
+		},
+		expectedBuildErr: `undefined: Article`,
+	},
 }
 
 var structWithUnexportedFields = &struct {

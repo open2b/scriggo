@@ -490,6 +490,7 @@ type Func struct {
 	Ident   *Identifier // name, nil for function literals.
 	Type    *FuncType   // type.
 	Body    *Block      // body.
+	Endless bool        // reports whether it is endless.
 	Upvars  []Upvar     // Upvars of func.
 	Context Context     // macro context.
 }
@@ -549,8 +550,8 @@ type Upvar struct {
 	Index int16
 }
 
-func NewFunc(pos *Position, name *Identifier, typ *FuncType, body *Block, ctx Context) *Func {
-	return &Func{expression{}, pos, name, typ, body, nil, ctx}
+func NewFunc(pos *Position, name *Identifier, typ *FuncType, body *Block, endless bool, ctx Context) *Func {
+	return &Func{expression{}, pos, name, typ, body, endless, nil, ctx}
 }
 
 func (n *Func) String() string {
