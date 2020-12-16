@@ -8,6 +8,8 @@ package templates
 
 import (
 	"encoding/base64"
+	"errors"
+	"strings"
 )
 
 const hexchars = "0123456789abcdef"
@@ -543,15 +545,95 @@ func escapeBytes(w strWriter, b []byte, addQuote bool) error {
 var slash = []byte(`\`)
 var nbsp = []byte("\u00a0")
 
+// isCDATA reports whether s at index p contains a isCDATA section.
+func isCDATA(s string, p int) bool {
+	if len(s) < p+9 {
+		return false
+	}
+	for i := 0; i < 9; i++ {
+		if s[p+i] != "<![CDATA["[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// isHTMLComment reports whether s at index p contains a starting HTML
+// comment.
+func isHTMLComment(s string, p int) bool {
+	if len(s) < p+4 {
+		return false
+	}
+	for i := 0; i < 4; i++ {
+		if s[p+i] != "<!--"[i] {
+			return false
+		}
+	}
+	return true
+}
+
 // markdownEscape escapes the string s, so it can be placed inside Markdown,
-// and writes it on w.
-func markdownEscape(w strWriter, s string) error {
+// and writes it to w. allowHTML indicates if HTML code is allowed and so it
+// is not escaped.
+func markdownEscape(w strWriter, s string, allowHTML bool) error {
 	last := 0
 	var esc []byte
 	for i := 0; i < len(s); i++ {
 		switch s[i] {
-		case '\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '=', '.', '!', '|', '<', '>', '&', '~':
+		case '<':
+			if allowHTML {
+				if isHTMLComment(s, i) {
+					// Don't escape the comment.
+					i += 4
+					p := strings.Index(s[i:], "-->")
+					if p < 0 {
+						return errors.New("not closed HTML comment")
+					}
+					i += p + 2
+				} else if isCDATA(s, i) {
+					// Replace the CDATA section with the escape of its content.
+					if last != i {
+						_, err := w.WriteString(s[last:i])
+						if err != nil {
+							return err
+						}
+					}
+					i += 9
+					p := strings.Index(s[i:], "]]>")
+					if p < 0 {
+						return errors.New("not closed CDATA section")
+					}
+					err := markdownEscape(w, s[i:i+p], false)
+					if err != nil {
+						return err
+					}
+					i += p + 2
+					last = i + 1
+				} else {
+					// Don't escape the tag.
+					var quote byte
+					for ; i < len(s); i++ {
+						c := s[i]
+						if quote == 0 {
+							if c == '>' {
+								break
+							} else if c == '"' || c == '\'' {
+								quote = c
+							}
+						} else if c == quote {
+							quote = 0
+						}
+					}
+				}
+				continue
+			}
 			esc = slash
+		case '\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '=', '.', '!', '|', '>', '~':
+			esc = slash
+		case '&':
+			if !allowHTML {
+				esc = slash
+			}
 		case ' ', '\t':
 			if 0 < i && i < len(s)-1 {
 				if c := s[i+1]; c != ' ' && c != '\t' {

@@ -120,6 +120,8 @@ func (r buildRenderer) Show(env runtime.Env, v interface{}, context uint8) {
 		case t.Implements(envStringerType):
 		case t.Implements(mdStringerType):
 		case t.Implements(mdEnvStringerType):
+		case t.Implements(htmlStringerType):
+		case t.Implements(htmlEnvStringerType):
 		case t.Implements(errorType):
 		default:
 			env.Fatal(fmt.Errorf("cannot show type %s as Markdown", t))

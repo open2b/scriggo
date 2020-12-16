@@ -971,18 +971,24 @@ func showInMarkdown(env runtime.Env, out io.Writer, value interface{}) error {
 	case MarkdownEnvStringer:
 		_, err := w.WriteString(v.Markdown(env))
 		return err
+	case HTML:
+		return markdownEscape(w, string(v), true)
+	case HTMLStringer:
+		return markdownEscape(w, v.HTML(), true)
+	case HTMLEnvStringer:
+		return markdownEscape(w, v.HTML(env), true)
 	case fmt.Stringer:
-		return markdownEscape(w, v.String())
+		return markdownEscape(w, v.String(), false)
 	case EnvStringer:
-		return markdownEscape(w, v.String(env))
+		return markdownEscape(w, v.String(env), false)
 	case error:
-		return markdownEscape(w, v.Error())
+		return markdownEscape(w, v.Error(), false)
 	default:
 		s, err := toString(env, value)
 		if err != nil {
 			return err
 		}
-		return markdownEscape(w, s)
+		return markdownEscape(w, s, false)
 	}
 }
 
