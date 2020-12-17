@@ -361,6 +361,9 @@ nodesLoop:
 				if texpr.Nil() {
 					panic(tc.errorf(node, "use of untyped nil"))
 				}
+				if k := texpr.Type.Kind(); (k == reflect.Struct || k == reflect.Array) && !texpr.Type.Comparable() {
+					panic(tc.errorf(node.Expr, "cannot switch on %s (%s is not comparable)", node.Expr, texpr.ShortString()))
+				}
 				texpr.setValue(nil)
 				if texpr.Untyped() {
 					c, err := tc.convert(texpr, node.Expr, texpr.Type)
