@@ -621,21 +621,21 @@ var goContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 10, 9, 12), "LOOP")),
 		}, ast.FormatGo)},
 	{"func f() int {}", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 14), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, nil, []*ast.Parameter{ast.NewParameter(nil, ast.NewIdentifier(p(1, 10, 9, 11), "int"))}, false), ast.NewBlock(p(1, 14, 13, 14), nil), ast.ContextText)}, ast.FormatGo)},
+		ast.NewFunc(p(1, 1, 0, 14), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, nil, []*ast.Parameter{ast.NewParameter(nil, ast.NewIdentifier(p(1, 10, 9, 11), "int"))}, false), ast.NewBlock(p(1, 14, 13, 14), nil), false, ast.ContextText)}, ast.FormatGo)},
 	{"func f() int { return 5 }", ast.NewTree("", []ast.Node{
 		ast.NewFunc(p(1, 1, 0, 24), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, nil, []*ast.Parameter{ast.NewParameter(nil, ast.NewIdentifier(p(1, 10, 9, 11), "int"))}, false), ast.NewBlock(p(1, 14, 13, 24), []ast.Node{
 			ast.NewReturn(p(1, 16, 15, 22), []ast.Expression{ast.NewBasicLiteral(p(1, 23, 22, 22), ast.IntLiteral, "5")}),
-		}), ast.ContextText)}, ast.FormatGo)},
+		}), false, ast.ContextText)}, ast.FormatGo)},
 	{"func f() (int, error) {}", ast.NewTree("", []ast.Node{
 		ast.NewFunc(p(1, 1, 0, 23), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, nil, []*ast.Parameter{
 			ast.NewParameter(nil, ast.NewIdentifier(p(1, 11, 10, 12), "int")),
 			ast.NewParameter(nil, ast.NewIdentifier(p(1, 16, 15, 19), "error")),
-		}, false), ast.NewBlock(p(1, 22, 22, 23), nil), ast.ContextText)}, ast.FormatGo)},
+		}, false), ast.NewBlock(p(1, 22, 22, 23), nil), false, ast.ContextText)}, ast.FormatGo)},
 	{"func f() (n int, err error) {}", ast.NewTree("", []ast.Node{
 		ast.NewFunc(p(1, 1, 0, 29), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, nil, []*ast.Parameter{
 			ast.NewParameter(ast.NewIdentifier(p(1, 11, 10, 10), "n"), ast.NewIdentifier(p(1, 13, 12, 14), "int")),
 			ast.NewParameter(ast.NewIdentifier(p(1, 18, 17, 19), "err"), ast.NewIdentifier(p(1, 22, 21, 25), "error")),
-		}, false), ast.NewBlock(p(1, 29, 28, 29), nil), ast.ContextText)}, ast.FormatGo)},
+		}, false), ast.NewBlock(p(1, 29, 28, 29), nil), false, ast.ContextText)}, ast.FormatGo)},
 	{"func f(a, b int, c bool, d ...int) (n int, err error) { a := 5; return a, nil }", ast.NewTree("", []ast.Node{
 		ast.NewFunc(p(1, 1, 0, 78), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, []*ast.Parameter{
 			ast.NewParameter(ast.NewIdentifier(p(1, 8, 7, 7), "a"), nil),
@@ -655,7 +655,7 @@ var goContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 72, 71, 71), "a"),
 				ast.NewIdentifier(p(1, 75, 74, 76), "nil"),
 			}),
-		}), ast.ContextText)}, ast.FormatGo)},
+		}), false, ast.ContextText)}, ast.FormatGo)},
 	{"select {}", ast.NewTree("", []ast.Node{
 		ast.NewSelect(p(1, 1, 0, 8), nil, nil)}, ast.FormatGo)},
 	{"select {\n\tdefault:\n}\n", ast.NewTree("", []ast.Node{
@@ -706,7 +706,7 @@ var goContextTreeTests = []struct {
 							false,
 						),
 					},
-				), ast.ContextText),
+				), false, ast.ContextText),
 			},
 		),
 	}, ast.FormatGo)},
@@ -1327,27 +1327,27 @@ var treeTests = []struct {
 	{"{% show \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewShowPartial(p(1, 4, 3, 13), "/a.b", ast.ContextHTML)}, ast.FormatHTML)},
 	{"{% extends \"a.e\" %}{% macro b %}c{% end macro %}", ast.NewTree("", []ast.Node{
 		ast.NewExtends(p(1, 4, 3, 15), "a.e", ast.ContextHTML),
-		ast.NewFunc(p(1, 23, 22, 44), ast.NewIdentifier(p(1, 29, 28, 28), "b"), ast.NewFuncType(&ast.Position{Line: 1, Column: 23, Start: 22, End: 44}, false, nil, nil, false), ast.NewBlock(p(1, 23, 22, 44), []ast.Node{ast.NewText(p(1, 33, 32, 32), []byte("c"), ast.Cut{})}), ast.ContextHTML)}, ast.FormatHTML)},
+		ast.NewFunc(p(1, 23, 22, 44), ast.NewIdentifier(p(1, 29, 28, 28), "b"), ast.NewFuncType(&ast.Position{Line: 1, Column: 23, Start: 22, End: 44}, false, nil, nil, false), ast.NewBlock(p(1, 23, 22, 44), []ast.Node{ast.NewText(p(1, 33, 32, 32), []byte("c"), ast.Cut{})}), false, ast.ContextHTML)}, ast.FormatHTML)},
 	{"{% extends \"a.e\" %}{% macro b(c, d int) %}txt{% end macro %}", ast.NewTree("", []ast.Node{
 		ast.NewExtends(p(1, 4, 3, 15), "a.e", ast.ContextHTML),
 		ast.NewFunc(p(1, 23, 22, 56), ast.NewIdentifier(p(1, 29, 28, 28), "b"), ast.NewFuncType(&ast.Position{Line: 1, Column: 23, Start: 22, End: 56}, false, []*ast.Parameter{
 			ast.NewParameter(ast.NewIdentifier(p(1, 31, 30, 30), "c"), nil),
 			ast.NewParameter(ast.NewIdentifier(p(1, 34, 33, 33), "d"),
 				ast.NewIdentifier(p(1, 36, 35, 37), "int")),
-		}, nil, false), ast.NewBlock(p(1, 23, 22, 56), []ast.Node{ast.NewText(p(1, 43, 42, 44), []byte("txt"), ast.Cut{})}), ast.ContextHTML)}, ast.FormatHTML)},
+		}, nil, false), ast.NewBlock(p(1, 23, 22, 56), []ast.Node{ast.NewText(p(1, 43, 42, 44), []byte("txt"), ast.Cut{})}), false, ast.ContextHTML)}, ast.FormatHTML)},
 	{"{# comment\ncomment #}", ast.NewTree("", []ast.Node{ast.NewComment(p(1, 1, 0, 20), " comment\ncomment ")}, ast.FormatHTML)},
 	{"{% macro a(i int) %}c{% end macro %}", ast.NewTree("", []ast.Node{
 		ast.NewFunc(p(1, 4, 3, 32), ast.NewIdentifier(p(1, 10, 9, 9), "a"), ast.NewFuncType(&ast.Position{Line: 1, Column: 4, Start: 3, End: 32}, false, []*ast.Parameter{
 			ast.NewParameter(ast.NewIdentifier(p(1, 12, 11, 11), "i"),
 				ast.NewIdentifier(p(1, 14, 13, 15), "int")),
-		}, nil, false), ast.NewBlock(p(1, 4, 3, 32), []ast.Node{ast.NewText(p(1, 21, 20, 20), []byte("c"), ast.Cut{})}), ast.ContextHTML)}, ast.FormatHTML)},
+		}, nil, false), ast.NewBlock(p(1, 4, 3, 32), []ast.Node{ast.NewText(p(1, 21, 20, 20), []byte("c"), ast.Cut{})}), false, ast.ContextHTML)}, ast.FormatHTML)},
 	{"{% macro a(b bool, c ...string) %}d{% end macro %}", ast.NewTree("", []ast.Node{
 		ast.NewFunc(p(1, 4, 3, 46), ast.NewIdentifier(p(1, 10, 9, 9), "a"), ast.NewFuncType(&ast.Position{Line: 1, Column: 4, Start: 3, End: 46}, false, []*ast.Parameter{
 			ast.NewParameter(ast.NewIdentifier(p(1, 12, 11, 11), "b"),
 				ast.NewIdentifier(p(1, 14, 13, 16), "bool")),
 			ast.NewParameter(ast.NewIdentifier(p(1, 20, 19, 19), "c"),
 				ast.NewIdentifier(p(1, 25, 24, 29), "string")),
-		}, nil, true), ast.NewBlock(p(1, 4, 3, 46), []ast.Node{ast.NewText(p(1, 35, 34, 34), []byte("d"), ast.Cut{})}), ast.ContextHTML)}, ast.FormatHTML)},
+		}, nil, true), ast.NewBlock(p(1, 4, 3, 46), []ast.Node{ast.NewText(p(1, 35, 34, 34), []byte("d"), ast.Cut{})}), false, ast.ContextHTML)}, ast.FormatHTML)},
 	{"{% *a = 3 %}", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 4, 3, 8),
 			[]ast.Expression{
@@ -2367,6 +2367,12 @@ func equals(n1, n2 ast.Node, p int) error {
 			if err != nil {
 				return err
 			}
+		}
+		if nn1.Endless != nn2.Endless {
+			if nn1.Endless {
+				return fmt.Errorf("unexpected endless, expecting not endless")
+			}
+			return fmt.Errorf("unexpected not endless, expecting endless")
 		}
 
 	case *ast.Defer:

@@ -434,6 +434,15 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 
 	}
 
+	// If the ancestors are {Tree, Func, Block} check if Func is endless.
+	if len(p.ancestors) == 3 {
+		if fn, ok := p.ancestors[1].(*ast.Func); ok && fn.Endless {
+			fn.End = tok.pos.End
+			p.removeLastAncestor()
+			p.removeLastAncestor()
+		}
+	}
+
 	if len(p.ancestors) > 1 {
 		return nil, syntaxError(tok.pos, "unexpected EOF, expecting {%% end %%}")
 	}
@@ -457,7 +466,7 @@ LABEL:
 			switch tok.typ {
 			case tokenExtends, tokenImport, tokenMacro, tokenVar, tokenConst, tokenType:
 			default:
-				panic(syntaxError(tok.pos, "non-declaration statement in a declaration file"))
+				return p.parseEndlessMacro(tok, end)
 			}
 		} else if tok.typ != tokenPackage && end == tokenEOF && !p.isScript {
 			panic(syntaxError(tok.pos, "expected 'package', found '%s'", tok))
@@ -1175,7 +1184,7 @@ LABEL:
 		typ := ast.NewFuncType(nil, true, parameters, nil, isVariadic)
 		pos.End = tok.pos.End
 		typ.Position = pos
-		node := ast.NewFunc(pos, ident, typ, nil, tok.ctx)
+		node := ast.NewFunc(pos, ident, typ, nil, false, tok.ctx)
 		body := ast.NewBlock(tok.pos, nil)
 		node.Body = body
 		p.addChild(node)
@@ -1186,10 +1195,15 @@ LABEL:
 
 	// end
 	case tokenEnd:
-		if _, ok := p.parent().(*ast.URL); ok || len(p.ancestors) == 1 {
+		switch p.parent().(type) {
+		case *ast.Tree, *ast.URL:
 			panic(syntaxError(tok.pos, "unexpected %s", tok))
-		}
-		if _, ok := p.parent().(*ast.Block); ok {
+		case *ast.Block:
+			if len(p.ancestors) == 3 {
+				if fn, ok := p.ancestors[1].(*ast.Func); ok && fn.Endless {
+					panic(syntaxError(tok.pos, "unexpected %s", tok))
+				}
+			}
 			p.removeLastAncestor()
 		}
 		pos := tok.pos
@@ -1573,6 +1587,32 @@ func (p *parsing) parseVarOrConst(tok token, pos *ast.Position, decType tokenTyp
 		return ast.NewVar(pos, idents, typ, exprs), tok
 	}
 	return ast.NewConst(pos, idents, typ, exprs, iotaValue), tok
+}
+
+// parseEndlessMacro parses an endless macro declaration.
+func (p *parsing) parseEndlessMacro(tok token, end tokenTyp) token {
+	if tok.typ != tokenIdentifier || !p.hasExtend || end != tokenEndStatement {
+		panic(syntaxError(tok.pos, "unexpected %s, expecting declaration statement", tok))
+	}
+	if fc, _ := utf8.DecodeRune(tok.txt); !unicode.Is(unicode.Lu, fc) {
+		panic(syntaxError(tok.pos, "unexpected %s, expecting declaration statement", tok))
+	}
+	ident := p.parseIdentifierNode(tok)
+	tok = p.next()
+	if tok.typ != end {
+		panic(syntaxError(tok.pos, "unexpected %s, expecting declaration statement", ident))
+	}
+	// Make the Func node.
+	pos := ident.Pos()
+	typ := ast.NewFuncType(pos.WithEnd(pos.End), true, nil, nil, false)
+	node := ast.NewFunc(pos, ident, typ, nil, true, tok.ctx)
+	body := ast.NewBlock(pos, nil)
+	node.Body = body
+	p.addChild(node)
+	p.addToAncestors(node)
+	p.addToAncestors(body)
+	p.cutSpacesToken = true
+	return p.next()
 }
 
 // lastImportOrExtends reports whether the last node in nodes is Import or
