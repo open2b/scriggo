@@ -704,13 +704,13 @@ type aStruct struct {
 }
 
 var templateMultiPageCases = map[string]struct {
-	sources         map[string]string
-	expectedLoadErr string                 // default to empty string (no load error). Mutually exclusive with expectedOut.
-	expectedOut     string                 // default to "". Mutually exclusive with expectedLoadErr.
-	main            scriggo.MapPackage     // default to nil
-	vars            map[string]interface{} // default to nil
-	entryPoint      string                 // default to "index.html"
-	packages        scriggo.PackageLoader  // default to nil
+	sources          map[string]string
+	expectedBuildErr string                 // default to empty string (no build error). Mutually exclusive with expectedOut.
+	expectedOut      string                 // default to "". Mutually exclusive with expectedBuildErr.
+	main             scriggo.MapPackage     // default to nil
+	vars             map[string]interface{} // default to nil
+	entryPoint       string                 // default to "index.html"
+	packages         scriggo.PackageLoader  // default to nil
 }{
 
 	"Empty template": {
@@ -799,7 +799,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% func() {} %}`,
 		},
-		expectedLoadErr: "func literal evaluated but not used",
+		expectedBuildErr: "func literal evaluated but not used",
 	},
 
 	"Function call": {
@@ -1049,7 +1049,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt":   `{% var a = 10 %}a: {% show "/partial.txt" %}`,
 			"partial.txt": `{{ a }}`,
 		},
-		expectedLoadErr: "undefined: a",
+		expectedBuildErr: "undefined: a",
 	},
 
 	"Show partial - File showing partial file try to use a variable declared in the partial file": {
@@ -1057,7 +1057,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt":   `{% show "/partial.txt" %}partial a: {{ a }}`,
 			"partial.txt": `{% var a = 20 %}`,
 		},
-		expectedLoadErr: "undefined: a",
+		expectedBuildErr: "undefined: a",
 	},
 
 	"Show partial - File showing a partial file which shows another partial file": {
@@ -1397,7 +1397,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `Name is {{ name }}`,
 		},
-		expectedLoadErr: "undefined: name",
+		expectedBuildErr: "undefined: name",
 	},
 
 	"Shown file tries to overwrite a variable of the file that shows it": {
@@ -1437,7 +1437,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt":   `{% show "partial.txt" %}{% show MacroInPartialFile %}`,
 			"partial.txt": `{% macro MacroInPartialFile %}{% end macro %}`,
 		},
-		expectedLoadErr: "undefined: MacroInPartialFile",
+		expectedBuildErr: "undefined: MacroInPartialFile",
 	},
 
 	"The file that shows another file defines a macro, which should not be accessible from the file shown": {
@@ -1445,7 +1445,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt":   `{% macro MacroInShowingFile %}{% end macro %}{% show "partial.txt" %}`,
 			"partial.txt": `{% show MacroInShowingFile %}`,
 		},
-		expectedLoadErr: "undefined: MacroInShowingFile",
+		expectedBuildErr: "undefined: MacroInShowingFile",
 	},
 
 	"Byte slices are rendered as they are in context HTML": {
@@ -1473,7 +1473,7 @@ var templateMultiPageCases = map[string]struct {
 				"sb2": &[]byte{60, 104, 101, 108, 108, 111, 62}, // <hello>
 			},
 		},
-		expectedLoadErr: `cannot show sb1 (cannot show type []uint8 as text)`,
+		expectedBuildErr: `cannot show sb1 (cannot show type []uint8 as text)`,
 	},
 
 	"Using the precompiled package 'fmt'": {
@@ -1513,24 +1513,24 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% import "mypackage" %}{{ mypackage.F() }}`,
 		},
-		packages:        testPackages,
-		expectedLoadErr: "/index.txt:1:11: syntax error: cannot find package \"mypackage\"",
+		packages:         testPackages,
+		expectedBuildErr: "/index.txt:1:11: syntax error: cannot find package \"mypackage\"",
 	},
 
 	"Trying to access a precompiled function 'SuperPrint' that is not available in the package 'fmt'": {
 		sources: map[string]string{
 			"index.txt": `{% import "fmt" %}{{ fmt.SuperPrint(42) }}`,
 		},
-		packages:        testPackages,
-		expectedLoadErr: "/index.txt:1:25: undefined: fmt.SuperPrint",
+		packages:         testPackages,
+		expectedBuildErr: "/index.txt:1:25: undefined: fmt.SuperPrint",
 	},
 
 	"Using the precompiled package 'fmt' without importing it returns an error": {
 		sources: map[string]string{
 			"index.txt": `{{ fmt.Sprint(10, 20) }}`,
 		},
-		packages:        testPackages,
-		expectedLoadErr: "/index.txt:1:4: undefined: fmt",
+		packages:         testPackages,
+		expectedBuildErr: "/index.txt:1:4: undefined: fmt",
 	},
 
 	"Check if a value that has a method 'IsZero() bool' is zero or not": {
@@ -1670,7 +1670,7 @@ var templateMultiPageCases = map[string]struct {
 				"s": structWithUnexportedFields,
 			},
 		},
-		expectedLoadErr: `s.foo undefined (cannot refer to unexported field or method foo)`,
+		expectedBuildErr: `s.foo undefined (cannot refer to unexported field or method foo)`,
 	},
 
 	"Cannot access to unexported struct fields of a precompiled value (*struct)": {
@@ -1683,7 +1683,7 @@ var templateMultiPageCases = map[string]struct {
 				"s": &structWithUnexportedFields,
 			},
 		},
-		expectedLoadErr: `s.foo undefined (cannot refer to unexported field or method foo)`,
+		expectedBuildErr: `s.foo undefined (cannot refer to unexported field or method foo)`,
 	},
 
 	"Cannot access to an unexported field declared in another page (struct)": {
@@ -1695,7 +1695,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt":    `{% import "imported.txt" %}{% type _ struct { bar int } %}{{ S.bar }}`,
 			"imported.txt": `{% var S struct { bar int } %}`,
 		},
-		expectedLoadErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
+		expectedBuildErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
 	},
 
 	"Cannot access to an unexported field declared in another page (*struct)": {
@@ -1707,7 +1707,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt":    `{% import "imported.txt" %}{% type _ *struct { bar int } %}{{ S.bar }}`,
 			"imported.txt": `{% var S *struct { bar int } %}`,
 		},
-		expectedLoadErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
+		expectedBuildErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
 	},
 
 	"Accessing global variable from macro's body": {
@@ -1792,7 +1792,7 @@ var templateMultiPageCases = map[string]struct {
 				{% end macro %}
 			`,
 		},
-		expectedLoadErr: "syntax error: unexpected macro in statement scope",
+		expectedBuildErr: "syntax error: unexpected macro in statement scope",
 	},
 
 	"Dollar identifier - Referencing to a global variable that does not exist": {
@@ -1845,21 +1845,21 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% _ = $int %}`,
 		},
-		expectedLoadErr: `unexpected type in dollar identifier`,
+		expectedBuildErr: `unexpected type in dollar identifier`,
 	},
 
 	"Dollar identifier - Cannot use a builtin": {
 		sources: map[string]string{
 			"index.txt": `{% _ = $println %}`,
 		},
-		expectedLoadErr: `use of builtin println not in function call`,
+		expectedBuildErr: `use of builtin println not in function call`,
 	},
 
 	"Dollar identifier - Cannot use a local identifier": {
 		sources: map[string]string{
 			"index.txt": `{% var local = 10 %}{% _ = $local %}`,
 		},
-		expectedLoadErr: `use of local identifier within dollar identifier`,
+		expectedBuildErr: `use of local identifier within dollar identifier`,
 	},
 
 	"Dollar identifier - Cannot take the address (variable exists)": {
@@ -1872,14 +1872,14 @@ var templateMultiPageCases = map[string]struct {
 				"forthyTwo": &([]int8{42}[0]),
 			},
 		},
-		expectedLoadErr: `cannot take the address of $fortyTwo`,
+		expectedBuildErr: `cannot take the address of $fortyTwo`,
 	},
 
 	"Dollar identifier - Cannot take the address (variable does not exist)": {
 		sources: map[string]string{
 			"index.txt": `{% _ = &($notExisting) %}`,
 		},
-		expectedLoadErr: `cannot take the address of $notExisting`,
+		expectedBuildErr: `cannot take the address of $notExisting`,
 	},
 
 	"Dollar identifier - Cannot assign to dollar identifier (variable exists)": {
@@ -1892,14 +1892,14 @@ var templateMultiPageCases = map[string]struct {
 				"forthyTwo": &([]int8{42}[0]),
 			},
 		},
-		expectedLoadErr: `cannot assign to $fortyTwo`,
+		expectedBuildErr: `cannot assign to $fortyTwo`,
 	},
 
 	"Dollar identifier - Cannot assign to dollar identifier (variable does not exist)": {
 		sources: map[string]string{
 			"index.txt": `{% $notExisting = 43 %}`,
 		},
-		expectedLoadErr: `cannot assign to $notExisting`,
+		expectedBuildErr: `cannot assign to $notExisting`,
 	},
 
 	"Dollar identifier - Referencing to a constant returns a non-constant": {
@@ -1912,7 +1912,7 @@ var templateMultiPageCases = map[string]struct {
 				"constant": 42,
 			},
 		},
-		expectedLoadErr: `const initializer $constant is not a constant`,
+		expectedBuildErr: `const initializer $constant is not a constant`,
 	},
 
 	"https://github.com/open2b/scriggo/issues/679 (1)": {
@@ -1959,7 +1959,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt":    `{% import "imported.txt" %}`,
 			"imported.txt": `{% var X = 10 %}{% var _ = $X %}`,
 		},
-		expectedLoadErr: `use of top-level identifier within dollar identifier`,
+		expectedBuildErr: `use of top-level identifier within dollar identifier`,
 	},
 
 	"Dollar identifier referring to package declaration in extending file": {
@@ -1967,7 +1967,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt":    `{% extends "extended.txt" %}{% var X = 10 %}{% var _ = $X %}`,
 			"extended.txt": ``,
 		},
-		expectedLoadErr: `use of top-level identifier within dollar identifier`,
+		expectedBuildErr: `use of top-level identifier within dollar identifier`,
 	},
 
 	"https://github.com/open2b/scriggo/issues/680 - Import": {
@@ -2079,7 +2079,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt": `{% import "file.txt" %}{% show "file.txt" %}`,
 			"file.txt":  ``,
 		},
-		expectedLoadErr: `syntax error: show of file imported at /index.txt:1:11`,
+		expectedBuildErr: `syntax error: show of file imported at /index.txt:1:11`,
 	},
 
 	"Show of a previously extended file": {
@@ -2087,7 +2087,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt": `{% extends "file.txt" %}{% macro A %}{% show "file.txt" %}{% end %}`,
 			"file.txt":  ``,
 		},
-		expectedLoadErr: `syntax error: show of file extended at /index.txt:1:4`,
+		expectedBuildErr: `syntax error: show of file extended at /index.txt:1:4`,
 	},
 
 	"Import of a previously extended file": {
@@ -2095,7 +2095,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt": `{% extends "file.txt" %}{% import "file.txt" %}`,
 			"file.txt":  ``,
 		},
-		expectedLoadErr: `syntax error: import of file extended at /index.txt:1:4`,
+		expectedBuildErr: `syntax error: import of file extended at /index.txt:1:4`,
 	},
 
 	"Import of a previously shown file": {
@@ -2104,7 +2104,7 @@ var templateMultiPageCases = map[string]struct {
 			"file1.txt": ``,
 			"file2.txt": `{% import "file1.txt" %}`,
 		},
-		expectedLoadErr: `syntax error: import of file shown at /index.txt:1:4`,
+		expectedBuildErr: `syntax error: import of file shown at /index.txt:1:4`,
 	},
 
 	"Not only spaces in a page that extends": {
@@ -2112,7 +2112,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt":  `{% extends "layout.txt" %}abc`,
 			"layout.txt": ``,
 		},
-		expectedLoadErr: "syntax error: unexpected text in file with extends",
+		expectedBuildErr: "syntax error: unexpected text in file with extends",
 	},
 
 	"Not only spaces in an imported file": {
@@ -2120,7 +2120,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt":    `{% import "imported.txt" %}`,
 			"imported.txt": `abc`,
 		},
-		expectedLoadErr: "syntax error: unexpected text in imported file",
+		expectedBuildErr: "syntax error: unexpected text in imported file",
 	},
 
 	"Extends preceded by not empty text": {
@@ -2128,7 +2128,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt":  `abc{% extends "layout.txt" %}`,
 			"layout.txt": ``,
 		},
-		expectedLoadErr: "syntax error: extends is not at the beginning of the file",
+		expectedBuildErr: "syntax error: extends is not at the beginning of the file",
 	},
 
 	"Extends preceded by another statement": {
@@ -2136,7 +2136,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt":  `{% var a = 5 %}{% extends "layout.txt" %}`,
 			"layout.txt": ``,
 		},
-		expectedLoadErr: "syntax error: extends is not at the beginning of the file",
+		expectedBuildErr: "syntax error: extends is not at the beginning of the file",
 	},
 
 	"Extends preceded by comment": {
@@ -2151,21 +2151,21 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{%`,
 		},
-		expectedLoadErr: "syntax error: unexpected EOF, expecting %}",
+		expectedBuildErr: "syntax error: unexpected EOF, expecting %}",
 	},
 
 	"EOF after {%%": {
 		sources: map[string]string{
 			"index.txt": `{%%`,
 		},
-		expectedLoadErr: "syntax error: unexpected EOF, expecting %%}",
+		expectedBuildErr: "syntax error: unexpected EOF, expecting %%}",
 	},
 
 	"EOF after {{": {
 		sources: map[string]string{
 			"index.txt": `{{`,
 		},
-		expectedLoadErr: "syntax error: unexpected EOF, expecting }}",
+		expectedBuildErr: "syntax error: unexpected EOF, expecting }}",
 	},
 
 	"Multi line statements #1": {
@@ -2229,7 +2229,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt":    `{% import "imported.txt" %}{% type _ struct { bar int } %}{{ S.bar }}`,
 			"imported.txt": `{%% var S struct { bar int } %%}`,
 		},
-		expectedLoadErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
+		expectedBuildErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
 	},
 
 	"Multi line statements #8": {
@@ -2237,7 +2237,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt":    `{% import "imported.txt" %}{% type _ *struct { bar int } %}{{ S.bar }}`,
 			"imported.txt": `{%% var S *struct { bar int } %%}`,
 		},
-		expectedLoadErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
+		expectedBuildErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
 	},
 
 	"https://github.com/open2b/scriggo/issues/694": {
@@ -2253,7 +2253,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt":    `{% import "imported.txt" %}`,
 			"imported.txt": "\n \n\té",
 		},
-		expectedLoadErr: `3:2: syntax error: unexpected text in imported file`,
+		expectedBuildErr: `3:2: syntax error: unexpected text in imported file`,
 	},
 
 	"Show a Scriggo defined type value": {
@@ -2355,7 +2355,7 @@ var functionReturningErrorPackage = scriggo.MapPackage{
 
 func TestMultiPageTemplate(t *testing.T) {
 	for name, cas := range templateMultiPageCases {
-		if cas.expectedOut != "" && cas.expectedLoadErr != "" {
+		if cas.expectedOut != "" && cas.expectedBuildErr != "" {
 			panic("invalid test: " + name)
 		}
 		t.Run(name, func(t *testing.T) {
@@ -2381,18 +2381,18 @@ func TestMultiPageTemplate(t *testing.T) {
 			}
 			template, err := Build(entryPoint, r, opts)
 			switch {
-			case err == nil && cas.expectedLoadErr == "":
+			case err == nil && cas.expectedBuildErr == "":
 				// Ok, no errors expected: continue with the test.
-			case err != nil && cas.expectedLoadErr == "":
+			case err != nil && cas.expectedBuildErr == "":
 				t.Fatalf("unexpected loading error: %q", err)
-			case err == nil && cas.expectedLoadErr != "":
-				t.Fatalf("expected error %q but not errors have been returned by Build", cas.expectedLoadErr)
-			case err != nil && cas.expectedLoadErr != "":
-				if strings.Contains(err.Error(), cas.expectedLoadErr) {
+			case err == nil && cas.expectedBuildErr != "":
+				t.Fatalf("expected error %q but not errors have been returned by Build", cas.expectedBuildErr)
+			case err != nil && cas.expectedBuildErr != "":
+				if strings.Contains(err.Error(), cas.expectedBuildErr) {
 					// Ok, the error returned by Build contains the expected error.
 					return // this test is end.
 				} else {
-					t.Fatalf("expected error %q, got %q", cas.expectedLoadErr, err)
+					t.Fatalf("expected error %q, got %q", cas.expectedBuildErr, err)
 				}
 			}
 			w := &bytes.Buffer{}
