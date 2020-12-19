@@ -553,8 +553,20 @@ func runGc(path string) (int, []byte, []byte, error) {
 			`module scriggo-gc-test`,
 			`replace testpkg => ./testpkg`,
 			`replace github.com/open2b/scriggo => ` + scriggoAbsPath,
+			`require testpkg v0.0.0-00010101000000-000000000000`,
 		}, "\n")
 		err := ioutil.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(data), 0664)
+		if err != nil {
+			return 0, nil, nil, err
+		}
+	}
+	// Create a "go.sum" file inside the testing directory.
+	{
+		data := strings.Join([]string{
+			`github.com/google/go-cmp v0.5.1/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=`,
+			`golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=`,
+		}, "\n")
+		err := ioutil.WriteFile(filepath.Join(tmpDir, "go.sum"), []byte(data), 0664)
 		if err != nil {
 			return 0, nil, nil, err
 		}
