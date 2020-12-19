@@ -204,12 +204,6 @@ type typechecker struct {
 	// iota holds the current iota value.
 	iota int
 
-	// showMacros is the list of all ast.ShowMacro nodes. This is needed because
-	// the ast.ShowMacro nodes are handled in a special way: if an ast.ShowMacro
-	// node points to a not-defined macro, an error will be returned depending on
-	// its 'Or' field.
-	showMacros []*ast.ShowMacro
-
 	// Text structures for Goto and Labels checking.
 	gotos           []string
 	storedGotos     []string

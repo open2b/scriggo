@@ -652,7 +652,6 @@ nodesLoop:
 			tc.terminating = false
 
 		case *ast.ShowMacro:
-			tc.showMacros = append(tc.showMacros, node)
 			nodes[i] = ast.NewCall(node.Pos(), node.Macro, node.Args, node.IsVariadic)
 			continue nodesLoop // check nodes[i]
 
