@@ -356,7 +356,10 @@ func embed(path string, flags buildFlags) (err error) {
 	}
 	if out != nil {
 		defer func() {
-			err = out.Close()
+			err2 := out.Close()
+			if err == nil {
+				err = err2
+			}
 		}()
 	}
 	err = renderPackages(out, modDir, sf, goos, flags)
