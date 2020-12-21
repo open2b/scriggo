@@ -23,7 +23,6 @@ import (
 const usage = "usage: %s [-S] filename\n"
 
 var packages scriggo.Packages
-var Main *scriggo.Package
 
 func renderPanics(p *runtime.Panic) string {
 	var msg string
