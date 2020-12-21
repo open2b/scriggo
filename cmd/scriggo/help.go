@@ -12,7 +12,7 @@ can be used to build and install stand alone interpreters and to generate Go
 source files useful to embed Scriggo in an application.
 
 The scriggo tool is not required to embed Scriggo in an application but it is
-useful to generate the code for a package loader used by the Scriggo Load
+useful to generate the code for a package loader used by the Scriggo Build
 functions to load the packages that can be imported during the execution of a
 program.
 
@@ -152,7 +152,7 @@ Scriggofile of the module.
 
 The declarations in the generated Go file have type scriggo.PackageLoader and
 they are assigned to a variable named 'packages'. The variable can be used as
-an argument to the Load functions in the scriggo package.
+an argument to the Build functions in the scriggo package.
 
 To give a different name to the variable use the instruction SET VARIABLE in
 the Scriggofile:
