@@ -1660,11 +1660,19 @@ func stdLibPaths() []string {
 	version := goBaseVersion(runtime.Version())
 	paths := make([]string, 0, len(stdlibPaths))
 	for _, path := range stdlibPaths {
-		if path == "time/tzdata" && version != "go1.15" {
-			continue
-		}
-		if path == "hash/maphash" && version != "go1.14" && version != "go1.15" {
-			continue
+		switch path {
+		case "embed", "io/fs":
+			if version != "go1.16" {
+				continue
+			}
+		case "time/tzdata":
+			if version != "go1.15" && version != "go1.16" {
+				continue
+			}
+		case "hash/maphash":
+			if version != "go1.14" && version != "go1.15" && version != "go1.16" {
+				continue
+			}
 		}
 		paths = append(paths, path)
 	}
@@ -1713,6 +1721,7 @@ var stdlibPaths = []string{
 	"debug/macho",
 	"debug/pe",
 	"debug/plan9obj",
+	"embed", // Go version 1.16
 	"encoding",
 	"encoding/ascii85",
 	"encoding/asn1",
@@ -1757,6 +1766,7 @@ var stdlibPaths = []string{
 	"image/png",
 	"index/suffixarray",
 	"io",
+	"io/fs", // Go version 1.16
 	"io/ioutil",
 	"log",
 	"log/syslog",

@@ -178,8 +178,8 @@ func goBaseVersion(v string) string {
 func hasStdlibPrefix(path string) bool {
 	stdlibPrefixes := []string{
 		"archive", "bufio", "bytes", "compress", "container",
-		"context", "crypto", "database", "debug", "encoding", "errors",
-		"expvar", "flag", "fmt", "go", "hash", "html", "image",
+		"context", "crypto", "database", "debug", "embed", "encoding",
+		"errors", "expvar", "flag", "fmt", "go", "hash", "html", "image",
 		"index", "io", "log", "math", "mime", "net", "os",
 		"path", "plugin", "reflect", "regexp", "runtime", "sort",
 		"strconv", "strings", "sync", "syscall", "testing", "text",
