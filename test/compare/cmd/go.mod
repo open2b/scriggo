@@ -1,4 +1,4 @@
-module github.com/open2b/scriggo/cmd
+module github.com/open2b/scriggo/test/compare/cmd
 
 replace github.com/open2b/scriggo => ../../../
 
