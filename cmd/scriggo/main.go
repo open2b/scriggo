@@ -130,6 +130,9 @@ var commandsHelp = map[string]func(){
 	"install": func() {
 		txtToHelp(helpInstall)
 	},
+	"serve" : func() {
+		txtToHelp(helpServe)
+	},
 	"limitations": func() {
 		txtToHelp(helpLimitations)
 	},
@@ -223,6 +226,17 @@ var commands = map[string]func(){
 			exitError(`bad number of arguments`)
 		}
 		err := embed(path, buildFlags{f: *f, v: *v, x: *x, o: *o})
+		if err != nil {
+			exitError("%s", err)
+		}
+		exit(0)
+	},
+	"serve": func() {
+		flag.Usage = commandsHelp["serve"]
+		asm := flag.Bool("S", false, "print assembly listing.")
+		metrics := flag.Bool("metrics", false, "print metrics about file executions.")
+		flag.Parse()
+		err := serve(*asm, *metrics)
 		if err != nil {
 			exitError("%s", err)
 		}

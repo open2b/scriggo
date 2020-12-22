@@ -11,6 +11,9 @@ Scriggo is an embeddable Go interpreter. The scriggo command is a tool that
 can be used to build and install stand alone interpreters and to generate Go
 source files useful to embed Scriggo in an application.
 
+It also provides a web server that serves a template rooted at the current
+directory, useful to learn Scriggo templates. See 'scriggo help serve'.
+
 The scriggo tool is not required to embed Scriggo in an application but it is
 useful to generate the code for a package loader used by the Scriggo Build
 functions to load the packages that can be imported during the execution of a
@@ -33,6 +36,9 @@ The commands are:
     build       build an interpreter starting from a Scriggofile     
 
     install     build and install an interpreter in the GOBIN directory
+
+    serve       runs a web server and serves the template rooted at the current
+                directory
 
     version     print Scriggo and scriggo version
 
@@ -174,6 +180,32 @@ the standard output.
 
 For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
 
+`
+
+const helpServe = `
+usage: scriggo serve [-S] [--metrics]
+
+Serve runs a web server and serves the template rooted at the current
+directory. It is useful to learn Scriggo templates.
+
+It renders HTML and Markdown files based on file extension.
+
+For example:
+
+    http://localhost:8080/article.html
+
+renders the template file named 'article.html' as HTML and
+
+    http://localhost:8080/blog.md
+
+renders the template file named 'blog.md' as Markdown. Markdown is converted to
+HTML with the Goldmark parser with the default options.
+
+Templates are automatically rebuilt when a file changes.
+
+The -S flag prints the assembly code of the served template.
+
+The --metrics flags prints metrics about execution time.
 `
 
 const helpScriggofile = `
