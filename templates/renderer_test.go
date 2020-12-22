@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/open2b/scriggo/internal/mapfs"
 )
 
 type Vars map[string]interface{}
@@ -50,11 +52,11 @@ var htmlContextTests = []struct {
 
 func TestHTMLContext(t *testing.T) {
 	for _, expr := range htmlContextTests {
-		r := MapReader{"index.html": []byte("{{" + expr.src + "}}")}
+		fsys := mapfs.MapFS{"index.html": "{{" + expr.src + "}}"}
 		opts := &BuildOptions{
 			Globals: asDeclarations(expr.vars),
 		}
-		template, err := Build("index.html", r, opts)
+		template, err := Build(fsys, "index.html", opts)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -105,11 +107,11 @@ var quotedAttrContextTests = []struct {
 
 func TestQuotedAttrContext(t *testing.T) {
 	for _, expr := range quotedAttrContextTests {
-		r := MapReader{"index.html": []byte(`<z x="{{` + expr.src + `}}">`)}
+		fsys := mapfs.MapFS{"index.html": `<z x="{{` + expr.src + `}}">`}
 		opts := &BuildOptions{
 			Globals: asDeclarations(expr.vars),
 		}
-		template, err := Build("index.html", r, opts)
+		template, err := Build(fsys, "index.html", opts)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -142,11 +144,11 @@ var unquotedAttrContextTests = []struct {
 
 func TestUnquotedAttrContext(t *testing.T) {
 	for _, expr := range unquotedAttrContextTests {
-		r := MapReader{"index.html": []byte(`<z x={{` + expr.src + `}}>`)}
+		fsys := mapfs.MapFS{"index.html": `<z x={{` + expr.src + `}}>`}
 		opts := &BuildOptions{
 			Globals: asDeclarations(expr.vars),
 		}
-		template, err := Build("index.html", r, opts)
+		template, err := Build(fsys, "index.html", opts)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -224,11 +226,11 @@ var scriptContextTests = []struct {
 func TestScriptContext(t *testing.T) {
 	for _, typ := range []string{"text/javascript", "application/ld+json"} {
 		for _, expr := range scriptContextTests {
-			r := MapReader{"index.html": []byte(`<script type="` + typ + `">{{` + expr.src + `}}</script>`)}
+			fsys := mapfs.MapFS{"index.html": `<script type="` + typ + `">{{` + expr.src + `}}</script>`}
 			opts := &BuildOptions{
 				Globals: asDeclarations(expr.vars),
 			}
-			template, err := Build("index.html", r, opts)
+			template, err := Build(fsys, "index.html", opts)
 			if err != nil {
 				t.Errorf("type: %s, source: %q, %s\n", typ, expr.src, err)
 				continue
@@ -257,11 +259,11 @@ var jsContextTests = []struct {
 
 func TestJSContext(t *testing.T) {
 	for _, expr := range jsContextTests {
-		r := MapReader{"index.html": []byte("<script>{{" + expr.src + "}}</script>")}
+		fsys := mapfs.MapFS{"index.html": "<script>{{" + expr.src + "}}</script>"}
 		opts := &BuildOptions{
 			Globals: asDeclarations(expr.vars),
 		}
-		template, err := Build("index.html", r, opts)
+		template, err := Build(fsys, "index.html", opts)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -289,11 +291,11 @@ var jsonContextTests = []struct {
 
 func TestJSONContext(t *testing.T) {
 	for _, expr := range jsonContextTests {
-		r := MapReader{"index.html": []byte(`<script type="application/ld+json">{{` + expr.src + `}}</script>`)}
+		fsys := mapfs.MapFS{"index.html": `<script type="application/ld+json">{{` + expr.src + `}}</script>`}
 		opts := &BuildOptions{
 			Globals: asDeclarations(expr.vars),
 		}
-		template, err := Build("index.html", r, opts)
+		template, err := Build(fsys, "index.html", opts)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -347,11 +349,11 @@ var jsStringContextTests = []struct {
 func TestJSStringContext(t *testing.T) {
 	for _, q := range []string{"\"", "'"} {
 		for _, expr := range jsStringContextTests {
-			r := MapReader{"index.html": []byte("<script>" + q + "{{" + expr.src + "}}" + q + "</script>")}
+			fsys := mapfs.MapFS{"index.html": "<script>" + q + "{{" + expr.src + "}}" + q + "</script>"}
 			opts := &BuildOptions{
 				Globals: asDeclarations(expr.vars),
 			}
-			template, err := Build("index.html", r, opts)
+			template, err := Build(fsys, "index.html", opts)
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue
@@ -386,11 +388,11 @@ var cssContextTests = []struct {
 
 func TestCSSContext(t *testing.T) {
 	for _, expr := range cssContextTests {
-		r := MapReader{"index.html": []byte("<style>{{" + expr.src + "}}</style>")}
+		fsys := mapfs.MapFS{"index.html": "<style>{{" + expr.src + "}}</style>"}
 		opts := &BuildOptions{
 			Globals: asDeclarations(expr.vars),
 		}
-		template, err := Build("index.html", r, opts)
+		template, err := Build(fsys, "index.html", opts)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -436,11 +438,11 @@ var cssStringContextTests = []struct {
 func TestCSSStringContext(t *testing.T) {
 	for _, q := range []string{"\"", "'"} {
 		for _, expr := range cssStringContextTests {
-			r := MapReader{"index.html": []byte("<style>" + q + "{{" + expr.src + "}}" + q + "</style>")}
+			fsys := mapfs.MapFS{"index.html": "<style>" + q + "{{" + expr.src + "}}" + q + "</style>"}
 			opts := &BuildOptions{
 				Globals: asDeclarations(expr.vars),
 			}
-			template, err := Build("index.html", r, opts)
+			template, err := Build(fsys, "index.html", opts)
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue

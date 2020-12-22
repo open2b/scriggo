@@ -7,60 +7,55 @@
 package compiler
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
 	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/fs"
 )
 
-// ParseTemplate parses the template file with the given path reading the
-// template files from the reader. path, if not absolute, is relative to the
-// oot of the template.
+// FormatFS is the interface implemented by a file system that can determine
+// the file format from a path name.
+type FormatFS interface {
+	fs.FS
+	Format(name string) (ast.Format, error)
+}
+
+// ParseTemplate parses the named template file rooted at the given file
+// system. If fsys implements FormatFS, the file format is read from its
+// Format method, otherwise it depends on the extension of the file name.
+// Any error related to the compilation itself is returned as a CompilerError.
 //
 // ParseTemplate expands the nodes Extends, Import and ShowPartial parsing the
 // relative trees.
-//
-// The parsed trees are cached so only one call per combination of path and
-// context is made to the reader.
-func ParseTemplate(path string, reader FileReader, packages PackageLoader) (*ast.Tree, error) {
+func ParseTemplate(fsys fs.FS, name string, packages PackageLoader) (*ast.Tree, error) {
 
-	if path == "" {
-		return nil, ErrInvalidPath
+	if name == "." || strings.HasSuffix(name, "/") {
+		return nil, os.ErrInvalid
 	}
-	if path[0] == '/' {
-		path = path[1:]
-	}
-	// Cleans the path by removing "..".
-	path, err := toAbsolutePath("/", path)
+
+	src, format, err := readFileAndFormat(fsys, name)
 	if err != nil {
 		return nil, err
 	}
 
 	pp := &templateExpansion{
-		reader:   reader,
+		fsys:     fsys,
 		packages: packages,
 		trees:    map[string]parsedTree{},
 		paths:    []string{},
 	}
 
-	src, format, err := reader.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			err = ErrNotExist
-		}
-		return nil, err
-	}
-
-	tree, err := pp.parseSource(src, path, format, false)
+	tree, err := pp.parseSource(src, name, format, false)
 	if err != nil {
 		if err2, ok := err.(*SyntaxError); ok && err2.path == "" {
-			err2.path = path
+			err2.path = name
 		} else if e, ok := err.(*CycleError); ok {
-			e.msg = "file " + path + e.msg + ": cycle not allowed"
-		} else if os.IsNotExist(err) {
-			err = ErrNotExist
+			e.msg = "file " + name + e.msg + ": cycle not allowed"
 		}
 		return nil, err
 	}
@@ -70,7 +65,7 @@ func ParseTemplate(path string, reader FileReader, packages PackageLoader) (*ast
 
 // templateExpansion represents the state of a template expansion.
 type templateExpansion struct {
-	reader   FileReader
+	fsys     fs.FS
 	trees    map[string]parsedTree
 	packages PackageLoader
 	paths    []string
@@ -86,17 +81,38 @@ type parsedTree struct {
 	}
 }
 
-// abs returns path as absolute.
-func (pp *templateExpansion) abs(path string) (string, error) {
-	var err error
-	if path[0] == '/' {
-		path, err = toAbsolutePath("/", path[1:])
-	} else {
-		parent := pp.paths[len(pp.paths)-1]
-		dir := parent[:strings.LastIndex(parent, "/")+1]
-		path, err = toAbsolutePath(dir, path)
+// rooted returns the path of an Extend, Import or ShowPartial node, rooted at
+// the root path of the template.
+//
+// Supposing that a/b/c is the path name of the file that contains the node
+//
+//   if name is /d/e, the rooted path name is d/e
+//   if name is d/e, the rooted path name is a/b/d/e
+//   if name is ../d/e, the rooted path name is a/d/e
+//   if name is ../../d/e, the rooted path name is d/e
+//
+func (pp *templateExpansion) rooted(name string) (string, error) {
+	if name[0] == '/' {
+		return name[1:], nil
 	}
-	return path, err
+	parent := pp.paths[len(pp.paths)-1]
+	if p := strings.LastIndex(parent, "/"); p > 0 {
+		parent = parent[:p]
+	} else {
+		parent = ""
+	}
+	if strings.HasPrefix(name, "..") {
+		p := strings.LastIndex(parent, "/")
+		if p == -1 {
+			return "", os.ErrInvalid
+		}
+		parent = parent[p-1:]
+		name = name[3:]
+	}
+	if parent == "" {
+		return name, nil
+	}
+	return parent + "/" + name, nil
 }
 
 // parseNodeFile parses the file referenced by an Extends, Import or
@@ -104,38 +120,38 @@ func (pp *templateExpansion) abs(path string) (string, error) {
 func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 
 	var err error
-	var path string
+	var name string
 	var format ast.Format
 	var imported bool
 
-	// Get the file's absolute path, its format and if it should be
+	// Get the file's rooted path, its format and if it should be
 	// a declarations file.
 	switch n := node.(type) {
 	case *ast.Extends:
-		path = n.Path
+		name = n.Path
 		format = ast.Format(n.Context)
 	case *ast.Import:
-		path = n.Path
+		name = n.Path
 		imported = true
 	case *ast.ShowPartial:
-		path = n.Path
+		name = n.Path
 		format = ast.Format(n.Context)
 	}
-	path, err = pp.abs(path)
+	name, err = pp.rooted(name)
 	if err != nil {
 		return nil, err
 	}
 
 	// Check if there is a cycle.
 	for _, p := range pp.paths {
-		if p == path {
-			return nil, &CycleError{path: path}
+		if p == name {
+			return nil, &CycleError{path: name}
 		}
 	}
 
 	// Check if it has already been parsed.
 	var tree *ast.Tree
-	if parsed, ok := pp.trees[path]; ok {
+	if parsed, ok := pp.trees[name]; ok {
 		switch n := parsed.parent.node.(type) {
 		case *ast.Extends:
 			switch node.(type) {
@@ -147,7 +163,7 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 			if format != parsed.tree.Format {
 				if !(format == ast.FormatMarkdown && parsed.tree.Format == ast.FormatHTML) {
 					return nil, syntaxError(node.Pos(), "extended file %q is %s instead of %s",
-						path, parsed.tree.Format, format)
+						name, parsed.tree.Format, format)
 				}
 			}
 		case *ast.Import:
@@ -159,7 +175,7 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 				return nil, syntaxError(node.Pos(), "import of file shown at %s:%s", parsed.parent.path, n.Pos())
 			}
 			if format != parsed.tree.Format {
-				return nil, syntaxError(node.Pos(), "shown file %q is %s instead of %s", path, parsed.tree.Format, format)
+				return nil, syntaxError(node.Pos(), "shown file %q is %s instead of %s", name, parsed.tree.Format, format)
 			}
 		}
 		tree = parsed.tree
@@ -167,7 +183,7 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 
 	if tree == nil {
 		// Parse the file.
-		src, fo, err := pp.reader.ReadFile(path)
+		src, fo, err := readFileAndFormat(pp.fsys, name)
 		if err != nil {
 			return nil, err
 		}
@@ -176,20 +192,20 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 			case *ast.Extends:
 				if !(format == ast.FormatMarkdown && fo == ast.FormatHTML) {
 					return nil, syntaxError(node.Pos(), "extended file %q is %s instead of %s",
-						path, fo, format)
+						name, fo, format)
 				}
 			case *ast.ShowPartial:
-				return nil, syntaxError(node.Pos(), "shown file %q is %s instead of %s", path, fo, format)
+				return nil, syntaxError(node.Pos(), "shown file %q is %s instead of %s", name, fo, format)
 			}
 		}
-		tree, err = pp.parseSource(src, path, fo, imported)
+		tree, err = pp.parseSource(src, name, fo, imported)
 		if err != nil {
 			return nil, err
 		}
 		parsed := parsedTree{tree: tree}
 		parsed.parent.path = pp.paths[len(pp.paths)-1]
 		parsed.parent.node = node
-		pp.trees[path] = parsed
+		pp.trees[name] = parsed
 	}
 
 	return tree, nil
@@ -309,10 +325,8 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 			var err error
 			n.Tree, err = pp.parseNodeFile(n)
 			if err != nil {
-				absPath, _ := pp.abs(n.Path)
-				if err == ErrInvalidPath {
-					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
-				} else if os.IsNotExist(err) {
+				absPath, _ := pp.rooted(n.Path)
+				if errors.Is(err, os.ErrNotExist) {
 					err = syntaxError(n.Pos(), "extends path %q does not exist", absPath)
 				} else if e, ok := err.(*CycleError); ok {
 					e.msg = "\n\textends " + absPath + e.msg
@@ -346,10 +360,8 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 				var err error
 				n.Tree, err = pp.parseNodeFile(n)
 				if err != nil {
-					absPath, _ := pp.abs(n.Path)
-					if err == ErrInvalidPath {
-						err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
-					} else if os.IsNotExist(err) {
+					absPath, _ := pp.rooted(n.Path)
+					if errors.Is(err, os.ErrNotExist) {
 						err = syntaxError(n.Pos(), "import path %q does not exist", absPath)
 					} else if e, ok := err.(*CycleError); ok {
 						e.msg = "\n\timports " + absPath + e.msg
@@ -366,10 +378,8 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 			var err error
 			n.Tree, err = pp.parseNodeFile(n)
 			if err != nil {
-				absPath, _ := pp.abs(n.Path)
-				if err == ErrInvalidPath {
-					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
-				} else if os.IsNotExist(err) {
+				absPath, _ := pp.rooted(n.Path)
+				if errors.Is(err, os.ErrNotExist) {
 					err = syntaxError(n.Pos(), "shown path %q does not exist", absPath)
 				} else if e, ok := err.(*CycleError); ok {
 					e.msg = "\n\tshows   " + absPath + e.msg
@@ -399,4 +409,39 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 	}
 
 	return nil
+}
+
+// readFileAndFormat reads the file with the given path name from fsys and
+// returns its content and format. If fsys implements FormatFS, it calls
+// its Format method, otherwise it determines the format from the file name
+// extension.
+func readFileAndFormat(fsys fs.FS, name string) ([]byte, ast.Format, error) {
+	src, err := fs.ReadFile(fsys, name)
+	if err != nil {
+		return nil, 0, err
+	}
+	format := ast.FormatText
+	if ff, ok := fsys.(FormatFS); ok {
+		format, err = ff.Format(name)
+		if err != nil {
+			return nil, 0, err
+		}
+		if format < ast.FormatText || format > ast.FormatMarkdown {
+			return nil, 0, fmt.Errorf("unkonwn format %d", format)
+		}
+	} else {
+		switch path.Ext(name) {
+		case ".html":
+			format = ast.FormatHTML
+		case ".css":
+			format = ast.FormatCSS
+		case ".js":
+			format = ast.FormatJS
+		case ".json":
+			format = ast.FormatJSON
+		case ".md":
+			format = ast.FormatMarkdown
+		}
+	}
+	return src, format, nil
 }

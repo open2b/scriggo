@@ -8,6 +8,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,6 +19,8 @@ import (
 	"time"
 
 	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/fs"
 	"github.com/open2b/scriggo/templates"
 
 	"github.com/fsnotify/fsnotify"
@@ -26,14 +29,14 @@ import (
 
 func serve(asm, metrics bool) error {
 
-	dir, err := newDirReader(".")
+	fsys, err := newTemplateFS(".")
 	if err != nil {
 		return err
 	}
-	defer dir.Close()
+	defer fsys.Close()
 
 	srv := &server{
-		files:  dir,
+		fsys:   fsys,
 		static: http.FileServer(http.Dir(".")),
 		runOptions: &templates.RunOptions{
 			MarkdownConverter: func(src []byte, out io.Writer) error {
@@ -50,9 +53,9 @@ func serve(asm, metrics bool) error {
 	go func() {
 		for {
 			select {
-			case name := <-dir.Changed:
+			case name := <-fsys.Changed:
 				delete(srv.templates, name)
-			case err := <-dir.Errors:
+			case err := <-fsys.Errors:
 				srv.logf("%v", err)
 			}
 		}
@@ -73,7 +76,7 @@ func serve(asm, metrics bool) error {
 }
 
 type server struct {
-	files      *dirReader
+	fsys       *templateFS
 	static     http.Handler
 	runOptions *templates.RunOptions
 	asm        bool
@@ -105,9 +108,9 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	srv.Unlock()
 	start := time.Now()
 	if !ok {
-		template, err = templates.Build(name, srv.files, nil)
+		template, err = templates.Build(srv.fsys, name, nil)
 		if err != nil {
-			if err == templates.ErrNotExist {
+			if errors.Is(err, os.ErrNotExist) {
 				http.NotFound(w, r)
 				return
 			}
@@ -187,10 +190,9 @@ func (srv *server) logf(format string, a ...interface{}) {
 	srv.metrics.header = true
 }
 
-// dirReader implements a templates.FileReader that reads the files in a
-// directory.
-type dirReader struct {
-	files   templates.DirReader
+// templateFS implements a file system that reads the files in a directory.
+type templateFS struct {
+	fsys    fs.FS
 	watcher *fsnotify.Watcher
 	watched map[string]bool
 	Errors  chan error
@@ -199,13 +201,13 @@ type dirReader struct {
 	Changed chan string
 }
 
-func newDirReader(root string) (*dirReader, error) {
+func newTemplateFS(root string) (*templateFS, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
 	}
-	dir := &dirReader{
-		files:   templates.DirReader(root),
+	dir := &templateFS{
+		fsys:    fs.DirFS(root),
 		watcher: watcher,
 		watched: map[string]bool{},
 		Changed: make(chan string),
@@ -231,22 +233,40 @@ func newDirReader(root string) (*dirReader, error) {
 	return dir, nil
 }
 
-func (dir *dirReader) Close() error {
-	return dir.watcher.Close()
-}
-
-// ReadFile implements the ReadFile method of templates.FileReader.
-func (dir *dirReader) ReadFile(name string) ([]byte, error) {
-	dir.Lock()
-	if !dir.watched[name] {
-		err := dir.watcher.Add(name[1:])
-		if err != nil {
-			dir.Unlock()
-			return nil, err
-		}
-		dir.watched[name] = true
+func (t *templateFS) Open(name string) (fs.File, error) {
+	err := t.watch(name)
+	if err != nil {
+		return nil, err
 	}
-	dir.Unlock()
-	return dir.files.ReadFile(name)
+	return t.fsys.Open(name)
 }
 
+func (t *templateFS) ReadFile(name string) ([]byte, error) {
+	err := t.watch(name)
+	if err != nil {
+		return nil, err
+	}
+	return fs.ReadFile(t.fsys, name)
+}
+
+func (t *templateFS) Format(name string) (ast.Format, error) {
+	return ast.FormatText, nil
+}
+
+func (t *templateFS) Close() error {
+	return t.watcher.Close()
+}
+
+func (t *templateFS) watch(name string) error {
+	t.Lock()
+	if !t.watched[name] {
+		err := t.watcher.Add(name)
+		if err != nil {
+			t.Unlock()
+			return err
+		}
+		t.watched[name] = true
+	}
+	t.Unlock()
+	return nil
+}

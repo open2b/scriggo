@@ -18,6 +18,8 @@ import (
 	"reflect"
 
 	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/fs"
+	"github.com/open2b/scriggo/internal/mapfs"
 	"github.com/open2b/scriggo/runtime"
 	"github.com/open2b/scriggo/scripts"
 	"github.com/open2b/scriggo/templates"
@@ -117,22 +119,22 @@ func main() {
 			}
 		}
 	default:
-		var r templates.FileReader
+		var fsys fs.FS
 		switch cmd {
 		case "build", "run":
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
 				panic(err)
 			}
-			r = templates.MapReader{"/index" + ext: src}
+			fsys = mapfs.MapFS{"index" + ext: string(src)}
 		case "rundir":
-			r = templates.DirReader(flag.Args()[2])
+			fsys = fs.DirFS(flag.Args()[2])
 		}
 		opts := templates.BuildOptions{
 			Globals:  globals,
 			Packages: predefPkgs,
 		}
-		template, err := templates.Build("/index"+ext, r, &opts)
+		template, err := templates.Build(fsys, "index"+ext, &opts)
 		if err != nil {
 			_, _ = fmt.Fprint(os.Stderr, err)
 			os.Exit(1)

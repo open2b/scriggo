@@ -9,13 +9,15 @@ package templates
 import (
 	"bytes"
 	"testing"
+
+	"github.com/open2b/scriggo/fs"
 )
 
 func TestFullTemplate(t *testing.T) {
-	r := DirReader("./full_template_test")
-	for page, expectedOutput := range expectedPagesOutput {
-		t.Run(page, func(t *testing.T) {
-			template, err := Build(page, r, nil)
+	fsys := fs.DirFS("./full_template_test")
+	for name, expectedOutput := range expectedPagesOutput {
+		t.Run(name, func(t *testing.T) {
+			template, err := Build(fsys, name, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/internal/mapfs"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -79,98 +80,98 @@ func TestCyclicPrograms(t *testing.T) {
 }
 
 var cycleTemplateTests = []struct {
-	name     string
-	template mapStringReader
-	path     string
-	pos      ast.Position
-	msg      string
+	name string
+	fsys mapfs.MapFS
+	path string
+	pos  ast.Position
+	msg  string
 }{
 
 	{
 		name: "Template cycle",
-		template: mapStringReader{
-			"/index.html":            `{% extends "/layout.html" %}`,
-			"/layout.html":           `{% import "/macros/macro.html" %}`,
-			"/partials/partial.html": `{% import "/macros/macro.html" %}`,
-			"/macros/macro.html":     `{% macro A() %}\n\t{% show "/partials/partial.html" %}\n{% end %}`,
+		fsys: mapfs.MapFS{
+			"index.html":            `{% extends "/layout.html" %}`,
+			"layout.html":           `{% import "/macros/macro.html" %}`,
+			"partials/partial.html": `{% import "/macros/macro.html" %}`,
+			"macros/macro.html":     `{% macro A() %}\n\t{% show "/partials/partial.html" %}\n{% end %}`,
 		},
-		path: "/macros/macro.html",
+		path: "macros/macro.html",
 		pos:  ast.Position{Line: 1, Column: 23, Start: 22, End: 50},
-		msg: `file /index.html
-	extends /layout.html
-	imports /macros/macro.html
-	shows   /partials/partial.html
-	imports /macros/macro.html: cycle not allowed`,
+		msg: `file index.html
+	extends layout.html
+	imports macros/macro.html
+	shows   partials/partial.html
+	imports macros/macro.html: cycle not allowed`,
 	},
 
 	{
 		name: "Template cycle on index file",
-		template: mapStringReader{
-			"/index.html":        `{% extends "/layout.html" %}`,
-			"/layout.html":       `{% import "/macros/macro.html" %}`,
-			"/macros/macro.html": `{% macro A() %}\n\t{% show "/index.html" %}\n{% end %}`,
+		fsys: mapfs.MapFS{
+			"index.html":        `{% extends "/layout.html" %}`,
+			"layout.html":       `{% import "/macros/macro.html" %}`,
+			"macros/macro.html": `{% macro A() %}\n\t{% show "/index.html" %}\n{% end %}`,
 		},
-		path: "/index.html",
+		path: "index.html",
 		pos:  ast.Position{Line: 1, Column: 4, Start: 3, End: 24},
-		msg: `file /index.html
-	extends /layout.html
-	imports /macros/macro.html
-	shows   /index.html: cycle not allowed`,
+		msg: `file index.html
+	extends layout.html
+	imports macros/macro.html
+	shows   index.html: cycle not allowed`,
 	},
 
 	{
 		name: "Template cycle on last showd file",
-		template: mapStringReader{
-			"/index.html":        `{% extends "/layout.html" %}`,
-			"/layout.html":       `{% import "/macros/macro.html" %}`,
-			"/macros/macro.html": `{% macro A() %}\n\t{% show "/macros/macro.html" %}\n{% end %}`,
+		fsys: mapfs.MapFS{
+			"index.html":        `{% extends "/layout.html" %}`,
+			"layout.html":       `{% import "/macros/macro.html" %}`,
+			"macros/macro.html": `{% macro A() %}\n\t{% show "/macros/macro.html" %}\n{% end %}`,
 		},
-		path: "/macros/macro.html",
+		path: "macros/macro.html",
 		pos:  ast.Position{Line: 1, Column: 23, Start: 22, End: 46},
-		msg: `file /index.html
-	extends /layout.html
-	imports /macros/macro.html
-	shows   /macros/macro.html: cycle not allowed`,
+		msg: `file index.html
+	extends layout.html
+	imports macros/macro.html
+	shows   macros/macro.html: cycle not allowed`,
 	},
 
 	{
 		name: "Template file that extends itself",
-		template: mapStringReader{
-			"/index.html": `{% extends "/index.html" %}`,
+		fsys: mapfs.MapFS{
+			"index.html": `{% extends "/index.html" %}`,
 		},
-		path: "/index.html",
+		path: "index.html",
 		pos:  ast.Position{Line: 1, Column: 4, Start: 3, End: 23},
-		msg: `file /index.html
-	extends /index.html: cycle not allowed`,
+		msg: `file index.html
+	extends index.html: cycle not allowed`,
 	},
 
 	{
 		name: "Template file that imports itself",
-		template: mapStringReader{
-			"/index.html": `{% import "/index.html" %}`,
+		fsys: mapfs.MapFS{
+			"index.html": `{% import "/index.html" %}`,
 		},
-		path: "/index.html",
+		path: "index.html",
 		pos:  ast.Position{Line: 1, Column: 11, Start: 10, End: 22},
-		msg: `file /index.html
-	imports /index.html: cycle not allowed`,
+		msg: `file index.html
+	imports index.html: cycle not allowed`,
 	},
 
 	{
 		name: "Template file that shows itself",
-		template: mapStringReader{
-			"/index.html": `{% show "/index.html" %}`,
+		fsys: mapfs.MapFS{
+			"index.html": `{% show "/index.html" %}`,
 		},
-		path: "/index.html",
+		path: "index.html",
 		pos:  ast.Position{Line: 1, Column: 4, Start: 3, End: 20},
-		msg: `file /index.html
-	shows   /index.html: cycle not allowed`,
+		msg: `file index.html
+	shows   index.html: cycle not allowed`,
 	},
 }
 
 func TestCyclicTemplates(t *testing.T) {
 	for _, test := range cycleTemplateTests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := ParseTemplate("index.html", test.template, nil)
+			_, err := ParseTemplate(test.fsys, "index.html", nil)
 			if err == nil {
 				t.Fatal("expecting cycle error, got no error")
 			}

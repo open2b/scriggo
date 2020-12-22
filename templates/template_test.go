@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/internal/mapfs"
 	"github.com/open2b/scriggo/runtime"
 
 	"github.com/google/go-cmp/cmp"
@@ -328,8 +329,8 @@ var rendererExprTests = []struct {
 func TestRenderExpressions(t *testing.T) {
 	for _, cas := range rendererExprTests {
 		t.Run(cas.src, func(t *testing.T) {
-			r := MapReader{"index.html": []byte("{{" + cas.src + "}}")}
-			template, err := Build("index.html", r, nil)
+			fsys := mapfs.MapFS{"index.html": "{{" + cas.src + "}}"}
+			template, err := Build(fsys, "index.html", nil)
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
@@ -551,8 +552,8 @@ var rendererStmtTests = []struct {
 func TestRenderStatements(t *testing.T) {
 	for _, cas := range rendererStmtTests {
 		t.Run(cas.src, func(t *testing.T) {
-			r := MapReader{"index.html": []byte(cas.src)}
-			template, err := Build("index.html", r, nil)
+			fsys := mapfs.MapFS{"index.html": cas.src}
+			template, err := Build(fsys, "index.html", nil)
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
@@ -1514,7 +1515,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt": `{% import "mypackage" %}{{ mypackage.F() }}`,
 		},
 		packages:         testPackages,
-		expectedBuildErr: "/index.txt:1:11: syntax error: cannot find package \"mypackage\"",
+		expectedBuildErr: "index.txt:1:11: syntax error: cannot find package \"mypackage\"",
 	},
 
 	"Trying to access a precompiled function 'SuperPrint' that is not available in the package 'fmt'": {
@@ -1522,7 +1523,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt": `{% import "fmt" %}{{ fmt.SuperPrint(42) }}`,
 		},
 		packages:         testPackages,
-		expectedBuildErr: "/index.txt:1:25: undefined: fmt.SuperPrint",
+		expectedBuildErr: "index.txt:1:25: undefined: fmt.SuperPrint",
 	},
 
 	"Using the precompiled package 'fmt' without importing it returns an error": {
@@ -1530,7 +1531,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt": `{{ fmt.Sprint(10, 20) }}`,
 		},
 		packages:         testPackages,
-		expectedBuildErr: "/index.txt:1:4: undefined: fmt",
+		expectedBuildErr: "index.txt:1:4: undefined: fmt",
 	},
 
 	"Check if a value that has a method 'IsZero() bool' is zero or not": {
@@ -2079,7 +2080,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt": `{% import "file.txt" %}{% show "file.txt" %}`,
 			"file.txt":  ``,
 		},
-		expectedBuildErr: `syntax error: show of file imported at /index.txt:1:11`,
+		expectedBuildErr: `syntax error: show of file imported at index.txt:1:11`,
 	},
 
 	"Show of a previously extended file": {
@@ -2087,7 +2088,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt": `{% extends "file.txt" %}{% macro A %}{% show "file.txt" %}{% end %}`,
 			"file.txt":  ``,
 		},
-		expectedBuildErr: `syntax error: show of file extended at /index.txt:1:4`,
+		expectedBuildErr: `syntax error: show of file extended at index.txt:1:4`,
 	},
 
 	"Import of a previously extended file": {
@@ -2095,7 +2096,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.txt": `{% extends "file.txt" %}{% import "file.txt" %}`,
 			"file.txt":  ``,
 		},
-		expectedBuildErr: `syntax error: import of file extended at /index.txt:1:4`,
+		expectedBuildErr: `syntax error: import of file extended at index.txt:1:4`,
 	},
 
 	"Import of a previously shown file": {
@@ -2104,7 +2105,7 @@ var templateMultiPageCases = map[string]struct {
 			"file1.txt": ``,
 			"file2.txt": `{% import "file1.txt" %}`,
 		},
-		expectedBuildErr: `syntax error: import of file shown at /index.txt:1:4`,
+		expectedBuildErr: `syntax error: import of file shown at index.txt:1:4`,
 	},
 
 	"Not only spaces in a page that extends": {
@@ -2408,9 +2409,9 @@ func TestMultiPageTemplate(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			entryPoint := cas.entryPoint
-			r := MapReader{}
+			fsys := mapfs.MapFS{}
 			for p, src := range cas.sources {
-				r[p] = []byte(src)
+				fsys[p] = src
 				if entryPoint == "" {
 					if strings.TrimSuffix(p, path.Ext(p)) == "index" {
 						entryPoint = p
@@ -2427,7 +2428,7 @@ func TestMultiPageTemplate(t *testing.T) {
 				Globals:  globals,
 				Packages: cas.packages,
 			}
-			template, err := Build(entryPoint, r, opts)
+			template, err := Build(fsys, entryPoint, opts)
 			switch {
 			case err == nil && cas.expectedBuildErr == "":
 				// Ok, no errors expected: continue with the test.
@@ -2463,7 +2464,7 @@ func TestVars(t *testing.T) {
 	var e = func() {}
 	var f = 5
 	var g = 7
-	reader := MapReader{"example.txt": []byte(`{% _, _, _, _, _ = a, c, d, e, f %}`)}
+	fsys := mapfs.MapFS{"example.txt": `{% _, _, _, _, _ = a, c, d, e, f %}`}
 	globals := Declarations{
 		"a": &a, // expected
 		"b": &b,
@@ -2476,7 +2477,7 @@ func TestVars(t *testing.T) {
 	opts := &BuildOptions{
 		Globals: globals,
 	}
-	template, err := Build("example.txt", reader, opts)
+	template, err := Build(fsys, "example.txt", opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2504,7 +2505,7 @@ var envFilePathCases = []struct {
 		sources: map[string]string{
 			"index.html": `{{ path() }}`,
 		},
-		want: "/index.html",
+		want: "index.html",
 	},
 
 	{
@@ -2513,7 +2514,7 @@ var envFilePathCases = []struct {
 			"index.html":   `{{ path() }}, {% show "partial.html"%}, {{ path() }}`,
 			"partial.html": `{{ path() }}`,
 		},
-		want: `/index.html, /partial.html, /index.html`,
+		want: `index.html, partial.html, index.html`,
 	},
 
 	{
@@ -2523,7 +2524,7 @@ var envFilePathCases = []struct {
 			"partials/partial1.html": `{{ path() }}, {% show "partial2.html" %}`,
 			"partials/partial2.html": `{{ path() }}`,
 		},
-		want: `/index.html, /partials/partial1.html, /partials/partial2.html, /index.html`,
+		want: `index.html, partials/partial1.html, partials/partial2.html, index.html`,
 	},
 
 	{
@@ -2532,7 +2533,7 @@ var envFilePathCases = []struct {
 			"index.html":    `{% import "imported.html" %}{{ path() }}, {% show Path %}, {{ path() }}`,
 			"imported.html": `{% macro Path %}{{ path() }}{% end %}`,
 		},
-		want: `/index.html, /imported.html, /index.html`,
+		want: `index.html, imported.html, index.html`,
 	},
 
 	{
@@ -2541,7 +2542,7 @@ var envFilePathCases = []struct {
 			"index.html":    `{% extends "extended.html" %}{% macro Path %}{{ path() }}{% end %}`,
 			"extended.html": `{{ path() }}, {% show Path %}`,
 		},
-		want: `/extended.html, /index.html`,
+		want: `extended.html, index.html`,
 	},
 }
 
@@ -2551,14 +2552,14 @@ func Test_envFilePath(t *testing.T) {
 	}
 	for _, cas := range envFilePathCases {
 		t.Run(cas.name, func(t *testing.T) {
-			r := MapReader{}
+			fsys := mapfs.MapFS{}
 			for p, src := range cas.sources {
-				r[p] = []byte(src)
+				fsys[p] = src
 			}
 			opts := &BuildOptions{
 				Globals: globals,
 			}
-			template, err := Build("index.html", r, opts)
+			template, err := Build(fsys, "index.html", opts)
 			if err != nil {
 				t.Fatal(err)
 			}

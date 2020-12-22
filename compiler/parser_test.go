@@ -1467,15 +1467,6 @@ func TestTrees(t *testing.T) {
 	}
 }
 
-type testsReader map[string]struct {
-	src  string
-	tree *ast.Tree
-}
-
-func (tests testsReader) Read(path string, ctx ast.Context) ([]byte, error) {
-	return []byte(tests[path].src), nil
-}
-
 func TestPages(t *testing.T) {
 
 	t.Skip("(not runnable)")

@@ -24,6 +24,7 @@ import (
 	"reflect"
 
 	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/fs"
 	"github.com/open2b/scriggo/runtime"
 )
 
@@ -49,7 +50,7 @@ type Options struct {
 	// Packages loads Scriggo packages and precompiled packages.
 	//
 	// For template files, Packages only loads precompiled packages; the template
-	// files are read from the FileReader.
+	// files are read from a file system.
 	Packages PackageLoader
 
 	TreeTransformer func(*ast.Tree) error
@@ -147,17 +148,17 @@ func BuildScript(r io.Reader, packages PackageLoader, opts Options) (*Code, erro
 	return code, err
 }
 
-// BuildTemplate builds the template file with the given path. It reads the
-// template files from the reader. path, if not absolute, is relative to the
-// root of the template. Any error related to the compilation itself is
-// returned as a CompilerError.
-func BuildTemplate(path string, r FileReader, opts Options) (*Code, error) {
+// BuildTemplate builds the named template file rooted at the given file
+// system. If fsys implements FormatFS, the file format is read from its
+// Format method, otherwise it depends on the extension of the file name.
+// Any error related to the compilation itself is returned as a CompilerError.
+func BuildTemplate(fsys fs.FS, name string, opts Options) (*Code, error) {
 
 	var tree *ast.Tree
 
 	// Parse the source code.
 	var err error
-	tree, err = ParseTemplate(path, r, opts.Packages)
+	tree, err = ParseTemplate(fsys, name, opts.Packages)
 	if err != nil {
 		return nil, err
 	}

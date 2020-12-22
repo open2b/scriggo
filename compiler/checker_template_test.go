@@ -9,6 +9,8 @@ package compiler
 import (
 	"strings"
 	"testing"
+
+	"github.com/open2b/scriggo/internal/mapfs"
 )
 
 var templateCases = []struct {
@@ -172,8 +174,8 @@ func TestTemplate(t *testing.T) {
 		src := cas.src
 		expected := cas.expected
 		t.Run(src, func(t *testing.T) {
-			r := mapStringReader{"/index.html": src}
-			_, err := BuildTemplate("/index.html", r, Options{})
+			fsys := mapfs.MapFS{"index.html": src}
+			_, err := BuildTemplate(fsys, "index.html", Options{})
 			switch {
 			case expected == "" && err != nil:
 				t.Fatalf("unexpected error: %q", err)

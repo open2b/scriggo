@@ -16,20 +16,6 @@ import (
 	"github.com/open2b/scriggo/compiler/ast/astutil"
 )
 
-type FileReader interface {
-	ReadFile(name string) ([]byte, ast.Format, error)
-}
-
-var (
-	// ErrInvalidPath is returned from the ParseTemplate function when the path
-	// argument is not valid.
-	ErrInvalidPath = errors.New("scriggo: invalid path")
-
-	// ErrNotExist is returned from the ParseTemplate function when when the path
-	// argument does not exist.
-	ErrNotExist = errors.New("scriggo: path does not exist")
-)
-
 // SyntaxError records a parsing error with the path and the position where the
 // error occurred.
 type SyntaxError struct {
@@ -1663,8 +1649,6 @@ func (p *parsing) parseImport(tok token, end tokenTyp) *ast.Import {
 		if !ValidTemplatePath(path) {
 			panic(syntaxError(tok.pos, "invalid import path: %q", path))
 		}
-		// Further restrictions on the validity of a path can be imposed by a
-		// reader.
 	}
 	pos.End = tok.pos.End
 	return ast.NewImport(pos, ident, path, tok.ctx)

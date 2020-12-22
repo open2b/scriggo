@@ -10,9 +10,9 @@ import (
 	"bytes"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 
 	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/fs"
 )
 
 // validatePackagePath validates path at the position pos and panics if path
@@ -40,37 +40,21 @@ func validatePackagePath(path string, pos *ast.Position) {
 	return
 }
 
-// ValidTemplatePath indicates whether path is a valid template path.
+// ValidTemplatePath indicates whether path is a valid template path. A valid
+// template path is a valid file system path but "." is not valid and it can
+// start with '/' or alternatively can start with one o more ".." elements.
 func ValidTemplatePath(path string) bool {
-	return utf8.ValidString(path) &&
-		path != "" && path != ".." &&
-		path[len(path)-1] != '/' &&
-		!strings.Contains(path, "//") &&
-		!strings.HasSuffix(path, "/..")
-}
-
-// toAbsolutePath combines dir with path to obtain an absolute path.
-// dir must be absolute and path must be relative. The parameters are not
-// validated, but an error is returned if the resulting path is outside
-// the root "/".
-func toAbsolutePath(dir, path string) (string, error) {
-	if !strings.Contains(path, "..") {
-		return dir + path, nil
-	}
-	var b = []byte(dir + path)
-	for i := 0; i < len(b); i++ {
-		if b[i] == '/' {
-			if b[i+1] == '.' && b[i+2] == '.' {
-				if i == 0 {
-					return "", ErrInvalidPath
-				}
-				s := bytes.LastIndexByte(b[:i], '/')
-				b = append(b[:s+1], b[i+4:]...)
-				i = s - 1
-			}
+	if len(path) > 0 && path[0] == '/' {
+		path = path[1:]
+	} else {
+		for strings.HasPrefix(path, "../") {
+			path = path[3:]
 		}
 	}
-	return string(b), nil
+	if path == "." {
+		return false
+	}
+	return fs.ValidPath(path)
 }
 
 // cleanPath cleans a path and returns the path in its canonical form.

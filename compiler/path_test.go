@@ -10,10 +10,9 @@ import (
 	"testing"
 )
 
-var validPaths = []string{"a", "/a", "a/b", "/a/b", "../a", "a/../a", ".", "..."}
+var validPaths = []string{"a", "/a", "a/b", "/a/b", "../a", "../../a"}
 
-var invalidPaths = []string{"\xf0", "", "..", "/", "a/", "//", "a//", "//a",
-	"/..", "a/.."}
+var invalidPaths = []string{"", ".", "..", "/", "a/", "//", "a//", "//a", "/..", "a/.."}
 
 func TestValidTemplatePath(t *testing.T) {
 	for _, p := range validPaths {

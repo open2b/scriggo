@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/open2b/scriggo/internal/mapfs"
 	"github.com/open2b/scriggo/runtime"
 
 	"github.com/google/go-cmp/cmp"
@@ -139,9 +140,9 @@ func TestEnvStringer(t *testing.T) {
 	for name, cas := range envStringerCases {
 		t.Run(name, func(t *testing.T) {
 			ctx := context.WithValue(context.Background(), "forty-two", 42)
-			r := MapReader{}
+			fsys := mapfs.MapFS{}
 			for p, src := range cas.sources {
-				r[p] = []byte(src)
+				fsys[p] = src
 			}
 			opts := &BuildOptions{
 				Globals: cas.globals,
@@ -157,7 +158,7 @@ func TestEnvStringer(t *testing.T) {
 			case FormatJSON:
 				name = "index.json"
 			}
-			template, err := Build(name, r, opts)
+			template, err := Build(fsys, name, opts)
 			if err != nil {
 				t.Fatal(err)
 			}

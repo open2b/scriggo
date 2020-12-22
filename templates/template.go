@@ -8,31 +8,16 @@ package templates
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
-	"path"
 	"reflect"
 	"sort"
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/compiler"
 	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/fs"
 	"github.com/open2b/scriggo/runtime"
-)
-
-var (
-	// ErrInvalidPath is returned from the Build function and a FileReader when
-	// the path argument is not valid.
-	ErrInvalidPath = errors.New("scriggo: invalid path")
-
-	// ErrNotExist is returned from the Build function when the path does not
-	// exist.
-	ErrNotExist = errors.New("scriggo: path does not exist")
-
-	// ErrReadTooLarge is returned from the Build function when a limit is
-	// exceeded reading a path.
-	ErrReadTooLarge = errors.New("scriggo: read too large")
 )
 
 // EnvStringer is like fmt.Stringer where the String method takes a runtime.Env
@@ -134,20 +119,16 @@ func (md Markdown) Markdown() string {
 }
 
 // A Format represents a content format.
-type Format int
+type Format = ast.Format
 
 const (
-	FormatText Format = iota
-	FormatHTML
-	FormatCSS
-	FormatJS
-	FormatJSON
-	FormatMarkdown
+	FormatText     = ast.FormatText
+	FormatHTML     = ast.FormatHTML
+	FormatCSS      = ast.FormatCSS
+	FormatJS       = ast.FormatJS
+	FormatJSON     = ast.FormatJSON
+	FormatMarkdown = ast.FormatMarkdown
 )
-
-func (format Format) String() string {
-	return ast.Format(format).String()
-}
 
 type BuildOptions struct {
 	DisallowGoStmt  bool
@@ -197,50 +178,17 @@ type CompilerError interface {
 	Message() string
 }
 
-type fileFormatReader struct {
-	r FileReader
+// FormatFS is the interface implemented by a file system that can determine
+// the file format from a path name.
+type FormatFS interface {
+	fs.FS
+	Format(name string) (Format, error)
 }
 
-func (f fileFormatReader) ReadFile(name string) ([]byte, ast.Format, error) {
-	src, err := f.r.ReadFile(name)
-	if err != nil {
-		return nil, 0, err
-	}
-	if files, ok := f.r.(interface {
-		Format(string) (Format, error)
-	}); ok {
-		format, err := files.Format(name)
-		if err != nil {
-			return nil, 0, err
-		}
-		if format < FormatText || format > FormatMarkdown {
-			return nil, 0, fmt.Errorf("unkonwn format %d", format)
-		}
-		return src, ast.Format(format), nil
-	}
-	format := ast.FormatText
-	switch path.Ext(name) {
-	case ".html":
-		format = ast.FormatHTML
-	case ".css":
-		format = ast.FormatCSS
-	case ".js":
-		format = ast.FormatJS
-	case ".json":
-		format = ast.FormatJSON
-	case ".md", ".markdown":
-		format = ast.FormatMarkdown
-	}
-	return src, format, nil
-}
-
-// Build builds a template given its file name. Build calls the method
-// ReadFile of files to read the files of the template.
-//
-// The format of the file depends on the extension of name or, if files has
-// the method 'Format(string) (Format, error)', Build gets the format
-// from this method. If this method returns an error, this error is returned.
-func Build(name string, files FileReader, options *BuildOptions) (*Template, error) {
+// Build builds the named template file rooted at the given file system. If
+// fsys implements FormatFS, the file format is read from its Format method,
+// otherwise it depends on the extension of the file name.
+func Build(fsys fs.FS, name string, options *BuildOptions) (*Template, error) {
 	co := compiler.Options{Renderer: buildRenderer{}}
 	if options != nil {
 		co.Globals = compiler.Declarations(options.Globals)
@@ -248,14 +196,8 @@ func Build(name string, files FileReader, options *BuildOptions) (*Template, err
 		co.DisallowGoStmt = options.DisallowGoStmt
 		co.Packages = options.Packages
 	}
-	code, err := compiler.BuildTemplate(name, fileFormatReader{files}, co)
+	code, err := compiler.BuildTemplate(fsys, name, co)
 	if err != nil {
-		if err == compiler.ErrInvalidPath {
-			return nil, ErrInvalidPath
-		}
-		if err == compiler.ErrNotExist {
-			return nil, ErrNotExist
-		}
 		return nil, err
 	}
 	return &Template{fn: code.Main, types: code.Types, globals: code.Globals}, nil
