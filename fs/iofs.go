@@ -11,6 +11,7 @@ package fs
 import "io/fs"
 
 type (
-	FS   = fs.FS
-	File = fs.File
+	FS         = fs.FS
+	File       = fs.File
+	ReadFileFS = fs.ReadFileFS
 )

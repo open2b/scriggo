@@ -42,6 +42,9 @@ func (dir dirFS) Open(name string) (File, error) {
 // (Because ReadFile reads the whole file, the expected EOF
 // from the final Read is not treated as an error to be reported.)
 func ReadFile(fsys FS, name string) ([]byte, error) {
+	if fsys, ok := fsys.(ReadFileFS); ok {
+		return fsys.ReadFile(name)
+	}
 
 	file, err := fsys.Open(name)
 	if err != nil {

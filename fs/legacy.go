@@ -38,3 +38,15 @@ type File interface {
 	Read([]byte) (int, error)
 	Close() error
 }
+
+// ReadFileFS is the interface implemented by a file system
+// that provides an optimized implementation of ReadFile.
+type ReadFileFS interface {
+	FS
+
+	// ReadFile reads the named file and returns its contents.
+	// A successful call returns a nil error, not io.EOF.
+	// (Because ReadFile reads the whole file, the expected EOF
+	// from the final Read is not treated as an error to be reported.)
+	ReadFile(name string) ([]byte, error)
+}
