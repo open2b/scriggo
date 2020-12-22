@@ -91,7 +91,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 							index := em.fb.addFunction(initFunc)
 							em.fb.emitCall(int8(index), em.fb.currentStackShift(), nil)
 						}
-						em.alreadyInitializedTemplatePkgs[node.Path] = true
+						em.alreadyInitializedTemplatePkgs[node.Tree.Path] = true
 					}
 				}
 			}

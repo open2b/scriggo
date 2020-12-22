@@ -1625,7 +1625,7 @@ var templateMultiPageCases = map[string]struct {
 	// https://github.com/open2b/scriggo/issues/643
 	"Init function called more than once": {
 		sources: map[string]string{
-			"index.html":   `{% import "/v.html" %}{% show "/partial.html" %}{{ V }}`,
+			"index.html":   `{% import "v.html" %}{% show "/partial.html" %}{{ V }}`,
 			"partial.html": `{% import "/v.html" %}`,
 			"v.html":       `{% var V = GetValue() %}`,
 		},
