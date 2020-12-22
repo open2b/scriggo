@@ -441,6 +441,9 @@ Scriggo is an embeddable Go interpreter. The scriggo command is a tool that
 can be used to build and install stand alone interpreters and to generate Go
 source files useful to embed Scriggo in an application.
 
+It also provides a web server that serves a template rooted at the current
+directory, useful to learn Scriggo templates. See 'scriggo help serve'.
+
 The scriggo tool is not required to embed Scriggo in an application but it is
 useful to generate the code for a package loader used by the Scriggo Build
 functions to load the packages that can be imported during the execution of a
@@ -463,6 +466,9 @@ The commands are:
     build       build an interpreter starting from a Scriggofile     
 
     install     build and install an interpreter in the GOBIN directory
+
+    serve       runs a web server and serves the template rooted at the current
+                directory
 
     version     print Scriggo and scriggo version
 
@@ -604,6 +610,32 @@ the standard output.
 
 For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
 
+` + "`" + `
+
+const helpServe = ` + "`" + `
+usage: scriggo serve [-S] [--metrics]
+
+Serve runs a web server and serves the template rooted at the current
+directory. It is useful to learn Scriggo templates.
+
+It renders HTML and Markdown files based on file extension.
+
+For example:
+
+    http://localhost:8080/article.html
+
+renders the template file named 'article.html' as HTML and
+
+    http://localhost:8080/blog.md
+
+renders the template file named 'blog.md' as Markdown. Markdown is converted to
+HTML with the Goldmark parser with the default options.
+
+Templates are automatically rebuilt when a file changes.
+
+The -S flag prints the assembly code of the served template.
+
+The --metrics flags prints metrics about execution time.
 ` + "`" + `
 
 const helpScriggofile = ` + "`" + `
@@ -1026,6 +1058,9 @@ var commandsHelp = map[string]func(){
 	"install": func() {
 		txtToHelp(helpInstall)
 	},
+	"serve" : func() {
+		txtToHelp(helpServe)
+	},
 	"limitations": func() {
 		txtToHelp(helpLimitations)
 	},
@@ -1119,6 +1154,17 @@ var commands = map[string]func(){
 			exitError(` + "`" + `bad number of arguments` + "`" + `)
 		}
 		err := embed(path, buildFlags{f: *f, v: *v, x: *x, o: *o})
+		if err != nil {
+			exitError("%s", err)
+		}
+		exit(0)
+	},
+	"serve": func() {
+		flag.Usage = commandsHelp["serve"]
+		asm := flag.Bool("S", false, "print assembly listing.")
+		metrics := flag.Bool("metrics", false, "print metrics about file executions.")
+		flag.Parse()
+		err := serve(*asm, *metrics)
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -2170,6 +2216,279 @@ func run() {
 		os.Exit(code)
 	}
 	os.Exit(0)
+}
+`)
+	sources["serve.go"] = []byte(`// Copyright (c) 2020 Open2b Software Snc. All rights reserved.
+// https://www.open2b.com
+
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package main
+
+import (
+	"bytes"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/fs"
+	"github.com/open2b/scriggo/templates"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/yuin/goldmark"
+)
+
+func serve(asm, metrics bool) error {
+
+	fsys, err := newTemplateFS(".")
+	if err != nil {
+		return err
+	}
+	defer fsys.Close()
+
+	srv := &server{
+		fsys:   fsys,
+		static: http.FileServer(http.Dir(".")),
+		runOptions: &templates.RunOptions{
+			MarkdownConverter: func(src []byte, out io.Writer) error {
+				return goldmark.Convert(src, out)
+			},
+		},
+		templates: map[string]*templates.Template{},
+		asm:       asm,
+	}
+	if metrics {
+		srv.metrics.active = true
+		srv.metrics.header = true
+	}
+	go func() {
+		for {
+			select {
+			case name := <-fsys.Changed:
+				delete(srv.templates, name)
+			case err := <-fsys.Errors:
+				srv.logf("%v", err)
+			}
+		}
+	}()
+
+	s := &http.Server{
+		Addr:           ":8080",
+		Handler:        srv,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+
+	fmt.Fprintln(os.Stderr, "Web server is available at http://localhost:8080/")
+	fmt.Fprintf(os.Stderr, "Press Ctrl+C to stop\n\n")
+
+	return s.ListenAndServe()
+}
+
+type server struct {
+	fsys       *templateFS
+	static     http.Handler
+	runOptions *templates.RunOptions
+	asm        bool
+
+	sync.Mutex
+	templates map[string]*templates.Template
+	metrics   struct {
+		active bool
+		header bool
+	}
+}
+
+func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	name := r.URL.Path[1:]
+	if name == "" || strings.HasSuffix(name, "/") {
+		name += "index.html"
+	}
+
+	if ext := path.Ext(name); ext != ".html" && ext != ".md" {
+		srv.static.ServeHTTP(w, r)
+		return
+	}
+
+	var err error
+	var buildTime time.Duration
+	srv.Lock()
+	template, ok := srv.templates[name]
+	srv.Unlock()
+	start := time.Now()
+	if !ok {
+		template, err = templates.Build(srv.fsys, name, nil)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				http.NotFound(w, r)
+				return
+			}
+			if err, ok := err.(scriggo.CompilerError); ok {
+				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+				w.WriteHeader(500)
+				fmt.Fprintf(w, "%s", err)
+				return
+			}
+			http.Error(w, "Internal Server Error", 500)
+			srv.logf("%s", err)
+			return
+		}
+		buildTime = time.Since(start)
+		srv.Lock()
+		srv.templates[name] = template
+		srv.Unlock()
+		start = time.Now()
+	}
+	b := bytes.Buffer{}
+	err = template.Run(&b, nil, srv.runOptions)
+	if err != nil {
+		http.Error(w, "Internal Server Error", 500)
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(500)
+		fmt.Fprintf(w, "%s", err)
+		return
+	}
+	runTime := time.Since(start)
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, err = b.WriteTo(w)
+	if err != nil {
+		srv.logf("%s", err)
+	}
+
+	if srv.metrics.active {
+		var header bool
+		srv.Lock()
+		header = srv.metrics.header
+		srv.Unlock()
+		if header {
+			fmt.Fprintf(os.Stderr, "     %12s  %12s  %12s  %s\n", "Build", "Run", "Total", "File")
+			fmt.Fprintf(os.Stderr, "     %12s  %12s  %12s  %s\n", "-----", "---", "-----", "----")
+			srv.Lock()
+			srv.metrics.header = false
+			srv.Unlock()
+		}
+		if buildTime == 0 {
+			fmt.Fprintf(os.Stderr, "     %12s  %12s  %12s  %s\n", "-", runTime, buildTime+runTime, name)
+		} else {
+			fmt.Fprintf(os.Stderr, "     %12s  %12s  %12s  %s\n", buildTime, runTime, buildTime+runTime, name)
+		}
+	}
+
+	if srv.asm {
+		asm := template.Disassemble(-1)
+		srv.logf("\n--- Assembler %s ---\n", name)
+		_, _ = os.Stderr.Write(asm)
+		srv.log("-----------------\n")
+	}
+
+	return
+}
+
+func (srv *server) log(a ...interface{}) {
+	println()
+	fmt.Fprint(os.Stderr, a...)
+	println()
+	srv.metrics.header = true
+}
+
+func (srv *server) logf(format string, a ...interface{}) {
+	println()
+	fmt.Fprintf(os.Stderr, format, a...)
+	println()
+	srv.metrics.header = true
+}
+
+// templateFS implements a file system that reads the files in a directory.
+type templateFS struct {
+	fsys    fs.FS
+	watcher *fsnotify.Watcher
+	watched map[string]bool
+	Errors  chan error
+
+	sync.Mutex
+	Changed chan string
+}
+
+func newTemplateFS(root string) (*templateFS, error) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return nil, err
+	}
+	dir := &templateFS{
+		fsys:    fs.DirFS(root),
+		watcher: watcher,
+		watched: map[string]bool{},
+		Changed: make(chan string),
+	}
+	go func() {
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+				if event.Op&fsnotify.Write == fsnotify.Write {
+					dir.Changed <- event.Name
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				dir.Errors <- err
+			}
+		}
+	}()
+	return dir, nil
+}
+
+func (t *templateFS) Open(name string) (fs.File, error) {
+	err := t.watch(name)
+	if err != nil {
+		return nil, err
+	}
+	return t.fsys.Open(name)
+}
+
+func (t *templateFS) ReadFile(name string) ([]byte, error) {
+	err := t.watch(name)
+	if err != nil {
+		return nil, err
+	}
+	return fs.ReadFile(t.fsys, name)
+}
+
+func (t *templateFS) Format(name string) (ast.Format, error) {
+	return ast.FormatText, nil
+}
+
+func (t *templateFS) Close() error {
+	return t.watcher.Close()
+}
+
+func (t *templateFS) watch(name string) error {
+	t.Lock()
+	if !t.watched[name] {
+		err := t.watcher.Add(name)
+		if err != nil {
+			t.Unlock()
+			return err
+		}
+		t.watched[name] = true
+	}
+	t.Unlock()
+	return nil
 }
 `)
 	sources["util.go"] = []byte(`// Copyright (c) 2019 Open2b Software Snc. All rights reserved.
