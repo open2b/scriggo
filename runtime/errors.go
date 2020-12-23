@@ -14,12 +14,6 @@ import (
 	"strings"
 )
 
-var go112 bool
-
-func init() {
-	go112 = strings.HasPrefix(runtime.Version(), "go1.12")
-}
-
 var errNilPointer = runtimeError("runtime error: invalid memory address or nil pointer dereference")
 
 // FatalError represents a fatal error. A fatal error cannot be recovered by
@@ -123,9 +117,6 @@ func (vm *VM) convertPanic(msg interface{}) error {
 		switch err := msg.(type) {
 		case runtime.Error:
 			if s := err.Error(); strings.HasPrefix(s, "runtime error: index out of range") {
-				if go112 {
-					return vm.newPanic(vm.errIndexOutOfRange())
-				}
 				return vm.newPanic(runtimeError(s))
 			}
 		case string:
@@ -182,9 +173,6 @@ func (vm *VM) convertPanic(msg interface{}) error {
 	case OpIndexString, -OpIndexString:
 		if err, ok := msg.(runtime.Error); ok {
 			if s := err.Error(); strings.HasPrefix(s, "runtime error: index out of range") {
-				if go112 {
-					return vm.newPanic(vm.errIndexOutOfRange())
-				}
 				return vm.newPanic(runtimeError(s))
 			}
 		}

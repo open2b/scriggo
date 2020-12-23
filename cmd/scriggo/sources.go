@@ -1715,10 +1715,6 @@ func stdLibPaths() []string {
 			if version != "go1.15" && version != "go1.16" {
 				continue
 			}
-		case "hash/maphash":
-			if version != "go1.14" && version != "go1.15" && version != "go1.16" {
-				continue
-			}
 		}
 		paths = append(paths, path)
 	}
@@ -1800,7 +1796,7 @@ var stdlibPaths = []string{
 	"hash/crc32",
 	"hash/crc64",
 	"hash/fnv",
-	"hash/maphash", // Go version 1.14
+	"hash/maphash",
 	"html",
 	"html/template",
 	"image",
@@ -2646,7 +2642,7 @@ func uniquePackageName(pkgPath string) string {
 
 // goBaseVersion returns the go base version for v.
 //
-//		1.12.5 -> 1.12
+//		1.15.5 -> 1.15
 //
 func goBaseVersion(v string) string {
 	// When updating, also update test/compare/run.go.
@@ -2689,7 +2685,7 @@ func hasStdlibPrefix(path string) bool {
 
 // nextGoVersion returns the successive go version of v.
 //
-//		1.12.5 -> 1.13
+//		1.15.5 -> 1.16
 //
 func nextGoVersion(v string) string {
 	v = goBaseVersion(v)[4:]

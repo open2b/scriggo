@@ -787,10 +787,6 @@ func stdLibPaths() []string {
 			if version != "go1.15" && version != "go1.16" {
 				continue
 			}
-		case "hash/maphash":
-			if version != "go1.14" && version != "go1.15" && version != "go1.16" {
-				continue
-			}
 		}
 		paths = append(paths, path)
 	}
@@ -872,7 +868,7 @@ var stdlibPaths = []string{
 	"hash/crc32",
 	"hash/crc64",
 	"hash/fnv",
-	"hash/maphash", // Go version 1.14
+	"hash/maphash",
 	"html",
 	"html/template",
 	"image",

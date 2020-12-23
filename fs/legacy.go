@@ -1,4 +1,4 @@
-// +build go1.12,!go1.16
+// +build go1.14,!go1.16
 
 // Copyright 2020 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style

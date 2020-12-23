@@ -608,7 +608,7 @@ func runGc(path string) (int, []byte, []byte, error) {
 
 // goBaseVersion returns the go base version for v.
 //
-//		1.12.5 -> 1.12
+//		1.15.5 -> 1.15
 //
 func goBaseVersion(v string) string {
 	// Taken from cmd/scriggo/util.go.

@@ -7,58 +7,48 @@ import (
 	"os"
 	"reflect"
 	"runtime"
-	"strings"
 
 	"testpkg"
 )
 
 func main() {
 
-	isGo112 := strings.HasPrefix(runtime.Version(), "go1.12")
-
 	test1()
 	test2()
 	test3()
 	test3b()
-	if !isGo112 {
-		test4()
-		test4b()
-		test4c()
-		test5()
-		test5b()
-		test5c()
-		test6()
-	}
+	test4()
+	test4b()
+	test4c()
+	test5()
+	test5b()
+	test5c()
+	test6()
 	test7()
-	if isGo112 {
-		test8()
-		test9()
-		test10()
-	}
+	test8()
+	test8b()
+	test8c()
+	test9()
+	test9b()
+	test9c()
+	test9d()
+	test9e()
+	test9f()
+	test10()
 	test11()
-	test11b()
-	test11c()
 	test12()
 	test12b()
 	test12c()
 	test12d()
 	test12e()
-	test12f()
 	test13()
 	test14()
 	test15()
-	test15b()
-	test15c()
-	test15d()
-	test15e()
 	test16()
-	test17()
-	test18()
-	test19()
-	test20a()
-	test20b()
-	test20c()
-	test20d()
+	test17a()
+	test17b()
+	test17c()
+	test17d()
 
 }
 
@@ -167,55 +157,36 @@ func test7() {
 }
 
 func test8() {
-	defer recoverRuntimePanic("runtime error: slice bounds out of range")
-	a := make([]testpkg.T, 0)
-	_ = a[1:]
-}
-
-func test9() {
-	defer recoverRuntimePanic("runtime error: slice bounds out of range")
-	a := [1]testpkg.T{}
-	b := 2
-	_ = a[b:]
-}
-
-func test10() {
-	defer recoverRuntimePanic("runtime error: slice bounds out of range")
-	a := testpkg.S("")
-	_ = a[1:]
-}
-
-func test11() {
 	defer recoverRuntimePanic("interface conversion: interface {} is int, not testpkg.S")
 	var a interface{} = 5
 	_ = a.(testpkg.S)
 }
 
-func test11b() {
+func test8b() {
 	defer recoverRuntimePanic("interface conversion: interface {} is nil, not int")
 	var a interface{}
 	_ = a.(int)
 }
 
-func test11c() {
+func test8c() {
 	defer recoverRuntimePanic("interface conversion: testpkg.T is not testpkg.I: missing method M")
 	var a interface{} = testpkg.T(0)
 	_ = a.(testpkg.I)
 }
 
-func test12() {
+func test9() {
 	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
 	var f func()
 	f()
 }
 
-func test12b() {
+func test9b() {
 	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
 	var f func(string) int
 	f("")
 }
 
-func test12c() {
+func test9c() {
 	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
 	var f func(a ...testpkg.T)
 	f()
@@ -225,109 +196,109 @@ var f1 func()
 var f2 func(string) int
 var f3 func(a ...testpkg.T)
 
-func test12d() {
+func test9d() {
 	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
 	f1()
 }
 
-func test12e() {
+func test9e() {
 	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
 	f2("")
 }
 
-func test12f() {
+func test9f() {
 	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
 	f3()
 }
 
-func test13() {
+func test10() {
 	defer recoverRuntimePanic("runtime error: integer divide by zero")
 	var a = 0
 	_ = 1 / a
 }
 
-func test14() {
+func test11() {
 	defer recoverRuntimePanic("runtime error: comparing uncomparable type []int")
 	var a interface{} = []int{0}
 	var b interface{} = []int{0}
 	_ = a == b
 }
 
-func test15() {
+func test12() {
 	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
 	var a *testpkg.Int
 	_ = *a
 }
 
-func test15b() {
+func test12b() {
 	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
 	var a *testpkg.Bool
 	_ = *a
 }
 
-func test15c() {
+func test12c() {
 	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
 	var a *testpkg.Float64
 	_ = *a
 }
 
-func test15d() {
+func test12d() {
 	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
 	var a *testpkg.String
 	_ = *a
 }
 
-func test15e() {
+func test12e() {
 	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
 	var a *struct{}
 	_ = *a
 }
 
-func test16() {
+func test13() {
 	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
 	var a *int
 	_ = &*a
 }
 
-func test17() {
+func test14() {
 	defer recoverRuntimePanic("send on closed channel")
 	a := make(chan testpkg.T)
 	close(a)
 	a <- 3
 }
 
-func test18() {
+func test15() {
 	defer recoverRuntimePanic("close of closed channel")
 	a := make(chan testpkg.T)
 	close(a)
 	close(a)
 }
 
-func test19() {
+func test16() {
 	defer recoverRuntimePanic("close of nil channel")
 	var a chan testpkg.T
 	close(a)
 }
 
-func test20a() {
+func test17a() {
 	defer recoverRuntimePanic("runtime error: makeslice: len out of range")
 	a := -1
 	_ = make([]testpkg.T, a)
 }
 
-func test20b() {
+func test17b() {
 	defer recoverRuntimePanic("runtime error: makeslice: cap out of range")
 	a := -1
 	_ = make([]testpkg.T, 0, a)
 }
 
-func test20c() {
+func test17c() {
 	defer recoverRuntimePanic("runtime error: makeslice: cap out of range")
 	a := 1
 	_ = make([]testpkg.T, a+1, a)
 }
 
-func test20d() {
+func test17d() {
 	defer recoverRuntimePanic("makechan: size out of range")
 	a := -1
 	_ = make(chan testpkg.T, a)
