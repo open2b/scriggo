@@ -62,7 +62,7 @@ func Test_nextGoVersion(t *testing.T) {
 		},
 		{
 			current: "go1.16beta1",
-			want:    "go1.16",
+			want:    "go1.17",
 		},
 	}
 	for _, tt := range tests {
