@@ -187,11 +187,11 @@ type FormatFS interface {
 
 // universeTypes contains the format types added to the universe block.
 var universeTypes = map[string]reflect.Type{
-	"html": reflect.TypeOf((*HTML)(nil)).Elem(),
-	"css":  reflect.TypeOf((*CSS)(nil)).Elem(),
-	"js":   reflect.TypeOf((*JS)(nil)).Elem(),
-	"json": reflect.TypeOf((*JSON)(nil)).Elem(),
-	"md":   reflect.TypeOf((*Markdown)(nil)).Elem(),
+	"html":     reflect.TypeOf((*HTML)(nil)).Elem(),
+	"css":      reflect.TypeOf((*CSS)(nil)).Elem(),
+	"js":       reflect.TypeOf((*JS)(nil)).Elem(),
+	"json":     reflect.TypeOf((*JSON)(nil)).Elem(),
+	"markdown": reflect.TypeOf((*Markdown)(nil)).Elem(),
 }
 
 // Build builds the named template file rooted at the given file system.
