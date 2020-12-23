@@ -32,7 +32,7 @@ func Test_errorcheck(t *testing.T) {
 			src: joinLines([]string{
 				`package main`,
 				`func main() {`,
-				`	x := 3 // ERROR "x declared and not used"`,
+				`	x := 3 // ERROR "x declared but not used"`,
 				`}`,
 			}),
 			ext: ".go",

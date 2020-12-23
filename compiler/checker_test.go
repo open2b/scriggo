@@ -640,7 +640,7 @@ const noNewVariables = "no new variables on left side of :="
 const cannotUseBlankAsValue = "cannot use _ as value"
 
 func declaredNotUsed(v string) string {
-	return v + " declared and not used"
+	return v + " declared but not used"
 }
 
 func redeclaredInThisBlock(v string) string {
@@ -1308,7 +1308,7 @@ var checkerStmts = map[string]string{
 	// `nil.F()`:     `use of untyped nil`, // TODO: panics.
 	`_()`: `cannot use _ as value`,
 
-	// Variable declared and not used.
+	// Variable declared but not used.
 	`a := 0; { _ = a }`:          ok,
 	`{ { a := 0 } }`:             declaredNotUsed("a"),
 	`{ const A = 0; var B = 0 }`: declaredNotUsed("B"),

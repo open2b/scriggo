@@ -1,4 +1,4 @@
-// skip : 'declared and not used' not reported in type switch https://github.com/open2b/scriggo/issues/474
+// skip : 'declared but not used' not reported in type switch https://github.com/open2b/scriggo/issues/474
 
 // errorcheck
 
@@ -11,7 +11,7 @@
 package main
 
 func f(x interface{}) {
-	switch t := x.(type) {  case int: } // ERROR "declared and not used"
+	switch t := x.(type) {  case int: } // ERROR "declared but not used"
 }
 
 func g(x interface{}) {

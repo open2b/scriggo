@@ -806,7 +806,7 @@ nodesLoop:
 					// Append the new nodes removing the function literal.
 					nodes = append(nodes[:i], append(newNodes, nodes[i+1:]...)...)
 					tc.scriptFuncDecl = backup
-					// Avoid error 'declared and not used' by "using" the
+					// Avoid error 'declared but not used' by "using" the
 					// identifier.
 					tc.checkIdentifier(ident, true)
 					i += 2

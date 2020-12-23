@@ -1,4 +1,4 @@
-// skip : false positive 'x declared and not used'
+// skip : false positive 'x declared but not used'
 
 // errorcheck
 

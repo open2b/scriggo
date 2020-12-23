@@ -289,7 +289,7 @@ func (tc *typechecker) exitScope() {
 			cut = i
 		}
 		if len(unused) > 0 {
-			panic(tc.errorf(unused[len(unused)-1].node, "%s declared and not used", unused[len(unused)-1].ident))
+			panic(tc.errorf(unused[len(unused)-1].node, "%s declared but not used", unused[len(unused)-1].ident))
 		}
 		tc.unusedVars = tc.unusedVars[:cut]
 	}
