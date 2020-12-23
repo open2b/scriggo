@@ -199,12 +199,12 @@ var universeTypes = map[string]reflect.Type{
 // If fsys implements FormatFS, the file format is read from its Format
 // method, otherwise it depends on the file name extension
 //
-//   .html  : HTML
-//   .css   : CSS
-//   .js    : JavaScript
-//   .json  : JSON
-//   .md    : Markdown
-//   other  : Text
+//   HTML       : .html
+//   CSS        : .css
+//   JavaScript : .js
+//   JSON       : .json
+//   Markdown   : .md .mkd .mkdn .mdown .markdown
+//   Text       : all other extensions
 //
 func Build(fsys fs.FS, name string, options *BuildOptions) (*Template, error) {
 	co := compiler.Options{

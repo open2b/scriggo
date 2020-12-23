@@ -439,7 +439,7 @@ func readFileAndFormat(fsys fs.FS, name string) ([]byte, ast.Format, error) {
 			format = ast.FormatJS
 		case ".json":
 			format = ast.FormatJSON
-		case ".md":
+		case ".md", ".mkd", ".mkdn", ".mdown", ".markdown":
 			format = ast.FormatMarkdown
 		}
 	}
