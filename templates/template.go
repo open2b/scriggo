@@ -185,9 +185,18 @@ type FormatFS interface {
 	Format(name string) (Format, error)
 }
 
-// Build builds the named template file rooted at the given file system. If
-// fsys implements FormatFS, the file format is read from its Format method,
-// otherwise it depends on the extension of the file name.
+// Build builds the named template file rooted at the given file system.
+//
+// If fsys implements FormatFS, the file format is read from its Format
+// method, otherwise it depends on the file name extension
+//
+//   .html  : HTML
+//   .css   : CSS
+//   .js    : JavaScript
+//   .json  : JSON
+//   .md    : Markdown
+//   other  : Text
+//
 func Build(fsys fs.FS, name string, options *BuildOptions) (*Template, error) {
 	co := compiler.Options{Renderer: buildRenderer{}}
 	if options != nil {
