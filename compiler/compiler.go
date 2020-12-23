@@ -44,6 +44,7 @@ const (
 type Options struct {
 	AllowShebangLine bool
 	DisallowGoStmt   bool
+	UniverseTypes    map[string]reflect.Type
 	Globals          Declarations
 	Renderer         runtime.Renderer
 
@@ -175,6 +176,7 @@ func BuildTemplate(fsys fs.FS, name string, opts Options) (*Code, error) {
 	checkerOpts := checkerOptions{
 		allowNotUsed:   true,
 		disallowGoStmt: opts.DisallowGoStmt,
+		universeTypes:  opts.UniverseTypes,
 		globals:        opts.Globals,
 		renderer:       opts.Renderer,
 		modality:       templateMod,

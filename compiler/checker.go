@@ -140,7 +140,10 @@ type checkerOptions struct {
 	// and not used or a package is imported and not used.
 	allowNotUsed bool
 
-	// globals.
+	// additional universe types.
+	universeTypes map[string]reflect.Type
+
+	// global declarations.
 	globals Declarations
 
 	// renderer.
@@ -242,7 +245,7 @@ type typechecker struct {
 // for scripts and templates.
 func newTypechecker(compilation *compilation, path string, opts checkerOptions, globalScope typeCheckerScope) *typechecker {
 	tt := types.NewTypes()
-	return &typechecker{
+	tc := typechecker{
 		compilation:      compilation,
 		path:             path,
 		filePackageBlock: typeCheckerScope{},
@@ -256,6 +259,16 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		env:              &env{tt.Runtime(), nil},
 		structDeclPkg:    map[reflect.Type]string{},
 	}
+	if len(opts.universeTypes) > 0 {
+		tc.universe = typeCheckerScope{}
+		for name, typ := range opts.universeTypes {
+			tc.universe[name] = scopeElement{t: &typeInfo{Type: typ, Properties: propertyIsType | propertyPredeclared}}
+		}
+		for name, scope := range universe {
+			tc.universe[name] = scope
+		}
+	}
+	return &tc
 }
 
 // enterScope enters into a new empty scope.

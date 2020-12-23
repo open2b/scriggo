@@ -185,6 +185,15 @@ type FormatFS interface {
 	Format(name string) (Format, error)
 }
 
+// universeTypes contains the format types added to the universe block.
+var universeTypes = map[string]reflect.Type{
+	"html": reflect.TypeOf((*HTML)(nil)).Elem(),
+	"css":  reflect.TypeOf((*CSS)(nil)).Elem(),
+	"js":   reflect.TypeOf((*JS)(nil)).Elem(),
+	"json": reflect.TypeOf((*JSON)(nil)).Elem(),
+	"md":   reflect.TypeOf((*Markdown)(nil)).Elem(),
+}
+
 // Build builds the named template file rooted at the given file system.
 //
 // If fsys implements FormatFS, the file format is read from its Format
@@ -198,12 +207,16 @@ type FormatFS interface {
 //   other  : Text
 //
 func Build(fsys fs.FS, name string, options *BuildOptions) (*Template, error) {
-	co := compiler.Options{Renderer: buildRenderer{}}
+	co := compiler.Options{
+		Renderer:      buildRenderer{},
+		UniverseTypes: universeTypes,
+	}
 	if options != nil {
 		co.Globals = compiler.Declarations(options.Globals)
 		co.TreeTransformer = options.TreeTransformer
 		co.DisallowGoStmt = options.DisallowGoStmt
 		co.Packages = options.Packages
+
 	}
 	code, err := compiler.BuildTemplate(fsys, name, co)
 	if err != nil {
