@@ -1144,8 +1144,9 @@ LOOP:
 		case '\x00':
 			return l.errorf("unexpected NUL in input")
 		default:
+			var typ tokenTyp
 			if c == '_' || c < utf8.RuneSelf && unicode.IsLetter(rune(c)) {
-				endLineAsSemicolon = l.lexIdentifierOrKeyword(1)
+				typ = l.lexIdentifierOrKeyword(1)
 			} else {
 				r, s := utf8.DecodeRune(l.src)
 				if !unicode.IsLetter(r) {
@@ -1154,7 +1155,11 @@ LOOP:
 					}
 					return l.errorf("illegal character %U", r)
 				}
-				endLineAsSemicolon = l.lexIdentifierOrKeyword(s)
+				typ = l.lexIdentifierOrKeyword(s)
+			}
+			switch typ {
+			case tokenBreak, tokenContinue, tokenFallthrough, tokenReturn, tokenIdentifier:
+				endLineAsSemicolon = true
 			}
 		}
 	}
@@ -1204,9 +1209,10 @@ func isHexDigit(c byte) bool {
 	return '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F'
 }
 
-// lexIdentifierOrKeyword reads an identifier or keyword knowing that src
-// starts with a character with a length of s bytes.
-func (l *lexer) lexIdentifierOrKeyword(s int) bool {
+// lexIdentifierOrKeyword reads an identifier or keyword, knowing that src
+// starts with a character with a length of s bytes, and returns the type of
+// the emitted token.
+func (l *lexer) lexIdentifierOrKeyword(s int) tokenTyp {
 	// Stops only when a character can not be part
 	// of the identifier or keyword.
 	cols := 1
@@ -1219,105 +1225,90 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		p += s
 		cols++
 	}
-	endLineAsSemicolon := false
+	typ := tokenIdentifier
 	switch id := string(l.src[0:p]); id {
 	case "break":
-		l.emit(tokenBreak, p)
-		endLineAsSemicolon = true
+		typ = tokenBreak
 	case "case":
-		l.emit(tokenCase, p)
+		typ = tokenCase
 	case "chan":
-		l.emit(tokenChan, p)
+		typ = tokenChan
 	case "const":
-		l.emit(tokenConst, p)
+		typ = tokenConst
 	case "continue":
-		l.emit(tokenContinue, p)
-		endLineAsSemicolon = true
+		typ = tokenContinue
 	case "default":
-		l.emit(tokenDefault, p)
+		typ = tokenDefault
 	case "defer":
-		l.emit(tokenDefer, p)
+		typ = tokenDefer
 	case "else":
-		l.emit(tokenElse, p)
+		typ = tokenElse
 	case "fallthrough":
-		l.emit(tokenFallthrough, p)
-		endLineAsSemicolon = true
+		typ = tokenFallthrough
 	case "for":
-		l.emit(tokenFor, p)
+		typ = tokenFor
 	case "func":
-		l.emit(tokenFunc, p)
+		typ = tokenFunc
 	case "go":
-		l.emit(tokenGo, p)
+		typ = tokenGo
 	case "goto":
-		l.emit(tokenGoto, p)
+		typ = tokenGoto
 	case "if":
-		l.emit(tokenIf, p)
+		typ = tokenIf
 	case "import":
-		l.emit(tokenImport, p)
+		typ = tokenImport
 	case "interface":
-		l.emit(tokenInterface, p)
+		typ = tokenInterface
 	case "map":
-		l.emit(tokenMap, p)
+		typ = tokenMap
 	case "package":
-		l.emit(tokenPackage, p)
+		typ = tokenPackage
 	case "range":
-		l.emit(tokenRange, p)
+		typ = tokenRange
 	case "return":
-		l.emit(tokenReturn, p)
-		endLineAsSemicolon = true
+		typ = tokenReturn
 	case "struct":
-		l.emit(tokenStruct, p)
+		typ = tokenStruct
 	case "select":
-		l.emit(tokenSelect, p)
+		typ = tokenSelect
 	case "switch":
-		l.emit(tokenSwitch, p)
+		typ = tokenSwitch
 	case "type":
-		l.emit(tokenType, p)
+		typ = tokenType
 	case "var":
-		l.emit(tokenVar, p)
+		typ = tokenVar
 	default:
 		if l.ctx != ast.ContextGo {
 			switch id {
 			case "end":
-				l.emit(tokenEnd, p)
+				typ = tokenEnd
 			case "extends":
-				l.emit(tokenExtends, p)
+				typ = tokenExtends
 			case "in":
-				l.emit(tokenIn, p)
+				typ = tokenIn
 			case "macro":
-				l.emit(tokenMacro, p)
+				typ = tokenMacro
 			case "show":
-				l.emit(tokenShow, p)
+				typ = tokenShow
 			default:
-				emitted := false
 				if l.extendedSyntax {
 					switch id {
 					case "and":
-						l.emit(tokenExtendedAnd, p)
-						emitted = true
+						typ = tokenExtendedAnd
 					case "contains":
-						l.emit(tokenContains, p)
-						emitted = true
+						typ = tokenContains
 					case "or":
-						l.emit(tokenExtendedOr, p)
-						emitted = true
+						typ = tokenExtendedOr
 					case "not":
-						l.emit(tokenExtendedNot, p)
-						emitted = true
+						typ = tokenExtendedNot
 					}
 				}
-				if !emitted {
-					l.emit(tokenIdentifier, p)
-					endLineAsSemicolon = true
-				}
 			}
-		} else {
-			l.emit(tokenIdentifier, p)
-			endLineAsSemicolon = true
 		}
 	}
+	l.emit(typ, p)
 	l.column += cols
-	return endLineAsSemicolon
+	return typ
 }
 
 var numberBaseName = map[int]string{
