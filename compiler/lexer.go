@@ -1067,6 +1067,8 @@ LOOP:
 				l.emit(tokenDollar, 1)
 				l.column++
 				endLineAsSemicolon = false
+			} else {
+				return l.errorf("illegal character U+0024 '$'")
 			}
 		case '(':
 			l.emit(tokenLeftParenthesis, 1)

@@ -3,6 +3,7 @@
 :  // ERROR `expected 'package', found ':'`
 ∞  // ERROR `illegal character U+221E '∞'`
 }  // ERROR `expected 'package', found '}'`
+$  // ERROR `illegal character U+0024 '$'`
 
 package main
 
