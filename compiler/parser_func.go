@@ -153,7 +153,7 @@ func (p *parsing) parseFuncParameters(tok token, isResult bool) ([]*ast.Paramete
 			break
 		}
 		if tok.typ != tokenComma {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting comma or ", tok))
+			panic(syntaxError(tok.pos, "unexpected %s, expecting comma or )", tok))
 		}
 		if isVariadic {
 			panic(syntaxError(param.Type.Pos(), "can only use ... with final parameter in list"))
