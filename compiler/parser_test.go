@@ -621,21 +621,21 @@ var goContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 10, 9, 12), "LOOP")),
 		}, ast.FormatGo)},
 	{"func f() int {}", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 14), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, nil, []*ast.Parameter{ast.NewParameter(nil, ast.NewIdentifier(p(1, 10, 9, 11), "int"))}, false), ast.NewBlock(p(1, 14, 13, 14), nil), false, ast.ContextText)}, ast.FormatGo)},
+		ast.NewFunc(p(1, 1, 0, 14), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, nil, []*ast.Parameter{ast.NewParameter(nil, ast.NewIdentifier(p(1, 10, 9, 11), "int"))}, false), ast.NewBlock(p(1, 14, 13, 14), nil), false, ast.ContextGo)}, ast.FormatGo)},
 	{"func f() int { return 5 }", ast.NewTree("", []ast.Node{
 		ast.NewFunc(p(1, 1, 0, 24), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, nil, []*ast.Parameter{ast.NewParameter(nil, ast.NewIdentifier(p(1, 10, 9, 11), "int"))}, false), ast.NewBlock(p(1, 14, 13, 24), []ast.Node{
 			ast.NewReturn(p(1, 16, 15, 22), []ast.Expression{ast.NewBasicLiteral(p(1, 23, 22, 22), ast.IntLiteral, "5")}),
-		}), false, ast.ContextText)}, ast.FormatGo)},
+		}), false, ast.ContextGo)}, ast.FormatGo)},
 	{"func f() (int, error) {}", ast.NewTree("", []ast.Node{
 		ast.NewFunc(p(1, 1, 0, 23), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, nil, []*ast.Parameter{
 			ast.NewParameter(nil, ast.NewIdentifier(p(1, 11, 10, 12), "int")),
 			ast.NewParameter(nil, ast.NewIdentifier(p(1, 16, 15, 19), "error")),
-		}, false), ast.NewBlock(p(1, 22, 22, 23), nil), false, ast.ContextText)}, ast.FormatGo)},
+		}, false), ast.NewBlock(p(1, 22, 22, 23), nil), false, ast.ContextGo)}, ast.FormatGo)},
 	{"func f() (n int, err error) {}", ast.NewTree("", []ast.Node{
 		ast.NewFunc(p(1, 1, 0, 29), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, nil, []*ast.Parameter{
 			ast.NewParameter(ast.NewIdentifier(p(1, 11, 10, 10), "n"), ast.NewIdentifier(p(1, 13, 12, 14), "int")),
 			ast.NewParameter(ast.NewIdentifier(p(1, 18, 17, 19), "err"), ast.NewIdentifier(p(1, 22, 21, 25), "error")),
-		}, false), ast.NewBlock(p(1, 29, 28, 29), nil), false, ast.ContextText)}, ast.FormatGo)},
+		}, false), ast.NewBlock(p(1, 29, 28, 29), nil), false, ast.ContextGo)}, ast.FormatGo)},
 	{"func f(a, b int, c bool, d ...int) (n int, err error) { a := 5; return a, nil }", ast.NewTree("", []ast.Node{
 		ast.NewFunc(p(1, 1, 0, 78), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, []*ast.Parameter{
 			ast.NewParameter(ast.NewIdentifier(p(1, 8, 7, 7), "a"), nil),
@@ -655,7 +655,7 @@ var goContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 72, 71, 71), "a"),
 				ast.NewIdentifier(p(1, 75, 74, 76), "nil"),
 			}),
-		}), false, ast.ContextText)}, ast.FormatGo)},
+		}), false, ast.ContextGo)}, ast.FormatGo)},
 	{"select {}", ast.NewTree("", []ast.Node{
 		ast.NewSelect(p(1, 1, 0, 8), nil, nil)}, ast.FormatGo)},
 	{"select {\n\tdefault:\n}\n", ast.NewTree("", []ast.Node{
@@ -706,7 +706,7 @@ var goContextTreeTests = []struct {
 							false,
 						),
 					},
-				), false, ast.ContextText),
+				), false, ast.ContextGo),
 			},
 		),
 	}, ast.FormatGo)},
@@ -2364,6 +2364,9 @@ func equals(n1, n2 ast.Node, p int) error {
 				return fmt.Errorf("unexpected endless, expecting not endless")
 			}
 			return fmt.Errorf("unexpected not endless, expecting endless")
+		}
+		if nn1.Context != nn2.Context {
+			return fmt.Errorf("unexpected context %s, expecting %s", nn1.Context, nn2.Context)
 		}
 
 	case *ast.Defer:
