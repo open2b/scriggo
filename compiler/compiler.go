@@ -370,8 +370,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 			// Macro declarations in extending page must be accessed by the extended page.
 			for _, dec := range pkg.Declarations {
 				if fn, ok := dec.(*ast.Func); ok && fn.Type.Macro {
-					format := ast.Format(fn.Context)
-					macro := newMacro("main", fn.Ident.Name, fn.Type.Reflect, format, e.fb.getPath(), fn.Pos())
+					macro := newMacro("main", fn.Ident.Name, fn.Type.Reflect, fn.Format, e.fb.getPath(), fn.Pos())
 					e.fnStore.makeAvailableScriggoFn(e.pkg, fn.Ident.Name, macro)
 				}
 			}

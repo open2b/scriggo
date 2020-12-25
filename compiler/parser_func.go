@@ -64,7 +64,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 		return typ, tok
 	}
 	// Parses the function body.
-	node := ast.NewFunc(pos, ident, typ, nil, false, tok.ctx)
+	node := ast.NewFunc(pos, ident, typ, nil, false, ast.Format(tok.ctx))
 	if tok.typ != tokenLeftBrace {
 		return node, tok
 	}

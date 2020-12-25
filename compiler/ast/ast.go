@@ -492,7 +492,7 @@ type Func struct {
 	Body    *Block      // body.
 	Endless bool        // reports whether it is endless.
 	Upvars  []Upvar     // Upvars of func.
-	Context Context     // macro context.
+	Format  Format      // macro format.
 }
 
 // Upvar represents a variable defined outside function body. Even package level
@@ -550,8 +550,8 @@ type Upvar struct {
 	Index int16
 }
 
-func NewFunc(pos *Position, name *Identifier, typ *FuncType, body *Block, endless bool, ctx Context) *Func {
-	return &Func{expression{}, pos, name, typ, body, endless, nil, ctx}
+func NewFunc(pos *Position, name *Identifier, typ *FuncType, body *Block, endless bool, format Format) *Func {
+	return &Func{expression{}, pos, name, typ, body, endless, nil, format}
 }
 
 func (n *Func) String() string {

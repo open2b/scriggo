@@ -2329,6 +2329,20 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedBuildErr: `undefined: Article`,
 	},
+
+	"Macro in tab code block context": {
+		sources: map[string]string{
+			"index.md": "\t{% macro A %}{% end %}",
+		},
+		expectedBuildErr: `syntax error: macro not allowed in tab code block`,
+	},
+
+	"Macro in spaces code block context": {
+		sources: map[string]string{
+			"index.md": `    {% macro A %}{% end %}`,
+		},
+		expectedBuildErr: `syntax error: macro not allowed in spaces code block`,
+	},
 }
 
 var structWithUnexportedFields = &struct {

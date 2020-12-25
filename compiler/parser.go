@@ -1144,6 +1144,9 @@ LABEL:
 		if end == tokenEndStatements {
 			panic(syntaxError(tok.pos, "unexpected macro in statement scope"))
 		}
+		if tok.ctx > ast.ContextMarkdown {
+			panic(syntaxError(tok.pos, "macro not allowed in %s", tok.ctx))
+		}
 		if tok.ctx != ast.Context(p.format) {
 			panic(syntaxError(tok.pos, "macro not in %s content", ast.Context(p.format)))
 		}
@@ -1170,7 +1173,7 @@ LABEL:
 		typ := ast.NewFuncType(nil, true, parameters, nil, isVariadic)
 		pos.End = tok.pos.End
 		typ.Position = pos
-		node := ast.NewFunc(pos, ident, typ, nil, false, tok.ctx)
+		node := ast.NewFunc(pos, ident, typ, nil, false, ast.Format(tok.ctx))
 		body := ast.NewBlock(tok.pos, nil)
 		node.Body = body
 		p.addChild(node)
@@ -1591,7 +1594,7 @@ func (p *parsing) parseEndlessMacro(tok token, end tokenTyp) token {
 	// Make the Func node.
 	pos := ident.Pos()
 	typ := ast.NewFuncType(pos.WithEnd(pos.End), true, nil, nil, false)
-	node := ast.NewFunc(pos, ident, typ, nil, true, tok.ctx)
+	node := ast.NewFunc(pos, ident, typ, nil, true, ast.Format(tok.ctx))
 	body := ast.NewBlock(pos, nil)
 	node.Body = body
 	p.addChild(node)

@@ -127,7 +127,7 @@ func CloneNode(node ast.Node) ast.Node {
 			ident = ast.NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
 		}
 		typ := CloneExpression(n.Type).(*ast.FuncType)
-		return ast.NewFunc(ClonePosition(n.Position), ident, typ, CloneNode(n.Body).(*ast.Block), n.Endless, n.Context)
+		return ast.NewFunc(ClonePosition(n.Position), ident, typ, CloneNode(n.Body).(*ast.Block), n.Endless, n.Format)
 
 	case *ast.Go:
 		return ast.NewGo(ClonePosition(n.Position), CloneExpression(n.Call))
@@ -361,7 +361,7 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 			ident = ast.NewIdentifier(ClonePosition(e.Ident.Position), e.Ident.Name)
 		}
 		typ := CloneExpression(e.Type).(*ast.FuncType)
-		expr2 = ast.NewFunc(ClonePosition(e.Position), ident, typ, CloneNode(e.Body).(*ast.Block), false, e.Context)
+		expr2 = ast.NewFunc(ClonePosition(e.Position), ident, typ, CloneNode(e.Body).(*ast.Block), false, e.Format)
 
 	case *ast.FuncType:
 		var parameters []*ast.Parameter

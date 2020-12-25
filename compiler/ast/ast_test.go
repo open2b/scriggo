@@ -131,8 +131,8 @@ var expressionStringTests = []struct {
 		NewParameter(NewIdentifier(nil, "b"), NewIdentifier(nil, "bool"))}, []*Parameter{
 		NewParameter(NewIdentifier(nil, "n"), NewIdentifier(nil, "int")),
 		NewParameter(NewIdentifier(nil, "err"), NewIdentifier(nil, "error"))}, false)},
-	{"func literal", NewFunc(nil, nil, NewFuncType(nil, false, []*Parameter{NewParameter(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false), NewBlock(nil, nil), false, ContextText)},
-	{"func declaration", NewFunc(nil, NewIdentifier(nil, "f"), NewFuncType(nil, false, []*Parameter{NewParameter(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false), NewBlock(nil, nil), false, ContextText)},
+	{"func literal", NewFunc(nil, nil, NewFuncType(nil, false, []*Parameter{NewParameter(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false), NewBlock(nil, nil), false, FormatText)},
+	{"func declaration", NewFunc(nil, NewIdentifier(nil, "f"), NewFuncType(nil, false, []*Parameter{NewParameter(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false), NewBlock(nil, nil), false, FormatText)},
 }
 
 func TestExpressionString(t *testing.T) {
