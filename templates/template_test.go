@@ -1784,16 +1784,19 @@ var templateMultiPageCases = map[string]struct {
 		},
 	},
 
-	"Cannot declare macros inside macros": {
+	"Macro declaration inside implicit blocks": {
 		sources: map[string]string{
 			"index.txt": `
 				{% macro M1 %}
-					{% macro M2 %}
-					{% end macro %}
+					{% if true %}
+						{% macro M2 %}m2{% end macro %}
+						{% show M2 %}
+					{% end %}
 				{% end macro %}
+				{% show M1 %}
 			`,
 		},
-		expectedBuildErr: "syntax error: unexpected macro in statement scope",
+		expectedOut: "\n\t\t\t\t\t\t\nm2\t\t\t",
 	},
 
 	"Dollar identifier - Referencing to a global variable that does not exist": {

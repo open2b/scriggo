@@ -1141,7 +1141,7 @@ LABEL:
 	// macro
 	case tokenMacro:
 		pos := tok.pos
-		if len(p.ancestors) > 1 {
+		if end == tokenEndStatements {
 			panic(syntaxError(tok.pos, "unexpected macro in statement scope"))
 		}
 		if tok.ctx != ast.Context(p.format) {
