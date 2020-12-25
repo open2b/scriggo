@@ -2421,6 +2421,9 @@ var functionReturningErrorPackage = scriggo.MapPackage{
 
 func TestMultiPageTemplate(t *testing.T) {
 	for name, cas := range templateMultiPageCases {
+		if name != "Macro declaration inside implicit blocks" {
+			continue
+		}
 		if cas.expectedOut != "" && cas.expectedBuildErr != "" {
 			panic("invalid test: " + name)
 		}

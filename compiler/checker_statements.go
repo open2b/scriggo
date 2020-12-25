@@ -1000,6 +1000,44 @@ func (tc *typechecker) checkImport(impor *ast.Import, packages PackageLoader, pa
 	return nil
 }
 
+// checkFunc checks a function.
+func (tc *typechecker) checkFunc(node *ast.Func) {
+	tc.enterScope()
+	tc.addToAncestors(node)
+	// Adds parameters to the function body scope.
+	tc.checkDuplicateParams(node.Type)
+	tc.addMissingTypes(node.Type)
+	isVariadic := node.Type.IsVariadic
+	for i, param := range node.Type.Parameters {
+		t := tc.checkType(param.Type)
+		if param.Ident != nil && !isBlankIdentifier(param.Ident) {
+			if isVariadic && i == len(node.Type.Parameters)-1 {
+				tc.assignScope(param.Ident.Name, &typeInfo{Type: tc.types.SliceOf(t.Type), Properties: propertyAddressable}, param.Ident)
+			} else {
+				tc.assignScope(param.Ident.Name, &typeInfo{Type: t.Type, Properties: propertyAddressable}, param.Ident)
+			}
+		}
+	}
+	// Adds named return values to the function body scope.
+	for _, ret := range node.Type.Result {
+		t := tc.checkType(ret.Type)
+		if ret.Ident != nil && !isBlankIdentifier(ret.Ident) {
+			tc.assignScope(ret.Ident.Name, &typeInfo{Type: t.Type, Properties: propertyAddressable}, ret.Ident)
+		}
+	}
+	node.Body.Nodes = tc.checkNodes(node.Body.Nodes)
+	// «If the function's signature declares result parameters, the
+	// function body's statement list must end in a terminating
+	// statement.»
+	if len(node.Type.Result) > 0 {
+		if !tc.terminating {
+			panic(tc.errorf(node, "missing return at end of function"))
+		}
+	}
+	tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
+	tc.exitScope()
+}
+
 // checkReturn type checks a return statement.
 //
 // If the return statement has an expression list and the returning function has

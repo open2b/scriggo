@@ -655,43 +655,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 	for _, d := range pkg.Declarations {
 		switch d := d.(type) {
 		case *ast.Func:
-			tc.enterScope()
-			tc.addToAncestors(d)
-			// Adds parameters to the function body scope.
-			tc.checkDuplicateParams(d.Type)
-			tc.addMissingTypes(d.Type)
-			isVariadic := d.Type.IsVariadic
-			for i, param := range d.Type.Parameters {
-				t := tc.checkType(param.Type)
-				if param.Ident != nil && !isBlankIdentifier(param.Ident) {
-					if isVariadic && i == len(d.Type.Parameters)-1 {
-						tc.assignScope(param.Ident.Name, &typeInfo{Type: tc.types.SliceOf(t.Type), Properties: propertyAddressable}, param.Ident)
-					} else {
-						tc.assignScope(param.Ident.Name, &typeInfo{Type: t.Type, Properties: propertyAddressable}, param.Ident)
-					}
-				}
-			}
-			// Adds named return values to the function body scope.
-			for _, ret := range d.Type.Result {
-				t := tc.checkType(ret.Type)
-				if ret.Ident != nil && !isBlankIdentifier(ret.Ident) {
-					tc.assignScope(ret.Ident.Name, &typeInfo{Type: t.Type, Properties: propertyAddressable}, ret.Ident)
-				}
-			}
-			d.Body.Nodes, err = tc.checkNodesError(d.Body.Nodes)
-			if err != nil {
-				return err
-			}
-			// «If the function's signature declares result parameters, the
-			// function body's statement list must end in a terminating
-			// statement.»
-			if len(d.Type.Result) > 0 {
-				if !tc.terminating {
-					panic(tc.errorf(d, "missing return at end of function"))
-				}
-			}
-			tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
-			tc.exitScope()
+			tc.checkFunc(d)
 		case *ast.Const:
 			tc.checkConstantDeclaration(d)
 		case *ast.Var:

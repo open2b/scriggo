@@ -630,42 +630,9 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		return &typeInfo{Type: expr.Reflect, Properties: propertyIsType}
 
 	case *ast.Func:
-		tc.enterScope()
 		t := tc.checkType(expr.Type)
 		expr.Type.Reflect = t.Type
-		tc.addToAncestors(expr)
-		// Adds parameters to the function body scope.
-		tc.checkDuplicateParams(expr.Type)
-		tc.addMissingTypes(expr.Type)
-		isVariadic := expr.Type.IsVariadic
-		for i, f := range expr.Type.Parameters {
-			t := tc.checkType(f.Type)
-			if f.Ident != nil && !isBlankIdentifier(f.Ident) {
-				if isVariadic && i == len(expr.Type.Parameters)-1 {
-					tc.assignScope(f.Ident.Name, &typeInfo{Type: tc.types.SliceOf(t.Type), Properties: propertyAddressable}, f.Ident)
-					continue
-				}
-				tc.assignScope(f.Ident.Name, &typeInfo{Type: t.Type, Properties: propertyAddressable}, f.Ident)
-			}
-		}
-		// Adds named return values to the function body scope.
-		for _, f := range expr.Type.Result {
-			t := tc.checkType(f.Type)
-			if f.Ident != nil && !isBlankIdentifier(f.Ident) {
-				tc.assignScope(f.Ident.Name, &typeInfo{Type: t.Type, Properties: propertyAddressable}, f.Ident)
-			}
-		}
-		expr.Body.Nodes = tc.checkNodes(expr.Body.Nodes)
-		// «If the function's signature declares result parameters, the
-		// function body's statement list must end in a terminating
-		// statement.»
-		if len(expr.Type.Result) > 0 {
-			if !tc.terminating {
-				panic(tc.errorf(expr, "missing return at end of function"))
-			}
-		}
-		tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
-		tc.exitScope()
+		tc.checkFunc(expr)
 		return &typeInfo{Type: t.Type}
 
 	case *ast.Call:
