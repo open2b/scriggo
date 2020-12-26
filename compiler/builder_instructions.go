@@ -126,7 +126,7 @@ func (builder *functionBuilder) emitCall(f int8, shift runtime.StackShift, pos *
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
 
-// emitCallIndirect appends a new "cCallIndirect" instruction to the function body.
+// emitCallIndirect appends a new "CallIndirect" instruction to the function body.
 //
 //     f()
 //
