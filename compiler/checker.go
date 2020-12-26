@@ -140,8 +140,8 @@ type checkerOptions struct {
 	// and not used or a package is imported and not used.
 	allowNotUsed bool
 
-	// additional universe types.
-	universeTypes map[string]reflect.Type
+	// format types.
+	formatTypes map[ast.Format]reflect.Type
 
 	// global declarations.
 	globals Declarations
@@ -259,13 +259,28 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		env:              &env{tt.Runtime(), nil},
 		structDeclPkg:    map[reflect.Type]string{},
 	}
-	if len(opts.universeTypes) > 0 {
+	if len(opts.formatTypes) > 0 {
 		tc.universe = typeCheckerScope{}
-		for name, typ := range opts.universeTypes {
-			tc.universe[name] = scopeElement{t: &typeInfo{Type: typ, Properties: propertyIsType | propertyPredeclared}}
-		}
 		for name, scope := range universe {
 			tc.universe[name] = scope
+		}
+		for format, typ := range opts.formatTypes {
+			var name string
+			switch format {
+			case ast.FormatHTML:
+				name = "html"
+			case ast.FormatCSS:
+				name = "css"
+			case ast.FormatJS:
+				name = "js"
+			case ast.FormatJSON:
+				name = "json"
+			case ast.FormatMarkdown:
+				name = "markdown"
+			default:
+				panic("invalid type format")
+			}
+			tc.universe[name] = scopeElement{t: &typeInfo{Type: typ, Properties: propertyIsType | propertyPredeclared}}
 		}
 	}
 	return &tc
