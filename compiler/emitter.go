@@ -83,6 +83,10 @@ type emitter struct {
 	// alreadyInitializedTemplatePkgs keeps track of the template packages for
 	// which the initialization code has already been emitted.
 	alreadyInitializedTemplatePkgs map[string]bool
+
+	// inShowMacro reports whether the emitter is emitting a show statement
+	// with a macro as parameter.
+	inShowMacro bool
 }
 
 // newEmitter returns a new emitter with the given type infos, indirect
@@ -269,12 +273,12 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				if initVarsFn != nil {
 					iv, _ := em.fnStore.availableScriggoFn(em.pkg, "$initvars")
 					index := em.fb.addFunction(iv) // TODO: check addFunction
-					em.fb.emitCall(int8(index), runtime.StackShift{}, nil)
+					em.fb.emitCall(int8(index), runtime.StackShift{}, nil, false)
 				}
 				// Second: call all init functions, in order.
 				for _, initFunc := range inits {
 					index := em.fb.addFunction(initFunc)
-					em.fb.emitCall(int8(index), runtime.StackShift{}, nil)
+					em.fb.emitCall(int8(index), runtime.StackShift{}, nil, false)
 				}
 			}
 			em.prepareFunctionBodyParameters(n)
@@ -523,7 +527,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 		if deferStmt {
 			panic("BUG: not implemented") // remove.
 		}
-		em.fb.emitCallIndirect(method, 0, stackShift, call.Pos(), funTi.Type)
+		em.fb.emitCallIndirect(method, 0, stackShift, call.Pos(), funTi.Type, false)
 		return regs, types
 	}
 
@@ -586,7 +590,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 				em.fb.emitDefer(reg, runtime.NoVariadicArgs, stackShift, args, fn.Type)
 				return regs, types
 			}
-			em.fb.emitCall(index, stackShift, call.Pos())
+			em.fb.emitCall(index, stackShift, call.Pos(), funTi.IsMacro() && !em.inShowMacro)
 			return regs, types
 		}
 	}
@@ -604,7 +608,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 				if deferStmt {
 					panic("BUG: not implemented") // remove.
 				}
-				em.fb.emitCall(index, stackShift, call.Pos())
+				em.fb.emitCall(index, stackShift, call.Pos(), funTi.IsMacro() && !em.inShowMacro)
 				return regs, types
 			}
 		}
@@ -628,7 +632,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool) ([]
 		em.fb.emitDefer(reg, int8(runtime.NoVariadicArgs), stackShift, args, funTi.Type)
 		return regs, types
 	}
-	em.fb.emitCallIndirect(reg, int8(runtime.NoVariadicArgs), stackShift, call.Pos(), funTi.Type)
+	em.fb.emitCallIndirect(reg, int8(runtime.NoVariadicArgs), stackShift, call.Pos(), funTi.Type, funTi.IsMacro() && !em.inShowMacro)
 
 	return regs, types
 }

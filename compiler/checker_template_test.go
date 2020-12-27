@@ -7,9 +7,11 @@
 package compiler
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/internal/mapfs"
 )
 
@@ -170,12 +172,18 @@ var templateCases = []struct {
 }
 
 func TestTemplate(t *testing.T) {
+	type HTML string
+	options := Options{
+		FormatTypes: map[ast.Format]reflect.Type{
+			ast.FormatHTML: reflect.TypeOf((*HTML)(nil)).Elem(),
+		},
+	}
 	for _, cas := range templateCases {
 		src := cas.src
 		expected := cas.expected
 		t.Run(src, func(t *testing.T) {
 			fsys := mapfs.MapFS{"index.html": src}
-			_, err := BuildTemplate(fsys, "index.html", Options{})
+			_, err := BuildTemplate(fsys, "index.html", options)
 			switch {
 			case expected == "" && err != nil:
 				t.Fatalf("unexpected error: %q", err)

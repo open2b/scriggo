@@ -1166,14 +1166,29 @@ LABEL:
 			pos.End = endPos.End
 			tok = p.next()
 		}
-		if tok.typ != tokenEndStatement {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
+		var result []*ast.Parameter
+		if tok.typ == tokenIdentifier {
+			// Parses the result type.
+			name := string(tok.txt)
+			switch name {
+			case "string", "html", "css", "js", "json", "markdown":
+			default:
+				panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json or markdown", name))
+			}
+			result = []*ast.Parameter{{nil, ast.NewIdentifier(tok.pos, name)}}
+			tok = p.next()
+			if tok.typ != tokenEndStatement {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
+			}
+		} else if tok.typ != tokenEndStatement {
+			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier or %%}", tok))
 		}
 		// Makes the macro node.
-		typ := ast.NewFuncType(nil, true, parameters, nil, isVariadic)
+		typ := ast.NewFuncType(nil, true, parameters, result, isVariadic)
 		pos.End = tok.pos.End
 		typ.Position = pos
-		node := ast.NewFunc(pos, ident, typ, nil, false, ast.Format(tok.ctx))
+		format := ast.Format(tok.ctx) // lexer guarantees that the format of the macro is the context of the end statement.
+		node := ast.NewFunc(pos, ident, typ, nil, false, format)
 		body := ast.NewBlock(tok.pos, nil)
 		node.Body = body
 		p.addChild(node)

@@ -2343,6 +2343,27 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedBuildErr: `syntax error: macro not allowed in spaces code block`,
 	},
+
+	"Macro used in function call - an empty string is returned": {
+		sources: map[string]string{
+			"index.html": `{% macro M %}{% end %}{% var str = M() %}{{ len(str) }}`,
+		},
+		expectedOut: `0`,
+	},
+
+	"Macro used in function call - a non-empty string is returned (1)": {
+		sources: map[string]string{
+			"index.html": `{% macro M %}hello{% end %}{% var str = M() %}{{ len(str) }}`,
+		},
+		expectedOut: `5`,
+	},
+
+	"Macro used in function call - a non-empty string is returned (2)": {
+		sources: map[string]string{
+			"index.html": `{% macro M %}hello{% end %}{% var str = M() %}len(str): {{ len(str) }}, output of macro: {% M() %}`,
+		},
+		expectedOut: `len(str): 5, output of macro: hello`,
+	},
 }
 
 var structWithUnexportedFields = &struct {
@@ -2421,9 +2442,6 @@ var functionReturningErrorPackage = scriggo.MapPackage{
 
 func TestMultiPageTemplate(t *testing.T) {
 	for name, cas := range templateMultiPageCases {
-		if name != "Macro declaration inside implicit blocks" {
-			continue
-		}
 		if cas.expectedOut != "" && cas.expectedBuildErr != "" {
 			panic("invalid test: " + name)
 		}

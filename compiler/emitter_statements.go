@@ -89,7 +89,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					if len(inits) > 0 && !em.alreadyInitializedTemplatePkgs[node.Tree.Path] {
 						for _, initFunc := range inits {
 							index := em.fb.addFunction(initFunc)
-							em.fb.emitCall(int8(index), em.fb.currentStackShift(), nil)
+							em.fb.emitCall(int8(index), em.fb.currentStackShift(), nil, false)
 						}
 						em.alreadyInitializedTemplatePkgs[node.Tree.Path] = true
 					}
@@ -417,9 +417,13 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			}
 
 		case ast.Expression:
+			if call, ok := node.(*ast.Call); ok && em.ti(call.Func).IsMacro() {
+				em.inShowMacro = true
+			}
 			em.fb.enterStack()
 			em.emitExprR(node, reflect.Type(nil), 0)
 			em.fb.exitStack()
+			em.inShowMacro = false
 
 		default:
 			panic(fmt.Sprintf("BUG: node %T not supported", node)) // remove.

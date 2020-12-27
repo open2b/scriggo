@@ -134,6 +134,11 @@ func (r buildRenderer) Show(env runtime.Env, v interface{}, context uint8) {
 
 func (r buildRenderer) Text(runtime.Env, []byte, uint8) {}
 
+// Out returns the out writer.
+func (r buildRenderer) Out() io.Writer {
+	return nil
+}
+
 // shownAsJS reports whether a type can be shown as JavaScript. It returns
 // an error if the type cannot be shown.
 func shownAsJS(t reflect.Type) error {

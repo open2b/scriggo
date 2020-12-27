@@ -74,6 +74,7 @@ type Renderer interface {
 	Exit() error
 	Show(env Env, v interface{}, ctx uint8)
 	Text(env Env, txt []byte, ctx uint8)
+	Out() io.Writer
 }
 
 // The env type implements the Env interface.
