@@ -20,6 +20,7 @@ const (
 	propertyAddressable                         // is addressable
 	propertyIsPredefined                        // is predefined
 	propertyHasValue                            // has a value
+	propertyIsMacro                             // is macro
 )
 
 // A typeInfo holds the type checking information. For example, every expression
@@ -61,6 +62,11 @@ func (ti *typeInfo) Untyped() bool {
 // IsConstant reports whether it is a constant.
 func (ti *typeInfo) IsConstant() bool {
 	return ti.Constant != nil
+}
+
+// IsMacro reports whether it is a macro.
+func (ti *typeInfo) IsMacro() bool {
+	return ti.Properties&propertyIsMacro != 0
 }
 
 // IsUntypedConstant reports whether it is an untyped constant.

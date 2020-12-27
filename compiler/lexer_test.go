@@ -67,7 +67,9 @@ var typeTests = map[string][]tokenTyp{
 	"{% else %}":                   {tokenStartStatement, tokenElse, tokenEndStatement},
 	"{% extends \"\" %}":           {tokenStartStatement, tokenExtends, tokenInterpretedString, tokenEndStatement},
 	"{% macro a %}":                {tokenStartStatement, tokenMacro, tokenIdentifier, tokenEndStatement},
+	"{% macro a html %}":           {tokenStartStatement, tokenMacro, tokenIdentifier, tokenIdentifier, tokenEndStatement},
 	"{% macro a(b) %}":             {tokenStartStatement, tokenMacro, tokenIdentifier, tokenLeftParenthesis, tokenIdentifier, tokenRightParenthesis, tokenEndStatement},
+	"{% macro a(b) markdown %}":    {tokenStartStatement, tokenMacro, tokenIdentifier, tokenLeftParenthesis, tokenIdentifier, tokenRightParenthesis, tokenIdentifier, tokenEndStatement},
 	"{% macro a(b...) %}":          {tokenStartStatement, tokenMacro, tokenIdentifier, tokenLeftParenthesis, tokenIdentifier, tokenEllipsis, tokenRightParenthesis, tokenEndStatement},
 	"{% show \"\" %}":              {tokenStartStatement, tokenShow, tokenInterpretedString, tokenEndStatement},
 	"{% show(5) %}":                {tokenStartStatement, tokenShow, tokenLeftParenthesis, tokenInt, tokenRightParenthesis, tokenEndStatement},
@@ -430,6 +432,35 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 	},
 }
 
+var macroContextTests = map[string][]ast.Context{
+	// Check context for '%}' tokens only.
+	"{% macro a %}{% end %}":                                                 {ast.ContextText, ast.ContextText},
+	"{% macro a html %}{% end %}":                                            {ast.ContextHTML, ast.ContextText},
+	"{% macro a css %}{% end %}":                                             {ast.ContextCSS, ast.ContextText},
+	"{% macro a js %}{% end %}":                                              {ast.ContextJS, ast.ContextText},
+	"{% macro a json %}{% end %}":                                            {ast.ContextJSON, ast.ContextText},
+	"{% macro a markdown %}{% end %}":                                        {ast.ContextMarkdown, ast.ContextText},
+	"{% macro a html %}{% macro b %}{% end %}{% end %}":                      {ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
+	"{% macro a %}{% macro b css %}{% end %}{% end %}":                       {ast.ContextText, ast.ContextCSS, ast.ContextText, ast.ContextText},
+	"{% macro a html %}{% macro b css %}{% end %}{% end %}":                  {ast.ContextHTML, ast.ContextCSS, ast.ContextHTML, ast.ContextText},
+	"{% macro a html %}{% if true %}{% end %}{% end %}":                      {ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
+	"{% macro a html %}{% for %}{% end %}{% end %}":                          {ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
+	"{% macro a html %}{% switch %}{% end %}{% end %}":                       {ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
+	"{% macro a html %}{% select %}{% end %}{% end %}":                       {ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
+	"{% macro a html %}{% var b int %}{% end %}":                             {ast.ContextHTML, ast.ContextHTML, ast.ContextText},
+	"{% macro html %}{% end %}":                                              {ast.ContextText, ast.ContextText},
+	"{% macro html html %}{% end %}":                                         {ast.ContextHTML, ast.ContextText},
+	"{% macro a(b html) %}{% end %}":                                         {ast.ContextText, ast.ContextText},
+	"{% macro a(b html) css %}{% end %}":                                     {ast.ContextCSS, ast.ContextText},
+	"{% macro /* */ html %}{% end %}":                                        {ast.ContextText, ast.ContextText},
+	"{% macro html /* */ %}{% end %}":                                        {ast.ContextText, ast.ContextText},
+	"{% macro a js /* */ %}{% end %}":                                        {ast.ContextJS, ast.ContextText},
+	"{% macro a\njs\n%}{% end %}":                                            {ast.ContextJS, ast.ContextText},
+	"{% macro a\njs\n// comment\n%}{% end %}":                                {ast.ContextJS, ast.ContextText},
+	"{% macro a js %}{% for %}{% macro b css %}{% end %}{% end %}{% end %}":  {ast.ContextJS, ast.ContextJS, ast.ContextCSS, ast.ContextJS, ast.ContextJS, ast.ContextText},
+	"{% if a %}{% macro b css %}{% end %}{% macro c js %}{% end %}{% end %}": {ast.ContextText, ast.ContextCSS, ast.ContextText, ast.ContextJS, ast.ContextText, ast.ContextText},
+}
+
 var positionTests = []struct {
 	src string
 	pos []ast.Position
@@ -598,6 +629,38 @@ CONTEXTS:
 			if i < len(contexts) {
 				t.Errorf("source: %q, less contexts\n", source)
 			}
+		}
+	}
+}
+
+func TestLexerMacroContexts(t *testing.T) {
+CONTEXTS:
+	for source, contexts := range macroContextTests {
+		text := []byte(source)
+		lex := scanTemplate(text, ast.FormatText)
+		var i int
+		for tok := range lex.tokens() {
+			if tok.typ == tokenEOF {
+				break
+			}
+			if tok.typ != tokenEndStatement {
+				continue
+			}
+			if i >= len(contexts) {
+				t.Errorf("source: %q, missing context in test\n", source)
+				continue CONTEXTS
+			}
+			if tok.ctx != contexts[i] {
+				t.Errorf("source: %q, for %s unexpected %s, expecting %s\n", source, tok, tok.ctx, contexts[i])
+				continue CONTEXTS
+			}
+			i++
+		}
+		if lex.err != nil {
+			t.Errorf("source: %q, error %s\n", source, lex.err)
+		}
+		if i < len(contexts) {
+			t.Errorf("source: %q, less contexts\n", source)
 		}
 	}
 }

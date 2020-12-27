@@ -637,6 +637,9 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 					return tc.errorf(f.Ident, "func %s must have no arguments and no return values", f.Ident.Name)
 				}
 			}
+			if f.Type.Macro && len(f.Type.Result) == 0 {
+				tc.makeMacroResultExplicit(f)
+			}
 			// Function type must be checked for every function, including
 			// 'init's functions.
 			funcType := tc.checkType(f.Type).Type
@@ -647,7 +650,11 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 			if _, ok := tc.filePackageBlock[f.Ident.Name]; ok {
 				return tc.errorf(f.Ident, "%s redeclared in this block", f.Ident.Name)
 			}
-			tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &typeInfo{Type: funcType}}
+			ti := &typeInfo{Type: funcType}
+			if f.Type.Macro {
+				ti.Properties |= propertyIsMacro
+			}
+			tc.filePackageBlock[f.Ident.Name] = scopeElement{t: ti}
 		}
 	}
 

@@ -7,7 +7,9 @@
 package runtime
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"reflect"
 	"strings"
 	"unicode"
@@ -232,8 +234,12 @@ func (vm *VM) run() (Addr, bool) {
 			}
 			if vm.renderer != nil {
 				call.renderer = vm.renderer
-				if fn.Format != vm.fn.Format {
-					vm.renderer = vm.renderer.Enter(nil, fn.Format)
+				var out io.Writer
+				if b == 1 {
+					out = &bytes.Buffer{}
+				}
+				if out != nil || fn.Format != vm.fn.Format {
+					vm.renderer = vm.renderer.Enter(out, fn.Format)
 				}
 			}
 			vm.fn = fn
@@ -271,8 +277,12 @@ func (vm *VM) run() (Addr, bool) {
 				}
 				if vm.renderer != nil {
 					call.renderer = vm.renderer
-					if fn.Format != vm.fn.Format {
-						vm.renderer = vm.renderer.Enter(nil, fn.Format)
+					var out io.Writer
+					if b == 1 {
+						out = &bytes.Buffer{}
+					}
+					if out != nil || fn.Format != vm.fn.Format {
+						vm.renderer = vm.renderer.Enter(out, fn.Format)
 					}
 				}
 				vm.fn = fn
@@ -1488,6 +1498,10 @@ func (vm *VM) run() (Addr, bool) {
 						err := vm.renderer.Exit()
 						if err != nil {
 							panic(&FatalError{env: vm.env, msg: err})
+						}
+						out := vm.renderer.Out()
+						if b, ok := out.(*bytes.Buffer); ok {
+							vm.setString(1, b.String())
 						}
 					}
 					vm.renderer = call.renderer

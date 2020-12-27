@@ -1000,6 +1000,37 @@ func (tc *typechecker) checkImport(impor *ast.Import, packages PackageLoader, pa
 	return nil
 }
 
+// makeMacroResultExplicit makes the result argument of a macro explicit.
+// It should be called before checking the type of a macro declaration without
+// an explicit result type.
+func (tc *typechecker) makeMacroResultExplicit(macro *ast.Func) {
+	var name string
+	switch macro.Format {
+	case ast.FormatText:
+		name = "string"
+	case ast.FormatHTML:
+		name = "html"
+	case ast.FormatCSS:
+		name = "css"
+	case ast.FormatJS:
+		name = "js"
+	case ast.FormatJSON:
+		name = "json"
+	case ast.FormatMarkdown:
+		name = "markdown"
+	}
+	scope, ok := tc.universe[name]
+	if !ok {
+		panic("no type defined for format " + macro.Format.String())
+	}
+	ident := ast.NewIdentifier(macro.Pos(), name)
+	tc.compilation.typeInfos[ident] = scope.t
+	macro.Type.Result = []*ast.Parameter{ast.NewParameter(
+		// Using (_ string) as return parameter makes the macro return an empty string.
+		ast.NewIdentifier(macro.Pos(), "_"), ident,
+	)}
+}
+
 // checkFunc checks a function.
 func (tc *typechecker) checkFunc(node *ast.Func) {
 	tc.enterScope()
@@ -1026,13 +1057,13 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 		}
 	}
 	node.Body.Nodes = tc.checkNodes(node.Body.Nodes)
-	// «If the function's signature declares result parameters, the
-	// function body's statement list must end in a terminating
-	// statement.»
-	if len(node.Type.Result) > 0 {
-		if !tc.terminating {
-			panic(tc.errorf(node, "missing return at end of function"))
-		}
+	// «If the function's signature declares result parameters, the function
+	// body's statement list must end in a terminating statement.»
+	//
+	// As a special case, if the function is a macro then it is legal to be
+	// non-terminating.
+	if !tc.terminating && !node.Type.Macro && len(node.Type.Result) > 0 {
+		panic(tc.errorf(node, "missing return at end of function"))
 	}
 	tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
 	tc.exitScope()

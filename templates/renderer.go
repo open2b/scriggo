@@ -182,6 +182,11 @@ func (r *renderer) Text(env runtime.Env, txt []byte, context uint8) {
 
 }
 
+// Out returns the out writer.
+func (r *renderer) Out() io.Writer {
+	return r.out
+}
+
 // showInURL shows v in a URL in the given context.
 func (r *renderer) showInURL(env runtime.Env, v interface{}, ctx ast.Context) {
 

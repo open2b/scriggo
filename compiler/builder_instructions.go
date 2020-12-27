@@ -119,10 +119,14 @@ func (builder *functionBuilder) emitBreak(lab label) {
 //
 //     p.f()
 //
-func (builder *functionBuilder) emitCall(f int8, shift runtime.StackShift, pos *ast.Position) {
+func (builder *functionBuilder) emitCall(f int8, shift runtime.StackShift, pos *ast.Position, buffer bool) {
 	builder.addPosAndPath(pos)
 	fn := builder.fn
-	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCall, A: f})
+	var b int8
+	if buffer {
+		b = 1
+	}
+	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCall, A: f, B: b})
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
 
@@ -130,11 +134,15 @@ func (builder *functionBuilder) emitCall(f int8, shift runtime.StackShift, pos *
 //
 //     f()
 //
-func (builder *functionBuilder) emitCallIndirect(f int8, numVariadic int8, shift runtime.StackShift, pos *ast.Position, funcType reflect.Type) {
+func (builder *functionBuilder) emitCallIndirect(f int8, numVariadic int8, shift runtime.StackShift, pos *ast.Position, funcType reflect.Type, buffer bool) {
 	builder.addPosAndPath(pos)
 	builder.addFunctionType(funcType)
 	fn := builder.fn
-	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCallIndirect, A: f, C: numVariadic})
+	var b int8
+	if buffer {
+		b = 1
+	}
+	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCallIndirect, A: f, B: b, C: numVariadic})
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
 

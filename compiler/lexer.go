@@ -86,18 +86,20 @@ var cdataEnd = []byte("]]>")
 
 // lexer maintains the scanner status.
 type lexer struct {
-	text   []byte      // text on which the scans are performed
-	src    []byte      // slice of the text used during the scan
-	line   int         // current line starting from 1
-	column int         // current column starting from 1
-	ctx    ast.Context // current context used during the scan
-	tag    struct {    // current tag
+	text          []byte        // text on which the scans are performed
+	src           []byte        // slice of the text used during the scan
+	line          int           // current line starting from 1
+	column        int           // current column starting from 1
+	ctx           ast.Context   // current context used during the scan
+	macroContexts []ast.Context // contexts of blocks nested in a macro.
+	tag           struct {      // current tag
 		name  string      // name
 		attr  string      // current attribute name
 		index int         // index of first byte of the current attribute value in src
 		ctx   ast.Context // context of the tag's content
 	}
 	toks           chan token // tokens, is closed at the end of the scan
+	totals         int        // total number of emitted tokens, excluding automatically inserted semicolons
 	err            error      // error, reports whether there was an error
 	extendedSyntax bool       // support tokens 'and', 'or', 'not', 'contains' and 'dollar'
 }
@@ -134,11 +136,13 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 	if typ == tokenText {
 		ctx = ast.ContextText
 	}
+	l.totals++
 	start := len(l.text) - len(l.src)
 	end := start + length - 1
 	if length == 0 {
 		if typ == tokenSemicolon {
 			start--
+			l.totals--
 		}
 		end = start
 	}
@@ -799,6 +803,15 @@ func (l *lexer) lexCode(end tokenTyp) error {
 		}
 		return nil
 	}
+	// first is the index of the first token in code.
+	var first = l.totals + 1
+	// macro indicates if it has lexed the macro keyword.
+	var macro bool
+	// ident stores the index and the text of the last lexed identifier after a macro keyword.
+	var ident struct {
+		index int
+		txt   string
+	}
 	// endLineAsSemicolon reports whether "\n" should be treated as ";".
 	var endLineAsSemicolon = false
 	// unclosedLeftBraces is the number of left braces lexed without a
@@ -952,6 +965,23 @@ LOOP:
 				case '}':
 					switch end {
 					case tokenEndStatement:
+						// If a macro declaration with an explicit result type has been lexed, set the context.
+						if ident.index == l.totals {
+							switch ident.txt {
+							case "string":
+								l.ctx = ast.ContextText
+							case "html":
+								l.ctx = ast.ContextHTML
+							case "css":
+								l.ctx = ast.ContextCSS
+							case "js":
+								l.ctx = ast.ContextJS
+							case "json":
+								l.ctx = ast.ContextJSON
+							case "markdown":
+								l.ctx = ast.ContextMarkdown
+							}
+						}
 						return nil
 					case tokenRightBraces, tokenEndStatements:
 						return l.errorf("unexpected %%}, expecting %s", end)
@@ -1146,9 +1176,11 @@ LOOP:
 		case '\x00':
 			return l.errorf("unexpected NUL in input")
 		default:
+			// Lex keyword or identifier.
 			var typ tokenTyp
+			var txt string
 			if c == '_' || c < utf8.RuneSelf && unicode.IsLetter(rune(c)) {
-				typ = l.lexIdentifierOrKeyword(1)
+				typ, txt = l.lexIdentifierOrKeyword(1)
 			} else {
 				r, s := utf8.DecodeRune(l.src)
 				if !unicode.IsLetter(r) {
@@ -1157,7 +1189,29 @@ LOOP:
 					}
 					return l.errorf("illegal character %U", r)
 				}
-				typ = l.lexIdentifierOrKeyword(s)
+				typ, txt = l.lexIdentifierOrKeyword(s)
+			}
+			// If it has lexed the first token after '{%', checks whether to store or restore the context.
+			if end == tokenEndStatement {
+				if l.totals == first {
+					switch typ {
+					case tokenMacro:
+						macro = true
+						l.macroContexts = append(l.macroContexts, l.ctx)
+					case tokenEnd:
+						if last := len(l.macroContexts) - 1; last >= 0 {
+							l.ctx = l.macroContexts[last]
+							l.macroContexts = l.macroContexts[:last]
+						}
+					case tokenIf, tokenFor, tokenSwitch, tokenSelect:
+						if len(l.macroContexts) > 0 {
+							l.macroContexts = append(l.macroContexts, l.ctx)
+						}
+					}
+				} else if macro && typ == tokenIdentifier && l.totals != first+1 {
+					ident.index = l.totals
+					ident.txt = txt
+				}
 			}
 			switch typ {
 			case tokenBreak, tokenContinue, tokenFallthrough, tokenReturn, tokenIdentifier:
@@ -1212,9 +1266,9 @@ func isHexDigit(c byte) bool {
 }
 
 // lexIdentifierOrKeyword reads an identifier or keyword, knowing that src
-// starts with a character with a length of s bytes, and returns the type of
-// the emitted token.
-func (l *lexer) lexIdentifierOrKeyword(s int) tokenTyp {
+// starts with a character with a length of s bytes, and returns the type and
+// the text of the emitted token.
+func (l *lexer) lexIdentifierOrKeyword(s int) (tokenTyp, string) {
 	// Stops only when a character can not be part
 	// of the identifier or keyword.
 	cols := 1
@@ -1228,7 +1282,8 @@ func (l *lexer) lexIdentifierOrKeyword(s int) tokenTyp {
 		cols++
 	}
 	typ := tokenIdentifier
-	switch id := string(l.src[0:p]); id {
+	id := string(l.src[0:p])
+	switch id {
 	case "break":
 		typ = tokenBreak
 	case "case":
@@ -1310,7 +1365,7 @@ func (l *lexer) lexIdentifierOrKeyword(s int) tokenTyp {
 	}
 	l.emit(typ, p)
 	l.column += cols
-	return typ
+	return typ, id
 }
 
 var numberBaseName = map[int]string{

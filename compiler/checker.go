@@ -80,6 +80,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		// references to variables defined outside them.
 		for _, d := range tree.Nodes[1:] {
 			if m, ok := d.(*ast.Func); ok && m.Type.Macro {
+				tc.makeMacroResultExplicit(m)
 				tc.filePackageBlock[m.Ident.Name] = scopeElement{t: &typeInfo{Type: tc.checkType(m.Type).Type}}
 			}
 		}
