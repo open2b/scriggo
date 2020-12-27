@@ -1324,7 +1324,7 @@ var treeTests = []struct {
 		),
 	}, ast.FormatHTML)},
 	{"{% extends \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtends(p(1, 4, 3, 16), "/a.b", ast.ContextHTML)}, ast.FormatHTML)},
-	{"{% show \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewShowPartial(p(1, 4, 3, 13), "/a.b", ast.ContextHTML)}, ast.FormatHTML)},
+	{"{% partial \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewPartial(p(1, 4, 3, 16), "/a.b", ast.ContextHTML)}, ast.FormatHTML)},
 	{"{% extends \"a.e\" %}{% macro b %}c{% end macro %}", ast.NewTree("", []ast.Node{
 		ast.NewExtends(p(1, 4, 3, 15), "a.e", ast.ContextHTML),
 		ast.NewFunc(p(1, 23, 22, 44), ast.NewIdentifier(p(1, 29, 28, 28), "b"), ast.NewFuncType(&ast.Position{Line: 1, Column: 23, Start: 22, End: 44}, false, nil, nil, false), ast.NewBlock(p(1, 23, 22, 44), []ast.Node{ast.NewText(p(1, 33, 32, 32), []byte("c"), ast.Cut{})}), false, ast.FormatHTML)}, ast.FormatHTML)},
@@ -1377,7 +1377,7 @@ func pageTests() map[string]struct {
 	src  string
 	tree *ast.Tree
 } {
-	var showPartial = ast.NewShowPartial(p(3, 7, 29, 58), "/partial2.html", ast.ContextHTML)
+	var showPartial = ast.NewPartial(p(3, 7, 29, 61), "/partial2.html", ast.ContextHTML)
 	showPartial.Tree = ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 4), []byte("<div>"), ast.Cut{}),
 		ast.NewShow(p(1, 6, 5, 17), ast.NewIdentifier(p(1, 9, 8, 14), "content"), ast.ContextHTML),
@@ -1594,8 +1594,8 @@ func equals(n1, n2 ast.Node, p int) error {
 			return err
 		}
 
-	case *ast.ShowPartial:
-		nn2, ok := n2.(*ast.ShowPartial)
+	case *ast.Partial:
+		nn2, ok := n2.(*ast.Partial)
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}

@@ -106,10 +106,10 @@ nodesLoop:
 
 		case *ast.Text:
 
-		case *ast.ShowPartial:
-			// Type check the shown tree with a separate type checker.
-			// The scope of the shown file is independent from the scope of the
-			// file that shows it (except for global declarations).
+		case *ast.Partial:
+			// Type check the partial tree with a separate type checker.
+			// The scope of the partial file is independent from the scope of the
+			// partial statement (except for global declarations).
 			// Also, the use of a different type checker ensures that the
 			// fields of 'tc' are not altered nor inherited.
 			tc2 := newTypechecker(

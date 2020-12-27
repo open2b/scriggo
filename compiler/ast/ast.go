@@ -748,16 +748,16 @@ func NewShowMacro(pos *Position, macro Expression, args []Expression, isVariadic
 	return &ShowMacro{Position: pos, Macro: macro, Args: args, IsVariadic: isVariadic, Context: ctx}
 }
 
-// ShowPartial node represents a statement "show <path>".
-type ShowPartial struct {
+// Partial node represents a statement "partial <path>".
+type Partial struct {
 	*Position         // position in the source.
-	Path      string  // path of the file to show.
+	Path      string  // path of the partial file.
 	Context   Context // context.
 	Tree      *Tree   // expanded tree of <path>.
 }
 
-func NewShowPartial(pos *Position, path string, ctx Context) *ShowPartial {
-	return &ShowPartial{Position: pos, Path: path, Context: ctx}
+func NewPartial(pos *Position, path string, ctx Context) *Partial {
+	return &Partial{Position: pos, Path: path, Context: ctx}
 }
 
 // Show node represents statements {{ ... }} and "show(<expr>)".

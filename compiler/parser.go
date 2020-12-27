@@ -66,7 +66,7 @@ func (e *CycleError) Path() string {
 	return e.path
 }
 
-// Position returns the position of the extends, import or show statement
+// Position returns the position of the extends, import or partial statement
 // referring the second file in the cycle.
 func (e *CycleError) Position() ast.Position {
 	return e.pos
@@ -242,7 +242,7 @@ func parseSource(src []byte, script, shebang bool) (tree *ast.Tree, err error) {
 // and returns its tree. format can be Text, HTML, CSS, JavaScript and
 // Markdown. imported indicates whether it is imported.
 //
-// ParseTemplateSource does not expand the nodes Extends, ShowPartial and
+// ParseTemplateSource does not expand the nodes Extends, Partial and
 // Import.
 func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *ast.Tree, err error) {
 
@@ -905,6 +905,25 @@ LABEL:
 		tok = p.parseEnd(tok, tokenSemicolon, end)
 		return tok
 
+	// partial
+	case tokenPartial:
+		pos := tok.pos
+		tok := p.next()
+		if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
+			panic(syntaxError(tok.pos, "unexpected %s, expecting string", tok))
+		}
+		var path = unquoteString(tok.txt)
+		if !ValidTemplatePath(path) {
+			panic(syntaxError(tok.pos, "invalid template path: %q", path))
+		}
+		pos.End = tok.pos.End
+		node := ast.NewPartial(pos, path, tok.ctx)
+		p.addChild(node)
+		p.cutSpacesToken = true
+		tok = p.next()
+		tok = p.parseEnd(tok, tokenSemicolon, end)
+		return tok
+
 	// show
 	case tokenShow:
 		pos := tok.pos
@@ -916,7 +935,7 @@ LABEL:
 				panic(syntaxError(tok.pos, "invalid template path: %q", path))
 			}
 			pos.End = tok.pos.End
-			node := ast.NewShowPartial(pos, path, tok.ctx)
+			node := ast.NewPartial(pos, path, tok.ctx)
 			p.addChild(node)
 			p.cutSpacesToken = true
 			tok = p.next()
@@ -1412,7 +1431,7 @@ LABEL:
 					}
 				case tokenInterpretedString, tokenRawString:
 					if end == tokenEndStatement {
-						panic(syntaxError(ident.Pos(), "unexpected %s, expecting extends, import or show", ident.Name))
+						panic(syntaxError(ident.Pos(), "unexpected %s, expecting extends, import or partial", ident.Name))
 					}
 				}
 			}

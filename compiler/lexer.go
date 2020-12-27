@@ -1345,6 +1345,8 @@ func (l *lexer) lexIdentifierOrKeyword(s int) (tokenTyp, string) {
 				typ = tokenIn
 			case "macro":
 				typ = tokenMacro
+			case "partial":
+				typ = tokenPartial
 			case "show":
 				typ = tokenShow
 			default:

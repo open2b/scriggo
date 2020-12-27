@@ -23,7 +23,7 @@ func ExampleDump() {
 			"{% var x = 10 %}",
 			"{% for i in x %} some text, blah blah blah {% end %}",
 			"{% for i in x %} some very very very very very very very very long text, blah blah blah {% end %}",
-			`{% show "ciao.txt" %}`,
+			`{% partial "ciao.txt" %}`,
 			"{{5+6}}",
 			`{% var x = 10 %}`,
 			`{% y = 10 %}`,
@@ -89,7 +89,7 @@ func ExampleDump() {
 	// │    │    Text (1:17) " some very very very very very..."
 	//
 	// Tree: "":1:1
-	// │    ShowPartial (1:4) 1:4
+	// │    Partial (1:4) 1:4
 	//
 	// Tree: "":1:1
 	// │    Show (1:1) {{ 5 + 6 }}

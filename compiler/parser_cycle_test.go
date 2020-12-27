@@ -93,14 +93,14 @@ var cycleTemplateTests = []struct {
 			"index.html":            `{% extends "/layout.html" %}`,
 			"layout.html":           `{% import "/macros/macro.html" %}`,
 			"partials/partial.html": `{% import "/macros/macro.html" %}`,
-			"macros/macro.html":     `{% macro A() %}\n\t{% show "/partials/partial.html" %}\n{% end %}`,
+			"macros/macro.html":     `{% macro A() %}\n\t{% partial "/partials/partial.html" %}\n{% end %}`,
 		},
 		path: "macros/macro.html",
-		pos:  ast.Position{Line: 1, Column: 23, Start: 22, End: 50},
+		pos:  ast.Position{Line: 1, Column: 23, Start: 22, End: 53},
 		msg: `file index.html
 	extends layout.html
 	imports macros/macro.html
-	shows   partials/partial.html
+	partial partials/partial.html
 	imports macros/macro.html: cycle not allowed`,
 	},
 
@@ -109,29 +109,29 @@ var cycleTemplateTests = []struct {
 		fsys: mapfs.MapFS{
 			"index.html":        `{% extends "/layout.html" %}`,
 			"layout.html":       `{% import "/macros/macro.html" %}`,
-			"macros/macro.html": `{% macro A() %}\n\t{% show "/index.html" %}\n{% end %}`,
+			"macros/macro.html": `{% macro A() %}\n\t{% partial "/index.html" %}\n{% end %}`,
 		},
 		path: "index.html",
 		pos:  ast.Position{Line: 1, Column: 4, Start: 3, End: 24},
 		msg: `file index.html
 	extends layout.html
 	imports macros/macro.html
-	shows   index.html: cycle not allowed`,
+	partial index.html: cycle not allowed`,
 	},
 
 	{
-		name: "Template cycle on last showd file",
+		name: "Template cycle on last partial file",
 		fsys: mapfs.MapFS{
 			"index.html":        `{% extends "/layout.html" %}`,
 			"layout.html":       `{% import "/macros/macro.html" %}`,
-			"macros/macro.html": `{% macro A() %}\n\t{% show "/macros/macro.html" %}\n{% end %}`,
+			"macros/macro.html": `{% macro A() %}\n\t{% partial "/macros/macro.html" %}\n{% end %}`,
 		},
 		path: "macros/macro.html",
-		pos:  ast.Position{Line: 1, Column: 23, Start: 22, End: 46},
+		pos:  ast.Position{Line: 1, Column: 23, Start: 22, End: 49},
 		msg: `file index.html
 	extends layout.html
 	imports macros/macro.html
-	shows   macros/macro.html: cycle not allowed`,
+	partial macros/macro.html: cycle not allowed`,
 	},
 
 	{
@@ -157,14 +157,14 @@ var cycleTemplateTests = []struct {
 	},
 
 	{
-		name: "Template file that shows itself",
+		name: "Template file that render itself as partial",
 		fsys: mapfs.MapFS{
-			"index.html": `{% show "/index.html" %}`,
+			"index.html": `{% partial "/index.html" %}`,
 		},
 		path: "index.html",
-		pos:  ast.Position{Line: 1, Column: 4, Start: 3, End: 20},
+		pos:  ast.Position{Line: 1, Column: 4, Start: 3, End: 23},
 		msg: `file index.html
-	shows   index.html: cycle not allowed`,
+	partial index.html: cycle not allowed`,
 	},
 }
 

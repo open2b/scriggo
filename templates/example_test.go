@@ -63,7 +63,7 @@ func ExampleMapReader() {
 
 	r := compiler.MapReader(map[string][]byte{
 		"header.csv": []byte("Name"),
-		"names.csv":  []byte("{% show `header.csv` %}\n{% for name in names %}{{ name }}\n{% end %}"),
+		"names.csv":  []byte("{% partial `header.csv` %}\n{% for name in names %}{{ name }}\n{% end %}"),
 	})
 
 	src, _ := r.Read("names.csv", ast.ContextText)

@@ -84,7 +84,7 @@ func ExampleDirRenderer() {
 func ExampleMapRenderer() {
 	sources := map[string][]byte{
 		"header.csv": []byte("Name"),
-		"names.csv":  []byte("{% show `header.csv` %}\n{% for name in names %}{{ name }}\n{% end %}"),
+		"names.csv":  []byte("{% partial `header.csv` %}\n{% for name in names %}{{ name }}\n{% end %}"),
 	}
 
 	vars := map[string]interface{}{
