@@ -216,7 +216,7 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 // indicates whether the file is imported. path must be absolute and cleared.
 func (pp *templateExpansion) parseSource(src []byte, path string, format ast.Format, imported bool) (*ast.Tree, error) {
 
-	tree, err := ParseTemplateSource(src, format, imported)
+	tree, unexpanded, err := ParseTemplateSource(src, format, imported)
 	if err != nil {
 		if se, ok := err.(*SyntaxError); ok {
 			se.path = path
@@ -227,7 +227,7 @@ func (pp *templateExpansion) parseSource(src []byte, path string, format ast.For
 
 	// Expand the nodes.
 	pp.paths = append(pp.paths, path)
-	err = pp.expand(tree.Nodes)
+	err = pp.expand(unexpanded)
 	pp.paths = pp.paths[:len(pp.paths)-1]
 	if err != nil {
 		if e, ok := err.(*SyntaxError); ok && e.path == "" {
@@ -239,83 +239,12 @@ func (pp *templateExpansion) parseSource(src []byte, path string, format ast.For
 	return tree, nil
 }
 
-// expand expands the nodes parsing the sub-trees.
+// expand expands nodes parsing the sub-trees.
 func (pp *templateExpansion) expand(nodes []ast.Node) error {
 
 	for _, node := range nodes {
 
 		switch n := node.(type) {
-
-		case *ast.If:
-
-			for {
-				err := pp.expand(n.Then.Nodes)
-				if err != nil {
-					return err
-				}
-				switch e := n.Else.(type) {
-				case *ast.If:
-					n = e
-					continue
-				case *ast.Block:
-					err := pp.expand(e.Nodes)
-					if err != nil {
-						return err
-					}
-				}
-				break
-			}
-
-		case *ast.For:
-
-			err := pp.expand(n.Body)
-			if err != nil {
-				return err
-			}
-
-		case *ast.ForRange:
-
-			err := pp.expand(n.Body)
-			if err != nil {
-				return err
-			}
-
-		case *ast.Switch:
-
-			var err error
-			for _, c := range n.Cases {
-				err = pp.expand(c.Body)
-				if err != nil {
-					return err
-				}
-			}
-
-		case *ast.TypeSwitch:
-
-			var err error
-			for _, c := range n.Cases {
-				err = pp.expand(c.Body)
-				if err != nil {
-					return err
-				}
-			}
-
-		case *ast.Select:
-
-			var err error
-			for _, c := range n.Cases {
-				err = pp.expand(c.Body)
-				if err != nil {
-					return err
-				}
-			}
-
-		case *ast.Func:
-
-			err := pp.expand(n.Body.Nodes)
-			if err != nil {
-				return err
-			}
 
 		case *ast.Extends:
 
@@ -387,20 +316,6 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 						e.pos = *(n.Pos())
 					}
 				}
-				return err
-			}
-
-		case *ast.Statements:
-
-			err := pp.expand(n.Nodes)
-			if err != nil {
-				return err
-			}
-
-		case *ast.Label:
-
-			err := pp.expand([]ast.Node{n.Statement})
-			if err != nil {
 				return err
 			}
 

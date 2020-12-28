@@ -133,6 +133,9 @@ type parsing struct {
 
 	// Ancestors from the root up to the parent.
 	ancestors []ast.Node
+
+	// Unexpanded Extends, Import and Partial nodes.
+	unexpanded []ast.Node
 }
 
 // addToAncestors adds node to the ancestors.
@@ -239,24 +242,24 @@ func parseSource(src []byte, script, shebang bool) (tree *ast.Tree, err error) {
 }
 
 // ParseTemplateSource parses a template with content src in the given format
-// and returns its tree. format can be Text, HTML, CSS, JavaScript, JSON and
-// Markdown. imported indicates whether it is imported.
+// and returns its tree and the unexpanded Extends, Import and Partial nodes.
 //
-// ParseTemplateSource does not expand the nodes Extends, Partial and
-// Import.
-func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *ast.Tree, err error) {
+// format can be Text, HTML, CSS, JavaScript, JSON and Markdown. imported
+// indicates whether it is imported.
+func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *ast.Tree, unexpanded []ast.Node, err error) {
 
 	if format < ast.FormatText || format > ast.FormatMarkdown {
-		return nil, errors.New("scriggo: invalid format")
+		return nil, nil, errors.New("scriggo: invalid format")
 	}
 
 	tree = ast.NewTree("", nil, format)
 
 	var p = &parsing{
-		lex:       scanTemplate(src, format),
-		format:    format,
-		imported:  imported,
-		ancestors: []ast.Node{tree},
+		lex:        scanTemplate(src, format),
+		format:     format,
+		imported:   imported,
+		ancestors:  []ast.Node{tree},
+		unexpanded: []ast.Node{},
 	}
 
 	defer func() {
@@ -292,9 +295,9 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 			if (imported || p.hasExtend) && len(p.ancestors) == 1 && !containsOnlySpaces(tok.txt) {
 				pos := firstNonSpacePosition(tok)
 				if imported {
-					return nil, syntaxError(pos, "unexpected text in imported file")
+					return nil, nil, syntaxError(pos, "unexpected text in imported file")
 				}
-				return nil, syntaxError(pos, "unexpected text in file with extends")
+				return nil, nil, syntaxError(pos, "unexpected text in file with extends")
 			}
 			text = ast.NewText(tok.pos, tok.txt, ast.Cut{})
 		}
@@ -323,7 +326,7 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 			case tokenStartStatement:
 			case tokenText:
 				if !containsOnlySpaces(text.Text) {
-					return nil, syntaxError(tok.pos, "unexpected text, expecting {%%")
+					return nil, nil, syntaxError(tok.pos, "unexpected text, expecting {%%")
 				}
 				switch n := p.parent().(type) {
 				case *ast.Switch:
@@ -336,7 +339,7 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 				tok = p.next()
 				continue
 			default:
-				return nil, syntaxError(tok.pos, "unexpected %s, expecting {%%", tok.typ)
+				return nil, nil, syntaxError(tok.pos, "unexpected %s, expecting {%%", tok.typ)
 			}
 		}
 
@@ -364,11 +367,11 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 			for tok.typ != tokenEndStatements {
 				tok = p.parse(tok, tokenEndStatements)
 				if tok.typ == tokenEOF {
-					return nil, syntaxError(tok.pos, "unexpected EOF, expecting %%%%}")
+					return nil, nil, syntaxError(tok.pos, "unexpected EOF, expecting %%%%}")
 				}
 			}
 			if _, ok := p.ancestors[len(p.ancestors)-1].(*ast.Statements); !ok {
-				return nil, syntaxError(tok.pos, "unexpected %%%%}, expecting }")
+				return nil, nil, syntaxError(tok.pos, "unexpected %%%%}, expecting }")
 			}
 			pos.End = tok.pos.End
 			p.removeLastAncestor()
@@ -381,10 +384,10 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 			var expr ast.Expression
 			expr, tok = p.parseExpr(p.next(), false, false, false)
 			if expr == nil {
-				return nil, syntaxError(tok.pos, "unexpected %s, expecting expression", tok)
+				return nil, nil, syntaxError(tok.pos, "unexpected %s, expecting expression", tok)
 			}
 			if tok.typ != tokenRightBraces {
-				return nil, syntaxError(tok.pos, "unexpected %s, expecting }}", tok)
+				return nil, nil, syntaxError(tok.pos, "unexpected %s, expecting }}", tok)
 			}
 			pos.End = tok.pos.End
 			var node = ast.NewShow(pos, expr, tok.ctx)
@@ -414,7 +417,7 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 			tok = p.next()
 
 		default:
-			return nil, syntaxError(tok.pos, "unexpected %s", tok)
+			return nil, nil, syntaxError(tok.pos, "unexpected %s", tok)
 
 		}
 
@@ -430,10 +433,10 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 	}
 
 	if len(p.ancestors) > 1 {
-		return nil, syntaxError(tok.pos, "unexpected EOF, expecting {%% end %%}")
+		return nil, nil, syntaxError(tok.pos, "unexpected EOF, expecting {%% end %%}")
 	}
 
-	return tree, nil
+	return tree, p.unexpanded, nil
 }
 
 // parse parses a statement or part of it given its first token. Returns the
@@ -918,6 +921,7 @@ LABEL:
 		}
 		pos.End = tok.pos.End
 		node := ast.NewPartial(pos, path, tok.ctx)
+		p.unexpanded = append(p.unexpanded, node)
 		p.addChild(node)
 		p.cutSpacesToken = true
 		tok = p.next()
@@ -936,6 +940,7 @@ LABEL:
 			}
 			pos.End = tok.pos.End
 			node := ast.NewPartial(pos, path, tok.ctx)
+			p.unexpanded = append(p.unexpanded, node)
 			p.addChild(node)
 			p.cutSpacesToken = true
 			tok = p.next()
@@ -1043,6 +1048,7 @@ LABEL:
 		}
 		pos.End = tok.pos.End
 		node := ast.NewExtends(pos, path, tok.ctx)
+		p.unexpanded = append(p.unexpanded, node)
 		p.addChild(node)
 		p.hasExtend = true
 		tok = p.next()
@@ -1135,6 +1141,7 @@ LABEL:
 			tok = p.next()
 			for tok.typ != tokenRightParenthesis {
 				node := p.parseImport(tok, end)
+				p.unexpanded = append(p.unexpanded, node)
 				p.addChild(node)
 				tok = p.next()
 				if tok.typ == tokenSemicolon {
@@ -1150,6 +1157,7 @@ LABEL:
 			tok = p.next()
 		} else {
 			node := p.parseImport(tok, end)
+			p.unexpanded = append(p.unexpanded, node)
 			p.addChild(node)
 			tok = p.next()
 			tok = p.parseEnd(tok, tokenSemicolon, end)
