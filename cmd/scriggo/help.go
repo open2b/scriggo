@@ -183,7 +183,7 @@ For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
 `
 
 const helpServe = `
-usage: scriggo serve [-S] [--metrics]
+usage: scriggo serve [-S n] [--metrics]
 
 Serve runs a web server and serves the template rooted at the current
 directory. It is useful to learn Scriggo templates.
@@ -203,7 +203,12 @@ HTML with the Goldmark parser with the default options.
 
 Templates are automatically rebuilt when a file changes.
 
-The -S flag prints the assembly code of the served template.
+The -S flag prints the assembly code of the served file and n determines the
+maximum length, in runes, of disassembled Text instructions
+
+    n > 0: at most n runes; leading and trailing white space are removed
+    n == 0: no text
+    n < 0: all text
 
 The --metrics flags prints metrics about execution time.
 `

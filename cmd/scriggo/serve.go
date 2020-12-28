@@ -27,7 +27,17 @@ import (
 	"github.com/yuin/goldmark"
 )
 
-func serve(asm, metrics bool) error {
+// serve runs a web server and serves the template rooted at the current
+// directory. metrics reports whether print the metrics. If asm is -1 or
+// greater, serve prints the assembly code of the served file and the value of
+// asm determines the maximum length, in runes, of disassembled Text
+// instructions
+//
+//   asm > 0: at most asm runes; leading and trailing white space are removed
+//   asm == 0: no text
+//   asm == -1: all text
+//
+func serve(asm int, metrics bool) error {
 
 	fsys, err := newTemplateFS(".")
 	if err != nil {
@@ -79,7 +89,7 @@ type server struct {
 	fsys       *templateFS
 	static     http.Handler
 	runOptions *templates.RunOptions
-	asm        bool
+	asm        int
 
 	sync.Mutex
 	templates map[string]*templates.Template
@@ -166,8 +176,8 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if srv.asm {
-		asm := template.Disassemble(-1)
+	if srv.asm >= -1 {
+		asm := template.Disassemble(srv.asm)
 		srv.logf("\n--- Assembler %s ---\n", name)
 		_, _ = os.Stderr.Write(asm)
 		srv.log("-----------------\n")

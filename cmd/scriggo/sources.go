@@ -613,7 +613,7 @@ For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
 ` + "`" + `
 
 const helpServe = ` + "`" + `
-usage: scriggo serve [-S] [--metrics]
+usage: scriggo serve [-S n] [--metrics]
 
 Serve runs a web server and serves the template rooted at the current
 directory. It is useful to learn Scriggo templates.
@@ -633,7 +633,12 @@ HTML with the Goldmark parser with the default options.
 
 Templates are automatically rebuilt when a file changes.
 
-The -S flag prints the assembly code of the served template.
+The -S flag prints the assembly code of the served file and n determines the
+maximum length, in runes, of disassembled Text instructions
+
+    n > 0: at most n runes; leading and trailing white space are removed
+    n == 0: no text
+    n < 0: all text
 
 The --metrics flags prints metrics about execution time.
 ` + "`" + `
@@ -1058,7 +1063,7 @@ var commandsHelp = map[string]func(){
 	"install": func() {
 		txtToHelp(helpInstall)
 	},
-	"serve" : func() {
+	"serve": func() {
 		txtToHelp(helpServe)
 	},
 	"limitations": func() {
@@ -1161,10 +1166,19 @@ var commands = map[string]func(){
 	},
 	"serve": func() {
 		flag.Usage = commandsHelp["serve"]
-		asm := flag.Bool("S", false, "print assembly listing.")
+		s := flag.Int("S", 0, "print assembly listing. n determines the length of Text instructions.")
 		metrics := flag.Bool("metrics", false, "print metrics about file executions.")
 		flag.Parse()
-		err := serve(*asm, *metrics)
+		asm := -2 // -2: no assembler
+		flag.Visit(func(f *flag.Flag) {
+			if f.Name == "S" {
+				asm = *s
+				if asm < -1 {
+					asm = -1
+				}
+			}
+		})
+		err := serve(asm, *metrics)
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -2243,7 +2257,17 @@ import (
 	"github.com/yuin/goldmark"
 )
 
-func serve(asm, metrics bool) error {
+// serve runs a web server and serves the template rooted at the current
+// directory. metrics reports whether print the metrics. If asm is -1 or
+// greater, serve prints the assembly code of the served file and the value of
+// asm determines the maximum length, in runes, of disassembled Text
+// instructions
+//
+//   asm > 0: at most asm runes; leading and trailing white space are removed
+//   asm == 0: no text
+//   asm == -1: all text
+//
+func serve(asm int, metrics bool) error {
 
 	fsys, err := newTemplateFS(".")
 	if err != nil {
@@ -2295,7 +2319,7 @@ type server struct {
 	fsys       *templateFS
 	static     http.Handler
 	runOptions *templates.RunOptions
-	asm        bool
+	asm        int
 
 	sync.Mutex
 	templates map[string]*templates.Template
@@ -2382,8 +2406,8 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if srv.asm {
-		asm := template.Disassemble(-1)
+	if srv.asm >= -1 {
+		asm := template.Disassemble(srv.asm)
 		srv.logf("\n--- Assembler %s ---\n", name)
 		_, _ = os.Stderr.Write(asm)
 		srv.log("-----------------\n")

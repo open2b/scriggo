@@ -130,7 +130,7 @@ var commandsHelp = map[string]func(){
 	"install": func() {
 		txtToHelp(helpInstall)
 	},
-	"serve" : func() {
+	"serve": func() {
 		txtToHelp(helpServe)
 	},
 	"limitations": func() {
@@ -233,10 +233,19 @@ var commands = map[string]func(){
 	},
 	"serve": func() {
 		flag.Usage = commandsHelp["serve"]
-		asm := flag.Bool("S", false, "print assembly listing.")
+		s := flag.Int("S", 0, "print assembly listing. n determines the length of Text instructions.")
 		metrics := flag.Bool("metrics", false, "print metrics about file executions.")
 		flag.Parse()
-		err := serve(*asm, *metrics)
+		asm := -2 // -2: no assembler
+		flag.Visit(func(f *flag.Flag) {
+			if f.Name == "S" {
+				asm = *s
+				if asm < -1 {
+					asm = -1
+				}
+			}
+		})
+		err := serve(asm, *metrics)
 		if err != nil {
 			exitError("%s", err)
 		}
