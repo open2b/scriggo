@@ -54,9 +54,9 @@ func decodeRenderContext(c uint8) (ast.Context, bool, bool) {
 // during the build of the template to type checks a show statement.
 type buildRenderer struct{}
 
-func (r buildRenderer) Enter(io.Writer, uint8, uint8) runtime.Renderer { return nil }
+func (r buildRenderer) Close() error { return nil }
 
-func (r buildRenderer) Exit() error { return nil }
+func (r buildRenderer) Out() io.Writer { return nil }
 
 func (r buildRenderer) Show(env runtime.Env, v interface{}, context uint8) {
 	t := env.Types().TypeOf(v)
@@ -134,10 +134,9 @@ func (r buildRenderer) Show(env runtime.Env, v interface{}, context uint8) {
 
 func (r buildRenderer) Text(runtime.Env, []byte, uint8) {}
 
-// Out returns the out writer.
-func (r buildRenderer) Out() io.Writer {
-	return nil
-}
+func (r buildRenderer) WithConversion(uint8, uint8) runtime.Renderer { return nil }
+
+func (r buildRenderer) WithOut(io.Writer) runtime.Renderer { return nil }
 
 // shownAsJS reports whether a type can be shown as JavaScript. It returns
 // an error if the type cannot be shown.

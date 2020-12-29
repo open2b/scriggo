@@ -7,9 +7,7 @@
 package runtime
 
 import (
-	"bytes"
 	"errors"
-	"io"
 	"reflect"
 	"strings"
 	"unicode"
@@ -212,7 +210,7 @@ func (vm *VM) run() (Addr, bool) {
 			return Addr(decodeUint24(a, b, c)), true
 
 		// Call
-		case OpCall:
+		case OpCallFunc:
 			call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
 			fn := vm.fn.Functions[uint8(a)]
 			off := vm.fn.Body[vm.pc]
@@ -232,22 +230,10 @@ func (vm *VM) run() (Addr, bool) {
 			if vm.fp[3]+Addr(fn.NumReg[3]) > vm.st[3] {
 				vm.moreGeneralStack()
 			}
-			if vm.renderer != nil {
-				call.renderer = vm.renderer
-				var out io.Writer
-				if b == 1 {
-					out = &bytes.Buffer{}
-				}
-				if out != nil || fn.Format != vm.fn.Format {
-					vm.renderer = vm.renderer.Enter(out, fn.Format, vm.fn.Format)
-				}
-			}
 			vm.fn = fn
 			vm.vars = vm.env.globals
 			vm.calls = append(vm.calls, call)
 			vm.pc = 0
-
-		// CallIndirect
 		case OpCallIndirect:
 			f := vm.general(a).Interface().(*callable)
 			if f.fn == nil {
@@ -275,23 +261,44 @@ func (vm *VM) run() (Addr, bool) {
 				if vm.fp[3]+Addr(fn.NumReg[3]) > vm.st[3] {
 					vm.moreGeneralStack()
 				}
-				if vm.renderer != nil {
+				if fn.Macro {
 					call.renderer = vm.renderer
-					var out io.Writer
-					if b == 1 {
-						out = &bytes.Buffer{}
-					}
-					if out != nil || fn.Format != vm.fn.Format {
-						vm.renderer = vm.renderer.Enter(out, fn.Format, vm.fn.Format)
-					}
+					vm.renderer = vm.renderer.WithOut(&macroOutBuffer{})
 				}
 				vm.fn = fn
 				vm.vars = f.vars
 				vm.calls = append(vm.calls, call)
 				vm.pc = 0
 			}
-
-		// CallPredefined
+		case OpCallMacro:
+			call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, renderer: vm.renderer, fp: vm.fp, pc: vm.pc + 1}
+			fn := vm.fn.Functions[uint8(a)]
+			off := vm.fn.Body[vm.pc]
+			vm.fp[0] += Addr(off.Op)
+			if vm.fp[0]+Addr(fn.NumReg[0]) > vm.st[0] {
+				vm.moreIntStack()
+			}
+			vm.fp[1] += Addr(off.A)
+			if vm.fp[1]+Addr(fn.NumReg[1]) > vm.st[1] {
+				vm.moreFloatStack()
+			}
+			vm.fp[2] += Addr(off.B)
+			if vm.fp[2]+Addr(fn.NumReg[2]) > vm.st[2] {
+				vm.moreStringStack()
+			}
+			vm.fp[3] += Addr(off.C)
+			if vm.fp[3]+Addr(fn.NumReg[3]) > vm.st[3] {
+				vm.moreGeneralStack()
+			}
+			if b == SameFormat {
+				vm.renderer = vm.renderer.WithOut(&macroOutBuffer{})
+			} else if uint8(b) != fn.Format {
+				vm.renderer = vm.renderer.WithConversion(fn.Format, uint8(b))
+			}
+			vm.fn = fn
+			vm.vars = vm.env.globals
+			vm.calls = append(vm.calls, call)
+			vm.pc = 0
 		case OpCallPredefined:
 			fn := vm.fn.Predefined[uint8(a)]
 			off := vm.fn.Body[vm.pc]
@@ -1493,15 +1500,15 @@ func (vm *VM) run() (Addr, bool) {
 			call := vm.calls[i]
 			if call.status == started {
 				// TODO(marco): call finalizer.
-				if vm.renderer != nil {
+				if vm.fn.Macro {
 					if call.renderer != vm.renderer {
-						err := vm.renderer.Exit()
+						out := vm.renderer.Out()
+						if b, ok := out.(*macroOutBuffer); ok {
+							vm.setString(1, b.String())
+						}
+						err := vm.renderer.Close()
 						if err != nil {
 							panic(&FatalError{env: vm.env, msg: err})
-						}
-						out := vm.renderer.Out()
-						if b, ok := out.(*bytes.Buffer); ok {
-							vm.setString(1, b.String())
 						}
 					}
 					vm.renderer = call.renderer

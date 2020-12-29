@@ -279,7 +279,8 @@ func disassembleFunction(b *bytes.Buffer, globals []Global, fn *runtime.Function
 			b.WriteByte('\n')
 		}
 		switch in.Op {
-		case runtime.OpCall, runtime.OpCallIndirect, runtime.OpCallPredefined, runtime.OpTailCall, runtime.OpSlice, runtime.OpStringSlice:
+		case runtime.OpCallFunc, runtime.OpCallMacro, runtime.OpCallIndirect, runtime.OpCallPredefined,
+			runtime.OpTailCall, runtime.OpSlice, runtime.OpStringSlice:
 			addr += 1
 		case runtime.OpDefer:
 			addr += 2
@@ -363,10 +364,10 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + disassembleOperand(fn, c, kind, false)
 	case runtime.OpBreak, runtime.OpContinue, runtime.OpGoto:
 		s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
-	case runtime.OpCall, runtime.OpCallIndirect, runtime.OpCallPredefined, runtime.OpTailCall, runtime.OpDefer:
+	case runtime.OpCallFunc, runtime.OpCallMacro, runtime.OpCallIndirect, runtime.OpCallPredefined, runtime.OpTailCall, runtime.OpDefer:
 		if a != runtime.CurrentFunction {
 			switch op {
-			case runtime.OpCall, runtime.OpTailCall:
+			case runtime.OpCallFunc, runtime.OpCallMacro, runtime.OpTailCall:
 				sf := fn.Functions[uint8(a)]
 				s += " " + packageName(sf.Pkg) + "." + sf.Name
 			case runtime.OpCallIndirect:
@@ -711,7 +712,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 // index and addr is meaningful, depending on the operation specified by op.
 func funcNameType(fn *runtime.Function, index int8, addr runtime.Addr, op runtime.Operation) (bool, string, reflect.Type) {
 	switch op {
-	case runtime.OpCall:
+	case runtime.OpCallFunc, runtime.OpCallMacro:
 		macro := fn.Functions[index].Macro
 		typ := fn.Functions[index].Type
 		name := fn.Functions[index].Name
@@ -958,10 +959,9 @@ var operationName = [...]string{
 
 	runtime.OpBreak: "Break",
 
-	runtime.OpCall: "Call",
-
-	runtime.OpCallIndirect: "Call",
-
+	runtime.OpCallFunc:       "Call",
+	runtime.OpCallIndirect:   "Call",
+	runtime.OpCallMacro:      "Call",
 	runtime.OpCallPredefined: "Call",
 
 	runtime.OpCap: "Cap",

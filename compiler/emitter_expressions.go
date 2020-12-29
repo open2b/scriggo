@@ -135,7 +135,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 		// Function call.
 		em.fb.enterStack()
-		regs, types := em.emitCallNode(expr, false, false)
+		regs, types := em.emitCallNode(expr, false, false, runtime.SameFormat)
 		if reg != 0 {
 			em.changeRegister(false, regs[0], reg, types[0], dstType)
 		}
@@ -194,7 +194,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			// Macro declarations are handled as function declarations at
 			// package level, so the parameter 'closureVar' is always nil for
 			// macros.
-			// In fact this works because macros are called using the 'OpCall'
+			// In fact this works because macros are called using the 'OpCallMacro'
 			// instruction (which sets vm.vars from the global vars) while the
 			// emission of function literals needs the parameter 'closureVar'
 			// because vm.vars is set from the vars stored in the function by

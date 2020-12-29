@@ -10,11 +10,13 @@ import (
 	"context"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 )
 
 const NoVariadicArgs = -1
 const CurrentFunction = -1
+const SameFormat = -1
 
 const maxUint32 = 1<<31 - 1
 
@@ -609,7 +611,7 @@ func (vm *VM) startGoroutine() bool {
 	var vars []interface{}
 	call := vm.fn.Body[vm.pc]
 	switch call.Op {
-	case OpCall:
+	case OpCallFunc:
 		fn = vm.fn.Functions[uint8(call.A)]
 		vars = vm.env.globals
 	case OpCallIndirect:
@@ -707,6 +709,12 @@ type Registers struct {
 	Float   []float64
 	String  []string
 	General []interface{}
+}
+
+// macroOutBuffer is used in CallMacro and CallIndirect instructions to buffer
+// the out of a macro call and convert it to a string in Return instructions.
+type macroOutBuffer struct {
+	strings.Builder
 }
 
 type PredefinedFunction struct {
@@ -1031,10 +1039,9 @@ const (
 
 	OpBreak
 
-	OpCall
-
+	OpCallFunc
 	OpCallIndirect
-
+	OpCallMacro
 	OpCallPredefined
 
 	OpCap

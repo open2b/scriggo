@@ -55,19 +55,7 @@ func newRenderer(out io.Writer, markdownConverter Converter) *renderer {
 	return &renderer{out: out, converter: markdownConverter}
 }
 
-func (r *renderer) Enter(out io.Writer, fromFormat, toFormat uint8) runtime.Renderer {
-	if out == nil {
-		out = r.out
-	}
-	from, to := ast.Format(fromFormat), ast.Format(toFormat)
-	if from == ast.FormatMarkdown && to == ast.FormatHTML {
-		out = newMarkdownWriter(out, r.converter)
-		return newRenderer(out, nil)
-	}
-	return newRenderer(out, r.converter)
-}
-
-func (r *renderer) Exit() error {
+func (r *renderer) Close() error {
 	if w, ok := r.out.(*markdownWriter); ok {
 		return w.Close()
 	}
@@ -134,6 +122,11 @@ func (r *renderer) Show(env runtime.Env, v interface{}, context uint8) {
 	return
 }
 
+// Out returns the out writer.
+func (r *renderer) Out() io.Writer {
+	return r.out
+}
+
 // Text shows txt in the given context.
 func (r *renderer) Text(env runtime.Env, txt []byte, context uint8) {
 
@@ -179,9 +172,17 @@ func (r *renderer) Text(env runtime.Env, txt []byte, context uint8) {
 
 }
 
-// Out returns the out writer.
-func (r *renderer) Out() io.Writer {
-	return r.out
+func (r *renderer) WithConversion(fromFormat, toFormat uint8) runtime.Renderer {
+	from, to := ast.Format(fromFormat), ast.Format(toFormat)
+	if from == ast.FormatMarkdown && to == ast.FormatHTML {
+		out := newMarkdownWriter(r.out, r.converter)
+		return newRenderer(out, nil)
+	}
+	return newRenderer(r.out, r.converter)
+}
+
+func (r *renderer) WithOut(out io.Writer) runtime.Renderer {
+	return newRenderer(out, r.converter)
 }
 
 // showInURL shows v in a URL in the given context.

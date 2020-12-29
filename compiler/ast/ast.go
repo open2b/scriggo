@@ -735,19 +735,6 @@ func NewTypeDeclaration(pos *Position, ident *Identifier, typ Expression, isAlia
 	return &TypeDeclaration{pos, ident, typ, isAliasDeclaration}
 }
 
-// ShowMacro node represents a statement "show <macro>".
-type ShowMacro struct {
-	*Position               // position in the source.
-	Macro      Expression   // macro.
-	Args       []Expression // arguments.
-	IsVariadic bool         // reports whether it is variadic.
-	Context    Context      // context.
-}
-
-func NewShowMacro(pos *Position, macro Expression, args []Expression, isVariadic bool, ctx Context) *ShowMacro {
-	return &ShowMacro{Position: pos, Macro: macro, Args: args, IsVariadic: isVariadic, Context: ctx}
-}
-
 // Partial node represents a statement "partial <path>".
 type Partial struct {
 	*Position         // position in the source.
@@ -760,7 +747,7 @@ func NewPartial(pos *Position, path string, ctx Context) *Partial {
 	return &Partial{Position: pos, Path: path, Context: ctx}
 }
 
-// Show node represents statements {{ ... }} and "show(<expr>)".
+// Show node represents statements {{ ... }} and "show <expr>".
 type Show struct {
 	*Position            // position in the source.
 	Expr      Expression // expression that once evaluated returns the value to show.
