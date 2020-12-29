@@ -735,16 +735,20 @@ func NewTypeDeclaration(pos *Position, ident *Identifier, typ Expression, isAlia
 	return &TypeDeclaration{pos, ident, typ, isAliasDeclaration}
 }
 
-// Partial node represents a statement "partial <path>".
-type Partial struct {
+// Render node represents a 'render <path>' expression.
+type Render struct {
+	expression
 	*Position         // position in the source.
-	Path      string  // path of the partial file.
-	Context   Context // context.
+	Path      string  // path of the file to render.
 	Tree      *Tree   // expanded tree of <path>.
 }
 
-func NewPartial(pos *Position, path string, ctx Context) *Partial {
-	return &Partial{Position: pos, Path: path, Context: ctx}
+func NewRender(pos *Position, path string) *Render {
+	return &Render{Position: pos, Path: path}
+}
+
+func (n *Render) String() string {
+	return "render " + strconv.Quote(n.Path)
 }
 
 // Show node represents statements {{ ... }} and "show <expr>".

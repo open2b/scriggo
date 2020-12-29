@@ -15,9 +15,9 @@
 
 <div class="body-content">
 
-{% partial "/partials/header.html" %}
+{{ render "/partials/header.html" }}
 
-{% partial "/partials/navigation.html" %}
+{{ render "/partials/navigation.html" }}
 
 {% show Banner(0, true, "6000/500") %}
 
@@ -27,7 +27,7 @@
 
 </div>
 
-{% partial "/partials/footer.html" %}
+{{ render "/partials/footer.html" }}
 
 <div id="design-overlay" class="overlay"></div>
 <div id="filters-overlay" class="overlay"></div>

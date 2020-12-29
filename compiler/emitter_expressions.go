@@ -306,6 +306,22 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		em.changeRegister(false, tmp, reg, elemType, dstType)
 		em.fb.exitStack()
 
+	case *ast.Render:
+		// The scope of the render expression must be hidden from the rendered
+		// file, otherwise the file would see the variables in the scope of
+		// the render expression instead of global variables (note that the
+		// emitter gives precedence to local variables respect to global
+		// variables).
+		path := em.fb.getPath()
+		em.fb.changePath(expr.Tree.Path)
+		scopes := em.fb.scopes
+		em.fb.scopes = nil
+		em.fb.enterScope()
+		em.emitNodes(expr.Tree.Nodes)
+		em.fb.exitScope()
+		em.fb.changePath(path)
+		em.fb.scopes = scopes
+
 	case *ast.Slicing:
 
 		exprType := em.typ(expr.Expr)

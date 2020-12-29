@@ -19,7 +19,7 @@
   {% promotions := make([]int, 20) %}
   {% if len(promotions) > 0 %}
   <h2>{{ translate("Home promotions") }}</h2>
-  {# {% partial "partials/promotions.html" %} #}
+  {# {{ render "partials/promotions.html" }} #}
   {% end if %}
   {% topSellers := make([]string, 10) %}
   {% topSellersColumns := make([]int, 10) %}
@@ -32,6 +32,6 @@
   {% blogPosts := make([]string, 10) %}
   {% if len(blogPosts) > 0 %}
   <h2>{{ translate("News") }}</h2>
-  {# {% partial "partials/blog-posts.html" %} #}
+  {# {{ render "partials/blog-posts.html" }} #}
   {% end if %}
 {% end macro %}

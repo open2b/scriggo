@@ -530,6 +530,21 @@ func (tc *typechecker) rebalancedRightSide(node ast.Node) []ast.Expression {
 				tc.compilation.typeInfos[v2] = untypedBoolTypeInfo
 				return []ast.Expression{v1, v2}
 			}
+		case *ast.Render:
+			if v.Tree == nil {
+				v1 := ast.NewBasicLiteral(v.Pos(), ast.StringLiteral, "")
+				v2 := ast.NewIdentifier(v.Pos(), "false")
+				tc.compilation.typeInfos[v1] = untypedStringTypeInfo
+				tc.compilation.typeInfos[v2] = untypedBoolTypeInfo
+				return []ast.Expression{v1, v2}
+			} else {
+				v1 := ast.NewRender(v.Pos(), v.Path)
+				v2 := ast.NewIdentifier(v.Pos(), "true")
+				ti := tc.checkExpr(rhExpr)
+				tc.compilation.typeInfos[v1] = &typeInfo{Type: ti.Type}
+				tc.compilation.typeInfos[v2] = untypedBoolTypeInfo
+				return []ast.Expression{v1, v2}
+			}
 		}
 	}
 

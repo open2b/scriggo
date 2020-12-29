@@ -6,7 +6,7 @@
 
 {% show %}     // ERROR `syntax error: unexpected %}, expecting expression`
 {% show() %}   // ERROR `syntax error: unexpected ), expecting expression`
-{% partial "" %}  // ERROR `syntax error: invalid template path: ""`
+{{ render "" }}  // ERROR `syntax error: invalid file path: ""`
 
 {% show(1, 2) %}        // ERROR `syntax error: unexpected comma, expecting )`
 {% show(if true {}) %}  // ERROR `syntax error: unexpected if, expecting expression`

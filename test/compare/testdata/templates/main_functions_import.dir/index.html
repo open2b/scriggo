@@ -1,4 +1,4 @@
 {% import "imported.html" %}
 Access from 'index.html': {{ MainSum(10, 20) }}
-{% partial "partial.html" %}
+{{ render "partial.html" }}
 {% show Imported() %}
