@@ -1037,34 +1037,34 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: `a`,
 	},
 
-	"Show partial - Only text": {
+	"Render - Only text": {
 		sources: map[string]string{
-			"index.txt":   `a{% partial "/partial.txt" %}c`,
+			"index.txt":   `a{{ render "/partial.txt" }}c`,
 			"partial.txt": `b`,
 		},
 		expectedOut: "abc",
 	},
 
-	"Show partial - Partial file uses external variable": {
+	"Render - Render file that uses external variable": {
 		sources: map[string]string{
-			"index.txt":   `{% var a = 10 %}a: {% partial "/partial.txt" %}`,
+			"index.txt":   `{% var a = 10 %}a: {{ render "/partial.txt" }}`,
 			"partial.txt": `{{ a }}`,
 		},
 		expectedBuildErr: "undefined: a",
 	},
 
-	"Partial - File with a partial try to use a variable declared in the partial file": {
+	"Render - File with a render expression try to use a variable declared in the rendered file": {
 		sources: map[string]string{
-			"index.txt":   `{% partial "/partial.txt" %}partial a: {{ a }}`,
+			"index.txt":   `{{ render "/partial.txt" }}partial a: {{ a }}`,
 			"partial.txt": `{% var a = 20 %}`,
 		},
 		expectedBuildErr: "undefined: a",
 	},
 
-	"Partial - File renders a partial file which shows another partial file": {
+	"Render - File renders a file which renders another file": {
 		sources: map[string]string{
-			"index.txt":             `indexstart,{% partial "/dir1/partial.txt" %}indexend,`,
-			"dir1/partial.txt":      `i1start,{% partial "/dir1/dir2/partial.txt" %}i1end,`,
+			"index.txt":             `indexstart,{{ render "/dir1/partial.txt" }}indexend,`,
+			"dir1/partial.txt":      `i1start,{{ render "/dir1/dir2/partial.txt" }}i1end,`,
 			"dir1/dir2/partial.txt": `i2,`,
 		},
 		expectedOut: "indexstart,i1start,i2,i1end,indexend,",
@@ -1214,7 +1214,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"https://github.com/open2b/scriggo/issues/392": {
 		sources: map[string]string{
-			"product.html": `{{ "" }}{% partial "partials/products.html" %}
+			"product.html": `{{ "" }}{{ render "partials/products.html" }}
 `, // this newline is intentional
 			"partials/products.html": `{% macro M(s []int) %}{% end %}`,
 		},
@@ -1238,7 +1238,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"https://github.com/open2b/scriggo/issues/393": {
 		sources: map[string]string{
-			"product.html": `{% partial "partials/products.html" %}
+			"product.html": `{{ render "partials/products.html" }}
 `, // this newline is intentional
 			"partials/products.html": `{% macro M(s []int) %}{% end %}`,
 		},
@@ -1401,12 +1401,12 @@ var templateMultiPageCases = map[string]struct {
 		expectedBuildErr: "undefined: name",
 	},
 
-	"Partial file tries to overwrite a variable of the file that renders it": {
-		// The emitter must use another scope when emitting the partial file,
+	"Render file tries to overwrite a variable of the file that renders it": {
+		// The emitter must use another scope when emitting a rendered file,
 		// otherwise such file can overwrite the variables of the file that
 		// renders it.
 		sources: map[string]string{
-			"index.txt":   `{% v := "showing" %}{% partial "partial.txt" %}{{ v }}`,
+			"index.txt":   `{% v := "showing" %}{{ render "partial.txt" }}{{ v }}`,
 			"partial.txt": `{% v := "partial" %}`,
 		},
 		expectedOut: "showing",
@@ -1421,7 +1421,7 @@ var templateMultiPageCases = map[string]struct {
 		// emitter must hide the scopes to the partial file (as the type checker
 		// does).
 		sources: map[string]string{
-			"index.txt":   `{% v := "showing" %}{% partial "partial.txt" %}, {{ v }}`,
+			"index.txt":   `{% v := "showing" %}{{ render "partial.txt" }}, {{ v }}`,
 			"partial.txt": "{{ v }}",
 		},
 		main: scriggo.MapPackage{
@@ -1435,15 +1435,15 @@ var templateMultiPageCases = map[string]struct {
 
 	"A partial file defines a macro, which should not be accessible from the file that renders the partial": {
 		sources: map[string]string{
-			"index.txt":   `{% partial "partial.txt" %}{% show MacroInPartialFile() %}`,
-			"partial.txt": `{% macro MacroInPartialFile %}{% end macro %}`,
+			"index.txt":   `{{ render "partial.txt" }}{% show MacroInRenderFile() %}`,
+			"partial.txt": `{% macro MacroInRenderFile %}{% end macro %}`,
 		},
-		expectedBuildErr: "undefined: MacroInPartialFile",
+		expectedBuildErr: "undefined: MacroInRenderFile",
 	},
 
-	"The file with a partial defines a macro, which should not be accessible from the partial file": {
+	"The file with a render expression defines a macro, which should not be accessible from the rendered file": {
 		sources: map[string]string{
-			"index.txt":   `{% macro Macro %}{% end macro %}{% partial "partial.txt" %}`,
+			"index.txt":   `{% macro Macro %}{% end macro %}{{ render "partial.txt" }}`,
 			"partial.txt": `{% show Macro() %}`,
 		},
 		expectedBuildErr: "undefined: Macro",
@@ -1579,7 +1579,7 @@ var templateMultiPageCases = map[string]struct {
 	// https://github.com/open2b/scriggo/issues/641
 	"File imported by two files - test compilation": {
 		sources: map[string]string{
-			"index.html":   `{% import "/v.html" %}{% partial "/partial.html" %}`,
+			"index.html":   `{% import "/v.html" %}{{ render "/partial.html" }}`,
 			"partial.html": `{% import "/v.html" %}`,
 			"v.html":       `{% var V int %}`,
 		},
@@ -1616,7 +1616,7 @@ var templateMultiPageCases = map[string]struct {
 	// https://github.com/open2b/scriggo/issues/643
 	"Invalid variable value with multiple imports": {
 		sources: map[string]string{
-			"index.html":   `{% import "/v.html" %}{% partial "/partial.html" %}V is {{ V }}`,
+			"index.html":   `{% import "/v.html" %}{{ render "/partial.html" }}V is {{ V }}`,
 			"partial.html": `{% import "/v.html" %}`,
 			"v.html":       `{% var V = 42 %}`,
 		},
@@ -1626,7 +1626,7 @@ var templateMultiPageCases = map[string]struct {
 	// https://github.com/open2b/scriggo/issues/643
 	"Init function called more than once": {
 		sources: map[string]string{
-			"index.html":   `{% import "v.html" %}{% partial "/partial.html" %}{{ V }}`,
+			"index.html":   `{% import "v.html" %}{{ render "/partial.html" }}{{ V }}`,
 			"partial.html": `{% import "/v.html" %}`,
 			"v.html":       `{% var V = GetValue() %}`,
 		},
@@ -1723,9 +1723,9 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: "<b>global</b>",
 	},
-	"Double type checking of partial file": {
+	"Double type checking of render expression": {
 		sources: map[string]string{
-			"index.txt":   `{% partial "/partial.txt" %}{% partial "/partial.txt" %}`,
+			"index.txt":   `{{ render "/partial.txt" }}{{ render "/partial.txt" }}`,
 			"partial.txt": `{% var v int %}`,
 		},
 	},
@@ -1733,15 +1733,15 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% extends "extended.txt" %}
 {% macro M %}
-{% partial "/partial.txt" %}
+{{ render "/partial.txt" }}
 {% end macro %}`,
-			"extended.txt": `{% partial "/partial.txt" %}`,
+			"extended.txt": `{{ render "/partial.txt" }}`,
 			"partial.txt":  `{% var v int %}`,
 		},
 	},
 	"https://github.com/open2b/scriggo/issues/660": {
 		sources: map[string]string{
-			"index.txt":   `{% macro M() %}{% partial "partial.txt" %}{% end macro %}`,
+			"index.txt":   `{% macro M() %}{{ render "partial.txt" }}{% end macro %}`,
 			"partial.txt": `{% var v int %}{% _ = v %}`,
 		},
 	},
@@ -2080,18 +2080,18 @@ var templateMultiPageCases = map[string]struct {
 
 	"Show of a previously imported file": {
 		sources: map[string]string{
-			"index.txt": `{% import "file.txt" %}{% partial "file.txt" %}`,
+			"index.txt": `{% import "file.txt" %}{{ render "file.txt" }}`,
 			"file.txt":  ``,
 		},
-		expectedBuildErr: `syntax error: partial of file imported at index.txt:1:11`,
+		expectedBuildErr: `syntax error: render of file imported at index.txt:1:11`,
 	},
 
 	"Show of a previously extended file": {
 		sources: map[string]string{
-			"index.txt": `{% extends "file.txt" %}{% macro A %}{% partial "file.txt" %}{% end %}`,
+			"index.txt": `{% extends "file.txt" %}{% macro A %}{{ render "file.txt" }}{% end %}`,
 			"file.txt":  ``,
 		},
-		expectedBuildErr: `syntax error: partial of file extended at index.txt:1:4`,
+		expectedBuildErr: `syntax error: render of file extended at index.txt:1:4`,
 	},
 
 	"Import of a previously extended file": {
@@ -2104,11 +2104,11 @@ var templateMultiPageCases = map[string]struct {
 
 	"Import of a partial file": {
 		sources: map[string]string{
-			"index.txt": `{% partial "file1.txt" %}{% partial "file2.txt" %}`,
+			"index.txt": `{{ render "file1.txt" }}{{ render "file2.txt" }}`,
 			"file1.txt": ``,
 			"file2.txt": `{% import "file1.txt" %}`,
 		},
-		expectedBuildErr: `syntax error: import of file rendered as partial at index.txt:1:4`,
+		expectedBuildErr: `syntax error: import of file rendered at index.txt:1:4`,
 	},
 
 	"Not only spaces in a page that extends": {
@@ -2246,7 +2246,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"https://github.com/open2b/scriggo/issues/694": {
 		sources: map[string]string{
-			"index.txt":   `{% partial "partial.txt" %}`,
+			"index.txt":   `{{ render "partial.txt" }}`,
 			"partial.txt": `{% var a int %}{% func() { a = 20 }() %}`,
 		},
 		expectedOut: ``,
@@ -2324,7 +2324,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Endless macro declaration (6)": {
 		sources: map[string]string{
-			"index.html":   `{% partial "partial.html" %}`,
+			"index.html":   `{{ render "partial.html" }}`,
 			"partial.html": `{% Article %}`,
 		},
 		expectedBuildErr: `undefined: Article`,
@@ -2365,12 +2365,21 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: `len(str): 5, output of macro: hello`,
 	},
 
-	"Show as partial (TO BE REMOVED)": {
+	"Show as render (TO BE REMOVED)": {
 		sources: map[string]string{
 			"index.html":   `{% show "partial.html" %}`,
 			"partial.html": `partial`,
 		},
 		expectedOut: `partial`,
+	},
+
+	"tt": {
+		sources: map[string]string{
+			"index.html":    `{{ render "partial.html" }}`,
+			"partial.html":  `{{ render "partial2.html" }}`,
+			"partial2.html": `{{ "a" }}`,
+		},
+		expectedOut: `a`,
 	},
 }
 
@@ -2555,19 +2564,19 @@ var envFilePathCases = []struct {
 	},
 
 	{
-		name: "File rendering a partial file",
+		name: "File rendering another file",
 		sources: map[string]string{
-			"index.html":   `{{ path() }}, {% partial "partial.html"%}, {{ path() }}`,
+			"index.html":   `{{ path() }}, {{ render "partial.html" }}, {{ path() }}`,
 			"partial.html": `{{ path() }}`,
 		},
 		want: `index.html, partial.html, index.html`,
 	},
 
 	{
-		name: "File rendering a partial file in a sub-directory",
+		name: "File rendering a file in a sub-directory",
 		sources: map[string]string{
-			"index.html":             `{{ path() }}, {% partial "partials/partial1.html"%}, {{ path() }}`,
-			"partials/partial1.html": `{{ path() }}, {% partial "partial2.html" %}`,
+			"index.html":             `{{ path() }}, {{ render "partials/partial1.html" }}, {{ path() }}`,
+			"partials/partial1.html": `{{ path() }}, {{ render "partial2.html" }}`,
 			"partials/partial2.html": `{{ path() }}`,
 		},
 		want: `index.html, partials/partial1.html, partials/partial2.html, index.html`,

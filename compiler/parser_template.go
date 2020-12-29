@@ -30,7 +30,7 @@ type FormatFS interface {
 // Format method, otherwise it depends on the extension of the file name.
 // Any error related to the compilation itself is returned as a CompilerError.
 //
-// ParseTemplate expands the nodes Extends, Import and Partial parsing the
+// ParseTemplate expands the nodes Extends, Import and Render parsing the
 // relative trees.
 func ParseTemplate(fsys fs.FS, name string, packages PackageLoader) (*ast.Tree, error) {
 
@@ -72,7 +72,7 @@ type templateExpansion struct {
 }
 
 // parsedTree represents a parsed tree. parent is the file path and node that
-// extends, imports or renders as partial the tree.
+// extends, imports or renders the tree.
 type parsedTree struct {
 	tree   *ast.Tree
 	parent struct {
@@ -81,21 +81,20 @@ type parsedTree struct {
 	}
 }
 
-// rooted returns the path of an Extend, Import or Partial node, rooted at
-// the root path of the template.
+// rooted returns the path of an Extend, Import or Render node, rooted at
+// the parent path of the template.
 //
-// Supposing that a/b/c is the path name of the file that contains the node
+// Supposing that a/b/c is the parent path
 //
 //   if name is /d/e, the rooted path name is d/e
 //   if name is d/e, the rooted path name is a/b/d/e
 //   if name is ../d/e, the rooted path name is a/d/e
 //   if name is ../../d/e, the rooted path name is d/e
 //
-func (pp *templateExpansion) rooted(name string) (string, error) {
+func rooted(parent, name string) (string, error) {
 	if name[0] == '/' {
 		return name[1:], nil
 	}
-	parent := pp.paths[len(pp.paths)-1]
 	if p := strings.LastIndex(parent, "/"); p > 0 {
 		parent = parent[:p]
 	} else {
@@ -116,7 +115,7 @@ func (pp *templateExpansion) rooted(name string) (string, error) {
 }
 
 // parseNodeFile parses the file referenced by an Extends, Import or
-// Partial node and returns its tree.
+// Render node and returns its tree.
 func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 
 	var err error
@@ -133,11 +132,12 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 	case *ast.Import:
 		name = n.Path
 		imported = true
-	case *ast.Partial:
+	case *ast.Render:
 		name = n.Path
 		format = ast.Format(n.Context)
 	}
-	name, err = pp.rooted(name)
+	parent := pp.paths[len(pp.paths)-1]
+	name, err = rooted(parent, name)
 	if err != nil {
 		return nil, err
 	}
@@ -157,8 +157,8 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 			switch node.(type) {
 			case *ast.Import:
 				return nil, syntaxError(node.Pos(), "import of file extended at %s:%s", parsed.parent.path, n.Pos())
-			case *ast.Partial:
-				return nil, syntaxError(node.Pos(), "partial of file extended at %s:%s", parsed.parent.path, n.Pos())
+			case *ast.Render:
+				return nil, syntaxError(node.Pos(), "render of file extended at %s:%s", parsed.parent.path, n.Pos())
 			}
 			if format != parsed.tree.Format {
 				if !(format == ast.FormatMarkdown && parsed.tree.Format == ast.FormatHTML) {
@@ -167,15 +167,15 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 				}
 			}
 		case *ast.Import:
-			if _, ok := node.(*ast.Partial); ok {
-				return nil, syntaxError(node.Pos(), "partial of file imported at %s:%s", parsed.parent.path, n.Pos())
+			if _, ok := node.(*ast.Render); ok {
+				return nil, syntaxError(node.Pos(), "render of file imported at %s:%s", parsed.parent.path, n.Pos())
 			}
-		case *ast.Partial:
+		case *ast.Render:
 			if _, ok := node.(*ast.Import); ok {
-				return nil, syntaxError(node.Pos(), "import of file rendered as partial at %s:%s", parsed.parent.path, n.Pos())
+				return nil, syntaxError(node.Pos(), "import of file rendered at %s:%s", parsed.parent.path, n.Pos())
 			}
 			if format != parsed.tree.Format {
-				return nil, syntaxError(node.Pos(), "partial file %q is %s instead of %s", name, parsed.tree.Format, format)
+				return nil, syntaxError(node.Pos(), "rendered file %q is %s instead of %s", name, parsed.tree.Format, format)
 			}
 		}
 		tree = parsed.tree
@@ -194,8 +194,8 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 					return nil, syntaxError(node.Pos(), "extended file %q is %s instead of %s",
 						name, fo, format)
 				}
-			case *ast.Partial:
-				return nil, syntaxError(node.Pos(), "partial file %q is %s instead of %s", name, fo, format)
+			case *ast.Render:
+				return nil, syntaxError(node.Pos(), "rendered file %q is %s instead of %s", name, fo, format)
 			}
 		}
 		tree, err = pp.parseSource(src, name, fo, imported)
@@ -211,7 +211,7 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 	return tree, nil
 }
 
-// parseSource parses src expanding Extends, Import and Partial nodes.
+// parseSource parses src expanding Extends, Import and Render nodes.
 // path is the path of the file, format is its content format and imported
 // indicates whether the file is imported. path must be absolute and cleared.
 func (pp *templateExpansion) parseSource(src []byte, path string, format ast.Format, imported bool) (*ast.Tree, error) {
@@ -249,16 +249,17 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 		case *ast.Extends:
 
 			if len(pp.paths) > 1 {
-				return syntaxError(n.Pos(), "extended, imported and partial files can not have extends")
+				return syntaxError(n.Pos(), "extended, imported and rendered files can not have extends")
 			}
 			var err error
 			n.Tree, err = pp.parseNodeFile(n)
 			if err != nil {
-				absPath, _ := pp.rooted(n.Path)
+				parent := pp.paths[len(pp.paths)-1]
+				rootedPath, _ := rooted(parent, n.Path)
 				if errors.Is(err, os.ErrNotExist) {
-					err = syntaxError(n.Pos(), "extends path %q does not exist", absPath)
+					err = syntaxError(n.Pos(), "extends path %q does not exist", rootedPath)
 				} else if e, ok := err.(*CycleError); ok {
-					e.msg = "\n\textends " + absPath + e.msg
+					e.msg = "\n\textends " + rootedPath + e.msg
 					if e.path == pp.paths[len(pp.paths)-1] {
 						e.pos = *(n.Pos())
 					}
@@ -289,11 +290,12 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 				var err error
 				n.Tree, err = pp.parseNodeFile(n)
 				if err != nil {
-					absPath, _ := pp.rooted(n.Path)
+					parent := pp.paths[len(pp.paths)-1]
+					rootedPath, _ := rooted(parent, n.Path)
 					if errors.Is(err, os.ErrNotExist) {
-						err = syntaxError(n.Pos(), "import path %q does not exist", absPath)
+						err = syntaxError(n.Pos(), "import path %q does not exist", rootedPath)
 					} else if e, ok := err.(*CycleError); ok {
-						e.msg = "\n\timports " + absPath + e.msg
+						e.msg = "\n\timports " + rootedPath + e.msg
 						if e.path == pp.paths[len(pp.paths)-1] {
 							e.pos = *(n.Pos())
 						}
@@ -302,16 +304,34 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 				}
 			}
 
-		case *ast.Partial:
+		case *ast.Assignment:
+
+			var err error
+			p := n.Rhs[0].(*ast.Render)
+			p.Tree, err = pp.parseNodeFile(p)
+			if err != nil && !errors.Is(err, os.ErrNotExist) {
+				if e, ok := err.(*CycleError); ok {
+					parent := pp.paths[len(pp.paths)-1]
+					rootedPath, _ := rooted(parent, p.Path)
+					e.msg = "\n\trenders " + rootedPath + e.msg
+					if e.path == pp.paths[len(pp.paths)-1] {
+						e.pos = *(n.Pos())
+					}
+				}
+				return err
+			}
+
+		case *ast.Render:
 
 			var err error
 			n.Tree, err = pp.parseNodeFile(n)
 			if err != nil {
-				absPath, _ := pp.rooted(n.Path)
+				parent := pp.paths[len(pp.paths)-1]
+				rootedPath, _ := rooted(parent, n.Path)
 				if errors.Is(err, os.ErrNotExist) {
-					err = syntaxError(n.Pos(), "partial path %q does not exist", absPath)
+					err = syntaxError(n.Pos(), "file path %q does not exist", rootedPath)
 				} else if e, ok := err.(*CycleError); ok {
-					e.msg = "\n\tpartial " + absPath + e.msg
+					e.msg = "\n\trenders " + rootedPath + e.msg
 					if e.path == pp.paths[len(pp.paths)-1] {
 						e.pos = *(n.Pos())
 					}

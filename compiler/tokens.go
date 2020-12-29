@@ -62,7 +62,7 @@ const (
 	tokenExtends                           // extends
 	tokenImport                            // import
 	tokenShow                              // show
-	tokenPartial                           // partial
+	tokenRender                            // render
 	tokenMacro                             // macro
 	tokenFunc                              // func
 	tokenReturn                            // return
@@ -167,7 +167,7 @@ var tokenString = map[tokenTyp]string{
 	tokenExtends:                  "extends",
 	tokenImport:                   "import",
 	tokenShow:                     "show",
-	tokenPartial:                  "partial",
+	tokenRender:                   "render",
 	tokenFunc:                     "func",
 	tokenReturn:                   "return",
 	tokenMacro:                    "macro",

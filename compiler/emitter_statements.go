@@ -241,22 +241,6 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			}
 			em.fb.exitScope()
 
-		case *ast.Partial:
-			// The scope of the partial statement must be hidden from the partial
-			// file, otherwise the partial file would see the variables in the
-			// scope of the partial statement instead of global variables (note that the
-			// emitter gives precedence to local variables respect to global
-			// variables).
-			path := em.fb.getPath()
-			em.fb.changePath(node.Tree.Path)
-			scopes := em.fb.scopes
-			em.fb.scopes = nil
-			em.fb.enterScope()
-			em.emitNodes(node.Tree.Nodes)
-			em.fb.exitScope()
-			em.fb.changePath(path)
-			em.fb.scopes = scopes
-
 		case *ast.Statements:
 			em.emitNodes(node.Nodes)
 

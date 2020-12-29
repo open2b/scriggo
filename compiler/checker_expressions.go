@@ -709,6 +709,25 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			panic(tc.errorf(expr, "invalid operation: %s (type %s does not support indexing)", expr, t.ShortString()))
 		}
 
+	case *ast.Render:
+		if expr.Tree == nil {
+			rootedPath, _ := rooted(tc.path, expr.Path)
+			panic(tc.errorf(expr, "file path %q does not exist", rootedPath))
+		}
+		// Type check the file tree with a separate type checker.
+		// The scope of the rendered file is independent from the scope of the
+		// render expression (except for global declarations).
+		// Also, the use of a different type checker ensures that the
+		// fields of 'tc' are not altered nor inherited.
+		tc2 := newTypechecker(
+			tc.compilation,
+			expr.Tree.Path,
+			tc.opts,
+			tc.globalScope,
+		)
+		tc2.checkNodesInNewScope(expr.Tree.Nodes)
+		return &typeInfo{Type: tc.formatType(expr.Tree.Format)}
+
 	case *ast.Slicing:
 		t := tc.checkExpr(expr.Expr)
 		if t.Nil() {

@@ -1095,7 +1095,7 @@ func init() {
 	decs["TagNamelistItem"] = dwarf.TagNamelistItem
 	decs["TagNamespace"] = dwarf.TagNamespace
 	decs["TagPackedType"] = dwarf.TagPackedType
-	decs["TagPartialUnit"] = dwarf.TagPartialUnit
+	decs["TagRenderUnit"] = dwarf.TagRenderUnit
 	decs["TagPointerType"] = dwarf.TagPointerType
 	decs["TagPtrToMemberType"] = dwarf.TagPtrToMemberType
 	decs["TagReferenceType"] = dwarf.TagReferenceType
@@ -3585,8 +3585,8 @@ func init() {
 	decs["ErrEndContext"] = template.ErrEndContext
 	decs["ErrNoSuchTemplate"] = template.ErrNoSuchTemplate
 	decs["ErrOutputContext"] = template.ErrOutputContext
-	decs["ErrPartialCharset"] = template.ErrPartialCharset
-	decs["ErrPartialEscape"] = template.ErrPartialEscape
+	decs["ErrRenderCharset"] = template.ErrRenderCharset
+	decs["ErrRenderEscape"] = template.ErrRenderEscape
 	decs["ErrPredefinedEscaper"] = template.ErrPredefinedEscaper
 	decs["ErrRangeLoopReentry"] = template.ErrRangeLoopReentry
 	decs["ErrSlashAmbig"] = template.ErrSlashAmbig
@@ -4462,7 +4462,7 @@ func init() {
 	decs["StatusNotImplemented"] = UntypedNumericConst("501")
 	decs["StatusNotModified"] = UntypedNumericConst("304")
 	decs["StatusOK"] = UntypedNumericConst("200")
-	decs["StatusPartialContent"] = UntypedNumericConst("206")
+	decs["StatusRenderContent"] = UntypedNumericConst("206")
 	decs["StatusPaymentRequired"] = UntypedNumericConst("402")
 	decs["StatusPermanentRedirect"] = UntypedNumericConst("308")
 	decs["StatusPreconditionFailed"] = UntypedNumericConst("412")

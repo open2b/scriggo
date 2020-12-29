@@ -278,6 +278,20 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			default:
 				operand = ast.NewArrayType(pos, length, typ)
 			}
+		case tokenRender:
+			pos := tok.pos
+			tok = p.next()
+			if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting string", tok))
+			}
+			var path = unquoteString(tok.txt)
+			if !ValidTemplatePath(path) {
+				panic(syntaxError(tok.pos, "invalid file path: %q", path))
+			}
+			pos.End = tok.pos.End
+			operand = ast.NewRender(pos, path, tok.ctx)
+			p.unexpanded = append(p.unexpanded, operand)
+			tok = p.next()
 		default:
 			return nil, tok
 		}

@@ -66,8 +66,8 @@ func (e *CycleError) Path() string {
 	return e.path
 }
 
-// Position returns the position of the extends, import or partial statement
-// referring the second file in the cycle.
+// Position returns the position of the statements extends and import and of
+// the expression render referring the second file in the cycle.
 func (e *CycleError) Position() ast.Position {
 	return e.pos
 }
@@ -134,7 +134,7 @@ type parsing struct {
 	// Ancestors from the root up to the parent.
 	ancestors []ast.Node
 
-	// Unexpanded Extends, Import and Partial nodes.
+	// Unexpanded Extends, Import and Render nodes.
 	unexpanded []ast.Node
 }
 
@@ -242,7 +242,7 @@ func parseSource(src []byte, script, shebang bool) (tree *ast.Tree, err error) {
 }
 
 // ParseTemplateSource parses a template with content src in the given format
-// and returns its tree and the unexpanded Extends, Import and Partial nodes.
+// and returns its tree and the unexpanded extends, import and render nodes.
 //
 // format can be Text, HTML, CSS, JavaScript, JSON and Markdown. imported
 // indicates whether it is imported.
@@ -908,26 +908,6 @@ LABEL:
 		tok = p.parseEnd(tok, tokenSemicolon, end)
 		return tok
 
-	// partial
-	case tokenPartial:
-		pos := tok.pos
-		tok := p.next()
-		if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting string", tok))
-		}
-		var path = unquoteString(tok.txt)
-		if !ValidTemplatePath(path) {
-			panic(syntaxError(tok.pos, "invalid template path: %q", path))
-		}
-		pos.End = tok.pos.End
-		node := ast.NewPartial(pos, path, tok.ctx)
-		p.unexpanded = append(p.unexpanded, node)
-		p.addChild(node)
-		p.cutSpacesToken = true
-		tok = p.next()
-		tok = p.parseEnd(tok, tokenSemicolon, end)
-		return tok
-
 	// show
 	case tokenShow:
 		if p.inFunction() {
@@ -942,7 +922,7 @@ LABEL:
 				panic(syntaxError(tok.pos, "invalid template path: %q", path))
 			}
 			pos.End = tok.pos.End
-			node := ast.NewPartial(pos, path, tok.ctx)
+			node := ast.NewRender(pos, path, tok.ctx)
 			p.unexpanded = append(p.unexpanded, node)
 			p.addChild(node)
 			p.cutSpacesToken = true
@@ -1389,7 +1369,7 @@ LABEL:
 					}
 				case tokenInterpretedString, tokenRawString:
 					if end == tokenEndStatement {
-						panic(syntaxError(ident.Pos(), "unexpected %s, expecting extends, import or partial", ident.Name))
+						panic(syntaxError(ident.Pos(), "unexpected %s, expecting extends, import or render", ident.Name))
 					}
 				}
 			}
@@ -1688,7 +1668,16 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeRa
 			pos.End = values[0].Pos().End
 		}
 	}
-	return ast.NewAssignment(pos, variables, typ, values), tok
+	node := ast.NewAssignment(pos, variables, typ, values)
+	if len(variables) == 2 && len(values) == 1 {
+		if _, ok := values[0].(*ast.Render); ok {
+			// Replace the Render node with the Assignment node.
+			// In this way, when the tree is expanded, no errors occur
+			// if the rendered file does not exist.
+			p.unexpanded[len(p.unexpanded)-1] = node
+		}
+	}
+	return node, tok
 }
 
 // addChild adds a child to the current parent node.

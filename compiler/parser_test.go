@@ -1324,7 +1324,8 @@ var treeTests = []struct {
 		),
 	}, ast.FormatHTML)},
 	{"{% extends \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtends(p(1, 4, 3, 16), "/a.b", ast.ContextHTML)}, ast.FormatHTML)},
-	{"{% partial \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewPartial(p(1, 4, 3, 16), "/a.b", ast.ContextHTML)}, ast.FormatHTML)},
+	{"{{ render \"/a.b\" }}", ast.NewTree("", []ast.Node{ast.NewShow(p(1, 1, 0, 19),
+		ast.NewRender(p(1, 4, 3, 16), "/a.b", ast.ContextHTML), ast.ContextHTML)}, ast.FormatHTML)},
 	{"{% extends \"a.e\" %}{% macro b %}c{% end macro %}", ast.NewTree("", []ast.Node{
 		ast.NewExtends(p(1, 4, 3, 15), "a.e", ast.ContextHTML),
 		ast.NewFunc(p(1, 23, 22, 44), ast.NewIdentifier(p(1, 29, 28, 28), "b"), ast.NewFuncType(&ast.Position{Line: 1, Column: 23, Start: 22, End: 44}, false, nil, nil, false), ast.NewBlock(p(1, 23, 22, 44), []ast.Node{ast.NewText(p(1, 33, 32, 32), []byte("c"), ast.Cut{})}), false, ast.FormatHTML)}, ast.FormatHTML)},
@@ -1377,8 +1378,8 @@ func pageTests() map[string]struct {
 	src  string
 	tree *ast.Tree
 } {
-	var showPartial = ast.NewPartial(p(3, 7, 29, 61), "/partial2.html", ast.ContextHTML)
-	showPartial.Tree = ast.NewTree("", []ast.Node{
+	var render = ast.NewRender(p(3, 7, 29, 61), "/partial2.html", ast.ContextHTML)
+	render.Tree = ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 4), []byte("<div>"), ast.Cut{}),
 		ast.NewShow(p(1, 6, 5, 17), ast.NewIdentifier(p(1, 9, 8, 14), "content"), ast.ContextHTML),
 		ast.NewText(p(1, 19, 18, 23), []byte("</div>"), ast.Cut{}),
@@ -1398,10 +1399,10 @@ func pageTests() map[string]struct {
 			}, ast.FormatHTML),
 		},
 		"/simple2.html": {
-			"<!DOCTYPE html>\n<html>\n<body>{% show \"/partial2.html\" %}</body>\n</html>",
+			"<!DOCTYPE html>\n<html>\n<body>{{ render \"/partial2.html\" }}</body>\n</html>",
 			ast.NewTree("", []ast.Node{
 				ast.NewText(p(1, 1, 0, 28), []byte("<!DOCTYPE html>\n<html>\n<body>"), ast.Cut{}),
-				showPartial,
+				render,
 				ast.NewText(p(3, 37, 59, 73), []byte("</body>\n</html>"), ast.Cut{}),
 			}, ast.FormatHTML),
 		},
@@ -1594,8 +1595,8 @@ func equals(n1, n2 ast.Node, p int) error {
 			return err
 		}
 
-	case *ast.Partial:
-		nn2, ok := n2.(*ast.Partial)
+	case *ast.Render:
+		nn2, ok := n2.(*ast.Render)
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
