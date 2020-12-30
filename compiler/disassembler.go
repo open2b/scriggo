@@ -385,10 +385,10 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		if c != runtime.NoVariadicArgs && (op == runtime.OpCallIndirect || op == runtime.OpCallPredefined || op == runtime.OpDefer) {
 			s += " ..." + strconv.Itoa(int(c))
 		}
+		_, _, typ := funcNameType(fn, a, addr, op)
 		for i := 0; i < 4; i++ {
-			_, _, fn := funcNameType(fn, a, addr, op)
 			s += " "
-			if fn == nil || !funcHasParameterInRegister(fn, registerType(i)) {
+			if typ == nil || !funcHasParameterInRegister(typ, registerType(i)) {
 				s += "_"
 				continue
 			}
