@@ -1009,7 +1009,6 @@ LABEL:
 		}
 		node := ast.NewShowMacro(pos, macro, args, isVariadic, tok.ctx)
 		p.addChild(node)
-		p.cutSpacesToken = true
 		tok = p.parseEnd(tok, tokenSemicolon, end)
 		return tok
 

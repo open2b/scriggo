@@ -1796,7 +1796,7 @@ var templateMultiPageCases = map[string]struct {
 				{% show M1 %}
 			`,
 		},
-		expectedOut: "\n\t\t\t\t\t\t\nm2\t\t\t",
+		expectedOut: "\n\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\tm2\n\n\t\t\t",
 	},
 
 	"Dollar identifier - Referencing to a global variable that does not exist": {
