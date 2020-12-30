@@ -774,6 +774,17 @@ func disassembleFunctionCall(fn *runtime.Function, index int8, addr runtime.Addr
 		}
 		return str
 	}
+	var sout string
+	if nout := typ.NumOut(); nout > 0 {
+		sout += " ("
+		for i := 0; i < nout; i++ {
+			if i > 0 {
+				sout += ", "
+			}
+			sout += print(typ.Out(i))
+		}
+		sout += ")"
+	}
 	s := "func("
 	if macro {
 		if typ.NumIn() == 0 {
@@ -798,17 +809,7 @@ func disassembleFunctionCall(fn *runtime.Function, index int8, addr runtime.Addr
 			}
 		}
 	}
-	s += ")"
-	if nout := typ.NumOut(); nout > 0 {
-		s += " ("
-		for i := 0; i < nout; i++ {
-			if i > 0 {
-				s += ", "
-			}
-			s += print(typ.Out(i))
-		}
-		s += ")"
-	}
+	s += ")" + sout
 	return s
 }
 
