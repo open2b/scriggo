@@ -649,14 +649,14 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		return ti
 
 	case *ast.Call:
-		types, _, _ := tc.checkCallExpression(expr)
-		if len(types) == 0 {
+		tis := tc.checkCallExpression(expr)
+		if len(tis) == 0 {
 			panic(tc.errorf(expr, "%v used as value", expr))
 		}
-		if len(types) > 1 {
+		if len(tis) > 1 {
 			panic(tc.errorf(expr, "multiple-value %v in single-value context", expr))
 		}
-		return types[0]
+		return tis[0]
 
 	case *ast.Index:
 		t := tc.checkExpr(expr.Expr)
@@ -1650,15 +1650,14 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 
 // checkCallExpression type checks a call expression, including type
 // conversions and built-in function calls. Returns a list of typeinfos
-// obtained from the call and returns two booleans indicating respectively if
-// expr is a builtin call or a conversion.
-func (tc *typechecker) checkCallExpression(expr *ast.Call) ([]*typeInfo, bool, bool) {
+// obtained from the call.
+func (tc *typechecker) checkCallExpression(expr *ast.Call) []*typeInfo {
 
 	// Check a builtin function call.
 	if ident, ok := expr.Func.(*ast.Identifier); ok {
 		if ti, ok := tc.lookupScopes(ident.Name, false); ok && ti.IsBuiltinFunction() {
 			tc.compilation.typeInfos[expr.Func] = ti
-			return tc.checkBuiltinCall(expr), true, false
+			return tc.checkBuiltinCall(expr)
 		}
 	}
 
@@ -1677,7 +1676,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) ([]*typeInfo, bool, b
 
 	if t.IsType() {
 		ti := tc.checkExplicitConversion(expr)
-		return []*typeInfo{ti}, false, true
+		return []*typeInfo{ti}
 	}
 
 	if t.Type.Kind() != reflect.Func {
@@ -1700,7 +1699,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) ([]*typeInfo, bool, b
 		if c, ok := args[0].(*ast.Call); ok {
 			isSpecialCase = true
 			args = nil
-			tis, _, _ := tc.checkCallExpression(c)
+			tis := tc.checkCallExpression(c)
 			if len(tis) == 1 {
 				tc.compilation.typeInfos[c] = tis[0]
 			}
@@ -1713,7 +1712,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) ([]*typeInfo, bool, b
 	} else if len(args) == 1 && numIn == 1 && funcIsVariadic && !callIsVariadic {
 		if c, ok := args[0].(*ast.Call); ok {
 			args = nil
-			tis, _, _ := tc.checkCallExpression(c)
+			tis := tc.checkCallExpression(c)
 			if len(tis) == 1 {
 				tc.compilation.typeInfos[c] = tis[0]
 			}
@@ -1813,7 +1812,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) ([]*typeInfo, bool, b
 		resultTypes[i] = &typeInfo{Type: t.Type.Out(i)}
 	}
 
-	return resultTypes, false, false
+	return resultTypes
 }
 
 func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *typeInfo {

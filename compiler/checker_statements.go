@@ -590,7 +590,7 @@ nodesLoop:
 			// Handle {{ f() }} where f returns two values and the second value
 			// implements 'error'.
 			if call, ok := node.Expr.(*ast.Call); ok {
-				tis, _, _ := tc.checkCallExpression(call)
+				tis := tc.checkCallExpression(call)
 				if len(tis) == 2 && tis[1].Type.Implements(errorType) {
 					// Change the tree:
 					//
@@ -656,8 +656,9 @@ nodesLoop:
 			continue nodesLoop // check nodes[i]
 
 		case *ast.Call:
-			tis, isBuiltin, _ := tc.checkCallExpression(node)
-			if isBuiltin {
+			tis := tc.checkCallExpression(node)
+			ti := tc.compilation.typeInfos[node.Func]
+			if ti.IsBuiltinFunction() {
 				switch node.Func.(*ast.Identifier).Name {
 				case "copy", "recover":
 				case "panic":
@@ -677,8 +678,9 @@ nodesLoop:
 			if !ok {
 				panic(tc.errorf(node.Call, "expression in defer must be function call"))
 			}
-			_, isBuiltin, isConversion := tc.checkCallExpression(call)
-			if isBuiltin {
+			tc.checkCallExpression(call)
+			ti := tc.compilation.typeInfos[call.Func]
+			if ti.IsBuiltinFunction() {
 				name := call.Func.(*ast.Identifier).Name
 				switch name {
 				case "append", "cap", "len", "make", "new":
@@ -690,7 +692,7 @@ nodesLoop:
 					tc.compilation.typeInfos[call.Func] = deferGoBuiltin(name)
 				}
 			}
-			if isConversion {
+			if ti.IsType() {
 				panic(tc.errorf(node, "defer requires function call, not conversion"))
 			}
 			tc.terminating = false
@@ -703,8 +705,9 @@ nodesLoop:
 			if !ok {
 				panic(tc.errorf(node.Call, "expression in go must be function call"))
 			}
-			_, isBuiltin, isConversion := tc.checkCallExpression(call)
-			if isBuiltin {
+			tc.checkCallExpression(call)
+			ti := tc.compilation.typeInfos[call.Func]
+			if ti.IsBuiltinFunction() {
 				name := call.Func.(*ast.Identifier).Name
 				switch name {
 				case "append", "cap", "len", "make", "new":
@@ -713,7 +716,7 @@ nodesLoop:
 					tc.compilation.typeInfos[call.Func] = deferGoBuiltin(name)
 				}
 			}
-			if isConversion {
+			if ti.IsType() {
 				panic(tc.errorf(node, "go requires function call, not conversion"))
 			}
 			if tc.opts.disallowGoStmt {
@@ -1129,7 +1132,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) ast.Node {
 	needsCheck := true
 	if len(expected) > 1 && len(got) == 1 {
 		if c, ok := got[0].(*ast.Call); ok {
-			tis, _, _ := tc.checkCallExpression(c)
+			tis := tc.checkCallExpression(c)
 			got = nil
 			for _, ti := range tis {
 				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
