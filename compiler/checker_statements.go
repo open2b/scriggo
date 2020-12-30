@@ -668,6 +668,8 @@ nodesLoop:
 						panic(tc.errorf(node, "%s evaluated but not used", node))
 					}
 				}
+			} else if ti.IsType() {
+				panic(tc.errorf(node, "%s evaluated but not used", node))
 			}
 
 		case *ast.Defer:

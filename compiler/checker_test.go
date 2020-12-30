@@ -1295,6 +1295,7 @@ var checkerStmts = map[string]string{
 	`f := func(a, b, c int, d... int) {  };  f(1,2)`:                                "not enough arguments in call to f\n\thave (number, number)\n\twant (int, int, int, ...int)",
 
 	// Conversions.
+	`int(5)`:                           `int(5) evaluated but not used`,
 	`int()`:                            `missing argument to conversion to int: int()`,
 	`int(0, 0)`:                        `too many arguments to conversion to int: int(0, 0)`,
 	`int(nil)`:                         `cannot convert nil to type int`,
