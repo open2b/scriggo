@@ -70,7 +70,7 @@ type Types interface {
 }
 
 type Renderer interface {
-	Enter(out io.Writer, format uint8) Renderer
+	Enter(out io.Writer, fromFormat, toFormat uint8) Renderer
 	Exit() error
 	Show(env Env, v interface{}, ctx uint8)
 	Text(env Env, txt []byte, ctx uint8)

@@ -239,7 +239,7 @@ func (vm *VM) run() (Addr, bool) {
 					out = &bytes.Buffer{}
 				}
 				if out != nil || fn.Format != vm.fn.Format {
-					vm.renderer = vm.renderer.Enter(out, fn.Format)
+					vm.renderer = vm.renderer.Enter(out, fn.Format, vm.fn.Format)
 				}
 			}
 			vm.fn = fn
@@ -282,7 +282,7 @@ func (vm *VM) run() (Addr, bool) {
 						out = &bytes.Buffer{}
 					}
 					if out != nil || fn.Format != vm.fn.Format {
-						vm.renderer = vm.renderer.Enter(out, fn.Format)
+						vm.renderer = vm.renderer.Enter(out, fn.Format, vm.fn.Format)
 					}
 				}
 				vm.fn = fn

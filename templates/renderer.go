@@ -31,9 +31,6 @@ type renderer struct {
 	// out is the io.Writer to write to.
 	out io.Writer
 
-	// format.
-	format ast.Format
-
 	// Markdown converter.
 	converter Converter
 
@@ -52,22 +49,22 @@ type renderer struct {
 	removeQuestionMark bool
 }
 
-// newRenderer returns a new renderer that writes to out a source in the given
-// format possibly using markdownConverter to convert Markdown to HTML.
-func newRenderer(out io.Writer, format ast.Format, markdownConverter Converter) *renderer {
-	return &renderer{out: out, format: format, converter: markdownConverter}
+// newRenderer returns a new renderer using markdownConverter, if not nil, to
+// convert Markdown to HTML.
+func newRenderer(out io.Writer, markdownConverter Converter) *renderer {
+	return &renderer{out: out, converter: markdownConverter}
 }
 
-func (r *renderer) Enter(out io.Writer, format uint8) runtime.Renderer {
+func (r *renderer) Enter(out io.Writer, fromFormat, toFormat uint8) runtime.Renderer {
 	if out == nil {
 		out = r.out
 	}
-	fo := ast.Format(format)
-	if fo == ast.FormatMarkdown && r.format == ast.FormatHTML {
+	from, to := ast.Format(fromFormat), ast.Format(toFormat)
+	if from == ast.FormatMarkdown && to == ast.FormatHTML {
 		out = newMarkdownWriter(out, r.converter)
-		return newRenderer(out, fo, nil)
+		return newRenderer(out, nil)
 	}
-	return newRenderer(out, fo, r.converter)
+	return newRenderer(out, r.converter)
 }
 
 func (r *renderer) Exit() error {

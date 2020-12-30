@@ -239,7 +239,7 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 		}
 		mdConverter = options.MarkdownConverter
 	}
-	renderer := newRenderer(out, ast.Format(t.fn.Format), mdConverter)
+	renderer := newRenderer(out, mdConverter)
 	vm.SetRenderer(renderer)
 	_, err := vm.Run(t.fn, t.types, initGlobalVariables(t.globals, vars))
 	return err

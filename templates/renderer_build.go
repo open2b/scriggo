@@ -54,7 +54,7 @@ func decodeRenderContext(c uint8) (ast.Context, bool, bool) {
 // during the build of the template to type checks a show statement.
 type buildRenderer struct{}
 
-func (r buildRenderer) Enter(io.Writer, uint8) runtime.Renderer { return nil }
+func (r buildRenderer) Enter(io.Writer, uint8, uint8) runtime.Renderer { return nil }
 
 func (r buildRenderer) Exit() error { return nil }
 
