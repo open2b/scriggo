@@ -83,7 +83,7 @@ func main() {
 		var src io.Reader = os.Stdin
 		var packages scriggo.PackageLoader = predefPkgs
 		if cmd == "rundir" {
-			dir := dirLoader(flag.Args()[2])
+			dir := dirLoader(flag.Arg(2))
 			main, err := dir.Load("main")
 			if err != nil {
 				panic(err)
@@ -128,7 +128,7 @@ func main() {
 			}
 			fsys = mapfs.MapFS{"index" + ext: string(src)}
 		case "rundir":
-			fsys = fs.DirFS(flag.Args()[2])
+			fsys = fs.DirFS(flag.Arg(2))
 		}
 		opts := templates.BuildOptions{
 			Globals:  globals,
