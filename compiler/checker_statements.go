@@ -655,23 +655,6 @@ nodesLoop:
 			nodes[i] = ast.NewCall(node.Pos(), node.Macro, node.Args, node.IsVariadic)
 			continue nodesLoop // check nodes[i]
 
-		case *ast.Call:
-			tis := tc.checkCallExpression(node)
-			ti := tc.compilation.typeInfos[node.Func]
-			if ti.IsBuiltinFunction() {
-				switch node.Func.(*ast.Identifier).Name {
-				case "copy", "recover":
-				case "panic":
-					tc.terminating = true
-				default:
-					if len(tis) > 0 {
-						panic(tc.errorf(node, "%s evaluated but not used", node))
-					}
-				}
-			} else if ti.IsType() {
-				panic(tc.errorf(node, "%s evaluated but not used", node))
-			}
-
 		case *ast.Defer:
 			if node.Call.Parenthesis() > 0 {
 				panic(tc.errorf(node.Call, "expression in defer must not be parenthesized"))
@@ -780,6 +763,23 @@ nodesLoop:
 			}
 
 		case *ast.Comment:
+
+		case *ast.Call:
+			tis := tc.checkCallExpression(node)
+			ti := tc.compilation.typeInfos[node.Func]
+			if ti.IsBuiltinFunction() {
+				switch node.Func.(*ast.Identifier).Name {
+				case "copy", "recover":
+				case "panic":
+					tc.terminating = true
+				default:
+					if len(tis) > 0 {
+						panic(tc.errorf(node, "%s evaluated but not used", node))
+					}
+				}
+			} else if ti.IsType() {
+				panic(tc.errorf(node, "%s evaluated but not used", node))
+			}
 
 		case ast.Expression:
 
