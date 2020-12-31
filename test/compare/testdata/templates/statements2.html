@@ -22,7 +22,7 @@ d = {{ d }}
 e = {{ e }}
 
 {% macro A %}A{% end %}
-{%% show A %%}
+{%% show A() %%}
 
 {%%
     if e == 6 {

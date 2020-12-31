@@ -212,17 +212,6 @@ func CloneNode(node ast.Node) ast.Node {
 	case *ast.Show:
 		return ast.NewShow(ClonePosition(n.Position), CloneExpression(n.Expr), n.Context)
 
-	case *ast.ShowMacro:
-		var macro = CloneExpression(n.Macro)
-		var arguments []ast.Expression
-		if n.Args != nil {
-			arguments = make([]ast.Expression, len(n.Args))
-			for i, a := range n.Args {
-				arguments[i] = CloneExpression(a)
-			}
-		}
-		return ast.NewShowMacro(ClonePosition(n.Position), macro, arguments, n.IsVariadic, n.Context)
-
 	case *ast.Statements:
 		var nodes []ast.Node
 		if n.Nodes != nil {

@@ -651,10 +651,6 @@ nodesLoop:
 			ti.setValue(nil)
 			tc.terminating = false
 
-		case *ast.ShowMacro:
-			nodes[i] = ast.NewCall(node.Pos(), node.Macro, node.Args, node.IsVariadic)
-			continue nodesLoop // check nodes[i]
-
 		case *ast.Defer:
 			if node.Call.Parenthesis() > 0 {
 				panic(tc.errorf(node.Call, "expression in defer must not be parenthesized"))

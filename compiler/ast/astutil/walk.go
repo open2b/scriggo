@@ -276,7 +276,6 @@ func Walk(v Visitor, node ast.Node) {
 
 	case *ast.BasicLiteral,
 		*ast.Identifier,
-		*ast.ShowMacro,
 		*ast.Comment,
 		*ast.Text,
 		*ast.Placeholder,

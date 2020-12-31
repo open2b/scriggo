@@ -9,7 +9,7 @@
   {# metaTags #}
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="initial-scale=1.0, width=device-width, user-scalable=no">
-  {% show Head %}
+  {% show Head() %}
 </head>
 <body>
 
@@ -22,7 +22,7 @@
 {% show Banner(0, true, "6000/500") %}
 
 <div class="main" role="main">
-    {% show Main %}
+    {% show Main() %}
 </div>
 
 </div>

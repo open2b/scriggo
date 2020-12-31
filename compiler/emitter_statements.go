@@ -76,7 +76,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				continue
 			}
 			em.fb.enterStack()
-			_, _ = em.emitCallNode(call, false, true)
+			_, _ = em.emitCallNode(call, false, true, runtime.SameFormat)
 			em.fb.exitStack()
 
 		case *ast.Import:
@@ -89,7 +89,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					if len(inits) > 0 && !em.alreadyInitializedTemplatePkgs[node.Tree.Path] {
 						for _, initFunc := range inits {
 							index := em.fb.addFunction(initFunc)
-							em.fb.emitCall(int8(index), em.fb.currentStackShift(), nil, false)
+							em.fb.emitCallFunc(int8(index), em.fb.currentStackShift(), nil)
 						}
 						em.alreadyInitializedTemplatePkgs[node.Tree.Path] = true
 					}
@@ -194,7 +194,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 		case *ast.Go:
 			call := node.Call.(*ast.Call)
 			em.fb.enterStack()
-			_, _ = em.emitCallNode(call, true, false)
+			_, _ = em.emitCallNode(call, true, false, runtime.SameFormat)
 			em.fb.exitStack()
 
 		case *ast.Goto:
@@ -283,7 +283,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			//
 			fnType := em.fb.fn.Type
 			if len(node.Values) == 1 && fnType.NumOut() > 1 {
-				returnedRegs, types := em.emitCallNode(node.Values[0].(*ast.Call), false, false)
+				returnedRegs, types := em.emitCallNode(node.Values[0].(*ast.Call), false, false, runtime.SameFormat)
 				for i, typ := range types {
 					var dstReg int8
 					switch kindToType(typ.Kind()) {
@@ -341,9 +341,16 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.emitSend(chann, value, node.Pos(), chanType.Elem().Kind())
 
 		case *ast.Show:
-			t := em.typ(node.Expr)
-			r := em.emitExpr(node.Expr, t)
-			em.fb.emitShow(t, r, node.Context, em.inURL, em.isURLSet)
+			ctx := node.Context
+			if call, ok := node.Expr.(*ast.Call); ok && ctx <= ast.ContextMarkdown && em.ti(call.Func).IsMacro() {
+				em.fb.enterStack()
+				em.emitCallNode(call, false, false, ast.Format(node.Context))
+				em.fb.exitStack()
+			} else {
+				ti := em.ti(node.Expr)
+				r := em.emitExpr(node.Expr, ti.Type)
+				em.fb.emitShow(ti.Type, r, ctx, em.inURL, em.isURLSet)
+			}
 
 		case *ast.Switch:
 			currentBreakable := em.breakable
@@ -417,13 +424,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			}
 
 		case ast.Expression:
-			if call, ok := node.(*ast.Call); ok && em.ti(call.Func).IsMacro() {
-				em.inShowMacro = true
-			}
 			em.fb.enterStack()
 			em.emitExprR(node, reflect.Type(nil), 0)
 			em.fb.exitStack()
-			em.inShowMacro = false
 
 		default:
 			panic(fmt.Sprintf("BUG: node %T not supported", node)) // remove.

@@ -943,7 +943,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Macro definition (no arguments) and show-macro": {
 		sources: map[string]string{
-			"index.txt": `{% macro M %}body{% end %}{% show M %}`,
+			"index.txt": `{% macro M %}body{% end %}{% show M() %}`,
 		},
 		expectedOut: `body`,
 	},
@@ -990,7 +990,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Two macro definitions and three show-macro": {
 		sources: map[string]string{
-			"index.txt": `{% macro M1 %}M1's body{% end %}{% macro M2(i int, s string) %}i: {{ i }}, s: {{ s }}{% end %}Show macro: {% show M1 %} {% show M2(-30, "hello") %} ... {% show M1 %}`,
+			"index.txt": `{% macro M1 %}M1's body{% end %}{% macro M2(i int, s string) %}i: {{ i }}, s: {{ s }}{% end %}Show macro: {% show M1() %} {% show M2(-30, "hello") %} ... {% show M1() %}`,
 		},
 		expectedOut: `Show macro: M1's body i: -30, s: hello ... M1's body`,
 	},
@@ -1004,7 +1004,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Macro definition and show-macro without parentheses": {
 		sources: map[string]string{
-			"index.txt": `{% macro M %}ok{% end %}{% show M %}`,
+			"index.txt": `{% macro M %}ok{% end %}{% show M() %}`,
 		},
 		expectedOut: `ok`,
 	},
@@ -1072,7 +1072,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Import/Macro - Importing a macro defined in another page": {
 		sources: map[string]string{
-			"index.txt": `{% import "/page.txt" %}{% show M %}{% show M %}`,
+			"index.txt": `{% import "/page.txt" %}{% show M() %}{% show M() %}`,
 			"page.txt":  `{% macro M %}macro!{% end %}{% macro M2 %}macro 2!{% end %}`,
 		},
 		expectedOut: "macro!macro!",
@@ -1080,10 +1080,10 @@ var templateMultiPageCases = map[string]struct {
 
 	"Import/Macro - Importing a macro defined in another page, where a function calls a before-declared function": {
 		sources: map[string]string{
-			"index.txt": `{% import "/page.txt" %}{% show M %}{% show M %}`,
+			"index.txt": `{% import "/page.txt" %}{% show M() %}{% show M() %}`,
 			"page.txt": `
 				{% macro M2 %}macro 2!{% end %}
-				{% macro M %}{% show M2 %}{% end %}
+				{% macro M %}{% show M2() %}{% end %}
 			`,
 		},
 		expectedOut: "macro 2!macro 2!",
@@ -1091,9 +1091,9 @@ var templateMultiPageCases = map[string]struct {
 
 	"Import/Macro - Importing a macro defined in another page, where a function calls an after-declared function": {
 		sources: map[string]string{
-			"index.txt": `{% import "/page.txt" %}{% show M %}{% show M %}`,
+			"index.txt": `{% import "/page.txt" %}{% show M() %}{% show M() %}`,
 			"page.txt": `
-				{% macro M %}{% show M2 %}{% end %}
+				{% macro M %}{% show M2() %}{% end %}
 				{% macro M2 %}macro 2!{% end %}
 			`,
 		},
@@ -1102,8 +1102,8 @@ var templateMultiPageCases = map[string]struct {
 
 	"Import/Macro - Importing a macro defined in another page, which imports a third page": {
 		sources: map[string]string{
-			"index.txt": `{% import "/page1.txt" %}index-start,{% show M1 %}index-end`,
-			"page1.txt": `{% import "/page2.txt" %}{% macro M1 %}M1-start,{% show M2 %}M1-end,{% end %}`,
+			"index.txt": `{% import "/page1.txt" %}index-start,{% show M1() %}index-end`,
+			"page1.txt": `{% import "/page2.txt" %}{% macro M1 %}M1-start,{% show M2() %}M1-end,{% end %}`,
 			"page2.txt": `{% macro M2 %}M2,{% end %}`,
 		},
 		expectedOut: "index-start,M1-start,M2,M1-end,index-end",
@@ -1111,7 +1111,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Import/Macro - Importing a macro using an import statement with identifier": {
 		sources: map[string]string{
-			"index.txt": `{% import pg "/page.txt" %}{% show pg.M %}{% show pg.M %}`,
+			"index.txt": `{% import pg "/page.txt" %}{% show pg.M() %}{% show pg.M() %}`,
 			"page.txt":  `{% macro M %}macro!{% end %}`,
 		},
 		expectedOut: "macro!macro!",
@@ -1119,7 +1119,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Import/Macro - Importing a macro using an import statement with identifier (with comments)": {
 		sources: map[string]string{
-			"index.txt": `{# a comment #}{% import pg "/page.txt" %}{# a comment #}{% show pg.M %}{# a comment #}{% show pg.M %}{# a comment #}`,
+			"index.txt": `{# a comment #}{% import pg "/page.txt" %}{# a comment #}{% show pg.M() %}{# a comment #}{% show pg.M() %}{# a comment #}`,
 			"page.txt":  `{# a comment #}{% macro M %}{# a comment #}macro!{# a comment #}{% end %}{# a comment #}`,
 		},
 		expectedOut: "macro!macro!",
@@ -1136,7 +1136,7 @@ var templateMultiPageCases = map[string]struct {
 	"Extends - Extending a page that calls a macro defined on current page": {
 		sources: map[string]string{
 			"index.txt": `{% extends "/page.txt" %}{% macro E %}E's body{% end %}`,
-			"page.txt":  `{% show E %}`,
+			"page.txt":  `{% show E() %}`,
 		},
 		expectedOut: "E's body",
 	},
@@ -1167,7 +1167,7 @@ var templateMultiPageCases = map[string]struct {
 	"Extends - Extending a page that calls two macros defined on current page": {
 		sources: map[string]string{
 			"index.txt": `{% extends "/page.txt" %}{% macro E1 %}E1's body{% end %}{% macro E2 %}E2's body{% end %}`,
-			"page.txt":  `{% show E1 %}{% show E2 %}`,
+			"page.txt":  `{% show E1() %}{% show E2() %}`,
 		},
 		expectedOut: "E1's bodyE2's body",
 	},
@@ -1175,7 +1175,7 @@ var templateMultiPageCases = map[string]struct {
 	"Extends - Define a variable (with zero value) used in macro definition": {
 		sources: map[string]string{
 			"index.txt": `{% extends "/page.txt" %}{% var Local int %}{% macro E1 %}Local has value {{ Local }}{% end %}`,
-			"page.txt":  `{% show E1 %}`,
+			"page.txt":  `{% show E1() %}`,
 		},
 		expectedOut: "Local has value 0",
 	},
@@ -1183,7 +1183,7 @@ var templateMultiPageCases = map[string]struct {
 	"Extends - Define a variable (with non-zero value) used in macro definition": {
 		sources: map[string]string{
 			"index.txt": `{% extends "/page.txt" %}{% var Local = 50 %}{% macro E1 %}Local has value {{ Local }}{% end %}`,
-			"page.txt":  `{% show E1 %}`,
+			"page.txt":  `{% show E1() %}`,
 		},
 		expectedOut: "Local has value 50",
 	},
@@ -1435,7 +1435,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"A partial file defines a macro, which should not be accessible from the file that renders the partial": {
 		sources: map[string]string{
-			"index.txt":   `{% partial "partial.txt" %}{% show MacroInPartialFile %}`,
+			"index.txt":   `{% partial "partial.txt" %}{% show MacroInPartialFile() %}`,
 			"partial.txt": `{% macro MacroInPartialFile %}{% end macro %}`,
 		},
 		expectedBuildErr: "undefined: MacroInPartialFile",
@@ -1444,7 +1444,7 @@ var templateMultiPageCases = map[string]struct {
 	"The file with a partial defines a macro, which should not be accessible from the partial file": {
 		sources: map[string]string{
 			"index.txt":   `{% macro Macro %}{% end macro %}{% partial "partial.txt" %}`,
-			"partial.txt": `{% show Macro %}`,
+			"partial.txt": `{% show Macro() %}`,
 		},
 		expectedBuildErr: "undefined: Macro",
 	},
@@ -1488,7 +1488,7 @@ var templateMultiPageCases = map[string]struct {
 	"Using the precompiled package 'fmt' from a file that extends another file": {
 		sources: map[string]string{
 			"index.txt":    `{% extends "extended.txt" %}{% import "fmt" %}{% macro M %}{{ fmt.Sprint(321, 11) }}{% end macro %}`,
-			"extended.txt": `{% show M %}`,
+			"extended.txt": `{% show M() %}`,
 		},
 		packages:    testPackages,
 		expectedOut: "321 11",
@@ -1588,7 +1588,7 @@ var templateMultiPageCases = map[string]struct {
 	// https://github.com/open2b/scriggo/issues/642
 	"Macro imported twice - test compilation": {
 		sources: map[string]string{
-			"index.html":    `{% import "/imported.html" %}{% import "/macro.html" %}{% show M %}`,
+			"index.html":    `{% import "/imported.html" %}{% import "/macro.html" %}{% show M() %}`,
 			"imported.html": `{% import "/macro.html" %}`,
 			"macro.html":    `{% macro M %}{% end macro %}`,
 		},
@@ -1713,7 +1713,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Accessing global variable from macro's body": {
 		sources: map[string]string{
-			"index.txt": `{% macro M %}{{ globalVariable }}{% end %}{% show M %}`,
+			"index.txt": `{% macro M %}{{ globalVariable }}{% end %}{% show M() %}`,
 		},
 		main: scriggo.MapPackage{
 			PkgName: "main",
@@ -1790,10 +1790,10 @@ var templateMultiPageCases = map[string]struct {
 				{% macro M1 %}
 					{% if true %}
 						{% macro M2 %}m2{% end macro %}
-						{% show M2 %}
+						{% show M2() %}
 					{% end %}
 				{% end macro %}
-				{% show M1 %}
+				{% show M1() %}
 			`,
 		},
 		expectedOut: "\n\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\tm2\n\n\t\t\t",
@@ -2210,7 +2210,7 @@ var templateMultiPageCases = map[string]struct {
 	"Multiline statements #5": {
 		sources: map[string]string{
 			"index.txt":    `{%% extends "extended.txt" %%}{% import "fmt" %}{% macro M %}{{ fmt.Sprint(321, 11) }}{% end macro %}`,
-			"extended.txt": `{% show M %}`,
+			"extended.txt": `{% show M() %}`,
 		},
 		packages:    testPackages,
 		expectedOut: "321 11",
@@ -2285,7 +2285,7 @@ var templateMultiPageCases = map[string]struct {
 	"Endless macro declaration": {
 		sources: map[string]string{
 			"index.html":  `{% extends "layout.html" %}{% Article %}content`,
-			"layout.html": `{% show Article %}`,
+			"layout.html": `{% show Article() %}`,
 		},
 		expectedOut: `content`,
 	},
@@ -2293,7 +2293,7 @@ var templateMultiPageCases = map[string]struct {
 	"Endless macro declaration (2)": {
 		sources: map[string]string{
 			"index.html":  `{% extends "layout.html" %}{% Article %}{% Content %}`,
-			"layout.html": `{% show Article %}`,
+			"layout.html": `{% show Article() %}`,
 		},
 		expectedBuildErr: `undefined: Content`,
 	},
@@ -2301,7 +2301,7 @@ var templateMultiPageCases = map[string]struct {
 	"Endless macro declaration (3)": {
 		sources: map[string]string{
 			"index.html":  `{% extends "layout.html" %}{% Article %}{% end macro %}`,
-			"layout.html": `{% show Article %}`,
+			"layout.html": `{% show Article() %}`,
 		},
 		expectedBuildErr: `syntax error: unexpected end`,
 	},
@@ -2309,14 +2309,14 @@ var templateMultiPageCases = map[string]struct {
 	"Endless macro declaration (4)": {
 		sources: map[string]string{
 			"index.html":  `{% extends "layout.html" %}{% article %}{% end %}`,
-			"layout.html": `{% show Article %}`,
+			"layout.html": `{% show Article() %}`,
 		},
 		expectedBuildErr: `syntax error: unexpected article, expecting declaration statement`,
 	},
 
 	"Endless macro declaration (5)": {
 		sources: map[string]string{
-			"index.html":    `{% import "imported.html" %}{% show Article %}`,
+			"index.html":    `{% import "imported.html" %}{% show Article() %}`,
 			"imported.html": `{% Article %}`,
 		},
 		expectedBuildErr: `syntax error: unexpected Article, expecting declaration statement`,
@@ -2360,7 +2360,7 @@ var templateMultiPageCases = map[string]struct {
 
 	"Macro used in function call - a non-empty string is returned (2)": {
 		sources: map[string]string{
-			"index.html": `{% macro M %}hello{% end %}{% var str = M() %}len(str): {{ len(str) }}, output of macro: {% M() %}`,
+			"index.html": `{% macro M %}hello{% end %}{% var str = M() %}len(str): {{ len(str) }}, output of macro: {{ M() }}`,
 		},
 		expectedOut: `len(str): 5, output of macro: hello`,
 	},
@@ -2576,7 +2576,7 @@ var envFilePathCases = []struct {
 	{
 		name: "File importing another file, which defines a macro",
 		sources: map[string]string{
-			"index.html":    `{% import "imported.html" %}{{ path() }}, {% show Path %}, {{ path() }}`,
+			"index.html":    `{% import "imported.html" %}{{ path() }}, {% show Path() %}, {{ path() }}`,
 			"imported.html": `{% macro Path %}{{ path() }}{% end %}`,
 		},
 		want: `index.html, imported.html, index.html`,
@@ -2586,7 +2586,7 @@ var envFilePathCases = []struct {
 		name: "File extending another file",
 		sources: map[string]string{
 			"index.html":    `{% extends "extended.html" %}{% macro Path %}{{ path() }}{% end %}`,
-			"extended.html": `{{ path() }}, {% show Path %}`,
+			"extended.html": `{{ path() }}, {% show Path() %}`,
 		},
 		want: `extended.html, index.html`,
 	},

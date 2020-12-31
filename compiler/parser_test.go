@@ -1207,19 +1207,19 @@ var treeTests = []struct {
 	{"{% a %= 1 %}", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 4, 3, 8), []ast.Expression{ast.NewIdentifier(p(1, 4, 3, 3), "a")},
 			ast.AssignmentModulo, []ast.Expression{ast.NewBasicLiteral(p(1, 9, 8, 8), ast.IntLiteral, "1")})}, ast.FormatHTML)},
-	{"{% show a %}", ast.NewTree("", []ast.Node{
-		ast.NewShowMacro(p(1, 4, 3, 8), ast.NewIdentifier(p(1, 9, 8, 8), "a"), nil, false, ast.ContextHTML)}, ast.FormatHTML)},
+	{"{% show a %}", ast.NewTree("", []ast.Node{ast.NewShow(p(1, 4, 3, 8), ast.NewIdentifier(p(1, 9, 8, 8), "a"), ast.ContextHTML)}, ast.FormatHTML)},
 	{"{% show a(b,c) %}", ast.NewTree("", []ast.Node{
-		ast.NewShowMacro(p(1, 4, 3, 13), ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Expression{
-			ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")}, false, ast.ContextHTML)}, ast.FormatHTML)},
-	{"{% show a(b,c...) %}", ast.NewTree("", []ast.Node{
-		ast.NewShowMacro(p(1, 4, 3, 16), ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Expression{
-			ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")}, true, ast.ContextHTML)}, ast.FormatHTML)},
-	{"{% show(a) %}", ast.NewTree("", []ast.Node{ast.NewShow(p(1, 4, 3, 9), ast.NewIdentifier(p(1, 9, 8, 8), "a"), ast.ContextHTML)}, ast.FormatHTML)},
-	{"<script>{% show(a) %}</script>", ast.NewTree("", []ast.Node{
+		ast.NewShow(p(1, 4, 3, 13),
+			ast.NewCall(p(1, 10, 8, 13),
+				ast.NewIdentifier(p(1, 9, 8, 8), "a"),
+				[]ast.Expression{ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")},
+				false),
+			ast.ContextHTML),
+	}, ast.FormatHTML)},
+	{"<script>{% show a %}</script>", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 7), []byte("<script>"), ast.Cut{}),
-		ast.NewShow(p(1, 12, 11, 17), ast.NewIdentifier(p(1, 17, 16, 16), "a"), ast.ContextJS),
-		ast.NewText(p(1, 22, 21, 29), []byte("</script>"), ast.Cut{}),
+		ast.NewShow(p(1, 12, 11, 16), ast.NewIdentifier(p(1, 17, 16, 16), "a"), ast.ContextJS),
+		ast.NewText(p(1, 21, 20, 28), []byte("</script>"), ast.Cut{}),
 	}, ast.FormatHTML)},
 	{"{% for v in e %}b{% end for %}", ast.NewTree("", []ast.Node{
 		ast.NewForRange(p(1, 4, 3, 26), ast.NewAssignment(p(1, 8, 7, 12), []ast.Expression{
@@ -2439,34 +2439,6 @@ func equals(n1, n2 ast.Node, p int) error {
 		err = equals(nn1.Type, nn2.Type, p)
 		if err != nil {
 			return err
-		}
-
-	case *ast.ShowMacro:
-		nn2, ok := n2.(*ast.ShowMacro)
-		if !ok {
-			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
-		}
-		err := equals(nn1.Macro, nn2.Macro, p)
-		if err != nil {
-			return err
-		}
-		if len(nn1.Args) != len(nn2.Args) {
-			return fmt.Errorf("unexpected arguments len %d, expecting %d", len(nn1.Args), len(nn2.Args))
-		}
-		for i, node := range nn1.Args {
-			err := equals(node, nn2.Args[i], p)
-			if err != nil {
-				return err
-			}
-		}
-		if nn1.IsVariadic && !nn2.IsVariadic {
-			return fmt.Errorf("unexpected not variadic, expecting variadic")
-		}
-		if !nn1.IsVariadic && nn2.IsVariadic {
-			return fmt.Errorf("unexpected variadic, expecting not variadic")
-		}
-		if nn1.Context != nn2.Context {
-			return fmt.Errorf("unexpected context %s, expecting %s", nn1.Context, nn2.Context)
 		}
 
 	case *ast.Return:

@@ -2,7 +2,7 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="initial-scale=1.0, width=device-width, user-scalable=no">
-  {% show Head %}
+  {% show Head() %}
 </head>
 <body>
 
@@ -13,7 +13,7 @@
 {% partial "/partials/navigation.html" %}
 
 <div class="main" role="main">
-    {% show Main %}
+    {% show Main() %}
 </div>
 
 </div>

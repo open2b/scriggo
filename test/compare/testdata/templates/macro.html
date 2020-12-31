@@ -6,6 +6,6 @@
 
 {% macro M3(a string) %}called M3 with argument '{{ a }}'{% end macro %}
 
-{% show M1 %}
+{% show M1() %}
 {% show M2(20, 20) %}
 {% show M3("a string!") %}

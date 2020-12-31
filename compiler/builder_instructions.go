@@ -115,18 +115,25 @@ func (builder *functionBuilder) emitBreak(lab label) {
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpBreak, A: a, B: b, C: c})
 }
 
-// emitCall appends a new "Call" instruction to the function body.
+// emitCallFunc appends a new "CallFunc" instruction to the function body.
 //
 //     p.f()
 //
-func (builder *functionBuilder) emitCall(f int8, shift runtime.StackShift, pos *ast.Position, buffer bool) {
+func (builder *functionBuilder) emitCallFunc(f int8, shift runtime.StackShift, pos *ast.Position) {
 	builder.addPosAndPath(pos)
 	fn := builder.fn
-	var b int8
-	if buffer {
-		b = 1
-	}
-	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCall, A: f, B: b})
+	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCallFunc, A: f})
+	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
+}
+
+// emitCallMacro appends a new "CallMacro" instruction to the function body.
+//
+//     p.m()
+//
+func (builder *functionBuilder) emitCallMacro(f int8, shift runtime.StackShift, pos *ast.Position, toFormat ast.Format) {
+	builder.addPosAndPath(pos)
+	fn := builder.fn
+	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCallMacro, A: f, B: int8(toFormat)})
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
 
@@ -134,15 +141,11 @@ func (builder *functionBuilder) emitCall(f int8, shift runtime.StackShift, pos *
 //
 //     f()
 //
-func (builder *functionBuilder) emitCallIndirect(f int8, numVariadic int8, shift runtime.StackShift, pos *ast.Position, funcType reflect.Type, buffer bool) {
+func (builder *functionBuilder) emitCallIndirect(f int8, numVariadic int8, shift runtime.StackShift, pos *ast.Position, funcType reflect.Type) {
 	builder.addPosAndPath(pos)
 	builder.addFunctionType(funcType)
 	fn := builder.fn
-	var b int8
-	if buffer {
-		b = 1
-	}
-	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCallIndirect, A: f, B: b, C: numVariadic})
+	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCallIndirect, A: f, C: numVariadic})
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
 

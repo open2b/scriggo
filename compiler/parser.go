@@ -930,6 +930,9 @@ LABEL:
 
 	// show
 	case tokenShow:
+		if p.inFunction() {
+			panic(syntaxError(tok.pos, "unexpected %s, expecting }", tok))
+		}
 		pos := tok.pos
 		tok := p.next()
 		// show <filepath>
@@ -947,67 +950,15 @@ LABEL:
 			tok = p.parseEnd(tok, tokenSemicolon, end)
 			return tok
 		}
-		// show(expr)
-		if tok.typ == tokenLeftParenthesis {
-			tok = p.next()
-			var expr ast.Expression
-			expr, tok = p.parseExpr(tok, false, false, false)
-			if expr == nil {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
-			}
-			if tok.typ != tokenRightParenthesis {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting )", tok))
-			}
-			pos.End = tok.pos.End
-			var node = ast.NewShow(pos, expr, tok.ctx)
-			p.addChild(node)
-			tok = p.next()
-			tok = p.parseEnd(tok, tokenSemicolon, end)
-			return tok
+		// show <expr>
+		ctx := tok.ctx
+		var expr ast.Expression
+		expr, tok = p.parseExpr(tok, false, false, false)
+		if expr == nil {
+			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
-		// show macro
-		if tok.typ != tokenIdentifier {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier, string or (", tok))
-		}
-		name := string(tok.txt)
-		var macro ast.Expression = ast.NewIdentifier(tok.pos, name)
-		pos.End = tok.pos.End
-		tok = p.next()
-		// import
-		if tok.typ == tokenPeriod {
-			tok = p.next()
-			if tok.typ != tokenIdentifier {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting identifier", tok))
-			}
-			if len(tok.txt) == 1 && tok.txt[0] == '_' {
-				panic(syntaxError(tok.pos, "cannot use _ as value"))
-			}
-			name = string(tok.txt)
-			macro = ast.NewSelector(tok.pos, macro, name)
-			if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
-				panic(syntaxError(tok.pos, "cannot refer to unexported macro %s", name))
-			}
-			pos.End = tok.pos.End
-			tok = p.next()
-		}
-		var args []ast.Expression
-		var isVariadic bool
-		if tok.typ == tokenLeftParenthesis {
-			args, tok = p.parseExprListInParenthesis(p.next())
-			if tok.typ == tokenEllipsis {
-				if args == nil {
-					panic(syntaxError(tok.pos, "unexpected ..., expecting expression"))
-				}
-				isVariadic = true
-				tok = p.next()
-			}
-			if tok.typ != tokenRightParenthesis {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting expression or )", tok))
-			}
-			pos.End = tok.pos.End
-			tok = p.next()
-		}
-		node := ast.NewShowMacro(pos, macro, args, isVariadic, tok.ctx)
+		pos.End = expr.Pos().End
+		var node = ast.NewShow(pos, expr, ctx)
 		p.addChild(node)
 		tok = p.parseEnd(tok, tokenSemicolon, end)
 		return tok

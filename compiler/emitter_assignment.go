@@ -343,7 +343,7 @@ func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Exp
 	switch valueExpr := values[0].(type) {
 
 	case *ast.Call:
-		regs, retTypes := em.emitCallNode(valueExpr, false, false)
+		regs, retTypes := em.emitCallNode(valueExpr, false, false, runtime.SameFormat)
 		for i, addr := range addresses {
 			addr.assign(false, regs[i], retTypes[i])
 		}

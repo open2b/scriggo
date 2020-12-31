@@ -57,7 +57,7 @@ var templateCases = []struct {
 
 	// Show macro.
 	{
-		src:      `{% macro M %}{% end %}         {% show M %}`,
+		src:      `{% macro M %}{% end %}         {% show M() %}`,
 		expected: ok,
 	},
 	{
@@ -75,7 +75,7 @@ var templateCases = []struct {
 	},
 
 	{
-		src:      `{% show M %}`,
+		src:      `{% show M() %}`,
 		expected: `undefined: M`,
 	},
 
