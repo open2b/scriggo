@@ -81,7 +81,11 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		for _, d := range tree.Nodes[1:] {
 			if m, ok := d.(*ast.Func); ok && m.Type.Macro {
 				tc.makeMacroResultExplicit(m)
-				tc.filePackageBlock[m.Ident.Name] = scopeElement{t: &typeInfo{Type: tc.checkType(m.Type).Type}}
+				ti := &typeInfo{
+					Type:       tc.checkType(m.Type).Type,
+					Properties: propertyIsMacro,
+				}
+				tc.filePackageBlock[m.Ident.Name] = scopeElement{t: ti}
 			}
 		}
 		// Second: type check the extended page in a new scope.
