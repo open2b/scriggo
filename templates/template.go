@@ -83,40 +83,14 @@ type MarkdownEnvStringer interface {
 	Markdown(runtime.Env) string
 }
 
-// HTML implements the HTMLStringer interface.
-type HTML string
-
-func (html HTML) HTML() string {
-	return string(html)
-}
-
-// CSS implements the CSSStringer interface.
-type CSS string
-
-func (css CSS) CSS() string {
-	return string(css)
-}
-
-// JS implements the JSStringer interface.
-type JS string
-
-func (js JS) JS() string {
-	return string(js)
-}
-
-// JSON implements the JSONStringer interface.
-type JSON string
-
-func (json JSON) JSON() string {
-	return string(json)
-}
-
-// Markdown implements the MarkdownStringer interface.
-type Markdown string
-
-func (md Markdown) Markdown() string {
-	return string(md)
-}
+// Format types.
+type (
+	HTML     string // the html type in templates.
+	CSS      string // the css type in templates.
+	JS       string // the js type in templates.
+	JSON     string // the json type in templates.
+	Markdown string // the markdown type in templates.
+)
 
 // A Format represents a content format.
 type Format = ast.Format
