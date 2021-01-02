@@ -223,6 +223,44 @@ var templateCases = []struct {
 		src:      `{% s := "a" %}{% _ = markdown(s) %}`,
 		expected: `cannot convert s (type string) to type compiler.Markdown`,
 	},
+	{
+		// Check that an typed format constant can be converted to the same
+		// format type.
+		src: `
+			{%%
+				const s1 html = "a"
+				const s2 css = "a"
+				const s3 js = "a"
+				const s4 json = "a"
+				const s5 markdown = "a"
+				_ = html(s1)
+				_ = css(s2)
+				_ = js(s3)
+				_ = json(s4)
+				_ = markdown(s5)
+			%%}
+		`,
+		expected: ok,
+	},
+	{
+		// Check that a non-constant format value can be converted to the same
+		// format type.
+		src: `
+			{%%
+				var s1 html
+				var s2 css
+				var s3 js
+				var s4 json
+				var s5 markdown
+				_ = html(s1)
+				_ = css(s2)
+				_ = js(s3)
+				_ = json(s4)
+				_ = markdown(s5)
+			%%}
+		`,
+		expected: ok,
+	},
 }
 
 func TestTemplate(t *testing.T) {

@@ -1832,7 +1832,7 @@ func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *typeInfo {
 	var err error
 
 	switch {
-	case t.IsFormatType() && !arg.IsUntypedConstant():
+	case t.IsFormatType() && t.Type != arg.Type && !arg.IsUntypedConstant():
 		err = errTypeConversion
 	case arg.IsConstant():
 		k := t.Type.Kind()
