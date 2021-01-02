@@ -610,9 +610,8 @@ LABEL:
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
 			ipos := ident.Pos()
-			blank := ast.NewIdentifier(&ast.Position{Line: ipos.Line, Column: ipos.Column,
-				Start: ipos.Start, End: ipos.Start}, "_")
-			aPos := &ast.Position{Line: ipos.Line, Column: ipos.Column, Start: ipos.Start, End: expr.Pos().End}
+			blank := ast.NewIdentifier(ipos.WithEnd(ipos.Start), "_")
+			aPos := ipos.WithEnd(expr.Pos().End)
 			assignment := ast.NewAssignment(aPos, []ast.Expression{blank, ident}, ast.AssignmentDeclaration, []ast.Expression{expr})
 			assignment.End = expr.Pos().End
 			node = ast.NewForRange(pos, assignment, nil)
@@ -1343,7 +1342,7 @@ LABEL:
 			// Parse assignment.
 			var assignment *ast.Assignment
 			assignment, tok = p.parseAssignment(expressions, tok, false, false, false)
-			assignment.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: assignment.Pos().End}
+			assignment.Position = pos.WithEnd(assignment.Pos().End)
 			p.addChild(assignment)
 			p.cutSpacesToken = true
 			tok = p.parseEnd(tok, tokenSemicolon, end)
@@ -1356,7 +1355,7 @@ LABEL:
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
 			node := ast.NewSend(pos, channel, value)
-			node.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: value.Pos().End}
+			node.Position = pos.WithEnd(value.Pos().End)
 			p.addChild(node)
 			p.cutSpacesToken = true
 			tok = p.parseEnd(tok, tokenSemicolon, end)
@@ -1368,7 +1367,7 @@ LABEL:
 				case tokenColon:
 					// Parse a label.
 					node := ast.NewLabel(pos, ident, nil)
-					node.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: tok.pos.End}
+					node.Position = pos.WithEnd(tok.pos.End)
 					p.addChild(node)
 					p.addToAncestors(node)
 					p.cutSpacesToken = true
@@ -1444,7 +1443,7 @@ func (p *parsing) parseSimpleStatement(tok token, canBeRange, nextIsBlockOpen bo
 		// Assignment statement.
 		var assignment *ast.Assignment
 		assignment, tok = p.parseAssignment(expressions, tok, canBeRange, false, nextIsBlockOpen)
-		assignment.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: assignment.Pos().End}
+		assignment.Position = pos.WithEnd(assignment.Pos().End)
 		return assignment, tok
 	}
 	if tok.typ == tokenArrow {
@@ -1456,7 +1455,7 @@ func (p *parsing) parseSimpleStatement(tok token, canBeRange, nextIsBlockOpen bo
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
 		send := ast.NewSend(pos, channel, value)
-		send.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: value.Pos().End}
+		send.Position = pos.WithEnd(value.Pos().End)
 		return send, tok
 	}
 	// Expression statement.
@@ -1660,7 +1659,7 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeRa
 		panic(syntaxError(tok.pos, "unexpected %s, expecting := or = or comma", tok))
 	}
 	vp := variables[0].Pos()
-	pos := &ast.Position{Line: vp.Line, Column: vp.Column, Start: vp.Start, End: tok.pos.End}
+	pos := vp.WithEnd(tok.pos.End)
 	var values []ast.Expression
 	switch typ {
 	case ast.AssignmentSimple, ast.AssignmentDeclaration:
