@@ -285,7 +285,10 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 			default:
 				panic("invalid type format")
 			}
-			tc.universe[name] = scopeElement{t: &typeInfo{Type: typ, Properties: propertyIsType | propertyPredeclared}}
+			tc.universe[name] = scopeElement{t: &typeInfo{
+				Type:       typ,
+				Properties: propertyIsType | propertyIsFormatType | propertyPredeclared,
+			}}
 		}
 	}
 	return &tc

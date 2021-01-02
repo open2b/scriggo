@@ -10,11 +10,12 @@ import (
 	"reflect"
 )
 
-type properties uint8
+type properties uint16
 
 const (
 	propertyUntyped      properties = 1 << iota // is untyped
 	propertyIsType                              // is a type
+	propertyIsFormatType                        // is a format type
 	propertyIsPackage                           // is a package
 	propertyPredeclared                         // is predeclared
 	propertyAddressable                         // is addressable
@@ -77,6 +78,11 @@ func (ti *typeInfo) IsUntypedConstant() bool {
 // IsType reports whether it is a type.
 func (ti *typeInfo) IsType() bool {
 	return ti.Properties&propertyIsType != 0
+}
+
+// IsFormatType reports whether it is a format type.
+func (ti *typeInfo) IsFormatType() bool {
+	return ti.Properties&propertyIsFormatType != 0
 }
 
 // IsPackage reports whether it is a package.

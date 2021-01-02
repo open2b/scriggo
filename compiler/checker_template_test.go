@@ -169,13 +169,75 @@ var templateCases = []struct {
 		`,
 		expected: ok,
 	},
+	{
+		// Check that a format type value can be explicitly converted to
+		// string.
+		src: `
+			{%%
+				var s1 html
+				var s2 css
+				var s3 js
+				var s4 json
+				var s5 markdown
+				_ = string(s1)
+				_ = string(s2)
+				_ = string(s3)
+				_ = string(s4)
+				_ = string(s5)
+			%%}
+		`,
+		expected: ok,
+	},
+	{
+		// Check that an untyped constant string value can be converted to a
+		// format type.
+		src: `
+			{%%
+				 const s = "a" 
+				_ = html(s)
+				_ = css(s)
+				_ = js(s)
+				_ = json(s)
+				_ = markdown(s)
+			%%}
+		`,
+		expected: ok,
+	},
+	{
+		src:      `{% s := "a" %}{% _ = html(s) %}`,
+		expected: `cannot convert s (type string) to type compiler.HTML`,
+	},
+	{
+		src:      `{% s := "a" %}{% _ = css(s) %}`,
+		expected: `cannot convert s (type string) to type compiler.CSS`,
+	},
+	{
+		src:      `{% s := "a" %}{% _ = js(s) %}`,
+		expected: `cannot convert s (type string) to type compiler.JS`,
+	},
+	{
+		src:      `{% s := "a" %}{% _ = json(s) %}`,
+		expected: `cannot convert s (type string) to type compiler.JSON`,
+	},
+	{
+		src:      `{% s := "a" %}{% _ = markdown(s) %}`,
+		expected: `cannot convert s (type string) to type compiler.Markdown`,
+	},
 }
 
 func TestTemplate(t *testing.T) {
 	type HTML string
+	type CSS string
+	type JS string
+	type JSON string
+	type Markdown string
 	options := Options{
 		FormatTypes: map[ast.Format]reflect.Type{
-			ast.FormatHTML: reflect.TypeOf((*HTML)(nil)).Elem(),
+			ast.FormatHTML:     reflect.TypeOf((*HTML)(nil)).Elem(),
+			ast.FormatCSS:      reflect.TypeOf((*CSS)(nil)).Elem(),
+			ast.FormatJS:       reflect.TypeOf((*JS)(nil)).Elem(),
+			ast.FormatJSON:     reflect.TypeOf((*JSON)(nil)).Elem(),
+			ast.FormatMarkdown: reflect.TypeOf((*Markdown)(nil)).Elem(),
 		},
 	}
 	for _, cas := range templateCases {

@@ -1832,6 +1832,8 @@ func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *typeInfo {
 	var err error
 
 	switch {
+	case t.IsFormatType() && !arg.IsUntypedConstant():
+		err = errTypeConversion
 	case arg.IsConstant():
 		k := t.Type.Kind()
 		if k == reflect.Interface {
