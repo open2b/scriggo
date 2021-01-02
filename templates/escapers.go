@@ -15,13 +15,13 @@ import (
 const hexchars = "0123456789abcdef"
 
 // HTMLEscape escapes s, replacing the characters <, >, &, " and ' and returns
-// the escaped string.
+// the escaped string as HTML type.
 //
 // Use HTMLEscape to put a trusted or untrusted string into an HTML element
 // content or in a quoted attribute value. But don't use it with complex
 // attributes like href, src, style, or any of the event handlers like
 // onmouseover.
-func HTMLEscape(s string) string {
+func HTMLEscape(s string) HTML {
 	n := 0
 	j := 0
 	for i := 0; i < len(s); i++ {
@@ -38,7 +38,7 @@ func HTMLEscape(s string) string {
 		}
 	}
 	if n == 0 {
-		return s
+		return HTML(s)
 	}
 	b := make([]byte, len(s)+n)
 	if j > 0 {
@@ -71,7 +71,7 @@ func HTMLEscape(s string) string {
 			break
 		}
 	}
-	return string(b)
+	return HTML(b)
 }
 
 type strWriter interface {

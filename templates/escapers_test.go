@@ -15,7 +15,7 @@ import (
 
 var htmlEscapeCases = []struct {
 	src      string
-	expected string
+	expected HTML
 }{
 	{"", ""},
 	{"abc", "abc"},
