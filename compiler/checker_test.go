@@ -1299,7 +1299,7 @@ var checkerStmts = map[string]string{
 	`int()`:                            `missing argument to conversion to int: int()`,
 	`int(0, 0)`:                        `too many arguments to conversion to int: int(0, 0)`,
 	`int(nil)`:                         `cannot convert nil to type int`,
-	`float64("a")`:                     `cannot convert a (type untyped string) to type float64`, // TODO: must return `cannot convert "a" (type untyped string) to type float64`
+	`float64("a")`:                     `cannot convert "a" (type untyped string) to type float64`,
 	`interface{}(9223372036854775808)`: `constant 9223372036854775808 overflows int`,
 
 	// Function calls.
@@ -1502,7 +1502,7 @@ var checkerStmts = map[string]string{
 	`type T string         ; _ = []T{"a", "b"}`:                  ok,
 	`type T T2`: undefined("T2"),
 	`type T int            ; _ = []T{"a", "b"}`:    `cannot convert "a" (type untyped string) to type T`,
-	`type T float64        ; _ = T("a")`:           `cannot convert a (type untyped string) to type T`, // TODO: missing quotes.
+	`type T float64        ; _ = T("a")`:           `cannot convert "a" (type untyped string) to type T`,
 	`type T float64        ; var _ T = float64(0)`: `cannot use float64(0) (type float64) as type T in assignment`,
 
 	// Alias declarations.

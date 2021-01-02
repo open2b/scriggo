@@ -664,31 +664,6 @@ func removeEnvArg(typ reflect.Type, hasReceiver bool) reflect.Type {
 	return reflect.FuncOf(ins, outs, typ.IsVariadic())
 }
 
-// representedBy returns t1 ( a constant or an untyped boolean value )
-// represented as a value of type t2. t2 can not be an interface.
-func representedBy(t1 *typeInfo, t2 reflect.Type) (constant, error) {
-	if t1.IsConstant() {
-		if t2.Kind() == reflect.Interface {
-			if t1.Type.Implements(t2) {
-				return nil, nil
-			}
-			return nil, fmt.Errorf("cannot convert %v (type %s) to type %s", t1.Constant, t1, t2)
-		}
-		c, err := t1.Constant.representedBy(t2)
-		if err != nil {
-			if err == errNotRepresentable {
-				err = fmt.Errorf("cannot convert %v (type %s) to type %s", t1.Constant, t1, t2)
-			}
-			return nil, err
-		}
-		return c, nil
-	}
-	if t2.Kind() != reflect.Bool {
-		return nil, fmt.Errorf("cannot use unsigned bool as type %s in assignment", t2)
-	}
-	return nil, nil
-}
-
 // nilOf returns a new type info representing a 'typed nil', that is the zero of
 // type t.
 func (tc *typechecker) nilOf(t reflect.Type) *typeInfo {

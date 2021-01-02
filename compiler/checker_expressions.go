@@ -1858,8 +1858,15 @@ func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *typeInfo {
 				if elem := t.Type.Elem(); elem != uint8Type && elem != int32Type {
 					err = errTypeConversion
 				}
+			case t.Type.Kind() == reflect.Interface:
+				if !arg.Type.Implements(t.Type) {
+					err = errTypeConversion
+				}
 			default:
-				c, err = representedBy(arg, t.Type)
+				c, err = arg.Constant.representedBy(t.Type)
+				if err == errNotRepresentable {
+					err = errTypeConversion
+				}
 			}
 		}
 	case arg.Untyped():
@@ -1872,7 +1879,7 @@ func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *typeInfo {
 
 	if err != nil {
 		if err == errTypeConversion {
-			panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", expr.Args[0], arg.Type, t.Type))
+			panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", expr.Args[0], arg, t.Type))
 		}
 		panic(tc.errorf(expr, "%s", err))
 	}
