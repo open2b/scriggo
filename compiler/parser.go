@@ -1285,8 +1285,8 @@ LABEL:
 	// goto
 	case tokenGoto:
 		pos := tok.pos
-		if tok.ctx != ast.ContextGo {
-			panic(syntaxError(tok.pos, "unexpected goto outside function body"))
+		if end != tokenEOF {
+			panic(syntaxError(tok.pos, "goto statement outside function body"))
 		}
 		tok = p.next()
 		if tok.typ != tokenIdentifier {
