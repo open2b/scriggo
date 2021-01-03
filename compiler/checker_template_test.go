@@ -186,6 +186,7 @@ var templateCases = []struct {
 		`,
 		expected: ok,
 	},
+
 	{
 		// Check that a format type value can be explicitly converted to
 		// string.
@@ -205,6 +206,7 @@ var templateCases = []struct {
 		`,
 		expected: ok,
 	},
+
 	{
 		// Check that an untyped constant string value can be converted to a
 		// format type.
@@ -220,26 +222,32 @@ var templateCases = []struct {
 		`,
 		expected: ok,
 	},
+
 	{
 		src:      `{% s := "a" %}{% _ = html(s) %}`,
 		expected: `cannot convert s (type string) to type compiler.HTML`,
 	},
+
 	{
 		src:      `{% s := "a" %}{% _ = css(s) %}`,
 		expected: `cannot convert s (type string) to type compiler.CSS`,
 	},
+
 	{
 		src:      `{% s := "a" %}{% _ = js(s) %}`,
 		expected: `cannot convert s (type string) to type compiler.JS`,
 	},
+
 	{
 		src:      `{% s := "a" %}{% _ = json(s) %}`,
 		expected: `cannot convert s (type string) to type compiler.JSON`,
 	},
+
 	{
 		src:      `{% s := "a" %}{% _ = markdown(s) %}`,
 		expected: `cannot convert s (type string) to type compiler.Markdown`,
 	},
+
 	{
 		// Check that an typed format constant can be converted to the same
 		// format type.
@@ -259,6 +267,7 @@ var templateCases = []struct {
 		`,
 		expected: ok,
 	},
+
 	{
 		// Check that a non-constant format value can be converted to the same
 		// format type.
