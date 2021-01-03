@@ -1093,9 +1093,6 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 func (tc *typechecker) checkReturn(node *ast.Return) ast.Node {
 
 	fn, _ := tc.currentFunction()
-	if fn == nil {
-		panic(tc.errorf(node, "non-declaration statement outside function body"))
-	}
 
 	expected := fn.Type.Result
 	got := node.Values
