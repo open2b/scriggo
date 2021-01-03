@@ -154,6 +154,10 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				node, tok = p.parseFunc(tok, parseFuncType|parseFuncLit)
 			}
 			operand = node.(ast.Expression)
+		case tokenMacro: // macro
+			var node ast.Node
+			node, tok = p.parseFunc(tok, parseFuncType)
+			operand = node.(ast.Expression)
 		case
 			tokenArrow, // <-, <-chan
 			tokenChan:  // chan, chan<-

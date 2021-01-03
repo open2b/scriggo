@@ -15,6 +15,20 @@ import (
 	"github.com/open2b/scriggo/internal/mapfs"
 )
 
+type html string
+type css string
+type js string
+type json string
+type markdown string
+
+var formatTypes = map[ast.Format]reflect.Type{
+	ast.FormatHTML:     reflect.TypeOf((*html)(nil)).Elem(),
+	ast.FormatCSS:      reflect.TypeOf((*css)(nil)).Elem(),
+	ast.FormatJS:       reflect.TypeOf((*js)(nil)).Elem(),
+	ast.FormatJSON:     reflect.TypeOf((*json)(nil)).Elem(),
+	ast.FormatMarkdown: reflect.TypeOf((*markdown)(nil)).Elem(),
+}
+
 var intSliceTypeInfo = &typeInfo{Type: reflect.SliceOf(intType), Properties: propertyAddressable}
 var intArrayTypeInfo = &typeInfo{Type: reflect.ArrayOf(2, intType), Properties: propertyAddressable}
 var stringSliceTypeInfo = &typeInfo{Type: reflect.SliceOf(stringType), Properties: propertyAddressable}
@@ -106,9 +120,18 @@ var checkerTemplateExprs = []struct {
 	{`àb contains à`, tiUntypedBool(), map[string]*typeInfo{"àb": definedStringTypeInfo, "à": tiUntypedRuneConst('à')}},
 	{`àb contains à`, tiUntypedBool(), map[string]*typeInfo{"àb": definedStringTypeInfo, "à": tiRuneConst('à')}},
 	{`àb contains à`, tiUntypedBool(), map[string]*typeInfo{"àb": definedStringTypeInfo, "à": tiRune()}},
+
+	// macro type literal
+	{`(macro() string)(nil)`, &typeInfo{Type: reflect.TypeOf((func() string)(nil))}, nil},
+	{`(macro() html)(nil)`, &typeInfo{Type: reflect.TypeOf((func() html)(nil))}, nil},
+	{`(macro() css)(nil)`, &typeInfo{Type: reflect.TypeOf((func() css)(nil))}, nil},
+	{`(macro() js)(nil)`, &typeInfo{Type: reflect.TypeOf((func() js)(nil))}, nil},
+	{`(macro() json)(nil)`, &typeInfo{Type: reflect.TypeOf((func() json)(nil))}, nil},
+	{`(macro() markdown)(nil)`, &typeInfo{Type: reflect.TypeOf((func() markdown)(nil))}, nil},
 }
 
 func TestCheckerTemplateExpressions(t *testing.T) {
+	options := checkerOptions{modality: templateMod, formatTypes: formatTypes}
 	for _, expr := range checkerTemplateExprs {
 		var lex = scanTemplate([]byte("{{ "+expr.src+" }}"), ast.FormatText)
 		func() {
@@ -146,7 +169,7 @@ func TestCheckerTemplateExpressions(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{scope}
 			}
-			tc := newTypechecker(newCompilation(), "", checkerOptions{modality: templateMod}, nil)
+			tc := newTypechecker(newCompilation(), "", options, nil)
 			tc.scopes = scopes
 			tc.enterScope()
 			ti := tc.checkExpr(node)
@@ -172,9 +195,15 @@ var checkerTemplateExprErrors = []struct {
 	{`[]int{} contains int32(5)`, tierr(1, 12, `invalid operation: []int literal contains int32(5) (mismatched types int and rune)`), nil},
 	{`[]int{} contains i`, tierr(1, 12, `invalid operation: []int literal contains i (mismatched types int and compiler.definedInt)`), map[string]*typeInfo{"i": definedIntTypeInfo}},
 	{`[2]int{0,1} contains rune('a')`, tierr(1, 16, `invalid operation: [2]int literal contains rune('a') (mismatched types int and rune)`), nil},
+
+	// macro type literal
+	{`(macro() css)(nil)`, tierr(1, 13, `invalid macro result type css`), map[string]*typeInfo{"css": {Type: reflect.TypeOf(0), Properties: propertyIsType}}},
+	{`(macro() html)(nil)`, tierr(1, 13, `invalid macro result type html`), map[string]*typeInfo{"html": {Type: reflect.TypeOf(definedInt(0)), Properties: propertyIsType}}},
+	{`(macro() markdown)(nil)`, tierr(1, 13, `invalid macro result type markdown`), map[string]*typeInfo{"markdown": {Type: reflect.TypeOf(js("")), Properties: propertyIsType}}},
 }
 
 func TestCheckerTemplateExpressionErrors(t *testing.T) {
+	options := checkerOptions{modality: templateMod, formatTypes: formatTypes}
 	for _, expr := range checkerTemplateExprErrors {
 		var lex = scanTemplate([]byte("{{ "+expr.src+" }}"), ast.FormatText)
 		func() {
@@ -216,7 +245,7 @@ func TestCheckerTemplateExpressionErrors(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{scope}
 			}
-			tc := newTypechecker(newCompilation(), "", checkerOptions{modality: templateMod}, nil)
+			tc := newTypechecker(newCompilation(), "", options, nil)
 			tc.scopes = scopes
 			tc.enterScope()
 			ti := tc.checkExpr(node)
@@ -418,27 +447,27 @@ var checkerTemplateStmts = []struct {
 
 	{
 		src:      `{% s := "a" %}{% _ = html(s) %}`,
-		expected: `cannot convert s (type string) to type compiler.HTML`,
+		expected: `cannot convert s (type string) to type compiler.html`,
 	},
 
 	{
 		src:      `{% s := "a" %}{% _ = css(s) %}`,
-		expected: `cannot convert s (type string) to type compiler.CSS`,
+		expected: `cannot convert s (type string) to type compiler.css`,
 	},
 
 	{
 		src:      `{% s := "a" %}{% _ = js(s) %}`,
-		expected: `cannot convert s (type string) to type compiler.JS`,
+		expected: `cannot convert s (type string) to type compiler.js`,
 	},
 
 	{
 		src:      `{% s := "a" %}{% _ = json(s) %}`,
-		expected: `cannot convert s (type string) to type compiler.JSON`,
+		expected: `cannot convert s (type string) to type compiler.json`,
 	},
 
 	{
 		src:      `{% s := "a" %}{% _ = markdown(s) %}`,
-		expected: `cannot convert s (type string) to type compiler.Markdown`,
+		expected: `cannot convert s (type string) to type compiler.markdown`,
 	},
 
 	{
@@ -483,20 +512,7 @@ var checkerTemplateStmts = []struct {
 }
 
 func TestCheckerTemplatesStatements(t *testing.T) {
-	type HTML string
-	type CSS string
-	type JS string
-	type JSON string
-	type Markdown string
-	options := Options{
-		FormatTypes: map[ast.Format]reflect.Type{
-			ast.FormatHTML:     reflect.TypeOf((*HTML)(nil)).Elem(),
-			ast.FormatCSS:      reflect.TypeOf((*CSS)(nil)).Elem(),
-			ast.FormatJS:       reflect.TypeOf((*JS)(nil)).Elem(),
-			ast.FormatJSON:     reflect.TypeOf((*JSON)(nil)).Elem(),
-			ast.FormatMarkdown: reflect.TypeOf((*Markdown)(nil)).Elem(),
-		},
-	}
+	options := Options{FormatTypes: formatTypes}
 	for _, cas := range checkerTemplateStmts {
 		src := cas.src
 		expected := cas.expected

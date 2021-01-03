@@ -18,9 +18,11 @@ const (
 	parseFuncDecl                             // func declaration
 )
 
-// parseFunc parses a function type, literal o declaration. tok must be the
-// "func" token.
+// parseFunc parses a function type, literal or declaration or a macro type.
+// tok must be either the token "func" or "macro". If tok is "macro", kind is
+// parseFuncType.
 func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
+	isMacro := tok.typ == tokenMacro
 	pos := tok.pos
 	// Parses the function name if present.
 	var ident *ast.Identifier
@@ -46,19 +48,31 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	var result []*ast.Parameter
 	tok = p.next()
 	var expr ast.Expression
-	// Parses the result if present.
-	switch tok.typ {
-	case tokenLeftParenthesis:
-		result, _, endPos = p.parseFuncParameters(tok, true)
-		pos.End = endPos.End
+	// Parses the result.
+	if isMacro {
+		name := string(tok.txt)
+		switch name {
+		case "string", "html", "css", "js", "json", "markdown":
+		default:
+			panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json or markdown", tok))
+		}
+		pos.End = tok.pos.End
+		result = []*ast.Parameter{{nil, ast.NewIdentifier(tok.pos, name)}}
 		tok = p.next()
-	case tokenLeftBracket, tokenFunc, tokenIdentifier, tokenInterface, tokenMap, tokenMultiplication, tokenStruct, tokenChan:
-		expr, tok = p.parseExpr(tok, false, true, true)
-		pos.End = expr.Pos().End
-		result = []*ast.Parameter{ast.NewParameter(nil, expr)}
+	} else {
+		switch tok.typ {
+		case tokenLeftParenthesis:
+			result, _, endPos = p.parseFuncParameters(tok, true)
+			pos.End = endPos.End
+			tok = p.next()
+		case tokenLeftBracket, tokenFunc, tokenIdentifier, tokenInterface, tokenMap, tokenMultiplication, tokenStruct, tokenChan:
+			expr, tok = p.parseExpr(tok, false, true, true)
+			pos.End = expr.Pos().End
+			result = []*ast.Parameter{ast.NewParameter(nil, expr)}
+		}
 	}
 	// Makes the function type.
-	typ := ast.NewFuncType(nil, false, parameters, result, isVariadic)
+	typ := ast.NewFuncType(nil, isMacro, parameters, result, isVariadic)
 	if kind == parseFuncType || kind&parseFuncType != 0 && tok.typ != tokenLeftBrace {
 		typ.Position = &ast.Position{pos.Line, pos.Column, pos.Start, pos.End}
 		return typ, tok
