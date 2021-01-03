@@ -627,9 +627,9 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			}
 		}
 		if expr.Macro {
-			name := expr.Result[0].Type.(*ast.Identifier).Name
-			if out[0] != tc.universe[name].t.Type {
-				panic(tc.errorf(expr, "invalid macro result type %s", name))
+			ident := expr.Result[0].Type.(*ast.Identifier)
+			if out[0] != tc.universe[ident.Name].t.Type {
+				panic(tc.errorf(ident, "invalid macro result type %s", ident.Name))
 			}
 		}
 		expr.Reflect = tc.types.FuncOf(in, out, variadic)
