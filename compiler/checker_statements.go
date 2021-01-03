@@ -1093,6 +1093,9 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 func (tc *typechecker) checkReturn(node *ast.Return) ast.Node {
 
 	fn, _ := tc.currentFunction()
+	if fn.Type.Macro {
+		return nil
+	}
 
 	expected := fn.Type.Result
 	got := node.Values

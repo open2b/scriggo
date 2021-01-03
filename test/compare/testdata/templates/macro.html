@@ -1,11 +1,15 @@
 {# render #}
 
-{% macro M1 %}M1{% end macro %}
+{% macro M1 %}M1{% return %}{% end macro %}
 
-{% macro M2(int, int) %}M2{% end macro %}
+{% macro M2(int, int) %}M2{%% return %%}M2{% end macro %}
 
 {% macro M3(a string) %}called M3 with argument '{{ a }}'{% end macro %}
 
-{% show M1() %}
-{% show M2(20, 20) %}
-{% show M3("a string!") %}
+{% macro M4() html %}<b>M4</b>{% return %}<b>M4</b>{% end macro %}
+
+{{ M1() }}
+{{ M2(20, 20) }}
+{{ M3("a string!") }}
+{{ M4() }}
+{% s := M4() %}{{ M4() }}

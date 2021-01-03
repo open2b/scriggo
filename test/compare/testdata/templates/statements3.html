@@ -2,8 +2,8 @@
 
 {%% package "p" %%}  // ERROR `syntax error: unexpected package, expecting statement`
 
-{%% macro B %%}                       // ERROR `syntax error: unexpected macro in statement scope`
-{% macro B %}{%% return %%}{% end %}  // ERROR `syntax error: return statement outside function body`
+{%% macro B %%}                                  // ERROR `syntax error: unexpected macro in statement scope`
+{% macro B string %}{%% return "a" %%}{% end %}  // ERROR `syntax error: unexpected string at end of statement`
 
 {% switch %}{%% case %%}{% end %}                    // ERROR `syntax error: unexpected {%%, expecting {%`
 {% switch %}{%% default %%}{% end %}                 // ERROR `syntax error: unexpected {%%, expecting {%`

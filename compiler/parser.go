@@ -457,7 +457,11 @@ LABEL:
 			default:
 				return p.parseEndlessMacro(tok, end)
 			}
-		} else if tok.typ != tokenPackage && end == tokenEOF && !p.isScript {
+		} else if p.isScript || end != tokenEOF {
+			if tok.typ == tokenReturn {
+				panic(syntaxError(tok.pos, "return statement outside function body"))
+			}
+		} else if tok.typ != tokenPackage {
 			panic(syntaxError(tok.pos, "expected 'package', found '%s'", tok))
 		}
 	case *ast.Package:
@@ -889,14 +893,9 @@ LABEL:
 	// return
 	case tokenReturn:
 		pos := tok.pos
-		if end != tokenEOF || p.isScript {
-			if !p.inFunction() {
-				panic(syntaxError(tok.pos, "return statement outside function body"))
-			}
-		}
 		tok = p.next()
 		var values []ast.Expression
-		if tok.typ != tokenSemicolon {
+		if end == tokenEOF {
 			values, tok = p.parseExprList(tok, false, false, false)
 			if values != nil {
 				pos.End = values[len(values)-1].Pos().End
