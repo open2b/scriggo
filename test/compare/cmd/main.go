@@ -19,7 +19,6 @@ import (
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/fs"
-	"github.com/open2b/scriggo/internal/mapfs"
 	"github.com/open2b/scriggo/runtime"
 	"github.com/open2b/scriggo/scripts"
 	"github.com/open2b/scriggo/templates"
@@ -126,7 +125,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			fsys = mapfs.MapFS{"index" + ext: string(src)}
+			fsys = templates.MapFS{"index" + ext: string(src)}
 		case "rundir":
 			fsys = fs.DirFS(flag.Arg(2))
 		}

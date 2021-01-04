@@ -11,12 +11,11 @@ import (
 	"testing"
 
 	"github.com/open2b/scriggo/compiler/ast"
-	"github.com/open2b/scriggo/internal/mapfs"
 )
 
 func Test_treeTransformer(t *testing.T) {
 	stdout := &strings.Builder{}
-	fsys := mapfs.MapFS{"index.html": `{% w := "hi, " %}{{ w }}world!`}
+	fsys := MapFS{"index.html": `{% w := "hi, " %}{{ w }}world!`}
 	loadOpts := &BuildOptions{
 		TreeTransformer: func(tree *ast.Tree) error {
 			assignment := tree.Nodes[0].(*ast.Assignment)
