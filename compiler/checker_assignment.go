@@ -531,6 +531,7 @@ func (tc *typechecker) rebalancedRightSide(node ast.Node) []ast.Expression {
 				return []ast.Expression{v1, v2}
 			}
 		case *ast.Render:
+			// Check if the path to render exists.
 			if v.Tree == nil {
 				v1 := ast.NewBasicLiteral(v.Pos(), ast.StringLiteral, "")
 				v2 := ast.NewIdentifier(v.Pos(), "false")
