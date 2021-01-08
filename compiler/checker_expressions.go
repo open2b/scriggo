@@ -35,6 +35,7 @@ var uint8TypeInfo = &typeInfo{Type: uint8Type, Properties: propertyIsType | prop
 var int32TypeInfo = &typeInfo{Type: int32Type, Properties: propertyIsType | propertyPredeclared}
 
 var untypedBoolTypeInfo = &typeInfo{Type: boolType, Properties: propertyUntyped}
+var untypedStringTypeInfo = &typeInfo{Type: stringType, Properties: propertyUntyped}
 
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
@@ -708,6 +709,21 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		default:
 			panic(tc.errorf(expr, "invalid operation: %s (type %s does not support indexing)", expr, t.ShortString()))
 		}
+
+	case *ast.Render:
+		// Type check the file tree with a separate type checker.
+		// The scope of the rendered file is independent from the scope of the
+		// render expression (except for global declarations).
+		// Also, the use of a different type checker ensures that the
+		// fields of 'tc' are not altered nor inherited.
+		tc2 := newTypechecker(
+			tc.compilation,
+			expr.Tree.Path,
+			tc.opts,
+			tc.globalScope,
+		)
+		tc2.checkNodesInNewScope(expr.Tree.Nodes)
+		return &typeInfo{Type: tc.formatType(expr.Tree.Format)}
 
 	case *ast.Slicing:
 		t := tc.checkExpr(expr.Expr)

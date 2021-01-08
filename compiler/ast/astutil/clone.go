@@ -171,13 +171,6 @@ func CloneNode(node ast.Node) ast.Node {
 		}
 		return ast.NewPackage(ClonePosition(n.Position), n.Name, nn)
 
-	case *ast.Partial:
-		p := ast.NewPartial(ClonePosition(n.Position), n.Path, n.Context)
-		if n.Tree != nil {
-			p.Tree = CloneTree(n.Tree)
-		}
-		return p
-
 	case *ast.Select:
 		var text *ast.Text
 		if n.LeadingText != nil {
@@ -388,6 +381,13 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 
 	case *ast.MapType:
 		expr2 = ast.NewMapType(ClonePosition(e.Pos()), CloneExpression(e.KeyType), CloneExpression(e.ValueType))
+
+	case *ast.Render:
+		n := ast.NewRender(ClonePosition(e.Position), e.Path)
+		if e.Tree != nil {
+			n.Tree = CloneTree(e.Tree)
+		}
+		expr2 = n
 
 	case *ast.Selector:
 		expr2 = ast.NewSelector(ClonePosition(e.Position), CloneExpression(e.Expr), e.Ident)
