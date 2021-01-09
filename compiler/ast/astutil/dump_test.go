@@ -29,18 +29,18 @@ func ExampleDump() {
 			`{% y = 10 %}`,
 			`{% y = (4 + 5) %}`,
 		},
-		ast.FormatGo: {
+		ast.FormatText: {
 			"5 + 6",
 			"map[string]([]interface{})",
 		},
 	}
 
-	for _, format := range []ast.Format{ast.FormatHTML, ast.FormatGo} {
+	for _, format := range []ast.Format{ast.FormatHTML, ast.FormatText} {
 		stringCases := cases[format]
 		for _, c := range stringCases {
 			var tree *ast.Tree
 			var err error
-			if format == ast.FormatGo {
+			if format == ast.FormatText {
 				tree, err = compiler.ParseScript(strings.NewReader(c), nil, false)
 			} else {
 				tree, _, err = compiler.ParseTemplateSource([]byte(c), format, false)

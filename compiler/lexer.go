@@ -22,7 +22,7 @@ func scanProgram(text []byte) *lexer {
 		src:    text,
 		line:   1,
 		column: 1,
-		ctx:    ast.ContextGo,
+		ctx:    ast.ContextText,
 		toks:   tokens,
 	}
 	go lex.scan()
@@ -37,7 +37,7 @@ func scanScript(text []byte) *lexer {
 		src:            text,
 		line:           1,
 		column:         1,
-		ctx:            ast.ContextGo,
+		ctx:            ast.ContextText,
 		toks:           tokens,
 		extendedSyntax: true,
 	}
@@ -55,6 +55,7 @@ func scanTemplate(text []byte, format ast.Format) *lexer {
 		column:         1,
 		ctx:            ast.Context(format),
 		toks:           tokens,
+		templateSyntax: true,
 		extendedSyntax: true,
 	}
 	lex.tag.ctx = ast.ContextHTML
@@ -101,7 +102,8 @@ type lexer struct {
 	toks           chan token // tokens, is closed at the end of the scan
 	totals         int        // total number of emitted tokens, excluding automatically inserted semicolons
 	err            error      // error, reports whether there was an error
-	extendedSyntax bool       // support tokens 'and', 'or', 'not', 'contains' and 'dollar'
+	templateSyntax bool       // support template syntax with tokens 'end', 'extends', 'in', 'macro', 'render' and 'show'
+	extendedSyntax bool       // support extended syntax with tokens 'and', 'or', 'not', 'contains' and 'dollar'
 }
 
 func (l *lexer) newline() {
@@ -173,26 +175,7 @@ var cssMimeType = []byte("text/css")
 // error occurs, it puts the error in err, closes the channel and returns.
 func (l *lexer) scan() {
 
-	if l.ctx == ast.ContextGo {
-
-		if len(l.src) > 1 {
-			// Parse shebang line.
-			if l.src[0] == '#' && l.src[1] == '!' {
-				t := bytes.IndexByte(l.src, '\n')
-				if t == -1 {
-					t = len(l.src) - 1
-				}
-				l.emit(tokenShebangLine, t+1)
-				l.line++
-			}
-		}
-
-		err := l.lexCode(tokenEOF)
-		if err != nil {
-			l.err = err
-		}
-
-	} else {
+	if l.templateSyntax {
 
 		p := 0 // token length in bytes
 
@@ -523,6 +506,25 @@ func (l *lexer) scan() {
 
 		if l.err == nil && len(l.src) > 0 {
 			l.emitAtLineColumn(lin, col, tokenText, p)
+		}
+
+	} else {
+
+		if len(l.src) > 1 {
+			// Parse shebang line.
+			if l.src[0] == '#' && l.src[1] == '!' {
+				t := bytes.IndexByte(l.src, '\n')
+				if t == -1 {
+					t = len(l.src) - 1
+				}
+				l.emit(tokenShebangLine, t+1)
+				l.line++
+			}
+		}
+
+		err := l.lexCode(tokenEOF)
+		if err != nil {
+			l.err = err
 		}
 
 	}
@@ -1334,35 +1336,33 @@ func (l *lexer) lexIdentifierOrKeyword(s int) (tokenTyp, string) {
 		typ = tokenType
 	case "var":
 		typ = tokenVar
-	default:
-		if l.ctx != ast.ContextGo {
-			switch id {
-			case "end":
-				typ = tokenEnd
-			case "extends":
-				typ = tokenExtends
-			case "in":
-				typ = tokenIn
-			case "macro":
-				typ = tokenMacro
-			case "render":
-				typ = tokenRender
-			case "show":
-				typ = tokenShow
-			default:
-				if l.extendedSyntax {
-					switch id {
-					case "and":
-						typ = tokenExtendedAnd
-					case "contains":
-						typ = tokenContains
-					case "or":
-						typ = tokenExtendedOr
-					case "not":
-						typ = tokenExtendedNot
-					}
-				}
-			}
+	}
+	if l.templateSyntax && typ == tokenIdentifier {
+		switch id {
+		case "end":
+			typ = tokenEnd
+		case "extends":
+			typ = tokenExtends
+		case "in":
+			typ = tokenIn
+		case "macro":
+			typ = tokenMacro
+		case "render":
+			typ = tokenRender
+		case "show":
+			typ = tokenShow
+		}
+	}
+	if l.extendedSyntax && typ == tokenIdentifier {
+		switch id {
+		case "and":
+			typ = tokenExtendedAnd
+		case "contains":
+			typ = tokenContains
+		case "or":
+			typ = tokenExtendedOr
+		case "not":
+			typ = tokenExtendedNot
 		}
 	}
 	l.emit(typ, p)

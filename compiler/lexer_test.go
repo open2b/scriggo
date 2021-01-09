@@ -12,7 +12,7 @@ import (
 	"github.com/open2b/scriggo/compiler/ast"
 )
 
-var typeTests = map[string][]tokenTyp{
+var typeTestsText = map[string][]tokenTyp{
 	``:                             {},
 	`a`:                            {tokenText},
 	`{`:                            {tokenText},
@@ -212,7 +212,7 @@ var typeTests = map[string][]tokenTyp{
 
 var tagWithURLTypes = []tokenTyp{tokenText, tokenStartURL, tokenText, tokenEndURL, tokenText}
 
-var typeTestsHTMLContext = map[string][]tokenTyp{
+var typeTestsHTML = map[string][]tokenTyp{
 	`<form action="u">`:       tagWithURLTypes,
 	`<blockquote cite="u">`:   tagWithURLTypes,
 	`<del cite="u">`:          tagWithURLTypes,
@@ -241,7 +241,7 @@ var typeTestsHTMLContext = map[string][]tokenTyp{
 	`<source srcset="u">`:     tagWithURLTypes,
 }
 
-var typeTestsGoContext = map[string][]tokenTyp{
+var typeTestsGo = map[string][]tokenTyp{
 	``:                {},
 	"a := 3":          {tokenIdentifier, tokenDeclaration, tokenInt, tokenSemicolon},
 	"// a comment\n":  {},
@@ -547,14 +547,14 @@ var scanAttributeTests = []struct {
 	{"5c=\"", "5c", '"', 3, 1, 4},
 }
 
-func testLexerTypes(t *testing.T, test map[string][]tokenTyp, format ast.Format) {
+func testLexerTypes(t *testing.T, test map[string][]tokenTyp, isTemplate bool, format ast.Format) {
 TYPES:
 	for source, types := range test {
 		var lex *lexer
-		if format == ast.FormatGo {
-			lex = scanProgram([]byte(source))
-		} else {
+		if isTemplate {
 			lex = scanTemplate([]byte(source), format)
+		} else {
+			lex = scanProgram([]byte(source))
 		}
 		var i int
 		for tok := range lex.tokens() {
@@ -580,16 +580,16 @@ TYPES:
 	}
 }
 
-func TestLexerTypes(t *testing.T) {
-	testLexerTypes(t, typeTests, ast.FormatText)
+func TestLexerTypesText(t *testing.T) {
+	testLexerTypes(t, typeTestsText, true, ast.FormatText)
 }
 
-func TestLexerTypesHTMLFormat(t *testing.T) {
-	testLexerTypes(t, typeTestsHTMLContext, ast.FormatHTML)
+func TestLexerTypesHTML(t *testing.T) {
+	testLexerTypes(t, typeTestsHTML, true, ast.FormatHTML)
 }
 
-func TestLexerTypesGoFormat(t *testing.T) {
-	testLexerTypes(t, typeTestsGoContext, ast.FormatGo)
+func TestLexerTypesGo(t *testing.T) {
+	testLexerTypes(t, typeTestsGo, false, ast.FormatText)
 }
 
 func TestLexerContexts(t *testing.T) {
@@ -604,6 +604,7 @@ CONTEXTS:
 				column:         1,
 				ctx:            ctx,
 				toks:           make(chan token, 20),
+				templateSyntax: true,
 				extendedSyntax: true,
 			}
 			lex.tag.ctx = ast.ContextHTML

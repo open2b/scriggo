@@ -61,42 +61,42 @@ var goContextTreeTests = []struct {
 	src  string
 	node ast.Node
 }{
-	{"", ast.NewTree("", nil, ast.FormatGo)},
-	{";", ast.NewTree("", nil, ast.FormatGo)},
-	{"a", ast.NewTree("", []ast.Node{ast.NewIdentifier(p(1, 1, 0, 0), "a")}, ast.FormatGo)},
+	{"", ast.NewTree("", nil, ast.FormatText)},
+	{";", ast.NewTree("", nil, ast.FormatText)},
+	{"a", ast.NewTree("", []ast.Node{ast.NewIdentifier(p(1, 1, 0, 0), "a")}, ast.FormatText)},
 	{"a := 1", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 5), []ast.Expression{ast.NewIdentifier(p(1, 1, 0, 0), "a")},
-			ast.AssignmentDeclaration, []ast.Expression{ast.NewBasicLiteral(p(1, 6, 5, 5), ast.IntLiteral, "1")})}, ast.FormatGo)},
+			ast.AssignmentDeclaration, []ast.Expression{ast.NewBasicLiteral(p(1, 6, 5, 5), ast.IntLiteral, "1")})}, ast.FormatText)},
 	{"a -= 1", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 5), []ast.Expression{ast.NewIdentifier(p(1, 1, 0, 0), "a")},
-			ast.AssignmentSubtraction, []ast.Expression{ast.NewBasicLiteral(p(1, 6, 5, 5), ast.IntLiteral, "1")})}, ast.FormatGo)},
+			ast.AssignmentSubtraction, []ast.Expression{ast.NewBasicLiteral(p(1, 6, 5, 5), ast.IntLiteral, "1")})}, ast.FormatText)},
 	{"a %= 1", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 5), []ast.Expression{ast.NewIdentifier(p(1, 1, 0, 0), "a")},
-			ast.AssignmentModulo, []ast.Expression{ast.NewBasicLiteral(p(1, 6, 5, 5), ast.IntLiteral, "1")})}, ast.FormatGo)},
+			ast.AssignmentModulo, []ast.Expression{ast.NewBasicLiteral(p(1, 6, 5, 5), ast.IntLiteral, "1")})}, ast.FormatText)},
 	{"a.b = 2", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 6), []ast.Expression{ast.NewSelector(p(1, 2, 0, 2), ast.NewIdentifier(p(1, 1, 0, 0), "a"), "b")},
-			ast.AssignmentSimple, []ast.Expression{ast.NewBasicLiteral(p(1, 7, 6, 6), ast.IntLiteral, "2")})}, ast.FormatGo)},
+			ast.AssignmentSimple, []ast.Expression{ast.NewBasicLiteral(p(1, 7, 6, 6), ast.IntLiteral, "2")})}, ast.FormatText)},
 	{"if a {\n\tb\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 10), nil, ast.NewIdentifier(p(1, 4, 3, 3), "a"),
-			ast.NewBlock(p(1, 6, 5, 10), []ast.Node{ast.NewIdentifier(p(2, 2, 8, 8), "b")}), nil)}, ast.FormatGo)},
+			ast.NewBlock(p(1, 6, 5, 10), []ast.Node{ast.NewIdentifier(p(2, 2, 8, 8), "b")}), nil)}, ast.FormatText)},
 	{"if a {\t\tb\t}\t", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 10), nil, ast.NewIdentifier(p(1, 4, 3, 3), "a"),
-			ast.NewBlock(p(1, 6, 5, 10), []ast.Node{ast.NewIdentifier(p(1, 9, 8, 8), "b")}), nil)}, ast.FormatGo)},
+			ast.NewBlock(p(1, 6, 5, 10), []ast.Node{ast.NewIdentifier(p(1, 9, 8, 8), "b")}), nil)}, ast.FormatText)},
 	{"if a {\n\tb\n} else {\n\tc\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 22), nil, ast.NewIdentifier(p(1, 4, 3, 3), "a"),
 			ast.NewBlock(p(1, 6, 5, 10), []ast.Node{ast.NewIdentifier(p(2, 2, 8, 8), "b")}),
-			ast.NewBlock(p(3, 8, 17, 22), []ast.Node{ast.NewIdentifier(p(4, 2, 20, 20), "c")}))}, ast.FormatGo)},
+			ast.NewBlock(p(3, 8, 17, 22), []ast.Node{ast.NewIdentifier(p(4, 2, 20, 20), "c")}))}, ast.FormatText)},
 	{"if a {\n\tb\n} else if c {\n\td\n} else {\n\te\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 39), nil, ast.NewIdentifier(p(1, 4, 3, 3), "a"),
 			ast.NewBlock(p(1, 6, 5, 10), []ast.Node{ast.NewIdentifier(p(2, 2, 8, 8), "b")}),
 			ast.NewIf(p(3, 8, 17, 39), nil, ast.NewIdentifier(p(3, 11, 20, 20), "c"),
 				ast.NewBlock(p(3, 13, 22, 27), []ast.Node{ast.NewIdentifier(p(4, 2, 25, 25), "d")}),
-				ast.NewBlock(p(5, 8, 34, 39), []ast.Node{ast.NewIdentifier(p(6, 2, 37, 37), "e")})))}, ast.FormatGo)},
+				ast.NewBlock(p(5, 8, 34, 39), []ast.Node{ast.NewIdentifier(p(6, 2, 37, 37), "e")})))}, ast.FormatText)},
 	{"for _, v := range e {\n\tb\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewForRange(p(1, 1, 0, 25), ast.NewAssignment(p(1, 5, 4, 18), []ast.Expression{
 			ast.NewIdentifier(p(1, 5, 4, 4), "_"), ast.NewIdentifier(p(1, 8, 7, 7), "v")},
 			ast.AssignmentDeclaration, []ast.Expression{ast.NewIdentifier(p(1, 19, 18, 18), "e")}),
-			[]ast.Node{ast.NewIdentifier(p(2, 2, 23, 23), "b")})}, ast.FormatGo)},
+			[]ast.Node{ast.NewIdentifier(p(2, 2, 23, 23), "b")})}, ast.FormatText)},
 	{"for _ = range []int(nil) { }", ast.NewTree("", []ast.Node{
 		ast.NewForRange(p(1, 1, 0, 27),
 			ast.NewAssignment(p(1, 5, 4, 23),
@@ -106,10 +106,10 @@ var goContextTreeTests = []struct {
 					ast.NewCall(p(1, 20, 14, 23),
 						ast.NewSliceType(p(1, 15, 14, 18), ast.NewIdentifier(p(1, 17, 16, 18), "int")),
 						[]ast.Expression{ast.NewIdentifier(p(1, 21, 20, 22), "nil")},
-						false)}), nil)}, ast.FormatGo)},
+						false)}), nil)}, ast.FormatText)},
 	{"switch {\n\tdefault:\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewSwitch(p(1, 1, 0, 19), nil, nil, nil, []*ast.Case{
-			ast.NewCase(p(2, 2, 10, 16), nil, nil)})}, ast.FormatGo)},
+			ast.NewCase(p(2, 2, 10, 16), nil, nil)})}, ast.FormatText)},
 	{"if x == 5 {}",
 		ast.NewTree("", []ast.Node{
 			ast.NewIf(&ast.Position{Line: 1, Column: 1, Start: 0, End: 11}, nil,
@@ -118,7 +118,7 @@ var goContextTreeTests = []struct {
 					ast.NewIdentifier(p(1, 4, 3, 3), "x"),
 					ast.NewBasicLiteral(p(1, 9, 8, 8), ast.IntLiteral, "5"),
 				), nil, nil),
-		}, ast.FormatGo)},
+		}, ast.FormatText)},
 	{"for _, i := range []int{1,2,3} { }",
 		ast.NewTree("", []ast.Node{
 			ast.NewForRange(
@@ -141,7 +141,7 @@ var goContextTreeTests = []struct {
 								{nil, ast.NewBasicLiteral(p(1, 27, 26, 26), ast.IntLiteral, "2")},
 								{nil, ast.NewBasicLiteral(p(1, 29, 28, 28), ast.IntLiteral, "3")},
 							})}), nil)},
-			ast.FormatGo)},
+			ast.FormatText)},
 	{"var a int",
 		ast.NewTree("", []ast.Node{
 			ast.NewVar(
@@ -152,7 +152,7 @@ var goContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 7, 6, 8), "int"),
 				nil,
 			),
-		}, ast.FormatGo),
+		}, ast.FormatText),
 	},
 	{"var a, b int",
 		ast.NewTree("", []ast.Node{
@@ -165,7 +165,7 @@ var goContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 10, 9, 11), "int"),
 				nil,
 			),
-		}, ast.FormatGo),
+		}, ast.FormatText),
 	},
 	{"var a = 4",
 		ast.NewTree("", []ast.Node{
@@ -179,7 +179,7 @@ var goContextTreeTests = []struct {
 					ast.NewBasicLiteral(p(1, 9, 8, 8), ast.IntLiteral, "4"),
 				},
 			),
-		}, ast.FormatGo),
+		}, ast.FormatText),
 	},
 	{"var a int = 4",
 		ast.NewTree("", []ast.Node{
@@ -193,7 +193,7 @@ var goContextTreeTests = []struct {
 					ast.NewBasicLiteral(p(1, 13, 12, 12), ast.IntLiteral, "4"),
 				},
 			),
-		}, ast.FormatGo),
+		}, ast.FormatText),
 	},
 	{"var a, b int = 4, 6",
 		ast.NewTree("", []ast.Node{
@@ -209,7 +209,7 @@ var goContextTreeTests = []struct {
 					ast.NewBasicLiteral(p(1, 19, 18, 18), ast.IntLiteral, "6"),
 				},
 			),
-		}, ast.FormatGo),
+		}, ast.FormatText),
 	},
 	{"var (\n\ta int = 3\n\tb = 1.00\n)",
 		ast.NewTree("", []ast.Node{
@@ -233,7 +233,7 @@ var goContextTreeTests = []struct {
 					ast.NewBasicLiteral(p(3, 6, 22, 25), ast.FloatLiteral, "1.00"),
 				},
 			),
-		}, ast.FormatGo),
+		}, ast.FormatText),
 	},
 	{"var f func ()",
 		ast.NewTree("", []ast.Node{
@@ -245,7 +245,7 @@ var goContextTreeTests = []struct {
 				ast.NewFuncType(p(1, 7, 6, 12), false, nil, nil, false),
 				nil,
 			),
-		}, ast.FormatGo),
+		}, ast.FormatText),
 	},
 	{"var f func (p.T)",
 		ast.NewTree("", []ast.Node{
@@ -260,7 +260,7 @@ var goContextTreeTests = []struct {
 				}, nil, false),
 				nil,
 			),
-		}, ast.FormatGo),
+		}, ast.FormatText),
 	}, {"var A []T",
 		ast.NewTree("", []ast.Node{
 			ast.NewVar(
@@ -274,7 +274,7 @@ var goContextTreeTests = []struct {
 				),
 				nil,
 			),
-		}, ast.FormatGo),
+		}, ast.FormatText),
 	},
 	{"const a = 4",
 		ast.NewTree("", []ast.Node{
@@ -289,9 +289,9 @@ var goContextTreeTests = []struct {
 				},
 				0, // iota
 			),
-		}, ast.FormatGo),
+		}, ast.FormatText),
 	},
-	{"const ()", ast.NewTree("", []ast.Node{}, ast.FormatGo)},
+	{"const ()", ast.NewTree("", []ast.Node{}, ast.FormatText)},
 	{"const (\nA = 42\nB\n)\n", ast.NewTree("", []ast.Node{
 		ast.NewConst(
 			p(1, 1, 0, 17),
@@ -315,10 +315,10 @@ var goContextTreeTests = []struct {
 			},
 			1, // iota
 		),
-	}, ast.FormatGo)},
+	}, ast.FormatText)},
 	{"{}", ast.NewTree("", []ast.Node{
 		ast.NewBlock(p(1, 1, 0, 1), nil),
-	}, ast.FormatGo)},
+	}, ast.FormatText)},
 	{"type Int int",
 		ast.NewTree("", []ast.Node{
 			ast.NewTypeDeclaration(
@@ -327,7 +327,7 @@ var goContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 10, 9, 11), "int"),
 				false,
 			),
-		}, ast.FormatGo),
+		}, ast.FormatText),
 	},
 	{"type Int []string",
 		ast.NewTree("", []ast.Node{
@@ -337,7 +337,7 @@ var goContextTreeTests = []struct {
 				ast.NewSliceType(p(1, 10, 9, 16), ast.NewIdentifier(p(1, 12, 11, 16), "string")),
 				false,
 			),
-		}, ast.FormatGo),
+		}, ast.FormatText),
 	},
 	{"type Int = int",
 		ast.NewTree("", []ast.Node{
@@ -347,7 +347,7 @@ var goContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 12, 11, 13), "int"),
 				true,
 			),
-		}, ast.FormatGo),
+		}, ast.FormatText),
 	},
 	{"type MyMap = map[string]interface{}",
 		ast.NewTree("", []ast.Node{
@@ -361,7 +361,7 @@ var goContextTreeTests = []struct {
 				),
 				true,
 			),
-		}, ast.FormatGo),
+		}, ast.FormatText),
 	},
 	{"type ( Int int ; String string )",
 		ast.NewTree("", []ast.Node{
@@ -377,7 +377,7 @@ var goContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 25, 24, 29), "string"),
 				false,
 			),
-		}, ast.FormatGo),
+		}, ast.FormatText),
 	},
 	{"type ( Int = int ; String string )",
 		ast.NewTree("", []ast.Node{
@@ -393,7 +393,7 @@ var goContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 27, 26, 31), "string"),
 				false,
 			),
-		}, ast.FormatGo),
+		}, ast.FormatText),
 	},
 	{"struct { }",
 		ast.NewTree("", []ast.Node{
@@ -401,7 +401,7 @@ var goContextTreeTests = []struct {
 				p(1, 1, 0, 9),
 				nil,
 			),
-		}, ast.FormatGo)},
+		}, ast.FormatText)},
 	{"struct { A int }",
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(
@@ -416,7 +416,7 @@ var goContextTreeTests = []struct {
 					),
 				},
 			),
-		}, ast.FormatGo)},
+		}, ast.FormatText)},
 	{"struct { A []int }",
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(
@@ -434,7 +434,7 @@ var goContextTreeTests = []struct {
 					),
 				},
 			),
-		}, ast.FormatGo)},
+		}, ast.FormatText)},
 	{"struct { A struct { C int } }",
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(
@@ -460,7 +460,7 @@ var goContextTreeTests = []struct {
 					),
 				},
 			),
-		}, ast.FormatGo)},
+		}, ast.FormatText)},
 	{"struct { A, B int }",
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(
@@ -476,7 +476,7 @@ var goContextTreeTests = []struct {
 					),
 				},
 			),
-		}, ast.FormatGo)},
+		}, ast.FormatText)},
 	{"struct { A, B int ; C, D string }",
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(
@@ -500,7 +500,7 @@ var goContextTreeTests = []struct {
 					),
 				},
 			),
-		}, ast.FormatGo)},
+		}, ast.FormatText)},
 	{"struct { A int ; C ; *D }",
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(
@@ -529,7 +529,7 @@ var goContextTreeTests = []struct {
 					),
 				},
 			),
-		}, ast.FormatGo)},
+		}, ast.FormatText)},
 	{"struct { A int }{ A: 10 }",
 		ast.NewTree("", []ast.Node{
 			ast.NewCompositeLiteral(
@@ -553,7 +553,7 @@ var goContextTreeTests = []struct {
 					},
 				},
 			),
-		}, ast.FormatGo)},
+		}, ast.FormatText)},
 	{"defer f()",
 		ast.NewTree("", []ast.Node{
 			ast.NewDefer(
@@ -561,7 +561,7 @@ var goContextTreeTests = []struct {
 				ast.NewCall(
 					p(1, 8, 6, 8),
 					ast.NewIdentifier(p(1, 7, 6, 6), "f"), nil, false)),
-		}, ast.FormatGo)},
+		}, ast.FormatText)},
 	{"go f()",
 		ast.NewTree("", []ast.Node{
 			ast.NewGo(
@@ -569,14 +569,14 @@ var goContextTreeTests = []struct {
 				ast.NewCall(
 					p(1, 5, 3, 5),
 					ast.NewIdentifier(p(1, 4, 3, 3), "f"), nil, false)),
-		}, ast.FormatGo)},
+		}, ast.FormatText)},
 	{"ch <- 5",
 		ast.NewTree("", []ast.Node{
 			ast.NewSend(
 				p(1, 1, 0, 6),
 				ast.NewIdentifier(p(1, 1, 0, 1), "ch"),
 				ast.NewBasicLiteral(p(1, 7, 6, 6), ast.IntLiteral, "5")),
-		}, ast.FormatGo)},
+		}, ast.FormatText)},
 	{"a := <-ch",
 		ast.NewTree("", []ast.Node{
 			ast.NewAssignment(p(1, 1, 0, 8),
@@ -585,57 +585,57 @@ var goContextTreeTests = []struct {
 					ast.NewUnaryOperator(
 						p(1, 6, 5, 8), ast.OperatorReceive,
 						ast.NewIdentifier(p(1, 8, 7, 8), "ch"))}),
-		}, ast.FormatGo)},
+		}, ast.FormatText)},
 	{"goto LOOP",
 		ast.NewTree("", []ast.Node{
 			ast.NewGoto(p(1, 1, 0, 8),
 				ast.NewIdentifier(p(1, 6, 5, 8), "LOOP")),
-		}, ast.FormatGo)},
+		}, ast.FormatText)},
 	{"LOOP: x",
 		ast.NewTree("", []ast.Node{
 			ast.NewLabel(p(1, 1, 0, 6),
 				ast.NewIdentifier(p(1, 1, 0, 3), "LOOP"),
 				ast.NewIdentifier(p(1, 7, 6, 6), "x")),
-		}, ast.FormatGo)},
+		}, ast.FormatText)},
 	{"LOOP: {}",
 		ast.NewTree("", []ast.Node{
 			ast.NewLabel(p(1, 1, 0, 6),
 				ast.NewIdentifier(p(1, 1, 0, 3), "LOOP"),
 				ast.NewBlock(p(1, 7, 6, 7), nil)),
-		}, ast.FormatGo)},
+		}, ast.FormatText)},
 	{"{LOOP:}",
 		ast.NewTree("", []ast.Node{
 			ast.NewBlock(p(1, 1, 0, 6), []ast.Node{
 				ast.NewLabel(p(1, 2, 1, 5),
 					ast.NewIdentifier(p(1, 2, 1, 4), "LOOP"), nil),
 			}),
-		}, ast.FormatGo)},
+		}, ast.FormatText)},
 	{"break LOOP",
 		ast.NewTree("", []ast.Node{
 			ast.NewBreak(p(1, 1, 0, 9),
 				ast.NewIdentifier(p(1, 7, 6, 9), "LOOP")),
-		}, ast.FormatGo)},
+		}, ast.FormatText)},
 	{"continue LOOP",
 		ast.NewTree("", []ast.Node{
 			ast.NewContinue(p(1, 1, 0, 12),
 				ast.NewIdentifier(p(1, 10, 9, 12), "LOOP")),
-		}, ast.FormatGo)},
+		}, ast.FormatText)},
 	{"func f() int {}", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 14), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, nil, []*ast.Parameter{ast.NewParameter(nil, ast.NewIdentifier(p(1, 10, 9, 11), "int"))}, false), ast.NewBlock(p(1, 14, 13, 14), nil), false, ast.FormatGo)}, ast.FormatGo)},
+		ast.NewFunc(p(1, 1, 0, 14), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, nil, []*ast.Parameter{ast.NewParameter(nil, ast.NewIdentifier(p(1, 10, 9, 11), "int"))}, false), ast.NewBlock(p(1, 14, 13, 14), nil), false, ast.FormatText)}, ast.FormatText)},
 	{"func f() int { return 5 }", ast.NewTree("", []ast.Node{
 		ast.NewFunc(p(1, 1, 0, 24), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, nil, []*ast.Parameter{ast.NewParameter(nil, ast.NewIdentifier(p(1, 10, 9, 11), "int"))}, false), ast.NewBlock(p(1, 14, 13, 24), []ast.Node{
 			ast.NewReturn(p(1, 16, 15, 22), []ast.Expression{ast.NewBasicLiteral(p(1, 23, 22, 22), ast.IntLiteral, "5")}),
-		}), false, ast.FormatGo)}, ast.FormatGo)},
+		}), false, ast.FormatText)}, ast.FormatText)},
 	{"func f() (int, error) {}", ast.NewTree("", []ast.Node{
 		ast.NewFunc(p(1, 1, 0, 23), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, nil, []*ast.Parameter{
 			ast.NewParameter(nil, ast.NewIdentifier(p(1, 11, 10, 12), "int")),
 			ast.NewParameter(nil, ast.NewIdentifier(p(1, 16, 15, 19), "error")),
-		}, false), ast.NewBlock(p(1, 22, 22, 23), nil), false, ast.FormatGo)}, ast.FormatGo)},
+		}, false), ast.NewBlock(p(1, 22, 22, 23), nil), false, ast.FormatText)}, ast.FormatText)},
 	{"func f() (n int, err error) {}", ast.NewTree("", []ast.Node{
 		ast.NewFunc(p(1, 1, 0, 29), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, nil, []*ast.Parameter{
 			ast.NewParameter(ast.NewIdentifier(p(1, 11, 10, 10), "n"), ast.NewIdentifier(p(1, 13, 12, 14), "int")),
 			ast.NewParameter(ast.NewIdentifier(p(1, 18, 17, 19), "err"), ast.NewIdentifier(p(1, 22, 21, 25), "error")),
-		}, false), ast.NewBlock(p(1, 29, 28, 29), nil), false, ast.FormatGo)}, ast.FormatGo)},
+		}, false), ast.NewBlock(p(1, 29, 28, 29), nil), false, ast.FormatText)}, ast.FormatText)},
 	{"func f(a, b int, c bool, d ...int) (n int, err error) { a := 5; return a, nil }", ast.NewTree("", []ast.Node{
 		ast.NewFunc(p(1, 1, 0, 78), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, []*ast.Parameter{
 			ast.NewParameter(ast.NewIdentifier(p(1, 8, 7, 7), "a"), nil),
@@ -655,36 +655,36 @@ var goContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 72, 71, 71), "a"),
 				ast.NewIdentifier(p(1, 75, 74, 76), "nil"),
 			}),
-		}), false, ast.FormatGo)}, ast.FormatGo)},
+		}), false, ast.FormatText)}, ast.FormatText)},
 	{"select {}", ast.NewTree("", []ast.Node{
-		ast.NewSelect(p(1, 1, 0, 8), nil, nil)}, ast.FormatGo)},
+		ast.NewSelect(p(1, 1, 0, 8), nil, nil)}, ast.FormatText)},
 	{"select {\n\tdefault:\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewSelect(p(1, 1, 0, 19), nil, []*ast.SelectCase{
-			ast.NewSelectCase(p(2, 2, 10, 16), nil, nil)})}, ast.FormatGo)},
+			ast.NewSelectCase(p(2, 2, 10, 16), nil, nil)})}, ast.FormatText)},
 	{"chan int", ast.NewTree("", []ast.Node{
 		ast.NewChanType(p(1, 1, 0, 7), ast.NoDirection, ast.NewIdentifier(p(1, 6, 5, 7), "int")),
-	}, ast.FormatGo)},
+	}, ast.FormatText)},
 	{"chan <- int", ast.NewTree("", []ast.Node{
 		ast.NewChanType(p(1, 1, 0, 10), ast.SendDirection, ast.NewIdentifier(p(1, 9, 8, 10), "int")),
-	}, ast.FormatGo)},
+	}, ast.FormatText)},
 	{"<- chan int", ast.NewTree("", []ast.Node{
 		ast.NewChanType(p(1, 1, 0, 10), ast.ReceiveDirection, ast.NewIdentifier(p(1, 9, 8, 10), "int")),
-	}, ast.FormatGo)},
+	}, ast.FormatText)},
 	{"var c chan int", ast.NewTree("", []ast.Node{ast.NewVar(p(1, 1, 0, 13),
 		[]*ast.Identifier{ast.NewIdentifier(p(1, 5, 4, 4), "c")},
 		ast.NewChanType(p(1, 7, 6, 13), ast.NoDirection, ast.NewIdentifier(p(1, 12, 11, 13), "int")),
 		nil,
-	)}, ast.FormatGo)},
+	)}, ast.FormatText)},
 	{"var c <- chan int", ast.NewTree("", []ast.Node{ast.NewVar(p(1, 1, 0, 16),
 		[]*ast.Identifier{ast.NewIdentifier(p(1, 5, 4, 4), "c")},
 		ast.NewChanType(p(1, 7, 6, 16), ast.ReceiveDirection, ast.NewIdentifier(p(1, 15, 14, 16), "int")),
 		nil,
-	)}, ast.FormatGo)},
+	)}, ast.FormatText)},
 	{"var c chan <- int", ast.NewTree("", []ast.Node{ast.NewVar(p(1, 1, 0, 16),
 		[]*ast.Identifier{ast.NewIdentifier(p(1, 5, 4, 4), "c")},
 		ast.NewChanType(p(1, 7, 6, 16), ast.SendDirection, ast.NewIdentifier(p(1, 15, 14, 16), "int")),
 		nil,
-	)}, ast.FormatGo)},
+	)}, ast.FormatText)},
 
 	{"f = func() { println(a) }", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(
@@ -706,10 +706,10 @@ var goContextTreeTests = []struct {
 							false,
 						),
 					},
-				), false, ast.FormatGo),
+				), false, ast.FormatText),
 			},
 		),
-	}, ast.FormatGo)},
+	}, ast.FormatText)},
 }
 
 var treeTests = []struct {

@@ -20,7 +20,7 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
 	trees := map[string]*ast.Tree{}
 	predefined := map[string]bool{}
 
-	main := ast.NewImport(nil, nil, "main", ast.ContextGo)
+	main := ast.NewImport(nil, nil, "main", ast.ContextText)
 
 	imports := []*ast.Import{main}
 

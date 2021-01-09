@@ -146,7 +146,6 @@ func TestCheckerTemplateExpressions(t *testing.T) {
 			}()
 			var p = &parsing{
 				lex:       lex,
-				format:    ast.FormatText,
 				ancestors: nil,
 			}
 			p.next() // discard tokenLeftBraces.
@@ -222,7 +221,6 @@ func TestCheckerTemplateExpressionErrors(t *testing.T) {
 			}()
 			var p = &parsing{
 				lex:       lex,
-				format:    ast.FormatText,
 				ancestors: nil,
 			}
 			p.next() // discard tokenLeftBraces.

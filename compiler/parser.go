@@ -185,10 +185,9 @@ func parseSource(src []byte, script, shebang bool) (tree *ast.Tree, err error) {
 		return nil, errors.New("scriggo/parser: shebang can be true only for scripts")
 	}
 
-	tree = ast.NewTree("", nil, ast.FormatGo)
+	tree = ast.NewTree("", nil, ast.FormatText)
 
 	var p = &parsing{
-		format:    ast.FormatGo,
 		isScript:  script,
 		ancestors: []ast.Node{tree},
 	}

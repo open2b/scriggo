@@ -122,13 +122,10 @@ const (
 	FormatJS
 	FormatJSON
 	FormatMarkdown
-	FormatGo // TODO(marco): move in first position.
 )
 
 func (format Format) String() string {
 	switch format {
-	case FormatGo:
-		return "Go"
 	case FormatText:
 		return "text"
 	case FormatHTML:
@@ -155,7 +152,6 @@ const (
 	ContextJS
 	ContextJSON
 	ContextMarkdown
-	ContextGo // TODO(marco): move in first position.
 	ContextTag
 	ContextQuotedAttr
 	ContextUnquotedAttr
@@ -168,8 +164,6 @@ const (
 
 func (ctx Context) String() string {
 	switch ctx {
-	case ContextGo:
-		return "Go"
 	case ContextText:
 		return "text"
 	case ContextHTML:
@@ -738,9 +732,9 @@ func NewTypeDeclaration(pos *Position, ident *Identifier, typ Expression, isAlia
 // Render node represents a 'render <path>' expression.
 type Render struct {
 	expression
-	*Position         // position in the source.
-	Path      string  // path of the file to render.
-	Tree      *Tree   // expanded tree of <path>.
+	*Position        // position in the source.
+	Path      string // path of the file to render.
+	Tree      *Tree  // expanded tree of <path>.
 }
 
 func NewRender(pos *Position, path string) *Render {
