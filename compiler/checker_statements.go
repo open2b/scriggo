@@ -623,6 +623,20 @@ nodesLoop:
 				panic(tc.errorf(node, "use of untyped nil"))
 			}
 
+			// TODO(Gianluca): this transformation of the tree has been added
+			// to make easier to update Scriggo templates. In a future version
+			// this transformation should be removed.
+			//
+			//   {% show M %}  -> {% show M() %}
+			//   {{ M }}       -> {{ M() }}
+			//
+			//     where M has kind function (eg. a macro)
+			//
+			if ident, isIdent := node.Expr.(*ast.Identifier); isIdent && ti.Type.Kind() == reflect.Func {
+				node.Expr = ast.NewCall(node.Expr.Pos(), ident, nil, false)
+				ti = tc.checkExpr(node.Expr)
+			}
+
 			if tc.opts.renderer != nil && ti.Type != emptyInterfaceType {
 				zero := tc.types.Zero(ti.Type)
 				if w, ok := ti.Type.(runtime.Wrapper); ok {

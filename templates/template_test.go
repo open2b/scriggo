@@ -2371,6 +2371,23 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: `partial`,
 	},
+
+	// TODO: in a future version these tests should fail because the
+	// transformation must be reverted. This is intended just to make easier to
+	// upgrade Scriggo templates.
+	"{% show Macro %} should be transformed to {% show Macro() %} for the current version": {
+		sources: map[string]string{
+			`index.html`: `{% macro M %}hello{% end %}{% show M %}`,
+		},
+		expectedOut: `hello`,
+	},
+	"{% show Macro %} should be transformed to {% show Macro() %} for the current version (2)": {
+		sources: map[string]string{
+			`index.html`:    `{% import "imported.html" %}{% show Macro %}`,
+			`imported.html`: `{% macro Macro %}imported macro{% end %}`,
+		},
+		expectedOut: `imported macro`,
+	},
 }
 
 var structWithUnexportedFields = &struct {
