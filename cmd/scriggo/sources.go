@@ -2249,7 +2249,6 @@ import (
 	"time"
 
 	"github.com/open2b/scriggo"
-	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/fs"
 	"github.com/open2b/scriggo/templates"
 
@@ -2487,10 +2486,6 @@ func (t *templateFS) ReadFile(name string) ([]byte, error) {
 		return nil, err
 	}
 	return fs.ReadFile(t.fsys, name)
-}
-
-func (t *templateFS) Format(name string) (ast.Format, error) {
-	return ast.FormatText, nil
 }
 
 func (t *templateFS) Close() error {
