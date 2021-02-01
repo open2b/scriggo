@@ -9,6 +9,7 @@ package compiler
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -2479,4 +2480,30 @@ func equals(n1, n2 ast.Node, p int) error {
 	}
 
 	return nil
+}
+
+func TestRooted(t *testing.T) {
+	tests := []struct {
+		parent string
+		name   string
+		rooted string
+		error  error
+	}{
+		{"a/b/c", "/d/e", "d/e", nil},
+		{"a", "b/c", "b/c", nil},
+		{"a/b/c", "d/e", "a/b/d/e", nil},
+		{"a/b/c", "../d/e", "a/d/e", nil},
+		{"a/b/c", "../../d/e", "d/e", nil},
+		{"a/b", "../c/d", "c/d", nil},
+		{"a/b", "../../c/d", "", os.ErrInvalid},
+	}
+	for _, test := range tests {
+		root, err := rooted(test.parent, test.name)
+		if root != test.rooted {
+			t.Errorf("unexpected %q, expecting %q", root, test.rooted)
+		}
+		if err != test.error {
+			t.Errorf("unexpected error %v, expecting error %v", err, test.error)
+		}
+	}
 }

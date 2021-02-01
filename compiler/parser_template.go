@@ -92,26 +92,14 @@ type parsedTree struct {
 //   if name is ../../d/e, the rooted path name is d/e
 //
 func rooted(parent, name string) (string, error) {
-	if name[0] == '/' {
+	if path.IsAbs(name) {
 		return name[1:], nil
 	}
-	if p := strings.LastIndex(parent, "/"); p > 0 {
-		parent = parent[:p]
-	} else {
-		parent = ""
+	r := path.Join(path.Dir(parent), name)
+	if strings.HasPrefix(r, "..") {
+		return "", os.ErrInvalid
 	}
-	if strings.HasPrefix(name, "..") {
-		p := strings.LastIndex(parent, "/")
-		if p == -1 {
-			return "", os.ErrInvalid
-		}
-		parent = parent[p-1:]
-		name = name[3:]
-	}
-	if parent == "" {
-		return name, nil
-	}
-	return parent + "/" + name, nil
+	return r, nil
 }
 
 // parseNodeFile parses the file referenced by an Extends, Import or Render
