@@ -372,10 +372,10 @@ func showInHTML(env runtime.Env, out io.Writer, value interface{}) error {
 		_, err := w.WriteString(string(v))
 		return err
 	case HTMLStringer:
-		_, err := w.WriteString(v.HTML())
+		_, err := w.WriteString(string(v.HTML()))
 		return err
 	case HTMLEnvStringer:
-		_, err := w.WriteString(v.HTML(env))
+		_, err := w.WriteString(string(v.HTML(env)))
 		return err
 	case fmt.Stringer:
 		return htmlEscape(w, v.String())
@@ -451,9 +451,9 @@ func showInAttribute(env runtime.Env, out io.Writer, value interface{}, quoted b
 	case HTML:
 		s = string(v)
 	case HTMLStringer:
-		s = v.HTML()
+		s = string(v.HTML())
 	case HTMLEnvStringer:
-		s = v.HTML(env)
+		s = string(v.HTML(env))
 	case error:
 		s = v.Error()
 		escapeEntities = true
@@ -476,10 +476,10 @@ func showInCSS(env runtime.Env, out io.Writer, value interface{}) error {
 		_, err := w.WriteString(string(v))
 		return err
 	case CSSStringer:
-		_, err := w.WriteString(v.CSS())
+		_, err := w.WriteString(string(v.CSS()))
 		return err
 	case CSSEnvStringer:
-		_, err := w.WriteString(v.CSS(env))
+		_, err := w.WriteString(string(v.CSS(env)))
 		return err
 	case fmt.Stringer:
 		value = v.String()
@@ -549,10 +549,10 @@ func showInJS(env runtime.Env, out io.Writer, value interface{}) error {
 		_, err := w.WriteString(string(v))
 		return err
 	case JSStringer:
-		_, err := w.WriteString(v.JS())
+		_, err := w.WriteString(string(v.JS()))
 		return err
 	case JSEnvStringer:
-		_, err := w.WriteString(v.JS(env))
+		_, err := w.WriteString(string(v.JS(env)))
 		return err
 	case time.Time:
 		_, err := w.WriteString(showTimeInJS(v))
@@ -747,10 +747,10 @@ func showInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 		_, err := w.WriteString(string(v))
 		return err
 	case JSONStringer:
-		_, err := w.WriteString(v.JSON())
+		_, err := w.WriteString(string(v.JSON()))
 		return err
 	case JSONEnvStringer:
-		_, err := w.WriteString(v.JSON(env))
+		_, err := w.WriteString(string(v.JSON(env)))
 		return err
 	case time.Time:
 		_, err := w.WriteString("\"")
@@ -969,17 +969,17 @@ func showInMarkdown(env runtime.Env, out io.Writer, value interface{}) error {
 		_, err := w.WriteString(string(v))
 		return err
 	case MarkdownStringer:
-		_, err := w.WriteString(v.Markdown())
+		_, err := w.WriteString(string(v.Markdown()))
 		return err
 	case MarkdownEnvStringer:
-		_, err := w.WriteString(v.Markdown(env))
+		_, err := w.WriteString(string(v.Markdown(env)))
 		return err
 	case HTML:
 		return markdownEscape(w, string(v), true)
 	case HTMLStringer:
-		return markdownEscape(w, v.HTML(), true)
+		return markdownEscape(w, string(v.HTML()), true)
 	case HTMLEnvStringer:
-		return markdownEscape(w, v.HTML(env), true)
+		return markdownEscape(w, string(v.HTML(env)), true)
 	case fmt.Stringer:
 		return markdownEscape(w, v.String(), false)
 	case EnvStringer:

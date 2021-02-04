@@ -31,8 +31,8 @@ var testEnvStringerValue = &testEnvStringer{}
 
 type testHTMLEnvStringer struct{}
 
-func (*testHTMLEnvStringer) HTML(env runtime.Env) string {
-	return fmt.Sprint(env.Context().Value("forty-two"))
+func (*testHTMLEnvStringer) HTML(env runtime.Env) HTML {
+	return HTML(fmt.Sprint(env.Context().Value("forty-two")))
 }
 
 var testHTMLEnvStringerValue = &testHTMLEnvStringer{}
@@ -41,8 +41,8 @@ var testHTMLEnvStringerValue = &testHTMLEnvStringer{}
 
 type testCSSEnvStringer struct{}
 
-func (*testCSSEnvStringer) CSS(env runtime.Env) string {
-	return fmt.Sprint(env.Context().Value("forty-two"))
+func (*testCSSEnvStringer) CSS(env runtime.Env) CSS {
+	return CSS(fmt.Sprint(env.Context().Value("forty-two")))
 }
 
 var testCSSEnvStringerValue = &testCSSEnvStringer{}
@@ -51,8 +51,8 @@ var testCSSEnvStringerValue = &testCSSEnvStringer{}
 
 type testJSEnvStringer struct{}
 
-func (*testJSEnvStringer) JS(env runtime.Env) string {
-	return fmt.Sprint(env.Context().Value("forty-two"))
+func (*testJSEnvStringer) JS(env runtime.Env) JS {
+	return JS(fmt.Sprint(env.Context().Value("forty-two")))
 }
 
 var testJSEnvStringerValue = &testJSEnvStringer{}
@@ -61,8 +61,8 @@ var testJSEnvStringerValue = &testJSEnvStringer{}
 
 type testJSONEnvStringer struct{}
 
-func (*testJSONEnvStringer) JSON(env runtime.Env) string {
-	return fmt.Sprint(env.Context().Value("forty-two"))
+func (*testJSONEnvStringer) JSON(env runtime.Env) JSON {
+	return JSON(fmt.Sprint(env.Context().Value("forty-two")))
 }
 
 var testJSONEnvStringerValue = &testJSONEnvStringer{}

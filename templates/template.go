@@ -28,59 +28,59 @@ type EnvStringer interface {
 
 // HTMLStringer is implemented by values that are not escaped in HTML context.
 type HTMLStringer interface {
-	HTML() string
+	HTML() HTML
 }
 
 // HTMLEnvStringer is like HTMLStringer where the HTML method takes a
 // runtime.Env parameter.
 type HTMLEnvStringer interface {
-	HTML(runtime.Env) string
+	HTML(runtime.Env) HTML
 }
 
 // CSSStringer is implemented by values that are not escaped in CSS context.
 type CSSStringer interface {
-	CSS() string
+	CSS() CSS
 }
 
 // CSSEnvStringer is like CSSStringer where the CSS method takes a runtime.Env
 // parameter.
 type CSSEnvStringer interface {
-	CSS(runtime.Env) string
+	CSS(runtime.Env) CSS
 }
 
 // JSStringer is implemented by values that are not escaped in JavaScript
 // context.
 type JSStringer interface {
-	JS() string
+	JS() JS
 }
 
 // JSEnvStringer is like JSStringer where the JS method takes a runtime.Env
 // parameter.
 type JSEnvStringer interface {
-	JS(runtime.Env) string
+	JS(runtime.Env) JS
 }
 
 // JSONStringer is implemented by values that are not escaped in JSON context.
 type JSONStringer interface {
-	JSON() string
+	JSON() JSON
 }
 
 // JSONEnvStringer is like JSONStringer where the JSON method takes a
 // runtime.Env parameter.
 type JSONEnvStringer interface {
-	JSON(runtime.Env) string
+	JSON(runtime.Env) JSON
 }
 
 // MarkdownStringer is implemented by values that are not escaped in Markdown
 // context.
 type MarkdownStringer interface {
-	Markdown() string
+	Markdown() Markdown
 }
 
 // MarkdownEnvStringer is like MarkdownStringer where the Markdown method
 // takes a runtime.Env parameter.
 type MarkdownEnvStringer interface {
-	Markdown(runtime.Env) string
+	Markdown(runtime.Env) Markdown
 }
 
 // Format types.
