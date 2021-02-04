@@ -1313,86 +1313,22 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "127",
 	},
 
-	// Test the syntax {{ f() }}, where 'f' returns a value and an error.
+	"Syntax {{ f() }} where 'f' returns a value and a nil error": {
+		sources: map[string]string{
+			"index.txt": `{{ atoi("42") }}`,
+		},
+		main:        functionReturningErrorPackage,
+		expectedOut: "42",
+	},
 
-	"HTML (int) - No error returned": {
+	"Syntax {{ f() }} where 'f' returns a zero value and an error": {
 		sources: map[string]string{
-			"index.html": `{{ atoi("42") }}`,
+			"index.txt": `{{ atoi("what?") }}`,
 		},
 		main:        functionReturningErrorPackage,
-		expectedOut: "42",
+		expectedOut: "",
 	},
-	"HTML (int) - Error returned": {
-		sources: map[string]string{
-			"index.html": `{{ atoi("what?") }}`,
-		},
-		main:        functionReturningErrorPackage,
-		expectedOut: "0<!-- strconv.Atoi: parsing \"what?\": invalid syntax -->",
-	},
-	"HTML (string) - No error returned": {
-		sources: map[string]string{
-			"index.html": `{{ uitoa(42) }}`,
-		},
-		main:        functionReturningErrorPackage,
-		expectedOut: "42",
-	},
-	"HTML (string) - Error returned": {
-		sources: map[string]string{
-			"index.html": `{{ uitoa(-32) }}`,
-		},
-		main:        functionReturningErrorPackage,
-		expectedOut: "<!-- uitoa requires a positive integer as argument -->",
-	},
-	"CSS - No error returned": {
-		sources: map[string]string{
-			"index.css": `{{ atoi("42") }}`,
-		},
-		main:        functionReturningErrorPackage,
-		expectedOut: "42",
-	},
-	"CSS - Error returned": {
-		sources: map[string]string{
-			"index.css": `{{ atoi("what?") }}`,
-		},
-		main:        functionReturningErrorPackage,
-		expectedOut: "0/* strconv.Atoi: parsing \"what?\": invalid syntax */",
-	},
-	"JavaScript (int) - No error returned": {
-		sources: map[string]string{
-			"index.js": `{{ atoi("42") }}`,
-		},
-		main:        functionReturningErrorPackage,
-		expectedOut: "42",
-	},
-	"JavaScript (int) - Error returned": {
-		sources: map[string]string{
-			"index.js": `{{ atoi("what?") }}`,
-		},
 
-		main:        functionReturningErrorPackage,
-		expectedOut: "0/* strconv.Atoi: parsing \"what?\": invalid syntax */",
-	},
-	"JavaScript (string) - No error returned": {
-		sources: map[string]string{
-			"index.js": `{{ uitoa(42) }}`,
-		},
-		main:        functionReturningErrorPackage,
-		expectedOut: "\"42\"",
-	},
-	"JavaScript (string) - Error returned": {
-		sources: map[string]string{
-			"index.js": `{{ uitoa(-432) }}`,
-		},
-		main:        functionReturningErrorPackage,
-		expectedOut: "\"\"/* uitoa requires a positive integer as argument */",
-	},
-	"HTML - Error containing the comment close tag": {
-		sources: map[string]string{
-			"index.html": `{{ baderror() }}`,
-		},
-		main:        functionReturningErrorPackage,
-		expectedOut: "0<!-- i'm a bad error -- > -->",
-	},
 	"Undefined variable error": {
 		sources: map[string]string{
 			"index.txt": `Name is {{ name }}`,
