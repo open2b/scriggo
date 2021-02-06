@@ -21,6 +21,7 @@ import (
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/fs"
 	"github.com/open2b/scriggo/templates"
+	"github.com/open2b/scriggo/templates/builtin"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/yuin/goldmark"
@@ -47,6 +48,9 @@ func serve(asm int, metrics bool) error {
 	srv := &server{
 		fsys:   fsys,
 		static: http.FileServer(http.Dir(".")),
+		buildOptions: &templates.BuildOptions{
+			Globals: globals,
+		},
 		runOptions: &templates.RunOptions{
 			MarkdownConverter: func(src []byte, out io.Writer) error {
 				return goldmark.Convert(src, out)
@@ -85,10 +89,11 @@ func serve(asm int, metrics bool) error {
 }
 
 type server struct {
-	fsys       *templateFS
-	static     http.Handler
-	runOptions *templates.RunOptions
-	asm        int
+	fsys         *templateFS
+	static       http.Handler
+	buildOptions *templates.BuildOptions
+	runOptions   *templates.RunOptions
+	asm          int
 
 	sync.Mutex
 	templates map[string]*templates.Template
@@ -117,7 +122,7 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	srv.Unlock()
 	start := time.Now()
 	if !ok {
-		template, err = templates.Build(srv.fsys, name, nil)
+		template, err = templates.Build(srv.fsys, name, srv.buildOptions)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				http.NotFound(w, r)
@@ -274,4 +279,46 @@ func (t *templateFS) watch(name string) error {
 	}
 	t.Unlock()
 	return nil
+}
+
+var globals = templates.Declarations{
+	"abbreviate":    builtin.Abbreviate,
+	"abs":           builtin.Abs,
+	"base64":        builtin.Base64,
+	"capitalize":    builtin.Capitalize,
+	"capitalizeAll": builtin.CapitalizeAll,
+	"contains":      builtin.Contains,
+	"hasPrefix":     builtin.HasPrefix,
+	"hasSuffix":     builtin.HasSuffix,
+	"hex":           builtin.Hex,
+	"hmacSHA1":      builtin.HmacSHA1,
+	"hmacSHA256":    builtin.HmacSHA256,
+	"htmlEscape":    builtin.HtmlEscape,
+	"index":         builtin.Index,
+	"indexAny":      builtin.IndexAny,
+	"join":          builtin.Join,
+	"lastIndex":     builtin.LastIndex,
+	"max":           builtin.Max,
+	"md5":           builtin.Md5,
+	"min":           builtin.Min,
+	"queryEscape":   builtin.QueryEscape,
+	"replace":       builtin.Replace,
+	"replaceAll":    builtin.ReplaceAll,
+	"reverse":       builtin.Reverse,
+	"runeCount":     builtin.RuneCount,
+	"sha1":          builtin.Sha1,
+	"sha256":        builtin.Sha256,
+	"sort":          builtin.Sort,
+	"split":         builtin.Split,
+	"splitN":        builtin.SplitN,
+	"sprint":        builtin.Sprint,
+	"sprintf":       builtin.Sprintf,
+	"toKebab":       builtin.ToKebab,
+	"toLower":       builtin.ToLower,
+	"toUpper":       builtin.ToUpper,
+	"trim":          builtin.Trim,
+	"trimLeft":      builtin.TrimLeft,
+	"trimPrefix":    builtin.TrimPrefix,
+	"trimRight":     builtin.TrimRight,
+	"trimSuffix":    builtin.TrimSuffix,
 }
