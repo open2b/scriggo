@@ -955,9 +955,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rogpeppe/go-internal/modfile"
-	"github.com/rogpeppe/go-internal/module"
-	"github.com/rogpeppe/go-internal/semver"
+	"golang.org/x/mod/modfile"
+	"golang.org/x/mod/module"
+	"golang.org/x/mod/semver"
 )
 
 //go:generate go run ./sources_gen
