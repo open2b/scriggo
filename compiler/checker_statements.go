@@ -178,6 +178,29 @@ nodesLoop:
 			tc.exitScope()
 			tc.terminating = node.Condition == nil && !tc.hasBreak[node]
 
+		case *ast.ForIn:
+			// Check range expression.
+			expr := node.Expr
+			ti := tc.checkExpr(expr)
+			if ti.Nil() {
+				panic(tc.errorf(node, "cannot range over nil"))
+			}
+			ti.setValue(nil)
+			// Replace the node with a ForRange node.
+			ipos := node.Ident.Pos()
+			blank := ast.NewIdentifier(ipos.WithEnd(ipos.Start), "_")
+			aPos := ipos.WithEnd(node.Expr.Pos().End)
+			var lhs []ast.Expression
+			if ti.Type.Kind() == reflect.Map {
+				lhs = []ast.Expression{node.Ident, blank}
+			} else {
+				lhs = []ast.Expression{blank, node.Ident}
+			}
+			assignment := ast.NewAssignment(aPos, lhs, ast.AssignmentDeclaration, []ast.Expression{expr})
+			assignment.End = node.Expr.Pos().End
+			nodes[i] = ast.NewForRange(node.Pos(), assignment, node.Body)
+			continue
+
 		case *ast.ForRange:
 			tc.enterScope()
 			tc.addToAncestors(node)

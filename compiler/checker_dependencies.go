@@ -255,6 +255,16 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 		scopes = exitScope(scopes)
 		scopes = exitScope(scopes)
 		return deps
+	case *ast.ForIn:
+		scopes = enterScope(scopes)
+		deps := nodeDeps(n.Ident, scopes)
+		scopes = enterScope(scopes)
+		for _, node := range n.Body {
+			deps = append(deps, nodeDeps(node, scopes)...)
+		}
+		scopes = exitScope(scopes)
+		scopes = exitScope(scopes)
+		return deps
 	case *ast.ForRange:
 		scopes = enterScope(scopes)
 		deps := nodeDeps(n.Assignment, scopes)

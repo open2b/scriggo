@@ -607,7 +607,7 @@ LABEL:
 			if init == nil {
 				panic(syntaxError(tok.pos, "unexpected in, expecting expression"))
 			}
-			ident, ok := init.(ast.Expression)
+			ident, ok := init.(*ast.Identifier)
 			if !ok {
 				panic(syntaxError(tok.pos, "unexpected in, expecting {"))
 			}
@@ -616,12 +616,7 @@ LABEL:
 			if expr == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
-			ipos := ident.Pos()
-			blank := ast.NewIdentifier(ipos.WithEnd(ipos.Start), "_")
-			aPos := ipos.WithEnd(expr.Pos().End)
-			assignment := ast.NewAssignment(aPos, []ast.Expression{blank, ident}, ast.AssignmentDeclaration, []ast.Expression{expr})
-			assignment.End = expr.Pos().End
-			node = ast.NewForRange(pos, assignment, nil)
+			node = ast.NewForIn(pos, ident, expr, nil)
 		default:
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
@@ -1696,6 +1691,8 @@ func (p *parsing) addChild(child ast.Node) {
 	case *ast.URL:
 		n.Value = append(n.Value, child)
 	case *ast.For:
+		n.Body = append(n.Body, child)
+	case *ast.ForIn:
 		n.Body = append(n.Body, child)
 	case *ast.ForRange:
 		n.Body = append(n.Body, child)
