@@ -1,4 +1,4 @@
-module scriggo/cmd/scriggo
+module github.com/open2b/scriggo/cmd/scriggo
 
 go 1.14
 
