@@ -1739,7 +1739,7 @@ func stdLibPaths() []string {
 	paths := make([]string, 0, len(stdlibPaths))
 	for _, path := range stdlibPaths {
 		switch path {
-		case "embed", "io/fs":
+		case "embed", "io/fs", "runtime/metrics":
 			if version != "go1.16" {
 				continue
 			}
@@ -1878,6 +1878,7 @@ var stdlibPaths = []string{
 	"regexp/syntax",
 	"runtime",
 	"runtime/debug",
+	"runtime/metrics",  // Go version 1.16
 	"runtime/pprof",
 	"runtime/trace",
 	"sort",
