@@ -100,11 +100,17 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, n)
 		}
 
+	case *ast.ForIn:
+		Walk(v, n.Ident)
+		Walk(v, n.Expr)
+		for _, n := range n.Body {
+			Walk(v, n)
+		}
+
 	case *ast.ForRange:
 		if n.Assignment != nil {
 			Walk(v, n.Assignment)
 		}
-
 		for _, n := range n.Body {
 			Walk(v, n)
 		}

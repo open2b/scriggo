@@ -49,7 +49,7 @@ func TestWalk(t *testing.T) {
 		{`{{ call(3, 5) }}`, []int{0, 0, 3, 8, 11}},
 		{`{% if 5 > 4 %} some text {% end %}`, []int{0, 3, 6, 6, 10, 0, 14}},
 		{`{% if 5 > 4 %} some text {% else %} some text {% end %}`, []int{0, 3, 6, 6, 10, 0, 14, 0, 35}},
-		{`{% for p in ps %} some text {% end %}`, []int{0, 3, 7, 7, 7, 12, 17}},
+		{`{% for p in ps %} some text {% end %}`, []int{0, 3, 7, 12, 17}},
 		{`{% macro Body %} some text {% end %}`, []int{0, 3, 16}},
 		{`{{ (4+5)*6 }}`, []int{0, 0, 3, 3, 4, 6, 9}},
 		{`{% x = vect[3] %}`, []int{0, 3, 3, 7, 7, 12}},

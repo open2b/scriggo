@@ -584,7 +584,22 @@ func NewFor(pos *Position, init Node, condition Expression, post Node, body []No
 	return &For{pos, init, condition, post, body}
 }
 
-// ForRange node represents statements "for range" and "for in".
+// ForIn node represents the "for in" statement.
+type ForIn struct {
+	*Position             // position in the source.
+	Ident     *Identifier // identifier.
+	Expr      Expression  // range expression.
+	Body      []Node      // nodes of the body.
+}
+
+func NewForIn(pos *Position, ident *Identifier, expr Expression, body []Node) *ForIn {
+	if body == nil {
+		body = []Node{}
+	}
+	return &ForIn{pos, ident, expr, body}
+}
+
+// ForRange node represents the "for range" statement.
 type ForRange struct {
 	*Position              // position in the source.
 	Assignment *Assignment // assignment.

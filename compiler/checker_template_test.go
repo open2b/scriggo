@@ -512,7 +512,7 @@ var checkerTemplateStmts = []struct {
 	{src: `{%% for v in "abc" { var _ rune = v } %%}`, expected: ok},
 	{src: `{%% for _ in "abc" { } %%}`, expected: ok},
 	{src: `{%% for v in ([...]int{}) { var _ int = v } %%}`, expected: ok},
-	{src: `{%% for v in map[float64]string{} { var _ string = v } %%}`, expected: ok},
+	{src: `{%% for k in map[float64]string{} { var _ float64 = k } %%}`, expected: ok},
 	{src: `{%% for _ in (&[...]int{}) { } %%}`, expected: ok},
 	//{src: `{%% for a in make(<-chan string) { var _ string = a } %%}`, expected: ok}, // TODO(marco): fails with 'too many variables in range'
 	{src: `{%% for _ in 0 { } %%}`, expected: `cannot range over 0 (type untyped number)`},

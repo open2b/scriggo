@@ -73,19 +73,15 @@ func ExampleDump() {
 	// │    │    BasicLiteral (1:12) 10
 	//
 	// Tree: "":1:1
-	// │    ForRange (1:4) 1:4
-	// │    │    Assignment (1:8) _, i := x
-	// │    │    │    Identifier (1:8) _
-	// │    │    │    Identifier (1:8) i
-	// │    │    │    Identifier (1:13) x
+	// │    ForIn (1:4) 1:4
+	// │    │    Identifier (1:8) i
+	// │    │    Identifier (1:13) x
 	// │    │    Text (1:17) " some text, blah blah blah "
 	//
 	// Tree: "":1:1
-	// │    ForRange (1:4) 1:4
-	// │    │    Assignment (1:8) _, i := x
-	// │    │    │    Identifier (1:8) _
-	// │    │    │    Identifier (1:8) i
-	// │    │    │    Identifier (1:13) x
+	// │    ForIn (1:4) 1:4
+	// │    │    Identifier (1:8) i
+	// │    │    Identifier (1:13) x
 	// │    │    Text (1:17) " some very very very very very..."
 	//
 	// Tree: "":1:1
