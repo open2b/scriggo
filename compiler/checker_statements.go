@@ -191,10 +191,13 @@ nodesLoop:
 			blank := ast.NewIdentifier(ipos.WithEnd(ipos.Start), "_")
 			aPos := ipos.WithEnd(node.Expr.Pos().End)
 			var lhs []ast.Expression
-			if ti.Type.Kind() == reflect.Map {
-				lhs = []ast.Expression{node.Ident, blank}
-			} else {
+			switch ti.Type.Kind() {
+			default:
 				lhs = []ast.Expression{blank, node.Ident}
+			case reflect.Map:
+				lhs = []ast.Expression{node.Ident, blank}
+			case reflect.Chan:
+				lhs = []ast.Expression{node.Ident}
 			}
 			assignment := ast.NewAssignment(aPos, lhs, ast.AssignmentDeclaration, []ast.Expression{expr})
 			assignment.End = node.Expr.Pos().End
