@@ -590,6 +590,15 @@ func _build(cmd string, path string, flags buildFlags) error {
 		return fmt.Errorf("scriggo: %s", err)
 	}
 
+	// Execute 'go mod tidy'.
+	if flags.x {
+		_, _ = fmt.Fprintln(os.Stderr, "go mod tidy")
+	}
+	_, err = execGoCommand(dir, "mod", "tidy")
+	if err != nil {
+		return fmt.Errorf("go %s: %s", cmd, err)
+	}
+
 	// Create the package declarations file.
 	packagesPath := filepath.Join(dir, "run-packages.go")
 	fi, err = os.OpenFile(packagesPath, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0666)
@@ -642,6 +651,15 @@ func _build(cmd string, path string, flags buildFlags) error {
 	err = dest.Close()
 	if err != nil {
 		return fmt.Errorf("scriggo: can't write file %s: %s", sourcesPath, err)
+	}
+
+	// Execute 'go mod tidy'.
+	if flags.x {
+		_, _ = fmt.Fprintln(os.Stderr, "go mod tidy")
+	}
+	_, err = execGoCommand(dir, "mod", "tidy")
+	if err != nil {
+		return fmt.Errorf("go %s: %s", cmd, err)
 	}
 
 	// Build or install the package.
