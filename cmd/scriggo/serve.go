@@ -287,7 +287,6 @@ var globals = templates.Declarations{
 	"base64":        builtin.Base64,
 	"capitalize":    builtin.Capitalize,
 	"capitalizeAll": builtin.CapitalizeAll,
-	"contains":      builtin.Contains,
 	"hasPrefix":     builtin.HasPrefix,
 	"hasSuffix":     builtin.HasSuffix,
 	"hex":           builtin.Hex,

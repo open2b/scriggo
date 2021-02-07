@@ -37,7 +37,6 @@
 //        "base64":        builtin.Base64,
 //        "capitalize":    builtin.Capitalize,
 //        "capitalizeAll": builtin.CapitalizeAll,
-//        "contains":      builtin.Contains,
 //        "hasPrefix":     builtin.HasPrefix,
 //        "hasSuffix":     builtin.HasSuffix,
 //        "hex":           builtin.Hex,
@@ -179,11 +178,6 @@ func CapitalizeAll(src string) string {
 		prev = r
 		return r
 	}, src)
-}
-
-// Contains reports whether substr is within s.
-func Contains(s, substr string) bool {
-	return strings.Contains(s, substr)
 }
 
 // HasPrefix tests whether the string s begins with prefix.
