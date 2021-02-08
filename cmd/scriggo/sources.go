@@ -1878,7 +1878,7 @@ var stdlibPaths = []string{
 	"regexp/syntax",
 	"runtime",
 	"runtime/debug",
-	"runtime/metrics",  // Go version 1.16
+	"runtime/metrics", // Go version 1.16
 	"runtime/pprof",
 	"runtime/trace",
 	"sort",
