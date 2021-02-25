@@ -796,12 +796,11 @@ type Import struct {
 	*Position             // position in the source.
 	Ident     *Identifier // name (including "." and "_") or nil.
 	Path      string      // path to import.
-	Context   Context     // context.
 	Tree      *Tree       // expanded tree of import.
 }
 
-func NewImport(pos *Position, ident *Identifier, path string, ctx Context) *Import {
-	return &Import{Position: pos, Ident: ident, Path: path, Context: ctx}
+func NewImport(pos *Position, ident *Identifier, path string) *Import {
+	return &Import{Position: pos, Ident: ident, Path: path}
 }
 
 func (n *Import) String() string {

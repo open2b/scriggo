@@ -1627,7 +1627,7 @@ func (p *parsing) parseImport(tok token, end tokenTyp) *ast.Import {
 		}
 	}
 	pos.End = tok.pos.End
-	return ast.NewImport(pos, ident, path, tok.ctx)
+	return ast.NewImport(pos, ident, path)
 }
 
 // parseAssignment parses an assignment and returns an assignment or, if there
