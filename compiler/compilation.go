@@ -39,6 +39,14 @@ type compilation struct {
 	// indirectVars contains the list of all declarations of variables which
 	// must be emitted as "indirect".
 	indirectVars map[*ast.Identifier]bool
+
+	// partialMacros contains the dummy macro declarations that have the
+	// partial files in their bodies.
+	partialMacros map[*ast.Tree]*ast.Func
+
+	// partialImports contains the dummy 'import' statements that import the
+	// files declaring the dummy macros.
+	partialImports map[*ast.Tree]*ast.Import
 }
 
 // newCompilation returns a new compilation.
@@ -49,6 +57,8 @@ func newCompilation() *compilation {
 		typeInfos:         map[ast.Node]*typeInfo{},
 		alreadySortedPkgs: map[*ast.Package]bool{},
 		indirectVars:      map[*ast.Identifier]bool{},
+		partialMacros:     map[*ast.Tree]*ast.Func{},
+		partialImports:    map[*ast.Tree]*ast.Import{},
 	}
 }
 

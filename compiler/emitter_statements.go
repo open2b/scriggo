@@ -330,9 +330,6 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				em.fb.enterStack()
 				em.emitCallNode(call, false, false, ast.Format(ctx))
 				em.fb.exitStack()
-			} else if render, ok := node.Expr.(*ast.Render); ok {
-				ti := em.ti(node.Expr)
-				em.emitExpr(render, ti.Type)
 			} else {
 				ti := em.ti(node.Expr)
 				r := em.emitExpr(node.Expr, ti.Type)

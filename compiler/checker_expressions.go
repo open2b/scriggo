@@ -711,19 +711,41 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		}
 
 	case *ast.Render:
-		// Type check the file tree with a separate type checker.
-		// The scope of the rendered file is independent from the scope of the
-		// render expression (except for global declarations).
-		// Also, the use of a different type checker ensures that the
-		// fields of 'tc' are not altered nor inherited.
-		tc2 := newTypechecker(
-			tc.compilation,
-			expr.Tree.Path,
-			tc.opts,
-			tc.globalScope,
-		)
-		tc2.checkNodesInNewScope(expr.Tree.Nodes)
-		return &typeInfo{Type: tc.formatType(expr.Tree.Format)}
+
+		pos := expr.Pos()
+
+		// Retrieve or create a new dummy macro declaration.
+		// The name of the macro is the quoted path of the partial file.
+		macroDecl, ok := tc.compilation.partialMacros[expr.Tree]
+		if !ok {
+			macroDecl = ast.NewFunc(
+				pos,
+				ast.NewIdentifier(pos, strconv.Quote(expr.Path)),
+				ast.NewFuncType(pos, true, nil, nil, false), // func()
+				ast.NewBlock(pos, expr.Tree.Nodes),
+				false,
+				expr.Tree.Format,
+			)
+			tc.compilation.partialMacros[expr.Tree] = macroDecl
+		}
+		expr.IR.Call = ast.NewCall(pos, macroDecl.Ident, nil, false)
+
+		// Retrieve or create a new dummy 'import' statement that imports the
+		// dummy macro.
+		importt, ok := tc.compilation.partialImports[expr.Tree]
+		if !ok {
+			importt = ast.NewImport(pos, nil, macroDecl.Ident.Name)
+			importt.Tree = ast.NewTree(
+				expr.Tree.Path,
+				[]ast.Node{macroDecl},
+				expr.Tree.Format,
+			)
+			tc.compilation.partialImports[expr.Tree] = importt
+		}
+		expr.IR.Import = importt
+
+		tc.checkNodes([]ast.Node{importt})
+		return tc.checkExpr(expr.IR.Call)
 
 	case *ast.Slicing:
 		t := tc.checkExpr(expr.Expr)

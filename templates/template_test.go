@@ -2324,6 +2324,22 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: `imported macro`,
 	},
+
+	"Render - Expression": {
+		sources: map[string]string{
+			"index.txt": `{% page := render "page.txt" %}page.txt has a length of {{ len(page) }}`,
+			"page.txt":  `ciao`,
+		},
+		expectedOut: "page.txt has a length of 4",
+	},
+
+	"Render - Rendering the same file twice": {
+		sources: map[string]string{
+			"index.txt": `{% p1 := render "page.txt" %}{% p2 := render "page.txt" %}p1 is {{ p1 }} (len = {{ len(p1) }}), p2 is {{ p2 }}`,
+			"page.txt":  `ciao`,
+		},
+		expectedOut: "p1 is ciao (len = 4), p2 is ciao",
+	},
 }
 
 var structWithUnexportedFields = &struct {
