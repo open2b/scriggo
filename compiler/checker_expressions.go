@@ -2353,11 +2353,9 @@ func (tc *typechecker) checkRender(render *ast.Render) *typeInfo {
 
 	pos := render.Pos()
 
-	// Retrieve or create a new dummy macro declaration.
-	// The name of the macro is the quoted path of the partial file.
-	macroDecl, ok := tc.compilation.partialMacros[render.Tree]
+	stored, ok := tc.compilation.renderImportMacro[render.Tree]
 	if !ok {
-		macroDecl = ast.NewFunc(
+		macroDecl := ast.NewFunc(
 			pos,
 			ast.NewIdentifier(pos, strconv.Quote(render.Path)),
 			ast.NewFuncType(pos, true, nil, nil, false), // func()
@@ -2365,25 +2363,21 @@ func (tc *typechecker) checkRender(render *ast.Render) *typeInfo {
 			false,
 			render.Tree.Format,
 		)
-		tc.compilation.partialMacros[render.Tree] = macroDecl
-	}
-	render.IR.Call = ast.NewCall(pos, macroDecl.Ident, nil, false)
-
-	// Retrieve or create a new dummy 'import' statement that imports the
-	// dummy macro.
-	importt, ok := tc.compilation.partialImports[render.Tree]
-	if !ok {
-		importt = ast.NewImport(pos, nil, macroDecl.Ident.Name)
+		importt := ast.NewImport(pos, nil, macroDecl.Ident.Name)
 		importt.Tree = ast.NewTree(
 			render.Tree.Path,
 			[]ast.Node{macroDecl},
 			render.Tree.Format,
 		)
-		tc.compilation.partialImports[render.Tree] = importt
+		stored.Macro = macroDecl
+		stored.Import = importt
+		tc.compilation.renderImportMacro[render.Tree] = stored
 	}
-	render.IR.Import = importt
 
-	tc.checkNodes([]ast.Node{importt})
+	render.IR.Call = ast.NewCall(pos, stored.Macro.Ident, nil, false)
+	render.IR.Import = stored.Import
+
+	tc.checkNodes([]ast.Node{stored.Import})
 
 	return tc.checkExpr(render.IR.Call)
 }
