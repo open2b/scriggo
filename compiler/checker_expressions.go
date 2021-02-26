@@ -711,41 +711,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		}
 
 	case *ast.Render:
-
-		pos := expr.Pos()
-
-		// Retrieve or create a new dummy macro declaration.
-		// The name of the macro is the quoted path of the partial file.
-		macroDecl, ok := tc.compilation.partialMacros[expr.Tree]
-		if !ok {
-			macroDecl = ast.NewFunc(
-				pos,
-				ast.NewIdentifier(pos, strconv.Quote(expr.Path)),
-				ast.NewFuncType(pos, true, nil, nil, false), // func()
-				ast.NewBlock(pos, expr.Tree.Nodes),
-				false,
-				expr.Tree.Format,
-			)
-			tc.compilation.partialMacros[expr.Tree] = macroDecl
-		}
-		expr.IR.Call = ast.NewCall(pos, macroDecl.Ident, nil, false)
-
-		// Retrieve or create a new dummy 'import' statement that imports the
-		// dummy macro.
-		importt, ok := tc.compilation.partialImports[expr.Tree]
-		if !ok {
-			importt = ast.NewImport(pos, nil, macroDecl.Ident.Name)
-			importt.Tree = ast.NewTree(
-				expr.Tree.Path,
-				[]ast.Node{macroDecl},
-				expr.Tree.Format,
-			)
-			tc.compilation.partialImports[expr.Tree] = importt
-		}
-		expr.IR.Import = importt
-
-		tc.checkNodes([]ast.Node{importt})
-		return tc.checkExpr(expr.IR.Call)
+		return tc.checkRender(expr)
 
 	case *ast.Slicing:
 		t := tc.checkExpr(expr.Expr)
@@ -2381,4 +2347,43 @@ func (tc *typechecker) checkDollarIdentifier(expr *ast.DollarIdentifier) *typeIn
 
 	// Type check the IR of the expression and return its type info.
 	return tc.checkExpr(expr.IR.Ident)
+}
+
+func (tc *typechecker) checkRender(expr *ast.Render) *typeInfo {
+
+	pos := expr.Pos()
+
+	// Retrieve or create a new dummy macro declaration.
+	// The name of the macro is the quoted path of the partial file.
+	macroDecl, ok := tc.compilation.partialMacros[expr.Tree]
+	if !ok {
+		macroDecl = ast.NewFunc(
+			pos,
+			ast.NewIdentifier(pos, strconv.Quote(expr.Path)),
+			ast.NewFuncType(pos, true, nil, nil, false), // func()
+			ast.NewBlock(pos, expr.Tree.Nodes),
+			false,
+			expr.Tree.Format,
+		)
+		tc.compilation.partialMacros[expr.Tree] = macroDecl
+	}
+	expr.IR.Call = ast.NewCall(pos, macroDecl.Ident, nil, false)
+
+	// Retrieve or create a new dummy 'import' statement that imports the
+	// dummy macro.
+	importt, ok := tc.compilation.partialImports[expr.Tree]
+	if !ok {
+		importt = ast.NewImport(pos, nil, macroDecl.Ident.Name)
+		importt.Tree = ast.NewTree(
+			expr.Tree.Path,
+			[]ast.Node{macroDecl},
+			expr.Tree.Format,
+		)
+		tc.compilation.partialImports[expr.Tree] = importt
+	}
+	expr.IR.Import = importt
+
+	tc.checkNodes([]ast.Node{importt})
+
+	return tc.checkExpr(expr.IR.Call)
 }
