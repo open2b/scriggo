@@ -2349,7 +2349,12 @@ func (tc *typechecker) checkDollarIdentifier(expr *ast.DollarIdentifier) *typeIn
 	return tc.checkExpr(expr.IR.Ident)
 }
 
+// checkRender checks the 'render' expression and changes its internal
+// representation.
 func (tc *typechecker) checkRender(render *ast.Render) *typeInfo {
+
+	// Transform the render expression to a call to a macro that has the
+	// rendered file as body.
 
 	pos := render.Pos()
 
