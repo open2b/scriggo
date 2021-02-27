@@ -170,6 +170,7 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 var jsMimeType = []byte("text/javascript")
 var jsonLDMimeType = []byte("application/ld+json")
 var cssMimeType = []byte("text/css")
+var moduleType = []byte("module")
 
 // scan scans the text by placing the tokens on the toks channel. If an
 // error occurs, it puts the error in err, closes the channel and returns.
@@ -365,15 +366,23 @@ func (l *lexer) scan() {
 						p = 0
 						lin = l.line
 						col = l.column
-					} else if (l.tag.name == "script" || l.tag.name == "style") && l.tag.attr == "type" {
-						if typ := bytes.TrimSpace(l.src[l.tag.index:p]); len(typ) > 0 {
-							if l.tag.name == "script" {
+					} else if l.tag.attr == "type" {
+						switch l.tag.name {
+						case "script":
+							typ := l.src[l.tag.index:p]
+							if bytes.Equal(typ, moduleType) {
+								break
+							}
+							typ = bytes.TrimSpace(typ)
+							if len(typ) > 0 {
 								if bytes.EqualFold(typ, jsonLDMimeType) {
 									l.tag.ctx = ast.ContextJSON
 								} else if !bytes.EqualFold(typ, jsMimeType) {
 									l.tag.ctx = fileContext
 								}
-							} else {
+							}
+						case "style":
+							if typ := bytes.TrimSpace(l.src[l.tag.index:p]); len(typ) > 0 {
 								if !bytes.EqualFold(typ, cssMimeType) {
 									l.tag.ctx = fileContext
 								}
