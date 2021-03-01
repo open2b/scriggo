@@ -2368,7 +2368,7 @@ func (tc *typechecker) checkRender(render *ast.Render) *typeInfo {
 			false,
 			render.Tree.Format,
 		)
-		importt := ast.NewImport(pos, nil, macroDecl.Ident.Name)
+		importt := ast.NewImport(pos, nil, "/"+render.Path)
 		importt.Tree = ast.NewTree(
 			render.Tree.Path,
 			[]ast.Node{macroDecl},
