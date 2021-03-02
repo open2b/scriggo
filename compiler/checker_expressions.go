@@ -2356,25 +2356,24 @@ func (tc *typechecker) checkRender(render *ast.Render) *typeInfo {
 	// Transform the render expression to a call to a macro that has the
 	// rendered file as body.
 
-	stored, ok := tc.compilation.renderImportMacro[render.Tree]
+	tree := render.Tree
+
+	stored, ok := tc.compilation.renderImportMacro[tree]
 	if !ok {
 		macroDecl := ast.NewFunc(
 			nil,
 			ast.NewIdentifier(nil, strconv.Quote(render.Path)),
 			ast.NewFuncType(nil, true, nil, nil, false), // func()
-			ast.NewBlock(nil, render.Tree.Nodes),
+			ast.NewBlock(nil, tree.Nodes),
 			false,
-			render.Tree.Format,
+			tree.Format,
 		)
 		importt := ast.NewImport(nil, nil, "/"+render.Path)
-		importt.Tree = ast.NewTree(
-			render.Tree.Path,
-			[]ast.Node{macroDecl},
-			render.Tree.Format,
-		)
+		importt.Tree = tree
+		importt.Tree.Nodes = []ast.Node{macroDecl}
 		stored.Macro = macroDecl
 		stored.Import = importt
-		tc.compilation.renderImportMacro[render.Tree] = stored
+		tc.compilation.renderImportMacro[tree] = stored
 	}
 
 	render.IR.Call = ast.NewCall(render.Pos(), stored.Macro.Ident, nil, false)
