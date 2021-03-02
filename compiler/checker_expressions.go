@@ -2379,6 +2379,8 @@ func (tc *typechecker) checkRender(render *ast.Render) *typeInfo {
 	render.IR.Call = ast.NewCall(render.Pos(), stored.Macro.Ident, nil, false)
 	render.IR.Import = stored.Import
 
+	// The same 'import' statement may be type checked more than once per file.
+	// This is the expected and intended behavior.
 	tc.checkNodes([]ast.Node{stored.Import})
 
 	return tc.checkExpr(render.IR.Call)
