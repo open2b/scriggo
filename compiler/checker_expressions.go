@@ -2361,10 +2361,10 @@ func (tc *typechecker) checkRender(render *ast.Render) *typeInfo {
 	stored, ok := tc.compilation.renderImportMacro[render.Tree]
 	if !ok {
 		macroDecl := ast.NewFunc(
-			pos,
-			ast.NewIdentifier(pos, strconv.Quote(render.Path)),
-			ast.NewFuncType(pos, true, nil, nil, false), // func()
-			ast.NewBlock(pos, render.Tree.Nodes),
+			nil,
+			ast.NewIdentifier(nil, strconv.Quote(render.Path)),
+			ast.NewFuncType(nil, true, nil, nil, false), // func()
+			ast.NewBlock(nil, render.Tree.Nodes),
 			false,
 			render.Tree.Format,
 		)
