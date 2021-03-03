@@ -8,6 +8,7 @@ package compiler
 
 import (
 	"reflect"
+	"strings"
 
 	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/compiler/types"
@@ -179,7 +180,8 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 					continue
 				}
 				em.fnStore.makeAvailableScriggoFn(em.pkg, fun.Ident.Name, fn)
-				if isExported(fun.Ident.Name) {
+				isDummyMacroForRender := strings.HasPrefix(fun.Ident.Name, `"`) && strings.HasSuffix(fun.Ident.Name, `"`)
+				if isExported(fun.Ident.Name) || isDummyMacroForRender {
 					functions[fun.Ident.Name] = fn
 				}
 			}

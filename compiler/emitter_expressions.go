@@ -307,20 +307,11 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		em.fb.exitStack()
 
 	case *ast.Render:
-		// The scope of the render expression must be hidden from the rendered
-		// file, otherwise the file would see the variables in the scope of
-		// the render expression instead of global variables (note that the
-		// emitter gives precedence to local variables respect to global
-		// variables).
-		path := em.fb.getPath()
-		em.fb.changePath(expr.Tree.Path)
-		scopes := em.fb.scopes
-		em.fb.scopes = nil
-		em.fb.enterScope()
-		em.emitNodes(expr.Tree.Nodes)
-		em.fb.exitScope()
-		em.fb.changePath(path)
-		em.fb.scopes = scopes
+
+		// Emit the code that imports the dummy file, then emit the call to the
+		// dummy macro declared on it.
+		em.emitNodes([]ast.Node{expr.IR.Import})
+		return em._emitExpr(expr.IR.Call, dstType, reg, useGivenReg, allowK)
 
 	case *ast.Slicing:
 

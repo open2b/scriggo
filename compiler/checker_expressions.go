@@ -711,19 +711,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		}
 
 	case *ast.Render:
-		// Type check the file tree with a separate type checker.
-		// The scope of the rendered file is independent from the scope of the
-		// render expression (except for global declarations).
-		// Also, the use of a different type checker ensures that the
-		// fields of 'tc' are not altered nor inherited.
-		tc2 := newTypechecker(
-			tc.compilation,
-			expr.Tree.Path,
-			tc.opts,
-			tc.globalScope,
-		)
-		tc2.checkNodesInNewScope(expr.Tree.Nodes)
-		return &typeInfo{Type: tc.formatType(expr.Tree.Format)}
+		return tc.checkRender(expr)
 
 	case *ast.Slicing:
 		t := tc.checkExpr(expr.Expr)
@@ -2359,4 +2347,44 @@ func (tc *typechecker) checkDollarIdentifier(expr *ast.DollarIdentifier) *typeIn
 
 	// Type check the IR of the expression and return its type info.
 	return tc.checkExpr(expr.IR.Ident)
+}
+
+// checkRender checks the 'render' expression and changes its internal
+// representation.
+func (tc *typechecker) checkRender(render *ast.Render) *typeInfo {
+
+	// Transform the render expression to a call to a macro that has the
+	// rendered file as body.
+
+	tree := render.Tree
+
+	stored, ok := tc.compilation.renderImportMacro[tree]
+	if !ok {
+		macroDecl := ast.NewFunc(
+			nil,
+			ast.NewIdentifier(nil, strconv.Quote(tree.Path)),
+			ast.NewFuncType(nil, true, nil, nil, false), // func()
+			ast.NewBlock(nil, tree.Nodes),
+			false,
+			tree.Format,
+		)
+		// The same 'import' statement may be shared by different template
+		// files that 'render' the same file. This is the expected and intended
+		// behavior.
+		importt := ast.NewImport(nil, nil, "/"+render.Path)
+		importt.Tree = tree
+		importt.Tree.Nodes = []ast.Node{macroDecl}
+		stored.Macro = macroDecl
+		stored.Import = importt
+		tc.compilation.renderImportMacro[tree] = stored
+	}
+
+	render.IR.Call = ast.NewCall(render.Pos(), stored.Macro.Ident, nil, false)
+	render.IR.Import = stored.Import
+
+	// The same 'import' statement may be type checked more than once per file.
+	// This is the expected and intended behavior.
+	tc.checkNodes([]ast.Node{stored.Import})
+
+	return tc.checkExpr(render.IR.Call)
 }

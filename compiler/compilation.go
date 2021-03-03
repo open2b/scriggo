@@ -39,6 +39,17 @@ type compilation struct {
 	// indirectVars contains the list of all declarations of variables which
 	// must be emitted as "indirect".
 	indirectVars map[*ast.Identifier]bool
+
+	// renderImportMacro stores the dummy 'import' nodes and the dummy macro
+	// declarations that are used to implement the 'render' expression. This
+	// maps avoid making useless copies of AST nodes that may lead to
+	// inconsistent type checks and invalid behaviors.
+	renderImportMacro map[*ast.Tree]renderIR
+}
+
+type renderIR struct {
+	Import *ast.Import
+	Macro  *ast.Func
 }
 
 // newCompilation returns a new compilation.
@@ -49,6 +60,7 @@ func newCompilation() *compilation {
 		typeInfos:         map[ast.Node]*typeInfo{},
 		alreadySortedPkgs: map[*ast.Package]bool{},
 		indirectVars:      map[*ast.Identifier]bool{},
+		renderImportMacro: map[*ast.Tree]renderIR{},
 	}
 }
 

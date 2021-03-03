@@ -750,6 +750,17 @@ type Render struct {
 	*Position        // position in the source.
 	Path      string // path of the file to render.
 	Tree      *Tree  // expanded tree of <path>.
+
+	// IR holds the internal representation. The type checker transforms the
+	// 'render' expression into a macro call, where the macro body is the
+	// rendered file.
+	IR struct {
+		// Import is the 'import' statement that imports the dummy file
+		// declaring the dummy macro.
+		Import *Import
+		// Call is the call to the dummy macro.
+		Call *Call
+	}
 }
 
 func NewRender(pos *Position, path string) *Render {
