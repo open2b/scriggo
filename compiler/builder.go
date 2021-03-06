@@ -222,6 +222,13 @@ type functionBuilder struct {
 	complexBinaryOpIndexes map[ast.OperatorType]int8 // indexes of complex binary op. functions.
 	complexUnaryOpIndex    int8                      // index of complex negation function.
 
+	// text refers to the latest emitted Text instruction with its text to be flushed into the function.
+	text struct {
+		addr  runtime.Addr
+		txt   [][]byte
+		inURL bool
+	}
+
 	// path of the current file. For example, when emitting a "render <path>"
 	// expression in a template the file path changes even if the function
 	// remains the same.
@@ -549,8 +556,26 @@ func (builder *functionBuilder) setLabelAddr(lab label) {
 	builder.labelAddrs[lab-1] = builder.currentAddr()
 }
 
+// flushText flushes the buffered text of the emitted Text instructions.
+func (builder *functionBuilder) flushText() {
+	if len(builder.text.txt) == 0 {
+		return
+	}
+	var size int
+	for _, b := range builder.text.txt {
+		size += len(b)
+	}
+	text := make([]byte, 0, size)
+	for _, b := range builder.text.txt {
+		text = append(text, b...)
+	}
+	builder.text.txt = builder.text.txt[0:0]
+	builder.fn.Text = append(builder.fn.Text, text)
+}
+
 func (builder *functionBuilder) end() {
 	fn := builder.fn
+	builder.flushText()
 	builder.emitReturn()
 	// https://github.com/open2b/scriggo/issues/537
 	// if len(fn.Body) == 0 || fn.Body[len(fn.Body)-1].Op != runtime.OpReturn {

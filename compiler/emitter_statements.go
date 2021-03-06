@@ -351,9 +351,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 		case *ast.Text:
 			txt := node.Text[node.Cut.Left : len(node.Text)-node.Cut.Right]
 			if len(txt) != 0 {
-				index := uint16(len(em.fb.fn.Text))
-				em.fb.fn.Text = append(em.fb.fn.Text, txt)
-				em.fb.emitText(index, em.inURL, em.isURLSet)
+				em.fb.emitText(txt, em.inURL, em.isURLSet)
 			}
 
 		case *ast.TypeDeclaration:
@@ -372,6 +370,12 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.breakLabel = currentBreakLabel
 
 		case *ast.URL:
+			if len(node.Value) == 1 {
+				if _, ok := node.Value[0].(*ast.Text); ok {
+					em.emitNodes(node.Value)
+					continue
+				}
+			}
 			em.inURL = true
 			em.isURLSet = node.Attribute == "srcset"
 			em.emitNodes(node.Value)

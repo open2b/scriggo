@@ -1045,8 +1045,22 @@ func (builder *functionBuilder) emitSubInv(k bool, x, y, z int8, kind reflect.Ki
 //
 //     text(txt, ctx)
 //
-func (builder *functionBuilder) emitText(i uint16, inURL, isURLSet bool) {
-	a, b := encodeUint16(i)
+func (builder *functionBuilder) emitText(txt []byte, inURL, isURLSet bool) {
+	if len(builder.text.txt) > 0 {
+		addr := builder.currentAddr()
+		labels := builder.labelAddrs
+		if hasLabel := len(labels) > 0 && labels[len(labels)-1] == addr; !hasLabel {
+			if addr == builder.text.addr+1 && inURL == builder.text.inURL {
+				builder.text.txt = append(builder.text.txt, txt)
+				return
+			}
+		}
+		builder.flushText()
+	}
+	builder.text.addr = builder.currentAddr()
+	builder.text.txt = append(builder.text.txt, txt)
+	builder.text.inURL = inURL
+	a, b := encodeUint16(uint16(len(builder.fn.Text)))
 	c := encodeRenderContext(ast.ContextText, inURL, isURLSet)
 	builder.fn.Body = append(builder.fn.Body, runtime.Instruction{Op: runtime.OpText, A: a, B: b, C: int8(c)})
 }
