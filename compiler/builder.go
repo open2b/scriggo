@@ -253,27 +253,27 @@ func newBuilder(fn *runtime.Function, path string) *functionBuilder {
 }
 
 // currentStackShift returns the current stack shift.
-func (builder *functionBuilder) currentStackShift() runtime.StackShift {
+func (fb *functionBuilder) currentStackShift() runtime.StackShift {
 	return runtime.StackShift{
-		builder.numRegs[intRegister],
-		builder.numRegs[floatRegister],
-		builder.numRegs[stringRegister],
-		builder.numRegs[generalRegister],
+		fb.numRegs[intRegister],
+		fb.numRegs[floatRegister],
+		fb.numRegs[stringRegister],
+		fb.numRegs[generalRegister],
 	}
 }
 
 // enterScope enters a new scope.
 // Every enterScope call must be paired with a corresponding exitScope call.
-func (builder *functionBuilder) enterScope() {
-	builder.scopes = append(builder.scopes, map[string]int8{})
-	builder.enterStack()
+func (fb *functionBuilder) enterScope() {
+	fb.scopes = append(fb.scopes, map[string]int8{})
+	fb.enterStack()
 }
 
 // exitScope exits last scope.
 // Every exitScope call must be paired with a corresponding enterScope call.
-func (builder *functionBuilder) exitScope() {
-	builder.scopes = builder.scopes[:len(builder.scopes)-1]
-	builder.exitStack()
+func (fb *functionBuilder) exitScope() {
+	fb.scopes = fb.scopes[:len(fb.scopes)-1]
+	fb.exitStack()
 }
 
 // enterStack enters a new virtual stack, whose registers will be reused (if
@@ -291,50 +291,50 @@ func (builder *functionBuilder) exitScope() {
 // 		e.fb.exitStack()
 //	    // tmp location is now available for reusing
 //
-func (builder *functionBuilder) enterStack() {
-	scopeShift := builder.currentStackShift()
-	builder.scopeShifts = append(builder.scopeShifts, scopeShift)
+func (fb *functionBuilder) enterStack() {
+	scopeShift := fb.currentStackShift()
+	fb.scopeShifts = append(fb.scopeShifts, scopeShift)
 }
 
 // exitStack exits current virtual stack, allowing its registers to be reused
 // (if necessary).
 // Every exitStack call must be paired with a corresponding enterStack call.
 // See enterStack documentation for further details and usage.
-func (builder *functionBuilder) exitStack() {
-	shift := builder.scopeShifts[len(builder.scopeShifts)-1]
-	builder.numRegs[intRegister] = shift[intRegister]
-	builder.numRegs[floatRegister] = shift[floatRegister]
-	builder.numRegs[stringRegister] = shift[stringRegister]
-	builder.numRegs[generalRegister] = shift[generalRegister]
-	builder.scopeShifts = builder.scopeShifts[:len(builder.scopeShifts)-1]
+func (fb *functionBuilder) exitStack() {
+	shift := fb.scopeShifts[len(fb.scopeShifts)-1]
+	fb.numRegs[intRegister] = shift[intRegister]
+	fb.numRegs[floatRegister] = shift[floatRegister]
+	fb.numRegs[stringRegister] = shift[stringRegister]
+	fb.numRegs[generalRegister] = shift[generalRegister]
+	fb.scopeShifts = fb.scopeShifts[:len(fb.scopeShifts)-1]
 }
 
 // newRegister makes a new register of a given kind.
-func (builder *functionBuilder) newRegister(kind reflect.Kind) int8 {
+func (fb *functionBuilder) newRegister(kind reflect.Kind) int8 {
 	t := kindToType(kind)
-	num := builder.numRegs[t]
+	num := fb.numRegs[t]
 	if num == maxRegistersCount {
-		panic(newLimitExceededError(builder.fn.Pos, builder.path, "%s registers count exceeded %d", t, maxRegistersCount))
+		panic(newLimitExceededError(fb.fn.Pos, fb.path, "%s registers count exceeded %d", t, maxRegistersCount))
 	}
-	builder.allocRegister(t, num+1)
+	fb.allocRegister(t, num+1)
 	return num + 1
 }
 
 // newIndirectRegister allocates a new indirect register.
-func (builder *functionBuilder) newIndirectRegister() int8 {
-	return -builder.newRegister(reflect.Interface)
+func (fb *functionBuilder) newIndirectRegister() int8 {
+	return -fb.newRegister(reflect.Interface)
 }
 
 // bindVarReg binds name with register reg. To create a new variable, use
 // VariableRegister in conjunction with bindVarReg.
-func (builder *functionBuilder) bindVarReg(name string, reg int8) {
-	builder.scopes[len(builder.scopes)-1][name] = reg
+func (fb *functionBuilder) bindVarReg(name string, reg int8) {
+	fb.scopes[len(fb.scopes)-1][name] = reg
 }
 
 // isLocalVariable reports whether v is a local variable.
-func (builder *functionBuilder) isLocalVariable(v string) bool {
-	for i := len(builder.scopes) - 1; i >= 0; i-- {
-		_, ok := builder.scopes[i][v]
+func (fb *functionBuilder) isLocalVariable(v string) bool {
+	for i := len(fb.scopes) - 1; i >= 0; i-- {
+		_, ok := fb.scopes[i][v]
 		if ok {
 			return true
 		}
@@ -343,9 +343,9 @@ func (builder *functionBuilder) isLocalVariable(v string) bool {
 }
 
 // scopeLookup returns n's register.
-func (builder *functionBuilder) scopeLookup(n string) int8 {
-	for i := len(builder.scopes) - 1; i >= 0; i-- {
-		reg, ok := builder.scopes[i][n]
+func (fb *functionBuilder) scopeLookup(n string) int8 {
+	for i := len(fb.scopes) - 1; i >= 0; i-- {
+		reg, ok := fb.scopes[i][n]
 		if ok {
 			return reg
 		}
@@ -353,12 +353,12 @@ func (builder *functionBuilder) scopeLookup(n string) int8 {
 	panic(fmt.Sprintf("bug: %s not found", n))
 }
 
-func (builder *functionBuilder) addPosAndPath(pos *ast.Position) {
-	pc := runtime.Addr(len(builder.fn.Body))
-	if builder.fn.DebugInfo == nil {
-		builder.fn.DebugInfo = map[runtime.Addr]runtime.DebugInfo{}
+func (fb *functionBuilder) addPosAndPath(pos *ast.Position) {
+	pc := runtime.Addr(len(fb.fn.Body))
+	if fb.fn.DebugInfo == nil {
+		fb.fn.DebugInfo = map[runtime.Addr]runtime.DebugInfo{}
 	}
-	debugInfo := builder.fn.DebugInfo[pc]
+	debugInfo := fb.fn.DebugInfo[pc]
 	if pos == nil {
 		debugInfo.Position.Line = 1
 		debugInfo.Position.Column = 1
@@ -368,48 +368,48 @@ func (builder *functionBuilder) addPosAndPath(pos *ast.Position) {
 		debugInfo.Position.Start = pos.Start
 		debugInfo.Position.End = pos.End
 	}
-	debugInfo.Path = builder.path
-	builder.fn.DebugInfo[pc] = debugInfo
+	debugInfo.Path = fb.path
+	fb.fn.DebugInfo[pc] = debugInfo
 }
 
 // addOperandKinds adds the kind of the three operands of the next instruction.
 // If an operand has no kind (or if that kind is not meaningful) it is legal to
 // pass the zero of reflect.Kind for such operand.
-func (builder *functionBuilder) addOperandKinds(a, b, c reflect.Kind) {
-	pc := runtime.Addr(len(builder.fn.Body))
-	if builder.fn.DebugInfo == nil {
-		builder.fn.DebugInfo = map[runtime.Addr]runtime.DebugInfo{}
+func (fb *functionBuilder) addOperandKinds(a, b, c reflect.Kind) {
+	pc := runtime.Addr(len(fb.fn.Body))
+	if fb.fn.DebugInfo == nil {
+		fb.fn.DebugInfo = map[runtime.Addr]runtime.DebugInfo{}
 	}
-	debugInfo := builder.fn.DebugInfo[pc]
+	debugInfo := fb.fn.DebugInfo[pc]
 	debugInfo.OperandKind = [3]reflect.Kind{a, b, c}
-	builder.fn.DebugInfo[pc] = debugInfo
+	fb.fn.DebugInfo[pc] = debugInfo
 }
 
 // addFunctionType adds the type to the next function call instruction as a
 // debug information. Note that it's not necessary to call this method for Call
 // and CallPredefined instructions because the type of the function is already
 // stored into the Functions and Predefined slices.
-func (builder *functionBuilder) addFunctionType(typ reflect.Type) {
-	pc := runtime.Addr(len(builder.fn.Body))
-	if builder.fn.DebugInfo == nil {
-		builder.fn.DebugInfo = map[runtime.Addr]runtime.DebugInfo{}
+func (fb *functionBuilder) addFunctionType(typ reflect.Type) {
+	pc := runtime.Addr(len(fb.fn.Body))
+	if fb.fn.DebugInfo == nil {
+		fb.fn.DebugInfo = map[runtime.Addr]runtime.DebugInfo{}
 	}
-	debugInfo := builder.fn.DebugInfo[pc]
+	debugInfo := fb.fn.DebugInfo[pc]
 	debugInfo.FuncType = typ
-	builder.fn.DebugInfo[pc] = debugInfo
+	fb.fn.DebugInfo[pc] = debugInfo
 }
 
 // changePath changes the current path. Note that the path is initially set at
 // the creation of the function builder; this method should be called only when
 // the path changes during the building of the same function, for example when
 // emitting a render expression.
-func (builder *functionBuilder) changePath(newPath string) {
-	builder.path = newPath
+func (fb *functionBuilder) changePath(newPath string) {
+	fb.path = newPath
 }
 
 // getPath returns the current path.
-func (builder *functionBuilder) getPath() string {
-	return builder.path
+func (fb *functionBuilder) getPath() string {
+	return fb.path
 }
 
 // addType adds a type to the builder's function, creating it if necessary.
@@ -421,13 +421,13 @@ func (builder *functionBuilder) getPath() string {
 // instruction of the virtual machine that receives a type 'as is', such type
 // must be handled as a special case from the VM; considered that, in the most
 // cases you would just simply set 'preserveType' to false.
-func (builder *functionBuilder) addType(typ reflect.Type, preserveType bool) int {
+func (fb *functionBuilder) addType(typ reflect.Type, preserveType bool) int {
 	if !preserveType {
 		if st, ok := typ.(types.ScriggoType); ok {
 			typ = st.Underlying()
 		}
 	}
-	fn := builder.fn
+	fn := fb.fn
 	for i, t := range fn.Types {
 		if t == typ {
 			return i
@@ -435,46 +435,46 @@ func (builder *functionBuilder) addType(typ reflect.Type, preserveType bool) int
 	}
 	index := len(fn.Types)
 	if index == maxTypesCount {
-		panic(newLimitExceededError(builder.fn.Pos, builder.path, "types count exceeded %d", maxTypesCount))
+		panic(newLimitExceededError(fb.fn.Pos, fb.path, "types count exceeded %d", maxTypesCount))
 	}
 	fn.Types = append(fn.Types, typ)
 	return index
 }
 
 // addPredefinedFunction adds a predefined function to the builder's function.
-func (builder *functionBuilder) addPredefinedFunction(f *runtime.PredefinedFunction) uint8 {
-	fn := builder.fn
+func (fb *functionBuilder) addPredefinedFunction(f *runtime.PredefinedFunction) uint8 {
+	fn := fb.fn
 	r := len(fn.Predefined)
 	if r == maxPredefinedFunctionsCount {
-		panic(newLimitExceededError(builder.fn.Pos, builder.path, "predefined functions count exceeded %d", maxPredefinedFunctionsCount))
+		panic(newLimitExceededError(fb.fn.Pos, fb.path, "predefined functions count exceeded %d", maxPredefinedFunctionsCount))
 	}
 	fn.Predefined = append(fn.Predefined, f)
 	return uint8(r)
 }
 
 // addFunction adds a function to the builder's function.
-func (builder *functionBuilder) addFunction(f *runtime.Function) uint8 {
-	fn := builder.fn
+func (fb *functionBuilder) addFunction(f *runtime.Function) uint8 {
+	fn := fb.fn
 	r := len(fn.Functions)
 	if r == maxScriggoFunctionsCount {
-		panic(newLimitExceededError(builder.fn.Pos, builder.path, "Scriggo functions count exceeded %d", maxScriggoFunctionsCount))
+		panic(newLimitExceededError(fb.fn.Pos, fb.path, "Scriggo functions count exceeded %d", maxScriggoFunctionsCount))
 	}
 	fn.Functions = append(fn.Functions, f)
 	return uint8(r)
 }
 
 // makeStringConstant makes a new string constant, returning it's index.
-func (builder *functionBuilder) makeStringConstant(c string) int8 {
-	for i, v := range builder.fn.Constants.String {
+func (fb *functionBuilder) makeStringConstant(c string) int8 {
+	for i, v := range fb.fn.Constants.String {
 		if c == v {
 			return int8(i)
 		}
 	}
-	r := len(builder.fn.Constants.String)
+	r := len(fb.fn.Constants.String)
 	if r == maxStringConstantsCount {
-		panic(newLimitExceededError(builder.fn.Pos, builder.path, "string count exceeded %d", maxStringConstantsCount))
+		panic(newLimitExceededError(fb.fn.Pos, fb.path, "string count exceeded %d", maxStringConstantsCount))
 	}
-	builder.fn.Constants.String = append(builder.fn.Constants.String, c)
+	fb.fn.Constants.String = append(fb.fn.Constants.String, c)
 	return int8(r)
 }
 
@@ -485,140 +485,140 @@ func (builder *functionBuilder) makeStringConstant(c string) int8 {
 // If the VM's internal representation of c is different from the external, c
 // must always have the external representation. Any conversion, if needed, will
 // be internally handled.
-func (builder *functionBuilder) makeGeneralConstant(c interface{}) int8 {
+func (fb *functionBuilder) makeGeneralConstant(c interface{}) int8 {
 	// Check if a constant with the same value has already been added to the
 	// general Constants slice.
 	if t := reflect.TypeOf(c); c == nil || t.Comparable() {
-		for i, v := range builder.fn.Constants.General {
+		for i, v := range fb.fn.Constants.General {
 			if c == v {
 				return int8(i)
 			}
 		}
 	} else {
-		for i, v := range builder.fn.Constants.General {
+		for i, v := range fb.fn.Constants.General {
 			if v != nil && t == reflect.TypeOf(v) {
 				return int8(i)
 			}
 		}
 	}
-	r := len(builder.fn.Constants.General)
+	r := len(fb.fn.Constants.General)
 	if r == maxGeneralConstantsCount {
-		panic(newLimitExceededError(builder.fn.Pos, builder.path, "general constants count exceeded %d", maxGeneralConstantsCount))
+		panic(newLimitExceededError(fb.fn.Pos, fb.path, "general constants count exceeded %d", maxGeneralConstantsCount))
 	}
-	builder.fn.Constants.General = append(builder.fn.Constants.General, c)
+	fb.fn.Constants.General = append(fb.fn.Constants.General, c)
 	return int8(r)
 }
 
 // makeFloatConstant makes a new float constant, returning it's index.
-func (builder *functionBuilder) makeFloatConstant(c float64) int8 {
-	for i, v := range builder.fn.Constants.Float {
+func (fb *functionBuilder) makeFloatConstant(c float64) int8 {
+	for i, v := range fb.fn.Constants.Float {
 		if c == v {
 			return int8(i)
 		}
 	}
-	r := len(builder.fn.Constants.Float)
+	r := len(fb.fn.Constants.Float)
 	if r == maxFloatConstantsCount {
-		panic(newLimitExceededError(builder.fn.Pos, builder.path, "floating-point count exceeded %d", maxFloatConstantsCount))
+		panic(newLimitExceededError(fb.fn.Pos, fb.path, "floating-point count exceeded %d", maxFloatConstantsCount))
 	}
-	builder.fn.Constants.Float = append(builder.fn.Constants.Float, c)
+	fb.fn.Constants.Float = append(fb.fn.Constants.Float, c)
 	return int8(r)
 }
 
 // makeIntConstant makes a new int constant, returning it's index.
-func (builder *functionBuilder) makeIntConstant(c int64) int8 {
-	for i, v := range builder.fn.Constants.Int {
+func (fb *functionBuilder) makeIntConstant(c int64) int8 {
+	for i, v := range fb.fn.Constants.Int {
 		if c == v {
 			return int8(i)
 		}
 	}
-	r := len(builder.fn.Constants.Int)
+	r := len(fb.fn.Constants.Int)
 	if r == maxIntConstantsCount {
-		panic(newLimitExceededError(builder.fn.Pos, builder.path, "integer count exceeded %d", maxIntConstantsCount))
+		panic(newLimitExceededError(fb.fn.Pos, fb.path, "integer count exceeded %d", maxIntConstantsCount))
 	}
-	builder.fn.Constants.Int = append(builder.fn.Constants.Int, c)
+	fb.fn.Constants.Int = append(fb.fn.Constants.Int, c)
 	return int8(r)
 }
 
 // currentAddr returns builder's current address.
-func (builder *functionBuilder) currentAddr() runtime.Addr {
-	return runtime.Addr(len(builder.fn.Body))
+func (fb *functionBuilder) currentAddr() runtime.Addr {
+	return runtime.Addr(len(fb.fn.Body))
 }
 
 // newLabel creates a new empty label. Use setLabelAddr to associate an
 // address to it.
-func (builder *functionBuilder) newLabel() label {
-	builder.labelAddrs = append(builder.labelAddrs, runtime.Addr(0))
-	return label(len(builder.labelAddrs))
+func (fb *functionBuilder) newLabel() label {
+	fb.labelAddrs = append(fb.labelAddrs, runtime.Addr(0))
+	return label(len(fb.labelAddrs))
 }
 
 // setLabelAddr sets label's address as builder's current address.
-func (builder *functionBuilder) setLabelAddr(lab label) {
-	builder.labelAddrs[lab-1] = builder.currentAddr()
+func (fb *functionBuilder) setLabelAddr(lab label) {
+	fb.labelAddrs[lab-1] = fb.currentAddr()
 }
 
 // flushText flushes the buffered text of the emitted Text instructions.
-func (builder *functionBuilder) flushText() {
-	if len(builder.text.txt) == 0 {
+func (fb *functionBuilder) flushText() {
+	if len(fb.text.txt) == 0 {
 		return
 	}
 	var size int
-	for _, b := range builder.text.txt {
+	for _, b := range fb.text.txt {
 		size += len(b)
 	}
 	text := make([]byte, 0, size)
-	for _, b := range builder.text.txt {
+	for _, b := range fb.text.txt {
 		text = append(text, b...)
 	}
-	builder.text.txt = builder.text.txt[0:0]
-	builder.fn.Text = append(builder.fn.Text, text)
+	fb.text.txt = fb.text.txt[0:0]
+	fb.fn.Text = append(fb.fn.Text, text)
 }
 
-func (builder *functionBuilder) end() {
-	fn := builder.fn
-	builder.flushText()
-	builder.emitReturn()
+func (fb *functionBuilder) end() {
+	fn := fb.fn
+	fb.flushText()
+	fb.emitReturn()
 	// https://github.com/open2b/scriggo/issues/537
 	// if len(fn.Body) == 0 || fn.Body[len(fn.Body)-1].Op != runtime.OpReturn {
-	// 	builder.emitReturn()
+	// 	fb.emitReturn()
 	// }
 	if len(fn.Body) > math.MaxUint32 {
 		panic(newLimitExceededError(fn.Pos, fn.File, "instructions count exceeded %d", math.MaxUint32))
 	}
-	for addr, label := range builder.gotos {
+	for addr, label := range fb.gotos {
 		i := fn.Body[addr]
-		i.A, i.B, i.C = encodeUint24(uint32(builder.labelAddrs[label-1]))
+		i.A, i.B, i.C = encodeUint24(uint32(fb.labelAddrs[label-1]))
 		fn.Body[addr] = i
 	}
-	builder.gotos = nil
-	for typ, num := range builder.maxRegs {
+	fb.gotos = nil
+	for typ, num := range fb.maxRegs {
 		if num > fn.NumReg[typ] {
 			fn.NumReg[typ] = num
 		}
 	}
 }
 
-func (builder *functionBuilder) allocRegister(typ registerType, reg int8) {
-	if max, ok := builder.maxRegs[typ]; !ok || reg > max {
-		builder.maxRegs[typ] = reg
+func (fb *functionBuilder) allocRegister(typ registerType, reg int8) {
+	if max, ok := fb.maxRegs[typ]; !ok || reg > max {
+		fb.maxRegs[typ] = reg
 	}
-	if num, ok := builder.numRegs[typ]; !ok || reg > num {
-		builder.numRegs[typ] = reg
+	if num, ok := fb.numRegs[typ]; !ok || reg > num {
+		fb.numRegs[typ] = reg
 	}
 }
 
 // complexOperationIndex returns the index of the function which performs the
 // binary or unary operation specified by op.
-func (builder *functionBuilder) complexOperationIndex(op ast.OperatorType, unary bool) int8 {
+func (fb *functionBuilder) complexOperationIndex(op ast.OperatorType, unary bool) int8 {
 	if unary {
-		if builder.complexUnaryOpIndex != -1 {
-			return builder.complexUnaryOpIndex
+		if fb.complexUnaryOpIndex != -1 {
+			return fb.complexUnaryOpIndex
 		}
 		fn := newPredefinedFunction("scriggo.complex", "neg", negComplex)
-		index := int8(builder.addPredefinedFunction(fn))
-		builder.complexUnaryOpIndex = index
+		index := int8(fb.addPredefinedFunction(fn))
+		fb.complexUnaryOpIndex = index
 		return index
 	}
-	if index, ok := builder.complexBinaryOpIndexes[op]; ok {
+	if index, ok := fb.complexBinaryOpIndexes[op]; ok {
 		return index
 	}
 	var f interface{}
@@ -639,8 +639,8 @@ func (builder *functionBuilder) complexOperationIndex(op ast.OperatorType, unary
 	}
 	_ = n
 	fn := newPredefinedFunction("scriggo.complex", n, f)
-	index := int8(builder.addPredefinedFunction(fn))
-	builder.complexBinaryOpIndexes[op] = index
+	index := int8(fb.addPredefinedFunction(fn))
+	fb.complexBinaryOpIndexes[op] = index
 	return index
 }
 
