@@ -50,8 +50,6 @@ func serve(asm int, metrics bool) error {
 		static: http.FileServer(http.Dir(".")),
 		buildOptions: &templates.BuildOptions{
 			Globals: globals,
-		},
-		runOptions: &templates.RunOptions{
 			MarkdownConverter: func(src []byte, out io.Writer) error {
 				return goldmark.Convert(src, out)
 			},

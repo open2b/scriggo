@@ -62,8 +62,20 @@ func (r *renderer) Close() error {
 	return nil
 }
 
-// Show shows v in the given context.
+// Show shows v in the given context if r.out is not nil.
+// If r.out is nil, Show only does a type check and calls env.Fatal if it fails.
 func (r *renderer) Show(env runtime.Env, v interface{}, context uint8) {
+
+	if r.out == nil {
+		// Type check the show statement.
+		t := env.Types().TypeOf(v)
+		ctx, _, _ := decodeRenderContext(context)
+		err := checkShow(t, ctx)
+		if err != nil {
+			env.Fatal(fmt.Errorf("cannot show type %s as %s", t, ctx))
+		}
+		return
+	}
 
 	ctx, inURL, _ := decodeRenderContext(context)
 

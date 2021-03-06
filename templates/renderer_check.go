@@ -8,12 +8,10 @@ package templates
 
 import (
 	"fmt"
-	"io"
 	"reflect"
 	"time"
 
 	"github.com/open2b/scriggo/compiler/ast"
-	"github.com/open2b/scriggo/runtime"
 )
 
 var stringerType = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
@@ -50,17 +48,8 @@ func decodeRenderContext(c uint8) (ast.Context, bool, bool) {
 	return ctx, inURL, isURLSet
 }
 
-// buildRenderer implements the runtime.Renderer interface and it is used
-// during the build of the template to type checks a show statement.
-type buildRenderer struct{}
-
-func (r buildRenderer) Close() error { return nil }
-
-func (r buildRenderer) Out() io.Writer { return nil }
-
-func (r buildRenderer) Show(env runtime.Env, v interface{}, context uint8) {
-	t := env.Types().TypeOf(v)
-	ctx, _, _ := decodeRenderContext(context)
+// checkShow type checks the show of a value of type t in context ctx.
+func checkShow(t reflect.Type, ctx ast.Context) error {
 	kind := t.Kind()
 	switch ctx {
 	case ast.ContextText, ast.ContextTag, ast.ContextQuotedAttr, ast.ContextUnquotedAttr,
@@ -74,7 +63,7 @@ func (r buildRenderer) Show(env runtime.Env, v interface{}, context uint8) {
 		case t.Implements(envStringerType):
 		case t.Implements(errorType):
 		default:
-			env.Fatal(fmt.Errorf("cannot show type %s as %s", t, ctx))
+			return fmt.Errorf("cannot show type %s as %s", t, ctx)
 		}
 	case ast.ContextHTML:
 		switch {
@@ -87,7 +76,7 @@ func (r buildRenderer) Show(env runtime.Env, v interface{}, context uint8) {
 		case t.Implements(htmlEnvStringerType):
 		case t.Implements(errorType):
 		default:
-			env.Fatal(fmt.Errorf("cannot show type %s as HTML", t))
+			return fmt.Errorf("cannot show type %s as HTML", t)
 		}
 	case ast.ContextCSS:
 		switch {
@@ -100,17 +89,17 @@ func (r buildRenderer) Show(env runtime.Env, v interface{}, context uint8) {
 		case t.Implements(cssEnvStringerType):
 		case t.Implements(errorType):
 		default:
-			env.Fatal(fmt.Errorf("cannot show type %s as CSS", t))
+			return fmt.Errorf("cannot show type %s as CSS", t)
 		}
 	case ast.ContextJS:
-		err := shownAsJS(t)
+		err := checkShowJS(t)
 		if err != nil {
-			env.Fatal(err)
+			return err
 		}
 	case ast.ContextJSON:
-		err := shownAsJSON(t)
+		err := checkShowJSON(t)
 		if err != nil {
-			env.Fatal(err)
+			return err
 		}
 	case ast.ContextMarkdown:
 		switch {
@@ -124,23 +113,17 @@ func (r buildRenderer) Show(env runtime.Env, v interface{}, context uint8) {
 		case t.Implements(htmlEnvStringerType):
 		case t.Implements(errorType):
 		default:
-			env.Fatal(fmt.Errorf("cannot show type %s as Markdown", t))
+			return fmt.Errorf("cannot show type %s as Markdown", t)
 		}
 	default:
 		panic("unexpected context")
 	}
-	return
+	return nil
 }
 
-func (r buildRenderer) Text(runtime.Env, []byte, uint8) {}
-
-func (r buildRenderer) WithConversion(uint8, uint8) runtime.Renderer { return nil }
-
-func (r buildRenderer) WithOut(io.Writer) runtime.Renderer { return nil }
-
-// shownAsJS reports whether a type can be shown as JavaScript. It returns
+// checkShowJS reports whether a type can be shown as JavaScript. It returns
 // an error if the type cannot be shown.
-func shownAsJS(t reflect.Type) error {
+func checkShowJS(t reflect.Type) error {
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
 		t == timeType ||
@@ -151,7 +134,7 @@ func shownAsJS(t reflect.Type) error {
 	}
 	switch kind {
 	case reflect.Array:
-		if err := shownAsJS(t.Elem()); err != nil {
+		if err := checkShowJS(t.Elem()); err != nil {
 			return fmt.Errorf("cannot show array of %s as JavaScript", t.Elem())
 		}
 	case reflect.Interface:
@@ -165,14 +148,14 @@ func shownAsJS(t reflect.Type) error {
 		default:
 			return fmt.Errorf("cannot show map with %s key as JavaScript", t.Key())
 		}
-		err := shownAsJS(t.Elem())
+		err := checkShowJS(t.Elem())
 		if err != nil {
 			return fmt.Errorf("cannot show map with %s element as JavaScript", t.Elem())
 		}
 	case reflect.Ptr, reflect.UnsafePointer:
-		return shownAsJS(t.Elem())
+		return checkShowJS(t.Elem())
 	case reflect.Slice:
-		if err := shownAsJS(t.Elem()); err != nil {
+		if err := checkShowJS(t.Elem()); err != nil {
 			return fmt.Errorf("cannot show slice of %s as JavaScript", t.Elem())
 		}
 	case reflect.Struct:
@@ -180,7 +163,7 @@ func shownAsJS(t reflect.Type) error {
 		for i := 0; i < n; i++ {
 			field := t.Field(i)
 			if field.PkgPath == "" {
-				if err := shownAsJS(field.Type); err != nil {
+				if err := checkShowJS(field.Type); err != nil {
 					return fmt.Errorf("cannot show struct containing %s as JavaScript", field.Type)
 				}
 			}
@@ -191,9 +174,9 @@ func shownAsJS(t reflect.Type) error {
 	return nil
 }
 
-// shownAsJSON reports whether a type can be shown as JSON. It returns an
+// checkShowJSON reports whether a type can be shown as JSON. It returns an
 // error if the type cannot be shown.
-func shownAsJSON(t reflect.Type) error {
+func checkShowJSON(t reflect.Type) error {
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
 		t == timeType ||
@@ -204,7 +187,7 @@ func shownAsJSON(t reflect.Type) error {
 	}
 	switch kind {
 	case reflect.Array:
-		if err := shownAsJSON(t.Elem()); err != nil {
+		if err := checkShowJSON(t.Elem()); err != nil {
 			return fmt.Errorf("cannot show array of %s as JSON", t.Elem())
 		}
 	case reflect.Interface:
@@ -218,14 +201,14 @@ func shownAsJSON(t reflect.Type) error {
 		default:
 			return fmt.Errorf("cannot show map with %s key as JSON", t.Key())
 		}
-		err := shownAsJSON(t.Elem())
+		err := checkShowJSON(t.Elem())
 		if err != nil {
 			return fmt.Errorf("cannot show map with %s element as JSON", t.Elem())
 		}
 	case reflect.Ptr, reflect.UnsafePointer:
-		return shownAsJSON(t.Elem())
+		return checkShowJSON(t.Elem())
 	case reflect.Slice:
-		if err := shownAsJSON(t.Elem()); err != nil {
+		if err := checkShowJSON(t.Elem()); err != nil {
 			return fmt.Errorf("cannot show slice of %s as JSON", t.Elem())
 		}
 	case reflect.Struct:
@@ -233,7 +216,7 @@ func shownAsJSON(t reflect.Type) error {
 		for i := 0; i < n; i++ {
 			field := t.Field(i)
 			if field.PkgPath == "" {
-				if err := shownAsJSON(field.Type); err != nil {
+				if err := checkShowJSON(field.Type); err != nil {
 					return fmt.Errorf("cannot show struct containing %s as JSON", field.Type)
 				}
 			}

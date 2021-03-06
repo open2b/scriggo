@@ -130,8 +130,9 @@ func main() {
 			fsys = fs.DirFS(flag.Arg(2))
 		}
 		opts := templates.BuildOptions{
-			Globals:  globals,
-			Packages: predefPkgs,
+			Globals:           globals,
+			Packages:          predefPkgs,
+			MarkdownConverter: markdownConverter,
 		}
 		template, err := templates.Build(fsys, "index"+ext, &opts)
 		if err != nil {
@@ -139,10 +140,7 @@ func main() {
 			os.Exit(1)
 		}
 		if cmd != "build" {
-			opts := &templates.RunOptions{
-				MarkdownConverter: markdownConverter,
-			}
-			err = template.Run(os.Stdout, nil, opts)
+			err = template.Run(os.Stdout, nil, nil)
 			if err != nil {
 				panic(convertRunError(err))
 			}

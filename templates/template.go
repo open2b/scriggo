@@ -8,6 +8,7 @@ package templates
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -108,6 +109,9 @@ type BuildOptions struct {
 	DisallowGoStmt  bool
 	TreeTransformer func(*ast.Tree) error // if not nil transforms tree after parsing.
 
+	// MarkdownConverter converts a Markdown source code to HTML.
+	MarkdownConverter Converter
+
 	// Globals declares constants, types, variables and functions that are
 	// accessible from the code in the template.
 	Globals Declarations
@@ -133,15 +137,13 @@ type Converter func(src []byte, out io.Writer) error
 type RunOptions struct {
 	Context   context.Context
 	PrintFunc runtime.PrintFunc
-
-	// MarkdownConverter converts a Markdown source code to HTML.
-	MarkdownConverter Converter
 }
 
 type Template struct {
-	fn      *runtime.Function
-	types   runtime.Types
-	globals []compiler.Global
+	fn          *runtime.Function
+	types       runtime.Types
+	globals     []compiler.Global
+	mdConverter Converter
 }
 
 // CompilerError represents an error returned by the compiler.
@@ -182,28 +184,31 @@ var formatTypes = map[ast.Format]reflect.Type{
 //
 func Build(fsys fs.FS, name string, options *BuildOptions) (*Template, error) {
 	co := compiler.Options{
-		Renderer:    buildRenderer{},
 		FormatTypes: formatTypes,
 	}
+	var mdConverter Converter
 	if options != nil {
 		co.Globals = compiler.Declarations(options.Globals)
 		co.TreeTransformer = options.TreeTransformer
 		co.DisallowGoStmt = options.DisallowGoStmt
 		co.Packages = options.Packages
-
+		mdConverter = options.MarkdownConverter
 	}
+	co.Renderer = newRenderer(nil, mdConverter)
 	code, err := compiler.BuildTemplate(fsys, name, co)
 	if err != nil {
 		return nil, err
 	}
-	return &Template{fn: code.Main, types: code.Types, globals: code.Globals}, nil
+	return &Template{fn: code.Main, types: code.Types, globals: code.Globals, mdConverter: mdConverter}, nil
 }
 
 // Run runs the template and write the rendered code to out. vars contains
 // the values of the global variables.
 func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunOptions) error {
+	if out == nil {
+		return errors.New("invalid nil out")
+	}
 	vm := runtime.NewVM()
-	var mdConverter Converter
 	if options != nil {
 		if options.Context != nil {
 			vm.SetContext(options.Context)
@@ -211,9 +216,8 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 		if options.PrintFunc != nil {
 			vm.SetPrint(options.PrintFunc)
 		}
-		mdConverter = options.MarkdownConverter
 	}
-	renderer := newRenderer(out, mdConverter)
+	renderer := newRenderer(out, t.mdConverter)
 	vm.SetRenderer(renderer)
 	_, err := vm.Run(t.fn, t.types, initGlobalVariables(t.globals, vars))
 	return err
