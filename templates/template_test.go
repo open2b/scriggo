@@ -2340,6 +2340,13 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: "p1 is ciao (len = 4), p2 is ciao",
 	},
+
+	"Convert a markdown value to an html value": {
+		sources: map[string]string{
+			"index.txt": `{% var m markdown = "# title" %}{% h := html(m) %}{{ string(h) }}`,
+		},
+		expectedOut: "--- start Markdown ---\n# title--- end Markdown ---\n",
+	},
 }
 
 var structWithUnexportedFields = &struct {
@@ -2439,8 +2446,9 @@ func TestMultiPageTemplate(t *testing.T) {
 				}
 			}
 			opts := &BuildOptions{
-				Globals:  globals,
-				Packages: cas.packages,
+				Globals:           globals,
+				Packages:          cas.packages,
+				MarkdownConverter: markdownConverter,
 			}
 			template, err := Build(fsys, entryPoint, opts)
 			switch {
@@ -2587,4 +2595,21 @@ func Test_envFilePath(t *testing.T) {
 			}
 		})
 	}
+}
+
+var mdStart = []byte("--- start Markdown ---\n")
+var mdEnd = []byte("--- end Markdown ---\n")
+
+// markdownConverter is a templates.Converter that it used to check that the
+// markdown converter is called. To do this, markdownConverter does not
+// convert but only wraps the Markdown code.
+func markdownConverter(src []byte, out io.Writer) error {
+	_, err := out.Write(mdStart)
+	if err == nil {
+		_, err = out.Write(src)
+	}
+	if err == nil {
+		_, err = out.Write(mdEnd)
+	}
+	return err
 }

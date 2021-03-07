@@ -7,6 +7,7 @@
 package compiler
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"reflect"
@@ -1819,6 +1820,18 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) []*typeInfo {
 	return resultTypes
 }
 
+// isMarkdown reports whether t is the markdown format type.
+func (tc *typechecker) isMarkdown(t reflect.Type) bool {
+	markdown, ok := tc.universe["markdown"]
+	return ok && t == markdown.t.Type
+}
+
+// isHTML reports whether t is the html format type.
+func (tc *typechecker) isHTML(t reflect.Type) bool {
+	html, ok := tc.universe["html"]
+	return ok && t == html.t.Type
+}
+
 func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *typeInfo {
 
 	t := tc.compilation.typeInfos[expr.Func]
@@ -1831,6 +1844,24 @@ func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *typeInfo {
 	}
 
 	arg := tc.checkExpr(expr.Args[0])
+
+	// Check the special conversion from markdown to html.
+	if t.IsFormatType() && tc.isMarkdown(arg.Type) && tc.isHTML(t.Type) {
+		ti := &typeInfo{Type: t.Type}
+		if arg.IsConstant() {
+			var b bytes.Buffer
+			r1 := tc.opts.renderer.WithOut(&b)
+			r2 := r1.WithConversion(uint8(ast.FormatMarkdown), uint8(ast.FormatHTML))
+			_, _ = r2.Out().Write([]byte(arg.Constant.String()))
+			_ = r2.Close()
+			_ = r1.Close()
+			ti.Constant = stringConst(b.String())
+			ti.setValue(t.Type)
+		} else {
+			arg.setValue(arg.Type)
+		}
+		return ti
+	}
 
 	var c constant
 	var err error

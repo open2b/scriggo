@@ -113,7 +113,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 
 		// Conversion.
-		if em.ti(expr.Func).IsType() {
+		if ti := em.ti(expr.Func); ti.IsType() {
 			convertType := em.typ(expr.Func)
 			// A conversion cannot have side-effects.
 			if reg == 0 {
@@ -121,6 +121,11 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			}
 			typ := em.typ(expr.Args[0])
 			arg := em.emitExpr(expr.Args[0], typ)
+			if ti.IsFormatType() {
+				// Emit the special conversion from a markdown value to an html value.
+				em.fb.emitConvert(arg, convertType, reg, typ.Kind())
+				return reg, false
+			}
 			if canEmitDirectly(convertType.Kind(), dstType.Kind()) {
 				em.changeRegister(false, arg, reg, typ, convertType)
 				return reg, false
