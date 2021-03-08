@@ -121,18 +121,22 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			}
 			typ := em.typ(expr.Args[0])
 			arg := em.emitExpr(expr.Args[0], typ)
-			if ti.IsFormatType() {
-				// Emit the special conversion from a markdown value to an html value.
-				em.fb.emitConvert(arg, convertType, reg, typ.Kind())
-				return reg, false
-			}
+			mdToHTML := ti.IsFormatType()
 			if canEmitDirectly(convertType.Kind(), dstType.Kind()) {
-				em.changeRegister(false, arg, reg, typ, convertType)
+				if mdToHTML {
+					em.changeRegisterMDToHTML(false, arg, reg, typ, convertType)
+				} else {
+					em.changeRegister(false, arg, reg, typ, convertType)
+				}
 				return reg, false
 			}
 			em.fb.enterStack()
 			tmp := em.fb.newRegister(convertType.Kind())
-			em.changeRegister(false, arg, tmp, typ, convertType)
+			if mdToHTML {
+				em.changeRegisterMDToHTML(false, arg, tmp, typ, convertType)
+			} else {
+				em.changeRegister(false, arg, tmp, typ, convertType)
+			}
 			em.changeRegister(false, tmp, reg, convertType, dstType)
 			em.fb.exitStack()
 			return reg, false

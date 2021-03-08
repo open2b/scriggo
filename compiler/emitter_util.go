@@ -20,6 +20,18 @@ import (
 // changeRegister emits the code that move the content of register src to
 // register dst, making a conversion if necessary.
 func (em *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
+	em._changeRegister(k, src, dst, srcType, dstType, false)
+}
+
+// changeRegisterMDToHTML behaves like changeRegister but handles a conversion
+// from a value with type 'markdown' to 'html'.
+func (em *emitter) changeRegisterMDToHTML(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
+	em._changeRegister(k, src, dst, srcType, dstType, true)
+}
+
+// _changeRegister should be called only by 'changeRegister' and
+// 'changeRegisterMDToHTML'.
+func (em *emitter) _changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type, mdToHTML bool) {
 
 	// dst is indirect, so the value must be "typed" to its true (original) type
 	// before putting it into general.
@@ -59,7 +71,7 @@ func (em *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, d
 
 	// Source register is different than destination register: a conversion is
 	// needed.
-	if dstKind != srcKind {
+	if dstKind != srcKind || mdToHTML {
 		if k {
 			em.fb.enterScope()
 			tmp := em.fb.newRegister(srcKind)
