@@ -2372,6 +2372,20 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: "--- start Markdown ---\n# title--- end Markdown ---\n",
 	},
+
+	"Convert a markdown value to an html value - Closure": {
+		sources: map[string]string{
+			"index.txt": `{%%
+				var m markdown = "# title"
+				var h html
+				func () {
+					h = html(m)
+				}()
+				show string(h)
+			%%}`,
+		},
+		expectedOut: "--- start Markdown ---\n# title--- end Markdown ---\n",
+	},
 }
 
 var structWithUnexportedFields = &struct {
