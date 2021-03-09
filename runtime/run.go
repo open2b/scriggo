@@ -7,6 +7,7 @@
 package runtime
 
 import (
+	"bytes"
 	"errors"
 	"reflect"
 	"strings"
@@ -482,7 +483,18 @@ func (vm *VM) run() (Addr, bool) {
 			}
 		case OpConvertString:
 			t := vm.fn.Types[uint8(b)]
-			vm.setGeneral(c, reflect.ValueOf(vm.string(a)).Convert(t))
+			v := reflect.ValueOf(vm.string(a))
+			if t.Kind() == reflect.Slice {
+				vm.setGeneral(c, v.Convert(t))
+			} else {
+				var b bytes.Buffer
+				r1 := vm.renderer.WithOut(&b)
+				r2 := r1.WithConversion(5, 1)
+				_, _ = r2.Out().Write([]byte(v.String()))
+				_ = r2.Close()
+				_ = r1.Close()
+				vm.setString(c, b.String())
+			}
 
 		// Concat
 		case OpConcat:

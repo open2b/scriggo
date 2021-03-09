@@ -113,7 +113,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 
 		// Conversion.
-		if em.ti(expr.Func).IsType() {
+		if ti := em.ti(expr.Func); ti.IsType() {
 			convertType := em.typ(expr.Func)
 			// A conversion cannot have side-effects.
 			if reg == 0 {
@@ -121,13 +121,22 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			}
 			typ := em.typ(expr.Args[0])
 			arg := em.emitExpr(expr.Args[0], typ)
+			markdownToHTML := ti.IsFormatType()
 			if canEmitDirectly(convertType.Kind(), dstType.Kind()) {
-				em.changeRegister(false, arg, reg, typ, convertType)
+				if markdownToHTML {
+					em.changeRegisterConvertFormat(false, arg, reg, typ, convertType)
+				} else {
+					em.changeRegister(false, arg, reg, typ, convertType)
+				}
 				return reg, false
 			}
 			em.fb.enterStack()
 			tmp := em.fb.newRegister(convertType.Kind())
-			em.changeRegister(false, arg, tmp, typ, convertType)
+			if markdownToHTML {
+				em.changeRegisterConvertFormat(false, arg, tmp, typ, convertType)
+			} else {
+				em.changeRegister(false, arg, tmp, typ, convertType)
+			}
 			em.changeRegister(false, tmp, reg, convertType, dstType)
 			em.fb.exitStack()
 			return reg, false

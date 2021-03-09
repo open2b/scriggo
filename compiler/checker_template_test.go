@@ -7,12 +7,16 @@
 package compiler
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/compiler/internal/mapfs"
+	"github.com/open2b/scriggo/runtime"
 )
 
 type html string
@@ -45,6 +49,22 @@ var definedIntTypeInfo = &typeInfo{Type: reflect.TypeOf(definedInt(0)), Properti
 var definedIntSliceTypeInfo = &typeInfo{Type: reflect.SliceOf(definedIntTypeInfo.Type), Properties: propertyAddressable}
 
 var definedStringTypeInfo = &typeInfo{Type: reflect.TypeOf(definedString("")), Properties: propertyAddressable}
+
+func tiHTMLConst(s string) *typeInfo {
+	return &typeInfo{Type: formatTypes[ast.FormatHTML], Constant: stringConst(s)}
+}
+
+func tiHTML() *typeInfo {
+	return &typeInfo{Type: formatTypes[ast.FormatHTML]}
+}
+
+func tiMarkdownConst(s string) *typeInfo {
+	return &typeInfo{Type: formatTypes[ast.FormatMarkdown], Constant: stringConst(s)}
+}
+
+func tiMarkdown() *typeInfo {
+	return &typeInfo{Type: formatTypes[ast.FormatMarkdown]}
+}
 
 var checkerTemplateExprs = []struct {
 	src   string
@@ -128,10 +148,14 @@ var checkerTemplateExprs = []struct {
 	{`(macro() js)(nil)`, &typeInfo{Type: reflect.TypeOf((func() js)(nil))}, nil},
 	{`(macro() json)(nil)`, &typeInfo{Type: reflect.TypeOf((func() json)(nil))}, nil},
 	{`(macro() markdown)(nil)`, &typeInfo{Type: reflect.TypeOf((func() markdown)(nil))}, nil},
+
+	// conversion from markdown to html
+	{`html(a)`, tiHTMLConst("<h1>title</h1>"), map[string]*typeInfo{"a": tiMarkdownConst("# title")}},
+	{`html(a)`, tiHTML(), map[string]*typeInfo{"a": tiMarkdown()}},
 }
 
 func TestCheckerTemplateExpressions(t *testing.T) {
-	options := checkerOptions{modality: templateMod, formatTypes: formatTypes}
+	options := checkerOptions{modality: templateMod, formatTypes: formatTypes, renderer: &renderer{}}
 	for _, expr := range checkerTemplateExprs {
 		var lex = scanTemplate([]byte("{{ "+expr.src+" }}"), ast.FormatText)
 		func() {
@@ -541,4 +565,41 @@ func TestCheckerTemplatesStatements(t *testing.T) {
 			}
 		})
 	}
+}
+
+// renderer implements the runtime.Renderer and io.Writer interfaces.
+// It is used to test the type checking of the explicit conversion from
+// the markdown to the html format types.
+type renderer struct {
+	out io.Writer
+	b   *bytes.Buffer
+}
+
+func (r *renderer) Show(runtime.Env, interface{}, uint8) {}
+func (r *renderer) Text(runtime.Env, []byte, uint8)      {}
+func (r *renderer) Out() io.Writer {
+	if r.b != nil {
+		return r.b
+	}
+	return r.out
+}
+func (r *renderer) WithOut(out io.Writer) runtime.Renderer { return &renderer{out: out, b: r.b} }
+func (r *renderer) WithConversion(fromFormat, toFormat uint8) runtime.Renderer {
+	return &renderer{out: r.out, b: &bytes.Buffer{}}
+}
+func (r *renderer) Close() error {
+	if r.b != nil {
+		if s := r.b.String(); s != "# title" {
+			panic(fmt.Sprintf("unexpected markdown string %q", s))
+		}
+		_, err := io.WriteString(r.out, "<h1>title</h1>")
+		return err
+	}
+	return nil
+}
+func (r *renderer) Write(p []byte) (int, error) {
+	if r.b == nil {
+		return r.out.Write(p)
+	}
+	return r.b.Write(p)
 }
