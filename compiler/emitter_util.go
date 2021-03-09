@@ -23,9 +23,9 @@ func (em *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, d
 	em._changeRegister(k, src, dst, srcType, dstType, false)
 }
 
-// changeRegisterMDToHTML behaves like changeRegister but handles a conversion
-// from a value with type 'markdown' to 'html'.
-func (em *emitter) changeRegisterMDToHTML(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
+// changeRegisterConvertFormat behaves like changeRegister but handles a format
+// conversion from a value with type 'markdown' to 'html'.
+func (em *emitter) changeRegisterConvertFormat(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
 	em._changeRegister(k, src, dst, srcType, dstType, true)
 }
 
