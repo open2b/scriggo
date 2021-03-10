@@ -2386,6 +2386,36 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: "--- start Markdown ---\n# title--- end Markdown ---\n",
 	},
+
+	"https://github.com/open2b/scriggo/issues/723 - Short variable declaration: rendered file exists": {
+		sources: map[string]string{
+			"index.txt": `{% s, ok := render "file.txt" %}ok: {{ ok }}, s: {{ s }}`,
+			"file.txt":  `this is file.txt`,
+		},
+		expectedOut: "ok: true, s: this is file.txt",
+	},
+
+	"https://github.com/open2b/scriggo/issues/723 - Short variable declaration: rendered file does not exist": {
+		sources: map[string]string{
+			"index.txt": `{% s, ok := render "not-existing.txt" %}ok: {{ ok }}, s: {{ s }}`,
+		},
+		expectedOut: "ok: false, s: ",
+	},
+
+	"https://github.com/open2b/scriggo/issues/723 - Simple assignment: rendered file exists": {
+		sources: map[string]string{
+			"index.txt": `{% var s string %}{% var ok bool %}{% s, ok = render "file.txt" %}ok: {{ ok }}, s: {{ s }}`,
+			"file.txt":  `this is file.txt`,
+		},
+		expectedOut: "ok: true, s: this is file.txt",
+	},
+
+	"https://github.com/open2b/scriggo/issues/723 - Simple assignment: rendered file does not exist": {
+		sources: map[string]string{
+			"index.txt": `{% var s string %}{% var ok bool %}{% s, ok = render "not-existing.txt" %}ok: {{ ok }}, s: {{ s }}`,
+		},
+		expectedOut: "ok: false, s: ",
+	},
 }
 
 var structWithUnexportedFields = &struct {
