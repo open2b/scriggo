@@ -276,30 +276,12 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 				}
 			}
 
-		case *ast.Assignment:
-			// v, ok = render "path"
-
-			var err error
-			p := n.Rhs[0].(*ast.Render)
-			p.Tree, err = pp.parseNodeFile(p)
-			if err != nil && !errors.Is(err, os.ErrNotExist) {
-				if e, ok := err.(*CycleError); ok {
-					parent := pp.paths[len(pp.paths)-1]
-					rootedPath, _ := rooted(parent, p.Path)
-					e.msg = "\n\trenders " + rootedPath + e.msg
-					if e.path == pp.paths[len(pp.paths)-1] {
-						e.pos = *(n.Pos())
-					}
-				}
-				return err
-			}
-
 		case *ast.Render:
 			// render "path"
 
 			var err error
 			n.Tree, err = pp.parseNodeFile(n)
-			if err != nil {
+			if err != nil && !errors.Is(err, os.ErrNotExist) {
 				parent := pp.paths[len(pp.paths)-1]
 				rootedPath, _ := rooted(parent, n.Path)
 				if errors.Is(err, os.ErrNotExist) {

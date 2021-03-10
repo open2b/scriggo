@@ -1670,14 +1670,6 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeRa
 		}
 	}
 	node := ast.NewAssignment(pos, variables, typ, values)
-	if len(variables) == 2 && len(values) == 1 {
-		if _, ok := values[0].(*ast.Render); ok {
-			// Replace the Render node with the Assignment node in the unexpanded
-			// slice because, when the tree is expanded, the parser needs to know
-			// if the render expression is used in an assignment.
-			p.unexpanded[len(p.unexpanded)-1] = node
-		}
-	}
 	return node, tok
 }
 
