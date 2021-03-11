@@ -911,23 +911,6 @@ LABEL:
 		}
 		pos := tok.pos
 		tok := p.next()
-		// show <filepath>
-		if tok.typ == tokenInterpretedString || tok.typ == tokenRawString {
-			var path = unquoteString(tok.txt)
-			if !ValidTemplatePath(path) {
-				panic(syntaxError(tok.pos, "invalid file path: %q", path))
-			}
-			pos.End = tok.pos.End
-			render := ast.NewRender(pos, path)
-			p.unexpanded = append(p.unexpanded, render)
-			node := ast.NewShow(pos, render, tok.ctx)
-			p.addChild(node)
-			p.cutSpacesToken = true
-			tok = p.next()
-			tok = p.parseEnd(tok, tokenSemicolon, end)
-			return tok
-		}
-		// show <expr>
 		ctx := tok.ctx
 		var expr ast.Expression
 		expr, tok = p.parseExpr(tok, false, false, false)
