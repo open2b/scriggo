@@ -1,6 +1,6 @@
 
 {% macro B(items []string) %}
-{% show b() %}
+{{ b() }}
 {% for item in items %}
 * {{ item }}
 {% end %}

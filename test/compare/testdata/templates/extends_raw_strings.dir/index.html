@@ -15,7 +15,7 @@
   <h2>{{ translate(`Featured`) }}</h2>
   {% show Products(products, columns) %}
   {% end if %}
-  {% show Banner(1, true, `3000/500`) %}
+  {{ Banner(1, true, `3000/500`) }}
   {% promotions := make([]int, 20) %}
   {% if len(promotions) > 0 %}
   <h2>{{ translate(`Home promotions`) }}</h2>
@@ -26,7 +26,7 @@
   {% if len(topSellers) > 0 %}
   <h2>{{ translate(`Top sellers`) }}</h2>
   <div class="top-sellers">
-    {% show Products(topSellers, topSellersColumns) %}
+    {{ Products(topSellers, topSellersColumns) }}
   </div>
   {% end if %}
   {% blogPosts := make([]string, 10) %}
