@@ -2438,6 +2438,27 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: "<e>",
 	},
+
+	"Macro declarations inside macro declarations": {
+		sources: map[string]string{
+			"index.html": `
+			{% macro External1() %}
+				{% macro internal1 %}internal1 (1){% end %}
+				{% macro internal2 string %}internal2 (1){% end %}
+				External1's body: {{ internal1() }} {{ internal2() }}
+			{% end %}
+
+			{% macro External2() %}
+				{% macro internal1 %}internal1 (2){% end %}
+				{% macro internal2 string %}internal2 (2){% end %}
+				External2's body: {{ internal1() }} {{ internal2() }}
+			{% end %}
+			
+			External1: {{ External1() }}
+			External2: {{ External2() }}`,
+		},
+		expectedOut: "\n\n\t\t\t\n\t\t\tExternal1: \t\t\t\t\n\t\t\t\t\n\t\t\t\tExternal1's body: internal1 (1) internal2 (1)\n\n\t\t\tExternal2: \t\t\t\t\n\t\t\t\t\n\t\t\t\tExternal2's body: internal1 (2) internal2 (2)\n",
+	},
 }
 
 var structWithUnexportedFields = &struct {
