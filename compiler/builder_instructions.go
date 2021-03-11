@@ -1048,9 +1048,15 @@ func (fb *functionBuilder) emitSubInv(k bool, x, y, z int8, kind reflect.Kind) {
 func (fb *functionBuilder) emitText(txt []byte, inURL, isURLSet bool) {
 	if len(fb.text.txt) > 0 {
 		addr := fb.currentAddr()
-		labels := fb.labelAddrs
-		if hasLabel := len(labels) > 0 && labels[len(labels)-1] == addr; !hasLabel {
-			if addr == fb.text.addr+1 && inURL == fb.text.inURL {
+		if addr == fb.text.addr+1 && inURL == fb.text.inURL {
+			var hasLabel bool
+			for _, la := range fb.labelAddrs {
+				if addr == la {
+					hasLabel = true
+					break
+				}
+			}
+			if !hasLabel {
 				fb.text.txt = append(fb.text.txt, txt)
 				return
 			}

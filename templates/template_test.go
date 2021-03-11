@@ -2431,6 +2431,13 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: "ok: false, s: ",
 	},
+
+	"https://github.com/open2b/scriggo/issues/728: Text instruction merging error": {
+		sources: map[string]string{
+			"index.txt": `{% if false %}{% for false %}{% end %}<d>{% end %}<e>`,
+		},
+		expectedOut: "<e>",
+	},
 }
 
 var structWithUnexportedFields = &struct {
