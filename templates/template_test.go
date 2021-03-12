@@ -2457,6 +2457,28 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: "\n\t\tn has value: 42",
 	},
+
+	"Trying to assign to a macro declared in the file/package block": {
+		sources: map[string]string{
+			"index.html": `
+					{% macro M %}{% end %}
+					{% M = func() string %}
+				`,
+		},
+		expectedBuildErr: "cannot assign to M",
+	},
+
+	"Trying to assign to a macro declared inside another macro": {
+		sources: map[string]string{
+			"index.html": `
+					{% macro External %}
+						{% macro M %}{% end %}
+						{% M = func() string %}
+					{% end macro %}
+				`,
+		},
+		expectedBuildErr: "cannot assign to M",
+	},
 }
 
 var structWithUnexportedFields = &struct {
