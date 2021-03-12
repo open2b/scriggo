@@ -76,7 +76,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				continue
 			}
 			em.fb.enterStack()
-			_, _ = em.emitCallNode(call, false, true, runtime.SameFormat)
+			_, _ = em.emitCallNode(call, false, true, runtime.ReturnString)
 			em.fb.exitStack()
 
 		case *ast.Import:
@@ -194,7 +194,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 		case *ast.Go:
 			call := node.Call.(*ast.Call)
 			em.fb.enterStack()
-			_, _ = em.emitCallNode(call, true, false, runtime.SameFormat)
+			_, _ = em.emitCallNode(call, true, false, runtime.ReturnString)
 			em.fb.exitStack()
 
 		case *ast.Goto:
@@ -267,7 +267,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			//
 			fnType := em.fb.fn.Type
 			if len(node.Values) == 1 && fnType.NumOut() > 1 {
-				returnedRegs, types := em.emitCallNode(node.Values[0].(*ast.Call), false, false, runtime.SameFormat)
+				returnedRegs, types := em.emitCallNode(node.Values[0].(*ast.Call), false, false, runtime.ReturnString)
 				for i, typ := range types {
 					var dstReg int8
 					switch kindToType(typ.Kind()) {

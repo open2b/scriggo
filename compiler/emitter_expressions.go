@@ -144,7 +144,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 		// Function call.
 		em.fb.enterStack()
-		regs, types := em.emitCallNode(expr, false, false, runtime.SameFormat)
+		regs, types := em.emitCallNode(expr, false, false, runtime.ReturnString)
 		if reg != 0 {
 			em.changeRegister(false, regs[0], reg, types[0], dstType)
 		}

@@ -16,7 +16,7 @@ import (
 
 const NoVariadicArgs = -1
 const CurrentFunction = -1
-const SameFormat = -1
+const ReturnString = -1
 
 const maxUint32 = 1<<31 - 1
 

@@ -358,7 +358,7 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 						for i := 0; i < numOut; i++ {
 							fInParams[i] = em.fb.newRegister(fParamsType.Kind())
 						}
-						argRegs, argTypes := em.emitCallNode(g, false, false, runtime.SameFormat)
+						argRegs, argTypes := em.emitCallNode(g, false, false, runtime.ReturnString)
 						for i := range argRegs {
 							em.changeRegister(false, argRegs[i], fInParams[i], argTypes[i], fParamsType)
 						}
@@ -369,7 +369,7 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 					em.fb.enterStack()
 					pos := args[0].Pos()
 					em.fb.emitMakeSlice(true, true, fnTyp.In(numIn-1), int8(numOut), int8(numOut), slice, pos)
-					argRegs, _ := em.emitCallNode(g, false, false, runtime.SameFormat)
+					argRegs, _ := em.emitCallNode(g, false, false, runtime.ReturnString)
 					for i := range argRegs {
 						index := em.fb.newRegister(reflect.Int)
 						em.changeRegister(true, int8(i), index, intType, intType)
@@ -430,7 +430,7 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 
 	// Non-variadic function call.
 	if numIn > 1 && len(args) == 1 { // f(g()), where f takes more than 1 argument.
-		gOutRegs, gOutTypes := em.emitCallNode(args[0].(*ast.Call), false, false, runtime.SameFormat)
+		gOutRegs, gOutTypes := em.emitCallNode(args[0].(*ast.Call), false, false, runtime.ReturnString)
 		for i := range gOutRegs {
 			dstType := fnTyp.In(i)
 			reg := em.fb.newRegister(dstType.Kind())

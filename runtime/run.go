@@ -291,7 +291,7 @@ func (vm *VM) run() (Addr, bool) {
 			if vm.fp[3]+Addr(fn.NumReg[3]) > vm.st[3] {
 				vm.moreGeneralStack()
 			}
-			if b == SameFormat {
+			if b == ReturnString {
 				vm.renderer = vm.renderer.WithOut(&macroOutBuffer{})
 			} else if uint8(b) != fn.Format {
 				vm.renderer = vm.renderer.WithConversion(fn.Format, uint8(b))
