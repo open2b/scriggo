@@ -56,6 +56,9 @@ func globals() Declarations {
 		"sprint": func(a ...interface{}) string {
 			return fmt.Sprint(a...)
 		},
+		"sprintf": func(format string, a ...interface{}) string {
+			return fmt.Sprintf(format, a...)
+		},
 		"title": func(env runtime.Env, s string) string {
 			return strings.Title(s)
 		},
@@ -2440,6 +2443,19 @@ var templateMultiPageCases = map[string]struct {
 			External2: {{ External2() }}`,
 		},
 		expectedOut: "\n\n\t\t\t\n\t\t\tExternal1: \t\t\t\t\n\t\t\t\t\n\t\t\t\tExternal1's body: internal1 (1) internal2 (1)\n\n\t\t\tExternal2: \t\t\t\t\n\t\t\t\t\n\t\t\t\tExternal2's body: internal1 (2) internal2 (2)\n",
+	},
+
+	"Internal function declaration accessing a variable declared in the external function declaration": {
+		sources: map[string]string{
+			"index.html": `
+		{%% External := func() string {
+			var n int = 42
+			internal := func() string { return sprintf("n has value: %d", n) }
+			return internal()
+		} %%}
+		{{ External() }}`,
+		},
+		expectedOut: "\n\t\tn has value: 42",
 	},
 }
 
