@@ -13,15 +13,15 @@ import (
 type properties uint16
 
 const (
-	propertyUntyped      properties = 1 << iota // is untyped
-	propertyIsType                              // is a type
-	propertyIsFormatType                        // is a format type
-	propertyIsPackage                           // is a package
-	propertyPredeclared                         // is predeclared
-	propertyAddressable                         // is addressable
-	propertyIsPredefined                        // is predefined
-	propertyHasValue                            // has a value
-	propertyIsMacro                             // is macro
+	propertyUntyped            properties = 1 << iota // is untyped
+	propertyIsType                                    // is a type
+	propertyIsFormatType                              // is a format type
+	propertyIsPackage                                 // is a package
+	propertyPredeclared                               // is predeclared
+	propertyAddressable                               // is addressable
+	propertyIsPredefined                              // is predefined
+	propertyHasValue                                  // has a value
+	propertyIsMacroDeclaration                        // is macro declaration
 )
 
 // A typeInfo holds the type checking information. For example, every expression
@@ -65,9 +65,9 @@ func (ti *typeInfo) IsConstant() bool {
 	return ti.Constant != nil
 }
 
-// IsMacro reports whether it is a macro.
-func (ti *typeInfo) IsMacro() bool {
-	return ti.Properties&propertyIsMacro != 0
+// IsMacro reports whether it is a macro declaration.
+func (ti *typeInfo) IsMacroDeclaration() bool {
+	return ti.Properties&propertyIsMacroDeclaration != 0
 }
 
 // IsUntypedConstant reports whether it is an untyped constant.

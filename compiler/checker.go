@@ -83,7 +83,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 				tc.makeMacroResultExplicit(m)
 				ti := &typeInfo{
 					Type:       tc.checkType(m.Type).Type,
-					Properties: propertyIsMacro,
+					Properties: propertyIsMacroDeclaration,
 				}
 				tc.filePackageBlock[m.Ident.Name] = scopeElement{t: ti}
 			}

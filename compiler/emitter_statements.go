@@ -326,7 +326,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 
 		case *ast.Show:
 			ctx := node.Context
-			if call, ok := node.Expr.(*ast.Call); ok && ctx <= ast.ContextMarkdown && em.ti(call.Func).IsMacro() {
+			if call, ok := node.Expr.(*ast.Call); ok && ctx <= ast.ContextMarkdown && em.ti(call.Func).IsMacroDeclaration() {
 				em.fb.enterStack()
 				em.emitCallNode(call, false, false, ast.Format(ctx))
 				em.fb.exitStack()

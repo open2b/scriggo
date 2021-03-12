@@ -652,7 +652,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 			}
 			ti := &typeInfo{Type: funcType}
 			if f.Type.Macro {
-				ti.Properties |= propertyIsMacro
+				ti.Properties |= propertyIsMacroDeclaration
 			}
 			tc.filePackageBlock[f.Ident.Name] = scopeElement{t: ti}
 		}

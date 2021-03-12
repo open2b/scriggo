@@ -646,7 +646,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		tc.checkFunc(expr)
 		ti := &typeInfo{Type: t.Type}
 		if expr.Type.Macro {
-			ti.Properties |= propertyIsMacro
+			ti.Properties |= propertyIsMacroDeclaration
 		}
 		return ti
 
