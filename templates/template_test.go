@@ -2479,6 +2479,16 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedBuildErr: "cannot assign to M",
 	},
+
+	"When a macro is assigned to a variable, such variable can be reassigned without returning error 'cannot assign to'": {
+		sources: map[string]string{
+			"index.txt": `
+			{% macro M %}{% end %}
+			{% var N = M %}
+			{% N = func() string { return "hi" } %}`,
+		},
+		expectedOut: "\n\t\t\t\n\t\t\t\n\t\t\t",
+	},
 }
 
 var structWithUnexportedFields = &struct {
