@@ -2462,7 +2462,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `
 					{% macro M %}{% end %}
-					{% M = func() string %}
+					{% M = func() string { return "" } %}
 				`,
 		},
 		expectedBuildErr: "cannot assign to M",
@@ -2473,7 +2473,7 @@ var templateMultiPageCases = map[string]struct {
 			"index.html": `
 					{% macro External %}
 						{% macro M %}{% end %}
-						{% M = func() string %}
+						{% M = func() string { return "" } %}
 					{% end macro %}
 				`,
 		},
