@@ -50,6 +50,8 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		switch {
 		case lh.Addressable(): // ok.
 		case tc.isMapIndexing(lhExpr): // ok.
+		case lh.IsMacroDeclaration():
+			panic(tc.errorf(lhExpr, "cannot assign to %s", lhExpr))
 		default:
 			if tc.isSelectorOfMapIndexing(lhExpr) {
 				panic(tc.errorf(lhExpr, "cannot assign to struct field %s in map", lhExpr))
