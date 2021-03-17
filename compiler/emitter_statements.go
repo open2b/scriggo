@@ -67,7 +67,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				stackShift := em.fb.currentStackShift()
 				backup := em.fb
 				fnReg := em.fb.newRegister(reflect.Func)
-				fn := em.fb.emitFunc(fnReg, reflect.FuncOf(nil, nil, false), nil)
+				fn := em.fb.emitFunc(fnReg, reflect.FuncOf(nil, nil, false), nil, false, 0)
 				em.fb = newBuilder(fn, em.fb.getPath())
 				em.fb.emitRecover(0, true)
 				em.fb.emitReturn()

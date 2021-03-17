@@ -195,33 +195,6 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 	case *ast.Func:
 
-		// Template macro definition.
-		if expr.Ident != nil && expr.Type.Macro {
-			macroFn := newMacro("", expr.Ident.Name, expr.Type.Reflect, expr.Format, em.fb.getPath(), expr.Pos())
-			em.fnStore.makeAvailableScriggoFn(em.pkg, expr.Ident.Name, macroFn)
-			fb := em.fb
-			// Macro declarations are handled as function declarations at
-			// package level, so the parameter 'closureVar' is always nil for
-			// macros.
-			// In fact this works because macros are called using the 'OpCallMacro'
-			// instruction (which sets vm.vars from the global vars) while the
-			// emission of function literals needs the parameter 'closureVar'
-			// because vm.vars is set from the vars stored in the function by
-			// setFunctionVarRefs.
-			if expr.Upvars != nil {
-				panic("BUG: expr.Upvars should be nil for macro declarations")
-			}
-			em.setFunctionVarRefs(macroFn, nil)
-			em.fb = newBuilder(macroFn, em.fb.getPath())
-			em.fb.enterScope()
-			em.prepareFunctionBodyParameters(expr)
-			em.emitNodes(expr.Body.Nodes)
-			em.fb.end()
-			em.fb.exitScope()
-			em.fb = fb
-			return reg, false
-		}
-
 		if reg == 0 {
 			return reg, false
 		}
@@ -233,7 +206,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			tmp = em.fb.newRegister(reflect.Func)
 		}
 
-		fn := em.fb.emitFunc(tmp, ti.Type, expr.Pos())
+		fn := em.fb.emitFunc(tmp, ti.Type, expr.Pos(), expr.Type.Macro, expr.Format)
 		em.setFunctionVarRefs(fn, expr.Upvars)
 
 		funcLitBuilder := newBuilder(fn, em.fb.getPath())

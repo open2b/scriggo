@@ -80,7 +80,7 @@ func TestFunctionsLimit(t *testing.T) {
 
 	fb := new_test_builder()
 	for i = 0; i < 1000; i++ {
-		fb.emitFunc(1, reflect.FuncOf(nil, nil, false), nil)
+		fb.emitFunc(1, reflect.FuncOf(nil, nil, false), nil, false, 0)
 	}
 
 }

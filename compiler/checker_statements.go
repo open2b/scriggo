@@ -783,7 +783,12 @@ nodesLoop:
 		case ast.Expression:
 
 			// Handle function declarations in scripts.
-			if fun, ok := node.(*ast.Func); tc.opts.modality == scriptMod && ok {
+			inScript := tc.opts.modality == scriptMod
+			inTemplate := tc.opts.modality == templateMod
+			if fun, ok := node.(*ast.Func); (inScript || inTemplate) && ok {
+				if fun.Type.Macro && len(fun.Type.Result) == 0 {
+					tc.makeMacroResultExplicit(fun)
+				}
 				if fun.Ident != nil {
 					// Remove the identifier from the function expression and
 					// use it during the assignment.
@@ -802,18 +807,25 @@ nodesLoop:
 						[]ast.Expression{fun},
 					)
 					// Check the new node, informing the type checker that the
-					// current assignment is a function declaration in a script.
-					backup := tc.scriptFuncDecl
-					tc.scriptFuncDecl = true
+					// current assignment is a function declaration in a script
+					// or a macro declaration in a template.
+					backup := tc.scriptFuncOrMacroDecl
+					tc.scriptFuncOrMacroDecl = true
 					newNodes := []ast.Node{varDecl, nodeAssign}
+
 					_ = tc.checkNodes(newNodes)
 					// Append the new nodes removing the function literal.
 					nodes = append(nodes[:i], append(newNodes, nodes[i+1:]...)...)
-					tc.scriptFuncDecl = backup
+					tc.scriptFuncOrMacroDecl = backup
 					// Avoid error 'declared but not used' by "using" the
 					// identifier.
-					tc.checkIdentifier(ident, true)
+					identTi := tc.checkIdentifier(ident, true)
+					if fun.Type.Macro {
+						tc.compilation.typeInfos[ident].Properties |= propertyIsMacroDeclaration
+						identTi.Properties |= propertyIsMacroDeclaration
+					}
 					i += 2
+
 					continue nodesLoop
 				}
 			}

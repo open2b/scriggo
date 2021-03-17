@@ -264,7 +264,11 @@ func (vm *VM) run() (Addr, bool) {
 				}
 				if fn.Macro {
 					call.renderer = vm.renderer
-					vm.renderer = vm.renderer.WithOut(&macroOutBuffer{})
+					if b == ReturnString {
+						vm.renderer = vm.renderer.WithOut(&macroOutBuffer{})
+					} else if uint8(b) != fn.Format {
+						vm.renderer = vm.renderer.WithConversion(fn.Format, uint8(b))
+					}
 				}
 				vm.fn = fn
 				vm.vars = f.vars

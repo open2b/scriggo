@@ -219,10 +219,10 @@ type typechecker struct {
 	storedValidGoto int
 	labels          [][]string
 
-	// scriptFuncDecl reports whether the type checker is currently
-	// checking a function declaration in a script, that has been
-	// transformed into an assignment node.
-	scriptFuncDecl bool
+	// scriptFuncOrMacroDecl reports whether the type checker is currently
+	// checking a function declaration in a script or a macro declaration in a
+	// template that has been transformed into an assignment node.
+	scriptFuncOrMacroDecl bool
 
 	// types refers the types of the current compilation and it is used to
 	// create and manipulate types and values, both predefined and defined only
@@ -389,8 +389,13 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*typeIn
 func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.Identifier) {
 
 	if tc.declaredInThisBlock(name) {
-		if tc.opts.modality == scriptMod && tc.scriptFuncDecl {
-			panic(tc.errorf(declNode, "%s already declared in this program", declNode))
+		if tc.scriptFuncOrMacroDecl {
+			switch tc.opts.modality {
+			case scriptMod:
+				panic(tc.errorf(declNode, "%s already declared in this program", declNode))
+			case templateMod:
+				panic(tc.errorf(declNode, "%s already declared in this template scope", declNode))
+			}
 		}
 		previousDecl, _ := tc.lookupScopesElem(name, true)
 		s := name + " redeclared in this block"
