@@ -818,7 +818,6 @@ nodesLoop:
 				// identifier.
 				identTi := tc.checkIdentifier(ident, true)
 				if fun.Type.Macro {
-					tc.compilation.typeInfos[ident].Properties |= propertyIsMacroDeclaration
 					identTi.Properties |= propertyIsMacroDeclaration
 				}
 				i += 2
