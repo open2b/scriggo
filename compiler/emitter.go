@@ -525,7 +525,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool, toF
 		if deferStmt {
 			panic("BUG: not implemented") // remove.
 		}
-		em.fb.emitCallIndirect(method, 0, stackShift, call.Pos(), funTi.Type)
+		em.fb.emitCallIndirect(method, 0, stackShift, call.Pos(), funTi.Type, toFormat)
 		return regs, types
 	}
 
@@ -638,7 +638,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool, toF
 		em.fb.emitDefer(reg, int8(runtime.NoVariadicArgs), stackShift, args, funTi.Type)
 		return regs, types
 	}
-	em.fb.emitCallIndirect(reg, int8(runtime.NoVariadicArgs), stackShift, call.Pos(), funTi.Type)
+	em.fb.emitCallIndirect(reg, int8(runtime.NoVariadicArgs), stackShift, call.Pos(), funTi.Type, toFormat)
 
 	return regs, types
 }

@@ -782,40 +782,47 @@ nodesLoop:
 
 		case ast.Expression:
 
-			// Handle function declarations in scripts.
-			if fun, ok := node.(*ast.Func); tc.opts.modality == scriptMod && ok {
-				if fun.Ident != nil {
-					// Remove the identifier from the function expression and
-					// use it during the assignment.
-					ident := fun.Ident
-					fun.Ident = nil
-					varDecl := ast.NewVar(
-						fun.Pos(),
-						[]*ast.Identifier{ident},
-						fun.Type,
-						nil,
-					)
-					nodeAssign := ast.NewAssignment(
-						fun.Pos(),
-						[]ast.Expression{ident},
-						ast.AssignmentSimple,
-						[]ast.Expression{fun},
-					)
-					// Check the new node, informing the type checker that the
-					// current assignment is a function declaration in a script.
-					backup := tc.scriptFuncDecl
-					tc.scriptFuncDecl = true
-					newNodes := []ast.Node{varDecl, nodeAssign}
-					_ = tc.checkNodes(newNodes)
-					// Append the new nodes removing the function literal.
-					nodes = append(nodes[:i], append(newNodes, nodes[i+1:]...)...)
-					tc.scriptFuncDecl = backup
-					// Avoid error 'declared but not used' by "using" the
-					// identifier.
-					tc.checkIdentifier(ident, true)
-					i += 2
-					continue nodesLoop
+			// Handle function and macro declarations in scripts and templates.
+			if fun, ok := node.(*ast.Func); ok && fun.Ident != nil && tc.opts.modality != programMod {
+				if fun.Type.Macro && len(fun.Type.Result) == 0 {
+					tc.makeMacroResultExplicit(fun)
 				}
+				// Remove the identifier from the function expression and
+				// use it during the assignment.
+				ident := fun.Ident
+				fun.Ident = nil
+				varDecl := ast.NewVar(
+					fun.Pos(),
+					[]*ast.Identifier{ident},
+					fun.Type,
+					nil,
+				)
+				nodeAssign := ast.NewAssignment(
+					fun.Pos(),
+					[]ast.Expression{ident},
+					ast.AssignmentSimple,
+					[]ast.Expression{fun},
+				)
+				// Check the new node, informing the type checker that the
+				// current assignment is a function declaration in a script
+				// or a macro declaration in a template.
+				backup := tc.scriptFuncOrMacroDecl
+				tc.scriptFuncOrMacroDecl = true
+				newNodes := []ast.Node{varDecl, nodeAssign}
+
+				_ = tc.checkNodes(newNodes)
+				// Append the new nodes removing the function literal.
+				nodes = append(nodes[:i], append(newNodes, nodes[i+1:]...)...)
+				tc.scriptFuncOrMacroDecl = backup
+				// Avoid error 'declared but not used' by "using" the
+				// identifier.
+				identTi := tc.checkIdentifier(ident, true)
+				if fun.Type.Macro {
+					identTi.Properties |= propertyIsMacroDeclaration
+				}
+				i += 2
+
+				continue nodesLoop
 			}
 
 			ti := tc.checkExpr(node)

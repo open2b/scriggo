@@ -2471,11 +2471,11 @@ var templateMultiPageCases = map[string]struct {
 	"Trying to assign to a macro declared inside another macro": {
 		sources: map[string]string{
 			"index.html": `
-					{% macro External %}
-						{% macro M %}{% end %}
-						{% M = func() string { return "" } %}
-					{% end macro %}
-				`,
+			{% macro External %}
+				{% macro M %}{% end %}
+				{% M = func() string { return "" } %}
+			{% end macro %}
+		`,
 		},
 		expectedBuildErr: "cannot assign to M",
 	},
@@ -2488,6 +2488,57 @@ var templateMultiPageCases = map[string]struct {
 			{% N = func() string { return "hi" } %}`,
 		},
 		expectedOut: "\n\t\t\t\n\t\t\t\n\t\t\t",
+	},
+
+	"Internal macro accessing a variable declared in the external macro": {
+		sources: map[string]string{
+			"index.html": `
+			{% macro External %}
+				This is External
+				{% var n int = 42 %}
+				{% macro internal %}n has value: {{ n }}{% end %}
+				internal: {{ internal() }}
+			{% end %}
+			Showing External: {{ External() }}`,
+		},
+		expectedOut: "\n\t\t\tShowing External: \t\t\t\tThis is External\n\t\t\t\t\n\t\t\t\t\n\t\t\t\tinternal: n has value: 42\n",
+	},
+
+	"Shadowing an identifier used as macro result parameter": {
+		sources: map[string]string{
+			"index.html": `{% var css string %}{% macro A css %}{% end %}`,
+		},
+		expectedBuildErr: `css is not a type`,
+	},
+
+	"Redeclaration of a macro within the same scope": {
+		sources: map[string]string{
+			"index.html": `
+			{% macro M %}
+				{% macro Inner %}{% end %}
+				{% macro Inner %}{% end %}
+			{% end macro %}`,
+		},
+		expectedBuildErr: `Inner already declared in this template scope`,
+	},
+
+	"Redeclaration of an identifier within the same scope": {
+		sources: map[string]string{
+			"index.html": `
+			{% macro M %}
+				{% macro Inner %}{% end %}
+				{% var Inner = 2 %}
+			{% end macro %}`,
+		},
+		expectedBuildErr: `Inner already declared in this template scope`,
+	},
+
+	"https://github.com/open2b/scriggo/issues/701": {
+		sources: map[string]string{
+			"index.html":   `{{ render "partial.html" }}`,
+			"partial.html": "{% var a int %}{% macro b %}{{ a }}{% end %}{{ b() }}",
+		},
+		expectedOut: `0`,
 	},
 }
 

@@ -141,11 +141,11 @@ func (fb *functionBuilder) emitCallMacro(f int8, shift runtime.StackShift, pos *
 //
 //     f()
 //
-func (fb *functionBuilder) emitCallIndirect(f int8, numVariadic int8, shift runtime.StackShift, pos *ast.Position, funcType reflect.Type) {
+func (fb *functionBuilder) emitCallIndirect(f int8, numVariadic int8, shift runtime.StackShift, pos *ast.Position, funcType reflect.Type, toFormat ast.Format) {
 	fb.addPosAndPath(pos)
 	fb.addFunctionType(funcType)
 	fn := fb.fn
-	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCallIndirect, A: f, C: numVariadic})
+	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCallIndirect, A: f, B: int8(toFormat), C: numVariadic})
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
 
@@ -334,8 +334,9 @@ func (fb *functionBuilder) emitField(a, field, c int8, dstKind reflect.Kind, ref
 // emitFunc appends a new "LoadFunc" instruction to the function body.
 //
 //     r = func() { ... }
+//     {% macro r %}...{% end macro %}
 //
-func (fb *functionBuilder) emitFunc(r int8, typ reflect.Type, pos *ast.Position) *runtime.Function {
+func (fb *functionBuilder) emitFunc(r int8, typ reflect.Type, pos *ast.Position, macro bool, format ast.Format) *runtime.Function {
 	fn := fb.fn
 	b := len(fn.Functions)
 	if b == maxFunctionsCount {
@@ -353,6 +354,8 @@ func (fb *functionBuilder) emitFunc(r int8, typ reflect.Type, pos *ast.Position)
 	scriggoFunc := &runtime.Function{
 		Pkg:    fn.Pkg,
 		File:   fn.File,
+		Macro:  macro,
+		Format: uint8(format),
 		Pos:    runtimePos,
 		Type:   typ,
 		Parent: fn,
