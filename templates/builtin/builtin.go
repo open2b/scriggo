@@ -59,6 +59,8 @@
 //        "sha256":        builtin.Sha256,
 //        "sort":          builtin.Sort,
 //        "split":         builtin.Split,
+//        "splitAfter":    builtin.SplitAfter,
+//        "splitAfterN":   builtin.SplitAfterN,
 //        "splitN":        builtin.SplitN,
 //        "sprint":        builtin.Sprint,
 //        "sprintf":       builtin.Sprintf,
@@ -420,6 +422,34 @@ func Sort(slice interface{}, less func(i, j int) bool) {
 // It is equivalent to SplitN with a count of -1.
 func Split(s, sep string) []string {
 	return strings.Split(s, sep)
+}
+
+// SplitAfter slices s into all substrings after each instance of sep and
+// returns a slice of those substrings.
+//
+// If s does not contain sep and sep is not empty, SplitAfter returns
+// a slice of length 1 whose only element is s.
+//
+// If sep is empty, SplitAfter splits after each UTF-8 sequence. If
+// both s and sep are empty, SplitAfter returns an empty slice.
+//
+// It is equivalent to SplitAfterN with a count of -1.
+func SplitAfter(s, sep string) []string {
+	return strings.SplitAfter(s, sep)
+}
+
+// SplitAfterN slices s into substrings after each instance of sep and
+// returns a slice of those substrings.
+//
+// The count determines the number of substrings to return:
+//   n > 0: at most n substrings; the last substring will be the unsplit remainder.
+//   n == 0: the result is nil (zero substrings)
+//   n < 0: all substrings
+//
+// Edge cases for s and sep (for example, empty strings) are handled
+// as described in the documentation for SplitAfter.
+func SplitAfterN(s, sep string, n int) []string {
+	return strings.SplitAfterN(s, sep, n)
 }
 
 // SplitN slices s into substrings separated by sep and returns a slice of
