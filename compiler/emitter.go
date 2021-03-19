@@ -254,6 +254,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 			}
 			if _, ok := em.alreadyEmittedFuncs[n]; ok {
 				// Function has already been emitted, nothing to do.
+				continue
 			}
 			if n.Ident.Name == "init" {
 				fn = inits[initToBuild]
