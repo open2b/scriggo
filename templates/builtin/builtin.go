@@ -28,10 +28,14 @@
 //    {{ min(x, y) }}
 //    {{ max(x, y) }}
 //
+//    {% var re = regexp(`scrig{2}o?`) %}
+//    {{ re.Match("scriggo") }}
+//
 // Use this Declarations value to use all the builtin of this package
 // in a template
 //
 //    templates.Declarations{
+//        "Regexp":        reflect.TypeOf((*builtin.Regexp)(nil)).Elem(),
 //        "abbreviate":    builtin.Abbreviate,
 //        "abs":           builtin.Abs,
 //        "base64":        builtin.Base64,
@@ -51,6 +55,7 @@
 //        "md5":           builtin.Md5,
 //        "min":           builtin.Min,
 //        "queryEscape":   builtin.QueryEscape,
+//        "regexp":        builtin.RegExp,
 //        "replace":       builtin.Replace,
 //        "replaceAll":    builtin.ReplaceAll,
 //        "reverse":       builtin.Reverse,
@@ -87,11 +92,13 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/open2b/scriggo/runtime"
 	"github.com/open2b/scriggo/templates"
 )
 
@@ -308,6 +315,16 @@ func QueryEscape(s string) string {
 		copy(b[j:], s[last:])
 	}
 	return string(b)
+}
+
+// RegExp parses a regular expression and returns a Regexp object that can be
+// used to match against text. It panics if the expression cannot be parsed.
+func RegExp(env runtime.Env, expr string) Regexp {
+	r, err := regexp.Compile(expr)
+	if err != nil {
+		env.Fatal(err)
+	}
+	return Regexp{r: r}
 }
 
 // Replace returns a copy of the string s with the first n
