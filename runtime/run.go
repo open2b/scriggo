@@ -1672,7 +1672,7 @@ func (vm *VM) run() (Addr, bool) {
 
 		// SetVar
 		case OpSetVar, -OpSetVar:
-			v := vm.vars[int(b)<<8|int(uint8(c))]
+			v := vm.vars[decodeInt16(b, c)]
 			switch v := v.(type) {
 			case *bool:
 				*v = vm.boolk(a, op < 0)
