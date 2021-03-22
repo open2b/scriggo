@@ -2263,6 +2263,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -2529,6 +2530,7 @@ func (t *templateFS) watch(name string) error {
 }
 
 var globals = templates.Declarations{
+	"Regexp":        reflect.TypeOf((*builtin.Regexp)(nil)).Elem(),
 	"abbreviate":    builtin.Abbreviate,
 	"abs":           builtin.Abs,
 	"base64":        builtin.Base64,
@@ -2548,6 +2550,7 @@ var globals = templates.Declarations{
 	"md5":           builtin.Md5,
 	"min":           builtin.Min,
 	"queryEscape":   builtin.QueryEscape,
+	"regexp":        builtin.RegExp,
 	"replace":       builtin.Replace,
 	"replaceAll":    builtin.ReplaceAll,
 	"reverse":       builtin.Reverse,
