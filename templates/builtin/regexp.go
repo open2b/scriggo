@@ -65,10 +65,10 @@ func (re Regexp) ReplaceAll(src, repl string) string {
 	return re.r.ReplaceAllString(src, repl)
 }
 
-// ReplaceAllFunc returns a copy of src in which all matches of the Regexp
-// have been replaced by the return value of function repl applied to the
-// matched byte slice. The replacement returned by repl is substituted
-// directly, without using expanding.
+// ReplaceAllStringFunc returns a copy of src in which all matches of the
+// Regexp have been replaced by the return value of function repl applied
+// to the matched substring. The replacement returned by repl is substituted
+// directly, without expanding.
 func (re Regexp) ReplaceAllFunc(src string, repl func(string) string) string {
 	return re.r.ReplaceAllStringFunc(src, repl)
 }
