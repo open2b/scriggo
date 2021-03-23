@@ -2540,6 +2540,49 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: `0`,
 	},
+
+	"https://github.com/open2b/scriggo/issues/727": {
+		sources: map[string]string{
+			"index.html": `
+			{% macro M(param int) %}
+				{% macro localMacro %}
+					{{ param }}
+				{% end %}
+			{% end %}`,
+		},
+		expectedOut: "\n",
+	},
+
+	"https://github.com/open2b/scriggo/issues/727 - using functions": {
+		sources: map[string]string{
+			"index.html": `
+			{%%
+				M := func(param int) int {
+					localFunc := func() int {
+						return param
+					}
+					return 0
+				}
+			%%}`,
+		},
+		expectedOut: "\n\t\t\t",
+	},
+
+	"https://github.com/open2b/scriggo/issues/727 - using functions (2)": {
+		sources: map[string]string{
+			"index.html": `
+			{%%
+				M := func(param int) int {
+					localFunc := func() int {
+						return param
+					}
+					return localFunc()
+				}
+			%%}
+			M returns {{ M(3) }}`,
+		},
+		expectedOut: "\n\t\t\tM returns 3",
+	},
 }
 
 var structWithUnexportedFields = &struct {

@@ -462,13 +462,16 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 	// Reserve space for the return parameters.
 	for _, res := range fn.Type.Result {
 		kind := em.typ(res.Type).Kind()
-		ret := em.fb.newRegister(kind)
 		if res.Ident != nil && !isBlankIdentifier(res.Ident) {
+			var reg int8
 			if em.varStore.mustBeDeclaredAsIndirect(res.Ident) {
-				panic("BUG: not supported")
+				reg = em.fb.newIndirectRegister()
 			} else {
-				em.fb.bindVarReg(res.Ident.Name, ret)
+				reg = em.fb.newRegister(kind)
 			}
+			em.fb.bindVarReg(res.Ident.Name, reg)
+		} else {
+			_ = em.fb.newRegister(kind)
 		}
 	}
 	// Bind the function argument names to pre-allocated registers.
@@ -477,13 +480,16 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 		if fn.Type.IsVariadic && i == len(fn.Type.Parameters)-1 {
 			kind = reflect.Slice
 		}
-		arg := em.fb.newRegister(kind)
 		if par.Ident != nil && !isBlankIdentifier(par.Ident) {
+			var reg int8
 			if em.varStore.mustBeDeclaredAsIndirect(par.Ident) {
-				panic("BUG: not supported")
+				reg = em.fb.newIndirectRegister()
 			} else {
-				em.fb.bindVarReg(par.Ident.Name, arg)
+				reg = em.fb.newRegister(kind)
 			}
+			em.fb.bindVarReg(par.Ident.Name, reg)
+		} else {
+			_ = em.fb.newRegister(kind)
 		}
 	}
 
