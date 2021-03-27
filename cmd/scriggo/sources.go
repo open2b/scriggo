@@ -2531,11 +2531,13 @@ func (t *templateFS) watch(name string) error {
 
 var globals = templates.Declarations{
 	"Regexp":        reflect.TypeOf((*builtin.Regexp)(nil)).Elem(),
+	"Time":          reflect.TypeOf((*builtin.Time)(nil)).Elem(),
 	"abbreviate":    builtin.Abbreviate,
 	"abs":           builtin.Abs,
 	"base64":        builtin.Base64,
 	"capitalize":    builtin.Capitalize,
 	"capitalizeAll": builtin.CapitalizeAll,
+	"date":          builtin.Date,
 	"hasPrefix":     builtin.HasPrefix,
 	"hasSuffix":     builtin.HasSuffix,
 	"hex":           builtin.Hex,
@@ -2549,6 +2551,8 @@ var globals = templates.Declarations{
 	"max":           builtin.Max,
 	"md5":           builtin.Md5,
 	"min":           builtin.Min,
+	"now":           builtin.Now,
+	"parseTime":     builtin.ParseTime,
 	"queryEscape":   builtin.QueryEscape,
 	"regexp":        builtin.RegExp,
 	"replace":       builtin.Replace,
@@ -2570,6 +2574,7 @@ var globals = templates.Declarations{
 	"trimPrefix":    builtin.TrimPrefix,
 	"trimRight":     builtin.TrimRight,
 	"trimSuffix":    builtin.TrimSuffix,
+	"unixTime":      builtin.UnixTime,
 }
 `)
 	sources["util.go"] = []byte(`// Copyright (c) 2019 Open2b Software Snc. All rights reserved.
