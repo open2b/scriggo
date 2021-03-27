@@ -9,6 +9,7 @@ package builtin
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/open2b/scriggo/templates"
 )
@@ -69,6 +70,16 @@ var tests = []struct {
 	{CapitalizeAll(` ab,cd`), " Ab,Cd"},
 	{CapitalizeAll(` Ab,cd`), " Ab,Cd"},
 
+	// date
+	{func() string {
+		t, _ := Date(2009, 11, 10, 12, 15, 32, 680327414, "UTC")
+		return t.Format(time.RFC3339Nano)
+	}(), "2009-11-10T12:15:32.680327414Z"},
+	{func() string {
+		t, _ := Date(2021, 3, 27, 17, 18, 51, 0, "CET")
+		return t.Format(time.RFC3339Nano)
+	}(), "2021-03-27T17:18:51+01:00"},
+
 	// htmlEscape
 	{spf("%s", HtmlEscape(``)), ""},
 	{spf("%s", HtmlEscape(`a`)), "a"},
@@ -118,6 +129,14 @@ var tests = []struct {
 	{spf("%d", Min(7, 5)), "5"},
 	{spf("%d", Min(-7, 5)), "-7"},
 	{spf("%d", Min(7, -5)), "-5"},
+
+	// now
+	{spf("%t", func() bool {
+		t1 := NewTime(time.Now())
+		t := Now()
+		t2 := NewTime(time.Now())
+		return (t.Equal(t1) || t.After(t1)) && (t.Equal(t2) || t.Before(t2))
+	}()), "true"},
 
 	// regexp
 	{spf("%t", RegExp(nil, "(scriggo){2}").Match("scriggo")), "false"},
@@ -183,6 +202,7 @@ var tests = []struct {
 	{func() string { s := []bool{true, false, true}; Sort(s, nil); return spf("%v", s) }(), "[false true true]"},
 	{func() string { s := []templates.HTML{`<b>`, `<a>`, `<c>`}; Sort(s, nil); return spf("%v", s) }(), "[<a> <b> <c>]"},
 
+	// toKebab
 	{ToKebab(""), ""},
 	{ToKebab("AaBbCc"), "aa-bb-cc"},
 	{ToKebab("aBc"), "a-bc"},
@@ -212,6 +232,11 @@ var tests = []struct {
 	{ToKebab("A€€B"), "a-b"},
 	{ToKebab("€€AB"), "ab"},
 	{ToKebab("AB€€"), "ab"},
+
+	// unixTime
+	{UnixTime(0, 0).UTC().Format(time.RFC3339Nano), "1970-01-01T00:00:00Z"},
+	{UnixTime(1616964058, 0).UTC().Format(time.RFC3339Nano), "2021-03-28T20:40:58Z"},
+	{UnixTime(1616964058, 136918407).UTC().Format(time.RFC3339Nano), "2021-03-28T20:40:58.136918407Z"},
 }
 
 func TestBuiltins(t *testing.T) {
