@@ -9,6 +9,7 @@ package builtin
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/open2b/scriggo/templates"
 )
@@ -69,6 +70,16 @@ var tests = []struct {
 	{CapitalizeAll(` ab,cd`), " Ab,Cd"},
 	{CapitalizeAll(` Ab,cd`), " Ab,Cd"},
 
+	// date
+	{func() string {
+		t, _ := Date(2009, 11, 10, 12, 15, 32, 680327414, "UTC")
+		return t.Format(time.RFC3339Nano)
+	}(), "2009-11-10T12:15:32.680327414Z"},
+	{func() string {
+		t, _ := Date(2021, 3, 27, 17, 18, 51, 0, "CET")
+		return t.Format(time.RFC3339Nano)
+	}(), "2021-03-27T17:18:51+01:00"},
+
 	// htmlEscape
 	{spf("%s", HtmlEscape(``)), ""},
 	{spf("%s", HtmlEscape(`a`)), "a"},
@@ -118,6 +129,12 @@ var tests = []struct {
 	{spf("%d", Min(7, 5)), "5"},
 	{spf("%d", Min(-7, 5)), "-7"},
 	{spf("%d", Min(7, -5)), "-5"},
+
+	// now
+	{spf("%t", func() bool {
+		t, _ := TimeArguments(Now())
+		return t.Sub(time.Now()) < time.Millisecond
+	}()), "true"},
 
 	// regexp
 	{spf("%t", RegExp(nil, "(scriggo){2}").Match("scriggo")), "false"},
@@ -183,6 +200,7 @@ var tests = []struct {
 	{func() string { s := []bool{true, false, true}; Sort(s, nil); return spf("%v", s) }(), "[false true true]"},
 	{func() string { s := []templates.HTML{`<b>`, `<a>`, `<c>`}; Sort(s, nil); return spf("%v", s) }(), "[<a> <b> <c>]"},
 
+	// toKebab
 	{ToKebab(""), ""},
 	{ToKebab("AaBbCc"), "aa-bb-cc"},
 	{ToKebab("aBc"), "a-bc"},
@@ -218,6 +236,93 @@ func TestBuiltins(t *testing.T) {
 	for _, expr := range tests {
 		if expr.got != expr.expected {
 			t.Errorf("source: %q, got %q, expecting %q\n", "", expr.got, expr.expected)
+		}
+	}
+}
+
+var parseTimeTests = []struct {
+	value    string
+	expected string
+}{
+	{"2021-03-27T11:21:14.964553+01:00", "2021-03-27T11:21:14.964553+01:00"},
+	{"2021-03-27T11:21:14+01:00", "2021-03-27T11:21:14+01:00"},
+	{"2021-03-27T11:21:14", "2021-03-27T11:21:14Z"},
+	{"Sat, 27 Mar 2021 11:21:14 +0100", "2021-03-27T11:21:14+01:00"},
+	{"Sat, 27 Mar 2021 11:21:14 CET", "2021-03-27T11:21:14+01:00"},
+	{"27 Mar 21 11:21 +0100", "2021-03-27T11:21:00+01:00"},
+	{"27 Mar 21 11:21 CET", "2021-03-27T11:21:00+01:00"},
+	{"Saturday, 27-Mar-21 11:21:14 CET", "2021-03-27T11:21:14+01:00"},
+	{"Sat Mar 27 11:21:14 2021", "2021-03-27T11:21:14Z"},
+	{"Sat Mar 27 11:21:14 CET 2021", "2021-03-27T11:21:14+01:00"},
+	{"Sat Mar 27 11:21:14 +0100 2021", "2021-03-27T11:21:14+01:00"},
+	{"2021-03-27 11:21:14.964553 +0100 CET", "2021-03-27T11:21:14.964553+01:00"},
+	{"2021-03-27", "2021-03-27T00:00:00Z"},
+	{"27 Mar 2021", "2021-03-27T00:00:00Z"},
+	{"2021-03-27T11:21:14+0100", "2021-03-27T11:21:14+01:00"},
+	{"2021-03-27 11:21:14 +01:00", "2021-03-27T11:21:14+01:00"},
+	{"2021-03-27 11:21:14 +0100", "2021-03-27T11:21:14+01:00"},
+	{"2021-03-27 11:21:14+01:00", "2021-03-27T11:21:14+01:00"},
+	{"2021-03-27 11:21:14+0100", "2021-03-27T11:21:14+01:00"},
+	{"2021-03-27 11:21:14", "2021-03-27T11:21:14Z"},
+	{"11:21AM", "0000-01-01T11:21:00Z"},
+	{"Mar 27 11:21:14", "0000-03-27T11:21:14Z"},
+	{"Mar 27 11:21:14.964", "0000-03-27T11:21:14.964Z"},
+	{"Mar 27 11:21:14.964553", "0000-03-27T11:21:14.964553Z"},
+	{"Mar 27 11:21:14.964553000", "0000-03-27T11:21:14.964553Z"},
+}
+
+func TestParseTime(t *testing.T) {
+	for _, cas := range parseTimeTests {
+		tm, err := ParseTime(cas.value)
+		if err != nil {
+			t.Fatalf("source: %q, got error %q, expecting %q\n", cas.value, err, cas.expected)
+		}
+		if got := tm.t.Format(time.RFC3339Nano); got != cas.expected {
+			t.Errorf("source: %q, got %q, expecting %q\n", cas.value, got, cas.expected)
+		}
+	}
+}
+
+var t1, _ = ParseTime("2021-03-27T11:21:14.964553+01:00")
+var t2, _ = ParseTime("2021-02-12T10:16:29.370149+01:00")
+
+var sptime = func(t Time) string { return t.t.Format(time.RFC3339Nano) }
+
+var timeTests = []struct {
+	got      string
+	expected string
+}{
+	{sptime(t1.AddClock(18, 45, 13)), "2021-03-28T07:06:27.964553+02:00"},
+	{sptime(t1.AddDate(2, 3, 7)), "2023-07-04T11:21:14.964553+02:00"},
+	{sptime(t1.AddFraction(150, 350, 23)), "2021-03-27T11:21:15.114903023+01:00"},
+	{spf("%t", t1.After(t2)), "true"},
+	{spf("%t", t1.Before(t2)), "false"},
+	{spf("%v", func() []int { h, m, s := t1.Clock(); return []int{h, m, s} }()), "[11 21 14]"},
+	{spf("%v", func() []int { y, m, d := t1.Date(); return []int{y, m, d} }()), "[2021 3 27]"},
+	{spf("%d", t1.Day()), "27"},
+	{spf("%t", t1.Equal(t1)), "true"},
+	{spf("%t", t1.Equal(t2)), "false"},
+	{spf("%s", t1.Format("")), "2021-03-27T11:21:14.964553+01:00"},
+	{spf("%s", t1.Format("Monday, 02-Jan-06 15:04:05 MST")), "Saturday, 27-Mar-21 11:21:14 CET"},
+	{spf("%v", func() []int { ms, us, ns := t1.Fraction(); return []int{ms, us, ns} }()), "[964 964553 964553000]"},
+	{spf("%d", t1.Hour()), "11"},
+	{spf("%s", t1.JS()), `new Date("2021-03-27T11:21:14.964+01:00")`},
+	{spf("%s", t1.JSON()), `"2021-03-27T11:21:14+01:00"`},
+	{spf("%d", t1.Minute()), "21"},
+	{spf("%d", t1.Month()), "3"},
+	{spf("%d", t1.Second()), "14"},
+	{spf("%s", t1.String()), "2021-03-27T11:21:14.964553+01:00"},
+	{spf("%v", func() []int { h, m, s, ns := t1.Sub(t2); return []int{h, m, s, ns} }()), "[1033 4 45 594404000]"},
+	{spf("%s", t1.UTC()), "2021-03-27T10:21:14.964553Z"},
+	{spf("%d", t1.Unix()), "1616840474"},
+	{spf("%d", t1.Weekday()), "6"},
+	{spf("%d", t1.Year()), "2021"},
+}
+
+func TestTime(t *testing.T) {
+	for _, expr := range timeTests {
+		if expr.got != expr.expected {
+			t.Errorf("got %q, expecting %q\n", expr.got, expr.expected)
 		}
 	}
 }

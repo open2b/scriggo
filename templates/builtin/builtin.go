@@ -36,11 +36,13 @@
 //
 //    templates.Declarations{
 //        "Regexp":        reflect.TypeOf((*builtin.Regexp)(nil)).Elem(),
+//        "Time":          reflect.TypeOf((*builtin.Time)(nil)).Elem(),
 //        "abbreviate":    builtin.Abbreviate,
 //        "abs":           builtin.Abs,
 //        "base64":        builtin.Base64,
 //        "capitalize":    builtin.Capitalize,
 //        "capitalizeAll": builtin.CapitalizeAll,
+//        "date":          builtin.Date,
 //        "hasPrefix":     builtin.HasPrefix,
 //        "hasSuffix":     builtin.HasSuffix,
 //        "hex":           builtin.Hex,
@@ -54,6 +56,8 @@
 //        "max":           builtin.Max,
 //        "md5":           builtin.Md5,
 //        "min":           builtin.Min,
+//        "now":           builtin.Now,
+//        "parseTime":     builtin.ParseTime,
 //        "queryEscape":   builtin.QueryEscape,
 //        "regexp":        builtin.RegExp,
 //        "replace":       builtin.Replace,
@@ -95,6 +99,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
@@ -189,6 +194,27 @@ func CapitalizeAll(src string) string {
 	}, src)
 }
 
+// Date returns the time corresponding to the given date with time zone
+// determined by location. If location does not exist, it returns an error.
+//
+// For example, the following call returns March 27, 2021 11:21:14.964553705 CET.
+//   Date(2021, 3, 27, 11, 21, 14, 964553705, "Europe/Rome")
+//
+// For UTC use "" or "UTC" as location. For the system's local time zone use
+// "Local" as location.
+//
+// The month, day, hour, min, sec, and nsec values may be outside their usual
+// ranges and will be normalized during the conversion. For example, October
+// 32 converts to November 1.
+//
+func Date(year, month, day, hour, min, sec, nsec int, location string) (Time, error) {
+	loc, err := time.LoadLocation(location)
+	if err != nil {
+		return Time{}, err
+	}
+	return NewTime(time.Date(year, time.Month(month), day, hour, min, sec, nsec, loc), nil), nil
+}
+
 // HasPrefix tests whether the string s begins with prefix.
 func HasPrefix(s, prefix string) bool {
 	return strings.HasPrefix(s, prefix)
@@ -274,6 +300,23 @@ func Min(x, y int) int {
 		return y
 	}
 	return x
+}
+
+// Now returns the current local time.
+func Now() Time {
+	return NewTime(time.Now(), nil)
+}
+
+// ParseTime parses a time representation using a predefined list of layouts.
+// It returns an error if value cannot be parsed.
+func ParseTime(value string) (Time, error) {
+	for _, layout := range timeLayouts {
+		t, err := time.Parse(layout, value)
+		if err == nil {
+			return NewTime(t, nil), nil
+		}
+	}
+	return Time{}, fmt.Errorf("cannot parse %q", value)
 }
 
 // QueryEscape escapes the string so it can be safely placed
