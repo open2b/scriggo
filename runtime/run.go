@@ -1510,12 +1510,10 @@ func (vm *VM) run() (Addr, bool) {
 		case OpReturn:
 			i := len(vm.calls) - 1
 			if i == -1 {
-				// TODO(marco): call finalizer.
 				return maxUint32, false
 			}
 			call := vm.calls[i]
 			if call.status == started {
-				// TODO(marco): call finalizer.
 				if vm.fn.Macro {
 					if call.renderer != vm.renderer {
 						out := vm.renderer.Out()
@@ -1528,6 +1526,8 @@ func (vm *VM) run() (Addr, bool) {
 						}
 					}
 					vm.renderer = call.renderer
+				} else if regs := vm.fn.FinalRegs; regs != nil {
+					vm.finalize(vm.fn.FinalRegs)
 				}
 				vm.calls = vm.calls[:i]
 				vm.fp = call.fp
