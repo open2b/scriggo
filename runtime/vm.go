@@ -473,10 +473,10 @@ func (vm *VM) equals(x, y reflect.Value) bool {
 	return x.Interface() == y.Interface()
 }
 
-func (vm *VM) finalize(regs []int8) {
-	for i, reg := range regs {
-		if reg != 0 {
-			vm.setFromReflectValue(int8(i+1), vm.generalIndirect(reg))
+func (vm *VM) finalize(regs [][2]int8) {
+	for _, reg := range regs {
+		if reg[0] != 0 {
+			vm.setFromReflectValue(reg[1], vm.generalIndirect(reg[0]))
 		}
 	}
 }
@@ -804,7 +804,7 @@ type Function struct {
 	VarRefs    []int16
 	Types      []reflect.Type
 	NumReg     [4]int8
-	FinalRegs  []int8
+	FinalRegs  [][2]int8 // [indirect -> return parameter registers]
 	Macro      bool
 	Format     uint8
 	Constants  Registers

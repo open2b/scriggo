@@ -21,7 +21,7 @@ func TestFinalize(t *testing.T) {
 	d := fb.emitFunc(2, dType, nil, false, 0)
 	fb.emitDefer(2, runtime.NoVariadicArgs, runtime.StackShift{1, 0, 0, 2}, runtime.StackShift{}, dType)
 	fb.emitMove(false, -1, 1, reflect.Int, true)
-	f.FinalRegs = []int8{1}
+	f.FinalRegs = [][2]int8{{1, 1}}
 	fb.end()
 
 	d.VarRefs = []int16{-1}
