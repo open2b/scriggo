@@ -475,9 +475,7 @@ func (vm *VM) equals(x, y reflect.Value) bool {
 
 func (vm *VM) finalize(regs [][2]int8) {
 	for _, reg := range regs {
-		if reg[0] != 0 {
-			vm.setFromReflectValue(reg[1], vm.generalIndirect(reg[0]))
-		}
+		vm.setFromReflectValue(reg[1], vm.generalIndirect(reg[0]))
 	}
 }
 
