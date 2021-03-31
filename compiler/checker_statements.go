@@ -1044,6 +1044,7 @@ func (tc *typechecker) makeMacroResultExplicit(macro *ast.Func) {
 
 // checkFunc checks a function.
 func (tc *typechecker) checkFunc(node *ast.Func) {
+
 	tc.enterScope()
 	tc.addToAncestors(node)
 	// Adds parameters to the function body scope.
@@ -1060,13 +1061,42 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 			}
 		}
 	}
-	// Adds named return values to the function body scope.
+
+	// Adds named return values to the function body scope and add some dummy
+	// assignment nodes to initialize them, if necessary.
+	//
+	// For example:
+	//
+	//     func f() (x int, slice []int) {
+	// 	       return
+	//     }
+	//
+	// is transformed to:
+	//
+	//    func f() (x int, slice []int) {
+	//        x = 0
+	//        slice = []int(nil)
+	//        return
+	//    }
+	//
+	var initRetParams []ast.Node
 	for _, ret := range node.Type.Result {
 		t := tc.checkType(ret.Type)
 		if ret.Ident != nil && !isBlankIdentifier(ret.Ident) {
 			tc.assignScope(ret.Ident.Name, &typeInfo{Type: t.Type, Properties: propertyAddressable}, ret.Ident)
+			assignment := ast.NewAssignment(
+				ret.Ident.Position,
+				[]ast.Expression{ret.Ident},
+				ast.AssignmentSimple,
+				[]ast.Expression{tc.newPlaceholderFor(t.Type)},
+			)
+			initRetParams = append(initRetParams, assignment)
 		}
 	}
+	if len(initRetParams) > 0 {
+		node.Body.Nodes = append(initRetParams, node.Body.Nodes...)
+	}
+
 	node.Body.Nodes = tc.checkNodes(node.Body.Nodes)
 	// «If the function's signature declares result parameters, the function
 	// body's statement list must end in a terminating statement.»

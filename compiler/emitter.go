@@ -469,6 +469,8 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 			if em.varStore.mustBeDeclaredAsIndirect(outParam.Ident) {
 				panic("BUG: not supported")
 			} else {
+				// The register 'ret' will be initialized by a dummy assignment
+				// node added by the type checker.
 				ret := em.fb.newRegister(kind)
 				em.fb.bindVarReg(outParam.Ident.Name, ret)
 			}
