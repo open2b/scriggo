@@ -459,35 +459,41 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 // prepareFunctionBodyParameters is called before emitting its body.
 func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 
-	// Reserve space for the return parameters.
-	for _, res := range fn.Type.Result {
-		kind := em.typ(res.Type).Kind()
-		ret := em.fb.newRegister(kind)
-		if res.Ident != nil && !isBlankIdentifier(res.Ident) {
-			if em.varStore.mustBeDeclaredAsIndirect(res.Ident) {
+	// Reserve space for the return parameters and eventually bind them.
+	for _, outParam := range fn.Type.Result {
+		kind := em.typ(outParam.Type).Kind()
+		if outParam.Ident == nil || isBlankIdentifier(outParam.Ident) {
+			// Just reserve space for this parameter.
+			_ = em.fb.newRegister(kind)
+		} else {
+			if em.varStore.mustBeDeclaredAsIndirect(outParam.Ident) {
 				panic("BUG: not supported")
 			} else {
-				em.fb.bindVarReg(res.Ident.Name, ret)
-			}
-		}
-	}
-	// Bind the function argument names to pre-allocated registers.
-	for i, par := range fn.Type.Parameters {
-		kind := em.typ(par.Type).Kind()
-		if fn.Type.IsVariadic && i == len(fn.Type.Parameters)-1 {
-			kind = reflect.Slice
-		}
-		arg := em.fb.newRegister(kind)
-		if par.Ident != nil && !isBlankIdentifier(par.Ident) {
-			if em.varStore.mustBeDeclaredAsIndirect(par.Ident) {
-				panic("BUG: not supported")
-			} else {
-				em.fb.bindVarReg(par.Ident.Name, arg)
+				ret := em.fb.newRegister(kind)
+				em.fb.bindVarReg(outParam.Ident.Name, ret)
 			}
 		}
 	}
 
-	return
+	// Reserve space for the input parameters and eventually bind them.
+	for i, inParam := range fn.Type.Parameters {
+		kind := em.typ(inParam.Type).Kind()
+		if fn.Type.IsVariadic && i == len(fn.Type.Parameters)-1 {
+			kind = reflect.Slice
+		}
+		if inParam.Ident == nil || isBlankIdentifier(inParam.Ident) {
+			// Just reserve space for this parameter.
+			_ = em.fb.newRegister(kind)
+		} else {
+			if em.varStore.mustBeDeclaredAsIndirect(inParam.Ident) {
+				panic("BUG: not supported")
+			} else {
+				arg := em.fb.newRegister(kind)
+				em.fb.bindVarReg(inParam.Ident.Name, arg)
+			}
+		}
+	}
+
 }
 
 // emitCallNode emits instructions for a function call node. It returns the
