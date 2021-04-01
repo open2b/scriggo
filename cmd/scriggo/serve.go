@@ -310,6 +310,8 @@ var globals = templates.Declarations{
 	"sha256":        builtin.Sha256,
 	"sort":          builtin.Sort,
 	"split":         builtin.Split,
+	"splitAfter":    builtin.SplitAfter,
+	"splitAfterN":   builtin.SplitAfterN,
 	"splitN":        builtin.SplitN,
 	"sprint":        builtin.Sprint,
 	"sprintf":       builtin.Sprintf,
