@@ -35,12 +35,21 @@
 // in a template
 //
 //    templates.Declarations{
+//        "Duration":      reflect.TypeOf((*builtin.Duration)(nil)).Elem(),
+//        "Hour":          time.Hour,
+//        "Microsecond":   time.Microsecond,
+//        "Millisecond":   time.Millisecond,
+//        "Minute":        time.Minute,
+//        "Nanosecond":    time.Nanosecond,
 //        "Regexp":        reflect.TypeOf((*builtin.Regexp)(nil)).Elem(),
+//        "Second":        time.Second,
+//        "Time":          reflect.TypeOf((*builtin.Time)(nil)).Elem(),
 //        "abbreviate":    builtin.Abbreviate,
 //        "abs":           builtin.Abs,
 //        "base64":        builtin.Base64,
 //        "capitalize":    builtin.Capitalize,
 //        "capitalizeAll": builtin.CapitalizeAll,
+//        "date":          builtin.Date,
 //        "hasPrefix":     builtin.HasPrefix,
 //        "hasSuffix":     builtin.HasSuffix,
 //        "hex":           builtin.Hex,
@@ -54,6 +63,9 @@
 //        "max":           builtin.Max,
 //        "md5":           builtin.Md5,
 //        "min":           builtin.Min,
+//        "now":           builtin.Now,
+//        "parseDuration": builtin.ParseDuration,
+//        "parseTime":     builtin.ParseTime,
 //        "queryEscape":   builtin.QueryEscape,
 //        "regexp":        builtin.RegExp,
 //        "replace":       builtin.Replace,
@@ -77,6 +89,7 @@
 //        "trimPrefix":    builtin.TrimPrefix,
 //        "trimRight":     builtin.TrimRight,
 //        "trimSuffix":    builtin.TrimSuffix,
+//        "unixTime":      builtin.UnixTime,
 //    }
 //
 package builtin
@@ -95,6 +108,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
@@ -189,6 +203,27 @@ func CapitalizeAll(src string) string {
 	}, src)
 }
 
+// Date returns the time corresponding to the given date with time zone
+// determined by location. If location does not exist, it returns an error.
+//
+// For example, the following call returns March 27, 2021 11:21:14.964553705 CET.
+//   Date(2021, 3, 27, 11, 21, 14, 964553705, "Europe/Rome")
+//
+// For UTC use "" or "UTC" as location. For the system's local time zone use
+// "Local" as location.
+//
+// The month, day, hour, min, sec and nsec values may be outside their usual
+// ranges and will be normalized during the conversion. For example, October
+// 32 converts to November 1.
+//
+func Date(year, month, day, hour, min, sec, nsec int, location string) (Time, error) {
+	loc, err := time.LoadLocation(location)
+	if err != nil {
+		return Time{}, err
+	}
+	return NewTime(time.Date(year, time.Month(month), day, hour, min, sec, nsec, loc)), nil
+}
+
 // HasPrefix tests whether the string s begins with prefix.
 func HasPrefix(s, prefix string) bool {
 	return strings.HasPrefix(s, prefix)
@@ -274,6 +309,51 @@ func Min(x, y int) int {
 		return y
 	}
 	return x
+}
+
+// Now returns the current local time.
+func Now() Time {
+	return NewTime(time.Now())
+}
+
+// ParseDuration parses a duration string.
+// A duration string is a possibly signed sequence of
+// decimal numbers, each with optional fraction and a unit suffix,
+// such as "300ms", "-1.5h" or "2h45m".
+// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+func ParseDuration(s string) (Duration, error) {
+	return time.ParseDuration(s)
+}
+
+// ParseTime parses a formatted string and returns the time value it
+// represents. The layout defines the format by showing how the reference
+// time would be
+//	Mon Jan 2 15:04:05 -0700 MST 2006
+// would be interpreted if it were the value; it serves as an example of
+// the input format. The same interpretation will then be made to the
+// input string.
+//
+// See https://golang.org/pkg/time/#Parse for more details.
+//
+// As a special case, if layout is an empty string, ParseTime parses a time
+// representation using a predefined list of layouts.
+//
+// It returns an error if value cannot be parsed.
+func ParseTime(layout, value string) (Time, error) {
+	if layout == "" {
+		for _, layout = range timeLayouts {
+			t, err := time.Parse(layout, value)
+			if err == nil {
+				return NewTime(t), nil
+			}
+		}
+		return Time{}, fmt.Errorf("cannot parse %q", value)
+	}
+	t, err := time.Parse(layout, value)
+	if err != nil {
+		return Time{}, errors.New(err.Error())
+	}
+	return NewTime(t), nil
 }
 
 // QueryEscape escapes the string so it can be safely placed
@@ -565,6 +645,15 @@ func TrimRight(s, cutset string) string {
 // If s doesn't end with suffix, s is returned unchanged.
 func TrimSuffix(s, suffix string) string {
 	return strings.TrimSuffix(s, suffix)
+}
+
+// UnixTime returns the local Time corresponding to the given Unix time,
+// sec seconds and nsec nanoseconds since January 1, 1970 UTC.
+// It is valid to pass nsec outside the range [0, 999999999].
+// Not all sec values have a corresponding time value. One such
+// value is 1<<63-1 (the largest int64 value).
+func UnixTime(sec int64, nsec int64) Time {
+	return NewTime(time.Unix(sec, nsec))
 }
 
 // isSeparator reports whether the rune could mark a word boundary.
