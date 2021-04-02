@@ -280,7 +280,10 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 					em.fb.emitCallFunc(int8(index), runtime.StackShift{}, nil)
 				}
 			}
-			em.prepareFunctionBodyParameters(n)
+			finalRegs := em.prepareFunctionBodyParameters(n)
+			if finalRegs != nil {
+				fn.FinalRegs = finalRegs
+			}
 			em.emitNodes(n.Body.Nodes)
 			em.fb.end()
 			em.fb.exitScope()
@@ -457,9 +460,21 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 //
 // While prepareCallParameters is called before calling the function,
 // prepareFunctionBodyParameters is called before emitting its body.
-func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
+//
+// Returns the list of registers to finalize, in the format of
+// runtime.Function.FinalRegs.
+func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) [][2]int8 {
+
+	type varToFinalize struct {
+		name     string
+		retParam int8 // only written by the finalizer
+		typ      reflect.Type
+	}
+
+	var varsToFinalize []varToFinalize
 
 	// Reserve space for the return parameters and eventually bind them.
+	// Also, collect the variables that must be finalized, if necessary.
 	for _, outParam := range fn.Type.Result {
 		kind := em.typ(outParam.Type).Kind()
 		if outParam.Ident == nil || isBlankIdentifier(outParam.Ident) {
@@ -467,7 +482,13 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 			_ = em.fb.newRegister(kind)
 		} else {
 			if em.varStore.mustBeDeclaredAsIndirect(outParam.Ident) {
-				panic("BUG: not supported")
+				retParam := em.fb.newRegister(kind)
+				em.fb.emitNew(em.typ(outParam.Type), retParam)
+				varsToFinalize = append(varsToFinalize, varToFinalize{
+					name:     outParam.Ident.Name,
+					retParam: retParam,
+					typ:      em.typ(outParam.Type),
+				})
 			} else {
 				// The register 'ret' will be initialized by a dummy assignment
 				// node added by the type checker.
@@ -495,6 +516,18 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 			}
 		}
 	}
+
+	// Allocate the indirect registers that will be read by the finalizer and
+	// prepare the list of registers to finalize.
+	var finalRegs [][2]int8
+	for _, toFinalize := range varsToFinalize {
+		reg := em.fb.newIndirectRegister()
+		em.fb.emitNew(toFinalize.typ, -reg)
+		em.fb.bindVarReg(toFinalize.name, reg)
+		finalRegs = append(finalRegs, [2]int8{-reg, toFinalize.retParam})
+	}
+
+	return finalRegs
 
 }
 

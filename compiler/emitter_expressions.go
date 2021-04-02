@@ -214,7 +214,10 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		em.fb = funcLitBuilder
 
 		em.fb.enterScope()
-		em.prepareFunctionBodyParameters(expr)
+		finalRegs := em.prepareFunctionBodyParameters(expr)
+		if finalRegs != nil {
+			fn.FinalRegs = finalRegs
+		}
 		em.emitNodes(expr.Body.Nodes)
 		em.fb.exitScope()
 		em.fb.end()
