@@ -204,7 +204,7 @@ func (l *lexer) scan() {
 
 			if l.ctx == ast.ContextMarkdown {
 				spacesOnlyLine = spacesOnlyLine && isSpace(c)
-				if c == '\\' && p+1 < len(l.src) && l.src[p+1] != '\n' {
+				if c == '\\' && p+1 < len(l.src) && l.src[p+1] != '\n' && !isMarkdownStartURL(l.src[p+1:]) {
 					p += 2
 					l.column += 2
 					continue
@@ -265,7 +265,36 @@ func (l *lexer) scan() {
 
 			switch l.ctx {
 
-			case ast.ContextHTML, ast.ContextMarkdown:
+			case ast.ContextMarkdown:
+				if emittedURL {
+					if isMarkdownEndURL(l.src[p:]) {
+						if p > 0 {
+							l.emitAtLineColumn(lin, col, tokenText, p)
+						}
+						l.emit(tokenEndURL, 0)
+						emittedURL = false
+						p = 0
+						lin = l.line
+						col = l.column
+					}
+				} else if (p == 0 || !isAlpha(l.src[p-1])) && isMarkdownStartURL(l.src[p:]) {
+					if p > 0 {
+						l.emitAtLineColumn(lin, col, tokenText, p)
+					}
+					l.emit(tokenStartURL, 0)
+					emittedURL = true
+					if l.src[4] == 's' {
+						p = 8 // https://
+					} else {
+						p = 7 // http://
+					}
+					lin = l.line
+					col = l.column + p
+					continue
+				}
+				fallthrough
+
+			case ast.ContextHTML:
 				if c == '<' {
 					// <![CDATA[...]]>
 					if l.ctx == ast.ContextHTML && p+8 < len(l.src) && l.src[p+1] == '!' {
@@ -513,8 +542,13 @@ func (l *lexer) scan() {
 
 		}
 
-		if l.err == nil && len(l.src) > 0 {
-			l.emitAtLineColumn(lin, col, tokenText, p)
+		if l.err == nil {
+			if len(l.src) > 0 {
+				l.emitAtLineColumn(lin, col, tokenText, p)
+			}
+			if l.ctx == ast.ContextMarkdown && emittedURL {
+				l.emit(tokenEndURL, 0)
+			}
 		}
 
 	} else {
@@ -708,6 +742,32 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 		return "", p
 	}
 	return name, p
+}
+
+var http = []byte("http://")
+var https = []byte("https://")
+
+// isMarkdownStartURL reports whether s is the start of an URL in markdown
+// context.
+func isMarkdownStartURL(s []byte) bool {
+	return bytes.HasPrefix(s, https) || bytes.HasPrefix(s, http)
+}
+
+// isMarkdownEndURL reports whether s cannot be part of an URL in markdown
+// context.
+func isMarkdownEndURL(s []byte) bool {
+	if len(s) == 0 {
+		return true
+	}
+	c := s[0]
+	if c == '.' || c == '?' {
+		if len(s) == 1 {
+			return true
+		}
+		c = s[1]
+	}
+	return isASCIISpace(c) || c == '<' || c == '!' || c == ',' || c == ';' || c == '.' || c == ':' || c == ')' ||
+		c == '\'' || c == '"' || c == '~'
 }
 
 // isEndStyle reports whether s is the start or end of "style" tag.

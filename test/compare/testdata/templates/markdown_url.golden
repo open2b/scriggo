@@ -1,0 +1,17 @@
+
+http://www.open2b.com/
+https://www.open2b.com/
+http://www.open2b.com/
+https://www.open2b.com/
+
+https://www.open2b.com?a=b
+https://www.open2b.com?a=b
+https://www.open2b.com?a=%3d
+
+ https://www.open2b.com?a=%3d
+-https://www.open2b.com?a=%3d
+"https://www.open2b.com?a=%3d"
+\https://www.open2b.com?a=%3d
+
+https://www.open2b.com?a=%3d.%3f
+https://www.open2b.com?a=%3d. ?

@@ -241,6 +241,15 @@ var typeTestsHTML = map[string][]tokenTyp{
 	`<source srcset="u">`:     tagWithURLTypes,
 }
 
+var typeTestsMarkdown = map[string][]tokenTyp{
+	` https://`:                       {tokenText, tokenStartURL, tokenText, tokenEndURL},
+	` https://site.com/`:              {tokenText, tokenStartURL, tokenText, tokenEndURL},
+	`https://{{ domain }}`:            {tokenStartURL, tokenText, tokenLeftBraces, tokenIdentifier, tokenRightBraces, tokenEndURL},
+	`https://site.com/?a={{ v }}`:     {tokenStartURL, tokenText, tokenLeftBraces, tokenIdentifier, tokenRightBraces, tokenEndURL},
+	` https://site.com/?a={{ v }} `:   {tokenText, tokenStartURL, tokenText, tokenLeftBraces, tokenIdentifier, tokenRightBraces, tokenEndURL, tokenText},
+	`https://{{ domain }}/?a={{ v }}`: {tokenStartURL, tokenText, tokenLeftBraces, tokenIdentifier, tokenRightBraces, tokenText, tokenLeftBraces, tokenIdentifier, tokenRightBraces, tokenEndURL},
+}
+
 var typeTestsGo = map[string][]tokenTyp{
 	``:                {},
 	"a := 3":          {tokenIdentifier, tokenDeclaration, tokenInt, tokenSemicolon},
@@ -592,6 +601,10 @@ func TestLexerTypesText(t *testing.T) {
 
 func TestLexerTypesHTML(t *testing.T) {
 	testLexerTypes(t, typeTestsHTML, true, ast.FormatHTML)
+}
+
+func TestLexerTypesMarkdown(t *testing.T) {
+	testLexerTypes(t, typeTestsMarkdown, true, ast.FormatMarkdown)
 }
 
 func TestLexerTypesGo(t *testing.T) {
