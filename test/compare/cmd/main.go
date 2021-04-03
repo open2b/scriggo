@@ -15,7 +15,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/fs"
@@ -29,7 +28,6 @@ var predefPkgs scriggo.Packages
 
 var globals = templates.Declarations{
 	"MainSum": func(a, b int) int { return a + b },
-	"HTML":    reflect.TypeOf((*templates.HTML)(nil)).Elem(),
 }
 
 // In case of success the standard output contains the output of the execution
