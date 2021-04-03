@@ -35,61 +35,63 @@
 // in a template
 //
 //    templates.Declarations{
-//        "Duration":      reflect.TypeOf((*builtin.Duration)(nil)).Elem(),
-//        "Hour":          time.Hour,
-//        "Microsecond":   time.Microsecond,
-//        "Millisecond":   time.Millisecond,
-//        "Minute":        time.Minute,
-//        "Nanosecond":    time.Nanosecond,
-//        "Regexp":        reflect.TypeOf((*builtin.Regexp)(nil)).Elem(),
-//        "Second":        time.Second,
-//        "Time":          reflect.TypeOf((*builtin.Time)(nil)).Elem(),
-//        "abbreviate":    builtin.Abbreviate,
-//        "abs":           builtin.Abs,
-//        "base64":        builtin.Base64,
-//        "capitalize":    builtin.Capitalize,
-//        "capitalizeAll": builtin.CapitalizeAll,
-//        "date":          builtin.Date,
-//        "hasPrefix":     builtin.HasPrefix,
-//        "hasSuffix":     builtin.HasSuffix,
-//        "hex":           builtin.Hex,
-//        "hmacSHA1":      builtin.HmacSHA1,
-//        "hmacSHA256":    builtin.HmacSHA256,
-//        "htmlEscape":    builtin.HtmlEscape,
-//        "index":         builtin.Index,
-//        "indexAny":      builtin.IndexAny,
-//        "join":          builtin.Join,
-//        "lastIndex":     builtin.LastIndex,
-//        "max":           builtin.Max,
-//        "md5":           builtin.Md5,
-//        "min":           builtin.Min,
-//        "now":           builtin.Now,
-//        "parseDuration": builtin.ParseDuration,
-//        "parseTime":     builtin.ParseTime,
-//        "queryEscape":   builtin.QueryEscape,
-//        "regexp":        builtin.RegExp,
-//        "replace":       builtin.Replace,
-//        "replaceAll":    builtin.ReplaceAll,
-//        "reverse":       builtin.Reverse,
-//        "runeCount":     builtin.RuneCount,
-//        "sha1":          builtin.Sha1,
-//        "sha256":        builtin.Sha256,
-//        "sort":          builtin.Sort,
-//        "split":         builtin.Split,
-//        "splitAfter":    builtin.SplitAfter,
-//        "splitAfterN":   builtin.SplitAfterN,
-//        "splitN":        builtin.SplitN,
-//        "sprint":        builtin.Sprint,
-//        "sprintf":       builtin.Sprintf,
-//        "toKebab":       builtin.ToKebab,
-//        "toLower":       builtin.ToLower,
-//        "toUpper":       builtin.ToUpper,
-//        "trim":          builtin.Trim,
-//        "trimLeft":      builtin.TrimLeft,
-//        "trimPrefix":    builtin.TrimPrefix,
-//        "trimRight":     builtin.TrimRight,
-//        "trimSuffix":    builtin.TrimSuffix,
-//        "unixTime":      builtin.UnixTime,
+//        "Duration":          reflect.TypeOf((*builtin.Duration)(nil)).Elem(),
+//        "Hour":              time.Hour,
+//        "Microsecond":       time.Microsecond,
+//        "Millisecond":       time.Millisecond,
+//        "Minute":            time.Minute,
+//        "Nanosecond":        time.Nanosecond,
+//        "Regexp":            reflect.TypeOf((*builtin.Regexp)(nil)).Elem(),
+//        "Second":            time.Second,
+//        "Time":              reflect.TypeOf((*builtin.Time)(nil)).Elem(),
+//        "abbreviate":        builtin.Abbreviate,
+//        "abs":               builtin.Abs,
+//        "base64":            builtin.Base64,
+//        "capitalize":        builtin.Capitalize,
+//        "capitalizeAll":     builtin.CapitalizeAll,
+//        "date":              builtin.Date,
+//        "hasPrefix":         builtin.HasPrefix,
+//        "hasSuffix":         builtin.HasSuffix,
+//        "hex":               builtin.Hex,
+//        "hmacSHA1":          builtin.HmacSHA1,
+//        "hmacSHA256":        builtin.HmacSHA256,
+//        "htmlEscape":        builtin.HtmlEscape,
+//        "index":             builtin.Index,
+//        "indexAny":          builtin.IndexAny,
+//        "join":              builtin.Join,
+//        "lastIndex":         builtin.LastIndex,
+//        "marshalJSON":       builtin.MarshalJSON
+//        "marshalJSONIndent": builtin.MarshalJSONIndent,
+//        "max":               builtin.Max,
+//        "md5":               builtin.Md5,
+//        "min":               builtin.Min,
+//        "now":               builtin.Now,
+//        "parseDuration":     builtin.ParseDuration,
+//        "parseTime":         builtin.ParseTime,
+//        "queryEscape":       builtin.QueryEscape,
+//        "regexp":            builtin.RegExp,
+//        "replace":           builtin.Replace,
+//        "replaceAll":        builtin.ReplaceAll,
+//        "reverse":           builtin.Reverse,
+//        "runeCount":         builtin.RuneCount,
+//        "sha1":              builtin.Sha1,
+//        "sha256":            builtin.Sha256,
+//        "sort":              builtin.Sort,
+//        "split":             builtin.Split,
+//        "splitAfter":        builtin.SplitAfter,
+//        "splitAfterN":       builtin.SplitAfterN,
+//        "splitN":            builtin.SplitN,
+//        "sprint":            builtin.Sprint,
+//        "sprintf":           builtin.Sprintf,
+//        "toKebab":           builtin.ToKebab,
+//        "toLower":           builtin.ToLower,
+//        "toUpper":           builtin.ToUpper,
+//        "trim":              builtin.Trim,
+//        "trimLeft":          builtin.TrimLeft,
+//        "trimPrefix":        builtin.TrimPrefix,
+//        "trimRight":         builtin.TrimRight,
+//        "trimSuffix":        builtin.TrimSuffix,
+//        "unixTime":          builtin.UnixTime,
 //    }
 //
 package builtin
@@ -101,6 +103,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -286,6 +289,36 @@ func Join(elems []string, sep string) string {
 // LastIndex returns the index of the last instance of substr in s, or -1 if substr is not present in s.
 func LastIndex(s, substr string) int {
 	return strings.LastIndex(s, substr)
+}
+
+// MarshalJSON returns the JSON encoding of v.
+//
+// See https://golang.org/pkg/encoding/json/#Marshal for details.
+func MarshalJSON(v interface{}) (templates.JSON, error) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return "", errors.New(err.Error())
+	}
+	return templates.JSON(b), nil
+}
+
+// MarshalJSONIndent is like MarshalJSON but indents the output. Each JSON
+// element in the output will begin on a new line beginning with prefix
+// followed by one or more copies of indent according to the indentation
+// nesting. prefix and indent can only contain whitespace: ' ', '\t', '\n' and
+// '\r'.
+func MarshalJSONIndent(v interface{}, prefix, indent string) (templates.JSON, error) {
+	if !onlyJSONWhitespace(prefix) {
+		return "", errors.New("prefix does not contain only whitespace")
+	}
+	if !onlyJSONWhitespace(indent) {
+		return "", errors.New("indent does not contain only whitespace")
+	}
+	b, err := json.MarshalIndent(v, prefix, indent)
+	if err != nil {
+		return "", errors.New(err.Error())
+	}
+	return templates.JSON(b), nil
 }
 
 // Max returns the larger of x or y.
@@ -683,4 +716,16 @@ func isSeparator(r rune) bool {
 	}
 	// Otherwise, all we can do for now is treat spaces as separators.
 	return unicode.IsSpace(r)
+}
+
+// onlyJSONWhitespace reports if s contains only JSON whitespace.
+func onlyJSONWhitespace(s string) bool {
+	for _, c := range s {
+		switch c {
+		case ' ', '\t', '\n', '\r':
+		default:
+			return false
+		}
+	}
+	return true
 }

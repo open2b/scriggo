@@ -112,6 +112,16 @@ var tests = []struct {
 	{HmacSHA256(``, `secret`), "+eZuF5tnR65UEI+C+K3os8Jddv0wr95sOVgixTAZYWk="},
 	{HmacSHA256(`hello world!`, `secret`), "cgaXMb8pG0Y67LIYvCJ6vOPUA9dtpn+u8tSNPLQ7L1Q="},
 
+	// marshalJSON
+	{(func() string { s, _ := MarshalJSON(nil); return string(s) })(), "null"},
+	{(func() string { s, _ := MarshalJSON(5); return string(s) })(), "5"},
+	{(func() string { s, _ := MarshalJSON([]string{"red", "green"}); return string(s) })(), `["red","green"]`},
+
+	// marshalJSONIndent
+	{(func() string { s, _ := MarshalJSONIndent(nil, "", ""); return string(s) })(), "null"},
+	{(func() string { s, _ := MarshalJSONIndent(5, " ", "\t"); return string(s) })(), "5"},
+	{(func() string { s, _ := MarshalJSONIndent([]string{"red", "green"}, "\t", "  "); return string(s) })(), "[\n\t  \"red\",\n\t  \"green\"\n\t]"},
+
 	// max
 	{spf("%d", Max(0, 0)), "0"},
 	{spf("%d", Max(5, 0)), "5"},
