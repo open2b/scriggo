@@ -204,9 +204,14 @@ func (l *lexer) scan() {
 
 			if l.ctx == ast.ContextMarkdown {
 				spacesOnlyLine = spacesOnlyLine && isSpace(c)
-				if c == '\\' && p+1 < len(l.src) && l.src[p+1] != '\n' && !isMarkdownStartURL(l.src[p+1:]) {
-					p += 2
-					l.column += 2
+				if c == '\\' {
+					p++
+					l.column++
+					if p < len(l.src) && l.src[p] != '\n' && l.src[p] != 'h' {
+						_, s := utf8.DecodeRune(l.src[p:])
+						p += s
+						l.column++
+					}
 					continue
 				}
 			}
