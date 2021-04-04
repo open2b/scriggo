@@ -8,8 +8,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package builtin provides simple functions that can be used as global
-// functions in a Scriggo template.
+// Package builtin provides simple functions, types and constants that can be
+// used as globals in a Scriggo template.
 //
 // For example, to use the Min and Max functions as global min and max
 // functions
@@ -28,11 +28,14 @@
 //    {{ min(x, y) }}
 //    {{ max(x, y) }}
 //
-//    {% var re = regexp(`scrig{2}o?`) %}
+// Use the regexp function and the returned Regex value in this way
+//
+//    {% var re = regexp(`(scrig)go`) %}
+//    {{ re.Match("go") }}
 //    {{ re.Match("scriggo") }}
 //
-// Use this Declarations value to use all the builtin of this package
-// in a template
+// Use this Declarations value to use all the builtin of this package in a
+// template or choose the most appropriate
 //
 //    templates.Declarations{
 //        "Duration":          reflect.TypeOf((*builtin.Duration)(nil)).Elem(),
@@ -192,8 +195,8 @@ func Capitalize(src string) string {
 	return src
 }
 
-// CapitalizeAll returns a copy of the string src with the first letter of each
-// word in upper case.
+// CapitalizeAll returns a copy of the string src with the first letter of
+// each word in upper case.
 func CapitalizeAll(src string) string {
 	prev := ' '
 	return strings.Map(func(r rune) rune {
@@ -209,7 +212,8 @@ func CapitalizeAll(src string) string {
 // Date returns the time corresponding to the given date with time zone
 // determined by location. If location does not exist, it returns an error.
 //
-// For example, the following call returns March 27, 2021 11:21:14.964553705 CET.
+// For example, the following call returns March 27, 2021 11:21:14.964553705
+// CET.
 //   Date(2021, 3, 27, 11, 21, 14, 964553705, "Europe/Rome")
 //
 // For UTC use "" or "UTC" as location. For the system's local time zone use
@@ -269,7 +273,8 @@ func HtmlEscape(s string) templates.HTML {
 	return templates.HTMLEscape(s)
 }
 
-// Index returns the index of the first instance of substr in s, or -1 if substr is not present in s.
+// Index returns the index of the first instance of substr in s, or -1 if
+// substr is not present in s.
 func Index(s, substr string) int {
 	return strings.Index(s, substr)
 }
@@ -280,13 +285,15 @@ func IndexAny(s, chars string) int {
 	return strings.IndexAny(s, chars)
 }
 
-// Join concatenates the elements of its first argument to create a single string. The separator
-// string sep is placed between elements in the resulting string.
+// Join concatenates the elements of its first argument to create a single
+// string. The separator string sep is placed between elements in the
+// resulting string.
 func Join(elems []string, sep string) string {
 	return strings.Join(elems, sep)
 }
 
-// LastIndex returns the index of the last instance of substr in s, or -1 if substr is not present in s.
+// LastIndex returns the index of the last instance of substr in s, or -1 if
+// substr is not present in s.
 func LastIndex(s, substr string) int {
 	return strings.LastIndex(s, substr)
 }
@@ -680,11 +687,11 @@ func TrimSuffix(s, suffix string) string {
 	return strings.TrimSuffix(s, suffix)
 }
 
-// UnixTime returns the local Time corresponding to the given Unix time,
-// sec seconds and nsec nanoseconds since January 1, 1970 UTC.
-// It is valid to pass nsec outside the range [0, 999999999].
-// Not all sec values have a corresponding time value. One such
-// value is 1<<63-1 (the largest int64 value).
+// UnixTime returns the local Time corresponding to the given Unix time, sec
+// seconds and nsec nanoseconds since January 1, 1970 UTC. It is valid to pass
+// nsec outside the range [0, 999999999]. Not all sec values have a
+// corresponding time value. One such value is 1<<63-1 (the largest int64
+// value).
 func UnixTime(sec int64, nsec int64) Time {
 	return NewTime(time.Unix(sec, nsec))
 }

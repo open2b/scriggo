@@ -31,8 +31,8 @@ type Time struct {
 }
 
 // NewTime returns a Time value at the time of t. It is not intended to be
-// used as a builtin but it can be used  to implement builtins that return
-// time values.
+// used as a builtin but it can be used to implement builtins that return time
+// values.
 //
 // For example, a builtin that returns the current local time rounded to
 // milliseconds and with location "America/New_York" can be implemented as
@@ -51,7 +51,7 @@ type Time struct {
 //        ...
 //    }
 //
-// can be used in a template
+// it can be used in a template
 //
 //    Current time: {{ now() }}
 //
@@ -65,8 +65,8 @@ func (t Time) Add(d Duration) Time {
 }
 
 // AddDate returns the time corresponding to adding the given number of years,
-// months and days to t. For example, AddDate(-1, 2, 3) applied to
-// January 1, 2011 returns March 4, 2010.
+// months and days to t. For example, AddDate(-1, 2, 3) applied to January 1,
+// 2011 returns March 4, 2010.
 //
 // AddDate normalizes its result in the same way that the Date function does.
 func (t Time) AddDate(years, months, days int) Time {
@@ -96,7 +96,7 @@ func (t Time) Date() (year, month, day int) {
 	return y, int(m), d
 }
 
-// Day returns the day of the month specified by t, in the range [1, 31]
+// Day returns the day of the month specified by t, in the range [1, 31].
 func (t Time) Day() int {
 	return t.t.Day()
 }
@@ -106,8 +106,17 @@ func (t Time) Equal(u Time) bool {
 	return t.t.Equal(u.t)
 }
 
-// Format formats the time value formatted according to layout using the t's
-// formatter.
+// Format returns a textual representation of the time value formatted
+// according to layout, which defines the format by showing how the reference
+// time, defined to be
+//	Mon Jan 2 15:04:05 -0700 MST 2006
+// would be displayed if it were the value; it serves as an example of the
+// desired output. The same display rules will then be applied to the time
+// value.
+//
+// A fractional second is represented by adding a period and zeros
+// to the end of the seconds section of layout string, as in "15:04:05.000"
+// to format a time stamp with millisecond precision.
 func (t Time) Format(layout string) string {
 	return t.t.Format(layout)
 }
@@ -170,10 +179,9 @@ func (t Time) Nanosecond() int {
 // If d <= 0, Round returns t stripped of any monotonic clock reading but
 // otherwise unchanged.
 //
-// Round operates on the time as an absolute duration since the
-// zero time; it does not operate on the presentation form of the
-// time. Thus, Round(Hour) may return a time with a non-zero
-// minute, depending on the time's Location.
+// Round operates on the time as an absolute duration since the zero time; it
+// does not operate on the presentation form of the time. Thus, Round(Hour)
+// may return a time with a non-zero minute, depending on the time's Location.
 func (t Time) Round(d Duration) Time {
 	return Time{t.t.Round(d)}
 }
@@ -197,13 +205,14 @@ func (t Time) Sub(u Time) Duration {
 	return t.t.Sub(u.t)
 }
 
-// Truncate returns the result of rounding t down to a multiple of d (since the zero time).
-// If d <= 0, Truncate returns t stripped of any monotonic clock reading but otherwise unchanged.
+// Truncate returns the result of rounding t down to a multiple of d (since
+// the zero time). If d <= 0, Truncate returns t stripped of any monotonic
+// clock reading but otherwise unchanged.
 //
-// Truncate operates on the time as an absolute duration since the
-// zero time; it does not operate on the presentation form of the
-// time. Thus, Truncate(Hour) may return a time with a non-zero
-// minute, depending on the time's Location.
+// Truncate operates on the time as an absolute duration since the zero time;
+// it does not operate on the presentation form of the time. Thus,
+// Truncate(Hour) may return a time with a non-zero minute, depending on the
+// time's Location.
 func (t Time) Truncate(d Duration) Time {
 	return Time{t.t.Truncate(d)}
 }
@@ -213,22 +222,21 @@ func (t Time) UTC() Time {
 	return Time{t.t.UTC()}
 }
 
-// Unix returns t as a Unix time, the number of seconds elapsed
-// since January 1, 1970 UTC. The result does not depend on the
-// location associated with t.
-// Unix-like operating systems often record time as a 32-bit
-// count of seconds, but since the method here returns a 64-bit
-// value it is valid for billions of years into the past or future.
+// Unix returns t as a Unix time, the number of seconds elapsed since January
+// 1, 1970 UTC. The result does not depend on the location associated with t.
+// Unix-like operating systems often record time as a 32-bit count of seconds,
+// but since the method here returns a 64-bit value it is valid for billions
+// of years into the past or future.
 func (t Time) Unix() int64 {
 	return t.t.Unix()
 }
 
-// UnixNano returns t as a Unix time, the number of nanoseconds elapsed
-// since January 1, 1970 UTC. The result is undefined if the Unix time
-// in nanoseconds cannot be represented by an int64 (a date before the year
-// 1678 or after 2262). Note that this means the result of calling UnixNano
-// on the zero Time is undefined. The result does not depend on the
-// location associated with t.
+// UnixNano returns t as a Unix time, the number of nanoseconds elapsed since
+// January 1, 1970 UTC. The result is undefined if the Unix time in
+// nanoseconds cannot be represented by an int64 (a date before the year 1678
+// or after 2262). Note that this means the result of calling UnixNano on the
+// zero Time is undefined. The result does not depend on the location
+// associated with t.
 func (t Time) UnixNano() int64 {
 	return t.t.UnixNano()
 }
@@ -243,8 +251,8 @@ func (t Time) Year() int {
 	return t.t.Year()
 }
 
-// YearDay returns the day of the year specified by t, in the range [1,365]
-// for non-leap years, and [1,366] in leap years.
+// YearDay returns the day of the year specified by t, in the range [1, 365]
+// for non-leap years, and [1, 366] in leap years.
 func (t Time) YearDay() int {
 	return t.t.YearDay()
 }
