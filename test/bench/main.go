@@ -53,6 +53,7 @@ func main() {
 	}
 }
 
+// build builds the programs in *.tests files and in the *_test directories.
 func build() ([]programToRun, error) {
 	var programs []programToRun
 	_ = fs.WalkDir(tests, ".", func(path string, d fs.DirEntry, err error) error {
