@@ -19,7 +19,6 @@ func f(x, y int) int {
 	return x + y
 }
 
-//go:noinline
 func g(s string) int {
 	if s == "" {
 		return 0
@@ -27,17 +26,14 @@ func g(s string) int {
 	return 1
 }
 
-//go:noinline
 func h(x int, s string, y []int) (int, int) {
 	return x + len(s) + len(y), 2
 }
 
-//go:noinline
 func p() {
 	a = 1
 }
 
-//go:noinline
 func k(x int) int {
 	v := func() int {
 		return g("")
