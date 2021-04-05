@@ -1,0 +1,96 @@
+
+Micro benchmarks
+
+-- Base --
+
+package main
+func main() { }
+
+-- SimpleAssignment --
+
+package main
+var x int
+func main() {
+    x = 5
+}
+
+-- Call --
+
+package main
+var a int
+func main() {
+    a = f(1)
+}
+//go:noinline
+func f(x int) int {
+    return x + 1
+}
+
+-- CallIndirect --
+
+package main
+var a int
+func main() {
+    f := func(x int) int {
+        return x + 1
+    }
+    a = f(1)
+}
+
+-- Closure --
+
+package main
+var a int
+func main() {
+    var b int
+    f := func(x int) {
+        b = x
+    }
+    f(1)
+    a = b
+}
+
+-- Defer --
+
+package main
+var a int
+func main() {
+    defer func() {
+        a = 2
+    }()
+    a = 1
+}
+
+-- For --
+
+package main
+var a int
+func main() {
+    var c int
+    for i := 0; i < 10; i++ {
+        c++
+    }
+    a = c
+}
+
+-- ForRange --
+
+package main
+var a int
+func main() {
+    var s = []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+    var sum int
+    for _, x := range s {
+        sum += x
+    }
+    a = sum
+}
+
+-- Conversion --
+
+package main
+var a int
+func main() {
+    b := 1.0
+    a = int(b)
+}
