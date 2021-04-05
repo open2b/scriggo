@@ -9,7 +9,6 @@ package main
 import (
 	"bytes"
 	"embed"
-	_ "embed"
 	"fmt"
 	"io/fs"
 	"os"
