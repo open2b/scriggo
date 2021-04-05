@@ -21,7 +21,7 @@ import (
 	"golang.org/x/tools/txtar"
 )
 
-//go:embed micro.txtar *_test/*
+//go:embed *.tests *_test/*
 var tests embed.FS
 
 type programToRun struct {
@@ -54,20 +54,7 @@ func main() {
 }
 
 func build() ([]programToRun, error) {
-	micro, err := tests.ReadFile("micro.txtar")
-	if err != nil {
-		return nil, err
-	}
-	arch := txtar.Parse(micro)
-	programs := make([]programToRun, len(arch.Files))
-	for i, file := range arch.Files {
-		program, err := scriggo.Build(bytes.NewReader(file.Data), nil, nil)
-		if err != nil {
-			return nil, fmt.Errorf("cannot build %s: %s", file.Name, err)
-		}
-		programs[i].name = "Micro"+file.Name
-		programs[i].code = program
-	}
+	var programs []programToRun
 	_ = fs.WalkDir(tests, ".", func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() {
 			if path != "." && !strings.HasSuffix(path, "_test") {
@@ -75,16 +62,34 @@ func build() ([]programToRun, error) {
 			}
 			return nil
 		}
-		if !strings.Contains(path, "/") {
+		if strings.Contains(path, "/") {
+			data, _ := tests.ReadFile(path)
+			program, err := scriggo.Build(bytes.NewReader(data), nil, nil)
+			if err != nil {
+				return fmt.Errorf("cannot build %s: %s", path, err)
+			}
+			name := capitalizeTestName(path[:strings.Index(path, "_test/")])
+			programs = append(programs, programToRun{name: name, code: program})
 			return nil
 		}
-		data, _ := tests.ReadFile(path)
-		program, err := scriggo.Build(bytes.NewReader(data), nil, nil)
-		if err != nil {
-			return fmt.Errorf("cannot build %s: %s", path, err)
+		if !strings.HasSuffix(path, ".tests") {
+			return nil
 		}
-		name := capitalizeTestName(path[:strings.Index(path, "_test/")])
-		programs = append(programs, programToRun{name: name, code: program})
+		tests, err := tests.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		arch := txtar.Parse(tests)
+		for _, file := range arch.Files {
+			program, err := scriggo.Build(bytes.NewReader(file.Data), nil, nil)
+			if err != nil {
+				return fmt.Errorf("cannot build %s/%s: %s", path, file.Name, err)
+			}
+			programs = append(programs, programToRun{
+				name: capitalizeTestName(strings.TrimSuffix(path, ".tests")) + file.Name,
+				code: program,
+			})
+		}
 		return nil
 	})
 	return programs, nil

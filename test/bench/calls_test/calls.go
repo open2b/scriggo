@@ -15,7 +15,6 @@ func main() {
 	_ = a
 }
 
-//go:noinline
 func f(x, y int) int {
 	return x + y
 }
