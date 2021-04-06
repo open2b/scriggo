@@ -462,35 +462,12 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 // function, if necessary.
 func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 
-	type varToFinalize struct {
-		name     string
-		retParam int8 // only written by the finalizer
-		typ      reflect.Type
-	}
-
-	var varsToFinalize []varToFinalize
-
 	// Reserve space for the return parameters and eventually bind them.
-	// Also, collect the variables that must be finalized, if necessary.
-	for _, outParam := range fn.Type.Result {
-		kind := em.typ(outParam.Type).Kind()
-		if outParam.Ident == nil || isBlankIdentifier(outParam.Ident) {
-			// Just reserve space for this parameter.
-			_ = em.fb.newRegister(kind)
-		} else {
-			if em.varStore.mustBeDeclaredAsIndirect(outParam.Ident) {
-				retParam := em.fb.newRegister(kind)
-				varsToFinalize = append(varsToFinalize, varToFinalize{
-					name:     outParam.Ident.Name,
-					retParam: retParam,
-					typ:      em.typ(outParam.Type),
-				})
-			} else {
-				// The register 'ret' will be initialized by a dummy assignment
-				// node added by the type checker.
-				ret := em.fb.newRegister(kind)
-				em.fb.bindVarReg(outParam.Ident.Name, ret)
-			}
+	for _, out := range fn.Type.Result {
+		kind := em.typ(out.Type).Kind()
+		reg := em.fb.newRegister(kind)
+		if out.Ident != nil && !isBlankIdentifier(out.Ident) {
+			em.fb.bindVarReg(out.Ident.Name, reg)
 		}
 	}
 
@@ -513,13 +490,16 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 		}
 	}
 
-	// Allocate the indirect registers that will be read by the finalizer and
-	// prepare the list of registers to finalize.
-	for _, toFinalize := range varsToFinalize {
-		reg := em.fb.newIndirectRegister()
-		em.fb.emitNew(toFinalize.typ, -reg)
-		em.fb.bindVarReg(toFinalize.name, reg)
-		em.fb.fn.FinalRegs = append(em.fb.fn.FinalRegs, [2]int8{-reg, toFinalize.retParam})
+	// Replace indirect return named parameters with indirect registers and
+	// inform the finalizer to copy the values when the function returns.
+	for _, out := range fn.Type.Result {
+		if out.Ident != nil && em.varStore.mustBeDeclaredAsIndirect(out.Ident) {
+			dst := em.fb.scopeLookup(out.Ident.Name)
+			reg := em.fb.newIndirectRegister()
+			em.fb.emitNew(em.typ(out.Type), -reg)
+			em.fb.bindVarReg(out.Ident.Name, reg)
+			em.fb.fn.FinalRegs = append(em.fb.fn.FinalRegs, [2]int8{-reg, dst})
+		}
 	}
 
 }
