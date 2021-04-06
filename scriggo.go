@@ -43,6 +43,8 @@ type Program struct {
 
 // Build builds a Go program with the given options, loading the imported
 // packages from packages.
+//
+// If a compilation error occurs, it returns a CompilerError error.
 func Build(src io.Reader, packages PackageLoader, options *BuildOptions) (*Program, error) {
 	co := compiler.Options{}
 	if options != nil {

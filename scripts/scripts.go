@@ -39,6 +39,8 @@ type Script struct {
 
 // Build builds a script with the given options, loading the imported packages
 // from packages.
+//
+// If a compilation error occurs, it returns a CompilerError error.
 func Build(src io.Reader, packages scriggo.PackageLoader, options *BuildOptions) (*Script, error) {
 	co := compiler.Options{}
 	if options != nil {

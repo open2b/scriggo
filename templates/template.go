@@ -182,6 +182,9 @@ var formatTypes = map[ast.Format]reflect.Type{
 //   Markdown   : .md .mkd .mkdn .mdown .markdown
 //   Text       : all other extensions
 //
+// If the named file does not exist, Build returns an error satisfying
+// errors.Is(err, fs.ErrNotExist). If a compilation error occurs, it returns
+// a CompilerError error.
 func Build(fsys fs.FS, name string, options *BuildOptions) (*Template, error) {
 	co := compiler.Options{
 		FormatTypes: formatTypes,
