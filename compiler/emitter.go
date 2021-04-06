@@ -280,10 +280,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 					em.fb.emitCallFunc(int8(index), runtime.StackShift{}, nil)
 				}
 			}
-			finalRegs := em.prepareFunctionBodyParameters(n)
-			if finalRegs != nil {
-				fn.FinalRegs = finalRegs
-			}
+			em.prepareFunctionBodyParameters(n)
 			em.emitNodes(n.Body.Nodes)
 			em.fb.end()
 			em.fb.exitScope()
@@ -461,9 +458,9 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 // While prepareCallParameters is called before calling the function,
 // prepareFunctionBodyParameters is called before emitting its body.
 //
-// Returns the list of registers to finalize, in the format of
-// runtime.Function.FinalRegs.
-func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) [][2]int8 {
+// prepareFunctionBodyParameters also sets the FinalRegs field of the current
+// function, if necessary.
+func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 
 	type varToFinalize struct {
 		name     string
@@ -518,15 +515,12 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) [][2]int8 {
 
 	// Allocate the indirect registers that will be read by the finalizer and
 	// prepare the list of registers to finalize.
-	var finalRegs [][2]int8
 	for _, toFinalize := range varsToFinalize {
 		reg := em.fb.newIndirectRegister()
 		em.fb.emitNew(toFinalize.typ, -reg)
 		em.fb.bindVarReg(toFinalize.name, reg)
-		finalRegs = append(finalRegs, [2]int8{-reg, toFinalize.retParam})
+		em.fb.fn.FinalRegs = append(em.fb.fn.FinalRegs, [2]int8{-reg, toFinalize.retParam})
 	}
-
-	return finalRegs
 
 }
 
