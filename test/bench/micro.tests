@@ -77,6 +77,23 @@ func main() {
 	_ = b
 }
 
+
+-- CallWithFinalizer --
+
+package main
+func main() {
+	for i := 0; i < 100; i++ {
+		_, _ = f()
+	}
+}
+func f() (x int, y string) {
+	func() {
+		x = 0
+		y = ""
+	}()
+	return
+}
+
 -- Defer --
 
 package main
