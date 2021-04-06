@@ -298,9 +298,11 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 			var err error
 			r.Tree, err = pp.parseNodeFile(r)
 			if err != nil && (!special || !errors.Is(err, os.ErrNotExist)) {
-				if e, ok := err.(*CycleError); ok {
-					parent := pp.paths[len(pp.paths)-1]
-					rootedPath, _ := rooted(parent, r.Path)
+				parent := pp.paths[len(pp.paths)-1]
+				rootedPath, _ := rooted(parent, r.Path)
+				if errors.Is(err, os.ErrNotExist) {
+					err = syntaxError(n.Pos(), "render path %q does not exist", rootedPath)
+				} else if e, ok := err.(*CycleError); ok {
 					e.msg = "\n\trenders " + rootedPath + e.msg
 					if e.path == pp.paths[len(pp.paths)-1] {
 						e.pos = *(n.Pos())
