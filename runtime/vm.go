@@ -473,6 +473,12 @@ func (vm *VM) equals(x, y reflect.Value) bool {
 	return x.Interface() == y.Interface()
 }
 
+func (vm *VM) finalize(regs [][2]int8) {
+	for _, reg := range regs {
+		vm.setFromReflectValue(reg[1], vm.generalIndirect(reg[0]))
+	}
+}
+
 func (vm *VM) moreIntStack() {
 	top := len(vm.regs.int) * 2
 	stack := make([]int64, top)
@@ -511,10 +517,8 @@ func (vm *VM) nextCall() bool {
 		switch call.status {
 		case started:
 			// A call is returned, continue with the previous call.
-			// TODO(marco): call finalizer.
 		case tailed:
 			// A tail call is returned, continue with the previous call.
-			// TODO(marco): call finalizer.
 			continue
 		case deferred:
 			// A call, that has deferred calls, is returned, its first
@@ -535,7 +539,10 @@ func (vm *VM) nextCall() bool {
 					break
 				}
 			}
-			// TODO(marco): call finalizer.
+			if regs := call.cl.fn.FinalRegs; regs != nil {
+				vm.fp = call.fp
+				vm.finalize(regs)
+			}
 			if call.status == recovered {
 				numPanicked := 0
 				for _, c := range vm.calls {
@@ -795,6 +802,7 @@ type Function struct {
 	VarRefs    []int16
 	Types      []reflect.Type
 	NumReg     [4]int8
+	FinalRegs  [][2]int8 // [indirect -> return parameter registers]
 	Macro      bool
 	Format     uint8
 	Constants  Registers

@@ -457,23 +457,17 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 //
 // While prepareCallParameters is called before calling the function,
 // prepareFunctionBodyParameters is called before emitting its body.
+//
+// prepareFunctionBodyParameters also sets the FinalRegs field of the current
+// function, if necessary.
 func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 
 	// Reserve space for the return parameters and eventually bind them.
-	for _, outParam := range fn.Type.Result {
-		kind := em.typ(outParam.Type).Kind()
-		if outParam.Ident == nil || isBlankIdentifier(outParam.Ident) {
-			// Just reserve space for this parameter.
-			_ = em.fb.newRegister(kind)
-		} else {
-			if em.varStore.mustBeDeclaredAsIndirect(outParam.Ident) {
-				panic("BUG: not supported")
-			} else {
-				// The register 'ret' will be initialized by a dummy assignment
-				// node added by the type checker.
-				ret := em.fb.newRegister(kind)
-				em.fb.bindVarReg(outParam.Ident.Name, ret)
-			}
+	for _, out := range fn.Type.Result {
+		kind := em.typ(out.Type).Kind()
+		reg := em.fb.newRegister(kind)
+		if out.Ident != nil && !isBlankIdentifier(out.Ident) {
+			em.fb.bindVarReg(out.Ident.Name, reg)
 		}
 	}
 
@@ -493,6 +487,18 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 				arg := em.fb.newRegister(kind)
 				em.fb.bindVarReg(inParam.Ident.Name, arg)
 			}
+		}
+	}
+
+	// Replace indirect return named parameters with indirect registers and
+	// inform the finalizer to copy the values when the function returns.
+	for _, out := range fn.Type.Result {
+		if out.Ident != nil && em.varStore.mustBeDeclaredAsIndirect(out.Ident) {
+			dst := em.fb.scopeLookup(out.Ident.Name)
+			reg := em.fb.newIndirectRegister()
+			em.fb.emitNew(em.typ(out.Type), -reg)
+			em.fb.bindVarReg(out.Ident.Name, reg)
+			em.fb.fn.FinalRegs = append(em.fb.fn.FinalRegs, [2]int8{-reg, dst})
 		}
 	}
 
