@@ -483,7 +483,6 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) [][2]int8 {
 		} else {
 			if em.varStore.mustBeDeclaredAsIndirect(outParam.Ident) {
 				retParam := em.fb.newRegister(kind)
-				em.fb.emitNew(em.typ(outParam.Type), retParam)
 				varsToFinalize = append(varsToFinalize, varToFinalize{
 					name:     outParam.Ident.Name,
 					retParam: retParam,
