@@ -399,7 +399,7 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 
 		// StartURL
 		case tokenStartURL:
-			node := ast.NewURL(tok.pos, tok.tag, tok.att, nil, tok.ctx)
+			node := ast.NewURL(tok.pos, tok.tag, tok.att, nil)
 			p.addChild(node)
 			p.addToAncestors(node)
 			tok = p.next()

@@ -315,15 +315,14 @@ func (n *Text) String() string {
 // URL node represents an URL in an attribute value or Markdown. Show nodes
 // that are children of an URL node are rendered accordingly.
 type URL struct {
-	*Position         // position in the source.
-	Tag       string  // tag (in lowercase).
-	Attribute string  // attribute (in lowercase).
-	Value     []Node  // value nodes.
-	Context   Context // context.
+	*Position        // position in the source.
+	Tag       string // tag (in lowercase).
+	Attribute string // attribute (in lowercase).
+	Value     []Node // value nodes.
 }
 
-func NewURL(pos *Position, tag, attribute string, value []Node, ctx Context) *URL {
-	return &URL{pos, tag, attribute, value, ctx}
+func NewURL(pos *Position, tag, attribute string, value []Node) *URL {
+	return &URL{pos, tag, attribute, value}
 }
 
 // Block node represents a block { ... } with his own scope.
