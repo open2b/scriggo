@@ -312,8 +312,8 @@ func (n *Text) String() string {
 	return string(n.Text)
 }
 
-// URL node represents an URL in an attribute value. Show nodes that are
-// children of an URL node are rendered accordingly.
+// URL node represents an URL in an attribute value or Markdown. Show nodes
+// that are children of an URL node are rendered accordingly.
 type URL struct {
 	*Position         // position in the source.
 	Tag       string  // tag (in lowercase).
