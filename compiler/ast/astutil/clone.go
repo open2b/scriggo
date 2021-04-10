@@ -90,7 +90,7 @@ func CloneNode(node ast.Node) ast.Node {
 		return CloneExpression(n)
 
 	case *ast.Extends:
-		extends := ast.NewExtends(ClonePosition(n.Position), n.Path, n.Context)
+		extends := ast.NewExtends(ClonePosition(n.Position), n.Path, n.Format)
 		if n.Tree != nil {
 			extends.Tree = CloneTree(n.Tree)
 		}

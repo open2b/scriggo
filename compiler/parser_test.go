@@ -1318,14 +1318,14 @@ var treeTests = []struct {
 			nil,
 		),
 	}, ast.FormatHTML)},
-	{"{% extends \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtends(p(1, 4, 3, 16), "/a.b", ast.ContextHTML)}, ast.FormatHTML)},
+	{"{% extends \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtends(p(1, 4, 3, 16), "/a.b", ast.FormatHTML)}, ast.FormatHTML)},
 	{"{{ render \"/a.b\" }}", ast.NewTree("", []ast.Node{ast.NewShow(p(1, 1, 0, 18),
 		ast.NewRender(p(1, 4, 3, 15), "/a.b"), ast.ContextHTML)}, ast.FormatHTML)},
 	{"{% extends \"a.e\" %}{% macro b %}c{% end macro %}", ast.NewTree("", []ast.Node{
-		ast.NewExtends(p(1, 4, 3, 15), "a.e", ast.ContextHTML),
+		ast.NewExtends(p(1, 4, 3, 15), "a.e", ast.FormatHTML),
 		ast.NewFunc(p(1, 23, 22, 44), ast.NewIdentifier(p(1, 29, 28, 28), "b"), ast.NewFuncType(&ast.Position{Line: 1, Column: 23, Start: 22, End: 44}, false, nil, nil, false), ast.NewBlock(p(1, 23, 22, 44), []ast.Node{ast.NewText(p(1, 33, 32, 32), []byte("c"), ast.Cut{})}), false, ast.FormatHTML)}, ast.FormatHTML)},
 	{"{% extends \"a.e\" %}{% macro b(c, d int) %}txt{% end macro %}", ast.NewTree("", []ast.Node{
-		ast.NewExtends(p(1, 4, 3, 15), "a.e", ast.ContextHTML),
+		ast.NewExtends(p(1, 4, 3, 15), "a.e", ast.FormatHTML),
 		ast.NewFunc(p(1, 23, 22, 56), ast.NewIdentifier(p(1, 29, 28, 28), "b"), ast.NewFuncType(&ast.Position{Line: 1, Column: 23, Start: 22, End: 56}, false, []*ast.Parameter{
 			ast.NewParameter(ast.NewIdentifier(p(1, 31, 30, 30), "c"), nil),
 			ast.NewParameter(ast.NewIdentifier(p(1, 34, 33, 33), "d"),
@@ -1582,8 +1582,8 @@ func equals(n1, n2 ast.Node, p int) error {
 		if nn1.Path != nn2.Path {
 			return fmt.Errorf("unexpected path %q, expecting %q", nn1.Path, nn2.Path)
 		}
-		if nn1.Context != nn2.Context {
-			return fmt.Errorf("unexpected context %s, expecting %s", nn1.Context, nn2.Context)
+		if nn1.Format != nn2.Format {
+			return fmt.Errorf("unexpected format %s, expecting %s", nn1.Format, nn2.Format)
 		}
 		err := equals(nn1.Tree, nn2.Tree, p)
 		if err != nil {

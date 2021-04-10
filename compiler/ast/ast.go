@@ -788,14 +788,14 @@ func (n *Show) String() string {
 
 // Extends node represents a statement "extends".
 type Extends struct {
-	*Position         // position in the source.
-	Path      string  // path to extend.
-	Context   Context // context.
-	Tree      *Tree   // expanded tree of extends.
+	*Position        // position in the source.
+	Path      string // path to extend.
+	Format    Format // format.
+	Tree      *Tree  // expanded tree of extends.
 }
 
-func NewExtends(pos *Position, path string, ctx Context) *Extends {
-	return &Extends{Position: pos, Path: path, Context: ctx}
+func NewExtends(pos *Position, path string, format Format) *Extends {
+	return &Extends{Position: pos, Path: path, Format: format}
 }
 
 func (n *Extends) String() string {

@@ -960,7 +960,7 @@ LABEL:
 			panic(syntaxError(tok.pos, "invalid extends path %q", path))
 		}
 		pos.End = tok.pos.End
-		node := ast.NewExtends(pos, path, tok.ctx)
+		node := ast.NewExtends(pos, path, p.format)
 		p.unexpanded = append(p.unexpanded, node)
 		p.addChild(node)
 		p.hasExtend = true

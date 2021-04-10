@@ -231,10 +231,10 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 				}
 				return err
 			}
-			if format := ast.Format(n.Context); format != n.Tree.Format {
-				if !(format == ast.FormatMarkdown && n.Tree.Format == ast.FormatHTML) {
+			if n.Format != n.Tree.Format {
+				if !(n.Format == ast.FormatMarkdown && n.Tree.Format == ast.FormatHTML) {
 					return syntaxError(node.Pos(), "extended file %q is %s instead of %s",
-						n.Tree.Path, n.Tree.Format, format)
+						n.Tree.Path, n.Tree.Format, n.Format)
 				}
 			}
 
