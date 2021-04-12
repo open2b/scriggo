@@ -2393,7 +2393,8 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		start = time.Now()
 	}
 	b := bytes.Buffer{}
-	err = template.Run(&b, nil, srv.runOptions)
+	vars := map[string]interface{}{"form": builtin.NewFormData(r, 10)}
+	err = template.Run(&b, vars, srv.runOptions)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -2550,6 +2551,9 @@ var globals = templates.Declarations{
 	"min": builtin.Min,
 
 	// net
+	"File":        reflect.TypeOf((*builtin.File)(nil)).Elem(),
+	"FormData":    reflect.TypeOf((*builtin.FormData)(nil)).Elem(),
+	"form":        (*builtin.FormData)(nil),
 	"queryEscape": builtin.QueryEscape,
 
 	// regexp
