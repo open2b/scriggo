@@ -19,12 +19,12 @@ import (
 	"github.com/open2b/scriggo/runtime"
 )
 
-// FormData methods fatal with the ErrBadRequest error when parsing a
-// malformed HTTP request's body or query string.
+// ErrBadRequest is the fatal error that occurs when parsing a malformed
+// HTTP request body or query string in FormData methods.
 var ErrBadRequest = errors.New("bad request")
 
-// FormData methods fatal with the ErrRequestEntityTooLarge error when the
-// HTTP request's body is too large.
+// ErrRequestEntityTooLarge is the fatal error that occurs when the HTTP
+// request's body is too large
 var ErrRequestEntityTooLarge = errors.New("request entity too large")
 
 // File represents a file. Files that can be opened also implement Opener.
