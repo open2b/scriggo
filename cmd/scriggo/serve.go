@@ -143,6 +143,18 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		srv.Unlock()
 		start = time.Now()
 	}
+	defer func() {
+		if err := recover(); err != nil {
+			switch err {
+			case builtin.ErrBadRequest:
+				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			case builtin.ErrRequestEntityTooLarge:
+				http.Error(w, http.StatusText(http.StatusRequestEntityTooLarge), http.StatusRequestEntityTooLarge)
+			default:
+				panic(err)
+			}
+		}
+	}()
 	b := bytes.Buffer{}
 	vars := map[string]interface{}{"form": builtin.NewFormData(r, 10)}
 	err = template.Run(&b, vars, srv.runOptions)
