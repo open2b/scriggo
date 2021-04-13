@@ -146,10 +146,7 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	b := bytes.Buffer{}
 	err = template.Run(&b, nil, srv.runOptions)
 	if err != nil {
-		http.Error(w, "Internal Server Error", 500)
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(500)
-		fmt.Fprintf(w, "%s", err)
+		http.Error(w, err.Error(), 500)
 		return
 	}
 	runTime := time.Since(start)
