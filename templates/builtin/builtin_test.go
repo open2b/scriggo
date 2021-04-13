@@ -247,6 +247,15 @@ var tests = []struct {
 	{UnixTime(0, 0).UTC().Format(time.RFC3339Nano), "1970-01-01T00:00:00Z"},
 	{UnixTime(1616964058, 0).UTC().Format(time.RFC3339Nano), "2021-03-28T20:40:58Z"},
 	{UnixTime(1616964058, 136918407).UTC().Format(time.RFC3339Nano), "2021-03-28T20:40:58.136918407Z"},
+
+	// unmarshalJSON
+	{spf("%#v", (func() interface{} { var v map[string]interface{}; _ = UnmarshalJSON("null", &v); return v })()), "map[string]interface {}(nil)"},
+	{spf("%#v", (func() interface{} { var v map[string]interface{}; _ = UnmarshalJSON(`{"a":"b"}`, &v); return v })()), `map[string]interface {}{"a":"b"}`},
+	{spf("%#v", (func() interface{} { var v []int; _ = UnmarshalJSON("[1,2,3]", &v); return v })()), "[]int{1, 2, 3}"},
+	{spf("%v", UnmarshalJSON("", nil)), "cannot unmarshal into nil"},
+	{spf("%v", UnmarshalJSON("", (*int)(nil))), "cannot unmarshal into a nil pointer of type *int"},
+	{spf("%v", UnmarshalJSON("", []int{})), "cannot unmarshal into non-pointer value of type []int"},
+	{spf("%v", UnmarshalJSON("5", &[]int{})), "cannot unmarshal number into value of type []int"},
 }
 
 func TestBuiltins(t *testing.T) {

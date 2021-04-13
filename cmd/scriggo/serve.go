@@ -335,4 +335,5 @@ var globals = templates.Declarations{
 	"trimRight":         builtin.TrimRight,
 	"trimSuffix":        builtin.TrimSuffix,
 	"unixTime":          builtin.UnixTime,
+	"unmarshalJSON":     builtin.UnmarshalJSON,
 }

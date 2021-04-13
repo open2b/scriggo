@@ -95,6 +95,7 @@
 //        "trimRight":         builtin.TrimRight,
 //        "trimSuffix":        builtin.TrimSuffix,
 //        "unixTime":          builtin.UnixTime,
+//        "unmarshalJSON":     builtin.UnmarshalJSON,
 //    }
 //
 package builtin
@@ -693,6 +694,37 @@ func TrimSuffix(s, suffix string) string {
 // value).
 func UnixTime(sec int64, nsec int64) Time {
 	return NewTime(time.Unix(sec, nsec))
+}
+
+// UnmarshalJSON parses the JSON-encoded data and stores the result in a new
+// value pointed to by v. If v is nil or not a pointer, UnmarshalJSON returns
+// an error.
+//
+// See https://golang.org/pkg/encoding/json/#Unmarshal for details.
+func UnmarshalJSON(data string, v interface{}) error {
+	if v == nil {
+		return errors.New("cannot unmarshal into nil")
+	}
+	rv := reflect.ValueOf(v)
+	rt := rv.Type()
+	if rv.IsZero() {
+		return errors.New("cannot unmarshal into a nil pointer of type " + rt.String())
+	}
+	if rv.Kind() != reflect.Ptr {
+		return fmt.Errorf("cannot unmarshal into non-pointer value of type " + rt.String())
+	}
+	rv.Elem().Set(reflect.Zero(rt.Elem()))
+	err := json.Unmarshal([]byte(data), v)
+	if err != nil {
+		if e, ok := err.(*json.UnmarshalTypeError); ok {
+			if e.Struct != "" || e.Field != "" {
+				return errors.New("cannot unmarshal " + e.Value + " into struct field " + e.Struct + "." + e.Field + " of type " + e.Type.String())
+			}
+			return errors.New("cannot unmarshal " + e.Value + " into value of type " + e.Type.String())
+		}
+		return errors.New(err.Error())
+	}
+	return nil
 }
 
 // isSeparator reports whether the rune could mark a word boundary.

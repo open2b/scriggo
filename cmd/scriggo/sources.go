@@ -2584,6 +2584,7 @@ var globals = templates.Declarations{
 	"trimRight":         builtin.TrimRight,
 	"trimSuffix":        builtin.TrimSuffix,
 	"unixTime":          builtin.UnixTime,
+	"unmarshalJSON":     builtin.UnmarshalJSON,
 }
 `)
 	sources["util.go"] = []byte(`// Copyright (c) 2019 Open2b Software Snc. All rights reserved.
