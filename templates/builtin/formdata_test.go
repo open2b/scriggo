@@ -8,7 +8,6 @@ package builtin
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"io"
 	"mime/multipart"
@@ -17,25 +16,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-
-	"github.com/open2b/scriggo/runtime"
 )
-
-// envTest implements the runtime.Env for test.
-type envTest struct {
-	ctx   context.Context
-	fatal bool
-}
-
-func (env *envTest) Context() context.Context { return env.ctx }
-func (env *envTest) Exit(int)                 {}
-func (env *envTest) Exited() bool             { return false }
-func (env *envTest) ExitFunc(func())          { return }
-func (env *envTest) Fatal(v interface{})      { env.fatal = true; panic(v) }
-func (env *envTest) FilePath() string         { return "" }
-func (env *envTest) Print(...interface{})     { return }
-func (env *envTest) Println(...interface{})   { return }
-func (env *envTest) Types() runtime.Types     { return nil }
 
 type testFormFile struct {
 	name    string
@@ -151,33 +132,32 @@ func testFormHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	form := NewFormData(r, 1)
-	env := &envTest{context.Background(), false}
 
 	switch r.URL.Path {
 	case "/test-get":
-		if form.Value(env, "foo") != "" || form.Value(env, "a") != "b" {
+		if form.Value("foo") != "" || form.Value("a") != "b" {
 			http.Error(w, "", 500)
 			return
 		}
 	case "/test-post":
-		if form.Value(env, "foo") != "" || form.Value(env, "a") != "b" {
+		if form.Value("foo") != "" || form.Value("a") != "b" {
 			http.Error(w, "", 500)
 			return
 		}
 	case "/test-post-with-query":
-		values := form.Values(env)
+		values := form.Values()
 		if values["foo"] != nil || len(values["a"]) != 2 || values["a"][0] != "c" || values["a"][1] != "b" {
 			http.Error(w, "", 500)
 			return
 		}
 	case "/test-multipart":
-		form.ParseMultipart(env)
-		if form.Value(env, "foo") != "" || form.Value(env, "a") != "b" {
+		form.ParseMultipart()
+		if form.Value("foo") != "" || form.Value("a") != "b" {
 			http.Error(w, "", 500)
 			return
 		}
 	case "/test-multipart-file":
-		form.ParseMultipart(env)
+		form.ParseMultipart()
 		foo := form.File("foo")
 		f := form.File("f")
 		if foo != nil || f.Name() != "foo.txt" || f.Size() != 7 || f.Type() != "application/octet-stream" {
@@ -189,7 +169,7 @@ func testFormHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case "/test-multipart-files":
-		form.ParseMultipart(env)
+		form.ParseMultipart()
 		f1 := form.File("f1")
 		f2 := form.File("f2")
 		if f1.Name() != "foo1.txt" || f1.Size() != 9 || f1.Type() != "application/octet-stream" ||
@@ -203,20 +183,18 @@ func testFormHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	case "/test-400", "/test-413":
 		defer func() {
-			if env.fatal {
-				msg := recover()
-				switch msg {
-				case ErrBadRequest:
-					http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-					return
-				case ErrRequestEntityTooLarge:
-					http.Error(w, http.StatusText(http.StatusRequestEntityTooLarge), http.StatusRequestEntityTooLarge)
-					return
-				}
-				panic(msg)
+			msg := recover()
+			switch msg {
+			case ErrBadRequest:
+				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+				return
+			case ErrRequestEntityTooLarge:
+				http.Error(w, http.StatusText(http.StatusRequestEntityTooLarge), http.StatusRequestEntityTooLarge)
+				return
 			}
+			panic(msg)
 		}()
-		_ = form.Value(env, "foo")
+		_ = form.Value("foo")
 	default:
 		http.Error(w, "Internal Server Error", 500)
 	}

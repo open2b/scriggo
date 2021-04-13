@@ -15,12 +15,10 @@ import (
 	"net/textproto"
 	"net/url"
 	"strings"
-
-	"github.com/open2b/scriggo/runtime"
 )
 
-// ErrBadRequest is the fatal error that occurs when parsing a malformed
-// HTTP request body or query string in FormData methods.
+// ErrBadRequest is the error that occurs when parsing a malformed HTTP
+// request body or query string in FormData methods.
 var ErrBadRequest = errors.New("bad request")
 
 // ErrRequestEntityTooLarge is the fatal error that occurs when the HTTP
@@ -95,7 +93,7 @@ func NewFormData(r *http.Request, maxMemory int64) FormData {
 // It fatals with ErrBadRequest if the request is not valid,
 // ErrRequestEntityTooLarge if the length of the body is too large or another
 // error if another error occurs.
-func (form FormData) ParseMultipart(env runtime.Env) {
+func (form FormData) ParseMultipart() {
 	err := form.request.ParseMultipartForm(form.maxMemory)
 	if err == http.ErrNotMultipart {
 		return
@@ -110,7 +108,7 @@ func (form FormData) ParseMultipart(env runtime.Env) {
 				err = ErrBadRequest
 			}
 		}
-		env.Fatal(err)
+		panic(err)
 	}
 	form.data.values = form.request.MultipartForm.Value
 	form.data.files = make(map[string][]File, len(form.request.MultipartForm.File))
@@ -129,7 +127,7 @@ func (form FormData) ParseMultipart(env runtime.Env) {
 // It fatals with ErrBadRequest if the request is not valid,
 // ErrRequestEntityTooLarge if the length of the body is too large or another
 // error if another error occurs.
-func (form FormData) parse(env runtime.Env) {
+func (form FormData) parse() {
 	err := form.request.ParseForm()
 	if err != nil {
 		if _, ok := err.(url.EscapeError); ok {
@@ -141,7 +139,7 @@ func (form FormData) parse(env runtime.Env) {
 				err = ErrBadRequest
 			}
 		}
-		env.Fatal(err)
+		panic(err)
 	}
 	form.data.values = form.request.Form
 }
@@ -152,9 +150,9 @@ func (form FormData) parse(env runtime.Env) {
 // It fatals with ErrBadRequest if the request is not valid,
 // ErrRequestEntityTooLarge if the length of the body is too large or another
 // error if another error occurs.
-func (form FormData) Value(env runtime.Env, field string) string {
+func (form FormData) Value(field string) string {
 	if form.data.values == nil {
-		form.parse(env)
+		form.parse()
 	}
 	return form.data.values.Get(field)
 }
@@ -165,9 +163,9 @@ func (form FormData) Value(env runtime.Env, field string) string {
 // It fatals with ErrBadRequest if the request is not valid,
 // ErrRequestEntityTooLarge if the length of the body is too large or another
 // error if another error occurs.
-func (form FormData) Values(env runtime.Env) map[string][]string {
+func (form FormData) Values() map[string][]string {
 	if form.data.values == nil {
-		form.parse(env)
+		form.parse()
 	}
 	return form.data.values
 }
