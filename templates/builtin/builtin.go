@@ -118,7 +118,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/open2b/scriggo/runtime"
 	"github.com/open2b/scriggo/templates"
 )
 
@@ -439,10 +438,10 @@ func QueryEscape(s string) string {
 
 // RegExp parses a regular expression and returns a Regexp object that can be
 // used to match against text. It panics if the expression cannot be parsed.
-func RegExp(env runtime.Env, expr string) Regexp {
+func RegExp(expr string) Regexp {
 	r, err := regexp.Compile(expr)
 	if err != nil {
-		env.Fatal(err)
+		panic(err)
 	}
 	return Regexp{r: r}
 }
