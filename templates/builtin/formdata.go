@@ -121,7 +121,6 @@ func (form FormData) ParseMultipart(env runtime.Env) {
 		}
 		form.data.files[field] = fs
 	}
-	return
 }
 
 // parse parses the body and query string of the request. It is called when
@@ -150,7 +149,9 @@ func (form FormData) parse(env runtime.Env) {
 // Value returns the first form data value associated with the given field. If
 // there are no files associated with the field, it returns an empty string.
 //
-// It calls the parse method if it hasn't been called yet.
+// It fatals with ErrBadRequest if the request is not valid,
+// ErrRequestEntityTooLarge if the length of the body is too large or another
+// error if another error occurs.
 func (form FormData) Value(env runtime.Env, field string) string {
 	if form.data.values == nil {
 		form.parse(env)
@@ -161,7 +162,9 @@ func (form FormData) Value(env runtime.Env, field string) string {
 // Values returns the parsed form data, including both the URL field's query
 // parameters and the POST form data.
 //
-// It calls the parse method if it hasn't been called yet.
+// It fatals with ErrBadRequest if the request is not valid,
+// ErrRequestEntityTooLarge if the length of the body is too large or another
+// error if another error occurs.
 func (form FormData) Values(env runtime.Env) map[string][]string {
 	if form.data.values == nil {
 		form.parse(env)

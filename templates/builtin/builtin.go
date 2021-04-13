@@ -121,6 +121,7 @@
 //
 // To initialize the form builtin value, with data read from the request r,
 // use this map as vars argument to Run
+//
 //    map[string]interface{}{"form": builtin.NewFormData(r, 10)}
 //
 package builtin
