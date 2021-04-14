@@ -21,7 +21,7 @@ import (
 // request body or query string in FormData methods.
 var ErrBadRequest = errors.New("bad request")
 
-// ErrRequestEntityTooLarge is the fatal error that occurs when the HTTP
+// ErrRequestEntityTooLarge is the error that occurs when the HTTP
 // request's body is too large
 var ErrRequestEntityTooLarge = errors.New("request entity too large")
 
@@ -90,7 +90,7 @@ func NewFormData(r *http.Request, maxMemory int64) FormData {
 // is not multipart/form-data, it does nothing. It should be called before
 // calling the File and Files methods and can be called multiple times.
 //
-// It fatals with ErrBadRequest if the request is not valid,
+// It panics with ErrBadRequest if the request is not valid,
 // ErrRequestEntityTooLarge if the length of the body is too large or another
 // error if another error occurs.
 func (form FormData) ParseMultipart() {
@@ -124,7 +124,7 @@ func (form FormData) ParseMultipart() {
 // parse parses the body and query string of the request. It is called when
 // the Value and Values methods are called.
 //
-// It fatals with ErrBadRequest if the request is not valid,
+// It panics with ErrBadRequest if the request is not valid,
 // ErrRequestEntityTooLarge if the length of the body is too large or another
 // error if another error occurs.
 func (form FormData) parse() {
@@ -147,7 +147,7 @@ func (form FormData) parse() {
 // Value returns the first form data value associated with the given field. If
 // there are no files associated with the field, it returns an empty string.
 //
-// It fatals with ErrBadRequest if the request is not valid,
+// It panics with ErrBadRequest if the request is not valid,
 // ErrRequestEntityTooLarge if the length of the body is too large or another
 // error if another error occurs.
 func (form FormData) Value(field string) string {
@@ -160,7 +160,7 @@ func (form FormData) Value(field string) string {
 // Values returns the parsed form data, including both the URL field's query
 // parameters and the POST form data.
 //
-// It fatals with ErrBadRequest if the request is not valid,
+// It panics with ErrBadRequest if the request is not valid,
 // ErrRequestEntityTooLarge if the length of the body is too large or another
 // error if another error occurs.
 func (form FormData) Values() map[string][]string {
