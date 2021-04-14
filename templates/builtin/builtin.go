@@ -464,7 +464,7 @@ func QueryEscape(s string) string {
 func RegExp(expr string) Regexp {
 	r, err := regexp.Compile(expr)
 	if err != nil {
-		panic(errors.New("regexp: " + err.Error()))
+		panic("regexp: " + err.Error())
 	}
 	return Regexp{r: r}
 }
