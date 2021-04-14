@@ -252,10 +252,10 @@ var tests = []struct {
 	{spf("%#v", (func() interface{} { var v map[string]interface{}; _ = UnmarshalJSON("null", &v); return v })()), "map[string]interface {}(nil)"},
 	{spf("%#v", (func() interface{} { var v map[string]interface{}; _ = UnmarshalJSON(`{"a":"b"}`, &v); return v })()), `map[string]interface {}{"a":"b"}`},
 	{spf("%#v", (func() interface{} { var v []int; _ = UnmarshalJSON("[1,2,3]", &v); return v })()), "[]int{1, 2, 3}"},
-	{spf("%v", UnmarshalJSON("", nil)), "cannot unmarshal into nil"},
-	{spf("%v", UnmarshalJSON("", (*int)(nil))), "cannot unmarshal into a nil pointer of type *int"},
-	{spf("%v", UnmarshalJSON("", []int{})), "cannot unmarshal into non-pointer value of type []int"},
-	{spf("%v", UnmarshalJSON("5", &[]int{})), "cannot unmarshal number into value of type []int"},
+	{spf("%v", UnmarshalJSON("", nil)), "unmarshalJSON: cannot unmarshal into nil"},
+	{spf("%v", UnmarshalJSON("", (*int)(nil))), "unmarshalJSON: cannot unmarshal into a nil pointer of type *int"},
+	{spf("%v", UnmarshalJSON("", []int{})), "unmarshalJSON: cannot unmarshal into non-pointer value of type []int"},
+	{spf("%v", UnmarshalJSON("5", &[]int{})), "unmarshalJSON: cannot unmarshal number into value of type []int"},
 }
 
 func TestBuiltins(t *testing.T) {

@@ -244,7 +244,7 @@ func CapitalizeAll(src string) string {
 func Date(year, month, day, hour, min, sec, nsec int, location string) (Time, error) {
 	loc, err := time.LoadLocation(location)
 	if err != nil {
-		return Time{}, err
+		return Time{}, replacePrefix(err, "time", "date")
 	}
 	return NewTime(time.Date(year, time.Month(month), day, hour, min, sec, nsec, loc)), nil
 }
@@ -322,7 +322,7 @@ func LastIndex(s, substr string) int {
 func MarshalJSON(v interface{}) (templates.JSON, error) {
 	b, err := json.Marshal(v)
 	if err != nil {
-		return "", errors.New(err.Error())
+		return "", replacePrefix(err, "json", "marshalJSON")
 	}
 	return templates.JSON(b), nil
 }
@@ -334,10 +334,10 @@ func MarshalJSON(v interface{}) (templates.JSON, error) {
 // '\r'.
 func MarshalJSONIndent(v interface{}, prefix, indent string) (templates.JSON, error) {
 	if !onlyJSONWhitespace(prefix) {
-		return "", errors.New("prefix does not contain only whitespace")
+		return "", errors.New("marshalJSONIndent: prefix does not contain only whitespace")
 	}
 	if !onlyJSONWhitespace(indent) {
-		return "", errors.New("indent does not contain only whitespace")
+		return "", errors.New("marshalJSONIndent: indent does not contain only whitespace")
 	}
 	b, err := json.MarshalIndent(v, prefix, indent)
 	if err != nil {
@@ -380,7 +380,11 @@ func Now() Time {
 // such as "300ms", "-1.5h" or "2h45m".
 // Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
 func ParseDuration(s string) (Duration, error) {
-	return time.ParseDuration(s)
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		return 0, replacePrefix(err, "time", "parseDuration")
+	}
+	return d, nil
 }
 
 // ParseTime parses a formatted string and returns the time value it
@@ -405,11 +409,11 @@ func ParseTime(layout, value string) (Time, error) {
 				return NewTime(t), nil
 			}
 		}
-		return Time{}, fmt.Errorf("cannot parse %q", value)
+		return Time{}, fmt.Errorf("parseTime: cannot parse \"%s\"", value)
 	}
 	t, err := time.Parse(layout, value)
 	if err != nil {
-		return Time{}, errors.New(err.Error())
+		return Time{}, replacePrefix(err, "time", "parseTime")
 	}
 	return NewTime(t), nil
 }
@@ -460,7 +464,7 @@ func QueryEscape(s string) string {
 func RegExp(expr string) Regexp {
 	r, err := regexp.Compile(expr)
 	if err != nil {
-		panic(err)
+		panic(errors.New("regexp: " + err.Error()))
 	}
 	return Regexp{r: r}
 }
@@ -484,8 +488,6 @@ func ReplaceAll(s, old, new string) string {
 	return strings.ReplaceAll(s, old, new)
 }
 
-var errNoSlice = errors.New("no slice")
-
 // Reverse returns the reverse order for data.
 func Reverse(data interface{}) {
 	if data == nil {
@@ -493,7 +495,7 @@ func Reverse(data interface{}) {
 	}
 	rv := reflect.ValueOf(data)
 	if rv.Kind() != reflect.Slice {
-		panic(errNoSlice)
+		panic("reverse: cannot reverse non-slice value of type " + rv.Type().String())
 	}
 	l := rv.Len()
 	if l <= 1 {
@@ -533,7 +535,13 @@ func Sort(slice interface{}, less func(i, j int) bool) {
 	if slice == nil {
 		return
 	}
+	if t := reflect.TypeOf(slice); t.Kind() != reflect.Slice {
+		panic("sort: cannot sort non-slice value of type " + t.String())
+	}
 	if less != nil {
+		if t := reflect.TypeOf(less); t.Kind() != reflect.Func {
+			panic("sort: cannot sort using a non-function value of type " + t.String())
+		}
 		sort.Slice(slice, less)
 		return
 	}
@@ -725,26 +733,26 @@ func UnixTime(sec int64, nsec int64) Time {
 // See https://golang.org/pkg/encoding/json/#Unmarshal for details.
 func UnmarshalJSON(data string, v interface{}) error {
 	if v == nil {
-		return errors.New("cannot unmarshal into nil")
+		return errors.New("unmarshalJSON: cannot unmarshal into nil")
 	}
 	rv := reflect.ValueOf(v)
 	rt := rv.Type()
 	if rv.Kind() != reflect.Ptr {
-		return fmt.Errorf("cannot unmarshal into non-pointer value of type " + rt.String())
+		return fmt.Errorf("unmarshalJSON: cannot unmarshal into non-pointer value of type " + rt.String())
 	}
 	if rv.IsZero() {
-		return errors.New("cannot unmarshal into a nil pointer of type " + rt.String())
+		return errors.New("unmarshalJSON: cannot unmarshal into a nil pointer of type " + rt.String())
 	}
 	vp := reflect.New(rt.Elem())
 	err := json.Unmarshal([]byte(data), vp.Interface())
 	if err != nil {
 		if e, ok := err.(*json.UnmarshalTypeError); ok {
 			if e.Struct != "" || e.Field != "" {
-				return errors.New("cannot unmarshal " + e.Value + " into struct field " + e.Struct + "." + e.Field + " of type " + e.Type.String())
+				return errors.New("unmarshalJSON: cannot unmarshal " + e.Value + " into struct field " + e.Struct + "." + e.Field + " of type " + e.Type.String())
 			}
-			return errors.New("cannot unmarshal " + e.Value + " into value of type " + e.Type.String())
+			return errors.New("unmarshalJSON: cannot unmarshal " + e.Value + " into value of type " + e.Type.String())
 		}
-		return errors.New(err.Error())
+		return replacePrefix(err, "json", "unmarshalJSON")
 	}
 	rv.Elem().Set(vp.Elem())
 	return nil
@@ -789,4 +797,9 @@ func onlyJSONWhitespace(s string) bool {
 		}
 	}
 	return true
+}
+
+// replacePrefix returns err with the prefix old replaced with new.
+func replacePrefix(err error, old, new string) error {
+	return errors.New(new + ": " + strings.TrimPrefix(err.Error(), old+": "))
 }
