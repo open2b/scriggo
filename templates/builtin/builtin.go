@@ -718,6 +718,10 @@ func UnixTime(sec int64, nsec int64) Time {
 // value pointed to by v. If v is nil or not a pointer, UnmarshalJSON returns
 // an error.
 //
+// Unlike json.Unmarshal of the Go standard library, UnmarshalJSON does not
+// change the value pointed to by v but instantiates a new value and then
+// replaces the value pointed to by v, if no errors occur.
+//
 // See https://golang.org/pkg/encoding/json/#Unmarshal for details.
 func UnmarshalJSON(data string, v interface{}) error {
 	if v == nil {
@@ -725,14 +729,14 @@ func UnmarshalJSON(data string, v interface{}) error {
 	}
 	rv := reflect.ValueOf(v)
 	rt := rv.Type()
-	if rv.IsZero() {
-		return errors.New("cannot unmarshal into a nil pointer of type " + rt.String())
-	}
 	if rv.Kind() != reflect.Ptr {
 		return fmt.Errorf("cannot unmarshal into non-pointer value of type " + rt.String())
 	}
-	rv.Elem().Set(reflect.Zero(rt.Elem()))
-	err := json.Unmarshal([]byte(data), v)
+	if rv.IsZero() {
+		return errors.New("cannot unmarshal into a nil pointer of type " + rt.String())
+	}
+	vp := reflect.New(rt.Elem())
+	err := json.Unmarshal([]byte(data), vp.Interface())
 	if err != nil {
 		if e, ok := err.(*json.UnmarshalTypeError); ok {
 			if e.Struct != "" || e.Field != "" {
@@ -742,6 +746,7 @@ func UnmarshalJSON(data string, v interface{}) error {
 		}
 		return errors.New(err.Error())
 	}
+	rv.Elem().Set(vp.Elem())
 	return nil
 }
 
