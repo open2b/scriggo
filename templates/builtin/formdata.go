@@ -19,11 +19,11 @@ import (
 
 // ErrBadRequest is the error that occurs when parsing a malformed HTTP
 // request body or query string in FormData methods.
-var ErrBadRequest = errors.New("bad request")
+var ErrBadRequest = errors.New("form: bad request")
 
 // ErrRequestEntityTooLarge is the error that occurs when the HTTP
 // request's body is too large
-var ErrRequestEntityTooLarge = errors.New("request entity too large")
+var ErrRequestEntityTooLarge = errors.New("form: request entity too large")
 
 // File represents a file. Files that can be opened also implement Opener.
 type File interface {
@@ -100,15 +100,15 @@ func (form FormData) ParseMultipart() {
 	}
 	if err != nil {
 		if isMultipartFormError(err) {
-			err = ErrBadRequest
+			panic(ErrBadRequest)
 		} else if err.Error() == "http: POST too large" {
-			err = ErrRequestEntityTooLarge
+			panic(ErrRequestEntityTooLarge)
 		} else if ct := form.request.Header.Get("Content-Type"); ct != "" {
 			if _, _, e := mime.ParseMediaType(ct); e != nil {
-				err = ErrBadRequest
+				panic(ErrBadRequest)
 			}
 		}
-		panic(err)
+		panic("form: " + err.Error())
 	}
 	form.data.values = form.request.MultipartForm.Value
 	form.data.files = make(map[string][]File, len(form.request.MultipartForm.File))
@@ -131,15 +131,15 @@ func (form FormData) parse() {
 	err := form.request.ParseForm()
 	if err != nil {
 		if _, ok := err.(url.EscapeError); ok {
-			err = ErrBadRequest
+			panic(ErrBadRequest)
 		} else if err.Error() == "http: POST too large" {
-			err = ErrRequestEntityTooLarge
+			panic(ErrRequestEntityTooLarge)
 		} else if ct := form.request.Header.Get("Content-Type"); ct != "" {
 			if _, _, e := mime.ParseMediaType(ct); e != nil {
-				err = ErrBadRequest
+				panic(ErrBadRequest)
 			}
 		}
-		panic(err)
+		panic("form:" + err.Error())
 	}
 	form.data.values = form.request.Form
 }
