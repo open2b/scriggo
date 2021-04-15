@@ -61,6 +61,9 @@
 //  	"min": builtin.Min,
 //
 //  	// net
+//  	"File":        reflect.TypeOf((*builtin.File)(nil)).Elem(),
+//  	"FormData":    reflect.TypeOf((*builtin.FormData)(nil)).Elem(),
+//  	"form":        (*builtin.FormData)(nil),
 //  	"queryEscape": builtin.QueryEscape,
 //
 //  	// regexp
@@ -115,6 +118,11 @@
 //  	"unixTime":      builtin.UnixTime,
 //
 //  }
+//
+// To initialize the form builtin value, with data read from the request r,
+// use this map as vars argument to Run
+//
+//    map[string]interface{}{"form": builtin.NewFormData(r, 10)}
 //
 package builtin
 
