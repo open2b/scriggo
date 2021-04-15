@@ -17,6 +17,8 @@ import (
 	"strings"
 )
 
+const maxInt = int64(^uint(0) >> 1)
+
 // ErrBadRequest is the error that occurs when parsing a malformed HTTP
 // request body or query string in FormData methods.
 var ErrBadRequest = errors.New("form: bad request")
@@ -113,11 +115,13 @@ func (form FormData) ParseMultipart() {
 	form.data.values = form.request.MultipartForm.Value
 	form.data.files = make(map[string][]File, len(form.request.MultipartForm.File))
 	for field, fhs := range form.request.MultipartForm.File {
-		fs := make([]File, len(fhs))
-		for i, fh := range fhs {
-			fs[i] = formFile{fh: fh}
+		files := make([]File, 0, len(fhs))
+		for _, fh := range fhs {
+			if fh.Size <= maxInt {
+				files = append(files, formFile{fh: fh})
+			}
 		}
-		form.data.files[field] = fs
+		form.data.files[field] = files
 	}
 }
 
