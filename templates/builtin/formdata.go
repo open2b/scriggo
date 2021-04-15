@@ -121,7 +121,9 @@ func (form FormData) ParseMultipart() {
 				files = append(files, formFile{fh: fh})
 			}
 		}
-		form.data.files[field] = files
+		if len(files) > 0 {
+			form.data.files[field] = files
+		}
 	}
 }
 
