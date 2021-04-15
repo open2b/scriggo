@@ -322,6 +322,12 @@ var globals = templates.Declarations{
 	"reverse": builtin.Reverse,
 	"sort":    builtin.Sort,
 
+	// strconv
+	"formatFloat": builtin.FormatFloat,
+	"formatInt":   builtin.FormatInt,
+	"parseFloat":  builtin.ParseFloat,
+	"parseInt":    builtin.ParseInt,
+
 	// strings
 	"abbreviate":    builtin.Abbreviate,
 	"capitalize":    builtin.Capitalize,

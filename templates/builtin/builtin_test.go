@@ -14,6 +14,7 @@ import (
 	"github.com/open2b/scriggo/templates"
 )
 
+var sp = fmt.Sprint
 var spf = fmt.Sprintf
 
 var tests = []struct {
@@ -79,6 +80,17 @@ var tests = []struct {
 		t, _ := Date(2021, 3, 27, 17, 18, 51, 0, "CET")
 		return t.Format(time.RFC3339Nano)
 	}(), "2021-03-27T17:18:51+01:00"},
+
+	// formatFloat
+	{spf(FormatFloat(0, "f", -1)), "0"},
+	{spf(FormatFloat(5.2307, "f", -1)), "5.2307"},
+	{spf(FormatFloat(-5.90361e100, "g", 2)), "-5.9e+100"},
+
+	// formatInt
+	{sp(FormatInt(0, 10)), "0"},
+	{sp(FormatInt(22, 10)), "22"},
+	{sp(FormatInt(-22, 10)), "-22"},
+	{sp(FormatInt(334, 16)), "14e"},
 
 	// htmlEscape
 	{spf("%s", HtmlEscape(``)), ""},
@@ -147,6 +159,24 @@ var tests = []struct {
 		t2 := NewTime(time.Now())
 		return (t.Equal(t1) || t.After(t1)) && (t.Equal(t2) || t.Before(t2))
 	}()), "true"},
+
+	// parseFloat
+	{sp(ParseFloat("")), "0 parseFloat: parsing \"\": invalid syntax"},
+	{sp(ParseFloat("Inf")), "0 parseFloat: parsing \"Inf\": invalid syntax"},
+	{sp(ParseFloat("NaN")), "0 parseFloat: parsing \"NaN\": invalid syntax"},
+	{sp(ParseFloat("0")), "0 <nil>"},
+	{sp(ParseFloat("23.903")), "23.903 <nil>"},
+	{sp(ParseFloat("-12.052")), "-12.052 <nil>"},
+	{sp(ParseFloat("7.21e14")), "7.21e+14 <nil>"},
+	{sp(ParseFloat("0x1.921fbe+01")), "0 parseFloat: parsing \"0x1.921fbe+01\": invalid syntax"},
+
+	// parseInt
+	{sp(ParseInt("", 10)), "0 parseInt: parsing \"\": invalid syntax"},
+	{sp(ParseInt("a", 10)), "0 parseInt: parsing \"a\": invalid syntax"},
+	{sp(ParseInt("0", 10)), "0 <nil>"},
+	{sp(ParseInt("23", 10)), "23 <nil>"},
+	{sp(ParseInt("-12", 10)), "-12 <nil>"},
+	{sp(ParseInt("f6b", 16)), "3947 <nil>"},
 
 	// regexp
 	{spf("%t", RegExp("(scriggo){2}").Match("scriggo")), "false"},

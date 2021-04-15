@@ -74,6 +74,12 @@
 //  	"reverse": builtin.Reverse,
 //  	"sort":    builtin.Sort,
 //
+//  	// strconv
+//  	"formatFloat": builtin.FormatFloat,
+//  	"formatInt":   builtin.FormatInt,
+//  	"parseFloat":  builtin.ParseFloat,
+//  	"parseInt":    builtin.ParseInt,
+//
 //  	// strings
 //  	"abbreviate":    builtin.Abbreviate,
 //  	"capitalize":    builtin.Capitalize,
@@ -137,9 +143,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"reflect"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -311,6 +319,40 @@ func IndexAny(s, chars string) int {
 	return strings.IndexAny(s, chars)
 }
 
+// FormatInt returns the string representation of i in the given base, for
+// 2 <= base <= 36. The result uses the lower-case letters 'a' to 'z' for
+// digit values >= 10.
+func FormatInt(i int, base int) string {
+	return strconv.FormatInt(int64(i), base)
+}
+
+// FormatFloat converts the floating-point number f to a string, according to
+// the given format and precision. It can round the result.
+//
+// The format is one of "e", "f" or "g"
+//  "e": -d.dddde±dd, a decimal exponent
+//  "f": -ddd.dddd, no exponent
+//  "g": "e" for large exponents, "f" otherwises
+//
+// The precision, for -1 <= precision <= 1000, controls the number of digits
+// (excluding the exponent). The special precision -1 uses the smallest number
+// of digits necessary such that ParseFloat will return f exactly. For "e"
+// and "f" it is the number of digits after the decimal point. For "g" it is
+// the maximum number of significant digits (trailing zeros are removed).
+//
+// If the format or the precision is not valid, FormatFloat panics.
+func FormatFloat(f float64, format string, precision int) string {
+	switch format {
+	case "e", "f", "g":
+	default:
+		panic("formatFloat: invalid format " + strconv.Quote(format))
+	}
+	if precision < -1 || precision > 1000 {
+		panic("formatFloat: invalid precision " + strconv.Itoa(precision))
+	}
+	return strconv.FormatFloat(f, format[0], precision, 64)
+}
+
 // Join concatenates the elements of its first argument to create a single
 // string. The separator string sep is placed between elements in the
 // resulting string.
@@ -393,6 +435,42 @@ func ParseDuration(s string) (Duration, error) {
 		return 0, replacePrefix(err, "time", "parseDuration")
 	}
 	return d, nil
+}
+
+// ParseInt interprets a string s in the given base, for 2 <= base <= 36, and
+// returns the corresponding value. It returns 0 and an error if s is empty,
+// contains invalid digits or the value corresponding to s cannot be
+// represented by an int value.
+func ParseInt(s string, base int) (int, error) {
+	if base == 0 {
+		return 0, errors.New("parseInt: parsing " + strconv.Quote(s) + ": invalid base 0")
+	}
+	i, err := strconv.ParseInt(s, base, 0)
+	if err != nil {
+		e := err.(*strconv.NumError)
+		return 0, errors.New("parseInt: parsing " + strconv.Quote(s) + ": " + e.Err.Error())
+	}
+	return int(i), nil
+}
+
+// ParseFloat converts the string s to a float64 value.
+//
+// If s is well-formed and near a valid floating-point number, ParseFloat
+// returns the nearest floating-point number rounded using IEEE754 unbiased
+// rounding.
+func ParseFloat(s string) (float64, error) {
+	if strings.HasPrefix(s, "0x") {
+		return 0, errors.New("parseFloat: parsing " + strconv.Quote(s) + ": invalid syntax")
+	}
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		e := err.(*strconv.NumError)
+		return 0, errors.New("parseFloat: parsing " + strconv.Quote(s) + ": " + e.Err.Error())
+	}
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		return 0, errors.New("parseFloat: parsing " + strconv.Quote(s) + ": invalid syntax")
+	}
+	return f, nil
 }
 
 // ParseTime parses a formatted string and returns the time value it
