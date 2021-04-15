@@ -2540,6 +2540,22 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: `0`,
 	},
+
+	"https://github.com/open2b/scriggo/issues/739 (import)": {
+		sources: map[string]string{
+			"index.txt":    `{% import "imported.txt" %}`,
+			"imported.txt": `{%% a := 1 %%}`,
+		},
+		expectedBuildErr: `unexpected a, expecting declaration statement`,
+	},
+
+	"https://github.com/open2b/scriggo/issues/739 (extends)": {
+		sources: map[string]string{
+			"index.txt":    `{% extends "extended.txt" %}{%% a := 1 %%}`,
+			"extended.txt": ``,
+		},
+		expectedBuildErr: `unexpected a, expecting declaration statement`,
+	},
 }
 
 var structWithUnexportedFields = &struct {

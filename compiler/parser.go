@@ -467,6 +467,14 @@ LABEL:
 		} else if tok.typ != tokenPackage {
 			panic(syntaxError(tok.pos, "expected 'package', found '%s'", tok))
 		}
+	case *ast.Statements:
+		if (p.imported || p.hasExtend) && len(p.ancestors) == 2 {
+			switch tok.typ {
+			case tokenExtends, tokenImport, tokenMacro, tokenVar, tokenConst, tokenType:
+			default:
+				panic(syntaxError(tok.pos, "unexpected %s, expecting declaration statement", tok))
+			}
+		}
 	case *ast.Package:
 		switch tok.typ {
 		case tokenImport, tokenFunc, tokenVar, tokenConst, tokenType:
