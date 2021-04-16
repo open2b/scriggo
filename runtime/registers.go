@@ -218,8 +218,7 @@ func (vm *VM) general(r int8) reflect.Value {
 
 func (vm *VM) generalk(r int8, k bool) reflect.Value {
 	if k {
-		v := vm.fn.Constants.General[uint8(r)]
-		return reflect.ValueOf(v)
+		return vm.fn.Constants.General[uint8(r)]
 	}
 	if r > 0 {
 		return vm.regs.general[vm.fp[3]+Addr(r)]

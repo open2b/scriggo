@@ -715,7 +715,7 @@ type Registers struct {
 	Int     []int64
 	Float   []float64
 	String  []string
-	General []interface{}
+	General []reflect.Value
 }
 
 // macroOutBuffer is used in CallMacro and CallIndirect instructions to buffer

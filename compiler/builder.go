@@ -479,24 +479,34 @@ func (fb *functionBuilder) makeStringConstant(c string) int8 {
 }
 
 // makeGeneralConstant makes a new general constant, returning it's index.
-// c must be nil or must have a comparable type or must be the zero value of
-// its type.
+// c must be nil (the zero reflect.Value) or must have a comparable type or
+// must be the zero value of its type.
 //
 // If the VM's internal representation of c is different from the external, c
 // must always have the external representation. Any conversion, if needed, will
 // be internally handled.
-func (fb *functionBuilder) makeGeneralConstant(c interface{}) int8 {
+func (fb *functionBuilder) makeGeneralConstant(c reflect.Value) int8 {
 	// Check if a constant with the same value has already been added to the
 	// general Constants slice.
-	if t := reflect.TypeOf(c); c == nil || t.Comparable() {
-		for i, v := range fb.fn.Constants.General {
-			if c == v {
-				return int8(i)
+	if c.IsValid() {
+		t := c.Type()
+		if t.Comparable() {
+			ci := c.Interface()
+			for i, v := range fb.fn.Constants.General {
+				if v.IsValid() && ci == v.Interface() {
+					return int8(i)
+				}
+			}
+		} else {
+			for i, v := range fb.fn.Constants.General {
+				if v.IsValid() && t == v.Type() {
+					return int8(i)
+				}
 			}
 		}
 	} else {
 		for i, v := range fb.fn.Constants.General {
-			if v != nil && t == reflect.TypeOf(v) {
+			if !v.IsValid() {
 				return int8(i)
 			}
 		}

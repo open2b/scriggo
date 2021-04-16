@@ -921,10 +921,10 @@ func disassembleOperand(fn *runtime.Function, op int8, kind reflect.Kind, consta
 			return "?"
 		default:
 			v := fn.Constants.General[uint8(op)]
-			if v == nil {
-				return "nil"
+			if v.IsValid() {
+				return fmt.Sprintf("%#v", v.Interface())
 			}
-			return fmt.Sprintf("%#v", v)
+			return "nil"
 		}
 	}
 	label := registerKindToLabel(kind)

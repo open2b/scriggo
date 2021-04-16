@@ -164,7 +164,7 @@ func TestConstantsLimit(t *testing.T) {
 				case reflect.Float64:
 					fb.makeFloatConstant(float64(i))
 				case reflect.Interface:
-					fb.makeGeneralConstant(interface{}(i))
+					fb.makeGeneralConstant(reflect.ValueOf(i))
 				}
 			}
 

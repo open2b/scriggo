@@ -304,7 +304,7 @@ func (em *emitter) emitValueNotPredefined(ti *typeInfo, reg int8, dstType reflec
 	}
 	// Handle nil values.
 	if ti.value == nil {
-		c := em.fb.makeGeneralConstant(nil)
+		c := em.fb.makeGeneralConstant(reflect.ValueOf(nil))
 		em.changeRegister(true, c, reg, typ, dstType)
 		return reg, false
 	}
@@ -372,7 +372,7 @@ func (em *emitter) emitValueNotPredefined(ti *typeInfo, reg int8, dstType reflec
 		reflect.Func,
 		reflect.Map,
 		reflect.Ptr:
-		c := em.fb.makeGeneralConstant(v.Interface())
+		c := em.fb.makeGeneralConstant(v)
 		em.changeRegister(true, c, reg, typ, dstType)
 	case reflect.UnsafePointer:
 		panic("BUG: not implemented") // remove.
