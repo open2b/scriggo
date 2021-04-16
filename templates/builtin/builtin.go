@@ -322,7 +322,12 @@ func IndexAny(s, chars string) int {
 // FormatInt returns the string representation of i in the given base, for
 // 2 <= base <= 36. The result uses the lower-case letters 'a' to 'z' for
 // digit values >= 10.
+//
+// It panics if base is not in the range.
 func FormatInt(i int, base int) string {
+	if base < 2 || base > 36 {
+		panic("formatInt: invalid base " + strconv.Itoa(base))
+	}
 	return strconv.FormatInt(int64(i), base)
 }
 
