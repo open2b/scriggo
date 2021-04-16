@@ -856,32 +856,41 @@ func (tc *typechecker) checkImport(impor *ast.Import, packages PackageLoader, pa
 		if impor.Tree != nil {
 			panic("BUG: only precompiled packages can be imported in script")
 		}
+
+		// Load the precompiled package.
 		pkg, err := tc.predefinedPkgs.Load(impor.Path)
 		if err != nil {
 			return tc.errorf(impor, "%s", err)
 		}
-		predefPkg := pkg.(predefinedPackage)
-		if predefPkg.Name() == "main" {
+		precompiledPkg := pkg.(predefinedPackage)
+		if precompiledPkg.Name() == "main" {
 			return tc.programImportError(impor)
 		}
+
+		// Read the declarations from the precompiled package.
 		imported := &packageInfo{}
-		imported.Declarations = make(map[string]*typeInfo, len(predefPkg.DeclarationNames()))
-		for n, d := range toTypeCheckerScope(predefPkg, 0, tc.opts) {
+		imported.Declarations = make(map[string]*typeInfo, len(precompiledPkg.DeclarationNames()))
+		for n, d := range toTypeCheckerScope(precompiledPkg, 0, tc.opts) {
 			imported.Declarations[n] = d.t
 		}
-		imported.Name = predefPkg.Name()
-		if impor.Ident != nil && isBlankIdentifier(impor.Ident) {
-			return nil // nothing to do.
+		imported.Name = precompiledPkg.Name()
+
+		// 'import _ "pkg"': nothing to do.
+		if isBlankImport(impor) {
+			return nil
 		}
-		// import . "pkg": add every declaration to the file package block.
+
+		// 'import . "pkg"': add every declaration to the file package block.
 		if isPeriodImport(impor) {
-			tc.unusedImports[imported.Name] = nil
+			tc.markPackageAsUnused(imported.Name)
 			for ident, ti := range imported.Declarations {
 				tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
 			}
 			return nil
 		}
+
+		// Determine the package name and add it to the file package block.
 		var name string
 		if impor.Ident == nil {
 			name = imported.Name // import "pkg".
@@ -889,7 +898,8 @@ func (tc *typechecker) checkImport(impor *ast.Import, packages PackageLoader, pa
 			name = impor.Ident.Name // import name "pkg".
 		}
 		tc.filePackageBlock[name] = scopeElement{t: &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}}
-		tc.unusedImports[name] = nil
+		tc.markPackageAsUnused(name)
+
 		return nil
 	}
 
@@ -929,7 +939,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, packages PackageLoader, pa
 	// Import a template file from a template.
 	if tc.opts.modality == templateMod {
 		if !packageLevel {
-			if impor.Ident != nil && impor.Ident.Name == "_" {
+			if isBlankImport(impor) {
 				return nil
 			}
 			tc.templatePageToPackage(impor.Tree)
@@ -948,17 +958,19 @@ func (tc *typechecker) checkImport(impor *ast.Import, packages PackageLoader, pa
 			imported = tc.compilation.pkgInfos[impor.Path]
 		}
 		if impor.Ident == nil {
-			tc.unusedImports[imported.Name] = nil
+			tc.markPackageAsUnused(imported.Name)
 			for ident, ti := range imported.Declarations {
 				tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
 			}
 			return nil
 		}
-		switch impor.Ident.Name {
-		case "_":
-		case ".":
-			tc.unusedImports[imported.Name] = nil
+
+		switch {
+		case isBlankImport(impor):
+			// Nothing to do.
+		case isPeriodImport(impor):
+			tc.markPackageAsUnused(imported.Name)
 			for ident, ti := range imported.Declarations {
 				tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
@@ -970,8 +982,9 @@ func (tc *typechecker) checkImport(impor *ast.Import, packages PackageLoader, pa
 					Properties: propertyIsPackage | propertyHasValue,
 				},
 			}
-			tc.unusedImports[impor.Ident.Name] = nil
+			tc.markPackageAsUnused(impor.Ident.Name)
 		}
+
 		return nil
 	}
 
@@ -980,7 +993,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, packages PackageLoader, pa
 		switch {
 
 		// import _ "path"
-		case impor.Ident != nil && isBlankIdentifier(impor.Ident):
+		case isBlankImport(impor):
 			return nil // nothing to do.
 
 		// import "path"
@@ -988,12 +1001,12 @@ func (tc *typechecker) checkImport(impor *ast.Import, packages PackageLoader, pa
 			tc.filePackageBlock[imported.Name] = scopeElement{
 				t: &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue},
 			}
-			tc.unusedImports[imported.Name] = nil
+			tc.markPackageAsUnused(imported.Name)
 			return nil
 
 		// import . "path"
-		case impor.Ident.Name == ".":
-			tc.unusedImports[imported.Name] = nil
+		case isPeriodImport(impor):
+			tc.markPackageAsUnused(imported.Name)
 			for ident, ti := range imported.Declarations {
 				tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
@@ -1008,7 +1021,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, packages PackageLoader, pa
 					Properties: propertyIsPackage | propertyHasValue,
 				},
 			}
-			tc.unusedImports[impor.Ident.Name] = nil
+			tc.markPackageAsUnused(impor.Ident.Name)
 		}
 
 	}

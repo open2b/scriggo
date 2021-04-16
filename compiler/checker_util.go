@@ -422,6 +422,12 @@ func isPeriodImport(impor *ast.Import) bool {
 	return impor.Ident != nil && impor.Ident.Name == "."
 }
 
+// isBlankImport reports whether the import node has the blank identifier as
+// import name.
+func isBlankImport(impor *ast.Import) bool {
+	return impor.Ident != nil && impor.Ident.Name == "_"
+}
+
 // isComparison reports whether op is a comparison operator.
 func isComparison(op ast.OperatorType) bool {
 	return op >= ast.OperatorEqual && op <= ast.OperatorGreaterEqual ||
@@ -506,6 +512,10 @@ const (
 	receiverAddAddress
 	receiverAddIndirect
 )
+
+func (tc *typechecker) markPackageAsUnused(pkgName string) {
+	tc.unusedImports[pkgName] = nil
+}
 
 // methodByName returns a function type that describe the method with that
 // name and a boolean indicating if the method was found.
