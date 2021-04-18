@@ -672,8 +672,10 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 		if size <= 127 {
 			em.fb.emitMakeMap(typ, true, int8(size), tmp)
 		} else {
-			sizeReg := em.fb.makeIntConstant(int64(size))
-			em.fb.emitMakeMap(typ, true, sizeReg, tmp)
+			index := em.fb.makeIntConstant(int64(size))
+			sizeReg := em.fb.newRegister(reflect.Int)
+			em.fb.emitLoadNumber(intRegister, index, sizeReg)
+			em.fb.emitMakeMap(typ, false, sizeReg, tmp)
 		}
 		for _, kv := range expr.KeyValues {
 			em.fb.enterStack()
