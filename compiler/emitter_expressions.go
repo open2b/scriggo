@@ -205,8 +205,16 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		} else {
 			tmp = em.fb.newRegister(reflect.Func)
 		}
-
-		fn := em.fb.emitFunc(tmp, ti.Type, expr.Pos(), expr.Type.Macro, expr.Format)
+		fn := &runtime.Function{
+			Pkg:    em.fb.fn.Pkg,
+			File:   em.fb.fn.File,
+			Macro:  expr.Type.Macro,
+			Format: uint8(expr.Format),
+			Pos:    convertPosition(expr.Pos()),
+			Type:   ti.Type,
+			Parent: em.fb.fn,
+		}
+		em.fb.emitLoadFunc(false, int8(em.fb.addFunction(fn)), tmp)
 		em.setFunctionVarRefs(fn, expr.Upvars)
 
 		funcLitBuilder := newBuilder(fn, em.fb.getPath())

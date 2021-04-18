@@ -331,40 +331,6 @@ func (fb *functionBuilder) emitField(a, field, c int8, dstKind reflect.Kind, ref
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: op, A: a, B: field, C: c})
 }
 
-// emitFunc appends a new "LoadFunc" instruction to the function body.
-//
-//     r = func() { ... }
-//     {% macro r %}...{% end macro %}
-//
-func (fb *functionBuilder) emitFunc(r int8, typ reflect.Type, pos *ast.Position, macro bool, format ast.Format) *runtime.Function {
-	fn := fb.fn
-	b := len(fn.Functions)
-	if b == maxScriggoFunctionsCount {
-		panic(newLimitExceededError(fb.fn.Pos, fb.path, "functions count exceeded %d", maxScriggoFunctionsCount))
-	}
-	var runtimePos *runtime.Position
-	if pos != nil {
-		runtimePos = &runtime.Position{
-			Line:   pos.Line,
-			Column: pos.Column,
-			Start:  pos.Start,
-			End:    pos.End,
-		}
-	}
-	scriggoFunc := &runtime.Function{
-		Pkg:    fn.Pkg,
-		File:   fn.File,
-		Macro:  macro,
-		Format: uint8(format),
-		Pos:    runtimePos,
-		Type:   typ,
-		Parent: fn,
-	}
-	fn.Functions = append(fn.Functions, scriggoFunc)
-	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpLoadFunc, B: int8(b), C: r})
-	return scriggoFunc
-}
-
 // emitGetVar appends a new "GetVar" instruction to the function body.
 //
 //     r = v

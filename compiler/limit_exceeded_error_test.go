@@ -7,6 +7,7 @@
 package compiler
 
 import (
+	"github.com/open2b/scriggo/runtime"
 	"reflect"
 	"strconv"
 	"testing"
@@ -80,7 +81,13 @@ func TestFunctionsLimit(t *testing.T) {
 
 	fb := new_test_builder()
 	for i = 0; i < 1000; i++ {
-		fb.emitFunc(1, reflect.FuncOf(nil, nil, false), nil, false, 0)
+		fn := &runtime.Function{
+			Pkg:    fb.fn.Pkg,
+			File:   fb.fn.File,
+			Type:   reflect.FuncOf(nil, nil, false),
+			Parent: fb.fn,
+		}
+		fb.emitLoadFunc(false, int8(fb.addFunction(fn)), 1)
 	}
 
 }

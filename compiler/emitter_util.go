@@ -496,3 +496,16 @@ func (em *emitter) emitContains(not, ky bool, x, y int8, tx, ty reflect.Type, po
 	}
 	return
 }
+
+// convertPosition converts an AST position to a runtime position.
+func convertPosition(pos *ast.Position) *runtime.Position {
+	if pos == nil {
+		return nil
+	}
+	return &runtime.Position{
+		Line:   pos.Line,
+		Column: pos.Column,
+		Start:  pos.Start,
+		End:    pos.End,
+	}
+}
