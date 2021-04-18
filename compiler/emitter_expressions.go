@@ -556,19 +556,15 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 		if !canEmitDirectly(typ.Kind(), dstType.Kind()) {
 			workingReg = em.fb.newRegister(typ.Kind())
 		}
-		length := em.compositeLiteralLen(expr)
-		var k bool
-		var length8 int8
-		if length > 127 {
-			length8 = em.fb.newRegister(reflect.Int)
-			em.fb.emitLoadNumber(intRegister, em.fb.makeIntConstant(int64(length)), length8)
-			k = false
-		} else {
-			length8 = int8(length)
-			k = true
-		}
 		if typ.Kind() == reflect.Slice {
-			em.fb.emitMakeSlice(k, k, typ, length8, length8, workingReg, expr.Pos())
+			length := em.compositeLiteralLen(expr)
+			k := length <= 127
+			if !k {
+				r := em.fb.newRegister(reflect.Int)
+				em.fb.emitLoadNumber(intRegister, em.fb.makeIntConstant(int64(length)), r)
+				length = int(r)
+			}
+			em.fb.emitMakeSlice(k, k, typ, int8(length), int8(length), workingReg, expr.Pos())
 		} else {
 			em.fb.emitMakeArray(typ, workingReg)
 		}
