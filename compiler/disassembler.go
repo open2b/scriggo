@@ -585,9 +585,6 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		case stringRegister:
 			s += " " + disassembleOperand(fn, b, reflect.String, k)
 			s += " " + disassembleOperand(fn, c, reflect.String, false)
-		case -generalRegister:
-			s += " Copy"
-			fallthrough
 		case generalRegister:
 			s += " " + disassembleOperand(fn, b, reflect.Interface, k)
 			s += " " + disassembleOperand(fn, c, reflect.Interface, false)
