@@ -20,7 +20,6 @@ import (
 // Define some constants that define limits of the implementation.
 const (
 	// Functions.
-	maxFunctionsCount           = 256
 	maxRegistersCount           = 127
 	maxPredefinedFunctionsCount = 256
 	maxScriggoFunctionsCount    = 256

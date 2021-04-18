@@ -339,8 +339,8 @@ func (fb *functionBuilder) emitField(a, field, c int8, dstKind reflect.Kind, ref
 func (fb *functionBuilder) emitFunc(r int8, typ reflect.Type, pos *ast.Position, macro bool, format ast.Format) *runtime.Function {
 	fn := fb.fn
 	b := len(fn.Functions)
-	if b == maxFunctionsCount {
-		panic(newLimitExceededError(fb.fn.Pos, fb.path, "functions count exceeded %d", maxFunctionsCount))
+	if b == maxScriggoFunctionsCount {
+		panic(newLimitExceededError(fb.fn.Pos, fb.path, "functions count exceeded %d", maxScriggoFunctionsCount))
 	}
 	var runtimePos *runtime.Position
 	if pos != nil {
