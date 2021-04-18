@@ -7,12 +7,12 @@
 package compiler
 
 import (
-	"github.com/open2b/scriggo/runtime"
 	"reflect"
 	"strconv"
 	"testing"
 
 	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/runtime"
 )
 
 func new_test_builder() *functionBuilder {
