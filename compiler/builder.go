@@ -441,14 +441,14 @@ func (fb *functionBuilder) addType(typ reflect.Type, preserveType bool) int {
 }
 
 // addPredefinedFunction adds a predefined function to the builder's function.
-func (fb *functionBuilder) addPredefinedFunction(f *runtime.PredefinedFunction) uint8 {
+func (fb *functionBuilder) addPredefinedFunction(f *runtime.PredefinedFunction) int8 {
 	fn := fb.fn
 	r := len(fn.Predefined)
 	if r == maxPredefinedFunctionsCount {
 		panic(newLimitExceededError(fb.fn.Pos, fb.path, "predefined functions count exceeded %d", maxPredefinedFunctionsCount))
 	}
 	fn.Predefined = append(fn.Predefined, f)
-	return uint8(r)
+	return int8(r)
 }
 
 // addFunction adds a function to the builder's function.
@@ -623,7 +623,7 @@ func (fb *functionBuilder) complexOperationIndex(op ast.OperatorType, unary bool
 			return fb.complexUnaryOpIndex
 		}
 		fn := newPredefinedFunction("scriggo.complex", "neg", negComplex)
-		index := int8(fb.addPredefinedFunction(fn))
+		index := fb.addPredefinedFunction(fn)
 		fb.complexUnaryOpIndex = index
 		return index
 	}
@@ -648,7 +648,7 @@ func (fb *functionBuilder) complexOperationIndex(op ast.OperatorType, unary bool
 	}
 	_ = n
 	fn := newPredefinedFunction("scriggo.complex", n, f)
-	index := int8(fb.addPredefinedFunction(fn))
+	index := fb.addPredefinedFunction(fn)
 	fb.complexBinaryOpIndexes[op] = index
 	return index
 }
