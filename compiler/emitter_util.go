@@ -58,7 +58,7 @@ func (em *emitter) _changeRegister(k bool, src, dst int8, srcType reflect.Type, 
 	dstKind := dstType.Kind()
 
 	if dstKind == reflect.Interface && srcKind == reflect.Interface {
-		em.fb.emitMove(k, src, dst, srcKind, true)
+		em.fb.emitMove(k, src, dst, srcKind)
 		return
 	}
 
@@ -75,7 +75,7 @@ func (em *emitter) _changeRegister(k bool, src, dst int8, srcType reflect.Type, 
 		if k {
 			em.fb.enterScope()
 			tmp := em.fb.newRegister(srcKind)
-			em.fb.emitMove(true, src, tmp, srcKind, true)
+			em.fb.emitMove(true, src, tmp, srcKind)
 			em.fb.emitConvert(tmp, dstType, dst, srcKind)
 			em.fb.exitScope()
 		}
@@ -84,7 +84,7 @@ func (em *emitter) _changeRegister(k bool, src, dst int8, srcType reflect.Type, 
 	}
 
 	if k || src != dst {
-		em.fb.emitMove(k, src, dst, srcKind, true)
+		em.fb.emitMove(k, src, dst, srcKind)
 	}
 
 }

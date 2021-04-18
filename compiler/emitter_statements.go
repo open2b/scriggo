@@ -718,9 +718,9 @@ func (em *emitter) emitSelect(selectNode *ast.Select) {
 			valueAssignment := ast.NewAssignment(pos, assignment.Lhs[0:1], assignment.Type, []ast.Expression{valueExpr})
 			em.emitAssignmentNode(valueAssignment)
 			if len(assignment.Lhs) == 2 { // case has 'ok'
-				em.fb.emitMove(true, 1, ok, reflect.Bool, false)
+				em.fb.emitMove(true, 1, ok, reflect.Bool)
 				em.fb.emitIf(false, 0, runtime.ConditionOK, 0, reflect.Interface, assignment.Pos())
-				em.fb.emitMove(true, 0, ok, reflect.Bool, false)
+				em.fb.emitMove(true, 0, ok, reflect.Bool)
 				okExpr := ast.NewIdentifier(pos, "$ok")
 				em.typeInfos[okExpr] = &typeInfo{
 					Type: boolType,
@@ -759,8 +759,8 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 
 	if node.Expr == nil {
 		typ = boolType
-		expr = em.fb.newRegister(typ.Kind())
-		em.fb.emitMove(true, 1, expr, typ.Kind(), true)
+		expr = em.fb.newRegister(reflect.Bool)
+		em.fb.emitMove(true, 1, expr, reflect.Bool)
 		node.Expr = ast.NewIdentifier(node.Pos(), "true")
 		em.typeInfos[node.Expr] = &typeInfo{
 			Constant:   boolConst(true),

@@ -626,26 +626,12 @@ func (fb *functionBuilder) emitMethodValue(name string, receiver int8, dst int8,
 //
 //     z = x
 //
-// TODO: copy should be true only when necessary, otherwise it's just a waste of
-// resources. Check every call to emitMove from the emitter and set the 'copy'
-// argument correctly.
-func (fb *functionBuilder) emitMove(k bool, x, z int8, kind reflect.Kind, copy bool) {
+func (fb *functionBuilder) emitMove(k bool, x, z int8, kind reflect.Kind) {
 	op := runtime.OpMove
 	if k {
 		op = -op
 	}
 	a := int8(kindToType(kind))
-	if copy {
-		// TODO: enable this check..
-		//
-		// if kind != reflect.Array && kind != reflect.Struct {
-		// 	panic(fmt.Errorf("BUG: emitMove: cannot set copy = true with kind %s, expected kind array or struct", kind.String()))
-		// }
-		// .. and remove this if:
-		if kind == reflect.Array || kind == reflect.Struct {
-			a = int8(-generalRegister)
-		}
-	}
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: op, A: a, B: x, C: z})
 }
 

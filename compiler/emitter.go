@@ -420,7 +420,7 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 					em.emitExprR(args[i+numIn-1], t, tmp)
 					em.fb.exitStack()
 					index := em.fb.newRegister(reflect.Int)
-					em.fb.emitMove(true, int8(i), index, reflect.Int, false)
+					em.fb.emitMove(true, int8(i), index, reflect.Int)
 					pos := args[len(args)-1].Pos()
 					em.fb.emitSetSlice(false, slice, tmp, index, pos, fnTyp.In(numIn-1).Elem().Kind())
 				}
@@ -668,7 +668,7 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		slice := em.emitExpr(args[0], sliceType)
 		if call.IsVariadic {
 			tmp := em.fb.newRegister(sliceType.Kind())
-			em.fb.emitMove(false, slice, tmp, sliceType.Kind(), false)
+			em.fb.emitMove(false, slice, tmp, sliceType.Kind())
 			arg := em.emitExpr(args[1], em.typ(args[1]))
 			em.fb.emitAppendSlice(arg, tmp, call.Pos())
 			em.changeRegister(false, tmp, reg, sliceType, dstType)
