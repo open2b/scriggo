@@ -87,7 +87,7 @@ func TestFunctionsLimit(t *testing.T) {
 			Type:   reflect.FuncOf(nil, nil, false),
 			Parent: fb.fn,
 		}
-		fb.emitLoadFunc(false, int8(fb.addFunction(fn)), 1)
+		fb.emitLoadFunc(false, fb.addFunction(fn), 1)
 	}
 
 }

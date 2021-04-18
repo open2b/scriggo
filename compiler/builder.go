@@ -452,14 +452,14 @@ func (fb *functionBuilder) addPredefinedFunction(f *runtime.PredefinedFunction) 
 }
 
 // addFunction adds a function to the builder's function.
-func (fb *functionBuilder) addFunction(f *runtime.Function) uint8 {
+func (fb *functionBuilder) addFunction(f *runtime.Function) int8 {
 	fn := fb.fn
 	r := len(fn.Functions)
 	if r == maxScriggoFunctionsCount {
 		panic(newLimitExceededError(fb.fn.Pos, fb.path, "Scriggo functions count exceeded %d", maxScriggoFunctionsCount))
 	}
 	fn.Functions = append(fn.Functions, f)
-	return uint8(r)
+	return int8(r)
 }
 
 // makeStringConstant makes a new string constant, returning it's index.

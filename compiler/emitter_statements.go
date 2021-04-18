@@ -73,7 +73,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					Type:   reflect.FuncOf(nil, nil, false),
 					Parent: em.fb.fn,
 				}
-				em.fb.emitLoadFunc(false, int8(em.fb.addFunction(fn)), fnReg)
+				em.fb.emitLoadFunc(false, em.fb.addFunction(fn), fnReg)
 				em.fb = newBuilder(fn, em.fb.getPath())
 				em.fb.emitRecover(0, true)
 				em.fb.emitReturn()
@@ -95,7 +95,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					if len(inits) > 0 && !em.alreadyInitializedTemplatePkgs[node.Tree.Path] {
 						for _, initFunc := range inits {
 							index := em.fb.addFunction(initFunc)
-							em.fb.emitCallFunc(int8(index), em.fb.currentStackShift(), nil)
+							em.fb.emitCallFunc(index, em.fb.currentStackShift(), nil)
 						}
 						em.alreadyInitializedTemplatePkgs[node.Tree.Path] = true
 					}

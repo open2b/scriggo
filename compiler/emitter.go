@@ -272,12 +272,12 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				if initVarsFn != nil {
 					iv, _ := em.fnStore.availableScriggoFn(em.pkg, "$initvars")
 					index := em.fb.addFunction(iv) // TODO: check addFunction
-					em.fb.emitCallFunc(int8(index), runtime.StackShift{}, nil)
+					em.fb.emitCallFunc(index, runtime.StackShift{}, nil)
 				}
 				// Second: call all init functions, in order.
 				for _, initFunc := range inits {
 					index := em.fb.addFunction(initFunc)
-					em.fb.emitCallFunc(int8(index), runtime.StackShift{}, nil)
+					em.fb.emitCallFunc(index, runtime.StackShift{}, nil)
 				}
 			}
 			em.prepareFunctionBodyParameters(n)

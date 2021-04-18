@@ -214,7 +214,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			Type:   ti.Type,
 			Parent: em.fb.fn,
 		}
-		em.fb.emitLoadFunc(false, int8(em.fb.addFunction(fn)), tmp)
+		em.fb.emitLoadFunc(false, em.fb.addFunction(fn), tmp)
 		em.setFunctionVarRefs(fn, expr.Upvars)
 
 		funcLitBuilder := newBuilder(fn, em.fb.getPath())
