@@ -1037,8 +1037,12 @@ func (vm *VM) run() (Addr, bool) {
 		// Move
 		case OpMove, -OpMove:
 			switch registerType(a) {
+			case intRegister:
+				vm.setInt(c, vm.intk(b, op < 0))
 			case floatRegister:
 				vm.setFloat(c, vm.floatk(b, op < 0))
+			case stringRegister:
+				vm.setString(c, vm.stringk(b, op < 0))
 			case generalRegister:
 				rv := vm.generalk(b, op < 0)
 				if k := rv.Kind(); k == reflect.Array || k == reflect.Struct {
@@ -1047,10 +1051,6 @@ func (vm *VM) run() (Addr, bool) {
 					rv = newRv
 				}
 				vm.setGeneral(c, rv)
-			case intRegister:
-				vm.setInt(c, vm.intk(b, op < 0))
-			case stringRegister:
-				vm.setString(c, vm.stringk(b, op < 0))
 			}
 
 		// Mul
