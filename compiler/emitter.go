@@ -881,10 +881,13 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 	if ti := em.ti(cond); ti != nil && ti.HasValue() && !ti.IsPredefined() {
 		// The condition of the 'if' instruction of VM is a binary operation,
 		// so the boolean constant expression 'x' is emitted as 'x == true'.
-		num := em.fb.makeIntConstant(ti.value.(int64))
-		tmp := em.fb.newRegister(reflect.Int)
-		em.fb.emitLoadNumber(intRegister, num, tmp)
-		em.fb.emitIf(false, tmp, runtime.ConditionNotZero, 0, reflect.Int, cond.Pos())
+		var c int8 = 0
+		if ti.value.(int64) == 1 {
+			c = 1
+		}
+		r := em.fb.newRegister(reflect.Int)
+		em.fb.emitMove(true, c, r, reflect.Int)
+		em.fb.emitIf(false, r, runtime.ConditionNotZero, 0, reflect.Int, cond.Pos())
 		return
 	}
 
