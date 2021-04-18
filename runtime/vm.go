@@ -76,34 +76,6 @@ func decodeUint24(a, b, c int8) uint32 {
 	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
 }
 
-// Sync with compiler.decodeFieldIndex.
-func decodeFieldIndex(i int64) []int {
-	if i <= 255 {
-		return []int{int(i)}
-	}
-	s := []int{
-		int(uint8(i >> 0)),
-		int(uint8(i >> 8)),
-		int(uint8(i >> 16)),
-		int(uint8(i >> 24)),
-		int(uint8(i >> 32)),
-		int(uint8(i >> 40)),
-		int(uint8(i >> 48)),
-		int(uint8(i >> 56)),
-	}
-	ns := []int{}
-	for i := 0; i < len(s); i++ {
-		if i == len(s)-1 {
-			ns = append(ns, s[i])
-		} else {
-			if s[i] > 0 {
-				ns = append(ns, s[i]-1)
-			}
-		}
-	}
-	return ns
-}
-
 // VM represents a Scriggo virtual machine.
 type VM struct {
 	fp       [4]Addr              // frame pointers.
@@ -793,24 +765,25 @@ func (fn *PredefinedFunction) Func() interface{} {
 
 // Function represents a function.
 type Function struct {
-	Pkg        string
-	Name       string
-	File       string
-	Pos        *Position // position of the function declaration.
-	Type       reflect.Type
-	Parent     *Function
-	VarRefs    []int16
-	Types      []reflect.Type
-	NumReg     [4]int8
-	FinalRegs  [][2]int8 // [indirect -> return parameter registers]
-	Macro      bool
-	Format     uint8
-	Constants  Registers
-	Functions  []*Function
-	Predefined []*PredefinedFunction
-	Body       []Instruction
-	Text       [][]byte
-	DebugInfo  map[Addr]DebugInfo
+	Pkg          string
+	Name         string
+	File         string
+	Pos          *Position // position of the function declaration.
+	Type         reflect.Type
+	Parent       *Function
+	VarRefs      []int16
+	Types        []reflect.Type
+	NumReg       [4]int8
+	FinalRegs    [][2]int8 // [indirect -> return parameter registers]
+	Macro        bool
+	Format       uint8
+	Constants    Registers
+	FieldIndexes [][]int
+	Functions    []*Function
+	Predefined   []*PredefinedFunction
+	Body         []Instruction
+	Text         [][]byte
+	DebugInfo    map[Addr]DebugInfo
 }
 
 // Position represents a source position.

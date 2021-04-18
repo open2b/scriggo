@@ -23,6 +23,7 @@ const (
 	maxRegistersCount           = 127
 	maxPredefinedFunctionsCount = 256
 	maxScriggoFunctionsCount    = 256
+	maxFieldIndexesCount        = 256
 
 	// Types.
 	maxTypesCount = 256
@@ -97,67 +98,6 @@ func encodeUint24(v uint32) (a, b, c int8) {
 
 func decodeUint24(a, b, c int8) uint32 {
 	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
-}
-
-// encodeFieldIndex encodes a field index slice used by reflect into an int64.
-func encodeFieldIndex(s []int) int64 {
-	if len(s) == 1 {
-		if s[0] > 255 {
-			panic("struct field index #0 > 255")
-		}
-		return int64(s[0])
-	}
-	ss := make([]int, len(s))
-	copy(ss, s)
-	for i := range ss[1:] {
-		if ss[i] > 254 {
-			panic("struct field index > 254")
-		}
-		ss[i]++
-	}
-	fill := 8 - len(ss)
-	for i := 0; i < fill; i++ {
-		ss = append([]int{0}, ss...)
-	}
-	i := int64(0)
-	i += int64(ss[0]) << 0
-	i += int64(ss[1]) << 8
-	i += int64(ss[2]) << 16
-	i += int64(ss[3]) << 24
-	i += int64(ss[4]) << 32
-	i += int64(ss[5]) << 40
-	i += int64(ss[6]) << 48
-	i += int64(ss[7]) << 56
-	return i
-}
-
-// decodeFieldIndex decodes i as a field index slice used by package reflect.
-// Sync with vm.decodeFieldIndex.
-func decodeFieldIndex(i int64) []int {
-	if i <= 255 {
-		return []int{int(i)}
-	}
-	s := []int{
-		int(uint8(i >> 0)),
-		int(uint8(i >> 8)),
-		int(uint8(i >> 16)),
-		int(uint8(i >> 24)),
-		int(uint8(i >> 32)),
-		int(uint8(i >> 40)),
-		int(uint8(i >> 48)),
-		int(uint8(i >> 56)),
-	}
-	ns := []int{}
-	for i := 0; i < len(s); i++ {
-		if i == len(s)-1 {
-			ns = append(ns, s[i])
-		} else {
-			if s[i] > 0 {
-				ns = append(ns, s[i]-1)
-			}
-		}
-	}
-	return ns
 }
 
 // newFunction returns a new function with a given package, name and type.
@@ -545,6 +485,34 @@ func (fb *functionBuilder) makeIntConstant(c int64) int8 {
 		panic(newLimitExceededError(fb.fn.Pos, fb.path, "integer count exceeded %d", maxIntConstantsCount))
 	}
 	fb.fn.Constants.Int = append(fb.fn.Constants.Int, c)
+	return int8(r)
+}
+
+// sameFieldIndex reports whether i1 and i2 are the same field index.
+func sameFieldIndex(i1, i2 []int) bool {
+	if len(i1) != len(i2) {
+		return false
+	}
+	for k, i := range i1 {
+		if i != i2[k] {
+			return false
+		}
+	}
+	return true
+}
+
+// makeFieldIndex makes a new field index, returning it's index.
+func (fb *functionBuilder) makeFieldIndex(index []int) int8 {
+	for i, index2 := range fb.fn.FieldIndexes {
+		if sameFieldIndex(index, index2) {
+			return int8(i)
+		}
+	}
+	r := len(fb.fn.FieldIndexes)
+	if r == maxFieldIndexesCount {
+		panic(newLimitExceededError(fb.fn.Pos, fb.path, "field indexes count exceeded %d", maxFieldIndexesCount))
+	}
+	fb.fn.FieldIndexes = append(fb.fn.FieldIndexes, index)
 	return int8(r)
 }
 

@@ -506,7 +506,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			typ := em.typ(v.Expr)
 			reg := em.emitExpr(v.Expr, typ)
 			field, _ := typ.FieldByName(v.Ident)
-			index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+			index := em.fb.makeFieldIndex(field.Index)
 			addresses[i] = em.addressStructSelector(reg, index, typ, pos, node.Type)
 			break
 		case *ast.UnaryOperator:

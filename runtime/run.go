@@ -114,7 +114,7 @@ func (vm *VM) run() (Addr, bool) {
 				i := int(vm.int(b))
 				vm.setGeneral(c, v.Index(i).Addr())
 			case reflect.Struct:
-				i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
+				i := vm.fn.FieldIndexes[uint8(b)]
 				vm.setGeneral(c, v.FieldByIndex(i).Addr())
 			}
 
@@ -571,13 +571,13 @@ func (vm *VM) run() (Addr, bool) {
 			// TODO: OpField currently returns the reference to the struct
 			// field, so the implementation is the same as OpFieldRef. This is
 			// going to change in a future commit.
-			i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
+			i := vm.fn.FieldIndexes[uint8(b)]
 			v := vm.general(a).FieldByIndex(i)
 			vm.setFromReflectValue(c, v)
 
 		// FieldRef
 		case OpFieldRef:
-			i := decodeFieldIndex(vm.fn.Constants.Int[uint8(b)])
+			i := vm.fn.FieldIndexes[uint8(b)]
 			v := vm.general(a).FieldByIndex(i)
 			vm.setFromReflectValue(c, v)
 
@@ -1588,7 +1588,7 @@ func (vm *VM) run() (Addr, bool) {
 
 		// SetField
 		case OpSetField, -OpSetField:
-			i := decodeFieldIndex(vm.fn.Constants.Int[uint8(c)])
+			i := vm.fn.FieldIndexes[uint8(c)]
 			s := vm.general(b)
 			vm.getIntoReflectValue(a, s.FieldByIndex(i), op < 0)
 

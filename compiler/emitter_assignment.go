@@ -208,8 +208,7 @@ func (a address) targetType() reflect.Type {
 	case assignSliceIndex:
 		return a.addressedType.Elem()
 	case assignStructSelector:
-		encodedField := a.em.fb.fn.Constants.Int[a.op2]
-		index := decodeFieldIndex(encodedField)
+		index := a.em.fb.fn.FieldIndexes[a.op2]
 		return a.addressedType.FieldByIndex(index).Type
 	}
 	return nil

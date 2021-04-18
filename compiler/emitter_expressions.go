@@ -644,7 +644,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 			valueType := em.typ(kv.Value)
 			if canEmitDirectly(valueType.Kind(), field.Type.Kind()) {
 				value, k := em.emitExprK(kv.Value, valueType)
-				index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+				index := em.fb.makeFieldIndex(field.Index)
 				em.fb.emitSetField(k, structt, index, value, field.Type.Kind())
 			} else {
 				em.fb.enterStack()
@@ -652,7 +652,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 				value := em.fb.newRegister(field.Type.Kind())
 				em.changeRegister(false, tmp, value, valueType, field.Type)
 				em.fb.exitStack()
-				index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+				index := em.fb.makeFieldIndex(field.Index)
 				em.fb.emitSetField(false, structt, index, value, field.Type.Kind())
 			}
 			// TODO(Gianluca): use field "k" of SetField.
@@ -744,7 +744,7 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 	exprType := em.typ(expr.Expr)
 	exprReg := em.emitExpr(expr.Expr, exprType)
 	field, _ := exprType.FieldByName(expr.Ident)
-	index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+	index := em.fb.makeFieldIndex(field.Index)
 	fieldType := em.typ(expr)
 	if canEmitDirectly(fieldType.Kind(), dstType.Kind()) {
 		em.fb.emitField(exprReg, index, reg, dstType.Kind(), true)
@@ -929,7 +929,7 @@ func (em *emitter) emitUnaryOp(expr *ast.UnaryOperator, reg int8, regType reflec
 			operandExprType := em.typ(operand.Expr)
 			expr := em.emitExpr(operand.Expr, operandExprType)
 			field, _ := operandExprType.FieldByName(operand.Ident)
-			index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+			index := em.fb.makeFieldIndex(field.Index)
 			pos := operand.Expr.Pos()
 			if canEmitDirectly(em.types.PtrTo(field.Type).Kind(), regType.Kind()) {
 				em.fb.emitAddr(expr, index, reg, pos)

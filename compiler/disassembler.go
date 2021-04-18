@@ -504,7 +504,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		}
 	case runtime.OpField, runtime.OpFieldRef:
 		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
-		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[uint8(b)]))
+		s += " " + fmt.Sprintf("%v", fn.FieldIndexes[uint8(b)])
 		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
 	case runtime.OpGetVar:
 		s += " " + disassembleVarRef(fn, globals, int16(int(a)<<8|int(uint8(b))))
@@ -622,7 +622,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	case runtime.OpSetField:
 		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), k)
 		s += " " + disassembleOperand(fn, b, reflect.Interface, false)
-		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[uint8(c)]))
+		s += " " + fmt.Sprintf("%v", fn.FieldIndexes[uint8(c)])
 	case runtime.OpSetMap:
 		// fn, addr, 'a'
 		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), k)
