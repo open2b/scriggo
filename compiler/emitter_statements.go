@@ -332,14 +332,16 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 
 		case *ast.Show:
 			ctx := node.Context
-			if call, ok := node.Expr.(*ast.Call); ok && ctx <= ast.ContextMarkdown && em.ti(call.Func).IsMacroDeclaration() {
-				em.fb.enterStack()
-				em.emitCallNode(call, false, false, ast.Format(ctx))
-				em.fb.exitStack()
-			} else {
-				ti := em.ti(node.Expr)
-				r := em.emitExpr(node.Expr, ti.Type)
-				em.fb.emitShow(ti.Type, r, ctx, em.inURL, em.isURLSet)
+			for _, expr := range node.Expressions {
+				if call, ok := expr.(*ast.Call); ok && ctx <= ast.ContextMarkdown && em.ti(call.Func).IsMacroDeclaration() {
+					em.fb.enterStack()
+					em.emitCallNode(call, false, false, ast.Format(ctx))
+					em.fb.exitStack()
+				} else {
+					ti := em.ti(expr)
+					r := em.emitExpr(expr, ti.Type)
+					em.fb.emitShow(ti.Type, r, ctx, em.inURL, em.isURLSet)
+				}
 			}
 
 		case *ast.Switch:

@@ -44,6 +44,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 // expandedPrint is set to true in tests to print completely a composite
@@ -772,17 +773,25 @@ func (n *Render) String() string {
 
 // Show node represents statements {{ ... }} and "show <expr>".
 type Show struct {
-	*Position            // position in the source.
-	Expr      Expression // expression that once evaluated returns the value to show.
-	Context   Context    // context.
+	*Position                // position in the source.
+	Expressions []Expression // expressions that once evaluated return the values to show.
+	Context     Context      // context.
 }
 
-func NewShow(pos *Position, expr Expression, ctx Context) *Show {
-	return &Show{pos, expr, ctx}
+func NewShow(pos *Position, expressions []Expression, ctx Context) *Show {
+	return &Show{pos, expressions, ctx}
 }
 
 func (n *Show) String() string {
-	return fmt.Sprintf("{{ %v }}", n.Expr)
+	var b strings.Builder
+	b.WriteString("show ")
+	for i, expr := range n.Expressions {
+		if i > 0 {
+			b.WriteString(", ")
+		}
+		b.WriteString(expr.String())
+	}
+	return b.String()
 }
 
 // Extends node represents a statement "extends".

@@ -390,7 +390,7 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 				return nil, nil, syntaxError(tok.pos, "unexpected %s, expecting }}", tok)
 			}
 			pos.End = tok.pos.End
-			var node = ast.NewShow(pos, expr, tok.ctx)
+			var node = ast.NewShow(pos, []ast.Expression{expr}, tok.ctx)
 			p.addChild(node)
 			if _, ok := expr.(*ast.Render); ok {
 				p.cutSpacesToken = true
@@ -920,16 +920,18 @@ LABEL:
 		pos := tok.pos
 		tok := p.next()
 		ctx := tok.ctx
-		var expr ast.Expression
-		expr, tok = p.parseExpr(tok, false, false, false)
-		if expr == nil {
+		var exprs []ast.Expression
+		exprs, tok = p.parseExprList(tok, false, false, false)
+		if exprs == nil {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
-		pos.End = expr.Pos().End
-		var node = ast.NewShow(pos, expr, ctx)
+		pos.End = exprs[len(exprs)-1].Pos().End
+		var node = ast.NewShow(pos, exprs, ctx)
 		p.addChild(node)
-		if _, ok := expr.(*ast.Render); ok {
-			p.cutSpacesToken = true
+		if len(exprs) == 1 {
+			if _, ok := exprs[0].(*ast.Render); ok {
+				p.cutSpacesToken = true
+			}
 		}
 		tok = p.parseEnd(tok, tokenSemicolon, end)
 		return tok

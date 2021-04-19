@@ -601,57 +601,60 @@ nodesLoop:
 
 			// Handle {{ f() }} where f returns two values and the second value
 			// implements 'error'.
-			if call, ok := node.Expr.(*ast.Call); ok {
-				tis := tc.checkCallExpression(call)
-				if len(tis) == 2 && tis[1].Type.Implements(errorType) {
-					// Change the tree:
-					//
-					//     from: {{ f(..) }}
-					//
-					//     to:   {% if v, err := f(arg1, arg2); err == nil %}{{ v }}{% end if %}
-					//
-					pos := call.Pos()
-					init := ast.NewAssignment( // v, err := f(..)
-						pos,
-						[]ast.Expression{
-							ast.NewIdentifier(pos, "v"),
+			if len(node.Expressions) == 1 {
+				if call, ok := node.Expressions[0].(*ast.Call); ok {
+					tis := tc.checkCallExpression(call)
+					if len(tis) == 2 && tis[1].Type.Implements(errorType) {
+						// Change the tree:
+						//
+						//     from: {{ f(..) }}
+						//
+						//     to:   {% if v, err := f(arg1, arg2); err == nil %}{{ v }}{% end if %}
+						//
+						pos := call.Pos()
+						init := ast.NewAssignment( // v, err := f(..)
+							pos,
+							[]ast.Expression{
+								ast.NewIdentifier(pos, "v"),
+								ast.NewIdentifier(pos, "err"),
+							},
+							ast.AssignmentDeclaration,
+							[]ast.Expression{call}, // f(..)
+						)
+						cond := ast.NewBinaryOperator(
+							pos,
+							ast.OperatorEqual,
 							ast.NewIdentifier(pos, "err"),
-						},
-						ast.AssignmentDeclaration,
-						[]ast.Expression{call}, // f(..)
-					)
-					cond := ast.NewBinaryOperator(
-						pos,
-						ast.OperatorEqual,
-						ast.NewIdentifier(pos, "err"),
-						ast.NewIdentifier(pos, "nil"),
-					)
-					then := ast.NewBlock( // {{ v }}
-						pos,
-						[]ast.Node{ast.NewShow(pos, ast.NewIdentifier(pos, "v"), node.Context)},
-					)
-					nodes[i] = ast.NewIf(pos, init, cond, then, nil)
-					continue nodesLoop // check nodes[i]
+							ast.NewIdentifier(pos, "nil"),
+						)
+						then := ast.NewBlock( // {{ v }}
+							pos,
+							[]ast.Node{ast.NewShow(pos, []ast.Expression{ast.NewIdentifier(pos, "v")}, node.Context)},
+						)
+						nodes[i] = ast.NewIf(pos, init, cond, then, nil)
+						continue nodesLoop // check nodes[i]
+					}
 				}
 			}
 
-			ti := tc.checkExpr(node.Expr)
-			if ti.Nil() {
-				panic(tc.errorf(node, "use of untyped nil"))
+			for _, expr := range node.Expressions {
+				ti := tc.checkExpr(expr)
+				if ti.Nil() {
+					panic(tc.errorf(node, "use of untyped nil"))
+				}
+				if tc.opts.renderer != nil && ti.Type != emptyInterfaceType {
+					zero := tc.types.Zero(ti.Type)
+					if w, ok := ti.Type.(runtime.Wrapper); ok {
+						zero = w.Wrap(zero)
+					}
+					tc.opts.renderer.Show(tc.env, zero.Interface(), encodeRenderContext(node.Context, false, false))
+					if err := tc.env.err; err != nil {
+						panic(tc.errorf(node, "cannot show %s (%s)", expr, err))
+					}
+				}
+				ti.setValue(nil)
 			}
 
-			if tc.opts.renderer != nil && ti.Type != emptyInterfaceType {
-				zero := tc.types.Zero(ti.Type)
-				if w, ok := ti.Type.(runtime.Wrapper); ok {
-					zero = w.Wrap(zero)
-				}
-				tc.opts.renderer.Show(tc.env, zero.Interface(), encodeRenderContext(node.Context, false, false))
-				if err := tc.env.err; err != nil {
-					panic(tc.errorf(node, "cannot show %s (%s)", node.Expr, err))
-				}
-			}
-
-			ti.setValue(nil)
 			tc.terminating = false
 
 		case *ast.Defer:

@@ -365,7 +365,11 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 		deps := nodeDeps(n.Channel, scopes)
 		return append(deps, nodeDeps(n.Value, scopes)...)
 	case *ast.Show:
-		return nodeDeps(n.Expr, scopes)
+		deps := []*ast.Identifier{}
+		for _, node := range n.Expressions {
+			deps = append(deps, nodeDeps(node, scopes)...)
+		}
+		return deps
 	case *ast.SliceType:
 		return nodeDeps(n.ElementType, scopes)
 	case *ast.Slicing:

@@ -545,6 +545,12 @@ var checkerTemplateStmts = []struct {
 	{src: `{%% for a in nil { } %%}`, expected: `cannot range over nil`},
 	{src: `{%% for a in _ { } %%}`, expected: `cannot use _ as value`},
 	{src: `{%% for a in make(chan<- int) { } %%}`, expected: `invalid operation: range make(chan<- int) (receive from send-only type chan<- int)`},
+
+	// 'show' statements.
+	{src: `{% show "a" %}`, expected: ok},
+	{src: `{% show "a", 7, true %}`, expected: ok},
+	{src: `{% show render "partial.html" %}`, expected: ok},
+	{src: `{% show render "partial.html", render "partial.html" %}`, expected: ok},
 }
 
 func TestCheckerTemplatesStatements(t *testing.T) {
@@ -553,7 +559,7 @@ func TestCheckerTemplatesStatements(t *testing.T) {
 		src := cas.src
 		expected := cas.expected
 		t.Run(src, func(t *testing.T) {
-			fsys := mapfs.MapFS{"index.html": src}
+			fsys := mapfs.MapFS{"index.html": src, "partial.html": "x"}
 			_, err := BuildTemplate(fsys, "index.html", options)
 			switch {
 			case expected == "" && err != nil:

@@ -719,18 +719,18 @@ var treeTests = []struct {
 }{
 	{"", ast.NewTree("", nil, ast.FormatHTML)},
 	{"a", ast.NewTree("", []ast.Node{ast.NewText(p(1, 1, 0, 0), []byte("a"), ast.Cut{})}, ast.FormatHTML)},
-	{"{{a}}", ast.NewTree("", []ast.Node{ast.NewShow(p(1, 1, 0, 4), ast.NewIdentifier(p(1, 3, 2, 2), "a"), ast.ContextHTML)}, ast.FormatHTML)},
+	{"{{a}}", ast.NewTree("", []ast.Node{ast.NewShow(p(1, 1, 0, 4), []ast.Expression{ast.NewIdentifier(p(1, 3, 2, 2), "a")}, ast.ContextHTML)}, ast.FormatHTML)},
 	{"a{{b}}", ast.NewTree("", []ast.Node{
-		ast.NewText(p(1, 1, 0, 0), []byte("a"), ast.Cut{}), ast.NewShow(p(1, 2, 1, 5), ast.NewIdentifier(p(1, 4, 3, 3), "b"), ast.ContextHTML)}, ast.FormatHTML)},
+		ast.NewText(p(1, 1, 0, 0), []byte("a"), ast.Cut{}), ast.NewShow(p(1, 2, 1, 5), []ast.Expression{ast.NewIdentifier(p(1, 4, 3, 3), "b")}, ast.ContextHTML)}, ast.FormatHTML)},
 	{"{{a}}b", ast.NewTree("", []ast.Node{
-		ast.NewShow(p(1, 1, 0, 4), ast.NewIdentifier(p(1, 3, 2, 2), "a"), ast.ContextHTML), ast.NewText(p(1, 6, 5, 5), []byte("b"), ast.Cut{})}, ast.FormatHTML)},
+		ast.NewShow(p(1, 1, 0, 4), []ast.Expression{ast.NewIdentifier(p(1, 3, 2, 2), "a")}, ast.ContextHTML), ast.NewText(p(1, 6, 5, 5), []byte("b"), ast.Cut{})}, ast.FormatHTML)},
 	{"a{{b}}c", ast.NewTree("", []ast.Node{
-		ast.NewText(p(1, 1, 0, 0), []byte("a"), ast.Cut{}), ast.NewShow(p(1, 2, 1, 5), ast.NewIdentifier(p(1, 4, 3, 3), "b"), ast.ContextHTML),
+		ast.NewText(p(1, 1, 0, 0), []byte("a"), ast.Cut{}), ast.NewShow(p(1, 2, 1, 5), []ast.Expression{ast.NewIdentifier(p(1, 4, 3, 3), "b")}, ast.ContextHTML),
 		ast.NewText(p(1, 7, 6, 6), []byte("c"), ast.Cut{})}, ast.FormatHTML)},
 	{"<a href=\"/{{ a }}/b\">", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 8), []byte("<a href=\""), ast.Cut{}), ast.NewURL(p(1, 10, 9, 18), "a", "href", []ast.Node{
 			ast.NewText(p(1, 10, 9, 9), []byte("/"), ast.Cut{}),
-			ast.NewShow(p(1, 11, 10, 16), ast.NewIdentifier(p(1, 14, 13, 13), "a"), ast.ContextQuotedAttr),
+			ast.NewShow(p(1, 11, 10, 16), []ast.Expression{ast.NewIdentifier(p(1, 14, 13, 13), "a")}, ast.ContextQuotedAttr),
 			ast.NewText(p(1, 18, 17, 18), []byte("/b"), ast.Cut{}),
 		}),
 		ast.NewText(p(1, 20, 19, 20), []byte("\">"), ast.Cut{}),
@@ -743,22 +743,22 @@ var treeTests = []struct {
 	}, ast.FormatHTML)},
 	{"<div {{ a }}>", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 4), []byte("<div "), ast.Cut{}), ast.NewShow(p(1, 6, 5, 11),
-			ast.NewIdentifier(p(1, 9, 8, 8), "a"), ast.ContextTag), ast.NewText(p(1, 13, 12, 12), []byte(">"), ast.Cut{}),
+			[]ast.Expression{ast.NewIdentifier(p(1, 9, 8, 8), "a")}, ast.ContextTag), ast.NewText(p(1, 13, 12, 12), []byte(">"), ast.Cut{}),
 	}, ast.FormatHTML)},
 	{"<div{{ a }}>", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 3), []byte("<div"), ast.Cut{}), ast.NewShow(p(1, 5, 4, 10),
-			ast.NewIdentifier(p(1, 8, 7, 7), "a"), ast.ContextTag), ast.NewText(p(1, 12, 11, 11), []byte(">"), ast.Cut{}),
+			[]ast.Expression{ast.NewIdentifier(p(1, 8, 7, 7), "a")}, ast.ContextTag), ast.NewText(p(1, 12, 11, 11), []byte(">"), ast.Cut{}),
 	}, ast.FormatHTML)},
 	{"<div 本=\"{{ class }}\">", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 9), []byte("<div 本=\""), ast.Cut{}), ast.NewShow(p(1, 9, 10, 20),
-			ast.NewIdentifier(p(1, 12, 13, 17), "class"), ast.ContextQuotedAttr), ast.NewText(p(1, 20, 21, 22), []byte("\">"), ast.Cut{}),
+			[]ast.Expression{ast.NewIdentifier(p(1, 12, 13, 17), "class")}, ast.ContextQuotedAttr), ast.NewText(p(1, 20, 21, 22), []byte("\">"), ast.Cut{}),
 	}, ast.FormatHTML)},
 	{"<div a=/{{ class }}\"{{ class }}>", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 7), []byte("<div a=/"), ast.Cut{}), ast.NewShow(p(1, 9, 8, 18),
-			ast.NewIdentifier(p(1, 12, 11, 15), "class"), ast.ContextUnquotedAttr),
+			[]ast.Expression{ast.NewIdentifier(p(1, 12, 11, 15), "class")}, ast.ContextUnquotedAttr),
 		ast.NewText(p(1, 20, 19, 19), []byte("\""), ast.Cut{}),
 		ast.NewShow(p(1, 21, 20, 30),
-			ast.NewIdentifier(p(1, 24, 23, 27), "class"), ast.ContextUnquotedAttr),
+			[]ast.Expression{ast.NewIdentifier(p(1, 24, 23, 27), "class")}, ast.ContextUnquotedAttr),
 		ast.NewText(p(1, 32, 31, 31), []byte(">"), ast.Cut{}),
 	}, ast.FormatHTML)},
 	{"{% if x == 5 %}{% end %}",
@@ -870,14 +870,14 @@ var treeTests = []struct {
 				[]ast.Node{
 					ast.NewText(&ast.Position{Line: 1, Column: 30, Start: 29, End: 34}, []byte("\n<div>"), ast.Cut{1, 0}),
 					ast.NewShow(
-						&ast.Position{Line: 2, Column: 6, Start: 35, End: 53},
-						ast.NewSelector(
-							&ast.Position{Line: 2, Column: 16, Start: 38, End: 50},
-							ast.NewIdentifier(
-								&ast.Position{Line: 2, Column: 9, Start: 38, End: 44},
-								"article",
-							),
-							"title"),
+						&ast.Position{Line: 2, Column: 6, Start: 35, End: 53}, []ast.Expression{
+							ast.NewSelector(
+								&ast.Position{Line: 2, Column: 16, Start: 38, End: 50},
+								ast.NewIdentifier(
+									&ast.Position{Line: 2, Column: 9, Start: 38, End: 44},
+									"article",
+								),
+								"title")},
 						ast.ContextHTML),
 					ast.NewText(&ast.Position{Line: 2, Column: 25, Start: 54, End: 60}, []byte("</div>\n"), ast.Cut{}),
 				},
@@ -1155,7 +1155,7 @@ var treeTests = []struct {
 	},
 	{"<div \"{{ class }}\">", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 5), []byte("<div \""), ast.Cut{}), ast.NewShow(p(1, 7, 6, 16),
-			ast.NewIdentifier(p(1, 10, 9, 13), "class"), ast.ContextTag), ast.NewText(p(1, 18, 17, 18), []byte("\">"), ast.Cut{}),
+			[]ast.Expression{ast.NewIdentifier(p(1, 10, 9, 13), "class")}, ast.ContextTag), ast.NewText(p(1, 18, 17, 18), []byte("\">"), ast.Cut{}),
 	}, ast.FormatHTML)},
 	{"{% a := 1 %}", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 4, 3, 8), []ast.Expression{ast.NewIdentifier(p(1, 4, 3, 3), "a")},
@@ -1204,18 +1204,22 @@ var treeTests = []struct {
 	{"{% a %= 1 %}", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 4, 3, 8), []ast.Expression{ast.NewIdentifier(p(1, 4, 3, 3), "a")},
 			ast.AssignmentModulo, []ast.Expression{ast.NewBasicLiteral(p(1, 9, 8, 8), ast.IntLiteral, "1")})}, ast.FormatHTML)},
-	{"{% show a %}", ast.NewTree("", []ast.Node{ast.NewShow(p(1, 4, 3, 8), ast.NewIdentifier(p(1, 9, 8, 8), "a"), ast.ContextHTML)}, ast.FormatHTML)},
+	{"{% show a %}", ast.NewTree("", []ast.Node{ast.NewShow(p(1, 4, 3, 8), []ast.Expression{ast.NewIdentifier(p(1, 9, 8, 8), "a")}, ast.ContextHTML)}, ast.FormatHTML)},
+	{"{% show a, b, c %}", ast.NewTree("", []ast.Node{ast.NewShow(p(1, 4, 3, 14), []ast.Expression{
+		ast.NewIdentifier(p(1, 9, 8, 8), "a"),
+		ast.NewIdentifier(p(1, 12, 11, 11), "b"),
+		ast.NewIdentifier(p(1, 15, 14, 14), "c")}, ast.ContextHTML)}, ast.FormatHTML)},
 	{"{% show a(b,c) %}", ast.NewTree("", []ast.Node{
-		ast.NewShow(p(1, 4, 3, 13),
+		ast.NewShow(p(1, 4, 3, 13), []ast.Expression{
 			ast.NewCall(p(1, 10, 8, 13),
 				ast.NewIdentifier(p(1, 9, 8, 8), "a"),
 				[]ast.Expression{ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")},
-				false),
+				false)},
 			ast.ContextHTML),
 	}, ast.FormatHTML)},
 	{"<script>{% show a %}</script>", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 7), []byte("<script>"), ast.Cut{}),
-		ast.NewShow(p(1, 12, 11, 16), ast.NewIdentifier(p(1, 17, 16, 16), "a"), ast.ContextJS),
+		ast.NewShow(p(1, 12, 11, 16), []ast.Expression{ast.NewIdentifier(p(1, 17, 16, 16), "a")}, ast.ContextJS),
 		ast.NewText(p(1, 21, 20, 28), []byte("</script>"), ast.Cut{}),
 	}, ast.FormatHTML)},
 	{"{% for v in e %}b{% end for %}", ast.NewTree("", []ast.Node{
@@ -1319,8 +1323,8 @@ var treeTests = []struct {
 		),
 	}, ast.FormatHTML)},
 	{"{% extends \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtends(p(1, 4, 3, 16), "/a.b", ast.FormatHTML)}, ast.FormatHTML)},
-	{"{{ render \"/a.b\" }}", ast.NewTree("", []ast.Node{ast.NewShow(p(1, 1, 0, 18),
-		ast.NewRender(p(1, 4, 3, 15), "/a.b"), ast.ContextHTML)}, ast.FormatHTML)},
+	{"{{ render \"/a.b\" }}", ast.NewTree("", []ast.Node{ast.NewShow(p(1, 1, 0, 18), []ast.Expression{
+		ast.NewRender(p(1, 4, 3, 15), "/a.b")}, ast.ContextHTML)}, ast.FormatHTML)},
 	{"{% extends \"a.e\" %}{% macro b %}c{% end macro %}", ast.NewTree("", []ast.Node{
 		ast.NewExtends(p(1, 4, 3, 15), "a.e", ast.FormatHTML),
 		ast.NewFunc(p(1, 23, 22, 44), ast.NewIdentifier(p(1, 29, 28, 28), "b"), ast.NewFuncType(&ast.Position{Line: 1, Column: 23, Start: 22, End: 44}, false, nil, nil, false), ast.NewBlock(p(1, 23, 22, 44), []ast.Node{ast.NewText(p(1, 33, 32, 32), []byte("c"), ast.Cut{})}), false, ast.FormatHTML)}, ast.FormatHTML)},
@@ -1376,7 +1380,7 @@ func pageTests() map[string]struct {
 	var render = ast.NewRender(p(3, 7, 29, 61), "/partial2.html")
 	render.Tree = ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 4), []byte("<div>"), ast.Cut{}),
-		ast.NewShow(p(1, 6, 5, 17), ast.NewIdentifier(p(1, 9, 8, 14), "content"), ast.ContextHTML),
+		ast.NewShow(p(1, 6, 5, 17), []ast.Expression{ast.NewIdentifier(p(1, 9, 8, 14), "content")}, ast.ContextHTML),
 		ast.NewText(p(1, 19, 18, 23), []byte("</div>"), ast.Cut{}),
 	}, ast.FormatHTML)
 	return map[string]struct {
@@ -1387,9 +1391,9 @@ func pageTests() map[string]struct {
 			"<!DOCTYPE html>\n<html>\n<head><title>{{ title }}</title></head>\n<body>{{ content }}</body>\n</html>",
 			ast.NewTree("", []ast.Node{
 				ast.NewText(p(1, 1, 0, 35), []byte("<!DOCTYPE html>\n<html>\n<head><title>"), ast.Cut{}),
-				ast.NewShow(p(3, 14, 36, 46), ast.NewIdentifier(p(3, 17, 39, 43), "title"), ast.ContextHTML),
+				ast.NewShow(p(3, 14, 36, 46), []ast.Expression{ast.NewIdentifier(p(3, 17, 39, 43), "title")}, ast.ContextHTML),
 				ast.NewText(p(3, 25, 47, 68), []byte("</title></head>\n<body>"), ast.Cut{}),
-				ast.NewShow(p(4, 7, 69, 81), ast.NewIdentifier(p(4, 10, 72, 78), "content"), ast.ContextHTML),
+				ast.NewShow(p(4, 7, 69, 81), []ast.Expression{ast.NewIdentifier(p(4, 10, 72, 78), "content")}, ast.ContextHTML),
 				ast.NewText(p(4, 20, 82, 96), []byte("</body>\n</html>"), ast.Cut{}),
 			}, ast.FormatHTML),
 		},
@@ -1956,9 +1960,11 @@ func equals(n1, n2 ast.Node, p int) error {
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
-		err := equals(nn1.Expr, nn2.Expr, p)
-		if err != nil {
-			return err
+		for i, expr := range nn1.Expressions {
+			err := equals(expr, nn2.Expressions[i], p)
+			if err != nil {
+				return err
+			}
 		}
 		if nn1.Context != nn2.Context {
 			return fmt.Errorf("unexpected context %s, expecting %s", nn1.Context, nn2.Context)

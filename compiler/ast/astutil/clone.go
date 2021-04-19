@@ -212,7 +212,11 @@ func CloneNode(node ast.Node) ast.Node {
 		return ast.NewSend(ClonePosition(n.Position), CloneExpression(n.Channel), CloneExpression(n.Value))
 
 	case *ast.Show:
-		return ast.NewShow(ClonePosition(n.Position), CloneExpression(n.Expr), n.Context)
+		expressions := make([]ast.Expression, len(n.Expressions))
+		for i, expr := range n.Expressions {
+			expressions[i] = CloneExpression(expr)
+		}
+		return ast.NewShow(ClonePosition(n.Position), expressions, n.Context)
 
 	case *ast.Statements:
 		var nodes []ast.Node

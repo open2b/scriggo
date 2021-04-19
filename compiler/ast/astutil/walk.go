@@ -179,7 +179,9 @@ func Walk(v Visitor, node ast.Node) {
 		}
 
 	case *ast.Show:
-		Walk(v, n.Expr)
+		for _, expr := range n.Expressions {
+			Walk(v, expr)
+		}
 
 	case *ast.Statements:
 		for _, child := range n.Nodes {
