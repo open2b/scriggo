@@ -576,11 +576,9 @@ func (fb *functionBuilder) emitMakeStruct(typ reflect.Type, dst int8) {
 //
 //     dst = receiver.name
 //
-func (fb *functionBuilder) emitMethodValue(name string, receiver int8, dst int8, pos *ast.Position) {
+func (fb *functionBuilder) emitMethodValue(name int8, receiver int8, dst int8, pos *ast.Position) {
 	fb.addPosAndPath(pos)
-	str := fb.makeStringConstant(name)
-	fn := fb.fn
-	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpMethodValue, A: receiver, B: str, C: dst})
+	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpMethodValue, A: receiver, B: name, C: dst})
 }
 
 // emitMove appends a new "Move" instruction to the function body.

@@ -524,7 +524,8 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool, toF
 		}
 		method := em.fb.newRegister(reflect.Func)
 		name := call.Func.(*ast.Selector).Ident
-		em.fb.emitMethodValue(name, rcvr, method, call.Func.Pos())
+		s := em.fb.makeStringConstant(name)
+		em.fb.emitMethodValue(s, rcvr, method, call.Func.Pos())
 		call.Args = append([]ast.Expression{rcvrExpr}, call.Args...)
 		stackShift := em.fb.currentStackShift()
 		opts := callOptions{
