@@ -955,11 +955,12 @@ func (vm *VM) run() (Addr, bool) {
 
 		// LoadNumber
 		case OpLoadNumber:
-			switch a {
-			case 0:
-				vm.setInt(c, vm.fn.Constants.Int[uint8(b)])
-			case 1:
-				vm.setFloat(c, vm.fn.Constants.Float[uint8(b)])
+			t, i := decodeConstantIndex(a, b)
+			switch t {
+			case intRegister:
+				vm.setInt(c, vm.fn.Constants.Int[i])
+			case floatRegister:
+				vm.setFloat(c, vm.fn.Constants.Float[i])
 			}
 
 		// MakeArray

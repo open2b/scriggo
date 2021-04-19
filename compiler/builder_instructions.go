@@ -483,17 +483,12 @@ func (fb *functionBuilder) emitLoadFunc(predefined bool, f int8, z int8) {
 
 // emitLoadNumber appends a new "LoadNumber" instruction to the function body.
 //
-func (fb *functionBuilder) emitLoadNumber(typ registerType, index, dst int8) {
-	var a int8
-	switch typ {
-	case intRegister:
-		a = 0
-	case floatRegister:
-		a = 1
-	default:
+func (fb *functionBuilder) emitLoadNumber(typ registerType, index int, dst int8) {
+	if typ != intRegister && typ != floatRegister {
 		panic("LoadNumber only accepts intRegister or floatRegister as type")
 	}
-	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpLoadNumber, A: a, B: index, C: dst})
+	a, b := encodeConstantIndex(typ, index)
+	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpLoadNumber, A: a, B: b, C: dst})
 }
 
 // emitMakeArray appends a new "MakeArray" instruction to the function body.

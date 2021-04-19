@@ -76,6 +76,10 @@ func decodeUint24(a, b, c int8) uint32 {
 	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
 }
 
+func decodeConstantIndex(a, b int8) (t registerType, i int) {
+	return registerType(uint8(a) >> 6), int(decodeUint16(a, b) &^ (3 << 14))
+}
+
 // VM represents a Scriggo virtual machine.
 type VM struct {
 	fp       [4]Addr              // frame pointers.

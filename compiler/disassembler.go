@@ -544,13 +544,14 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 		}
 	case runtime.OpLoadNumber:
-		if a == 0 {
+		t, i := decodeConstantIndex(a, b)
+		if t == intRegister {
 			s += " int"
-			s += " " + fmt.Sprintf("%d", fn.Constants.Int[uint8(b)])
+			s += " " + fmt.Sprintf("%d", fn.Constants.Int[i])
 			s += " " + disassembleOperand(fn, c, reflect.Int, false)
 		} else {
 			s += " float"
-			s += " " + fmt.Sprintf("%f", fn.Constants.Float[uint8(b)])
+			s += " " + fmt.Sprintf("%f", fn.Constants.Float[i])
 			s += " " + disassembleOperand(fn, c, reflect.Float64, false)
 		}
 	case runtime.OpMakeArray, runtime.OpMakeStruct, runtime.OpNew:

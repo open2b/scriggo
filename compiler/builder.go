@@ -29,10 +29,10 @@ const (
 	maxTypesCount = 256
 
 	// Constants.
-	maxIntConstantsCount     = 256
-	maxStringConstantsCount  = maxIntConstantsCount
-	maxGeneralConstantsCount = maxIntConstantsCount
-	maxFloatConstantsCount   = maxIntConstantsCount
+	maxIntConstantsCount     = 1 << 14 // 16384
+	maxFloatConstantsCount   = 1 << 14 // 16384
+	maxStringConstantsCount  = 256
+	maxGeneralConstantsCount = 256
 )
 
 var intType = reflect.TypeOf(0)
@@ -98,6 +98,20 @@ func encodeUint24(v uint32) (a, b, c int8) {
 
 func decodeUint24(a, b, c int8) uint32 {
 	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
+}
+
+// encodeConstantIndex encodes a constant index in the Function.Constants
+// slices of the runtime.
+func encodeConstantIndex(t registerType, i int) (a, b int8) {
+	a, b = encodeInt16(int16(i))
+	a |= int8(t << 6)
+	return a, b
+}
+
+// decodeConstantIndex decodes a constant index in the Function.Constants
+// slices of the runtime.
+func decodeConstantIndex(a, b int8) (t registerType, i int) {
+	return registerType(uint8(a) >> 6), int(decodeUint16(a, b) &^ (3 << 14))
 }
 
 // newFunction returns a new function with a given package, name and type.
@@ -459,10 +473,10 @@ func (fb *functionBuilder) makeGeneralConstant(c reflect.Value) int8 {
 }
 
 // makeFloatConstant makes a new float constant, returning it's index.
-func (fb *functionBuilder) makeFloatConstant(c float64) int8 {
+func (fb *functionBuilder) makeFloatConstant(c float64) int {
 	for i, v := range fb.fn.Constants.Float {
 		if c == v {
-			return int8(i)
+			return i
 		}
 	}
 	r := len(fb.fn.Constants.Float)
@@ -470,14 +484,14 @@ func (fb *functionBuilder) makeFloatConstant(c float64) int8 {
 		panic(newLimitExceededError(fb.fn.Pos, fb.path, "floating-point count exceeded %d", maxFloatConstantsCount))
 	}
 	fb.fn.Constants.Float = append(fb.fn.Constants.Float, c)
-	return int8(r)
+	return r
 }
 
 // makeIntConstant makes a new int constant, returning it's index.
-func (fb *functionBuilder) makeIntConstant(c int64) int8 {
+func (fb *functionBuilder) makeIntConstant(c int64) int {
 	for i, v := range fb.fn.Constants.Int {
 		if c == v {
-			return int8(i)
+			return i
 		}
 	}
 	r := len(fb.fn.Constants.Int)
@@ -485,7 +499,7 @@ func (fb *functionBuilder) makeIntConstant(c int64) int8 {
 		panic(newLimitExceededError(fb.fn.Pos, fb.path, "integer count exceeded %d", maxIntConstantsCount))
 	}
 	fb.fn.Constants.Int = append(fb.fn.Constants.Int, c)
-	return int8(r)
+	return r
 }
 
 // sameFieldIndex reports whether i1 and i2 are the same field index.

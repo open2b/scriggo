@@ -321,7 +321,7 @@ func (em *emitter) emitValueNotPredefined(ti *typeInfo, reg int8, dstType reflec
 		em.changeRegister(false, tmp, reg, typ, dstType)
 		return reg, false
 	case float64:
-		var c int8
+		var c int
 		if typ.Kind() == reflect.Float32 {
 			c = em.fb.makeFloatConstant(float64(float32(v)))
 		} else {
