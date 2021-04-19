@@ -55,7 +55,7 @@ func main() {
 // build builds the programs in *.tests files and in the *_test directories.
 func build() ([]programToRun, error) {
 	var programs []programToRun
-	_ = fs.WalkDir(tests, ".", func(path string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(tests, ".", func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() {
 			if path != "." && !strings.HasSuffix(path, "_test") {
 				return fs.SkipDir
@@ -92,6 +92,9 @@ func build() ([]programToRun, error) {
 		}
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 	return programs, nil
 }
 
