@@ -858,7 +858,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, packages PackageLoader, pa
 	}
 
 	// Import a precompiled package from a script or a template page.
-	if tc.opts.modality == scriptMod || (tc.opts.modality == templateMod && impor.Tree == nil) {
+	if impor.Tree == nil && tc.opts.modality != programMod {
 
 		// Load the precompiled package.
 		pkg, err := tc.predefinedPkgs.Load(impor.Path)
