@@ -853,12 +853,12 @@ nodesLoop:
 
 // TODO: improve this code, making it more readable.
 func (tc *typechecker) checkImport(impor *ast.Import, packages PackageLoader, packageLevel bool) error {
+	if tc.opts.modality == scriptMod && impor.Tree != nil {
+		panic("BUG: only precompiled packages can be imported in script")
+	}
 
 	// Import a precompiled package from a script or a template page.
 	if tc.opts.modality == scriptMod || (tc.opts.modality == templateMod && impor.Tree == nil) {
-		if impor.Tree != nil {
-			panic("BUG: only precompiled packages can be imported in script")
-		}
 
 		// Load the precompiled package.
 		pkg, err := tc.predefinedPkgs.Load(impor.Path)
