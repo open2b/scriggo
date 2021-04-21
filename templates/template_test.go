@@ -2556,6 +2556,23 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedBuildErr: `unexpected a, expecting declaration statement`,
 	},
+
+	"https://github.com/open2b/scriggo/issues/741 - non pointer": {
+		sources: map[string]string{
+			"index.txt": `{%%
+				t := T{}
+				t.A = "hello"
+				show t.A
+			%%}`,
+		},
+		main: scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"T": reflect.TypeOf(struct{ A string }{}),
+			},
+		},
+		expectedOut: "hello",
+	},
 }
 
 var structWithUnexportedFields = &struct {
