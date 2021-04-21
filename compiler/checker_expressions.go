@@ -866,7 +866,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		// Transform ps.F to (*ps).F, if ps is a defined pointer type and
 		// (*ps).F is a valid selector expression denoting a field (but not
 		// a method).
-		if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Struct {
+		if t.Type.Kind() == reflect.Ptr {
 			unOp := ast.NewUnaryOperator(expr.Expr.Pos(), ast.OperatorPointer, expr.Expr)
 			tc.compilation.typeInfos[unOp] = &typeInfo{
 				Type: t.Type.Elem(),
