@@ -783,50 +783,50 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		}
 
 	case *ast.Selector:
-		// Package selector.
+		// Can be a package selector, a method expression, a method value or a field selector.
 		if ident, ok := expr.Expr.(*ast.Identifier); ok {
 			ti, ok := tc.lookupScopes(ident.Name, false)
-			if ok {
-				if ti.IsPackage() {
-					delete(tc.unusedImports, ident.Name)
-					if !unicode.Is(unicode.Lu, []rune(expr.Ident)[0]) {
-						panic(tc.errorf(expr, "cannot refer to unexported name %s", expr))
-					}
-					pkg := ti.value.(*packageInfo)
-					v, ok := pkg.Declarations[expr.Ident]
-					if !ok {
-						panic(tc.errorf(expr, "undefined: %v", expr))
-					}
-					// v is a predefined variable.
-					if rv, ok := v.value.(*reflect.Value); v.Addressable() && ok {
-						upvar := ast.Upvar{
-							PredefinedName:  expr.Ident,
-							PredefinedPkg:   ident.Name,
-							PredefinedValue: rv,
-							Index:           -1,
-						}
-						for _, fn := range tc.nestedFuncs() {
-							add := true
-							for i, uv := range fn.Upvars {
-								if uv.PredefinedValue == upvar.PredefinedValue {
-									upvar.Index = int16(i)
-									add = false
-									break
-								}
-							}
-							if add {
-								upvar.Index = int16(len(fn.Upvars) - 1)
-								fn.Upvars = append(fn.Upvars, upvar)
-							}
-						}
-					}
-					tc.compilation.typeInfos[expr] = v
-					return v
+			if ok && ti.IsPackage() {
+				// Package selector.
+				delete(tc.unusedImports, ident.Name)
+				if !unicode.Is(unicode.Lu, []rune(expr.Ident)[0]) {
+					panic(tc.errorf(expr, "cannot refer to unexported name %s", expr))
 				}
+				pkg := ti.value.(*packageInfo)
+				v, ok := pkg.Declarations[expr.Ident]
+				if !ok {
+					panic(tc.errorf(expr, "undefined: %v", expr))
+				}
+				// v is a predefined variable.
+				if rv, ok := v.value.(*reflect.Value); v.Addressable() && ok {
+					upvar := ast.Upvar{
+						PredefinedName:  expr.Ident,
+						PredefinedPkg:   ident.Name,
+						PredefinedValue: rv,
+						Index:           -1,
+					}
+					for _, fn := range tc.nestedFuncs() {
+						add := true
+						for i, uv := range fn.Upvars {
+							if uv.PredefinedValue == upvar.PredefinedValue {
+								upvar.Index = int16(i)
+								add = false
+								break
+							}
+						}
+						if add {
+							upvar.Index = int16(len(fn.Upvars) - 1)
+							fn.Upvars = append(fn.Upvars, upvar)
+						}
+					}
+				}
+				tc.compilation.typeInfos[expr] = v
+				return v
 			}
 		}
 		t := tc.checkExprOrType(expr.Expr)
 		if t.IsType() {
+			// Method expression.
 			method, _, ok := tc.methodByName(t, expr.Ident)
 			if !ok {
 				panic(tc.errorf(expr, "%v undefined (type %s has no method %s)", expr, t, expr.Ident))
@@ -838,6 +838,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		}
 		method, trans, ok := tc.methodByName(t, expr.Ident)
 		if ok {
+			// Method value.
 			switch trans {
 			case receiverAddAddress:
 				if t.Addressable() {
@@ -858,6 +859,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			}
 			return method
 		}
+		// Field selector.
 		field, newName, err := tc.fieldByName(t, expr.Ident)
 		if err != nil {
 			panic(tc.errorf(expr, "%v undefined (%s)", expr, err))
