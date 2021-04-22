@@ -838,7 +838,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		}
 		method, trans, ok := tc.methodByName(t, expr.Ident)
 		if ok {
-			// Method selector.
+			// Method value.
 			switch trans {
 			case receiverAddAddress:
 				if t.Addressable() {
