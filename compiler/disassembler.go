@@ -546,11 +546,9 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	case runtime.OpLoadNumber:
 		t, i := decodeConstantIndex(a, b)
 		if t == intRegister {
-			s += " int"
 			s += " " + fmt.Sprintf("%d", fn.Constants.Int[i])
 			s += " " + disassembleOperand(fn, c, reflect.Int, false)
 		} else {
-			s += " float"
 			s += " " + fmt.Sprintf("%f", fn.Constants.Float[i])
 			s += " " + disassembleOperand(fn, c, reflect.Float64, false)
 		}
