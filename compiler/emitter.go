@@ -811,16 +811,15 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 			em.fb.emitPrint(arg)
 		}
 	case "println":
-		last := len(args) - 1
 		for i, argExpr := range args {
-			arg := em.emitExpr(argExpr, emptyInterfaceType)
-			em.fb.emitPrint(arg)
-			if i < last {
+			if i > 0 {
 				str := em.fb.makeStringConstant(" ")
 				sep := em.fb.newRegister(reflect.Interface)
 				em.changeRegister(true, str, sep, stringType, emptyInterfaceType)
 				em.fb.emitPrint(sep)
 			}
+			arg := em.emitExpr(argExpr, emptyInterfaceType)
+			em.fb.emitPrint(arg)
 		}
 		str := em.fb.makeStringConstant("\n")
 		sep := em.fb.newRegister(reflect.Interface)
