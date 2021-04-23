@@ -825,6 +825,9 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			}
 		}
 		t := tc.checkExprOrType(expr.Expr)
+		if t.Nil() {
+			panic(tc.errorf(expr.Expr, "use of untyped nil"))
+		}
 		if t.IsType() {
 			// Method expression.
 			method, _, ok := tc.methodByName(t, expr.Ident)
