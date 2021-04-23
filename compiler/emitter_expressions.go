@@ -512,9 +512,9 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, regType refl
 			em.fb.enterStack()
 			z = em.fb.newRegister(reflect.Bool)
 		}
-		em.fb.emitMove(true, 1, z, reflect.Bool)
+		em.fb.emitLoad(em.fb.makeIntValue(1), z, reflect.Int)
 		em.emitContains(not, ky, x, y, t1, t2, pos)
-		em.fb.emitMove(true, 0, z, reflect.Bool)
+		em.fb.emitLoad(em.fb.makeIntValue(0), z, reflect.Int)
 		if !directly {
 			em.changeRegister(false, z, reg, typ, regType)
 			em.fb.exitStack()
@@ -529,9 +529,9 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, regType refl
 		em.fb.enterStack()
 		z = em.fb.newRegister(kind)
 	}
-	em.fb.emitMove(true, 1, z, reflect.Bool)
+	em.fb.emitLoad(em.fb.makeIntValue(1), z, reflect.Int)
 	em.emitComparison(op, ky, x, y, t1, t2, pos)
-	em.fb.emitMove(true, 0, z, reflect.Bool)
+	em.fb.emitLoad(em.fb.makeIntValue(0), z, reflect.Int)
 	if !directly {
 		em.changeRegister(false, z, reg, typ, regType)
 		em.fb.exitStack()
@@ -593,11 +593,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 			}
 			em.fb.enterStack()
 			indexReg := em.fb.newRegister(reflect.Int)
-			if index > 127 {
-				em.fb.emitLoad(em.fb.makeIntValue(index), indexReg, reflect.Int)
-			} else {
-				em.fb.emitMove(true, int8(index), indexReg, reflect.Int)
-			}
+			em.fb.emitLoad(em.fb.makeIntValue(index), indexReg, reflect.Int)
 			elem, k := em.emitExprK(kv.Value, typ.Elem())
 			if workingReg != 0 {
 				em.fb.emitSetSlice(k, workingReg, elem, indexReg, expr.Pos(), elemKind)
@@ -874,7 +870,7 @@ func (em *emitter) emitUnaryOp(expr *ast.UnaryOperator, reg int8, regType reflec
 			if em.fb.isLocalVariable(operand.Name) {
 				r := em.fb.scopeLookup(operand.Name)
 				em.fb.emitNew(em.types.PtrTo(exprType), reg)
-				em.fb.emitMove(false, -r, reg, regType.Kind())
+				em.fb.emitMove(-r, reg, regType.Kind())
 				return
 			}
 			// Address of a non-local variable.

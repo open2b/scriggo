@@ -582,13 +582,9 @@ func (fb *functionBuilder) emitMethodValue(name int8, receiver int8, dst int8, p
 //
 //     z = x
 //
-func (fb *functionBuilder) emitMove(k bool, x, z int8, kind reflect.Kind) {
-	op := runtime.OpMove
-	if k {
-		op = -op
-	}
+func (fb *functionBuilder) emitMove(x, z int8, kind reflect.Kind) {
 	a := int8(kindToType(kind))
-	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: op, A: a, B: x, C: z})
+	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpMove, A: a, B: x, C: z})
 }
 
 // emitMul appends a new "mul" instruction to the function body.

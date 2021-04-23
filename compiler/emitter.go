@@ -420,7 +420,7 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 					em.emitExprR(args[i+numIn-1], t, tmp)
 					em.fb.exitStack()
 					index := em.fb.newRegister(reflect.Int)
-					em.fb.emitMove(true, int8(i), index, reflect.Int)
+					em.fb.emitLoad(em.fb.makeIntValue(int64(i)), index, reflect.Int)
 					pos := args[len(args)-1].Pos()
 					em.fb.emitSetSlice(false, slice, tmp, index, pos, fnTyp.In(numIn-1).Elem().Kind())
 				}
@@ -669,7 +669,7 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		slice := em.emitExpr(args[0], sliceType)
 		if call.IsVariadic {
 			tmp := em.fb.newRegister(sliceType.Kind())
-			em.fb.emitMove(false, slice, tmp, sliceType.Kind())
+			em.fb.emitMove(slice, tmp, sliceType.Kind())
 			arg := em.emitExpr(args[1], em.typ(args[1]))
 			em.fb.emitAppendSlice(arg, tmp, call.Pos())
 			em.changeRegister(false, tmp, reg, sliceType, dstType)
@@ -881,12 +881,8 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 	if ti := em.ti(cond); ti != nil && ti.HasValue() && !ti.IsPredefined() {
 		// The condition of the 'if' instruction of VM is a binary operation,
 		// so the boolean constant expression 'x' is emitted as 'x == true'.
-		var c int8 = 0
-		if ti.value.(int64) == 1 {
-			c = 1
-		}
 		r := em.fb.newRegister(reflect.Int)
-		em.fb.emitMove(true, c, r, reflect.Int)
+		em.fb.emitLoad(em.fb.makeIntValue(ti.value.(int64)), r, reflect.Int)
 		em.fb.emitIf(false, r, runtime.ConditionNotZero, 0, reflect.Int, cond.Pos())
 		return
 	}

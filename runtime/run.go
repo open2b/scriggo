@@ -1040,14 +1040,14 @@ func (vm *VM) run() (Addr, bool) {
 			vm.setGeneral(c, reflect.ValueOf(&callable{receiver: receiver.Interface(), method: method}))
 
 		// Move
-		case OpMove, -OpMove:
+		case OpMove:
 			switch registerType(a) {
 			case intRegister:
-				vm.setInt(c, vm.intk(b, op < 0))
+				vm.setInt(c, vm.int(b))
 			case floatRegister:
-				vm.setFloat(c, vm.floatk(b, op < 0))
+				vm.setFloat(c, vm.float(b))
 			case stringRegister:
-				vm.setString(c, vm.stringk(b, op < 0))
+				vm.setString(c, vm.string(b))
 			case generalRegister:
 				rv := vm.generalk(b, op < 0)
 				if k := rv.Kind(); k == reflect.Array || k == reflect.Struct {
