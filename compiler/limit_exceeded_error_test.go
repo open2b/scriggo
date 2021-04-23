@@ -144,13 +144,13 @@ func TestConstantsLimit(t *testing.T) {
 						var expectedIndex int
 						switch kind {
 						case reflect.Int:
-							expectedIndex = maxIntConstantsCount
+							expectedIndex = maxIntValuesCount
 						case reflect.Float64:
-							expectedIndex = maxFloatConstantsCount
+							expectedIndex = maxFloatValuesCount
 						case reflect.String:
-							expectedIndex = maxStringConstantsCount
+							expectedIndex = maxStringValuesCount
 						case reflect.Interface:
-							expectedIndex = maxGeneralConstantsCount
+							expectedIndex = maxGeneralValuesCount
 						}
 						if expectedIndex != i {
 							t.Fatalf("test should have panicked at index %d, but it panicked at index %d", expectedIndex, i)
@@ -164,20 +164,20 @@ func TestConstantsLimit(t *testing.T) {
 			fb := new_test_builder()
 			switch kind {
 			case reflect.Int:
-				for i = 0; i < maxIntConstantsCount+1; i++ {
-					fb.makeIntConstant(int64(i))
+				for i = 0; i < maxIntValuesCount+1; i++ {
+					fb.makeIntValue(int64(i))
 				}
 			case reflect.Float64:
-				for i = 0; i < maxFloatConstantsCount+1; i++ {
-					fb.makeFloatConstant(float64(i))
+				for i = 0; i < maxFloatValuesCount+1; i++ {
+					fb.makeFloatValue(float64(i))
 				}
 			case reflect.String:
-				for i = 0; i < maxStringConstantsCount+1; i++ {
-					fb.makeStringConstant(strconv.Itoa(i))
+				for i = 0; i < maxStringValuesCount+1; i++ {
+					fb.makeStringValue(strconv.Itoa(i))
 				}
 			case reflect.Interface:
-				for i = 0; i < maxGeneralConstantsCount+1; i++ {
-					fb.makeGeneralConstant(reflect.ValueOf(i))
+				for i = 0; i < maxGeneralValuesCount+1; i++ {
+					fb.makeGeneralValue(reflect.ValueOf(i))
 				}
 			}
 

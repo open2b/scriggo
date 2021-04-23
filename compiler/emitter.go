@@ -524,7 +524,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool, toF
 		}
 		method := em.fb.newRegister(reflect.Func)
 		name := call.Func.(*ast.Selector).Ident
-		s := em.fb.makeStringConstant(name)
+		s := em.fb.makeStringValue(name)
 		em.fb.emitMethodValue(s, rcvr, method, call.Func.Pos())
 		call.Args = append([]ast.Expression{rcvrExpr}, call.Args...)
 		stackShift := em.fb.currentStackShift()
@@ -813,7 +813,7 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 	case "println":
 		for i, argExpr := range args {
 			if i > 0 {
-				str := em.fb.makeStringConstant(" ")
+				str := em.fb.makeStringValue(" ")
 				sep := em.fb.newRegister(reflect.Interface)
 				em.changeRegister(true, str, sep, stringType, emptyInterfaceType)
 				em.fb.emitPrint(sep)
@@ -821,7 +821,7 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 			arg := em.emitExpr(argExpr, emptyInterfaceType)
 			em.fb.emitPrint(arg)
 		}
-		str := em.fb.makeStringConstant("\n")
+		str := em.fb.makeStringValue("\n")
 		sep := em.fb.newRegister(reflect.Interface)
 		em.changeRegister(true, str, sep, stringType, emptyInterfaceType)
 		em.fb.emitPrint(sep)

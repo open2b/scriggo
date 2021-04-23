@@ -543,14 +543,26 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			s += " " + packageName(f.Package()) + "." + f.Name()
 			s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 		}
-	case runtime.OpLoadNumber:
-		t, i := decodeConstantIndex(a, b)
-		if t == intRegister {
-			s += " " + fmt.Sprintf("%d", fn.Constants.Int[i])
+	case runtime.OpLoad:
+		t, i := decodeValueIndex(a, b)
+		switch t {
+		case intRegister:
+			s += " " + fmt.Sprintf("%d", fn.Values.Int[i])
 			s += " " + disassembleOperand(fn, c, reflect.Int, false)
-		} else {
-			s += " " + fmt.Sprintf("%f", fn.Constants.Float[i])
+		case floatRegister:
+			s += " " + fmt.Sprintf("%f", fn.Values.Float[i])
 			s += " " + disassembleOperand(fn, c, reflect.Float64, false)
+		case stringRegister:
+			s += " " + fmt.Sprintf("%q", fn.Values.String[i])
+			s += " " + disassembleOperand(fn, c, reflect.String, false)
+		case generalRegister:
+			v := fn.Values.General[i]
+			if v.IsValid() {
+				s += " " + fmt.Sprintf("%#v", v.Interface())
+			} else {
+				s += " nil"
+			}
+			s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 		}
 	case runtime.OpMakeArray, runtime.OpMakeStruct, runtime.OpNew:
 		s += " " + fn.Types[int(uint(b))].String()
@@ -912,11 +924,11 @@ func disassembleOperand(fn *runtime.Function, op int8, kind reflect.Kind, consta
 			}
 			return "true"
 		case kind == reflect.String:
-			return strconv.Quote(fn.Constants.String[uint8(op)])
+			return strconv.Quote(fn.Values.String[uint8(op)])
 		case kind == reflect.Invalid:
 			return "?"
 		default:
-			v := fn.Constants.General[uint8(op)]
+			v := fn.Values.General[uint8(op)]
 			if v.IsValid() {
 				return fmt.Sprintf("%#v", v.Interface())
 			}
@@ -1013,9 +1025,9 @@ var operationName = [...]string{
 
 	runtime.OpLen: "Len",
 
-	runtime.OpLoadFunc: "LoadFunc",
+	runtime.OpLoad: "Load",
 
-	runtime.OpLoadNumber: "LoadNumber",
+	runtime.OpLoadFunc: "LoadFunc",
 
 	runtime.OpMakeArray: "MakeArray",
 

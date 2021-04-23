@@ -28,11 +28,11 @@ const (
 	// Types.
 	maxTypesCount = 256
 
-	// Constants.
-	maxIntConstantsCount     = 1 << 14 // 16384
-	maxFloatConstantsCount   = 1 << 14 // 16384
-	maxStringConstantsCount  = 256
-	maxGeneralConstantsCount = 256
+	// Values.
+	maxIntValuesCount     = 1 << 14 // 16384
+	maxFloatValuesCount   = 1 << 14 // 16384
+	maxStringValuesCount  = 256
+	maxGeneralValuesCount = 256
 )
 
 var intType = reflect.TypeOf(0)
@@ -100,17 +100,17 @@ func decodeUint24(a, b, c int8) uint32 {
 	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
 }
 
-// encodeConstantIndex encodes a constant index in the Function.Constants
-// slices of the runtime.
-func encodeConstantIndex(t registerType, i int) (a, b int8) {
+// encodeValueIndex encodes a value index in the Function.Values slices of the
+// runtime.
+func encodeValueIndex(t registerType, i int) (a, b int8) {
 	a, b = encodeInt16(int16(i))
 	a |= int8(t << 6)
 	return a, b
 }
 
-// decodeConstantIndex decodes a constant index in the Function.Constants
-// slices of the runtime.
-func decodeConstantIndex(a, b int8) (t registerType, i int) {
+// decodeValueIndex decodes a value index in the Function.Values slices of the
+// runtime.
+func decodeValueIndex(a, b int8) (t registerType, i int) {
 	return registerType(uint8(a) >> 6), int(decodeUint16(a, b) &^ (3 << 14))
 }
 
@@ -416,89 +416,88 @@ func (fb *functionBuilder) addFunction(f *runtime.Function) int8 {
 	return int8(r)
 }
 
-// makeStringConstant makes a new string constant, returning it's index.
-func (fb *functionBuilder) makeStringConstant(c string) int8 {
-	for i, v := range fb.fn.Constants.String {
-		if c == v {
+// makeStringValue makes a new string value, returning it's index.
+func (fb *functionBuilder) makeStringValue(v string) int8 {
+	for i, vv := range fb.fn.Values.String {
+		if v == vv {
 			return int8(i)
 		}
 	}
-	r := len(fb.fn.Constants.String)
-	if r == maxStringConstantsCount {
-		panic(newLimitExceededError(fb.fn.Pos, fb.path, "string count exceeded %d", maxStringConstantsCount))
+	r := len(fb.fn.Values.String)
+	if r == maxStringValuesCount {
+		panic(newLimitExceededError(fb.fn.Pos, fb.path, "string values count exceeded %d", maxStringValuesCount))
 	}
-	fb.fn.Constants.String = append(fb.fn.Constants.String, c)
+	fb.fn.Values.String = append(fb.fn.Values.String, v)
 	return int8(r)
 }
 
-// makeGeneralConstant makes a new general constant, returning it's index.
-// c must be nil (the zero reflect.Value) or must have a comparable type or
+// makeGeneralValue makes a new general value, returning it's index.
+// v must be nil (the zero reflect.Value) or must have a comparable type or
 // must be the zero value of its type.
 //
-// If the VM's internal representation of c is different from the external, c
-// must always have the external representation. Any conversion, if needed, will
-// be internally handled.
-func (fb *functionBuilder) makeGeneralConstant(c reflect.Value) int8 {
-	// Check if a constant with the same value has already been added to the
-	// general Constants slice.
-	if c.IsValid() {
-		t := c.Type()
+// If the VM's internal representation of v is different from the external, v
+// must always have the external representation. Any conversion, if needed,
+// will be internally handled.
+func (fb *functionBuilder) makeGeneralValue(v reflect.Value) int8 {
+	// Check if v has already been added to the general Values slice.
+	if v.IsValid() {
+		t := v.Type()
 		if t.Comparable() {
-			ci := c.Interface()
-			for i, v := range fb.fn.Constants.General {
-				if v.IsValid() && ci == v.Interface() {
+			vi := v.Interface()
+			for i, vv := range fb.fn.Values.General {
+				if vv.IsValid() && vi == vv.Interface() {
 					return int8(i)
 				}
 			}
 		} else {
-			for i, v := range fb.fn.Constants.General {
-				if v.IsValid() && t == v.Type() {
+			for i, vv := range fb.fn.Values.General {
+				if vv.IsValid() && t == vv.Type() {
 					return int8(i)
 				}
 			}
 		}
 	} else {
-		for i, v := range fb.fn.Constants.General {
-			if !v.IsValid() {
+		for i, vv := range fb.fn.Values.General {
+			if !vv.IsValid() {
 				return int8(i)
 			}
 		}
 	}
-	r := len(fb.fn.Constants.General)
-	if r == maxGeneralConstantsCount {
-		panic(newLimitExceededError(fb.fn.Pos, fb.path, "general constants count exceeded %d", maxGeneralConstantsCount))
+	r := len(fb.fn.Values.General)
+	if r == maxGeneralValuesCount {
+		panic(newLimitExceededError(fb.fn.Pos, fb.path, "general values count exceeded %d", maxGeneralValuesCount))
 	}
-	fb.fn.Constants.General = append(fb.fn.Constants.General, c)
+	fb.fn.Values.General = append(fb.fn.Values.General, v)
 	return int8(r)
 }
 
-// makeFloatConstant makes a new float constant, returning it's index.
-func (fb *functionBuilder) makeFloatConstant(c float64) int {
-	for i, v := range fb.fn.Constants.Float {
-		if c == v {
+// makeFloatValue makes a new float value, returning it's index.
+func (fb *functionBuilder) makeFloatValue(v float64) int {
+	for i, vv := range fb.fn.Values.Float {
+		if v == vv {
 			return i
 		}
 	}
-	r := len(fb.fn.Constants.Float)
-	if r == maxFloatConstantsCount {
-		panic(newLimitExceededError(fb.fn.Pos, fb.path, "floating-point count exceeded %d", maxFloatConstantsCount))
+	r := len(fb.fn.Values.Float)
+	if r == maxFloatValuesCount {
+		panic(newLimitExceededError(fb.fn.Pos, fb.path, "floating-point values count exceeded %d", maxFloatValuesCount))
 	}
-	fb.fn.Constants.Float = append(fb.fn.Constants.Float, c)
+	fb.fn.Values.Float = append(fb.fn.Values.Float, v)
 	return r
 }
 
-// makeIntConstant makes a new int constant, returning it's index.
-func (fb *functionBuilder) makeIntConstant(c int64) int {
-	for i, v := range fb.fn.Constants.Int {
-		if c == v {
+// makeIntValue makes a new int value, returning it's index.
+func (fb *functionBuilder) makeIntValue(v int64) int {
+	for i, vv := range fb.fn.Values.Int {
+		if v == vv {
 			return i
 		}
 	}
-	r := len(fb.fn.Constants.Int)
-	if r == maxIntConstantsCount {
-		panic(newLimitExceededError(fb.fn.Pos, fb.path, "integer count exceeded %d", maxIntConstantsCount))
+	r := len(fb.fn.Values.Int)
+	if r == maxIntValuesCount {
+		panic(newLimitExceededError(fb.fn.Pos, fb.path, "integer values count exceeded %d", maxIntValuesCount))
 	}
-	fb.fn.Constants.Int = append(fb.fn.Constants.Int, c)
+	fb.fn.Values.Int = append(fb.fn.Values.Int, v)
 	return r
 }
 

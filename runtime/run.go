@@ -929,6 +929,20 @@ func (vm *VM) run() (Addr, bool) {
 			}
 			vm.setInt(c, int64(length))
 
+		// Load
+		case OpLoad:
+			t, i := decodeValueIndex(a, b)
+			switch t {
+			case intRegister:
+				vm.setInt(c, vm.fn.Values.Int[i])
+			case floatRegister:
+				vm.setFloat(c, vm.fn.Values.Float[i])
+			case stringRegister:
+				vm.setString(c, vm.fn.Values.String[i])
+			case generalRegister:
+				vm.setGeneral(c, vm.fn.Values.General[i])
+			}
+
 		// LoadFunc
 		case OpLoadFunc:
 			if a == 1 {
@@ -951,16 +965,6 @@ func (vm *VM) run() (Addr, bool) {
 					vars = vm.env.globals
 				}
 				vm.setGeneral(c, reflect.ValueOf(&callable{fn: fn, vars: vars}))
-			}
-
-		// LoadNumber
-		case OpLoadNumber:
-			t, i := decodeConstantIndex(a, b)
-			switch t {
-			case intRegister:
-				vm.setInt(c, vm.fn.Constants.Int[i])
-			case floatRegister:
-				vm.setFloat(c, vm.fn.Constants.Float[i])
 			}
 
 		// MakeArray

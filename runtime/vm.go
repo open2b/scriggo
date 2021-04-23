@@ -76,7 +76,7 @@ func decodeUint24(a, b, c int8) uint32 {
 	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
 }
 
-func decodeConstantIndex(a, b int8) (t registerType, i int) {
+func decodeValueIndex(a, b int8) (t registerType, i int) {
 	return registerType(uint8(a) >> 6), int(decodeUint16(a, b) &^ (3 << 14))
 }
 
@@ -781,7 +781,7 @@ type Function struct {
 	FinalRegs    [][2]int8 // [indirect -> return parameter registers]
 	Macro        bool
 	Format       uint8
-	Constants    Registers
+	Values       Registers
 	FieldIndexes [][]int
 	Functions    []*Function
 	Predefined   []*PredefinedFunction
@@ -1082,9 +1082,9 @@ const (
 
 	OpLen
 
-	OpLoadFunc
+	OpLoad
 
-	OpLoadNumber
+	OpLoadFunc
 
 	OpMakeArray
 

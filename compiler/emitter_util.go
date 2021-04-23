@@ -304,40 +304,40 @@ func (em *emitter) emitValueNotPredefined(ti *typeInfo, reg int8, dstType reflec
 	}
 	// Handle nil values.
 	if ti.value == nil {
-		c := em.fb.makeGeneralConstant(reflect.ValueOf(nil))
+		c := em.fb.makeGeneralValue(reflect.ValueOf(nil))
 		em.changeRegister(true, c, reg, typ, dstType)
 		return reg, false
 	}
 	switch v := ti.value.(type) {
 	case int64:
-		c := em.fb.makeIntConstant(v)
+		c := em.fb.makeIntValue(v)
 		if canEmitDirectly(typ.Kind(), dstType.Kind()) {
-			em.fb.emitLoadNumber(intRegister, c, reg)
+			em.fb.emitLoad(intRegister, c, reg)
 			em.changeRegister(false, reg, reg, typ, dstType)
 			return reg, false
 		}
 		tmp := em.fb.newRegister(typ.Kind())
-		em.fb.emitLoadNumber(intRegister, c, tmp)
+		em.fb.emitLoad(intRegister, c, tmp)
 		em.changeRegister(false, tmp, reg, typ, dstType)
 		return reg, false
 	case float64:
 		var c int
 		if typ.Kind() == reflect.Float32 {
-			c = em.fb.makeFloatConstant(float64(float32(v)))
+			c = em.fb.makeFloatValue(float64(float32(v)))
 		} else {
-			c = em.fb.makeFloatConstant(v)
+			c = em.fb.makeFloatValue(v)
 		}
 		if canEmitDirectly(typ.Kind(), dstType.Kind()) {
-			em.fb.emitLoadNumber(floatRegister, c, reg)
+			em.fb.emitLoad(floatRegister, c, reg)
 			em.changeRegister(false, reg, reg, typ, dstType)
 			return reg, false
 		}
 		tmp := em.fb.newRegister(typ.Kind())
-		em.fb.emitLoadNumber(floatRegister, c, tmp)
+		em.fb.emitLoad(floatRegister, c, tmp)
 		em.changeRegister(false, tmp, reg, typ, dstType)
 		return reg, false
 	case string:
-		c := em.fb.makeStringConstant(v)
+		c := em.fb.makeStringValue(v)
 		em.changeRegister(true, c, reg, typ, dstType)
 		return reg, false
 	}
@@ -372,7 +372,7 @@ func (em *emitter) emitValueNotPredefined(ti *typeInfo, reg int8, dstType reflec
 		reflect.Func,
 		reflect.Map,
 		reflect.Ptr:
-		c := em.fb.makeGeneralConstant(v)
+		c := em.fb.makeGeneralValue(v)
 		em.changeRegister(true, c, reg, typ, dstType)
 	case reflect.UnsafePointer:
 		panic("BUG: not implemented") // remove.

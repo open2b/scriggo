@@ -561,7 +561,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 			k := length <= 127
 			if !k {
 				r := em.fb.newRegister(reflect.Int)
-				em.fb.emitLoadNumber(intRegister, em.fb.makeIntConstant(int64(length)), r)
+				em.fb.emitLoad(intRegister, em.fb.makeIntValue(int64(length)), r)
 				length = int(r)
 			}
 			em.fb.emitMakeSlice(k, k, typ, int8(length), int8(length), workingReg, expr.Pos())
@@ -594,7 +594,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 			em.fb.enterStack()
 			indexReg := em.fb.newRegister(reflect.Int)
 			if index > 127 {
-				em.fb.emitLoadNumber(intRegister, em.fb.makeIntConstant(index), indexReg)
+				em.fb.emitLoad(intRegister, em.fb.makeIntValue(index), indexReg)
 			} else {
 				em.fb.emitMove(true, int8(index), indexReg, reflect.Int)
 			}
@@ -672,9 +672,9 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 		if size <= 127 {
 			em.fb.emitMakeMap(typ, true, int8(size), tmp)
 		} else {
-			index := em.fb.makeIntConstant(int64(size))
+			index := em.fb.makeIntValue(int64(size))
 			sizeReg := em.fb.newRegister(reflect.Int)
-			em.fb.emitLoadNumber(intRegister, index, sizeReg)
+			em.fb.emitLoad(intRegister, index, sizeReg)
 			em.fb.emitMakeMap(typ, false, sizeReg, tmp)
 		}
 		for _, kv := range expr.KeyValues {
@@ -707,7 +707,7 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 			em.fb.emitTypify(false, rcvrType, oldRcvr, rcvr)
 		}
 		if kindToType(dstType.Kind()) == generalRegister {
-			s := em.fb.makeStringConstant(expr.Ident)
+			s := em.fb.makeStringValue(expr.Ident)
 			em.fb.emitMethodValue(s, rcvr, reg, expr.Pos())
 		} else {
 			panic("not implemented")
@@ -991,7 +991,7 @@ func (em *emitter) emitUnaryOp(expr *ast.UnaryOperator, reg int8, regType reflec
 			em.changeRegister(true, -1, x, operandType, operandType)
 		} else {
 			m := maxUnsigned(operandKind)
-			em.fb.emitLoadNumber(intRegister, em.fb.makeIntConstant(int64(m)), x)
+			em.fb.emitLoad(intRegister, em.fb.makeIntValue(int64(m)), x)
 		}
 		em.fb.emitXor(false, x, y, x, operandKind)
 		em.changeRegister(false, x, reg, operandType, regType)

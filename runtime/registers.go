@@ -180,7 +180,7 @@ func (vm *VM) string(r int8) string {
 
 func (vm *VM) stringk(r int8, k bool) string {
 	if k {
-		return vm.fn.Constants.String[uint8(r)]
+		return vm.fn.Values.String[uint8(r)]
 	}
 	if r > 0 {
 		return vm.regs.string[vm.fp[2]+Addr(r)]
@@ -218,7 +218,7 @@ func (vm *VM) general(r int8) reflect.Value {
 
 func (vm *VM) generalk(r int8, k bool) reflect.Value {
 	if k {
-		return vm.fn.Constants.General[uint8(r)]
+		return vm.fn.Values.General[uint8(r)]
 	}
 	if r > 0 {
 		return vm.regs.general[vm.fp[3]+Addr(r)]
