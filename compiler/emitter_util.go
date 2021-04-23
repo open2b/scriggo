@@ -312,12 +312,12 @@ func (em *emitter) emitValueNotPredefined(ti *typeInfo, reg int8, dstType reflec
 	case int64:
 		c := em.fb.makeIntValue(v)
 		if canEmitDirectly(typ.Kind(), dstType.Kind()) {
-			em.fb.emitLoad(intRegister, c, reg)
+			em.fb.emitLoad(c, reg, reflect.Int)
 			em.changeRegister(false, reg, reg, typ, dstType)
 			return reg, false
 		}
 		tmp := em.fb.newRegister(typ.Kind())
-		em.fb.emitLoad(intRegister, c, tmp)
+		em.fb.emitLoad(c, tmp, reflect.Int)
 		em.changeRegister(false, tmp, reg, typ, dstType)
 		return reg, false
 	case float64:
@@ -328,12 +328,12 @@ func (em *emitter) emitValueNotPredefined(ti *typeInfo, reg int8, dstType reflec
 			c = em.fb.makeFloatValue(v)
 		}
 		if canEmitDirectly(typ.Kind(), dstType.Kind()) {
-			em.fb.emitLoad(floatRegister, c, reg)
+			em.fb.emitLoad(c, reg, reflect.Float64)
 			em.changeRegister(false, reg, reg, typ, dstType)
 			return reg, false
 		}
 		tmp := em.fb.newRegister(typ.Kind())
-		em.fb.emitLoad(floatRegister, c, tmp)
+		em.fb.emitLoad(c, tmp, reflect.Float64)
 		em.changeRegister(false, tmp, reg, typ, dstType)
 		return reg, false
 	case string:

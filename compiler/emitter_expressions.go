@@ -561,7 +561,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 			k := length <= 127
 			if !k {
 				r := em.fb.newRegister(reflect.Int)
-				em.fb.emitLoad(intRegister, em.fb.makeIntValue(int64(length)), r)
+				em.fb.emitLoad(em.fb.makeIntValue(int64(length)), r, reflect.Int)
 				length = int(r)
 			}
 			em.fb.emitMakeSlice(k, k, typ, int8(length), int8(length), workingReg, expr.Pos())
@@ -594,7 +594,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 			em.fb.enterStack()
 			indexReg := em.fb.newRegister(reflect.Int)
 			if index > 127 {
-				em.fb.emitLoad(intRegister, em.fb.makeIntValue(index), indexReg)
+				em.fb.emitLoad(em.fb.makeIntValue(index), indexReg, reflect.Int)
 			} else {
 				em.fb.emitMove(true, int8(index), indexReg, reflect.Int)
 			}
@@ -674,7 +674,7 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 		} else {
 			index := em.fb.makeIntValue(int64(size))
 			sizeReg := em.fb.newRegister(reflect.Int)
-			em.fb.emitLoad(intRegister, index, sizeReg)
+			em.fb.emitLoad(index, sizeReg, reflect.Int)
 			em.fb.emitMakeMap(typ, false, sizeReg, tmp)
 		}
 		for _, kv := range expr.KeyValues {
@@ -991,7 +991,7 @@ func (em *emitter) emitUnaryOp(expr *ast.UnaryOperator, reg int8, regType reflec
 			em.changeRegister(true, -1, x, operandType, operandType)
 		} else {
 			m := maxUnsigned(operandKind)
-			em.fb.emitLoad(intRegister, em.fb.makeIntValue(int64(m)), x)
+			em.fb.emitLoad(em.fb.makeIntValue(int64(m)), x, reflect.Int)
 		}
 		em.fb.emitXor(false, x, y, x, operandKind)
 		em.changeRegister(false, x, reg, operandType, regType)

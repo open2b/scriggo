@@ -483,8 +483,8 @@ func (fb *functionBuilder) emitLoadFunc(predefined bool, f int8, z int8) {
 
 // emitLoad appends a new "Load" instruction to the function body.
 //
-func (fb *functionBuilder) emitLoad(typ registerType, index int, dst int8) {
-	a, b := encodeValueIndex(typ, index)
+func (fb *functionBuilder) emitLoad(index int, dst int8, kind reflect.Kind) {
+	a, b := encodeValueIndex(kindToType(kind), index)
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpLoad, A: a, B: b, C: dst})
 }
 
