@@ -134,3 +134,6 @@ func (t *T) Method() {}
 var Value T
 
 var BooleanValue bool
+
+type S1 struct{ F int }
+type S2 struct{ *S1 }

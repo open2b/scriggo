@@ -113,15 +113,18 @@ func (vm *VM) convertPanic(msg interface{}) error {
 		return err
 	}
 	switch vm.fn.Body[vm.pc-1].Op {
-	case OpAddr, OpIndex, -OpIndex, OpIndexRef, -OpIndexRef, OpSetSlice, -OpSetSlice:
+	case OpAddr, OpField, OpFieldRef, OpSetField, OpIndex, -OpIndex, OpIndexRef, -OpIndexRef, OpSetSlice, -OpSetSlice:
 		switch err := msg.(type) {
 		case runtime.Error:
 			if s := err.Error(); strings.HasPrefix(s, "runtime error: index out of range") {
 				return vm.newPanic(runtimeError(s))
 			}
 		case string:
-			if err == "reflect: slice index out of range" || err == "reflect: array index out of range" {
+			switch err {
+			case "reflect: slice index out of range", "reflect: array index out of range":
 				return vm.newPanic(vm.errIndexOutOfRange())
+			case "reflect: indirection through nil pointer to embedded struct":
+				return vm.newPanic(errNilPointer)
 			}
 		}
 	case OpAppendSlice:

@@ -49,6 +49,7 @@ func main() {
 	test17b()
 	test17c()
 	test17d()
+	test18()
 
 }
 
@@ -302,4 +303,10 @@ func test17d() {
 	defer recoverRuntimePanic("makechan: size out of range")
 	a := -1
 	_ = make(chan testpkg.T, a)
+}
+
+func test18() {
+	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
+	s := testpkg.S2{}
+	_ = s.F
 }
