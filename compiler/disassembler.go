@@ -504,7 +504,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		}
 	case runtime.OpField, runtime.OpFieldRef:
 		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
-		s += " " + fmt.Sprintf("%v", fn.FieldIndexes[uint8(b)])
+		s += " " + disassembleFieldIndex(fn.FieldIndexes[uint8(b)])
 		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
 	case runtime.OpGetVar:
 		s += " " + disassembleVarRef(fn, globals, int16(int(a)<<8|int(uint8(b))))
@@ -633,7 +633,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 	case runtime.OpSetField:
 		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), k)
 		s += " " + disassembleOperand(fn, b, reflect.Interface, false)
-		s += " " + fmt.Sprintf("%v", fn.FieldIndexes[uint8(c)])
+		s += " " + disassembleFieldIndex(fn.FieldIndexes[uint8(c)])
 	case runtime.OpSetMap:
 		// fn, addr, 'a'
 		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), k)
@@ -943,6 +943,20 @@ func disassembleOperand(fn *runtime.Function, op int8, kind reflect.Kind, consta
 		return "_"
 	}
 	return "(" + label + strconv.Itoa(-int(op)) + ")"
+}
+
+func disassembleFieldIndex(index []int) string {
+	if len(index) == 1 {
+		return strconv.Itoa(index[0])
+	}
+	var s strings.Builder
+	for i, v := range index {
+		if i > 0 {
+			s.WriteString(",")
+		}
+		s.WriteString(strconv.Itoa(v))
+	}
+	return s.String()
 }
 
 var operationName = [...]string{
