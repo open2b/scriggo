@@ -31,6 +31,21 @@ type definedIntSlice2 []int
 type definedByteSlice []byte
 type definedStringSlice []byte
 type definedStringMap map[string]string
+type definedStruct struct{ F int }
+type definedStructPointer *struct{ F int }
+
+var structTypeInfo = &typeInfo{Type: reflect.StructOf([]reflect.StructField{
+	{Name: "F", Type: reflect.TypeOf(0)},
+	{Name: "f", Type: reflect.TypeOf(0), PkgPath: "foo"},
+})}
+var structPointerTypeInfo = &typeInfo{Type: reflect.PtrTo(structTypeInfo.Type)}
+var definedStructTypeInfo = &typeInfo{Type: reflect.TypeOf(definedStruct{})}
+var definedStructPointerTypeInfo = &typeInfo{Type: reflect.TypeOf(definedStructPointer(nil))}
+
+var structAddrTypeInfo = &typeInfo{Type: structTypeInfo.Type, Properties: propertyAddressable}
+var structPointerAddrTypeInfo = &typeInfo{Type: structPointerTypeInfo.Type, Properties: propertyAddressable}
+var definedStructAddrTypeInfo = &typeInfo{Type: definedStructTypeInfo.Type, Properties: propertyAddressable}
+var definedStructPointerAddrTypeInfo = &typeInfo{Type: definedStructPointerTypeInfo.Type, Properties: propertyAddressable}
 
 var checkerExprs = []struct {
 	src   string
@@ -509,6 +524,23 @@ var checkerExprs = []struct {
 	{`imag(complex64(3+5i))`, tiFloat32Const(5), nil},
 	{`imag(c)`, tiFloat64(), map[string]*typeInfo{"c": tiAddrComplex128()}},
 	{`imag(c)`, tiFloat32(), map[string]*typeInfo{"c": tiAddrComplex64()}},
+
+	// field selector
+	{`x.F`, tiInt(), map[string]*typeInfo{"x": structTypeInfo}},
+	{`(*x).F`, tiAddrInt(), map[string]*typeInfo{"x": structPointerTypeInfo}},
+	{`x.F`, tiAddrInt(), map[string]*typeInfo{"x": structPointerTypeInfo}},
+	{`x.F`, tiInt(), map[string]*typeInfo{"x": definedStructTypeInfo}},
+	{`(*x).F`, tiAddrInt(), map[string]*typeInfo{"x": definedStructPointerTypeInfo}},
+	{`x.F`, tiAddrInt(), map[string]*typeInfo{"x": definedStructPointerTypeInfo}},
+	{`x.F`, tiAddrInt(), map[string]*typeInfo{"x": structAddrTypeInfo}},
+	{`(*x).F`, tiAddrInt(), map[string]*typeInfo{"x": structPointerAddrTypeInfo}},
+	{`x.F`, tiAddrInt(), map[string]*typeInfo{"x": structPointerAddrTypeInfo}},
+	{`x.F`, tiAddrInt(), map[string]*typeInfo{"x": definedStructAddrTypeInfo}},
+	{`(*x).F`, tiAddrInt(), map[string]*typeInfo{"x": definedStructPointerAddrTypeInfo}},
+	{`x.F`, tiAddrInt(), map[string]*typeInfo{"x": definedStructPointerAddrTypeInfo}},
+	{`(struct{F int}{}).F`, tiInt(), nil},
+	{`[1]struct{ F int }{}[0].F`, tiInt(), nil},
+	{`[1]*struct{ F int }{}[0].F`, tiAddrInt(), nil},
 }
 
 func TestCheckerExpressions(t *testing.T) {
@@ -588,6 +620,11 @@ var checkerExprErrors = []struct {
 
 	// pointer indirection.
 	{`*i`, tierr(1, 1, `invalid indirect of i (type int)`), map[string]*typeInfo{"i": tiInt()}},
+
+	// field selector.
+	{`x.F`, tierr(1, 2, `x.F undefined (type int has no field or method F)`), map[string]*typeInfo{"x": tiInt()}},
+	{`x.f`, tierr(1, 2, `x.f undefined (type compiler.definedStruct has no field or method f)`), map[string]*typeInfo{"x": definedStructTypeInfo}},
+	{`nil.X`, tierr(1, 1, `use of untyped nil`), nil},
 }
 
 func TestCheckerExpressionErrors(t *testing.T) {
@@ -986,14 +1023,24 @@ var checkerStmts = map[string]string{
 	`_ = pointInt{X: 1, 2}`:        `mixture of field:value and value initializers`,
 	`_ = pointInt{X: 2, X: 2}`:     `duplicate field name in struct literal: X`,
 
+	// Field selector.
+	`type S struct{F int}; _ = S{}.F`:               ok,
+	`type S *struct{F int}; _ = (*S(nil)).F`:        ok,
+	`type S *struct{F int}; _ = S(nil).F`:           ok,
+	`type S struct{F int}; var x S; _ = x.F`:        ok,
+	`type S *struct{F int}; var x S; _ = (*x).F`:    ok,
+	`type S *struct{F int}; var x S; _ = x.F`:       ok,
+	`type S struct{F int}; _ = &(S{}.F)`:            `cannot take the address of S literal.F`,
+	`type S *struct{F int}; _ = &((*S(nil)).F)`:     ok,
+	`type S *struct{F int}; _ = &(S(nil).F)`:        ok,
+	`type S struct{F int}; var x S; _ = &(x.F)`:     ok,
+	`type S *struct{F int}; var x S; _ = &((*x).F)`: ok,
+	`type S *struct{F int}; var x S; _ = &(x.F)`:    ok,
+
 	// Struct fields and methods.
-	`_ = (&pointInt{0,0}).X`:    ok,
-	`_ = (pointInt{0,0}).X`:     ok,
 	`(&pointInt{0,0}).SetX(10)`: ok,
-	`_ = (&pointInt{0,0}).Z`:    `&pointInt literal.Z undefined (type *compiler.pointInt has no field or method Z)`,       // TODO (Gianluca): 'pointInt literal' should be '(compiler.pointInt literal)'
 	`(&pointInt{0,0}).SetZ(10)`: `&pointInt literal.SetZ undefined (type *compiler.pointInt has no field or method SetZ)`, // TODO (Gianluca): 'pointInt literal' should be '(compiler.pointInt literal)'
 	`(pointInt{0,0}).SetZ(10)`:  `pointInt literal.SetZ undefined (type compiler.pointInt has no field or method SetZ)`,   // TODO (Gianluca): 'pointInt literal' should be '(compiler.pointInt literal)'
-	`nil.X`:                     `use of untyped nil`,
 	`nil.SetZ()`:                `use of untyped nil`,
 
 	// Interfaces.
