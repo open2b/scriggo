@@ -691,24 +691,24 @@ func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, ds
 }
 
 // emitSelector emits selector in register reg.
-func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Type) {
+func (em *emitter) emitSelector(v *ast.Selector, reg int8, dstType reflect.Type) {
 
-	ti := em.ti(expr)
+	ti := em.ti(v)
 
 	// Method value on concrete and interface values.
 	if ti.MethodType == methodValueConcrete || ti.MethodType == methodValueInterface {
-		rcvrExpr := expr.Expr
-		rcvrType := em.typ(rcvrExpr)
-		rcvr := em.emitExpr(rcvrExpr, rcvrType)
+		expr := v.Expr
+		typ := em.typ(expr)
+		rcvr := em.emitExpr(expr, typ)
 		// MethodValue reads receiver from general.
-		if kindToType(rcvrType.Kind()) != generalRegister {
+		if kindToType(typ.Kind()) != generalRegister {
 			oldRcvr := rcvr
 			rcvr = em.fb.newRegister(reflect.Interface)
-			em.fb.emitTypify(false, rcvrType, oldRcvr, rcvr)
+			em.fb.emitTypify(false, typ, oldRcvr, rcvr)
 		}
 		if kindToType(dstType.Kind()) == generalRegister {
-			s := em.fb.makeStringValue(expr.Ident)
-			em.fb.emitMethodValue(s, rcvr, reg, expr.Pos())
+			s := em.fb.makeStringValue(v.Ident)
+			em.fb.emitMethodValue(s, rcvr, reg, v.Pos())
 		} else {
 			panic("not implemented")
 		}
@@ -716,7 +716,7 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 	}
 
 	// Predefined package variable or imported package variable.
-	if index, ok := em.varStore.nonLocalVarIndex(expr); ok {
+	if index, ok := em.varStore.nonLocalVarIndex(v); ok {
 		if reg == 0 {
 			return
 		}
@@ -731,31 +731,31 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 	}
 
 	// Scriggo-defined package functions.
-	if ident, ok := expr.Expr.(*ast.Identifier); ok {
-		if sf, ok := em.fnStore.availableScriggoFn(em.pkg, ident.Name+"."+expr.Ident); ok {
+	if ident, ok := v.Expr.(*ast.Identifier); ok {
+		if sf, ok := em.fnStore.availableScriggoFn(em.pkg, ident.Name+"."+v.Ident); ok {
 			if reg == 0 {
 				return
 			}
 			index := em.fnStore.scriggoFnIndex(sf)
 			em.fb.emitLoadFunc(false, index, reg)
-			em.changeRegister(false, reg, reg, em.typ(expr), dstType)
+			em.changeRegister(false, reg, reg, em.typ(v), dstType)
 			return
 		}
 	}
 
 	// Struct field.
-	exprType := em.typ(expr.Expr)
-	exprReg := em.emitExpr(expr.Expr, exprType)
-	field, _ := exprType.FieldByName(expr.Ident)
+	typ := em.typ(v.Expr)
+	expr := em.emitExpr(v.Expr, typ)
+	field, _ := typ.FieldByName(v.Ident)
 	index := em.fb.makeFieldIndex(field.Index)
-	fieldType := em.typ(expr)
+	fieldType := em.typ(v)
 	if canEmitDirectly(fieldType.Kind(), dstType.Kind()) {
-		em.fb.emitField(exprReg, index, reg, dstType.Kind(), true)
+		em.fb.emitField(expr, index, reg, dstType.Kind(), true)
 		return
 	}
 	// TODO: add enter/exit stack method calls.
 	tmp := em.fb.newRegister(fieldType.Kind())
-	em.fb.emitField(exprReg, index, tmp, fieldType.Kind(), true)
+	em.fb.emitField(expr, index, tmp, fieldType.Kind(), true)
 	em.changeRegister(false, tmp, reg, fieldType, dstType)
 
 	return
