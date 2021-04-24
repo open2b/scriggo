@@ -264,7 +264,7 @@ func (tc *typechecker) checkType(expr ast.Expression) *typeInfo {
 // checkExprOrType type checks an expression or a type and returns its type
 // info.
 func (tc *typechecker) checkExprOrType(expr ast.Expression) *typeInfo {
-	ti := tc.typeof(expr, true)
+	ti := tc.typeof(expr, false)
 	tc.compilation.typeInfos[expr] = ti
 	return ti
 }

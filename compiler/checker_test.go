@@ -585,6 +585,9 @@ var checkerExprErrors = []struct {
 	{`"a"[2:]`, tierr(1, 5, `invalid slice index 2 (out of bounds for 1-byte string)`), nil},
 	{`"a"[:2]`, tierr(1, 6, `invalid slice index 2 (out of bounds for 1-byte string)`), nil},
 	{`"a"[1:0]`, tierr(1, 4, `invalid slice index: 1 > 0`), nil},
+
+	// pointer indirection.
+	{`*i`, tierr(1, 1, `invalid indirect of i (type int)`), map[string]*typeInfo{"i": tiInt()}},
 }
 
 func TestCheckerExpressionErrors(t *testing.T) {
