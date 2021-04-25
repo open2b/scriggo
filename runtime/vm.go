@@ -449,6 +449,25 @@ func (vm *VM) equals(x, y reflect.Value) bool {
 	return x.Interface() == y.Interface()
 }
 
+// fieldByIndex returns the field of the struct s at index i.
+// s can be a pointer to a struct value.
+//
+// It panics with errNilPointer if s represents a nil pointer or accessing
+// to a nil embedded struct.
+func (vm *VM) fieldByIndex(s reflect.Value, i uint8) reflect.Value {
+	v := s
+	for _, x := range vm.fn.FieldIndexes[i] {
+		if v.Kind() == reflect.Ptr {
+			if v.IsNil() {
+				panic(errNilPointer)
+			}
+			v = v.Elem()
+		}
+		v = v.Field(x)
+	}
+	return v
+}
+
 func (vm *VM) finalize(regs [][2]int8) {
 	for _, reg := range regs {
 		vm.setFromReflectValue(reg[1], vm.generalIndirect(reg[0]))

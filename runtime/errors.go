@@ -113,22 +113,7 @@ func (vm *VM) convertPanic(msg interface{}) error {
 		return err
 	}
 	switch op := vm.fn.Body[vm.pc-1].Op; op {
-	case OpAddr, OpField, OpFieldRef, OpSetField, -OpSetField:
-		switch err := msg.(type) {
-		case string:
-			if err == "reflect: indirection through nil pointer to embedded struct" {
-				return vm.newPanic(errNilPointer)
-			}
-		case *reflect.ValueError:
-			if err.Kind == 0 && err.Method == "reflect.Value.Field" {
-				return vm.newPanic(errNilPointer)
-			}
-		}
-		if op != OpAddr {
-			break
-		}
-		fallthrough
-	case OpIndex, -OpIndex, OpIndexRef, -OpIndexRef, OpSetSlice, -OpSetSlice:
+	case OpAddr, OpIndex, -OpIndex, OpIndexRef, -OpIndexRef, OpSetSlice, -OpSetSlice:
 		switch err := msg.(type) {
 		case runtime.Error:
 			if s := err.Error(); strings.HasPrefix(s, "runtime error: index out of range") {
