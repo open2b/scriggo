@@ -142,38 +142,4 @@ func TestIssue403(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
-	// See issue https://github.com/open2b/scriggo/issues/741
-	t.Run("Change precompiled struct field value", func(t *testing.T) {
-		type T struct{ A string }
-		packages := scriggo.CombinedLoader{
-			scriggo.Packages{
-				"pkg": scriggo.MapPackage{
-					PkgName: "pkg",
-					Declarations: map[string]interface{}{
-						"T": reflect.TypeOf((*T)(nil)).Elem(),
-					},
-				},
-			},
-		}
-		main := `
-	
-		package main
-
-		import "pkg"
-
-		func main() {
-			a := &pkg.T{A: "a"}
-			a.A = "b"
-			print(a.A)
-		}
-		`
-		program, err := scriggo.Build(strings.NewReader(main), packages, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		_, err = program.Run(nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-	})
 }
