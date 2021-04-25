@@ -744,19 +744,27 @@ func (em *emitter) emitSelector(v *ast.Selector, reg int8, dstType reflect.Type)
 	}
 
 	// Struct field.
-	typ := em.typ(v.Expr)
-	expr := em.emitExpr(v.Expr, typ)
-	field, _ := typ.FieldByName(v.Ident)
+	expr := v.Expr
+	if op, ok := expr.(*ast.UnaryOperator); ok && op.Op == ast.OperatorPointer {
+		expr = op.Expr
+	}
+	typ := em.typ(expr)
+	exprReg := em.emitExpr(expr, typ)
+	var field reflect.StructField
+	if typ.Kind() == reflect.Ptr {
+		field, _ = typ.Elem().FieldByName(v.Ident)
+	} else {
+		field, _ = typ.FieldByName(v.Ident)
+	}
 	index := em.fb.makeFieldIndex(field.Index)
-	fieldType := em.typ(v)
-	if canEmitDirectly(fieldType.Kind(), dstType.Kind()) {
-		em.fb.emitField(expr, index, reg, dstType.Kind(), true)
+	if canEmitDirectly(field.Type.Kind(), dstType.Kind()) {
+		em.fb.emitField(exprReg, index, reg, dstType.Kind(), true)
 		return
 	}
 	// TODO: add enter/exit stack method calls.
-	tmp := em.fb.newRegister(fieldType.Kind())
-	em.fb.emitField(expr, index, tmp, fieldType.Kind(), true)
-	em.changeRegister(false, tmp, reg, fieldType, dstType)
+	tmp := em.fb.newRegister(field.Type.Kind())
+	em.fb.emitField(exprReg, index, tmp, field.Type.Kind(), true)
+	em.changeRegister(false, tmp, reg, field.Type, dstType)
 
 	return
 }
@@ -929,18 +937,27 @@ func (em *emitter) emitUnaryOp(expr *ast.UnaryOperator, reg int8, regType reflec
 				em.changeRegister(false, r, reg, operandType, regType)
 				return
 			}
-			operandExprType := em.typ(operand.Expr)
-			expr := em.emitExpr(operand.Expr, operandExprType)
-			field, _ := operandExprType.FieldByName(operand.Ident)
+			expr := operand.Expr
+			if op, ok := expr.(*ast.UnaryOperator); ok && op.Op == ast.OperatorPointer {
+				expr = op.Expr
+			}
+			operandExprType := em.typ(expr)
+			exprReg := em.emitExpr(expr, operandExprType)
+			var field reflect.StructField
+			if operandExprType.Kind() == reflect.Ptr {
+				field, _ = operandExprType.Elem().FieldByName(operand.Ident)
+			} else {
+				field, _ = operandExprType.FieldByName(operand.Ident)
+			}
 			index := em.fb.makeFieldIndex(field.Index)
 			pos := operand.Expr.Pos()
 			if canEmitDirectly(em.types.PtrTo(field.Type).Kind(), regType.Kind()) {
-				em.fb.emitAddr(expr, index, reg, pos)
+				em.fb.emitAddr(exprReg, index, reg, pos)
 				return
 			}
 			em.fb.enterStack()
 			dest := em.fb.newRegister(reflect.Ptr)
-			em.fb.emitAddr(expr, index, dest, pos)
+			em.fb.emitAddr(exprReg, index, dest, pos)
 			em.changeRegister(false, dest, reg, em.types.PtrTo(field.Type), regType)
 			em.fb.exitStack()
 
