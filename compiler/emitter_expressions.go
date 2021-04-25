@@ -758,12 +758,12 @@ func (em *emitter) emitSelector(v *ast.Selector, reg int8, dstType reflect.Type)
 	}
 	index := em.fb.makeFieldIndex(field.Index)
 	if canEmitDirectly(field.Type.Kind(), dstType.Kind()) {
-		em.fb.emitField(exprReg, index, reg, dstType.Kind(), true)
+		em.fb.emitField(exprReg, index, reg, dstType.Kind())
 		return
 	}
 	// TODO: add enter/exit stack method calls.
 	tmp := em.fb.newRegister(field.Type.Kind())
-	em.fb.emitField(exprReg, index, tmp, field.Type.Kind(), true)
+	em.fb.emitField(exprReg, index, tmp, field.Type.Kind())
 	em.changeRegister(false, tmp, reg, field.Type, dstType)
 
 	return

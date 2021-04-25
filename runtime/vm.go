@@ -1079,8 +1079,6 @@ const (
 
 	OpField
 
-	OpFieldRef
-
 	OpGetVar
 
 	OpGetVarAddr

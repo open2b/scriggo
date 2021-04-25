@@ -315,20 +315,13 @@ func (fb *functionBuilder) emitDiv(ky bool, x, y, z int8, kind reflect.Kind, pos
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: op, A: x, B: y, C: z})
 }
 
-// emitField appends a new "Field" or a "FielRef" instruction to the function
-// body. If ref is set then the result of the "field operation" is a reference
-// to that field (i.e. is an addressable reflect.Value with the same underlying
-// field value); otherwise the field is copied.
+// emitField appends a new "Field" instruction to the function body.
 //
-//  C = A.field
+//  c = a.field
 //
-func (fb *functionBuilder) emitField(a, field, c int8, dstKind reflect.Kind, ref bool) {
+func (fb *functionBuilder) emitField(a, field, c int8, dstKind reflect.Kind) {
 	fb.addOperandKinds(0, 0, dstKind)
-	op := runtime.OpField
-	if ref {
-		op = runtime.OpFieldRef
-	}
-	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: op, A: a, B: field, C: c})
+	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpField, A: a, B: field, C: c})
 }
 
 // emitGetVar appends a new "GetVar" instruction to the function body.

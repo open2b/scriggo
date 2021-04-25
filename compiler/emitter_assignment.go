@@ -244,7 +244,7 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 	case assignPtrIndirection:
 		em.changeRegister(false, -addr.op1, c, addrTyp, addrTyp)
 	case assignStructSelector:
-		em.fb.emitField(addr.op1, addr.op2, c, typ.Kind(), false)
+		em.fb.emitField(addr.op1, addr.op2, c, typ.Kind())
 	}
 
 	// Emit the code that evaluates the right side of the assignment.

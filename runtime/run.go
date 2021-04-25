@@ -567,14 +567,6 @@ func (vm *VM) run() (Addr, bool) {
 
 		// Field
 		case OpField:
-			// TODO: OpField currently returns the reference to the struct
-			// field, so the implementation is the same as OpFieldRef. This is
-			// going to change in a future commit.
-			v := vm.general(a)
-			vm.setFromReflectValue(c, vm.fieldByIndex(v, uint8(b)))
-
-		// FieldRef
-		case OpFieldRef:
 			v := vm.general(a)
 			vm.setFromReflectValue(c, vm.fieldByIndex(v, uint8(b)))
 

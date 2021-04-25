@@ -502,7 +502,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			s += " " + conditionName[b]
 			s += " " + disassembleOperand(fn, a, reflect.String, k)
 		}
-	case runtime.OpField, runtime.OpFieldRef:
+	case runtime.OpField:
 		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 		s += " " + disassembleFieldIndex(fn.FieldIndexes[uint8(b)])
 		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
@@ -1016,8 +1016,6 @@ var operationName = [...]string{
 	runtime.OpDivFloat64: "Div",
 
 	runtime.OpField: "Field",
-
-	runtime.OpFieldRef: "FieldRef",
 
 	runtime.OpGetVar: "GetVar",
 
