@@ -113,6 +113,9 @@ func (vm *VM) run() (Addr, bool) {
 			case reflect.Slice, reflect.Array:
 				i := int(vm.int(b))
 				vm.setGeneral(c, v.Index(i).Addr())
+			case reflect.Ptr:
+				v = v.Elem()
+				fallthrough
 			case reflect.Struct:
 				i := vm.fn.FieldIndexes[uint8(b)]
 				vm.setGeneral(c, v.FieldByIndex(i).Addr())
@@ -571,15 +574,21 @@ func (vm *VM) run() (Addr, bool) {
 			// TODO: OpField currently returns the reference to the struct
 			// field, so the implementation is the same as OpFieldRef. This is
 			// going to change in a future commit.
+			v := vm.general(a)
+			if v.Kind() == reflect.Ptr {
+				v = v.Elem()
+			}
 			i := vm.fn.FieldIndexes[uint8(b)]
-			v := vm.general(a).FieldByIndex(i)
-			vm.setFromReflectValue(c, v)
+			vm.setFromReflectValue(c, v.FieldByIndex(i))
 
 		// FieldRef
 		case OpFieldRef:
+			v := vm.general(a)
+			if v.Kind() == reflect.Ptr {
+				v = v.Elem()
+			}
 			i := vm.fn.FieldIndexes[uint8(b)]
-			v := vm.general(a).FieldByIndex(i)
-			vm.setFromReflectValue(c, v)
+			vm.setFromReflectValue(c, v.FieldByIndex(i))
 
 		// GetVar
 		case OpGetVar:
@@ -1593,9 +1602,12 @@ func (vm *VM) run() (Addr, bool) {
 
 		// SetField
 		case OpSetField, -OpSetField:
+			v := vm.general(b)
+			if v.Kind() == reflect.Ptr {
+				v = v.Elem()
+			}
 			i := vm.fn.FieldIndexes[uint8(c)]
-			s := vm.general(b)
-			vm.getIntoReflectValue(a, s.FieldByIndex(i), op < 0)
+			vm.getIntoReflectValue(a, v.FieldByIndex(i), op < 0)
 
 		// SetMap
 		case OpSetMap, -OpSetMap:
