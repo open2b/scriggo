@@ -868,16 +868,6 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			panic(tc.errorf(expr, "%v undefined (%s)", expr, err))
 		}
 		expr.Ident = newName
-		// Transform ps.F to (*ps).F, if ps is a defined pointer type and
-		// (*ps).F is a valid selector expression denoting a field (but not
-		// a method).
-		if t.Type.Kind() == reflect.Ptr {
-			unOp := ast.NewUnaryOperator(expr.Expr.Pos(), ast.OperatorPointer, expr.Expr)
-			tc.compilation.typeInfos[unOp] = &typeInfo{
-				Type: t.Type.Elem(),
-			}
-			expr.Expr = unOp
-		}
 		return field
 
 	case *ast.TypeAssertion:

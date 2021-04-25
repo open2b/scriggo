@@ -209,7 +209,11 @@ func (a address) targetType() reflect.Type {
 		return a.addressedType.Elem()
 	case assignStructSelector:
 		index := a.em.fb.fn.FieldIndexes[a.op2]
-		return a.addressedType.FieldByIndex(index).Type
+		typ := a.addressedType
+		if typ.Kind() == reflect.Ptr {
+			typ = typ.Elem()
+		}
+		return typ.FieldByIndex(index).Type
 	}
 	return nil
 }

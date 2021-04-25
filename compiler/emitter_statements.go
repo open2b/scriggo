@@ -505,9 +505,18 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				addresses[i] = em.addressNonLocalVar(int16(index), em.typ(v), pos, node.Type)
 				break
 			}
-			typ := em.typ(v.Expr)
-			reg := em.emitExpr(v.Expr, typ)
-			field, _ := typ.FieldByName(v.Ident)
+			expr := v.Expr
+			if op, ok := expr.(*ast.UnaryOperator); ok && op.Op == ast.OperatorPointer {
+				expr = op.Expr
+			}
+			typ := em.typ(expr)
+			reg := em.emitExpr(expr, typ)
+			var field reflect.StructField
+			if typ.Kind() == reflect.Ptr {
+				field, _ = typ.Elem().FieldByName(v.Ident)
+			} else {
+				field, _ = typ.FieldByName(v.Ident)
+			}
 			index := em.fb.makeFieldIndex(field.Index)
 			addresses[i] = em.addressStructSelector(reg, index, typ, pos, node.Type)
 			break
