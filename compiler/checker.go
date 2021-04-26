@@ -164,8 +164,6 @@ type typechecker struct {
 
 	path string
 
-	// TODO: the PackageLoader is a field of 'typechecker' and it is also
-	// passed as argument to some functions. Standardize the code.
 	predefinedPkgs PackageLoader
 
 	// universe is the outermost scope.
