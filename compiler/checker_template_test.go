@@ -192,7 +192,7 @@ func TestCheckerTemplateExpressions(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{scope}
 			}
-			tc := newTypechecker(newCompilation(), "", options, nil)
+			tc := newTypechecker(newCompilation(), "", options, nil, nil)
 			tc.scopes = scopes
 			tc.enterScope()
 			ti := tc.checkExpr(node)
@@ -267,7 +267,7 @@ func TestCheckerTemplateExpressionErrors(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{scope}
 			}
-			tc := newTypechecker(newCompilation(), "", options, nil)
+			tc := newTypechecker(newCompilation(), "", options, nil, nil)
 			tc.scopes = scopes
 			tc.enterScope()
 			ti := tc.checkExpr(node)

@@ -557,7 +557,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 		}
 	}()
 
-	tc := newTypechecker(compilation, path, opts, globalScope)
+	tc := newTypechecker(compilation, path, opts, globalScope, packages)
 
 	// Checks package level names for "init" and "main".
 	for _, decl := range pkg.Declarations {
@@ -597,7 +597,6 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 	}
 
 	// First: import packages.
-	tc.precompiledPkgs = packages
 	for _, d := range pkg.Declarations {
 		if d, ok := d.(*ast.Import); ok {
 			// This is a workaround to fix

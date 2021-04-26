@@ -70,7 +70,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 	}
 
 	compilation := newCompilation()
-	tc := newTypechecker(compilation, tree.Path, opts, globalScope)
+	tc := newTypechecker(compilation, tree.Path, opts, globalScope, packages)
 
 	// Type check a template page which extends another page.
 	if extends, ok := getExtends(tree.Nodes); ok {
@@ -120,7 +120,6 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 	}
 
 	// Type check a template page or a script.
-	tc.precompiledPkgs = packages
 	var err error
 	tree.Nodes, err = tc.checkNodesInNewScopeError(tree.Nodes)
 	if err != nil {
@@ -246,7 +245,7 @@ type typechecker struct {
 
 // newTypechecker creates a new type checker. A global scope may be provided
 // for scripts and templates.
-func newTypechecker(compilation *compilation, path string, opts checkerOptions, globalScope typeCheckerScope) *typechecker {
+func newTypechecker(compilation *compilation, path string, opts checkerOptions, globalScope typeCheckerScope, precompiledPkgs PackageLoader) *typechecker {
 	tt := types.NewTypes()
 	tc := typechecker{
 		compilation:      compilation,
@@ -261,6 +260,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		types:            tt,
 		env:              &env{tt.Runtime(), nil},
 		structDeclPkg:    map[reflect.Type]string{},
+		precompiledPkgs:  precompiledPkgs,
 	}
 	if len(opts.formatTypes) > 0 {
 		tc.universe = typeCheckerScope{}

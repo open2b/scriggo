@@ -575,7 +575,7 @@ func TestCheckerExpressions(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{scope}
 			}
-			tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil)
+			tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil, nil)
 			tc.scopes = scopes
 			tc.enterScope()
 			ti := tc.checkExpr(node)
@@ -663,7 +663,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{scope}
 			}
-			tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil)
+			tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil, nil)
 			tc.scopes = scopes
 			tc.enterScope()
 			ti := tc.checkExpr(node)
@@ -1616,7 +1616,7 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			tc := newTypechecker(newCompilation(), "", checkerOptions{modality: programMod}, nil)
+			tc := newTypechecker(newCompilation(), "", checkerOptions{modality: programMod}, nil, nil)
 			tc.scopes = append(tc.scopes, scope)
 			tc.enterScope()
 			tree.Nodes = tc.checkNodes(tree.Nodes)
@@ -2122,7 +2122,7 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 		"[]T{x, x, x, 9: x}": 9,
 		"[]T{x, 9: x, x, x}": 11,
 	}
-	tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil)
+	tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil, nil)
 	for src, expected := range cases {
 		tree, err := parseSource([]byte(src), true, false)
 		if err != nil {
@@ -2196,7 +2196,7 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 		{x: tiUntypedIntConst("10"), T: byteType, assignable: true},
 		// {x: tiUntypedIntConst("300"), T: byteType, assignable: false},
 	}
-	tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil)
+	tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil, nil)
 	for _, c := range cases {
 		err := tc.isAssignableTo(c.x, nil, c.T)
 		if c.assignable && err != nil {
@@ -2235,7 +2235,7 @@ func TestFunctionUpVars(t *testing.T) {
 		`: {"A"},
 	}
 	for src, expected := range cases {
-		tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil)
+		tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil, nil)
 		tc.enterScope()
 		tree, err := parseSource([]byte(src), true, false)
 		if err != nil {
