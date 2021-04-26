@@ -939,7 +939,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		imported = tc.compilation.pkgInfos[impor.Tree.Path]
 	}
 
-	// Import a template file from a template.
+	// Import statement in a template.
 	if tc.opts.modality == templateMod {
 		if isBlankImport(impor) {
 			return nil
@@ -958,24 +958,31 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 			tc.compilation.typeInfos[k] = v
 		}
 		imported = tc.compilation.pkgInfos[impor.Path]
-		if impor.Ident == nil {
+
+		switch {
+
+		// import _ "path"
+		case isBlankImport(impor):
+			return nil // Nothing to do.
+
+		// import "path"
+		case impor.Ident == nil:
 			tc.markPackageAsUnused(imported.Name)
 			for ident, ti := range imported.Declarations {
 				tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
 			}
 			return nil
-		}
 
-		switch {
-		case isBlankImport(impor):
-			// Nothing to do.
+		// import . "path"
 		case isPeriodImport(impor):
 			tc.markPackageAsUnused(imported.Name)
 			for ident, ti := range imported.Declarations {
 				tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
 			}
+
+		// import name "path"
 		default:
 			tc.filePackageBlock[impor.Ident.Name] = scopeElement{
 				t: &typeInfo{
@@ -989,7 +996,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		return nil
 	}
 
-	// Import statement in a program.
+	// Import statement in a program or in a script.
 	if tc.opts.modality == programMod || tc.opts.modality == scriptMod {
 		switch {
 
