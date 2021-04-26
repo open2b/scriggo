@@ -99,7 +99,7 @@ nodesLoop:
 		switch node := node.(type) {
 
 		case *ast.Import:
-			err := tc.checkImport(node, nil, false)
+			err := tc.checkImport(node, false)
 			if err != nil {
 				panic(err)
 			}
@@ -852,7 +852,7 @@ nodesLoop:
 }
 
 // TODO: improve this code, making it more readable.
-func (tc *typechecker) checkImport(impor *ast.Import, packages PackageLoader, packageLevel bool) error {
+func (tc *typechecker) checkImport(impor *ast.Import, packageLevel bool) error {
 	if tc.opts.modality == scriptMod && impor.Tree != nil {
 		panic("BUG: only precompiled packages can be imported in script")
 	}
@@ -910,7 +910,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, packages PackageLoader, pa
 	imported := &packageInfo{}
 	if impor.Tree == nil {
 		// Predefined package.
-		pkg, err := packages.Load(impor.Path)
+		pkg, err := tc.predefinedPkgs.Load(impor.Path)
 		if err != nil {
 			return tc.errorf(impor, "%s", err)
 		}
@@ -932,7 +932,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, packages PackageLoader, pa
 		if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
 			return tc.programImportError(impor)
 		}
-		err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, packages, tc.opts, tc.globalScope)
+		err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, tc.predefinedPkgs, tc.opts, tc.globalScope)
 		if err != nil {
 			return err
 		}

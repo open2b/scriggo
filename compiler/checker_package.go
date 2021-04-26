@@ -605,7 +605,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 			// 'packageLevel', as well as the method 'checkImport', should be
 			// reviewed and maybe rewritten.
 			packageLevel := tc.opts.modality != templateMod
-			err := tc.checkImport(d, packages, packageLevel)
+			err := tc.checkImport(d, packageLevel)
 			if err != nil {
 				return err
 			}
