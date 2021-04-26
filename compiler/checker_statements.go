@@ -99,7 +99,7 @@ nodesLoop:
 		switch node := node.(type) {
 
 		case *ast.Import:
-			err := tc.checkImport(node, false)
+			err := tc.checkImport(node)
 			if err != nil {
 				panic(err)
 			}
@@ -852,7 +852,7 @@ nodesLoop:
 }
 
 // TODO: improve this code, making it more readable.
-func (tc *typechecker) checkImport(impor *ast.Import, packageLevel bool) error {
+func (tc *typechecker) checkImport(impor *ast.Import) error {
 	if tc.opts.modality == scriptMod && impor.Tree != nil {
 		panic("BUG: only precompiled packages can be imported in script")
 	}
@@ -941,25 +941,23 @@ func (tc *typechecker) checkImport(impor *ast.Import, packageLevel bool) error {
 
 	// Import a template file from a template.
 	if tc.opts.modality == templateMod {
-		if !packageLevel {
-			if isBlankImport(impor) {
-				return nil
-			}
-			tc.templatePageToPackage(impor.Tree)
-			if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
-				return tc.programImportError(impor)
-			}
-			err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Path, nil, tc.opts, tc.globalScope)
-			if err != nil {
-				return err
-			}
-			// TypeInfos of imported packages in templates are
-			// "manually" added to the map of typeinfos of typechecker.
-			for k, v := range tc.compilation.pkgInfos[impor.Path].TypeInfos {
-				tc.compilation.typeInfos[k] = v
-			}
-			imported = tc.compilation.pkgInfos[impor.Path]
+		if isBlankImport(impor) {
+			return nil
 		}
+		tc.templatePageToPackage(impor.Tree)
+		if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
+			return tc.programImportError(impor)
+		}
+		err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Path, nil, tc.opts, tc.globalScope)
+		if err != nil {
+			return err
+		}
+		// TypeInfos of imported packages in templates are
+		// "manually" added to the map of typeinfos of typechecker.
+		for k, v := range tc.compilation.pkgInfos[impor.Path].TypeInfos {
+			tc.compilation.typeInfos[k] = v
+		}
+		imported = tc.compilation.pkgInfos[impor.Path]
 		if impor.Ident == nil {
 			tc.markPackageAsUnused(imported.Name)
 			for ident, ti := range imported.Declarations {
