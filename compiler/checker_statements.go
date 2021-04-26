@@ -861,7 +861,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, packageLevel bool) error {
 	if impor.Tree == nil && tc.opts.modality != programMod {
 
 		// Load the precompiled package.
-		pkg, err := tc.predefinedPkgs.Load(impor.Path)
+		pkg, err := tc.precompiledPkgs.Load(impor.Path)
 		if err != nil {
 			return tc.errorf(impor, "%s", err)
 		}
@@ -910,7 +910,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, packageLevel bool) error {
 	imported := &packageInfo{}
 	if impor.Tree == nil {
 		// Predefined package.
-		pkg, err := tc.predefinedPkgs.Load(impor.Path)
+		pkg, err := tc.precompiledPkgs.Load(impor.Path)
 		if err != nil {
 			return tc.errorf(impor, "%s", err)
 		}
@@ -932,7 +932,7 @@ func (tc *typechecker) checkImport(impor *ast.Import, packageLevel bool) error {
 		if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
 			return tc.programImportError(impor)
 		}
-		err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, tc.predefinedPkgs, tc.opts, tc.globalScope)
+		err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, tc.precompiledPkgs, tc.opts, tc.globalScope)
 		if err != nil {
 			return err
 		}

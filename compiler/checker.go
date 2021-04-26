@@ -120,7 +120,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 	}
 
 	// Type check a template page or a script.
-	tc.predefinedPkgs = packages
+	tc.precompiledPkgs = packages
 	var err error
 	tree.Nodes, err = tc.checkNodesInNewScopeError(tree.Nodes)
 	if err != nil {
@@ -164,7 +164,7 @@ type typechecker struct {
 
 	path string
 
-	predefinedPkgs PackageLoader
+	precompiledPkgs PackageLoader
 
 	// universe is the outermost scope.
 	universe typeCheckerScope

@@ -597,7 +597,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 	}
 
 	// First: import packages.
-	tc.predefinedPkgs = packages
+	tc.precompiledPkgs = packages
 	for _, d := range pkg.Declarations {
 		if d, ok := d.(*ast.Import); ok {
 			// This is a workaround to fix
