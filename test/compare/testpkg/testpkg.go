@@ -138,7 +138,7 @@ var BooleanValue bool
 type S1 struct{ F int }
 type S2 struct{ *S1 }
 
-type St struct{F int}
+type St struct{ F int }
 type Sp *St
 
 var Sv St
