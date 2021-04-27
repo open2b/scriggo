@@ -110,15 +110,6 @@ func (ti *typeInfo) IsBuiltinFunction() bool {
 	return ti.Properties&propertyPredeclared != 0 && ti.Properties&propertyUntyped == 0 && ti.Type == nil
 }
 
-func (ti *typeInfo) UntypedNonConstantNumber() bool {
-	return ti.IsNumeric() && !ti.IsConstant() && ti.Untyped()
-}
-
-// TODO: to remove?
-func (ti *typeInfo) UntypedNonConstantInteger() bool {
-	return ti.IsInteger() && !ti.IsConstant() && ti.Untyped()
-}
-
 var runeType = reflect.TypeOf(rune(0))
 
 // String returns a string representation.
