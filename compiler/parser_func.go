@@ -116,82 +116,89 @@ func (p *parsing) parseFuncParameters(tok token, isResult bool) ([]*ast.Paramete
 	if tok.typ != tokenLeftParenthesis {
 		panic(syntaxError(tok.pos, "unexpected %s, expecting (", tok))
 	}
+	tok = p.next()
+	pos := tok.pos
+	if tok.typ == tokenRightParenthesis {
+		return nil, false, pos
+	}
 
-	var ok bool
-	var pos = tok.pos
+	var ide ast.Expression
+	var ellipses *ast.Parameter
 	var parameters []*ast.Parameter
-	var expr ast.Expression
-	var isVariadic bool
 
 	for {
-		tok = p.next()
 		param := ast.NewParameter(nil, nil)
 		param.Type, tok = p.parseExpr(tok, false, true, false)
-		if tok.typ == tokenRightParenthesis {
-			if param.Type != nil {
-				parameters = append(parameters, param)
-			}
-			break
-		}
 		if tok.typ == tokenEllipsis {
-			if isResult {
-				panic(syntaxError(tok.pos, "cannot use ... in receiver or result parameter list"))
+			if ellipses == nil {
+				ellipses = param
 			}
+			tok = p.next()
+		}
+		ide, tok = p.parseExpr(tok, false, true, false)
+		if ide != nil {
 			if param.Type != nil {
-				if param.Ident, ok = param.Type.(*ast.Identifier); !ok {
+				var ok bool
+				param.Ident, ok = param.Type.(*ast.Identifier)
+				if !ok {
 					panic(syntaxError(tok.pos, "unexpected %s, expecting )", param.Type))
 				}
-				param.Type = nil
 			}
-			isVariadic = true
-			tok = p.next()
-		} else if param.Type == nil {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting )", tok))
+			param.Type = ide
 		}
-		expr, tok = p.parseExpr(tok, false, true, false)
-		if expr == nil {
-			if isVariadic {
-				panic(syntaxError(tok.pos, "final argument in variadic function missing type"))
+		if param.Ident == nil && param.Type == nil {
+			if tok.typ != tokenRightParenthesis {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting )", tok))
 			}
-		} else {
-			if !isVariadic {
-				var ok bool
-				if param.Ident, ok = param.Type.(*ast.Identifier); !ok {
-					panic(syntaxError(pos, "unexpected %s, expecting )", param.Type))
-				}
-			}
-			param.Type = expr
-		}
-		parameters = append(parameters, param)
-		if tok.typ == tokenRightParenthesis {
 			break
 		}
+		parameters = append(parameters, param)
 		if tok.typ != tokenComma {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting comma or )", tok))
+			if tok.typ != tokenRightParenthesis {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting comma or )", tok))
+			}
+			break
 		}
-		if isVariadic {
-			panic(syntaxError(param.Type.Pos(), "can only use ... with final parameter in list"))
+		tok = p.next()
+	}
+
+	var last *ast.Parameter
+	if parameters != nil {
+		last = parameters[len(parameters)-1]
+	}
+
+	for _, param := range parameters {
+		if last.Ident == nil {
+			if param.Ident != nil {
+				panic(syntaxError(pos, "mixed named and unnamed function parameters"))
+			}
+		} else if param.Ident == nil {
+			var ok bool
+			if ellipses != param {
+				param.Ident, ok = param.Type.(*ast.Identifier)
+			}
+			if !ok {
+				panic(syntaxError(tok.pos, "mixed named and unnamed function parameters"))
+			}
+			param.Type = nil
 		}
 	}
 
-	if len(parameters) > 0 {
-		if last := parameters[len(parameters)-1]; last.Ident == nil {
-			for _, field := range parameters {
-				if field.Ident != nil {
-					panic(syntaxError(pos, "mixed named and unnamed function parameters"))
-				}
+	if ellipses != nil {
+		if isResult {
+			panic(syntaxError(ellipses.Type.Pos(), "cannot use ... in receiver or result parameter list"))
+		}
+		if ellipses.Type == nil {
+			panic(syntaxError(tok.pos, "final argument in variadic function missing type"))
+		}
+		if ellipses != last {
+			s := "cannot use ... with non-final parameter"
+			if ellipses.Ident == nil {
+				panic(syntaxError(ellipses.Type.Pos(), "%s", s))
 			}
-		} else {
-			for _, field := range parameters {
-				if field.Ident == nil {
-					if field.Ident, ok = field.Type.(*ast.Identifier); !ok {
-						panic(syntaxError(field.Type.Pos(), "unexpected %s, expecting )", field.Type))
-					}
-					field.Type = nil
-				}
-			}
+			panic(syntaxError(ellipses.Ident.Pos(), "%s %s", s, ellipses.Ident))
 		}
 	}
 
-	return parameters, isVariadic, tok.pos
+	return parameters, ellipses != nil, tok.pos
 }
