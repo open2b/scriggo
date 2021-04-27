@@ -857,8 +857,8 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		panic("BUG: only precompiled packages can be imported in script")
 	}
 
-	// Import a precompiled package from a script or a template page.
-	if impor.Tree == nil && tc.opts.modality != programMod {
+	// Import a precompiled package.
+	if isPrecompiled := impor.Tree == nil; isPrecompiled {
 
 		// Load the precompiled package.
 		pkg, err := tc.precompiledPkgs.Load(impor.Path)
@@ -893,51 +893,35 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 			return nil
 		}
 
-		// Determine the package name and add it to the file package block.
+		// Determine the package name.
 		var name string
 		if impor.Ident == nil {
 			name = imported.Name // import "pkg".
 		} else {
 			name = impor.Ident.Name // import name "pkg".
 		}
-		tc.filePackageBlock[name] = scopeElement{t: &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}}
+
+		// Add the package to the file/package block.
+		tc.filePackageBlock[name] = scopeElement{
+			t: &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue},
+		}
 		tc.markPackageAsUnused(name)
 
 		return nil
 	}
 
-	// Get the package info.
-	imported := &packageInfo{}
-	if impor.Tree == nil {
-		// Predefined package.
-		pkg, err := tc.precompiledPkgs.Load(impor.Path)
-		if err != nil {
-			return tc.errorf(impor, "%s", err)
-		}
-		predefinedPkg := pkg.(predefinedPackage)
-		if predefinedPkg.Name() == "main" {
-			return tc.programImportError(impor)
-		}
-		declarations := predefinedPkg.DeclarationNames()
-		imported.Declarations = make(map[string]*typeInfo, len(declarations))
-		for n, d := range toTypeCheckerScope(predefinedPkg, 0, tc.opts) {
-			imported.Declarations[n] = d.t
-		}
-		imported.Name = predefinedPkg.Name()
-	} else {
-		// Not predefined package.
-		if tc.opts.modality == templateMod {
-			tc.templatePageToPackage(impor.Tree)
-		}
-		if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
-			return tc.programImportError(impor)
-		}
-		err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, tc.precompiledPkgs, tc.opts, tc.globalScope)
-		if err != nil {
-			return err
-		}
-		imported = tc.compilation.pkgInfos[impor.Tree.Path]
+	// Not precompiled package (i.e. a package declared in Scriggo).
+	if tc.opts.modality == templateMod {
+		tc.templatePageToPackage(impor.Tree)
 	}
+	if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
+		return tc.programImportError(impor)
+	}
+	err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, tc.precompiledPkgs, tc.opts, tc.globalScope)
+	if err != nil {
+		return err
+	}
+	imported := tc.compilation.pkgInfos[impor.Tree.Path]
 
 	// Import statement in a template.
 	if tc.opts.modality == templateMod {
