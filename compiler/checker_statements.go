@@ -921,13 +921,18 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	if err != nil {
 		return err
 	}
+
+	// import _ "path"
+	// {% import _ "path" %}
+	if isBlankImport(impor) {
+		// Nothing to do.
+		return nil
+	}
+
 	imported := tc.compilation.pkgInfos[impor.Tree.Path]
 
 	// Import statement in a template.
 	if tc.opts.modality == templateMod {
-		if isBlankImport(impor) {
-			return nil
-		}
 		tc.templatePageToPackage(impor.Tree)
 		if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
 			return tc.programImportError(impor)
@@ -944,10 +949,6 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		imported = tc.compilation.pkgInfos[impor.Path]
 
 		switch {
-
-		// import _ "path"
-		case isBlankImport(impor):
-			return nil // Nothing to do.
 
 		// import "path"
 		case impor.Ident == nil:
@@ -983,10 +984,6 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	// Import statement in a program or in a script.
 	if tc.opts.modality == programMod || tc.opts.modality == scriptMod {
 		switch {
-
-		// import _ "path"
-		case isBlankImport(impor):
-			return nil // nothing to do.
 
 		// import "path"
 		case impor.Ident == nil:
