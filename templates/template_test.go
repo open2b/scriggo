@@ -2573,6 +2573,15 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: "hello",
 	},
+
+	"Imported file that imported a precompiled package": {
+		sources: map[string]string{
+			"index.txt":    `{% import "imported.txt" %}{{ A }}, len is {{ len(A) }}`,
+			"imported.txt": `{% import "fmt" %}{% var A = fmt.Sprint(42) %}`,
+		},
+		packages:    testPackages,
+		expectedOut: "42, len is 2",
+	},
 }
 
 var structWithUnexportedFields = &struct {
