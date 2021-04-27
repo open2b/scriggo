@@ -933,10 +933,6 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 
 	// Import statement in a template.
 	if tc.opts.modality == templateMod {
-		tc.templatePageToPackage(impor.Tree)
-		if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
-			return tc.programImportError(impor)
-		}
 		err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Path, tc.precompiledPkgs, tc.opts, tc.globalScope)
 		if err != nil {
 			return err
