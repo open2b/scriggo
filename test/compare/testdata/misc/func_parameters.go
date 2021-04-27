@@ -4,17 +4,17 @@ package main
 
 func main() {}
 
-func f1()                    {}
-func f2(int)                 {}
-func f3(int)                 {}
-func f4(a int)               {}
-func f5(a int)               {}
-func f6(int, string)         {}
-func f7(int, ...string)      {}
-func f8(a int, b string)     {}
-func f9(a, b string)         {}
-func f10(a int, b ...string) {}
-func f11(a int, b ...string) {}
+func f1()                     {}
+func f2(int)                  {}
+func f3(int,)                 {}
+func f4(a int)                {}
+func f5(a int,)               {}
+func f6(int, string)          {}
+func f7(int, ...string)       {}
+func f8(a int, b string)      {}
+func f9(a, b string)          {}
+func f10(a int, b ...string)  {}
+func f11(a int, b ...string,) {}
 
 func f12() () {}
 func f13() (int) { return 0 }
