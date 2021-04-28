@@ -84,54 +84,19 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			operand = mapType
 		case tokenStruct: // struct
 			canCompositeLiteral = true
-			structType := ast.NewStructType(tok.pos, nil)
+			pos := tok.pos
 			tok = p.next()
 			if tok.typ != tokenLeftBrace {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting {", tok))
 			}
 			tok = p.next()
-			if tok.typ != tokenRightBrace {
-				for {
-					fieldDecl := ast.NewField(nil, nil, nil)
-					var exprs []ast.Expression
-					var typ ast.Expression
-					exprs, tok = p.parseExprList(tok, false, true, false)
-					if tok.typ == tokenSemicolon || tok.typ == tokenRightBrace {
-						// Implicit field declaration.
-						if len(exprs) != 1 {
-							panic(syntaxError(tok.pos, "unexpected %s, expecting type", tok))
-						}
-						fieldDecl.Type = exprs[0]
-						if tok.typ == tokenSemicolon {
-							tok = p.next()
-						}
-					} else {
-						// Explicit field declaration.
-						typ, tok = p.parseExpr(tok, false, true, false)
-						if tok.typ != tokenSemicolon && tok.typ != tokenRightBrace {
-							panic(syntaxError(tok.pos, "unexpected %s, expecting semicolon", tok))
-						}
-						if tok.typ == tokenSemicolon {
-							tok = p.next()
-						}
-						fieldDecl.Idents = make([]*ast.Identifier, len(exprs))
-						for i, e := range exprs {
-							ident, ok := e.(*ast.Identifier)
-							if !ok {
-								panic(syntaxError(tok.pos, "unexpected %s, expecting field name or embedded type ", e))
-							}
-							fieldDecl.Idents[i] = ident
-						}
-						fieldDecl.Type = typ
-					}
-					structType.Fields = append(structType.Fields, fieldDecl)
-					if tok.typ == tokenRightBrace {
-						break
-					}
-				}
+			var fields []*ast.Field
+			for tok.typ != tokenRightBrace {
+				var field *ast.Field
+				field, tok = p.parseField(tok)
+				fields = append(fields, field)
 			}
-			structType.Position.End = tok.pos.End
-			operand = structType
+			operand = ast.NewStructType(pos.WithEnd(tok.pos.End), fields)
 			tok = p.next()
 		case tokenInterface: // interface{}
 			pos := tok.pos
@@ -654,6 +619,82 @@ func (p *parsing) parseExprListInParenthesis(tok token) ([]ast.Expression, token
 		}
 		tok = p.next()
 	}
+}
+
+// parseField parses a field declaration and returns the parsed field and the
+// next token. The next token is the first token of the next field or a
+// tokenRightBrace token. tok is the first token of the field.
+func (p *parsing) parseField(tok token) (*ast.Field, token) {
+	pos := tok.pos
+	field := ast.NewField(nil, nil, nil)
+	switch tok.typ {
+	case tokenMultiplication:
+		// *T or *p.T
+		tok = p.next()
+		if tok.typ != tokenIdentifier {
+			if tok.typ == tokenLeftParenthesis {
+				panic(syntaxError(tok.pos, "cannot parenthesize embedded type"))
+			}
+			panic(syntaxError(tok.pos, "unexpected %s, expecting name", tok))
+		}
+		var expr ast.Expression = ast.NewIdentifier(tok.pos, string(tok.txt))
+		tok = p.next()
+		if tok.typ == tokenPeriod {
+			tok = p.next()
+			if tok.typ != tokenIdentifier {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting name", tok))
+			}
+			expr = ast.NewSelector(tok.pos, expr, string(tok.txt))
+			tok = p.next()
+		}
+		pos = pos.WithEnd(expr.Pos().End)
+		field.Type = ast.NewUnaryOperator(pos, ast.OperatorPointer, expr)
+	case tokenIdentifier:
+		ident := ast.NewIdentifier(pos, string(tok.txt))
+		tok = p.next()
+		switch tok.typ {
+		case tokenPeriod:
+			tok = p.next()
+			if tok.typ != tokenIdentifier {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting name", tok))
+			}
+			pos = pos.WithEnd(tok.pos.End)
+			field.Type = ast.NewSelector(pos, ident, string(tok.txt))
+			tok = p.next()
+		case tokenComma:
+			field.Idents = make([]*ast.Identifier, 1, 2)
+			field.Idents[0] = ident
+			for tok.typ == tokenComma {
+				tok = p.next()
+				if tok.typ != tokenIdentifier {
+					panic(syntaxError(tok.pos, "unexpected %s, expecting name", tok))
+				}
+				field.Idents = append(field.Idents, ast.NewIdentifier(tok.pos, string(tok.txt)))
+				tok = p.next()
+			}
+			field.Type, tok = p.parseExpr(tok, false, true, false)
+			if field.Type == nil {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting type", tok))
+			}
+		default:
+			field.Type, tok = p.parseExpr(tok, false, true, false)
+			if field.Type == nil {
+				field.Type = ident
+			} else {
+				field.Idents = []*ast.Identifier{ident}
+			}
+		}
+	case tokenLeftParenthesis:
+		panic(syntaxError(tok.pos, "cannot parenthesize embedded type"))
+	default:
+		panic(syntaxError(tok.pos, "unexpected %s, expecting field name or embedded type", tok))
+	}
+	if tok.typ == tokenSemicolon {
+		tok = p.next()
+	} else if tok.typ != tokenRightBrace {
+		panic(syntaxError(tok.pos, "unexpected %s, expecting semicolon or newline or }", tok))
+	}
+	return field, tok
 }
 
 // literalType returns a literal type from a token type.
