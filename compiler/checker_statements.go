@@ -851,7 +851,7 @@ nodesLoop:
 
 }
 
-// TODO: improve this code, making it more readable.
+// checkImport type checks the import statement.
 func (tc *typechecker) checkImport(impor *ast.Import) error {
 	if tc.opts.modality == scriptMod && impor.Tree != nil {
 		panic("BUG: only precompiled packages can be imported in script")
@@ -911,6 +911,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	}
 
 	// Not precompiled package (i.e. a package declared in Scriggo).
+
 	if tc.opts.modality == templateMod {
 		tc.templatePageToPackage(impor.Tree)
 	}
@@ -929,86 +930,66 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		return nil
 	}
 
-	imported := tc.compilation.pkgInfos[impor.Tree.Path]
-
-	// Import statement in a template.
+	// Retrieve the packageInfo.
+	var imported *packageInfo
 	if tc.opts.modality == templateMod {
 		err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Path, tc.precompiledPkgs, tc.opts, tc.globalScope)
 		if err != nil {
 			return err
 		}
-		// TypeInfos of imported packages in templates are
-		// "manually" added to the map of typeinfos of typechecker.
+		// TypeInfos of imported packages in templates are "manually" added to
+		// the map of typeinfos of typechecker.
 		for k, v := range tc.compilation.pkgInfos[impor.Path].TypeInfos {
 			tc.compilation.typeInfos[k] = v
 		}
 		imported = tc.compilation.pkgInfos[impor.Path]
-
-		switch {
-
-		// import "path"
-		case impor.Ident == nil:
-			tc.markPackageAsUnused(imported.Name)
-			for ident, ti := range imported.Declarations {
-				tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
-				tc.filePackageBlock[ident] = scopeElement{t: ti}
-			}
-			return nil
-
-		// import . "path"
-		case isPeriodImport(impor):
-			tc.markPackageAsUnused(imported.Name)
-			for ident, ti := range imported.Declarations {
-				tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
-				tc.filePackageBlock[ident] = scopeElement{t: ti}
-			}
-
-		// import name "path"
-		default:
-			tc.filePackageBlock[impor.Ident.Name] = scopeElement{
-				t: &typeInfo{
-					value:      imported,
-					Properties: propertyIsPackage | propertyHasValue,
-				},
-			}
-			tc.markPackageAsUnused(impor.Ident.Name)
-		}
-
-		return nil
+	} else {
+		imported = tc.compilation.pkgInfos[impor.Tree.Path]
 	}
 
-	// Import statement in a program or in a script.
-	if tc.opts.modality == programMod || tc.opts.modality == scriptMod {
-		switch {
+	switch {
 
-		// import "path"
-		case impor.Ident == nil:
-			tc.filePackageBlock[imported.Name] = scopeElement{
-				t: &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue},
-			}
-			tc.markPackageAsUnused(imported.Name)
-			return nil
+	// import "path"
+	// {% import "path" %}
+	case impor.Ident == nil:
 
-		// import . "path"
-		case isPeriodImport(impor):
-			tc.markPackageAsUnused(imported.Name)
+		tc.markPackageAsUnused(imported.Name)
+
+		// {% import "path" %}
+		if tc.opts.modality == templateMod {
 			for ident, ti := range imported.Declarations {
 				tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
 			}
 			return nil
-
-		// import name "path"
-		default:
-			tc.filePackageBlock[impor.Ident.Name] = scopeElement{
-				t: &typeInfo{
-					value:      imported,
-					Properties: propertyIsPackage | propertyHasValue,
-				},
-			}
-			tc.markPackageAsUnused(impor.Ident.Name)
 		}
 
+		// import "path"
+		tc.filePackageBlock[imported.Name] = scopeElement{
+			t: &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue},
+		}
+		return nil
+
+	// import . "path"
+	// {% import . "path" %}
+	case isPeriodImport(impor):
+		tc.markPackageAsUnused(imported.Name)
+		for ident, ti := range imported.Declarations {
+			tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
+			tc.filePackageBlock[ident] = scopeElement{t: ti}
+		}
+		return nil
+
+	// import name "path"
+	// {% import name "path" %}
+	default:
+		tc.filePackageBlock[impor.Ident.Name] = scopeElement{
+			t: &typeInfo{
+				value:      imported,
+				Properties: propertyIsPackage | propertyHasValue,
+			},
+		}
+		tc.markPackageAsUnused(impor.Ident.Name)
 	}
 
 	return nil
