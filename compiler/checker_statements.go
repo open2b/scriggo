@@ -893,19 +893,22 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		}
 
 		// Determine the package name.
-		var name string
+		var pkgName string
 		if impor.Ident == nil {
-			name = imported.Name // import "pkg".
+			pkgName = imported.Name // import "pkg"
 		} else {
-			name = impor.Ident.Name // import name "pkg".
+			pkgName = impor.Ident.Name // import pkgName "pkg"
 		}
 
 		// Add the package to the file/package block.
-		tc.filePackageBlock[name] = scopeElement{
+		tc.filePackageBlock[pkgName] = scopeElement{
 			t: &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue},
 		}
-		// TODO: is the error "imported but not used" correctly reported for
-		// this case?
+
+		// Set the package as imported but not used.
+		for declName := range imported.Declarations {
+			tc.setImportedButNotUsed(pkgName, declName)
+		}
 
 		return nil
 	}

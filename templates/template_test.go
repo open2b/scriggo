@@ -2582,6 +2582,14 @@ var templateMultiPageCases = map[string]struct {
 		packages:    testPackages,
 		expectedOut: "42, len is 2",
 	},
+
+	"Importing and not using a precompiled package should not return error": {
+		sources: map[string]string{
+			"index.txt": `{% import "fmt" %}that's ok`,
+		},
+		packages:    testPackages,
+		expectedOut: "that's ok",
+	},
 }
 
 var structWithUnexportedFields = &struct {
