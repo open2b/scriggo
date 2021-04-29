@@ -262,6 +262,12 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			p.unexpanded = append(p.unexpanded, operand)
 			tok = p.next()
 		default:
+			if len(path) > 0 {
+				if mustBeType {
+					panic(syntaxError(tok.pos, "unexpected %s, expecting type", tok))
+				}
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
+			}
 			return nil, tok
 		}
 
