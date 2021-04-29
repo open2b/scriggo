@@ -626,7 +626,7 @@ func (p *parsing) parseExprListInParenthesis(tok token) ([]ast.Expression, token
 // tokenRightBrace token. tok is the first token of the field.
 func (p *parsing) parseField(tok token) (*ast.Field, token) {
 	pos := tok.pos
-	field := ast.NewField(nil, nil, nil)
+	field := ast.NewField(nil, nil, "")
 	switch tok.typ {
 	case tokenMultiplication:
 		// *T or *p.T

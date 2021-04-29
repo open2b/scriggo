@@ -147,10 +147,6 @@ func TestExpressionString(t *testing.T) {
 	}
 }
 
-func ptrToStr(s string) *string {
-	return &s
-}
-
 func TestStatementString(t *testing.T) {
 	cases := []struct {
 		node Node
@@ -180,19 +176,19 @@ func TestStatementString(t *testing.T) {
 						NewIdentifier(nil, "b"),
 					},
 					NewIdentifier(nil, "Int"),
-					nil,
+					"",
 				),
 				NewField(
 					[]*Identifier{
 						NewIdentifier(nil, "c"),
 					},
 					NewIdentifier(nil, "String"),
-					nil,
+					"",
 				),
 				NewField(
 					nil,
 					NewIdentifier(nil, "Implicit"),
-					nil,
+					"",
 				),
 			}),
 			"struct { a, b Int; c String; Implicit }",
@@ -205,19 +201,19 @@ func TestStatementString(t *testing.T) {
 						NewIdentifier(nil, "b"),
 					},
 					NewIdentifier(nil, "Int"),
-					ptrToStr("tag1"),
+					"tag1",
 				),
 				NewField(
 					[]*Identifier{
 						NewIdentifier(nil, "c"),
 					},
 					NewIdentifier(nil, "String"),
-					ptrToStr("tag2"),
+					"tag2",
 				),
 				NewField(
 					nil,
 					NewIdentifier(nil, "Implicit"),
-					ptrToStr("tag3"),
+					"tag3",
 				),
 			}),
 			"struct { a, b Int `tag1`; c String `tag2`; Implicit `tag3` }",

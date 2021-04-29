@@ -1016,11 +1016,11 @@ func (n *StructType) String() string {
 type Field struct {
 	Idents []*Identifier // identifiers. If nil is an embedded field.
 	Type   Expression
-	Tag    *string
+	Tag    string
 }
 
 // NewField returns a new NewField node.
-func NewField(idents []*Identifier, typ Expression, tag *string) *Field {
+func NewField(idents []*Identifier, typ Expression, tag string) *Field {
 	return &Field{idents, typ, tag}
 }
 
@@ -1034,8 +1034,8 @@ func (n *Field) String() string {
 		s += " "
 	}
 	s += n.Type.String()
-	if n.Tag != nil {
-		s += " `" + *n.Tag + "`"
+	if n.Tag != "" {
+		s += " `" + n.Tag + "`"
 	}
 	return s
 }
