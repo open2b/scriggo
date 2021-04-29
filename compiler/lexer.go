@@ -1705,6 +1705,7 @@ func (l *lexer) lexRawString() error {
 	// when it finds an invalid Unicode character in a string.
 	lin := l.line
 	col := l.column
+	l.column++
 	p := 1
 STRING:
 	for {
@@ -1713,6 +1714,7 @@ STRING:
 		}
 		switch l.src[p] {
 		case '`':
+			l.column++
 			break STRING
 		case '\n':
 			p++
