@@ -885,10 +885,9 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 
 		// 'import . "pkg"': add every declaration to the file package block.
 		if isPeriodImport(impor) {
-			tc.markPackageAsUnused(imported.Name)
 			for ident, ti := range imported.Declarations {
-				tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
+				tc.setImportedButNotUsed(imported.Name, ident)
 			}
 			return nil
 		}
@@ -905,7 +904,8 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		tc.filePackageBlock[name] = scopeElement{
 			t: &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue},
 		}
-		tc.markPackageAsUnused(name)
+		// TODO: is the error "imported but not used" correctly reported for
+		// this case?
 
 		return nil
 	}
@@ -955,13 +955,11 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	// {% import "path" %}
 	case impor.Ident == nil:
 
-		tc.markPackageAsUnused(imported.Name)
-
 		// {% import "path" %}
 		if tc.opts.modality == templateMod {
 			for ident, ti := range imported.Declarations {
-				tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
+				tc.setImportedButNotUsed(imported.Name, ident)
 			}
 			return nil
 		}
@@ -975,10 +973,9 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	// import . "path"
 	// {% import . "path" %}
 	case isPeriodImport(impor):
-		tc.markPackageAsUnused(imported.Name)
 		for ident, ti := range imported.Declarations {
-			tc.unusedImports[imported.Name] = append(tc.unusedImports[imported.Name], ident)
 			tc.filePackageBlock[ident] = scopeElement{t: ti}
+			tc.setImportedButNotUsed(imported.Name, ident)
 		}
 		return nil
 
@@ -991,7 +988,8 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 				Properties: propertyIsPackage | propertyHasValue,
 			},
 		}
-		tc.markPackageAsUnused(impor.Ident.Name)
+		// TODO: is the error "imported but not used" correctly reported for
+		// this case?
 	}
 
 	return nil

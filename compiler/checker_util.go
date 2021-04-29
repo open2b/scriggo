@@ -513,8 +513,14 @@ const (
 	receiverAddIndirect
 )
 
-func (tc *typechecker) markPackageAsUnused(pkgName string) {
-	tc.unusedImports[pkgName] = nil
+// setImportedButNotUsed sets the given name (imported from the package pkg) as
+// 'imported but not used'.
+//
+// This method should always be called when an identifier is imported, then
+// when such identifier is used the key corresponding to the package should be
+// removed from the 'unusedImports' map.
+func (tc *typechecker) setImportedButNotUsed(pkg, ident string) {
+	tc.unusedImports[pkg] = append(tc.unusedImports[pkg], ident)
 }
 
 // methodByName returns a function type that describe the method with that

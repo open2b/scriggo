@@ -201,6 +201,14 @@ type typechecker struct {
 	unusedVars []*scopeVariable
 
 	// unusedImports keeps track of all imported but not used packages.
+	//
+	// The key of the map is the name of a package, and the value is a list of
+	// names imported from such package.
+	//
+	// When an identifier imported from a package is used, then such package is
+	// removed from unusedImports. Doing so, when the type checking of a
+	// file/program ends if some packages remain in unusedImports then it is a
+	// type checking error.
 	unusedImports map[string][]string
 
 	// opts holds the options that define the behaviour of the type checker.
