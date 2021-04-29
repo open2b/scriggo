@@ -38,5 +38,9 @@ func main() {
 	type _ struct{p.T int}     // ERROR `unexpected int, expecting semicolon or newline or }`
 	type _ struct{ map[int]string }  // ERROR `unexpected map, expecting field name or embedded type`
 	type _ struct{ []string }  // ERROR `unexpected [, expecting field name or embedded type`
+	type _ struct{ a int "k:\"v\"" }
+	type _ struct{ a int `k:"v"` }
+	type _ struct{ T "k:\"v\"" }
+	type _ struct{ T `k:"v"` }
 
 }

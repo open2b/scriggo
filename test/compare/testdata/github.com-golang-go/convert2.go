@@ -1,4 +1,4 @@
-// skip : support tags in struct type declarations (https://github.com/open2b/scriggo/issues/61)
+// skip : fails
 
 // errorcheck
 
@@ -10,6 +10,8 @@
 // Does not compile.
 
 package main
+
+func main() {}
 
 // conversions between structs
 
@@ -110,7 +112,7 @@ func _() {
 		x E2 "foo"
 	}
 	var s S
-	var t T
+	var t T; _ = t
 	var u struct {
 		x E2 "bar"
 	}
@@ -138,7 +140,7 @@ func _() {
 	}
 	var s S
 	var t T
-	var u struct{ f func(E) }
+	var u struct{ f func(E) }; _ = u
 	s = s
 	s = t // ERROR "cannot use .* in assignment"
 	s = u // ERROR "cannot use .* in assignment"
@@ -248,7 +250,7 @@ func _() {
 		x E2 "foo"
 	}
 	var s *S
-	var t *T
+	var t *T; _ = t
 	var u *struct {
 		x E2 "bar"
 	}
@@ -276,7 +278,7 @@ func _() {
 	}
 	var s *S
 	var t *T
-	var u *struct{ f func(E) }
+	var u *struct{ f func(E) }; _ = u
 	s = s
 	s = t // ERROR "cannot use .* in assignment"
 	s = u // ERROR "cannot use .* in assignment"
@@ -301,7 +303,7 @@ func _() {
 	}
 	var s *S
 	var t *T
-	var u *struct{ f func(E) }
+	var u *struct{ f func(E) }; _ = u
 	s = s
 	s = t // ERROR "cannot use .* in assignment"
 	s = u // ERROR "cannot use .* in assignment"

@@ -462,10 +462,10 @@ var goContextTreeTests = []struct {
 				},
 			),
 		}, ast.FormatText)},
-	{"struct { A, B int }",
+	{"struct { A, B int \"ab\" }",
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(
-				p(1, 1, 0, 18),
+				p(1, 1, 0, 23),
 				[]*ast.Field{
 					ast.NewField(
 						[]*ast.Identifier{
@@ -473,7 +473,7 @@ var goContextTreeTests = []struct {
 							ast.NewIdentifier(p(1, 13, 12, 12), "B"),
 						},
 						ast.NewIdentifier(p(1, 15, 14, 16), "int"),
-						"",
+						"ab",
 					),
 				},
 			),
@@ -531,26 +531,26 @@ var goContextTreeTests = []struct {
 				},
 			),
 		}, ast.FormatText)},
-	{"struct { A int }{ A: 10 }",
+	{"struct { A int `a` }{ A: 10 }",
 		ast.NewTree("", []ast.Node{
 			ast.NewCompositeLiteral(
-				p(1, 17, 0, 24),
+				p(1, 21, 0, 28),
 				ast.NewStructType(
-					p(1, 1, 0, 15),
+					p(1, 1, 0, 19),
 					[]*ast.Field{
 						ast.NewField(
 							[]*ast.Identifier{
 								ast.NewIdentifier(p(1, 10, 9, 9), "A"),
 							},
 							ast.NewIdentifier(p(1, 12, 11, 13), "int"),
-							"",
+							"a",
 						),
 					},
 				),
 				[]ast.KeyValue{
 					ast.KeyValue{
-						Key:   ast.NewIdentifier(p(1, 19, 18, 18), "A"),
-						Value: ast.NewBasicLiteral(p(1, 22, 21, 22), ast.IntLiteral, "10"),
+						Key:   ast.NewIdentifier(p(1, 23, 22, 22), "A"),
+						Value: ast.NewBasicLiteral(p(1, 26, 25, 26), ast.IntLiteral, "10"),
 					},
 				},
 			),

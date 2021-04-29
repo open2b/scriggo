@@ -682,6 +682,8 @@ func (p *parsing) parseField(tok token) (*ast.Field, token) {
 			if field.Type == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting type", tok))
 			}
+		case tokenRawString, tokenInterpretedString:
+			field.Type = ident
 		default:
 			field.Type, tok = p.parseExpr(tok, false, true, false)
 			if field.Type == nil {
@@ -695,9 +697,16 @@ func (p *parsing) parseField(tok token) (*ast.Field, token) {
 	default:
 		panic(syntaxError(tok.pos, "unexpected %s, expecting field name or embedded type", tok))
 	}
-	if tok.typ == tokenSemicolon {
+	switch tok.typ {
+	case tokenRawString, tokenInterpretedString:
+		field.Tag = unquoteString(tok.txt)
 		tok = p.next()
-	} else if tok.typ != tokenRightBrace {
+	}
+	switch tok.typ {
+	case tokenSemicolon:
+		tok = p.next()
+	case tokenRightBrace:
+	default:
 		panic(syntaxError(tok.pos, "unexpected %s, expecting semicolon or newline or }", tok))
 	}
 	return field, tok

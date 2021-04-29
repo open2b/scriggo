@@ -551,6 +551,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 						Name:      name,
 						Type:      typ,
 						Anonymous: false,
+						Tag:       reflect.StructTag(fd.Tag),
 					})
 				}
 			}

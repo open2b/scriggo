@@ -1,5 +1,3 @@
-// skip : tags not supported https://github.com/open2b/scriggo/issues/61
-
 // errorcheck
 
 // Copyright 2016 The Go Authors. All rights reserved.
@@ -13,6 +11,10 @@
 package main
 
 import "fmt"
+
+func main() {
+	f4(nil)
+}
 
 func f4(e interface{}) {
 	switch e.(type) {
@@ -29,9 +31,7 @@ func f4(e interface{}) {
 	case struct {
 		i int "tag2"
 	}:
-	case struct { // ERROR "duplicate case struct { i int .tag1. } in type switch"
-		i int "tag1"
-	}:
+	case struct {  i int "tag1" }:// ERROR "duplicate case struct { i int .tag1. } in type switch"
 	}
 }
 
