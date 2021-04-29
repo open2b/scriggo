@@ -228,6 +228,27 @@ func CloneNode(node ast.Node) ast.Node {
 		}
 		return ast.NewStatements(ClonePosition(n.Position), nodes)
 
+	case *ast.StructType:
+		var fields []*ast.Field
+		if n.Fields != nil {
+			fields = make([]*ast.Field, len(n.Fields))
+			for i, field := range n.Fields {
+				var idents []*ast.Identifier
+				if field.Idents != nil {
+					idents = make([]*ast.Identifier, len(field.Idents))
+					for j, ident := range field.Idents {
+						idents[j] = CloneExpression(ident).(*ast.Identifier)
+					}
+				}
+				var typ ast.Expression
+				if field.Type != nil {
+					typ = CloneExpression(field.Type)
+				}
+				fields[i] = ast.NewField(idents, typ, field.Tag)
+			}
+		}
+		return ast.NewStructType(ClonePosition(n.Position), fields)
+
 	case *ast.Switch:
 		var init ast.Node
 		if n.Init != nil {
