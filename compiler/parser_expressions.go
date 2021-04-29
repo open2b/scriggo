@@ -459,9 +459,9 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 		switch op := operator.(type) {
 
 		case *ast.UnaryOperator:
-			// An unary operator ("!", "+", "-", "()") becomes the new leaf
-			// operator as it has an higher precedence than all the other
-			// operators.
+			// An unary operator ("!", "+", "-", "not", "^", "*", "&") becomes
+			// the new leaf operator as it has an higher precedence than all
+			// the other operators.
 
 			if len(path) > 0 {
 				// operator becomes a child of the leaf operator.
