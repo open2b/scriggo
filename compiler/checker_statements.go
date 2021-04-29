@@ -933,6 +933,8 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	// Retrieve the packageInfo.
 	var imported *packageInfo
 	if tc.opts.modality == templateMod {
+		// TODO(Gianluca): what's the point of this code? 'checkPackage' has
+		// already been called..
 		err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Path, tc.precompiledPkgs, tc.opts, tc.globalScope)
 		if err != nil {
 			return err
