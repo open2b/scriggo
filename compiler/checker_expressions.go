@@ -520,7 +520,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 					// If the field name is unexported, it's impossible to
 					// create an new reflect.Type due to the limits that the
 					// package 'reflect' currently has. The solution adopted is
-					// to prepone an unicode character 𝗽 which is considered
+					// to prepend an unicode character 𝗽 which is considered
 					// unexported by the specifications of Go but is allowed by
 					// the reflect.
 					//
@@ -531,7 +531,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 					// path; to work around the problem, an identifier is put in
 					// the middle of the character 𝗽 and the original field
 					// name; this makes the field unique to a given package,
-					// resulting in the unability of make comparisons with that
+					// resulting in the inability of make comparisons with that
 					// types.
 					//
 					// Adding the unique index also is also used to check if a
