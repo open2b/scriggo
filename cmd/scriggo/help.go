@@ -315,7 +315,6 @@ Limitations
     * importing the "unsafe" package from Scriggo (issue #288)
     * importing the "runtime" package from Scriggo (issue #524)
     * labeled continue and break statements (issue #83)
-    * struct type declarations with implicit fields (issue #367)
     * some kinds of pointer shorthands (issue #383)
     * compilation of non-main packages without importing them (issue #521)
 

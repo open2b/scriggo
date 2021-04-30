@@ -512,32 +512,45 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		fields := []reflect.StructField{}
 		for _, fd := range expr.Fields {
 			typ := tc.checkType(fd.Type).Type
+			// If the field name is unexported, it's impossible to
+			// create an new reflect.Type due to the limits that the
+			// package 'reflect' currently has. The solution adopted is
+			// to prepend an unicode character 𝗽 which is considered
+			// unexported by the specifications of Go but is allowed by
+			// the reflect.
+			//
+			// In addition to this, two values with type struct declared
+			// in two different packages cannot be compared (types are
+			// different) because the package paths are different; the
+			// reflect package does not have the ability to set the such
+			// path; to work around the problem, an identifier is put in
+			// the middle of the character 𝗽 and the original field
+			// name; this makes the field unique to a given package,
+			// resulting in the inability of make comparisons with that
+			// types.
+			//
+			// Adding the unique index also is also used to check if a
+			// non-exported field of a struct can be accessed from a
+			// package (see the documentation of
+			// typechecker.structDeclPkg).
 			if fd.Idents == nil {
-				// Not implemented: see https://github.com/open2b/scriggo/issues/367
+				// Implicit field declaration.
+				name := typ.Name()
+				if name == "" {
+					name = typ.Elem().Name()
+				}
+				if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
+					name = "𝗽" + strconv.Itoa(tc.compilation.UniqueIndex(tc.path)) + name
+				}
+				fields = append(fields, reflect.StructField{
+					Name:      name,
+					Type:      typ,
+					Tag:       reflect.StructTag(fd.Tag),
+					Anonymous: true,
+				})
 			} else {
 				// Explicit field declaration.
 				for _, ident := range fd.Idents {
-					// If the field name is unexported, it's impossible to
-					// create an new reflect.Type due to the limits that the
-					// package 'reflect' currently has. The solution adopted is
-					// to prepend an unicode character 𝗽 which is considered
-					// unexported by the specifications of Go but is allowed by
-					// the reflect.
-					//
-					// In addition to this, two values with type struct declared
-					// in two different packages cannot be compared (types are
-					// different) because the package paths are different; the
-					// reflect package does not have the ability to set the such
-					// path; to work around the problem, an identifier is put in
-					// the middle of the character 𝗽 and the original field
-					// name; this makes the field unique to a given package,
-					// resulting in the inability of make comparisons with that
-					// types.
-					//
-					// Adding the unique index also is also used to check if a
-					// non-exported field of a struct can be accessed from a
-					// package (see the documentation of
-					// typechecker.structDeclPkg).
 					name := ident.Name
 					if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
 						name = "𝗽" + strconv.Itoa(tc.compilation.UniqueIndex(tc.path)) + ident.Name
@@ -548,10 +561,9 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 						}
 					}
 					fields = append(fields, reflect.StructField{
-						Name:      name,
-						Type:      typ,
-						Anonymous: false,
-						Tag:       reflect.StructTag(fd.Tag),
+						Name: name,
+						Type: typ,
+						Tag:  reflect.StructTag(fd.Tag),
 					})
 				}
 			}

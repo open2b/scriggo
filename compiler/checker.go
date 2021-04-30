@@ -241,10 +241,11 @@ type typechecker struct {
 	// underlying type 'struct' denoted in Scriggo, the package in which it has
 	// been denoted.
 	//
+	// TODO(marco): now that issue #367 is resolved, is this comment still relevant?
 	// In theory, we should keep track of the package in which the field
 	// identifier (and not the struct type) has been declared, because the Go
 	// type checker checks the package where the identifier has been declared
-	// to see if if accessible or not. But, since embedded fields are not
+	// to see if it accessible or not. But, since embedded fields are not
 	// supported in Scriggo yet (see
 	// https://github.com/open2b/scriggo/issues/367), the package in which the
 	// struct literal and the identifier has been declared correspond.
