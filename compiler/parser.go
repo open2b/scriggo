@@ -442,11 +442,18 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 	return tree, p.unexpanded, nil
 }
 
-// parse parses a statement or part of it given its first token. Returns the
-// first not parsed token.
+// parse parses code.
 //
-// For a template the parsed code is the source code between {% and %},
-// and the returned token is the first token after %}.
+// For a package, a script or a function body, tok is the first token of a
+// declaration or statement and end is EOF. The returned token is the first
+// token of the next statement or declaration, or it is EOF.
+//
+// For templates, it parses the code between {% and %} or between {%% and %%}.
+// tok is the first token after {% or {%%, end is %} or %%} and the returned
+// token is the first token after %} or %%}, or it is EOF.
+//
+// If a syntax error occurs, parse panics with a *SyntaxError value. If there
+// is a cycle it panics with a *CycleError value.
 func (p *parsing) parse(tok token, end tokenTyp) token {
 
 LABEL:
