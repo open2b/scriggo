@@ -196,9 +196,10 @@ func TestScripts(t *testing.T) {
 					scriptsStdout.WriteString(fmt.Sprint(a))
 				}
 			}
-			loadOpts := &scripts.BuildOptions{}
-			loadOpts.Globals = globals
-			script, err := scripts.Build(strings.NewReader(cas.src), cas.pkgs, loadOpts)
+			options := &scripts.BuildOptions{
+				Globals: globals,
+			}
+			script, err := scripts.Build(strings.NewReader(cas.src), cas.pkgs, options)
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
@@ -219,11 +220,12 @@ func TestScriptSum(t *testing.T) {
 	src := `for i := 0; i < 10; i++ { Sum += i }`
 	Sum := 0
 	init := map[string]interface{}{"Sum": &Sum}
-	loadOpts := &scripts.BuildOptions{}
-	loadOpts.Globals = scripts.Declarations{
-		"Sum": (*int)(nil),
+	options := &scripts.BuildOptions{
+		Globals: scripts.Declarations{
+			"Sum": (*int)(nil),
+		},
 	}
-	script, err := scripts.Build(strings.NewReader(src), nil, loadOpts)
+	script, err := scripts.Build(strings.NewReader(src), nil, options)
 	if err != nil {
 		t.Fatalf("unable to load script: %s", err)
 	}
@@ -240,16 +242,17 @@ func TestScriptsChainMessages(t *testing.T) {
 	src1 := `Message = Message + "script1,"`
 	src2 := `Message = Message + "script2"`
 	Message := "external,"
-	loadOpts := &scripts.BuildOptions{}
-	loadOpts.Globals = scripts.Declarations{
-		"Message": (*string)(nil),
+	options := &scripts.BuildOptions{
+		Globals: scripts.Declarations{
+			"Message": (*string)(nil),
+		},
 	}
 	init := map[string]interface{}{"Message": &Message}
-	script1, err := scripts.Build(strings.NewReader(src1), nil, loadOpts)
+	script1, err := scripts.Build(strings.NewReader(src1), nil, options)
 	if err != nil {
 		t.Fatalf("unable to load script 1: %s", err)
 	}
-	script2, err := scripts.Build(strings.NewReader(src2), nil, loadOpts)
+	script2, err := scripts.Build(strings.NewReader(src2), nil, options)
 	if err != nil {
 		t.Fatalf("unable to load script 2: %s", err)
 	}
