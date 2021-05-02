@@ -27,7 +27,8 @@ type CompilerError interface {
 }
 
 type BuildOptions struct {
-	DisallowGoStmt bool // disallow "go" statement.
+	DisallowGoStmt bool          // disallow "go" statement.
+	Packages       PackageLoader // package loader used to load imported packages.
 }
 
 type RunOptions struct {
@@ -45,12 +46,13 @@ type Program struct {
 // packages from packages.
 //
 // If a compilation error occurs, it returns a CompilerError error.
-func Build(src io.Reader, packages PackageLoader, options *BuildOptions) (*Program, error) {
+func Build(src io.Reader, options *BuildOptions) (*Program, error) {
 	co := compiler.Options{}
 	if options != nil {
 		co.DisallowGoStmt = options.DisallowGoStmt
+		co.Packages = options.Packages
 	}
-	code, err := compiler.BuildProgram(src, packages, co)
+	code, err := compiler.BuildProgram(src, co)
 	if err != nil {
 		return nil, err
 	}

@@ -42,7 +42,7 @@ func TestIssue403(t *testing.T) {
 		func main() {
 			pkg.Value.Method()
 		}`
-		program, err := scriggo.Build(strings.NewReader(main), packages, nil)
+		program, err := scriggo.Build(strings.NewReader(main), &scriggo.BuildOptions{Packages: packages})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -71,7 +71,7 @@ func TestIssue403(t *testing.T) {
 			t := pkg.Type{}
 			t.Method()
 		}`
-		program, err := scriggo.Build(strings.NewReader(main), packages, nil)
+		program, err := scriggo.Build(strings.NewReader(main), &scriggo.BuildOptions{Packages: packages})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -102,7 +102,7 @@ func TestIssue403(t *testing.T) {
 			pkg.F(t)
 		}
 		`
-		program, err := scriggo.Build(strings.NewReader(main), packages, nil)
+		program, err := scriggo.Build(strings.NewReader(main), &scriggo.BuildOptions{Packages: packages})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -133,7 +133,7 @@ func TestIssue403(t *testing.T) {
 			pkg.F(a)
 		}
 		`
-		program, err := scriggo.Build(strings.NewReader(main), packages, nil)
+		program, err := scriggo.Build(strings.NewReader(main), &scriggo.BuildOptions{Packages: packages})
 		if err != nil {
 			t.Fatal(err)
 		}

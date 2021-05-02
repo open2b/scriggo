@@ -78,7 +78,9 @@ func main() {
 	switch ext {
 	case ".go":
 		var src io.Reader = os.Stdin
-		var packages scriggo.PackageLoader = predefPkgs
+		opts := &scriggo.BuildOptions{}
+		opts.DisallowGoStmt = *disallowGoStmt
+		opts.Packages = predefPkgs
 		if cmd == "rundir" {
 			dir := dirLoader(flag.Arg(2))
 			main, err := dir.Load("main")
@@ -86,11 +88,9 @@ func main() {
 				panic(err)
 			}
 			src = main.(io.Reader)
-			packages = scriggo.CombinedLoader{dir, packages}
+			opts.Packages = scriggo.CombinedLoader{dir, opts.Packages}
 		}
-		opts := &scriggo.BuildOptions{}
-		opts.DisallowGoStmt = *disallowGoStmt
-		program, err := scriggo.Build(src, packages, opts)
+		program, err := scriggo.Build(src, opts)
 		if err != nil {
 			_, _ = fmt.Fprint(os.Stderr, err)
 			os.Exit(1)

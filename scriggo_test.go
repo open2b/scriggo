@@ -66,7 +66,7 @@ func TestIssue523(t *testing.T) {
 	func main() {
 		fmt.Println("hello")
 	}`
-	_, _ = Build(strings.NewReader(src), nil, nil)
+	_, _ = Build(strings.NewReader(src), nil)
 }
 
 func Test_LimitExceededError(t *testing.T) {
@@ -376,7 +376,7 @@ func main() {
 	var v300 int ; _ = v300
 }
 	`
-	_, err := Build(strings.NewReader(src), nil, nil)
+	_, err := Build(strings.NewReader(src), nil)
 	if err == nil {
 		t.Fatal("Expectend a LimitExceededError, got nothing")
 	} else {

@@ -62,7 +62,7 @@ type Declarations map[string]interface{}
 
 // BuildProgram builds a program.
 // Any error related to the compilation itself is returned as a CompilerError.
-func BuildProgram(r io.Reader, packages PackageLoader, opts Options) (*Code, error) {
+func BuildProgram(r io.Reader, opts Options) (*Code, error) {
 	var tree *ast.Tree
 
 	// Parse the source code.
@@ -70,7 +70,7 @@ func BuildProgram(r io.Reader, packages PackageLoader, opts Options) (*Code, err
 	if err != nil {
 		return nil, err
 	}
-	tree, err = ParseProgram(mainCombiner{mainSrc, packages})
+	tree, err = ParseProgram(mainCombiner{mainSrc, opts.Packages})
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func BuildProgram(r io.Reader, packages PackageLoader, opts Options) (*Code, err
 		disallowGoStmt: opts.DisallowGoStmt,
 		globals:        opts.Globals,
 	}
-	tci, err := typecheck(tree, packages, checkerOpts)
+	tci, err := typecheck(tree, opts.Packages, checkerOpts)
 	if err != nil {
 		return nil, err
 	}

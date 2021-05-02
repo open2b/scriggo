@@ -2189,8 +2189,6 @@ func run() {
 
 	flag.Parse()
 
-	var buildOptions = &scriggo.BuildOptions{}
-
 	var args = flag.Args()
 
 	if len(args) != 1 {
@@ -2216,7 +2214,8 @@ func run() {
 	if err != nil {
 		panic(err)
 	}
-	program, err := scriggo.Build(bytes.NewReader(main), scriggo.Loaders(packages), buildOptions)
+
+	program, err := scriggo.Build(bytes.NewReader(main), &scriggo.BuildOptions{Packages: packages})
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 		os.Exit(2)
