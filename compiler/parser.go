@@ -1613,6 +1613,9 @@ func lastImportOrExtends(nodes []ast.Node) bool {
 	return true
 }
 
+// parseImport parses an import declaration. tok if the first token of
+// ImportSpec and end is the argument passed to the parse method.
+// It returns the parsed node.
 func (p *parsing) parseImport(tok token, end tokenTyp) *ast.Import {
 	pos := tok.pos
 	var ident *ast.Identifier
