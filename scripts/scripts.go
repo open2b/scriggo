@@ -18,9 +18,10 @@ import (
 )
 
 type BuildOptions struct {
-	Globals          Declarations // globals.
-	AllowShebangLine bool         // allow shebang line
-	DisallowGoStmt   bool         // disallow "go" statement.
+	Globals          Declarations          // globals.
+	AllowShebangLine bool                  // allow shebang line.
+	DisallowGoStmt   bool                  // disallow "go" statement.
+	Packages         scriggo.PackageLoader // package loader used to load imported packages.
 }
 
 // Declarations.
@@ -41,14 +42,15 @@ type Script struct {
 // from packages.
 //
 // If a compilation error occurs, it returns a CompilerError error.
-func Build(src io.Reader, packages scriggo.PackageLoader, options *BuildOptions) (*Script, error) {
+func Build(src io.Reader, options *BuildOptions) (*Script, error) {
 	co := compiler.Options{}
 	if options != nil {
 		co.Globals = compiler.Declarations(options.Globals)
 		co.AllowShebangLine = options.AllowShebangLine
 		co.DisallowGoStmt = options.DisallowGoStmt
+		co.Packages = options.Packages
 	}
-	code, err := compiler.BuildScript(src, packages, co)
+	code, err := compiler.BuildScript(src, co)
 	if err != nil {
 		return nil, err
 	}

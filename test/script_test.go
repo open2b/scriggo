@@ -197,9 +197,10 @@ func TestScripts(t *testing.T) {
 				}
 			}
 			options := &scripts.BuildOptions{
-				Globals: globals,
+				Globals:  globals,
+				Packages: cas.pkgs,
 			}
-			script, err := scripts.Build(strings.NewReader(cas.src), cas.pkgs, options)
+			script, err := scripts.Build(strings.NewReader(cas.src), options)
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
@@ -225,7 +226,7 @@ func TestScriptSum(t *testing.T) {
 			"Sum": (*int)(nil),
 		},
 	}
-	script, err := scripts.Build(strings.NewReader(src), nil, options)
+	script, err := scripts.Build(strings.NewReader(src), options)
 	if err != nil {
 		t.Fatalf("unable to load script: %s", err)
 	}
@@ -248,11 +249,11 @@ func TestScriptsChainMessages(t *testing.T) {
 		},
 	}
 	init := map[string]interface{}{"Message": &Message}
-	script1, err := scripts.Build(strings.NewReader(src1), nil, options)
+	script1, err := scripts.Build(strings.NewReader(src1), options)
 	if err != nil {
 		t.Fatalf("unable to load script 1: %s", err)
 	}
-	script2, err := scripts.Build(strings.NewReader(src2), nil, options)
+	script2, err := scripts.Build(strings.NewReader(src2), options)
 	if err != nil {
 		t.Fatalf("unable to load script 2: %s", err)
 	}

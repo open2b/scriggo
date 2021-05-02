@@ -102,9 +102,11 @@ func main() {
 			}
 		}
 	case ".script":
-		opts := &scripts.BuildOptions{}
-		opts.DisallowGoStmt = *disallowGoStmt
-		script, err := scripts.Build(os.Stdin, predefPkgs, opts)
+		opts := &scripts.BuildOptions{
+			DisallowGoStmt: *disallowGoStmt,
+			Packages: predefPkgs,
+		}
+		script, err := scripts.Build(os.Stdin, opts)
 		if err != nil {
 			_, _ = fmt.Fprint(os.Stderr, err)
 			os.Exit(1)

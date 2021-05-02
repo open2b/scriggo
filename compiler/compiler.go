@@ -108,12 +108,12 @@ func BuildProgram(r io.Reader, opts Options) (*Code, error) {
 
 // BuildScript builds a script.
 // Any error related to the compilation itself is returned as a CompilerError.
-func BuildScript(r io.Reader, packages PackageLoader, opts Options) (*Code, error) {
+func BuildScript(r io.Reader, opts Options) (*Code, error) {
 	var tree *ast.Tree
 
 	// Parse the source code.
 	var err error
-	tree, err = ParseScript(r, packages, opts.AllowShebangLine)
+	tree, err = ParseScript(r, opts.Packages, opts.AllowShebangLine)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func BuildScript(r io.Reader, packages PackageLoader, opts Options) (*Code, erro
 		disallowGoStmt: opts.DisallowGoStmt,
 		globals:        opts.Globals,
 	}
-	tci, err := typecheck(tree, packages, checkerOpts)
+	tci, err := typecheck(tree, opts.Packages, checkerOpts)
 	if err != nil {
 		return nil, err
 	}
