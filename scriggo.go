@@ -149,9 +149,9 @@ func initPackageLevelVariables(globals []compiler.Global) []interface{} {
 // 	function
 // * 256 types available per function
 // * 256 unique predefined functions per function
-// * 256 integer values per function
+// * 16384 integer values per function
 // * 256 string values per function
-// * 256 floating-point values per function
+// * 16384 floating-point values per function
 // * 256 general values per function
 //
 func IsLimitExceeded(err error) bool {
