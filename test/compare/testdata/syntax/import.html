@@ -1,0 +1,9 @@
+{# errorcheck #}
+
+{% import _ "foo" for A %}    // ERROR `unexpected for at end of statement`
+{% import . "foo" for A %}    // ERROR `unexpected for at end of statement`
+{% import boo "foo" for A %}  // ERROR `unexpected for at end of statement`
+{% import "foo" A %}          // ERROR `unexpected A at end of statement`
+{% import "foo" for A, %}     // ERROR `unexpected %}, expecting name`
+{% import "foo" for a %}      // ERROR `cannot enable access to unexported name a`
+{% import "foo" for _ %}      // ERROR `cannot enable access to unexported name _`

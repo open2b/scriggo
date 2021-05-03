@@ -812,21 +812,35 @@ func (n *Extends) String() string {
 
 // Import node represents a statement "import".
 type Import struct {
-	*Position             // position in the source.
-	Ident     *Identifier // name (including "." and "_") or nil.
-	Path      string      // path to import.
-	Tree      *Tree       // expanded tree of import.
+	*Position               // position in the source.
+	Ident     *Identifier   // name (including "." and "_") or nil.
+	Path      string        // path to import.
+	For       []*Identifier // exported identifiers that are enable for access.
+	Tree      *Tree         // expanded tree of import.
 }
 
-func NewImport(pos *Position, ident *Identifier, path string) *Import {
-	return &Import{Position: pos, Ident: ident, Path: path}
+func NewImport(pos *Position, ident *Identifier, path string, forIdents []*Identifier) *Import {
+	return &Import{Position: pos, Ident: ident, Path: path, For: forIdents}
 }
 
 func (n *Import) String() string {
-	if n.Ident == nil {
-		return fmt.Sprintf("import %v", strconv.Quote(n.Path))
+	var s strings.Builder
+	s.WriteString("import ")
+	if n.Ident != nil {
+		s.WriteString(n.Ident.Name)
+		s.WriteString(" ")
 	}
-	return fmt.Sprintf("import %v %v", n.Ident, strconv.Quote(n.Path))
+	s.WriteString(strconv.Quote(n.Path))
+	if n.For != nil {
+		s.WriteString("for ")
+		for i, ident := range n.For {
+			if i > 0 {
+				s.WriteString(", ")
+			}
+			s.WriteString(ident.Name)
+		}
+	}
+	return s.String()
 }
 
 // Comment node represents a statement {# ... #}.

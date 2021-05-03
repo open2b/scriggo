@@ -711,13 +711,13 @@ var goContextTreeTests = []struct {
 		),
 	}, ast.FormatText)},
 	{"import \"p\"", ast.NewTree("", []ast.Node{
-		ast.NewImport(p(1, 8, 7, 9), nil, "p")}, ast.FormatText)},
+		ast.NewImport(p(1, 8, 7, 9), nil, "p", nil)}, ast.FormatText)},
 	{"import _ \"foo\"", ast.NewTree("", []ast.Node{
 		ast.NewImport(p(1, 8, 7, 13),
-			ast.NewIdentifier(p(1, 8, 7, 7), "_"), "foo")}, ast.FormatText)},
+			ast.NewIdentifier(p(1, 8, 7, 7), "_"), "foo", nil)}, ast.FormatText)},
 	{"import boo \"foo\"", ast.NewTree("", []ast.Node{
 		ast.NewImport(p(1, 8, 7, 15),
-			ast.NewIdentifier(p(1, 8, 7, 9), "boo"), "foo")}, ast.FormatText)},
+			ast.NewIdentifier(p(1, 8, 7, 9), "boo"), "foo", nil)}, ast.FormatText)},
 }
 
 var treeTests = []struct {
@@ -1376,6 +1376,14 @@ var treeTests = []struct {
 						ast.NewBasicLiteral(p(1, 13, 12, 12), ast.IntLiteral, "5"),
 					), nil, nil),
 			})}, ast.FormatHTML)},
+	{"{% import \"foo\" for A, B, C %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewImport(p(1, 11, 10, 26), nil, "foo",
+				[]*ast.Identifier{
+					ast.NewIdentifier(p(1, 21, 20, 20), "A"),
+					ast.NewIdentifier(p(1, 24, 23, 23), "B"),
+					ast.NewIdentifier(p(1, 27, 26, 26), "C"),
+				})}, ast.FormatHTML)},
 }
 
 // TODO: this function is never called, because it is referenced in commented
@@ -1596,6 +1604,12 @@ func equals(n1, n2 ast.Node, p int) error {
 		}
 		if nn1.Path != nn2.Path {
 			return fmt.Errorf("unexpected name %q expecting %q", nn1.Path, nn2.Path)
+		}
+		for i, node := range nn1.For {
+			err := equals(node, nn2.For[i], p)
+			if err != nil {
+				return err
+			}
 		}
 
 	case *ast.Extends:

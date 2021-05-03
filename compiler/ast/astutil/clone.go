@@ -164,7 +164,14 @@ func CloneNode(node ast.Node) ast.Node {
 		if n.Ident != nil {
 			ident = ast.NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
 		}
-		imp := ast.NewImport(ClonePosition(n.Position), ident, n.Path)
+		var forIdents []*ast.Identifier
+		if n.For != nil {
+			forIdents = make([]*ast.Identifier, len(n.For))
+			for i, ident := range n.For {
+				forIdents[i] = CloneExpression(ident).(*ast.Identifier)
+			}
+		}
+		imp := ast.NewImport(ClonePosition(n.Position), ident, n.Path, forIdents)
 		if n.Tree != nil {
 			imp.Tree = CloneTree(n.Tree)
 		}
