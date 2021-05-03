@@ -686,7 +686,6 @@ var goContextTreeTests = []struct {
 		ast.NewChanType(p(1, 7, 6, 16), ast.SendDirection, ast.NewIdentifier(p(1, 15, 14, 16), "int")),
 		nil,
 	)}, ast.FormatText)},
-
 	{"f = func() { println(a) }", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(
 			p(1, 1, 0, 24),
@@ -711,6 +710,14 @@ var goContextTreeTests = []struct {
 			},
 		),
 	}, ast.FormatText)},
+	{"import \"p\"", ast.NewTree("", []ast.Node{
+		ast.NewImport(p(1, 8, 7, 9), nil, "p")}, ast.FormatText)},
+	{"import _ \"foo\"", ast.NewTree("", []ast.Node{
+		ast.NewImport(p(1, 8, 7, 13),
+			ast.NewIdentifier(p(1, 8, 7, 13), "_"), "foo")}, ast.FormatText)},
+	{"import boo \"foo\"", ast.NewTree("", []ast.Node{
+		ast.NewImport(p(1, 8, 7, 15),
+			ast.NewIdentifier(p(1, 8, 7, 15), "boo"), "foo")}, ast.FormatText)},
 }
 
 var treeTests = []struct {
@@ -1576,6 +1583,19 @@ func equals(n1, n2 ast.Node, p int) error {
 		}
 		if nn1.Format != nn2.Format {
 			return fmt.Errorf("unexpected context %s, expecting %s", nn1.Format, nn2.Format)
+		}
+
+	case *ast.Import:
+		nn2, ok := n2.(*ast.Import)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Ident, nn2.Ident, p)
+		if err != nil {
+			return err
+		}
+		if nn1.Path != nn2.Path {
+			return fmt.Errorf("unexpected name %q expecting %q", nn1.Path, nn2.Path)
 		}
 
 	case *ast.Extends:
