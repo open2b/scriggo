@@ -59,8 +59,7 @@ type emitter struct {
 	isURLSet bool
 
 	// types refers the types of the current compilation and it is used to
-	// create and manipulate types and values, both predefined and defined only
-	// by Scriggo.
+	// create and manipulate types and values, both native and non-native.
 	types *types.Types
 
 	// alreadyEmittedFuncs reports if a given function has already been emitted
@@ -179,7 +178,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 					inits = append(inits, fn)
 					continue
 				}
-				em.fnStore.makeAvailableScriggoFn(em.pkg, fun.Ident.Name, fn)
+				em.fnStore.makeAvailableFunction(em.pkg, fun.Ident.Name, fn)
 				isDummyMacroForRender := strings.HasPrefix(fun.Ident.Name, `"`) && strings.HasSuffix(fun.Ident.Name, `"`)
 				if isExported(fun.Ident.Name) || isDummyMacroForRender {
 					functions[fun.Ident.Name] = fn
@@ -199,11 +198,11 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 			// If the package has some variable declarations, a special "init"
 			// function must be created to initialize them. "$initvars" is
 			// used because is not a valid Go identifier, so there's no risk
-			// of collision with Scriggo defined functions.
+			// of collision with non-native functions.
 			backupFb := em.fb
 			if initVarsFn == nil {
 				initVarsFn = newFunction("main", "$initvars", reflect.FuncOf(nil, nil, false), path, nil)
-				em.fnStore.makeAvailableScriggoFn(em.pkg, "$initvars", initVarsFn)
+				em.fnStore.makeAvailableFunction(em.pkg, "$initvars", initVarsFn)
 				initVarsFb = newBuilder(initVarsFn, path)
 			}
 			em.fb = initVarsFb
@@ -229,7 +228,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				// initialized value inside the proper global index.
 				pkgVarRegs[v.Name] = varr
 				pkgVarTypes[v.Name] = varType
-				index := em.varStore.createScriggoPackageVar(em.pkg, newGlobal(pkg.Name, v.Name, varType, nil))
+				index := em.varStore.createPackageVar(em.pkg, newGlobal(pkg.Name, v.Name, varType, nil))
 				em.alreadyInitializedVars[v] = index
 				vars[v.Name] = index
 			}
@@ -260,7 +259,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				fn = inits[initToBuild]
 				initToBuild++
 			} else {
-				fn, _ = em.fnStore.availableScriggoFn(em.pkg, n.Ident.Name)
+				fn, _ = em.fnStore.availableFunction(em.pkg, n.Ident.Name)
 			}
 			em.fb = newBuilder(fn, path)
 			em.fb.enterScope()
@@ -270,7 +269,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 			if n.Ident.Name == "main" {
 				// First: initialize the package variables.
 				if initVarsFn != nil {
-					iv, _ := em.fnStore.availableScriggoFn(em.pkg, "$initvars")
+					iv, _ := em.fnStore.availableFunction(em.pkg, "$initvars")
 					index := em.fb.addFunction(iv) // TODO: check addFunction
 					em.fb.emitCallFunc(index, runtime.StackShift{}, nil)
 				}
@@ -305,7 +304,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 
 // callOptions holds information about a function call.
 type callOptions struct {
-	predefined    bool
+	native        bool
 	receiverAsArg bool
 	callHasDots   bool
 }
@@ -348,7 +347,7 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 		if fnTyp.NumIn() == 1 && len(args) == 1 {
 			if g, ok := args[0].(*ast.Call); ok {
 				if numOut, ok := em.numOut(g); ok && numOut > 1 {
-					if opts.predefined {
+					if opts.native {
 						// Reserve the registers for the input parameters of 'f'
 						// before emitting the call node 'g(..)', otherwise if
 						// 'g' accepts some arguments (eg. 'f(g(arg1, arg2))')
@@ -365,7 +364,7 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 						}
 						return regs, types
 					}
-					// f(g()) where g returns more than 1 argument, f is variadic and not predefined.
+					// f(g()) where g returns more than 1 argument, f is variadic and non-native.
 					slice := em.fb.newRegister(reflect.Slice)
 					em.fb.enterStack()
 					pos := args[0].Pos()
@@ -404,7 +403,7 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 		}
 		if varArgs := len(args) - (numIn - 1); varArgs > 0 {
 			t := fnTyp.In(numIn - 1).Elem()
-			if opts.predefined {
+			if opts.native {
 				for i := 0; i < varArgs; i++ {
 					reg := em.fb.newRegister(t.Kind())
 					em.fb.enterStack()
@@ -529,7 +528,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool, toF
 		call.Args = append([]ast.Expression{rcvrExpr}, call.Args...)
 		stackShift := em.fb.currentStackShift()
 		opts := callOptions{
-			predefined:    true,
+			native:        true,
 			receiverAsArg: true,
 			callHasDots:   call.IsVariadic,
 		}
@@ -545,22 +544,22 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool, toF
 		return regs, types
 	}
 
-	// Predefined function (identifiers, selectors etc...).
-	// Calls of predefined functions stored in builtin variables are handled as
+	// Native function (identifiers, selectors etc...).
+	// Calls of native functions stored in builtin variables are handled as
 	// common "indirect" calls.
-	if funTi.IsPredefined() && !funTi.Addressable() {
+	if funTi.IsNative() && !funTi.Addressable() {
 		if funTi.MethodType == methodCallConcrete {
 			rcv := call.Func.(*ast.Selector).Expr // TODO(Gianluca): is this correct?
 			call.Args = append([]ast.Expression{rcv}, call.Args...)
 		}
 		stackShift := em.fb.currentStackShift()
 		opts := callOptions{
-			predefined:    true,
+			native:        true,
 			receiverAsArg: funTi.MethodType == methodCallConcrete,
 			callHasDots:   call.IsVariadic,
 		}
 		regs, types := em.prepareCallParameters(funTi.Type, call.Args, opts)
-		index, _ := em.fnStore.predefFunc(call.Func, true)
+		index, _ := em.fnStore.nativeFunction(call.Func, true)
 		if goStmt {
 			em.fb.emitGo()
 		}
@@ -583,16 +582,16 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool, toF
 			em.fb.emitDefer(reg, int8(numVar), stackShift, args, funTi.Type)
 			return regs, types
 		}
-		em.fb.emitCallPredefined(index, int8(numVar), stackShift, call.Pos())
+		em.fb.emitCallNative(index, int8(numVar), stackShift, call.Pos())
 		return regs, types
 	}
 
-	// Scriggo-defined function (identifier).
+	// Non-native function (identifier).
 	if ident, ok := call.Func.(*ast.Identifier); ok && !em.fb.isLocalVariable(ident.Name) {
-		if fn, ok := em.fnStore.availableScriggoFn(em.pkg, ident.Name); ok {
+		if fn, ok := em.fnStore.availableFunction(em.pkg, ident.Name); ok {
 			stackShift := em.fb.currentStackShift()
 			regs, types := em.prepareCallParameters(fn.Type, call.Args, callOptions{callHasDots: call.IsVariadic})
-			index := em.fnStore.scriggoFnIndex(fn)
+			index := em.fnStore.functionIndex(fn)
 			if goStmt {
 				em.fb.emitGo()
 			}
@@ -613,13 +612,13 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool, toF
 		}
 	}
 
-	// Scriggo-defined function (selector).
+	// Non-native function (selector).
 	if selector, ok := call.Func.(*ast.Selector); ok {
 		if ident, ok := selector.Expr.(*ast.Identifier); ok {
-			if fun, ok := em.fnStore.availableScriggoFn(em.pkg, ident.Name+"."+selector.Ident); ok {
+			if fun, ok := em.fnStore.availableFunction(em.pkg, ident.Name+"."+selector.Ident); ok {
 				stackShift := em.fb.currentStackShift()
 				regs, types := em.prepareCallParameters(fun.Type, call.Args, callOptions{callHasDots: call.IsVariadic})
-				index := em.fnStore.scriggoFnIndex(fun)
+				index := em.fnStore.functionIndex(fun)
 				if goStmt {
 					em.fb.emitGo()
 				}
@@ -639,13 +638,13 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool, toF
 	// Indirect function.
 	reg := em.emitExpr(call.Func, em.typ(call.Func))
 	stackShift := em.fb.currentStackShift()
-	opts := callOptions{predefined: false, callHasDots: call.IsVariadic}
+	opts := callOptions{native: false, callHasDots: call.IsVariadic}
 	regs, types := em.prepareCallParameters(funTi.Type, call.Args, opts)
-	// CallIndirect is always emitted with 'NoVariadicArgs' because the emitter
-	// cannot distinguish between Scriggo defined functions (that require a
-	// []Type) and predefined function (that require Type1, Type2 ...). For this
-	// reason the arguments of an indirect call are emitted as if always calling
-	// a Scriggo defined function.
+	// CallIndirect is always emitted with 'NoVariadicArgs' because the
+	// emitter cannot distinguish between non-native functions (that require a
+	// []Type) and native functions (that require Type1, Type2 ...). For this
+	// reason the arguments of an indirect call are emitted as if always
+	// calling a non-native function.
 	if goStmt {
 		em.fb.emitGo()
 	}
@@ -878,7 +877,7 @@ func invertedOperatorType(op ast.OperatorType) ast.OperatorType {
 func (em *emitter) emitCondition(cond ast.Expression) {
 
 	// Emit code for a boolean constant condition.
-	if ti := em.ti(cond); ti != nil && ti.HasValue() && !ti.IsPredefined() {
+	if ti := em.ti(cond); ti != nil && ti.HasValue() && !ti.IsNative() {
 		// The condition of the 'if' instruction of VM is a binary operation,
 		// so the boolean constant expression 'x' is emitted as 'x == true'.
 		var c int8 = 0
@@ -1075,7 +1074,7 @@ func (em *emitter) emitComplexOperation(exprType reflect.Type, expr1 ast.Express
 	em.fb.enterScope()
 	em.emitExprR(expr2, exprType, c2)
 	em.fb.exitScope()
-	em.fb.emitCallPredefined(index, 0, stackShift, expr1.Pos())
+	em.fb.emitCallNative(index, 0, stackShift, expr1.Pos())
 	em.changeRegister(false, ret, reg, exprType, dstType)
 	em.fb.exitScope()
 }

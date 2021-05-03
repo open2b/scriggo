@@ -56,16 +56,16 @@ type Env interface {
 // types defined in a executed code.
 type Types interface {
 
-	// New is like reflect.New but if typ is a Scriggo type, the returned
+	// New is like reflect.New but if typ is a non-native type, the returned
 	// Value refers to the underling type of typ.
 	New(typ reflect.Type) reflect.Value
 
-	// TypeOf is like reflect.TypeOf but if i has a Scriggo type it returns
+	// TypeOf is like reflect.TypeOf but if i has a non-native type it returns
 	// its Scriggo reflect type instead of the reflect type of the proxy.
 	TypeOf(i interface{}) reflect.Type
 
-	// ValueOf is like reflect.ValueOf but if i has a Scriggo type it returns
-	// its underling value instead of the reflect value of the proxy.
+	// ValueOf is like reflect.ValueOf but if i has a non-native type it
+	// returns its underling value instead of the reflect value of the proxy.
 	ValueOf(i interface{}) reflect.Value
 }
 

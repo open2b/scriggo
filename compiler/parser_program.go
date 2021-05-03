@@ -18,7 +18,7 @@ import (
 func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
 
 	trees := map[string]*ast.Tree{}
-	predefined := map[string]bool{}
+	native := map[string]bool{}
 
 	main := ast.NewImport(nil, nil, "main")
 
@@ -35,7 +35,7 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
 			imports = imports[:last]
 			continue
 		}
-		if _, ok := predefined[n.Path]; ok {
+		if _, ok := native[n.Path]; ok {
 			imports = imports[:last]
 			continue
 		}
@@ -53,8 +53,8 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
 		}
 
 		switch pkg := pkg.(type) {
-		case predefinedPackage:
-			predefined[n.Path] = true
+		case nativePackage:
+			native[n.Path] = true
 		case io.Reader:
 			src, err := ioutil.ReadAll(pkg)
 			if r, ok := pkg.(io.Closer); ok {
@@ -97,7 +97,7 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
 						}
 					}
 					imp.Tree = tree
-				} else if predefined[imp.Path] {
+				} else if native[imp.Path] {
 					// Skip.
 				} else {
 					// Append the imports in reverse order.
@@ -156,7 +156,7 @@ func ParseScript(src io.Reader, packages PackageLoader, shebang bool) (*ast.Tree
 			return nil, err
 		}
 		switch pkg := pkg.(type) {
-		case predefinedPackage:
+		case nativePackage:
 		case nil:
 			return nil, syntaxError(imp.Pos(), "cannot find package %q", imp.Path)
 		default:

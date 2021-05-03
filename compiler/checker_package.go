@@ -79,14 +79,14 @@ func parseNumericConst(s string) (constant, reflect.Type, error) {
 	return n, intType, nil
 }
 
-// toTypeCheckerScope generates a type checker scope given a predefined package.
+// toTypeCheckerScope generates a type checker scope given a native package.
 // depth must be 0 unless toTypeCheckerScope is called recursively.
-func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) typeCheckerScope {
-	pkgName := pp.Name()
-	declarations := pp.DeclarationNames()
+func toTypeCheckerScope(np nativePackage, depth int, opts checkerOptions) typeCheckerScope {
+	pkgName := np.Name()
+	declarations := np.DeclarationNames()
 	s := make(typeCheckerScope, len(declarations))
 	for _, ident := range declarations {
-		value := pp.Lookup(ident)
+		value := np.Lookup(ident)
 		// Import an auto-imported package. This is supported in scripts and templates only.
 		if p, ok := value.(scriggoPackage); ok {
 			if opts.modality == programMod {
@@ -111,8 +111,8 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) ty
 		if t, ok := value.(reflect.Type); ok {
 			s[ident] = scopeElement{t: &typeInfo{
 				Type:              t,
-				Properties:        propertyIsType | propertyIsPredefined,
-				PredefPackageName: pkgName,
+				Properties:        propertyIsType | propertyIsNative,
+				NativePackageName: pkgName,
 			}}
 			continue
 		}
@@ -122,8 +122,8 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) ty
 			s[ident] = scopeElement{t: &typeInfo{
 				Type:              reflect.TypeOf(value).Elem(),
 				value:             &v,
-				Properties:        propertyAddressable | propertyIsPredefined | propertyHasValue,
-				PredefPackageName: pkgName,
+				Properties:        propertyAddressable | propertyIsNative | propertyHasValue,
+				NativePackageName: pkgName,
 			}}
 			continue
 		}
@@ -132,8 +132,8 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) ty
 			s[ident] = scopeElement{t: &typeInfo{
 				Type:              removeEnvArg(typ, false),
 				value:             reflect.ValueOf(value),
-				Properties:        propertyIsPredefined | propertyHasValue,
-				PredefPackageName: pkgName,
+				Properties:        propertyIsNative | propertyHasValue,
+				NativePackageName: pkgName,
 			}}
 			continue
 		}
@@ -144,7 +144,7 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) ty
 				Type:              boolType,
 				Properties:        propertyUntyped,
 				Constant:          boolConst(c),
-				PredefPackageName: pkgName,
+				NativePackageName: pkgName,
 			}}
 			continue
 		case UntypedStringConst:
@@ -152,19 +152,19 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) ty
 				Type:              stringType,
 				Properties:        propertyUntyped,
 				Constant:          stringConst(c),
-				PredefPackageName: pkgName,
+				NativePackageName: pkgName,
 			}}
 			continue
 		case UntypedNumericConst:
 			constant, typ, err := parseNumericConst(string(c))
 			if err != nil {
-				panic(fmt.Errorf("scriggo: invalid untyped constant %q for %s.%s", c, pp.Name(), ident))
+				panic(fmt.Errorf("scriggo: invalid untyped constant %q for %s.%s", c, np.Name(), ident))
 			}
 			s[ident] = scopeElement{t: &typeInfo{
 				Type:              typ,
 				Properties:        propertyUntyped,
 				Constant:          constant,
-				PredefPackageName: pkgName,
+				NativePackageName: pkgName,
 			}}
 			continue
 		}
@@ -176,7 +176,7 @@ func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) ty
 		s[ident] = scopeElement{t: &typeInfo{
 			Type:              reflect.TypeOf(value),
 			Constant:          constant,
-			PredefPackageName: pkgName,
+			NativePackageName: pkgName,
 		}}
 	}
 	return s

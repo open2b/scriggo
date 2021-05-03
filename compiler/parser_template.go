@@ -242,7 +242,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 			// import "path"
 
 			if ext := filepath.Ext(n.Path); ext == "" {
-				// Import a precompiled package (the path has no extension).
+				// Import a native package (the path has no extension).
 				if pp.packages == nil {
 					return syntaxError(n.Pos(), "cannot find package %q", n.Path)
 				}
@@ -251,7 +251,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 					return err
 				}
 				switch pkg := pkg.(type) {
-				case predefinedPackage:
+				case nativePackage:
 				case nil:
 					return syntaxError(n.Pos(), "cannot find package %q", n.Path)
 				default:

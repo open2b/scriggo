@@ -6,7 +6,7 @@ import "fmt"
 
 func main() {
 
-	// Testing predefined function literals.
+	// Testing native function literals.
 	p := fmt.Println
 	p("a")
 	p("a", "b")
@@ -15,7 +15,7 @@ func main() {
 	p([]interface{}{1, 2, 3}...)
 	p([]interface{}(nil)...)
 
-	// Testing function literals defined in Scriggo.
+	// Testing non-native function literals.
 	f1 := func() {}
 	f1()
 

@@ -266,13 +266,13 @@ func deferGoBuiltin(name string) *typeInfo {
 			env.Println(args...)
 		}
 	case "recover":
-		// This predefined function should only be used with the 'go'
-		// statement and not the 'defer' statement.
+		// This native function should only be used with the 'go' statement
+		// and not the 'defer' statement.
 		fun = func() {}
 	}
 	rv := reflect.ValueOf(fun)
 	return &typeInfo{
-		Properties: propertyHasValue | propertyIsPredefined,
+		Properties: propertyHasValue | propertyIsNative,
 		Type:       removeEnvArg(rv.Type(), false),
 		value:      rv,
 	}
@@ -286,9 +286,9 @@ func (tc *typechecker) emptyMethodSet(interf reflect.Type) bool {
 // fieldByName returns the struct field with the given name if such field
 // exists and can be accessed, else returns an error.
 //
-// If name is non-exported and the type is declared in Scriggo then name is
-// transformed and the new name is returned. For further information about this
-// check the documentation of the type checking of an *ast.StructType.
+// If name is non-exported and the type is not native then name is transformed
+// and the new name is returned. For further information about this check the
+// documentation of the type checking of an *ast.StructType.
 func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string, error) {
 
 	typ := t.Type
@@ -550,7 +550,7 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 				ti := &typeInfo{
 					Type:       removeEnvArg(methExpr.Type(), false),
 					value:      methExpr,
-					Properties: propertyIsPredefined | propertyHasValue,
+					Properties: propertyIsNative | propertyHasValue,
 				}
 				return ti, receiverNoTransform, true
 			}
@@ -561,7 +561,7 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 			return &typeInfo{
 				Type:       removeEnvArg(method.Type, true),
 				value:      method.Func,
-				Properties: propertyIsPredefined | propertyHasValue,
+				Properties: propertyIsNative | propertyHasValue,
 			}, receiverNoTransform, true
 		}
 		return nil, receiverNoTransform, false
@@ -574,7 +574,7 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 				Type:       removeEnvArg(method.Type, true),
 				value:      name,
 				MethodType: methodValueInterface,
-				Properties: propertyIsPredefined | propertyHasValue,
+				Properties: propertyIsNative | propertyHasValue,
 			}
 			return ti, receiverNoTransform, true
 		}
@@ -588,7 +588,7 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 		ti := &typeInfo{
 			Type:       removeEnvArg(method.Type(), false),
 			value:      methodExplicitRcvr.Func,
-			Properties: propertyIsPredefined | propertyHasValue,
+			Properties: propertyIsNative | propertyHasValue,
 			MethodType: methodValueConcrete,
 		}
 		// Check if pointer is defined on T or *T when called on a *T receiver.
@@ -614,7 +614,7 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 			return &typeInfo{
 				Type:       removeEnvArg(method.Type(), false),
 				value:      methodExplicitRcvr.Func,
-				Properties: propertyIsPredefined | propertyHasValue,
+				Properties: propertyIsNative | propertyHasValue,
 				MethodType: methodValueConcrete,
 			}, receiverAddAddress, true
 		}
@@ -686,7 +686,7 @@ func (tc *typechecker) nilOf(t reflect.Type) *typeInfo {
 	switch t.Kind() {
 	case reflect.Func:
 		return &typeInfo{
-			Properties: propertyHasValue | propertyIsPredefined,
+			Properties: propertyHasValue | propertyIsNative,
 			Type:       t,
 			value:      tc.types.Zero(t),
 		}

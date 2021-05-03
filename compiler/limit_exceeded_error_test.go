@@ -70,8 +70,8 @@ func TestFunctionsLimit(t *testing.T) {
 			if _, ok := r.(*LimitExceededError); ok {
 				// The type of the error is correct. Now check if the
 				// test panicked at the correct index.
-				if maxScriggoFunctionsCount != i {
-					t.Fatalf("test should have panicked at index %d, but it panicked at index %d", maxScriggoFunctionsCount, i)
+				if maxFunctionsCount != i {
+					t.Fatalf("test should have panicked at index %d, but it panicked at index %d", maxFunctionsCount, i)
 				}
 			} else {
 				t.Fatalf("expecting a LimitExceededError, got error %s (of type %T)", r, r)

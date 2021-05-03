@@ -144,9 +144,9 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *typeI
 
 	// Handle predeclared variables in templates and scripts.
 	if tc.opts.modality == templateMod || tc.opts.modality == scriptMod {
-		// The identifier refers to a predefined value that is an up value for
-		// the current function.
-		if ti.IsPredefined() && tc.isUpVar(ident.Name) {
+		// The identifier refers to a native value that is an up value for the
+		// current function.
+		if ti.IsNative() && tc.isUpVar(ident.Name) {
 			// The type info contains a *reflect.Value, so it is a variable.
 			if rv, ok := ti.value.(*reflect.Value); ok {
 				// Get the list of the nested functions, from the outermost to
@@ -159,15 +159,15 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *typeI
 					funcLiteralInTemplate := tc.opts.modality == templateMod && nestedFuncs[0].Ident == nil
 					if funcLiteralInTemplate || tc.opts.modality == scriptMod {
 						upvar := ast.Upvar{
-							PredefinedName:  ident.Name,
-							PredefinedPkg:   ident.Name,
-							PredefinedValue: rv,
-							Index:           -1,
+							NativeName:  ident.Name,
+							NativePkg:   ident.Name,
+							NativeValue: rv,
+							Index:       -1,
 						}
 						for _, fn := range nestedFuncs {
 							add := true
 							for i, uv := range fn.Upvars {
-								if uv.PredefinedValue == upvar.PredefinedValue {
+								if uv.NativeValue == upvar.NativeValue {
 									upvar.Index = int16(i)
 									add = false
 									break
@@ -810,18 +810,18 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				if !ok {
 					panic(tc.errorf(expr, "undefined: %v", expr))
 				}
-				// v is a predefined variable.
+				// v is a native variable.
 				if rv, ok := v.value.(*reflect.Value); v.Addressable() && ok {
 					upvar := ast.Upvar{
-						PredefinedName:  expr.Ident,
-						PredefinedPkg:   ident.Name,
-						PredefinedValue: rv,
-						Index:           -1,
+						NativeName:  expr.Ident,
+						NativePkg:   ident.Name,
+						NativeValue: rv,
+						Index:       -1,
 					}
 					for _, fn := range tc.nestedFuncs() {
 						add := true
 						for i, uv := range fn.Upvars {
-							if uv.PredefinedValue == upvar.PredefinedValue {
+							if uv.NativeValue == upvar.NativeValue {
 								upvar.Index = int16(i)
 								add = false
 								break

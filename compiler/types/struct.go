@@ -9,27 +9,27 @@ package types
 import "reflect"
 
 // StructOf behaves like reflect.StructOf except when at least one of the
-// fields has a Scriggo type; in such case a new Scriggo struct type is
+// fields has a non-native type; in such case a new non-native struct type is
 // created and returned as reflect.Type.
 func (types *Types) StructOf(fields []reflect.StructField) reflect.Type {
 
 	// baseFields contains all the fields with their Go type.
 	baseFields := make([]reflect.StructField, len(fields))
 
-	// scriggoFields contains the fields that are Scriggo fields, indexed by
-	// the index of the field.
+	// scriggoFields contains the fields that are non-native fields, indexed
+	// by the index of the field.
 	scriggoFields := map[int]reflect.StructField{}
 
 	for i, field := range fields {
 
-		// If field has a Scriggo type then it will be changed by the next
+		// If field has a non-native type then it will be changed by the next
 		// check.
 		baseFields[i] = field
 
 		// This field cannot be represented using the reflect: remove the
 		// information from the type and add that information to the
 		// structType.
-		if st, ok := field.Type.(ScriggoType); ok {
+		if st, ok := field.Type.(Type); ok {
 			baseFields[i].Type = st.Underlying()
 			scriggoField := field
 			scriggoField.Index = []int{i}
@@ -72,7 +72,7 @@ func (types *Types) addFields(fields map[int]reflect.StructField) *map[int]refle
 }
 
 // structType represents a composite struct type where at least one of the
-// fields has a Scriggo type.
+// fields has a non-native type.
 type structType struct {
 	reflect.Type
 	scriggoFields *map[int]reflect.StructField
@@ -142,7 +142,7 @@ func (x structType) String() string {
 
 // Underlying implements the interface runtime.Wrapper.
 func (x structType) Underlying() reflect.Type {
-	assertNotScriggoType(x.Type)
+	assertNativeType(x.Type)
 	return x.Type
 }
 

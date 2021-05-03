@@ -26,13 +26,13 @@ var envType = reflect.TypeOf((*Env)(nil)).Elem()
 var emptyInterfaceType = reflect.TypeOf(&[]interface{}{nil}[0]).Elem()
 var emptyInterfaceNil = reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
 
-// A Wrapper wraps and unwraps Scriggo types into Go types. A wrapper is used
-// when an internal implementation of a value must be typified or when an
-// external Go value must be imported into Scriggo.
+// A Wrapper wraps and unwraps non-native types into native types. A wrapper
+// is used when an internal implementation of a value must be typified or when
+// an external native value must be imported into Scriggo.
 type Wrapper interface {
 
-	// Wrap wraps a value with a Scriggo type putting into a proxy that exposes
-	// methods to Go.
+	// Wrap wraps a value with a non-native type putting into a proxy that
+	// exposes methods to the native code.
 	Wrap(reflect.Value) reflect.Value
 
 	// Unwrap unwraps a value that has been read from Go. If the value given as
@@ -40,8 +40,8 @@ type Wrapper interface {
 	// value is returned and the method returns true.
 	Unwrap(reflect.Value) (reflect.Value, bool)
 
-	// Underlying returns the underlying type of a Scriggo type. Note that the
-	// implementation of the reflect.Type returned by Underlying is the
+	// Underlying returns the underlying type of a non-native type. Note that
+	// the implementation of the reflect.Type returned by Underlying is the
 	// implementation of the package 'reflect', so it's safe to pass the
 	// returned value to reflect functions and methods as argument.
 	Underlying() reflect.Type
@@ -233,13 +233,13 @@ func (vm *VM) Stack(buf []byte, all bool) int {
 	return len(b)
 }
 
-// callPredefined calls a predefined function. numVariadic is the number of
-// variadic arguments, shift is the stack shift and asGoroutine reports
-// whether the function must be started as a goroutine.
+// callNative calls a native function. numVariadic is the number of variadic
+// arguments, shift is the stack shift and asGoroutine reports whether the
+// function must be started as a goroutine.
 //
-// When callPredefined is called, vm.pc must be the address of the call
+// When callNative is called, vm.pc must be the address of the call
 // instruction plus one.
-func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift StackShift, asGoroutine bool) {
+func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift, asGoroutine bool) {
 
 	if fn.value.IsNil() {
 		panic(errNilPointer)
@@ -581,7 +581,7 @@ func (vm *VM) nextCall() bool {
 				return true
 			}
 			vm.fp = call.fp
-			vm.callPredefined(call.cl.Predefined(), call.numVariadic, StackShift{}, false)
+			vm.callNative(call.cl.Native(), call.numVariadic, StackShift{}, false)
 		}
 	}
 	return false
@@ -607,7 +607,7 @@ func create(env *env) *VM {
 }
 
 // startGoroutine starts a new goroutine to execute a function call at program
-// counter pc. If the function is predefined, returns true.
+// counter pc. If the function is native, returns true.
 func (vm *VM) startGoroutine() bool {
 	var fn *Function
 	var vars []interface{}
@@ -719,7 +719,7 @@ type macroOutBuffer struct {
 	strings.Builder
 }
 
-type PredefinedFunction struct {
+type NativeFunction struct {
 	pkg         string        // package.
 	name        string        // name.
 	function    interface{}   // value.
@@ -729,11 +729,11 @@ type PredefinedFunction struct {
 	argsPool    *sync.Pool    // pool of arguments for reflect.Call and reflect.CallSlice.
 }
 
-// NewPredefinedFunction returns a new predefined function given its package and
-// name and the function value or its reflect value. pkg and name can be empty
+// NewNativeFunction returns a new native function given its package and name
+// and the function value or its reflect value. pkg and name can be empty
 // strings.
-func NewPredefinedFunction(pkg, name string, function interface{}) *PredefinedFunction {
-	fn := &PredefinedFunction{
+func NewNativeFunction(pkg, name string, function interface{}) *NativeFunction {
+	fn := &NativeFunction{
 		pkg:  pkg,
 		name: name,
 	}
@@ -774,39 +774,39 @@ func NewPredefinedFunction(pkg, name string, function interface{}) *PredefinedFu
 	return fn
 }
 
-func (fn *PredefinedFunction) Package() string {
+func (fn *NativeFunction) Package() string {
 	return fn.pkg
 }
 
-func (fn *PredefinedFunction) Name() string {
+func (fn *NativeFunction) Name() string {
 	return fn.name
 }
 
-func (fn *PredefinedFunction) Func() interface{} {
+func (fn *NativeFunction) Func() interface{} {
 	return fn.function
 }
 
-// Function represents a function.
+// Function represents a non-native function.
 type Function struct {
-	Pkg          string
-	Name         string
-	File         string
-	Pos          *Position // position of the function declaration.
-	Type         reflect.Type
-	Parent       *Function
-	VarRefs      []int16
-	Types        []reflect.Type
-	NumReg       [4]int8
-	FinalRegs    [][2]int8 // [indirect -> return parameter registers]
-	Macro        bool
-	Format       uint8
-	Values       Registers
-	FieldIndexes [][]int
-	Functions    []*Function
-	Predefined   []*PredefinedFunction
-	Body         []Instruction
-	Text         [][]byte
-	DebugInfo    map[Addr]DebugInfo
+	Pkg             string
+	Name            string
+	File            string
+	Pos             *Position // position of the function declaration.
+	Type            reflect.Type
+	Parent          *Function
+	VarRefs         []int16
+	Types           []reflect.Type
+	NumReg          [4]int8
+	FinalRegs       [][2]int8 // [indirect -> return parameter registers]
+	Macro           bool
+	Format          uint8
+	Values          Registers
+	FieldIndexes    [][]int
+	Functions       []*Function
+	NativeFunctions []*NativeFunction
+	Body            []Instruction
+	Text            [][]byte
+	DebugInfo       map[Addr]DebugInfo
 }
 
 // Position represents a source position.
@@ -857,41 +857,41 @@ type callFrame struct {
 }
 
 type callable struct {
-	value      reflect.Value       // reflect value.
-	fn         *Function           // function, if it is a Scriggo function.
-	predefined *PredefinedFunction // predefined function.
-	receiver   interface{}         // receiver, if it is a method value.
-	method     string              // method name, if it is a method value.
-	vars       []interface{}       // non-local (global and closure) variables.
+	value    reflect.Value   // reflect value.
+	fn       *Function       // non-native function.
+	native   *NativeFunction // native function.
+	receiver interface{}     // receiver, if it is a method value.
+	method   string          // method name, if it is a method value.
+	vars     []interface{}   // non-local (global and closure) variables.
 }
 
-// Predefined returns the predefined function of a callable.
-func (c *callable) Predefined() *PredefinedFunction {
-	if c.predefined != nil {
-		return c.predefined
+// Native returns the native function of a callable.
+func (c *callable) Native() *NativeFunction {
+	if c.native != nil {
+		return c.native
 	}
 	if !c.value.IsValid() {
 		c.value = reflect.ValueOf(c.receiver).MethodByName(c.method)
 		c.receiver = nil
 		c.method = ""
 	}
-	c.predefined = NewPredefinedFunction("", "", c.value)
-	return c.predefined
+	c.native = NewNativeFunction("", "", c.value)
+	return c.native
 }
 
 // Value returns a reflect Value of a callable, so it can be called from a
-// predefined code and passed to a predefined code.
+// native code and passed to a native code.
 func (c *callable) Value(env *env) reflect.Value {
 	if c.value.IsValid() {
 		return c.value
 	}
-	if c.predefined != nil {
-		// It is a predefined function.
-		c.value = reflect.ValueOf(c.predefined.function)
+	if c.native != nil {
+		// It is a native function.
+		c.value = reflect.ValueOf(c.native.function)
 		return c.value
 	}
 	if c.method == "" {
-		// It is a Scriggo function.
+		// It is a non-native function.
 		fn := c.fn
 		vars := c.vars
 		c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
@@ -1046,7 +1046,7 @@ const (
 	OpCallFunc
 	OpCallIndirect
 	OpCallMacro
-	OpCallPredefined
+	OpCallNative
 
 	OpCap
 

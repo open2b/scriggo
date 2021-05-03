@@ -13,77 +13,78 @@ import (
 	"github.com/open2b/scriggo/runtime"
 )
 
-// A functionStore holds information about functions defined in Scriggo and
-// predefined functions during the emission.
+// A functionStore holds information about native and non-native functions
+// during the emission.
 type functionStore struct {
 
 	// emitter is a reference to the current emitter.
 	emitter *emitter
 
-	// availableScriggoFuncs holds a list of Scriggo compiled functions that are
-	// available to be called or evaluated as expressions. The functions stored
-	// in availableScriggoFuncs are not added nor to Functions or Predefined if
-	// they are not used in the Scriggo code.
-	availableScriggoFuncs map[*ast.Package]map[string]*runtime.Function
+	// availableFunctions holds a list of non-native compiled functions that
+	// are available to be called or evaluated as expressions. The functions
+	// stored in availableFunctions are not added nor to Functions or
+	// NativeFunctions if they are not used in the source code.
+	availableFunctions map[*ast.Package]map[string]*runtime.Function
 
-	// scriggoFuncIndexes holds the indexes of the Scriggo functions that have
-	// been added to Functions because they are referenced in the Scriggo code.
-	scriggoFuncIndexes map[*runtime.Function]map[*runtime.Function]int8
+	// functionIndexes holds the indexes of the non-native functions that have
+	// been added to Functions because they are referenced in the source code.
+	functionIndexes map[*runtime.Function]map[*runtime.Function]int8
 
-	// predefFuncIndexes holds the indexes of the predefined functions that have
-	// been added to Predefined because they are referenced in the Scriggo code.
-	predefFuncIndexes map[*runtime.Function]map[reflect.Value]int8
+	// nativeFunctionIndexes holds the indexes of the native functions that
+	// have been added to NativeFunctions because they are referenced in the
+	// source code.
+	nativeFunctionIndexes map[*runtime.Function]map[reflect.Value]int8
 }
 
 // newFunctionStore returns a new functionStore.
 func newFunctionStore(emitter *emitter) *functionStore {
 	return &functionStore{
 		emitter:               emitter,
-		availableScriggoFuncs: map[*ast.Package]map[string]*runtime.Function{},
-		scriggoFuncIndexes:    map[*runtime.Function]map[*runtime.Function]int8{},
-		predefFuncIndexes:     map[*runtime.Function]map[reflect.Value]int8{},
+		availableFunctions:    map[*ast.Package]map[string]*runtime.Function{},
+		functionIndexes:       map[*runtime.Function]map[*runtime.Function]int8{},
+		nativeFunctionIndexes: map[*runtime.Function]map[reflect.Value]int8{},
 	}
 }
 
-// makeAvailableScriggoFn makes available the given function with the given name
-// in the pkg package, ensuring that such function can be later retrieved if it
-// is referenced in the Scriggo compiled code.
-func (fs *functionStore) makeAvailableScriggoFn(pkg *ast.Package, name string, fn *runtime.Function) {
-	if fs.availableScriggoFuncs[pkg] == nil {
-		fs.availableScriggoFuncs[pkg] = map[string]*runtime.Function{}
+// makeAvailableFunction makes available the given non-native function with
+// the given name in the pkg package, ensuring that such function can be later
+// retrieved if it is referenced in the source code.
+func (fs *functionStore) makeAvailableFunction(pkg *ast.Package, name string, fn *runtime.Function) {
+	if fs.availableFunctions[pkg] == nil {
+		fs.availableFunctions[pkg] = map[string]*runtime.Function{}
 	}
-	fs.availableScriggoFuncs[pkg][name] = fn
+	fs.availableFunctions[pkg][name] = fn
 }
 
-// availableScriggoFn returns the Scriggo function with the given name available
-// in the pkg package. If not available then false is returned.
-func (fs *functionStore) availableScriggoFn(pkg *ast.Package, name string) (*runtime.Function, bool) {
-	fn, ok := fs.availableScriggoFuncs[pkg][name]
+// availableFunction returns the non-native function with the given name
+// available in the pkg package. If not available then false is returned.
+func (fs *functionStore) availableFunction(pkg *ast.Package, name string) (*runtime.Function, bool) {
+	fn, ok := fs.availableFunctions[pkg][name]
 	return fn, ok
 }
 
-// scriggoFnIndex returns the index of the given Scriggo function inside the
-// Functions slice of the current function. If fun is not present in such slice
+// functionIndex returns the index of the given non-native function inside the
+// Functions slice of the current function. If fn is not present in such slice
 // it is added by this call.
-func (fs *functionStore) scriggoFnIndex(fn *runtime.Function) int8 {
+func (fs *functionStore) functionIndex(fn *runtime.Function) int8 {
 	currFn := fs.emitter.fb.fn
-	if fs.scriggoFuncIndexes[currFn] == nil {
-		fs.scriggoFuncIndexes[currFn] = map[*runtime.Function]int8{}
+	if fs.functionIndexes[currFn] == nil {
+		fs.functionIndexes[currFn] = map[*runtime.Function]int8{}
 	}
-	if index, ok := fs.scriggoFuncIndexes[currFn][fn]; ok {
+	if index, ok := fs.functionIndexes[currFn][fn]; ok {
 		return index
 	}
 	index := int8(len(currFn.Functions))
 	currFn.Functions = append(currFn.Functions, fn)
-	fs.scriggoFuncIndexes[currFn][fn] = index
+	fs.functionIndexes[currFn][fn] = index
 	return index
 }
 
-// predefFunc returns the index of the predefined function 'contained' in fn if
-// there's one, else returns 0 and false.
-func (fs *functionStore) predefFunc(fn ast.Expression, allowMethod bool) (int8, bool) {
+// nativeFunction returns the index of the native function 'contained' in fn
+// if there's one, else returns 0 and false.
+func (fs *functionStore) nativeFunction(fn ast.Expression, allowMethod bool) (int8, bool) {
 	ti := fs.emitter.ti(fn)
-	if (ti == nil) || (!ti.IsPredefined()) {
+	if (ti == nil) || (!ti.IsNative()) {
 		return 0, false
 	}
 	if !allowMethod && ti.MethodType != noMethod {
@@ -108,23 +109,23 @@ func (fs *functionStore) predefFunc(fn ast.Expression, allowMethod bool) (int8, 
 		// return 0, false // TODO
 	}
 
-	// Add the function to the Predefined slice, or get the index if already
-	// present.
+	// Add the function to the NativeFunctions slice, or get the index if
+	// already present.
 	fnRv := ti.value.(reflect.Value)
 	currFn := fs.emitter.fb.fn
-	if fs.predefFuncIndexes[currFn] == nil {
-		fs.predefFuncIndexes[currFn] = map[reflect.Value]int8{}
+	if fs.nativeFunctionIndexes[currFn] == nil {
+		fs.nativeFunctionIndexes[currFn] = map[reflect.Value]int8{}
 	}
-	if index, ok := fs.predefFuncIndexes[currFn][fnRv]; ok {
+	if index, ok := fs.nativeFunctionIndexes[currFn][fnRv]; ok {
 		return index, true
 	}
-	f := newPredefinedFunction(ti.PredefPackageName, name, fnRv.Interface())
-	index := int8(len(currFn.Predefined))
-	currFn.Predefined = append(currFn.Predefined, f)
-	if fs.predefFuncIndexes[currFn] == nil {
-		fs.predefFuncIndexes[currFn] = map[reflect.Value]int8{}
+	f := newNativeFunction(ti.NativePackageName, name, fnRv.Interface())
+	index := int8(len(currFn.NativeFunctions))
+	currFn.NativeFunctions = append(currFn.NativeFunctions, f)
+	if fs.nativeFunctionIndexes[currFn] == nil {
+		fs.nativeFunctionIndexes[currFn] = map[reflect.Value]int8{}
 	}
-	fs.predefFuncIndexes[currFn][fnRv] = index
+	fs.nativeFunctionIndexes[currFn][fnRv] = index
 	return index, true
 
 }

@@ -60,7 +60,7 @@ func Build(src io.Reader, options *BuildOptions) (*Program, error) {
 }
 
 // Disassemble disassembles the package with the given path and returns its
-// assembly code. Predefined packages can not be disassembled.
+// assembly code. Native packages can not be disassembled.
 func (p *Program) Disassemble(pkgPath string) ([]byte, error) {
 	assemblies := compiler.Disassemble(p.fn, p.globals, 0)
 	asm, ok := assemblies[pkgPath]
@@ -150,7 +150,7 @@ func initPackageLevelVariables(globals []compiler.Global) []interface{} {
 // 	* 256 function literal declarations plus unique functions calls per
 // 	function
 // * 256 types available per function
-// * 256 unique predefined functions per function
+// * 256 unique native functions per function
 // * 16384 integer values per function
 // * 256 string values per function
 // * 16384 floating-point values per function

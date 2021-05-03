@@ -23,7 +23,7 @@ func (t TypeStruct) Method() {}
 // with usual tests as it would require an execution environment that would be
 // hard to reproduce without writing host code
 func TestIssue403(t *testing.T) {
-	t.Run("Method call on predefined variable", func(t *testing.T) {
+	t.Run("Method call on native variable", func(t *testing.T) {
 		packages := scriggo.CombinedLoader{
 			scriggo.Packages{
 				"pkg": scriggo.MapPackage{
@@ -51,7 +51,7 @@ func TestIssue403(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
-	t.Run("Method call on not-predefined variable", func(t *testing.T) {
+	t.Run("Method call on non-native variable", func(t *testing.T) {
 		packages := scriggo.CombinedLoader{
 			scriggo.Packages{
 				"pkg": scriggo.MapPackage{

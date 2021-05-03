@@ -23,8 +23,8 @@ import (
 	"github.com/open2b/scriggo/templates"
 )
 
-//go:generate scriggo embed -v -o predefPkgs.go
-var predefPkgs scriggo.Packages
+//go:generate scriggo embed -v -o packages.go
+var nativePackages scriggo.Packages
 
 var globals = templates.Declarations{
 	"MainSum": func(a, b int) int { return a + b },
@@ -80,7 +80,7 @@ func main() {
 		var src io.Reader = os.Stdin
 		opts := &scriggo.BuildOptions{}
 		opts.DisallowGoStmt = *disallowGoStmt
-		opts.Packages = predefPkgs
+		opts.Packages = nativePackages
 		if cmd == "rundir" {
 			dir := dirLoader(flag.Arg(2))
 			main, err := dir.Load("main")
@@ -104,7 +104,7 @@ func main() {
 	case ".script":
 		opts := &scripts.BuildOptions{
 			DisallowGoStmt: *disallowGoStmt,
-			Packages: predefPkgs,
+			Packages: nativePackages,
 		}
 		script, err := scripts.Build(os.Stdin, opts)
 		if err != nil {
@@ -131,7 +131,7 @@ func main() {
 		}
 		opts := templates.BuildOptions{
 			Globals:           globals,
-			Packages:          predefPkgs,
+			Packages:          nativePackages,
 			MarkdownConverter: markdownConverter,
 		}
 		template, err := templates.Build(fsys, "index"+ext, &opts)

@@ -36,6 +36,11 @@ func (em *emitter) _changeRegister(k bool, src, dst int8, srcType reflect.Type, 
 	// dst is indirect, so the value must be "typed" to its true (original) type
 	// before putting it into general.
 	//
+	// TODO(macro): review the following comment. It uses "Scriggo type",
+	//   "Scriggo internal type", "Go defined type", "Scriggo defined type",
+	//   "defined in the gc compiled code". It should use only "native",
+	//   "non-native" and "defined".
+	//
 	// As an exception to this rule, if srcType is a Scriggo type then the
 	// Typify instruction must use the Scriggo internal type or the Go defined
 	// type, not the Scriggo defined type; that's because when the Scriggo
@@ -47,7 +52,7 @@ func (em *emitter) _changeRegister(k bool, src, dst int8, srcType reflect.Type, 
 	// the struct fields. This is not possible with Scriggo defined types,
 	// because the gc compiled code cannot reference to them.
 	if dst < 0 {
-		if st, ok := srcType.(types.ScriggoType); ok {
+		if st, ok := srcType.(types.Type); ok {
 			srcType = st.Underlying()
 		}
 		em.fb.emitTypify(k, srcType, src, dst)
@@ -224,12 +229,12 @@ func kindToType(k reflect.Kind) registerType {
 	}
 }
 
-// newGlobal returns a new Global value. If typ is a Scriggo type, then typ is
-// converted to a gc compiled type before creating the Global value.
+// newGlobal returns a new Global value. If typ is a non-native type, then typ
+// is converted to a native type before creating the Global value.
 func newGlobal(pkg, name string, typ reflect.Type, value interface{}) Global {
 	// TODO: is this solution ok? Or does it prevent from creating "global"
 	// values with scriggo types?
-	if st, ok := typ.(types.ScriggoType); ok {
+	if st, ok := typ.(types.Type); ok {
 		typ = st.Underlying()
 	}
 	return Global{
@@ -269,10 +274,9 @@ func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Up
 	for i := range closureVars {
 		v := &closureVars[i]
 		if v.Index == -1 {
-			// If the upvar is predefined then update the index of such
-			// predefined variable.
+			// If the upvar is native then update the index of such native variable.
 			if v.Declaration == nil {
-				v.Index = em.varStore.predefVarIndex(v.PredefinedValue, v.PredefinedPkg, v.PredefinedName)
+				v.Index = em.varStore.nativeVarIndex(v.NativeValue, v.NativePkg, v.NativeName)
 				continue
 			}
 			name := v.Declaration.(*ast.Identifier).Name
@@ -286,7 +290,7 @@ func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Up
 	for i, v := range closureVars {
 		closureRefs[i] = v.Index
 		if v.Declaration == nil {
-			em.varStore.setPredefVarRef(fn, v.PredefinedValue, int16(i))
+			em.varStore.setNativeVarRef(fn, v.NativeValue, int16(i))
 			continue
 		}
 		em.varStore.setClosureVar(fn, v.Declaration.(*ast.Identifier).Name, int16(i))
@@ -297,7 +301,7 @@ func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Up
 
 }
 
-func (em *emitter) emitValueNotPredefined(ti *typeInfo, reg int8, dstType reflect.Type) (int8, bool) {
+func (em *emitter) emitNonNativeValue(ti *typeInfo, reg int8, dstType reflect.Type) (int8, bool) {
 	typ := ti.Type
 	if reg == 0 {
 		return reg, false

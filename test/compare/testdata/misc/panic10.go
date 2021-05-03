@@ -1,6 +1,6 @@
 // paniccheck
 
-// Test a runtime error in a predefined function.
+// Test a runtime error in a native function.
 
 package main
 

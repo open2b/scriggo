@@ -8,10 +8,11 @@ package types
 
 import "reflect"
 
-// PtrTo behaves like reflect.PtrTo except when it is a Scriggo type; in such
-// case a new Scriggo pointer type is created and returned as reflect.Type.
+// PtrTo behaves like reflect.PtrTo except when it is a non-native type; in
+// such case a new non-native pointer type is created and returned as
+// reflect.Type.
 func (types *Types) PtrTo(t reflect.Type) reflect.Type {
-	if st, ok := t.(ScriggoType); ok {
+	if st, ok := t.(Type); ok {
 		return ptrType{
 			Type: reflect.PtrTo(st.Underlying()),
 			elem: st,
@@ -20,8 +21,8 @@ func (types *Types) PtrTo(t reflect.Type) reflect.Type {
 	return reflect.PtrTo(t)
 }
 
-// ptrType represents a composite pointer type where the element is a Scriggo
-// type.
+// ptrType represents a composite pointer type where the element is a
+// non-native type.
 type ptrType struct {
 	reflect.Type
 	elem reflect.Type // Cannot be nil.
@@ -53,7 +54,7 @@ func (x ptrType) String() string {
 
 // Underlying implements the interface runtime.Wrapper.
 func (x ptrType) Underlying() reflect.Type {
-	assertNotScriggoType(x.Type)
+	assertNativeType(x.Type)
 	return x.Type
 }
 

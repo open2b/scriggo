@@ -12,7 +12,7 @@ import "reflect"
 // defined in this package. These two methods and the Underlying method
 // implement the runtime.Wrapper interface.
 
-func wrap(t ScriggoType, v reflect.Value) reflect.Value {
+func wrap(t Type, v reflect.Value) reflect.Value {
 	return reflect.ValueOf(emptyInterfaceProxy{
 		value: v,
 		sign:  t,
@@ -21,13 +21,13 @@ func wrap(t ScriggoType, v reflect.Value) reflect.Value {
 
 // TODO: currently unwrap always returns an empty interface wrapper. This will
 //  change when methods declaration will be implemented in Scriggo.
-func unwrap(x ScriggoType, v reflect.Value) (reflect.Value, bool) {
+func unwrap(x Type, v reflect.Value) (reflect.Value, bool) {
 	p, ok := v.Interface().(emptyInterfaceProxy)
 	// Not a proxy.
 	if !ok {
 		return reflect.Value{}, false
 	}
-	// v is a proxy but it has a different Scriggo type.
+	// v is a proxy but it has a different non-native type.
 	if p.sign != x {
 		return reflect.Value{}, false
 	}
@@ -38,5 +38,5 @@ func unwrap(x ScriggoType, v reflect.Value) (reflect.Value, bool) {
 // method set.
 type emptyInterfaceProxy struct {
 	value reflect.Value
-	sign  ScriggoType
+	sign  Type
 }

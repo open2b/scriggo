@@ -57,7 +57,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 	// allocating a new one.
 	if !useGivenReg {
 		// Check if expr can be emitted as immediate.
-		if allowK && ti.HasValue() && !ti.IsPredefined() {
+		if allowK && ti.HasValue() && !ti.IsNative() {
 			switch v := ti.value.(type) {
 			case int64:
 				if canEmitDirectly(reflect.Int, dstType.Kind()) {
@@ -85,13 +85,13 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		reg = em.fb.newRegister(dstType.Kind())
 	}
 
-	// The expression has a value and is not predefined.
-	if ti != nil && ti.HasValue() && !ti.IsPredefined() {
-		return em.emitValueNotPredefined(ti, reg, dstType)
+	// The expression has a value and is non-native.
+	if ti != nil && ti.HasValue() && !ti.IsNative() {
+		return em.emitNonNativeValue(ti, reg, dstType)
 	}
 
-	// expr is a predefined function.
-	if index, ok := em.fnStore.predefFunc(expr, false); ok {
+	// expr is a native function.
+	if index, ok := em.fnStore.nativeFunction(expr, false); ok {
 		em.fb.emitLoadFunc(true, index, reg)
 		em.changeRegister(false, reg, reg, ti.Type, dstType)
 		return reg, false
@@ -245,7 +245,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			return reg, false
 		}
 
-		// Scriggo variables and closure variables.
+		// Non-native variables and closure variables.
 		if index, ok := em.varStore.nonLocalVarIndex(expr); ok {
 			if canEmitDirectly(typ.Kind(), dstType.Kind()) {
 				em.fb.emitGetVar(index, reg, dstType.Kind())
@@ -260,8 +260,8 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 
 		// Identifier represents a function.
-		if fun, ok := em.fnStore.availableScriggoFn(em.pkg, expr.Name); ok {
-			em.fb.emitLoadFunc(false, em.fnStore.scriggoFnIndex(fun), reg)
+		if fun, ok := em.fnStore.availableFunction(em.pkg, expr.Name); ok {
+			em.fb.emitLoadFunc(false, em.fnStore.functionIndex(fun), reg)
 			em.changeRegister(false, reg, reg, ti.Type, dstType)
 			return reg, false
 		}
@@ -715,7 +715,7 @@ func (em *emitter) emitSelector(v *ast.Selector, reg int8, dstType reflect.Type)
 		return
 	}
 
-	// Predefined package variable or imported package variable.
+	// Native package variable or imported package variable.
 	if index, ok := em.varStore.nonLocalVarIndex(v); ok {
 		if reg == 0 {
 			return
@@ -730,13 +730,13 @@ func (em *emitter) emitSelector(v *ast.Selector, reg int8, dstType reflect.Type)
 		return
 	}
 
-	// Scriggo-defined package functions.
+	// Non-native package functions.
 	if ident, ok := v.Expr.(*ast.Identifier); ok {
-		if sf, ok := em.fnStore.availableScriggoFn(em.pkg, ident.Name+"."+v.Ident); ok {
+		if sf, ok := em.fnStore.availableFunction(em.pkg, ident.Name+"."+v.Ident); ok {
 			if reg == 0 {
 				return
 			}
-			index := em.fnStore.scriggoFnIndex(sf)
+			index := em.fnStore.functionIndex(sf)
 			em.fb.emitLoadFunc(false, index, reg)
 			em.changeRegister(false, reg, reg, em.typ(v), dstType)
 			return
@@ -838,7 +838,7 @@ func (em *emitter) emitUnaryOp(expr *ast.UnaryOperator, reg int8, regType reflec
 		em.fb.enterScope()
 		em.emitExprR(operand, exprType, arg)
 		em.fb.exitScope()
-		em.fb.emitCallPredefined(index, 0, stackShift, expr.Pos())
+		em.fb.emitCallNative(index, 0, stackShift, expr.Pos())
 		em.changeRegister(false, src, reg, exprType, regType)
 		em.fb.exitScope()
 		return

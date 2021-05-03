@@ -25,7 +25,7 @@ const (
 	templateMod
 )
 
-// typecheck makes a type check on tree. A map of predefined packages may be
+// typecheck makes a type check on tree. A map of native packages may be
 // provided. deps must contain dependencies in case of package initialization
 // (program or template import/extend).
 // tree may be altered during the type checking.
@@ -163,14 +163,14 @@ type typechecker struct {
 
 	path string
 
-	precompiledPkgs PackageLoader
+	nativePackages PackageLoader
 
 	// universe is the outermost scope.
 	universe typeCheckerScope
 
 	// A globalScope is a scope between the universe and the file/package block.
 	// In Go there is not an equivalent concept. In scripts and templates, the
-	// declarations of the predefined package 'main' are added to this scope;
+	// declarations of the native package 'main' are added to this scope;
 	// this makes possible, in templates, to access such declarations from every
 	// page, including imported and extended ones.
 	globalScope typeCheckerScope
@@ -230,16 +230,15 @@ type typechecker struct {
 	scriptFuncOrMacroDecl bool
 
 	// types refers the types of the current compilation and it is used to
-	// create and manipulate types and values, both predefined and defined only
-	// by Scriggo.
+	// create and manipulate types and values, both native and non-native.
 	types *types.Types
 
 	// env is passed to the showFunc function and implements only the TypeOf method.
 	env *env
 
 	// structDeclPkg contains, for every struct literal and defined type with
-	// underlying type 'struct' denoted in Scriggo, the package in which it has
-	// been denoted.
+	// underlying non-native type 'struct', the package in which it has been
+	// denoted.
 	//
 	// TODO(marco): now that issue #367 is resolved, is this comment still relevant?
 	// In theory, we should keep track of the package in which the field
@@ -254,7 +253,7 @@ type typechecker struct {
 
 // newTypechecker creates a new type checker. A global scope may be provided
 // for scripts and templates.
-func newTypechecker(compilation *compilation, path string, opts checkerOptions, globalScope typeCheckerScope, precompiledPkgs PackageLoader) *typechecker {
+func newTypechecker(compilation *compilation, path string, opts checkerOptions, globalScope typeCheckerScope, nativePackages PackageLoader) *typechecker {
 	tt := types.NewTypes()
 	tc := typechecker{
 		compilation:      compilation,
@@ -269,7 +268,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		types:            tt,
 		env:              &env{tt.Runtime(), nil},
 		structDeclPkg:    map[reflect.Type]string{},
-		precompiledPkgs:  precompiledPkgs,
+		nativePackages:   nativePackages,
 	}
 	if len(opts.formatTypes) > 0 {
 		tc.universe = typeCheckerScope{}

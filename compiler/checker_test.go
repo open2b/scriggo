@@ -693,7 +693,7 @@ func evaluatedButNotUsed(v string) string {
 	return v + " evaluated but not used"
 }
 
-// checkerStmts contains some Scriggo snippets with expected type-checker error
+// checkerStmts contains some snippets with expected type-checker error
 // (or empty string if the type checking is valid). Error messages are based
 // upon Go 1.14. Tests are subdivided for categories. Each category has a title
 // (indicated by a comment), and it's split in two parts: correct source codes
@@ -1669,8 +1669,8 @@ func TestCheckerRemoveEnv(t *testing.T) {
 		p.Env1(1)
 		p.EnvVar(1,2,3,4,5)
 	}`
-	predefined := predefinedPackages{"p": p}
-	tree, err := ParseProgram(loaders(mapStringLoader{"main": main}, predefined))
+	native := nativePackages{"p": p}
+	tree, err := ParseProgram(loaders(mapStringLoader{"main": main}, native))
 	if err != nil {
 		t.Errorf("TestCheckerRemoveEnv returned parser error: %s", err)
 		return
@@ -1678,7 +1678,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 	opts := checkerOptions{
 		modality: programMod,
 	}
-	_, err = typecheck(tree, predefined, opts)
+	_, err = typecheck(tree, native, opts)
 	if err != nil {
 		t.Errorf("TestCheckerRemoveEnv returned type check error: %s", err)
 		return

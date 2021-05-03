@@ -35,8 +35,8 @@ func loaders(loaders ...PackageLoader) PackageLoader {
 	return combinedLoaders(loaders)
 }
 
-// mapStringLoader implements PackageLoader for not predefined packages as a
-// map with string values. Paths and sources are respectively the keys and the
+// mapStringLoader implements PackageLoader for non-native packages as a map
+// with string values. Paths and sources are respectively the keys and the
 // values of the map.
 type mapStringLoader map[string]string
 
@@ -47,9 +47,9 @@ func (r mapStringLoader) Load(path string) (interface{}, error) {
 	return nil, nil
 }
 
-type predefinedPackages map[string]predefinedPackage
+type nativePackages map[string]nativePackage
 
-func (pp predefinedPackages) Load(path string) (interface{}, error) {
+func (pp nativePackages) Load(path string) (interface{}, error) {
 	p := pp[path]
 	return p, nil
 }

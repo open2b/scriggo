@@ -8,10 +8,11 @@ package types
 
 import "reflect"
 
-// ChanOf behaves like reflect.ChanOf except when t is a Scriggo type; in such
-// case a new Scriggo channel type is created and returned as reflect.Type.
+// ChanOf behaves like reflect.ChanOf except when t is a non-native type; in
+// such case a new non-native channel type is created and returned as
+// reflect.Type.
 func (types *Types) ChanOf(dir reflect.ChanDir, t reflect.Type) reflect.Type {
-	if st, ok := t.(ScriggoType); ok {
+	if st, ok := t.(Type); ok {
 		return chanType{
 			Type: reflect.ChanOf(dir, st.Underlying()),
 			elem: st,
@@ -20,11 +21,11 @@ func (types *Types) ChanOf(dir reflect.ChanDir, t reflect.Type) reflect.Type {
 	return reflect.ChanOf(dir, t)
 }
 
-// chanType represents a composite channel type where the element is a Scriggo
-// type.
+// chanType represents a composite channel type where the element is a
+// non-native type.
 type chanType struct {
 	reflect.Type              // always a reflect implementation of reflect.Type
-	elem         reflect.Type // channel element, always a Scriggo type
+	elem         reflect.Type // channel element, always a non-native type
 }
 
 // AssignableTo is equivalent to reflect's AssignableTo.
@@ -63,7 +64,7 @@ func (x chanType) String() string {
 
 // Underlying implements the interface runtime.Wrapper.
 func (x chanType) Underlying() reflect.Type {
-	assertNotScriggoType(x.Type)
+	assertNativeType(x.Type)
 	return x.Type
 }
 

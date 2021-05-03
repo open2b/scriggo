@@ -1,4 +1,4 @@
-SET VARIABLE predefPkgs
+SET VARIABLE nativePackages
 
 IMPORT testpkg
 

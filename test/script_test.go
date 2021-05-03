@@ -86,7 +86,7 @@ var scriptTests = map[string]struct {
 		},
 	},
 
-	// "Overwriting predefined main variable using init": {
+	// "Overwriting native main variable using init": {
 	// 	src: `
 	// 		Print(A)
 	// 	`,

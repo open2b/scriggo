@@ -20,10 +20,10 @@ import (
 // Define some constants that define limits of the implementation.
 const (
 	// Functions.
-	maxRegistersCount           = 127
-	maxPredefinedFunctionsCount = 256
-	maxScriggoFunctionsCount    = 256
-	maxFieldIndexesCount        = 256
+	maxRegistersCount       = 127
+	maxFunctionsCount       = 256
+	maxNativeFunctionsCount = 256
+	maxFieldIndexesCount    = 256
 
 	// Types.
 	maxTypesCount = 256
@@ -158,10 +158,10 @@ func newMacro(pkg, name string, typ reflect.Type, format ast.Format, file string
 	return &fn
 }
 
-// newPredefinedFunction returns a new predefined function with a given
+// newNativeFunction returns a new native function with a given
 // package, name and implementation. fn must be a function type.
-func newPredefinedFunction(pkg, name string, fn interface{}) *runtime.PredefinedFunction {
-	return runtime.NewPredefinedFunction(pkg, name, fn)
+func newNativeFunction(pkg, name string, fn interface{}) *runtime.NativeFunction {
+	return runtime.NewNativeFunction(pkg, name, fn)
 }
 
 type functionBuilder struct {
@@ -340,8 +340,8 @@ func (fb *functionBuilder) addOperandKinds(a, b, c reflect.Kind) {
 
 // addFunctionType adds the type to the next function call instruction as a
 // debug information. Note that it's not necessary to call this method for Call
-// and CallPredefined instructions because the type of the function is already
-// stored into the Functions and Predefined slices.
+// and CallNative instructions because the type of the function is already
+// stored into the Functions and NativeFunctions slices.
 func (fb *functionBuilder) addFunctionType(typ reflect.Type) {
 	pc := runtime.Addr(len(fb.fn.Body))
 	if fb.fn.DebugInfo == nil {
@@ -366,17 +366,17 @@ func (fb *functionBuilder) getPath() string {
 }
 
 // addType adds a type to the builder's function, creating it if necessary.
-// preserveType controls if typ should be converted to the underlying gc type in
-// case of typ is a Scriggo type. So, if preserveType is set to false, this
-// method adds typ to the slice of types 'as is', independently from it's
-// implementation. Setting 'preserveType' is useful for instructions that need
-// to keep the information about the Scriggo type. Note that for every
-// instruction of the virtual machine that receives a type 'as is', such type
-// must be handled as a special case from the VM; considered that, in the most
-// cases you would just simply set 'preserveType' to false.
+// preserveType controls if typ should be converted to the underlying native
+// type in case of typ is not native. So, if preserveType is set to
+// false, this method adds typ to the slice of types 'as is', independently
+// from it's implementation. Setting 'preserveType' is useful for instructions
+// that need  to keep the information about the non-native type. Note that for
+// every instruction of the virtual machine that receives a type 'as is', such
+// type must be handled as a special case from the VM; considered that, in the
+// most cases you would just simply set 'preserveType' to false.
 func (fb *functionBuilder) addType(typ reflect.Type, preserveType bool) int {
 	if !preserveType {
-		if st, ok := typ.(types.ScriggoType); ok {
+		if st, ok := typ.(types.Type); ok {
 			typ = st.Underlying()
 		}
 	}
@@ -394,14 +394,14 @@ func (fb *functionBuilder) addType(typ reflect.Type, preserveType bool) int {
 	return index
 }
 
-// addPredefinedFunction adds a predefined function to the builder's function.
-func (fb *functionBuilder) addPredefinedFunction(f *runtime.PredefinedFunction) int8 {
+// addNativeFunction adds a native function to the builder's function.
+func (fb *functionBuilder) addNativeFunction(f *runtime.NativeFunction) int8 {
 	fn := fb.fn
-	r := len(fn.Predefined)
-	if r == maxPredefinedFunctionsCount {
-		panic(newLimitExceededError(fb.fn.Pos, fb.path, "predefined functions count exceeded %d", maxPredefinedFunctionsCount))
+	r := len(fn.NativeFunctions)
+	if r == maxNativeFunctionsCount {
+		panic(newLimitExceededError(fb.fn.Pos, fb.path, "native functions count exceeded %d", maxNativeFunctionsCount))
 	}
-	fn.Predefined = append(fn.Predefined, f)
+	fn.NativeFunctions = append(fn.NativeFunctions, f)
 	return int8(r)
 }
 
@@ -409,8 +409,8 @@ func (fb *functionBuilder) addPredefinedFunction(f *runtime.PredefinedFunction) 
 func (fb *functionBuilder) addFunction(f *runtime.Function) int8 {
 	fn := fb.fn
 	r := len(fn.Functions)
-	if r == maxScriggoFunctionsCount {
-		panic(newLimitExceededError(fb.fn.Pos, fb.path, "Scriggo functions count exceeded %d", maxScriggoFunctionsCount))
+	if r == maxFunctionsCount {
+		panic(newLimitExceededError(fb.fn.Pos, fb.path, "Functions count exceeded %d", maxFunctionsCount))
 	}
 	fn.Functions = append(fn.Functions, f)
 	return int8(r)
@@ -603,8 +603,8 @@ func (fb *functionBuilder) complexOperationIndex(op ast.OperatorType, unary bool
 		if fb.complexUnaryOpIndex != -1 {
 			return fb.complexUnaryOpIndex
 		}
-		fn := newPredefinedFunction("scriggo.complex", "neg", negComplex)
-		index := fb.addPredefinedFunction(fn)
+		fn := newNativeFunction("scriggo.complex", "neg", negComplex)
+		index := fb.addNativeFunction(fn)
 		fb.complexUnaryOpIndex = index
 		return index
 	}
@@ -628,8 +628,8 @@ func (fb *functionBuilder) complexOperationIndex(op ast.OperatorType, unary bool
 		n = "div"
 	}
 	_ = n
-	fn := newPredefinedFunction("scriggo.complex", n, f)
-	index := fb.addPredefinedFunction(fn)
+	fn := newNativeFunction("scriggo.complex", n, f)
+	index := fb.addNativeFunction(fn)
 	fb.complexBinaryOpIndexes[op] = index
 	return index
 }

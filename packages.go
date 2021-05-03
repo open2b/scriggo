@@ -12,7 +12,7 @@ import (
 	"github.com/open2b/scriggo/compiler"
 )
 
-// Package represents a predefined package.
+// Package represents a native package.
 type Package interface {
 
 	// Name returns the package's name.

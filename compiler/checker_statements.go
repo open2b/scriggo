@@ -854,29 +854,29 @@ nodesLoop:
 // checkImport type checks the import statement.
 func (tc *typechecker) checkImport(impor *ast.Import) error {
 	if tc.opts.modality == scriptMod && impor.Tree != nil {
-		panic("BUG: only precompiled packages can be imported in script")
+		panic("BUG: only native packages can be imported in script")
 	}
 
-	// Import a precompiled package.
+	// Import a native package.
 	if isPrecompiled := impor.Tree == nil; isPrecompiled {
 
-		// Load the precompiled package.
-		pkg, err := tc.precompiledPkgs.Load(impor.Path)
+		// Load the native package.
+		pkg, err := tc.nativePackages.Load(impor.Path)
 		if err != nil {
 			return tc.errorf(impor, "%s", err)
 		}
-		precompiledPkg := pkg.(predefinedPackage)
-		if precompiledPkg.Name() == "main" {
+		nativePkg := pkg.(nativePackage)
+		if nativePkg.Name() == "main" {
 			return tc.programImportError(impor)
 		}
 
-		// Read the declarations from the precompiled package.
+		// Read the declarations from the native package.
 		imported := &packageInfo{}
-		imported.Declarations = make(map[string]*typeInfo, len(precompiledPkg.DeclarationNames()))
-		for n, d := range toTypeCheckerScope(precompiledPkg, 0, tc.opts) {
+		imported.Declarations = make(map[string]*typeInfo, len(nativePkg.DeclarationNames()))
+		for n, d := range toTypeCheckerScope(nativePkg, 0, tc.opts) {
 			imported.Declarations[n] = d.t
 		}
-		imported.Name = precompiledPkg.Name()
+		imported.Name = nativePkg.Name()
 
 		// 'import _ "pkg"': nothing to do.
 		if isBlankImport(impor) {
@@ -913,7 +913,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		return nil
 	}
 
-	// Not precompiled package (i.e. a package declared in Scriggo).
+	// Non-native package.
 
 	if tc.opts.modality == templateMod {
 		tc.templatePageToPackage(impor.Tree)
@@ -921,7 +921,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
 		return tc.programImportError(impor)
 	}
-	err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, tc.precompiledPkgs, tc.opts, tc.globalScope)
+	err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, tc.nativePackages, tc.opts, tc.globalScope)
 	if err != nil {
 		return err
 	}
@@ -938,7 +938,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	if tc.opts.modality == templateMod {
 		// TODO(Gianluca): what's the point of this code? 'checkPackage' has
 		// already been called..
-		err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Path, tc.precompiledPkgs, tc.opts, tc.globalScope)
+		err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Path, tc.nativePackages, tc.opts, tc.globalScope)
 		if err != nil {
 			return err
 		}
@@ -1248,7 +1248,7 @@ func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) (string, 
 		// Return the base type.
 		return name, typ
 	}
-	// Create a new Scriggo type.
+	// Create a new non-native type.
 	defType := tc.types.DefinedOf(name, typ.Type)
 	// Associate to
 	//

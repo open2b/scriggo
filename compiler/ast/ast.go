@@ -490,25 +490,25 @@ type Func struct {
 }
 
 // Upvar represents a variable defined outside function body. Even package level
-// variables (predefined or not) are considered upvars.
+// variables (native or non-native) are considered upvars.
 type Upvar struct {
 
-	// PredefinedPkg is the name of the predefined package which holds a
-	// predefined Upvar. If Upvar is not a predefined Upvar then PredefinedName
+	// NativePkg is the name of the native package which holds a
+	// native Upvar. If Upvar is not a native Upvar then NativeName
 	// is an empty string.
-	PredefinedPkg string
+	NativePkg string
 
-	// PredefinedName is the name of the predefined declaration of a predefined
-	// Upvar. If Upvar is not a predefined Upvar then PredefinedName is an empty
+	// NativeName is the name of the native declaration of a native
+	// Upvar. If Upvar is not a native Upvar then NativeName is an empty
 	// string.
-	PredefinedName string
+	NativeName string
 
-	// PredefinedValue is the value of the predefined variable Upvar. If Upvar
-	// is not a predefined then Upvar is nil.
-	PredefinedValue *reflect.Value
+	// NativeValue is the value of the native variable Upvar. If Upvar
+	// is not native then Upvar is nil.
+	NativeValue *reflect.Value
 
 	// Declaration is the ast node where Upvar is defined. If Upvar is a
-	// predefined var then Declaration is nil.
+	// native var then Declaration is nil.
 	Declaration Node
 
 	// Index indexes the Upvars slice of the parent function.

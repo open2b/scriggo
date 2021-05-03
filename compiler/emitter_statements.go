@@ -545,10 +545,10 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 //
 func (em *emitter) emitImport(node *ast.Import, isTemplate bool) []*runtime.Function {
 
-	// If the imported package is predefined the emitter does not have to do
-	// anything: the predefined values have already been added to the type infos
+	// If the imported package is native the emitter does not have to do
+	// anything: the native values have already been added to the type infos
 	// of the tree, and the init functions have already been called when gc
-	// imported the predefined package.
+	// imported the native package.
 	if node.Tree == nil {
 		return nil
 	}
@@ -610,7 +610,7 @@ func (em *emitter) emitImport(node *ast.Import, isTemplate bool) []*runtime.Func
 			if importName != "" {
 				name = importName + "." + name
 			}
-			em.fnStore.makeAvailableScriggoFn(targetPkg, name, fn)
+			em.fnStore.makeAvailableFunction(targetPkg, name, fn)
 		}
 
 		// Add the imported variables.
@@ -618,7 +618,7 @@ func (em *emitter) emitImport(node *ast.Import, isTemplate bool) []*runtime.Func
 			if importName != "" {
 				name = importName + "." + name
 			}
-			em.varStore.bindScriggoPackageVar(targetPkg, name, v)
+			em.varStore.bindPackageVar(targetPkg, name, v)
 		}
 	}
 

@@ -8,10 +8,11 @@ package types
 
 import "reflect"
 
-// SliceOf behaves like reflect.SliceOf except when elem is a Scriggo type; in
-// such case a new Scriggo slice type is created and returned as reflect.Type.
+// SliceOf behaves like reflect.SliceOf except when elem is a non-native type;
+// in such case a new non-native slice type is created and returned as
+// reflect.Type.
 func (types *Types) SliceOf(t reflect.Type) reflect.Type {
-	if st, ok := t.(ScriggoType); ok {
+	if st, ok := t.(Type); ok {
 		return sliceType{
 			Type: reflect.SliceOf(st.Underlying()),
 			elem: st,
@@ -20,8 +21,8 @@ func (types *Types) SliceOf(t reflect.Type) reflect.Type {
 	return reflect.SliceOf(t)
 }
 
-// sliceType represents a composite slice type where the element is a Scriggo
-// type.
+// sliceType represents a composite slice type where the element is a
+// non-native type.
 type sliceType struct {
 	reflect.Type
 	elem reflect.Type
@@ -53,7 +54,7 @@ func (x sliceType) String() string {
 
 // Underlying implements the interface runtime.Wrapper.
 func (x sliceType) Underlying() reflect.Type {
-	assertNotScriggoType(x.Type)
+	assertNativeType(x.Type)
 	return x.Type
 }
 

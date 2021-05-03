@@ -116,13 +116,13 @@ type BuildOptions struct {
 	// accessible from the code in the template.
 	Globals Declarations
 
-	// Packages is a PackageLoader that makes precompiled packages available
+	// Packages is a PackageLoader that makes native packages available
 	// in the template through the 'import' statement.
 	//
-	// Note that an import statement refers to a precompiled package read from
+	// Note that an import statement refers to a native package read from
 	// Packages if its path has no extension.
 	//
-	//     {%  import  "my/package"   %}    Import a precompiled package.
+	//     {%  import  "my/package"   %}    Import a native package.
 	//     {%  import  "my/file.html  %}    Import a template file.
 	//
 	Packages scriggo.PackageLoader

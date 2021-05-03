@@ -10,8 +10,8 @@ import (
 var Center = "msg"
 
 func main() {
-	predefinedC := testpkg.Center
-	fmt.Println(predefinedC)
+	nativeC := testpkg.Center
+	fmt.Println(nativeC)
 	c := Center
 	fmt.Println(c)
 }

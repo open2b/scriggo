@@ -48,9 +48,9 @@ type Options struct {
 	Globals          Declarations
 	Renderer         runtime.Renderer
 
-	// Packages loads Scriggo packages and precompiled packages.
+	// Packages loads native and non-native packages.
 	//
-	// For template files, Packages only loads precompiled packages; the template
+	// For template files, Packages only loads native packages; the template
 	// files are read from a file system.
 	Packages PackageLoader
 
@@ -213,8 +213,8 @@ func (ml mainCombiner) Load(path string) (interface{}, error) {
 	return nil, nil
 }
 
-// predefinedPackage represents a predefined package.
-type predefinedPackage interface {
+// nativePackage represents a native package.
+type nativePackage interface {
 
 	// Name returns the package's name.
 	Name() string
@@ -231,9 +231,9 @@ type predefinedPackage interface {
 	DeclarationNames() []string
 }
 
-// PackageLoader is implemented by package loaders. Load returns a predefined
-// package as *Package or the source of a non predefined package as
-// an io.Reader.
+// PackageLoader is implemented by package loaders. Load returns a native
+// package as a Package value or the source of a non-native package as an
+// io.Reader.
 //
 // If the package does not exist it returns nil and nil.
 // If the package exists but there was an error while loading the package, it
@@ -272,8 +272,8 @@ func (e *CheckingError) Position() ast.Position {
 }
 
 // Global represents a global variable with a package, name, type (only for
-// not predefined globals) and value (only for predefined globals). Value, if
-// present, must be a pointer to the variable value.
+// non-native globals) and value (only for native globals). Value, if present,
+// must be a pointer to the variable value.
 type Global struct {
 	Pkg   string
 	Name  string
@@ -308,7 +308,7 @@ func emitProgram(pkgMain *ast.Package, typeInfos map[ast.Node]*typeInfo, indirec
 	}()
 	e := newEmitter(typeInfos, indirectVars)
 	functions, _, _ := e.emitPackage(pkgMain, false, "main")
-	main, _ := e.fnStore.availableScriggoFn(pkgMain, "main")
+	main, _ := e.fnStore.availableFunction(pkgMain, "main")
 	pkg := &Code{
 		Globals:   e.varStore.getGlobals(),
 		Functions: functions,
@@ -371,7 +371,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 			for _, dec := range pkg.Declarations {
 				if fn, ok := dec.(*ast.Func); ok && fn.Type.Macro {
 					macro := newMacro("main", fn.Ident.Name, fn.Type.Reflect, fn.Format, e.fb.getPath(), fn.Pos())
-					e.fnStore.makeAvailableScriggoFn(e.pkg, fn.Ident.Name, macro)
+					e.fnStore.makeAvailableFunction(e.pkg, fn.Ident.Name, macro)
 				}
 			}
 			// Emits extended page.

@@ -19,7 +19,7 @@ const (
 	propertyIsPackage                                 // is a package
 	propertyPredeclared                               // is predeclared
 	propertyAddressable                               // is addressable
-	propertyIsPredefined                              // is predefined
+	propertyIsNative                                  // is native
 	propertyHasValue                                  // has a value
 	propertyIsMacroDeclaration                        // is macro declaration
 )
@@ -32,7 +32,7 @@ type typeInfo struct {
 	Type              reflect.Type // Type.
 	Properties        properties   // Properties.
 	Constant          constant     // Constant value.
-	PredefPackageName string       // Name of the package. Empty string if not predefined.
+	NativePackageName string       // Name of the package. Empty string if it is not native.
 	MethodType        methodType   // Method type.
 	value             interface{}  // value; for packages has type *Package.
 	valueType         reflect.Type // When value is a predeclared type holds the original type of value.
@@ -100,9 +100,9 @@ func (ti *typeInfo) Addressable() bool {
 	return ti.Properties&propertyAddressable != 0
 }
 
-// IsPredefined reports whether it is predefined.
-func (ti *typeInfo) IsPredefined() bool {
-	return ti.Properties&propertyIsPredefined != 0
+// IsNative reports whether it is native.
+func (ti *typeInfo) IsNative() bool {
+	return ti.Properties&propertyIsNative != 0
 }
 
 // IsBuiltinFunction reports whether it is a builtin function.
@@ -192,7 +192,7 @@ func (ti *typeInfo) HasValue() bool {
 // of value.
 //
 // If ti is not a constant, setValue does nothing. setValue panics if ti
-// represents the predefined nil.
+// represents the predeclared identifier nil.
 //
 // setValue is called at every point where a constant expression is used in a
 // non-constant expression or in a statement. The following examples clarify

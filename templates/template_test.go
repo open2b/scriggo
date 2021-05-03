@@ -1415,7 +1415,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedBuildErr: `cannot show sb1 (cannot show type []uint8 as text)`,
 	},
 
-	"Using the precompiled package 'fmt'": {
+	"Using the native package 'fmt'": {
 		sources: map[string]string{
 			"index.txt": `{% import "fmt" %}{{ fmt.Sprint(10, 20) }}`,
 		},
@@ -1423,7 +1423,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "10 20",
 	},
 
-	"Using the precompiled package 'fmt' from a file that extends another file": {
+	"Using the native package 'fmt' from a file that extends another file": {
 		sources: map[string]string{
 			"index.txt":    `{% extends "extended.txt" %}{% import "fmt" %}{% macro M %}{{ fmt.Sprint(321, 11) }}{% end macro %}`,
 			"extended.txt": `{% show M() %}`,
@@ -1432,7 +1432,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "321 11",
 	},
 
-	"Using the precompiled packages 'fmt' and 'math'": {
+	"Using the native packages 'fmt' and 'math'": {
 		sources: map[string]string{
 			"index.txt": `{% import "fmt" %}{% import m "math" %}{{ fmt.Sprint(-42, m.Abs(-42)) }}`,
 		},
@@ -1440,7 +1440,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "-42 42",
 	},
 
-	"Importing the precompiled package 'fmt' with '.'": {
+	"Importing the native package 'fmt' with '.'": {
 		sources: map[string]string{
 			"index.txt": `{% import . "fmt" %}{{ Sprint(50, 70) }}`,
 		},
@@ -1448,7 +1448,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "50 70",
 	},
 
-	"Trying to import a precompiled package that is not available in the loader": {
+	"Trying to import a native package that is not available in the loader": {
 		sources: map[string]string{
 			"index.txt": `{% import "mypackage" %}{{ mypackage.F() }}`,
 		},
@@ -1456,7 +1456,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedBuildErr: "index.txt:1:11: syntax error: cannot find package \"mypackage\"",
 	},
 
-	"Trying to access a precompiled function 'SuperPrint' that is not available in the package 'fmt'": {
+	"Trying to access a native function 'SuperPrint' that is not available in the package 'fmt'": {
 		sources: map[string]string{
 			"index.txt": `{% import "fmt" %}{{ fmt.SuperPrint(42) }}`,
 		},
@@ -1464,7 +1464,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedBuildErr: "index.txt:1:25: undefined: fmt.SuperPrint",
 	},
 
-	"Using the precompiled package 'fmt' without importing it returns an error": {
+	"Using the native package 'fmt' without importing it returns an error": {
 		sources: map[string]string{
 			"index.txt": `{{ fmt.Sprint(10, 20) }}`,
 		},
@@ -1599,7 +1599,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "84\n\t\t\t84",
 	},
 
-	"Cannot access to unexported struct fields of a precompiled value (struct)": {
+	"Cannot access to unexported struct fields of a native value (struct)": {
 		sources: map[string]string{
 			"index.txt": `{{ s.foo }}`,
 		},
@@ -1612,7 +1612,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedBuildErr: `s.foo undefined (cannot refer to unexported field or method foo)`,
 	},
 
-	"Cannot access to unexported struct fields of a precompiled value (*struct)": {
+	"Cannot access to unexported struct fields of a native value (*struct)": {
 		sources: map[string]string{
 			"index.txt": `{{ s.foo }}`,
 		},
@@ -2198,7 +2198,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedBuildErr: `3:2: syntax error: unexpected text in imported file`,
 	},
 
-	"Show a Scriggo defined type value": {
+	"Show a non-native defined type value": {
 		sources: map[string]string{
 			"index.txt": `{% type Bool bool %}{{ Bool(true) }}`,
 		},
@@ -2574,7 +2574,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "hello",
 	},
 
-	"Imported file that imported a precompiled package": {
+	"Imported file that imports a native package": {
 		sources: map[string]string{
 			"index.txt":    `{% import "imported.txt" %}{{ A }}, len is {{ len(A) }}`,
 			"imported.txt": `{% import "fmt" %}{% var A = fmt.Sprint(42) %}`,
@@ -2583,7 +2583,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "42, len is 2",
 	},
 
-	"Importing and not using a precompiled package should not return error": {
+	"Importing and not using a native package should not return error": {
 		sources: map[string]string{
 			"index.txt": `{% import "fmt" %}that's ok`,
 		},

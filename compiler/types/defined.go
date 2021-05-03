@@ -10,13 +10,13 @@ import (
 	"reflect"
 )
 
-// definedType represents a type defined in the Scriggo compiled code with a
-// type definition, where the underlying type can be both a type compiled in
-// the Scriggo code or in gc.
+// definedType represents a non-native defined type, where the underlying type
+// can be both a native or non-native type.
 type definedType struct {
 	// The embedded reflect.Type can be both a reflect.Type implemented by the
-	// package "reflect" or a ScriggoType. In the other implementations of
-	// ScriggoType the embedded reflect.Type is always a gc compiled type.
+	// package "reflect" or a types.Type. In the other implementations of
+	// Type the embedded reflect.Type is always implemented by the package
+	// "reflect".
 	reflect.Type
 
 	name string
@@ -39,20 +39,20 @@ func (x definedType) Name() string {
 // AssignableTo is equivalent to reflect's AssignableTo.
 func (x definedType) AssignableTo(u reflect.Type) bool {
 
-	// Both x and u are Scriggo defined types: x is assignable to u only if
+	// Both x and u are non-native defined types: x is assignable to u only if
 	// they are the same type.
 	if T, ok := u.(definedType); ok {
 		return x == T
 	}
 
-	// x is a Scriggo defined type and u is not a defined type: x is
+	// x is a non-native defined type and u is not a defined type: x is
 	// assignable to u only if the underlying type of x is assignable to u.
 	if !isDefinedType(u) {
 		return x.Type.AssignableTo(u)
 	}
 
-	// x is a Scriggo defined type and u is a Go defined type: assignment is
-	// always impossible.
+	// x is a non-native defined type and u is a Go defined type: assignment
+	// is always impossible.
 	return false
 
 }
@@ -80,10 +80,10 @@ func (x definedType) String() string {
 
 // Underlying implements the interface runtime.Wrapper.
 func (x definedType) Underlying() reflect.Type {
-	if st, ok := x.Type.(ScriggoType); ok {
+	if st, ok := x.Type.(Type); ok {
 		return st.Underlying()
 	}
-	assertNotScriggoType(x.Type)
+	assertNativeType(x.Type)
 	return x.Type
 }
 

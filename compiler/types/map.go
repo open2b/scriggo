@@ -9,35 +9,33 @@ package types
 import "reflect"
 
 // MapOf behaves like reflect.MapOf except when at least one of the map key or
-// the map element is a Scriggo type; in such case a new Scriggo map type is
-// created and returned as reflect.Type.
+// the map element is a non-native type; in such case a new non-native map
+// type is created and returned as reflect.Type.
 func (types *Types) MapOf(key, elem reflect.Type) reflect.Type {
-	keySt, keyIsScriggoType := key.(ScriggoType)
-	elemSt, elemIsScriggoType := elem.(ScriggoType)
-	switch {
-	case keyIsScriggoType && elemIsScriggoType:
-		return mapType{
-			Type: reflect.MapOf(keySt.Underlying(), elemSt.Underlying()),
-			key:  keySt,
-			elem: elemSt,
+	if keySt, ok := key.(Type); ok {
+		if elemSt, ok := elem.(Type); ok {
+			return mapType{
+				Type: reflect.MapOf(keySt.Underlying(), elemSt.Underlying()),
+				key:  keySt,
+				elem: elemSt,
+			}
 		}
-	case keyIsScriggoType && !elemIsScriggoType:
 		return mapType{
 			Type: reflect.MapOf(keySt.Underlying(), elem),
 			key:  keySt,
 		}
-	case elemIsScriggoType && !keyIsScriggoType:
+	}
+	if elemSt, ok := elem.(Type); ok {
 		return mapType{
 			Type: reflect.MapOf(key, elemSt.Underlying()),
 			elem: elemSt,
 		}
-	default:
-		return reflect.MapOf(key, elem)
 	}
+	return reflect.MapOf(key, elem)
 }
 
 // mapType represents a composite map type where at least one of map key or
-// map element is a Scriggo type.
+// map element is a non-native type.
 type mapType struct {
 	reflect.Type
 	key, elem reflect.Type
@@ -91,7 +89,7 @@ func (x mapType) String() string {
 
 // Underlying implements the interface runtime.Wrapper.
 func (x mapType) Underlying() reflect.Type {
-	assertNotScriggoType(x.Type)
+	assertNativeType(x.Type)
 	return x.Type
 }
 

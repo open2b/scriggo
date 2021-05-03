@@ -13,13 +13,13 @@ func f2(a string, b ...int) {
 }
 
 func main() {
-	// Functions defined in Scriggo.
+	// Non-native Functions.
 	f1([]int{}...)
 	f1([]int{1, 2, 3}...)
 	f2("a", []int{}...)
 	f2("b", []int{10, 20, 30}...)
 
-	// Predefined functions.
+	// Native functions.
 	s1 := []interface{}{1, 2, 3}
 	fmt.Println(s1...)
 	s2 := []interface{}{}

@@ -11,11 +11,11 @@ import (
 	"strconv"
 )
 
-// ArrayOf is equivalent to reflect.ArrayOf except when elem is a Scriggo type;
-// in such case a new Scriggo array type is created and returned as
+// ArrayOf is equivalent to reflect.ArrayOf except when elem is a non-native
+// type; in such case a new non-native array type is created and returned as
 // reflect.Type.
 func (types *Types) ArrayOf(count int, elem reflect.Type) reflect.Type {
-	if st, ok := elem.(ScriggoType); ok {
+	if st, ok := elem.(Type); ok {
 		return arrayType{
 			Type: reflect.ArrayOf(count, st.Underlying()),
 			elem: st,
@@ -24,11 +24,11 @@ func (types *Types) ArrayOf(count int, elem reflect.Type) reflect.Type {
 	return reflect.ArrayOf(count, elem)
 }
 
-// arrayType represents a composite array type where the element is a Scriggo
-// type.
+// arrayType represents a composite array type where the element is a
+// non-native type.
 type arrayType struct {
 	reflect.Type              // always a reflect implementation of reflect.Type
-	elem         reflect.Type // array element, always a Scriggo type
+	elem         reflect.Type // array element, always a non-native type
 }
 
 // AssignableTo is equivalent to reflect's AssignableTo.
@@ -57,7 +57,7 @@ func (x arrayType) String() string {
 
 // Underlying implements the interface runtime.Wrapper.
 func (x arrayType) Underlying() reflect.Type {
-	assertNotScriggoType(x.Type)
+	assertNativeType(x.Type)
 	return x.Type
 }
 
