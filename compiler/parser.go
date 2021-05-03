@@ -1638,7 +1638,7 @@ func (p *parsing) parseImport(tok token, end tokenTyp) *ast.Import {
 			panic(syntaxError(tok.pos, "invalid import path: %q", path))
 		}
 	}
-	pos.End = tok.pos.End
+	pos = pos.WithEnd(tok.pos.End)
 	return ast.NewImport(pos, ident, path)
 }
 

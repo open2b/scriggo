@@ -714,10 +714,10 @@ var goContextTreeTests = []struct {
 		ast.NewImport(p(1, 8, 7, 9), nil, "p")}, ast.FormatText)},
 	{"import _ \"foo\"", ast.NewTree("", []ast.Node{
 		ast.NewImport(p(1, 8, 7, 13),
-			ast.NewIdentifier(p(1, 8, 7, 13), "_"), "foo")}, ast.FormatText)},
+			ast.NewIdentifier(p(1, 8, 7, 7), "_"), "foo")}, ast.FormatText)},
 	{"import boo \"foo\"", ast.NewTree("", []ast.Node{
 		ast.NewImport(p(1, 8, 7, 15),
-			ast.NewIdentifier(p(1, 8, 7, 15), "boo"), "foo")}, ast.FormatText)},
+			ast.NewIdentifier(p(1, 8, 7, 9), "boo"), "foo")}, ast.FormatText)},
 }
 
 var treeTests = []struct {
