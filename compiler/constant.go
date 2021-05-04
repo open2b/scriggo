@@ -1272,8 +1272,7 @@ func shiftConstError(op ast.OperatorType, c constant) error {
 }
 
 // convertToConstant converts a value to a constant.
-func convertToConstant(value interface{}) constant {
-	v := reflect.ValueOf(value)
+func convertToConstant(v reflect.Value) constant {
 	k := v.Kind()
 	switch {
 	case k == reflect.Bool:

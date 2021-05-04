@@ -79,107 +79,79 @@ func parseNumericConst(s string) (constant, reflect.Type, error) {
 	return n, intType, nil
 }
 
-// toTypeCheckerScope generates a type checker scope given a predefined package.
-// depth must be 0 unless toTypeCheckerScope is called recursively.
-func toTypeCheckerScope(pp predefinedPackage, depth int, opts checkerOptions) typeCheckerScope {
-	pkgName := pp.Name()
+// toTypeCheckerScope generates a type checker scope given a predefined
+// package. depth must be 0 unless toTypeCheckerScope is called recursively.
+func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, depth int) typeCheckerScope {
 	declarations := pp.DeclarationNames()
-	s := make(typeCheckerScope, len(declarations))
+	scope := make(typeCheckerScope, len(declarations))
 	for _, ident := range declarations {
-		value := pp.Lookup(ident)
-		// Import an auto-imported package. This is supported in scripts and templates only.
-		if p, ok := value.(scriggoPackage); ok {
-			if opts.modality == programMod {
+		ti := &typeInfo{PredefPackageName: pp.Name()}
+		switch v := pp.Lookup(ident).(type) {
+		default:
+			rv := reflect.ValueOf(v)
+			switch rv.Kind() {
+			case reflect.Ptr:
+				// Import a variable.
+				ti.Type = rv.Type().Elem()
+				ti.value = &rv
+				ti.Properties = propertyAddressable | propertyIsPredefined | propertyHasValue
+			case reflect.Func:
+				// Import a function.
+				ti.Type = removeEnvArg(rv.Type(), false)
+				ti.value = rv
+				ti.Properties = propertyIsPredefined | propertyHasValue
+			default:
+				// Import a typed constant.
+				ti.Constant = convertToConstant(rv)
+				if ti.Constant == nil {
+					panic(fmt.Errorf("scriggo: invalid constant v %v for %s.%s", v, pp.Name(), ident))
+				}
+				ti.Type = rv.Type()
+			}
+		case scriggoPackage:
+			// Import an auto-imported package. This is supported in scripts and templates only.
+			if mod == programMod {
 				panic(fmt.Errorf("scriggo: auto-imported packages are supported only for scripts and templates"))
 			}
 			if depth > 0 {
 				panic(fmt.Errorf("scriggo: cannot have an auto-imported package inside another auto-imported package"))
 			}
-			autoPkg := &packageInfo{}
-			autoPkg.Declarations = map[string]*typeInfo{}
-			for n, d := range toTypeCheckerScope(p, depth+1, opts) {
-				autoPkg.Declarations[n] = d.t
+			pkg := &packageInfo{
+				Name:         v.Name(),
+				Declarations: map[string]*typeInfo{},
 			}
-			autoPkg.Name = p.Name()
-			s[ident] = scopeElement{t: &typeInfo{
-				value:      autoPkg,
-				Properties: propertyIsPackage | propertyHasValue,
-			}}
-			continue
-		}
-		// Import a type.
-		if t, ok := value.(reflect.Type); ok {
-			s[ident] = scopeElement{t: &typeInfo{
-				Type:              t,
-				Properties:        propertyIsType | propertyIsPredefined,
-				PredefPackageName: pkgName,
-			}}
-			continue
-		}
-		// Import a variable.
-		if reflect.TypeOf(value).Kind() == reflect.Ptr {
-			v := reflect.ValueOf(value)
-			s[ident] = scopeElement{t: &typeInfo{
-				Type:              reflect.TypeOf(value).Elem(),
-				value:             &v,
-				Properties:        propertyAddressable | propertyIsPredefined | propertyHasValue,
-				PredefPackageName: pkgName,
-			}}
-			continue
-		}
-		// Import a function.
-		if typ := reflect.TypeOf(value); typ.Kind() == reflect.Func {
-			s[ident] = scopeElement{t: &typeInfo{
-				Type:              removeEnvArg(typ, false),
-				value:             reflect.ValueOf(value),
-				Properties:        propertyIsPredefined | propertyHasValue,
-				PredefPackageName: pkgName,
-			}}
-			continue
-		}
-		// Import an untyped constant.
-		switch c := value.(type) {
+			for n, d := range toTypeCheckerScope(v, mod, depth+1) {
+				pkg.Declarations[n] = d.t
+			}
+			ti.value = pkg
+			ti.Properties = propertyIsPackage | propertyHasValue
+			ti.PredefPackageName = ""
+		case reflect.Type:
+			// Import a type.
+			ti.Type = v
+			ti.Properties = propertyIsType | propertyIsPredefined
 		case UntypedBooleanConst:
-			s[ident] = scopeElement{t: &typeInfo{
-				Type:              boolType,
-				Properties:        propertyUntyped,
-				Constant:          boolConst(c),
-				PredefPackageName: pkgName,
-			}}
-			continue
+			// Import an untyped boolean constant.
+			ti.Type = boolType
+			ti.Properties = propertyUntyped
+			ti.Constant = boolConst(v)
 		case UntypedStringConst:
-			s[ident] = scopeElement{t: &typeInfo{
-				Type:              stringType,
-				Properties:        propertyUntyped,
-				Constant:          stringConst(c),
-				PredefPackageName: pkgName,
-			}}
-			continue
+			// Import an untyped string constant.
+			ti.Type = stringType
+			ti.Properties = propertyUntyped
+			ti.Constant = stringConst(v)
 		case UntypedNumericConst:
-			constant, typ, err := parseNumericConst(string(c))
+			// Import an untyped numeric constant.
+			var err error
+			ti.Constant, ti.Type, err = parseNumericConst(string(v))
 			if err != nil {
-				panic(fmt.Errorf("scriggo: invalid untyped constant %q for %s.%s", c, pp.Name(), ident))
+				panic(fmt.Errorf("scriggo: invalid untyped constant %q for %s.%s", v, pp.Name(), ident))
 			}
-			s[ident] = scopeElement{t: &typeInfo{
-				Type:              typ,
-				Properties:        propertyUntyped,
-				Constant:          constant,
-				PredefPackageName: pkgName,
-			}}
-			continue
+			ti.Properties = propertyUntyped
 		}
-		// Import a typed constant.
-		constant := convertToConstant(value)
-		if constant == nil {
-			panic(fmt.Errorf("scriggo: invalid constant value %v for %s.%s", value, pkgName, ident))
-		}
-		s[ident] = scopeElement{t: &typeInfo{
-			Type:              reflect.TypeOf(value),
-			Constant:          constant,
-			PredefPackageName: pkgName,
-		}}
+		scope[ident] = scopeElement{t: ti}
 	}
-	return s
+	return scope
 }
 
 type packageInfo struct {

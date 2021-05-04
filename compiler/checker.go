@@ -56,7 +56,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 			PkgName:      "main",
 			Declarations: opts.globals,
 		}
-		globalScope = toTypeCheckerScope(globals, 0, opts)
+		globalScope = toTypeCheckerScope(globals, opts.modality, 0)
 	}
 
 	// Add the global "exit" to script global scope.
