@@ -104,7 +104,7 @@ func main() {
 	case ".script":
 		opts := &scripts.BuildOptions{
 			DisallowGoStmt: *disallowGoStmt,
-			Packages: predefPkgs,
+			Packages:       predefPkgs,
 		}
 		script, err := scripts.Build(os.Stdin, opts)
 		if err != nil {
