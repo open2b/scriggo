@@ -285,7 +285,7 @@ func initGlobalVariables(variables []compiler.Global, init map[string]interface{
 	for i, variable := range variables {
 		if variable.Pkg == "main" {
 			if value, ok := init[variable.Name]; ok {
-				if variable.Value != nil {
+				if variable.Value.IsValid() {
 					panic(fmt.Sprintf("variable %q already initialized", variable.Name))
 				}
 				if value == nil {
@@ -309,10 +309,10 @@ func initGlobalVariables(variables []compiler.Global, init map[string]interface{
 				continue
 			}
 		}
-		if variable.Value == nil {
-			values[i] = reflect.New(variable.Type)
+		if variable.Value.IsValid() {
+			values[i] = variable.Value
 		} else {
-			values[i] = reflect.ValueOf(variable.Value)
+			values[i] = reflect.New(variable.Type)
 		}
 	}
 	return values

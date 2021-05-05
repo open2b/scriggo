@@ -88,7 +88,7 @@ func (vs *varStore) predefVarIndex(v *reflect.Value, pkg, name string) int16 {
 	index := int16(len(vs.globals))
 	g := newGlobal(pkg, name, v.Type().Elem(), reflect.Value{})
 	if !v.IsNil() {
-		g.Value = v.Interface()
+		g.Value = *v
 	}
 	if vs.predefVarRef[currFn] == nil {
 		vs.predefVarRef[currFn] = map[*reflect.Value]int16{}

@@ -43,7 +43,7 @@ func TestInitGlobals(t *testing.T) {
 		Pkg:   "p",
 		Name:  "a",
 		Type:  reflect.TypeOf(n),
-		Value: &n,
+		Value: reflect.ValueOf(&n),
 	}
 	globals = initGlobalVariables([]compiler.Global{global}, nil)
 	n = 2
@@ -117,7 +117,7 @@ func TestInitGlobalsAlreadyInitializedError(t *testing.T) {
 		Pkg:   "main",
 		Name:  "a",
 		Type:  reflect.TypeOf(n),
-		Value: &n,
+		Value: reflect.ValueOf(&n),
 	}
 	init := map[string]interface{}{"a": 5}
 	_ = initGlobalVariables([]compiler.Global{global}, init)

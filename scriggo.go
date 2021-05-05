@@ -141,10 +141,10 @@ func initPackageLevelVariables(globals []compiler.Global) []reflect.Value {
 	}
 	values := make([]reflect.Value, n)
 	for i, global := range globals {
-		if global.Value == nil {
-			values[i] = reflect.New(global.Type)
+		if global.Value.IsValid() {
+			values[i] = global.Value
 		} else {
-			values[i] = reflect.ValueOf(global.Value)
+			values[i] = reflect.New(global.Type)
 		}
 	}
 	return values

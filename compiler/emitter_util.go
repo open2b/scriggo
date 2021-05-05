@@ -236,7 +236,7 @@ func newGlobal(pkg, name string, typ reflect.Type, value reflect.Value) Global {
 		Pkg:   pkg,
 		Name:  name,
 		Type:  typ,
-		Value: rvalueToIface(value),
+		Value: value,
 	}
 }
 
