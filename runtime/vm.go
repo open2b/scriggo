@@ -587,6 +587,7 @@ func (vm *VM) nextCall() bool {
 	return false
 }
 
+// TODO: remove or rewrite elsewhere
 func ifacesToRvalues(ifaces []interface{}) []reflect.Value {
 	rvs := make([]reflect.Value, len(ifaces))
 	for i, iface := range ifaces {
@@ -596,6 +597,7 @@ func ifacesToRvalues(ifaces []interface{}) []reflect.Value {
 	return rvs
 }
 
+// TODO: remove or rewrite elsewhere
 func rvaluesToIfaces(rvalues []reflect.Value) []interface{} {
 	ifaces := make([]interface{}, len(rvalues))
 	for i, rv := range rvalues {
@@ -604,6 +606,7 @@ func rvaluesToIfaces(rvalues []reflect.Value) []interface{} {
 	return ifaces
 }
 
+// TODO: remove or rewrite elsewhere
 func rvalueToIface(rv reflect.Value) interface{} {
 	if !rv.IsValid() {
 		return nil
