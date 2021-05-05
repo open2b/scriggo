@@ -147,7 +147,7 @@ func (vm *VM) Run(fn *Function, types Types, globals []interface{}) (int, error)
 	}
 	vm.env.types = types
 	vm.env.globals = globals
-	err := vm.runFunc(fn, globals)
+	err := vm.runFunc(fn, ifacesToRvalues(globals))
 	vm.env.exit()
 	if err != nil {
 		switch e := err.(type) {
@@ -657,7 +657,7 @@ func (vm *VM) startGoroutine() bool {
 	copy(nvm.regs.float, vm.regs.float[vm.fp[1]+Addr(off.A):vm.fp[1]+127])
 	copy(nvm.regs.string, vm.regs.string[vm.fp[2]+Addr(off.B):vm.fp[2]+127])
 	copy(nvm.regs.general, vm.regs.general[vm.fp[3]+Addr(off.C):vm.fp[3]+127])
-	go nvm.runFunc(fn, vars)
+	go nvm.runFunc(fn, ifacesToRvalues(vars))
 	vm.pc++
 	return false
 }
@@ -934,7 +934,7 @@ func (c *callable) Value(env *env) reflect.Value {
 				nvm.setFromReflectValue(r[t], arg)
 				r[t]++
 			}
-			err := nvm.runFunc(fn, vars)
+			err := nvm.runFunc(fn, ifacesToRvalues(vars))
 			if err != nil {
 				if p, ok := err.(*Panic); ok {
 					var msg string

@@ -14,9 +14,9 @@ import (
 	"unicode"
 )
 
-func (vm *VM) runFunc(fn *Function, vars []interface{}) error {
+func (vm *VM) runFunc(fn *Function, vars []reflect.Value) error {
 	vm.fn = fn
-	vm.vars = ifacesToRvalues(vars)
+	vm.vars = vars
 	for {
 		err := vm.runRecoverable()
 		if err == nil {
