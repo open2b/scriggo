@@ -917,7 +917,7 @@ func (c *callable) Value(env *env) reflect.Value {
 	if c.method == "" {
 		// It is a Scriggo function.
 		fn := c.fn
-		vars := rvaluesToIfaces(c.vars)
+		vars := c.vars
 		c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
 			nvm := create(env)
 			nOut := fn.Type.NumOut()
@@ -934,7 +934,7 @@ func (c *callable) Value(env *env) reflect.Value {
 				nvm.setFromReflectValue(r[t], arg)
 				r[t]++
 			}
-			err := nvm.runFunc(fn, ifacesToRvalues(vars))
+			err := nvm.runFunc(fn, vars)
 			if err != nil {
 				if p, ok := err.(*Panic); ok {
 					var msg string
