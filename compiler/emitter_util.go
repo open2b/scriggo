@@ -226,7 +226,7 @@ func kindToType(k reflect.Kind) registerType {
 
 // newGlobal returns a new Global value. If typ is a Scriggo type, then typ is
 // converted to a gc compiled type before creating the Global value.
-func newGlobal(pkg, name string, typ reflect.Type, value interface{}) Global {
+func newGlobal(pkg, name string, typ reflect.Type, value reflect.Value) Global {
 	// TODO: is this solution ok? Or does it prevent from creating "global"
 	// values with scriggo types?
 	if st, ok := typ.(types.ScriggoType); ok {
@@ -236,8 +236,16 @@ func newGlobal(pkg, name string, typ reflect.Type, value interface{}) Global {
 		Pkg:   pkg,
 		Name:  name,
 		Type:  typ,
-		Value: value,
+		Value: rvalueToIface(value),
 	}
+}
+
+// REVIEW: remove.
+func rvalueToIface(rv reflect.Value) interface{} {
+	if !rv.IsValid() {
+		return nil
+	}
+	return rv.Interface()
 }
 
 // canEmitDirectly reports whether a value of kind k1 can be emitted directly
