@@ -29,7 +29,7 @@ func TestInitGlobals(t *testing.T) {
 		Type: reflect.TypeOf(0),
 	}
 	globals = initGlobalVariables([]compiler.Global{global}, nil)
-	g, ok := globals[0].(*int)
+	g, ok := globals[0].Interface().(*int)
 	if !ok {
 		t.Fatalf("unexpected type %T, expecting *int", g)
 	}
@@ -47,7 +47,7 @@ func TestInitGlobals(t *testing.T) {
 	}
 	globals = initGlobalVariables([]compiler.Global{global}, nil)
 	n = 2
-	g, ok = globals[0].(*int)
+	g, ok = globals[0].Interface().(*int)
 	if !ok {
 		t.Fatalf("unexpected type %T, expecting *int", g)
 	}
@@ -67,7 +67,7 @@ func TestInitGlobals(t *testing.T) {
 		t.Fatalf("unexpected %v, expecting nil", globals)
 	}
 	n = 3
-	g, ok = globals[0].(*int)
+	g, ok = globals[0].Interface().(*int)
 	if !ok {
 		t.Fatalf("unexpected type %T, expecting *int", g)
 	}
@@ -87,7 +87,7 @@ func TestInitGlobals(t *testing.T) {
 		t.Fatalf("unexpected %v, expecting nil", globals)
 	}
 	n = 4
-	g, ok = globals[0].(*int)
+	g, ok = globals[0].Interface().(*int)
 	if !ok {
 		t.Fatalf("unexpected type %T, expecting *int", g)
 	}

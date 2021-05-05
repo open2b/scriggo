@@ -75,7 +75,7 @@ func (p *Script) Run(vars map[string]interface{}, options *RunOptions) (int, err
 			vm.SetPrint(options.PrintFunc)
 		}
 	}
-	return vm.Run(p.fn, p.types, ifacesToRvalues(initGlobalVariables(p.globals, vars)))
+	return vm.Run(p.fn, p.types, initGlobalVariables(p.globals, vars))
 }
 
 // REVIEW: remove.
@@ -101,7 +101,7 @@ var emptyInit = map[string]interface{}{}
 
 // initGlobalVariables initializes the global variables and returns their
 // values. It panics if init is not valid.
-func initGlobalVariables(variables []compiler.Global, init map[string]interface{}) []interface{} {
+func initGlobalVariables(variables []compiler.Global, init map[string]interface{}) []reflect.Value {
 	n := len(variables)
 	if n == 0 {
 		return nil
@@ -109,7 +109,7 @@ func initGlobalVariables(variables []compiler.Global, init map[string]interface{
 	if init == nil {
 		init = emptyInit
 	}
-	values := make([]interface{}, n)
+	values := make([]reflect.Value, n)
 	for i, variable := range variables {
 		if variable.Pkg == "main" {
 			if value, ok := init[variable.Name]; ok {
@@ -123,7 +123,7 @@ func initGlobalVariables(variables []compiler.Global, init map[string]interface{
 				if typ := val.Type(); typ == variable.Type {
 					v := reflect.New(typ).Elem()
 					v.Set(val)
-					values[i] = v.Addr().Interface()
+					values[i] = v.Addr()
 				} else {
 					if typ.Kind() != reflect.Ptr || typ.Elem() != variable.Type {
 						panic(fmt.Sprintf("variable initializer %q must have type %s or %s, but have %s",
@@ -132,15 +132,15 @@ func initGlobalVariables(variables []compiler.Global, init map[string]interface{
 					if val.IsNil() {
 						panic(fmt.Sprintf("variable initializer %q cannot be a nil pointer", variable.Name))
 					}
-					values[i] = value
+					values[i] = reflect.ValueOf(value)
 				}
 				continue
 			}
 		}
 		if variable.Value == nil {
-			values[i] = reflect.New(variable.Type).Interface()
+			values[i] = reflect.New(variable.Type)
 		} else {
-			values[i] = variable.Value
+			values[i] = reflect.ValueOf(variable.Value)
 		}
 	}
 	return values
