@@ -240,14 +240,6 @@ func newGlobal(pkg, name string, typ reflect.Type, value reflect.Value) Global {
 	}
 }
 
-// REVIEW: remove.
-func rvalueToIface(rv reflect.Value) interface{} {
-	if !rv.IsValid() {
-		return nil
-	}
-	return rv.Interface()
-}
-
 // canEmitDirectly reports whether a value of kind k1 can be emitted directly
 // into a register of kind k2 without the needing of passing from an
 // intermediate register.

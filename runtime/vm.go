@@ -587,33 +587,6 @@ func (vm *VM) nextCall() bool {
 	return false
 }
 
-// REVIEW: remove or rewrite elsewhere
-func ifacesToRvalues(ifaces []interface{}) []reflect.Value {
-	rvs := make([]reflect.Value, len(ifaces))
-	for i, iface := range ifaces {
-		rv := reflect.ValueOf(iface)
-		rvs[i] = rv
-	}
-	return rvs
-}
-
-// REVIEW: remove or rewrite elsewhere
-func rvaluesToIfaces(rvalues []reflect.Value) []interface{} {
-	ifaces := make([]interface{}, len(rvalues))
-	for i, rv := range rvalues {
-		ifaces[i] = rvalueToIface(rv)
-	}
-	return ifaces
-}
-
-// REVIEW: remove or rewrite elsewhere
-func rvalueToIface(rv reflect.Value) interface{} {
-	if !rv.IsValid() {
-		return nil
-	}
-	return rv.Interface()
-}
-
 // create creates a new virtual machine with the execution environment env.
 func create(env *env) *VM {
 	vm := &VM{

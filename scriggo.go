@@ -84,16 +84,6 @@ func (p *Program) Run(options *RunOptions) (int, error) {
 	return vm.Run(p.fn, p.types, initPackageLevelVariables(p.globals))
 }
 
-// REVIEW: remove.
-func ifacesToRvalues(ifaces []interface{}) []reflect.Value {
-	rvs := make([]reflect.Value, len(ifaces))
-	for i, iface := range ifaces {
-		rv := reflect.ValueOf(iface)
-		rvs[i] = rv
-	}
-	return rvs
-}
-
 // MustRun is like Run but panics if the run fails.
 func (p *Program) MustRun(options *RunOptions) int {
 	code, err := p.Run(options)

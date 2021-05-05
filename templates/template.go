@@ -226,16 +226,6 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 	return err
 }
 
-// REVIEW: remove.
-func ifacesToRvalues(ifaces []interface{}) []reflect.Value {
-	rvs := make([]reflect.Value, len(ifaces))
-	for i, iface := range ifaces {
-		rv := reflect.ValueOf(iface)
-		rvs[i] = rv
-	}
-	return rvs
-}
-
 // MustRun is like Run but panics if the execution fails.
 func (t *Template) MustRun(out io.Writer, vars map[string]interface{}, options *RunOptions) {
 	err := t.Run(out, vars, options)
