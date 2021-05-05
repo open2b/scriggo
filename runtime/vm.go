@@ -88,7 +88,7 @@ type VM struct {
 	ok       bool                 // ok flag.
 	regs     registers            // registers.
 	fn       *Function            // running function.
-	vars     []interface{}        // global and closure variables.
+	vars     []reflect.Value      // global and closure variables.
 	env      *env                 // execution environment.
 	envArg   reflect.Value        // execution environment as argument.
 	renderer Renderer             // renderer
@@ -576,7 +576,7 @@ func (vm *VM) nextCall() bool {
 				vm.fp = call.fp
 				vm.pc = call.pc
 				vm.fn = call.cl.fn
-				vm.vars = call.cl.vars
+				vm.vars = ifacesToRvalues(call.cl.vars)
 				vm.renderer = call.renderer
 				return true
 			}
@@ -585,6 +585,30 @@ func (vm *VM) nextCall() bool {
 		}
 	}
 	return false
+}
+
+func ifacesToRvalues(ifaces []interface{}) []reflect.Value {
+	rvs := make([]reflect.Value, len(ifaces))
+	for i, iface := range ifaces {
+		rv := reflect.ValueOf(iface)
+		rvs[i] = rv
+	}
+	return rvs
+}
+
+func rvaluesToIfaces(rvalues []reflect.Value) []interface{} {
+	ifaces := make([]interface{}, len(rvalues))
+	for i, rv := range rvalues {
+		ifaces[i] = rvalueToIface(rv)
+	}
+	return ifaces
+}
+
+func rvalueToIface(rv reflect.Value) interface{} {
+	if !rv.IsValid() {
+		return nil
+	}
+	return rv.Interface()
 }
 
 // create creates a new virtual machine with the execution environment env.

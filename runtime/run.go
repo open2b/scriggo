@@ -16,7 +16,7 @@ import (
 
 func (vm *VM) runFunc(fn *Function, vars []interface{}) error {
 	vm.fn = fn
-	vm.vars = vars
+	vm.vars = ifacesToRvalues(vars)
 	for {
 		err := vm.runRecoverable()
 		if err == nil {
@@ -211,7 +211,7 @@ func (vm *VM) run() (Addr, bool) {
 
 		// Call
 		case OpCallFunc:
-			call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
+			call := callFrame{cl: callable{fn: vm.fn, vars: rvaluesToIfaces(vm.vars)}, fp: vm.fp, pc: vm.pc + 1}
 			fn := vm.fn.Functions[uint8(a)]
 			off := vm.fn.Body[vm.pc]
 			vm.fp[0] += Addr(off.Op)
@@ -231,7 +231,7 @@ func (vm *VM) run() (Addr, bool) {
 				vm.moreGeneralStack()
 			}
 			vm.fn = fn
-			vm.vars = vm.env.globals
+			vm.vars = ifacesToRvalues(vm.env.globals)
 			vm.calls = append(vm.calls, call)
 			vm.pc = 0
 		case OpCallIndirect:
@@ -242,7 +242,7 @@ func (vm *VM) run() (Addr, bool) {
 				startPredefinedGoroutine = false
 				vm.pc++
 			} else {
-				call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
+				call := callFrame{cl: callable{fn: vm.fn, vars: rvaluesToIfaces(vm.vars)}, fp: vm.fp, pc: vm.pc + 1}
 				fn := f.fn
 				off := vm.fn.Body[vm.pc]
 				vm.fp[0] += Addr(off.Op)
@@ -270,12 +270,12 @@ func (vm *VM) run() (Addr, bool) {
 					}
 				}
 				vm.fn = fn
-				vm.vars = f.vars
+				vm.vars = ifacesToRvalues(f.vars)
 				vm.calls = append(vm.calls, call)
 				vm.pc = 0
 			}
 		case OpCallMacro:
-			call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, renderer: vm.renderer, fp: vm.fp, pc: vm.pc + 1}
+			call := callFrame{cl: callable{fn: vm.fn, vars: rvaluesToIfaces(vm.vars)}, renderer: vm.renderer, fp: vm.fp, pc: vm.pc + 1}
 			fn := vm.fn.Functions[uint8(a)]
 			off := vm.fn.Body[vm.pc]
 			vm.fp[0] += Addr(off.Op)
@@ -300,7 +300,7 @@ func (vm *VM) run() (Addr, bool) {
 				vm.renderer = vm.renderer.WithConversion(fn.Format, uint8(b))
 			}
 			vm.fn = fn
-			vm.vars = vm.env.globals
+			vm.vars = ifacesToRvalues(vm.env.globals)
 			vm.calls = append(vm.calls, call)
 			vm.pc = 0
 		case OpCallPredefined:
@@ -573,13 +573,13 @@ func (vm *VM) run() (Addr, bool) {
 		// GetVar
 		case OpGetVar:
 			v := vm.vars[decodeInt16(a, b)]
-			rv := reflect.ValueOf(v).Elem()
+			rv := v.Elem()
 			vm.setFromReflectValue(c, rv)
 
 		// GetVarAddr
 		case OpGetVarAddr:
 			v := vm.vars[decodeInt16(a, b)]
-			vm.setFromReflectValue(c, reflect.ValueOf(v))
+			vm.setFromReflectValue(c, v)
 
 		// Go
 		case OpGo:
@@ -947,7 +947,7 @@ func (vm *VM) run() (Addr, bool) {
 						if ref < 0 {
 							vars[i] = vm.general(int8(-ref)).Interface()
 						} else {
-							vars[i] = vm.vars[ref]
+							vars[i] = rvalueToIface(vm.vars[ref])
 						}
 					}
 				} else {
@@ -1524,7 +1524,7 @@ func (vm *VM) run() (Addr, bool) {
 				vm.calls = vm.calls[:i]
 				vm.fp = call.fp
 				vm.fn = call.cl.fn
-				vm.vars = call.cl.vars
+				vm.vars = ifacesToRvalues(call.cl.vars)
 				vm.pc = call.pc
 			} else if !vm.nextCall() {
 				return maxUint32, false
@@ -1664,19 +1664,8 @@ func (vm *VM) run() (Addr, bool) {
 		// SetVar
 		case OpSetVar, -OpSetVar:
 			v := vm.vars[decodeInt16(b, c)]
-			switch v := v.(type) {
-			case *bool:
-				*v = vm.boolk(a, op < 0)
-			case *int:
-				*v = int(vm.intk(a, op < 0))
-			case *float64:
-				*v = vm.floatk(a, op < 0)
-			case *string:
-				*v = vm.stringk(a, op < 0)
-			default:
-				rv := reflect.ValueOf(v).Elem()
-				vm.getIntoReflectValue(a, rv, op < 0)
-			}
+			rv := v.Elem()
+			vm.getIntoReflectValue(a, rv, op < 0)
 
 		// Shl
 		case OpShl, -OpShl:
@@ -1827,16 +1816,16 @@ func (vm *VM) run() (Addr, bool) {
 
 		// TailCall
 		case OpTailCall:
-			vm.calls = append(vm.calls, callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, pc: vm.pc, status: tailed})
+			vm.calls = append(vm.calls, callFrame{cl: callable{fn: vm.fn, vars: rvaluesToIfaces(vm.vars)}, pc: vm.pc, status: tailed})
 			if a != CurrentFunction {
 				var fn *Function
 				if a == 0 {
 					closure := vm.general(b).Interface().(*callable)
 					fn = closure.fn
-					vm.vars = closure.vars
+					vm.vars = ifacesToRvalues(closure.vars)
 				} else {
 					fn = vm.fn.Functions[uint8(b)]
-					vm.vars = vm.env.globals
+					vm.vars = ifacesToRvalues(vm.env.globals)
 				}
 				if vm.fp[0]+Addr(fn.NumReg[0]) > vm.st[0] {
 					vm.moreIntStack()
