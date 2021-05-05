@@ -634,19 +634,19 @@ func create(env *env) *VM {
 // counter pc. If the function is predefined, returns true.
 func (vm *VM) startGoroutine() bool {
 	var fn *Function
-	var vars []interface{}
+	var vars []reflect.Value
 	call := vm.fn.Body[vm.pc]
 	switch call.Op {
 	case OpCallFunc:
 		fn = vm.fn.Functions[uint8(call.A)]
-		vars = rvaluesToIfaces(vm.env.globals)
+		vars = vm.env.globals
 	case OpCallIndirect:
 		f := vm.general(call.A).Interface().(*callable)
 		if f.fn == nil {
 			return true
 		}
 		fn = f.fn
-		vars = rvaluesToIfaces(f.vars)
+		vars = f.vars
 	default:
 		return true
 	}
@@ -657,7 +657,7 @@ func (vm *VM) startGoroutine() bool {
 	copy(nvm.regs.float, vm.regs.float[vm.fp[1]+Addr(off.A):vm.fp[1]+127])
 	copy(nvm.regs.string, vm.regs.string[vm.fp[2]+Addr(off.B):vm.fp[2]+127])
 	copy(nvm.regs.general, vm.regs.general[vm.fp[3]+Addr(off.C):vm.fp[3]+127])
-	go nvm.runFunc(fn, ifacesToRvalues(vars))
+	go nvm.runFunc(fn, vars)
 	vm.pc++
 	return false
 }
