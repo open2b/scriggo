@@ -940,20 +940,20 @@ func (vm *VM) run() (Addr, bool) {
 				vm.setGeneral(c, reflect.ValueOf(&fn))
 			} else {
 				fn := vm.fn.Functions[uint8(b)]
-				var vars []interface{}
+				var vars []reflect.Value
 				if fn.VarRefs != nil {
-					vars = make([]interface{}, len(fn.VarRefs))
+					vars = make([]reflect.Value, len(fn.VarRefs))
 					for i, ref := range fn.VarRefs {
 						if ref < 0 {
-							vars[i] = vm.general(int8(-ref)).Interface()
+							vars[i] = vm.general(int8(-ref))
 						} else {
-							vars[i] = rvalueToIface(vm.vars[ref])
+							vars[i] = vm.vars[ref]
 						}
 					}
 				} else {
-					vars = rvaluesToIfaces(vm.env.globals)
+					vars = vm.env.globals
 				}
-				vm.setGeneral(c, reflect.ValueOf(&callable{fn: fn, vars: ifacesToRvalues(vars)}))
+				vm.setGeneral(c, reflect.ValueOf(&callable{fn: fn, vars: vars}))
 			}
 
 		// MakeArray
