@@ -29,7 +29,7 @@ func TestInitPackageLevelVariables(t *testing.T) {
 		Type: reflect.TypeOf(0),
 	}
 	globals = initPackageLevelVariables([]compiler.Global{global})
-	g, ok := globals[0].(*int)
+	g, ok := globals[0].Interface().(*int)
 	if !ok {
 		t.Fatalf("unexpected type %T, expecting *int", g)
 	}
@@ -47,7 +47,7 @@ func TestInitPackageLevelVariables(t *testing.T) {
 	}
 	globals = initPackageLevelVariables([]compiler.Global{global})
 	n = 2
-	g, ok = globals[0].(*int)
+	g, ok = globals[0].Interface().(*int)
 	if !ok {
 		t.Fatalf("unexpected type %T, expecting *int", g)
 	}

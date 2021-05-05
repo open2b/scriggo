@@ -81,7 +81,7 @@ func (p *Program) Run(options *RunOptions) (int, error) {
 			vm.SetPrint(options.PrintFunc)
 		}
 	}
-	return vm.Run(p.fn, p.types, ifacesToRvalues(initPackageLevelVariables(p.globals)))
+	return vm.Run(p.fn, p.types, initPackageLevelVariables(p.globals))
 }
 
 // REVIEW: remove.
@@ -134,17 +134,17 @@ func PrintFunc(w io.Writer) runtime.PrintFunc {
 
 // initPackageLevelVariables initializes the package level variables and
 // returns the values.
-func initPackageLevelVariables(globals []compiler.Global) []interface{} {
+func initPackageLevelVariables(globals []compiler.Global) []reflect.Value {
 	n := len(globals)
 	if n == 0 {
 		return nil
 	}
-	values := make([]interface{}, n)
+	values := make([]reflect.Value, n)
 	for i, global := range globals {
 		if global.Value == nil {
-			values[i] = reflect.New(global.Type).Interface()
+			values[i] = reflect.New(global.Type)
 		} else {
-			values[i] = global.Value
+			values[i] = reflect.ValueOf(global.Value)
 		}
 	}
 	return values
