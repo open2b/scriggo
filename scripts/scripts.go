@@ -75,7 +75,17 @@ func (p *Script) Run(vars map[string]interface{}, options *RunOptions) (int, err
 			vm.SetPrint(options.PrintFunc)
 		}
 	}
-	return vm.Run(p.fn, p.types, initGlobalVariables(p.globals, vars))
+	return vm.Run(p.fn, p.types, ifacesToRvalues(initGlobalVariables(p.globals, vars)))
+}
+
+// REVIEW: remove.
+func ifacesToRvalues(ifaces []interface{}) []reflect.Value {
+	rvs := make([]reflect.Value, len(ifaces))
+	for i, iface := range ifaces {
+		rv := reflect.ValueOf(iface)
+		rvs[i] = rv
+	}
+	return rvs
 }
 
 // MustRun is like Run but panics if the run fails.

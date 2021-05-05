@@ -222,8 +222,18 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 	}
 	renderer := newRenderer(out, t.mdConverter)
 	vm.SetRenderer(renderer)
-	_, err := vm.Run(t.fn, t.types, initGlobalVariables(t.globals, vars))
+	_, err := vm.Run(t.fn, t.types, ifacesToRvalues(initGlobalVariables(t.globals, vars)))
 	return err
+}
+
+// REVIEW: remove.
+func ifacesToRvalues(ifaces []interface{}) []reflect.Value {
+	rvs := make([]reflect.Value, len(ifaces))
+	for i, iface := range ifaces {
+		rv := reflect.ValueOf(iface)
+		rvs[i] = rv
+	}
+	return rvs
 }
 
 // MustRun is like Run but panics if the execution fails.

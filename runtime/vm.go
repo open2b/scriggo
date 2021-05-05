@@ -141,13 +141,13 @@ func (vm *VM) Reset() {
 // If a context has been set and the context is canceled, Run returns
 // as soon as possible with the error returned by the Err method of the
 // context.
-func (vm *VM) Run(fn *Function, types Types, globals []interface{}) (int, error) {
+func (vm *VM) Run(fn *Function, types Types, globals []reflect.Value) (int, error) {
 	if types == nil {
 		types = reflectTypes{}
 	}
 	vm.env.types = types
-	vm.env.globals = ifacesToRvalues(globals)
-	err := vm.runFunc(fn, ifacesToRvalues(globals))
+	vm.env.globals = globals
+	err := vm.runFunc(fn, globals)
 	vm.env.exit()
 	if err != nil {
 		switch e := err.(type) {
