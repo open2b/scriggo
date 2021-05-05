@@ -146,7 +146,7 @@ func (vm *VM) Run(fn *Function, types Types, globals []interface{}) (int, error)
 		types = reflectTypes{}
 	}
 	vm.env.types = types
-	vm.env.globals = globals
+	vm.env.globals = ifacesToRvalues(globals)
 	err := vm.runFunc(fn, ifacesToRvalues(globals))
 	vm.env.exit()
 	if err != nil {
@@ -639,7 +639,7 @@ func (vm *VM) startGoroutine() bool {
 	switch call.Op {
 	case OpCallFunc:
 		fn = vm.fn.Functions[uint8(call.A)]
-		vars = vm.env.globals
+		vars = rvaluesToIfaces(vm.env.globals)
 	case OpCallIndirect:
 		f := vm.general(call.A).Interface().(*callable)
 		if f.fn == nil {

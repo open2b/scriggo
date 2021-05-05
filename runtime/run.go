@@ -231,7 +231,7 @@ func (vm *VM) run() (Addr, bool) {
 				vm.moreGeneralStack()
 			}
 			vm.fn = fn
-			vm.vars = ifacesToRvalues(vm.env.globals)
+			vm.vars = vm.env.globals
 			vm.calls = append(vm.calls, call)
 			vm.pc = 0
 		case OpCallIndirect:
@@ -300,7 +300,7 @@ func (vm *VM) run() (Addr, bool) {
 				vm.renderer = vm.renderer.WithConversion(fn.Format, uint8(b))
 			}
 			vm.fn = fn
-			vm.vars = ifacesToRvalues(vm.env.globals)
+			vm.vars = vm.env.globals
 			vm.calls = append(vm.calls, call)
 			vm.pc = 0
 		case OpCallPredefined:
@@ -951,7 +951,7 @@ func (vm *VM) run() (Addr, bool) {
 						}
 					}
 				} else {
-					vars = vm.env.globals
+					vars = rvaluesToIfaces(vm.env.globals)
 				}
 				vm.setGeneral(c, reflect.ValueOf(&callable{fn: fn, vars: ifacesToRvalues(vars)}))
 			}
@@ -1825,7 +1825,7 @@ func (vm *VM) run() (Addr, bool) {
 					vm.vars = closure.vars
 				} else {
 					fn = vm.fn.Functions[uint8(b)]
-					vm.vars = ifacesToRvalues(vm.env.globals)
+					vm.vars = vm.env.globals
 				}
 				if vm.fp[0]+Addr(fn.NumReg[0]) > vm.st[0] {
 					vm.moreIntStack()

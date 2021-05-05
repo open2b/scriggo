@@ -81,7 +81,7 @@ type Renderer interface {
 // The env type implements the Env interface.
 type env struct {
 	ctx     context.Context // context.
-	globals []interface{}   // global variables.
+	globals []reflect.Value // global variables.
 	print   PrintFunc       // custom print builtin.
 	types   Types           // types.
 
