@@ -222,7 +222,7 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 	}
 	renderer := newRenderer(out, t.mdConverter)
 	vm.SetRenderer(renderer)
-	_, err := vm.Run(t.fn, t.types, ifacesToRvalues(initGlobalVariables(t.globals, vars)))
+	_, err := vm.Run(t.fn, t.types, initGlobalVariables(t.globals, vars))
 	return err
 }
 
@@ -273,7 +273,7 @@ var emptyInit = map[string]interface{}{}
 // values. It panics if init is not valid.
 //
 // This function is a copy of the function in the scripts package.
-func initGlobalVariables(variables []compiler.Global, init map[string]interface{}) []interface{} {
+func initGlobalVariables(variables []compiler.Global, init map[string]interface{}) []reflect.Value {
 	n := len(variables)
 	if n == 0 {
 		return nil
@@ -281,7 +281,7 @@ func initGlobalVariables(variables []compiler.Global, init map[string]interface{
 	if init == nil {
 		init = emptyInit
 	}
-	values := make([]interface{}, n)
+	values := make([]reflect.Value, n)
 	for i, variable := range variables {
 		if variable.Pkg == "main" {
 			if value, ok := init[variable.Name]; ok {
@@ -295,7 +295,7 @@ func initGlobalVariables(variables []compiler.Global, init map[string]interface{
 				if typ := val.Type(); typ == variable.Type {
 					v := reflect.New(typ).Elem()
 					v.Set(val)
-					values[i] = v.Addr().Interface()
+					values[i] = v.Addr()
 				} else {
 					if typ.Kind() != reflect.Ptr || typ.Elem() != variable.Type {
 						panic(fmt.Sprintf("variable initializer %q must have type %s or %s, but have %s",
@@ -304,15 +304,15 @@ func initGlobalVariables(variables []compiler.Global, init map[string]interface{
 					if val.IsNil() {
 						panic(fmt.Sprintf("variable initializer %q cannot be a nil pointer", variable.Name))
 					}
-					values[i] = value
+					values[i] = reflect.ValueOf(value)
 				}
 				continue
 			}
 		}
 		if variable.Value == nil {
-			values[i] = reflect.New(variable.Type).Interface()
+			values[i] = reflect.New(variable.Type)
 		} else {
-			values[i] = variable.Value
+			values[i] = reflect.ValueOf(variable.Value)
 		}
 	}
 	return values
