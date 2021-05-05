@@ -576,7 +576,7 @@ func (vm *VM) nextCall() bool {
 				vm.fp = call.fp
 				vm.pc = call.pc
 				vm.fn = call.cl.fn
-				vm.vars = ifacesToRvalues(call.cl.vars)
+				vm.vars = call.cl.vars
 				vm.renderer = call.renderer
 				return true
 			}
@@ -646,7 +646,7 @@ func (vm *VM) startGoroutine() bool {
 			return true
 		}
 		fn = f.fn
-		vars = f.vars
+		vars = rvaluesToIfaces(f.vars)
 	default:
 		return true
 	}
@@ -886,7 +886,7 @@ type callable struct {
 	predefined *PredefinedFunction // predefined function.
 	receiver   interface{}         // receiver, if it is a method value.
 	method     string              // method name, if it is a method value.
-	vars       []interface{}       // non-local (global and closure) variables.
+	vars       []reflect.Value     // non-local (global and closure) variables.
 }
 
 // Predefined returns the predefined function of a callable.
@@ -917,7 +917,7 @@ func (c *callable) Value(env *env) reflect.Value {
 	if c.method == "" {
 		// It is a Scriggo function.
 		fn := c.fn
-		vars := c.vars
+		vars := rvaluesToIfaces(c.vars)
 		c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
 			nvm := create(env)
 			nOut := fn.Type.NumOut()
