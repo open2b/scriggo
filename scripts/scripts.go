@@ -122,7 +122,7 @@ func initGlobalVariables(variables []compiler.Global, init map[string]interface{
 					if val.IsNil() {
 						panic(fmt.Sprintf("variable initializer %q cannot be a nil pointer", variable.Name))
 					}
-					values[i] = reflect.ValueOf(value)
+					values[i] = val
 				}
 				continue
 			}
