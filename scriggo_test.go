@@ -16,8 +16,6 @@ import (
 
 func TestInitPackageLevelVariables(t *testing.T) {
 
-	t.Skip() // REVIEW: re-enable
-
 	// Test no globals.
 	globals := initPackageLevelVariables([]compiler.Global{})
 	if globals != nil {
@@ -31,12 +29,12 @@ func TestInitPackageLevelVariables(t *testing.T) {
 		Type: reflect.TypeOf(0),
 	}
 	globals = initPackageLevelVariables([]compiler.Global{global})
-	g, ok := globals[0].Interface().(*int)
-	if !ok {
-		t.Fatalf("unexpected type %T, expecting *int", g)
+	g := globals[0]
+	if g.Type().Kind() != reflect.Int {
+		t.Fatalf("unexpected kind %v", g.Type().Kind())
 	}
-	if *g != 0 {
-		t.Fatalf("unexpected %d, expecting 0", *g)
+	if g.Interface() != 0 {
+		t.Fatalf("unexpected %v, expecting 0", g.Interface())
 	}
 
 	// Test pointer value in globals.
@@ -45,16 +43,17 @@ func TestInitPackageLevelVariables(t *testing.T) {
 		Pkg:   "p",
 		Name:  "a",
 		Type:  reflect.TypeOf(n),
-		Value: reflect.ValueOf(&n),
+		Value: reflect.ValueOf(&n).Elem(),
 	}
 	globals = initPackageLevelVariables([]compiler.Global{global})
 	n = 2
-	g, ok = globals[0].Interface().(*int)
-	if !ok {
-		t.Fatalf("unexpected type %T, expecting *int", g)
+	g = globals[0]
+	if g.Type().Kind() != reflect.Int {
+		t.Fatalf("unexpected king %v", g.Type().Kind())
 	}
-	if *g != n {
-		t.Fatalf("unexpected %d, expecting %d", *g, n)
+	iface := g.Interface()
+	if iface != n {
+		t.Fatalf("unexpected %v (type %T), expecting %d (type %T)", iface, iface, n, n)
 	}
 
 }
