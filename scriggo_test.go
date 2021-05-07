@@ -49,7 +49,7 @@ func TestInitPackageLevelVariables(t *testing.T) {
 	n = 2
 	g = globals[0]
 	if g.Type().Kind() != reflect.Int {
-		t.Fatalf("unexpected king %v", g.Type().Kind())
+		t.Fatalf("unexpected kind %v", g.Type().Kind())
 	}
 	iface := g.Interface()
 	if iface != n {
