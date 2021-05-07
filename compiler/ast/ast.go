@@ -507,6 +507,12 @@ type Upvar struct {
 	// is not a predefined then Upvar is nil.
 	PredefinedValue *reflect.Value
 
+	// REVIEW: credo che adesso sia necessario l'uso di questo campo, perché
+	// prima il tipo era memorizzato nel reflect.Value in sé (in quanto era un
+	// (*T)(nil)), ora invece per indicare un valore non inizializzato si usa
+	// un reflect.Value invalid quindi l'informazione sul tipo è persa.
+	PredefinedValueType reflect.Type
+
 	// Declaration is the ast node where Upvar is defined. If Upvar is a
 	// predefined var then Declaration is nil.
 	Declaration Node

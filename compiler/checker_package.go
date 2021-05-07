@@ -93,7 +93,10 @@ func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, depth int) typeCh
 			case reflect.Ptr:
 				// Import a variable.
 				ti.Type = rv.Type().Elem()
-				ti.value = &rv
+				nonPointer := rv.Elem()
+				// Note that 'nonPointer' may be an invalid reflect.Value. That
+				// indicates that such variable has not been initialized.
+				ti.value = &nonPointer
 				ti.Properties = propertyAddressable | propertyIsPredefined | propertyHasValue
 			case reflect.Func:
 				// Import a function.

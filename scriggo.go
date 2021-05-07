@@ -134,7 +134,7 @@ func initPackageLevelVariables(globals []compiler.Global) []reflect.Value {
 		if global.Value.IsValid() {
 			values[i] = global.Value
 		} else {
-			values[i] = reflect.New(global.Type)
+			values[i] = reflect.New(global.Type).Elem()
 		}
 	}
 	return values

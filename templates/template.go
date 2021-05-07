@@ -285,7 +285,7 @@ func initGlobalVariables(variables []compiler.Global, init map[string]interface{
 				if typ := val.Type(); typ == variable.Type {
 					v := reflect.New(typ).Elem()
 					v.Set(val)
-					values[i] = v.Addr()
+					values[i] = v
 				} else {
 					if typ.Kind() != reflect.Ptr || typ.Elem() != variable.Type {
 						panic(fmt.Sprintf("variable initializer %q must have type %s or %s, but have %s",
@@ -294,15 +294,15 @@ func initGlobalVariables(variables []compiler.Global, init map[string]interface{
 					if val.IsNil() {
 						panic(fmt.Sprintf("variable initializer %q cannot be a nil pointer", variable.Name))
 					}
-					values[i] = reflect.ValueOf(value)
+					values[i] = reflect.ValueOf(value).Elem()
 				}
 				continue
 			}
 		}
 		if variable.Value.IsValid() {
-			values[i] = variable.Value
+			values[i] = variable.Value // REVIEW
 		} else {
-			values[i] = reflect.New(variable.Type)
+			values[i] = reflect.New(variable.Type).Elem() // REVIEW
 		}
 	}
 	return values

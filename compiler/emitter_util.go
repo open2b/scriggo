@@ -272,7 +272,7 @@ func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Up
 			// If the upvar is predefined then update the index of such
 			// predefined variable.
 			if v.Declaration == nil {
-				v.Index = em.varStore.predefVarIndex(v.PredefinedValue, v.PredefinedPkg, v.PredefinedName)
+				v.Index = em.varStore.predefVarIndex(v.PredefinedValue, v.PredefinedValueType, v.PredefinedPkg, v.PredefinedName)
 				continue
 			}
 			name := v.Declaration.(*ast.Identifier).Name

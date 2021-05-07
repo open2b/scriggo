@@ -944,7 +944,11 @@ func (vm *VM) run() (Addr, bool) {
 					vars = make([]reflect.Value, len(fn.VarRefs))
 					for i, ref := range fn.VarRefs {
 						if ref < 0 {
-							vars[i] = vm.general(int8(-ref)).Elem() // REVIEW
+							// REVIEW: è giusto chiamare .Elem() qui? Forse sì,
+							// perché è indiretto e quindi il valore va
+							// deferenziato, adesso che le global non sono più
+							// puntatori..
+							vars[i] = vm.general(int8(-ref)).Elem()
 						} else {
 							vars[i] = vm.vars[ref]
 						}

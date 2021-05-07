@@ -145,11 +145,6 @@ func (vm *VM) Run(fn *Function, types Types, globals []reflect.Value) (int, erro
 	if types == nil {
 		types = reflectTypes{}
 	}
-	{ // REVIEW: Remove from here...
-		for i := range globals {
-			globals[i] = globals[i].Elem()
-		}
-	} // ...to here.
 	vm.env.types = types
 	vm.env.globals = globals
 	err := vm.runFunc(fn, globals)
