@@ -235,3 +235,30 @@ func main() {
 		}
 	}
 }
+
+-- Globals --
+
+package main
+var a int
+var b float64
+var c string
+var d []int
+var e map[int]int
+var f interface{}
+func main() {
+    slice := []int{5}
+    for i := 0; i < 100; i++ {
+        _ = a
+        a = 5
+        _ = b
+        b = 1.0
+        _ = c
+        c = "boo"
+        _ = d
+        d = slice
+        _ = e
+        e = nil
+        _ = f
+        f = &a
+    }
+}
