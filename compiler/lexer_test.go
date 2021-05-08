@@ -563,6 +563,8 @@ var scanAttributeTests = []struct {
 	{"本='h", "本", '\'', 4, 1, 3},
 	{"a本-€本b='h", "a本-€本b", '\'', 13, 1, 8},
 	{"5c=\"", "5c", '"', 3, 1, 4},
+	{"x:a=b", "x:a", 0, 4, 1, 5},
+	{"data-x=y", "data-x", 0, 7, 1, 8},
 }
 
 func testLexerTypes(t *testing.T, test map[string][]tokenTyp, isTemplate bool, format ast.Format) {
