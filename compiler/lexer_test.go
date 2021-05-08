@@ -239,7 +239,8 @@ var typeTestsHTML = map[string][]tokenTyp{
 	`<track src="u">`:         tagWithURLTypes,
 	`<video src="u">`:         tagWithURLTypes,
 	`<img srcset="u">`:        tagWithURLTypes,
-	`<source srcset="u">`:     tagWithURLTypes,
+	`<a data-href="u">`:       tagWithURLTypes,
+	`<input data-src="u">`:    tagWithURLTypes,
 }
 
 var typeTestsMarkdown = map[string][]tokenTyp{

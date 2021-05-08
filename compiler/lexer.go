@@ -8,6 +8,7 @@ package compiler
 
 import (
 	"bytes"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -607,8 +608,14 @@ func (l *lexer) scanCodeBlock(p int) (int, ast.Context) {
 // containsURL reports whether the attribute attr of tag contains an URL or a
 // comma-separated list of URL.
 //
+// As a special case, if attr has a "data-" prefix, it is treated as if had no
+// "data-" prefix.
+//
 // See https://www.w3.org/TR/2017/REC-html52-20171214/fullindex.html#attributes-table.
 func containsURL(tag string, attr string) bool {
+	if strings.HasPrefix(attr, "data-") {
+		attr = attr[5:]
+	}
 	switch attr {
 	case "action":
 		return tag == "form"
