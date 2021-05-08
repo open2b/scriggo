@@ -612,6 +612,7 @@ func (l *lexer) scanCodeBlock(p int) (int, ast.Context) {
 //   - is "xmlns" or has namespace "xmlns", containsURL returns true
 //   - has another namespace, it is treated as if had no namespace
 //   - has "data-" prefix, it is treated as if had no "data-" prefix
+//     but if it contains "src", "url" or "uri", containsURL returns true
 //
 // See https://www.w3.org/TR/2017/REC-html52-20171214/fullindex.html#attributes-table.
 func containsURL(tag string, attr string) bool {
@@ -622,6 +623,11 @@ func containsURL(tag string, attr string) bool {
 		attr = attr[p+1:]
 	} else if strings.HasPrefix(attr, "data-") {
 		attr = attr[5:]
+		if strings.Contains(attr, "src") ||
+			strings.Contains(attr, "url") ||
+			strings.Contains(attr, "uri") {
+			return true
+		}
 	}
 	switch attr {
 	case "action":
