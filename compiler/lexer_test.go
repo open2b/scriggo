@@ -242,6 +242,8 @@ var typeTestsHTML = map[string][]tokenTyp{
 	`<a data-href="u">`:       tagWithURLTypes,
 	`<input data-src="u">`:    tagWithURLTypes,
 	`<a my:href="u">`:         tagWithURLTypes,
+	`<tag xmlns="u">`:         tagWithURLTypes,
+	`<tag xmlns:h="u">`:       tagWithURLTypes,
 }
 
 var typeTestsMarkdown = map[string][]tokenTyp{
