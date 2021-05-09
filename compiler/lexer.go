@@ -671,23 +671,24 @@ func containsURL(tag string, attr string) bool {
 // For example, if l.src[p:] is `script src="...`, it returns "script" and
 // p+6.
 func (l *lexer) scanTag(p int) (string, int) {
+	if p == len(l.src) || !isAlpha(l.src[p]) {
+		return "", p
+	}
+	l.column++
 	s := p
-	for ; p < len(l.src); p++ {
+	p++
+	for p < len(l.src) {
 		c := l.src[p]
-		if isAlpha(c) {
-			l.column++
-		} else if isDecDigit(c) {
-			l.column++
-			if p == s {
-				return "", p + 1
-			}
-		} else if c == '>' || c == '/' || c == '{' || isASCIISpace(c) {
+		if c == '>' || c == '/' || isASCIISpace(c) || c == '{' {
 			break
-		} else if c == '\n' {
-			l.newline()
-		} else {
-			return "", p
 		}
+		l.column++
+		if c < utf8.RuneSelf {
+			p++
+			continue
+		}
+		_, size := utf8.DecodeRune(l.src[p:])
+		p += size
 	}
 	return string(bytes.ToLower(l.src[s:p])), p
 }
