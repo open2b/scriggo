@@ -30,8 +30,8 @@ func TestInitGlobals(t *testing.T) {
 	}
 	globals = initGlobalVariables([]compiler.Global{global}, nil)
 	g := globals[0]
-	if g.Type().Kind() != reflect.Int {
-		t.Fatalf("unexpected kind %v", g.Type().Kind())
+	if g.Kind() != reflect.Int {
+		t.Fatalf("unexpected kind %v", g.Kind())
 	}
 	if g.Interface() != 0 {
 		t.Fatalf("unexpected %v, expecting 0", g.Interface())
@@ -48,8 +48,8 @@ func TestInitGlobals(t *testing.T) {
 	globals = initGlobalVariables([]compiler.Global{global}, nil)
 	n = 2
 	g = globals[0]
-	if g.Type().Kind() != reflect.Int {
-		t.Fatalf("unexpected kind %v", g.Type().Kind())
+	if g.Kind() != reflect.Int {
+		t.Fatalf("unexpected kind %v", g.Kind())
 	}
 	iface := g.Interface()
 	if iface != n {
@@ -69,8 +69,8 @@ func TestInitGlobals(t *testing.T) {
 	}
 	n = 3
 	g = globals[0]
-	if g.Type().Kind() != reflect.Int {
-		t.Fatalf("unexpected kind %v", g.Type().Kind())
+	if g.Kind() != reflect.Int {
+		t.Fatalf("unexpected kind %v", g.Kind())
 	}
 	iface = g.Interface()
 	if iface != n {
@@ -89,8 +89,8 @@ func TestInitGlobals(t *testing.T) {
 		t.Fatalf("unexpected %v, expecting nil", globals)
 	}
 	g = globals[0]
-	if g.Type().Kind() != reflect.Int {
-		t.Fatalf("unexpected kind %v", g.Type().Kind())
+	if g.Kind() != reflect.Int {
+		t.Fatalf("unexpected kind %v", g.Kind())
 	}
 	iface = g.Interface()
 	if iface != n {

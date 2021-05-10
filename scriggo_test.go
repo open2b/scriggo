@@ -30,8 +30,8 @@ func TestInitPackageLevelVariables(t *testing.T) {
 	}
 	globals = initPackageLevelVariables([]compiler.Global{global})
 	g := globals[0]
-	if g.Type().Kind() != reflect.Int {
-		t.Fatalf("unexpected kind %v", g.Type().Kind())
+	if g.Kind() != reflect.Int {
+		t.Fatalf("unexpected kind %v", g.Kind())
 	}
 	if g.Interface() != 0 {
 		t.Fatalf("unexpected %v, expecting 0", g.Interface())
@@ -48,8 +48,8 @@ func TestInitPackageLevelVariables(t *testing.T) {
 	globals = initPackageLevelVariables([]compiler.Global{global})
 	n = 2
 	g = globals[0]
-	if g.Type().Kind() != reflect.Int {
-		t.Fatalf("unexpected kind %v", g.Type().Kind())
+	if g.Kind() != reflect.Int {
+		t.Fatalf("unexpected kind %v", g.Kind())
 	}
 	iface := g.Interface()
 	if iface != n {
