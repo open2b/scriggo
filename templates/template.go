@@ -300,9 +300,9 @@ func initGlobalVariables(variables []compiler.Global, init map[string]interface{
 			}
 		}
 		if variable.Value.IsValid() {
-			values[i] = variable.Value // REVIEW
+			values[i] = variable.Value
 		} else {
-			values[i] = reflect.New(variable.Type).Elem() // REVIEW
+			values[i] = reflect.New(variable.Type).Elem()
 		}
 	}
 	return values
