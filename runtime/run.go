@@ -572,13 +572,13 @@ func (vm *VM) run() (Addr, bool) {
 
 		// GetVar
 		case OpGetVar:
-			rv := vm.vars[decodeInt16(a, b)]
-			vm.setFromReflectValue(c, rv)
+			v := vm.vars[decodeInt16(a, b)]
+			vm.setFromReflectValue(c, v)
 
 		// GetVarAddr
 		case OpGetVarAddr:
-			rv := vm.vars[decodeInt16(a, b)].Addr()
-			vm.setFromReflectValue(c, rv)
+			ptr := vm.vars[decodeInt16(a, b)].Addr()
+			vm.setFromReflectValue(c, ptr)
 
 		// Go
 		case OpGo:
@@ -1665,8 +1665,8 @@ func (vm *VM) run() (Addr, bool) {
 
 		// SetVar
 		case OpSetVar, -OpSetVar:
-			rv := vm.vars[decodeInt16(b, c)]
-			vm.getIntoReflectValue(a, rv, op < 0)
+			v := vm.vars[decodeInt16(b, c)]
+			vm.getIntoReflectValue(a, v, op < 0)
 
 		// Shl
 		case OpShl, -OpShl:
