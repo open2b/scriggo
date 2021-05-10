@@ -162,17 +162,17 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				kExpr = false
 				exprReg = em.emitExpr(expr, exprType)
 			}
-			indexReg := int8(0)
+			index := int8(0)
 			if len(vars) >= 1 && !isBlankIdentifier(vars[0]) {
 				name := vars[0].(*ast.Identifier).Name
 				if em.varStore.mustBeDeclaredAsIndirect(vars[0].(*ast.Identifier)) {
 					panic("BUG: not implemented. See https://github.com/open2b/scriggo/issues/629")
 				}
 				if node.Assignment.Type == ast.AssignmentDeclaration {
-					indexReg = em.fb.newRegister(reflect.Int)
-					em.fb.bindVarReg(name, indexReg)
+					index = em.fb.newRegister(reflect.Int)
+					em.fb.bindVarReg(name, index)
 				} else {
-					indexReg = em.fb.scopeLookup(name)
+					index = em.fb.scopeLookup(name)
 				}
 			}
 			elem := int8(0)
@@ -192,7 +192,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.setLabelAddr(rangeLabel)
 			endRange := em.fb.newLabel()
 			em.rangeLabels = append(em.rangeLabels, [2]label{rangeLabel, endRange})
-			em.fb.emitRange(kExpr, exprReg, indexReg, elem, exprType.Kind())
+			em.fb.emitRange(kExpr, exprReg, index, elem, exprType.Kind())
 			em.fb.emitGoto(endRange)
 			em.fb.enterScope()
 			em.emitNodes(node.Body)
