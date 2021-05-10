@@ -964,28 +964,44 @@ func (em *emitter) emitForRange(node *ast.ForRange) {
 		exprReg = em.emitExpr(expr, exprType)
 	}
 
-	index := int8(0)
+	// The instruction OpRange knows nothing about indirect registers. So, if
+	// indirect registers are involved, declare them both as  direct and
+	// indirect and move values between them before executing the instructions
+	// of the for statement's body.
+
+	var index, elem int8
+	var indirectIndex, indirectElem int8
+	var indexType, elemType reflect.Type
+
 	if len(vars) >= 1 && !isBlankIdentifier(vars[0]) {
 		name := vars[0].(*ast.Identifier).Name
-		if em.varStore.mustBeDeclaredAsIndirect(vars[0].(*ast.Identifier)) {
-			panic("BUG: not implemented. See https://github.com/open2b/scriggo/issues/629")
-		}
+		indexType = em.typ(vars[0])
 		if node.Assignment.Type == ast.AssignmentDeclaration {
 			index = em.fb.newRegister(reflect.Int)
-			em.fb.bindVarReg(name, index)
+			if em.varStore.mustBeDeclaredAsIndirect(vars[0].(*ast.Identifier)) {
+				indirectIndex = em.fb.newIndirectRegister()
+				em.fb.emitNew(indexType, -indirectIndex)
+				em.fb.bindVarReg(name, indirectIndex)
+			} else {
+				em.fb.bindVarReg(name, index)
+			}
 		} else {
 			index = em.fb.scopeLookup(name)
 		}
 	}
-	elem := int8(0)
+
 	if len(vars) == 2 && !isBlankIdentifier(vars[1]) {
-		if em.varStore.mustBeDeclaredAsIndirect(vars[1].(*ast.Identifier)) {
-			panic("BUG: not implemented. See https://github.com/open2b/scriggo/issues/629")
-		}
 		name := vars[1].(*ast.Identifier).Name
+		elemType = em.typ(vars[1])
 		if node.Assignment.Type == ast.AssignmentDeclaration {
-			elem = em.fb.newRegister(em.typ(vars[1]).Kind())
-			em.fb.bindVarReg(name, elem)
+			elem = em.fb.newRegister(elemType.Kind())
+			if em.varStore.mustBeDeclaredAsIndirect(vars[1].(*ast.Identifier)) {
+				indirectElem = em.fb.newIndirectRegister()
+				em.fb.emitNew(elemType, -indirectElem)
+				em.fb.bindVarReg(name, indirectElem)
+			} else {
+				em.fb.bindVarReg(name, elem)
+			}
 		} else {
 			elem = em.fb.scopeLookup(name)
 		}
@@ -998,6 +1014,14 @@ func (em *emitter) emitForRange(node *ast.ForRange) {
 	em.fb.emitRange(kExpr, exprReg, index, elem, exprType.Kind())
 	em.fb.emitGoto(endRange)
 	em.fb.enterScope()
+
+	if indirectIndex != 0 {
+		em.changeRegister(false, index, indirectIndex, indexType, indexType)
+	}
+	if indirectElem != 0 {
+		em.changeRegister(false, elem, indirectElem, elemType, elemType)
+	}
+
 	em.emitNodes(node.Body)
 	em.fb.emitContinue(rangeLabel)
 	em.fb.setLabelAddr(endRange)
