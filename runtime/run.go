@@ -944,10 +944,9 @@ func (vm *VM) run() (Addr, bool) {
 					vars = make([]reflect.Value, len(fn.VarRefs))
 					for i, ref := range fn.VarRefs {
 						if ref < 0 {
-							// REVIEW: è giusto chiamare .Elem() qui? Forse sì,
-							// perché è indiretto e quindi il valore va
-							// deferenziato, adesso che le global non sono più
-							// puntatori..
+							// Calling Elem() is necessary because the general
+							// register contains an indirect value, that is
+							// stored as a pointer to a value.
 							vars[i] = vm.general(int8(-ref)).Elem()
 						} else {
 							vars[i] = vm.vars[ref]
