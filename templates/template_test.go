@@ -871,16 +871,16 @@ var templateMultiPageCases = map[string]struct {
 
 	"Reading a variable declared in main and initialized with vars": {
 		sources: map[string]string{
-			"index.txt": `{{ A }}`,
+			"index.txt": `{{ initMainVar }}`,
 		},
 		main: scriggo.MapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
-				"A": (*int)(nil),
+				"initMainVar": (*int)(nil),
 			},
 		},
 		vars: map[string]interface{}{
-			"A": 42,
+			"initMainVar": 42,
 		},
 		expectedOut: `42`,
 	},
@@ -2589,14 +2589,6 @@ var templateMultiPageCases = map[string]struct {
 		},
 		packages:    testPackages,
 		expectedOut: "that's ok",
-	},
-
-	"simple test": {
-		sources: map[string]string{
-			"index.txt":   `{{ render "partial.txt" }}`,
-			"partial.txt": `{% var a int %}{% func() { a = 20 }() %}`,
-		},
-		expectedOut: ``,
 	},
 }
 
