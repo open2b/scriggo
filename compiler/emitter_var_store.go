@@ -80,15 +80,15 @@ func (vs *varStore) mustBeDeclaredAsIndirect(v *ast.Identifier) bool {
 
 // predefVarIndex returns the index of the predefined variable v. If v is not
 // available in the global slice then it is added by this call.
-func (vs *varStore) predefVarIndex(v *reflect.Value, pkg, name string) int16 {
+func (vs *varStore) predefVarIndex(v *reflect.Value, typ reflect.Type, pkg, name string) int16 {
 	currFn := vs.emitter.fb.fn
 	if index, ok := vs.predefVarRef[currFn][v]; ok {
 		return index
 	}
 	index := int16(len(vs.globals))
-	g := newGlobal(pkg, name, v.Type().Elem(), nil)
-	if !v.IsNil() {
-		g.Value = v.Interface()
+	g := newGlobal(pkg, name, typ, reflect.Value{})
+	if v.IsValid() {
+		g.Value = *v
 	}
 	if vs.predefVarRef[currFn] == nil {
 		vs.predefVarRef[currFn] = map[*reflect.Value]int16{}
@@ -137,7 +137,7 @@ func (vs *varStore) nonLocalVarIndex(v ast.Expression) (index int, ok bool) {
 
 	// v is a predefined variable.
 	if ti != nil && ti.IsPredefined() {
-		index := vs.predefVarIndex(ti.value.(*reflect.Value), ti.PredefPackageName, name)
+		index := vs.predefVarIndex(ti.value.(*reflect.Value), ti.Type, ti.PredefPackageName, name)
 		return int(index), true
 	}
 

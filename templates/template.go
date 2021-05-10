@@ -263,7 +263,7 @@ var emptyInit = map[string]interface{}{}
 // values. It panics if init is not valid.
 //
 // This function is a copy of the function in the scripts package.
-func initGlobalVariables(variables []compiler.Global, init map[string]interface{}) []interface{} {
+func initGlobalVariables(variables []compiler.Global, init map[string]interface{}) []reflect.Value {
 	n := len(variables)
 	if n == 0 {
 		return nil
@@ -271,11 +271,11 @@ func initGlobalVariables(variables []compiler.Global, init map[string]interface{
 	if init == nil {
 		init = emptyInit
 	}
-	values := make([]interface{}, n)
+	values := make([]reflect.Value, n)
 	for i, variable := range variables {
 		if variable.Pkg == "main" {
 			if value, ok := init[variable.Name]; ok {
-				if variable.Value != nil {
+				if variable.Value.IsValid() {
 					panic(fmt.Sprintf("variable %q already initialized", variable.Name))
 				}
 				if value == nil {
@@ -285,7 +285,7 @@ func initGlobalVariables(variables []compiler.Global, init map[string]interface{
 				if typ := val.Type(); typ == variable.Type {
 					v := reflect.New(typ).Elem()
 					v.Set(val)
-					values[i] = v.Addr().Interface()
+					values[i] = v
 				} else {
 					if typ.Kind() != reflect.Ptr || typ.Elem() != variable.Type {
 						panic(fmt.Sprintf("variable initializer %q must have type %s or %s, but have %s",
@@ -294,15 +294,15 @@ func initGlobalVariables(variables []compiler.Global, init map[string]interface{
 					if val.IsNil() {
 						panic(fmt.Sprintf("variable initializer %q cannot be a nil pointer", variable.Name))
 					}
-					values[i] = value
+					values[i] = reflect.ValueOf(value).Elem()
 				}
 				continue
 			}
 		}
-		if variable.Value == nil {
-			values[i] = reflect.New(variable.Type).Interface()
-		} else {
+		if variable.Value.IsValid() {
 			values[i] = variable.Value
+		} else {
+			values[i] = reflect.New(variable.Type).Elem()
 		}
 	}
 	return values

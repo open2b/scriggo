@@ -14,7 +14,7 @@ import (
 	"unicode"
 )
 
-func (vm *VM) runFunc(fn *Function, vars []interface{}) error {
+func (vm *VM) runFunc(fn *Function, vars []reflect.Value) error {
 	vm.fn = fn
 	vm.vars = vars
 	for {
@@ -573,13 +573,12 @@ func (vm *VM) run() (Addr, bool) {
 		// GetVar
 		case OpGetVar:
 			v := vm.vars[decodeInt16(a, b)]
-			rv := reflect.ValueOf(v).Elem()
-			vm.setFromReflectValue(c, rv)
+			vm.setFromReflectValue(c, v)
 
 		// GetVarAddr
 		case OpGetVarAddr:
-			v := vm.vars[decodeInt16(a, b)]
-			vm.setFromReflectValue(c, reflect.ValueOf(v))
+			ptr := vm.vars[decodeInt16(a, b)].Addr()
+			vm.setFromReflectValue(c, ptr)
 
 		// Go
 		case OpGo:
@@ -940,12 +939,15 @@ func (vm *VM) run() (Addr, bool) {
 				vm.setGeneral(c, reflect.ValueOf(&fn))
 			} else {
 				fn := vm.fn.Functions[uint8(b)]
-				var vars []interface{}
+				var vars []reflect.Value
 				if fn.VarRefs != nil {
-					vars = make([]interface{}, len(fn.VarRefs))
+					vars = make([]reflect.Value, len(fn.VarRefs))
 					for i, ref := range fn.VarRefs {
 						if ref < 0 {
-							vars[i] = vm.general(int8(-ref)).Interface()
+							// Calling Elem() is necessary because the general
+							// register contains an indirect value, that is
+							// stored as a pointer to a value.
+							vars[i] = vm.general(int8(-ref)).Elem()
 						} else {
 							vars[i] = vm.vars[ref]
 						}
@@ -1664,19 +1666,7 @@ func (vm *VM) run() (Addr, bool) {
 		// SetVar
 		case OpSetVar, -OpSetVar:
 			v := vm.vars[decodeInt16(b, c)]
-			switch v := v.(type) {
-			case *bool:
-				*v = vm.boolk(a, op < 0)
-			case *int:
-				*v = int(vm.intk(a, op < 0))
-			case *float64:
-				*v = vm.floatk(a, op < 0)
-			case *string:
-				*v = vm.stringk(a, op < 0)
-			default:
-				rv := reflect.ValueOf(v).Elem()
-				vm.getIntoReflectValue(a, rv, op < 0)
-			}
+			vm.getIntoReflectValue(a, v, op < 0)
 
 		// Shl
 		case OpShl, -OpShl:

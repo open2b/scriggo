@@ -88,7 +88,7 @@ type VM struct {
 	ok       bool                 // ok flag.
 	regs     registers            // registers.
 	fn       *Function            // running function.
-	vars     []interface{}        // global and closure variables.
+	vars     []reflect.Value      // global and closure variables.
 	env      *env                 // execution environment.
 	envArg   reflect.Value        // execution environment as argument.
 	renderer Renderer             // renderer
@@ -141,7 +141,7 @@ func (vm *VM) Reset() {
 // If a context has been set and the context is canceled, Run returns
 // as soon as possible with the error returned by the Err method of the
 // context.
-func (vm *VM) Run(fn *Function, types Types, globals []interface{}) (int, error) {
+func (vm *VM) Run(fn *Function, types Types, globals []reflect.Value) (int, error) {
 	if types == nil {
 		types = reflectTypes{}
 	}
@@ -610,7 +610,7 @@ func create(env *env) *VM {
 // counter pc. If the function is predefined, returns true.
 func (vm *VM) startGoroutine() bool {
 	var fn *Function
-	var vars []interface{}
+	var vars []reflect.Value
 	call := vm.fn.Body[vm.pc]
 	switch call.Op {
 	case OpCallFunc:
@@ -862,7 +862,7 @@ type callable struct {
 	predefined *PredefinedFunction // predefined function.
 	receiver   interface{}         // receiver, if it is a method value.
 	method     string              // method name, if it is a method value.
-	vars       []interface{}       // non-local (global and closure) variables.
+	vars       []reflect.Value     // non-local (global and closure) variables.
 }
 
 // Predefined returns the predefined function of a callable.

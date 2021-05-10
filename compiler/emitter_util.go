@@ -226,7 +226,7 @@ func kindToType(k reflect.Kind) registerType {
 
 // newGlobal returns a new Global value. If typ is a Scriggo type, then typ is
 // converted to a gc compiled type before creating the Global value.
-func newGlobal(pkg, name string, typ reflect.Type, value interface{}) Global {
+func newGlobal(pkg, name string, typ reflect.Type, value reflect.Value) Global {
 	// TODO: is this solution ok? Or does it prevent from creating "global"
 	// values with scriggo types?
 	if st, ok := typ.(types.ScriggoType); ok {
@@ -272,7 +272,7 @@ func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Up
 			// If the upvar is predefined then update the index of such
 			// predefined variable.
 			if v.Declaration == nil {
-				v.Index = em.varStore.predefVarIndex(v.PredefinedValue, v.PredefinedPkg, v.PredefinedName)
+				v.Index = em.varStore.predefVarIndex(v.PredefinedValue, v.PredefinedValueType, v.PredefinedPkg, v.PredefinedName)
 				continue
 			}
 			name := v.Declaration.(*ast.Identifier).Name

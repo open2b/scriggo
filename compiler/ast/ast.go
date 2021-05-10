@@ -507,6 +507,15 @@ type Upvar struct {
 	// is not a predefined then Upvar is nil.
 	PredefinedValue *reflect.Value
 
+	// PredefinedValueType, in case of Upvar refers to a precompiled variable,
+	// contains the type of such variable. If not then PredefinedValueType is
+	// nil.
+	//
+	// PredefinedValueType is necessary because the type cannot be stored into
+	// the PredefinedValue, as if the upvar is not initialized in the compiler
+	// then PredefinedValue contains an invalid reflect.Value.
+	PredefinedValueType reflect.Type
+
 	// Declaration is the ast node where Upvar is defined. If Upvar is a
 	// predefined var then Declaration is nil.
 	Declaration Node

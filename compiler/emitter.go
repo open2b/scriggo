@@ -229,7 +229,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 				// initialized value inside the proper global index.
 				pkgVarRegs[v.Name] = varr
 				pkgVarTypes[v.Name] = varType
-				index := em.varStore.createScriggoPackageVar(em.pkg, newGlobal(pkg.Name, v.Name, varType, nil))
+				index := em.varStore.createScriggoPackageVar(em.pkg, newGlobal(pkg.Name, v.Name, varType, reflect.Value{}))
 				em.alreadyInitializedVars[v] = index
 				vars[v.Name] = index
 			}

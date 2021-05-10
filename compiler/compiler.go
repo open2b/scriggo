@@ -278,7 +278,7 @@ type Global struct {
 	Pkg   string
 	Name  string
 	Type  reflect.Type
-	Value interface{}
+	Value reflect.Value
 }
 
 // Code is the result of a package emitting process.

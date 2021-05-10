@@ -159,10 +159,11 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *typeI
 					funcLiteralInTemplate := tc.opts.modality == templateMod && nestedFuncs[0].Ident == nil
 					if funcLiteralInTemplate || tc.opts.modality == scriptMod {
 						upvar := ast.Upvar{
-							PredefinedName:  ident.Name,
-							PredefinedPkg:   ident.Name,
-							PredefinedValue: rv,
-							Index:           -1,
+							PredefinedName:      ident.Name,
+							PredefinedPkg:       ident.Name,
+							PredefinedValue:     rv,
+							PredefinedValueType: ti.Type,
+							Index:               -1,
 						}
 						for _, fn := range nestedFuncs {
 							add := true
@@ -813,10 +814,11 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				// v is a predefined variable.
 				if rv, ok := v.value.(*reflect.Value); v.Addressable() && ok {
 					upvar := ast.Upvar{
-						PredefinedName:  expr.Ident,
-						PredefinedPkg:   ident.Name,
-						PredefinedValue: rv,
-						Index:           -1,
+						PredefinedName:      expr.Ident,
+						PredefinedPkg:       ident.Name,
+						PredefinedValue:     rv,
+						PredefinedValueType: v.Type,
+						Index:               -1,
 					}
 					for _, fn := range tc.nestedFuncs() {
 						add := true
