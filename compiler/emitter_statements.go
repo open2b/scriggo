@@ -151,57 +151,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.breakLabel = currentBreakLabel
 
 		case *ast.ForRange:
-			inForRange := em.inForRange
-			em.inForRange = true
-			em.fb.enterScope()
-			vars := node.Assignment.Lhs
-			expr := node.Assignment.Rhs[0]
-			exprType := em.typ(expr)
-			exprReg, kExpr := em.emitExprK(expr, exprType)
-			if exprType.Kind() != reflect.String && kExpr {
-				kExpr = false
-				exprReg = em.emitExpr(expr, exprType)
-			}
-			index := int8(0)
-			if len(vars) >= 1 && !isBlankIdentifier(vars[0]) {
-				name := vars[0].(*ast.Identifier).Name
-				if em.varStore.mustBeDeclaredAsIndirect(vars[0].(*ast.Identifier)) {
-					panic("BUG: not implemented. See https://github.com/open2b/scriggo/issues/629")
-				}
-				if node.Assignment.Type == ast.AssignmentDeclaration {
-					index = em.fb.newRegister(reflect.Int)
-					em.fb.bindVarReg(name, index)
-				} else {
-					index = em.fb.scopeLookup(name)
-				}
-			}
-			elem := int8(0)
-			if len(vars) == 2 && !isBlankIdentifier(vars[1]) {
-				if em.varStore.mustBeDeclaredAsIndirect(vars[1].(*ast.Identifier)) {
-					panic("BUG: not implemented. See https://github.com/open2b/scriggo/issues/629")
-				}
-				name := vars[1].(*ast.Identifier).Name
-				if node.Assignment.Type == ast.AssignmentDeclaration {
-					elem = em.fb.newRegister(em.typ(vars[1]).Kind())
-					em.fb.bindVarReg(name, elem)
-				} else {
-					elem = em.fb.scopeLookup(name)
-				}
-			}
-			rangeLabel := em.fb.newLabel()
-			em.fb.setLabelAddr(rangeLabel)
-			endRange := em.fb.newLabel()
-			em.rangeLabels = append(em.rangeLabels, [2]label{rangeLabel, endRange})
-			em.fb.emitRange(kExpr, exprReg, index, elem, exprType.Kind())
-			em.fb.emitGoto(endRange)
-			em.fb.enterScope()
-			em.emitNodes(node.Body)
-			em.fb.emitContinue(rangeLabel)
-			em.fb.setLabelAddr(endRange)
-			em.rangeLabels = em.rangeLabels[:len(em.rangeLabels)-1]
-			em.fb.exitScope()
-			em.fb.exitScope()
-			em.inForRange = inForRange
+			em.emitForRange(node)
 
 		case *ast.Go:
 			call := node.Call.(*ast.Call)
@@ -995,4 +945,59 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 	em.fb.setLabelAddr(end)
 	em.fb.exitScope()
 
+}
+
+// emitForRange emits a for range statement.
+func (em *emitter) emitForRange(node *ast.ForRange) {
+	inForRange := em.inForRange
+	em.inForRange = true
+	em.fb.enterScope()
+	vars := node.Assignment.Lhs
+	expr := node.Assignment.Rhs[0]
+	exprType := em.typ(expr)
+	exprReg, kExpr := em.emitExprK(expr, exprType)
+	if exprType.Kind() != reflect.String && kExpr {
+		kExpr = false
+		exprReg = em.emitExpr(expr, exprType)
+	}
+	index := int8(0)
+	if len(vars) >= 1 && !isBlankIdentifier(vars[0]) {
+		name := vars[0].(*ast.Identifier).Name
+		if em.varStore.mustBeDeclaredAsIndirect(vars[0].(*ast.Identifier)) {
+			panic("BUG: not implemented. See https://github.com/open2b/scriggo/issues/629")
+		}
+		if node.Assignment.Type == ast.AssignmentDeclaration {
+			index = em.fb.newRegister(reflect.Int)
+			em.fb.bindVarReg(name, index)
+		} else {
+			index = em.fb.scopeLookup(name)
+		}
+	}
+	elem := int8(0)
+	if len(vars) == 2 && !isBlankIdentifier(vars[1]) {
+		if em.varStore.mustBeDeclaredAsIndirect(vars[1].(*ast.Identifier)) {
+			panic("BUG: not implemented. See https://github.com/open2b/scriggo/issues/629")
+		}
+		name := vars[1].(*ast.Identifier).Name
+		if node.Assignment.Type == ast.AssignmentDeclaration {
+			elem = em.fb.newRegister(em.typ(vars[1]).Kind())
+			em.fb.bindVarReg(name, elem)
+		} else {
+			elem = em.fb.scopeLookup(name)
+		}
+	}
+	rangeLabel := em.fb.newLabel()
+	em.fb.setLabelAddr(rangeLabel)
+	endRange := em.fb.newLabel()
+	em.rangeLabels = append(em.rangeLabels, [2]label{rangeLabel, endRange})
+	em.fb.emitRange(kExpr, exprReg, index, elem, exprType.Kind())
+	em.fb.emitGoto(endRange)
+	em.fb.enterScope()
+	em.emitNodes(node.Body)
+	em.fb.emitContinue(rangeLabel)
+	em.fb.setLabelAddr(endRange)
+	em.rangeLabels = em.rangeLabels[:len(em.rangeLabels)-1]
+	em.fb.exitScope()
+	em.fb.exitScope()
+	em.inForRange = inForRange
 }
