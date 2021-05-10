@@ -273,7 +273,7 @@ func CloneNode(node ast.Node) ast.Node {
 			text = make([]byte, len(n.Text))
 			copy(text, n.Text)
 		}
-		return ast.NewText(ClonePosition(n.Position), text, n.Cut)
+		return ast.NewText(ClonePosition(n.Position), text, n.Cut, n.Ctx)
 
 	case *ast.TypeSwitch:
 		var init ast.Node

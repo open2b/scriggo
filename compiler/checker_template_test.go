@@ -581,8 +581,8 @@ type renderer struct {
 	b   *bytes.Buffer
 }
 
-func (r *renderer) Show(runtime.Env, interface{}, uint8) {}
-func (r *renderer) Text(runtime.Env, []byte, uint8)      {}
+func (r *renderer) Show(runtime.Env, interface{}, runtime.Ctx) {}
+func (r *renderer) Text(runtime.Env, []byte, runtime.Ctx)      {}
 func (r *renderer) Out() io.Writer {
 	if r.b != nil {
 		return r.b
@@ -590,7 +590,7 @@ func (r *renderer) Out() io.Writer {
 	return r.out
 }
 func (r *renderer) WithOut(out io.Writer) runtime.Renderer { return &renderer{out: out, b: r.b} }
-func (r *renderer) WithConversion(fromFormat, toFormat uint8) runtime.Renderer {
+func (r *renderer) WithConversion(fromFormat, toFormat runtime.Format) runtime.Renderer {
 	return &renderer{out: r.out, b: &bytes.Buffer{}}
 }
 func (r *renderer) Close() error {

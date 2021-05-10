@@ -299,7 +299,7 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 				}
 				return nil, nil, syntaxError(pos, "unexpected text in file with extends")
 			}
-			text = ast.NewText(tok.pos, tok.txt, ast.Cut{})
+			text = ast.NewText(tok.pos, tok.txt, ast.Cut{}, ast.CtxHTML)
 		}
 
 		if line < tok.lin || tok.pos.End == lastIndex {
@@ -946,8 +946,8 @@ LABEL:
 	// extends
 	case tokenExtends:
 		pos := tok.pos
-		if tok.ctx != ast.Context(p.format) {
-			panic(syntaxError(tok.pos, "extends not in %s content", ast.Context(p.format)))
+		if tok.ctx != ast.Ctx(p.format) {
+			panic(syntaxError(tok.pos, "extends not in %s content", ast.Ctx(p.format)))
 		}
 		if p.hasExtend {
 			panic(syntaxError(tok.pos, "extends already exists"))
@@ -1063,8 +1063,8 @@ LABEL:
 			}
 			panic(syntaxError(tok.pos, "unexpected import, expecting statement"))
 		}
-		if tok.ctx != ast.Context(p.format) {
-			panic(syntaxError(tok.pos, "import not in %s content", ast.Context(p.format)))
+		if tok.ctx != ast.Ctx(p.format) {
+			panic(syntaxError(tok.pos, "import not in %s content", ast.Ctx(p.format)))
 		}
 		tok = p.next()
 		if tok.typ == tokenLeftParenthesis && end != tokenEndStatement {
@@ -1101,11 +1101,11 @@ LABEL:
 		if end == tokenEndStatements {
 			panic(syntaxError(tok.pos, "unexpected macro in statement scope"))
 		}
-		if tok.ctx > ast.ContextMarkdown {
+		if tok.ctx > ast.CtxMarkdown {
 			panic(syntaxError(tok.pos, "macro not allowed in %s", tok.ctx))
 		}
-		if tok.ctx != ast.Context(p.format) {
-			panic(syntaxError(tok.pos, "macro not in %s content", ast.Context(p.format)))
+		if tok.ctx != ast.Ctx(p.format) {
+			panic(syntaxError(tok.pos, "macro not in %s content", ast.Ctx(p.format)))
 		}
 		// Parses the macro name.
 		tok = p.next()

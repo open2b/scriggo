@@ -237,7 +237,7 @@ type token struct {
 	typ tokenTyp      // type
 	pos *ast.Position // position in the buffer
 	txt []byte        // token text
-	ctx ast.Context   // context
+	ctx ast.Ctx       // context
 	tag string        // tag name
 	att string        // attribute
 	lin int           // line of the lexer when the token was emitted

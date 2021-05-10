@@ -52,12 +52,6 @@ type emitter struct {
 	// jump.
 	breakLabel *label
 
-	// inURL indicates if the emitter is currently inside an *ast.URL node.
-	inURL bool
-
-	// isURLSet reports whether the current URL, if inURL is true, is a set of URLs.
-	isURLSet bool
-
 	// types refers the types of the current compilation and it is used to
 	// create and manipulate types and values, both predefined and defined only
 	// by Scriggo.

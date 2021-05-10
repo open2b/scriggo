@@ -864,10 +864,9 @@ func (fb *functionBuilder) emitShl(k bool, x, y, z int8, kind reflect.Kind) {
 //
 //     show(type, value, ctx)
 //
-func (fb *functionBuilder) emitShow(typ reflect.Type, v int8, ctx ast.Context, inURL, isURLSet bool) {
+func (fb *functionBuilder) emitShow(typ reflect.Type, v int8, ctx ast.Ctx) {
 	t := fb.addType(typ, true)
-	c := encodeRenderContext(ctx, inURL, isURLSet)
-	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpShow, A: int8(t), B: v, C: int8(c)})
+	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpShow, A: int8(t), B: v, C: int8(ctx)})
 }
 
 // emitShr appends a new "Shr" instruction to the function body.
@@ -983,10 +982,10 @@ func (fb *functionBuilder) emitSubInv(k bool, x, y, z int8, kind reflect.Kind) {
 //
 //     text(txt, ctx)
 //
-func (fb *functionBuilder) emitText(txt []byte, inURL, isURLSet bool) {
+func (fb *functionBuilder) emitText(txt []byte, ctx ast.Ctx) {
 	if len(fb.text.txt) > 0 {
 		addr := fb.currentAddr()
-		if addr == fb.text.addr+1 && inURL == fb.text.inURL {
+		if addr == fb.text.addr+1 && ctx.InURL() == fb.text.ctx.InURL() {
 			var hasLabel bool
 			for _, la := range fb.labelAddrs {
 				if addr == la {
@@ -1003,10 +1002,9 @@ func (fb *functionBuilder) emitText(txt []byte, inURL, isURLSet bool) {
 	}
 	fb.text.addr = fb.currentAddr()
 	fb.text.txt = append(fb.text.txt, txt)
-	fb.text.inURL = inURL
+	fb.text.ctx = ctx
 	a, b := encodeUint16(uint16(len(fb.fn.Text)))
-	c := encodeRenderContext(ast.ContextText, inURL, isURLSet)
-	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpText, A: a, B: b, C: int8(c)})
+	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpText, A: a, B: b, C: int8(ctx)})
 }
 
 // emitTailCall appends a new "TailCall" instruction to the function body.

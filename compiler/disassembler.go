@@ -16,6 +16,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/runtime"
 )
 
@@ -650,8 +651,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		typ := fn.Types[int(uint(a))]
 		s += " " + typ.String()
 		s += " " + disassembleOperand(fn, b, reflectToRegisterKind(typ.Kind()), false)
-		ctx, _, _ := decodeRenderContext(uint8(c))
-		s += " " + "(" + ctx.String() + ")"
+		s += " " + "(" + ast.Ctx(c).String() + ")"
 	case runtime.OpSlice:
 		khigh := b&2 != 0
 		high := fn.Body[addr+1].B

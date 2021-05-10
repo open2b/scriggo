@@ -45,30 +45,6 @@ var emptyInterfaceType = reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Ele
 
 type label runtime.Addr
 
-// encodeRenderContext encodes a runtime.Renderer context.
-func encodeRenderContext(ctx ast.Context, inURL, isURLSet bool) uint8 {
-	c := uint8(ctx)
-	if inURL {
-		if isURLSet {
-			c |= 0b11000000
-		} else {
-			c |= 0b10000000
-		}
-	}
-	return c
-}
-
-// decodeRenderContext decodes a runtime.Renderer context.
-func decodeRenderContext(c uint8) (ast.Context, bool, bool) {
-	ctx := ast.Context(c & 0b00001111)
-	inURL := c&0b10000000 != 0
-	isURLSet := false
-	if inURL {
-		isURLSet = c&0b01000000 != 0
-	}
-	return ctx, inURL, isURLSet
-}
-
 func encodeInt16(v int16) (a, b int8) {
 	a = int8(v >> 8)
 	b = int8(v)
@@ -143,7 +119,7 @@ func newMacro(pkg, name string, typ reflect.Type, format ast.Format, file string
 		Pkg:    pkg,
 		Name:   name,
 		Macro:  true,
-		Format: uint8(format),
+		Format: runtime.Format(format),
 		Type:   typ,
 		File:   file,
 	}
@@ -179,7 +155,7 @@ type functionBuilder struct {
 	text struct {
 		addr  runtime.Addr
 		txt   [][]byte
-		inURL bool
+		ctx   ast.Ctx
 	}
 
 	// path of the current file. For example, when emitting a "render <path>"

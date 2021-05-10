@@ -333,14 +333,14 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 		case *ast.Show:
 			ctx := node.Context
 			for _, expr := range node.Expressions {
-				if call, ok := expr.(*ast.Call); ok && ctx <= ast.ContextMarkdown && em.ti(call.Func).IsMacroDeclaration() {
+				if call, ok := expr.(*ast.Call); ok && ctx <= ast.CtxMarkdown && em.ti(call.Func).IsMacroDeclaration() {
 					em.fb.enterStack()
 					em.emitCallNode(call, false, false, ast.Format(ctx))
 					em.fb.exitStack()
 				} else {
 					ti := em.ti(expr)
 					r := em.emitExpr(expr, ti.Type)
-					em.fb.emitShow(ti.Type, r, ctx, em.inURL, em.isURLSet)
+					em.fb.emitShow(ti.Type, r, ctx)
 				}
 			}
 
@@ -359,7 +359,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 		case *ast.Text:
 			txt := node.Text[node.Cut.Left : len(node.Text)-node.Cut.Right]
 			if len(txt) != 0 {
-				em.fb.emitText(txt, em.inURL, em.isURLSet)
+				em.fb.emitText(txt, node.Ctx)
 			}
 
 		case *ast.TypeDeclaration:
@@ -384,11 +384,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					continue
 				}
 			}
-			em.inURL = true
-			em.isURLSet = node.Attribute == "srcset"
 			em.emitNodes(node.Value)
-			em.isURLSet = false
-			em.inURL = false
 
 		case *ast.Var:
 			addresses := make([]address, len(node.Lhs))

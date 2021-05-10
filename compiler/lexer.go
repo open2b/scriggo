@@ -23,7 +23,7 @@ func scanProgram(text []byte) *lexer {
 		src:    text,
 		line:   1,
 		column: 1,
-		ctx:    ast.ContextText,
+		ctx:    ast.CtxText,
 		toks:   tokens,
 	}
 	go lex.scan()
@@ -38,7 +38,7 @@ func scanScript(text []byte) *lexer {
 		src:            text,
 		line:           1,
 		column:         1,
-		ctx:            ast.ContextText,
+		ctx:            ast.CtxText,
 		toks:           tokens,
 		extendedSyntax: true,
 	}
@@ -54,14 +54,14 @@ func scanTemplate(text []byte, format ast.Format) *lexer {
 		src:            text,
 		line:           1,
 		column:         1,
-		ctx:            ast.Context(format),
+		ctx:            ast.FormatToCtx(format),
 		toks:           tokens,
 		templateSyntax: true,
 		extendedSyntax: true,
 	}
-	lex.tag.ctx = ast.ContextHTML
-	if lex.ctx == ast.ContextMarkdown {
-		lex.tag.ctx = ast.ContextMarkdown
+	lex.tag.ctx = ast.CtxHTML
+	if lex.ctx == ast.CtxMarkdown {
+		lex.tag.ctx = ast.CtxMarkdown
 	}
 	go lex.scan()
 	return lex
@@ -88,17 +88,17 @@ var cdataEnd = []byte("]]>")
 
 // lexer maintains the scanner status.
 type lexer struct {
-	text          []byte        // text on which the scans are performed
-	src           []byte        // slice of the text used during the scan
-	line          int           // current line starting from 1
-	column        int           // current column starting from 1
-	ctx           ast.Context   // current context used during the scan
-	macroContexts []ast.Context // contexts of blocks nested in a macro.
-	tag           struct {      // current tag
-		name  string      // name
-		attr  string      // current attribute name
-		index int         // index of first byte of the current attribute value in src
-		ctx   ast.Context // context of the tag's content
+	text          []byte    // text on which the scans are performed
+	src           []byte    // slice of the text used during the scan
+	line          int       // current line starting from 1
+	column        int       // current column starting from 1
+	ctx           ast.Ctx   // current context used during the scan
+	macroContexts []ast.Ctx // contexts of blocks nested in a macro.
+	tag           struct {  // current tag
+		name  string  // name
+		attr  string  // current attribute
+		index int     // index of first byte of the current attribute value in src
+		ctx   ast.Ctx // context of the tag's content
 	}
 	toks           chan token // tokens, is closed at the end of the scan
 	totals         int        // total number of emitted tokens, excluding automatically inserted semicolons
@@ -135,10 +135,6 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 	if length > 0 {
 		txt = l.src[0:length]
 	}
-	ctx := l.ctx
-	if typ == tokenText {
-		ctx = ast.ContextText
-	}
 	l.totals++
 	start := len(l.text) - len(l.src)
 	end := start + length - 1
@@ -159,7 +155,7 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 		},
 		txt: txt,
 		lin: l.line,
-		ctx: ctx,
+		ctx: l.ctx,
 		tag: l.tag.name,
 		att: l.tag.attr,
 	}
@@ -184,17 +180,17 @@ func (l *lexer) scan() {
 		lin := l.line   // token line
 		col := l.column // token column
 
-		var quote = byte(0)
-		var emittedURL bool
+		var quoteAttr = byte(0)
+		var quoteString = byte(0)
 
 		fileContext := l.ctx
 
 		// Indicates if the current line contains only spaces. Used only for Markdown context.
 		spacesOnlyLine := true
 
-		isHTML := l.ctx == ast.ContextHTML || l.ctx == ast.ContextMarkdown
+		isHTML := l.ctx == ast.CtxHTML || l.ctx == ast.CtxMarkdown
 
-		if l.ctx == ast.ContextMarkdown {
+		if l.ctx == ast.CtxMarkdown {
 			p, l.ctx = l.scanCodeBlock(0)
 		}
 
@@ -203,7 +199,7 @@ func (l *lexer) scan() {
 
 			c := l.src[p]
 
-			if l.ctx == ast.ContextMarkdown {
+			if l.ctx == ast.CtxMarkdown {
 				spacesOnlyLine = spacesOnlyLine && isSpace(c)
 				if c == '\\' {
 					p++
@@ -271,14 +267,14 @@ func (l *lexer) scan() {
 
 			switch l.ctx {
 
-			case ast.ContextMarkdown:
-				if emittedURL {
+			case ast.CtxMarkdown, ast.CtxMarkdownURL:
+				if l.ctx.InURL() {
 					if isMarkdownEndURL(l.src[p:]) {
 						if p > 0 {
 							l.emitAtLineColumn(lin, col, tokenText, p)
 						}
 						l.emit(tokenEndURL, 0)
-						emittedURL = false
+						l.ctx = ast.CtxMarkdown
 						p = 0
 						lin = l.line
 						col = l.column
@@ -287,8 +283,8 @@ func (l *lexer) scan() {
 					if p > 0 {
 						l.emitAtLineColumn(lin, col, tokenText, p)
 					}
+					l.ctx = ast.CtxMarkdownURL
 					l.emit(tokenStartURL, 0)
-					emittedURL = true
 					if l.src[4] == 's' {
 						p = 8 // https://
 					} else {
@@ -300,10 +296,10 @@ func (l *lexer) scan() {
 				}
 				fallthrough
 
-			case ast.ContextHTML:
+			case ast.CtxHTML:
 				if c == '<' {
 					// <![CDATA[...]]>
-					if l.ctx == ast.ContextHTML && p+8 < len(l.src) && l.src[p+1] == '!' {
+					if l.ctx == ast.CtxHTML && p+8 < len(l.src) && l.src[p+1] == '!' {
 						if bytes.HasPrefix(l.src[p:], cdataStart) {
 							// Skips the CDATA section.
 							p += 6
@@ -329,18 +325,18 @@ func (l *lexer) scan() {
 					l.column++
 					l.tag.name, p = l.scanTag(p)
 					if l.tag.name != "" {
-						l.ctx = ast.ContextTag
+						l.ctx = ast.CtxHTMLTag
 						switch l.tag.name {
 						case "script":
-							l.tag.ctx = ast.ContextJS
+							l.tag.ctx = ast.CtxJS
 						case "style":
-							l.tag.ctx = ast.ContextCSS
+							l.tag.ctx = ast.CtxCSS
 						}
 					}
 					continue
 				}
 
-			case ast.ContextTag:
+			case ast.CtxHTMLTag:
 				if c == '>' || c == '/' && p < len(l.src) && l.src[p] == '>' {
 					// End tag.
 					l.ctx = l.tag.ctx
@@ -358,46 +354,46 @@ func (l *lexer) scan() {
 						if l.tag.attr != "" && p < len(l.src) {
 							// Start attribute value.
 							if c := l.src[p]; c == '"' || c == '\'' {
-								quote = c
+								quoteAttr = c
 								p++
 								l.column++
 							}
 							if containsURL(l.tag.name, l.tag.attr) {
 								l.emitAtLineColumn(lin, col, tokenText, p)
-								if quote == 0 {
-									l.ctx = ast.ContextUnquotedAttr
-								} else {
-									l.ctx = ast.ContextQuotedAttr
-								}
+								l.ctx = ast.MakeHTMLURLCtx(quoteAttr != 0, l.tag.attr == "srcset")
 								l.emit(tokenStartURL, 0)
-								emittedURL = true
 								p = 0
 								lin = l.line
 								col = l.column
 							} else {
 								l.tag.index = p
-								if quote == 0 {
-									l.ctx = ast.ContextUnquotedAttr
+								if quoteAttr == 0 {
+									l.ctx = ast.CtxHTMLUnquotedAttr
 								} else {
-									l.ctx = ast.ContextQuotedAttr
+									l.ctx = ast.CtxHTMLQuotedAttr
 								}
+								//if containsJS(l.tag.name, l.tag.attr.name) {
+								//	l.tag.attr.ctx = ast.CtxJS
+								//}
 							}
 						}
 						continue
 					}
 				}
 
-			case ast.ContextQuotedAttr, ast.ContextUnquotedAttr:
-				if l.ctx == ast.ContextQuotedAttr && c == quote ||
-					l.ctx == ast.ContextUnquotedAttr && (c == '>' || isASCIISpace(c)) {
+			case ast.CtxHTMLQuotedAttr, ast.CtxHTMLUnquotedAttr, ast.CtxHTMLQuotedAttrURL, ast.CtxHTMLUnquotedAttrURL:
+				if l.ctx.Quoted() && c == quoteAttr || !l.ctx.Quoted() && (c == '>' || isASCIISpace(c)) {
 					// End attribute.
-					quote = 0
-					if emittedURL {
+					quoteAttr = 0
+					if l.ctx.InURL() {
 						if p > 0 {
 							l.emitAtLineColumn(lin, col, tokenText, p)
 						}
 						l.emit(tokenEndURL, 0)
-						emittedURL = false
+						l.ctx = ast.CtxHTMLUnquotedAttr
+						if l.ctx.Quoted() {
+							l.ctx = ast.CtxHTMLQuotedAttr
+						}
 						p = 0
 						lin = l.line
 						col = l.column
@@ -411,7 +407,7 @@ func (l *lexer) scan() {
 							typ = bytes.TrimSpace(typ)
 							if len(typ) > 0 {
 								if bytes.EqualFold(typ, jsonLDMimeType) {
-									l.tag.ctx = ast.ContextJSON
+									l.tag.ctx = ast.CtxJSON
 								} else if !bytes.EqualFold(typ, jsMimeType) {
 									l.tag.ctx = fileContext
 								}
@@ -424,86 +420,103 @@ func (l *lexer) scan() {
 							}
 						}
 					}
-					l.ctx = ast.ContextTag
+					l.ctx = ast.CtxHTMLTag
 					l.tag.attr = ""
+					//l.tag.attr.ctx = ast.CtxText
 					l.tag.index = 0
 					if c == '>' {
 						continue
 					}
+					//} else if l.tag.attr.ctx == ast.CtxJS {
+					//	if c == '"' || c == '\'' {
+					//		l.tag.attr.ctx = ast.CtxJSString
+					//		quoteString = c
+					//	}
+					//} else if l.tag.attr.ctx == ast.CtxJSString {
+					//	switch c {
+					//	case '\\':
+					//		if p+1 < len(l.src) && l.src[p+1] == quoteString {
+					//			p++
+					//			l.column++
+					//		}
+					//	case quoteString:
+					//		l.tag.attr.ctx = ast.CtxJS
+					//		quoteString = 0
+					//	}
 				}
 
-			case ast.ContextCSS:
+			case ast.CtxCSS:
 				if isHTML && c == '<' && isEndStyle(l.src[p:]) {
 					// </style>
 					l.ctx = fileContext
 					p += 7
 					l.column += 7
 				} else if c == '"' || c == '\'' {
-					l.ctx = ast.ContextCSSString
-					quote = c
+					l.ctx = ast.CtxCSSString
+					quoteString = c
 				}
 
-			case ast.ContextCSSString:
+			case ast.CtxCSSString:
 				switch c {
 				case '\\':
-					if p+1 < len(l.src) && l.src[p+1] == quote {
+					if p+1 < len(l.src) && l.src[p+1] == quoteString {
 						p++
 						l.column++
 					}
-				case quote:
-					l.ctx = ast.ContextCSS
-					quote = 0
+				case quoteString:
+					l.ctx = ast.CtxCSS
+					quoteString = 0
 				case '<':
 					if isHTML && isEndStyle(l.src[p:]) {
 						l.ctx = fileContext
-						quote = 0
+						quoteString = 0
 						p += 7
 						l.column += 7
 					}
 				}
 
-			case ast.ContextJS:
+			case ast.CtxJS:
 				if isHTML && c == '<' && isEndScript(l.src[p:]) {
 					// </script>
 					l.ctx = fileContext
 					p += 8
 					l.column += 8
 				} else if c == '"' || c == '\'' {
-					l.ctx = ast.ContextJSString
-					quote = c
+					l.ctx = ast.CtxJSString
+					quoteString = c
 				}
 
-			case ast.ContextJSString:
+			case ast.CtxJSString:
 				switch c {
 				case '\\':
-					if p+1 < len(l.src) && l.src[p+1] == quote {
+					if p+1 < len(l.src) && l.src[p+1] == quoteString {
 						p++
 						l.column++
 					}
-				case quote:
-					l.ctx = ast.ContextJS
-					quote = 0
+				case quoteString:
+					l.ctx = ast.CtxJS
+					quoteString = 0
 				case '<':
 					if isHTML && isEndScript(l.src[p:]) {
 						l.ctx = fileContext
-						quote = 0
+						quoteString = 0
 						p += 8
 						l.column += 8
 					}
 				}
 
-			case ast.ContextJSON:
+			case ast.CtxJSON:
 				if isHTML && c == '<' && isEndScript(l.src[p:]) {
 					// </script>
 					l.ctx = fileContext
 					p += 8
 					l.column += 8
 				} else if c == '"' {
-					l.ctx = ast.ContextJSONString
-					quote = '"'
+					l.ctx = ast.CtxJSONString
+					quoteString = '"'
 				}
 
-			case ast.ContextJSONString:
+			case ast.CtxJSONString:
 				switch c {
 				case '\\':
 					if p+1 < len(l.src) && l.src[p+1] == '"' {
@@ -511,12 +524,12 @@ func (l *lexer) scan() {
 						l.column++
 					}
 				case '"':
-					l.ctx = ast.ContextJSON
-					quote = 0
+					l.ctx = ast.CtxJSON
+					quoteString = 0
 				case '<':
 					if isHTML && isEndScript(l.src[p:]) {
 						l.ctx = fileContext
-						quote = 0
+						quoteString = 0
 						p += 8
 						l.column += 8
 					}
@@ -531,9 +544,9 @@ func (l *lexer) scan() {
 					p++
 				}
 				switch l.ctx {
-				case ast.ContextTabCodeBlock, ast.ContextSpacesCodeBlock:
+				case ast.CtxMarkdownTabCodeBlock, ast.CtxMarkdownSpacesCodeBlock:
 					p, l.ctx = l.scanCodeBlock(p)
-				case ast.ContextMarkdown:
+				case ast.CtxMarkdown:
 					if spacesOnlyLine {
 						p, l.ctx = l.scanCodeBlock(p)
 					} else {
@@ -552,8 +565,9 @@ func (l *lexer) scan() {
 			if len(l.src) > 0 {
 				l.emitAtLineColumn(lin, col, tokenText, p)
 			}
-			if l.ctx == ast.ContextMarkdown && emittedURL {
+			if l.ctx == ast.CtxMarkdownURL {
 				l.emit(tokenEndURL, 0)
+				l.ctx = ast.CtxMarkdown
 			}
 		}
 
@@ -591,18 +605,18 @@ func (l *lexer) scan() {
 // scanCodeBlock scans a tab or four spaces that start a Markdown code block.
 // It returns the next position and the next context. If there is no tab or
 // spaces, it returns p and the Markdown context.
-func (l *lexer) scanCodeBlock(p int) (int, ast.Context) {
+func (l *lexer) scanCodeBlock(p int) (int, ast.Ctx) {
 	if p < len(l.src) {
 		switch l.src[p] {
 		case '\t':
-			return p + 1, ast.ContextTabCodeBlock
+			return p + 1, ast.CtxMarkdownTabCodeBlock
 		case ' ':
 			if p+3 < len(l.src) && l.src[p+1] == ' ' && l.src[p+2] == ' ' && l.src[p+3] == ' ' {
-				return p + 4, ast.ContextSpacesCodeBlock
+				return p + 4, ast.CtxMarkdownSpacesCodeBlock
 			}
 		}
 	}
-	return p, ast.ContextMarkdown
+	return p, ast.CtxMarkdown
 }
 
 // containsURL reports whether the attribute attr of tag contains an URL or a
@@ -1068,17 +1082,17 @@ LOOP:
 						if ident.index == l.totals {
 							switch ident.txt {
 							case "string":
-								l.ctx = ast.ContextText
+								l.ctx = ast.CtxText
 							case "html":
-								l.ctx = ast.ContextHTML
+								l.ctx = ast.CtxHTML
 							case "css":
-								l.ctx = ast.ContextCSS
+								l.ctx = ast.CtxCSS
 							case "js":
-								l.ctx = ast.ContextJS
+								l.ctx = ast.CtxJS
 							case "json":
-								l.ctx = ast.ContextJSON
+								l.ctx = ast.CtxJSON
 							case "markdown":
-								l.ctx = ast.ContextMarkdown
+								l.ctx = ast.CtxMarkdown
 							}
 						}
 						return nil

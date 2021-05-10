@@ -669,7 +669,7 @@ func TestRenderErrors(t *testing.T) {
 	t.Skip("(not runnable)")
 
 	// TODO (Gianluca): what's the point of this test?
-	// tree := ast.NewTree("", []ast.Node{ast.NewShow(nil, ast.NewIdentifier(nil, "a"), ast.ContextText)}, ast.ContextText)
+	// tree := ast.NewTree("", []ast.Node{ast.NewShow(nil, ast.NewIdentifier(nil, "a"), ast.CtxText)}, ast.CtxText)
 	// err := RenderTree(ioutil.Discard, tree, Vars{"a": RenderError{}}, true)
 	// if err == nil {
 	// 	t.Errorf("expecting not nil error\n")

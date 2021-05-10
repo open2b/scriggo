@@ -209,7 +209,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			Pkg:    em.fb.fn.Pkg,
 			File:   em.fb.fn.File,
 			Macro:  expr.Type.Macro,
-			Format: uint8(expr.Format),
+			Format: runtime.Format(expr.Format),
 			Pos:    convertPosition(expr.Pos()),
 			Type:   ti.Type,
 			Parent: em.fb.fn,

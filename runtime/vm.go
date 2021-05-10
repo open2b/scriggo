@@ -16,7 +16,7 @@ import (
 
 const NoVariadicArgs = -1
 const CurrentFunction = -1
-const ReturnString = -1
+const ReturnString = 0
 
 const maxUint32 = 1<<31 - 1
 
@@ -799,7 +799,7 @@ type Function struct {
 	NumReg       [4]int8
 	FinalRegs    [][2]int8 // [indirect -> return parameter registers]
 	Macro        bool
-	Format       uint8
+	Format       Format
 	Values       Registers
 	FieldIndexes [][]int
 	Functions    []*Function

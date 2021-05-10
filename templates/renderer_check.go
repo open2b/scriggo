@@ -36,36 +36,24 @@ var byteSliceType = reflect.TypeOf([]byte(nil))
 var timeType = reflect.TypeOf(time.Time{})
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
-// decodeRenderContext decodes a runtime.Renderer context.
-// Keep in sync with the compiler.decodeRenderContext.
-func decodeRenderContext(c uint8) (ast.Context, bool, bool) {
-	ctx := ast.Context(c & 0b00001111)
-	inURL := c&0b10000000 != 0
-	isURLSet := false
-	if inURL {
-		isURLSet = c&0b01000000 != 0
-	}
-	return ctx, inURL, isURLSet
-}
-
 // checkShow type checks the show of a value of type t in context ctx.
-func checkShow(t reflect.Type, ctx ast.Context) error {
+func checkShow(t reflect.Type, ctx ast.Ctx) error {
 	kind := t.Kind()
 	switch ctx {
-	case ast.ContextText, ast.ContextTag, ast.ContextQuotedAttr, ast.ContextUnquotedAttr,
-		ast.ContextCSSString, ast.ContextJSString, ast.ContextJSONString,
-		ast.ContextTabCodeBlock, ast.ContextSpacesCodeBlock:
+	case ast.CtxText, ast.CtxHTMLTag, ast.CtxHTMLQuotedAttr, ast.CtxHTMLUnquotedAttr,
+		ast.CtxCSSString, ast.CtxJSString, ast.CtxJSONString,
+		ast.CtxMarkdownTabCodeBlock, ast.CtxMarkdownSpacesCodeBlock:
 		switch {
 		case kind == reflect.String:
 		case reflect.Bool <= kind && kind <= reflect.Complex128:
-		case ctx == ast.ContextCSSString && t == byteSliceType:
+		case ctx == ast.CtxCSSString && t == byteSliceType:
 		case t.Implements(stringerType):
 		case t.Implements(envStringerType):
 		case t.Implements(errorType):
 		default:
 			return fmt.Errorf("cannot show type %s as %s", t, ctx)
 		}
-	case ast.ContextHTML:
+	case ast.CtxHTML:
 		switch {
 		case kind == reflect.String:
 		case reflect.Bool <= kind && kind <= reflect.Complex128:
@@ -78,7 +66,7 @@ func checkShow(t reflect.Type, ctx ast.Context) error {
 		default:
 			return fmt.Errorf("cannot show type %s as HTML", t)
 		}
-	case ast.ContextCSS:
+	case ast.CtxCSS:
 		switch {
 		case kind == reflect.String:
 		case reflect.Int <= kind && kind <= reflect.Float64:
@@ -91,17 +79,17 @@ func checkShow(t reflect.Type, ctx ast.Context) error {
 		default:
 			return fmt.Errorf("cannot show type %s as CSS", t)
 		}
-	case ast.ContextJS:
+	case ast.CtxJS:
 		err := checkShowJS(t)
 		if err != nil {
 			return err
 		}
-	case ast.ContextJSON:
+	case ast.CtxJSON:
 		err := checkShowJSON(t)
 		if err != nil {
 			return err
 		}
-	case ast.ContextMarkdown:
+	case ast.CtxMarkdown:
 		switch {
 		case kind == reflect.String:
 		case reflect.Bool <= kind && kind <= reflect.Complex128:

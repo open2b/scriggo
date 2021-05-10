@@ -64,12 +64,13 @@ func (r *renderer) Close() error {
 
 // Show shows v in the given context if r.out is not nil.
 // If r.out is nil, Show only does a type check and calls env.Fatal if it fails.
-func (r *renderer) Show(env runtime.Env, v interface{}, context uint8) {
+func (r *renderer) Show(env runtime.Env, v interface{}, context runtime.Ctx) {
+
+	ctx := ast.Ctx(context)
 
 	if r.out == nil {
 		// Type check the show statement.
 		t := env.Types().TypeOf(v)
-		ctx, _, _ := decodeRenderContext(context)
 		err := checkShow(t, ctx)
 		if err != nil {
 			env.Fatal(fmt.Errorf("cannot show type %s as %s", t, ctx))
@@ -77,10 +78,9 @@ func (r *renderer) Show(env runtime.Env, v interface{}, context uint8) {
 		return
 	}
 
-	ctx, inURL, _ := decodeRenderContext(context)
-
 	// Check and eventually change the URL state.
-	if r.inURL != inURL {
+	var inURL bool
+	if inURL = ctx.InURL(); r.inURL != inURL {
 		if !inURL {
 			r.endURL()
 		}
@@ -95,33 +95,33 @@ func (r *renderer) Show(env runtime.Env, v interface{}, context uint8) {
 	var err error
 
 	switch ctx {
-	case ast.ContextText:
+	case ast.CtxText:
 		err = showInText(env, r.out, v)
-	case ast.ContextHTML:
+	case ast.CtxHTML:
 		err = showInHTML(env, r.out, v)
-	case ast.ContextTag:
+	case ast.CtxHTMLTag:
 		err = showInTag(env, r.out, v)
-	case ast.ContextQuotedAttr:
+	case ast.CtxHTMLQuotedAttr:
 		err = showInAttribute(env, r.out, v, true)
-	case ast.ContextUnquotedAttr:
+	case ast.CtxHTMLUnquotedAttr:
 		err = showInAttribute(env, r.out, v, false)
-	case ast.ContextCSS:
+	case ast.CtxCSS:
 		err = showInCSS(env, r.out, v)
-	case ast.ContextCSSString:
+	case ast.CtxCSSString:
 		err = showInCSSString(env, r.out, v)
-	case ast.ContextJS:
+	case ast.CtxJS:
 		err = showInJS(env, r.out, v)
-	case ast.ContextJSString:
+	case ast.CtxJSString:
 		err = showInJSString(env, r.out, v)
-	case ast.ContextJSON:
+	case ast.CtxJSON:
 		err = showInJSON(env, r.out, v)
-	case ast.ContextJSONString:
+	case ast.CtxJSONString:
 		err = showInJSONString(env, r.out, v)
-	case ast.ContextMarkdown:
+	case ast.CtxMarkdown:
 		err = showInMarkdown(env, r.out, v)
-	case ast.ContextTabCodeBlock:
+	case ast.CtxMarkdownTabCodeBlock:
 		err = showInMarkdownCodeBlock(env, r.out, v, false)
-	case ast.ContextSpacesCodeBlock:
+	case ast.CtxMarkdownSpacesCodeBlock:
 		err = showInMarkdownCodeBlock(env, r.out, v, true)
 	default:
 		panic("scriggo: unknown context")
@@ -140,12 +140,13 @@ func (r *renderer) Out() io.Writer {
 }
 
 // Text shows txt in the given context.
-func (r *renderer) Text(env runtime.Env, txt []byte, context uint8) {
+func (r *renderer) Text(env runtime.Env, txt []byte, context runtime.Ctx) {
 
-	_, inURL, isSet := decodeRenderContext(context)
+	ctx := ast.Ctx(context)
 
 	// Check and eventually change the URL state.
-	if r.inURL != inURL {
+	var inURL bool
+	if inURL = ctx.InURL(); r.inURL != inURL {
 		if !inURL {
 			r.endURL()
 		}
@@ -153,7 +154,7 @@ func (r *renderer) Text(env runtime.Env, txt []byte, context uint8) {
 	}
 
 	if inURL {
-		if isSet && bytes.ContainsRune(txt, ',') {
+		if ctx.Set() && bytes.ContainsRune(txt, ',') {
 			r.query = false
 		} else if r.query {
 			if r.removeQuestionMark && txt[0] == '?' {
@@ -184,7 +185,7 @@ func (r *renderer) Text(env runtime.Env, txt []byte, context uint8) {
 
 }
 
-func (r *renderer) WithConversion(fromFormat, toFormat uint8) runtime.Renderer {
+func (r *renderer) WithConversion(fromFormat, toFormat runtime.Format) runtime.Renderer {
 	from, to := ast.Format(fromFormat), ast.Format(toFormat)
 	if from == ast.FormatMarkdown && to == ast.FormatHTML {
 		out := newMarkdownWriter(r.out, r.converter)
@@ -198,7 +199,7 @@ func (r *renderer) WithOut(out io.Writer) runtime.Renderer {
 }
 
 // showInURL shows v in a URL in the given context.
-func (r *renderer) showInURL(env runtime.Env, v interface{}, ctx ast.Context) {
+func (r *renderer) showInURL(env runtime.Env, v interface{}, ctx ast.Ctx) {
 
 	var b strings.Builder
 	err := showInHTML(env, &b, v)
@@ -214,7 +215,7 @@ func (r *renderer) showInURL(env runtime.Env, v interface{}, ctx ast.Context) {
 		if r.removeQuestionMark {
 			c := s[len(s)-1]
 			r.addAmpersand = c != '&'
-			_, err := pathEscape(out, s, ctx == ast.ContextQuotedAttr)
+			_, err := pathEscape(out, s, ctx.Quoted())
 			if err != nil {
 				env.Fatal(err)
 			}
@@ -234,7 +235,7 @@ func (r *renderer) showInURL(env runtime.Env, v interface{}, ctx ast.Context) {
 			r.addAmpersand = true
 		}
 	}
-	_, err = pathEscape(out, s, ctx == ast.ContextQuotedAttr)
+	_, err = pathEscape(out, s, ctx.Quoted())
 	if err != nil {
 		env.Fatal(err)
 	}

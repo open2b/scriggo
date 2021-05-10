@@ -647,7 +647,7 @@ nodesLoop:
 					if w, ok := ti.Type.(runtime.Wrapper); ok {
 						zero = w.Wrap(zero)
 					}
-					tc.opts.renderer.Show(tc.env, zero.Interface(), encodeRenderContext(node.Context, false, false))
+					tc.opts.renderer.Show(tc.env, zero.Interface(), runtime.Ctx(node.Context))
 					if err := tc.env.err; err != nil {
 						panic(tc.errorf(node, "cannot show %s (%s)", expr, err))
 					}

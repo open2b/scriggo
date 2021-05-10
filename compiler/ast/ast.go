@@ -32,11 +32,11 @@
 //								"article",
 //							),
 //							"title"),
-//						ast.ContextHTML),
+//						ast.CtxHTML),
 //					ast.NewText(&ast.Position{Line: 2, Column: 25, Start: 54, End: 60}, []byte("</div>\n"), ast.Cut{})),
 //				},
 //			),
-//		}, ast.ContextHTML)
+//		}, ast.CtxHTML)
 //
 package ast
 
@@ -114,10 +114,10 @@ const (
 )
 
 // A Format represents a content format.
-type Format int
+type Format byte
 
 const (
-	FormatText Format = iota
+	FormatText Format = iota + 1
 	FormatHTML
 	FormatCSS
 	FormatJS
@@ -141,60 +141,6 @@ func (format Format) String() string {
 		return "Markdown"
 	}
 	panic("invalid format")
-}
-
-// Context indicates the context in which a value statement must be valuated.
-type Context int
-
-const (
-	ContextText Context = iota
-	ContextHTML
-	ContextCSS
-	ContextJS
-	ContextJSON
-	ContextMarkdown
-	ContextTag
-	ContextQuotedAttr
-	ContextUnquotedAttr
-	ContextCSSString
-	ContextJSString
-	ContextJSONString
-	ContextTabCodeBlock
-	ContextSpacesCodeBlock
-)
-
-func (ctx Context) String() string {
-	switch ctx {
-	case ContextText:
-		return "text"
-	case ContextHTML:
-		return "HTML"
-	case ContextCSS:
-		return "CSS"
-	case ContextJS:
-		return "JavaScript"
-	case ContextJSON:
-		return "JSON"
-	case ContextMarkdown:
-		return "Markdown"
-	case ContextTag:
-		return "tag"
-	case ContextQuotedAttr:
-		return "quoted attribute"
-	case ContextUnquotedAttr:
-		return "unquoted attribute"
-	case ContextCSSString:
-		return "CSS string"
-	case ContextJSString:
-		return "JavaScript string"
-	case ContextJSONString:
-		return "JSON string"
-	case ContextTabCodeBlock:
-		return "tab code block"
-	case ContextSpacesCodeBlock:
-		return "spaces code block"
-	}
-	panic("invalid context")
 }
 
 type LiteralType int
@@ -303,10 +249,11 @@ type Text struct {
 	*Position        // position in the source.
 	Text      []byte // text.
 	Cut       Cut    // cut.
+	Ctx       Ctx    // context.
 }
 
-func NewText(pos *Position, text []byte, cut Cut) *Text {
-	return &Text{pos, text, cut}
+func NewText(pos *Position, text []byte, cut Cut, ctx Ctx) *Text {
+	return &Text{pos, text, cut, ctx}
 }
 
 func (n *Text) String() string {
@@ -775,10 +722,10 @@ func (n *Render) String() string {
 type Show struct {
 	*Position                // position in the source.
 	Expressions []Expression // expressions that once evaluated return the values to show.
-	Context     Context      // context.
+	Context     Ctx          // context.
 }
 
-func NewShow(pos *Position, expressions []Expression, ctx Context) *Show {
+func NewShow(pos *Position, expressions []Expression, ctx Ctx) *Show {
 	return &Show{pos, expressions, ctx}
 }
 

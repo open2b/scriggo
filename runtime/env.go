@@ -69,12 +69,15 @@ type Types interface {
 	ValueOf(i interface{}) reflect.Value
 }
 
+type Ctx byte
+type Format byte
+
 type Renderer interface {
-	Show(env Env, v interface{}, ctx uint8)
-	Text(env Env, txt []byte, ctx uint8)
+	Show(env Env, v interface{}, ctx Ctx)
+	Text(env Env, txt []byte, ctx Ctx)
 	Out() io.Writer
 	WithOut(out io.Writer) Renderer
-	WithConversion(fromFormat, toFormat uint8) Renderer
+	WithConversion(fromFormat, toFormat Format) Renderer
 	Close() error
 }
 
