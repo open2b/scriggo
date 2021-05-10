@@ -165,6 +165,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			indexReg := int8(0)
 			if len(vars) >= 1 && !isBlankIdentifier(vars[0]) {
 				name := vars[0].(*ast.Identifier).Name
+				if em.varStore.mustBeDeclaredAsIndirect(vars[0].(*ast.Identifier)) {
+					panic("BUG: not implemented. See https://github.com/open2b/scriggo/issues/629")
+				}
 				if node.Assignment.Type == ast.AssignmentDeclaration {
 					indexReg = em.fb.newRegister(reflect.Int)
 					em.fb.bindVarReg(name, indexReg)
@@ -174,6 +177,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			}
 			elem := int8(0)
 			if len(vars) == 2 && !isBlankIdentifier(vars[1]) {
+				if em.varStore.mustBeDeclaredAsIndirect(vars[1].(*ast.Identifier)) {
+					panic("BUG: not implemented. See https://github.com/open2b/scriggo/issues/629")
+				}
 				name := vars[1].(*ast.Identifier).Name
 				if node.Assignment.Type == ast.AssignmentDeclaration {
 					elem = em.fb.newRegister(em.typ(vars[1]).Kind())
