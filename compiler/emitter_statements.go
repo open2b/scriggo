@@ -949,9 +949,12 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 
 // emitForRange emits a for range statement.
 func (em *emitter) emitForRange(node *ast.ForRange) {
+
 	inForRange := em.inForRange
 	em.inForRange = true
+
 	em.fb.enterScope()
+
 	vars := node.Assignment.Lhs
 	expr := node.Assignment.Rhs[0]
 	exprType := em.typ(expr)
@@ -960,6 +963,7 @@ func (em *emitter) emitForRange(node *ast.ForRange) {
 		kExpr = false
 		exprReg = em.emitExpr(expr, exprType)
 	}
+
 	index := int8(0)
 	if len(vars) >= 1 && !isBlankIdentifier(vars[0]) {
 		name := vars[0].(*ast.Identifier).Name
@@ -986,6 +990,7 @@ func (em *emitter) emitForRange(node *ast.ForRange) {
 			elem = em.fb.scopeLookup(name)
 		}
 	}
+
 	rangeLabel := em.fb.newLabel()
 	em.fb.setLabelAddr(rangeLabel)
 	endRange := em.fb.newLabel()
@@ -1000,4 +1005,5 @@ func (em *emitter) emitForRange(node *ast.ForRange) {
 	em.fb.exitScope()
 	em.fb.exitScope()
 	em.inForRange = inForRange
+
 }
