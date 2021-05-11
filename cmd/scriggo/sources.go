@@ -740,7 +740,6 @@ Limitations
 
     * methods declarations (issue #458)
     * interface types definition (issue #218)
-    * assigning return values from a deferred closure (issue #278)
     * assigning to non-variables in 'for range' statements (issue #182)
     * importing the "unsafe" package from Scriggo (issue #288)
     * importing the "runtime" package from Scriggo (issue #524)
