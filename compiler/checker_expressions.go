@@ -1861,7 +1861,7 @@ func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *typeInfo {
 		if arg.IsConstant() {
 			var b bytes.Buffer
 			r1 := tc.opts.renderer.WithOut(&b)
-			r2 := r1.WithConversion(uint8(ast.FormatMarkdown), uint8(ast.FormatHTML))
+			r2 := r1.WithConversion(runtime.Format(ast.FormatMarkdown), runtime.Format(ast.FormatHTML))
 			_, _ = r2.Out().Write([]byte(arg.Constant.String()))
 			_ = r2.Close()
 			_ = r1.Close()

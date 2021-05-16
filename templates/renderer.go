@@ -64,7 +64,7 @@ func (r *renderer) Close() error {
 
 // Show shows v in the given context if r.out is not nil.
 // If r.out is nil, Show only does a type check and calls env.Fatal if it fails.
-func (r *renderer) Show(env runtime.Env, v interface{}, context uint8) {
+func (r *renderer) Show(env runtime.Env, v interface{}, context runtime.Context) {
 
 	if r.out == nil {
 		// Type check the show statement.
@@ -140,7 +140,7 @@ func (r *renderer) Out() io.Writer {
 }
 
 // Text shows txt in the given context.
-func (r *renderer) Text(env runtime.Env, txt []byte, context uint8) {
+func (r *renderer) Text(env runtime.Env, txt []byte, context runtime.Context) {
 
 	_, inURL, isSet := decodeRenderContext(context)
 
@@ -184,7 +184,7 @@ func (r *renderer) Text(env runtime.Env, txt []byte, context uint8) {
 
 }
 
-func (r *renderer) WithConversion(fromFormat, toFormat uint8) runtime.Renderer {
+func (r *renderer) WithConversion(fromFormat, toFormat runtime.Format) runtime.Renderer {
 	from, to := ast.Format(fromFormat), ast.Format(toFormat)
 	if from == ast.FormatMarkdown && to == ast.FormatHTML {
 		out := newMarkdownWriter(r.out, r.converter)

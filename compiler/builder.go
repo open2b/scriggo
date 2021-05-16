@@ -45,9 +45,9 @@ var emptyInterfaceType = reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Ele
 
 type label runtime.Addr
 
-// encodeRenderContext encodes a runtime.Renderer context.
-func encodeRenderContext(ctx ast.Context, inURL, isURLSet bool) uint8 {
-	c := uint8(ctx)
+// encodeRenderContext encodes a runtime.Context.
+func encodeRenderContext(ctx ast.Context, inURL, isURLSet bool) runtime.Context {
+	c := runtime.Context(ctx)
 	if inURL {
 		if isURLSet {
 			c |= 0b11000000
@@ -58,8 +58,8 @@ func encodeRenderContext(ctx ast.Context, inURL, isURLSet bool) uint8 {
 	return c
 }
 
-// decodeRenderContext decodes a runtime.Renderer context.
-func decodeRenderContext(c uint8) (ast.Context, bool, bool) {
+// decodeRenderContext decodes a runtime.Context.
+func decodeRenderContext(c runtime.Context) (ast.Context, bool, bool) {
 	ctx := ast.Context(c & 0b00001111)
 	inURL := c&0b10000000 != 0
 	isURLSet := false
@@ -143,7 +143,7 @@ func newMacro(pkg, name string, typ reflect.Type, format ast.Format, file string
 		Pkg:    pkg,
 		Name:   name,
 		Macro:  true,
-		Format: uint8(format),
+		Format: runtime.Format(format),
 		Type:   typ,
 		File:   file,
 	}

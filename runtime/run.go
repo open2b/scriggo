@@ -265,8 +265,8 @@ func (vm *VM) run() (Addr, bool) {
 					call.renderer = vm.renderer
 					if b == ReturnString {
 						vm.renderer = vm.renderer.WithOut(&macroOutBuffer{})
-					} else if uint8(b) != fn.Format {
-						vm.renderer = vm.renderer.WithConversion(fn.Format, uint8(b))
+					} else if Format(b) != fn.Format {
+						vm.renderer = vm.renderer.WithConversion(fn.Format, Format(b))
 					}
 				}
 				vm.fn = fn
@@ -296,8 +296,8 @@ func (vm *VM) run() (Addr, bool) {
 			}
 			if b == ReturnString {
 				vm.renderer = vm.renderer.WithOut(&macroOutBuffer{})
-			} else if uint8(b) != fn.Format {
-				vm.renderer = vm.renderer.WithConversion(fn.Format, uint8(b))
+			} else if Format(b) != fn.Format {
+				vm.renderer = vm.renderer.WithConversion(fn.Format, Format(b))
 			}
 			vm.fn = fn
 			vm.vars = vm.env.globals
@@ -1717,7 +1717,7 @@ func (vm *VM) run() (Addr, bool) {
 			if rv.IsValid() {
 				v = rv.Interface()
 			}
-			vm.renderer.Show(vm.env, v, uint8(c))
+			vm.renderer.Show(vm.env, v, Context(c))
 
 		// Slice
 		case OpSlice:
@@ -1847,7 +1847,7 @@ func (vm *VM) run() (Addr, bool) {
 		// Text
 		case OpText:
 			txt := vm.fn.Text[decodeUint16(a, b)]
-			vm.renderer.Text(vm.env, txt, uint8(c))
+			vm.renderer.Text(vm.env, txt, Context(c))
 
 		// Typify
 		case OpTypify, -OpTypify:

@@ -650,7 +650,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		typ := fn.Types[int(uint(a))]
 		s += " " + typ.String()
 		s += " " + disassembleOperand(fn, b, reflectToRegisterKind(typ.Kind()), false)
-		ctx, _, _ := decodeRenderContext(uint8(c))
+		ctx, _, _ := decodeRenderContext(runtime.Context(c))
 		s += " " + "(" + ctx.String() + ")"
 	case runtime.OpSlice:
 		khigh := b&2 != 0

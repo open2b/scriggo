@@ -69,12 +69,18 @@ type Types interface {
 	ValueOf(i interface{}) reflect.Value
 }
 
+// Format represents a format.
+type Format byte
+
+// Context represents a context in Show and Text instructions.
+type Context byte
+
 type Renderer interface {
-	Show(env Env, v interface{}, ctx uint8)
-	Text(env Env, txt []byte, ctx uint8)
+	Show(env Env, v interface{}, ctx Context)
+	Text(env Env, txt []byte, ctx Context)
 	Out() io.Writer
 	WithOut(out io.Writer) Renderer
-	WithConversion(fromFormat, toFormat uint8) Renderer
+	WithConversion(fromFormat, toFormat Format) Renderer
 	Close() error
 }
 

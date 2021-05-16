@@ -378,7 +378,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 			backupPath := e.fb.getPath()
 			extends := pkg.Declarations[0].(*ast.Extends)
 			e.fb.changePath(extends.Tree.Path)
-			e.fb.fn.Format = uint8(extends.Tree.Format)
+			e.fb.fn.Format = runtime.Format(extends.Tree.Format)
 			e.fb.enterScope()
 			// Reserves first index of Functions for the function that
 			// initializes package variables. There is no guarantee that such

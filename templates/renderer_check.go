@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/runtime"
 )
 
 var stringerType = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
@@ -36,9 +37,9 @@ var byteSliceType = reflect.TypeOf([]byte(nil))
 var timeType = reflect.TypeOf(time.Time{})
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
-// decodeRenderContext decodes a runtime.Renderer context.
+// decodeRenderContext decodes a runtime.Context.
 // Keep in sync with the compiler.decodeRenderContext.
-func decodeRenderContext(c uint8) (ast.Context, bool, bool) {
+func decodeRenderContext(c runtime.Context) (ast.Context, bool, bool) {
 	ctx := ast.Context(c & 0b00001111)
 	inURL := c&0b10000000 != 0
 	isURLSet := false
