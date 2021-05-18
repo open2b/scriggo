@@ -386,11 +386,21 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 			if expr == nil {
 				return nil, nil, syntaxError(tok.pos, "unexpected %s, expecting expression", tok)
 			}
+			var defaultList []ast.Expression
+			if tok.typ == tokenDefault {
+				if _, ok := expr.(*ast.Call); !ok {
+					return nil, nil, syntaxError(tok.pos, "unexpected default, expecting }}", tok)
+				}
+				defaultList, tok = p.parseExprList(p.next(), false, false, false)
+				if defaultList == nil {
+					return nil, nil, syntaxError(tok.pos, "unexpected %s, expecting expression", tok)
+				}
+			}
 			if tok.typ != tokenRightBraces {
 				return nil, nil, syntaxError(tok.pos, "unexpected %s, expecting }}", tok)
 			}
 			pos.End = tok.pos.End
-			var node = ast.NewShow(pos, []ast.Expression{expr}, tok.ctx)
+			var node = ast.NewShow(pos, []ast.Expression{expr}, defaultList, tok.ctx)
 			p.addChild(node)
 			if _, ok := expr.(*ast.Render); ok {
 				p.cutSpacesToken = true
@@ -932,8 +942,17 @@ LABEL:
 		if exprs == nil {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
+		var defaultList []ast.Expression
+		if tok.typ == tokenDefault && len(exprs) == 1 {
+			if _, ok := exprs[0].(*ast.Call); ok {
+				defaultList, tok = p.parseExprList(p.next(), false, false, false)
+				if defaultList == nil {
+					panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
+				}
+			}
+		}
 		pos.End = exprs[len(exprs)-1].Pos().End
-		var node = ast.NewShow(pos, exprs, ctx)
+		var node = ast.NewShow(pos, exprs, defaultList, ctx)
 		p.addChild(node)
 		if len(exprs) == 1 {
 			if _, ok := exprs[0].(*ast.Render); ok {

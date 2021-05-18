@@ -629,7 +629,7 @@ nodesLoop:
 						)
 						then := ast.NewBlock( // {{ v }}
 							pos,
-							[]ast.Node{ast.NewShow(pos, []ast.Expression{ast.NewIdentifier(pos, "v")}, node.Context)},
+							[]ast.Node{ast.NewShow(pos, []ast.Expression{ast.NewIdentifier(pos, "v")}, nil, node.Context)},
 						)
 						nodes[i] = ast.NewIf(pos, init, cond, then, nil)
 						continue nodesLoop // check nodes[i]

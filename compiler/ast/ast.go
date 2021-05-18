@@ -784,11 +784,12 @@ func (n *Render) String() string {
 type Show struct {
 	*Position                // position in the source.
 	Expressions []Expression // expressions that once evaluated return the values to show.
+	Default     []Expression // default expressions.
 	Context     Context      // context.
 }
 
-func NewShow(pos *Position, expressions []Expression, ctx Context) *Show {
-	return &Show{pos, expressions, ctx}
+func NewShow(pos *Position, expressions, defaultList []Expression, ctx Context) *Show {
+	return &Show{pos, expressions, defaultList, ctx}
 }
 
 func (n *Show) String() string {
