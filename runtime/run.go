@@ -1847,7 +1847,8 @@ func (vm *VM) run() (Addr, bool) {
 		// Text
 		case OpText:
 			txt := vm.fn.Text[decodeUint16(a, b)]
-			vm.renderer.Text(vm.env, txt, Context(c))
+			inURL, isSet := c > 0, c == 2
+			vm.renderer.Text(vm.env, txt, inURL, isSet)
 
 		// Typify
 		case OpTypify, -OpTypify:

@@ -582,7 +582,7 @@ type renderer struct {
 }
 
 func (r *renderer) Show(runtime.Env, interface{}, runtime.Context) {}
-func (r *renderer) Text(runtime.Env, []byte, runtime.Context)      {}
+func (r *renderer) Text(runtime.Env, []byte, bool, bool)           {}
 func (r *renderer) Out() io.Writer {
 	if r.b != nil {
 		return r.b

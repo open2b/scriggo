@@ -1005,8 +1005,14 @@ func (fb *functionBuilder) emitText(txt []byte, inURL, isURLSet bool) {
 	fb.text.txt = append(fb.text.txt, txt)
 	fb.text.inURL = inURL
 	a, b := encodeUint16(uint16(len(fb.fn.Text)))
-	c := encodeRenderContext(ast.ContextText, inURL, isURLSet)
-	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpText, A: a, B: b, C: int8(c)})
+	var c int8
+	if inURL {
+		c = 1
+		if isURLSet {
+			c = 2
+		}
+	}
+	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpText, A: a, B: b, C: c})
 }
 
 // emitTailCall appends a new "TailCall" instruction to the function body.

@@ -77,7 +77,7 @@ type Context byte
 
 type Renderer interface {
 	Show(env Env, v interface{}, ctx Context)
-	Text(env Env, txt []byte, ctx Context)
+	Text(env Env, txt []byte, inURL, isSet bool)
 	Out() io.Writer
 	WithOut(out io.Writer) Renderer
 	WithConversion(fromFormat, toFormat Format) Renderer

@@ -140,9 +140,7 @@ func (r *renderer) Out() io.Writer {
 }
 
 // Text shows txt in the given context.
-func (r *renderer) Text(env runtime.Env, txt []byte, context runtime.Context) {
-
-	_, inURL, isSet := decodeRenderContext(context)
+func (r *renderer) Text(env runtime.Env, txt []byte, inURL, isSet bool) {
 
 	// Check and eventually change the URL state.
 	if r.inURL != inURL {
