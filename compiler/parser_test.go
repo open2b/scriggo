@@ -1977,8 +1977,8 @@ func equals(n1, n2 ast.Node, p int) error {
 				return err
 			}
 		}
-		for i, expr := range nn1.Default {
-			err := equals(expr, nn2.Default[i], p)
+		for i, expr := range nn1.Defaults {
+			err := equals(expr, nn2.Defaults[i], p)
 			if err != nil {
 				return err
 			}
