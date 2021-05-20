@@ -942,6 +942,7 @@ LABEL:
 		if exprs == nil {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
+		pos.End = exprs[len(exprs)-1].Pos().End
 		var defaults []ast.Expression
 		if tok.typ == tokenDefault && len(exprs) == 1 {
 			if _, ok := exprs[0].(*ast.Call); ok {
@@ -949,9 +950,9 @@ LABEL:
 				if defaults == nil {
 					panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 				}
+				pos.End = defaults[len(defaults)-1].Pos().End
 			}
 		}
-		pos.End = exprs[len(exprs)-1].Pos().End
 		var node = ast.NewShow(pos, exprs, defaults, ctx)
 		p.addChild(node)
 		if len(exprs) == 1 {

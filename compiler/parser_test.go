@@ -1220,6 +1220,23 @@ var treeTests = []struct {
 		ast.NewShow(p(1, 12, 11, 16), []ast.Expression{ast.NewIdentifier(p(1, 17, 16, 16), "a")}, nil, ast.ContextJS),
 		ast.NewText(p(1, 21, 20, 28), []byte("</script>"), ast.Cut{}),
 	}, ast.FormatHTML)},
+	{"{% show a() default b, c %}", ast.NewTree("", []ast.Node{
+		ast.NewShow(p(1, 4, 3, 23), []ast.Expression{
+			ast.NewCall(p(1, 10, 8, 10),
+				ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Expression{}, false),
+		},
+			[]ast.Expression{ast.NewIdentifier(p(1, 21, 20, 20), "b"), ast.NewIdentifier(p(1, 24, 23, 23), "c")},
+			ast.ContextHTML),
+	}, ast.FormatHTML)},
+	{"{{ a() default b, c }}", ast.NewTree("", []ast.Node{
+		ast.NewShow(p(1, 1, 0, 21), []ast.Expression{
+			ast.NewCall(p(1, 5, 3, 5),
+				ast.NewIdentifier(p(1, 4, 3, 3), "a"), []ast.Expression{}, false),
+		},
+			[]ast.Expression{ast.NewIdentifier(p(1, 16, 15, 15), "b"), ast.NewIdentifier(p(1, 19, 18, 18), "c")},
+			ast.ContextHTML),
+	}, ast.FormatHTML)},
+
 	{"{% for v in e %}b{% end for %}", ast.NewTree("", []ast.Node{
 		ast.NewForIn(p(1, 4, 3, 26),
 			ast.NewIdentifier(p(1, 8, 7, 7), "v"),
