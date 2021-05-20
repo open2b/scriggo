@@ -389,7 +389,7 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 			var defaultList []ast.Expression
 			if tok.typ == tokenDefault {
 				if _, ok := expr.(*ast.Call); !ok {
-					return nil, nil, syntaxError(tok.pos, "unexpected default, expecting }}", tok)
+					return nil, nil, syntaxError(tok.pos, "unexpected default, expecting }}")
 				}
 				defaultList, tok = p.parseExprList(p.next(), false, false, false)
 				if defaultList == nil {
