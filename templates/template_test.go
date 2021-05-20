@@ -2590,6 +2590,61 @@ var templateMultiPageCases = map[string]struct {
 		packages:    testPackages,
 		expectedOut: "that's ok",
 	},
+
+	"https://github.com/open2b/scriggo/issues/727 - Macro (1)": {
+		sources: map[string]string{
+			"index.html": `
+			{% macro M(param int) %}
+				{% macro localMacro %}
+					{{ param }}
+				{% end %}
+			{% end %}`,
+		},
+		expectedOut: "\n",
+	},
+
+	"https://github.com/open2b/scriggo/issues/727 - Macro (2)": {
+		sources: map[string]string{
+			"index.html": `
+			{% macro M(param int) %}
+				{% macro localMacro %}{{ param }}{% end %}
+				{{ localMacro() }}
+			{% end %}
+			{{ M(42) }}`,
+		},
+		expectedOut: "\n\t\t\t\t\t\t\t\n\t\t\t\t42\n",
+	},
+
+	"https://github.com/open2b/scriggo/issues/727 - Function literal (1)": {
+		sources: map[string]string{
+			"index.html": `
+			{%%
+				M := func(param int) int {
+					localFunc := func() int {
+						return param
+					}
+					return 0
+				}
+			%%}`,
+		},
+		expectedOut: "\n\t\t\t",
+	},
+
+	"https://github.com/open2b/scriggo/issues/727 - Function literal (2)": {
+		sources: map[string]string{
+			"index.html": `
+			{%%
+				M := func(param int) int {
+					localFunc := func() int {
+						return param
+					}
+					return localFunc()
+				}
+			%%}
+			{{ M(439) }}`,
+		},
+		expectedOut: "\n\t\t\t439",
+	},
 }
 
 var structWithUnexportedFields = &struct {

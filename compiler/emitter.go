@@ -481,12 +481,13 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 			// Just reserve space for this parameter.
 			_ = em.fb.newRegister(kind)
 		} else {
-			if em.varStore.mustBeDeclaredAsIndirect(inParam.Ident) {
-				panic("BUG: not supported")
-			} else {
-				arg := em.fb.newRegister(kind)
-				em.fb.bindVarReg(inParam.Ident.Name, arg)
-			}
+			// Here it is not necessary to check if the input parameter should
+			// use an indirect register or not, because in both cases the space
+			// for such register must be reserved.
+			//
+			// Indirect input parameters are handled below.
+			arg := em.fb.newRegister(kind)
+			em.fb.bindVarReg(inParam.Ident.Name, arg)
 		}
 	}
 
@@ -500,6 +501,23 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 			em.fb.bindVarReg(out.Ident.Name, reg)
 			em.fb.fn.FinalRegs = append(em.fb.fn.FinalRegs, [2]int8{-reg, dst})
 		}
+	}
+
+	// Rebind input parameters that should be declared as indirect.
+	for _, param := range fn.Type.Parameters {
+		if em.varStore.mustBeDeclaredAsIndirect(param.Ident) {
+			// reg is used only to read input parameters; after copying values
+			// into the indirect register it is not used anymore.
+			// In this way, the caller of fn should not care if the input
+			// parameter should be indirect or not.
+			reg := em.fb.scopeLookup(param.Ident.Name)
+			indirect := em.fb.newIndirectRegister()
+			typ := em.typ(param.Type)
+			em.fb.emitNew(typ, -indirect)
+			em.changeRegister(false, reg, indirect, typ, typ)
+			em.fb.bindVarReg(param.Ident.Name, indirect)
+		}
+
 	}
 
 }
