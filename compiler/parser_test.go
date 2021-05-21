@@ -1220,20 +1220,20 @@ var treeTests = []struct {
 		ast.NewShow(p(1, 12, 11, 16), []ast.Expression{ast.NewIdentifier(p(1, 17, 16, 16), "a")}, nil, ast.ContextJS),
 		ast.NewText(p(1, 21, 20, 28), []byte("</script>"), ast.Cut{}),
 	}, ast.FormatHTML)},
-	{"{% show a() default b, c %}", ast.NewTree("", []ast.Node{
-		ast.NewShow(p(1, 4, 3, 23), []ast.Expression{
+	{"{% show a() default b %}", ast.NewTree("", []ast.Node{
+		ast.NewShow(p(1, 4, 3, 20), []ast.Expression{
 			ast.NewCall(p(1, 10, 8, 10),
 				ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Expression{}, false),
 		},
-			[]ast.Expression{ast.NewIdentifier(p(1, 21, 20, 20), "b"), ast.NewIdentifier(p(1, 24, 23, 23), "c")},
+			ast.NewIdentifier(p(1, 21, 20, 20), "b"),
 			ast.ContextHTML),
 	}, ast.FormatHTML)},
-	{"{{ a() default b, c }}", ast.NewTree("", []ast.Node{
-		ast.NewShow(p(1, 1, 0, 21), []ast.Expression{
+	{"{{ a() default b }}", ast.NewTree("", []ast.Node{
+		ast.NewShow(p(1, 1, 0, 18), []ast.Expression{
 			ast.NewCall(p(1, 5, 3, 5),
 				ast.NewIdentifier(p(1, 4, 3, 3), "a"), []ast.Expression{}, false),
 		},
-			[]ast.Expression{ast.NewIdentifier(p(1, 16, 15, 15), "b"), ast.NewIdentifier(p(1, 19, 18, 18), "c")},
+			ast.NewIdentifier(p(1, 16, 15, 15), "b"),
 			ast.ContextHTML),
 	}, ast.FormatHTML)},
 
@@ -1994,11 +1994,9 @@ func equals(n1, n2 ast.Node, p int) error {
 				return err
 			}
 		}
-		for i, expr := range nn1.Defaults {
-			err := equals(expr, nn2.Defaults[i], p)
-			if err != nil {
-				return err
-			}
+		err := equals(nn1.Default, nn2.Default, p)
+		if err != nil {
+			return err
 		}
 		if nn1.Context != nn2.Context {
 			return fmt.Errorf("unexpected context %s, expecting %s", nn1.Context, nn2.Context)

@@ -204,7 +204,7 @@ var typeTestsText = map[string][]tokenTyp{
 	"{{ a or not b }}":       {tokenLeftBraces, tokenIdentifier, tokenExtendedOr, tokenExtendedNot, tokenIdentifier, tokenRightBraces},
 	"{{ a contains b }}":     {tokenLeftBraces, tokenIdentifier, tokenContains, tokenIdentifier, tokenRightBraces},
 	"{{ a not contains b }}": {tokenLeftBraces, tokenIdentifier, tokenExtendedNot, tokenContains, tokenIdentifier, tokenRightBraces},
-	"{{ a() default b, c }}": {tokenLeftBraces, tokenIdentifier, tokenLeftParenthesis, tokenRightParenthesis, tokenDefault, tokenIdentifier, tokenComma, tokenIdentifier, tokenRightBraces},
+	"{{ a() default b }}":    {tokenLeftBraces, tokenIdentifier, tokenLeftParenthesis, tokenRightParenthesis, tokenDefault, tokenIdentifier, tokenRightBraces},
 
 	"<a {% if a %}{% end %}>":       {tokenText, tokenStartStatement, tokenIf, tokenIdentifier, tokenEndStatement, tokenStartStatement, tokenEnd, tokenEndStatement, tokenText},
 	"<a {% if a %}b{% end %}>":      {tokenText, tokenStartStatement, tokenIf, tokenIdentifier, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement, tokenText},

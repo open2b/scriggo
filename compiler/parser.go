@@ -386,13 +386,13 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 			if expr == nil {
 				return nil, nil, syntaxError(tok.pos, "unexpected %s, expecting expression", tok)
 			}
-			var defaults []ast.Expression
+			var defaultt ast.Expression
 			if tok.typ == tokenDefault {
 				if _, ok := expr.(*ast.Call); !ok {
 					return nil, nil, syntaxError(tok.pos, "unexpected default, expecting }}")
 				}
-				defaults, tok = p.parseExprList(p.next(), false, false, false)
-				if defaults == nil {
+				defaultt, tok = p.parseExpr(p.next(), false, false, false)
+				if defaultt == nil {
 					return nil, nil, syntaxError(tok.pos, "unexpected %s, expecting expression", tok)
 				}
 			}
@@ -400,7 +400,7 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 				return nil, nil, syntaxError(tok.pos, "unexpected %s, expecting }}", tok)
 			}
 			pos.End = tok.pos.End
-			var node = ast.NewShow(pos, []ast.Expression{expr}, defaults, tok.ctx)
+			var node = ast.NewShow(pos, []ast.Expression{expr}, defaultt, tok.ctx)
 			p.addChild(node)
 			if _, ok := expr.(*ast.Render); ok {
 				p.cutSpacesToken = true
@@ -943,17 +943,17 @@ LABEL:
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
 		pos.End = exprs[len(exprs)-1].Pos().End
-		var defaults []ast.Expression
+		var defaultt ast.Expression
 		if tok.typ == tokenDefault && len(exprs) == 1 {
 			if _, ok := exprs[0].(*ast.Call); ok {
-				defaults, tok = p.parseExprList(p.next(), false, false, false)
-				if defaults == nil {
+				defaultt, tok = p.parseExpr(p.next(), false, false, false)
+				if defaultt == nil {
 					panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 				}
-				pos.End = defaults[len(defaults)-1].Pos().End
+				pos.End = defaultt.Pos().End
 			}
 		}
-		var node = ast.NewShow(pos, exprs, defaults, ctx)
+		var node = ast.NewShow(pos, exprs, defaultt, ctx)
 		p.addChild(node)
 		if len(exprs) == 1 {
 			if _, ok := exprs[0].(*ast.Render); ok {

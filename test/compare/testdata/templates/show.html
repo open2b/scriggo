@@ -14,16 +14,16 @@
 
 {% show 1, 2, %}  // ERROR `syntax error: unexpected %}, expecting expression`
 
-{{ a(b) default }}  // ERROR `syntax error: unexpected }}, expecting expression`
-{{ a default b }}  // ERROR `syntax error: unexpected default, expecting }}`
-{{ a() b }}  // ERROR `syntax error: unexpected b, expecting }}`
-{{ a() default 1, }}  // ERROR `syntax error: unexpected }}, expecting expression`
+{{ a(b) default }}         // ERROR `syntax error: unexpected }}, expecting expression`
+{{ a default b }}          // ERROR `syntax error: unexpected default, expecting }}`
+{{ a() b }}                // ERROR `syntax error: unexpected b, expecting }}`
+{{ a() default 1, 2 }}     // ERROR `syntax error: unexpected comma, expecting }}`
 {{ a() default default }}  // ERROR `syntax error: unexpected default, expecting expression`
 
-{% show a(b) default %}  // ERROR `syntax error: unexpected %}, expecting expression`
-{% show a default b %}  // ERROR `syntax error: unexpected default at end of statement`
-{% show a() b %}  // ERROR `syntax error: unexpected b at end of statement`
-{% show a() default 1, %}  // ERROR `syntax error: unexpected %}, expecting expression`
+{% show a(b) default %}         // ERROR `syntax error: unexpected %}, expecting expression`
+{% show a default b %}          // ERROR `syntax error: unexpected default at end of statement`
+{% show a() b %}                // ERROR `syntax error: unexpected b at end of statement`
+{% show a() default 1, 2 %}     // ERROR `syntax error: unexpected comma at end of statement`
 {% show a() default default %}  // ERROR `syntax error: unexpected default, expecting expression`
 
 {%%

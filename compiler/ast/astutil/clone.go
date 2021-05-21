@@ -216,11 +216,7 @@ func CloneNode(node ast.Node) ast.Node {
 		for i, expr := range n.Expressions {
 			expressions[i] = CloneExpression(expr)
 		}
-		defaults := make([]ast.Expression, len(n.Defaults))
-		for i, expr := range n.Defaults {
-			defaults[i] = CloneExpression(expr)
-		}
-		return ast.NewShow(ClonePosition(n.Position), expressions, defaults, n.Context)
+		return ast.NewShow(ClonePosition(n.Position), expressions, CloneExpression(n.Default), n.Context)
 
 	case *ast.Statements:
 		var nodes []ast.Node
