@@ -2645,6 +2645,97 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedOut: "\n\t\t\t439",
 	},
+
+	"Show with default - Undefined": {
+		sources: map[string]string{
+			"index.html": `{% show Undefined() default 42 %}`,
+		},
+		expectedOut: `42`,
+	},
+
+	"Show with default - Defined (macro)": {
+		sources: map[string]string{
+			"index.html": `{% macro M %}i'm a macro{% end %}{% show M() default 42 %}`,
+		},
+		expectedOut: `i'm a macro`,
+	},
+
+	"Show with default - Undefined - using {{ }}": {
+		sources: map[string]string{
+			"index.html": `{{ Undefined() default 42 }}`,
+		},
+		expectedOut: `42`,
+	},
+
+	"Show with default - Undefined - default empty string": {
+		sources: map[string]string{
+			"index.html": `{% show Undefined() default "" %}`,
+		},
+		expectedOut: ``,
+	},
+
+	"Show with default - Undefined - default empty string - {{ }}": {
+		sources: map[string]string{
+			"index.html": `{{ Undefined() default "" }}`,
+		},
+		expectedOut: ``,
+	},
+
+	"Show with default - Defined (macro) - using {{ }}": {
+		sources: map[string]string{
+			"index.html": `{% macro M %}i'm a macro{% end %}{{ M() default 42 }}`,
+		},
+		expectedOut: `i'm a macro`,
+	},
+
+	"Show with default - Multiple expressions on right side of 'default'": {
+		sources: map[string]string{
+			"index.html": `{% show Undefined() default 42, 44, "hi!" %}`,
+		},
+		expectedBuildErr: `syntax error: unexpected comma at end of statement`,
+	},
+
+	"Show with default - arguments are not evaluated": {
+		sources: map[string]string{
+			"index.html": `{{ Undefined([]int{}[2]) default "not panicking" }}`,
+		},
+		expectedOut: `not panicking`,
+	},
+
+	"Show with default - m is not a function or a macro": {
+		sources: map[string]string{
+			"index.html": `{% m := "not a function" %}{{ m() default 10 }}`,
+		},
+		expectedBuildErr: "cannot call non-function m (type string)",
+	},
+
+	"Show with default - builtin function": {
+		sources: map[string]string{
+			"index.html": `{{ println() default 10 }}`,
+		},
+		expectedBuildErr: `use of builtin println on left side of default`,
+	},
+
+	"Show with default - variadic call": {
+		sources: map[string]string{
+			"index.html": `{{ undefined([]int{1,2,3}...) default 10 }}`,
+		},
+		expectedOut: `10`,
+	},
+
+	"Show with default - invalid argument in undefined macro": {
+		sources: map[string]string{
+			"index.html": `{{ undefined(x) default 10 }}`,
+		},
+		expectedBuildErr: "undefined: x",
+	},
+
+	"Show with default - invalid variadic call": {
+		sources: map[string]string{
+			"index.html": `{% x := "hello" %}{{ undefined(x...) default 10 }}`,
+		},
+		expectedBuildErr: "last argument in variadic call must be a slice",
+	},
 }
 
 var structWithUnexportedFields = &struct {

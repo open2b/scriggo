@@ -599,6 +599,31 @@ nodesLoop:
 
 		case *ast.Show:
 
+			// show m(x1, x2, ...) default expr
+			// The 'show' statement with 'default' is converted to a generic
+			// 'show'.
+			if node.Default != nil {
+				call := node.Expressions[0].(*ast.Call)
+				m := call.Func.(*ast.Identifier)
+				if ti, isDefined := tc.lookupScopes(m.Name, false); isDefined {
+					if ti.IsBuiltinFunction() {
+						panic(tc.errorf(m, "use of builtin %s on left side of default", m))
+					}
+				} else {
+					// Call arguments are type checked but never executed.
+					for i, arg := range call.Args {
+						ti := tc.checkExpr(arg)
+						// Check variadic calls.
+						if call.IsVariadic && i == len(call.Args)-1 && ti.Type.Kind() != reflect.Slice {
+							panic(tc.errorf(arg, "last argument in variadic call must be a slice"))
+						}
+					}
+					// Show the 'default' expression.
+					node.Expressions = []ast.Expression{node.Default}
+				}
+				node.Default = nil
+			}
+
 			// Handle {{ f() }} where f returns two values and the second value
 			// implements 'error'.
 			if len(node.Expressions) == 1 {
