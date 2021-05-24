@@ -605,7 +605,7 @@ nodesLoop:
 			if node.Default != nil {
 				call := node.Expressions[0].(*ast.Call)
 				ident := call.Func.(*ast.Identifier)
-				if ti, isDefined := tc.lookupScopes(ident.Name, false); isDefined {
+				if ti, ok := tc.lookupScopes(ident.Name, false); ok {
 					if ti.IsBuiltinFunction() {
 						panic(tc.errorf(ident, "use of builtin %s on left side of default", ident))
 					}
