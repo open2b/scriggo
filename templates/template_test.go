@@ -2734,7 +2734,7 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `{% x := "hello" %}{{ undefined(x...) default 10 }}`,
 		},
-		expectedBuildErr: "last argument in variadic call must be a slice",
+		expectedBuildErr: "cannot use x (type string) as variadic argument",
 	},
 
 	"Show with default - type conversion": {

@@ -618,7 +618,7 @@ nodesLoop:
 						ti := tc.checkExpr(arg)
 						// Check variadic calls.
 						if call.IsVariadic && i == len(call.Args)-1 && ti.Type.Kind() != reflect.Slice {
-							panic(tc.errorf(arg, "last argument in variadic call must be a slice"))
+							panic(tc.errorf(arg, "cannot use %s (type %s) as variadic argument", arg, ti.Type))
 						}
 					}
 					// Show the 'default' expression.
