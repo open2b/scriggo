@@ -604,10 +604,10 @@ nodesLoop:
 			// 'show'.
 			if node.Default != nil {
 				call := node.Expressions[0].(*ast.Call)
-				m := call.Func.(*ast.Identifier)
-				if ti, isDefined := tc.lookupScopes(m.Name, false); isDefined {
+				ident := call.Func.(*ast.Identifier)
+				if ti, isDefined := tc.lookupScopes(ident.Name, false); isDefined {
 					if ti.IsBuiltinFunction() {
-						panic(tc.errorf(m, "use of builtin %s on left side of default", m))
+						panic(tc.errorf(ident, "use of builtin %s on left side of default", ident))
 					}
 				} else {
 					// Call arguments are type checked but never executed.
