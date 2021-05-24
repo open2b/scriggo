@@ -606,6 +606,9 @@ nodesLoop:
 				call := node.Expressions[0].(*ast.Call)
 				ident := call.Func.(*ast.Identifier)
 				if ti, ok := tc.lookupScopes(ident.Name, false); ok {
+					if ti.IsType() {
+						panic(tc.errorf(ident, "type conversion on left side of default"))
+					}
 					if ti.IsBuiltinFunction() {
 						panic(tc.errorf(ident, "use of builtin %s on left side of default", ident))
 					}

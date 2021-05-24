@@ -2736,6 +2736,20 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expectedBuildErr: "last argument in variadic call must be a slice",
 	},
+
+	"Show with default - type conversion": {
+		sources: map[string]string{
+			"index.html": `{{ int(42) default 10 }}`,
+		},
+		expectedBuildErr: "type conversion on left side of default",
+	},
+
+	"Show with default - type conversion (defined type)": {
+		sources: map[string]string{
+			"index.html": `{% type T string %}{{ T(string("hello")) default 10 }}`,
+		},
+		expectedBuildErr: "type conversion on left side of default",
+	},
 }
 
 var structWithUnexportedFields = &struct {
