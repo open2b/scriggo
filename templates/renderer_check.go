@@ -93,12 +93,12 @@ func checkShow(t reflect.Type, ctx ast.Context) error {
 			return fmt.Errorf("cannot show type %s as CSS", t)
 		}
 	case ast.ContextJS:
-		err := checkShowJS(t)
+		err := checkShowJS(t, nil)
 		if err != nil {
 			return err
 		}
 	case ast.ContextJSON:
-		err := checkShowJSON(t)
+		err := checkShowJSON(t, nil)
 		if err != nil {
 			return err
 		}
@@ -124,7 +124,12 @@ func checkShow(t reflect.Type, ctx ast.Context) error {
 
 // checkShowJS reports whether a type can be shown as JavaScript. It returns
 // an error if the type cannot be shown.
-func checkShowJS(t reflect.Type) error {
+func checkShowJS(t reflect.Type, types []reflect.Type) error {
+	for _, typ := range types {
+		if t == typ {
+			return nil
+		}
+	}
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
 		t == timeType ||
@@ -135,7 +140,7 @@ func checkShowJS(t reflect.Type) error {
 	}
 	switch kind {
 	case reflect.Array:
-		if err := checkShowJS(t.Elem()); err != nil {
+		if err := checkShowJS(t.Elem(), append(types, t)); err != nil {
 			return fmt.Errorf("cannot show array of %s as JavaScript", t.Elem())
 		}
 	case reflect.Interface:
@@ -149,14 +154,15 @@ func checkShowJS(t reflect.Type) error {
 		default:
 			return fmt.Errorf("cannot show map with %s key as JavaScript", t.Key())
 		}
-		err := checkShowJS(t.Elem())
+		te := t.Elem()
+		err := checkShowJS(te, append(types, t))
 		if err != nil {
 			return fmt.Errorf("cannot show map with %s element as JavaScript", t.Elem())
 		}
 	case reflect.Ptr, reflect.UnsafePointer:
-		return checkShowJS(t.Elem())
+		return checkShowJS(t.Elem(), append(types, t))
 	case reflect.Slice:
-		if err := checkShowJS(t.Elem()); err != nil {
+		if err := checkShowJS(t.Elem(), append(types, t)); err != nil {
 			return fmt.Errorf("cannot show slice of %s as JavaScript", t.Elem())
 		}
 	case reflect.Struct:
@@ -164,7 +170,7 @@ func checkShowJS(t reflect.Type) error {
 		for i := 0; i < n; i++ {
 			field := t.Field(i)
 			if field.PkgPath == "" {
-				if err := checkShowJS(field.Type); err != nil {
+				if err := checkShowJS(field.Type, append(types, t)); err != nil {
 					return fmt.Errorf("cannot show struct containing %s as JavaScript", field.Type)
 				}
 			}
@@ -177,7 +183,12 @@ func checkShowJS(t reflect.Type) error {
 
 // checkShowJSON reports whether a type can be shown as JSON. It returns an
 // error if the type cannot be shown.
-func checkShowJSON(t reflect.Type) error {
+func checkShowJSON(t reflect.Type, types []reflect.Type) error {
+	for _, typ := range types {
+		if t == typ {
+			return nil
+		}
+	}
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
 		t == timeType ||
@@ -188,7 +199,7 @@ func checkShowJSON(t reflect.Type) error {
 	}
 	switch kind {
 	case reflect.Array:
-		if err := checkShowJSON(t.Elem()); err != nil {
+		if err := checkShowJSON(t.Elem(), append(types, t)); err != nil {
 			return fmt.Errorf("cannot show array of %s as JSON", t.Elem())
 		}
 	case reflect.Interface:
@@ -202,14 +213,14 @@ func checkShowJSON(t reflect.Type) error {
 		default:
 			return fmt.Errorf("cannot show map with %s key as JSON", t.Key())
 		}
-		err := checkShowJSON(t.Elem())
+		err := checkShowJSON(t.Elem(), append(types, t))
 		if err != nil {
 			return fmt.Errorf("cannot show map with %s element as JSON", t.Elem())
 		}
 	case reflect.Ptr, reflect.UnsafePointer:
-		return checkShowJSON(t.Elem())
+		return checkShowJSON(t.Elem(), append(types, t))
 	case reflect.Slice:
-		if err := checkShowJSON(t.Elem()); err != nil {
+		if err := checkShowJSON(t.Elem(), append(types, t)); err != nil {
 			return fmt.Errorf("cannot show slice of %s as JSON", t.Elem())
 		}
 	case reflect.Struct:
@@ -217,7 +228,7 @@ func checkShowJSON(t reflect.Type) error {
 		for i := 0; i < n; i++ {
 			field := t.Field(i)
 			if field.PkgPath == "" {
-				if err := checkShowJSON(field.Type); err != nil {
+				if err := checkShowJSON(field.Type, append(types, t)); err != nil {
 					return fmt.Errorf("cannot show struct containing %s as JSON", field.Type)
 				}
 			}
