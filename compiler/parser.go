@@ -347,7 +347,7 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 
 		// Text
 		case tokenText:
-			p.addChild(text)
+			p.addNode(text)
 			tok = p.next()
 
 		// {%
@@ -361,8 +361,7 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 			numTokenInLine++
 			pos := tok.pos
 			var statements = ast.NewStatements(pos, nil)
-			p.addChild(statements)
-			p.addToAncestors(statements)
+			p.addNode(statements)
 			tok = p.next()
 			for tok.typ != tokenEndStatements {
 				tok = p.parse(tok, tokenEndStatements)
@@ -391,7 +390,7 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 			}
 			pos.End = tok.pos.End
 			var node = ast.NewShow(pos, []ast.Expression{expr}, tok.ctx)
-			p.addChild(node)
+			p.addNode(node)
 			if _, ok := expr.(*ast.Render); ok {
 				p.cutSpacesToken = true
 			}
@@ -400,8 +399,7 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 		// StartURL
 		case tokenStartURL:
 			node := ast.NewURL(tok.pos, tok.tag, tok.att, nil)
-			p.addChild(node)
-			p.addToAncestors(node)
+			p.addNode(node)
 			tok = p.next()
 
 		// EndURL
@@ -415,7 +413,7 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 		case tokenComment:
 			numTokenInLine++
 			node := ast.NewComment(tok.pos, string(tok.txt[2:len(tok.txt)-2]))
-			p.addChild(node)
+			p.addNode(node)
 			p.cutSpacesToken = true
 			tok = p.next()
 
@@ -539,8 +537,7 @@ LABEL:
 		pos.End = tok.pos.End
 		tok = p.next()
 		node := ast.NewPackage(pos, name, nil)
-		p.addChild(node)
-		p.addToAncestors(node)
+		p.addNode(node)
 		tok = p.parseEnd(tok, tokenSemicolon, end)
 		return tok
 
@@ -635,8 +632,7 @@ LABEL:
 		default:
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
-		p.addChild(node)
-		p.addToAncestors(node)
+		p.addNode(node)
 		p.cutSpacesToken = true
 		tok = p.parseEnd(tok, tokenLeftBrace, end)
 		return tok
@@ -652,7 +648,7 @@ LABEL:
 			tok = p.next()
 		}
 		node := ast.NewBreak(pos, label)
-		p.addChild(node)
+		p.addNode(node)
 		p.cutSpacesToken = true
 		tok = p.parseEnd(tok, tokenSemicolon, end)
 		return tok
@@ -668,7 +664,7 @@ LABEL:
 			tok = p.next()
 		}
 		node := ast.NewContinue(pos, label)
-		p.addChild(node)
+		p.addNode(node)
 		p.cutSpacesToken = true
 		tok = p.parseEnd(tok, tokenSemicolon, end)
 		return tok
@@ -676,8 +672,7 @@ LABEL:
 	// switch
 	case tokenSwitch:
 		node := p.parseSwitch(tok, end)
-		p.addChild(node)
-		p.addToAncestors(node)
+		p.addNode(node)
 		p.cutSpacesToken = true
 		return p.next()
 
@@ -728,7 +723,7 @@ LABEL:
 			}
 			panic(syntaxError(tok.pos, "case is not in a switch or select"))
 		}
-		p.addChild(node)
+		p.addNode(node)
 		tok = p.parseEnd(tok, tokenColon, end)
 		return tok
 
@@ -747,7 +742,7 @@ LABEL:
 			}
 			panic(syntaxError(tok.pos, "default is not in a switch or select"))
 		}
-		p.addChild(node)
+		p.addNode(node)
 		p.cutSpacesToken = true
 		tok = p.next()
 		tok = p.parseEnd(tok, tokenColon, end)
@@ -756,7 +751,7 @@ LABEL:
 	// fallthrough
 	case tokenFallthrough:
 		node := ast.NewFallthrough(tok.pos)
-		p.addChild(node)
+		p.addNode(node)
 		p.cutSpacesToken = true
 		tok = p.next()
 		tok = p.parseEnd(tok, tokenSemicolon, end)
@@ -765,8 +760,7 @@ LABEL:
 	// select
 	case tokenSelect:
 		node := ast.NewSelect(tok.pos, nil, nil)
-		p.addChild(node)
-		p.addToAncestors(node)
+		p.addNode(node)
 		p.cutSpacesToken = true
 		tok = p.next()
 		tok = p.parseEnd(tok, tokenLeftBrace, end)
@@ -778,8 +772,7 @@ LABEL:
 			panic(syntaxError(tok.pos, "unexpected %s, expecting statement", tok))
 		}
 		node := ast.NewBlock(tok.pos, nil)
-		p.addChild(node)
-		p.addToAncestors(node)
+		p.addNode(node)
 		p.cutSpacesToken = true
 		return p.next()
 
@@ -851,8 +844,7 @@ LABEL:
 				blockPos = tok.pos
 			}
 			elseBlock := ast.NewBlock(blockPos, nil)
-			p.addChild(elseBlock)
-			p.addToAncestors(elseBlock)
+			p.addNode(elseBlock)
 			return p.next()
 		}
 		if tok.typ != tokenIf {
@@ -896,9 +888,7 @@ LABEL:
 			ifPos.End = tok.pos.End
 		}
 		node := ast.NewIf(ifPos, init, expr, then, nil)
-		p.addChild(node)
-		p.addToAncestors(node)
-		p.addToAncestors(then)
+		p.addNode(node)
 		p.cutSpacesToken = true
 		tok = p.parseEnd(tok, tokenLeftBrace, end)
 		return tok
@@ -915,7 +905,7 @@ LABEL:
 			}
 		}
 		node := ast.NewReturn(pos, values)
-		p.addChild(node)
+		p.addNode(node)
 		tok = p.parseEnd(tok, tokenSemicolon, end)
 		return tok
 
@@ -934,7 +924,7 @@ LABEL:
 		}
 		pos.End = exprs[len(exprs)-1].Pos().End
 		var node = ast.NewShow(pos, exprs, ctx)
-		p.addChild(node)
+		p.addNode(node)
 		if len(exprs) == 1 {
 			if _, ok := exprs[0].(*ast.Render); ok {
 				p.cutSpacesToken = true
@@ -979,7 +969,7 @@ LABEL:
 		pos.End = tok.pos.End
 		node := ast.NewExtends(pos, path, p.format)
 		p.unexpanded = append(p.unexpanded, node)
-		p.addChild(node)
+		p.addNode(node)
 		p.hasExtend = true
 		tok = p.next()
 		tok = p.parseEnd(tok, tokenSemicolon, end)
@@ -1028,13 +1018,13 @@ LABEL:
 					prevConstValues = c.Rhs
 					prevConstType = c.Type
 				}
-				p.addChild(prevNode)
+				p.addNode(prevNode)
 				iotaValue++
 			}
 		} else {
 			var node ast.Node
 			node, tok = p.parseVarOrConst(tok, pos, decType, 0)
-			p.addChild(node)
+			p.addNode(node)
 			tok = p.parseEnd(tok, tokenSemicolon, end)
 		}
 		return tok
@@ -1072,7 +1062,7 @@ LABEL:
 			for tok.typ != tokenRightParenthesis {
 				node := p.parseImport(tok, end)
 				p.unexpanded = append(p.unexpanded, node)
-				p.addChild(node)
+				p.addNode(node)
 				tok = p.next()
 				if tok.typ == tokenSemicolon {
 					tok = p.next()
@@ -1088,7 +1078,7 @@ LABEL:
 		} else {
 			node := p.parseImport(tok, end)
 			p.unexpanded = append(p.unexpanded, node)
-			p.addChild(node)
+			p.addNode(node)
 			tok = p.next()
 			tok = p.parseEnd(tok, tokenSemicolon, end)
 		}
@@ -1148,9 +1138,7 @@ LABEL:
 		node := ast.NewFunc(pos, ident, typ, nil, false, format)
 		body := ast.NewBlock(tok.pos, nil)
 		node.Body = body
-		p.addChild(node)
-		p.addToAncestors(node)
-		p.addToAncestors(body)
+		p.addNode(node)
 		p.cutSpacesToken = true
 		return p.next()
 
@@ -1223,7 +1211,7 @@ LABEL:
 				var node *ast.TypeDeclaration
 				node, tok = p.parseTypeDecl(tok)
 				node.Position = pos
-				p.addChild(node)
+				p.addNode(node)
 				if tok.typ == tokenSemicolon {
 					tok = p.next()
 				} else if tok.typ != tokenRightParenthesis {
@@ -1238,7 +1226,7 @@ LABEL:
 			node, tok = p.parseTypeDecl(tok)
 			pos.End = tok.pos.End
 			node.Position = pos
-			p.addChild(node)
+			p.addNode(node)
 		}
 		tok = p.parseEnd(tok, tokenSemicolon, end)
 		return tok
@@ -1260,7 +1248,7 @@ LABEL:
 		} else {
 			node = ast.NewGo(pos, expr)
 		}
-		p.addChild(node)
+		p.addNode(node)
 		tok = p.parseEnd(tok, tokenSemicolon, end)
 		return tok
 
@@ -1276,7 +1264,7 @@ LABEL:
 		}
 		pos.End = tok.pos.End
 		node := ast.NewGoto(pos, ast.NewIdentifier(tok.pos, string(tok.txt)))
-		p.addChild(node)
+		p.addNode(node)
 		tok = p.next()
 		tok = p.parseEnd(tok, tokenSemicolon, end)
 		return tok
@@ -1292,7 +1280,7 @@ LABEL:
 				if tok.typ != tokenSemicolon {
 					panic(syntaxError(tok.pos, "unexpected %s after top level declaration", tok))
 				}
-				p.addChild(node)
+				p.addNode(node)
 				return p.next()
 			}
 		}
@@ -1324,7 +1312,7 @@ LABEL:
 			var assignment *ast.Assignment
 			assignment, tok = p.parseAssignment(expressions, tok, false, false, false)
 			assignment.Position = pos.WithEnd(assignment.Pos().End)
-			p.addChild(assignment)
+			p.addNode(assignment)
 			p.cutSpacesToken = true
 			tok = p.parseEnd(tok, tokenSemicolon, end)
 		} else if tok.typ == tokenArrow {
@@ -1337,7 +1325,7 @@ LABEL:
 			}
 			node := ast.NewSend(pos, channel, value)
 			node.Position = pos.WithEnd(value.Pos().End)
-			p.addChild(node)
+			p.addNode(node)
 			p.cutSpacesToken = true
 			tok = p.parseEnd(tok, tokenSemicolon, end)
 		} else {
@@ -1349,8 +1337,7 @@ LABEL:
 					// Parse a label.
 					node := ast.NewLabel(pos, ident, nil)
 					node.Position = pos.WithEnd(tok.pos.End)
-					p.addChild(node)
-					p.addToAncestors(node)
+					p.addNode(node)
 					p.cutSpacesToken = true
 					tok = p.next()
 					if end == tokenEndStatement {
@@ -1373,7 +1360,7 @@ LABEL:
 					}
 				}
 			}
-			p.addChild(expr)
+			p.addNode(expr)
 			p.cutSpacesToken = true
 			tok = p.parseEnd(tok, tokenSemicolon, end)
 		}
@@ -1579,9 +1566,7 @@ func (p *parsing) parseEndlessMacro(tok token, end tokenTyp) token {
 	node := ast.NewFunc(pos, ident, typ, nil, true, ast.Format(tok.ctx))
 	body := ast.NewBlock(pos, nil)
 	node.Body = body
-	p.addChild(node)
-	p.addToAncestors(node)
-	p.addToAncestors(body)
+	p.addNode(node)
 	p.cutSpacesToken = true
 	return p.next()
 }
@@ -1693,60 +1678,86 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeRa
 	return node, tok
 }
 
-// addChild adds a child to the current parent node.
-func (p *parsing) addChild(child ast.Node) {
+// addNode adds a node to the tree. It adds the node as a child to the current
+// parent node and sets the node as new ancestor if necessary.
+func (p *parsing) addNode(node ast.Node) {
+	// Add the node as child of the current parent.
 	switch n := p.parent().(type) {
 	case *ast.Tree:
-		n.Nodes = append(n.Nodes, child)
+		n.Nodes = append(n.Nodes, node)
 	case *ast.Package:
-		n.Declarations = append(n.Declarations, child)
+		n.Declarations = append(n.Declarations, node)
 	case *ast.URL:
-		n.Value = append(n.Value, child)
+		n.Value = append(n.Value, node)
 	case *ast.For:
-		n.Body = append(n.Body, child)
+		n.Body = append(n.Body, node)
 	case *ast.ForIn:
-		n.Body = append(n.Body, child)
+		n.Body = append(n.Body, node)
 	case *ast.ForRange:
-		n.Body = append(n.Body, child)
+		n.Body = append(n.Body, node)
 	case *ast.If:
 		if n.Else != nil {
-			panic("child already added to if node")
+			panic("node already added to if node")
 		}
-		n.Else = child
+		n.Else = node
 	case *ast.Block:
-		n.Nodes = append(n.Nodes, child)
+		n.Nodes = append(n.Nodes, node)
 	case *ast.Statements:
-		n.Nodes = append(n.Nodes, child)
+		n.Nodes = append(n.Nodes, node)
 	case *ast.Switch:
-		c, ok := child.(*ast.Case)
+		c, ok := node.(*ast.Case)
 		if ok {
 			n.Cases = append(n.Cases, c)
 		} else {
 			lastCase := n.Cases[len(n.Cases)-1]
-			lastCase.Body = append(lastCase.Body, child)
+			lastCase.Body = append(lastCase.Body, node)
 		}
 	case *ast.TypeSwitch:
-		c, ok := child.(*ast.Case)
+		c, ok := node.(*ast.Case)
 		if ok {
 			n.Cases = append(n.Cases, c)
 			return
 		}
 		lastCase := n.Cases[len(n.Cases)-1]
-		lastCase.Body = append(lastCase.Body, child)
+		lastCase.Body = append(lastCase.Body, node)
 	case *ast.Select:
-		cc, ok := child.(*ast.SelectCase)
+		cc, ok := node.(*ast.SelectCase)
 		if ok {
 			n.Cases = append(n.Cases, cc)
 		} else {
 			lastCase := n.Cases[len(n.Cases)-1]
-			lastCase.Body = append(lastCase.Body, child)
+			lastCase.Body = append(lastCase.Body, node)
 		}
 	case *ast.Label:
-		n.Statement = child
-		n.Pos().End = child.Pos().End
+		n.Statement = node
+		n.Pos().End = node.Pos().End
 		p.removeLastAncestor()
 	default:
 		panic("scriggo/parser: unexpected parent node")
+	}
+	// Set the node as new ancestor if necessary.
+	switch n := node.(type) {
+	case *ast.If:
+		p.addToAncestors(n)
+		p.addToAncestors(n.Then)
+	case *ast.Func:
+		if n.Type.Macro {
+			p.addToAncestors(n)
+			p.addToAncestors(n.Body)
+		}
+	case
+		*ast.Block,
+		*ast.For,
+		*ast.ForRange,
+		*ast.ForIn,
+		*ast.Switch,
+		*ast.TypeSwitch,
+		*ast.Select,
+		*ast.Package,
+		*ast.Label,
+		*ast.Statements,
+		*ast.URL:
+		p.addToAncestors(n)
 	}
 }
 
