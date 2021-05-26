@@ -469,6 +469,11 @@ type M struct {
 	L *L
 }
 
+type N struct {
+	Slice []N
+	Map   map[int]N
+}
+
 func TestJSCycles(t *testing.T) {
 	for i := 0; i < 1; i++ {
 		err := checkShowJS(reflect.TypeOf(S{}), nil)
@@ -481,6 +486,10 @@ func TestJSCycles(t *testing.T) {
 		}
 		if err.Error() != "cannot show struct containing complex64 as JavaScript" {
 			t.Fatalf("unexpected error %q showing L", err)
+		}
+		err = checkShowJS(reflect.TypeOf(N{}), nil)
+		if err != nil {
+			t.Fatalf("unexpected error %q showing N", err)
 		}
 	}
 }
@@ -497,6 +506,10 @@ func TestJSONCycles(t *testing.T) {
 		}
 		if err.Error() != "cannot show struct containing complex64 as JSON" {
 			t.Fatalf("unexpected error %q showing L", err)
+		}
+		err = checkShowJSON(reflect.TypeOf(N{}), nil)
+		if err != nil {
+			t.Fatalf("unexpected error %q showing N", err)
 		}
 	}
 }
