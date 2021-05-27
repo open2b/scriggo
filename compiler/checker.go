@@ -25,10 +25,9 @@ const (
 	templateMod
 )
 
-// typecheck makes a type check on tree. A map of predefined packages may be
-// provided. deps must contain dependencies in case of package initialization
-// (program or template import/extend).
-// tree may be altered during the type checking.
+// typecheck makes a type check on tree.
+// This is the entry point for the type checker.
+// Note that tree may be altered during the type checking.
 func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map[string]*packageInfo, error) {
 
 	if opts.modality == 0 {
