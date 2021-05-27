@@ -202,14 +202,14 @@ type typechecker struct {
 
 	// unusedImports keeps track of all imported but not used packages.
 	//
-	// The key of the map is the name of a package, and the value is a list of
-	// names imported from such package.
+	// The key of the first map is the name of a package while the key of the
+	// second map is the name of the imported declaration.
 	//
 	// When an identifier imported from a package is used, then such package is
 	// removed from unusedImports. Doing so, when the type checking of a
 	// file/program ends if some packages remain in unusedImports then it is a
 	// type checking error.
-	unusedImports map[string][]string
+	unusedImports map[string]map[string]bool
 
 	// opts holds the options that define the behaviour of the type checker.
 	opts checkerOptions
@@ -262,7 +262,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		globalScope:      globalScope,
 		hasBreak:         map[ast.Node]bool{},
 		universe:         universe,
-		unusedImports:    map[string][]string{},
+		unusedImports:    map[string]map[string]bool{},
 		opts:             opts,
 		iota:             -1,
 		types:            tt,

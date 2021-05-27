@@ -196,14 +196,11 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *typeI
 		}
 	}
 
-	// For "." imported packages, marks package as used.
-unusedLoop:
+	// For "." imported packages, mark package as used.
 	for pkg, decls := range tc.unusedImports {
-		for _, d := range decls {
-			if d == ident.Name {
-				delete(tc.unusedImports, pkg)
-				break unusedLoop
-			}
+		if decls[ident.Name] {
+			delete(tc.unusedImports, pkg)
+			break
 		}
 	}
 
