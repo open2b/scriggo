@@ -920,7 +920,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
 		return tc.programImportError(impor)
 	}
-	err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, tc.precompiledPkgs, tc.opts, tc.globalScope)
+	err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Path, tc.precompiledPkgs, tc.opts, tc.globalScope)
 	if err != nil {
 		return err
 	}
@@ -935,12 +935,6 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	// Retrieve the packageInfo.
 	var imported *packageInfo
 	if tc.opts.modality == templateMod {
-		// TODO(Gianluca): what's the point of this code? 'checkPackage' has
-		// already been called..
-		err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Path, tc.precompiledPkgs, tc.opts, tc.globalScope)
-		if err != nil {
-			return err
-		}
 		// TypeInfos of imported packages in templates are "manually" added to
 		// the map of typeinfos of typechecker.
 		for k, v := range tc.compilation.pkgInfos[impor.Path].TypeInfos {
