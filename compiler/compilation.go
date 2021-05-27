@@ -11,8 +11,8 @@ import "github.com/open2b/scriggo/compiler/ast"
 // A compilation holds the state of a single compilation.
 //
 // This is necessary to store information across compilation of different
-// packages/template pages, where a new type checker is created for every
-// package/template page.
+// packages/template files, where a new type checker is created for every
+// package/template file.
 //
 // Currently the compilation is used only by the typechecker.
 //

@@ -118,13 +118,13 @@ func (em *emitter) typ(expr ast.Expression) reflect.Type {
 	return em.ti(expr).Type
 }
 
-// emitPackage emits a package and returns the exported functions, the
-// exported variables and the init functions.
-// extendingPage reports whether emitPackage is going to emit a package that
-// extends another page.
-func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string) (map[string]*runtime.Function, map[string]int16, []*runtime.Function) {
+// emitPackage emits a package and returns the exported functions, the exported
+// variables and the init functions.
+// extendingFile reports whether emitPackage is going to emit a package that
+// extends another file.
+func (em *emitter) emitPackage(pkg *ast.Package, extendingFile bool, path string) (map[string]*runtime.Function, map[string]int16, []*runtime.Function) {
 
-	if !extendingPage {
+	if !extendingFile {
 		em.pkg = pkg
 	}
 
@@ -157,7 +157,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool, path string
 	// initToBuild is the index of the next "init" function to build.
 	initToBuild := len(inits)
 
-	if extendingPage {
+	if extendingFile {
 		// The function declarations have already been added to the list of
 		// available functions, so they can't be added twice.
 	} else {

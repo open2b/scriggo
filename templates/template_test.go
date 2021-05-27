@@ -706,7 +706,7 @@ type aStruct struct {
 	C string
 }
 
-var templateMultiPageCases = map[string]struct {
+var templateMultiFileCases = map[string]struct {
 	sources          map[string]string
 	expectedBuildErr string                 // default to empty string (no build error). Mutually exclusive with expectedOut.
 	expectedOut      string                 // default to "". Mutually exclusive with expectedBuildErr.
@@ -1072,18 +1072,18 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "indexstart,i1start,i2,i1end,indexend,",
 	},
 
-	"Import/Macro - Importing a macro defined in another page": {
+	"Import/Macro - Importing a macro defined in another file": {
 		sources: map[string]string{
-			"index.txt": `{% import "/page.txt" %}{% show M() %}{% show M() %}`,
-			"page.txt":  `{% macro M %}macro!{% end %}{% macro M2 %}macro 2!{% end %}`,
+			"index.txt": `{% import "/file.txt" %}{% show M() %}{% show M() %}`,
+			"file.txt":  `{% macro M %}macro!{% end %}{% macro M2 %}macro 2!{% end %}`,
 		},
 		expectedOut: "macro!macro!",
 	},
 
-	"Import/Macro - Importing a macro defined in another page, where a function calls a before-declared function": {
+	"Import/Macro - Importing a macro defined in another file, where a function calls a before-declared function": {
 		sources: map[string]string{
-			"index.txt": `{% import "/page.txt" %}{% show M() %}{% show M() %}`,
-			"page.txt": `
+			"index.txt": `{% import "/file.txt" %}{% show M() %}{% show M() %}`,
+			"file.txt": `
 				{% macro M2 %}macro 2!{% end %}
 				{% macro M %}{% show M2() %}{% end %}
 			`,
@@ -1091,10 +1091,10 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "macro 2!macro 2!",
 	},
 
-	"Import/Macro - Importing a macro defined in another page, where a function calls an after-declared function": {
+	"Import/Macro - Importing a macro defined in another file, where a function calls an after-declared function": {
 		sources: map[string]string{
-			"index.txt": `{% import "/page.txt" %}{% show M() %}{% show M() %}`,
-			"page.txt": `
+			"index.txt": `{% import "/file.txt" %}{% show M() %}{% show M() %}`,
+			"file.txt": `
 				{% macro M %}{% show M2() %}{% end %}
 				{% macro M2 %}macro 2!{% end %}
 			`,
@@ -1102,55 +1102,55 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "macro 2!macro 2!",
 	},
 
-	"Import/Macro - Importing a macro defined in another page, which imports a third page": {
+	"Import/Macro - Importing a macro defined in another file, which imports a third file": {
 		sources: map[string]string{
-			"index.txt": `{% import "/page1.txt" %}index-start,{% show M1() %}index-end`,
-			"page1.txt": `{% import "/page2.txt" %}{% macro M1 %}M1-start,{% show M2() %}M1-end,{% end %}`,
-			"page2.txt": `{% macro M2 %}M2,{% end %}`,
+			"index.txt": `{% import "/file1.txt" %}index-start,{% show M1() %}index-end`,
+			"file1.txt": `{% import "/file2.txt" %}{% macro M1 %}M1-start,{% show M2() %}M1-end,{% end %}`,
+			"file2.txt": `{% macro M2 %}M2,{% end %}`,
 		},
 		expectedOut: "index-start,M1-start,M2,M1-end,index-end",
 	},
 
 	"Import/Macro - Importing a macro using an import statement with identifier": {
 		sources: map[string]string{
-			"index.txt": `{% import pg "/page.txt" %}{% show pg.M() %}{% show pg.M() %}`,
-			"page.txt":  `{% macro M %}macro!{% end %}`,
+			"index.txt": `{% import pg "/file.txt" %}{% show pg.M() %}{% show pg.M() %}`,
+			"file.txt":  `{% macro M %}macro!{% end %}`,
 		},
 		expectedOut: "macro!macro!",
 	},
 
 	"Import/Macro - Importing a macro using an import statement with identifier (with comments)": {
 		sources: map[string]string{
-			"index.txt": `{# a comment #}{% import pg "/page.txt" %}{# a comment #}{% show pg.M() %}{# a comment #}{% show pg.M() %}{# a comment #}`,
-			"page.txt":  `{# a comment #}{% macro M %}{# a comment #}macro!{# a comment #}{% end %}{# a comment #}`,
+			"index.txt": `{# a comment #}{% import pg "/file.txt" %}{# a comment #}{% show pg.M() %}{# a comment #}{% show pg.M() %}{# a comment #}`,
+			"file.txt":  `{# a comment #}{% macro M %}{# a comment #}macro!{# a comment #}{% end %}{# a comment #}`,
 		},
 		expectedOut: "macro!macro!",
 	},
 
-	"Extends - Empty page extends a page containing only text": {
+	"Extends - Empty file extends a file containing only text": {
 		sources: map[string]string{
-			"index.txt": `{% extends "/page.txt" %}`,
-			"page.txt":  `I'm page!`,
+			"index.txt": `{% extends "/file.txt" %}`,
+			"file.txt":  `I'm file!`,
 		},
-		expectedOut: "I'm page!",
+		expectedOut: "I'm file!",
 	},
 
-	"Extends - Extending a page that calls a macro defined on current page": {
+	"Extends - Extending a file that calls a macro defined on current file": {
 		sources: map[string]string{
-			"index.txt": `{% extends "/page.txt" %}{% macro E %}E's body{% end %}`,
-			"page.txt":  `{% show E() %}`,
+			"index.txt": `{% extends "/file.txt" %}{% macro E %}E's body{% end %}`,
+			"file.txt":  `{% show E() %}`,
 		},
 		expectedOut: "E's body",
 	},
 
-	"Extending an empty page": {
+	"Extending an empty file": {
 		sources: map[string]string{
 			"index.txt":    `{% extends "extended.txt" %}`,
 			"extended.txt": ``,
 		},
 	},
 
-	"Extending a page that imports another file": {
+	"Extending a file that imports another file": {
 		sources: map[string]string{
 			"index.txt":    `{% extends "/extended.txt" %}`,
 			"extended.txt": `{% import "/imported.txt" %}`,
@@ -1158,7 +1158,7 @@ var templateMultiPageCases = map[string]struct {
 		},
 	},
 
-	"Extending a page (that imports another file) while declaring a macro": {
+	"Extending a file (that imports another file) while declaring a macro": {
 		sources: map[string]string{
 			"index.txt":    `{% extends "/extended.txt" %}{% macro Index %}{% end macro %}`,
 			"extended.txt": `{% import "/imported.txt" %}`,
@@ -1166,34 +1166,34 @@ var templateMultiPageCases = map[string]struct {
 		},
 	},
 
-	"Extends - Extending a page that calls two macros defined on current page": {
+	"Extends - Extending a file that calls two macros defined on current file": {
 		sources: map[string]string{
-			"index.txt": `{% extends "/page.txt" %}{% macro E1 %}E1's body{% end %}{% macro E2 %}E2's body{% end %}`,
-			"page.txt":  `{% show E1() %}{% show E2() %}`,
+			"index.txt": `{% extends "/file.txt" %}{% macro E1 %}E1's body{% end %}{% macro E2 %}E2's body{% end %}`,
+			"file.txt":  `{% show E1() %}{% show E2() %}`,
 		},
 		expectedOut: "E1's bodyE2's body",
 	},
 
 	"Extends - Define a variable (with zero value) used in macro definition": {
 		sources: map[string]string{
-			"index.txt": `{% extends "/page.txt" %}{% var Local int %}{% macro E1 %}Local has value {{ Local }}{% end %}`,
-			"page.txt":  `{% show E1() %}`,
+			"index.txt": `{% extends "/file.txt" %}{% var Local int %}{% macro E1 %}Local has value {{ Local }}{% end %}`,
+			"file.txt":  `{% show E1() %}`,
 		},
 		expectedOut: "Local has value 0",
 	},
 
 	"Extends - Define a variable (with non-zero value) used in macro definition": {
 		sources: map[string]string{
-			"index.txt": `{% extends "/page.txt" %}{% var Local = 50 %}{% macro E1 %}Local has value {{ Local }}{% end %}`,
-			"page.txt":  `{% show E1() %}`,
+			"index.txt": `{% extends "/file.txt" %}{% var Local = 50 %}{% macro E1 %}Local has value {{ Local }}{% end %}`,
+			"file.txt":  `{% show E1() %}`,
 		},
 		expectedOut: "Local has value 50",
 	},
 
 	"Extends - Extending a file which contains text and shows": {
 		sources: map[string]string{
-			"index.txt": `{% extends "/page.txt" %}`,
-			"page.txt":  `I am an {{ "extended" }} file.`,
+			"index.txt": `{% extends "/file.txt" %}`,
+			"file.txt":  `I am an {{ "extended" }} file.`,
 		},
 		expectedOut: "I am an extended file.",
 	},
@@ -1583,7 +1583,7 @@ var templateMultiPageCases = map[string]struct {
 		},
 	},
 
-	"Can access to unexported struct field declared in the same page - struct literal": {
+	"Can access to unexported struct field declared in the same file - struct literal": {
 		sources: map[string]string{
 			"index.txt": `{% var s struct { a int } %}{% s.a = 42 %}{{ s.a }}
 			{% s2 := &s %}{{ s2.a }}`,
@@ -1591,7 +1591,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedOut: "42\n\t\t\t42",
 	},
 
-	"Can access to unexported struct field declared in the same page - defined type": {
+	"Can access to unexported struct field declared in the same file - defined type": {
 		sources: map[string]string{
 			"index.txt": `{% type t struct { a int } %}{% var s t %}{% s.a = 84 %}{{ s.a }}
 			{% s2 := &s %}{{ s2.a }}`,
@@ -1625,7 +1625,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedBuildErr: `s.foo undefined (cannot refer to unexported field or method foo)`,
 	},
 
-	"Cannot access to an unexported field declared in another page (struct)": {
+	"Cannot access to an unexported field declared in another file (struct)": {
 		sources: map[string]string{
 			// Note the statement: {% type _ struct { bar int } %}: we try to
 			// deceive the type checker into thinking that the type `struct {
@@ -1637,7 +1637,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedBuildErr: `S.bar undefined (cannot refer to unexported field or method bar)`,
 	},
 
-	"Cannot access to an unexported field declared in another page (*struct)": {
+	"Cannot access to an unexported field declared in another file (*struct)": {
 		sources: map[string]string{
 			// Note the statement: {% type _ struct { bar int } %}: we try to
 			// deceive the type checker into thinking that the type `struct {
@@ -2049,7 +2049,7 @@ var templateMultiPageCases = map[string]struct {
 		expectedBuildErr: `syntax error: import of file rendered at index.txt:1:4`,
 	},
 
-	"Not only spaces in a page that extends": {
+	"Not only spaces in a file that extends": {
 		sources: map[string]string{
 			"index.txt":  `{% extends "layout.txt" %}abc`,
 			"layout.txt": ``,
@@ -2312,16 +2312,16 @@ var templateMultiPageCases = map[string]struct {
 
 	"Render - Expression": {
 		sources: map[string]string{
-			"index.txt": `{% page := render "page.txt" %}page.txt has a length of {{ len(page) }}`,
-			"page.txt":  `ciao`,
+			"index.txt": `{% file := render "file.txt" %}file.txt has a length of {{ len(file) }}`,
+			"file.txt":  `ciao`,
 		},
-		expectedOut: "page.txt has a length of 4",
+		expectedOut: "file.txt has a length of 4",
 	},
 
 	"Render - Rendering the same file twice": {
 		sources: map[string]string{
-			"index.txt": `{% p1 := render "page.txt" %}{% p2 := render "page.txt" %}p1 is {{ p1 }} (len = {{ len(p1) }}), p2 is {{ p2 }}`,
-			"page.txt":  `ciao`,
+			"index.txt": `{% p1 := render "file.txt" %}{% p2 := render "file.txt" %}p1 is {{ p1 }} (len = {{ len(p1) }}), p2 is {{ p2 }}`,
+			"file.txt":  `ciao`,
 		},
 		expectedOut: "p1 is ciao (len = 4), p2 is ciao",
 	},
@@ -2721,8 +2721,8 @@ var functionReturningErrorPackage = scriggo.MapPackage{
 	},
 }
 
-func TestMultiPageTemplate(t *testing.T) {
-	for name, cas := range templateMultiPageCases {
+func TestMultiFileTemplate(t *testing.T) {
+	for name, cas := range templateMultiFileCases {
 		if cas.expectedOut != "" && cas.expectedBuildErr != "" {
 			panic("invalid test: " + name)
 		}
