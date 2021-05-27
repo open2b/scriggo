@@ -535,7 +535,6 @@ func (em *emitter) emitBinaryOp(expr *ast.BinaryOperator, reg int8, regType refl
 		em.fb.exitStack()
 	}
 
-	return
 }
 
 func (em *emitter) emitCompositeLiteral(expr *ast.CompositeLiteral, reg int8, dstType reflect.Type) (int8, bool) {
@@ -764,7 +763,6 @@ func (em *emitter) emitSelector(v *ast.Selector, reg int8, dstType reflect.Type)
 	em.fb.emitField(exprReg, index, tmp, field.Type.Kind())
 	em.changeRegister(false, tmp, reg, field.Type, dstType)
 
-	return
 }
 
 // emitUnaryOp emits the code for the unary expression expr and stores the
@@ -1017,5 +1015,4 @@ func (em *emitter) emitUnaryOp(expr *ast.UnaryOperator, reg int8, regType reflec
 
 	}
 
-	return
 }

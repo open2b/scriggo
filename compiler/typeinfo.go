@@ -242,5 +242,4 @@ func (ti *typeInfo) setValue(typ reflect.Type) {
 	case reflect.String:
 		ti.value = ti.Constant.string()
 	}
-	return
 }

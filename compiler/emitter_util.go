@@ -494,7 +494,6 @@ func (em *emitter) emitContains(not, ky bool, x, y int8, tx, ty reflect.Type, po
 	if changeReg {
 		em.fb.exitStack()
 	}
-	return
 }
 
 // convertPosition converts an AST position to a runtime position.

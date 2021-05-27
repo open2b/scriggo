@@ -40,7 +40,6 @@ func (tc *typechecker) templatePageToPackage(tree *ast.Tree) {
 	tree.Nodes = []ast.Node{
 		ast.NewPackage(tree.Pos(), "", nodes),
 	}
-	return
 }
 
 // checkNodesInNewScopeError calls checkNodesInNewScope returning checking errors.

@@ -800,7 +800,6 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 
 	em.fb.exitScope()
 
-	return
 }
 
 // emitTypeSwitch emits instructions for a type switch node.

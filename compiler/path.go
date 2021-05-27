@@ -37,7 +37,6 @@ func validatePackagePath(path string, pos *ast.Position) {
 	if cleaned := cleanPath(path); path != cleaned {
 		panic(syntaxError(pos, "non-canonical import path %q (should be %q)", path, cleaned))
 	}
-	return
 }
 
 // ValidTemplatePath indicates whether path is a valid template path. A valid

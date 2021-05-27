@@ -1075,7 +1075,6 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 	x := em.emitExpr(cond, em.typ(cond))
 	em.fb.emitIf(false, x, runtime.ConditionNotZero, 0, reflect.Bool, cond.Pos())
 
-	return
 }
 
 // emitComplexOperation emits the operation on the given complex numbers putting
