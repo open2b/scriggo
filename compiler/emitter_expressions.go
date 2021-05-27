@@ -18,8 +18,6 @@ import (
 // emitExpr emits expr into a register of a given type. emitExpr tries to not
 // create a new register, but to use an existing one. The register used for
 // emission is returned.
-// TODO(Gianluca): add an option/another method to force the creation of an new
-// register? Is necessary?
 func (em *emitter) emitExpr(expr ast.Expression, dstType reflect.Type) int8 {
 	reg, _ := em._emitExpr(expr, dstType, 0, false, false)
 	return reg
