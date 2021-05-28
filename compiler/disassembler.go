@@ -483,6 +483,18 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			s += " " + conditionName[b]
 			s += " " + disassembleOperand(fn, c, reflect.Int, k)
 		}
+	case runtime.OpIfFloat:
+		switch runtime.Condition(b) {
+		case runtime.ConditionContainsElement, runtime.ConditionContainsKey,
+			runtime.ConditionNotContainsElement, runtime.ConditionNotContainsKey:
+			s += " " + disassembleOperand(fn, a, reflect.Interface, false)
+			s += " " + conditionName[b]
+			s += " " + disassembleOperand(fn, c, reflect.Float64, k)
+		default:
+			s += " " + disassembleOperand(fn, a, reflect.Float64, false)
+			s += " " + conditionName[b]
+			s += " " + disassembleOperand(fn, c, reflect.Float64, k)
+		}
 	case runtime.OpIfString:
 		cond := runtime.Condition(b)
 		if cond <= runtime.ConditionContainsSubstring {
