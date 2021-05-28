@@ -363,18 +363,20 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 	e.fb = newBuilder(newMacro("main", "main", typ, tree.Format, tree.Path, tree.Pos()), tree.Path)
 	e.fb.changePath(tree.Path)
 
-	// If page is a package, then page extends another page.
+	// If the template file is a package it means that such file extends
+	// another file.
 	if len(tree.Nodes) == 1 {
 		if pkg, ok := tree.Nodes[0].(*ast.Package); ok {
 			mainBuilder := e.fb
-			// Macro declarations in extending page must be accessed by the extended page.
+			// Macro declarations in the extending file must be accessed by the
+			// extended file.
 			for _, dec := range pkg.Declarations {
 				if fn, ok := dec.(*ast.Func); ok && fn.Type.Macro {
 					macro := newMacro("main", fn.Ident.Name, fn.Type.Reflect, fn.Format, e.fb.getPath(), fn.Pos())
 					e.fnStore.makeAvailableScriggoFn(e.pkg, fn.Ident.Name, macro)
 				}
 			}
-			// Emits extended page.
+			// Emits extended file.
 			backupPath := e.fb.getPath()
 			extends := pkg.Declarations[0].(*ast.Extends)
 			e.fb.changePath(extends.Tree.Path)
@@ -391,7 +393,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 			e.fb.end()
 			e.fb.exitScope()
 			e.fb.changePath(backupPath)
-			// Emits extending page as a package.
+			// Emits extending file as a package.
 			e.fb.changePath(tree.Path)
 			_, _, inits := e.emitPackage(pkg, true, tree.Path)
 			e.fb = mainBuilder
@@ -411,7 +413,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 		}
 	}
 
-	// Default case: tree is a generic template page.
+	// Default case: tree is a generic template file.
 	e.fb.enterScope()
 	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()

@@ -14,11 +14,11 @@ import (
 	"github.com/open2b/scriggo/runtime"
 )
 
-// templatePageToPackage transforms a tree of a declarations file to a package
+// templateFileToPackage transforms a tree of a declarations file to a package
 // tree, moving the top level nodes, excluding text and comment nodes, in a
 // package node that becomes the only node of tree. If tree already has a
-// package, templatePageToPackage does nothing.
-func (tc *typechecker) templatePageToPackage(tree *ast.Tree) {
+// package, templateFileToPackage does nothing.
+func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 	if len(tree.Nodes) == 1 {
 		if _, ok := tree.Nodes[0].(*ast.Package); ok {
 			// tree has already a package, do nothing.
@@ -915,7 +915,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	// Not precompiled package (i.e. a package declared in Scriggo).
 
 	if tc.opts.modality == templateMod {
-		tc.templatePageToPackage(impor.Tree)
+		tc.templateFileToPackage(impor.Tree)
 	}
 	if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
 		return tc.programImportError(impor)

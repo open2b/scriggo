@@ -1380,7 +1380,7 @@ var treeTests = []struct {
 
 // TODO: this function is never called, because it is referenced in commented
 // code. Uncomment the call or delete this function.
-func pageTests() map[string]struct {
+func fileTests() map[string]struct {
 	src  string
 	tree *ast.Tree
 } {
@@ -1474,11 +1474,11 @@ func TestTrees(t *testing.T) {
 	}
 }
 
-func TestPages(t *testing.T) {
+func TestFiles(t *testing.T) {
 
 	t.Skip("(not runnable)")
 
-	// tests := pageTests()
+	// tests := fileTests()
 	// // simple.html
 	// parser := NewParser(testsReader(tests), nil, false)
 	// p := tests["/simple.html"]

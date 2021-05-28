@@ -71,11 +71,11 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 	compilation := newCompilation()
 	tc := newTypechecker(compilation, tree.Path, opts, globalScope, packages)
 
-	// Type check a template page which extends another page.
+	// Type check a template file which extends another file.
 	if extends, ok := getExtends(tree.Nodes); ok {
-		// First: all macro definitions in extending pages are declared but not
-		// initialized. This is necessary because the extended page can refer to
-		// macro defined in the extending one, but these macro can contain
+		// First: all macro definitions in extending files are declared but not
+		// initialized. This is necessary because the extended file can refer
+		// to macro defined in the extending one, but these macro can contain
 		// references to variables defined outside them.
 		for _, d := range tree.Nodes[1:] {
 			if m, ok := d.(*ast.Func); ok && m.Type.Macro {
@@ -87,7 +87,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 				tc.filePackageBlock[m.Ident.Name] = scopeElement{t: ti}
 			}
 		}
-		// Second: type check the extended page in a new scope.
+		// Second: type check the extended file in a new scope.
 		currentPath := tc.path
 		tc.path = extends.Tree.Path
 		var err error
@@ -96,9 +96,9 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 			return nil, err
 		}
 		tc.path = currentPath
-		// Third: extending page is converted to a "package", that means that
+		// Third: extending file is converted to a "package", that means that
 		// out of order initialization is allowed.
-		tc.templatePageToPackage(tree)
+		tc.templateFileToPackage(tree)
 		err = checkPackage(compilation, tree.Nodes[0].(*ast.Package), tree.Path, packages, opts, tc.globalScope)
 		if err != nil {
 			return nil, err
@@ -118,7 +118,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		return map[string]*packageInfo{"main": mainPkgInfo}, nil
 	}
 
-	// Type check a template page or a script.
+	// Type check a template file or a script.
 	var err error
 	tree.Nodes, err = tc.checkNodesInNewScopeError(tree.Nodes)
 	if err != nil {
@@ -167,11 +167,12 @@ type typechecker struct {
 	// universe is the outermost scope.
 	universe typeCheckerScope
 
-	// A globalScope is a scope between the universe and the file/package block.
-	// In Go there is not an equivalent concept. In scripts and templates, the
-	// declarations of the predefined package 'main' are added to this scope;
-	// this makes possible, in templates, to access such declarations from every
-	// page, including imported and extended ones.
+	// A globalScope is a scope between the universe and the file/package
+	// block. In Go there is not an equivalent concept. In scripts and
+	// templates, the declarations of the predefined package 'main' are added
+	// to this scope; this makes possible, in templates, to access such
+	// declarations from every template file, including imported and extended
+	// ones.
 	globalScope typeCheckerScope
 
 	// filePackageBlock is a scope that holds the declarations from both the
@@ -519,9 +520,9 @@ func (tc *typechecker) isUpVar(name string) bool {
 	return false
 }
 
-// scopeLevelOf returns the scope level in which name is declared, and a boolean
-// which reports whether name has been imported from another package/page or
-// not.
+// scopeLevelOf returns the scope level in which name is declared, and a
+// boolean which reports whether name has been imported from another
+// package/template file or not.
 func (tc *typechecker) scopeLevelOf(name string) (int, bool) {
 	// Iterating over scopes, from inside.
 	for i := len(tc.scopes) - 1; i >= 0; i-- {
