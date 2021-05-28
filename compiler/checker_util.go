@@ -520,10 +520,11 @@ const (
 // when such identifier is used the key corresponding to the package should be
 // removed from the 'unusedImports' map.
 func (tc *typechecker) setImportedButNotUsed(pkg, ident string) {
-	if tc.unusedImports[pkg] == nil {
-		tc.unusedImports[pkg] = map[string]bool{}
+	if imports, ok := tc.unusedImports[pkg]; ok {
+		imports[ident] = true
+	} else {
+		tc.unusedImports[pkg] = map[string]bool{ident: true}
 	}
-	tc.unusedImports[pkg][ident] = true
 }
 
 // methodByName returns a function type that describe the method with that
