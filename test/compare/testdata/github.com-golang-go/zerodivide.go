@@ -1,4 +1,4 @@
-// skip : panic when a named return parameter is a closure var https://github.com/open2b/scriggo/issues/278
+// skip : https://github.com/open2b/scriggo/issues/759
 
 // run
 
