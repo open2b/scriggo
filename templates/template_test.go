@@ -2645,6 +2645,14 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "\n\t\t\t439",
 	},
+
+	"https://github.com/open2b/scriggo/issues/740 - Call of unexported macro declared in imported file": {
+		sources: map[string]string{
+			"index.txt":    `{% import "imported.txt" %}{{ m() }}`,
+			"imported.txt": `{% macro m %}{% end %}`,
+		},
+		expectedBuildErr: "undefined: m",
+	},
 }
 
 var structWithUnexportedFields = &struct {

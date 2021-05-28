@@ -660,7 +660,10 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 	}
 	pkgInfo.Declarations = make(map[string]*typeInfo)
 	for ident, ti := range tc.filePackageBlock {
-		pkgInfo.Declarations[ident] = ti.t
+		isDummyMacroForRender := strings.HasPrefix(ident, `"`) && strings.HasSuffix(ident, `"`)
+		if isExported(ident) || isDummyMacroForRender {
+			pkgInfo.Declarations[ident] = ti.t
+		}
 	}
 	pkgInfo.IndirectVars = tc.compilation.indirectVars
 	compilation.pkgInfos[path] = pkgInfo
