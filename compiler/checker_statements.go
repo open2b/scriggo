@@ -920,10 +920,13 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
 		return tc.programImportError(impor)
 	}
+
+	// Check the package and retrieve the package infos.
 	err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, tc.precompiledPkgs, tc.opts, tc.globalScope)
 	if err != nil {
 		return err
 	}
+	imported := tc.compilation.pkgInfos[impor.Tree.Path]
 
 	// import _ "path"
 	// {% import _ "path" %}
@@ -931,9 +934,6 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		// Nothing to do.
 		return nil
 	}
-
-	// Retrieve the packageInfo.
-	imported := tc.compilation.pkgInfos[impor.Tree.Path]
 
 	switch {
 
