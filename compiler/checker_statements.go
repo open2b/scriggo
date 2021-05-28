@@ -935,11 +935,6 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	// Retrieve the packageInfo.
 	var imported *packageInfo
 	if tc.opts.modality == templateMod {
-		// TypeInfos of imported packages in templates are "manually" added to
-		// the map of typeinfos of typechecker.
-		for k, v := range tc.compilation.pkgInfos[impor.Path].TypeInfos {
-			tc.compilation.typeInfos[k] = v
-		}
 		imported = tc.compilation.pkgInfos[impor.Path]
 	} else {
 		imported = tc.compilation.pkgInfos[impor.Tree.Path]
