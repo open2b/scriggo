@@ -248,6 +248,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					}
 					em.changeRegister(false, returnedRegs[i], dstReg, typ, fnType.Out(i))
 				}
+				em.fb.emitReturn()
 				continue
 			}
 			for i, v := range node.Values {
