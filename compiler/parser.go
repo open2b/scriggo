@@ -1374,13 +1374,10 @@ func (p *parsing) parseEnd(tok token, want, end tokenTyp) token {
 		if tok.typ == tokenSemicolon && tok.txt == nil {
 			tok = p.next()
 		}
-		if tok.typ == tokenEndStatement {
-			return p.next()
+		if tok.typ != tokenEndStatement {
+			panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
 		}
-		if want == tokenSemicolon {
-			panic(syntaxError(tok.pos, "unexpected %s at end of statement", tok))
-		}
-		panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
+		return p.next()
 	}
 	if want == tokenSemicolon {
 		switch tok.typ {
