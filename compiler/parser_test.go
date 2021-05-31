@@ -1388,6 +1388,18 @@ var treeTests = []struct {
 		ast.NewShow(p(3, 19, 62, 68), []ast.Expression{
 			ast.NewIdentifier(p(3, 22, 65, 65), "v")}, ast.ContextHTML),
 	}, ast.FormatHTML)},
+	{"{% show this; with %}a{% end %}", ast.NewTree("", []ast.Node{
+		ast.NewWith(p(1, 15, 14, 27), ast.NewShow(p(1, 4, 3, 11), []ast.Expression{
+			ast.NewIdentifier(p(1, 9, 8, 11), "this")}, nil, ast.ContextHTML), nil,
+			ast.NewBlock(nil, []ast.Node{
+				ast.NewText(p(1, 22, 21, 21), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
+	{"{% show this; with macro() html %}a{% end %}", ast.NewTree("", []ast.Node{
+		ast.NewWith(p(1, 15, 14, 40), ast.NewShow(p(1, 4, 3, 11), []ast.Expression{
+			ast.NewIdentifier(p(1, 9, 8, 11), "this")}, nil, ast.ContextHTML),
+			ast.NewFuncType(p(1, 20, 19, 30), true, nil, []*ast.Parameter{
+				ast.NewParameter(nil, ast.NewIdentifier(p(1, 28, 27, 30), "html"))}, false),
+			ast.NewBlock(nil, []ast.Node{
+				ast.NewText(p(1, 35, 34, 34), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
 }
 
 // TODO: this function is never called, because it is referenced in commented
@@ -2185,6 +2197,35 @@ func equals(n1, n2 ast.Node, p int) error {
 		}
 		if nn1.Index != nn2.Index {
 			return fmt.Errorf("unexpected index value %d, expecting %d", nn1.Index, nn2.Index)
+		}
+
+	case *ast.With:
+		nn2, ok := n2.(*ast.With)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Statement, nn2.Statement, p)
+		if err != nil {
+			return fmt.Errorf("statement: %s", err)
+		}
+		err = equals(nn1.Type, nn2.Type, p)
+		if err != nil {
+			return fmt.Errorf("macro: %s", err)
+		}
+		if nn1.Body != nil && nn2.Body == nil {
+			return fmt.Errorf("unexpected body %#v, expecting nil body", nn1.Body)
+		}
+		if nn1.Body == nil && nn2.Body != nil {
+			return fmt.Errorf("unexpected nil body, expecting body %#v", nn2.Body)
+		}
+		if len(nn1.Body.Nodes) != len(nn2.Body.Nodes) {
+			return fmt.Errorf("unexpected body nodes len %d, expecting %d", len(nn1.Body.Nodes), len(nn2.Body.Nodes))
+		}
+		for i, node := range nn1.Body.Nodes {
+			err := equals(node, nn2.Body.Nodes[i], p)
+			if err != nil {
+				return err
+			}
 		}
 
 	case *ast.Switch:

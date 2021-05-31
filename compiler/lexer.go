@@ -91,13 +91,13 @@ var emptyMarker = []byte{}
 
 // lexer maintains the scanner status.
 type lexer struct {
-	text          []byte        // text on which the scans are performed
-	src           []byte        // slice of the text used during the scan
-	line          int           // current line starting from 1
-	column        int           // current column starting from 1
-	ctx           ast.Context   // current context used during the scan
-	macroContexts []ast.Context // contexts of blocks nested in a macro.
-	tag           struct {      // current tag
+	text     []byte        // text on which the scans are performed
+	src      []byte        // slice of the text used during the scan
+	line     int           // current line starting from 1
+	column   int           // current column starting from 1
+	ctx      ast.Context   // current context used during the scan
+	contexts []ast.Context // contexts of blocks nested in a macro or with statement.
+	tag      struct {      // current tag
 		name  string      // name
 		attr  string      // current attribute name
 		index int         // index of first byte of the current attribute value in src
@@ -931,9 +931,9 @@ func (l *lexer) lexCode(end tokenTyp) error {
 	}
 	// first is the index of the first token in code.
 	var first = l.totals + 1
-	// macro indicates if it has lexed the macro keyword.
-	var macro bool
-	// ident stores the index and the text of the last lexed identifier after a macro keyword.
+	// macroOrWith indicates if it has lexed the macro keyword or the with keyword.
+	var macroOrWith bool
+	// ident stores the index and the text of the last lexed identifier after a macro or a with keyword.
 	var ident struct {
 		index int
 		txt   string
@@ -1091,7 +1091,8 @@ LOOP:
 				case '}':
 					switch end {
 					case tokenEndStatement:
-						// If a macro declaration with an explicit result type has been lexed, set the context.
+						// If a macro declaration with an explicit result type or a with statement with a type
+						// has been lexed, set the context.
 						if ident.index == l.totals {
 							for i, name := range formatTypeName {
 								if name == ident.txt {
@@ -1314,19 +1315,22 @@ LOOP:
 				if l.totals == first {
 					switch typ {
 					case tokenMacro:
-						macro = true
-						l.macroContexts = append(l.macroContexts, l.ctx)
+						macroOrWith = true
+						l.contexts = append(l.contexts, l.ctx)
 					case tokenEnd:
-						if last := len(l.macroContexts) - 1; last >= 0 {
-							l.ctx = l.macroContexts[last]
-							l.macroContexts = l.macroContexts[:last]
+						if last := len(l.contexts) - 1; last >= 0 {
+							l.ctx = l.contexts[last]
+							l.contexts = l.contexts[:last]
 						}
 					case tokenIf, tokenFor, tokenSwitch, tokenSelect:
-						if len(l.macroContexts) > 0 {
-							l.macroContexts = append(l.macroContexts, l.ctx)
+						if len(l.contexts) > 0 {
+							l.contexts = append(l.contexts, l.ctx)
 						}
 					}
-				} else if macro && typ == tokenIdentifier && l.totals != first+1 {
+				} else if typ == tokenWith {
+					macroOrWith = true
+					l.contexts = append(l.contexts, l.ctx)
+				} else if macroOrWith && typ == tokenIdentifier && l.totals != first+1 {
 					ident.index = l.totals
 					ident.txt = txt
 				}
@@ -1469,6 +1473,8 @@ func (l *lexer) lexIdentifierOrKeyword(s int) (tokenTyp, string) {
 			typ = tokenRender
 		case "show":
 			typ = tokenShow
+		case "with":
+			typ = tokenWith
 		}
 	}
 	if l.extendedSyntax && typ == tokenIdentifier {

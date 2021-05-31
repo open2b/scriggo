@@ -937,7 +937,10 @@ LABEL:
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
 		pos.End = exprs[len(exprs)-1].Pos().End
-		var node = ast.NewShow(pos, exprs, ctx)
+		var node ast.Node = ast.NewShow(pos, exprs, ctx)
+		if end == tokenEndStatement && tok.typ == tokenSemicolon {
+			node, tok = p.parseWith(node, tok)
+		}
 		p.addNode(node)
 		if len(exprs) == 1 {
 			if _, ok := exprs[0].(*ast.Render); ok {
@@ -1393,6 +1396,47 @@ LABEL:
 
 }
 
+// parseWith tries to parse a "with" statement and in case returns a With
+// node, otherwise it returns stmt which is the previous parsed statement.
+// tok is the semicolon that follows stmt.
+func (p *parsing) parseWith(stmt ast.Node, tok token) (ast.Node, token) {
+	start := tok
+	if tok = p.next(); tok.typ != tokenWith {
+		if start.txt == nil {
+			if tok.typ == tokenEndStatement {
+				return stmt, tok
+			}
+			panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
+		} else if tok.typ == tokenEndStatement {
+			panic(syntaxError(start.pos, "unexpected semicolon, expecting %%}"))
+		}
+		panic(syntaxError(tok.pos, "unexpected %s, expecting with", tok))
+	}
+	if tok.ctx > ast.ContextMarkdown {
+		panic(syntaxError(tok.pos, "with not allowed in %s", tok.ctx))
+	}
+	block := ast.NewBlock(nil, []ast.Node{})
+	with := ast.NewWith(tok.pos, stmt, nil, block)
+	switch tok = p.next(); tok.typ {
+	case tokenMacro:
+		var macro ast.Node
+		macro, tok = p.parseFunc(tok, parseFuncType)
+		with.Type = macro.(*ast.FuncType)
+	case tokenIdentifier:
+		ident := p.parseIdentifierNode(tok)
+		switch ident.Name {
+		case "string", "html", "css", "js", "json", "markdown":
+		default:
+			panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json or markdown", ident.Name))
+		}
+		with.Type = ident
+	case tokenSemicolon, tokenEndStatement:
+	default:
+		panic(syntaxError(tok.pos, "unexpected %s, expecting identifier, macro or %%}", tok))
+	}
+	return with, tok
+}
+
 func (p *parsing) parseEnd(tok token, want, end tokenTyp) token {
 	if end == tokenEndStatement {
 		if tok.typ == tokenSemicolon && tok.txt == nil {
@@ -1774,6 +1818,9 @@ func (p *parsing) addNode(node ast.Node) {
 			p.addToAncestors(n)
 			p.addToAncestors(n.Body)
 		}
+	case *ast.With:
+		p.addToAncestors(n)
+		p.addToAncestors(n.Body)
 	case
 		*ast.Block,
 		*ast.For,
