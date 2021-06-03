@@ -663,6 +663,21 @@ nodesLoop:
 
 			tc.terminating = false
 
+		case *ast.With:
+			typ := tc.checkType(node.Type)
+			if ident, ok := node.Type.(*ast.Identifier); ok {
+				if typ.Type != tc.universe[ident.Name].t.Type {
+					panic(tc.errorf(node, "invalid with type %s", typ))
+				}
+			}
+			tc.enterScope()
+			tc.assignScope("this", typ, nil)
+			tc.checkNodes([]ast.Node{node.Statement})
+			tc.exitScope()
+			tc.enterScope()
+			tc.checkNodes(node.Body.Nodes)
+			tc.exitScope()
+
 		case *ast.Defer:
 			if node.Call.Parenthesis() > 0 {
 				panic(tc.errorf(node.Call, "expression in defer must not be parenthesized"))
