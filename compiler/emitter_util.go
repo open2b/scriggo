@@ -275,9 +275,20 @@ func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Up
 				v.Index = em.varStore.predefVarIndex(v.PredefinedValue, v.PredefinedValueType, v.PredefinedPkg, v.PredefinedName)
 				continue
 			}
-			name := v.Declaration.(*ast.Identifier).Name
-			reg := em.fb.scopeLookup(name)
-			v.Index = int16(reg)
+			// v is a local variable.
+			ident := v.Declaration.(*ast.Identifier)
+			if em.fb.isLocalVariable(ident.Name) {
+				v.Index = int16(em.fb.scopeLookup(ident.Name))
+				continue
+			}
+			// v is package-level variable. This happens when a function
+			// literal assigned to a package-level variable refers to another
+			// package-level variable.
+			if index, ok := em.varStore.nonLocalVarIndex(ident); ok {
+				v.Index = int16(index)
+				continue
+			}
+			panic(fmt.Sprintf("BUG: don't know how to handle identifier %s", ident))
 		}
 	}
 

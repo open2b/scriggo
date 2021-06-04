@@ -1,4 +1,4 @@
-// skip : https://github.com/open2b/scriggo/issues/759
+// skip : investigate
 
 // run
 
