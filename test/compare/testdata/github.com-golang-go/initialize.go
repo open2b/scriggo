@@ -1,4 +1,4 @@
-// skip : problem with embedded field https://github.com/open2b/scriggo/issues/529
+// skip : investigate
 
 // run
 
