@@ -1,0 +1,13 @@
+{# errorcheck #}
+
+{% type M macro() string %}
+{% type M macro %}          // ERROR `syntax error: unexpected %}, expecting (`
+{% type M macro string %}   // ERROR `syntax error: unexpected string, expecting (`
+{% type M macro() int %}    // ERROR `syntax error: unexpected int, expecting string, html, css, js, json or markdown`
+{% type M macro() %}        // ERROR `syntax error: unexpected %}, expecting string, html, css, js, json or markdown`
+
+{% macro a(m macro() string) %}{% end %}
+{% macro a(m macro) %}{% end %}          // ERROR `syntax error: unexpected ), expecting (`
+{% macro a(m macro string) %}{% end %}   // ERROR `syntax error: unexpected string, expecting (`
+{% macro a(m macro() int) %}{% end %}    // ERROR `syntax error: unexpected int, expecting string, html, css, js, json or markdown`
+{% macro a(m macro()) %}{% end %}        // ERROR `syntax error: unexpected ), expecting string, html, css, js, json or markdown`
