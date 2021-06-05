@@ -622,23 +622,23 @@ var goContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 10, 9, 12), "LOOP")),
 		}, ast.FormatText)},
 	{"func f() int {}", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 14), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, nil, []*ast.Parameter{ast.NewParameter(nil, ast.NewIdentifier(p(1, 10, 9, 11), "int"))}, false), ast.NewBlock(p(1, 14, 13, 14), nil), false, ast.FormatText)}, ast.FormatText)},
+		ast.NewFunc(p(1, 1, 0, 14), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(p(1, 1, 0, 14), false, nil, []*ast.Parameter{ast.NewParameter(nil, ast.NewIdentifier(p(1, 10, 9, 11), "int"))}, false), ast.NewBlock(p(1, 14, 13, 14), nil), false, ast.FormatText)}, ast.FormatText)},
 	{"func f() int { return 5 }", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 24), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, nil, []*ast.Parameter{ast.NewParameter(nil, ast.NewIdentifier(p(1, 10, 9, 11), "int"))}, false), ast.NewBlock(p(1, 14, 13, 24), []ast.Node{
+		ast.NewFunc(p(1, 1, 0, 24), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(p(1, 1, 0, 24), false, nil, []*ast.Parameter{ast.NewParameter(nil, ast.NewIdentifier(p(1, 10, 9, 11), "int"))}, false), ast.NewBlock(p(1, 14, 13, 24), []ast.Node{
 			ast.NewReturn(p(1, 16, 15, 22), []ast.Expression{ast.NewBasicLiteral(p(1, 23, 22, 22), ast.IntLiteral, "5")}),
 		}), false, ast.FormatText)}, ast.FormatText)},
 	{"func f() (int, error) {}", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 23), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, nil, []*ast.Parameter{
+		ast.NewFunc(p(1, 1, 0, 23), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(p(1, 1, 0, 23), false, nil, []*ast.Parameter{
 			ast.NewParameter(nil, ast.NewIdentifier(p(1, 11, 10, 12), "int")),
 			ast.NewParameter(nil, ast.NewIdentifier(p(1, 16, 15, 19), "error")),
 		}, false), ast.NewBlock(p(1, 22, 22, 23), nil), false, ast.FormatText)}, ast.FormatText)},
 	{"func f() (n int, err error) {}", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 29), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, nil, []*ast.Parameter{
+		ast.NewFunc(p(1, 1, 0, 29), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(p(1, 1, 0, 29), false, nil, []*ast.Parameter{
 			ast.NewParameter(ast.NewIdentifier(p(1, 11, 10, 10), "n"), ast.NewIdentifier(p(1, 13, 12, 14), "int")),
 			ast.NewParameter(ast.NewIdentifier(p(1, 18, 17, 19), "err"), ast.NewIdentifier(p(1, 22, 21, 25), "error")),
 		}, false), ast.NewBlock(p(1, 29, 28, 29), nil), false, ast.FormatText)}, ast.FormatText)},
 	{"func f(a, b int, c bool, d ...int) (n int, err error) { a := 5; return a, nil }", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 78), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(nil, false, []*ast.Parameter{
+		ast.NewFunc(p(1, 1, 0, 78), ast.NewIdentifier(p(1, 6, 5, 5), "f"), ast.NewFuncType(p(1, 1, 0, 78), false, []*ast.Parameter{
 			ast.NewParameter(ast.NewIdentifier(p(1, 8, 7, 7), "a"), nil),
 			ast.NewParameter(ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 14), "int")),
 			ast.NewParameter(ast.NewIdentifier(p(1, 18, 17, 17), "c"), ast.NewIdentifier(p(1, 20, 19, 22), "bool")),
@@ -694,7 +694,7 @@ var goContextTreeTests = []struct {
 			},
 			ast.AssignmentSimple,
 			[]ast.Expression{
-				ast.NewFunc(p(1, 5, 4, 24), nil, ast.NewFuncType(nil, false, nil, nil, false), ast.NewBlock(
+				ast.NewFunc(p(1, 5, 4, 24), nil, ast.NewFuncType(p(1, 5, 4, 24), false, nil, nil, false), ast.NewBlock(
 					nil,
 					[]ast.Node{
 						ast.NewCall(

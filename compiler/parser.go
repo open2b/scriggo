@@ -1087,7 +1087,6 @@ LABEL:
 
 	// macro
 	case tokenMacro:
-		pos := tok.pos
 		if end == tokenEndStatements {
 			panic(syntaxError(tok.pos, "unexpected macro in statement scope"))
 		}
@@ -1097,46 +1096,14 @@ LABEL:
 		if tok.ctx != ast.Context(p.format) {
 			panic(syntaxError(tok.pos, "macro not in %s content", ast.Context(p.format)))
 		}
-		// Parses the macro name.
-		tok = p.next()
-		if tok.typ != tokenIdentifier {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting name", tok.txt))
-		}
-		ident := ast.NewIdentifier(tok.pos, string(tok.txt))
-		var parameters []*ast.Parameter
-		var isVariadic bool
-		tok = p.next()
-		if tok.typ == tokenLeftParenthesis {
-			// Parses the macro parameters.
-			var last *ast.Position
-			parameters, isVariadic, last, tok = p.parseFuncParameters(tok, true, false)
-			pos.End = last.End
-		}
-		var result []*ast.Parameter
-		if tok.typ == tokenIdentifier {
-			// Parses the result type.
-			name := string(tok.txt)
-			switch name {
-			case "string", "html", "css", "js", "json", "markdown":
-			default:
-				panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json or markdown", name))
+		var node ast.Node
+		node, tok = p.parseFunc(tok, parseFuncDecl)
+		if tok.typ != tokenEndStatement {
+			if node.(*ast.Func).Type.Result == nil {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json, markdown or %%}", tok))
 			}
-			result = []*ast.Parameter{{nil, ast.NewIdentifier(tok.pos, name)}}
-			tok = p.next()
-			if tok.typ != tokenEndStatement {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
-			}
-		} else if tok.typ != tokenEndStatement {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier or %%}", tok))
+			panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
 		}
-		// Makes the macro node.
-		typ := ast.NewFuncType(nil, true, parameters, result, isVariadic)
-		pos.End = tok.pos.End
-		typ.Position = pos
-		format := ast.Format(tok.ctx) // lexer guarantees that the format of the macro is the context of the end statement.
-		node := ast.NewFunc(pos, ident, typ, nil, false, format)
-		body := ast.NewBlock(tok.pos, nil)
-		node.Body = body
 		p.addNode(node)
 		p.cutSpacesToken = true
 		return p.next()

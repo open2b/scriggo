@@ -15,11 +15,11 @@
   { "c" : "{% macro a %}{% end %}" } // ERROR `syntax error: macro not allowed in JSON string`
 </script>
 
-{% macro A []string %} // ERROR `syntax error: unexpected [, expecting identifier or %}`
+{% macro A []string %} // ERROR `syntax error: unexpected [, expecting string, html, css, js, json, markdown or %}`
 
-{% macro A int %} // ERROR `syntax error: unexpected int, expecting string, html, css, js, json or markdown`
+{% macro A int %} // ERROR `syntax error: unexpected int, expecting string, html, css, js, json, markdown or %}`
 
-{% var foo string %} {% macro A foo %} // ERROR `syntax error: unexpected foo, expecting string, html, css, js, json or markdown`
+{% var foo string %} {% macro A foo %} // ERROR `syntax error: unexpected foo, expecting string, html, css, js, json, markdown or %}`
 
 {% var css string %} {% macro A css %}{% end %} // ERROR `css is not a type`
 
@@ -28,5 +28,7 @@
 {% macro A( int %} // ERROR `syntax error: unexpected %}, expecting comma or )`
 
 {% macro A( string %} // ERROR `syntax error: unexpected %}, expecting comma or )`
+
+{% macro A string, %} // ERROR `syntax error: unexpected comma, expecting %}`
 
 {% type html = string %} {% macro A html %}{% end %} // ERROR `invalid macro result type html`

@@ -36,7 +36,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	} else if kind == parseFuncDecl {
 		// This check could be avoided (the code panics anyway) but improves the
 		// readability of the error message.
-		if tok.typ == tokenLeftParenthesis {
+		if !isMacro && tok.typ == tokenLeftParenthesis {
 			panic(syntaxError(tok.pos, "method declarations are not supported in this release of Scriggo"))
 		}
 		// Node to parse must be a function declaration.
@@ -47,33 +47,36 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	var isVariadic bool
 	var last *ast.Position
 	parameters, isVariadic, last, tok = p.parseFuncParameters(tok, isMacro, false)
-	if parameters == nil {
+	if parameters != nil {
+		pos.End = last.End
+	} else if !isMacro || kind == parseFuncType {
 		panic(syntaxError(tok.pos, "unexpected %s, expecting (", tok))
 	}
-	pos.End = last.End
 	// Parses the result parameters.
 	var result []*ast.Parameter
 	result, _, last, tok = p.parseFuncParameters(tok, isMacro, true)
-	if result == nil {
-		if isMacro {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json or markdown", tok))
-		}
-	} else {
+	if result != nil {
 		pos.End = last.End
+	} else if isMacro && kind == parseFuncType {
+		panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json or markdown", tok))
 	}
-	// Makes the function type.
-	typ := ast.NewFuncType(nil, isMacro, parameters, result, isVariadic)
+
+	// Make the nodes.
+	typ := ast.NewFuncType(pos, isMacro, parameters, result, isVariadic)
 	if kind == parseFuncType || kind&parseFuncType != 0 && tok.typ != tokenLeftBrace {
 		typ.Position = &ast.Position{pos.Line, pos.Column, pos.Start, pos.End}
 		return typ, tok
 	}
-	// Parses the function body.
 	node := ast.NewFunc(pos, ident, typ, nil, false, ast.Format(tok.ctx))
-	if tok.typ != tokenLeftBrace {
+	if !isMacro && tok.typ != tokenLeftBrace {
 		return node, tok
 	}
 	body := ast.NewBlock(tok.pos, nil)
 	node.Body = body
+	if isMacro {
+		return node, tok
+	}
+	// Parses the function body.
 	p.addToAncestors(node)
 	p.addToAncestors(body)
 	depth := len(p.ancestors)
