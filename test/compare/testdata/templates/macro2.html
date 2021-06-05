@@ -32,5 +32,3 @@
 {% macro A string, %} // ERROR `syntax error: unexpected comma, expecting %}`
 
 {% type html = string %} {% macro A html %}{% end %} // ERROR `invalid macro result type html`
-
-{% macro a foo html %} // ERROR `syntax error: unexpected %}, expecting comma or )`
