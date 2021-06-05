@@ -1355,8 +1355,11 @@ LABEL:
 			if value == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
-			node := ast.NewSend(pos, channel, value)
-			node.Position = pos.WithEnd(value.Pos().End)
+			var node ast.Node = ast.NewSend(pos, channel, value)
+			node.(*ast.Send).Position = pos.WithEnd(value.Pos().End)
+			if end == tokenEndStatement && tok.typ == tokenSemicolon {
+				node, tok = p.parseWith(node, tok)
+			}
 			p.addNode(node)
 			p.cutSpacesToken = true
 			tok = p.parseEnd(tok, tokenSemicolon, end)
