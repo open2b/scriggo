@@ -1445,6 +1445,7 @@ func (p *parsing) parseWith(stmt ast.Node, tok token) (ast.Node, token) {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json or markdown", ident.Name))
 		}
 		with.Type = ident
+		tok = p.next()
 	case tokenSemicolon, tokenEndStatement:
 	default:
 		panic(syntaxError(tok.pos, "unexpected %s, expecting identifier, macro or %%}", tok))
