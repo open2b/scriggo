@@ -1108,10 +1108,9 @@ LABEL:
 		tok = p.next()
 		if tok.typ == tokenLeftParenthesis {
 			// Parses the macro parameters.
-			var endPos *ast.Position
-			parameters, isVariadic, endPos = p.parseFuncParameters(tok, false)
-			pos.End = endPos.End
-			tok = p.next()
+			var last *ast.Position
+			parameters, isVariadic, last, tok = p.parseFuncParameters(tok, true, false)
+			pos.End = last.End
 		}
 		var result []*ast.Parameter
 		if tok.typ == tokenIdentifier {

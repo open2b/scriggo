@@ -42,34 +42,24 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 		// Node to parse must be a function declaration.
 		panic(syntaxError(tok.pos, "unexpected %s, expecting name", tok.txt))
 	}
-	// Parses the function parameters.
-	parameters, isVariadic, endPos := p.parseFuncParameters(tok, false)
-	pos.End = endPos.End
+	// Parses the input parameters.
+	var parameters []*ast.Parameter
+	var isVariadic bool
+	var last *ast.Position
+	parameters, isVariadic, last, tok = p.parseFuncParameters(tok, isMacro, false)
+	if parameters == nil {
+		panic(syntaxError(tok.pos, "unexpected %s, expecting (", tok))
+	}
+	pos.End = last.End
+	// Parses the result parameters.
 	var result []*ast.Parameter
-	tok = p.next()
-	var expr ast.Expression
-	// Parses the result.
-	if isMacro {
-		name := string(tok.txt)
-		switch name {
-		case "string", "html", "css", "js", "json", "markdown":
-		default:
+	result, _, last, tok = p.parseFuncParameters(tok, isMacro, true)
+	if result == nil {
+		if isMacro {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json or markdown", tok))
 		}
-		pos.End = tok.pos.End
-		result = []*ast.Parameter{{nil, ast.NewIdentifier(tok.pos, name)}}
-		tok = p.next()
 	} else {
-		switch tok.typ {
-		case tokenLeftParenthesis:
-			result, _, endPos = p.parseFuncParameters(tok, true)
-			pos.End = endPos.End
-			tok = p.next()
-		case tokenLeftBracket, tokenFunc, tokenIdentifier, tokenInterface, tokenMap, tokenMultiplication, tokenStruct, tokenChan:
-			expr, tok = p.parseExpr(tok, false, true, true)
-			pos.End = expr.Pos().End
-			result = []*ast.Parameter{ast.NewParameter(nil, expr)}
-		}
+		pos.End = last.End
 	}
 	// Makes the function type.
 	typ := ast.NewFuncType(nil, isMacro, parameters, result, isVariadic)
@@ -111,15 +101,41 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	return node, p.next()
 }
 
-func (p *parsing) parseFuncParameters(tok token, isResult bool) ([]*ast.Parameter, bool, *ast.Position) {
+// parseFuncParameters parses the parameters of a function or macro. tok is
+// the first token of the parameters. isMacro indicates if it is a macro and
+// isResult indicates if the parameters to parse are the result parameters.
+//
+// Returns the parameters, a boolean value indicating if the function is
+// variadic, the position of the last token belonging to the parameters and
+// the next token.
+//
+// If there are no parameters to parse, it returns nil, false, nil and tok.
+func (p *parsing) parseFuncParameters(tok token, isMacro, isResult bool) ([]*ast.Parameter, bool, *ast.Position, token) {
+
+	if isResult {
+		if isMacro {
+			switch name := string(tok.txt); name {
+			case "string", "html", "css", "js", "json", "markdown":
+				return []*ast.Parameter{{nil, ast.NewIdentifier(tok.pos, name)}}, false, tok.pos, p.next()
+			}
+			return nil, false, nil, tok
+		}
+		switch tok.typ {
+		case tokenLeftBracket, tokenFunc, tokenIdentifier, tokenInterface, tokenMap, tokenMultiplication, tokenStruct, tokenChan:
+			var expr ast.Expression
+			expr, tok = p.parseExpr(tok, false, true, true)
+			return []*ast.Parameter{ast.NewParameter(nil, expr)}, false, expr.Pos(), tok
+		}
+	}
 
 	if tok.typ != tokenLeftParenthesis {
-		panic(syntaxError(tok.pos, "unexpected %s, expecting (", tok))
+		return nil, false, nil, tok
 	}
+
 	tok = p.next()
 	pos := tok.pos
 	if tok.typ == tokenRightParenthesis {
-		return nil, false, pos
+		return []*ast.Parameter{}, false, pos, p.next()
 	}
 
 	var ide ast.Expression
@@ -200,5 +216,5 @@ func (p *parsing) parseFuncParameters(tok token, isResult bool) ([]*ast.Paramete
 		}
 	}
 
-	return parameters, ellipses != nil, tok.pos
+	return parameters, ellipses != nil, tok.pos, p.next()
 }
