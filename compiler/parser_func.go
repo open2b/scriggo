@@ -33,7 +33,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 		}
 		ident = ast.NewIdentifier(tok.pos, string(tok.txt))
 		tok = p.next()
-	} else if kind^parseFuncDecl == 0 {
+	} else if kind == parseFuncDecl {
 		// This check could be avoided (the code panics anyway) but improves the
 		// readability of the error message.
 		if tok.typ == tokenLeftParenthesis {
