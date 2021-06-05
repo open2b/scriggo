@@ -1336,10 +1336,15 @@ LABEL:
 		}
 		if len(expressions) > 1 || isAssignmentToken(tok) {
 			// Parse assignment.
-			var assignment *ast.Assignment
-			assignment, tok = p.parseAssignment(expressions, tok, false, false, false)
-			assignment.Position = pos.WithEnd(assignment.Pos().End)
-			p.addNode(assignment)
+			var node ast.Node
+			node, tok = p.parseAssignment(expressions, tok, false, false, false)
+			node.(*ast.Assignment).Position = pos.WithEnd(node.Pos().End)
+			if end == tokenEndStatement && tok.typ == tokenSemicolon {
+				if t := node.(*ast.Assignment).Type; t != ast.AssignmentIncrement && t != ast.AssignmentDecrement {
+					node, tok = p.parseWith(node, tok)
+				}
+			}
+			p.addNode(node)
 			p.cutSpacesToken = true
 			tok = p.parseEnd(tok, tokenSemicolon, end)
 		} else if tok.typ == tokenArrow {
