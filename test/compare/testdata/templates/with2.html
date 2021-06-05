@@ -17,13 +17,21 @@
 
 {% show this; with []string %} // ERROR `syntax error: unexpected [, expecting identifier, macro or %}`
 
-{% show this; with int %} // ERROR `syntax error: unexpected int, expecting string, html, css, js, json or markdown`
+{% show this; with int %} // ERROR `syntax error: unexpected int, expecting string, html, css, js, json, markdown or macro`
 
-{% var foo string %} {% show this; with foo %} // ERROR `syntax error: unexpected foo, expecting string, html, css, js, json or markdown`
+{% var foo string %} {% show this; with foo %} // ERROR `syntax error: unexpected foo, expecting string, html, css, js, json, markdown or macro`
 
 {% show this; foo %} // ERROR `syntax error: unexpected foo, expecting with`
 
 {% show this; %} // ERROR `syntax error: unexpected semicolon, expecting %}`
+
+{% show; with %} // ERROR `syntax error: unexpected semicolon, expecting expression`
+
+{% show with int %} // ERROR `syntax error: unexpected int, expecting string, html, css, js, json or markdown`
+
+{% show with macro %} // ERROR `syntax error: unexpected macro, expecting identifier or %}`
+
+{% show with; %} // ERROR `syntax error: unexpected semicolon, expecting %}`
 
 {% a := this; foo %} // ERROR `syntax error: unexpected foo, expecting with`
 

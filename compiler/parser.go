@@ -931,22 +931,28 @@ LABEL:
 		pos := tok.pos
 		tok := p.next()
 		ctx := tok.ctx
-		var exprs []ast.Expression
-		exprs, tok = p.parseExprList(tok, false, false, false)
-		if exprs == nil {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
-		}
-		pos.End = exprs[len(exprs)-1].Pos().End
-		var node ast.Node = ast.NewShow(pos, exprs, ctx)
-		if end == tokenEndStatement && tok.typ == tokenSemicolon {
-			node, tok = p.parseWith(node, tok)
-		}
-		p.addNode(node)
-		if len(exprs) == 1 {
-			if _, ok := exprs[0].(*ast.Render); ok {
-				p.cutSpacesToken = true
+		var node ast.Node
+		if end == tokenEndStatement && tok.typ == tokenWith {
+			// "show with" abbreviated form.
+			node, tok = p.parseWith(ast.NewShow(pos, nil, ctx), tok)
+		} else {
+			var exprs []ast.Expression
+			exprs, tok = p.parseExprList(tok, false, false, false)
+			if exprs == nil {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
+			}
+			pos.End = exprs[len(exprs)-1].Pos().End
+			node = ast.NewShow(pos, exprs, ctx)
+			if end == tokenEndStatement && tok.typ == tokenSemicolon {
+				node, tok = p.parseWith(node, tok)
+			}
+			if len(exprs) == 1 {
+				if _, ok := exprs[0].(*ast.Render); ok {
+					p.cutSpacesToken = true
+				}
 			}
 		}
+		p.addNode(node)
 		tok = p.parseEnd(tok, tokenSemicolon, end)
 		return tok
 
@@ -1413,19 +1419,23 @@ LABEL:
 
 // parseWith tries to parse a "with" statement and in case returns a With
 // node, otherwise it returns stmt which is the previous parsed statement.
-// tok is the semicolon that follows stmt.
+// tok is the semicolon that follows stmt or, for abbreviated forms, it is the
+// "with" token.
 func (p *parsing) parseWith(stmt ast.Node, tok token) (ast.Node, token) {
-	start := tok
-	if tok = p.next(); tok.typ != tokenWith {
-		if start.txt == nil {
-			if tok.typ == tokenEndStatement {
-				return stmt, tok
+	isAbbreviated := tok.typ == tokenWith
+	if !isAbbreviated {
+		start := tok
+		if tok = p.next(); tok.typ != tokenWith {
+			if start.txt == nil {
+				if tok.typ == tokenEndStatement {
+					return stmt, tok
+				}
+				panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
+			} else if tok.typ == tokenEndStatement {
+				panic(syntaxError(start.pos, "unexpected semicolon, expecting %%}"))
 			}
-			panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
-		} else if tok.typ == tokenEndStatement {
-			panic(syntaxError(start.pos, "unexpected semicolon, expecting %%}"))
+			panic(syntaxError(tok.pos, "unexpected %s, expecting with", tok))
 		}
-		panic(syntaxError(tok.pos, "unexpected %s, expecting with", tok))
 	}
 	if tok.ctx > ast.ContextMarkdown {
 		panic(syntaxError(tok.pos, "with not allowed in %s", tok.ctx))
@@ -1434,6 +1444,9 @@ func (p *parsing) parseWith(stmt ast.Node, tok token) (ast.Node, token) {
 	with := ast.NewWith(tok.pos, stmt, nil, block)
 	switch tok = p.next(); tok.typ {
 	case tokenMacro:
+		if isAbbreviated {
+			panic(syntaxError(tok.pos, "unexpected macro, expecting identifier or %%}"))
+		}
 		var macro ast.Node
 		macro, tok = p.parseFunc(tok, parseFuncLit)
 		with.Type = macro.(*ast.Func).Type
@@ -1442,12 +1455,18 @@ func (p *parsing) parseWith(stmt ast.Node, tok token) (ast.Node, token) {
 		switch ident.Name {
 		case "string", "html", "css", "js", "json", "markdown":
 		default:
-			panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json or markdown", ident.Name))
+			if isAbbreviated {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json or markdown", ident.Name))
+			}
+			panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json, markdown or macro", ident.Name))
 		}
 		with.Type = ident
 		tok = p.next()
 	case tokenSemicolon, tokenEndStatement:
 	default:
+		if isAbbreviated {
+			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier or %%}", tok))
+		}
 		panic(syntaxError(tok.pos, "unexpected %s, expecting identifier, macro or %%}", tok))
 	}
 	return with, tok

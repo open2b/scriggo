@@ -1406,6 +1406,11 @@ var treeTests = []struct {
 				ast.NewParameter(nil, ast.NewIdentifier(p(1, 28, 27, 30), "html"))}, false),
 			ast.NewBlock(nil, []ast.Node{
 				ast.NewText(p(1, 35, 34, 34), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
+	{"{% show with markdown %}a{% end %}", ast.NewTree("", []ast.Node{
+		ast.NewWith(p(1, 9, 8, 30), ast.NewShow(p(1, 4, 3, 6), nil, nil, ast.ContextHTML),
+			ast.NewIdentifier(p(1, 14, 13, 20), "markdown"),
+			ast.NewBlock(nil, []ast.Node{
+				ast.NewText(p(1, 25, 24, 24), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
 	{"{% a = this; with %}a{% end %}", ast.NewTree("", []ast.Node{
 		ast.NewWith(p(1, 14, 13, 26), ast.NewAssignment(p(1, 4, 3, 10), []ast.Expression{
 			ast.NewIdentifier(p(1, 4, 3, 3), "a")}, ast.AssignmentSimple, []ast.Expression{
