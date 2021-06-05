@@ -38,3 +38,7 @@
 {% c <- this; foo %} // ERROR `syntax error: unexpected foo, expecting with`
 
 {% c <- this; %} // ERROR `syntax error: unexpected semicolon, expecting %}`
+
+{% var a = this; foo %} // ERROR `syntax error: unexpected foo, expecting with`
+
+{% var a = this; %} // ERROR `syntax error: unexpected semicolon, expecting %}`

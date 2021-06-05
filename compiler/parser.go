@@ -1041,6 +1041,9 @@ LABEL:
 		} else {
 			var node ast.Node
 			node, tok = p.parseVarOrConst(tok, pos, decType, 0)
+			if decType == tokenVar && end == tokenEndStatement && tok.typ == tokenSemicolon {
+				node, tok = p.parseWith(node, tok)
+			}
 			p.addNode(node)
 			tok = p.parseEnd(tok, tokenSemicolon, end)
 		}
