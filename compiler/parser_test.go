@@ -1412,6 +1412,12 @@ var treeTests = []struct {
 			ast.NewIdentifier(p(1, 8, 7, 10), "this")}), nil,
 			ast.NewBlock(nil, []ast.Node{
 				ast.NewText(p(1, 21, 20, 20), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
+	{"{% f(this); with %}a{% end %}", ast.NewTree("", []ast.Node{
+		ast.NewWith(p(1, 13, 12, 25), ast.NewCall(p(1, 5, 3, 9),
+			ast.NewIdentifier(p(1, 4, 3, 3), "f"), []ast.Expression{
+			ast.NewIdentifier(p(1, 6, 5, 8), "this")}, false), nil,
+			ast.NewBlock(nil, []ast.Node{
+				ast.NewText(p(1, 20, 19, 19), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
 }
 
 // TODO: this function is never called, because it is referenced in commented

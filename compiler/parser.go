@@ -1392,7 +1392,11 @@ LABEL:
 					}
 				}
 			}
-			p.addNode(expr)
+			var node ast.Node = expr
+			if end == tokenEndStatement && tok.typ == tokenSemicolon {
+				node, tok = p.parseWith(node, tok)
+			}
+			p.addNode(node)
 			p.cutSpacesToken = true
 			tok = p.parseEnd(tok, tokenSemicolon, end)
 		}

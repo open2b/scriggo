@@ -30,3 +30,7 @@
 {% a += this; %} // ERROR `syntax error: unexpected semicolon, expecting %}`
 
 {% i++; with %} // ERROR `syntax error: unexpected semicolon, expecting %}`
+
+{% f(this); foo %} // ERROR `syntax error: unexpected foo, expecting with`
+
+{% f(this); %} // ERROR `syntax error: unexpected semicolon, expecting %}`
