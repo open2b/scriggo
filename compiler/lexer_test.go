@@ -463,7 +463,7 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 	},
 }
 
-var macroAndWithContextTests = map[string][]ast.Context{
+var macroAndUsingContextTests = map[string][]ast.Context{
 	// Check context for '%}' tokens only.
 	"{% macro a %}{% end %}":                                                 {ast.ContextText, ast.ContextText},
 	"{% macro a html %}{% end %}":                                            {ast.ContextHTML, ast.ContextText},
@@ -684,9 +684,9 @@ CONTEXTS:
 	}
 }
 
-func TestLexerMacroOrWithContexts(t *testing.T) {
+func TestLexerMacroOrUsingContexts(t *testing.T) {
 CONTEXTS:
-	for source, contexts := range macroAndWithContextTests {
+	for source, contexts := range macroAndUsingContextTests {
 		text := []byte(source)
 		lex := scanTemplate(text, ast.FormatText, false)
 		var i int

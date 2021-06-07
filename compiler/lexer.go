@@ -96,7 +96,7 @@ type lexer struct {
 	line     int           // current line starting from 1
 	column   int           // current column starting from 1
 	ctx      ast.Context   // current context used during the scan
-	contexts []ast.Context // contexts of blocks nested in a macro or with statement.
+	contexts []ast.Context // contexts of blocks nested in a macro or using statement.
 	tag      struct {      // current tag
 		name  string      // name
 		attr  string      // current attribute name
@@ -931,9 +931,9 @@ func (l *lexer) lexCode(end tokenTyp) error {
 	}
 	// first is the index of the first token in code.
 	var first = l.totals + 1
-	// macroOrWith indicates if it has lexed the macro keyword or the with keyword.
-	var macroOrWith bool
-	// ident stores the index and the text of the last lexed identifier after a macro or a with keyword.
+	// macroOrUsing indicates if it has lexed the macro keyword or the using keyword.
+	var macroOrUsing bool
+	// ident stores the index and the text of the last lexed identifier after a macro or a using keyword.
 	var ident struct {
 		index int
 		txt   string
@@ -1315,7 +1315,7 @@ LOOP:
 				if l.totals == first {
 					switch typ {
 					case tokenMacro:
-						macroOrWith = true
+						macroOrUsing = true
 						l.contexts = append(l.contexts, l.ctx)
 					case tokenEnd:
 						if last := len(l.contexts) - 1; last >= 0 {
@@ -1328,9 +1328,9 @@ LOOP:
 						}
 					}
 				} else if typ == tokenUsing {
-					macroOrWith = true
+					macroOrUsing = true
 					l.contexts = append(l.contexts, l.ctx)
-				} else if macroOrWith && typ == tokenIdentifier && l.totals != first+1 {
+				} else if macroOrUsing && typ == tokenIdentifier && l.totals != first+1 {
 					ident.index = l.totals
 					ident.txt = txt
 				}
