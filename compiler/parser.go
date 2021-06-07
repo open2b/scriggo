@@ -933,7 +933,7 @@ LABEL:
 		ctx := tok.ctx
 		var node ast.Node
 		if end == tokenEndStatement && tok.typ == tokenUsing {
-			// "show with" abbreviated form.
+			// "show using" abbreviated form.
 			node, tok = p.parseUsing(ast.NewShow(pos, nil, ctx), tok)
 		} else {
 			var exprs []ast.Expression
