@@ -934,7 +934,7 @@ LABEL:
 		var node ast.Node
 		if end == tokenEndStatement && tok.typ == tokenUsing {
 			// "show with" abbreviated form.
-			node, tok = p.parseWith(ast.NewShow(pos, nil, ctx), tok)
+			node, tok = p.parseUsing(ast.NewShow(pos, nil, ctx), tok)
 		} else {
 			var exprs []ast.Expression
 			exprs, tok = p.parseExprList(tok, false, false, false)
@@ -944,7 +944,7 @@ LABEL:
 			pos.End = exprs[len(exprs)-1].Pos().End
 			node = ast.NewShow(pos, exprs, ctx)
 			if end == tokenEndStatement && tok.typ == tokenSemicolon {
-				node, tok = p.parseWith(node, tok)
+				node, tok = p.parseUsing(node, tok)
 			}
 			if len(exprs) == 1 {
 				if _, ok := exprs[0].(*ast.Render); ok {
@@ -1048,7 +1048,7 @@ LABEL:
 			var node ast.Node
 			node, tok = p.parseVarOrConst(tok, pos, decType, 0)
 			if decType == tokenVar && end == tokenEndStatement && tok.typ == tokenSemicolon {
-				node, tok = p.parseWith(node, tok)
+				node, tok = p.parseUsing(node, tok)
 			}
 			p.addNode(node)
 			tok = p.parseEnd(tok, tokenSemicolon, end)
@@ -1350,7 +1350,7 @@ LABEL:
 			node.(*ast.Assignment).Position = pos.WithEnd(node.Pos().End)
 			if end == tokenEndStatement && tok.typ == tokenSemicolon {
 				if t := node.(*ast.Assignment).Type; t != ast.AssignmentIncrement && t != ast.AssignmentDecrement {
-					node, tok = p.parseWith(node, tok)
+					node, tok = p.parseUsing(node, tok)
 				}
 			}
 			p.addNode(node)
@@ -1367,7 +1367,7 @@ LABEL:
 			var node ast.Node = ast.NewSend(pos, channel, value)
 			node.(*ast.Send).Position = pos.WithEnd(value.Pos().End)
 			if end == tokenEndStatement && tok.typ == tokenSemicolon {
-				node, tok = p.parseWith(node, tok)
+				node, tok = p.parseUsing(node, tok)
 			}
 			p.addNode(node)
 			p.cutSpacesToken = true
@@ -1406,7 +1406,7 @@ LABEL:
 			}
 			var node ast.Node = expr
 			if end == tokenEndStatement && tok.typ == tokenSemicolon {
-				node, tok = p.parseWith(node, tok)
+				node, tok = p.parseUsing(node, tok)
 			}
 			p.addNode(node)
 			p.cutSpacesToken = true
@@ -1417,11 +1417,11 @@ LABEL:
 
 }
 
-// parseWith tries to parse a "with" statement and in case returns a Using
+// parseUsing tries to parse a using statement and in case returns a Using
 // node, otherwise it returns stmt which is the previous parsed statement.
 // tok is the semicolon that follows stmt or, for abbreviated forms, it is the
-// "with" token.
-func (p *parsing) parseWith(stmt ast.Node, tok token) (ast.Node, token) {
+// using token.
+func (p *parsing) parseUsing(stmt ast.Node, tok token) (ast.Node, token) {
 	isAbbreviated := tok.typ == tokenUsing
 	if !isAbbreviated {
 		start := tok
