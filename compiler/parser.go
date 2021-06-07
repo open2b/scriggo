@@ -1441,7 +1441,7 @@ func (p *parsing) parseUsing(stmt ast.Node, tok token) (ast.Node, token) {
 		panic(syntaxError(tok.pos, "using not allowed in %s", tok.ctx))
 	}
 	block := ast.NewBlock(nil, []ast.Node{})
-	with := ast.NewUsing(tok.pos, stmt, nil, block)
+	using := ast.NewUsing(tok.pos, stmt, nil, block)
 	switch tok = p.next(); tok.typ {
 	case tokenMacro:
 		if isAbbreviated {
@@ -1449,7 +1449,7 @@ func (p *parsing) parseUsing(stmt ast.Node, tok token) (ast.Node, token) {
 		}
 		var macro ast.Node
 		macro, tok = p.parseFunc(tok, parseFuncLit)
-		with.Type = macro.(*ast.Func).Type
+		using.Type = macro.(*ast.Func).Type
 	case tokenIdentifier:
 		ident := p.parseIdentifierNode(tok)
 		switch ident.Name {
@@ -1460,7 +1460,7 @@ func (p *parsing) parseUsing(stmt ast.Node, tok token) (ast.Node, token) {
 			}
 			panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json, markdown or macro", ident.Name))
 		}
-		with.Type = ident
+		using.Type = ident
 		tok = p.next()
 	case tokenSemicolon, tokenEndStatement:
 	default:
@@ -1469,7 +1469,7 @@ func (p *parsing) parseUsing(stmt ast.Node, tok token) (ast.Node, token) {
 		}
 		panic(syntaxError(tok.pos, "unexpected %s, expecting identifier, macro or %%}", tok))
 	}
-	return with, tok
+	return using, tok
 }
 
 func (p *parsing) parseEnd(tok token, want, end tokenTyp) token {
