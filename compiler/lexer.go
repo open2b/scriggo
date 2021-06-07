@@ -1327,7 +1327,7 @@ LOOP:
 							l.contexts = append(l.contexts, l.ctx)
 						}
 					}
-				} else if typ == tokenWith {
+				} else if typ == tokenUsing {
 					macroOrWith = true
 					l.contexts = append(l.contexts, l.ctx)
 				} else if macroOrWith && typ == tokenIdentifier && l.totals != first+1 {
@@ -1473,8 +1473,8 @@ func (l *lexer) lexIdentifierOrKeyword(s int) (tokenTyp, string) {
 			typ = tokenRender
 		case "show":
 			typ = tokenShow
-		case "with":
-			typ = tokenWith
+		case "using":
+			typ = tokenUsing
 		}
 	}
 	if l.extendedSyntax && typ == tokenIdentifier {

@@ -932,7 +932,7 @@ LABEL:
 		tok := p.next()
 		ctx := tok.ctx
 		var node ast.Node
-		if end == tokenEndStatement && tok.typ == tokenWith {
+		if end == tokenEndStatement && tok.typ == tokenUsing {
 			// "show with" abbreviated form.
 			node, tok = p.parseWith(ast.NewShow(pos, nil, ctx), tok)
 		} else {
@@ -1417,15 +1417,15 @@ LABEL:
 
 }
 
-// parseWith tries to parse a "with" statement and in case returns a With
+// parseWith tries to parse a "with" statement and in case returns a Using
 // node, otherwise it returns stmt which is the previous parsed statement.
 // tok is the semicolon that follows stmt or, for abbreviated forms, it is the
 // "with" token.
 func (p *parsing) parseWith(stmt ast.Node, tok token) (ast.Node, token) {
-	isAbbreviated := tok.typ == tokenWith
+	isAbbreviated := tok.typ == tokenUsing
 	if !isAbbreviated {
 		start := tok
-		if tok = p.next(); tok.typ != tokenWith {
+		if tok = p.next(); tok.typ != tokenUsing {
 			if start.txt == nil {
 				if tok.typ == tokenEndStatement {
 					return stmt, tok
@@ -1434,14 +1434,14 @@ func (p *parsing) parseWith(stmt ast.Node, tok token) (ast.Node, token) {
 			} else if tok.typ == tokenEndStatement {
 				panic(syntaxError(start.pos, "unexpected semicolon, expecting %%}"))
 			}
-			panic(syntaxError(tok.pos, "unexpected %s, expecting with", tok))
+			panic(syntaxError(tok.pos, "unexpected %s, expecting using", tok))
 		}
 	}
 	if tok.ctx > ast.ContextMarkdown {
-		panic(syntaxError(tok.pos, "with not allowed in %s", tok.ctx))
+		panic(syntaxError(tok.pos, "using not allowed in %s", tok.ctx))
 	}
 	block := ast.NewBlock(nil, []ast.Node{})
-	with := ast.NewWith(tok.pos, stmt, nil, block)
+	with := ast.NewUsing(tok.pos, stmt, nil, block)
 	switch tok = p.next(); tok.typ {
 	case tokenMacro:
 		if isAbbreviated {
@@ -1853,7 +1853,7 @@ func (p *parsing) addNode(node ast.Node) {
 			p.addToAncestors(n)
 			p.addToAncestors(n.Body)
 		}
-	case *ast.With:
+	case *ast.Using:
 		p.addToAncestors(n)
 		p.addToAncestors(n.Body)
 	case

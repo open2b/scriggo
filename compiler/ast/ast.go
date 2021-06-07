@@ -1464,14 +1464,14 @@ func NewRaw(pos *Position, marker, tag string, text *Text) *Raw {
 	return &Raw{pos, marker, tag, text}
 }
 
-// With node represents a with statement.
-type With struct {
+// Using node represents a using statement.
+type Using struct {
 	*Position            // position in the source.
 	Statement Node       // previous statement.
 	Type      Expression // type, can be a format identifier or a macro.
 	Body      *Block     // body.
 }
 
-func NewWith(pos *Position, stmt Node, typ Expression, body *Block) *With {
-	return &With{pos, stmt, typ, body}
+func NewUsing(pos *Position, stmt Node, typ Expression, body *Block) *Using {
+	return &Using{pos, stmt, typ, body}
 }

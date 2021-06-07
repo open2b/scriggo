@@ -1388,52 +1388,52 @@ var treeTests = []struct {
 		ast.NewShow(p(3, 19, 62, 68), []ast.Expression{
 			ast.NewIdentifier(p(3, 22, 65, 65), "v")}, ast.ContextHTML),
 	}, ast.FormatHTML)},
-	{"{% show this; with %}a{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewWith(p(1, 15, 14, 27), ast.NewShow(p(1, 4, 3, 11), []ast.Expression{
+	{"{% show this; using %}a{% end %}", ast.NewTree("", []ast.Node{
+		ast.NewUsing(p(1, 15, 14, 28), ast.NewShow(p(1, 4, 3, 11), []ast.Expression{
 			ast.NewIdentifier(p(1, 9, 8, 11), "this")}, nil, ast.ContextHTML), nil,
 			ast.NewBlock(nil, []ast.Node{
-				ast.NewText(p(1, 22, 21, 21), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
-	{"{% show this; with macro %}a{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewWith(p(1, 15, 14, 33), ast.NewShow(p(1, 4, 3, 11), []ast.Expression{
+				ast.NewText(p(1, 23, 22, 22), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
+	{"{% show this; using macro %}a{% end %}", ast.NewTree("", []ast.Node{
+		ast.NewUsing(p(1, 15, 14, 34), ast.NewShow(p(1, 4, 3, 11), []ast.Expression{
 			ast.NewIdentifier(p(1, 9, 8, 11), "this")}, nil, ast.ContextHTML),
-			ast.NewFuncType(p(1, 20, 19, 23), true, nil, nil, false),
+			ast.NewFuncType(p(1, 21, 20, 24), true, nil, nil, false),
 			ast.NewBlock(nil, []ast.Node{
-				ast.NewText(p(1, 28, 27, 27), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
-	{"{% show this; with macro() html %}a{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewWith(p(1, 15, 14, 40), ast.NewShow(p(1, 4, 3, 11), []ast.Expression{
+				ast.NewText(p(1, 29, 28, 28), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
+	{"{% show this; using macro() html %}a{% end %}", ast.NewTree("", []ast.Node{
+		ast.NewUsing(p(1, 15, 14, 41), ast.NewShow(p(1, 4, 3, 11), []ast.Expression{
 			ast.NewIdentifier(p(1, 9, 8, 11), "this")}, nil, ast.ContextHTML),
-			ast.NewFuncType(p(1, 20, 19, 30), true, nil, []*ast.Parameter{
-				ast.NewParameter(nil, ast.NewIdentifier(p(1, 28, 27, 30), "html"))}, false),
+			ast.NewFuncType(p(1, 21, 20, 31), true, nil, []*ast.Parameter{
+				ast.NewParameter(nil, ast.NewIdentifier(p(1, 29, 28, 31), "html"))}, false),
 			ast.NewBlock(nil, []ast.Node{
-				ast.NewText(p(1, 35, 34, 34), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
-	{"{% show with markdown %}a{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewWith(p(1, 9, 8, 30), ast.NewShow(p(1, 4, 3, 6), nil, nil, ast.ContextHTML),
-			ast.NewIdentifier(p(1, 14, 13, 20), "markdown"),
+				ast.NewText(p(1, 36, 35, 35), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
+	{"{% show using markdown %}a{% end %}", ast.NewTree("", []ast.Node{
+		ast.NewUsing(p(1, 9, 8, 31), ast.NewShow(p(1, 4, 3, 6), nil, nil, ast.ContextHTML),
+			ast.NewIdentifier(p(1, 15, 14, 21), "markdown"),
 			ast.NewBlock(nil, []ast.Node{
-				ast.NewText(p(1, 25, 24, 24), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
-	{"{% a = this; with %}a{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewWith(p(1, 14, 13, 26), ast.NewAssignment(p(1, 4, 3, 10), []ast.Expression{
+				ast.NewText(p(1, 26, 25, 25), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
+	{"{% a = this; using %}a{% end %}", ast.NewTree("", []ast.Node{
+		ast.NewUsing(p(1, 14, 13, 27), ast.NewAssignment(p(1, 4, 3, 10), []ast.Expression{
 			ast.NewIdentifier(p(1, 4, 3, 3), "a")}, ast.AssignmentSimple, []ast.Expression{
 			ast.NewIdentifier(p(1, 8, 7, 10), "this")}), nil,
 			ast.NewBlock(nil, []ast.Node{
-				ast.NewText(p(1, 21, 20, 20), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
-	{"{% f(this); with %}a{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewWith(p(1, 13, 12, 25), ast.NewCall(p(1, 5, 3, 9),
+				ast.NewText(p(1, 22, 21, 21), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
+	{"{% f(this); using %}a{% end %}", ast.NewTree("", []ast.Node{
+		ast.NewUsing(p(1, 13, 12, 26), ast.NewCall(p(1, 5, 3, 9),
 			ast.NewIdentifier(p(1, 4, 3, 3), "f"), []ast.Expression{
 				ast.NewIdentifier(p(1, 6, 5, 8), "this")}, false), nil,
 			ast.NewBlock(nil, []ast.Node{
-				ast.NewText(p(1, 20, 19, 19), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
-	{"{% c <- this; with %}a{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewWith(p(1, 15, 14, 27), ast.NewSend(p(1, 4, 3, 11),
+				ast.NewText(p(1, 21, 20, 20), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
+	{"{% c <- this; using %}a{% end %}", ast.NewTree("", []ast.Node{
+		ast.NewUsing(p(1, 15, 14, 28), ast.NewSend(p(1, 4, 3, 11),
 			ast.NewIdentifier(p(1, 4, 3, 3), "c"), ast.NewIdentifier(p(1, 9, 8, 11), "this")), nil,
 			ast.NewBlock(nil, []ast.Node{
-				ast.NewText(p(1, 22, 21, 21), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
-	{"{% var a = this; with %}a{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewWith(p(1, 18, 17, 30), ast.NewVar(p(1, 4, 3, 14), []*ast.Identifier{
+				ast.NewText(p(1, 23, 22, 22), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
+	{"{% var a = this; using %}a{% end %}", ast.NewTree("", []ast.Node{
+		ast.NewUsing(p(1, 18, 17, 31), ast.NewVar(p(1, 4, 3, 14), []*ast.Identifier{
 			ast.NewIdentifier(p(1, 8, 7, 7), "a")}, nil, []ast.Expression{
 			ast.NewIdentifier(p(1, 12, 11, 14), "this")}), nil,
 			ast.NewBlock(nil, []ast.Node{
-				ast.NewText(p(1, 25, 24, 24), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
+				ast.NewText(p(1, 26, 25, 25), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},
 }
 
 // TODO: this function is never called, because it is referenced in commented
@@ -2233,8 +2233,8 @@ func equals(n1, n2 ast.Node, p int) error {
 			return fmt.Errorf("unexpected index value %d, expecting %d", nn1.Index, nn2.Index)
 		}
 
-	case *ast.With:
-		nn2, ok := n2.(*ast.With)
+	case *ast.Using:
+		nn2, ok := n2.(*ast.Using)
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}

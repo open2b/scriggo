@@ -119,7 +119,7 @@ const (
 	tokenDollar                            // $
 	tokenContains                          // contains
 	tokenRaw                               // raw
-	tokenWith                              // with
+	tokenUsing                             // using
 )
 
 var tokenString = map[tokenTyp]string{
@@ -226,7 +226,7 @@ var tokenString = map[tokenTyp]string{
 	tokenDollar:                   "$",
 	tokenContains:                 "contains",
 	tokenRaw:                      "raw",
-	tokenWith:                     "with",
+	tokenUsing:                    "using",
 }
 
 func (tt tokenTyp) String() string {

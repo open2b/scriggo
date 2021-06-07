@@ -663,11 +663,11 @@ nodesLoop:
 
 			tc.terminating = false
 
-		case *ast.With:
+		case *ast.Using:
 			typ := tc.checkType(node.Type)
 			if ident, ok := node.Type.(*ast.Identifier); ok {
 				if typ.Type != tc.universe[ident.Name].t.Type {
-					panic(tc.errorf(node, "invalid with type %s", typ))
+					panic(tc.errorf(node, "invalid using type %s", typ))
 				}
 			}
 			tc.enterScope()
