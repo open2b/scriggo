@@ -750,7 +750,7 @@ Limitations
     For a comprehensive list of not-yet-implemented features
     see https://github.com/open2b/scriggo/labels/missing-feature.
 
-Limitations due to mantain the interoperability with Go official compiler 'gc'
+Limitations due to maintain the interoperability with Go official compiler 'gc'
 
     * types defined in Scriggo are not correctly seen by the 'reflect' package.
       This manifests itself, for example, when calling the function
@@ -781,9 +781,9 @@ Arbitrary limitations
     performances:
 
     * 127 registers of a given type (integer, floating point, string or
-        general) per function
-        * 256 function literal declarations plus unique functions calls per
-        function
+      general) per function
+    * 256 function literal declarations plus unique functions calls per
+      function
     * 256 types available per function
     * 256 unique predefined functions per function
     * 16384 integer values per function
