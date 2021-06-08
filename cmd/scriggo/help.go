@@ -338,6 +338,8 @@ Limitations due to maintain the interoperability with Go official compiler 'gc'
 
     * cannot define functions without a body (TODO)
 
+    * a select supports a maximum of 65536 cases.
+
     * Go packages can be imported only if they have been precompiled into the
       Scriggo interpreter/execution environment.
       Also see the commands 'scriggo embed' and 'scriggo build'.

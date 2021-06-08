@@ -24,6 +24,7 @@ const (
 	maxPredefinedFunctionsCount = 256
 	maxScriggoFunctionsCount    = 256
 	maxFieldIndexesCount        = 256
+	maxSelectCasesCount         = 65536
 
 	// Types.
 	maxTypesCount = 256

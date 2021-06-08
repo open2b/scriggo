@@ -603,6 +603,11 @@ func (em *emitter) emitImport(node *ast.Import, isTemplate bool) []*runtime.Func
 //
 func (em *emitter) emitSelect(selectNode *ast.Select) {
 
+	if len(selectNode.Cases) > maxSelectCasesCount {
+		pos := convertPosition(selectNode.Cases[maxSelectCasesCount].Pos())
+		panic(newLimitExceededError(pos, em.fb.fn.File, "select cases count exceeded %d", maxSelectCasesCount))
+	}
+
 	// Emit an empty select.
 	if len(selectNode.Cases) == 0 {
 		em.fb.emitSelect()
