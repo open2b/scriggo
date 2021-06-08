@@ -583,11 +583,11 @@ var exprTests = []struct {
 			ast.NewParameter(ast.NewIdentifier(p(1, 6, 5, 5), "a"), ast.NewIdentifier(p(1, 8, 7, 12), "string")),
 			ast.NewParameter(ast.NewIdentifier(p(1, 16, 15, 15), "b"), ast.NewIdentifier(p(1, 18, 17, 19), "int")),
 		}, nil, false), ast.NewBlock(p(1, 23, 22, 23), nil), false, ast.FormatText)},
-	{"func(a, b ...int) {}",
-		ast.NewFunc(p(1, 1, 0, 19), nil, ast.NewFuncType(p(1, 1, 0, 19), false, []*ast.Parameter{
-			ast.NewParameter(ast.NewIdentifier(p(1, 6, 5, 5), "a"), nil),
-			ast.NewParameter(ast.NewIdentifier(p(1, 9, 8, 8), "b"), ast.NewIdentifier(p(1, 14, 13, 15), "int")),
-		}, nil, true), ast.NewBlock(p(1, 19, 18, 19), nil), false, ast.FormatText)},
+	{"func(a int, b ...int) {}",
+		ast.NewFunc(p(1, 1, 0, 23), nil, ast.NewFuncType(p(1, 1, 0, 23), false, []*ast.Parameter{
+			ast.NewParameter(ast.NewIdentifier(p(1, 6, 5, 5), "a"), ast.NewIdentifier(p(1, 8, 7, 9), "int")),
+			ast.NewParameter(ast.NewIdentifier(p(1, 13, 12, 12), "b"), ast.NewIdentifier(p(1, 18, 17, 19), "int")),
+		}, nil, true), ast.NewBlock(p(1, 23, 22, 23), nil), false, ast.FormatText)},
 	{"func(p.T) {}",
 		ast.NewFunc(p(1, 1, 0, 11), nil, ast.NewFuncType(p(1, 1, 0, 11), false, []*ast.Parameter{
 			ast.NewParameter(nil, ast.NewSelector(p(1, 8, 7, 7),

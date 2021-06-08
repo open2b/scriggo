@@ -142,15 +142,19 @@ func (p *parsing) parseFuncParameters(tok token, isMacro, isResult bool) ([]*ast
 	}
 
 	var ide ast.Expression
-	var ellipses *ast.Parameter
+	var ellipses struct {
+		param *ast.Parameter
+		index int
+	}
 	var parameters []*ast.Parameter
 
 	for {
 		param := ast.NewParameter(nil, nil)
 		param.Type, tok = p.parseExpr(tok, false, true, false)
 		if tok.typ == tokenEllipsis {
-			if ellipses == nil {
-				ellipses = param
+			if ellipses.param == nil {
+				ellipses.param = param
+				ellipses.index = len(parameters)
 			}
 			tok = p.next()
 		}
@@ -193,7 +197,7 @@ func (p *parsing) parseFuncParameters(tok token, isMacro, isResult bool) ([]*ast
 			}
 		} else if param.Ident == nil {
 			var ok bool
-			if ellipses != param {
+			if ellipses.param != param {
 				param.Ident, ok = param.Type.(*ast.Identifier)
 			}
 			if !ok {
@@ -203,21 +207,29 @@ func (p *parsing) parseFuncParameters(tok token, isMacro, isResult bool) ([]*ast
 		}
 	}
 
-	if ellipses != nil {
+	if ellipses.param != nil {
 		if isResult {
-			panic(syntaxError(ellipses.Type.Pos(), "cannot use ... in receiver or result parameter list"))
+			panic(syntaxError(ellipses.param.Type.Pos(), "cannot use ... in receiver or result parameter list"))
 		}
-		if ellipses.Type == nil {
+		if ellipses.param.Type == nil {
 			panic(syntaxError(tok.pos, "final argument in variadic function missing type"))
 		}
-		if ellipses != last {
-			s := "cannot use ... with non-final parameter"
-			if ellipses.Ident == nil {
-				panic(syntaxError(ellipses.Type.Pos(), "%s", s))
+		final := ellipses.param
+		for i := ellipses.index - 1; i >= 0; i-- {
+			if param := parameters[i]; param.Type == nil {
+				final = param
+			} else {
+				break
 			}
-			panic(syntaxError(ellipses.Ident.Pos(), "%s %s", s, ellipses.Ident))
+		}
+		if final != last {
+			s := "cannot use ... with non-final parameter"
+			if final.Ident == nil {
+				panic(syntaxError(final.Type.Pos(), "%s", s))
+			}
+			panic(syntaxError(final.Ident.Pos(), "%s %s", s, final.Ident))
 		}
 	}
 
-	return parameters, ellipses != nil, tok.pos, p.next()
+	return parameters, ellipses.param != nil, tok.pos, p.next()
 }

@@ -20,14 +20,18 @@ func f12() () {}
 func f13() (int) { return 0 }
 func f14() (a int) { return 0 }
 
-func f(a int, b)           {} // ERROR `mixed named and unnamed function parameters`
-func f(a int, b...)        {} // ERROR `mixed named and unnamed function parameters`
-func f(...)                {} // ERROR `final argument in variadic function missing type`
-func f(*int, x string)     {} // ERROR `mixed named and unnamed function parameters`
-func f(...int, b string)   {} // ERROR `mixed named and unnamed function parameters`
-func f(a ...int, b string) {} // ERROR `cannot use ... with non-final parameter a`
-func f(...int, string)     {} // ERROR `cannot use ... with non-final parameter`
-func f(a int, b string,,)  {} // ERROR `unexpected comma, expecting )`
+func f(a int, b)                     {} // ERROR `mixed named and unnamed function parameters`
+func f(a int, b...)                  {} // ERROR `mixed named and unnamed function parameters`
+func f(...)                          {} // ERROR `final argument in variadic function missing type`
+func f(*int, x string)               {} // ERROR `mixed named and unnamed function parameters`
+func f(...int, b string)             {} // ERROR `mixed named and unnamed function parameters`
+func f(a ...int, b string)           {} // ERROR `cannot use ... with non-final parameter a`
+func f(...int, string)               {} // ERROR `cannot use ... with non-final parameter`
+func f(a int, b string,,)            {} // ERROR `unexpected comma, expecting )`
+func f(a ...int, b ...string)        {} // ERROR `cannot use ... with non-final parameter a`
+func f(a, b ...string)               {} // ERROR `cannot use ... with non-final parameter a`
+func f(a int, b ...string, c int)    {} // ERROR `cannot use ... with non-final parameter b`
+func f(a int, b, c ...string, d int) {} // ERROR `cannot use ... with non-final parameter b`
 
 func f() (a int, b) {} // ERROR `mixed named and unnamed function parameters`
 func f() (...int)   {} // ERROR `cannot use ... in receiver or result parameter list`
