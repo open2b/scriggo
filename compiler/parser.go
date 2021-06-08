@@ -934,7 +934,7 @@ LABEL:
 		var node ast.Node
 		if end == tokenEndStatement && tok.typ == tokenUsing {
 			// "show using" abbreviated form.
-			node, tok = p.parseUsing(ast.NewShow(pos, nil, ctx), tok, false)
+			node, tok = p.parseUsing(ast.NewShow(pos, nil, ctx), tok, true)
 		} else {
 			var exprs []ast.Expression
 			exprs, tok = p.parseExprList(tok, false, false, false)
@@ -944,7 +944,7 @@ LABEL:
 			pos.End = exprs[len(exprs)-1].Pos().End
 			node = ast.NewShow(pos, exprs, ctx)
 			if end == tokenEndStatement {
-				node, tok = p.parseUsing(node, tok, true)
+				node, tok = p.parseUsing(node, tok, false)
 			}
 			if len(exprs) == 1 {
 				if _, ok := exprs[0].(*ast.Render); ok {
@@ -1048,7 +1048,7 @@ LABEL:
 			var node ast.Node
 			node, tok = p.parseVarOrConst(tok, pos, decType, 0)
 			if decType == tokenVar && end == tokenEndStatement {
-				node, tok = p.parseUsing(node, tok, true)
+				node, tok = p.parseUsing(node, tok, false)
 			}
 			p.addNode(node)
 			tok = p.parseEnd(tok, tokenSemicolon, end)
@@ -1350,7 +1350,7 @@ LABEL:
 			node.(*ast.Assignment).Position = pos.WithEnd(node.Pos().End)
 			if end == tokenEndStatement {
 				if t := node.(*ast.Assignment).Type; t != ast.AssignmentIncrement && t != ast.AssignmentDecrement {
-					node, tok = p.parseUsing(node, tok, true)
+					node, tok = p.parseUsing(node, tok, false)
 				}
 			}
 			p.addNode(node)
@@ -1367,7 +1367,7 @@ LABEL:
 			var node ast.Node = ast.NewSend(pos, channel, value)
 			node.(*ast.Send).Position = pos.WithEnd(value.Pos().End)
 			if end == tokenEndStatement {
-				node, tok = p.parseUsing(node, tok, true)
+				node, tok = p.parseUsing(node, tok, false)
 			}
 			p.addNode(node)
 			p.cutSpacesToken = true
@@ -1406,7 +1406,7 @@ LABEL:
 			}
 			var node ast.Node = expr
 			if end == tokenEndStatement {
-				node, tok = p.parseUsing(node, tok, true)
+				node, tok = p.parseUsing(node, tok, false)
 			}
 			p.addNode(node)
 			p.cutSpacesToken = true
@@ -1420,7 +1420,7 @@ LABEL:
 // parseUsing tries to parse a using statement and in case returns a Using
 // node, otherwise it returns stmt which is the previous parsed statement.
 // tok is the token that follows stmt.
-func (p *parsing) parseUsing(stmt ast.Node, tok token, allowMacro bool) (ast.Node, token) {
+func (p *parsing) parseUsing(stmt ast.Node, tok token, abbreviated bool) (ast.Node, token) {
 	if tok.typ == tokenSemicolon && tok.txt == nil {
 		tok = p.next()
 	}
@@ -1437,7 +1437,7 @@ func (p *parsing) parseUsing(stmt ast.Node, tok token, allowMacro bool) (ast.Nod
 	using := ast.NewUsing(tok.pos, stmt, nil, block)
 	switch tok = p.next(); tok.typ {
 	case tokenMacro:
-		if !allowMacro {
+		if abbreviated {
 			panic(syntaxError(tok.pos, "unexpected macro, expecting identifier or %%}"))
 		}
 		var macro ast.Node
@@ -1448,19 +1448,19 @@ func (p *parsing) parseUsing(stmt ast.Node, tok token, allowMacro bool) (ast.Nod
 		switch ident.Name {
 		case "string", "html", "css", "js", "json", "markdown":
 		default:
-			if allowMacro {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json, markdown, macro or %%}", ident.Name))
+			if abbreviated {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json, markdown or %%}", ident.Name))
 			}
-			panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json, markdown or %%}", ident.Name))
+			panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json, markdown, macro or %%}", ident.Name))
 		}
 		using.Type = ident
 		tok = p.next()
 	case tokenSemicolon, tokenEndStatement:
 	default:
-		if allowMacro {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier, macro or %%}", tok))
+		if abbreviated {
+			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier or %%}", tok))
 		}
-		panic(syntaxError(tok.pos, "unexpected %s, expecting identifier or %%}", tok))
+		panic(syntaxError(tok.pos, "unexpected %s, expecting identifier, macro or %%}", tok))
 	}
 	return using, tok
 }
