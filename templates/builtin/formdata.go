@@ -138,7 +138,9 @@ func (form FormData) parse() {
 	if err != nil {
 		if _, ok := err.(url.EscapeError); ok {
 			panic(ErrBadRequest)
-		} else if err.Error() == "http: POST too large" {
+		} else if s := err.Error(); s == "invalid semicolon separator in query" {
+			panic(ErrBadRequest)
+		} else if s == "http: POST too large" {
 			panic(ErrRequestEntityTooLarge)
 		} else if ct := form.request.Header.Get("Content-Type"); ct != "" {
 			if _, _, e := mime.ParseMediaType(ct); e != nil {
@@ -210,7 +212,7 @@ func isMultipartFormError(err error) bool {
 		return true
 	}
 	s := err.Error()
-	if s == "multipart: boundary is empty" {
+	if s == "invalid semicolon separator in query" || s == "multipart: boundary is empty" {
 		return true
 	}
 	if strings.HasPrefix(s, "multipart: NextPart: ") {
