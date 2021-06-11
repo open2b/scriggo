@@ -166,7 +166,7 @@ func (p *parsing) inFunction() bool {
 // next returns the next token from the lexer. Panics if the lexer channel is
 // closed.
 func (p *parsing) next() token {
-	tok, ok := <-p.lex.tokens()
+	tok, ok := <-p.lex.Tokens()
 	if !ok {
 		if p.lex.err == nil {
 			panic("next called after EOF")
@@ -198,7 +198,7 @@ func parseSource(src []byte, script, shebang bool) (tree *ast.Tree, err error) {
 	}
 
 	defer func() {
-		p.lex.stop()
+		p.lex.Stop()
 		if r := recover(); r != nil {
 			if e, ok := r.(*SyntaxError); ok {
 				tree = nil
@@ -263,7 +263,7 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 	}
 
 	defer func() {
-		p.lex.stop()
+		p.lex.Stop()
 		if r := recover(); r != nil {
 			if e, ok := r.(*SyntaxError); ok {
 				tree = nil

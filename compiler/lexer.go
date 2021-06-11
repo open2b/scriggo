@@ -24,7 +24,7 @@ func scanProgram(text []byte) *lexer {
 		line:   1,
 		column: 1,
 		ctx:    ast.ContextText,
-		toks:   tokens,
+		tokens: tokens,
 	}
 	go lex.scan()
 	return lex
@@ -39,7 +39,7 @@ func scanScript(text []byte) *lexer {
 		line:           1,
 		column:         1,
 		ctx:            ast.ContextText,
-		toks:           tokens,
+		tokens:         tokens,
 		extendedSyntax: true,
 	}
 	go lex.scan()
@@ -55,7 +55,7 @@ func scanTemplate(text []byte, format ast.Format) *lexer {
 		line:           1,
 		column:         1,
 		ctx:            ast.Context(format),
-		toks:           tokens,
+		tokens:         tokens,
 		templateSyntax: true,
 		extendedSyntax: true,
 	}
@@ -67,9 +67,9 @@ func scanTemplate(text []byte, format ast.Format) *lexer {
 	return lex
 }
 
-// tokens returns a channel to read the scanned tokens.
-func (l *lexer) tokens() <-chan token {
-	return l.toks
+// Tokens returns a channel to read the scanned tokens.
+func (l *lexer) Tokens() <-chan token {
+	return l.tokens
 }
 
 // error returns the last occurred error or nil if no error occurred.
@@ -77,9 +77,9 @@ func (l *lexer) error() error {
 	return l.err
 }
 
-// stop stops the lexing and closes the tokens channel.
-func (l *lexer) stop() {
-	for range l.toks {
+// Stop stops the lexing and closes the tokens channel.
+func (l *lexer) Stop() {
+	for range l.tokens {
 	}
 }
 
@@ -100,7 +100,7 @@ type lexer struct {
 		index int         // index of first byte of the current attribute value in src
 		ctx   ast.Context // context of the tag's content
 	}
-	toks           chan token // tokens, is closed at the end of the scan
+	tokens         chan token // tokens, is closed at the end of the scan
 	totals         int        // total number of emitted tokens, excluding automatically inserted semicolons
 	err            error      // error, reports whether there was an error
 	templateSyntax bool       // support template syntax with tokens 'end', 'extends', 'in', 'macro', 'render' and 'show'
@@ -149,7 +149,7 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 		}
 		end = start
 	}
-	l.toks <- token{
+	l.tokens <- token{
 		typ: typ,
 		pos: &ast.Position{
 			Line:   line,
@@ -585,7 +585,7 @@ func (l *lexer) scan() {
 	l.text = nil
 	l.src = nil
 
-	close(l.toks)
+	close(l.tokens)
 }
 
 // scanCodeBlock scans a tab or four spaces that start a Markdown code block.

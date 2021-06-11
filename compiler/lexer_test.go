@@ -588,7 +588,7 @@ TYPES:
 			lex = scanProgram([]byte(source))
 		}
 		var i int
-		for tok := range lex.tokens() {
+		for tok := range lex.Tokens() {
 			if tok.typ == tokenEOF {
 				break
 			}
@@ -638,14 +638,14 @@ CONTEXTS:
 				line:           1,
 				column:         1,
 				ctx:            ctx,
-				toks:           make(chan token, 20),
+				tokens:         make(chan token, 20),
 				templateSyntax: true,
 				extendedSyntax: true,
 			}
 			lex.tag.ctx = ast.ContextHTML
 			go lex.scan()
 			var i int
-			for tok := range lex.tokens() {
+			for tok := range lex.Tokens() {
 				if tok.typ == tokenEOF {
 					break
 				}
@@ -675,7 +675,7 @@ CONTEXTS:
 		text := []byte(source)
 		lex := scanTemplate(text, ast.FormatText)
 		var i int
-		for tok := range lex.tokens() {
+		for tok := range lex.Tokens() {
 			if tok.typ == tokenEOF {
 				break
 			}
@@ -705,7 +705,7 @@ func TestPositions(t *testing.T) {
 	for _, test := range positionTests {
 		var lex = scanTemplate([]byte(test.src), ast.FormatHTML)
 		var i int
-		for tok := range lex.tokens() {
+		for tok := range lex.Tokens() {
 			if tok.typ == tokenEOF {
 				break
 			}
