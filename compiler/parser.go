@@ -1178,6 +1178,10 @@ LABEL:
 					}
 					tok = p.next()
 				}
+			case *ast.Using:
+				if tok.typ != tokenUsing {
+					panic(syntaxError(pos, "unexpected %s, expecting using or %%}", tok))
+				}
 			default:
 				panic(syntaxError(pos, "unexpected %s, expecting %%}", tok))
 			}

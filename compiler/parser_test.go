@@ -1388,8 +1388,8 @@ var treeTests = []struct {
 		ast.NewShow(p(3, 19, 62, 68), []ast.Expression{
 			ast.NewIdentifier(p(3, 22, 65, 65), "v")}, ast.ContextHTML),
 	}, ast.FormatHTML)},
-	{"{% show this using %}a{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewUsing(p(1, 14, 13, 27), ast.NewShow(p(1, 4, 3, 11), []ast.Expression{
+	{"{% show this using %}a{% end using %}", ast.NewTree("", []ast.Node{
+		ast.NewUsing(p(1, 14, 13, 33), ast.NewShow(p(1, 4, 3, 11), []ast.Expression{
 			ast.NewIdentifier(p(1, 9, 8, 11), "this")}, nil, ast.ContextHTML), nil,
 			ast.NewBlock(nil, []ast.Node{
 				ast.NewText(p(1, 22, 21, 21), []byte("a"), ast.Cut{})}))}, ast.FormatHTML)},

@@ -42,3 +42,5 @@
 {% c <- this; foo %} // ERROR `syntax error: unexpected semicolon, expecting using or %}`
 
 {% var a = this foo %} // ERROR `syntax error: unexpected foo, expecting using or %}`
+
+{% show a using %}{% end if %} // ERROR `syntax error: unexpected if, expecting using or %}`
