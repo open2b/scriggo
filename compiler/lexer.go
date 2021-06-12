@@ -173,7 +173,7 @@ var jsonLDMimeType = []byte("application/ld+json")
 var cssMimeType = []byte("text/css")
 var moduleType = []byte("module")
 
-// scan scans the text by placing the tokens on the toks channel. If an
+// scan scans the text by placing the tokens on the tokens channel. If an
 // error occurs, it puts the error in err, closes the channel and returns.
 func (l *lexer) scan() {
 
