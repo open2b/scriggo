@@ -2682,6 +2682,20 @@ var templateMultiFileCases = map[string]struct {
 		expectedBuildErr: "unexpected EOF, expecting {% end %} or {% end macro %}",
 	},
 
+	"Missing end raw statement with marker": {
+		sources: map[string]string{
+			"index.txt": "{% raw `code` %}",
+		},
+		expectedBuildErr: "unexpected EOF, expecting {% end `code` %} or {% end raw `code` %}",
+	},
+
+	"Missing end raw statement without marker": {
+		sources: map[string]string{
+			"index.txt": "{% raw %}",
+		},
+		expectedBuildErr: "unexpected EOF, expecting {% end %} or {% end raw %}",
+	},
+
 	"Missing end switch statement": {
 		sources: map[string]string{
 			"index.txt": `{% switch %}`,
@@ -2694,6 +2708,50 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt": `{% select %}`,
 		},
 		expectedBuildErr: "unexpected EOF, expecting {% end %} or {% end select %}",
+	},
+
+	"Raw statement": {
+		sources: map[string]string{
+			"index.txt": "a\n{% raw %}\nb\n{% end %}\nc",
+		},
+		expectedOut: "a\nb\nc",
+	},
+
+	"Raw statement with marker": {
+		sources: map[string]string{
+			"index.txt": "a\n{% raw `code` %}\nb\n{% end `code` %}\nc",
+		},
+		expectedOut: "a\nb\nc",
+	},
+
+	"Missing marker in end raw statement": {
+		sources: map[string]string{
+			"index.txt": "{% raw `code` %}{% end raw %}",
+		},
+		expectedBuildErr: "unexpected EOF, expecting {% end `code` %}",
+	},
+
+	"Raw statement in statements": {
+		sources: map[string]string{
+			"index.txt": "{%% raw %%}",
+		},
+		expectedBuildErr: "raw not allowed between {%% and %%}",
+	},
+
+	"Raw statement with interpreted string as marker": {
+		sources: map[string]string{
+			"index.txt": "{% raw \"code\" %}",
+		},
+		expectedBuildErr: "unexpected interpreted string, expecting raw string or %}",
+	},
+
+	"Raw statement in imported files": {
+		sources: map[string]string{
+			"index.txt":     "{% import \"imported1.txt\" %}{% import \"imported2.txt\" %}",
+			"imported1.txt": "{% macro a %}{% raw %}{% end %}{% end %}",
+			"imported2.txt": "{% raw %}{% end %}",
+		},
+		expectedBuildErr: "imported2.txt:1:4: syntax error: unexpected raw, expecting declaration statement",
 	},
 }
 

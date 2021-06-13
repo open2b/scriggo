@@ -763,7 +763,7 @@ nodesLoop:
 				_ = tc.checkNodes([]ast.Node{node.Statement})
 			}
 
-		case *ast.Comment:
+		case *ast.Comment, *ast.Raw:
 
 		case *ast.Call:
 			tis := tc.checkCallExpression(node)

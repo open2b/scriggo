@@ -1376,6 +1376,12 @@ var treeTests = []struct {
 						ast.NewBasicLiteral(p(1, 13, 12, 12), ast.IntLiteral, "5"),
 					), nil, nil),
 			})}, ast.FormatHTML)},
+	{"{% raw `code` %}\t\n{{ v }}\n{% end `code` %}{{ v }}", ast.NewTree("", []ast.Node{
+		ast.NewRaw(p(1, 4, 3, 38), "code",
+			ast.NewText(p(1, 17, 16, 25), []byte("\t\n{{ v }}\n"), ast.Cut{2, 0})),
+		ast.NewShow(p(3, 17, 42, 48), []ast.Expression{
+			ast.NewIdentifier(p(3, 20, 45, 45), "v")}, ast.ContextHTML),
+	}, ast.FormatHTML)},
 }
 
 // TODO: this function is never called, because it is referenced in commented
@@ -2514,6 +2520,19 @@ func equals(n1, n2 ast.Node, p int) error {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 		err := equals(nn1.Label, nn2.Label, p)
+		if err != nil {
+			return err
+		}
+
+	case *ast.Raw:
+		nn2, ok := n2.(*ast.Raw)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		if nn1.Marker != nn2.Marker {
+			return fmt.Errorf("unexpected marker `%s`, expecting `%s`", nn1.Marker, nn2.Marker)
+		}
+		err := equals(nn1.Text, nn2.Text, p)
 		if err != nil {
 			return err
 		}
