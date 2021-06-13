@@ -434,7 +434,23 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 	}
 
 	if len(p.ancestors) > 1 {
-		return nil, nil, syntaxError(tok.pos, "unexpected EOF, expecting {%% end %%}")
+		var stmt string
+		switch p.parent().(type) {
+		case *ast.Block:
+			switch p.ancestors[len(p.ancestors)-2].(type) {
+			case *ast.Func:
+				stmt = "macro"
+			case *ast.If:
+				stmt = "if"
+			}
+		case *ast.For, *ast.ForIn, *ast.ForRange:
+			stmt = "for"
+		case *ast.Select:
+			stmt = "select"
+		case *ast.Switch, *ast.TypeSwitch:
+			stmt = "switch"
+		}
+		return nil, nil, syntaxError(tok.pos, "unexpected EOF, expecting {%% end %%} or {%% end %s %%}", stmt)
 	}
 
 	return tree, p.unexpanded, nil

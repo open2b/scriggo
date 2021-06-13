@@ -2653,6 +2653,48 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedBuildErr: "undefined: m",
 	},
+
+	"Missing end for statement": {
+		sources: map[string]string{
+			"index.txt": `{% for %}`,
+		},
+		expectedBuildErr: "unexpected EOF, expecting {% end %} or {% end for %}",
+	},
+
+	"Missing end if statement": {
+		sources: map[string]string{
+			"index.txt": `{% if a %}`,
+		},
+		expectedBuildErr: "unexpected EOF, expecting {% end %} or {% end if %}",
+	},
+
+	"Missing end if else statement": {
+		sources: map[string]string{
+			"index.txt": `{% if a %}{% else %}`,
+		},
+		expectedBuildErr: "unexpected EOF, expecting {% end %} or {% end if %}",
+	},
+
+	"Missing end macro statement": {
+		sources: map[string]string{
+			"index.txt": `{% macro a %}`,
+		},
+		expectedBuildErr: "unexpected EOF, expecting {% end %} or {% end macro %}",
+	},
+
+	"Missing end switch statement": {
+		sources: map[string]string{
+			"index.txt": `{% switch %}`,
+		},
+		expectedBuildErr: "unexpected EOF, expecting {% end %} or {% end switch %}",
+	},
+
+	"Missing end select statement": {
+		sources: map[string]string{
+			"index.txt": `{% select %}`,
+		},
+		expectedBuildErr: "unexpected EOF, expecting {% end %} or {% end select %}",
+	},
 }
 
 var structWithUnexportedFields = &struct {
