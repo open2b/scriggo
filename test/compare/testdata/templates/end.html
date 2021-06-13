@@ -4,6 +4,7 @@
 {% for false %} {% end for %}
 {% for false %} {% end if %}       // ERROR `syntax error: unexpected if, expecting for or %}`
 {% for false %} {% end for abc %}  // ERROR `syntax error: unexpected abc, expecting %}`
+{% for false %} {% end abc def %}  // ERROR `syntax error: unexpected abc, expecting for`
 
 {% for range []int{} %} {% end %}
 {% for range []int{} %} {% end for %}
