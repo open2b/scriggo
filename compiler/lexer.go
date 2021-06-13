@@ -86,6 +86,8 @@ func (l *lexer) Stop() {
 var cdataStart = []byte("<![CDATA[")
 var cdataEnd = []byte("]]>")
 
+var emptyMarker = []byte{}
+
 // lexer maintains the scanner status.
 type lexer struct {
 	text          []byte        // text on which the scans are performed
@@ -100,10 +102,12 @@ type lexer struct {
 		index int         // index of first byte of the current attribute value in src
 		ctx   ast.Context // context of the tag's content
 	}
+	rawMarker      []byte     // raw marker, not nil when a raw statement has been lexed
 	tokens         chan token // tokens, is closed at the end of the scan
+	lastTokenType  tokenTyp   // type of the last non-empty emitted token
 	totals         int        // total number of emitted tokens, excluding automatically inserted semicolons
 	err            error      // error, reports whether there was an error
-	templateSyntax bool       // support template syntax with tokens 'end', 'extends', 'in', 'macro', 'render' and 'show'
+	templateSyntax bool       // support template syntax with tokens 'end', 'extends', 'in', 'macro', 'raw', 'render' and 'show'
 	extendedSyntax bool       // support extended syntax with tokens 'and', 'or', 'not', 'contains' and 'dollar'
 }
 
@@ -163,7 +167,20 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 		tag: l.tag.name,
 		att: l.tag.attr,
 	}
+	switch typ {
+	case tokenRaw:
+		if l.lastTokenType != tokenEnd {
+			l.rawMarker = emptyMarker
+		}
+	case tokenRawString:
+		if l.rawMarker != nil {
+			l.rawMarker = txt[1 : len(txt)-1]
+		}
+	case tokenEnd:
+		l.rawMarker = nil
+	}
 	if length > 0 {
+		l.lastTokenType = typ
 		l.src = l.src[length:]
 	}
 }
@@ -249,6 +266,9 @@ func (l *lexer) scan() {
 					}
 					lin = l.line
 					col = l.column
+					if l.rawMarker != nil {
+						p = l.skipRawContent()
+					}
 					continue
 				case '#':
 					if p > 0 {
@@ -1444,6 +1464,8 @@ func (l *lexer) lexIdentifierOrKeyword(s int) (tokenTyp, string) {
 			typ = tokenIn
 		case "macro":
 			typ = tokenMacro
+		case "raw":
+			typ = tokenRaw
 		case "render":
 			typ = tokenRender
 		case "show":
@@ -1845,4 +1867,89 @@ func (l *lexer) lexRuneLiteral() error {
 	l.emit(tokenRune, p+1)
 	l.column += p + 1
 	return nil
+}
+
+// skipRawContent skips the content of a raw statement, updating l.line and
+// l.column, and returns the index of the end statement or EOF if there is no
+// end statement.
+//
+// It expects that l.rawMarker is not nil and l.src starts with the raw
+// content.
+func (l *lexer) skipRawContent() int {
+	p := endRawIndex(l.src, l.rawMarker)
+	if p == 0 {
+		return 0
+	}
+	if p == -1 {
+		p = len(l.src)
+	}
+	for i := 0; i < p; i++ {
+		if c := l.src[i]; c == '\n' {
+			l.line++
+			l.column = 1
+		} else if isStartChar(c) {
+			l.column++
+		}
+	}
+	return p
+}
+
+// endRawIndex returns the index of the first instance of the end of a raw
+// statement in src with the given marker, or -1 if it is not present.
+// If the raw statement has no marker, marker's length is zero.
+func endRawIndex(src []byte, marker []byte) int {
+	for i := 0; i < len(src); i++ {
+		j := bytes.IndexByte(src[i:], '{')
+		if j == -1 {
+			break
+		}
+		i += j
+		p := i
+		// Read '{%'.
+		if len(src) < i+2 || src[i+1] != '%' {
+			continue
+		}
+		i += 2
+		i = skipSpaces(src, i)
+		// Read 'end'.
+		if len(src) < i+3 || src[i] != 'e' || src[i+1] != 'n' || src[i+2] != 'd' {
+			i = p
+			continue
+		}
+		i += 3
+		i = skipSpaces(src, i)
+		// Read 'raw'.
+		if isSpace(src[i-1]) && len(src) >= i+3 && src[i] == 'r' && src[i+1] == 'a' && src[i+2] == 'w' {
+			i += 3
+			i = skipSpaces(src, i)
+		}
+		// Read the marker.
+		if l := len(marker); l > 0 {
+			if len(src) < i+l+2 || src[i+l+1] != '`' || !bytes.Equal(src[i+1:i+l+1], marker) {
+				i = p
+				continue
+			}
+			i += l + 2
+			i = skipSpaces(src, i)
+		}
+		// Read '%}'.
+		if len(src) < i+2 || src[i] != '%' || src[i+1] != '}' {
+			i = p
+			continue
+		}
+		return p
+	}
+	return -1
+}
+
+// skipSpaces skips the spaces from src starting from p and returns the index
+// of the first non-space byte or the index of EOF is there are only spaces.
+func skipSpaces(src []byte, p int) int {
+	for p < len(src) {
+		if !isSpace(src[p]) {
+			break
+		}
+		p++
+	}
+	return p
 }

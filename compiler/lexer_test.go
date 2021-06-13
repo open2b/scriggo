@@ -196,14 +196,17 @@ var typeTestsText = map[string][]tokenTyp{
 	"{{ `\\t` }}":           {tokenLeftBraces, tokenRawString, tokenRightBraces},
 	"{{ ( 1 + 2 ) * 3 }}": {tokenLeftBraces, tokenLeftParenthesis, tokenInt, tokenAddition, tokenInt, tokenRightParenthesis,
 		tokenMultiplication, tokenInt, tokenRightBraces},
-	"{{ map{} }}":            {tokenLeftBraces, tokenMap, tokenLeftBrace, tokenRightBrace, tokenRightBraces},
-	"{{ map{`a`: 6} }}":      {tokenLeftBraces, tokenMap, tokenLeftBrace, tokenRawString, tokenColon, tokenInt, tokenRightBrace, tokenRightBraces},
-	"{{ interface{} }}":      {tokenLeftBraces, tokenInterface, tokenLeftBrace, tokenRightBrace, tokenRightBraces},
-	"{{ a and b }}":          {tokenLeftBraces, tokenIdentifier, tokenExtendedAnd, tokenIdentifier, tokenRightBraces},
-	"{{ a or b }}":           {tokenLeftBraces, tokenIdentifier, tokenExtendedOr, tokenIdentifier, tokenRightBraces},
-	"{{ a or not b }}":       {tokenLeftBraces, tokenIdentifier, tokenExtendedOr, tokenExtendedNot, tokenIdentifier, tokenRightBraces},
-	"{{ a contains b }}":     {tokenLeftBraces, tokenIdentifier, tokenContains, tokenIdentifier, tokenRightBraces},
-	"{{ a not contains b }}": {tokenLeftBraces, tokenIdentifier, tokenExtendedNot, tokenContains, tokenIdentifier, tokenRightBraces},
+	"{{ map{} }}":              {tokenLeftBraces, tokenMap, tokenLeftBrace, tokenRightBrace, tokenRightBraces},
+	"{{ map{`a`: 6} }}":        {tokenLeftBraces, tokenMap, tokenLeftBrace, tokenRawString, tokenColon, tokenInt, tokenRightBrace, tokenRightBraces},
+	"{{ interface{} }}":        {tokenLeftBraces, tokenInterface, tokenLeftBrace, tokenRightBrace, tokenRightBraces},
+	"{{ a and b }}":            {tokenLeftBraces, tokenIdentifier, tokenExtendedAnd, tokenIdentifier, tokenRightBraces},
+	"{{ a or b }}":             {tokenLeftBraces, tokenIdentifier, tokenExtendedOr, tokenIdentifier, tokenRightBraces},
+	"{{ a or not b }}":         {tokenLeftBraces, tokenIdentifier, tokenExtendedOr, tokenExtendedNot, tokenIdentifier, tokenRightBraces},
+	"{{ a contains b }}":       {tokenLeftBraces, tokenIdentifier, tokenContains, tokenIdentifier, tokenRightBraces},
+	"{{ a not contains b }}":   {tokenLeftBraces, tokenIdentifier, tokenExtendedNot, tokenContains, tokenIdentifier, tokenRightBraces},
+	"{% raw %}t{% end %}":      {tokenStartStatement, tokenRaw, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement},
+	"{% raw %}{% if {% end %}": {tokenStartStatement, tokenRaw, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement},
+	"{% raw %} if %}{% end %}": {tokenStartStatement, tokenRaw, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement},
 
 	"<a {% if a %}{% end %}>":       {tokenText, tokenStartStatement, tokenIf, tokenIdentifier, tokenEndStatement, tokenStartStatement, tokenEnd, tokenEndStatement, tokenText},
 	"<a {% if a %}b{% end %}>":      {tokenText, tokenStartStatement, tokenIf, tokenIdentifier, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement, tokenText},
@@ -788,6 +791,50 @@ func TestLexerReadAttribute(t *testing.T) {
 		}
 		if l.column != test.column {
 			t.Errorf("source: %q, unexpected column %d, expecting %d\n", test.src, l.column, test.column)
+		}
+	}
+}
+
+var endRawIndexTests = []struct {
+	src    string
+	marker string
+	index  int
+}{
+	{"", "", -1},
+	{"a", "", -1},
+	{"{", "", -1},
+	{"ab {%", "", -1},
+	{"ab {% for %} cd", "", -1},
+	{"ab {% end %} cd", "", 3},
+	{"ab {% end %", "", -1},
+	{"ab {% endraw %} cd", "", -1},
+	{"ab {% end raw %} cd", "", 3},
+	{"ab {% for %} {% end %} cd", "", 13},
+	{"ab {% for %} {% end for %} cd", "", -1},
+	{"ab {% for %} {% end raw %} cd", "", 13},
+	{"ab {%end%} cd", "", 3},
+	{"ab {%end raw%} cd", "", 3},
+	{"ab {% end {%\t\nend\nraw %}", "", 10},
+	{"ab {% end raw", "", -1},
+	{"ab {% end `code` %} cd", "code", 3},
+	{"ab {% end raw `code` %} cd", "code", 3},
+	{"ab {% end code %} cd", "code", -1},
+	{"ab {% end `code %} cd", "code", -1},
+	{"ab {% end `code\" %} cd", "code", -1},
+	{"ab {% end \"code\" %} cd", "code", -1},
+	{"ab {% end raw `doc` %} cd", "code", -1},
+	{"ab {% end `doc` %} {% end `code` %} cd", "code", 19},
+}
+
+func TestLexRawContent(t *testing.T) {
+	for _, test := range endRawIndexTests {
+		var marker []byte
+		if test.marker != "" {
+			marker = []byte(test.marker)
+		}
+		if i := endRawIndex([]byte(test.src), marker); i != test.index {
+			t.Errorf("source: %q, marker: %q: unexpected index %d, expecting %d",
+				test.src, test.marker, i, test.index)
 		}
 	}
 }

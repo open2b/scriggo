@@ -218,6 +218,14 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				em.emitNodes([]ast.Node{node.Statement})
 			}
 
+		case *ast.Raw:
+			if text := node.Text; text != nil {
+				txt := text.Text[node.Text.Cut.Left : len(text.Text)-text.Cut.Right]
+				if len(txt) != 0 {
+					em.fb.emitText(txt, em.inURL, em.isURLSet)
+				}
+			}
+
 		case *ast.Return:
 			offset := [4]int8{}
 			// Emit return statements with a function call that returns more

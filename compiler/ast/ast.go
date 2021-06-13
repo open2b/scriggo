@@ -1432,3 +1432,14 @@ func NewSend(pos *Position, channel Expression, value Expression) *Send {
 func (n *Send) String() string {
 	return n.Channel.String() + " <- " + n.Value.String()
 }
+
+// Raw node represents a raw statement.
+type Raw struct {
+	*Position        // position in the source.
+	Marker    string // marker.
+	Text      *Text  // text.
+}
+
+func NewRaw(pos *Position, marker string, text *Text) *Raw {
+	return &Raw{pos, marker, text}
+}

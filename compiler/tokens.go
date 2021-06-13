@@ -118,6 +118,7 @@ const (
 	tokenExtendedOr                        // or
 	tokenDollar                            // $
 	tokenContains                          // contains
+	tokenRaw                               // raw
 )
 
 var tokenString = map[tokenTyp]string{
@@ -223,6 +224,7 @@ var tokenString = map[tokenTyp]string{
 	tokenExtendedOr:               "or",
 	tokenDollar:                   "$",
 	tokenContains:                 "contains",
+	tokenRaw:                      "raw",
 }
 
 func (tt tokenTyp) String() string {

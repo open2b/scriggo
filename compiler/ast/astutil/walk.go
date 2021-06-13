@@ -286,6 +286,7 @@ func Walk(v Visitor, node ast.Node) {
 		*ast.Identifier,
 		*ast.Comment,
 		*ast.Text,
+		*ast.Raw,
 		*ast.Placeholder,
 		*ast.Interface,
 		*ast.Fallthrough:

@@ -434,8 +434,8 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 	}
 
 	if len(p.ancestors) > 1 {
-		var stmt string
-		switch p.parent().(type) {
+		var stmt, marker string
+		switch n := p.parent().(type) {
 		case *ast.Block:
 			switch p.ancestors[len(p.ancestors)-2].(type) {
 			case *ast.Func:
@@ -445,12 +445,17 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 			}
 		case *ast.For, *ast.ForIn, *ast.ForRange:
 			stmt = "for"
+		case *ast.Raw:
+			stmt = "raw"
+			if n.Marker != "" {
+				marker = " `" + n.Marker + "`"
+			}
 		case *ast.Select:
 			stmt = "select"
 		case *ast.Switch, *ast.TypeSwitch:
 			stmt = "switch"
 		}
-		return nil, nil, syntaxError(tok.pos, "unexpected EOF, expecting {%% end %%} or {%% end %s %%}", stmt)
+		return nil, nil, syntaxError(tok.pos, "unexpected EOF, expecting {%% end%s %%} or {%% end %s%s %%}", marker, stmt, marker)
 	}
 
 	return tree, p.unexpanded, nil
@@ -1140,7 +1145,7 @@ LABEL:
 		pos := tok.pos
 		tok = p.next()
 		if tok.typ != tokenEndStatement {
-			switch p.parent().(type) {
+			switch n := p.parent().(type) {
 			case *ast.For, *ast.ForRange, *ast.ForIn:
 				if tok.typ != tokenFor {
 					panic(syntaxError(pos, "unexpected %s, expecting for or %%}", tok))
@@ -1160,6 +1165,11 @@ LABEL:
 			case *ast.Select:
 				if tok.typ != tokenSelect {
 					panic(syntaxError(pos, "unexpected %s, expecting select or %%}", tok))
+				}
+			case *ast.Raw:
+				// The lexer guarantees that an end raw statement is well formed.
+				if tok.typ == tokenRaw && n.Marker != "" {
+					tok = p.next()
 				}
 			default:
 				panic(syntaxError(pos, "unexpected %s, expecting %%}", tok))
@@ -1249,6 +1259,29 @@ LABEL:
 		node := ast.NewGoto(pos, ast.NewIdentifier(tok.pos, string(tok.txt)))
 		p.addNode(node)
 		tok = p.next()
+		tok = p.parseEnd(tok, tokenSemicolon, end)
+		return tok
+
+	// raw
+	case tokenRaw:
+		if end == tokenEndStatements {
+			panic(syntaxError(tok.pos, "raw not allowed between {%%%% and %%%%}"))
+		}
+		pos := tok.pos
+		tok = p.next()
+		var marker string
+		if tok.typ == tokenRawString {
+			marker = string(tok.txt[1 : len(tok.txt)-1])
+			tok = p.next()
+		} else if tok.typ != tokenEndStatement {
+			if tok.typ == tokenInterpretedString {
+				panic(syntaxError(tok.pos, "unexpected interpreted string, expecting raw string or %%}"))
+			}
+			panic(syntaxError(tok.pos, "unexpected %s, expecting raw string or %%}", tok))
+		}
+		node := ast.NewRaw(pos, marker, nil)
+		p.addNode(node)
+		p.cutSpacesToken = true
 		tok = p.parseEnd(tok, tokenSemicolon, end)
 		return tok
 
@@ -1712,6 +1745,8 @@ func (p *parsing) addNode(node ast.Node) {
 		n.Statement = node
 		n.Pos().End = node.Pos().End
 		p.removeLastAncestor()
+	case *ast.Raw:
+		n.Text = node.(*ast.Text)
 	default:
 		panic("scriggo/parser: unexpected parent node")
 	}
@@ -1736,7 +1771,8 @@ func (p *parsing) addNode(node ast.Node) {
 		*ast.Package,
 		*ast.Label,
 		*ast.Statements,
-		*ast.URL:
+		*ast.URL,
+		*ast.Raw:
 		p.addToAncestors(n)
 	}
 }
