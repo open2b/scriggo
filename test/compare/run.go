@@ -616,6 +616,12 @@ func runGc(path string) (int, []byte, []byte, error) {
 //
 func goBaseVersion(v string) string {
 	// Taken from cmd/scriggo/util.go.
+	if strings.HasPrefix(v, "devel ") {
+		v = v[len("devel "):]
+		if i := strings.Index(v, "-"); i >= 0 {
+			v = v[:i]
+		}
+	}
 	if i := strings.Index(v, "beta"); i >= 0 {
 		v = v[:i]
 	}
