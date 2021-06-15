@@ -2753,6 +2753,22 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedBuildErr: "imported2.txt:1:4: syntax error: unexpected raw, expecting declaration statement",
 	},
+
+	"https://github.com/open2b/scriggo/issues/770": {
+		sources: map[string]string{
+			"index.txt":    `{% import "imported.txt" %}`,
+			"imported.txt": `{% macro m %}{% end %}{{ m() }}`,
+		},
+		expectedBuildErr: "unexpected {{, expecting declaration statement",
+	},
+
+	"https://github.com/open2b/scriggo/issues/770 (2)": {
+		sources: map[string]string{
+			"index.txt":  `{% extends "layout.txt" %}{% macro m %}{% end %}{{ m() }}`,
+			"layout.txt": ``,
+		},
+		expectedBuildErr: "unexpected {{, expecting declaration statement",
+	},
 }
 
 var structWithUnexportedFields = &struct {

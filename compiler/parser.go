@@ -378,8 +378,11 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 
 		// {{
 		case tokenLeftBraces:
-			numTokenInLine++
 			pos := tok.pos
+			if len(p.ancestors) == 1 && (p.imported || p.hasExtend) {
+				panic(syntaxError(pos, "unexpected %s, expecting declaration statement", tok))
+			}
+			numTokenInLine++
 			var expr ast.Expression
 			expr, tok = p.parseExpr(p.next(), false, false, false)
 			if expr == nil {
