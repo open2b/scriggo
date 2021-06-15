@@ -160,10 +160,7 @@ func (vm *VM) convertPanic(msg interface{}) error {
 		}
 	case OpConvert:
 		if err, ok := msg.(string); ok && strings.HasPrefix(err, "reflect: cannot convert slice with length") {
-			in := vm.fn.Body[vm.pc-1]
-			sl := vm.general(in.A).Len()
-			al := vm.fn.Types[uint8(in.B)].Elem().Len()
-			return vm.newPanic(runtimeError(fmt.Sprintf("runtime error: cannot convert slice with length %d to pointer to array with length %d", sl, al)))
+			return vm.newPanic(runtimeError("runtime error:" + err[len("reflect:"):]))
 		}
 	case OpDivInt, OpDiv, OpRemInt, OpRem:
 		if err, ok := msg.(runtime.Error); ok {
