@@ -447,15 +447,16 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 			stmt = "for"
 		case *ast.Raw:
 			stmt = "raw"
-			if n.Marker != "" {
-				marker = " `" + n.Marker + "`"
-			}
+			marker = n.Marker
 		case *ast.Select:
 			stmt = "select"
 		case *ast.Switch, *ast.TypeSwitch:
 			stmt = "switch"
 		}
-		return nil, nil, syntaxError(tok.pos, "unexpected EOF, expecting {%% end%s %%} or {%% end %s%s %%}", marker, stmt, marker)
+		if marker != "" {
+			return nil, nil, syntaxError(tok.pos, "unexpected EOF, expecting {%% end raw %s %%}", marker)
+		}
+		return nil, nil, syntaxError(tok.pos, "unexpected EOF, expecting {%% end %%} or {%% end %s %%}", stmt)
 	}
 
 	return tree, p.unexpanded, nil
@@ -1270,14 +1271,14 @@ LABEL:
 		pos := tok.pos
 		tok = p.next()
 		var marker string
-		if tok.typ == tokenRawString {
-			marker = string(tok.txt[1 : len(tok.txt)-1])
+		if tok.typ == tokenIdentifier {
+			if len(tok.txt) == 1 && tok.txt[0] == '_' {
+				panic(syntaxError(tok.pos, "cannot use _ as marker"))
+			}
+			marker = string(tok.txt)
 			tok = p.next()
 		} else if tok.typ != tokenEndStatement {
-			if tok.typ == tokenInterpretedString {
-				panic(syntaxError(tok.pos, "unexpected interpreted string, expecting raw string or %%}"))
-			}
-			panic(syntaxError(tok.pos, "unexpected %s, expecting raw string or %%}", tok))
+			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier or %%}", tok))
 		}
 		node := ast.NewRaw(pos, marker, nil)
 		p.addNode(node)

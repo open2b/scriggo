@@ -816,14 +816,10 @@ var endRawIndexTests = []struct {
 	{"ab {%end raw%} cd", "", 3},
 	{"ab {% end {%\t\nend\nraw %}", "", 10},
 	{"ab {% end raw", "", -1},
-	{"ab {% end `code` %} cd", "code", 3},
-	{"ab {% end raw `code` %} cd", "code", 3},
+	{"ab {% end raw code %} cd", "code", 3},
 	{"ab {% end code %} cd", "code", -1},
-	{"ab {% end `code %} cd", "code", -1},
-	{"ab {% end `code\" %} cd", "code", -1},
-	{"ab {% end \"code\" %} cd", "code", -1},
-	{"ab {% end raw `doc` %} cd", "code", -1},
-	{"ab {% end `doc` %} {% end `code` %} cd", "code", 19},
+	{"ab {% end raw doc %} cd", "code", -1},
+	{"ab {% end raw doc %} {% end raw code %} cd", "code", 21},
 }
 
 func TestLexRawContent(t *testing.T) {

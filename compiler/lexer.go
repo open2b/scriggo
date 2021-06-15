@@ -167,17 +167,19 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 		tag: l.tag.name,
 		att: l.tag.attr,
 	}
-	switch typ {
-	case tokenRaw:
-		if l.lastTokenType != tokenEnd {
-			l.rawMarker = emptyMarker
+	if l.templateSyntax {
+		switch typ {
+		case tokenRaw:
+			if l.lastTokenType == tokenStartStatement {
+				l.rawMarker = emptyMarker
+			}
+		case tokenIdentifier:
+			if l.lastTokenType == tokenRaw && l.rawMarker != nil {
+				l.rawMarker = txt
+			}
+		case tokenEnd:
+			l.rawMarker = nil
 		}
-	case tokenRawString:
-		if l.rawMarker != nil {
-			l.rawMarker = txt[1 : len(txt)-1]
-		}
-	case tokenEnd:
-		l.rawMarker = nil
 	}
 	if length > 0 {
 		l.lastTokenType = typ
@@ -1922,16 +1924,20 @@ func endRawIndex(src []byte, marker []byte) int {
 		if isSpace(src[i-1]) && len(src) >= i+3 && src[i] == 'r' && src[i+1] == 'a' && src[i+2] == 'w' {
 			i += 3
 			i = skipSpaces(src, i)
+		} else if len(marker) > 0 {
+			i = p
+			continue
 		}
 		// Read the marker.
 		if l := len(marker); l > 0 {
-			if len(src) < i+l+2 || src[i+l+1] != '`' || !bytes.Equal(src[i+1:i+l+1], marker) {
+			if len(src) < i+l || !bytes.Equal(src[i:i+l], marker) {
 				i = p
 				continue
 			}
-			i += l + 2
+			i += l
 			i = skipSpaces(src, i)
 		}
+
 		// Read '%}'.
 		if len(src) < i+2 || src[i] != '%' || src[i+1] != '}' {
 			i = p

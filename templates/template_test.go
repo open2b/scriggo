@@ -2684,9 +2684,9 @@ var templateMultiFileCases = map[string]struct {
 
 	"Missing end raw statement with marker": {
 		sources: map[string]string{
-			"index.txt": "{% raw `code` %}",
+			"index.txt": "{% raw code %}",
 		},
-		expectedBuildErr: "unexpected EOF, expecting {% end `code` %} or {% end raw `code` %}",
+		expectedBuildErr: "unexpected EOF, expecting {% end raw code %}",
 	},
 
 	"Missing end raw statement without marker": {
@@ -2719,16 +2719,16 @@ var templateMultiFileCases = map[string]struct {
 
 	"Raw statement with marker": {
 		sources: map[string]string{
-			"index.txt": "a\n{% raw `code` %}\nb\n{% end `code` %}\nc",
+			"index.txt": "a\n{% raw code %}\nb\n{% end raw code %}\nc",
 		},
 		expectedOut: "a\nb\nc",
 	},
 
 	"Missing marker in end raw statement": {
 		sources: map[string]string{
-			"index.txt": "{% raw `code` %}{% end raw %}",
+			"index.txt": "{% raw code %}{% end raw %}",
 		},
-		expectedBuildErr: "unexpected EOF, expecting {% end `code` %}",
+		expectedBuildErr: "unexpected EOF, expecting {% end raw code %}",
 	},
 
 	"Raw statement in statements": {
@@ -2738,13 +2738,6 @@ var templateMultiFileCases = map[string]struct {
 		expectedBuildErr: "raw not allowed between {%% and %%}",
 	},
 
-	"Raw statement with interpreted string as marker": {
-		sources: map[string]string{
-			"index.txt": "{% raw \"code\" %}",
-		},
-		expectedBuildErr: "unexpected interpreted string, expecting raw string or %}",
-	},
-
 	"Raw statement in imported files": {
 		sources: map[string]string{
 			"index.txt":     "{% import \"imported1.txt\" %}{% import \"imported2.txt\" %}",
@@ -2752,6 +2745,13 @@ var templateMultiFileCases = map[string]struct {
 			"imported2.txt": "{% raw %}{% end %}",
 		},
 		expectedBuildErr: "imported2.txt:1:4: syntax error: unexpected raw, expecting declaration statement",
+	},
+
+	"Use of _ as marker": {
+		sources: map[string]string{
+			"index.txt": "{% raw _ %}",
+		},
+		expectedBuildErr: "cannot use _ as marker",
 	},
 }
 
