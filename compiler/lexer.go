@@ -1900,8 +1900,9 @@ func (l *lexer) skipRawContent() int {
 // statement in src with the given marker, or -1 if it is not present.
 // If the raw statement has no marker, marker's length is zero.
 //
-// It allows the syntax {% end marker %} for which the parser will returns an
-// error.
+// It allows the syntax {% end marker %} and allows non-printable characters
+// as spaces (see the skipRawSpaces function) for which the parser will still
+// returns an error.
 func endRawIndex(src []byte, marker []byte) int {
 	for i := 0; i < len(src); i++ {
 		j := bytes.IndexByte(src[i:], '{')
@@ -1915,18 +1916,18 @@ func endRawIndex(src []byte, marker []byte) int {
 			continue
 		}
 		i += 2
-		i = skipSpaces(src, i)
+		i = skipRawSpaces(src, i)
 		// Read 'end'.
 		if len(src) < i+3 || src[i] != 'e' || src[i+1] != 'n' || src[i+2] != 'd' {
 			i = p
 			continue
 		}
 		i += 3
-		i = skipSpaces(src, i)
+		i = skipRawSpaces(src, i)
 		// Read 'raw'.
 		if isSpace(src[i-1]) && len(src) >= i+3 && src[i] == 'r' && src[i+1] == 'a' && src[i+2] == 'w' {
 			i += 3
-			i = skipSpaces(src, i)
+			i = skipRawSpaces(src, i)
 		}
 		// Read the marker.
 		if l := len(marker); l > 0 {
@@ -1935,7 +1936,7 @@ func endRawIndex(src []byte, marker []byte) int {
 				continue
 			}
 			i += l
-			i = skipSpaces(src, i)
+			i = skipRawSpaces(src, i)
 		}
 		// Read '%}'.
 		if len(src) < i+2 || src[i] != '%' || src[i+1] != '}' {
@@ -1947,14 +1948,20 @@ func endRawIndex(src []byte, marker []byte) int {
 	return -1
 }
 
-// skipSpaces skips the spaces from src starting from p and returns the index
-// of the first non-space byte or the index of EOF if there are only spaces.
-func skipSpaces(src []byte, p int) int {
+// skipRawSpaces skips the raw spaces from src starting from p and returns the
+// index of the first non-raw-space byte or the index of EOF if there are only
+// raw spaces.
+//
+// A raw space is the space character U+0020, an invalid code point or a rune
+// not defined as a Graphic by Unicode.
+func skipRawSpaces(src []byte, p int) int {
 	for p < len(src) {
-		if !isSpace(src[p]) {
+		r, s := utf8.DecodeRune(src[p:])
+		isRawSpace := r == ' ' || (r == utf8.RuneError && s == 1) || !unicode.IsGraphic(r)
+		if !isRawSpace {
 			break
 		}
-		p++
+		p += s
 	}
 	return p
 }

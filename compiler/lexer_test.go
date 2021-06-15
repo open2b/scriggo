@@ -820,6 +820,9 @@ var endRawIndexTests = []struct {
 	{"ab {% end code %} cd", "code", 3},
 	{"ab {% end raw doc %} cd", "code", -1},
 	{"ab {% end raw doc %} {% end raw code %} cd", "code", 21},
+	{"ab {%\tend\r\n%}", "", 3},
+	{"ab {% \x00 end \x12 \x85 %}", "", 3},
+	{"ab {% \uFFFD end %}", "", -1},
 }
 
 func TestLexRawContent(t *testing.T) {

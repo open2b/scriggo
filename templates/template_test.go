@@ -2731,6 +2731,13 @@ var templateMultiFileCases = map[string]struct {
 		expectedBuildErr: "unexpected EOF, expecting {% end raw code %}",
 	},
 
+	"Invalid bytes in an end raw statement": {
+		sources: map[string]string{
+			"index.txt": "{% raw %}{% end \x00 %}",
+		},
+		expectedBuildErr: "unexpected NUL in input",
+	},
+
 	"Raw statement in statements": {
 		sources: map[string]string{
 			"index.txt": "{%% raw %%}",
