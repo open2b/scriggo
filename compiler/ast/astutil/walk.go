@@ -42,28 +42,53 @@ func Walk(v Visitor, node ast.Node) {
 	// If the child is a concrete type, it leaves it under management at
 	// the Visit, otherwise he manages it here on the Walk.
 
-	case *ast.Tree:
+	case *ast.ArrayType:
+		Walk(v, n.Len)
+		Walk(v, n.ElementType)
+
+	case *ast.Assignment:
+		for _, child := range n.Lhs {
+			Walk(v, child)
+		}
+		for _, child := range n.Rhs {
+			Walk(v, child)
+		}
+
+	case *ast.BinaryOperator:
+		Walk(v, n.Expr1)
+		Walk(v, n.Expr2)
+
+	case *ast.Block:
 		for _, child := range n.Nodes {
 			Walk(v, child)
 		}
 
-	case *ast.Package:
-		for _, declaration := range n.Declarations {
-			Walk(v, declaration)
+	case *ast.Break:
+		Walk(v, n.Label)
+
+	case *ast.Call:
+		for _, arg := range n.Args {
+			Walk(v, arg)
 		}
 
-	case *ast.URL:
-		for _, child := range n.Value {
+	case *ast.Case:
+		for _, e := range n.Expressions {
+			Walk(v, e)
+		}
+		for _, child := range n.Body {
 			Walk(v, child)
 		}
 
-	case *ast.Var:
-		for _, ident := range n.Lhs {
-			Walk(v, ident)
-		}
+	case *ast.ChanType:
+		Walk(v, n.ElementType)
+
+	case *ast.CompositeLiteral:
 		Walk(v, n.Type)
-		for _, value := range n.Rhs {
-			Walk(v, value)
+		for _, vv := range n.KeyValues {
+			if vv.Key != nil {
+				Walk(v, vv.Key)
+			}
+			Walk(v, vv.Value)
 		}
 
 	case *ast.Const:
@@ -75,13 +100,14 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, value)
 		}
 
-	case *ast.Assignment:
-		for _, child := range n.Lhs {
-			Walk(v, child)
-		}
-		for _, child := range n.Rhs {
-			Walk(v, child)
-		}
+	case *ast.Continue:
+		Walk(v, n.Label)
+
+	case *ast.Defer:
+		Walk(v, n.Call)
+
+	case *ast.DollarIdentifier:
+		Walk(v, n.Ident)
 
 	case *ast.For:
 		if n.Init != nil {
@@ -115,23 +141,6 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, n)
 		}
 
-	case *ast.Block:
-		for _, child := range n.Nodes {
-			Walk(v, child)
-		}
-
-	case *ast.If:
-		if n.Init != nil {
-			Walk(v, n.Init)
-		}
-		Walk(v, n.Condition)
-		if n.Then != nil {
-			Walk(v, n.Then)
-		}
-		if n.Else != nil {
-			Walk(v, n.Else)
-		}
-
 	case *ast.Func:
 		for _, child := range n.Body.Nodes {
 			Walk(v, child)
@@ -145,26 +154,44 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, res.Type)
 		}
 
-	case *ast.Switch:
-		Walk(v, n.Init)
+	case *ast.Go:
+		Walk(v, n.Call)
+
+	case *ast.Goto:
+		Walk(v, n.Label)
+
+	case *ast.If:
+		if n.Init != nil {
+			Walk(v, n.Init)
+		}
+		Walk(v, n.Condition)
+		if n.Then != nil {
+			Walk(v, n.Then)
+		}
+		if n.Else != nil {
+			Walk(v, n.Else)
+		}
+
+	case *ast.Index:
 		Walk(v, n.Expr)
-		for _, c := range n.Cases {
-			Walk(v, c)
+		Walk(v, n.Index)
+
+	case *ast.Label:
+		Walk(v, n.Ident)
+		Walk(v, n.Statement)
+
+	case *ast.MapType:
+		Walk(v, n.KeyType)
+		Walk(v, n.ValueType)
+
+	case *ast.Package:
+		for _, declaration := range n.Declarations {
+			Walk(v, declaration)
 		}
 
-	case *ast.TypeSwitch:
-		Walk(v, n.Init)
-		Walk(v, n.Assignment)
-		for _, c := range n.Cases {
-			Walk(v, c)
-		}
-
-	case *ast.Case:
-		for _, e := range n.Expressions {
-			Walk(v, e)
-		}
-		for _, child := range n.Body {
-			Walk(v, child)
+	case *ast.Return:
+		for _, value := range n.Values {
+			Walk(v, value)
 		}
 
 	case *ast.Select:
@@ -178,71 +205,20 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, child)
 		}
 
-	case *ast.Show:
-		for _, expr := range n.Expressions {
-			Walk(v, expr)
-		}
-
-	case *ast.Statements:
-		for _, child := range n.Nodes {
-			Walk(v, child)
-		}
-
-	case *ast.UnaryOperator:
+	case *ast.Selector:
 		Walk(v, n.Expr)
-
-	case *ast.BinaryOperator:
-		Walk(v, n.Expr1)
-		Walk(v, n.Expr2)
-
-	case *ast.CompositeLiteral:
-		Walk(v, n.Type)
-		for _, vv := range n.KeyValues {
-			if vv.Key != nil {
-				Walk(v, vv.Key)
-			}
-			Walk(v, vv.Value)
-		}
-
-	case *ast.MapType:
-		Walk(v, n.KeyType)
-		Walk(v, n.ValueType)
-
-	case *ast.SliceType:
-		Walk(v, n.ElementType)
-
-	case *ast.ArrayType:
-		Walk(v, n.Len)
-		Walk(v, n.ElementType)
-
-	case *ast.ChanType:
-		Walk(v, n.ElementType)
-
-	case *ast.Call:
-		for _, arg := range n.Args {
-			Walk(v, arg)
-		}
-
-	case *ast.Defer:
-		Walk(v, n.Call)
-
-	case *ast.Go:
-		Walk(v, n.Call)
-
-	case *ast.Label:
-		Walk(v, n.Ident)
-		Walk(v, n.Statement)
-
-	case *ast.Goto:
-		Walk(v, n.Label)
 
 	case *ast.Send:
 		Walk(v, n.Channel)
 		Walk(v, n.Value)
 
-	case *ast.Index:
-		Walk(v, n.Expr)
-		Walk(v, n.Index)
+	case *ast.Show:
+		for _, expr := range n.Expressions {
+			Walk(v, expr)
+		}
+
+	case *ast.SliceType:
+		Walk(v, n.ElementType)
 
 	case *ast.Slicing:
 		Walk(v, n.Expr)
@@ -256,25 +232,49 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, n.Max)
 		}
 
-	case *ast.Selector:
+	case *ast.Statements:
+		for _, child := range n.Nodes {
+			Walk(v, child)
+		}
+
+	case *ast.Switch:
+		Walk(v, n.Init)
 		Walk(v, n.Expr)
+		for _, c := range n.Cases {
+			Walk(v, c)
+		}
+
+	case *ast.Tree:
+		for _, child := range n.Nodes {
+			Walk(v, child)
+		}
 
 	case *ast.TypeAssertion:
 		Walk(v, n.Expr)
 
-	case *ast.Return:
-		for _, value := range n.Values {
-			Walk(v, value)
+	case *ast.TypeSwitch:
+		Walk(v, n.Init)
+		Walk(v, n.Assignment)
+		for _, c := range n.Cases {
+			Walk(v, c)
 		}
 
-	case *ast.Break:
-		Walk(v, n.Label)
+	case *ast.URL:
+		for _, child := range n.Value {
+			Walk(v, child)
+		}
 
-	case *ast.Continue:
-		Walk(v, n.Label)
+	case *ast.UnaryOperator:
+		Walk(v, n.Expr)
 
-	case *ast.DollarIdentifier:
-		Walk(v, n.Ident)
+	case *ast.Var:
+		for _, ident := range n.Lhs {
+			Walk(v, ident)
+		}
+		Walk(v, n.Type)
+		for _, value := range n.Rhs {
+			Walk(v, value)
+		}
 
 	case *ast.Extends:
 	case *ast.Import:
