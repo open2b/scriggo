@@ -4,3 +4,5 @@
 {% raw if %}          // ERROR `unexpected if, expecting identifier, string or %}`
 {% raw code code %}   // ERROR `unexpected code, expecting string or %}`
 {% raw `code` code %} // ERROR `unexpected code, expecting %}`
+
+{% raw code %} {% end code %} {% end raw code %} // ERROR `unexpected code, expecting raw`

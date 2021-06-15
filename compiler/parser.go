@@ -1168,8 +1168,10 @@ LABEL:
 					panic(syntaxError(pos, "unexpected %s, expecting select or %%}", tok))
 				}
 			case *ast.Raw:
-				// The lexer guarantees that an end raw statement is well formed.
-				if tok.typ == tokenRaw && n.Marker != "" {
+				if n.Marker != "" {
+					if tok.typ != tokenRaw {
+						panic(syntaxError(pos, "unexpected %s, expecting raw", tok))
+					}
 					tok = p.next()
 				}
 			default:

@@ -1899,6 +1899,9 @@ func (l *lexer) skipRawContent() int {
 // endRawIndex returns the index of the first instance of the end of a raw
 // statement in src with the given marker, or -1 if it is not present.
 // If the raw statement has no marker, marker's length is zero.
+//
+// It allows the syntax {% end marker %} for which the parser will returns an
+// error.
 func endRawIndex(src []byte, marker []byte) int {
 	for i := 0; i < len(src); i++ {
 		j := bytes.IndexByte(src[i:], '{')
@@ -1924,9 +1927,6 @@ func endRawIndex(src []byte, marker []byte) int {
 		if isSpace(src[i-1]) && len(src) >= i+3 && src[i] == 'r' && src[i+1] == 'a' && src[i+2] == 'w' {
 			i += 3
 			i = skipSpaces(src, i)
-		} else if len(marker) > 0 {
-			i = p
-			continue
 		}
 		// Read the marker.
 		if l := len(marker); l > 0 {
@@ -1937,7 +1937,6 @@ func endRawIndex(src []byte, marker []byte) int {
 			i += l
 			i = skipSpaces(src, i)
 		}
-
 		// Read '%}'.
 		if len(src) < i+2 || src[i] != '%' || src[i+1] != '}' {
 			i = p
@@ -1949,7 +1948,7 @@ func endRawIndex(src []byte, marker []byte) int {
 }
 
 // skipSpaces skips the spaces from src starting from p and returns the index
-// of the first non-space byte or the index of EOF is there are only spaces.
+// of the first non-space byte or the index of EOF if there are only spaces.
 func skipSpaces(src []byte, p int) int {
 	for p < len(src) {
 		if !isSpace(src[p]) {
