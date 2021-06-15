@@ -1,0 +1,6 @@
+{# errorcheck #}
+
+{% raw _ %}           // ERROR `cannot use _ as marker`
+{% raw if %}          // ERROR `unexpected if, expecting identifier, string or %}`
+{% raw code code %}   // ERROR `unexpected code, expecting string or %}`
+{% raw `code` code %} // ERROR `unexpected code, expecting %}`

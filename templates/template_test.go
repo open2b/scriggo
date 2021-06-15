@@ -2746,13 +2746,6 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedBuildErr: "imported2.txt:1:4: syntax error: unexpected raw, expecting declaration statement",
 	},
-
-	"Use of _ as marker": {
-		sources: map[string]string{
-			"index.txt": "{% raw _ %}",
-		},
-		expectedBuildErr: "cannot use _ as marker",
-	},
 }
 
 var structWithUnexportedFields = &struct {

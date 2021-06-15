@@ -1270,17 +1270,27 @@ LABEL:
 		}
 		pos := tok.pos
 		tok = p.next()
-		var marker string
+		var marker, tag string
+		var tagged bool
 		if tok.typ == tokenIdentifier {
 			if len(tok.txt) == 1 && tok.txt[0] == '_' {
 				panic(syntaxError(tok.pos, "cannot use _ as marker"))
 			}
 			marker = string(tok.txt)
 			tok = p.next()
-		} else if tok.typ != tokenEndStatement {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting identifier or %%}", tok))
 		}
-		node := ast.NewRaw(pos, marker, nil)
+		if tok.typ == tokenRawString || tok.typ == tokenInterpretedString {
+			tagged = true
+			tag = unquoteString(tok.txt)
+			tok = p.next()
+		}
+		if !tagged && tok.typ != tokenEndStatement {
+			if marker == "" {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting identifier, string or %%}", tok))
+			}
+			panic(syntaxError(tok.pos, "unexpected %s, expecting string or %%}", tok))
+		}
+		node := ast.NewRaw(pos, marker, tag, nil)
 		p.addNode(node)
 		p.cutSpacesToken = true
 		tok = p.parseEnd(tok, tokenSemicolon, end)

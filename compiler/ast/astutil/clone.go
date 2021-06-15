@@ -181,7 +181,7 @@ func CloneNode(node ast.Node) ast.Node {
 		return ast.NewPackage(ClonePosition(n.Position), n.Name, nn)
 
 	case *ast.Raw:
-		return ast.NewRaw(ClonePosition(n.Position), n.Marker, CloneNode(n.Text).(*ast.Text))
+		return ast.NewRaw(ClonePosition(n.Position), n.Marker, n.Tag, CloneNode(n.Text).(*ast.Text))
 
 	case *ast.Select:
 		var text *ast.Text

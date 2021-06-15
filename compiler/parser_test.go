@@ -1377,10 +1377,16 @@ var treeTests = []struct {
 					), nil, nil),
 			})}, ast.FormatHTML)},
 	{"{% raw code %}\t\n{{ v }}\n{% end raw code %}{{ v }}", ast.NewTree("", []ast.Node{
-		ast.NewRaw(p(1, 4, 3, 38), "code",
+		ast.NewRaw(p(1, 4, 3, 38), "code", "",
 			ast.NewText(p(1, 15, 14, 23), []byte("\t\n{{ v }}\n"), ast.Cut{2, 0})),
 		ast.NewShow(p(3, 19, 42, 48), []ast.Expression{
 			ast.NewIdentifier(p(3, 22, 45, 45), "v")}, ast.ContextHTML),
+	}, ast.FormatHTML)},
+	{"{% raw code `lang:\"javascript\"` %}\t\n{{ v }}\n{% end raw code %}{{ v }}", ast.NewTree("", []ast.Node{
+		ast.NewRaw(p(1, 4, 3, 58), "code", "lang:\"javascript\"",
+			ast.NewText(p(1, 35, 34, 43), []byte("\t\n{{ v }}\n"), ast.Cut{2, 0})),
+		ast.NewShow(p(3, 19, 62, 68), []ast.Expression{
+			ast.NewIdentifier(p(3, 22, 65, 65), "v")}, ast.ContextHTML),
 	}, ast.FormatHTML)},
 }
 
@@ -2531,6 +2537,9 @@ func equals(n1, n2 ast.Node, p int) error {
 		}
 		if nn1.Marker != nn2.Marker {
 			return fmt.Errorf("unexpected marker %q, expecting %q", nn1.Marker, nn2.Marker)
+		}
+		if nn1.Tag != nn2.Tag {
+			return fmt.Errorf("unexpected tag %q, expecting %q", nn1.Tag, nn2.Tag)
 		}
 		err := equals(nn1.Text, nn2.Text, p)
 		if err != nil {

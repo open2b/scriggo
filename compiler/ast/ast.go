@@ -1437,9 +1437,10 @@ func (n *Send) String() string {
 type Raw struct {
 	*Position        // position in the source.
 	Marker    string // marker.
+	Tag       string // tag.
 	Text      *Text  // text.
 }
 
-func NewRaw(pos *Position, marker string, text *Text) *Raw {
-	return &Raw{pos, marker, text}
+func NewRaw(pos *Position, marker, tag string, text *Text) *Raw {
+	return &Raw{pos, marker, tag, text}
 }
