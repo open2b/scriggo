@@ -1273,6 +1273,9 @@ LABEL:
 		if end == tokenEndStatements {
 			panic(syntaxError(tok.pos, "raw not allowed between {%%%% and %%%%}"))
 		}
+		if tok.ctx > ast.ContextMarkdown {
+			panic(syntaxError(tok.pos, "cannot use raw in %s", tok.ctx))
+		}
 		pos := tok.pos
 		tok = p.next()
 		var marker, tag string

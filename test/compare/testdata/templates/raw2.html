@@ -6,3 +6,5 @@
 {% raw `code` code %} // ERROR `unexpected code, expecting %}`
 
 {% raw code %} {% end code %} {% end raw code %} // ERROR `unexpected code, expecting raw`
+
+<a href="{% raw %}{% end %}"> // ERROR `cannot use raw in quoted attribute`
