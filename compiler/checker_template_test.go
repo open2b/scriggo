@@ -157,7 +157,7 @@ var checkerTemplateExprs = []struct {
 func TestCheckerTemplateExpressions(t *testing.T) {
 	options := checkerOptions{modality: templateMod, formatTypes: formatTypes, renderer: &renderer{}}
 	for _, expr := range checkerTemplateExprs {
-		var lex = scanTemplate([]byte("{{ "+expr.src+" }}"), ast.FormatText)
+		var lex = scanTemplate([]byte("{{ "+expr.src+" }}"), ast.FormatText, false)
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -228,7 +228,7 @@ var checkerTemplateExprErrors = []struct {
 func TestCheckerTemplateExpressionErrors(t *testing.T) {
 	options := checkerOptions{modality: templateMod, formatTypes: formatTypes}
 	for _, expr := range checkerTemplateExprErrors {
-		var lex = scanTemplate([]byte("{{ "+expr.src+" }}"), ast.FormatText)
+		var lex = scanTemplate([]byte("{{ "+expr.src+" }}"), ast.FormatText, false)
 		func() {
 			defer func() {
 				if r := recover(); r != nil {

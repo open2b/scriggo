@@ -42,11 +42,12 @@ const (
 
 // Options represents a set of options used during the compilation.
 type Options struct {
-	AllowShebangLine bool
-	DisallowGoStmt   bool
-	FormatTypes      map[ast.Format]reflect.Type
-	Globals          Declarations
-	Renderer         runtime.Renderer
+	AllowShebangLine     bool
+	DisallowGoStmt       bool
+	NoParseShortShowStmt bool
+	FormatTypes          map[ast.Format]reflect.Type
+	Globals              Declarations
+	Renderer             runtime.Renderer
 
 	// Packages loads Scriggo packages and precompiled packages.
 	//
@@ -159,7 +160,7 @@ func BuildTemplate(fsys fs.FS, name string, opts Options) (*Code, error) {
 
 	// Parse the source code.
 	var err error
-	tree, err = ParseTemplate(fsys, name, opts.Packages)
+	tree, err = ParseTemplate(fsys, name, opts.Packages, opts.NoParseShortShowStmt)
 	if err != nil {
 		return nil, err
 	}

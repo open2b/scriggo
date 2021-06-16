@@ -47,7 +47,7 @@ func scanScript(text []byte) *lexer {
 }
 
 // scanTemplate scans a template file and returns a lexer.
-func scanTemplate(text []byte, format ast.Format) *lexer {
+func scanTemplate(text []byte, format ast.Format, noParseShow bool) *lexer {
 	tokens := make(chan token, 20)
 	lex := &lexer{
 		text:           text,
@@ -58,6 +58,7 @@ func scanTemplate(text []byte, format ast.Format) *lexer {
 		tokens:         tokens,
 		templateSyntax: true,
 		extendedSyntax: true,
+		noParseShow:    noParseShow,
 	}
 	lex.tag.ctx = ast.ContextHTML
 	if lex.ctx == ast.ContextMarkdown {
@@ -109,6 +110,7 @@ type lexer struct {
 	err            error      // error, reports whether there was an error
 	templateSyntax bool       // support template syntax with tokens 'end', 'extends', 'in', 'macro', 'raw', 'render' and 'show'
 	extendedSyntax bool       // support extended syntax with tokens 'and', 'or', 'not', 'contains' and 'dollar'
+	noParseShow    bool       // do not parse the short show statement.
 }
 
 func (l *lexer) newline() {
@@ -239,6 +241,9 @@ func (l *lexer) scan() {
 			if c == '{' && p+1 < len(l.src) {
 				switch l.src[p+1] {
 				case '{':
+					if l.noParseShow {
+						break
+					}
 					if p > 0 {
 						l.emitAtLineColumn(lin, col, tokenText, p)
 						p = 0

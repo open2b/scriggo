@@ -106,8 +106,9 @@ const (
 )
 
 type BuildOptions struct {
-	DisallowGoStmt  bool
-	TreeTransformer func(*ast.Tree) error // if not nil transforms tree after parsing.
+	DisallowGoStmt       bool
+	NoParseShortShowStmt bool
+	TreeTransformer      func(*ast.Tree) error // if not nil transforms tree after parsing.
 
 	// MarkdownConverter converts a Markdown source code to HTML.
 	MarkdownConverter Converter
@@ -194,6 +195,7 @@ func Build(fsys fs.FS, name string, options *BuildOptions) (*Template, error) {
 		co.Globals = compiler.Declarations(options.Globals)
 		co.TreeTransformer = options.TreeTransformer
 		co.DisallowGoStmt = options.DisallowGoStmt
+		co.NoParseShortShowStmt = options.NoParseShortShowStmt
 		co.Packages = options.Packages
 		mdConverter = options.MarkdownConverter
 	}

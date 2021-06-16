@@ -714,6 +714,7 @@ var templateMultiFileCases = map[string]struct {
 	vars             map[string]interface{} // default to nil
 	entryPoint       string                 // default to "index.html"
 	packages         scriggo.PackageLoader  // default to nil
+	noParseShow      bool
 }{
 
 	"Empty template": {
@@ -2769,6 +2770,14 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedBuildErr: "unexpected {{, expecting declaration statement",
 	},
+
+	"Do not parse short show statement": {
+		sources: map[string]string{
+			"index.txt": "{% show 5 %} == {{ 5 }}",
+		},
+		noParseShow: true,
+		expectedOut: "5 == {{ 5 }}",
+	},
 }
 
 var structWithUnexportedFields = &struct {
@@ -2868,9 +2877,10 @@ func TestMultiFileTemplate(t *testing.T) {
 				}
 			}
 			opts := &BuildOptions{
-				Globals:           globals,
-				Packages:          cas.packages,
-				MarkdownConverter: markdownConverter,
+				Globals:              globals,
+				Packages:             cas.packages,
+				MarkdownConverter:    markdownConverter,
+				NoParseShortShowStmt: cas.noParseShow,
 			}
 			template, err := Build(fsys, entryPoint, opts)
 			switch {

@@ -244,9 +244,11 @@ func parseSource(src []byte, script, shebang bool) (tree *ast.Tree, err error) {
 // and returns its tree and the unexpanded Extends, Import, Render and
 // Assignment nodes.
 //
+// If noParseShow is true, short show statements are not parsed.
+//
 // format can be Text, HTML, CSS, JavaScript, JSON and Markdown. imported
 // indicates whether it is imported.
-func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *ast.Tree, unexpanded []ast.Node, err error) {
+func ParseTemplateSource(src []byte, format ast.Format, imported, noParseShow bool) (tree *ast.Tree, unexpanded []ast.Node, err error) {
 
 	if format < ast.FormatText || format > ast.FormatMarkdown {
 		return nil, nil, errors.New("scriggo: invalid format")
@@ -255,7 +257,7 @@ func ParseTemplateSource(src []byte, format ast.Format, imported bool) (tree *as
 	tree = ast.NewTree("", nil, format)
 
 	var p = &parsing{
-		lex:        scanTemplate(src, format),
+		lex:        scanTemplate(src, format, noParseShow),
 		format:     format,
 		imported:   imported,
 		ancestors:  []ast.Node{tree},
