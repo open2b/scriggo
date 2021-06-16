@@ -2272,14 +2272,14 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.md": "\t{% macro A %}{% end %}",
 		},
-		expectedBuildErr: `syntax error: macro not allowed in tab code block`,
+		expectedBuildErr: `syntax error: macro declaration not allowed in tab code block`,
 	},
 
 	"Macro in spaces code block context": {
 		sources: map[string]string{
 			"index.md": `    {% macro A %}{% end %}`,
 		},
-		expectedBuildErr: `syntax error: macro not allowed in spaces code block`,
+		expectedBuildErr: `syntax error: macro declaration not allowed in spaces code block`,
 	},
 
 	"Macro used in function call - an empty string is returned": {

@@ -1,18 +1,18 @@
 {# errorcheck #}
 
-<c {% macro a %}{% end %}>     // ERROR `syntax error: macro not allowed in tag`
-<c b="{% macro a %}{% end %}"> // ERROR `syntax error: macro not allowed in quoted attribute`
-<c b={% macro a %}{% end %}>   // ERROR `syntax error: macro not allowed in unquoted attribute`
+<c {% macro a %}{% end %}>     // ERROR `syntax error: macro declaration not allowed in tag`
+<c b="{% macro a %}{% end %}"> // ERROR `syntax error: macro declaration not allowed in quoted attribute`
+<c b={% macro a %}{% end %}>   // ERROR `syntax error: macro declaration not allowed in unquoted attribute`
 <style>
   div {
-    background-image: url("{% macro a %}{% end %}") // ERROR `syntax error: macro not allowed in CSS string`
+    background-image: url("{% macro a %}{% end %}") // ERROR `syntax error: macro declaration not allowed in CSS string`
     }
 </style>
 <script>
-  var c = "{% macro a %}{% end %}"; // ERROR `syntax error: macro not allowed in JavaScript string`
+  var c = "{% macro a %}{% end %}"; // ERROR `syntax error: macro declaration not allowed in JavaScript string`
 </script>
 <script type="application/ld+json">
-  { "c" : "{% macro a %}{% end %}" } // ERROR `syntax error: macro not allowed in JSON string`
+  { "c" : "{% macro a %}{% end %}" } // ERROR `syntax error: macro declaration not allowed in JSON string`
 </script>
 
 {% macro A []string %} // ERROR `syntax error: unexpected [, expecting string, html, css, js, json, markdown or %}`

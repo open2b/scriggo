@@ -1116,7 +1116,7 @@ LABEL:
 			panic(syntaxError(tok.pos, "unexpected macro in statement scope"))
 		}
 		if tok.ctx > ast.ContextMarkdown {
-			panic(syntaxError(tok.pos, "macro not allowed in %s", tok.ctx))
+			panic(syntaxError(tok.pos, "macro declaration not allowed in %s", tok.ctx))
 		}
 		if tok.ctx != ast.Context(p.format) {
 			panic(syntaxError(tok.pos, "macro not in %s content", ast.Context(p.format)))
