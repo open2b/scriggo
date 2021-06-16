@@ -2743,7 +2743,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": "{%% raw %%}",
 		},
-		expectedBuildErr: "raw not allowed between {%% and %%}",
+		expectedBuildErr: "cannot use raw between {%% and %%}",
 	},
 
 	"Raw statement in imported files": {

@@ -1273,7 +1273,7 @@ LABEL:
 	// raw
 	case tokenRaw:
 		if end == tokenEndStatements {
-			panic(syntaxError(tok.pos, "raw not allowed between {%%%% and %%%%}"))
+			panic(syntaxError(tok.pos, "cannot use raw between {%%%% and %%%%}"))
 		}
 		if tok.ctx > ast.ContextMarkdown {
 			panic(syntaxError(tok.pos, "cannot use raw in %s", tok.ctx))
