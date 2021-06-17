@@ -51,19 +51,19 @@ var definedIntSliceTypeInfo = &typeInfo{Type: reflect.SliceOf(definedIntTypeInfo
 var definedStringTypeInfo = &typeInfo{Type: reflect.TypeOf(definedString("")), Properties: propertyAddressable}
 
 func tiHTMLConst(s string) *typeInfo {
-	return &typeInfo{Type: formatTypes[ast.FormatHTML], Constant: stringConst(s)}
+	return &typeInfo{Type: formatTypes[ast.FormatHTML], Properties: propertyIsFormatType, Constant: stringConst(s)}
 }
 
 func tiHTML() *typeInfo {
-	return &typeInfo{Type: formatTypes[ast.FormatHTML]}
+	return &typeInfo{Type: formatTypes[ast.FormatHTML], Properties: propertyIsFormatType}
 }
 
 func tiMarkdownConst(s string) *typeInfo {
-	return &typeInfo{Type: formatTypes[ast.FormatMarkdown], Constant: stringConst(s)}
+	return &typeInfo{Type: formatTypes[ast.FormatMarkdown], Properties: propertyIsFormatType, Constant: stringConst(s)}
 }
 
 func tiMarkdown() *typeInfo {
-	return &typeInfo{Type: formatTypes[ast.FormatMarkdown]}
+	return &typeInfo{Type: formatTypes[ast.FormatMarkdown], Properties: propertyIsFormatType}
 }
 
 var checkerTemplateExprs = []struct {
@@ -223,6 +223,10 @@ var checkerTemplateExprErrors = []struct {
 	{`(macro() css)(nil)`, tierr(1, 13, `invalid macro result type css`), map[string]*typeInfo{"css": {Type: reflect.TypeOf(0), Properties: propertyIsType}}},
 	{`(macro() html)(nil)`, tierr(1, 13, `invalid macro result type html`), map[string]*typeInfo{"html": {Type: reflect.TypeOf(definedInt(0)), Properties: propertyIsType}}},
 	{`(macro() markdown)(nil)`, tierr(1, 13, `invalid macro result type markdown`), map[string]*typeInfo{"markdown": {Type: reflect.TypeOf(js("")), Properties: propertyIsType}}},
+
+	// slicing of a format type
+	{`a[1:2]`, tierr(1, 5, `invalid operation a[1:2] (slice of compiler.html)`), map[string]*typeInfo{"a": tiHTMLConst("<b>a</b>")}},
+	{`a[1:2]`, tierr(1, 5, `invalid operation a[1:2] (slice of compiler.html)`), map[string]*typeInfo{"a": tiHTML()}},
 }
 
 func TestCheckerTemplateExpressionErrors(t *testing.T) {

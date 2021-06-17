@@ -739,6 +739,9 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			if expr.IsFull {
 				panic(tc.errorf(expr, "invalid operation %s (3-index slice of string)", expr))
 			}
+			if t.IsFormatType() {
+				panic(tc.errorf(expr, "invalid operation %s (slice of %s)", expr, t))
+			}
 		case reflect.Slice:
 		case reflect.Array:
 			if !t.Addressable() {
