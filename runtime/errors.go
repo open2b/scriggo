@@ -333,6 +333,7 @@ func panicToString(msg interface{}) string {
 }
 
 // missingMethod returns a method in iface and not in typ.
+// Keep in sync with the same function in the compiler package.
 func missingMethod(typ reflect.Type, iface reflect.Type) string {
 	num := iface.NumMethod()
 	for i := 0; i < num; i++ {

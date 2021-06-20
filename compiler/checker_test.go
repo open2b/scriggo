@@ -9,6 +9,7 @@ package compiler
 import (
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"strconv"
 	"strings"
@@ -973,6 +974,7 @@ var checkerStmts = map[string]string{
 	`a := interface{}(3); n, ok := a.(int); var _ int = n; var _ bool = ok`: ok,
 	`_ = nil.(int)`: `use of untyped nil`,
 	`a := int(3); n, ok := a.(int); var _ int = n; var _ bool = ok`: `invalid type assertion: a.(int) (non-interface type int on left)`,
+	`var a ioReader; _ = a.(string)`:                                "impossible type assertion:\n\tstring does not implement io.Reader (missing Read method)",
 
 	// Slices.
 	`_ = [][]string{[]string{"a", "f"}, []string{"g", "h"}}`: ok,
@@ -1591,6 +1593,7 @@ func TestCheckerStatements(t *testing.T) {
 		"pointInt":   {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf(pointInt{})}},
 		"aIntChan":   {t: &typeInfo{Type: reflect.TypeOf(make(chan int))}},
 		"aSliceChan": {t: &typeInfo{Type: reflect.TypeOf(make(chan []int))}},
+		"ioReader":   {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*io.Reader)(nil)).Elem()}},
 	}
 	for src, expectedError := range checkerStmts {
 		func() {

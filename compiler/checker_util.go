@@ -779,6 +779,35 @@ func (tc *typechecker) typedValue(ti *typeInfo, t reflect.Type) interface{} {
 	return nv.Interface()
 }
 
+// missingMethod returns a method in iface and not in typ.
+// Keep in sync with the same function in the runtime package.
+func missingMethod(typ reflect.Type, iface reflect.Type) string {
+	num := iface.NumMethod()
+	for i := 0; i < num; i++ {
+		mi := iface.Method(i)
+		mt, ok := typ.MethodByName(mi.Name)
+		if !ok {
+			return mi.Name
+		}
+		numIn := mi.Type.NumIn()
+		numOut := mi.Type.NumOut()
+		if mt.Type.NumIn()-1 != numIn || mt.Type.NumOut() != numOut {
+			return mi.Name
+		}
+		for j := 0; j < numIn; j++ {
+			if mt.Type.In(j+1) != mi.Type.In(j) {
+				return mi.Name
+			}
+		}
+		for j := 0; j < numOut; j++ {
+			if mt.Type.Out(j) != mi.Type.Out(j) {
+				return mi.Name
+			}
+		}
+	}
+	return ""
+}
+
 // noSpacePosition returns the position of the text in n once the leading and
 // trailing ASCII non-space bytes have been sliced off. If there are no bytes
 // to slice off, it returns the position of n. If the text in n contains only
