@@ -28,6 +28,9 @@ import (
 	"github.com/open2b/scriggo/runtime"
 )
 
+// formatTypeName reports the type name for each format.
+var formatTypeName = [...]string{"string", "html", "css", "js", "json", "markdown"}
+
 // internalOperatorZero and internalOperatorNotZero are two internal operators
 // that are inserted in the tree by the type checker and that are handled by the
 // emitter as two unary operators that return true if the operand is,
