@@ -1093,19 +1093,11 @@ LOOP:
 					case tokenEndStatement:
 						// If a macro declaration with an explicit result type has been lexed, set the context.
 						if ident.index == l.totals {
-							switch ident.txt {
-							case "string":
-								l.ctx = ast.ContextText
-							case "html":
-								l.ctx = ast.ContextHTML
-							case "css":
-								l.ctx = ast.ContextCSS
-							case "js":
-								l.ctx = ast.ContextJS
-							case "json":
-								l.ctx = ast.ContextJSON
-							case "markdown":
-								l.ctx = ast.ContextMarkdown
+							for i, name := range formatTypeName {
+								if name == ident.txt {
+									l.ctx = ast.Context(i)
+									break
+								}
 							}
 						}
 						return nil
