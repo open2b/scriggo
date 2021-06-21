@@ -498,6 +498,35 @@ func (tc *typechecker) setUnusedImports(node *ast.Import, name string, declarati
 	}
 }
 
+// makeUsingTypeExplicit makes the type expression of a 'using' statement
+// explicit.
+// It should be called before checking the type of a 'using' statement without
+// an explicit type.
+func (tc *typechecker) makeUsingTypeExplicit(using *ast.Using) {
+	var name string
+	switch using.Format {
+	case ast.FormatText:
+		name = "string"
+	case ast.FormatHTML:
+		name = "html"
+	case ast.FormatCSS:
+		name = "css"
+	case ast.FormatJS:
+		name = "js"
+	case ast.FormatJSON:
+		name = "json"
+	case ast.FormatMarkdown:
+		name = "markdown"
+	}
+	scope, ok := tc.universe[name]
+	if !ok {
+		panic("no type defined for format " + using.Format.String())
+	}
+	ident := ast.NewIdentifier(using.Pos(), name)
+	tc.compilation.typeInfos[ident] = scope.t
+	using.Type = ident
+}
+
 // methodByName returns a function type that describe the method with that
 // name and a boolean indicating if the method was found.
 //

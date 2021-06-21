@@ -258,6 +258,26 @@ type typechecker struct {
 	// inExtendedFile reports whether the type checker is type checking an
 	// extended file.
 	inExtendedFile bool
+
+	// using holds information about the type checking and the transformation
+	// of the 'using' statements.
+	using struct {
+		currentThisIndex int
+		// withinUsingStmt reports whether the type checker is currently checking
+		// the statement of the 'using'.
+		withinUsingStmt bool
+	}
+}
+
+// thisIncreaseIndex increases the index used in the name of the 'this'
+// identifier, in order to make it unique.
+func (tc *typechecker) thisIncreaseIndex() {
+	tc.using.currentThisIndex++
+}
+
+// thisCurrentName returns the current name of the 'this' identifier.
+func (tc *typechecker) thisCurrentName() string {
+	return fmt.Sprintf("$_this_%d", tc.using.currentThisIndex)
 }
 
 // newTypechecker creates a new type checker. A global scope may be provided
@@ -279,6 +299,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		structDeclPkg:    map[reflect.Type]string{},
 		precompiledPkgs:  precompiledPkgs,
 	}
+	tc.using.currentThisIndex = -1
 	if len(opts.formatTypes) > 0 {
 		tc.universe = typeCheckerScope{}
 		for name, scope := range universe {

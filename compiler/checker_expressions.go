@@ -133,6 +133,12 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 		found = false
 	}
 
+	// Handle the 'this' identifier when checking the use statement.
+	if tc.using.withinUsingStmt && ident.Name == "this" {
+		ident.Name = tc.thisCurrentName()
+		ti, found = tc.lookupScopes(ident.Name, false)
+	}
+
 	if !found {
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
 	}

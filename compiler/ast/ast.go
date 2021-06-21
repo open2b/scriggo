@@ -891,6 +891,9 @@ func NewIdentifier(pos *Position, name string) *Identifier {
 }
 
 func (n *Identifier) String() string {
+	if strings.HasPrefix(n.Name, "$_this_") {
+		return "this"
+	}
 	return n.Name
 }
 

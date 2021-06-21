@@ -664,19 +664,57 @@ nodesLoop:
 			tc.terminating = false
 
 		case *ast.Using:
+
+			// Make the type explicit, if necessary.
+			if node.Type == nil {
+				tc.makeUsingTypeExplicit(node)
+			}
+
+			// Backup the current state of the type checker.
+			tc.thisIncreaseIndex()
+
+			// Type check the type and transform the tree.
 			typ := tc.checkType(node.Type)
-			if ident, ok := node.Type.(*ast.Identifier); ok {
-				if typ.Type != tc.universe[ident.Name].t.Type {
+			var thisExpr ast.Expression
+			switch typeExpr := node.Type.(type) {
+			case *ast.Identifier:
+				if typ.Type != tc.universe[typeExpr.Name].t.Type {
 					panic(tc.errorf(node, "invalid using type %s", typ))
 				}
+				dummyFuncType := ast.NewFuncType(nil, true, nil, []*ast.Parameter{
+					ast.NewParameter(nil, node.Type.(*ast.Identifier)),
+				}, false)
+				dummyFunc := ast.NewFunc(nil, nil, dummyFuncType, node.Body, false, 0)
+				thisExpr = ast.NewCall(nil, dummyFunc, nil, false)
+			case *ast.FuncType: // macro type.
+				thisExpr = ast.NewFunc(nil, nil, typeExpr, node.Body, false, 0)
+			default:
+				panic("BUG: the parser should not allow this")
 			}
-			tc.enterScope()
-			tc.assignScope("this", typ, nil)
-			tc.checkNodes([]ast.Node{node.Statement})
-			tc.exitScope()
-			tc.enterScope()
-			tc.checkNodes(node.Body.Nodes)
-			tc.exitScope()
+			dummyAssignment := ast.NewAssignment(
+				nil,
+				[]ast.Expression{ast.NewIdentifier(nil, tc.thisCurrentName())},
+				ast.AssignmentDeclaration,
+				[]ast.Expression{thisExpr},
+			)
+
+			// Type check the dummy assignment of the 'using' statement, along
+			// with its content, and transform the tree.
+			dummyNodesPre := []ast.Node{dummyAssignment}
+			dummyNodesPre = tc.checkNodes(dummyNodesPre)
+			nodes = append(nodes[:i], append(dummyNodesPre, nodes[i:]...)...)
+			i += len(dummyNodesPre)
+
+			// Type check the statement of the 'using' and transform the tree.
+			withinStmt := tc.using.withinUsingStmt
+			tc.using.withinUsingStmt = true
+			dummyNodesPost := []ast.Node{node.Statement}
+			dummyNodesPost = tc.checkNodes(dummyNodesPost)
+			nodes = append(nodes[:i], append(dummyNodesPost, nodes[i+1:]...)...)
+			i += len(dummyNodesPost)
+			tc.using.withinUsingStmt = withinStmt
+
+			continue nodesLoop
 
 		case *ast.Defer:
 			if node.Call.Parenthesis() > 0 {

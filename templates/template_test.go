@@ -3187,6 +3187,78 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "\n\n\t\t\n\t\t\n\t\t\t\t\t\n",
 	},
+
+	"Using - show": {
+		sources: map[string]string{
+			"index.html": `{% show this using html %}foo{% end using %}`,
+		},
+		expectedOut: "foo",
+	},
+
+	"Using - show (implicit type)": {
+		sources: map[string]string{
+			"index.html": `{% show this using %}foo{% end using %}`,
+		},
+		expectedOut: "foo",
+	},
+
+	"Using - show - Two using statement": {
+		sources: map[string]string{
+			"index.txt": `{% show this using %}foo{% end using %}{% show this using %}bar{% end using %}`,
+		},
+		expectedOut: "foobar",
+	},
+
+	"Using - 'this' is not defined outside": {
+		sources: map[string]string{
+			"index.html": `{% show this using html %}foo{% end using %}{{ this }}`,
+		},
+		expectedBuildErr: "undefined: this",
+	},
+
+	"Using - 'this' is not defined outside (implicit type)": {
+		sources: map[string]string{
+			"index.html": `{% show this using %}foo{% end using %}{{ this }}`,
+		},
+		expectedBuildErr: "undefined: this",
+	},
+
+	"Using - assignment with ':='": {
+		sources: map[string]string{
+			"index.html": `{% x := this using html %}hello, how are you{% end using %}{{ x }}, len: {{ len(x) }}`,
+		},
+		expectedOut: "hello, how are you, len: 18",
+	},
+
+	"Using - assignment with ':=' (implicit type)": {
+		sources: map[string]string{
+			"index.html": `{% x := this using %}hello, how are you{% end using %}{{ x }}, len: {{ len(x) }}`,
+		},
+		expectedOut: "hello, how are you, len: 18",
+	},
+
+	"Using - assignment with 'var'": {
+		sources: map[string]string{
+			"index.html": `{% var date, days = this, 5 using html %}
+			<span>{{ now() }}</span>
+		  {% end using %}
+		  Date is {{ date }}`,
+		},
+		expectedOut: "\t\t  Date is \n\t\t\t<span>1999-01-19</span>\n",
+		main: scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"now": func() string { return "1999-01-19" },
+			},
+		},
+	},
+
+	"Using - macro": {
+		sources: map[string]string{
+			"index.txt": `{% show this() using macro() string %}macro content{% end using %}`,
+		},
+		expectedOut: "macro content",
+	},
 }
 
 var structWithUnexportedFields = &struct {
