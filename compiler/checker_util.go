@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -816,32 +817,12 @@ func (tc *typechecker) errTypeAssertion(typ reflect.Type, iface reflect.Type) er
 			}
 		}
 		if !sameParameters {
-			have := "func("
-			for j := 0; j < numIn; j++ {
-				if j > 0 {
-					have += ", "
-				}
-				t := mt.Type.In(j + 1)
-				if isVariadic && j == numIn-1 {
-					have += "..." + t.Elem().String()
-				} else {
-					have += t.String()
-				}
+			have := mt.Type.String()
+			p := strings.IndexAny(have, " )")
+			if have[p] == ' ' {
+				p++
 			}
-			have += ")"
-			if numOut > 0 {
-				var out string
-				for j := 0; j < numOut; j++ {
-					if j > 0 {
-						out += ", "
-					}
-					out += mt.Type.Out(j).String()
-				}
-				if numOut > 1 {
-					out = "(" + out + ")"
-				}
-				have += " " + out
-			}
+			have = "func(" + have[p:]
 			want := mi.Type.String()
 			return fmt.Errorf("%s (wrong type for %s method)\n\t\thave %s\n\t\twant %s", msg, mi.Name, have, want)
 		}
