@@ -3154,6 +3154,20 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "macro content",
 	},
+
+	/*	"Using - function literal 1": {
+			sources: map[string]string{
+				"index.txt": `{% show func() string { var this = "ok"; return this }() using %}no{% end using %}`,
+			},
+			expectedOut: "ok",
+		},
+
+		"Using - function literal 2": {
+			sources: map[string]string{
+				"index.txt": `{% show func() string { return this }() using %}ok{% end using %}`,
+			},
+			expectedOut: "ok",
+		},*/
 }
 
 var structWithUnexportedFields = &struct {
