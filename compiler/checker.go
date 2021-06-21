@@ -276,21 +276,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 			tc.universe[name] = scope
 		}
 		for format, typ := range opts.formatTypes {
-			var name string
-			switch format {
-			case ast.FormatHTML:
-				name = "html"
-			case ast.FormatCSS:
-				name = "css"
-			case ast.FormatJS:
-				name = "js"
-			case ast.FormatJSON:
-				name = "json"
-			case ast.FormatMarkdown:
-				name = "markdown"
-			default:
-				panic("invalid type format")
-			}
+			name := formatTypeName[format]
 			tc.universe[name] = scopeElement{t: &typeInfo{
 				Type:       typ,
 				Properties: propertyIsType | propertyIsFormatType | propertyPredeclared,

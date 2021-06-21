@@ -90,6 +90,9 @@ type scopeVariable struct {
 	node       ast.Node
 }
 
+// formatTypeName reports the type name for each format.
+var formatTypeName = []string{"string", "html", "css", "js", "json", "markdown"}
+
 // checkIdentifier checks an identifier. If using, ident is marked as "used".
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *typeInfo {
 
