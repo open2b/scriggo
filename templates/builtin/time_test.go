@@ -74,6 +74,8 @@ var timeTests = []struct {
 	{spf("%t", t1.Equal(t2)), "false"},
 	{spf("%s", t1.Format("Monday, 02-Jan-06 15:04:05 MST")), "Saturday, 27-Mar-21 11:21:14 CET"},
 	{spf("%d", t1.Hour()), "11"},
+	{spf("%t", t1.IsZero()), "false"},
+	{spf("%t", time.Time{}.IsZero()), "true"},
 	{spf("%s", t1.JS()), `new Date("2021-03-27T11:21:14.964+01:00")`},
 	{spf("%s", t1.JSON()), `"2021-03-27T11:21:14+01:00"`},
 	{spf("%d", t1.Minute()), "21"},

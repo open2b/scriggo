@@ -126,6 +126,12 @@ func (t Time) Hour() int {
 	return t.t.Hour()
 }
 
+// IsZero reports whether t represents the zero time instant,
+// January 1, year 1, 00:00:00 UTC.
+func (t Time) IsZero() bool {
+	return t.t.IsZero()
+}
+
 // JS returns the time as a JavaScript date. The result is undefined if the
 // year of t is not in the range [-999999, 999999].
 func (t Time) JS() templates.JS {
