@@ -1452,26 +1452,18 @@ func (p *parsing) parseUsing(stmt ast.Node, tok token, abbreviated bool) (ast.No
 		}
 	case tokenIdentifier:
 		ident := p.parseIdentifierNode(tok)
-		switch ident.Name {
-		case "string":
-			using.Format = ast.FormatText
-		case "html":
-			using.Format = ast.FormatHTML
-		case "css":
-			using.Format = ast.FormatCSS
-		case "js":
-			using.Format = ast.FormatJS
-		case "json":
-			using.Format = ast.FormatJSON
-		case "markdown":
-			using.Format = ast.FormatMarkdown
-		default:
+		for i, name := range formatTypeName {
+			if name == ident.Name {
+				using.Type = ident
+				using.Format = ast.Format(i)
+			}
+		}
+		if using.Type == nil {
 			if abbreviated {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json, markdown or %%}", ident.Name))
 			}
 			panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json, markdown, macro or %%}", ident.Name))
 		}
-		using.Type = ident
 		tok = p.next()
 	case tokenSemicolon, tokenEndStatement:
 	default:
