@@ -421,33 +421,6 @@ func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.I
 
 }
 
-// formatType returns a format type given a format. Returns nil if the type
-// has not been declared.
-func (tc *typechecker) formatType(format ast.Format) reflect.Type {
-	var name string
-	switch format {
-	case ast.FormatText:
-		name = "string"
-	case ast.FormatHTML:
-		name = "html"
-	case ast.FormatCSS:
-		name = "css"
-	case ast.FormatJS:
-		name = "js"
-	case ast.FormatJSON:
-		name = "json"
-	case ast.FormatMarkdown:
-		name = "markdown"
-	default:
-		panic("invalid type format")
-	}
-	ti := tc.universe[name].t
-	if ti == nil {
-		return nil
-	}
-	return ti.Type
-}
-
 // An ancestor is an AST node with a scope level associated. The type checker
 // holds a list of ancestors to keep track of the current position and depth
 // inside the full AST tree.
