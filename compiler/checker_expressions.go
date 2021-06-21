@@ -895,9 +895,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		}
 		typ := tc.checkType(expr.Type)
 		if typ.Type.Kind() != reflect.Interface && !tc.types.Implements(typ.Type, t.Type) {
-			method := missingMethod(typ.Type, t.Type)
-			panic(tc.errorf(expr, "impossible type assertion:\n\t%s does not implement %s (missing %s method)",
-				typ.Type, t.Type, method))
+			panic(tc.errorf(expr, "%s", tc.errTypeAssertion(typ.Type, t.Type)))
 		}
 		return &typeInfo{
 			Type:       typ.Type,

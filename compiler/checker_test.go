@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -34,6 +35,18 @@ type definedStringSlice []byte
 type definedStringMap map[string]string
 type definedStruct struct{ F int }
 type definedStructPointer *struct{ F int }
+
+type noRead1 struct{}
+
+func (nr noRead1) Read([]byte, int) (int, error) { return 0, nil }
+
+type noRead2 struct{}
+
+func (nr noRead2) Read([]byte) error { return nil }
+
+type noRead3 struct{}
+
+func (nr noRead3) Read(...byte) (int, error) { return 0, nil }
 
 var structTypeInfo = &typeInfo{Type: reflect.StructOf([]reflect.StructField{
 	{Name: "F", Type: reflect.TypeOf(0)},
@@ -975,6 +988,10 @@ var checkerStmts = map[string]string{
 	`_ = nil.(int)`: `use of untyped nil`,
 	`a := int(3); n, ok := a.(int); var _ int = n; var _ bool = ok`: `invalid type assertion: a.(int) (non-interface type int on left)`,
 	`var a ioReader; _ = a.(string)`:                                "impossible type assertion:\n\tstring does not implement io.Reader (missing Read method)",
+	`var a ioReader; _ = a.(osFile)`:                                "impossible type assertion:\n\tos.File does not implement io.Reader (Read method has pointer receiver)",
+	`var a ioReader; _ = a.(noRead1)`:                               "impossible type assertion:\n\tcompiler.noRead1 does not implement io.Reader (wrong type for Read method)\n\t\thave func([]uint8, int) (int, error)\n\t\twant func([]uint8) (int, error)",
+	`var a ioReader; _ = a.(noRead2)`:                               "impossible type assertion:\n\tcompiler.noRead2 does not implement io.Reader (wrong type for Read method)\n\t\thave func([]uint8) error\n\t\twant func([]uint8) (int, error)",
+	`var a ioReader; _ = a.(noRead3)`:                               "impossible type assertion:\n\tcompiler.noRead3 does not implement io.Reader (wrong type for Read method)\n\t\thave func(...uint8) (int, error)\n\t\twant func([]uint8) (int, error)",
 
 	// Slices.
 	`_ = [][]string{[]string{"a", "f"}, []string{"g", "h"}}`: ok,
@@ -1594,6 +1611,10 @@ func TestCheckerStatements(t *testing.T) {
 		"aIntChan":   {t: &typeInfo{Type: reflect.TypeOf(make(chan int))}},
 		"aSliceChan": {t: &typeInfo{Type: reflect.TypeOf(make(chan []int))}},
 		"ioReader":   {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*io.Reader)(nil)).Elem()}},
+		"osFile":     {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*os.File)(nil)).Elem()}},
+		"noRead1":    {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*noRead1)(nil)).Elem()}},
+		"noRead2":    {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*noRead2)(nil)).Elem()}},
+		"noRead3":    {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*noRead3)(nil)).Elem()}},
 	}
 	for src, expectedError := range checkerStmts {
 		func() {

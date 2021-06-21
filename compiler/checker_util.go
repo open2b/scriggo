@@ -779,33 +779,74 @@ func (tc *typechecker) typedValue(ti *typeInfo, t reflect.Type) interface{} {
 	return nv.Interface()
 }
 
-// missingMethod returns a method in iface and not in typ.
-// Keep in sync with the same function in the runtime package.
-func missingMethod(typ reflect.Type, iface reflect.Type) string {
+// errTypeAssertion is called when the type typ does not implement the
+// interface iface. It returns the corresponding compile-time error.
+func (tc *typechecker) errTypeAssertion(typ reflect.Type, iface reflect.Type) error {
+	msg := fmt.Sprintf("impossible type assertion:\n\t%s does not implement %s", typ, iface)
 	num := iface.NumMethod()
 	for i := 0; i < num; i++ {
 		mi := iface.Method(i)
 		mt, ok := typ.MethodByName(mi.Name)
 		if !ok {
-			return mi.Name
+			ptr := tc.types.PtrTo(typ)
+			_, ok = ptr.MethodByName(mi.Name)
+			if ok {
+				return fmt.Errorf("%s (%s method has pointer receiver)", msg, mi.Name)
+			}
+			return fmt.Errorf("%s (missing %s method)", msg, mi.Name)
 		}
-		numIn := mi.Type.NumIn()
-		numOut := mi.Type.NumOut()
-		if mt.Type.NumIn()-1 != numIn || mt.Type.NumOut() != numOut {
-			return mi.Name
-		}
-		for j := 0; j < numIn; j++ {
-			if mt.Type.In(j+1) != mi.Type.In(j) {
-				return mi.Name
+		numIn := mt.Type.NumIn() - 1
+		numOut := mt.Type.NumOut()
+		isVariadic := mt.Type.IsVariadic()
+		sameParameters := mi.Type.NumIn() == numIn && mi.Type.NumOut() == numOut && mi.Type.IsVariadic() == isVariadic
+		if sameParameters {
+			for j := 0; j < numIn; j++ {
+				if mi.Type.In(j) != mt.Type.In(j+1) {
+					sameParameters = false
+					break
+				}
 			}
 		}
-		for j := 0; j < numOut; j++ {
-			if mt.Type.Out(j) != mi.Type.Out(j) {
-				return mi.Name
+		if sameParameters {
+			for j := 0; j < numOut; j++ {
+				if mi.Type.Out(j) != mt.Type.Out(j) {
+					sameParameters = false
+					break
+				}
 			}
+		}
+		if !sameParameters {
+			have := "func("
+			for j := 0; j < numIn; j++ {
+				if j > 0 {
+					have += ", "
+				}
+				t := mt.Type.In(j + 1)
+				if isVariadic && j == numIn-1 {
+					have += "..." + t.Elem().String()
+				} else {
+					have += t.String()
+				}
+			}
+			have += ")"
+			if numOut > 0 {
+				var out string
+				for j := 0; j < numOut; j++ {
+					if j > 0 {
+						out += ", "
+					}
+					out += mt.Type.Out(j).String()
+				}
+				if numOut > 1 {
+					out = "(" + out + ")"
+				}
+				have += " " + out
+			}
+			want := mi.Type.String()
+			return fmt.Errorf("%s (wrong type for %s method)\n\t\thave %s\n\t\twant %s", msg, mi.Name, have, want)
 		}
 	}
-	return ""
+	panic("unexpected")
 }
 
 // noSpacePosition returns the position of the text in n once the leading and
