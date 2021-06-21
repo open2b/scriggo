@@ -1470,8 +1470,9 @@ type Using struct {
 	Statement Node       // previous statement.
 	Type      Expression // type, can be a format identifier or a macro.
 	Body      *Block     // body.
+	Format    Format     // using content format.
 }
 
-func NewUsing(pos *Position, stmt Node, typ Expression, body *Block) *Using {
-	return &Using{pos, stmt, typ, body}
+func NewUsing(pos *Position, stmt Node, typ Expression, body *Block, format Format) *Using {
+	return &Using{pos, stmt, typ, body, format}
 }

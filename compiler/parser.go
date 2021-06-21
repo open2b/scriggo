@@ -1438,7 +1438,7 @@ func (p *parsing) parseUsing(stmt ast.Node, tok token, abbreviated bool) (ast.No
 		panic(syntaxError(tok.pos, "using not allowed in %s", tok.ctx))
 	}
 	block := ast.NewBlock(nil, []ast.Node{})
-	using := ast.NewUsing(tok.pos, stmt, nil, block)
+	using := ast.NewUsing(tok.pos, stmt, nil, block, ast.Format(tok.ctx))
 	switch tok = p.next(); tok.typ {
 	case tokenMacro:
 		if abbreviated {
@@ -1447,10 +1447,24 @@ func (p *parsing) parseUsing(stmt ast.Node, tok token, abbreviated bool) (ast.No
 		var macro ast.Node
 		macro, tok = p.parseFunc(tok, parseFuncLit)
 		using.Type = macro.(*ast.Func).Type
+		if len(using.Type.(*ast.FuncType).Result) > 0 {
+			using.Format = macro.(*ast.Func).Format
+		}
 	case tokenIdentifier:
 		ident := p.parseIdentifierNode(tok)
 		switch ident.Name {
-		case "string", "html", "css", "js", "json", "markdown":
+		case "string":
+			using.Format = ast.FormatText
+		case "html":
+			using.Format = ast.FormatHTML
+		case "css":
+			using.Format = ast.FormatCSS
+		case "js":
+			using.Format = ast.FormatJS
+		case "json":
+			using.Format = ast.FormatJSON
+		case "markdown":
+			using.Format = ast.FormatMarkdown
 		default:
 			if abbreviated {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json, markdown or %%}", ident.Name))
