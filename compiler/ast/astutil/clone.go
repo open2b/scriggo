@@ -314,6 +314,13 @@ func CloneNode(node ast.Node) ast.Node {
 		}
 		return ast.NewURL(ClonePosition(n.Position), n.Tag, n.Attribute, value)
 
+	case *ast.Using:
+		var body *ast.Block
+		if n.Body != nil {
+			body = CloneNode(n.Body).(*ast.Block)
+		}
+		return ast.NewUsing(ClonePosition(n.Position), CloneNode(n.Statement), CloneExpression(n.Type), body, n.Format)
+
 	case *ast.Var:
 		idents := make([]*ast.Identifier, len(n.Lhs))
 		for i, v := range n.Lhs {
