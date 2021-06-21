@@ -1390,24 +1390,24 @@ var treeTests = []struct {
 	}, ast.FormatHTML)},
 	{"{% show this using %}a{% end using %}", ast.NewTree("", []ast.Node{
 		ast.NewUsing(p(1, 14, 13, 33), ast.NewShow(p(1, 4, 3, 11), []ast.Expression{
-			ast.NewIdentifier(p(1, 9, 8, 11), "this")}, nil, ast.ContextHTML), nil,
+			ast.NewIdentifier(p(1, 9, 8, 11), "this")}, ast.ContextHTML), nil,
 			ast.NewBlock(nil, []ast.Node{
 				ast.NewText(p(1, 22, 21, 21), []byte("a"), ast.Cut{})}), ast.FormatHTML)}, ast.FormatHTML)},
 	{"{% show this using macro %}a{% end %}", ast.NewTree("", []ast.Node{
 		ast.NewUsing(p(1, 14, 13, 33), ast.NewShow(p(1, 4, 3, 11), []ast.Expression{
-			ast.NewIdentifier(p(1, 9, 8, 11), "this")}, nil, ast.ContextHTML),
+			ast.NewIdentifier(p(1, 9, 8, 11), "this")}, ast.ContextHTML),
 			ast.NewFuncType(p(1, 20, 19, 23), true, nil, nil, false),
 			ast.NewBlock(nil, []ast.Node{
 				ast.NewText(p(1, 28, 27, 27), []byte("a"), ast.Cut{})}), ast.FormatHTML)}, ast.FormatHTML)},
 	{"{% show this using macro() html %}a{% end %}", ast.NewTree("", []ast.Node{
 		ast.NewUsing(p(1, 14, 13, 40), ast.NewShow(p(1, 4, 3, 11), []ast.Expression{
-			ast.NewIdentifier(p(1, 9, 8, 11), "this")}, nil, ast.ContextHTML),
+			ast.NewIdentifier(p(1, 9, 8, 11), "this")}, ast.ContextHTML),
 			ast.NewFuncType(p(1, 20, 19, 30), true, nil, []*ast.Parameter{
 				ast.NewParameter(nil, ast.NewIdentifier(p(1, 28, 27, 30), "html"))}, false),
 			ast.NewBlock(nil, []ast.Node{
 				ast.NewText(p(1, 35, 34, 34), []byte("a"), ast.Cut{})}), ast.FormatHTML)}, ast.FormatHTML)},
 	{"{% show using markdown %}a{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewUsing(p(1, 9, 8, 31), ast.NewShow(p(1, 4, 3, 6), nil, nil, ast.ContextHTML),
+		ast.NewUsing(p(1, 9, 8, 31), ast.NewShow(p(1, 4, 3, 6), nil, ast.ContextHTML),
 			ast.NewIdentifier(p(1, 15, 14, 21), "markdown"),
 			ast.NewBlock(nil, []ast.Node{
 				ast.NewText(p(1, 26, 25, 25), []byte("a"), ast.Cut{})}), ast.FormatMarkdown)}, ast.FormatHTML)},
