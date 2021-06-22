@@ -128,7 +128,7 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 		panic(tc.errorf(node, "missing value in const declaration"))
 	}
 
-	if len(node.Rhs) < len(node.Rhs) {
+	if len(node.Lhs) < len(node.Rhs) {
 		panic(tc.errorf(node, "extra expression in const declaration"))
 	}
 
