@@ -830,46 +830,6 @@ func (tc *typechecker) errTypeAssertion(typ reflect.Type, iface reflect.Type) er
 	panic("unexpected")
 }
 
-// noSpacePosition returns the position of the text in n once the leading and
-// trailing ASCII non-space bytes have been sliced off. If there are no bytes
-// to slice off, it returns the position of n. If the text in n contains only
-// ASCII space bytes, it returns nil.
-func noSpacePosition(n *ast.Text) *ast.Position {
-	// Search the first non white space byte.
-	var i int
-	for i = 0; i < len(n.Text); i++ {
-		if !isASCIISpace(n.Text[i]) {
-			break
-		}
-	}
-	if i == len(n.Text) {
-		return nil
-	}
-	// Search the last non white space byte.
-	var j int
-	for j = len(n.Text) - 1; j > i; j-- {
-		if !isASCIISpace(n.Text[j]) {
-			break
-		}
-	}
-	if i == 0 && j == len(n.Text)-1 {
-		return n.Pos()
-	}
-	// Build the position.
-	pos := *n.Pos()
-	pos.Start += i
-	pos.End = pos.Start + j
-	for _, c := range n.Text[:i] {
-		if c == '\n' {
-			pos.Line++
-			pos.Column = 1
-		} else {
-			pos.Column++
-		}
-	}
-	return &pos
-}
-
 // env implements runtime.Env and a value of env is used as parameter to the
 // Show and Text functions of a runtime.Renderer value during the type
 // checking of a template.

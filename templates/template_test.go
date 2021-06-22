@@ -2052,10 +2052,10 @@ var templateMultiFileCases = map[string]struct {
 
 	"Not only spaces in a file that extends": {
 		sources: map[string]string{
-			"index.txt":  `{% extends "layout.txt" %}abc`,
+			"index.txt":  "{% extends \"layout.html\" %}\n\n\n\tboo",
 			"layout.txt": ``,
 		},
-		expectedBuildErr: "syntax error: unexpected text in file with extends",
+		expectedBuildErr: "index.txt:4:2: syntax error: unexpected text in file with extends",
 	},
 
 	"Not only spaces in an imported file": {
