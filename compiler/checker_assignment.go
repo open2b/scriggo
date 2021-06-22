@@ -125,11 +125,11 @@ func (tc *typechecker) checkAssignmentOperation(node *ast.Assignment) {
 func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 
 	if len(node.Lhs) > len(node.Rhs) {
-		panic(tc.errorf(node, "missing value in const declaration"))
+		panic(tc.errorf(node.Rhs[len(node.Rhs)-1], "missing value in const declaration"))
 	}
 
 	if len(node.Lhs) < len(node.Rhs) {
-		panic(tc.errorf(node, "extra expression in const declaration"))
+		panic(tc.errorf(node.Rhs[len(node.Rhs)-1], "extra expression in const declaration"))
 	}
 
 	tc.iota = node.Index
@@ -140,9 +140,9 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 		rh := tc.checkExpr(rhExpr)
 		if !rh.IsConstant() {
 			if rh.Nil() {
-				panic(tc.errorf(node, "const initializer cannot be nil"))
+				panic(tc.errorf(node.Lhs[i], "const initializer cannot be nil"))
 			}
-			panic(tc.errorf(node, "const initializer %s is not a constant", rhExpr))
+			panic(tc.errorf(node.Lhs[i], "const initializer %s is not a constant", rhExpr))
 		}
 		rhs[i] = rh
 	}
@@ -157,7 +157,7 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 		case reflect.Array, reflect.Chan, reflect.Func,
 			reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice,
 			reflect.Struct, reflect.UnsafePointer:
-			panic(tc.errorf(node.Type, "invalid constant type %s", typ))
+			panic(tc.errorf(node.Lhs[0], "invalid constant type %s", typ))
 		}
 		// Every Rh must be assignable to the type.
 		for i := range rhs {
