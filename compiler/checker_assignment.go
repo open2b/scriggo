@@ -511,7 +511,7 @@ func (tc *typechecker) rebalancedRightSide(node ast.Node) []ast.Expression {
 		if len(nodeLhs) != len(tis) {
 			ti := tc.compilation.typeInfos[call.Func]
 			if ti.IsBuiltinFunction() {
-				panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(nodeLhs), len(tis)))
+				panic(tc.errorf(node, "assignment mismatch: %d variables but %d values", len(nodeLhs), len(tis)))
 			}
 			panic(tc.errorf(node, "assignment mismatch: %d variables but %s returns %d values", len(nodeLhs), call, len(tis)))
 		}
@@ -551,7 +551,7 @@ func (tc *typechecker) rebalancedRightSide(node ast.Node) []ast.Expression {
 		}
 	}
 
-	panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(nodeLhs), len(nodeRhs)))
+	panic(tc.errorf(node, "assignment mismatch: %d variables but %d values", len(nodeLhs), len(nodeRhs)))
 
 }
 
