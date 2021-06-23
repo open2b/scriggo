@@ -415,7 +415,7 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 }
 
 // declareVariable declares the variable lh in the current block/scope with the
-// given type. Note that a variabile declaration may come from both 'var'
+// given type. Note that a variable declaration may come from both 'var'
 // statements and short variable declaration statements.
 func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 	ti := &typeInfo{
