@@ -60,7 +60,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 
 	// Add the global "exit" to script global scope.
 	if opts.modality == scriptMod {
-		exit := scopeElement{t: &typeInfo{Properties: propertyPredeclared}}
+		exit := scopeElement{t: &typeInfo{Properties: propertyUniverse}}
 		if globalScope == nil {
 			globalScope = typeCheckerScope{"exit": exit}
 		} else if _, ok := globalScope["exit"]; !ok {
@@ -279,7 +279,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 			name := formatTypeName[format]
 			tc.universe[name] = scopeElement{t: &typeInfo{
 				Type:       typ,
-				Properties: propertyIsType | propertyIsFormatType | propertyPredeclared,
+				Properties: propertyIsType | propertyIsFormatType | propertyUniverse,
 			}}
 		}
 	}

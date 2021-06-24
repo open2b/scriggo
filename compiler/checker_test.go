@@ -67,8 +67,8 @@ var checkerExprs = []struct {
 	scope map[string]*typeInfo
 }{
 	// Untyped constant literals.
-	{`true`, tiUntypedBoolConst(true), nil},
-	{`false`, tiUntypedBoolConst(false), nil},
+	{`true`, tiPredeclaredBool(true), nil},
+	{`false`, tiPredeclaredBool(false), nil},
 	{`""`, tiUntypedStringConst(""), nil},
 	{`"abc"`, tiUntypedStringConst("abc"), nil},
 	{`0`, tiUntypedIntConst("0"), nil},
@@ -1769,11 +1769,11 @@ func equalTypeInfo(t1, t2 *typeInfo) error {
 	if !t1.IsType() && t2.IsType() {
 		return fmt.Errorf("unexpected type")
 	}
-	if t1.Predeclared() && !t2.Predeclared() {
-		return fmt.Errorf("unexpected non-predeclared")
+	if t1.InUniverse() && !t2.InUniverse() {
+		return fmt.Errorf("unexpected non-universe")
 	}
-	if !t1.Predeclared() && t2.Predeclared() {
-		return fmt.Errorf("unexpected predeclared")
+	if !t1.InUniverse() && t2.InUniverse() {
+		return fmt.Errorf("unexpected universe")
 	}
 	if t1.Addressable() && !t2.Addressable() {
 		return fmt.Errorf("unexpected not addressable")
@@ -1825,7 +1825,7 @@ func dumpTypeInfo(ti *typeInfo) string {
 	if ti.IsType() {
 		s += " isType"
 	}
-	if ti.Predeclared() {
+	if ti.InUniverse() {
 		s += " isPredeclared"
 	}
 	if ti.Addressable() {
@@ -1850,6 +1850,10 @@ func dumpTypeInfo(ti *typeInfo) string {
 // bool type infos.
 func tiUntypedBoolConst(b bool) *typeInfo {
 	return &typeInfo{Type: boolType, Constant: boolConst(b), Properties: propertyUntyped}
+}
+
+func tiPredeclaredBool(b bool) *typeInfo {
+	return &typeInfo{Type: boolType, Constant: boolConst(b), Properties: propertyUniverse | propertyUntyped}
 }
 
 func tiBool() *typeInfo { return &typeInfo{Type: boolType} }

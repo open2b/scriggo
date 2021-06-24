@@ -17,7 +17,7 @@ const (
 	propertyIsType                                    // is a type
 	propertyIsFormatType                              // is a format type
 	propertyIsPackage                                 // is a package
-	propertyPredeclared                               // is predeclared
+	propertyUniverse                                  // is in the universe scope
 	propertyAddressable                               // is addressable
 	propertyIsPredefined                              // is predefined
 	propertyHasValue                                  // has a value
@@ -52,7 +52,7 @@ const (
 
 // Nil reports whether it is the predeclared nil.
 func (ti *typeInfo) Nil() bool {
-	return ti.Predeclared() && ti.Untyped() && ti.Type == nil
+	return ti.InUniverse() && ti.Untyped() && ti.Type == nil
 }
 
 // Untyped reports whether it is untyped.
@@ -90,9 +90,9 @@ func (ti *typeInfo) IsPackage() bool {
 	return ti.Properties&propertyIsPackage != 0
 }
 
-// Predeclared reports whether it is predeclared.
-func (ti *typeInfo) Predeclared() bool {
-	return ti.Properties&propertyPredeclared != 0
+// InUniverse reports whether it is declared in the universe scope.
+func (ti *typeInfo) InUniverse() bool {
+	return ti.Properties&propertyUniverse != 0
 }
 
 // Addressable reports whether it is addressable.
@@ -107,7 +107,7 @@ func (ti *typeInfo) IsPredefined() bool {
 
 // IsBuiltinFunction reports whether it is a builtin function.
 func (ti *typeInfo) IsBuiltinFunction() bool {
-	return ti.Properties&propertyPredeclared != 0 && ti.Properties&propertyUntyped == 0 && ti.Type == nil
+	return ti.Properties&propertyUniverse != 0 && ti.Properties&propertyUntyped == 0 && ti.Type == nil
 }
 
 var runeType = reflect.TypeOf(rune(0))
