@@ -119,7 +119,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			}
 			typ := em.typ(expr.Args[0])
 			arg := em.emitExpr(expr.Args[0], typ)
-			markdownToHTML := ti.IsFormatType()
+			markdownToHTML := ti.IsFormatType() && ti.Type != stringType
 			if canEmitDirectly(convertType.Kind(), dstType.Kind()) {
 				if markdownToHTML {
 					em.changeRegisterConvertFormat(false, arg, reg, typ, convertType)

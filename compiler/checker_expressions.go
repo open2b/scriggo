@@ -74,7 +74,7 @@ var universe = typeCheckerScope{
 	"int64":      {t: &typeInfo{Type: reflect.TypeOf(int64(0)), Properties: propertyIsType | propertyUniverse}},
 	"int8":       {t: &typeInfo{Type: reflect.TypeOf(int8(0)), Properties: propertyIsType | propertyUniverse}},
 	"rune":       {t: int32TypeInfo},
-	"string":     {t: &typeInfo{Type: stringType, Properties: propertyIsType | propertyUniverse}},
+	"string":     {t: &typeInfo{Type: stringType, Properties: propertyIsType | propertyIsFormatType | propertyUniverse}},
 	"true":       {t: &typeInfo{Type: boolType, Properties: propertyUniverse | propertyUntyped, Constant: boolConst(true)}},
 	"uint":       {t: &typeInfo{Type: uintType, Properties: propertyIsType | propertyUniverse}},
 	"uint16":     {t: &typeInfo{Type: reflect.TypeOf(uint16(0)), Properties: propertyIsType | propertyUniverse}},
@@ -1891,7 +1891,7 @@ func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *typeInfo {
 	var err error
 
 	switch {
-	case t.IsFormatType() && t.Type != arg.Type && !arg.IsUntypedConstant():
+	case t.Type != stringType && t.IsFormatType() && t.Type != arg.Type && !arg.IsUntypedConstant():
 		err = errTypeConversion
 	case arg.IsConstant():
 		k := t.Type.Kind()
