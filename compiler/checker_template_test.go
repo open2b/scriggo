@@ -51,19 +51,19 @@ var definedIntSliceTypeInfo = &typeInfo{Type: reflect.SliceOf(definedIntTypeInfo
 var definedStringTypeInfo = &typeInfo{Type: reflect.TypeOf(definedString("")), Properties: propertyAddressable}
 
 func tiHTMLConst(s string) *typeInfo {
-	return &typeInfo{Type: formatTypes[ast.FormatHTML], Properties: propertyIsFormatType, Constant: stringConst(s)}
+	return &typeInfo{Type: formatTypes[ast.FormatHTML], Constant: stringConst(s)}
 }
 
 func tiHTML() *typeInfo {
-	return &typeInfo{Type: formatTypes[ast.FormatHTML], Properties: propertyIsFormatType}
+	return &typeInfo{Type: formatTypes[ast.FormatHTML]}
 }
 
 func tiMarkdownConst(s string) *typeInfo {
-	return &typeInfo{Type: formatTypes[ast.FormatMarkdown], Properties: propertyIsFormatType, Constant: stringConst(s)}
+	return &typeInfo{Type: formatTypes[ast.FormatMarkdown], Constant: stringConst(s)}
 }
 
 func tiMarkdown() *typeInfo {
-	return &typeInfo{Type: formatTypes[ast.FormatMarkdown], Properties: propertyIsFormatType}
+	return &typeInfo{Type: formatTypes[ast.FormatMarkdown]}
 }
 
 var checkerTemplateExprs = []struct {

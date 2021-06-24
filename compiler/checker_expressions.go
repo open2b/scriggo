@@ -739,7 +739,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			if expr.IsFull {
 				panic(tc.errorf(expr, "invalid operation %s (3-index slice of string)", expr))
 			}
-			if t.IsFormatType() {
+			if t.Type != stringType && tc.isFormatType(t.Type) {
 				panic(tc.errorf(expr, "invalid operation %s (slice of %s)", expr, t))
 			}
 		case reflect.Slice:
@@ -1831,6 +1831,17 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) []*typeInfo {
 	}
 
 	return resultTypes
+}
+
+// isFormatType reports whether t is a format type.
+func (tc *typechecker) isFormatType(t reflect.Type) bool {
+	for _, name := range formatTypeName {
+		ti, ok := tc.universe[name]
+		if ok && ti.t.IsFormatType() && t == ti.t.Type {
+			return true
+		}
+	}
+	return false
 }
 
 // isMarkdown reports whether t is the markdown format type.
