@@ -14,6 +14,20 @@ import (
 	"github.com/open2b/scriggo/compiler/ast"
 )
 
+// typeInfoPair represents a pair of type infos. It is used checking
+// assignments, variable and constant declarations. The first element of a
+// typeInfoPair value may be not nil only for the type info of a default
+// expression.
+type typeInfoPair [2]*typeInfo
+
+// TypeInfo returns the type info of the expression that p represents.
+func (p typeInfoPair) TypeInfo() *typeInfo {
+	if p[0] == nil {
+		return p[1]
+	}
+	return p[0]
+}
+
 // checkAssignment type checks an assignment node with the operator '='.
 func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
@@ -62,29 +76,38 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 	}
 
 	// Type check the right side.
-	rhs := make([]*typeInfo, len(nodeRhs))
-	for i := range nodeRhs {
-		rhs[i] = tc.checkExpr(nodeRhs[i])
+	rhs := make([]typeInfoPair, len(nodeRhs))
+	for i, expr := range nodeRhs {
+		rhs[i] = tc.checkExpr2(expr, false)
 	}
 
 	// Check for assignability and update the type infos.
 	for i, rh := range rhs {
+		for j, ti := range rh {
+			if ti == nil {
+				continue
+			}
+			if isBlankIdentifier(node.Lhs[i]) {
+				if ti.Nil() { // _ = nil
+					panic(tc.errorf(node.Lhs[i], "use of untyped nil"))
+				}
+				if ti.Untyped() {
+					tc.mustBeAssignableTo(ti, subExpr(nodeRhs[i], j == 0), ti.Type, false, nil)
+				}
+				continue
+			}
+			tc.mustBeAssignableTo(ti, subExpr(nodeRhs[i], j == 0), lhs[i].Type, len(node.Lhs) != len(node.Rhs), node.Lhs[i])
+		}
+		ti := rh.TypeInfo()
 		if isBlankIdentifier(node.Lhs[i]) {
-			if rh.Nil() { // _ = nil
-				panic(tc.errorf(node.Lhs[i], "use of untyped nil"))
-			}
-			if rh.Untyped() {
-				tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
-			}
-			rh.setValue(nil)
+			ti.setValue(nil)
 			continue
 		}
-		tc.mustBeAssignableTo(nodeRhs[i], lhs[i].Type, len(node.Lhs) != len(node.Rhs), node.Lhs[i])
 		// Update the type info for the emitter.
-		if rh.Nil() {
+		if ti.Nil() {
 			tc.compilation.typeInfos[nodeRhs[i]] = tc.nilOf(lhs[i].Type)
 		} else {
-			rh.setValue(nil)
+			ti.setValue(nil)
 		}
 	}
 
@@ -114,7 +137,7 @@ func (tc *typechecker) checkAssignmentOperation(node *ast.Assignment) {
 	if node.Type == ast.AssignmentLeftShift || node.Type == ast.AssignmentRightShift {
 		// TODO.
 	} else {
-		tc.mustBeAssignableTo(node.Rhs[0], lh.Type, false, nil)
+		tc.mustBeAssignableTo(rh, node.Rhs[0], lh.Type, false, nil)
 	}
 
 	rh.setValue(lh.Type)
@@ -135,14 +158,16 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 	tc.iota = node.Index
 
 	// Type check every Rh expression: they must be constant.
-	rhs := make([]*typeInfo, len(node.Rhs))
+	rhs := make([]typeInfoPair, len(node.Rhs))
 	for i, rhExpr := range node.Rhs {
-		rh := tc.checkExpr(rhExpr)
-		if !rh.IsConstant() {
-			if rh.Nil() {
-				panic(tc.errorf(node.Lhs[i], "const initializer cannot be nil"))
+		rh := tc.checkExpr2(rhExpr, false)
+		for j, ti := range rh {
+			if ti != nil && !ti.IsConstant() {
+				if ti.Nil() {
+					panic(tc.errorf(node.Lhs[i], "const initializer cannot be nil"))
+				}
+				panic(tc.errorf(node.Lhs[i], "const initializer %s is not a constant", subExpr(rhExpr, j == 0)))
 			}
-			panic(tc.errorf(node.Lhs[i], "const initializer %s is not a constant", rhExpr))
 		}
 		rhs[i] = rh
 	}
@@ -151,7 +176,24 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 
 	var typ *typeInfo
 
-	if node.Type != nil {
+	if node.Type == nil {
+		for i, rh := range rhs {
+			if rh[0] == nil {
+				continue
+			}
+			if !rh[1].Untyped() {
+				tc.mustBeAssignableTo(rh[0], subExpr(node.Rhs[i], true), rh[1].Type, false, nil)
+				continue
+			}
+			if !rh[0].Untyped() {
+				panic(tc.errorf(node.Lhs[i], "cannot use typed const %s in untyped const initializer", subExpr(node.Rhs[i], true)))
+			}
+			if rh[0].Type != rh[1].Type {
+				panic(tc.errorf(node.Lhs[i], "mismatched kinds %s and %s in untyped const initializer",
+					constantKindName[rh[0].Type.Kind()], constantKindName[rh[1].Type.Kind()]))
+			}
+		}
+	} else {
 		typ = tc.checkType(node.Type)
 		switch typ.Type.Kind() {
 		case reflect.Array, reflect.Chan, reflect.Func,
@@ -160,8 +202,12 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 			panic(tc.errorf(node.Lhs[0], "invalid constant type %s", typ))
 		}
 		// Every Rh must be assignable to the type.
-		for i := range rhs {
-			tc.mustBeAssignableTo(node.Rhs[i], typ.Type, false, nil)
+		for i, rh := range rhs {
+			for j, ti := range rh {
+				if ti != nil {
+					tc.mustBeAssignableTo(ti, subExpr(node.Rhs[i], j == 0), typ.Type, false, nil)
+				}
+			}
 		}
 	}
 
@@ -171,20 +217,22 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 			continue
 		}
 
+		ti := rh.TypeInfo()
+
 		// Prepare the constant value.
-		constValue := rh.Constant
+		constValue := ti.Constant
 
 		// Prepare the constant type.
 		var constType reflect.Type
 		if typ == nil {
-			constType = rh.Type
+			constType = ti.Type
 		} else {
 			constType = typ.Type
 		}
 
 		// Declare the constant in the current block/scope.
 		constTi := &typeInfo{Type: constType, Constant: constValue}
-		if rh.Untyped() && typ == nil {
+		if ti.Untyped() && typ == nil {
 			constTi.Properties = propertyUntyped
 		}
 		tc.assignScope(node.Lhs[i].Name, constTi, node.Lhs[i])
@@ -285,9 +333,9 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 	}
 
 	// Type check the right side of :=.
-	rhs := make([]*typeInfo, len(nodeRhs))
+	rhs := make([]typeInfoPair, len(nodeRhs))
 	for i, rhExpr := range nodeRhs {
-		rhs[i] = tc.checkExpr(rhExpr)
+		rhs[i] = tc.checkExpr2(rhExpr, false)
 	}
 
 	// Discriminate already declared variables from new variables.
@@ -304,26 +352,34 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 
 	// Declare or redeclare variables on the left side of :=.
 	for i := range node.Lhs {
-		rh := rhs[i]
-		switch {
-		case isBlankIdentifier(node.Lhs[i]):
-			if rh.IsConstant() {
-				tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
-				rh.setValue(nil)
+		for j, ti := range rhs[i] {
+			if ti == nil {
+				continue
 			}
-		case isAlreadyDeclared[node.Lhs[i]]:
-			lh := tc.checkIdentifier(node.Lhs[i].(*ast.Identifier), false)
-			tc.mustBeAssignableTo(nodeRhs[i], lh.Type, false, nil)
-			rh.setValue(lh.Type)
-		case rh.Nil():
-			panic(tc.errorf(nodeRhs[i], "use of untyped nil"))
-		case rh.Untyped():
-			tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
-			fallthrough
-		default:
-			tc.declareVariable(node.Lhs[i].(*ast.Identifier), rh.Type)
-			rh.setValue(nil)
+			expr := subExpr(nodeRhs[i], j == 0)
+			switch {
+			case isBlankIdentifier(node.Lhs[i]):
+				if ti.IsConstant() {
+					tc.mustBeAssignableTo(ti, expr, ti.Type, false, nil)
+					ti.setValue(nil)
+				}
+			case isAlreadyDeclared[node.Lhs[i]]:
+				lh := tc.checkIdentifier(node.Lhs[i].(*ast.Identifier), false)
+				tc.mustBeAssignableTo(ti, expr, lh.Type, false, nil)
+				ti.setValue(lh.Type)
+			case ti.Nil():
+				panic(tc.errorf(expr, "use of untyped nil"))
+			case j == 0 || ti.Untyped():
+				tc.mustBeAssignableTo(ti, expr, rhs[i][1].Type, false, nil)
+				fallthrough
+			default:
+				if j == 1 {
+					tc.declareVariable(node.Lhs[i].(*ast.Identifier), ti.Type)
+				}
+				ti.setValue(nil)
+			}
 		}
+
 	}
 
 }
@@ -360,29 +416,39 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 	}
 
 	// Type check expressions on the right side.
-	rhs := make([]*typeInfo, len(nodeRhs))
-	for i := range nodeRhs {
-		rhs[i] = tc.checkExpr(nodeRhs[i])
+	rhs := make([]typeInfoPair, len(nodeRhs))
+	for i, expr := range nodeRhs {
+		rhs[i] = tc.checkExpr2(expr, false)
 	}
 
 	if typ == nil {
 		// Type is not specified, so there can't be an untyped nil in the right
 		// side expression; more than this, every untyped constant must be
-		// representable by it's default type.
+		// representable by it's default type. In case of a default expression,
+		// its left expression must be assignable to its right expression.
 		for i, rh := range rhs {
-			if rh.Nil() {
-				panic(tc.errorf(nodeRhs[i], "use of untyped nil"))
-			}
-			if rh.Untyped() {
-				tc.mustBeAssignableTo(nodeRhs[i], rh.Type, false, nil)
+			for j, ti := range rh {
+				if ti == nil {
+					continue
+				}
+				if ti.Nil() {
+					panic(tc.errorf(subExpr(nodeRhs[i], j == 0), "use of untyped nil"))
+				}
+				if j == 0 || ti.Untyped() {
+					tc.mustBeAssignableTo(ti, subExpr(nodeRhs[i], j == 0), rh[1].Type, false, nil)
+				}
 			}
 		}
 	} else {
 		// 'var' declaration with explicit type: every rh must be assignable to
 		// that type.
 		typ = tc.checkType(node.Type)
-		for i := range rhs {
-			tc.mustBeAssignableTo(nodeRhs[i], typ.Type, len(node.Lhs) != len(node.Rhs), node.Lhs[i])
+		for i, rh := range rhs {
+			for j, ti := range rh {
+				if ti != nil {
+					tc.mustBeAssignableTo(ti, subExpr(nodeRhs[i], j == 0), typ.Type, len(node.Lhs) != len(node.Rhs), node.Lhs[i])
+				}
+			}
 		}
 	}
 
@@ -392,16 +458,17 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 		// Determine the type of the new variable.
 		var varTyp reflect.Type
 		if typ == nil {
-			varTyp = rh.Type
+			varTyp = rh[1].Type
 		} else {
 			varTyp = typ.Type
 		}
 
 		// Set the type info of the right operand.
-		if rh.Nil() {
+		ti := rh.TypeInfo()
+		if ti.Nil() {
 			tc.compilation.typeInfos[nodeRhs[i]] = tc.nilOf(typ.Type)
-		} else if rh.IsConstant() {
-			rh.setValue(varTyp)
+		} else if ti.IsConstant() {
+			ti.setValue(varTyp)
 		}
 
 		if isBlankIdentifier(node.Lhs[i]) {
@@ -437,8 +504,7 @@ func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 // given type, otherwise panics. unbalanced reports whether the assignment is
 // unbalanced and in this case unbalancedLh is its left expression that is
 // assigned.
-func (tc *typechecker) mustBeAssignableTo(rhExpr ast.Expression, typ reflect.Type, unbalanced bool, unbalancedLh ast.Expression) {
-	rh := tc.compilation.typeInfos[rhExpr]
+func (tc *typechecker) mustBeAssignableTo(rh *typeInfo, rhExpr ast.Expression, typ reflect.Type, unbalanced bool, unbalancedLh ast.Expression) {
 	err := tc.isAssignableTo(rh, rhExpr, typ)
 	if err != nil {
 		if unbalanced {

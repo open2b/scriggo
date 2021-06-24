@@ -249,6 +249,31 @@ func (tc *typechecker) checkExpr(expr ast.Expression) *typeInfo {
 	return ti
 }
 
+// checkExpr2 type checks an expression and returns a pair of type infos. If
+// the expression is a default expression it returns the type infos of the
+// left and right expressions. If the left expression it is not resolved or
+// expr is not a default expression the first type info is nil.
+// show indicates if the expression is in a show statement.
+func (tc *typechecker) checkExpr2(expr ast.Expression, show bool) typeInfoPair {
+	if expr, ok := expr.(*ast.Default); ok {
+		return tc.checkDefault(expr, show)
+	}
+	return typeInfoPair{nil, tc.checkExpr(expr)}
+}
+
+// subExpr returns a sub-expression of the expression expr if it is a default
+// expression, otherwise returns expr. left indicates if the left expression
+// should be returned, it returns the right expression if it is false.
+func subExpr(expr ast.Expression, left bool) ast.Expression {
+	if expr, ok := expr.(*ast.Default); ok {
+		if left {
+			return expr.Expr1
+		}
+		return expr.Expr2
+	}
+	return expr
+}
+
 // checkType type checks a type and returns its type info.
 func (tc *typechecker) checkType(expr ast.Expression) *typeInfo {
 	ti := tc.typeof(expr, true)
@@ -605,6 +630,9 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 
 	case *ast.CompositeLiteral:
 		return tc.checkCompositeLiteral(expr, nil)
+
+	case *ast.Default:
+		panic(tc.errorf(expr, "cannot use default expression in this context"))
 
 	case *ast.Interface:
 		return &typeInfo{Type: emptyInterfaceType, Properties: propertyIsType | propertyUniverse}
@@ -2402,6 +2430,106 @@ func (tc *typechecker) checkDollarIdentifier(expr *ast.DollarIdentifier) *typeIn
 
 	// Type check the IR of the expression and return its type info.
 	return tc.checkExpr(expr.IR.Ident)
+}
+
+// checkDefault type checks a default expression. show indicates if the
+// default expression is in a show statement.
+func (tc *typechecker) checkDefault(expr *ast.Default, show bool) typeInfoPair {
+
+	var tis typeInfoPair
+
+	switch n := expr.Expr1.(type) {
+
+	case *ast.Identifier:
+		if isBlankIdentifier(n) {
+			panic(tc.errorf(n, "cannot use _ as value"))
+		}
+		var ok bool
+		if tis[0], ok = tc.lookupScopes(n.Name, false); ok {
+			if tis[0].IsPackage() {
+				panic(tc.errorf(expr, "use of package %s without selector", n))
+			}
+			if tis[0].Nil() {
+				panic(tc.errorf(n, "use of untyped nil"))
+			}
+			if tis[0].IsBuiltinFunction() {
+				panic(tc.errorf(n, "use of builtin %s not in function call", n))
+			}
+			if !tis[0].InUniverse() && !tis[0].Global() {
+				panic(tc.errorf(n, "use of non-builtin on left side of default"))
+			}
+			if tis[0].IsType() {
+				panic(tc.errorf(n, "unexpected type on left side of default"))
+			}
+			if tis[0].InUniverse() && n.Name == "iota" {
+				tis[0] = nil
+				if tc.iota >= 0 {
+					tis[0] = &typeInfo{
+						Constant:   int64Const(tc.iota),
+						Type:       intType,
+						Properties: propertyUntyped,
+					}
+				}
+			}
+		}
+
+	case *ast.Call:
+		if !tc.inExtendedFile {
+			panic(tc.errorf(n, "use of default with call in non-extended file"))
+		}
+		ident := n.Func.(*ast.Identifier)
+		if isBlankIdentifier(ident) {
+			panic(tc.errorf(ident, "cannot use _ as value"))
+		}
+		if ti, ok := tc.lookupScopes(ident.Name, false); ok {
+			if ti.IsType() {
+				panic(tc.errorf(ident, "type conversion on left side of default"))
+			}
+			if ti.IsBuiltinFunction() {
+				panic(tc.errorf(ident, "use of builtin %s on left side of default", ident))
+			}
+			if !ti.IsMacroDeclaration() {
+				panic(tc.errorf(ident, "cannot use %s (type %s) as macro", ident, ti.Type))
+			}
+			if !ti.MacroDeclaredInExtendingFile() {
+				panic(tc.errorf(ident, "macro not declared in file with extends"))
+			}
+			tis[0] = tc.checkExpr(n)
+		} else {
+			// Call arguments are type checked but never executed.
+			for i, arg := range n.Args {
+				ti := tc.checkExpr(arg)
+				tc.mustBeAssignableTo(ti, arg, emptyInterfaceType, false, nil)
+				// Check variadic calls.
+				if n.IsVariadic && i == len(n.Args)-1 && ti.Type.Kind() != reflect.Slice {
+					panic(tc.errorf(arg, "cannot use %s (type %s) as variadic argument", arg, ti.Type))
+				}
+			}
+		}
+
+	case *ast.Render:
+		if n.Tree != nil {
+			tis[0] = tc.checkRender(n)
+		}
+
+	default:
+		panic("unexpected default")
+	}
+
+	if tis[0] != nil {
+		tc.compilation.typeInfos[expr.Expr1] = tis[0]
+	}
+	tis[1] = tc.checkExpr(expr.Expr2)
+
+	if _, ok := expr.Expr1.(*ast.Identifier); !ok && !show {
+		if typ := tis[1].Type; !tc.isFormatType(typ) {
+			panic(tc.errorf(expr.Expr2, "mismatched format type and %s type", typ))
+		}
+	}
+
+	tc.compilation.typeInfos[expr] = tis.TypeInfo()
+
+	return tis
 }
 
 // checkRender checks the 'render' expression and changes its internal

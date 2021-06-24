@@ -82,7 +82,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 				tc.makeMacroResultExplicit(m)
 				ti := &typeInfo{
 					Type:       tc.checkType(m.Type).Type,
-					Properties: propertyIsMacroDeclaration,
+					Properties: propertyIsMacroDeclaration | propertyMacroDeclaredInFileWithExtends,
 				}
 				tc.filePackageBlock[m.Ident.Name] = scopeElement{t: ti}
 			}
@@ -90,11 +90,13 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		// Second: type check the extended file in a new scope.
 		currentPath := tc.path
 		tc.path = extends.Tree.Path
+		tc.inExtendedFile = true
 		var err error
 		extends.Tree.Nodes, err = tc.checkNodesInNewScopeError(extends.Tree.Nodes)
 		if err != nil {
 			return nil, err
 		}
+		tc.inExtendedFile = false
 		tc.path = currentPath
 		// Third: extending file is converted to a "package", that means that
 		// out of order initialization is allowed.
@@ -249,6 +251,10 @@ type typechecker struct {
 	// a struct type is declared may be different from the package in which one
 	// of its fields have been declared.
 	structDeclPkg map[reflect.Type]string
+
+	// inExtendedFile reports whether the type checker is type checking an
+	// extended file.
+	inExtendedFile bool
 }
 
 // newTypechecker creates a new type checker. A global scope may be provided

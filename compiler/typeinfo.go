@@ -13,16 +13,17 @@ import (
 type properties uint16
 
 const (
-	propertyUntyped            properties = 1 << iota // is untyped
-	propertyIsType                                    // is a type
-	propertyIsFormatType                              // is a format type
-	propertyIsPackage                                 // is a package
-	propertyUniverse                                  // is in the universe scope
-	propertyGlobal                                    // is global
-	propertyAddressable                               // is addressable
-	propertyIsPredefined                              // is predefined
-	propertyHasValue                                  // has a value
-	propertyIsMacroDeclaration                        // is macro declaration
+	propertyUntyped                        properties = 1 << iota // is untyped
+	propertyIsType                                                // is a type
+	propertyIsFormatType                                          // is a format type
+	propertyIsPackage                                             // is a package
+	propertyUniverse                                              // is in the universe scope
+	propertyGlobal                                                // is global
+	propertyAddressable                                           // is addressable
+	propertyIsPredefined                                          // is predefined
+	propertyHasValue                                              // has a value
+	propertyIsMacroDeclaration                                    // is macro declaration
+	propertyMacroDeclaredInFileWithExtends                        // is macro declared in file with extends
 )
 
 // A typeInfo holds the type checking information. For example, every expression
@@ -114,6 +115,12 @@ func (ti *typeInfo) IsPredefined() bool {
 // IsBuiltinFunction reports whether it is a builtin function.
 func (ti *typeInfo) IsBuiltinFunction() bool {
 	return ti.Properties&propertyUniverse != 0 && ti.Properties&propertyUntyped == 0 && ti.Type == nil
+}
+
+// MacroDeclaredInExtendingFile reports whether it is a macro declared in file
+// with extends.
+func (ti *typeInfo) MacroDeclaredInExtendingFile() bool {
+	return ti.Properties&propertyMacroDeclaredInFileWithExtends != 0
 }
 
 var runeType = reflect.TypeOf(rune(0))

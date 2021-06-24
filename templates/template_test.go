@@ -26,6 +26,7 @@ import (
 )
 
 func globals() Declarations {
+	var I = 5
 	return Declarations{
 		"max": func(x, y int) int {
 			if x < y {
@@ -62,6 +63,8 @@ func globals() Declarations {
 		"title": func(env runtime.Env, s string) string {
 			return strings.Title(s)
 		},
+		"I": &I,
+		"C": 8,
 	}
 }
 
@@ -2777,6 +2780,171 @@ var templateMultiFileCases = map[string]struct {
 		},
 		noParseShow: true,
 		expectedOut: "5 == {{ 5 }}",
+	},
+
+	"Default variable declaration": {
+		sources: map[string]string{
+			"index.txt": `{% var i, j = I default 10, J default 3 %}{{ i }},{{ j }}`,
+		},
+		expectedOut: `5,3`,
+	},
+
+	"Default short declaration": {
+		sources: map[string]string{
+			"index.txt": `{% i, j := I default 10, J default 3 %}{{ i }},{{ j }}`,
+		},
+		expectedOut: `5,3`,
+	},
+
+	"Default constant declaration": {
+		sources: map[string]string{
+			"index.txt": `{% const i, j int = C default 10, J default 3 %}{{ i }},{{ j }}`,
+		},
+		expectedOut: `8,3`,
+	},
+
+	"Default assignment": {
+		sources: map[string]string{
+			"index.txt": `{% var i, j int %}{% i, j = I default 10, J default 3 %}{{ i }},{{ j }}`,
+		},
+		expectedOut: `5,3`,
+	},
+
+	"Show default": {
+		sources: map[string]string{
+			"index.html": `{{ I default 10 }},{{ J default 3 }}`,
+		},
+		expectedOut: `5,3`,
+	},
+
+	"Default show macro": {
+		sources: map[string]string{
+			"index.html":  `{% extends "layout.html" %}{% macro M %}i'm a macro{% end %}`,
+			"layout.html": `{% show M() default 42 %}; {% show N() default "no macro" %}`,
+		},
+		expectedOut: `i'm a macro; no macro`,
+	},
+
+	"Default short show macro": {
+		sources: map[string]string{
+			"index.html":  `{% extends "layout.html" %}{% macro M %}i'm a macro{% end %}`,
+			"layout.html": `{{ M() default 42 }}; {{ N() default "no macro" }}`,
+		},
+		expectedOut: `i'm a macro; no macro`,
+	},
+
+	"Default: cannot use non-macro in call form": {
+		sources: map[string]string{
+			"index.html":  `{% extends "layout.html" %}`,
+			"layout.html": `{% M := 32 %}{{ M() default 42 }}`,
+		},
+		expectedBuildErr: `cannot use M (type int) as macro`,
+	},
+
+	"Default: macro not declared in file with extends": {
+		sources: map[string]string{
+			"index.html":    `{% extends "extended.html" %}`,
+			"extended.html": `{% macro M %}{% end %}{{ M() default "" }}`,
+		},
+		expectedBuildErr: "macro not declared in file with extends",
+	},
+
+	"Use of default with call in non-extended file": {
+		sources: map[string]string{
+			"index.html": `
+				{% extends "extended.html" %}
+				{% macro M %}{% end %}
+				{% macro N %}{{ M() default "" }}{% end macro %}`,
+			"extended.html": ``,
+		},
+		expectedBuildErr: "use of default with call in non-extended file",
+	},
+
+	"Default show macro with blank identifier": {
+		sources: map[string]string{
+			"index.html":  `{% extends "layout.html" %}`,
+			"layout.html": `{{ _() default "" }}`,
+		},
+		expectedBuildErr: `cannot use _ as value`,
+	},
+
+	"Default declaration with macro": {
+		sources: map[string]string{
+			"index.html":  `{% extends "layout.html" %}{% macro M %}i'm a macro{% end %}`,
+			"layout.html": `{% var m, n = M() default html(""), N() default "no macro" %}{{ m }}; {{ n }}`,
+		},
+		expectedOut: `i'm a macro; no macro`,
+	},
+
+	"Default declaration with iota": {
+		sources: map[string]string{
+			"index.html": `{% var v = iota default 5 %}{% const ( c1 = iota; c2 = iota default 5 ) %}{{ v }}; {{ c2 }}`,
+		},
+		expectedOut: `5; 1`,
+	},
+
+	"Default declaration with not existent macro": {
+		sources: map[string]string{
+			"index.html":  `{% extends "layout.html" %}`,
+			"layout.html": `{% var m = M(5, nil, struct{}{}, []int{}...) default "no macro" %}{{ m }}`,
+		},
+		expectedOut: `no macro`,
+	},
+
+	"Default declaration with not existent macro (2)": {
+		sources: map[string]string{
+			"index.html":  `{% extends "layout.html" %}`,
+			"layout.html": `{% s := "s" %}{% var m = M(5, s...) default "no macro" %}`,
+		},
+		expectedBuildErr: `cannot use s (type string) as variadic argument`,
+	},
+
+	"Default declaration with not existent macro (3)": {
+		sources: map[string]string{
+			"index.html":  `{% extends "layout.html" %}`,
+			"layout.html": `{% var m = M() default 6 %}`,
+		},
+		expectedBuildErr: `mismatched format type and int type`,
+	},
+
+	"Default show with render": {
+		sources: map[string]string{
+			"index.html":   `{% show render "partial.html" default "ops" %}; {% show render "no-partial.html" default "no partial" %}`,
+			"partial.html": `i'm a partial`,
+		},
+		expectedOut: `i'm a partial; no partial`,
+	},
+
+	"Default short show with render": {
+		sources: map[string]string{
+			"index.html":   `{{ render "partial.html" default "ops" }}; {{ render "no-partial.html" default "no partial" }}`,
+			"partial.html": `i'm a partial`,
+		},
+		expectedOut: `i'm a partial; no partial`,
+	},
+
+	"Default declaration with render": {
+		sources: map[string]string{
+			"index.html":   `{% var s html = render "partial.html" default "ops" %}{% t := render "no-partial.html" default html("no partial") %}{{ s }}; {{ t }}`,
+			"partial.html": `i'm a partial`,
+		},
+		expectedOut: `i'm a partial; no partial`,
+	},
+
+	"Default declaration with render (2)": {
+		sources: map[string]string{
+			"index.html":   `{% var s = render "partial.html" default "" %}`,
+			"partial.html": `i'm a partial`,
+		},
+		expectedBuildErr: `cannot use render "partial.html" (type templates.HTML) as type string in assignment`,
+	},
+
+	"Default declaration with render (3)": {
+		sources: map[string]string{
+			"index.html":   `{% const s html = render "partial.html" default "" %}`,
+			"partial.html": `i'm a partial`,
+		},
+		expectedBuildErr: `const initializer render "partial.html" is not a constant`,
 	},
 }
 

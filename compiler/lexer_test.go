@@ -207,6 +207,7 @@ var typeTestsText = map[string][]tokenTyp{
 	"{% raw %}t{% end %}":      {tokenStartStatement, tokenRaw, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement},
 	"{% raw %}{% if {% end %}": {tokenStartStatement, tokenRaw, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement},
 	"{% raw %} if %}{% end %}": {tokenStartStatement, tokenRaw, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement},
+	"{{ a default b }}":        {tokenLeftBraces, tokenIdentifier, tokenDefault, tokenIdentifier, tokenRightBraces},
 
 	"<a {% if a %}{% end %}>":       {tokenText, tokenStartStatement, tokenIf, tokenIdentifier, tokenEndStatement, tokenStartStatement, tokenEnd, tokenEndStatement, tokenText},
 	"<a {% if a %}b{% end %}>":      {tokenText, tokenStartStatement, tokenIf, tokenIdentifier, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement, tokenText},

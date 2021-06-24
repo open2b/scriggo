@@ -142,6 +142,14 @@ var operatorsOfKind = [...][22]bool{
 	reflect.Interface:  interfaceOperators,
 }
 
+var constantKindName = map[reflect.Kind]string{
+	reflect.Bool:       "boolean",
+	reflect.Int:        "integer",
+	reflect.Int32:      "rune",
+	reflect.Float64:    "floating-point",
+	reflect.Complex128: "complex",
+}
+
 // convert implicitly converts an untyped value. If the converted value is a
 // constant, convert returns its value, otherwise returns nil.
 //

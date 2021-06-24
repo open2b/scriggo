@@ -637,20 +637,26 @@ nodesLoop:
 			}
 
 			for _, expr := range node.Expressions {
-				ti := tc.checkExpr(expr)
-				if ti.Nil() {
-					panic(tc.errorf(node, "use of untyped nil"))
-				}
-				if tc.opts.renderer != nil && ti.Type != emptyInterfaceType {
-					zero := tc.types.Zero(ti.Type)
-					if w, ok := ti.Type.(runtime.Wrapper); ok {
-						zero = w.Wrap(zero)
+				tis := tc.checkExpr2(expr, true)
+				for _, ti := range tis {
+					if ti == nil {
+						continue
 					}
-					tc.opts.renderer.Show(tc.env, zero.Interface(), encodeRenderContext(node.Context, false, false))
-					if err := tc.env.err; err != nil {
-						panic(tc.errorf(node, "cannot show %s (%s)", expr, err))
+					if ti.Nil() {
+						panic(tc.errorf(node, "use of untyped nil"))
+					}
+					if tc.opts.renderer != nil && ti.Type != emptyInterfaceType {
+						zero := tc.types.Zero(ti.Type)
+						if w, ok := ti.Type.(runtime.Wrapper); ok {
+							zero = w.Wrap(zero)
+						}
+						tc.opts.renderer.Show(tc.env, zero.Interface(), encodeRenderContext(node.Context, false, false))
+						if err := tc.env.err; err != nil {
+							panic(tc.errorf(node, "cannot show %s (%s)", expr, err))
+						}
 					}
 				}
+				ti := tis.TypeInfo()
 				ti.setValue(nil)
 			}
 

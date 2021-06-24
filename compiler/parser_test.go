@@ -2433,6 +2433,20 @@ func equals(n1, n2 ast.Node, p int) error {
 			return err
 		}
 
+	case *ast.Default:
+		nn2, ok := n2.(*ast.Default)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Expr1, nn2.Expr1, p)
+		if err != nil {
+			return err
+		}
+		err = equals(nn1.Expr2, nn2.Expr2, p)
+		if err != nil {
+			return err
+		}
+
 	case *ast.Go:
 		nn2, ok := n2.(*ast.Go)
 		if !ok {
