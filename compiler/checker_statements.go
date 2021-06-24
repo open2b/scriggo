@@ -872,7 +872,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		// Read the declarations from the precompiled package.
 		imported := &packageInfo{}
 		imported.Declarations = make(map[string]*typeInfo, len(precompiledPkg.DeclarationNames()))
-		for n, d := range toTypeCheckerScope(precompiledPkg, tc.opts.modality, 0) {
+		for n, d := range toTypeCheckerScope(precompiledPkg, tc.opts.modality, false, 0) {
 			imported.Declarations[n] = d.t
 		}
 		imported.Name = precompiledPkg.Name()

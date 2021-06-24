@@ -81,11 +81,14 @@ func parseNumericConst(s string) (constant, reflect.Type, error) {
 
 // toTypeCheckerScope generates a type checker scope given a predefined
 // package. depth must be 0 unless toTypeCheckerScope is called recursively.
-func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, depth int) typeCheckerScope {
+func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, global bool, depth int) typeCheckerScope {
 	declarations := pp.DeclarationNames()
 	scope := make(typeCheckerScope, len(declarations))
 	for _, ident := range declarations {
 		ti := &typeInfo{PredefPackageName: pp.Name()}
+		if global {
+			ti.Properties = propertyGlobal
+		}
 		switch v := pp.Lookup(ident).(type) {
 		default:
 			rv := reflect.ValueOf(v)
@@ -97,12 +100,12 @@ func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, depth int) typeCh
 				// Note that 'elem' may be an invalid reflect.Value. That
 				// indicates that such variable has not been initialized.
 				ti.value = &elem
-				ti.Properties = propertyAddressable | propertyIsPredefined | propertyHasValue
+				ti.Properties |= propertyAddressable | propertyIsPredefined | propertyHasValue
 			case reflect.Func:
 				// Import a function.
 				ti.Type = removeEnvArg(rv.Type(), false)
 				ti.value = rv
-				ti.Properties = propertyIsPredefined | propertyHasValue
+				ti.Properties |= propertyIsPredefined | propertyHasValue
 			default:
 				// Import a typed constant.
 				ti.Constant = convertToConstant(rv)
@@ -123,25 +126,25 @@ func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, depth int) typeCh
 				Name:         v.Name(),
 				Declarations: map[string]*typeInfo{},
 			}
-			for n, d := range toTypeCheckerScope(v, mod, depth+1) {
+			for n, d := range toTypeCheckerScope(v, mod, global, depth+1) {
 				pkg.Declarations[n] = d.t
 			}
 			ti.value = pkg
-			ti.Properties = propertyIsPackage | propertyHasValue
+			ti.Properties |= propertyIsPackage | propertyHasValue
 			ti.PredefPackageName = ""
 		case reflect.Type:
 			// Import a type.
 			ti.Type = v
-			ti.Properties = propertyIsType | propertyIsPredefined
+			ti.Properties |= propertyIsType | propertyIsPredefined
 		case UntypedBooleanConst:
 			// Import an untyped boolean constant.
 			ti.Type = boolType
-			ti.Properties = propertyUntyped
+			ti.Properties |= propertyUntyped
 			ti.Constant = boolConst(v)
 		case UntypedStringConst:
 			// Import an untyped string constant.
 			ti.Type = stringType
-			ti.Properties = propertyUntyped
+			ti.Properties |= propertyUntyped
 			ti.Constant = stringConst(v)
 		case UntypedNumericConst:
 			// Import an untyped numeric constant.
@@ -150,7 +153,7 @@ func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, depth int) typeCh
 			if err != nil {
 				panic(fmt.Errorf("scriggo: invalid untyped constant %q for %s.%s", v, pp.Name(), ident))
 			}
-			ti.Properties = propertyUntyped
+			ti.Properties |= propertyUntyped
 		}
 		scope[ident] = scopeElement{t: ti}
 	}

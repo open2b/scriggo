@@ -18,6 +18,7 @@ const (
 	propertyIsFormatType                              // is a format type
 	propertyIsPackage                                 // is a package
 	propertyUniverse                                  // is in the universe scope
+	propertyGlobal                                    // is global
 	propertyAddressable                               // is addressable
 	propertyIsPredefined                              // is predefined
 	propertyHasValue                                  // has a value
@@ -93,6 +94,11 @@ func (ti *typeInfo) IsPackage() bool {
 // InUniverse reports whether it is declared in the universe scope.
 func (ti *typeInfo) InUniverse() bool {
 	return ti.Properties&propertyUniverse != 0
+}
+
+// Global reports whether it is a global.
+func (ti *typeInfo) Global() bool {
+	return ti.Properties&propertyGlobal != 0
 }
 
 // Addressable reports whether it is addressable.
