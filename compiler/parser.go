@@ -1568,14 +1568,6 @@ func (p *parsing) parseVarOrConst(tok token, pos *ast.Position, decType tokenTyp
 	pos.End = endPos
 	if decType == tokenVar {
 		node := ast.NewVar(pos, idents, typ, exprs)
-		if len(idents) == 2 && len(exprs) == 1 {
-			if _, ok := exprs[0].(*ast.Render); ok {
-				// Replace the Render node with the Var node in the unexpanded
-				// slice because, when the tree is expanded, the parser needs to know
-				// if the render expression is used in an assignment.
-				p.unexpanded[len(p.unexpanded)-1] = node
-			}
-		}
 		return node, tok
 	}
 	return ast.NewConst(pos, idents, typ, exprs, iotaValue), tok
@@ -1701,14 +1693,6 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeRa
 		}
 	}
 	node := ast.NewAssignment(pos, variables, typ, values)
-	if len(variables) == 2 && len(values) == 1 {
-		if _, ok := values[0].(*ast.Render); ok {
-			// Replace the Render node with the Assignment node in the unexpanded
-			// slice because, when the tree is expanded, the parser needs to know
-			// if the render expression is used in an assignment.
-			p.unexpanded[len(p.unexpanded)-1] = node
-		}
-	}
 	return node, tok
 }
 

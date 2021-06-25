@@ -2376,51 +2376,6 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "--- start Markdown ---\n# title--- end Markdown ---\n",
 	},
 
-	"https://github.com/open2b/scriggo/issues/723 - Short variable declaration: rendered file exists": {
-		sources: map[string]string{
-			"index.txt": `{% s, ok := render "file.txt" %}ok: {{ ok }}, s: {{ s }}`,
-			"file.txt":  `this is file.txt`,
-		},
-		expectedOut: "ok: true, s: this is file.txt",
-	},
-
-	"https://github.com/open2b/scriggo/issues/723 - Short variable declaration: rendered file does not exist": {
-		sources: map[string]string{
-			"index.txt": `{% s, ok := render "not-existing.txt" %}ok: {{ ok }}, s: {{ s }}`,
-		},
-		expectedOut: "ok: false, s: ",
-	},
-
-	"https://github.com/open2b/scriggo/issues/723 - Simple assignment: rendered file exists": {
-		sources: map[string]string{
-			"index.txt": `{% var s string %}{% var ok bool %}{% s, ok = render "file.txt" %}ok: {{ ok }}, s: {{ s }}`,
-			"file.txt":  `this is file.txt`,
-		},
-		expectedOut: "ok: true, s: this is file.txt",
-	},
-
-	"https://github.com/open2b/scriggo/issues/723 - Simple assignment: rendered file does not exist": {
-		sources: map[string]string{
-			"index.txt": `{% var s string %}{% var ok bool %}{% s, ok = render "not-existing.txt" %}ok: {{ ok }}, s: {{ s }}`,
-		},
-		expectedOut: "ok: false, s: ",
-	},
-
-	"https://github.com/open2b/scriggo/issues/725 - Variable declaration: rendered file exists": {
-		sources: map[string]string{
-			"index.txt": `{% var s, ok = render "file.txt" %}ok: {{ ok }}, s: {{ s }}`,
-			"file.txt":  `this is file.txt`,
-		},
-		expectedOut: "ok: true, s: this is file.txt",
-	},
-
-	"https://github.com/open2b/scriggo/issues/725 - Variable declaration: rendered file does not exist": {
-		sources: map[string]string{
-			"index.txt": `{% var s, ok = render "not-existing.txt" %}ok: {{ ok }}, s: {{ s }}`,
-		},
-		expectedOut: "ok: false, s: ",
-	},
-
 	"https://github.com/open2b/scriggo/issues/728: Text instruction merging error": {
 		sources: map[string]string{
 			"index.txt": `{% if false %}{% for false %}{% end %}<d>{% end %}<e>`,
@@ -2945,6 +2900,22 @@ var templateMultiFileCases = map[string]struct {
 			"partial.html": `i'm a partial`,
 		},
 		expectedBuildErr: `const initializer render "partial.html" is not a constant`,
+	},
+
+	"Removed special render assignment form": {
+		sources: map[string]string{
+			"index.html":   `{% var s string %}{% var ok bool %}{% s, ok = render "partial.html" %}`,
+			"partial.html": `i'm a partial`,
+		},
+		expectedBuildErr: `assignment mismatch: 2 variables but 1 values`,
+	},
+
+	"Removed special render declaration form": {
+		sources: map[string]string{
+			"index.html":   `{% var s, ok = render "partial.html" %}`,
+			"partial.html": `i'm a partial`,
+		},
+		expectedBuildErr: `assignment mismatch: 2 variables but 1 values`,
 	},
 }
 

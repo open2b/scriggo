@@ -289,14 +289,8 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 			switch n := node.(type) {
 			case *ast.Render:
 				r = n
-			case *ast.Assignment:
-				r = n.Rhs[0].(*ast.Render)
-				special = true
 			case *ast.Default:
 				r = n.Expr1.(*ast.Render)
-				special = true
-			case *ast.Var:
-				r = n.Rhs[0].(*ast.Render)
 				special = true
 			default:
 				panic("unexpected node")

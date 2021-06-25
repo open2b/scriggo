@@ -7,7 +7,6 @@
 package compiler
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 
@@ -33,11 +32,6 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
 	if node.Type != ast.AssignmentSimple {
 		panic("BUG: expected an assignment node with an '=' operator")
-	}
-
-	// s, ok = render "path.txt"
-	if isRenderOk(node) {
-		rebalanceRenderOk(node)
 	}
 
 	// In case of unbalanced assignments a 'fake' rhs must be used for the type
@@ -299,11 +293,6 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 		panic("BUG: expected a short variable declaration")
 	}
 
-	// s, ok := render "path.txt"
-	if isRenderOk(node) {
-		rebalanceRenderOk(node)
-	}
-
 	// In case of unbalanced short variable declarations a 'fake' rhs must be
 	// used for the type checking, but the tree must not be changed.
 	nodeRhs := node.Rhs
@@ -391,11 +380,6 @@ func (tc *typechecker) checkVariableDeclaration(node *ast.Var) {
 	var typ *typeInfo
 	if node.Type != nil {
 		typ = tc.checkType(node.Type)
-	}
-
-	// var s, ok = render "path.txt"
-	if isRenderOk(node) {
-		rebalanceRenderOk(node)
 	}
 
 	// In case of unbalanced var declarations a 'fake' rhs must be used for the
@@ -619,87 +603,4 @@ func (tc *typechecker) rebalancedRightSide(node ast.Node) []ast.Expression {
 
 	panic(tc.errorf(node, "assignment mismatch: %d variables but %d values", len(nodeLhs), len(nodeRhs)))
 
-}
-
-// isRenderOk reports whether node is a short variable declaration, a variable
-// declaration or a simple assignment where the lhs has a length of two and the
-// rhs is a single 'render' expression.
-//
-// For example:
-//
-//   s, ok = render "file.txt"       returns true
-//   s, ok := render "file.txt"      returns true
-//   var s, ok = render "file.txt"   returns true
-//
-//   s =  render "file.txt"          returns false
-//
-func isRenderOk(node ast.Node) bool {
-	switch n := node.(type) {
-	case *ast.Var:
-		if len(n.Lhs) == 2 && len(n.Rhs) == 1 {
-			if _, ok := n.Rhs[0].(*ast.Render); ok {
-				return true
-			}
-		}
-		return false
-	case *ast.Assignment:
-		if len(n.Lhs) == 2 && len(n.Rhs) == 1 {
-			if _, ok := n.Rhs[0].(*ast.Render); ok {
-				return true
-			}
-		}
-		return false
-	default:
-		panic(fmt.Sprintf("BUG: unexpected node with type %T", n))
-	}
-}
-
-// rebalanceRenderOk rebalances a short variable declaration, a variable
-// declaration or a simple assignment where the lhs has a length of two and the
-// rhs is a single 'render' expression.
-// The resulting lhs and rhs of the node both have two elements.
-//
-// For example, in a short variable declaration:
-//
-//     s, ok := render "file.txt"
-//
-// If "file.txt" can be rendered then node is rebalanced to:
-//
-//     s, ok := render "file,txt", true
-//
-// else
-//
-//     s, ok := "", false
-//
-func rebalanceRenderOk(node ast.Node) {
-	switch n := node.(type) {
-	case *ast.Var:
-		render := n.Rhs[0].(*ast.Render)
-		if render.Tree == nil { // rendered file does not exist
-			n.Rhs = []ast.Expression{
-				ast.NewBasicLiteral(n.Pos(), ast.StringLiteral, `""`),
-				ast.NewIdentifier(n.Pos(), "false"),
-			}
-		} else { // rendered file exists
-			n.Rhs = []ast.Expression{
-				render,
-				ast.NewIdentifier(n.Pos(), "true"),
-			}
-		}
-	case *ast.Assignment:
-		render := n.Rhs[0].(*ast.Render)
-		if render.Tree == nil { // rendered file does not exist
-			n.Rhs = []ast.Expression{
-				ast.NewBasicLiteral(n.Pos(), ast.StringLiteral, `""`),
-				ast.NewIdentifier(n.Pos(), "false"),
-			}
-		} else { // rendered file exists
-			n.Rhs = []ast.Expression{
-				render,
-				ast.NewIdentifier(n.Pos(), "true"),
-			}
-		}
-	default:
-		panic(fmt.Sprintf("BUG: unexpected node with type %T", n))
-	}
 }
