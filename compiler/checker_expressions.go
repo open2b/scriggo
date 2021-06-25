@@ -2158,7 +2158,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				if keyTi.IsConstant() {
 					index := int(keyTi.Constant.int64())
 					if _, ok := hasIndex[index]; ok {
-						panic(tc.errorf(node, "duplicate index in array literal: %s", kv.Key))
+						panic(tc.errorf(node, "duplicate index in %s literal: %s", ti.Type.Kind(), kv.Key))
 					}
 					hasIndex[index] = struct{}{}
 				}

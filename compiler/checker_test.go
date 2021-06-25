@@ -1002,7 +1002,7 @@ var checkerStmts = map[string]string{
 	`_ = [][]int{[]string{"a", "f"}, []string{"g", "h"}}`: `cannot use []string literal (type []string) as type []int in slice literal`,
 	`_ = []int{-3: 9}`:      `index must be non-negative integer constant`,
 	`_ = []int{"a"}`:        `cannot use "a" (type untyped string) as type int in slice literal`,
-	`_ = []int{1:10, 1:20}`: `duplicate index in array literal: 1`,
+	`_ = []int{1:10, 1:20}`: `duplicate index in slice literal: 1`,
 
 	// Arrays.
 	`_ = [1]int{1}`:          ok,
