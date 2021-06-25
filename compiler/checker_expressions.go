@@ -2145,7 +2145,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			}
 		}
 
-	case reflect.Array:
+	case reflect.Slice, reflect.Array:
 
 		hasIndex := map[int]struct{}{}
 		for i := range node.KeyValues {
@@ -2166,10 +2166,10 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			var elemTi *typeInfo
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
 				if ti.Type.Elem().Kind() == reflect.Ptr {
-					// The array as element *T, so the value '{..}' must be
+					// The slice (or array) as element *T, so the value '{..}' must be
 					// replaced with '&T{..}'.
 					kv.Value = ast.NewUnaryOperator(cl.Pos(), ast.OperatorAddress, cl)
-					tc.checkCompositeLiteral(cl, ti.Type.Elem().Elem()) // [3]*T -> T
+					tc.checkCompositeLiteral(cl, ti.Type.Elem().Elem()) // []*T -> T (or [n]*T -> T)
 					elemTi = tc.checkExpr(kv.Value)
 				} else {
 					elemTi = tc.checkCompositeLiteral(cl, ti.Type.Elem())
@@ -2179,53 +2179,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			}
 			if err := tc.isAssignableTo(elemTi, kv.Value, ti.Type.Elem()); err != nil {
 				if _, ok := err.(invalidTypeInAssignment); ok {
-					panic(tc.errorf(node, "%s in array literal", err))
-				}
-				panic(tc.errorf(node, "%s", err))
-			}
-			if elemTi.Nil() {
-				elemTi = tc.nilOf(ti.Type.Elem())
-				tc.compilation.typeInfos[kv.Value] = elemTi
-			} else {
-				elemTi.setValue(ti.Type.Elem())
-			}
-		}
-
-	case reflect.Slice:
-
-		hasIndex := map[int]struct{}{}
-		for i := range node.KeyValues {
-			kv := &node.KeyValues[i]
-			if kv.Key != nil {
-				keyTi := tc.checkExpr(kv.Key)
-				if keyTi.Constant == nil {
-					panic(tc.errorf(node, "index must be non-negative integer constant"))
-				}
-				if keyTi.IsConstant() {
-					index := int(keyTi.Constant.int64())
-					if _, ok := hasIndex[index]; ok {
-						panic(tc.errorf(node, "duplicate index in array literal: %s", kv.Key))
-					}
-					hasIndex[index] = struct{}{}
-				}
-			}
-			var elemTi *typeInfo
-			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
-				if ti.Type.Elem().Kind() == reflect.Ptr {
-					// The slice as element *T, so the value '{..}' must be
-					// replaced with '&T{..}'.
-					kv.Value = ast.NewUnaryOperator(cl.Pos(), ast.OperatorAddress, cl)
-					tc.checkCompositeLiteral(cl, ti.Type.Elem().Elem()) // []*T -> T
-					elemTi = tc.checkExpr(kv.Value)
-				} else {
-					elemTi = tc.checkCompositeLiteral(cl, ti.Type.Elem())
-				}
-			} else {
-				elemTi = tc.checkExpr(kv.Value)
-			}
-			if err := tc.isAssignableTo(elemTi, kv.Value, ti.Type.Elem()); err != nil {
-				if _, ok := err.(invalidTypeInAssignment); ok {
-					panic(tc.errorf(node, "%s in slice literal", err))
+					panic(tc.errorf(node, "%s in %s literal", err, ti.Type.Kind()))
 				}
 				panic(tc.errorf(node, "%s", err))
 			}
