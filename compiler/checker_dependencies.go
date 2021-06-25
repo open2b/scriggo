@@ -239,6 +239,8 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 		return nil
 	case *ast.Defer:
 		return nodeDeps(n.Call, scopes)
+	case *ast.Default:
+		return nodeDeps(n.Expr2, scopes)
 	case *ast.Extends:
 		return nil
 	case *ast.Fallthrough:

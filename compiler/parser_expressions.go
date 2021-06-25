@@ -324,6 +324,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				}
 				pos.End = tok.pos.End
 				operand = ast.NewCompositeLiteral(pos, operand, keyValues)
+				tok = p.next()
 			case tokenLeftParenthesis: // e(...)
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
@@ -343,6 +344,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				pos.End = tok.pos.End
 				operand = ast.NewCall(pos, operand, args, isVariadic)
 				canCompositeLiteral = false
+				tok = p.next()
 			case tokenLeftBracket: // e[...], e[.. : ..], e[.. : .. : ..],
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
@@ -372,6 +374,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 					pos.End = tok.pos.End
 					operand = ast.NewIndex(pos, operand, index)
 				}
+				tok = p.next()
 			case tokenPeriod: // e.
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
@@ -412,6 +415,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				default:
 					panic(syntaxError(tok.pos, "unexpected %s, expecting name or (", tok))
 				}
+				tok = p.next()
 			case
 				tokenEqual,          // e ==
 				tokenNotEqual,       // e !=
@@ -436,11 +440,29 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				tokenRightShift,     // e >>
 				tokenContains:       // e contains
 				operator = ast.NewBinaryOperator(tok.pos, operatorFromTokenType(tok.typ, true), nil, nil)
+				tok = p.next()
+			case tokenDefault: // e default
+				pos := tok.pos
+				pos.Start = operand.Pos().Start
+				node := ast.NewDefault(pos, operand, nil)
+				if _, ok := operand.(*ast.Render); ok {
+					// Replace the Render node with the Default node in the unexpanded
+					// slice because, when the tree is expanded, the parser needs to know
+					// if the render expression is used in an default expression.
+					p.unexpanded[len(p.unexpanded)-1] = node
+				}
+				node.Expr2, tok = p.parseExpr(p.next(), false, false, false)
+				if node.Expr2 == nil {
+					panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
+				}
+				node.Pos().End = node.Expr2.Pos().End
+				operand = node
 			case tokenExtendedNot: // e not contains
 				next := p.next()
 				if next.typ == tokenContains {
 					pos := tok.pos.WithEnd(next.pos.End)
 					operator = ast.NewBinaryOperator(pos, ast.OperatorNotContains, nil, nil)
+					tok = p.next()
 					break
 				}
 				fallthrough
@@ -453,8 +475,6 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				}
 				return operand, tok
 			}
-
-			tok = p.next()
 
 		}
 

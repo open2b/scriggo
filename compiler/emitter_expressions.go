@@ -162,6 +162,13 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		// emitting expr.IR.Ident.
 		return em._emitExpr(expr.IR.Ident, dstType, reg, useGivenReg, allowK)
 
+	case *ast.Default:
+		ex := expr.Expr1
+		if ti := em.ti(expr.Expr1); ti == nil {
+			ex = expr.Expr2
+		}
+		return em._emitExpr(ex, dstType, reg, useGivenReg, allowK)
+
 	case *ast.TypeAssertion:
 
 		exprType := em.typ(expr.Expr)

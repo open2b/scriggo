@@ -292,6 +292,9 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 			case *ast.Assignment:
 				r = n.Rhs[0].(*ast.Render)
 				special = true
+			case *ast.Default:
+				r = n.Expr1.(*ast.Render)
+				special = true
 			case *ast.Var:
 				r = n.Rhs[0].(*ast.Render)
 				special = true

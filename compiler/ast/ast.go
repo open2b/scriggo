@@ -753,6 +753,22 @@ func NewTypeDeclaration(pos *Position, ident *Identifier, typ Expression, isAlia
 	return &TypeDeclaration{pos, ident, typ, isAliasDeclaration}
 }
 
+// Default node represents a default expression.
+type Default struct {
+	expression
+	*Position            // position in the source.
+	Expr1     Expression // left hand expression.
+	Expr2     Expression // right hand expression.
+}
+
+func NewDefault(pos *Position, expr1, expr2 Expression) *Default {
+	return &Default{Position: pos, Expr1: expr1, Expr2: expr2}
+}
+
+func (n *Default) String() string {
+	return n.Expr1.String() + " default " + n.Expr2.String()
+}
+
 // Render node represents a 'render <path>' expression.
 type Render struct {
 	expression

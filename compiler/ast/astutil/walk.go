@@ -106,6 +106,10 @@ func Walk(v Visitor, node ast.Node) {
 	case *ast.Defer:
 		Walk(v, n.Call)
 
+	case *ast.Default:
+		Walk(v, n.Expr1)
+		Walk(v, n.Expr2)
+
 	case *ast.DollarIdentifier:
 		Walk(v, n.Ident)
 

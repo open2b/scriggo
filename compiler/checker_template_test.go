@@ -555,10 +555,69 @@ var checkerTemplateStmts = []struct {
 	{src: `{% show "a", 7, true %}`, expected: ok},
 	{src: `{% show render "partial.html" %}`, expected: ok},
 	{src: `{% show render "partial.html", render "partial.html" %}`, expected: ok},
+
+	// Variable declarations and assignments with 'default' expression.
+	{src: `{% var a = I default 5 %}`, expected: ok},
+	{src: `{% var a = J default 5 %}`, expected: ok},
+	{src: `{% var a = I default "" %}`, expected: `cannot use I (type int) as type string in assignment`},
+	{src: `{% var a int = I default 5 %}`, expected: ok},
+	{src: `{% var a int = J default 5 %}`, expected: ok},
+	{src: `{% var a string = I default "" %}`, expected: `cannot use I (type int) as type string in assignment`},
+	{src: `{% var a string = S default 5 %}`, expected: `cannot use 5 (type int) as type string in assignment`},
+	{src: `{% var a interface{} = S default 5 %}`, expected: ok},
+	{src: `{% a := I default 5 %}`, expected: ok},
+	{src: `{% a := J default 5 %}`, expected: ok},
+	{src: `{% a := I default "" %}`, expected: `cannot use I (type int) as type string in assignment`},
+	{src: `{% var a int %}{% a = I default 5 %}`, expected: ok},
+	{src: `{% var a int %}{% a = J default 5 %}`, expected: ok},
+	{src: `{% var a string %}{% a = I default "" %}`, expected: `cannot use I (type int) as type string in assignment`},
+	{src: `{% var a interface{} %}{% a = I default "" %}`, expected: ok},
+	{src: `{% a := 5 %}{% var b = a default 0 %}`, expected: `use of non-builtin on left side of default`},
+	{src: `{% var a = _ default 0 %}`, expected: `cannot use _ as value`},
+	{src: `{% var a = p default 0 %}`, expected: `use of package p without selector`},
+	{src: `{% var a = nil default 0 %}`, expected: `use of untyped nil`},
+	{src: `{% var a = len default 0 %}`, expected: `use of builtin len not in function call`},
+	{src: `{% var a = true default false %}`, expected: ok},
+	{src: `{% var loc int %}{% var a = loc default 0 %}`, expected: `use of non-builtin on left side of default`},
+	{src: `{% var a = T default 0 %}`, expected: `unexpected type on left side of default`},
+
+	// Constant declaration with 'default' expression.
+	{src: `{% const c = Ui default 3 %}`, expected: ok},
+	{src: `{% const c = D default 3 %}`, expected: ok},
+	{src: `{% const c = R default 3 %}`, expected: `cannot use typed const R in untyped const initializer`},
+	{src: `{% const c = Uf default 3 %}`, expected: `mismatched kinds floating-point and integer in untyped const initializer`},
+	{src: `{% const c int = Ci default 3 %}`, expected: ok},
+	{src: `{% const c int = D default int(3) %}`, expected: ok},
+	{src: `{% const c int = Ui default int(3) %}`, expected: ok},
+	{src: `{% const c int = Ui default 3 %}`, expected: ok},
+	{src: `{% const c string = Ui default "" %}`, expected: `cannot use Ui (type int) as type string in assignment`},
+	{src: `{% const c = iota default 0 %}`, expected: ok},
+
+	// Other default expression uses.
+	{src: `{{ 5 + ( x default 3 ) - 2 }}`, expected: `cannot use default expression in this context`},
+	{src: `{{ -x default 3 }}`, expected: `cannot use default expression in this context`},
 }
 
 func TestCheckerTemplatesStatements(t *testing.T) {
-	options := Options{FormatTypes: formatTypes}
+	var I = 3
+	var S = "s"
+	p := &pkg{
+		PkgName:      "p",
+		Declarations: map[string]interface{}{},
+	}
+	options := Options{
+		FormatTypes: formatTypes,
+		Globals: Declarations{
+			"p":  p,
+			"T":  reflect.TypeOf(int(0)),
+			"I":  &I,
+			"S":  &S,
+			"Ci": 5,
+			"Ui": UntypedNumericConst("5"),
+			"Uf": UntypedNumericConst("5.0"),
+			"R":  'r',
+		},
+	}
 	for _, cas := range checkerTemplateStmts {
 		src := cas.src
 		expected := cas.expected
