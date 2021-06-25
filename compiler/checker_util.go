@@ -391,7 +391,7 @@ func (err invalidTypeInAssignment) Error() string {
 }
 
 func newInvalidTypeInAssignment(x *typeInfo, expr ast.Expression, t reflect.Type) invalidTypeInAssignment {
-	return invalidTypeInAssignment(fmt.Sprintf("cannot use %s (type %s) as type %s", expr, x.Type, t))
+	return invalidTypeInAssignment(fmt.Sprintf("cannot use %s (type %s) as type %s", expr, x, t))
 }
 
 // isAssignableTo reports whether x is assignable to type t.

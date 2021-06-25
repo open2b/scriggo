@@ -2178,9 +2178,8 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				elemTi = tc.checkExpr(kv.Value)
 			}
 			if err := tc.isAssignableTo(elemTi, kv.Value, ti.Type.Elem()); err != nil {
-				k := ti.Type.Elem().Kind()
-				if _, ok := err.(invalidTypeInAssignment); ok && k == reflect.Slice || k == reflect.Array {
-					panic(tc.errorf(node, "%s in array or slice literal", err))
+				if _, ok := err.(invalidTypeInAssignment); ok {
+					panic(tc.errorf(node, "%s in array literal", err))
 				}
 				panic(tc.errorf(node, "%s", err))
 			}
@@ -2225,12 +2224,8 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				elemTi = tc.checkExpr(kv.Value)
 			}
 			if err := tc.isAssignableTo(elemTi, kv.Value, ti.Type.Elem()); err != nil {
-				k := ti.Type.Elem().Kind()
 				if _, ok := err.(invalidTypeInAssignment); ok {
-					if k == reflect.Slice || k == reflect.Array {
-						panic(tc.errorf(node, "%s in array or slice literal", err))
-					}
-					panic(tc.errorf(node, "cannot convert %s (type %s) to type %v", kv.Value, elemTi, ti.Type.Elem()))
+					panic(tc.errorf(node, "%s in slice literal", err))
 				}
 				panic(tc.errorf(node, "%s", err))
 			}

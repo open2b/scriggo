@@ -726,12 +726,12 @@ var checkerStmts = map[string]string{
 	`var a int; _ = a`:             ok,
 	`var a int; a = 3; _ = a`:      ok,
 	`var a, b = 1, 2; _, _ = a, b`: ok,
-	`var a int = "s"`:              `cannot use "s" (type string) as type int in assignment`,
+	`var a int = "s"`:              `cannot use "s" (type untyped string) as type int in assignment`,
 	`var a int = 1.2`:              "constant 1.2 truncated to integer",
 	`var a int8 = 156`:             "constant 156 overflows int8",
 	`var a float64 = 1.2i`:         "constant 1.2i truncated to real",
 	`var a, b = 1`:                 "assignment mismatch: 2 variables but 1 values",
-	`var a, b int = 1, "2"`:        `cannot use "2" (type string) as type int in assignment`,
+	`var a, b int = 1, "2"`:        `cannot use "2" (type untyped string) as type int in assignment`,
 	`var a, b, c, d = 1, 2`:        "assignment mismatch: 4 variables but 2 values",
 	`f := func() (int, int, int) { return 0, 0, 0 }; var a, b, c string = f()`: `cannot assign int to a (type string) in multiple assignment`,
 
@@ -739,14 +739,14 @@ var checkerStmts = map[string]string{
 	`a := 1; var b = a == 0; _ = b`:          ok,
 	`a := 1; var b bool = a == 0; _ = b`:     ok,
 	`a := 1; var b boolType = a == 1; _ = b`: ok,
-	`a := 1; var b int = a == 0; _ = b`:      `cannot use a == 0 (type bool) as type int in assignment`,
+	`a := 1; var b int = a == 0; _ = b`:      `cannot use a == 0 (type untyped bool) as type int in assignment`,
 
 	// Constant declarations.
 	`const a = 2`:     ok,
 	`const a int = 2`: ok,
 	`const A = 0; B := A; const C = A;   _ = B`: ok,
 	`const A = 0; B := A; const C = B;   _ = B`: `const initializer B is not a constant`,
-	`const a string = 2`:                        `cannot use 2 (type int) as type string in assignment`, // TODO (Gianluca): Go returns error: cannot convert 2 (type untyped number) to type string
+	`const a string = 2`:                        `cannot use 2 (type untyped int) as type string in assignment`, // TODO (Gianluca): Go returns error: cannot convert 2 (type untyped number) to type string
 	`const a = nil`:                             `const initializer cannot be nil`,
 	`const _ = 13407807929942597099574024998205846127479365820592393377723561443721764030073546976801874298166903427690031858186486050853753882811946569946433649006084095`: ok,
 	`const _ = 13407807929942597099574024998205846127479365820592393377723561443721764030073546976801874298166903427690031858186486050853753882811946569946433649006084096`: `constant too large`,
@@ -999,9 +999,9 @@ var checkerStmts = map[string]string{
 	`_ = [][]string{[]string{"a", "f"}, []string{"g", "h"}}`: ok,
 	`_ = []int{}`:      ok,
 	`_ = []int{1,2,3}`: ok,
-	`_ = [][]int{[]string{"a", "f"}, []string{"g", "h"}}`: `cannot use []string literal (type []string) as type []int in array or slice literal`,
+	`_ = [][]int{[]string{"a", "f"}, []string{"g", "h"}}`: `cannot use []string literal (type []string) as type []int in slice literal`,
 	`_ = []int{-3: 9}`:      `index must be non-negative integer constant`,
-	`_ = []int{"a"}`:        `cannot convert "a" (type untyped string) to type int`,
+	`_ = []int{"a"}`:        `cannot use "a" (type untyped string) as type int in slice literal`,
 	`_ = []int{1:10, 1:20}`: `duplicate index in array literal: 1`,
 
 	// Arrays.
@@ -1019,11 +1019,11 @@ var checkerStmts = map[string]string{
 	`_ = map[string]string{"k1": "v1"}`:        ok,
 	`_ = map[string]string{}`:                  ok,
 	`_ = map[bool][]int{true: []int{1, 2, 3}}`: ok,
-	`_ = map[bool][]int{4: []int{1, 2, 3}}`:    `cannot use 4 (type int) as type bool in map key`,
+	`_ = map[bool][]int{4: []int{1, 2, 3}}`:    `cannot use 4 (type untyped int) as type bool in map key`,
 	`_ = map[int]int{1: 3, 1: 4}  `:            `duplicate key 1 in map literal`,
 	`_ = map[string]int{"a": 3, "a": 4}  `:     `duplicate key "a" in map literal`,
-	`_ = map[string]string{"k1": 2}`:           `cannot use 2 (type int) as type string in map value`,
-	`_ = map[string]string{2: "v1"}`:           `cannot use 2 (type int) as type string in map key`,
+	`_ = map[string]string{"k1": 2}`:           `cannot use 2 (type untyped int) as type string in map value`,
+	`_ = map[string]string{2: "v1"}`:           `cannot use 2 (type untyped int) as type string in map key`,
 
 	// Map keys.
 	`a, ok := map[int]string{}[0]; var _ string = a; var _ bool = ok;`: ok,
@@ -1035,12 +1035,12 @@ var checkerStmts = map[string]string{
 	`_ = pointInt{1.0,2.0}`:        ok,
 	`_ = pointInt{X: 1, Y: 2}`:     ok,
 	`_ = pointInt{_:0, _:1}`:       `invalid field name _ in struct initializer`,
-	`_ = pointInt{"a", "b"}`:       `cannot use "a" (type string) as type int in field value`,
+	`_ = pointInt{"a", "b"}`:       `cannot use "a" (type untyped string) as type int in field value`,
 	`_ = pointInt{1, Y: 2}`:        `mixture of field:value and value initializers`,
 	`_ = pointInt{1,2,3}`:          `too many values in compiler.pointInt literal`,
 	`_ = pointInt{1.2,2.0}`:        `constant 1.2 truncated to integer`,
 	`_ = pointInt{1}`:              `too few values in compiler.pointInt literal`,
-	`_ = pointInt{X: "a", Y: "b"}`: `cannot use "a" (type string) as type int in field value`,
+	`_ = pointInt{X: "a", Y: "b"}`: `cannot use "a" (type untyped string) as type int in field value`,
 	`_ = pointInt{X: 1, 2}`:        `mixture of field:value and value initializers`,
 	`_ = pointInt{X: 2, X: 2}`:     `duplicate field name in struct literal: X`,
 
@@ -1167,7 +1167,7 @@ var checkerStmts = map[string]string{
 	`s := []string{"a","b"}; for i := range s { _ = s[i] }`:            ok,
 	`s := []string{"a","b"}; for i := 0; i < len(s); i++ { _ = s[i] }`: ok,
 	`for i := 10; i; i++ { }`:                                          "non-bool i (type int) used as for condition",
-	`for i := 0; i < 10; i = "" {}`:                                    `cannot use "" (type string) as type int in assignment`,
+	`for i := 0; i < 10; i = "" {}`:                                    `cannot use "" (type untyped string) as type int in assignment`,
 	`s := []string{"a","b"}; for _, i := range s { _ = s[i] }`:         `non-integer slice index i`,
 	`var t boolType = false; for ; t; { }`:                             ok,
 
@@ -1310,14 +1310,14 @@ var checkerStmts = map[string]string{
 	`_ = func() (a int, b string) { return             }`: ok,
 	`_ = func() (a int, b string) { return 0, ""       }`: ok,
 	`_ = func() (s int)           { { s := 0; return } }`: `s is shadowed during return`,
-	`_ = func() (a int)           { return ""          }`: `cannot use "" (type string) as type int in return argument`,
-	`_ = func() (a int, b string) { return "", ""      }`: `cannot use "" (type string) as type int in return argument`,
+	`_ = func() (a int)           { return ""          }`: `cannot use "" (type untyped string) as type int in return argument`,
+	`_ = func() (a int, b string) { return "", ""      }`: `cannot use "" (type untyped string) as type int in return argument`,
 	`_ = func() (a int)           { return 0, 0        }`: "too many arguments to return\n\thave (number, number)\n\twant (int)",
 	`_ = func() (a int, b string) { return 0           }`: "not enough arguments to return\n\thave (number)\n\twant (int, string)",
 
 	// Result statements with non-named result parameters.
 	`_ = func() int { return 0 }`:              ok,
-	`_ = func() int { return "" }`:             `cannot use "" (type string) as type int in return argument`,
+	`_ = func() int { return "" }`:             `cannot use "" (type untyped string) as type int in return argument`,
 	`_ = func() (int, string) { return 0 }`:    "not enough arguments to return\n\thave (number)\n\twant (int, string)",
 	`_ = func() (int, int) { return 0, 0, 0}`:  "too many arguments to return\n\thave (number, number, number)\n\twant (int, int)",
 	`_ = func() (int, int) { return 0, "", 0}`: "too many arguments to return\n\thave (number, string, number)\n\twant (int, int)",
@@ -1336,12 +1336,12 @@ var checkerStmts = map[string]string{
 	`f := func(a string, b int) { }; f("", 0)`:                        ok,
 	`f := func() (a, b int) { return 0, 0 }; f()`:                     ok,
 	`var _, _ int = func(a, b int) (int, int) { return a, b }(0, 0)`:  ok,
-	`f := func(a, b int) { }; f("", 0)`:                               `cannot use "" (type string) as type int in argument to f`,
-	`f := func(string) { } ; f(0)`:                                    `cannot use 0 (type int) as type string in argument to f`,
+	`f := func(a, b int) { }; f("", 0)`:                               `cannot use "" (type untyped string) as type int in argument to f`,
+	`f := func(string) { } ; f(0)`:                                    `cannot use 0 (type untyped int) as type string in argument to f`,
 	`f := func(string, int) { } ; f(0)`:                               "not enough arguments in call to f\n\thave (number)\n\twant (string, int)",
 	`f := func(string, int) { } ; f(0, 0, 0)`:                         "too many arguments in call to f\n\thave (number, number, number)\n\twant (string, int)",
-	`f := func() (a, b int) { return 0, "" }; f()`:                    `cannot use "" (type string) as type int in return argument`,
-	`var _, _ int = func(a, b int) (int, int) { return a, b }("", 0)`: `cannot use "" (type string) as type int in argument to func literal`,
+	`f := func() (a, b int) { return 0, "" }; f()`:                    `cannot use "" (type untyped string) as type int in return argument`,
+	`var _, _ int = func(a, b int) (int, int) { return a, b }("", 0)`: `cannot use "" (type untyped string) as type int in argument to func literal`,
 	`f := func(n ...int) { for _ = range n { } }; f(1,2,3)`:           ok,
 	// `func(c int) { _ = c == 0 && c == 0 }(0)`:      ok, // TODO: syntax error: method declarations are not supported in this release of Scriggo
 
@@ -1466,7 +1466,7 @@ var checkerStmts = map[string]string{
 	`delete(aStringMap, "a")`:                  ok,
 	`delete(map[string]string{}, "a")`:         ok,
 	`delete(map[stringType]string{}, aString)`: ok,
-	`delete(map[string]string{}, 10 + 2)`:      `cannot use 10 + 2 (type int) as type string in delete`, // TODO.
+	`delete(map[string]string{}, 10 + 2)`:      `cannot use 10 + 2 (type untyped int) as type string in delete`, // TODO.
 	`delete(map[string]string{}, nil)`:         `cannot use nil as type string in delete`,
 	`delete(nil, 0)`:                           `first argument to delete must be map; have nil`,
 
@@ -1572,7 +1572,7 @@ var checkerStmts = map[string]string{
 	`type T map[string]int ; _ = T{"one": 1}`:                    ok,
 	`type T string         ; _ = []T{"a", "b"}`:                  ok,
 	`type T T2`: undefined("T2"),
-	`type T int            ; _ = []T{"a", "b"}`:    `cannot convert "a" (type untyped string) to type T`,
+	`type T int            ; _ = []T{"a", "b"}`:    `cannot use "a" (type untyped string) as type T in slice literal`,
 	`type T float64        ; _ = T("a")`:           `cannot convert "a" (type untyped string) to type T`,
 	`type T float64        ; var _ T = float64(0)`: `cannot use float64(0) (type float64) as type T in assignment`,
 
@@ -1594,7 +1594,7 @@ var checkerStmts = map[string]string{
 	`type S = struct{A,B int} ; _ = S{A: 5, B: 10}`:                               ok,
 	`type S1 = struct { A int ; B map[string][]int; *int }`:                       ok,
 	`_ = struct{ A int }{C: 10}`:                                                  `unknown field 'C' in struct literal of type struct { A int }`,
-	`type S = struct{A,B int ; C,D float64} ; _ = S{A: 5, B: 10, C: 3.4, D: ""}`:  `cannot use "" (type string) as type float64 in field value`,
+	`type S = struct{A,B int ; C,D float64} ; _ = S{A: 5, B: 10, C: 3.4, D: ""}`:  `cannot use "" (type untyped string) as type float64 in field value`,
 }
 
 type pointInt struct{ X, Y int }

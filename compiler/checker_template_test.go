@@ -331,7 +331,7 @@ var checkerTemplateStmts = []struct {
 	},
 	{
 		src:      `{% macro M(int) %}{% end %}    {% show M("s") %}`,
-		expected: "cannot use \"s\" (type string) as type int in argument to M",
+		expected: "cannot use \"s\" (type untyped string) as type int in argument to M",
 	},
 
 	{
@@ -563,7 +563,7 @@ var checkerTemplateStmts = []struct {
 	{src: `{% var a int = I default 5 %}`, expected: ok},
 	{src: `{% var a int = J default 5 %}`, expected: ok},
 	{src: `{% var a string = I default "" %}`, expected: `cannot use I (type int) as type string in assignment`},
-	{src: `{% var a string = S default 5 %}`, expected: `cannot use 5 (type int) as type string in assignment`},
+	{src: `{% var a string = S default 5 %}`, expected: `cannot use 5 (type untyped int) as type string in assignment`},
 	{src: `{% var a interface{} = S default 5 %}`, expected: ok},
 	{src: `{% a := I default 5 %}`, expected: ok},
 	{src: `{% a := J default 5 %}`, expected: ok},
@@ -590,7 +590,7 @@ var checkerTemplateStmts = []struct {
 	{src: `{% const c int = D default int(3) %}`, expected: ok},
 	{src: `{% const c int = Ui default int(3) %}`, expected: ok},
 	{src: `{% const c int = Ui default 3 %}`, expected: ok},
-	{src: `{% const c string = Ui default "" %}`, expected: `cannot use Ui (type int) as type string in assignment`},
+	{src: `{% const c string = Ui default "" %}`, expected: `cannot use Ui (type untyped int) as type string in assignment`},
 	{src: `{% const c = iota default 0 %}`, expected: ok},
 
 	// Other default expression uses.

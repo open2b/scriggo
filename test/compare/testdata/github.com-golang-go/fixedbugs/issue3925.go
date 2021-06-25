@@ -18,7 +18,7 @@ var _ = map[string]string{
 var _ = []string{
 	"foo",
 	"bar",
-	20, // ERROR `cannot convert 20 (type untyped int) to type string`
+	20, // ERROR "cannot use|incompatible type|cannot convert"
 }
 
 func main() { }
