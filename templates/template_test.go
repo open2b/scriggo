@@ -2870,6 +2870,16 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: `i'm a partial; no partial`,
 	},
 
+	"Default show with double render": {
+		sources: map[string]string{
+			"index.html":    `{% show render "partial1.html" default render "partial2.html" %}; {% show render "partial3.html" default render "partial4.html" %}`,
+			"partial1.html": `i'm partial 1`,
+			"partial2.html": `i'm partial 2`,
+			"partial4.html": `i'm partial 4`,
+		},
+		expectedOut: `i'm partial 1; i'm partial 4`,
+	},
+
 	"Default short show with render": {
 		sources: map[string]string{
 			"index.html":   `{{ render "partial.html" default "ops" }}; {{ render "no-partial.html" default "no partial" }}`,
