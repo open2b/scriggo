@@ -278,7 +278,7 @@ func (tc *typechecker) thisIncreaseIndex() {
 
 // thisCurrentName returns the current name of the 'this' identifier.
 func (tc *typechecker) thisCurrentName() string {
-	return "$_this_%d" + strconv.Itoa(tc.using.currentThisIndex)
+	return "$_this_" + strconv.Itoa(tc.using.currentThisIndex)
 }
 
 // newTypechecker creates a new type checker. A global scope may be provided
