@@ -682,7 +682,7 @@ nodesLoop:
 					panic(tc.errorf(node, "invalid using type %s", typ))
 				}
 				dummyFuncType := ast.NewFuncType(nil, true, nil, []*ast.Parameter{
-					ast.NewParameter(nil, node.Type.(*ast.Identifier)),
+					ast.NewParameter(nil, typeExpr),
 				}, false)
 				dummyFunc := ast.NewFunc(nil, nil, dummyFuncType, node.Body, false, 0)
 				thisExpr = ast.NewCall(nil, dummyFunc, nil, false)
