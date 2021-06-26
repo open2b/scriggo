@@ -8,10 +8,10 @@ package main
 
 const (
 	_ = iota
-	_ // ERROR "illegal character|invalid character"
-	_  // ERROR "illegal character|invalid character"
-	_  // ERROR "illegal character|invalid character"
-	_  // ERROR "illegal character|invalid character"
+	_ // ERROR "invalid character|invalid character"
+	_  // ERROR "invalid character|invalid character"
+	_  // ERROR "invalid character|invalid character"
+	_  // ERROR "invalid character|invalid character"
 )
 
 func main() {}

@@ -1216,7 +1216,7 @@ LOOP:
 				l.column++
 				endLineAsSemicolon = false
 			} else {
-				return l.errorf("illegal character U+0024 '$'")
+				return l.errorf("invalid character U+0024 '$'")
 			}
 		case '(':
 			l.emit(tokenLeftParenthesis, 1)
@@ -1303,9 +1303,9 @@ LOOP:
 				r, s := utf8.DecodeRune(l.src)
 				if !unicode.IsLetter(r) {
 					if unicode.IsPrint(r) {
-						return l.errorf("illegal character %U '%c'", r, r)
+						return l.errorf("invalid character %U '%c'", r, r)
 					}
-					return l.errorf("illegal character %U", r)
+					return l.errorf("invalid character %#U", r)
 				}
 				typ, txt = l.lexIdentifierOrKeyword(s)
 			}
@@ -1783,25 +1783,25 @@ func (l *lexer) lexRuneLiteral() error {
 	// it finds a Unicode character that is not valid in a rune literal.
 	var p int
 	if len(l.src) == 1 {
-		return l.errorf("invalid character literal (missing closing ')")
+		return l.errorf("rune literal not terminated")
 	}
 	switch l.src[1] {
 	case '\\':
 		if len(l.src) == 2 {
-			return l.errorf("invalid character literal (missing closing ')")
+			return l.errorf("rune literal not terminated")
 		}
 		switch c := l.src[2]; c {
 		case 'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', '\'':
 			if p = 3; len(l.src) < p {
-				return l.errorf("invalid character literal (missing closing ')")
+				return l.errorf("rune literal not terminated")
 			}
 		case 'x':
 			if p = 5; len(l.src) < p {
-				return l.errorf("invalid character literal (missing closing ')")
+				return l.errorf("rune literal not terminated")
 			}
 			for i := 3; i < 5; i++ {
 				if !isHexDigit(l.src[i]) {
-					return l.errorf("non-hex character in escape sequence: " + string(l.src[i]))
+					return l.errorf("invalid character %q in hexadecimal escape", string(l.src[i]))
 				}
 			}
 		case 'u', 'U':
@@ -1810,7 +1810,7 @@ func (l *lexer) lexRuneLiteral() error {
 				n = 8
 			}
 			if p = n + 3; len(l.src) < p {
-				return l.errorf("invalid character literal (missing closing ')")
+				return l.errorf("rune literal not terminated")
 			}
 			var r uint32
 			for i := 3; i < n+3; i++ {
@@ -1824,33 +1824,33 @@ func (l *lexer) lexRuneLiteral() error {
 				case 'A' <= c && c <= 'F':
 					r += uint32(c - 'A' + 10)
 				default:
-					return l.errorf("non-hex character in escape sequence: %s", string(c))
+					return l.errorf("invalid character %q in hexadecimal escape", string(c))
 				}
 			}
 			if 0xD800 <= r && r < 0xE000 || r > '\U0010FFFF' {
-				return l.errorf("escape sequence is invalid Unicode code point")
+				return l.errorf("escape is invalid Unicode code point %#U", r)
 			}
 		case '0', '1', '2', '3', '4', '5', '6', '7':
 			if p = 5; len(l.src) < p {
-				return l.errorf("invalid character literal (missing closing ')")
+				return l.errorf("rune literal not terminated")
 			}
 			r := rune(c - '0')
 			for i := 3; i < 5; i++ {
 				r = r * 8
 				c = l.src[i]
 				if c < '0' || c > '7' {
-					return l.errorf("non-octal character in escape sequence: %s", string(c))
+					return l.errorf("invalid character %q in octal escape", string(c))
 				}
 				r += rune(c - '0')
 			}
 			if r > 255 {
-				return l.errorf("octal escape value > 255: %d", r)
+				return l.errorf("octal escape value %d > 255", r)
 			}
 		default:
-			return l.errorf("invalid escape in string literal")
+			return l.errorf("unknown escape")
 		}
 	case '\n':
-		return l.errorf("newline in character literal")
+		return l.errorf("newline in rune literal")
 	case '\'':
 		return l.errorf("empty character literal or unescaped ' in character literal")
 	default:
@@ -1861,7 +1861,7 @@ func (l *lexer) lexRuneLiteral() error {
 		p = s + 1
 	}
 	if len(l.src) <= p || l.src[p] != '\'' {
-		return l.errorf("invalid character literal (missing closing ')")
+		return l.errorf("rune literal not terminated")
 	}
 	l.emit(tokenRune, p+1)
 	l.column += p + 1

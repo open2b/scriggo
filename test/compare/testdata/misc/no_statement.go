@@ -1,9 +1,9 @@
 // errorcheck
 
 :  // ERROR `expected 'package', found ':'`
-∞  // ERROR `illegal character U+221E '∞'`
+∞  // ERROR `invalid character U+221E '∞'`
 }  // ERROR `expected 'package', found '}'`
-$  // ERROR `illegal character U+0024 '$'`
+$  // ERROR `invalid character U+0024 '$'`
 
 package main
 
@@ -12,7 +12,7 @@ package main
 
 func main() {
 	:  // ERROR `unexpected :, expecting }`
-	∞  // ERROR `illegal character U+221E '∞'`
+	∞  // ERROR `invalid character U+221E '∞'`
 }
 
 :  // ERROR `non-declaration statement outside function body`

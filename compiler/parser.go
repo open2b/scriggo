@@ -213,7 +213,7 @@ func parseSource(src []byte, script, shebang bool) (tree *ast.Tree, err error) {
 	tok := p.next()
 	if tok.typ == tokenShebangLine {
 		if !shebang {
-			return nil, syntaxError(tok.pos, "illegal character U+0023 '#'")
+			return nil, syntaxError(tok.pos, "invalid character U+0023 '#'")
 		}
 		tok = p.next()
 	}
