@@ -44,12 +44,13 @@ func main() {
 	if f() {}
 	if <-ch {} // ERROR `non-bool <-ch (type int) used as if condition`
 	if <-chb {}
-	if ch <- 3 {} // ERROR `ch <- 3 used as value`
-	if i++ for {} // ERROR `syntax error: i++ used as value`
-	if i++ {} // ERROR `syntax error: i++ used as value`
-	if i-- {} // ERROR `syntax error: i-- used as value`
-	if i = 3 {} // ERROR `syntax error: assignment i = 3 used as value`
-	if i := 3 { _ = i } // ERROR `syntax error: i := 3 used as value`
+	if ch <- 3 {} // ERROR `cannot use ch <- 3 as value`
+	if i++ for {} // ERROR `syntax error: cannot use i++ as value`
+	if i++ {} // ERROR `syntax error: cannot use i++ as value`
+	if i-- {} // ERROR `syntax error: cannot use i-- as value`
+	if i = 3 {} // ERROR `syntax error: cannot use assignment (i) = (3) as value`
+	if a, b = 3, 6 {} // ERROR `syntax error: cannot use assignment (a, b) = (3, 6) as value`
+	if i := 3 { _ = i } // ERROR `syntax error: cannot use i := 3 as value`
 	if print(); {} // ERROR `syntax error: missing condition in if statement`
 	if <-ch; {} // ERROR `syntax error: missing condition in if statement`
 	if ch <- 3; {} // ERROR `syntax error: missing condition in if statement`

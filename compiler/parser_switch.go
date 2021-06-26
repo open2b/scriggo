@@ -129,14 +129,8 @@ func (p *parsing) parseSwitch(tok token, end tokenTyp) ast.Node {
 				// TODO (Gianluca): should error contain the position of the
 				// expression which caused the error instead of the token (as Go
 				// does)?
-				if !ok {
-					panic(syntaxError(tok.pos, "assignment %s used as value", assignment))
-				}
-				if ta.Type != nil {
-					panic(syntaxError(tok.pos, "%s used as value", assignment))
-				}
-				if len(assignment.Lhs) != 1 {
-					panic(syntaxError(tok.pos, "%s used as value", assignment))
+				if !ok || ta.Type != nil || len(assignment.Lhs) != 1 {
+					panic(cannotUseAsValueError(tok.pos, assignment))
 				}
 				afterSemicolon = assignment
 			} else {
@@ -160,15 +154,9 @@ func (p *parsing) parseSwitch(tok token, end tokenTyp) ast.Node {
 			if len(assignment.Rhs) != 1 {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", want))
 			}
-			if len(assignment.Lhs) != 1 {
-				panic(syntaxError(tok.pos, "%s used as value", assignment))
-			}
 			ta, ok := assignment.Rhs[0].(*ast.TypeAssertion)
-			if !ok {
-				panic(syntaxError(tok.pos, "assignment %s used as value", assignment))
-			}
-			if ta.Type != nil {
-				panic(syntaxError(tok.pos, "%s used as value", assignment))
+			if !ok || ta.Type != nil || len(assignment.Lhs) != 1 {
+				panic(cannotUseAsValueError(tok.pos, assignment))
 			}
 			afterSemicolon = assignment
 		}

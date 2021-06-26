@@ -22,7 +22,8 @@ func main() {
 	for ; {} // ERROR `syntax error: unexpected {, expecting for loop condition`
 	for ; true {} // ERROR `syntax error: unexpected {, expecting semicolon or newline`
 	for ; ; { break }
-	for a := 5 {} // ERROR `syntax error: a := 5 used as value`
+	for a = 5 {} // ERROR `syntax error: cannot use assignment (a) = (5) as value`
+	for a := 5 {} // ERROR `syntax error: cannot use a := 5 as value`
 	for a := 5; {} // ERROR `syntax error: unexpected {, expecting for loop condition`
 	for a := 5; true {} // ERROR `syntax error: unexpected {, expecting semicolon or newline`
 	for a := false; a; {}

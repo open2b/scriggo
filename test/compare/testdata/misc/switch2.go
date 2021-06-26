@@ -21,6 +21,8 @@ func main() {
 	switch 5 { case 'a': }
 	switch 'a' { case 5: }
 	switch 5.4 { case 2i: } // ERROR `constant 2i truncated to real`
+	switch a = 1 { case true: } // ERROR `cannot use assignment (a) = (1) as value`
+	switch a := 1 { case true: } // ERROR `cannot use a := 1 as value`
 	switch 1 < 2 { case true: }
 	switch a < "b" { case true: }
 	switch a { case "b": }

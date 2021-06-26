@@ -9,6 +9,7 @@ package compiler
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -589,10 +590,7 @@ LABEL:
 			if cond != nil {
 				condition, _ = cond.(ast.Expression)
 				if condition == nil {
-					if a, ok := cond.(*ast.Assignment); ok && a.Type == ast.AssignmentSimple {
-						panic(syntaxError(tok.pos, "assignment %s used as value", init))
-					}
-					panic(syntaxError(tok.pos, "%s used as value", init))
+					panic(cannotUseAsValueError(pos, init))
 				}
 			}
 			var post ast.Node
@@ -611,10 +609,7 @@ LABEL:
 			if init != nil {
 				condition, _ = init.(ast.Expression)
 				if condition == nil {
-					if a, ok := init.(*ast.Assignment); ok && a.Type == ast.AssignmentSimple {
-						panic(syntaxError(tok.pos, "assignment %s used as value", init))
-					}
-					panic(syntaxError(tok.pos, "%s used as value", init))
+					panic(cannotUseAsValueError(pos, init))
 				}
 			}
 			pos.End = tok.pos.End
@@ -892,10 +887,7 @@ LABEL:
 		} else if init != nil {
 			expr, _ = init.(ast.Expression)
 			if expr == nil {
-				if a, ok := init.(*ast.Assignment); ok && a.Type == ast.AssignmentSimple {
-					panic(syntaxError(tok.pos, "assignment %s used as value", init))
-				}
-				panic(syntaxError(tok.pos, "%s used as value", init))
+				panic(cannotUseAsValueError(pos, init))
 			}
 			init = nil
 		}
@@ -1694,6 +1686,28 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeRa
 	}
 	node := ast.NewAssignment(pos, variables, typ, values)
 	return node, tok
+}
+
+// cannotUseAsValueError returns a syntax error returned when node is used as
+// value at position pos.
+func cannotUseAsValueError(pos *ast.Position, node ast.Node) *SyntaxError {
+	if a, ok := node.(*ast.Assignment); ok && a.Type == ast.AssignmentSimple {
+		return syntaxError(pos, "cannot use assignment (%s) = (%s) as value",
+			printExpressions(a.Lhs), printExpressions(a.Rhs))
+	}
+	panic(syntaxError(pos, "cannot use %s as value", node))
+}
+
+// printExpressions prints expressions as a comma separated list.
+func printExpressions(expressions []ast.Expression) string {
+	var b strings.Builder
+	for i, e := range expressions {
+		if i > 0 {
+			b.WriteString(", ")
+		}
+		b.WriteString(e.String())
+	}
+	return b.String()
 }
 
 // addNode adds a node to the tree. It adds the node as a child to the current
