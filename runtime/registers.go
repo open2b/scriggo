@@ -317,15 +317,18 @@ func (vm *VM) setFromReflectValue(r int8, v reflect.Value) registerType {
 	}
 }
 
-func appendCap(c, ol, nl int) int {
-	if c == 0 {
+func appendCap(oc, nl int) int {
+	if oc == 0 || nl > oc*2 {
 		return nl
 	}
+	if oc < 1024 {
+		return oc * 2
+	}
+	c := oc
 	for c < nl {
-		if ol < 1024 {
-			c += c
-		} else {
-			c += c / 4
+		c += c / 4
+		if c <= 0 {
+			c = nl
 		}
 	}
 	return c
@@ -343,7 +346,7 @@ func (vm *VM) appendSlice(first int8, length int, slice reflect.Value) reflect.V
 			s = s[:nl]
 		} else {
 			old := s
-			c = appendCap(c, ol, nl)
+			c = appendCap(c, nl)
 			s = make([]int, nl, c)
 			copy(s, old)
 		}
@@ -363,7 +366,7 @@ func (vm *VM) appendSlice(first int8, length int, slice reflect.Value) reflect.V
 			s = s[:nl]
 		} else {
 			old := s
-			c = appendCap(c, ol, nl)
+			c = appendCap(c, nl)
 			s = make([]byte, nl, c)
 			copy(s, old)
 		}
@@ -383,7 +386,7 @@ func (vm *VM) appendSlice(first int8, length int, slice reflect.Value) reflect.V
 			s = s[:nl]
 		} else {
 			old := s
-			c = appendCap(c, ol, nl)
+			c = appendCap(c, nl)
 			s = make([]rune, nl, c)
 			copy(s, old)
 		}
@@ -409,7 +412,7 @@ func (vm *VM) appendSlice(first int8, length int, slice reflect.Value) reflect.V
 			slice = slice.Slice(0, nl)
 		} else {
 			old := slice
-			c = appendCap(c, ol, nl)
+			c = appendCap(c, nl)
 			slice = reflect.MakeSlice(slice.Type(), nl, c)
 			if ol > 0 {
 				reflect.Copy(slice, old)
