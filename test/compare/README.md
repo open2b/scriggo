@@ -54,7 +54,7 @@ If you want, for example, test a program source code with the mode **errorcheck*
 ```
 
 
-Mode | Supported extensions | Expected behaviour
+Mode | Supported extensions | Expected behavior
 ---|---|---
 **skip** | `.go` <br> `.script` <br> `.html` | Nothing. The test is skipped. Everything after the `skip` keyword is ignored.
 **compile** <br> **build** | `.go` <br> `.script` <br> `.html` | The test compiles successfully.

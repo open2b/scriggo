@@ -21,7 +21,7 @@ func main() {
 	fmt.Println(A1 == b.B1)
 
 	// This comparison cannot be done (type checking error): types are
-	// different. This is the expected behaviour.
+	// different. This is the expected behavior.
 	//
 	// fmt.Println(A2 == b.B2)
 
@@ -34,7 +34,7 @@ func main() {
 	fmt.Println(A3 == b.B3)
 
 	// This comparison cannot be done (type checking error): types are
-	// different. This is the expected behaviour.
+	// different. This is the expected behavior.
 	//
 	// fmt.Println(A4 == b.B3)
 

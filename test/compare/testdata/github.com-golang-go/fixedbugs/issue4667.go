@@ -1,4 +1,4 @@
-// skip : invalid behaviour (it is internally related to the runtime, can't pass as it is)
+// skip : invalid behavior (it is internally related to the runtime, can't pass as it is)
 
 // run
 

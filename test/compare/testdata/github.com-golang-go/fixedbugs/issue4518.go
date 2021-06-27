@@ -1,4 +1,4 @@
-// skip : invalid behaviour (needs investigation)
+// skip : invalid behavior (needs investigation)
 
 // run
 

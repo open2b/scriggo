@@ -213,7 +213,7 @@ type typechecker struct {
 	// type checking error.
 	unusedImports map[string]map[string]bool
 
-	// opts holds the options that define the behaviour of the type checker.
+	// opts holds the options that define the behavior of the type checker.
 	opts checkerOptions
 
 	// iota holds the current iota value.

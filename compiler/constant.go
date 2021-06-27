@@ -62,7 +62,7 @@ type constant interface {
 
 	// binaryOp executes the binary operation c1 op c2 and returns the result.
 	// Returns an error if the operation cannot be executed. If c1 and c2 are
-	// not both booleans, strings or numbers, the behaviour is undefined.
+	// not both booleans, strings or numbers, the behavior is undefined.
 	binaryOp(op ast.OperatorType, c2 constant) (constant, error)
 
 	// representedBy checks if the constant is representable by a value of a
@@ -1304,7 +1304,7 @@ func convertToConstant(v reflect.Value) constant {
 // and for float literals it parses also the form "a/b" as accepted by the
 // method big.Rat.SetString.
 //
-// If the parsed string has not a valid form, the behaviour is undefined.
+// If the parsed string has not a valid form, the behavior is undefined.
 func parseBasicLiteral(typ ast.LiteralType, s string) (constant, error) {
 	switch typ {
 	case ast.StringLiteral:
