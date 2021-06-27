@@ -7,7 +7,7 @@ func arrayTypes() {
 	var a1 [3]Int1
 	_ = a1
 	a1[0] = int(0) // ERROR `cannot use int(0) (type int) as type Int1 in assignment`
-	a1 = [3]int{}  // ERROR `cannot use [3]int literal (type [3]int) as type [3]Int1 in assignment`
+	a1 = [3]int{}  // ERROR `cannot use [3]int{} (type [3]int) as type [3]Int1 in assignment`
 }
 
 func chanTypes() {
@@ -33,7 +33,7 @@ func chanTypes() {
 
 	var c3 chan<- []String
 	_ = c3
-	c3 <- []Int{} // ERROR `cannot use []Int literal (type []Int) as type []String in send`
+	c3 <- []Int{} // ERROR `cannot use []Int{} (type []Int) as type []String in send`
 
 	var c4 (<-chan map[String][]Int)
 	_ = c4
@@ -77,9 +77,9 @@ func mapTypes() {
 
 	var m MapIntString
 	_ = m
-	m = map[int]int{}    // ERROR `cannot use map[int]int literal (type map[int]int) as type MapIntString in assignment`
-	m = map[Int]String{} // ERROR `cannot use map[Int]String literal (type map[Int]String) as type MapIntString in assignment`
-	m = []MapIntString{} // ERROR `cannot use []MapIntString literal (type []MapIntString) as type MapIntString in assignment`
+	m = map[int]int{}    // ERROR `cannot use map[int]int{} (type map[int]int) as type MapIntString in assignment`
+	m = map[Int]String{} // ERROR `cannot use map[Int]String{} (type map[Int]String) as type MapIntString in assignment`
+	m = []MapIntString{} // ERROR `cannot use []MapIntString{} (type []MapIntString) as type MapIntString in assignment`
 }
 
 func sliceTypes() {
@@ -87,8 +87,8 @@ func sliceTypes() {
 	type String string
 	var s []Int
 	_ = s
-	s = []int{}    // ERROR `cannot use []int literal (type []int) as type []Int in assignment`
-	s = []String{} // ERROR `cannot use []String literal (type []String) as type []Int in assignment`
+	s = []int{}    // ERROR `cannot use []int{} (type []int) as type []Int in assignment`
+	s = []String{} // ERROR `cannot use []String{} (type []String) as type []Int in assignment`
 }
 
 func ptrTypes() {
@@ -112,17 +112,17 @@ func structTypes() {
 	_ = s
 	//s.A = 4              // ERROR `cannot use 4 s(type int) as type map[Int][]string in assignment` TODO
 	//s.A = String("ciao") // ERROR `cannot use String("ciao") (type String) as type map[Int][]string in assignment`
-	//s = []int{}          // ERROR `cannot use []int literal (type []int) as type struct { A map[Int][]string; B map[Int][]string } in assignment`
+	//s = []int{}          // ERROR `cannot use []int{} (type []int) as type struct { A map[Int][]string; B map[Int][]string } in assignment`
 
 	type S struct{ A map[string]Field }
 	var s2 S
 	_ = s2
 	//s2.A = 4                // ERROR `cannot use 4 (type int) as type map[string]map[Int][]string in assignment`
-	//s2.A = map[string]Int{} // ERROR `cannot use map[string]Int literal (type map[string]Int) as type map[string]map[Int][]string in assignment`
+	//s2.A = map[string]Int{} // ERROR `cannot use map[string]Int{} (type map[string]Int) as type map[string]map[Int][]string in assignment`
 
 	type F struct{ A []Field }
-	// s2 = F{}                   // ERROR `cannot use F literal (type F) as type S in assignment`
-	// s2 = struct{ A []Field }{} // ERROR `cannot use struct { A []Field } literal (type struct { A []map[Int][]string }) as type S in assignment`
+	// s2 = F{}                   // ERROR `cannot use F{} (type F) as type S in assignment`
+	// s2 = struct{ A []Field }{} // ERROR `cannot use struct { A []Field }{} (type struct { A []map[Int][]string }) as type S in assignment`
 }
 
 func main() {

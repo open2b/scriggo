@@ -1116,8 +1116,8 @@ func NewCompositeLiteral(pos *Position, typ Expression, keyValues []KeyValue) *C
 }
 
 func (n *CompositeLiteral) String() string {
+	s := n.Type.String()
 	if expandedPrint {
-		s := n.Type.String()
 		s += "{"
 		for i, kv := range n.KeyValues {
 			if i > 0 {
@@ -1128,7 +1128,10 @@ func (n *CompositeLiteral) String() string {
 		s += "}"
 		return s
 	}
-	return n.Type.String() + " literal"
+	if len(n.KeyValues) > 0 {
+		return s + "{...}"
+	}
+	return s + "{}"
 }
 
 // KeyValue represents a key value pair in a slice, map or struct composite literal.

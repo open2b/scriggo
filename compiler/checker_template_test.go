@@ -214,10 +214,10 @@ var checkerTemplateExprErrors = []struct {
 }{
 
 	// contains
-	{`[]byte{} contains "a"`, tierr(1, 13, `invalid operation: []byte literal contains "a" (cannot convert a (type untyped string) to type uint8)`), nil},
-	{`[]int{} contains int32(5)`, tierr(1, 12, `invalid operation: []int literal contains int32(5) (mismatched types int and rune)`), nil},
-	{`[]int{} contains i`, tierr(1, 12, `invalid operation: []int literal contains i (mismatched types int and compiler.definedInt)`), map[string]*typeInfo{"i": definedIntTypeInfo}},
-	{`[2]int{0,1} contains rune('a')`, tierr(1, 16, `invalid operation: [2]int literal contains rune('a') (mismatched types int and rune)`), nil},
+	{`[]byte{} contains "a"`, tierr(1, 13, `invalid operation: []byte{} contains "a" (cannot convert a (type untyped string) to type uint8)`), nil},
+	{`[]int{} contains int32(5)`, tierr(1, 12, `invalid operation: []int{} contains int32(5) (mismatched types int and rune)`), nil},
+	{`[]int{} contains i`, tierr(1, 12, `invalid operation: []int{} contains i (mismatched types int and compiler.definedInt)`), map[string]*typeInfo{"i": definedIntTypeInfo}},
+	{`[2]int{0,1} contains rune('a')`, tierr(1, 16, `invalid operation: [2]int{...} contains rune('a') (mismatched types int and rune)`), nil},
 
 	// macro type literal
 	{`(macro() css)(nil)`, tierr(1, 13, `invalid macro result type css`), map[string]*typeInfo{"css": {Type: reflect.TypeOf(0), Properties: propertyIsType}}},
@@ -544,7 +544,7 @@ var checkerTemplateStmts = []struct {
 	{src: `{%% for _ in (&[...]int{}) { } %%}`, expected: ok},
 	{src: `{%% for a in make(<-chan string) { var _ string = a } %%}`, expected: ok},
 	{src: `{%% for _ in 0 { } %%}`, expected: `cannot range over 0 (type untyped number)`},
-	{src: `{%% for _ in (&[]int{}) { } %%}`, expected: `cannot range over &[]int literal (type *[]int)`},
+	{src: `{%% for _ in (&[]int{}) { } %%}`, expected: `cannot range over &[]int{} (type *[]int)`},
 	{src: `{%% for a, b in "" { } %%}`, expected: `unexpected in, expecting := or = or comma`}, // should be better 'too many variables in range'.
 	{src: `{%% for a in nil { } %%}`, expected: `cannot range over nil`},
 	{src: `{%% for a in _ { } %%}`, expected: `cannot use _ as value`},

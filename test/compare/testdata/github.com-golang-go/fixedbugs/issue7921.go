@@ -20,12 +20,12 @@ func bufferNotEscape() string {
 	// can be stack-allocated.
 	var b bytes.Buffer
 	b.WriteString("123")
-	b.Write([]byte{'4'}) // ERROR "bufferNotEscape \[\]byte literal does not escape$"
+	b.Write([]byte{'4'}) // ERROR "bufferNotEscape \[\]byte{...} does not escape$"
 	return b.String()    // ERROR "inlining call to bytes.\(\*Buffer\).String$" "string\(bytes.b.buf\[bytes.b.off:\]\) escapes to heap$"
 }
 
 func bufferNoEscape2(xs []string) int { // ERROR "bufferNoEscape2 xs does not escape$"
-	b := bytes.NewBuffer(make([]byte, 0, 64)) // ERROR "bufferNoEscape2 &bytes.Buffer literal does not escape$" "bufferNoEscape2 make\(\[\]byte, 0, 64\) does not escape$" "inlining call to bytes.NewBuffer$"
+	b := bytes.NewBuffer(make([]byte, 0, 64)) // ERROR "bufferNoEscape2 &bytes.Buffer{...} does not escape$" "bufferNoEscape2 make\(\[\]byte, 0, 64\) does not escape$" "inlining call to bytes.NewBuffer$"
 	for _, x := range xs {
 		b.WriteString(x)
 	}
@@ -33,7 +33,7 @@ func bufferNoEscape2(xs []string) int { // ERROR "bufferNoEscape2 xs does not es
 }
 
 func bufferNoEscape3(xs []string) string { // ERROR "bufferNoEscape3 xs does not escape$"
-	b := bytes.NewBuffer(make([]byte, 0, 64)) // ERROR "bufferNoEscape3 &bytes.Buffer literal does not escape$" "bufferNoEscape3 make\(\[\]byte, 0, 64\) does not escape$" "inlining call to bytes.NewBuffer$"
+	b := bytes.NewBuffer(make([]byte, 0, 64)) // ERROR "bufferNoEscape3 &bytes.Buffer{...} does not escape$" "bufferNoEscape3 make\(\[\]byte, 0, 64\) does not escape$" "inlining call to bytes.NewBuffer$"
 	for _, x := range xs {
 		b.WriteString(x)
 		b.WriteByte(',')

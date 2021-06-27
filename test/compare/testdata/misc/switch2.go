@@ -50,8 +50,8 @@ func main() {
 	switch b { case 5: }
 	switch b { case 1 < 2: }
 	switch b { case a < "b": }
-	switch b { case []int{}: } // ERROR `invalid case []int literal (type []int) in switch (incomparable type)`
-	switch []int{} { case []int{}: } // ERROR `invalid case []int literal in switch (can only compare slice []int literal to nil)`
+	switch b { case []int{}: } // ERROR `invalid case []int{} (type []int) in switch (incomparable type)`
+	switch []int{} { case []int{}: } // ERROR `invalid case []int{} in switch (can only compare slice []int{} to nil)`
 	switch b { case b: }
 	switch f { case f: } // ERROR `invalid case f in switch (can only compare func f to nil)`
 	switch f { case nil: }

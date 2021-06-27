@@ -2117,10 +2117,10 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				return ti
 			}
 			if len(node.KeyValues) < ti.Type.NumField() {
-				panic(tc.errorf(node, "too few values in %s literal", ti))
+				panic(tc.errorf(node, "too few values in %s{...}", ti))
 			}
 			if len(node.KeyValues) > ti.Type.NumField() {
-				panic(tc.errorf(node, "too many values in %s literal", ti))
+				panic(tc.errorf(node, "too many values in %s{...}", ti))
 			}
 			for i := range node.KeyValues {
 				keyValue := &node.KeyValues[i]

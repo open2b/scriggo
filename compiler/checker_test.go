@@ -816,7 +816,7 @@ var checkerStmts = map[string]string{
 	`a := 1; _ = a % 0`:               `division by zero`,
 
 	// Equality
-	`type S = struct{ A func() }; _ = interface{}(nil) == S{}`: `invalid operation: interface{}(nil) == S literal (struct { A func() } cannot be compared)`,
+	`type S = struct{ A func() }; _ = interface{}(nil) == S{}`: `invalid operation: interface{}(nil) == S{} (struct { A func() } cannot be compared)`,
 	`var a interface{}; _ = a == 9223372036854775808`:          `invalid operation: a == 9223372036854775808 (constant 9223372036854775808 overflows int)`,
 
 	// Other comparisons
@@ -868,7 +868,7 @@ var checkerStmts = map[string]string{
 	`v := 1; v &^= 2`:                                             ok,
 	`v := 1; v <<= 2`:                                             ok,
 	`v := 1; v >>= 2`:                                             ok,
-	`[]int{1,2,3} := 3`:                                           `non-name []int literal on left side of :=`,
+	`[]int{1,2,3} := 3`:                                           `non-name []int{...} on left side of :=`,
 	`a := 0; *a = 1`:                                              `invalid indirect of a (type int)`,
 	`a := 0; b := &a; b[0] = 2`:                                   `invalid operation: b[0] (type *int does not support indexing)`,
 	`a := 1; a, a = 1, 2`:                                         declaredNotUsed("a"),
@@ -883,7 +883,7 @@ var checkerStmts = map[string]string{
 	`v1 := 1; v2 := "a"; v1 = v2`:                                   `cannot use v2 (type string) as type int in assignment`,
 	`v := "a"; v[0] = 'b'`:                                          `cannot assign to v[0]`,
 	`v := [...]int{}; v[0] = 5`:                                     ok,
-	`([1]int{0})[0] = 1`:                                            `cannot assign to [1]int literal[0]`,
+	`([1]int{0})[0] = 1`:                                            `cannot assign to [1]int{...}[0]`,
 	`m := map[int]struct{A int}{}; m[0].A = 5`:                      `cannot assign to struct field m[0].A in map`,
 	`m := map[int]*struct{A int}{}; m[0].A = 5`:                     ok,
 	`v := "a"; v[0]++`:                                              `cannot assign to v[0]`,
@@ -892,7 +892,7 @@ var checkerStmts = map[string]string{
 	`v := []int{}; v[0]++`:                                          ok,
 	`v := &[1]int{}; v[0]++`:                                        ok,
 	`([]int{0})[0]++`:                                               ok,
-	`([1]int{0})[0]++`:                                              `cannot assign to [1]int literal[0]`,
+	`([1]int{0})[0]++`:                                              `cannot assign to [1]int{...}[0]`,
 	`v := map[int]int{}; v[0]++`:                                    ok,
 	`(map[int]int{})[0]++`:                                          ok,
 	`(func(){})()++`:                                                `func literal() used as value`,    // TODO: gc returns `(func literal)() used as value`
@@ -914,7 +914,7 @@ var checkerStmts = map[string]string{
 
 	// Slicing
 	`_ = []int{1,2,3,4,5}[:]`:             ok,
-	`_ = [5]int{1,2,3,4,5}[:]`:            `invalid operation [5]int literal[:] (slice of unaddressable value)`,
+	`_ = [5]int{1,2,3,4,5}[:]`:            `invalid operation [5]int{...}[:] (slice of unaddressable value)`,
 	`a := [5]int{1,2,3,4,5}; _ = a[:]`:    ok,
 	`_ = "abcde"[:]`:                      ok,
 	`_ = []int{1,2,3,4,5}[:1:2]`:          ok,
@@ -933,7 +933,7 @@ var checkerStmts = map[string]string{
 	`v := <-aIntChan; _ = v`:             ok,
 	`v, ok := <-aIntChan; _, _ = v, ok`:  ok,
 	`_ = <-5`:                            `invalid operation: <-5 (receive from non-chan type int)`,
-	`_ = <-[]struct{A int}{{A: 5}}`:      `invalid operation: <-[]struct { A int } literal (receive from non-chan type []struct { A int })`,
+	`_ = <-[]struct{A int}{{A: 5}}`:      `invalid operation: <-[]struct { A int }{...} (receive from non-chan type []struct { A int })`,
 	`var ch chan<- int; _ = <-ch`:        `invalid operation: <-ch (receive from send-only type chan<- int)`,
 	`var f func() chan<- int; _ = <-f()`: `invalid operation: <-f() (receive from send-only type chan<- int)`,
 	`_ = <-make(chan<- int)`:             `invalid operation: <-(make(chan<- int)) (receive from send-only type chan<- int)`,
@@ -945,7 +945,7 @@ var checkerStmts = map[string]string{
 	`aIntChan <- 1.34`:             `constant 1.34 truncated to integer`,
 	`aIntChan <- "a"`:              `cannot convert "a" (type untyped string) to type int`,
 	`make(<-chan int) <- 5`:        `invalid operation: make(<-chan int) <- 5 (send to receive-only type <-chan int)`,
-	`[]struct{A int}{{A: 5}} <- 5`: `invalid operation: []struct { A int } literal <- 5 (send to non-chan type []struct { A int })`,
+	`[]struct{A int}{{A: 5}} <- 5`: `invalid operation: []struct { A int }{...} <- 5 (send to non-chan type []struct { A int })`,
 	`aSliceChan <- nil`:            ok,
 	`aSliceChan <- []int(nil)`:     ok,
 	`aSliceChan <- []int{1}`:       ok,
@@ -999,7 +999,7 @@ var checkerStmts = map[string]string{
 	`_ = [][]string{[]string{"a", "f"}, []string{"g", "h"}}`: ok,
 	`_ = []int{}`:      ok,
 	`_ = []int{1,2,3}`: ok,
-	`_ = [][]int{[]string{"a", "f"}, []string{"g", "h"}}`: `cannot use []string literal (type []string) as type []int in slice literal`,
+	`_ = [][]int{[]string{"a", "f"}, []string{"g", "h"}}`: `cannot use []string{...} (type []string) as type []int in slice literal`,
 	`_ = []int{-3: 9}`:      `index must be non-negative integer constant`,
 	`_ = []int{"a"}`:        `cannot use "a" (type untyped string) as type int in slice literal`,
 	`_ = []int{1:10, 1:20}`: `duplicate index in slice literal: 1`,
@@ -1020,8 +1020,8 @@ var checkerStmts = map[string]string{
 	`_ = map[string]string{}`:                  ok,
 	`_ = map[bool][]int{true: []int{1, 2, 3}}`: ok,
 	`_ = map[bool][]int{4: []int{1, 2, 3}}`:    `cannot use 4 (type untyped int) as type bool in map key`,
-	`_ = map[int]int{1: 3, 1: 4}  `:            `duplicate key 1 in map literal`,
-	`_ = map[string]int{"a": 3, "a": 4}  `:     `duplicate key "a" in map literal`,
+	`_ = map[int]int{1: 3, 1: 4}`:              `duplicate key 1 in map literal`,
+	`_ = map[string]int{"a": 3, "a": 4}`:       `duplicate key "a" in map literal`,
 	`_ = map[string]string{"k1": 2}`:           `cannot use 2 (type untyped int) as type string in map value`,
 	`_ = map[string]string{2: "v1"}`:           `cannot use 2 (type untyped int) as type string in map key`,
 
@@ -1037,9 +1037,9 @@ var checkerStmts = map[string]string{
 	`_ = pointInt{_:0, _:1}`:       `invalid field name _ in struct initializer`,
 	`_ = pointInt{"a", "b"}`:       `cannot use "a" (type untyped string) as type int in field value`,
 	`_ = pointInt{1, Y: 2}`:        `mixture of field:value and value initializers`,
-	`_ = pointInt{1,2,3}`:          `too many values in compiler.pointInt literal`,
+	`_ = pointInt{1,2,3}`:          `too many values in compiler.pointInt{...}`,
 	`_ = pointInt{1.2,2.0}`:        `constant 1.2 truncated to integer`,
-	`_ = pointInt{1}`:              `too few values in compiler.pointInt literal`,
+	`_ = pointInt{1}`:              `too few values in compiler.pointInt{...}`,
 	`_ = pointInt{X: "a", Y: "b"}`: `cannot use "a" (type untyped string) as type int in field value`,
 	`_ = pointInt{X: 1, 2}`:        `mixture of field:value and value initializers`,
 	`_ = pointInt{X: 2, X: 2}`:     `duplicate field name in struct literal: X`,
@@ -1051,7 +1051,7 @@ var checkerStmts = map[string]string{
 	`type S struct{F int}; var x S; _ = x.F`:        ok,
 	`type S *struct{F int}; var x S; _ = (*x).F`:    ok,
 	`type S *struct{F int}; var x S; _ = x.F`:       ok,
-	`type S struct{F int}; _ = &(S{}.F)`:            `cannot take the address of S literal.F`,
+	`type S struct{F int}; _ = &(S{}.F)`:            `cannot take the address of S{}.F`,
 	`type S *struct{F int}; _ = &((*S(nil)).F)`:     ok,
 	`type S *struct{F int}; _ = &(S(nil).F)`:        ok,
 	`type S struct{F int}; var x S; _ = &(x.F)`:     ok,
@@ -1060,8 +1060,8 @@ var checkerStmts = map[string]string{
 
 	// Struct fields and methods.
 	`(&pointInt{0,0}).SetX(10)`: ok,
-	`(&pointInt{0,0}).SetZ(10)`: `&pointInt literal.SetZ undefined (type *compiler.pointInt has no field or method SetZ)`, // TODO (Gianluca): 'pointInt literal' should be '(compiler.pointInt literal)'
-	`(pointInt{0,0}).SetZ(10)`:  `pointInt literal.SetZ undefined (type compiler.pointInt has no field or method SetZ)`,   // TODO (Gianluca): 'pointInt literal' should be '(compiler.pointInt literal)'
+	`(&pointInt{0,0}).SetZ(10)`: `&pointInt{...}.SetZ undefined (type *compiler.pointInt has no field or method SetZ)`, // TODO (Gianluca): 'pointInt{...}' should be '(compiler.pointInt{...})'
+	`(pointInt{0,0}).SetZ(10)`:  `pointInt{...}.SetZ undefined (type compiler.pointInt has no field or method SetZ)`,   // TODO (Gianluca): 'pointInt{...}' should be '(compiler.pointInt{...})'
 	`nil.SetZ()`:                `use of untyped nil`,
 
 	// Interfaces.
@@ -1077,8 +1077,8 @@ var checkerStmts = map[string]string{
 	// Note that for strings gc returns the two errors
 	// `cannot convert "" (type untyped string) to type int` and `cannot convert nil to type int`.
 	`_ = [1]int{} == nil`:           `cannot convert nil to type [1]int`,
-	`_ = []int{} < nil`:             `invalid operation: []int literal < nil (operator < not defined on slice)`,
-	`_ = map[string]string{} < nil`: `invalid operation: map[string]string literal < nil (operator < not defined on map)`,
+	`_ = []int{} < nil`:             `invalid operation: []int{} < nil (operator < not defined on slice)`,
+	`_ = map[string]string{} < nil`: `invalid operation: map[string]string{} < nil (operator < not defined on map)`,
 
 	// Expressions.
 	`int + 2`: `type int is not an expression`,
@@ -1179,7 +1179,7 @@ var checkerStmts = map[string]string{
 	`for k, v := range map[float64]string{} { var _ float64 = k; var _ string = v }`: ok,
 	`for _, _ = range (&[...]int{}) { }`:                                             ok,
 	`for _, _ = range 0 { }`:                                                         `cannot range over 0 (type untyped number)`,
-	`for _, _ = range (&[]int{}) { }`:                                                `cannot range over &[]int literal (type *[]int)`,
+	`for _, _ = range (&[]int{}) { }`:                                                `cannot range over &[]int{} (type *[]int)`,
 	`for a, b, c := range "" { }`:                                                    `too many variables in range`,
 	`for a, b := range nil { }`:                                                      `cannot range over nil`,
 	`for a, b := range _ { }`:                                                        `cannot use _ as value`,
@@ -1361,7 +1361,7 @@ var checkerStmts = map[string]string{
 	`f := func(a int, b...int)  { b[0] = 1 };  f(1);               f(1);  f(1,2,3)`: ok,
 	`f := func(a... int)        { a[0] = 1 };  f([]int{1,2,3}...)`:                  ok,
 	`f := func(a... int)        { a[0] = 1 };  f();                f(1);  f(1,2,3)`: ok,
-	`f := func(a... int) { a[0] = 1 };  f([]string{"1","2","3"}...)`:                `cannot use []string literal (type []string) as type []int in argument to f`,
+	`f := func(a... int) { a[0] = 1 };  f([]string{"1","2","3"}...)`:                `cannot use []string{...} (type []string) as type []int in argument to f`,
 	`f := func(a... int) { a[0] = 1 };  var a int; f(a...)`:                         `cannot use a (type int) as type []int in argument to f`,
 	`f := func(a, b, c int, d... int) {  };  f(1,2)`:                                "not enough arguments in call to f\n\thave (number, number)\n\twant (int, int, int, ...int)",
 
@@ -1436,7 +1436,7 @@ var checkerStmts = map[string]string{
 	`_ = append + 3`:             `use of builtin append not in function call`,
 	`a, b := append([]int{}, 0)`: `assignment mismatch: 2 variables but 1 values`,
 	`append()`:                   `missing arguments to append`,
-	`append([]int{}, 0)`:         evaluatedButNotUsed("append([]int literal, 0)"),
+	`append([]int{}, 0)`:         evaluatedButNotUsed("append([]int{}, 0)"),
 	`append(0)`:                  `first argument to append must be slice; have untyped number`,
 	`append(nil)`:                `first argument to append must be typed slice; have untyped nil`,
 	`append([]string{}, nil)`:    `cannot use nil as type string in append`,
@@ -1473,7 +1473,7 @@ var checkerStmts = map[string]string{
 	// Builtin function 'len'.
 	`_ = len([]int{})`:            ok,
 	`len()`:                       `missing argument to len: len()`,
-	`len([]string{"", ""})`:       evaluatedButNotUsed("len([]string literal)"),
+	`len([]string{"", ""})`:       evaluatedButNotUsed("len([]string{...})"),
 	`len(0)`:                      `invalid argument 0 (type int) for len`,
 	`len(nil)`:                    `use of untyped nil`,
 	`len := 0; _ = len`:           ok,
@@ -1489,8 +1489,8 @@ var checkerStmts = map[string]string{
 	`cap()`:                       `missing argument to cap: cap()`,
 	`cap(0)`:                      `invalid argument 0 (type int) for cap`,
 	`cap(nil)`:                    `use of untyped nil`,
-	`cap([]int{})`:                evaluatedButNotUsed("cap([]int literal)"),
-	`const _ = cap([]int{})`:      `const initializer cap([]int literal) is not a constant`,
+	`cap([]int{})`:                evaluatedButNotUsed("cap([]int{})"),
+	`const _ = cap([]int{})`:      `const initializer cap([]int{}) is not a constant`,
 	`const _ = cap(new([1]byte))`: `const initializer cap(new([1]byte)) is not a constant`,
 
 	// Builtin function 'make'.
