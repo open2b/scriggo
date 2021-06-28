@@ -338,9 +338,38 @@ func panicToString(msg interface{}) string {
 	case stringer:
 		return v.String()
 	default:
-		typ := reflect.TypeOf(v).String()
-		iData := reflect.ValueOf(&v).Elem().InterfaceData()
-		return "(" + typ + ") (" + hex(iData[0]) + "," + hex(iData[1]) + ")"
+		rv := reflect.ValueOf(v)
+		rt := rv.Type().String()
+		var s string
+		switch rv.Kind() {
+		case reflect.Bool:
+			s = "false"
+			if rv.Bool() {
+				s = "true"
+			}
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			s = strconv.FormatInt(rv.Int(), 10)
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			s = strconv.FormatUint(rv.Uint(), 10)
+		case reflect.Float32:
+			s = strconv.FormatFloat(rv.Float(), 'e', -1, 32)
+		case reflect.Float64:
+			s = strconv.FormatFloat(rv.Float(), 'e', -1, 64)
+		case reflect.Complex64:
+			c := rv.Complex()
+			s = strconv.FormatFloat(real(c), 'e', -1, 32) +
+				strconv.FormatFloat(imag(c), 'e', -1, 32)
+		case reflect.Complex128:
+			c := rv.Complex()
+			s = strconv.FormatFloat(real(c), 'e', 3, 64) +
+				strconv.FormatFloat(imag(c), 'e', 3, 64)
+		case reflect.String:
+			s = `"` + rv.String() + `"`
+		default:
+			iData := reflect.ValueOf(&v).Elem().InterfaceData()
+			return "(" + rt + ") (" + hex(iData[0]) + "," + hex(iData[1]) + ")"
+		}
+		return rt + "(" + s + ")"
 	}
 }
 
