@@ -1770,7 +1770,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) []*typeInfo {
 		}
 	}
 
-	if (!funcIsVariadic && len(args) != numIn) || (funcIsVariadic && len(args) < numIn-1) {
+	if len(args) != numIn && (!funcIsVariadic || callIsVariadic || len(args) < numIn-1) {
 		have := "("
 		for i, arg := range args {
 			if i > 0 {
