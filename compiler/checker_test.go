@@ -1364,7 +1364,9 @@ var checkerStmts = map[string]string{
 	`f := func(a... int) { a[0] = 1 };  f([]string{"1","2","3"}...)`:                `cannot use []string{...} (type []string) as type []int in argument to f`,
 	`f := func(a... int) { a[0] = 1 };  var a int; f(a...)`:                         `cannot use a (type int) as type []int in argument to f`,
 	`f := func(a, b, c int, d... int) {  };  f(1,2)`:                                "not enough arguments in call to f\n\thave (number, number)\n\twant (int, int, int, ...int)",
-	`f := func(a []string, b ...string) {};  f([]string{}...)`:                      "not enough arguments in call to f\n\thave ([]string)\n\twant ([]string, ...string)",
+	`f := func(a []string, b ...string) {};  f([]string{}...)`:                      "not enough arguments in call to f\n\thave (...string)\n\twant ([]string, ...string)",
+	`f := func(a []string, b ...string) {};  f(nil...)`:                             "not enough arguments in call to f\n\thave (...string)\n\twant ([]string, ...string)",
+	`f := func(a []string, b ...string) {};  f(int(5)...)`:                          "not enough arguments in call to f\n\thave (int)\n\twant ([]string, ...string)",
 
 	// Conversions.
 	`int(5)`:                           `int(5) evaluated but not used`,
