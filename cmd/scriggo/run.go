@@ -24,21 +24,6 @@ const usage = "usage: %s [-S] filename\n"
 
 var packages scriggo.Packages
 
-func renderPanics(p *runtime.Panic) string {
-	var msg string
-	for ; p != nil; p = p.Next() {
-		msg = "\n" + msg
-		if p.Recovered() {
-			msg = " [recovered]" + msg
-		}
-		msg = p.String() + msg
-		if p.Next() != nil {
-			msg = "\tpanic: " + msg
-		}
-	}
-	return msg
-}
-
 func run() {
 
 	var asm = flag.Bool("S", false, "print assembly listing")
@@ -87,7 +72,7 @@ func run() {
 		code, err := program.Run(nil)
 		if err != nil {
 			if p, ok := err.(*runtime.Panic); ok {
-				panic(renderPanics(p))
+				panic(p)
 			}
 			if err == context.DeadlineExceeded {
 				err = errors.New("process took too long")
