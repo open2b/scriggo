@@ -7,7 +7,6 @@
 package runtime
 
 import (
-	"fmt"
 	"reflect"
 	"runtime"
 	"strconv"
@@ -242,10 +241,23 @@ type Panic struct {
 	position   Position
 }
 
+// Error returns all currently active panics as a string.
+//
+// To print only the message, use the String method instead.
 func (p *Panic) Error() string {
-	// TODO: this code is a temporary substitution of the code above and should
-	// be removed. Also, it adds a dependency from 'fmt'.
-	return fmt.Sprintf("%s:%s: %s", p.path, p.position, p.message)
+	var s string
+	for p != nil {
+		s = "\n" + s
+		if p.Recovered() {
+			s = " [recovered]" + s
+		}
+		s = p.String() + s
+		if p.Next() != nil {
+			s = "\tpanic: " + s
+		}
+		p = p.Next()
+	}
+	return s
 }
 
 // Message returns the message.
