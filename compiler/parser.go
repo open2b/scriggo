@@ -1695,7 +1695,7 @@ func cannotUseAsValueError(pos *ast.Position, node ast.Node) *SyntaxError {
 		return syntaxError(pos, "cannot use assignment (%s) = (%s) as value",
 			printExpressions(a.Lhs), printExpressions(a.Rhs))
 	}
-	panic(syntaxError(pos, "cannot use %s as value", node))
+	return syntaxError(pos, "cannot use %s as value", node)
 }
 
 // printExpressions prints expressions as a comma separated list.
