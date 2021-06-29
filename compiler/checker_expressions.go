@@ -74,6 +74,7 @@ var universe = typeCheckerScope{
 	"int8":       {t: &typeInfo{Type: reflect.TypeOf(int8(0)), Properties: propertyIsType | propertyUniverse}},
 	"rune":       {t: int32TypeInfo},
 	"string":     {t: &typeInfo{Type: stringType, Properties: propertyIsType | propertyIsFormatType | propertyUniverse}},
+	"this":       {t: &typeInfo{Properties: propertyUniverse | propertyUntyped}},
 	"true":       {t: &typeInfo{Type: boolType, Properties: propertyUniverse | propertyUntyped, Constant: boolConst(true)}},
 	"uint":       {t: &typeInfo{Type: uintType, Properties: propertyIsType | propertyUniverse}},
 	"uint16":     {t: &typeInfo{Type: reflect.TypeOf(uint16(0)), Properties: propertyIsType | propertyUniverse}},
@@ -134,9 +135,14 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 	}
 
 	// Handle the 'this' identifier when checking the use statement.
-	if tc.using.withinUsingStmt && ident.Name == "this" {
-		ident.Name = tc.thisCurrentName()
-		ti, found = tc.lookupScopes(ident.Name, false)
+	if found && ti == universe["this"].t {
+		if tc.using.withinUsingStmt {
+			ident.Name = tc.thisCurrentName()
+			ti, found = tc.lookupScopes(ident.Name, false)
+		} else {
+			found = false
+			ti = nil
+		}
 	}
 
 	if !found {
