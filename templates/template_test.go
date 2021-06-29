@@ -3162,12 +3162,12 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "ok",
 	},
 
-	// "Using - function literal 2": {
-	// 	sources: map[string]string{
-	// 		"index.txt": `{% show func() string { return this }() using %}ok{% end using %}`,
-	// 	},
-	// 	expectedOut: "ok",
-	// },
+	"Using - function literal 2": {
+		sources: map[string]string{
+			"index.txt": `{% show func() string { return this }() using %}ok{% end using %}`,
+		},
+		expectedOut: "ok",
+	},
 
 	"Using - package level var declaration ": {
 		sources: map[string]string{

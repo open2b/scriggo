@@ -93,29 +93,6 @@ type scopeVariable struct {
 // checkIdentifier checks an identifier. If used, ident is marked as "used".
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeInfo {
 
-	// If ident is an upvar, add it as upvar for current function and for all
-	// nested functions and update all indexes.
-	if tc.isUpVar(ident.Name) {
-		upvar := ast.Upvar{
-			Declaration: tc.getDeclarationNode(ident.Name),
-			Index:       -1,
-		}
-		for _, fn := range tc.getNestedFuncs(ident.Name) {
-			add := true
-			for i, uv := range fn.Upvars {
-				if uv.Declaration == upvar.Declaration {
-					upvar.Index = int16(i)
-					add = false
-					break
-				}
-			}
-			if add {
-				fn.Upvars = append(fn.Upvars, upvar)
-				upvar.Index = int16(len(fn.Upvars) - 1)
-			}
-		}
-	}
-
 	ti, found := tc.lookupScopes(ident.Name, false)
 
 	// Check if the identifier is the builtin 'iota'.
@@ -152,6 +129,29 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 
 	if ti.IsBuiltinFunction() {
 		panic(tc.errorf(ident, "use of builtin %s not in function call", ident.Name))
+	}
+
+	// If ident is an upvar, add it as upvar for current function and for all
+	// nested functions and update all indexes.
+	if tc.isUpVar(ident.Name) {
+		upvar := ast.Upvar{
+			Declaration: tc.getDeclarationNode(ident.Name),
+			Index:       -1,
+		}
+		for _, fn := range tc.getNestedFuncs(ident.Name) {
+			add := true
+			for i, uv := range fn.Upvars {
+				if uv.Declaration == upvar.Declaration {
+					upvar.Index = int16(i)
+					add = false
+					break
+				}
+			}
+			if add {
+				fn.Upvars = append(fn.Upvars, upvar)
+				upvar.Index = int16(len(fn.Upvars) - 1)
+			}
+		}
 	}
 
 	// Handle predeclared variables in templates and scripts.
