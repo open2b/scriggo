@@ -3168,6 +3168,50 @@ var templateMultiFileCases = map[string]struct {
 			},
 			expectedOut: "ok",
 		},*/
+
+	"Using - package level var declaration ": {
+		sources: map[string]string{
+			"index.html": `{% import "file.html" %}`,
+			"file.html":  `{% var _ = this using %}hey{% end using %}`,
+		},
+	},
+
+	"Using - package level var declaration (2)": {
+		sources: map[string]string{
+			"index.html": `{% import "file.html" %}{{ V }}, len: {{ len(V) }}`,
+			"file.html":  `{% var V = this using %}hey{% end using %}`,
+		},
+		expectedOut: "hey, len: 3",
+	},
+
+	"Using - package level var declaration (3)": {
+		sources: map[string]string{
+			"index.html": `{% import "file.html" %}V is {{ V }}`,
+			"file.html":  `{% var V = len(this) using %}hey my friend{% end using %}`,
+		},
+		expectedOut: "V is 13",
+	},
+
+	"Using - package level var declaration (4)": {
+		sources: map[string]string{
+			"index.html": `{% import "file.html" %}{{ V1 }}, {{ V2 }}`,
+			"file.html":  `{% var V1, V2 = this, len(this) using %}hey oh{% end using %}`,
+		},
+		expectedOut: "hey oh, 6",
+	},
+
+	"Using - package level var declaration (5)": {
+		sources: map[string]string{
+			"index.html": `
+				{% extends "extended.html" %}
+				{% var this = "shadowed" %}
+				{% var V = this using %}content...{% end using %}
+				{% macro M %}V is {{ V }}{% end macro %}
+			`,
+			"extended.html": `{{ M () }}`,
+		},
+		expectedOut: "V is shadowed",
+	},
 }
 
 var structWithUnexportedFields = &struct {

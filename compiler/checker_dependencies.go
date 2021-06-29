@@ -20,6 +20,11 @@ type packageDeclsDeps map[*ast.Identifier][]*ast.Identifier
 
 type deps struct {
 	d packageDeclsDeps
+	// this maps the name of the transformed 'this' identifier to the
+	// identifiers on the left side of a 'var' declarations with an 'using'
+	// statement.
+	this                     map[string][]*ast.Identifier
+	analyzingVarExprWithThis *ast.Identifier
 }
 
 // addDepsToGlobal adds all identifiers that appear in node and in its children
@@ -48,12 +53,32 @@ func (d *deps) addDepsToGlobal(ident *ast.Identifier, node ast.Node, scopes depS
 	}
 }
 
+// hasThisInItsExpression reports whether the package-level identifier n
+// references to the predeclared identifier 'this' in its corresponding
+// expression.
+func (d *deps) hasThisInItsExpression(varLh *ast.Identifier) bool {
+	for _, v := range d.this {
+		for _, ident := range v {
+			if ident == varLh {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // analyzeGlobalVar analyzes a global var declaration.
 func (d *deps) analyzeGlobalVar(n *ast.Var) {
 	if len(n.Lhs) == len(n.Rhs) {
 		for i := range n.Lhs {
 			d.addDepsToGlobal(n.Lhs[i], n.Type, nil)
-			d.addDepsToGlobal(n.Lhs[i], n.Rhs[i], nil)
+			if d.hasThisInItsExpression(n.Lhs[i]) {
+				d.analyzingVarExprWithThis = n.Lhs[i]
+				d.addDepsToGlobal(n.Lhs[i], n.Rhs[i], nil)
+				d.analyzingVarExprWithThis = nil
+			} else {
+				d.addDepsToGlobal(n.Lhs[i], n.Rhs[i], nil)
+			}
 		}
 		return
 	}
@@ -118,7 +143,8 @@ func (d *deps) analyzeGlobalTypeDeclaration(td *ast.TypeDeclaration) {
 // information.
 func analyzeTree(pkg *ast.Package) packageDeclsDeps {
 	d := &deps{
-		d: packageDeclsDeps{},
+		d:    packageDeclsDeps{},
+		this: pkg.IR.ThisNameToVarIdents,
 	}
 	for _, n := range pkg.Declarations {
 		switch n := n.(type) {
@@ -319,6 +345,21 @@ func (d *deps) nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 	case *ast.Identifier:
 		if isLocallyDefined(scopes, n.Name) {
 			return nil
+		}
+		if d.analyzingVarExprWithThis != nil && n.Name == "this" {
+			var thisName string
+			for k, v := range d.this {
+				for _, ident := range v {
+					if ident == d.analyzingVarExprWithThis {
+						thisName = k
+						break
+					}
+				}
+			}
+			if thisName == "" {
+				panic("BUG: unexpected")
+			}
+			n.Name = thisName
 		}
 		return []*ast.Identifier{n}
 	case *ast.If:

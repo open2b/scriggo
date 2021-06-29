@@ -18,6 +18,9 @@ import (
 // tree, moving the top level nodes, excluding text and comment nodes, in a
 // package node that becomes the only node of tree. If tree already has a
 // package, templateFileToPackage does nothing.
+//
+// Also, templateFileToPackage performs a (partial) transformation of the
+// 'using' statements at the package-level.
 func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 	if len(tree.Nodes) == 1 {
 		if _, ok := tree.Nodes[0].(*ast.Package); ok {
@@ -25,6 +28,14 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 			return
 		}
 	}
+
+	var thisToDeclarations map[string][]*ast.Identifier
+	var shadowedThis bool
+	if usingAtPackageLevel(tree) {
+		thisToDeclarations = map[string][]*ast.Identifier{}
+		shadowedThis = thisHasBeenShadowed(tree)
+	}
+
 	nodes := make([]ast.Node, 0, len(tree.Nodes)/2)
 	for _, n := range tree.Nodes {
 		switch n := n.(type) {
@@ -33,13 +44,87 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 			nodes = append(nodes, n)
 		case *ast.Statements:
 			nodes = append(nodes, n.Nodes...)
+		case *ast.Using:
+			if shadowedThis {
+				nodes = append(nodes, n.Statement)
+				continue
+			}
+			if n.Type == nil {
+				tc.makeUsingTypeExplicit(n)
+			}
+			tc.thisIncreaseIndex()
+			var thisExpr ast.Expression
+			switch typeExpr := n.Type.(type) {
+			case *ast.Identifier:
+				dummyFuncType := ast.NewFuncType(nil, true, nil, []*ast.Parameter{
+					ast.NewParameter(nil, typeExpr),
+				}, false)
+				dummyFunc := ast.NewFunc(nil, nil, dummyFuncType, n.Body, false, 0)
+				thisExpr = ast.NewCall(nil, dummyFunc, nil, false)
+			case *ast.FuncType: // macro type.
+				thisExpr = ast.NewFunc(nil, nil, typeExpr, n.Body, false, 0)
+			default:
+				panic("BUG: the parser should not allow this")
+			}
+			thisName := tc.thisCurrentName()
+			dummyAssignment := ast.NewVar(
+				nil,
+				[]*ast.Identifier{ast.NewIdentifier(nil, thisName)},
+				nil,
+				[]ast.Expression{thisExpr},
+			)
+			nodes = append(nodes, dummyAssignment)
+			nodes = append(nodes, n.Statement)
+			thisToDeclarations[thisName] = n.Statement.(*ast.Var).Lhs
 		default:
 			panic(fmt.Sprintf("BUG: unexpected node %s", n))
 		}
 	}
-	tree.Nodes = []ast.Node{
-		ast.NewPackage(tree.Pos(), "", nodes),
+
+	pkg := ast.NewPackage(tree.Pos(), "", nodes)
+	pkg.IR.ThisNameToVarIdents = thisToDeclarations
+	tree.Nodes = []ast.Node{pkg}
+}
+
+// usingAtPackageLevel reports whether the given tree has at least one 'using'
+// statement at package level.
+func usingAtPackageLevel(tree *ast.Tree) bool {
+	for _, n := range tree.Nodes {
+		if _, ok := n.(*ast.Using); ok {
+			return true
+		}
 	}
+	return false
+}
+
+// thisHasBeenShadowed reports whether the predeclared identifier 'this' has
+// been shadowed by a package-level declaration.
+func thisHasBeenShadowed(tree *ast.Tree) bool {
+	for _, n := range tree.Nodes {
+		switch n := n.(type) {
+		case *ast.Var:
+			for _, lh := range n.Lhs {
+				if lh.Name == "this" {
+					return true
+				}
+			}
+		case *ast.Func:
+			if n.Ident.Name == "this" {
+				return true
+			}
+		case *ast.TypeDeclaration:
+			if n.Ident.Name == "this" {
+				return true
+			}
+		case *ast.Const:
+			for _, lh := range n.Lhs {
+				if lh.Name == "this" {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // checkNodesInNewScopeError calls checkNodesInNewScope returning checking errors.

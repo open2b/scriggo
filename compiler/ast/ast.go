@@ -342,10 +342,26 @@ type Package struct {
 	*Position
 	Name         string // name.
 	Declarations []Node
+
+	IR struct {
+		// ThisNameToVarIdents maps the name of the transformed 'this'
+		// identifier to the identifiers on the left side of a 'var'
+		// declarations with an 'using' statement.
+		//
+		// For example a package containing this declaration:
+		//
+		//    {% var V1, V2 = $this2, len($this2) using %} ... {% end using %}
+		//
+		//  will have a mapping in the form:
+		//
+		//    "$this2" => [V1, V2]
+		//
+		ThisNameToVarIdents map[string][]*Identifier
+	}
 }
 
 func NewPackage(pos *Position, name string, nodes []Node) *Package {
-	return &Package{pos, name, nodes}
+	return &Package{Position: pos, Name: name, Declarations: nodes}
 }
 
 // Statements node represents a statement {%% ... %%}
