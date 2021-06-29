@@ -55,17 +55,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		} else {
 			lh = tc.checkExpr(lhExpr)
 		}
-		switch {
-		case lh.IsMacroDeclaration():
-			panic(tc.errorf(lhExpr, "cannot assign to %s", lhExpr))
-		case lh.Addressable(): // ok.
-		case tc.isMapIndexing(lhExpr): // ok.
-		default:
-			if tc.isSelectorOfMapIndexing(lhExpr) {
-				panic(tc.errorf(lhExpr, "cannot assign to struct field %s in map", lhExpr))
-			}
-			panic(tc.errorf(lhExpr, "cannot assign to %s", lhExpr))
-		}
+		tc.checkAssignTo(lh, lhExpr)
 		lhs[i] = lh
 	}
 
@@ -118,6 +108,8 @@ func (tc *typechecker) checkAssignmentOperation(node *ast.Assignment) {
 
 	lh := tc.checkExpr(node.Lhs[0])
 	rh := tc.checkExpr(node.Rhs[0])
+
+	tc.checkAssignTo(lh, node.Lhs[0])
 
 	op := operatorFromAssignmentType(node.Type)
 	_, err := tc.binaryOp(node.Lhs[0], op, node.Rhs[0])
@@ -259,15 +251,7 @@ func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 	}
 
 	lh := tc.checkExpr(node.Lhs[0])
-	switch {
-	case lh.Addressable(): // ok.
-	case tc.isMapIndexing(node.Lhs[0]): // ok.
-	default:
-		if tc.isSelectorOfMapIndexing(node.Lhs[0]) {
-			panic(tc.errorf(node.Lhs[0], "cannot assign to struct field %s in map", node.Lhs[0]))
-		}
-		panic(tc.errorf(node.Lhs[0], "cannot assign to %s", node.Lhs[0]))
-	}
+	tc.checkAssignTo(lh, node.Lhs[0])
 
 	if !isNumeric(lh.Type.Kind()) {
 		panic(tc.errorf(node, "invalid operation: %s (non-numeric type %s)", node, lh))
@@ -482,6 +466,35 @@ func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 			node:       lh,
 		})
 	}
+}
+
+// checkAssignTo checks that it is possible to assign to the expression expr.
+func (tc *typechecker) checkAssignTo(ti *typeInfo, expr ast.Expression) {
+	if ti.Addressable() && !ti.IsMacroDeclaration() || tc.isMapIndexing(expr) {
+		return
+	}
+	format := "cannot assign to %s"
+	switch e := expr.(type) {
+	case *ast.Selector:
+		if tc.isMapIndexing(e.Expr) {
+			format = "cannot assign to struct field %s in map"
+		}
+	case *ast.Index:
+		ti := tc.compilation.typeInfos[e.Expr]
+		if ti.Type.Kind() == reflect.String {
+			format += " (strings are immutable)"
+		}
+	case *ast.Slicing:
+		ti := tc.compilation.typeInfos[e.Expr]
+		if ti.Type.Kind() == reflect.String {
+			format += " (strings are immutable)"
+		}
+	case *ast.Identifier:
+		if ti.IsConstant() {
+			format += " (declared const)"
+		}
+	}
+	panic(tc.errorf(expr, format, expr))
 }
 
 // mustBeAssignableTo ensures that the type info of rhExpr is assignable to the

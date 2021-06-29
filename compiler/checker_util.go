@@ -501,19 +501,6 @@ func (tc *typechecker) isMapIndexing(node ast.Node) bool {
 	return exprKind == reflect.Map
 }
 
-// isSelectorOfMapIndexing reports whether the given expression has the form
-//
-//		m[key].field
-//
-// where m is a map.
-func (tc *typechecker) isSelectorOfMapIndexing(expr ast.Expression) bool {
-	selector, ok := expr.(*ast.Selector)
-	if !ok {
-		return false
-	}
-	return tc.isMapIndexing(selector.Expr)
-}
-
 type receiverTransformation int
 
 const (
