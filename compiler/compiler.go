@@ -43,6 +43,25 @@ const (
 	internalOperatorNotZero
 )
 
+// InternalError represent an internal compiler error.
+type InternalError struct {
+	// pos is the position where the error occurred.
+	pos *ast.Position
+	// path is the path of the file where the error occurred.
+	path string
+	// msg is the error message. Does not include file/position.
+	msg string
+}
+
+func (e *InternalError) Error() string {
+	return fmt.Sprintf("%s:%s: internal compiler error: %s", e.path, e.pos, e.msg)
+}
+
+// internalError returns a InternalError error.
+func internalError(pos *ast.Position, path, format string, a ...interface{}) *InternalError {
+	return &InternalError{pos, path, fmt.Sprintf(format, a...)}
+}
+
 // Options represents a set of options used during the compilation.
 type Options struct {
 	AllowShebangLine     bool

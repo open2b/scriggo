@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/compiler"
 	"github.com/open2b/scriggo/fs"
 	"github.com/open2b/scriggo/templates"
 	"github.com/open2b/scriggo/templates/builtin"
@@ -27,6 +28,9 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/yuin/goldmark"
 )
+
+const pleaseSubmitATemplateBugReport = "\n\nPlease submit a bug report with a short template code that triggers the error.\n" +
+	"https://github.com/open2b/scriggo/issues/new"
 
 // serve runs a web server and serves the template rooted at the current
 // directory. metrics reports whether print the metrics. If asm is -1 or
@@ -130,7 +134,13 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if err, ok := err.(scriggo.CompilerError); ok {
 				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 				w.WriteHeader(500)
-				fmt.Fprintf(w, "%s", err)
+				fmt.Fprintln(w, err.Error())
+				return
+			}
+			if _, ok := err.(*compiler.InternalError); ok {
+				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+				w.WriteHeader(500)
+				fmt.Fprintln(w, err.Error(), pleaseSubmitATemplateBugReport)
 				return
 			}
 			http.Error(w, "Internal Server Error", 500)

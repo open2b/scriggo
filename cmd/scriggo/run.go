@@ -17,12 +17,16 @@ import (
 	"path/filepath"
 
 	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/compiler"
 	"github.com/open2b/scriggo/runtime"
 )
 
 const usage = "usage: %s [-S] filename\n"
 
 var packages scriggo.Packages
+
+const pleaseSubmitAProgramBugReport = "Please submit a bug report with a short program that triggers the error.\n" +
+	"https://github.com/open2b/scriggo/issues/new"
 
 func run() {
 
@@ -59,6 +63,9 @@ func run() {
 	program, err := scriggo.Build(bytes.NewReader(main), &scriggo.BuildOptions{Packages: packages})
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+		if _, ok := err.(*compiler.InternalError); ok {
+			fmt.Println(pleaseSubmitAProgramBugReport)
+		}
 		os.Exit(2)
 	}
 	if *asm {
