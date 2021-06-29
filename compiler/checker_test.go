@@ -639,6 +639,11 @@ var checkerExprErrors = []struct {
 	{`x.F`, tierr(1, 2, `x.F undefined (type int has no field or method F)`), map[string]*typeInfo{"x": tiInt()}},
 	{`x.f`, tierr(1, 2, `x.f undefined (type compiler.definedStruct has no field or method f)`), map[string]*typeInfo{"x": definedStructTypeInfo}},
 	{`nil.X`, tierr(1, 1, `use of untyped nil`), nil},
+
+	// Non-bool operands used with || and &&.
+	{`true || "foo"`, tierr(1, 6, `invalid operation: true || "foo" (operator || not defined on untyped string)`), nil},
+	{`len([]int{}) && false`, tierr(1, 14, `invalid operation: len([]int{}) && false (operator && not defined on int)`), nil},
+	{`nil || 2 == 2.0`, tierr(1, 5, `invalid operation: nil || 2 == 2.0 (operator || not defined on nil)`), nil},
 }
 
 func TestCheckerExpressionErrors(t *testing.T) {

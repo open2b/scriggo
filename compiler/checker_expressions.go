@@ -1029,42 +1029,54 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			}
 			return nil, fmt.Errorf("cannot compare type %s to type %s", t2, t1)
 		}
-	} else if t1.Untyped() != t2.Untyped() {
-		// Make both typed.
-		if t1.Untyped() {
-			c, err := tc.convert(t1, expr1, t2.Type)
-			if err != nil {
-				if err == errNotRepresentable {
-					err = fmt.Errorf("cannot convert %v (type %s) to type %s", t1.Constant, t1, t2)
-				}
-				return nil, err
+	} else {
+		// Return a better error message if one of the operands is not boolean.
+		// See https://github.com/golang/go/commit/23573d0ea225d4b93ccd2b946b1de121c3a6cee5
+		if op == ast.OperatorAnd || op == ast.OperatorOr {
+			if t1.Nil() || t1.Type.Kind() != reflect.Bool {
+				return nil, fmt.Errorf("operator %s not defined on %s", op, t1)
 			}
-			if t1.Nil() {
-				if op != ast.OperatorEqual && op != ast.OperatorNotEqual &&
-					op != ast.OperatorContains && op != ast.OperatorNotContains {
-					return nil, fmt.Errorf("operator %s not defined on %s", op, t2.Type.Kind())
-				}
-				return untypedBoolTypeInfo, nil
+			if t2.Nil() || t2.Type.Kind() != reflect.Bool {
+				return nil, fmt.Errorf("operator %s not defined on %s", op, t2)
 			}
-			t1.setValue(t2.Type)
-			t1 = &typeInfo{Type: t2.Type, Constant: c}
-		} else {
-			c, err := tc.convert(t2, expr2, t1.Type)
-			if err != nil {
-				if err == errNotRepresentable {
-					err = fmt.Errorf("cannot convert %v (type %s) to type %s", t2.Constant, t2, t1)
+		}
+		if t1.Untyped() != t2.Untyped() {
+			// Make both typed.
+			if t1.Untyped() {
+				c, err := tc.convert(t1, expr1, t2.Type)
+				if err != nil {
+					if err == errNotRepresentable {
+						err = fmt.Errorf("cannot convert %v (type %s) to type %s", t1.Constant, t1, t2)
+					}
+					return nil, err
 				}
-				return nil, err
-			}
-			if t2.Nil() {
-				if op != ast.OperatorEqual && op != ast.OperatorNotEqual &&
-					op != ast.OperatorContains && op != ast.OperatorNotContains {
-					return nil, fmt.Errorf("operator %s not defined on %s", op, t1.Type.Kind())
+				if t1.Nil() {
+					if op != ast.OperatorEqual && op != ast.OperatorNotEqual &&
+						op != ast.OperatorContains && op != ast.OperatorNotContains {
+						return nil, fmt.Errorf("operator %s not defined on %s", op, t2.Type.Kind())
+					}
+					return untypedBoolTypeInfo, nil
 				}
-				return untypedBoolTypeInfo, nil
+				t1.setValue(t2.Type)
+				t1 = &typeInfo{Type: t2.Type, Constant: c}
+			} else {
+				c, err := tc.convert(t2, expr2, t1.Type)
+				if err != nil {
+					if err == errNotRepresentable {
+						err = fmt.Errorf("cannot convert %v (type %s) to type %s", t2.Constant, t2, t1)
+					}
+					return nil, err
+				}
+				if t2.Nil() {
+					if op != ast.OperatorEqual && op != ast.OperatorNotEqual &&
+						op != ast.OperatorContains && op != ast.OperatorNotContains {
+						return nil, fmt.Errorf("operator %s not defined on %s", op, t1.Type.Kind())
+					}
+					return untypedBoolTypeInfo, nil
+				}
+				t2.setValue(t1.Type)
+				t2 = &typeInfo{Type: t1.Type, Constant: c}
 			}
-			t2.setValue(t1.Type)
-			t2 = &typeInfo{Type: t1.Type, Constant: c}
 		}
 	}
 
