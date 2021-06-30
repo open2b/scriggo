@@ -3159,7 +3159,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% show this(4.2) using macro(f float64) string %}f / 2 = {{ f / 2 }}.{% end using %}`,
 		},
-		expectedOut: "macro content",
+		expectedOut: "f / 2 = 2.1.",
 	},
 
 	"Using - function literal 1": {
