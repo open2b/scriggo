@@ -31,7 +31,7 @@ func (d *deps) addDepsToGlobal(ident *ast.Identifier, node ast.Node, scopes depS
 	if d.d[ident] == nil {
 		d.d[ident] = []*ast.Identifier{}
 	}
-	for _, dep := range nodeDeps(node, scopes) {
+	for _, dep := range d.nodeDeps(node, scopes) {
 		if dep.Name == "_" {
 			continue
 		}
@@ -166,17 +166,17 @@ func isLocallyDefined(scopes depScopes, name string) bool {
 
 // nodeDeps returns all dependencies of node n. scopes contains all active
 // scopes.
-func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
+func (d *deps) nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 	if n == nil {
 		return nil
 	}
 	switch n := n.(type) {
 	case *ast.ArrayType:
-		return nodeDeps(n.ElementType, scopes)
+		return d.nodeDeps(n.ElementType, scopes)
 	case *ast.Assignment:
 		deps := []*ast.Identifier{}
 		for _, right := range n.Rhs {
-			deps = append(deps, nodeDeps(right, scopes)...)
+			deps = append(deps, d.nodeDeps(right, scopes)...)
 		}
 		if n.Type == ast.AssignmentDeclaration {
 			for _, left := range n.Lhs {
@@ -186,46 +186,46 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 			}
 		} else {
 			for _, left := range n.Lhs {
-				deps = append(deps, nodeDeps(left, scopes)...)
+				deps = append(deps, d.nodeDeps(left, scopes)...)
 			}
 		}
 		return deps
 	case *ast.BasicLiteral:
 		return nil
 	case *ast.BinaryOperator:
-		return append(nodeDeps(n.Expr1, scopes), nodeDeps(n.Expr2, scopes)...)
+		return append(d.nodeDeps(n.Expr1, scopes), d.nodeDeps(n.Expr2, scopes)...)
 	case *ast.Block:
 		scopes = enterScope(scopes)
 		deps := []*ast.Identifier{}
 		for _, n := range n.Nodes {
-			deps = append(deps, nodeDeps(n, scopes)...)
+			deps = append(deps, d.nodeDeps(n, scopes)...)
 		}
 		scopes = exitScope(scopes)
 		return deps
 	case *ast.Break:
 		return nil
 	case *ast.Call:
-		deps := nodeDeps(n.Func, scopes)
+		deps := d.nodeDeps(n.Func, scopes)
 		for _, arg := range n.Args {
-			deps = append(deps, nodeDeps(arg, scopes)...)
+			deps = append(deps, d.nodeDeps(arg, scopes)...)
 		}
 		return deps
 	case *ast.Case:
 		deps := []*ast.Identifier{}
 		for _, expr := range n.Expressions {
-			deps = append(deps, nodeDeps(expr, scopes)...)
+			deps = append(deps, d.nodeDeps(expr, scopes)...)
 		}
 		for _, node := range n.Body {
-			deps = append(deps, nodeDeps(node, scopes)...)
+			deps = append(deps, d.nodeDeps(node, scopes)...)
 		}
 		return deps
 	case *ast.ChanType:
-		return nodeDeps(n.ElementType, scopes)
+		return d.nodeDeps(n.ElementType, scopes)
 	case *ast.CompositeLiteral:
-		deps := nodeDeps(n.Type, scopes)
+		deps := d.nodeDeps(n.Type, scopes)
 		for _, kv := range n.KeyValues {
-			deps = append(deps, nodeDeps(kv.Key, scopes)...)
-			deps = append(deps, nodeDeps(kv.Value, scopes)...)
+			deps = append(deps, d.nodeDeps(kv.Key, scopes)...)
+			deps = append(deps, d.nodeDeps(kv.Value, scopes)...)
 		}
 		return deps
 	case *ast.Comment:
@@ -233,30 +233,30 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 	case *ast.Const:
 		deps := []*ast.Identifier{}
 		for _, right := range n.Lhs {
-			deps = append(deps, nodeDeps(right, scopes)...)
+			deps = append(deps, d.nodeDeps(right, scopes)...)
 		}
 		for _, left := range n.Lhs {
 			scopes = declareLocally(scopes, left.Name)
 		}
-		return append(deps, nodeDeps(n.Type, scopes)...)
+		return append(deps, d.nodeDeps(n.Type, scopes)...)
 	case *ast.Continue:
 		return nil
 	case *ast.Defer:
-		return nodeDeps(n.Call, scopes)
+		return d.nodeDeps(n.Call, scopes)
 	case *ast.Default:
-		return nodeDeps(n.Expr2, scopes)
+		return d.nodeDeps(n.Expr2, scopes)
 	case *ast.Extends:
 		return nil
 	case *ast.Fallthrough:
 		return nil
 	case *ast.For:
 		scopes = enterScope(scopes)
-		deps := nodeDeps(n.Init, scopes)
-		deps = append(deps, nodeDeps(n.Condition, scopes)...)
-		deps = append(deps, nodeDeps(n.Post, scopes)...)
+		deps := d.nodeDeps(n.Init, scopes)
+		deps = append(deps, d.nodeDeps(n.Condition, scopes)...)
+		deps = append(deps, d.nodeDeps(n.Post, scopes)...)
 		scopes = enterScope(scopes)
 		for _, node := range n.Body {
-			deps = append(deps, nodeDeps(node, scopes)...)
+			deps = append(deps, d.nodeDeps(node, scopes)...)
 		}
 		scopes = exitScope(scopes)
 		scopes = exitScope(scopes)
@@ -265,20 +265,20 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 		deps := []*ast.Identifier{}
 		scopes = enterScope(scopes)
 		scopes = declareLocally(scopes, n.Ident.Name)
-		deps = append(deps, nodeDeps(n.Expr, scopes)...)
+		deps = append(deps, d.nodeDeps(n.Expr, scopes)...)
 		scopes = enterScope(scopes)
 		for _, node := range n.Body {
-			deps = append(deps, nodeDeps(node, scopes)...)
+			deps = append(deps, d.nodeDeps(node, scopes)...)
 		}
 		scopes = exitScope(scopes)
 		scopes = exitScope(scopes)
 		return deps
 	case *ast.ForRange:
 		scopes = enterScope(scopes)
-		deps := nodeDeps(n.Assignment, scopes)
+		deps := d.nodeDeps(n.Assignment, scopes)
 		scopes = enterScope(scopes)
 		for _, node := range n.Body {
-			deps = append(deps, nodeDeps(node, scopes)...)
+			deps = append(deps, d.nodeDeps(node, scopes)...)
 		}
 		scopes = exitScope(scopes)
 		scopes = exitScope(scopes)
@@ -294,18 +294,18 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 				scopes = declareLocally(scopes, f.Ident.Name)
 			}
 		}
-		deps := nodeDeps(n.Type, scopes)
+		deps := d.nodeDeps(n.Type, scopes)
 		if n.Body != nil {
-			deps = append(deps, nodeDeps(n.Body, scopes)...)
+			deps = append(deps, d.nodeDeps(n.Body, scopes)...)
 		}
 		return deps
 	case *ast.FuncType:
 		deps := []*ast.Identifier{}
 		for _, in := range n.Parameters {
-			deps = append(deps, nodeDeps(in.Type, scopes)...)
+			deps = append(deps, d.nodeDeps(in.Type, scopes)...)
 		}
 		for _, out := range n.Result {
-			deps = append(deps, nodeDeps(out.Type, scopes)...)
+			deps = append(deps, d.nodeDeps(out.Type, scopes)...)
 		}
 		return deps
 	case *ast.DollarIdentifier:
@@ -313,7 +313,7 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 		// identifiers, so it is not considered in the dependency analysis.
 		return nil
 	case *ast.Go:
-		return nodeDeps(n.Call, scopes)
+		return d.nodeDeps(n.Call, scopes)
 	case *ast.Goto:
 		return nil
 	case *ast.Identifier:
@@ -323,12 +323,12 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 		return []*ast.Identifier{n}
 	case *ast.If:
 		scopes = enterScope(scopes)
-		deps := nodeDeps(n.Init, scopes)
-		deps = append(deps, nodeDeps(n.Condition, scopes)...)
+		deps := d.nodeDeps(n.Init, scopes)
+		deps = append(deps, d.nodeDeps(n.Condition, scopes)...)
 		scopes = enterScope(scopes)
-		deps = append(deps, nodeDeps(n.Then, scopes)...)
+		deps = append(deps, d.nodeDeps(n.Then, scopes)...)
 		scopes = enterScope(scopes)
-		deps = append(deps, nodeDeps(n.Else, scopes)...)
+		deps = append(deps, d.nodeDeps(n.Else, scopes)...)
 		scopes = exitScope(scopes)
 		scopes = exitScope(scopes)
 		scopes = exitScope(scopes)
@@ -338,104 +338,104 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 	case *ast.Render:
 		return nil
 	case *ast.Index:
-		deps := nodeDeps(n.Expr, scopes)
-		return append(deps, nodeDeps(n.Index, scopes)...)
+		deps := d.nodeDeps(n.Expr, scopes)
+		return append(deps, d.nodeDeps(n.Index, scopes)...)
 	case *ast.Interface:
 		return nil
 	case *ast.Label:
 		return nil
 	case *ast.MapType:
-		deps := nodeDeps(n.KeyType, scopes)
-		return append(deps, nodeDeps(n.ValueType, scopes)...)
+		deps := d.nodeDeps(n.KeyType, scopes)
+		return append(deps, d.nodeDeps(n.ValueType, scopes)...)
 	case *ast.Raw:
 		return nil
 	case *ast.Return:
 		deps := []*ast.Identifier{}
 		for _, v := range n.Values {
-			deps = append(deps, nodeDeps(v, scopes)...)
+			deps = append(deps, d.nodeDeps(v, scopes)...)
 		}
 		return deps
 	case *ast.Select:
 		deps := []*ast.Identifier{}
 		for _, cas := range n.Cases {
-			deps = append(deps, nodeDeps(cas, scopes)...)
+			deps = append(deps, d.nodeDeps(cas, scopes)...)
 		}
 		return deps
 	case *ast.SelectCase:
-		deps := nodeDeps(n.Comm, scopes)
+		deps := d.nodeDeps(n.Comm, scopes)
 		for _, n := range n.Body {
-			deps = append(deps, nodeDeps(n, scopes)...)
+			deps = append(deps, d.nodeDeps(n, scopes)...)
 		}
 		return deps
 	case *ast.Selector:
-		return nodeDeps(n.Expr, scopes)
+		return d.nodeDeps(n.Expr, scopes)
 	case *ast.Send:
-		deps := nodeDeps(n.Channel, scopes)
-		return append(deps, nodeDeps(n.Value, scopes)...)
+		deps := d.nodeDeps(n.Channel, scopes)
+		return append(deps, d.nodeDeps(n.Value, scopes)...)
 	case *ast.Show:
 		deps := []*ast.Identifier{}
 		for _, node := range n.Expressions {
-			deps = append(deps, nodeDeps(node, scopes)...)
+			deps = append(deps, d.nodeDeps(node, scopes)...)
 		}
 		return deps
 	case *ast.SliceType:
-		return nodeDeps(n.ElementType, scopes)
+		return d.nodeDeps(n.ElementType, scopes)
 	case *ast.Slicing:
-		deps := nodeDeps(n.Expr, scopes)
-		deps = append(deps, nodeDeps(n.Low, scopes)...)
-		deps = append(deps, nodeDeps(n.High, scopes)...)
-		return append(deps, nodeDeps(n.Max, scopes)...)
+		deps := d.nodeDeps(n.Expr, scopes)
+		deps = append(deps, d.nodeDeps(n.Low, scopes)...)
+		deps = append(deps, d.nodeDeps(n.High, scopes)...)
+		return append(deps, d.nodeDeps(n.Max, scopes)...)
 	case *ast.Statements:
 		deps := []*ast.Identifier{}
 		for _, node := range n.Nodes {
-			deps = append(deps, nodeDeps(node, scopes)...)
+			deps = append(deps, d.nodeDeps(node, scopes)...)
 		}
 		return deps
 	case *ast.StructType:
 		deps := []*ast.Identifier{}
 		for _, fd := range n.Fields {
-			deps = append(deps, nodeDeps(fd.Type, scopes)...)
+			deps = append(deps, d.nodeDeps(fd.Type, scopes)...)
 		}
 		return deps
 	case *ast.Switch:
 		scopes = enterScope(scopes)
-		deps := nodeDeps(n.Init, scopes)
-		deps = append(deps, nodeDeps(n.Expr, scopes)...)
+		deps := d.nodeDeps(n.Init, scopes)
+		deps = append(deps, d.nodeDeps(n.Expr, scopes)...)
 		for _, cas := range n.Cases {
-			deps = append(deps, nodeDeps(cas, scopes)...)
+			deps = append(deps, d.nodeDeps(cas, scopes)...)
 		}
 		scopes = exitScope(scopes)
 		return deps
 	case *ast.Text:
 		return nil
 	case *ast.TypeAssertion:
-		deps := nodeDeps(n.Expr, scopes)
-		deps = append(deps, nodeDeps(n.Type, scopes)...)
+		deps := d.nodeDeps(n.Expr, scopes)
+		deps = append(deps, d.nodeDeps(n.Type, scopes)...)
 		return deps
 	case *ast.TypeDeclaration:
-		return nodeDeps(n.Type, scopes)
+		return d.nodeDeps(n.Type, scopes)
 	case *ast.TypeSwitch:
 		scopes = enterScope(scopes)
-		deps := nodeDeps(n.Init, scopes)
-		deps = append(deps, nodeDeps(n.Assignment, scopes)...)
+		deps := d.nodeDeps(n.Init, scopes)
+		deps = append(deps, d.nodeDeps(n.Assignment, scopes)...)
 		for _, cas := range n.Cases {
-			deps = append(deps, nodeDeps(cas, scopes)...)
+			deps = append(deps, d.nodeDeps(cas, scopes)...)
 		}
 		scopes = exitScope(scopes)
 		return deps
 	case *ast.UnaryOperator:
-		return nodeDeps(n.Expr, scopes)
+		return d.nodeDeps(n.Expr, scopes)
 	case *ast.URL:
 		deps := []*ast.Identifier{}
 		for _, node := range n.Value {
-			deps = append(deps, nodeDeps(node, scopes)...)
+			deps = append(deps, d.nodeDeps(node, scopes)...)
 		}
 		return deps
 	case *ast.Var:
 		deps := []*ast.Identifier{}
-		deps = append(deps, nodeDeps(n.Type, scopes)...)
+		deps = append(deps, d.nodeDeps(n.Type, scopes)...)
 		for _, right := range n.Rhs {
-			deps = append(deps, nodeDeps(right, scopes)...)
+			deps = append(deps, d.nodeDeps(right, scopes)...)
 		}
 		for _, left := range n.Lhs {
 			scopes = declareLocally(scopes, left.Name)
