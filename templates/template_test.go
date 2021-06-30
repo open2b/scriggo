@@ -3212,6 +3212,18 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "V is shadowed",
 	},
+
+	"Using - expression statement": {
+		sources: map[string]string{
+			"index.txt": `
+				{% var V int %}
+				{% f := func(s string) { V = len(s) } %}
+				{% f(this) using %}hello{% end using %}
+				V is {{ V }}
+			`,
+		},
+		expectedOut: "\n\t\t\t\t\n\t\t\t\t\n\t\t\t\tV is 5\n\t\t\t",
+	},
 }
 
 var structWithUnexportedFields = &struct {
