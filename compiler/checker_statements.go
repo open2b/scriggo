@@ -49,30 +49,7 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 				nodes = append(nodes, n.Statement)
 				continue
 			}
-			if n.Type == nil {
-				tc.makeUsingTypeExplicit(n)
-			}
-			tc.thisIncreaseIndex()
-			var thisExpr ast.Expression
-			switch typeExpr := n.Type.(type) {
-			case *ast.Identifier:
-				dummyFuncType := ast.NewFuncType(nil, true, nil, []*ast.Parameter{
-					ast.NewParameter(nil, typeExpr),
-				}, false)
-				dummyFunc := ast.NewFunc(nil, nil, dummyFuncType, n.Body, false, 0)
-				thisExpr = ast.NewCall(nil, dummyFunc, nil, false)
-			case *ast.FuncType: // macro type.
-				thisExpr = ast.NewFunc(nil, nil, typeExpr, n.Body, false, 0)
-			default:
-				panic("BUG: the parser should not allow this")
-			}
-			thisName := tc.thisCurrentName()
-			dummyAssignment := ast.NewVar(
-				nil,
-				[]*ast.Identifier{ast.NewIdentifier(nil, thisName)},
-				nil,
-				[]ast.Expression{thisExpr},
-			)
+			dummyAssignment, thisName := tc.checkUsing(n)
 			nodes = append(nodes, dummyAssignment)
 			nodes = append(nodes, n.Statement)
 			thisToDeclarations[thisName] = n.Statement.(*ast.Var).Lhs
@@ -750,45 +727,7 @@ nodesLoop:
 
 		case *ast.Using:
 
-			// Handle the abbreviated form.
-			if show, ok := node.Statement.(*ast.Show); ok && show.Expressions == nil {
-				show.Expressions = []ast.Expression{
-					ast.NewIdentifier(show.Position, "this"),
-				}
-			}
-
-			// Make the type explicit, if necessary.
-			if node.Type == nil {
-				tc.makeUsingTypeExplicit(node)
-			}
-
-			// Backup the current state of the type checker.
-			tc.thisIncreaseIndex()
-
-			// Type check the type and transform the tree.
-			typ := tc.checkType(node.Type)
-			var thisExpr ast.Expression
-			switch typeExpr := node.Type.(type) {
-			case *ast.Identifier:
-				if typ.Type != tc.universe[typeExpr.Name].t.Type {
-					panic(tc.errorf(node, "invalid using type %s", typ))
-				}
-				dummyFuncType := ast.NewFuncType(nil, true, nil, []*ast.Parameter{
-					ast.NewParameter(nil, typeExpr),
-				}, false)
-				dummyFunc := ast.NewFunc(nil, nil, dummyFuncType, node.Body, false, 0)
-				thisExpr = ast.NewCall(nil, dummyFunc, nil, false)
-			case *ast.FuncType: // macro type.
-				thisExpr = ast.NewFunc(nil, nil, typeExpr, node.Body, false, 0)
-			default:
-				panic("BUG: the parser should not allow this")
-			}
-			dummyAssignment := ast.NewAssignment(
-				nil,
-				[]ast.Expression{ast.NewIdentifier(nil, tc.thisCurrentName())},
-				ast.AssignmentDeclaration,
-				[]ast.Expression{thisExpr},
-			)
+			dummyAssignment, _ := tc.checkUsing(node)
 
 			// Type check the dummy assignment of the 'using' statement, along
 			// with its content, and transform the tree.
@@ -1379,4 +1318,52 @@ func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) (string, 
 		Type:       defType,
 		Properties: propertyIsType,
 	}
+}
+
+// checkUsing checks the 'using' statement, returning the 'var' declaration
+// used for transforming the tree and the name of the 'this' identifier (eg.
+// "$this0").
+func (tc *typechecker) checkUsing(using *ast.Using) (*ast.Var, string) {
+
+	// Handle the abbreviated form.
+	if show, ok := using.Statement.(*ast.Show); ok && show.Expressions == nil {
+		show.Expressions = []ast.Expression{
+			ast.NewIdentifier(show.Position, "this"),
+		}
+	}
+
+	// Make the type explicit, if necessary.
+	if using.Type == nil {
+		tc.makeUsingTypeExplicit(using)
+	}
+
+	// Backup the current state of the type checker.
+	tc.thisIncreaseIndex()
+
+	// Type check the type and transform the tree.
+	typ := tc.checkType(using.Type)
+	var thisExpr ast.Expression
+	switch typeExpr := using.Type.(type) {
+	case *ast.Identifier:
+		if typ.Type != tc.universe[typeExpr.Name].t.Type {
+			panic(tc.errorf(using, "invalid using type %s", typ))
+		}
+		dummyFuncType := ast.NewFuncType(nil, true, nil, []*ast.Parameter{
+			ast.NewParameter(nil, typeExpr),
+		}, false)
+		dummyFunc := ast.NewFunc(nil, nil, dummyFuncType, using.Body, false, 0)
+		thisExpr = ast.NewCall(nil, dummyFunc, nil, false)
+	case *ast.FuncType: // macro type.
+		thisExpr = ast.NewFunc(nil, nil, typeExpr, using.Body, false, 0)
+	default:
+		panic("BUG: the parser should not allow this")
+	}
+	thisName := tc.thisCurrentName()
+	dummyAssignment := ast.NewVar(
+		nil,
+		[]*ast.Identifier{ast.NewIdentifier(nil, thisName)},
+		nil,
+		[]ast.Expression{thisExpr},
+	)
+	return dummyAssignment, thisName
 }
