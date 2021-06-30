@@ -3224,6 +3224,24 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "\n\t\t\t\t\n\t\t\t\t\n\t\t\t\tV is 5\n\t\t\t",
 	},
+
+	"Using - send statement": {
+		sources: map[string]string{
+			"index.txt": `
+				{% ch := make(chan string, 1) %}
+				{% ch <- this using %}how are you?{% end %}
+				Message is: {{ <-ch }}
+			`,
+		},
+		expectedOut: "\n\t\t\t\t\n\t\t\t\tMessage is: how are you?\n\t\t\t",
+	},
+
+	"Using - escaping string in html context": {
+		sources: map[string]string{
+			"index.html": `{% show this using string %}<b>{% end using %}`,
+		},
+		expectedOut: "&lt;b&gt;",
+	},
 }
 
 var structWithUnexportedFields = &struct {
