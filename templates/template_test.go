@@ -3249,6 +3249,18 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "&lt;b&gt;",
 	},
+
+	"Using - abbreviate form": {
+		sources: map[string]string{
+			"index.html": `
+				{% show using %}
+					{% var v = 20 %}
+					Price: € {{ v }}
+				{% end %}
+			`,
+		},
+		expectedOut: "\n\t\t\t\t\n\t\t\t\t\t\n\t\t\t\t\tPrice: € 20\n\t\t\t",
+	},
 }
 
 var structWithUnexportedFields = &struct {

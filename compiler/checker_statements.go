@@ -750,6 +750,13 @@ nodesLoop:
 
 		case *ast.Using:
 
+			// Handle the abbreviated form.
+			if show, ok := node.Statement.(*ast.Show); ok && show.Expressions == nil {
+				show.Expressions = []ast.Expression{
+					ast.NewIdentifier(show.Position, "this"),
+				}
+			}
+
 			// Make the type explicit, if necessary.
 			if node.Type == nil {
 				tc.makeUsingTypeExplicit(node)
