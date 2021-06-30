@@ -18,36 +18,38 @@ import (
 // packageDeclsDeps is the result of a dependency analysis performed on a tree.
 type packageDeclsDeps map[*ast.Identifier][]*ast.Identifier
 
-type deps packageDeclsDeps
+type deps struct {
+	d packageDeclsDeps
+}
 
 // addDepsToGlobal adds all identifiers that appear in node and in its children
 // as dependency of the global identifier ident.
-func (d deps) addDepsToGlobal(ident *ast.Identifier, node ast.Node, scopes depScopes) {
+func (d *deps) addDepsToGlobal(ident *ast.Identifier, node ast.Node, scopes depScopes) {
 	if scopes == nil {
 		scopes = depScopes{map[string]struct{}{}}
 	}
-	if d[ident] == nil {
-		d[ident] = []*ast.Identifier{}
+	if d.d[ident] == nil {
+		d.d[ident] = []*ast.Identifier{}
 	}
 	for _, dep := range nodeDeps(node, scopes) {
 		if dep.Name == "_" {
 			continue
 		}
 		alreadyAdded := false
-		for _, d := range d[ident] {
+		for _, d := range d.d[ident] {
 			if d.Name == dep.Name {
 				alreadyAdded = true
 				break
 			}
 		}
 		if !alreadyAdded {
-			d[ident] = append(d[ident], dep)
+			d.d[ident] = append(d.d[ident], dep)
 		}
 	}
 }
 
 // analyzeGlobalVar analyzes a global var declaration.
-func (d deps) analyzeGlobalVar(n *ast.Var) {
+func (d *deps) analyzeGlobalVar(n *ast.Var) {
 	if len(n.Lhs) == len(n.Rhs) {
 		for i := range n.Lhs {
 			d.addDepsToGlobal(n.Lhs[i], n.Type, nil)
@@ -64,7 +66,7 @@ func (d deps) analyzeGlobalVar(n *ast.Var) {
 }
 
 // analyzeGlobalConst analyzes a global constant declaration.
-func (d deps) analyzeGlobalConst(n *ast.Const) {
+func (d *deps) analyzeGlobalConst(n *ast.Const) {
 	for i := range n.Lhs {
 		d.addDepsToGlobal(n.Lhs[i], n.Type, nil)
 		d.addDepsToGlobal(n.Lhs[i], n.Rhs[i], nil)
@@ -72,7 +74,7 @@ func (d deps) analyzeGlobalConst(n *ast.Const) {
 }
 
 // analyzeGlobalDeclarationAssignment analyzes a global global declaration assignment.
-func (d deps) analyzeGlobalDeclarationAssignment(n *ast.Assignment) {
+func (d *deps) analyzeGlobalDeclarationAssignment(n *ast.Assignment) {
 	if len(n.Lhs) == len(n.Rhs) {
 		for i := range n.Lhs {
 			if ident, ok := n.Lhs[i].(*ast.Identifier); ok {
@@ -89,7 +91,7 @@ func (d deps) analyzeGlobalDeclarationAssignment(n *ast.Assignment) {
 }
 
 // analyzeGlobalFunc analyzes a global function declaration.
-func (d deps) analyzeGlobalFunc(n *ast.Func) {
+func (d *deps) analyzeGlobalFunc(n *ast.Func) {
 	scopes := depScopes{map[string]struct{}{}}
 	for _, f := range n.Type.Parameters {
 		if f.Ident != nil {
@@ -108,14 +110,16 @@ func (d deps) analyzeGlobalFunc(n *ast.Func) {
 }
 
 // analyzeGlobalTypeDeclaration analyzes a global type declaration.
-func (d deps) analyzeGlobalTypeDeclaration(td *ast.TypeDeclaration) {
+func (d *deps) analyzeGlobalTypeDeclaration(td *ast.TypeDeclaration) {
 	d.addDepsToGlobal(td.Ident, td.Type, nil)
 }
 
 // analyzeTree analyzes tree returning a data structure holding all dependencies
 // information.
 func analyzeTree(pkg *ast.Package) packageDeclsDeps {
-	d := deps{}
+	d := &deps{
+		d: packageDeclsDeps{},
+	}
 	for _, n := range pkg.Declarations {
 		switch n := n.(type) {
 		case *ast.Var:
@@ -128,7 +132,7 @@ func analyzeTree(pkg *ast.Package) packageDeclsDeps {
 			d.analyzeGlobalTypeDeclaration(n)
 		}
 	}
-	return packageDeclsDeps(d)
+	return packageDeclsDeps(d.d)
 }
 
 // depScopes represents a set of scopes used in dependency analysis.
