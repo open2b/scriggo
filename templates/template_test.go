@@ -3085,56 +3085,56 @@ var templateMultiFileCases = map[string]struct {
 
 	"Using - show": {
 		sources: map[string]string{
-			"index.html": `{% show this using html %}foo{% end using %}`,
+			"index.html": `{% show this; using html %}foo{% end using %}`,
 		},
 		expectedOut: "foo",
 	},
 
 	"Using - show (implicit type)": {
 		sources: map[string]string{
-			"index.html": `{% show this using %}foo{% end using %}`,
+			"index.html": `{% show this; using %}foo{% end using %}`,
 		},
 		expectedOut: "foo",
 	},
 
 	"Using - show - Two using statement": {
 		sources: map[string]string{
-			"index.txt": `{% show this using %}foo{% end using %}{% show this using %}bar{% end using %}`,
+			"index.txt": `{% show this; using %}foo{% end using %}{% show this; using %}bar{% end using %}`,
 		},
 		expectedOut: "foobar",
 	},
 
 	"Using - 'this' is not defined outside": {
 		sources: map[string]string{
-			"index.html": `{% show this using html %}foo{% end using %}{{ this }}`,
+			"index.html": `{% show this; using html %}foo{% end using %}{{ this }}`,
 		},
 		expectedBuildErr: "undefined: this",
 	},
 
 	"Using - 'this' is not defined outside (implicit type)": {
 		sources: map[string]string{
-			"index.html": `{% show this using %}foo{% end using %}{{ this }}`,
+			"index.html": `{% show this; using %}foo{% end using %}{{ this }}`,
 		},
 		expectedBuildErr: "undefined: this",
 	},
 
 	"Using - assignment with ':='": {
 		sources: map[string]string{
-			"index.html": `{% x := this using html %}hello, how are you{% end using %}{{ x }}, len: {{ len(x) }}`,
+			"index.html": `{% x := this; using html %}hello, how are you{% end using %}{{ x }}, len: {{ len(x) }}`,
 		},
 		expectedOut: "hello, how are you, len: 18",
 	},
 
 	"Using - assignment with ':=' (implicit type)": {
 		sources: map[string]string{
-			"index.html": `{% x := this using %}hello, how are you{% end using %}{{ x }}, len: {{ len(x) }}`,
+			"index.html": `{% x := this; using %}hello, how are you{% end using %}{{ x }}, len: {{ len(x) }}`,
 		},
 		expectedOut: "hello, how are you, len: 18",
 	},
 
 	"Using - assignment with 'var'": {
 		sources: map[string]string{
-			"index.html": `{% var date, days = this, 5 using html %}
+			"index.html": `{% var date, days = this, 5; using html %}
 			<span>{{ now() }}</span>
 		  {% end using %}
 		  Date is {{ date }}`,
@@ -3150,28 +3150,28 @@ var templateMultiFileCases = map[string]struct {
 
 	"Using - macro (without parameters)": {
 		sources: map[string]string{
-			"index.txt": `{% show this() using macro() string %}macro content{% end using %}`,
+			"index.txt": `{% show this(); using macro() string %}macro content{% end using %}`,
 		},
 		expectedOut: "macro content",
 	},
 
 	"Using - macro (with parameters)": {
 		sources: map[string]string{
-			"index.txt": `{% show this(4.2) using macro(f float64) string %}f / 2 = {{ f / 2 }}.{% end using %}`,
+			"index.txt": `{% show this(4.2); using macro(f float64) string %}f / 2 = {{ f / 2 }}.{% end using %}`,
 		},
 		expectedOut: "f / 2 = 2.1.",
 	},
 
 	"Using - function literal 1": {
 		sources: map[string]string{
-			"index.txt": `{% show func() string { var this = "ok"; return this }() using %}no{% end using %}`,
+			"index.txt": `{% show func() string { var this = "ok"; return this }(); using %}no{% end using %}`,
 		},
 		expectedOut: "ok",
 	},
 
 	"Using - function literal 2": {
 		sources: map[string]string{
-			"index.txt": `{% show func() string { return this }() using %}ok{% end using %}`,
+			"index.txt": `{% show func() string { return this }(); using %}ok{% end using %}`,
 		},
 		expectedOut: "ok",
 	},
@@ -3179,14 +3179,14 @@ var templateMultiFileCases = map[string]struct {
 	"Using - package level var declaration ": {
 		sources: map[string]string{
 			"index.html": `{% import "file.html" %}`,
-			"file.html":  `{% var _ = this using %}hey{% end using %}`,
+			"file.html":  `{% var _ = this; using %}hey{% end using %}`,
 		},
 	},
 
 	"Using - package level var declaration (2)": {
 		sources: map[string]string{
 			"index.html": `{% import "file.html" %}{{ V }}, len: {{ len(V) }}`,
-			"file.html":  `{% var V = this using %}hey{% end using %}`,
+			"file.html":  `{% var V = this; using %}hey{% end using %}`,
 		},
 		expectedOut: "hey, len: 3",
 	},
@@ -3194,7 +3194,7 @@ var templateMultiFileCases = map[string]struct {
 	"Using - package level var declaration (3)": {
 		sources: map[string]string{
 			"index.html": `{% import "file.html" %}V is {{ V }}`,
-			"file.html":  `{% var V = len(this) using %}hey my friend{% end using %}`,
+			"file.html":  `{% var V = len(this); using %}hey my friend{% end using %}`,
 		},
 		expectedOut: "V is 13",
 	},
@@ -3202,7 +3202,7 @@ var templateMultiFileCases = map[string]struct {
 	"Using - package level var declaration (4)": {
 		sources: map[string]string{
 			"index.html": `{% import "file.html" %}{{ V1 }}, {{ V2 }}`,
-			"file.html":  `{% var V1, V2 = this, len(this) using %}hey oh{% end using %}`,
+			"file.html":  `{% var V1, V2 = this, len(this); using %}hey oh{% end using %}`,
 		},
 		expectedOut: "hey oh, 6",
 	},
@@ -3212,7 +3212,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.html": `
 				{% extends "extended.html" %}
 				{% var this = "shadowed" %}
-				{% var V = this using %}content...{% end using %}
+				{% var V = this; using %}content...{% end using %}
 				{% macro M %}V is {{ V }}{% end macro %}
 			`,
 			"extended.html": `{{ M () }}`,
@@ -3225,7 +3225,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt": `
 				{% var V int %}
 				{% f := func(s string) { V = len(s) } %}
-				{% f(this) using %}hello{% end using %}
+				{% f(this); using %}hello{% end using %}
 				V is {{ V }}
 			`,
 		},
@@ -3236,7 +3236,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `
 				{% ch := make(chan string, 1) %}
-				{% ch <- this using %}how are you?{% end %}
+				{% ch <- this; using %}how are you?{% end %}
 				Message is: {{ <-ch }}
 			`,
 		},
@@ -3245,7 +3245,7 @@ var templateMultiFileCases = map[string]struct {
 
 	"Using - escaping string in html context": {
 		sources: map[string]string{
-			"index.html": `{% show this using string %}<b>{% end using %}`,
+			"index.html": `{% show this; using string %}<b>{% end using %}`,
 		},
 		expectedOut: "&lt;b&gt;",
 	},
@@ -3253,7 +3253,7 @@ var templateMultiFileCases = map[string]struct {
 	"Using - abbreviate form": {
 		sources: map[string]string{
 			"index.html": `
-				{% show using %}
+				{% show using html %}
 					{% var v = 20 %}
 					Price: € {{ v }}
 				{% end %}
@@ -3266,8 +3266,8 @@ var templateMultiFileCases = map[string]struct {
 	//	sources: map[string]string{
 	//		"index.html": `
 	//			{% extends "layout.html" %}
-    //            {% macro Body %}
-	//				{% var a = this using %}a{% end using %}
+	//			{% macro Body %}
+	//				{% var a = this; using %}a{% end using %}
 	//			{% end macro %}
 	//		`,
 	//		"layout.html" : `{{ Body() }}`,
