@@ -592,13 +592,14 @@ func addLastOperand(op ast.Expression, path []ast.Operator) ast.Expression {
 }
 
 // parseExprList parses a list of expressions separated by a comma and returns
-// the list and the last token read that can not be part of the last
-// expression. It panics on error.
+// the list and the last token read that does not belong to the expressions.
 //
 // tok is the first token of the expression, allowSwitchGuard reports whether
 // a parsed expression can contain a type switch guard. allMustBeTypes report
 // whatever all the expressions must be types. nextIsBlockBrace report whether
 // a left brace block is expected after the expression.
+//
+// If there is no expression, returns nil and tok. It panics on error.
 func (p *parsing) parseExprList(tok token, allowSwitchGuard, allMustBeTypes, nextIsBlockBrace bool) ([]ast.Expression, token) {
 	var element ast.Expression
 	var elements []ast.Expression
