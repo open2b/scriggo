@@ -90,8 +90,8 @@ type scopeVariable struct {
 	node       ast.Node
 }
 
-// checkIdentifier checks an identifier. If using, ident is marked as "used".
-func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *typeInfo {
+// checkIdentifier checks an identifier. If used, ident is marked as "used".
+func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeInfo {
 
 	// If ident is an upvar, add it as upvar for current function and for all
 	// nested functions and update all indexes.
@@ -186,7 +186,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *typeI
 	}
 
 	// Mark identifier as "used".
-	if using {
+	if used {
 		for i := len(tc.unusedVars) - 1; i >= 0; i-- {
 			v := tc.unusedVars[i]
 			if v.ident == ident.Name {
