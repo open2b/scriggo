@@ -1022,7 +1022,7 @@ func (vm *VM) run() (Addr, bool) {
 				panic(errNilPointer)
 			}
 			method := vm.stringk(b, true)
-			vm.setGeneral(c, reflect.ValueOf(&callable{receiver: receiver.Interface(), method: method}))
+			vm.setGeneral(c, reflect.ValueOf(&callable{value: receiver.MethodByName(method)}))
 
 		// Move
 		case OpMove, -OpMove:

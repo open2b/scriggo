@@ -860,8 +860,6 @@ type callable struct {
 	value      reflect.Value       // reflect value.
 	fn         *Function           // function, if it is a Scriggo function.
 	predefined *PredefinedFunction // predefined function.
-	receiver   interface{}         // receiver, if it is a method value.
-	method     string              // method name, if it is a method value.
 	vars       []reflect.Value     // non-local (global and closure) variables.
 }
 
@@ -869,11 +867,6 @@ type callable struct {
 func (c *callable) Predefined() *PredefinedFunction {
 	if c.predefined != nil {
 		return c.predefined
-	}
-	if !c.value.IsValid() {
-		c.value = reflect.ValueOf(c.receiver).MethodByName(c.method)
-		c.receiver = nil
-		c.method = ""
 	}
 	c.predefined = NewPredefinedFunction("", "", c.value)
 	return c.predefined
@@ -890,56 +883,51 @@ func (c *callable) Value(env *env) reflect.Value {
 		c.value = reflect.ValueOf(c.predefined.function)
 		return c.value
 	}
-	if c.method == "" {
-		// It is a Scriggo function.
-		fn := c.fn
-		vars := c.vars
-		c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
-			nvm := create(env)
-			nOut := fn.Type.NumOut()
-			results := make([]reflect.Value, nOut)
-			var r = [4]int8{1, 1, 1, 1}
-			for i := 0; i < nOut; i++ {
-				typ := fn.Type.Out(i)
-				results[i] = reflect.New(typ).Elem()
-				t := kindToType[typ.Kind()]
-				r[t]++
-			}
-			for _, arg := range args {
-				t := kindToType[arg.Kind()]
-				nvm.setFromReflectValue(r[t], arg)
-				r[t]++
-			}
-			err := nvm.runFunc(fn, vars)
-			if err != nil {
-				if p, ok := err.(*Panic); ok {
-					var msg string
-					for ; p != nil; p = p.next {
-						msg = "\n" + msg
-						if p.recovered {
-							msg = " [recovered]" + msg
-						}
-						msg = p.String() + msg
-						if p.next != nil {
-							msg = "\tpanic: " + msg
-						}
+	// It is a Scriggo function.
+	fn := c.fn
+	vars := c.vars
+	c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
+		nvm := create(env)
+		nOut := fn.Type.NumOut()
+		results := make([]reflect.Value, nOut)
+		var r = [4]int8{1, 1, 1, 1}
+		for i := 0; i < nOut; i++ {
+			typ := fn.Type.Out(i)
+			results[i] = reflect.New(typ).Elem()
+			t := kindToType[typ.Kind()]
+			r[t]++
+		}
+		for _, arg := range args {
+			t := kindToType[arg.Kind()]
+			nvm.setFromReflectValue(r[t], arg)
+			r[t]++
+		}
+		err := nvm.runFunc(fn, vars)
+		if err != nil {
+			if p, ok := err.(*Panic); ok {
+				var msg string
+				for ; p != nil; p = p.next {
+					msg = "\n" + msg
+					if p.recovered {
+						msg = " [recovered]" + msg
 					}
-					err = &FatalError{msg: msg}
+					msg = p.String() + msg
+					if p.next != nil {
+						msg = "\tpanic: " + msg
+					}
 				}
-				panic(err)
+				err = &FatalError{msg: msg}
 			}
-			r = [4]int8{1, 1, 1, 1}
-			for _, result := range results {
-				t := kindToType[result.Kind()]
-				nvm.getIntoReflectValue(r[t], result, false)
-				r[t]++
-			}
-			return results
-		})
-	} else {
-		// It is a method value.
-		c.value = reflect.ValueOf(c.receiver).MethodByName(c.method)
-	}
+			panic(err)
+		}
+		r = [4]int8{1, 1, 1, 1}
+		for _, result := range results {
+			t := kindToType[result.Kind()]
+			nvm.getIntoReflectValue(r[t], result, false)
+			r[t]++
+		}
+		return results
+	})
 	return c.value
 }
 
