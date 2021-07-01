@@ -118,8 +118,10 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 			ident.Name = tc.thisCurrentName()
 			ti, found = tc.lookupScopes(ident.Name, false)
 		} else {
+			// The identifier is the predeclared identifier 'this', but 'this'
+			// is not defined outside an 'using' statement so it is considered
+			// undefined.
 			found = false
-			ti = nil
 		}
 	}
 
