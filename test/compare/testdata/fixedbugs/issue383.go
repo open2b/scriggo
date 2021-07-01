@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 )
 
 func main() {
@@ -53,18 +54,17 @@ func main() {
 
 	Println("Method calls")
 	{
-		// TODO:
-		// b := strings.Builder{}
-		// (&b).WriteString("content")
-		// Println((&b).Len())
-		// Println(b.Len())
-		// Println(b.Cap())
-		// b.Grow(5)
-		// b.Cap()
-		// b.WriteString("aa")
-		// Println(b.String())
-		// b.WriteString("bb")
-		// Println(b.String())
+		b := strings.Builder{}
+		(&b).WriteString("content")
+		Println((&b).Len())
+		Println(b.Len())
+		Println(b.Cap())
+		b.Grow(5)
+		b.Cap()
+		b.WriteString("aa")
+		Println(b.String())
+		b.WriteString("bb")
+		Println(b.String())
 	}
 
 	Println("Method values (1)")
