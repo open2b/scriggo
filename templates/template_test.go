@@ -3239,6 +3239,17 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "V is shadowed",
 	},
 
+	"Using - the type has been shadowed at package-level": {
+		sources: map[string]string{
+			"index.html": `{% import "imported.html" %}{{ A }}`,
+			"imported.html": `
+				{% type html int %}
+				{% var A = this; using html %}OPS{% end %}
+			`,
+		},
+		expectedBuildErr: `invalid macro result type html`,
+	},
+
 	"Using - expression statement": {
 		sources: map[string]string{
 			"index.txt": `

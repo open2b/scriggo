@@ -1345,13 +1345,9 @@ func (tc *typechecker) checkUsing(using *ast.Using) (*ast.Var, string) {
 	tc.thisIncreaseIndex()
 
 	// Type check the type and transform the tree.
-	typ := tc.checkType(using.Type)
 	var thisExpr ast.Expression
 	switch typeExpr := using.Type.(type) {
 	case *ast.Identifier:
-		if typ.Type != tc.universe[typeExpr.Name].t.Type {
-			panic(tc.errorf(using, "invalid using type %s", typ))
-		}
 		dummyFuncType := ast.NewFuncType(nil, true, nil, []*ast.Parameter{
 			ast.NewParameter(nil, typeExpr),
 		}, false)
