@@ -15,12 +15,10 @@ import (
 )
 
 // templateFileToPackage transforms a tree of a declarations file to a package
-// tree, moving the top level nodes, excluding text and comment nodes, in a
-// package node that becomes the only node of tree. If tree already has a
-// package, templateFileToPackage does nothing.
-//
-// Also, templateFileToPackage performs a (partial) transformation of the
-// 'using' statements at the package-level.
+// tree, moving the top level nodes, excluding text and comment nodes,
+// (partially) transforming "using" nodes, in a package node that becomes the
+// only node of tree.
+// If tree already has a package, templateFileToPackage does nothing.
 func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 	if len(tree.Nodes) == 1 {
 		if _, ok := tree.Nodes[0].(*ast.Package); ok {
