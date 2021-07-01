@@ -116,7 +116,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 	if found && ti == universe["this"].t {
 		if tc.using.withinUsingStmt {
 			ident.Name = tc.thisCurrentName()
-			ti, found = tc.lookupScopes(ident.Name, false)
+			ti, _ = tc.lookupScopes(ident.Name, false)
 		} else {
 			// The identifier is the predeclared identifier 'this', but 'this'
 			// is not defined outside an 'using' statement so it is considered
