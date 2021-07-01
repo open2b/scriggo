@@ -3220,6 +3220,25 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "V is shadowed",
 	},
 
+	"Using - this shadowed by a 'var' declaration inside a multiline statement": {
+		sources: map[string]string{
+			"index.html": `
+				{% extends "extended.html" %}
+				{%%
+					var (
+						something = 43982
+						this = "shadowed"
+						somethingElse = 43289
+					)
+				%%}
+				{% var V = this; using %}content...{% end using %}
+				{% macro M %}V is {{ V }}{% end macro %}
+			`,
+			"extended.html": `{{ M () }}`,
+		},
+		expectedOut: "V is shadowed",
+	},
+
 	"Using - expression statement": {
 		sources: map[string]string{
 			"index.txt": `

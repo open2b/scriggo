@@ -33,7 +33,7 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 	var shadowedThis bool
 	if usingAtPackageLevel(tree) {
 		thisToDeclarations = map[string][]*ast.Identifier{}
-		shadowedThis = thisHasBeenShadowed(tree)
+		shadowedThis = thisHasBeenShadowed(tree.Nodes)
 	}
 
 	nodes := make([]ast.Node, 0, len(tree.Nodes)/2)
@@ -75,9 +75,9 @@ func usingAtPackageLevel(tree *ast.Tree) bool {
 }
 
 // thisHasBeenShadowed reports whether the predeclared identifier 'this' has
-// been shadowed by a package-level declaration.
-func thisHasBeenShadowed(tree *ast.Tree) bool {
-	for _, n := range tree.Nodes {
+// been shadowed by a package-level declaration within nodes.
+func thisHasBeenShadowed(nodes []ast.Node) bool {
+	for _, n := range nodes {
 		switch n := n.(type) {
 		case *ast.Var:
 			for _, lh := range n.Lhs {
@@ -98,6 +98,10 @@ func thisHasBeenShadowed(tree *ast.Tree) bool {
 				if lh.Name == "this" {
 					return true
 				}
+			}
+		case *ast.Statements:
+			if thisHasBeenShadowed(n.Nodes) {
+				return true
 			}
 		}
 	}
