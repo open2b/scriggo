@@ -472,6 +472,13 @@ func (d *deps) nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 			deps = append(deps, d.nodeDeps(node, scopes)...)
 		}
 		return deps
+	case *ast.Using:
+		deps := []*ast.Identifier{}
+		deps = append(deps, d.nodeDeps(n.Statement, scopes)...)
+		for _, node := range n.Body.Nodes {
+			deps = append(deps, d.nodeDeps(node, scopes)...)
+		}
+		return deps
 	case *ast.Var:
 		deps := []*ast.Identifier{}
 		deps = append(deps, d.nodeDeps(n.Type, scopes)...)

@@ -3292,18 +3292,32 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "\n\t\t\t\t\n\t\t\t\t\t\n\t\t\t\t\tPrice: € 20\n\t\t\t",
 	},
 
-	//"Using - in macro": {
-	//	sources: map[string]string{
-	//		"index.html": `
-	//			{% extends "layout.html" %}
-	//			{% macro Body %}
-	//				{% var a = this; using %}a{% end using %}
-	//			{% end macro %}
-	//		`,
-	//		"layout.html" : `{{ Body() }}`,
-	//	},
-	//	expectedOut: "\n\t\t\t\t\n\t\t\t\t\ta\n\t\t\t\t\n\t\t\t",
-	//},
+	"Using - in macro": {
+		sources: map[string]string{
+			"index.html": `
+				{% extends "layout.html" %}
+				{% macro Body %}
+					{% var a = this; using %}a{% end using %}
+				{% end macro %}
+			`,
+			"layout.html": `{{ Body() }}`,
+		},
+		expectedOut: "\t\t\t\t\t\n",
+	},
+
+	"Using - in macro (2)": {
+		sources: map[string]string{
+			"index.html": `
+				{% extends "imported.html" %}
+				{% macro M %}
+					{% var a = this; using %}content{% end using %}
+					{{ a }}
+				{% end macro %}
+			`,
+			"imported.html": `{{ M() }}`,
+		},
+		expectedOut: "\t\t\t\t\t\n\t\t\t\t\tcontent\n",
+	},
 }
 
 var structWithUnexportedFields = &struct {
