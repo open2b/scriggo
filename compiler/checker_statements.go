@@ -44,7 +44,9 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 			tc.thisIncreaseIndex()
 			thisName := tc.thisCurrentName()
 			dummyAssignment, statement := tc.explodeUsingStatement(n, thisName)
-			nodes = append(nodes, dummyAssignment)
+			if dummyAssignment != nil {
+				nodes = append(nodes, dummyAssignment)
+			}
 			nodes = append(nodes, statement)
 			if thisToDeclarations == nil {
 				thisToDeclarations = map[string][]*ast.Identifier{}
@@ -724,10 +726,12 @@ nodesLoop:
 
 			// Type check the dummy assignment of the 'using' statement, along
 			// with its content, and transform the tree.
-			dummyNodesPre := []ast.Node{dummyAssignment}
-			dummyNodesPre = tc.checkNodes(dummyNodesPre)
-			nodes = append(nodes[:i], append(dummyNodesPre, nodes[i:]...)...)
-			i += len(dummyNodesPre)
+			if dummyAssignment != nil {
+				dummyNodesPre := []ast.Node{dummyAssignment}
+				dummyNodesPre = tc.checkNodes(dummyNodesPre)
+				nodes = append(nodes[:i], append(dummyNodesPre, nodes[i:]...)...)
+				i += len(dummyNodesPre)
+			}
 
 			// Type check the statement of the 'using' and transform the tree.
 			withinStmt := tc.using.withinUsingStmt
@@ -1314,13 +1318,19 @@ func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) (string, 
 }
 
 // explodeUsingStatement explodes an 'using' statement.
+// The 'var' statement returned by this method may be nil, while the node is
+// always non-nil.
 func (tc *typechecker) explodeUsingStatement(using *ast.Using, thisName string) (*ast.Var, ast.Node) {
 
 	// Handle the abbreviated form.
 	if show, ok := using.Statement.(*ast.Show); ok && show.Expressions == nil {
-		show.Expressions = []ast.Expression{
-			ast.NewIdentifier(show.Position, "this"),
-		}
+		dummyFuncType := ast.NewFuncType(nil, true, nil, []*ast.Parameter{
+			ast.NewParameter(nil, using.Type),
+		}, false)
+		dummyFunc := ast.NewFunc(nil, nil, dummyFuncType, using.Body, false, using.Format)
+		dummyCall := ast.NewCall(nil, dummyFunc, nil, false)
+		dummyShow := ast.NewShow(nil, []ast.Expression{dummyCall}, show.Context)
+		return nil, dummyShow
 	}
 
 	// Make the type explicit, if necessary.

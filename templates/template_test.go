@@ -3319,12 +3319,17 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "\t\t\t\t\t\n\t\t\t\t\tcontent\n",
 	},
 
-	// "Using - this cannot be shadowed in the abbreviated form": {
-	// 	sources: map[string]string{
-	// 		"index.html": `{% var this = 2 %}{% show using string %}<b>escape me</b>{% end using %}`,
-	// 	},
-	// 	expectedOut: "&lt;b&gt;escape me&lt;/b&gt;",
-	// },
+	"Using - this cannot be shadowed in the abbreviated form": {
+		sources: map[string]string{
+			"index.html": `
+				{% show using string %}<b>escape me</b>{% end %}
+			`,
+		},
+		// TODO(Gianluca): this should be escaped, but it seems like is related
+		// to the issue https://github.com/open2b/scriggo/issues/779 that is
+		// independent from the implementation of 'using'.
+		expectedOut: "\n\t\t\t\t<b>escape me</b>\n\t\t\t",
+	},
 }
 
 var structWithUnexportedFields = &struct {
