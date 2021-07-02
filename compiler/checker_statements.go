@@ -28,12 +28,6 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 	}
 
 	var thisToDeclarations map[string][]*ast.Identifier
-	var shadowedThis bool
-	if usingAtPackageLevel(tree) {
-		thisToDeclarations = map[string][]*ast.Identifier{}
-		shadowedThis = thisHasBeenShadowed(tree.Nodes)
-	}
-
 	nodes := make([]ast.Node, 0, len(tree.Nodes)/2)
 	for _, n := range tree.Nodes {
 		switch n := n.(type) {
@@ -43,7 +37,7 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 		case *ast.Statements:
 			nodes = append(nodes, n.Nodes...)
 		case *ast.Using:
-			if shadowedThis {
+			if thisHasBeenShadowed(tree.Nodes) {
 				nodes = append(nodes, n.Statement)
 				continue
 			}
@@ -52,6 +46,9 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 			dummyAssignment, statement := tc.explodeUsingStatement(n, thisName)
 			nodes = append(nodes, dummyAssignment)
 			nodes = append(nodes, statement)
+			if thisToDeclarations == nil {
+				thisToDeclarations = map[string][]*ast.Identifier{}
+			}
 			thisToDeclarations[thisName] = n.Statement.(*ast.Var).Lhs
 		default:
 			panic(fmt.Sprintf("BUG: unexpected node %s", n))
@@ -61,17 +58,6 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 	pkg := ast.NewPackage(tree.Pos(), "", nodes)
 	pkg.IR.ThisNameToVarIdents = thisToDeclarations
 	tree.Nodes = []ast.Node{pkg}
-}
-
-// usingAtPackageLevel reports whether the given tree has at least one 'using'
-// statement at package level.
-func usingAtPackageLevel(tree *ast.Tree) bool {
-	for _, n := range tree.Nodes {
-		if _, ok := n.(*ast.Using); ok {
-			return true
-		}
-	}
-	return false
 }
 
 // thisHasBeenShadowed reports whether the predeclared identifier 'this' has
