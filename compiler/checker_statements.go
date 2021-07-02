@@ -47,9 +47,11 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 				nodes = append(nodes, n.Statement)
 				continue
 			}
-			dummyAssignment, thisName := tc.checkUsing(n)
+			tc.thisIncreaseIndex()
+			thisName := tc.thisCurrentName()
+			dummyAssignment, statement := tc.explodeUsingStatement(n, thisName)
 			nodes = append(nodes, dummyAssignment)
-			nodes = append(nodes, n.Statement)
+			nodes = append(nodes, statement)
 			thisToDeclarations[thisName] = n.Statement.(*ast.Var).Lhs
 		default:
 			panic(fmt.Sprintf("BUG: unexpected node %s", n))
@@ -729,7 +731,10 @@ nodesLoop:
 
 		case *ast.Using:
 
-			dummyAssignment, _ := tc.checkUsing(node)
+			tc.thisIncreaseIndex()
+			thisName := tc.thisCurrentName()
+
+			dummyAssignment, statement := tc.explodeUsingStatement(node, thisName)
 
 			// Type check the dummy assignment of the 'using' statement, along
 			// with its content, and transform the tree.
@@ -741,7 +746,7 @@ nodesLoop:
 			// Type check the statement of the 'using' and transform the tree.
 			withinStmt := tc.using.withinUsingStmt
 			tc.using.withinUsingStmt = true
-			dummyNodesPost := []ast.Node{node.Statement}
+			dummyNodesPost := []ast.Node{statement}
 			dummyNodesPost = tc.checkNodes(dummyNodesPost)
 			nodes = append(nodes[:i], append(dummyNodesPost, nodes[i+1:]...)...)
 			i += len(dummyNodesPost)
@@ -1322,10 +1327,8 @@ func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) (string, 
 	}
 }
 
-// checkUsing checks the 'using' statement, returning the 'var' declaration
-// used for transforming the tree and the name of the 'this' identifier (eg.
-// "$this0").
-func (tc *typechecker) checkUsing(using *ast.Using) (*ast.Var, string) {
+// explodeUsingStatement explodes an 'using' statement.
+func (tc *typechecker) explodeUsingStatement(using *ast.Using, thisName string) (*ast.Var, ast.Node) {
 
 	// Handle the abbreviated form.
 	if show, ok := using.Statement.(*ast.Show); ok && show.Expressions == nil {
@@ -1339,10 +1342,6 @@ func (tc *typechecker) checkUsing(using *ast.Using) (*ast.Var, string) {
 		tc.makeUsingTypeExplicit(using)
 	}
 
-	// Backup the current state of the type checker.
-	tc.thisIncreaseIndex()
-
-	// Type check the type and transform the tree.
 	var thisExpr ast.Expression
 	switch typeExpr := using.Type.(type) {
 	case *ast.Identifier:
@@ -1356,12 +1355,13 @@ func (tc *typechecker) checkUsing(using *ast.Using) (*ast.Var, string) {
 	default:
 		panic("BUG: the parser should not allow this")
 	}
-	thisName := tc.thisCurrentName()
+
 	dummyAssignment := ast.NewVar(
 		nil,
 		[]*ast.Identifier{ast.NewIdentifier(nil, thisName)},
 		nil,
 		[]ast.Expression{thisExpr},
 	)
-	return dummyAssignment, thisName
+
+	return dummyAssignment, using.Statement
 }
