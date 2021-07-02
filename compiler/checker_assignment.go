@@ -134,7 +134,11 @@ func (tc *typechecker) checkAssignmentOperation(node *ast.Assignment) {
 func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 
 	if len(node.Lhs) > len(node.Rhs) {
-		panic(tc.errorf(node.Rhs[len(node.Rhs)-1], "missing value in const declaration"))
+		pos := node.Lhs[0].Pos()
+		if len(node.Rhs) > 0 {
+			pos = node.Rhs[len(node.Rhs)-1].Pos()
+		}
+		panic(tc.errorf(pos, "missing value in const declaration"))
 	}
 
 	if len(node.Lhs) < len(node.Rhs) {

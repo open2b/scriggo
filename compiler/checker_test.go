@@ -758,6 +758,7 @@ var checkerStmts = map[string]string{
 	`const _ = 6e5518446744`: `malformed constant: 6e5518446744 (exponent overflow)`,
 	`const _ = 6e1518446744`: `constant too large: 6e1518446744`,
 	`const a = 5, 6`:         `extra expression in const declaration`,
+	`const a, b`:             `missing value in const declaration`,
 	`const a, b = 5`:         `missing value in const declaration`,
 
 	// Constants - from https://golang.org/ref/spec#Constant_expressions
