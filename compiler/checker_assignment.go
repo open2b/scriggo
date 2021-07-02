@@ -130,8 +130,9 @@ func (tc *typechecker) checkAssignmentOperation(node *ast.Assignment) {
 
 }
 
-// checkConstantDeclaration type checks a constant declaration.
-func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
+// checkBalancedConstantDeclaration type checks that a constant declaration is
+// balanced, ie that it has the same number of variables and values.
+func (tc *typechecker) checkBalancedConstantDeclaration(node *ast.Const) {
 
 	if len(node.Lhs) > len(node.Rhs) {
 		pos := node.Lhs[0].Pos()
@@ -144,6 +145,13 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 	if len(node.Lhs) < len(node.Rhs) {
 		panic(tc.errorf(node.Rhs[len(node.Rhs)-1], "extra expression in const declaration"))
 	}
+
+}
+
+// checkConstantDeclaration type checks a constant declaration.
+func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
+
+	tc.checkBalancedConstantDeclaration(node)
 
 	tc.iota = node.Index
 

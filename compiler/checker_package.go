@@ -537,7 +537,8 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 
 	tc := newTypechecker(compilation, path, opts, globalScope, packages)
 
-	// Checks package level names for "init" and "main".
+	// Check package level names for "init" and "main"
+	// and check that constant declarations are balanced.
 	for _, decl := range pkg.Declarations {
 		switch decl := decl.(type) {
 		case *ast.Var:
@@ -547,6 +548,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 				}
 			}
 		case *ast.Const:
+			tc.checkBalancedConstantDeclaration(decl)
 			for _, d := range decl.Lhs {
 				if d.Name == "init" || d.Name == "main" {
 					panic(tc.errorf(d.Pos(), "cannot declare %s - must be func", d.Name))
