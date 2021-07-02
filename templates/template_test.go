@@ -3318,6 +3318,13 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "\t\t\t\t\t\n\t\t\t\t\tcontent\n",
 	},
+
+	// "Using - this cannot be shadowed in the abbreviated form": {
+	// 	sources: map[string]string{
+	// 		"index.html": `{% var this = 2 %}{% show using string %}<b>escape me</b>{% end using %}`,
+	// 	},
+	// 	expectedOut: "&lt;b&gt;escape me&lt;/b&gt;",
+	// },
 }
 
 var structWithUnexportedFields = &struct {
