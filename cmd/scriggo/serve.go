@@ -26,6 +26,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/renderer/html"
 )
 
 // serve runs a web server and serves the template rooted at the current
@@ -46,13 +47,15 @@ func serve(asm int, metrics bool) error {
 	}
 	defer fsys.Close()
 
+	md := goldmark.New(goldmark.WithRendererOptions(html.WithUnsafe()))
+
 	srv := &server{
 		fsys:   fsys,
 		static: http.FileServer(http.Dir(".")),
 		buildOptions: &templates.BuildOptions{
 			Globals: globals,
 			MarkdownConverter: func(src []byte, out io.Writer) error {
-				return goldmark.Convert(src, out)
+				return md.Convert(src, out)
 			},
 		},
 		templates: map[string]*templates.Template{},
