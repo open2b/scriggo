@@ -199,7 +199,8 @@ renders the template file named 'article.html' as HTML and
     http://localhost:8080/blog.md
 
 renders the template file named 'blog.md' as Markdown. Markdown is converted to
-HTML with the Goldmark parser with the default options.
+HTML with the Goldmark parser with the options html.WithUnsafe and
+parser.WithAutoHeadingID.
 
 Templates are automatically rebuilt when a file changes.
 
