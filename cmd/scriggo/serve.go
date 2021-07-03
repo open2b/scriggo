@@ -26,6 +26,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
 )
 
@@ -47,7 +48,9 @@ func serve(asm int, metrics bool) error {
 	}
 	defer fsys.Close()
 
-	md := goldmark.New(goldmark.WithRendererOptions(html.WithUnsafe()))
+	md := goldmark.New(
+		goldmark.WithRendererOptions(html.WithUnsafe()),
+		goldmark.WithParserOptions(parser.WithAutoHeadingID()))
 
 	srv := &server{
 		fsys:   fsys,
