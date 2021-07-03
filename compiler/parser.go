@@ -1385,7 +1385,7 @@ LABEL:
 					}
 				case tokenInterpretedString, tokenRawString:
 					if end == tokenEndStatement {
-						panic(syntaxError(ident.Pos(), "unexpected %s, expecting extends, import or render", ident.Name))
+						panic(syntaxError(ident.Pos(), "unexpected %s, expecting extends or import", ident.Name))
 					}
 				}
 			}

@@ -1,6 +1,6 @@
 {# errorcheck #}
 
-{% extend "layout.html" %} // ERROR `syntax error: unexpected extend, expecting extends, import or render`
-{% imports "macros.html" %} // ERROR `syntax error: unexpected imports, expecting extends, import or render`
+{% extend "layout.html" %} // ERROR `syntax error: unexpected extend, expecting extends or import`
+{% imports "macros.html" %} // ERROR `syntax error: unexpected imports, expecting extends or import`
 {% imports m "macros.html" %} // ERROR `syntax error: unexpected imports, expecting import`
-{% renders "partial.html" %} // ERROR `syntax error: unexpected renders, expecting extends, import or render`
+{% renders "partial.html" %} // ERROR `syntax error: unexpected renders, expecting extends or import`
