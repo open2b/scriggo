@@ -441,29 +441,33 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				tokenContains:       // e contains
 				operator = ast.NewBinaryOperator(tok.pos, operatorFromTokenType(tok.typ, true), nil, nil)
 				tok = p.next()
-			case tokenDefault: // e default
-				pos := tok.pos
-				pos.Start = operand.Pos().Start
-				node := ast.NewDefault(pos, operand, nil)
-				if _, ok := operand.(*ast.Render); ok {
-					// Replace the Render node with the Default node in the unexpanded
-					// slice because, when the tree is expanded, the parser needs to know
-					// if the render expression is used in an default expression.
-					p.unexpanded[len(p.unexpanded)-1] = node
-				}
-				node.Expr2, tok = p.parseExpr(p.next(), false, false, nextIsBlockBrace)
-				if node.Expr2 == nil {
-					panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
-				}
-				node.Pos().End = node.Expr2.Pos().End
-				operand = node
-			case tokenExtendedNot: // e not contains
-				next := p.next()
-				if next.typ == tokenContains {
-					pos := tok.pos.WithEnd(next.pos.End)
-					operator = ast.NewBinaryOperator(pos, ast.OperatorNotContains, nil, nil)
-					tok = p.next()
+			case tokenDefault,    // e default
+				tokenExtendedNot: // e not contains
+				if tok.typ == tokenDefault && p.lex.extendedSyntax {
+					pos := tok.pos
+					pos.Start = operand.Pos().Start
+					node := ast.NewDefault(pos, operand, nil)
+					if _, ok := operand.(*ast.Render); ok {
+						// Replace the Render node with the Default node in the unexpanded
+						// slice because, when the tree is expanded, the parser needs to know
+						// if the render expression is used in an default expression.
+						p.unexpanded[len(p.unexpanded)-1] = node
+					}
+					node.Expr2, tok = p.parseExpr(p.next(), false, false, nextIsBlockBrace)
+					if node.Expr2 == nil {
+						panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
+					}
+					node.Pos().End = node.Expr2.Pos().End
+					operand = node
 					break
+				} else if tok.typ == tokenExtendedNot {
+					next := p.next()
+					if next.typ == tokenContains {
+						pos := tok.pos.WithEnd(next.pos.End)
+						operator = ast.NewBinaryOperator(pos, ast.OperatorNotContains, nil, nil)
+						tok = p.next()
+						break
+					}
 				}
 				fallthrough
 			default:
