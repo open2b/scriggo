@@ -112,10 +112,32 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	name := r.URL.Path[1:]
 	if name == "" || strings.HasSuffix(name, "/") {
-		name += "index.html"
+		name += "index"
 	}
 
-	if ext := path.Ext(name); ext != ".html" && ext != ".md" {
+	if ext := path.Ext(name); ext == "" {
+		fi, err := srv.fsys.Open(name + ".html")
+		if err == nil {
+			name += ".html"
+			_ = fi.Close()
+		} else {
+			if !errors.Is(err, os.ErrNotExist) {
+				http.Error(w, "Internal Server Error", 500)
+				return
+			}
+			fi, err = srv.fsys.Open(name + ".md")
+			if err != nil {
+				if errors.Is(err, os.ErrNotExist) {
+					http.NotFound(w, r)
+				} else {
+					http.Error(w, "Internal Server Error", 500)
+				}
+				return
+			}
+			name += ".md"
+			_ = fi.Close()
+		}
+	} else if ext != ".html" && ext != ".md" {
 		srv.static.ServeHTTP(w, r)
 		return
 	}
