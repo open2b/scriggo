@@ -451,7 +451,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 					// if the render expression is used in an default expression.
 					p.unexpanded[len(p.unexpanded)-1] = node
 				}
-				node.Expr2, tok = p.parseExpr(p.next(), false, false, false)
+				node.Expr2, tok = p.parseExpr(p.next(), false, false, nextIsBlockBrace)
 				if node.Expr2 == nil {
 					panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 				}

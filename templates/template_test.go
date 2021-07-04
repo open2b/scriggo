@@ -2927,6 +2927,13 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedBuildErr: `assignment mismatch: 2 variables but 1 values`,
 	},
+
+	"Use of default in invalid context": {
+		sources: map[string]string{
+			"index.html": `{% if a default true %}{% end %}`,
+		},
+		expectedBuildErr: `cannot use default expression in this context`,
+	},
 }
 
 var structWithUnexportedFields = &struct {
