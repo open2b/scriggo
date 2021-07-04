@@ -778,6 +778,9 @@ Limitations due to maintain the interoperability with Go official compiler 'gc'
     * the debugger 'delve' is not compatible with Scriggo; currently there are
       no debuggers available for Scriggo.
 
+    * types are not garbage collected.
+      See Go issue #28783 (https://github.com/golang/go/issues/28783).
+
 Arbitrary limitations
 
     These limitations have been arbitrarily added to Scriggo to enhance
