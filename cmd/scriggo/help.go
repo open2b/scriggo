@@ -16,8 +16,8 @@ directory, useful to learn Scriggo templates. See 'scriggo help serve'.
 
 The scriggo tool is not required to embed Scriggo in an application but it is
 useful to generate the code for a package loader used by the Scriggo Build
-functions to load the packages that can be imported during the execution of a
-program.
+functions to load the packages that can be imported during the execution of
+programs and scripts.
 
 For more about the use of the scriggo command to embed Scriggo in an
 application, see 'scriggo help embed'.
@@ -58,7 +58,8 @@ Additional help topics:
 const helpBuild = `
 usage: scriggo build [-f Scriggofile] [-w] [-v] [-x] [-work] [-o output] [module]
 
-Build compiles an interpreter for Scriggo programs from a Scriggofile in a module.
+Build compiles an interpreter for Go programs and Scriggo scripts from a
+Scriggofile in a module.
 
 Executables are created in the current directory. To install the executables in
 the directory GOBIN, see the command: scriggo install.
@@ -123,8 +124,8 @@ See also: scriggo install and scriggo embed.
 const helpInstall = `
 usage: scriggo install [-f Scriggofile] [-w] [-v] [-x] [-work] [module]
 
-Install compiles and installs an interpreter for Scriggo programs
-from a Scriggofile in a module.
+Install compiles and installs an interpreter for Go programs and Scriggo
+scripts from a Scriggofile in a module.
 
 Executables are installed in the directory GOBIN as for the go install
 command.
@@ -219,8 +220,8 @@ A Scriggofile is a file with a specific format used by the scriggo command.
 The scriggo command uses the instructions in a Scriggofile to build an
 interpreter or a Go source file used in an application that embeds Scriggo.
 
-A Scriggofile defines which packages an interpreted program can import,
-what exported declarations in a package are accessible and so on.
+A Scriggofile defines which packages an interpreted program and script can
+import, what exported declarations in a package are accessible and so on.
 
 The format of the Scriggofile is:
 
@@ -239,7 +240,7 @@ The instructions are:
     IMPORT STANDARD LIBRARY 
 
         Makes the packages in the Go standard library (almost all) importable
-        in a program executed by the interpreter.
+        in a program or script executed by the interpreter.
 
         To view all packages imported run 'scriggo stdlib'.
 

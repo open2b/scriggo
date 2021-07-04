@@ -18,6 +18,7 @@ import (
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/runtime"
+	"github.com/open2b/scriggo/scripts"
 )
 
 const usage = "usage: %s [-S] filename\n"
@@ -40,8 +41,8 @@ func run() {
 
 	file := args[0]
 	ext := filepath.Ext(file)
-	if ext != ".go" {
-		fmt.Printf("%s: extension must be \".go\"\n", file)
+	if ext != ".go" && ext != ".ggo" {
+		fmt.Printf("%s: extension must be \".go\" for programs and \".ggo\" for scripts\n", file)
 		os.Exit(1)
 	}
 
@@ -56,31 +57,65 @@ func run() {
 		panic(err)
 	}
 
-	program, err := scriggo.Build(bytes.NewReader(main), &scriggo.BuildOptions{Packages: packages})
-	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-		os.Exit(2)
-	}
-	if *asm {
-		asm, _ := program.Disassemble("main")
-		_, err := os.Stdout.Write(asm)
+	if ext == ".go" {
+
+		program, err := scriggo.Build(bytes.NewReader(main), &scriggo.BuildOptions{Packages: packages})
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
 		}
+		if *asm {
+			asm, _ := program.Disassemble("main")
+			_, err := os.Stdout.Write(asm)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+				os.Exit(2)
+			}
+		} else {
+			code, err := program.Run(nil)
+			if err != nil {
+				if p, ok := err.(*runtime.Panic); ok {
+					panic(p)
+				}
+				if err == context.DeadlineExceeded {
+					err = errors.New("process took too long")
+				}
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+				os.Exit(2)
+			}
+			os.Exit(code)
+		}
+
 	} else {
-		code, err := program.Run(nil)
+
+		script, err := scripts.Build(bytes.NewReader(main), &scripts.BuildOptions{Packages: packages})
 		if err != nil {
-			if p, ok := err.(*runtime.Panic); ok {
-				panic(p)
-			}
-			if err == context.DeadlineExceeded {
-				err = errors.New("process took too long")
-			}
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
 		}
-		os.Exit(code)
+		if *asm {
+			asm := script.Disassemble()
+			_, err := os.Stdout.Write(asm)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+				os.Exit(2)
+			}
+		} else {
+			code, err := script.Run(nil, nil)
+			if err != nil {
+				if p, ok := err.(*runtime.Panic); ok {
+					panic(p)
+				}
+				if err == context.DeadlineExceeded {
+					err = errors.New("process took too long")
+				}
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+				os.Exit(2)
+			}
+			os.Exit(code)
+		}
+
 	}
+
 	os.Exit(0)
 }

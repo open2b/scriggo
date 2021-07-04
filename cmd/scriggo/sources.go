@@ -446,8 +446,8 @@ directory, useful to learn Scriggo templates. See 'scriggo help serve'.
 
 The scriggo tool is not required to embed Scriggo in an application but it is
 useful to generate the code for a package loader used by the Scriggo Build
-functions to load the packages that can be imported during the execution of a
-program.
+functions to load the packages that can be imported during the execution of
+programs and scripts.
 
 For more about the use of the scriggo command to embed Scriggo in an
 application, see 'scriggo help embed'.
@@ -488,7 +488,8 @@ Additional help topics:
 const helpBuild = ` + "`" + `
 usage: scriggo build [-f Scriggofile] [-w] [-v] [-x] [-work] [-o output] [module]
 
-Build compiles an interpreter for Scriggo programs from a Scriggofile in a module.
+Build compiles an interpreter for Go programs and Scriggo scripts from a
+Scriggofile in a module.
 
 Executables are created in the current directory. To install the executables in
 the directory GOBIN, see the command: scriggo install.
@@ -553,8 +554,8 @@ See also: scriggo install and scriggo embed.
 const helpInstall = ` + "`" + `
 usage: scriggo install [-f Scriggofile] [-w] [-v] [-x] [-work] [module]
 
-Install compiles and installs an interpreter for Scriggo programs
-from a Scriggofile in a module.
+Install compiles and installs an interpreter for Go programs and Scriggo
+scripts from a Scriggofile in a module.
 
 Executables are installed in the directory GOBIN as for the go install
 command.
@@ -649,8 +650,8 @@ A Scriggofile is a file with a specific format used by the scriggo command.
 The scriggo command uses the instructions in a Scriggofile to build an
 interpreter or a Go source file used in an application that embeds Scriggo.
 
-A Scriggofile defines which packages an interpreted program can import,
-what exported declarations in a package are accessible and so on.
+A Scriggofile defines which packages an interpreted program and script can
+import, what exported declarations in a package are accessible and so on.
 
 The format of the Scriggofile is:
 
@@ -669,7 +670,7 @@ The instructions are:
     IMPORT STANDARD LIBRARY 
 
         Makes the packages in the Go standard library (almost all) importable
-        in a program executed by the interpreter.
+        in a program or script executed by the interpreter.
 
         To view all packages imported run 'scriggo stdlib'.
 
@@ -2164,6 +2165,7 @@ import (
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/runtime"
+	"github.com/open2b/scriggo/scripts"
 )
 
 const usage = "usage: %s [-S] filename\n"
@@ -2186,8 +2188,8 @@ func run() {
 
 	file := args[0]
 	ext := filepath.Ext(file)
-	if ext != ".go" {
-		fmt.Printf("%s: extension must be \".go\"\n", file)
+	if ext != ".go" && ext != ".ggo" {
+		fmt.Printf("%s: extension must be \".go\" for programs and \".ggo\" for scripts\n", file)
 		os.Exit(1)
 	}
 
@@ -2202,32 +2204,66 @@ func run() {
 		panic(err)
 	}
 
-	program, err := scriggo.Build(bytes.NewReader(main), &scriggo.BuildOptions{Packages: packages})
-	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-		os.Exit(2)
-	}
-	if *asm {
-		asm, _ := program.Disassemble("main")
-		_, err := os.Stdout.Write(asm)
+	if ext == ".go" {
+
+		program, err := scriggo.Build(bytes.NewReader(main), &scriggo.BuildOptions{Packages: packages})
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
 		}
+		if *asm {
+			asm, _ := program.Disassemble("main")
+			_, err := os.Stdout.Write(asm)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+				os.Exit(2)
+			}
+		} else {
+			code, err := program.Run(nil)
+			if err != nil {
+				if p, ok := err.(*runtime.Panic); ok {
+					panic(p)
+				}
+				if err == context.DeadlineExceeded {
+					err = errors.New("process took too long")
+				}
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+				os.Exit(2)
+			}
+			os.Exit(code)
+		}
+
 	} else {
-		code, err := program.Run(nil)
+
+		script, err := scripts.Build(bytes.NewReader(main), &scripts.BuildOptions{Packages: packages})
 		if err != nil {
-			if p, ok := err.(*runtime.Panic); ok {
-				panic(p)
-			}
-			if err == context.DeadlineExceeded {
-				err = errors.New("process took too long")
-			}
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
 		}
-		os.Exit(code)
+		if *asm {
+			asm := script.Disassemble()
+			_, err := os.Stdout.Write(asm)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+				os.Exit(2)
+			}
+		} else {
+			code, err := script.Run(nil, nil)
+			if err != nil {
+				if p, ok := err.(*runtime.Panic); ok {
+					panic(p)
+				}
+				if err == context.DeadlineExceeded {
+					err = errors.New("process took too long")
+				}
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+				os.Exit(2)
+			}
+			os.Exit(code)
+		}
+
 	}
+
 	os.Exit(0)
 }
 `)
