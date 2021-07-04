@@ -63,7 +63,7 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
 			if err != nil {
 				return nil, err
 			}
-			n.Tree, err = parseSource(src, false, false)
+			n.Tree, err = parseSource(src, false)
 			if err != nil {
 				return nil, err
 			}
@@ -124,9 +124,8 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
 }
 
 // ParseScript parses a script reading its source from src and the imported
-// packages form the loader. shebang reports whether the script can have the
-// shebang as first line.
-func ParseScript(src io.Reader, packages PackageLoader, shebang bool) (*ast.Tree, error) {
+// packages form the loader.
+func ParseScript(src io.Reader, packages PackageLoader) (*ast.Tree, error) {
 
 	// Parse the source.
 	buf, err := ioutil.ReadAll(src)
@@ -136,7 +135,7 @@ func ParseScript(src io.Reader, packages PackageLoader, shebang bool) (*ast.Tree
 	if err != nil {
 		return nil, err
 	}
-	tree, err := parseSource(buf, true, shebang)
+	tree, err := parseSource(buf, true)
 	if err != nil {
 		return nil, err
 	}

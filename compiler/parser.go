@@ -178,13 +178,8 @@ func (p *parsing) next() token {
 }
 
 // parseSource parses a program or a script and returns its tree.
-// script reports whether it is a script and shebang reports whether a script
-// can have the shebang as first line.
-func parseSource(src []byte, script, shebang bool) (tree *ast.Tree, err error) {
-
-	if shebang && !script {
-		return nil, errors.New("scriggo/parser: shebang can be true only for scripts")
-	}
+// script reports whether it is a script.
+func parseSource(src []byte, script bool) (tree *ast.Tree, err error) {
 
 	tree = ast.NewTree("", nil, ast.FormatText)
 
@@ -212,7 +207,7 @@ func parseSource(src []byte, script, shebang bool) (tree *ast.Tree, err error) {
 
 	tok := p.next()
 	if tok.typ == tokenShebangLine {
-		if !shebang {
+		if !script {
 			return nil, syntaxError(tok.pos, "invalid character U+0023 '#'")
 		}
 		tok = p.next()

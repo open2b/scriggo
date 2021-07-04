@@ -1433,7 +1433,7 @@ func fileTests() map[string]struct {
 
 func TestGoContextTrees(t *testing.T) {
 	for _, tree := range goContextTreeTests {
-		node, err := parseSource([]byte(tree.src), true, false)
+		node, err := parseSource([]byte(tree.src), true)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", tree.src, err)
 			continue
@@ -1446,9 +1446,9 @@ func TestGoContextTrees(t *testing.T) {
 }
 
 var shebangTests = []struct {
-	src     string
-	shebang bool
-	err     string
+	src    string
+	script bool
+	err    string
 }{
 	{"#! /usr/bin/scriggo", true, ""},
 	{"#! /usr/bin/scriggo\n=", true, ":2:1: syntax error: unexpected =, expected statement"},
@@ -1458,7 +1458,7 @@ var shebangTests = []struct {
 
 func TestShebang(t *testing.T) {
 	for _, test := range shebangTests {
-		_, err := parseSource([]byte(test.src), true, test.shebang)
+		_, err := parseSource([]byte(test.src), test.script)
 		if err == nil {
 			if test.err != "" {
 				t.Errorf("source: %q, expected error %q, got nothing\n", test.src, test.err)

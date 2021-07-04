@@ -18,10 +18,9 @@ import (
 )
 
 type BuildOptions struct {
-	Globals          Declarations          // globals.
-	AllowShebangLine bool                  // allow shebang line.
-	DisallowGoStmt   bool                  // disallow "go" statement.
-	Packages         scriggo.PackageLoader // package loader used to load imported packages.
+	Globals        Declarations          // globals.
+	DisallowGoStmt bool                  // disallow "go" statement.
+	Packages       scriggo.PackageLoader // package loader used to load imported packages.
 }
 
 // Declarations.
@@ -46,7 +45,6 @@ func Build(src io.Reader, options *BuildOptions) (*Script, error) {
 	co := compiler.Options{}
 	if options != nil {
 		co.Globals = compiler.Declarations(options.Globals)
-		co.AllowShebangLine = options.AllowShebangLine
 		co.DisallowGoStmt = options.DisallowGoStmt
 		co.Packages = options.Packages
 	}

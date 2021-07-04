@@ -45,7 +45,6 @@ const (
 
 // Options represents a set of options used during the compilation.
 type Options struct {
-	AllowShebangLine     bool
 	DisallowGoStmt       bool
 	NoParseShortShowStmt bool
 	FormatTypes          map[ast.Format]reflect.Type
@@ -117,7 +116,7 @@ func BuildScript(r io.Reader, opts Options) (*Code, error) {
 
 	// Parse the source code.
 	var err error
-	tree, err = ParseScript(r, opts.Packages, opts.AllowShebangLine)
+	tree, err = ParseScript(r, opts.Packages)
 	if err != nil {
 		return nil, err
 	}

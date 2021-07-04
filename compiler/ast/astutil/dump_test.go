@@ -41,7 +41,7 @@ func ExampleDump() {
 			var tree *ast.Tree
 			var err error
 			if format == ast.FormatText {
-				tree, err = compiler.ParseScript(strings.NewReader(c), nil, false)
+				tree, err = compiler.ParseScript(strings.NewReader(c), nil)
 			} else {
 				tree, _, err = compiler.ParseTemplateSource([]byte(c), format, false, false)
 			}
