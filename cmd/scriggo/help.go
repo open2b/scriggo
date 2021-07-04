@@ -345,9 +345,6 @@ Limitations due to maintain the interoperability with Go official compiler 'gc'
       Scriggo interpreter/execution environment.
       Also see the commands 'scriggo embed' and 'scriggo build'.
 
-    * the debugger 'delve' is not compatible with Scriggo; currently there are
-      no debuggers available for Scriggo.
-
     * types are not garbage collected.
       See Go issue #28783 (https://github.com/golang/go/issues/28783).
 
