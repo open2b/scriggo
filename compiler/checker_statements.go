@@ -1009,16 +1009,13 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 
 	tc.enterScope()
 	tc.addToAncestors(node)
+
 	// Adds parameters to the function body scope.
-	isVariadic := node.Type.IsVariadic
-	for i, param := range node.Type.Parameters {
-		t := tc.checkType(param.Type)
+	t := node.Type.Reflect
+	for i := 0; i < t.NumIn(); i++ {
+		param := node.Type.Parameters[i]
 		if param.Ident != nil && !isBlankIdentifier(param.Ident) {
-			if isVariadic && i == len(node.Type.Parameters)-1 {
-				tc.assignScope(param.Ident.Name, &typeInfo{Type: tc.types.SliceOf(t.Type), Properties: propertyAddressable}, param.Ident)
-			} else {
-				tc.assignScope(param.Ident.Name, &typeInfo{Type: t.Type, Properties: propertyAddressable}, param.Ident)
-			}
+			tc.assignScope(param.Ident.Name, &typeInfo{Type: t.In(i), Properties: propertyAddressable}, param.Ident)
 		}
 	}
 
@@ -1040,15 +1037,15 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 	//    }
 	//
 	var initRetParams []ast.Node
-	for _, ret := range node.Type.Result {
-		t := tc.checkType(ret.Type)
+	for i := 0; i < t.NumOut(); i++ {
+		ret := node.Type.Result[i]
 		if ret.Ident != nil && !isBlankIdentifier(ret.Ident) {
-			tc.assignScope(ret.Ident.Name, &typeInfo{Type: t.Type, Properties: propertyAddressable}, ret.Ident)
+			tc.assignScope(ret.Ident.Name, &typeInfo{Type: t.Out(i), Properties: propertyAddressable}, ret.Ident)
 			assignment := ast.NewAssignment(
 				ret.Ident.Position,
 				[]ast.Expression{ret.Ident},
 				ast.AssignmentSimple,
-				[]ast.Expression{tc.newPlaceholderFor(t.Type)},
+				[]ast.Expression{tc.newPlaceholderFor(t.Out(i))},
 			)
 			initRetParams = append(initRetParams, assignment)
 		}

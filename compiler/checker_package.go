@@ -603,9 +603,6 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 			if f.Body == nil {
 				return tc.errorf(f.Ident.Pos(), "missing function body")
 			}
-			if isBlankIdentifier(f.Ident) {
-				continue
-			}
 			if f.Ident.Name == "init" || f.Ident.Name == "main" {
 				if len(f.Type.Parameters) > 0 || len(f.Type.Result) > 0 {
 					return tc.errorf(f.Ident, "func %s must have no arguments and no return values", f.Ident.Name)
@@ -617,8 +614,8 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 			// Function type must be checked for every function, including
 			// 'init's functions.
 			funcType := tc.checkType(f.Type).Type
-			if f.Ident.Name == "init" {
-				// Do not add the 'init' function to the file/package block.
+			if f.Ident.Name == "init" || isBlankIdentifier(f.Ident) {
+				// Do not add 'init' and '_' functions to the file/package block.
 				continue
 			}
 			if _, ok := tc.filePackageBlock[f.Ident.Name]; ok {

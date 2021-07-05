@@ -40,3 +40,6 @@ func f(a int, b, c ...string, d int) {} // ERROR `cannot use ... with non-final 
 func f() (a int, b) {} // ERROR `mixed named and unnamed function parameters`
 func f() (...int)   {} // ERROR `cannot use ... in receiver or result parameter list`
 func f() (a ...int) {} // ERROR `cannot use ... in receiver or result parameter list`
+
+func _(a int, b) {} // ERROR `mixed named and unnamed function parameters`
+func _(a, a int) {} // ERROR `duplicate argument a`
