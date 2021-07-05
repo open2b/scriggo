@@ -3349,6 +3349,22 @@ var templateMultiFileCases = map[string]struct {
 	// 		"extended.html": `{% show M() default this; using %}{{ []int{}[1000] }}{% end using %}`,
 	// 	},
 	// },
+
+	// REVIEW:
+	// "Using - cannot take the address of this": {
+	// 	sources: map[string]string{
+	// 		"index.html": `{% _ = func() { _ = &this }; using %}content..{% end %}`,
+	// 	},
+	// 	expectedBuildErr: "cannot take the address of this",
+	// },
+
+	// REVIEW:
+	// "Using - cannot assign to 'this'": {
+	// 	sources: map[string]string{
+	// 		"index.html": `{% _ = func() { this = html("hey") }; using %}content..{% end %}`,
+	// 	},
+	// 	expectedBuildErr: "cannot assign to this",
+	// },
 }
 
 var structWithUnexportedFields = &struct {
