@@ -647,6 +647,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			param := expr.Parameters[i]
 			if param.Type == nil {
 				in[i] = in[i+1]
+				param.Type = expr.Parameters[i+1].Type
 			} else {
 				t := tc.checkType(param.Type)
 				if variadic && i == numIn-1 {
@@ -663,6 +664,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			res := expr.Result[i]
 			if res.Type == nil {
 				out[i] = out[i+1]
+				res.Type = expr.Result[i+1].Type
 			} else {
 				c := tc.checkType(res.Type)
 				out[i] = c.Type

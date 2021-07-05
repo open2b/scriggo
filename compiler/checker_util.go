@@ -359,31 +359,6 @@ func (tc *typechecker) checkDuplicateParams(fn *ast.FuncType) {
 	}
 }
 
-// addMissingTypes adds the type to the function parameters that do not have
-// one.
-// For example:
-//
-//      func(a, b int) (c, d string)
-//
-// is transformed into:
-//
-//      func(a int, b int) (c string, d string)
-//
-func (tc *typechecker) addMissingTypes(funType *ast.FuncType) {
-	for _, params := range [2][]*ast.Parameter{funType.Parameters, funType.Result} {
-		if len(params) == 0 {
-			continue
-		}
-		typ := params[len(params)-1].Type
-		for i := len(params) - 1; i >= 0; i-- {
-			if params[i].Type != nil {
-				typ = params[i].Type
-			}
-			params[i].Type = typ
-		}
-	}
-}
-
 type invalidTypeInAssignment string
 
 func (err invalidTypeInAssignment) Error() string {
