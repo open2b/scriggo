@@ -649,12 +649,12 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 			// Check if the types of the parameters have been shaded.
 			for _, p := range f.Type.Parameters {
 				if isShadowedType(p.Type) {
-					return tc.errorf(f.Ident, "%s is not a type", p.Type)
+					return tc.errorf(p.Type, "%s is not a type", p.Type)
 				}
 			}
 			for _, r := range f.Type.Result {
 				if isShadowedType(r.Type) {
-					return tc.errorf(f.Ident, "%s is not a type", r.Type)
+					return tc.errorf(r.Type, "%s is not a type", r.Type)
 				}
 			}
 			// Function type must be checked for every function, including
