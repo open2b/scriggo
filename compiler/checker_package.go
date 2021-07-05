@@ -596,6 +596,41 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 		}
 	}
 
+	// isShadowedType reports whether typ is a shadowed type.
+	var shadowType map[string]struct{}
+	isShadowedType := func(typ ast.Expression) bool {
+		if typ == nil {
+			return false
+		}
+		ident, ok := typ.(*ast.Identifier)
+		if !ok {
+			return false
+		}
+		if shadowType == nil {
+			shadowType = map[string]struct{}{}
+			for _, d := range pkg.Declarations {
+				switch d := d.(type) {
+				case *ast.Func:
+					if ti, ok := tc.lookupScopes(d.Ident.Name, false); ok && ti.IsType() {
+						shadowType[d.Ident.Name] = struct{}{}
+					}
+				case *ast.Const:
+					if ti, ok := tc.lookupScopes(d.Lhs[0].Name, false); ok && ti.IsType() {
+						shadowType[d.Lhs[0].Name] = struct{}{}
+					}
+				case *ast.Var:
+					for _, lh := range d.Lhs {
+						if ti, ok := tc.lookupScopes(lh.Name, false); ok && ti.IsType() {
+							shadowType[lh.Name] = struct{}{}
+						}
+					}
+				}
+			}
+		}
+		_, ok = shadowType[ident.Name]
+		return ok
+	}
+
 	// Defines functions in file/package block before checking all
 	// declarations.
 	for _, d := range pkg.Declarations {
@@ -610,6 +645,17 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 			}
 			if f.Type.Macro && len(f.Type.Result) == 0 {
 				tc.makeMacroResultExplicit(f)
+			}
+			// Check if the types of the parameters have been shaded.
+			for _, p := range f.Type.Parameters {
+				if isShadowedType(p.Type) {
+					return tc.errorf(f.Ident, "%s is not a type", p.Type)
+				}
+			}
+			for _, r := range f.Type.Result {
+				if isShadowedType(r.Type) {
+					return tc.errorf(f.Ident, "%s is not a type", r.Type)
+				}
 			}
 			// Function type must be checked for every function, including
 			// 'init's functions.
