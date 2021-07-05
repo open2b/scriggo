@@ -267,6 +267,9 @@ type typechecker struct {
 		// withinUsingStmt reports whether the type checker is currently checking
 		// the statement of the 'using'.
 		withinUsingStmt bool
+		// thisHasBeenUsed reports whether the predeclared identifier 'this'
+		// has been used or not.
+		thisHasBeenUsed bool
 	}
 }
 

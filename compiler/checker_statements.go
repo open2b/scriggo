@@ -737,7 +737,13 @@ nodesLoop:
 			withinStmt := tc.using.withinUsingStmt
 			tc.using.withinUsingStmt = true
 			dummyNodesPost := []ast.Node{statement}
+			thisHasBeenUsed := tc.using.thisHasBeenUsed
+			tc.using.thisHasBeenUsed = false
 			dummyNodesPost = tc.checkNodes(dummyNodesPost)
+			if !tc.using.thisHasBeenUsed {
+				panic(tc.errorf(node, "this not used in using statement")) // REVIEW
+			}
+			tc.using.thisHasBeenUsed = thisHasBeenUsed
 			nodes = append(nodes[:i], append(dummyNodesPost, nodes[i+1:]...)...)
 			i += len(dummyNodesPost)
 			tc.using.withinUsingStmt = withinStmt
