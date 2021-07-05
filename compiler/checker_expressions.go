@@ -684,7 +684,6 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			tc.makeMacroResultExplicit(expr)
 		}
 		t := tc.checkType(expr.Type)
-		expr.Type.Reflect = t.Type
 		tc.checkFunc(expr)
 		ti := &typeInfo{Type: t.Type}
 		if expr.Type.Macro {
