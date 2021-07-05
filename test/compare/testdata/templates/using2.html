@@ -27,11 +27,7 @@
 
 {% show; using %} // ERROR `syntax error: unexpected semicolon, expecting expression`
 
-{% show using int %} // ERROR `syntax error: unexpected int, expecting string, html, css, js, json or markdown`
-
-{% show using macro %} // ERROR `syntax error: unexpected macro, expecting identifier or %}`
-
-{% show using; %} // ERROR `syntax error: unexpected semicolon, expecting string, html, css, js, json or markdown`
+{% show using int %} // ERROR `syntax error: unexpected using, expecting expression`
 
 {% a := this; foo %} // ERROR `syntax error: unexpected foo, expecting using`
 

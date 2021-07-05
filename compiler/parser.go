@@ -931,25 +931,20 @@ LABEL:
 		pos := tok.pos
 		tok := p.next()
 		ctx := tok.ctx
+		var exprs []ast.Expression
+		exprs, tok = p.parseExprList(tok, false, false, false)
+		if exprs == nil {
+			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
+		}
+		pos.End = exprs[len(exprs)-1].Pos().End
 		var node ast.Node
-		if end == tokenEndStatement && tok.typ == tokenUsing {
-			// "show using" abbreviated form.
-			node, tok = p.parseUsing(ast.NewShow(pos, nil, ctx), tok)
-		} else {
-			var exprs []ast.Expression
-			exprs, tok = p.parseExprList(tok, false, false, false)
-			if exprs == nil {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
-			}
-			pos.End = exprs[len(exprs)-1].Pos().End
-			node = ast.NewShow(pos, exprs, ctx)
-			if end == tokenEndStatement && tok.typ == tokenSemicolon {
-				node, tok = p.parseUsing(node, tok)
-			}
-			if len(exprs) == 1 {
-				if _, ok := exprs[0].(*ast.Render); ok {
-					p.cutSpacesToken = true
-				}
+		node = ast.NewShow(pos, exprs, ctx)
+		if end == tokenEndStatement && tok.typ == tokenSemicolon {
+			node, tok = p.parseUsing(node, tok)
+		}
+		if len(exprs) == 1 {
+			if _, ok := exprs[0].(*ast.Render); ok {
+				p.cutSpacesToken = true
 			}
 		}
 		p.addNode(node)
@@ -1426,20 +1421,17 @@ LABEL:
 // tok is the semicolon that follows stmt or, for abbreviated forms, it is the
 // using token.
 func (p *parsing) parseUsing(stmt ast.Node, tok token) (ast.Node, token) {
-	abbreviated := tok.typ == tokenUsing
-	if !abbreviated {
-		start := tok
-		if tok = p.next(); tok.typ != tokenUsing {
-			if start.txt == nil {
-				if tok.typ == tokenEndStatement {
-					return stmt, tok
-				}
-				panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
-			} else if tok.typ == tokenEndStatement {
-				panic(syntaxError(start.pos, "unexpected semicolon, expecting %%}"))
+	start := tok
+	if tok = p.next(); tok.typ != tokenUsing {
+		if start.txt == nil {
+			if tok.typ == tokenEndStatement {
+				return stmt, tok
 			}
-			panic(syntaxError(tok.pos, "unexpected %s, expecting using", tok))
+			panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
+		} else if tok.typ == tokenEndStatement {
+			panic(syntaxError(start.pos, "unexpected semicolon, expecting %%}"))
 		}
+		panic(syntaxError(tok.pos, "unexpected %s, expecting using", tok))
 	}
 	if tok.ctx > ast.ContextMarkdown {
 		panic(syntaxError(tok.pos, "using not allowed in %s", tok.ctx))
@@ -1448,9 +1440,6 @@ func (p *parsing) parseUsing(stmt ast.Node, tok token) (ast.Node, token) {
 	using := ast.NewUsing(tok.pos, stmt, nil, block, ast.Format(tok.ctx))
 	switch tok = p.next(); tok.typ {
 	case tokenMacro:
-		if abbreviated {
-			panic(syntaxError(tok.pos, "unexpected macro, expecting identifier or %%}"))
-		}
 		var macro ast.Node
 		macro, tok = p.parseFunc(tok, parseFuncLit)
 		using.Type = macro.(*ast.Func).Type
@@ -1466,20 +1455,11 @@ func (p *parsing) parseUsing(stmt ast.Node, tok token) (ast.Node, token) {
 			}
 		}
 		if using.Type == nil {
-			if abbreviated {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json or markdown", ident.Name))
-			}
 			panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json, markdown, macro or %%}", ident.Name))
 		}
 		tok = p.next()
 	case tokenSemicolon, tokenEndStatement:
-		if abbreviated {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json or markdown", tok))
-		}
 	default:
-		if abbreviated {
-			panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json or markdown", tok))
-		}
 		panic(syntaxError(tok.pos, "unexpected %s, expecting identifier, macro or %%}", tok))
 	}
 	return using, tok
