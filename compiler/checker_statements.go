@@ -1010,7 +1010,6 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 	tc.enterScope()
 	tc.addToAncestors(node)
 	// Adds parameters to the function body scope.
-	tc.checkDuplicateParams(node.Type)
 	tc.addMissingTypes(node.Type)
 	isVariadic := node.Type.IsVariadic
 	for i, param := range node.Type.Parameters {

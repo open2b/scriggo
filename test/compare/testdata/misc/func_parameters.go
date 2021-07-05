@@ -2,7 +2,11 @@
 
 package main
 
-func main() {}
+func main() {
+	_ = (func(a, a int))(nil)      // ERROR `duplicate argument a`
+	_ = (func(a int) (a int))(nil) // ERROR `duplicate argument a`
+	_ = (func() (a, a int))(nil)   // ERROR `duplicate argument a`
+}
 
 func f1()                     {}
 func f2(int)                  {}

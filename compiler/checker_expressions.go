@@ -638,6 +638,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		return &typeInfo{Type: emptyInterfaceType, Properties: propertyIsType | propertyUniverse}
 
 	case *ast.FuncType:
+		tc.checkDuplicateParams(expr)
 		variadic := expr.IsVariadic
 		// Parameters.
 		numIn := len(expr.Parameters)

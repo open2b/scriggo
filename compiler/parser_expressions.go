@@ -441,7 +441,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				tokenContains:       // e contains
 				operator = ast.NewBinaryOperator(tok.pos, operatorFromTokenType(tok.typ, true), nil, nil)
 				tok = p.next()
-			case tokenDefault,    // e default
+			case tokenDefault, // e default
 				tokenExtendedNot: // e not contains
 				if tok.typ == tokenDefault && p.lex.extendedSyntax {
 					pos := tok.pos
