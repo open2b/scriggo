@@ -741,7 +741,7 @@ nodesLoop:
 			tc.using.thisHasBeenUsed = false
 			dummyNodesPost = tc.checkNodes(dummyNodesPost)
 			if !tc.using.thisHasBeenUsed {
-				panic(tc.errorf(node, "this not used in using statement")) // REVIEW
+				panic(tc.errorf(node, "predeclared identifier this not used"))
 			}
 			tc.using.thisHasBeenUsed = thisHasBeenUsed
 			nodes = append(nodes[:i], append(dummyNodesPost, nodes[i+1:]...)...)

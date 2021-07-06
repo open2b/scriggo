@@ -3313,9 +3313,7 @@ var templateMultiFileCases = map[string]struct {
 				{% show 4; using %}Something{% end using %}
 			`,
 		},
-		// REVIEW: change error message to "predeclared identifier this not
-		// used" and return error on the using.
-		expectedBuildErr: "this not used in using statement",
+		expectedBuildErr: "index.html:2:16: predeclared identifier this not used",
 	},
 
 	// REVIEW: how to type check package level using?
@@ -3326,7 +3324,7 @@ var templateMultiFileCases = map[string]struct {
 	// 			{% var _ = 4; using %}Something{% end using %}
 	// 		`,
 	// 	},
-	// 	expectedBuildErr: "this not used in using statement",
+	// 	expectedBuildErr: "predeclared identifier this not used",
 	// },
 
 	"Using - this on right side of default (evaluated)": {
