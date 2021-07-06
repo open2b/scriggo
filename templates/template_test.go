@@ -3364,13 +3364,12 @@ var templateMultiFileCases = map[string]struct {
 	// 	expectedBuildErr: "cannot take the address of this",
 	// },
 
-	// REVIEW: allow assignment to 'this'.
-	// 	"Using - cannot assign to 'this'": {
-	// 		sources: map[string]string{
-	// 			"index.html": `{% _ = func() { this = html("hey") }; using %}content..{% end %}`,
-	// 		},
-	// 		expectedBuildErr: "cannot assign to this",
-	// 	},
+	"Using - assign to 'this'": {
+		sources: map[string]string{
+			"index.html": `{% show func() html { this = html("hey"); return this }(); using %}content..{% end %}`,
+		},
+		expectedOut: "hey",
+	},
 }
 
 var structWithUnexportedFields = &struct {
