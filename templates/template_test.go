@@ -3353,16 +3353,17 @@ var templateMultiFileCases = map[string]struct {
 	// REVIEW: if a macro declaration is assigned to this ('using macro(...)'),
 	// mark 'this' as a macro declaration in the type info.
 
-	// REVIEW: allow taking the address of 'this', and test that the address is
-	// the same in the same using and different in different using.
-	// "Using - cannot take the address of this": {
-	// 	sources: map[string]string{
-	// 		"index.html": `
-	// 			{% _ = func() { _ = &this }; using %}content..{% end %}
-	// 		`,
-	// 	},
-	// 	expectedBuildErr: "cannot take the address of this",
-	// },
+	"Using - taking address of 'this'": {
+		sources: map[string]string{
+			"index.html": `
+				{% var ref1, ref2, ref3, ref4 *html %}
+				{% func() { ref1, ref2 = &this, &this }(); using %}content..{% end %}
+				{% func() { ref3, ref4 = &this, &this }(); using %}content..{% end %}
+				{{ ref1 == ref2 }}{{ ref2 == ref3 }}{{ ref3 == ref4 }}
+			`,
+		},
+		expectedOut: "\n\t\t\t\t\n\t\t\t\t\n\t\t\t\t\n\t\t\t\ttruefalsetrue\n\t\t\t",
+	},
 
 	"Using - assign to 'this'": {
 		sources: map[string]string{
