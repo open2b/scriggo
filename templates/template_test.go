@@ -3313,6 +3313,8 @@ var templateMultiFileCases = map[string]struct {
 				{% show 4; using %}Something{% end using %}
 			`,
 		},
+		// REVIEW: change error message to "predeclared identifier this not
+		// used" and return error on the using.
 		expectedBuildErr: "this not used in using statement",
 	},
 
@@ -3350,21 +3352,27 @@ var templateMultiFileCases = map[string]struct {
 	// 	},
 	// },
 
-	// REVIEW:
+	// REVIEW: if a macro declaration is assigned to this ('using macro(...)'),
+	// mark 'this' as a macro declaration in the type info.
+
+	// REVIEW: allow taking the address of 'this', and test that the address is
+	// the same in the same using and different in different using.
 	// "Using - cannot take the address of this": {
 	// 	sources: map[string]string{
-	// 		"index.html": `{% _ = func() { _ = &this }; using %}content..{% end %}`,
+	// 		"index.html": `
+	// 			{% _ = func() { _ = &this }; using %}content..{% end %}
+	// 		`,
 	// 	},
 	// 	expectedBuildErr: "cannot take the address of this",
 	// },
 
-	// REVIEW:
-	// "Using - cannot assign to 'this'": {
-	// 	sources: map[string]string{
-	// 		"index.html": `{% _ = func() { this = html("hey") }; using %}content..{% end %}`,
+	// REVIEW: allow assignment to 'this'.
+	// 	"Using - cannot assign to 'this'": {
+	// 		sources: map[string]string{
+	// 			"index.html": `{% _ = func() { this = html("hey") }; using %}content..{% end %}`,
+	// 		},
+	// 		expectedBuildErr: "cannot assign to this",
 	// 	},
-	// 	expectedBuildErr: "cannot assign to this",
-	// },
 }
 
 var structWithUnexportedFields = &struct {
