@@ -3371,6 +3371,14 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "hey",
 	},
+
+	// REVIEW:
+	// "Using - cannot assign to 'this' if 'using macro(..)": {
+	// 	sources: map[string]string{
+	// 		"index.html": `{% func() { this = func() string { return "x" } }(); using macro() %}content..{% end %}`,
+	// 	},
+	// 	expectedBuildErr: "error",
+	// },
 }
 
 var structWithUnexportedFields = &struct {
