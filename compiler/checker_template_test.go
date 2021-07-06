@@ -214,7 +214,7 @@ var checkerTemplateExprErrors = []struct {
 }{
 
 	// contains
-	{`[]byte{} contains "a"`, tierr(1, 13, `invalid operation: []byte{} contains "a" (cannot convert a (type untyped string) to type uint8)`), nil},
+	{`[]byte{} contains "a"`, tierr(1, 13, `invalid operation: []byte{} contains "a" (cannot convert "a" (type untyped string) to type uint8)`), nil},
 	{`[]int{} contains int32(5)`, tierr(1, 12, `invalid operation: []int{} contains int32(5) (mismatched types int and rune)`), nil},
 	{`[]int{} contains i`, tierr(1, 12, `invalid operation: []int{} contains i (mismatched types int and compiler.definedInt)`), map[string]*typeInfo{"i": definedIntTypeInfo}},
 	{`[2]int{0,1} contains rune('a')`, tierr(1, 16, `invalid operation: [2]int{...} contains rune('a') (mismatched types int and rune)`), nil},

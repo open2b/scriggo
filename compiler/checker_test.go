@@ -782,7 +782,8 @@ var checkerStmts = map[string]string{
 	`const f = int32(1) << 33`:                            `constant 8589934592 overflows int32`,
 	`const g = float64(2) >> 1`:                           `invalid operation: float64(2) >> 1 (shift of type float64)`,
 	`const h = "foo" > "bar"`:                             ok,
-	`const _ = int(3) > "a"`:                              `invalid operation: int(3) > "a" (cannot convert a (type untyped string) to type int)`,
+	`const _ = int(3) > "a"`:                              `invalid operation: int(3) > "a" (cannot convert "a" (type untyped string) to type int)`,
+	`const _ = int(3) > ""`:                               `invalid operation: int(3) > "" (cannot convert "" (type untyped string) to type int)`,
 	`const Huge = 1 << 100; const Four int8 = Huge >> 98`: ok,
 	`const Huge = 1 << 100`:                               ok,
 	`const Θ float64 = 3/2; const iΘ = complex(0, Θ)`:     ok,
@@ -1812,7 +1813,7 @@ func equalTypeInfo(t1, t2 *typeInfo) error {
 	}
 	if t1.IsConstant() {
 		if !t1.Constant.equals(t2.Constant) {
-			return fmt.Errorf("unexpected constant %v, expecting %v", t2.Constant, t1.Constant)
+			return fmt.Errorf("unexpected constant %#v, expecting %#v", t2.Constant, t1.Constant)
 		}
 	}
 	// TODO(Gianluca): value is an internal field, should we test it?
@@ -1824,7 +1825,7 @@ func equalTypeInfo(t1, t2 *typeInfo) error {
 	// }
 	// if t1.value != nil {
 	// 	if !reflect.DeepEqual(t1.value, t2.value) {
-	// 		return fmt.Errorf("unexpected value %v, expecting %v", t2.value, t1.value)
+	// 		return fmt.Errorf("unexpected value %#v, expecting %#v", t2.value, t1.value)
 	// 	}
 	// }
 	return nil

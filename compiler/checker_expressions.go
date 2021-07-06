@@ -1027,7 +1027,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			}
 		} else if t2.Type.Kind() != reflect.String {
 			if t2.IsConstant() {
-				return nil, fmt.Errorf("cannot compare %v (type %s) to type %s", t2.Constant, t2, t1)
+				return nil, fmt.Errorf("cannot compare %#v (type %s) to type %s", t2.Constant, t2, t1)
 			}
 			return nil, fmt.Errorf("cannot compare type %s to type %s", t2, t1)
 		}
@@ -1048,7 +1048,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 				c, err := tc.convert(t1, expr1, t2.Type)
 				if err != nil {
 					if err == errNotRepresentable {
-						err = fmt.Errorf("cannot convert %v (type %s) to type %s", t1.Constant, t1, t2)
+						err = fmt.Errorf("cannot convert %#v (type %s) to type %s", t1.Constant, t1, t2)
 					}
 					return nil, err
 				}
@@ -1065,7 +1065,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 				c, err := tc.convert(t2, expr2, t1.Type)
 				if err != nil {
 					if err == errNotRepresentable {
-						err = fmt.Errorf("cannot convert %v (type %s) to type %s", t2.Constant, t2, t1)
+						err = fmt.Errorf("cannot convert %#v (type %s) to type %s", t2.Constant, t2, t1)
 					}
 					return nil, err
 				}
