@@ -890,9 +890,9 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 
 		// 'import . "pkg"': add every declaration to the file package block.
 		if isPeriodImport(impor) {
+			tc.setUnusedImports(impor, imported.Name, imported.Declarations)
 			for ident, ti := range imported.Declarations {
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
-				tc.setImportedButNotUsed(imported.Name, ident, ti)
 			}
 			return nil
 		}
@@ -911,9 +911,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		}
 
 		// Set the package as imported but not used.
-		for declName, ti := range imported.Declarations {
-			tc.setImportedButNotUsed(pkgName, declName, ti)
-		}
+		tc.setUnusedImports(impor, pkgName, imported.Declarations)
 
 		return nil
 	}
@@ -949,9 +947,9 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 
 		// {% import "path" %}
 		if tc.opts.mod == templateMod {
+			tc.setUnusedImports(impor, imported.Name, imported.Declarations)
 			for ident, ti := range imported.Declarations {
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
-				tc.setImportedButNotUsed(imported.Name, ident, ti)
 			}
 			return nil
 		}
@@ -965,9 +963,9 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	// import . "path"
 	// {% import . "path" %}
 	case isPeriodImport(impor):
+		tc.setUnusedImports(impor, imported.Name, imported.Declarations)
 		for ident, ti := range imported.Declarations {
 			tc.filePackageBlock[ident] = scopeElement{t: ti}
-			tc.setImportedButNotUsed(imported.Name, ident, ti)
 		}
 		return nil
 

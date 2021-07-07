@@ -484,17 +484,17 @@ const (
 	receiverAddIndirect
 )
 
-// setImportedButNotUsed sets the given name (imported from the package pkg) as
-// 'imported but not used'.
-//
-// This method should always be called when an identifier is imported, then
-// when such identifier is used the key corresponding to the package should be
-// removed from the 'unusedImports' map.
-func (tc *typechecker) setImportedButNotUsed(pkg, ident string, ti *typeInfo) {
-	if imports, ok := tc.unusedImports[pkg]; ok {
-		imports[ident] = ti
-	} else {
-		tc.unusedImports[pkg] = map[string]*typeInfo{ident: ti}
+// setUnusedImports sets the declarations of an imported package as not used.
+// When an imported identifier is used, the key corresponding to the package
+// should be removed from the 'dec' map.
+func (tc *typechecker) setUnusedImports(node *ast.Import, name string, declarations map[string]*typeInfo) {
+	decl := make(map[string]*typeInfo, len(declarations))
+	for ident, ti := range declarations {
+		decl[ident] = ti
+	}
+	tc.unusedImports[name] = unusedImport{
+		node: node,
+		decl: decl,
 	}
 }
 

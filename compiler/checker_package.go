@@ -642,9 +642,21 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 	}
 
 	if tc.opts.mod != templateMod {
-		for pkg := range tc.unusedImports {
-			// https://github.com/open2b/scriggo/issues/309.
-			return tc.errorf(new(ast.Position), "imported and not used: \"%s\"", pkg)
+		// Check that the imported packages have been used.
+		var node *ast.Import
+		for _, imp := range tc.unusedImports {
+			if node == nil || imp.node.Position.Start < node.Position.Start {
+				node = imp.node
+			}
+		}
+		if node != nil {
+			var s string
+			if node.Ident == nil || node.Ident.Name == "." {
+				s = fmt.Sprintf("%q", node.Path)
+			} else {
+				s = fmt.Sprintf("%q as %s", node.Path, node.Ident)
+			}
+			return tc.errorf(node, "imported and not used: %s", s)
 		}
 	}
 

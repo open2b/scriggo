@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/compiler/ast"
 )
 
 type TypeStruct struct{}
@@ -140,6 +141,43 @@ func TestIssue403(t *testing.T) {
 		_, err = program.Run(nil)
 		if err != nil {
 			t.Fatal(err)
+		}
+	})
+}
+
+// TestIssue309 executes a test the issue
+// https://github.com/open2b/scriggo/issues/309.
+func TestIssue309(t *testing.T) {
+	t.Run("Add right position to 'imported and not used' errors", func(t *testing.T) {
+		packages := scriggo.CombinedLoader{
+			scriggo.Packages{
+				"pkg": scriggo.MapPackage{
+					PkgName: "pkg",
+					Declarations: map[string]interface{}{
+						"Value": &TypeStruct{},
+					},
+				},
+			},
+		}
+		main := `
+        package main
+
+		import (
+			"pkg"
+		)
+
+		func main() { }`
+		_, err := scriggo.Build(strings.NewReader(main), &scriggo.BuildOptions{Packages: packages})
+		if err == nil {
+			t.Fatal("unexpected nil error")
+		}
+		err2, ok := err.(scriggo.CompilerError)
+		if !ok {
+			t.Fatalf("unexpected error %s, execting a compiler errror", err)
+		}
+		expectedPosition := ast.Position{Line: 5, Column: 4, Start: 37, End: 41}
+		if err2.Position() != expectedPosition {
+			t.Fatalf("unexpected position %#v, execting %#v", err2.Position(), expectedPosition)
 		}
 	})
 }
