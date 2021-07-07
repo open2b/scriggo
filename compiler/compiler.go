@@ -177,7 +177,6 @@ func BuildTemplate(fsys fs.FS, name string, opts Options) (*Code, error) {
 
 	// Type check the tree.
 	checkerOpts := checkerOptions{
-		allowNotUsed:   true,
 		disallowGoStmt: opts.DisallowGoStmt,
 		formatTypes:    opts.FormatTypes,
 		globals:        opts.Globals,

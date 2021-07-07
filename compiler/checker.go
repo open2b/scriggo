@@ -141,10 +141,6 @@ type checkerOptions struct {
 	// disallowGoStmt disables the "go" statement.
 	disallowGoStmt bool
 
-	// allowNotUsed does not return a checking error if a variable is declared
-	// and not used or a package is imported and not used.
-	allowNotUsed bool
-
 	// format types.
 	formatTypes map[ast.Format]reflect.Type
 
@@ -303,7 +299,7 @@ func (tc *typechecker) enterScope() {
 // exitScope exits from the current scope.
 func (tc *typechecker) exitScope() {
 	// Check if some variables declared in the closing scope are still unused.
-	if !tc.opts.allowNotUsed {
+	if tc.opts.modality != templateMod {
 		unused := []struct {
 			node  ast.Node
 			ident string

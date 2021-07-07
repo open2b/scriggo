@@ -101,7 +101,7 @@ func (tc *typechecker) obsoleteForRangeAssign(node ast.Node, leftExpr, rightExpr
 			}
 			newRight.Properties |= propertyAddressable
 			tc.assignScope(leftExpr.Name, newRight, leftExpr)
-			if !tc.opts.allowNotUsed {
+			if tc.opts.modality != templateMod {
 				tc.unusedVars = append(tc.unusedVars, &scopeVariable{
 					ident:      leftExpr.Name,
 					scopeLevel: len(tc.scopes) - 1,
