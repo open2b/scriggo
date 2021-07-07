@@ -490,11 +490,11 @@ const (
 // This method should always be called when an identifier is imported, then
 // when such identifier is used the key corresponding to the package should be
 // removed from the 'unusedImports' map.
-func (tc *typechecker) setImportedButNotUsed(pkg, ident string) {
+func (tc *typechecker) setImportedButNotUsed(pkg, ident string, ti *typeInfo) {
 	if imports, ok := tc.unusedImports[pkg]; ok {
-		imports[ident] = true
+		imports[ident] = ti
 	} else {
-		tc.unusedImports[pkg] = map[string]bool{ident: true}
+		tc.unusedImports[pkg] = map[string]*typeInfo{ident: ti}
 	}
 }
 

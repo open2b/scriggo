@@ -198,7 +198,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 
 	// For "." imported packages, mark package as used.
 	for pkg, decls := range tc.unusedImports {
-		if decls[ident.Name] {
+		if decls[ident.Name] == ti {
 			delete(tc.unusedImports, pkg)
 			break
 		}

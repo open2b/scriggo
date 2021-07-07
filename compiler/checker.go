@@ -207,7 +207,7 @@ type typechecker struct {
 	// removed from unusedImports. Doing so, when the type checking of a
 	// file/program ends if some packages remain in unusedImports then it is a
 	// type checking error.
-	unusedImports map[string]map[string]bool
+	unusedImports map[string]map[string]*typeInfo
 
 	// opts holds the options that define the behavior of the type checker.
 	opts checkerOptions
@@ -264,7 +264,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		globalScope:      globalScope,
 		hasBreak:         map[ast.Node]bool{},
 		universe:         universe,
-		unusedImports:    map[string]map[string]bool{},
+		unusedImports:    map[string]map[string]*typeInfo{},
 		opts:             opts,
 		iota:             -1,
 		types:            tt,

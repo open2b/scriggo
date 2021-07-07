@@ -892,7 +892,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		if isPeriodImport(impor) {
 			for ident, ti := range imported.Declarations {
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
-				tc.setImportedButNotUsed(imported.Name, ident)
+				tc.setImportedButNotUsed(imported.Name, ident, ti)
 			}
 			return nil
 		}
@@ -911,8 +911,8 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		}
 
 		// Set the package as imported but not used.
-		for declName := range imported.Declarations {
-			tc.setImportedButNotUsed(pkgName, declName)
+		for declName, ti := range imported.Declarations {
+			tc.setImportedButNotUsed(pkgName, declName, ti)
 		}
 
 		return nil
@@ -951,7 +951,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		if tc.opts.mod == templateMod {
 			for ident, ti := range imported.Declarations {
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
-				tc.setImportedButNotUsed(imported.Name, ident)
+				tc.setImportedButNotUsed(imported.Name, ident, ti)
 			}
 			return nil
 		}
@@ -967,7 +967,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	case isPeriodImport(impor):
 		for ident, ti := range imported.Declarations {
 			tc.filePackageBlock[ident] = scopeElement{t: ti}
-			tc.setImportedButNotUsed(imported.Name, ident)
+			tc.setImportedButNotUsed(imported.Name, ident, ti)
 		}
 		return nil
 
