@@ -30,12 +30,12 @@ const (
 // Note that tree may be altered during the type checking.
 func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map[string]*packageInfo, error) {
 
-	if opts.modality == 0 {
+	if opts.mod == 0 {
 		panic("unspecified modality")
 	}
 
 	// Type check a program.
-	if opts.modality == programMod {
+	if opts.mod == programMod {
 		pkg := tree.Nodes[0].(*ast.Package)
 		if pkg.Name != "main" {
 			return nil, &CheckingError{path: tree.Path, pos: *pkg.Pos(), err: errors.New("package name must be main")}
@@ -55,11 +55,11 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 			PkgName:      "main",
 			Declarations: opts.globals,
 		}
-		globalScope = toTypeCheckerScope(globals, opts.modality, true, 0)
+		globalScope = toTypeCheckerScope(globals, opts.mod, true, 0)
 	}
 
 	// Add the global "exit" to script global scope.
-	if opts.modality == scriptMod {
+	if opts.mod == scriptMod {
 		exit := scopeElement{t: &typeInfo{Properties: propertyUniverse}}
 		if globalScope == nil {
 			globalScope = typeCheckerScope{"exit": exit}
@@ -135,8 +135,8 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 // checkerOptions contains the options for the type checker.
 type checkerOptions struct {
 
-	// modality is the checking modality.
-	modality checkingMod
+	// mod is the checking modality.
+	mod checkingMod
 
 	// disallowGoStmt disables the "go" statement.
 	disallowGoStmt bool
@@ -299,7 +299,7 @@ func (tc *typechecker) enterScope() {
 // exitScope exits from the current scope.
 func (tc *typechecker) exitScope() {
 	// Check if some variables declared in the closing scope are still unused.
-	if tc.opts.modality != templateMod {
+	if tc.opts.mod != templateMod {
 		unused := []struct {
 			node  ast.Node
 			ident string
@@ -384,7 +384,7 @@ func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.I
 
 	if tc.declaredInThisBlock(name) {
 		if tc.scriptFuncOrMacroDecl {
-			switch tc.opts.modality {
+			switch tc.opts.mod {
 			case scriptMod:
 				panic(tc.errorf(declNode, "%s already declared in this program", declNode))
 			case templateMod:
@@ -454,7 +454,7 @@ func (tc *typechecker) isUpVar(name string) bool {
 	}
 
 	// Check if name is a global variable in a template or script.
-	if tc.opts.modality == templateMod || tc.opts.modality == scriptMod {
+	if tc.opts.mod == templateMod || tc.opts.mod == scriptMod {
 		if elem, ok := tc.globalScope[name]; ok {
 			return elem.t.Addressable()
 		}

@@ -88,7 +88,7 @@ func BuildProgram(r io.Reader, opts Options) (*Code, error) {
 
 	// Type check the tree.
 	checkerOpts := checkerOptions{
-		modality:       programMod,
+		mod:            programMod,
 		disallowGoStmt: opts.DisallowGoStmt,
 		globals:        opts.Globals,
 	}
@@ -131,7 +131,7 @@ func BuildScript(r io.Reader, opts Options) (*Code, error) {
 
 	// Type check the tree.
 	checkerOpts := checkerOptions{
-		modality:       scriptMod,
+		mod:            scriptMod,
 		disallowGoStmt: opts.DisallowGoStmt,
 		globals:        opts.Globals,
 	}
@@ -181,7 +181,7 @@ func BuildTemplate(fsys fs.FS, name string, opts Options) (*Code, error) {
 		formatTypes:    opts.FormatTypes,
 		globals:        opts.Globals,
 		renderer:       opts.Renderer,
-		modality:       templateMod,
+		mod:            templateMod,
 	}
 	tci, err := typecheck(tree, opts.Packages, checkerOpts)
 	if err != nil {

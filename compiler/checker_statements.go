@@ -121,7 +121,7 @@ nodesLoop:
 				panic(tc.errorf(node.Condition, "use of untyped nil"))
 			}
 			if ti.Type.Kind() != reflect.Bool {
-				if tc.opts.modality != programMod {
+				if tc.opts.mod != programMod {
 					if ti.IsConstant() {
 						c := &typeInfo{
 							Constant:   boolConst(!ti.Constant.zero()),
@@ -791,7 +791,7 @@ nodesLoop:
 		case ast.Expression:
 
 			// Handle function and macro declarations in scripts and templates.
-			if fun, ok := node.(*ast.Func); ok && fun.Ident != nil && tc.opts.modality != programMod {
+			if fun, ok := node.(*ast.Func); ok && fun.Ident != nil && tc.opts.mod != programMod {
 				if fun.Type.Macro && len(fun.Type.Result) == 0 {
 					tc.makeMacroResultExplicit(fun)
 				}
@@ -834,7 +834,7 @@ nodesLoop:
 			}
 
 			ti := tc.checkExpr(node)
-			if tc.opts.modality == templateMod {
+			if tc.opts.mod == templateMod {
 				if node, ok := node.(*ast.Func); ok && node.Ident != nil {
 					tc.assignScope(node.Ident.Name, ti, node.Ident)
 					i++
@@ -858,7 +858,7 @@ nodesLoop:
 
 // checkImport type checks the import statement.
 func (tc *typechecker) checkImport(impor *ast.Import) error {
-	if tc.opts.modality == scriptMod && impor.Tree != nil {
+	if tc.opts.mod == scriptMod && impor.Tree != nil {
 		panic("BUG: only precompiled packages can be imported in script")
 	}
 
@@ -878,7 +878,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		// Read the declarations from the precompiled package.
 		imported := &packageInfo{}
 		imported.Declarations = make(map[string]*typeInfo, len(precompiledPkg.DeclarationNames()))
-		for n, d := range toTypeCheckerScope(precompiledPkg, tc.opts.modality, false, 0) {
+		for n, d := range toTypeCheckerScope(precompiledPkg, tc.opts.mod, false, 0) {
 			imported.Declarations[n] = d.t
 		}
 		imported.Name = precompiledPkg.Name()
@@ -920,7 +920,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 
 	// Not precompiled package (i.e. a package declared in Scriggo).
 
-	if tc.opts.modality == templateMod {
+	if tc.opts.mod == templateMod {
 		tc.templateFileToPackage(impor.Tree)
 	}
 	if impor.Tree.Nodes[0].(*ast.Package).Name == "main" {
@@ -948,7 +948,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	case impor.Ident == nil:
 
 		// {% import "path" %}
-		if tc.opts.modality == templateMod {
+		if tc.opts.mod == templateMod {
 			for ident, ti := range imported.Declarations {
 				tc.filePackageBlock[ident] = scopeElement{t: ti}
 				tc.setImportedButNotUsed(imported.Name, ident)

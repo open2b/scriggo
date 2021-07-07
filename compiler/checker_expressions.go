@@ -143,7 +143,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 	}
 
 	// Handle predeclared variables in templates and scripts.
-	if tc.opts.modality == templateMod || tc.opts.modality == scriptMod {
+	if tc.opts.mod == templateMod || tc.opts.mod == scriptMod {
 		// The identifier refers to a predefined value that is an up value for
 		// the current function.
 		if ti.IsPredefined() && tc.isUpVar(ident.Name) {
@@ -156,8 +156,8 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 					// Se the Upvar if:
 					//   * the current function is a function literal in a template
 					//   * the current function is a function in a script
-					funcLiteralInTemplate := tc.opts.modality == templateMod && nestedFuncs[0].Ident == nil
-					if funcLiteralInTemplate || tc.opts.modality == scriptMod {
+					funcLiteralInTemplate := tc.opts.mod == templateMod && nestedFuncs[0].Ident == nil
+					if funcLiteralInTemplate || tc.opts.mod == scriptMod {
 						upvar := ast.Upvar{
 							PredefinedName:      ident.Name,
 							PredefinedPkg:       ident.Name,

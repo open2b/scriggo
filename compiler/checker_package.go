@@ -641,7 +641,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 		}
 	}
 
-	if tc.opts.modality != templateMod {
+	if tc.opts.mod != templateMod {
 		for pkg := range tc.unusedImports {
 			// https://github.com/open2b/scriggo/issues/309.
 			return tc.errorf(new(ast.Position), "imported and not used: \"%s\"", pkg)
