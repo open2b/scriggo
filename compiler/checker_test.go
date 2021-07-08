@@ -1115,7 +1115,7 @@ var checkerStmts = map[string]string{
 	`var a int; var b *int = &a; _ = b`: ok,
 	`_ = &(_)`:                          `cannot use _ as value`,
 	`_ = &(0)`:                          `cannot take the address of 0`,
-	// `var a int; &a`:                     evaluatedButNotUsed("&a"), // TODO. See https://github.com/open2b/scriggo/issues/98
+	`var a int; &a`:                     evaluatedButNotUsed("&a"),
 
 	// Pointer indirection operator.
 	`var a int; b := &a; var c int = *b; _ = c`: ok,

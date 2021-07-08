@@ -750,6 +750,9 @@ nodesLoop:
 
 		case *ast.UnaryOperator:
 			ti := tc.checkExpr(node)
+			if node.Op != ast.OperatorReceive {
+				panic(tc.errorf(node, "%s evaluated but not used", node))
+			}
 			ti.setValue(nil)
 
 		case *ast.Goto:
