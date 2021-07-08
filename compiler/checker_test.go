@@ -751,7 +751,7 @@ var checkerStmts = map[string]string{
 	`const a int = 2`: ok,
 	`const A = 0; B := A; const C = A;   _ = B`: ok,
 	`const A = 0; B := A; const C = B;   _ = B`: `const initializer B is not a constant`,
-	`const a string = 2`:                        `cannot use 2 (type untyped int) as type string in assignment`, // TODO (Gianluca): Go returns error: cannot convert 2 (type untyped number) to type string
+	`const a string = 2`:                        `cannot use 2 (type untyped int) as type string in assignment`,
 	`const a = nil`:                             `const initializer cannot be nil`,
 	`const _ = 13407807929942597099574024998205846127479365820592393377723561443721764030073546976801874298166903427690031858186486050853753882811946569946433649006084095`: ok,
 	`const _ = 13407807929942597099574024998205846127479365820592393377723561443721764030073546976801874298166903427690031858186486050853753882811946569946433649006084096`: `constant too large`,
@@ -991,8 +991,8 @@ var checkerStmts = map[string]string{
 	// "Compact" assignments (+=, -=, *=, ...).
 	`a := 1; a += 1; _ = a`: ok,
 	`a := 1; a *= 2; _ = a`: ok,
-	`a := ""; a /= 6`:       `cannot convert 6 (type untyped int) to type string`, // TODO (Gianluca): should be "number", not "int"
-	`a := ""; a %= 2`:       `cannot convert 2 (type untyped int) to type string`, // TODO (Gianluca): should be "number", not "int"
+	`a := ""; a /= 6`:       `cannot convert 6 (type untyped int) to type string`,
+	`a := ""; a %= 2`:       `cannot convert 2 (type untyped int) to type string`,
 
 	// Declarations with self-references.
 	`a, b, c := 1, 2, a`:      undefined("a"),
@@ -1364,7 +1364,6 @@ var checkerStmts = map[string]string{
 	`f := func() (a, b int) { return 0, "" }; f()`:                    `cannot use "" (type untyped string) as type int in return argument`,
 	`var _, _ int = func(a, b int) (int, int) { return a, b }("", 0)`: `cannot use "" (type untyped string) as type int in argument to func literal`,
 	`f := func(n ...int) { for _ = range n { } }; f(1,2,3)`:           ok,
-	// `func(c int) { _ = c == 0 && c == 0 }(0)`:      ok, // TODO: syntax error: method declarations are not supported in this release of Scriggo
 
 	// Function literal calls with function call as argument.
 	`f := func() (int, int) { return 0, 0 } ; g := func(int, int) { } ; g(f())`:         ok,
@@ -1401,8 +1400,8 @@ var checkerStmts = map[string]string{
 	`a := 0; a()`:                  `cannot call non-function a (type int)`,
 	`a := []int{}; a()`:            `cannot call non-function a (type []int)`,
 	`f := func(a int) {} ; f(nil)`: `cannot use nil as type int in argument to f`,
-	// `nil.F()`:     `use of untyped nil`, // TODO: panics.
-	`_()`: `cannot use _ as value`,
+	`nil.F()`:                      `use of untyped nil`,
+	`_()`:                          `cannot use _ as value`,
 
 	// Variable declared but not used.
 	`a := 0; { _ = a }`:          ok,
@@ -1490,7 +1489,7 @@ var checkerStmts = map[string]string{
 	`delete(aStringMap, "a")`:                  ok,
 	`delete(map[string]string{}, "a")`:         ok,
 	`delete(map[stringType]string{}, aString)`: ok,
-	`delete(map[string]string{}, 10 + 2)`:      `cannot use 10 + 2 (type untyped int) as type string in delete`, // TODO.
+	`delete(map[string]string{}, 10 + 2)`:      `cannot use 10 + 2 (type untyped int) as type string in delete`,
 	`delete(map[string]string{}, nil)`:         `cannot use nil as type string in delete`,
 	`delete(nil, 0)`:                           `first argument to delete must be map; have nil`,
 
