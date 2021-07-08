@@ -2464,10 +2464,9 @@ func (tc *typechecker) checkDefault(expr *ast.Default, show bool) typeInfoPair {
 		}
 		if ti, ok := tc.lookupScopes(ident.Name, false); ok {
 			// TODO(Gianluca): test 'nil() default'
-			//
-			// REVIEW: se viene utilizzato 'this', tornare errore. Attenzione
-			// al fatto che in alcuni casi è 'this', mentre in altri il nome è
-			// già stato trasformato.
+			if ti.InUniverse() && ident.Name == "this" || strings.HasPrefix(ident.Name, "$this") {
+				panic(tc.errorf(n, "use of predeclared identifier this"))
+			}
 			if ti.IsType() {
 				panic(tc.errorf(ident, "type conversion on left side of default"))
 			}

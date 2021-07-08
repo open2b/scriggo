@@ -3385,6 +3385,14 @@ var templateMultiFileCases = map[string]struct {
 		expectedBuildErr: "use of predeclared identifier this",
 	},
 
+	"Using - cannot use 'this()' on left side of default": {
+		sources: map[string]string{
+			"index.html":    `{% extends "extended.html" %}`,
+			"extended.html": `{% show this() default 4; using %}...{% end %}`,
+		},
+		expectedBuildErr: "use of predeclared identifier this",
+	},
+
 	"Using - can assign to 'this', even if it contains a macro": {
 		sources: map[string]string{
 			"index.html": `{% func() { this = func() string { return "x" } }(); using macro() %}content..{% end %}`,
