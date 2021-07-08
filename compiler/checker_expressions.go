@@ -2463,7 +2463,7 @@ func (tc *typechecker) checkDefault(expr *ast.Default, show bool) typeInfoPair {
 			panic(tc.errorf(ident, "cannot use _ as value"))
 		}
 		if ti, ok := tc.lookupScopes(ident.Name, false); ok {
-			// REVIEW: testare (se non c'è già) 'nil() default'
+			// TODO(Gianluca): test 'nil() default'
 			//
 			// REVIEW: se viene utilizzato 'this', tornare errore. Attenzione
 			// al fatto che in alcuni casi è 'this', mentre in altri il nome è
