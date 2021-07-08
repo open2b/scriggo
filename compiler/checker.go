@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 
 	"github.com/open2b/scriggo/compiler/ast"
@@ -669,13 +670,16 @@ func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...inte
 // close closes the type checker by performing some operations.
 // May return a *CheckingError.
 func (tc *typechecker) close() error {
-	// REVIEW: sort before returning error in order to show deterministic errors
-	for _, usingData := range tc.compilation.thisToUsingData {
+	thisNames := make([]string, 0, len(tc.compilation.thisToUsingData))
+	for k := range tc.compilation.thisToUsingData {
+		thisNames = append(thisNames, k)
+	}
+	sort.Strings(thisNames)
+	for _, thisName := range thisNames {
+		usingData := tc.compilation.thisToUsingData[thisName]
 		if !usingData.used {
 			return tc.errorf(usingData.notUsedPosition, "predeclared identifier this not used")
 		}
-	}
-	for _, usingData := range tc.compilation.thisToUsingData {
 		if !usingData.toBeEmitted {
 			varDecl := usingData.thisDeclaration
 			if len(varDecl.Lhs) != 1 || len(varDecl.Rhs) != 1 {
