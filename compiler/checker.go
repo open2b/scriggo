@@ -118,6 +118,10 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 				mainPkgInfo.IndirectVars[k] = v
 			}
 		}
+		err = tc.close()
+		if err != nil {
+			return nil, err
+		}
 		return map[string]*packageInfo{"main": mainPkgInfo}, nil
 	}
 
@@ -130,6 +134,10 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 	mainPkgInfo := &packageInfo{}
 	mainPkgInfo.IndirectVars = tc.compilation.indirectVars
 	mainPkgInfo.TypeInfos = tc.compilation.typeInfos
+	err = tc.close()
+	if err != nil {
+		return nil, err
+	}
 	return map[string]*packageInfo{"main": mainPkgInfo}, nil
 }
 
@@ -267,10 +275,28 @@ type typechecker struct {
 		// withinUsingStmt reports whether the type checker is currently checking
 		// the statement of the 'using'.
 		withinUsingStmt bool
-		// thisHasBeenUsed reports whether the predeclared identifier 'this'
-		// has been used or not.
-		thisHasBeenUsed bool
 	}
+
+	// toBeEmitted reports whether the current branch of the tree will be
+	// emitted or not.
+	toBeEmitted bool
+}
+
+// UsingData holds information about 'using' statements.
+type UsingData struct {
+	// used reports whether the 'this' identifier related to this 'using' is
+	// used.
+	used bool
+	// toBeEmitted reports whether the code that initializes the 'this'
+	// identifier should be emitted or not, depending on how 'default'
+	// statements are resolved.
+	toBeEmitted bool
+	// thisDeclaration is the 'var' declaration that declares the 'this'
+	// identifier related to this 'using'.
+	thisDeclaration *ast.Var
+	// notUsedPosition is the position of the error that should be returned if
+	// the 'this' identifier related to this 'using' is not used.
+	notUsedPosition *ast.Position
 }
 
 // thisIncreaseIndex increases the index used in the name of the 'this'
@@ -302,6 +328,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		env:              &env{tt.Runtime(), nil},
 		structDeclPkg:    map[reflect.Type]string{},
 		precompiledPkgs:  precompiledPkgs,
+		toBeEmitted:      true,
 	}
 	tc.using.currentThisIndex = -1
 	if len(opts.formatTypes) > 0 {
@@ -637,6 +664,31 @@ func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...inte
 		err: fmt.Errorf(format, args...),
 	}
 	return err
+}
+
+// close closes the type checker by performing some operations.
+// May return a *CheckingError.
+func (tc *typechecker) close() error {
+	// REVIEW: sort before returning error in order to show deterministic errors
+	for _, usingData := range tc.compilation.thisToUsingData {
+		if !usingData.used {
+			return tc.errorf(usingData.notUsedPosition, "predeclared identifier this not used")
+		}
+	}
+	for _, usingData := range tc.compilation.thisToUsingData {
+		if !usingData.toBeEmitted {
+			varDecl := usingData.thisDeclaration
+			if len(varDecl.Lhs) != 1 || len(varDecl.Rhs) != 1 {
+				panic("BUG: unexpected")
+			}
+			lh := ast.NewIdentifier(nil, "_")
+			rh := ast.NewBasicLiteral(nil, ast.IntLiteral, "0")
+			varDecl.Lhs = []*ast.Identifier{lh}
+			varDecl.Rhs = []ast.Expression{rh}
+			tc.checkNodes([]ast.Node{varDecl})
+		}
+	}
+	return nil
 }
 
 type mapPackage struct {

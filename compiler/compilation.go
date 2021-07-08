@@ -45,6 +45,10 @@ type compilation struct {
 	// maps avoid making useless copies of AST nodes that may lead to
 	// inconsistent type checks and invalid behaviors.
 	renderImportMacro map[*ast.Tree]renderIR
+
+	// thisToUsingData maps 'this' identifiers ($this0, $this1... ) to their
+	// corresponding UsingData.
+	thisToUsingData map[string]UsingData
 }
 
 type renderIR struct {

@@ -682,5 +682,10 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 	pkgInfo.IndirectVars = tc.compilation.indirectVars
 	compilation.pkgInfos[path] = pkgInfo
 
+	err = tc.close()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

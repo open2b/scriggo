@@ -600,6 +600,10 @@ func TestCheckerExpressions(t *testing.T) {
 					t.Logf("\nUnexpected:\n%s\nExpected:\n%s\n", dumpTypeInfo(ti), dumpTypeInfo(expr.ti))
 				}
 			}
+			err = tc.close()
+			if err != nil {
+				t.Fatal(err)
+			}
 		}()
 	}
 }
@@ -687,6 +691,10 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			tc.enterScope()
 			ti := tc.checkExpr(node)
 			t.Errorf("source: %s, unexpected %s, expecting error %q\n", expr.src, ti, expr.err)
+			err := tc.close()
+			if err != nil {
+				t.Fatal(err)
+			}
 		}()
 	}
 }
@@ -1678,6 +1686,10 @@ func TestCheckerStatements(t *testing.T) {
 			tc.enterScope()
 			tree.Nodes = tc.checkNodes(tree.Nodes)
 			tc.exitScope()
+			err = tc.close()
+			if err != nil {
+				t.Fatal(err)
+			}
 		}()
 	}
 }
@@ -2194,6 +2206,10 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 			t.Errorf("src '%s': expected: %v, got: %v", src, expected, got)
 		}
 	}
+	err := tc.close()
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestTypechecker_IsAssignableTo(t *testing.T) {
@@ -2267,6 +2283,10 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 			t.Errorf("%s should not be assignable to %s, but isAssignableTo not returned errors", c.x, c.T)
 		}
 	}
+	err := tc.close()
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestFunctionUpVars(t *testing.T) {
@@ -2316,6 +2336,10 @@ func TestFunctionUpVars(t *testing.T) {
 			if got[i] != expected[i] {
 				t.Errorf("bad upvars for src: '%s': expected: %s, got: %s", src, expected, got)
 			}
+		}
+		err = tc.close()
+		if err != nil {
+			t.Fatal(err)
 		}
 	}
 }

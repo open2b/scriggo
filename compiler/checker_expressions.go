@@ -115,8 +115,14 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 	// statement.
 	if found && ti == universe["this"].t {
 		if tc.using.withinUsingStmt {
-			tc.using.thisHasBeenUsed = true
-			ident.Name = tc.thisCurrentName()
+			thisCurrName := tc.thisCurrentName()
+			ident.Name = thisCurrName
+			usingData := tc.compilation.thisToUsingData[thisCurrName]
+			usingData.used = true
+			if tc.toBeEmitted {
+				usingData.toBeEmitted = true
+			}
+			tc.compilation.thisToUsingData[thisCurrName] = usingData
 			ti, _ = tc.lookupScopes(ident.Name, false)
 		} else {
 			// The identifier is the predeclared identifier 'this', but 'this'
@@ -203,6 +209,16 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 				break
 			}
 		}
+	}
+
+	// Mark 'this' as used, when 'using' is a package-level statement.
+	if strings.HasPrefix(ident.Name, "$this") {
+		ud := tc.compilation.thisToUsingData[ident.Name]
+		ud.used = true
+		if tc.toBeEmitted {
+			ud.toBeEmitted = true
+		}
+		tc.compilation.thisToUsingData[ident.Name] = ud
 	}
 
 	// For "." imported packages, mark package as used.
@@ -2411,6 +2427,9 @@ func (tc *typechecker) checkDefault(expr *ast.Default, show bool) typeInfoPair {
 			if tis[0].Nil() {
 				panic(tc.errorf(n, "use of untyped nil"))
 			}
+			// REVIEW: se viene utilizzato 'this', tornare errore. Similmente a
+			// come viene gestito il 'nil'. Attenzione al fatto che in alcuni
+			// casi è 'this', mentre in altri il nome è già stato trasformato.
 			if tis[0].IsBuiltinFunction() {
 				panic(tc.errorf(n, "use of builtin %s not in function call", n))
 			}
@@ -2441,6 +2460,11 @@ func (tc *typechecker) checkDefault(expr *ast.Default, show bool) typeInfoPair {
 			panic(tc.errorf(ident, "cannot use _ as value"))
 		}
 		if ti, ok := tc.lookupScopes(ident.Name, false); ok {
+			// REVIEW: testare (se non c'è già) 'nil() default'
+			//
+			// REVIEW: se viene utilizzato 'this', tornare errore. Attenzione
+			// al fatto che in alcuni casi è 'this', mentre in altri il nome è
+			// già stato trasformato.
 			if ti.IsType() {
 				panic(tc.errorf(ident, "type conversion on left side of default"))
 			}
@@ -2475,10 +2499,13 @@ func (tc *typechecker) checkDefault(expr *ast.Default, show bool) typeInfoPair {
 		panic("unexpected default")
 	}
 
+	toBeEmitted := tc.toBeEmitted
 	if tis[0] != nil {
 		tc.compilation.typeInfos[expr.Expr1] = tis[0]
+		tc.toBeEmitted = false
 	}
 	tis[1] = tc.checkExpr(expr.Expr2)
+	tc.toBeEmitted = toBeEmitted
 
 	if _, ok := expr.Expr1.(*ast.Identifier); !ok && !show {
 		if typ := tis[1].Type; !tc.isFormatType(typ) {

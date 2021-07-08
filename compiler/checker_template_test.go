@@ -203,6 +203,10 @@ func TestCheckerTemplateExpressions(t *testing.T) {
 					t.Logf("\nUnexpected:\n%s\nExpected:\n%s\n", dumpTypeInfo(ti), dumpTypeInfo(expr.ti))
 				}
 			}
+			err = tc.close()
+			if err != nil {
+				t.Fatal(err)
+			}
 		}()
 	}
 }
@@ -276,6 +280,10 @@ func TestCheckerTemplateExpressionErrors(t *testing.T) {
 			tc.enterScope()
 			ti := tc.checkExpr(node)
 			t.Errorf("source: %s, unexpected %s, expecting error %q\n", expr.src, ti, expr.err)
+			err := tc.close()
+			if err != nil {
+				t.Fatal(err)
+			}
 		}()
 	}
 }

@@ -3316,16 +3316,15 @@ var templateMultiFileCases = map[string]struct {
 		expectedBuildErr: "index.html:2:16: predeclared identifier this not used",
 	},
 
-	// REVIEW: how to type check package level using?
-	// "Using - error if 'this' is unused (package level)": {
-	// 	sources: map[string]string{
-	// 		"index.html": `{% import "imported.html" %}`,
-	// 		"imported.html": `
-	// 			{% var _ = 4; using %}Something{% end using %}
-	// 		`,
-	// 	},
-	// 	expectedBuildErr: "predeclared identifier this not used",
-	// },
+	"Using - error if 'this' is unused (package level)": {
+		sources: map[string]string{
+			"index.html": `{% import "imported.html" %}`,
+			"imported.html": `
+				{% var _ = 4; using %}Something{% end using %}
+			`,
+		},
+		expectedBuildErr: "imported.html:2:19: predeclared identifier this not used",
+	},
 
 	"Using - this on right side of default (evaluated)": {
 		sources: map[string]string{
@@ -3342,13 +3341,12 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "Something",
 	},
 
-	// REVIEW:
-	// "Using - this on right side of default ('this' not referenced, content of 'using' must not be evaluated)": {
-	// 	sources: map[string]string{
-	// 		"index.html":    `{% extends "extended.html" %}{% macro M %}{% end %}`,
-	// 		"extended.html": `{% show M() default this; using %}{{ []int{}[1000] }}{% end using %}`,
-	// 	},
-	// },
+	"Using - this on right side of default ('this' not referenced, content of 'using' must not be evaluated)": {
+		sources: map[string]string{
+			"index.html":    `{% extends "extended.html" %}{% macro M %}{% end %}`,
+			"extended.html": `{% show M() default this; using %}{{ []int{}[1000] }}{% end using %}`,
+		},
+	},
 
 	// REVIEW: if a macro declaration is assigned to this ('using macro(...)'),
 	// mark 'this' as a macro declaration in the type info.

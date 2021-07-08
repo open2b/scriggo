@@ -737,13 +737,7 @@ nodesLoop:
 			withinStmt := tc.using.withinUsingStmt
 			tc.using.withinUsingStmt = true
 			dummyNodesPost := []ast.Node{statement}
-			thisHasBeenUsed := tc.using.thisHasBeenUsed
-			tc.using.thisHasBeenUsed = false
 			dummyNodesPost = tc.checkNodes(dummyNodesPost)
-			if !tc.using.thisHasBeenUsed {
-				panic(tc.errorf(node, "predeclared identifier this not used"))
-			}
-			tc.using.thisHasBeenUsed = thisHasBeenUsed
 			nodes = append(nodes[:i], append(dummyNodesPost, nodes[i+1:]...)...)
 			i += len(dummyNodesPost)
 			tc.using.withinUsingStmt = withinStmt
@@ -1364,6 +1358,16 @@ func (tc *typechecker) explodeUsingStatement(using *ast.Using, thisName string) 
 		nil,
 		[]ast.Expression{thisExpr},
 	)
+
+	if thisName != "_" {
+		if tc.compilation.thisToUsingData == nil {
+			tc.compilation.thisToUsingData = map[string]UsingData{}
+		}
+		tc.compilation.thisToUsingData[thisName] = UsingData{
+			thisDeclaration: dummyAssignment,
+			notUsedPosition: using.Position,
+		}
+	}
 
 	return dummyAssignment, using.Statement
 }
