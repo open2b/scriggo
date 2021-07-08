@@ -3385,13 +3385,11 @@ var templateMultiFileCases = map[string]struct {
 		expectedBuildErr: "use of predeclared identifier this",
 	},
 
-	// REVIEW:
-	// "Using - cannot assign to 'this' if 'using macro(..)": {
-	// 	sources: map[string]string{
-	// 		"index.html": `{% func() { this = func() string { return "x" } }(); using macro() %}content..{% end %}`,
-	// 	},
-	// 	expectedBuildErr: "error",
-	// },
+	"Using - can assign to 'this', even if it contains a macro": {
+		sources: map[string]string{
+			"index.html": `{% func() { this = func() string { return "x" } }(); using macro() %}content..{% end %}`,
+		},
+	},
 }
 
 var structWithUnexportedFields = &struct {
