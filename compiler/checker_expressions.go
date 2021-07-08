@@ -1708,6 +1708,22 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 
 }
 
+// rewriteSpecialCall rewrite f(g()) into
+// t1, t2, ..., tn = g(); f(t1, t2, ..., tn).
+func (tc *typechecker) rewriteSpecialCall(c *ast.Call) []ast.Expression {
+	tis := tc.checkCallExpression(c)
+	if len(tis) == 1 {
+		tc.compilation.typeInfos[c] = tis[0]
+	}
+	args := make([]ast.Expression, len(tis))
+	for i, ti := range tis {
+		v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
+		tc.compilation.typeInfos[v] = ti
+		args[i] = v
+	}
+	return args
+}
+
 // checkCallExpression type checks a call expression, including type
 // conversions and built-in function calls. Returns a list of typeinfos
 // obtained from the call.
@@ -1758,29 +1774,11 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) []*typeInfo {
 	if len(args) == 1 && numIn > 1 && !callIsVariadic {
 		if c, ok := args[0].(*ast.Call); ok {
 			isSpecialCase = true
-			args = nil
-			tis := tc.checkCallExpression(c)
-			if len(tis) == 1 {
-				tc.compilation.typeInfos[c] = tis[0]
-			}
-			for _, ti := range tis {
-				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
-				tc.compilation.typeInfos[v] = ti
-				args = append(args, v)
-			}
+			args = tc.rewriteSpecialCall(c)
 		}
 	} else if len(args) == 1 && numIn == 1 && funcIsVariadic && !callIsVariadic {
 		if c, ok := args[0].(*ast.Call); ok {
-			args = nil
-			tis := tc.checkCallExpression(c)
-			if len(tis) == 1 {
-				tc.compilation.typeInfos[c] = tis[0]
-			}
-			for _, ti := range tis {
-				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
-				tc.compilation.typeInfos[v] = ti
-				args = append(args, v)
-			}
+			args = tc.rewriteSpecialCall(c)
 		}
 	}
 
