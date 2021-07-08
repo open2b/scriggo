@@ -2424,12 +2424,15 @@ func (tc *typechecker) checkDefault(expr *ast.Default, show bool) typeInfoPair {
 			if tis[0].IsPackage() {
 				panic(tc.errorf(expr, "use of package %s without selector", n))
 			}
+			// REVIEW: this check has been moved before 'if tis[0].Nil()'
+			// because '.Nil()' is true for the type info of the 'this'
+			// identifier, while it shouldn't.
+			if tis[0].InUniverse() && n.Name == "this" || strings.HasPrefix(n.Name, "$this") {
+				panic(tc.errorf(n, "use of predeclared identifier this"))
+			}
 			if tis[0].Nil() {
 				panic(tc.errorf(n, "use of untyped nil"))
 			}
-			// REVIEW: se viene utilizzato 'this', tornare errore. Similmente a
-			// come viene gestito il 'nil'. Attenzione al fatto che in alcuni
-			// casi è 'this', mentre in altri il nome è già stato trasformato.
 			if tis[0].IsBuiltinFunction() {
 				panic(tc.errorf(n, "use of builtin %s not in function call", n))
 			}

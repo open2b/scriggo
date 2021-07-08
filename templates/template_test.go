@@ -3370,6 +3370,21 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "hey",
 	},
 
+	"Using - cannot use 'this' on left side of default": {
+		sources: map[string]string{
+			"index.html": `{% show this default 4; using %}...{% end %}`,
+		},
+		expectedBuildErr: "use of predeclared identifier this",
+	},
+
+	"Using - cannot use 'this' on left side of default - package level": {
+		sources: map[string]string{
+			"index.html":    `{% import "imported.html" %}`,
+			"imported.html": `{% var _ = this default 4; using %}...{% end %}`,
+		},
+		expectedBuildErr: "use of predeclared identifier this",
+	},
+
 	// REVIEW:
 	// "Using - cannot assign to 'this' if 'using macro(..)": {
 	// 	sources: map[string]string{
