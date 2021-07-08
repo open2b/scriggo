@@ -74,7 +74,7 @@ var universe = typeCheckerScope{
 	"int8":       {t: &typeInfo{Type: reflect.TypeOf(int8(0)), Properties: propertyIsType | propertyUniverse}},
 	"rune":       {t: int32TypeInfo},
 	"string":     {t: &typeInfo{Type: stringType, Properties: propertyIsType | propertyIsFormatType | propertyUniverse}},
-	"this":       {t: &typeInfo{Properties: propertyUniverse | propertyUntyped}},
+	"this":       {t: &typeInfo{Properties: propertyUniverse | propertyUntyped | propertyAddressable}},
 	"true":       {t: &typeInfo{Type: boolType, Properties: propertyUniverse | propertyUntyped, Constant: boolConst(true)}},
 	"uint":       {t: &typeInfo{Type: uintType, Properties: propertyIsType | propertyUniverse}},
 	"uint16":     {t: &typeInfo{Type: reflect.TypeOf(uint16(0)), Properties: propertyIsType | propertyUniverse}},
@@ -2424,14 +2424,11 @@ func (tc *typechecker) checkDefault(expr *ast.Default, show bool) typeInfoPair {
 			if tis[0].IsPackage() {
 				panic(tc.errorf(expr, "use of package %s without selector", n))
 			}
-			// REVIEW: this check has been moved before 'if tis[0].Nil()'
-			// because '.Nil()' is true for the type info of the 'this'
-			// identifier, while it shouldn't.
-			if tis[0].InUniverse() && n.Name == "this" || strings.HasPrefix(n.Name, "$this") {
-				panic(tc.errorf(n, "use of predeclared identifier this"))
-			}
 			if tis[0].Nil() {
 				panic(tc.errorf(n, "use of untyped nil"))
+			}
+			if tis[0].InUniverse() && n.Name == "this" || strings.HasPrefix(n.Name, "$this") {
+				panic(tc.errorf(n, "use of predeclared identifier this"))
 			}
 			if tis[0].IsBuiltinFunction() {
 				panic(tc.errorf(n, "use of builtin %s not in function call", n))
