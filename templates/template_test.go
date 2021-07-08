@@ -3348,9 +3348,6 @@ var templateMultiFileCases = map[string]struct {
 		},
 	},
 
-	// REVIEW: if a macro declaration is assigned to this ('using macro(...)'),
-	// mark 'this' as a macro declaration in the type info.
-
 	"Using - taking address of 'this'": {
 		sources: map[string]string{
 			"index.html": `
