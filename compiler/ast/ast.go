@@ -346,7 +346,7 @@ type Package struct {
 	IR struct {
 		// ThisNameToVarIdents maps the name of the transformed 'this'
 		// identifier to the identifiers on the left side of a 'var'
-		// declarations with an 'using' statement.
+		// declarations with an 'using' statement at package level.
 		//
 		// For example a package containing this declaration:
 		//
