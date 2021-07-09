@@ -671,8 +671,8 @@ func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...inte
 // May return a *CheckingError.
 func (tc *typechecker) close() error {
 	thisNames := make([]string, 0, len(tc.compilation.thisToUsingData))
-	for k := range tc.compilation.thisToUsingData {
-		thisNames = append(thisNames, k)
+	for name := range tc.compilation.thisToUsingData {
+		thisNames = append(thisNames, name)
 	}
 	sort.Strings(thisNames)
 	for _, thisName := range thisNames {
