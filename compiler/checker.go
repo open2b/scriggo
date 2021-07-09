@@ -277,7 +277,7 @@ type typechecker struct {
 	toBeEmitted bool
 }
 
-// usingData holds information about 'using' statements.
+// usingData holds information about an 'using' statement.
 type usingData struct {
 	// used reports whether the 'this' identifier related to this 'using' is
 	// used.
