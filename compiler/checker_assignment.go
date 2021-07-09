@@ -120,14 +120,7 @@ func (tc *typechecker) checkAssignmentOperation(node *ast.Assignment) {
 		panic(tc.errorf(node, "invalid operation: %s (%s)", node, err))
 	}
 
-	if node.Type == ast.AssignmentLeftShift || node.Type == ast.AssignmentRightShift {
-		// TODO.
-	} else {
-		tc.mustBeAssignableTo(rh, node.Rhs[0], lh.Type, false, nil)
-	}
-
 	rh.setValue(lh.Type)
-
 }
 
 // checkBalancedConstantDeclaration type checks that a constant declaration is
