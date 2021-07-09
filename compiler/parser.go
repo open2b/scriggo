@@ -1418,8 +1418,7 @@ LABEL:
 
 // parseUsing tries to parse a using statement and in case returns a Using
 // node, otherwise it returns stmt which is the previous parsed statement.
-// tok is the semicolon that follows stmt or, for abbreviated forms, it is the
-// using token.
+// tok is the semicolon that follows stmt.
 func (p *parsing) parseUsing(stmt ast.Node, tok token) (ast.Node, token) {
 	start := tok
 	if tok = p.next(); tok.typ != tokenUsing {
