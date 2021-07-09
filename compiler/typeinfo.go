@@ -117,7 +117,7 @@ func (ti *typeInfo) IsBuiltinFunction() bool {
 	return ti.Properties&propertyUniverse != 0 && ti.Properties&propertyUntyped == 0 && ti.Type == nil
 }
 
-// // This reports whether is this.
+// This reports whether it is this.
 func (ti *typeInfo) This() bool {
 	return ti.Properties&propertyUniverse != 0 &&
 		ti.Properties&propertyUntyped != 0 &&
