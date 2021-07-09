@@ -287,7 +287,7 @@ type usingData struct {
 	// still used after defaults have been resolved.
 	toBeEmitted bool
 	// thisDeclaration is the 'var' declaration that declares the 'this'
-	// identifier related to this 'using'.
+	// identifier.
 	thisDeclaration *ast.Var
 	// notUsedPosition is the position of the error that should be returned if
 	// the 'this' identifier related to this 'using' is not used.
