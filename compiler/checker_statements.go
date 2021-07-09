@@ -1322,17 +1322,6 @@ func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) (string, 
 // always non-nil.
 func (tc *typechecker) explodeUsingStatement(using *ast.Using, thisName string) (*ast.Var, ast.Node) {
 
-	// Handle the abbreviated form.
-	if show, ok := using.Statement.(*ast.Show); ok && show.Expressions == nil {
-		dummyFuncType := ast.NewFuncType(nil, true, nil, []*ast.Parameter{
-			ast.NewParameter(nil, using.Type),
-		}, false)
-		dummyFunc := ast.NewFunc(nil, nil, dummyFuncType, using.Body, false, using.Format)
-		dummyCall := ast.NewCall(nil, dummyFunc, nil, false)
-		dummyShow := ast.NewShow(nil, []ast.Expression{dummyCall}, show.Context)
-		return nil, dummyShow
-	}
-
 	// Make the type explicit, if necessary.
 	if using.Type == nil {
 		name := formatTypeName[using.Format]
