@@ -6,7 +6,11 @@
 
 package compiler
 
-import "github.com/open2b/scriggo/compiler/ast"
+import (
+	"strconv"
+
+	"github.com/open2b/scriggo/compiler/ast"
+)
 
 // A compilation holds the state of a single compilation.
 //
@@ -49,6 +53,10 @@ type compilation struct {
 	// thisToUsingData maps 'this' identifiers ($this0, $this1... ) to their
 	// corresponding usingData.
 	thisToUsingData map[string]usingData
+
+	// currentThisIndex is the index used to generate the name of the current
+	// 'this' identifier.
+	currentThisIndex int
 }
 
 type renderIR struct {
@@ -65,6 +73,7 @@ func newCompilation() *compilation {
 		alreadySortedPkgs: map[*ast.Package]bool{},
 		indirectVars:      map[*ast.Identifier]bool{},
 		renderImportMacro: map[*ast.Tree]renderIR{},
+		currentThisIndex:  -1,
 	}
 }
 
@@ -86,4 +95,15 @@ func (compilation *compilation) UniqueIndex(path string) int {
 	}
 	compilation.pkgPathToIndex[path] = max + 1
 	return max + 1
+}
+
+// thisIncreaseIndex increases the index used in the name of the 'this'
+// identifier, in order to make it unique.
+func (compilation *compilation) thisIncreaseIndex() {
+	compilation.currentThisIndex++
+}
+
+// thisCurrentName returns the current name of the 'this' identifier.
+func (compilation *compilation) thisCurrentName() string {
+	return "$this" + strconv.Itoa(compilation.currentThisIndex)
 }

@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
-	"strconv"
 
 	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/compiler/types"
@@ -272,7 +271,6 @@ type typechecker struct {
 	// using holds information about the type checking and the transformation
 	// of the 'using' statements.
 	using struct {
-		currentThisIndex int
 		// withinUsingStmt reports whether the type checker is currently checking
 		// the statement of the 'using'.
 		withinUsingStmt bool
@@ -300,17 +298,6 @@ type usingData struct {
 	notUsedPosition *ast.Position
 }
 
-// thisIncreaseIndex increases the index used in the name of the 'this'
-// identifier, in order to make it unique.
-func (tc *typechecker) thisIncreaseIndex() {
-	tc.using.currentThisIndex++
-}
-
-// thisCurrentName returns the current name of the 'this' identifier.
-func (tc *typechecker) thisCurrentName() string {
-	return "$this" + strconv.Itoa(tc.using.currentThisIndex)
-}
-
 // newTypechecker creates a new type checker. A global scope may be provided
 // for scripts and templates.
 func newTypechecker(compilation *compilation, path string, opts checkerOptions, globalScope typeCheckerScope, precompiledPkgs PackageLoader) *typechecker {
@@ -331,7 +318,6 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		precompiledPkgs:  precompiledPkgs,
 		toBeEmitted:      true,
 	}
-	tc.using.currentThisIndex = -1
 	if len(opts.formatTypes) > 0 {
 		tc.universe = typeCheckerScope{}
 		for name, scope := range universe {
