@@ -729,7 +729,8 @@ nodesLoop:
 			nodes = append(nodes[:i], append(dummyNodesPre, nodes[i:]...)...)
 			i += len(dummyNodesPre)
 
-			// Type check the statement of the 'using' and transform the tree.
+			// Type check the affected statement of the 'using' and transform
+			// the tree.
 			withinStmt := tc.withinUsingAffectedStmt
 			tc.withinUsingAffectedStmt = true
 			dummyNodesPost := []ast.Node{statement}
