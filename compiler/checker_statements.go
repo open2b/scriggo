@@ -1355,14 +1355,12 @@ func (tc *typechecker) explodeUsingStatement(using *ast.Using, thisName string) 
 		[]ast.Expression{thisExpr},
 	)
 
-	if thisName != "_" {
-		if tc.compilation.thisToUsingData == nil {
-			tc.compilation.thisToUsingData = map[string]usingData{}
-		}
-		tc.compilation.thisToUsingData[thisName] = usingData{
-			thisDeclaration: dummyAssignment,
-			notUsedPosition: using.Position,
-		}
+	if tc.compilation.thisToUsingData == nil {
+		tc.compilation.thisToUsingData = map[string]usingData{}
+	}
+	tc.compilation.thisToUsingData[thisName] = usingData{
+		thisDeclaration: dummyAssignment,
+		notUsedPosition: using.Position,
 	}
 
 	return dummyAssignment, using.Statement
