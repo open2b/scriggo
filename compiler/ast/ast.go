@@ -1486,7 +1486,7 @@ func NewRaw(pos *Position, marker, tag string, text *Text) *Raw {
 // Using node represents a using statement.
 type Using struct {
 	*Position            // position in the source.
-	Statement Node       // previous statement.
+	Statement Node       // statement preceding the using statement.
 	Type      Expression // type, can be a format identifier or a macro.
 	Body      *Block     // body.
 	Format    Format     // using content format.
