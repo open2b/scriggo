@@ -283,8 +283,8 @@ type usingData struct {
 	// used.
 	used bool
 	// toBeEmitted reports whether the code that initializes the 'this'
-	// identifier should be emitted or not, depending on how 'default'
-	// statements are resolved.
+	// identifier should be emitted or not, depending on whether 'this' is
+	// still used after defaults have been resolved.
 	toBeEmitted bool
 	// thisDeclaration is the 'var' declaration that declares the 'this'
 	// identifier related to this 'using'.
