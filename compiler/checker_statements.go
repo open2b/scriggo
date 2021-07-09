@@ -1335,7 +1335,14 @@ func (tc *typechecker) explodeUsingStatement(using *ast.Using, thisName string) 
 
 	// Make the type explicit, if necessary.
 	if using.Type == nil {
-		tc.makeUsingTypeExplicit(using)
+		name := formatTypeName[using.Format]
+		scope, ok := tc.universe[name]
+		if !ok {
+			panic("no type defined for format " + using.Format.String())
+		}
+		ident := ast.NewIdentifier(using.Pos(), name)
+		tc.compilation.typeInfos[ident] = scope.t
+		using.Type = ident
 	}
 
 	var thisExpr ast.Expression
