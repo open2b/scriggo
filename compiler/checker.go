@@ -268,13 +268,9 @@ type typechecker struct {
 	// extended file.
 	inExtendedFile bool
 
-	// using holds information about the type checking and the transformation
-	// of the 'using' statements.
-	using struct {
-		// withinUsingStmt reports whether the type checker is currently checking
-		// the statement of the 'using'.
-		withinUsingStmt bool
-	}
+	// withinUsingStmt reports whether the type checker is currently checking
+	// the statement of the 'using'.
+	withinUsingStmt bool
 
 	// toBeEmitted reports whether the current branch of the tree will be
 	// emitted or not.

@@ -730,13 +730,13 @@ nodesLoop:
 			i += len(dummyNodesPre)
 
 			// Type check the statement of the 'using' and transform the tree.
-			withinStmt := tc.using.withinUsingStmt
-			tc.using.withinUsingStmt = true
+			withinStmt := tc.withinUsingStmt
+			tc.withinUsingStmt = true
 			dummyNodesPost := []ast.Node{statement}
 			dummyNodesPost = tc.checkNodes(dummyNodesPost)
 			nodes = append(nodes[:i], append(dummyNodesPost, nodes[i+1:]...)...)
 			i += len(dummyNodesPost)
-			tc.using.withinUsingStmt = withinStmt
+			tc.withinUsingStmt = withinStmt
 
 			continue nodesLoop
 

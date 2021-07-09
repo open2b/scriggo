@@ -114,7 +114,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 	// Handle the predeclared identifier 'this' when checking the 'using'
 	// statement.
 	if found && ti == universe["this"].t {
-		if tc.using.withinUsingStmt {
+		if tc.withinUsingStmt {
 			thisCurrName := tc.compilation.thisCurrentName()
 			ident.Name = thisCurrName
 			ud := tc.compilation.thisToUsingData[thisCurrName]
