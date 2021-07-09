@@ -649,7 +649,7 @@ func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...inte
 	return err
 }
 
-// close closes the type checker by performing some operations.
+// close closes the type checker.
 // May return a *CheckingError.
 func (tc *typechecker) close() error {
 	thisNames := make([]string, 0, len(tc.compilation.thisToUsingData))
