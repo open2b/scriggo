@@ -47,8 +47,8 @@ type compilation struct {
 	renderImportMacro map[*ast.Tree]renderIR
 
 	// thisToUsingData maps 'this' identifiers ($this0, $this1... ) to their
-	// corresponding UsingData.
-	thisToUsingData map[string]UsingData
+	// corresponding usingData.
+	thisToUsingData map[string]usingData
 }
 
 type renderIR struct {
