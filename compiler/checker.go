@@ -676,12 +676,12 @@ func (tc *typechecker) close() error {
 	}
 	sort.Strings(thisNames)
 	for _, thisName := range thisNames {
-		usingData := tc.compilation.thisToUsingData[thisName]
-		if !usingData.used {
-			return tc.errorf(usingData.notUsedPosition, "predeclared identifier this not used")
+		ud := tc.compilation.thisToUsingData[thisName]
+		if !ud.used {
+			return tc.errorf(ud.notUsedPosition, "predeclared identifier this not used")
 		}
-		if !usingData.toBeEmitted {
-			varDecl := usingData.thisDeclaration
+		if !ud.toBeEmitted {
+			varDecl := ud.thisDeclaration
 			if len(varDecl.Lhs) != 1 || len(varDecl.Rhs) != 1 {
 				panic("BUG: unexpected")
 			}

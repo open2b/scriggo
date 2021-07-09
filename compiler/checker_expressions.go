@@ -117,12 +117,12 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 		if tc.using.withinUsingStmt {
 			thisCurrName := tc.thisCurrentName()
 			ident.Name = thisCurrName
-			usingData := tc.compilation.thisToUsingData[thisCurrName]
-			usingData.used = true
+			ud := tc.compilation.thisToUsingData[thisCurrName]
+			ud.used = true
 			if tc.toBeEmitted {
-				usingData.toBeEmitted = true
+				ud.toBeEmitted = true
 			}
-			tc.compilation.thisToUsingData[thisCurrName] = usingData
+			tc.compilation.thisToUsingData[thisCurrName] = ud
 			ti, _ = tc.lookupScopes(ident.Name, false)
 		} else {
 			// The identifier is the predeclared identifier 'this', but 'this'
