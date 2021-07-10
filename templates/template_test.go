@@ -2934,6 +2934,21 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedBuildErr: `cannot use default expression in this context`,
 	},
+
+	"https://github.com/open2b/scriggo/issues/572 (1)": {
+		sources: map[string]string{
+			"index.html":  `{% extends "layout.html" %}`,
+			"layout.html": `{% a = 5 %}`,
+		},
+		expectedBuildErr: `layout.html:1:4: undefined: a`,
+	},
+
+	"https://github.com/open2b/scriggo/issues/572 (2)": {
+		sources: map[string]string{
+			"index.html": `{% extends "layout.html" %}{% a = 5 %}`,
+		},
+		expectedBuildErr: `index.html:1:31: syntax error: unexpected a, expecting declaration statement`,
+	},
 }
 
 var structWithUnexportedFields = &struct {
