@@ -1365,17 +1365,10 @@ var checkerStmts = map[string]string{
 	`var _, _ int = func(a, b int) (int, int) { return a, b }("", 0)`: `cannot use "" (type untyped string) as type int in argument to func literal`,
 	`f := func(n ...int) { for _ = range n { } }; f(1,2,3)`:           ok,
 
-	// Function literal calls with function call as argument.
-	`f := func() (int, int) { return 0, 0 } ; g := func(int, int) { } ; g(f())`:         ok,
-	`f := func() int { return 0 } ; g := func(int, int) { } ; g(f())`:                   "not enough arguments in call to g\n\thave (int)\n\twant (int, int)",
-	`f := func() (string, int) { return "", 0 } ; g := func(int, int) { } ; g(f())`:     `cannot use string as type int in argument to g`,
-	`f := func() (int, int, int) { return 0, 0, 0 } ; g := func(int, int) { } ; g(f())`: "too many arguments in call to g\n\thave (int, int, int)\n\twant (int, int)",
-
 	// Variadic functions and calls.
-	`f := func(a ...int) { } ; f(nil...)`:                                      ok,
-	`f := func(a ...int) { } ; f([]int(nil)...)`:                               ok,
-	`f := func(a ...int) { } ; f([]int{1,2}...)`:                               ok,
-	`g := func() (int, int) { return 0, 0 } ; f := func(v ...int) {} ; f(g())`: ok,
+	`f := func(a ...int) { } ; f(nil...)`:        ok,
+	`f := func(a ...int) { } ; f([]int(nil)...)`: ok,
+	`f := func(a ...int) { } ; f([]int{1,2}...)`: ok,
 
 	// Variadic function literals.
 	`f := func(a int, b...int)  { b[0] = 1 };  f(1);               f(1);  f(1,2,3)`: ok,
@@ -1387,6 +1380,21 @@ var checkerStmts = map[string]string{
 	`f := func(a []string, b ...string) {};  f([]string{}...)`:                      "not enough arguments in call to f\n\thave (...string)\n\twant ([]string, ...string)",
 	`f := func(a []string, b ...string) {};  f(nil...)`:                             "not enough arguments in call to f\n\thave (...string)\n\twant ([]string, ...string)",
 	`f := func(a []string, b ...string) {};  f(int(5)...)`:                          "not enough arguments in call to f\n\thave (int)\n\twant ([]string, ...string)",
+
+	// Function calls, special case.
+	`g := func() int { return 0 }; f := func(int) {} ; f(g())`:                                                                                ok,
+	`g := func() (int, string) { return 0, "" }; f := func(int, string) {}; f(g())`:                                                           ok,
+	`g := func() int { return 0 } ; f := func(int, int) { } ; f(g())`:                                                                         "not enough arguments in call to f\n\thave (int)\n\twant (int, int)",
+	`g := func() (int, int, int) { return 0, 0, 0 } ; f := func(int, int) { } ; f(g())`:                                                       "too many arguments in call to f\n\thave (int, int, int)\n\twant (int, int)",
+	`g := func() (int, string) { return 0, "" }; f := func(int) {}; f(g())`:                                                                   "multiple-value g() in single-value context", // TODO(marco): should return "too many arguments in call to f\n\thave (int, string)\n\twant (int)",
+	`g := func() (int, string) { return 0, "" }; f := func(int, int, string) {}; f(g())`:                                                      "not enough arguments in call to f\n\thave (int, string)\n\twant (int, int, string)",
+	`g := func() (string, int) { return "", 0 } ; f := func(int, int) { } ; f(g())`:                                                           `cannot use string as type int in argument to f`,
+	`g := func() (int, int) { return 0, 0 }; f := func(...string) {}; f(g())`:                                                                 "cannot use g() (type int) as type string in argument to f", // TODO(marco): should return "cannot use int value as type string in argument to f",
+	`g := func() int { return 0 }; f := func(int, ...string) {}; f(g())`:                                                                      ok,
+	`g := func() (int, string) { return 0, "" }; f := func(int, ...string) {}; f(g())`:                                                        ok,
+	`g := func() (int, string, string) { return 0, "", "" }; f := func(int, ...string) {}; f(g())`:                                            ok,
+	`g := func() {} ; f := func(int) {}; f(g())`:                                                                                              "g() used as value",
+	`h := func() (int, string) { return 0, "" }; g := func(int, string) (int, string) { return 0, "" }; f := func(int, string) {}; f(g(h()))`: ok,
 
 	// Conversions.
 	`int(5)`:                           `int(5) evaluated but not used`,
