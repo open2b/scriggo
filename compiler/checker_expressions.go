@@ -1708,20 +1708,29 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 
 }
 
-// rewriteSpecialCall rewrite f(g()) into
-// t1, t2, ..., tn = g(); f(t1, t2, ..., tn).
-func (tc *typechecker) rewriteSpecialCall(c *ast.Call) []ast.Expression {
+// expandSpecialCall expands the special call f(g()) into f(t1, t2, ..., tn),
+// where arg is the expression g(). If it is a special call, returns
+// [t1, t2, ..., tn] and true, otherwise returns nil and false.
+func (tc *typechecker) expandSpecialCall(arg ast.Expression) ([]ast.Expression, bool) {
+	c, ok := arg.(*ast.Call)
+	if !ok {
+		return nil, false
+	}
 	tis := tc.checkCallExpression(c)
-	if len(tis) == 1 {
-		tc.compilation.typeInfos[c] = tis[0]
+	switch len(tis) {
+	case 0:
+		panic(tc.errorf(arg, "%s used as value", arg))
+	case 1:
+		return nil, false
+	default:
+		args := make([]ast.Expression, len(tis))
+		for i, ti := range tis {
+			v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
+			tc.compilation.typeInfos[v] = ti
+			args[i] = v
+		}
+		return args, true
 	}
-	args := make([]ast.Expression, len(tis))
-	for i, ti := range tis {
-		v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
-		tc.compilation.typeInfos[v] = ti
-		args[i] = v
-	}
-	return args
 }
 
 // checkCallExpression type checks a call expression, including type
@@ -1769,16 +1778,11 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) []*typeInfo {
 	args := expr.Args
 	numIn := t.Type.NumIn()
 
-	isSpecialCase := false
-
-	if len(args) == 1 && numIn > 1 && !callIsVariadic {
-		if c, ok := args[0].(*ast.Call); ok {
-			isSpecialCase = true
-			args = tc.rewriteSpecialCall(c)
-		}
-	} else if len(args) == 1 && numIn == 1 && funcIsVariadic && !callIsVariadic {
-		if c, ok := args[0].(*ast.Call); ok {
-			args = tc.rewriteSpecialCall(c)
+	special := false
+	if len(args) == 1 && !callIsVariadic && numIn > 0 {
+		var a []ast.Expression
+		if a, special = tc.expandSpecialCall(args[0]); special {
+			args = a
 		}
 	}
 
@@ -1824,33 +1828,17 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) []*typeInfo {
 	var lastIn = numIn - 1
 
 	for i, arg := range args {
-		if i < lastIn || !funcIsVariadic {
+		if i < lastIn || callIsVariadic || !funcIsVariadic {
 			in = t.Type.In(i)
 		} else if i == lastIn {
-			in = t.Type.In(lastIn).Elem()
-		}
-		if isSpecialCase {
-			a := tc.compilation.typeInfos[arg]
-			if err := tc.isAssignableTo(a, arg, in); err != nil {
-				if _, ok := err.(invalidTypeInAssignment); ok {
-					panic(tc.errorf(args[i], "cannot use %s as type %s in argument to %s", a, in, expr.Func))
-				}
-				panic(tc.errorf(expr, "%s", err))
-			}
-			continue
+			in = t.Type.In(i).Elem()
 		}
 		a := tc.checkExpr(arg)
-		if i == lastIn && callIsVariadic {
-			if err := tc.isAssignableTo(a, arg, tc.types.SliceOf(in)); err != nil {
-				if _, ok := err.(invalidTypeInAssignment); ok {
-					panic(tc.errorf(expr, "%s in argument to %s", err, expr.Func))
-				}
-				panic(tc.errorf(expr, "%s", err))
-			}
-			continue
-		}
 		if err := tc.isAssignableTo(a, arg, in); err != nil {
 			if _, ok := err.(invalidTypeInAssignment); ok {
+				if special {
+					err = fmt.Errorf("cannot use %s value as type %s", a, in)
+				}
 				panic(tc.errorf(expr, "%s in argument to %s", err, expr.Func))
 			}
 			if _, ok := err.(nilConversionError); ok {
@@ -1859,8 +1847,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) []*typeInfo {
 			panic(tc.errorf(expr, "%s", err))
 		}
 		if a.Nil() {
-			a := tc.nilOf(in)
-			tc.compilation.typeInfos[expr.Args[i]] = a
+			tc.compilation.typeInfos[expr.Args[i]] = tc.nilOf(in)
 		} else {
 			a.setValue(in)
 		}
