@@ -381,7 +381,7 @@ func main() {
 	if err == nil {
 		t.Fatal("Expectend a LimitExceededError, got nothing")
 	} else {
-		if IsLimitExceeded(err) {
+		if _, ok := err.(*compiler.LimitExceededError); ok {
 			// Test passed.
 		} else {
 			t.Fatalf("Expected a LimitExceededError, got %q (of type %T)", err, err)

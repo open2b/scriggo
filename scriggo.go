@@ -140,27 +140,6 @@ func initPackageLevelVariables(globals []compiler.Global) []reflect.Value {
 	return values
 }
 
-// IsLimitExceeded reports whether the error is a limit exceeded compiler error.
-//
-// These limitations have been arbitrarily added to Scriggo to enhance
-// performances:
-//
-// * 127 registers of a given type (integer, floating point, string or
-// 	general) per function
-// 	* 256 function literal declarations plus unique functions calls per
-// 	function
-// * 256 types available per function
-// * 256 unique predefined functions per function
-// * 16384 integer values per function
-// * 256 string values per function
-// * 16384 floating-point values per function
-// * 256 general values per function
-//
-func IsLimitExceeded(err error) bool {
-	_, ok := err.(*compiler.LimitExceededError)
-	return ok
-}
-
 // Errorf formats according to a format specifier, and returns the string as a
 // value that satisfies error.
 //
