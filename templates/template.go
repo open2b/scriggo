@@ -147,14 +147,6 @@ type Template struct {
 	mdConverter Converter
 }
 
-// CompilerError represents an error returned by the compiler.
-type CompilerError interface {
-	error
-	Position() ast.Position
-	Path() string
-	Message() string
-}
-
 // FormatFS is the interface implemented by a file system that can determine
 // the file format from a path name.
 type FormatFS interface {

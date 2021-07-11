@@ -19,6 +19,14 @@ import (
 )
 
 // CompilerError represents an error returned by the compiler.
+// The types that implement the CompilerError interface are four types of the
+// compiler package
+//
+//  *compiler.SyntaxError
+//  *compiler.CycleError
+//  *compiler.CheckingError
+//  *compiler.LimitExceededError
+//
 type CompilerError interface {
 	error
 	Position() ast.Position
