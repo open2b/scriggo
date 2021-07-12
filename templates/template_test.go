@@ -3220,6 +3220,20 @@ var templateMultiFileCases = map[string]struct {
 	//	expectedBuildErr: "predeclared identifier this not used",
 	//},
 
+	//"Using - this shadowed by a package name at package level": {
+	//	sources: map[string]string{
+	//		"index.html": `
+	//			{% extends "extended.html" %}
+	//			{% import this "imported.html" %}
+	//			{% var V = this.A; using %}content...{% end using %}
+	//			{% macro M %}V is {{ V }}{% end macro %}
+	//		`,
+	//		"extended.html": `{{ M () }}`,
+	//		"imported.html": `{% var A = 5 %}`,
+	//	},
+	//	expectedBuildErr: "predeclared identifier this not used",
+	//},
+
 	//"Using - this shadowed by a 'var' declaration inside a multiline statement": {
 	//	sources: map[string]string{
 	//		"index.html": `

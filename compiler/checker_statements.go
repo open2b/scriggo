@@ -85,6 +85,10 @@ func thisHasBeenShadowed(nodes []ast.Node) bool {
 					return true
 				}
 			}
+		case *ast.Import:
+			if n.Ident != nil && n.Ident.Name == "this" {
+				return true
+			}
 		case *ast.Statements:
 			if thisHasBeenShadowed(n.Nodes) {
 				return true
