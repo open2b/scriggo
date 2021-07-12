@@ -3207,37 +3207,37 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "hey oh, 6",
 	},
 
-	"Using - package level var declaration (5)": {
-		sources: map[string]string{
-			"index.html": `
-				{% extends "extended.html" %}
-				{% var this = "shadowed" %}
-				{% var V = this; using %}content...{% end using %}
-				{% macro M %}V is {{ V }}{% end macro %}
-			`,
-			"extended.html": `{{ M () }}`,
-		},
-		expectedOut: "V is shadowed",
-	},
+	//"Using - package level var declaration (5)": {
+	//	sources: map[string]string{
+	//		"index.html": `
+	//			{% extends "extended.html" %}
+	//			{% var this = "shadowed" %}
+	//			{% var V = this; using %}content...{% end using %}
+	//			{% macro M %}V is {{ V }}{% end macro %}
+	//		`,
+	//		"extended.html": `{{ M () }}`,
+	//	},
+	//	expectedBuildErr: "predeclared identifier this not used",
+	//},
 
-	"Using - this shadowed by a 'var' declaration inside a multiline statement": {
-		sources: map[string]string{
-			"index.html": `
-				{% extends "extended.html" %}
-				{%%
-					var (
-						something = 43982
-						this = "shadowed"
-						somethingElse = 43289
-					)
-				%%}
-				{% var V = this; using %}content...{% end using %}
-				{% macro M %}V is {{ V }}{% end macro %}
-			`,
-			"extended.html": `{{ M () }}`,
-		},
-		expectedOut: "V is shadowed",
-	},
+	//"Using - this shadowed by a 'var' declaration inside a multiline statement": {
+	//	sources: map[string]string{
+	//		"index.html": `
+	//			{% extends "extended.html" %}
+	//			{%%
+	//				var (
+	//					something = 43982
+	//					this = "shadowed"
+	//					somethingElse = 43289
+	//				)
+	//			%%}
+	//			{% var V = this; using %}content...{% end using %}
+	//			{% macro M %}V is {{ V }}{% end macro %}
+	//		`,
+	//		"extended.html": `{{ M () }}`,
+	//	},
+	//	expectedBuildErr: "predeclared identifier this not used",
+	//},
 
 	"Using - the type has been shadowed at package-level": {
 		sources: map[string]string{
