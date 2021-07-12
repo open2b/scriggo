@@ -192,7 +192,8 @@ func TestCheckerTemplateExpressions(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{scope}
 			}
-			tc := newTypechecker(newCompilation(), "", options, nil, nil)
+			compilation := newCompilation()
+			tc := newTypechecker(compilation, "", options, nil, nil)
 			tc.scopes = scopes
 			tc.enterScope()
 			ti := tc.checkExpr(node)
@@ -203,7 +204,7 @@ func TestCheckerTemplateExpressions(t *testing.T) {
 					t.Logf("\nUnexpected:\n%s\nExpected:\n%s\n", dumpTypeInfo(ti), dumpTypeInfo(expr.ti))
 				}
 			}
-			err = tc.close()
+			err = compilation.close(tc)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -275,12 +276,13 @@ func TestCheckerTemplateExpressionErrors(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{scope}
 			}
-			tc := newTypechecker(newCompilation(), "", options, nil, nil)
+			compilation := newCompilation()
+			tc := newTypechecker(compilation, "", options, nil, nil)
 			tc.scopes = scopes
 			tc.enterScope()
 			ti := tc.checkExpr(node)
 			t.Errorf("source: %s, unexpected %s, expecting error %q\n", expr.src, ti, expr.err)
-			err := tc.close()
+			err := compilation.close(tc)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -7,6 +7,7 @@
 package compiler
 
 import (
+	"sort"
 	"strconv"
 
 	"github.com/open2b/scriggo/compiler/ast"
@@ -106,4 +107,32 @@ func (compilation *compilation) thisIncreaseIndex() {
 // thisCurrentName returns the current name of the 'this' identifier.
 func (compilation *compilation) thisCurrentName() string {
 	return "$this" + strconv.Itoa(compilation.currentThisIndex)
+}
+
+// close closes a compilation, using tc to report any type checking error
+// encountered during the closing.
+func (compilation *compilation) close(tc *typechecker) error {
+	thisNames := make([]string, 0, len(compilation.thisToUsingData))
+	for name := range compilation.thisToUsingData {
+		thisNames = append(thisNames, name)
+	}
+	sort.Strings(thisNames)
+	for _, thisName := range thisNames {
+		ud := compilation.thisToUsingData[thisName]
+		if !ud.used {
+			return tc.errorf(ud.pos, "predeclared identifier this not used")
+		}
+		if !ud.toBeEmitted {
+			varDecl := ud.thisDeclaration
+			if len(varDecl.Lhs) != 1 || len(varDecl.Rhs) != 1 {
+				panic("BUG: unexpected")
+			}
+			lh := ast.NewIdentifier(nil, "_")
+			rh := ast.NewBasicLiteral(nil, ast.IntLiteral, "0")
+			varDecl.Lhs = []*ast.Identifier{lh}
+			varDecl.Rhs = []ast.Expression{rh}
+			tc.checkNodes([]ast.Node{varDecl})
+		}
+	}
+	return nil
 }

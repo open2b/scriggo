@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"sort"
 
 	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/compiler/types"
@@ -118,7 +117,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 				mainPkgInfo.IndirectVars[k] = v
 			}
 		}
-		err = tc.close()
+		err = compilation.close(tc)
 		if err != nil {
 			return nil, err
 		}
@@ -134,7 +133,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 	mainPkgInfo := &packageInfo{}
 	mainPkgInfo.IndirectVars = tc.compilation.indirectVars
 	mainPkgInfo.TypeInfos = tc.compilation.typeInfos
-	err = tc.close()
+	err = compilation.close(tc)
 	if err != nil {
 		return nil, err
 	}
@@ -649,34 +648,6 @@ func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...inte
 		err: fmt.Errorf(format, args...),
 	}
 	return err
-}
-
-// close closes the type checker.
-// May return a *CheckingError.
-func (tc *typechecker) close() error {
-	thisNames := make([]string, 0, len(tc.compilation.thisToUsingData))
-	for name := range tc.compilation.thisToUsingData {
-		thisNames = append(thisNames, name)
-	}
-	sort.Strings(thisNames)
-	for _, thisName := range thisNames {
-		ud := tc.compilation.thisToUsingData[thisName]
-		if !ud.used {
-			return tc.errorf(ud.pos, "predeclared identifier this not used")
-		}
-		if !ud.toBeEmitted {
-			varDecl := ud.thisDeclaration
-			if len(varDecl.Lhs) != 1 || len(varDecl.Rhs) != 1 {
-				panic("BUG: unexpected")
-			}
-			lh := ast.NewIdentifier(nil, "_")
-			rh := ast.NewBasicLiteral(nil, ast.IntLiteral, "0")
-			varDecl.Lhs = []*ast.Identifier{lh}
-			varDecl.Rhs = []ast.Expression{rh}
-			tc.checkNodes([]ast.Node{varDecl})
-		}
-	}
-	return nil
 }
 
 type mapPackage struct {

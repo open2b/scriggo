@@ -589,7 +589,8 @@ func TestCheckerExpressions(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{scope}
 			}
-			tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil, nil)
+			compilation := newCompilation()
+			tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
 			tc.scopes = scopes
 			tc.enterScope()
 			ti := tc.checkExpr(node)
@@ -600,7 +601,7 @@ func TestCheckerExpressions(t *testing.T) {
 					t.Logf("\nUnexpected:\n%s\nExpected:\n%s\n", dumpTypeInfo(ti), dumpTypeInfo(expr.ti))
 				}
 			}
-			err = tc.close()
+			err = compilation.close(tc)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -686,12 +687,13 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{scope}
 			}
-			tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil, nil)
+			compilation := newCompilation()
+			tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
 			tc.scopes = scopes
 			tc.enterScope()
 			ti := tc.checkExpr(node)
 			t.Errorf("source: %s, unexpected %s, expecting error %q\n", expr.src, ti, expr.err)
-			err := tc.close()
+			err := compilation.close(tc)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1681,12 +1683,13 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			tc := newTypechecker(newCompilation(), "", checkerOptions{mod: programMod}, nil, nil)
+			compilation := newCompilation()
+			tc := newTypechecker(compilation, "", checkerOptions{mod: programMod}, nil, nil)
 			tc.scopes = append(tc.scopes, scope)
 			tc.enterScope()
 			tree.Nodes = tc.checkNodes(tree.Nodes)
 			tc.exitScope()
-			err = tc.close()
+			err = compilation.close(tc)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2195,7 +2198,8 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 		"[]T{x, x, x, 9: x}": 9,
 		"[]T{x, 9: x, x, x}": 11,
 	}
-	tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil, nil)
+	compilation := newCompilation()
+	tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
 	for src, expected := range cases {
 		tree, err := parseSource([]byte(src), true)
 		if err != nil {
@@ -2206,7 +2210,7 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 			t.Errorf("src '%s': expected: %v, got: %v", src, expected, got)
 		}
 	}
-	err := tc.close()
+	err := compilation.close(tc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2273,7 +2277,8 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 		{x: tiUntypedIntConst("10"), T: byteType, assignable: true},
 		// {x: tiUntypedIntConst("300"), T: byteType, assignable: false},
 	}
-	tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil, nil)
+	compilation := newCompilation()
+	tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
 	for _, c := range cases {
 		err := tc.isAssignableTo(c.x, nil, c.T)
 		if c.assignable && err != nil {
@@ -2283,7 +2288,7 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 			t.Errorf("%s should not be assignable to %s, but isAssignableTo not returned errors", c.x, c.T)
 		}
 	}
-	err := tc.close()
+	err := compilation.close(tc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2316,7 +2321,8 @@ func TestFunctionUpVars(t *testing.T) {
 		`: {"A"},
 	}
 	for src, expected := range cases {
-		tc := newTypechecker(newCompilation(), "", checkerOptions{}, nil, nil)
+		compilation := newCompilation()
+		tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
 		tc.enterScope()
 		tree, err := parseSource([]byte(src), true)
 		if err != nil {
@@ -2337,7 +2343,7 @@ func TestFunctionUpVars(t *testing.T) {
 				t.Errorf("bad upvars for src: '%s': expected: %s, got: %s", src, expected, got)
 			}
 		}
-		err = tc.close()
+		err = compilation.close(tc)
 		if err != nil {
 			t.Fatal(err)
 		}
