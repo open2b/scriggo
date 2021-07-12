@@ -3253,6 +3253,29 @@ var templateMultiFileCases = map[string]struct {
 	//	expectedBuildErr: "predeclared identifier this not used",
 	//},
 
+	// TODO: this test panics the type checker.
+	//"Nested using statements": {
+	//	sources: map[string]string{
+	//		"index.html": `
+	//            {% var f func(html) html %}
+	//            {% show f(this); using %}
+	//            2 {% f = this; using macro(s html) html %}1 {{ s }} 4{% end %} 3
+	//            {% end %}
+	//		`,
+	//	},
+	//	expectedOut: "1 \n                2  3                \n 4",
+	//},
+
+	// TODO: this test fails because this has type 'macro(html) string' instead of 'macro(html) html'.
+	//"Nested using statements": {
+	//	sources: map[string]string{
+	//		"index.html": `
+	//           {% var f func(html) html %}
+	//           {% show f(this); using %}{% f = this; using macro(s html) %}{% end %}{% end %}`,
+	//	},
+	//	expectedOut: "",
+	//},
+
 	"Using - the type has been shadowed at package-level": {
 		sources: map[string]string{
 			"index.html": `{% import "imported.html" %}{{ A }}`,
