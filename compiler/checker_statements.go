@@ -1336,10 +1336,10 @@ func (tc *typechecker) explodeUsingStatement(using *ast.Using, thisIdent string)
 		this = ast.NewCall(nil,
 			ast.NewFunc(nil, nil,
 				ast.NewFuncType(nil, true, nil, []*ast.Parameter{ast.NewParameter(nil, typ)}, false),
-				using.Body, false, 0),
+				using.Body, false, using.Format),
 			nil, false)
 	case *ast.FuncType:
-		this = ast.NewFunc(nil, nil, typ, using.Body, false, 0)
+		this = ast.NewFunc(nil, nil, typ, using.Body, false, using.Format)
 	default:
 		panic("BUG: the parser should not allow this")
 	}

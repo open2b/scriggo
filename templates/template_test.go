@@ -3266,16 +3266,6 @@ var templateMultiFileCases = map[string]struct {
 	//	expectedOut: "1 \n                2  3                \n 4",
 	//},
 
-	// TODO: this test fails because this has type 'macro(html) string' instead of 'macro(html) html'.
-	//"Nested using statements": {
-	//	sources: map[string]string{
-	//		"index.html": `
-	//           {% var f func(html) html %}
-	//           {% show f(this); using %}{% f = this; using macro(s html) %}{% end %}{% end %}`,
-	//	},
-	//	expectedOut: "",
-	//},
-
 	"Using - the type has been shadowed at package-level": {
 		sources: map[string]string{
 			"index.html": `{% import "imported.html" %}{{ A }}`,
@@ -3429,7 +3419,7 @@ var templateMultiFileCases = map[string]struct {
 
 	"Using - can assign to 'this', even if it contains a macro": {
 		sources: map[string]string{
-			"index.html": `{% func() { this = func() string { return "x" } }(); using macro() %}content..{% end %}`,
+			"index.html": `{% func() { this = func() html { return "x" } }(); using macro() %}content..{% end %}`,
 		},
 	},
 
@@ -3473,6 +3463,18 @@ var templateMultiFileCases = map[string]struct {
 			`,
 		},
 		expectedBuildErr: `imported.html:3:22: invalid using type html`,
+	},
+
+	"Using - implicit type": {
+		sources: map[string]string{
+			"index.md": `{% var a markdown = this; using %}# Scriggo{% end %}`,
+		},
+	},
+
+	"Using - implicit macro type": {
+		sources: map[string]string{
+			"index.css": `{% var a css = this(); using macro %} div { color: red; }{% end %}`,
+		},
 	},
 }
 
