@@ -53,7 +53,7 @@ func (d *deps) addDepsToGlobal(ident *ast.Identifier, node ast.Node, scopes depS
 	}
 }
 
-// hasThisInItsExpression reports whether the package-level identifier n
+// hasThisInItsExpression reports whether the package-level identifier varLh
 // references to the predeclared identifier 'this' in its corresponding
 // expression.
 func (d *deps) hasThisInItsExpression(varLh *ast.Identifier) bool {

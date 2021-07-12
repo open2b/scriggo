@@ -43,9 +43,8 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 			}
 			tc.compilation.thisIncreaseIndex()
 			thisName := tc.compilation.thisCurrentName()
-			dummyAssignment, statement := tc.explodeUsingStatement(n, thisName)
-			nodes = append(nodes, dummyAssignment)
-			nodes = append(nodes, statement)
+			thisDeclaration, statement := tc.explodeUsingStatement(n, thisName)
+			nodes = append(nodes, thisDeclaration, statement)
 			if thisToDeclarations == nil {
 				thisToDeclarations = map[string][]*ast.Identifier{}
 			}
@@ -724,23 +723,21 @@ nodesLoop:
 			tc.compilation.thisIncreaseIndex()
 			thisName := tc.compilation.thisCurrentName()
 
-			dummyAssignment, statement := tc.explodeUsingStatement(node, thisName)
+			thisDeclaration, statement := tc.explodeUsingStatement(node, thisName)
 
 			// Type check the dummy assignment of the 'using' statement, along
 			// with its content, and transform the tree.
-			dummyNodesPre := []ast.Node{dummyAssignment}
-			dummyNodesPre = tc.checkNodes(dummyNodesPre)
-			nodes = append(nodes[:i], append(dummyNodesPre, nodes[i:]...)...)
-			i += len(dummyNodesPre)
+			nn := tc.checkNodes([]ast.Node{thisDeclaration})
+			nodes = append(nodes[:i], append(nn, nodes[i:]...)...)
+			i += len(nn)
 
 			// Type check the affected statement of the 'using' and transform
 			// the tree.
 			withinStmt := tc.withinUsingAffectedStmt
 			tc.withinUsingAffectedStmt = true
-			dummyNodesPost := []ast.Node{statement}
-			dummyNodesPost = tc.checkNodes(dummyNodesPost)
-			nodes = append(nodes[:i], append(dummyNodesPost, nodes[i+1:]...)...)
-			i += len(dummyNodesPost)
+			nn = tc.checkNodes([]ast.Node{statement})
+			nodes = append(nodes[:i], append(nn, nodes[i+1:]...)...)
+			i += len(nn)
 			tc.withinUsingAffectedStmt = withinStmt
 
 			continue nodesLoop
@@ -1319,7 +1316,7 @@ func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) (string, 
 }
 
 // explodeUsingStatement explodes an 'using' statement.
-func (tc *typechecker) explodeUsingStatement(using *ast.Using, thisName string) (*ast.Var, ast.Node) {
+func (tc *typechecker) explodeUsingStatement(using *ast.Using, thisIdent string) (*ast.Var, ast.Node) {
 
 	// Make the type explicit, if necessary.
 	if using.Type == nil {
@@ -1333,35 +1330,36 @@ func (tc *typechecker) explodeUsingStatement(using *ast.Using, thisName string) 
 		using.Type = ident
 	}
 
-	var thisExpr ast.Expression
-	switch typeExpr := using.Type.(type) {
+	var this ast.Expression
+	switch typ := using.Type.(type) {
 	case *ast.Identifier:
-		dummyFuncType := ast.NewFuncType(nil, true, nil, []*ast.Parameter{
-			ast.NewParameter(nil, typeExpr),
-		}, false)
-		dummyFunc := ast.NewFunc(nil, nil, dummyFuncType, using.Body, false, 0)
-		thisExpr = ast.NewCall(nil, dummyFunc, nil, false)
-	case *ast.FuncType: // macro type.
-		thisExpr = ast.NewFunc(nil, nil, typeExpr, using.Body, false, 0)
+		this = ast.NewCall(nil,
+			ast.NewFunc(nil, nil,
+				ast.NewFuncType(nil, true, nil, []*ast.Parameter{ast.NewParameter(nil, typ)}, false),
+				using.Body, false, 0),
+			nil, false)
+	case *ast.FuncType:
+		this = ast.NewFunc(nil, nil, typ, using.Body, false, 0)
 	default:
 		panic("BUG: the parser should not allow this")
 	}
 
-	dummyAssignment := ast.NewVar(
+	thisDeclaration := ast.NewVar(
 		nil,
-		[]*ast.Identifier{ast.NewIdentifier(nil, thisName)},
+		[]*ast.Identifier{ast.NewIdentifier(nil, thisIdent)},
 		nil,
-		[]ast.Expression{thisExpr},
+		[]ast.Expression{this},
 	)
-
-	if tc.compilation.thisToUsingData == nil {
-		tc.compilation.thisToUsingData = map[string]usingData{}
+	uc := usingCheck{
+		this: thisDeclaration,
+		pos:  using.Position,
+		typ:  using.Type,
 	}
-	tc.compilation.thisToUsingData[thisName] = usingData{
-		thisDeclaration: dummyAssignment,
-		pos:             using.Position,
-		typ:             using.Type,
+	if tc.compilation.thisToUsingCheck == nil {
+		tc.compilation.thisToUsingCheck = map[string]usingCheck{thisIdent: uc}
+	} else {
+		tc.compilation.thisToUsingCheck[thisIdent] = uc
 	}
 
-	return dummyAssignment, using.Statement
+	return thisDeclaration, using.Statement
 }

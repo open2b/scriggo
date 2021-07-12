@@ -117,12 +117,12 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 		if tc.withinUsingAffectedStmt {
 			thisCurrName := tc.compilation.thisCurrentName()
 			ident.Name = thisCurrName
-			ud := tc.compilation.thisToUsingData[thisCurrName]
-			ud.used = true
+			uc := tc.compilation.thisToUsingCheck[thisCurrName]
+			uc.used = true
 			if tc.toBeEmitted {
-				ud.toBeEmitted = true
+				uc.toBeEmitted = true
 			}
-			tc.compilation.thisToUsingData[thisCurrName] = ud
+			tc.compilation.thisToUsingCheck[thisCurrName] = uc
 			ti, _ = tc.lookupScopes(ident.Name, false)
 		} else {
 			// The identifier is the predeclared identifier 'this', but 'this'
@@ -213,12 +213,12 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 
 	// Mark 'this' as used, when 'using' is a package-level statement.
 	if strings.HasPrefix(ident.Name, "$this") {
-		ud := tc.compilation.thisToUsingData[ident.Name]
-		ud.used = true
+		uc := tc.compilation.thisToUsingCheck[ident.Name]
+		uc.used = true
 		if tc.toBeEmitted {
-			ud.toBeEmitted = true
+			uc.toBeEmitted = true
 		}
-		tc.compilation.thisToUsingData[ident.Name] = ud
+		tc.compilation.thisToUsingCheck[ident.Name] = uc
 	}
 
 	// For "." imported packages, mark package as used.
@@ -698,7 +698,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		if expr.Macro {
 			ident := expr.Result[0].Type.(*ast.Identifier)
 			if out[0] != tc.universe[ident.Name].t.Type {
-				for _, ud := range tc.compilation.thisToUsingData {
+				for _, ud := range tc.compilation.thisToUsingCheck {
 					if ud.typ == ident {
 						panic(tc.errorf(ud.pos, "invalid using type %s", ident.Name))
 					}

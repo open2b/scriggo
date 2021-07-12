@@ -51,9 +51,9 @@ type compilation struct {
 	// inconsistent type checks and invalid behaviors.
 	renderImportMacro map[*ast.Tree]renderIR
 
-	// thisToUsingData maps 'this' identifiers ($this0, $this1... ) to their
-	// corresponding usingData.
-	thisToUsingData map[string]usingData
+	// thisToUsingCheck maps 'this' identifiers ($this0, $this1... ) to their
+	// corresponding usingCheck.
+	thisToUsingCheck map[string]usingCheck
 
 	// currentThisIndex is the index used to generate the name of the current
 	// 'this' identifier.
@@ -109,29 +109,27 @@ func (compilation *compilation) thisCurrentName() string {
 	return "$this" + strconv.Itoa(compilation.currentThisIndex)
 }
 
-// close closes a compilation, using tc to report any type checking error
-// encountered during the closing.
-func (compilation *compilation) close(tc *typechecker) error {
-	thisNames := make([]string, 0, len(compilation.thisToUsingData))
-	for name := range compilation.thisToUsingData {
-		thisNames = append(thisNames, name)
+// finalizeUsingStatements finalizes the 'using' statements neutralizing 'this'
+// declarations that should not be emitted. It also returns a type checking
+// error if the 'this' identifier of a 'using' statement is not used.
+func (compilation *compilation) finalizeUsingStatements(tc *typechecker) error {
+	names := make([]string, 0, len(compilation.thisToUsingCheck))
+	for name := range compilation.thisToUsingCheck {
+		names = append(names, name)
 	}
-	sort.Strings(thisNames)
-	for _, thisName := range thisNames {
-		ud := compilation.thisToUsingData[thisName]
-		if !ud.used {
-			return tc.errorf(ud.pos, "predeclared identifier this not used")
+	sort.Strings(names)
+	for _, name := range names {
+		uc := compilation.thisToUsingCheck[name]
+		if !uc.used {
+			return tc.errorf(uc.pos, "predeclared identifier this not used")
 		}
-		if !ud.toBeEmitted {
-			varDecl := ud.thisDeclaration
-			if len(varDecl.Lhs) != 1 || len(varDecl.Rhs) != 1 {
+		if !uc.toBeEmitted {
+			if len(uc.this.Lhs) != 1 || len(uc.this.Rhs) != 1 {
 				panic("BUG: unexpected")
 			}
-			lh := ast.NewIdentifier(nil, "_")
-			rh := ast.NewBasicLiteral(nil, ast.IntLiteral, "0")
-			varDecl.Lhs = []*ast.Identifier{lh}
-			varDecl.Rhs = []ast.Expression{rh}
-			tc.checkNodes([]ast.Node{varDecl})
+			uc.this.Lhs = []*ast.Identifier{ast.NewIdentifier(nil, "_")}
+			uc.this.Rhs = []ast.Expression{ast.NewBasicLiteral(nil, ast.IntLiteral, "0")}
+			tc.checkNodes([]ast.Node{uc.this})
 		}
 	}
 	return nil

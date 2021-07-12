@@ -117,7 +117,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 				mainPkgInfo.IndirectVars[k] = v
 			}
 		}
-		err = compilation.close(tc)
+		err = compilation.finalizeUsingStatements(tc)
 		if err != nil {
 			return nil, err
 		}
@@ -133,7 +133,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 	mainPkgInfo := &packageInfo{}
 	mainPkgInfo.IndirectVars = tc.compilation.indirectVars
 	mainPkgInfo.TypeInfos = tc.compilation.typeInfos
-	err = compilation.close(tc)
+	err = compilation.finalizeUsingStatements(tc)
 	if err != nil {
 		return nil, err
 	}
@@ -276,18 +276,17 @@ type typechecker struct {
 	toBeEmitted bool
 }
 
-// usingData holds information about an 'using' statement.
-type usingData struct {
-	// used reports whether the 'this' identifier related to this 'using' is
-	// used.
+// usingCheck contains information about the type checking of a 'using'
+// statement.
+type usingCheck struct {
+	// used reports whether the 'this' identifier is used.
 	used bool
-	// toBeEmitted reports whether the code that initializes the 'this'
-	// identifier should be emitted or not, depending on whether 'this' is
-	// still used after defaults have been resolved.
+	// toBeEmitted reports whether the declaration of the 'this' identifier
+	// should be emitted, depending on whether 'this' is still used after
+	// defaults have been resolved.
 	toBeEmitted bool
-	// thisDeclaration is the 'var' declaration that declares the 'this'
-	// identifier.
-	thisDeclaration *ast.Var
+	// this is the declaration of the 'this' identifier.
+	this *ast.Var
 	// pos is the position of the 'using' statement.
 	pos *ast.Position
 	// typ is type of the 'this' predeclared identifier, as denoted in the
