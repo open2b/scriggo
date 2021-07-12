@@ -3247,7 +3247,7 @@ var templateMultiFileCases = map[string]struct {
 				{% var A = this; using html %}OPS{% end %}
 			`,
 		},
-		expectedBuildErr: `invalid macro result type html`,
+		expectedBuildErr: `invalid using type html`,
 	},
 
 	"Using - expression statement": {
@@ -3394,6 +3394,48 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `{% func() { this = func() string { return "x" } }(); using macro() %}content..{% end %}`,
 		},
+	},
+
+	"Using - bad type (is a variable instead of a format type) (block)": {
+		sources: map[string]string{
+			"index.html": `
+				{% var html = 32 %}
+				{% var _ = this; using html %}...{% end using %}
+			`,
+		},
+		expectedBuildErr: "html is not a type",
+	},
+
+	"Using - bad type (is a variable instead of a format type) (package-level)": {
+		sources: map[string]string{
+			"index.html": `{% import "imported.html" %}`,
+			"imported.html": `
+				{% var html = 32 %}
+				{% var _ = this; using html %}...{% end using %}
+			`,
+		},
+		expectedBuildErr: "html is not a type",
+	},
+
+	"Using - bad type (is a type but not a format type) (block)": {
+		sources: map[string]string{
+			"index.html": `
+				{% type html int %}
+				{% var _ = this; using html %}...{% end using %}
+			`,
+		},
+		expectedBuildErr: `index.html:3:22: invalid using type html`,
+	},
+
+	"Using - bad type (is a type but not a format type) (package-level)": {
+		sources: map[string]string{
+			"index.html": `{% import "imported.html" %}`,
+			"imported.html": `
+				{% type html int %}
+				{% var _ = this; using html %}...{% end using %}
+			`,
+		},
+		expectedBuildErr: `imported.html:3:22: invalid using type html`,
 	},
 }
 

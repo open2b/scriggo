@@ -291,6 +291,9 @@ type usingData struct {
 	thisDeclaration *ast.Var
 	// pos is the position of the 'using' statement.
 	pos *ast.Position
+	// typ is type of the 'this' predeclared identifier, as denoted in the
+	// 'using' statement (implicitly or explicitly).
+	typ ast.Expression
 }
 
 // newTypechecker creates a new type checker. A global scope may be provided
