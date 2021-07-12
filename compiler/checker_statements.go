@@ -1355,7 +1355,7 @@ func (tc *typechecker) explodeUsingStatement(using *ast.Using, thisName string) 
 	}
 	tc.compilation.thisToUsingData[thisName] = usingData{
 		thisDeclaration: dummyAssignment,
-		notUsedPosition: using.Position,
+		pos:             using.Position,
 	}
 
 	return dummyAssignment, using.Statement

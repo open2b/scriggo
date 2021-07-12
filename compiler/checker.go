@@ -289,9 +289,8 @@ type usingData struct {
 	// thisDeclaration is the 'var' declaration that declares the 'this'
 	// identifier.
 	thisDeclaration *ast.Var
-	// notUsedPosition is the position of the error that should be returned if
-	// the 'this' identifier related to this 'using' is not used.
-	notUsedPosition *ast.Position
+	// pos is the position of the 'using' statement.
+	pos *ast.Position
 }
 
 // newTypechecker creates a new type checker. A global scope may be provided
@@ -660,7 +659,7 @@ func (tc *typechecker) close() error {
 	for _, thisName := range thisNames {
 		ud := tc.compilation.thisToUsingData[thisName]
 		if !ud.used {
-			return tc.errorf(ud.notUsedPosition, "predeclared identifier this not used")
+			return tc.errorf(ud.pos, "predeclared identifier this not used")
 		}
 		if !ud.toBeEmitted {
 			varDecl := ud.thisDeclaration
