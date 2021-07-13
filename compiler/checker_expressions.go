@@ -153,31 +153,25 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 				// the innermost (which is the function that refers to the
 				// identifier).
 				if nestedFuncs := tc.nestedFuncs(); len(nestedFuncs) > 0 {
-					// Se the Upvar if:
-					//   * the current function is a function literal in a template
-					//   * the current function is a function in a script
-					funcLiteralInTemplate := tc.opts.mod == templateMod && nestedFuncs[0].Ident == nil
-					if funcLiteralInTemplate || tc.opts.mod == scriptMod {
-						upvar := ast.Upvar{
-							PredefinedName:      ident.Name,
-							PredefinedPkg:       ident.Name,
-							PredefinedValue:     rv,
-							PredefinedValueType: ti.Type,
-							Index:               -1,
+					upvar := ast.Upvar{
+						PredefinedName:      ident.Name,
+						PredefinedPkg:       ident.Name,
+						PredefinedValue:     rv,
+						PredefinedValueType: ti.Type,
+						Index:               -1,
+					}
+					for _, fn := range nestedFuncs {
+						add := true
+						for i, uv := range fn.Upvars {
+							if uv.PredefinedValue == upvar.PredefinedValue {
+								upvar.Index = int16(i)
+								add = false
+								break
+							}
 						}
-						for _, fn := range nestedFuncs {
-							add := true
-							for i, uv := range fn.Upvars {
-								if uv.PredefinedValue == upvar.PredefinedValue {
-									upvar.Index = int16(i)
-									add = false
-									break
-								}
-							}
-							if add {
-								upvar.Index = int16(len(fn.Upvars) - 1)
-								fn.Upvars = append(fn.Upvars, upvar)
-							}
+						if add {
+							upvar.Index = int16(len(fn.Upvars) - 1)
+							fn.Upvars = append(fn.Upvars, upvar)
 						}
 					}
 				}

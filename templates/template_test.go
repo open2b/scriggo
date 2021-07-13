@@ -2949,6 +2949,116 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedBuildErr: `index.html:1:31: syntax error: unexpected a, expecting declaration statement`,
 	},
+
+	"https://github.com/open2b/scriggo/issues/768 (1)": {
+		sources: map[string]string{
+			"index.html":   `{% _ = render "partial.html" %}`,
+			"partial.html": `{% macro m %}{% _ = page %}{% end %}{{ m() }}`,
+		},
+		main: scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"page": &([]string{"a"})[0],
+			},
+		},
+		expectedOut: "",
+	},
+
+	"https://github.com/open2b/scriggo/issues/768 (2)": {
+		sources: map[string]string{
+			"index.html":    `{% import "imported.html" %}{% r := M() %}{{ r }}`,
+			"imported.html": `{% macro M %}{% _ = global %}{% end %}`,
+		},
+		main: scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"global": &([]string{"a"})[0],
+			},
+		},
+	},
+
+	"https://github.com/open2b/scriggo/issues/768 (3)": {
+		sources: map[string]string{
+			"index.html":    `{% import "imported.html" %}{{ M() }}`,
+			"imported.html": `{% macro M %}{% macro m %}{% _ = global %}{% end %}{{ m() }}{% end %}`,
+		},
+		main: scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"global": &([]int{0})[0],
+			},
+		},
+	},
+
+	"https://github.com/open2b/scriggo/issues/768 (4)": {
+		sources: map[string]string{
+			"index.html":    `{% import "imported.html" %}{{ M() }}`,
+			"imported.html": `{% macro M %}{% f := func() { _ = global } %}{% f() %}{% end %}`,
+		},
+		main: scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"global": &([]int{0})[0],
+			},
+		},
+	},
+
+	"https://github.com/open2b/scriggo/issues/768 (5)": {
+		sources: map[string]string{
+			"index.html": `{% import "imported.html" %}{% M() %}`,
+			"imported.html": `{% var M = func() {
+				f := func() { _ = global }
+				f()
+			} %}`,
+		},
+		main: scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"global": &([]int{0})[0],
+			},
+		},
+	},
+
+	"https://github.com/open2b/scriggo/issues/768 (6)": {
+		sources: map[string]string{
+			"index.html":    `{% import "imported.html" %}{{ M() }}`,
+			"imported.html": `{% macro M %}{% func() { _ = global }() %}{% end %}`,
+		},
+		main: scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"global": &([]int{0})[0],
+			},
+		},
+	},
+
+	"https://github.com/open2b/scriggo/issues/768 (7)": {
+		sources: map[string]string{
+			"index.html":   `{{ render "partial.html" }}`,
+			"partial.html": `{% macro m %}{{ page }}{% end %}{{ m() }}`,
+		},
+		main: scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"page": &([]string{"a"})[0],
+			},
+		},
+		expectedOut: `a`,
+	},
+
+	"https://github.com/open2b/scriggo/issues/768 (8)": {
+		sources: map[string]string{
+			"index.html":    `{% import "imported.html" %}{{ M() }}`,
+			"imported.html": `{% macro M %}{{ 2 * func() int { return global }() }}{% end %}`,
+		},
+		main: scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"global": &([]int{21})[0],
+			},
+		},
+		expectedOut: `42`,
+	},
 }
 
 var structWithUnexportedFields = &struct {
