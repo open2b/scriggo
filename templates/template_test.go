@@ -3207,51 +3207,63 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "hey oh, 6",
 	},
 
-	//"Using - package level var declaration (5)": {
-	//	sources: map[string]string{
-	//		"index.html": `
-	//			{% extends "extended.html" %}
-	//			{% var this = "shadowed" %}
-	//			{% var V = this; using %}content...{% end using %}
-	//			{% macro M %}V is {{ V }}{% end macro %}
-	//		`,
-	//		"extended.html": `{{ M () }}`,
-	//	},
-	//	expectedBuildErr: "predeclared identifier this not used",
-	//},
+	"Using - package level var declaration (5)": {
+		sources: map[string]string{
+			"index.html": `
+				{% extends "extended.html" %}
+				{% var this = "shadowed" %}
+				{% var V = this; using %}content...{% end using %}
+				{% macro M %}V is {{ V }}{% end macro %}
+			`,
+			"extended.html": `{{ M () }}`,
+		},
+		expectedBuildErr: "predeclared identifier this not used",
+	},
 
-	//"Using - this shadowed by a package name at package level": {
-	//	sources: map[string]string{
-	//		"index.html": `
-	//			{% extends "extended.html" %}
-	//			{% import this "imported.html" %}
-	//			{% var V = this.A; using %}content...{% end using %}
-	//			{% macro M %}V is {{ V }}{% end macro %}
-	//		`,
-	//		"extended.html": `{{ M () }}`,
-	//		"imported.html": `{% var A = 5 %}`,
-	//	},
-	//	expectedBuildErr: "predeclared identifier this not used",
-	//},
+	"Using - package level var declaration (5) - simplified": {
+		sources: map[string]string{
+			"index.html": `
+				{% extends "extended.html" %}
+				{% var this = "shadowed" %}
+				{% var _ = this; using %}{% end using %}
+			`,
+			"extended.html": ``,
+		},
+		expectedBuildErr: "predeclared identifier this not used",
+	},
 
-	//"Using - this shadowed by a 'var' declaration inside a multiline statement": {
-	//	sources: map[string]string{
-	//		"index.html": `
-	//			{% extends "extended.html" %}
-	//			{%%
-	//				var (
-	//					something = 43982
-	//					this = "shadowed"
-	//					somethingElse = 43289
-	//				)
-	//			%%}
-	//			{% var V = this; using %}content...{% end using %}
-	//			{% macro M %}V is {{ V }}{% end macro %}
-	//		`,
-	//		"extended.html": `{{ M () }}`,
-	//	},
-	//	expectedBuildErr: "predeclared identifier this not used",
-	//},
+	"Using - this shadowed by a package name at package level": {
+		sources: map[string]string{
+			"index.html": `
+				{% extends "extended.html" %}
+				{% import this "imported.html" %}
+				{% var V = this.A; using %}content...{% end using %}
+				{% macro M %}V is {{ V }}{% end macro %}
+			`,
+			"extended.html": `{{ M () }}`,
+			"imported.html": `{% var A = 5 %}`,
+		},
+		expectedBuildErr: "predeclared identifier this not used",
+	},
+
+	"Using - this shadowed by a 'var' declaration inside a multiline statement": {
+		sources: map[string]string{
+			"index.html": `
+				{% extends "extended.html" %}
+				{%%
+					var (
+						something = 43982
+						this = "shadowed"
+						somethingElse = 43289
+					)
+				%%}
+				{% var V = this; using %}content...{% end using %}
+				{% macro M %}V is {{ V }}{% end macro %}
+			`,
+			"extended.html": `{{ M () }}`,
+		},
+		expectedBuildErr: "predeclared identifier this not used",
+	},
 
 	// TODO: this test panics the type checker.
 	//"Nested using statements": {

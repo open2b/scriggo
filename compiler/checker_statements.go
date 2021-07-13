@@ -37,10 +37,6 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 		case *ast.Statements:
 			nodes = append(nodes, n.Nodes...)
 		case *ast.Using:
-			if thisHasBeenShadowed(tree.Nodes) {
-				nodes = append(nodes, n.Statement)
-				continue
-			}
 			tc.compilation.thisIncreaseIndex()
 			thisName := tc.compilation.thisCurrentName()
 			thisDeclaration, statement := tc.explodeUsingStatement(n, thisName)
@@ -48,7 +44,11 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 			if thisToDeclarations == nil {
 				thisToDeclarations = map[string][]*ast.Identifier{}
 			}
-			thisToDeclarations[thisName] = n.Statement.(*ast.Var).Lhs
+			if thisHasBeenShadowed(tree.Nodes) {
+				thisToDeclarations[thisName] = nil
+			} else {
+				thisToDeclarations[thisName] = n.Statement.(*ast.Var).Lhs
+			}
 		default:
 			panic(fmt.Sprintf("BUG: unexpected node %s", n))
 		}
