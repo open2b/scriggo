@@ -3451,7 +3451,7 @@ var templateMultiFileCases = map[string]struct {
 				{% var _ = this; using html %}...{% end using %}
 			`,
 		},
-		expectedBuildErr: `index.html:3:22: invalid using type html`,
+		expectedBuildErr: `index.html:3:28: invalid using type html`,
 	},
 
 	"Using - bad type (is a type but not a format type) (package-level)": {
@@ -3462,7 +3462,7 @@ var templateMultiFileCases = map[string]struct {
 				{% var _ = this; using html %}...{% end using %}
 			`,
 		},
-		expectedBuildErr: `imported.html:3:22: invalid using type html`,
+		expectedBuildErr: `imported.html:3:28: invalid using type html`,
 	},
 
 	"Using - implicit type": {

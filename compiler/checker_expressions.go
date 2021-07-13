@@ -699,7 +699,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			if out[0] != tc.universe[ident.Name].t.Type {
 				for _, ud := range tc.compilation.thisToUsingCheck {
 					if ud.typ == ident {
-						panic(tc.errorf(ud.pos, "invalid using type %s", ident.Name))
+						panic(tc.errorf(ident, "invalid using type %s", ident.Name))
 					}
 				}
 				panic(tc.errorf(ident, "invalid macro result type %s", ident.Name))
