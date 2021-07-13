@@ -115,7 +115,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 	// statement.
 	if found && ti == universe["this"].t {
 		if tc.withinUsingAffectedStmt {
-			ident.Name = tc.compilation.thisCurrentName()
+			ident.Name = tc.compilation.thisName
 			uc := tc.compilation.thisToUsingCheck[ident.Name]
 			uc.used = true
 			if tc.toBeEmitted {
@@ -123,6 +123,9 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 			}
 			tc.compilation.thisToUsingCheck[ident.Name] = uc
 			ti, _ = tc.lookupScopes(ident.Name, false)
+			if ti == nil {
+				panic("BUG: unexpected 'ti == nil'")
+			}
 		} else {
 			// The identifier is the predeclared identifier 'this', but 'this'
 			// is not defined outside an 'using' statement so it is considered

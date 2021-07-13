@@ -37,8 +37,7 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 		case *ast.Statements:
 			nodes = append(nodes, n.Nodes...)
 		case *ast.Using:
-			tc.compilation.thisIncreaseIndex()
-			thisName := tc.compilation.thisCurrentName()
+			thisName := tc.compilation.generateThisName()
 			thisDeclaration, statement := tc.explodeUsingStatement(n, thisName)
 			nodes = append(nodes, thisDeclaration, statement)
 			if thisToDeclarations == nil {
@@ -720,8 +719,7 @@ nodesLoop:
 
 		case *ast.Using:
 
-			tc.compilation.thisIncreaseIndex()
-			thisName := tc.compilation.thisCurrentName()
+			thisName := tc.compilation.generateThisName()
 
 			thisDeclaration, statement := tc.explodeUsingStatement(node, thisName)
 
@@ -735,10 +733,13 @@ nodesLoop:
 			// the tree.
 			withinStmt := tc.withinUsingAffectedStmt
 			tc.withinUsingAffectedStmt = true
+			backupThisName := tc.compilation.thisName
+			tc.compilation.thisName = thisName
 			nn = tc.checkNodes([]ast.Node{statement})
 			nodes = append(nodes[:i], append(nn, nodes[i+1:]...)...)
 			i += len(nn)
 			tc.withinUsingAffectedStmt = withinStmt
+			tc.compilation.thisName = backupThisName
 
 			continue nodesLoop
 

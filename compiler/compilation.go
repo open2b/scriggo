@@ -57,7 +57,13 @@ type compilation struct {
 
 	// currentThisIndex is the index used to generate the name of the current
 	// 'this' identifier.
+	// After initialization, it should be accessed exclusively by the method
+	// 'generateThisName'.
 	currentThisIndex int
+
+	// thisName is the current name of the predeclared 'this' identifier that
+	// should be used in tree transformations, something like '$this0'.
+	thisName string
 }
 
 type renderIR struct {
@@ -98,14 +104,10 @@ func (compilation *compilation) UniqueIndex(path string) int {
 	return max + 1
 }
 
-// thisIncreaseIndex increases the index used in the name of the 'this'
-// identifier, in order to make it unique.
-func (compilation *compilation) thisIncreaseIndex() {
+// generateThisName generates a new name that can be used when transforming the
+// predeclared identifier 'this'.
+func (compilation *compilation) generateThisName() string {
 	compilation.currentThisIndex++
-}
-
-// thisCurrentName returns the current name of the 'this' identifier.
-func (compilation *compilation) thisCurrentName() string {
 	return "$this" + strconv.Itoa(compilation.currentThisIndex)
 }
 

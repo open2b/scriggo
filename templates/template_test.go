@@ -3265,7 +3265,7 @@ var templateMultiFileCases = map[string]struct {
 		expectedBuildErr: "predeclared identifier this not used",
 	},
 
-	// TODO: this test panics the type checker.
+	// TODO: this test panics the runtime.
 	//"Nested using statements": {
 	//	sources: map[string]string{
 	//		"index.html": `
@@ -3277,6 +3277,52 @@ var templateMultiFileCases = map[string]struct {
 	//	},
 	//	expectedOut: "1 \n                2  3                \n 4",
 	//},
+
+	"Using - nested using statements (1)": {
+		sources: map[string]string{
+			"index.html": `
+	            {% _ = this; using %}
+	      	    	{% _ = this; using %}{% end %}
+	            {% end %}
+			`,
+		},
+		expectedOut: "\n\t\t\t",
+	},
+
+	"Using - nested using statements (2)": {
+		sources: map[string]string{
+			"index.html": `
+	            {% show this; using %}
+					External using-start
+	      	    	{% show this; using %}internal using{% end %}
+					External using-end
+	            {% end %}
+			`,
+		},
+		expectedOut: "\n\t            \n\t\t\t\t\tExternal using-start\n\t      \t    \tinternal using\n\t\t\t\t\tExternal using-end\n\t\t\t",
+	},
+
+	"Using - nested using statements (3)": {
+		sources: map[string]string{
+			"index.html": `
+	            {% _ = this; using %}
+	      	    	{% _ = this; using %}{% end %}
+					{% _ = this; using %}{% end %}
+	            {% end %}
+				{% _ = this; using %}
+	      	    	{% _ = this; using %}
+					  {% _ = this; using %}{% end %}
+					  {% _ = this; using %}{% end %}
+					{% end %}
+					{% _ = this; using %}{% end %}
+	            {% end %}
+				{% _ = this; using %}
+	      	    	{% _ = this; using %}{% end %}
+	            {% end %}
+			`,
+		},
+		expectedOut: "\n\t\t\t",
+	},
 
 	"Using - the type has been shadowed at package-level": {
 		sources: map[string]string{
