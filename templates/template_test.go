@@ -3265,31 +3265,30 @@ var templateMultiFileCases = map[string]struct {
 		expectedBuildErr: "predeclared identifier this not used",
 	},
 
-	// TODO: this test panics the runtime.
-	// "Using - assigning from using body": {
-	// 	sources: map[string]string{
-	// 		"index.html": `
-	//             {% f := func() html { return html("") } %}
-	//             {% _ = this; using %}
-	//         		{% f = this; using macro() html %}x{% end %}
-	//             {% end %}
-	// 			{{ f() }}
-	// 		`,
-	// 	},
-	// },
+	"Using - assigning from using body": {
+		sources: map[string]string{
+			"index.html": `
+	            {% f := func() html { return html("") } %}
+	            {% _ = this; using %}
+	        		{% f = this; using macro() html %}x{% end %}
+	            {% end %}
+				{{ f() }}
+			`,
+		},
+		expectedOut: "\n\t\t\t\tx\n\t\t\t",
+	},
 
-	// TODO: this test panics the runtime.
-	//"Nested using statements": {
-	//	sources: map[string]string{
-	//		"index.html": `
-	//            {% var f func(html) html %}
-	//            {% show f(this); using %}
-	//            2 {% f = this; using macro(s html) html %}1 {{ s }} 4{% end %} 3
-	//            {% end %}
-	//		`,
-	//	},
-	//	expectedOut: "1 \n                2  3                \n 4",
-	//},
+	"Nested using statements": {
+		sources: map[string]string{
+			"index.html": `
+	           {% var f func(html) html %}
+	           {% show f(this); using %}
+	           2 {% f = this; using macro(s html) html %}1 {{ s }} 4{% end %} 3
+	           {% end %}
+			`,
+		},
+		expectedOut: "\n\t           \n\t           1 \n\t           2  3\n 4\t\t\t",
+	},
 
 	"Using - nested using statements (1)": {
 		sources: map[string]string{
