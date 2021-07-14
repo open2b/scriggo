@@ -25,7 +25,72 @@ type scopeElement struct {
 	decl *ast.Identifier
 }
 
+// scope represents a scope.
 type scope map[string]scopeElement
+
+// scopes represents the universe block, global block, file block, package
+// block and local scopes.
+//
+//   0  is the universe block
+//   1  is the global block, nil for programs.
+//   2  is the file and package block.
+//   3+ are the local scopes.
+//
+type scopes []scope
+
+// newScopes returns a new scopes given universe and global blocks.
+func newScopes(universe, global scope) scopes {
+	return scopes{universe, global, {}}
+}
+
+// universe returns the type info of the given name in the universe block and
+// true. If the name does not exist, returns nil and false.
+func (s scopes) universe(name string) (*typeInfo, bool) {
+	elem, ok := s[0][name]
+	return elem.t, ok
+}
+
+// global returns the type info of the given name in the global block and
+// true. If the name does not exist, returns nil and false.
+func (s scopes) global(name string) (*typeInfo, bool) {
+	elem, ok := s[1][name]
+	return elem.t, ok
+}
+
+// globals returns the global scope.
+func (s scopes) globals() scope {
+	return s[1]
+}
+
+// filePackage returns the type info of the given name in the file/package
+// block and true. If the name does not exist, returns nil and false.
+func (s scopes) filePackage(name string) (*typeInfo, bool) {
+	elem, ok := s[2][name]
+	return elem.t, ok
+}
+
+// filePackageNames returns the names in the file/package block.
+func (s scopes) filePackageNames() []string {
+	names := make([]string, len(s[2]))
+	i := 0
+	for n := range s[2] {
+		names[i] = n
+		i++
+	}
+	return names
+}
+
+// isImport reports whether name is in the file/package block and is imported
+// from a package or a template file.
+func (s scopes) isImported(name string) bool {
+	elem, ok := s[2][name]
+	return ok && elem.decl == nil
+}
+
+// setFilePackage sets name in the file/package block with type info ti.
+func (s scopes) setFilePackage(name string, ti *typeInfo) {
+	s[2][name] = scopeElement{t: ti}
+}
 
 var boolType = reflect.TypeOf(false)
 var uintType = reflect.TypeOf(uint(0))
@@ -697,7 +762,8 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		}
 		if expr.Macro {
 			ident := expr.Result[0].Type.(*ast.Identifier)
-			if out[0] != tc.scopes[0][ident.Name].t.Type {
+			ti, ok := tc.scopes.universe(ident.Name)
+			if !ok || out[0] != ti.Type {
 				for _, ud := range tc.compilation.iteaToUsingCheck {
 					if ud.typ == ident {
 						panic(tc.errorf(ident, "invalid using type %s", ident.Name))
@@ -1895,8 +1961,8 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) []*typeInfo {
 // isFormatType reports whether t is a format type.
 func (tc *typechecker) isFormatType(t reflect.Type) bool {
 	for _, name := range formatTypeName {
-		ti, ok := tc.scopes[0][name]
-		if ok && ti.t.IsFormatType() && t == ti.t.Type {
+		ti, ok := tc.scopes.universe(name)
+		if ok && ti.IsFormatType() && t == ti.Type {
 			return true
 		}
 	}
@@ -1905,14 +1971,14 @@ func (tc *typechecker) isFormatType(t reflect.Type) bool {
 
 // isMarkdown reports whether t is the markdown format type.
 func (tc *typechecker) isMarkdown(t reflect.Type) bool {
-	markdown, ok := tc.scopes[0]["markdown"]
-	return ok && t == markdown.t.Type
+	ti, ok := tc.scopes.universe("markdown")
+	return ok && t == ti.Type
 }
 
 // isHTML reports whether t is the html format type.
 func (tc *typechecker) isHTML(t reflect.Type) bool {
-	html, ok := tc.scopes[0]["html"]
-	return ok && t == html.t.Type
+	ti, ok := tc.scopes.universe("html")
+	return ok && t == ti.Type
 }
 
 func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *typeInfo {
@@ -2387,7 +2453,7 @@ func (tc *typechecker) checkDollarIdentifier(expr *ast.DollarIdentifier) *typeIn
 		// Check that x is not declared in the file/package block, that
 		// contains, for example, the variable declarations at the top level of
 		// an imported or extending file.
-		if tc.isDeclaredInFilePackageBlock(expr.Ident.Name) {
+		if _, ok := tc.scopes.filePackage(expr.Ident.Name); ok {
 			panic(tc.errorf(expr, "use of top-level identifier within dollar identifier"))
 		}
 	}
@@ -2395,7 +2461,7 @@ func (tc *typechecker) checkDollarIdentifier(expr *ast.DollarIdentifier) *typeIn
 	// Set the IR of the expression.
 	var arg *ast.Identifier
 	var pos = expr.Pos()
-	if _, isGlobal := tc.scopes[1][expr.Ident.Name]; isGlobal {
+	if _, ok := tc.scopes.global(expr.Ident.Name); ok {
 		arg = expr.Ident // "x"
 	} else {
 		arg = ast.NewIdentifier(pos, "nil") // "nil"

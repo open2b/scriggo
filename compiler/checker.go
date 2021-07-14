@@ -84,7 +84,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 					Type:       tc.checkType(m.Type).Type,
 					Properties: propertyIsMacroDeclaration | propertyMacroDeclaredInFileWithExtends,
 				}
-				tc.scopes[2][m.Ident.Name] = scopeElement{t: ti}
+				tc.scopes.setFilePackage(m.Ident.Name, ti)
 			}
 		}
 		// Second: type check the extended file in a new scope.
@@ -101,7 +101,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		// Third: extending file is converted to a "package", that means that
 		// out of order initialization is allowed.
 		tc.templateFileToPackage(tree)
-		err = checkPackage(compilation, tree.Nodes[0].(*ast.Package), tree.Path, packages, opts, tc.scopes[1])
+		err = checkPackage(compilation, tree.Nodes[0].(*ast.Package), tree.Path, packages, opts, tc.scopes.globals())
 		if err != nil {
 			return nil, err
 		}
@@ -179,13 +179,7 @@ type typechecker struct {
 
 	// scopes holds the universe block, global block, file block, package
 	// block and local scopes.
-	//
-	//   0  is the universe block
-	//   1  is the global block, nil for programs.
-	//   2  is the file and package block.
-	//   3+ are the local scopes.
-	//
-	scopes []scope
+	scopes scopes
 
 	// ancestors is the current list of ancestors. See the documentation of the
 	// ancestor type for further details.
@@ -289,11 +283,25 @@ type usingCheck struct {
 // newTypechecker creates a new type checker. A global scope may be provided
 // for scripts and templates.
 func newTypechecker(compilation *compilation, path string, opts checkerOptions, globalScope scope, precompiledPkgs PackageLoader) *typechecker {
+	universeScope := universe
+	if len(opts.formatTypes) > 0 {
+		universeScope = scope{}
+		for name, scope := range universe {
+			universeScope[name] = scope
+		}
+		for format, typ := range opts.formatTypes {
+			name := formatTypeName[format]
+			universeScope[name] = scopeElement{t: &typeInfo{
+				Type:       typ,
+				Properties: propertyIsType | propertyIsFormatType | propertyUniverse,
+			}}
+		}
+	}
 	tt := types.NewTypes()
 	tc := typechecker{
 		compilation:     compilation,
 		path:            path,
-		scopes:          []scope{universe, globalScope, {}},
+		scopes:          newScopes(universeScope, globalScope),
 		hasBreak:        map[ast.Node]bool{},
 		unusedImports:   map[string]unusedImport{},
 		opts:            opts,
@@ -303,19 +311,6 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		structDeclPkg:   map[reflect.Type]string{},
 		precompiledPkgs: precompiledPkgs,
 		toBeEmitted:     true,
-	}
-	if len(opts.formatTypes) > 0 {
-		tc.scopes[0] = scope{}
-		for name, scope := range universe {
-			tc.scopes[0][name] = scope
-		}
-		for format, typ := range opts.formatTypes {
-			name := formatTypeName[format]
-			tc.scopes[0][name] = scopeElement{t: &typeInfo{
-				Type:       typ,
-				Properties: propertyIsType | propertyIsFormatType | propertyUniverse,
-			}}
-		}
 	}
 	return &tc
 }
@@ -475,7 +470,11 @@ func (tc *typechecker) scopeLevelOf(name string) (int, bool) {
 			return i + 1, false
 		}
 	}
-	return -1, tc.scopes[2][name].decl == nil
+	if _, ok := tc.scopes.filePackage(name); !ok {
+		// TODO: check if this code is correct.
+		return -1, true
+	}
+	return -1, tc.scopes.isImported(name)
 }
 
 // getDeclarationNode returns the declaration node which declares name.

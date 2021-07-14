@@ -454,13 +454,6 @@ func (tc *typechecker) isLocallyDeclared(name string) bool {
 	return false
 }
 
-// isDeclaredInFilePackageBlock reports whether name is declared in the
-// file/package block or not.
-func (tc *typechecker) isDeclaredInFilePackageBlock(name string) bool {
-	_, ok := tc.scopes[2][name]
-	return ok
-}
-
 // isMapIndexing reports whether the given expression has the form
 //
 //		m[key]
