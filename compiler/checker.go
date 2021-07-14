@@ -286,10 +286,6 @@ type usingCheck struct {
 	typ ast.Expression
 }
 
-func (tc *typechecker) Universe() typeCheckerScope {
-	return tc.scopes[0]
-}
-
 // newTypechecker creates a new type checker. A global scope may be provided
 // for scripts and templates.
 func newTypechecker(compilation *compilation, path string, opts checkerOptions, globalScope typeCheckerScope, precompiledPkgs PackageLoader) *typechecker {
@@ -369,33 +365,15 @@ func (tc *typechecker) exitScope() {
 // name or false if the name does not exist. If justCurrentScope is true,
 // lookupScopesElem looks up only in the current scope.
 func (tc *typechecker) lookupScopesElem(name string, justCurrentScope bool) (scopeElement, bool) {
-	// Iterating over scopes, from inside.
-	for i := len(tc.scopes) - 1; i >= 3; i-- {
-		elem, ok := tc.scopes[i][name]
-		if ok {
-			return elem, true
-		}
-		if justCurrentScope && i == len(tc.scopes)-1 {
-			return scopeElement{}, false
-		}
-	}
-	if len(tc.scopes) >= 4 && justCurrentScope {
-		return scopeElement{}, false
-	}
-	// Package + file block.
-	if elem, ok := tc.scopes[2][name]; ok {
-		return elem, true
-	}
+	last := len(tc.scopes) - 1
+	first := 0
 	if justCurrentScope {
-		return scopeElement{}, false
+		first = last
 	}
-	// Global scope.
-	if elem, ok := tc.scopes[1][name]; ok {
-		return elem, true
-	}
-	// Universe.
-	if elem, ok := tc.scopes[0][name]; ok {
-		return elem, true
+	for i := last; i >= first; i-- {
+		if elem, ok := tc.scopes[i][name]; ok {
+			return elem, ok
+		}
 	}
 	return scopeElement{}, false
 }
@@ -437,12 +415,7 @@ func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.I
 		panic(tc.errorf(declNode, s))
 	}
 
-	if len(tc.scopes) == 3 {
-		tc.scopes[2][name] = scopeElement{t: value, decl: declNode}
-	} else {
-		tc.scopes[len(tc.scopes)-1][name] = scopeElement{t: value, decl: declNode}
-	}
-
+	tc.scopes[len(tc.scopes)-1][name] = scopeElement{t: value, decl: declNode}
 }
 
 // An ancestor is an AST node with a scope level associated. The type checker
@@ -482,10 +455,9 @@ func (tc *typechecker) currentFunction() (*ast.Func, int) {
 // current function.
 func (tc *typechecker) inCurrentFuncScope(name string) bool {
 	_, funcBound := tc.currentFunction()
-	for i := len(tc.scopes) - 1; i >= 3; i-- {
-		scope := tc.scopes[i]
-		if _, ok := scope[name]; ok {
-			return i >= funcBound-1
+	for i := len(tc.scopes) - 1; i >= funcBound-1; i-- {
+		if _, ok := tc.scopes[i][name]; ok {
+			return true
 		}
 	}
 	return false
@@ -509,23 +481,10 @@ func (tc *typechecker) scopeLevelOf(name string) (int, bool) {
 // getDeclarationNode returns the declaration node which declares name.
 func (tc *typechecker) getDeclarationNode(name string) ast.Node {
 	// Iterating over scopes, from inside.
-	for i := len(tc.scopes) - 1; i >= 3; i-- {
-		elem, ok := tc.scopes[i][name]
-		if ok {
+	for i := len(tc.scopes) - 1; i >= 0; i-- {
+		if elem, ok := tc.scopes[i][name]; ok {
 			return elem.decl
 		}
-	}
-	// Package + file block.
-	if elem, ok := tc.scopes[2][name]; ok {
-		return elem.decl
-	}
-	// Global scope.
-	if elem, ok := tc.scopes[1][name]; ok {
-		return elem.decl
-	}
-	// Universe.
-	if elem, ok := tc.scopes[0][name]; ok {
-		return elem.decl
 	}
 	panic(fmt.Sprintf("BUG: trying to get scope level of %s, but any scope, package block, file block or universe contains it", name)) // remove.
 }
