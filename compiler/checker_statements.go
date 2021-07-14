@@ -1186,8 +1186,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) ast.Node {
 		if len(tc.scopes) > funcBound {
 			for _, e := range expected {
 				name := e.Ident.Name
-				_, ok := tc.lookupScopes(name, true)
-				if ok {
+				if _, ok := tc.scopes.alreadyDeclared(name); ok {
 					panic(tc.errorf(node, "%s is shadowed during return", name))
 				}
 			}

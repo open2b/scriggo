@@ -92,6 +92,46 @@ func (s scopes) setFilePackage(name string, ti *typeInfo) {
 	s[2][name] = scopeElement{t: ti}
 }
 
+// alreadyDeclared report whether name is already declared in the current
+// scope and if it declared returns the identifier and true, otherwise returns
+// nil and false.
+func (s scopes) alreadyDeclared(name string) (*ast.Identifier, bool) {
+	elem, ok := s[len(s)-1][name]
+	return elem.decl, ok
+}
+
+// lookup lookups name in s and returns the type info and true if it exists.
+// Otherwise returns nil and false.
+func (s scopes) lookup(name string) (*typeInfo, bool) {
+	for i := len(s) - 1; i >= 0; i-- {
+		if elem, ok := s[i][name]; ok {
+			return elem.t, true
+		}
+	}
+	return nil, false
+}
+
+// local returns the type info of the given name in the current local scope
+// true. If the name does not exist, returns nil and false.
+func (s scopes) setCurrent(name string) (*typeInfo, bool) {
+	elem, ok := s[len(s)-1][name]
+	return elem.t, ok
+}
+
+// append appends a new local scope to s.
+func (s scopes) append() scopes {
+	return append(s, scope{})
+}
+
+// remove removes a last local scope from s.
+func (s scopes) remove() scopes {
+	last := len(s) - 1
+	if last == 2 {
+		panic("no local scope to drop")
+	}
+	return s[:last]
+}
+
 var boolType = reflect.TypeOf(false)
 var uintType = reflect.TypeOf(uint(0))
 var uint8Type = reflect.TypeOf(uint8(0))
@@ -158,7 +198,7 @@ type scopeVariable struct {
 // checkIdentifier checks an identifier. If used, ident is marked as "used".
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeInfo {
 
-	elem, ok := tc.lookupScopesElem(ident.Name, false)
+	elem, ok := tc.lookupScopesElem(ident.Name)
 	if !ok {
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
 	}
@@ -209,7 +249,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 	if ti.Addressable() && !tc.inCurrentFuncScope(ident.Name) {
 		tc.compilation.indirectVars[elem.decl] = true
 		upvar := ast.Upvar{
-			Declaration: tc.getDeclarationNode(ident.Name),
+			Declaration: elem.decl,
 			Index:       -1,
 		}
 		for _, fn := range tc.getNestedFuncs(ident.Name) {
@@ -925,7 +965,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 	case *ast.Selector:
 		// Can be a package selector, a method expression, a method value or a field selector.
 		if ident, ok := expr.Expr.(*ast.Identifier); ok {
-			ti, ok := tc.lookupScopes(ident.Name, false)
+			ti, ok := tc.scopes.lookup(ident.Name)
 			if ok && ti.IsPackage() {
 				// Package selector.
 				delete(tc.unusedImports, ident.Name)
@@ -986,7 +1026,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			switch trans {
 			case receiverAddAddress:
 				if t.Addressable() {
-					elem, _ := tc.lookupScopesElem(expr.Expr.(*ast.Identifier).Name, false)
+					elem, _ := tc.lookupScopesElem(expr.Expr.(*ast.Identifier).Name)
 					tc.compilation.indirectVars[elem.decl] = true
 					expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorAddress, expr.Expr)
 					tc.compilation.typeInfos[expr.Expr] = &typeInfo{
@@ -1836,7 +1876,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) []*typeInfo {
 
 	// Check a builtin function call.
 	if ident, ok := expr.Func.(*ast.Identifier); ok {
-		if ti, ok := tc.lookupScopes(ident.Name, false); ok && ti.IsBuiltinFunction() {
+		if ti, ok := tc.scopes.lookup(ident.Name); ok && ti.IsBuiltinFunction() {
 			tc.compilation.typeInfos[expr.Func] = ti
 			return tc.checkBuiltinCall(expr)
 		}
@@ -2437,7 +2477,7 @@ func (tc *typechecker) isCompileConstant(expr ast.Expression) bool {
 func (tc *typechecker) checkDollarIdentifier(expr *ast.DollarIdentifier) *typeInfo {
 
 	// Check that x is a valid identifier.
-	if ti, ok := tc.lookupScopes(expr.Ident.Name, false); ok {
+	if ti, ok := tc.scopes.lookup(expr.Ident.Name); ok {
 		// Check that x is not a builtin function.
 		if ti.IsBuiltinFunction() {
 			panic(tc.errorf(expr.Ident, "use of builtin %s not in function call", expr.Ident))
@@ -2491,7 +2531,7 @@ func (tc *typechecker) checkDefault(expr *ast.Default, show bool) typeInfoPair {
 			panic(tc.errorf(n, "cannot use _ as value"))
 		}
 		var ok bool
-		if tis[0], ok = tc.lookupScopes(n.Name, false); ok {
+		if tis[0], ok = tc.scopes.lookup(n.Name); ok {
 			if tis[0].IsPackage() {
 				panic(tc.errorf(expr, "use of package %s without selector", n))
 			}
@@ -2530,7 +2570,7 @@ func (tc *typechecker) checkDefault(expr *ast.Default, show bool) typeInfoPair {
 		if isBlankIdentifier(ident) {
 			panic(tc.errorf(ident, "cannot use _ as value"))
 		}
-		if ti, ok := tc.lookupScopes(ident.Name, false); ok {
+		if ti, ok := tc.scopes.lookup(ident.Name); ok {
 			// TODO(Gianluca): test 'nil() default'
 			if ti.InUniverse() && ident.Name == "itea" || strings.HasPrefix(ident.Name, "$itea") {
 				panic(tc.errorf(n, "use of predeclared identifier itea"))

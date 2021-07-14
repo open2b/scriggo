@@ -317,7 +317,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 
 // enterScope enters into a new empty scope.
 func (tc *typechecker) enterScope() {
-	tc.scopes = append(tc.scopes, scope{})
+	tc.scopes = tc.scopes.append()
 	tc.labels = append(tc.labels, []string{})
 	tc.storedGotos = tc.gotos
 	tc.gotos = []string{}
@@ -350,7 +350,7 @@ func (tc *typechecker) exitScope() {
 		}
 		tc.unusedVars = tc.unusedVars[:cut]
 	}
-	tc.scopes = tc.scopes[:len(tc.scopes)-1]
+	tc.scopes = tc.scopes.remove()
 	tc.labels = tc.labels[:len(tc.labels)-1]
 	tc.gotos = append(tc.storedGotos, tc.gotos...)
 	tc.nextValidGoto = tc.storedValidGoto
@@ -359,29 +359,13 @@ func (tc *typechecker) exitScope() {
 // lookupScopesElem looks up name in the scopes. Returns the declaration of the
 // name or false if the name does not exist. If justCurrentScope is true,
 // lookupScopesElem looks up only in the current scope.
-func (tc *typechecker) lookupScopesElem(name string, justCurrentScope bool) (scopeElement, bool) {
-	last := len(tc.scopes) - 1
-	first := 0
-	if justCurrentScope {
-		first = last
-	}
-	for i := last; i >= first; i-- {
+func (tc *typechecker) lookupScopesElem(name string) (scopeElement, bool) {
+	for i := len(tc.scopes) - 1; i >= 0; i-- {
 		if elem, ok := tc.scopes[i][name]; ok {
 			return elem, ok
 		}
 	}
 	return scopeElement{}, false
-}
-
-// lookupScopes looks up name in the scopes. Returns the type info of the name or
-// false if the name does not exist. If justCurrentScope is true, lookupScopes
-// looks up only in the current scope.
-func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*typeInfo, bool) {
-	elem, ok := tc.lookupScopesElem(name, justCurrentScope)
-	if !ok {
-		return nil, false
-	}
-	return elem.t, ok
 }
 
 // assignScope assigns value to name in the current scope. If there are no
@@ -391,7 +375,7 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*typeIn
 // is already defined in the current scope.
 func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.Identifier) {
 
-	if tc.declaredInThisBlock(name) {
+	if ident, ok := tc.scopes.alreadyDeclared(name); ok {
 		if tc.scriptFuncOrMacroDecl {
 			switch tc.opts.mod {
 			case scriptMod:
@@ -400,10 +384,9 @@ func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.I
 				panic(tc.errorf(declNode, "%s already declared in this template scope", declNode))
 			}
 		}
-		previousDecl, _ := tc.lookupScopesElem(name, true)
 		s := name + " redeclared in this block"
-		if decl := previousDecl.decl; decl != nil {
-			if pos := decl.Pos(); pos != nil {
+		if ident != nil {
+			if pos := ident.Pos(); pos != nil {
 				s += "\n\tprevious declaration at " + pos.String()
 			}
 		}
@@ -458,36 +441,6 @@ func (tc *typechecker) inCurrentFuncScope(name string) bool {
 	return false
 }
 
-// scopeLevelOf returns the scope level in which name is declared, and a
-// boolean which reports whether name has been imported from another
-// package/template file or not.
-func (tc *typechecker) scopeLevelOf(name string) (int, bool) {
-	// Iterating over scopes, from inside.
-	for i := len(tc.scopes) - 1; i >= 3; i-- {
-		if _, ok := tc.scopes[i][name]; ok {
-			// If name is declared in a local scope then it's impossible that
-			// its value has been imported.
-			return i + 1, false
-		}
-	}
-	if _, ok := tc.scopes.filePackage(name); !ok {
-		// TODO: check if this code is correct.
-		return -1, true
-	}
-	return -1, tc.scopes.isImported(name)
-}
-
-// getDeclarationNode returns the declaration node which declares name.
-func (tc *typechecker) getDeclarationNode(name string) ast.Node {
-	// Iterating over scopes, from inside.
-	for i := len(tc.scopes) - 1; i >= 0; i-- {
-		if elem, ok := tc.scopes[i][name]; ok {
-			return elem.decl
-		}
-	}
-	panic(fmt.Sprintf("BUG: trying to get scope level of %s, but any scope, package block, file block or universe contains it", name)) // remove.
-}
-
 // programImportError returns an error that states that it's impossible to
 // import a program (package main).
 func (tc *typechecker) programImportError(imp *ast.Import) error {
@@ -511,10 +464,25 @@ func (tc *typechecker) programImportError(imp *ast.Import) error {
 // calling getNestedFuncs("A") returns [G, H].
 //
 func (tc *typechecker) getNestedFuncs(name string) []*ast.Func {
-	declLevel, imported := tc.scopeLevelOf(name)
-	// If name has been imported, function chain does not exist.
-	if imported {
-		return nil
+	declLevel := -1
+	// Iterating over scopes, from inside.
+	for i := len(tc.scopes) - 1; i >= 3; i-- {
+		if _, ok := tc.scopes[i][name]; ok {
+			// If name is declared in a local scope then it's impossible that
+			// its value has been imported.
+			declLevel = i + 1
+			break
+		}
+	}
+	if declLevel == -1 {
+		// If name has been imported, function chain does not exist.
+		if _, ok := tc.scopes.filePackage(name); !ok {
+			// TODO: check if this code is correct.
+			return nil
+		}
+		if tc.scopes.isImported(name) {
+			return nil
+		}
 	}
 	funcs := []*ast.Func{}
 	for _, anc := range tc.ancestors {

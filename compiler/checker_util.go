@@ -240,12 +240,6 @@ func (tc *typechecker) convert(ti *typeInfo, expr ast.Expression, t2 reflect.Typ
 
 }
 
-// declaredInThisBlock reports whether name is declared in this block.
-func (tc *typechecker) declaredInThisBlock(name string) bool {
-	_, ok := tc.lookupScopesElem(name, true)
-	return ok
-}
-
 // deferGoBuiltin returns a type info suitable to be embedded into the 'defer'
 // and 'go' statements with a builtin call as argument.
 func deferGoBuiltin(name string) *typeInfo {
