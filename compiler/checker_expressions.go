@@ -424,7 +424,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			// marked as "indirect".
 			if ident, ok := expr.Expr.(*ast.Identifier); ok {
 			scopesLoop:
-				for i := len(tc.scopes) - 1; i >= 0; i-- {
+				for i := len(tc.scopes) - 1; i >= 3; i-- {
 					for n := range tc.scopes[i] {
 						if n == ident.Name {
 							tc.compilation.indirectVars[tc.scopes[i][n].decl] = true
@@ -697,7 +697,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		}
 		if expr.Macro {
 			ident := expr.Result[0].Type.(*ast.Identifier)
-			if out[0] != tc.universe[ident.Name].t.Type {
+			if out[0] != tc.scopes[0][ident.Name].t.Type {
 				for _, ud := range tc.compilation.iteaToUsingCheck {
 					if ud.typ == ident {
 						panic(tc.errorf(ident, "invalid using type %s", ident.Name))
@@ -1895,7 +1895,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) []*typeInfo {
 // isFormatType reports whether t is a format type.
 func (tc *typechecker) isFormatType(t reflect.Type) bool {
 	for _, name := range formatTypeName {
-		ti, ok := tc.universe[name]
+		ti, ok := tc.scopes[0][name]
 		if ok && ti.t.IsFormatType() && t == ti.t.Type {
 			return true
 		}
@@ -1905,13 +1905,13 @@ func (tc *typechecker) isFormatType(t reflect.Type) bool {
 
 // isMarkdown reports whether t is the markdown format type.
 func (tc *typechecker) isMarkdown(t reflect.Type) bool {
-	markdown, ok := tc.universe["markdown"]
+	markdown, ok := tc.scopes[0]["markdown"]
 	return ok && t == markdown.t.Type
 }
 
 // isHTML reports whether t is the html format type.
 func (tc *typechecker) isHTML(t reflect.Type) bool {
-	html, ok := tc.universe["html"]
+	html, ok := tc.scopes[0]["html"]
 	return ok && t == html.t.Type
 }
 
@@ -2395,7 +2395,7 @@ func (tc *typechecker) checkDollarIdentifier(expr *ast.DollarIdentifier) *typeIn
 	// Set the IR of the expression.
 	var arg *ast.Identifier
 	var pos = expr.Pos()
-	if _, isGlobal := tc.globalScope[expr.Ident.Name]; isGlobal {
+	if _, isGlobal := tc.scopes[1][expr.Ident.Name]; isGlobal {
 		arg = expr.Ident // "x"
 	} else {
 		arg = ast.NewIdentifier(pos, "nil") // "nil"

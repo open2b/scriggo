@@ -446,7 +446,7 @@ func isOrdered(t *typeInfo) bool {
 
 // isLocallyDeclared reports whether name is declared in a local scope or not.
 func (tc *typechecker) isLocallyDeclared(name string) bool {
-	for i := len(tc.scopes) - 1; i >= 0; i-- {
+	for i := len(tc.scopes) - 1; i >= 3; i-- {
 		if _, ok := tc.scopes[i][name]; ok {
 			return true
 		}
@@ -457,7 +457,7 @@ func (tc *typechecker) isLocallyDeclared(name string) bool {
 // isDeclaredInFilePackageBlock reports whether name is declared in the
 // file/package block or not.
 func (tc *typechecker) isDeclaredInFilePackageBlock(name string) bool {
-	_, ok := tc.filePackageBlock[name]
+	_, ok := tc.scopes[2][name]
 	return ok
 }
 

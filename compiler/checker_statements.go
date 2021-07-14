@@ -976,7 +976,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		if isPeriodImport(impor) {
 			tc.setUnusedImports(impor, imported.Name, imported.Declarations)
 			for ident, ti := range imported.Declarations {
-				tc.filePackageBlock[ident] = scopeElement{t: ti}
+				tc.scopes[2][ident] = scopeElement{t: ti}
 			}
 			return nil
 		}
@@ -990,7 +990,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		}
 
 		// Add the package to the file/package block.
-		tc.filePackageBlock[pkgName] = scopeElement{
+		tc.scopes[2][pkgName] = scopeElement{
 			t: &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue},
 		}
 
@@ -1010,7 +1010,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	}
 
 	// Check the package and retrieve the package infos.
-	err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, tc.precompiledPkgs, tc.opts, tc.globalScope)
+	err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, tc.precompiledPkgs, tc.opts, tc.scopes[1])
 	if err != nil {
 		return err
 	}
@@ -1033,13 +1033,13 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		if tc.opts.mod == templateMod {
 			tc.setUnusedImports(impor, imported.Name, imported.Declarations)
 			for ident, ti := range imported.Declarations {
-				tc.filePackageBlock[ident] = scopeElement{t: ti}
+				tc.scopes[2][ident] = scopeElement{t: ti}
 			}
 			return nil
 		}
 
 		// import "path"
-		tc.filePackageBlock[imported.Name] = scopeElement{
+		tc.scopes[2][imported.Name] = scopeElement{
 			t: &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue},
 		}
 		return nil
@@ -1049,14 +1049,14 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	case isPeriodImport(impor):
 		tc.setUnusedImports(impor, imported.Name, imported.Declarations)
 		for ident, ti := range imported.Declarations {
-			tc.filePackageBlock[ident] = scopeElement{t: ti}
+			tc.scopes[2][ident] = scopeElement{t: ti}
 		}
 		return nil
 
 	// import name "path"
 	// {% import name "path" %}
 	default:
-		tc.filePackageBlock[impor.Ident.Name] = scopeElement{
+		tc.scopes[2][impor.Ident.Name] = scopeElement{
 			t: &typeInfo{
 				value:      imported,
 				Properties: propertyIsPackage | propertyHasValue,
@@ -1074,7 +1074,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 // an explicit result type.
 func (tc *typechecker) makeMacroResultExplicit(macro *ast.Func) {
 	name := formatTypeName[macro.Format]
-	scope, ok := tc.universe[name]
+	scope, ok := tc.scopes[0][name]
 	if !ok {
 		panic("no type defined for format " + macro.Format.String())
 	}

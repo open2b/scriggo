@@ -84,7 +84,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 					Type:       tc.checkType(m.Type).Type,
 					Properties: propertyIsMacroDeclaration | propertyMacroDeclaredInFileWithExtends,
 				}
-				tc.filePackageBlock[m.Ident.Name] = scopeElement{t: ti}
+				tc.scopes[2][m.Ident.Name] = scopeElement{t: ti}
 			}
 		}
 		// Second: type check the extended file in a new scope.
@@ -101,7 +101,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		// Third: extending file is converted to a "package", that means that
 		// out of order initialization is allowed.
 		tc.templateFileToPackage(tree)
-		err = checkPackage(compilation, tree.Nodes[0].(*ast.Package), tree.Path, packages, opts, tc.globalScope)
+		err = checkPackage(compilation, tree.Nodes[0].(*ast.Package), tree.Path, packages, opts, tc.scopes[1])
 		if err != nil {
 			return nil, err
 		}
@@ -177,22 +177,14 @@ type typechecker struct {
 
 	precompiledPkgs PackageLoader
 
-	// universe is the outermost scope.
-	universe typeCheckerScope
-
-	// A globalScope is a scope between the universe and the file/package
-	// block. In Go there is not an equivalent concept. In scripts and
-	// templates, the declarations of the predefined package 'main' are added
-	// to this scope; this makes possible, in templates, to access such
-	// declarations from every template file, including imported and extended
-	// ones.
-	globalScope typeCheckerScope
-
-	// filePackageBlock is a scope that holds the declarations from both the
-	// file block and the package block.
-	filePackageBlock typeCheckerScope
-
-	// scopes holds the local scopes.
+	// scopes holds the universe block, global block, file block, package
+	// block and local scopes.
+	//
+	//   0  is the universe block
+	//   1  is the global block, nil for programs.
+	//   2  is the file and package block.
+	//   3+ are the local scopes.
+	//
 	scopes []typeCheckerScope
 
 	// ancestors is the current list of ancestors. See the documentation of the
@@ -294,34 +286,36 @@ type usingCheck struct {
 	typ ast.Expression
 }
 
+func (tc *typechecker) Universe() typeCheckerScope {
+	return tc.scopes[0]
+}
+
 // newTypechecker creates a new type checker. A global scope may be provided
 // for scripts and templates.
 func newTypechecker(compilation *compilation, path string, opts checkerOptions, globalScope typeCheckerScope, precompiledPkgs PackageLoader) *typechecker {
 	tt := types.NewTypes()
 	tc := typechecker{
-		compilation:      compilation,
-		path:             path,
-		filePackageBlock: typeCheckerScope{},
-		globalScope:      globalScope,
-		hasBreak:         map[ast.Node]bool{},
-		universe:         universe,
-		unusedImports:    map[string]unusedImport{},
-		opts:             opts,
-		iota:             -1,
-		types:            tt,
-		env:              &env{tt.Runtime(), nil},
-		structDeclPkg:    map[reflect.Type]string{},
-		precompiledPkgs:  precompiledPkgs,
-		toBeEmitted:      true,
+		compilation:     compilation,
+		path:            path,
+		scopes:          []typeCheckerScope{universe, globalScope, {}},
+		hasBreak:        map[ast.Node]bool{},
+		unusedImports:   map[string]unusedImport{},
+		opts:            opts,
+		iota:            -1,
+		types:           tt,
+		env:             &env{tt.Runtime(), nil},
+		structDeclPkg:   map[reflect.Type]string{},
+		precompiledPkgs: precompiledPkgs,
+		toBeEmitted:     true,
 	}
 	if len(opts.formatTypes) > 0 {
-		tc.universe = typeCheckerScope{}
+		tc.scopes[0] = typeCheckerScope{}
 		for name, scope := range universe {
-			tc.universe[name] = scope
+			tc.scopes[0][name] = scope
 		}
 		for format, typ := range opts.formatTypes {
 			name := formatTypeName[format]
-			tc.universe[name] = scopeElement{t: &typeInfo{
+			tc.scopes[0][name] = scopeElement{t: &typeInfo{
 				Type:       typ,
 				Properties: propertyIsType | propertyIsFormatType | propertyUniverse,
 			}}
@@ -376,7 +370,7 @@ func (tc *typechecker) exitScope() {
 // lookupScopesElem looks up only in the current scope.
 func (tc *typechecker) lookupScopesElem(name string, justCurrentScope bool) (scopeElement, bool) {
 	// Iterating over scopes, from inside.
-	for i := len(tc.scopes) - 1; i >= 0; i-- {
+	for i := len(tc.scopes) - 1; i >= 3; i-- {
 		elem, ok := tc.scopes[i][name]
 		if ok {
 			return elem, true
@@ -385,22 +379,22 @@ func (tc *typechecker) lookupScopesElem(name string, justCurrentScope bool) (sco
 			return scopeElement{}, false
 		}
 	}
-	if len(tc.scopes) >= 1 && justCurrentScope {
+	if len(tc.scopes) >= 4 && justCurrentScope {
 		return scopeElement{}, false
 	}
 	// Package + file block.
-	if elem, ok := tc.filePackageBlock[name]; ok {
+	if elem, ok := tc.scopes[2][name]; ok {
 		return elem, true
 	}
 	if justCurrentScope {
 		return scopeElement{}, false
 	}
 	// Global scope.
-	if elem, ok := tc.globalScope[name]; ok {
+	if elem, ok := tc.scopes[1][name]; ok {
 		return elem, true
 	}
 	// Universe.
-	if elem, ok := tc.universe[name]; ok {
+	if elem, ok := tc.scopes[0][name]; ok {
 		return elem, true
 	}
 	return scopeElement{}, false
@@ -443,8 +437,8 @@ func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.I
 		panic(tc.errorf(declNode, s))
 	}
 
-	if len(tc.scopes) == 0 {
-		tc.filePackageBlock[name] = scopeElement{t: value, decl: declNode}
+	if len(tc.scopes) == 3 {
+		tc.scopes[2][name] = scopeElement{t: value, decl: declNode}
 	} else {
 		tc.scopes[len(tc.scopes)-1][name] = scopeElement{t: value, decl: declNode}
 	}
@@ -488,7 +482,7 @@ func (tc *typechecker) currentFunction() (*ast.Func, int) {
 // current function.
 func (tc *typechecker) inCurrentFuncScope(name string) bool {
 	_, funcBound := tc.currentFunction()
-	for i := len(tc.scopes) - 1; i >= 0; i-- {
+	for i := len(tc.scopes) - 1; i >= 3; i-- {
 		scope := tc.scopes[i]
 		if _, ok := scope[name]; ok {
 			return i >= funcBound-1
@@ -502,35 +496,35 @@ func (tc *typechecker) inCurrentFuncScope(name string) bool {
 // package/template file or not.
 func (tc *typechecker) scopeLevelOf(name string) (int, bool) {
 	// Iterating over scopes, from inside.
-	for i := len(tc.scopes) - 1; i >= 0; i-- {
+	for i := len(tc.scopes) - 1; i >= 3; i-- {
 		if _, ok := tc.scopes[i][name]; ok {
 			// If name is declared in a local scope then it's impossible that
 			// its value has been imported.
 			return i + 1, false
 		}
 	}
-	return -1, tc.filePackageBlock[name].decl == nil
+	return -1, tc.scopes[2][name].decl == nil
 }
 
 // getDeclarationNode returns the declaration node which declares name.
 func (tc *typechecker) getDeclarationNode(name string) ast.Node {
 	// Iterating over scopes, from inside.
-	for i := len(tc.scopes) - 1; i >= 0; i-- {
+	for i := len(tc.scopes) - 1; i >= 3; i-- {
 		elem, ok := tc.scopes[i][name]
 		if ok {
 			return elem.decl
 		}
 	}
 	// Package + file block.
-	if elem, ok := tc.filePackageBlock[name]; ok {
+	if elem, ok := tc.scopes[2][name]; ok {
 		return elem.decl
 	}
 	// Global scope.
-	if elem, ok := tc.globalScope[name]; ok {
+	if elem, ok := tc.scopes[1][name]; ok {
 		return elem.decl
 	}
 	// Universe.
-	if elem, ok := tc.universe[name]; ok {
+	if elem, ok := tc.scopes[0][name]; ok {
 		return elem.decl
 	}
 	panic(fmt.Sprintf("BUG: trying to get scope level of %s, but any scope, package block, file block or universe contains it", name)) // remove.
