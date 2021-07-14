@@ -93,49 +93,45 @@ type scopeVariable struct {
 // checkIdentifier checks an identifier. If used, ident is marked as "used".
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeInfo {
 
-	ti, found := tc.lookupScopes(ident.Name, false)
+	ti, ok := tc.lookupScopes(ident.Name, false)
+	if !ok {
+		panic(tc.errorf(ident, "undefined: %s", ident.Name))
+	}
 
 	// Check if the identifier is the builtin 'iota'.
-	if found && ti == universe["iota"].t {
+	if ti == universe["iota"].t {
 		// Check if iota is defined in the current expression evaluation.
-		if tc.iota >= 0 {
-			return &typeInfo{
-				Constant:   int64Const(tc.iota),
-				Type:       intType,
-				Properties: propertyUntyped,
-			}
+		if tc.iota == -1 {
+			panic(tc.errorf(ident, "undefined: %s", ident.Name))
 		}
-		// The identifier is the builtin 'iota', but 'iota' is not defined in
-		// the current expression evaluation, so the identifier 'iota' is
-		// undefined.
-		found = false
+		tc.compilation.typeInfos[ident] = ti
+		return &typeInfo{
+			Constant:   int64Const(tc.iota),
+			Type:       intType,
+			Properties: propertyUntyped,
+		}
 	}
 
 	// Handle the predeclared identifier 'itea' when checking the 'using'
 	// statement.
-	if found && ti == universe["itea"].t {
-		if tc.withinUsingAffectedStmt {
-			ident.Name = tc.compilation.iteaName
-			uc := tc.compilation.iteaToUsingCheck[ident.Name]
-			uc.used = true
-			if tc.toBeEmitted {
-				uc.toBeEmitted = true
-			}
-			tc.compilation.iteaToUsingCheck[ident.Name] = uc
-			ti, _ = tc.lookupScopes(ident.Name, false)
-			if ti == nil {
-				panic("BUG: unexpected 'ti == nil'")
-			}
-		} else {
+	if ti == universe["itea"].t {
+		if !tc.withinUsingAffectedStmt {
 			// The identifier is the predeclared identifier 'itea', but 'itea'
 			// is not defined outside an 'using' statement so it is considered
 			// undefined.
-			found = false
+			panic(tc.errorf(ident, "undefined: %s", ident.Name))
 		}
-	}
-
-	if !found {
-		panic(tc.errorf(ident, "undefined: %s", ident.Name))
+		ident.Name = tc.compilation.iteaName
+		uc := tc.compilation.iteaToUsingCheck[ident.Name]
+		uc.used = true
+		if tc.toBeEmitted {
+			uc.toBeEmitted = true
+		}
+		tc.compilation.iteaToUsingCheck[ident.Name] = uc
+		ti, _ = tc.lookupScopes(ident.Name, false)
+		if ti == nil {
+			panic("BUG: unexpected 'ti == nil'")
+		}
 	}
 
 	if ti.IsBuiltinFunction() {

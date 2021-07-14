@@ -486,24 +486,9 @@ func (tc *typechecker) currentFunction() (*ast.Func, int) {
 
 // isUpVar checks if name is an upvar, that is a variable declared outside
 // current function.
-// TODO: is this function correct? It is correct to check the filePackageBlock first?
 func (tc *typechecker) isUpVar(name string) bool {
 
-	// Check if name is a package variable.
-	if elem, ok := tc.filePackageBlock[name]; ok {
-		// Elem must be a variable.
-		return elem.t.Addressable()
-	}
-
-	// Check if name is a global variable in a template or script.
-	if tc.opts.mod == templateMod || tc.opts.mod == scriptMod {
-		if elem, ok := tc.globalScope[name]; ok {
-			return elem.t.Addressable()
-		}
-	}
-
-	// name is not a package variable; check if has been declared outside
-	// current function.
+	// check if it has been declared outside current function.
 	_, funcBound := tc.currentFunction()
 	for i := len(tc.scopes) - 1; i >= 0; i-- {
 		for n, elem := range tc.scopes[i] {
@@ -518,6 +503,17 @@ func (tc *typechecker) isUpVar(name string) bool {
 			}
 			return false
 		}
+	}
+
+	// Check if it is a file or package variable.
+	if elem, ok := tc.filePackageBlock[name]; ok {
+		// Elem must be a variable.
+		return elem.t.Addressable()
+	}
+
+	// Check if it is a global variable in a template or script.
+	if elem, ok := tc.globalScope[name]; ok {
+		return elem.t.Addressable()
 	}
 
 	return false
