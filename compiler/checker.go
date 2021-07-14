@@ -484,36 +484,16 @@ func (tc *typechecker) currentFunction() (*ast.Func, int) {
 	return nil, 0
 }
 
-// isUpVar checks if name is an upvar, that is a variable declared outside
+// inCurrentFuncScope reports whether name is declared in the scope of the
 // current function.
-func (tc *typechecker) isUpVar(name string) bool {
-
-	// check if it has been declared outside current function.
+func (tc *typechecker) inCurrentFuncScope(name string) bool {
 	_, funcBound := tc.currentFunction()
 	for i := len(tc.scopes) - 1; i >= 0; i-- {
 		scope := tc.scopes[i]
-		if elem, ok := scope[name]; ok {
-			if i < funcBound-1 { // out of current function scope.
-				if elem.t.Addressable() { // elem must be a variable.
-					tc.compilation.indirectVars[scope[name].decl] = true
-					return true
-				}
-			}
-			return false
+		if _, ok := scope[name]; ok {
+			return i >= funcBound-1
 		}
 	}
-
-	// Check if it is a file or package variable.
-	if elem, ok := tc.filePackageBlock[name]; ok {
-		// Elem must be a variable.
-		return elem.t.Addressable()
-	}
-
-	// Check if it is a global variable in a template or script.
-	if elem, ok := tc.globalScope[name]; ok {
-		return elem.t.Addressable()
-	}
-
 	return false
 }
 

@@ -93,10 +93,11 @@ type scopeVariable struct {
 // checkIdentifier checks an identifier. If used, ident is marked as "used".
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeInfo {
 
-	ti, ok := tc.lookupScopes(ident.Name, false)
+	elem, ok := tc.lookupScopesElem(ident.Name, false)
 	if !ok {
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
 	}
+	ti := elem.t
 
 	// Check if the identifier is the builtin 'iota'.
 	if ti == universe["iota"].t {
@@ -140,7 +141,8 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 
 	// If ident is an upvar, add it as upvar for current function and for all
 	// nested functions and update all indexes.
-	if tc.isUpVar(ident.Name) {
+	if ti.Addressable() && !tc.inCurrentFuncScope(ident.Name) {
+		tc.compilation.indirectVars[elem.decl] = true
 		upvar := ast.Upvar{
 			Declaration: tc.getDeclarationNode(ident.Name),
 			Index:       -1,
@@ -165,7 +167,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 	if tc.opts.mod == templateMod || tc.opts.mod == scriptMod {
 		// The identifier refers to a predefined value that is an up value for
 		// the current function.
-		if ti.IsPredefined() && tc.isUpVar(ident.Name) {
+		if ti.IsPredefined() && ti.Addressable() && !tc.inCurrentFuncScope(ident.Name) {
 			// The type info contains a *reflect.Value, so it is a variable.
 			if rv, ok := ti.value.(*reflect.Value); ok {
 				// Get the list of the nested functions, from the outermost to
