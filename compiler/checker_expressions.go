@@ -36,7 +36,6 @@ var uint8TypeInfo = &typeInfo{Type: uint8Type, Properties: propertyIsType | prop
 var int32TypeInfo = &typeInfo{Type: int32Type, Properties: propertyIsType | propertyUniverse}
 
 var untypedBoolTypeInfo = &typeInfo{Type: boolType, Properties: propertyUntyped}
-var untypedStringTypeInfo = &typeInfo{Type: stringType, Properties: propertyUntyped}
 
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
