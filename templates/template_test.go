@@ -3266,6 +3266,19 @@ var templateMultiFileCases = map[string]struct {
 	},
 
 	// TODO: this test panics the runtime.
+	// "Using - assigning from using body": {
+	// 	sources: map[string]string{
+	// 		"index.html": `
+	//             {% f := func() html { return html("") } %}
+	//             {% _ = this; using %}
+	//         		{% f = this; using macro() html %}x{% end %}
+	//             {% end %}
+	// 			{{ f() }}
+	// 		`,
+	// 	},
+	// },
+
+	// TODO: this test panics the runtime.
 	//"Nested using statements": {
 	//	sources: map[string]string{
 	//		"index.html": `
