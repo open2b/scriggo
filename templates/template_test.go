@@ -3066,6 +3066,22 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "hey",
 	},
+
+	"Invalid memory address or nil pointer dereference": {
+		sources: map[string]string{
+			"index.html": `
+
+		{% macro M1(m macro() html) %}{{ m() }}{% end %}
+		{% macro M2(title, buttonText string) %}
+			{% macro content %}
+			{% end %}
+			{{ M1(content) }}
+		{% end %}
+		
+		{{ M2("Press the button dialog", "Play") }}`,
+		},
+		expectedOut: "\n\n\t\t\n\t\t\n\t\t\t\t\t\n",
+	},
 }
 
 var structWithUnexportedFields = &struct {
