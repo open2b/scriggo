@@ -49,7 +49,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 	}
 
 	// Prepare the type checking for scripts and templates.
-	var globalScope typeCheckerScope
+	var globalScope scope
 	if opts.globals != nil {
 		globals := &mapPackage{
 			PkgName:      "main",
@@ -62,7 +62,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 	if opts.mod == scriptMod {
 		exit := scopeElement{t: &typeInfo{Properties: propertyUniverse}}
 		if globalScope == nil {
-			globalScope = typeCheckerScope{"exit": exit}
+			globalScope = scope{"exit": exit}
 		} else if _, ok := globalScope["exit"]; !ok {
 			globalScope["exit"] = exit
 		}
@@ -185,7 +185,7 @@ type typechecker struct {
 	//   2  is the file and package block.
 	//   3+ are the local scopes.
 	//
-	scopes []typeCheckerScope
+	scopes []scope
 
 	// ancestors is the current list of ancestors. See the documentation of the
 	// ancestor type for further details.
@@ -288,12 +288,12 @@ type usingCheck struct {
 
 // newTypechecker creates a new type checker. A global scope may be provided
 // for scripts and templates.
-func newTypechecker(compilation *compilation, path string, opts checkerOptions, globalScope typeCheckerScope, precompiledPkgs PackageLoader) *typechecker {
+func newTypechecker(compilation *compilation, path string, opts checkerOptions, globalScope scope, precompiledPkgs PackageLoader) *typechecker {
 	tt := types.NewTypes()
 	tc := typechecker{
 		compilation:     compilation,
 		path:            path,
-		scopes:          []typeCheckerScope{universe, globalScope, {}},
+		scopes:          []scope{universe, globalScope, {}},
 		hasBreak:        map[ast.Node]bool{},
 		unusedImports:   map[string]unusedImport{},
 		opts:            opts,
@@ -305,7 +305,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		toBeEmitted:     true,
 	}
 	if len(opts.formatTypes) > 0 {
-		tc.scopes[0] = typeCheckerScope{}
+		tc.scopes[0] = scope{}
 		for name, scope := range universe {
 			tc.scopes[0][name] = scope
 		}
@@ -322,7 +322,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 
 // enterScope enters into a new empty scope.
 func (tc *typechecker) enterScope() {
-	tc.scopes = append(tc.scopes, typeCheckerScope{})
+	tc.scopes = append(tc.scopes, scope{})
 	tc.labels = append(tc.labels, []string{})
 	tc.storedGotos = tc.gotos
 	tc.gotos = []string{}

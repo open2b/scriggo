@@ -182,14 +182,14 @@ func TestCheckerTemplateExpressions(t *testing.T) {
 				t.Errorf("source: %q, unexpected %s, expecting }}\n", expr.src, tok)
 				return
 			}
-			scope := make(typeCheckerScope, len(expr.scope))
+			sc := make(scope, len(expr.scope))
 			for k, v := range expr.scope {
-				scope[k] = scopeElement{t: v}
+				sc[k] = scopeElement{t: v}
 			}
 			compilation := newCompilation()
 			tc := newTypechecker(compilation, "", options, nil, nil)
 			if expr.scope != nil {
-				tc.scopes = append(tc.scopes, scope)
+				tc.scopes = append(tc.scopes, sc)
 			}
 			tc.enterScope()
 			ti := tc.checkExpr(node)
@@ -262,14 +262,14 @@ func TestCheckerTemplateExpressionErrors(t *testing.T) {
 				t.Errorf("source: %q, unexpected %s, expecting }}\n", expr.src, tok)
 				return
 			}
-			scope := make(typeCheckerScope, len(expr.scope))
+			sc := make(scope, len(expr.scope))
 			for k, v := range expr.scope {
-				scope[k] = scopeElement{t: v}
+				sc[k] = scopeElement{t: v}
 			}
 			compilation := newCompilation()
 			tc := newTypechecker(compilation, "", options, nil, nil)
 			if expr.scope != nil {
-				tc.scopes = append(tc.scopes, scope)
+				tc.scopes = append(tc.scopes, sc)
 			}
 			tc.enterScope()
 			ti := tc.checkExpr(node)

@@ -81,9 +81,9 @@ func parseNumericConst(s string) (constant, reflect.Type, error) {
 
 // toTypeCheckerScope generates a type checker scope given a predefined
 // package. depth must be 0 unless toTypeCheckerScope is called recursively.
-func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, global bool, depth int) typeCheckerScope {
+func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, global bool, depth int) scope {
 	declarations := pp.DeclarationNames()
-	scope := make(typeCheckerScope, len(declarations))
+	scope := make(scope, len(declarations))
 	for _, ident := range declarations {
 		ti := &typeInfo{PredefPackageName: pp.Name()}
 		if global {
@@ -515,7 +515,7 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(compilation *compilation, pkg *ast.Package, path string, packages PackageLoader, opts checkerOptions, globalScope typeCheckerScope) (err error) {
+func checkPackage(compilation *compilation, pkg *ast.Package, path string, packages PackageLoader, opts checkerOptions, globalScope scope) (err error) {
 
 	// TODO: This cache has been disabled as a workaround to the issues #641 and
 	// #624. We should find a better solution in the future.

@@ -25,7 +25,7 @@ type scopeElement struct {
 	decl *ast.Identifier
 }
 
-type typeCheckerScope map[string]scopeElement
+type scope map[string]scopeElement
 
 var boolType = reflect.TypeOf(false)
 var uintType = reflect.TypeOf(uint(0))
@@ -41,7 +41,7 @@ var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
 var envType = reflect.TypeOf((*runtime.Env)(nil)).Elem()
 
-var universe = typeCheckerScope{
+var universe = scope{
 	"append":     {t: &typeInfo{Properties: propertyUniverse}},
 	"cap":        {t: &typeInfo{Properties: propertyUniverse}},
 	"close":      {t: &typeInfo{Properties: propertyUniverse}},
