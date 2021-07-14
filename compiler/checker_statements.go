@@ -539,6 +539,7 @@ nodesLoop:
 				cas.Body = tc.checkNodes(cas.Body)
 				tc.removeLastAncestor()
 				tc.exitScope()
+				tc.exitScope()
 				terminating = terminating && tc.terminating
 			}
 			tc.removeLastAncestor()
