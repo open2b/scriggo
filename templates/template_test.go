@@ -3059,6 +3059,13 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: `42`,
 	},
+
+	"Macro called as predefined": {
+		sources: map[string]string{
+			"index.html": `{% macro a %}hey{% end %}{% var s = func() html { return a() }() %}{{ s }}`,
+		},
+		expectedOut: "hey",
+	},
 }
 
 var structWithUnexportedFields = &struct {

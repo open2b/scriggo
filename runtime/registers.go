@@ -268,7 +268,7 @@ func (vm *VM) getIntoReflectValue(r int8, v reflect.Value, k bool) registerType 
 		v.SetString(vm.stringk(r, k))
 		return stringRegister
 	case reflect.Func:
-		v.Set(vm.generalk(r, k).Interface().(*callable).Value(vm.env))
+		v.Set(vm.generalk(r, k).Interface().(*callable).Value(vm.renderer, vm.env))
 		return generalRegister
 	case reflect.Interface:
 		if g := vm.generalk(r, k); !g.IsValid() { // TODO: check if it is correct.

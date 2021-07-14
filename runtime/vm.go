@@ -353,7 +353,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 				case reflect.Func:
 					for j := 0; j < int(numVariadic); j++ {
 						f := vm.general(int8(j + 1)).Interface().(*callable)
-						slice.Index(j).Set(f.Value(vm.env))
+						slice.Index(j).Set(f.Value(vm.renderer, vm.env))
 					}
 				case reflect.String:
 					for j := 0; j < int(numVariadic); j++ {
@@ -874,7 +874,7 @@ func (c *callable) Predefined() *PredefinedFunction {
 
 // Value returns a reflect Value of a callable, so it can be called from a
 // predefined code and passed to a predefined code.
-func (c *callable) Value(env *env) reflect.Value {
+func (c *callable) Value(renderer Renderer, env *env) reflect.Value {
 	if c.value.IsValid() {
 		return c.value
 	}
@@ -888,6 +888,10 @@ func (c *callable) Value(env *env) reflect.Value {
 	vars := c.vars
 	c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
 		nvm := create(env)
+		if fn.Macro {
+			renderer = renderer.WithOut(&macroOutBuffer{})
+		}
+		nvm.SetRenderer(renderer)
 		nOut := fn.Type.NumOut()
 		results := make([]reflect.Value, nOut)
 		var r = [4]int8{1, 1, 1, 1}
@@ -919,6 +923,14 @@ func (c *callable) Value(env *env) reflect.Value {
 				err = &FatalError{msg: msg}
 			}
 			panic(err)
+		}
+		if fn.Macro {
+			b := renderer.Out().(*macroOutBuffer)
+			nvm.setString(1, b.String())
+			err := renderer.Close()
+			if err != nil {
+				panic(&FatalError{env: env, msg: err})
+			}
 		}
 		r = [4]int8{1, 1, 1, 1}
 		for _, result := range results {
