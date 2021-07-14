@@ -491,13 +491,11 @@ func (tc *typechecker) isUpVar(name string) bool {
 	// check if it has been declared outside current function.
 	_, funcBound := tc.currentFunction()
 	for i := len(tc.scopes) - 1; i >= 0; i-- {
-		for n, elem := range tc.scopes[i] {
-			if n != name {
-				continue
-			}
+		scope := tc.scopes[i]
+		if elem, ok := scope[name]; ok {
 			if i < funcBound-1 { // out of current function scope.
 				if elem.t.Addressable() { // elem must be a variable.
-					tc.compilation.indirectVars[tc.scopes[i][n].decl] = true
+					tc.compilation.indirectVars[scope[name].decl] = true
 					return true
 				}
 			}
