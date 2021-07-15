@@ -963,7 +963,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		imported := &packageInfo{}
 		imported.Declarations = make(map[string]*typeInfo, len(precompiledPkg.DeclarationNames()))
 		for n, d := range toTypeCheckerScope(precompiledPkg, tc.opts.mod, false, 0) {
-			imported.Declarations[n] = d.t
+			imported.Declarations[n] = d.ti
 		}
 		imported.Name = precompiledPkg.Name()
 
@@ -1316,12 +1316,12 @@ func (tc *typechecker) explodeUsingStatement(using *ast.Using, iteaIdent string)
 	// Make the type explicit, if necessary.
 	if using.Type == nil {
 		name := formatTypeName[using.Format]
-		scope, ok := tc.universe[name]
+		ti, ok := tc.scopes.universe(name)
 		if !ok {
 			panic("no type defined for format " + using.Format.String())
 		}
 		ident := ast.NewIdentifier(using.Pos(), name)
-		tc.compilation.typeInfos[ident] = scope.t
+		tc.compilation.typeInfos[ident] = ti
 		using.Type = ident
 	}
 

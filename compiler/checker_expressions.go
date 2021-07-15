@@ -29,10 +29,10 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 	if !ok {
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
 	}
-	ti := elem.t
+	ti := elem.ti
 
 	// Check if the identifier is the builtin 'iota'.
-	if ti == universe["iota"].t {
+	if ti == universe["iota"].ti {
 		// Check if iota is defined in the current expression evaluation.
 		if tc.iota == -1 {
 			panic(tc.errorf(ident, "undefined: %s", ident.Name))
@@ -47,7 +47,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 
 	// Handle the predeclared identifier 'itea' when checking the 'using'
 	// statement.
-	if ti == universe["itea"].t {
+	if ti == universe["itea"].ti {
 		if !tc.withinUsingAffectedStmt {
 			// The identifier is the predeclared identifier 'itea', but 'itea'
 			// is not defined outside an 'using' statement so it is considered

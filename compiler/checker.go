@@ -60,7 +60,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 
 	// Add the global "exit" to script global scope.
 	if opts.mod == scriptMod {
-		exit := scopeElement{t: &typeInfo{Properties: propertyUniverse}}
+		exit := scopeElement{ti: &typeInfo{Properties: propertyUniverse}}
 		if globalScope == nil {
 			globalScope = scope{"exit": exit}
 		} else if _, ok := globalScope["exit"]; !ok {
@@ -297,7 +297,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		}
 		for format, typ := range opts.formatTypes {
 			name := formatTypeName[format]
-			universeScope[name] = scopeElement{t: &typeInfo{
+			universeScope[name] = scopeElement{ti: &typeInfo{
 				Type:       typ,
 				Properties: propertyIsType | propertyIsFormatType | propertyUniverse,
 			}}
@@ -399,7 +399,7 @@ func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.I
 		panic(tc.errorf(declNode, s))
 	}
 
-	tc.scopes[len(tc.scopes)-1][name] = scopeElement{t: value, decl: declNode}
+	tc.scopes[len(tc.scopes)-1][name] = scopeElement{ti: value, decl: declNode}
 }
 
 // An ancestor is an AST node with a scope level associated. The type checker

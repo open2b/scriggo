@@ -127,7 +127,7 @@ func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, global bool, dept
 				Declarations: map[string]*typeInfo{},
 			}
 			for n, d := range toTypeCheckerScope(v, mod, global, depth+1) {
-				pkg.Declarations[n] = d.t
+				pkg.Declarations[n] = d.ti
 			}
 			ti.value = pkg
 			ti.Properties |= propertyIsPackage | propertyHasValue
@@ -155,7 +155,7 @@ func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, global bool, dept
 			}
 			ti.Properties |= propertyUntyped
 		}
-		scope[ident] = scopeElement{t: ti}
+		scope[ident] = scopeElement{ti: ti}
 	}
 	return scope
 }

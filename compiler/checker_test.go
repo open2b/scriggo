@@ -581,7 +581,7 @@ func TestCheckerExpressions(t *testing.T) {
 			}
 			sc := make(scope, len(expr.scope))
 			for k, v := range expr.scope {
-				sc[k] = scopeElement{t: v}
+				sc[k] = scopeElement{ti: v}
 			}
 			compilation := newCompilation()
 			tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
@@ -675,7 +675,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			}
 			sc := make(scope, len(expr.scope))
 			for k, v := range expr.scope {
-				sc[k] = scopeElement{t: v}
+				sc[k] = scopeElement{ti: v}
 			}
 			compilation := newCompilation()
 			tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
@@ -1638,18 +1638,18 @@ func (p *pointInt) SetX(newX int) {
 
 func TestCheckerStatements(t *testing.T) {
 	scope := scope{
-		"boolType":   {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf(definedBool(false))}},
-		"aString":    {t: &typeInfo{Type: reflect.TypeOf(definedString(""))}},
-		"stringType": {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf(definedString(""))}},
-		"aStringMap": {t: &typeInfo{Type: reflect.TypeOf(definedStringMap{})}},
-		"pointInt":   {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf(pointInt{})}},
-		"aIntChan":   {t: &typeInfo{Type: reflect.TypeOf(make(chan int))}},
-		"aSliceChan": {t: &typeInfo{Type: reflect.TypeOf(make(chan []int))}},
-		"ioReader":   {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*io.Reader)(nil)).Elem()}},
-		"osFile":     {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*os.File)(nil)).Elem()}},
-		"noRead1":    {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*noRead1)(nil)).Elem()}},
-		"noRead2":    {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*noRead2)(nil)).Elem()}},
-		"noRead3":    {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*noRead3)(nil)).Elem()}},
+		"boolType":   {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf(definedBool(false))}},
+		"aString":    {ti: &typeInfo{Type: reflect.TypeOf(definedString(""))}},
+		"stringType": {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf(definedString(""))}},
+		"aStringMap": {ti: &typeInfo{Type: reflect.TypeOf(definedStringMap{})}},
+		"pointInt":   {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf(pointInt{})}},
+		"aIntChan":   {ti: &typeInfo{Type: reflect.TypeOf(make(chan int))}},
+		"aSliceChan": {ti: &typeInfo{Type: reflect.TypeOf(make(chan []int))}},
+		"ioReader":   {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*io.Reader)(nil)).Elem()}},
+		"osFile":     {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*os.File)(nil)).Elem()}},
+		"noRead1":    {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*noRead1)(nil)).Elem()}},
+		"noRead2":    {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*noRead2)(nil)).Elem()}},
+		"noRead3":    {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*noRead3)(nil)).Elem()}},
 	}
 	for src, expectedError := range checkerStmts {
 		func() {
@@ -1925,11 +1925,11 @@ func tiUntypedFloatConst(lit string) *typeInfo {
 	}
 }
 
-func tiFloat32() *typeInfo { return &typeInfo{Type: universe["float32"].t.Type} }
+func tiFloat32() *typeInfo { return &typeInfo{Type: universe["float32"].ti.Type} }
 func tiFloat64() *typeInfo { return &typeInfo{Type: float64Type} }
 
 func tiAddrFloat32() *typeInfo {
-	return &typeInfo{Type: universe["float32"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["float32"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiAddrFloat64() *typeInfo {
@@ -1937,7 +1937,7 @@ func tiAddrFloat64() *typeInfo {
 }
 
 func tiFloat32Const(n float32) *typeInfo {
-	return &typeInfo{Type: universe["float32"].t.Type, Constant: float64Const(n)}
+	return &typeInfo{Type: universe["float32"].ti.Type, Constant: float64Const(n)}
 }
 
 func tiFloat64Const(n float64) *typeInfo {
@@ -2047,55 +2047,55 @@ func tiUntypedIntConst(lit string) *typeInfo {
 }
 
 func tiInt() *typeInfo     { return &typeInfo{Type: intType} }
-func tiInt8() *typeInfo    { return &typeInfo{Type: universe["int8"].t.Type} }
-func tiInt16() *typeInfo   { return &typeInfo{Type: universe["int16"].t.Type} }
-func tiInt32() *typeInfo   { return &typeInfo{Type: universe["int32"].t.Type} }
-func tiInt64() *typeInfo   { return &typeInfo{Type: universe["int64"].t.Type} }
-func tiUint() *typeInfo    { return &typeInfo{Type: universe["uint"].t.Type} }
-func tiUint8() *typeInfo   { return &typeInfo{Type: universe["uint8"].t.Type} }
-func tiUint16() *typeInfo  { return &typeInfo{Type: universe["uint16"].t.Type} }
-func tiUint32() *typeInfo  { return &typeInfo{Type: universe["uint32"].t.Type} }
-func tiUint64() *typeInfo  { return &typeInfo{Type: universe["uint64"].t.Type} }
-func tiUintptr() *typeInfo { return &typeInfo{Type: universe["uintptr"].t.Type} }
+func tiInt8() *typeInfo    { return &typeInfo{Type: universe["int8"].ti.Type} }
+func tiInt16() *typeInfo   { return &typeInfo{Type: universe["int16"].ti.Type} }
+func tiInt32() *typeInfo   { return &typeInfo{Type: universe["int32"].ti.Type} }
+func tiInt64() *typeInfo   { return &typeInfo{Type: universe["int64"].ti.Type} }
+func tiUint() *typeInfo    { return &typeInfo{Type: universe["uint"].ti.Type} }
+func tiUint8() *typeInfo   { return &typeInfo{Type: universe["uint8"].ti.Type} }
+func tiUint16() *typeInfo  { return &typeInfo{Type: universe["uint16"].ti.Type} }
+func tiUint32() *typeInfo  { return &typeInfo{Type: universe["uint32"].ti.Type} }
+func tiUint64() *typeInfo  { return &typeInfo{Type: universe["uint64"].ti.Type} }
+func tiUintptr() *typeInfo { return &typeInfo{Type: universe["uintptr"].ti.Type} }
 
 func tiAddrInt() *typeInfo {
 	return &typeInfo{Type: intType, Properties: propertyAddressable}
 }
 
 func tiAddrInt8() *typeInfo {
-	return &typeInfo{Type: universe["int8"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["int8"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiAddrInt16() *typeInfo {
-	return &typeInfo{Type: universe["int16"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["int16"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiAddrInt32() *typeInfo {
-	return &typeInfo{Type: universe["int32"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["int32"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiAddrInt64() *typeInfo {
-	return &typeInfo{Type: universe["int64"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["int64"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiAddrUint() *typeInfo {
-	return &typeInfo{Type: universe["uint"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["uint"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiAddrUint8() *typeInfo {
-	return &typeInfo{Type: universe["uint8"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["uint8"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiAddrUint16() *typeInfo {
-	return &typeInfo{Type: universe["uint16"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["uint16"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiAddrUint32() *typeInfo {
-	return &typeInfo{Type: universe["uint32"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["uint32"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiAddrUint64() *typeInfo {
-	return &typeInfo{Type: universe["uint64"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["uint64"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiIntConst(n int) *typeInfo {
@@ -2103,43 +2103,43 @@ func tiIntConst(n int) *typeInfo {
 }
 
 func tiInt8Const(n int8) *typeInfo {
-	return &typeInfo{Type: universe["int8"].t.Type, Constant: int64Const(int64(n))}
+	return &typeInfo{Type: universe["int8"].ti.Type, Constant: int64Const(int64(n))}
 }
 
 func tiInt16Const(n int16) *typeInfo {
-	return &typeInfo{Type: universe["int16"].t.Type, Constant: int64Const(int64(n))}
+	return &typeInfo{Type: universe["int16"].ti.Type, Constant: int64Const(int64(n))}
 }
 
 func tiInt32Const(n int32) *typeInfo {
-	return &typeInfo{Type: universe["int32"].t.Type, Constant: int64Const(int64(n))}
+	return &typeInfo{Type: universe["int32"].ti.Type, Constant: int64Const(int64(n))}
 }
 
 func tiInt64Const(n int64) *typeInfo {
-	return &typeInfo{Type: universe["int64"].t.Type, Constant: int64Const(int64(n))}
+	return &typeInfo{Type: universe["int64"].ti.Type, Constant: int64Const(int64(n))}
 }
 
 func tiUintConst(n uint) *typeInfo {
-	return &typeInfo{Type: universe["uint"].t.Type, Constant: newIntConst(0).setUint64(uint64(n))}
+	return &typeInfo{Type: universe["uint"].ti.Type, Constant: newIntConst(0).setUint64(uint64(n))}
 }
 
 func tiUint8Const(n uint8) *typeInfo {
-	return &typeInfo{Type: universe["uint8"].t.Type, Constant: int64Const(int64(n))}
+	return &typeInfo{Type: universe["uint8"].ti.Type, Constant: int64Const(int64(n))}
 }
 
 func tiUint16Const(n uint16) *typeInfo {
-	return &typeInfo{Type: universe["uint16"].t.Type, Constant: int64Const(int64(n))}
+	return &typeInfo{Type: universe["uint16"].ti.Type, Constant: int64Const(int64(n))}
 }
 
 func tiUint32Const(n uint32) *typeInfo {
-	return &typeInfo{Type: universe["uint32"].t.Type, Constant: int64Const(int64(n))}
+	return &typeInfo{Type: universe["uint32"].ti.Type, Constant: int64Const(int64(n))}
 }
 
 func tiUint64Const(n uint64) *typeInfo {
-	return &typeInfo{Type: universe["uint64"].t.Type, Constant: newIntConst(0).setUint64(n)}
+	return &typeInfo{Type: universe["uint64"].ti.Type, Constant: newIntConst(0).setUint64(n)}
 }
 
 func tiUintptrConst(n uint) *typeInfo {
-	return &typeInfo{Type: universe["uintptr"].t.Type, Constant: newIntConst(0).setUint64(uint64(n))}
+	return &typeInfo{Type: universe["uintptr"].ti.Type, Constant: newIntConst(0).setUint64(uint64(n))}
 }
 
 func tiIntPtr() *typeInfo {
@@ -2150,7 +2150,7 @@ var tiDefinedIntSlice = &typeInfo{Type: reflect.TypeOf(definedIntSlice{})}
 
 // nil type info.
 
-func tiNil() *typeInfo { return universe["nil"].t }
+func tiNil() *typeInfo { return universe["nil"].ti }
 
 // byte type info.
 

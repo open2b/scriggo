@@ -184,7 +184,7 @@ func TestCheckerTemplateExpressions(t *testing.T) {
 			}
 			sc := make(scope, len(expr.scope))
 			for k, v := range expr.scope {
-				sc[k] = scopeElement{t: v}
+				sc[k] = scopeElement{ti: v}
 			}
 			compilation := newCompilation()
 			tc := newTypechecker(compilation, "", options, nil, nil)
@@ -264,7 +264,7 @@ func TestCheckerTemplateExpressionErrors(t *testing.T) {
 			}
 			sc := make(scope, len(expr.scope))
 			for k, v := range expr.scope {
-				sc[k] = scopeElement{t: v}
+				sc[k] = scopeElement{ti: v}
 			}
 			compilation := newCompilation()
 			tc := newTypechecker(compilation, "", options, nil, nil)
