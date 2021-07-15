@@ -166,6 +166,12 @@ type unusedImport struct {
 	decl map[string]*typeInfo // not used declarations
 }
 
+type scopeVariable struct {
+	ident      string
+	scopeLevel int
+	node       ast.Node
+}
+
 // typechecker represents the state of the type checking.
 type typechecker struct {
 

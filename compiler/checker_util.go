@@ -20,6 +20,7 @@ import (
 	"github.com/open2b/scriggo/runtime"
 )
 
+var envType = reflect.TypeOf((*runtime.Env)(nil)).Elem()
 var errTypeConversion = errors.New("failed type conversion")
 
 type nilConversionError struct {
