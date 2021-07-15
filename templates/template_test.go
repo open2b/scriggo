@@ -718,6 +718,7 @@ var templateMultiFileCases = map[string]struct {
 	entryPoint       string                 // default to "index.html"
 	packages         scriggo.PackageLoader  // default to nil
 	noParseShow      bool
+	dollarIdentifier bool // default to false
 }{
 
 	"Empty template": {
@@ -1741,11 +1742,19 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "\n\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\tm2\n\n\t\t\t",
 	},
 
+	"Dollar identifier - No longer supported": {
+		sources: map[string]string{
+			"index.txt": `{% var _ interface{} = $notExisting %}{{ $notExisting2 == nil }}`,
+		},
+		expectedBuildErr: `index.txt:1:24: syntax error: invalid character U+0024 '$'`,
+	},
+
 	"Dollar identifier - Referencing to a global variable that does not exist": {
 		sources: map[string]string{
 			"index.txt": `{% var _ interface{} = $notExisting %}{{ $notExisting2 == nil }}`,
 		},
-		expectedOut: "true",
+		dollarIdentifier: true,
+		expectedOut:      "true",
 	},
 
 	"Dollar identifier - Referencing to a global variable that exists": {
@@ -1758,7 +1767,8 @@ var templateMultiFileCases = map[string]struct {
 				"forthyTwo": &([]int8{42}[0]),
 			},
 		},
-		expectedOut: "42",
+		dollarIdentifier: true,
+		expectedOut:      "42",
 	},
 
 	"Dollar identifier - Type assertion on a global variable that exists (1)": {
@@ -1771,7 +1781,8 @@ var templateMultiFileCases = map[string]struct {
 				"forthyThree": &([]int{43}[0]),
 			},
 		},
-		expectedOut: "43",
+		dollarIdentifier: true,
+		expectedOut:      "43",
 	},
 
 	"Dollar identifier - Type assertion on a global variable that exists (2)": {
@@ -1784,13 +1795,15 @@ var templateMultiFileCases = map[string]struct {
 				"forthyThree": &([]int{42}[0]),
 			},
 		},
-		expectedOut: "1344true",
+		dollarIdentifier: true,
+		expectedOut:      "1344true",
 	},
 
 	"Dollar identifier - Cannot use an type": {
 		sources: map[string]string{
 			"index.txt": `{% _ = $int %}`,
 		},
+		dollarIdentifier: true,
 		expectedBuildErr: `unexpected type in dollar identifier`,
 	},
 
@@ -1798,6 +1811,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% _ = $println %}`,
 		},
+		dollarIdentifier: true,
 		expectedBuildErr: `use of builtin println not in function call`,
 	},
 
@@ -1805,6 +1819,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% var local = 10 %}{% _ = $local %}`,
 		},
+		dollarIdentifier: true,
 		expectedBuildErr: `use of local identifier within dollar identifier`,
 	},
 
@@ -1818,6 +1833,7 @@ var templateMultiFileCases = map[string]struct {
 				"forthyTwo": &([]int8{42}[0]),
 			},
 		},
+		dollarIdentifier: true,
 		expectedBuildErr: `cannot take the address of $fortyTwo`,
 	},
 
@@ -1825,6 +1841,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% _ = &($notExisting) %}`,
 		},
+		dollarIdentifier: true,
 		expectedBuildErr: `cannot take the address of $notExisting`,
 	},
 
@@ -1838,6 +1855,7 @@ var templateMultiFileCases = map[string]struct {
 				"forthyTwo": &([]int8{42}[0]),
 			},
 		},
+		dollarIdentifier: true,
 		expectedBuildErr: `cannot assign to $fortyTwo`,
 	},
 
@@ -1845,6 +1863,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% $notExisting = 43 %}`,
 		},
+		dollarIdentifier: true,
 		expectedBuildErr: `cannot assign to $notExisting`,
 	},
 
@@ -1858,6 +1877,7 @@ var templateMultiFileCases = map[string]struct {
 				"constant": 42,
 			},
 		},
+		dollarIdentifier: true,
 		expectedBuildErr: `const initializer $constant is not a constant`,
 	},
 
@@ -1905,6 +1925,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt":    `{% import "imported.txt" %}`,
 			"imported.txt": `{% var X = 10 %}{% var _ = $X %}`,
 		},
+		dollarIdentifier: true,
 		expectedBuildErr: `use of top-level identifier within dollar identifier`,
 	},
 
@@ -1913,6 +1934,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt":    `{% extends "extended.txt" %}{% var X = 10 %}{% var _ = $X %}`,
 			"extended.txt": ``,
 		},
+		dollarIdentifier: true,
 		expectedBuildErr: `use of top-level identifier within dollar identifier`,
 	},
 
@@ -1921,6 +1943,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt":    `{% import "imported.txt" %}`,
 			"imported.txt": `{% var x = $global %}`,
 		},
+		dollarIdentifier: true,
 	},
 
 	"https://github.com/open2b/scriggo/issues/680 - Extends": {
@@ -1928,6 +1951,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt":    `{% extends "extended.txt" %}{% var x = $global %}`,
 			"extended.txt": ``,
 		},
+		dollarIdentifier: true,
 	},
 
 	"Panic after importing file that declares a variable in general register (1)": {
@@ -1958,7 +1982,8 @@ var templateMultiFileCases = map[string]struct {
 				"global": (*int)(nil),
 			},
 		},
-		expectedOut: "text",
+		dollarIdentifier: true,
+		expectedOut:      "text",
 	},
 
 	"https://github.com/open2b/scriggo/issues/686 (2)": {
@@ -1972,7 +1997,8 @@ var templateMultiFileCases = map[string]struct {
 				"global": (*int)(nil),
 			},
 		},
-		expectedOut: "text",
+		dollarIdentifier: true,
+		expectedOut:      "text",
 	},
 
 	"https://github.com/open2b/scriggo/issues/687": {
@@ -2001,7 +2027,8 @@ var templateMultiFileCases = map[string]struct {
 				}{},
 			},
 		},
-		expectedOut: "\n\t\t\t\t<head>\n\t\t\t\t<script>....\n\t\t\t\t\"\"\t\t\n\t\t\t\t\"\"\t\t\n\t\t\t\tfef",
+		expectedOut:      "\n\t\t\t\t<head>\n\t\t\t\t<script>....\n\t\t\t\t\"\"\t\t\n\t\t\t\t\"\"\t\t\n\t\t\t\tfef",
+		dollarIdentifier: true,
 	},
 
 	"https://github.com/open2b/scriggo/issues/655": {
@@ -2121,6 +2148,7 @@ var templateMultiFileCases = map[string]struct {
 			%%}{% var x = $global %}`,
 			"extended.txt": ``,
 		},
+		dollarIdentifier: true,
 	},
 
 	"Multi line statements #2": {
@@ -2132,7 +2160,8 @@ var templateMultiFileCases = map[string]struct {
 				var a []int
 			%%}`,
 		},
-		expectedOut: "beforeafter",
+		dollarIdentifier: true,
+		expectedOut:      "beforeafter",
 	},
 
 	"Multi line statements #3": {
@@ -2140,6 +2169,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt":    `{%% import "imported.txt" %%}`,
 			"imported.txt": `{% var x = $global %}`,
 		},
+		dollarIdentifier: true,
 	},
 
 	"Multi line statements #4": {
@@ -2147,6 +2177,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt":    `{% import "imported.txt" %}`,
 			"imported.txt": `{%% var x = $global %%}`,
 		},
+		dollarIdentifier: true,
 	},
 
 	"Multiline statements #5": {
@@ -3657,6 +3688,7 @@ func TestMultiFileTemplate(t *testing.T) {
 				Packages:             cas.packages,
 				MarkdownConverter:    markdownConverter,
 				NoParseShortShowStmt: cas.noParseShow,
+				DollarIdentifier:     cas.dollarIdentifier,
 			}
 			template, err := Build(fsys, entryPoint, opts)
 			switch {

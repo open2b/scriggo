@@ -34,7 +34,7 @@ type FormatFS interface {
 //
 // ParseTemplate expands the nodes Extends, Import and Render parsing the
 // relative trees.
-func ParseTemplate(fsys fs.FS, name string, packages PackageLoader, noParseShow bool) (*ast.Tree, error) {
+func ParseTemplate(fsys fs.FS, name string, packages PackageLoader, noParseShow, dollarIdentifier bool) (*ast.Tree, error) {
 
 	if name == "." || strings.HasSuffix(name, "/") {
 		return nil, os.ErrInvalid
@@ -46,11 +46,12 @@ func ParseTemplate(fsys fs.FS, name string, packages PackageLoader, noParseShow 
 	}
 
 	pp := &templateExpansion{
-		fsys:        fsys,
-		packages:    packages,
-		trees:       map[string]parsedTree{},
-		paths:       []string{},
-		noParseShow: noParseShow,
+		fsys:             fsys,
+		packages:         packages,
+		trees:            map[string]parsedTree{},
+		paths:            []string{},
+		noParseShow:      noParseShow,
+		dollarIdentifier: dollarIdentifier,
 	}
 
 	tree, err := pp.parseSource(src, name, format, false)
@@ -68,11 +69,12 @@ func ParseTemplate(fsys fs.FS, name string, packages PackageLoader, noParseShow 
 
 // templateExpansion represents the state of a template expansion.
 type templateExpansion struct {
-	fsys        fs.FS
-	trees       map[string]parsedTree
-	packages    PackageLoader
-	paths       []string
-	noParseShow bool
+	fsys             fs.FS
+	trees            map[string]parsedTree
+	packages         PackageLoader
+	paths            []string
+	noParseShow      bool
+	dollarIdentifier bool
 }
 
 // parsedTree represents a parsed tree. parent is the file path and node that
@@ -184,7 +186,7 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 // indicates whether the file is imported. path must be absolute and cleared.
 func (pp *templateExpansion) parseSource(src []byte, path string, format ast.Format, imported bool) (*ast.Tree, error) {
 
-	tree, unexpanded, err := ParseTemplateSource(src, format, imported, pp.noParseShow)
+	tree, unexpanded, err := ParseTemplateSource(src, format, imported, pp.noParseShow, pp.dollarIdentifier)
 	if err != nil {
 		if se, ok := err.(*SyntaxError); ok {
 			se.path = path

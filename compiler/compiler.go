@@ -47,9 +47,17 @@ const (
 type Options struct {
 	DisallowGoStmt       bool
 	NoParseShortShowStmt bool
-	FormatTypes          map[ast.Format]reflect.Type
-	Globals              Declarations
-	Renderer             runtime.Renderer
+
+	// DollarIdentifier, when true, keeps the backward compatibility by
+	// supporting the dollar identifier.
+	//
+	// NOTE: the dollar identifier is deprecated and will be removed in a
+	// future version of Scriggo.
+	DollarIdentifier bool
+
+	FormatTypes map[ast.Format]reflect.Type
+	Globals     Declarations
+	Renderer    runtime.Renderer
 
 	// Packages loads Scriggo packages and precompiled packages.
 	//
@@ -162,7 +170,7 @@ func BuildTemplate(fsys fs.FS, name string, opts Options) (*Code, error) {
 
 	// Parse the source code.
 	var err error
-	tree, err = ParseTemplate(fsys, name, opts.Packages, opts.NoParseShortShowStmt)
+	tree, err = ParseTemplate(fsys, name, opts.Packages, opts.NoParseShortShowStmt, opts.DollarIdentifier)
 	if err != nil {
 		return nil, err
 	}

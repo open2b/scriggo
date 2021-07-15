@@ -43,7 +43,7 @@ func ExampleDump() {
 			if format == ast.FormatText {
 				tree, err = compiler.ParseScript(strings.NewReader(c), nil)
 			} else {
-				tree, _, err = compiler.ParseTemplateSource([]byte(c), format, false, false)
+				tree, _, err = compiler.ParseTemplateSource([]byte(c), format, false, false, false)
 			}
 			if err != nil {
 				panic(err)

@@ -110,6 +110,13 @@ type BuildOptions struct {
 	NoParseShortShowStmt bool
 	TreeTransformer      func(*ast.Tree) error // if not nil transforms tree after parsing.
 
+	// DollarIdentifier, when true, keeps the backward compatibility by
+	// supporting the dollar identifier.
+	//
+	// NOTE: the dollar identifier is deprecated and will be removed in a
+	// future version of Scriggo.
+	DollarIdentifier bool
+
 	// MarkdownConverter converts a Markdown source code to HTML.
 	MarkdownConverter Converter
 
@@ -188,6 +195,7 @@ func Build(fsys fs.FS, name string, options *BuildOptions) (*Template, error) {
 		co.TreeTransformer = options.TreeTransformer
 		co.DisallowGoStmt = options.DisallowGoStmt
 		co.NoParseShortShowStmt = options.NoParseShortShowStmt
+		co.DollarIdentifier = options.DollarIdentifier
 		co.Packages = options.Packages
 		mdConverter = options.MarkdownConverter
 	}
