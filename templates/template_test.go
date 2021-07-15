@@ -3546,6 +3546,14 @@ var templateMultiFileCases = map[string]struct {
 			"index.css": `{% var a css = this(); using macro %} div { color: red; }{% end %}`,
 		},
 	},
+
+	"https://github.com/open2b/scriggo/issues/780": {
+		sources: map[string]string{
+			"index.html":    `{% extends "extended.html" %}{% macro M %}{% end %}`,
+			"extended.html": `{% show M default 0 %}`,
+		},
+		expectedBuildErr: "extended.html:1:9: use of non-builtin M on left side of default",
+	},
 }
 
 var structWithUnexportedFields = &struct {

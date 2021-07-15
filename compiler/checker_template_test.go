@@ -582,13 +582,13 @@ var checkerTemplateStmts = []struct {
 	{src: `{% var a int %}{% a = J default 5 %}`, expected: ok},
 	{src: `{% var a string %}{% a = I default "" %}`, expected: `cannot use I (type int) as type string in assignment`},
 	{src: `{% var a interface{} %}{% a = I default "" %}`, expected: ok},
-	{src: `{% a := 5 %}{% var b = a default 0 %}`, expected: `use of non-builtin on left side of default`},
+	{src: `{% a := 5 %}{% var b = a default 0 %}`, expected: `use of non-builtin a on left side of default`},
 	{src: `{% var a = _ default 0 %}`, expected: `cannot use _ as value`},
 	{src: `{% var a = p default 0 %}`, expected: `use of package p without selector`},
 	{src: `{% var a = nil default 0 %}`, expected: `use of untyped nil`},
 	{src: `{% var a = len default 0 %}`, expected: `use of builtin len not in function call`},
 	{src: `{% var a = true default false %}`, expected: ok},
-	{src: `{% var loc int %}{% var a = loc default 0 %}`, expected: `use of non-builtin on left side of default`},
+	{src: `{% var loc int %}{% var a = loc default 0 %}`, expected: `use of non-builtin loc on left side of default`},
 	{src: `{% var a = T default 0 %}`, expected: `unexpected type on left side of default`},
 
 	// Constant declaration with 'default' expression.

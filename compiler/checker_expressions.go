@@ -2441,7 +2441,7 @@ func (tc *typechecker) checkDefault(expr *ast.Default, show bool) typeInfoPair {
 				panic(tc.errorf(n, "use of builtin %s not in function call", n))
 			}
 			if !tis[0].InUniverse() && !tis[0].Global() {
-				panic(tc.errorf(n, "use of non-builtin on left side of default"))
+				panic(tc.errorf(n, "use of non-builtin %s on left side of default", n))
 			}
 			if tis[0].IsType() {
 				panic(tc.errorf(n, "unexpected type on left side of default"))
