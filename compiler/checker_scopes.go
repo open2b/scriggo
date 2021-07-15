@@ -162,15 +162,15 @@ func (s scopes) setCurrent(name string) (*typeInfo, bool) {
 }
 
 // append appends a new local scope to s.
-func (s scopes) append() scopes {
+func (s scopes) enter() scopes {
 	return append(s, scope{})
 }
 
 // remove removes a last local scope from s.
-func (s scopes) remove() scopes {
+func (s scopes) exit() scopes {
 	last := len(s) - 1
 	if last == 2 {
-		panic("no local scope to drop")
+		panic("no local scope to exit")
 	}
 	return s[:last]
 }

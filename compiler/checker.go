@@ -323,7 +323,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 
 // enterScope enters into a new empty scope.
 func (tc *typechecker) enterScope() {
-	tc.scopes = tc.scopes.append()
+	tc.scopes = tc.scopes.enter()
 	tc.labels = append(tc.labels, []string{})
 	tc.storedGotos = tc.gotos
 	tc.gotos = []string{}
@@ -356,7 +356,7 @@ func (tc *typechecker) exitScope() {
 		}
 		tc.unusedVars = tc.unusedVars[:cut]
 	}
-	tc.scopes = tc.scopes.remove()
+	tc.scopes = tc.scopes.exit()
 	tc.labels = tc.labels[:len(tc.labels)-1]
 	tc.gotos = append(tc.storedGotos, tc.gotos...)
 	tc.nextValidGoto = tc.storedValidGoto
