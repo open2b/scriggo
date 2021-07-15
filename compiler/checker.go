@@ -117,6 +117,10 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 				mainPkgInfo.IndirectVars[k] = v
 			}
 		}
+		err = compilation.finalizeUsingStatements(tc)
+		if err != nil {
+			return nil, err
+		}
 		return map[string]*packageInfo{"main": mainPkgInfo}, nil
 	}
 
@@ -129,6 +133,10 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 	mainPkgInfo := &packageInfo{}
 	mainPkgInfo.IndirectVars = tc.compilation.indirectVars
 	mainPkgInfo.TypeInfos = tc.compilation.typeInfos
+	err = compilation.finalizeUsingStatements(tc)
+	if err != nil {
+		return nil, err
+	}
 	return map[string]*packageInfo{"main": mainPkgInfo}, nil
 }
 
@@ -258,6 +266,32 @@ type typechecker struct {
 	// inExtendedFile reports whether the type checker is type checking an
 	// extended file.
 	inExtendedFile bool
+
+	// withinUsingAffectedStmt reports whether the type checker is currently
+	// checking the affected statement of a 'using' statement.
+	withinUsingAffectedStmt bool
+
+	// toBeEmitted reports whether the current branch of the tree will be
+	// emitted or not.
+	toBeEmitted bool
+}
+
+// usingCheck contains information about the type checking of a 'using'
+// statement.
+type usingCheck struct {
+	// used reports whether the 'this' identifier is used.
+	used bool
+	// toBeEmitted reports whether the declaration of the 'this' identifier
+	// should be emitted, depending on whether 'this' is still used after
+	// defaults have been resolved.
+	toBeEmitted bool
+	// this is the declaration of the 'this' identifier.
+	this *ast.Var
+	// pos is the position of the 'using' statement.
+	pos *ast.Position
+	// typ is type of the 'this' predeclared identifier, as denoted in the
+	// 'using' statement (implicitly or explicitly).
+	typ ast.Expression
 }
 
 // newTypechecker creates a new type checker. A global scope may be provided
@@ -278,6 +312,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		env:              &env{tt.Runtime(), nil},
 		structDeclPkg:    map[reflect.Type]string{},
 		precompiledPkgs:  precompiledPkgs,
+		toBeEmitted:      true,
 	}
 	if len(opts.formatTypes) > 0 {
 		tc.universe = typeCheckerScope{}

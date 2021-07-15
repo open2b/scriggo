@@ -6,7 +6,12 @@
 
 package compiler
 
-import "github.com/open2b/scriggo/compiler/ast"
+import (
+	"sort"
+	"strconv"
+
+	"github.com/open2b/scriggo/compiler/ast"
+)
 
 // A compilation holds the state of a single compilation.
 //
@@ -45,6 +50,20 @@ type compilation struct {
 	// maps avoid making useless copies of AST nodes that may lead to
 	// inconsistent type checks and invalid behaviors.
 	renderImportMacro map[*ast.Tree]renderIR
+
+	// thisToUsingCheck maps 'this' identifiers ($this0, $this1... ) to their
+	// corresponding usingCheck.
+	thisToUsingCheck map[string]usingCheck
+
+	// currentThisIndex is the index used to generate the name of the current
+	// 'this' identifier.
+	// After initialization, it should be accessed exclusively by the method
+	// 'generateThisName'.
+	currentThisIndex int
+
+	// thisName is the current name of the predeclared 'this' identifier that
+	// should be used in tree transformations, something like '$this0'.
+	thisName string
 }
 
 type renderIR struct {
@@ -61,6 +80,7 @@ func newCompilation() *compilation {
 		alreadySortedPkgs: map[*ast.Package]bool{},
 		indirectVars:      map[*ast.Identifier]bool{},
 		renderImportMacro: map[*ast.Tree]renderIR{},
+		currentThisIndex:  -1,
 	}
 }
 
@@ -82,4 +102,37 @@ func (compilation *compilation) UniqueIndex(path string) int {
 	}
 	compilation.pkgPathToIndex[path] = max + 1
 	return max + 1
+}
+
+// generateThisName generates a new name that can be used when transforming the
+// predeclared identifier 'this'.
+func (compilation *compilation) generateThisName() string {
+	compilation.currentThisIndex++
+	return "$this" + strconv.Itoa(compilation.currentThisIndex)
+}
+
+// finalizeUsingStatements finalizes the 'using' statements neutralizing 'this'
+// declarations that should not be emitted. It also returns a type checking
+// error if the 'this' identifier of a 'using' statement is not used.
+func (compilation *compilation) finalizeUsingStatements(tc *typechecker) error {
+	names := make([]string, 0, len(compilation.thisToUsingCheck))
+	for name := range compilation.thisToUsingCheck {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		uc := compilation.thisToUsingCheck[name]
+		if !uc.used {
+			return tc.errorf(uc.pos, "predeclared identifier this not used")
+		}
+		if !uc.toBeEmitted {
+			if len(uc.this.Lhs) != 1 || len(uc.this.Rhs) != 1 {
+				panic("BUG: unexpected")
+			}
+			uc.this.Lhs = []*ast.Identifier{ast.NewIdentifier(nil, "_")}
+			uc.this.Rhs = []ast.Expression{ast.NewBasicLiteral(nil, ast.IntLiteral, "0")}
+			tc.checkNodes([]ast.Node{uc.this})
+		}
+	}
+	return nil
 }

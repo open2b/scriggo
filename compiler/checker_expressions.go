@@ -74,6 +74,7 @@ var universe = typeCheckerScope{
 	"int8":       {t: &typeInfo{Type: reflect.TypeOf(int8(0)), Properties: propertyIsType | propertyUniverse}},
 	"rune":       {t: int32TypeInfo},
 	"string":     {t: &typeInfo{Type: stringType, Properties: propertyIsType | propertyIsFormatType | propertyUniverse}},
+	"this":       {t: &typeInfo{Properties: propertyUniverse | propertyUntyped | propertyAddressable}},
 	"true":       {t: &typeInfo{Type: boolType, Properties: propertyUniverse | propertyUntyped, Constant: boolConst(true)}},
 	"uint":       {t: &typeInfo{Type: uintType, Properties: propertyIsType | propertyUniverse}},
 	"uint16":     {t: &typeInfo{Type: reflect.TypeOf(uint16(0)), Properties: propertyIsType | propertyUniverse}},
@@ -91,6 +92,55 @@ type scopeVariable struct {
 
 // checkIdentifier checks an identifier. If used, ident is marked as "used".
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeInfo {
+
+	ti, found := tc.lookupScopes(ident.Name, false)
+
+	// Check if the identifier is the builtin 'iota'.
+	if found && ti == universe["iota"].t {
+		// Check if iota is defined in the current expression evaluation.
+		if tc.iota >= 0 {
+			return &typeInfo{
+				Constant:   int64Const(tc.iota),
+				Type:       intType,
+				Properties: propertyUntyped,
+			}
+		}
+		// The identifier is the builtin 'iota', but 'iota' is not defined in
+		// the current expression evaluation, so the identifier 'iota' is
+		// undefined.
+		found = false
+	}
+
+	// Handle the predeclared identifier 'this' when checking the 'using'
+	// statement.
+	if found && ti == universe["this"].t {
+		if tc.withinUsingAffectedStmt {
+			ident.Name = tc.compilation.thisName
+			uc := tc.compilation.thisToUsingCheck[ident.Name]
+			uc.used = true
+			if tc.toBeEmitted {
+				uc.toBeEmitted = true
+			}
+			tc.compilation.thisToUsingCheck[ident.Name] = uc
+			ti, _ = tc.lookupScopes(ident.Name, false)
+			if ti == nil {
+				panic("BUG: unexpected 'ti == nil'")
+			}
+		} else {
+			// The identifier is the predeclared identifier 'this', but 'this'
+			// is not defined outside an 'using' statement so it is considered
+			// undefined.
+			found = false
+		}
+	}
+
+	if !found {
+		panic(tc.errorf(ident, "undefined: %s", ident.Name))
+	}
+
+	if ti.IsBuiltinFunction() {
+		panic(tc.errorf(ident, "use of builtin %s not in function call", ident.Name))
+	}
 
 	// If ident is an upvar, add it as upvar for current function and for all
 	// nested functions and update all indexes.
@@ -113,32 +163,6 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 				upvar.Index = int16(len(fn.Upvars) - 1)
 			}
 		}
-	}
-
-	ti, found := tc.lookupScopes(ident.Name, false)
-
-	// Check if the identifier is the builtin 'iota'.
-	if found && ti == universe["iota"].t {
-		// Check if iota is defined in the current expression evaluation.
-		if tc.iota >= 0 {
-			return &typeInfo{
-				Constant:   int64Const(tc.iota),
-				Type:       intType,
-				Properties: propertyUntyped,
-			}
-		}
-		// The identifier is the builtin 'iota', but 'iota' is not defined in
-		// the current expression evaluation, so the identifier 'iota' is
-		// undefined.
-		found = false
-	}
-
-	if !found {
-		panic(tc.errorf(ident, "undefined: %s", ident.Name))
-	}
-
-	if ti.IsBuiltinFunction() {
-		panic(tc.errorf(ident, "use of builtin %s not in function call", ident.Name))
 	}
 
 	// Handle predeclared variables in templates and scripts.
@@ -187,6 +211,16 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 				break
 			}
 		}
+	}
+
+	// Mark 'this' as used, when 'using' is a package-level statement.
+	if strings.HasPrefix(ident.Name, "$this") {
+		uc := tc.compilation.thisToUsingCheck[ident.Name]
+		uc.used = true
+		if tc.toBeEmitted {
+			uc.toBeEmitted = true
+		}
+		tc.compilation.thisToUsingCheck[ident.Name] = uc
 	}
 
 	// For "." imported packages, mark package as used.
@@ -666,6 +700,11 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		if expr.Macro {
 			ident := expr.Result[0].Type.(*ast.Identifier)
 			if out[0] != tc.universe[ident.Name].t.Type {
+				for _, ud := range tc.compilation.thisToUsingCheck {
+					if ud.typ == ident {
+						panic(tc.errorf(ident, "invalid using type %s", ident.Name))
+					}
+				}
 				panic(tc.errorf(ident, "invalid macro result type %s", ident.Name))
 			}
 		}
@@ -2395,6 +2434,9 @@ func (tc *typechecker) checkDefault(expr *ast.Default, show bool) typeInfoPair {
 			if tis[0].Nil() {
 				panic(tc.errorf(n, "use of untyped nil"))
 			}
+			if tis[0].InUniverse() && n.Name == "this" || strings.HasPrefix(n.Name, "$this") {
+				panic(tc.errorf(n, "use of predeclared identifier this"))
+			}
 			if tis[0].IsBuiltinFunction() {
 				panic(tc.errorf(n, "use of builtin %s not in function call", n))
 			}
@@ -2425,6 +2467,10 @@ func (tc *typechecker) checkDefault(expr *ast.Default, show bool) typeInfoPair {
 			panic(tc.errorf(ident, "cannot use _ as value"))
 		}
 		if ti, ok := tc.lookupScopes(ident.Name, false); ok {
+			// TODO(Gianluca): test 'nil() default'
+			if ti.InUniverse() && ident.Name == "this" || strings.HasPrefix(ident.Name, "$this") {
+				panic(tc.errorf(n, "use of predeclared identifier this"))
+			}
 			if ti.IsType() {
 				panic(tc.errorf(ident, "type conversion on left side of default"))
 			}
@@ -2459,10 +2505,13 @@ func (tc *typechecker) checkDefault(expr *ast.Default, show bool) typeInfoPair {
 		panic("unexpected default")
 	}
 
+	toBeEmitted := tc.toBeEmitted
 	if tis[0] != nil {
 		tc.compilation.typeInfos[expr.Expr1] = tis[0]
+		tc.toBeEmitted = false
 	}
 	tis[1] = tc.checkExpr(expr.Expr2)
+	tc.toBeEmitted = toBeEmitted
 
 	if _, ok := expr.Expr1.(*ast.Identifier); !ok && !show {
 		if typ := tis[1].Type; !tc.isFormatType(typ) {

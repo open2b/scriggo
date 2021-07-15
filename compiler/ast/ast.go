@@ -342,10 +342,26 @@ type Package struct {
 	*Position
 	Name         string // name.
 	Declarations []Node
+
+	IR struct {
+		// ThisNameToVarIdents maps the name of the transformed 'this'
+		// identifier to the identifiers on the left side of a 'var'
+		// declarations with an 'using' statement at package level.
+		//
+		// For example a package containing this declaration:
+		//
+		//    {% var V1, V2 = $this2, len($this2) using %} ... {% end using %}
+		//
+		//  will have a mapping in the form:
+		//
+		//    "$this2" => [V1, V2]
+		//
+		ThisNameToVarIdents map[string][]*Identifier
+	}
 }
 
 func NewPackage(pos *Position, name string, nodes []Node) *Package {
-	return &Package{pos, name, nodes}
+	return &Package{Position: pos, Name: name, Declarations: nodes}
 }
 
 // Statements node represents a statement {%% ... %%}
@@ -891,6 +907,9 @@ func NewIdentifier(pos *Position, name string) *Identifier {
 }
 
 func (n *Identifier) String() string {
+	if strings.HasPrefix(n.Name, "$this") {
+		return "this"
+	}
 	return n.Name
 }
 
@@ -1462,4 +1481,17 @@ type Raw struct {
 
 func NewRaw(pos *Position, marker, tag string, text *Text) *Raw {
 	return &Raw{pos, marker, tag, text}
+}
+
+// Using node represents a using statement.
+type Using struct {
+	*Position            // position in the source.
+	Statement Node       // statement preceding the using statement.
+	Type      Expression // type, can be a format identifier or a macro.
+	Body      *Block     // body.
+	Format    Format     // using content format.
+}
+
+func NewUsing(pos *Position, stmt Node, typ Expression, body *Block, format Format) *Using {
+	return &Using{pos, stmt, typ, body, format}
 }

@@ -196,19 +196,20 @@ var typeTestsText = map[string][]tokenTyp{
 	"{{ `\\t` }}":           {tokenLeftBraces, tokenRawString, tokenRightBraces},
 	"{{ ( 1 + 2 ) * 3 }}": {tokenLeftBraces, tokenLeftParenthesis, tokenInt, tokenAddition, tokenInt, tokenRightParenthesis,
 		tokenMultiplication, tokenInt, tokenRightBraces},
-	"{{ map{} }}":              {tokenLeftBraces, tokenMap, tokenLeftBrace, tokenRightBrace, tokenRightBraces},
-	"{{ map{`a`: 6} }}":        {tokenLeftBraces, tokenMap, tokenLeftBrace, tokenRawString, tokenColon, tokenInt, tokenRightBrace, tokenRightBraces},
-	"{{ interface{} }}":        {tokenLeftBraces, tokenInterface, tokenLeftBrace, tokenRightBrace, tokenRightBraces},
-	"{{ a and b }}":            {tokenLeftBraces, tokenIdentifier, tokenExtendedAnd, tokenIdentifier, tokenRightBraces},
-	"{{ a or b }}":             {tokenLeftBraces, tokenIdentifier, tokenExtendedOr, tokenIdentifier, tokenRightBraces},
-	"{{ a or not b }}":         {tokenLeftBraces, tokenIdentifier, tokenExtendedOr, tokenExtendedNot, tokenIdentifier, tokenRightBraces},
-	"{{ a contains b }}":       {tokenLeftBraces, tokenIdentifier, tokenContains, tokenIdentifier, tokenRightBraces},
-	"{{ a not contains b }}":   {tokenLeftBraces, tokenIdentifier, tokenExtendedNot, tokenContains, tokenIdentifier, tokenRightBraces},
-	"{% raw %}t{% end %}":      {tokenStartStatement, tokenRaw, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement},
-	"{% raw %}{% if {% end %}": {tokenStartStatement, tokenRaw, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement},
-	"{% raw %} if %}{% end %}": {tokenStartStatement, tokenRaw, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement},
-	"{{ a default b }}":        {tokenLeftBraces, tokenIdentifier, tokenDefault, tokenIdentifier, tokenRightBraces},
-
+	"{{ map{} }}":                   {tokenLeftBraces, tokenMap, tokenLeftBrace, tokenRightBrace, tokenRightBraces},
+	"{{ map{`a`: 6} }}":             {tokenLeftBraces, tokenMap, tokenLeftBrace, tokenRawString, tokenColon, tokenInt, tokenRightBrace, tokenRightBraces},
+	"{{ interface{} }}":             {tokenLeftBraces, tokenInterface, tokenLeftBrace, tokenRightBrace, tokenRightBraces},
+	"{{ a and b }}":                 {tokenLeftBraces, tokenIdentifier, tokenExtendedAnd, tokenIdentifier, tokenRightBraces},
+	"{{ a or b }}":                  {tokenLeftBraces, tokenIdentifier, tokenExtendedOr, tokenIdentifier, tokenRightBraces},
+	"{{ a or not b }}":              {tokenLeftBraces, tokenIdentifier, tokenExtendedOr, tokenExtendedNot, tokenIdentifier, tokenRightBraces},
+	"{{ a contains b }}":            {tokenLeftBraces, tokenIdentifier, tokenContains, tokenIdentifier, tokenRightBraces},
+	"{{ a not contains b }}":        {tokenLeftBraces, tokenIdentifier, tokenExtendedNot, tokenContains, tokenIdentifier, tokenRightBraces},
+	"{% raw %}t{% end %}":           {tokenStartStatement, tokenRaw, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement},
+	"{% raw %}{% if {% end %}":      {tokenStartStatement, tokenRaw, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement},
+	"{% raw %} if %}{% end %}":      {tokenStartStatement, tokenRaw, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement},
+	"{{ a default b }}":             {tokenLeftBraces, tokenIdentifier, tokenDefault, tokenIdentifier, tokenRightBraces},
+	"{% a = this; using %}":         {tokenStartStatement, tokenIdentifier, tokenSimpleAssignment, tokenIdentifier, tokenSemicolon, tokenUsing, tokenEndStatement},
+	"{% a = this(); using macro %}": {tokenStartStatement, tokenIdentifier, tokenSimpleAssignment, tokenIdentifier, tokenLeftParenthesis, tokenRightParenthesis, tokenSemicolon, tokenUsing, tokenMacro, tokenEndStatement},
 	"<a {% if a %}{% end %}>":       {tokenText, tokenStartStatement, tokenIf, tokenIdentifier, tokenEndStatement, tokenStartStatement, tokenEnd, tokenEndStatement, tokenText},
 	"<a {% if a %}b{% end %}>":      {tokenText, tokenStartStatement, tokenIf, tokenIdentifier, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement, tokenText},
 	"<a {% if a %}b=\"\"{% end %}>": {tokenText, tokenStartStatement, tokenIf, tokenIdentifier, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement, tokenText},
@@ -460,7 +461,7 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 	},
 }
 
-var macroContextTests = map[string][]ast.Context{
+var macroAndUsingContextTests = map[string][]ast.Context{
 	// Check context for '%}' tokens only.
 	"{% macro a %}{% end %}":                                                 {ast.ContextText, ast.ContextText},
 	"{% macro a html %}{% end %}":                                            {ast.ContextHTML, ast.ContextText},
@@ -487,6 +488,14 @@ var macroContextTests = map[string][]ast.Context{
 	"{% macro a\njs\n// comment\n%}{% end %}":                                {ast.ContextJS, ast.ContextText},
 	"{% macro a js %}{% for %}{% macro b css %}{% end %}{% end %}{% end %}":  {ast.ContextJS, ast.ContextJS, ast.ContextCSS, ast.ContextJS, ast.ContextJS, ast.ContextText},
 	"{% if a %}{% macro b css %}{% end %}{% macro c js %}{% end %}{% end %}": {ast.ContextText, ast.ContextCSS, ast.ContextText, ast.ContextJS, ast.ContextText, ast.ContextText},
+	"{% show this; using %}{% end %}":                                        {ast.ContextText, ast.ContextText},
+	"{% show this; using html %}{% end %}":                                   {ast.ContextHTML, ast.ContextText},
+	"{% show this; using js %}{% end %}":                                     {ast.ContextJS, ast.ContextText},
+	"{% show this; using macro %}{% end %}":                                  {ast.ContextText, ast.ContextText},
+	"{% show this; using macro html %}{% end %}":                             {ast.ContextHTML, ast.ContextText},
+	"{% show this; using /* */ js %}{% end %}":                               {ast.ContextJS, ast.ContextText},
+	"{% show this; using markdown %}{% macro a html %}{% end %}{% end %}":    {ast.ContextMarkdown, ast.ContextHTML, ast.ContextMarkdown, ast.ContextText},
+	"{% macro a html %}{% show this; using js %}{% end %}{% end %}":          {ast.ContextHTML, ast.ContextJS, ast.ContextHTML, ast.ContextText},
 }
 
 var positionTests = []struct {
@@ -673,9 +682,9 @@ CONTEXTS:
 	}
 }
 
-func TestLexerMacroContexts(t *testing.T) {
+func TestLexerMacroOrUsingContexts(t *testing.T) {
 CONTEXTS:
-	for source, contexts := range macroContextTests {
+	for source, contexts := range macroAndUsingContextTests {
 		text := []byte(source)
 		lex := scanTemplate(text, ast.FormatText, false)
 		var i int

@@ -54,7 +54,7 @@ const (
 
 // Nil reports whether it is the predeclared nil.
 func (ti *typeInfo) Nil() bool {
-	return ti.InUniverse() && ti.Untyped() && ti.Type == nil
+	return ti.InUniverse() && ti.Untyped() && !ti.Addressable() && ti.Type == nil
 }
 
 // Untyped reports whether it is untyped.
@@ -115,6 +115,13 @@ func (ti *typeInfo) IsPredefined() bool {
 // IsBuiltinFunction reports whether it is a builtin function.
 func (ti *typeInfo) IsBuiltinFunction() bool {
 	return ti.Properties&propertyUniverse != 0 && ti.Properties&propertyUntyped == 0 && ti.Type == nil
+}
+
+// This reports whether it is this.
+func (ti *typeInfo) This() bool {
+	return ti.Properties&propertyUniverse != 0 &&
+		ti.Properties&propertyUntyped != 0 &&
+		ti.Properties&propertyAddressable != 0 && ti.Type == nil
 }
 
 // MacroDeclaredInExtendingFile reports whether it is a macro declared in file

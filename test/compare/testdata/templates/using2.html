@@ -1,0 +1,48 @@
+{# errorcheck #}
+
+<c {% show this; using %}{% end %}>     // ERROR `syntax error: using not allowed in tag`
+<c b="{% show this; using %}{% end %}"> // ERROR `syntax error: using not allowed in quoted attribute`
+<c b={% show this; using %}{% end %}>   // ERROR `syntax error: using not allowed in unquoted attribute`
+<style>
+  div {
+    background-image: url("{% show this; using %}{% end %}") // ERROR `syntax error: using not allowed in CSS string`
+    }
+</style>
+<script>
+  var c = "{% show this; using %}{% end %}"; // ERROR `syntax error: using not allowed in JavaScript string`
+</script>
+<script type="application/ld+json">
+  { "c" : "{% show this; using %}{% end %}" } // ERROR `syntax error: using not allowed in JSON string`
+</script>
+
+{% show this; using []string %} // ERROR `syntax error: unexpected [, expecting identifier, macro or %}`
+
+{% show this; using int %} // ERROR `syntax error: unexpected int, expecting string, html, css, js, json, markdown, macro or %}`
+
+{% var foo string %} {% show this; using foo %} // ERROR `syntax error: unexpected foo, expecting string, html, css, js, json, markdown, macro or %}`
+
+{% show this; foo %} // ERROR `syntax error: unexpected foo, expecting using`
+
+{% show this; %} // ERROR `syntax error: unexpected semicolon, expecting %}`
+
+{% show; using %} // ERROR `syntax error: unexpected semicolon, expecting expression`
+
+{% show using int %} // ERROR `syntax error: unexpected using, expecting expression`
+
+{% a := this; foo %} // ERROR `syntax error: unexpected foo, expecting using`
+
+{% a += this; %} // ERROR `syntax error: unexpected semicolon, expecting %}`
+
+{% i++; using %} // ERROR `syntax error: unexpected semicolon, expecting %}`
+
+{% f(this); foo %} // ERROR `syntax error: unexpected foo, expecting using`
+
+{% f(this); %} // ERROR `syntax error: unexpected semicolon, expecting %}`
+
+{% c <- this; %} // ERROR `syntax error: unexpected semicolon, expecting %}`
+
+{% c <- this; foo %} // ERROR `syntax error: unexpected foo, expecting using`
+
+{% var a = this; foo %} // ERROR `syntax error: unexpected foo, expecting using`
+
+{% var a = this; %} // ERROR `syntax error: unexpected semicolon, expecting %}`

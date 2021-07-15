@@ -3082,6 +3082,470 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "\n\n\t\t\n\t\t\n\t\t\t\t\t\n",
 	},
+
+	"Using - show": {
+		sources: map[string]string{
+			"index.html": `{% show this; using html %}foo{% end using %}`,
+		},
+		expectedOut: "foo",
+	},
+
+	"Using - show (implicit type)": {
+		sources: map[string]string{
+			"index.html": `{% show this; using %}foo{% end using %}`,
+		},
+		expectedOut: "foo",
+	},
+
+	"Using - show - Two using statement": {
+		sources: map[string]string{
+			"index.txt": `{% show this; using %}foo{% end using %}{% show this; using %}bar{% end using %}`,
+		},
+		expectedOut: "foobar",
+	},
+
+	"Using - 'this' is not defined outside": {
+		sources: map[string]string{
+			"index.html": `{% show this; using html %}foo{% end using %}{{ this }}`,
+		},
+		expectedBuildErr: "undefined: this",
+	},
+
+	"Using - 'this' is not defined outside (implicit type)": {
+		sources: map[string]string{
+			"index.html": `{% show this; using %}foo{% end using %}{{ this }}`,
+		},
+		expectedBuildErr: "undefined: this",
+	},
+
+	"Using - assignment with ':='": {
+		sources: map[string]string{
+			"index.html": `{% x := this; using html %}hello, how are you{% end using %}{{ x }}, len: {{ len(x) }}`,
+		},
+		expectedOut: "hello, how are you, len: 18",
+	},
+
+	"Using - assignment with ':=' (implicit type)": {
+		sources: map[string]string{
+			"index.html": `{% x := this; using %}hello, how are you{% end using %}{{ x }}, len: {{ len(x) }}`,
+		},
+		expectedOut: "hello, how are you, len: 18",
+	},
+
+	"Using - assignment with 'var'": {
+		sources: map[string]string{
+			"index.html": `{% var date, days = this, 5; using html %}
+			<span>{{ now() }}</span>
+		  {% end using %}
+		  Date is {{ date }}`,
+		},
+		expectedOut: "\t\t  Date is \n\t\t\t<span>1999-01-19</span>\n",
+		main: scriggo.MapPackage{
+			PkgName: "main",
+			Declarations: map[string]interface{}{
+				"now": func() string { return "1999-01-19" },
+			},
+		},
+	},
+
+	"Using - macro (without parameters)": {
+		sources: map[string]string{
+			"index.txt": `{% show this(); using macro() string %}macro content{% end using %}`,
+		},
+		expectedOut: "macro content",
+	},
+
+	"Using - macro (with parameters)": {
+		sources: map[string]string{
+			"index.txt": `{% show this(4.2); using macro(f float64) string %}f / 2 = {{ f / 2 }}.{% end using %}`,
+		},
+		expectedOut: "f / 2 = 2.1.",
+	},
+
+	"Using - function literal 1": {
+		sources: map[string]string{
+			"index.txt": `{% show func() string { _ = this ; var this = "ok"; return this }(); using %}no{% end using %}`,
+		},
+		expectedOut: "ok",
+	},
+
+	"Using - function literal 2": {
+		sources: map[string]string{
+			"index.txt": `{% show func() string { return this }(); using %}ok{% end using %}`,
+		},
+		expectedOut: "ok",
+	},
+
+	"Using - package level var declaration ": {
+		sources: map[string]string{
+			"index.html": `{% import "file.html" %}`,
+			"file.html":  `{% var _ = this; using %}hey{% end using %}`,
+		},
+	},
+
+	"Using - package level var declaration (2)": {
+		sources: map[string]string{
+			"index.html": `{% import "file.html" %}{{ V }}, len: {{ len(V) }}`,
+			"file.html":  `{% var V = this; using %}hey{% end using %}`,
+		},
+		expectedOut: "hey, len: 3",
+	},
+
+	"Using - package level var declaration (3)": {
+		sources: map[string]string{
+			"index.html": `{% import "file.html" %}V is {{ V }}`,
+			"file.html":  `{% var V = len(this); using %}hey my friend{% end using %}`,
+		},
+		expectedOut: "V is 13",
+	},
+
+	"Using - package level var declaration (4)": {
+		sources: map[string]string{
+			"index.html": `{% import "file.html" %}{{ V1 }}, {{ V2 }}`,
+			"file.html":  `{% var V1, V2 = this, len(this); using %}hey oh{% end using %}`,
+		},
+		expectedOut: "hey oh, 6",
+	},
+
+	"Using - package level var declaration (5)": {
+		sources: map[string]string{
+			"index.html": `
+				{% extends "extended.html" %}
+				{% var this = "shadowed" %}
+				{% var V = this; using %}content...{% end using %}
+				{% macro M %}V is {{ V }}{% end macro %}
+			`,
+			"extended.html": `{{ M () }}`,
+		},
+		expectedBuildErr: "predeclared identifier this not used",
+	},
+
+	"Using - package level var declaration (5) - simplified": {
+		sources: map[string]string{
+			"index.html": `
+				{% extends "extended.html" %}
+				{% var this = "shadowed" %}
+				{% var _ = this; using %}{% end using %}
+			`,
+			"extended.html": ``,
+		},
+		expectedBuildErr: "predeclared identifier this not used",
+	},
+
+	"Using - this shadowed by a package name at package level": {
+		sources: map[string]string{
+			"index.html": `
+				{% extends "extended.html" %}
+				{% import this "imported.html" %}
+				{% var V = this.A; using %}content...{% end using %}
+				{% macro M %}V is {{ V }}{% end macro %}
+			`,
+			"extended.html": `{{ M () }}`,
+			"imported.html": `{% var A = 5 %}`,
+		},
+		expectedBuildErr: "predeclared identifier this not used",
+	},
+
+	"Using - this shadowed by a 'var' declaration inside a multiline statement": {
+		sources: map[string]string{
+			"index.html": `
+				{% extends "extended.html" %}
+				{%%
+					var (
+						something = 43982
+						this = "shadowed"
+						somethingElse = 43289
+					)
+				%%}
+				{% var V = this; using %}content...{% end using %}
+				{% macro M %}V is {{ V }}{% end macro %}
+			`,
+			"extended.html": `{{ M () }}`,
+		},
+		expectedBuildErr: "predeclared identifier this not used",
+	},
+
+	"Using - assigning from using body": {
+		sources: map[string]string{
+			"index.html": `
+	            {% f := func() html { return html("") } %}
+	            {% _ = this; using %}
+	        		{% f = this; using macro() html %}x{% end %}
+	            {% end %}
+				{{ f() }}
+			`,
+		},
+		expectedOut: "\n\t\t\t\tx\n\t\t\t",
+	},
+
+	"Nested using statements": {
+		sources: map[string]string{
+			"index.html": `
+	           {% var f func(html) html %}
+	           {% show f(this); using %}
+	           2 {% f = this; using macro(s html) html %}1 {{ s }} 4{% end %} 3
+	           {% end %}
+			`,
+		},
+		expectedOut: "\n\t           \n\t           1 \n\t           2  3\n 4\t\t\t",
+	},
+
+	"Using - nested using statements (1)": {
+		sources: map[string]string{
+			"index.html": `
+	            {% _ = this; using %}
+	      	    	{% _ = this; using %}{% end %}
+	            {% end %}
+			`,
+		},
+		expectedOut: "\n\t\t\t",
+	},
+
+	"Using - nested using statements (2)": {
+		sources: map[string]string{
+			"index.html": `
+	            {% show this; using %}
+					External using-start
+	      	    	{% show this; using %}internal using{% end %}
+					External using-end
+	            {% end %}
+			`,
+		},
+		expectedOut: "\n\t            \n\t\t\t\t\tExternal using-start\n\t      \t    \tinternal using\n\t\t\t\t\tExternal using-end\n\t\t\t",
+	},
+
+	"Using - nested using statements (3)": {
+		sources: map[string]string{
+			"index.html": `
+	            {% _ = this; using %}
+	      	    	{% _ = this; using %}{% end %}
+					{% _ = this; using %}{% end %}
+	            {% end %}
+				{% _ = this; using %}
+	      	    	{% _ = this; using %}
+					  {% _ = this; using %}{% end %}
+					  {% _ = this; using %}{% end %}
+					{% end %}
+					{% _ = this; using %}{% end %}
+	            {% end %}
+				{% _ = this; using %}
+	      	    	{% _ = this; using %}{% end %}
+	            {% end %}
+			`,
+		},
+		expectedOut: "\n\t\t\t",
+	},
+
+	"Using - the type has been shadowed at package-level": {
+		sources: map[string]string{
+			"index.html": `{% import "imported.html" %}{{ A }}`,
+			"imported.html": `
+				{% type html int %}
+				{% var A = this; using html %}OPS{% end %}
+			`,
+		},
+		expectedBuildErr: `invalid using type html`,
+	},
+
+	"Using - expression statement": {
+		sources: map[string]string{
+			"index.txt": `
+				{% var V int %}
+				{% f := func(s string) { V = len(s) } %}
+				{% f(this); using %}hello{% end using %}
+				V is {{ V }}
+			`,
+		},
+		expectedOut: "\n\t\t\t\t\n\t\t\t\t\n\t\t\t\tV is 5\n\t\t\t",
+	},
+
+	"Using - send statement": {
+		sources: map[string]string{
+			"index.txt": `
+				{% ch := make(chan string, 1) %}
+				{% ch <- this; using %}how are you?{% end %}
+				Message is: {{ <-ch }}
+			`,
+		},
+		expectedOut: "\n\t\t\t\t\n\t\t\t\tMessage is: how are you?\n\t\t\t",
+	},
+
+	"Using - escaping string in html context": {
+		sources: map[string]string{
+			"index.html": `{% show this; using string %}<b>{% end using %}`,
+		},
+		expectedOut: "&lt;b&gt;",
+	},
+
+	"Using - in macro": {
+		sources: map[string]string{
+			"index.html": `
+				{% extends "layout.html" %}
+				{% macro Body %}
+					{% var a = this; using %}a{% end using %}
+				{% end macro %}
+			`,
+			"layout.html": `{{ Body() }}`,
+		},
+		expectedOut: "\t\t\t\t\t\n",
+	},
+
+	"Using - in macro (2)": {
+		sources: map[string]string{
+			"index.html": `
+				{% extends "imported.html" %}
+				{% macro M %}
+					{% var a = this; using %}content{% end using %}
+					{{ a }}
+				{% end macro %}
+			`,
+			"imported.html": `{{ M() }}`,
+		},
+		expectedOut: "\t\t\t\t\t\n\t\t\t\t\tcontent\n",
+	},
+
+	"Using - error if 'this' is unused": {
+		sources: map[string]string{
+			"index.html": `
+				{% show 4; using %}Something{% end using %}
+			`,
+		},
+		expectedBuildErr: "index.html:2:16: predeclared identifier this not used",
+	},
+
+	"Using - error if 'this' is unused (package level)": {
+		sources: map[string]string{
+			"index.html": `{% import "imported.html" %}`,
+			"imported.html": `
+				{% var _ = 4; using %}Something{% end using %}
+			`,
+		},
+		expectedBuildErr: "imported.html:2:19: predeclared identifier this not used",
+	},
+
+	"Using - this on right side of default (evaluated)": {
+		sources: map[string]string{
+			"index.html":    `{% extends "extended.html" %}`,
+			"extended.html": `{% show Undef() default this; using %}Something{% end using %}`,
+		},
+		expectedOut: "Something",
+	},
+
+	"Using - this on right side of default (evaluated, package level)": {
+		sources: map[string]string{
+			"index.html": `{% show undef default this; using %}Something{% end using %}`,
+		},
+		expectedOut: "Something",
+	},
+
+	"Using - this on right side of default ('this' not referenced, content of 'using' must not be evaluated)": {
+		sources: map[string]string{
+			"index.html":    `{% extends "extended.html" %}{% macro M %}{% end %}`,
+			"extended.html": `{% show M() default this; using %}{{ []int{}[1000] }}{% end using %}`,
+		},
+	},
+
+	"Using - taking address of 'this'": {
+		sources: map[string]string{
+			"index.html": `
+				{% var ref1, ref2, ref3, ref4 *html %}
+				{% func() { ref1, ref2 = &this, &this }(); using %}content..{% end %}
+				{% func() { ref3, ref4 = &this, &this }(); using %}content..{% end %}
+				{{ ref1 == ref2 }}{{ ref2 == ref3 }}{{ ref3 == ref4 }}
+			`,
+		},
+		expectedOut: "\n\t\t\t\t\n\t\t\t\t\n\t\t\t\t\n\t\t\t\ttruefalsetrue\n\t\t\t",
+	},
+
+	"Using - assign to 'this'": {
+		sources: map[string]string{
+			"index.html": `{% show func() html { this = html("hey"); return this }(); using %}content..{% end %}`,
+		},
+		expectedOut: "hey",
+	},
+
+	"Using - cannot use 'this' on left side of default": {
+		sources: map[string]string{
+			"index.html": `{% show this default 4; using %}...{% end %}`,
+		},
+		expectedBuildErr: "use of predeclared identifier this",
+	},
+
+	"Using - cannot use 'this' on left side of default - package level": {
+		sources: map[string]string{
+			"index.html":    `{% import "imported.html" %}`,
+			"imported.html": `{% var _ = this default 4; using %}...{% end %}`,
+		},
+		expectedBuildErr: "use of predeclared identifier this",
+	},
+
+	"Using - cannot use 'this()' on left side of default": {
+		sources: map[string]string{
+			"index.html":    `{% extends "extended.html" %}`,
+			"extended.html": `{% show this() default 4; using %}...{% end %}`,
+		},
+		expectedBuildErr: "use of predeclared identifier this",
+	},
+
+	"Using - can assign to 'this', even if it contains a macro": {
+		sources: map[string]string{
+			"index.html": `{% func() { this = func() html { return "x" } }(); using macro() %}content..{% end %}`,
+		},
+	},
+
+	"Using - bad type (is a variable instead of a format type) (block)": {
+		sources: map[string]string{
+			"index.html": `
+				{% var html = 32 %}
+				{% var _ = this; using html %}...{% end using %}
+			`,
+		},
+		expectedBuildErr: "html is not a type",
+	},
+
+	"Using - bad type (is a variable instead of a format type) (package-level)": {
+		sources: map[string]string{
+			"index.html": `{% import "imported.html" %}`,
+			"imported.html": `
+				{% var html = 32 %}
+				{% var _ = this; using html %}...{% end using %}
+			`,
+		},
+		expectedBuildErr: "html is not a type",
+	},
+
+	"Using - bad type (is a type but not a format type) (block)": {
+		sources: map[string]string{
+			"index.html": `
+				{% type html int %}
+				{% var _ = this; using html %}...{% end using %}
+			`,
+		},
+		expectedBuildErr: `index.html:3:28: invalid using type html`,
+	},
+
+	"Using - bad type (is a type but not a format type) (package-level)": {
+		sources: map[string]string{
+			"index.html": `{% import "imported.html" %}`,
+			"imported.html": `
+				{% type html int %}
+				{% var _ = this; using html %}...{% end using %}
+			`,
+		},
+		expectedBuildErr: `imported.html:3:28: invalid using type html`,
+	},
+
+	"Using - implicit type": {
+		sources: map[string]string{
+			"index.md": `{% var a markdown = this; using %}# Scriggo{% end %}`,
+		},
+	},
+
+	"Using - implicit macro type": {
+		sources: map[string]string{
+			"index.css": `{% var a css = this(); using macro %} div { color: red; }{% end %}`,
+		},
+	},
 }
 
 var structWithUnexportedFields = &struct {

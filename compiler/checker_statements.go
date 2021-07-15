@@ -15,9 +15,10 @@ import (
 )
 
 // templateFileToPackage transforms a tree of a declarations file to a package
-// tree, moving the top level nodes, excluding text and comment nodes, in a
-// package node that becomes the only node of tree. If tree already has a
-// package, templateFileToPackage does nothing.
+// tree, moving the top level nodes, excluding text and comment nodes,
+// (partially) transforming "using" nodes, in a package node that becomes the
+// only node of tree.
+// If tree already has a package, templateFileToPackage does nothing.
 func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 	if len(tree.Nodes) == 1 {
 		if _, ok := tree.Nodes[0].(*ast.Package); ok {
@@ -25,6 +26,8 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 			return
 		}
 	}
+
+	var thisToDeclarations map[string][]*ast.Identifier
 	nodes := make([]ast.Node, 0, len(tree.Nodes)/2)
 	for _, n := range tree.Nodes {
 		switch n := n.(type) {
@@ -33,13 +36,64 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 			nodes = append(nodes, n)
 		case *ast.Statements:
 			nodes = append(nodes, n.Nodes...)
+		case *ast.Using:
+			thisName := tc.compilation.generateThisName()
+			thisDeclaration, statement := tc.explodeUsingStatement(n, thisName)
+			nodes = append(nodes, thisDeclaration, statement)
+			if thisToDeclarations == nil {
+				thisToDeclarations = map[string][]*ast.Identifier{}
+			}
+			if thisHasBeenShadowed(tree.Nodes) {
+				thisToDeclarations[thisName] = nil
+			} else {
+				thisToDeclarations[thisName] = n.Statement.(*ast.Var).Lhs
+			}
 		default:
 			panic(fmt.Sprintf("BUG: unexpected node %s", n))
 		}
 	}
-	tree.Nodes = []ast.Node{
-		ast.NewPackage(tree.Pos(), "", nodes),
+
+	pkg := ast.NewPackage(tree.Pos(), "", nodes)
+	pkg.IR.ThisNameToVarIdents = thisToDeclarations
+	tree.Nodes = []ast.Node{pkg}
+}
+
+// thisHasBeenShadowed reports whether the predeclared identifier 'this' has
+// been shadowed by a package-level declaration within nodes.
+func thisHasBeenShadowed(nodes []ast.Node) bool {
+	for _, n := range nodes {
+		switch n := n.(type) {
+		case *ast.Var:
+			for _, lh := range n.Lhs {
+				if lh.Name == "this" {
+					return true
+				}
+			}
+		case *ast.Func:
+			if n.Ident.Name == "this" {
+				return true
+			}
+		case *ast.TypeDeclaration:
+			if n.Ident.Name == "this" {
+				return true
+			}
+		case *ast.Const:
+			for _, lh := range n.Lhs {
+				if lh.Name == "this" {
+					return true
+				}
+			}
+		case *ast.Import:
+			if n.Ident != nil && n.Ident.Name == "this" {
+				return true
+			}
+		case *ast.Statements:
+			if thisHasBeenShadowed(n.Nodes) {
+				return true
+			}
+		}
 	}
+	return false
 }
 
 // checkNodesInNewScopeError calls checkNodesInNewScope returning checking errors.
@@ -663,6 +717,32 @@ nodesLoop:
 
 			tc.terminating = false
 
+		case *ast.Using:
+
+			thisName := tc.compilation.generateThisName()
+
+			thisDeclaration, statement := tc.explodeUsingStatement(node, thisName)
+
+			// Type check the dummy assignment of the 'using' statement, along
+			// with its content, and transform the tree.
+			nn := tc.checkNodes([]ast.Node{thisDeclaration})
+			nodes = append(nodes[:i], append(nn, nodes[i:]...)...)
+			i += len(nn)
+
+			// Type check the affected statement of the 'using' and transform
+			// the tree.
+			withinStmt := tc.withinUsingAffectedStmt
+			tc.withinUsingAffectedStmt = true
+			backupThisName := tc.compilation.thisName
+			tc.compilation.thisName = thisName
+			nn = tc.checkNodes([]ast.Node{statement})
+			nodes = append(nodes[:i], append(nn, nodes[i+1:]...)...)
+			i += len(nn)
+			tc.withinUsingAffectedStmt = withinStmt
+			tc.compilation.thisName = backupThisName
+
+			continue nodesLoop
+
 		case *ast.Defer:
 			if node.Call.Parenthesis() > 0 {
 				panic(tc.errorf(node.Call, "expression in defer must not be parenthesized"))
@@ -1234,4 +1314,53 @@ func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) (string, 
 		Type:       defType,
 		Properties: propertyIsType,
 	}
+}
+
+// explodeUsingStatement explodes an 'using' statement.
+func (tc *typechecker) explodeUsingStatement(using *ast.Using, thisIdent string) (*ast.Var, ast.Node) {
+
+	// Make the type explicit, if necessary.
+	if using.Type == nil {
+		name := formatTypeName[using.Format]
+		scope, ok := tc.universe[name]
+		if !ok {
+			panic("no type defined for format " + using.Format.String())
+		}
+		ident := ast.NewIdentifier(using.Pos(), name)
+		tc.compilation.typeInfos[ident] = scope.t
+		using.Type = ident
+	}
+
+	var this ast.Expression
+	switch typ := using.Type.(type) {
+	case *ast.Identifier:
+		this = ast.NewCall(nil,
+			ast.NewFunc(nil, nil,
+				ast.NewFuncType(nil, true, nil, []*ast.Parameter{ast.NewParameter(nil, typ)}, false),
+				using.Body, false, using.Format),
+			nil, false)
+	case *ast.FuncType:
+		this = ast.NewFunc(nil, nil, typ, using.Body, false, using.Format)
+	default:
+		panic("BUG: the parser should not allow this")
+	}
+
+	thisDeclaration := ast.NewVar(
+		nil,
+		[]*ast.Identifier{ast.NewIdentifier(nil, thisIdent)},
+		nil,
+		[]ast.Expression{this},
+	)
+	uc := usingCheck{
+		this: thisDeclaration,
+		pos:  using.Position,
+		typ:  using.Type,
+	}
+	if tc.compilation.thisToUsingCheck == nil {
+		tc.compilation.thisToUsingCheck = map[string]usingCheck{thisIdent: uc}
+	} else {
+		tc.compilation.thisToUsingCheck[thisIdent] = uc
+	}
+
+	return thisDeclaration, using.Statement
 }

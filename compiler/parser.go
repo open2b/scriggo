@@ -937,13 +937,17 @@ LABEL:
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
 		pos.End = exprs[len(exprs)-1].Pos().End
-		var node = ast.NewShow(pos, exprs, ctx)
-		p.addNode(node)
+		var node ast.Node
+		node = ast.NewShow(pos, exprs, ctx)
+		if end == tokenEndStatement && tok.typ == tokenSemicolon {
+			node, tok = p.parseUsing(node, tok)
+		}
 		if len(exprs) == 1 {
 			if _, ok := exprs[0].(*ast.Render); ok {
 				p.cutSpacesToken = true
 			}
 		}
+		p.addNode(node)
 		tok = p.parseEnd(tok, tokenSemicolon, end)
 		return tok
 
@@ -1038,6 +1042,9 @@ LABEL:
 		} else {
 			var node ast.Node
 			node, tok = p.parseVarOrConst(tok, pos, decType, 0)
+			if decType == tokenVar && end == tokenEndStatement && tok.typ == tokenSemicolon {
+				node, tok = p.parseUsing(node, tok)
+			}
 			p.addNode(node)
 			tok = p.parseEnd(tok, tokenSemicolon, end)
 		}
@@ -1165,6 +1172,10 @@ LABEL:
 						panic(syntaxError(pos, "unexpected %s, expecting raw", tok))
 					}
 					tok = p.next()
+				}
+			case *ast.Using:
+				if tok.typ != tokenUsing {
+					panic(syntaxError(pos, "unexpected %s, expecting using or %%}", tok))
 				}
 			default:
 				panic(syntaxError(pos, "unexpected %s, expecting %%}", tok))
@@ -1333,10 +1344,15 @@ LABEL:
 		}
 		if len(expressions) > 1 || isAssignmentToken(tok) {
 			// Parse assignment.
-			var assignment *ast.Assignment
-			assignment, tok = p.parseAssignment(expressions, tok, false, false, false)
-			assignment.Position = pos.WithEnd(assignment.Pos().End)
-			p.addNode(assignment)
+			var node ast.Node
+			node, tok = p.parseAssignment(expressions, tok, false, false, false)
+			node.(*ast.Assignment).Position = pos.WithEnd(node.Pos().End)
+			if end == tokenEndStatement && tok.typ == tokenSemicolon {
+				if t := node.(*ast.Assignment).Type; t != ast.AssignmentIncrement && t != ast.AssignmentDecrement {
+					node, tok = p.parseUsing(node, tok)
+				}
+			}
+			p.addNode(node)
 			p.cutSpacesToken = true
 			tok = p.parseEnd(tok, tokenSemicolon, end)
 		} else if tok.typ == tokenArrow {
@@ -1347,8 +1363,11 @@ LABEL:
 			if value == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
-			node := ast.NewSend(pos, channel, value)
-			node.Position = pos.WithEnd(value.Pos().End)
+			var node ast.Node = ast.NewSend(pos, channel, value)
+			node.(*ast.Send).Position = pos.WithEnd(value.Pos().End)
+			if end == tokenEndStatement && tok.typ == tokenSemicolon {
+				node, tok = p.parseUsing(node, tok)
+			}
 			p.addNode(node)
 			p.cutSpacesToken = true
 			tok = p.parseEnd(tok, tokenSemicolon, end)
@@ -1384,13 +1403,65 @@ LABEL:
 					}
 				}
 			}
-			p.addNode(expr)
+			var node ast.Node = expr
+			if end == tokenEndStatement && tok.typ == tokenSemicolon {
+				node, tok = p.parseUsing(node, tok)
+			}
+			p.addNode(node)
 			p.cutSpacesToken = true
 			tok = p.parseEnd(tok, tokenSemicolon, end)
 		}
 		return tok
 	}
 
+}
+
+// parseUsing tries to parse a using statement and in case returns a Using
+// node, otherwise it returns stmt which is the previous parsed statement.
+// tok is the semicolon that follows stmt.
+func (p *parsing) parseUsing(stmt ast.Node, tok token) (ast.Node, token) {
+	start := tok
+	if tok = p.next(); tok.typ != tokenUsing {
+		if start.txt == nil {
+			if tok.typ == tokenEndStatement {
+				return stmt, tok
+			}
+			panic(syntaxError(tok.pos, "unexpected %s, expecting %%}", tok))
+		} else if tok.typ == tokenEndStatement {
+			panic(syntaxError(start.pos, "unexpected semicolon, expecting %%}"))
+		}
+		panic(syntaxError(tok.pos, "unexpected %s, expecting using", tok))
+	}
+	if tok.ctx > ast.ContextMarkdown {
+		panic(syntaxError(tok.pos, "using not allowed in %s", tok.ctx))
+	}
+	block := ast.NewBlock(nil, []ast.Node{})
+	using := ast.NewUsing(tok.pos, stmt, nil, block, ast.Format(tok.ctx))
+	switch tok = p.next(); tok.typ {
+	case tokenMacro:
+		var macro ast.Node
+		macro, tok = p.parseFunc(tok, parseFuncLit)
+		using.Type = macro.(*ast.Func).Type
+		if len(using.Type.(*ast.FuncType).Result) > 0 {
+			using.Format = macro.(*ast.Func).Format
+		}
+	case tokenIdentifier:
+		ident := p.parseIdentifierNode(tok)
+		for i, name := range formatTypeName {
+			if name == ident.Name {
+				using.Type = ident
+				using.Format = ast.Format(i)
+			}
+		}
+		if using.Type == nil {
+			panic(syntaxError(tok.pos, "unexpected %s, expecting string, html, css, js, json, markdown, macro or %%}", ident.Name))
+		}
+		tok = p.next()
+	case tokenSemicolon, tokenEndStatement:
+	default:
+		panic(syntaxError(tok.pos, "unexpected %s, expecting identifier, macro or %%}", tok))
+	}
+	return using, tok
 }
 
 func (p *parsing) parseEnd(tok token, want, end tokenTyp) token {
@@ -1774,6 +1845,9 @@ func (p *parsing) addNode(node ast.Node) {
 			p.addToAncestors(n)
 			p.addToAncestors(n.Body)
 		}
+	case *ast.Using:
+		p.addToAncestors(n)
+		p.addToAncestors(n.Body)
 	case
 		*ast.Block,
 		*ast.For,
