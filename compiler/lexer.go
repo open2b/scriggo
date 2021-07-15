@@ -1091,8 +1091,9 @@ LOOP:
 				case '}':
 					switch end {
 					case tokenEndStatement:
-						// If a macro declaration with an explicit result type or a with statement with a type
-						// has been lexed, set the context.
+						// If a macro declaration with an explicit result type
+						// or a using statement with a type has been lexed, set
+						// the context.
 						if ident.index == l.totals {
 							for i, name := range formatTypeName {
 								if name == ident.txt {
