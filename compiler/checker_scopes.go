@@ -58,33 +58,33 @@ func newScopes(formats map[ast.Format]reflect.Type, global map[string]scopeEntry
 // Universe returns the type info of name as declared in the universe block
 // and true. Otherwise it returns nil and false.
 func (s scopes) Universe(name string) (*typeInfo, bool) {
-	elem, ok := s[0].names[name]
+	e, ok := s[0].names[name]
 	if ok {
-		return elem.ti, true
+		return e.ti, true
 	}
-	elem, ok = s[1].names[name]
-	return elem.ti, ok
+	e, ok = s[1].names[name]
+	return e.ti, ok
 }
 
 // Global returns the type info of name as declared in the global block and
 // true. Otherwise it returns nil and false.
 func (s scopes) Global(name string) (*typeInfo, bool) {
-	elem, ok := s[2].names[name]
-	return elem.ti, ok
+	e, ok := s[2].names[name]
+	return e.ti, ok
 }
 
 // FilePackage returns the type info of name as declared in the file/package
 // block and true. Otherwise it returns nil and false.
 func (s scopes) FilePackage(name string) (*typeInfo, bool) {
-	elem, ok := s[3].names[name]
-	return elem.ti, ok
+	e, ok := s[3].names[name]
+	return e.ti, ok
 }
 
 // Current returns the identifier of name as declared in the current scope and
 // true. Otherwise it returns nil and false.
 func (s scopes) Current(name string) (*ast.Identifier, bool) {
-	elem, ok := s[len(s)-1].names[name]
-	return elem.ident, ok
+	e, ok := s[len(s)-1].names[name]
+	return e.ident, ok
 }
 
 // FilePackageNames returns the names declared in the file/package block.
@@ -101,8 +101,8 @@ func (s scopes) FilePackageNames() []string {
 // IsImported reports whether name is declared in the file/package block and
 // is imported from a package or a template file.
 func (s scopes) IsImported(name string) bool {
-	elem, ok := s[3].names[name]
-	return ok && elem.ident == nil
+	e, ok := s[3].names[name]
+	return ok && e.ident == nil
 }
 
 // IsParameter reports whether name is a parameter of the function of the
@@ -161,10 +161,10 @@ func (s scopes) lookup(name string, start int) (scopeEntry, bool) {
 // SetAsUsed sets name as used.
 func (s scopes) SetAsUsed(name string) {
 	for i := len(s) - 1; i >= 4; i-- {
-		if elem, ok := s[i].names[name]; ok {
-			if !elem.used {
-				elem.used = true
-				s[i].names[name] = elem
+		if e, ok := s[i].names[name]; ok {
+			if !e.used {
+				e.used = true
+				s[i].names[name] = e
 			}
 			return
 		}
@@ -175,12 +175,12 @@ func (s scopes) SetAsUsed(name string) {
 // source, declared in the current scope.
 func (s scopes) Unused() (*ast.Identifier, bool) {
 	var ident *ast.Identifier
-	for _, elem := range s[len(s)-1].names {
-		if elem.used || elem.param || elem.ti.IsConstant() || elem.ti.IsType() {
+	for _, e := range s[len(s)-1].names {
+		if e.used || e.param || e.ti.IsConstant() || e.ti.IsType() {
 			continue
 		}
-		if ident == nil || elem.ident.Position.Start < ident.Start {
-			ident = elem.ident
+		if ident == nil || e.ident.Position.Start < ident.Start {
+			ident = e.ident
 		}
 	}
 	return ident, ident != nil
