@@ -20,11 +20,11 @@ type packageDeclsDeps map[*ast.Identifier][]*ast.Identifier
 
 type deps struct {
 	d packageDeclsDeps
-	// this maps the name of the transformed 'this' identifier to the
+	// itea maps the name of the transformed 'itea' identifier to the
 	// identifiers on the left side of a 'var' declarations with an 'using'
 	// statement.
-	this                     map[string][]*ast.Identifier
-	analyzingVarExprWithThis *ast.Identifier
+	itea                     map[string][]*ast.Identifier
+	analyzingVarExprWithItea *ast.Identifier
 }
 
 // addDepsToGlobal adds all identifiers that appear in node and in its children
@@ -53,11 +53,11 @@ func (d *deps) addDepsToGlobal(ident *ast.Identifier, node ast.Node, scopes depS
 	}
 }
 
-// hasThisInItsExpression reports whether the package-level identifier varLh
-// references to the predeclared identifier 'this' in its corresponding
+// hasIteaInItsExpression reports whether the package-level identifier varLh
+// references to the predeclared identifier 'itea' in its corresponding
 // expression.
-func (d *deps) hasThisInItsExpression(varLh *ast.Identifier) bool {
-	for _, v := range d.this {
+func (d *deps) hasIteaInItsExpression(varLh *ast.Identifier) bool {
+	for _, v := range d.itea {
 		for _, ident := range v {
 			if ident == varLh {
 				return true
@@ -72,10 +72,10 @@ func (d *deps) analyzeGlobalVar(n *ast.Var) {
 	if len(n.Lhs) == len(n.Rhs) {
 		for i := range n.Lhs {
 			d.addDepsToGlobal(n.Lhs[i], n.Type, nil)
-			if d.hasThisInItsExpression(n.Lhs[i]) {
-				d.analyzingVarExprWithThis = n.Lhs[i]
+			if d.hasIteaInItsExpression(n.Lhs[i]) {
+				d.analyzingVarExprWithItea = n.Lhs[i]
 				d.addDepsToGlobal(n.Lhs[i], n.Rhs[i], nil)
-				d.analyzingVarExprWithThis = nil
+				d.analyzingVarExprWithItea = nil
 			} else {
 				d.addDepsToGlobal(n.Lhs[i], n.Rhs[i], nil)
 			}
@@ -144,7 +144,7 @@ func (d *deps) analyzeGlobalTypeDeclaration(td *ast.TypeDeclaration) {
 func analyzeTree(pkg *ast.Package) packageDeclsDeps {
 	d := &deps{
 		d:    packageDeclsDeps{},
-		this: pkg.IR.ThisNameToVarIdents,
+		itea: pkg.IR.IteaNameToVarIdents,
 	}
 	for _, n := range pkg.Declarations {
 		switch n := n.(type) {
@@ -346,11 +346,11 @@ func (d *deps) nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 		if isLocallyDefined(scopes, n.Name) {
 			return nil
 		}
-		if d.analyzingVarExprWithThis != nil && n.Name == "this" {
+		if d.analyzingVarExprWithItea != nil && n.Name == "itea" {
 			var thisName string
-			for k, v := range d.this {
+			for k, v := range d.itea {
 				for _, ident := range v {
-					if ident == d.analyzingVarExprWithThis {
+					if ident == d.analyzingVarExprWithItea {
 						thisName = k
 						break
 					}

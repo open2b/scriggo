@@ -344,19 +344,19 @@ type Package struct {
 	Declarations []Node
 
 	IR struct {
-		// ThisNameToVarIdents maps the name of the transformed 'this'
+		// IteaNameToVarIdents maps the name of the transformed 'itea'
 		// identifier to the identifiers on the left side of a 'var'
 		// declarations with an 'using' statement at package level.
 		//
 		// For example a package containing this declaration:
 		//
-		//    {% var V1, V2 = $this2, len($this2) using %} ... {% end using %}
+		//    {% var V1, V2 = $itea2, len($itea2) using %} ... {% end using %}
 		//
 		//  will have a mapping in the form:
 		//
-		//    "$this2" => [V1, V2]
+		//    "$itea2" => [V1, V2]
 		//
-		ThisNameToVarIdents map[string][]*Identifier
+		IteaNameToVarIdents map[string][]*Identifier
 	}
 }
 
@@ -907,8 +907,8 @@ func NewIdentifier(pos *Position, name string) *Identifier {
 }
 
 func (n *Identifier) String() string {
-	if strings.HasPrefix(n.Name, "$this") {
-		return "this"
+	if strings.HasPrefix(n.Name, "$itea") {
+		return "itea"
 	}
 	return n.Name
 }
