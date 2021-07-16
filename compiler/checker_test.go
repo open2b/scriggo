@@ -2317,16 +2317,6 @@ func TestFunctionUpVars(t *testing.T) {
 		compilation := newCompilation(nil)
 		tc := newTypechecker(compilation, "", checkerOptions{}, nil)
 		tc.enterScope(nil)
-		if src != `
-			type T struct{}
-			var A int
-			_ = func() {
-				_ = A
-				_ = T{}
-			}
-		` {
-			continue
-		}
 		tree, err := parseSource([]byte(src), true)
 		if err != nil {
 			t.Error(err)
