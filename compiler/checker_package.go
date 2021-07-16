@@ -515,7 +515,7 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(compilation *compilation, pkg *ast.Package, path string, packages PackageLoader, opts checkerOptions, globalScope map[string]scopeEntry) (err error) {
+func checkPackage(compilation *compilation, pkg *ast.Package, path string, packages PackageLoader, opts checkerOptions) (err error) {
 
 	// TODO: This cache has been disabled as a workaround to the issues #641 and
 	// #624. We should find a better solution in the future.
@@ -535,7 +535,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 		}
 	}()
 
-	tc := newTypechecker(compilation, path, opts, globalScope, packages)
+	tc := newTypechecker(compilation, path, opts, packages)
 
 	// Check package level names for "init" and "main"
 	// and check that constant declarations are balanced.

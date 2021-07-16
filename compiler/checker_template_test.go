@@ -186,8 +186,8 @@ func TestCheckerTemplateExpressions(t *testing.T) {
 			for k, v := range expr.scope {
 				names[k] = scopeEntry{ti: v}
 			}
-			compilation := newCompilation()
-			tc := newTypechecker(compilation, "", options, nil, nil)
+			compilation := newCompilation(nil)
+			tc := newTypechecker(compilation, "", options, nil)
 			if expr.scope != nil {
 				tc.scopes = append(tc.scopes, scope{names: names})
 			}
@@ -266,8 +266,8 @@ func TestCheckerTemplateExpressionErrors(t *testing.T) {
 			for k, v := range expr.scope {
 				names[k] = scopeEntry{ti: v}
 			}
-			compilation := newCompilation()
-			tc := newTypechecker(compilation, "", options, nil, nil)
+			compilation := newCompilation(nil)
+			tc := newTypechecker(compilation, "", options, nil)
 			if expr.scope != nil {
 				tc.scopes = append(tc.scopes, scope{names: names})
 			}

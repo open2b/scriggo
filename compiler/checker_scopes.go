@@ -119,11 +119,6 @@ func (s scopes) Global(name string) (*typeInfo, bool) {
 	return elem.ti, ok
 }
 
-// Globals returns the global scope.
-func (s scopes) Globals() map[string]scopeEntry {
-	return s[2].names
-}
-
 // FilePackage returns the type info of the given name in the file/package
 // block and true. If the name does not exist, returns nil and false.
 func (s scopes) FilePackage(name string) (*typeInfo, bool) {

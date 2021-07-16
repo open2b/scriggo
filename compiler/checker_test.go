@@ -583,8 +583,8 @@ func TestCheckerExpressions(t *testing.T) {
 			for k, v := range expr.scope {
 				names[k] = scopeEntry{ti: v}
 			}
-			compilation := newCompilation()
-			tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
+			compilation := newCompilation(nil)
+			tc := newTypechecker(compilation, "", checkerOptions{}, nil)
 			if expr.scope != nil {
 				tc.scopes = append(tc.scopes, scope{names: names})
 			}
@@ -677,8 +677,8 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			for k, v := range expr.scope {
 				names[k] = scopeEntry{ti: v}
 			}
-			compilation := newCompilation()
-			tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
+			compilation := newCompilation(nil)
+			tc := newTypechecker(compilation, "", checkerOptions{}, nil)
 			if expr.scope != nil {
 				tc.scopes = append(tc.scopes, scope{names: names})
 			}
@@ -1676,8 +1676,8 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			compilation := newCompilation()
-			tc := newTypechecker(compilation, "", checkerOptions{mod: programMod}, nil, nil)
+			compilation := newCompilation(nil)
+			tc := newTypechecker(compilation, "", checkerOptions{mod: programMod}, nil)
 			tc.scopes = append(tc.scopes, scope{names: names})
 			tc.enterScope(nil)
 			tree.Nodes = tc.checkNodes(tree.Nodes)
@@ -2191,8 +2191,8 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 		"[]T{x, x, x, 9: x}": 9,
 		"[]T{x, 9: x, x, x}": 11,
 	}
-	compilation := newCompilation()
-	tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
+	compilation := newCompilation(nil)
+	tc := newTypechecker(compilation, "", checkerOptions{}, nil)
 	for src, expected := range cases {
 		tree, err := parseSource([]byte(src), true)
 		if err != nil {
@@ -2270,8 +2270,8 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 		{x: tiUntypedIntConst("10"), T: byteType, assignable: true},
 		// {x: tiUntypedIntConst("300"), T: byteType, assignable: false},
 	}
-	compilation := newCompilation()
-	tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
+	compilation := newCompilation(nil)
+	tc := newTypechecker(compilation, "", checkerOptions{}, nil)
 	for _, c := range cases {
 		err := tc.isAssignableTo(c.x, nil, c.T)
 		if c.assignable && err != nil {
@@ -2314,8 +2314,8 @@ func TestFunctionUpVars(t *testing.T) {
 		`: {"A"},
 	}
 	for src, expected := range cases {
-		compilation := newCompilation()
-		tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
+		compilation := newCompilation(nil)
+		tc := newTypechecker(compilation, "", checkerOptions{}, nil)
 		tc.enterScope(nil)
 		if src != `
 			type T struct{}
@@ -2453,7 +2453,7 @@ func TestGotoLabels(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			err = checkPackage(newCompilation(), tree.Nodes[0].(*ast.Package), tree.Path, nil, checkerOptions{mod: programMod}, nil)
+			err = checkPackage(newCompilation(nil), tree.Nodes[0].(*ast.Package), tree.Path, nil, checkerOptions{mod: programMod})
 			switch {
 			case err == nil && cas.errorMsg == "":
 				// Ok.

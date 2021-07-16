@@ -64,6 +64,9 @@ type compilation struct {
 	// iteaName is the current name of the predeclared 'itea' identifier that
 	// should be used in tree transformations, something like '$itea0'.
 	iteaName string
+
+	// globalScope is the global scope.
+	globalScope map[string]scopeEntry
 }
 
 type renderIR struct {
@@ -72,7 +75,7 @@ type renderIR struct {
 }
 
 // newCompilation returns a new compilation.
-func newCompilation() *compilation {
+func newCompilation(globalScope map[string]scopeEntry) *compilation {
 	return &compilation{
 		pkgInfos:          map[string]*packageInfo{},
 		pkgPathToIndex:    map[string]int{},
@@ -81,6 +84,7 @@ func newCompilation() *compilation {
 		indirectVars:      map[*ast.Identifier]bool{},
 		renderImportMacro: map[*ast.Tree]renderIR{},
 		currentIteaIndex:  -1,
+		globalScope:       globalScope,
 	}
 }
 

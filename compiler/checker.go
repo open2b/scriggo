@@ -40,8 +40,8 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		if pkg.Name != "main" {
 			return nil, &CheckingError{path: tree.Path, pos: *pkg.Pos(), err: errors.New("package name must be main")}
 		}
-		compilation := newCompilation()
-		err := checkPackage(compilation, pkg, tree.Path, packages, opts, nil)
+		compilation := newCompilation(nil)
+		err := checkPackage(compilation, pkg, tree.Path, packages, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -68,8 +68,8 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		}
 	}
 
-	compilation := newCompilation()
-	tc := newTypechecker(compilation, tree.Path, opts, globalScope, packages)
+	compilation := newCompilation(globalScope)
+	tc := newTypechecker(compilation, tree.Path, opts, packages)
 
 	// Type check a template file which extends another file.
 	if extends, ok := getExtends(tree.Nodes); ok {
@@ -101,7 +101,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		// Third: extending file is converted to a "package", that means that
 		// out of order initialization is allowed.
 		tc.templateFileToPackage(tree)
-		err = checkPackage(compilation, tree.Nodes[0].(*ast.Package), tree.Path, packages, opts, tc.scopes.Globals())
+		err = checkPackage(compilation, tree.Nodes[0].(*ast.Package), tree.Path, packages, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -279,12 +279,12 @@ type usingCheck struct {
 
 // newTypechecker creates a new type checker. A global scope may be provided
 // for scripts and templates.
-func newTypechecker(compilation *compilation, path string, opts checkerOptions, globalScope map[string]scopeEntry, precompiledPkgs PackageLoader) *typechecker {
+func newTypechecker(compilation *compilation, path string, opts checkerOptions, precompiledPkgs PackageLoader) *typechecker {
 	tt := types.NewTypes()
 	tc := typechecker{
 		compilation:     compilation,
 		path:            path,
-		scopes:          newScopes(opts.formatTypes, globalScope),
+		scopes:          newScopes(opts.formatTypes, compilation.globalScope),
 		hasBreak:        map[ast.Node]bool{},
 		unusedImports:   map[string]unusedImport{},
 		opts:            opts,
