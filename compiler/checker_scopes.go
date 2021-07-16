@@ -12,57 +12,6 @@ import (
 	"github.com/open2b/scriggo/compiler/ast"
 )
 
-var boolType = reflect.TypeOf(false)
-var uintType = reflect.TypeOf(uint(0))
-var uint8Type = reflect.TypeOf(uint8(0))
-var int32Type = reflect.TypeOf(int32(0))
-var errorType = reflect.TypeOf((*error)(nil)).Elem()
-
-var uint8TypeInfo = &typeInfo{Type: uint8Type, Properties: propertyIsType | propertyUniverse}
-var int32TypeInfo = &typeInfo{Type: int32Type, Properties: propertyIsType | propertyUniverse}
-
-var universe = map[string]scopeEntry{
-	"append":     {ti: &typeInfo{Properties: propertyUniverse}},
-	"cap":        {ti: &typeInfo{Properties: propertyUniverse}},
-	"close":      {ti: &typeInfo{Properties: propertyUniverse}},
-	"complex":    {ti: &typeInfo{Properties: propertyUniverse}},
-	"copy":       {ti: &typeInfo{Properties: propertyUniverse}},
-	"delete":     {ti: &typeInfo{Properties: propertyUniverse}},
-	"imag":       {ti: &typeInfo{Properties: propertyUniverse}},
-	"iota":       {ti: &typeInfo{Properties: propertyUniverse, Type: intType}},
-	"len":        {ti: &typeInfo{Properties: propertyUniverse}},
-	"make":       {ti: &typeInfo{Properties: propertyUniverse}},
-	"new":        {ti: &typeInfo{Properties: propertyUniverse}},
-	"nil":        {ti: &typeInfo{Properties: propertyUntyped | propertyUniverse}},
-	"panic":      {ti: &typeInfo{Properties: propertyUniverse}},
-	"print":      {ti: &typeInfo{Properties: propertyUniverse}},
-	"println":    {ti: &typeInfo{Properties: propertyUniverse}},
-	"real":       {ti: &typeInfo{Properties: propertyUniverse}},
-	"recover":    {ti: &typeInfo{Properties: propertyUniverse}},
-	"byte":       {ti: uint8TypeInfo},
-	"bool":       {ti: &typeInfo{Type: boolType, Properties: propertyIsType | propertyUniverse}},
-	"complex128": {ti: &typeInfo{Type: complex128Type, Properties: propertyIsType | propertyUniverse}},
-	"complex64":  {ti: &typeInfo{Type: complex64Type, Properties: propertyIsType | propertyUniverse}},
-	"error":      {ti: &typeInfo{Type: errorType, Properties: propertyIsType | propertyUniverse}},
-	"float32":    {ti: &typeInfo{Type: reflect.TypeOf(float32(0)), Properties: propertyIsType | propertyUniverse}},
-	"float64":    {ti: &typeInfo{Type: float64Type, Properties: propertyIsType | propertyUniverse}},
-	"false":      {ti: &typeInfo{Type: boolType, Properties: propertyUniverse | propertyUntyped, Constant: boolConst(false)}},
-	"int":        {ti: &typeInfo{Type: intType, Properties: propertyIsType | propertyUniverse}},
-	"int16":      {ti: &typeInfo{Type: reflect.TypeOf(int16(0)), Properties: propertyIsType | propertyUniverse}},
-	"int32":      {ti: int32TypeInfo},
-	"int64":      {ti: &typeInfo{Type: reflect.TypeOf(int64(0)), Properties: propertyIsType | propertyUniverse}},
-	"int8":       {ti: &typeInfo{Type: reflect.TypeOf(int8(0)), Properties: propertyIsType | propertyUniverse}},
-	"rune":       {ti: int32TypeInfo},
-	"string":     {ti: &typeInfo{Type: stringType, Properties: propertyIsType | propertyIsFormatType | propertyUniverse}},
-	"true":       {ti: &typeInfo{Type: boolType, Properties: propertyUniverse | propertyUntyped, Constant: boolConst(true)}},
-	"uint":       {ti: &typeInfo{Type: uintType, Properties: propertyIsType | propertyUniverse}},
-	"uint16":     {ti: &typeInfo{Type: reflect.TypeOf(uint16(0)), Properties: propertyIsType | propertyUniverse}},
-	"uint32":     {ti: &typeInfo{Type: reflect.TypeOf(uint32(0)), Properties: propertyIsType | propertyUniverse}},
-	"uint64":     {ti: &typeInfo{Type: reflect.TypeOf(uint64(0)), Properties: propertyIsType | propertyUniverse}},
-	"uint8":      {ti: uint8TypeInfo},
-	"uintptr":    {ti: &typeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: propertyIsType | propertyUniverse}},
-}
-
 // scopes represents the universe block, global block, file block, package
 // block and function scopes.
 type scopes []scope
@@ -286,4 +235,56 @@ func (s scopes) Exit() scopes {
 		panic("scopes: no scope to exit of")
 	}
 	return s[:last]
+}
+
+var boolType = reflect.TypeOf(false)
+var uintType = reflect.TypeOf(uint(0))
+var uint8Type = reflect.TypeOf(uint8(0))
+var int32Type = reflect.TypeOf(int32(0))
+var errorType = reflect.TypeOf((*error)(nil)).Elem()
+
+var uint8TypeInfo = &typeInfo{Type: uint8Type, Properties: propertyIsType | propertyUniverse}
+var int32TypeInfo = &typeInfo{Type: int32Type, Properties: propertyIsType | propertyUniverse}
+
+// universe is the universe scope.
+var universe = map[string]scopeEntry{
+	"append":     {ti: &typeInfo{Properties: propertyUniverse}},
+	"cap":        {ti: &typeInfo{Properties: propertyUniverse}},
+	"close":      {ti: &typeInfo{Properties: propertyUniverse}},
+	"complex":    {ti: &typeInfo{Properties: propertyUniverse}},
+	"copy":       {ti: &typeInfo{Properties: propertyUniverse}},
+	"delete":     {ti: &typeInfo{Properties: propertyUniverse}},
+	"imag":       {ti: &typeInfo{Properties: propertyUniverse}},
+	"iota":       {ti: &typeInfo{Properties: propertyUniverse, Type: intType}},
+	"len":        {ti: &typeInfo{Properties: propertyUniverse}},
+	"make":       {ti: &typeInfo{Properties: propertyUniverse}},
+	"new":        {ti: &typeInfo{Properties: propertyUniverse}},
+	"nil":        {ti: &typeInfo{Properties: propertyUntyped | propertyUniverse}},
+	"panic":      {ti: &typeInfo{Properties: propertyUniverse}},
+	"print":      {ti: &typeInfo{Properties: propertyUniverse}},
+	"println":    {ti: &typeInfo{Properties: propertyUniverse}},
+	"real":       {ti: &typeInfo{Properties: propertyUniverse}},
+	"recover":    {ti: &typeInfo{Properties: propertyUniverse}},
+	"byte":       {ti: uint8TypeInfo},
+	"bool":       {ti: &typeInfo{Type: boolType, Properties: propertyIsType | propertyUniverse}},
+	"complex128": {ti: &typeInfo{Type: complex128Type, Properties: propertyIsType | propertyUniverse}},
+	"complex64":  {ti: &typeInfo{Type: complex64Type, Properties: propertyIsType | propertyUniverse}},
+	"error":      {ti: &typeInfo{Type: errorType, Properties: propertyIsType | propertyUniverse}},
+	"float32":    {ti: &typeInfo{Type: reflect.TypeOf(float32(0)), Properties: propertyIsType | propertyUniverse}},
+	"float64":    {ti: &typeInfo{Type: float64Type, Properties: propertyIsType | propertyUniverse}},
+	"false":      {ti: &typeInfo{Type: boolType, Properties: propertyUniverse | propertyUntyped, Constant: boolConst(false)}},
+	"int":        {ti: &typeInfo{Type: intType, Properties: propertyIsType | propertyUniverse}},
+	"int16":      {ti: &typeInfo{Type: reflect.TypeOf(int16(0)), Properties: propertyIsType | propertyUniverse}},
+	"int32":      {ti: int32TypeInfo},
+	"int64":      {ti: &typeInfo{Type: reflect.TypeOf(int64(0)), Properties: propertyIsType | propertyUniverse}},
+	"int8":       {ti: &typeInfo{Type: reflect.TypeOf(int8(0)), Properties: propertyIsType | propertyUniverse}},
+	"rune":       {ti: int32TypeInfo},
+	"string":     {ti: &typeInfo{Type: stringType, Properties: propertyIsType | propertyIsFormatType | propertyUniverse}},
+	"true":       {ti: &typeInfo{Type: boolType, Properties: propertyUniverse | propertyUntyped, Constant: boolConst(true)}},
+	"uint":       {ti: &typeInfo{Type: uintType, Properties: propertyIsType | propertyUniverse}},
+	"uint16":     {ti: &typeInfo{Type: reflect.TypeOf(uint16(0)), Properties: propertyIsType | propertyUniverse}},
+	"uint32":     {ti: &typeInfo{Type: reflect.TypeOf(uint32(0)), Properties: propertyIsType | propertyUniverse}},
+	"uint64":     {ti: &typeInfo{Type: reflect.TypeOf(uint64(0)), Properties: propertyIsType | propertyUniverse}},
+	"uint8":      {ti: uint8TypeInfo},
+	"uintptr":    {ti: &typeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: propertyIsType | propertyUniverse}},
 }
