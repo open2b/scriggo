@@ -66,6 +66,7 @@ var universe = scope{
 type scopeElement struct {
 	ti   *typeInfo
 	decl *ast.Identifier
+	used bool
 }
 
 // scope represents a scope.
@@ -159,6 +160,34 @@ func (s scopes) lookup(name string) (*typeInfo, bool) {
 func (s scopes) setCurrent(name string) (*typeInfo, bool) {
 	elem, ok := s[len(s)-1][name]
 	return elem.ti, ok
+}
+
+// setAsUsed sets name as used.
+func (s scopes) setAsUsed(name string) {
+	for i := len(s) - 1; i >= 3; i-- {
+		if elem, ok := s[i][name]; ok {
+			if !elem.used {
+				elem.used = true
+				s[i][name] = elem
+			}
+			return
+		}
+	}
+	//panic("used name not found")
+}
+
+// unused returns the first unused name in the current local scope.
+func (s scopes) unused() (*ast.Identifier, bool) {
+	var decl *ast.Identifier
+	for _, elem := range s[len(s)-1] {
+		if elem.used || elem.ti.IsConstant() || elem.ti.IsType() {
+			continue
+		}
+		if decl == nil || elem.decl.Position.Start < decl.Start {
+			decl = elem.decl
+		}
+	}
+	return decl, decl != nil
 }
 
 // append appends a new local scope to s.

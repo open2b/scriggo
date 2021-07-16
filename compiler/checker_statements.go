@@ -1093,6 +1093,7 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 		param := node.Type.Parameters[i]
 		if param.Ident != nil && !isBlankIdentifier(param.Ident) {
 			tc.assignScope(param.Ident.Name, &typeInfo{Type: t.In(i), Properties: propertyAddressable}, param.Ident)
+			tc.scopes.setAsUsed(param.Ident.Name)
 		}
 	}
 
@@ -1118,6 +1119,7 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 		ret := node.Type.Result[i]
 		if ret.Ident != nil && !isBlankIdentifier(ret.Ident) {
 			tc.assignScope(ret.Ident.Name, &typeInfo{Type: t.Out(i), Properties: propertyAddressable}, ret.Ident)
+			tc.scopes.setAsUsed(ret.Ident.Name)
 			assignment := ast.NewAssignment(
 				ret.Ident.Position,
 				[]ast.Expression{ret.Ident},

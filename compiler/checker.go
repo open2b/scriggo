@@ -166,12 +166,6 @@ type unusedImport struct {
 	decl map[string]*typeInfo // not used declarations
 }
 
-type scopeVariable struct {
-	ident      string
-	scopeLevel int
-	node       ast.Node
-}
-
 // typechecker represents the state of the type checking.
 type typechecker struct {
 
@@ -201,9 +195,6 @@ type typechecker struct {
 	// to it. This is necessary to determine if a 'breakable' statement (for,
 	// switch or select) can be terminating or not.
 	hasBreak map[ast.Node]bool
-
-	// unusedVars keeps track of all declared but not used variables.
-	unusedVars []*scopeVariable
 
 	// unusedImports keeps track of all imported but not used packages.
 	//
@@ -333,28 +324,9 @@ func (tc *typechecker) enterScope() {
 func (tc *typechecker) exitScope() {
 	// Check if some variables declared in the closing scope are still unused.
 	if tc.opts.mod != templateMod {
-		unused := []struct {
-			node  ast.Node
-			ident string
-		}{}
-		cut := len(tc.unusedVars)
-		for i := len(tc.unusedVars) - 1; i >= 0; i-- {
-			v := tc.unusedVars[i]
-			if v.scopeLevel < len(tc.scopes)-1 {
-				break
-			}
-			if v.node != nil {
-				unused = append(unused, struct {
-					node  ast.Node
-					ident string
-				}{v.node, v.ident})
-			}
-			cut = i
+		if ident, ok := tc.scopes.unused(); ok {
+			panic(tc.errorf(ident, "%s declared but not used", ident))
 		}
-		if len(unused) > 0 {
-			panic(tc.errorf(unused[len(unused)-1].node, "%s declared but not used", unused[len(unused)-1].ident))
-		}
-		tc.unusedVars = tc.unusedVars[:cut]
 	}
 	tc.scopes = tc.scopes.exit()
 	tc.labels = tc.labels[:len(tc.labels)-1]

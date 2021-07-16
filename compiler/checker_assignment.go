@@ -465,13 +465,6 @@ func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 	}
 	tc.compilation.typeInfos[lh] = ti
 	tc.assignScope(lh.Name, ti, lh)
-	if tc.opts.mod != templateMod {
-		tc.unusedVars = append(tc.unusedVars, &scopeVariable{
-			ident:      lh.Name,
-			scopeLevel: len(tc.scopes) - 1,
-			node:       lh,
-		})
-	}
 }
 
 // checkAssignTo checks that it is possible to assign to the expression expr.

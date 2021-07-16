@@ -134,13 +134,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 
 	// Mark identifier as "used".
 	if used {
-		for i := len(tc.unusedVars) - 1; i >= 0; i-- {
-			v := tc.unusedVars[i]
-			if v.ident == ident.Name {
-				v.node = nil
-				break
-			}
-		}
+		tc.scopes.setAsUsed(ident.Name)
 	}
 
 	// Mark 'itea' as used, when 'using' is a package-level statement.
