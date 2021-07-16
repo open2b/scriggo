@@ -140,8 +140,7 @@ func (s scopes) Lookup(name string) (*typeInfo, *ast.Identifier, bool) {
 
 // LookupInFunc lookups name in function scopes, including the main block in
 // scripts, and returns its type info, its identifier and true. Otherwise it
-// returns
-// nil, nil and false.
+// returns nil, nil and false.
 func (s scopes) LookupInFunc(name string) (*typeInfo, *ast.Identifier, bool) {
 	e, ok := s.lookup(name, 4)
 	return e.ti, e.ident, ok
@@ -172,7 +171,8 @@ func (s scopes) SetAsUsed(name string) {
 }
 
 // Unused returns the identifier of the first unused name, by position in the
-// source, declared in the current scope.
+// source, declared in the current scope. If all names, in the current scope,
+// are used, it returns nil and false.
 func (s scopes) Unused() (*ast.Identifier, bool) {
 	var ident *ast.Identifier
 	for _, e := range s[len(s)-1].names {
@@ -187,17 +187,14 @@ func (s scopes) Unused() (*ast.Identifier, bool) {
 }
 
 // CurrentFunction returns the function of the current scope or nil if there
-// is no function.
-//
-// There is no function for the main block of scripts.
+// is no function. There is no function for the main block of scripts.
 func (s scopes) CurrentFunction() *ast.Func {
 	return s[len(s)-1].fn
 }
 
 // Function returns the function in which name is declared. It returns nil if
-// it is not declared or is not declared in a function.
-//
-// There is no function, if name is declared in the main block of a script.
+// it is not declared or is not declared in a function. There is no function
+// if name is declared in the main block of a script.
 func (s scopes) Function(name string) *ast.Func {
 	for i := len(s) - 1; i >= 0; i-- {
 		if _, ok := s[i].names[name]; ok {
@@ -208,9 +205,8 @@ func (s scopes) Function(name string) *ast.Func {
 }
 
 // Functions returns all the functions up to the function of the current
-// scope. If there is no function, it returns nil.
-//
-// There is no function for the main block of scripts.
+// scope. If there is no function, it returns nil. There is no function for
+// the main block of scripts.
 func (s scopes) Functions() []*ast.Func {
 	n := 0
 	for i, sc := range s {
