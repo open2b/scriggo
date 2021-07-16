@@ -34,7 +34,7 @@ type scope struct {
 // scopeEntry is a scope entry.
 type scopeEntry struct {
 	ti    *typeInfo       // type info.
-	decl  *ast.Identifier // declaration node. nil for scopes 0, 1 and 2. It is also nil in scope 3 if imported.
+	ident *ast.Identifier // declaration identifier. nil for scopes 0, 1 and 2. It is also nil in scope 3 if imported.
 	used  bool            // it has been used.
 	param bool            // it is an in or out parameter of a function.
 }
@@ -80,11 +80,11 @@ func (s scopes) FilePackage(name string) (*typeInfo, bool) {
 	return elem.ti, ok
 }
 
-// Current returns the type info of name as declared in the current scope and
+// Current returns the identifier of name as declared in the current scope and
 // true. Otherwise it returns nil and false.
 func (s scopes) Current(name string) (*ast.Identifier, bool) {
 	elem, ok := s[len(s)-1].names[name]
-	return elem.decl, ok
+	return elem.ident, ok
 }
 
 // FilePackageNames returns the names declared in the file/package block.
@@ -102,7 +102,7 @@ func (s scopes) FilePackageNames() []string {
 // is imported from a package or a template file.
 func (s scopes) IsImported(name string) bool {
 	elem, ok := s[3].names[name]
-	return ok && elem.decl == nil
+	return ok && elem.ident == nil
 }
 
 // IsParameter reports whether name is a parameter of the function of the
@@ -112,14 +112,14 @@ func (s scopes) IsParameter(name string) bool {
 	return e.param
 }
 
-// SetCurrent sets name as declared in the current scope with the type info ti
-// and node decl. param indicates if it is a function parameter.
-func (s scopes) SetCurrent(name string, ti *typeInfo, decl *ast.Identifier, param bool) {
+// SetCurrent sets name as declared in the current scope with its type info
+// and identifier. param indicates if it is a function parameter.
+func (s scopes) SetCurrent(name string, ti *typeInfo, ident *ast.Identifier, param bool) {
 	n := len(s) - 1
 	if s[n].names == nil {
 		s[n].names = map[string]scopeEntry{}
 	}
-	s[n].names[name] = scopeEntry{ti: ti, decl: decl, param: param}
+	s[n].names[name] = scopeEntry{ti: ti, ident: ident, param: param}
 }
 
 // SetFilePackage sets name as declared in the file/package block with type
@@ -131,19 +131,20 @@ func (s scopes) SetFilePackage(name string, ti *typeInfo) {
 	s[3].names[name] = scopeEntry{ti: ti}
 }
 
-// Lookup lookups name in all scopes, and returns its type info, its node and
-// true. Otherwise it returns nil, nil and false.
+// Lookup lookups name in all scopes, and returns its type info, its
+// identifier and true. Otherwise it returns nil, nil and false.
 func (s scopes) Lookup(name string) (*typeInfo, *ast.Identifier, bool) {
 	e, ok := s.lookup(name, 0)
-	return e.ti, e.decl, ok
+	return e.ti, e.ident, ok
 }
 
 // LookupInFunc lookups name in function scopes, including the main block in
-// scripts, and returns its type info, its node and true. Otherwise it returns
+// scripts, and returns its type info, its identifier and true. Otherwise it
+// returns
 // nil, nil and false.
 func (s scopes) LookupInFunc(name string) (*typeInfo, *ast.Identifier, bool) {
 	e, ok := s.lookup(name, 4)
-	return e.ti, e.decl, ok
+	return e.ti, e.ident, ok
 }
 
 // lookup lookups name and returns its entry and true. Otherwise it returns
@@ -170,19 +171,19 @@ func (s scopes) SetAsUsed(name string) {
 	}
 }
 
-// Unused returns the first unused name, by position in the source, declared
-// in the current scope.
+// Unused returns the identifier of the first unused name, by position in the
+// source, declared in the current scope.
 func (s scopes) Unused() (*ast.Identifier, bool) {
-	var decl *ast.Identifier
+	var ident *ast.Identifier
 	for _, elem := range s[len(s)-1].names {
 		if elem.used || elem.param || elem.ti.IsConstant() || elem.ti.IsType() {
 			continue
 		}
-		if decl == nil || elem.decl.Position.Start < decl.Start {
-			decl = elem.decl
+		if ident == nil || elem.ident.Position.Start < ident.Start {
+			ident = elem.ident
 		}
 	}
-	return decl, decl != nil
+	return ident, ident != nil
 }
 
 // CurrentFunction returns the function of the current scope or nil if there
