@@ -320,7 +320,7 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 	isAlreadyDeclared := map[ast.Expression]bool{}
 	for _, lhExpr := range node.Lhs {
 		name := lhExpr.(*ast.Identifier).Name
-		_, ok := tc.scopes.AlreadyDeclared(name)
+		_, ok := tc.scopes.Current(name)
 		if name == "_" || ok {
 			isAlreadyDeclared[lhExpr] = true
 		}

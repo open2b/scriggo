@@ -341,7 +341,7 @@ func (tc *typechecker) exitScope() {
 // is already defined in the current scope.
 func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.Identifier, isParam bool) {
 
-	if ident, ok := tc.scopes.AlreadyDeclared(name); ok {
+	if ident, ok := tc.scopes.Current(name); ok {
 		if tc.scriptFuncOrMacroDecl {
 			switch tc.opts.mod {
 			case scriptMod:
@@ -359,7 +359,7 @@ func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.I
 		panic(tc.errorf(declNode, s))
 	}
 
-	tc.scopes.SetLocal(name, value, declNode, isParam)
+	tc.scopes.SetCurrent(name, value, declNode, isParam)
 }
 
 // An ancestor is an AST node with a scope level associated. The type checker

@@ -140,9 +140,9 @@ func (s scopes) IsParameter(name string) bool {
 	return e.param
 }
 
-// SetLocal sets name in the current local scope with the type info ti and
+// SetCurrent sets name in the current scope with the type info ti and
 // declaration decl. param indicates if it is a function parameter.
-func (s scopes) SetLocal(name string, ti *typeInfo, decl *ast.Identifier, param bool) {
+func (s scopes) SetCurrent(name string, ti *typeInfo, decl *ast.Identifier, param bool) {
 	n := len(s) - 1
 	if s[n].names == nil {
 		s[n].names = map[string]scopeEntry{}
@@ -158,10 +158,10 @@ func (s scopes) SetFilePackage(name string, ti *typeInfo) {
 	s[2].names[name] = scopeEntry{ti: ti}
 }
 
-// AlreadyDeclared report whether name is already declared in the current
-// scope and if it declared returns the identifier and true, otherwise returns
-// nil and false.
-func (s scopes) AlreadyDeclared(name string) (*ast.Identifier, bool) {
+// Current report whether name is already declared in the current scope and if
+// it declared returns the identifier and true, otherwise returns nil and
+// false.
+func (s scopes) Current(name string) (*ast.Identifier, bool) {
 	elem, ok := s[len(s)-1].names[name]
 	return elem.decl, ok
 }
