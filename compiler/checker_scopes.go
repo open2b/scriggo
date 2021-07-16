@@ -63,13 +63,11 @@ var universe = map[string]scopeEntry{
 	"uintptr":    {ti: &typeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: propertyIsType | propertyUniverse}},
 }
 
-type scopeEntry struct {
-	ti    *typeInfo       // type info.
-	decl  *ast.Identifier // declaration node. nil for scopes 0, 1 and 2. It is also nil in scope 3 if it is imported.
-	used  bool            // it has been used.
-	param bool            // it is an in or out parameter of a function.
-}
+// scopes represents the universe block, global block, file block, package
+// block and function scopes.
+type scopes []scope
 
+// scope is a scope.
 type scope struct {
 	// Function node that includes the scope. nil in scopes 0, 1 and 2. It is also nil in scope 3 for scrips.
 	fn *ast.Func
@@ -77,18 +75,22 @@ type scope struct {
 	names map[string]scopeEntry
 }
 
-// scopes represents the universe block, global block, file block, package
-// block and local scopes.
-//
-//   0, 1 are the universe block. 1 is for the format types.
-//   2    is the global block, nil for programs.
-//   3    is the file/package block.
-//   4+   are the scopes in the functions. For scripts, 4 if the main block.
-//
-type scopes []scope
+// scopeEntry is a scope entry.
+type scopeEntry struct {
+	ti    *typeInfo       // type info.
+	decl  *ast.Identifier // declaration node. nil for scopes 0, 1 and 2. It is also nil in scope 3 if it is imported.
+	used  bool            // it has been used.
+	param bool            // it is an in or out parameter of a function.
+}
 
 // newScopes returns a new scopes given the format types and the global block.
 func newScopes(formats map[ast.Format]reflect.Type, global map[string]scopeEntry) scopes {
+	//
+	//   0, 1 are the universe block. 1 is for the format types.
+	//   2    is the global block, nil for programs.
+	//   3    is the file/package block.
+	//   4+   are the scopes in the functions. For scripts, 4 if the main block.
+	//
 	var formatScope scope
 	if len(formats) > 0 {
 		formatScope = scope{names: map[string]scopeEntry{}}
@@ -214,7 +216,6 @@ func (s scopes) SetAsUsed(name string) {
 			return
 		}
 	}
-	//panic("used name not found")
 }
 
 // Unused returns the first, per source position, unused name in the current
