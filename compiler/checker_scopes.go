@@ -274,11 +274,7 @@ func (s scopes) Functions() []*ast.Func {
 // Enter enters a new scope.
 func (s scopes) Enter(fn *ast.Func) scopes {
 	if fn == nil {
-		n := len(s) - 1
-		//if n == 2 {
-		//panic("missing function for the first local scope")
-		//}
-		fn = s[n].fn
+		fn = s[len(s)-1].fn
 	}
 	return append(s, scope{fn: fn})
 }
@@ -287,7 +283,7 @@ func (s scopes) Enter(fn *ast.Func) scopes {
 func (s scopes) Exit() scopes {
 	last := len(s) - 1
 	if last == 3 {
-		panic("no scope to exit")
+		panic("scopes: no scope to exit of")
 	}
 	return s[:last]
 }
