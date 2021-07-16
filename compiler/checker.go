@@ -177,8 +177,8 @@ type typechecker struct {
 
 	precompiledPkgs PackageLoader
 
-	// scopes holds the universe block, global block, file block, package
-	// block and local scopes.
+	// scopes holds the universe block, global block, file/package block,
+	// and function scopes.
 	scopes scopes
 
 	// ancestors is the current list of ancestors. See the documentation of the

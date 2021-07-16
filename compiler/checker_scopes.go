@@ -12,34 +12,35 @@ import (
 	"github.com/open2b/scriggo/compiler/ast"
 )
 
-// scopes represents the universe block, global block, file block, package
-// block and function scopes.
+// scopes represents the universe block, global block, file/package block and
+// function scopes.
+//
+//   0, 1 are the universe block. 1 is for the format types.
+//   2    is the global block, empty for programs.
+//   3    is the file/package block.
+//   4+   are the scopes in functions. For scripts, 4 is the main block.
+//
 type scopes []scope
 
 // scope is a scope.
 type scope struct {
-	// Function node that includes the scope. nil in scopes 0, 1 and 2. It is also nil in scope 3 for scrips.
+	// fn is the node of the function that includes the scope.
+	// nil in scopes 0, 1 and 2. It is also nil in scope 3 for scripts.
 	fn *ast.Func
-	// Names declared in the scope.
+	// names are the declared names in the scope.
 	names map[string]scopeEntry
 }
 
 // scopeEntry is a scope entry.
 type scopeEntry struct {
 	ti    *typeInfo       // type info.
-	decl  *ast.Identifier // declaration node. nil for scopes 0, 1 and 2. It is also nil in scope 3 if it is imported.
+	decl  *ast.Identifier // declaration node. nil for scopes 0, 1 and 2. It is also nil in scope 3 if imported.
 	used  bool            // it has been used.
 	param bool            // it is an in or out parameter of a function.
 }
 
 // newScopes returns a new scopes given the format types and the global block.
 func newScopes(formats map[ast.Format]reflect.Type, global map[string]scopeEntry) scopes {
-	//
-	//   0, 1 are the universe block. 1 is for the format types.
-	//   2    is the global block, nil for programs.
-	//   3    is the file/package block.
-	//   4+   are the scopes in the functions. For scripts, 4 if the main block.
-	//
 	var formatScope scope
 	if len(formats) > 0 {
 		formatScope = scope{names: map[string]scopeEntry{}}
@@ -54,8 +55,8 @@ func newScopes(formats map[ast.Format]reflect.Type, global map[string]scopeEntry
 	return scopes{scope{names: universe}, formatScope, scope{names: global}, {}}
 }
 
-// Universe returns the type info of the given name in the universe block and
-// true. If the name does not exist, returns nil and false.
+// Universe returns the type info of name as declared in the universe block
+// and true. Otherwise it returns nil and false.
 func (s scopes) Universe(name string) (*typeInfo, bool) {
 	elem, ok := s[0].names[name]
 	if ok {
@@ -65,28 +66,28 @@ func (s scopes) Universe(name string) (*typeInfo, bool) {
 	return elem.ti, ok
 }
 
-// Global returns the type info of the given name in the global block and
-// true. If the name does not exist, returns nil and false.
+// Global returns the type info of name as declared in the global block and
+// true. Otherwise it returns nil and false.
 func (s scopes) Global(name string) (*typeInfo, bool) {
 	elem, ok := s[2].names[name]
 	return elem.ti, ok
 }
 
-// FilePackage returns the type info of the given name in the file/package
-// block and true. If the name does not exist, returns nil and false.
+// FilePackage returns the type info of name as declared in the file/package
+// block and true. Otherwise it returns nil and false.
 func (s scopes) FilePackage(name string) (*typeInfo, bool) {
 	elem, ok := s[3].names[name]
 	return elem.ti, ok
 }
 
-// Current returns the type info of the given name in the current scope and
-// true. If the name does not exist, returns nil and false.
+// Current returns the type info of name as declared in the current scope and
+// true. Otherwise it returns nil and false.
 func (s scopes) Current(name string) (*ast.Identifier, bool) {
 	elem, ok := s[len(s)-1].names[name]
 	return elem.decl, ok
 }
 
-// FilePackageNames returns the names in the file/package block.
+// FilePackageNames returns the names declared in the file/package block.
 func (s scopes) FilePackageNames() []string {
 	names := make([]string, len(s[3].names))
 	i := 0
@@ -97,21 +98,22 @@ func (s scopes) FilePackageNames() []string {
 	return names
 }
 
-// IsImported reports whether name is in the file/package block and it is
-// imported from a package or a template file.
+// IsImported reports whether name is declared in the file/package block and
+// is imported from a package or a template file.
 func (s scopes) IsImported(name string) bool {
 	elem, ok := s[3].names[name]
 	return ok && elem.decl == nil
 }
 
-// IsParameter reports whether name is a function parameter.
+// IsParameter reports whether name is a parameter of the function of the
+// current scope.
 func (s scopes) IsParameter(name string) bool {
 	e, _ := s.lookup(name, 4)
 	return e.param
 }
 
-// SetCurrent sets name in the current scope with the type info ti and
-// declaration decl. param indicates if it is a function parameter.
+// SetCurrent sets name as declared in the current scope with the type info ti
+// and node decl. param indicates if it is a function parameter.
 func (s scopes) SetCurrent(name string, ti *typeInfo, decl *ast.Identifier, param bool) {
 	n := len(s) - 1
 	if s[n].names == nil {
@@ -120,7 +122,8 @@ func (s scopes) SetCurrent(name string, ti *typeInfo, decl *ast.Identifier, para
 	s[n].names[name] = scopeEntry{ti: ti, decl: decl, param: param}
 }
 
-// SetFilePackage sets name in the file/package block with type info ti.
+// SetFilePackage sets name as declared in the file/package block with type
+// info ti.
 func (s scopes) SetFilePackage(name string, ti *typeInfo) {
 	if s[3].names == nil {
 		s[3].names = map[string]scopeEntry{}
@@ -128,23 +131,23 @@ func (s scopes) SetFilePackage(name string, ti *typeInfo) {
 	s[3].names[name] = scopeEntry{ti: ti}
 }
 
-// Lookup lookups name and, if exists, returns its type info, the node of the
-// identifier and true. Otherwise returns nil, nil and false.
+// Lookup lookups name in all scopes, and returns its type info, its node and
+// true. Otherwise it returns nil, nil and false.
 func (s scopes) Lookup(name string) (*typeInfo, *ast.Identifier, bool) {
 	e, ok := s.lookup(name, 0)
 	return e.ti, e.decl, ok
 }
 
-// LookupInFunc lookups name and, if exists, returns the type info, the node
-// of the identifier and true s. Otherwise returns nil, nil and
-// false.
+// LookupInFunc lookups name in function scopes, including the main block in
+// scripts, and returns its type info, its node and true. Otherwise it returns
+// nil, nil and false.
 func (s scopes) LookupInFunc(name string) (*typeInfo, *ast.Identifier, bool) {
 	e, ok := s.lookup(name, 4)
 	return e.ti, e.decl, ok
 }
 
-// lookup lookups name and, if exists, returns the its entry and true.
-// Otherwise scopeEntry{} and false.
+// lookup lookups name and returns its entry and true. Otherwise it returns
+// the zero value of scopeEntry and false.
 func (s scopes) lookup(name string, start int) (scopeEntry, bool) {
 	for i := len(s) - 1; i >= start; i-- {
 		if e, ok := s[i].names[name]; ok {
@@ -167,8 +170,8 @@ func (s scopes) SetAsUsed(name string) {
 	}
 }
 
-// Unused returns the first, per source position, unused name in the current
-// scope.
+// Unused returns the first unused name, by position in the source, declared
+// in the current scope.
 func (s scopes) Unused() (*ast.Identifier, bool) {
 	var decl *ast.Identifier
 	for _, elem := range s[len(s)-1].names {
@@ -182,14 +185,18 @@ func (s scopes) Unused() (*ast.Identifier, bool) {
 	return decl, decl != nil
 }
 
-// CurrentFunction returns the current function or nil if there is no
-// function.
+// CurrentFunction returns the function of the current scope or nil if there
+// is no function.
+//
+// There is no function for the main block of scripts.
 func (s scopes) CurrentFunction() *ast.Func {
 	return s[len(s)-1].fn
 }
 
-// Function returns the function in which name is declared. Returns nil if it
-// is not declared or it is not declared in a function.
+// Function returns the function in which name is declared. It returns nil if
+// it is not declared or is not declared in a function.
+//
+// There is no function, if name is declared in the main block of a script.
 func (s scopes) Function(name string) *ast.Func {
 	for i := len(s) - 1; i >= 0; i-- {
 		if _, ok := s[i].names[name]; ok {
@@ -199,8 +206,10 @@ func (s scopes) Function(name string) *ast.Func {
 	return nil
 }
 
-// Functions returns all the functions up to the current scope.
-// If there is no function, returns nil.
+// Functions returns all the functions up to the function of the current
+// scope. If there is no function, it returns nil.
+//
+// There is no function for the main block of scripts.
 func (s scopes) Functions() []*ast.Func {
 	n := 0
 	for i, sc := range s {
