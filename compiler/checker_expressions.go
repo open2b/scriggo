@@ -25,11 +25,10 @@ var untypedBoolTypeInfo = &typeInfo{Type: boolType, Properties: propertyUntyped}
 // checkIdentifier checks an identifier. If used, ident is marked as "used".
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeInfo {
 
-	elem, ok := tc.lookupScopesElem(ident.Name)
+	ti, decl, ok := tc.scopes.Lookup(ident.Name)
 	if !ok {
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
 	}
-	ti := elem.ti
 
 	// Check if the identifier is the builtin 'iota'.
 	if ti == universe["iota"].ti {
@@ -61,7 +60,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 			uc.toBeEmitted = true
 		}
 		tc.compilation.iteaToUsingCheck[ident.Name] = uc
-		ti, ok = tc.scopes.lookup(ident.Name)
+		ti, _, ok = tc.scopes.Lookup(ident.Name)
 		if !ok {
 			panic("BUG: unexpected 'ti == nil'")
 		}
@@ -71,12 +70,15 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 		panic(tc.errorf(ident, "use of builtin %s not in function call", ident.Name))
 	}
 
+	// Check if it is an upvar.
+	isUpVar := ti.Addressable() && tc.scopes.Function(ident.Name) != tc.scopes.CurrentFunction()
+
 	// If ident is an upvar, add it as upvar for current function and for all
 	// nested functions and update all indexes.
-	if ti.Addressable() && !tc.inCurrentFuncScope(ident.Name) {
-		tc.compilation.indirectVars[elem.decl] = true
+	if isUpVar {
+		tc.compilation.indirectVars[decl] = true
 		upvar := ast.Upvar{
-			Declaration: elem.decl,
+			Declaration: decl,
 			Index:       -1,
 		}
 		for _, fn := range tc.getNestedFuncs(ident.Name) {
@@ -99,13 +101,13 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 	if tc.opts.mod == templateMod || tc.opts.mod == scriptMod {
 		// The identifier refers to a predefined value that is an up value for
 		// the current function.
-		if ti.IsPredefined() && ti.Addressable() && !tc.inCurrentFuncScope(ident.Name) {
+		if isUpVar && ti.IsPredefined() {
 			// The type info contains a *reflect.Value, so it is a variable.
 			if rv, ok := ti.value.(*reflect.Value); ok {
 				// Get the list of the nested functions, from the outermost to
 				// the innermost (which is the function that refers to the
 				// identifier).
-				if nestedFuncs := tc.nestedFuncs(); len(nestedFuncs) > 0 {
+				if nestedFuncs := tc.scopes.Functions(); len(nestedFuncs) > 0 {
 					upvar := ast.Upvar{
 						PredefinedName:      ident.Name,
 						PredefinedPkg:       ident.Name,
@@ -134,7 +136,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 
 	// Mark identifier as "used".
 	if used {
-		tc.scopes.setAsUsed(ident.Name)
+		tc.scopes.SetAsUsed(ident.Name)
 	}
 
 	// Mark 'itea' as used, when 'using' is a package-level statement.
@@ -349,14 +351,8 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			// When taking the address of a variable, such variable must be
 			// marked as "indirect".
 			if ident, ok := expr.Expr.(*ast.Identifier); ok {
-			scopesLoop:
-				for i := len(tc.scopes) - 1; i >= 3; i-- {
-					for n := range tc.scopes[i] {
-						if n == ident.Name {
-							tc.compilation.indirectVars[tc.scopes[i][n].decl] = true
-							break scopesLoop
-						}
-					}
+				if _, decl, ok := tc.scopes.LookupInFunc(ident.Name); ok {
+					tc.compilation.indirectVars[decl] = true
 				}
 			}
 		case ast.OperatorXor:
@@ -623,7 +619,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		}
 		if expr.Macro {
 			ident := expr.Result[0].Type.(*ast.Identifier)
-			ti, ok := tc.scopes.universe(ident.Name)
+			ti, ok := tc.scopes.Universe(ident.Name)
 			if !ok || out[0] != ti.Type {
 				for _, ud := range tc.compilation.iteaToUsingCheck {
 					if ud.typ == ident {
@@ -786,7 +782,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 	case *ast.Selector:
 		// Can be a package selector, a method expression, a method value or a field selector.
 		if ident, ok := expr.Expr.(*ast.Identifier); ok {
-			ti, ok := tc.scopes.lookup(ident.Name)
+			ti, _, ok := tc.scopes.Lookup(ident.Name)
 			if ok && ti.IsPackage() {
 				// Package selector.
 				delete(tc.unusedImports, ident.Name)
@@ -807,7 +803,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 						PredefinedValueType: v.Type,
 						Index:               -1,
 					}
-					for _, fn := range tc.nestedFuncs() {
+					for _, fn := range tc.scopes.Functions() {
 						add := true
 						for i, uv := range fn.Upvars {
 							if uv.PredefinedValue == upvar.PredefinedValue {
@@ -847,8 +843,8 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			switch trans {
 			case receiverAddAddress:
 				if t.Addressable() {
-					elem, _ := tc.lookupScopesElem(expr.Expr.(*ast.Identifier).Name)
-					tc.compilation.indirectVars[elem.decl] = true
+					_, decl, _ := tc.scopes.Lookup(expr.Expr.(*ast.Identifier).Name)
+					tc.compilation.indirectVars[decl] = true
 					expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorAddress, expr.Expr)
 					tc.compilation.typeInfos[expr.Expr] = &typeInfo{
 						Type:       tc.types.PtrTo(t.Type),
@@ -1697,7 +1693,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) []*typeInfo {
 
 	// Check a builtin function call.
 	if ident, ok := expr.Func.(*ast.Identifier); ok {
-		if ti, ok := tc.scopes.lookup(ident.Name); ok && ti.IsBuiltinFunction() {
+		if ti, _, ok := tc.scopes.Lookup(ident.Name); ok && ti.IsBuiltinFunction() {
 			tc.compilation.typeInfos[expr.Func] = ti
 			return tc.checkBuiltinCall(expr)
 		}
@@ -1822,7 +1818,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) []*typeInfo {
 // isFormatType reports whether t is a format type.
 func (tc *typechecker) isFormatType(t reflect.Type) bool {
 	for _, name := range formatTypeName {
-		ti, ok := tc.scopes.universe(name)
+		ti, ok := tc.scopes.Universe(name)
 		if ok && ti.IsFormatType() && t == ti.Type {
 			return true
 		}
@@ -1832,13 +1828,13 @@ func (tc *typechecker) isFormatType(t reflect.Type) bool {
 
 // isMarkdown reports whether t is the markdown format type.
 func (tc *typechecker) isMarkdown(t reflect.Type) bool {
-	ti, ok := tc.scopes.universe("markdown")
+	ti, ok := tc.scopes.Universe("markdown")
 	return ok && t == ti.Type
 }
 
 // isHTML reports whether t is the html format type.
 func (tc *typechecker) isHTML(t reflect.Type) bool {
-	ti, ok := tc.scopes.universe("html")
+	ti, ok := tc.scopes.Universe("html")
 	return ok && t == ti.Type
 }
 
@@ -2298,7 +2294,7 @@ func (tc *typechecker) isCompileConstant(expr ast.Expression) bool {
 func (tc *typechecker) checkDollarIdentifier(expr *ast.DollarIdentifier) *typeInfo {
 
 	// Check that x is a valid identifier.
-	if ti, ok := tc.scopes.lookup(expr.Ident.Name); ok {
+	if ti, _, ok := tc.scopes.Lookup(expr.Ident.Name); ok {
 		// Check that x is not a builtin function.
 		if ti.IsBuiltinFunction() {
 			panic(tc.errorf(expr.Ident, "use of builtin %s not in function call", expr.Ident))
@@ -2308,13 +2304,13 @@ func (tc *typechecker) checkDollarIdentifier(expr *ast.DollarIdentifier) *typeIn
 			panic(tc.errorf(expr.Ident, "unexpected type in dollar identifier"))
 		}
 		// Check that x is not a local identifier.
-		if tc.isLocallyDeclared(expr.Ident.Name) {
+		if _, _, ok := tc.scopes.LookupInFunc(expr.Ident.Name); ok {
 			panic(tc.errorf(expr, "use of local identifier within dollar identifier"))
 		}
 		// Check that x is not declared in the file/package block, that
 		// contains, for example, the variable declarations at the top level of
 		// an imported or extending file.
-		if _, ok := tc.scopes.filePackage(expr.Ident.Name); ok {
+		if _, ok := tc.scopes.FilePackage(expr.Ident.Name); ok {
 			panic(tc.errorf(expr, "use of top-level identifier within dollar identifier"))
 		}
 	}
@@ -2322,7 +2318,7 @@ func (tc *typechecker) checkDollarIdentifier(expr *ast.DollarIdentifier) *typeIn
 	// Set the IR of the expression.
 	var arg *ast.Identifier
 	var pos = expr.Pos()
-	if _, ok := tc.scopes.global(expr.Ident.Name); ok {
+	if _, ok := tc.scopes.Global(expr.Ident.Name); ok {
 		arg = expr.Ident // "x"
 	} else {
 		arg = ast.NewIdentifier(pos, "nil") // "nil"
@@ -2352,7 +2348,7 @@ func (tc *typechecker) checkDefault(expr *ast.Default, show bool) typeInfoPair {
 			panic(tc.errorf(n, "cannot use _ as value"))
 		}
 		var ok bool
-		if tis[0], ok = tc.scopes.lookup(n.Name); ok {
+		if tis[0], _, ok = tc.scopes.Lookup(n.Name); ok {
 			if tis[0].IsPackage() {
 				panic(tc.errorf(expr, "use of package %s without selector", n))
 			}
@@ -2391,7 +2387,7 @@ func (tc *typechecker) checkDefault(expr *ast.Default, show bool) typeInfoPair {
 		if isBlankIdentifier(ident) {
 			panic(tc.errorf(ident, "cannot use _ as value"))
 		}
-		if ti, ok := tc.scopes.lookup(ident.Name); ok {
+		if ti, _, ok := tc.scopes.Lookup(ident.Name); ok {
 			// TODO(Gianluca): test 'nil() default'
 			if ti.InUniverse() && ident.Name == "itea" || strings.HasPrefix(ident.Name, "$itea") {
 				panic(tc.errorf(n, "use of predeclared identifier itea"))

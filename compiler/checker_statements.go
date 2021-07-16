@@ -98,7 +98,7 @@ func iteaHasBeenShadowed(nodes []ast.Node) bool {
 
 // checkNodesInNewScopeError calls checkNodesInNewScope returning checking errors.
 func (tc *typechecker) checkNodesInNewScopeError(nodes []ast.Node) ([]ast.Node, error) {
-	tc.enterScope()
+	tc.enterScope(nil)
 	nodes, err := tc.checkNodesError(nodes)
 	if err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ func (tc *typechecker) checkNodesInNewScopeError(nodes []ast.Node) ([]ast.Node, 
 
 // checkNodesInNewScope type checks nodes in a new scope. Panics on error.
 func (tc *typechecker) checkNodesInNewScope(nodes []ast.Node) []ast.Node {
-	tc.enterScope()
+	tc.enterScope(nil)
 	nodes = tc.checkNodes(nodes)
 	tc.exitScope()
 	return nodes
@@ -166,7 +166,7 @@ nodesLoop:
 			node.Nodes = tc.checkNodes(node.Nodes)
 
 		case *ast.If:
-			tc.enterScope()
+			tc.enterScope(nil)
 			if node.Init != nil {
 				tc.checkNodes([]ast.Node{node.Init})
 			}
@@ -211,7 +211,7 @@ nodesLoop:
 			tc.terminating = terminating
 
 		case *ast.For:
-			tc.enterScope()
+			tc.enterScope(nil)
 			tc.addToAncestors(node)
 			if node.Init != nil {
 				tc.checkNodes([]ast.Node{node.Init})
@@ -258,7 +258,7 @@ nodesLoop:
 			continue
 
 		case *ast.ForRange:
-			tc.enterScope()
+			tc.enterScope(nil)
 			tc.addToAncestors(node)
 			// Check range expression.
 			expr := node.Assignment.Rhs[0]
@@ -409,7 +409,7 @@ nodesLoop:
 			tc.terminating = true
 
 		case *ast.Switch:
-			tc.enterScope()
+			tc.enterScope(nil)
 			tc.addToAncestors(node)
 			// Check the init.
 			if node.Init != nil {
@@ -490,7 +490,7 @@ nodesLoop:
 					}
 					tcase.setValue(texpr.Type)
 				}
-				tc.enterScope()
+				tc.enterScope(nil)
 				tc.addToAncestors(cas)
 				cas.Body = tc.checkNodes(cas.Body)
 				tc.removeLastAncestor()
@@ -506,7 +506,7 @@ nodesLoop:
 
 		case *ast.TypeSwitch:
 			terminating := true
-			tc.enterScope()
+			tc.enterScope(nil)
 			tc.addToAncestors(node)
 			if node.Init != nil {
 				// TODO: this type assertion should be removed/handled differently.
@@ -550,7 +550,7 @@ nodesLoop:
 					}
 					positionOf[t.Type] = ex.Pos()
 				}
-				tc.enterScope()
+				tc.enterScope(nil)
 				// Case has only one expression (one type), so in its body the
 				// type switch variable has the same type of the case type.
 				if len(cas.Expressions) == 1 && !tc.compilation.typeInfos[cas.Expressions[0]].Nil() {
@@ -588,7 +588,7 @@ nodesLoop:
 						}
 					}
 				}
-				tc.enterScope()
+				tc.enterScope(nil)
 				tc.addToAncestors(cas)
 				cas.Body = tc.checkNodes(cas.Body)
 				tc.removeLastAncestor()
@@ -601,7 +601,7 @@ nodesLoop:
 			tc.terminating = terminating && !tc.hasBreak[node] && positionOfDefault != nil
 
 		case *ast.Select:
-			tc.enterScope()
+			tc.enterScope(nil)
 			tc.addToAncestors(node)
 			// Check the cases.
 			terminating := true
@@ -648,7 +648,7 @@ nodesLoop:
 		case *ast.TypeDeclaration:
 			name, ti := tc.checkTypeDeclaration(node)
 			if ti != nil {
-				tc.assignScope(name, ti, node.Ident)
+				tc.assignScope(name, ti, node.Ident, false)
 			}
 
 		case *ast.Show:
@@ -920,7 +920,7 @@ nodesLoop:
 			ti := tc.checkExpr(node)
 			if tc.opts.mod == templateMod {
 				if node, ok := node.(*ast.Func); ok && node.Ident != nil {
-					tc.assignScope(node.Ident.Name, ti, node.Ident)
+					tc.assignScope(node.Ident.Name, ti, node.Ident, false)
 					i++
 					continue nodesLoop
 				}
@@ -976,7 +976,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		if isPeriodImport(impor) {
 			tc.setUnusedImports(impor, imported.Name, imported.Declarations)
 			for ident, ti := range imported.Declarations {
-				tc.scopes.setFilePackage(ident, ti)
+				tc.scopes.SetFilePackage(ident, ti)
 			}
 			return nil
 		}
@@ -990,7 +990,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		}
 
 		// Add the package to the file/package block.
-		tc.scopes.setFilePackage(pkgName, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue})
+		tc.scopes.SetFilePackage(pkgName, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue})
 
 		// Set the package as imported but not used.
 		tc.setUnusedImports(impor, pkgName, imported.Declarations)
@@ -1008,7 +1008,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	}
 
 	// Check the package and retrieve the package infos.
-	err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, tc.precompiledPkgs, tc.opts, tc.scopes.globals())
+	err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, tc.precompiledPkgs, tc.opts, tc.scopes.Globals())
 	if err != nil {
 		return err
 	}
@@ -1031,13 +1031,13 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		if tc.opts.mod == templateMod {
 			tc.setUnusedImports(impor, imported.Name, imported.Declarations)
 			for ident, ti := range imported.Declarations {
-				tc.scopes.setFilePackage(ident, ti)
+				tc.scopes.SetFilePackage(ident, ti)
 			}
 			return nil
 		}
 
 		// import "path"
-		tc.scopes.setFilePackage(imported.Name, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue})
+		tc.scopes.SetFilePackage(imported.Name, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue})
 		return nil
 
 	// import . "path"
@@ -1045,7 +1045,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	case isPeriodImport(impor):
 		tc.setUnusedImports(impor, imported.Name, imported.Declarations)
 		for ident, ti := range imported.Declarations {
-			tc.scopes.setFilePackage(ident, ti)
+			tc.scopes.SetFilePackage(ident, ti)
 		}
 		return nil
 
@@ -1056,7 +1056,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 			value:      imported,
 			Properties: propertyIsPackage | propertyHasValue,
 		}
-		tc.scopes.setFilePackage(impor.Ident.Name, ti)
+		tc.scopes.SetFilePackage(impor.Ident.Name, ti)
 		// TODO: is the error "imported but not used" correctly reported for
 		// this case?
 	}
@@ -1069,7 +1069,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 // an explicit result type.
 func (tc *typechecker) makeMacroResultExplicit(macro *ast.Func) {
 	name := formatTypeName[macro.Format]
-	ti, ok := tc.scopes.universe(name)
+	ti, ok := tc.scopes.Universe(name)
 	if !ok {
 		panic("no type defined for format " + macro.Format.String())
 	}
@@ -1084,7 +1084,7 @@ func (tc *typechecker) makeMacroResultExplicit(macro *ast.Func) {
 // checkFunc checks a function.
 func (tc *typechecker) checkFunc(node *ast.Func) {
 
-	tc.enterScope()
+	tc.enterScope(node)
 	tc.addToAncestors(node)
 
 	// Adds parameters to the function body scope.
@@ -1092,8 +1092,7 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 	for i := 0; i < t.NumIn(); i++ {
 		param := node.Type.Parameters[i]
 		if param.Ident != nil && !isBlankIdentifier(param.Ident) {
-			tc.assignScope(param.Ident.Name, &typeInfo{Type: t.In(i), Properties: propertyAddressable}, param.Ident)
-			tc.scopes.setAsUsed(param.Ident.Name)
+			tc.assignScope(param.Ident.Name, &typeInfo{Type: t.In(i), Properties: propertyAddressable}, param.Ident, true)
 		}
 	}
 
@@ -1118,8 +1117,7 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 	for i := 0; i < t.NumOut(); i++ {
 		ret := node.Type.Result[i]
 		if ret.Ident != nil && !isBlankIdentifier(ret.Ident) {
-			tc.assignScope(ret.Ident.Name, &typeInfo{Type: t.Out(i), Properties: propertyAddressable}, ret.Ident)
-			tc.scopes.setAsUsed(ret.Ident.Name)
+			tc.assignScope(ret.Ident.Name, &typeInfo{Type: t.Out(i), Properties: propertyAddressable}, ret.Ident, true)
 			assignment := ast.NewAssignment(
 				ret.Ident.Position,
 				[]ast.Expression{ret.Ident},
@@ -1168,7 +1166,7 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 // This simplifies the value swapping by handling it as a generic assignment.
 func (tc *typechecker) checkReturn(node *ast.Return) ast.Node {
 
-	fn, _ := tc.currentFunction()
+	fn := tc.scopes.CurrentFunction()
 	if fn.Type.Macro {
 		return nil
 	}
@@ -1183,14 +1181,9 @@ func (tc *typechecker) checkReturn(node *ast.Return) ast.Node {
 	// Named return arguments with empty return: check if any value has been
 	// shadowed.
 	if len(expected) > 0 && expected[0].Ident != nil && len(got) == 0 {
-		// If "return" belongs to an inner scope (not the function scope).
-		_, funcBound := tc.currentFunction()
-		if len(tc.scopes) > funcBound {
-			for _, e := range expected {
-				name := e.Ident.Name
-				if _, ok := tc.scopes.alreadyDeclared(name); ok {
-					panic(tc.errorf(node, "%s is shadowed during return", name))
-				}
+		for _, e := range expected {
+			if name := e.Ident.Name; name != "_" && !tc.scopes.IsParameter(name) {
+				panic(tc.errorf(e.Ident, "%s is shadowed during return", name))
 			}
 		}
 		return nil
@@ -1318,7 +1311,7 @@ func (tc *typechecker) explodeUsingStatement(using *ast.Using, iteaIdent string)
 	// Make the type explicit, if necessary.
 	if using.Type == nil {
 		name := formatTypeName[using.Format]
-		ti, ok := tc.scopes.universe(name)
+		ti, ok := tc.scopes.Universe(name)
 		if !ok {
 			panic("no type defined for format " + using.Format.String())
 		}

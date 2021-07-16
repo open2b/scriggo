@@ -81,9 +81,9 @@ func parseNumericConst(s string) (constant, reflect.Type, error) {
 
 // toTypeCheckerScope generates a type checker scope given a predefined
 // package. depth must be 0 unless toTypeCheckerScope is called recursively.
-func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, global bool, depth int) scope {
+func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, global bool, depth int) map[string]scopeEntry {
 	declarations := pp.DeclarationNames()
-	scope := make(scope, len(declarations))
+	scope := make(map[string]scopeEntry, len(declarations))
 	for _, ident := range declarations {
 		ti := &typeInfo{PredefPackageName: pp.Name()}
 		if global {
@@ -155,7 +155,7 @@ func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, global bool, dept
 			}
 			ti.Properties |= propertyUntyped
 		}
-		scope[ident] = scopeElement{ti: ti}
+		scope[ident] = scopeEntry{ti: ti}
 	}
 	return scope
 }
@@ -515,7 +515,7 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(compilation *compilation, pkg *ast.Package, path string, packages PackageLoader, opts checkerOptions, globalScope scope) (err error) {
+func checkPackage(compilation *compilation, pkg *ast.Package, path string, packages PackageLoader, opts checkerOptions, globalScope map[string]scopeEntry) (err error) {
 
 	// TODO: This cache has been disabled as a workaround to the issues #641 and
 	// #624. We should find a better solution in the future.
@@ -591,7 +591,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 		if td, ok := d.(*ast.TypeDeclaration); ok {
 			name, ti := tc.checkTypeDeclaration(td)
 			if ti != nil {
-				tc.assignScope(name, ti, td.Ident)
+				tc.assignScope(name, ti, td.Ident, false)
 			}
 		}
 	}
@@ -618,14 +618,14 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 				// Do not add 'init' and '_' functions to the file/package block.
 				continue
 			}
-			if _, ok := tc.scopes.filePackage(f.Ident.Name); ok {
+			if _, ok := tc.scopes.FilePackage(f.Ident.Name); ok {
 				return tc.errorf(f.Ident, "%s redeclared in this block", f.Ident.Name)
 			}
 			ti := &typeInfo{Type: funcType}
 			if f.Type.Macro {
 				ti.Properties |= propertyIsMacroDeclaration
 			}
-			tc.scopes.setFilePackage(f.Ident.Name, ti)
+			tc.scopes.SetFilePackage(f.Ident.Name, ti)
 		}
 	}
 
@@ -661,7 +661,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 	}
 
 	if pkg.Name == "main" {
-		if _, ok := tc.scopes.filePackage("main"); !ok {
+		if _, ok := tc.scopes.FilePackage("main"); !ok {
 			return tc.errorf(new(ast.Position), "function main is undeclared in the main package")
 		}
 	}
@@ -673,10 +673,10 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 		TypeInfos:    tc.compilation.typeInfos,
 	}
 	pkgInfo.Declarations = make(map[string]*typeInfo)
-	for _, name := range tc.scopes.filePackageNames() {
+	for _, name := range tc.scopes.FilePackageNames() {
 		isDummyMacroForRender := strings.HasPrefix(name, `"`) && strings.HasSuffix(name, `"`)
 		if isExported(name) || isDummyMacroForRender {
-			pkgInfo.Declarations[name], _ = tc.scopes.filePackage(name)
+			pkgInfo.Declarations[name], _ = tc.scopes.FilePackage(name)
 		}
 	}
 	pkgInfo.IndirectVars = tc.compilation.indirectVars

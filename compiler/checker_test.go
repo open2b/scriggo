@@ -579,16 +579,16 @@ func TestCheckerExpressions(t *testing.T) {
 				t.Errorf("source: %q, unexpected %s, expecting expression\n", expr.src, tok)
 				return
 			}
-			sc := make(scope, len(expr.scope))
+			names := make(map[string]scopeEntry, len(expr.scope))
 			for k, v := range expr.scope {
-				sc[k] = scopeElement{ti: v}
+				names[k] = scopeEntry{ti: v}
 			}
 			compilation := newCompilation()
 			tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
 			if expr.scope != nil {
-				tc.scopes = append(tc.scopes, sc)
+				tc.scopes = append(tc.scopes, scope{names: names})
 			}
-			tc.enterScope()
+			tc.enterScope(nil)
 			ti := tc.checkExpr(node)
 			err := equalTypeInfo(expr.ti, ti)
 			if err != nil {
@@ -673,16 +673,16 @@ func TestCheckerExpressionErrors(t *testing.T) {
 				t.Errorf("source: %q, unexpected %s, expecting error %q\n", expr.src, tok, expr.err)
 				return
 			}
-			sc := make(scope, len(expr.scope))
+			names := make(map[string]scopeEntry, len(expr.scope))
 			for k, v := range expr.scope {
-				sc[k] = scopeElement{ti: v}
+				names[k] = scopeEntry{ti: v}
 			}
 			compilation := newCompilation()
 			tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
 			if expr.scope != nil {
-				tc.scopes = append(tc.scopes, sc)
+				tc.scopes = append(tc.scopes, scope{names: names})
 			}
-			tc.enterScope()
+			tc.enterScope(nil)
 			ti := tc.checkExpr(node)
 			t.Errorf("source: %s, unexpected %s, expecting error %q\n", expr.src, ti, expr.err)
 			err := compilation.finalizeUsingStatements(tc)
@@ -1329,14 +1329,15 @@ var checkerStmts = map[string]string{
 	`_ = func() int { switch { case true: return 0; default:  }         }`: missingReturn,
 
 	// Return statements with named result parameters.
-	`_ = func() (a int)           { return             }`: ok,
-	`_ = func() (a int, b string) { return             }`: ok,
-	`_ = func() (a int, b string) { return 0, ""       }`: ok,
-	`_ = func() (s int)           { { s := 0; return } }`: `s is shadowed during return`,
-	`_ = func() (a int)           { return ""          }`: `cannot use "" (type untyped string) as type int in return argument`,
-	`_ = func() (a int, b string) { return "", ""      }`: `cannot use "" (type untyped string) as type int in return argument`,
-	`_ = func() (a int)           { return 0, 0        }`: "too many arguments to return\n\thave (number, number)\n\twant (int)",
-	`_ = func() (a int, b string) { return 0           }`: "not enough arguments to return\n\thave (number)\n\twant (int, string)",
+	`_ = func() (a int)           { return             }`:     ok,
+	`_ = func() (a int, b string) { return             }`:     ok,
+	`_ = func() (a int, b string) { return 0, ""       }`:     ok,
+	`_ = func() (s int)           { { s := 0; return } }`:     `s is shadowed during return`,
+	`_ = func() (s int)           { { s := 0; { return } } }`: `s is shadowed during return`,
+	`_ = func() (a int)           { return ""          }`:     `cannot use "" (type untyped string) as type int in return argument`,
+	`_ = func() (a int, b string) { return "", ""      }`:     `cannot use "" (type untyped string) as type int in return argument`,
+	`_ = func() (a int)           { return 0, 0        }`:     "too many arguments to return\n\thave (number, number)\n\twant (int)",
+	`_ = func() (a int, b string) { return 0           }`:     "not enough arguments to return\n\thave (number)\n\twant (int, string)",
 
 	// Result statements with non-named result parameters.
 	`_ = func() int { return 0 }`:              ok,
@@ -1637,7 +1638,7 @@ func (p *pointInt) SetX(newX int) {
 }
 
 func TestCheckerStatements(t *testing.T) {
-	scope := scope{
+	names := map[string]scopeEntry{
 		"boolType":   {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf(definedBool(false))}},
 		"aString":    {ti: &typeInfo{Type: reflect.TypeOf(definedString(""))}},
 		"stringType": {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf(definedString(""))}},
@@ -1677,8 +1678,8 @@ func TestCheckerStatements(t *testing.T) {
 			}
 			compilation := newCompilation()
 			tc := newTypechecker(compilation, "", checkerOptions{mod: programMod}, nil, nil)
-			tc.scopes = append(tc.scopes, scope)
-			tc.enterScope()
+			tc.scopes = append(tc.scopes, scope{names: names})
+			tc.enterScope(nil)
 			tree.Nodes = tc.checkNodes(tree.Nodes)
 			tc.exitScope()
 			err = compilation.finalizeUsingStatements(tc)
@@ -2315,7 +2316,17 @@ func TestFunctionUpVars(t *testing.T) {
 	for src, expected := range cases {
 		compilation := newCompilation()
 		tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
-		tc.enterScope()
+		tc.enterScope(nil)
+		if src != `
+			type T struct{}
+			var A int
+			_ = func() {
+				_ = A
+				_ = T{}
+			}
+		` {
+			continue
+		}
 		tree, err := parseSource([]byte(src), true)
 		if err != nil {
 			t.Error(err)

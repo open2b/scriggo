@@ -74,14 +74,14 @@ func (tc *typechecker) obsoleteForRangeAssign(node ast.Node, leftExpr, rightExpr
 				newRight.Type = typ.Type
 			}
 			tc.compilation.typeInfos[leftExpr] = newRight
-			if _, ok := tc.scopes.alreadyDeclared(leftExpr.Name); ok {
+			if _, ok := tc.scopes.AlreadyDeclared(leftExpr.Name); ok {
 				return ""
 			}
 			newRight.Constant = right.Constant
 			if right.Untyped() {
 				newRight.Properties = propertyUntyped
 			}
-			tc.assignScope(leftExpr.Name, newRight, nil)
+			tc.assignScope(leftExpr.Name, newRight, nil, false)
 			return leftExpr.Name
 		}
 
@@ -96,11 +96,11 @@ func (tc *typechecker) obsoleteForRangeAssign(node ast.Node, leftExpr, rightExpr
 				newRight.Type = typ.Type
 			}
 			tc.compilation.typeInfos[leftExpr] = newRight
-			if _, ok := tc.scopes.alreadyDeclared(leftExpr.Name); ok {
+			if _, ok := tc.scopes.AlreadyDeclared(leftExpr.Name); ok {
 				return ""
 			}
 			newRight.Properties |= propertyAddressable
-			tc.assignScope(leftExpr.Name, newRight, leftExpr)
+			tc.assignScope(leftExpr.Name, newRight, leftExpr, false)
 			return leftExpr.Name
 		}
 
