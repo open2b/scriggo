@@ -3116,56 +3116,56 @@ var templateMultiFileCases = map[string]struct {
 
 	"Using - show": {
 		sources: map[string]string{
-			"index.html": `{% show this; using html %}foo{% end using %}`,
+			"index.html": `{% show itea; using html %}foo{% end using %}`,
 		},
 		expectedOut: "foo",
 	},
 
 	"Using - show (implicit type)": {
 		sources: map[string]string{
-			"index.html": `{% show this; using %}foo{% end using %}`,
+			"index.html": `{% show itea; using %}foo{% end using %}`,
 		},
 		expectedOut: "foo",
 	},
 
 	"Using - show - Two using statement": {
 		sources: map[string]string{
-			"index.txt": `{% show this; using %}foo{% end using %}{% show this; using %}bar{% end using %}`,
+			"index.txt": `{% show itea; using %}foo{% end using %}{% show itea; using %}bar{% end using %}`,
 		},
 		expectedOut: "foobar",
 	},
 
-	"Using - 'this' is not defined outside": {
+	"Using - 'itea' is not defined outside": {
 		sources: map[string]string{
-			"index.html": `{% show this; using html %}foo{% end using %}{{ this }}`,
+			"index.html": `{% show itea; using html %}foo{% end using %}{{ itea }}`,
 		},
-		expectedBuildErr: "undefined: this",
+		expectedBuildErr: "undefined: itea",
 	},
 
-	"Using - 'this' is not defined outside (implicit type)": {
+	"Using - 'itea' is not defined outside (implicit type)": {
 		sources: map[string]string{
-			"index.html": `{% show this; using %}foo{% end using %}{{ this }}`,
+			"index.html": `{% show itea; using %}foo{% end using %}{{ itea }}`,
 		},
-		expectedBuildErr: "undefined: this",
+		expectedBuildErr: "undefined: itea",
 	},
 
 	"Using - assignment with ':='": {
 		sources: map[string]string{
-			"index.html": `{% x := this; using html %}hello, how are you{% end using %}{{ x }}, len: {{ len(x) }}`,
+			"index.html": `{% x := itea; using html %}hello, how are you{% end using %}{{ x }}, len: {{ len(x) }}`,
 		},
 		expectedOut: "hello, how are you, len: 18",
 	},
 
 	"Using - assignment with ':=' (implicit type)": {
 		sources: map[string]string{
-			"index.html": `{% x := this; using %}hello, how are you{% end using %}{{ x }}, len: {{ len(x) }}`,
+			"index.html": `{% x := itea; using %}hello, how are you{% end using %}{{ x }}, len: {{ len(x) }}`,
 		},
 		expectedOut: "hello, how are you, len: 18",
 	},
 
 	"Using - assignment with 'var'": {
 		sources: map[string]string{
-			"index.html": `{% var date, days = this, 5; using html %}
+			"index.html": `{% var date, days = itea, 5; using html %}
 			<span>{{ now() }}</span>
 		  {% end using %}
 		  Date is {{ date }}`,
@@ -3181,28 +3181,28 @@ var templateMultiFileCases = map[string]struct {
 
 	"Using - macro (without parameters)": {
 		sources: map[string]string{
-			"index.txt": `{% show this(); using macro() string %}macro content{% end using %}`,
+			"index.txt": `{% show itea(); using macro() string %}macro content{% end using %}`,
 		},
 		expectedOut: "macro content",
 	},
 
 	"Using - macro (with parameters)": {
 		sources: map[string]string{
-			"index.txt": `{% show this(4.2); using macro(f float64) string %}f / 2 = {{ f / 2 }}.{% end using %}`,
+			"index.txt": `{% show itea(4.2); using macro(f float64) string %}f / 2 = {{ f / 2 }}.{% end using %}`,
 		},
 		expectedOut: "f / 2 = 2.1.",
 	},
 
 	"Using - function literal 1": {
 		sources: map[string]string{
-			"index.txt": `{% show func() string { _ = this ; var this = "ok"; return this }(); using %}no{% end using %}`,
+			"index.txt": `{% show func() string { _ = itea ; var itea = "ok"; return itea }(); using %}no{% end using %}`,
 		},
 		expectedOut: "ok",
 	},
 
 	"Using - function literal 2": {
 		sources: map[string]string{
-			"index.txt": `{% show func() string { return this }(); using %}ok{% end using %}`,
+			"index.txt": `{% show func() string { return itea }(); using %}ok{% end using %}`,
 		},
 		expectedOut: "ok",
 	},
@@ -3210,14 +3210,14 @@ var templateMultiFileCases = map[string]struct {
 	"Using - package level var declaration ": {
 		sources: map[string]string{
 			"index.html": `{% import "file.html" %}`,
-			"file.html":  `{% var _ = this; using %}hey{% end using %}`,
+			"file.html":  `{% var _ = itea; using %}hey{% end using %}`,
 		},
 	},
 
 	"Using - package level var declaration (2)": {
 		sources: map[string]string{
 			"index.html": `{% import "file.html" %}{{ V }}, len: {{ len(V) }}`,
-			"file.html":  `{% var V = this; using %}hey{% end using %}`,
+			"file.html":  `{% var V = itea; using %}hey{% end using %}`,
 		},
 		expectedOut: "hey, len: 3",
 	},
@@ -3225,7 +3225,7 @@ var templateMultiFileCases = map[string]struct {
 	"Using - package level var declaration (3)": {
 		sources: map[string]string{
 			"index.html": `{% import "file.html" %}V is {{ V }}`,
-			"file.html":  `{% var V = len(this); using %}hey my friend{% end using %}`,
+			"file.html":  `{% var V = len(itea); using %}hey my friend{% end using %}`,
 		},
 		expectedOut: "V is 13",
 	},
@@ -3233,7 +3233,7 @@ var templateMultiFileCases = map[string]struct {
 	"Using - package level var declaration (4)": {
 		sources: map[string]string{
 			"index.html": `{% import "file.html" %}{{ V1 }}, {{ V2 }}`,
-			"file.html":  `{% var V1, V2 = this, len(this); using %}hey oh{% end using %}`,
+			"file.html":  `{% var V1, V2 = itea, len(itea); using %}hey oh{% end using %}`,
 		},
 		expectedOut: "hey oh, 6",
 	},
@@ -3242,66 +3242,66 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `
 				{% extends "extended.html" %}
-				{% var this = "shadowed" %}
-				{% var V = this; using %}content...{% end using %}
+				{% var itea = "shadowed" %}
+				{% var V = itea; using %}content...{% end using %}
 				{% macro M %}V is {{ V }}{% end macro %}
 			`,
 			"extended.html": `{{ M () }}`,
 		},
-		expectedBuildErr: "predeclared identifier this not used",
+		expectedBuildErr: "predeclared identifier itea not used",
 	},
 
 	"Using - package level var declaration (5) - simplified": {
 		sources: map[string]string{
 			"index.html": `
 				{% extends "extended.html" %}
-				{% var this = "shadowed" %}
-				{% var _ = this; using %}{% end using %}
+				{% var itea = "shadowed" %}
+				{% var _ = itea; using %}{% end using %}
 			`,
 			"extended.html": ``,
 		},
-		expectedBuildErr: "predeclared identifier this not used",
+		expectedBuildErr: "predeclared identifier itea not used",
 	},
 
-	"Using - this shadowed by a package name at package level": {
+	"Using - itea shadowed by a package name at package level": {
 		sources: map[string]string{
 			"index.html": `
 				{% extends "extended.html" %}
-				{% import this "imported.html" %}
-				{% var V = this.A; using %}content...{% end using %}
+				{% import itea "imported.html" %}
+				{% var V = itea.A; using %}content...{% end using %}
 				{% macro M %}V is {{ V }}{% end macro %}
 			`,
 			"extended.html": `{{ M () }}`,
 			"imported.html": `{% var A = 5 %}`,
 		},
-		expectedBuildErr: "predeclared identifier this not used",
+		expectedBuildErr: "predeclared identifier itea not used",
 	},
 
-	"Using - this shadowed by a 'var' declaration inside a multiline statement": {
+	"Using - itea shadowed by a 'var' declaration inside a multiline statement": {
 		sources: map[string]string{
 			"index.html": `
 				{% extends "extended.html" %}
 				{%%
 					var (
 						something = 43982
-						this = "shadowed"
+						itea = "shadowed"
 						somethingElse = 43289
 					)
 				%%}
-				{% var V = this; using %}content...{% end using %}
+				{% var V = itea; using %}content...{% end using %}
 				{% macro M %}V is {{ V }}{% end macro %}
 			`,
 			"extended.html": `{{ M () }}`,
 		},
-		expectedBuildErr: "predeclared identifier this not used",
+		expectedBuildErr: "predeclared identifier itea not used",
 	},
 
 	"Using - assigning from using body": {
 		sources: map[string]string{
 			"index.html": `
 	            {% f := func() html { return html("") } %}
-	            {% _ = this; using %}
-	        		{% f = this; using macro() html %}x{% end %}
+	            {% _ = itea; using %}
+	        		{% f = itea; using macro() html %}x{% end %}
 	            {% end %}
 				{{ f() }}
 			`,
@@ -3313,8 +3313,8 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `
 	           {% var f func(html) html %}
-	           {% show f(this); using %}
-	           2 {% f = this; using macro(s html) html %}1 {{ s }} 4{% end %} 3
+	           {% show f(itea); using %}
+	           2 {% f = itea; using macro(s html) html %}1 {{ s }} 4{% end %} 3
 	           {% end %}
 			`,
 		},
@@ -3324,8 +3324,8 @@ var templateMultiFileCases = map[string]struct {
 	"Using - nested using statements (1)": {
 		sources: map[string]string{
 			"index.html": `
-	            {% _ = this; using %}
-	      	    	{% _ = this; using %}{% end %}
+	            {% _ = itea; using %}
+	      	    	{% _ = itea; using %}{% end %}
 	            {% end %}
 			`,
 		},
@@ -3335,9 +3335,9 @@ var templateMultiFileCases = map[string]struct {
 	"Using - nested using statements (2)": {
 		sources: map[string]string{
 			"index.html": `
-	            {% show this; using %}
+	            {% show itea; using %}
 					External using-start
-	      	    	{% show this; using %}internal using{% end %}
+	      	    	{% show itea; using %}internal using{% end %}
 					External using-end
 	            {% end %}
 			`,
@@ -3348,19 +3348,19 @@ var templateMultiFileCases = map[string]struct {
 	"Using - nested using statements (3)": {
 		sources: map[string]string{
 			"index.html": `
-	            {% _ = this; using %}
-	      	    	{% _ = this; using %}{% end %}
-					{% _ = this; using %}{% end %}
+	            {% _ = itea; using %}
+	      	    	{% _ = itea; using %}{% end %}
+					{% _ = itea; using %}{% end %}
 	            {% end %}
-				{% _ = this; using %}
-	      	    	{% _ = this; using %}
-					  {% _ = this; using %}{% end %}
-					  {% _ = this; using %}{% end %}
+				{% _ = itea; using %}
+	      	    	{% _ = itea; using %}
+					  {% _ = itea; using %}{% end %}
+					  {% _ = itea; using %}{% end %}
 					{% end %}
-					{% _ = this; using %}{% end %}
+					{% _ = itea; using %}{% end %}
 	            {% end %}
-				{% _ = this; using %}
-	      	    	{% _ = this; using %}{% end %}
+				{% _ = itea; using %}
+	      	    	{% _ = itea; using %}{% end %}
 	            {% end %}
 			`,
 		},
@@ -3372,7 +3372,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.html": `{% import "imported.html" %}{{ A }}`,
 			"imported.html": `
 				{% type html int %}
-				{% var A = this; using html %}OPS{% end %}
+				{% var A = itea; using html %}OPS{% end %}
 			`,
 		},
 		expectedBuildErr: `invalid using type html`,
@@ -3383,7 +3383,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt": `
 				{% var V int %}
 				{% f := func(s string) { V = len(s) } %}
-				{% f(this); using %}hello{% end using %}
+				{% f(itea); using %}hello{% end using %}
 				V is {{ V }}
 			`,
 		},
@@ -3394,7 +3394,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `
 				{% ch := make(chan string, 1) %}
-				{% ch <- this; using %}how are you?{% end %}
+				{% ch <- itea; using %}how are you?{% end %}
 				Message is: {{ <-ch }}
 			`,
 		},
@@ -3403,7 +3403,7 @@ var templateMultiFileCases = map[string]struct {
 
 	"Using - escaping string in html context": {
 		sources: map[string]string{
-			"index.html": `{% show this; using string %}<b>{% end using %}`,
+			"index.html": `{% show itea; using string %}<b>{% end using %}`,
 		},
 		expectedOut: "&lt;b&gt;",
 	},
@@ -3413,7 +3413,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.html": `
 				{% extends "layout.html" %}
 				{% macro Body %}
-					{% var a = this; using %}a{% end using %}
+					{% var a = itea; using %}a{% end using %}
 				{% end macro %}
 			`,
 			"layout.html": `{{ Body() }}`,
@@ -3426,7 +3426,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.html": `
 				{% extends "imported.html" %}
 				{% macro M %}
-					{% var a = this; using %}content{% end using %}
+					{% var a = itea; using %}content{% end using %}
 					{{ a }}
 				{% end macro %}
 			`,
@@ -3435,92 +3435,92 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "\t\t\t\t\t\n\t\t\t\t\tcontent\n",
 	},
 
-	"Using - error if 'this' is unused": {
+	"Using - error if 'itea' is unused": {
 		sources: map[string]string{
 			"index.html": `
 				{% show 4; using %}Something{% end using %}
 			`,
 		},
-		expectedBuildErr: "index.html:2:16: predeclared identifier this not used",
+		expectedBuildErr: "index.html:2:16: predeclared identifier itea not used",
 	},
 
-	"Using - error if 'this' is unused (package level)": {
+	"Using - error if 'itea' is unused (package level)": {
 		sources: map[string]string{
 			"index.html": `{% import "imported.html" %}`,
 			"imported.html": `
 				{% var _ = 4; using %}Something{% end using %}
 			`,
 		},
-		expectedBuildErr: "imported.html:2:19: predeclared identifier this not used",
+		expectedBuildErr: "imported.html:2:19: predeclared identifier itea not used",
 	},
 
-	"Using - this on right side of default (evaluated)": {
+	"Using - itea on right side of default (evaluated)": {
 		sources: map[string]string{
 			"index.html":    `{% extends "extended.html" %}`,
-			"extended.html": `{% show Undef() default this; using %}Something{% end using %}`,
+			"extended.html": `{% show Undef() default itea; using %}Something{% end using %}`,
 		},
 		expectedOut: "Something",
 	},
 
-	"Using - this on right side of default (evaluated, package level)": {
+	"Using - itea on right side of default (evaluated, package level)": {
 		sources: map[string]string{
-			"index.html": `{% show undef default this; using %}Something{% end using %}`,
+			"index.html": `{% show undef default itea; using %}Something{% end using %}`,
 		},
 		expectedOut: "Something",
 	},
 
-	"Using - this on right side of default ('this' not referenced, content of 'using' must not be evaluated)": {
+	"Using - itea on right side of default ('itea' not referenced, content of 'using' must not be evaluated)": {
 		sources: map[string]string{
 			"index.html":    `{% extends "extended.html" %}{% macro M %}{% end %}`,
-			"extended.html": `{% show M() default this; using %}{{ []int{}[1000] }}{% end using %}`,
+			"extended.html": `{% show M() default itea; using %}{{ []int{}[1000] }}{% end using %}`,
 		},
 	},
 
-	"Using - taking address of 'this'": {
+	"Using - taking address of 'itea'": {
 		sources: map[string]string{
 			"index.html": `
 				{% var ref1, ref2, ref3, ref4 *html %}
-				{% func() { ref1, ref2 = &this, &this }(); using %}content..{% end %}
-				{% func() { ref3, ref4 = &this, &this }(); using %}content..{% end %}
+				{% func() { ref1, ref2 = &itea, &itea }(); using %}content..{% end %}
+				{% func() { ref3, ref4 = &itea, &itea }(); using %}content..{% end %}
 				{{ ref1 == ref2 }}{{ ref2 == ref3 }}{{ ref3 == ref4 }}
 			`,
 		},
 		expectedOut: "\n\t\t\t\t\n\t\t\t\t\n\t\t\t\t\n\t\t\t\ttruefalsetrue\n\t\t\t",
 	},
 
-	"Using - assign to 'this'": {
+	"Using - assign to 'itea'": {
 		sources: map[string]string{
-			"index.html": `{% show func() html { this = html("hey"); return this }(); using %}content..{% end %}`,
+			"index.html": `{% show func() html { itea = html("hey"); return itea }(); using %}content..{% end %}`,
 		},
 		expectedOut: "hey",
 	},
 
-	"Using - cannot use 'this' on left side of default": {
+	"Using - cannot use 'itea' on left side of default": {
 		sources: map[string]string{
-			"index.html": `{% show this default 4; using %}...{% end %}`,
+			"index.html": `{% show itea default 4; using %}...{% end %}`,
 		},
-		expectedBuildErr: "use of predeclared identifier this",
+		expectedBuildErr: "use of predeclared identifier itea",
 	},
 
-	"Using - cannot use 'this' on left side of default - package level": {
+	"Using - cannot use 'itea' on left side of default - package level": {
 		sources: map[string]string{
 			"index.html":    `{% import "imported.html" %}`,
-			"imported.html": `{% var _ = this default 4; using %}...{% end %}`,
+			"imported.html": `{% var _ = itea default 4; using %}...{% end %}`,
 		},
-		expectedBuildErr: "use of predeclared identifier this",
+		expectedBuildErr: "use of predeclared identifier itea",
 	},
 
-	"Using - cannot use 'this()' on left side of default": {
+	"Using - cannot use 'itea()' on left side of default": {
 		sources: map[string]string{
 			"index.html":    `{% extends "extended.html" %}`,
-			"extended.html": `{% show this() default 4; using %}...{% end %}`,
+			"extended.html": `{% show itea() default 4; using %}...{% end %}`,
 		},
-		expectedBuildErr: "use of predeclared identifier this",
+		expectedBuildErr: "use of predeclared identifier itea",
 	},
 
-	"Using - can assign to 'this', even if it contains a macro": {
+	"Using - can assign to 'itea', even if it contains a macro": {
 		sources: map[string]string{
-			"index.html": `{% func() { this = func() html { return "x" } }(); using macro() %}content..{% end %}`,
+			"index.html": `{% func() { itea = func() html { return "x" } }(); using macro() %}content..{% end %}`,
 		},
 	},
 
@@ -3528,7 +3528,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `
 				{% var html = 32 %}
-				{% var _ = this; using html %}...{% end using %}
+				{% var _ = itea; using html %}...{% end using %}
 			`,
 		},
 		expectedBuildErr: "html is not a type",
@@ -3539,7 +3539,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.html": `{% import "imported.html" %}`,
 			"imported.html": `
 				{% var html = 32 %}
-				{% var _ = this; using html %}...{% end using %}
+				{% var _ = itea; using html %}...{% end using %}
 			`,
 		},
 		expectedBuildErr: "html is not a type",
@@ -3549,7 +3549,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `
 				{% type html int %}
-				{% var _ = this; using html %}...{% end using %}
+				{% var _ = itea; using html %}...{% end using %}
 			`,
 		},
 		expectedBuildErr: `index.html:3:28: invalid using type html`,
@@ -3560,7 +3560,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.html": `{% import "imported.html" %}`,
 			"imported.html": `
 				{% type html int %}
-				{% var _ = this; using html %}...{% end using %}
+				{% var _ = itea; using html %}...{% end using %}
 			`,
 		},
 		expectedBuildErr: `imported.html:3:28: invalid using type html`,
@@ -3568,13 +3568,13 @@ var templateMultiFileCases = map[string]struct {
 
 	"Using - implicit type": {
 		sources: map[string]string{
-			"index.md": `{% var a markdown = this; using %}# Scriggo{% end %}`,
+			"index.md": `{% var a markdown = itea; using %}# Scriggo{% end %}`,
 		},
 	},
 
 	"Using - implicit macro type": {
 		sources: map[string]string{
-			"index.css": `{% var a css = this(); using macro %} div { color: red; }{% end %}`,
+			"index.css": `{% var a css = itea(); using macro %} div { color: red; }{% end %}`,
 		},
 	},
 

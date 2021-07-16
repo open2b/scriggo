@@ -74,7 +74,7 @@ var universe = typeCheckerScope{
 	"int8":       {t: &typeInfo{Type: reflect.TypeOf(int8(0)), Properties: propertyIsType | propertyUniverse}},
 	"rune":       {t: int32TypeInfo},
 	"string":     {t: &typeInfo{Type: stringType, Properties: propertyIsType | propertyIsFormatType | propertyUniverse}},
-	"this":       {t: &typeInfo{Properties: propertyUniverse | propertyUntyped | propertyAddressable}},
+	"itea":       {t: &typeInfo{Properties: propertyUniverse | propertyUntyped | propertyAddressable}},
 	"true":       {t: &typeInfo{Type: boolType, Properties: propertyUniverse | propertyUntyped, Constant: boolConst(true)}},
 	"uint":       {t: &typeInfo{Type: uintType, Properties: propertyIsType | propertyUniverse}},
 	"uint16":     {t: &typeInfo{Type: reflect.TypeOf(uint16(0)), Properties: propertyIsType | propertyUniverse}},
@@ -111,23 +111,23 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 		found = false
 	}
 
-	// Handle the predeclared identifier 'this' when checking the 'using'
+	// Handle the predeclared identifier 'itea' when checking the 'using'
 	// statement.
-	if found && ti == universe["this"].t {
+	if found && ti == universe["itea"].t {
 		if tc.withinUsingAffectedStmt {
-			ident.Name = tc.compilation.thisName
-			uc := tc.compilation.thisToUsingCheck[ident.Name]
+			ident.Name = tc.compilation.iteaName
+			uc := tc.compilation.iteaToUsingCheck[ident.Name]
 			uc.used = true
 			if tc.toBeEmitted {
 				uc.toBeEmitted = true
 			}
-			tc.compilation.thisToUsingCheck[ident.Name] = uc
+			tc.compilation.iteaToUsingCheck[ident.Name] = uc
 			ti, _ = tc.lookupScopes(ident.Name, false)
 			if ti == nil {
 				panic("BUG: unexpected 'ti == nil'")
 			}
 		} else {
-			// The identifier is the predeclared identifier 'this', but 'this'
+			// The identifier is the predeclared identifier 'itea', but 'itea'
 			// is not defined outside an 'using' statement so it is considered
 			// undefined.
 			found = false
@@ -213,14 +213,14 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 		}
 	}
 
-	// Mark 'this' as used, when 'using' is a package-level statement.
-	if strings.HasPrefix(ident.Name, "$this") {
-		uc := tc.compilation.thisToUsingCheck[ident.Name]
+	// Mark 'itea' as used, when 'using' is a package-level statement.
+	if strings.HasPrefix(ident.Name, "$itea") {
+		uc := tc.compilation.iteaToUsingCheck[ident.Name]
 		uc.used = true
 		if tc.toBeEmitted {
 			uc.toBeEmitted = true
 		}
-		tc.compilation.thisToUsingCheck[ident.Name] = uc
+		tc.compilation.iteaToUsingCheck[ident.Name] = uc
 	}
 
 	// For "." imported packages, mark package as used.
@@ -700,7 +700,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		if expr.Macro {
 			ident := expr.Result[0].Type.(*ast.Identifier)
 			if out[0] != tc.universe[ident.Name].t.Type {
-				for _, ud := range tc.compilation.thisToUsingCheck {
+				for _, ud := range tc.compilation.iteaToUsingCheck {
 					if ud.typ == ident {
 						panic(tc.errorf(ident, "invalid using type %s", ident.Name))
 					}
@@ -2434,8 +2434,8 @@ func (tc *typechecker) checkDefault(expr *ast.Default, show bool) typeInfoPair {
 			if tis[0].Nil() {
 				panic(tc.errorf(n, "use of untyped nil"))
 			}
-			if tis[0].InUniverse() && n.Name == "this" || strings.HasPrefix(n.Name, "$this") {
-				panic(tc.errorf(n, "use of predeclared identifier this"))
+			if tis[0].InUniverse() && n.Name == "itea" || strings.HasPrefix(n.Name, "$itea") {
+				panic(tc.errorf(n, "use of predeclared identifier itea"))
 			}
 			if tis[0].IsBuiltinFunction() {
 				panic(tc.errorf(n, "use of builtin %s not in function call", n))
@@ -2468,8 +2468,8 @@ func (tc *typechecker) checkDefault(expr *ast.Default, show bool) typeInfoPair {
 		}
 		if ti, ok := tc.lookupScopes(ident.Name, false); ok {
 			// TODO(Gianluca): test 'nil() default'
-			if ti.InUniverse() && ident.Name == "this" || strings.HasPrefix(ident.Name, "$this") {
-				panic(tc.errorf(n, "use of predeclared identifier this"))
+			if ti.InUniverse() && ident.Name == "itea" || strings.HasPrefix(ident.Name, "$itea") {
+				panic(tc.errorf(n, "use of predeclared identifier itea"))
 			}
 			if ti.IsType() {
 				panic(tc.errorf(ident, "type conversion on left side of default"))

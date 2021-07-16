@@ -51,19 +51,19 @@ type compilation struct {
 	// inconsistent type checks and invalid behaviors.
 	renderImportMacro map[*ast.Tree]renderIR
 
-	// thisToUsingCheck maps 'this' identifiers ($this0, $this1... ) to their
+	// iteaToUsingCheck maps 'itea' identifiers ($itea0, $itea1... ) to their
 	// corresponding usingCheck.
-	thisToUsingCheck map[string]usingCheck
+	iteaToUsingCheck map[string]usingCheck
 
-	// currentThisIndex is the index used to generate the name of the current
-	// 'this' identifier.
+	// currentIteaIndex is the index used to generate the name of the current
+	// 'itea' identifier.
 	// After initialization, it should be accessed exclusively by the method
-	// 'generateThisName'.
-	currentThisIndex int
+	// 'generateIteaName'.
+	currentIteaIndex int
 
-	// thisName is the current name of the predeclared 'this' identifier that
-	// should be used in tree transformations, something like '$this0'.
-	thisName string
+	// iteaName is the current name of the predeclared 'itea' identifier that
+	// should be used in tree transformations, something like '$itea0'.
+	iteaName string
 }
 
 type renderIR struct {
@@ -80,7 +80,7 @@ func newCompilation() *compilation {
 		alreadySortedPkgs: map[*ast.Package]bool{},
 		indirectVars:      map[*ast.Identifier]bool{},
 		renderImportMacro: map[*ast.Tree]renderIR{},
-		currentThisIndex:  -1,
+		currentIteaIndex:  -1,
 	}
 }
 
@@ -104,34 +104,34 @@ func (compilation *compilation) UniqueIndex(path string) int {
 	return max + 1
 }
 
-// generateThisName generates a new name that can be used when transforming the
-// predeclared identifier 'this'.
-func (compilation *compilation) generateThisName() string {
-	compilation.currentThisIndex++
-	return "$this" + strconv.Itoa(compilation.currentThisIndex)
+// generateIteaName generates a new name that can be used when transforming the
+// predeclared identifier 'itea'.
+func (compilation *compilation) generateIteaName() string {
+	compilation.currentIteaIndex++
+	return "$itea" + strconv.Itoa(compilation.currentIteaIndex)
 }
 
-// finalizeUsingStatements finalizes the 'using' statements neutralizing 'this'
+// finalizeUsingStatements finalizes the 'using' statements neutralizing 'itea'
 // declarations that should not be emitted. It also returns a type checking
-// error if the 'this' identifier of a 'using' statement is not used.
+// error if the 'itea' identifier of a 'using' statement is not used.
 func (compilation *compilation) finalizeUsingStatements(tc *typechecker) error {
-	names := make([]string, 0, len(compilation.thisToUsingCheck))
-	for name := range compilation.thisToUsingCheck {
+	names := make([]string, 0, len(compilation.iteaToUsingCheck))
+	for name := range compilation.iteaToUsingCheck {
 		names = append(names, name)
 	}
 	sort.Strings(names)
 	for _, name := range names {
-		uc := compilation.thisToUsingCheck[name]
+		uc := compilation.iteaToUsingCheck[name]
 		if !uc.used {
-			return tc.errorf(uc.pos, "predeclared identifier this not used")
+			return tc.errorf(uc.pos, "predeclared identifier itea not used")
 		}
 		if !uc.toBeEmitted {
-			if len(uc.this.Lhs) != 1 || len(uc.this.Rhs) != 1 {
+			if len(uc.itea.Lhs) != 1 || len(uc.itea.Rhs) != 1 {
 				panic("BUG: unexpected")
 			}
-			uc.this.Lhs = []*ast.Identifier{ast.NewIdentifier(nil, "_")}
-			uc.this.Rhs = []ast.Expression{ast.NewBasicLiteral(nil, ast.IntLiteral, "0")}
-			tc.checkNodes([]ast.Node{uc.this})
+			uc.itea.Lhs = []*ast.Identifier{ast.NewIdentifier(nil, "_")}
+			uc.itea.Rhs = []ast.Expression{ast.NewBasicLiteral(nil, ast.IntLiteral, "0")}
+			tc.checkNodes([]ast.Node{uc.itea})
 		}
 	}
 	return nil

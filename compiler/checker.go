@@ -279,17 +279,17 @@ type typechecker struct {
 // usingCheck contains information about the type checking of a 'using'
 // statement.
 type usingCheck struct {
-	// used reports whether the 'this' identifier is used.
+	// used reports whether the 'itea' identifier is used.
 	used bool
-	// toBeEmitted reports whether the declaration of the 'this' identifier
-	// should be emitted, depending on whether 'this' is still used after
+	// toBeEmitted reports whether the declaration of the 'itea' identifier
+	// should be emitted, depending on whether 'itea' is still used after
 	// defaults have been resolved.
 	toBeEmitted bool
-	// this is the declaration of the 'this' identifier.
-	this *ast.Var
+	// itea is the declaration of the 'itea' identifier.
+	itea *ast.Var
 	// pos is the position of the 'using' statement.
 	pos *ast.Position
-	// typ is type of the 'this' predeclared identifier, as denoted in the
+	// typ is type of the 'itea' predeclared identifier, as denoted in the
 	// 'using' statement (implicitly or explicitly).
 	typ ast.Expression
 }

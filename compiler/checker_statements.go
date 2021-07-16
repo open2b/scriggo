@@ -27,7 +27,7 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 		}
 	}
 
-	var thisToDeclarations map[string][]*ast.Identifier
+	var iteaToDeclarations map[string][]*ast.Identifier
 	nodes := make([]ast.Node, 0, len(tree.Nodes)/2)
 	for _, n := range tree.Nodes {
 		switch n := n.(type) {
@@ -37,16 +37,16 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 		case *ast.Statements:
 			nodes = append(nodes, n.Nodes...)
 		case *ast.Using:
-			thisName := tc.compilation.generateThisName()
-			thisDeclaration, statement := tc.explodeUsingStatement(n, thisName)
-			nodes = append(nodes, thisDeclaration, statement)
-			if thisToDeclarations == nil {
-				thisToDeclarations = map[string][]*ast.Identifier{}
+			iteaName := tc.compilation.generateIteaName()
+			iteaDeclaration, statement := tc.explodeUsingStatement(n, iteaName)
+			nodes = append(nodes, iteaDeclaration, statement)
+			if iteaToDeclarations == nil {
+				iteaToDeclarations = map[string][]*ast.Identifier{}
 			}
-			if thisHasBeenShadowed(tree.Nodes) {
-				thisToDeclarations[thisName] = nil
+			if iteaHasBeenShadowed(tree.Nodes) {
+				iteaToDeclarations[iteaName] = nil
 			} else {
-				thisToDeclarations[thisName] = n.Statement.(*ast.Var).Lhs
+				iteaToDeclarations[iteaName] = n.Statement.(*ast.Var).Lhs
 			}
 		default:
 			panic(fmt.Sprintf("BUG: unexpected node %s", n))
@@ -54,41 +54,41 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 	}
 
 	pkg := ast.NewPackage(tree.Pos(), "", nodes)
-	pkg.IR.ThisNameToVarIdents = thisToDeclarations
+	pkg.IR.IteaNameToVarIdents = iteaToDeclarations
 	tree.Nodes = []ast.Node{pkg}
 }
 
-// thisHasBeenShadowed reports whether the predeclared identifier 'this' has
+// iteaHasBeenShadowed reports whether the predeclared identifier 'itea' has
 // been shadowed by a package-level declaration within nodes.
-func thisHasBeenShadowed(nodes []ast.Node) bool {
+func iteaHasBeenShadowed(nodes []ast.Node) bool {
 	for _, n := range nodes {
 		switch n := n.(type) {
 		case *ast.Var:
 			for _, lh := range n.Lhs {
-				if lh.Name == "this" {
+				if lh.Name == "itea" {
 					return true
 				}
 			}
 		case *ast.Func:
-			if n.Ident.Name == "this" {
+			if n.Ident.Name == "itea" {
 				return true
 			}
 		case *ast.TypeDeclaration:
-			if n.Ident.Name == "this" {
+			if n.Ident.Name == "itea" {
 				return true
 			}
 		case *ast.Const:
 			for _, lh := range n.Lhs {
-				if lh.Name == "this" {
+				if lh.Name == "itea" {
 					return true
 				}
 			}
 		case *ast.Import:
-			if n.Ident != nil && n.Ident.Name == "this" {
+			if n.Ident != nil && n.Ident.Name == "itea" {
 				return true
 			}
 		case *ast.Statements:
-			if thisHasBeenShadowed(n.Nodes) {
+			if iteaHasBeenShadowed(n.Nodes) {
 				return true
 			}
 		}
@@ -719,13 +719,13 @@ nodesLoop:
 
 		case *ast.Using:
 
-			thisName := tc.compilation.generateThisName()
+			iteaName := tc.compilation.generateIteaName()
 
-			thisDeclaration, statement := tc.explodeUsingStatement(node, thisName)
+			iteaDeclaration, statement := tc.explodeUsingStatement(node, iteaName)
 
 			// Type check the dummy assignment of the 'using' statement, along
 			// with its content, and transform the tree.
-			nn := tc.checkNodes([]ast.Node{thisDeclaration})
+			nn := tc.checkNodes([]ast.Node{iteaDeclaration})
 			nodes = append(nodes[:i], append(nn, nodes[i:]...)...)
 			i += len(nn)
 
@@ -733,13 +733,13 @@ nodesLoop:
 			// the tree.
 			withinStmt := tc.withinUsingAffectedStmt
 			tc.withinUsingAffectedStmt = true
-			backupThisName := tc.compilation.thisName
-			tc.compilation.thisName = thisName
+			backupIteaName := tc.compilation.iteaName
+			tc.compilation.iteaName = iteaName
 			nn = tc.checkNodes([]ast.Node{statement})
 			nodes = append(nodes[:i], append(nn, nodes[i+1:]...)...)
 			i += len(nn)
 			tc.withinUsingAffectedStmt = withinStmt
-			tc.compilation.thisName = backupThisName
+			tc.compilation.iteaName = backupIteaName
 
 			continue nodesLoop
 
@@ -1317,7 +1317,7 @@ func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) (string, 
 }
 
 // explodeUsingStatement explodes an 'using' statement.
-func (tc *typechecker) explodeUsingStatement(using *ast.Using, thisIdent string) (*ast.Var, ast.Node) {
+func (tc *typechecker) explodeUsingStatement(using *ast.Using, iteaIdent string) (*ast.Var, ast.Node) {
 
 	// Make the type explicit, if necessary.
 	if using.Type == nil {
@@ -1331,36 +1331,36 @@ func (tc *typechecker) explodeUsingStatement(using *ast.Using, thisIdent string)
 		using.Type = ident
 	}
 
-	var this ast.Expression
+	var itea ast.Expression
 	switch typ := using.Type.(type) {
 	case *ast.Identifier:
-		this = ast.NewCall(nil,
+		itea = ast.NewCall(nil,
 			ast.NewFunc(nil, nil,
 				ast.NewFuncType(nil, true, nil, []*ast.Parameter{ast.NewParameter(nil, typ)}, false),
 				using.Body, false, using.Format),
 			nil, false)
 	case *ast.FuncType:
-		this = ast.NewFunc(nil, nil, typ, using.Body, false, using.Format)
+		itea = ast.NewFunc(nil, nil, typ, using.Body, false, using.Format)
 	default:
 		panic("BUG: the parser should not allow this")
 	}
 
-	thisDeclaration := ast.NewVar(
+	iteaDeclaration := ast.NewVar(
 		nil,
-		[]*ast.Identifier{ast.NewIdentifier(nil, thisIdent)},
+		[]*ast.Identifier{ast.NewIdentifier(nil, iteaIdent)},
 		nil,
-		[]ast.Expression{this},
+		[]ast.Expression{itea},
 	)
 	uc := usingCheck{
-		this: thisDeclaration,
+		itea: iteaDeclaration,
 		pos:  using.Position,
 		typ:  using.Type,
 	}
-	if tc.compilation.thisToUsingCheck == nil {
-		tc.compilation.thisToUsingCheck = map[string]usingCheck{thisIdent: uc}
+	if tc.compilation.iteaToUsingCheck == nil {
+		tc.compilation.iteaToUsingCheck = map[string]usingCheck{iteaIdent: uc}
 	} else {
-		tc.compilation.thisToUsingCheck[thisIdent] = uc
+		tc.compilation.iteaToUsingCheck[iteaIdent] = uc
 	}
 
-	return thisDeclaration, using.Statement
+	return iteaDeclaration, using.Statement
 }
