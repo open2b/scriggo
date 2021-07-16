@@ -369,6 +369,11 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 					slice := em.fb.newRegister(reflect.Slice)
 					em.fb.enterStack()
 					pos := args[0].Pos()
+					// TODO(Gianluca): this check avoids an invalid behavior.
+					// See the issue #784.
+					if typ := fnTyp.In(numIn - 1); typ.Kind() == reflect.Slice && typ.Elem().Kind() == reflect.Interface {
+						panic("BUG: https://github.com/open2b/scriggo/issues/784")
+					}
 					em.fb.emitMakeSlice(true, true, fnTyp.In(numIn-1), int8(numOut), int8(numOut), slice, pos)
 					argRegs, _ := em.emitCallNode(g, false, false, runtime.ReturnString)
 					for i := range argRegs {
