@@ -78,49 +78,64 @@ type scope struct {
 // scopes represents the universe block, global block, file block, package
 // block and local scopes.
 //
-//   0  is the universe block
-//   1  is the global block, nil for programs.
-//   2  is the file and package block.
-//   3+ are the local scopes.
+//   0, 1 are the universe block. 2 is for the format types.
+//   2    is the global block, nil for programs.
+//   3  is the file and package block.
+//   4+ are the local scopes.
 //
 type scopes []scope
 
-// newScopes returns a new scopes given universe and global blocks.
-func newScopes(universe, global map[string]scopeEntry) scopes {
-	return scopes{scope{names: universe}, scope{names: global}, {}}
+// newScopes returns a new scopes given formats and global blocks.
+func newScopes(formats map[ast.Format]reflect.Type, global map[string]scopeEntry) scopes {
+	var formatScope scope
+	if len(formats) > 0 {
+		formatScope = scope{names: map[string]scopeEntry{}}
+		for f, t := range formats {
+			name := formatTypeName[f]
+			formatScope.names[name] = scopeEntry{ti: &typeInfo{
+				Type:       t,
+				Properties: propertyIsType | propertyIsFormatType | propertyUniverse,
+			}}
+		}
+	}
+	return scopes{scope{names: universe}, formatScope, scope{names: global}, {}}
 }
 
 // Universe returns the type info of the given name in the universe block and
 // true. If the name does not exist, returns nil and false.
 func (s scopes) Universe(name string) (*typeInfo, bool) {
 	elem, ok := s[0].names[name]
+	if ok {
+		return elem.ti, true
+	}
+	elem, ok = s[1].names[name]
 	return elem.ti, ok
 }
 
 // Global returns the type info of the given name in the global block and
 // true. If the name does not exist, returns nil and false.
 func (s scopes) Global(name string) (*typeInfo, bool) {
-	elem, ok := s[1].names[name]
+	elem, ok := s[2].names[name]
 	return elem.ti, ok
 }
 
 // Globals returns the global scope.
 func (s scopes) Globals() map[string]scopeEntry {
-	return s[1].names
+	return s[2].names
 }
 
 // FilePackage returns the type info of the given name in the file/package
 // block and true. If the name does not exist, returns nil and false.
 func (s scopes) FilePackage(name string) (*typeInfo, bool) {
-	elem, ok := s[2].names[name]
+	elem, ok := s[3].names[name]
 	return elem.ti, ok
 }
 
 // FilePackageNames returns the names in the file/package block.
 func (s scopes) FilePackageNames() []string {
-	names := make([]string, len(s[2].names))
+	names := make([]string, len(s[3].names))
 	i := 0
-	for n := range s[2].names {
+	for n := range s[3].names {
 		names[i] = n
 		i++
 	}
@@ -130,13 +145,13 @@ func (s scopes) FilePackageNames() []string {
 // IsImported reports whether name is in the file/package block and is imported
 // from a package or a template file.
 func (s scopes) IsImported(name string) bool {
-	elem, ok := s[2].names[name]
+	elem, ok := s[3].names[name]
 	return ok && elem.decl == nil
 }
 
 // IsParameter reports whether name is a function parameter.
 func (s scopes) IsParameter(name string) bool {
-	e, _ := s.lookup(name, 3)
+	e, _ := s.lookup(name, 4)
 	return e.param
 }
 
@@ -152,10 +167,10 @@ func (s scopes) SetCurrent(name string, ti *typeInfo, decl *ast.Identifier, para
 
 // SetFilePackage sets name in the file/package block with type info ti.
 func (s scopes) SetFilePackage(name string, ti *typeInfo) {
-	if s[2].names == nil {
-		s[2].names = map[string]scopeEntry{}
+	if s[3].names == nil {
+		s[3].names = map[string]scopeEntry{}
 	}
-	s[2].names[name] = scopeEntry{ti: ti}
+	s[3].names[name] = scopeEntry{ti: ti}
 }
 
 // Current report whether name is already declared in the current scope and if
@@ -176,7 +191,7 @@ func (s scopes) Lookup(name string) (*typeInfo, *ast.Identifier, bool) {
 // LookupInFunc lookups name in s and returns the type info, the node of the
 // identifier and true if it exists. Otherwise returns nil, nil and false.
 func (s scopes) LookupInFunc(name string) (*typeInfo, *ast.Identifier, bool) {
-	e, ok := s.lookup(name, 3)
+	e, ok := s.lookup(name, 4)
 	return e.ti, e.decl, ok
 }
 
@@ -199,7 +214,7 @@ func (s scopes) CurrentFunction() *ast.Func {
 
 // SetAsUsed sets name as used.
 func (s scopes) SetAsUsed(name string) {
-	for i := len(s) - 1; i >= 3; i-- {
+	for i := len(s) - 1; i >= 4; i-- {
 		if elem, ok := s[i].names[name]; ok {
 			if !elem.used {
 				elem.used = true
@@ -272,7 +287,7 @@ func (s scopes) Enter(fn *ast.Func) scopes {
 // Exit exits the last local scope.
 func (s scopes) Exit() scopes {
 	last := len(s) - 1
-	if last == 2 {
+	if last == 3 {
 		panic("no local scope to exit")
 	}
 	return s[:last]

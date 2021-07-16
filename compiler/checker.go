@@ -280,25 +280,11 @@ type usingCheck struct {
 // newTypechecker creates a new type checker. A global scope may be provided
 // for scripts and templates.
 func newTypechecker(compilation *compilation, path string, opts checkerOptions, globalScope map[string]scopeEntry, precompiledPkgs PackageLoader) *typechecker {
-	universeScope := universe
-	if len(opts.formatTypes) > 0 {
-		universeScope = map[string]scopeEntry{}
-		for name, scope := range universe {
-			universeScope[name] = scope
-		}
-		for format, typ := range opts.formatTypes {
-			name := formatTypeName[format]
-			universeScope[name] = scopeEntry{ti: &typeInfo{
-				Type:       typ,
-				Properties: propertyIsType | propertyIsFormatType | propertyUniverse,
-			}}
-		}
-	}
 	tt := types.NewTypes()
 	tc := typechecker{
 		compilation:     compilation,
 		path:            path,
-		scopes:          newScopes(universeScope, globalScope),
+		scopes:          newScopes(opts.formatTypes, globalScope),
 		hasBreak:        map[ast.Node]bool{},
 		unusedImports:   map[string]unusedImport{},
 		opts:            opts,
