@@ -47,18 +47,19 @@ func scanScript(text []byte) *lexer {
 }
 
 // scanTemplate scans a template file and returns a lexer.
-func scanTemplate(text []byte, format ast.Format, noParseShow bool) *lexer {
+func scanTemplate(text []byte, format ast.Format, noParseShow, dollarIdentifier bool) *lexer {
 	tokens := make(chan token, 20)
 	lex := &lexer{
-		text:           text,
-		src:            text,
-		line:           1,
-		column:         1,
-		ctx:            ast.Context(format),
-		tokens:         tokens,
-		templateSyntax: true,
-		extendedSyntax: true,
-		noParseShow:    noParseShow,
+		text:             text,
+		src:              text,
+		line:             1,
+		column:           1,
+		ctx:              ast.Context(format),
+		tokens:           tokens,
+		templateSyntax:   true,
+		extendedSyntax:   true,
+		dollarIdentifier: dollarIdentifier,
+		noParseShow:      noParseShow,
 	}
 	lex.tag.ctx = ast.ContextHTML
 	if lex.ctx == ast.ContextMarkdown {
@@ -103,14 +104,15 @@ type lexer struct {
 		index int         // index of first byte of the current attribute value in src
 		ctx   ast.Context // context of the tag's content
 	}
-	rawMarker      []byte     // raw marker, not nil when a raw statement has been lexed
-	tokens         chan token // tokens, is closed at the end of the scan
-	lastTokenType  tokenTyp   // type of the last non-empty emitted token
-	totals         int        // total number of emitted tokens, excluding automatically inserted semicolons
-	err            error      // error, reports whether there was an error
-	templateSyntax bool       // support template syntax with tokens 'end', 'extends', 'in', 'macro', 'raw', 'render' and 'show'
-	extendedSyntax bool       // support extended syntax with tokens 'and', 'or', 'not', 'contains' and 'dollar'
-	noParseShow    bool       // do not parse the short show statement.
+	rawMarker        []byte     // raw marker, not nil when a raw statement has been lexed
+	tokens           chan token // tokens, is closed at the end of the scan
+	lastTokenType    tokenTyp   // type of the last non-empty emitted token
+	totals           int        // total number of emitted tokens, excluding automatically inserted semicolons
+	err              error      // error, reports whether there was an error
+	templateSyntax   bool       // support template syntax with tokens 'end', 'extends', 'in', 'macro', 'raw', 'render' and 'show'
+	extendedSyntax   bool       // support extended syntax with tokens 'and', 'or', 'not' and 'contains' (also support 'dollar' but only if 'dollarIdentifier' is true)
+	dollarIdentifier bool       // support the dollar identifier, only if 'extendedSyntax' is true
+	noParseShow      bool       // do not parse the short show statement.
 }
 
 func (l *lexer) newline() {
@@ -1213,7 +1215,7 @@ LOOP:
 			}
 			endLineAsSemicolon = false
 		case '$':
-			if l.extendedSyntax {
+			if l.extendedSyntax && l.dollarIdentifier {
 				l.emit(tokenDollar, 1)
 				l.column++
 				endLineAsSemicolon = false

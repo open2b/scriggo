@@ -596,7 +596,7 @@ TYPES:
 	for source, types := range test {
 		var lex *lexer
 		if isTemplate {
-			lex = scanTemplate([]byte(source), format, false)
+			lex = scanTemplate([]byte(source), format, false, true)
 		} else {
 			lex = scanProgram([]byte(source))
 		}
@@ -686,7 +686,7 @@ func TestLexerMacroOrUsingContexts(t *testing.T) {
 CONTEXTS:
 	for source, contexts := range macroAndUsingContextTests {
 		text := []byte(source)
-		lex := scanTemplate(text, ast.FormatText, false)
+		lex := scanTemplate(text, ast.FormatText, false, false)
 		var i int
 		for tok := range lex.Tokens() {
 			if tok.typ == tokenEOF {
@@ -716,7 +716,7 @@ CONTEXTS:
 
 func TestPositions(t *testing.T) {
 	for _, test := range positionTests {
-		var lex = scanTemplate([]byte(test.src), ast.FormatHTML, false)
+		var lex = scanTemplate([]byte(test.src), ast.FormatHTML, false, false)
 		var i int
 		for tok := range lex.Tokens() {
 			if tok.typ == tokenEOF {
@@ -849,7 +849,7 @@ func TestLexRawContent(t *testing.T) {
 }
 
 func TestNoParseShow(t *testing.T) {
-	var lex = scanTemplate([]byte("a{{ v }}b"), ast.FormatHTML, true)
+	var lex = scanTemplate([]byte("a{{ v }}b"), ast.FormatHTML, true, false)
 	tokens := lex.Tokens()
 	if tok := <-tokens; tok.typ != tokenText {
 		t.Errorf("unexpected token %s, expecting text", tok)
