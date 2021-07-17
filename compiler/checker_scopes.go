@@ -52,13 +52,14 @@ func newScopes(formats map[ast.Format]reflect.Type, global map[string]scopeEntry
 			}}
 		}
 	}
-	return scopes{scope{names: universe}, formatScope, scope{names: global}, {}}
+	filePackageScope := scope{names: map[string]scopeEntry{}}
+	return scopes{{names: universe}, formatScope, {names: global}, filePackageScope}
 }
 
 // Universe returns the type info of name as declared in the universe block
 // and true. Otherwise it returns nil and false.
 func (s scopes) Universe(name string) (*typeInfo, bool) {
-	e, ok := s[0].names[name]
+	e, ok := universe[name]
 	if ok {
 		return e.ti, true
 	}
@@ -116,18 +117,17 @@ func (s scopes) IsParameter(name string) bool {
 // and identifier. param indicates if it is a function parameter.
 func (s scopes) SetCurrent(name string, ti *typeInfo, ident *ast.Identifier, param bool) {
 	n := len(s) - 1
-	if s[n].names == nil {
-		s[n].names = map[string]scopeEntry{}
+	e := scopeEntry{ti: ti, ident: ident, param: param}
+	if names := s[n].names; names == nil {
+		s[n].names = map[string]scopeEntry{name: e}
+	} else {
+		names[name] = e
 	}
-	s[n].names[name] = scopeEntry{ti: ti, ident: ident, param: param}
 }
 
 // SetFilePackage sets name as declared in the file/package block with type
 // info ti.
 func (s scopes) SetFilePackage(name string, ti *typeInfo) {
-	if s[3].names == nil {
-		s[3].names = map[string]scopeEntry{}
-	}
 	s[3].names[name] = scopeEntry{ti: ti}
 }
 
