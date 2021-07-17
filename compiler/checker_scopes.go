@@ -106,13 +106,6 @@ func (s scopes) IsImported(name string) bool {
 	return ok && e.ident == nil
 }
 
-// IsParameter reports whether name is a parameter of the function of the
-// current scope.
-func (s scopes) IsParameter(name string) bool {
-	e, _ := s.lookup(name, 4)
-	return e.param
-}
-
 // SetCurrent sets name as declared in the current scope with its type info
 // and identifier. param indicates if it is a function parameter.
 func (s scopes) SetCurrent(name string, ti *typeInfo, ident *ast.Identifier, param bool) {

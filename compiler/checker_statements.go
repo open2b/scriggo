@@ -1182,8 +1182,10 @@ func (tc *typechecker) checkReturn(node *ast.Return) ast.Node {
 	// shadowed.
 	if len(expected) > 0 && expected[0].Ident != nil && len(got) == 0 {
 		for _, e := range expected {
-			if name := e.Ident.Name; name != "_" && !tc.scopes.IsParameter(name) {
-				panic(tc.errorf(e.Ident, "%s is shadowed during return", name))
+			if name := e.Ident.Name; name != "_" {
+				if _, ident, _ := tc.scopes.LookupInFunc(name); ident != e.Ident {
+					panic(tc.errorf(e.Ident, "%s is shadowed during return", name))
+				}
 			}
 		}
 		return nil
