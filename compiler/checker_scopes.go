@@ -146,7 +146,7 @@ func (s scopes) LookupInFunc(name string) (*typeInfo, *ast.Identifier, bool) {
 	return e.ti, e.ident, i != -1
 }
 
-// lookup lookups name and returns its entry and scope index in witch it is
+// lookup lookups name and returns its entry and scope index in which it is
 // defined. Otherwise it returns the zero value of scopeEntry and -1.
 // start is the index of the scope from which to start the lookup.
 func (s scopes) lookup(name string, start int) (scopeEntry, int) {
