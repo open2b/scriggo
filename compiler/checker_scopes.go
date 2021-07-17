@@ -171,7 +171,7 @@ func (s scopes) SetAsUsed(name string) {
 }
 
 // Unused returns the identifier of the first unused name, by position in the
-// source, declared in the current scope. If all names, in the current scope,
+// source, declared in the current scope. If all names in the current scope
 // are used, it returns nil and false.
 func (s scopes) Unused() (*ast.Identifier, bool) {
 	var ident *ast.Identifier
