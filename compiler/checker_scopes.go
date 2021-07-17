@@ -189,15 +189,13 @@ func (s scopes) CurrentFunction() *ast.Func {
 	return s[len(s)-1].fn
 }
 
-// Function returns the function in which name is declared and true. If it not
-// declared in a function, it returns nil and false. As a special case, if it
-// declared in the main block of a script it returns nil and true.
-func (s scopes) Function(name string) (*ast.Func, bool) {
+// Function returns the function in which name is declared. If name is not
+// declared in a function, it returns nil.
+func (s scopes) Function(name string) *ast.Func {
 	if _, i := s.lookup(name, 4); i != -1 {
-		fn := s[i].fn
-		return fn, fn != nil || i == 4
+		return s[i].fn
 	}
-	return nil, false
+	return nil
 }
 
 // Functions returns all the functions up to the function of the current
