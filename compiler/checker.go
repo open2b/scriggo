@@ -393,15 +393,10 @@ func (tc *typechecker) programImportError(imp *ast.Import) error {
 // calling getNestedFuncs("A") returns [G, H].
 //
 func (tc *typechecker) getNestedFuncs(name string) []*ast.Func {
-	fun := tc.scopes.Function(name)
-	if fun == nil {
-		if _, ok := tc.scopes.Universe(name); ok {
-			return nil
-		}
-		if _, ok := tc.scopes.Global(name); ok {
-			return nil
-		}
-		if tc.scopes.IsImported(name) {
+	fun, ok := tc.scopes.Function(name)
+	if !ok {
+		_, ok = tc.scopes.FilePackage(name)
+		if !ok || tc.scopes.IsImported(name) {
 			return nil
 		}
 	}

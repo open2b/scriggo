@@ -71,7 +71,8 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 	}
 
 	// Check if it is an upvar.
-	isUpVar := ti.Addressable() && tc.scopes.Function(ident.Name) != tc.scopes.CurrentFunction()
+	fn, _ := tc.scopes.Function(ident.Name)
+	isUpVar := ti.Addressable() && fn != tc.scopes.CurrentFunction()
 
 	// If ident is an upvar, add it as upvar for current function and for all
 	// nested functions and update all indexes.
