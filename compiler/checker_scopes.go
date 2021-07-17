@@ -34,7 +34,7 @@ type scope struct {
 // scopeEntry is a scope entry.
 type scopeEntry struct {
 	ti    *typeInfo       // type info.
-	ident *ast.Identifier // declaration identifier. nil for scopes 0, 1 and 2. It is also nil in scope 3 if imported.
+	ident *ast.Identifier // declaration identifier. nil for scopes 0, 1 and 2.
 	used  bool            // it has been used.
 	param bool            // it is an in or out parameter of a function.
 }
@@ -97,13 +97,6 @@ func (s scopes) FilePackageNames() []string {
 		i++
 	}
 	return names
-}
-
-// IsImported reports whether name is declared in the file/package block and
-// is imported from a package or a template file.
-func (s scopes) IsImported(name string) bool {
-	e, ok := s[3].names[name]
-	return ok && e.ident == nil
 }
 
 // SetCurrent sets name as declared in the current scope with its type info

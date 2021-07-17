@@ -397,7 +397,7 @@ func (tc *typechecker) getNestedFuncs(name string) []*ast.Func {
 	_, _, ok := tc.scopes.LookupInFunc(name)
 	if ok {
 		fun = tc.scopes.Function(name)
-	} else if _, ok = tc.scopes.FilePackage(name); !ok || tc.scopes.IsImported(name) {
+	} else if _, ok = tc.scopes.FilePackage(name); !ok {
 		return nil
 	}
 	functions := tc.scopes.Functions()
