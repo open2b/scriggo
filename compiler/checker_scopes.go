@@ -100,10 +100,10 @@ func (s scopes) FilePackageNames() []string {
 }
 
 // SetCurrent sets name as declared in the current scope with its type info
-// and identifier. param indicates if it is a function parameter.
-func (s scopes) SetCurrent(name string, ti *typeInfo, ident *ast.Identifier, param bool) {
+// and identifier.
+func (s scopes) SetCurrent(name string, ti *typeInfo, ident *ast.Identifier) {
 	n := len(s) - 1
-	e := scopeEntry{ti: ti, ident: ident, param: param}
+	e := scopeEntry{ti: ti, ident: ident}
 	if names := s[n].names; names == nil {
 		s[n].names = map[string]scopeEntry{name: e}
 	} else {
@@ -206,12 +206,29 @@ func (s scopes) Functions() []*ast.Func {
 	return functions
 }
 
-// Enter enters a new scope.
+// Enter enters a new scope. For function scopes fn is the function node,
+// otherwise it is nil.
 func (s scopes) Enter(fn *ast.Func) scopes {
 	if fn == nil {
-		fn = s[len(s)-1].fn
+		return append(s, scope{fn: s[len(s)-1].fn})
 	}
-	return append(s, scope{fn: fn})
+	names := map[string]scopeEntry{}
+	t := fn.Type.Reflect
+	for i := 0; i < t.NumIn(); i++ {
+		p := fn.Type.Parameters[i]
+		if p.Ident != nil && p.Ident.Name != "_" {
+			ti := &typeInfo{Type: t.In(i), Properties: propertyAddressable}
+			names[p.Ident.Name] = scopeEntry{ti: ti, ident: p.Ident, param: true}
+		}
+	}
+	for i := 0; i < t.NumOut(); i++ {
+		p := fn.Type.Result[i]
+		if p.Ident != nil && p.Ident.Name != "_" {
+			ti := &typeInfo{Type: t.Out(i), Properties: propertyAddressable}
+			names[p.Ident.Name] = scopeEntry{ti: ti, ident: p.Ident, param: true}
+		}
+	}
+	return append(s, scope{fn: fn, names: names})
 }
 
 // Exit exits the current scope.

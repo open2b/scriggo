@@ -648,7 +648,7 @@ nodesLoop:
 		case *ast.TypeDeclaration:
 			name, ti := tc.checkTypeDeclaration(node)
 			if ti != nil {
-				tc.assignScope(name, ti, node.Ident, false)
+				tc.assignScope(name, ti, node.Ident)
 			}
 
 		case *ast.Show:
@@ -920,7 +920,7 @@ nodesLoop:
 			ti := tc.checkExpr(node)
 			if tc.opts.mod == templateMod {
 				if node, ok := node.(*ast.Func); ok && node.Ident != nil {
-					tc.assignScope(node.Ident.Name, ti, node.Ident, false)
+					tc.assignScope(node.Ident.Name, ti, node.Ident)
 					i++
 					continue nodesLoop
 				}
@@ -1087,17 +1087,7 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 	tc.enterScope(node)
 	tc.addToAncestors(node)
 
-	// Adds parameters to the function body scope.
-	t := node.Type.Reflect
-	for i := 0; i < t.NumIn(); i++ {
-		param := node.Type.Parameters[i]
-		if param.Ident != nil && !isBlankIdentifier(param.Ident) {
-			tc.assignScope(param.Ident.Name, &typeInfo{Type: t.In(i), Properties: propertyAddressable}, param.Ident, true)
-		}
-	}
-
-	// Adds named return values to the function body scope and add some dummy
-	// assignment nodes to initialize them, if necessary.
+	// Adds some dummy assignment nodes to initialize them, if necessary.
 	//
 	// For example:
 	//
@@ -1114,10 +1104,10 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 	//    }
 	//
 	var initRetParams []ast.Node
+	t := node.Type.Reflect
 	for i := 0; i < t.NumOut(); i++ {
 		ret := node.Type.Result[i]
 		if ret.Ident != nil && !isBlankIdentifier(ret.Ident) {
-			tc.assignScope(ret.Ident.Name, &typeInfo{Type: t.Out(i), Properties: propertyAddressable}, ret.Ident, true)
 			assignment := ast.NewAssignment(
 				ret.Ident.Position,
 				[]ast.Expression{ret.Ident},

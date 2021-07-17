@@ -226,7 +226,7 @@ func (tc *typechecker) checkConstantDeclaration(node *ast.Const) {
 		if ti.Untyped() && typ == nil {
 			constTi.Properties = propertyUntyped
 		}
-		tc.assignScope(node.Lhs[i].Name, constTi, node.Lhs[i], false)
+		tc.assignScope(node.Lhs[i].Name, constTi, node.Lhs[i])
 
 	}
 
@@ -464,7 +464,7 @@ func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 		Properties: propertyAddressable,
 	}
 	tc.compilation.typeInfos[lh] = ti
-	tc.assignScope(lh.Name, ti, lh, false)
+	tc.assignScope(lh.Name, ti, lh)
 }
 
 // checkAssignTo checks that it is possible to assign to the expression expr.

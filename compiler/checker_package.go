@@ -591,7 +591,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 		if td, ok := d.(*ast.TypeDeclaration); ok {
 			name, ti := tc.checkTypeDeclaration(td)
 			if ti != nil {
-				tc.assignScope(name, ti, td.Ident, false)
+				tc.assignScope(name, ti, td.Ident)
 			}
 		}
 	}
