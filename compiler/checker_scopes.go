@@ -134,39 +134,36 @@ func (s scopes) SetFilePackage(name string, ti *typeInfo) {
 // Lookup lookups name in all scopes, and returns its type info, its
 // identifier and true. Otherwise it returns nil, nil and false.
 func (s scopes) Lookup(name string) (*typeInfo, *ast.Identifier, bool) {
-	e, ok := s.lookup(name, 0)
-	return e.ti, e.ident, ok
+	e, i := s.lookup(name, 0)
+	return e.ti, e.ident, i != -1
 }
 
 // LookupInFunc lookups name in function scopes, including the main block in
 // scripts, and returns its type info, its identifier and true. Otherwise it
 // returns nil, nil and false.
 func (s scopes) LookupInFunc(name string) (*typeInfo, *ast.Identifier, bool) {
-	e, ok := s.lookup(name, 4)
-	return e.ti, e.ident, ok
+	e, i := s.lookup(name, 4)
+	return e.ti, e.ident, i != -1
 }
 
-// lookup lookups name and returns its entry and true. Otherwise it returns
-// the zero value of scopeEntry and false.
-func (s scopes) lookup(name string, start int) (scopeEntry, bool) {
+// lookup lookups name and returns its entry and scope index in witch it is
+// defined. Otherwise it returns the zero value of scopeEntry and -1.
+// start is the index of the scope from which to start the lookup.
+func (s scopes) lookup(name string, start int) (scopeEntry, int) {
 	for i := len(s) - 1; i >= start; i-- {
 		if e, ok := s[i].names[name]; ok {
-			return e, true
+			return e, i
 		}
 	}
-	return scopeEntry{}, false
+	return scopeEntry{}, -1
 }
 
 // SetAsUsed sets name as used.
 func (s scopes) SetAsUsed(name string) {
-	for i := len(s) - 1; i >= 4; i-- {
-		if e, ok := s[i].names[name]; ok {
-			if !e.used {
-				e.used = true
-				s[i].names[name] = e
-			}
-			return
-		}
+	e, i := s.lookup(name, 4)
+	if i != -1 && !e.used {
+		e.used = true
+		s[i].names[name] = e
 	}
 }
 
@@ -196,10 +193,9 @@ func (s scopes) CurrentFunction() *ast.Func {
 // declared in a function, it returns nil and false. As a special case, if it
 // declared in the main block of a script it returns nil and true.
 func (s scopes) Function(name string) (*ast.Func, bool) {
-	for i := len(s) - 1; i >= 4; i-- {
-		if _, ok := s[i].names[name]; ok {
-			return s[i].fn, s[i].fn != nil || i == 4
-		}
+	if _, i := s.lookup(name, 4); i != -1 {
+		fn := s[i].fn
+		return fn, fn != nil || i == 4
 	}
 	return nil, false
 }
