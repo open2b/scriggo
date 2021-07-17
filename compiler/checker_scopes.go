@@ -99,16 +99,20 @@ func (s scopes) FilePackageNames() []string {
 	return names
 }
 
-// SetCurrent sets name as declared in the current scope with its type info
-// and identifier.
-func (s scopes) SetCurrent(name string, ti *typeInfo, ident *ast.Identifier) {
+// Declare declares name in the current scope with its type info and
+// identifier and returns true. If name is already declared in the current
+// scope, it does nothing and returns false.
+func (s scopes) Declare(name string, ti *typeInfo, ident *ast.Identifier) bool {
 	n := len(s) - 1
 	e := scopeEntry{ti: ti, ident: ident}
 	if names := s[n].names; names == nil {
 		s[n].names = map[string]scopeEntry{name: e}
+	} else if _, ok := names[name]; ok {
+		return false
 	} else {
 		names[name] = e
 	}
+	return true
 }
 
 // SetFilePackage sets name as declared in the file/package block with type
