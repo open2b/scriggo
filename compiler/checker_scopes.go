@@ -34,7 +34,7 @@ type scope struct {
 // scopeEntry is a scope entry.
 type scopeEntry struct {
 	ti    *typeInfo       // type info.
-	ident *ast.Identifier // declaration identifier. nil for scopes 0, 1 and 2.
+	ident *ast.Identifier // declaration identifier. nil for predeclared identifiers (scopes 0, 1 and 2).
 	used  bool            // it has been used.
 	param bool            // it is an in or out parameter of a function.
 }
