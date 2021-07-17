@@ -103,10 +103,10 @@ func (s scopes) FilePackageNames() []string {
 // identifier and returns true. If name is already declared in the current
 // scope, it does nothing and returns false.
 func (s scopes) Declare(name string, ti *typeInfo, ident *ast.Identifier) bool {
-	n := len(s) - 1
+	i := len(s) - 1
 	e := scopeEntry{ti: ti, ident: ident}
-	if names := s[n].names; names == nil {
-		s[n].names = map[string]scopeEntry{name: e}
+	if names := s[i].names; names == nil {
+		s[i].names = map[string]scopeEntry{name: e}
 	} else if _, ok := names[name]; ok {
 		return false
 	} else {
