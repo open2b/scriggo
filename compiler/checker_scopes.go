@@ -25,7 +25,7 @@ type scopes []scope
 // scope is a scope.
 type scope struct {
 	// fn is the node of the function that includes the scope.
-	// nil in scopes 0, 1 and 2. It is also nil in scope 3 for scripts.
+	// It is nil in scopes 0, 1 and 2. It is also nil in scope 3 for scripts.
 	fn *ast.Func
 	// names are the declared names in the scope.
 	names map[string]scopeEntry
@@ -33,10 +33,15 @@ type scope struct {
 
 // scopeEntry is a scope entry.
 type scopeEntry struct {
-	ti    *typeInfo       // type info.
-	ident *ast.Identifier // declaration identifier. nil for predeclared identifiers (scopes 0, 1 and 2).
-	impor *ast.Import     // import declaration. nil for not imported names.
-	used  bool            // it has been used.
+	// ti is the type info.
+	ti *typeInfo
+	// ident is the identifier in the declaration node.
+	// It is nil for predeclared identifiers (scopes 0, 1 and 2), packages and imported names (scope 3).
+	ident *ast.Identifier
+	// impor is the import declaration of a package or imported name (scope 3).
+	impor *ast.Import
+	// used indicates if it has been used.
+	used bool
 }
 
 // newScopes returns a new scopes given the format types and the global block.
