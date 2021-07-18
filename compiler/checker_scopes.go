@@ -37,7 +37,6 @@ type scopeEntry struct {
 	ident *ast.Identifier // declaration identifier. nil for predeclared identifiers (scopes 0, 1 and 2).
 	impor *ast.Import     // import declaration. nil for not imported names.
 	used  bool            // it has been used.
-	param bool            // it is an in or out parameter of a function.
 }
 
 // newScopes returns a new scopes given the format types and the global block.
@@ -166,7 +165,7 @@ func (s scopes) SetAsUsed(name string) {
 func (s scopes) UnusedVariable() *ast.Identifier {
 	var ident *ast.Identifier
 	for _, e := range s[len(s)-1].names {
-		if e.used || e.param || e.ti.IsConstant() || e.ti.IsType() {
+		if e.used || e.ti.IsConstant() || e.ti.IsType() {
 			continue
 		}
 		if ident == nil || e.ident.Position.Start < ident.Start {
@@ -252,14 +251,14 @@ func (s scopes) Enter(fn *ast.Func) scopes {
 		p := fn.Type.Parameters[i]
 		if p.Ident != nil && p.Ident.Name != "_" {
 			ti := &typeInfo{Type: t.In(i), Properties: propertyAddressable}
-			names[p.Ident.Name] = scopeEntry{ti: ti, ident: p.Ident, param: true}
+			names[p.Ident.Name] = scopeEntry{ti: ti, ident: p.Ident, used: true}
 		}
 	}
 	for i := 0; i < t.NumOut(); i++ {
 		p := fn.Type.Result[i]
 		if p.Ident != nil && p.Ident.Name != "_" {
 			ti := &typeInfo{Type: t.Out(i), Properties: propertyAddressable}
-			names[p.Ident.Name] = scopeEntry{ti: ti, ident: p.Ident, param: true}
+			names[p.Ident.Name] = scopeEntry{ti: ti, ident: p.Ident, used: true}
 		}
 	}
 	return append(s, scope{fn: fn, names: names})
