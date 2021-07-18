@@ -974,9 +974,8 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 
 		// 'import . "pkg"': add every declaration to the file package block.
 		if isPeriodImport(impor) {
-			tc.setUnusedImports(impor, imported.Name, imported.Declarations)
 			for ident, ti := range imported.Declarations {
-				tc.scopes.Declare(ident, ti, nil)
+				tc.scopes.Declare(ident, ti, impor)
 			}
 			return nil
 		}
@@ -990,10 +989,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		}
 
 		// Add the package to the file/package block.
-		tc.scopes.Declare(pkgName, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}, nil)
-
-		// Set the package as imported but not used.
-		tc.setUnusedImports(impor, pkgName, imported.Declarations)
+		tc.scopes.Declare(pkgName, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}, impor)
 
 		return nil
 	}
@@ -1029,23 +1025,21 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 
 		// {% import "path" %}
 		if tc.opts.mod == templateMod {
-			tc.setUnusedImports(impor, imported.Name, imported.Declarations)
 			for ident, ti := range imported.Declarations {
-				tc.scopes.Declare(ident, ti, nil)
+				tc.scopes.Declare(ident, ti, impor)
 			}
 			return nil
 		}
 
 		// import "path"
-		tc.scopes.Declare(imported.Name, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}, nil)
+		tc.scopes.Declare(imported.Name, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}, impor)
 		return nil
 
 	// import . "path"
 	// {% import . "path" %}
 	case isPeriodImport(impor):
-		tc.setUnusedImports(impor, imported.Name, imported.Declarations)
 		for ident, ti := range imported.Declarations {
-			tc.scopes.Declare(ident, ti, nil)
+			tc.scopes.Declare(ident, ti, impor)
 		}
 		return nil
 
@@ -1056,7 +1050,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 			value:      imported,
 			Properties: propertyIsPackage | propertyHasValue,
 		}
-		tc.scopes.Declare(impor.Ident.Name, ti, nil)
+		tc.scopes.Declare(impor.Ident.Name, ti, impor)
 		// TODO: is the error "imported but not used" correctly reported for
 		// this case?
 	}

@@ -625,7 +625,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 			if f.Type.Macro {
 				ti.Properties |= propertyIsMacroDeclaration
 			}
-			tc.scopes.Declare(f.Ident.Name, ti, nil)
+			tc.scopes.Declare(f.Ident.Name, ti, f.Ident)
 		}
 	}
 
@@ -643,13 +643,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 
 	if tc.opts.mod != templateMod {
 		// Check that the imported packages have been used.
-		var node *ast.Import
-		for _, imp := range tc.unusedImports {
-			if node == nil || imp.node.Position.Start < node.Position.Start {
-				node = imp.node
-			}
-		}
-		if node != nil {
+		if node := tc.scopes.UnusedImport(); node != nil {
 			var s string
 			if node.Ident == nil || node.Ident.Name == "." {
 				s = fmt.Sprintf("%q", node.Path)

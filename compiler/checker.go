@@ -84,7 +84,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 					Type:       tc.checkType(m.Type).Type,
 					Properties: propertyIsMacroDeclaration | propertyMacroDeclaredInFileWithExtends,
 				}
-				tc.scopes.Declare(m.Ident.Name, ti, nil)
+				tc.scopes.Declare(m.Ident.Name, ti, m.Ident)
 			}
 		}
 		// Second: type check the extended file in a new scope.
@@ -159,13 +159,6 @@ type checkerOptions struct {
 	renderer runtime.Renderer
 }
 
-// unusedImport represents an imported but not used package as long as an
-// imported declaration of it is not used.
-type unusedImport struct {
-	node *ast.Import          // import node
-	decl map[string]*typeInfo // not used declarations
-}
-
 // typechecker represents the state of the type checking.
 type typechecker struct {
 
@@ -195,17 +188,6 @@ type typechecker struct {
 	// to it. This is necessary to determine if a 'breakable' statement (for,
 	// switch or select) can be terminating or not.
 	hasBreak map[ast.Node]bool
-
-	// unusedImports keeps track of all imported but not used packages.
-	//
-	// The key of the first map is the name of a package while the key of the
-	// second map is the name of the imported declaration.
-	//
-	// When an identifier imported from a package is used, then such package is
-	// removed from unusedImports. Doing so, when the type checking of a
-	// file/program ends if some packages remain in unusedImports then it is a
-	// type checking error.
-	unusedImports map[string]unusedImport
 
 	// opts holds the options that define the behavior of the type checker.
 	opts checkerOptions
@@ -286,7 +268,6 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		path:            path,
 		scopes:          newScopes(opts.formatTypes, compilation.globalScope),
 		hasBreak:        map[ast.Node]bool{},
-		unusedImports:   map[string]unusedImport{},
 		opts:            opts,
 		iota:            -1,
 		types:           tt,

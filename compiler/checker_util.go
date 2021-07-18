@@ -462,20 +462,6 @@ const (
 	receiverAddIndirect
 )
 
-// setUnusedImports sets the declarations of an imported package as not used.
-// When an imported identifier is used, the key corresponding to the package
-// should be removed from the 'dec' map.
-func (tc *typechecker) setUnusedImports(node *ast.Import, name string, declarations map[string]*typeInfo) {
-	decl := make(map[string]*typeInfo, len(declarations))
-	for ident, ti := range declarations {
-		decl[ident] = ti
-	}
-	tc.unusedImports[name] = unusedImport{
-		node: node,
-		decl: decl,
-	}
-}
-
 // methodByName returns a function type that describe the method with that
 // name and a boolean indicating if the method was found.
 //

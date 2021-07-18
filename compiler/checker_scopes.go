@@ -35,6 +35,7 @@ type scope struct {
 type scopeEntry struct {
 	ti    *typeInfo       // type info.
 	ident *ast.Identifier // declaration identifier. nil for predeclared identifiers (scopes 0, 1 and 2).
+	impor *ast.Import     // import declaration. nil for not imported names.
 	used  bool            // it has been used.
 	param bool            // it is an in or out parameter of a function.
 }
@@ -102,9 +103,17 @@ func (s scopes) FilePackageNames() []string {
 // Declare declares name in the current scope with its type info and
 // identifier and returns true. If name is already declared in the current
 // scope, it does nothing and returns false.
-func (s scopes) Declare(name string, ti *typeInfo, ident *ast.Identifier) bool {
+func (s scopes) Declare(name string, ti *typeInfo, node ast.Node) bool {
 	i := len(s) - 1
-	e := scopeEntry{ti: ti, ident: ident}
+	e := scopeEntry{ti: ti}
+	switch n := node.(type) {
+	case *ast.Identifier:
+		e.ident = n
+	case *ast.Import:
+		e.impor = n
+	default:
+		panic("scopes: invalid node type")
+	}
 	if names := s[i].names; names == nil {
 		s[i].names = map[string]scopeEntry{name: e}
 	} else if _, ok := names[name]; ok {
@@ -144,7 +153,7 @@ func (s scopes) lookup(name string, start int) (scopeEntry, int) {
 
 // SetAsUsed sets name as used.
 func (s scopes) SetAsUsed(name string) {
-	e, i := s.lookup(name, 4)
+	e, i := s.lookup(name, 3)
 	if i != -1 && !e.used {
 		e.used = true
 		s[i].names[name] = e
@@ -165,6 +174,33 @@ func (s scopes) UnusedVariable() *ast.Identifier {
 		}
 	}
 	return ident
+}
+
+// UnusedImport returns the declaration of the first unused import, by
+// position in the source. If all imports are used, it returns nil.
+func (s scopes) UnusedImport() *ast.Import {
+	unused := map[*ast.Import]bool{}
+	for _, e := range s[len(s)-1].names {
+		if e.impor == nil {
+			continue
+		}
+		if e.ti.IsPackage() {
+			if !e.used {
+				unused[e.impor] = true
+			}
+			continue
+		}
+		if _, ok := unused[e.impor]; !ok || e.used {
+			unused[e.impor] = !e.used
+		}
+	}
+	var node *ast.Import
+	for im, ok := range unused {
+		if ok && (node == nil || im.Position.Start < node.Start) {
+			node = im
+		}
+	}
+	return node
 }
 
 // CurrentFunction returns the function of the current scope or nil if there

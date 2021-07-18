@@ -149,14 +149,6 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 		tc.compilation.iteaToUsingCheck[ident.Name] = uc
 	}
 
-	// For "." imported packages, mark package as used.
-	for pkg, imp := range tc.unusedImports {
-		if imp.decl[ident.Name] == ti {
-			delete(tc.unusedImports, pkg)
-			break
-		}
-	}
-
 	tc.compilation.typeInfos[ident] = ti
 	return ti
 }
@@ -785,7 +777,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			ti, _, ok := tc.scopes.Lookup(ident.Name)
 			if ok && ti.IsPackage() {
 				// Package selector.
-				delete(tc.unusedImports, ident.Name)
+				tc.scopes.SetAsUsed(ident.Name)
 				if !unicode.Is(unicode.Lu, []rune(expr.Ident)[0]) {
 					panic(tc.errorf(expr, "cannot refer to unexported name %s", expr))
 				}
