@@ -105,8 +105,12 @@ func (s scopes) FilePackageNames() []string {
 }
 
 // Declare declares name in the current scope with its type info and
-// identifier and returns true. If name is already declared in the current
+// node and returns true. If name is already declared in the current
 // scope, it does nothing and returns false.
+//
+// node is an *ast.Import value for packages and imported names, otherwise nil
+// for predeclared names, otherwise an *ast.Identifier value for all other
+// names.
 func (s scopes) Declare(name string, ti *typeInfo, node ast.Node) bool {
 	i := len(s) - 1
 	e := scopeEntry{ti: ti}
