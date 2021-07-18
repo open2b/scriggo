@@ -976,7 +976,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		if isPeriodImport(impor) {
 			tc.setUnusedImports(impor, imported.Name, imported.Declarations)
 			for ident, ti := range imported.Declarations {
-				tc.scopes.SetFilePackage(ident, ti)
+				tc.scopes.Declare(ident, ti, nil)
 			}
 			return nil
 		}
@@ -990,7 +990,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		}
 
 		// Add the package to the file/package block.
-		tc.scopes.SetFilePackage(pkgName, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue})
+		tc.scopes.Declare(pkgName, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}, nil)
 
 		// Set the package as imported but not used.
 		tc.setUnusedImports(impor, pkgName, imported.Declarations)
@@ -1031,13 +1031,13 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		if tc.opts.mod == templateMod {
 			tc.setUnusedImports(impor, imported.Name, imported.Declarations)
 			for ident, ti := range imported.Declarations {
-				tc.scopes.SetFilePackage(ident, ti)
+				tc.scopes.Declare(ident, ti, nil)
 			}
 			return nil
 		}
 
 		// import "path"
-		tc.scopes.SetFilePackage(imported.Name, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue})
+		tc.scopes.Declare(imported.Name, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}, nil)
 		return nil
 
 	// import . "path"
@@ -1045,7 +1045,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	case isPeriodImport(impor):
 		tc.setUnusedImports(impor, imported.Name, imported.Declarations)
 		for ident, ti := range imported.Declarations {
-			tc.scopes.SetFilePackage(ident, ti)
+			tc.scopes.Declare(ident, ti, nil)
 		}
 		return nil
 
@@ -1056,7 +1056,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 			value:      imported,
 			Properties: propertyIsPackage | propertyHasValue,
 		}
-		tc.scopes.SetFilePackage(impor.Ident.Name, ti)
+		tc.scopes.Declare(impor.Ident.Name, ti, nil)
 		// TODO: is the error "imported but not used" correctly reported for
 		// this case?
 	}

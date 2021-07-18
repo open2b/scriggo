@@ -115,12 +115,6 @@ func (s scopes) Declare(name string, ti *typeInfo, ident *ast.Identifier) bool {
 	return true
 }
 
-// SetFilePackage sets name as declared in the file/package block with type
-// info ti.
-func (s scopes) SetFilePackage(name string, ti *typeInfo) {
-	s[3].names[name] = scopeEntry{ti: ti}
-}
-
 // Lookup lookups name in all scopes, and returns its type info, its
 // identifier and true. Otherwise it returns nil, nil and false.
 func (s scopes) Lookup(name string) (*typeInfo, *ast.Identifier, bool) {

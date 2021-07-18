@@ -84,7 +84,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 					Type:       tc.checkType(m.Type).Type,
 					Properties: propertyIsMacroDeclaration | propertyMacroDeclaredInFileWithExtends,
 				}
-				tc.scopes.SetFilePackage(m.Ident.Name, ti)
+				tc.scopes.Declare(m.Ident.Name, ti, nil)
 			}
 		}
 		// Second: type check the extended file in a new scope.

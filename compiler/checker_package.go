@@ -625,7 +625,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 			if f.Type.Macro {
 				ti.Properties |= propertyIsMacroDeclaration
 			}
-			tc.scopes.SetFilePackage(f.Ident.Name, ti)
+			tc.scopes.Declare(f.Ident.Name, ti, nil)
 		}
 	}
 
