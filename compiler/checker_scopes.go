@@ -151,10 +151,10 @@ func (s scopes) SetAsUsed(name string) {
 	}
 }
 
-// Unused returns the identifier of the first unused name, by position in the
-// source, declared in the current scope. If all names in the current scope
-// are used, it returns nil and false.
-func (s scopes) Unused() (*ast.Identifier, bool) {
+// UnusedVariable returns the declaration of the first unused variable, by
+// position in the source, declared in the current scope. If all variables in
+// the current scope are used, it returns nil.
+func (s scopes) UnusedVariable() *ast.Identifier {
 	var ident *ast.Identifier
 	for _, e := range s[len(s)-1].names {
 		if e.used || e.param || e.ti.IsConstant() || e.ti.IsType() {
@@ -164,7 +164,7 @@ func (s scopes) Unused() (*ast.Identifier, bool) {
 			ident = e.ident
 		}
 	}
-	return ident, ident != nil
+	return ident
 }
 
 // CurrentFunction returns the function of the current scope or nil if there

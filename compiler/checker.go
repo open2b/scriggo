@@ -310,7 +310,7 @@ func (tc *typechecker) enterScope(fn *ast.Func) {
 func (tc *typechecker) exitScope() {
 	// Check if some variables declared in the closing scope are still unused.
 	if tc.opts.mod != templateMod {
-		if ident, ok := tc.scopes.Unused(); ok {
+		if ident := tc.scopes.UnusedVariable(); ident != nil {
 			panic(tc.errorf(ident, "%s declared but not used", ident))
 		}
 	}
