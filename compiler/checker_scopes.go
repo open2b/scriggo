@@ -111,6 +111,7 @@ func (s scopes) Declare(name string, ti *typeInfo, node ast.Node) bool {
 	i := len(s) - 1
 	e := scopeEntry{ti: ti}
 	switch n := node.(type) {
+	case nil:
 	case *ast.Identifier:
 		e.ident = n
 	case *ast.Import:
