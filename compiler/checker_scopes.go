@@ -253,25 +253,9 @@ func (s scopes) Functions() []*ast.Func {
 // fn is the node of the function, otherwise fn is nil.
 func (s scopes) Enter(fn *ast.Func) scopes {
 	if fn == nil {
-		return append(s, scope{fn: s[len(s)-1].fn})
+		fn = s[len(s)-1].fn
 	}
-	names := map[string]scopeEntry{}
-	t := fn.Type.Reflect
-	for i := 0; i < t.NumIn(); i++ {
-		p := fn.Type.Parameters[i]
-		if p.Ident != nil && p.Ident.Name != "_" {
-			ti := &typeInfo{Type: t.In(i), Properties: propertyAddressable}
-			names[p.Ident.Name] = scopeEntry{ti: ti, ident: p.Ident, used: true}
-		}
-	}
-	for i := 0; i < t.NumOut(); i++ {
-		p := fn.Type.Result[i]
-		if p.Ident != nil && p.Ident.Name != "_" {
-			ti := &typeInfo{Type: t.Out(i), Properties: propertyAddressable}
-			names[p.Ident.Name] = scopeEntry{ti: ti, ident: p.Ident, used: true}
-		}
-	}
-	return append(s, scope{fn: fn, names: names})
+	return append(s, scope{fn: fn})
 }
 
 // Exit exits the current scope.

@@ -1081,7 +1081,18 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 	tc.enterScope(node)
 	tc.addToAncestors(node)
 
-	// Adds some dummy assignment nodes to initialize them, if necessary.
+	// Adds parameters to the function body scope.
+	t := node.Type.Reflect
+	for i := 0; i < t.NumIn(); i++ {
+		param := node.Type.Parameters[i]
+		if param.Ident != nil && !isBlankIdentifier(param.Ident) {
+			tc.scopes.Declare(param.Ident.Name, &typeInfo{Type: t.In(i), Properties: propertyAddressable}, param.Ident)
+			tc.scopes.SetAsUsed(param.Ident.Name)
+		}
+	}
+
+	// Adds named return values to the function body scope and add some dummy
+	// assignment nodes to initialize them, if necessary.
 	//
 	// For example:
 	//
@@ -1098,10 +1109,11 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 	//    }
 	//
 	var initRetParams []ast.Node
-	t := node.Type.Reflect
 	for i := 0; i < t.NumOut(); i++ {
 		ret := node.Type.Result[i]
 		if ret.Ident != nil && !isBlankIdentifier(ret.Ident) {
+			tc.scopes.Declare(ret.Ident.Name, &typeInfo{Type: t.Out(i), Properties: propertyAddressable}, ret.Ident)
+			tc.scopes.SetAsUsed(ret.Ident.Name)
 			assignment := ast.NewAssignment(
 				ret.Ident.Position,
 				[]ast.Expression{ret.Ident},
