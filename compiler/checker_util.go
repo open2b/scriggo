@@ -20,6 +20,7 @@ import (
 	"github.com/open2b/scriggo/runtime"
 )
 
+var envType = reflect.TypeOf((*runtime.Env)(nil)).Elem()
 var errTypeConversion = errors.New("failed type conversion")
 
 type nilConversionError struct {
@@ -240,12 +241,6 @@ func (tc *typechecker) convert(ti *typeInfo, expr ast.Expression, t2 reflect.Typ
 
 }
 
-// declaredInThisBlock reports whether name is declared in this block.
-func (tc *typechecker) declaredInThisBlock(name string) bool {
-	_, ok := tc.lookupScopesElem(name, true)
-	return ok
-}
-
 // deferGoBuiltin returns a type info suitable to be embedded into the 'defer'
 // and 'go' statements with a builtin call as argument.
 func deferGoBuiltin(name string) *typeInfo {
@@ -444,23 +439,6 @@ func isOrdered(t *typeInfo) bool {
 	return isNumeric(k) || k == reflect.String
 }
 
-// isLocallyDeclared reports whether name is declared in a local scope or not.
-func (tc *typechecker) isLocallyDeclared(name string) bool {
-	for i := len(tc.scopes) - 1; i >= 0; i-- {
-		if _, ok := tc.scopes[i][name]; ok {
-			return true
-		}
-	}
-	return false
-}
-
-// isDeclaredInFilePackageBlock reports whether name is declared in the
-// file/package block or not.
-func (tc *typechecker) isDeclaredInFilePackageBlock(name string) bool {
-	_, ok := tc.filePackageBlock[name]
-	return ok
-}
-
 // isMapIndexing reports whether the given expression has the form
 //
 //		m[key]
@@ -483,20 +461,6 @@ const (
 	receiverAddAddress
 	receiverAddIndirect
 )
-
-// setUnusedImports sets the declarations of an imported package as not used.
-// When an imported identifier is used, the key corresponding to the package
-// should be removed from the 'dec' map.
-func (tc *typechecker) setUnusedImports(node *ast.Import, name string, declarations map[string]*typeInfo) {
-	decl := make(map[string]*typeInfo, len(declarations))
-	for ident, ti := range declarations {
-		decl[ident] = ti
-	}
-	tc.unusedImports[name] = unusedImport{
-		node: node,
-		decl: decl,
-	}
-}
 
 // methodByName returns a function type that describe the method with that
 // name and a boolean indicating if the method was found.

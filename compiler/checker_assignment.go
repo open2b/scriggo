@@ -320,7 +320,8 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 	isAlreadyDeclared := map[ast.Expression]bool{}
 	for _, lhExpr := range node.Lhs {
 		name := lhExpr.(*ast.Identifier).Name
-		if name == "_" || tc.declaredInThisBlock(name) {
+		_, ok := tc.scopes.Current(name)
+		if name == "_" || ok {
 			isAlreadyDeclared[lhExpr] = true
 		}
 	}
@@ -464,13 +465,6 @@ func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 	}
 	tc.compilation.typeInfos[lh] = ti
 	tc.assignScope(lh.Name, ti, lh)
-	if tc.opts.mod != templateMod {
-		tc.unusedVars = append(tc.unusedVars, &scopeVariable{
-			ident:      lh.Name,
-			scopeLevel: len(tc.scopes) - 1,
-			node:       lh,
-		})
-	}
 }
 
 // checkAssignTo checks that it is possible to assign to the expression expr.

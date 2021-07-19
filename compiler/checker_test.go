@@ -579,20 +579,16 @@ func TestCheckerExpressions(t *testing.T) {
 				t.Errorf("source: %q, unexpected %s, expecting expression\n", expr.src, tok)
 				return
 			}
-			scope := make(typeCheckerScope, len(expr.scope))
+			names := make(map[string]scopeEntry, len(expr.scope))
 			for k, v := range expr.scope {
-				scope[k] = scopeElement{t: v}
+				names[k] = scopeEntry{ti: v}
 			}
-			var scopes []typeCheckerScope
-			if expr.scope == nil {
-				scopes = []typeCheckerScope{}
-			} else {
-				scopes = []typeCheckerScope{scope}
+			compilation := newCompilation(nil)
+			tc := newTypechecker(compilation, "", checkerOptions{}, nil)
+			if expr.scope != nil {
+				tc.scopes = append(tc.scopes, scope{names: names})
 			}
-			compilation := newCompilation()
-			tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
-			tc.scopes = scopes
-			tc.enterScope()
+			tc.enterScope(nil)
 			ti := tc.checkExpr(node)
 			err := equalTypeInfo(expr.ti, ti)
 			if err != nil {
@@ -677,20 +673,16 @@ func TestCheckerExpressionErrors(t *testing.T) {
 				t.Errorf("source: %q, unexpected %s, expecting error %q\n", expr.src, tok, expr.err)
 				return
 			}
-			scope := make(typeCheckerScope, len(expr.scope))
+			names := make(map[string]scopeEntry, len(expr.scope))
 			for k, v := range expr.scope {
-				scope[k] = scopeElement{t: v}
+				names[k] = scopeEntry{ti: v}
 			}
-			var scopes []typeCheckerScope
-			if expr.scope == nil {
-				scopes = []typeCheckerScope{}
-			} else {
-				scopes = []typeCheckerScope{scope}
+			compilation := newCompilation(nil)
+			tc := newTypechecker(compilation, "", checkerOptions{}, nil)
+			if expr.scope != nil {
+				tc.scopes = append(tc.scopes, scope{names: names})
 			}
-			compilation := newCompilation()
-			tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
-			tc.scopes = scopes
-			tc.enterScope()
+			tc.enterScope(nil)
 			ti := tc.checkExpr(node)
 			t.Errorf("source: %s, unexpected %s, expecting error %q\n", expr.src, ti, expr.err)
 			err := compilation.finalizeUsingStatements(tc)
@@ -1337,14 +1329,15 @@ var checkerStmts = map[string]string{
 	`_ = func() int { switch { case true: return 0; default:  }         }`: missingReturn,
 
 	// Return statements with named result parameters.
-	`_ = func() (a int)           { return             }`: ok,
-	`_ = func() (a int, b string) { return             }`: ok,
-	`_ = func() (a int, b string) { return 0, ""       }`: ok,
-	`_ = func() (s int)           { { s := 0; return } }`: `s is shadowed during return`,
-	`_ = func() (a int)           { return ""          }`: `cannot use "" (type untyped string) as type int in return argument`,
-	`_ = func() (a int, b string) { return "", ""      }`: `cannot use "" (type untyped string) as type int in return argument`,
-	`_ = func() (a int)           { return 0, 0        }`: "too many arguments to return\n\thave (number, number)\n\twant (int)",
-	`_ = func() (a int, b string) { return 0           }`: "not enough arguments to return\n\thave (number)\n\twant (int, string)",
+	`_ = func() (a int)           { return             }`:     ok,
+	`_ = func() (a int, b string) { return             }`:     ok,
+	`_ = func() (a int, b string) { return 0, ""       }`:     ok,
+	`_ = func() (s int)           { { s := 0; return } }`:     `s is shadowed during return`,
+	`_ = func() (s int)           { { s := 0; { return } } }`: `s is shadowed during return`,
+	`_ = func() (a int)           { return ""          }`:     `cannot use "" (type untyped string) as type int in return argument`,
+	`_ = func() (a int, b string) { return "", ""      }`:     `cannot use "" (type untyped string) as type int in return argument`,
+	`_ = func() (a int)           { return 0, 0        }`:     "too many arguments to return\n\thave (number, number)\n\twant (int)",
+	`_ = func() (a int, b string) { return 0           }`:     "not enough arguments to return\n\thave (number)\n\twant (int, string)",
 
 	// Result statements with non-named result parameters.
 	`_ = func() int { return 0 }`:              ok,
@@ -1645,19 +1638,19 @@ func (p *pointInt) SetX(newX int) {
 }
 
 func TestCheckerStatements(t *testing.T) {
-	scope := typeCheckerScope{
-		"boolType":   {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf(definedBool(false))}},
-		"aString":    {t: &typeInfo{Type: reflect.TypeOf(definedString(""))}},
-		"stringType": {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf(definedString(""))}},
-		"aStringMap": {t: &typeInfo{Type: reflect.TypeOf(definedStringMap{})}},
-		"pointInt":   {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf(pointInt{})}},
-		"aIntChan":   {t: &typeInfo{Type: reflect.TypeOf(make(chan int))}},
-		"aSliceChan": {t: &typeInfo{Type: reflect.TypeOf(make(chan []int))}},
-		"ioReader":   {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*io.Reader)(nil)).Elem()}},
-		"osFile":     {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*os.File)(nil)).Elem()}},
-		"noRead1":    {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*noRead1)(nil)).Elem()}},
-		"noRead2":    {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*noRead2)(nil)).Elem()}},
-		"noRead3":    {t: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*noRead3)(nil)).Elem()}},
+	names := map[string]scopeEntry{
+		"boolType":   {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf(definedBool(false))}},
+		"aString":    {ti: &typeInfo{Type: reflect.TypeOf(definedString(""))}},
+		"stringType": {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf(definedString(""))}},
+		"aStringMap": {ti: &typeInfo{Type: reflect.TypeOf(definedStringMap{})}},
+		"pointInt":   {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf(pointInt{})}},
+		"aIntChan":   {ti: &typeInfo{Type: reflect.TypeOf(make(chan int))}},
+		"aSliceChan": {ti: &typeInfo{Type: reflect.TypeOf(make(chan []int))}},
+		"ioReader":   {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*io.Reader)(nil)).Elem()}},
+		"osFile":     {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*os.File)(nil)).Elem()}},
+		"noRead1":    {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*noRead1)(nil)).Elem()}},
+		"noRead2":    {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*noRead2)(nil)).Elem()}},
+		"noRead3":    {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*noRead3)(nil)).Elem()}},
 	}
 	for src, expectedError := range checkerStmts {
 		func() {
@@ -1683,10 +1676,10 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			compilation := newCompilation()
-			tc := newTypechecker(compilation, "", checkerOptions{mod: programMod}, nil, nil)
-			tc.scopes = append(tc.scopes, scope)
-			tc.enterScope()
+			compilation := newCompilation(nil)
+			tc := newTypechecker(compilation, "", checkerOptions{mod: programMod}, nil)
+			tc.scopes = append(tc.scopes, scope{names: names})
+			tc.enterScope(nil)
 			tree.Nodes = tc.checkNodes(tree.Nodes)
 			tc.exitScope()
 			err = compilation.finalizeUsingStatements(tc)
@@ -1933,11 +1926,11 @@ func tiUntypedFloatConst(lit string) *typeInfo {
 	}
 }
 
-func tiFloat32() *typeInfo { return &typeInfo{Type: universe["float32"].t.Type} }
+func tiFloat32() *typeInfo { return &typeInfo{Type: universe["float32"].ti.Type} }
 func tiFloat64() *typeInfo { return &typeInfo{Type: float64Type} }
 
 func tiAddrFloat32() *typeInfo {
-	return &typeInfo{Type: universe["float32"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["float32"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiAddrFloat64() *typeInfo {
@@ -1945,7 +1938,7 @@ func tiAddrFloat64() *typeInfo {
 }
 
 func tiFloat32Const(n float32) *typeInfo {
-	return &typeInfo{Type: universe["float32"].t.Type, Constant: float64Const(n)}
+	return &typeInfo{Type: universe["float32"].ti.Type, Constant: float64Const(n)}
 }
 
 func tiFloat64Const(n float64) *typeInfo {
@@ -2055,55 +2048,55 @@ func tiUntypedIntConst(lit string) *typeInfo {
 }
 
 func tiInt() *typeInfo     { return &typeInfo{Type: intType} }
-func tiInt8() *typeInfo    { return &typeInfo{Type: universe["int8"].t.Type} }
-func tiInt16() *typeInfo   { return &typeInfo{Type: universe["int16"].t.Type} }
-func tiInt32() *typeInfo   { return &typeInfo{Type: universe["int32"].t.Type} }
-func tiInt64() *typeInfo   { return &typeInfo{Type: universe["int64"].t.Type} }
-func tiUint() *typeInfo    { return &typeInfo{Type: universe["uint"].t.Type} }
-func tiUint8() *typeInfo   { return &typeInfo{Type: universe["uint8"].t.Type} }
-func tiUint16() *typeInfo  { return &typeInfo{Type: universe["uint16"].t.Type} }
-func tiUint32() *typeInfo  { return &typeInfo{Type: universe["uint32"].t.Type} }
-func tiUint64() *typeInfo  { return &typeInfo{Type: universe["uint64"].t.Type} }
-func tiUintptr() *typeInfo { return &typeInfo{Type: universe["uintptr"].t.Type} }
+func tiInt8() *typeInfo    { return &typeInfo{Type: universe["int8"].ti.Type} }
+func tiInt16() *typeInfo   { return &typeInfo{Type: universe["int16"].ti.Type} }
+func tiInt32() *typeInfo   { return &typeInfo{Type: universe["int32"].ti.Type} }
+func tiInt64() *typeInfo   { return &typeInfo{Type: universe["int64"].ti.Type} }
+func tiUint() *typeInfo    { return &typeInfo{Type: universe["uint"].ti.Type} }
+func tiUint8() *typeInfo   { return &typeInfo{Type: universe["uint8"].ti.Type} }
+func tiUint16() *typeInfo  { return &typeInfo{Type: universe["uint16"].ti.Type} }
+func tiUint32() *typeInfo  { return &typeInfo{Type: universe["uint32"].ti.Type} }
+func tiUint64() *typeInfo  { return &typeInfo{Type: universe["uint64"].ti.Type} }
+func tiUintptr() *typeInfo { return &typeInfo{Type: universe["uintptr"].ti.Type} }
 
 func tiAddrInt() *typeInfo {
 	return &typeInfo{Type: intType, Properties: propertyAddressable}
 }
 
 func tiAddrInt8() *typeInfo {
-	return &typeInfo{Type: universe["int8"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["int8"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiAddrInt16() *typeInfo {
-	return &typeInfo{Type: universe["int16"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["int16"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiAddrInt32() *typeInfo {
-	return &typeInfo{Type: universe["int32"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["int32"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiAddrInt64() *typeInfo {
-	return &typeInfo{Type: universe["int64"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["int64"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiAddrUint() *typeInfo {
-	return &typeInfo{Type: universe["uint"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["uint"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiAddrUint8() *typeInfo {
-	return &typeInfo{Type: universe["uint8"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["uint8"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiAddrUint16() *typeInfo {
-	return &typeInfo{Type: universe["uint16"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["uint16"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiAddrUint32() *typeInfo {
-	return &typeInfo{Type: universe["uint32"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["uint32"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiAddrUint64() *typeInfo {
-	return &typeInfo{Type: universe["uint64"].t.Type, Properties: propertyAddressable}
+	return &typeInfo{Type: universe["uint64"].ti.Type, Properties: propertyAddressable}
 }
 
 func tiIntConst(n int) *typeInfo {
@@ -2111,43 +2104,43 @@ func tiIntConst(n int) *typeInfo {
 }
 
 func tiInt8Const(n int8) *typeInfo {
-	return &typeInfo{Type: universe["int8"].t.Type, Constant: int64Const(int64(n))}
+	return &typeInfo{Type: universe["int8"].ti.Type, Constant: int64Const(int64(n))}
 }
 
 func tiInt16Const(n int16) *typeInfo {
-	return &typeInfo{Type: universe["int16"].t.Type, Constant: int64Const(int64(n))}
+	return &typeInfo{Type: universe["int16"].ti.Type, Constant: int64Const(int64(n))}
 }
 
 func tiInt32Const(n int32) *typeInfo {
-	return &typeInfo{Type: universe["int32"].t.Type, Constant: int64Const(int64(n))}
+	return &typeInfo{Type: universe["int32"].ti.Type, Constant: int64Const(int64(n))}
 }
 
 func tiInt64Const(n int64) *typeInfo {
-	return &typeInfo{Type: universe["int64"].t.Type, Constant: int64Const(int64(n))}
+	return &typeInfo{Type: universe["int64"].ti.Type, Constant: int64Const(int64(n))}
 }
 
 func tiUintConst(n uint) *typeInfo {
-	return &typeInfo{Type: universe["uint"].t.Type, Constant: newIntConst(0).setUint64(uint64(n))}
+	return &typeInfo{Type: universe["uint"].ti.Type, Constant: newIntConst(0).setUint64(uint64(n))}
 }
 
 func tiUint8Const(n uint8) *typeInfo {
-	return &typeInfo{Type: universe["uint8"].t.Type, Constant: int64Const(int64(n))}
+	return &typeInfo{Type: universe["uint8"].ti.Type, Constant: int64Const(int64(n))}
 }
 
 func tiUint16Const(n uint16) *typeInfo {
-	return &typeInfo{Type: universe["uint16"].t.Type, Constant: int64Const(int64(n))}
+	return &typeInfo{Type: universe["uint16"].ti.Type, Constant: int64Const(int64(n))}
 }
 
 func tiUint32Const(n uint32) *typeInfo {
-	return &typeInfo{Type: universe["uint32"].t.Type, Constant: int64Const(int64(n))}
+	return &typeInfo{Type: universe["uint32"].ti.Type, Constant: int64Const(int64(n))}
 }
 
 func tiUint64Const(n uint64) *typeInfo {
-	return &typeInfo{Type: universe["uint64"].t.Type, Constant: newIntConst(0).setUint64(n)}
+	return &typeInfo{Type: universe["uint64"].ti.Type, Constant: newIntConst(0).setUint64(n)}
 }
 
 func tiUintptrConst(n uint) *typeInfo {
-	return &typeInfo{Type: universe["uintptr"].t.Type, Constant: newIntConst(0).setUint64(uint64(n))}
+	return &typeInfo{Type: universe["uintptr"].ti.Type, Constant: newIntConst(0).setUint64(uint64(n))}
 }
 
 func tiIntPtr() *typeInfo {
@@ -2158,7 +2151,7 @@ var tiDefinedIntSlice = &typeInfo{Type: reflect.TypeOf(definedIntSlice{})}
 
 // nil type info.
 
-func tiNil() *typeInfo { return universe["nil"].t }
+func tiNil() *typeInfo { return universe["nil"].ti }
 
 // byte type info.
 
@@ -2198,8 +2191,8 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 		"[]T{x, x, x, 9: x}": 9,
 		"[]T{x, 9: x, x, x}": 11,
 	}
-	compilation := newCompilation()
-	tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
+	compilation := newCompilation(nil)
+	tc := newTypechecker(compilation, "", checkerOptions{}, nil)
 	for src, expected := range cases {
 		tree, err := parseSource([]byte(src), true)
 		if err != nil {
@@ -2277,8 +2270,8 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 		{x: tiUntypedIntConst("10"), T: byteType, assignable: true},
 		// {x: tiUntypedIntConst("300"), T: byteType, assignable: false},
 	}
-	compilation := newCompilation()
-	tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
+	compilation := newCompilation(nil)
+	tc := newTypechecker(compilation, "", checkerOptions{}, nil)
 	for _, c := range cases {
 		err := tc.isAssignableTo(c.x, nil, c.T)
 		if c.assignable && err != nil {
@@ -2321,9 +2314,9 @@ func TestFunctionUpVars(t *testing.T) {
 		`: {"A"},
 	}
 	for src, expected := range cases {
-		compilation := newCompilation()
-		tc := newTypechecker(compilation, "", checkerOptions{}, nil, nil)
-		tc.enterScope()
+		compilation := newCompilation(nil)
+		tc := newTypechecker(compilation, "", checkerOptions{}, nil)
+		tc.enterScope(nil)
 		tree, err := parseSource([]byte(src), true)
 		if err != nil {
 			t.Error(err)
@@ -2450,7 +2443,7 @@ func TestGotoLabels(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			err = checkPackage(newCompilation(), tree.Nodes[0].(*ast.Package), tree.Path, nil, checkerOptions{mod: programMod}, nil)
+			err = checkPackage(newCompilation(nil), tree.Nodes[0].(*ast.Package), tree.Path, nil, checkerOptions{mod: programMod})
 			switch {
 			case err == nil && cas.errorMsg == "":
 				// Ok.

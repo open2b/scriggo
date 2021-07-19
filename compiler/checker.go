@@ -40,8 +40,8 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		if pkg.Name != "main" {
 			return nil, &CheckingError{path: tree.Path, pos: *pkg.Pos(), err: errors.New("package name must be main")}
 		}
-		compilation := newCompilation()
-		err := checkPackage(compilation, pkg, tree.Path, packages, opts, nil)
+		compilation := newCompilation(nil)
+		err := checkPackage(compilation, pkg, tree.Path, packages, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -49,7 +49,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 	}
 
 	// Prepare the type checking for scripts and templates.
-	var globalScope typeCheckerScope
+	var globalScope map[string]scopeEntry
 	if opts.globals != nil {
 		globals := &mapPackage{
 			PkgName:      "main",
@@ -60,16 +60,16 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 
 	// Add the global "exit" to script global scope.
 	if opts.mod == scriptMod {
-		exit := scopeElement{t: &typeInfo{Properties: propertyUniverse}}
+		exit := scopeEntry{ti: &typeInfo{Properties: propertyUniverse}}
 		if globalScope == nil {
-			globalScope = typeCheckerScope{"exit": exit}
+			globalScope = map[string]scopeEntry{"exit": exit}
 		} else if _, ok := globalScope["exit"]; !ok {
 			globalScope["exit"] = exit
 		}
 	}
 
-	compilation := newCompilation()
-	tc := newTypechecker(compilation, tree.Path, opts, globalScope, packages)
+	compilation := newCompilation(globalScope)
+	tc := newTypechecker(compilation, tree.Path, opts, packages)
 
 	// Type check a template file which extends another file.
 	if extends, ok := getExtends(tree.Nodes); ok {
@@ -84,7 +84,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 					Type:       tc.checkType(m.Type).Type,
 					Properties: propertyIsMacroDeclaration | propertyMacroDeclaredInFileWithExtends,
 				}
-				tc.filePackageBlock[m.Ident.Name] = scopeElement{t: ti}
+				tc.scopes.Declare(m.Ident.Name, ti, m.Ident)
 			}
 		}
 		// Second: type check the extended file in a new scope.
@@ -101,7 +101,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		// Third: extending file is converted to a "package", that means that
 		// out of order initialization is allowed.
 		tc.templateFileToPackage(tree)
-		err = checkPackage(compilation, tree.Nodes[0].(*ast.Package), tree.Path, packages, opts, tc.globalScope)
+		err = checkPackage(compilation, tree.Nodes[0].(*ast.Package), tree.Path, packages, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -159,13 +159,6 @@ type checkerOptions struct {
 	renderer runtime.Renderer
 }
 
-// unusedImport represents an imported but not used package as long as an
-// imported declaration of it is not used.
-type unusedImport struct {
-	node *ast.Import          // import node
-	decl map[string]*typeInfo // not used declarations
-}
-
 // typechecker represents the state of the type checking.
 type typechecker struct {
 
@@ -177,23 +170,9 @@ type typechecker struct {
 
 	precompiledPkgs PackageLoader
 
-	// universe is the outermost scope.
-	universe typeCheckerScope
-
-	// A globalScope is a scope between the universe and the file/package
-	// block. In Go there is not an equivalent concept. In scripts and
-	// templates, the declarations of the predefined package 'main' are added
-	// to this scope; this makes possible, in templates, to access such
-	// declarations from every template file, including imported and extended
-	// ones.
-	globalScope typeCheckerScope
-
-	// filePackageBlock is a scope that holds the declarations from both the
-	// file block and the package block.
-	filePackageBlock typeCheckerScope
-
-	// scopes holds the local scopes.
-	scopes []typeCheckerScope
+	// scopes holds the universe block, global block, file/package block,
+	// and function scopes.
+	scopes scopes
 
 	// ancestors is the current list of ancestors. See the documentation of the
 	// ancestor type for further details.
@@ -209,20 +188,6 @@ type typechecker struct {
 	// to it. This is necessary to determine if a 'breakable' statement (for,
 	// switch or select) can be terminating or not.
 	hasBreak map[ast.Node]bool
-
-	// unusedVars keeps track of all declared but not used variables.
-	unusedVars []*scopeVariable
-
-	// unusedImports keeps track of all imported but not used packages.
-	//
-	// The key of the first map is the name of a package while the key of the
-	// second map is the name of the imported declaration.
-	//
-	// When an identifier imported from a package is used, then such package is
-	// removed from unusedImports. Doing so, when the type checking of a
-	// file/program ends if some packages remain in unusedImports then it is a
-	// type checking error.
-	unusedImports map[string]unusedImport
 
 	// opts holds the options that define the behavior of the type checker.
 	opts checkerOptions
@@ -296,43 +261,28 @@ type usingCheck struct {
 
 // newTypechecker creates a new type checker. A global scope may be provided
 // for scripts and templates.
-func newTypechecker(compilation *compilation, path string, opts checkerOptions, globalScope typeCheckerScope, precompiledPkgs PackageLoader) *typechecker {
+func newTypechecker(compilation *compilation, path string, opts checkerOptions, precompiledPkgs PackageLoader) *typechecker {
 	tt := types.NewTypes()
 	tc := typechecker{
-		compilation:      compilation,
-		path:             path,
-		filePackageBlock: typeCheckerScope{},
-		globalScope:      globalScope,
-		hasBreak:         map[ast.Node]bool{},
-		universe:         universe,
-		unusedImports:    map[string]unusedImport{},
-		opts:             opts,
-		iota:             -1,
-		types:            tt,
-		env:              &env{tt.Runtime(), nil},
-		structDeclPkg:    map[reflect.Type]string{},
-		precompiledPkgs:  precompiledPkgs,
-		toBeEmitted:      true,
-	}
-	if len(opts.formatTypes) > 0 {
-		tc.universe = typeCheckerScope{}
-		for name, scope := range universe {
-			tc.universe[name] = scope
-		}
-		for format, typ := range opts.formatTypes {
-			name := formatTypeName[format]
-			tc.universe[name] = scopeElement{t: &typeInfo{
-				Type:       typ,
-				Properties: propertyIsType | propertyIsFormatType | propertyUniverse,
-			}}
-		}
+		compilation:     compilation,
+		path:            path,
+		scopes:          newScopes(opts.formatTypes, compilation.globalScope),
+		hasBreak:        map[ast.Node]bool{},
+		opts:            opts,
+		iota:            -1,
+		types:           tt,
+		env:             &env{tt.Runtime(), nil},
+		structDeclPkg:   map[reflect.Type]string{},
+		precompiledPkgs: precompiledPkgs,
+		toBeEmitted:     true,
 	}
 	return &tc
 }
 
-// enterScope enters into a new empty scope.
-func (tc *typechecker) enterScope() {
-	tc.scopes = append(tc.scopes, typeCheckerScope{})
+// enterScope enters into a new empty scope. If the new scope is the scope of
+// a function body, fn is the node of the function, otherwise fn is nil.
+func (tc *typechecker) enterScope(fn *ast.Func) {
+	tc.scopes = tc.scopes.Enter(fn)
 	tc.labels = append(tc.labels, []string{})
 	tc.storedGotos = tc.gotos
 	tc.gotos = []string{}
@@ -342,79 +292,14 @@ func (tc *typechecker) enterScope() {
 func (tc *typechecker) exitScope() {
 	// Check if some variables declared in the closing scope are still unused.
 	if tc.opts.mod != templateMod {
-		unused := []struct {
-			node  ast.Node
-			ident string
-		}{}
-		cut := len(tc.unusedVars)
-		for i := len(tc.unusedVars) - 1; i >= 0; i-- {
-			v := tc.unusedVars[i]
-			if v.scopeLevel < len(tc.scopes)-1 {
-				break
-			}
-			if v.node != nil {
-				unused = append(unused, struct {
-					node  ast.Node
-					ident string
-				}{v.node, v.ident})
-			}
-			cut = i
+		if ident := tc.scopes.UnusedVariable(); ident != nil {
+			panic(tc.errorf(ident, "%s declared but not used", ident))
 		}
-		if len(unused) > 0 {
-			panic(tc.errorf(unused[len(unused)-1].node, "%s declared but not used", unused[len(unused)-1].ident))
-		}
-		tc.unusedVars = tc.unusedVars[:cut]
 	}
-	tc.scopes = tc.scopes[:len(tc.scopes)-1]
+	tc.scopes = tc.scopes.Exit()
 	tc.labels = tc.labels[:len(tc.labels)-1]
 	tc.gotos = append(tc.storedGotos, tc.gotos...)
 	tc.nextValidGoto = tc.storedValidGoto
-}
-
-// lookupScopesElem looks up name in the scopes. Returns the declaration of the
-// name or false if the name does not exist. If justCurrentScope is true,
-// lookupScopesElem looks up only in the current scope.
-func (tc *typechecker) lookupScopesElem(name string, justCurrentScope bool) (scopeElement, bool) {
-	// Iterating over scopes, from inside.
-	for i := len(tc.scopes) - 1; i >= 0; i-- {
-		elem, ok := tc.scopes[i][name]
-		if ok {
-			return elem, true
-		}
-		if justCurrentScope && i == len(tc.scopes)-1 {
-			return scopeElement{}, false
-		}
-	}
-	if len(tc.scopes) >= 1 && justCurrentScope {
-		return scopeElement{}, false
-	}
-	// Package + file block.
-	if elem, ok := tc.filePackageBlock[name]; ok {
-		return elem, true
-	}
-	if justCurrentScope {
-		return scopeElement{}, false
-	}
-	// Global scope.
-	if elem, ok := tc.globalScope[name]; ok {
-		return elem, true
-	}
-	// Universe.
-	if elem, ok := tc.universe[name]; ok {
-		return elem, true
-	}
-	return scopeElement{}, false
-}
-
-// lookupScopes looks up name in the scopes. Returns the type info of the name or
-// false if the name does not exist. If justCurrentScope is true, lookupScopes
-// looks up only in the current scope.
-func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*typeInfo, bool) {
-	elem, ok := tc.lookupScopesElem(name, justCurrentScope)
-	if !ok {
-		return nil, false
-	}
-	return elem.t, ok
 }
 
 // assignScope assigns value to name in the current scope. If there are no
@@ -423,8 +308,8 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*typeIn
 // assignScope panics a type checking error "redeclared in this block" if name
 // is already defined in the current scope.
 func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.Identifier) {
-
-	if tc.declaredInThisBlock(name) {
+	ok := tc.scopes.Declare(name, value, declNode)
+	if !ok {
 		if tc.scriptFuncOrMacroDecl {
 			switch tc.opts.mod {
 			case scriptMod:
@@ -433,22 +318,13 @@ func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.I
 				panic(tc.errorf(declNode, "%s already declared in this template scope", declNode))
 			}
 		}
-		previousDecl, _ := tc.lookupScopesElem(name, true)
 		s := name + " redeclared in this block"
-		if decl := previousDecl.decl; decl != nil {
-			if pos := decl.Pos(); pos != nil {
-				s += "\n\tprevious declaration at " + pos.String()
-			}
+		_, ident, _ := tc.scopes.Lookup(name)
+		if pos := ident.Pos(); pos != nil {
+			s += "\n\tprevious declaration at " + pos.String()
 		}
 		panic(tc.errorf(declNode, s))
 	}
-
-	if len(tc.scopes) == 0 {
-		tc.filePackageBlock[name] = scopeElement{t: value, decl: declNode}
-	} else {
-		tc.scopes[len(tc.scopes)-1][name] = scopeElement{t: value, decl: declNode}
-	}
-
 }
 
 // An ancestor is an AST node with a scope level associated. The type checker
@@ -471,95 +347,6 @@ func (tc *typechecker) addToAncestors(n ast.Node) {
 // removeLastAncestor removes current ancestor node.
 func (tc *typechecker) removeLastAncestor() {
 	tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
-}
-
-// currentFunction returns the current function and the related scope level.
-// If it is called when not in a function body, returns nil and 0.
-func (tc *typechecker) currentFunction() (*ast.Func, int) {
-	for i := len(tc.ancestors) - 1; i >= 0; i-- {
-		if f, ok := tc.ancestors[i].node.(*ast.Func); ok {
-			return f, tc.ancestors[i].scopeLevel
-		}
-	}
-	return nil, 0
-}
-
-// isUpVar checks if name is an upvar, that is a variable declared outside
-// current function.
-// TODO: is this function correct? It is correct to check the filePackageBlock first?
-func (tc *typechecker) isUpVar(name string) bool {
-
-	// Check if name is a package variable.
-	if elem, ok := tc.filePackageBlock[name]; ok {
-		// Elem must be a variable.
-		return elem.t.Addressable()
-	}
-
-	// Check if name is a global variable in a template or script.
-	if tc.opts.mod == templateMod || tc.opts.mod == scriptMod {
-		if elem, ok := tc.globalScope[name]; ok {
-			return elem.t.Addressable()
-		}
-	}
-
-	// name is not a package variable; check if has been declared outside
-	// current function.
-	_, funcBound := tc.currentFunction()
-	for i := len(tc.scopes) - 1; i >= 0; i-- {
-		for n, elem := range tc.scopes[i] {
-			if n != name {
-				continue
-			}
-			if i < funcBound-1 { // out of current function scope.
-				if elem.t.Addressable() { // elem must be a variable.
-					tc.compilation.indirectVars[tc.scopes[i][n].decl] = true
-					return true
-				}
-			}
-			return false
-		}
-	}
-
-	return false
-}
-
-// scopeLevelOf returns the scope level in which name is declared, and a
-// boolean which reports whether name has been imported from another
-// package/template file or not.
-func (tc *typechecker) scopeLevelOf(name string) (int, bool) {
-	// Iterating over scopes, from inside.
-	for i := len(tc.scopes) - 1; i >= 0; i-- {
-		if _, ok := tc.scopes[i][name]; ok {
-			// If name is declared in a local scope then it's impossible that
-			// its value has been imported.
-			return i + 1, false
-		}
-	}
-	return -1, tc.filePackageBlock[name].decl == nil
-}
-
-// getDeclarationNode returns the declaration node which declares name.
-func (tc *typechecker) getDeclarationNode(name string) ast.Node {
-	// Iterating over scopes, from inside.
-	for i := len(tc.scopes) - 1; i >= 0; i-- {
-		elem, ok := tc.scopes[i][name]
-		if ok {
-			return elem.decl
-		}
-	}
-	// Package + file block.
-	if elem, ok := tc.filePackageBlock[name]; ok {
-		return elem.decl
-	}
-	// Global scope.
-	if elem, ok := tc.globalScope[name]; ok {
-		return elem.decl
-	}
-	// Universe.
-	if elem, ok := tc.universe[name]; ok {
-		return elem.decl
-	}
-	panic(fmt.Sprintf("BUG: trying to get scope level of %s, but any scope, package block, file block or universe contains it", name)) // remove.
 }
 
 // programImportError returns an error that states that it's impossible to
@@ -585,33 +372,23 @@ func (tc *typechecker) programImportError(imp *ast.Import) error {
 // calling getNestedFuncs("A") returns [G, H].
 //
 func (tc *typechecker) getNestedFuncs(name string) []*ast.Func {
-	declLevel, imported := tc.scopeLevelOf(name)
-	// If name has been imported, function chain does not exist.
-	if imported {
+	var fun *ast.Func
+	_, _, ok := tc.scopes.LookupInFunc(name)
+	if ok {
+		fun = tc.scopes.Function(name)
+	} else if _, ok = tc.scopes.FilePackage(name); !ok {
 		return nil
 	}
-	funcs := []*ast.Func{}
-	for _, anc := range tc.ancestors {
-		if fun, ok := anc.node.(*ast.Func); ok {
-			if declLevel < anc.scopeLevel {
-				funcs = append(funcs, fun)
-			}
+	functions := tc.scopes.Functions()
+	if fun == nil {
+		return functions
+	}
+	for i, fn := range functions {
+		if fn == fun {
+			return functions[i+1:]
 		}
 	}
-	return funcs
-}
-
-// nestedFuncs returns an ordered list of the nested functions, starting from
-// the outermost function declaration to the innermost function, which is the
-// current.
-func (tc *typechecker) nestedFuncs() []*ast.Func {
-	funcs := []*ast.Func{}
-	for _, anc := range tc.ancestors {
-		if fun, ok := anc.node.(*ast.Func); ok {
-			funcs = append(funcs, fun)
-		}
-	}
-	return funcs
+	panic("bug")
 }
 
 // errorf builds and returns a type checking error. This method is used

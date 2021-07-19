@@ -81,9 +81,9 @@ func parseNumericConst(s string) (constant, reflect.Type, error) {
 
 // toTypeCheckerScope generates a type checker scope given a predefined
 // package. depth must be 0 unless toTypeCheckerScope is called recursively.
-func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, global bool, depth int) typeCheckerScope {
+func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, global bool, depth int) map[string]scopeEntry {
 	declarations := pp.DeclarationNames()
-	scope := make(typeCheckerScope, len(declarations))
+	scope := make(map[string]scopeEntry, len(declarations))
 	for _, ident := range declarations {
 		ti := &typeInfo{PredefPackageName: pp.Name()}
 		if global {
@@ -127,7 +127,7 @@ func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, global bool, dept
 				Declarations: map[string]*typeInfo{},
 			}
 			for n, d := range toTypeCheckerScope(v, mod, global, depth+1) {
-				pkg.Declarations[n] = d.t
+				pkg.Declarations[n] = d.ti
 			}
 			ti.value = pkg
 			ti.Properties |= propertyIsPackage | propertyHasValue
@@ -155,7 +155,7 @@ func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, global bool, dept
 			}
 			ti.Properties |= propertyUntyped
 		}
-		scope[ident] = scopeElement{t: ti}
+		scope[ident] = scopeEntry{ti: ti}
 	}
 	return scope
 }
@@ -515,7 +515,7 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(compilation *compilation, pkg *ast.Package, path string, packages PackageLoader, opts checkerOptions, globalScope typeCheckerScope) (err error) {
+func checkPackage(compilation *compilation, pkg *ast.Package, path string, packages PackageLoader, opts checkerOptions) (err error) {
 
 	// TODO: This cache has been disabled as a workaround to the issues #641 and
 	// #624. We should find a better solution in the future.
@@ -535,7 +535,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 		}
 	}()
 
-	tc := newTypechecker(compilation, path, opts, globalScope, packages)
+	tc := newTypechecker(compilation, path, opts, packages)
 
 	// Check package level names for "init" and "main"
 	// and check that constant declarations are balanced.
@@ -618,14 +618,14 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 				// Do not add 'init' and '_' functions to the file/package block.
 				continue
 			}
-			if _, ok := tc.filePackageBlock[f.Ident.Name]; ok {
+			if _, ok := tc.scopes.FilePackage(f.Ident.Name); ok {
 				return tc.errorf(f.Ident, "%s redeclared in this block", f.Ident.Name)
 			}
 			ti := &typeInfo{Type: funcType}
 			if f.Type.Macro {
 				ti.Properties |= propertyIsMacroDeclaration
 			}
-			tc.filePackageBlock[f.Ident.Name] = scopeElement{t: ti}
+			tc.scopes.Declare(f.Ident.Name, ti, f.Ident)
 		}
 	}
 
@@ -643,13 +643,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 
 	if tc.opts.mod != templateMod {
 		// Check that the imported packages have been used.
-		var node *ast.Import
-		for _, imp := range tc.unusedImports {
-			if node == nil || imp.node.Position.Start < node.Position.Start {
-				node = imp.node
-			}
-		}
-		if node != nil {
+		if node := tc.scopes.UnusedImport(); node != nil {
 			var s string
 			if node.Ident == nil || node.Ident.Name == "." {
 				s = fmt.Sprintf("%q", node.Path)
@@ -661,7 +655,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 	}
 
 	if pkg.Name == "main" {
-		if _, ok := tc.filePackageBlock["main"]; !ok {
+		if _, ok := tc.scopes.FilePackage("main"); !ok {
 			return tc.errorf(new(ast.Position), "function main is undeclared in the main package")
 		}
 	}
@@ -673,10 +667,10 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 		TypeInfos:    tc.compilation.typeInfos,
 	}
 	pkgInfo.Declarations = make(map[string]*typeInfo)
-	for ident, ti := range tc.filePackageBlock {
-		isDummyMacroForRender := strings.HasPrefix(ident, `"`) && strings.HasSuffix(ident, `"`)
-		if isExported(ident) || isDummyMacroForRender {
-			pkgInfo.Declarations[ident] = ti.t
+	for _, name := range tc.scopes.FilePackageNames() {
+		isDummyMacroForRender := strings.HasPrefix(name, `"`) && strings.HasSuffix(name, `"`)
+		if isExported(name) || isDummyMacroForRender {
+			pkgInfo.Declarations[name], _ = tc.scopes.FilePackage(name)
 		}
 	}
 	pkgInfo.IndirectVars = tc.compilation.indirectVars

@@ -182,20 +182,16 @@ func TestCheckerTemplateExpressions(t *testing.T) {
 				t.Errorf("source: %q, unexpected %s, expecting }}\n", expr.src, tok)
 				return
 			}
-			scope := make(typeCheckerScope, len(expr.scope))
+			names := make(map[string]scopeEntry, len(expr.scope))
 			for k, v := range expr.scope {
-				scope[k] = scopeElement{t: v}
+				names[k] = scopeEntry{ti: v}
 			}
-			var scopes []typeCheckerScope
-			if expr.scope == nil {
-				scopes = []typeCheckerScope{}
-			} else {
-				scopes = []typeCheckerScope{scope}
+			compilation := newCompilation(nil)
+			tc := newTypechecker(compilation, "", options, nil)
+			if expr.scope != nil {
+				tc.scopes = append(tc.scopes, scope{names: names})
 			}
-			compilation := newCompilation()
-			tc := newTypechecker(compilation, "", options, nil, nil)
-			tc.scopes = scopes
-			tc.enterScope()
+			tc.enterScope(nil)
 			ti := tc.checkExpr(node)
 			err := equalTypeInfo(expr.ti, ti)
 			if err != nil {
@@ -266,20 +262,16 @@ func TestCheckerTemplateExpressionErrors(t *testing.T) {
 				t.Errorf("source: %q, unexpected %s, expecting }}\n", expr.src, tok)
 				return
 			}
-			scope := make(typeCheckerScope, len(expr.scope))
+			names := make(map[string]scopeEntry, len(expr.scope))
 			for k, v := range expr.scope {
-				scope[k] = scopeElement{t: v}
+				names[k] = scopeEntry{ti: v}
 			}
-			var scopes []typeCheckerScope
-			if expr.scope == nil {
-				scopes = []typeCheckerScope{}
-			} else {
-				scopes = []typeCheckerScope{scope}
+			compilation := newCompilation(nil)
+			tc := newTypechecker(compilation, "", options, nil)
+			if expr.scope != nil {
+				tc.scopes = append(tc.scopes, scope{names: names})
 			}
-			compilation := newCompilation()
-			tc := newTypechecker(compilation, "", options, nil, nil)
-			tc.scopes = scopes
-			tc.enterScope()
+			tc.enterScope(nil)
 			ti := tc.checkExpr(node)
 			t.Errorf("source: %s, unexpected %s, expecting error %q\n", expr.src, ti, expr.err)
 			err := compilation.finalizeUsingStatements(tc)
