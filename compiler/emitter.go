@@ -409,35 +409,31 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 			return fOutRegs, fOutTypes
 		}
 
-		// Emit the variadic arguments.
+		// Emit the variadic arguments when calling a predefined function.
 		varArgsCount := len(fArgs) - (fNumIn - 1)
-		if varArgsCount == 0 {
-			slice := em.fb.newRegister(reflect.Slice)
-			em.fb.emitMakeSlice(true, true, fType.In(fNumIn-1), 0, 0, slice, nil) // TODO: fix pos.
-			return fOutRegs, fOutTypes
-		} else if varArgsCount > 0 {
+		if varArgsCount > 0 && opts.predefined {
 			t := fType.In(fNumIn - 1).Elem()
-			if opts.predefined {
-				for i := 0; i < varArgsCount; i++ {
-					reg := em.fb.newRegister(t.Kind())
-					em.fb.enterStack()
-					em.emitExprR(fArgs[i+fNumIn-1], t, reg)
-					em.fb.exitStack()
-				}
-			} else {
-				slice := em.fb.newRegister(reflect.Slice)
-				em.fb.emitMakeSlice(true, true, fType.In(fNumIn-1), int8(varArgsCount), int8(varArgsCount), slice, nil) // TODO: fix pos.
-				for i := 0; i < varArgsCount; i++ {
-					tmp := em.fb.newRegister(t.Kind())
-					em.fb.enterStack()
-					em.emitExprR(fArgs[i+fNumIn-1], t, tmp)
-					em.fb.exitStack()
-					index := em.fb.newRegister(reflect.Int)
-					em.fb.emitMove(true, int8(i), index, reflect.Int)
-					pos := fArgs[len(fArgs)-1].Pos()
-					em.fb.emitSetSlice(false, slice, tmp, index, pos, fType.In(fNumIn-1).Elem().Kind())
-				}
+			for i := 0; i < varArgsCount; i++ {
+				reg := em.fb.newRegister(t.Kind())
+				em.fb.enterStack()
+				em.emitExprR(fArgs[i+fNumIn-1], t, reg)
+				em.fb.exitStack()
 			}
+			return fOutRegs, fOutTypes
+		}
+
+		t := fType.In(fNumIn - 1).Elem()
+		slice := em.fb.newRegister(reflect.Slice)
+		em.fb.emitMakeSlice(true, true, fType.In(fNumIn-1), int8(varArgsCount), int8(varArgsCount), slice, nil) // TODO: fix pos.
+		for i := 0; i < varArgsCount; i++ {
+			tmp := em.fb.newRegister(t.Kind())
+			em.fb.enterStack()
+			em.emitExprR(fArgs[i+fNumIn-1], t, tmp)
+			em.fb.exitStack()
+			index := em.fb.newRegister(reflect.Int)
+			em.fb.emitMove(true, int8(i), index, reflect.Int)
+			pos := fArgs[len(fArgs)-1].Pos()
+			em.fb.emitSetSlice(false, slice, tmp, index, pos, fType.In(fNumIn-1).Elem().Kind())
 		}
 		return fOutRegs, fOutTypes
 	}
