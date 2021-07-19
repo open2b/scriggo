@@ -46,6 +46,7 @@ type scopeEntry struct {
 
 // newScopes returns a new scopes given the format types and the global block.
 func newScopes(formats map[ast.Format]reflect.Type, global map[string]scopeEntry) scopes {
+	// TODO(marco): change type: fn(map[string]*typeInfo, global map[string]*typeInfo)
 	var formatScope scope
 	if len(formats) > 0 {
 		formatScope = scope{names: map[string]scopeEntry{}}
