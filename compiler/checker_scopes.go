@@ -249,8 +249,8 @@ func (s scopes) Functions() []*ast.Func {
 	return functions
 }
 
-// Enter enters a new scope. For function scopes fn is the function node,
-// otherwise it is nil.
+// Enter enters a new scope. If the new scope is the scope of a function body,
+// fn is the node of the function, otherwise fn is nil.
 func (s scopes) Enter(fn *ast.Func) scopes {
 	if fn == nil {
 		return append(s, scope{fn: s[len(s)-1].fn})

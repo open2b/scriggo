@@ -279,7 +279,8 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 	return &tc
 }
 
-// enterScope enters into a new empty scope.
+// enterScope enters into a new empty scope. If the new scope is the scope of
+// a function body, fn is the node of the function, otherwise fn is nil.
 func (tc *typechecker) enterScope(fn *ast.Func) {
 	tc.scopes = tc.scopes.Enter(fn)
 	tc.labels = append(tc.labels, []string{})
