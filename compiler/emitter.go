@@ -318,35 +318,34 @@ type callOptions struct {
 //
 // Note that while prepareCallParameters is called before calling the function,
 // prepareFunctionBodyParameters is called before emitting its body.
-func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expression, opts callOptions) ([]int8, []reflect.Type) {
+func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Expression, opts callOptions) ([]int8, []reflect.Type) {
 
-	numOut := fnTyp.NumOut()
-	numIn := fnTyp.NumIn()
-	regs := make([]int8, numOut)
-	types := make([]reflect.Type, numOut)
+	fNumOut := fType.NumOut()
+	fNumIn := fType.NumIn()
+	fOutRegs := make([]int8, fNumOut)
+	fOutTypes := make([]reflect.Type, fNumOut)
 
 	// Reserve space for the output parameters.
-	for i := 0; i < numOut; i++ {
-		t := fnTyp.Out(i)
-		regs[i] = em.fb.newRegister(t.Kind())
-		types[i] = t
+	for i := 0; i < fNumOut; i++ {
+		t := fType.Out(i)
+		fOutRegs[i] = em.fb.newRegister(t.Kind())
+		fOutTypes[i] = t
 	}
 
-	// Emit the receiver, if necessary.
+	// Emit the method receiver, if necessary.
 	if opts.receiverAsArg {
-		reg := em.fb.newRegister(em.typ(args[0]).Kind())
+		reg := em.fb.newRegister(em.typ(fArgs[0]).Kind())
 		em.fb.enterStack()
-		em.emitExprR(args[0], em.typ(args[0]), reg)
+		em.emitExprR(fArgs[0], em.typ(fArgs[0]), reg)
 		em.fb.exitStack()
-		args = args[1:]
+		fArgs = fArgs[1:]
 	}
 
-	// Emit variadic function calls.
-	if fnTyp.IsVariadic() {
-
-		// f(g()) where f is variadic and g returns one or more values.
-		if fnTyp.NumIn() == 1 && len(args) == 1 {
-			if g, ok := args[0].(*ast.Call); ok {
+	// Variadic function calls.
+	if fType.IsVariadic() {
+		// f(g()) where f is variadic and g returns more that one value.
+		if fType.NumIn() == 1 && len(fArgs) == 1 {
+			if g, ok := fArgs[0].(*ast.Call); ok {
 				if numOut, ok := em.numOut(g); ok && numOut > 1 {
 					if opts.predefined {
 						// Reserve the registers for the input parameters of 'f'
@@ -354,7 +353,7 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 						// 'g' accepts some arguments (eg. 'f(g(arg1, arg2))')
 						// then the continuity between the output and the input
 						// regs of 'f' is lost.
-						fParamsType := fnTyp.In(0).Elem()
+						fParamsType := fType.In(0).Elem()
 						fInParams := make([]int8, numOut)
 						for i := 0; i < numOut; i++ {
 							fInParams[i] = em.fb.newRegister(fParamsType.Kind())
@@ -363,13 +362,13 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 						for i := range argRegs {
 							em.changeRegister(false, argRegs[i], fInParams[i], argTypes[i], fParamsType)
 						}
-						return regs, types
+						return fOutRegs, fOutTypes
 					}
 					// f(g()) where g returns more than 1 argument, f is
 					// variadic and not predefined.
 					slice := em.fb.newRegister(reflect.Slice)
-					sliceType := fnTyp.In(0)
-					pos := args[0].Pos()
+					sliceType := fType.In(0)
+					pos := fArgs[0].Pos()
 					em.fb.emitMakeSlice(true, true, sliceType, int8(numOut), int8(numOut), slice, pos)
 					em.fb.enterStack()
 					argRegs, argTypes := em.emitCallNode(g, false, false, runtime.ReturnString)
@@ -389,74 +388,82 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 				}
 			}
 		}
-		for i := 0; i < numIn-1; i++ {
-			t := fnTyp.In(i)
+
+		// Emit the "standard" arguments.
+		for i := 0; i < fNumIn-1; i++ {
+			t := fType.In(i)
 			reg := em.fb.newRegister(t.Kind())
 			em.fb.enterStack()
-			em.emitExprR(args[i], t, reg)
+			em.emitExprR(fArgs[i], t, reg)
 			em.fb.exitStack()
 		}
+
+		// Emit the slice argument in case 'f(x, y, z, slice...)'.
 		if opts.callHasDots {
-			sliceArg := args[len(args)-1]
-			sliceArgType := fnTyp.In(fnTyp.NumIn() - 1)
+			sliceArg := fArgs[len(fArgs)-1]
+			sliceArgType := fType.In(fType.NumIn() - 1)
 			reg := em.fb.newRegister(sliceArgType.Kind())
 			em.fb.enterStack()
 			em.emitExprR(sliceArg, sliceArgType, reg)
 			em.fb.exitStack()
-			return regs, types
+			return fOutRegs, fOutTypes
 		}
-		if varArgs := len(args) - (numIn - 1); varArgs == 0 {
+
+		// Emit the variadic arguments.
+		varArgsCount := len(fArgs) - (fNumIn - 1)
+		if varArgsCount == 0 {
 			slice := em.fb.newRegister(reflect.Slice)
-			em.fb.emitMakeSlice(true, true, fnTyp.In(numIn-1), 0, 0, slice, nil) // TODO: fix pos.
-			return regs, types
-		}
-		if varArgs := len(args) - (numIn - 1); varArgs > 0 {
-			t := fnTyp.In(numIn - 1).Elem()
+			em.fb.emitMakeSlice(true, true, fType.In(fNumIn-1), 0, 0, slice, nil) // TODO: fix pos.
+			return fOutRegs, fOutTypes
+		} else if varArgsCount > 0 {
+			t := fType.In(fNumIn - 1).Elem()
 			if opts.predefined {
-				for i := 0; i < varArgs; i++ {
+				for i := 0; i < varArgsCount; i++ {
 					reg := em.fb.newRegister(t.Kind())
 					em.fb.enterStack()
-					em.emitExprR(args[i+numIn-1], t, reg)
+					em.emitExprR(fArgs[i+fNumIn-1], t, reg)
 					em.fb.exitStack()
 				}
 			} else {
 				slice := em.fb.newRegister(reflect.Slice)
-				em.fb.emitMakeSlice(true, true, fnTyp.In(numIn-1), int8(varArgs), int8(varArgs), slice, nil) // TODO: fix pos.
-				for i := 0; i < varArgs; i++ {
+				em.fb.emitMakeSlice(true, true, fType.In(fNumIn-1), int8(varArgsCount), int8(varArgsCount), slice, nil) // TODO: fix pos.
+				for i := 0; i < varArgsCount; i++ {
 					tmp := em.fb.newRegister(t.Kind())
 					em.fb.enterStack()
-					em.emitExprR(args[i+numIn-1], t, tmp)
+					em.emitExprR(fArgs[i+fNumIn-1], t, tmp)
 					em.fb.exitStack()
 					index := em.fb.newRegister(reflect.Int)
 					em.fb.emitMove(true, int8(i), index, reflect.Int)
-					pos := args[len(args)-1].Pos()
-					em.fb.emitSetSlice(false, slice, tmp, index, pos, fnTyp.In(numIn-1).Elem().Kind())
+					pos := fArgs[len(fArgs)-1].Pos()
+					em.fb.emitSetSlice(false, slice, tmp, index, pos, fType.In(fNumIn-1).Elem().Kind())
 				}
 			}
 		}
-		return regs, types
+		return fOutRegs, fOutTypes
 	}
 
 	// Non-variadic function call.
-	if numIn > 1 && len(args) == 1 { // f(g()), where f takes more than 1 argument.
-		gOutRegs, gOutTypes := em.emitCallNode(args[0].(*ast.Call), false, false, runtime.ReturnString)
+
+	// f(g()), where f takes more than one argument.
+	if fNumIn > 1 && len(fArgs) == 1 {
+		gOutRegs, gOutTypes := em.emitCallNode(fArgs[0].(*ast.Call), false, false, runtime.ReturnString)
 		for i := range gOutRegs {
-			dstType := fnTyp.In(i)
+			dstType := fType.In(i)
 			reg := em.fb.newRegister(dstType.Kind())
 			em.changeRegister(false, gOutRegs[i], reg, gOutTypes[i], dstType)
 		}
-		return regs, types
+		return fOutRegs, fOutTypes
 	}
 
 	// Simple function call: no variadic/dot calls/f(g()) special cases involved.
-	for i := 0; i < numIn; i++ {
-		t := fnTyp.In(i)
+	for i := 0; i < fNumIn; i++ {
+		t := fType.In(i)
 		reg := em.fb.newRegister(t.Kind())
 		em.fb.enterStack()
-		em.emitExprR(args[i], t, reg)
+		em.emitExprR(fArgs[i], t, reg)
 		em.fb.exitStack()
 	}
-	return regs, types
+	return fOutRegs, fOutTypes
 
 }
 
