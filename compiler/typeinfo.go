@@ -117,8 +117,8 @@ func (ti *typeInfo) IsBuiltinFunction() bool {
 	return ti.Properties&propertyUniverse != 0 && ti.Properties&propertyUntyped == 0 && ti.Type == nil
 }
 
-// This reports whether it is this.
-func (ti *typeInfo) This() bool {
+// Itea reports whether it is itea.
+func (ti *typeInfo) Itea() bool {
 	return ti.Properties&propertyUniverse != 0 &&
 		ti.Properties&propertyUntyped != 0 &&
 		ti.Properties&propertyAddressable != 0 && ti.Type == nil
