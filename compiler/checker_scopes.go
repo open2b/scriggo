@@ -302,6 +302,7 @@ var universe = map[string]scopeEntry{
 	"delete":     {ti: &typeInfo{Properties: propertyUniverse}},
 	"imag":       {ti: &typeInfo{Properties: propertyUniverse}},
 	"iota":       {ti: &typeInfo{Properties: propertyUniverse, Type: intType}},
+	"itea":       {ti: &typeInfo{Properties: propertyUniverse | propertyUntyped | propertyAddressable}},
 	"len":        {ti: &typeInfo{Properties: propertyUniverse}},
 	"make":       {ti: &typeInfo{Properties: propertyUniverse}},
 	"new":        {ti: &typeInfo{Properties: propertyUniverse}},
