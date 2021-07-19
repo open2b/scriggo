@@ -394,7 +394,7 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 						}
 					}
 					em.fb.exitStack()
-					return []int8{slice}, []reflect.Type{sliceType}
+					return fOutRegs, fOutTypes
 				}
 			}
 		}
