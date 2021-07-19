@@ -365,24 +365,27 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 						}
 						return regs, types
 					}
-					// f(g()) where g returns more than 1 argument, f is variadic and not predefined.
+					// f(g()) where g returns more than 1 argument, f is
+					// variadic and not predefined.
 					slice := em.fb.newRegister(reflect.Slice)
-					em.fb.enterStack()
+					sliceType := fnTyp.In(0)
 					pos := args[0].Pos()
-					// TODO(Gianluca): this check avoids an invalid behavior.
-					// See the issue #784.
-					if typ := fnTyp.In(numIn - 1); typ.Kind() == reflect.Slice && typ.Elem().Kind() == reflect.Interface {
-						panic("BUG: https://github.com/open2b/scriggo/issues/784")
-					}
-					em.fb.emitMakeSlice(true, true, fnTyp.In(numIn-1), int8(numOut), int8(numOut), slice, pos)
-					argRegs, _ := em.emitCallNode(g, false, false, runtime.ReturnString)
+					em.fb.emitMakeSlice(true, true, sliceType, int8(numOut), int8(numOut), slice, pos)
+					em.fb.enterStack()
+					argRegs, argTypes := em.emitCallNode(g, false, false, runtime.ReturnString)
 					for i := range argRegs {
 						index := em.fb.newRegister(reflect.Int)
 						em.changeRegister(true, int8(i), index, intType, intType)
-						em.fb.emitSetSlice(false, slice, argRegs[i], index, pos, fnTyp.In(numIn-1).Elem().Kind())
+						if canEmitDirectly(argTypes[i].Kind(), sliceType.Elem().Kind()) {
+							em.fb.emitSetSlice(false, slice, argRegs[i], index, pos, sliceType.Elem().Kind())
+						} else {
+							tmp := em.fb.newRegister(sliceType.Elem().Kind())
+							em.changeRegister(false, argRegs[i], tmp, argTypes[i], sliceType.Elem())
+							em.fb.emitSetSlice(false, slice, tmp, index, pos, sliceType.Elem().Kind())
+						}
 					}
 					em.fb.exitStack()
-					return []int8{slice}, []reflect.Type{fnTyp.In(numIn - 1)}
+					return []int8{slice}, []reflect.Type{sliceType}
 				}
 			}
 		}
