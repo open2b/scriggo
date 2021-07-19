@@ -343,6 +343,16 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 
 	// Variadic function calls.
 	if fType.IsVariadic() {
+
+		// Emit the "standard" arguments.
+		for i := 0; i < fNumIn-1; i++ {
+			t := fType.In(i)
+			reg := em.fb.newRegister(t.Kind())
+			em.fb.enterStack()
+			em.emitExprR(fArgs[i], t, reg)
+			em.fb.exitStack()
+		}
+
 		// f(g()) where f is variadic and g returns more that one value.
 		if fType.NumIn() == 1 && len(fArgs) == 1 {
 			if g, ok := fArgs[0].(*ast.Call); ok {
@@ -389,15 +399,6 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 			}
 		}
 
-		// Emit the "standard" arguments.
-		for i := 0; i < fNumIn-1; i++ {
-			t := fType.In(i)
-			reg := em.fb.newRegister(t.Kind())
-			em.fb.enterStack()
-			em.emitExprR(fArgs[i], t, reg)
-			em.fb.exitStack()
-		}
-
 		// Emit the slice argument in case 'f(x, y, z, slice...)'.
 		if opts.callHasDots {
 			sliceArg := fArgs[len(fArgs)-1]
@@ -422,6 +423,7 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 			return fOutRegs, fOutTypes
 		}
 
+		// Emit the variadic arguments when calling a non-predefined function.
 		t := fType.In(fNumIn - 1).Elem()
 		slice := em.fb.newRegister(reflect.Slice)
 		em.fb.emitMakeSlice(true, true, fType.In(fNumIn-1), int8(varArgsCount), int8(varArgsCount), slice, nil) // TODO: fix pos.
