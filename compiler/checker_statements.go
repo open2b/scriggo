@@ -898,14 +898,11 @@ nodesLoop:
 				// Check the new node, informing the type checker that the
 				// current assignment is a function declaration in a script
 				// or a macro declaration in a template.
-				backup := tc.scriptFuncOrMacroDecl
-				tc.scriptFuncOrMacroDecl = true
 				newNodes := []ast.Node{varDecl, nodeAssign}
 
 				_ = tc.checkNodes(newNodes)
 				// Append the new nodes removing the function literal.
 				nodes = append(nodes[:i], append(newNodes, nodes[i+1:]...)...)
-				tc.scriptFuncOrMacroDecl = backup
 				// Avoid error 'declared but not used' by "using" the
 				// identifier.
 				identTi := tc.checkIdentifier(ident, true)

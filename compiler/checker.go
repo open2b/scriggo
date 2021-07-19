@@ -202,11 +202,6 @@ type typechecker struct {
 	storedValidGoto int
 	labels          [][]string
 
-	// scriptFuncOrMacroDecl reports whether the type checker is currently
-	// checking a function declaration in a script or a macro declaration in a
-	// template that has been transformed into an assignment node.
-	scriptFuncOrMacroDecl bool
-
 	// types refers the types of the current compilation and it is used to
 	// create and manipulate types and values, both predefined and defined only
 	// by Scriggo.
@@ -310,14 +305,6 @@ func (tc *typechecker) exitScope() {
 func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.Identifier) {
 	ok := tc.scopes.Declare(name, value, declNode)
 	if !ok {
-		if tc.scriptFuncOrMacroDecl {
-			switch tc.opts.mod {
-			case scriptMod:
-				panic(tc.errorf(declNode, "%s already declared in this program", declNode))
-			case templateMod:
-				panic(tc.errorf(declNode, "%s already declared in this template scope", declNode))
-			}
-		}
 		s := name + " redeclared in this block"
 		_, ident, _ := tc.scopes.Lookup(name)
 		if pos := ident.Pos(); pos != nil {

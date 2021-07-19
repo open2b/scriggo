@@ -2509,7 +2509,7 @@ var templateMultiFileCases = map[string]struct {
 				{% macro Inner %}{% end %}
 			{% end macro %}`,
 		},
-		expectedBuildErr: `Inner already declared in this template scope`,
+		expectedBuildErr: "4:14: Inner redeclared in this block\n\tprevious declaration at 3:14",
 	},
 
 	"Redeclaration of an identifier within the same scope": {
@@ -2520,7 +2520,7 @@ var templateMultiFileCases = map[string]struct {
 				{% var Inner = 2 %}
 			{% end macro %}`,
 		},
-		expectedBuildErr: `Inner already declared in this template scope`,
+		expectedBuildErr: "4:12: Inner redeclared in this block\n\tprevious declaration at 3:14",
 	},
 
 	"https://github.com/open2b/scriggo/issues/701": {

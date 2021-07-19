@@ -319,7 +319,7 @@ var checkerTemplateStmts = []struct {
 	},
 	{
 		src:      `{% macro M %}{% end %}{% macro M %}{% end %}`,
-		expected: "M already declared in this template scope",
+		expected: "1:32: M redeclared in this block\n\tprevious declaration at 1:10",
 	},
 
 	// Show macro.
