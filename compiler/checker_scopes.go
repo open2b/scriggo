@@ -189,7 +189,7 @@ func (s scopes) UnusedVariable() *ast.Identifier {
 // position in the source. If all imports are used, it returns nil.
 func (s scopes) UnusedImport() *ast.Import {
 	unused := map[*ast.Import]bool{}
-	for _, e := range s[len(s)-1].names {
+	for _, e := range s[3].names {
 		if e.impor == nil {
 			continue
 		}
