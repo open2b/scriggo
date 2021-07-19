@@ -344,7 +344,7 @@ func (em *emitter) prepareCallParameters(fnTyp reflect.Type, args []ast.Expressi
 	// Emit variadic function calls.
 	if fnTyp.IsVariadic() {
 
-		// f(g()) where f is variadic and g returns more that one value.
+		// f(g()) where f is variadic and g returns one or more values.
 		if fnTyp.NumIn() == 1 && len(args) == 1 {
 			if g, ok := args[0].(*ast.Call); ok {
 				if numOut, ok := em.numOut(g); ok && numOut > 1 {
