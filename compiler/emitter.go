@@ -348,11 +348,11 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 		if em.isSpecialCall(fArgs) {
 			g := fArgs[0].(*ast.Call)
 			gOutCount, _ := em.numOut(g) // count of output parameters of 'g(..)'.
+			nonVarArgsCount := fNumIn - 1
 			varArgsCount := gOutCount - (fNumIn - 1)
-			nonVarArgsCount := gOutCount - varArgsCount
 			// Reserve space for non variadic parameters.
 			var nonVarParamRegs []int8
-			for i := 0; i < fNumIn-1; i++ {
+			for i := 0; i < nonVarArgsCount; i++ {
 				reg := em.fb.newRegister(fType.In(i).Kind())
 				nonVarParamRegs = append(nonVarParamRegs, reg)
 			}
