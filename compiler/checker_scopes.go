@@ -161,13 +161,16 @@ func (s scopes) lookup(name string, start int) (scopeEntry, int) {
 	return scopeEntry{}, -1
 }
 
-// SetAsUsed sets name as used.
-func (s scopes) SetAsUsed(name string) {
+// Use sets name as used and returns a boolean indicating whether it was
+// already set as used.
+func (s scopes) Use(name string) bool {
 	e, i := s.lookup(name, 3)
 	if i != -1 && !e.used {
 		e.used = true
 		s[i].names[name] = e
+		return false
 	}
+	return true
 }
 
 // UnusedVariable returns the declaration of the first unused variable, by
