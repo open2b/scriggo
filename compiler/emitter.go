@@ -347,16 +347,16 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 		// f(g(..)) where 'f' is variadic.
 		if em.isSpecialCall(fArgs) {
 			g := fArgs[0].(*ast.Call)
+			gOutParamsCount, _ := em.numOut(g)
 			if opts.predefined {
 				// Reserve the registers for the input parameters of 'f'
 				// before emitting the call node 'g(..)', otherwise if
 				// 'g' accepts some arguments (eg. 'f(g(arg1, arg2))')
 				// then the continuity between the output and the input
 				// regs of 'f' is lost.
-				numOut, _ := em.numOut(g)
 				fParamsType := fType.In(0).Elem()
-				fInParams := make([]int8, numOut)
-				for i := 0; i < numOut; i++ {
+				fInParams := make([]int8, gOutParamsCount)
+				for i := 0; i < gOutParamsCount; i++ {
 					fInParams[i] = em.fb.newRegister(fParamsType.Kind())
 				}
 				argRegs, argTypes := em.emitCallNode(g, false, false, runtime.ReturnString)
@@ -371,12 +371,13 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 			slice := em.fb.newRegister(reflect.Slice)
 			sliceType := fType.In(fNumIn - 1)
 			pos := fArgs[0].Pos()
+
 			em.fb.enterStack()
 			gOutRegs, gOutTypes := em.emitCallNode(g, false, false, runtime.ReturnString)
 
 			fNonVariadicParams := fNumIn - 1
-			variadicArgs := len(gOutRegs) - fNonVariadicParams
-			nonVariadicArgs := len(gOutRegs) - variadicArgs
+			variadicArgs := gOutParamsCount - fNonVariadicParams
+			nonVariadicArgs := gOutParamsCount - variadicArgs
 
 			for i := 0; i < nonVariadicArgs; i++ {
 				dstType := fType.In(i)
