@@ -860,24 +860,32 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		em.fb.emitPanic(arg, nil, call.Pos())
 	case "print":
 		for _, argExpr := range args {
+			em.fb.enterStack()
 			arg := em.emitExpr(argExpr, emptyInterfaceType)
 			em.fb.emitPrint(arg)
+			em.fb.exitStack()
 		}
 	case "println":
 		for i, argExpr := range args {
 			if i > 0 {
+				em.fb.enterStack()
 				str := em.fb.makeStringValue(" ")
 				sep := em.fb.newRegister(reflect.Interface)
 				em.changeRegister(true, str, sep, stringType, emptyInterfaceType)
 				em.fb.emitPrint(sep)
+				em.fb.exitStack()
 			}
+			em.fb.enterStack()
 			arg := em.emitExpr(argExpr, emptyInterfaceType)
 			em.fb.emitPrint(arg)
+			em.fb.exitStack()
 		}
+		em.fb.enterStack()
 		str := em.fb.makeStringValue("\n")
 		sep := em.fb.newRegister(reflect.Interface)
 		em.changeRegister(true, str, sep, stringType, emptyInterfaceType)
 		em.fb.emitPrint(sep)
+		em.fb.exitStack()
 	case "real", "imag":
 		complexType := em.typ(args[0])
 		complex, k := em.emitExprK(args[0], complexType)
