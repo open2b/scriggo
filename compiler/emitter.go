@@ -368,7 +368,7 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 			}
 			// f(g()) where g returns more than 1 argument, f is
 			// variadic and not predefined.
-			slice := em.fb.newRegister(reflect.Slice)
+
 			sliceType := fType.In(fNumIn - 1)
 			pos := fArgs[0].Pos()
 
@@ -376,12 +376,22 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 			variadicArgs := gOutParamsCount - fNonVariadicParams
 			nonVariadicArgs := gOutParamsCount - variadicArgs
 
-			var reservedPredefinedVariadicRegs []int8
+			// Reserve the space for non variadic params.
+			var nonVarParamRegs []int8
+			for i := 0; i < fNumIn-1; i++ {
+				reg := em.fb.newRegister(fType.In(i).Kind())
+				nonVarParamRegs = append(nonVarParamRegs, reg)
+			}
+
+			var varParamRegs []int8
 			if opts.predefined {
 				for i := 0; i < variadicArgs; i++ {
 					reg := em.fb.newRegister(sliceType.Elem().Kind())
-					reservedPredefinedVariadicRegs = append(reservedPredefinedVariadicRegs, reg)
+					varParamRegs = append(varParamRegs, reg)
 				}
+			} else {
+				slice := em.fb.newRegister(reflect.Slice)
+				varParamRegs = append(varParamRegs, slice)
 			}
 
 			em.fb.enterStack()
@@ -389,15 +399,16 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 
 			for i := 0; i < nonVariadicArgs; i++ {
 				dstType := fType.In(i)
-				reg := em.fb.newRegister(dstType.Kind())
+				reg := nonVarParamRegs[i]
 				em.changeRegister(false, gOutRegs[i], reg, gOutTypes[i], dstType)
 			}
 
 			if opts.predefined {
-				for i := range reservedPredefinedVariadicRegs {
-					em.changeRegister(false, gOutRegs[nonVariadicArgs+i], reservedPredefinedVariadicRegs[i], gOutTypes[nonVariadicArgs+i], sliceType.Elem())
+				for i := range varParamRegs {
+					em.changeRegister(false, gOutRegs[nonVariadicArgs+i], varParamRegs[i], gOutTypes[nonVariadicArgs+i], sliceType.Elem())
 				}
 			} else {
+				slice := varParamRegs[0]
 				if variadicArgs == 0 {
 					c := em.fb.makeGeneralValue(reflect.Zero(sliceType))
 					em.changeRegister(true, c, slice, sliceType, sliceType)
