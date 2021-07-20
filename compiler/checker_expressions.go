@@ -136,7 +136,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 
 	// Mark identifier as "used".
 	if used {
-		tc.scopes.SetAsUsed(ident.Name)
+		tc.scopes.Use(ident.Name)
 	}
 
 	// Mark 'itea' as used, when 'using' is a package-level statement.
@@ -777,7 +777,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			ti, _, ok := tc.scopes.Lookup(ident.Name)
 			if ok && ti.IsPackage() {
 				// Package selector.
-				tc.scopes.SetAsUsed(ident.Name)
+				tc.scopes.Use(ident.Name)
 				if !unicode.Is(unicode.Lu, []rune(expr.Ident)[0]) {
 					panic(tc.errorf(expr, "cannot refer to unexported name %s", expr))
 				}
