@@ -206,11 +206,16 @@ func (em *emitter) numOut(call *ast.Call) (int, bool) {
 	return 0, false
 }
 
+// isSpecialCall reports whether f(<args>) is the special call 'f(g(..))'.
 func (em *emitter) isSpecialCall(args []ast.Expression) bool {
 	if len(args) != 1 {
 		return false
 	}
-	_, ok := args[0].(*ast.Call)
+	g, gIsCall := args[0].(*ast.Call)
+	if !gIsCall {
+		return false
+	}
+	_, ok := em.numOut(g)
 	return ok
 }
 
