@@ -19,12 +19,11 @@ func main() {
 		f := func(a int, b string) { p(a, b) }
 		f(g())
 	}
-	// The next three test fails.
-	// {
-	// 	g := func() int { return 5 }
-	// 	f := func(a int, b ...string) { p(a, b) }
-	// 	f(g())
-	// }
+	{
+		g := func() int { return 5 }
+		f := func(a int, b ...string) { p(a, b) }
+		f(g())
+	}
 	{
 		g := func() (int, string) { return 5, "b" }
 		f := func(a int, b ...string) { p(a, b) }
