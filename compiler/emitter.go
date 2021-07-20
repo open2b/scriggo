@@ -859,26 +859,66 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		arg := em.emitExpr(args[0], emptyInterfaceType)
 		em.fb.emitPanic(arg, nil, call.Pos())
 	case "print":
-		for _, argExpr := range args {
+		if em.isSpecialCall(args) {
 			em.fb.enterStack()
-			arg := em.emitExpr(argExpr, emptyInterfaceType)
-			em.fb.emitPrint(arg)
+			argRegs, argTypes := em.emitCallNode(args[0].(*ast.Call), false, false, runtime.ReturnString)
+			for i := range argRegs {
+				if canEmitDirectly(argTypes[i].Kind(), reflect.Interface) {
+					em.fb.emitPrint(argRegs[i])
+				} else {
+					em.fb.enterStack()
+					tmp := em.fb.newRegister(reflect.Interface)
+					em.changeRegister(false, argRegs[i], tmp, argTypes[i], emptyInterfaceType)
+					em.fb.emitPrint(tmp)
+					em.fb.exitStack()
+				}
+			}
 			em.fb.exitStack()
-		}
-	case "println":
-		for i, argExpr := range args {
-			if i > 0 {
+		} else {
+			for _, argExpr := range args {
 				em.fb.enterStack()
-				str := em.fb.makeStringValue(" ")
-				sep := em.fb.newRegister(reflect.Interface)
-				em.changeRegister(true, str, sep, stringType, emptyInterfaceType)
-				em.fb.emitPrint(sep)
+				arg := em.emitExpr(argExpr, emptyInterfaceType)
+				em.fb.emitPrint(arg)
 				em.fb.exitStack()
 			}
+		}
+	case "println":
+		if em.isSpecialCall(args) {
 			em.fb.enterStack()
-			arg := em.emitExpr(argExpr, emptyInterfaceType)
-			em.fb.emitPrint(arg)
+			argRegs, argTypes := em.emitCallNode(args[0].(*ast.Call), false, false, runtime.ReturnString)
+			for i := range argRegs {
+				if i > 0 {
+					str := em.fb.makeStringValue(" ")
+					sep := em.fb.newRegister(reflect.Interface)
+					em.changeRegister(true, str, sep, stringType, emptyInterfaceType)
+					em.fb.emitPrint(sep)
+				}
+				if canEmitDirectly(argTypes[i].Kind(), reflect.Interface) {
+					em.fb.emitPrint(argRegs[i])
+				} else {
+					em.fb.enterStack()
+					tmp := em.fb.newRegister(reflect.Interface)
+					em.changeRegister(false, argRegs[i], tmp, argTypes[i], emptyInterfaceType)
+					em.fb.emitPrint(tmp)
+					em.fb.exitStack()
+				}
+			}
 			em.fb.exitStack()
+		} else {
+			for i, argExpr := range args {
+				if i > 0 {
+					em.fb.enterStack()
+					str := em.fb.makeStringValue(" ")
+					sep := em.fb.newRegister(reflect.Interface)
+					em.changeRegister(true, str, sep, stringType, emptyInterfaceType)
+					em.fb.emitPrint(sep)
+					em.fb.exitStack()
+				}
+				em.fb.enterStack()
+				arg := em.emitExpr(argExpr, emptyInterfaceType)
+				em.fb.emitPrint(arg)
+				em.fb.exitStack()
+			}
 		}
 		em.fb.enterStack()
 		str := em.fb.makeStringValue("\n")
