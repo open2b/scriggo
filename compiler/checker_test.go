@@ -645,6 +645,11 @@ var checkerExprErrors = []struct {
 	{`true || "foo"`, tierr(1, 6, `invalid operation: true || "foo" (operator || not defined on untyped string)`), nil},
 	{`len([]int{}) && false`, tierr(1, 14, `invalid operation: len([]int{}) && false (operator && not defined on int)`), nil},
 	{`nil || 2 == 2.0`, tierr(1, 5, `invalid operation: nil || 2 == 2.0 (operator || not defined on nil)`), nil},
+
+	// Type switch.
+	{`func() { switch x := interface{}(1).(type) { case int: var x = 3 } }()`, tierr(1, 60, "x redeclared in this block\n\tprevious declaration at 1:51"), nil},
+	{`func() { switch x := interface{}(2).(type) { default: var x = 3 } }()`, tierr(1, 59, "x redeclared in this block\n\tprevious declaration at 1:46"), nil},
+	{`func() { switch x := interface{}(3).(type) { default: } }()`, tierr(1, 17, "x declared but not used"), nil},
 }
 
 func TestCheckerExpressionErrors(t *testing.T) {
@@ -1237,11 +1242,14 @@ var checkerStmts = map[string]string{
 	`v := interface{}(3); switch u := v.(type) { default: { _ = u } }`:      ok,
 	`switch u := interface{}(2).(type) { case int: _ = u * 2 }`:             ok,
 	`i := interface{}(int(0)); switch i.(type) { case 2: case float64: }`:   `2 (type untyped number) is not a type`,
-	`switch nil.(type) { }`:                                             `cannot type switch on non-interface value nil`,
-	`i := 0; switch i.(type) { }`:                                       `cannot type switch on non-interface value i (type int)`,
-	`const i = 1; switch i.(type) { }`:                                  `cannot type switch on non-interface value i (type untyped number)`,
-	`i := interface{}(int(0)); switch i.(type) { case nil: case nil: }`: `multiple nil cases in type switch (first at 1:50)`,
-	`switch interface{}(0).(type) { case _: }`:                          `cannot use _ as value`,
+	`switch nil.(type) { }`:                                                      `cannot type switch on non-interface value nil`,
+	`i := 0; switch i.(type) { }`:                                                `cannot type switch on non-interface value i (type int)`,
+	`const i = 1; switch i.(type) { }`:                                           `cannot type switch on non-interface value i (type untyped number)`,
+	`i := interface{}(int(0)); switch i.(type) { case nil: case nil: }`:          `multiple nil cases in type switch (first at 1:50)`,
+	`switch interface{}(0).(type) { case _: }`:                                   `cannot use _ as value`,
+	`v := interface{}(3); switch x := v.(type) {  }`:                             `x declared but not used`,
+	`v := interface{}(3); switch x := v.(type) { default: case int: }`:           `x declared but not used`,
+	`v := interface{}(3); switch x := v.(type) { case string: case int: _ = x }`: ok,
 
 	// Fallthrough
 	`switch 1 { case 1: fallthrough; default: }`:                      ok,
