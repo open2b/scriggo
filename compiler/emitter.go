@@ -395,12 +395,11 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 				} else {
 					pos := fArgs[0].Pos()
 					em.fb.emitMakeSlice(true, true, sliceType, int8(varArgsCount), int8(varArgsCount), slice, pos)
-					j := 0
 					for i := nonVarArgsCount; i < len(gOutRegs); i++ {
 						gArgReg := gOutRegs[i]
 						gArgType := gOutTypes[i]
 						index := em.fb.newRegister(reflect.Int)
-						em.changeRegister(true, int8(j), index, intType, intType)
+						em.changeRegister(true, int8(i-nonVarArgsCount), index, intType, intType)
 						if canEmitDirectly(gArgType.Kind(), sliceType.Elem().Kind()) {
 							em.fb.emitSetSlice(false, slice, gArgReg, index, pos, sliceType.Elem().Kind())
 						} else {
@@ -408,7 +407,6 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 							em.changeRegister(false, gArgReg, tmp, gArgType, sliceType.Elem())
 							em.fb.emitSetSlice(false, slice, tmp, index, pos, sliceType.Elem().Kind())
 						}
-						j++
 					}
 				}
 			}
