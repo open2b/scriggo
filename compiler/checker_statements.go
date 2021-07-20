@@ -521,10 +521,20 @@ nodesLoop:
 				panic(tc.errorf(node, "cannot type switch on non-interface value %v (type %s)", ta.Expr,
 					t.StringWithNumber(true)))
 			}
+			var name string
+			var ti *typeInfo
+			if a := node.Assignment; a.Type == ast.AssignmentDeclaration {
+				ident := a.Lhs[0].(*ast.Identifier)
+				name = ident.Name
+				ti = &typeInfo{Type: t.Type, Properties: propertyAddressable}
+				tc.scopes.Declare(name, ti, ident)
+			}
 			var positionOfDefault *ast.Position
 			var positionOfNil *ast.Position
 			positionOf := map[reflect.Type]*ast.Position{}
 			for _, cas := range node.Cases {
+				tc.enterScope(nil)
+				tc.addToAncestors(cas)
 				if cas.Expressions == nil {
 					if positionOfDefault != nil {
 						panic(tc.errorf(cas, "multiple defaults in switch (first at %s)", positionOfDefault))
@@ -544,56 +554,27 @@ nodesLoop:
 					if !t.IsType() {
 						panic(tc.errorf(cas, "%v (type %s) is not a type", expr, t.StringWithNumber(true)))
 					}
+					if name != "" && len(cas.Expressions) == 1 {
+						ti := &typeInfo{Type: t.Type, Properties: propertyAddressable}
+						ident := ast.NewIdentifier(cas.Expressions[0].Pos(), name)
+						tc.scopes.Declare(name, ti, ident)
+					}
 					// Check duplicate.
 					if pos, ok := positionOf[t.Type]; ok {
 						panic(tc.errorf(cas, "duplicate case %v in type switch\n\tprevious case at %s", ex, pos))
 					}
 					positionOf[t.Type] = ex.Pos()
 				}
-				tc.enterScope(nil)
-				// Case has only one expression (one type), so in its body the
-				// type switch variable has the same type of the case type.
-				if len(cas.Expressions) == 1 && !tc.compilation.typeInfos[cas.Expressions[0]].Nil() {
-					if len(node.Assignment.Lhs) == 1 {
-						lh := node.Assignment.Lhs[0]
-						n := ast.NewAssignment(
-							node.Assignment.Pos(),
-							[]ast.Expression{lh},
-							node.Assignment.Type,
-							[]ast.Expression{
-								ast.NewTypeAssertion(ta.Pos(), ta.Expr, cas.Expressions[0]),
-							},
-						)
-						tc.checkGenericAssignmentNode(n)
-						// Mark lh as used.
-						if !isBlankIdentifier(lh) {
-							_ = tc.checkIdentifier(lh.(*ast.Identifier), true)
-						}
-					}
-				} else {
-					if len(node.Assignment.Lhs) == 1 {
-						lh := node.Assignment.Lhs[0]
-						n := ast.NewAssignment(
-							node.Assignment.Pos(),
-							[]ast.Expression{lh},
-							node.Assignment.Type,
-							[]ast.Expression{
-								ta.Expr,
-							},
-						)
-						tc.checkGenericAssignmentNode(n)
-						// Mark lh as used.
-						if !isBlankIdentifier(lh) {
-							_ = tc.checkIdentifier(lh.(*ast.Identifier), true)
-						}
-					}
+				if name != "" && len(cas.Expressions) != 1 {
+					tc.scopes.Declare(name, ti, ast.NewIdentifier(cas.Position, name))
 				}
-				tc.enterScope(nil)
-				tc.addToAncestors(cas)
 				cas.Body = tc.checkNodes(cas.Body)
+				used := name != "" && tc.scopes.Use(name)
 				tc.removeLastAncestor()
 				tc.exitScope()
-				tc.exitScope()
+				if used {
+					tc.scopes.Use(name)
+				}
 				terminating = terminating && tc.terminating
 			}
 			tc.removeLastAncestor()
