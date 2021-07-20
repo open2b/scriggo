@@ -441,7 +441,7 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 			return fOutRegs, fOutTypes
 		}
 
-		// Emit the variadic arguments when calling a predefined function.
+		// Emit the variadic arguments.
 		varArgsCount := len(fArgs) - (fNumIn - 1)
 		t := fType.In(fNumIn - 1).Elem()
 		if opts.predefined {
@@ -451,22 +451,21 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 				em.emitExprR(fArgs[i+fNumIn-1], t, reg)
 				em.fb.exitStack()
 			}
-			return fOutRegs, fOutTypes
+		} else {
+			slice := em.fb.newRegister(reflect.Slice)
+			em.fb.emitMakeSlice(true, true, fType.In(fNumIn-1), int8(varArgsCount), int8(varArgsCount), slice, nil) // TODO: fix pos.
+			for i := 0; i < varArgsCount; i++ {
+				tmp := em.fb.newRegister(t.Kind())
+				em.fb.enterStack()
+				em.emitExprR(fArgs[i+fNumIn-1], t, tmp)
+				em.fb.exitStack()
+				index := em.fb.newRegister(reflect.Int)
+				em.fb.emitMove(true, int8(i), index, reflect.Int)
+				pos := fArgs[len(fArgs)-1].Pos()
+				em.fb.emitSetSlice(false, slice, tmp, index, pos, fType.In(fNumIn-1).Elem().Kind())
+			}
 		}
 
-		// Emit the variadic arguments when calling a non-predefined function.
-		slice := em.fb.newRegister(reflect.Slice)
-		em.fb.emitMakeSlice(true, true, fType.In(fNumIn-1), int8(varArgsCount), int8(varArgsCount), slice, nil) // TODO: fix pos.
-		for i := 0; i < varArgsCount; i++ {
-			tmp := em.fb.newRegister(t.Kind())
-			em.fb.enterStack()
-			em.emitExprR(fArgs[i+fNumIn-1], t, tmp)
-			em.fb.exitStack()
-			index := em.fb.newRegister(reflect.Int)
-			em.fb.emitMove(true, int8(i), index, reflect.Int)
-			pos := fArgs[len(fArgs)-1].Pos()
-			em.fb.emitSetSlice(false, slice, tmp, index, pos, fType.In(fNumIn-1).Elem().Kind())
-		}
 		return fOutRegs, fOutTypes
 	}
 
@@ -483,7 +482,7 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 		return fOutRegs, fOutTypes
 	}
 
-	// Simple function call: no variadic/dot calls/f(g()) special cases involved.
+	// Emit the arguments in a non-variadic non-special call.
 	for i := 0; i < fNumIn; i++ {
 		t := fType.In(i)
 		reg := em.fb.newRegister(t.Kind())
