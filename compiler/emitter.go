@@ -425,11 +425,11 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 
 		// Emit the slice argument in case of 'f(x, y, z, slice...)'.
 		if opts.callHasDots {
-			sliceArg := fArgs[len(fArgs)-1]
-			sliceArgType := fType.In(fType.NumIn() - 1)
-			reg := em.fb.newRegister(sliceArgType.Kind())
+			slice := fArgs[len(fArgs)-1]
+			sliceType := fType.In(fType.NumIn() - 1)
+			reg := em.fb.newRegister(sliceType.Kind())
 			em.fb.enterStack()
-			em.emitExprR(sliceArg, sliceArgType, reg)
+			em.emitExprR(slice, sliceType, reg)
 			em.fb.exitStack()
 			return fOutRegs, fOutTypes
 		}
@@ -464,7 +464,7 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 
 	// Non-variadic function call.
 
-	// f(g()), where f takes more than one argument.
+	// f(g(..)), where f takes more than one parameter.
 	if fNumIn > 1 && len(fArgs) == 1 {
 		gOutRegs, gOutTypes := em.emitCallNode(fArgs[0].(*ast.Call), false, false, runtime.ReturnString)
 		for i := range gOutRegs {
