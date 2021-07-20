@@ -35,6 +35,14 @@ func main() {
 		f(g())
 	}
 	{
+		g := func() (int, string) { return 5, "b" }
+		print(g())
+	}
+	{
+		g := func() (int, string) { return 5, "b" }
+		println(g())
+	}
+	{
 		h := func() (int, string) { return 5, "b" }
 		g := func(a int, b string) (int, string) { return a + 1, b + "c" }
 		f := func(a int, b string) { p(a, b) }
