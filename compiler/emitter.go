@@ -347,59 +347,56 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 		// f(g(..)) where 'f' is variadic.
 		if em.isSpecialCall(fArgs) {
 			g := fArgs[0].(*ast.Call)
-			gOutParamsCount, _ := em.numOut(g)
-
-			// f(g()) where g returns more than 1 argument, f is
-			// variadic and not predefined.
-
-			sliceType := fType.In(fNumIn - 1)
-			pos := fArgs[0].Pos()
-
-			fNonVariadicParams := fNumIn - 1
-			variadicArgs := gOutParamsCount - fNonVariadicParams
-			nonVariadicArgs := gOutParamsCount - variadicArgs
-
-			// Reserve the space for non variadic params.
+			gOutCount, _ := em.numOut(g) // count of output parameters of 'g(..)'.
+			varArgsCount := gOutCount - (fNumIn - 1)
+			nonVarArgsCount := gOutCount - varArgsCount
+			// Reserve space for non variadic parameters.
 			var nonVarParamRegs []int8
 			for i := 0; i < fNumIn-1; i++ {
 				reg := em.fb.newRegister(fType.In(i).Kind())
 				nonVarParamRegs = append(nonVarParamRegs, reg)
 			}
-
+			// Reserve space for variadic parameters.
 			var varParamRegs []int8
+			sliceType := fType.In(fNumIn - 1)
 			if opts.predefined {
-				for i := 0; i < variadicArgs; i++ {
+				// When calling a predefined variadic function, the variadic
+				// parameters must be emitted each one in its register,
+				// separately.
+				for i := 0; i < varArgsCount; i++ {
 					reg := em.fb.newRegister(sliceType.Elem().Kind())
 					varParamRegs = append(varParamRegs, reg)
 				}
 			} else {
-				slice := em.fb.newRegister(reflect.Slice)
-				varParamRegs = append(varParamRegs, slice)
+				// When calling a non-predefined variadic function, the
+				// variadic parameters must be emitted inside a slice.
+				varParamRegs = []int8{em.fb.newRegister(reflect.Slice)}
 			}
-
 			em.fb.enterStack()
 			gOutRegs, gOutTypes := em.emitCallNode(g, false, false, runtime.ReturnString)
-
-			for i := 0; i < nonVariadicArgs; i++ {
+			// Move the non-variadic parameters to the space reserved.
+			for i := 0; i < nonVarArgsCount; i++ {
 				dstType := fType.In(i)
 				reg := nonVarParamRegs[i]
 				em.changeRegister(false, gOutRegs[i], reg, gOutTypes[i], dstType)
 			}
-
+			// Handle variadic parameters.
 			if opts.predefined {
+				// Just move parameters to their corresponding register.
 				for i := range varParamRegs {
-					em.changeRegister(false, gOutRegs[nonVariadicArgs+i], varParamRegs[i], gOutTypes[nonVariadicArgs+i], sliceType.Elem())
+					em.changeRegister(false, gOutRegs[nonVarArgsCount+i], varParamRegs[i], gOutTypes[nonVarArgsCount+i], sliceType.Elem())
 				}
 			} else {
 				slice := varParamRegs[0]
-				if variadicArgs == 0 {
+				if varArgsCount == 0 {
+					// The slice must be nil, not empty.
 					c := em.fb.makeGeneralValue(reflect.Zero(sliceType))
 					em.changeRegister(true, c, slice, sliceType, sliceType)
 				} else {
-					em.fb.emitMakeSlice(true, true, sliceType, int8(variadicArgs), int8(variadicArgs), slice, pos)
-
+					pos := fArgs[0].Pos()
+					em.fb.emitMakeSlice(true, true, sliceType, int8(varArgsCount), int8(varArgsCount), slice, pos)
 					j := 0
-					for i := nonVariadicArgs; i < len(gOutRegs); i++ {
+					for i := nonVarArgsCount; i < len(gOutRegs); i++ {
 						gArgReg := gOutRegs[i]
 						gArgType := gOutTypes[i]
 						index := em.fb.newRegister(reflect.Int)
@@ -415,10 +412,8 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 					}
 				}
 			}
-
 			em.fb.exitStack()
 			return fOutRegs, fOutTypes
-
 		}
 
 		// Emit the non-variadic arguments.
