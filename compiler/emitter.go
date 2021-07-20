@@ -348,24 +348,7 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 		if em.isSpecialCall(fArgs) {
 			g := fArgs[0].(*ast.Call)
 			gOutParamsCount, _ := em.numOut(g)
-			if opts.predefined {
-				// Reserve the registers for the input parameters of 'f'
-				// before emitting the call node 'g(..)', otherwise if
-				// 'g' accepts some arguments (eg. 'f(g(arg1, arg2))')
-				// then the continuity between the output and the input
-				// regs of 'f' is lost.
-				fParamsType := fType.In(0).Elem()
-				fInParams := make([]int8, gOutParamsCount)
-				for i := 0; i < gOutParamsCount; i++ {
-					fInParams[i] = em.fb.newRegister(fParamsType.Kind())
-				}
-				argRegs, argTypes := em.emitCallNode(g, false, false, runtime.ReturnString)
 
-				for i := range argRegs {
-					em.changeRegister(false, argRegs[i], fInParams[i], argTypes[i], fParamsType)
-				}
-				return fOutRegs, fOutTypes
-			}
 			// f(g()) where g returns more than 1 argument, f is
 			// variadic and not predefined.
 
