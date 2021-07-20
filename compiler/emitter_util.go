@@ -206,6 +206,14 @@ func (em *emitter) numOut(call *ast.Call) (int, bool) {
 	return 0, false
 }
 
+func (em *emitter) isSpecialCall(args []ast.Expression) bool {
+	if len(args) != 1 {
+		return false
+	}
+	_, ok := args[0].(*ast.Call)
+	return ok
+}
+
 // kindToType returns the internal register type of a reflect kind.
 func kindToType(k reflect.Kind) registerType {
 	switch k {

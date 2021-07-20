@@ -345,71 +345,70 @@ func (em *emitter) prepareCallParameters(fType reflect.Type, fArgs []ast.Express
 	if fType.IsVariadic() {
 
 		// f(g()) where f is variadic.
-		if len(fArgs) == 1 {
-			if g, ok := fArgs[0].(*ast.Call); ok {
-				if numOut, ok := em.numOut(g); ok {
-					if opts.predefined {
-						// Reserve the registers for the input parameters of 'f'
-						// before emitting the call node 'g(..)', otherwise if
-						// 'g' accepts some arguments (eg. 'f(g(arg1, arg2))')
-						// then the continuity between the output and the input
-						// regs of 'f' is lost.
-						fParamsType := fType.In(0).Elem()
-						fInParams := make([]int8, numOut)
-						for i := 0; i < numOut; i++ {
-							fInParams[i] = em.fb.newRegister(fParamsType.Kind())
-						}
-						argRegs, argTypes := em.emitCallNode(g, false, false, runtime.ReturnString)
-
-						for i := range argRegs {
-							em.changeRegister(false, argRegs[i], fInParams[i], argTypes[i], fParamsType)
-						}
-						return fOutRegs, fOutTypes
+		if em.isSpecialCall(fArgs) {
+			g := fArgs[0].(*ast.Call)
+			if numOut, ok := em.numOut(g); ok {
+				if opts.predefined {
+					// Reserve the registers for the input parameters of 'f'
+					// before emitting the call node 'g(..)', otherwise if
+					// 'g' accepts some arguments (eg. 'f(g(arg1, arg2))')
+					// then the continuity between the output and the input
+					// regs of 'f' is lost.
+					fParamsType := fType.In(0).Elem()
+					fInParams := make([]int8, numOut)
+					for i := 0; i < numOut; i++ {
+						fInParams[i] = em.fb.newRegister(fParamsType.Kind())
 					}
-					// f(g()) where g returns more than 1 argument, f is
-					// variadic and not predefined.
-					slice := em.fb.newRegister(reflect.Slice)
-					sliceType := fType.In(fNumIn - 1)
-					pos := fArgs[0].Pos()
-					em.fb.enterStack()
-					gOutRegs, gOutTypes := em.emitCallNode(g, false, false, runtime.ReturnString)
+					argRegs, argTypes := em.emitCallNode(g, false, false, runtime.ReturnString)
 
-					fNonVariadicParams := fNumIn - 1
-					variadicArgs := len(gOutRegs) - fNonVariadicParams
-					nonVariadicArgs := len(gOutRegs) - variadicArgs
-
-					for i := 0; i < nonVariadicArgs; i++ {
-						dstType := fType.In(i)
-						reg := em.fb.newRegister(dstType.Kind())
-						em.changeRegister(false, gOutRegs[i], reg, gOutTypes[i], dstType)
+					for i := range argRegs {
+						em.changeRegister(false, argRegs[i], fInParams[i], argTypes[i], fParamsType)
 					}
-
-					if variadicArgs == 0 {
-						c := em.fb.makeGeneralValue(reflect.Zero(sliceType))
-						em.changeRegister(true, c, slice, sliceType, sliceType)
-					} else {
-						em.fb.emitMakeSlice(true, true, sliceType, int8(variadicArgs), int8(variadicArgs), slice, pos)
-
-						j := 0
-						for i := nonVariadicArgs; i < len(gOutRegs); i++ {
-							gArgReg := gOutRegs[i]
-							gArgType := gOutTypes[i]
-							index := em.fb.newRegister(reflect.Int)
-							em.changeRegister(true, int8(j), index, intType, intType)
-							if canEmitDirectly(gArgType.Kind(), sliceType.Elem().Kind()) {
-								em.fb.emitSetSlice(false, slice, gArgReg, index, pos, sliceType.Elem().Kind())
-							} else {
-								tmp := em.fb.newRegister(sliceType.Elem().Kind())
-								em.changeRegister(false, gArgReg, tmp, gArgType, sliceType.Elem())
-								em.fb.emitSetSlice(false, slice, tmp, index, pos, sliceType.Elem().Kind())
-							}
-							j++
-						}
-					}
-
-					em.fb.exitStack()
 					return fOutRegs, fOutTypes
 				}
+				// f(g()) where g returns more than 1 argument, f is
+				// variadic and not predefined.
+				slice := em.fb.newRegister(reflect.Slice)
+				sliceType := fType.In(fNumIn - 1)
+				pos := fArgs[0].Pos()
+				em.fb.enterStack()
+				gOutRegs, gOutTypes := em.emitCallNode(g, false, false, runtime.ReturnString)
+
+				fNonVariadicParams := fNumIn - 1
+				variadicArgs := len(gOutRegs) - fNonVariadicParams
+				nonVariadicArgs := len(gOutRegs) - variadicArgs
+
+				for i := 0; i < nonVariadicArgs; i++ {
+					dstType := fType.In(i)
+					reg := em.fb.newRegister(dstType.Kind())
+					em.changeRegister(false, gOutRegs[i], reg, gOutTypes[i], dstType)
+				}
+
+				if variadicArgs == 0 {
+					c := em.fb.makeGeneralValue(reflect.Zero(sliceType))
+					em.changeRegister(true, c, slice, sliceType, sliceType)
+				} else {
+					em.fb.emitMakeSlice(true, true, sliceType, int8(variadicArgs), int8(variadicArgs), slice, pos)
+
+					j := 0
+					for i := nonVariadicArgs; i < len(gOutRegs); i++ {
+						gArgReg := gOutRegs[i]
+						gArgType := gOutTypes[i]
+						index := em.fb.newRegister(reflect.Int)
+						em.changeRegister(true, int8(j), index, intType, intType)
+						if canEmitDirectly(gArgType.Kind(), sliceType.Elem().Kind()) {
+							em.fb.emitSetSlice(false, slice, gArgReg, index, pos, sliceType.Elem().Kind())
+						} else {
+							tmp := em.fb.newRegister(sliceType.Elem().Kind())
+							em.changeRegister(false, gArgReg, tmp, gArgType, sliceType.Elem())
+							em.fb.emitSetSlice(false, slice, tmp, index, pos, sliceType.Elem().Kind())
+						}
+						j++
+					}
+				}
+
+				em.fb.exitStack()
+				return fOutRegs, fOutTypes
 			}
 		}
 
