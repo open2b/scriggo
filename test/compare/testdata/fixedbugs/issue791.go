@@ -25,11 +25,11 @@ func main() {
 	// 	f := func(a int, b ...string) { p(a, b) }
 	// 	f(g())
 	// }
-	// {
-	// 	g := func() (int, string) { return 5, "b" }
-	// 	f := func(a int, b ...string) { p(a, b) }
-	// 	f(g())
-	// }
+	{
+		g := func() (int, string) { return 5, "b" }
+		f := func(a int, b ...string) { p(a, b) }
+		f(g())
+	}
 	{
 		g := func() (int, string, string) { return 5, "b", "c" }
 		f := func(a int, b ...string) { p(a, b) }
