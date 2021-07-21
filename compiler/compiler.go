@@ -414,7 +414,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 			} else {
 				// If there are no variables to initialize, a nop function is
 				// created because space has already been reserved for it.
-				nopFunction := newFunction("main", "$nop", reflect.FuncOf(nil, nil, false), "", nil)
+				nopFunction := newFunction("main", "$nop", reflect.FuncOf(nil, nil, false), "", &ast.Position{})
 				nopBuilder := newBuilder(nopFunction, tree.Path)
 				nopBuilder.end()
 				e.fb.fn.Functions[0] = nopFunction

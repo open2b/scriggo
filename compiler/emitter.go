@@ -202,7 +202,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingFile bool, path string
 			// of collision with Scriggo defined functions.
 			backupFb := em.fb
 			if initVarsFn == nil {
-				initVarsFn = newFunction("main", "$initvars", reflect.FuncOf(nil, nil, false), path, nil)
+				initVarsFn = newFunction("main", "$initvars", reflect.FuncOf(nil, nil, false), path, &ast.Position{})
 				em.fnStore.makeAvailableScriggoFn(em.pkg, "$initvars", initVarsFn)
 				initVarsFb = newBuilder(initVarsFn, path)
 			}

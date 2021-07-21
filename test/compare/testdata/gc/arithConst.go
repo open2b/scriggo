@@ -1,4 +1,4 @@
-// skip : panic: runtime error: invalid memory address or nil pointer dereference
+// skip : too many strings for Scriggo (string values count exceeded 256)
 
 // run
 
