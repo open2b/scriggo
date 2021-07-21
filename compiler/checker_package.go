@@ -517,13 +517,10 @@ varsLoop:
 // checkPackage type checks a package.
 func checkPackage(compilation *compilation, pkg *ast.Package, path string, packages PackageLoader, opts checkerOptions) (err error) {
 
-	// TODO: This cache has been disabled as a workaround to the issues #641 and
-	// #624. We should find a better solution in the future.
-	//
-	// // If the package has already been checked just return.
-	// if _, ok := compilation.pkgInfos[path]; ok {
-	// 	return
-	// }
+	// If the package has already been checked just return.
+	if _, ok := compilation.pkgInfos[path]; ok {
+		return
+	}
 
 	defer func() {
 		if r := recover(); r != nil {
