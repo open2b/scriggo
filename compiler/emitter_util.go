@@ -272,53 +272,36 @@ func canEmitDirectly(k1, k2 reflect.Kind) bool {
 	return kindToType(k1) == kindToType(k2)
 }
 
-// setFunctionVarRefs sets the var refs of a function. setFunctionVarRefs
-// operates on current function builder, so shall be called before changing or
-// saving it.
+// setFunctionVarRefs sets the var refs of a function.
+// This method operates on the current function builder, so shall be called
+// before changing or saving it.
 func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Upvar) {
-
-	// First: update the indexes of the declarations that are found at the
-	// same level of fn with appropriate register indexes.
+	refs := make([]int16, len(closureVars))
 	for i := range closureVars {
 		v := &closureVars[i]
-		if v.Index == -1 {
-			// If the upvar is predefined then update the index of such
-			// predefined variable.
-			if v.Declaration == nil {
-				v.Index = em.varStore.predefVarIndex(v.PredefinedValue, v.PredefinedValueType, v.PredefinedPkg, v.PredefinedName)
-				continue
-			}
-			// v is declared within a function.
-			ident := v.Declaration.(*ast.Identifier)
-			if em.fb.declaredInFunc(ident.Name) {
-				v.Index = int16(em.fb.scopeLookup(ident.Name))
-				continue
-			}
-			// v is package-level variable. This happens when a function
-			// literal assigned to a package-level variable refers to another
-			// package-level variable.
-			if index, ok := em.varStore.nonLocalVarIndex(ident); ok {
-				v.Index = int16(index)
-				continue
-			}
-			panic(fmt.Sprintf("BUG: don't know how to handle identifier %s", ident))
-		}
-	}
-
-	// Second: update functionClosureVars with external-defined names.
-	closureRefs := make([]int16, len(closureVars))
-	for i, v := range closureVars {
-		closureRefs[i] = v.Index
+		// v is predefined.
 		if v.Declaration == nil {
+			refs[i] = em.varStore.predefVarIndex(v.PredefinedValue, v.PredefinedValueType, v.PredefinedPkg, v.PredefinedName)
 			em.varStore.setPredefVarRef(fn, v.PredefinedValue, int16(i))
 			continue
 		}
 		em.varStore.setClosureVar(fn, v.Declaration.(*ast.Identifier).Name, int16(i))
+		// v is a variable declared in function.
+		ident := v.Declaration.(*ast.Identifier)
+		if em.fb.declaredInFunc(ident.Name) {
+			refs[i] = int16(em.fb.scopeLookup(ident.Name))
+			continue
+		}
+		// v is package-level variable. This happens when a function
+		// literal assigned to a package-level variable refers to another
+		// package-level variable.
+		if index, ok := em.varStore.nonLocalVarIndex(ident); ok {
+			refs[i] = int16(index)
+			continue
+		}
+		panic(fmt.Sprintf("BUG: don't know how to handle identifier %s", ident))
 	}
-
-	// Third: update the field VarRefs of the function passed as argument.
-	fn.VarRefs = closureRefs
-
+	fn.VarRefs = refs
 }
 
 func (em *emitter) emitValueNotPredefined(ti *typeInfo, reg int8, dstType reflect.Type) (int8, bool) {

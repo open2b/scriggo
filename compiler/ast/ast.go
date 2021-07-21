@@ -535,38 +535,6 @@ type Upvar struct {
 	// Declaration is the ast node where Upvar is defined. If Upvar is a
 	// predefined var then Declaration is nil.
 	Declaration Node
-
-	// Index indexes the Upvars slice of the parent function.
-	// As a special case, Index is -1 when the Upvar declaration node is a
-	// sibling of the function declaration node.
-	//
-	// Consider this example:
-	//
-	// 		var A
-	// 		func g() {
-	// 			func f() {
-	// 				_ = A
-	// 			}
-	// 		}
-	//
-	// g has one upvar (A) with index -1 (node which declares A is a sibling of
-	// the declaration of g)
-	// f has one upvar (A) with index 0, which is the index of A in the Upvars slice of g.
-	//
-	// Another example:
-	//
-	// 		func g() {
-	// 			var A
-	// 			func f() {
-	// 				_ = A
-	// 			}
-	// 		}
-	//
-	// g has no upvars
-	// f has one upvar (A) with index -1 (declaration of A is a sibling of
-	// declaration of f)
-	//
-	Index int16
 }
 
 func NewFunc(pos *Position, name *Identifier, typ *FuncType, body *Block, endless bool, format Format) *Func {

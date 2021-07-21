@@ -77,22 +77,17 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 	// nested functions and update all indexes.
 	if isUpVar {
 		tc.compilation.indirectVars[decl] = true
-		upvar := ast.Upvar{
-			Declaration: decl,
-			Index:       -1,
-		}
+		upvar := ast.Upvar{Declaration: decl}
 		for _, fn := range tc.getNestedFuncs(ident.Name) {
 			add := true
-			for i, uv := range fn.Upvars {
+			for _, uv := range fn.Upvars {
 				if uv.Declaration == upvar.Declaration {
-					upvar.Index = int16(i)
 					add = false
 					break
 				}
 			}
 			if add {
 				fn.Upvars = append(fn.Upvars, upvar)
-				upvar.Index = int16(len(fn.Upvars) - 1)
 			}
 		}
 	}
@@ -113,19 +108,16 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 						PredefinedPkg:       ident.Name,
 						PredefinedValue:     rv,
 						PredefinedValueType: ti.Type,
-						Index:               -1,
 					}
 					for _, fn := range nestedFuncs {
 						add := true
-						for i, uv := range fn.Upvars {
+						for _, uv := range fn.Upvars {
 							if uv.PredefinedValue == upvar.PredefinedValue {
-								upvar.Index = int16(i)
 								add = false
 								break
 							}
 						}
 						if add {
-							upvar.Index = int16(len(fn.Upvars) - 1)
 							fn.Upvars = append(fn.Upvars, upvar)
 						}
 					}
@@ -793,19 +785,16 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 						PredefinedPkg:       ident.Name,
 						PredefinedValue:     rv,
 						PredefinedValueType: v.Type,
-						Index:               -1,
 					}
 					for _, fn := range tc.scopes.Functions() {
 						add := true
-						for i, uv := range fn.Upvars {
+						for _, uv := range fn.Upvars {
 							if uv.PredefinedValue == upvar.PredefinedValue {
-								upvar.Index = int16(i)
 								add = false
 								break
 							}
 						}
 						if add {
-							upvar.Index = int16(len(fn.Upvars) - 1)
 							fn.Upvars = append(fn.Upvars, upvar)
 						}
 					}
