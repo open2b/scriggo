@@ -1,5 +1,3 @@
-// skip : problem with OpIf https://github.com/open2b/scriggo/issues/358
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.
