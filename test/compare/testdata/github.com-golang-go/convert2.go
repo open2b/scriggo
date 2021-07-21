@@ -1,4 +1,4 @@
-// skip : fails
+// skip : see https://github.com/open2b/scriggo/issues/799
 
 // errorcheck
 
