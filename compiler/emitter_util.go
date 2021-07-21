@@ -288,9 +288,9 @@ func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Up
 				v.Index = em.varStore.predefVarIndex(v.PredefinedValue, v.PredefinedValueType, v.PredefinedPkg, v.PredefinedName)
 				continue
 			}
-			// v is a local variable.
+			// v is declared within a function.
 			ident := v.Declaration.(*ast.Identifier)
-			if em.fb.isLocalVariable(ident.Name) {
+			if em.fb.declaredInFunc(ident.Name) {
 				v.Index = int16(em.fb.scopeLookup(ident.Name))
 				continue
 			}

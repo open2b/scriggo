@@ -73,7 +73,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 		// Expr cannot be emitted as immediate: check if it's possible to emit
 		// it without allocating a new register.
-		if expr, ok := expr.(*ast.Identifier); ok && em.fb.isLocalVariable(expr.Name) {
+		if expr, ok := expr.(*ast.Identifier); ok && em.fb.declaredInFunc(expr.Name) {
 			if canEmitDirectly(ti.Type.Kind(), dstType.Kind()) {
 				return em.fb.scopeLookup(expr.Name), false
 			}
@@ -244,7 +244,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 		typ := ti.Type
 
-		if em.fb.isLocalVariable(expr.Name) {
+		if em.fb.declaredInFunc(expr.Name) {
 			ident := em.fb.scopeLookup(expr.Name)
 			em.changeRegister(false, ident, reg, typ, dstType)
 			return reg, false
@@ -882,7 +882,7 @@ func (em *emitter) emitUnaryOp(expr *ast.UnaryOperator, reg int8, regType reflec
 
 		// &a
 		case *ast.Identifier:
-			if em.fb.isLocalVariable(operand.Name) {
+			if em.fb.declaredInFunc(operand.Name) {
 				r := em.fb.scopeLookup(operand.Name)
 				em.fb.emitNew(em.types.PtrTo(exprType), reg)
 				em.fb.emitMove(false, -r, reg, regType.Kind())

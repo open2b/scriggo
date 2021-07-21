@@ -641,7 +641,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool, toF
 	}
 
 	// Scriggo-defined function (identifier).
-	if ident, ok := call.Func.(*ast.Identifier); ok && !em.fb.isLocalVariable(ident.Name) {
+	if ident, ok := call.Func.(*ast.Identifier); ok && !em.fb.declaredInFunc(ident.Name) {
 		if fn, ok := em.fnStore.availableScriggoFn(em.pkg, ident.Name); ok {
 			stackShift := em.fb.currentStackShift()
 			regs, types := em.prepareCallParameters(fn.Type, call.Args, callOptions{callHasDots: call.IsVariadic})

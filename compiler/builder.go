@@ -285,8 +285,8 @@ func (fb *functionBuilder) bindVarReg(name string, reg int8) {
 	fb.scopes[len(fb.scopes)-1][name] = reg
 }
 
-// isLocalVariable reports whether v is a local variable.
-func (fb *functionBuilder) isLocalVariable(v string) bool {
+// declaredInFunc reports whether v is a variable declared within a function.
+func (fb *functionBuilder) declaredInFunc(v string) bool {
 	for i := len(fb.scopes) - 1; i >= 0; i-- {
 		_, ok := fb.scopes[i][v]
 		if ok {
