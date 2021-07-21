@@ -9,6 +9,7 @@ package compiler
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 
 	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/runtime"
@@ -1075,7 +1076,7 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 	// For example:
 	//
 	//     func f() (x int, slice []int) {
-	// 	       return
+	//         return
 	//     }
 	//
 	// is transformed to:
@@ -1086,10 +1087,15 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 	//        return
 	//    }
 	//
+	// Any blank identifier is transformed into something like "$blank0" so
+	// that it can be assigned as any other parameter.
 	var initRetParams []ast.Node
 	for i := 0; i < t.NumOut(); i++ {
 		ret := node.Type.Result[i]
-		if ret.Ident != nil && !isBlankIdentifier(ret.Ident) {
+		if ret.Ident != nil {
+			if isBlankIdentifier(ret.Ident) {
+				ret.Ident.Name = "$blank" + strconv.Itoa(i)
+			}
 			tc.scopes.Declare(ret.Ident.Name, &typeInfo{Type: t.Out(i), Properties: propertyAddressable}, ret.Ident)
 			tc.scopes.Use(ret.Ident.Name)
 			assignment := ast.NewAssignment(
