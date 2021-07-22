@@ -1889,7 +1889,7 @@ func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *typeInfo {
 					err = errTypeConversion
 				}
 			case t.Type.Kind() == reflect.Interface:
-				if !arg.Type.Implements(t.Type) {
+				if !tc.types.Implements(arg.Type, t.Type) {
 					err = errTypeConversion
 				}
 			default:
