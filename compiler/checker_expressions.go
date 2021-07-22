@@ -1736,7 +1736,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) []*typeInfo {
 			if c == nil {
 				c = tc.checkExpr(arg)
 			}
-			if callIsVariadic && i == len(args)-1 && (c.Nil() || c.Type.AssignableTo(t.Type.In(numIn-1))) {
+			if callIsVariadic && i == len(args)-1 && (c.Nil() || tc.types.AssignableTo(c.Type, t.Type.In(numIn-1))) {
 				have += "..." + t.Type.In(numIn-1).Elem().String()
 			} else if c.Nil() {
 				have += "nil"
