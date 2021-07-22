@@ -177,7 +177,7 @@ func (tc *typechecker) convert(ti *typeInfo, expr ast.Expression, t2 reflect.Typ
 	case ti.IsConstant():
 		// untyped constant.
 		if k2 == reflect.Interface {
-			if !tc.emptyMethodSet(t2) {
+			if t2.NumMethod() > 0 {
 				return nil, errTypeConversion
 			}
 			_, err := ti.Constant.representedBy(ti.Type)
@@ -187,7 +187,7 @@ func (tc *typechecker) convert(ti *typeInfo, expr ast.Expression, t2 reflect.Typ
 
 	case ti.Type == boolType:
 		// untyped boolean value.
-		if k2 == reflect.Bool || (k2 == reflect.Interface && tc.emptyMethodSet(t2)) {
+		if k2 == reflect.Bool || (k2 == reflect.Interface && t2.NumMethod() == 0) {
 			return nil, nil
 		}
 		return nil, errTypeConversion
@@ -203,7 +203,7 @@ func (tc *typechecker) convert(ti *typeInfo, expr ast.Expression, t2 reflect.Typ
 
 		typ := t2
 		if k2 == reflect.Interface {
-			if !tc.emptyMethodSet(t2) {
+			if t2.NumMethod() > 0 {
 				return nil, errTypeConversion
 			}
 			typ = ti.Type
@@ -280,11 +280,6 @@ func deferGoBuiltin(name string) *typeInfo {
 		Type:       removeEnvArg(rv.Type(), false),
 		value:      rv,
 	}
-}
-
-// emptyMethodSet reports whether the given interface as an empty method set.
-func (tc *typechecker) emptyMethodSet(interf reflect.Type) bool {
-	return interf == emptyInterfaceType || tc.types.ConvertibleTo(intType, interf)
 }
 
 // fieldByName returns the struct field with the given name if such field

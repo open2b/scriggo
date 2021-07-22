@@ -1865,7 +1865,7 @@ func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *typeInfo {
 	case arg.IsConstant():
 		k := t.Type.Kind()
 		if k == reflect.Interface {
-			if tc.emptyMethodSet(t.Type) {
+			if t.Type.NumMethod() == 0 {
 				_, err = arg.Constant.representedBy(arg.Type)
 			} else {
 				err = errTypeConversion
