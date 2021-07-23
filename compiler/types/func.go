@@ -110,16 +110,16 @@ type funcType struct {
 	in, out *[]reflect.Type
 }
 
-// AssignableTo is equivalent to reflect's AssignableTo.
-func (x funcType) AssignableTo(u reflect.Type) bool {
-	return x == u
+func (x funcType) AssignableTo(y reflect.Type) bool {
+	return AssignableTo(x, y)
 }
 
-func (x funcType) Implements(u reflect.Type) bool {
-	if u.Kind() != reflect.Interface {
-		panic("expected reflect.Interface")
-	}
-	return u.NumMethod() == 0
+func (x funcType) ConvertibleTo(y reflect.Type) bool {
+	return ConvertibleTo(x, y)
+}
+
+func (x funcType) Implements(y reflect.Type) bool {
+	return Implements(x, y)
 }
 
 func (x funcType) In(i int) reflect.Type {

@@ -27,20 +27,20 @@ type ptrType struct {
 	elem reflect.Type // Cannot be nil.
 }
 
-// AssignableTo is equivalent to reflect's AssignableTo.
-func (x ptrType) AssignableTo(u reflect.Type) bool {
-	return x == u
+func (x ptrType) AssignableTo(y reflect.Type) bool {
+	return AssignableTo(x, y)
+}
+
+func (x ptrType) ConvertibleTo(y reflect.Type) bool {
+	return ConvertibleTo(x, y)
 }
 
 func (x ptrType) Elem() reflect.Type {
 	return x.elem
 }
 
-func (x ptrType) Implements(u reflect.Type) bool {
-	if u.Kind() != reflect.Interface {
-		panic("expected reflect.Interface")
-	}
-	return u.NumMethod() == 0
+func (x ptrType) Implements(y reflect.Type) bool {
+	return Implements(x, y)
 }
 
 func (x ptrType) Name() string {

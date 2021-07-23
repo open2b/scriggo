@@ -17,6 +17,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/compiler/types"
 	"github.com/open2b/scriggo/runtime"
 )
 
@@ -858,7 +859,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			panic(tc.errorf(expr, "invalid type assertion: %v (non-interface type %s on left)", expr, t))
 		}
 		typ := tc.checkType(expr.Type)
-		if typ.Type.Kind() != reflect.Interface && !tc.types.Implements(typ.Type, t.Type) {
+		if typ.Type.Kind() != reflect.Interface && !types.Implements(typ.Type, t.Type) {
 			panic(tc.errorf(expr, "%s", tc.errTypeAssertion(typ.Type, t.Type)))
 		}
 		return &typeInfo{
@@ -1736,7 +1737,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call) []*typeInfo {
 			if c == nil {
 				c = tc.checkExpr(arg)
 			}
-			if callIsVariadic && i == len(args)-1 && (c.Nil() || tc.types.AssignableTo(c.Type, t.Type.In(numIn-1))) {
+			if callIsVariadic && i == len(args)-1 && (c.Nil() || types.AssignableTo(c.Type, t.Type.In(numIn-1))) {
 				have += "..." + t.Type.In(numIn-1).Elem().String()
 			} else if c.Nil() {
 				have += "nil"
@@ -1889,7 +1890,7 @@ func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *typeInfo {
 					err = errTypeConversion
 				}
 			case t.Type.Kind() == reflect.Interface:
-				if !tc.types.Implements(arg.Type, t.Type) {
+				if !types.Implements(arg.Type, t.Type) {
 					err = errTypeConversion
 				}
 			default:
@@ -1902,7 +1903,7 @@ func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *typeInfo {
 	case arg.Untyped():
 		_, err = tc.convert(arg, expr.Args[0], t.Type)
 	default:
-		if !tc.types.ConvertibleTo(arg.Type, t.Type) {
+		if !types.ConvertibleTo(arg.Type, t.Type) {
 			err = errTypeConversion
 		}
 	}

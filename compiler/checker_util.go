@@ -17,6 +17,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/compiler/types"
 	"github.com/open2b/scriggo/runtime"
 )
 
@@ -369,16 +370,7 @@ func (tc *typechecker) isAssignableTo(x *typeInfo, expr ast.Expression, t reflec
 		}
 		return err
 	}
-	if x.Type == t {
-		return nil
-	}
-	if t.Kind() == reflect.Interface {
-		if !tc.types.Implements(x.Type, t) {
-			return newInvalidTypeInAssignment(x, expr, t)
-		}
-		return nil
-	}
-	if !tc.types.AssignableTo(x.Type, t) {
+	if !types.AssignableTo(x.Type, t) {
 		return newInvalidTypeInAssignment(x, expr, t)
 	}
 	return nil
