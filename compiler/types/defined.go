@@ -36,34 +36,16 @@ func (x definedType) Name() string {
 	return x.name
 }
 
-// AssignableTo is equivalent to reflect's AssignableTo.
-func (x definedType) AssignableTo(u reflect.Type) bool {
-
-	// Both x and u are Scriggo defined types: x is assignable to u only if
-	// they are the same type.
-	if T, ok := u.(definedType); ok {
-		return x == T
-	}
-
-	// x is a Scriggo defined type and u is not a defined type: x is
-	// assignable to u only if the underlying type of x is assignable to u.
-	if !isDefinedType(u) {
-		return x.Type.AssignableTo(u)
-	}
-
-	// x is a Scriggo defined type and u is a Go defined type: assignment is
-	// always impossible.
-	return false
-
+func (x definedType) AssignableTo(y reflect.Type) bool {
+	return AssignableTo(x, y)
 }
 
-func (x definedType) Implements(u reflect.Type) bool {
-	if u.Kind() != reflect.Interface {
-		panic("expected reflect.Interface")
-	}
-	// TODO: currently methods definition is not supported, so every defined
-	// type implements only the empty interface.
-	return u.NumMethod() == 0
+func (x definedType) ConvertibleTo(y reflect.Type) bool {
+	return ConvertibleTo(x, y)
+}
+
+func (x definedType) Implements(y reflect.Type) bool {
+	return Implements(x, y)
 }
 
 func (x definedType) MethodByName(string) (reflect.Method, bool) {

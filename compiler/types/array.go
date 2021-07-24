@@ -31,20 +31,20 @@ type arrayType struct {
 	elem         reflect.Type // array element, always a Scriggo type
 }
 
-// AssignableTo is equivalent to reflect's AssignableTo.
-func (x arrayType) AssignableTo(u reflect.Type) bool {
-	return x == u
+func (x arrayType) AssignableTo(y reflect.Type) bool {
+	return AssignableTo(x, y)
+}
+
+func (x arrayType) ConvertibleTo(y reflect.Type) bool {
+	return ConvertibleTo(x, y)
 }
 
 func (x arrayType) Elem() reflect.Type {
 	return x.elem
 }
 
-func (x arrayType) Implements(u reflect.Type) bool {
-	if u.Kind() != reflect.Interface {
-		panic("expected reflect.Interface")
-	}
-	return u.NumMethod() == 0
+func (x arrayType) Implements(y reflect.Type) bool {
+	return Implements(x, y)
 }
 
 func (x arrayType) Name() string {

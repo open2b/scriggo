@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/compiler/types"
 	"github.com/open2b/scriggo/runtime"
 )
 
@@ -640,7 +641,7 @@ nodesLoop:
 			if len(node.Expressions) == 1 {
 				if call, ok := node.Expressions[0].(*ast.Call); ok {
 					tis := tc.checkCallExpression(call)
-					if len(tis) == 2 && tc.types.Implements(tis[1].Type, errorType) {
+					if len(tis) == 2 && types.Implements(tis[1].Type, errorType) {
 						// Change the tree:
 						//
 						//     from: {{ f(..) }}

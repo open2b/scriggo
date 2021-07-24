@@ -43,9 +43,12 @@ type mapType struct {
 	key, elem reflect.Type
 }
 
-// AssignableTo is equivalent to reflect's AssignableTo.
-func (x mapType) AssignableTo(u reflect.Type) bool {
-	return x == u
+func (x mapType) AssignableTo(y reflect.Type) bool {
+	return AssignableTo(x, y)
+}
+
+func (x mapType) ConvertibleTo(y reflect.Type) bool {
+	return ConvertibleTo(x, y)
 }
 
 func (x mapType) Elem() reflect.Type {
@@ -55,11 +58,8 @@ func (x mapType) Elem() reflect.Type {
 	return x.Type.Elem()
 }
 
-func (x mapType) Implements(u reflect.Type) bool {
-	if u.Kind() != reflect.Interface {
-		panic("expected reflect.Interface")
-	}
-	return u.NumMethod() == 0
+func (x mapType) Implements(y reflect.Type) bool {
+	return Implements(x, y)
 }
 
 func (x mapType) Name() string {

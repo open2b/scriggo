@@ -78,9 +78,12 @@ type structType struct {
 	scriggoFields *map[int]reflect.StructField
 }
 
-// AssignableTo is equivalent to reflect's AssignableTo.
-func (x structType) AssignableTo(u reflect.Type) bool {
-	return x == u
+func (x structType) AssignableTo(y reflect.Type) bool {
+	return AssignableTo(x, y)
+}
+
+func (x structType) ConvertibleTo(y reflect.Type) bool {
+	return ConvertibleTo(x, y)
 }
 
 func (x structType) Field(i int) reflect.StructField {
@@ -107,11 +110,8 @@ func (x structType) FieldByNameFunc(match func(string) bool) (reflect.StructFiel
 	panic("TODO: not implemented") // TODO(Gianluca): to implement.
 }
 
-func (x structType) Implements(u reflect.Type) bool {
-	if u.Kind() != reflect.Interface {
-		panic("expected reflect.Interface")
-	}
-	return u.NumMethod() == 0
+func (x structType) Implements(y reflect.Type) bool {
+	return Implements(x, y)
 }
 
 func (x structType) Name() string {

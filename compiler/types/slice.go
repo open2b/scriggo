@@ -27,20 +27,20 @@ type sliceType struct {
 	elem reflect.Type
 }
 
-// AssignableTo is equivalent to reflect's AssignableTo.
-func (x sliceType) AssignableTo(u reflect.Type) bool {
-	return x == u
+func (x sliceType) AssignableTo(y reflect.Type) bool {
+	return AssignableTo(x, y)
+}
+
+func (x sliceType) ConvertibleTo(y reflect.Type) bool {
+	return ConvertibleTo(x, y)
 }
 
 func (x sliceType) Elem() reflect.Type {
 	return x.elem
 }
 
-func (x sliceType) Implements(u reflect.Type) bool {
-	if u.Kind() != reflect.Interface {
-		panic("expected reflect.Interface")
-	}
-	return u.NumMethod() == 0
+func (x sliceType) Implements(y reflect.Type) bool {
+	return Implements(x, y)
 }
 
 func (x sliceType) Name() string {
