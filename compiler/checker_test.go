@@ -448,6 +448,7 @@ var checkerExprs = []struct {
 	{`append([]byte{}, "abc"...)`, tiByteSlice(), nil},
 	{`append([]string{}, "a", "b", "c")`, tiStringSlice(), nil},
 	{`append([]string{}, []string{"a", "b", "c"}...)`, tiStringSlice(), nil},
+	{`append([]int{}, T{1, 2, 3}...)`, tiIntSlice(), map[string]*typeInfo{"T": {Type: reflect.TypeOf(definedIntSlice{}), Properties: propertyIsType}}},
 	{`append(s, 1, 2, 3)`, tiIntSlice(), map[string]*typeInfo{"s": tiIntSlice()}},
 	{`append(s, 1, 2, 3)`, tiDefinedIntSlice, map[string]*typeInfo{"s": tiDefinedIntSlice}},
 	{`append(s, 1.0, 2.0, 3.0)`, tiDefinedIntSlice, map[string]*typeInfo{"s": tiDefinedIntSlice}},
