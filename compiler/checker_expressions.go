@@ -1885,7 +1885,7 @@ func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *typeInfo {
 			case k == reflect.Slice && argKind == reflect.String:
 				// As a special case, a string constant can be explicitly converted
 				// to a slice of runes or bytes.
-				if elem := t.Type.Elem(); elem != uint8Type && elem != int32Type {
+				if elem := t.Type.Elem().Kind(); elem != reflect.Uint8 && elem != reflect.Int32 {
 					err = errTypeConversion
 				}
 			case t.Type.Kind() == reflect.Interface:

@@ -28,6 +28,8 @@ func tierr(line, column int, text string) *CheckingError {
 type definedBool bool
 type definedInt int
 type definedString string
+type definedByte byte
+type definedRune rune
 type definedIntSlice []int
 type definedIntSlice2 []int
 type definedByteSlice []byte
@@ -387,6 +389,8 @@ var checkerExprs = []struct {
 	{`string(-1)`, tiStringConst(string(rune(-1))), nil},
 	{`[]byte("abc")`, &typeInfo{Type: reflect.SliceOf(uint8Type)}, nil},
 	{`[]rune("abc")`, &typeInfo{Type: reflect.SliceOf(int32Type)}, nil},
+	{`[]Byte("abc")`, &typeInfo{Type: reflect.SliceOf(reflect.TypeOf(definedByte(0)))}, map[string]*typeInfo{"Byte": {Type: reflect.TypeOf(definedByte(0)), Properties: propertyIsType}}},
+	{`[]Rune("abc")`, &typeInfo{Type: reflect.SliceOf(reflect.TypeOf(definedRune(0)))}, map[string]*typeInfo{"Rune": {Type: reflect.TypeOf(definedRune(0)), Properties: propertyIsType}}},
 
 	// Conversions ( typed constants )
 	{`int(a)`, tiIntConst(5), map[string]*typeInfo{"a": tiIntConst(5)}},
