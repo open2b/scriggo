@@ -31,7 +31,6 @@ type definedString string
 type definedIntSlice []int
 type definedIntSlice2 []int
 type definedByteSlice []byte
-type definedStringSlice []byte
 type definedStringMap map[string]string
 type definedStruct struct{ F int }
 type definedStructPointer *struct{ F int }
@@ -490,7 +489,7 @@ var checkerExprs = []struct {
 	{`copy([]byte{0}, "a")`, tiInt(), nil},
 	{`copy(s1, s2)`, tiInt(), map[string]*typeInfo{
 		"s1": {Type: reflect.TypeOf(definedByteSlice{})},
-		"s2": {Type: reflect.TypeOf(definedStringSlice{})},
+		"s2": {Type: reflect.TypeOf(definedString(""))},
 	}},
 
 	// new
