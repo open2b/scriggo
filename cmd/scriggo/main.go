@@ -8,6 +8,7 @@ package main
 
 import (
 	"bytes"
+	_embed "embed"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -18,8 +19,6 @@ import (
 	_path "path"
 	"path/filepath"
 	"runtime"
-	"sort"
-	"strconv"
 	"strings"
 
 	"golang.org/x/mod/modfile"
@@ -27,8 +26,8 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-//go:generate go run ./sources_gen
-var sources map[string][]byte
+//go:embed generate.go help.go main.go parser.go run.go serve.go util.go
+var sources _embed.FS
 
 func main() {
 
@@ -616,41 +615,22 @@ func _build(cmd string, path string, flags buildFlags) error {
 	}
 
 	// Create the other files.
-	var b bytes.Buffer
-	b.WriteString(sourcesHeaader)
-	names := make([]string, 0, len(sources))
-	for name := range sources {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	for _, name := range names {
-		src := sources[name]
-		srcPath := filepath.Join(dir, name)
-		err = ioutil.WriteFile(srcPath, src, 0666)
+	files, _ := sources.ReadDir(".")
+	for _, file := range files {
+		path := filepath.Join(dir, file.Name())
+		dst, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0666)
 		if err != nil {
-			return fmt.Errorf("scriggo: can't write file %s: %s", srcPath, err)
+			return fmt.Errorf("scriggo: can't open file %s: %s", path, err)
 		}
-		b.WriteString("\tsources[")
-		b.WriteString(strconv.Quote(name))
-		b.WriteString("] = []byte(`")
-		src = bytes.ReplaceAll(src, []byte("`"), []byte("` + \"`\" + `"))
-		b.Write(src)
-		b.WriteString("`)\n")
-	}
-	b.WriteString(sourcesFooter)
-	sourcesPath := filepath.Join(dir, "sources.go")
-	dest, err := os.OpenFile(sourcesPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
-	if err != nil {
-		return fmt.Errorf("scriggo: can't open file %s: %s", sourcesPath, err)
-	}
-	defer dest.Close()
-	_, err = b.WriteTo(dest)
-	if err != nil {
-		return fmt.Errorf("scriggo: can't write file %s: %s", sourcesPath, err)
-	}
-	err = dest.Close()
-	if err != nil {
-		return fmt.Errorf("scriggo: can't write file %s: %s", sourcesPath, err)
+		src, _ := sources.Open(file.Name())
+		_, err = io.Copy(dst, src)
+		if err == nil {
+			err = dst.Close()
+		}
+		src.Close()
+		if err != nil {
+			return fmt.Errorf("scriggo: can't write file %s: %s", path, err)
+		}
 	}
 
 	// Execute 'go mod tidy'.
@@ -849,7 +829,6 @@ var stdlibPaths = []string{
 	"debug/macho",
 	"debug/pe",
 	"debug/plan9obj",
-	"embed",
 	"encoding",
 	"encoding/ascii85",
 	"encoding/asn1",
