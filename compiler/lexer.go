@@ -1316,9 +1316,8 @@ LOOP:
 				r, s := utf8.DecodeRune(l.src)
 				if !unicode.IsLetter(r) {
 					if r == BOM {
-						if l.line == 1 && l.column == 1 {
-							l.src = l.src[1:]
-							l.column++
+						if first := len(l.src) == len(l.text); first {
+							l.src = l.src[utf8.RuneLen(BOM):]
 							continue LOOP
 						}
 						return l.errorf(bomErrorMsg)

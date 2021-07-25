@@ -136,10 +136,6 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			// Skip BOM.
-			if bytes.HasPrefix(src, BOM) {
-				src = src[len(BOM):]
-			}
 			ext := filepath.Ext(path)
 			// Print output before running the test.
 			if *stat && !*verbose {
@@ -456,6 +452,9 @@ func isBuildConstraints(line string) bool {
 //  // skip : enable when bug Y will be fixed
 //
 func readMode(src []byte, ext string) (string, []string, error) {
+	if bytes.HasPrefix(src, BOM) {
+		src = src[len(BOM):]
+	}
 	switch ext {
 	case ".go", ".script":
 		for _, l := range strings.Split(string(src), "\n") {
