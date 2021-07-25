@@ -1062,13 +1062,13 @@ LOOP:
 				continue LOOP
 			}
 			if len(l.src) > 1 && l.src[1] == '*' {
+				l.src = l.src[2:]
 				p := bytes.Index(l.src, []byte("*/"))
 				if p == -1 {
 					return l.errorf("comment not terminated")
 				}
-				p += 2
-				nl := bytes.Index(l.src[2:p], []byte("\n"))
-				l.src = l.src[p:]
+				nl := bytes.Index(l.src[:p], []byte("\n"))
+				l.src = l.src[p+2:]
 				if nl >= 0 {
 					if endLineAsSemicolon {
 						l.emit(tokenSemicolon, 0)

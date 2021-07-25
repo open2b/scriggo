@@ -12,7 +12,12 @@ import (
 // This too.
 
 func main() {
+
+	/**/
+
 	i := 0
+
+	/*****/
 
 	fmt.Println(i)
 	i++
