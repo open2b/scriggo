@@ -62,14 +62,14 @@ func run() {
 		fsys := scriggo.NewFileFS(filepath.Base(file), main)
 		program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+			_, _ = fmt.Fprintln(os.Stderr, err)
 			os.Exit(2)
 		}
 		if *asm {
 			asm, _ := program.Disassemble("main")
 			_, err := os.Stdout.Write(asm)
 			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+				_, _ = fmt.Fprintln(os.Stderr, err)
 				os.Exit(2)
 			}
 		} else {
@@ -81,7 +81,7 @@ func run() {
 				if err == context.DeadlineExceeded {
 					err = errors.New("process took too long")
 				}
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+				_, _ = fmt.Fprintln(os.Stderr, err)
 				os.Exit(2)
 			}
 			os.Exit(code)
@@ -91,14 +91,14 @@ func run() {
 
 		script, err := scripts.Build(bytes.NewReader(main), &scripts.BuildOptions{Packages: packages})
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+			_, _ = fmt.Fprintln(os.Stderr, err)
 			os.Exit(2)
 		}
 		if *asm {
 			asm := script.Disassemble()
 			_, err := os.Stdout.Write(asm)
 			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+				_, _ = fmt.Fprintln(os.Stderr, err)
 				os.Exit(2)
 			}
 		} else {
@@ -110,7 +110,7 @@ func run() {
 				if err == context.DeadlineExceeded {
 					err = errors.New("process took too long")
 				}
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+				_, _ = fmt.Fprintln(os.Stderr, err)
 				os.Exit(2)
 			}
 			os.Exit(code)
