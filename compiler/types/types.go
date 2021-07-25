@@ -185,7 +185,7 @@ func Implements(x, y reflect.Type) bool {
 }
 
 // identical reports whether the types x and y, or their underlying types if
-// underlying is true, are identical. If skipTags is true, the tags are
+// underlying is true, are identical. If ignoreTags is true, the tags are
 // ignored.
 func identical(x, y reflect.Type, underlying, ignoreTags bool) bool {
 
