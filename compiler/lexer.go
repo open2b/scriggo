@@ -15,6 +15,9 @@ import (
 	"github.com/open2b/scriggo/compiler/ast"
 )
 
+const BOM rune = 0xfeff
+const bomErrorMsg = "invalid BOM in the middle of the file"
+
 // scanProgram scans a program file and returns a lexer.
 func scanProgram(text []byte) *lexer {
 	tokens := make(chan token, 20)
@@ -1048,9 +1051,12 @@ LOOP:
 			}
 		case '/':
 			if len(l.src) > 1 && l.src[1] == '/' {
-				p := bytes.Index(l.src, []byte("\n"))
+				p := bytes.IndexAny(l.src, "\n"+string(BOM))
 				if p == -1 {
 					break LOOP
+				}
+				if l.src[p] != '\n' {
+					return l.errorf(bomErrorMsg)
 				}
 				l.src = l.src[p:]
 				if endLineAsSemicolon {
@@ -1067,7 +1073,10 @@ LOOP:
 				if p == -1 {
 					return l.errorf("comment not terminated")
 				}
-				nl := bytes.Index(l.src[:p], []byte("\n"))
+				nl := bytes.IndexAny(l.src[:p], "\n"+string(BOM))
+				if nl >= 0 && l.src[nl] != '\n' {
+					return l.errorf(bomErrorMsg)
+				}
 				l.src = l.src[p+2:]
 				if nl >= 0 {
 					if endLineAsSemicolon {
@@ -1306,6 +1315,14 @@ LOOP:
 			} else {
 				r, s := utf8.DecodeRune(l.src)
 				if !unicode.IsLetter(r) {
+					if r == BOM {
+						if l.line == 1 && l.column == 1 {
+							l.src = l.src[1:]
+							l.column++
+							continue LOOP
+						}
+						return l.errorf(bomErrorMsg)
+					}
 					if unicode.IsPrint(r) {
 						return l.errorf("invalid character %U '%c'", r, r)
 					}
@@ -1742,6 +1759,8 @@ LOOP:
 			if r == utf8.RuneError && s == 1 {
 				l.src = l.src[p:]
 				return l.errorf("invalid UTF-8 encoding")
+			} else if r == BOM {
+				return l.errorf(bomErrorMsg)
 			}
 			p += s
 			cols++
@@ -1777,6 +1796,8 @@ STRING:
 			if r == utf8.RuneError && s == 1 {
 				l.src = l.src[p:]
 				return l.errorf("invalid UTF-8 encoding")
+			} else if r == BOM {
+				return l.errorf(bomErrorMsg)
 			}
 			p += s
 			l.column++
@@ -1866,6 +1887,8 @@ func (l *lexer) lexRuneLiteral() error {
 		r, s := utf8.DecodeRune(l.src[1:])
 		if r == utf8.RuneError && s == 1 {
 			return l.errorf("invalid UTF-8 encoding")
+		} else if r == BOM {
+			return l.errorf(bomErrorMsg)
 		}
 		p = s + 1
 	}

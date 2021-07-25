@@ -27,6 +27,8 @@ import (
 	"github.com/rogpeppe/go-internal/imports"
 )
 
+var BOM = []byte("\ufeff")
+
 const (
 	colorInfo  = "\033[1;34m"
 	colorBad   = "\033[1;31m"
@@ -133,6 +135,10 @@ func main() {
 			src, err := ioutil.ReadFile(path)
 			if err != nil {
 				panic(err)
+			}
+			// Skip BOM.
+			if bytes.HasPrefix(src, BOM) {
+				src = src[len(BOM):]
 			}
 			ext := filepath.Ext(path)
 			// Print output before running the test.

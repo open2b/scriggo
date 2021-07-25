@@ -1,0 +1,15 @@
+﻿{# errorcheck #}
+
+{{ `c﻿ d` }} // ERROR `invalid BOM in the middle of the file`
+
+{% _ = "a ﻿b" %} // ERROR `invalid BOM in the middle of the file`
+
+{%% ﻿ %%} // ERROR `invalid BOM in the middle of the file`
+
+{# this ﻿ is allowed #}
+
+﻿ {# this is also allowed #}
+
+{% raw %}
+  {% ﻿ %} {# this is also allowed #}
+{% end %}
