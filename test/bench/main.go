@@ -7,11 +7,11 @@
 package main
 
 import (
-	"bytes"
 	"embed"
 	"fmt"
 	"io/fs"
 	"os"
+	_path "path"
 	"strings"
 	"testing"
 
@@ -63,8 +63,12 @@ func build() ([]programToRun, error) {
 			return nil
 		}
 		if strings.Contains(path, "/") {
-			data, _ := tests.ReadFile(path)
-			program, err := scriggo.Build(bytes.NewReader(data), nil)
+			d := _path.Dir(path)
+			fsys, err := fs.Sub(tests, d)
+			if err != nil {
+				return err
+			}
+			program, err := scriggo.Build(fsys, nil)
 			if err != nil {
 				return fmt.Errorf("cannot build %s: %s", path, err)
 			}
@@ -81,7 +85,8 @@ func build() ([]programToRun, error) {
 		}
 		arch := txtar.Parse(tests)
 		for _, file := range arch.Files {
-			program, err := scriggo.Build(bytes.NewReader(file.Data), nil)
+			fsys := scriggo.NewFileFS("main.go", file.Data)
+			program, err := scriggo.Build(fsys, nil)
 			if err != nil {
 				return fmt.Errorf("cannot build %s/%s: %s", path, file.Name, err)
 			}

@@ -7,6 +7,7 @@
 package test
 
 import (
+	"io"
 	"strings"
 	"testing"
 
@@ -97,7 +98,12 @@ func TestProgramImport(t *testing.T) {
 			if err != nil {
 				panic(err)
 			}
-			program, err := scriggo.Build(main.(*strings.Reader), &scriggo.BuildOptions{Packages: packages})
+			src, err := io.ReadAll(main.(*strings.Reader))
+			if err != nil {
+				panic(err)
+			}
+			fsys := scriggo.NewFileFS("main.go", src)
+			program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
 			if err != nil {
 				t.Errorf("compiling error: %s", err)
 				return

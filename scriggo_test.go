@@ -8,7 +8,6 @@ package scriggo
 
 import (
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/open2b/scriggo/compiler"
@@ -67,7 +66,8 @@ func TestIssue523(t *testing.T) {
 	func main() {
 		fmt.Println("hello")
 	}`
-	_, _ = Build(strings.NewReader(src), nil)
+	fsys := NewFileFS("main.go", []byte(src))
+	_, _ = Build(fsys, nil)
 }
 
 func Test_LimitExceededError(t *testing.T) {
@@ -377,7 +377,8 @@ func main() {
 	var v300 int ; _ = v300
 }
 	`
-	_, err := Build(strings.NewReader(src), nil)
+	fsys := NewFileFS("main.go", []byte(src))
+	_, err := Build(fsys, nil)
 	if err == nil {
 		t.Fatal("Expectend a LimitExceededError, got nothing")
 	} else {

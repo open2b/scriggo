@@ -90,7 +90,12 @@ func main() {
 			src = main.(io.Reader)
 			opts.Packages = scriggo.CombinedLoader{dir, opts.Packages}
 		}
-		program, err := scriggo.Build(src, opts)
+		data, err := io.ReadAll(src)
+		if err != nil {
+			panic(err)
+		}
+		fsys := scriggo.NewFileFS("main.go", data)
+		program, err := scriggo.Build(fsys, opts)
 		if err != nil {
 			_, _ = fmt.Fprint(os.Stderr, err)
 			os.Exit(1)

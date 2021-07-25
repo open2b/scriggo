@@ -8,7 +8,6 @@ package test
 
 import (
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/open2b/scriggo"
@@ -43,7 +42,8 @@ func TestIssue403(t *testing.T) {
 		func main() {
 			pkg.Value.Method()
 		}`
-		program, err := scriggo.Build(strings.NewReader(main), &scriggo.BuildOptions{Packages: packages})
+		fsys := scriggo.NewFileFS("main.go", []byte(main))
+		program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -72,7 +72,8 @@ func TestIssue403(t *testing.T) {
 			t := pkg.Type{}
 			t.Method()
 		}`
-		program, err := scriggo.Build(strings.NewReader(main), &scriggo.BuildOptions{Packages: packages})
+		fsys := scriggo.NewFileFS("main.go", []byte(main))
+		program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -103,7 +104,8 @@ func TestIssue403(t *testing.T) {
 			pkg.F(t)
 		}
 		`
-		program, err := scriggo.Build(strings.NewReader(main), &scriggo.BuildOptions{Packages: packages})
+		fsys := scriggo.NewFileFS("main.go", []byte(main))
+		program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -134,7 +136,8 @@ func TestIssue403(t *testing.T) {
 			pkg.F(a)
 		}
 		`
-		program, err := scriggo.Build(strings.NewReader(main), &scriggo.BuildOptions{Packages: packages})
+		fsys := scriggo.NewFileFS("main.go", []byte(main))
+		program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -167,7 +170,8 @@ func TestIssue309(t *testing.T) {
 		)
 
 		func main() { }`
-		_, err := scriggo.Build(strings.NewReader(main), &scriggo.BuildOptions{Packages: packages})
+		fsys := scriggo.NewFileFS("main.go", []byte(main))
+		_, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
 		if err == nil {
 			t.Fatal("unexpected nil error")
 		}

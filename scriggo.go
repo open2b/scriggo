@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"reflect"
 
 	"github.com/open2b/scriggo/compiler"
@@ -50,17 +51,22 @@ type Program struct {
 	globals []compiler.Global
 }
 
-// Build builds a Go program with the given options, loading the imported
-// packages from packages.
+var ErrTooManyGoFiles = compiler.ErrTooManyGoFiles
+var ErrNoGoFiles = compiler.ErrNoGoFiles
+
+// Build builds a Go program from the package in the root of fsys with the
+// given options, loading the imported packages from packages.
+//
+// Current limitation: fsys can contain only one Go file in its root.
 //
 // If a compilation error occurs, it returns a CompilerError error.
-func Build(src io.Reader, options *BuildOptions) (*Program, error) {
+func Build(fsys fs.FS, options *BuildOptions) (*Program, error) {
 	co := compiler.Options{}
 	if options != nil {
 		co.DisallowGoStmt = options.DisallowGoStmt
 		co.Packages = options.Packages
 	}
-	code, err := compiler.BuildProgram(src, co)
+	code, err := compiler.BuildProgram(fsys, co)
 	if err != nil {
 		return nil, err
 	}
