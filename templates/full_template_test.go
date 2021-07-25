@@ -8,13 +8,12 @@ package templates
 
 import (
 	"bytes"
+	"os"
 	"testing"
-
-	"github.com/open2b/scriggo/fs"
 )
 
 func TestFullTemplate(t *testing.T) {
-	fsys := fs.DirFS("./full_template_test")
+	fsys := os.DirFS("./full_template_test")
 	for name, expectedOutput := range expectedFilesOutput {
 		t.Run(name, func(t *testing.T) {
 			template, err := Build(fsys, name, nil)

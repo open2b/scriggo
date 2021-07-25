@@ -11,13 +11,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"reflect"
 	"sort"
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/compiler"
 	"github.com/open2b/scriggo/compiler/ast"
-	"github.com/open2b/scriggo/fs"
 	"github.com/open2b/scriggo/runtime"
 )
 

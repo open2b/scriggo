@@ -9,13 +9,13 @@ package compiler
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
 	"github.com/open2b/scriggo/compiler/ast"
-	"github.com/open2b/scriggo/fs"
 )
 
 // FormatFS is the interface implemented by a file system that can determine

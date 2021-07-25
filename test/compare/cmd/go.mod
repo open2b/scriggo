@@ -4,7 +4,7 @@ replace github.com/open2b/scriggo => ../../../
 
 replace testpkg => ../testpkg
 
-go 1.14
+go 1.16
 
 require (
 	github.com/open2b/scriggo v0.0.0

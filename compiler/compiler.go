@@ -20,11 +20,11 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"reflect"
 
 	"github.com/open2b/scriggo/compiler/ast"
-	"github.com/open2b/scriggo/fs"
 	"github.com/open2b/scriggo/runtime"
 )
 

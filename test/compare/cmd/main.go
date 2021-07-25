@@ -12,12 +12,12 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/open2b/scriggo"
-	"github.com/open2b/scriggo/fs"
 	"github.com/open2b/scriggo/runtime"
 	"github.com/open2b/scriggo/scripts"
 	"github.com/open2b/scriggo/templates"
@@ -127,7 +127,7 @@ func main() {
 			}
 			fsys = templates.MapFS{"index" + ext: string(src)}
 		case "rundir":
-			fsys = fs.DirFS(flag.Arg(2))
+			fsys = os.DirFS(flag.Arg(2))
 		}
 		opts := templates.BuildOptions{
 			Globals:           globals,

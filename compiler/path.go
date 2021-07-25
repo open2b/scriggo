@@ -8,11 +8,11 @@ package compiler
 
 import (
 	"bytes"
+	"io/fs"
 	"strings"
 	"unicode"
 
 	"github.com/open2b/scriggo/compiler/ast"
-	"github.com/open2b/scriggo/fs"
 )
 
 // validatePackagePath validates path at the position pos and panics if path

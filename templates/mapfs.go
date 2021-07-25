@@ -8,10 +8,9 @@ package templates
 
 import (
 	"io"
+	"io/fs"
 	"os"
 	"time"
-
-	"github.com/open2b/scriggo/fs"
 )
 
 // MapFS implements a file system that read the files from a map.

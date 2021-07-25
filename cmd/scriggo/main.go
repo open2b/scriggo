@@ -802,21 +802,8 @@ func execGoCommand(dir string, args ...string) (out io.Reader, err error) {
 // stdLibPaths returns a copy of stdlibPaths with the packages for the runtime
 // Go version.
 func stdLibPaths() []string {
-	version := goBaseVersion(runtime.Version())
-	paths := make([]string, 0, len(stdlibPaths))
-	for _, path := range stdlibPaths {
-		switch path {
-		case "embed", "io/fs", "runtime/metrics":
-			if version != "go1.16" {
-				continue
-			}
-		case "time/tzdata":
-			if version != "go1.15" && version != "go1.16" {
-				continue
-			}
-		}
-		paths = append(paths, path)
-	}
+	paths := make([]string, len(stdlibPaths))
+	copy(paths, stdlibPaths)
 	return paths
 }
 
@@ -862,7 +849,7 @@ var stdlibPaths = []string{
 	"debug/macho",
 	"debug/pe",
 	"debug/plan9obj",
-	"embed", // Go version 1.16
+	"embed",
 	"encoding",
 	"encoding/ascii85",
 	"encoding/asn1",
@@ -907,7 +894,7 @@ var stdlibPaths = []string{
 	"image/png",
 	"index/suffixarray",
 	"io",
-	"io/fs", // Go version 1.16
+	"io/fs",
 	"io/ioutil",
 	"log",
 	"log/syslog",
@@ -945,7 +932,7 @@ var stdlibPaths = []string{
 	"regexp/syntax",
 	"runtime",
 	"runtime/debug",
-	"runtime/metrics", // Go version 1.16
+	"runtime/metrics",
 	"runtime/pprof",
 	"runtime/trace",
 	"sort",
@@ -958,7 +945,7 @@ var stdlibPaths = []string{
 	"text/template",
 	"text/template/parse",
 	"time",
-	"time/tzdata", // Go version 1.15
+	"time/tzdata",
 	"unicode",
 	"unicode/utf16",
 	"unicode/utf8",

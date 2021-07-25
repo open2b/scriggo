@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"path"
@@ -20,7 +21,6 @@ import (
 	"time"
 
 	"github.com/open2b/scriggo"
-	"github.com/open2b/scriggo/fs"
 	"github.com/open2b/scriggo/templates"
 	"github.com/open2b/scriggo/templates/builtin"
 
@@ -253,7 +253,7 @@ func newTemplateFS(root string) (*templateFS, error) {
 		return nil, err
 	}
 	dir := &templateFS{
-		fsys:    fs.DirFS(root),
+		fsys:    os.DirFS(root),
 		watcher: watcher,
 		watched: map[string]bool{},
 		Changed: make(chan string),
