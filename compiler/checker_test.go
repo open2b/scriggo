@@ -1333,6 +1333,7 @@ var checkerStmts = map[string]string{
 	`_ = func() int { for { { break } }                                 }`: missingReturn,
 	`_ = func() int { for true { }                                      }`: missingReturn,
 	`_ = func() int { for i := 0; i < 10; i++ { }                       }`: missingReturn,
+	`_ = func() int { for { for { break }  }                            }`: ok,
 
 	// Terminating statements - https://golang.org/ref/spec#Terminating_statements (6)
 	`_ = func() int { switch { case true: return 0; default: return 0 } }`: ok,
