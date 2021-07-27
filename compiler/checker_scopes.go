@@ -27,8 +27,18 @@ type scope struct {
 	// fn is the node of the function that includes the scope.
 	// It is nil in scopes 0, 1 and 2. It is also nil in scope 3 for scripts.
 	fn *ast.Func
+	// labels are the labels declared in the scope of the current function.
+	labels map[string]scopeLabel
 	// names are the declared names in the scope.
 	names map[string]scopeEntry
+}
+
+// scopeLabel is a label in a function scope.
+type scopeLabel struct {
+	// label is the Label node.
+	label *ast.Label
+	// used indicates if it has been used.
+	used bool
 }
 
 // scopeEntry is a scope entry.
@@ -134,6 +144,24 @@ func (s scopes) Declare(name string, ti *typeInfo, node ast.Node) bool {
 	return true
 }
 
+// DeclareLabel declares a label in the scope of the current function. If a
+// label with the same name is already declared in the current function scope,
+// it does nothing and returns false.
+func (s scopes) DeclareLabel(label *ast.Label) bool {
+	i := len(s) - 1
+	name := label.Ident.Name
+	sl := scopeLabel{label: label}
+	if labels := s[i].labels; labels == nil {
+		s[i].labels = map[string]scopeLabel{name: sl}
+		return true
+	}
+	if _, ok := s[i].labels[name]; ok {
+		return false
+	}
+	s[i].labels[name] = sl
+	return true
+}
+
 // Lookup lookups name in all scopes, and returns its type info, its
 // identifier and true. Otherwise it returns nil, nil and false.
 func (s scopes) Lookup(name string) (*typeInfo, *ast.Identifier, bool) {
@@ -147,6 +175,17 @@ func (s scopes) Lookup(name string) (*typeInfo, *ast.Identifier, bool) {
 func (s scopes) LookupInFunc(name string) (*typeInfo, *ast.Identifier, bool) {
 	e, i := s.lookup(name, 4)
 	return e.ti, e.ident, i != -1
+}
+
+// LookupLabel lookups a label in the current function scope and returns the
+// label node and true if it is declared. Otherwise it returns nil and false.
+func (s scopes) LookupLabel(name string) (*ast.Label, bool) {
+	i := len(s) - 1
+	lbl := s[i].labels[name]
+	if lbl.label == nil {
+		return nil, false
+	}
+	return lbl.label, true
 }
 
 // lookup lookups name and returns its entry and scope index in which it is
@@ -169,6 +208,19 @@ func (s scopes) Use(name string) bool {
 		e.used = true
 		s[i].names[name] = e
 		return false
+	}
+	return true
+}
+
+// UseLabel sets the label name as used and returns a boolean indicating
+// whether it was already set as used.
+func (s scopes) UseLabel(name string) bool {
+	if labels := s[len(s)-1].labels; labels != nil {
+		if lbl, ok := labels[name]; ok && !lbl.used {
+			lbl.used = true
+			labels[name] = lbl
+			return false
+		}
 	}
 	return true
 }
@@ -216,6 +268,24 @@ func (s scopes) UnusedImport() *ast.Import {
 	return node
 }
 
+// UnusedLabel returns the declaration of the first unused label, by
+// position in the source, declared in the current function scope. If all
+// labels in the current function scope are used, it returns nil.
+// It returns nil if the current scope is not a function block.
+func (s scopes) UnusedLabel() *ast.Label {
+	i := len(s) - 1
+	if i == 0 || s[i].fn == s[i-1].fn {
+		return nil
+	}
+	var label *ast.Label
+	for _, l := range s[i].labels {
+		if !l.used && (label == nil || l.label.Position.Start < label.Start) {
+			label = l.label
+		}
+	}
+	return label
+}
+
 // CurrentFunction returns the function of the current scope or nil if there
 // is no function. There is no function for the main block of scripts.
 func (s scopes) CurrentFunction() *ast.Func {
@@ -256,10 +326,13 @@ func (s scopes) Functions() []*ast.Func {
 // Enter enters a new scope. If the new scope is the scope of a function body,
 // fn is the node of the function, otherwise fn is nil.
 func (s scopes) Enter(fn *ast.Func) scopes {
+	var labels map[string]scopeLabel
 	if fn == nil {
-		fn = s[len(s)-1].fn
+		sc := s[len(s)-1]
+		fn = sc.fn
+		labels = sc.labels
 	}
-	return append(s, scope{fn: fn})
+	return append(s, scope{fn: fn, labels: labels})
 }
 
 // Exit exits the current scope.

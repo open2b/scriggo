@@ -200,7 +200,6 @@ type typechecker struct {
 	storedGotos     []string
 	nextValidGoto   int
 	storedValidGoto int
-	labels          [][]string
 
 	// types refers the types of the current compilation and it is used to
 	// create and manipulate types and values, both predefined and defined only
@@ -278,7 +277,6 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 // a function body, fn is the node of the function, otherwise fn is nil.
 func (tc *typechecker) enterScope(fn *ast.Func) {
 	tc.scopes = tc.scopes.Enter(fn)
-	tc.labels = append(tc.labels, []string{})
 	tc.storedGotos = tc.gotos
 	tc.gotos = []string{}
 }
@@ -287,12 +285,14 @@ func (tc *typechecker) enterScope(fn *ast.Func) {
 func (tc *typechecker) exitScope() {
 	// Check if some variables declared in the closing scope are still unused.
 	if tc.opts.mod != templateMod {
+		if label := tc.scopes.UnusedLabel(); label != nil {
+			panic(tc.errorf(label, "label %s defined and not used", label.Ident))
+		}
 		if ident := tc.scopes.UnusedVariable(); ident != nil {
 			panic(tc.errorf(ident, "%s declared but not used", ident))
 		}
 	}
 	tc.scopes = tc.scopes.Exit()
-	tc.labels = tc.labels[:len(tc.labels)-1]
 	tc.gotos = append(tc.storedGotos, tc.gotos...)
 	tc.nextValidGoto = tc.storedValidGoto
 }

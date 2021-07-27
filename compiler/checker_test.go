@@ -1645,6 +1645,12 @@ var checkerStmts = map[string]string{
 	`_ = struct{ A int }{C: 10}`:                                                  `unknown field 'C' in struct literal of type struct { A int }`,
 	`type S = struct{A,B int ; C,D float64} ; _ = S{A: 5, B: 10, C: 3.4, D: ""}`:  `cannot use "" (type untyped string) as type float64 in field value`,
 
+	// Labels.
+	`_ = func() { L: for { goto L } }`: ok,
+	`_ = func() { goto L; L: goto L }`: ok,
+	`L: _ = func() { goto L }`:     `label L defined and not used`,
+	`_ = func() { L: for { } }`:        `label L defined and not used`,
+
 	// Breaks.
 	`for { break }`:                                      ok,
 	`for range []int{} { break }`:                        ok,
@@ -1654,6 +1660,12 @@ var checkerStmts = map[string]string{
 	`_ = func() { break }`:                               `break is not in a loop, switch, or select`,
 	`_ = func() { for { break } }`:                       ok,
 	`for { _ = func() { break } }`:                       `break is not in a loop, switch, or select`,
+	`L: for { break L }`:                                 ok,
+	`L: switch { default: for { break L } }`:             ok,
+	`for { break L }`:                                    `break label not defined: L`,
+	`for { break L }; L: for { }`:                        `break label not defined: L`,
+	`L: for { }; for { break L }`:                        `invalid break label L`,
+	`L: ; M: for { break L }`:                            `invalid break label L`,
 
 	// Continues.
 	`for { continue }`:                ok,
@@ -1661,6 +1673,12 @@ var checkerStmts = map[string]string{
 	`_ = func() { continue }`:         `continue is not in a loop`,
 	`_ = func() { for { continue } }`: ok,
 	`for { _ = func() { continue } }`: `continue is not in a loop`,
+	`L: for { continue L }`:           ok,
+	`L: for { for { continue L } }`:   ok,
+	`for { continue L }`:              `continue label not defined: L`,
+	`for { continue L }; L: for { }`:  `continue label not defined: L`,
+	`L: for { }; for { continue L }`:  `invalid continue label L`,
+	`L: ; M: for { continue L }`:      `invalid continue label L`,
 }
 
 type pointInt struct{ X, Y int }

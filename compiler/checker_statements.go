@@ -326,32 +326,58 @@ nodesLoop:
 			tc.terminating = false
 
 		case *ast.Break:
+			var label *ast.Label
+			if node.Label != nil {
+				var ok bool
+				label, ok = tc.scopes.LookupLabel(node.Label.Name)
+				if !ok {
+					panic(tc.errorf(node.Label, "break label not defined: %s", node.Label.Name))
+				}
+			}
 			found := false
 			for i := len(tc.ancestors) - 1; i >= 0 && !found; i-- {
 				switch n := tc.ancestors[i].node.(type) {
 				case *ast.For, *ast.ForRange, *ast.Switch, *ast.TypeSwitch, *ast.Select:
-					tc.hasBreak[n] = true
-					found = true
+					if label == nil || label.Statement == n {
+						tc.hasBreak[n] = true
+						found = true
+					}
 				case *ast.Func:
 					i = -1
 				}
 			}
 			if !found {
+				if label != nil {
+					panic(tc.errorf(node.Label, "invalid break label %s", node.Label.Name))
+				}
 				panic(tc.errorf(node, "break is not in a loop, switch, or select"))
 			}
 			tc.terminating = false
 
 		case *ast.Continue:
+			var label *ast.Label
+			if node.Label != nil {
+				var ok bool
+				label, ok = tc.scopes.LookupLabel(node.Label.Name)
+				if !ok {
+					panic(tc.errorf(node.Label, "continue label not defined: %s", node.Label.Name))
+				}
+			}
 			found := false
 			for i := len(tc.ancestors) - 1; i >= 0 && !found; i-- {
-				switch tc.ancestors[i].node.(type) {
+				switch n := tc.ancestors[i].node.(type) {
 				case *ast.For, *ast.ForRange:
-					found = true
+					if label == nil || label.Statement == n {
+						found = true
+					}
 				case *ast.Func:
 					i = -1
 				}
 			}
 			if !found {
+				if label != nil {
+					panic(tc.errorf(node.Label, "invalid continue label %s", node.Label.Name))
+				}
 				panic(tc.errorf(node, "continue is not in a loop"))
 			}
 			tc.terminating = false
@@ -822,15 +848,17 @@ nodesLoop:
 			ti.setValue(nil)
 
 		case *ast.Goto:
+			tc.scopes.UseLabel(node.Label.Name)
 			tc.gotos = append(tc.gotos, node.Label.Name)
 
 		case *ast.Label:
-			tc.labels[len(tc.labels)-1] = append(tc.labels[len(tc.labels)-1], node.Ident.Name)
+			tc.scopes.DeclareLabel(node)
 			for i, g := range tc.gotos {
 				if g == node.Ident.Name {
 					if i < tc.nextValidGoto {
 						panic(tc.errorf(node, "goto %s jumps over declaration of ? at ?", node.Ident.Name)) // TODO(Gianluca).
 					}
+					tc.scopes.UseLabel(node.Ident.Name)
 					break
 				}
 			}
