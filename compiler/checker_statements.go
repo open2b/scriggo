@@ -332,6 +332,8 @@ nodesLoop:
 				case *ast.For, *ast.ForRange, *ast.Switch, *ast.TypeSwitch, *ast.Select:
 					tc.hasBreak[n] = true
 					found = true
+				case *ast.Func:
+					i = -1
 				}
 			}
 			if !found {
@@ -341,11 +343,12 @@ nodesLoop:
 
 		case *ast.Continue:
 			found := false
-			for i := len(tc.ancestors) - 1; i >= 0; i-- {
+			for i := len(tc.ancestors) - 1; i >= 0 && !found; i-- {
 				switch tc.ancestors[i].node.(type) {
 				case *ast.For, *ast.ForRange:
 					found = true
-					break
+				case *ast.Func:
+					i = -1
 				}
 			}
 			if !found {

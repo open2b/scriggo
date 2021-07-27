@@ -1644,6 +1644,23 @@ var checkerStmts = map[string]string{
 	`type S1 = struct { A int ; B map[string][]int; *int }`:                       ok,
 	`_ = struct{ A int }{C: 10}`:                                                  `unknown field 'C' in struct literal of type struct { A int }`,
 	`type S = struct{A,B int ; C,D float64} ; _ = S{A: 5, B: 10, C: 3.4, D: ""}`:  `cannot use "" (type untyped string) as type float64 in field value`,
+
+	// Breaks.
+	`for { break }`:                                      ok,
+	`for range []int{} { break }`:                        ok,
+	`switch { case true: break }`:                        ok,
+	`switch interface{}(nil).(type) { case nil: break }`: ok,
+	`select { default: break }`:                          ok,
+	`_ = func() { break }`:                               `break is not in a loop, switch, or select`,
+	`_ = func() { for { break } }`:                       ok,
+	`for { _ = func() { break } }`:                       `break is not in a loop, switch, or select`,
+
+	// Continues.
+	`for { continue }`:                ok,
+	`for range []int{} { continue }`:  ok,
+	`_ = func() { continue }`:         `continue is not in a loop`,
+	`_ = func() { for { continue } }`: ok,
+	`for { _ = func() { continue } }`: `continue is not in a loop`,
 }
 
 type pointInt struct{ X, Y int }
