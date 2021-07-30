@@ -1478,7 +1478,7 @@ func (p *parsing) parseEnd(tok token, want, end tokenTyp) token {
 		switch tok.typ {
 		case tokenSemicolon:
 			return p.next()
-		case tokenRightBrace:
+		case tokenRightBrace, tokenEndStatements:
 			return tok
 		}
 		panic(syntaxError(tok.pos, "unexpected %s at end of statement", tok))
