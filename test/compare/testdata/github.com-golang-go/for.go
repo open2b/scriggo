@@ -46,13 +46,13 @@ func main() {
 	}
 	assertequal(sum, 99+9, "only one")
 
-	// sum = 0
-	// for i := 0; i <= 10; i++ {
-	// 	if i % 2 == 0 {
-	// 		continue
-	// 	}
-	// 	sum = sum + i
-	// }
-	// assertequal(sum, 1+3+5+7+9, "continue")
+	sum = 0
+	for i := 0; i <= 10; i++ {
+		if i % 2 == 0 {
+			continue
+		}
+		sum = sum + i
+	}
+	assertequal(sum, 1+3+5+7+9, "continue")
 
 }
