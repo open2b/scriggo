@@ -1383,7 +1383,13 @@ LABEL:
 					p.addNode(node)
 					p.cutSpacesToken = true
 					tok = p.next()
-					if end == tokenEndStatement {
+					switch end {
+					case tokenEOF:
+						if tok.typ == tokenSemicolon && tok.txt != nil {
+							p.removeLastAncestor()
+							tok = p.next()
+						}
+					case tokenEndStatement:
 						if tok.typ == tokenEndStatement || tok.typ == tokenEOF {
 							panic(syntaxError(tok.pos, "missing statement after label"))
 						}

@@ -583,17 +583,14 @@ func TestCheckerExpressions(t *testing.T) {
 				t.Errorf("source: %q, unexpected %s, expecting expression\n", expr.src, tok)
 				return
 			}
-			names := make(map[string]scopeEntry, len(expr.scope))
-			for k, v := range expr.scope {
-				names[k] = scopeEntry{ti: v}
-			}
 			compilation := newCompilation(nil)
 			tc := newTypechecker(compilation, "", checkerOptions{}, nil)
-			if expr.scope != nil {
-				tc.scopes = append(tc.scopes, scope{names: names})
+			for name, ti := range expr.scope {
+				tc.scopes.Declare(name, ti, nil)
 			}
-			tc.enterScope(nil)
+			tc.scopes.Enter(node)
 			ti := tc.checkExpr(node)
+			tc.scopes.Exit()
 			err := equalTypeInfo(expr.ti, ti)
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
@@ -682,17 +679,14 @@ func TestCheckerExpressionErrors(t *testing.T) {
 				t.Errorf("source: %q, unexpected %s, expecting error %q\n", expr.src, tok, expr.err)
 				return
 			}
-			names := make(map[string]scopeEntry, len(expr.scope))
-			for k, v := range expr.scope {
-				names[k] = scopeEntry{ti: v}
-			}
 			compilation := newCompilation(nil)
 			tc := newTypechecker(compilation, "", checkerOptions{}, nil)
-			if expr.scope != nil {
-				tc.scopes = append(tc.scopes, scope{names: names})
+			for name, ti := range expr.scope {
+				tc.scopes.Declare(name, ti, nil)
 			}
-			tc.enterScope(nil)
+			tc.scopes.Enter(node)
 			ti := tc.checkExpr(node)
+			tc.scopes.Exit()
 			t.Errorf("source: %s, unexpected %s, expecting error %q\n", expr.src, ti, expr.err)
 			err := compilation.finalizeUsingStatements(tc)
 			if err != nil {
@@ -1645,6 +1639,32 @@ var checkerStmts = map[string]string{
 	`_ = struct{ A int }{C: 10}`:                                                  `unknown field 'C' in struct literal of type struct { A int }`,
 	`type S = struct{A,B int ; C,D float64} ; _ = S{A: 5, B: 10, C: 3.4, D: ""}`:  `cannot use "" (type untyped string) as type float64 in field value`,
 
+	// Gotos.
+	`L: for { goto L }`:                             ok,
+	`goto L; L: goto L`:                             ok,
+	`L: for { }`:                                    `label L defined and not used`,
+	`_ = func() { L: for { goto L } }`:              ok,
+	`_ = func() { goto L; L: goto L }`:              ok,
+	`L: _ = func() { goto L }`:                      `label L not defined`,
+	`_ = func() { L: for { } }`:                     `label L defined and not used`,
+	`{ goto L }; L: _ = 5`:                          ok,
+	`{ { { goto L } } }; L: _ = 5 `:                 ok,
+	`{ { goto L }; { L: _ = 5 } }`:                  `goto L jumps into block starting at :1:15`,
+	`{ { L: _ = 5 }; { goto L } }`:                  `goto L jumps into block starting at :1:3`,
+	`{ { goto L; _ = func() { L: _ = 5; goto L } }`: `label L not define`,
+	`goto L; a := 1; L: a = 2`:                      `goto L jumps over declaration of a at :1:9`,
+	`goto L; var a = 1; L: a = 2`:                   `goto L jumps over declaration of a at :1:13`,
+	`{ goto L }; var a = 1; L: a = 2`:               `goto L jumps over declaration of a at :1:17`,
+	`goto L; { L: }`:                                `goto L jumps into block starting at :1:9`,
+	`{ L: }; goto L`:                                `goto L jumps into block starting at :1:1`,
+	`goto L; var a = 5; { L: }; _ = a`:              `goto L jumps into block starting at :1:20`,
+	`{ goto L; var a = 1; _ = a }; L: _ = 5`:        ok,
+	`var a = 1; { goto L }; a = 2; L: _ = a`:        ok,
+	`var a = 1; goto L; a = 3; L: _ = a`:            ok,
+	`goto L; const c = 7; L: _ = c`:                 ok,
+	`goto L; type T int; L: var a T; _ = a`:         ok,
+	`L1: goto L3; L2: goto L1; L3: goto L2`:         ok,
+
 	// Breaks.
 	`for { break }`:                                      ok,
 	`for range []int{} { break }`:                        ok,
@@ -1654,13 +1674,31 @@ var checkerStmts = map[string]string{
 	`_ = func() { break }`:                               `break is not in a loop, switch, or select`,
 	`_ = func() { for { break } }`:                       ok,
 	`for { _ = func() { break } }`:                       `break is not in a loop, switch, or select`,
+	`L: for { break L }`:                                 ok,
+	`L: switch { default: for { break L } }`:             ok,
+	`for { break L }`:                                    `break label not defined: L`,
+	`for { break L }; L: for { }`:                        `break label not defined: L`,
+	`L: for { }; for { break L }`:                        `invalid break label L`,
+	`L: ; M: for { break L }`:                            `invalid break label L`,
+	`for { { L: _ = 5 }; break L }`:                      `invalid break label L`,
+	`L: for { { break L } }`:                             ok,
+	`L: ; for { break L }`:                               `invalid break label L`,
 
 	// Continues.
-	`for { continue }`:                ok,
-	`for range []int{} { continue }`:  ok,
-	`_ = func() { continue }`:         `continue is not in a loop`,
-	`_ = func() { for { continue } }`: ok,
-	`for { _ = func() { continue } }`: `continue is not in a loop`,
+	`for { continue }`:                 ok,
+	`for range []int{} { continue }`:   ok,
+	`_ = func() { continue }`:          `continue is not in a loop`,
+	`_ = func() { for { continue } }`:  ok,
+	`for { _ = func() { continue } }`:  `continue is not in a loop`,
+	`L: for { continue L }`:            ok,
+	`L: for { for { continue L } }`:    ok,
+	`for { continue L }`:               `continue label not defined: L`,
+	`for { continue L }; L: for { }`:   `continue label not defined: L`,
+	`L: for { }; for { continue L }`:   `invalid continue label L`,
+	`L: ; M: for { continue L }`:       `invalid continue label L`,
+	`for { { L: _ = 5 }; continue L }`: `invalid continue label L`,
+	`L: for { { continue L } }`:        ok,
+	`L: ; for { continue L }`:          `invalid continue label L`,
 }
 
 type pointInt struct{ X, Y int }
@@ -1670,19 +1708,19 @@ func (p *pointInt) SetX(newX int) {
 }
 
 func TestCheckerStatements(t *testing.T) {
-	names := map[string]scopeEntry{
-		"boolType":   {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf(definedBool(false))}},
-		"aString":    {ti: &typeInfo{Type: reflect.TypeOf(definedString(""))}},
-		"stringType": {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf(definedString(""))}},
-		"aStringMap": {ti: &typeInfo{Type: reflect.TypeOf(definedStringMap{})}},
-		"pointInt":   {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf(pointInt{})}},
-		"aIntChan":   {ti: &typeInfo{Type: reflect.TypeOf(make(chan int))}},
-		"aSliceChan": {ti: &typeInfo{Type: reflect.TypeOf(make(chan []int))}},
-		"ioReader":   {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*io.Reader)(nil)).Elem()}},
-		"osFile":     {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*os.File)(nil)).Elem()}},
-		"noRead1":    {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*noRead1)(nil)).Elem()}},
-		"noRead2":    {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*noRead2)(nil)).Elem()}},
-		"noRead3":    {ti: &typeInfo{Properties: propertyIsType, Type: reflect.TypeOf((*noRead3)(nil)).Elem()}},
+	names := map[string]*typeInfo{
+		"boolType":   {Properties: propertyIsType, Type: reflect.TypeOf(definedBool(false))},
+		"aString":    {Type: reflect.TypeOf(definedString(""))},
+		"stringType": {Properties: propertyIsType, Type: reflect.TypeOf(definedString(""))},
+		"aStringMap": {Type: reflect.TypeOf(definedStringMap{})},
+		"pointInt":   {Properties: propertyIsType, Type: reflect.TypeOf(pointInt{})},
+		"aIntChan":   {Type: reflect.TypeOf(make(chan int))},
+		"aSliceChan": {Type: reflect.TypeOf(make(chan []int))},
+		"ioReader":   {Properties: propertyIsType, Type: reflect.TypeOf((*io.Reader)(nil)).Elem()},
+		"osFile":     {Properties: propertyIsType, Type: reflect.TypeOf((*os.File)(nil)).Elem()},
+		"noRead1":    {Properties: propertyIsType, Type: reflect.TypeOf((*noRead1)(nil)).Elem()},
+		"noRead2":    {Properties: propertyIsType, Type: reflect.TypeOf((*noRead2)(nil)).Elem()},
+		"noRead3":    {Properties: propertyIsType, Type: reflect.TypeOf((*noRead3)(nil)).Elem()},
 	}
 	for src, expectedError := range checkerStmts {
 		func() {
@@ -1710,10 +1748,12 @@ func TestCheckerStatements(t *testing.T) {
 			}
 			compilation := newCompilation(nil)
 			tc := newTypechecker(compilation, "", checkerOptions{mod: programMod}, nil)
-			tc.scopes = append(tc.scopes, scope{names: names})
-			tc.enterScope(nil)
+			for name, ti := range names {
+				tc.scopes.Declare(name, ti, nil)
+			}
+			tc.scopes.Enter(nil)
 			tree.Nodes = tc.checkNodes(tree.Nodes)
-			tc.exitScope()
+			tc.scopes.Exit()
 			err = compilation.finalizeUsingStatements(tc)
 			if err != nil {
 				t.Fatal(err)
@@ -2348,12 +2388,13 @@ func TestFunctionUpVars(t *testing.T) {
 	for src, expected := range cases {
 		compilation := newCompilation(nil)
 		tc := newTypechecker(compilation, "", checkerOptions{}, nil)
-		tc.enterScope(nil)
+		tc.scopes.Enter(nil)
 		tree, err := parseSource([]byte(src), true)
 		if err != nil {
 			t.Error(err)
 		}
 		tree.Nodes = tc.checkNodes(tree.Nodes)
+		//tc.scopes.Exit()
 		fn := tree.Nodes[len(tree.Nodes)-1].(*ast.Assignment).Rhs[0].(*ast.Func)
 		got := make([]string, len(fn.Upvars))
 		for i := range fn.Upvars {
@@ -2396,100 +2437,3 @@ func sameTypeCheckError(err1, err2 *CheckingError) error {
 	return nil
 }
 
-func TestGotoLabels(t *testing.T) {
-	cases := []struct {
-		name     string
-		src      string
-		errorMsg string
-	}{
-		{"Simple backward goto",
-			`package main
-
-			func main() {
-			L:
-				goto L
-			}
-			`, ""},
-
-		{"Simple forward goto",
-			`package main
-
-			func main() {
-				goto L
-			L:
-			}
-			`, ""},
-
-		{"Goto jumping over constant declaration",
-			`package main
-		
-			func main() {
-				goto L
-				const A = 10
-			L:
-				println(A)
-			}`,
-			"",
-		},
-
-		{"Goto jumping over variable declaration",
-			`package main
-		
-			func main() {
-				goto L
-				var A = 10
-			L:
-				println(A)
-			}`, "goto L jumps over declaration of ? at ?"},
-
-		{"Goto jumping over variable declaration (2)",
-			`package main
-
-			func invalid() {
-				goto next
-				a := 10
-			next:
-			}`, "goto next jumps over declaration of ? at ?"},
-
-		{"Goto jumping over variable assignment",
-			`
-			package main
-			
-			func valid() {
-				var a = 10
-				goto next
-				a = 10
-			next:
-				_ = a
-			}
-
-			func main() {
-				
-			}
-			`, ""},
-	}
-	for _, cas := range cases {
-		t.Run(cas.name, func(t *testing.T) {
-			tree, err := parseSource([]byte(cas.src), false)
-			if err != nil {
-				t.Error(err)
-				return
-			}
-			err = checkPackage(newCompilation(nil), tree.Nodes[0].(*ast.Package), tree.Path, nil, checkerOptions{mod: programMod})
-			switch {
-			case err == nil && cas.errorMsg == "":
-				// Ok.
-			case err == nil && cas.errorMsg != "":
-				t.Errorf("%s: expecting error %q, got nothing", cas.name, cas.errorMsg)
-			case err != nil && cas.errorMsg == "":
-				t.Errorf("%s: unexpected error %q", cas.name, err)
-			case err != nil && cas.errorMsg != "":
-				if strings.Contains(err.Error(), cas.errorMsg) {
-					// Ok.
-				} else {
-					t.Errorf("%s: expecting error %q, got %q", cas.name, cas.errorMsg, err)
-				}
-			}
-		})
-	}
-}

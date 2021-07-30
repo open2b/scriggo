@@ -1,5 +1,3 @@
-// skip : infinite loop https://github.com/open2b/scriggo/issues/83
-
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -26,4 +24,5 @@ L1:
 	}
 
 	goto L
+	goto L1
 }

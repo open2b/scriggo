@@ -1,5 +1,3 @@
-// skip : errors on labels are not implemented https://github.com/open2b/scriggo/issues/83
-
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -21,4 +19,6 @@ func main() {
 			break L1;  // ERROR "L1"
 		}
 	}
+	goto L
+	goto L1
 }

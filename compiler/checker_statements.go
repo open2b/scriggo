@@ -100,20 +100,20 @@ func iteaHasBeenShadowed(nodes []ast.Node) bool {
 
 // checkNodesInNewScopeError calls checkNodesInNewScope returning checking errors.
 func (tc *typechecker) checkNodesInNewScopeError(nodes []ast.Node) ([]ast.Node, error) {
-	tc.enterScope(nil)
+	tc.scopes.Enter(nil)
 	nodes, err := tc.checkNodesError(nodes)
 	if err != nil {
 		return nil, err
 	}
-	tc.exitScope()
+	tc.scopes.Exit()
 	return nodes, nil
 }
 
 // checkNodesInNewScope type checks nodes in a new scope. Panics on error.
-func (tc *typechecker) checkNodesInNewScope(nodes []ast.Node) []ast.Node {
-	tc.enterScope(nil)
+func (tc *typechecker) checkNodesInNewScope(block ast.Node, nodes []ast.Node) []ast.Node {
+	tc.scopes.Enter(block)
 	nodes = tc.checkNodes(nodes)
-	tc.exitScope()
+	tc.scopes.Exit()
 	return nodes
 }
 
@@ -162,13 +162,13 @@ nodesLoop:
 		case *ast.Text:
 
 		case *ast.Block:
-			node.Nodes = tc.checkNodesInNewScope(node.Nodes)
+			node.Nodes = tc.checkNodesInNewScope(node, node.Nodes)
 
 		case *ast.Statements:
 			node.Nodes = tc.checkNodes(node.Nodes)
 
 		case *ast.If:
-			tc.enterScope(nil)
+			tc.scopes.Enter(node)
 			if node.Init != nil {
 				tc.checkNodes([]ast.Node{node.Init})
 			}
@@ -196,24 +196,24 @@ nodesLoop:
 				}
 			}
 			ti.setValue(nil)
-			node.Then.Nodes = tc.checkNodesInNewScope(node.Then.Nodes)
+			node.Then.Nodes = tc.checkNodesInNewScope(node.Then, node.Then.Nodes)
 			terminating := tc.terminating
 			if node.Else == nil {
 				terminating = false
 			} else {
 				switch els := node.Else.(type) {
 				case *ast.Block:
-					els.Nodes = tc.checkNodesInNewScope(els.Nodes)
+					els.Nodes = tc.checkNodesInNewScope(els, els.Nodes)
 				case *ast.If:
 					_ = tc.checkNodes([]ast.Node{els})
 				}
 				terminating = terminating && tc.terminating
 			}
-			tc.exitScope()
+			tc.scopes.Exit()
 			tc.terminating = terminating
 
 		case *ast.For:
-			tc.enterScope(nil)
+			tc.scopes.Enter(node)
 			tc.addToAncestors(node)
 			if node.Init != nil {
 				tc.checkNodes([]ast.Node{node.Init})
@@ -228,9 +228,9 @@ nodesLoop:
 			if node.Post != nil {
 				tc.checkNodes([]ast.Node{node.Post})
 			}
-			node.Body = tc.checkNodesInNewScope(node.Body)
+			node.Body = tc.checkNodesInNewScope(node, node.Body)
 			tc.removeLastAncestor()
-			tc.exitScope()
+			tc.scopes.Exit()
 			tc.terminating = node.Condition == nil && !tc.hasBreak[node]
 
 		case *ast.ForIn:
@@ -260,7 +260,7 @@ nodesLoop:
 			continue
 
 		case *ast.ForRange:
-			tc.enterScope(nil)
+			tc.scopes.Enter(node)
 			tc.addToAncestors(node)
 			// Check range expression.
 			expr := node.Assignment.Rhs[0]
@@ -313,45 +313,54 @@ nodesLoop:
 					tc.obsoleteForRangeAssign(node.Assignment, lhs[1], valuePh, nil, declaration, false)
 				}
 			}
-			node.Body = tc.checkNodesInNewScope(node.Body)
+			node.Body = tc.checkNodesInNewScope(node, node.Body)
 			tc.removeLastAncestor()
-			tc.exitScope()
+			tc.scopes.Exit()
 			tc.terminating = !tc.hasBreak[node]
 
 		case *ast.Assignment:
 			tc.checkGenericAssignmentNode(node)
-			if node.Type == ast.AssignmentDeclaration {
-				tc.nextValidGoto = len(tc.gotos)
-			}
 			tc.terminating = false
 
 		case *ast.Break:
 			found := false
+			label := tc.scopes.UseLabel("break", node.Label)
 			for i := len(tc.ancestors) - 1; i >= 0 && !found; i-- {
-				switch n := tc.ancestors[i].node.(type) {
+				switch n := tc.ancestors[i].(type) {
 				case *ast.For, *ast.ForRange, *ast.Switch, *ast.TypeSwitch, *ast.Select:
-					tc.hasBreak[n] = true
-					found = true
+					if label == nil || label.Statement == n {
+						tc.hasBreak[n] = true
+						found = true
+					}
 				case *ast.Func:
 					i = -1
 				}
 			}
 			if !found {
+				if label != nil {
+					panic(tc.errorf(node.Label, "invalid break label %s", node.Label.Name))
+				}
 				panic(tc.errorf(node, "break is not in a loop, switch, or select"))
 			}
 			tc.terminating = false
 
 		case *ast.Continue:
 			found := false
+			label := tc.scopes.UseLabel("continue", node.Label)
 			for i := len(tc.ancestors) - 1; i >= 0 && !found; i-- {
-				switch tc.ancestors[i].node.(type) {
+				switch n := tc.ancestors[i].(type) {
 				case *ast.For, *ast.ForRange:
-					found = true
+					if label == nil || label.Statement == n {
+						found = true
+					}
 				case *ast.Func:
 					i = -1
 				}
 			}
 			if !found {
+				if label != nil {
+					panic(tc.errorf(node.Label, "invalid continue label %s", node.Label.Name))
+				}
 				panic(tc.errorf(node, "continue is not in a loop"))
 			}
 			tc.terminating = false
@@ -359,7 +368,7 @@ nodesLoop:
 		case *ast.Fallthrough:
 			outOfPlace := true
 			if len(tc.ancestors) > 0 {
-				parent := tc.ancestors[len(tc.ancestors)-1].node
+				parent := tc.ancestors[len(tc.ancestors)-1]
 				if cas, ok := parent.(*ast.Case); ok {
 					nn := len(nodes)
 				CASE:
@@ -381,7 +390,7 @@ nodesLoop:
 						}
 						fallthrough
 					case nn - 1:
-						parent = tc.ancestors[len(tc.ancestors)-2].node
+						parent = tc.ancestors[len(tc.ancestors)-2]
 						switch sw := parent.(type) {
 						case *ast.Switch:
 							if cas == sw.Cases[len(sw.Cases)-1] {
@@ -413,7 +422,7 @@ nodesLoop:
 			tc.terminating = true
 
 		case *ast.Switch:
-			tc.enterScope(nil)
+			tc.scopes.Enter(node)
 			tc.addToAncestors(node)
 			// Check the init.
 			if node.Init != nil {
@@ -494,23 +503,23 @@ nodesLoop:
 					}
 					tcase.setValue(texpr.Type)
 				}
-				tc.enterScope(nil)
+				tc.scopes.Enter(cas)
 				tc.addToAncestors(cas)
 				cas.Body = tc.checkNodes(cas.Body)
 				tc.removeLastAncestor()
-				tc.exitScope()
+				tc.scopes.Exit()
 				if !hasFallthrough && len(cas.Body) > 0 {
 					_, hasFallthrough = cas.Body[len(cas.Body)-1].(*ast.Fallthrough)
 				}
 				terminating = terminating && (tc.terminating || hasFallthrough)
 			}
 			tc.removeLastAncestor()
-			tc.exitScope()
+			tc.scopes.Exit()
 			tc.terminating = terminating && !tc.hasBreak[node] && positionOfDefault != nil
 
 		case *ast.TypeSwitch:
 			terminating := true
-			tc.enterScope(nil)
+			tc.scopes.Enter(node)
 			tc.addToAncestors(node)
 			if node.Init != nil {
 				// TODO: this type assertion should be removed/handled differently.
@@ -537,7 +546,7 @@ nodesLoop:
 			var positionOfNil *ast.Position
 			positionOf := map[reflect.Type]*ast.Position{}
 			for _, cas := range node.Cases {
-				tc.enterScope(nil)
+				tc.scopes.Enter(cas)
 				tc.addToAncestors(cas)
 				if cas.Expressions == nil {
 					if positionOfDefault != nil {
@@ -575,18 +584,18 @@ nodesLoop:
 				cas.Body = tc.checkNodes(cas.Body)
 				used := name != "" && tc.scopes.Use(name)
 				tc.removeLastAncestor()
-				tc.exitScope()
+				tc.scopes.Exit()
 				if used {
 					tc.scopes.Use(name)
 				}
 				terminating = terminating && tc.terminating
 			}
 			tc.removeLastAncestor()
-			tc.exitScope()
+			tc.scopes.Exit()
 			tc.terminating = terminating && !tc.hasBreak[node] && positionOfDefault != nil
 
 		case *ast.Select:
-			tc.enterScope(nil)
+			tc.scopes.Enter(node)
 			tc.addToAncestors(node)
 			// Check the cases.
 			terminating := true
@@ -614,11 +623,11 @@ nodesLoop:
 				case *ast.Send:
 					_ = tc.checkNodes([]ast.Node{comm})
 				}
-				cas.Body = tc.checkNodesInNewScope(cas.Body)
+				cas.Body = tc.checkNodesInNewScope(node, cas.Body)
 				terminating = terminating && tc.terminating
 			}
 			tc.removeLastAncestor()
-			tc.exitScope()
+			tc.scopes.Exit()
 			tc.terminating = terminating && !tc.hasBreak[node]
 
 		case *ast.Const:
@@ -627,7 +636,6 @@ nodesLoop:
 
 		case *ast.Var:
 			tc.checkVariableDeclaration(node)
-			tc.nextValidGoto = len(tc.gotos)
 			tc.terminating = false
 
 		case *ast.TypeDeclaration:
@@ -822,18 +830,10 @@ nodesLoop:
 			ti.setValue(nil)
 
 		case *ast.Goto:
-			tc.gotos = append(tc.gotos, node.Label.Name)
+			tc.scopes.UseLabel("goto", node.Label)
 
 		case *ast.Label:
-			tc.labels[len(tc.labels)-1] = append(tc.labels[len(tc.labels)-1], node.Ident.Name)
-			for i, g := range tc.gotos {
-				if g == node.Ident.Name {
-					if i < tc.nextValidGoto {
-						panic(tc.errorf(node, "goto %s jumps over declaration of ? at ?", node.Ident.Name)) // TODO(Gianluca).
-					}
-					break
-				}
-			}
+			tc.scopes.DeclareLabel(node)
 			if node.Statement != nil {
 				_ = tc.checkNodes([]ast.Node{node.Statement})
 			}
@@ -1066,7 +1066,7 @@ func (tc *typechecker) makeMacroResultExplicit(macro *ast.Func) {
 // checkFunc checks a function.
 func (tc *typechecker) checkFunc(node *ast.Func) {
 
-	tc.enterScope(node)
+	tc.scopes.Enter(node)
 	tc.addToAncestors(node)
 
 	// Adds parameters to the function body scope.
@@ -1130,7 +1130,7 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 		panic(tc.errorf(node, "missing return at end of function"))
 	}
 	tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
-	tc.exitScope()
+	tc.scopes.Exit()
 }
 
 // checkReturn type checks a return statement.
