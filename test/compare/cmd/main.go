@@ -21,6 +21,13 @@ import (
 	"github.com/open2b/scriggo/runtime"
 	"github.com/open2b/scriggo/scripts"
 	"github.com/open2b/scriggo/templates"
+
+	// Do not remove this import.
+	// Otherwise, if the file 'predefPkgs.go' has not been populated by 'go
+	// generate', running 'go mod tidy' cleans up the 'go.mod' removing the
+	// dependency from the module 'testpkg' (as it is not used elsewhere in
+	// this module) and the next 'go generate' fails.
+	_ "testpkg"
 )
 
 //go:generate scriggo embed -v -o predefPkgs.go
