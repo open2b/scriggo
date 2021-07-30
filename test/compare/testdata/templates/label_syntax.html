@@ -1,5 +1,8 @@
 {# errorcheck #}
 
 {% A: %}  // ERROR `missing statement after label`
+{% A: ; %}  // ERROR `unexpected semicolon, expecting for, switch or select`
 {% A: B: %}  // ERROR `unexpected B, expecting for, switch or select`
+{% A: if true %}{% end %}  // ERROR `unexpected if, expecting for, switch or select`
+
 {% A: if true %}{% end %}  // ERROR `unexpected if, expecting for, switch or select`

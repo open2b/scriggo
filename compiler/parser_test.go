@@ -604,6 +604,12 @@ var goContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 1, 0, 3), "LOOP"),
 				ast.NewBlock(p(1, 7, 6, 7), nil)),
 		}, ast.FormatText)},
+	{"LOOP: ; {}",
+		ast.NewTree("", []ast.Node{
+			ast.NewLabel(p(1, 1, 0, 4),
+				ast.NewIdentifier(p(1, 1, 0, 3), "LOOP"), nil),
+			ast.NewBlock(p(1, 9, 8, 9), nil),
+		}, ast.FormatText)},
 	{"{LOOP:}",
 		ast.NewTree("", []ast.Node{
 			ast.NewBlock(p(1, 1, 0, 6), []ast.Node{

@@ -1389,6 +1389,12 @@ LABEL:
 						}
 						goto LABEL
 					}
+					if tok.typ == tokenSemicolon && tok.txt != nil {
+						p.removeLastAncestor()
+						tok = p.next()
+					} else if tok.typ == tokenEndStatements {
+						p.removeLastAncestor()
+					}
 					return tok
 				case tokenIdentifier:
 					if end == tokenEndStatement {
