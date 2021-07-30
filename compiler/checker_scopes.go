@@ -193,7 +193,7 @@ func (scopes *scopes) DeclareLabel(label *ast.Label) {
 	}
 
 	for _, g := range lbl.gotos {
-		if i := c-4; len(g.blocks) <= i  || g.blocks[i] != current.block {
+		if i := c - 4; len(g.blocks) <= i || g.blocks[i] != current.block {
 			panic(checkError(scopes.path, g.pos, "goto %s jumps into block starting at %s:%s",
 				name, scopes.path, current.block))
 		}

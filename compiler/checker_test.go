@@ -2436,4 +2436,3 @@ func sameTypeCheckError(err1, err2 *CheckingError) error {
 	}
 	return nil
 }
-
