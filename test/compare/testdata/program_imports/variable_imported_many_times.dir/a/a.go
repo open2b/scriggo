@@ -1,8 +1,8 @@
 package a
 
 import (
-	"c"
 	"fmt"
+	"variable_imported_many_times.dir/c"
 )
 
 func init() {

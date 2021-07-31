@@ -1,5 +1,5 @@
 package main
 
-import _ "a"
+import _ "import_blank.dir/a"
 
 func main() { }

@@ -2,7 +2,7 @@ package main
 
 import "fmt"
 
-import "pkg1"
+import "pkg_init_order.dir/pkg1"
 
 var MainA = MainB * 2
 var MainB = 100

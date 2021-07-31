@@ -11,14 +11,14 @@ import (
 	"testing"
 
 	"github.com/open2b/scriggo/compiler/ast"
-	"github.com/open2b/scriggo/compiler/internal/mapfs"
+	"github.com/open2b/scriggo/internal/mapfs"
 
 	"github.com/google/go-cmp/cmp"
 )
 
 var cycleProgramTests = []struct {
 	name    string
-	program mapStringLoader
+	program mapfs.MapFS
 	path    string
 	pos     ast.Position
 	msg     string
@@ -26,11 +26,12 @@ var cycleProgramTests = []struct {
 
 	{
 		name: "Package import cycle",
-		program: mapStringLoader{
-			"main":       "package main\nimport _ \"cycle/foo\"\nfunc main() {}",
-			"cycle/foo":  "package foo\nimport _ \"cycle/foo2\"",
-			"cycle/foo2": "package foo2\nimport _ \"cycle/foo3\"",
-			"cycle/foo3": "package foo3\nimport _ \"cycle/foo\"",
+		program: mapfs.MapFS{
+			"go.mod":       "module cycle",
+			"main.go":      "package main\nimport _ \"cycle/foo\"\nfunc main() {}",
+			"foo/foo.go":   "package foo\nimport _ \"cycle/foo2\"",
+			"foo2/foo2.go": "package foo2\nimport _ \"cycle/foo3\"",
+			"foo3/foo3.go": "package foo3\nimport _ \"cycle/foo\"",
 		},
 		path: "cycle/foo",
 		pos:  ast.Position{Line: 2, Column: 8, Start: 20, End: 32},
@@ -43,9 +44,10 @@ var cycleProgramTests = []struct {
 
 	{
 		name: "Package that imports itself",
-		program: mapStringLoader{
-			"main":      "package main\nimport _ \"cycle/foo\"\nfunc main() {}",
-			"cycle/foo": "package foo\nimport _ \"cycle/foo\"",
+		program: mapfs.MapFS{
+			"go.mod":     "module cycle",
+			"main.go":    "package main\nimport _ \"cycle/foo\"\nfunc main() {}",
+			"foo/foo.go": "package foo\nimport _ \"cycle/foo\"",
 		},
 		path: "cycle/foo",
 		pos:  ast.Position{Line: 2, Column: 8, Start: 19, End: 31},

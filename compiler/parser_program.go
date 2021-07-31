@@ -7,21 +7,30 @@
 package compiler
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
+	"strings"
 
 	"github.com/open2b/scriggo/compiler/ast"
 )
 
-// ParseProgram parses a program reading its sources from loaders.
-func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
+var ErrTooManyGoFiles = errors.New("too many Go files")
+var ErrNoGoFiles = errors.New("no Go files")
+
+// ParseProgram parses a program.
+func ParseProgram(fsys fs.FS) (*ast.Tree, error) {
+
+	modPath, err := readModulePath(fsys)
+	if err != nil {
+		return nil, err
+	}
+	modPrefix := modPath + "/"
 
 	trees := map[string]*ast.Tree{}
-	predefined := map[string]bool{}
-
 	main := ast.NewImport(nil, nil, "main")
-
 	imports := []*ast.Import{main}
 
 	for len(imports) > 0 {
@@ -29,89 +38,76 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
 		last := len(imports) - 1
 		n := imports[last]
 
-		// Check if it has already been loaded.
+		// Check if it has already been parsed.
 		if tree, ok := trees[n.Path]; ok {
 			n.Tree = tree
 			imports = imports[:last]
 			continue
 		}
-		if _, ok := predefined[n.Path]; ok {
-			imports = imports[:last]
-			continue
-		}
 
-		// Load the package.
-		if packages == nil {
-			return nil, syntaxError(n.Pos(), "cannot find package %q", n.Path)
+		// Parse the package.
+		dir := "."
+		if n.Path != "main" {
+			dir = strings.TrimPrefix(n.Path, modPrefix)
 		}
-		pkg, err := packages.Load(n.Path)
+		n.Tree, err = parsePackage(fsys, dir)
 		if err != nil {
 			return nil, err
 		}
-		if pkg == nil {
-			return nil, syntaxError(n.Pos(), "cannot find package %q", n.Path)
+		if n.Tree == nil {
+			if n.Path == "main" {
+				return nil, errors.New("cannot find main package")
+			}
+			return nil, syntaxError(n.Position, "cannot find package %q", n.Path)
+		}
+		n.Tree.Path = n.Path
+		trees[n.Path] = n.Tree
+
+		if modPath == "" {
+			return main.Tree, nil
 		}
 
-		switch pkg := pkg.(type) {
-		case predefinedPackage:
-			predefined[n.Path] = true
-		case io.Reader:
-			src, err := ioutil.ReadAll(pkg)
-			if r, ok := pkg.(io.Closer); ok {
-				_ = r.Close()
+		// Parse the import declarations within the module.
+		declarations := n.Tree.Nodes[0].(*ast.Package).Declarations
+		for _, decl := range declarations {
+			imp, ok := decl.(*ast.Import)
+			if !ok {
+				break
 			}
-			if err != nil {
-				return nil, err
-			}
-			n.Tree, err = parseSource(src, false)
-			if err != nil {
-				return nil, err
-			}
-			n.Tree.Path = n.Path
-			trees[n.Path] = n.Tree
-			declarations := n.Tree.Nodes[0].(*ast.Package).Declarations
-			// Parse the import declarations in the tree.
-			for _, decl := range declarations {
-				imp, ok := decl.(*ast.Import)
-				if !ok {
-					break
-				}
-				if tree, ok := trees[imp.Path]; ok {
-					// Check if there is a cycle.
-					for i, p := range imports {
-						if p.Path == imp.Path {
-							// There is a cycle.
-							err := &CycleError{
-								path: p.Path,
-								pos:  *(imp.Pos()),
-							}
-							err.msg = "package "
-							for i, imp = range imports {
-								if i > 0 {
-									err.msg += "\n\timports "
-								}
-								err.msg += imp.Path
-							}
-							err.msg += "\n\timports " + p.Path + ": import cycle not allowed"
-							return nil, err
+			if tree, ok := trees[imp.Path]; ok {
+				// Check if there is a cycle.
+				for i, p := range imports {
+					if p.Path == imp.Path {
+						// There is a cycle.
+						err := &CycleError{
+							path: p.Path,
+							pos:  *(imp.Pos()),
 						}
-					}
-					imp.Tree = tree
-				} else if predefined[imp.Path] {
-					// Skip.
-				} else {
-					// Append the imports in reverse order.
-					if last == len(imports)-1 {
-						imports = append(imports, imp)
-					} else {
-						imports = append(imports, nil)
-						copy(imports[last+2:], imports[last+1:])
-						imports[last+1] = imp
+						err.msg = "package "
+						for i, imp = range imports {
+							if i > 0 {
+								err.msg += "\n\timports "
+							}
+							err.msg += imp.Path
+						}
+						err.msg += "\n\timports " + p.Path + ": import cycle not allowed"
+						return nil, err
 					}
 				}
+				imp.Tree = tree
+				continue
 			}
-		default:
-			panic("scriggo: unexpected type from package loader")
+			if !strings.HasPrefix(imp.Path, modPrefix) {
+				continue
+			}
+			// Append the imports in reverse order.
+			if last == len(imports)-1 {
+				imports = append(imports, imp)
+			} else {
+				imports = append(imports, nil)
+				copy(imports[last+2:], imports[last+1:])
+				imports[last+1] = imp
+			}
 		}
 
 		if last == len(imports)-1 {
@@ -121,6 +117,46 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
 	}
 
 	return main.Tree, nil
+}
+
+// parsePackage parses a package at the given directory in fsys.
+func parsePackage(fsys fs.FS, dir string) (*ast.Tree, error) {
+	files, err := fs.ReadDir(fsys, dir)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			err = nil
+		}
+		return nil, err
+	}
+	var name string
+	for _, file := range files {
+		if file.Type().IsRegular() && strings.HasSuffix(file.Name(), ".go") {
+			if name != "" {
+				return nil, ErrTooManyGoFiles
+			}
+			if dir != "." {
+				name = dir + "/"
+			}
+			name += file.Name()
+		}
+	}
+	if name == "" {
+		return nil, ErrNoGoFiles
+	}
+	fi, err := fsys.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	src, err := ioutil.ReadAll(fi)
+	_ = fi.Close()
+	if err != nil {
+		return nil, err
+	}
+	tree, err := parseSource(src, false)
+	if err != nil {
+		return nil, err
+	}
+	return tree, nil
 }
 
 // ParseScript parses a script reading its source from src and the imported
@@ -164,4 +200,24 @@ func ParseScript(src io.Reader, packages PackageLoader) (*ast.Tree, error) {
 	}
 
 	return tree, nil
+}
+
+func readModulePath(fsys fs.FS) (string, error) {
+	fi, err := fsys.Open("go.mod")
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return "", nil
+		}
+		return "", err
+	}
+	src, err := ioutil.ReadAll(fi)
+	_ = fi.Close()
+	if err != nil {
+		return "", err
+	}
+	path := modulePath(src)
+	if path == "" {
+		return "", errNoModulePath
+	}
+	return path, nil
 }

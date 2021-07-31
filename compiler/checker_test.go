@@ -1766,8 +1766,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 		p.Env1(1)
 		p.EnvVar(1,2,3,4,5)
 	}`
-	predefined := predefinedPackages{"p": p}
-	tree, err := ParseProgram(loaders(mapStringLoader{"main": main}, predefined))
+	tree, err := ParseProgram(NewFileFS("main.go", []byte(main)))
 	if err != nil {
 		t.Errorf("TestCheckerRemoveEnv returned parser error: %s", err)
 		return
@@ -1775,6 +1774,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 	opts := checkerOptions{
 		mod: programMod,
 	}
+	predefined := predefinedPackages{"p": p}
 	_, err = typecheck(tree, predefined, opts)
 	if err != nil {
 		t.Errorf("TestCheckerRemoveEnv returned type check error: %s", err)

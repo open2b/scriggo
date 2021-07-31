@@ -18,13 +18,10 @@ package compiler
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"reflect"
-	"strings"
 
 	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/runtime"
@@ -73,9 +70,6 @@ type Options struct {
 // Declarations.
 type Declarations map[string]interface{}
 
-var ErrTooManyGoFiles = errors.New("too many Go files")
-var ErrNoGoFiles = errors.New("no Go files")
-
 // BuildProgram builds a Go program from the package in the root of fsys with
 // the given options, loading the imported packages from packages.
 //
@@ -84,47 +78,11 @@ var ErrNoGoFiles = errors.New("no Go files")
 // If a compilation error occurs, it returns a CompilerError error.
 func BuildProgram(fsys fs.FS, opts Options) (*Code, error) {
 
-	var tree *ast.Tree
-
-	files, err := fs.ReadDir(fsys, ".")
-	if err != nil {
-		return nil, err
-	}
-	var name string
-	for _, file := range files {
-		if file.Type().IsRegular() && strings.HasSuffix(file.Name(), ".go") {
-			if name != "" {
-				return nil, ErrTooManyGoFiles
-			}
-			name = file.Name()
-		}
-	}
-	if name == "" {
-		return nil, ErrNoGoFiles
-	}
-	src, err := fsys.Open(name)
-	if err != nil {
-		return nil, err
-	}
-	defer src.Close()
-
-	mainSrc, err := ioutil.ReadAll(src)
-	if err != nil {
-		return nil, err
-	}
-
 	// Parse the source code.
-	tree, err = ParseProgram(mainCombiner{mainSrc, opts.Packages})
+	tree, err := ParseProgram(fsys)
 	if err != nil {
-		switch e := err.(type) {
-		case *SyntaxError:
-			e.path = name
-		case *CycleError:
-			e.path = name
-		}
 		return nil, err
 	}
-	_ = src.Close()
 
 	// Transform the tree.
 	if opts.TreeTransformer != nil {
@@ -142,9 +100,6 @@ func BuildProgram(fsys fs.FS, opts Options) (*Code, error) {
 	}
 	tci, err := typecheck(tree, opts.Packages, checkerOpts)
 	if err != nil {
-		if e, ok := err.(*CheckingError); ok {
-			e.path = name
-		}
 		return nil, err
 	}
 	typeInfos := map[ast.Node]*typeInfo{}
@@ -157,9 +112,6 @@ func BuildProgram(fsys fs.FS, opts Options) (*Code, error) {
 	// Emit the code.
 	code, err := emitProgram(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars)
 	if err != nil {
-		if e, ok := err.(*LimitExceededError); ok {
-			e.path = name
-		}
 		return nil, err
 	}
 

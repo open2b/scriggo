@@ -1,6 +1,6 @@
 package main
 
-import "pkg"
+import "import1.dir/pkg"
 
 func main() {
 	pkg.F()

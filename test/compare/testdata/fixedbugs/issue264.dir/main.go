@@ -1,6 +1,6 @@
 package main
 
-import . "b"
+import . "issue.dir/b"
 
 func main() {
 	B()

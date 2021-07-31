@@ -88,20 +88,16 @@ func main() {
 		opts := &scriggo.BuildOptions{}
 		opts.DisallowGoStmt = *disallowGoStmt
 		opts.Packages = predefPkgs
+		var fsys fs.FS
 		if cmd == "rundir" {
-			dir := dirLoader(flag.Arg(2))
-			main, err := dir.Load("main")
+			fsys = os.DirFS(flag.Arg(2))
+		} else {
+			data, err := io.ReadAll(src)
 			if err != nil {
 				panic(err)
 			}
-			src = main.(io.Reader)
-			opts.Packages = scriggo.CombinedLoader{dir, opts.Packages}
+			fsys = scriggo.NewFileFS("main.go", data)
 		}
-		data, err := io.ReadAll(src)
-		if err != nil {
-			panic(err)
-		}
-		fsys := scriggo.NewFileFS("main.go", data)
 		program, err := scriggo.Build(fsys, opts)
 		if err != nil {
 			_, _ = fmt.Fprint(os.Stderr, err)

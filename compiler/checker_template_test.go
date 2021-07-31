@@ -15,7 +15,7 @@ import (
 	"testing"
 
 	"github.com/open2b/scriggo/compiler/ast"
-	"github.com/open2b/scriggo/compiler/internal/mapfs"
+	"github.com/open2b/scriggo/internal/mapfs"
 	"github.com/open2b/scriggo/runtime"
 )
 

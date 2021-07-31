@@ -1,7 +1,7 @@
 package main
 
 import "fmt"
-import "b"
+import "struct_cmp.dir/b"
 
 var A1 = struct{ F int }{}
 

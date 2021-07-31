@@ -932,9 +932,15 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	if isPrecompiled := impor.Tree == nil; isPrecompiled {
 
 		// Load the precompiled package.
+		if tc.precompiledPkgs == nil {
+			return tc.errorf(impor, "cannot find package %q", impor.Path)
+		}
 		pkg, err := tc.precompiledPkgs.Load(impor.Path)
 		if err != nil {
 			return tc.errorf(impor, "%s", err)
+		}
+		if pkg == nil {
+			return tc.errorf(impor, "cannot find package %q", impor.Path)
 		}
 		precompiledPkg := pkg.(predefinedPackage)
 		if precompiledPkg.Name() == "main" {
