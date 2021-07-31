@@ -3,7 +3,6 @@
 package main
 
 import (
-	"strings"
 	"syscall/js"
 
 	"github.com/open2b/scriggo"
@@ -62,7 +61,8 @@ func main() {
 			}
 		}
 		go func() {
-			program, err := scriggo.Build(strings.NewReader(src), &scriggo.BuildOptions{Packages: packages})
+			fsys := scriggo.NewFileFS("main.go", []byte(src))
+			program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
 			if cb.IsNull() || cb.IsUndefined() {
 				return
 			}
