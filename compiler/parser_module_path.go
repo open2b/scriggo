@@ -6,13 +6,8 @@ package compiler
 
 import (
 	"bytes"
-	"errors"
 	"strconv"
 )
-
-var errNoModulePath = errors.New(
-	"no module declaration in go.mod. To specify the module path:\n" +
-		"\tgo mod edit -module=example.com/mod")
 
 var (
 	slashSlash = []byte("//")

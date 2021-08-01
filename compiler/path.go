@@ -15,6 +15,57 @@ import (
 	"github.com/open2b/scriggo/compiler/ast"
 )
 
+// validModulePath reports whether path is a valid module path.
+// See https://golang.org/ref/mod#go-mod-file-ident
+func validModulePath(path string) bool {
+	i := 0 // first element index
+	j := 0
+	for {
+		for j < len(path) {
+			c := path[j]
+			if c == '/' {
+				break
+			}
+			if c < '-' || '9' < c && c < 'A' || 'Z' < c && c != '_' && c < 'a' || 'z' < c && c != '~' {
+				return false
+			}
+			j++
+		}
+		if i == j || path[i] == '.' || path[j-1] == '.' || reservedWindowsName(path[i:j]) {
+			return false
+		}
+		if j == len(path) {
+			return true
+		}
+		j++
+		i = j
+	}
+}
+
+// reservedWindowsName reports whether name is a reserved Windows name.
+// See https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+func reservedWindowsName(name string) bool {
+	if h := strings.Index(name, "."); h >= 0 {
+		name = name[:h]
+	}
+	reserved := "CON PRN AUX NUL"
+	if len(name) == 4 {
+		if n := name[3]; n < '0' || n > '9' {
+			return false
+		}
+		name = name[:3]
+		reserved = "COM LPT"
+	}
+	if len(name) == 3 {
+		for i := 0; i < len(reserved); i += 4 {
+			if strings.EqualFold(name, reserved[i:i+3]) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // validatePackagePath validates path at the position pos and panics if path
 // is not a valid package path.
 func validatePackagePath(path string, pos *ast.Position) {

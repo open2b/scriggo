@@ -17,8 +17,12 @@ import (
 	"github.com/open2b/scriggo/compiler/ast"
 )
 
-var ErrTooManyGoFiles = errors.New("too many Go files")
-var ErrNoGoFiles = errors.New("no Go files")
+var (
+	ErrNoModulePath      = errors.New("no module declaration in go.mod")
+	ErrInvalidModulePath = errors.New("invalid module path in go.mod")
+	ErrTooManyGoFiles    = errors.New("too many Go files")
+	ErrNoGoFiles         = errors.New("no Go files")
+)
 
 // ParseProgram parses a program.
 func ParseProgram(fsys fs.FS) (*ast.Tree, error) {
@@ -217,7 +221,10 @@ func readModulePath(fsys fs.FS) (string, error) {
 	}
 	path := modulePath(src)
 	if path == "" {
-		return "", errNoModulePath
+		return "", ErrNoModulePath
+	}
+	if !validModulePath(path) {
+		return "", ErrInvalidModulePath
 	}
 	return path, nil
 }
