@@ -17,7 +17,6 @@
 package compiler
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/fs"
@@ -207,21 +206,6 @@ func BuildTemplate(fsys fs.FS, name string, opts Options) (*Code, error) {
 	code, err := emitTemplate(tree, typeInfos, tci["main"].IndirectVars)
 
 	return code, err
-}
-
-type mainCombiner struct {
-	mainSrc       []byte
-	otherPackages PackageLoader
-}
-
-func (ml mainCombiner) Load(path string) (interface{}, error) {
-	if path == "main" {
-		return bytes.NewReader(ml.mainSrc), nil
-	}
-	if ml.otherPackages != nil {
-		return ml.otherPackages.Load(path)
-	}
-	return nil, nil
 }
 
 // predefinedPackage represents a predefined package.
