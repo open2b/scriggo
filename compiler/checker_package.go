@@ -81,9 +81,9 @@ func parseNumericConst(s string) (constant, reflect.Type, error) {
 
 // toTypeCheckerScope generates a type checker scope given a predefined
 // package. depth must be 0 unless toTypeCheckerScope is called recursively.
-func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, global bool, depth int) map[string]scopeEntry {
+func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, global bool, depth int) map[string]scopeName {
 	declarations := pp.DeclarationNames()
-	scope := make(map[string]scopeEntry, len(declarations))
+	scope := make(map[string]scopeName, len(declarations))
 	for _, ident := range declarations {
 		ti := &typeInfo{PredefPackageName: pp.Name()}
 		if global {
@@ -155,7 +155,7 @@ func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, global bool, dept
 			}
 			ti.Properties |= propertyUntyped
 		}
-		scope[ident] = scopeEntry{ti: ti}
+		scope[ident] = scopeName{ti: ti}
 	}
 	return scope
 }

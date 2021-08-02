@@ -66,7 +66,7 @@ type compilation struct {
 	iteaName string
 
 	// globalScope is the global scope.
-	globalScope map[string]scopeEntry
+	globalScope map[string]scopeName
 }
 
 type renderIR struct {
@@ -75,7 +75,7 @@ type renderIR struct {
 }
 
 // newCompilation returns a new compilation.
-func newCompilation(globalScope map[string]scopeEntry) *compilation {
+func newCompilation(globalScope map[string]scopeName) *compilation {
 	return &compilation{
 		pkgInfos:          map[string]*packageInfo{},
 		pkgPathToIndex:    map[string]int{},

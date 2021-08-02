@@ -49,7 +49,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 	}
 
 	// Prepare the type checking for scripts and templates.
-	var globalScope map[string]scopeEntry
+	var globalScope map[string]scopeName
 	if opts.globals != nil {
 		globals := &mapPackage{
 			PkgName:      "main",
@@ -60,9 +60,9 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 
 	// Add the global "exit" to script global scope.
 	if opts.mod == scriptMod {
-		exit := scopeEntry{ti: &typeInfo{Properties: propertyUniverse}}
+		exit := scopeName{ti: &typeInfo{Properties: propertyUniverse}}
 		if globalScope == nil {
-			globalScope = map[string]scopeEntry{"exit": exit}
+			globalScope = map[string]scopeName{"exit": exit}
 		} else if _, ok := globalScope["exit"]; !ok {
 			globalScope["exit"] = exit
 		}
@@ -172,11 +172,10 @@ type typechecker struct {
 
 	// scopes holds the universe block, global block, file/package block,
 	// and function scopes.
-	scopes scopes
+	scopes *scopes
 
-	// ancestors is the current list of ancestors. See the documentation of the
-	// ancestor type for further details.
-	ancestors []*ancestor
+	// ancestors is the current list of ancestors.
+	ancestors []ast.Node
 
 	// terminating reports whether current statement is terminating. In a
 	// context other than ContextGo, the type checker does not check the
@@ -194,13 +193,6 @@ type typechecker struct {
 
 	// iota holds the current iota value.
 	iota int
-
-	// Text structures for Goto and Labels checking.
-	gotos           []string
-	storedGotos     []string
-	nextValidGoto   int
-	storedValidGoto int
-	labels          [][]string
 
 	// types refers the types of the current compilation and it is used to
 	// create and manipulate types and values, both predefined and defined only
@@ -261,7 +253,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 	tc := typechecker{
 		compilation:     compilation,
 		path:            path,
-		scopes:          newScopes(opts.formatTypes, compilation.globalScope),
+		scopes:          newScopes(path, opts.formatTypes, compilation.globalScope),
 		hasBreak:        map[ast.Node]bool{},
 		opts:            opts,
 		iota:            -1,
@@ -271,30 +263,10 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		precompiledPkgs: precompiledPkgs,
 		toBeEmitted:     true,
 	}
-	return &tc
-}
-
-// enterScope enters into a new empty scope. If the new scope is the scope of
-// a function body, fn is the node of the function, otherwise fn is nil.
-func (tc *typechecker) enterScope(fn *ast.Func) {
-	tc.scopes = tc.scopes.Enter(fn)
-	tc.labels = append(tc.labels, []string{})
-	tc.storedGotos = tc.gotos
-	tc.gotos = []string{}
-}
-
-// exitScope exits from the current scope.
-func (tc *typechecker) exitScope() {
-	// Check if some variables declared in the closing scope are still unused.
-	if tc.opts.mod != templateMod {
-		if ident := tc.scopes.UnusedVariable(); ident != nil {
-			panic(tc.errorf(ident, "%s declared but not used", ident))
-		}
+	if tc.opts.mod == templateMod {
+		tc.scopes.AllowUnused()
 	}
-	tc.scopes = tc.scopes.Exit()
-	tc.labels = tc.labels[:len(tc.labels)-1]
-	tc.gotos = append(tc.storedGotos, tc.gotos...)
-	tc.nextValidGoto = tc.storedValidGoto
+	return &tc
 }
 
 // assignScope assigns value to name in the current scope. If there are no
@@ -322,13 +294,12 @@ func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.I
 // body. For example an *ast.For node should be set as ancestor before checking
 // it's body, while an *ast.Assignment node should not.
 type ancestor struct {
-	scopeLevel int
-	node       ast.Node
+	node ast.Node
 }
 
 // addToAncestors adds a node as ancestor.
 func (tc *typechecker) addToAncestors(n ast.Node) {
-	tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), n})
+	tc.ancestors = append(tc.ancestors, n)
 }
 
 // removeLastAncestor removes current ancestor node.
@@ -391,6 +362,10 @@ func (tc *typechecker) getNestedFuncs(name string) []*ast.Func {
 //		}
 //
 func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...interface{}) error {
+	return checkError(tc.path, nodeOrPos, format, args...)
+}
+
+func checkError(path string, nodeOrPos interface{}, format string, args ...interface{}) error {
 	var pos *ast.Position
 	if node, ok := nodeOrPos.(ast.Node); ok {
 		pos = node.Pos()
@@ -401,7 +376,7 @@ func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...inte
 		pos = nodeOrPos.(*ast.Position)
 	}
 	var err = &CheckingError{
-		path: tc.path,
+		path: path,
 		pos: ast.Position{
 			Line:   pos.Line,
 			Column: pos.Column,

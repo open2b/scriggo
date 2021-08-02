@@ -1,5 +1,3 @@
-// skip : goto error not reported correctly
-
 // errorcheck
 
 // Copyright 2011 The Go Authors. All rights reserved.
@@ -22,5 +20,6 @@ func main() {
 	for _, x = range a {	// GCCGO_ERROR "block"
 	start:
 		fmt.Sprint(*x)
+		goto start
 	}
 }
