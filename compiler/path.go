@@ -18,6 +18,9 @@ import (
 // validModulePath reports whether path is a valid module path.
 // See https://golang.org/ref/mod#go-mod-file-ident
 func validModulePath(path string) bool {
+	if len(path) == 0 || path[0] == '-' {
+		return false
+	}
 	i := 0 // first element index
 	j := 0
 	for {
@@ -31,7 +34,7 @@ func validModulePath(path string) bool {
 			}
 			j++
 		}
-		if i == j || path[i] == '.' || path[j-1] == '.' || reservedWindowsName(path[i:j]) {
+		if i == j || path[i] == '.' || path[j-1] == '.' || specialWindowsName(path[i:j]) {
 			return false
 		}
 		if j == len(path) {
@@ -42,12 +45,25 @@ func validModulePath(path string) bool {
 	}
 }
 
-// reservedWindowsName reports whether name is a reserved Windows name.
-// See https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
-func reservedWindowsName(name string) bool {
+// specialWindowsName reports whether name is a special Windows name that
+// cannot be used as an element of module path. name is special if it is
+// similar to a Windows short-name or if it is a reserved Windows name.
+func specialWindowsName(name string) bool {
+	// Shorten the element to the first dot.
 	if h := strings.Index(name, "."); h >= 0 {
 		name = name[:h]
 	}
+	// Check if name is similar to a Windows short-name.
+	if h := strings.LastIndex(name, "~"); 0 <= h && h != len(name)-1 {
+		for i := len(name) - 1; i > h; i-- {
+			if c := name[i]; c < '0' || c > '9' {
+				return false
+			}
+		}
+		return true
+	}
+	// Check if name is a reserved Windows name.
+	// See https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
 	reserved := "CON PRN AUX NUL"
 	if len(name) == 4 {
 		if n := name[3]; n < '0' || n > '9' {

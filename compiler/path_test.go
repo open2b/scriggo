@@ -10,9 +10,13 @@ import (
 	"testing"
 )
 
-var validModulePaths = []string{"a", "A", "5", "c/e-g/x_y", "~", "a.b", "a..b", "con2"}
-var invalidModulePaths = []string{"", ".", "/", "/a", "a/", ".a/b", "c/d.", "!", "a//a",
-	"coN", "AUX.c", "Com2.txt", "LPT0"}
+var validModulePaths = []string{
+	"a", "A", "5", "c/e-g/x_y", "~", "a.b", "a..b", "con2",
+	"A~B.txt", "A~B2"}
+
+var invalidModulePaths = []string{
+	"", ".", "-", "/", "/a", "a/", ".a/b", "c/d.", "!", "a//a",
+	"~1", "SHORT~5.txt", "coN", "AUX.c", "Com2.txt", "LPT0"}
 
 func TestValidModulePath(t *testing.T) {
 	for _, p := range validModulePaths {
