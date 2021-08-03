@@ -42,7 +42,6 @@ import (
 	macho "debug/macho"
 	pe "debug/pe"
 	plan9obj "debug/plan9obj"
-	"embed"
 	"encoding"
 	ascii85 "encoding/ascii85"
 	asn1 "encoding/asn1"
@@ -148,7 +147,7 @@ import . "github.com/open2b/scriggo"
 
 
 func init() {
-	packages = make(Packages, 137)
+	packages = make(Packages, 136)
 	var decs map[string]interface{}
 	// "archive/tar"
 	decs = make(map[string]interface{}, 29)
@@ -2752,13 +2751,6 @@ func init() {
 	decs["Sym"] = reflect.TypeOf((*plan9obj.Sym)(nil)).Elem()
 	packages["debug/plan9obj"] = &MapPackage{
 		PkgName: "plan9obj",
-		Declarations: decs,
-	}
-	// "embed"
-	decs = make(map[string]interface{}, 1)
-	decs["FS"] = reflect.TypeOf((*embed.FS)(nil)).Elem()
-	packages["embed"] = &MapPackage{
-		PkgName: "embed",
 		Declarations: decs,
 	}
 	// "encoding"
