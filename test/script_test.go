@@ -12,13 +12,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/pkgutil"
 	"github.com/open2b/scriggo/scripts"
 )
 
 var scriptTests = map[string]struct {
 	src     string
-	pkgs    scriggo.Packages
+	pkgs    pkgutil.Packages
 	init    map[string]interface{}
 	globals scripts.Declarations
 
@@ -51,8 +51,8 @@ var scriptTests = map[string]struct {
 			import "pkg"
 			pkg.F()
 		`,
-		pkgs: scriggo.Packages{
-			"pkg": scriggo.MapPackage{
+		pkgs: pkgutil.Packages{
+			"pkg": pkgutil.MapPackage{
 				PkgName: "pkg",
 				Declarations: map[string]interface{}{
 					"F": func() {
@@ -90,7 +90,7 @@ var scriptTests = map[string]struct {
 	// 	src: `
 	// 		Print(A)
 	// 	`,
-	// 	pkgs: scriggo.Packages{
+	// 	pkgs: pkgutil.Packages{
 	// 		"main": {
 	// 			Name: "main",
 	// 			Declarations: map[string]interface{}{
@@ -127,13 +127,13 @@ var scriptTests = map[string]struct {
 		`,
 		globals: scripts.Declarations{
 
-			"strings": scriggo.MapPackage{
+			"strings": pkgutil.MapPackage{
 				PkgName: "strings",
 				Declarations: map[string]interface{}{
 					"ToLower": strings.ToLower,
 				},
 			},
-			"math": scriggo.MapPackage{
+			"math": pkgutil.MapPackage{
 				PkgName: "math",
 				Declarations: map[string]interface{}{
 					"MaxInt8": math.MaxInt8,

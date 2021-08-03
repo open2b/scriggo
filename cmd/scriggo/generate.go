@@ -207,7 +207,8 @@ import (
 {{- end}}
 )
 
-import . "github.com/open2b/scriggo"
+import "github.com/open2b/scriggo"
+import . "github.com/open2b/scriggo/pkgutil"
 {{ if not .ImportReflect}}import "reflect"{{end}}
 
 func init() {
@@ -351,11 +352,11 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 				var value string
 				switch val.Kind() {
 				case constant.String:
-					value = "UntypedStringConst(" + s + ")"
+					value = "scriggo.UntypedStringConst(" + s + ")"
 				case constant.Bool:
-					value = "UntypedBooleanConst(" + s + ")"
+					value = "scriggo.UntypedBooleanConst(" + s + ")"
 				case constant.Int:
-					value = "UntypedNumericConst(" + strconv.Quote(s) + ")"
+					value = "scriggo.UntypedNumericConst(" + strconv.Quote(s) + ")"
 				case constant.Float:
 					if strings.Contains(s, "/") {
 						if rat, ok := new(big.Rat).SetString(s); ok {
@@ -369,10 +370,10 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 					} else if !strings.Contains(s, ".") {
 						s += ".0"
 					}
-					value = "UntypedNumericConst(" + strconv.Quote(s) + ")"
+					value = "scriggo.UntypedNumericConst(" + strconv.Quote(s) + ")"
 				case constant.Complex:
 					s = strings.ReplaceAll(s[1:len(s)-1], " ", "")
-					value = "UntypedNumericConst(" + strconv.Quote(s) + ")"
+					value = "scriggo.UntypedNumericConst(" + strconv.Quote(s) + ")"
 				default:
 					panic(fmt.Sprintf("Unexpected constant kind %d", val.Kind()))
 				}

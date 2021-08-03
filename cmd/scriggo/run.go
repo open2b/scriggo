@@ -17,13 +17,14 @@ import (
 	"path/filepath"
 
 	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/pkgutil"
 	"github.com/open2b/scriggo/runtime"
 	"github.com/open2b/scriggo/scripts"
 )
 
 const usage = "usage: %s [-S] filename\n"
 
-var packages scriggo.Packages
+var packages pkgutil.Packages
 
 func run() {
 

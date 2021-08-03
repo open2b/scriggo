@@ -4,19 +4,20 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package templates
+package scriggo
 
 import (
 	"strings"
 	"testing"
 
 	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/internal/mapfs"
 )
 
 func Test_treeTransformer(t *testing.T) {
 	stdout := &strings.Builder{}
-	fsys := MapFS{"index.html": `{% w := "hi, " %}{{ w }}world!`}
-	loadOpts := &BuildOptions{
+	fsys := mapfs.MapFS{"index.html": `{% w := "hi, " %}{{ w }}world!`}
+	loadOpts := &BuildTemplateOptions{
 		TreeTransformer: func(tree *ast.Tree) error {
 			assignment := tree.Nodes[0].(*ast.Assignment)
 			assignment.Rhs[0].(*ast.BasicLiteral).Value = `"hello, "`
@@ -25,7 +26,7 @@ func Test_treeTransformer(t *testing.T) {
 			return nil
 		},
 	}
-	template, err := Build(fsys, "index.html", loadOpts)
+	template, err := BuildTemplate(fsys, "index.html", loadOpts)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -4,10 +4,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package templates
+package scriggo
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -15,7 +14,6 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/compiler"
 	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/runtime"
@@ -105,7 +103,11 @@ const (
 	FormatMarkdown = ast.FormatMarkdown
 )
 
-type BuildOptions struct {
+// Declarations contains variable, constant, function, type and package
+// declarations.
+type Declarations map[string]interface{}
+
+type BuildTemplateOptions struct {
 	DisallowGoStmt       bool
 	NoParseShortShowStmt bool
 	TreeTransformer      func(*ast.Tree) error // if not nil transforms tree after parsing.
@@ -133,19 +135,11 @@ type BuildOptions struct {
 	//     {%  import  "my/package"   %}    Import a precompiled package.
 	//     {%  import  "my/file.html  %}    Import a template file.
 	//
-	Packages scriggo.PackageLoader
+	Packages PackageLoader
 }
-
-// Declarations.
-type Declarations map[string]interface{}
 
 // Converter is implemented by format converters.
 type Converter func(src []byte, out io.Writer) error
-
-type RunOptions struct {
-	Context   context.Context
-	PrintFunc runtime.PrintFunc
-}
 
 type Template struct {
 	fn          *runtime.Function
@@ -170,7 +164,8 @@ var formatTypes = map[ast.Format]reflect.Type{
 	ast.FormatMarkdown: reflect.TypeOf((*Markdown)(nil)).Elem(),
 }
 
-// Build builds the named template file rooted at the given file system.
+// BuildTemplate builds the named template file rooted at the given file
+// system.
 //
 // If fsys implements FormatFS, the file format is read from its Format
 // method, otherwise it depends on the file name extension
@@ -185,7 +180,7 @@ var formatTypes = map[ast.Format]reflect.Type{
 // If the named file does not exist, Build returns an error satisfying
 // errors.Is(err, fs.ErrNotExist). If a compilation error occurs, it returns
 // a CompilerError error.
-func Build(fsys fs.FS, name string, options *BuildOptions) (*Template, error) {
+func BuildTemplate(fsys fs.FS, name string, options *BuildTemplateOptions) (*Template, error) {
 	co := compiler.Options{
 		FormatTypes: formatTypes,
 	}

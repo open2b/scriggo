@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package templates
+package scriggo
 
 import (
 	"bytes"
@@ -19,15 +19,49 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/internal/mapfs"
 	"github.com/open2b/scriggo/runtime"
 
 	"github.com/google/go-cmp/cmp"
 )
 
-func globals() Declarations {
+type mapPackage struct {
+	// Package name.
+	PkgName string
+	// Package declarations.
+	Declarations map[string]interface{}
+}
+
+func (p mapPackage) Name() string {
+	return p.PkgName
+}
+
+func (p mapPackage) Lookup(declName string) interface{} {
+	return p.Declarations[declName]
+}
+
+func (p mapPackage) DeclarationNames() []string {
+	declarations := make([]string, 0, len(p.Declarations))
+	for name := range p.Declarations {
+		declarations = append(declarations, name)
+	}
+	return declarations
+}
+
+// packages is a PackageLoader that load packages from a map where the key is
+// a package path and the value is a Package value.
+type packages map[string]Package
+
+func (pp packages) Load(path string) (interface{}, error) {
+	if p, ok := pp[path]; ok {
+		return p, nil
+	}
+	return nil, nil
+}
+
+func globals() map[string]interface{} {
 	var I = 5
-	return Declarations{
+	return map[string]interface{}{
 		"max": func(x, y int) int {
 			if x < y {
 				return y
@@ -334,8 +368,8 @@ var rendererExprTests = []struct {
 func TestRenderExpressions(t *testing.T) {
 	for _, cas := range rendererExprTests {
 		t.Run(cas.src, func(t *testing.T) {
-			fsys := MapFS{"index.html": "{{" + cas.src + "}}"}
-			template, err := Build(fsys, "index.html", nil)
+			fsys := mapfs.MapFS{"index.html": "{{" + cas.src + "}}"}
+			template, err := BuildTemplate(fsys, "index.html", nil)
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
@@ -557,8 +591,8 @@ var rendererStmtTests = []struct {
 func TestRenderStatements(t *testing.T) {
 	for _, cas := range rendererStmtTests {
 		t.Run(cas.src, func(t *testing.T) {
-			fsys := MapFS{"index.html": cas.src}
-			template, err := Build(fsys, "index.html", nil)
+			fsys := mapfs.MapFS{"index.html": cas.src}
+			template, err := BuildTemplate(fsys, "index.html", nil)
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
@@ -713,10 +747,10 @@ var templateMultiFileCases = map[string]struct {
 	sources          map[string]string
 	expectedBuildErr string                 // default to empty string (no build error). Mutually exclusive with expectedOut.
 	expectedOut      string                 // default to "". Mutually exclusive with expectedBuildErr.
-	main             scriggo.MapPackage     // default to nil
+	main             mapPackage             // default to nil
 	vars             map[string]interface{} // default to nil
 	entryPoint       string                 // default to "index.html"
-	packages         scriggo.PackageLoader  // default to nil
+	packages         PackageLoader          // default to nil
 	noParseShow      bool
 	dollarIdentifier bool // default to false
 }{
@@ -852,7 +886,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `calling f: {{ f() }}, done!`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"f": func() string { return "i'm f!" },
@@ -865,7 +899,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ mainVar }}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"mainVar": (*int)(nil),
@@ -878,7 +912,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ initMainVar }}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"initMainVar": (*int)(nil),
@@ -894,7 +928,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ lowercase("HellO ScrIgGo!") }}{% x := "A String" %}{{ lowercase(x) }}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"lowercase": func(s string) string {
@@ -909,7 +943,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ lowercase("HellO ScrIgGo!") }}{% x := "A String" %}{{ lowercase(x) }}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"lowercase": (*func(string) string)(nil),
@@ -927,7 +961,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ a }}{{ b }}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"a": (*string)(nil),
@@ -1256,10 +1290,10 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ strings.ToLower("HELLO") }}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
-				"strings": scriggo.MapPackage{
+				"strings": mapPackage{
 					PkgName: "strings",
 					Declarations: map[string]interface{}{
 						"ToLower": strings.ToLower,
@@ -1273,10 +1307,10 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ data.Name }} Holmes`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
-				"data": scriggo.MapPackage{
+				"data": mapPackage{
 					PkgName: "data",
 					Declarations: map[string]interface{}{
 						"Name": &[]string{"Sherlock"}[0],
@@ -1290,10 +1324,10 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% b := &bytes.Buffer{} %}{% b.WriteString("oh!") %}{{ b.String() }}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
-				"bytes": scriggo.MapPackage{
+				"bytes": mapPackage{
 					PkgName: "bytes",
 					Declarations: map[string]interface{}{
 						"Buffer": reflect.TypeOf(bytes.Buffer{}),
@@ -1307,10 +1341,10 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ math.MaxInt8 }}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
-				"math": scriggo.MapPackage{
+				"math": mapPackage{
 					PkgName: "math",
 					Declarations: map[string]interface{}{
 						"MaxInt8": math.MaxInt8,
@@ -1367,7 +1401,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt":   `{% v := "showing" %}{{ render "partial.txt" }}, {{ v }}`,
 			"partial.txt": "{{ v }}",
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"v": &globalVariable,
@@ -1396,7 +1430,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `{{ sb1 }}{{ sb2 }}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"sb1": &[]byte{97, 98, 99},                      // abc
@@ -1410,7 +1444,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ sb1 }}{{ sb2 }}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"sb1": &[]byte{97, 98, 99},                      // abc
@@ -1488,7 +1522,7 @@ var templateMultiFileCases = map[string]struct {
 				"{% if (ZeroIf42{Value: 42}) %}BUG{% else %}OK{% end %}\n" +
 				"{% if (NotImplIsZero{}) %}BUG{% else %}OK{% end %}",
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"NeverZero":     reflect.TypeOf((*testNeverZero)(nil)).Elem(),
@@ -1574,7 +1608,7 @@ var templateMultiFileCases = map[string]struct {
 			"v.html":       `{% var V = GetValue() %}`,
 		},
 		expectedOut: "42",
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"GetValue": func() int {
@@ -1608,7 +1642,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ s.foo }}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"s": structWithUnexportedFields,
@@ -1621,7 +1655,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ s.foo }}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"s": &structWithUnexportedFields,
@@ -1658,7 +1692,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% macro M %}{{ globalVariable }}{% end %}{% show M() %}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"globalVariable": &([]string{"<b>global</b>"}[0]),
@@ -1698,7 +1732,7 @@ var templateMultiFileCases = map[string]struct {
 				}() 
 			%}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"globalVariable": (*int)(nil),
@@ -1719,7 +1753,7 @@ var templateMultiFileCases = map[string]struct {
 				}()
 			%}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"globalVariable": (*int)(nil),
@@ -1761,7 +1795,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ $forthyTwo }}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"forthyTwo": &([]int8{42}[0]),
@@ -1775,7 +1809,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ $forthyThree.(int) }}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"forthyThree": &([]int{43}[0]),
@@ -1789,7 +1823,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% var n, ok = $forthyThree.(int) %}{{ n * 32 }}{{ ok }}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"forthyThree": &([]int{42}[0]),
@@ -1827,7 +1861,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% _ = &($fortyTwo) %}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"forthyTwo": &([]int8{42}[0]),
@@ -1849,7 +1883,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% $fortyTwo = 43 %}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"forthyTwo": &([]int8{42}[0]),
@@ -1871,7 +1905,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% const _ = $constant %}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"constant": 42,
@@ -1885,7 +1919,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% global := interface{}(global) %}ok`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"global": &[]string{"ciao"},
@@ -1898,7 +1932,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% var global = interface{}(global) %}ok`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"global": &[]string{},
@@ -1911,7 +1945,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% _ = []int{} %}{% global := interface{}(global) %}ok`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"global": &[]string{},
@@ -1976,7 +2010,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt":    `{% extends "extended.txt" %}{% var _ = $global %}`,
 			"extended.txt": `text`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"global": (*int)(nil),
@@ -1991,7 +2025,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt":    `{% extends "extended.txt" %}{% var _ = interface{}(global) %}`,
 			"extended.txt": `text`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"global": (*int)(nil),
@@ -2018,7 +2052,7 @@ var templateMultiFileCases = map[string]struct {
 				{% var filters, _ = $filters.([]int) %}
 			`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"design": &struct {
@@ -2555,7 +2589,7 @@ var templateMultiFileCases = map[string]struct {
 				show t.A
 			%%}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"T": reflect.TypeOf(struct{ A string }{}),
@@ -2932,7 +2966,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.html":   `{% var s = render "partial.html" default "" %}`,
 			"partial.html": `i'm a partial`,
 		},
-		expectedBuildErr: `cannot use render "partial.html" (type templates.HTML) as type string in assignment`,
+		expectedBuildErr: `cannot use render "partial.html" (type scriggo.HTML) as type string in assignment`,
 	},
 
 	"Default declaration with render (3)": {
@@ -2986,7 +3020,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.html":   `{% _ = render "partial.html" %}`,
 			"partial.html": `{% macro m %}{% _ = page %}{% end %}{{ m() }}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"page": &([]string{"a"})[0],
@@ -3000,7 +3034,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.html":    `{% import "imported.html" %}{% r := M() %}{{ r }}`,
 			"imported.html": `{% macro M %}{% _ = global %}{% end %}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"global": &([]string{"a"})[0],
@@ -3013,7 +3047,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.html":    `{% import "imported.html" %}{{ M() }}`,
 			"imported.html": `{% macro M %}{% macro m %}{% _ = global %}{% end %}{{ m() }}{% end %}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"global": &([]int{0})[0],
@@ -3026,7 +3060,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.html":    `{% import "imported.html" %}{{ M() }}`,
 			"imported.html": `{% macro M %}{% f := func() { _ = global } %}{% f() %}{% end %}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"global": &([]int{0})[0],
@@ -3042,7 +3076,7 @@ var templateMultiFileCases = map[string]struct {
 				f()
 			} %}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"global": &([]int{0})[0],
@@ -3055,7 +3089,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.html":    `{% import "imported.html" %}{{ M() }}`,
 			"imported.html": `{% macro M %}{% func() { _ = global }() %}{% end %}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"global": &([]int{0})[0],
@@ -3068,7 +3102,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.html":   `{{ render "partial.html" }}`,
 			"partial.html": `{% macro m %}{{ page }}{% end %}{{ m() }}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"page": &([]string{"a"})[0],
@@ -3082,7 +3116,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.html":    `{% import "imported.html" %}{{ M() }}`,
 			"imported.html": `{% macro M %}{{ 2 * func() int { return global }() }}{% end %}`,
 		},
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"global": &([]int{21})[0],
@@ -3171,7 +3205,7 @@ var templateMultiFileCases = map[string]struct {
 		  Date is {{ date }}`,
 		},
 		expectedOut: "\t\t  Date is \n\t\t\t<span>1999-01-19</span>\n",
-		main: scriggo.MapPackage{
+		main: mapPackage{
 			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"now": func() string { return "1999-01-19" },
@@ -3628,14 +3662,14 @@ func (testNotImplementIsZero) IsZero() int {
 	panic("BUG: this method should never be called")
 }
 
-var testPackages = scriggo.Packages{
-	"fmt": scriggo.MapPackage{
+var testPackages = packages{
+	"fmt": mapPackage{
 		PkgName: "fmt",
 		Declarations: map[string]interface{}{
 			"Sprint": fmt.Sprint,
 		},
 	},
-	"math": scriggo.MapPackage{
+	"math": mapPackage{
 		PkgName: "math",
 		Declarations: map[string]interface{}{
 			"Abs": math.Abs,
@@ -3645,7 +3679,7 @@ var testPackages = scriggo.Packages{
 
 var globalVariable = "global variable"
 
-var functionReturningErrorPackage = scriggo.MapPackage{
+var functionReturningErrorPackage = mapPackage{
 	PkgName: "main",
 	Declarations: map[string]interface{}{
 		"atoi": func(v string) (int, error) { return strconv.Atoi(v) },
@@ -3668,7 +3702,7 @@ func TestMultiFileTemplate(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			entryPoint := cas.entryPoint
-			fsys := MapFS{}
+			fsys := mapfs.MapFS{}
 			for p, src := range cas.sources {
 				fsys[p] = src
 				if entryPoint == "" {
@@ -3683,14 +3717,14 @@ func TestMultiFileTemplate(t *testing.T) {
 					globals[k] = v
 				}
 			}
-			opts := &BuildOptions{
+			opts := &BuildTemplateOptions{
 				Globals:              globals,
 				Packages:             cas.packages,
 				MarkdownConverter:    markdownConverter,
 				NoParseShortShowStmt: cas.noParseShow,
 				DollarIdentifier:     cas.dollarIdentifier,
 			}
-			template, err := Build(fsys, entryPoint, opts)
+			template, err := BuildTemplate(fsys, entryPoint, opts)
 			switch {
 			case err == nil && cas.expectedBuildErr == "":
 				// Ok, no errors expected: continue with the test.
@@ -3707,7 +3741,7 @@ func TestMultiFileTemplate(t *testing.T) {
 				}
 			}
 			w := &bytes.Buffer{}
-			err = template.Run(w, cas.vars, &RunOptions{PrintFunc: scriggo.PrintFunc(w)})
+			err = template.Run(w, cas.vars, &RunOptions{PrintFunc: PrintFunc(w)})
 			if err != nil {
 				t.Fatalf("rendering error: %s", err)
 			}
@@ -3726,8 +3760,8 @@ func TestVars(t *testing.T) {
 	var e = func() {}
 	var f = 5
 	var g = 7
-	fsys := MapFS{"example.txt": `{% _, _, _, _, _ = a, c, d, e, f %}`}
-	globals := Declarations{
+	fsys := mapfs.MapFS{"example.txt": `{% _, _, _, _, _ = a, c, d, e, f %}`}
+	globals := map[string]interface{}{
 		"a": &a, // expected
 		"b": &b,
 		"c": c,
@@ -3736,10 +3770,10 @@ func TestVars(t *testing.T) {
 		"f": f,
 		"g": g,
 	}
-	opts := &BuildOptions{
+	opts := &BuildTemplateOptions{
 		Globals: globals,
 	}
-	template, err := Build(fsys, "example.txt", opts)
+	template, err := BuildTemplate(fsys, "example.txt", opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -3809,19 +3843,19 @@ var envFilePathCases = []struct {
 }
 
 func Test_envFilePath(t *testing.T) {
-	globals := Declarations{
+	globals := map[string]interface{}{
 		"path": func(env runtime.Env) string { return env.FilePath() },
 	}
 	for _, cas := range envFilePathCases {
 		t.Run(cas.name, func(t *testing.T) {
-			fsys := MapFS{}
+			fsys := mapfs.MapFS{}
 			for p, src := range cas.sources {
 				fsys[p] = src
 			}
-			opts := &BuildOptions{
+			opts := &BuildTemplateOptions{
 				Globals: globals,
 			}
-			template, err := Build(fsys, "index.html", opts)
+			template, err := BuildTemplate(fsys, "index.html", opts)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3840,7 +3874,7 @@ func Test_envFilePath(t *testing.T) {
 var mdStart = []byte("--- start Markdown ---\n")
 var mdEnd = []byte("--- end Markdown ---\n")
 
-// markdownConverter is a templates.Converter that it used to check that the
+// markdownConverter is a scriggo.Converter that it used to check that the
 // markdown converter is called. To do this, markdownConverter does not
 // convert but only wraps the Markdown code.
 func markdownConverter(src []byte, out io.Writer) error {

@@ -18,9 +18,10 @@ import (
 	"path/filepath"
 
 	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/internal/mapfs"
+	"github.com/open2b/scriggo/pkgutil"
 	"github.com/open2b/scriggo/runtime"
 	"github.com/open2b/scriggo/scripts"
-	"github.com/open2b/scriggo/templates"
 
 	// Do not remove this import.
 	// Otherwise, if the file 'predefPkgs.go' has not been populated by 'go
@@ -31,9 +32,9 @@ import (
 )
 
 //go:generate scriggo embed -v -o predefPkgs.go
-var predefPkgs scriggo.Packages
+var predefPkgs pkgutil.Packages
 
-var globals = templates.Declarations{
+var globals = scriggo.Declarations{
 	"MainSum": func(a, b int) int { return a + b },
 }
 
@@ -133,16 +134,16 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			fsys = templates.MapFS{"index" + ext: string(src)}
+			fsys = mapfs.MapFS{"index" + ext: string(src)}
 		case "rundir":
 			fsys = os.DirFS(flag.Arg(2))
 		}
-		opts := templates.BuildOptions{
+		opts := scriggo.BuildTemplateOptions{
 			Globals:           globals,
 			Packages:          predefPkgs,
 			MarkdownConverter: markdownConverter,
 		}
-		template, err := templates.Build(fsys, "index"+ext, &opts)
+		template, err := scriggo.BuildTemplate(fsys, "index"+ext, &opts)
 		if err != nil {
 			_, _ = fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
@@ -182,7 +183,7 @@ func convertRunError(err error) error {
 var mdStart = []byte("--- start Markdown ---\n")
 var mdEnd = []byte("--- end Markdown ---\n")
 
-// markdownConverter is a templates.Converter that it used to check that the
+// markdownConverter is a scriggo.Converter that it used to check that the
 // markdown converter is called. To do this, markdownConverter does not
 // convert but only wraps the Markdown code.
 func markdownConverter(src []byte, out io.Writer) error {

@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package templates
+package scriggo
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/open2b/scriggo/internal/mapfs"
 	"github.com/open2b/scriggo/runtime"
 
 	"github.com/google/go-cmp/cmp"
@@ -139,11 +140,11 @@ func TestEnvStringer(t *testing.T) {
 	for name, cas := range envStringerCases {
 		t.Run(name, func(t *testing.T) {
 			ctx := context.WithValue(context.Background(), "forty-two", 42)
-			fsys := MapFS{}
+			fsys := mapfs.MapFS{}
 			for p, src := range cas.sources {
 				fsys[p] = src
 			}
-			opts := &BuildOptions{
+			opts := &BuildTemplateOptions{
 				Globals: cas.globals,
 			}
 			name := "index.txt"
@@ -157,7 +158,7 @@ func TestEnvStringer(t *testing.T) {
 			case FormatJSON:
 				name = "index.json"
 			}
-			template, err := Build(fsys, name, opts)
+			template, err := BuildTemplate(fsys, name, opts)
 			if err != nil {
 				t.Fatal(err)
 			}

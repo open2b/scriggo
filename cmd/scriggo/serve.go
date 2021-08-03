@@ -21,8 +21,7 @@ import (
 	"time"
 
 	"github.com/open2b/scriggo"
-	"github.com/open2b/scriggo/templates"
-	"github.com/open2b/scriggo/templates/builtin"
+	"github.com/open2b/scriggo/builtin"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/yuin/goldmark"
@@ -55,13 +54,13 @@ func serve(asm int, metrics bool) error {
 	srv := &server{
 		fsys:   fsys,
 		static: http.FileServer(http.Dir(".")),
-		buildOptions: &templates.BuildOptions{
+		buildOptions: &scriggo.BuildTemplateOptions{
 			Globals: globals,
 			MarkdownConverter: func(src []byte, out io.Writer) error {
 				return md.Convert(src, out)
 			},
 		},
-		templates: map[string]*templates.Template{},
+		templates: map[string]*scriggo.Template{},
 		asm:       asm,
 	}
 	if metrics {
@@ -96,12 +95,12 @@ func serve(asm int, metrics bool) error {
 type server struct {
 	fsys         *templateFS
 	static       http.Handler
-	buildOptions *templates.BuildOptions
-	runOptions   *templates.RunOptions
+	buildOptions *scriggo.BuildTemplateOptions
+	runOptions   *scriggo.RunOptions
 	asm          int
 
 	sync.Mutex
-	templates map[string]*templates.Template
+	templates map[string]*scriggo.Template
 	metrics   struct {
 		active bool
 		header bool
@@ -149,7 +148,7 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	srv.Unlock()
 	start := time.Now()
 	if !ok {
-		template, err = templates.Build(srv.fsys, name, srv.buildOptions)
+		template, err = scriggo.BuildTemplate(srv.fsys, name, srv.buildOptions)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				http.NotFound(w, r)
@@ -313,7 +312,7 @@ func (t *templateFS) watch(name string) error {
 	return nil
 }
 
-var globals = templates.Declarations{
+var globals = scriggo.Declarations{
 	// crypto
 	"hmacSHA1":   builtin.HmacSHA1,
 	"hmacSHA256": builtin.HmacSHA256,

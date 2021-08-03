@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package templates
+package scriggo
 
 import (
 	"bytes"
@@ -16,7 +16,7 @@ func TestFullTemplate(t *testing.T) {
 	fsys := os.DirFS("./full_template_test")
 	for name, expectedOutput := range expectedFilesOutput {
 		t.Run(name, func(t *testing.T) {
-			template, err := Build(fsys, name, nil)
+			template, err := BuildTemplate(fsys, name, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

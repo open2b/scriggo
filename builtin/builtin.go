@@ -14,11 +14,11 @@
 // For example, to use the Min and Max functions as global min and max
 // functions
 //
-//    globals := templates.Declarations{
+//    globals := scriggo.Declarations{
 //        "min": builtin.Min,
 //        "max": builtin.Max,
 //    }
-//    opts := &templates.BuildOptions{
+//    opts := &scriggo.BuildTemplateOptions{
 //        Globals: globals,
 //    }
 //    template, err := scriggoTemplates.Build(fsys, file, opts)
@@ -37,7 +37,7 @@
 // Use this Declarations value to use all the builtin of this package in a
 // template or choose the most appropriate
 //
-//  templates.Declarations{
+//  scriggo.Declarations{
 //  	// crypto
 //  	"hmacSHA1":   builtin.HmacSHA1,
 //  	"hmacSHA256": builtin.HmacSHA256,
@@ -153,7 +153,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/open2b/scriggo/templates"
+	"github.com/open2b/scriggo"
 )
 
 // Abbreviate abbreviates s to almost n runes. If s is longer than n runes,
@@ -302,9 +302,9 @@ func HmacSHA256(message, key string) string {
 }
 
 // HtmlEscape escapes s, replacing the characters <, >, &, " and ' and returns
-// the escaped string as templates.HTML type.
-func HtmlEscape(s string) templates.HTML {
-	return templates.HTMLEscape(s)
+// the escaped string as scriggo.HTML type.
+func HtmlEscape(s string) scriggo.HTML {
+	return scriggo.HTMLEscape(s)
 }
 
 // Index returns the index of the first instance of substr in s, or -1 if
@@ -374,12 +374,12 @@ func LastIndex(s, substr string) int {
 // MarshalJSON returns the JSON encoding of v.
 //
 // See https://golang.org/pkg/encoding/json/#Marshal for details.
-func MarshalJSON(v interface{}) (templates.JSON, error) {
+func MarshalJSON(v interface{}) (scriggo.JSON, error) {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return "", replacePrefix(err, "json", "marshalJSON")
 	}
-	return templates.JSON(b), nil
+	return scriggo.JSON(b), nil
 }
 
 // MarshalJSONIndent is like MarshalJSON but indents the output. Each JSON
@@ -387,7 +387,7 @@ func MarshalJSON(v interface{}) (templates.JSON, error) {
 // followed by one or more copies of indent according to the indentation
 // nesting. prefix and indent can only contain whitespace: ' ', '\t', '\n' and
 // '\r'.
-func MarshalJSONIndent(v interface{}, prefix, indent string) (templates.JSON, error) {
+func MarshalJSONIndent(v interface{}, prefix, indent string) (scriggo.JSON, error) {
 	if !onlyJSONWhitespace(prefix) {
 		return "", errors.New("marshalJSONIndent: prefix does not contain only whitespace")
 	}
@@ -398,7 +398,7 @@ func MarshalJSONIndent(v interface{}, prefix, indent string) (templates.JSON, er
 	if err != nil {
 		return "", errors.New(err.Error())
 	}
-	return templates.JSON(b), nil
+	return scriggo.JSON(b), nil
 }
 
 // Max returns the larger of x or y.
@@ -649,15 +649,15 @@ func Sort(slice interface{}, less func(i, j int) bool) {
 		sort.Ints(s)
 	case []float64:
 		sort.Float64s(s)
-	case []templates.HTML:
+	case []scriggo.HTML:
 		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
-	case []templates.CSS:
+	case []scriggo.CSS:
 		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
-	case []templates.JS:
+	case []scriggo.JS:
 		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
-	case []templates.JSON:
+	case []scriggo.JSON:
 		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
-	case []templates.Markdown:
+	case []scriggo.Markdown:
 		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
 	}
 	// reflect

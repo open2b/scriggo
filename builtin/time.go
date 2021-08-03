@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/open2b/scriggo/templates"
+	"github.com/open2b/scriggo"
 )
 
 // A Duration represents the elapsed time between two instants
@@ -45,7 +45,7 @@ type Time struct {
 //
 // and once added to the declarations
 //
-//    templates.Declarations{
+//    scriggo.Declarations{
 //        ...
 //        "now" : now,
 //        ...
@@ -134,7 +134,7 @@ func (t Time) IsZero() bool {
 
 // JS returns the time as a JavaScript date. The result is undefined if the
 // year of t is not in the range [-999999, 999999].
-func (t Time) JS() templates.JS {
+func (t Time) JS() scriggo.JS {
 	y := t.t.Year()
 	ms := int64(t.t.Nanosecond()) / int64(time.Millisecond)
 	name, offset := t.t.Zone()
@@ -143,7 +143,7 @@ func (t Time) JS() templates.JS {
 		if y < 0 || y > 9999 {
 			format = `new Date("%+0.6d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3dZ")`
 		}
-		return templates.JS(fmt.Sprintf(format, y, t.t.Month(), t.t.Day(), t.t.Hour(), t.t.Minute(), t.t.Second(), ms))
+		return scriggo.JS(fmt.Sprintf(format, y, t.t.Month(), t.t.Day(), t.t.Hour(), t.t.Minute(), t.t.Second(), ms))
 	}
 	zone := offset / 60
 	h, m := zone/60, zone%60
@@ -154,12 +154,12 @@ func (t Time) JS() templates.JS {
 	if y < 0 || y > 9999 {
 		format = `new Date("%+0.6d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3d%+0.2d:%0.2d")`
 	}
-	return templates.JS(fmt.Sprintf(format, y, t.t.Month(), t.t.Day(), t.t.Hour(), t.t.Minute(), t.t.Second(), ms, h, m))
+	return scriggo.JS(fmt.Sprintf(format, y, t.t.Month(), t.t.Day(), t.t.Hour(), t.t.Minute(), t.t.Second(), ms, h, m))
 }
 
 // JSON returns a time in a format suitable for use in JSON.
-func (t Time) JSON() templates.JSON {
-	return templates.JSON(`"` + t.t.Format(time.RFC3339) + `"`)
+func (t Time) JSON() scriggo.JSON {
+	return scriggo.JSON(`"` + t.t.Format(time.RFC3339) + `"`)
 }
 
 // Month returns the month of the year specified by t, in the range [1, 12]

@@ -10,8 +10,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/compiler"
+	"github.com/open2b/scriggo/pkgutil"
 )
 
 func TestInitGlobals(t *testing.T) {
@@ -159,9 +159,9 @@ func TestInitGlobalsNilPointerError(t *testing.T) {
 }
 
 func TestCombinedPackage(t *testing.T) {
-	pkg1 := scriggo.MapPackage{"main", map[string]interface{}{"a": 1, "b": 2}}
-	pkg2 := scriggo.MapPackage{"main2", map[string]interface{}{"b": 3, "c": 4, "d": 5}}
-	pkg := scriggo.CombinedPackage{pkg1, pkg2}
+	pkg1 := pkgutil.MapPackage{"main", map[string]interface{}{"a": 1, "b": 2}}
+	pkg2 := pkgutil.MapPackage{"main2", map[string]interface{}{"b": 3, "c": 4, "d": 5}}
+	pkg := pkgutil.CombinedPackage{pkg1, pkg2}
 	expected := []string{"a", "b", "c", "d"}
 	// Test Name.
 	if pkg.Name() != pkg1.Name() {

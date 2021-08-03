@@ -12,6 +12,7 @@ import (
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/pkgutil"
 )
 
 type TypeStruct struct{}
@@ -24,9 +25,9 @@ func (t TypeStruct) Method() {}
 // hard to reproduce without writing host code
 func TestIssue403(t *testing.T) {
 	t.Run("Method call on predefined variable", func(t *testing.T) {
-		packages := scriggo.CombinedLoader{
-			scriggo.Packages{
-				"pkg": scriggo.MapPackage{
+		packages := pkgutil.CombinedLoader{
+			pkgutil.Packages{
+				"pkg": pkgutil.MapPackage{
 					PkgName: "pkg",
 					Declarations: map[string]interface{}{
 						"Value": &TypeStruct{},
@@ -53,9 +54,9 @@ func TestIssue403(t *testing.T) {
 		}
 	})
 	t.Run("Method call on not-predefined variable", func(t *testing.T) {
-		packages := scriggo.CombinedLoader{
-			scriggo.Packages{
-				"pkg": scriggo.MapPackage{
+		packages := pkgutil.CombinedLoader{
+			pkgutil.Packages{
+				"pkg": pkgutil.MapPackage{
 					PkgName: "pkg",
 					Declarations: map[string]interface{}{
 						"Type": reflect.TypeOf(new(TypeStruct)).Elem(),
@@ -83,9 +84,9 @@ func TestIssue403(t *testing.T) {
 		}
 	})
 	t.Run("Function that takes a struct as argument", func(t *testing.T) {
-		packages := scriggo.CombinedLoader{
-			scriggo.Packages{
-				"pkg": scriggo.MapPackage{
+		packages := pkgutil.CombinedLoader{
+			pkgutil.Packages{
+				"pkg": pkgutil.MapPackage{
 					PkgName: "pkg",
 					Declarations: map[string]interface{}{
 						"F": func(s struct{}) {},
@@ -115,9 +116,9 @@ func TestIssue403(t *testing.T) {
 		}
 	})
 	t.Run("Function taking an array", func(t *testing.T) {
-		packages := scriggo.CombinedLoader{
-			scriggo.Packages{
-				"pkg": scriggo.MapPackage{
+		packages := pkgutil.CombinedLoader{
+			pkgutil.Packages{
+				"pkg": pkgutil.MapPackage{
 					PkgName: "pkg",
 					Declarations: map[string]interface{}{
 						"F": func(s [3]int) {},
@@ -152,9 +153,9 @@ func TestIssue403(t *testing.T) {
 // https://github.com/open2b/scriggo/issues/309.
 func TestIssue309(t *testing.T) {
 	t.Run("Add right position to 'imported and not used' errors", func(t *testing.T) {
-		packages := scriggo.CombinedLoader{
-			scriggo.Packages{
-				"pkg": scriggo.MapPackage{
+		packages := pkgutil.CombinedLoader{
+			pkgutil.Packages{
+				"pkg": pkgutil.MapPackage{
 					PkgName: "pkg",
 					Declarations: map[string]interface{}{
 						"Value": &TypeStruct{},

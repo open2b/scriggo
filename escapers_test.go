@@ -4,11 +4,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package templates
+package scriggo
 
 import (
 	"strings"
 	"testing"
+
+	"github.com/open2b/scriggo/internal/mapfs"
 )
 
 var htmlEscapeCases = []struct {
@@ -200,11 +202,11 @@ var urlEscapeCases = []struct {
 func TestURLEscape(t *testing.T) {
 	for _, cas := range urlEscapeCases {
 		t.Run("", func(t *testing.T) {
-			fsys := MapFS{"index.html": cas.src}
-			opts := &BuildOptions{
+			fsys := mapfs.MapFS{"index.html": cas.src}
+			opts := &BuildTemplateOptions{
 				Globals: globals(),
 			}
-			template, err := Build(fsys, "index.html", opts)
+			template, err := BuildTemplate(fsys, "index.html", opts)
 			if err != nil {
 				t.Fatalf("compilation error: %s", err)
 			}
