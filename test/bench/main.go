@@ -85,7 +85,7 @@ func build() ([]programToRun, error) {
 		}
 		arch := txtar.Parse(tests)
 		for _, file := range arch.Files {
-			fsys := scriggo.NewFileFS("main.go", file.Data)
+			fsys := scriggo.File("main.go", file.Data)
 			program, err := scriggo.Build(fsys, nil)
 			if err != nil {
 				return fmt.Errorf("cannot build %s/%s: %s", path, file.Name, err)

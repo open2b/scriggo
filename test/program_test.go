@@ -43,7 +43,7 @@ func TestIssue403(t *testing.T) {
 		func main() {
 			pkg.Value.Method()
 		}`
-		fsys := scriggo.NewFileFS("main.go", []byte(main))
+		fsys := scriggo.File("main.go", []byte(main))
 		program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
 		if err != nil {
 			t.Fatal(err)
@@ -73,7 +73,7 @@ func TestIssue403(t *testing.T) {
 			t := pkg.Type{}
 			t.Method()
 		}`
-		fsys := scriggo.NewFileFS("main.go", []byte(main))
+		fsys := scriggo.File("main.go", []byte(main))
 		program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
 		if err != nil {
 			t.Fatal(err)
@@ -105,7 +105,7 @@ func TestIssue403(t *testing.T) {
 			pkg.F(t)
 		}
 		`
-		fsys := scriggo.NewFileFS("main.go", []byte(main))
+		fsys := scriggo.File("main.go", []byte(main))
 		program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
 		if err != nil {
 			t.Fatal(err)
@@ -137,7 +137,7 @@ func TestIssue403(t *testing.T) {
 			pkg.F(a)
 		}
 		`
-		fsys := scriggo.NewFileFS("main.go", []byte(main))
+		fsys := scriggo.File("main.go", []byte(main))
 		program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
 		if err != nil {
 			t.Fatal(err)
@@ -171,7 +171,7 @@ func TestIssue309(t *testing.T) {
 		)
 
 		func main() { }`
-		fsys := scriggo.NewFileFS("main.go", []byte(main))
+		fsys := scriggo.File("main.go", []byte(main))
 		_, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
 		if err == nil {
 			t.Fatal("unexpected nil error")

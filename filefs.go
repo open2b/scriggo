@@ -14,25 +14,25 @@ import (
 
 // FileFS implements a file system with a single file.
 type FileFS struct {
-	name string
-	data []byte
+	Name string // file name
+	Data []byte // file content
 }
 
-// NewFileFS returns a FileFS file system that contains only one file with the
-// given name and data.
-func NewFileFS(name string, data []byte) FileFS {
+// File returns a FileFS file system that contains only the file with the
+// given name and content.
+func File(name string, data []byte) FileFS {
 	return FileFS{name, data}
 }
 
 // Open opens the named file.
 func (fsys FileFS) Open(name string) (fs.File, error) {
 	if name == "." {
-		return &fileReadDirFile{fileFile{name: fsys.name}, false}, nil
+		return &fileReadDirFile{fileFile{name: fsys.Name}, false}, nil
 	}
-	if name != fsys.name {
+	if name != fsys.Name {
 		return nil, &os.PathError{Op: "open", Path: name, Err: os.ErrNotExist}
 	}
-	return &fileFile{name: fsys.name, data: fsys.data}, nil
+	return &fileFile{name: fsys.Name, data: fsys.Data}, nil
 }
 
 // fileFile implements fs.File.

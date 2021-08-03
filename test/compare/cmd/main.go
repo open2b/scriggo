@@ -97,7 +97,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			fsys = scriggo.NewFileFS("main.go", data)
+			fsys = scriggo.File("main.go", data)
 		}
 		program, err := scriggo.Build(fsys, opts)
 		if err != nil {

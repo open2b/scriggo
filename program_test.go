@@ -66,7 +66,7 @@ func TestIssue523(t *testing.T) {
 	func main() {
 		fmt.Println("hello")
 	}`
-	fsys := NewFileFS("main.go", []byte(src))
+	fsys := File("main.go", []byte(src))
 	_, _ = Build(fsys, nil)
 }
 
@@ -377,7 +377,7 @@ func main() {
 	var v300 int ; _ = v300
 }
 	`
-	fsys := NewFileFS("main.go", []byte(src))
+	fsys := File("main.go", []byte(src))
 	_, err := Build(fsys, nil)
 	if err == nil {
 		t.Fatal("Expectend a LimitExceededError, got nothing")
