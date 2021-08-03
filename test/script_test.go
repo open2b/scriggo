@@ -202,11 +202,11 @@ func TestScripts(t *testing.T) {
 			}
 			script, err := scripts.Build(strings.NewReader(cas.src), options)
 			if err != nil {
-				t.Fatalf("loading error: %s", err)
+				t.Fatalf("build error: %s", err)
 			}
 			_, err = script.Run(cas.init, nil)
 			if err != nil {
-				t.Fatalf("execution error: %s", err)
+				t.Fatalf("run error: %s", err)
 			}
 			out := scriptsStdout.String()
 			scriptsStdout.Reset()
