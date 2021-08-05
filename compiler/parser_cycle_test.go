@@ -11,14 +11,14 @@ import (
 	"testing"
 
 	"github.com/open2b/scriggo/compiler/ast"
-	"github.com/open2b/scriggo/internal/mapfs"
+	"github.com/open2b/scriggo/internal/fstest"
 
 	"github.com/google/go-cmp/cmp"
 )
 
 var cycleProgramTests = []struct {
 	name    string
-	program mapfs.MapFS
+	program fstest.Files
 	path    string
 	pos     ast.Position
 	msg     string
@@ -26,7 +26,7 @@ var cycleProgramTests = []struct {
 
 	{
 		name: "Package import cycle",
-		program: mapfs.MapFS{
+		program: fstest.Files{
 			"go.mod":       "module cycle",
 			"main.go":      "package main\nimport _ \"cycle/foo\"\nfunc main() {}",
 			"foo/foo.go":   "package foo\nimport _ \"cycle/foo2\"",
@@ -44,7 +44,7 @@ var cycleProgramTests = []struct {
 
 	{
 		name: "Package that imports itself",
-		program: mapfs.MapFS{
+		program: fstest.Files{
 			"go.mod":     "module cycle",
 			"main.go":    "package main\nimport _ \"cycle/foo\"\nfunc main() {}",
 			"foo/foo.go": "package foo\nimport _ \"cycle/foo\"",
@@ -83,7 +83,7 @@ func TestCyclicPrograms(t *testing.T) {
 
 var cycleTemplateTests = []struct {
 	name string
-	fsys mapfs.MapFS
+	fsys fstest.Files
 	path string
 	pos  ast.Position
 	msg  string
@@ -91,7 +91,7 @@ var cycleTemplateTests = []struct {
 
 	{
 		name: "Template cycle",
-		fsys: mapfs.MapFS{
+		fsys: fstest.Files{
 			"index.html":            `{% extends "/layout.html" %}`,
 			"layout.html":           `{% import "/macros/macro.html" %}`,
 			"partials/partial.html": `{% import "/macros/macro.html" %}`,
@@ -108,7 +108,7 @@ var cycleTemplateTests = []struct {
 
 	{
 		name: "Template cycle on index file",
-		fsys: mapfs.MapFS{
+		fsys: fstest.Files{
 			"index.html":        `{% extends "/layout.html" %}`,
 			"layout.html":       `{% import "/macros/macro.html" %}`,
 			"macros/macro.html": `{% macro A() %}\n\t{{ render "/index.html" }}\n{% end %}`,
@@ -123,7 +123,7 @@ var cycleTemplateTests = []struct {
 
 	{
 		name: "Template cycle on last rendered file",
-		fsys: mapfs.MapFS{
+		fsys: fstest.Files{
 			"index.html":        `{% extends "/layout.html" %}`,
 			"layout.html":       `{% import "/macros/macro.html" %}`,
 			"macros/macro.html": `{% macro A() %}\n\t{{ render "/macros/macro.html" }}\n{% end %}`,
@@ -138,7 +138,7 @@ var cycleTemplateTests = []struct {
 
 	{
 		name: "Template file that extends itself",
-		fsys: mapfs.MapFS{
+		fsys: fstest.Files{
 			"index.html": `{% extends "/index.html" %}`,
 		},
 		path: "index.html",
@@ -149,7 +149,7 @@ var cycleTemplateTests = []struct {
 
 	{
 		name: "Template file that imports itself",
-		fsys: mapfs.MapFS{
+		fsys: fstest.Files{
 			"index.html": `{% import "/index.html" %}`,
 		},
 		path: "index.html",
@@ -160,7 +160,7 @@ var cycleTemplateTests = []struct {
 
 	{
 		name: "Template file that render itself",
-		fsys: mapfs.MapFS{
+		fsys: fstest.Files{
 			"index.html": `{{ render "/index.html" }}`,
 		},
 		path: "index.html",

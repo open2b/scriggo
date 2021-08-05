@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/open2b/scriggo/internal/mapfs"
+	"github.com/open2b/scriggo/internal/fstest"
 )
 
 type Vars map[string]interface{}
@@ -52,7 +52,7 @@ var htmlContextTests = []struct {
 
 func TestHTMLContext(t *testing.T) {
 	for _, expr := range htmlContextTests {
-		fsys := mapfs.MapFS{"index.html": "{{" + expr.src + "}}"}
+		fsys := fstest.Files{"index.html": "{{" + expr.src + "}}"}
 		opts := &BuildTemplateOptions{
 			Globals: asDeclarations(expr.vars),
 		}
@@ -107,7 +107,7 @@ var quotedAttrContextTests = []struct {
 
 func TestQuotedAttrContext(t *testing.T) {
 	for _, expr := range quotedAttrContextTests {
-		fsys := mapfs.MapFS{"index.html": `<z x="{{` + expr.src + `}}">`}
+		fsys := fstest.Files{"index.html": `<z x="{{` + expr.src + `}}">`}
 		opts := &BuildTemplateOptions{
 			Globals: asDeclarations(expr.vars),
 		}
@@ -144,7 +144,7 @@ var unquotedAttrContextTests = []struct {
 
 func TestUnquotedAttrContext(t *testing.T) {
 	for _, expr := range unquotedAttrContextTests {
-		fsys := mapfs.MapFS{"index.html": `<z x={{` + expr.src + `}}>`}
+		fsys := fstest.Files{"index.html": `<z x={{` + expr.src + `}}>`}
 		opts := &BuildTemplateOptions{
 			Globals: asDeclarations(expr.vars),
 		}
@@ -226,7 +226,7 @@ var scriptContextTests = []struct {
 func TestScriptContext(t *testing.T) {
 	for _, typ := range []string{"text/javascript", "application/ld+json"} {
 		for _, expr := range scriptContextTests {
-			fsys := mapfs.MapFS{"index.html": `<script type="` + typ + `">{{` + expr.src + `}}</script>`}
+			fsys := fstest.Files{"index.html": `<script type="` + typ + `">{{` + expr.src + `}}</script>`}
 			opts := &BuildTemplateOptions{
 				Globals: asDeclarations(expr.vars),
 			}
@@ -259,7 +259,7 @@ var jsContextTests = []struct {
 
 func TestJSContext(t *testing.T) {
 	for _, expr := range jsContextTests {
-		fsys := mapfs.MapFS{"index.html": "<script>{{" + expr.src + "}}</script>"}
+		fsys := fstest.Files{"index.html": "<script>{{" + expr.src + "}}</script>"}
 		opts := &BuildTemplateOptions{
 			Globals: asDeclarations(expr.vars),
 		}
@@ -291,7 +291,7 @@ var jsonContextTests = []struct {
 
 func TestJSONContext(t *testing.T) {
 	for _, expr := range jsonContextTests {
-		fsys := mapfs.MapFS{"index.html": `<script type="application/ld+json">{{` + expr.src + `}}</script>`}
+		fsys := fstest.Files{"index.html": `<script type="application/ld+json">{{` + expr.src + `}}</script>`}
 		opts := &BuildTemplateOptions{
 			Globals: asDeclarations(expr.vars),
 		}
@@ -349,7 +349,7 @@ var jsStringContextTests = []struct {
 func TestJSStringContext(t *testing.T) {
 	for _, q := range []string{"\"", "'"} {
 		for _, expr := range jsStringContextTests {
-			fsys := mapfs.MapFS{"index.html": "<script>" + q + "{{" + expr.src + "}}" + q + "</script>"}
+			fsys := fstest.Files{"index.html": "<script>" + q + "{{" + expr.src + "}}" + q + "</script>"}
 			opts := &BuildTemplateOptions{
 				Globals: asDeclarations(expr.vars),
 			}
@@ -388,7 +388,7 @@ var cssContextTests = []struct {
 
 func TestCSSContext(t *testing.T) {
 	for _, expr := range cssContextTests {
-		fsys := mapfs.MapFS{"index.html": "<style>{{" + expr.src + "}}</style>"}
+		fsys := fstest.Files{"index.html": "<style>{{" + expr.src + "}}</style>"}
 		opts := &BuildTemplateOptions{
 			Globals: asDeclarations(expr.vars),
 		}
@@ -438,7 +438,7 @@ var cssStringContextTests = []struct {
 func TestCSSStringContext(t *testing.T) {
 	for _, q := range []string{"\"", "'"} {
 		for _, expr := range cssStringContextTests {
-			fsys := mapfs.MapFS{"index.html": "<style>" + q + "{{" + expr.src + "}}" + q + "</style>"}
+			fsys := fstest.Files{"index.html": "<style>" + q + "{{" + expr.src + "}}" + q + "</style>"}
 			opts := &BuildTemplateOptions{
 				Globals: asDeclarations(expr.vars),
 			}

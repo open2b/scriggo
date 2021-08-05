@@ -6,7 +6,7 @@
 
 // This file is a copy of the "templates/mapfs.go" file. Keep in sync.
 
-package mapfs
+package fstest
 
 import (
 	"io"
@@ -18,35 +18,35 @@ import (
 	"time"
 )
 
-// MapFS implements a file system that read the files from a map.
-type MapFS map[string]string
+// Files implements a file system that read the files from a map.
+type Files map[string]string
 
-func (fsys MapFS) Open(name string) (fs.File, error) {
+func (fsys Files) Open(name string) (fs.File, error) {
 	if fs.ValidPath(name) {
 		if name == "." {
-			return &mapDir{mapFile: mapFile{name: name, mode: fs.ModeDir}, fsys: fsys}, nil
+			return &filesDir{filesFile: filesFile{name: name, mode: fs.ModeDir}, fsys: fsys}, nil
 		}
 		data, ok := fsys[name]
 		if ok {
-			return &mapFile{name, data, 0, 0}, nil
+			return &filesFile{name, data, 0, 0}, nil
 		}
 		prefix := name + "/"
 		for n := range fsys {
 			if strings.HasPrefix(n, prefix) {
-				return &mapDir{mapFile: mapFile{name: name, mode: fs.ModeDir}, fsys: fsys}, nil
+				return &filesDir{filesFile: filesFile{name: name, mode: fs.ModeDir}, fsys: fsys}, nil
 			}
 		}
 	}
 	return nil, &os.PathError{Op: "open", Path: name, Err: os.ErrNotExist}
 }
 
-type mapDir struct {
-	mapFile
+type filesDir struct {
+	filesFile
 	fsys map[string]string
 	n    int
 }
 
-func (d *mapDir) ReadDir(n int) ([]fs.DirEntry, error) {
+func (d *filesDir) ReadDir(n int) ([]fs.DirEntry, error) {
 	var dir string
 	if d.name != "." {
 		dir = d.name + "/"
@@ -79,14 +79,14 @@ func (d *mapDir) ReadDir(n int) ([]fs.DirEntry, error) {
 	}
 	entries := make([]fs.DirEntry, len(names))
 	for i, name := range names {
-		entries[i] = &mapDirEntry{mapFileInfo{name: name}}
+		entries[i] = &mapDirEntry{filesFileInfo{name: name}}
 	}
 	return entries, nil
 }
 
 // mapDirEntry implements fs.DirEntry.
 type mapDirEntry struct {
-	mapFileInfo
+	filesFileInfo
 }
 
 func (f *mapDirEntry) Type() fs.FileMode {
@@ -94,21 +94,21 @@ func (f *mapDirEntry) Type() fs.FileMode {
 }
 
 func (f *mapDirEntry) Info() (fs.FileInfo, error) {
-	return &f.mapFileInfo, nil
+	return &f.filesFileInfo, nil
 }
 
-type mapFile struct {
+type filesFile struct {
 	name   string
 	data   string
 	offset int
 	mode   os.FileMode
 }
 
-func (f *mapFile) Stat() (os.FileInfo, error) {
-	return (*mapFileInfo)(f), nil
+func (f *filesFile) Stat() (os.FileInfo, error) {
+	return (*filesFileInfo)(f), nil
 }
 
-func (f *mapFile) Read(p []byte) (int, error) {
+func (f *filesFile) Read(p []byte) (int, error) {
 	if f.offset < 0 {
 		return 0, &os.PathError{Op: "read", Path: f.name, Err: os.ErrInvalid}
 	}
@@ -120,16 +120,16 @@ func (f *mapFile) Read(p []byte) (int, error) {
 	return n, nil
 }
 
-func (f *mapFile) Close() error {
+func (f *filesFile) Close() error {
 	f.offset = -1
 	return nil
 }
 
-type mapFileInfo mapFile
+type filesFileInfo filesFile
 
-func (i *mapFileInfo) Name() string       { return path.Base(i.name) }
-func (i *mapFileInfo) Size() int64        { return int64(len(i.data)) }
-func (i *mapFileInfo) Mode() os.FileMode  { return i.mode }
-func (i *mapFileInfo) ModTime() time.Time { return time.Time{} }
-func (i *mapFileInfo) IsDir() bool        { return i.mode&fs.ModeDir == fs.ModeDir }
-func (i *mapFileInfo) Sys() interface{}   { return nil }
+func (i *filesFileInfo) Name() string       { return path.Base(i.name) }
+func (i *filesFileInfo) Size() int64        { return int64(len(i.data)) }
+func (i *filesFileInfo) Mode() os.FileMode  { return i.mode }
+func (i *filesFileInfo) ModTime() time.Time { return time.Time{} }
+func (i *filesFileInfo) IsDir() bool        { return i.mode&fs.ModeDir == fs.ModeDir }
+func (i *filesFileInfo) Sys() interface{}   { return nil }

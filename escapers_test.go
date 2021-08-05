@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/open2b/scriggo/internal/mapfs"
+	"github.com/open2b/scriggo/internal/fstest"
 )
 
 var htmlEscapeCases = []struct {
@@ -202,7 +202,7 @@ var urlEscapeCases = []struct {
 func TestURLEscape(t *testing.T) {
 	for _, cas := range urlEscapeCases {
 		t.Run("", func(t *testing.T) {
-			fsys := mapfs.MapFS{"index.html": cas.src}
+			fsys := fstest.Files{"index.html": cas.src}
 			opts := &BuildTemplateOptions{
 				Globals: globals(),
 			}

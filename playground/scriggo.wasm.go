@@ -62,7 +62,7 @@ func main() {
 			}
 		}
 		go func() {
-			fsys := scriggo.File("main.go", []byte(src))
+			fsys := scriggo.Files{"main.go": []byte(src)}
 			program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
 			if cb.IsNull() || cb.IsUndefined() {
 				return

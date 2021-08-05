@@ -10,11 +10,11 @@ import (
 	"testing"
 
 	"github.com/open2b/scriggo"
-	"github.com/open2b/scriggo/internal/mapfs"
+	"github.com/open2b/scriggo/internal/fstest"
 )
 
 func TestProgramImport(t *testing.T) {
-	cases := map[string]mapfs.MapFS{
+	cases := map[string]fstest.Files{
 		`Just package "main", no imports`: {
 			"main.go": `package main
 				func main() {

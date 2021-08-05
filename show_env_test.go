@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/open2b/scriggo/internal/mapfs"
+	"github.com/open2b/scriggo/internal/fstest"
 	"github.com/open2b/scriggo/runtime"
 
 	"github.com/google/go-cmp/cmp"
@@ -140,7 +140,7 @@ func TestEnvStringer(t *testing.T) {
 	for name, cas := range envStringerCases {
 		t.Run(name, func(t *testing.T) {
 			ctx := context.WithValue(context.Background(), "forty-two", 42)
-			fsys := mapfs.MapFS{}
+			fsys := fstest.Files{}
 			for p, src := range cas.sources {
 				fsys[p] = src
 			}

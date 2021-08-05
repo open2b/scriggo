@@ -12,6 +12,7 @@ import (
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/internal/fstest"
 	"github.com/open2b/scriggo/pkgutil"
 )
 
@@ -43,7 +44,7 @@ func TestIssue403(t *testing.T) {
 		func main() {
 			pkg.Value.Method()
 		}`
-		fsys := scriggo.File("main.go", []byte(main))
+		fsys := fstest.Files{"main.go": main}
 		program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
 		if err != nil {
 			t.Fatal(err)
@@ -73,7 +74,7 @@ func TestIssue403(t *testing.T) {
 			t := pkg.Type{}
 			t.Method()
 		}`
-		fsys := scriggo.File("main.go", []byte(main))
+		fsys := fstest.Files{"main.go": main}
 		program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
 		if err != nil {
 			t.Fatal(err)
@@ -105,7 +106,7 @@ func TestIssue403(t *testing.T) {
 			pkg.F(t)
 		}
 		`
-		fsys := scriggo.File("main.go", []byte(main))
+		fsys := fstest.Files{"main.go": main}
 		program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
 		if err != nil {
 			t.Fatal(err)
@@ -137,7 +138,7 @@ func TestIssue403(t *testing.T) {
 			pkg.F(a)
 		}
 		`
-		fsys := scriggo.File("main.go", []byte(main))
+		fsys := fstest.Files{"main.go": main}
 		program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
 		if err != nil {
 			t.Fatal(err)
@@ -171,7 +172,7 @@ func TestIssue309(t *testing.T) {
 		)
 
 		func main() { }`
-		fsys := scriggo.File("main.go", []byte(main))
+		fsys := fstest.Files{"main.go": main}
 		_, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
 		if err == nil {
 			t.Fatal("unexpected nil error")

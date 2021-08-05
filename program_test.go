@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/open2b/scriggo/compiler"
+	"github.com/open2b/scriggo/internal/fstest"
 )
 
 func TestInitPackageLevelVariables(t *testing.T) {
@@ -66,7 +67,7 @@ func TestIssue523(t *testing.T) {
 	func main() {
 		fmt.Println("hello")
 	}`
-	fsys := File("main.go", []byte(src))
+	fsys := fstest.Files{"main.go": src}
 	_, _ = Build(fsys, nil)
 }
 
@@ -377,7 +378,7 @@ func main() {
 	var v300 int ; _ = v300
 }
 	`
-	fsys := File("main.go", []byte(src))
+	fsys := fstest.Files{"main.go": src}
 	_, err := Build(fsys, nil)
 	if err == nil {
 		t.Fatal("Expectend a LimitExceededError, got nothing")

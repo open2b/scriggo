@@ -18,7 +18,6 @@ import (
 	"path/filepath"
 
 	"github.com/open2b/scriggo"
-	"github.com/open2b/scriggo/internal/mapfs"
 	"github.com/open2b/scriggo/pkgutil"
 	"github.com/open2b/scriggo/runtime"
 	"github.com/open2b/scriggo/scripts"
@@ -97,7 +96,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			fsys = scriggo.File("main.go", data)
+			fsys = scriggo.Files{"main.go": data}
 		}
 		program, err := scriggo.Build(fsys, opts)
 		if err != nil {
@@ -134,7 +133,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			fsys = mapfs.MapFS{"index" + ext: string(src)}
+			fsys = scriggo.Files{"index" + ext: src}
 		case "rundir":
 			fsys = os.DirFS(flag.Arg(2))
 		}

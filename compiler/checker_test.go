@@ -18,6 +18,7 @@ import (
 	"unicode"
 
 	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/internal/fstest"
 	"github.com/open2b/scriggo/runtime"
 )
 
@@ -1806,7 +1807,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 		p.Env1(1)
 		p.EnvVar(1,2,3,4,5)
 	}`
-	tree, err := ParseProgram(NewFileFS("main.go", []byte(main)))
+	tree, err := ParseProgram(fstest.Files{"main.go": main})
 	if err != nil {
 		t.Errorf("TestCheckerRemoveEnv returned parser error: %s", err)
 		return

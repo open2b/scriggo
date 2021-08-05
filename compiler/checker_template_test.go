@@ -15,7 +15,7 @@ import (
 	"testing"
 
 	"github.com/open2b/scriggo/compiler/ast"
-	"github.com/open2b/scriggo/internal/mapfs"
+	"github.com/open2b/scriggo/internal/fstest"
 	"github.com/open2b/scriggo/runtime"
 )
 
@@ -618,7 +618,7 @@ func TestCheckerTemplatesStatements(t *testing.T) {
 		src := cas.src
 		expected := cas.expected
 		t.Run(src, func(t *testing.T) {
-			fsys := mapfs.MapFS{"index.html": src, "partial.html": "x"}
+			fsys := fstest.Files{"index.html": src, "partial.html": "x"}
 			_, err := BuildTemplate(fsys, "index.html", options)
 			switch {
 			case expected == "" && err != nil:

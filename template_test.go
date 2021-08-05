@@ -19,7 +19,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/open2b/scriggo/internal/mapfs"
+	"github.com/open2b/scriggo/internal/fstest"
 	"github.com/open2b/scriggo/runtime"
 
 	"github.com/google/go-cmp/cmp"
@@ -368,7 +368,7 @@ var rendererExprTests = []struct {
 func TestRenderExpressions(t *testing.T) {
 	for _, cas := range rendererExprTests {
 		t.Run(cas.src, func(t *testing.T) {
-			fsys := mapfs.MapFS{"index.html": "{{" + cas.src + "}}"}
+			fsys := fstest.Files{"index.html": "{{" + cas.src + "}}"}
 			template, err := BuildTemplate(fsys, "index.html", nil)
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
@@ -591,7 +591,7 @@ var rendererStmtTests = []struct {
 func TestRenderStatements(t *testing.T) {
 	for _, cas := range rendererStmtTests {
 		t.Run(cas.src, func(t *testing.T) {
-			fsys := mapfs.MapFS{"index.html": cas.src}
+			fsys := fstest.Files{"index.html": cas.src}
 			template, err := BuildTemplate(fsys, "index.html", nil)
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
@@ -3702,7 +3702,7 @@ func TestMultiFileTemplate(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			entryPoint := cas.entryPoint
-			fsys := mapfs.MapFS{}
+			fsys := fstest.Files{}
 			for p, src := range cas.sources {
 				fsys[p] = src
 				if entryPoint == "" {
@@ -3760,7 +3760,7 @@ func TestVars(t *testing.T) {
 	var e = func() {}
 	var f = 5
 	var g = 7
-	fsys := mapfs.MapFS{"example.txt": `{% _, _, _, _, _ = a, c, d, e, f %}`}
+	fsys := fstest.Files{"example.txt": `{% _, _, _, _, _ = a, c, d, e, f %}`}
 	globals := map[string]interface{}{
 		"a": &a, // expected
 		"b": &b,
@@ -3848,7 +3848,7 @@ func Test_envFilePath(t *testing.T) {
 	}
 	for _, cas := range envFilePathCases {
 		t.Run(cas.name, func(t *testing.T) {
-			fsys := mapfs.MapFS{}
+			fsys := fstest.Files{}
 			for p, src := range cas.sources {
 				fsys[p] = src
 			}
