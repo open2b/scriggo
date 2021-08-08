@@ -14,7 +14,6 @@ import (
 	"math"
 	"path"
 	"reflect"
-	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -67,26 +66,6 @@ func globals() map[string]interface{} {
 				return y
 			}
 			return x
-		},
-		"sort": func(slice interface{}) {
-			// no reflect
-			switch s := slice.(type) {
-			case nil:
-			case []string:
-				sort.Strings(s)
-			case []rune:
-				sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
-			case []byte:
-				sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
-			case []HTML:
-				sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
-			case []int:
-				sort.Ints(s)
-			case []float64:
-				sort.Float64s(s)
-			}
-			// reflect
-			sortSlice(slice)
 		},
 		"sprint": func(a ...interface{}) string {
 			return fmt.Sprint(a...)
@@ -828,13 +807,6 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt": `Maximum between 10 and -3 is {{ max(10, -3) }}`,
 		},
 		expectedOut: `Maximum between 10 and -3 is 10`,
-	},
-
-	"Template global - sort": {
-		sources: map[string]string{
-			"index.txt": `{% s := []string{"a", "c", "b"} %}{{ sprint(s) }} sorted is {% sort(s) %}{{ sprint(s) }}`,
-		},
-		expectedOut: `[a c b] sorted is [a b c]`,
 	},
 
 	"Function literal": {
