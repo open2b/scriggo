@@ -4,6 +4,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package scripts allows the Go code to be executed as a script.
+//
+// Package scripts is EXPERIMENTAL. There is no guarantee that it will be
+// included in the 1.0 version of Scriggo and could be removed at any time.
 package scripts
 
 import (
