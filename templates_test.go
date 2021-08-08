@@ -18,6 +18,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/open2b/scriggo/compiler/ast"
 	"github.com/open2b/scriggo/internal/fstest"
 	"github.com/open2b/scriggo/runtime"
 
@@ -3840,6 +3841,32 @@ func Test_envFilePath(t *testing.T) {
 				t.Fatalf("(-want, +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+func Test_treeTransformer(t *testing.T) {
+	stdout := &strings.Builder{}
+	fsys := fstest.Files{"index.html": `{% w := "hi, " %}{{ w }}world!`}
+	loadOpts := &BuildTemplateOptions{
+		TreeTransformer: func(tree *ast.Tree) error {
+			assignment := tree.Nodes[0].(*ast.Assignment)
+			assignment.Rhs[0].(*ast.BasicLiteral).Value = `"hello, "`
+			text := tree.Nodes[2].(*ast.Text)
+			text.Text = []byte("scriggo!")
+			return nil
+		},
+	}
+	template, err := BuildTemplate(fsys, "index.html", loadOpts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = template.Run(stdout, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedOutput := "hello, scriggo!"
+	if stdout.String() != expectedOutput {
+		t.Fatalf("expecting output %q, got %q", expectedOutput, stdout.String())
 	}
 }
 
