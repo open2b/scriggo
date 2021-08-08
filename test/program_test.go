@@ -179,11 +179,11 @@ func TestIssue309(t *testing.T) {
 		}
 		err2, ok := err.(scriggo.CompilerError)
 		if !ok {
-			t.Fatalf("unexpected error %s, execting a compiler errror", err)
+			t.Fatalf("unexpected error %s, expecting a compiler error", err)
 		}
 		expectedPosition := ast.Position{Line: 5, Column: 4, Start: 37, End: 41}
 		if err2.Position() != expectedPosition {
-			t.Fatalf("unexpected position %#v, execting %#v", err2.Position(), expectedPosition)
+			t.Fatalf("unexpected position %#v, expecting %#v", err2.Position(), expectedPosition)
 		}
 	})
 }
