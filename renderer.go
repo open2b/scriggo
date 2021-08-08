@@ -652,8 +652,8 @@ func showInJS(env runtime.Env, out io.Writer, value interface{}) error {
 					if tag == "-" {
 						continue
 					}
-					tagName, tagOptions := parseTag(tag)
-					if tagOptions.Contains("omitempty") && isEmptyJSONValue(value) {
+					tagName, omitempty := parseTagValue(tag)
+					if omitempty && isEmptyValue(value) {
 						continue
 					}
 					if tagName != "" {
@@ -855,8 +855,8 @@ func showInJSON(env runtime.Env, out io.Writer, value interface{}) error {
 					if tag == "-" {
 						continue
 					}
-					tagName, tagOptions := parseTag(tag)
-					if tagOptions.Contains("omitempty") && isEmptyJSONValue(value) {
+					tagName, omitempty := parseTagValue(tag)
+					if omitempty && isEmptyValue(value) {
 						continue
 					}
 					if tagName != "" {
@@ -1051,4 +1051,44 @@ func showTimeInJS(tt time.Time) string {
 		format = `new Date("%+0.6d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3d%+0.2d:%0.2d")`
 	}
 	return fmt.Sprintf(format, y, tt.Month(), tt.Day(), tt.Hour(), tt.Minute(), tt.Second(), ms, h, m)
+}
+
+// parseTagValue parses a 'json' tag value and returns its name and whether
+// its options contain 'omitempty'.
+func parseTagValue(tag string) (name string, omitempty bool) {
+	i := strings.Index(tag, ",")
+	if i == -1 {
+		return tag, false
+	}
+	name, tag = tag[:i], tag[:i+1]
+	for tag != "" {
+		i = strings.Index(tag, ",")
+		if i == -1 {
+			return name, tag == "omitempty"
+		}
+		if tag[:i] == "omitempty" {
+			return name, true
+		}
+		tag = tag[i+1:]
+	}
+	return name, false
+}
+
+// isEmptyValue reports whether v is an empty value for JS and JSON.
+func isEmptyValue(v reflect.Value) (empty bool) {
+	switch v.Kind() {
+	case reflect.Bool:
+		empty = !v.Bool()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		empty = v.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		empty = v.Uint() == 0
+	case reflect.Float32, reflect.Float64:
+		empty = v.Float() == 0
+	case reflect.String, reflect.Map, reflect.Slice, reflect.Array:
+		empty = v.Len() == 0
+	case reflect.Interface, reflect.Ptr, reflect.UnsafePointer:
+		empty = v.IsNil()
+	}
+	return
 }
