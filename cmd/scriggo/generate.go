@@ -48,8 +48,7 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 		}
 	}
 
-	importReflect := false
-
+	alreadyImportsReflect := false
 	explicitImports := []struct{ Name, Path string }{}
 	for _, imp := range sf.imports {
 		uniqueName := uniquePackageName(imp.path)
@@ -59,21 +58,23 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 			explicitImports = append(explicitImports, struct{ Name, Path string }{"", imp.path})
 		}
 		if imp.path == "reflect" {
-			importReflect = true
+			alreadyImportsReflect = true
 		}
 	}
 
 	mustImportScriggo := false
+	mustImportReflect := false
 	packages := map[string]*packageType{}
 	for i, imp := range sf.imports {
 		if flags.v {
 			_, _ = fmt.Fprintf(os.Stderr, "%s\n", imp.path)
 		}
-		pkgName, decls, refToImport, refToScriggo, err := loadGoPackage(imp.path, dir, goos, flags, imp.including, imp.excluding)
+		pkgName, decls, refToImport, refToScriggo, refToReflect, err := loadGoPackage(imp.path, dir, goos, flags, imp.including, imp.excluding)
 		if err != nil {
 			return err
 		}
 		mustImportScriggo = mustImportScriggo || refToScriggo
+		mustImportReflect = mustImportReflect || refToReflect
 		if !refToImport {
 			explicitImports[i].Name = "_"
 		}
@@ -137,6 +138,13 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 			}
 		}
 
+	}
+
+	// If the 'reflect' package has already been imported from the Scriggofile,
+	// it must not be added twice, even if the value of some declarations of
+	// another package refers to it.
+	if alreadyImportsReflect {
+		mustImportReflect = false
 	}
 
 	if w == nil {
@@ -211,7 +219,7 @@ import (
 
 {{ if .MustImportScriggo}}import "github.com/open2b/scriggo"{{end}}
 import . "github.com/open2b/scriggo/pkgutil"
-{{ if not .ImportReflect}}import "reflect"{{end}}
+{{ if .MustImportReflect}}import "reflect"{{end}}
 
 func init() {
 	{{.Variable}} = make(Packages, {{len .PkgContent}})
@@ -238,7 +246,7 @@ func init() {
 		"NextGoVersion":     nextGoVersion(runtime.Version()),
 		"PkgName":           sf.pkgName,
 		"ExplicitImports":   explicitImports,
-		"ImportReflect":     importReflect,
+		"MustImportReflect": mustImportReflect,
 		"MustImportScriggo": mustImportScriggo,
 		"Variable":          sf.variable,
 		"PkgContent":        allPkgsContent,
@@ -258,8 +266,9 @@ func init() {
 // where all declarations are constant literals refToImport is false.
 //
 // refToScriggo reports whether at least one of the declarations refers to the
-// package 'scriggo'.
-func loadGoPackage(path, dir, goos string, flags buildFlags, including, excluding []string) (name string, decl map[string]string, refToImport, refToScriggo bool, err error) {
+// package 'scriggo', while refToReflect reports whether at least one of the
+// declarations refers to the package 'reflect'.
+func loadGoPackage(path, dir, goos string, flags buildFlags, including, excluding []string) (name string, decl map[string]string, refToImport, refToScriggo, refToReflect bool, err error) {
 
 	allowed := func(n string) bool {
 		if len(including) > 0 {
@@ -299,11 +308,11 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 	if dir != "" {
 		cwd, err := os.Getwd()
 		if err != nil {
-			return "", nil, false, false, fmt.Errorf("scriggo: can't get current directory: %s", err)
+			return "", nil, false, false, false, fmt.Errorf("scriggo: can't get current directory: %s", err)
 		}
 		err = os.Chdir(dir)
 		if err != nil {
-			return "", nil, false, false, fmt.Errorf("scriggo: can't change current directory: %s", err)
+			return "", nil, false, false, false, fmt.Errorf("scriggo: can't change current directory: %s", err)
 		}
 		defer func() {
 			err = os.Chdir(cwd)
@@ -316,15 +325,15 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 	}
 	packages, err := pkgs.Load(conf, path)
 	if err != nil {
-		return "", nil, false, false, err
+		return "", nil, false, false, false, err
 	}
 
 	if pkgs.PrintErrors(packages) > 0 {
-		return "", nil, false, false, errors.New("error")
+		return "", nil, false, false, false, errors.New("error")
 	}
 
 	if len(packages) > 1 {
-		return "", nil, false, false, errors.New("package query returned more than one package")
+		return "", nil, false, false, false, errors.New("package query returned more than one package")
 	}
 
 	if len(packages) != 1 {
@@ -402,10 +411,11 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 			}
 		case *types.TypeName:
 			decl[v.Name()] = fmt.Sprintf("reflect.TypeOf((*%s.%s)(nil)).Elem()", pkgBase, v.Name())
+			refToReflect = true
 		}
 	}
 
 	refToImport = len(decl) > numUntyped
 
-	return name, decl, refToImport, refToScriggo, nil
+	return name, decl, refToImport, refToScriggo, refToReflect, nil
 }
