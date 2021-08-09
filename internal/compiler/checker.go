@@ -92,7 +92,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 		tc.path = extends.Tree.Path
 		tc.inExtendedFile = true
 		var err error
-		extends.Tree.Nodes, err = tc.checkNodesInNewScopeError(extends.Tree.Nodes)
+		extends.Tree.Nodes, err = tc.checkNodesInNewScopeError(extends.Tree, extends.Tree.Nodes)
 		if err != nil {
 			return nil, err
 		}
@@ -126,7 +126,7 @@ func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map
 
 	// Type check a template file or a script.
 	var err error
-	tree.Nodes, err = tc.checkNodesInNewScopeError(tree.Nodes)
+	tree.Nodes, err = tc.checkNodesInNewScopeError(tree, tree.Nodes)
 	if err != nil {
 		return nil, err
 	}

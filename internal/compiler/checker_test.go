@@ -1752,7 +1752,7 @@ func TestCheckerStatements(t *testing.T) {
 			for name, ti := range names {
 				tc.scopes.Declare(name, ti, nil)
 			}
-			tc.scopes.Enter(nil)
+			tc.scopes.Enter(tree)
 			tree.Nodes = tc.checkNodes(tree.Nodes)
 			tc.scopes.Exit()
 			err = compilation.finalizeUsingStatements(tc)
@@ -2394,7 +2394,7 @@ func TestFunctionUpVars(t *testing.T) {
 			t.Error(err)
 			continue
 		}
-		tree.Nodes, err = tc.checkNodesInNewScopeError(tree.Nodes)
+		tree.Nodes, err = tc.checkNodesInNewScopeError(tree, tree.Nodes)
 		if err != nil {
 			t.Error(err)
 			continue

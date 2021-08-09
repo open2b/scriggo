@@ -18,7 +18,7 @@ import (
 //   0, 1 are the universe block. 1 is for the format types.
 //   2    is the global block, empty for programs.
 //   3    is the file/package block.
-//   4+   are the scopes in functions. For scripts, 4 is the main block.
+//   4+   are the scopes in functions. For templates and scripts, 4 is the main block.
 //
 type scopes struct {
 	s           []scope
@@ -370,18 +370,14 @@ func (scopes *scopes) Functions() []*ast.Func {
 	return functions
 }
 
-// Enter enters a new scope. If the new scope is the scope of a function body,
-// fn is the node of the function, otherwise fn is nil.
+// Enter enters a new scope. block is the block of the scope.
 func (scopes *scopes) Enter(block ast.Node) {
-	s := scope{}
-	if block != nil {
-		s.block = block.Pos()
-		if node, ok := block.(*ast.Func); ok {
-			s.fn.node = node
-		} else {
-			c := len(scopes.s) - 1
-			s.fn = scopes.s[c].fn
-		}
+	s := scope{block: block.Pos()}
+	if node, ok := block.(*ast.Func); ok {
+		s.fn.node = node
+	} else {
+		c := len(scopes.s) - 1
+		s.fn = scopes.s[c].fn
 	}
 	if s.fn.labels == nil {
 		s.fn.labels = map[string]scopeLabel{}

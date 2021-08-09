@@ -99,7 +99,7 @@ func iteaHasBeenShadowed(nodes []ast.Node) bool {
 }
 
 // checkNodesInNewScopeError calls checkNodesInNewScope returning checking errors.
-func (tc *typechecker) checkNodesInNewScopeError(nodes []ast.Node) (newNodes []ast.Node, err error) {
+func (tc *typechecker) checkNodesInNewScopeError(block ast.Node, nodes []ast.Node) (newNodes []ast.Node, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if rerr, ok := r.(*CheckingError); ok {
@@ -109,7 +109,7 @@ func (tc *typechecker) checkNodesInNewScopeError(nodes []ast.Node) (newNodes []a
 			}
 		}
 	}()
-	tc.scopes.Enter(nil)
+	tc.scopes.Enter(block)
 	newNodes = tc.checkNodes(nodes)
 	tc.scopes.Exit()
 	return
