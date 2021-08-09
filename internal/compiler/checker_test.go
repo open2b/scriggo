@@ -2363,7 +2363,7 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 func TestFunctionUpVars(t *testing.T) {
 	cases := map[string][]string{
 		`_ = func() { }`:                                                  nil,   // no variables.
-		`a := 1; _ = func() { }`:                                          nil,   // a declared outside but not used.
+		`a := 1; _ = a; _ = func() { }`:                                   nil,   // a declared outside but not used.
 		`a := 1; _ = func() { _ = a }`:                                    {"a"}, // a declared outside and used.
 		`_ = func() { a := 1; _ = a }`:                                    nil,   // a declared inside and used.
 		`a := 1; _ = a; _ = func() { a := 1; _ = a }`:                     nil,   // a declared both outside and inside, used.
@@ -2389,13 +2389,16 @@ func TestFunctionUpVars(t *testing.T) {
 	for src, expected := range cases {
 		compilation := newCompilation(nil)
 		tc := newTypechecker(compilation, "", checkerOptions{}, nil)
-		tc.scopes.Enter(nil)
 		tree, err := parseSource([]byte(src), true)
 		if err != nil {
 			t.Error(err)
+			continue
 		}
-		tree.Nodes = tc.checkNodes(tree.Nodes)
-		//tc.scopes.Exit()
+		tree.Nodes, err = tc.checkNodesInNewScopeError(tree.Nodes)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
 		fn := tree.Nodes[len(tree.Nodes)-1].(*ast.Assignment).Rhs[0].(*ast.Func)
 		got := make([]string, len(fn.Upvars))
 		for i := range fn.Upvars {
