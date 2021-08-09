@@ -593,6 +593,14 @@ var checkerTemplateStmts = []struct {
 	// Other default expression uses.
 	{src: `{{ 5 + ( x default 3 ) - 2 }}`, expected: `cannot use default expression in this context`},
 	{src: `{{ -x default 3 }}`, expected: `cannot use default expression in this context`},
+
+	// Labels.
+	{src: `{% L: for %}{% break L %}{% end %}`, expected: ok},
+	//{src: `{% L: for %}{% continue L %}{% end %}`, expected: ok}, TODO: panic "panic: TODO(Gianluca): not implemented"
+	{src: `{% L: switch %}{% default %}{% break L %}{% end %}`, expected: ok},
+	{src: `{% L: select %}{% default %}{% break L %}{% end %}`, expected: ok},
+	{src: `{% _ = func() { L: goto L } %}`, expected: ok},
+	{src: `{% L: for %}{% _ = func() { goto L } %}{% end %}`, expected: `label L not defined`},
 }
 
 func TestCheckerTemplatesStatements(t *testing.T) {
