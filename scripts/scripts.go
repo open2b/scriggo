@@ -17,7 +17,7 @@ import (
 	"reflect"
 
 	"github.com/open2b/scriggo"
-	"github.com/open2b/scriggo/compiler"
+	"github.com/open2b/scriggo/internal/compiler"
 	"github.com/open2b/scriggo/runtime"
 )
 

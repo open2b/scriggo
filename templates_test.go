@@ -18,7 +18,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/fstest"
 	"github.com/open2b/scriggo/runtime"
 

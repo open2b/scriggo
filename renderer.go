@@ -20,7 +20,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/open2b/scriggo/compiler/ast"
+	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/runtime"
 )
 

@@ -6,10 +6,6 @@
 
 package scriggo
 
-import (
-	"github.com/open2b/scriggo/compiler"
-)
-
 // Package represents a predefined package.
 type Package interface {
 
@@ -27,15 +23,6 @@ type Package interface {
 	// DeclarationNames returns the exported declaration names in the package.
 	DeclarationNames() []string
 }
-
-// UntypedStringConst represents an untyped string constant.
-type UntypedStringConst = compiler.UntypedStringConst
-
-// UntypedBooleanConst represents an untyped boolean constant.
-type UntypedBooleanConst = compiler.UntypedBooleanConst
-
-// UntypedNumericConst represents an untyped numeric constant.
-type UntypedNumericConst = compiler.UntypedNumericConst
 
 // PackageLoader is implemented by package loaders. Given a package path, Load
 // returns a *Package value or a package source as io.Reader.
