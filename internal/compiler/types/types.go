@@ -42,21 +42,21 @@ type ScriggoType interface {
 	Underlying() reflect.Type
 }
 
-// New behaves like reflect.New except when typ is a Scriggo type; in such
-// case it returns an instance of the underlying type created with a
-// reflect.New call.
-func (types *Types) New(typ reflect.Type) reflect.Value {
-	if st, ok := typ.(ScriggoType); ok {
-		return types.New(st.Underlying())
+// New behaves like reflect.New except when t is a Scriggo type; in such case
+// it returns an instance of the underlying type created with a reflect.New
+// call.
+func (types *Types) New(t reflect.Type) reflect.Value {
+	if st, ok := t.(ScriggoType); ok {
+		t = st.Underlying()
 	}
-	return reflect.New(typ)
+	return reflect.New(t)
 }
 
 // Zero is equivalent to reflect.Zero. If t is a Scriggo type it returns the
 // zero of the underlying type.
 func (types *Types) Zero(t reflect.Type) reflect.Value {
 	if st, ok := t.(ScriggoType); ok {
-		return types.Zero(st.Underlying())
+		t = st.Underlying()
 	}
 	return reflect.Zero(t)
 }
