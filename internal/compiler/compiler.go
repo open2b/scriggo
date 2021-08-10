@@ -284,8 +284,8 @@ type Code struct {
 	Functions map[string]*runtime.Function
 	// Main is the Code entry point.
 	Main *runtime.Function
-	// Types allows to manipulate types, including new types defined in code.
-	Types runtime.Types
+	// TypeOf returns the type of a value, including new types defined in code.
+	TypeOf runtime.TypeOfFunc
 }
 
 // emitProgram emits the code for a program given its ast node, the type info
@@ -308,7 +308,7 @@ func emitProgram(pkgMain *ast.Package, typeInfos map[ast.Node]*typeInfo, indirec
 		Globals:   e.varStore.getGlobals(),
 		Functions: functions,
 		Main:      main,
-		Types:     e.types.Runtime(),
+		TypeOf:    e.types.TypeOf,
 	}
 	return pkg, nil
 }
@@ -332,7 +332,7 @@ func emitScript(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars m
 	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()
 	e.fb.end()
-	return &Code{Main: e.fb.fn, Types: e.types.Runtime(), Globals: e.varStore.getGlobals()}, nil
+	return &Code{Main: e.fb.fn, TypeOf: e.types.TypeOf, Globals: e.varStore.getGlobals()}, nil
 }
 
 // emitTemplate emits the code for a template given its tree, the type info and
@@ -413,7 +413,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()
 	e.fb.end()
-	return &Code{Main: e.fb.fn, Types: e.types.Runtime(), Globals: e.varStore.getGlobals()}, nil
+	return &Code{Main: e.fb.fn, TypeOf: e.types.TypeOf, Globals: e.varStore.getGlobals()}, nil
 
 }
 

@@ -47,7 +47,7 @@ type RunOptions struct {
 
 type Program struct {
 	fn      *runtime.Function
-	types   runtime.Types
+	typeof  runtime.TypeOfFunc
 	globals []compiler.Global
 }
 
@@ -70,7 +70,7 @@ func Build(fsys fs.FS, options *BuildOptions) (*Program, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Program{fn: code.Main, globals: code.Globals, types: code.Types}, nil
+	return &Program{fn: code.Main, globals: code.Globals, typeof: code.TypeOf}, nil
 }
 
 // Disassemble disassembles the package with the given path and returns its
@@ -95,7 +95,7 @@ func (p *Program) Run(options *RunOptions) (int, error) {
 			vm.SetPrint(options.PrintFunc)
 		}
 	}
-	return vm.Run(p.fn, p.types, initPackageLevelVariables(p.globals))
+	return vm.Run(p.fn, p.typeof, initPackageLevelVariables(p.globals))
 }
 
 // MustRun is like Run but panics if the run fails.

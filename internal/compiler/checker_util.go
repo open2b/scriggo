@@ -755,16 +755,16 @@ func (tc *typechecker) errTypeAssertion(typ reflect.Type, iface reflect.Type) er
 // Show and Text functions of a runtime.Renderer value during the type
 // checking of a template.
 type env struct {
-	types runtime.Types
+	types *types.Types
 	err   error
 }
 
-func (env *env) Context() context.Context { return nil }
-func (env *env) Exit(int)                 {}
-func (env *env) Exited() bool             { return false }
-func (env *env) ExitFunc(func())          {}
-func (env *env) Fatal(v interface{})      { env.err = v.(error) }
-func (env *env) FilePath() string         { return "" }
-func (env *env) Print(...interface{})     {}
-func (env *env) Println(...interface{})   {}
-func (env *env) Types() runtime.Types     { return env.types }
+func (env *env) Context() context.Context            { return nil }
+func (env *env) Exit(int)                            {}
+func (env *env) Exited() bool                        { return false }
+func (env *env) ExitFunc(func())                     {}
+func (env *env) Fatal(v interface{})                 { env.err = v.(error) }
+func (env *env) FilePath() string                    { return "" }
+func (env *env) Print(...interface{})                {}
+func (env *env) Println(...interface{})              {}
+func (env *env) TypeOf(v reflect.Value) reflect.Type { return env.types.TypeOf(v) }

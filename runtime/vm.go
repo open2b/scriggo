@@ -26,6 +26,9 @@ var envType = reflect.TypeOf((*Env)(nil)).Elem()
 var emptyInterfaceType = reflect.TypeOf(&[]interface{}{nil}[0]).Elem()
 var emptyInterfaceNil = reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
 
+// A TypeOfFunc function returns a type of a value.
+type TypeOfFunc func(reflect.Value) reflect.Type
+
 // A Wrapper wraps and unwraps Scriggo types into Go types. A wrapper is used
 // when an internal implementation of a value must be typified or when an
 // external Go value must be imported into Scriggo.
@@ -141,11 +144,11 @@ func (vm *VM) Reset() {
 // If a context has been set and the context is canceled, Run returns
 // as soon as possible with the error returned by the Err method of the
 // context.
-func (vm *VM) Run(fn *Function, types Types, globals []reflect.Value) (int, error) {
-	if types == nil {
-		types = reflectTypes{}
+func (vm *VM) Run(fn *Function, typeof TypeOfFunc, globals []reflect.Value) (int, error) {
+	if typeof == nil {
+		typeof = typeOfFunc
 	}
-	vm.env.types = types
+	vm.env.typeof = typeof
 	vm.env.globals = globals
 	err := vm.runFunc(fn, globals)
 	vm.env.exit()
@@ -434,8 +437,8 @@ func (vm *VM) equals(x, y reflect.Value) bool {
 	if !x.IsValid() {
 		return true
 	}
-	tx := vm.env.types.TypeOf(x.Interface())
-	ty := vm.env.types.TypeOf(y.Interface())
+	tx := vm.env.typeof(x)
+	ty := vm.env.typeof(y)
 	if tx != ty {
 		return false
 	}

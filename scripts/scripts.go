@@ -37,7 +37,7 @@ type RunOptions struct {
 
 type Script struct {
 	fn      *runtime.Function
-	types   runtime.Types
+	typeof  runtime.TypeOfFunc
 	globals []compiler.Global
 }
 
@@ -56,7 +56,7 @@ func Build(src io.Reader, options *BuildOptions) (*Script, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Script{fn: code.Main, globals: code.Globals, types: code.Types}, nil
+	return &Script{fn: code.Main, globals: code.Globals, typeof: code.TypeOf}, nil
 }
 
 // Disassemble disassembles the script and returns its assembly code.
@@ -77,7 +77,7 @@ func (p *Script) Run(vars map[string]interface{}, options *RunOptions) (int, err
 			vm.SetPrint(options.PrintFunc)
 		}
 	}
-	return vm.Run(p.fn, p.types, initGlobalVariables(p.globals, vars))
+	return vm.Run(p.fn, p.typeof, initGlobalVariables(p.globals, vars))
 }
 
 // MustRun is like Run but panics if the run fails.

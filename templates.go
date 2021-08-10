@@ -143,7 +143,7 @@ type Converter func(src []byte, out io.Writer) error
 
 type Template struct {
 	fn          *runtime.Function
-	types       runtime.Types
+	typeof      runtime.TypeOfFunc
 	globals     []compiler.Global
 	mdConverter Converter
 }
@@ -199,7 +199,7 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildTemplateOptions) (*Tem
 	if err != nil {
 		return nil, err
 	}
-	return &Template{fn: code.Main, types: code.Types, globals: code.Globals, mdConverter: mdConverter}, nil
+	return &Template{fn: code.Main, typeof: code.TypeOf, globals: code.Globals, mdConverter: mdConverter}, nil
 }
 
 // Run runs the template and write the rendered code to out. vars contains
@@ -219,7 +219,7 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 	}
 	renderer := newRenderer(out, t.mdConverter)
 	vm.SetRenderer(renderer)
-	_, err := vm.Run(t.fn, t.types, initGlobalVariables(t.globals, vars))
+	_, err := vm.Run(t.fn, t.typeof, initGlobalVariables(t.globals, vars))
 	return err
 }
 

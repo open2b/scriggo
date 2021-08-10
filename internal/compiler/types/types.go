@@ -295,11 +295,6 @@ func identical(x, y reflect.Type, underlying, ignoreTags bool) bool {
 	return true
 }
 
-// Runtime returns a Runtime.
-func (types *Types) Runtime() Runtime {
-	return Runtime{types}
-}
-
 // TypeOf returns the type of v.
 func (types *Types) TypeOf(v reflect.Value) reflect.Type {
 	if !v.IsValid() {

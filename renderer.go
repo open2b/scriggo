@@ -68,7 +68,7 @@ func (r *renderer) Show(env runtime.Env, v interface{}, context runtime.Context)
 
 	if r.out == nil {
 		// Type check the show statement.
-		t := env.Types().TypeOf(v)
+		t := env.TypeOf(reflect.ValueOf(v))
 		ctx, _, _ := decodeRenderContext(context)
 		err := checkShow(t, ctx)
 		if err != nil {
@@ -295,8 +295,7 @@ func newStringWriter(wr io.Writer) strWriter {
 }
 
 func toString(env runtime.Env, i interface{}) (string, error) {
-	types := env.Types()
-	v := types.ValueOf(i)
+	v := valueOf(env, i)
 	switch v.Kind() {
 	case reflect.Invalid:
 		return "", nil
@@ -348,7 +347,7 @@ func toString(env runtime.Env, i interface{}) (string, error) {
 		}
 		return s, nil
 	default:
-		return "", fmt.Errorf("cannot show value of type %s", types.TypeOf(i))
+		return "", fmt.Errorf("cannot show value of type %s", env.TypeOf(reflect.ValueOf(i)))
 	}
 }
 
@@ -500,7 +499,7 @@ func showInCSS(env runtime.Env, out io.Writer, value interface{}) error {
 	case error:
 		value = v.Error()
 	}
-	v := env.Types().ValueOf(value)
+	v := valueOf(env, value)
 	switch v.Kind() {
 	case reflect.String:
 		_, err := w.WriteString(`"`)
@@ -571,8 +570,7 @@ func showInJS(env runtime.Env, out io.Writer, value interface{}) error {
 		value = v.Error()
 	}
 
-	types := env.Types()
-	v := types.ValueOf(value)
+	v := valueOf(env, value)
 
 	var s string
 
@@ -736,7 +734,7 @@ func showInJS(env runtime.Env, out io.Writer, value interface{}) error {
 		}
 		return err
 	default:
-		t := types.TypeOf(value)
+		t := env.TypeOf(reflect.ValueOf(value))
 		s = fmt.Sprintf("undefined/* scriggo: cannot represent a %s value */", t)
 	}
 
@@ -1091,4 +1089,18 @@ func isEmptyValue(v reflect.Value) (empty bool) {
 		empty = v.IsNil()
 	}
 	return
+}
+
+// valueOf returns the reflect value of i. If i is a proxy, it returns the
+// underlying value.
+func valueOf(env runtime.Env, i interface{}) reflect.Value {
+	if i == nil {
+		return reflect.Value{}
+	}
+	v := reflect.ValueOf(i)
+	t := env.TypeOf(v)
+	if w, ok := t.(runtime.Wrapper); ok {
+		v, _ = w.Unwrap(v)
+	}
+	return v
 }

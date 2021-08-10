@@ -1702,10 +1702,14 @@ func (vm *VM) run() (Addr, bool) {
 		// Show
 		case OpShow:
 			t := vm.fn.Types[uint8(a)]
-			rv := vm.env.types.New(t).Elem()
+			st, ok := t.(Wrapper)
+			if ok {
+				t = st.Underlying()
+			}
+			rv := reflect.New(t).Elem()
 			vm.getIntoReflectValue(b, rv, op < 0)
-			if w, ok := t.(Wrapper); ok {
-				rv = w.Wrap(rv)
+			if st != nil {
+				rv = st.Wrap(rv)
 			}
 			var v interface{}
 			if rv.IsValid() {
@@ -1847,10 +1851,14 @@ func (vm *VM) run() (Addr, bool) {
 		// Typify
 		case OpTypify, -OpTypify:
 			t := vm.fn.Types[uint8(a)]
-			v := vm.env.types.New(t).Elem()
+			st, ok := t.(Wrapper)
+			if ok {
+				t = st.Underlying()
+			}
+			v := reflect.New(t).Elem()
 			vm.getIntoReflectValue(b, v, op < 0)
-			if w, ok := t.(Wrapper); ok {
-				v = w.Wrap(v)
+			if st != nil {
+				v = st.Wrap(v)
 			}
 			vm.setGeneral(c, v)
 
