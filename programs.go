@@ -10,7 +10,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"reflect"
 
@@ -105,35 +104,6 @@ func (p *Program) MustRun(options *RunOptions) int {
 		panic(err)
 	}
 	return code
-}
-
-// PrintFunc returns a function that print its argument to the writer w with
-// the same format used by the builtin print to print to the standard error.
-// The returned function can be used for the PrintFunc option.
-func PrintFunc(w io.Writer) runtime.PrintFunc {
-	return func(v interface{}) {
-		r := reflect.ValueOf(v)
-		switch r.Kind() {
-		case reflect.Invalid, reflect.Array, reflect.Func, reflect.Interface, reflect.Ptr, reflect.Struct:
-			_, _ = fmt.Fprintf(w, "%#x", reflect.ValueOf(&v).Elem().InterfaceData()[1])
-		case reflect.Bool:
-			_, _ = fmt.Fprintf(w, "%t", r.Bool())
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			_, _ = fmt.Fprintf(w, "%d", r.Int())
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-			_, _ = fmt.Fprintf(w, "%d", r.Uint())
-		case reflect.Float32, reflect.Float64:
-			_, _ = fmt.Fprintf(w, "%e", r.Float())
-		case reflect.Complex64, reflect.Complex128:
-			fmt.Printf("%e", r.Complex())
-		case reflect.Chan, reflect.Map, reflect.UnsafePointer:
-			_, _ = fmt.Fprintf(w, "%#x", r.Pointer())
-		case reflect.Slice:
-			_, _ = fmt.Fprintf(w, "[%d/%d] %#x", r.Len(), r.Cap(), r.Pointer())
-		case reflect.String:
-			_, _ = fmt.Fprint(w, r.String())
-		}
-	}
 }
 
 // initPackageLevelVariables initializes the package level variables and
