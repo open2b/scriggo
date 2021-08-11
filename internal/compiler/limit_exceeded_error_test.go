@@ -15,7 +15,7 @@ import (
 	"github.com/open2b/scriggo/runtime"
 )
 
-func new_test_builder() *functionBuilder {
+func newTestBuilder() *functionBuilder {
 	fn := newFunction("", "", reflect.FuncOf(nil, nil, false), "", &ast.Position{})
 	return newBuilder(fn, "")
 }
@@ -49,7 +49,7 @@ func TestRegistersLimit(t *testing.T) {
 				}
 			}()
 
-			fb := new_test_builder()
+			fb := newTestBuilder()
 			for i = 0; i < 1000; i++ {
 				fb.newRegister(kind)
 			}
@@ -79,7 +79,7 @@ func TestFunctionsLimit(t *testing.T) {
 		}
 	}()
 
-	fb := new_test_builder()
+	fb := newTestBuilder()
 	for i = 0; i < 1000; i++ {
 		fn := &runtime.Function{
 			Pkg:    fb.fn.Pkg,
@@ -113,7 +113,7 @@ func TestTypesLimit(t *testing.T) {
 		}
 	}()
 
-	fb := new_test_builder()
+	fb := newTestBuilder()
 	for i = 0; i < 1000; i++ {
 		typ := reflect.ArrayOf(i, intType)
 		fb.emitNew(typ, 0)
@@ -161,7 +161,7 @@ func TestConstantsLimit(t *testing.T) {
 				}
 			}()
 
-			fb := new_test_builder()
+			fb := newTestBuilder()
 			switch kind {
 			case reflect.Int:
 				for i = 0; i < maxIntValuesCount+1; i++ {
