@@ -247,6 +247,46 @@ func (p *Position) WithEnd(end int) *Position {
 	return &pp
 }
 
+// Operator represents an operator expression. It is implemented by
+// the nodes UnaryOperator and BinaryOperator.
+type Operator interface {
+	Expression
+	Operator() OperatorType
+	Precedence() int
+}
+
+// Upvar represents a variable defined outside function body. Even package level
+// variables (predefined or not) are considered upvars.
+type Upvar struct {
+
+	// PredefinedPkg is the name of the predefined package which holds a
+	// predefined Upvar. If Upvar is not a predefined Upvar then PredefinedName
+	// is an empty string.
+	PredefinedPkg string
+
+	// PredefinedName is the name of the predefined declaration of a predefined
+	// Upvar. If Upvar is not a predefined Upvar then PredefinedName is an empty
+	// string.
+	PredefinedName string
+
+	// PredefinedValue is the value of the predefined variable Upvar. If Upvar
+	// is not a predefined then Upvar is nil.
+	PredefinedValue *reflect.Value
+
+	// PredefinedValueType, in case of Upvar refers to a precompiled variable,
+	// contains the type of such variable. If not then PredefinedValueType is
+	// nil.
+	//
+	// PredefinedValueType is necessary because the type cannot be stored into
+	// the PredefinedValue, as if the upvar is not initialized in the compiler
+	// then PredefinedValue contains an invalid reflect.Value.
+	PredefinedValueType reflect.Type
+
+	// Declaration is the ast node where Upvar is defined. If Upvar is a
+	// predefined var then Declaration is nil.
+	Declaration Node
+}
+
 // Expression node represents an expression.
 type Expression interface {
 	Parenthesis() int
@@ -270,111 +310,34 @@ func (e *expression) SetParenthesis(n int) {
 	e.parenthesis = n
 }
 
-// Tree node represents a tree.
-type Tree struct {
-	*Position
-	Path   string // path of the tree.
-	Nodes  []Node // nodes of the first level of the tree.
-	Format Format // content format.
-}
-
-func NewTree(path string, nodes []Node, format Format) *Tree {
-	if nodes == nil {
-		nodes = []Node{}
-	}
-	tree := &Tree{
-		Position: &Position{1, 1, 0, 0},
-		Path:     path,
-		Nodes:    nodes,
-		Format:   format,
-	}
-	return tree
-}
-
-// Cut, in a Text node, indicates how many bytes must be cut from the left and
+// Cut indicates, in a Text node, how many bytes must be cut from the left and
 // the right of the text before rendering the Text node.
 type Cut struct {
 	Left  int
 	Right int
 }
 
-// Text node represents a text in the source.
-type Text struct {
-	*Position        // position in the source.
-	Text      []byte // text.
-	Cut       Cut    // cut.
+// ArrayType node represents an array type.
+type ArrayType struct {
+	*expression
+	*Position              // position in the source.
+	Len         Expression // length. It is nil for arrays specified with ... notation.
+	ElementType Expression // element type.
 }
 
-func NewText(pos *Position, text []byte, cut Cut) *Text {
-	return &Text{pos, text, cut}
+func NewArrayType(pos *Position, len Expression, elementType Expression) *ArrayType {
+	return &ArrayType{&expression{}, pos, len, elementType}
 }
 
-func (n *Text) String() string {
-	return string(n.Text)
-}
-
-// URL node represents an URL in an attribute value or Markdown. Show nodes
-// that are children of an URL node are rendered accordingly.
-type URL struct {
-	*Position        // position in the source.
-	Tag       string // tag (in lowercase).
-	Attribute string // attribute (in lowercase).
-	Value     []Node // value nodes.
-}
-
-func NewURL(pos *Position, tag, attribute string, value []Node) *URL {
-	return &URL{pos, tag, attribute, value}
-}
-
-// Block node represents a block { ... } with his own scope.
-type Block struct {
-	*Position
-	Nodes []Node
-}
-
-// NewBlock returns a new block statement.
-func NewBlock(pos *Position, nodes []Node) *Block {
-	return &Block{pos, nodes}
-}
-
-// Package node represents a package.
-type Package struct {
-	*Position
-	Name         string // name.
-	Declarations []Node
-
-	IR struct {
-		// IteaNameToVarIdents maps the name of the transformed 'itea'
-		// identifier to the identifiers on the left side of a 'var'
-		// declarations with an 'using' statement at package level.
-		//
-		// For example a package containing this declaration:
-		//
-		//    {% var V1, V2 = $itea2, len($itea2) using %} ... {% end using %}
-		//
-		//  will have a mapping in the form:
-		//
-		//    "$itea2" => [V1, V2]
-		//
-		IteaNameToVarIdents map[string][]*Identifier
+func (n *ArrayType) String() string {
+	s := "["
+	if n.Len == nil {
+		s += "..."
+	} else {
+		s += n.Len.String()
 	}
-}
-
-func NewPackage(pos *Position, name string, nodes []Node) *Package {
-	return &Package{Position: pos, Name: name, Declarations: nodes}
-}
-
-// Statements node represents a statement {%% ... %%}
-type Statements struct {
-	*Position
-	Nodes []Node // nodes.
-}
-
-func NewStatements(pos *Position, nodes []Node) *Statements {
-	if nodes == nil {
-		nodes = []Node{}
-	}
-	return &Statements{pos, nodes}
+	s += "]" + n.ElementType.String()
+	return s
 }
 
 // Assignment node represents an assignment statement.
@@ -428,426 +391,6 @@ func (n *Assignment) String() string {
 	return s
 }
 
-// Parameter node represents a parameter in a function type, literal or
-// declaration.
-type Parameter struct {
-	Ident *Identifier // name, can be nil.
-	Type  Expression  // type.
-}
-
-func NewParameter(ident *Identifier, typ Expression) *Parameter {
-	return &Parameter{ident, typ}
-}
-
-func (n *Parameter) String() string {
-	if n.Ident == nil {
-		return n.Type.String()
-	}
-	if n.Type == nil {
-		return n.Ident.Name
-	}
-	return n.Ident.Name + " " + n.Type.String()
-}
-
-// FuncType node represents a function type.
-type FuncType struct {
-	expression
-	*Position               // position in the source.
-	Macro      bool         // indicates whether it is declared as macro.
-	Parameters []*Parameter // parameters.
-	Result     []*Parameter // result.
-	IsVariadic bool         // reports whether it is variadic.
-	Reflect    reflect.Type // reflect type.
-}
-
-func NewFuncType(pos *Position, macro bool, parameters []*Parameter, result []*Parameter, isVariadic bool) *FuncType {
-	return &FuncType{expression{}, pos, macro, parameters, result, isVariadic, nil}
-}
-
-func (n *FuncType) String() string {
-	s := "func("
-	if n.Macro {
-		s = "macro("
-	}
-	for i, param := range n.Parameters {
-		if i > 0 {
-			s += ", "
-		}
-		s += param.String()
-	}
-	s += ")"
-	if len(n.Result) > 0 {
-		if n.Result[0].Ident == nil {
-			s += " " + n.Result[0].Type.String()
-		} else {
-			s += " ("
-			for i, res := range n.Result {
-				if i > 0 {
-					s += ", "
-				}
-				s += res.String()
-			}
-			s += ")"
-		}
-	}
-	return s
-}
-
-// Func node represents a function declaration or literal.
-type Func struct {
-	expression
-	*Position
-	Ident   *Identifier // name, nil for function literals.
-	Type    *FuncType   // type.
-	Body    *Block      // body.
-	Endless bool        // reports whether it is endless.
-	Upvars  []Upvar     // Upvars of func.
-	Format  Format      // macro format.
-}
-
-// Upvar represents a variable defined outside function body. Even package level
-// variables (predefined or not) are considered upvars.
-type Upvar struct {
-
-	// PredefinedPkg is the name of the predefined package which holds a
-	// predefined Upvar. If Upvar is not a predefined Upvar then PredefinedName
-	// is an empty string.
-	PredefinedPkg string
-
-	// PredefinedName is the name of the predefined declaration of a predefined
-	// Upvar. If Upvar is not a predefined Upvar then PredefinedName is an empty
-	// string.
-	PredefinedName string
-
-	// PredefinedValue is the value of the predefined variable Upvar. If Upvar
-	// is not a predefined then Upvar is nil.
-	PredefinedValue *reflect.Value
-
-	// PredefinedValueType, in case of Upvar refers to a precompiled variable,
-	// contains the type of such variable. If not then PredefinedValueType is
-	// nil.
-	//
-	// PredefinedValueType is necessary because the type cannot be stored into
-	// the PredefinedValue, as if the upvar is not initialized in the compiler
-	// then PredefinedValue contains an invalid reflect.Value.
-	PredefinedValueType reflect.Type
-
-	// Declaration is the ast node where Upvar is defined. If Upvar is a
-	// predefined var then Declaration is nil.
-	Declaration Node
-}
-
-func NewFunc(pos *Position, name *Identifier, typ *FuncType, body *Block, endless bool, format Format) *Func {
-	return &Func{expression{}, pos, name, typ, body, endless, nil, format}
-}
-
-func (n *Func) String() string {
-	if n.Type.Macro {
-		return "macro declaration"
-	}
-	if n.Ident == nil {
-		return "func literal"
-	}
-	return "func declaration"
-}
-
-// Return node represents a return statement.
-type Return struct {
-	*Position
-	Values []Expression // return values.
-}
-
-func NewReturn(pos *Position, values []Expression) *Return {
-	return &Return{pos, values}
-}
-
-// For node represents a statement "for".
-type For struct {
-	*Position            // position in the source.
-	Init      Node       // initialization statement.
-	Condition Expression // condition expression.
-	Post      Node       // post iteration statement.
-	Body      []Node     // nodes of the body.
-}
-
-func NewFor(pos *Position, init Node, condition Expression, post Node, body []Node) *For {
-	if body == nil {
-		body = []Node{}
-	}
-	return &For{pos, init, condition, post, body}
-}
-
-// ForIn node represents the "for in" statement.
-type ForIn struct {
-	*Position             // position in the source.
-	Ident     *Identifier // identifier.
-	Expr      Expression  // range expression.
-	Body      []Node      // nodes of the body.
-}
-
-func NewForIn(pos *Position, ident *Identifier, expr Expression, body []Node) *ForIn {
-	if body == nil {
-		body = []Node{}
-	}
-	return &ForIn{pos, ident, expr, body}
-}
-
-// ForRange node represents the "for range" statement.
-type ForRange struct {
-	*Position              // position in the source.
-	Assignment *Assignment // assignment.
-	Body       []Node      // nodes of the body.
-}
-
-func NewForRange(pos *Position, assignment *Assignment, body []Node) *ForRange {
-	if body == nil {
-		body = []Node{}
-	}
-	return &ForRange{pos, assignment, body}
-}
-
-// Break node represents a statement "break".
-type Break struct {
-	*Position             // position in the source.
-	Label     *Identifier // label.
-}
-
-func NewBreak(pos *Position, label *Identifier) *Break {
-	return &Break{pos, label}
-}
-
-// Continue node represents a statement "continue".
-type Continue struct {
-	*Position             // position in the source.
-	Label     *Identifier // label.
-}
-
-func NewContinue(pos *Position, label *Identifier) *Continue {
-	return &Continue{pos, label}
-}
-
-// If node represents a statement "if".
-type If struct {
-	*Position            // position in the source.
-	Init      Node       // init simple statement.
-	Condition Expression // condition that once evaluated returns true or false.
-	Then      *Block     // nodes to run if the expression is evaluated to true.
-	Else      Node       // nodes to run if the expression is evaluated to false. Can be Block or If.
-}
-
-func NewIf(pos *Position, init Node, cond Expression, then *Block, els Node) *If {
-	if then == nil {
-		then = NewBlock(nil, []Node{})
-	}
-	return &If{pos, init, cond, then, els}
-}
-
-// Switch node represents a statement "switch".
-type Switch struct {
-	*Position
-	Init        Node
-	Expr        Expression
-	LeadingText *Text
-	Cases       []*Case
-}
-
-// NewSwitch returns a new Switch node.
-func NewSwitch(pos *Position, init Node, expr Expression, leadingText *Text, cases []*Case) *Switch {
-	return &Switch{pos, init, expr, leadingText, cases}
-}
-
-// TypeSwitch node represents a statement "switch" on types.
-type TypeSwitch struct {
-	*Position
-	Init        Node
-	Assignment  *Assignment
-	LeadingText *Text
-	Cases       []*Case
-}
-
-// NewTypeSwitch returns a new TypeSwitch node.
-func NewTypeSwitch(pos *Position, init Node, assignment *Assignment, leadingText *Text, cases []*Case) *TypeSwitch {
-	return &TypeSwitch{pos, init, assignment, leadingText, cases}
-}
-
-// Case node represents statements "case" and "default".
-type Case struct {
-	*Position
-	Expressions []Expression
-	Body        []Node
-}
-
-// NewCase returns a new Case node.
-func NewCase(pos *Position, expressions []Expression, body []Node) *Case {
-	return &Case{pos, expressions, body}
-}
-
-// Fallthrough node represents a statement "fallthrough".
-type Fallthrough struct {
-	*Position
-}
-
-// NewFallthrough returns a new Fallthrough node.
-func NewFallthrough(pos *Position) *Fallthrough {
-	return &Fallthrough{pos}
-}
-
-// Select node represents a statement "select".
-type Select struct {
-	*Position
-	LeadingText *Text
-	Cases       []*SelectCase
-}
-
-// NewSelect returns a new Select node.
-func NewSelect(pos *Position, leadingText *Text, cases []*SelectCase) *Select {
-	return &Select{pos, leadingText, cases}
-}
-
-// NewSelectCase represents a statement "case" in a select.
-type SelectCase struct {
-	*Position
-	Comm Node
-	Body []Node
-}
-
-// NewSelectCase returns a new SelectCase node.
-func NewSelectCase(pos *Position, comm Node, body []Node) *SelectCase {
-	return &SelectCase{pos, comm, body}
-}
-
-// TypeDeclaration node represents a type declaration, that is an alias
-// declaration or a type definition.
-type TypeDeclaration struct {
-	*Position                      // position in the source.
-	Ident              *Identifier // identifier of the type.
-	Type               Expression  // expression representing the type.
-	IsAliasDeclaration bool        // reports whether it is an alias declaration or a type definition.
-}
-
-func (n *TypeDeclaration) String() string {
-	if n.IsAliasDeclaration {
-		return fmt.Sprintf("type %s = %s", n.Ident.Name, n.Type.String())
-	}
-	return fmt.Sprintf("type %s %s", n.Ident.Name, n.Type.String())
-}
-
-// NewTypeDeclaration returns a new TypeDeclaration node.
-func NewTypeDeclaration(pos *Position, ident *Identifier, typ Expression, isAliasDeclaration bool) *TypeDeclaration {
-	return &TypeDeclaration{pos, ident, typ, isAliasDeclaration}
-}
-
-// Default node represents a default expression.
-type Default struct {
-	expression
-	*Position            // position in the source.
-	Expr1     Expression // left hand expression.
-	Expr2     Expression // right hand expression.
-}
-
-func NewDefault(pos *Position, expr1, expr2 Expression) *Default {
-	return &Default{Position: pos, Expr1: expr1, Expr2: expr2}
-}
-
-func (n *Default) String() string {
-	return n.Expr1.String() + " default " + n.Expr2.String()
-}
-
-// Render node represents a 'render <path>' expression.
-type Render struct {
-	expression
-	*Position        // position in the source.
-	Path      string // path of the file to render.
-	Tree      *Tree  // expanded tree of <path>.
-
-	// IR holds the internal representation. The type checker transforms the
-	// 'render' expression into a macro call, where the macro body is the
-	// rendered file.
-	IR struct {
-		// Import is the 'import' statement that imports the dummy file
-		// declaring the dummy macro.
-		Import *Import
-		// Call is the call to the dummy macro.
-		Call *Call
-	}
-}
-
-func NewRender(pos *Position, path string) *Render {
-	return &Render{Position: pos, Path: path}
-}
-
-func (n *Render) String() string {
-	return "render " + strconv.Quote(n.Path)
-}
-
-// Show node represents statements {{ ... }} and "show <expr>".
-type Show struct {
-	*Position                // position in the source.
-	Expressions []Expression // expressions that once evaluated return the values to show.
-	Context     Context      // context.
-}
-
-func NewShow(pos *Position, expressions []Expression, ctx Context) *Show {
-	return &Show{pos, expressions, ctx}
-}
-
-func (n *Show) String() string {
-	var b strings.Builder
-	b.WriteString("show ")
-	for i, expr := range n.Expressions {
-		if i > 0 {
-			b.WriteString(", ")
-		}
-		b.WriteString(expr.String())
-	}
-	return b.String()
-}
-
-// Extends node represents a statement "extends".
-type Extends struct {
-	*Position        // position in the source.
-	Path      string // path to extend.
-	Format    Format // format.
-	Tree      *Tree  // expanded tree of extends.
-}
-
-func NewExtends(pos *Position, path string, format Format) *Extends {
-	return &Extends{Position: pos, Path: path, Format: format}
-}
-
-func (n *Extends) String() string {
-	return fmt.Sprintf("extends %v", strconv.Quote(n.Path))
-}
-
-// Import node represents a statement "import".
-type Import struct {
-	*Position             // position in the source.
-	Ident     *Identifier // name (including "." and "_") or nil.
-	Path      string      // path to import.
-	Tree      *Tree       // expanded tree of import.
-}
-
-func NewImport(pos *Position, ident *Identifier, path string) *Import {
-	return &Import{Position: pos, Ident: ident, Path: path}
-}
-
-func (n *Import) String() string {
-	if n.Ident == nil {
-		return fmt.Sprintf("import %v", strconv.Quote(n.Path))
-	}
-	return fmt.Sprintf("import %v %v", n.Ident, strconv.Quote(n.Path))
-}
-
-// Comment node represents a statement {# ... #}.
-type Comment struct {
-	*Position        // position in the source.
-	Text      string // comment text.
-}
-
-func NewComment(pos *Position, text string) *Comment {
-	return &Comment{pos, text}
-}
-
 type BasicLiteral struct {
 	expression
 	*Position             // position in the source.
@@ -861,87 +404,6 @@ func NewBasicLiteral(pos *Position, typ LiteralType, value string) *BasicLiteral
 
 func (n *BasicLiteral) String() string {
 	return n.Value
-}
-
-// Identifier node represents an identifier expression.
-type Identifier struct {
-	expression
-	*Position        // position in the source.
-	Name      string // name.
-}
-
-func NewIdentifier(pos *Position, name string) *Identifier {
-	return &Identifier{expression{}, pos, name}
-}
-
-func (n *Identifier) String() string {
-	if strings.HasPrefix(n.Name, "$itea") {
-		return "itea"
-	}
-	return n.Name
-}
-
-// DollarIdentifier node represents a dollar identifier $id.
-type DollarIdentifier struct {
-	*expression
-	*Position             // position in the source.
-	Ident     *Identifier // identifier.
-
-	IR struct {
-		Ident Expression
-	}
-}
-
-func NewDollarIdentifier(pos *Position, ident *Identifier) *DollarIdentifier {
-	return &DollarIdentifier{&expression{}, pos, ident, struct{ Ident Expression }{}}
-}
-
-func (n *DollarIdentifier) String() string {
-	return "$" + n.Ident.String()
-}
-
-// Operator represents an operator expression. It is implemented by
-// the nodes UnaryOperator and BinaryOperator.
-type Operator interface {
-	Expression
-	Operator() OperatorType
-	Precedence() int
-}
-
-// UnaryOperator node represents an unary operator expression.
-type UnaryOperator struct {
-	*expression
-	*Position              // position in the source.
-	Op        OperatorType // operator.
-	Expr      Expression   // expression.
-}
-
-func NewUnaryOperator(pos *Position, op OperatorType, expr Expression) *UnaryOperator {
-	return &UnaryOperator{&expression{}, pos, op, expr}
-}
-
-func (n *UnaryOperator) String() string {
-	s := n.Op.String()
-	if n.Op == OperatorExtendedNot {
-		s += " "
-	}
-	if e, ok := n.Expr.(Operator); ok && (n.Op == OperatorReceive || e.Precedence() <= n.Precedence()) {
-		s += "(" + n.Expr.String() + ")"
-	} else {
-		s += n.Expr.String()
-	}
-	return s
-}
-
-// Operator returns the operator type of the expression.
-func (n *UnaryOperator) Operator() OperatorType {
-	return n.Op
-}
-
-// Precedence returns a number that represents the precedence of the
-// expression.
-func (n *UnaryOperator) Precedence() int {
-	return 6
 }
 
 // BinaryOperator node represents a binary operator expression.
@@ -998,170 +460,25 @@ func (n *BinaryOperator) Precedence() int {
 	panic("invalid operator type")
 }
 
-// StructType node represents a struct type.
-type StructType struct {
-	*expression
+// Block node represents a block { ... } with his own scope.
+type Block struct {
 	*Position
-	Fields []*Field
+	Nodes []Node
 }
 
-// NewStructType returns a new StructType node.
-func NewStructType(pos *Position, fields []*Field) *StructType {
-	return &StructType{&expression{}, pos, fields}
+// NewBlock returns a new block statement.
+func NewBlock(pos *Position, nodes []Node) *Block {
+	return &Block{pos, nodes}
 }
 
-func (n *StructType) String() string {
-	s := "struct { "
-	for i, fd := range n.Fields {
-		s += fd.String()
-		if i != len(n.Fields)-1 {
-			s += "; "
-		}
-	}
-	s += " }"
-	return s
+// Break node represents a statement "break".
+type Break struct {
+	*Position             // position in the source.
+	Label     *Identifier // label.
 }
 
-// Field represents a field declaration in a struct type. A field
-// declaration can be explicit (having an identifier list and a type) or
-// implicit (having a type only).
-type Field struct {
-	Idents []*Identifier // identifiers. If nil is an embedded field.
-	Type   Expression
-	Tag    string
-}
-
-// NewField returns a new NewField node.
-func NewField(idents []*Identifier, typ Expression, tag string) *Field {
-	return &Field{idents, typ, tag}
-}
-
-func (n *Field) String() string {
-	s := ""
-	for i, ident := range n.Idents {
-		s += ident.String()
-		if i != len(n.Idents)-1 {
-			s += ","
-		}
-		s += " "
-	}
-	s += n.Type.String()
-	if n.Tag != "" {
-		s += " `" + n.Tag + "`"
-	}
-	return s
-}
-
-// SliceType node represents a slice type.
-type SliceType struct {
-	*expression
-	*Position              // position in the source.
-	ElementType Expression // element type.
-}
-
-func NewSliceType(pos *Position, elementType Expression) *SliceType {
-	return &SliceType{&expression{}, pos, elementType}
-}
-
-func (n *SliceType) String() string {
-	return "[]" + n.ElementType.String()
-}
-
-// ArrayType node represents an array type.
-type ArrayType struct {
-	*expression
-	*Position              // position in the source.
-	Len         Expression // length. It is nil for arrays specified with ... notation.
-	ElementType Expression // element type.
-}
-
-func NewArrayType(pos *Position, len Expression, elementType Expression) *ArrayType {
-	return &ArrayType{&expression{}, pos, len, elementType}
-}
-
-func (n *ArrayType) String() string {
-	s := "["
-	if n.Len == nil {
-		s += "..."
-	} else {
-		s += n.Len.String()
-	}
-	s += "]" + n.ElementType.String()
-	return s
-}
-
-// CompositeLiteral node represent a composite literal.
-type CompositeLiteral struct {
-	*expression
-	*Position            // position in the source.
-	Type      Expression // type of the composite literal. nil for composite literals without type.
-	KeyValues []KeyValue // nil for empty composite literals.
-}
-
-func NewCompositeLiteral(pos *Position, typ Expression, keyValues []KeyValue) *CompositeLiteral {
-	return &CompositeLiteral{&expression{}, pos, typ, keyValues}
-}
-
-func (n *CompositeLiteral) String() string {
-	s := n.Type.String()
-	if expandedPrint {
-		s += "{"
-		for i, kv := range n.KeyValues {
-			if i > 0 {
-				s += ", "
-			}
-			s += kv.String()
-		}
-		s += "}"
-		return s
-	}
-	if len(n.KeyValues) > 0 {
-		return s + "{...}"
-	}
-	return s + "{}"
-}
-
-// KeyValue represents a key value pair in a slice, map or struct composite literal.
-type KeyValue struct {
-	Key   Expression // nil for not-indexed values.
-	Value Expression
-}
-
-func (kv KeyValue) String() string {
-	if kv.Key == nil {
-		return kv.Value.String()
-	}
-	return kv.Key.String() + ": " + kv.Value.String()
-}
-
-// MapType node represents a map type.
-type MapType struct {
-	*expression
-	*Position            // position in the source.
-	KeyType   Expression // type of map keys.
-	ValueType Expression // type of map values.
-}
-
-func NewMapType(pos *Position, keyType, valueType Expression) *MapType {
-	return &MapType{&expression{}, pos, keyType, valueType}
-}
-
-func (n *MapType) String() string {
-	return "map[" + n.KeyType.String() + "]" + n.ValueType.String()
-}
-
-// Interface node represents an interface type.
-type Interface struct {
-	*expression
-	*Position // position in the source.
-}
-
-func NewInterface(pos *Position) *Interface {
-	return &Interface{&expression{}, pos}
-}
-
-func (n *Interface) String() string {
-	return "interface{}"
+func NewBreak(pos *Position, label *Identifier) *Break {
+	return &Break{pos, label}
 }
 
 // Call node represents a function call expression.
@@ -1202,6 +519,122 @@ func (n *Call) String() string {
 	return s
 }
 
+// Case node represents statements "case" and "default".
+type Case struct {
+	*Position
+	Expressions []Expression
+	Body        []Node
+}
+
+// NewCase returns a new Case node.
+func NewCase(pos *Position, expressions []Expression, body []Node) *Case {
+	return &Case{pos, expressions, body}
+}
+
+// ChanType node represents a chan type.
+type ChanType struct {
+	*expression
+	*Position                 // position in the source.
+	Direction   ChanDirection // direction.
+	ElementType Expression    // type of chan elements.
+}
+
+func NewChanType(pos *Position, direction ChanDirection, elementType Expression) *ChanType {
+	return &ChanType{&expression{}, pos, direction, elementType}
+}
+
+func (n *ChanType) String() string {
+	var s string
+	if n.Direction == ReceiveDirection {
+		s = "<-"
+	}
+	s += "chan"
+	if n.Direction == SendDirection {
+		s += "<-"
+	}
+	return s + " " + n.ElementType.String()
+}
+
+// Comment node represents a statement {# ... #}.
+type Comment struct {
+	*Position        // position in the source.
+	Text      string // comment text.
+}
+
+func NewComment(pos *Position, text string) *Comment {
+	return &Comment{pos, text}
+}
+
+// CompositeLiteral node represent a composite literal.
+type CompositeLiteral struct {
+	*expression
+	*Position            // position in the source.
+	Type      Expression // type of the composite literal. nil for composite literals without type.
+	KeyValues []KeyValue // nil for empty composite literals.
+}
+
+func NewCompositeLiteral(pos *Position, typ Expression, keyValues []KeyValue) *CompositeLiteral {
+	return &CompositeLiteral{&expression{}, pos, typ, keyValues}
+}
+
+func (n *CompositeLiteral) String() string {
+	s := n.Type.String()
+	if expandedPrint {
+		s += "{"
+		for i, kv := range n.KeyValues {
+			if i > 0 {
+				s += ", "
+			}
+			s += kv.String()
+		}
+		s += "}"
+		return s
+	}
+	if len(n.KeyValues) > 0 {
+		return s + "{...}"
+	}
+	return s + "{}"
+}
+
+// Const node represent a const declaration.
+type Const struct {
+	*Position               // position in the source.
+	Lhs       []*Identifier // left-hand side identifiers.
+	Type      Expression    // nil for non-typed constant declarations.
+	Rhs       []Expression  // nil for implicit-value constant declarations.
+	Index     int           // index of the declaration in the constant declaration group or 0 if not in a group.
+}
+
+func NewConst(pos *Position, lhs []*Identifier, typ Expression, rhs []Expression, index int) *Const {
+	return &Const{pos, lhs, typ, rhs, index}
+}
+
+// Continue node represents a statement "continue".
+type Continue struct {
+	*Position             // position in the source.
+	Label     *Identifier // label.
+}
+
+func NewContinue(pos *Position, label *Identifier) *Continue {
+	return &Continue{pos, label}
+}
+
+// Default node represents a default expression.
+type Default struct {
+	expression
+	*Position            // position in the source.
+	Expr1     Expression // left hand expression.
+	Expr2     Expression // right hand expression.
+}
+
+func NewDefault(pos *Position, expr1, expr2 Expression) *Default {
+	return &Default{Position: pos, Expr1: expr1, Expr2: expr2}
+}
+
+func (n *Default) String() string {
+	return n.Expr1.String() + " default " + n.Expr2.String()
+}
+
 // Defer node represents a defer statement.
 type Defer struct {
 	*Position            // position in the source.
@@ -1214,6 +647,196 @@ func NewDefer(pos *Position, call Expression) *Defer {
 
 func (n *Defer) String() string {
 	return "defer " + n.Call.String()
+}
+
+// DollarIdentifier node represents a dollar identifier $id.
+type DollarIdentifier struct {
+	*expression
+	*Position             // position in the source.
+	Ident     *Identifier // identifier.
+
+	IR struct {
+		Ident Expression
+	}
+}
+
+func NewDollarIdentifier(pos *Position, ident *Identifier) *DollarIdentifier {
+	return &DollarIdentifier{&expression{}, pos, ident, struct{ Ident Expression }{}}
+}
+
+func (n *DollarIdentifier) String() string {
+	return "$" + n.Ident.String()
+}
+
+// Extends node represents a statement "extends".
+type Extends struct {
+	*Position        // position in the source.
+	Path      string // path to extend.
+	Format    Format // format.
+	Tree      *Tree  // expanded tree of extends.
+}
+
+func NewExtends(pos *Position, path string, format Format) *Extends {
+	return &Extends{Position: pos, Path: path, Format: format}
+}
+
+func (n *Extends) String() string {
+	return fmt.Sprintf("extends %v", strconv.Quote(n.Path))
+}
+
+// Fallthrough node represents a statement "fallthrough".
+type Fallthrough struct {
+	*Position
+}
+
+// NewFallthrough returns a new Fallthrough node.
+func NewFallthrough(pos *Position) *Fallthrough {
+	return &Fallthrough{pos}
+}
+
+// Field represents a field declaration in a struct type. A field
+// declaration can be explicit (having an identifier list and a type) or
+// implicit (having a type only).
+type Field struct {
+	Idents []*Identifier // identifiers. If nil is an embedded field.
+	Type   Expression
+	Tag    string
+}
+
+// NewField returns a new NewField node.
+func NewField(idents []*Identifier, typ Expression, tag string) *Field {
+	return &Field{idents, typ, tag}
+}
+
+func (n *Field) String() string {
+	s := ""
+	for i, ident := range n.Idents {
+		s += ident.String()
+		if i != len(n.Idents)-1 {
+			s += ","
+		}
+		s += " "
+	}
+	s += n.Type.String()
+	if n.Tag != "" {
+		s += " `" + n.Tag + "`"
+	}
+	return s
+}
+
+// For node represents a statement "for".
+type For struct {
+	*Position            // position in the source.
+	Init      Node       // initialization statement.
+	Condition Expression // condition expression.
+	Post      Node       // post iteration statement.
+	Body      []Node     // nodes of the body.
+}
+
+func NewFor(pos *Position, init Node, condition Expression, post Node, body []Node) *For {
+	if body == nil {
+		body = []Node{}
+	}
+	return &For{pos, init, condition, post, body}
+}
+
+// ForIn node represents the "for in" statement.
+type ForIn struct {
+	*Position             // position in the source.
+	Ident     *Identifier // identifier.
+	Expr      Expression  // range expression.
+	Body      []Node      // nodes of the body.
+}
+
+func NewForIn(pos *Position, ident *Identifier, expr Expression, body []Node) *ForIn {
+	if body == nil {
+		body = []Node{}
+	}
+	return &ForIn{pos, ident, expr, body}
+}
+
+// ForRange node represents the "for range" statement.
+type ForRange struct {
+	*Position              // position in the source.
+	Assignment *Assignment // assignment.
+	Body       []Node      // nodes of the body.
+}
+
+func NewForRange(pos *Position, assignment *Assignment, body []Node) *ForRange {
+	if body == nil {
+		body = []Node{}
+	}
+	return &ForRange{pos, assignment, body}
+}
+
+// Func node represents a function declaration or literal.
+type Func struct {
+	expression
+	*Position
+	Ident   *Identifier // name, nil for function literals.
+	Type    *FuncType   // type.
+	Body    *Block      // body.
+	Endless bool        // reports whether it is endless.
+	Upvars  []Upvar     // Upvars of func.
+	Format  Format      // macro format.
+}
+
+func NewFunc(pos *Position, name *Identifier, typ *FuncType, body *Block, endless bool, format Format) *Func {
+	return &Func{expression{}, pos, name, typ, body, endless, nil, format}
+}
+
+func (n *Func) String() string {
+	if n.Type.Macro {
+		return "macro declaration"
+	}
+	if n.Ident == nil {
+		return "func literal"
+	}
+	return "func declaration"
+}
+
+// FuncType node represents a function type.
+type FuncType struct {
+	expression
+	*Position               // position in the source.
+	Macro      bool         // indicates whether it is declared as macro.
+	Parameters []*Parameter // parameters.
+	Result     []*Parameter // result.
+	IsVariadic bool         // reports whether it is variadic.
+	Reflect    reflect.Type // reflect type.
+}
+
+func NewFuncType(pos *Position, macro bool, parameters []*Parameter, result []*Parameter, isVariadic bool) *FuncType {
+	return &FuncType{expression{}, pos, macro, parameters, result, isVariadic, nil}
+}
+
+func (n *FuncType) String() string {
+	s := "func("
+	if n.Macro {
+		s = "macro("
+	}
+	for i, param := range n.Parameters {
+		if i > 0 {
+			s += ", "
+		}
+		s += param.String()
+	}
+	s += ")"
+	if len(n.Result) > 0 {
+		if n.Result[0].Ident == nil {
+			s += " " + n.Result[0].Type.String()
+		} else {
+			s += " ("
+			for i, res := range n.Result {
+				if i > 0 {
+					s += ", "
+				}
+				s += res.String()
+			}
+			s += ")"
+		}
+	}
+	return s
 }
 
 // Go node represents a go statement.
@@ -1244,6 +867,102 @@ func (n *Goto) String() string {
 	return "goto " + n.Label.String()
 }
 
+// Identifier node represents an identifier expression.
+type Identifier struct {
+	expression
+	*Position        // position in the source.
+	Name      string // name.
+}
+
+func NewIdentifier(pos *Position, name string) *Identifier {
+	return &Identifier{expression{}, pos, name}
+}
+
+func (n *Identifier) String() string {
+	if strings.HasPrefix(n.Name, "$itea") {
+		return "itea"
+	}
+	return n.Name
+}
+
+// If node represents a statement "if".
+type If struct {
+	*Position            // position in the source.
+	Init      Node       // init simple statement.
+	Condition Expression // condition that once evaluated returns true or false.
+	Then      *Block     // nodes to run if the expression is evaluated to true.
+	Else      Node       // nodes to run if the expression is evaluated to false. Can be Block or If.
+}
+
+func NewIf(pos *Position, init Node, cond Expression, then *Block, els Node) *If {
+	if then == nil {
+		then = NewBlock(nil, []Node{})
+	}
+	return &If{pos, init, cond, then, els}
+}
+
+// Import node represents a statement "import".
+type Import struct {
+	*Position             // position in the source.
+	Ident     *Identifier // name (including "." and "_") or nil.
+	Path      string      // path to import.
+	Tree      *Tree       // expanded tree of import.
+}
+
+func NewImport(pos *Position, ident *Identifier, path string) *Import {
+	return &Import{Position: pos, Ident: ident, Path: path}
+}
+
+func (n *Import) String() string {
+	if n.Ident == nil {
+		return fmt.Sprintf("import %v", strconv.Quote(n.Path))
+	}
+	return fmt.Sprintf("import %v %v", n.Ident, strconv.Quote(n.Path))
+}
+
+// Index node represents an index expression.
+type Index struct {
+	*expression
+	*Position            // position in the source.
+	Expr      Expression // expression.
+	Index     Expression // index.
+}
+
+func NewIndex(pos *Position, expr Expression, index Expression) *Index {
+	return &Index{&expression{}, pos, expr, index}
+}
+
+func (n *Index) String() string {
+	return n.Expr.String() + "[" + n.Index.String() + "]"
+}
+
+// Interface node represents an interface type.
+type Interface struct {
+	*expression
+	*Position // position in the source.
+}
+
+func NewInterface(pos *Position) *Interface {
+	return &Interface{&expression{}, pos}
+}
+
+func (n *Interface) String() string {
+	return "interface{}"
+}
+
+// KeyValue represents a key value pair in a slice, map or struct composite literal.
+type KeyValue struct {
+	Key   Expression // nil for not-indexed values.
+	Value Expression
+}
+
+func (kv KeyValue) String() string {
+	if kv.Key == nil {
+		return kv.Value.String()
+	}
+	return kv.Key.String() + ": " + kv.Value.String()
+}
+
 // Label node represents a label statement.
 type Label struct {
 	*Position             // position in the source.
@@ -1253,6 +972,461 @@ type Label struct {
 
 func NewLabel(pos *Position, ident *Identifier, statement Node) *Label {
 	return &Label{pos, ident, statement}
+}
+
+// MapType node represents a map type.
+type MapType struct {
+	*expression
+	*Position            // position in the source.
+	KeyType   Expression // type of map keys.
+	ValueType Expression // type of map values.
+}
+
+func NewMapType(pos *Position, keyType, valueType Expression) *MapType {
+	return &MapType{&expression{}, pos, keyType, valueType}
+}
+
+func (n *MapType) String() string {
+	return "map[" + n.KeyType.String() + "]" + n.ValueType.String()
+}
+
+// Package node represents a package.
+type Package struct {
+	*Position
+	Name         string // name.
+	Declarations []Node
+
+	IR struct {
+		// IteaNameToVarIdents maps the name of the transformed 'itea'
+		// identifier to the identifiers on the left side of a 'var'
+		// declarations with an 'using' statement at package level.
+		//
+		// For example a package containing this declaration:
+		//
+		//    {% var V1, V2 = $itea2, len($itea2) using %} ... {% end using %}
+		//
+		//  will have a mapping in the form:
+		//
+		//    "$itea2" => [V1, V2]
+		//
+		IteaNameToVarIdents map[string][]*Identifier
+	}
+}
+
+func NewPackage(pos *Position, name string, nodes []Node) *Package {
+	return &Package{Position: pos, Name: name, Declarations: nodes}
+}
+
+// Parameter node represents a parameter in a function type, literal or
+// declaration.
+type Parameter struct {
+	Ident *Identifier // name, can be nil.
+	Type  Expression  // type.
+}
+
+func NewParameter(ident *Identifier, typ Expression) *Parameter {
+	return &Parameter{ident, typ}
+}
+
+func (n *Parameter) String() string {
+	if n.Ident == nil {
+		return n.Type.String()
+	}
+	if n.Type == nil {
+		return n.Ident.Name
+	}
+	return n.Ident.Name + " " + n.Type.String()
+}
+
+// Placeholder node represent a special placeholder node.
+type Placeholder struct {
+	*expression
+	*Position // position in the source.
+}
+
+func NewPlaceholder() *Placeholder {
+	return &Placeholder{&expression{}, nil}
+}
+
+func (n *Placeholder) String() string {
+	return "[Placeholder]"
+}
+
+// Raw node represents a raw statement.
+type Raw struct {
+	*Position        // position in the source.
+	Marker    string // marker.
+	Tag       string // tag.
+	Text      *Text  // text.
+}
+
+func NewRaw(pos *Position, marker, tag string, text *Text) *Raw {
+	return &Raw{pos, marker, tag, text}
+}
+
+// Render node represents a 'render <path>' expression.
+type Render struct {
+	expression
+	*Position        // position in the source.
+	Path      string // path of the file to render.
+	Tree      *Tree  // expanded tree of <path>.
+
+	// IR holds the internal representation. The type checker transforms the
+	// 'render' expression into a macro call, where the macro body is the
+	// rendered file.
+	IR struct {
+		// Import is the 'import' statement that imports the dummy file
+		// declaring the dummy macro.
+		Import *Import
+		// Call is the call to the dummy macro.
+		Call *Call
+	}
+}
+
+func NewRender(pos *Position, path string) *Render {
+	return &Render{Position: pos, Path: path}
+}
+
+func (n *Render) String() string {
+	return "render " + strconv.Quote(n.Path)
+}
+
+// Return node represents a return statement.
+type Return struct {
+	*Position
+	Values []Expression // return values.
+}
+
+func NewReturn(pos *Position, values []Expression) *Return {
+	return &Return{pos, values}
+}
+
+// Select node represents a statement "select".
+type Select struct {
+	*Position
+	LeadingText *Text
+	Cases       []*SelectCase
+}
+
+// NewSelect returns a new Select node.
+func NewSelect(pos *Position, leadingText *Text, cases []*SelectCase) *Select {
+	return &Select{pos, leadingText, cases}
+}
+
+// SelectCase represents a statement "case" in a select.
+type SelectCase struct {
+	*Position
+	Comm Node
+	Body []Node
+}
+
+// NewSelectCase returns a new SelectCase node.
+func NewSelectCase(pos *Position, comm Node, body []Node) *SelectCase {
+	return &SelectCase{pos, comm, body}
+}
+
+// Selector node represents a selector expression.
+type Selector struct {
+	*expression
+	*Position            // position in the source.
+	Expr      Expression // expression.
+	Ident     string     // identifier.
+}
+
+func NewSelector(pos *Position, expr Expression, ident string) *Selector {
+	return &Selector{&expression{}, pos, expr, ident}
+}
+
+func (n *Selector) String() string {
+	return n.Expr.String() + "." + n.Ident
+}
+
+// Send node represents a send statement.
+type Send struct {
+	*Position            // position in the source.
+	Channel   Expression // channel.
+	Value     Expression // value to send on the channel.
+}
+
+func NewSend(pos *Position, channel Expression, value Expression) *Send {
+	return &Send{pos, channel, value}
+}
+
+func (n *Send) String() string {
+	return n.Channel.String() + " <- " + n.Value.String()
+}
+
+// Show node represents statements {{ ... }} and "show <expr>".
+type Show struct {
+	*Position                // position in the source.
+	Expressions []Expression // expressions that once evaluated return the values to show.
+	Context     Context      // context.
+}
+
+func NewShow(pos *Position, expressions []Expression, ctx Context) *Show {
+	return &Show{pos, expressions, ctx}
+}
+
+func (n *Show) String() string {
+	var b strings.Builder
+	b.WriteString("show ")
+	for i, expr := range n.Expressions {
+		if i > 0 {
+			b.WriteString(", ")
+		}
+		b.WriteString(expr.String())
+	}
+	return b.String()
+}
+
+// SliceType node represents a slice type.
+type SliceType struct {
+	*expression
+	*Position              // position in the source.
+	ElementType Expression // element type.
+}
+
+func NewSliceType(pos *Position, elementType Expression) *SliceType {
+	return &SliceType{&expression{}, pos, elementType}
+}
+
+func (n *SliceType) String() string {
+	return "[]" + n.ElementType.String()
+}
+
+// Slicing node represents a slicing expression.
+type Slicing struct {
+	*expression
+	*Position            // position in the source.
+	Expr      Expression // expression.
+	Low       Expression // low bound.
+	High      Expression // high bound.
+	Max       Expression // max bound.
+	IsFull    bool       // reports whether is a full expression.
+}
+
+func NewSlicing(pos *Position, expr, low, high Expression, max Expression, isFull bool) *Slicing {
+	return &Slicing{&expression{}, pos, expr, low, high, max, isFull}
+}
+
+func (n *Slicing) String() string {
+	s := n.Expr.String() + "["
+	if n.Low != nil {
+		s += n.Low.String()
+	}
+	s += ":"
+	if n.High != nil {
+		s += n.High.String()
+	}
+	if n.Max != nil {
+		s += ":"
+		s += n.Max.String()
+	}
+	s += "]"
+	return s
+}
+
+// Statements node represents a statement {%% ... %%}
+type Statements struct {
+	*Position
+	Nodes []Node // nodes.
+}
+
+func NewStatements(pos *Position, nodes []Node) *Statements {
+	if nodes == nil {
+		nodes = []Node{}
+	}
+	return &Statements{pos, nodes}
+}
+
+// StructType node represents a struct type.
+type StructType struct {
+	*expression
+	*Position
+	Fields []*Field
+}
+
+// NewStructType returns a new StructType node.
+func NewStructType(pos *Position, fields []*Field) *StructType {
+	return &StructType{&expression{}, pos, fields}
+}
+
+func (n *StructType) String() string {
+	s := "struct { "
+	for i, fd := range n.Fields {
+		s += fd.String()
+		if i != len(n.Fields)-1 {
+			s += "; "
+		}
+	}
+	s += " }"
+	return s
+}
+
+// Switch node represents a statement "switch".
+type Switch struct {
+	*Position
+	Init        Node
+	Expr        Expression
+	LeadingText *Text
+	Cases       []*Case
+}
+
+// NewSwitch returns a new Switch node.
+func NewSwitch(pos *Position, init Node, expr Expression, leadingText *Text, cases []*Case) *Switch {
+	return &Switch{pos, init, expr, leadingText, cases}
+}
+
+// Text node represents a text in the source.
+type Text struct {
+	*Position        // position in the source.
+	Text      []byte // text.
+	Cut       Cut    // cut.
+}
+
+func NewText(pos *Position, text []byte, cut Cut) *Text {
+	return &Text{pos, text, cut}
+}
+
+func (n *Text) String() string {
+	return string(n.Text)
+}
+
+// Tree node represents a tree.
+type Tree struct {
+	*Position
+	Path   string // path of the tree.
+	Nodes  []Node // nodes of the first level of the tree.
+	Format Format // content format.
+}
+
+func NewTree(path string, nodes []Node, format Format) *Tree {
+	if nodes == nil {
+		nodes = []Node{}
+	}
+	tree := &Tree{
+		Position: &Position{1, 1, 0, 0},
+		Path:     path,
+		Nodes:    nodes,
+		Format:   format,
+	}
+	return tree
+}
+
+// TypeAssertion node represents a type assertion expression.
+type TypeAssertion struct {
+	*expression
+	*Position            // position in the source.
+	Expr      Expression // expression.
+	Type      Expression // type, is nil if it is a type switch assertion ".(type)".
+}
+
+func NewTypeAssertion(pos *Position, expr Expression, typ Expression) *TypeAssertion {
+	return &TypeAssertion{&expression{}, pos, expr, typ}
+}
+
+func (n *TypeAssertion) String() string {
+	if n.Type == nil {
+		return n.Expr.String() + ".(type)"
+	}
+	return n.Expr.String() + ".(" + n.Type.String() + ")"
+}
+
+// TypeDeclaration node represents a type declaration, that is an alias
+// declaration or a type definition.
+type TypeDeclaration struct {
+	*Position                      // position in the source.
+	Ident              *Identifier // identifier of the type.
+	Type               Expression  // expression representing the type.
+	IsAliasDeclaration bool        // reports whether it is an alias declaration or a type definition.
+}
+
+// NewTypeDeclaration returns a new TypeDeclaration node.
+func NewTypeDeclaration(pos *Position, ident *Identifier, typ Expression, isAliasDeclaration bool) *TypeDeclaration {
+	return &TypeDeclaration{pos, ident, typ, isAliasDeclaration}
+}
+
+func (n *TypeDeclaration) String() string {
+	if n.IsAliasDeclaration {
+		return fmt.Sprintf("type %s = %s", n.Ident.Name, n.Type.String())
+	}
+	return fmt.Sprintf("type %s %s", n.Ident.Name, n.Type.String())
+}
+
+// TypeSwitch node represents a statement "switch" on types.
+type TypeSwitch struct {
+	*Position
+	Init        Node
+	Assignment  *Assignment
+	LeadingText *Text
+	Cases       []*Case
+}
+
+// NewTypeSwitch returns a new TypeSwitch node.
+func NewTypeSwitch(pos *Position, init Node, assignment *Assignment, leadingText *Text, cases []*Case) *TypeSwitch {
+	return &TypeSwitch{pos, init, assignment, leadingText, cases}
+}
+
+// UnaryOperator node represents an unary operator expression.
+type UnaryOperator struct {
+	*expression
+	*Position              // position in the source.
+	Op        OperatorType // operator.
+	Expr      Expression   // expression.
+}
+
+func NewUnaryOperator(pos *Position, op OperatorType, expr Expression) *UnaryOperator {
+	return &UnaryOperator{&expression{}, pos, op, expr}
+}
+
+func (n *UnaryOperator) String() string {
+	s := n.Op.String()
+	if n.Op == OperatorExtendedNot {
+		s += " "
+	}
+	if e, ok := n.Expr.(Operator); ok && (n.Op == OperatorReceive || e.Precedence() <= n.Precedence()) {
+		s += "(" + n.Expr.String() + ")"
+	} else {
+		s += n.Expr.String()
+	}
+	return s
+}
+
+// Operator returns the operator type of the expression.
+func (n *UnaryOperator) Operator() OperatorType {
+	return n.Op
+}
+
+// Precedence returns a number that represents the precedence of the
+// expression.
+func (n *UnaryOperator) Precedence() int {
+	return 6
+}
+
+// URL node represents an URL in an attribute value or Markdown. Show nodes
+// that are children of an URL node are rendered accordingly.
+type URL struct {
+	*Position        // position in the source.
+	Tag       string // tag (in lowercase).
+	Attribute string // attribute (in lowercase).
+	Value     []Node // value nodes.
+}
+
+func NewURL(pos *Position, tag, attribute string, value []Node) *URL {
+	return &URL{pos, tag, attribute, value}
+}
+
+// Using node represents a using statement.
+type Using struct {
+	*Position            // position in the source.
+	Statement Node       // statement preceding the using statement.
+	Type      Expression // type, can be a format identifier or a macro.
+	Body      *Block     // body.
+	Format    Format     // using content format.
+}
+
+func NewUsing(pos *Position, stmt Node, typ Expression, body *Block, format Format) *Using {
+	return &Using{pos, stmt, typ, body, format}
 }
 
 // Var node represent a variable declaration by keyword "var".
@@ -1288,178 +1462,4 @@ func (n *Var) String() string {
 		}
 	}
 	return s
-}
-
-// Const node represent a const declaration.
-type Const struct {
-	*Position               // position in the source.
-	Lhs       []*Identifier // left-hand side identifiers.
-	Type      Expression    // nil for non-typed constant declarations.
-	Rhs       []Expression  // nil for implicit-value constant declarations.
-	Index     int           // index of the declaration in the constant declaration group or 0 if not in a group.
-}
-
-func NewConst(pos *Position, lhs []*Identifier, typ Expression, rhs []Expression, index int) *Const {
-	return &Const{pos, lhs, typ, rhs, index}
-}
-
-// Index node represents an index expression.
-type Index struct {
-	*expression
-	*Position            // position in the source.
-	Expr      Expression // expression.
-	Index     Expression // index.
-}
-
-func NewIndex(pos *Position, expr Expression, index Expression) *Index {
-	return &Index{&expression{}, pos, expr, index}
-}
-
-func (n *Index) String() string {
-	return n.Expr.String() + "[" + n.Index.String() + "]"
-}
-
-// Slicing node represents a slicing expression.
-type Slicing struct {
-	*expression
-	*Position            // position in the source.
-	Expr      Expression // expression.
-	Low       Expression // low bound.
-	High      Expression // high bound.
-	Max       Expression // max bound.
-	IsFull    bool       // reports whether is a full expression.
-}
-
-func NewSlicing(pos *Position, expr, low, high Expression, max Expression, isFull bool) *Slicing {
-	return &Slicing{&expression{}, pos, expr, low, high, max, isFull}
-}
-
-func (n *Slicing) String() string {
-	s := n.Expr.String() + "["
-	if n.Low != nil {
-		s += n.Low.String()
-	}
-	s += ":"
-	if n.High != nil {
-		s += n.High.String()
-	}
-	if n.Max != nil {
-		s += ":"
-		s += n.Max.String()
-	}
-	s += "]"
-	return s
-}
-
-// ChanType node represents a chan type.
-type ChanType struct {
-	*expression
-	*Position                 // position in the source.
-	Direction   ChanDirection // direction.
-	ElementType Expression    // type of chan elements.
-}
-
-func NewChanType(pos *Position, direction ChanDirection, elementType Expression) *ChanType {
-	return &ChanType{&expression{}, pos, direction, elementType}
-}
-
-func (n *ChanType) String() string {
-	var s string
-	if n.Direction == ReceiveDirection {
-		s = "<-"
-	}
-	s += "chan"
-	if n.Direction == SendDirection {
-		s += "<-"
-	}
-	return s + " " + n.ElementType.String()
-}
-
-// Selector node represents a selector expression.
-type Selector struct {
-	*expression
-	*Position            // position in the source.
-	Expr      Expression // expression.
-	Ident     string     // identifier.
-}
-
-func NewSelector(pos *Position, expr Expression, ident string) *Selector {
-	return &Selector{&expression{}, pos, expr, ident}
-}
-
-func (n *Selector) String() string {
-	return n.Expr.String() + "." + n.Ident
-}
-
-// TypeAssertion node represents a type assertion expression.
-type TypeAssertion struct {
-	*expression
-	*Position            // position in the source.
-	Expr      Expression // expression.
-	Type      Expression // type, is nil if it is a type switch assertion ".(type)".
-}
-
-func NewTypeAssertion(pos *Position, expr Expression, typ Expression) *TypeAssertion {
-	return &TypeAssertion{&expression{}, pos, expr, typ}
-}
-
-func (n *TypeAssertion) String() string {
-	if n.Type == nil {
-		return n.Expr.String() + ".(type)"
-	}
-	return n.Expr.String() + ".(" + n.Type.String() + ")"
-}
-
-// Placeholder node represent a special placeholder node.
-type Placeholder struct {
-	*expression
-	*Position // position in the source.
-}
-
-func NewPlaceholder() *Placeholder {
-	return &Placeholder{&expression{}, nil}
-}
-
-func (n *Placeholder) String() string {
-	return "[Placeholder]"
-}
-
-// Send node represents a send statement.
-type Send struct {
-	*Position            // position in the source.
-	Channel   Expression // channel.
-	Value     Expression // value to send on the channel.
-}
-
-func NewSend(pos *Position, channel Expression, value Expression) *Send {
-	return &Send{pos, channel, value}
-}
-
-func (n *Send) String() string {
-	return n.Channel.String() + " <- " + n.Value.String()
-}
-
-// Raw node represents a raw statement.
-type Raw struct {
-	*Position        // position in the source.
-	Marker    string // marker.
-	Tag       string // tag.
-	Text      *Text  // text.
-}
-
-func NewRaw(pos *Position, marker, tag string, text *Text) *Raw {
-	return &Raw{pos, marker, tag, text}
-}
-
-// Using node represents a using statement.
-type Using struct {
-	*Position            // position in the source.
-	Statement Node       // statement preceding the using statement.
-	Type      Expression // type, can be a format identifier or a macro.
-	Body      *Block     // body.
-	Format    Format     // using content format.
-}
-
-func NewUsing(pos *Position, stmt Node, typ Expression, body *Block, format Format) *Using {
-	return &Using{pos, stmt, typ, body, format}
 }
