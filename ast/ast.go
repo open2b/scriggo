@@ -4,39 +4,36 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package ast declares the types used to define the template trees.
+// Package ast declares the types used to define program and template trees.
 //
-// For example, the source in an "articles.html" file:
+// For example, the source in a template file named "articles.html":
 //
 //    {% for article in articles %}
-//    <div>{{ article.title }}</div>
+//    <div>{{ article.Title }}</div>
 //    {% end %}
 //
 // is represented with the tree:
 //
-// 		ast.NewTree("articles.txt", []ast.Node{
-//			ast.NewFor(
-//				&ast.Position{Line: 1, Column: 1, Start: 0, End: 69},
-//				nil,
-//				ast.NewIdentifier(&ast.Position{Line: 1, Column: 8, Start: 7, End: 13}, "article"),
-//				ast.NewIdentifier(&ast.Position{Line: 1, Column: 19, Start: 18, End: 25}, "articles"),
-//				nil,
-//				[]ast.Node{
-//					ast.NewText(&ast.Position{Line: 1, Column: 30, Start: 29, End: 34}, []byte("\n<div>"), ast.Cut{1,0}),
-//					ast.NewShow(
-//						&ast.Position{Line: 2, Column: 6, Start: 35, End: 53},
+//	ast.NewTree("articles.txt", []ast.Node{
+//		ast.NewForIn(
+//			&ast.Position{Line: 1, Column: 1, Start: 0, End: 69},
+//			ast.NewIdentifier(&ast.Position{Line: 1, Column: 8, Start: 7, End: 13}, "article"),
+//			ast.NewIdentifier(&ast.Position{Line: 1, Column: 19, Start: 18, End: 25}, "articles"),
+//			[]ast.Node{
+//				ast.NewText(&ast.Position{Line: 1, Column: 30, Start: 29, End: 34}, []byte("\n<div>"), ast.Cut{1, 0}),
+//				ast.NewShow(
+//					&ast.Position{Line: 2, Column: 6, Start: 35, End: 53},
+//					[]ast.Expression{
 //						ast.NewSelector(
 //							&ast.Position{Line: 2, Column: 16, Start: 38, End: 50},
-//							ast.NewIdentifier(
-//								&ast.Position{Line: 2, Column: 9, Start: 38, End: 44},
-//								"article",
-//							),
-//							"title"),
-//						ast.ContextHTML),
-//					ast.NewText(&ast.Position{Line: 2, Column: 25, Start: 54, End: 60}, []byte("</div>\n"), ast.Cut{})),
-//				},
-//			),
-//		}, ast.ContextHTML)
+//							ast.NewIdentifier(&ast.Position{Line: 2, Column: 9, Start: 38, End: 44}, "article"),
+//							"Title"),
+//					},
+//					ast.ContextHTML),
+//				ast.NewText(&ast.Position{Line: 2, Column: 25, Start: 54, End: 60}, []byte("</div>\n"), ast.Cut{}),
+//			},
+//		),
+//	}, ast.FormatHTML)
 //
 package ast
 
@@ -51,7 +48,7 @@ import (
 // literal.
 var expandedPrint = false
 
-// OperatorType represents an operator type in an unary and binary expression.
+// OperatorType represents an operator type in a unary and binary expression.
 type OperatorType int
 
 const (
@@ -85,6 +82,7 @@ const (
 	OperatorExtendedNot                        // not
 )
 
+// String returns the string representation of the operator type.
 func (op OperatorType) String() string {
 	// The last empty operators are compiler.internalOperatorZero and
 	// compiler.internalOperatorNotZero.
@@ -93,6 +91,7 @@ func (op OperatorType) String() string {
 		"<-", "&", "*", "and", "or", "not", "", ""}[op]
 }
 
+// AssignmentType represents a type of assignment.
 type AssignmentType int
 
 const (
@@ -125,6 +124,7 @@ const (
 	FormatMarkdown
 )
 
+// String returns the name of the format.
 func (format Format) String() string {
 	switch format {
 	case FormatText:
@@ -143,7 +143,7 @@ func (format Format) String() string {
 	panic("invalid format")
 }
 
-// Context indicates the context in which a value statement must be valuated.
+// Context indicates the context in which a show statement is evaluated.
 type Context int
 
 const (
@@ -163,6 +163,7 @@ const (
 	ContextSpacesCodeBlock
 )
 
+// String returns the name of the context.
 func (ctx Context) String() string {
 	switch ctx {
 	case ContextText:
@@ -197,6 +198,7 @@ func (ctx Context) String() string {
 	panic("invalid context")
 }
 
+// LiteralType represents the type of a literal.
 type LiteralType int
 
 const (
@@ -207,6 +209,7 @@ const (
 	ImaginaryLiteral
 )
 
+// ChanDirection represents the direction of a channel type.
 type ChanDirection int
 
 const (
@@ -217,11 +220,13 @@ const (
 
 var directionString = [3]string{"no direction", "receive", "send"}
 
+// String returns the name of the direction dir or "no direction" if there is
+// no direction.
 func (dir ChanDirection) String() string { return directionString[dir] }
 
-// Node is an element of the tree.
+// Node is a node of the tree.
 type Node interface {
-	Pos() *Position // node position in the original source
+	Pos() *Position // position in the original source
 }
 
 // Position is a position of a node in the source.
@@ -232,23 +237,25 @@ type Position struct {
 	End    int // index of the last byte
 }
 
+// Pos returns the position p.
 func (p *Position) Pos() *Position {
 	return p
 }
 
+// String returns the line and column separated by a colon, for example "37:18".
 func (p Position) String() string {
 	return strconv.Itoa(p.Line) + ":" + strconv.Itoa(p.Column)
 }
 
-// WithEnd returns a copy of the position but with the given end.
+// WithEnd returns a copy of the position but with the given end index.
 func (p *Position) WithEnd(end int) *Position {
 	pp := *p
 	pp.End = end
 	return &pp
 }
 
-// Operator represents an operator expression. It is implemented by
-// the nodes UnaryOperator and BinaryOperator.
+// Operator represents an operator expression. It is implemented by the
+// UnaryOperator and BinaryOperator nodes.
 type Operator interface {
 	Expression
 	Operator() OperatorType
@@ -310,8 +317,8 @@ func (e *expression) SetParenthesis(n int) {
 	e.parenthesis = n
 }
 
-// Cut indicates, in a Text node, how many bytes must be cut from the left and
-// the right of the text before rendering the Text node.
+// Cut indicates, in a Text node, how many bytes should be cut from the left
+// and the right of the text before rendering the Text node.
 type Cut struct {
 	Left  int
 	Right int
@@ -325,10 +332,12 @@ type ArrayType struct {
 	ElementType Expression // element type.
 }
 
+// NewArrayType returns a new ArrayType node.
 func NewArrayType(pos *Position, len Expression, elementType Expression) *ArrayType {
 	return &ArrayType{&expression{}, pos, len, elementType}
 }
 
+// String returns the string representation of n.
 func (n *ArrayType) String() string {
 	s := "["
 	if n.Len == nil {
@@ -343,15 +352,17 @@ func (n *ArrayType) String() string {
 // Assignment node represents an assignment statement.
 type Assignment struct {
 	*Position                // position in the source.
-	Lhs       []Expression   // left hand variables.
+	Lhs       []Expression   // left-hand variables.
 	Type      AssignmentType // type.
 	Rhs       []Expression   // assigned values (nil for increment and decrement).
 }
 
+// NewAssignment returns a new Assignment node.
 func NewAssignment(pos *Position, lhs []Expression, typ AssignmentType, rhs []Expression) *Assignment {
 	return &Assignment{pos, lhs, typ, rhs}
 }
 
+// String returns the string representation of n.
 func (n *Assignment) String() string {
 	var s string
 	for i, v := range n.Lhs {
@@ -391,6 +402,8 @@ func (n *Assignment) String() string {
 	return s
 }
 
+// BasicLiteral represents integer, floating-point, imaginary, rune and
+// string literals.
 type BasicLiteral struct {
 	expression
 	*Position             // position in the source.
@@ -398,10 +411,12 @@ type BasicLiteral struct {
 	Value     string      // value.
 }
 
+// NewBasicLiteral returns a new BasicLiteral node.
 func NewBasicLiteral(pos *Position, typ LiteralType, value string) *BasicLiteral {
 	return &BasicLiteral{expression{}, pos, typ, value}
 }
 
+// String returns the string representation of n.
 func (n *BasicLiteral) String() string {
 	return n.Value
 }
@@ -415,10 +430,12 @@ type BinaryOperator struct {
 	Expr2     Expression   // second expression.
 }
 
+// NewBinaryOperator returns a new binary operator.
 func NewBinaryOperator(pos *Position, op OperatorType, expr1, expr2 Expression) *BinaryOperator {
 	return &BinaryOperator{&expression{}, pos, op, expr1, expr2}
 }
 
+// String returns the string representation of n.
 func (n *BinaryOperator) String() string {
 	var s string
 	if e, ok := n.Expr1.(Operator); ok && e.Precedence() <= n.Precedence() {
@@ -460,7 +477,7 @@ func (n *BinaryOperator) Precedence() int {
 	panic("invalid operator type")
 }
 
-// Block node represents a block { ... } with his own scope.
+// Block node represents a block with his own scope.
 type Block struct {
 	*Position
 	Nodes []Node
@@ -471,12 +488,13 @@ func NewBlock(pos *Position, nodes []Node) *Block {
 	return &Block{pos, nodes}
 }
 
-// Break node represents a statement "break".
+// Break node represents a "break" statement.
 type Break struct {
 	*Position             // position in the source.
 	Label     *Identifier // label.
 }
 
+// NewBreak returns a new Break node.
 func NewBreak(pos *Position, label *Identifier) *Break {
 	return &Break{pos, label}
 }
@@ -490,10 +508,12 @@ type Call struct {
 	IsVariadic bool         // reports whether it is variadic.
 }
 
+// NewCall returns a new Call node.
 func NewCall(pos *Position, fun Expression, args []Expression, isVariadic bool) *Call {
 	return &Call{&expression{}, pos, fun, args, isVariadic}
 }
 
+// String returns the string representation of n.
 func (n *Call) String() string {
 	s := n.Func.String()
 	switch fn := n.Func.(type) {
@@ -519,7 +539,7 @@ func (n *Call) String() string {
 	return s
 }
 
-// Case node represents statements "case" and "default".
+// Case node represents "case" and "default" statements.
 type Case struct {
 	*Position
 	Expressions []Expression
@@ -539,10 +559,12 @@ type ChanType struct {
 	ElementType Expression    // type of chan elements.
 }
 
+// NewChanType returns a new ChanType node.
 func NewChanType(pos *Position, direction ChanDirection, elementType Expression) *ChanType {
 	return &ChanType{&expression{}, pos, direction, elementType}
 }
 
+// String returns the string representation of n.
 func (n *ChanType) String() string {
 	var s string
 	if n.Direction == ReceiveDirection {
@@ -555,17 +577,18 @@ func (n *ChanType) String() string {
 	return s + " " + n.ElementType.String()
 }
 
-// Comment node represents a statement {# ... #}.
+// Comment node represents a comment statement in the form {# ... #}.
 type Comment struct {
 	*Position        // position in the source.
 	Text      string // comment text.
 }
 
+// NewComment returns a new Comment node.
 func NewComment(pos *Position, text string) *Comment {
 	return &Comment{pos, text}
 }
 
-// CompositeLiteral node represent a composite literal.
+// CompositeLiteral node represents a composite literal.
 type CompositeLiteral struct {
 	*expression
 	*Position            // position in the source.
@@ -573,10 +596,12 @@ type CompositeLiteral struct {
 	KeyValues []KeyValue // nil for empty composite literals.
 }
 
+// NewCompositeLiteral returns a new CompositeLiteral node.
 func NewCompositeLiteral(pos *Position, typ Expression, keyValues []KeyValue) *CompositeLiteral {
 	return &CompositeLiteral{&expression{}, pos, typ, keyValues}
 }
 
+// String returns the string representation of n.
 func (n *CompositeLiteral) String() string {
 	s := n.Type.String()
 	if expandedPrint {
@@ -596,7 +621,7 @@ func (n *CompositeLiteral) String() string {
 	return s + "{}"
 }
 
-// Const node represent a const declaration.
+// Const node represents a "const" declaration.
 type Const struct {
 	*Position               // position in the source.
 	Lhs       []*Identifier // left-hand side identifiers.
@@ -605,16 +630,18 @@ type Const struct {
 	Index     int           // index of the declaration in the constant declaration group or 0 if not in a group.
 }
 
+// NewConst returns a new Const node.
 func NewConst(pos *Position, lhs []*Identifier, typ Expression, rhs []Expression, index int) *Const {
 	return &Const{pos, lhs, typ, rhs, index}
 }
 
-// Continue node represents a statement "continue".
+// Continue node represents a "continue" statement.
 type Continue struct {
 	*Position             // position in the source.
 	Label     *Identifier // label.
 }
 
+// NewContinue returns a new Continue node.
 func NewContinue(pos *Position, label *Identifier) *Continue {
 	return &Continue{pos, label}
 }
@@ -627,29 +654,33 @@ type Default struct {
 	Expr2     Expression // right hand expression.
 }
 
+// NewDefault returns a new Defualt node.
 func NewDefault(pos *Position, expr1, expr2 Expression) *Default {
 	return &Default{Position: pos, Expr1: expr1, Expr2: expr2}
 }
 
+// String returns the string representation of n.
 func (n *Default) String() string {
 	return n.Expr1.String() + " default " + n.Expr2.String()
 }
 
-// Defer node represents a defer statement.
+// Defer node represents a "defer" statement.
 type Defer struct {
 	*Position            // position in the source.
 	Call      Expression // function or method call (should be a Call node).
 }
 
+// NewDefer returns a new Defer node.
 func NewDefer(pos *Position, call Expression) *Defer {
 	return &Defer{pos, call}
 }
 
+// String returns the string representation of n.
 func (n *Defer) String() string {
 	return "defer " + n.Call.String()
 }
 
-// DollarIdentifier node represents a dollar identifier $id.
+// DollarIdentifier node represents a dollar identifier in the form  $id.
 type DollarIdentifier struct {
 	*expression
 	*Position             // position in the source.
@@ -660,15 +691,17 @@ type DollarIdentifier struct {
 	}
 }
 
+// NewDollarIdentifier returns a new DollarIdentifier node.
 func NewDollarIdentifier(pos *Position, ident *Identifier) *DollarIdentifier {
 	return &DollarIdentifier{&expression{}, pos, ident, struct{ Ident Expression }{}}
 }
 
+// String returns the string representation of n.
 func (n *DollarIdentifier) String() string {
 	return "$" + n.Ident.String()
 }
 
-// Extends node represents a statement "extends".
+// Extends node represents an "extends" statement.
 type Extends struct {
 	*Position        // position in the source.
 	Path      string // path to extend.
@@ -676,15 +709,17 @@ type Extends struct {
 	Tree      *Tree  // expanded tree of extends.
 }
 
+// NewExtends returns a new Extends node.
 func NewExtends(pos *Position, path string, format Format) *Extends {
 	return &Extends{Position: pos, Path: path, Format: format}
 }
 
+// String returns the string representation of n.
 func (n *Extends) String() string {
 	return fmt.Sprintf("extends %v", strconv.Quote(n.Path))
 }
 
-// Fallthrough node represents a statement "fallthrough".
+// Fallthrough node represents a "fallthrough" statement.
 type Fallthrough struct {
 	*Position
 }
@@ -703,11 +738,12 @@ type Field struct {
 	Tag    string
 }
 
-// NewField returns a new NewField node.
+// NewField returns a new Field node.
 func NewField(idents []*Identifier, typ Expression, tag string) *Field {
 	return &Field{idents, typ, tag}
 }
 
+// String returns the string representation of n.
 func (n *Field) String() string {
 	s := ""
 	for i, ident := range n.Idents {
@@ -724,7 +760,7 @@ func (n *Field) String() string {
 	return s
 }
 
-// For node represents a statement "for".
+// For node represents a "for" statement.
 type For struct {
 	*Position            // position in the source.
 	Init      Node       // initialization statement.
@@ -733,6 +769,7 @@ type For struct {
 	Body      []Node     // nodes of the body.
 }
 
+// NewFor returns a new For node.
 func NewFor(pos *Position, init Node, condition Expression, post Node, body []Node) *For {
 	if body == nil {
 		body = []Node{}
@@ -740,7 +777,7 @@ func NewFor(pos *Position, init Node, condition Expression, post Node, body []No
 	return &For{pos, init, condition, post, body}
 }
 
-// ForIn node represents the "for in" statement.
+// ForIn node represents a "for in" statement.
 type ForIn struct {
 	*Position             // position in the source.
 	Ident     *Identifier // identifier.
@@ -748,6 +785,7 @@ type ForIn struct {
 	Body      []Node      // nodes of the body.
 }
 
+// NewForIn represents a new ForIn node.
 func NewForIn(pos *Position, ident *Identifier, expr Expression, body []Node) *ForIn {
 	if body == nil {
 		body = []Node{}
@@ -762,6 +800,7 @@ type ForRange struct {
 	Body       []Node      // nodes of the body.
 }
 
+// NewForRange returns a new ForRange node.
 func NewForRange(pos *Position, assignment *Assignment, body []Node) *ForRange {
 	if body == nil {
 		body = []Node{}
@@ -781,10 +820,12 @@ type Func struct {
 	Format  Format      // macro format.
 }
 
+// NewFunc returns a new Func node.
 func NewFunc(pos *Position, name *Identifier, typ *FuncType, body *Block, endless bool, format Format) *Func {
 	return &Func{expression{}, pos, name, typ, body, endless, nil, format}
 }
 
+// String returns the string representation of n.
 func (n *Func) String() string {
 	if n.Type.Macro {
 		return "macro declaration"
@@ -806,10 +847,12 @@ type FuncType struct {
 	Reflect    reflect.Type // reflect type.
 }
 
+// NewFuncType returns a new FuncType node.
 func NewFuncType(pos *Position, macro bool, parameters []*Parameter, result []*Parameter, isVariadic bool) *FuncType {
 	return &FuncType{expression{}, pos, macro, parameters, result, isVariadic, nil}
 }
 
+// String returns the string representation of n.
 func (n *FuncType) String() string {
 	s := "func("
 	if n.Macro {
@@ -839,30 +882,34 @@ func (n *FuncType) String() string {
 	return s
 }
 
-// Go node represents a go statement.
+// Go node represents a "go" statement.
 type Go struct {
 	*Position            // position in the source.
 	Call      Expression // function or method call (should be a Call node).
 }
 
+// NewGo returns a new Go node.
 func NewGo(pos *Position, call Expression) *Go {
 	return &Go{pos, call}
 }
 
+// String returns the string representation of n.
 func (n *Go) String() string {
 	return "go " + n.Call.String()
 }
 
-// Goto node represents a goto statement.
+// Goto node represents a "goto" statement.
 type Goto struct {
 	*Position             // position in the source.
 	Label     *Identifier // label.
 }
 
+// NewGoto returns a new Goto node.
 func NewGoto(pos *Position, label *Identifier) *Goto {
 	return &Goto{pos, label}
 }
 
+// String returns the string representation of n.
 func (n *Goto) String() string {
 	return "goto " + n.Label.String()
 }
@@ -874,10 +921,12 @@ type Identifier struct {
 	Name      string // name.
 }
 
+// NewIdentifier returns a new Identifier node.
 func NewIdentifier(pos *Position, name string) *Identifier {
 	return &Identifier{expression{}, pos, name}
 }
 
+// String returns the string representation of n.
 func (n *Identifier) String() string {
 	if strings.HasPrefix(n.Name, "$itea") {
 		return "itea"
@@ -885,7 +934,7 @@ func (n *Identifier) String() string {
 	return n.Name
 }
 
-// If node represents a statement "if".
+// If node represents an "if" statement.
 type If struct {
 	*Position            // position in the source.
 	Init      Node       // init simple statement.
@@ -894,6 +943,7 @@ type If struct {
 	Else      Node       // nodes to run if the expression is evaluated to false. Can be Block or If.
 }
 
+// NewIf returns a new If node.
 func NewIf(pos *Position, init Node, cond Expression, then *Block, els Node) *If {
 	if then == nil {
 		then = NewBlock(nil, []Node{})
@@ -901,7 +951,7 @@ func NewIf(pos *Position, init Node, cond Expression, then *Block, els Node) *If
 	return &If{pos, init, cond, then, els}
 }
 
-// Import node represents a statement "import".
+// Import node represents a "import" statement.
 type Import struct {
 	*Position             // position in the source.
 	Ident     *Identifier // name (including "." and "_") or nil.
@@ -909,10 +959,12 @@ type Import struct {
 	Tree      *Tree       // expanded tree of import.
 }
 
+// NewImport returns a new Import node.
 func NewImport(pos *Position, ident *Identifier, path string) *Import {
 	return &Import{Position: pos, Ident: ident, Path: path}
 }
 
+// String returns the string representation of n.
 func (n *Import) String() string {
 	if n.Ident == nil {
 		return fmt.Sprintf("import %v", strconv.Quote(n.Path))
@@ -928,10 +980,12 @@ type Index struct {
 	Index     Expression // index.
 }
 
+// NewIndex returns a new Index node.
 func NewIndex(pos *Position, expr Expression, index Expression) *Index {
 	return &Index{&expression{}, pos, expr, index}
 }
 
+// String returns the string representation of n.
 func (n *Index) String() string {
 	return n.Expr.String() + "[" + n.Index.String() + "]"
 }
@@ -942,10 +996,12 @@ type Interface struct {
 	*Position // position in the source.
 }
 
+// NewInterface returns a new Interface node.
 func NewInterface(pos *Position) *Interface {
 	return &Interface{&expression{}, pos}
 }
 
+// String returns the string representation of n.
 func (n *Interface) String() string {
 	return "interface{}"
 }
@@ -956,6 +1012,7 @@ type KeyValue struct {
 	Value Expression
 }
 
+// String returns the string representation of kv.
 func (kv KeyValue) String() string {
 	if kv.Key == nil {
 		return kv.Value.String()
@@ -970,6 +1027,7 @@ type Label struct {
 	Statement Node        // statement.
 }
 
+// NewLabel returns a new Label node.
 func NewLabel(pos *Position, ident *Identifier, statement Node) *Label {
 	return &Label{pos, ident, statement}
 }
@@ -982,10 +1040,12 @@ type MapType struct {
 	ValueType Expression // type of map values.
 }
 
+// NewMapType returns a new MapType node.
 func NewMapType(pos *Position, keyType, valueType Expression) *MapType {
 	return &MapType{&expression{}, pos, keyType, valueType}
 }
 
+// String returns the string representation of n.
 func (n *MapType) String() string {
 	return "map[" + n.KeyType.String() + "]" + n.ValueType.String()
 }
@@ -1013,6 +1073,7 @@ type Package struct {
 	}
 }
 
+// NewPackage returns a new Package node.
 func NewPackage(pos *Position, name string, nodes []Node) *Package {
 	return &Package{Position: pos, Name: name, Declarations: nodes}
 }
@@ -1024,10 +1085,12 @@ type Parameter struct {
 	Type  Expression  // type.
 }
 
+// NewParameter returns a new Parameter node.
 func NewParameter(ident *Identifier, typ Expression) *Parameter {
 	return &Parameter{ident, typ}
 }
 
+// String returns the string representation of n.
 func (n *Parameter) String() string {
 	if n.Ident == nil {
 		return n.Type.String()
@@ -1038,21 +1101,23 @@ func (n *Parameter) String() string {
 	return n.Ident.Name + " " + n.Type.String()
 }
 
-// Placeholder node represent a special placeholder node.
+// Placeholder node represents a special placeholder node.
 type Placeholder struct {
 	*expression
 	*Position // position in the source.
 }
 
+// NewPlaceholder returns a new Placeholder node.
 func NewPlaceholder() *Placeholder {
 	return &Placeholder{&expression{}, nil}
 }
 
+// String returns the string representation of n.
 func (n *Placeholder) String() string {
 	return "[Placeholder]"
 }
 
-// Raw node represents a raw statement.
+// Raw node represents a "raw" statement.
 type Raw struct {
 	*Position        // position in the source.
 	Marker    string // marker.
@@ -1060,11 +1125,12 @@ type Raw struct {
 	Text      *Text  // text.
 }
 
+// NewRaw returns a new Raw node.
 func NewRaw(pos *Position, marker, tag string, text *Text) *Raw {
 	return &Raw{pos, marker, tag, text}
 }
 
-// Render node represents a 'render <path>' expression.
+// Render node represents a "render <path>" expression.
 type Render struct {
 	expression
 	*Position        // position in the source.
@@ -1083,25 +1149,28 @@ type Render struct {
 	}
 }
 
+// NewRender returns a new Render node.
 func NewRender(pos *Position, path string) *Render {
 	return &Render{Position: pos, Path: path}
 }
 
+// String returns the string representation of n.
 func (n *Render) String() string {
 	return "render " + strconv.Quote(n.Path)
 }
 
-// Return node represents a return statement.
+// Return node represents a "return" statement.
 type Return struct {
 	*Position
 	Values []Expression // return values.
 }
 
+// NewReturn returns a new Return node.
 func NewReturn(pos *Position, values []Expression) *Return {
 	return &Return{pos, values}
 }
 
-// Select node represents a statement "select".
+// Select node represents a "select" statement.
 type Select struct {
 	*Position
 	LeadingText *Text
@@ -1113,7 +1182,7 @@ func NewSelect(pos *Position, leadingText *Text, cases []*SelectCase) *Select {
 	return &Select{pos, leadingText, cases}
 }
 
-// SelectCase represents a statement "case" in a select.
+// SelectCase represents a "case" statement in a select.
 type SelectCase struct {
 	*Position
 	Comm Node
@@ -1133,40 +1202,47 @@ type Selector struct {
 	Ident     string     // identifier.
 }
 
+// NewSelector returns a new Selector node.
 func NewSelector(pos *Position, expr Expression, ident string) *Selector {
 	return &Selector{&expression{}, pos, expr, ident}
 }
 
+// String returns the string representation of n.
 func (n *Selector) String() string {
 	return n.Expr.String() + "." + n.Ident
 }
 
-// Send node represents a send statement.
+// Send node represents a "send" statement.
 type Send struct {
 	*Position            // position in the source.
 	Channel   Expression // channel.
 	Value     Expression // value to send on the channel.
 }
 
+// NewSend returns a new Send node.
 func NewSend(pos *Position, channel Expression, value Expression) *Send {
 	return &Send{pos, channel, value}
 }
 
+// String returns the string representation of n.
 func (n *Send) String() string {
 	return n.Channel.String() + " <- " + n.Value.String()
 }
 
-// Show node represents statements {{ ... }} and "show <expr>".
+// Show node represents the "show <expr>" statement and its short syntax
+// "{{ ... }}".
 type Show struct {
 	*Position                // position in the source.
 	Expressions []Expression // expressions that once evaluated return the values to show.
 	Context     Context      // context.
 }
 
+// NewShow returns a new Show node.
 func NewShow(pos *Position, expressions []Expression, ctx Context) *Show {
 	return &Show{pos, expressions, ctx}
 }
 
+// String returns the string representation of n.
 func (n *Show) String() string {
 	var b strings.Builder
 	b.WriteString("show ")
@@ -1186,10 +1262,12 @@ type SliceType struct {
 	ElementType Expression // element type.
 }
 
+// NewSliceType returns a new SliceType node.
 func NewSliceType(pos *Position, elementType Expression) *SliceType {
 	return &SliceType{&expression{}, pos, elementType}
 }
 
+// String returns the string representation of n.
 func (n *SliceType) String() string {
 	return "[]" + n.ElementType.String()
 }
@@ -1205,10 +1283,12 @@ type Slicing struct {
 	IsFull    bool       // reports whether is a full expression.
 }
 
+// NewSlicing returns a new Slicing node.
 func NewSlicing(pos *Position, expr, low, high Expression, max Expression, isFull bool) *Slicing {
 	return &Slicing{&expression{}, pos, expr, low, high, max, isFull}
 }
 
+// String returns the string representation of n.
 func (n *Slicing) String() string {
 	s := n.Expr.String() + "["
 	if n.Low != nil {
@@ -1226,12 +1306,13 @@ func (n *Slicing) String() string {
 	return s
 }
 
-// Statements node represents a statement {%% ... %%}
+// Statements node represents a "{%% ... %%} statement.
 type Statements struct {
 	*Position
 	Nodes []Node // nodes.
 }
 
+// NewStatements returns a new Statements node.
 func NewStatements(pos *Position, nodes []Node) *Statements {
 	if nodes == nil {
 		nodes = []Node{}
@@ -1251,6 +1332,7 @@ func NewStructType(pos *Position, fields []*Field) *StructType {
 	return &StructType{&expression{}, pos, fields}
 }
 
+// String returns the string representation of n.
 func (n *StructType) String() string {
 	s := "struct { "
 	for i, fd := range n.Fields {
@@ -1263,7 +1345,7 @@ func (n *StructType) String() string {
 	return s
 }
 
-// Switch node represents a statement "switch".
+// Switch node represents a "switch" statement.
 type Switch struct {
 	*Position
 	Init        Node
@@ -1277,17 +1359,19 @@ func NewSwitch(pos *Position, init Node, expr Expression, leadingText *Text, cas
 	return &Switch{pos, init, expr, leadingText, cases}
 }
 
-// Text node represents a text in the source.
+// Text node represents a text in a template source.
 type Text struct {
 	*Position        // position in the source.
 	Text      []byte // text.
 	Cut       Cut    // cut.
 }
 
+// NewText returns a new Text node.
 func NewText(pos *Position, text []byte, cut Cut) *Text {
 	return &Text{pos, text, cut}
 }
 
+// String returns the string representation of n.
 func (n *Text) String() string {
 	return string(n.Text)
 }
@@ -1300,6 +1384,7 @@ type Tree struct {
 	Format Format // content format.
 }
 
+// NewTree returns a new Tree node.
 func NewTree(path string, nodes []Node, format Format) *Tree {
 	if nodes == nil {
 		nodes = []Node{}
@@ -1321,10 +1406,12 @@ type TypeAssertion struct {
 	Type      Expression // type, is nil if it is a type switch assertion ".(type)".
 }
 
+// NewTypeAssertion returns a new TypeAssertion node.
 func NewTypeAssertion(pos *Position, expr Expression, typ Expression) *TypeAssertion {
 	return &TypeAssertion{&expression{}, pos, expr, typ}
 }
 
+// String returns the string representation of n.
 func (n *TypeAssertion) String() string {
 	if n.Type == nil {
 		return n.Expr.String() + ".(type)"
@@ -1346,6 +1433,7 @@ func NewTypeDeclaration(pos *Position, ident *Identifier, typ Expression, isAlia
 	return &TypeDeclaration{pos, ident, typ, isAliasDeclaration}
 }
 
+// String returns the string representation of n.
 func (n *TypeDeclaration) String() string {
 	if n.IsAliasDeclaration {
 		return fmt.Sprintf("type %s = %s", n.Ident.Name, n.Type.String())
@@ -1353,7 +1441,7 @@ func (n *TypeDeclaration) String() string {
 	return fmt.Sprintf("type %s %s", n.Ident.Name, n.Type.String())
 }
 
-// TypeSwitch node represents a statement "switch" on types.
+// TypeSwitch node represents a "switch" statement on types.
 type TypeSwitch struct {
 	*Position
 	Init        Node
@@ -1375,10 +1463,12 @@ type UnaryOperator struct {
 	Expr      Expression   // expression.
 }
 
+// NewUnaryOperator returns a new UnaryOperator node.
 func NewUnaryOperator(pos *Position, op OperatorType, expr Expression) *UnaryOperator {
 	return &UnaryOperator{&expression{}, pos, op, expr}
 }
 
+// String returns the string representation of n.
 func (n *UnaryOperator) String() string {
 	s := n.Op.String()
 	if n.Op == OperatorExtendedNot {
@@ -1403,8 +1493,8 @@ func (n *UnaryOperator) Precedence() int {
 	return 6
 }
 
-// URL node represents an URL in an attribute value or Markdown. Show nodes
-// that are children of an URL node are rendered accordingly.
+// URL node represents a URL in an attribute value or Markdown. "show" nodes
+// that are children of a URL node are rendered accordingly.
 type URL struct {
 	*Position        // position in the source.
 	Tag       string // tag (in lowercase).
@@ -1412,11 +1502,12 @@ type URL struct {
 	Value     []Node // value nodes.
 }
 
+// NewURL returns a new URL node.
 func NewURL(pos *Position, tag, attribute string, value []Node) *URL {
 	return &URL{pos, tag, attribute, value}
 }
 
-// Using node represents a using statement.
+// Using node represents a "using" statement.
 type Using struct {
 	*Position            // position in the source.
 	Statement Node       // statement preceding the using statement.
@@ -1425,11 +1516,12 @@ type Using struct {
 	Format    Format     // using content format.
 }
 
+// NewUsing returns a new Using node.
 func NewUsing(pos *Position, stmt Node, typ Expression, body *Block, format Format) *Using {
 	return &Using{pos, stmt, typ, body, format}
 }
 
-// Var node represent a variable declaration by keyword "var".
+// Var node represents a "var" declaration.
 type Var struct {
 	*Position               // position in the source.
 	Lhs       []*Identifier // left-hand side of assignment.
@@ -1437,10 +1529,12 @@ type Var struct {
 	Rhs       []Expression  // nil for non-initialized variable declarations.
 }
 
+// NewVar returns a new Var node.
 func NewVar(pos *Position, lhs []*Identifier, typ Expression, rhs []Expression) *Var {
 	return &Var{pos, lhs, typ, rhs}
 }
 
+// String returns the string representation of n.
 func (n *Var) String() string {
 	s := "var "
 	for i, ident := range n.Lhs {
