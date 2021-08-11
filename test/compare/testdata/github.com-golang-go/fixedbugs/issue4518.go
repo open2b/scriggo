@@ -1,5 +1,3 @@
-// skip : invalid behavior (needs investigation)
-
 // run
 
 // Copyright 2012 The Go Authors. All rights reserved.
