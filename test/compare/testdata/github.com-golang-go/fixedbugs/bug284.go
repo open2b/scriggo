@@ -1,4 +1,4 @@
-// skip : syntax error
+// skip : interface definition (https://github.com/open2b/scriggo/issues/218)
 
 // errorcheck
 
@@ -110,7 +110,7 @@ func main() {
 	var f2 F2
 	f0 = f0
 	f0 = f1
-	f0 = func(x NewInt) int(f2) // ERROR "cannot|invalid"
+	f0 = (func(x NewInt) int)(f2) // ERROR "cannot|invalid"
 	f1 = f0
 	f1 = f1
 	f1 = F1(f2) // ERROR "cannot|invalid"
