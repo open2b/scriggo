@@ -21,8 +21,31 @@ import (
 	"unicode/utf8"
 
 	"github.com/open2b/scriggo/ast"
+	"github.com/open2b/scriggo/internal/compiler"
 	"github.com/open2b/scriggo/runtime"
 )
+
+var byteSliceType = reflect.TypeOf([]byte(nil))
+
+func init() {
+	compiler.StringerType = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
+	compiler.EnvStringerType = reflect.TypeOf((*EnvStringer)(nil)).Elem()
+
+	compiler.HTMLStringerType = reflect.TypeOf((*HTMLStringer)(nil)).Elem()
+	compiler.HTMLEnvStringerType = reflect.TypeOf((*HTMLEnvStringer)(nil)).Elem()
+
+	compiler.CSSStringerType = reflect.TypeOf((*CSSStringer)(nil)).Elem()
+	compiler.CSSEnvStringerType = reflect.TypeOf((*CSSEnvStringer)(nil)).Elem()
+
+	compiler.JSStringerType = reflect.TypeOf((*JSStringer)(nil)).Elem()
+	compiler.JSEnvStringerType = reflect.TypeOf((*JSEnvStringer)(nil)).Elem()
+
+	compiler.JSONStringerType = reflect.TypeOf((*JSONStringer)(nil)).Elem()
+	compiler.JSONEnvStringerType = reflect.TypeOf((*JSONEnvStringer)(nil)).Elem()
+
+	compiler.MDStringerType = reflect.TypeOf((*MarkdownStringer)(nil)).Elem()
+	compiler.MDEnvStringerType = reflect.TypeOf((*MarkdownEnvStringer)(nil)).Elem()
+}
 
 // renderer implements the runtime.Renderer interface and it is used to render
 // template files.
@@ -65,17 +88,6 @@ func (r *renderer) Close() error {
 // Show shows v in the given context if r.out is not nil.
 // If r.out is nil, Show only does a type check and calls env.Fatal if it fails.
 func (r *renderer) Show(env runtime.Env, v interface{}, context runtime.Context) {
-
-	if r.out == nil {
-		// Type check the show statement.
-		t := env.TypeOf(reflect.ValueOf(v))
-		ctx, _, _ := decodeRenderContext(context)
-		err := checkShow(t, ctx)
-		if err != nil {
-			env.Fatal(fmt.Errorf("cannot show type %s as %s", t, ctx))
-		}
-		return
-	}
 
 	ctx, inURL, _ := decodeRenderContext(context)
 
@@ -1103,4 +1115,16 @@ func valueOf(env runtime.Env, i interface{}) reflect.Value {
 		v, _ = w.Unwrap(v)
 	}
 	return v
+}
+
+// decodeRenderContext decodes a runtime.Context.
+// Keep in sync with the compiler.decodeRenderContext.
+func decodeRenderContext(c runtime.Context) (ast.Context, bool, bool) {
+	ctx := ast.Context(c & 0b00001111)
+	inURL := c&0b10000000 != 0
+	isURLSet := false
+	if inURL {
+		isURLSet = c&0b01000000 != 0
+	}
+	return ctx, inURL, isURLSet
 }

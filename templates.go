@@ -192,9 +192,9 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildTemplateOptions) (*Tem
 		co.NoParseShortShowStmt = options.NoParseShortShowStmt
 		co.DollarIdentifier = options.DollarIdentifier
 		co.Packages = options.Packages
+		co.MDConverter = compiler.Converter(options.MarkdownConverter)
 		mdConverter = options.MarkdownConverter
 	}
-	co.Renderer = newRenderer(nil, mdConverter)
 	code, err := compiler.BuildTemplate(fsys, name, co)
 	if err != nil {
 		return nil, err

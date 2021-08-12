@@ -7,7 +7,6 @@
 package compiler
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"reflect"
@@ -19,6 +18,22 @@ import (
 	"github.com/open2b/scriggo/runtime"
 	"github.com/open2b/scriggo/untyped"
 )
+
+type (
+	JS              string
+	JSON            string
+	JSStringer      interface{ JS() JS }
+	JSEnvStringer   interface{ JS(runtime.Env) JS }
+	JSONStringer    interface{ JSON() JSON }
+	JSONEnvStringer interface{ JSON(runtime.Env) JSON }
+)
+
+func init() {
+	JSStringerType = reflect.TypeOf((*JSStringer)(nil)).Elem()
+	JSEnvStringerType = reflect.TypeOf((*JSEnvStringer)(nil)).Elem()
+	JSONStringerType = reflect.TypeOf((*JSONStringer)(nil)).Elem()
+	JSONEnvStringerType = reflect.TypeOf((*JSONEnvStringer)(nil)).Elem()
+}
 
 type html string
 type css string
@@ -156,7 +171,14 @@ var checkerTemplateExprs = []struct {
 }
 
 func TestCheckerTemplateExpressions(t *testing.T) {
-	options := checkerOptions{mod: templateMod, formatTypes: formatTypes, renderer: &renderer{}}
+	mdConverter := func(src []byte, out io.Writer) error {
+		if string(src) != "# title" {
+			panic(fmt.Sprintf("unexpected markdown string %q", string(src)))
+		}
+		_, err := io.WriteString(out, "<h1>title</h1>")
+		return err
+	}
+	options := checkerOptions{mod: templateMod, formatTypes: formatTypes, mdConverter: mdConverter}
 	for _, expr := range checkerTemplateExprs {
 		var lex = scanTemplate([]byte("{{ "+expr.src+" }}"), ast.FormatText, false, false)
 		func() {
@@ -641,39 +663,57 @@ func TestCheckerTemplatesStatements(t *testing.T) {
 	}
 }
 
-// renderer implements the runtime.Renderer and io.Writer interfaces.
-// It is used to test the type checking of the explicit conversion from
-// the markdown to the html format types.
-type renderer struct {
-	out io.Writer
-	b   *bytes.Buffer
+type S []V
+type V []S
+type L struct {
+	M M
+	C complex64
+}
+type M struct {
+	L *L
 }
 
-func (r *renderer) Show(runtime.Env, interface{}, runtime.Context) {}
-func (r *renderer) Text(runtime.Env, []byte, bool, bool)           {}
-func (r *renderer) Out() io.Writer {
-	if r.b != nil {
-		return r.b
-	}
-	return r.out
+type N struct {
+	Slice []N
+	Map   map[int]N
 }
-func (r *renderer) WithOut(out io.Writer) runtime.Renderer { return &renderer{out: out, b: r.b} }
-func (r *renderer) WithConversion(fromFormat, toFormat runtime.Format) runtime.Renderer {
-	return &renderer{out: r.out, b: &bytes.Buffer{}}
-}
-func (r *renderer) Close() error {
-	if r.b != nil {
-		if s := r.b.String(); s != "# title" {
-			panic(fmt.Sprintf("unexpected markdown string %q", s))
+
+func TestJSCycles(t *testing.T) {
+	for i := 0; i < 1; i++ {
+		err := checkShowJS(reflect.TypeOf(S{}), nil)
+		if err != nil {
+			t.Fatalf("unexpected error %q showing S", err)
 		}
-		_, err := io.WriteString(r.out, "<h1>title</h1>")
-		return err
+		err = checkShowJS(reflect.TypeOf(L{}), nil)
+		if err == nil {
+			t.Fatalf("unexpected nil error showing L")
+		}
+		if err.Error() != "cannot show struct containing complex64 as JavaScript" {
+			t.Fatalf("unexpected error %q showing L", err)
+		}
+		err = checkShowJS(reflect.TypeOf(N{}), nil)
+		if err != nil {
+			t.Fatalf("unexpected error %q showing N", err)
+		}
 	}
-	return nil
 }
-func (r *renderer) Write(p []byte) (int, error) {
-	if r.b == nil {
-		return r.out.Write(p)
+
+func TestJSONCycles(t *testing.T) {
+	for i := 0; i < 1; i++ {
+		err := checkShowJSON(reflect.TypeOf(S{}), nil)
+		if err != nil {
+			t.Fatalf("unexpected error %q showing S", err)
+		}
+		err = checkShowJSON(reflect.TypeOf(L{}), nil)
+		if err == nil {
+			t.Fatalf("unexpected nil error showing L")
+		}
+		if err.Error() != "cannot show struct containing complex64 as JSON" {
+			t.Fatalf("unexpected error %q showing L", err)
+		}
+		err = checkShowJSON(reflect.TypeOf(N{}), nil)
+		if err != nil {
+			t.Fatalf("unexpected error %q showing N", err)
+		}
 	}
-	return r.b.Write(p)
 }

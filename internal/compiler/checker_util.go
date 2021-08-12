@@ -7,7 +7,6 @@
 package compiler
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -750,21 +749,3 @@ func (tc *typechecker) errTypeAssertion(typ reflect.Type, iface reflect.Type) er
 	}
 	panic("unexpected")
 }
-
-// env implements runtime.Env and a value of env is used as parameter to the
-// Show and Text functions of a runtime.Renderer value during the type
-// checking of a template.
-type env struct {
-	types *types.Types
-	err   error
-}
-
-func (env *env) Context() context.Context            { return nil }
-func (env *env) Exit(int)                            {}
-func (env *env) Exited() bool                        { return false }
-func (env *env) ExitFunc(func())                     {}
-func (env *env) Fatal(v interface{})                 { env.err = v.(error) }
-func (env *env) FilePath() string                    { return "" }
-func (env *env) Print(...interface{})                {}
-func (env *env) Println(...interface{})              {}
-func (env *env) TypeOf(v reflect.Value) reflect.Type { return env.types.TypeOf(v) }

@@ -465,61 +465,6 @@ func TestCSSStringContext(t *testing.T) {
 	}
 }
 
-type S []T
-type T []S
-type L struct {
-	M M
-	C complex64
-}
-type M struct {
-	L *L
-}
-
-type N struct {
-	Slice []N
-	Map   map[int]N
-}
-
-func TestJSCycles(t *testing.T) {
-	for i := 0; i < 1; i++ {
-		err := checkShowJS(reflect.TypeOf(S{}), nil)
-		if err != nil {
-			t.Fatalf("unexpected error %q showing S", err)
-		}
-		err = checkShowJS(reflect.TypeOf(L{}), nil)
-		if err == nil {
-			t.Fatalf("unexpected nil error showing L")
-		}
-		if err.Error() != "cannot show struct containing complex64 as JavaScript" {
-			t.Fatalf("unexpected error %q showing L", err)
-		}
-		err = checkShowJS(reflect.TypeOf(N{}), nil)
-		if err != nil {
-			t.Fatalf("unexpected error %q showing N", err)
-		}
-	}
-}
-
-func TestJSONCycles(t *testing.T) {
-	for i := 0; i < 1; i++ {
-		err := checkShowJSON(reflect.TypeOf(S{}), nil)
-		if err != nil {
-			t.Fatalf("unexpected error %q showing S", err)
-		}
-		err = checkShowJSON(reflect.TypeOf(L{}), nil)
-		if err == nil {
-			t.Fatalf("unexpected nil error showing L")
-		}
-		if err.Error() != "cannot show struct containing complex64 as JSON" {
-			t.Fatalf("unexpected error %q showing L", err)
-		}
-		err = checkShowJSON(reflect.TypeOf(N{}), nil)
-		if err != nil {
-			t.Fatalf("unexpected error %q showing N", err)
-		}
-	}
-}
-
 func asDeclarations(vars Vars) Declarations {
 	declarations := globals()
 	for name, value := range vars {

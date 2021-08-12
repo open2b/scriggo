@@ -55,13 +55,15 @@ type Options struct {
 
 	FormatTypes map[ast.Format]reflect.Type
 	Globals     Declarations
-	Renderer    runtime.Renderer
 
 	// Packages loads Scriggo packages and precompiled packages.
 	//
 	// For template files, Packages only loads precompiled packages; the template
 	// files are read from a file system.
 	Packages PackageLoader
+
+	// MDConverter converts a Markdown source code to HTML.
+	MDConverter Converter
 
 	TreeTransformer func(*ast.Tree) error
 }
@@ -188,7 +190,7 @@ func BuildTemplate(fsys fs.FS, name string, opts Options) (*Code, error) {
 		disallowGoStmt: opts.DisallowGoStmt,
 		formatTypes:    opts.FormatTypes,
 		globals:        opts.Globals,
-		renderer:       opts.Renderer,
+		mdConverter:    opts.MDConverter,
 		mod:            templateMod,
 	}
 	tci, err := typecheck(tree, opts.Packages, checkerOpts)

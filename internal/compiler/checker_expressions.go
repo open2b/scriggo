@@ -18,7 +18,6 @@ import (
 
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/compiler/types"
-	"github.com/open2b/scriggo/runtime"
 )
 
 var untypedBoolTypeInfo = &typeInfo{Type: boolType, Properties: propertyUntyped}
@@ -1847,11 +1846,10 @@ func (tc *typechecker) checkExplicitConversion(expr *ast.Call) *typeInfo {
 		ti := &typeInfo{Type: t.Type}
 		if arg.IsConstant() {
 			var b bytes.Buffer
-			r1 := tc.opts.renderer.WithOut(&b)
-			r2 := r1.WithConversion(runtime.Format(ast.FormatMarkdown), runtime.Format(ast.FormatHTML))
-			_, _ = r2.Out().Write([]byte(arg.Constant.String()))
-			_ = r2.Close()
-			_ = r1.Close()
+			err := tc.mdConverter([]byte(arg.Constant.String()), &b)
+			if err != nil {
+				panic(tc.errorf(expr, "cannot convert %q to markdown: %s", arg.Constant.String(), err))
+			}
 			ti.Constant = stringConst(b.String())
 			ti.setValue(t.Type)
 		} else {

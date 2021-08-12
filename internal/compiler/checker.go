@@ -9,15 +9,18 @@ package compiler
 import (
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/compiler/types"
-	"github.com/open2b/scriggo/runtime"
 )
 
 // checkingMod represents the checking modality.
 type checkingMod int
+
+// Converter is implemented by format converters.
+type Converter func(src []byte, out io.Writer) error
 
 const (
 	programMod checkingMod = iota + 1
@@ -155,8 +158,8 @@ type checkerOptions struct {
 	// global declarations.
 	globals Declarations
 
-	// renderer.
-	renderer runtime.Renderer
+	// mdConverter converts a Markdown source code to HTML.
+	mdConverter Converter
 }
 
 // typechecker represents the state of the type checking.
@@ -199,8 +202,8 @@ type typechecker struct {
 	// by Scriggo.
 	types *types.Types
 
-	// env is passed to the showFunc function and implements only the TypeOf method.
-	env *env
+	// mdConverter converts a Markdown source code to HTML.
+	mdConverter Converter
 
 	// structDeclPkg contains, for every struct literal and defined type with
 	// underlying type 'struct' denoted in Scriggo, the package in which it has
@@ -258,7 +261,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		opts:            opts,
 		iota:            -1,
 		types:           tt,
-		env:             &env{tt, nil},
+		mdConverter:     opts.mdConverter,
 		structDeclPkg:   map[reflect.Type]string{},
 		precompiledPkgs: precompiledPkgs,
 		toBeEmitted:     true,
