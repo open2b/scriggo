@@ -1265,8 +1265,10 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 				T := ast.NewPlaceholder() // T
 				tc.compilation.typeInfos[T] = &typeInfo{Properties: propertyIsType, Type: slice.Type}
 				conversion := ast.NewCall(pos, T, []ast.Expression{arg1}, false) // T(s)
-				expr.Args[1] = conversion
-				tc.checkExpr(expr.Args[1])
+				// Don't change the tree, here, just store the conversion in
+				// the IR so eventual error messages will be correct.
+				expr.IR.AppendArg1 = conversion
+				tc.checkExpr(expr.IR.AppendArg1)
 			} else {
 				elemType := slice.Type.Elem()
 				if t.Type.Kind() != reflect.Slice ||

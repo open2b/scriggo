@@ -506,11 +506,16 @@ type Call struct {
 	Func       Expression   // function.
 	Args       []Expression // arguments.
 	IsVariadic bool         // reports whether it is variadic.
+
+	IR struct {
+		// AppendArg1, in transformed calls to the builtin function 'append',
+		// is the argument with index 1.
+		AppendArg1 *Call
+	}
 }
 
-// NewCall returns a new Call node.
 func NewCall(pos *Position, fun Expression, args []Expression, isVariadic bool) *Call {
-	return &Call{&expression{}, pos, fun, args, isVariadic}
+	return &Call{expression: &expression{}, Position: pos, Func: fun, Args: args, IsVariadic: isVariadic}
 }
 
 // String returns the string representation of n.

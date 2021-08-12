@@ -718,6 +718,10 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 	args := call.Args
 	switch call.Func.(*ast.Identifier).Name {
 	case "append":
+		// Change the tree if necessary.
+		if call.IR.AppendArg1 != nil {
+			call.Args[1] = call.IR.AppendArg1
+		}
 		sliceType := em.typ(args[0])
 		slice := em.emitExpr(args[0], sliceType)
 		if call.IsVariadic {
