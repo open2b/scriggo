@@ -133,6 +133,15 @@ var expressionStringTests = []struct {
 		NewParameter(NewIdentifier(nil, "err"), NewIdentifier(nil, "error"))}, false)},
 	{"func literal", NewFunc(nil, nil, NewFuncType(nil, false, []*Parameter{NewParameter(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false), NewBlock(nil, nil), false, FormatText)},
 	{"func declaration", NewFunc(nil, NewIdentifier(nil, "f"), NewFuncType(nil, false, []*Parameter{NewParameter(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false), NewBlock(nil, nil), false, FormatText)},
+	{"append(x, y...)", NewCall(
+		nil,
+		NewIdentifier(nil, "append"),
+		[]Expression{
+			NewIdentifier(nil, "x"),
+			NewIdentifier(nil, "y"),
+		},
+		true,
+	)},
 }
 
 func TestExpressionString(t *testing.T) {

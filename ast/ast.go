@@ -535,6 +535,9 @@ func (n *Call) String() string {
 		}
 		s += arg.String()
 	}
+	if n.IsVariadic {
+		s += "..."
+	}
 	s += ")"
 	return s
 }
