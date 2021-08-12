@@ -230,20 +230,22 @@ func detectVarsLoop(vars []*ast.Var, deps packageDeclsDeps) error {
 
 func detectTypeLoop(types []*ast.TypeDeclaration, deps packageDeclsDeps) error {
 	for _, t := range types {
-		if !t.IsAliasDeclaration {
-			// TODO: currently the initialization loop check for type
-			// definitions is the same as for type declarations. Is this
-			// correct?
-		}
+		// TODO: currently the initialization loop check for type definitions
+		// is the same as for type alias declarations. Is this correct?
 		path := []*ast.Identifier{t.Ident}
 		loopPath := checkDepsPath(path, deps)
-		if loopPath != nil {
-			msg := "invalid recursive type alias " + t.String() + "\n"
-			for _, p := range loopPath {
-				msg += "\t" + p.Pos().String() + ": " + p.String() + "\n"
-			}
-			return initLoopError{node: t, msg: msg}
+		if loopPath == nil {
+			continue // Ok, no loops.
 		}
+		msg := "invalid recursive type"
+		if t.IsAliasDeclaration {
+			msg += " alias"
+		}
+		msg += " " + t.Ident.String() + "\n"
+		for _, p := range loopPath {
+			msg += "\t" + p.Pos().String() + ": " + p.String() + "\n"
+		}
+		return initLoopError{node: t, msg: msg}
 	}
 	return nil
 }
