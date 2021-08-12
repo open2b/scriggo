@@ -642,6 +642,8 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		if c != 0 {
 			s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 		}
+	case runtime.OpSelect:
+		// No operand.
 	case runtime.OpSetField:
 		s += " " + disassembleOperand(fn, a, getKind('a', fn, addr), k)
 		s += " " + disassembleOperand(fn, b, reflect.Interface, false)
