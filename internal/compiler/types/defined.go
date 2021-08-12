@@ -8,6 +8,8 @@ package types
 
 import (
 	"reflect"
+
+	"github.com/open2b/scriggo/runtime"
 )
 
 // definedType represents a type defined in the Scriggo compiled code with a
@@ -60,17 +62,17 @@ func (x definedType) String() string {
 	return x.name
 }
 
-// Underlying implements the interface runtime.Wrapper.
-func (x definedType) Underlying() reflect.Type {
-	if st, ok := x.Type.(ScriggoType); ok {
-		return st.Underlying()
+// GoType implements the interface runtime.ScriggoType.
+func (x definedType) GoType() reflect.Type {
+	if st, ok := x.Type.(runtime.ScriggoType); ok {
+		return st.GoType()
 	}
 	assertNotScriggoType(x.Type)
 	return x.Type
 }
 
-// Unwrap implements the interface runtime.Wrapper.
+// Unwrap implements the interface runtime.ScriggoType.
 func (x definedType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
 
-// Wrap implements the interface runtime.Wrapper.
+// Wrap implements the interface runtime.ScriggoType.
 func (x definedType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

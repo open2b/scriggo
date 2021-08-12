@@ -9,15 +9,17 @@ package types
 import (
 	"reflect"
 	"strconv"
+
+	"github.com/open2b/scriggo/runtime"
 )
 
 // ArrayOf is equivalent to reflect.ArrayOf except when elem is a Scriggo type;
 // in such case a new Scriggo array type is created and returned as
 // reflect.Type.
 func (types *Types) ArrayOf(count int, elem reflect.Type) reflect.Type {
-	if st, ok := elem.(ScriggoType); ok {
+	if st, ok := elem.(runtime.ScriggoType); ok {
 		return arrayType{
-			Type: reflect.ArrayOf(count, st.Underlying()),
+			Type: reflect.ArrayOf(count, st.GoType()),
 			elem: st,
 		}
 	}
@@ -55,14 +57,14 @@ func (x arrayType) String() string {
 	return "[" + strconv.Itoa(x.Type.Len()) + "]" + x.elem.String()
 }
 
-// Underlying implements the interface runtime.Wrapper.
-func (x arrayType) Underlying() reflect.Type {
+// GoType implements the interface runtime.ScriggoType.
+func (x arrayType) GoType() reflect.Type {
 	assertNotScriggoType(x.Type)
 	return x.Type
 }
 
-// Unwrap implements the interface runtime.Wrapper.
+// Unwrap implements the interface runtime.ScriggoType.
 func (x arrayType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
 
-// Wrap implements the interface runtime.Wrapper.
+// Wrap implements the interface runtime.ScriggoType.
 func (x arrayType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

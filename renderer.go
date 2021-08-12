@@ -1111,7 +1111,7 @@ func valueOf(env runtime.Env, i interface{}) reflect.Value {
 	}
 	v := reflect.ValueOf(i)
 	t := env.TypeOf(v)
-	if w, ok := t.(runtime.Wrapper); ok {
+	if w, ok := t.(runtime.ScriggoType); ok {
 		v, _ = w.Unwrap(v)
 	}
 	return v

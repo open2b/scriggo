@@ -6,29 +6,33 @@
 
 package types
 
-import "reflect"
+import (
+	"reflect"
+
+	"github.com/open2b/scriggo/runtime"
+)
 
 // MapOf behaves like reflect.MapOf except when at least one of the map key or
 // the map element is a Scriggo type; in such case a new Scriggo map type is
 // created and returned as reflect.Type.
 func (types *Types) MapOf(key, elem reflect.Type) reflect.Type {
-	keySt, keyIsScriggoType := key.(ScriggoType)
-	elemSt, elemIsScriggoType := elem.(ScriggoType)
+	keySt, keyIsScriggoType := key.(runtime.ScriggoType)
+	elemSt, elemIsScriggoType := elem.(runtime.ScriggoType)
 	switch {
 	case keyIsScriggoType && elemIsScriggoType:
 		return mapType{
-			Type: reflect.MapOf(keySt.Underlying(), elemSt.Underlying()),
+			Type: reflect.MapOf(keySt.GoType(), elemSt.GoType()),
 			key:  keySt,
 			elem: elemSt,
 		}
 	case keyIsScriggoType && !elemIsScriggoType:
 		return mapType{
-			Type: reflect.MapOf(keySt.Underlying(), elem),
+			Type: reflect.MapOf(keySt.GoType(), elem),
 			key:  keySt,
 		}
 	case elemIsScriggoType && !keyIsScriggoType:
 		return mapType{
-			Type: reflect.MapOf(key, elemSt.Underlying()),
+			Type: reflect.MapOf(key, elemSt.GoType()),
 			elem: elemSt,
 		}
 	default:
@@ -89,14 +93,14 @@ func (x mapType) String() string {
 	return s
 }
 
-// Underlying implements the interface runtime.Wrapper.
-func (x mapType) Underlying() reflect.Type {
+// GoType implements the interface runtime.ScriggoType.
+func (x mapType) GoType() reflect.Type {
 	assertNotScriggoType(x.Type)
 	return x.Type
 }
 
-// Unwrap implements the interface runtime.Wrapper.
+// Unwrap implements the interface runtime.ScriggoType.
 func (x mapType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
 
-// Wrap implements the interface runtime.Wrapper.
+// Wrap implements the interface runtime.ScriggoType.
 func (x mapType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

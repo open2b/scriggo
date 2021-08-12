@@ -6,14 +6,18 @@
 
 package types
 
-import "reflect"
+import (
+	"reflect"
+
+	"github.com/open2b/scriggo/runtime"
+)
 
 // ChanOf behaves like reflect.ChanOf except when t is a Scriggo type; in such
 // case a new Scriggo channel type is created and returned as reflect.Type.
 func (types *Types) ChanOf(dir reflect.ChanDir, t reflect.Type) reflect.Type {
-	if st, ok := t.(ScriggoType); ok {
+	if st, ok := t.(runtime.ScriggoType); ok {
 		return chanType{
-			Type: reflect.ChanOf(dir, st.Underlying()),
+			Type: reflect.ChanOf(dir, st.GoType()),
 			elem: st,
 		}
 	}
@@ -61,14 +65,14 @@ func (x chanType) String() string {
 	return s
 }
 
-// Underlying implements the interface runtime.Wrapper.
-func (x chanType) Underlying() reflect.Type {
+// GoType implements the interface runtime.ScriggoType.
+func (x chanType) GoType() reflect.Type {
 	assertNotScriggoType(x.Type)
 	return x.Type
 }
 
-// Unwrap implements the interface runtime.Wrapper.
+// Unwrap implements the interface runtime.ScriggoType.
 func (x chanType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
 
-// Wrap implements the interface runtime.Wrapper.
+// Wrap implements the interface runtime.ScriggoType.
 func (x chanType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

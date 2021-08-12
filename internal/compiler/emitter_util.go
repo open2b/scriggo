@@ -13,7 +13,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/internal/compiler/types"
 	"github.com/open2b/scriggo/runtime"
 )
 
@@ -47,8 +46,8 @@ func (em *emitter) _changeRegister(k bool, src, dst int8, srcType reflect.Type, 
 	// the struct fields. This is not possible with Scriggo defined types,
 	// because the gc compiled code cannot reference to them.
 	if dst < 0 {
-		if st, ok := srcType.(types.ScriggoType); ok {
-			srcType = st.Underlying()
+		if st, ok := srcType.(runtime.ScriggoType); ok {
+			srcType = st.GoType()
 		}
 		em.fb.emitTypify(k, srcType, src, dst)
 		return
@@ -242,8 +241,8 @@ func kindToType(k reflect.Kind) registerType {
 func newGlobal(pkg, name string, typ reflect.Type, value reflect.Value) Global {
 	// TODO: is this solution ok? Or does it prevent from creating "global"
 	// values with scriggo types?
-	if st, ok := typ.(types.ScriggoType); ok {
-		typ = st.Underlying()
+	if st, ok := typ.(runtime.ScriggoType); ok {
+		typ = st.GoType()
 	}
 	return Global{
 		Pkg:   pkg,

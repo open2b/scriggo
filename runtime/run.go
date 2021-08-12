@@ -138,7 +138,7 @@ func (vm *VM) run() (Addr, bool) {
 			t := vm.fn.Types[uint8(b)]
 			var ok bool
 			if v.IsValid() {
-				if w, isWrapper := t.(Wrapper); isWrapper {
+				if w, isScriggoType := t.(ScriggoType); isScriggoType {
 					v, ok = w.Unwrap(v)
 				} else {
 					if t.Kind() == reflect.Interface {
@@ -190,8 +190,8 @@ func (vm *VM) run() (Addr, bool) {
 					}
 					vm.setString(c, s)
 				default:
-					if w, ok := t.(Wrapper); ok {
-						t = w.Underlying()
+					if w, ok := t.(ScriggoType); ok {
+						t = w.GoType()
 					}
 					rv := reflect.New(t).Elem()
 					if ok {
@@ -1702,9 +1702,9 @@ func (vm *VM) run() (Addr, bool) {
 		// Show
 		case OpShow:
 			t := vm.fn.Types[uint8(a)]
-			st, ok := t.(Wrapper)
+			st, ok := t.(ScriggoType)
 			if ok {
-				t = st.Underlying()
+				t = st.GoType()
 			}
 			rv := reflect.New(t).Elem()
 			vm.getIntoReflectValue(b, rv, op < 0)
@@ -1851,9 +1851,9 @@ func (vm *VM) run() (Addr, bool) {
 		// Typify
 		case OpTypify, -OpTypify:
 			t := vm.fn.Types[uint8(a)]
-			st, ok := t.(Wrapper)
+			st, ok := t.(ScriggoType)
 			if ok {
-				t = st.Underlying()
+				t = st.GoType()
 			}
 			v := reflect.New(t).Elem()
 			vm.getIntoReflectValue(b, v, op < 0)

@@ -6,13 +6,17 @@
 
 package types
 
-import "reflect"
+import (
+	"reflect"
+
+	"github.com/open2b/scriggo/runtime"
+)
 
 // wrap and unwrap are called by the methods Wrap and Unwrap of the types
-// defined in this package. These two methods and the Underlying method
-// implement the runtime.Wrapper interface.
+// defined in this package. These two methods and the GoType method
+// implement the runtime.ScriggoType interface.
 
-func wrap(t ScriggoType, v reflect.Value) reflect.Value {
+func wrap(t runtime.ScriggoType, v reflect.Value) reflect.Value {
 	return reflect.ValueOf(emptyInterfaceProxy{
 		value: v,
 		sign:  t,
@@ -21,7 +25,7 @@ func wrap(t ScriggoType, v reflect.Value) reflect.Value {
 
 // TODO: currently unwrap always returns an empty interface wrapper. This will
 //  change when methods declaration will be implemented in Scriggo.
-func unwrap(x ScriggoType, v reflect.Value) (reflect.Value, bool) {
+func unwrap(x runtime.ScriggoType, v reflect.Value) (reflect.Value, bool) {
 	p, ok := v.Interface().(emptyInterfaceProxy)
 	// Not a proxy.
 	if !ok {
@@ -38,5 +42,5 @@ func unwrap(x ScriggoType, v reflect.Value) (reflect.Value, bool) {
 // method set.
 type emptyInterfaceProxy struct {
 	value reflect.Value
-	sign  ScriggoType
+	sign  runtime.ScriggoType
 }

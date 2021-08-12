@@ -29,10 +29,10 @@ var emptyInterfaceNil = reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
 // A TypeOfFunc function returns a type of a value.
 type TypeOfFunc func(reflect.Value) reflect.Type
 
-// A Wrapper wraps and unwraps Scriggo types into Go types. A wrapper is used
-// when an internal implementation of a value must be typified or when an
-// external Go value must be imported into Scriggo.
-type Wrapper interface {
+// A ScriggoType represents a type compiled by Scriggo from a type definition
+// or a composite type literal with at least one element with a Scriggo type.
+type ScriggoType interface {
+	reflect.Type
 
 	// Wrap wraps a value with a Scriggo type putting into a proxy that exposes
 	// methods to Go.
@@ -43,11 +43,11 @@ type Wrapper interface {
 	// value is returned and the method returns true.
 	Unwrap(reflect.Value) (reflect.Value, bool)
 
-	// Underlying returns the underlying type of a Scriggo type. Note that the
-	// implementation of the reflect.Type returned by Underlying is the
+	// GoType returns the Go type of a Scriggo type. Note that the
+	// implementation of the reflect.Type returned by GoType is the
 	// implementation of the package 'reflect', so it's safe to pass the
 	// returned value to reflect functions and methods as argument.
-	Underlying() reflect.Type
+	GoType() reflect.Type
 }
 
 // isZeroType is the reflect.Type representing the interface:
@@ -442,7 +442,7 @@ func (vm *VM) equals(x, y reflect.Value) bool {
 	if tx != ty {
 		return false
 	}
-	if t, ok := tx.(Wrapper); ok {
+	if t, ok := tx.(ScriggoType); ok {
 		if !tx.Comparable() {
 			panic("runtime error: comparing uncomparable type " + tx.String())
 		}

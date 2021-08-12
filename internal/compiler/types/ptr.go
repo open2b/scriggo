@@ -6,14 +6,18 @@
 
 package types
 
-import "reflect"
+import (
+	"reflect"
+
+	"github.com/open2b/scriggo/runtime"
+)
 
 // PtrTo behaves like reflect.PtrTo except when it is a Scriggo type; in such
 // case a new Scriggo pointer type is created and returned as reflect.Type.
 func (types *Types) PtrTo(t reflect.Type) reflect.Type {
-	if st, ok := t.(ScriggoType); ok {
+	if st, ok := t.(runtime.ScriggoType); ok {
 		return ptrType{
-			Type: reflect.PtrTo(st.Underlying()),
+			Type: reflect.PtrTo(st.GoType()),
 			elem: st,
 		}
 	}
@@ -51,14 +55,14 @@ func (x ptrType) String() string {
 	return "*" + x.elem.String()
 }
 
-// Underlying implements the interface runtime.Wrapper.
-func (x ptrType) Underlying() reflect.Type {
+// GoType implements the interface runtime.ScriggoType.
+func (x ptrType) GoType() reflect.Type {
 	assertNotScriggoType(x.Type)
 	return x.Type
 }
 
-// Unwrap implements the interface runtime.Wrapper.
+// Unwrap implements the interface runtime.ScriggoType.
 func (x ptrType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
 
-// Wrap implements the interface runtime.Wrapper.
+// Wrap implements the interface runtime.ScriggoType.
 func (x ptrType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

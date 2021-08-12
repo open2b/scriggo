@@ -6,14 +6,18 @@
 
 package types
 
-import "reflect"
+import (
+	"reflect"
+
+	"github.com/open2b/scriggo/runtime"
+)
 
 // SliceOf behaves like reflect.SliceOf except when elem is a Scriggo type; in
 // such case a new Scriggo slice type is created and returned as reflect.Type.
 func (types *Types) SliceOf(t reflect.Type) reflect.Type {
-	if st, ok := t.(ScriggoType); ok {
+	if st, ok := t.(runtime.ScriggoType); ok {
 		return sliceType{
-			Type: reflect.SliceOf(st.Underlying()),
+			Type: reflect.SliceOf(st.GoType()),
 			elem: st,
 		}
 	}
@@ -51,14 +55,14 @@ func (x sliceType) String() string {
 	return "[]" + (x.elem).String()
 }
 
-// Underlying implements the interface runtime.Wrapper.
-func (x sliceType) Underlying() reflect.Type {
+// GoType implements the interface runtime.ScriggoType.
+func (x sliceType) GoType() reflect.Type {
 	assertNotScriggoType(x.Type)
 	return x.Type
 }
 
-// Unwrap implements the interface runtime.Wrapper.
+// Unwrap implements the interface runtime.ScriggoType.
 func (x sliceType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
 
-// Wrap implements the interface runtime.Wrapper.
+// Wrap implements the interface runtime.ScriggoType.
 func (x sliceType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

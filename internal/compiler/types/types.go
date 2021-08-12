@@ -11,6 +11,8 @@ package types
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/open2b/scriggo/runtime"
 )
 
 // Types allows to create and manage types and values, as the reflect package
@@ -31,23 +33,11 @@ func NewTypes() *Types {
 	return &Types{}
 }
 
-// A ScriggoType represents a type compiled by Scriggo from a type definition
-// or a composite type literal with at least one element with a Scriggo type.
-type ScriggoType interface {
-	reflect.Type
-
-	// Underlying returns the reflect implementation of the reflect.Type, so
-	// it's safe to pass the returned value to the functions of the reflect
-	// package.
-	Underlying() reflect.Type
-}
-
 // New behaves like reflect.New except when t is a Scriggo type; in such case
-// it returns an instance of the underlying type created with a reflect.New
-// call.
+// it returns an instance of the Go type created with a reflect.New call.
 func (types *Types) New(t reflect.Type) reflect.Value {
-	if st, ok := t.(ScriggoType); ok {
-		t = st.Underlying()
+	if st, ok := t.(runtime.ScriggoType); ok {
+		t = st.GoType()
 	}
 	return reflect.New(t)
 }
@@ -55,8 +45,8 @@ func (types *Types) New(t reflect.Type) reflect.Value {
 // Zero is equivalent to reflect.Zero. If t is a Scriggo type it returns the
 // zero of the underlying type.
 func (types *Types) Zero(t reflect.Type) reflect.Value {
-	if st, ok := t.(ScriggoType); ok {
-		t = st.Underlying()
+	if st, ok := t.(runtime.ScriggoType); ok {
+		t = st.GoType()
 	}
 	return reflect.Zero(t)
 }
@@ -172,10 +162,10 @@ func ConvertibleTo(x, y reflect.Type) bool {
 
 // Implements reports whether x implements the interface type y.
 func Implements(x, y reflect.Type) bool {
-	if _, ok := x.(ScriggoType); ok {
+	if _, ok := x.(runtime.ScriggoType); ok {
 		return y.NumMethod() == 0
 	}
-	if _, ok := y.(ScriggoType); ok {
+	if _, ok := y.(runtime.ScriggoType); ok {
 		return true
 	}
 	// If y has unexported methods, and x is not an interface type, it is not possible to check
@@ -309,7 +299,7 @@ func (types *Types) TypeOf(v reflect.Value) reflect.Type {
 // TODO: this function will be removed when the development of this package is
 //  concluded.
 func assertNotScriggoType(t reflect.Type) {
-	if _, ok := t.(ScriggoType); ok {
+	if _, ok := t.(runtime.ScriggoType); ok {
 		panic(fmt.Errorf("%v is a Scriggo type!", t))
 	}
 }

@@ -6,7 +6,11 @@
 
 package types
 
-import "reflect"
+import (
+	"reflect"
+
+	"github.com/open2b/scriggo/runtime"
+)
 
 // StructOf behaves like reflect.StructOf except when at least one of the
 // fields has a Scriggo type; in such case a new Scriggo struct type is
@@ -29,8 +33,8 @@ func (types *Types) StructOf(fields []reflect.StructField) reflect.Type {
 		// This field cannot be represented using the reflect: remove the
 		// information from the type and add that information to the
 		// structType.
-		if st, ok := field.Type.(ScriggoType); ok {
-			baseFields[i].Type = st.Underlying()
+		if st, ok := field.Type.(runtime.ScriggoType); ok {
+			baseFields[i].Type = st.GoType()
 			scriggoField := field
 			scriggoField.Index = []int{i}
 			scriggoFields[i] = scriggoField
@@ -140,14 +144,14 @@ func (x structType) String() string {
 	return s
 }
 
-// Underlying implements the interface runtime.Wrapper.
-func (x structType) Underlying() reflect.Type {
+// GoType implements the interface runtime.ScriggoType.
+func (x structType) GoType() reflect.Type {
 	assertNotScriggoType(x.Type)
 	return x.Type
 }
 
-// Unwrap implements the interface runtime.Wrapper.
+// Unwrap implements the interface runtime.ScriggoType.
 func (x structType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
 
-// Wrap implements the interface runtime.Wrapper.
+// Wrap implements the interface runtime.ScriggoType.
 func (x structType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }

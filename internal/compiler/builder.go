@@ -13,7 +13,6 @@ import (
 	"strconv"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/internal/compiler/types"
 	"github.com/open2b/scriggo/runtime"
 )
 
@@ -377,8 +376,8 @@ func (fb *functionBuilder) getPath() string {
 // cases you would just simply set 'preserveType' to false.
 func (fb *functionBuilder) addType(typ reflect.Type, preserveType bool) int {
 	if !preserveType {
-		if st, ok := typ.(types.ScriggoType); ok {
-			typ = st.Underlying()
+		if st, ok := typ.(runtime.ScriggoType); ok {
+			typ = st.GoType()
 		}
 	}
 	fn := fb.fn

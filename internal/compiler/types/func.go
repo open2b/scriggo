@@ -6,7 +6,11 @@
 
 package types
 
-import "reflect"
+import (
+	"reflect"
+
+	"github.com/open2b/scriggo/runtime"
+)
 
 // FuncOf behaves like reflect.FuncOf except when at least one of the
 // parameters is a Scriggo type; in such case a new Scriggo function type is
@@ -26,15 +30,15 @@ func (types *Types) FuncOf(in, out []reflect.Type, variadic bool) reflect.Type {
 	outGo := make([]reflect.Type, len(out))
 
 	for i := range in {
-		if st, ok := in[i].(ScriggoType); ok {
-			inGo[i] = st.Underlying()
+		if st, ok := in[i].(runtime.ScriggoType); ok {
+			inGo[i] = st.GoType()
 		} else {
 			inGo[i] = in[i]
 		}
 	}
 	for i := range out {
-		if st, ok := out[i].(ScriggoType); ok {
-			outGo[i] = st.Underlying()
+		if st, ok := out[i].(runtime.ScriggoType); ok {
+			outGo[i] = st.GoType()
 		} else {
 			outGo[i] = out[i]
 		}
@@ -94,7 +98,7 @@ func equalReflectTypes(ts1, ts2 []reflect.Type) bool {
 // type.
 func containsScriggoType(types []reflect.Type) bool {
 	for _, t := range types {
-		if _, ok := t.(ScriggoType); ok {
+		if _, ok := t.(runtime.ScriggoType); ok {
 			return true
 		}
 	}
@@ -169,14 +173,14 @@ func (x funcType) String() string {
 	return s
 }
 
-// Underlying implements the interface runtime.Wrapper.
-func (x funcType) Underlying() reflect.Type {
+// GoType implements the interface runtime.ScriggoType.
+func (x funcType) GoType() reflect.Type {
 	assertNotScriggoType(x.Type)
 	return x.Type
 }
 
-// Unwrap implements the interface runtime.Wrapper.
+// Unwrap implements the interface runtime.ScriggoType.
 func (x funcType) Unwrap(v reflect.Value) (reflect.Value, bool) { return unwrap(x, v) }
 
-// Wrap implements the interface runtime.Wrapper.
+// Wrap implements the interface runtime.ScriggoType.
 func (x funcType) Wrap(v reflect.Value) reflect.Value { return wrap(x, v) }
