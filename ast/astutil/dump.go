@@ -149,7 +149,7 @@ func truncate(b []byte, maxRunes int) []byte {
 	}
 	if len(b) > maxRunes {
 		var n = 1
-		for pos, _ := range b {
+		for pos := range b {
 			if n > maxRunes {
 				return b[:pos]
 			}
