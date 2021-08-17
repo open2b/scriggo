@@ -108,11 +108,6 @@ func NewVM() *VM {
 	return vm
 }
 
-// Env returns the execution environment of vm.
-func (vm *VM) Env() Env {
-	return vm.env
-}
-
 // Reset resets a virtual machine so that it is ready for a new call to Run.
 func (vm *VM) Reset() {
 	vm.fp = [4]Addr{0, 0, 0, 0}
