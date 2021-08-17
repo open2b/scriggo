@@ -381,7 +381,7 @@ func main() {
 	fsys := fstest.Files{"main.go": src}
 	_, err := Build(fsys, nil)
 	if err == nil {
-		t.Fatal("Expectend a LimitExceededError, got nothing")
+		t.Fatal("Expected a LimitExceededError, got nothing")
 	} else {
 		if _, ok := err.(*compiler.LimitExceededError); ok {
 			// Test passed.
