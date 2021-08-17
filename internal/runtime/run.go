@@ -11,6 +11,8 @@ import (
 	"reflect"
 	"strings"
 	"unicode"
+
+	"github.com/open2b/scriggo/ast"
 )
 
 func (vm *VM) runFunc(fn *Function, vars []reflect.Value) error {
@@ -264,8 +266,8 @@ func (vm *VM) run() (Addr, bool) {
 					call.renderer = vm.renderer
 					if b == ReturnString {
 						vm.renderer = vm.renderer.WithOut(&macroOutBuffer{})
-					} else if Format(b) != fn.Format {
-						vm.renderer = vm.renderer.WithConversion(fn.Format, Format(b))
+					} else if ast.Format(b) != fn.Format {
+						vm.renderer = vm.renderer.WithConversion(fn.Format, ast.Format(b))
 					}
 				}
 				vm.fn = fn
@@ -295,8 +297,8 @@ func (vm *VM) run() (Addr, bool) {
 			}
 			if b == ReturnString {
 				vm.renderer = vm.renderer.WithOut(&macroOutBuffer{})
-			} else if Format(b) != fn.Format {
-				vm.renderer = vm.renderer.WithConversion(fn.Format, Format(b))
+			} else if ast.Format(b) != fn.Format {
+				vm.renderer = vm.renderer.WithConversion(fn.Format, ast.Format(b))
 			}
 			vm.fn = fn
 			vm.vars = vm.env.globals

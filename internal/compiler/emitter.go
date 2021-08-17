@@ -12,7 +12,7 @@ import (
 
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/compiler/types"
-	"github.com/open2b/scriggo/runtime"
+	"github.com/open2b/scriggo/internal/runtime"
 )
 
 // An emitter emits instructions for the VM.

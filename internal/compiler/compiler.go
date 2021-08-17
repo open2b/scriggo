@@ -23,7 +23,7 @@ import (
 	"reflect"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/runtime"
+	"github.com/open2b/scriggo/internal/runtime"
 )
 
 // formatTypeName reports the type name for each format.
@@ -377,7 +377,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 			backupPath := e.fb.getPath()
 			extends := pkg.Declarations[0].(*ast.Extends)
 			e.fb.changePath(extends.Tree.Path)
-			e.fb.fn.Format = runtime.Format(extends.Tree.Format)
+			e.fb.fn.Format = extends.Tree.Format
 			e.fb.enterScope()
 			// Reserves first index of Functions for the function that
 			// initializes package variables. There is no guarantee that such

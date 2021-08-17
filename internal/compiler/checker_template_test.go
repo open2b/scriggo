@@ -14,8 +14,8 @@ import (
 	"testing"
 
 	"github.com/open2b/scriggo/ast"
+	"github.com/open2b/scriggo/env"
 	"github.com/open2b/scriggo/internal/fstest"
-	"github.com/open2b/scriggo/runtime"
 	"github.com/open2b/scriggo/untyped"
 )
 
@@ -23,9 +23,9 @@ type (
 	JS              string
 	JSON            string
 	JSStringer      interface{ JS() JS }
-	JSEnvStringer   interface{ JS(runtime.Env) JS }
+	JSEnvStringer   interface{ JS(env.Env) JS }
 	JSONStringer    interface{ JSON() JSON }
-	JSONEnvStringer interface{ JSON(runtime.Env) JSON }
+	JSONEnvStringer interface{ JSON(env.Env) JSON }
 )
 
 func init() {

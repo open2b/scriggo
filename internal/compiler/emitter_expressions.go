@@ -12,7 +12,7 @@ import (
 	"reflect"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/runtime"
+	"github.com/open2b/scriggo/internal/runtime"
 )
 
 // emitExpr emits expr into a register of a given type. emitExpr tries to not
@@ -214,7 +214,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			Pkg:    em.fb.fn.Pkg,
 			File:   em.fb.fn.File,
 			Macro:  expr.Type.Macro,
-			Format: runtime.Format(expr.Format),
+			Format: expr.Format,
 			Pos:    convertPosition(expr.Pos()),
 			Type:   ti.Type,
 			Parent: em.fb.fn,

@@ -32,11 +32,11 @@ func recoverRuntimePanic(err string) {
 	}
 	if _, ok := os.LookupEnv("SCRIGGO"); ok {
 		typ := reflect.TypeOf(e)
-		if typ.PkgPath() != "github.com/open2b/scriggo/runtime" {
+		if typ.PkgPath() != "github.com/open2b/scriggo/internal/runtime" {
 			if typ.Name() == "TypeAssertionError" {
-				log.Printf("expected type github.com/open2b/scriggo/runtime.TypeAssertionError, got %s.TypeAssertionError for error %q", typ.PkgPath(), err)
+				log.Printf("expected type github.com/open2b/scriggo/internal/runtime.TypeAssertionError, got %s.TypeAssertionError for error %q", typ.PkgPath(), err)
 			} else {
-				log.Printf("expected type github.com/open2b/scriggo/runtime.runtimeError, got %s.%s for error %q", typ.PkgPath(), typ.Name(), err)
+				log.Printf("expected type github.com/open2b/scriggo/internal/runtime.runtimeError, got %s.%s for error %q", typ.PkgPath(), typ.Name(), err)
 			}
 			os.Exit(1)
 		}

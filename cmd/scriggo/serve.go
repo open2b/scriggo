@@ -154,7 +154,7 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				http.NotFound(w, r)
 				return
 			}
-			if err, ok := err.(scriggo.CompilerError); ok {
+			if err, ok := err.(*scriggo.BuildError); ok {
 				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 				w.WriteHeader(500)
 				fmt.Fprintf(w, "%s", err)

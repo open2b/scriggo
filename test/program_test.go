@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/open2b/scriggo"
-	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/fstest"
 	"github.com/open2b/scriggo/pkgutil"
 )
@@ -177,11 +176,11 @@ func TestIssue309(t *testing.T) {
 		if err == nil {
 			t.Fatal("unexpected nil error")
 		}
-		err2, ok := err.(scriggo.CompilerError)
+		err2, ok := err.(*scriggo.BuildError)
 		if !ok {
 			t.Fatalf("unexpected error %s, expecting a compiler error", err)
 		}
-		expectedPosition := ast.Position{Line: 5, Column: 4, Start: 37, End: 41}
+		expectedPosition := scriggo.Position{Line: 5, Column: 4, Start: 37, End: 41}
 		if err2.Position() != expectedPosition {
 			t.Fatalf("unexpected position %#v, expecting %#v", err2.Position(), expectedPosition)
 		}

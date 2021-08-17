@@ -11,7 +11,7 @@ import (
 	"reflect"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/runtime"
+	"github.com/open2b/scriggo/internal/runtime"
 )
 
 // emitNop appends a new "Nop" instruction to the function body.

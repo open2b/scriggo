@@ -9,7 +9,7 @@ package types
 import (
 	"reflect"
 
-	"github.com/open2b/scriggo/runtime"
+	"github.com/open2b/scriggo/internal/runtime"
 )
 
 // SliceOf behaves like reflect.SliceOf except when elem is a Scriggo type; in

@@ -19,8 +19,8 @@ import (
 	"testing"
 
 	"github.com/open2b/scriggo/ast"
+	"github.com/open2b/scriggo/env"
 	"github.com/open2b/scriggo/internal/fstest"
-	"github.com/open2b/scriggo/runtime"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -74,7 +74,7 @@ func globals() map[string]interface{} {
 		"sprintf": func(format string, a ...interface{}) string {
 			return fmt.Sprintf(format, a...)
 		},
-		"title": func(env runtime.Env, s string) string {
+		"title": func(env env.Env, s string) string {
 			return strings.Title(s)
 		},
 		"I": &I,
@@ -3728,7 +3728,7 @@ func TestMultiFileTemplate(t *testing.T) {
 // printFunc returns a function that print its argument to the writer w with
 // the same format used by the builtin print to print to the standard error.
 // The returned function can be used for the PrintFunc option.
-func printFunc(w io.Writer) runtime.PrintFunc {
+func printFunc(w io.Writer) PrintFunc {
 	return func(v interface{}) {
 		r := reflect.ValueOf(v)
 		switch r.Kind() {
@@ -3846,7 +3846,7 @@ var envFilePathCases = []struct {
 
 func Test_envFilePath(t *testing.T) {
 	globals := map[string]interface{}{
-		"path": func(env runtime.Env) string { return env.FilePath() },
+		"path": func(env env.Env) string { return env.FilePath() },
 	}
 	for _, cas := range envFilePathCases {
 		t.Run(cas.name, func(t *testing.T) {

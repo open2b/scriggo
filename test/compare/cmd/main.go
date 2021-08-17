@@ -19,7 +19,6 @@ import (
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/pkgutil"
-	"github.com/open2b/scriggo/runtime"
 	"github.com/open2b/scriggo/scripts"
 
 	// Do not remove this import.
@@ -159,22 +158,10 @@ func main() {
 }
 
 // convertRunError converts an error returned from a Run method, transforming
-// a *runtime.Panic value to its string representation.
+// a *scriggo.Panic value to its string representation.
 func convertRunError(err error) error {
-	if p, ok := err.(*runtime.Panic); ok {
-		var msg string
-		for p != nil {
-			msg = "\n" + msg
-			if p.Recovered() {
-				msg = " [recovered]" + msg
-			}
-			msg = p.String() + msg
-			if p.Next() != nil {
-				msg = "\tpanic: " + msg
-			}
-			p = p.Next()
-		}
-		return errors.New(msg)
+	if p, ok := err.(*scriggo.Panic); ok {
+		return errors.New(p.Error())
 	}
 	return err
 }

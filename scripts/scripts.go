@@ -18,7 +18,7 @@ import (
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/internal/compiler"
-	"github.com/open2b/scriggo/runtime"
+	"github.com/open2b/scriggo/internal/runtime"
 )
 
 type BuildOptions struct {
@@ -44,7 +44,7 @@ type Script struct {
 // Build builds a script with the given options, loading the imported packages
 // from packages.
 //
-// If a compilation error occurs, it returns a CompilerError error.
+// If a compilation error occurs, it returns a *BuildError error.
 func Build(src io.Reader, options *BuildOptions) (*Script, error) {
 	co := compiler.Options{}
 	if options != nil {
@@ -54,6 +54,9 @@ func Build(src io.Reader, options *BuildOptions) (*Script, error) {
 	}
 	code, err := compiler.BuildScript(src, co)
 	if err != nil {
+		if e, ok := err.(compilerError); ok {
+			err = &BuildError{err: e}
+		}
 		return nil, err
 	}
 	return &Script{fn: code.Main, globals: code.Globals, typeof: code.TypeOf}, nil
@@ -77,7 +80,11 @@ func (p *Script) Run(vars map[string]interface{}, options *RunOptions) (int, err
 			vm.SetPrint(options.PrintFunc)
 		}
 	}
-	return vm.Run(p.fn, p.typeof, initGlobalVariables(p.globals, vars))
+	code, err := vm.Run(p.fn, p.typeof, initGlobalVariables(p.globals, vars))
+	if p, ok := err.(*runtime.Panic); ok {
+		err = &Panic{p}
+	}
+	return code, err
 }
 
 // MustRun is like Run but panics if the run fails.

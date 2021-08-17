@@ -9,7 +9,7 @@ package types
 import (
 	"reflect"
 
-	"github.com/open2b/scriggo/runtime"
+	"github.com/open2b/scriggo/internal/runtime"
 )
 
 // ChanOf behaves like reflect.ChanOf except when t is a Scriggo type; in such

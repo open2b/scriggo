@@ -13,7 +13,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/runtime"
+	"github.com/open2b/scriggo/internal/runtime"
 )
 
 // changeRegister emits the code that move the content of register src to

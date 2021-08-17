@@ -16,11 +16,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/open2b/scriggo/ast"
+	"github.com/open2b/scriggo/env"
 	"github.com/open2b/scriggo/internal/compiler/types"
-	"github.com/open2b/scriggo/runtime"
 )
 
-var envType = reflect.TypeOf((*runtime.Env)(nil)).Elem()
+var envType = reflect.TypeOf((*env.Env)(nil)).Elem()
 var errTypeConversion = errors.New("failed type conversion")
 
 type nilConversionError struct {
@@ -255,18 +255,18 @@ func deferGoBuiltin(name string) *typeInfo {
 			reflect.ValueOf(m).SetMapIndex(reflect.ValueOf(key), reflect.Value{})
 		}
 	case "panic":
-		fun = func(env runtime.Env, v interface{}) {
+		fun = func(env env.Env, v interface{}) {
 			if env.Exited() {
 				return
 			}
 			panic(v)
 		}
 	case "print":
-		fun = func(env runtime.Env, args ...interface{}) {
+		fun = func(env env.Env, args ...interface{}) {
 			env.Print(args...)
 		}
 	case "println":
-		fun = func(env runtime.Env, args ...interface{}) {
+		fun = func(env env.Env, args ...interface{}) {
 			env.Println(args...)
 		}
 	case "recover":

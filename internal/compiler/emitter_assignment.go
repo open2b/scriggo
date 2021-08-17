@@ -10,7 +10,7 @@ import (
 	"reflect"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/runtime"
+	"github.com/open2b/scriggo/internal/runtime"
 )
 
 // address represents an element on the left side of an assignment.

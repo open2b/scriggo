@@ -11,64 +11,27 @@ import (
 	"io"
 	"reflect"
 	"sync"
+
+	"github.com/open2b/scriggo/ast"
+	"github.com/open2b/scriggo/env"
 )
 
 type PrintFunc func(interface{})
-
-// Env represents an execution environment.
-type Env interface {
-
-	// Context returns the context of the environment.
-	Context() context.Context
-
-	// Exit exits the environment with the given status code. Deferred functions
-	// are not run.
-	Exit(code int)
-
-	// Exited reports whether the environment is exited.
-	Exited() bool
-
-	// ExitFunc calls f in its own goroutine after the execution of the
-	// environment is terminated.
-	ExitFunc(f func())
-
-	// Fatal calls panic() with a FatalError error.
-	Fatal(v interface{})
-
-	// FilePath can be called from a global function to get the absolute path
-	// of the file where such global was called. If the global function was
-	// not called by the main virtual machine goroutine, the returned value is
-	// not significant.
-	FilePath() string
-
-	// Print calls the print built-in function with args as argument.
-	Print(args ...interface{})
-
-	// Println calls the println built-in function with args as argument.
-	Println(args ...interface{})
-
-	// TypeOf is like reflect.TypeOf but if v has a Scriggo type it returns
-	// its Scriggo reflect type instead of the reflect type of the proxy.
-	TypeOf(v reflect.Value) reflect.Type
-}
-
-// Format represents a format.
-type Format byte
 
 // Context represents a context in Show and Text instructions.
 type Context byte
 
 type Renderer interface {
-	Show(env Env, v interface{}, ctx Context)
-	Text(env Env, txt []byte, inURL, isSet bool)
+	Show(env env.Env, v interface{}, ctx Context)
+	Text(env env.Env, txt []byte, inURL, isSet bool)
 	Out() io.Writer
 	WithOut(out io.Writer) Renderer
-	WithConversion(fromFormat, toFormat Format) Renderer
+	WithConversion(fromFormat, toFormat ast.Format) Renderer
 	Close() error
 }
 
-// The env type implements the Env interface.
-type env struct {
+// The rtEnv type implements the env.Env interface.
+type rtEnv struct {
 	ctx     context.Context // context.
 	globals []reflect.Value // global variables.
 	print   PrintFunc       // custom print builtin.
@@ -83,15 +46,15 @@ type env struct {
 	filePath string   // path of the file where the main goroutine is in.
 }
 
-func (env *env) Context() context.Context {
+func (env *rtEnv) Context() context.Context {
 	return env.ctx
 }
 
-func (env *env) Exit(code int) {
+func (env *rtEnv) Exit(code int) {
 	panic(exitError(code))
 }
 
-func (env *env) Exited() bool {
+func (env *rtEnv) Exited() bool {
 	var exited bool
 	env.mu.Lock()
 	exited = env.exited
@@ -99,7 +62,7 @@ func (env *env) Exited() bool {
 	return exited
 }
 
-func (env *env) ExitFunc(f func()) {
+func (env *rtEnv) ExitFunc(f func()) {
 	env.mu.Lock()
 	if env.exited {
 		go f()
@@ -110,24 +73,24 @@ func (env *env) ExitFunc(f func()) {
 	return
 }
 
-func (env *env) Fatal(v interface{}) {
+func (env *rtEnv) Fatal(v interface{}) {
 	panic(&FatalError{env: env, msg: v})
 }
 
-func (env *env) FilePath() string {
+func (env *rtEnv) FilePath() string {
 	env.mu.Lock()
 	filePath := env.filePath
 	env.mu.Unlock()
 	return filePath
 }
 
-func (env *env) Print(args ...interface{}) {
+func (env *rtEnv) Print(args ...interface{}) {
 	for _, arg := range args {
 		env.doPrint(arg)
 	}
 }
 
-func (env *env) Println(args ...interface{}) {
+func (env *rtEnv) Println(args ...interface{}) {
 	for i, arg := range args {
 		if i > 0 {
 			env.doPrint(" ")
@@ -137,7 +100,7 @@ func (env *env) Println(args ...interface{}) {
 	env.doPrint("\n")
 }
 
-func (env *env) TypeOf(v reflect.Value) reflect.Type {
+func (env *rtEnv) TypeOf(v reflect.Value) reflect.Type {
 	return env.typeof(v)
 }
 
@@ -145,7 +108,7 @@ func typeOfFunc(v reflect.Value) reflect.Type {
 	return v.Type()
 }
 
-func (env *env) doPrint(arg interface{}) {
+func (env *rtEnv) doPrint(arg interface{}) {
 	if env.print != nil {
 		env.print(arg)
 		return
@@ -175,7 +138,7 @@ func (env *env) doPrint(arg interface{}) {
 	}
 }
 
-func (env *env) exit() {
+func (env *rtEnv) exit() {
 	env.mu.Lock()
 	if !env.exited {
 		for _, f := range env.exits {

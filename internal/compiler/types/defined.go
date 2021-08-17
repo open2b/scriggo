@@ -9,7 +9,7 @@ package types
 import (
 	"reflect"
 
-	"github.com/open2b/scriggo/runtime"
+	"github.com/open2b/scriggo/internal/runtime"
 )
 
 // definedType represents a type defined in the Scriggo compiled code with a

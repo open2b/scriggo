@@ -13,7 +13,7 @@ import (
 	"strconv"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/runtime"
+	"github.com/open2b/scriggo/internal/runtime"
 )
 
 // Define some constants that define limits of the implementation.
@@ -143,7 +143,7 @@ func newMacro(pkg, name string, typ reflect.Type, format ast.Format, file string
 		Pkg:    pkg,
 		Name:   name,
 		Macro:  true,
-		Format: runtime.Format(format),
+		Format: format,
 		Type:   typ,
 		File:   file,
 	}

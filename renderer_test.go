@@ -15,9 +15,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/open2b/scriggo/env"
 	"github.com/open2b/scriggo/internal/fstest"
-	"github.com/open2b/scriggo/runtime"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 type Vars map[string]interface{}
@@ -477,7 +478,7 @@ func asDeclarations(vars Vars) Declarations {
 
 type testEnvStringer struct{}
 
-func (*testEnvStringer) String(env runtime.Env) string {
+func (*testEnvStringer) String(env env.Env) string {
 	return fmt.Sprint(env.Context().Value("forty-two"))
 }
 
@@ -487,7 +488,7 @@ var testEnvStringerValue = &testEnvStringer{}
 
 type testHTMLEnvStringer struct{}
 
-func (*testHTMLEnvStringer) HTML(env runtime.Env) HTML {
+func (*testHTMLEnvStringer) HTML(env env.Env) HTML {
 	return HTML(fmt.Sprint(env.Context().Value("forty-two")))
 }
 
@@ -497,7 +498,7 @@ var testHTMLEnvStringerValue = &testHTMLEnvStringer{}
 
 type testCSSEnvStringer struct{}
 
-func (*testCSSEnvStringer) CSS(env runtime.Env) CSS {
+func (*testCSSEnvStringer) CSS(env env.Env) CSS {
 	return CSS(fmt.Sprint(env.Context().Value("forty-two")))
 }
 
@@ -507,7 +508,7 @@ var testCSSEnvStringerValue = &testCSSEnvStringer{}
 
 type testJSEnvStringer struct{}
 
-func (*testJSEnvStringer) JS(env runtime.Env) JS {
+func (*testJSEnvStringer) JS(env env.Env) JS {
 	return JS(fmt.Sprint(env.Context().Value("forty-two")))
 }
 
@@ -517,7 +518,7 @@ var testJSEnvStringerValue = &testJSEnvStringer{}
 
 type testJSONEnvStringer struct{}
 
-func (*testJSONEnvStringer) JSON(env runtime.Env) JSON {
+func (*testJSONEnvStringer) JSON(env env.Env) JSON {
 	return JSON(fmt.Sprint(env.Context().Value("forty-two")))
 }
 

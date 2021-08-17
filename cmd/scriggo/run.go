@@ -18,7 +18,6 @@ import (
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/pkgutil"
-	"github.com/open2b/scriggo/runtime"
 	"github.com/open2b/scriggo/scripts"
 )
 
@@ -76,7 +75,7 @@ func run() {
 		} else {
 			code, err := program.Run(nil)
 			if err != nil {
-				if p, ok := err.(*runtime.Panic); ok {
+				if p, ok := err.(*scriggo.Panic); ok {
 					panic(p)
 				}
 				if err == context.DeadlineExceeded {
@@ -105,7 +104,7 @@ func run() {
 		} else {
 			code, err := script.Run(nil, nil)
 			if err != nil {
-				if p, ok := err.(*runtime.Panic); ok {
+				if p, ok := err.(*scriggo.Panic); ok {
 					panic(p)
 				}
 				if err == context.DeadlineExceeded {

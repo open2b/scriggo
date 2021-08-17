@@ -9,7 +9,7 @@ package types
 import (
 	"reflect"
 
-	"github.com/open2b/scriggo/runtime"
+	"github.com/open2b/scriggo/internal/runtime"
 )
 
 // PtrTo behaves like reflect.PtrTo except when it is a Scriggo type; in such

@@ -383,10 +383,14 @@ func main() {
 	if err == nil {
 		t.Fatal("Expected a LimitExceededError, got nothing")
 	} else {
-		if _, ok := err.(*compiler.LimitExceededError); ok {
-			// Test passed.
-		} else {
-			t.Fatalf("Expected a LimitExceededError, got %q (of type %T)", err, err)
+		err, ok := err.(*BuildError)
+		if !ok {
+			t.Fatalf("Expected a *BuildError value, got %T", err)
 		}
+		const expected = "int registers count exceeded 127"
+		if expected != err.Message() {
+			t.Fatalf("Expected %q, got %q", expected, err.Message())
+		}
+		// Test passed.
 	}
 }

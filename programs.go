@@ -13,35 +13,21 @@ import (
 	"io/fs"
 	"reflect"
 
-	"github.com/open2b/scriggo/ast"
+	"github.com/open2b/scriggo/env"
 	"github.com/open2b/scriggo/internal/compiler"
-	"github.com/open2b/scriggo/runtime"
+	"github.com/open2b/scriggo/internal/runtime"
 )
-
-// CompilerError represents an error returned by the compiler.
-// The types that implement the CompilerError interface are four types of the
-// compiler package
-//
-//  *compiler.SyntaxError
-//  *compiler.CycleError
-//  *compiler.CheckingError
-//  *compiler.LimitExceededError
-//
-type CompilerError interface {
-	error
-	Position() ast.Position
-	Path() string
-	Message() string
-}
 
 type BuildOptions struct {
 	DisallowGoStmt bool          // disallow "go" statement.
 	Packages       PackageLoader // package loader used to load imported packages.
 }
 
+type PrintFunc func(interface{})
+
 type RunOptions struct {
 	Context   context.Context
-	PrintFunc runtime.PrintFunc
+	PrintFunc PrintFunc
 }
 
 type Program struct {
@@ -58,7 +44,7 @@ var ErrNoGoFiles = compiler.ErrNoGoFiles
 //
 // Current limitation: fsys can contain only one Go file in its root.
 //
-// If a compilation error occurs, it returns a CompilerError error.
+// If a build error occurs, it returns a *BuildError error.
 func Build(fsys fs.FS, options *BuildOptions) (*Program, error) {
 	co := compiler.Options{}
 	if options != nil {
@@ -67,6 +53,9 @@ func Build(fsys fs.FS, options *BuildOptions) (*Program, error) {
 	}
 	code, err := compiler.BuildProgram(fsys, co)
 	if err != nil {
+		if e, ok := err.(compilerError); ok {
+			err = &BuildError{err: e}
+		}
 		return nil, err
 	}
 	return &Program{fn: code.Main, globals: code.Globals, typeof: code.TypeOf}, nil
@@ -94,7 +83,11 @@ func (p *Program) Run(options *RunOptions) (int, error) {
 			vm.SetPrint(options.PrintFunc)
 		}
 	}
-	return vm.Run(p.fn, p.typeof, initPackageLevelVariables(p.globals))
+	code, err := vm.Run(p.fn, p.typeof, initPackageLevelVariables(p.globals))
+	if p, ok := err.(*runtime.Panic); ok {
+		err = &Panic{p}
+	}
+	return code, err
 }
 
 // MustRun is like Run but panics if the run fails.
@@ -129,7 +122,7 @@ func initPackageLevelVariables(globals []compiler.Global) []reflect.Value {
 //
 // Unlike the function fmt.Errorf, Errorf does not recognize the %w verb in
 // format.
-func Errorf(env runtime.Env, format string, a ...interface{}) error {
+func Errorf(env env.Env, format string, a ...interface{}) error {
 	err := fmt.Sprintf(format, a...)
 	return errors.New(err)
 }

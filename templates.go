@@ -15,14 +15,15 @@ import (
 	"sort"
 
 	"github.com/open2b/scriggo/ast"
+	"github.com/open2b/scriggo/env"
 	"github.com/open2b/scriggo/internal/compiler"
-	"github.com/open2b/scriggo/runtime"
+	"github.com/open2b/scriggo/internal/runtime"
 )
 
-// EnvStringer is like fmt.Stringer where the String method takes a runtime.Env
+// EnvStringer is like fmt.Stringer where the String method takes an env.Env
 // parameter.
 type EnvStringer interface {
-	String(runtime.Env) string
+	String(env.Env) string
 }
 
 // HTMLStringer is implemented by values that are not escaped in HTML context.
@@ -31,9 +32,9 @@ type HTMLStringer interface {
 }
 
 // HTMLEnvStringer is like HTMLStringer where the HTML method takes a
-// runtime.Env parameter.
+// env.Env parameter.
 type HTMLEnvStringer interface {
-	HTML(runtime.Env) HTML
+	HTML(env.Env) HTML
 }
 
 // CSSStringer is implemented by values that are not escaped in CSS context.
@@ -41,10 +42,10 @@ type CSSStringer interface {
 	CSS() CSS
 }
 
-// CSSEnvStringer is like CSSStringer where the CSS method takes a runtime.Env
+// CSSEnvStringer is like CSSStringer where the CSS method takes an env.Env
 // parameter.
 type CSSEnvStringer interface {
-	CSS(runtime.Env) CSS
+	CSS(env.Env) CSS
 }
 
 // JSStringer is implemented by values that are not escaped in JavaScript
@@ -53,10 +54,10 @@ type JSStringer interface {
 	JS() JS
 }
 
-// JSEnvStringer is like JSStringer where the JS method takes a runtime.Env
+// JSEnvStringer is like JSStringer where the JS method takes an env.Env
 // parameter.
 type JSEnvStringer interface {
-	JS(runtime.Env) JS
+	JS(env.Env) JS
 }
 
 // JSONStringer is implemented by values that are not escaped in JSON context.
@@ -64,10 +65,10 @@ type JSONStringer interface {
 	JSON() JSON
 }
 
-// JSONEnvStringer is like JSONStringer where the JSON method takes a
-// runtime.Env parameter.
+// JSONEnvStringer is like JSONStringer where the JSON method takes an env.Env
+// parameter.
 type JSONEnvStringer interface {
-	JSON(runtime.Env) JSON
+	JSON(env.Env) JSON
 }
 
 // MarkdownStringer is implemented by values that are not escaped in Markdown
@@ -77,9 +78,9 @@ type MarkdownStringer interface {
 }
 
 // MarkdownEnvStringer is like MarkdownStringer where the Markdown method
-// takes a runtime.Env parameter.
+// takes an env.Env parameter.
 type MarkdownEnvStringer interface {
-	Markdown(runtime.Env) Markdown
+	Markdown(env.Env) Markdown
 }
 
 // Format types.
@@ -92,16 +93,21 @@ type (
 )
 
 // A Format represents a content format.
-type Format = ast.Format
+type Format int
 
 const (
-	FormatText     = ast.FormatText
-	FormatHTML     = ast.FormatHTML
-	FormatCSS      = ast.FormatCSS
-	FormatJS       = ast.FormatJS
-	FormatJSON     = ast.FormatJSON
-	FormatMarkdown = ast.FormatMarkdown
+	FormatText Format = iota
+	FormatHTML
+	FormatCSS
+	FormatJS
+	FormatJSON
+	FormatMarkdown
 )
+
+// String returns the name of the format.
+func (format Format) String() string {
+	return ast.Format(format).String()
+}
 
 // Declarations contains variable, constant, function, type and package
 // declarations.
@@ -178,8 +184,8 @@ var formatTypes = map[ast.Format]reflect.Type{
 //   Text       : all other extensions
 //
 // If the named file does not exist, Build returns an error satisfying
-// errors.Is(err, fs.ErrNotExist). If a compilation error occurs, it returns
-// a CompilerError error.
+// errors.Is(err, fs.ErrNotExist). If a build error occurs, it returns a
+// *BuildError error.
 func BuildTemplate(fsys fs.FS, name string, options *BuildTemplateOptions) (*Template, error) {
 	co := compiler.Options{
 		FormatTypes: formatTypes,
@@ -197,6 +203,9 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildTemplateOptions) (*Tem
 	}
 	code, err := compiler.BuildTemplate(fsys, name, co)
 	if err != nil {
+		if e, ok := err.(compilerError); ok {
+			err = &BuildError{err: e}
+		}
 		return nil, err
 	}
 	return &Template{fn: code.Main, typeof: code.TypeOf, globals: code.Globals, mdConverter: mdConverter}, nil
@@ -220,6 +229,9 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 	renderer := newRenderer(out, t.mdConverter)
 	vm.SetRenderer(renderer)
 	_, err := vm.Run(t.fn, t.typeof, initGlobalVariables(t.globals, vars))
+	if p, ok := err.(*runtime.Panic); ok {
+		err = &Panic{p}
+	}
 	return err
 }
 

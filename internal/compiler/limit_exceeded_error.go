@@ -10,7 +10,7 @@ import (
 	"fmt"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/runtime"
+	"github.com/open2b/scriggo/internal/runtime"
 )
 
 // A LimitExceededError is an error returned by the compiler reporting that the
