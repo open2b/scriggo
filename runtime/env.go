@@ -88,7 +88,7 @@ func (env *env) Context() context.Context {
 }
 
 func (env *env) Exit(code int) {
-	panic(&ExitError{env, code})
+	panic(exitError(code))
 }
 
 func (env *env) Exited() bool {

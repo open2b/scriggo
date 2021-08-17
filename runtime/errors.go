@@ -65,14 +65,11 @@ func errTypeAssertion(interfaceType, dynamicType, assertedType reflect.Type, mis
 	return runtimeError(s + "packages)")
 }
 
-// ExitError represents an exit error.
-type ExitError struct {
-	env  Env
-	code int
-}
+// exitError represents an exit error.
+type exitError int
 
-func (err ExitError) Error() string {
-	return ""
+func (err exitError) Error() string {
+	return "exit code " + strconv.Itoa(int(err))
 }
 
 // errIndexOutOfRange returns an index of range runtime error for the
@@ -108,7 +105,7 @@ func (vm *VM) newPanic(msg interface{}) *Panic {
 
 // convertPanic converts a panic to an error.
 func (vm *VM) convertPanic(msg interface{}) error {
-	if err, ok := msg.(*ExitError); ok {
+	if err, ok := msg.(exitError); ok {
 		return err
 	}
 	switch op := vm.fn.Body[vm.pc-1].Op; op {

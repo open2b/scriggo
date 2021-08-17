@@ -156,8 +156,8 @@ func (vm *VM) Run(fn *Function, typeof TypeOfFunc, globals []reflect.Value) (int
 		switch e := err.(type) {
 		case *FatalError:
 			panic(e.msg)
-		case *ExitError:
-			return e.code, nil
+		case exitError:
+			return int(e), nil
 		}
 		return 1, err
 	}
