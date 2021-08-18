@@ -1,5 +1,3 @@
-// skip : for statement should support a simple statement https://github.com/open2b/scriggo/issues/234
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.
