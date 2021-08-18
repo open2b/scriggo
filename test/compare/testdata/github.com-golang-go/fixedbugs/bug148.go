@@ -1,4 +1,4 @@
-// skip : panic: reflect.Set: value of type *struct { A int; B int } is not assignable to type struct { A int; B int }
+// skip : https://github.com/open2b/scriggo/issues/810
 
 // run
 
