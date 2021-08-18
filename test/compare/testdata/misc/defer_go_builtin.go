@@ -2,7 +2,10 @@
 
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"runtime"
+)
 
 func main() {
 
@@ -15,6 +18,16 @@ func main() {
 	go close(ch2)
 	go close(make(chan string))
 
+	// Builtin 'copy'.
+
+	src := []byte{4, 5, 6}
+	dst := make([]byte, len(src))
+	defer fmt.Printf("%v\n", dst)
+	defer copy(dst, src)
+	defer fmt.Printf("%v\n", dst)
+	go copy(dst, "123")
+	runtime.Gosched()
+
 	// Builtin 'delete'.
 
 	m := map[string]string{"a": "A", "b": "B"}
@@ -23,6 +36,7 @@ func main() {
 	n := map[int]int{1: 2, 2: 3}
 	defer fmt.Println(n[2])
 	go delete(n, 2)
+	runtime.Gosched()
 
 	// Builtin 'print'.
 

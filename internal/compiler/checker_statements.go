@@ -770,12 +770,12 @@ nodesLoop:
 			if ti.IsBuiltinFunction() {
 				name := call.Func.(*ast.Identifier).Name
 				switch name {
-				case "append", "cap", "len", "make", "new":
+				case "append", "cap", "complex", "imag", "len", "make", "new", "real":
 					panic(tc.errorf(node, "defer discards result of %s", call))
 				case "recover":
 					// The statement "defer recover()" is a special case
 					// implemented by the emitter.
-				case "close", "delete", "panic", "print", "println":
+				case "close", "copy", "delete", "panic", "print", "println":
 					tc.compilation.typeInfos[call.Func] = deferGoBuiltin(name)
 				}
 			}
@@ -797,9 +797,9 @@ nodesLoop:
 			if ti.IsBuiltinFunction() {
 				name := call.Func.(*ast.Identifier).Name
 				switch name {
-				case "append", "cap", "len", "make", "new":
+				case "append", "cap", "complex", "imag", "len", "make", "new", "real":
 					panic(tc.errorf(node, "go discards result of %s", call))
-				case "close", "delete", "panic", "print", "println", "recover":
+				case "close", "copy", "delete", "panic", "print", "println", "recover":
 					tc.compilation.typeInfos[call.Func] = deferGoBuiltin(name)
 				}
 			}

@@ -250,6 +250,10 @@ func deferGoBuiltin(name string) *typeInfo {
 		fun = func(ch interface{}) {
 			reflect.ValueOf(ch).Close()
 		}
+	case "copy":
+		fun = func(dst, src interface{}) {
+			reflect.Copy(reflect.ValueOf(dst), reflect.ValueOf(src))
+		}
 	case "delete":
 		fun = func(m interface{}, key interface{}) {
 			reflect.ValueOf(m).SetMapIndex(reflect.ValueOf(key), reflect.Value{})
