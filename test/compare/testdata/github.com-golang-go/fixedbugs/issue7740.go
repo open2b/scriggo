@@ -1,3 +1,5 @@
+// skip : Scriggo prints "BUG: got 512; want +Inf". See https://github.com/golang/go/commit/6a4739ccc5198449d58d2e90a040c4fb908b3cb0
+
 // run
 
 // Copyright 2015 The Go Authors. All rights reserved.
@@ -21,7 +23,7 @@ func main() {
 	var prec float64
 	switch runtime.Compiler {
 	case "gc":
-		prec = 512
+		prec = math.Inf(1) // exact precision using rational arithmetic
 	case "gccgo":
 		prec = 256
 	default:
