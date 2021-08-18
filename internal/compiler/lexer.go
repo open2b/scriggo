@@ -1322,6 +1322,9 @@ LOOP:
 						}
 						return l.errorf(bomErrorMsg)
 					}
+					if unicode.IsDigit(r) {
+						return l.errorf("identifier cannot begin with digit %U '%c'", r, r)
+					}
 					if unicode.IsPrint(r) {
 						return l.errorf("invalid character %U '%c'", r, r)
 					}
