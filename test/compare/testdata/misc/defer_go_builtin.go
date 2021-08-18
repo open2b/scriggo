@@ -17,11 +17,12 @@ func main() {
 
 	// Builtin 'delete'.
 
-	m := map[string]string{"a": "A"}
-	fmt.Println(m)
-	delete(m, "a")
-	fmt.Println(m)
-	delete(map[int]int{4: 16, 20: 400}, 20)
+	m := map[string]string{"a": "A", "b": "B"}
+	defer fmt.Println(m["a"])
+	defer delete(m, "a")
+	n := map[int]int{1: 2, 2: 3}
+	defer fmt.Println(n[2])
+	go delete(n, 2)
 
 	// Builtin 'print'.
 
