@@ -1,5 +1,3 @@
-// skip : panic: assertion fail: i should be "hello"
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.
