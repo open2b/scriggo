@@ -85,7 +85,7 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 				if len(tokens) > 3 {
 					return nil, fmt.Errorf("too many variable names at line %d", ln)
 				}
-				variable := string(tokens[2])
+				variable := tokens[2]
 				err := checkIdentifierName(variable)
 				if err != nil {
 					return nil, err
@@ -98,7 +98,7 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 				if len(tokens) > 3 {
 					return nil, fmt.Errorf("too many packages names at line %d", ln)
 				}
-				pkgName := string(tokens[2])
+				pkgName := tokens[2]
 				err := checkIdentifierName(pkgName)
 				if err != nil {
 					return nil, err
@@ -115,8 +115,7 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 			if sf.goos == nil {
 				sf.goos = make([]string, 0, len(tokens)-1)
 			}
-			for _, tok := range tokens[1:] {
-				os := string(tok)
+			for _, os := range tokens[1:] {
 				err := checkGOOS(os)
 				if err != nil {
 					return nil, err
@@ -127,7 +126,7 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 			if len(tokens) == 1 {
 				return nil, fmt.Errorf("missing package path at line %d", ln)
 			}
-			path := string(tokens[1])
+			path := tokens[1]
 			if len(tokens) > 2 && strings.EqualFold(path, "STANDARD") && strings.EqualFold(tokens[2], "LIBRARY") {
 				for _, imp := range sf.imports {
 					if imp.stdlib {
@@ -157,7 +156,7 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 					if len(tokens) == 1 {
 						return nil, fmt.Errorf("missing package path after AS at line %d", ln)
 					}
-					path := string(tokens[1])
+					path := tokens[1]
 					err := checkPackagePath(path)
 					if err != nil {
 						return nil, err
@@ -173,8 +172,7 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 						return nil, fmt.Errorf("missing names after INCLUDING at line %d", ln)
 					}
 					imp.including = make([]string, len(tokens)-1)
-					for i, tok := range tokens[1:] {
-						name := string(tok)
+					for i, name := range tokens[1:] {
 						err := checkExportedName(name)
 						if err != nil {
 							return nil, err
@@ -187,8 +185,7 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 						return nil, fmt.Errorf("missing names after EXCLUDING at line %d", ln)
 					}
 					imp.excluding = make([]string, len(tokens)-1)
-					for i, tok := range tokens[1:] {
-						name := string(tok)
+					for i, name := range tokens[1:] {
 						err := checkExportedName(name)
 						if err != nil {
 							return nil, err
