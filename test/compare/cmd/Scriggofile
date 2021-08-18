@@ -8,6 +8,7 @@ IMPORT bytes
 IMPORT crypto/sha1
 IMPORT crypto/md5
 IMPORT encoding/base64
+IMPORT encoding/binary
 IMPORT errors
 IMPORT fmt
 IMPORT go/ast
