@@ -16,11 +16,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/open2b/scriggo/ast"
-	_types "github.com/open2b/scriggo/internal/compiler/types"
-	"github.com/open2b/scriggo/types"
+	"github.com/open2b/scriggo/internal/compiler/types"
+	"github.com/open2b/scriggo/native"
 )
 
-var envType = reflect.TypeOf((*types.Env)(nil)).Elem()
+var envType = reflect.TypeOf((*native.Env)(nil)).Elem()
 var errTypeConversion = errors.New("failed type conversion")
 
 type nilConversionError struct {
@@ -255,18 +255,18 @@ func deferGoBuiltin(name string) *typeInfo {
 			reflect.ValueOf(m).SetMapIndex(reflect.ValueOf(key), reflect.Value{})
 		}
 	case "panic":
-		fun = func(env types.Env, v interface{}) {
+		fun = func(env native.Env, v interface{}) {
 			if env.Exited() {
 				return
 			}
 			panic(v)
 		}
 	case "print":
-		fun = func(env types.Env, args ...interface{}) {
+		fun = func(env native.Env, args ...interface{}) {
 			env.Print(args...)
 		}
 	case "println":
-		fun = func(env types.Env, args ...interface{}) {
+		fun = func(env native.Env, args ...interface{}) {
 			env.Println(args...)
 		}
 	case "recover":
@@ -369,7 +369,7 @@ func (tc *typechecker) isAssignableTo(x *typeInfo, expr ast.Expression, t reflec
 		}
 		return err
 	}
-	if !_types.AssignableTo(x.Type, t) {
+	if !types.AssignableTo(x.Type, t) {
 		return newInvalidTypeInAssignment(x, expr, t)
 	}
 	return nil

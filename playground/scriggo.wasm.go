@@ -6,10 +6,10 @@ import (
 	"syscall/js"
 
 	"github.com/open2b/scriggo"
-	"github.com/open2b/scriggo/pkgutil"
+	"github.com/open2b/scriggo/native"
 )
 
-var packages pkgutil.Packages
+var packages native.Packages
 
 type Program struct {
 	js.Value

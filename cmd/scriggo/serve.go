@@ -22,6 +22,7 @@ import (
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/builtin"
+	"github.com/open2b/scriggo/native"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/yuin/goldmark"
@@ -312,7 +313,7 @@ func (t *templateFS) watch(name string) error {
 	return nil
 }
 
-var globals = scriggo.Declarations{
+var globals = native.Declarations{
 	// crypto
 	"hmacSHA1":   builtin.HmacSHA1,
 	"hmacSHA256": builtin.HmacSHA256,

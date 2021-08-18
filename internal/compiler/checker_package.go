@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/types"
+	"github.com/open2b/scriggo/native"
 )
 
 // Sync with scriggo.Package.
@@ -128,17 +128,17 @@ func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, global bool, dept
 			// Import a type.
 			ti.Type = v
 			ti.Properties |= propertyIsType | propertyIsPredefined
-		case types.UntypedBooleanConst:
+		case native.UntypedBooleanConst:
 			// Import an untyped boolean constant.
 			ti.Type = boolType
 			ti.Properties |= propertyUntyped
 			ti.Constant = boolConst(v)
-		case types.UntypedStringConst:
+		case native.UntypedStringConst:
 			// Import an untyped string constant.
 			ti.Type = stringType
 			ti.Properties |= propertyUntyped
 			ti.Constant = stringConst(v)
-		case types.UntypedNumericConst:
+		case native.UntypedNumericConst:
 			// Import an untyped numeric constant.
 			var err error
 			ti.Constant, ti.Type, err = parseNumericConst(string(v))

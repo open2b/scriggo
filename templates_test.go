@@ -20,7 +20,7 @@ import (
 
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/fstest"
-	. "github.com/open2b/scriggo/types"
+	"github.com/open2b/scriggo/native"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -29,7 +29,7 @@ type mapPackage struct {
 	// Package name.
 	PkgName string
 	// Package declarations.
-	Declarations map[string]interface{}
+	Declarations native.Declarations
 }
 
 func (p mapPackage) Name() string {
@@ -50,7 +50,7 @@ func (p mapPackage) DeclarationNames() []string {
 
 // packages is a PackageLoader that load packages from a map where the key is
 // a package path and the value is a Package value.
-type packages map[string]Package
+type packages map[string]native.Package
 
 func (pp packages) Load(path string) (interface{}, error) {
 	if p, ok := pp[path]; ok {
@@ -74,7 +74,7 @@ func globals() map[string]interface{} {
 		"sprintf": func(format string, a ...interface{}) string {
 			return fmt.Sprintf(format, a...)
 		},
-		"title": func(env Env, s string) string {
+		"title": func(env native.Env, s string) string {
 			return strings.Title(s)
 		},
 		"I": &I,
@@ -730,7 +730,7 @@ var templateMultiFileCases = map[string]struct {
 	main             mapPackage             // default to nil
 	vars             map[string]interface{} // default to nil
 	entryPoint       string                 // default to "index.html"
-	packages         PackageLoader          // default to nil
+	packages         native.PackageLoader   // default to nil
 	noParseShow      bool
 	dollarIdentifier bool // default to false
 }{
@@ -2939,7 +2939,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.html":   `{% var s = render "partial.html" default "" %}`,
 			"partial.html": `i'm a partial`,
 		},
-		expectedBuildErr: `cannot use render "partial.html" (type types.HTML) as type string in assignment`,
+		expectedBuildErr: `cannot use render "partial.html" (type native.HTML) as type string in assignment`,
 	},
 
 	"Default declaration with render (3)": {
@@ -3846,7 +3846,7 @@ var envFilePathCases = []struct {
 
 func Test_envFilePath(t *testing.T) {
 	globals := map[string]interface{}{
-		"path": func(env Env) string { return env.FilePath() },
+		"path": func(env native.Env) string { return env.FilePath() },
 	}
 	for _, cas := range envFilePathCases {
 		t.Run(cas.name, func(t *testing.T) {

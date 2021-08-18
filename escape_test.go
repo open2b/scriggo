@@ -11,12 +11,12 @@ import (
 	"testing"
 
 	"github.com/open2b/scriggo/internal/fstest"
-	"github.com/open2b/scriggo/types"
+	"github.com/open2b/scriggo/native"
 )
 
 var htmlEscapeCases = []struct {
 	src      string
-	expected types.HTML
+	expected native.HTML
 }{
 	{"", ""},
 	{"abc", "abc"},

@@ -15,14 +15,14 @@ import (
 
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/fstest"
-	"github.com/open2b/scriggo/types"
+	"github.com/open2b/scriggo/native"
 )
 
 func init() {
-	jsStringerType = reflect.TypeOf((*types.JSStringer)(nil)).Elem()
-	jsEnvStringerType = reflect.TypeOf((*types.JSEnvStringer)(nil)).Elem()
-	jsonStringerType = reflect.TypeOf((*types.JSONStringer)(nil)).Elem()
-	jsonEnvStringerType = reflect.TypeOf((*types.JSONEnvStringer)(nil)).Elem()
+	jsStringerType = reflect.TypeOf((*native.JSStringer)(nil)).Elem()
+	jsEnvStringerType = reflect.TypeOf((*native.JSEnvStringer)(nil)).Elem()
+	jsonStringerType = reflect.TypeOf((*native.JSONStringer)(nil)).Elem()
+	jsonEnvStringerType = reflect.TypeOf((*native.JSONEnvStringer)(nil)).Elem()
 }
 
 type html string
@@ -624,14 +624,14 @@ func TestCheckerTemplatesStatements(t *testing.T) {
 	}
 	options := Options{
 		FormatTypes: formatTypes,
-		Globals: Declarations{
+		Globals: native.Declarations{
 			"p":  p,
 			"T":  reflect.TypeOf(int(0)),
 			"I":  &I,
 			"S":  &S,
 			"Ci": 5,
-			"Ui": types.UntypedNumericConst("5"),
-			"Uf": types.UntypedNumericConst("5.0"),
+			"Ui": native.UntypedNumericConst("5"),
+			"Uf": native.UntypedNumericConst("5.0"),
 			"R":  'r',
 		},
 	}

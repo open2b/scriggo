@@ -13,7 +13,7 @@ import (
 	"sync"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/types"
+	"github.com/open2b/scriggo/native"
 )
 
 type PrintFunc func(interface{})
@@ -22,15 +22,15 @@ type PrintFunc func(interface{})
 type Context byte
 
 type Renderer interface {
-	Show(env types.Env, v interface{}, ctx Context)
-	Text(env types.Env, txt []byte, inURL, isSet bool)
+	Show(env native.Env, v interface{}, ctx Context)
+	Text(env native.Env, txt []byte, inURL, isSet bool)
 	Out() io.Writer
 	WithOut(out io.Writer) Renderer
 	WithConversion(fromFormat, toFormat ast.Format) Renderer
 	Close() error
 }
 
-// The env type implements the types.Env interface.
+// The env type implements the native.Env interface.
 type env struct {
 	ctx     context.Context // context.
 	globals []reflect.Value // global variables.

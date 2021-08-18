@@ -4,25 +4,41 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package types
+// Package native provides types to implement native values, constants,
+// functions, types and packages that can be imported or used as builtins in
+// programs and templates.
+package native
 
 import (
 	"context"
 	"reflect"
 )
 
-// Format types.
+// Declarations contains variable, constant, function, type and package
+// declarations.
+type Declarations map[string]interface{}
+
 type (
-	HTML     string // the html type in templates.
-	CSS      string // the css type in templates.
-	JS       string // the js type in templates.
-	JSON     string // the json type in templates.
-	Markdown string // the markdown type in templates.
+
+	// HTML is the html type in templates.
+	HTML string
+
+	// CSS is the css type in templates.
+	CSS string
+
+	// JS is the js type in templates.
+	JS string
+
+	// JSON is the json type in templates.
+	JSON string
+
+	// Markdown is the markdown type in templates.
+	Markdown string
 )
 
 type (
 
-	// EnvStringer is like fmt.Stringer where the String method takes an types.Env
+	// EnvStringer is like fmt.Stringer where the String method takes an native.Env
 	// parameter.
 	EnvStringer interface {
 		String(Env) string
@@ -34,7 +50,7 @@ type (
 	}
 
 	// HTMLEnvStringer is like HTMLStringer where the HTML method takes a
-	// types.Env parameter.
+	// native.Env parameter.
 	HTMLEnvStringer interface {
 		HTML(Env) HTML
 	}
@@ -44,7 +60,7 @@ type (
 		CSS() CSS
 	}
 
-	// CSSEnvStringer is like CSSStringer where the CSS method takes an types.Env
+	// CSSEnvStringer is like CSSStringer where the CSS method takes an Env
 	// parameter.
 	CSSEnvStringer interface {
 		CSS(Env) CSS
@@ -56,31 +72,32 @@ type (
 		JS() JS
 	}
 
-	// JSEnvStringer is like JSStringer where the JS method takes an types.Env
+	// JSEnvStringer is like JSStringer where the JS method takes an Env
 	// parameter.
 	JSEnvStringer interface {
 		JS(Env) JS
 	}
 
-	// JSONStringer is implemented by values that are not escaped in JSON context.
+	// JSONStringer is implemented by values that are not escaped in JSON
+	// context.
 	JSONStringer interface {
 		JSON() JSON
 	}
 
-	// JSONEnvStringer is like JSONStringer where the JSON method takes an types.Env
+	// JSONEnvStringer is like JSONStringer where the JSON method takes an Env
 	// parameter.
 	JSONEnvStringer interface {
 		JSON(Env) JSON
 	}
 
-	// MarkdownStringer is implemented by values that are not escaped in Markdown
-	// context.
+	// MarkdownStringer is implemented by values that are not escaped in
+	// Markdown context.
 	MarkdownStringer interface {
 		Markdown() Markdown
 	}
 
 	// MarkdownEnvStringer is like MarkdownStringer where the Markdown method
-	// takes an types.Env parameter.
+	// takes an native.Env parameter.
 	MarkdownEnvStringer interface {
 		Markdown(Env) Markdown
 	}
@@ -99,29 +116,33 @@ type (
 )
 
 // Env represents an execution environment.
+//
+// Each execution creates an Env value. This value is passed as the first
+// argument to calls to native functions and methods that have Env as the type
+// of the first parameter.
 type Env interface {
 
-	// Context returns the context of the environment.
+	// Context returns the context of the execution.
+	// It is the context passed as an option for execution.
 	Context() context.Context
 
-	// Exit exits the environment with the given status code. Deferred functions
-	// are not run.
+	// Exit exits the execution with the given status code.
+	// Deferred functions are not run.
 	Exit(code int)
 
-	// Exited reports whether the environment is exited.
+	// Exited reports whether the execution is terminated.
 	Exited() bool
 
-	// ExitFunc calls f in its own goroutine after the execution of the
-	// environment is terminated.
+	// ExitFunc calls f in its own goroutine after the execution is
+	// terminated.
 	ExitFunc(f func())
 
-	// Fatal calls panic() with a FatalError error.
+	// Fatal calls the panic built-in function with a FatalError error.
 	Fatal(v interface{})
 
-	// FilePath can be called from a global function to get the absolute path
-	// of the file where such global was called. If the global function was
-	// not called by the main virtual machine goroutine, the returned value is
-	// not significant.
+	// FilePath returns the absolute path of the current executed file. If it
+	// is not called by the main goroutine, the returned value is not
+	// significant.
 	FilePath() string
 
 	// Print calls the print built-in function with args as argument.

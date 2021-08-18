@@ -13,28 +13,28 @@ import (
 	"time"
 
 	"github.com/open2b/scriggo/ast"
-	_types "github.com/open2b/scriggo/internal/compiler/types"
-	"github.com/open2b/scriggo/types"
+	"github.com/open2b/scriggo/internal/compiler/types"
+	"github.com/open2b/scriggo/native"
 )
 
 var (
 	stringerType    = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
-	envStringerType = reflect.TypeOf((*types.EnvStringer)(nil)).Elem()
+	envStringerType = reflect.TypeOf((*native.EnvStringer)(nil)).Elem()
 
-	htmlStringerType    = reflect.TypeOf((*types.HTMLStringer)(nil)).Elem()
-	htmlEnvStringerType = reflect.TypeOf((*types.HTMLEnvStringer)(nil)).Elem()
+	htmlStringerType    = reflect.TypeOf((*native.HTMLStringer)(nil)).Elem()
+	htmlEnvStringerType = reflect.TypeOf((*native.HTMLEnvStringer)(nil)).Elem()
 
-	cssStringerType    = reflect.TypeOf((*types.CSSStringer)(nil)).Elem()
-	cssEnvStringerType = reflect.TypeOf((*types.CSSEnvStringer)(nil)).Elem()
+	cssStringerType    = reflect.TypeOf((*native.CSSStringer)(nil)).Elem()
+	cssEnvStringerType = reflect.TypeOf((*native.CSSEnvStringer)(nil)).Elem()
 
-	jsStringerType    = reflect.TypeOf((*types.JSStringer)(nil)).Elem()
-	jsEnvStringerType = reflect.TypeOf((*types.JSEnvStringer)(nil)).Elem()
+	jsStringerType    = reflect.TypeOf((*native.JSStringer)(nil)).Elem()
+	jsEnvStringerType = reflect.TypeOf((*native.JSEnvStringer)(nil)).Elem()
 
-	jsonStringerType    = reflect.TypeOf((*types.JSONStringer)(nil)).Elem()
-	jsonEnvStringerType = reflect.TypeOf((*types.JSONEnvStringer)(nil)).Elem()
+	jsonStringerType    = reflect.TypeOf((*native.JSONStringer)(nil)).Elem()
+	jsonEnvStringerType = reflect.TypeOf((*native.JSONEnvStringer)(nil)).Elem()
 
-	mdStringerType    = reflect.TypeOf((*types.MarkdownStringer)(nil)).Elem()
-	mdEnvStringerType = reflect.TypeOf((*types.MarkdownEnvStringer)(nil)).Elem()
+	mdStringerType    = reflect.TypeOf((*native.MarkdownStringer)(nil)).Elem()
+	mdEnvStringerType = reflect.TypeOf((*native.MarkdownEnvStringer)(nil)).Elem()
 )
 
 // templateFileToPackage transforms a tree of a declarations file to a package
@@ -678,7 +678,7 @@ nodesLoop:
 			if len(node.Expressions) == 1 {
 				if call, ok := node.Expressions[0].(*ast.Call); ok {
 					tis := tc.checkCallExpression(call)
-					if len(tis) == 2 && _types.Implements(tis[1].Type, errorType) {
+					if len(tis) == 2 && types.Implements(tis[1].Type, errorType) {
 						// Change the tree:
 						//
 						//     from: {{ f(..) }}

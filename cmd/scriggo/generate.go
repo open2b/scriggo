@@ -62,18 +62,16 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 		}
 	}
 
-	mustImportScriggo := false
 	mustImportReflect := false
 	packages := map[string]*packageType{}
 	for i, imp := range sf.imports {
 		if flags.v {
 			_, _ = fmt.Fprintf(os.Stderr, "%s\n", imp.path)
 		}
-		pkgName, decls, refToImport, refToScriggo, refToReflect, err := loadGoPackage(imp.path, dir, goos, flags, imp.including, imp.excluding)
+		pkgName, decls, refToImport, refToReflect, err := loadGoPackage(imp.path, dir, goos, flags, imp.including, imp.excluding)
 		if err != nil {
 			return err
 		}
-		mustImportScriggo = mustImportScriggo || refToScriggo
 		mustImportReflect = mustImportReflect || refToReflect
 		if !refToImport {
 			explicitImports[i].Name = "_"
@@ -217,21 +215,20 @@ import (
 {{- end}}
 )
 
-import . "github.com/open2b/scriggo/pkgutil"
-{{ if .MustImportScriggo}}import _types "github.com/open2b/scriggo/types"{{end}}
+import "github.com/open2b/scriggo/native"
 {{ if .MustImportReflect}}import "reflect"{{end}}
 
 func init() {
-	{{.Variable}} = make(Packages, {{len .PkgContent}})
-	var decs map[string]interface{}
+	{{.Variable}} = make(native.Packages, {{len .PkgContent}})
+	var decs native.Declarations
 
 	{{- range .PkgContent}}
 	// {{.Path}}
-	decs = make(map[string]interface{}, {{len .Declarations}})
+	decs = make(native.Declarations, {{len .Declarations}})
 	{{- range .Declarations}}
 	decs["{{.Name}}"] = {{.Value}}
 	{{- end}}
-	{{.Variable}}[{{.Path}}] = &MapPackage{
+	{{.Variable}}[{{.Path}}] = &native.MapPackage{
 		PkgName: {{.Name}},
 		Declarations: decs,
 	}
@@ -247,7 +244,6 @@ func init() {
 		"PkgName":           sf.pkgName,
 		"ExplicitImports":   explicitImports,
 		"MustImportReflect": mustImportReflect,
-		"MustImportScriggo": mustImportScriggo,
 		"Variable":          sf.variable,
 		"PkgContent":        allPkgsContent,
 	}
@@ -268,7 +264,7 @@ func init() {
 // refToScriggo reports whether at least one of the declarations refers to the
 // package 'scriggo', while refToReflect reports whether at least one of the
 // declarations refers to the package 'reflect'.
-func loadGoPackage(path, dir, goos string, flags buildFlags, including, excluding []string) (name string, decl map[string]string, refToImport, refToScriggo, refToReflect bool, err error) {
+func loadGoPackage(path, dir, goos string, flags buildFlags, including, excluding []string) (name string, decl map[string]string, refToImport, refToReflect bool, err error) {
 
 	allowed := func(n string) bool {
 		if len(including) > 0 {
@@ -308,11 +304,11 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 	if dir != "" {
 		cwd, err := os.Getwd()
 		if err != nil {
-			return "", nil, false, false, false, fmt.Errorf("scriggo: can't get current directory: %s", err)
+			return "", nil, false, false, fmt.Errorf("scriggo: can't get current directory: %s", err)
 		}
 		err = os.Chdir(dir)
 		if err != nil {
-			return "", nil, false, false, false, fmt.Errorf("scriggo: can't change current directory: %s", err)
+			return "", nil, false, false, fmt.Errorf("scriggo: can't change current directory: %s", err)
 		}
 		defer func() {
 			err = os.Chdir(cwd)
@@ -325,15 +321,15 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 	}
 	packages, err := pkgs.Load(conf, path)
 	if err != nil {
-		return "", nil, false, false, false, err
+		return "", nil, false, false, err
 	}
 
 	if pkgs.PrintErrors(packages) > 0 {
-		return "", nil, false, false, false, errors.New("error")
+		return "", nil, false, false, errors.New("error")
 	}
 
 	if len(packages) > 1 {
-		return "", nil, false, false, false, errors.New("package query returned more than one package")
+		return "", nil, false, false, errors.New("package query returned more than one package")
 	}
 
 	if len(packages) != 1 {
@@ -366,14 +362,11 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 				var value string
 				switch val.Kind() {
 				case constant.String:
-					value = "_types.UntypedStringConst(" + s + ")"
-					refToScriggo = true
+					value = "native.UntypedStringConst(" + s + ")"
 				case constant.Bool:
-					value = "_types.UntypedBooleanConst(" + s + ")"
-					refToScriggo = true
+					value = "native.UntypedBooleanConst(" + s + ")"
 				case constant.Int:
-					value = "_types.UntypedNumericConst(" + strconv.Quote(s) + ")"
-					refToScriggo = true
+					value = "native.UntypedNumericConst(" + strconv.Quote(s) + ")"
 				case constant.Float:
 					if strings.Contains(s, "/") {
 						if rat, ok := new(big.Rat).SetString(s); ok {
@@ -387,12 +380,10 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 					} else if !strings.Contains(s, ".") {
 						s += ".0"
 					}
-					value = "_types.UntypedNumericConst(" + strconv.Quote(s) + ")"
-					refToScriggo = true
+					value = "native.UntypedNumericConst(" + strconv.Quote(s) + ")"
 				case constant.Complex:
 					s = strings.ReplaceAll(s[1:len(s)-1], " ", "")
-					value = "_types.UntypedNumericConst(" + strconv.Quote(s) + ")"
-					refToScriggo = true
+					value = "native.UntypedNumericConst(" + strconv.Quote(s) + ")"
 				default:
 					panic(fmt.Sprintf("Unexpected constant kind %d", val.Kind()))
 				}
@@ -417,5 +408,5 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 
 	refToImport = len(decl) > numUntyped
 
-	return name, decl, refToImport, refToScriggo, refToReflect, nil
+	return name, decl, refToImport, refToReflect, nil
 }

@@ -24,6 +24,7 @@ import (
 
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/runtime"
+	"github.com/open2b/scriggo/native"
 )
 
 // formatTypeName reports the type name for each format.
@@ -69,7 +70,7 @@ type Options struct {
 	DollarIdentifier bool
 
 	FormatTypes map[ast.Format]reflect.Type
-	Globals     Declarations
+	Globals     native.Declarations
 
 	// Packages loads Scriggo packages and precompiled packages.
 	//
@@ -82,9 +83,6 @@ type Options struct {
 
 	TreeTransformer func(*ast.Tree) error
 }
-
-// Declarations.
-type Declarations map[string]interface{}
 
 // BuildProgram builds a Go program from the package in the root of fsys with
 // the given options, loading the imported packages from packages.

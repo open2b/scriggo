@@ -31,14 +31,14 @@ func Test_renderPackages(t *testing.T) {
 				"fmt"
 			)
 
-			import . "github.com/open2b/scriggo/pkgutil"
+			import "github.com/open2b/scriggo/native"
 			import "reflect"
 
 			func init() {
-				packages = make(Packages, 1)
-				var decs map[string]interface{}
+				packages = make(native.Packages, 1)
+				var decs native.Declarations
 				// "custom/fmt/path"
-				decs = make(map[string]interface{}, 25)
+				decs = make(native.Declarations, 25)
 				decs["Errorf"] = fmt.Errorf
 				decs["Formatter"] = reflect.TypeOf((*fmt.Formatter)(nil)).Elem()
 				decs["Fprint"] = fmt.Fprint
@@ -64,7 +64,7 @@ func Test_renderPackages(t *testing.T) {
 				decs["Sscanln"] = fmt.Sscanln
 				decs["State"] = reflect.TypeOf((*fmt.State)(nil)).Elem()
 				decs["Stringer"] = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
-				packages["custom/fmt/path"] = &MapPackage{
+				packages["custom/fmt/path"] = &native.MapPackage{
 					PkgName: "fmt",
 					Declarations: decs,
 				}
@@ -82,15 +82,14 @@ func Test_renderPackages(t *testing.T) {
 				tar "archive/tar"
 			)
 
-			import . "github.com/open2b/scriggo/pkgutil"
-			import _types "github.com/open2b/scriggo/types
+			import "github.com/open2b/scriggo/native"
 			import "reflect"
 
 			func init() {
-				packages = make(Packages, 1)
-				var decs map[string]interface{}
+				packages = make(native.Packages, 1)
+				var decs native.Declarations
 				// "archive/tar"
-				decs = make(map[string]interface{}, 29)
+				decs = make(native.Declarations, 29)
 				decs["ErrFieldTooLong"] = &tar.ErrFieldTooLong
 				decs["ErrHeader"] = &tar.ErrHeader
 				decs["ErrWriteAfterClose"] = &tar.ErrWriteAfterClose
@@ -105,22 +104,22 @@ func Test_renderPackages(t *testing.T) {
 				decs["NewReader"] = tar.NewReader
 				decs["NewWriter"] = tar.NewWriter
 				decs["Reader"] = reflect.TypeOf((*tar.Reader)(nil)).Elem()
-				decs["TypeBlock"] = _types.UntypedNumericConst("52")
-				decs["TypeChar"] = _types.UntypedNumericConst("51")
-				decs["TypeCont"] = _types.UntypedNumericConst("55")
-				decs["TypeDir"] = _types.UntypedNumericConst("53")
-				decs["TypeFifo"] = _types.UntypedNumericConst("54")
-				decs["TypeGNULongLink"] = _types.UntypedNumericConst("75")
-				decs["TypeGNULongName"] = _types.UntypedNumericConst("76")
-				decs["TypeGNUSparse"] = _types.UntypedNumericConst("83")
-				decs["TypeLink"] = _types.UntypedNumericConst("49")
-				decs["TypeReg"] = _types.UntypedNumericConst("48")
-				decs["TypeRegA"] = _types.UntypedNumericConst("0")
-				decs["TypeSymlink"] = _types.UntypedNumericConst("50")
-				decs["TypeXGlobalHeader"] = _types.UntypedNumericConst("103")
-				decs["TypeXHeader"] = _types.UntypedNumericConst("120")
+				decs["TypeBlock"] = native.UntypedNumericConst("52")
+				decs["TypeChar"] = native.UntypedNumericConst("51")
+				decs["TypeCont"] = native.UntypedNumericConst("55")
+				decs["TypeDir"] = native.UntypedNumericConst("53")
+				decs["TypeFifo"] = native.UntypedNumericConst("54")
+				decs["TypeGNULongLink"] = native.UntypedNumericConst("75")
+				decs["TypeGNULongName"] = native.UntypedNumericConst("76")
+				decs["TypeGNUSparse"] = native.UntypedNumericConst("83")
+				decs["TypeLink"] = native.UntypedNumericConst("49")
+				decs["TypeReg"] = native.UntypedNumericConst("48")
+				decs["TypeRegA"] = native.UntypedNumericConst("0")
+				decs["TypeSymlink"] = native.UntypedNumericConst("50")
+				decs["TypeXGlobalHeader"] = native.UntypedNumericConst("103")
+				decs["TypeXHeader"] = native.UntypedNumericConst("120")
 				decs["Writer"] = reflect.TypeOf((*tar.Writer)(nil)).Elem()
-				packages["archive/tar"] = &MapPackage{
+				packages["archive/tar"] = &native.MapPackage{
 					PkgName: "tar",
 					Declarations: decs,
 				}
@@ -138,15 +137,14 @@ func Test_renderPackages(t *testing.T) {
 				"fmt"
 			)
 
-			import . "github.com/open2b/scriggo/pkgutil"
-			import _types "github.com/open2b/scriggo/types
+			import "github.com/open2b/scriggo/native"
 			import "reflect"
 
 			func init() {
-				packages = make(Packages, 1)
-				var decs map[string]interface{}
+				packages = make(native.Packages, 1)
+				var decs native.Declarations
 				// "fmt"
-				decs = make(map[string]interface{}, 25)
+				decs = make(native.Declarations, 25)
 				decs["Errorf"] = fmt.Errorf
 				decs["Formatter"] = reflect.TypeOf((*fmt.Formatter)(nil)).Elem()
 				decs["Fprint"] = fmt.Fprint
@@ -172,7 +170,7 @@ func Test_renderPackages(t *testing.T) {
 				decs["Sscanln"] = fmt.Sscanln
 				decs["State"] = reflect.TypeOf((*fmt.State)(nil)).Elem()
 				decs["Stringer"] = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
-				packages["fmt"] = &MapPackage{
+				packages["fmt"] = &native.MapPackage{
 					PkgName: "fmt",
 					Declarations: decs,
 				}
@@ -195,16 +193,16 @@ func Test_renderPackages(t *testing.T) {
 				"fmt"
 			)
 
-			import . "github.com/open2b/scriggo/pkgutil"
+			import "github.com/open2b/scriggo/native"
 
 			func init() {
-				packages = make(Packages, 1)
-				var decs map[string]interface{}
+				packages = make(native.Packages, 1)
+				var decs native.Declarations
 				// "fmt"
-				decs = make(map[string]interface{}, 1)
+				decs = make(native.Declarations, 1)
 				decs["Println"] = fmt.Println
-				packages["fmt"] = &MapPackage{
-					PkgName: "fmt",
+				packages["fmt"] = &native.MapPackage{
+					PkgName:      "fmt",
 					Declarations: decs,
 				}
 			}`,
@@ -301,20 +299,20 @@ func Test_parseGoPackage(t *testing.T) {
 				"NewReader":          "tar.NewReader",
 				"NewWriter":          "tar.NewWriter",
 				"Reader":             "reflect.TypeOf((*tar.Reader)(nil)).Elem()",
-				"TypeBlock":          "_types.UntypedNumericConst(\"52\")",
-				"TypeChar":           "_types.UntypedNumericConst(\"51\")",
-				"TypeCont":           "_types.UntypedNumericConst(\"55\")",
-				"TypeDir":            "_types.UntypedNumericConst(\"53\")",
-				"TypeFifo":           "_types.UntypedNumericConst(\"54\")",
-				"TypeGNULongLink":    "_types.UntypedNumericConst(\"75\")",
-				"TypeGNULongName":    "_types.UntypedNumericConst(\"76\")",
-				"TypeGNUSparse":      "_types.UntypedNumericConst(\"83\")",
-				"TypeLink":           "_types.UntypedNumericConst(\"49\")",
-				"TypeReg":            "_types.UntypedNumericConst(\"48\")",
-				"TypeRegA":           "_types.UntypedNumericConst(\"0\")",
-				"TypeSymlink":        "_types.UntypedNumericConst(\"50\")",
-				"TypeXGlobalHeader":  "_types.UntypedNumericConst(\"103\")",
-				"TypeXHeader":        "_types.UntypedNumericConst(\"120\")",
+				"TypeBlock":          "native.UntypedNumericConst(\"52\")",
+				"TypeChar":           "native.UntypedNumericConst(\"51\")",
+				"TypeCont":           "native.UntypedNumericConst(\"55\")",
+				"TypeDir":            "native.UntypedNumericConst(\"53\")",
+				"TypeFifo":           "native.UntypedNumericConst(\"54\")",
+				"TypeGNULongLink":    "native.UntypedNumericConst(\"75\")",
+				"TypeGNULongName":    "native.UntypedNumericConst(\"76\")",
+				"TypeGNUSparse":      "native.UntypedNumericConst(\"83\")",
+				"TypeLink":           "native.UntypedNumericConst(\"49\")",
+				"TypeReg":            "native.UntypedNumericConst(\"48\")",
+				"TypeRegA":           "native.UntypedNumericConst(\"0\")",
+				"TypeSymlink":        "native.UntypedNumericConst(\"50\")",
+				"TypeXGlobalHeader":  "native.UntypedNumericConst(\"103\")",
+				"TypeXHeader":        "native.UntypedNumericConst(\"120\")",
 				"Writer":             "reflect.TypeOf((*tar.Writer)(nil)).Elem()",
 			},
 		},
@@ -322,7 +320,7 @@ func Test_parseGoPackage(t *testing.T) {
 	goos := "linux" // paths in this test should be OS-independent.
 	for path, expected := range cases {
 		t.Run(path, func(t *testing.T) {
-			gotName, gotDecls, _, _, _, err := loadGoPackage(path, "", goos, buildFlags{}, nil, nil)
+			gotName, gotDecls, _, _,err := loadGoPackage(path, "", goos, buildFlags{}, nil, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

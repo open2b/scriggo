@@ -4,7 +4,7 @@ package testpkg
 import (
 	"fmt"
 
-	"github.com/open2b/scriggo/types"
+	"github.com/open2b/scriggo/native"
 )
 
 const C1 = "a\t|\"c"
@@ -106,7 +106,7 @@ func F11(a string, b float64, c []string) (string, error) {
 	return "", nil
 }
 
-func Fatal(env types.Env, v interface{}) {
+func Fatal(env native.Env, v interface{}) {
 	env.Fatal(v)
 }
 

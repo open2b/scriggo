@@ -7,7 +7,7 @@
 package scriggo
 
 import (
-	"github.com/open2b/scriggo/types"
+	"github.com/open2b/scriggo/native"
 )
 
 // HTMLEscape escapes s, replacing the characters <, >, &, " and ' and returns
@@ -17,7 +17,7 @@ import (
 // content or in a quoted attribute value. But don't use it with complex
 // attributes like href, src, style, or any of the event handlers like
 // onmouseover.
-func HTMLEscape(s string) types.HTML {
+func HTMLEscape(s string) native.HTML {
 	n := 0
 	j := 0
 	for i := 0; i < len(s); i++ {
@@ -34,7 +34,7 @@ func HTMLEscape(s string) types.HTML {
 		}
 	}
 	if n == 0 {
-		return types.HTML(s)
+		return native.HTML(s)
 	}
 	b := make([]byte, len(s)+n)
 	if j > 0 {
@@ -67,5 +67,5 @@ func HTMLEscape(s string) types.HTML {
 			break
 		}
 	}
-	return types.HTML(b)
+	return native.HTML(b)
 }

@@ -19,7 +19,7 @@ import (
 
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/fstest"
-	"github.com/open2b/scriggo/types"
+	"github.com/open2b/scriggo/native"
 )
 
 func tierr(line, column int, text string) *CheckingError {
@@ -1765,14 +1765,14 @@ func TestCheckerStatements(t *testing.T) {
 
 type T int
 
-func (t T) M0()                            {}
-func (t T) M1(a int)                       {}
-func (t T) M2(a, b int)                    {}
-func (t T) MVar(a ...int)                  {}
-func (t T) Env0(env types.Env)             {}
-func (t T) Env1(env types.Env, a int)      {}
-func (t T) Env2(env types.Env, a, b int)   {}
-func (t T) EnvVar(env types.Env, a ...int) {}
+func (t T) M0()                             {}
+func (t T) M1(a int)                        {}
+func (t T) M2(a, b int)                     {}
+func (t T) MVar(a ...int)                   {}
+func (t T) Env0(env native.Env)             {}
+func (t T) Env1(env native.Env, a int)      {}
+func (t T) Env2(env native.Env, a, b int)   {}
+func (t T) EnvVar(env native.Env, a ...int) {}
 
 func TestCheckerRemoveEnv(t *testing.T) {
 	p := &pkg{
@@ -1782,10 +1782,10 @@ func TestCheckerRemoveEnv(t *testing.T) {
 			"F0":     func() {},
 			"F1":     func(a int) {},
 			"F2":     func(a, b int) {},
-			"Env0":   func(env types.Env) {},
-			"Env1":   func(env types.Env, a int) {},
-			"Env2":   func(env types.Env, a, b int) {},
-			"EnvVar": func(env types.Env, a ...int) {},
+			"Env0":   func(env native.Env) {},
+			"Env1":   func(env native.Env, a int) {},
+			"Env2":   func(env native.Env, a, b int) {},
+			"EnvVar": func(env native.Env, a ...int) {},
 		},
 	}
 	main := `

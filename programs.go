@@ -15,12 +15,12 @@ import (
 
 	"github.com/open2b/scriggo/internal/compiler"
 	"github.com/open2b/scriggo/internal/runtime"
-	"github.com/open2b/scriggo/types"
+	"github.com/open2b/scriggo/native"
 )
 
 type BuildOptions struct {
-	DisallowGoStmt bool          // disallow "go" statement.
-	Packages       PackageLoader // package loader used to load imported packages.
+	DisallowGoStmt bool                 // disallow "go" statement.
+	Packages       native.PackageLoader // package loader used to load imported packages.
 }
 
 type PrintFunc func(interface{})
@@ -122,7 +122,7 @@ func initPackageLevelVariables(globals []compiler.Global) []reflect.Value {
 //
 // Unlike the function fmt.Errorf, Errorf does not recognize the %w verb in
 // format.
-func Errorf(env types.Env, format string, a ...interface{}) error {
+func Errorf(env native.Env, format string, a ...interface{}) error {
 	err := fmt.Sprintf(format, a...)
 	return errors.New(err)
 }

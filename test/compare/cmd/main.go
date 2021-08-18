@@ -18,7 +18,7 @@ import (
 	"path/filepath"
 
 	"github.com/open2b/scriggo"
-	"github.com/open2b/scriggo/pkgutil"
+	"github.com/open2b/scriggo/native"
 	"github.com/open2b/scriggo/scripts"
 
 	// Do not remove this import.
@@ -30,9 +30,9 @@ import (
 )
 
 //go:generate scriggo embed -v -o predefPkgs.go
-var predefPkgs pkgutil.Packages
+var predefPkgs native.Packages
 
-var globals = scriggo.Declarations{
+var globals = native.Declarations{
 	"MainSum": func(a, b int) int { return a + b },
 }
 

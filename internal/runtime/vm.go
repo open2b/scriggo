@@ -15,7 +15,7 @@ import (
 	"sync"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/types"
+	"github.com/open2b/scriggo/native"
 )
 
 const NoVariadicArgs = -1
@@ -26,7 +26,7 @@ const maxUint32 = 1<<31 - 1
 
 const stackSize = 512
 
-var envType = reflect.TypeOf((*types.Env)(nil)).Elem()
+var envType = reflect.TypeOf((*native.Env)(nil)).Elem()
 var emptyInterfaceType = reflect.TypeOf(&[]interface{}{nil}[0]).Elem()
 var emptyInterfaceNil = reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
 

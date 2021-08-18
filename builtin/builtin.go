@@ -14,7 +14,7 @@
 // For example, to use the Min and Max functions as global min and max
 // functions
 //
-//    globals := scriggo.Declarations{
+//    globals := native.Declarations{
 //        "min": builtin.Min,
 //        "max": builtin.Max,
 //    }
@@ -37,7 +37,7 @@
 // Use this Declarations value to use all the builtin of this package in a
 // template or choose the most appropriate
 //
-//  scriggo.Declarations{
+//  native.Declarations{
 //  	// crypto
 //  	"hmacSHA1":   builtin.HmacSHA1,
 //  	"hmacSHA256": builtin.HmacSHA256,
@@ -154,7 +154,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/open2b/scriggo"
-	"github.com/open2b/scriggo/types"
+	"github.com/open2b/scriggo/native"
 )
 
 // Abbreviate abbreviates s to almost n runes. If s is longer than n runes,
@@ -303,8 +303,8 @@ func HmacSHA256(message, key string) string {
 }
 
 // HtmlEscape escapes s, replacing the characters <, >, &, " and ' and returns
-// the escaped string as types.HTML type.
-func HtmlEscape(s string) types.HTML {
+// the escaped string as native.HTML type.
+func HtmlEscape(s string) native.HTML {
 	return scriggo.HTMLEscape(s)
 }
 
@@ -375,12 +375,12 @@ func LastIndex(s, substr string) int {
 // MarshalJSON returns the JSON encoding of v.
 //
 // See https://golang.org/pkg/encoding/json/#Marshal for details.
-func MarshalJSON(v interface{}) (types.JSON, error) {
+func MarshalJSON(v interface{}) (native.JSON, error) {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return "", replacePrefix(err, "json", "marshalJSON")
 	}
-	return types.JSON(b), nil
+	return native.JSON(b), nil
 }
 
 // MarshalJSONIndent is like MarshalJSON but indents the output. Each JSON
@@ -388,7 +388,7 @@ func MarshalJSON(v interface{}) (types.JSON, error) {
 // followed by one or more copies of indent according to the indentation
 // nesting. prefix and indent can only contain whitespace: ' ', '\t', '\n' and
 // '\r'.
-func MarshalJSONIndent(v interface{}, prefix, indent string) (types.JSON, error) {
+func MarshalJSONIndent(v interface{}, prefix, indent string) (native.JSON, error) {
 	if !onlyJSONWhitespace(prefix) {
 		return "", errors.New("marshalJSONIndent: prefix does not contain only whitespace")
 	}
@@ -399,7 +399,7 @@ func MarshalJSONIndent(v interface{}, prefix, indent string) (types.JSON, error)
 	if err != nil {
 		return "", errors.New(err.Error())
 	}
-	return types.JSON(b), nil
+	return native.JSON(b), nil
 }
 
 // Max returns the larger of x or y.
@@ -650,15 +650,15 @@ func Sort(slice interface{}, less func(i, j int) bool) {
 		sort.Ints(s)
 	case []float64:
 		sort.Float64s(s)
-	case []types.HTML:
+	case []native.HTML:
 		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
-	case []types.CSS:
+	case []native.CSS:
 		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
-	case []types.JS:
+	case []native.JS:
 		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
-	case []types.JSON:
+	case []native.JSON:
 		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
-	case []types.Markdown:
+	case []native.Markdown:
 		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
 	}
 	// reflect

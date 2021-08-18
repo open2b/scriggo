@@ -17,7 +17,7 @@ import (
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/compiler"
 	"github.com/open2b/scriggo/internal/runtime"
-	"github.com/open2b/scriggo/types"
+	"github.com/open2b/scriggo/native"
 )
 
 // A Format represents a content format.
@@ -37,10 +37,6 @@ func (format Format) String() string {
 	return ast.Format(format).String()
 }
 
-// Declarations contains variable, constant, function, type and package
-// declarations.
-type Declarations map[string]interface{}
-
 type BuildTemplateOptions struct {
 	DisallowGoStmt       bool
 	NoParseShortShowStmt bool
@@ -58,7 +54,7 @@ type BuildTemplateOptions struct {
 
 	// Globals declares constants, types, variables and functions that are
 	// accessible from the code in the template.
-	Globals Declarations
+	Globals native.Declarations
 
 	// Packages is a PackageLoader that makes precompiled packages available
 	// in the template through the 'import' statement.
@@ -69,7 +65,7 @@ type BuildTemplateOptions struct {
 	//     {%  import  "my/package"   %}    Import a precompiled package.
 	//     {%  import  "my/file.html  %}    Import a template file.
 	//
-	Packages PackageLoader
+	Packages native.PackageLoader
 }
 
 // Converter is implemented by format converters.
@@ -91,11 +87,11 @@ type FormatFS interface {
 
 // formatTypes contains the format types added to the universe block.
 var formatTypes = map[ast.Format]reflect.Type{
-	ast.FormatHTML:     reflect.TypeOf((*types.HTML)(nil)).Elem(),
-	ast.FormatCSS:      reflect.TypeOf((*types.CSS)(nil)).Elem(),
-	ast.FormatJS:       reflect.TypeOf((*types.JS)(nil)).Elem(),
-	ast.FormatJSON:     reflect.TypeOf((*types.JSON)(nil)).Elem(),
-	ast.FormatMarkdown: reflect.TypeOf((*types.Markdown)(nil)).Elem(),
+	ast.FormatHTML:     reflect.TypeOf((*native.HTML)(nil)).Elem(),
+	ast.FormatCSS:      reflect.TypeOf((*native.CSS)(nil)).Elem(),
+	ast.FormatJS:       reflect.TypeOf((*native.JS)(nil)).Elem(),
+	ast.FormatJSON:     reflect.TypeOf((*native.JSON)(nil)).Elem(),
+	ast.FormatMarkdown: reflect.TypeOf((*native.Markdown)(nil)).Elem(),
 }
 
 // BuildTemplate builds the named template file rooted at the given file
@@ -120,7 +116,7 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildTemplateOptions) (*Tem
 	}
 	var mdConverter Converter
 	if options != nil {
-		co.Globals = compiler.Declarations(options.Globals)
+		co.Globals = options.Globals
 		co.TreeTransformer = options.TreeTransformer
 		co.DisallowGoStmt = options.DisallowGoStmt
 		co.NoParseShortShowStmt = options.NoParseShortShowStmt

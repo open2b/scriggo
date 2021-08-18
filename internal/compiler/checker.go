@@ -14,6 +14,7 @@ import (
 
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/compiler/types"
+	"github.com/open2b/scriggo/native"
 )
 
 // checkingMod represents the checking modality.
@@ -156,7 +157,7 @@ type checkerOptions struct {
 	formatTypes map[ast.Format]reflect.Type
 
 	// global declarations.
-	globals Declarations
+	globals native.Declarations
 
 	// mdConverter converts a Markdown source code to HTML.
 	mdConverter Converter
@@ -395,7 +396,7 @@ type mapPackage struct {
 	// Package name.
 	PkgName string
 	// Package declarations.
-	Declarations Declarations
+	Declarations native.Declarations
 }
 
 func (p *mapPackage) Name() string {
