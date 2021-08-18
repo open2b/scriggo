@@ -22,15 +22,15 @@ import (
 	"github.com/open2b/scriggo/scripts"
 
 	// Do not remove this import.
-	// Otherwise, if the file 'predefPkgs.go' has not been populated by 'go
+	// Otherwise, if the file 'packages.go' has not been populated by 'go
 	// generate', running 'go mod tidy' cleans up the 'go.mod' removing the
 	// dependency from the module 'testpkg' (as it is not used elsewhere in
 	// this module) and the next 'go generate' fails.
 	_ "testpkg"
 )
 
-//go:generate scriggo embed -v -o predefPkgs.go
-var predefPkgs native.Packages
+//go:generate scriggo embed -v -o packages.go
+var packages native.Packages
 
 var globals = native.Declarations{
 	"MainSum": func(a, b int) int { return a + b },
@@ -86,7 +86,7 @@ func main() {
 		var src io.Reader = os.Stdin
 		opts := &scriggo.BuildOptions{}
 		opts.DisallowGoStmt = *disallowGoStmt
-		opts.Packages = predefPkgs
+		opts.Packages = packages
 		var fsys fs.FS
 		if cmd == "rundir" {
 			fsys = os.DirFS(flag.Arg(2))
@@ -111,7 +111,7 @@ func main() {
 	case ".script":
 		opts := &scripts.BuildOptions{
 			DisallowGoStmt: *disallowGoStmt,
-			Packages:       predefPkgs,
+			Packages:       packages,
 		}
 		script, err := scripts.Build(os.Stdin, opts)
 		if err != nil {
@@ -138,7 +138,7 @@ func main() {
 		}
 		opts := scriggo.BuildTemplateOptions{
 			Globals:           globals,
-			Packages:          predefPkgs,
+			Packages:          packages,
 			MarkdownConverter: markdownConverter,
 		}
 		template, err := scriggo.BuildTemplate(fsys, "index"+ext, &opts)

@@ -1,4 +1,4 @@
-SET VARIABLE predefPkgs
+SET VARIABLE packages
 
 IMPORT testpkg
 
