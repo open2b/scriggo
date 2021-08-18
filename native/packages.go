@@ -75,18 +75,18 @@ type MapPackage struct {
 }
 
 // Name returns the package name.
-func (p MapPackage) Name() string {
+func (p *MapPackage) Name() string {
 	return p.PkgName
 }
 
 // Lookup returns the declaration declName in the package or nil if no such
 // declaration exists.
-func (p MapPackage) Lookup(declName string) interface{} {
+func (p *MapPackage) Lookup(declName string) interface{} {
 	return p.Declarations[declName]
 }
 
 // DeclarationNames returns returns all package declaration names.
-func (p MapPackage) DeclarationNames() []string {
+func (p *MapPackage) DeclarationNames() []string {
 	declarations := make([]string, 0, len(p.Declarations))
 	for name := range p.Declarations {
 		declarations = append(declarations, name)

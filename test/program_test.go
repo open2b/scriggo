@@ -27,7 +27,7 @@ func TestIssue403(t *testing.T) {
 	t.Run("Method call on predefined variable", func(t *testing.T) {
 		packages := native.CombinedLoader{
 			native.Packages{
-				"pkg": native.MapPackage{
+				"pkg": &native.MapPackage{
 					PkgName: "pkg",
 					Declarations: map[string]interface{}{
 						"Value": &TypeStruct{},
@@ -56,7 +56,7 @@ func TestIssue403(t *testing.T) {
 	t.Run("Method call on not-predefined variable", func(t *testing.T) {
 		packages := native.CombinedLoader{
 			native.Packages{
-				"pkg": native.MapPackage{
+				"pkg": &native.MapPackage{
 					PkgName: "pkg",
 					Declarations: map[string]interface{}{
 						"Type": reflect.TypeOf(new(TypeStruct)).Elem(),
@@ -86,7 +86,7 @@ func TestIssue403(t *testing.T) {
 	t.Run("Function that takes a struct as argument", func(t *testing.T) {
 		packages := native.CombinedLoader{
 			native.Packages{
-				"pkg": native.MapPackage{
+				"pkg": &native.MapPackage{
 					PkgName: "pkg",
 					Declarations: map[string]interface{}{
 						"F": func(s struct{}) {},
@@ -118,7 +118,7 @@ func TestIssue403(t *testing.T) {
 	t.Run("Function taking an array", func(t *testing.T) {
 		packages := native.CombinedLoader{
 			native.Packages{
-				"pkg": native.MapPackage{
+				"pkg": &native.MapPackage{
 					PkgName: "pkg",
 					Declarations: map[string]interface{}{
 						"F": func(s [3]int) {},
@@ -155,7 +155,7 @@ func TestIssue309(t *testing.T) {
 	t.Run("Add right position to 'imported and not used' errors", func(t *testing.T) {
 		packages := native.CombinedLoader{
 			native.Packages{
-				"pkg": native.MapPackage{
+				"pkg": &native.MapPackage{
 					PkgName: "pkg",
 					Declarations: map[string]interface{}{
 						"Value": &TypeStruct{},
