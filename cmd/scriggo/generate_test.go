@@ -31,7 +31,7 @@ func Test_renderPackages(t *testing.T) {
 				"fmt"
 			)
 
-			import . "scriggo"
+			import . "github.com/open2b/scriggo/pkgutil"
 			import "reflect"
 
 			func init() {
@@ -82,7 +82,8 @@ func Test_renderPackages(t *testing.T) {
 				tar "archive/tar"
 			)
 
-			import . "scriggo"
+			import . "github.com/open2b/scriggo/pkgutil"
+			import _types "github.com/open2b/scriggo/types
 			import "reflect"
 
 			func init() {
@@ -104,20 +105,20 @@ func Test_renderPackages(t *testing.T) {
 				decs["NewReader"] = tar.NewReader
 				decs["NewWriter"] = tar.NewWriter
 				decs["Reader"] = reflect.TypeOf((*tar.Reader)(nil)).Elem()
-				decs["TypeBlock"] = untyped.NumericConst("52")
-				decs["TypeChar"] = untyped.NumericConst("51")
-				decs["TypeCont"] = untyped.NumericConst("55")
-				decs["TypeDir"] = untyped.NumericConst("53")
-				decs["TypeFifo"] = untyped.NumericConst("54")
-				decs["TypeGNULongLink"] = untyped.NumericConst("75")
-				decs["TypeGNULongName"] = untyped.NumericConst("76")
-				decs["TypeGNUSparse"] = untyped.NumericConst("83")
-				decs["TypeLink"] = untyped.NumericConst("49")
-				decs["TypeReg"] = untyped.NumericConst("48")
-				decs["TypeRegA"] = untyped.NumericConst("0")
-				decs["TypeSymlink"] = untyped.NumericConst("50")
-				decs["TypeXGlobalHeader"] = untyped.NumericConst("103")
-				decs["TypeXHeader"] = untyped.NumericConst("120")
+				decs["TypeBlock"] = _types.UntypedNumericConst("52")
+				decs["TypeChar"] = _types.UntypedNumericConst("51")
+				decs["TypeCont"] = _types.UntypedNumericConst("55")
+				decs["TypeDir"] = _types.UntypedNumericConst("53")
+				decs["TypeFifo"] = _types.UntypedNumericConst("54")
+				decs["TypeGNULongLink"] = _types.UntypedNumericConst("75")
+				decs["TypeGNULongName"] = _types.UntypedNumericConst("76")
+				decs["TypeGNUSparse"] = _types.UntypedNumericConst("83")
+				decs["TypeLink"] = _types.UntypedNumericConst("49")
+				decs["TypeReg"] = _types.UntypedNumericConst("48")
+				decs["TypeRegA"] = _types.UntypedNumericConst("0")
+				decs["TypeSymlink"] = _types.UntypedNumericConst("50")
+				decs["TypeXGlobalHeader"] = _types.UntypedNumericConst("103")
+				decs["TypeXHeader"] = _types.UntypedNumericConst("120")
 				decs["Writer"] = reflect.TypeOf((*tar.Writer)(nil)).Elem()
 				packages["archive/tar"] = &MapPackage{
 					PkgName: "tar",
@@ -137,7 +138,8 @@ func Test_renderPackages(t *testing.T) {
 				"fmt"
 			)
 
-			import . "scriggo"
+			import . "github.com/open2b/scriggo/pkgutil"
+			import _types "github.com/open2b/scriggo/types
 			import "reflect"
 
 			func init() {
@@ -193,8 +195,7 @@ func Test_renderPackages(t *testing.T) {
 				"fmt"
 			)
 
-			import . "scriggo"
-			import "reflect"
+			import . "github.com/open2b/scriggo/pkgutil"
 
 			func init() {
 				packages = make(Packages, 1)
@@ -300,20 +301,20 @@ func Test_parseGoPackage(t *testing.T) {
 				"NewReader":          "tar.NewReader",
 				"NewWriter":          "tar.NewWriter",
 				"Reader":             "reflect.TypeOf((*tar.Reader)(nil)).Elem()",
-				"TypeBlock":          "untyped.NumericConst(\"52\")",
-				"TypeChar":           "untyped.NumericConst(\"51\")",
-				"TypeCont":           "untyped.NumericConst(\"55\")",
-				"TypeDir":            "untyped.NumericConst(\"53\")",
-				"TypeFifo":           "untyped.NumericConst(\"54\")",
-				"TypeGNULongLink":    "untyped.NumericConst(\"75\")",
-				"TypeGNULongName":    "untyped.NumericConst(\"76\")",
-				"TypeGNUSparse":      "untyped.NumericConst(\"83\")",
-				"TypeLink":           "untyped.NumericConst(\"49\")",
-				"TypeReg":            "untyped.NumericConst(\"48\")",
-				"TypeRegA":           "untyped.NumericConst(\"0\")",
-				"TypeSymlink":        "untyped.NumericConst(\"50\")",
-				"TypeXGlobalHeader":  "untyped.NumericConst(\"103\")",
-				"TypeXHeader":        "untyped.NumericConst(\"120\")",
+				"TypeBlock":          "_types.UntypedNumericConst(\"52\")",
+				"TypeChar":           "_types.UntypedNumericConst(\"51\")",
+				"TypeCont":           "_types.UntypedNumericConst(\"55\")",
+				"TypeDir":            "_types.UntypedNumericConst(\"53\")",
+				"TypeFifo":           "_types.UntypedNumericConst(\"54\")",
+				"TypeGNULongLink":    "_types.UntypedNumericConst(\"75\")",
+				"TypeGNULongName":    "_types.UntypedNumericConst(\"76\")",
+				"TypeGNUSparse":      "_types.UntypedNumericConst(\"83\")",
+				"TypeLink":           "_types.UntypedNumericConst(\"49\")",
+				"TypeReg":            "_types.UntypedNumericConst(\"48\")",
+				"TypeRegA":           "_types.UntypedNumericConst(\"0\")",
+				"TypeSymlink":        "_types.UntypedNumericConst(\"50\")",
+				"TypeXGlobalHeader":  "_types.UntypedNumericConst(\"103\")",
+				"TypeXHeader":        "_types.UntypedNumericConst(\"120\")",
 				"Writer":             "reflect.TypeOf((*tar.Writer)(nil)).Elem()",
 			},
 		},
