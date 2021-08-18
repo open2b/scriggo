@@ -1,4 +1,4 @@
-// skip : investigate
+// skip : defined types are not print correctly (https://github.com/open2b/scriggo/issues/483)
 
 // run
 
