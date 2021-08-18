@@ -39,10 +39,10 @@ type RunOptions struct {
 	// via the native.Env type.
 	Context context.Context
 
-	// PrintFunc is called by the print and println builtins to print values.
+	// Print is called by the print and println builtins to print values.
 	// If it is nil, print and println format its arguments as expected and
 	// write the result to standard error.
-	PrintFunc PrintFunc
+	Print PrintFunc
 }
 
 // Program is a compiled program.
@@ -95,8 +95,8 @@ func (p *Program) Run(options *RunOptions) (int, error) {
 		if options.Context != nil {
 			vm.SetContext(options.Context)
 		}
-		if options.PrintFunc != nil {
-			vm.SetPrint(options.PrintFunc)
+		if options.Print != nil {
+			vm.SetPrint(options.Print)
 		}
 	}
 	code, err := vm.Run(p.fn, p.typeof, initPackageLevelVariables(p.globals))

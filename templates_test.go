@@ -3714,7 +3714,7 @@ func TestMultiFileTemplate(t *testing.T) {
 				}
 			}
 			w := &bytes.Buffer{}
-			err = template.Run(w, cas.vars, &RunOptions{PrintFunc: printFunc(w)})
+			err = template.Run(w, cas.vars, &RunOptions{Print: printFunc(w)})
 			if err != nil {
 				t.Fatalf("rendering error: %s", err)
 			}
