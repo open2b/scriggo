@@ -16,8 +16,8 @@ type Package interface {
 	// package. If the declaration does not exist, it returns nil.
 	//
 	// For a variable returns a pointer to the variable, for a function
-	// returns the function, for a type returns its reflect.Type value, for
-	// typed constant returns its value or for an untyped constant returns a
+	// returns the function, for a type returns its reflect.Type value, for a
+	// typed constant returns its value and for an untyped constant returns a
 	// UntypedStringConst, UntypedBooleanConst or UntypedNumericConst value.
 	Lookup(declName string) interface{}
 
@@ -26,7 +26,7 @@ type Package interface {
 }
 
 // PackageLoader is implemented by package loaders. Given a package path, Load
-// returns a *Package value or a package source as io.Reader.
+// returns a Package value or a package source as io.Reader.
 //
 // If the package does not exist it returns nil and nil.
 // If the package exists but there was an error while loading the package, it
@@ -99,7 +99,7 @@ func (p *MapPackage) DeclarationNames() []string {
 // declarations the declarations of all packages.
 //
 // The Lookup method calls the Lookup methods of each package in order and
-// returns as soon as a package returns a declaration.
+// returns as soon as a package returns a not nil value.
 type CombinedPackage []Package
 
 // Name returns the name of the first combined package.
