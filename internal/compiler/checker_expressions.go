@@ -466,27 +466,24 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		fields := []reflect.StructField{}
 		for _, fd := range expr.Fields {
 			typ := tc.checkType(fd.Type).Type
-			// If the field name is unexported, it's impossible to
-			// create an new reflect.Type due to the limits that the
-			// package 'reflect' currently has. The solution adopted is
-			// to prepend an unicode character 𝗽 which is considered
-			// unexported by the specifications of Go but is allowed by
-			// the reflect.
+			// If the field name is not exported, it is impossible to
+			// create a new reflect.Type due to the limitations that the
+			// reflect package currently has. The solution adopted is to
+			// prepend a unicode character 𝗽 which is considered not exported
+			// by the Go specification but is allowed by the reflect package.
 			//
-			// In addition to this, two values with type struct declared
-			// in two different packages cannot be compared (types are
-			// different) because the package paths are different; the
-			// reflect package does not have the ability to set the such
-			// path; to work around the problem, an identifier is put in
-			// the middle of the character 𝗽 and the original field
-			// name; this makes the field unique to a given package,
-			// resulting in the inability of make comparisons with that
-			// types.
+			// Also, it is not possible to compare two struct type values
+			// declared in two different packages (types are different)
+			// because the package paths are different; the reflect package
+			// does not have the ability to set a such path. To work around
+			// the problem, an identifier is inserted in the middle of the
+			// character 𝗽 and the original field name; this makes the field
+			// unique for a given package, resulting in the inability of
+			// making comparisons with those types.
 			//
-			// Adding the unique index also is also used to check if a
-			// non-exported field of a struct can be accessed from a
-			// package (see the documentation of
-			// typechecker.structDeclPkg).
+			// The addition of the unique index is also used to check if a
+			// non-exported field of a struct can be accessed from a package
+			// (see the documentation of typechecker.structDeclPkg).
 			if fd.Idents == nil {
 				// Implicit field declaration.
 				name := typ.Name()
