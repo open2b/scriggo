@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/types"
 )
 
 var sp = fmt.Sprint
@@ -219,7 +219,7 @@ var tests = []struct {
 	{func() string { s := []string{"b", "a"}; Reverse(s); return spf("%v", s) }(), "[a b]"},
 	{func() string { s := []string{"b", "a", "c"}; Reverse(s); return spf("%v", s) }(), "[c a b]"},
 	{func() string { s := []bool{false, false, true}; Reverse(s); return spf("%v", s) }(), "[true false false]"},
-	{func() string { s := []scriggo.HTML{`<b>`, `<a>`, `<c>`}; Reverse(s); return spf("%v", s) }(), "[<c> <a> <b>]"},
+	{func() string { s := []types.HTML{`<b>`, `<a>`, `<c>`}; Reverse(s); return spf("%v", s) }(), "[<c> <a> <b>]"},
 
 	// sha1
 	{Sha1(``), "da39a3ee5e6b4b0d3255bfef95601890afd80709"},
@@ -240,7 +240,7 @@ var tests = []struct {
 	{func() string { s := []string{"b", "a"}; Sort(s, nil); return spf("%v", s) }(), "[a b]"},
 	{func() string { s := []string{"b", "a", "c"}; Sort(s, nil); return spf("%v", s) }(), "[a b c]"},
 	{func() string { s := []bool{true, false, true}; Sort(s, nil); return spf("%v", s) }(), "[false true true]"},
-	{func() string { s := []scriggo.HTML{`<b>`, `<a>`, `<c>`}; Sort(s, nil); return spf("%v", s) }(), "[<a> <b> <c>]"},
+	{func() string { s := []types.HTML{`<b>`, `<a>`, `<c>`}; Sort(s, nil); return spf("%v", s) }(), "[<a> <b> <c>]"},
 
 	// toKebab
 	{ToKebab(""), ""},

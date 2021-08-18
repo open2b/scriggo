@@ -15,81 +15,9 @@ import (
 	"sort"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/env"
 	"github.com/open2b/scriggo/internal/compiler"
 	"github.com/open2b/scriggo/internal/runtime"
-)
-
-// EnvStringer is like fmt.Stringer where the String method takes an env.Env
-// parameter.
-type EnvStringer interface {
-	String(env.Env) string
-}
-
-// HTMLStringer is implemented by values that are not escaped in HTML context.
-type HTMLStringer interface {
-	HTML() HTML
-}
-
-// HTMLEnvStringer is like HTMLStringer where the HTML method takes a
-// env.Env parameter.
-type HTMLEnvStringer interface {
-	HTML(env.Env) HTML
-}
-
-// CSSStringer is implemented by values that are not escaped in CSS context.
-type CSSStringer interface {
-	CSS() CSS
-}
-
-// CSSEnvStringer is like CSSStringer where the CSS method takes an env.Env
-// parameter.
-type CSSEnvStringer interface {
-	CSS(env.Env) CSS
-}
-
-// JSStringer is implemented by values that are not escaped in JavaScript
-// context.
-type JSStringer interface {
-	JS() JS
-}
-
-// JSEnvStringer is like JSStringer where the JS method takes an env.Env
-// parameter.
-type JSEnvStringer interface {
-	JS(env.Env) JS
-}
-
-// JSONStringer is implemented by values that are not escaped in JSON context.
-type JSONStringer interface {
-	JSON() JSON
-}
-
-// JSONEnvStringer is like JSONStringer where the JSON method takes an env.Env
-// parameter.
-type JSONEnvStringer interface {
-	JSON(env.Env) JSON
-}
-
-// MarkdownStringer is implemented by values that are not escaped in Markdown
-// context.
-type MarkdownStringer interface {
-	Markdown() Markdown
-}
-
-// MarkdownEnvStringer is like MarkdownStringer where the Markdown method
-// takes an env.Env parameter.
-type MarkdownEnvStringer interface {
-	Markdown(env.Env) Markdown
-}
-
-// Format types.
-type (
-	HTML     string // the html type in templates.
-	CSS      string // the css type in templates.
-	JS       string // the js type in templates.
-	JSON     string // the json type in templates.
-	Markdown string // the markdown type in templates.
+	"github.com/open2b/scriggo/types"
 )
 
 // A Format represents a content format.
@@ -163,11 +91,11 @@ type FormatFS interface {
 
 // formatTypes contains the format types added to the universe block.
 var formatTypes = map[ast.Format]reflect.Type{
-	ast.FormatHTML:     reflect.TypeOf((*HTML)(nil)).Elem(),
-	ast.FormatCSS:      reflect.TypeOf((*CSS)(nil)).Elem(),
-	ast.FormatJS:       reflect.TypeOf((*JS)(nil)).Elem(),
-	ast.FormatJSON:     reflect.TypeOf((*JSON)(nil)).Elem(),
-	ast.FormatMarkdown: reflect.TypeOf((*Markdown)(nil)).Elem(),
+	ast.FormatHTML:     reflect.TypeOf((*types.HTML)(nil)).Elem(),
+	ast.FormatCSS:      reflect.TypeOf((*types.CSS)(nil)).Elem(),
+	ast.FormatJS:       reflect.TypeOf((*types.JS)(nil)).Elem(),
+	ast.FormatJSON:     reflect.TypeOf((*types.JSON)(nil)).Elem(),
+	ast.FormatMarkdown: reflect.TypeOf((*types.Markdown)(nil)).Elem(),
 }
 
 // BuildTemplate builds the named template file rooted at the given file
@@ -226,8 +154,7 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 			vm.SetPrint(options.PrintFunc)
 		}
 	}
-	renderer := newRenderer(out, t.mdConverter)
-	vm.SetRenderer(renderer)
+	vm.SetOutput(out, runtime.Converter(t.mdConverter))
 	_, err := vm.Run(t.fn, t.typeof, initGlobalVariables(t.globals, vars))
 	if p, ok := err.(*runtime.Panic); ok {
 		err = &Panic{p}

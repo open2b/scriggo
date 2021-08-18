@@ -154,6 +154,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/types"
 )
 
 // Abbreviate abbreviates s to almost n runes. If s is longer than n runes,
@@ -302,8 +303,8 @@ func HmacSHA256(message, key string) string {
 }
 
 // HtmlEscape escapes s, replacing the characters <, >, &, " and ' and returns
-// the escaped string as scriggo.HTML type.
-func HtmlEscape(s string) scriggo.HTML {
+// the escaped string as types.HTML type.
+func HtmlEscape(s string) types.HTML {
 	return scriggo.HTMLEscape(s)
 }
 
@@ -374,12 +375,12 @@ func LastIndex(s, substr string) int {
 // MarshalJSON returns the JSON encoding of v.
 //
 // See https://golang.org/pkg/encoding/json/#Marshal for details.
-func MarshalJSON(v interface{}) (scriggo.JSON, error) {
+func MarshalJSON(v interface{}) (types.JSON, error) {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return "", replacePrefix(err, "json", "marshalJSON")
 	}
-	return scriggo.JSON(b), nil
+	return types.JSON(b), nil
 }
 
 // MarshalJSONIndent is like MarshalJSON but indents the output. Each JSON
@@ -387,7 +388,7 @@ func MarshalJSON(v interface{}) (scriggo.JSON, error) {
 // followed by one or more copies of indent according to the indentation
 // nesting. prefix and indent can only contain whitespace: ' ', '\t', '\n' and
 // '\r'.
-func MarshalJSONIndent(v interface{}, prefix, indent string) (scriggo.JSON, error) {
+func MarshalJSONIndent(v interface{}, prefix, indent string) (types.JSON, error) {
 	if !onlyJSONWhitespace(prefix) {
 		return "", errors.New("marshalJSONIndent: prefix does not contain only whitespace")
 	}
@@ -398,7 +399,7 @@ func MarshalJSONIndent(v interface{}, prefix, indent string) (scriggo.JSON, erro
 	if err != nil {
 		return "", errors.New(err.Error())
 	}
-	return scriggo.JSON(b), nil
+	return types.JSON(b), nil
 }
 
 // Max returns the larger of x or y.
@@ -649,15 +650,15 @@ func Sort(slice interface{}, less func(i, j int) bool) {
 		sort.Ints(s)
 	case []float64:
 		sort.Float64s(s)
-	case []scriggo.HTML:
+	case []types.HTML:
 		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
-	case []scriggo.CSS:
+	case []types.CSS:
 		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
-	case []scriggo.JS:
+	case []types.JS:
 		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
-	case []scriggo.JSON:
+	case []types.JSON:
 		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
-	case []scriggo.Markdown:
+	case []types.Markdown:
 		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
 	}
 	// reflect

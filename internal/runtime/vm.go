@@ -8,13 +8,14 @@ package runtime
 
 import (
 	"context"
+	"io"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/env"
+	"github.com/open2b/scriggo/types"
 )
 
 const NoVariadicArgs = -1
@@ -25,9 +26,12 @@ const maxUint32 = 1<<31 - 1
 
 const stackSize = 512
 
-var envType = reflect.TypeOf((*env.Env)(nil)).Elem()
+var envType = reflect.TypeOf((*types.Env)(nil)).Elem()
 var emptyInterfaceType = reflect.TypeOf(&[]interface{}{nil}[0]).Elem()
 var emptyInterfaceNil = reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
+
+// Converter is implemented by format converters.
+type Converter func(src []byte, out io.Writer) error
 
 // A TypeOfFunc function returns a type of a value.
 type TypeOfFunc func(reflect.Value) reflect.Type
@@ -95,7 +99,7 @@ type VM struct {
 	regs     registers            // registers.
 	fn       *Function            // running function.
 	vars     []reflect.Value      // global and closure variables.
-	env      *rtEnv               // execution environment.
+	env      *env                 // execution environment.
 	envArg   reflect.Value        // execution environment as argument.
 	renderer Renderer             // renderer
 	calls    []callFrame          // call stack frame.
@@ -106,7 +110,7 @@ type VM struct {
 
 // NewVM returns a new virtual machine.
 func NewVM() *VM {
-	vm := create(&rtEnv{})
+	vm := create(&env{})
 	vm.main = true
 	return vm
 }
@@ -122,7 +126,7 @@ func (vm *VM) Reset() {
 	vm.ok = false
 	vm.fn = nil
 	vm.vars = nil
-	vm.env = &rtEnv{}
+	vm.env = &env{}
 	vm.envArg = reflect.ValueOf(vm.env)
 	if vm.calls != nil {
 		vm.calls = vm.calls[:0]
@@ -181,6 +185,13 @@ func (vm *VM) SetPrint(p func(interface{})) {
 // SetRenderer must not be called after vm has been started.
 func (vm *VM) SetRenderer(r Renderer) {
 	vm.renderer = r
+}
+
+// SetOutput sets the output.
+//
+// SetOutput must not be called after vm has been started.
+func (vm *VM) SetOutput(out io.Writer, converter Converter) {
+	vm.renderer = newRenderer(out, converter)
 }
 
 // Stack returns the current stack trace.
@@ -588,8 +599,8 @@ func (vm *VM) nextCall() bool {
 	return false
 }
 
-// create creates a new virtual machine with the execution environment rtEnv.
-func create(env *rtEnv) *VM {
+// create creates a new virtual machine with the execution environment env.
+func create(env *env) *VM {
 	vm := &VM{
 		st: [4]Addr{stackSize, stackSize, stackSize, stackSize},
 		regs: registers{
@@ -875,7 +886,7 @@ func (c *callable) Predefined() *PredefinedFunction {
 
 // Value returns a reflect Value of a callable, so it can be called from a
 // predefined code and passed to a predefined code.
-func (c *callable) Value(renderer Renderer, env *rtEnv) reflect.Value {
+func (c *callable) Value(renderer Renderer, env *env) reflect.Value {
 	if c.value.IsValid() {
 		return c.value
 	}

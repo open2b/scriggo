@@ -14,25 +14,15 @@ import (
 	"testing"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/env"
 	"github.com/open2b/scriggo/internal/fstest"
-	"github.com/open2b/scriggo/untyped"
-)
-
-type (
-	JS              string
-	JSON            string
-	JSStringer      interface{ JS() JS }
-	JSEnvStringer   interface{ JS(env.Env) JS }
-	JSONStringer    interface{ JSON() JSON }
-	JSONEnvStringer interface{ JSON(env.Env) JSON }
+	"github.com/open2b/scriggo/types"
 )
 
 func init() {
-	JSStringerType = reflect.TypeOf((*JSStringer)(nil)).Elem()
-	JSEnvStringerType = reflect.TypeOf((*JSEnvStringer)(nil)).Elem()
-	JSONStringerType = reflect.TypeOf((*JSONStringer)(nil)).Elem()
-	JSONEnvStringerType = reflect.TypeOf((*JSONEnvStringer)(nil)).Elem()
+	jsStringerType = reflect.TypeOf((*types.JSStringer)(nil)).Elem()
+	jsEnvStringerType = reflect.TypeOf((*types.JSEnvStringer)(nil)).Elem()
+	jsonStringerType = reflect.TypeOf((*types.JSONStringer)(nil)).Elem()
+	jsonEnvStringerType = reflect.TypeOf((*types.JSONEnvStringer)(nil)).Elem()
 }
 
 type html string
@@ -640,8 +630,8 @@ func TestCheckerTemplatesStatements(t *testing.T) {
 			"I":  &I,
 			"S":  &S,
 			"Ci": 5,
-			"Ui": untyped.NumericConst("5"),
-			"Uf": untyped.NumericConst("5.0"),
+			"Ui": types.UntypedNumericConst("5"),
+			"Uf": types.UntypedNumericConst("5.0"),
 			"R":  'r',
 		},
 	}

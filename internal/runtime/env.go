@@ -13,7 +13,7 @@ import (
 	"sync"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/env"
+	"github.com/open2b/scriggo/types"
 )
 
 type PrintFunc func(interface{})
@@ -22,16 +22,16 @@ type PrintFunc func(interface{})
 type Context byte
 
 type Renderer interface {
-	Show(env env.Env, v interface{}, ctx Context)
-	Text(env env.Env, txt []byte, inURL, isSet bool)
+	Show(env types.Env, v interface{}, ctx Context)
+	Text(env types.Env, txt []byte, inURL, isSet bool)
 	Out() io.Writer
 	WithOut(out io.Writer) Renderer
 	WithConversion(fromFormat, toFormat ast.Format) Renderer
 	Close() error
 }
 
-// The rtEnv type implements the env.Env interface.
-type rtEnv struct {
+// The env type implements the types.Env interface.
+type env struct {
 	ctx     context.Context // context.
 	globals []reflect.Value // global variables.
 	print   PrintFunc       // custom print builtin.
@@ -46,15 +46,15 @@ type rtEnv struct {
 	filePath string   // path of the file where the main goroutine is in.
 }
 
-func (env *rtEnv) Context() context.Context {
+func (env *env) Context() context.Context {
 	return env.ctx
 }
 
-func (env *rtEnv) Exit(code int) {
+func (env *env) Exit(code int) {
 	panic(exitError(code))
 }
 
-func (env *rtEnv) Exited() bool {
+func (env *env) Exited() bool {
 	var exited bool
 	env.mu.Lock()
 	exited = env.exited
@@ -62,7 +62,7 @@ func (env *rtEnv) Exited() bool {
 	return exited
 }
 
-func (env *rtEnv) ExitFunc(f func()) {
+func (env *env) ExitFunc(f func()) {
 	env.mu.Lock()
 	if env.exited {
 		go f()
@@ -73,24 +73,24 @@ func (env *rtEnv) ExitFunc(f func()) {
 	return
 }
 
-func (env *rtEnv) Fatal(v interface{}) {
+func (env *env) Fatal(v interface{}) {
 	panic(&FatalError{env: env, msg: v})
 }
 
-func (env *rtEnv) FilePath() string {
+func (env *env) FilePath() string {
 	env.mu.Lock()
 	filePath := env.filePath
 	env.mu.Unlock()
 	return filePath
 }
 
-func (env *rtEnv) Print(args ...interface{}) {
+func (env *env) Print(args ...interface{}) {
 	for _, arg := range args {
 		env.doPrint(arg)
 	}
 }
 
-func (env *rtEnv) Println(args ...interface{}) {
+func (env *env) Println(args ...interface{}) {
 	for i, arg := range args {
 		if i > 0 {
 			env.doPrint(" ")
@@ -100,7 +100,7 @@ func (env *rtEnv) Println(args ...interface{}) {
 	env.doPrint("\n")
 }
 
-func (env *rtEnv) TypeOf(v reflect.Value) reflect.Type {
+func (env *env) TypeOf(v reflect.Value) reflect.Type {
 	return env.typeof(v)
 }
 
@@ -108,7 +108,7 @@ func typeOfFunc(v reflect.Value) reflect.Type {
 	return v.Type()
 }
 
-func (env *rtEnv) doPrint(arg interface{}) {
+func (env *env) doPrint(arg interface{}) {
 	if env.print != nil {
 		env.print(arg)
 		return
@@ -138,7 +138,7 @@ func (env *rtEnv) doPrint(arg interface{}) {
 	}
 }
 
-func (env *rtEnv) exit() {
+func (env *env) exit() {
 	env.mu.Lock()
 	if !env.exited {
 		for _, f := range env.exits {

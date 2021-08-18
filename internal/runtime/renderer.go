@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package scriggo
+package runtime
 
 import (
 	"bytes"
@@ -21,32 +21,10 @@ import (
 	"unicode/utf8"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/env"
-	"github.com/open2b/scriggo/internal/compiler"
-	"github.com/open2b/scriggo/internal/runtime"
+	"github.com/open2b/scriggo/types"
 )
 
 var byteSliceType = reflect.TypeOf([]byte(nil))
-
-func init() {
-	compiler.StringerType = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
-	compiler.EnvStringerType = reflect.TypeOf((*EnvStringer)(nil)).Elem()
-
-	compiler.HTMLStringerType = reflect.TypeOf((*HTMLStringer)(nil)).Elem()
-	compiler.HTMLEnvStringerType = reflect.TypeOf((*HTMLEnvStringer)(nil)).Elem()
-
-	compiler.CSSStringerType = reflect.TypeOf((*CSSStringer)(nil)).Elem()
-	compiler.CSSEnvStringerType = reflect.TypeOf((*CSSEnvStringer)(nil)).Elem()
-
-	compiler.JSStringerType = reflect.TypeOf((*JSStringer)(nil)).Elem()
-	compiler.JSEnvStringerType = reflect.TypeOf((*JSEnvStringer)(nil)).Elem()
-
-	compiler.JSONStringerType = reflect.TypeOf((*JSONStringer)(nil)).Elem()
-	compiler.JSONEnvStringerType = reflect.TypeOf((*JSONEnvStringer)(nil)).Elem()
-
-	compiler.MDStringerType = reflect.TypeOf((*MarkdownStringer)(nil)).Elem()
-	compiler.MDEnvStringerType = reflect.TypeOf((*MarkdownEnvStringer)(nil)).Elem()
-}
 
 // renderer implements the runtime.Renderer interface and it is used to render
 // template files.
@@ -88,7 +66,7 @@ func (r *renderer) Close() error {
 
 // Show shows v in the given context if r.out is not nil.
 // If r.out is nil, Show only does a type check and calls env.Fatal if it fails.
-func (r *renderer) Show(env env.Env, v interface{}, context runtime.Context) {
+func (r *renderer) Show(env types.Env, v interface{}, context Context) {
 
 	ctx, inURL, _ := decodeRenderContext(context)
 
@@ -153,7 +131,7 @@ func (r *renderer) Out() io.Writer {
 }
 
 // Text shows txt in the given context.
-func (r *renderer) Text(env env.Env, txt []byte, inURL, isSet bool) {
+func (r *renderer) Text(env types.Env, txt []byte, inURL, isSet bool) {
 
 	// Check and eventually change the URL state.
 	if r.inURL != inURL {
@@ -195,7 +173,7 @@ func (r *renderer) Text(env env.Env, txt []byte, inURL, isSet bool) {
 
 }
 
-func (r *renderer) WithConversion(from, to ast.Format) runtime.Renderer {
+func (r *renderer) WithConversion(from, to ast.Format) Renderer {
 	if from == ast.FormatMarkdown && to == ast.FormatHTML {
 		out := newMarkdownWriter(r.out, r.converter)
 		return newRenderer(out, nil)
@@ -203,12 +181,12 @@ func (r *renderer) WithConversion(from, to ast.Format) runtime.Renderer {
 	return newRenderer(r.out, r.converter)
 }
 
-func (r *renderer) WithOut(out io.Writer) runtime.Renderer {
+func (r *renderer) WithOut(out io.Writer) Renderer {
 	return newRenderer(out, r.converter)
 }
 
 // showInURL shows v in a URL in the given context.
-func (r *renderer) showInURL(env env.Env, v interface{}, ctx ast.Context) {
+func (r *renderer) showInURL(env types.Env, v interface{}, ctx ast.Context) {
 
 	var b strings.Builder
 	err := showInHTML(env, &b, v)
@@ -306,7 +284,7 @@ func newStringWriter(wr io.Writer) strWriter {
 	return strWriterWrapper{wr}
 }
 
-func toString(env env.Env, i interface{}) (string, error) {
+func toString(env types.Env, i interface{}) (string, error) {
 	v := valueOf(env, i)
 	switch v.Kind() {
 	case reflect.Invalid:
@@ -364,12 +342,12 @@ func toString(env env.Env, i interface{}) (string, error) {
 }
 
 // showInText shows value in the Text context.
-func showInText(env env.Env, out io.Writer, value interface{}) error {
+func showInText(env types.Env, out io.Writer, value interface{}) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
 		s = v.String()
-	case EnvStringer:
+	case types.EnvStringer:
 		s = v.String(env)
 	case error:
 		s = v.Error()
@@ -386,21 +364,21 @@ func showInText(env env.Env, out io.Writer, value interface{}) error {
 }
 
 // showInHTML shows value in HTML context.
-func showInHTML(env env.Env, out io.Writer, value interface{}) error {
+func showInHTML(env types.Env, out io.Writer, value interface{}) error {
 	w := newStringWriter(out)
 	switch v := value.(type) {
-	case HTML:
+	case types.HTML:
 		_, err := w.WriteString(string(v))
 		return err
-	case HTMLStringer:
+	case types.HTMLStringer:
 		_, err := w.WriteString(string(v.HTML()))
 		return err
-	case HTMLEnvStringer:
+	case types.HTMLEnvStringer:
 		_, err := w.WriteString(string(v.HTML(env)))
 		return err
 	case fmt.Stringer:
 		return htmlEscape(w, v.String())
-	case EnvStringer:
+	case types.EnvStringer:
 		return htmlEscape(w, v.String(env))
 	case []byte:
 		_, err := out.Write(v)
@@ -417,12 +395,12 @@ func showInHTML(env env.Env, out io.Writer, value interface{}) error {
 }
 
 // showInTag show value in Tag context.
-func showInTag(env env.Env, out io.Writer, value interface{}) error {
+func showInTag(env types.Env, out io.Writer, value interface{}) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
 		s = v.String()
-	case EnvStringer:
+	case types.EnvStringer:
 		s = v.String(env)
 	case error:
 		s = v.Error()
@@ -459,21 +437,21 @@ func showInTag(env env.Env, out io.Writer, value interface{}) error {
 
 // showInAttribute shows value in the attribute context quoted or unquoted
 // depending on quoted value.
-func showInAttribute(env env.Env, out io.Writer, value interface{}, quoted bool) error {
+func showInAttribute(env types.Env, out io.Writer, value interface{}, quoted bool) error {
 	var s string
 	var escapeEntities bool
 	switch v := value.(type) {
 	case fmt.Stringer:
 		s = v.String()
 		escapeEntities = true
-	case EnvStringer:
+	case types.EnvStringer:
 		s = v.String(env)
 		escapeEntities = true
-	case HTML:
+	case types.HTML:
 		s = string(v)
-	case HTMLStringer:
+	case types.HTMLStringer:
 		s = string(v.HTML())
-	case HTMLEnvStringer:
+	case types.HTMLEnvStringer:
 		s = string(v.HTML(env))
 	case error:
 		s = v.Error()
@@ -490,21 +468,21 @@ func showInAttribute(env env.Env, out io.Writer, value interface{}, quoted bool)
 }
 
 // showInCSS shows value in CSS context.
-func showInCSS(env env.Env, out io.Writer, value interface{}) error {
+func showInCSS(env types.Env, out io.Writer, value interface{}) error {
 	w := newStringWriter(out)
 	switch v := value.(type) {
-	case CSS:
+	case types.CSS:
 		_, err := w.WriteString(string(v))
 		return err
-	case CSSStringer:
+	case types.CSSStringer:
 		_, err := w.WriteString(string(v.CSS()))
 		return err
-	case CSSEnvStringer:
+	case types.CSSEnvStringer:
 		_, err := w.WriteString(string(v.CSS(env)))
 		return err
 	case fmt.Stringer:
 		value = v.String()
-	case EnvStringer:
+	case types.EnvStringer:
 		value = v.String(env)
 	case []byte:
 		return escapeBytes(w, v, false)
@@ -533,12 +511,12 @@ func showInCSS(env env.Env, out io.Writer, value interface{}) error {
 }
 
 // showInCSSString shows value in CSSString context.
-func showInCSSString(env env.Env, out io.Writer, value interface{}) error {
+func showInCSSString(env types.Env, out io.Writer, value interface{}) error {
 	var s string
 	switch value := value.(type) {
 	case fmt.Stringer:
 		s = value.String()
-	case EnvStringer:
+	case types.EnvStringer:
 		s = value.String(env)
 	case error:
 		s = value.Error()
@@ -558,7 +536,7 @@ func showInCSSString(env env.Env, out io.Writer, value interface{}) error {
 }
 
 // showInJS shows value in JavaScript context.
-func showInJS(env env.Env, out io.Writer, value interface{}) error {
+func showInJS(env types.Env, out io.Writer, value interface{}) error {
 
 	w := newStringWriter(out)
 
@@ -566,13 +544,13 @@ func showInJS(env env.Env, out io.Writer, value interface{}) error {
 	case nil:
 		_, err := w.WriteString("null")
 		return err
-	case JS:
+	case types.JS:
 		_, err := w.WriteString(string(v))
 		return err
-	case JSStringer:
+	case types.JSStringer:
 		_, err := w.WriteString(string(v.JS()))
 		return err
-	case JSEnvStringer:
+	case types.JSEnvStringer:
 		_, err := w.WriteString(string(v.JS(env)))
 		return err
 	case time.Time:
@@ -707,7 +685,7 @@ func showInJS(env env.Env, out io.Writer, value interface{}) error {
 			switch k := key.Interface().(type) {
 			case fmt.Stringer:
 				keyPairs[i].key = k.String()
-			case EnvStringer:
+			case types.EnvStringer:
 				keyPairs[i].key = k.String(env)
 			default:
 				s, err := toString(env, k)
@@ -755,7 +733,7 @@ func showInJS(env env.Env, out io.Writer, value interface{}) error {
 }
 
 // showInJSON shows value in JSON context.
-func showInJSON(env env.Env, out io.Writer, value interface{}) error {
+func showInJSON(env types.Env, out io.Writer, value interface{}) error {
 
 	w := newStringWriter(out)
 
@@ -763,13 +741,13 @@ func showInJSON(env env.Env, out io.Writer, value interface{}) error {
 	case nil:
 		_, err := w.WriteString("null")
 		return err
-	case JSON:
+	case types.JSON:
 		_, err := w.WriteString(string(v))
 		return err
-	case JSONStringer:
+	case types.JSONStringer:
 		_, err := w.WriteString(string(v.JSON()))
 		return err
-	case JSONEnvStringer:
+	case types.JSONEnvStringer:
 		_, err := w.WriteString(string(v.JSON(env)))
 		return err
 	case time.Time:
@@ -910,7 +888,7 @@ func showInJSON(env env.Env, out io.Writer, value interface{}) error {
 			switch k := key.Interface().(type) {
 			case fmt.Stringer:
 				keyPairs[i].key = k.String()
-			case EnvStringer:
+			case types.EnvStringer:
 				keyPairs[i].key = k.String(env)
 			default:
 				s, err := toString(env, k)
@@ -957,12 +935,12 @@ func showInJSON(env env.Env, out io.Writer, value interface{}) error {
 }
 
 // showInJSString shows value in JSString context.
-func showInJSString(env env.Env, out io.Writer, value interface{}) error {
+func showInJSString(env types.Env, out io.Writer, value interface{}) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
 		s = v.String()
-	case EnvStringer:
+	case types.EnvStringer:
 		s = v.String(env)
 	case error:
 		s = v.Error()
@@ -977,32 +955,32 @@ func showInJSString(env env.Env, out io.Writer, value interface{}) error {
 }
 
 // showInJSONString shows value in JSONString context.
-func showInJSONString(env env.Env, out io.Writer, value interface{}) error {
+func showInJSONString(env types.Env, out io.Writer, value interface{}) error {
 	return showInJSString(env, out, value)
 }
 
 // showInMarkdown shows value in the Markdown context.
-func showInMarkdown(env env.Env, out io.Writer, value interface{}) error {
+func showInMarkdown(env types.Env, out io.Writer, value interface{}) error {
 	w := newStringWriter(out)
 	switch v := value.(type) {
-	case Markdown:
+	case types.Markdown:
 		_, err := w.WriteString(string(v))
 		return err
-	case MarkdownStringer:
+	case types.MarkdownStringer:
 		_, err := w.WriteString(string(v.Markdown()))
 		return err
-	case MarkdownEnvStringer:
+	case types.MarkdownEnvStringer:
 		_, err := w.WriteString(string(v.Markdown(env)))
 		return err
-	case HTML:
+	case types.HTML:
 		return markdownEscape(w, string(v), true)
-	case HTMLStringer:
+	case types.HTMLStringer:
 		return markdownEscape(w, string(v.HTML()), true)
-	case HTMLEnvStringer:
+	case types.HTMLEnvStringer:
 		return markdownEscape(w, string(v.HTML(env)), true)
 	case fmt.Stringer:
 		return markdownEscape(w, v.String(), false)
-	case EnvStringer:
+	case types.EnvStringer:
 		return markdownEscape(w, v.String(env), false)
 	case error:
 		return markdownEscape(w, v.Error(), false)
@@ -1016,12 +994,12 @@ func showInMarkdown(env env.Env, out io.Writer, value interface{}) error {
 }
 
 // showInMarkdownCodeBlock shows value in the Markdown code block context.
-func showInMarkdownCodeBlock(env env.Env, out io.Writer, value interface{}, spaces bool) error {
+func showInMarkdownCodeBlock(env types.Env, out io.Writer, value interface{}, spaces bool) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
 		s = v.String()
-	case EnvStringer:
+	case types.EnvStringer:
 		s = v.String(env)
 	case error:
 		s = v.Error()
@@ -1105,13 +1083,13 @@ func isEmptyValue(v reflect.Value) (empty bool) {
 
 // valueOf returns the reflect value of i. If i is a proxy, it returns the
 // underlying value.
-func valueOf(env env.Env, i interface{}) reflect.Value {
+func valueOf(env types.Env, i interface{}) reflect.Value {
 	if i == nil {
 		return reflect.Value{}
 	}
 	v := reflect.ValueOf(i)
 	t := env.TypeOf(v)
-	if w, ok := t.(runtime.ScriggoType); ok {
+	if w, ok := t.(ScriggoType); ok {
 		v, _ = w.Unwrap(v)
 	}
 	return v
@@ -1119,7 +1097,7 @@ func valueOf(env env.Env, i interface{}) reflect.Value {
 
 // decodeRenderContext decodes a runtime.Context.
 // Keep in sync with the compiler.decodeRenderContext.
-func decodeRenderContext(c runtime.Context) (ast.Context, bool, bool) {
+func decodeRenderContext(c Context) (ast.Context, bool, bool) {
 	ctx := ast.Context(c & 0b00001111)
 	inURL := c&0b10000000 != 0
 	isURLSet := false

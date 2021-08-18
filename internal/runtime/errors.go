@@ -18,7 +18,7 @@ var errNilPointer = runtimeError("runtime error: invalid memory address or nil p
 // FatalError represents a fatal error. A fatal error cannot be recovered by
 // the running program.
 type FatalError struct {
-	env  *rtEnv
+	env  *env
 	msg  interface{}
 	pos  Position
 	path string

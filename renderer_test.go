@@ -11,12 +11,11 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"strings"
 	"testing"
 	"time"
 
-	"github.com/open2b/scriggo/env"
 	"github.com/open2b/scriggo/internal/fstest"
+	"github.com/open2b/scriggo/types"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -35,8 +34,8 @@ var htmlContextTests = []struct {
 	{`a`, "&lt;a&gt;", Vars{"a": "<a>"}},
 	{`a`, "&#34;ab&#39;cd&#34;", Vars{"a": "\"ab'cd\""}},
 	{`d`, "&lt;div&gt;&lt;/div&gt;", Vars{"d": "<div></div>"}},
-	{`a`, "<a>", Vars{"a": HTML("<a>")}},
-	{`d`, "<div></div>", Vars{"d": HTML("<div></div>")}},
+	{`a`, "<a>", Vars{"a": types.HTML("<a>")}},
+	{`d`, "<div></div>", Vars{"d": types.HTML("<div></div>")}},
 	{`0`, "0", nil},
 	{`25`, "25", nil},
 	{`-25`, "-25", nil},
@@ -90,10 +89,10 @@ var quotedAttrContextTests = []struct {
 	{`"<div></div>"`, "&lt;div&gt;&lt;/div&gt;", nil},
 	{`a`, "&lt;a&gt;", Vars{"a": "<a>"}},
 	{`d`, "&lt;div&gt;&lt;/div&gt;", Vars{"d": "<div></div>"}},
-	{`a`, "&lt;a&gt;", Vars{"a": HTML("<a>")}},
-	{`d`, "&lt;div&gt;&lt;/div&gt;", Vars{"d": HTML("<div></div>")}},
-	{`a`, "&lt;a&gt;&#33;", Vars{"a": HTML("<a>&#33;")}},
-	{`d`, "&lt;div&gt;&#33;&lt;/div&gt;", Vars{"d": HTML("<div>&#33;</div>")}},
+	{`a`, "&lt;a&gt;", Vars{"a": types.HTML("<a>")}},
+	{`d`, "&lt;div&gt;&lt;/div&gt;", Vars{"d": types.HTML("<div></div>")}},
+	{`a`, "&lt;a&gt;&#33;", Vars{"a": types.HTML("<a>&#33;")}},
+	{`d`, "&lt;div&gt;&#33;&lt;/div&gt;", Vars{"d": types.HTML("<div>&#33;</div>")}},
 	{`0`, "0", nil},
 	{`25`, "25", nil},
 	{`-25`, "-25", nil},
@@ -143,8 +142,8 @@ var unquotedAttrContextTests = []struct {
 	{`a`, "&#09;&#10;&#13;&#12;&#32;a&#61;&#96;", Vars{"a": "\t\n\r\x0C a=`"}},
 	{`s["a"]`, "", Vars{"s": map[interface{}]interface{}{}}},
 	{`a`, "&lt;a&gt;", Vars{"a": "<a>"}},
-	{`a`, "&lt;a&gt;", Vars{"a": HTML("<a>")}},
-	{`a`, "&lt;a&gt;&#33;", Vars{"a": HTML("<a>&#33;")}},
+	{`a`, "&lt;a&gt;", Vars{"a": types.HTML("<a>")}},
+	{`a`, "&lt;a&gt;&#33;", Vars{"a": types.HTML("<a>&#33;")}},
 }
 
 func TestUnquotedAttrContext(t *testing.T) {
@@ -318,18 +317,6 @@ func TestJSONContext(t *testing.T) {
 	}
 }
 
-func TestJSStringEscape(t *testing.T) {
-	b := strings.Builder{}
-	s := "a\u2028b&\u2029c"
-	err := jsStringEscape(&b, s)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if b.String() != `a\u2028b\u0026\u2029c` {
-		t.Errorf("unexpected %q, expecting %q\n", b.String(), s)
-	}
-}
-
 var jsStringContextTests = []struct {
 	src  string
 	res  string
@@ -385,7 +372,7 @@ var cssContextTests = []struct {
 	{`""`, `""`, nil},
 	{`"a"`, `"a"`, nil},
 	{`"<a>"`, `"\3c a\3e "`, nil},
-	{`a`, `"\3c a\3e "`, Vars{"a": HTML("<a>")}},
+	{`a`, `"\3c a\3e "`, Vars{"a": types.HTML("<a>")}},
 	{`5`, `5`, nil},
 	{`5.2`, `5.2`, nil},
 	{`a`, `AAECAwQF`, Vars{"a": []byte{0, 1, 2, 3, 4, 5}}},
@@ -426,7 +413,7 @@ var cssStringContextTests = []struct {
 	{`"\u001F"`, `\1f `, nil},
 	{`"a"`, `a`, nil},
 	{`"<a>"`, `\3c a\3e `, nil},
-	{`a`, `\3c a\3e `, Vars{"a": HTML("<a>")}},
+	{`a`, `\3c a\3e `, Vars{"a": types.HTML("<a>")}},
 	{`"\\"`, `\\`, nil},
 	{`"\""`, `\22 `, nil},
 	{`"'"`, `\27 `, nil},
@@ -478,7 +465,7 @@ func asDeclarations(vars Vars) Declarations {
 
 type testEnvStringer struct{}
 
-func (*testEnvStringer) String(env env.Env) string {
+func (*testEnvStringer) String(env types.Env) string {
 	return fmt.Sprint(env.Context().Value("forty-two"))
 }
 
@@ -488,8 +475,8 @@ var testEnvStringerValue = &testEnvStringer{}
 
 type testHTMLEnvStringer struct{}
 
-func (*testHTMLEnvStringer) HTML(env env.Env) HTML {
-	return HTML(fmt.Sprint(env.Context().Value("forty-two")))
+func (*testHTMLEnvStringer) HTML(env types.Env) types.HTML {
+	return types.HTML(fmt.Sprint(env.Context().Value("forty-two")))
 }
 
 var testHTMLEnvStringerValue = &testHTMLEnvStringer{}
@@ -498,8 +485,8 @@ var testHTMLEnvStringerValue = &testHTMLEnvStringer{}
 
 type testCSSEnvStringer struct{}
 
-func (*testCSSEnvStringer) CSS(env env.Env) CSS {
-	return CSS(fmt.Sprint(env.Context().Value("forty-two")))
+func (*testCSSEnvStringer) CSS(env types.Env) types.CSS {
+	return types.CSS(fmt.Sprint(env.Context().Value("forty-two")))
 }
 
 var testCSSEnvStringerValue = &testCSSEnvStringer{}
@@ -508,8 +495,8 @@ var testCSSEnvStringerValue = &testCSSEnvStringer{}
 
 type testJSEnvStringer struct{}
 
-func (*testJSEnvStringer) JS(env env.Env) JS {
-	return JS(fmt.Sprint(env.Context().Value("forty-two")))
+func (*testJSEnvStringer) JS(env types.Env) types.JS {
+	return types.JS(fmt.Sprint(env.Context().Value("forty-two")))
 }
 
 var testJSEnvStringerValue = &testJSEnvStringer{}
@@ -518,8 +505,8 @@ var testJSEnvStringerValue = &testJSEnvStringer{}
 
 type testJSONEnvStringer struct{}
 
-func (*testJSONEnvStringer) JSON(env env.Env) JSON {
-	return JSON(fmt.Sprint(env.Context().Value("forty-two")))
+func (*testJSONEnvStringer) JSON(env types.Env) types.JSON {
+	return types.JSON(fmt.Sprint(env.Context().Value("forty-two")))
 }
 
 var testJSONEnvStringerValue = &testJSONEnvStringer{}

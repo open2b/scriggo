@@ -13,27 +13,28 @@ import (
 	"time"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/internal/compiler/types"
+	_types "github.com/open2b/scriggo/internal/compiler/types"
+	"github.com/open2b/scriggo/types"
 )
 
 var (
-	StringerType    reflect.Type
-	EnvStringerType reflect.Type
+	stringerType    = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
+	envStringerType = reflect.TypeOf((*types.EnvStringer)(nil)).Elem()
 
-	HTMLStringerType    reflect.Type
-	HTMLEnvStringerType reflect.Type
+	htmlStringerType    = reflect.TypeOf((*types.HTMLStringer)(nil)).Elem()
+	htmlEnvStringerType = reflect.TypeOf((*types.HTMLEnvStringer)(nil)).Elem()
 
-	CSSStringerType    reflect.Type
-	CSSEnvStringerType reflect.Type
+	cssStringerType    = reflect.TypeOf((*types.CSSStringer)(nil)).Elem()
+	cssEnvStringerType = reflect.TypeOf((*types.CSSEnvStringer)(nil)).Elem()
 
-	JSStringerType    reflect.Type
-	JSEnvStringerType reflect.Type
+	jsStringerType    = reflect.TypeOf((*types.JSStringer)(nil)).Elem()
+	jsEnvStringerType = reflect.TypeOf((*types.JSEnvStringer)(nil)).Elem()
 
-	JSONStringerType    reflect.Type
-	JSONEnvStringerType reflect.Type
+	jsonStringerType    = reflect.TypeOf((*types.JSONStringer)(nil)).Elem()
+	jsonEnvStringerType = reflect.TypeOf((*types.JSONEnvStringer)(nil)).Elem()
 
-	MDStringerType    reflect.Type
-	MDEnvStringerType reflect.Type
+	mdStringerType    = reflect.TypeOf((*types.MarkdownStringer)(nil)).Elem()
+	mdEnvStringerType = reflect.TypeOf((*types.MarkdownEnvStringer)(nil)).Elem()
 )
 
 // templateFileToPackage transforms a tree of a declarations file to a package
@@ -677,7 +678,7 @@ nodesLoop:
 			if len(node.Expressions) == 1 {
 				if call, ok := node.Expressions[0].(*ast.Call); ok {
 					tis := tc.checkCallExpression(call)
-					if len(tis) == 2 && types.Implements(tis[1].Type, errorType) {
+					if len(tis) == 2 && _types.Implements(tis[1].Type, errorType) {
 						// Change the tree:
 						//
 						//     from: {{ f(..) }}
@@ -1382,8 +1383,8 @@ func checkShow(t reflect.Type, ctx ast.Context) error {
 		case kind == reflect.String:
 		case reflect.Bool <= kind && kind <= reflect.Complex128:
 		case ctx == ast.ContextCSSString && t == byteSliceType:
-		case t.Implements(StringerType):
-		case t.Implements(EnvStringerType):
+		case t.Implements(stringerType):
+		case t.Implements(envStringerType):
 		case t.Implements(errorType):
 		default:
 			return fmt.Errorf("cannot show type %s as %s", t, ctx)
@@ -1393,10 +1394,10 @@ func checkShow(t reflect.Type, ctx ast.Context) error {
 		case kind == reflect.String:
 		case reflect.Bool <= kind && kind <= reflect.Complex128:
 		case t == byteSliceType:
-		case t.Implements(StringerType):
-		case t.Implements(EnvStringerType):
-		case t.Implements(HTMLStringerType):
-		case t.Implements(HTMLEnvStringerType):
+		case t.Implements(stringerType):
+		case t.Implements(envStringerType):
+		case t.Implements(htmlStringerType):
+		case t.Implements(htmlEnvStringerType):
 		case t.Implements(errorType):
 		default:
 			return fmt.Errorf("cannot show type %s as HTML", t)
@@ -1406,10 +1407,10 @@ func checkShow(t reflect.Type, ctx ast.Context) error {
 		case kind == reflect.String:
 		case reflect.Int <= kind && kind <= reflect.Float64:
 		case t == byteSliceType:
-		case t.Implements(StringerType):
-		case t.Implements(EnvStringerType):
-		case t.Implements(CSSStringerType):
-		case t.Implements(CSSEnvStringerType):
+		case t.Implements(stringerType):
+		case t.Implements(envStringerType):
+		case t.Implements(cssStringerType):
+		case t.Implements(cssEnvStringerType):
 		case t.Implements(errorType):
 		default:
 			return fmt.Errorf("cannot show type %s as CSS", t)
@@ -1428,12 +1429,12 @@ func checkShow(t reflect.Type, ctx ast.Context) error {
 		switch {
 		case kind == reflect.String:
 		case reflect.Bool <= kind && kind <= reflect.Complex128:
-		case t.Implements(StringerType):
-		case t.Implements(EnvStringerType):
-		case t.Implements(MDStringerType):
-		case t.Implements(MDEnvStringerType):
-		case t.Implements(HTMLStringerType):
-		case t.Implements(HTMLEnvStringerType):
+		case t.Implements(stringerType):
+		case t.Implements(envStringerType):
+		case t.Implements(mdStringerType):
+		case t.Implements(mdEnvStringerType):
+		case t.Implements(htmlStringerType):
+		case t.Implements(htmlEnvStringerType):
 		case t.Implements(errorType):
 		default:
 			return fmt.Errorf("cannot show type %s as Markdown", t)
@@ -1455,8 +1456,8 @@ func checkShowJS(t reflect.Type, types []reflect.Type) error {
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
 		t == timeType ||
-		t.Implements(JSStringerType) ||
-		t.Implements(JSEnvStringerType) ||
+		t.Implements(jsStringerType) ||
+		t.Implements(jsEnvStringerType) ||
 		t.Implements(errorType) {
 		return nil
 	}
@@ -1471,8 +1472,8 @@ func checkShowJS(t reflect.Type, types []reflect.Type) error {
 		switch {
 		case key == reflect.String:
 		case reflect.Bool <= key && key <= reflect.Complex128:
-		case t.Implements(StringerType):
-		case t.Implements(EnvStringerType):
+		case t.Implements(stringerType):
+		case t.Implements(envStringerType):
 		default:
 			return fmt.Errorf("cannot show map with %s key as JavaScript", t.Key())
 		}
@@ -1514,8 +1515,8 @@ func checkShowJSON(t reflect.Type, types []reflect.Type) error {
 	kind := t.Kind()
 	if reflect.Bool <= kind && kind <= reflect.Float64 || kind == reflect.String ||
 		t == timeType ||
-		t.Implements(JSONStringerType) ||
-		t.Implements(JSONEnvStringerType) ||
+		t.Implements(jsonStringerType) ||
+		t.Implements(jsonEnvStringerType) ||
 		t.Implements(errorType) {
 		return nil
 	}
@@ -1530,8 +1531,8 @@ func checkShowJSON(t reflect.Type, types []reflect.Type) error {
 		switch {
 		case key == reflect.String:
 		case reflect.Bool <= key && key <= reflect.Complex128:
-		case t.Implements(StringerType):
-		case t.Implements(EnvStringerType):
+		case t.Implements(stringerType):
+		case t.Implements(envStringerType):
 		default:
 			return fmt.Errorf("cannot show map with %s key as JSON", t.Key())
 		}
