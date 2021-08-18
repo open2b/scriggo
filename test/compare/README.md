@@ -93,7 +93,7 @@ can be changed to
 
 # Go tests from https://github.com/golang/go/
 
-Directory `sources/github.com-golang-go` contains tests taken from
+The directory `testdata/github.com-golang-go` contains tests taken from
 [https://github.com/golang/go/tree/master/test](https://github.com/golang/go/tree/master/test).
 Such tests should be changed only when necessary to run the test with Scriggo successfully.
 
