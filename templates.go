@@ -38,9 +38,34 @@ func (format Format) String() string {
 }
 
 type BuildTemplateOptions struct {
-	DisallowGoStmt       bool
+
+	// DisallowGoStmt, when true, disallows the "go" statement.
+	DisallowGoStmt bool
+
+	// NoParseShortShowStmt, when true, don't parse the short show statements.
 	NoParseShortShowStmt bool
-	TreeTransformer      func(*ast.Tree) error // if not nil transforms tree after parsing.
+
+	// MarkdownConverter converts a Markdown source code to HTML.
+	MarkdownConverter Converter
+
+	// Globals declares constants, types, variables, functions and packages
+	// that are accessible from the code in the template.
+	Globals native.Declarations
+
+	// Packages is a PackageLoader that makes native packages available
+	// in the template through the "import" statement.
+	//
+	// An import statement refers to a native package read from Packages if
+	// its path has no extension. For example
+	//
+	//   import a template file:   {% import "my/file.html" %}
+	//   import a native package:  {% import "my/package" %}
+	//
+	Packages native.PackageLoader
+
+	// TreeTransformer is a function that transforms a tree. If it is not nil,
+	// it is called before the type checking.
+	TreeTransformer func(tree *ast.Tree) error
 
 	// DollarIdentifier, when true, keeps the backward compatibility by
 	// supporting the dollar identifier.
@@ -48,29 +73,12 @@ type BuildTemplateOptions struct {
 	// NOTE: the dollar identifier is deprecated and will be removed in a
 	// future version of Scriggo.
 	DollarIdentifier bool
-
-	// MarkdownConverter converts a Markdown source code to HTML.
-	MarkdownConverter Converter
-
-	// Globals declares constants, types, variables and functions that are
-	// accessible from the code in the template.
-	Globals native.Declarations
-
-	// Packages is a PackageLoader that makes precompiled packages available
-	// in the template through the 'import' statement.
-	//
-	// Note that an import statement refers to a precompiled package read from
-	// Packages if its path has no extension.
-	//
-	//     {%  import  "my/package"   %}    Import a precompiled package.
-	//     {%  import  "my/file.html  %}    Import a template file.
-	//
-	Packages native.PackageLoader
 }
 
 // Converter is implemented by format converters.
 type Converter func(src []byte, out io.Writer) error
 
+// Template is a compiled template.
 type Template struct {
 	fn          *runtime.Function
 	typeof      runtime.TypeOfFunc
@@ -95,10 +103,10 @@ var formatTypes = map[ast.Format]reflect.Type{
 }
 
 // BuildTemplate builds the named template file rooted at the given file
-// system.
+// system. Imported, rendered and extended files are read from fsys.
 //
-// If fsys implements FormatFS, the file format is read from its Format
-// method, otherwise it depends on the file name extension
+// If fsys implements FormatFS, file formats are read with its Format method,
+// otherwise it depends on the file name extension
 //
 //   HTML       : .html
 //   CSS        : .css
@@ -107,9 +115,10 @@ var formatTypes = map[ast.Format]reflect.Type{
 //   Markdown   : .md .mkd .mkdn .mdown .markdown
 //   Text       : all other extensions
 //
-// If the named file does not exist, Build returns an error satisfying
-// errors.Is(err, fs.ErrNotExist). If a build error occurs, it returns a
-// *BuildError error.
+// If the named file does not exist, BuildTemplate returns an error satisfying
+// errors.Is(err, fs.ErrNotExist).
+//
+// If a build error occurs, it returns a *BuildError error.
 func BuildTemplate(fsys fs.FS, name string, options *BuildTemplateOptions) (*Template, error) {
 	co := compiler.Options{
 		FormatTypes: formatTypes,

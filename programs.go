@@ -19,17 +19,33 @@ import (
 )
 
 type BuildOptions struct {
-	DisallowGoStmt bool                 // disallow "go" statement.
-	Packages       native.PackageLoader // package loader used to load imported packages.
+
+	// DisallowGoStmt disallows the "go" statement.
+	DisallowGoStmt bool
+
+	// Packages is a PackageLoader that makes native packages available
+	// in the program through the "import" statement.
+	Packages native.PackageLoader
 }
 
+// PrintFunc represents a function that prints the arguments of the print and
+// println builtins.
 type PrintFunc func(interface{})
 
+// RunOptions are the run options.
 type RunOptions struct {
-	Context   context.Context
+
+	// Context is a context that can be read by native functions and methods
+	// via the native.Env type.
+	Context context.Context
+
+	// PrintFunc is called by the print and println builtins to print values.
+	// If it is nil, print and println format its arguments as expected and
+	// write the result to standard error.
 	PrintFunc PrintFunc
 }
 
+// Program is a compiled program.
 type Program struct {
 	fn      *runtime.Function
 	typeof  runtime.TypeOfFunc
@@ -39,8 +55,8 @@ type Program struct {
 var ErrTooManyGoFiles = compiler.ErrTooManyGoFiles
 var ErrNoGoFiles = compiler.ErrNoGoFiles
 
-// Build builds a Go program from the package in the root of fsys with the
-// given options, loading the imported packages from packages.
+// Build builds a program from the package in the root of fsys with the given
+// options.
 //
 // Current limitation: fsys can contain only one Go file in its root.
 //
@@ -62,7 +78,7 @@ func Build(fsys fs.FS, options *BuildOptions) (*Program, error) {
 }
 
 // Disassemble disassembles the package with the given path and returns its
-// assembly code. Predefined packages can not be disassembled.
+// assembly code. Native packages can not be disassembled.
 func (p *Program) Disassemble(pkgPath string) ([]byte, error) {
 	assemblies := compiler.Disassemble(p.fn, p.globals, 0)
 	asm, ok := assemblies[pkgPath]
