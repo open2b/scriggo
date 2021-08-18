@@ -50,6 +50,7 @@ func main() {
 	test17c()
 	test17d()
 	test18()
+	test19()
 
 }
 
@@ -305,4 +306,10 @@ func test18() {
 	defer recoverRuntimePanic("runtime error: invalid memory address or nil pointer dereference")
 	s := testpkg.S2{}
 	_ = s.F
+}
+
+func test19() {
+	defer recoverRuntimePanic("runtime error: hash of unhashable type []int")
+	m := map[interface{}]int{}
+	delete(m, []int{})
 }

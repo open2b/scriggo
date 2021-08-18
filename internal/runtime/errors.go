@@ -158,6 +158,12 @@ func (vm *VM) convertPanic(msg interface{}) error {
 		if err, ok := msg.(string); ok && strings.HasPrefix(err, "reflect: cannot convert slice with length") {
 			return vm.newPanic(runtimeError("runtime error:" + err[len("reflect:"):]))
 		}
+	case OpDelete:
+		if err, ok := msg.(runtime.Error); ok {
+			if s := err.Error(); strings.HasPrefix(s, "runtime error: hash of unhashable type ") {
+				return vm.newPanic(runtimeError(s))
+			}
+		}
 	case OpDivInt, OpDiv, OpRemInt, OpRem:
 		if err, ok := msg.(runtime.Error); ok {
 			if s := err.Error(); s == "runtime error: integer divide by zero" {
