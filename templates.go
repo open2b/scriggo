@@ -131,7 +131,7 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildTemplateOptions) (*Tem
 	}
 	code, err := compiler.BuildTemplate(fsys, name, co)
 	if err != nil {
-		if e, ok := err.(compilerError); ok {
+		if e, ok := err.(compiler.Error); ok {
 			err = &BuildError{err: e}
 		}
 		return nil, err

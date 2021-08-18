@@ -54,7 +54,7 @@ func Build(src io.Reader, options *BuildOptions) (*Script, error) {
 	}
 	code, err := compiler.BuildScript(src, co)
 	if err != nil {
-		if e, ok := err.(compilerError); ok {
+		if e, ok := err.(compiler.Error); ok {
 			err = &BuildError{err: e}
 		}
 		return nil, err

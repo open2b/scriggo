@@ -9,7 +9,7 @@ package scripts
 import (
 	"strconv"
 
-	"github.com/open2b/scriggo/ast"
+	"github.com/open2b/scriggo/internal/compiler"
 	"github.com/open2b/scriggo/internal/runtime"
 )
 
@@ -28,7 +28,7 @@ func (p Position) String() string {
 
 // BuildError represents a build error.
 type BuildError struct {
-	err compilerError
+	err compiler.Error
 }
 
 func (err *BuildError) Error() string {
@@ -90,11 +90,4 @@ func (p *Panic) Path() string {
 func (p *Panic) Position() Position {
 	pos := p.p.Position()
 	return Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: pos.End}
-}
-
-type compilerError interface {
-	error
-	Position() ast.Position
-	Path() string
-	Message() string
 }

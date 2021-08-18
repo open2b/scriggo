@@ -41,6 +41,21 @@ const (
 	internalOperatorNotZero
 )
 
+// Error represents an error returned by the compiler. The types that
+// implement the Error interface are four types of the compiler package
+//
+//  *SyntaxError
+//  *CycleError
+//  *CheckingError
+//  *LimitExceededError
+//
+type Error interface {
+	error
+	Position() ast.Position
+	Path() string
+	Message() string
+}
+
 // Options represents a set of options used during the compilation.
 type Options struct {
 	DisallowGoStmt       bool
