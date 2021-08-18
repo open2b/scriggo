@@ -1,5 +1,3 @@
-// skip : https://github.com/open2b/scriggo/issues/810
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -8,32 +6,32 @@
 
 package main
 
-type T struct {A, B int}; // TODO: fields should be unexported
+type T struct{ A, B int } // TODO: fields should be unexported
 
-func println(x, y int) { }
+func println(x, y int) {}
 
 func f(x interface{}) interface{} {
-	type T struct {A, B int}; // TODO: fields should be unexported
+	type T struct{ A, B int } // TODO: fields should be unexported
 
 	if x == nil {
-		return T{2, 3};
+		return T{2, 3}
 	}
 
-	t := x.(T);
-	println(t.A, t.B);
-	return x;
+	t := x.(T)
+	println(t.A, t.B)
+	return x
 }
 
 func main() {
-	inner_T := f(nil);
-	f(inner_T);
+	inner_T := f(nil)
+	f(inner_T)
 
 	shouldPanic(p1)
 }
 
 func p1() {
-	outer_T := T{5, 7};
-	f(outer_T);
+	outer_T := T{5, 7}
+	f(outer_T)
 }
 
 func shouldPanic(f func()) {

@@ -22,6 +22,13 @@ type definedType struct {
 	reflect.Type
 
 	name string
+
+	// sign ensures that a definedType returned by DefinedOf is always
+	// different from every other instance of definedType.
+	// By doing so, two reflect.Types are equal if and only if the type they
+	// represents are identical (every defined type, in Go, is different from
+	// every other type).
+	sign *byte
 }
 
 // DefinedOf returns the defined type with the given name and underlying type.
@@ -31,7 +38,7 @@ func (types *Types) DefinedOf(name string, underlyingType reflect.Type) reflect.
 	if name == "" {
 		panic("BUG: name cannot be empty")
 	}
-	return definedType{Type: underlyingType, name: name}
+	return definedType{Type: underlyingType, name: name, sign: new(byte)}
 }
 
 func (x definedType) Name() string {
