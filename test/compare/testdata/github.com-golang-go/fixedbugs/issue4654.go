@@ -1,4 +1,4 @@
-// skip : panics the emitter
+// skip : panics the emitter (https://github.com/open2b/scriggo/issues/812)
 
 // errorcheck
 
