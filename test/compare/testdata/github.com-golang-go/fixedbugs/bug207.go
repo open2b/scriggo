@@ -11,8 +11,8 @@ package main
 
 import "fmt"
 
-type T = struct {
-	A, B, C, D, E []int;
+type T struct {
+	a, b, c, d, e []int;
 }
 
 var t T

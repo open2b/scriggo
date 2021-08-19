@@ -1,3 +1,5 @@
+// skip : parsing error (https://github.com/open2b/scriggo/issues/824)
+
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -6,16 +8,15 @@
 
 package main
 
-type	T = struct
+type	T struct
 {
-	F int;
+	f int;
 }
 
-// 6g used to get confused by the F:1 above
-// and allow uses of F that would be silently
+// 6g used to get confused by the f:1 above
+// and allow uses of f that would be silently
 // dropped during the compilation.
-var _ = F;	// ERROR "undefined"
+var _ = f;	// ERROR "undefined"
 
-var _ = T{F: 1}
+var _ = T{f: 1}
 
-func main() { }
