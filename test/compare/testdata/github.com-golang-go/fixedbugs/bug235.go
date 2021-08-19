@@ -8,8 +8,8 @@
 
 package main
 
-type T = struct {
-	X [4]byte
+type T struct {
+	x [4]byte
 }
 
 var p *T
