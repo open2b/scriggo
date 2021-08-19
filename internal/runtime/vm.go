@@ -156,7 +156,7 @@ func (vm *VM) Run(fn *Function, typeof TypeOfFunc, globals []reflect.Value) (int
 	vm.env.exit()
 	if err != nil {
 		switch e := err.(type) {
-		case *FatalError:
+		case *fatalError:
 			panic(e.msg)
 		case exitError:
 			return int(e), nil
@@ -925,7 +925,7 @@ func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 						msg = "\tpanic: " + msg
 					}
 				}
-				err = &FatalError{msg: msg}
+				err = &fatalError{msg: msg}
 			}
 			panic(err)
 		}
@@ -934,7 +934,7 @@ func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 			nvm.setString(1, b.String())
 			err := renderer.Close()
 			if err != nil {
-				panic(&FatalError{env: env, msg: err})
+				panic(&fatalError{env: env, msg: err})
 			}
 		}
 		r = [4]int8{1, 1, 1, 1}

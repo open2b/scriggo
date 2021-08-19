@@ -1512,7 +1512,7 @@ func (vm *VM) run() (Addr, bool) {
 						}
 						err := vm.renderer.Close()
 						if err != nil {
-							panic(&FatalError{env: vm.env, msg: err})
+							panic(&fatalError{env: vm.env, msg: err})
 						}
 					}
 					vm.renderer = call.renderer

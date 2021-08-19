@@ -15,16 +15,16 @@ import (
 
 var errNilPointer = runtimeError("runtime error: invalid memory address or nil pointer dereference")
 
-// FatalError represents a fatal error. A fatal error cannot be recovered by
+// fatalError represents a fatal error. A fatal error cannot be recovered by
 // the running program.
-type FatalError struct {
+type fatalError struct {
 	env  *env
 	msg  interface{}
 	pos  Position
 	path string
 }
 
-func (err *FatalError) Error() string {
+func (err *fatalError) Error() string {
 	return "fatal error: " + panicToString(err.msg)
 }
 
@@ -138,7 +138,7 @@ func (vm *VM) convertPanic(msg interface{}) error {
 		switch msg := msg.(type) {
 		case runtimeError:
 			break
-		case *FatalError:
+		case *fatalError:
 			// TODO: check env.
 			return msg
 		case runtime.Error:
@@ -232,7 +232,7 @@ func (vm *VM) convertPanic(msg interface{}) error {
 	if _, ok := msg.(runtimeError); ok {
 		return vm.newPanic(msg)
 	}
-	return &FatalError{msg: msg}
+	return &fatalError{msg: msg}
 }
 
 type Panic struct {

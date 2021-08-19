@@ -61,7 +61,7 @@ func (env *env) ExitFunc(f func()) {
 }
 
 func (env *env) Fatal(v interface{}) {
-	panic(&FatalError{env: env, msg: v})
+	panic(&fatalError{env: env, msg: v})
 }
 
 func (env *env) FilePath() string {
