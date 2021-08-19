@@ -12,24 +12,28 @@ import (
 	"github.com/open2b/scriggo/internal/runtime"
 )
 
-// BuildError represents a build error.
+// BuildError represents an error occurred building a script.
 type BuildError struct {
 	err compiler.Error
 }
 
+// Error returns a string representation of the error.
 func (err *BuildError) Error() string {
 	return err.err.Error()
 }
 
+// Path returns the path of the file where the error occurred.
 func (err *BuildError) Path() string {
 	return err.err.Path()
 }
 
+// Position returns the position in the file where the error occurred.
 func (err *BuildError) Position() scriggo.Position {
 	pos := err.err.Position()
 	return scriggo.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: pos.End}
 }
 
+// Message returns the error message.
 func (err *BuildError) Message() string {
 	return err.err.Message()
 }
@@ -48,7 +52,7 @@ func (p *PanicError) Error() string {
 	return p.p.Error()
 }
 
-// Message returns the message.
+// Message returns the panic message.
 func (p *PanicError) Message() interface{} {
 	return p.p.Message()
 }
@@ -63,7 +67,7 @@ func (p *PanicError) Recovered() bool {
 	return p.p.Recovered()
 }
 
-// String returns the message as a string.
+// String returns the panic message as a string.
 func (p *PanicError) String() string {
 	return p.p.String()
 }
@@ -73,7 +77,7 @@ func (p *PanicError) Path() string {
 	return p.p.Path()
 }
 
-// Position returns the position.
+// Position returns the position in file where the panic occurred.
 func (p *PanicError) Position() scriggo.Position {
 	pos := p.p.Position()
 	return scriggo.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: pos.End}
