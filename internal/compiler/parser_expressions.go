@@ -106,6 +106,9 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			}
 			tok = p.next()
 			if tok.typ != tokenRightBrace {
+				if tok.typ == tokenIdentifier {
+					panic(syntaxError(tok.pos, "non-empty interfaces are not supported in this release of Scriggo"))
+				}
 				panic(syntaxError(tok.pos, "unexpected %s, expecting }", tok))
 			}
 			pos.End = tok.pos.End
