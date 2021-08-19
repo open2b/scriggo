@@ -25,43 +25,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-type mapPackage struct {
-	// Package name.
-	PkgName string
-	// Package declarations.
-	Declarations native.Declarations
-}
-
-func (p mapPackage) Name() string {
-	return p.PkgName
-}
-
-func (p mapPackage) Lookup(declName string) interface{} {
-	return p.Declarations[declName]
-}
-
-func (p mapPackage) DeclarationNames() []string {
-	declarations := make([]string, 0, len(p.Declarations))
-	for name := range p.Declarations {
-		declarations = append(declarations, name)
-	}
-	return declarations
-}
-
-// packages is a PackageLoader that load packages from a map where the key is
-// a package path and the value is a Package value.
-type packages map[string]native.Package
-
-func (pp packages) Load(path string) (interface{}, error) {
-	if p, ok := pp[path]; ok {
-		return p, nil
-	}
-	return nil, nil
-}
-
-func globals() map[string]interface{} {
+func globals() native.Declarations {
 	var I = 5
-	return map[string]interface{}{
+	return native.Declarations{
 		"max": func(x, y int) int {
 			if x < y {
 				return y
@@ -85,7 +51,7 @@ func globals() map[string]interface{} {
 var rendererExprTests = []struct {
 	src      string
 	expected string
-	globals  map[string]interface{}
+	globals  native.Declarations
 }{
 	{`"a"`, "a", nil},
 	{"`a`", "a", nil},
@@ -185,9 +151,9 @@ var rendererExprTests = []struct {
 	// {`[]byte{0, 124: 97}[124]`, "97", nil},
 	// {"[]interface{}{}", "", nil},
 	// {"len([]interface{}{})", "0", nil},
-	// {"[]interface{}{v}", "", map[string]interface{}{"v": []string(nil)}},
-	// {"len([]interface{}{v})", "1", map[string]interface{}{"v": []string(nil)}},
-	// {"[]interface{}{v, v2}", ", ", map[string]interface{}{"v": []string(nil), "v2": []string(nil)}},
+	// {"[]interface{}{v}", "", native.Declarations{"v": []string(nil)}},
+	// {"len([]interface{}{v})", "1", native.Declarations{"v": []string(nil)}},
+	// {"[]interface{}{v, v2}", ", ", native.Declarations{"v": []string(nil), "v2": []string(nil)}},
 	// {"[]interface{}{`a`}", "a", nil},
 	// {"[]interface{}{`a`, `b`, `c`}", "a, b, c", nil},
 	// {"[]interface{}{HTML(`<a>`), HTML(`<b>`), HTML(`<c>`)}", "<a>, <b>, <c>", nil},
@@ -725,12 +691,12 @@ type aStruct struct {
 
 var templateMultiFileCases = map[string]struct {
 	sources          map[string]string
-	expectedBuildErr string                 // default to empty string (no build error). Mutually exclusive with expectedOut.
-	expectedOut      string                 // default to "". Mutually exclusive with expectedBuildErr.
-	main             mapPackage             // default to nil
-	vars             map[string]interface{} // default to nil
-	entryPoint       string                 // default to "index.html"
-	packages         native.PackageLoader   // default to nil
+	expectedBuildErr string               // default to empty string (no build error). Mutually exclusive with expectedOut.
+	expectedOut      string               // default to "". Mutually exclusive with expectedBuildErr.
+	main             *native.MapPackage   // default to nil
+	vars             native.Declarations  // default to nil
+	entryPoint       string               // default to "index.html"
+	packages         native.PackageLoader // default to nil
 	noParseShow      bool
 	dollarIdentifier bool // default to false
 }{
@@ -859,9 +825,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `calling f: {{ f() }}, done!`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"f": func() string { return "i'm f!" },
 			},
 		},
@@ -872,9 +838,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ mainVar }}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"mainVar": (*int)(nil),
 			},
 		},
@@ -885,13 +851,13 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ initMainVar }}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"initMainVar": (*int)(nil),
 			},
 		},
-		vars: map[string]interface{}{
+		vars: native.Declarations{
 			"initMainVar": 42,
 		},
 		expectedOut: `42`,
@@ -901,9 +867,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ lowercase("HellO ScrIgGo!") }}{% x := "A String" %}{{ lowercase(x) }}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"lowercase": func(s string) string {
 					return strings.ToLower(s)
 				},
@@ -916,13 +882,13 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ lowercase("HellO ScrIgGo!") }}{% x := "A String" %}{{ lowercase(x) }}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"lowercase": (*func(string) string)(nil),
 			},
 		},
-		vars: map[string]interface{}{
+		vars: native.Declarations{
 			"lowercase": func(s string) string {
 				return strings.ToLower(s)
 			},
@@ -934,14 +900,14 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ a }}{{ b }}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"a": (*string)(nil),
 				"b": (*string)(nil),
 			},
 		},
-		vars: map[string]interface{}{
+		vars: native.Declarations{
 			"a": "AAA",
 			"b": "BBB",
 		},
@@ -1263,12 +1229,12 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ strings.ToLower("HELLO") }}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
-				"strings": mapPackage{
+			Declarations: native.Declarations{
+				"strings": &native.MapPackage{
 					PkgName: "strings",
-					Declarations: map[string]interface{}{
+					Declarations: native.Declarations{
 						"ToLower": strings.ToLower,
 					},
 				},
@@ -1280,12 +1246,12 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ data.Name }} Holmes`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
-				"data": mapPackage{
+			Declarations: native.Declarations{
+				"data": &native.MapPackage{
 					PkgName: "data",
-					Declarations: map[string]interface{}{
+					Declarations: native.Declarations{
 						"Name": &[]string{"Sherlock"}[0],
 					},
 				},
@@ -1297,12 +1263,12 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% b := &bytes.Buffer{} %}{% b.WriteString("oh!") %}{{ b.String() }}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
-				"bytes": mapPackage{
+			Declarations: native.Declarations{
+				"bytes": &native.MapPackage{
 					PkgName: "bytes",
-					Declarations: map[string]interface{}{
+					Declarations: native.Declarations{
 						"Buffer": reflect.TypeOf(bytes.Buffer{}),
 					},
 				},
@@ -1314,12 +1280,12 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ math.MaxInt8 }}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
-				"math": mapPackage{
+			Declarations: native.Declarations{
+				"math": &native.MapPackage{
 					PkgName: "math",
-					Declarations: map[string]interface{}{
+					Declarations: native.Declarations{
 						"MaxInt8": math.MaxInt8,
 					},
 				},
@@ -1374,9 +1340,9 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt":   `{% v := "showing" %}{{ render "partial.txt" }}, {{ v }}`,
 			"partial.txt": "{{ v }}",
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"v": &globalVariable,
 			},
 		},
@@ -1403,9 +1369,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": `{{ sb1 }}{{ sb2 }}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"sb1": &[]byte{97, 98, 99},                      // abc
 				"sb2": &[]byte{60, 104, 101, 108, 108, 111, 62}, // <hello>
 			},
@@ -1417,9 +1383,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ sb1 }}{{ sb2 }}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"sb1": &[]byte{97, 98, 99},                      // abc
 				"sb2": &[]byte{60, 104, 101, 108, 108, 111, 62}, // <hello>
 			},
@@ -1495,9 +1461,9 @@ var templateMultiFileCases = map[string]struct {
 				"{% if (ZeroIf42{Value: 42}) %}BUG{% else %}OK{% end %}\n" +
 				"{% if (NotImplIsZero{}) %}BUG{% else %}OK{% end %}",
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"NeverZero":     reflect.TypeOf((*testNeverZero)(nil)).Elem(),
 				"AlwaysZero":    reflect.TypeOf((*testAlwaysZero)(nil)).Elem(),
 				"ZeroIf42":      reflect.TypeOf((*testZeroIf42)(nil)).Elem(),
@@ -1581,9 +1547,9 @@ var templateMultiFileCases = map[string]struct {
 			"v.html":       `{% var V = GetValue() %}`,
 		},
 		expectedOut: "42",
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"GetValue": func() int {
 					if testGetValueCalled {
 						panic("already called!")
@@ -1615,9 +1581,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ s.foo }}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"s": structWithUnexportedFields,
 			},
 		},
@@ -1628,9 +1594,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ s.foo }}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"s": &structWithUnexportedFields,
 			},
 		},
@@ -1665,9 +1631,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% macro M %}{{ globalVariable }}{% end %}{% show M() %}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"globalVariable": &([]string{"<b>global</b>"}[0]),
 			},
 		},
@@ -1705,9 +1671,9 @@ var templateMultiFileCases = map[string]struct {
 				}() 
 			%}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"globalVariable": (*int)(nil),
 			},
 		},
@@ -1726,9 +1692,9 @@ var templateMultiFileCases = map[string]struct {
 				}()
 			%}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"globalVariable": (*int)(nil),
 			},
 		},
@@ -1768,9 +1734,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ $forthyTwo }}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"forthyTwo": &([]int8{42}[0]),
 			},
 		},
@@ -1782,9 +1748,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ $forthyThree.(int) }}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"forthyThree": &([]int{43}[0]),
 			},
 		},
@@ -1796,9 +1762,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% var n, ok = $forthyThree.(int) %}{{ n * 32 }}{{ ok }}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"forthyThree": &([]int{42}[0]),
 			},
 		},
@@ -1834,9 +1800,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% _ = &($fortyTwo) %}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"forthyTwo": &([]int8{42}[0]),
 			},
 		},
@@ -1856,9 +1822,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% $fortyTwo = 43 %}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"forthyTwo": &([]int8{42}[0]),
 			},
 		},
@@ -1878,9 +1844,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% const _ = $constant %}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"constant": 42,
 			},
 		},
@@ -1892,9 +1858,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% global := interface{}(global) %}ok`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"global": &[]string{"ciao"},
 			},
 		},
@@ -1905,9 +1871,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% var global = interface{}(global) %}ok`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"global": &[]string{},
 			},
 		},
@@ -1918,9 +1884,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% _ = []int{} %}{% global := interface{}(global) %}ok`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"global": &[]string{},
 			},
 		},
@@ -1983,9 +1949,9 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt":    `{% extends "extended.txt" %}{% var _ = $global %}`,
 			"extended.txt": `text`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"global": (*int)(nil),
 			},
 		},
@@ -1998,9 +1964,9 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt":    `{% extends "extended.txt" %}{% var _ = interface{}(global) %}`,
 			"extended.txt": `text`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"global": (*int)(nil),
 			},
 		},
@@ -2025,9 +1991,9 @@ var templateMultiFileCases = map[string]struct {
 				{% var filters, _ = $filters.([]int) %}
 			`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"design": &struct {
 					Base   string
 					Open2b string
@@ -2562,9 +2528,9 @@ var templateMultiFileCases = map[string]struct {
 				show t.A
 			%%}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"T": reflect.TypeOf(struct{ A string }{}),
 			},
 		},
@@ -2993,9 +2959,9 @@ var templateMultiFileCases = map[string]struct {
 			"index.html":   `{% _ = render "partial.html" %}`,
 			"partial.html": `{% macro m %}{% _ = page %}{% end %}{{ m() }}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"page": &([]string{"a"})[0],
 			},
 		},
@@ -3007,9 +2973,9 @@ var templateMultiFileCases = map[string]struct {
 			"index.html":    `{% import "imported.html" %}{% r := M() %}{{ r }}`,
 			"imported.html": `{% macro M %}{% _ = global %}{% end %}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"global": &([]string{"a"})[0],
 			},
 		},
@@ -3020,9 +2986,9 @@ var templateMultiFileCases = map[string]struct {
 			"index.html":    `{% import "imported.html" %}{{ M() }}`,
 			"imported.html": `{% macro M %}{% macro m %}{% _ = global %}{% end %}{{ m() }}{% end %}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"global": &([]int{0})[0],
 			},
 		},
@@ -3033,9 +2999,9 @@ var templateMultiFileCases = map[string]struct {
 			"index.html":    `{% import "imported.html" %}{{ M() }}`,
 			"imported.html": `{% macro M %}{% f := func() { _ = global } %}{% f() %}{% end %}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"global": &([]int{0})[0],
 			},
 		},
@@ -3049,9 +3015,9 @@ var templateMultiFileCases = map[string]struct {
 				f()
 			} %}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"global": &([]int{0})[0],
 			},
 		},
@@ -3062,9 +3028,9 @@ var templateMultiFileCases = map[string]struct {
 			"index.html":    `{% import "imported.html" %}{{ M() }}`,
 			"imported.html": `{% macro M %}{% func() { _ = global }() %}{% end %}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"global": &([]int{0})[0],
 			},
 		},
@@ -3075,9 +3041,9 @@ var templateMultiFileCases = map[string]struct {
 			"index.html":   `{{ render "partial.html" }}`,
 			"partial.html": `{% macro m %}{{ page }}{% end %}{{ m() }}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"page": &([]string{"a"})[0],
 			},
 		},
@@ -3089,9 +3055,9 @@ var templateMultiFileCases = map[string]struct {
 			"index.html":    `{% import "imported.html" %}{{ M() }}`,
 			"imported.html": `{% macro M %}{{ 2 * func() int { return global }() }}{% end %}`,
 		},
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"global": &([]int{21})[0],
 			},
 		},
@@ -3178,9 +3144,9 @@ var templateMultiFileCases = map[string]struct {
 		  Date is {{ date }}`,
 		},
 		expectedOut: "\t\t  Date is \n\t\t\t<span>1999-01-19</span>\n",
-		main: mapPackage{
+		main: &native.MapPackage{
 			PkgName: "main",
-			Declarations: map[string]interface{}{
+			Declarations: native.Declarations{
 				"now": func() string { return "1999-01-19" },
 			},
 		},
@@ -3635,16 +3601,16 @@ func (testNotImplementIsZero) IsZero() int {
 	panic("BUG: this method should never be called")
 }
 
-var testPackages = packages{
-	"fmt": mapPackage{
+var testPackages = native.Packages{
+	"fmt": &native.MapPackage{
 		PkgName: "fmt",
-		Declarations: map[string]interface{}{
+		Declarations: native.Declarations{
 			"Sprint": fmt.Sprint,
 		},
 	},
-	"math": mapPackage{
+	"math": &native.MapPackage{
 		PkgName: "math",
-		Declarations: map[string]interface{}{
+		Declarations: native.Declarations{
 			"Abs": math.Abs,
 		},
 	},
@@ -3652,9 +3618,9 @@ var testPackages = packages{
 
 var globalVariable = "global variable"
 
-var functionReturningErrorPackage = mapPackage{
+var functionReturningErrorPackage = &native.MapPackage{
 	PkgName: "main",
-	Declarations: map[string]interface{}{
+	Declarations: native.Declarations{
 		"atoi": func(v string) (int, error) { return strconv.Atoi(v) },
 		"uitoa": func(n int) (string, error) {
 			if n < 0 {
@@ -3685,7 +3651,7 @@ func TestMultiFileTemplate(t *testing.T) {
 				}
 			}
 			globals := globals()
-			if cas.main.PkgName != "" {
+			if cas.main != nil {
 				for k, v := range cas.main.Declarations {
 					globals[k] = v
 				}
@@ -3763,7 +3729,7 @@ func TestVars(t *testing.T) {
 	var f = 5
 	var g = 7
 	fsys := fstest.Files{"example.txt": `{% _, _, _, _, _ = a, c, d, e, f %}`}
-	globals := map[string]interface{}{
+	globals := native.Declarations{
 		"a": &a, // expected
 		"b": &b,
 		"c": c,
@@ -3845,7 +3811,7 @@ var envFilePathCases = []struct {
 }
 
 func Test_envFilePath(t *testing.T) {
-	globals := map[string]interface{}{
+	globals := native.Declarations{
 		"path": func(env native.Env) string { return env.FilePath() },
 	}
 	for _, cas := range envFilePathCases {
