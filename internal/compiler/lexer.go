@@ -1357,6 +1357,7 @@ LOOP:
 					ident.txt = txt
 				}
 			}
+			endLineAsSemicolon = false
 			switch typ {
 			case tokenBreak, tokenContinue, tokenFallthrough, tokenReturn, tokenIdentifier:
 				endLineAsSemicolon = true
