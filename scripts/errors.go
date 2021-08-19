@@ -34,8 +34,9 @@ func (err *BuildError) Message() string {
 	return err.err.Message()
 }
 
-// PanicError represents an error that occurs when an executed program or
-// template calls the panic builtin.
+// PanicError represents the error that occurs when an executed script calls
+// the panic built-in or the Panic method of native.Env is called and the
+// panic is not recovered.
 type PanicError struct {
 	p *runtime.Panic
 }

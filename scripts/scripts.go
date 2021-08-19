@@ -22,15 +22,32 @@ import (
 	"github.com/open2b/scriggo/native"
 )
 
+// BuildOptions contains options for building scripts.
 type BuildOptions struct {
-	Globals        native.Declarations  // globals.
-	DisallowGoStmt bool                 // disallow "go" statement.
-	Packages       native.PackageLoader // package loader load native packages.
+
+	// DisallowGoStmt, when true, disallows the go statement.
+	DisallowGoStmt bool
+
+	// Packages is a package loader that makes native packages available
+	// in scripts through the import statement.
+	Packages native.PackageLoader
+
+	// Globals declares constants, types, variables, functions and packages
+	// that are accessible from the code in the script.
+	Globals native.Declarations
 }
 
+// RunOptions are the run options.
 type RunOptions struct {
+
+	// Context is a context that can be read by native functions and methods
+	// via the Context method of native.Env.
 	Context context.Context
-	Print   scriggo.PrintFunc
+
+	// Print is called by the print and println builtins to print values.
+	// If it is nil, the print and println builtins format their arguments as
+	// expected and write the result to standard error.
+	Print scriggo.PrintFunc
 }
 
 // Script is a script compiled with the Build function.
@@ -40,10 +57,9 @@ type Script struct {
 	globals []compiler.Global
 }
 
-// Build builds a script with the given options, loading the imported packages
-// from packages.
+// Build builds a script reading the source code from src.
 //
-// If a compilation error occurs, it returns a *BuildError error.
+// If a build error occurs, it returns a *BuildError.
 func Build(src io.Reader, options *BuildOptions) (*Script, error) {
 	co := compiler.Options{}
 	if options != nil {
