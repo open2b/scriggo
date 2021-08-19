@@ -101,7 +101,7 @@ type VM struct {
 	vars     []reflect.Value      // global and closure variables.
 	env      *env                 // execution environment.
 	envArg   reflect.Value        // execution environment as argument.
-	renderer Renderer             // renderer
+	renderer *renderer            // renderer
 	calls    []callFrame          // call stack frame.
 	cases    []reflect.SelectCase // select cases.
 	panic    *Panic               // panic.
@@ -178,13 +178,6 @@ func (vm *VM) SetContext(ctx context.Context) {
 // SetPrint must not be called after vm has been started.
 func (vm *VM) SetPrint(p func(interface{})) {
 	vm.env.print = p
-}
-
-// SetRenderer sets the renderer.
-//
-// SetRenderer must not be called after vm has been started.
-func (vm *VM) SetRenderer(r Renderer) {
-	vm.renderer = r
 }
 
 // SetOutput sets the output.
@@ -861,7 +854,7 @@ const CallFrameSize = 88
 // If the size of callFrame changes, update the constant CallFrameSize.
 type callFrame struct {
 	cl          callable   // callable.
-	renderer    Renderer   // renderer
+	renderer    *renderer  // renderer
 	fp          [4]Addr    // frame pointers.
 	pc          Addr       // program counter.
 	status      callStatus // status.
@@ -886,7 +879,7 @@ func (c *callable) Predefined() *PredefinedFunction {
 
 // Value returns a reflect Value of a callable, so it can be called from a
 // predefined code and passed to a predefined code.
-func (c *callable) Value(renderer Renderer, env *env) reflect.Value {
+func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 	if c.value.IsValid() {
 		return c.value
 	}
@@ -903,7 +896,7 @@ func (c *callable) Value(renderer Renderer, env *env) reflect.Value {
 		if fn.Macro {
 			renderer = renderer.WithOut(&macroOutBuffer{})
 		}
-		nvm.SetRenderer(renderer)
+		nvm.renderer = renderer
 		nOut := fn.Type.NumOut()
 		results := make([]reflect.Value, nOut)
 		var r = [4]int8{1, 1, 1, 1}

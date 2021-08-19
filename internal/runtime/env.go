@@ -8,27 +8,14 @@ package runtime
 
 import (
 	"context"
-	"io"
 	"reflect"
 	"sync"
-
-	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/native"
 )
 
 type PrintFunc func(interface{})
 
 // Context represents a context in Show and Text instructions.
 type Context byte
-
-type Renderer interface {
-	Show(env native.Env, v interface{}, ctx Context)
-	Text(env native.Env, txt []byte, inURL, isSet bool)
-	Out() io.Writer
-	WithOut(out io.Writer) Renderer
-	WithConversion(fromFormat, toFormat ast.Format) Renderer
-	Close() error
-}
 
 // The env type implements the native.Env interface.
 type env struct {

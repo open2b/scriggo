@@ -26,8 +26,7 @@ import (
 
 var byteSliceType = reflect.TypeOf([]byte(nil))
 
-// renderer implements the runtime.Renderer interface and it is used to render
-// template files.
+// renderer is used by te Show and Text instructions to render template files.
 type renderer struct {
 
 	// out is the io.Writer to write to.
@@ -173,7 +172,7 @@ func (r *renderer) Text(env native.Env, txt []byte, inURL, isSet bool) {
 
 }
 
-func (r *renderer) WithConversion(from, to ast.Format) Renderer {
+func (r *renderer) WithConversion(from, to ast.Format) *renderer {
 	if from == ast.FormatMarkdown && to == ast.FormatHTML {
 		out := newMarkdownWriter(r.out, r.converter)
 		return newRenderer(out, nil)
@@ -181,7 +180,7 @@ func (r *renderer) WithConversion(from, to ast.Format) Renderer {
 	return newRenderer(r.out, r.converter)
 }
 
-func (r *renderer) WithOut(out io.Writer) Renderer {
+func (r *renderer) WithOut(out io.Writer) *renderer {
 	return newRenderer(out, r.converter)
 }
 
