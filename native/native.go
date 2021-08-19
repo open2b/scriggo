@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package native provides types to implement native values, constants,
+// Package native provides types to implement native variables, constants,
 // functions, types and packages that can be imported or used as builtins in
 // programs and templates.
 package native
@@ -14,8 +14,19 @@ import (
 	"reflect"
 )
 
-// Declarations contains variable, constant, function, type and package
+// Declarations represents a set of variables, constants, functions, types and
+// packages declarations and can be used for template globals and package
 // declarations.
+//
+// The key is the declaration's name and the element is its value
+//
+//  for a variable: a pointer to the variable
+//  for a function: the function
+//  for a type: its reflect.Type value
+//  for a typed constant: its value as a string, boolean or numeric value
+//  for an untyped constant: an UntypedStringConst, UntypedBooleanConst or UntypedNumericConst value
+//  for a package: a Package value (used only for template globals)
+//
 type Declarations map[string]interface{}
 
 type (

@@ -36,16 +36,16 @@ type PrintFunc func(interface{})
 type RunOptions struct {
 
 	// Context is a context that can be read by native functions and methods
-	// via the native.Env type.
+	// via the Context method of native.Env.
 	Context context.Context
 
 	// Print is called by the print and println builtins to print values.
-	// If it is nil, print and println format its arguments as expected and
-	// write the result to standard error.
+	// If it is nil, the print and println builtins format their arguments as
+	// expected and write the result to standard error.
 	Print PrintFunc
 }
 
-// Program is a compiled program.
+// Program is a program compiled with the Build function.
 type Program struct {
 	fn      *runtime.Function
 	typeof  runtime.TypeOfFunc
@@ -57,7 +57,7 @@ type Program struct {
 //
 // Current limitation: fsys can contain only one Go file in its root.
 //
-// If a build error occurs, it returns a *BuildError error.
+// If a build error occurs, it returns a *BuildError.
 func Build(fsys fs.FS, options *BuildOptions) (*Program, error) {
 	co := compiler.Options{}
 	if options != nil {
@@ -87,10 +87,14 @@ func (p *Program) Disassemble(pkgPath string) ([]byte, error) {
 
 // Run starts the program and waits for it to complete.
 //
-// If the executed program panics, Run returns a PanicError error. If the
-// native.Env.Exit method is called with a non-zero code, Run returns an
-// ExitError with the exit code. If the native.Env.Fatal method is called with
-// argument v, Run panics with the value v.
+// If the executed program panics or the Panic method of native.Env is called,
+// and the panic is not recovered, Run returns a *PanicError.
+//
+// If the Exit method of native.Env is called with a non-zero code, Run
+// returns a *ExitError with the exit code.
+//
+// If the Fatal method of native.Env is called with argument v, Run panics
+// with the value v.
 func (p *Program) Run(options *RunOptions) error {
 	vm := runtime.NewVM()
 	if options != nil {
@@ -114,7 +118,7 @@ func (p *Program) Run(options *RunOptions) error {
 	return nil
 }
 
-// MustRun is like Run but panics if the run fails.
+// MustRun is like Run but panics with the returned error if the run fails.
 func (p *Program) MustRun(options *RunOptions) {
 	err := p.Run(options)
 	if err != nil {

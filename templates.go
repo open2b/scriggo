@@ -78,7 +78,7 @@ type BuildTemplateOptions struct {
 // Converter is implemented by format converters.
 type Converter func(src []byte, out io.Writer) error
 
-// Template is a compiled template.
+// Template is a template compiled with the BuildTemplate function.
 type Template struct {
 	fn          *runtime.Function
 	typeof      runtime.TypeOfFunc
@@ -118,7 +118,7 @@ var formatTypes = map[ast.Format]reflect.Type{
 // If the named file does not exist, BuildTemplate returns an error satisfying
 // errors.Is(err, fs.ErrNotExist).
 //
-// If a build error occurs, it returns a *BuildError error.
+// If a build error occurs, it returns a *BuildError.
 func BuildTemplate(fsys fs.FS, name string, options *BuildTemplateOptions) (*Template, error) {
 	co := compiler.Options{
 		FormatTypes: formatTypes,
@@ -147,10 +147,14 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildTemplateOptions) (*Tem
 // Run runs the template and write the rendered code to out. vars contains
 // the values of the global variables.
 //
-// If the executed template panics, Run returns a PanicError error. If the
-// native.Env.Exit method is called with a non-zero code, Run returns an
-// ExitError with the exit code. If the native.Env.Fatal method is called with
-// argument v, Run panics with the value v.
+// If the executed template panics or the Panic method of native.Env is
+// called, and the panic is not recovered, Run returns a *PanicError.
+//
+// If the Exit method of native.Env is called with a non-zero code, Run
+// returns a *ExitError with the exit code.
+//
+// If the Fatal method of native.Env is called with argument v, Run panics
+// with the value v.
 func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunOptions) error {
 	if out == nil {
 		return errors.New("invalid nil out")
@@ -178,7 +182,7 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 	return err
 }
 
-// MustRun is like Run but panics if the execution fails.
+// MustRun is like Run but panics with the returned error if the run fails.
 func (t *Template) MustRun(out io.Writer, vars map[string]interface{}, options *RunOptions) {
 	err := t.Run(out, vars, options)
 	if err != nil {

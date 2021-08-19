@@ -13,7 +13,7 @@ import (
 	"github.com/open2b/scriggo/internal/runtime"
 )
 
-// Position is a position in the source.
+// Position is a position in a file.
 type Position struct {
 	Line   int // line starting from 1
 	Column int // column in characters starting from 1
@@ -21,7 +21,7 @@ type Position struct {
 	End    int // index of the last byte
 }
 
-// String returns the line and column separated by a colon, for example "37:18".
+// String returns line and column separated by a colon, for example "37:18".
 func (p Position) String() string {
 	return strconv.Itoa(p.Line) + ":" + strconv.Itoa(p.Column)
 }
@@ -49,7 +49,8 @@ func (err *BuildError) Message() string {
 }
 
 // ExitError represents an exit from an execution with a non-zero code. It is
-// returned when the native.Env.Exit method is called with a non-zero value.
+// returned by a Run method when the Exit method of native.Env is called with
+// a non-zero value.
 type ExitError int
 
 // Error returns a string representation of the error.
@@ -62,8 +63,9 @@ func (err ExitError) Code() int {
 	return int(err)
 }
 
-// PanicError represents an error that occurs when an executed program or
-// template calls the panic builtin.
+// PanicError represents the error that occurs when an executed program or
+// template calls the panic built-in or the Panic method of native.Env is
+// called and the panic is not recovered.
 type PanicError struct {
 	p *runtime.Panic
 }

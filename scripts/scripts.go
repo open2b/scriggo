@@ -36,6 +36,7 @@ type RunOptions struct {
 	PrintFunc runtime.PrintFunc
 }
 
+// Script is a script compiled with the Build function.
 type Script struct {
 	fn      *runtime.Function
 	typeof  runtime.TypeOfFunc
@@ -72,10 +73,14 @@ func (p *Script) Disassemble() []byte {
 // Run starts the script and waits for it to complete. vars contains the
 // values of the global variables.
 //
-// If the executed script panics, Run returns a PanicError error. If the
-// native.Env.Exit method is called with a non-zero code, Run returns an
-// ExitError with the exit code. If the native.Env.Fatal method is called with
-// argument v, Run panics with the value v.
+// If the executed script panics or the Panic method of native.Env is called,
+// and the panic is not recovered, Run returns a *PanicError.
+//
+// If the Exit method of native.Env is called with a non-zero code, Run
+// returns a *ExitError with the exit code.
+//
+// If the Fatal method of native.Env is called with argument v, Run panics
+// with the value v.
 func (p *Script) Run(vars map[string]interface{}, options *RunOptions) error {
 	vm := runtime.NewVM()
 	if options != nil {
@@ -99,7 +104,7 @@ func (p *Script) Run(vars map[string]interface{}, options *RunOptions) error {
 	return nil
 }
 
-// MustRun is like Run but panics if the run fails.
+// MustRun is like Run but panics with the returned error if the run fails.
 func (p *Script) MustRun(vars map[string]interface{}, options *RunOptions) {
 	err := p.Run(vars, options)
 	if err != nil {

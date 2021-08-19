@@ -21,6 +21,7 @@ import (
 // Files implements a file system that read the files from a map.
 type Files map[string][]byte
 
+// Open opens the named file.
 func (fsys Files) Open(name string) (fs.File, error) {
 	if fs.ValidPath(name) {
 		if name == "." {

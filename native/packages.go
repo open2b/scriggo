@@ -85,7 +85,7 @@ func (p *MapPackage) Lookup(declName string) interface{} {
 	return p.Declarations[declName]
 }
 
-// DeclarationNames returns returns all package declaration names.
+// DeclarationNames returns all package declaration names.
 func (p *MapPackage) DeclarationNames() []string {
 	declarations := make([]string, 0, len(p.Declarations))
 	for name := range p.Declarations {
