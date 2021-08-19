@@ -7,24 +7,10 @@
 package scripts
 
 import (
-	"strconv"
-
+	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/internal/compiler"
 	"github.com/open2b/scriggo/internal/runtime"
 )
-
-// Position is a position in the source.
-type Position struct {
-	Line   int // line starting from 1
-	Column int // column in characters starting from 1
-	Start  int // index of the first byte
-	End    int // index of the last byte
-}
-
-// String returns the line and column separated by a colon, for example "37:18".
-func (p Position) String() string {
-	return strconv.Itoa(p.Line) + ":" + strconv.Itoa(p.Column)
-}
 
 // BuildError represents a build error.
 type BuildError struct {
@@ -39,9 +25,9 @@ func (err *BuildError) Path() string {
 	return err.err.Path()
 }
 
-func (err *BuildError) Position() Position {
+func (err *BuildError) Position() scriggo.Position {
 	pos := err.err.Position()
-	return Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: pos.End}
+	return scriggo.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: pos.End}
 }
 
 func (err *BuildError) Message() string {
@@ -87,7 +73,7 @@ func (p *PanicError) Path() string {
 }
 
 // Position returns the position.
-func (p *PanicError) Position() Position {
+func (p *PanicError) Position() scriggo.Position {
 	pos := p.p.Position()
-	return Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: pos.End}
+	return scriggo.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: pos.End}
 }

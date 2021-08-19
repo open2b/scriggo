@@ -20,7 +20,7 @@ var scriptTests = map[string]struct {
 	src     string
 	pkgs    native.Packages
 	init    map[string]interface{}
-	globals scripts.Declarations
+	globals native.Declarations
 
 	out string
 }{
@@ -54,7 +54,7 @@ var scriptTests = map[string]struct {
 		pkgs: native.Packages{
 			"pkg": &native.DeclarationsPackage{
 				PkgName: "pkg",
-				Declarations: map[string]interface{}{
+				Declarations: native.Declarations{
 					"F": func() {
 						scriptsStdout.WriteString("pkg.F called!")
 					},
@@ -69,7 +69,7 @@ var scriptTests = map[string]struct {
 			Print("A is ", A)
 		`,
 		out: "A is 0",
-		globals: scripts.Declarations{
+		globals: native.Declarations{
 			"A": (*int)(nil),
 		},
 	},
@@ -81,28 +81,28 @@ var scriptTests = map[string]struct {
 			Print("new: ", A)
 		`,
 		out: "default: 0, new: 20",
-		globals: scripts.Declarations{
+		globals: native.Declarations{
 			"A": (*int)(nil),
 		},
 	},
 
-	// "Overwriting predefined main variable using init": {
-	// 	src: `
-	// 		Print(A)
-	// 	`,
-	// 	pkgs: pkgutil.Packages{
-	// 		"main": {
-	// 			Name: "main",
-	// 			Declarations: map[string]interface{}{
-	// 				"A": (*int)(nil),
-	// 			},
-	// 		},
-	// 	},
-	// 	init: map[string]interface{}{
-	// 		"A": reflect.ValueOf(&scriptTestA).Elem(),
-	// 	},
-	// 	out: "5",
-	// },
+	//"Overwriting predefined main variable using init": {
+	//	src: `
+	//		Print(A)
+	//	`,
+	//	pkgs: native.Packages{
+	//		"main": &native.DeclarationsPackage{
+	//			PkgName: "main",
+	//			Declarations: native.Declarations{
+	//				"A": (*int)(nil),
+	//			},
+	//		},
+	//	},
+	//	init: native.Declarations{
+	//		"A": reflect.ValueOf(&scriptTestA).Elem(),
+	//	},
+	//	out: "5",
+	//},
 
 	"Usage test: using a script to perform a sum of numbers": {
 		src: `
@@ -111,7 +111,7 @@ var scriptTests = map[string]struct {
 			}
 			Print(Sum)
 		`,
-		globals: scripts.Declarations{
+		globals: native.Declarations{
 			"Sum": (*int)(nil),
 		},
 		out: "45",
@@ -125,17 +125,17 @@ var scriptTests = map[string]struct {
 			v := math.MaxInt8 * 2
 			Print(v)
 		`,
-		globals: scripts.Declarations{
+		globals: native.Declarations{
 
 			"strings": &native.DeclarationsPackage{
 				PkgName: "strings",
-				Declarations: map[string]interface{}{
+				Declarations: native.Declarations{
 					"ToLower": strings.ToLower,
 				},
 			},
 			"math": &native.DeclarationsPackage{
 				PkgName: "math",
-				Declarations: map[string]interface{}{
+				Declarations: native.Declarations{
 					"MaxInt8": math.MaxInt8,
 				},
 			},
@@ -175,7 +175,7 @@ var scriptTests = map[string]struct {
 		}
 		F()
 		`,
-		globals: scripts.Declarations{
+		globals: native.Declarations{
 			"V": (*int)(nil),
 		},
 	},
@@ -189,7 +189,7 @@ func TestScripts(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			globals := cas.globals
 			if globals == nil {
-				globals = scripts.Declarations{}
+				globals = native.Declarations{}
 			}
 			globals["Print"] = func(args ...interface{}) {
 				for _, a := range args {
@@ -222,7 +222,7 @@ func TestScriptSum(t *testing.T) {
 	Sum := 0
 	init := map[string]interface{}{"Sum": &Sum}
 	options := &scripts.BuildOptions{
-		Globals: scripts.Declarations{
+		Globals: native.Declarations{
 			"Sum": (*int)(nil),
 		},
 	}
@@ -244,11 +244,11 @@ func TestScriptsChainMessages(t *testing.T) {
 	src2 := `Message = Message + "script2"`
 	Message := "external,"
 	options := &scripts.BuildOptions{
-		Globals: scripts.Declarations{
+		Globals: native.Declarations{
 			"Message": (*string)(nil),
 		},
 	}
-	init := map[string]interface{}{"Message": &Message}
+	init := native.Declarations{"Message": &Message}
 	script1, err := scripts.Build(strings.NewReader(src1), options)
 	if err != nil {
 		t.Fatalf("unable to load script 1: %s", err)

@@ -23,13 +23,10 @@ import (
 )
 
 type BuildOptions struct {
-	Globals        Declarations         // globals.
+	Globals        native.Declarations  // globals.
 	DisallowGoStmt bool                 // disallow "go" statement.
 	Packages       native.PackageLoader // package loader load native packages.
 }
-
-// Declarations.
-type Declarations map[string]interface{}
 
 type RunOptions struct {
 	Context   context.Context
