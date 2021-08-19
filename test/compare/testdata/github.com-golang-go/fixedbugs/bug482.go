@@ -1,4 +1,4 @@
-// skip : false positive 'type checking loop' (investigate)
+// skip : false positive 'type checking loop' (https://github.com/open2b/scriggo/issues/823)
 
 // compile
 
