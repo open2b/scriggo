@@ -73,7 +73,7 @@ func parseNumericConst(s string) (constant, reflect.Type, error) {
 
 // toTypeCheckerScope generates a type checker scope given a predefined
 // package. depth must be 0 unless toTypeCheckerScope is called recursively.
-func toTypeCheckerScope(pp predefinedPackage, mod checkingMod, global bool, depth int) map[string]scopeName {
+func toTypeCheckerScope(pp native.Package, mod checkingMod, global bool, depth int) map[string]scopeName {
 	declarations := pp.DeclarationNames()
 	scope := make(map[string]scopeName, len(declarations))
 	for _, ident := range declarations {
@@ -509,7 +509,7 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(compilation *compilation, pkg *ast.Package, path string, packages PackageLoader, opts checkerOptions) (err error) {
+func checkPackage(compilation *compilation, pkg *ast.Package, path string, packages native.PackageLoader, opts checkerOptions) (err error) {
 
 	// If the package has already been checked just return.
 	if _, ok := compilation.pkgInfos[path]; ok {

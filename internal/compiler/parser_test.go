@@ -11,48 +11,10 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/open2b/scriggo/ast"
 )
-
-// combinedLoaders combines more loaders in one loader.
-type combinedLoaders []PackageLoader
-
-func (loaders combinedLoaders) Load(path string) (interface{}, error) {
-	for _, loader := range loaders {
-		p, err := loader.Load(path)
-		if p != nil || err != nil {
-			return p, err
-		}
-	}
-	return nil, nil
-}
-
-// loaders returns a loader combining more loaders.
-func loaders(loaders ...PackageLoader) PackageLoader {
-	return combinedLoaders(loaders)
-}
-
-// mapStringLoader implements PackageLoader for not predefined packages as a
-// map with string values. Paths and sources are respectively the keys and the
-// values of the map.
-type mapStringLoader map[string]string
-
-func (r mapStringLoader) Load(path string) (interface{}, error) {
-	if src, ok := r[path]; ok {
-		return strings.NewReader(src), nil
-	}
-	return nil, nil
-}
-
-type predefinedPackages map[string]predefinedPackage
-
-func (pp predefinedPackages) Load(path string) (interface{}, error) {
-	p := pp[path]
-	return p, nil
-}
 
 func p(line, column, start, end int) *ast.Position {
 	return &ast.Position{Line: line, Column: column, Start: start, End: end}

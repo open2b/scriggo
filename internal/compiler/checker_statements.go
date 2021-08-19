@@ -963,7 +963,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		if pkg == nil {
 			return tc.errorf(impor, "cannot find package %q", impor.Path)
 		}
-		precompiledPkg := pkg.(predefinedPackage)
+		precompiledPkg := pkg.(native.Package)
 		if precompiledPkg.Name() == "main" {
 			return tc.programImportError(impor)
 		}

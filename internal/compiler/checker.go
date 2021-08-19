@@ -32,7 +32,7 @@ const (
 // typecheck makes a type check on tree.
 // This is the entry point for the type checker.
 // Note that tree may be altered during the type checking.
-func typecheck(tree *ast.Tree, packages PackageLoader, opts checkerOptions) (map[string]*packageInfo, error) {
+func typecheck(tree *ast.Tree, packages native.PackageLoader, opts checkerOptions) (map[string]*packageInfo, error) {
 
 	if opts.mod == 0 {
 		panic("unspecified modality")
@@ -172,7 +172,7 @@ type typechecker struct {
 
 	path string
 
-	precompiledPkgs PackageLoader
+	precompiledPkgs native.PackageLoader
 
 	// scopes holds the universe block, global block, file/package block,
 	// and function scopes.
@@ -252,7 +252,7 @@ type usingCheck struct {
 
 // newTypechecker creates a new type checker. A global scope may be provided
 // for scripts and templates.
-func newTypechecker(compilation *compilation, path string, opts checkerOptions, precompiledPkgs PackageLoader) *typechecker {
+func newTypechecker(compilation *compilation, path string, opts checkerOptions, precompiledPkgs native.PackageLoader) *typechecker {
 	tt := types.NewTypes()
 	tc := typechecker{
 		compilation:     compilation,

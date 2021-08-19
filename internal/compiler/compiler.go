@@ -77,7 +77,7 @@ type Options struct {
 	//
 	// For template files, Packages only loads precompiled packages; the template
 	// files are read from a file system.
-	Packages PackageLoader
+	Packages native.PackageLoader
 
 	// MDConverter converts a Markdown source code to HTML.
 	MDConverter Converter
@@ -249,35 +249,6 @@ func BuildTemplate(fsys fs.FS, name string, opts Options) (*Code, error) {
 	code, err := emitTemplate(tree, typeInfos, tci["main"].IndirectVars)
 
 	return code, err
-}
-
-// predefinedPackage represents a predefined package.
-type predefinedPackage interface {
-
-	// Name returns the package's name.
-	Name() string
-
-	// Lookup searches for an exported declaration, named declName, in the
-	// package. If the declaration does not exist, it returns nil.
-	//
-	// For a variable returns a pointer to the variable, for a function
-	// returns the function, for a type returns the reflect.Type and for a
-	// constant returns its value or a Constant.
-	Lookup(declName string) interface{}
-
-	// DeclarationNames returns the exported declaration names in the package.
-	DeclarationNames() []string
-}
-
-// PackageLoader is implemented by package loaders. Load returns a predefined
-// package as *Package or the source of a non predefined package as
-// an io.Reader.
-//
-// If the package does not exist it returns nil and nil.
-// If the package exists but there was an error while loading the package, it
-// returns nil and the error.
-type PackageLoader interface {
-	Load(pkgPath string) (interface{}, error)
 }
 
 // CheckingError records a type checking error with the path and the position

@@ -1831,7 +1831,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 	opts := checkerOptions{
 		mod: programMod,
 	}
-	predefined := predefinedPackages{"p": p}
+	predefined := native.Packages{"p": p}
 	_, err = typecheck(tree, predefined, opts)
 	if err != nil {
 		t.Errorf("TestCheckerRemoveEnv returned type check error: %s", err)

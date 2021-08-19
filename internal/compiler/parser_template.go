@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/open2b/scriggo/ast"
+	"github.com/open2b/scriggo/native"
 )
 
 // FormatFS is the interface implemented by a file system that can determine
@@ -34,7 +35,7 @@ type FormatFS interface {
 //
 // ParseTemplate expands the nodes Extends, Import and Render parsing the
 // relative trees.
-func ParseTemplate(fsys fs.FS, name string, packages PackageLoader, noParseShow, dollarIdentifier bool) (*ast.Tree, error) {
+func ParseTemplate(fsys fs.FS, name string, packages native.PackageLoader, noParseShow, dollarIdentifier bool) (*ast.Tree, error) {
 
 	if name == "." || strings.HasSuffix(name, "/") {
 		return nil, os.ErrInvalid
@@ -71,7 +72,7 @@ func ParseTemplate(fsys fs.FS, name string, packages PackageLoader, noParseShow,
 type templateExpansion struct {
 	fsys             fs.FS
 	trees            map[string]parsedTree
-	packages         PackageLoader
+	packages         native.PackageLoader
 	paths            []string
 	noParseShow      bool
 	dollarIdentifier bool
@@ -257,7 +258,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 					return err
 				}
 				switch pkg := pkg.(type) {
-				case predefinedPackage:
+				case native.Package:
 				case nil:
 					return syntaxError(n.Pos(), "cannot find package %q", n.Path)
 				default:
