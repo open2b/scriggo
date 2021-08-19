@@ -18,10 +18,8 @@ import (
 )
 
 var (
-	ErrNoModulePath      = errors.New("no module declaration in go.mod")
-	ErrInvalidModulePath = errors.New("invalid module path in go.mod")
-	ErrTooManyGoFiles    = errors.New("too many Go files")
-	ErrNoGoFiles         = errors.New("no Go files")
+	ErrNoGoFiles      = errors.New("no Go files")
+	ErrTooManyGoFiles = errors.New("too many Go files")
 )
 
 // ParseProgram parses a program.
@@ -221,10 +219,10 @@ func readModulePath(fsys fs.FS) (string, error) {
 	}
 	path := modulePath(src)
 	if path == "" {
-		return "", ErrNoModulePath
+		return "", &GoModError{path: "go.mod", pos: ast.Position{1, 1, 0, 0}, msg: "no module declaration in go.mod"}
 	}
 	if !validModulePath(path) {
-		return "", ErrInvalidModulePath
+		return "", &GoModError{path: "go.mod", pos: ast.Position{1, 1, 0, 0}, msg: "invalid module path in go.mod"}
 	}
 	return path, nil
 }

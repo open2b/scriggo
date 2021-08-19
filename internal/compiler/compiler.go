@@ -45,6 +45,7 @@ const (
 // Error represents an error returned by the compiler. The types that
 // implement the Error interface are four types of the compiler package
 //
+//  *GoModError
 //  *SyntaxError
 //  *CycleError
 //  *CheckingError
@@ -82,6 +83,33 @@ type Options struct {
 	MDConverter Converter
 
 	TreeTransformer func(*ast.Tree) error
+}
+
+// GoModError represents an error in a go.mod file.
+type GoModError struct {
+	path string
+	pos  ast.Position
+	msg  string
+}
+
+// Error returns a string representing the error.
+func (e *GoModError) Error() string {
+	return fmt.Sprintf("%s:%s: %s", e.path, e.pos, e.msg)
+}
+
+// Message returns the message of error, without position and path.
+func (e *GoModError) Message() string {
+	return e.msg
+}
+
+// Path returns the path of the go.mod file.
+func (e *GoModError) Path() string {
+	return e.path
+}
+
+// Position returns the position of error in the go.mod file.
+func (e *GoModError) Position() ast.Position {
+	return e.pos
 }
 
 // BuildProgram builds a Go program from the package in the root of fsys with
