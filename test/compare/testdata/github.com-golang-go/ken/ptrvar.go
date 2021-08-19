@@ -1,4 +1,4 @@
-// skip : panic the compiler (https://github.com/open2b/scriggo/issues/826)
+// skip : the compiler panics (needs investigation)
 
 // run
 

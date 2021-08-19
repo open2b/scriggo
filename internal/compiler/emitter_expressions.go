@@ -896,7 +896,7 @@ func (em *emitter) emitUnaryOp(expr *ast.UnaryOperator, reg int8, regType reflec
 			em.fb.enterStack()
 			r := em.fb.newRegister(reflect.Ptr)
 			em.fb.emitGetVarAddr(index, r)
-			em.changeRegister(false, r, reg, reflect.PtrTo(operandType), regType)
+			em.changeRegister(false, r, reg, em.types.PtrTo(operandType), regType)
 			em.fb.exitStack()
 
 		// &*a
