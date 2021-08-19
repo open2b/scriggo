@@ -142,7 +142,7 @@ func (p *Program) Run(options *RunOptions) error {
 			vm.SetContext(options.Context)
 		}
 		if options.Print != nil {
-			vm.SetPrint(options.Print)
+			vm.SetPrint(runtime.PrintFunc(options.Print))
 		}
 	}
 	code, err := vm.Run(p.fn, p.typeof, initPackageLevelVariables(p.globals))

@@ -127,7 +127,7 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 			vm.SetContext(options.Context)
 		}
 		if options.Print != nil {
-			vm.SetPrint(options.Print)
+			vm.SetPrint(runtime.PrintFunc(options.Print))
 		}
 	}
 	vm.SetOutput(out, runtime.Converter(t.mdConverter))

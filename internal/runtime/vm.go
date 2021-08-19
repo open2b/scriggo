@@ -176,7 +176,7 @@ func (vm *VM) SetContext(ctx context.Context) {
 // SetPrint sets the "print" builtin function.
 //
 // SetPrint must not be called after vm has been started.
-func (vm *VM) SetPrint(p func(interface{})) {
+func (vm *VM) SetPrint(p PrintFunc) {
 	vm.env.print = p
 }
 
