@@ -1,4 +1,4 @@
-// skip : panics the runtime (needs investigation)
+// skip : cannot iterate over pointer to array (https://github.com/open2b/scriggo/issues/821)
 
 // run
 
