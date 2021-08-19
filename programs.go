@@ -52,9 +52,6 @@ type Program struct {
 	globals []compiler.Global
 }
 
-var ErrTooManyGoFiles = compiler.ErrTooManyGoFiles
-var ErrNoGoFiles = compiler.ErrNoGoFiles
-
 // Build builds a program from the package in the root of fsys with the given
 // options.
 //
