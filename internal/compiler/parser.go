@@ -865,8 +865,7 @@ LABEL:
 			return p.next()
 		}
 		if tok.typ != tokenIf {
-			// Panic with a syntax error.
-			p.parseEnd(tok, tokenIf, end)
+			panic(syntaxError(tok.pos, "else must be followed by if or statement block"))
 		}
 		fallthrough
 
