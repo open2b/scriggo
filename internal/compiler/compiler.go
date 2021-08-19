@@ -73,10 +73,7 @@ type Options struct {
 	FormatTypes map[ast.Format]reflect.Type
 	Globals     native.Declarations
 
-	// Packages loads Scriggo packages and precompiled packages.
-	//
-	// For template files, Packages only loads precompiled packages; the template
-	// files are read from a file system.
+	// Packages loads the native packages.
 	Packages native.PackageLoader
 
 	// MDConverter converts a Markdown source code to HTML.

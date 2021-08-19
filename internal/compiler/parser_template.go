@@ -257,12 +257,8 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 				if err != nil {
 					return err
 				}
-				switch pkg := pkg.(type) {
-				case native.Package:
-				case nil:
+				if pkg == nil {
 					return syntaxError(n.Pos(), "cannot find package %q", n.Path)
-				default:
-					return fmt.Errorf("scriggo: unexpected type %T returned by the package loader", pkg)
 				}
 			} else {
 				// Import a template file (the path has an extension).

@@ -25,17 +25,13 @@ type Package interface {
 	DeclarationNames() []string
 }
 
-// PackageLoader is implemented by package loaders. Given a package path, Load
-// returns a Package value or a package source as io.Reader.
+// PackageLoader represents a package loader; Load returns the native package
+// with the given path.
 //
-// If the package does not exist it returns nil and nil.
-// If the package exists but there was an error while loading the package, it
-// returns nil and the error.
-//
-// If Load returns an io.Reader that implements io.Closer, the Close method
-// will be called after a Read returns either EOF or an error.
+// If an error occurs it returns the error, if the package does not exist it
+// returns a nil package.
 type PackageLoader interface {
-	Load(path string) (interface{}, error)
+	Load(path string) (Package, error)
 }
 
 // CombinedLoader combines multiple loaders into one loader.
@@ -43,7 +39,7 @@ type CombinedLoader []PackageLoader
 
 // Load calls each loader's Load methods and returns as soon as a loader
 // returns a package.
-func (loaders CombinedLoader) Load(path string) (interface{}, error) {
+func (loaders CombinedLoader) Load(path string) (Package, error) {
 	for _, loader := range loaders {
 		p, err := loader.Load(path)
 		if p != nil || err != nil {
@@ -53,20 +49,18 @@ func (loaders CombinedLoader) Load(path string) (interface{}, error) {
 	return nil, nil
 }
 
-// Packages implements PackageLoader with a map of Package values.
+// Packages implements PackageLoader using a map of Package.
 type Packages map[string]Package
 
-// Load returns a Package value or the source of a package as io.Reader.
-// It returns nil if there is no package with the given name.
-func (pp Packages) Load(path string) (interface{}, error) {
+// Load returns a Package.
+func (pp Packages) Load(path string) (Package, error) {
 	if p, ok := pp[path]; ok {
 		return p, nil
 	}
 	return nil, nil
 }
 
-// MapPackage implements Package given a package name and a map of
-// declarations.
+// MapPackage implements Package using a map of declarations.
 type MapPackage struct {
 	// Package name.
 	PkgName string
@@ -94,9 +88,9 @@ func (p *MapPackage) DeclarationNames() []string {
 	return declarations
 }
 
-// CombinedPackage implements Package by combining multiple packages
-// into one package with name the name of the first package and as
-// declarations the declarations of all packages.
+// CombinedPackage implements a Package by combining multiple packages into
+// one package with name the name of the first package and as declarations the
+// declarations of all packages.
 //
 // The Lookup method calls the Lookup methods of each package in order and
 // returns as soon as a package returns a not nil value.

@@ -25,7 +25,7 @@ import (
 type BuildOptions struct {
 	Globals        Declarations         // globals.
 	DisallowGoStmt bool                 // disallow "go" statement.
-	Packages       native.PackageLoader // package loader used to load imported packages.
+	Packages       native.PackageLoader // package loader load native packages.
 }
 
 // Declarations.

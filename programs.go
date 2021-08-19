@@ -25,7 +25,7 @@ type BuildOptions struct {
 	// DisallowGoStmt, when true, disallows the go statement.
 	DisallowGoStmt bool
 
-	// Packages is a PackageLoader that makes native packages available
+	// Packages is a package loader that makes native packages available
 	// in programs and templates through the import statement.
 	//
 	// For templates, an import statement refers to a native package read from
