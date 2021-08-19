@@ -136,7 +136,7 @@ func main() {
 		case "rundir":
 			fsys = os.DirFS(flag.Arg(2))
 		}
-		opts := scriggo.BuildTemplateOptions{
+		opts := scriggo.BuildOptions{
 			Globals:           globals,
 			Packages:          packages,
 			MarkdownConverter: markdownConverter,

@@ -57,7 +57,7 @@ var htmlContextTests = []struct {
 func TestHTMLContext(t *testing.T) {
 	for _, expr := range htmlContextTests {
 		fsys := fstest.Files{"index.html": "{{" + expr.src + "}}"}
-		opts := &BuildTemplateOptions{
+		opts := &BuildOptions{
 			Globals: asDeclarations(expr.vars),
 		}
 		template, err := BuildTemplate(fsys, "index.html", opts)
@@ -112,7 +112,7 @@ var quotedAttrContextTests = []struct {
 func TestQuotedAttrContext(t *testing.T) {
 	for _, expr := range quotedAttrContextTests {
 		fsys := fstest.Files{"index.html": `<z x="{{` + expr.src + `}}">`}
-		opts := &BuildTemplateOptions{
+		opts := &BuildOptions{
 			Globals: asDeclarations(expr.vars),
 		}
 		template, err := BuildTemplate(fsys, "index.html", opts)
@@ -149,7 +149,7 @@ var unquotedAttrContextTests = []struct {
 func TestUnquotedAttrContext(t *testing.T) {
 	for _, expr := range unquotedAttrContextTests {
 		fsys := fstest.Files{"index.html": `<z x={{` + expr.src + `}}>`}
-		opts := &BuildTemplateOptions{
+		opts := &BuildOptions{
 			Globals: asDeclarations(expr.vars),
 		}
 		template, err := BuildTemplate(fsys, "index.html", opts)
@@ -231,7 +231,7 @@ func TestScriptContext(t *testing.T) {
 	for _, typ := range []string{"text/javascript", "application/ld+json"} {
 		for _, expr := range scriptContextTests {
 			fsys := fstest.Files{"index.html": `<script type="` + typ + `">{{` + expr.src + `}}</script>`}
-			opts := &BuildTemplateOptions{
+			opts := &BuildOptions{
 				Globals: asDeclarations(expr.vars),
 			}
 			template, err := BuildTemplate(fsys, "index.html", opts)
@@ -264,7 +264,7 @@ var jsContextTests = []struct {
 func TestJSContext(t *testing.T) {
 	for _, expr := range jsContextTests {
 		fsys := fstest.Files{"index.html": "<script>{{" + expr.src + "}}</script>"}
-		opts := &BuildTemplateOptions{
+		opts := &BuildOptions{
 			Globals: asDeclarations(expr.vars),
 		}
 		template, err := BuildTemplate(fsys, "index.html", opts)
@@ -296,7 +296,7 @@ var jsonContextTests = []struct {
 func TestJSONContext(t *testing.T) {
 	for _, expr := range jsonContextTests {
 		fsys := fstest.Files{"index.html": `<script type="application/ld+json">{{` + expr.src + `}}</script>`}
-		opts := &BuildTemplateOptions{
+		opts := &BuildOptions{
 			Globals: asDeclarations(expr.vars),
 		}
 		template, err := BuildTemplate(fsys, "index.html", opts)
@@ -342,7 +342,7 @@ func TestJSStringContext(t *testing.T) {
 	for _, q := range []string{"\"", "'"} {
 		for _, expr := range jsStringContextTests {
 			fsys := fstest.Files{"index.html": "<script>" + q + "{{" + expr.src + "}}" + q + "</script>"}
-			opts := &BuildTemplateOptions{
+			opts := &BuildOptions{
 				Globals: asDeclarations(expr.vars),
 			}
 			template, err := BuildTemplate(fsys, "index.html", opts)
@@ -381,7 +381,7 @@ var cssContextTests = []struct {
 func TestCSSContext(t *testing.T) {
 	for _, expr := range cssContextTests {
 		fsys := fstest.Files{"index.html": "<style>{{" + expr.src + "}}</style>"}
-		opts := &BuildTemplateOptions{
+		opts := &BuildOptions{
 			Globals: asDeclarations(expr.vars),
 		}
 		template, err := BuildTemplate(fsys, "index.html", opts)
@@ -431,7 +431,7 @@ func TestCSSStringContext(t *testing.T) {
 	for _, q := range []string{"\"", "'"} {
 		for _, expr := range cssStringContextTests {
 			fsys := fstest.Files{"index.html": "<style>" + q + "{{" + expr.src + "}}" + q + "</style>"}
-			opts := &BuildTemplateOptions{
+			opts := &BuildOptions{
 				Globals: asDeclarations(expr.vars),
 			}
 			template, err := BuildTemplate(fsys, "index.html", opts)
@@ -587,7 +587,7 @@ func TestEnvStringer(t *testing.T) {
 			for p, src := range cas.sources {
 				fsys[p] = src
 			}
-			opts := &BuildTemplateOptions{
+			opts := &BuildOptions{
 				Globals: cas.globals,
 			}
 			name := "index.txt"

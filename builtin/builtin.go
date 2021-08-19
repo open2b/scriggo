@@ -18,10 +18,10 @@
 //        "min": builtin.Min,
 //        "max": builtin.Max,
 //    }
-//    opts := &scriggo.BuildTemplateOptions{
+//    opts := &scriggo.BuildOptions{
 //        Globals: globals,
 //    }
-//    template, err := scriggoTemplates.Build(fsys, file, opts)
+//    template, err := scriggo.BuildTemplate(fsys, file, opts)
 //
 // And to use them in a template
 //

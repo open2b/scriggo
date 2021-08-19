@@ -204,7 +204,7 @@ func TestURLEscape(t *testing.T) {
 	for _, cas := range urlEscapeCases {
 		t.Run("", func(t *testing.T) {
 			fsys := fstest.Files{"index.html": cas.src}
-			opts := &BuildTemplateOptions{
+			opts := &BuildOptions{
 				Globals: globals(),
 			}
 			template, err := BuildTemplate(fsys, "index.html", opts)

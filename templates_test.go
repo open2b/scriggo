@@ -3690,7 +3690,7 @@ func TestMultiFileTemplate(t *testing.T) {
 					globals[k] = v
 				}
 			}
-			opts := &BuildTemplateOptions{
+			opts := &BuildOptions{
 				Globals:              globals,
 				Packages:             cas.packages,
 				MarkdownConverter:    markdownConverter,
@@ -3772,7 +3772,7 @@ func TestVars(t *testing.T) {
 		"f": f,
 		"g": g,
 	}
-	opts := &BuildTemplateOptions{
+	opts := &BuildOptions{
 		Globals: globals,
 	}
 	template, err := BuildTemplate(fsys, "example.txt", opts)
@@ -3854,7 +3854,7 @@ func Test_envFilePath(t *testing.T) {
 			for p, src := range cas.sources {
 				fsys[p] = src
 			}
-			opts := &BuildTemplateOptions{
+			opts := &BuildOptions{
 				Globals: globals,
 			}
 			template, err := BuildTemplate(fsys, "index.html", opts)
@@ -3876,7 +3876,7 @@ func Test_envFilePath(t *testing.T) {
 func Test_treeTransformer(t *testing.T) {
 	stdout := &strings.Builder{}
 	fsys := fstest.Files{"index.html": `{% w := "hi, " %}{{ w }}world!`}
-	loadOpts := &BuildTemplateOptions{
+	loadOpts := &BuildOptions{
 		TreeTransformer: func(tree *ast.Tree) error {
 			assignment := tree.Nodes[0].(*ast.Assignment)
 			assignment.Rhs[0].(*ast.BasicLiteral).Value = `"hello, "`

@@ -55,7 +55,7 @@ func serve(asm int, metrics bool) error {
 	srv := &server{
 		fsys:   fsys,
 		static: http.FileServer(http.Dir(".")),
-		buildOptions: &scriggo.BuildTemplateOptions{
+		buildOptions: &scriggo.BuildOptions{
 			Globals: globals,
 			MarkdownConverter: func(src []byte, out io.Writer) error {
 				return md.Convert(src, out)
@@ -96,7 +96,7 @@ func serve(asm int, metrics bool) error {
 type server struct {
 	fsys         *templateFS
 	static       http.Handler
-	buildOptions *scriggo.BuildTemplateOptions
+	buildOptions *scriggo.BuildOptions
 	runOptions   *scriggo.RunOptions
 	asm          int
 

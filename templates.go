@@ -37,44 +37,6 @@ func (format Format) String() string {
 	return ast.Format(format).String()
 }
 
-type BuildTemplateOptions struct {
-
-	// DisallowGoStmt, when true, disallows the "go" statement.
-	DisallowGoStmt bool
-
-	// NoParseShortShowStmt, when true, don't parse the short show statements.
-	NoParseShortShowStmt bool
-
-	// MarkdownConverter converts a Markdown source code to HTML.
-	MarkdownConverter Converter
-
-	// Globals declares constants, types, variables, functions and packages
-	// that are accessible from the code in the template.
-	Globals native.Declarations
-
-	// Packages is a PackageLoader that makes native packages available
-	// in the template through the "import" statement.
-	//
-	// An import statement refers to a native package read from Packages if
-	// its path has no extension. For example
-	//
-	//   import a template file:   {% import "my/file.html" %}
-	//   import a native package:  {% import "my/package" %}
-	//
-	Packages native.PackageLoader
-
-	// TreeTransformer is a function that transforms a tree. If it is not nil,
-	// it is called before the type checking.
-	TreeTransformer func(tree *ast.Tree) error
-
-	// DollarIdentifier, when true, keeps the backward compatibility by
-	// supporting the dollar identifier.
-	//
-	// NOTE: the dollar identifier is deprecated and will be removed in a
-	// future version of Scriggo.
-	DollarIdentifier bool
-}
-
 // Converter is implemented by format converters.
 type Converter func(src []byte, out io.Writer) error
 
@@ -119,7 +81,7 @@ var formatTypes = map[ast.Format]reflect.Type{
 // errors.Is(err, fs.ErrNotExist).
 //
 // If a build error occurs, it returns a *BuildError.
-func BuildTemplate(fsys fs.FS, name string, options *BuildTemplateOptions) (*Template, error) {
+func BuildTemplate(fsys fs.FS, name string, options *BuildOptions) (*Template, error) {
 	co := compiler.Options{
 		FormatTypes: formatTypes,
 	}

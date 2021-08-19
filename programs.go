@@ -13,19 +13,59 @@ import (
 	"io/fs"
 	"reflect"
 
+	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/compiler"
 	"github.com/open2b/scriggo/internal/runtime"
 	"github.com/open2b/scriggo/native"
 )
 
+// BuildOptions contains options for building programs and templates.
 type BuildOptions struct {
 
-	// DisallowGoStmt disallows the "go" statement.
+	// DisallowGoStmt, when true, disallows the go statement.
 	DisallowGoStmt bool
 
 	// Packages is a PackageLoader that makes native packages available
-	// in the program through the "import" statement.
+	// in programs and templates through the import statement.
+	//
+	// For templates, an import statement refers to a native package read from
+	// Packages if its path has no extension. For example
+	//
+	//   import a template file:   {% import "my/file.html" %}
+	//   import a native package:  {% import "my/package" %}
+	//
 	Packages native.PackageLoader
+
+	// TreeTransformer is a function that transforms a tree. If it is not nil,
+	// it is called before the type checking.
+	//
+	// Used for templates only.
+	TreeTransformer func(tree *ast.Tree) error
+
+	// NoParseShortShowStmt, when true, don't parse the short show statements.
+	//
+	// Used for templates only.
+	NoParseShortShowStmt bool
+
+	// MarkdownConverter converts a Markdown source code to HTML.
+	//
+	// Used for templates only.
+	MarkdownConverter Converter
+
+	// Globals declares constants, types, variables, functions and packages
+	// that are accessible from the code in the template.
+	//
+	// Used for templates only.
+	Globals native.Declarations
+
+	// DollarIdentifier, when true, keeps the backward compatibility by
+	// supporting the dollar identifier.
+	//
+	// NOTE: the dollar identifier is deprecated and will be removed in a
+	// future version of Scriggo.
+	//
+	// Used for templates only.
+	DollarIdentifier bool
 }
 
 // PrintFunc represents a function that prints the arguments of the print and
