@@ -101,7 +101,7 @@ func (p *Program) Run(options *RunOptions) (int, error) {
 	}
 	code, err := vm.Run(p.fn, p.typeof, initPackageLevelVariables(p.globals))
 	if p, ok := err.(*runtime.Panic); ok {
-		err = &Panic{p}
+		err = &PanicError{p}
 	}
 	return code, err
 }

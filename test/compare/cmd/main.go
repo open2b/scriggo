@@ -158,9 +158,9 @@ func main() {
 }
 
 // convertRunError converts an error returned from a Run method, transforming
-// a *scriggo.Panic value to its string representation.
+// a *scriggo.PanicError value to its string representation.
 func convertRunError(err error) error {
-	if p, ok := err.(*scriggo.Panic); ok {
+	if p, ok := err.(*scriggo.PanicError); ok {
 		return errors.New(p.Error())
 	}
 	return err

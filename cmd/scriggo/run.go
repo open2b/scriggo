@@ -75,7 +75,7 @@ func run() {
 		} else {
 			code, err := program.Run(nil)
 			if err != nil {
-				if p, ok := err.(*scriggo.Panic); ok {
+				if p, ok := err.(*scriggo.PanicError); ok {
 					panic(p)
 				}
 				if err == context.DeadlineExceeded {
@@ -104,7 +104,7 @@ func run() {
 		} else {
 			code, err := script.Run(nil, nil)
 			if err != nil {
-				if p, ok := err.(*scriggo.Panic); ok {
+				if p, ok := err.(*scriggo.PanicError); ok {
 					panic(p)
 				}
 				if err == context.DeadlineExceeded {

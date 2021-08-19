@@ -82,7 +82,7 @@ func (p *Script) Run(vars map[string]interface{}, options *RunOptions) (int, err
 	}
 	code, err := vm.Run(p.fn, p.typeof, initGlobalVariables(p.globals, vars))
 	if p, ok := err.(*runtime.Panic); ok {
-		err = &Panic{p}
+		err = &PanicError{p}
 	}
 	return code, err
 }

@@ -48,46 +48,46 @@ func (err *BuildError) Message() string {
 	return err.err.Message()
 }
 
-// Panic represents an error that occurs when an executed program or template
-// calls the panic builtin.
-type Panic struct {
+// PanicError represents an error that occurs when an executed program or
+// template calls the panic builtin.
+type PanicError struct {
 	p *runtime.Panic
 }
 
 // Error returns all currently active panics as a string.
 //
 // To print only the message, use the String method instead.
-func (p *Panic) Error() string {
+func (p *PanicError) Error() string {
 	return p.p.Error()
 }
 
 // Message returns the message.
-func (p *Panic) Message() interface{} {
+func (p *PanicError) Message() interface{} {
 	return p.p.Message()
 }
 
 // Next returns the next panic in the chain.
-func (p *Panic) Next() *Panic {
-	return &Panic{p.p.Next()}
+func (p *PanicError) Next() *PanicError {
+	return &PanicError{p.p.Next()}
 }
 
 // Recovered reports whether it has been recovered.
-func (p *Panic) Recovered() bool {
+func (p *PanicError) Recovered() bool {
 	return p.p.Recovered()
 }
 
 // String returns the message as a string.
-func (p *Panic) String() string {
+func (p *PanicError) String() string {
 	return p.p.String()
 }
 
 // Path returns the path of the file that panicked.
-func (p *Panic) Path() string {
+func (p *PanicError) Path() string {
 	return p.p.Path()
 }
 
 // Position returns the position.
-func (p *Panic) Position() Position {
+func (p *PanicError) Position() Position {
 	pos := p.p.Position()
 	return Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: pos.End}
 }

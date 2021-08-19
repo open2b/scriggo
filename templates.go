@@ -162,7 +162,7 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 	vm.SetOutput(out, runtime.Converter(t.mdConverter))
 	_, err := vm.Run(t.fn, t.typeof, initGlobalVariables(t.globals, vars))
 	if p, ok := err.(*runtime.Panic); ok {
-		err = &Panic{p}
+		err = &PanicError{p}
 	}
 	return err
 }
