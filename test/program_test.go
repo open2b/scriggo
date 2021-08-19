@@ -48,7 +48,7 @@ func TestIssue403(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = program.Run(nil)
+		err = program.Run(nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -78,7 +78,7 @@ func TestIssue403(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = program.Run(nil)
+		err = program.Run(nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -110,7 +110,7 @@ func TestIssue403(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = program.Run(nil)
+		err = program.Run(nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -142,7 +142,7 @@ func TestIssue403(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = program.Run(nil)
+		err = program.Run(nil)
 		if err != nil {
 			t.Fatal(err)
 		}

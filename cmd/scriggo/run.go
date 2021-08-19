@@ -73,10 +73,13 @@ func run() {
 				os.Exit(2)
 			}
 		} else {
-			code, err := program.Run(nil)
+			err := program.Run(nil)
 			if err != nil {
-				if p, ok := err.(*scriggo.PanicError); ok {
-					panic(p)
+				switch err := err.(type) {
+				case *scriggo.PanicError:
+					panic(err)
+				case *scriggo.ExitError:
+					os.Exit(err.Code())
 				}
 				if err == context.DeadlineExceeded {
 					err = errors.New("process took too long")
@@ -84,7 +87,6 @@ func run() {
 				_, _ = fmt.Fprintln(os.Stderr, err)
 				os.Exit(2)
 			}
-			os.Exit(code)
 		}
 
 	} else {
@@ -102,10 +104,13 @@ func run() {
 				os.Exit(2)
 			}
 		} else {
-			code, err := script.Run(nil, nil)
+			err := script.Run(nil, nil)
 			if err != nil {
-				if p, ok := err.(*scriggo.PanicError); ok {
-					panic(p)
+				switch err := err.(type) {
+				case *scriggo.PanicError:
+					panic(err)
+				case *scriggo.ExitError:
+					os.Exit(err.Code())
 				}
 				if err == context.DeadlineExceeded {
 					err = errors.New("process took too long")
@@ -113,7 +118,6 @@ func run() {
 				_, _ = fmt.Fprintln(os.Stderr, err)
 				os.Exit(2)
 			}
-			os.Exit(code)
 		}
 
 	}

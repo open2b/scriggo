@@ -23,7 +23,7 @@ func newProgram(program *scriggo.Program) Program {
 			cb = args[0]
 		}
 		go func() {
-			_, err := program.Run(nil)
+			err := program.Run(nil)
 			if cb.IsNull() || cb.IsUndefined() {
 				return
 			}

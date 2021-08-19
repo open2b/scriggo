@@ -126,7 +126,8 @@ type Env interface {
 	// It is the context passed as an option for execution.
 	Context() context.Context
 
-	// Exit exits the execution with the given status code.
+	// Exit exits the execution with the given status code. If the code is not
+	// zero, the execution returns a scriggo.ExitError error with this code.
 	// Deferred functions are not run.
 	Exit(code int)
 
@@ -137,7 +138,7 @@ type Env interface {
 	// terminated.
 	ExitFunc(f func())
 
-	// Fatal calls the panic built-in function with a FatalError error.
+	// Fatal exits the execution and then panics with value v.
 	Fatal(v interface{})
 
 	// FilePath returns the absolute path of the current executed file. If it

@@ -103,7 +103,7 @@ func main() {
 			os.Exit(1)
 		}
 		if cmd != "build" {
-			_, err = program.Run(nil)
+			err = program.Run(nil)
 			if err != nil {
 				panic(convertRunError(err))
 			}
@@ -119,7 +119,7 @@ func main() {
 			os.Exit(1)
 		}
 		if cmd == "run" {
-			_, err = script.Run(nil, nil)
+			err = script.Run(nil, nil)
 			if err != nil {
 				panic(convertRunError(err))
 			}

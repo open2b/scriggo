@@ -16,6 +16,7 @@ import (
 	"io"
 	"reflect"
 
+	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/internal/compiler"
 	"github.com/open2b/scriggo/internal/runtime"
 	"github.com/open2b/scriggo/native"
@@ -70,7 +71,12 @@ func (p *Script) Disassemble() []byte {
 
 // Run starts the script and waits for it to complete. vars contains the
 // values of the global variables.
-func (p *Script) Run(vars map[string]interface{}, options *RunOptions) (int, error) {
+//
+// If the executed script panics, Run returns a PanicError error. If the
+// native.Env.Exit method is called with a non-zero code, Run returns an
+// ExitError with the exit code. If the native.Env.Fatal method is called with
+// argument v, Run panics with the value v.
+func (p *Script) Run(vars map[string]interface{}, options *RunOptions) error {
 	vm := runtime.NewVM()
 	if options != nil {
 		if options.Context != nil {
@@ -81,19 +87,25 @@ func (p *Script) Run(vars map[string]interface{}, options *RunOptions) (int, err
 		}
 	}
 	code, err := vm.Run(p.fn, p.typeof, initGlobalVariables(p.globals, vars))
-	if p, ok := err.(*runtime.Panic); ok {
-		err = &PanicError{p}
+	if err != nil {
+		if p, ok := err.(*runtime.Panic); ok {
+			err = &PanicError{p}
+		}
+		return err
 	}
-	return code, err
+	if code != 0 {
+		return scriggo.ExitError(code)
+	}
+	return nil
 }
 
 // MustRun is like Run but panics if the run fails.
-func (p *Script) MustRun(vars map[string]interface{}, options *RunOptions) int {
-	code, err := p.Run(vars, options)
+func (p *Script) MustRun(vars map[string]interface{}, options *RunOptions) {
+	err := p.Run(vars, options)
 	if err != nil {
 		panic(err)
 	}
-	return code
+	return
 }
 
 var emptyInit = map[string]interface{}{}

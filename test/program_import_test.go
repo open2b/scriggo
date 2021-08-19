@@ -103,7 +103,7 @@ func TestProgramImport(t *testing.T) {
 				t.Errorf("compiling error: %s", err)
 				return
 			}
-			_, err = program.Run(nil)
+			err = program.Run(nil)
 			if err != nil {
 				t.Errorf("execution error: %s", err)
 				return

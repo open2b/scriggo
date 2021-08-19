@@ -38,7 +38,7 @@ func main() {
 		result := testing.Benchmark(func(b *testing.B) {
 			b.ReportAllocs()
 			for n := 0; n < b.N; n++ {
-				_, err := program.code.Run(nil)
+				err := program.code.Run(nil)
 				if err != nil {
 					b.Fatal(err)
 				}

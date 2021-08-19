@@ -146,6 +146,11 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildTemplateOptions) (*Tem
 
 // Run runs the template and write the rendered code to out. vars contains
 // the values of the global variables.
+//
+// If the executed template panics, Run returns a PanicError error. If the
+// native.Env.Exit method is called with a non-zero code, Run returns an
+// ExitError with the exit code. If the native.Env.Fatal method is called with
+// argument v, Run panics with the value v.
 func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunOptions) error {
 	if out == nil {
 		return errors.New("invalid nil out")
@@ -160,9 +165,15 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 		}
 	}
 	vm.SetOutput(out, runtime.Converter(t.mdConverter))
-	_, err := vm.Run(t.fn, t.typeof, initGlobalVariables(t.globals, vars))
-	if p, ok := err.(*runtime.Panic); ok {
-		err = &PanicError{p}
+	code, err := vm.Run(t.fn, t.typeof, initGlobalVariables(t.globals, vars))
+	if err != nil {
+		if p, ok := err.(*runtime.Panic); ok {
+			err = &PanicError{p}
+		}
+		return err
+	}
+	if code != 0 {
+		return ExitError(code)
 	}
 	return err
 }

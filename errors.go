@@ -48,6 +48,20 @@ func (err *BuildError) Message() string {
 	return err.err.Message()
 }
 
+// ExitError represents an exit from an execution with a non-zero code. It is
+// returned when the native.Env.Exit method is called with a non-zero value.
+type ExitError int
+
+// Error returns a string representation of the error.
+func (err ExitError) Error() string {
+	return "exit code " + strconv.Itoa(int(err))
+}
+
+// Code returns the exit code.
+func (err ExitError) Code() int {
+	return int(err)
+}
+
 // PanicError represents an error that occurs when an executed program or
 // template calls the panic builtin.
 type PanicError struct {

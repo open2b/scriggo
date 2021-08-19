@@ -204,7 +204,7 @@ func TestScripts(t *testing.T) {
 			if err != nil {
 				t.Fatalf("build error: %s", err)
 			}
-			_, err = script.Run(cas.init, nil)
+			err = script.Run(cas.init, nil)
 			if err != nil {
 				t.Fatalf("run error: %s", err)
 			}
@@ -230,7 +230,7 @@ func TestScriptSum(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to load script: %s", err)
 	}
-	_, err = script.Run(init, nil)
+	err = script.Run(init, nil)
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}
@@ -257,14 +257,14 @@ func TestScriptsChainMessages(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to load script 2: %s", err)
 	}
-	_, err = script1.Run(init, nil)
+	err = script1.Run(init, nil)
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}
 	if Message != "external,script1," {
 		t.Fatalf("Message should be %q, got %q", "external,script1,", Message)
 	}
-	_, err = script2.Run(init, nil)
+	err = script2.Run(init, nil)
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}

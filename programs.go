@@ -89,7 +89,12 @@ func (p *Program) Disassemble(pkgPath string) ([]byte, error) {
 }
 
 // Run starts the program and waits for it to complete.
-func (p *Program) Run(options *RunOptions) (int, error) {
+//
+// If the executed program panics, Run returns a PanicError error. If the
+// native.Env.Exit method is called with a non-zero code, Run returns an
+// ExitError with the exit code. If the native.Env.Fatal method is called with
+// argument v, Run panics with the value v.
+func (p *Program) Run(options *RunOptions) error {
 	vm := runtime.NewVM()
 	if options != nil {
 		if options.Context != nil {
@@ -100,19 +105,25 @@ func (p *Program) Run(options *RunOptions) (int, error) {
 		}
 	}
 	code, err := vm.Run(p.fn, p.typeof, initPackageLevelVariables(p.globals))
-	if p, ok := err.(*runtime.Panic); ok {
-		err = &PanicError{p}
+	if err != nil {
+		if p, ok := err.(*runtime.Panic); ok {
+			err = &PanicError{p}
+		}
+		return err
 	}
-	return code, err
+	if code != 0 {
+		return ExitError(code)
+	}
+	return nil
 }
 
 // MustRun is like Run but panics if the run fails.
-func (p *Program) MustRun(options *RunOptions) int {
-	code, err := p.Run(options)
+func (p *Program) MustRun(options *RunOptions) {
+	err := p.Run(options)
 	if err != nil {
 		panic(err)
 	}
-	return code
+	return
 }
 
 // initPackageLevelVariables initializes the package level variables and
