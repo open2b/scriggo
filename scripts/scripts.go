@@ -29,8 +29,8 @@ type BuildOptions struct {
 }
 
 type RunOptions struct {
-	Context   context.Context
-	PrintFunc scriggo.PrintFunc
+	Context context.Context
+	Print   scriggo.PrintFunc
 }
 
 // Script is a script compiled with the Build function.
@@ -84,8 +84,8 @@ func (p *Script) Run(vars map[string]interface{}, options *RunOptions) error {
 		if options.Context != nil {
 			vm.SetContext(options.Context)
 		}
-		if options.PrintFunc != nil {
-			vm.SetPrint(runtime.PrintFunc(options.PrintFunc))
+		if options.Print != nil {
+			vm.SetPrint(runtime.PrintFunc(options.Print))
 		}
 	}
 	code, err := vm.Run(p.fn, p.typeof, initGlobalVariables(p.globals, vars))
