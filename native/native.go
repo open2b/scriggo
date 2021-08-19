@@ -138,22 +138,23 @@ type Env interface {
 
 	// Exit exits the execution with the given status code. If the code is not
 	// zero, the execution returns a scriggo.ExitError error with this code.
-	// Deferred functions are not run.
+	// Deferred functions are not called.
 	Exit(code int)
 
 	// Exited reports whether the execution is terminated.
 	Exited() bool
 
 	// ExitFunc calls f in its own goroutine after the execution is
-	// terminated.
+	// terminated. If the execution is already terminated, f is called
+	// immediately.
 	ExitFunc(f func())
 
 	// Fatal exits the execution and then panics with value v.
 	Fatal(v interface{})
 
-	// FilePath returns the absolute path of the current executed file. If it
-	// is not called by the main goroutine, the returned value is not
-	// significant.
+	// FilePath returns the path, relative to the root, of the current
+	// executed file. If it is not called by the main goroutine, the
+	// returned value is not significant.
 	FilePath() string
 
 	// Print calls the print built-in function with args as argument.
