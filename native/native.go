@@ -20,7 +20,7 @@ import (
 //
 // The key is the declaration's name and the element is its value
 //
-//  for a variable: a pointer to the variable
+//  for a variable: a pointer to the value of the variable
 //  for a function: the function
 //  for a type: its reflect.Type value
 //  for a typed constant: its value as a string, boolean or numeric value
@@ -28,6 +28,17 @@ import (
 //  for a package: a Package value (used only for template globals)
 //
 type Declarations map[string]interface{}
+
+type (
+	// UntypedStringConst represents an untyped string constant.
+	UntypedStringConst string
+
+	// UntypedBooleanConst represents an untyped boolean constant.
+	UntypedBooleanConst bool
+
+	// UntypedNumericConst represents an untyped numeric constant.
+	UntypedNumericConst string
+)
 
 type (
 
@@ -108,22 +119,10 @@ type (
 	}
 
 	// MarkdownEnvStringer is like MarkdownStringer where the Markdown method
-	// takes an native.Env parameter.
+	// takes a native.Env parameter.
 	MarkdownEnvStringer interface {
 		Markdown(Env) Markdown
 	}
-)
-
-type (
-
-	// UntypedStringConst represents an untyped string constant.
-	UntypedStringConst string
-
-	// UntypedBooleanConst represents an untyped boolean constant.
-	UntypedBooleanConst bool
-
-	// UntypedNumericConst represents an untyped numeric constant.
-	UntypedNumericConst string
 )
 
 // Env represents an execution environment.
