@@ -848,9 +848,6 @@ const (
 	recovered
 )
 
-// Size of a CallFrame.
-const CallFrameSize = 88
-
 // If the size of callFrame changes, update the constant CallFrameSize.
 type callFrame struct {
 	cl          callable   // callable.
