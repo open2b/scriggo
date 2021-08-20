@@ -463,6 +463,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		return t
 
 	case *ast.StructType:
+		blank := 0
 		fields := []reflect.StructField{}
 		for _, fd := range expr.Fields {
 			typ := tc.checkType(fd.Type).Type
@@ -484,6 +485,10 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			// The addition of the unique index is also used to check if a
 			// non-exported field of a struct can be accessed from a package
 			// (see the documentation of typechecker.structDeclPkg).
+			//
+			// If the field name is blank, the character 𝗽 is followed by a
+			// number, initially zero and incremented for each blank name in
+			// the struct.
 			if fd.Idents == nil {
 				// Implicit field declaration.
 				name := typ.Name()
@@ -503,7 +508,10 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				// Explicit field declaration.
 				for _, ident := range fd.Idents {
 					name := ident.Name
-					if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
+					if name == "_" {
+						name = "𝗽" + strconv.Itoa(blank)
+						blank++
+					} else if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
 						name = "𝗽" + strconv.Itoa(tc.compilation.UniqueIndex(tc.path)) + ident.Name
 					}
 					for _, field := range fields {
