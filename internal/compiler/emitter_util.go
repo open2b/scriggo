@@ -280,8 +280,8 @@ func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Up
 		v := &closureVars[i]
 		// v is predefined.
 		if v.Declaration == nil {
-			refs[i] = em.varStore.predefVarIndex(v.PredefinedValue, v.PredefinedValueType, v.PredefinedPkg, v.PredefinedName)
-			em.varStore.setPredefVarRef(fn, v.PredefinedValue, int16(i))
+			refs[i] = em.varStore.predefVarIndex(v.NativeValue, v.NativeValueType, v.NativePkg, v.NativeName)
+			em.varStore.setPredefVarRef(fn, v.NativeValue, int16(i))
 			continue
 		}
 		em.varStore.setClosureVar(fn, v.Declaration.(*ast.Identifier).Name, int16(i))

@@ -104,15 +104,15 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 				// identifier).
 				if nestedFuncs := tc.scopes.Functions(); len(nestedFuncs) > 0 {
 					upvar := ast.Upvar{
-						PredefinedName:      ident.Name,
-						PredefinedPkg:       ident.Name,
-						PredefinedValue:     rv,
-						PredefinedValueType: ti.Type,
+						NativeName:      ident.Name,
+						NativePkg:       ident.Name,
+						NativeValue:     rv,
+						NativeValueType: ti.Type,
 					}
 					for _, fn := range nestedFuncs {
 						add := true
 						for _, uv := range fn.Upvars {
-							if uv.PredefinedValue == upvar.PredefinedValue {
+							if uv.NativeValue == upvar.NativeValue {
 								add = false
 								break
 							}
@@ -778,15 +778,15 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				// v is a predefined variable.
 				if rv, ok := v.value.(*reflect.Value); v.Addressable() && ok {
 					upvar := ast.Upvar{
-						PredefinedName:      expr.Ident,
-						PredefinedPkg:       ident.Name,
-						PredefinedValue:     rv,
-						PredefinedValueType: v.Type,
+						NativeName:      expr.Ident,
+						NativePkg:       ident.Name,
+						NativeValue:     rv,
+						NativeValueType: v.Type,
 					}
 					for _, fn := range tc.scopes.Functions() {
 						add := true
 						for _, uv := range fn.Upvars {
-							if uv.PredefinedValue == upvar.PredefinedValue {
+							if uv.NativeValue == upvar.NativeValue {
 								add = false
 								break
 							}

@@ -263,34 +263,31 @@ type Operator interface {
 }
 
 // Upvar represents a variable defined outside function body. Even package level
-// variables (predefined or not) are considered upvars.
+// variables (native or not) are considered upvars.
 type Upvar struct {
 
-	// PredefinedPkg is the name of the predefined package which holds a
-	// predefined Upvar. If Upvar is not a predefined Upvar then PredefinedName
-	// is an empty string.
-	PredefinedPkg string
+	// NativePkg is the name of the native package which holds a native Upvar.
+	// If Upvar is not a native Upvar then NativeName is an empty string.
+	NativePkg string
 
-	// PredefinedName is the name of the predefined declaration of a predefined
-	// Upvar. If Upvar is not a predefined Upvar then PredefinedName is an empty
-	// string.
-	PredefinedName string
+	// NativeName is the name of the native declaration of a native Upvar. If
+	// Upvar is not a native Upvar then NativeName is an empty string.
+	NativeName string
 
-	// PredefinedValue is the value of the predefined variable Upvar. If Upvar
-	// is not a predefined then Upvar is nil.
-	PredefinedValue *reflect.Value
+	// NativeValue is the value of the native variable Upvar. If Upvar is not
+	// native then Upvar is nil.
+	NativeValue *reflect.Value
 
-	// PredefinedValueType, in case of Upvar refers to a precompiled variable,
-	// contains the type of such variable. If not then PredefinedValueType is
-	// nil.
+	// NativeValueType, in case of Upvar refers to a native variable, contains
+	// the type of such variable. If not then NativeValueType is nil.
 	//
-	// PredefinedValueType is necessary because the type cannot be stored into
-	// the PredefinedValue, as if the upvar is not initialized in the compiler
-	// then PredefinedValue contains an invalid reflect.Value.
-	PredefinedValueType reflect.Type
+	// NativeValueType is necessary because the type cannot be stored into
+	// the NativeValue, as if the upvar is not initialized in the compiler
+	// then NativeValue contains an invalid reflect.Value.
+	NativeValueType reflect.Type
 
 	// Declaration is the ast node where Upvar is defined. If Upvar is a
-	// predefined var then Declaration is nil.
+	// native var then Declaration is nil.
 	Declaration Node
 }
 
