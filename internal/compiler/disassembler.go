@@ -106,7 +106,7 @@ func Disassemble(main *runtime.Function, globals []Global, n int) map[string][]b
 				allFunctions = append(allFunctions, sf)
 			}
 		}
-		for _, nf := range fn.Predefined {
+		for _, nf := range fn.NativeFunctions {
 			if packages, ok := importsByPkg[fn.Pkg]; ok {
 				packages[nf.Package()] = struct{}{}
 			} else {
@@ -279,7 +279,7 @@ func disassembleFunction(b *bytes.Buffer, globals []Global, fn *runtime.Function
 			b.WriteByte('\n')
 		}
 		switch in.Op {
-		case runtime.OpCallFunc, runtime.OpCallMacro, runtime.OpCallIndirect, runtime.OpCallPredefined,
+		case runtime.OpCallFunc, runtime.OpCallMacro, runtime.OpCallIndirect, runtime.OpCallNative,
 			runtime.OpTailCall, runtime.OpSlice, runtime.OpStringSlice:
 			addr += 1
 		case runtime.OpDefer:
@@ -364,7 +364,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + disassembleOperand(fn, c, kind, false)
 	case runtime.OpBreak, runtime.OpContinue, runtime.OpGoto:
 		s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
-	case runtime.OpCallFunc, runtime.OpCallMacro, runtime.OpCallIndirect, runtime.OpCallPredefined, runtime.OpTailCall, runtime.OpDefer:
+	case runtime.OpCallFunc, runtime.OpCallMacro, runtime.OpCallIndirect, runtime.OpCallNative, runtime.OpTailCall, runtime.OpDefer:
 		if a != runtime.CurrentFunction {
 			switch op {
 			case runtime.OpCallFunc, runtime.OpCallMacro, runtime.OpTailCall:
@@ -374,8 +374,8 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 				s += " " + "("
 				s += disassembleOperand(fn, a, reflect.Interface, false)
 				s += ")"
-			case runtime.OpCallPredefined:
-				nf := fn.Predefined[uint8(a)]
+			case runtime.OpCallNative:
+				nf := fn.NativeFunctions[uint8(a)]
 				s += " " + packageName(nf.Package()) + "." + nf.Name()
 			case runtime.OpDefer:
 				s += " " + disassembleOperand(fn, a, reflect.Interface, false)
@@ -383,7 +383,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		}
 		grow := fn.Body[addr+1]
 		stackShift := runtime.StackShift{int8(grow.Op), grow.A, grow.B, grow.C}
-		if c != runtime.NoVariadicArgs && (op == runtime.OpCallIndirect || op == runtime.OpCallPredefined || op == runtime.OpDefer) {
+		if c != runtime.NoVariadicArgs && (op == runtime.OpCallIndirect || op == runtime.OpCallNative || op == runtime.OpDefer) {
 			s += " ..." + strconv.Itoa(int(c))
 		}
 		_, _, typ := funcNameType(fn, a, addr, op)
@@ -551,7 +551,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 				s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 			}
 		} else { // LoadFunc (predefined).
-			f := fn.Predefined[uint8(b)]
+			f := fn.NativeFunctions[uint8(b)]
 			s += " " + packageName(f.Package()) + "." + f.Name()
 			s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 		}
@@ -739,9 +739,9 @@ func funcNameType(fn *runtime.Function, index int8, addr runtime.Addr, op runtim
 		typ := fn.Functions[index].Type
 		name := fn.Functions[index].Name
 		return macro, name, typ
-	case runtime.OpCallPredefined:
-		name := fn.Predefined[index].Name()
-		typ := reflect.TypeOf(fn.Predefined[index].Func())
+	case runtime.OpCallNative:
+		name := fn.NativeFunctions[index].Name()
+		typ := reflect.TypeOf(fn.NativeFunctions[index].Func())
 		return false, name, typ
 	case runtime.OpCallIndirect, runtime.OpDefer:
 		return false, "", fn.DebugInfo[addr].FuncType
@@ -995,10 +995,10 @@ var operationName = [...]string{
 
 	runtime.OpBreak: "Break",
 
-	runtime.OpCallFunc:       "Call",
-	runtime.OpCallIndirect:   "Call",
-	runtime.OpCallMacro:      "Call",
-	runtime.OpCallPredefined: "Call",
+	runtime.OpCallFunc:     "Call",
+	runtime.OpCallIndirect: "Call",
+	runtime.OpCallMacro:    "Call",
+	runtime.OpCallNative:   "Call",
 
 	runtime.OpCap: "Cap",
 

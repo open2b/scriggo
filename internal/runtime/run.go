@@ -58,7 +58,7 @@ func (vm *VM) runRecoverable() (err error) {
 
 func (vm *VM) run() (Addr, bool) {
 
-	var startPredefinedGoroutine bool
+	var startNativeGoroutine bool
 
 	var op Operation
 	var a, b, c int8
@@ -239,8 +239,8 @@ func (vm *VM) run() (Addr, bool) {
 			f := vm.general(a).Interface().(*callable)
 			if f.fn == nil {
 				off := vm.fn.Body[vm.pc]
-				vm.callPredefined(f.Predefined(), c, StackShift{int8(off.Op), off.A, off.B, off.C}, startPredefinedGoroutine)
-				startPredefinedGoroutine = false
+				vm.callNative(f.Native(), c, StackShift{int8(off.Op), off.A, off.B, off.C}, startNativeGoroutine)
+				startNativeGoroutine = false
 				vm.pc++
 			} else {
 				call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
@@ -304,11 +304,11 @@ func (vm *VM) run() (Addr, bool) {
 			vm.vars = vm.env.globals
 			vm.calls = append(vm.calls, call)
 			vm.pc = 0
-		case OpCallPredefined:
-			fn := vm.fn.Predefined[uint8(a)]
+		case OpCallNative:
+			fn := vm.fn.NativeFunctions[uint8(a)]
 			off := vm.fn.Body[vm.pc]
-			vm.callPredefined(fn, c, StackShift{int8(off.Op), off.A, off.B, off.C}, startPredefinedGoroutine)
-			startPredefinedGoroutine = false
+			vm.callNative(fn, c, StackShift{int8(off.Op), off.A, off.B, off.C}, startNativeGoroutine)
+			startNativeGoroutine = false
 			vm.pc++
 
 		// Cap
@@ -578,9 +578,9 @@ func (vm *VM) run() (Addr, bool) {
 
 		// Go
 		case OpGo:
-			wasPredefined := vm.startGoroutine()
-			if wasPredefined {
-				startPredefinedGoroutine = true
+			wasNative := vm.startGoroutine()
+			if wasNative {
+				startNativeGoroutine = true
 			}
 
 		// Goto
@@ -931,7 +931,7 @@ func (vm *VM) run() (Addr, bool) {
 		case OpLoadFunc:
 			if a == 1 {
 				fn := callable{}
-				fn.predefined = vm.fn.Predefined[uint8(b)]
+				fn.native = vm.fn.NativeFunctions[uint8(b)]
 				vm.setGeneral(c, reflect.ValueOf(&fn))
 			} else {
 				fn := vm.fn.Functions[uint8(b)]

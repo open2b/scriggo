@@ -160,8 +160,8 @@ func newMacro(pkg, name string, typ reflect.Type, format ast.Format, file string
 
 // newPredefinedFunction returns a new predefined function with a given
 // package, name and implementation. fn must be a function type.
-func newPredefinedFunction(pkg, name string, fn interface{}) *runtime.PredefinedFunction {
-	return runtime.NewPredefinedFunction(pkg, name, fn)
+func newPredefinedFunction(pkg, name string, fn interface{}) *runtime.NativeFunction {
+	return runtime.NewNativeFunction(pkg, name, fn)
 }
 
 type functionBuilder struct {
@@ -395,13 +395,13 @@ func (fb *functionBuilder) addType(typ reflect.Type, preserveType bool) int {
 }
 
 // addPredefinedFunction adds a predefined function to the builder's function.
-func (fb *functionBuilder) addPredefinedFunction(f *runtime.PredefinedFunction) int8 {
+func (fb *functionBuilder) addPredefinedFunction(f *runtime.NativeFunction) int8 {
 	fn := fb.fn
-	r := len(fn.Predefined)
+	r := len(fn.NativeFunctions)
 	if r == maxPredefinedFunctionsCount {
 		panic(newLimitExceededError(fb.fn.Pos, fb.path, "predefined functions count exceeded %d", maxPredefinedFunctionsCount))
 	}
-	fn.Predefined = append(fn.Predefined, f)
+	fn.NativeFunctions = append(fn.NativeFunctions, f)
 	return int8(r)
 }
 

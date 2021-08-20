@@ -119,8 +119,8 @@ func (fs *functionStore) predefFunc(fn ast.Expression, allowMethod bool) (int8, 
 		return index, true
 	}
 	f := newPredefinedFunction(ti.PredefPackageName, name, fnRv.Interface())
-	index := int8(len(currFn.Predefined))
-	currFn.Predefined = append(currFn.Predefined, f)
+	index := int8(len(currFn.NativeFunctions))
+	currFn.NativeFunctions = append(currFn.NativeFunctions, f)
 	if fs.predefFuncIndexes[currFn] == nil {
 		fs.predefFuncIndexes[currFn] = map[reflect.Value]int8{}
 	}

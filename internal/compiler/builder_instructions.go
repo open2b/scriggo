@@ -156,7 +156,7 @@ func (fb *functionBuilder) emitCallIndirect(f int8, numVariadic int8, shift runt
 func (fb *functionBuilder) emitCallPredefined(f int8, numVariadic int8, shift runtime.StackShift, pos *ast.Position) {
 	fb.addPosAndPath(pos)
 	fn := fb.fn
-	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCallPredefined, A: f, C: numVariadic})
+	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCallNative, A: f, C: numVariadic})
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
 

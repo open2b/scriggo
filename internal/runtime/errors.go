@@ -134,7 +134,7 @@ func (vm *VM) convertPanic(msg interface{}) error {
 			break
 		}
 		fallthrough
-	case OpCallPredefined:
+	case OpCallNative:
 		switch msg := msg.(type) {
 		case runtimeError:
 			break
