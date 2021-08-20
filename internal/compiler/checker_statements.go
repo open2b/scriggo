@@ -963,18 +963,17 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		if pkg == nil {
 			return tc.errorf(impor, "cannot find package %q", impor.Path)
 		}
-		precompiledPkg := pkg.(native.Package)
-		if precompiledPkg.Name() == "main" {
+		if pkg.Name() == "main" {
 			return tc.programImportError(impor)
 		}
 
 		// Read the declarations from the precompiled package.
 		imported := &packageInfo{}
-		imported.Declarations = make(map[string]*typeInfo, len(precompiledPkg.DeclarationNames()))
-		for n, d := range toTypeCheckerScope(precompiledPkg, tc.opts.mod, false, 0) {
+		imported.Declarations = make(map[string]*typeInfo, len(pkg.DeclarationNames()))
+		for n, d := range toTypeCheckerScope(pkg, tc.opts.mod, false, 0) {
 			imported.Declarations[n] = d.ti
 		}
-		imported.Name = precompiledPkg.Name()
+		imported.Name = pkg.Name()
 
 		// 'import _ "pkg"': nothing to do.
 		if isBlankImport(impor) {
