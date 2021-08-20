@@ -9,7 +9,7 @@
 package main
 
 type T struct {
-	X int
+	x int
 }
 
 var t = &T{42}
@@ -17,7 +17,7 @@ var i interface{} = t
 var tt, ok = i.(*T)
 
 func main() {
-	if tt == nil || tt.X != 42 {
+	if tt == nil || tt.x != 42 {
 		println("BUG")
 	}
 }

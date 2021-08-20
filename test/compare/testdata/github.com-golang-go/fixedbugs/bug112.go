@@ -6,7 +6,7 @@
 
 package main
 
-type T struct { S string } // should be s (lowercase)
+type T struct { s string }
 var t = T{"hi"}
 
 func main() {}
