@@ -17,6 +17,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/open2b/scriggo/ast"
+	"github.com/open2b/scriggo/internal/thirdparties"
 )
 
 var errNotRepresentable = errors.New("not representable")
@@ -784,7 +785,7 @@ type floatConst struct {
 }
 
 func (c1 floatConst) String() string {
-	return c1.f.String()
+	return thirdparties.ApproximateFloatToString(c1.f)
 }
 
 func newFloatConst(x float64) floatConst {
