@@ -1,4 +1,4 @@
-// skip : investigate
+// skip : using a[x] on left side of for range (https://github.com/open2b/scriggo/issues/832)
 
 // run
 
