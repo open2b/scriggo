@@ -359,7 +359,7 @@ Arbitrary limitations
     * 256 function literal declarations plus unique functions calls per
       function
     * 256 types available per function
-    * 256 unique predefined functions per function
+    * 256 unique native functions per function
     * 16384 integer values per function
     * 256 string values per function
     * 16384 floating-point values per function
