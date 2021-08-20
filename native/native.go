@@ -138,10 +138,12 @@ type Env interface {
 
 	// Exit exits the execution with the given status code. If the code is not
 	// zero, the execution returns a scriggo.ExitError error with this code.
-	// Deferred functions are not called.
+	// Deferred functions are not called and started goroutines are not
+	// terminated.
 	Exit(code int)
 
-	// Fatal exits the execution and then panics with value v.
+	// Fatal exits the execution and then panics with value v. Deferred
+	// functions are not called and started goroutines are not terminated.
 	Fatal(v interface{})
 
 	// FilePath returns the path, relative to the root, of the current
