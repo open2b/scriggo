@@ -1,4 +1,4 @@
-// skip : investigate
+// skip : invalid behaviour when slicing strings (https://github.com/open2b/scriggo/issues/831)
 
 // run
 
