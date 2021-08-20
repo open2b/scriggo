@@ -260,9 +260,6 @@ func deferGoBuiltin(name string) *typeInfo {
 		}
 	case "panic":
 		fun = func(env native.Env, v interface{}) {
-			if env.Exited() {
-				return
-			}
 			panic(v)
 		}
 	case "print":

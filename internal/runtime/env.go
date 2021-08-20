@@ -24,13 +24,10 @@ type env struct {
 	print   PrintFunc       // custom print builtin.
 	typeof  TypeOfFunc      // typeof function.
 
-	// Only exited, exits and filePath fields can be changed after the vm has
-	// been started and access to these three fields must be done with this
-	// mutex.
+	// Only the filePath field can be changed after the vm has been started
+	// and access to this field must be done with this mutex.
 	mu       sync.Mutex
-	exited   bool     // reports whether it is exited.
-	exits    []func() // exit functions.
-	filePath string   // path of the file where the main goroutine is in.
+	filePath string // path of the file where the main goroutine is in.
 }
 
 func (env *env) Context() context.Context {
@@ -39,25 +36,6 @@ func (env *env) Context() context.Context {
 
 func (env *env) Exit(code int) {
 	panic(exitError(code))
-}
-
-func (env *env) Exited() bool {
-	var exited bool
-	env.mu.Lock()
-	exited = env.exited
-	env.mu.Unlock()
-	return exited
-}
-
-func (env *env) ExitFunc(f func()) {
-	env.mu.Lock()
-	if env.exited {
-		go f()
-	} else {
-		env.exits = append(env.exits, f)
-	}
-	env.mu.Unlock()
-	return
 }
 
 func (env *env) Fatal(v interface{}) {
@@ -123,16 +101,4 @@ func (env *env) doPrint(arg interface{}) {
 	case reflect.String:
 		print(r.String())
 	}
-}
-
-func (env *env) exit() {
-	env.mu.Lock()
-	if !env.exited {
-		for _, f := range env.exits {
-			go f()
-		}
-		env.exits = nil
-		env.exited = true
-	}
-	env.mu.Unlock()
 }

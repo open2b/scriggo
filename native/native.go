@@ -141,14 +141,6 @@ type Env interface {
 	// Deferred functions are not called.
 	Exit(code int)
 
-	// Exited reports whether the execution is terminated.
-	Exited() bool
-
-	// ExitFunc calls f in its own goroutine after the execution is
-	// terminated. If the execution is already terminated, f is called
-	// immediately.
-	ExitFunc(f func())
-
 	// Fatal exits the execution and then panics with value v.
 	Fatal(v interface{})
 

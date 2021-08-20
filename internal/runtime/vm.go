@@ -153,7 +153,6 @@ func (vm *VM) Run(fn *Function, typeof TypeOfFunc, globals []reflect.Value) (int
 	vm.env.typeof = typeof
 	vm.env.globals = globals
 	err := vm.runFunc(fn, globals)
-	vm.env.exit()
 	if err != nil {
 		switch e := err.(type) {
 		case *fatalError:
