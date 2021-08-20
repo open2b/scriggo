@@ -1,5 +1,3 @@
-
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -9,16 +7,14 @@
 package main
 
 func main() {
-	var x int
+	var x int;
 	switch x {
 	case 0:
-		{
-		}
+		{}
 	case 1:
-		x = 0
+		x = 0;
 	}
 }
-
 /*
 bug0.go:8: case statement out of place
 */

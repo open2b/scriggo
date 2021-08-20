@@ -6,8 +6,8 @@
 
 package main
 
-type T = struct {
-	S string;
+type T struct {
+	s string;
 }
 
 
@@ -15,7 +15,7 @@ func main() {
 	s := "";
 	l1 := len(s);
 	var t T;
-	l2 := len(t.S);	// BUG: cannot take len() of a string field
+	l2 := len(t.s);	// BUG: cannot take len() of a string field
 	_, _ = l1, l2;
 }
 

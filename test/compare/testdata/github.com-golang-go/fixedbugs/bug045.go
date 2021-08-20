@@ -6,8 +6,8 @@
 
 package main
 
-type T = struct {
-	I int
+type T struct {
+	i int
 }
 
 func main() {
