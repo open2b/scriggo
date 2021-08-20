@@ -63,7 +63,7 @@ type Script struct {
 func Build(src io.Reader, options *BuildOptions) (*Script, error) {
 	co := compiler.Options{}
 	if options != nil {
-		co.Globals = native.Declarations(options.Globals)
+		co.Globals = options.Globals
 		co.DisallowGoStmt = options.DisallowGoStmt
 		co.Packages = options.Packages
 	}
