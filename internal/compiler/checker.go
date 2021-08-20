@@ -150,8 +150,8 @@ type checkerOptions struct {
 	// mod is the checking modality.
 	mod checkingMod
 
-	// disallowGoStmt disables the "go" statement.
-	disallowGoStmt bool
+	// allowGoStmt enable the "go" statement.
+	allowGoStmt bool
 
 	// format types.
 	formatTypes map[ast.Format]reflect.Type

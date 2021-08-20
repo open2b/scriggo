@@ -806,7 +806,7 @@ nodesLoop:
 			if ti.IsType() {
 				panic(tc.errorf(node, "go requires function call, not conversion"))
 			}
-			if tc.opts.disallowGoStmt {
+			if !tc.opts.allowGoStmt {
 				panic(tc.errorf(node, "\"go\" statement not available"))
 			}
 			tc.terminating = false

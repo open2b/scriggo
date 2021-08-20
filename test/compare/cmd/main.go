@@ -85,7 +85,7 @@ func main() {
 	case ".go":
 		var src io.Reader = os.Stdin
 		opts := &scriggo.BuildOptions{}
-		opts.DisallowGoStmt = *disallowGoStmt
+		opts.AllowGoStmt = !*disallowGoStmt
 		opts.Packages = packages
 		var fsys fs.FS
 		if cmd == "rundir" {
@@ -110,8 +110,8 @@ func main() {
 		}
 	case ".script":
 		opts := &scripts.BuildOptions{
-			DisallowGoStmt: *disallowGoStmt,
-			Packages:       packages,
+			AllowGoStmt: !*disallowGoStmt,
+			Packages:    packages,
 		}
 		script, err := scripts.Build(os.Stdin, opts)
 		if err != nil {

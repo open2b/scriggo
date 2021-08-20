@@ -56,7 +56,8 @@ func serve(asm int, metrics bool) error {
 		fsys:   fsys,
 		static: http.FileServer(http.Dir(".")),
 		buildOptions: &scriggo.BuildOptions{
-			Globals: globals,
+			AllowGoStmt: true,
+			Globals:     globals,
 			MarkdownConverter: func(src []byte, out io.Writer) error {
 				return md.Convert(src, out)
 			},

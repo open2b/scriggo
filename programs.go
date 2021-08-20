@@ -22,8 +22,8 @@ import (
 // BuildOptions contains options for building programs and templates.
 type BuildOptions struct {
 
-	// DisallowGoStmt, when true, disallows the go statement.
-	DisallowGoStmt bool
+	// AllowGoStmt, when true, allows the use of the go statement.
+	AllowGoStmt bool
 
 	// Packages is a package loader that makes native packages available
 	// in programs and templates through the import statement.
@@ -101,7 +101,7 @@ type Program struct {
 func Build(fsys fs.FS, options *BuildOptions) (*Program, error) {
 	co := compiler.Options{}
 	if options != nil {
-		co.DisallowGoStmt = options.DisallowGoStmt
+		co.AllowGoStmt = options.AllowGoStmt
 		co.Packages = options.Packages
 	}
 	code, err := compiler.BuildProgram(fsys, co)

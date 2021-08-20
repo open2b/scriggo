@@ -1764,7 +1764,7 @@ func TestCheckerStatements(t *testing.T) {
 				return
 			}
 			compilation := newCompilation(nil)
-			tc := newTypechecker(compilation, "", checkerOptions{mod: programMod}, nil)
+			tc := newTypechecker(compilation, "", checkerOptions{allowGoStmt: true, mod: programMod}, nil)
 			for name, ti := range names {
 				tc.scopes.Declare(name, ti, nil)
 			}

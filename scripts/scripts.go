@@ -25,8 +25,8 @@ import (
 // BuildOptions contains options for building scripts.
 type BuildOptions struct {
 
-	// DisallowGoStmt, when true, disallows the go statement.
-	DisallowGoStmt bool
+	// AllowGoStmt, when true, allows the use of the go statement.
+	AllowGoStmt bool
 
 	// Packages is a package loader that makes native packages available
 	// in scripts through the import statement.
@@ -64,7 +64,7 @@ func Build(src io.Reader, options *BuildOptions) (*Script, error) {
 	co := compiler.Options{}
 	if options != nil {
 		co.Globals = options.Globals
-		co.DisallowGoStmt = options.DisallowGoStmt
+		co.AllowGoStmt = options.AllowGoStmt
 		co.Packages = options.Packages
 	}
 	code, err := compiler.BuildScript(src, co)

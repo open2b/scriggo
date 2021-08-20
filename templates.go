@@ -89,7 +89,7 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildOptions) (*Template, e
 	if options != nil {
 		co.Globals = options.Globals
 		co.TreeTransformer = options.TreeTransformer
-		co.DisallowGoStmt = options.DisallowGoStmt
+		co.AllowGoStmt = options.AllowGoStmt
 		co.NoParseShortShowStmt = options.NoParseShortShowStmt
 		co.DollarIdentifier = options.DollarIdentifier
 		co.Packages = options.Packages

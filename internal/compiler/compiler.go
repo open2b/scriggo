@@ -60,7 +60,7 @@ type Error interface {
 
 // Options represents a set of options used during the compilation.
 type Options struct {
-	DisallowGoStmt       bool
+	AllowGoStmt          bool
 	NoParseShortShowStmt bool
 
 	// DollarIdentifier, when true, keeps the backward compatibility by
@@ -133,9 +133,9 @@ func BuildProgram(fsys fs.FS, opts Options) (*Code, error) {
 
 	// Type check the tree.
 	checkerOpts := checkerOptions{
-		mod:            programMod,
-		disallowGoStmt: opts.DisallowGoStmt,
-		globals:        opts.Globals,
+		mod:         programMod,
+		allowGoStmt: opts.AllowGoStmt,
+		globals:     opts.Globals,
 	}
 	tci, err := typecheck(tree, opts.Packages, checkerOpts)
 	if err != nil {
@@ -179,9 +179,9 @@ func BuildScript(r io.Reader, opts Options) (*Code, error) {
 
 	// Type check the tree.
 	checkerOpts := checkerOptions{
-		mod:            scriptMod,
-		disallowGoStmt: opts.DisallowGoStmt,
-		globals:        opts.Globals,
+		mod:         scriptMod,
+		allowGoStmt: opts.AllowGoStmt,
+		globals:     opts.Globals,
 	}
 	tci, err := typecheck(tree, opts.Packages, checkerOpts)
 	if err != nil {
@@ -225,11 +225,11 @@ func BuildTemplate(fsys fs.FS, name string, opts Options) (*Code, error) {
 
 	// Type check the tree.
 	checkerOpts := checkerOptions{
-		disallowGoStmt: opts.DisallowGoStmt,
-		formatTypes:    opts.FormatTypes,
-		globals:        opts.Globals,
-		mdConverter:    opts.MDConverter,
-		mod:            templateMod,
+		allowGoStmt: opts.AllowGoStmt,
+		formatTypes: opts.FormatTypes,
+		globals:     opts.Globals,
+		mdConverter: opts.MDConverter,
+		mod:         templateMod,
 	}
 	tci, err := typecheck(tree, opts.Packages, checkerOpts)
 	if err != nil {

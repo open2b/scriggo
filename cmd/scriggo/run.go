@@ -60,7 +60,10 @@ func run() {
 	if ext == ".go" {
 
 		fsys := scriggo.Files{filepath.Base(file): main}
-		program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
+		program, err := scriggo.Build(fsys, &scriggo.BuildOptions{
+			AllowGoStmt: true,
+			Packages:    packages,
+		})
 		if err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, err)
 			os.Exit(2)
@@ -91,7 +94,10 @@ func run() {
 
 	} else {
 
-		script, err := scripts.Build(bytes.NewReader(main), &scripts.BuildOptions{Packages: packages})
+		script, err := scripts.Build(bytes.NewReader(main), &scripts.BuildOptions{
+			AllowGoStmt: true,
+			Packages:    packages,
+		})
 		if err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, err)
 			os.Exit(2)

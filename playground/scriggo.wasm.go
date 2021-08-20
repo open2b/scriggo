@@ -1,3 +1,4 @@
+//go:build js && wasm
 // +build js,wasm
 
 package main
@@ -63,7 +64,7 @@ func main() {
 		}
 		go func() {
 			fsys := scriggo.Files{"main.go": []byte(src)}
-			program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
+			program, err := scriggo.Build(fsys, &scriggo.BuildOptions{AllowGoStmt: true, Packages: packages})
 			if cb.IsNull() || cb.IsUndefined() {
 				return
 			}
