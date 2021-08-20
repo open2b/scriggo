@@ -172,7 +172,7 @@ type typechecker struct {
 
 	path string
 
-	precompiledPkgs native.PackageLoader
+	pkgLoader native.PackageLoader
 
 	// scopes holds the universe block, global block, file/package block,
 	// and function scopes.
@@ -199,8 +199,8 @@ type typechecker struct {
 	iota int
 
 	// types refers the types of the current compilation and it is used to
-	// create and manipulate types and values, both predefined and defined only
-	// by Scriggo.
+	// create and manipulate all types and values, including Go types and
+	// Scriggo types.
 	types *types.Types
 
 	// mdConverter converts a Markdown source code to HTML.
@@ -252,20 +252,20 @@ type usingCheck struct {
 
 // newTypechecker creates a new type checker. A global scope may be provided
 // for scripts and templates.
-func newTypechecker(compilation *compilation, path string, opts checkerOptions, precompiledPkgs native.PackageLoader) *typechecker {
+func newTypechecker(compilation *compilation, path string, opts checkerOptions, pkgLoader native.PackageLoader) *typechecker {
 	tt := types.NewTypes()
 	tc := typechecker{
-		compilation:     compilation,
-		path:            path,
-		scopes:          newScopes(path, opts.formatTypes, compilation.globalScope),
-		hasBreak:        map[ast.Node]bool{},
-		opts:            opts,
-		iota:            -1,
-		types:           tt,
-		mdConverter:     opts.mdConverter,
-		structDeclPkg:   map[reflect.Type]string{},
-		precompiledPkgs: precompiledPkgs,
-		toBeEmitted:     true,
+		compilation:   compilation,
+		path:          path,
+		scopes:        newScopes(path, opts.formatTypes, compilation.globalScope),
+		hasBreak:      map[ast.Node]bool{},
+		opts:          opts,
+		iota:          -1,
+		types:         tt,
+		mdConverter:   opts.mdConverter,
+		structDeclPkg: map[reflect.Type]string{},
+		pkgLoader:     pkgLoader,
+		toBeEmitted:   true,
 	}
 	if tc.opts.mod == templateMod {
 		tc.scopes.AllowUnused()

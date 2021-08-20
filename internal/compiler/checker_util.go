@@ -271,8 +271,8 @@ func deferGoBuiltin(name string) *typeInfo {
 			env.Println(args...)
 		}
 	case "recover":
-		// This predefined function should only be used with the 'go'
-		// statement and not the 'defer' statement.
+		// This native function should only be used with the 'go' statement and
+		// not the 'defer' statement.
 		fun = func() {}
 	}
 	rv := reflect.ValueOf(fun)

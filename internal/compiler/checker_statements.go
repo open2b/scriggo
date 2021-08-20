@@ -946,17 +946,17 @@ nodesLoop:
 // checkImport type checks the import statement.
 func (tc *typechecker) checkImport(impor *ast.Import) error {
 	if tc.opts.mod == scriptMod && impor.Tree != nil {
-		panic("BUG: only precompiled packages can be imported in script")
+		panic("BUG: native packages only can be imported in script")
 	}
 
-	// Import a precompiled package.
-	if isPrecompiled := impor.Tree == nil; isPrecompiled {
+	// Import a native package.
+	if isNative := impor.Tree == nil; isNative {
 
-		// Load the precompiled package.
-		if tc.precompiledPkgs == nil {
+		// Load the native package.
+		if tc.pkgLoader == nil {
 			return tc.errorf(impor, "cannot find package %q", impor.Path)
 		}
-		pkg, err := tc.precompiledPkgs.Load(impor.Path)
+		pkg, err := tc.pkgLoader.Load(impor.Path)
 		if err != nil {
 			return tc.errorf(impor, "%s", err)
 		}
@@ -967,7 +967,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 			return tc.programImportError(impor)
 		}
 
-		// Read the declarations from the precompiled package.
+		// Read the declarations from the native package.
 		imported := &packageInfo{}
 		imported.Declarations = make(map[string]*typeInfo, len(pkg.DeclarationNames()))
 		for n, d := range toTypeCheckerScope(pkg, tc.opts.mod, false, 0) {
@@ -1002,7 +1002,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		return nil
 	}
 
-	// Not precompiled package (i.e. a package declared in Scriggo).
+	// Non-native package (i.e. a package declared in Scriggo).
 
 	if tc.opts.mod == templateMod {
 		tc.templateFileToPackage(impor.Tree)
@@ -1012,7 +1012,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	}
 
 	// Check the package and retrieve the package infos.
-	err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, tc.precompiledPkgs, tc.opts)
+	err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, tc.pkgLoader, tc.opts)
 	if err != nil {
 		return err
 	}

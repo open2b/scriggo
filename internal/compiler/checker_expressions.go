@@ -94,7 +94,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 
 	// Handle predeclared variables in templates and scripts.
 	if tc.opts.mod == templateMod || tc.opts.mod == scriptMod {
-		// The identifier refers to a predefined value that is an up value for
+		// The identifier refers to a native value that is an up value for
 		// the current function.
 		if isUpVar && ti.IsPredefined() {
 			// The type info contains a *reflect.Value, so it is a variable.

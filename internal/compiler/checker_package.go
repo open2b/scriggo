@@ -71,17 +71,17 @@ func parseNumericConst(s string) (constant, reflect.Type, error) {
 	return n, intType, nil
 }
 
-// toTypeCheckerScope generates a type checker scope given a predefined
-// package. depth must be 0 unless toTypeCheckerScope is called recursively.
-func toTypeCheckerScope(pp native.Package, mod checkingMod, global bool, depth int) map[string]scopeName {
-	declarations := pp.DeclarationNames()
+// toTypeCheckerScope generates a type checker scope given a native package.
+// depth must be 0 unless toTypeCheckerScope is called recursively.
+func toTypeCheckerScope(pkg native.Package, mod checkingMod, global bool, depth int) map[string]scopeName {
+	declarations := pkg.DeclarationNames()
 	scope := make(map[string]scopeName, len(declarations))
 	for _, ident := range declarations {
-		ti := &typeInfo{PredefPackageName: pp.Name()}
+		ti := &typeInfo{PredefPackageName: pkg.Name()}
 		if global {
 			ti.Properties = propertyGlobal
 		}
-		switch v := pp.Lookup(ident).(type) {
+		switch v := pkg.Lookup(ident).(type) {
 		default:
 			rv := reflect.ValueOf(v)
 			switch rv.Kind() {
@@ -102,7 +102,7 @@ func toTypeCheckerScope(pp native.Package, mod checkingMod, global bool, depth i
 				// Import a typed constant.
 				ti.Constant = convertToConstant(rv)
 				if ti.Constant == nil {
-					panic(fmt.Errorf("scriggo: invalid constant v %v for %s.%s", v, pp.Name(), ident))
+					panic(fmt.Errorf("scriggo: invalid constant v %v for %s.%s", v, pkg.Name(), ident))
 				}
 				ti.Type = rv.Type()
 			}
@@ -143,7 +143,7 @@ func toTypeCheckerScope(pp native.Package, mod checkingMod, global bool, depth i
 			var err error
 			ti.Constant, ti.Type, err = parseNumericConst(string(v))
 			if err != nil {
-				panic(fmt.Errorf("scriggo: invalid untyped constant %q for %s.%s", v, pp.Name(), ident))
+				panic(fmt.Errorf("scriggo: invalid untyped constant %q for %s.%s", v, pkg.Name(), ident))
 			}
 			ti.Properties |= propertyUntyped
 		}
