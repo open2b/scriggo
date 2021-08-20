@@ -83,7 +83,7 @@ func (fs *functionStore) scriggoFnIndex(fn *runtime.Function) int8 {
 // there's one, else returns 0 and false.
 func (fs *functionStore) predefFunc(fn ast.Expression, allowMethod bool) (int8, bool) {
 	ti := fs.emitter.ti(fn)
-	if (ti == nil) || (!ti.IsPredefined()) {
+	if (ti == nil) || (!ti.IsNative()) {
 		return 0, false
 	}
 	if !allowMethod && ti.MethodType != noMethod {
@@ -118,7 +118,7 @@ func (fs *functionStore) predefFunc(fn ast.Expression, allowMethod bool) (int8, 
 	if index, ok := fs.predefFuncIndexes[currFn][fnRv]; ok {
 		return index, true
 	}
-	f := newPredefinedFunction(ti.PredefPackageName, name, fnRv.Interface())
+	f := newPredefinedFunction(ti.NativePackageName, name, fnRv.Interface())
 	index := int8(len(currFn.NativeFunctions))
 	currFn.NativeFunctions = append(currFn.NativeFunctions, f)
 	if fs.predefFuncIndexes[currFn] == nil {

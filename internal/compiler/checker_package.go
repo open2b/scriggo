@@ -77,7 +77,7 @@ func toTypeCheckerScope(pkg native.Package, mod checkingMod, global bool, depth 
 	declarations := pkg.DeclarationNames()
 	scope := make(map[string]scopeName, len(declarations))
 	for _, ident := range declarations {
-		ti := &typeInfo{PredefPackageName: pkg.Name()}
+		ti := &typeInfo{NativePackageName: pkg.Name()}
 		if global {
 			ti.Properties = propertyGlobal
 		}
@@ -92,12 +92,12 @@ func toTypeCheckerScope(pkg native.Package, mod checkingMod, global bool, depth 
 				// Note that 'elem' may be an invalid reflect.Value. That
 				// indicates that such variable has not been initialized.
 				ti.value = &elem
-				ti.Properties |= propertyAddressable | propertyIsPredefined | propertyHasValue
+				ti.Properties |= propertyAddressable | propertyIsNative | propertyHasValue
 			case reflect.Func:
 				// Import a function.
 				ti.Type = removeEnvArg(rv.Type(), false)
 				ti.value = rv
-				ti.Properties |= propertyIsPredefined | propertyHasValue
+				ti.Properties |= propertyIsNative | propertyHasValue
 			default:
 				// Import a typed constant.
 				ti.Constant = convertToConstant(rv)
@@ -123,11 +123,11 @@ func toTypeCheckerScope(pkg native.Package, mod checkingMod, global bool, depth 
 			}
 			ti.value = pkg
 			ti.Properties |= propertyIsPackage | propertyHasValue
-			ti.PredefPackageName = ""
+			ti.NativePackageName = ""
 		case reflect.Type:
 			// Import a type.
 			ti.Type = v
-			ti.Properties |= propertyIsType | propertyIsPredefined
+			ti.Properties |= propertyIsType | propertyIsNative
 		case native.UntypedBooleanConst:
 			// Import an untyped boolean constant.
 			ti.Type = boolType

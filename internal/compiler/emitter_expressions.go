@@ -55,7 +55,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 	// allocating a new one.
 	if !useGivenReg {
 		// Check if expr can be emitted as immediate.
-		if allowK && ti.HasValue() && !ti.IsPredefined() {
+		if allowK && ti.HasValue() && !ti.IsNative() {
 			switch v := ti.value.(type) {
 			case int64:
 				if canEmitDirectly(reflect.Int, dstType.Kind()) {
@@ -84,7 +84,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 	}
 
 	// The expression has a value and is not predefined.
-	if ti != nil && ti.HasValue() && !ti.IsPredefined() {
+	if ti != nil && ti.HasValue() && !ti.IsNative() {
 		return em.emitValueNotPredefined(ti, reg, dstType)
 	}
 

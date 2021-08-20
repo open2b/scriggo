@@ -136,8 +136,8 @@ func (vs *varStore) nonLocalVarIndex(v ast.Expression) (index int, ok bool) {
 	currPkg := vs.emitter.pkg
 
 	// v is a predefined variable.
-	if ti != nil && ti.IsPredefined() {
-		index := vs.predefVarIndex(ti.value.(*reflect.Value), ti.Type, ti.PredefPackageName, name)
+	if ti != nil && ti.IsNative() {
+		index := vs.predefVarIndex(ti.value.(*reflect.Value), ti.Type, ti.NativePackageName, name)
 		return int(index), true
 	}
 

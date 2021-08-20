@@ -601,7 +601,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool, toF
 	// Predefined function (identifiers, selectors etc...).
 	// Calls of predefined functions stored in builtin variables are handled as
 	// common "indirect" calls.
-	if funTi.IsPredefined() && !funTi.Addressable() {
+	if funTi.IsNative() && !funTi.Addressable() {
 		if funTi.MethodType == methodCallConcrete {
 			rcv := call.Func.(*ast.Selector).Expr // TODO(Gianluca): is this correct?
 			call.Args = append([]ast.Expression{rcv}, call.Args...)
@@ -983,7 +983,7 @@ func invertedOperatorType(op ast.OperatorType) ast.OperatorType {
 func (em *emitter) emitCondition(cond ast.Expression) {
 
 	// Emit code for a boolean constant condition.
-	if ti := em.ti(cond); ti != nil && ti.HasValue() && !ti.IsPredefined() {
+	if ti := em.ti(cond); ti != nil && ti.HasValue() && !ti.IsNative() {
 		// The condition of the 'if' instruction of VM is a binary operation,
 		// so the boolean constant expression 'x' is emitted as 'x == true'.
 		var c int8 = 0

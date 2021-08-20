@@ -277,7 +277,7 @@ func deferGoBuiltin(name string) *typeInfo {
 	}
 	rv := reflect.ValueOf(fun)
 	return &typeInfo{
-		Properties: propertyHasValue | propertyIsPredefined,
+		Properties: propertyHasValue | propertyIsNative,
 		Type:       removeEnvArg(rv.Type(), false),
 		value:      rv,
 	}
@@ -476,7 +476,7 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 				ti := &typeInfo{
 					Type:       removeEnvArg(methExpr.Type(), false),
 					value:      methExpr,
-					Properties: propertyIsPredefined | propertyHasValue,
+					Properties: propertyIsNative | propertyHasValue,
 				}
 				return ti, receiverNoTransform, true
 			}
@@ -487,7 +487,7 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 			return &typeInfo{
 				Type:       removeEnvArg(method.Type, true),
 				value:      method.Func,
-				Properties: propertyIsPredefined | propertyHasValue,
+				Properties: propertyIsNative | propertyHasValue,
 			}, receiverNoTransform, true
 		}
 		return nil, receiverNoTransform, false
@@ -500,7 +500,7 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 				Type:       removeEnvArg(method.Type, true),
 				value:      name,
 				MethodType: methodValueInterface,
-				Properties: propertyIsPredefined | propertyHasValue,
+				Properties: propertyIsNative | propertyHasValue,
 			}
 			return ti, receiverNoTransform, true
 		}
@@ -514,7 +514,7 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 		ti := &typeInfo{
 			Type:       removeEnvArg(method.Type(), false),
 			value:      methodExplicitRcvr.Func,
-			Properties: propertyIsPredefined | propertyHasValue,
+			Properties: propertyIsNative | propertyHasValue,
 			MethodType: methodValueConcrete,
 		}
 		// Check if pointer is defined on T or *T when called on a *T receiver.
@@ -540,7 +540,7 @@ func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiv
 			return &typeInfo{
 				Type:       removeEnvArg(method.Type(), false),
 				value:      methodExplicitRcvr.Func,
-				Properties: propertyIsPredefined | propertyHasValue,
+				Properties: propertyIsNative | propertyHasValue,
 				MethodType: methodValueConcrete,
 			}, receiverAddAddress, true
 		}
@@ -612,7 +612,7 @@ func (tc *typechecker) nilOf(t reflect.Type) *typeInfo {
 	switch t.Kind() {
 	case reflect.Func:
 		return &typeInfo{
-			Properties: propertyHasValue | propertyIsPredefined,
+			Properties: propertyHasValue | propertyIsNative,
 			Type:       t,
 			value:      tc.types.Zero(t),
 		}
