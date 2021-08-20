@@ -1,55 +1,18 @@
-// Copyright (c) 2019 Open2b Software Snc. All rights reserved.
-// https://www.open2b.com
-
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 // Copyright 2018 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package builtin
+package thirdparties
 
-import (
-	"reflect"
-	"sort"
-)
+import "reflect"
 
-// sortedSlice represents a slice to sort.
-type sortedSlice struct {
-	value []reflect.Value
-	swap  func(i, j int)
-}
+// See https://github.com/golang/go/blob/master/src/internal/fmtsort/sort.go
 
-func (o *sortedSlice) Len() int           { return len(o.value) }
-func (o *sortedSlice) Less(i, j int) bool { return compare(o.value[i], o.value[j]) < 0 }
-func (o *sortedSlice) Swap(i, j int)      { o.swap(i, j) }
-
-// sortSlice sorts the elements of a slice in the same order fmt sorts the
-// keys of a map.
-func sortSlice(slice interface{}) {
-	sliceValue := reflect.ValueOf(slice)
-	if sliceValue.Kind() != reflect.Slice {
-		return
-	}
-	length := sliceValue.Len()
-	value := make([]reflect.Value, length)
-	for i := 0; i < length; i++ {
-		value[i] = sliceValue.Index(i)
-	}
-	sorted := &sortedSlice{
-		value: value,
-		swap:  reflect.Swapper(slice),
-	}
-	sort.Stable(sorted)
-	return
-}
-
-// compare compares two values of the same type. It returns -1, 0, 1
+// Compare compares two values of the same type. It returns -1, 0, 1
 // according to whether a > b (1), a == b (0), or a < b (-1).
 // If the types differ, it returns -1.
 // See the comment on Sort for the comparison rules.
-func compare(aVal, bVal reflect.Value) int {
+func Compare(aVal, bVal reflect.Value) int {
 	aType, bType := aVal.Type(), bVal.Type()
 	if aType != bType {
 		return -1 // No good answer possible, but don't return 0: they're not equal.
@@ -128,21 +91,21 @@ func compare(aVal, bVal reflect.Value) int {
 		}
 	case reflect.Struct:
 		for i := 0; i < aVal.NumField(); i++ {
-			if c := compare(aVal.Field(i), bVal.Field(i)); c != 0 {
+			if c := Compare(aVal.Field(i), bVal.Field(i)); c != 0 {
 				return c
 			}
 		}
 		return 0
 	case reflect.Slice:
 		for i := 0; i < aVal.Len(); i++ {
-			if c := compare(aVal.Index(i), bVal.Index(i)); c != 0 {
+			if c := Compare(aVal.Index(i), bVal.Index(i)); c != 0 {
 				return c
 			}
 		}
 		return 0
 	case reflect.Array:
 		for i := 0; i < aVal.Len(); i++ {
-			if c := compare(aVal.Index(i), bVal.Index(i)); c != 0 {
+			if c := Compare(aVal.Index(i), bVal.Index(i)); c != 0 {
 				return c
 			}
 		}
@@ -151,21 +114,21 @@ func compare(aVal, bVal reflect.Value) int {
 		if c, ok := nilCompare(aVal, bVal); ok {
 			return c
 		}
-		c := compare(reflect.ValueOf(aVal.Elem().Type()), reflect.ValueOf(bVal.Elem().Type()))
+		c := Compare(reflect.ValueOf(aVal.Elem().Type()), reflect.ValueOf(bVal.Elem().Type()))
 		if c != 0 {
 			return c
 		}
-		return compare(aVal.Elem(), bVal.Elem())
+		return Compare(aVal.Elem(), bVal.Elem())
 	default:
 		panic("bad type in compare: " + aType.String())
 	}
 }
 
-// nilCompare checks whether either value is nil. If not, the boolean is
-// false. If either value is nil, the boolean is true and the integer is the
-// comparison val. The comparison is defined to be 0 if both are nil,
-// otherwise the one nil value compares low. Both arguments must represent a
-// chan, func, interface, map, pointer, or slice.
+// nilCompare checks whether either value is nil. If not, the boolean is false.
+// If either value is nil, the boolean is true and the integer is the comparison
+// value. The comparison is defined to be 0 if both are nil, otherwise the one
+// nil value compares low. Both arguments must represent a chan, func,
+// interface, map, pointer, or slice.
 func nilCompare(aVal, bVal reflect.Value) (int, bool) {
 	if aVal.IsNil() {
 		if bVal.IsNil() {

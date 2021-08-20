@@ -154,6 +154,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/internal/thirdparties"
 	"github.com/open2b/scriggo/native"
 )
 
@@ -637,7 +638,6 @@ func Sort(slice interface{}, less func(i, j int) bool) {
 		sort.Slice(slice, less)
 		return
 	}
-	// no reflect
 	switch s := slice.(type) {
 	case nil:
 	case []string:
@@ -660,9 +660,17 @@ func Sort(slice interface{}, less func(i, j int) bool) {
 		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
 	case []native.Markdown:
 		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
+	default:
+		v := reflect.ValueOf(slice)
+		l := v.Len()
+		sv := make([]reflect.Value, l)
+		for i := 0; i < l; i++ {
+			sv[i] = v.Index(i)
+		}
+		sort.SliceStable(slice, func(i, j int) bool {
+			return thirdparties.Compare(sv[i], sv[j]) < 0
+		})
 	}
-	// reflect
-	sortSlice(slice)
 }
 
 // Split slices s into all substrings separated by sep and returns a slice of
