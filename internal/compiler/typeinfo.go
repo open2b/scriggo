@@ -67,7 +67,7 @@ func (ti *typeInfo) IsConstant() bool {
 	return ti.Constant != nil
 }
 
-// IsMacro reports whether it is a macro declaration.
+// IsMacroDeclaration reports whether it is a macro declaration.
 func (ti *typeInfo) IsMacroDeclaration() bool {
 	return ti.Properties&propertyIsMacroDeclaration != 0
 }
