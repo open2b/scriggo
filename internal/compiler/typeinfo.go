@@ -32,6 +32,7 @@ const (
 // information.
 type typeInfo struct {
 	Type              reflect.Type // Type.
+	Alias             string       // Alias.
 	Properties        properties   // Properties.
 	Constant          constant     // Constant value.
 	NativePackageName string       // Name of the package. Empty string if non-native.
@@ -128,6 +129,18 @@ func (ti *typeInfo) Itea() bool {
 // with extends.
 func (ti *typeInfo) MacroDeclaredInExtendingFile() bool {
 	return ti.Properties&propertyMacroDeclaredInFileWithExtends != 0
+}
+
+// TypeName returns the name of the type. If it is an alias, it returns the
+// name of the alias. Panics if it is not a type.
+func (ti *typeInfo) TypeName() string {
+	if !ti.IsType() {
+		panic("not a type")
+	}
+	if ti.Alias != "" {
+		return ti.Alias
+	}
+	return ti.Type.Name()
 }
 
 var runeType = reflect.TypeOf(rune(0))

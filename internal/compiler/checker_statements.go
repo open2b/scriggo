@@ -1298,7 +1298,7 @@ func (tc *typechecker) checkTypeDeclaration(node *ast.TypeDeclaration) (string, 
 	name := node.Ident.Name
 	if node.IsAliasDeclaration {
 		// Return the base type.
-		return name, typ
+		return name, &typeInfo{Type: typ.Type, Alias: node.Ident.Name, Properties: typ.Properties}
 	}
 	// Create a new Scriggo type.
 	defType := tc.types.DefinedOf(name, typ.Type)

@@ -463,67 +463,32 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		return t
 
 	case *ast.StructType:
-		blank := 0
-		fields := []reflect.StructField{}
-		for _, fd := range expr.Fields {
-			typ := tc.checkType(fd.Type).Type
-			// If the field name is not exported, it is impossible to
-			// create a new reflect.Type due to the limitations that the
-			// reflect package currently has. The solution adopted is to
-			// prepend a unicode character 𝗽 which is considered not exported
-			// by the Go specification but is allowed by the reflect package.
-			//
-			// Also, it is not possible to compare two struct type values
-			// declared in two different packages (types are different)
-			// because the package paths are different; the reflect package
-			// does not have the ability to set a such path. To work around
-			// the problem, an identifier is inserted in the middle of the
-			// character 𝗽 and the original field name; this makes the field
-			// unique for a given package, resulting in the inability of
-			// making comparisons with those types.
-			//
-			// The addition of the unique index is also used to check if a
-			// non-exported field of a struct can be accessed from a package
-			// (see the documentation of typechecker.structDeclPkg).
-			//
-			// If the field name is blank, the character 𝗽 is followed by a
-			// number, initially zero and incremented for each blank name in
-			// the struct.
-			if fd.Idents == nil {
-				// Implicit field declaration.
-				name := typ.Name()
-				if name == "" {
-					name = typ.Elem().Name()
-				}
-				if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
-					name = "𝗽" + strconv.Itoa(tc.compilation.UniqueIndex(tc.path)) + name
-				}
-				fields = append(fields, reflect.StructField{
-					Name:      name,
-					Type:      typ,
-					Tag:       reflect.StructTag(fd.Tag),
-					Anonymous: true,
-				})
+		n := len(expr.Fields)
+		for _, field := range expr.Fields {
+			if len(field.Idents) > 1 {
+				n += len(field.Idents) - 1
+			}
+		}
+		names := make(map[string]struct{}, n)
+		fields := make([]reflect.StructField, 0, n)
+		appendField := func(field reflect.StructField, pos *ast.Position) {
+			fields = append(fields, field)
+			name := decodeFieldName(field.Name)
+			if name == "_" {
+				return
+			}
+			if _, ok := names[name]; ok {
+				panic(tc.errorf(pos, "duplicate field %s", name))
+			}
+			names[name] = struct{}{}
+		}
+		var blank int
+		for _, field := range expr.Fields {
+			if field.Idents == nil {
+				appendField(tc.checkImplicitField(field), field.Type.Pos())
 			} else {
-				// Explicit field declaration.
-				for _, ident := range fd.Idents {
-					name := ident.Name
-					if name == "_" {
-						name = "𝗽" + strconv.Itoa(blank)
-						blank++
-					} else if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
-						name = "𝗽" + strconv.Itoa(tc.compilation.UniqueIndex(tc.path)) + ident.Name
-					}
-					for _, field := range fields {
-						if field.Name == name {
-							panic(tc.errorf(ident, "duplicate field %s", ident.Name))
-						}
-					}
-					fields = append(fields, reflect.StructField{
-						Name: name,
-						Type: typ,
-						Tag:  reflect.StructTag(fd.Tag),
-					})
+				for i, ident := range field.Idents {
+					appendField(tc.checkExplicitField(field, i, &blank), ident.Pos())
 				}
 			}
 		}
@@ -2479,4 +2444,95 @@ func (tc *typechecker) checkRender(render *ast.Render) *typeInfo {
 	tc.checkNodes([]ast.Node{stored.Import})
 
 	return tc.checkExpr(render.IR.Call)
+}
+
+// checkImplicitField checks an implicit (embedded) field.
+func (tc *typechecker) checkImplicitField(field *ast.Field) reflect.StructField {
+	ti := tc.checkType(field.Type)
+	typ := ti.Type
+	// "An embedded field must be specified as a type name T or as
+	//  a pointer to a non-interface type name *T, and T itself
+	//  may not be a pointer type".
+	k := typ.Kind()
+	if typ.Name() == "" {
+		k = typ.Elem().Kind()
+		if k == reflect.Interface {
+			panic(tc.errorf(field.Type, "embedded type cannot be a pointer to interface"))
+		}
+	}
+	if k == reflect.Ptr || k == reflect.UnsafePointer {
+		panic(tc.errorf(field.Type, "embedded type cannot be a pointer"))
+	}
+	// "The unqualified type name acts as the field name".
+	var name string
+	if op, ok := field.Type.(*ast.UnaryOperator); ok {
+		name = tc.checkType(op.Expr).TypeName()
+	} else {
+		name = ti.TypeName()
+	}
+	f := reflect.StructField{
+		Name:      tc.encoderFieldName(name, nil),
+		Type:      typ,
+		Tag:       reflect.StructTag(field.Tag),
+		Anonymous: true,
+	}
+	return f
+}
+
+// checkExplicitField checks an explicit field with the identifier at index i.
+// blank is a pointer to the blank identifier index.
+func (tc *typechecker) checkExplicitField(field *ast.Field, i int, blank *int) reflect.StructField {
+	f := reflect.StructField{
+		Name: tc.encoderFieldName(field.Idents[i].Name, blank),
+		Type: tc.checkType(field.Type).Type,
+		Tag:  reflect.StructTag(field.Tag),
+	}
+	return f
+}
+
+// encoderFieldName encodes a field name to be used in a reflect.StructField.
+// blank is a pointer to the blank identifier index.
+func (tc *typechecker) encoderFieldName(name string, blank *int) string {
+	// If the field name is not exported, it is impossible to
+	// create a new reflect.Type due to the limitations that the
+	// reflect package currently has. The solution adopted is to
+	// prepend a unicode character 𝗽 which is considered not exported
+	// by the Go specification but is allowed by the reflect package.
+	//
+	// Also, it is not possible to compare two struct type values
+	// declared in two different packages (types are different)
+	// because the package paths are different; the reflect package
+	// does not have the ability to set a such path. To work around
+	// the problem, an identifier is inserted in the middle of the
+	// character 𝗽 and the original field name; this makes the field
+	// unique for a given package, resulting in the inability of
+	// making comparisons with those types.
+	//
+	// The addition of the unique index is also used to check if a
+	// non-exported field of a struct can be accessed from a package
+	// (see the documentation of typechecker.structDeclPkg).
+	//
+	// If the field name is blank, the character 𝗽 is followed by a
+	// number, initially zero and incremented for each blank name in
+	// the struct.
+	if name == "_" {
+		name = "𝗽" + strconv.Itoa(*blank)
+		*blank++
+	} else if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
+		name = "𝗽" + strconv.Itoa(tc.compilation.UniqueIndex(tc.path)) + name
+	}
+	return name
+}
+
+// decodeFieldName decodes a reflect.StructField name.
+func decodeFieldName(name string) string {
+	if !strings.HasPrefix(name, "𝗽") {
+		return name
+	}
+	for i := len("𝗽"); i < len(name); i++ {
+		if c := name[i]; c < '0' || c > '9' {
+			return name[i:]
+		}
+	}
+	return "_"
 }
