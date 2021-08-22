@@ -16,43 +16,35 @@ import (
 // fields has a Scriggo type; in such case a new Scriggo struct type is
 // created and returned as reflect.Type.
 func (types *Types) StructOf(fields []reflect.StructField) reflect.Type {
-
-	// baseFields contains all the fields with their Go type.
-	baseFields := make([]reflect.StructField, len(fields))
-
-	// scriggoFields contains the fields that are Scriggo fields, indexed by
-	// the index of the field.
-	scriggoFields := map[int]reflect.StructField{}
-
+	// Check if there are fields with a Scriggo type.
+	var scriggoFields map[int]reflect.StructField
 	for i, field := range fields {
-
-		// If field has a Scriggo type then it will be changed by the next
-		// check.
-		baseFields[i] = field
-
-		// This field cannot be represented using the reflect: remove the
-		// information from the type and add that information to the
-		// structType.
-		if st, ok := field.Type.(runtime.ScriggoType); ok {
-			baseFields[i].Type = st.GoType()
-			scriggoField := field
-			scriggoField.Index = []int{i}
-			scriggoFields[i] = scriggoField
+		if _, ok := field.Type.(runtime.ScriggoType); ok {
+			f := field
+			f.Index = []int{i}
+			if scriggoFields == nil {
+				scriggoFields = map[int]reflect.StructField{i: f}
+			} else {
+				scriggoFields[i] = f
+			}
 		}
-
 	}
-
-	// Every field can be represented by the builtin reflect: no need to
-	// create a structType.
-	if len(scriggoFields) == 0 {
+	if scriggoFields == nil {
+		// All the fields have a Go type.
 		return reflect.StructOf(fields)
 	}
-
+	// Some fields have a Scriggo type.
+	goFields := make([]reflect.StructField, len(fields))
+	for i, field := range fields {
+		goFields[i] = field
+		if f, ok := field.Type.(runtime.ScriggoType); ok {
+			goFields[i].Type = f.GoType()
+		}
+	}
 	return structType{
-		Type:          reflect.StructOf(baseFields),
+		Type:          reflect.StructOf(goFields),
 		scriggoFields: types.addFields(scriggoFields),
 	}
-
 }
 
 func equalFields(fs1, fs2 map[int]reflect.StructField) bool {
