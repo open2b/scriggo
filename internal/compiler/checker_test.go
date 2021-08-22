@@ -1681,6 +1681,10 @@ var checkerStmts = map[string]string{
 	`type T int; type A = T; _ = struct{ A int; A }{}`:                            `duplicate field A`,
 	`type t int; type a = t; _ = struct{ a int; a }{}`:                            `duplicate field a`,
 	`_ = struct{ _ string; _ int }{}`:                                             ok,
+	`type T struct{ osFile }`:                                                     ok,
+	`type T struct{ *osFile }`:                                                    ok,
+	`type T struct{ _ int; osFile }`:                                              `embedded type with methods not implemented if type is not first field`,
+	`type T struct{ _ int; *osFile }`:                                             `embedded type with methods not implemented if type is not first field`,
 
 	// Gotos.
 	`L: for { goto L }`:                             ok,

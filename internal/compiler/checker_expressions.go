@@ -492,7 +492,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 				}
 			}
 		}
-		t := tc.types.StructOf(fields)
+		t := tc.makeStructOf(fields, expr.Fields)
 		tc.structDeclPkg[t] = tc.path
 		return &typeInfo{
 			Type:       t,
@@ -2535,4 +2535,47 @@ func decodeFieldName(name string) string {
 		}
 	}
 	return "_"
+}
+
+// makeStructOf makes a struct with the given fields calling the StructOf
+// function of the reflect package. If an embedded type with methods is not
+// the first field, StructOf panics. makeStructOf recover the panic and panics
+// again but with a type checking error with the relevant position read from
+// astFields.
+func (tc *typechecker) makeStructOf(fields []reflect.StructField, astFields []*ast.Field) reflect.Type {
+	defer func() {
+		err, _ := recover().(string)
+		if err != "reflect: embedded type with methods not implemented if type is not first field" {
+			return
+		}
+		// Call StructOf for each embedded field to check the position of
+		// the field that has panicked.
+		var i int
+		defer func() {
+			var j int
+			for _, field := range astFields {
+				if i == j {
+					panic(tc.errorf(field.Type, err[9:]))
+				}
+				if field.Idents == nil {
+					j++
+				} else {
+					j += len(field.Idents)
+				}
+			}
+			panic("expected panic, but not panic occurred")
+		}()
+		probe := []reflect.StructField{fields[0], {}}
+		var field reflect.StructField
+		for i, field = range fields {
+			if i == 0 {
+				continue
+			}
+			if field.Anonymous {
+				probe[1] = field
+				tc.types.StructOf(probe)
+			}
+		}
+	}()
+	return tc.types.StructOf(fields)
 }
