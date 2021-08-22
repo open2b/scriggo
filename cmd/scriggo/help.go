@@ -331,19 +331,24 @@ Limitations due to maintain the interoperability with Go official compiler 'gc'
       relies on the package 'reflect') prints the name of the type that wrapped
       the value in 'v' before passing it to gc.
 
-    * not exported fields of struct types defined in Scriggo are still
-      accessible from the outside.
-      This is caused by the function 'reflect.StructOf' that requires that all
-      fields are exported before creating the type.  By the way, such fields
-      (that should be not exported) are exported with a particular prefix to
-      avoid accidental accessing.
+    * unexported fields of struct types defined in Scriggo are still accessible
+      from native packages with the reflect methods. This is caused by the
+      reflect methods that does not allow, by design, to change the value of an
+      unexported field, so they are created with an empty package path. By the
+      way, such fields (that should be unexported) can not be changed without
+      the reflect and have a particular prefix to avoid accidental accessing.
+
+    * in a structure, types can be embedded but, apart from interfaces, if they
+      have methods then they must be the first field of the struct. This is a
+      limitation of the StructOf function of reflect.
+      See Go issue #15924 (https://github.com/golang/go/issues/15924).
 
     * cannot define functions without a body (TODO)
 
     * a select supports a maximum of 65536 cases.
 
-    * Go packages can be imported only if they have been precompiled into the
-      Scriggo interpreter/execution environment.
+    * Native packages can be imported only if they have been precompiled into
+      the Scriggo interpreter/execution environment.
       Also see the commands 'scriggo embed' and 'scriggo build'.
 
     * types are not garbage collected.
