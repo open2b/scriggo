@@ -90,7 +90,18 @@ func (x structType) Field(i int) reflect.StructField {
 }
 
 func (x structType) FieldByIndex(index []int) reflect.StructField {
-	panic("TODO: not implemented") // TODO(Gianluca): to implement.
+	var field reflect.StructField
+	t := x.Type
+	for i, fi := range index {
+		if i > 0 {
+			t = field.Type
+			if t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct {
+				t = t.Elem()
+			}
+		}
+		field = t.Field(fi)
+	}
+	return field
 }
 
 func (x structType) FieldByName(name string) (reflect.StructField, bool) {
