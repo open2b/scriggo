@@ -2492,29 +2492,29 @@ func (tc *typechecker) checkExplicitField(field *ast.Field, i int, blank *int) r
 
 // encoderFieldName encodes a field name to be used in a reflect.StructField.
 // blank is a pointer to the blank identifier index.
+//
+// reflect.Value methods only allow setting exported struct fields. In Go a
+// struct field is exported if its identifier is exported, but for the
+// reflect.Value methods, a field is exported if it has an empty package path.
+//
+// Consequently, Scriggo should create only struct fields with empty package
+// paths, otherwise the value would not be settable with reflect.
+//
+// For the struct{ F: int } type, Scriggo creates a field named "F" with an
+// empty package path, but for the struct{ f: int } type, Scriggo cannot
+// create a struct field named "f" because the reflect.StructOf function does
+// not allow names with the first character from 'a' to 'z'. So the field name
+// will be prefixed with the lowercase character '𝗽' (U+1D5FD).
+//
+// Comparing struct fields, unexported fields can be identical only if they
+// have the same package path. As the package path should remain empty also
+// for unexported fields, a package identifier is added after '𝗽'.
+//
+// For the struct{ _ int } type, the package identifier is not necessary
+// because blank identifiers are not considered for comparison. In its place a
+// number, different for each blank identifier in the struct, is used.
+//
 func (tc *typechecker) encoderFieldName(name string, blank *int) string {
-	// If the field name is not exported, it is impossible to
-	// create a new reflect.Type due to the limitations that the
-	// reflect package currently has. The solution adopted is to
-	// prepend a unicode character 𝗽 which is considered not exported
-	// by the Go specification but is allowed by the reflect package.
-	//
-	// Also, it is not possible to compare two struct type values
-	// declared in two different packages (types are different)
-	// because the package paths are different; the reflect package
-	// does not have the ability to set a such path. To work around
-	// the problem, an identifier is inserted in the middle of the
-	// character 𝗽 and the original field name; this makes the field
-	// unique for a given package, resulting in the inability of
-	// making comparisons with those types.
-	//
-	// The addition of the unique index is also used to check if a
-	// non-exported field of a struct can be accessed from a package
-	// (see the documentation of typechecker.structDeclPkg).
-	//
-	// If the field name is blank, the character 𝗽 is followed by a
-	// number, initially zero and incremented for each blank name in
-	// the struct.
 	if name == "_" {
 		name = "𝗽" + strconv.Itoa(*blank)
 		*blank++
