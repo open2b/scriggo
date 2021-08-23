@@ -1,5 +1,3 @@
-// skip : parsing error (https://github.com/open2b/scriggo/issues/824)
-
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -20,3 +18,4 @@ var _ = f;	// ERROR "undefined"
 
 var _ = T{f: 1}
 
+func main() { }
