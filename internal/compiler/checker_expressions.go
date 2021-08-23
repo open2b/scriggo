@@ -2475,7 +2475,7 @@ func (tc *typechecker) checkImplicitField(field *ast.Field) reflect.StructField 
 		name = expr.(*ast.Identifier).Name
 	}
 	f := reflect.StructField{
-		Name:      tc.encoderFieldName(name, nil),
+		Name:      tc.encodeFieldName(name, nil),
 		Type:      typ,
 		Tag:       reflect.StructTag(field.Tag),
 		Anonymous: true,
@@ -2487,14 +2487,14 @@ func (tc *typechecker) checkImplicitField(field *ast.Field) reflect.StructField 
 // blank is a pointer to the blank identifier index.
 func (tc *typechecker) checkExplicitField(field *ast.Field, i int, blank *int) reflect.StructField {
 	f := reflect.StructField{
-		Name: tc.encoderFieldName(field.Idents[i].Name, blank),
+		Name: tc.encodeFieldName(field.Idents[i].Name, blank),
 		Type: tc.checkType(field.Type).Type,
 		Tag:  reflect.StructTag(field.Tag),
 	}
 	return f
 }
 
-// encoderFieldName encodes a field name to be used in a reflect.StructField.
+// encodeFieldName encodes a field name to be used in a reflect.StructField.
 // blank is a pointer to the blank identifier index.
 //
 // reflect.Value methods only allow setting exported struct fields. In Go a
@@ -2518,7 +2518,7 @@ func (tc *typechecker) checkExplicitField(field *ast.Field, i int, blank *int) r
 // because blank identifiers are not considered for comparison. In its place a
 // number, different for each blank identifier in the struct, is used.
 //
-func (tc *typechecker) encoderFieldName(name string, blank *int) string {
+func (tc *typechecker) encodeFieldName(name string, blank *int) string {
 	if name == "_" {
 		name = "𝗽" + strconv.Itoa(*blank)
 		*blank++
