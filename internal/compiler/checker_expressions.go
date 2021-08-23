@@ -2464,11 +2464,15 @@ func (tc *typechecker) checkImplicitField(field *ast.Field) reflect.StructField 
 		panic(tc.errorf(field.Type, "embedded type cannot be a pointer"))
 	}
 	// "The unqualified type name acts as the field name".
+	expr := field.Type
+	if op, ok := expr.(*ast.UnaryOperator); ok {
+		expr = op.Expr
+	}
 	var name string
-	if op, ok := field.Type.(*ast.UnaryOperator); ok {
-		name = tc.checkType(op.Expr).TypeName()
+	if se, ok := expr.(*ast.Selector); ok {
+		name = se.Ident
 	} else {
-		name = ti.TypeName()
+		name = expr.(*ast.Identifier).Name
 	}
 	f := reflect.StructField{
 		Name:      tc.encoderFieldName(name, nil),
