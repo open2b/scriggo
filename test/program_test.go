@@ -7,6 +7,7 @@
 package test
 
 import (
+	"io/fs"
 	"reflect"
 	"testing"
 
@@ -185,4 +186,43 @@ func TestIssue309(t *testing.T) {
 			t.Fatalf("unexpected position %#v, expecting %#v", err2.Position(), expectedPosition)
 		}
 	})
+}
+
+var compositeStructLiteralTests = []struct {
+	fsys fs.FS
+	pass bool
+	err  string
+}{{
+	fsys: fstest.Files{
+		"go.mod":  "module a.b\ngo 1.16",
+		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{5}.F }`,
+		"p/p.go":  `package p; type S struct{ F int }`,
+	},
+	pass: true,
+}, {
+	fsys: fstest.Files{
+		"go.mod":  "module a.b\ngo 1.16",
+		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{3, 5} }`,
+		"p/p.go":  `package p; type S struct{ F, f int }`,
+	},
+	err: "main:1:56: implicit assignment of unexported field 'f' in p.S literal",
+}}
+
+// TestCompositeStructLiterals tests composite struct literals.
+func TestCompositeStructLiterals(t *testing.T) {
+	for _, cas := range compositeStructLiteralTests {
+		_, err := scriggo.Build(cas.fsys, nil)
+		if cas.pass {
+			if err != nil {
+				t.Fatalf("unexpected error: %q", err)
+			}
+		} else {
+			if err == nil {
+				t.Fatalf("expected error %q, got no error", cas.err)
+			}
+			if cas.err != err.Error() {
+				t.Fatalf("expected error %q, got error %q", cas.err, err)
+			}
+		}
+	}
 }

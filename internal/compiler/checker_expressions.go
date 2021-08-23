@@ -2047,8 +2047,10 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					}
 					panic(tc.errorf(node, "%s", err))
 				}
-				if !isExported(fieldTi.Name) && !strings.HasPrefix(fieldTi.Name, "𝗽") {
-					panic(tc.errorf(node, "implicit assignment of unexported field '%s' in %v", fieldTi.Name, node))
+				if tc.structDeclPkg[ti.Type] != tc.path && !isExported(fieldTi.Name) {
+					name := decodeFieldName(fieldTi.Name)
+					panic(tc.errorf(keyValue.Value, "implicit assignment of unexported field '%s' in %v literal",
+						name, node.Type))
 				}
 				keyValue.Key = ast.NewIdentifier(node.Pos(), fieldTi.Name)
 				if valueTi.Nil() {
