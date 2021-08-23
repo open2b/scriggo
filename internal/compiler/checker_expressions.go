@@ -2541,6 +2541,8 @@ func decodeFieldName(name string) string {
 	return "_"
 }
 
+const reflectEmbeddedErr = "reflect: embedded type with methods not implemented if type is not first field"
+
 // makeStructOf makes a struct with the given fields calling the StructOf
 // function of the reflect package. If an embedded type with methods is not
 // the first field, StructOf panics. makeStructOf recover the panic and panics
@@ -2549,36 +2551,41 @@ func decodeFieldName(name string) string {
 func (tc *typechecker) makeStructOf(fields []reflect.StructField, astFields []*ast.Field) reflect.Type {
 	defer func() {
 		err, _ := recover().(string)
-		if err != "reflect: embedded type with methods not implemented if type is not first field" {
+		if err != reflectEmbeddedErr {
 			return
 		}
 		// Call StructOf for each embedded field to check the position of
 		// the field that has panicked.
-		var i int
-		defer func() {
-			var j int
-			for _, field := range astFields {
-				if i == j {
-					panic(tc.errorf(field.Type, err[9:]))
-				}
-				if field.Idents == nil {
-					j++
-				} else {
-					j += len(field.Idents)
-				}
-			}
-			panic("expected panic, but not panic occurred")
-		}()
-		probe := []reflect.StructField{fields[0], {}}
-		var field reflect.StructField
-		for i, field = range fields {
-			if i == 0 {
+		probe := []reflect.StructField{
+			{Name: "𝗽", Type: intType}, // 0: a valid field
+			{},                         // 1: an embedded field to probe
+			{},                         // 2: an invalid field; prevents the struct type from being created
+		}
+		for i, field := range fields {
+			if i == 0 || !field.Anonymous || field.Type.Kind() == reflect.Interface {
 				continue
 			}
-			if field.Anonymous {
+			func() {
+				defer func() {
+					if recover() != reflectEmbeddedErr {
+						return
+					}
+					var j int
+					for _, field := range astFields {
+						if i == j {
+							panic(tc.errorf(field.Type, reflectEmbeddedErr[9:]))
+						}
+						if field.Idents == nil {
+							j++
+						} else {
+							j += len(field.Idents)
+						}
+					}
+					panic("expected panic, but not panic occurred")
+				}()
 				probe[1] = field
 				tc.types.StructOf(probe)
-			}
+			}()
 		}
 	}()
 	return tc.types.StructOf(fields)
