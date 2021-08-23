@@ -1,5 +1,3 @@
-// skip : the compiler panics (needs investigation)
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.

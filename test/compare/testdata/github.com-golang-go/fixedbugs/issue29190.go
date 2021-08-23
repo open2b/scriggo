@@ -1,4 +1,4 @@
-// skip : panic: BUG: not supported
+// skip : got panic append: out of memory, want cap out of range
 
 // run
 
