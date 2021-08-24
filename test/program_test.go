@@ -234,3 +234,106 @@ func TestCompositeStructLiterals(t *testing.T) {
 		}
 	}
 }
+
+var structFieldSelectorTests = []struct {
+	fsys fs.FS
+	pass bool
+	err  string
+}{{
+	fsys: fstest.Files{
+		"go.mod":  "module a.b\ngo 1.16",
+		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{}.F }`,
+		"p/p.go":  `package p; type S struct{ F int }`,
+	},
+	pass: true,
+}, {
+	fsys: fstest.Files{
+		"go.mod":  "module a.b\ngo 1.16",
+		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{}.f }`,
+		"p/p.go":  `package p; type S struct{ f int }`,
+	},
+	err: "main:1:54: p.S{}.f undefined (cannot refer to unexported field or method f)",
+}, {
+	fsys: fstest.Files{
+		"go.mod":  "module a.b\ngo 1.16",
+		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{}.G }`,
+		"p/p.go":  `package p; type S struct{ F int }`,
+	},
+	err: "main:1:54: p.S{}.G undefined (type S has no field or method G)",
+}, {
+	fsys: fstest.Files{
+		"go.mod":  "module a.b\ngo 1.16",
+		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{}.g }`,
+		"p/p.go":  `package p; type S struct{ F int }`,
+	},
+	err: "main:1:54: p.S{}.g undefined (type S has no field or method g)",
+}, {
+	fsys: fstest.Files{
+		"go.mod":  "module a.b\ngo 1.16",
+		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{}.F }`,
+		"p/p.go":  `package p; type ( T struct { F int }; V struct { V int }; S struct{ T; V } )`,
+	},
+	pass: true,
+}, {
+	fsys: fstest.Files{
+		"go.mod":  "module a.b\ngo 1.16",
+		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{}.F }`,
+		"p/p.go":  `package p; type ( T struct { F int }; V struct { F int }; S struct{ T; V } )`,
+	},
+	err: "main:1:54: ambiguous selector p.S{}.F",
+}, {
+	fsys: fstest.Files{
+		"go.mod":  "module a.b\ngo 1.16",
+		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{}.F }`,
+		"p/p.go":  `package p; type ( T struct { F int }; V struct { F int }; S struct{ T; V } )`,
+	},
+	err: "main:1:54: ambiguous selector p.S{}.F",
+}, {
+	fsys: fstest.Files{
+		"go.mod":  "module a.b\ngo 1.16",
+		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{}.f }`,
+		"p/p.go":  `package p; type ( T struct { f int }; V struct { f int }; S struct{ T; V } )`,
+	},
+	err: "main:1:54: p.S{}.f undefined (type S has no field or method f)", // TODO(marco): S should be p.S
+}, {
+	fsys: fstest.Files{
+		"go.mod":  "module a.b\ngo 1.16",
+		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{}.F }`,
+		"p/p.go":  `package p; type ( t struct { F int }; S struct{ t } )`,
+	},
+	pass: true,
+}, {
+	fsys: fstest.Files{
+		"go.mod":  "module a.b\ngo 1.16",
+		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{}.t.F }`,
+		"p/p.go":  `package p; type ( t struct { F int }; S struct{ t } )`,
+	},
+	err: "main:1:54: p.S{}.t undefined (cannot refer to unexported field or method t)",
+}, {
+	fsys: fstest.Files{
+		"go.mod":  "module a.b\ngo 1.16",
+		"main.go": `package main; import "a.b/p"; func main() { var _ string = p.S{}.F }`,
+		"p/p.go":  `package p; type ( T struct { F int }; A = T; V struct { T; F string; A }; S struct{ V } )`,
+	},
+	pass: true,
+}}
+
+// TestStructFieldSelector tests struct field selectors when the struct is
+// defined in another package.
+func TestStructFieldSelector(t *testing.T) {
+	for _, cas := range structFieldSelectorTests {
+		_, err := scriggo.Build(cas.fsys, nil)
+		if cas.pass {
+			if err != nil {
+				t.Fatalf("unexpected error: %q", err)
+			}
+		} else {
+			if err == nil {
+				t.Fatalf("expected error %q, got no error", cas.err)
+			}
+			if cas.err != err.Error() {
+				t.Fatalf("expected error %q, got error %q", cas.err, err)
+			}
+		}
+	}
+}

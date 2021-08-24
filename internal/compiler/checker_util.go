@@ -10,10 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strconv"
 	"strings"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/compiler/types"
@@ -281,52 +278,6 @@ func deferGoBuiltin(name string) *typeInfo {
 		Type:       removeEnvArg(rv.Type(), false),
 		value:      rv,
 	}
-}
-
-// fieldByName returns the struct field with the given name if such field
-// exists and can be accessed, else returns an error.
-//
-// If name is non-exported and the type is declared in Scriggo then name is
-// transformed and the new name is returned. For further information about this
-// check the documentation of the type checking of an *ast.StructType.
-func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string, error) {
-
-	typ := t.Type
-	if typ.Kind() == reflect.Ptr {
-		typ = t.Type.Elem()
-	}
-	if typ.Kind() != reflect.Struct {
-		return nil, "", fmt.Errorf("type %s has no field or method %s", t.Type, name)
-	}
-
-	var innerName string
-	if r, _ := utf8.DecodeRuneInString(name); unicode.Is(unicode.Lu, r) {
-		// Exported field.
-		innerName = name
-	} else {
-		// Non-exported field.
-		if tc.structDeclPkg[typ] != tc.path {
-			return nil, "", fmt.Errorf("cannot refer to unexported field or method %s", name)
-		}
-		innerName = "𝗽" + strconv.Itoa(tc.compilation.UniqueIndex(tc.path)) + name
-	}
-
-	field, ok := typ.FieldByName(innerName)
-	if !ok {
-		return nil, innerName, fmt.Errorf("type %s has no field or method %s", t.Type, name)
-	}
-
-	// Create the type info of the field.
-	ti := &typeInfo{Type: field.Type}
-	if t.Type.Kind() == reflect.Struct && t.Addressable() {
-		// Struct fields are addressable only if the struct is addressable.
-		ti.Properties = propertyAddressable
-	} else if t.Type.Kind() == reflect.Ptr {
-		// Pointer to struct fields are always addressable.
-		ti.Properties = propertyAddressable
-	}
-
-	return ti, innerName, nil
 }
 
 // checkDuplicateParams checks if a function type contains duplicate
@@ -749,32 +700,4 @@ func (tc *typechecker) errTypeAssertion(typ reflect.Type, iface reflect.Type) er
 		}
 	}
 	panic("unexpected")
-}
-
-// structFieldExists reports whether the struct s has a field named name. It
-// considers the fields in s and in any embedded structs. name is the encoded
-// name of the field. If returns true also for multiple fields at the same
-// depth.
-func structFieldExists(s reflect.Type, name string) bool {
-	if s.Kind() == reflect.Ptr {
-		s = s.Elem()
-	}
-	n := s.NumField()
-	for i := 0; i < n; i++ {
-		f := s.Field(i)
-		if f.Name == name {
-			return true
-		}
-		if !f.Anonymous {
-			continue
-		}
-		t := f.Type
-		if t.Kind() == reflect.Ptr {
-			t = t.Elem()
-		}
-		if t.Kind() == reflect.Struct && structFieldExists(t, name) {
-			return true
-		}
-	}
-	return false
 }

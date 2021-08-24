@@ -812,15 +812,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			return method
 		}
 		// Field selector.
-		field, newName, err := tc.fieldByName(t, expr.Ident)
-		if err != nil {
-			if newName != "" && structFieldExists(t.Type, newName) {
-				panic(tc.errorf(expr, "ambiguous selector %s", expr))
-			}
-			panic(tc.errorf(expr, "%v undefined (%s)", expr, err))
-		}
-		expr.Ident = newName
-		return field
+		return tc.checkFieldSelector(t, expr)
 
 	case *ast.TypeAssertion:
 		t := tc.checkExpr(expr.Expr)
@@ -2533,6 +2525,94 @@ func (tc *typechecker) checkExplicitField(field *ast.Field, i int, blank *int) r
 		Tag:  reflect.StructTag(field.Tag),
 	}
 	return f
+}
+
+// checkFieldSelector checks a field selector.
+func (tc *typechecker) checkFieldSelector(t *typeInfo, expr *ast.Selector) *typeInfo {
+
+	name := expr.Ident
+
+	typ := t.Type
+	if typ.Kind() == reflect.Ptr {
+		typ = t.Type.Elem()
+	}
+	if typ.Kind() != reflect.Struct {
+		panic(tc.errorf(expr, "%v undefined (type %s has no field or method %s)", expr, t.Type, name))
+	}
+
+	typ, _, encodedName := tc.findStructField(typ, expr)
+	if typ == nil {
+		panic(tc.errorf(expr, "%v undefined (type %s has no field or method %s)", expr, t.Type, name))
+	}
+	if encodedName == "" {
+		panic(tc.errorf(expr, "%v undefined (cannot refer to unexported field or method %s)", expr, name))
+	}
+
+	// Create the type info of the field.
+	ti := &typeInfo{Type: typ}
+	if t.Type.Kind() == reflect.Struct && t.Addressable() {
+		// Struct fields are addressable only if the struct is addressable.
+		ti.Properties = propertyAddressable
+	} else if t.Type.Kind() == reflect.Ptr {
+		// Pointer to struct fields are always addressable.
+		ti.Properties = propertyAddressable
+	}
+
+	expr.Ident = encodedName
+
+	return ti
+}
+
+// findStructField returns the type, depth and encoded name of the field in s
+// with name expr.Ident. If the field does not exist, typ is nil. If the
+// field exists but is not accessible from the current package code,
+// encodingName is empty.
+func (tc *typechecker) findStructField(s reflect.Type, expr *ast.Selector) (typ reflect.Type, depth int, encodedName string) {
+	n := s.NumField()
+	for i := 0; i < n; i++ {
+		f := s.Field(i)
+		if name := decodeFieldName(f.Name); name == expr.Ident {
+			typ = f.Type
+			if f.PkgPath == "" {
+				if tc.structDeclPkg[s] == tc.path {
+					encodedName = f.Name
+				} else if !strings.HasPrefix(f.Name, "𝗽") {
+					encodedName = f.Name
+				}
+			}
+			return
+		}
+	}
+	for i := 0; i < n; i++ {
+		f := s.Field(i)
+		if !f.Anonymous {
+			continue
+		}
+		t := f.Type
+		if t.Kind() == reflect.Ptr {
+			t = t.Elem()
+		}
+		if t.Kind() != reflect.Struct {
+			continue
+		}
+		t, d, n := tc.findStructField(t, expr)
+		if t == nil {
+			continue
+		}
+		d++
+		if d == depth {
+			if encodedName == "" {
+				return nil, 0, ""
+			}
+			panic(tc.errorf(expr, "ambiguous selector %s", expr))
+		}
+		if depth == 0 || d < depth {
+			typ = t
+			depth = d
+			encodedName = n
+		}
+	}
+	return
 }
 
 // encodeFieldName encodes a field name to be used in a reflect.StructField.
