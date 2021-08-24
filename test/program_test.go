@@ -195,7 +195,7 @@ var compositeStructLiteralTests = []struct {
 }{{
 	fsys: fstest.Files{
 		"go.mod":  "module a.b\ngo 1.16",
-		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{5}.F }`,
+		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{5} }`,
 		"p/p.go":  `package p; type S struct{ F int }`,
 	},
 	pass: true,
@@ -206,9 +206,17 @@ var compositeStructLiteralTests = []struct {
 		"p/p.go":  `package p; type S struct{ F, f int }`,
 	},
 	err: "main:1:56: implicit assignment of unexported field 'f' in p.S literal",
+}, {
+	fsys: fstest.Files{
+		"go.mod":  "module a.b\ngo 1.16",
+		"main.go": `package main; import "a.b/p"; func main() { _ = p.S{F: 3} }`,
+		"p/p.go":  `package p; type T struct { F int }; type S struct{ T }`,
+	},
+	err: "main:1:53: cannot use promoted field T.F in struct literal of type p.S",
 }}
 
-// TestCompositeStructLiterals tests composite struct literals.
+// TestCompositeStructLiterals tests composite struct literals when the struct
+// is defined in another package.
 func TestCompositeStructLiterals(t *testing.T) {
 	for _, cas := range compositeStructLiteralTests {
 		_, err := scriggo.Build(cas.fsys, nil)

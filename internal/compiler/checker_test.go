@@ -1070,6 +1070,7 @@ var checkerStmts = map[string]string{
 	`_ = pointInt{X: "a", Y: "b"}`: `cannot use "a" (type untyped string) as type int in field value`,
 	`_ = pointInt{X: 1, 2}`:        `mixture of field:value and value initializers`,
 	`_ = pointInt{X: 2, X: 2}`:     `duplicate field name in struct literal: X`,
+	`type T struct { F int }; type S struct{ T }; _ = S{F: 2}`: `cannot use promoted field T.F in struct literal of type S`,
 
 	// Field selector.
 	`type S struct{F int}; _ = S{}.F`:               ok,

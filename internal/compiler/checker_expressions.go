@@ -1978,87 +1978,17 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 
 	case reflect.Struct:
 
-		declType := 0
-		for _, kv := range node.KeyValues {
-			if kv.Key == nil {
-				if declType == 1 {
+		if len(node.KeyValues) > 0 {
+			hasKeys := node.KeyValues[0].Key != nil
+			for _, kv := range node.KeyValues {
+				if hasKeys != (kv.Key != nil) {
 					panic(tc.errorf(node, "mixture of field:value and value initializers"))
 				}
-				declType = -1
-				continue
+			}
+			if hasKeys {
+				tc.checkKeyedStructLiteral(ti.Type, node)
 			} else {
-				if declType == -1 {
-					panic(tc.errorf(node, "mixture of field:value and value initializers"))
-				}
-				declType = 1
-			}
-		}
-		switch declType == 1 {
-		case true: // struct with explicit fields.
-			hasField := map[string]struct{}{}
-			for i := range node.KeyValues {
-				keyValue := &node.KeyValues[i]
-				ident, ok := keyValue.Key.(*ast.Identifier)
-				if !ok || ident.Name == "_" {
-					panic(tc.errorf(node, "invalid field name %s in struct initializer", keyValue.Key))
-				}
-				if _, ok := hasField[ident.Name]; ok {
-					panic(tc.errorf(node, "duplicate field name in struct literal: %s", keyValue.Key))
-				}
-				hasField[ident.Name] = struct{}{}
-				fieldTi, newName, err := tc.fieldByName(ti, ident.Name)
-				if err != nil {
-					panic(tc.errorf(node, "unknown field '%s' in struct literal of type %s", keyValue.Key, ti))
-				}
-				valueTi := tc.checkExpr(keyValue.Value)
-				if err := tc.isAssignableTo(valueTi, keyValue.Value, fieldTi.Type); err != nil {
-					if _, ok := err.(invalidTypeInAssignment); ok {
-						panic(tc.errorf(node, "%s in field value", err))
-					}
-					panic(tc.errorf(node, "%s", err))
-				}
-				if valueTi.Nil() {
-					valueTi = tc.nilOf(fieldTi.Type)
-					tc.compilation.typeInfos[keyValue.Value] = valueTi
-				} else {
-					valueTi.setValue(fieldTi.Type)
-				}
-				ident.Name = newName
-			}
-		case false: // struct with implicit fields.
-			if len(node.KeyValues) == 0 {
-				ti := &typeInfo{Type: ti.Type}
-				tc.compilation.typeInfos[node] = ti
-				return ti
-			}
-			if len(node.KeyValues) < ti.Type.NumField() {
-				panic(tc.errorf(node, "too few values in %s{...}", ti))
-			}
-			if len(node.KeyValues) > ti.Type.NumField() {
-				panic(tc.errorf(node, "too many values in %s{...}", ti))
-			}
-			for i := range node.KeyValues {
-				keyValue := &node.KeyValues[i]
-				valueTi := tc.checkExpr(keyValue.Value)
-				fieldTi := ti.Type.Field(i)
-				if err := tc.isAssignableTo(valueTi, keyValue.Value, fieldTi.Type); err != nil {
-					if _, ok := err.(invalidTypeInAssignment); ok {
-						panic(tc.errorf(node, "%s in field value", err))
-					}
-					panic(tc.errorf(node, "%s", err))
-				}
-				if tc.structDeclPkg[ti.Type] != tc.path && !isExported(fieldTi.Name) {
-					name := decodeFieldName(fieldTi.Name)
-					panic(tc.errorf(keyValue.Value, "implicit assignment of unexported field '%s' in %v literal",
-						name, node.Type))
-				}
-				keyValue.Key = ast.NewIdentifier(node.Pos(), fieldTi.Name)
-				if valueTi.Nil() {
-					valueTi = tc.nilOf(fieldTi.Type)
-					tc.compilation.typeInfos[keyValue.Value] = valueTi
-				} else {
-					valueTi.setValue(fieldTi.Type)
-				}
+				tc.checkValuedStructLiteral(ti.Type, node)
 			}
 		}
 
@@ -2189,6 +2119,112 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 	tc.compilation.typeInfos[node] = nodeTi
 
 	return nodeTi
+}
+
+// checkKeyedStructLiteral checks a field:value composite struct literal.
+func (tc *typechecker) checkKeyedStructLiteral(typ reflect.Type, node *ast.CompositeLiteral) {
+
+	hasField := make(map[string]struct{}, len(node.KeyValues))
+
+	for _, kv := range node.KeyValues {
+
+		ident, ok := kv.Key.(*ast.Identifier)
+		if !ok || ident.Name == "_" {
+			panic(tc.errorf(node, "invalid field name %s in struct initializer", kv.Key))
+		}
+		if _, ok := hasField[ident.Name]; ok {
+			panic(tc.errorf(node, "duplicate field name in struct literal: %s", kv.Key))
+		}
+		hasField[ident.Name] = struct{}{}
+
+		accessible := tc.structDeclPkg[typ] == tc.path
+		if !accessible {
+			r, _ := utf8.DecodeRuneInString(ident.Name)
+			accessible = unicode.Is(unicode.Lu, r)
+		}
+		if !accessible {
+			panic(tc.errorf(node, "unknown field '%s' in struct literal of type %s", kv.Key, typ))
+		}
+
+		encodedName := tc.encodeFieldName(ident.Name, nil)
+		field, _ := typ.FieldByName(encodedName)
+		if field.Name == "" {
+			panic(tc.errorf(node, "unknown field '%s' in struct literal of type %s", kv.Key, typ))
+		}
+		if len(field.Index) > 1 {
+			var name string
+			for i := 0; i < len(field.Index); i++ {
+				f := typ.FieldByIndex(field.Index[0 : i+1])
+				if i > 0 {
+					name += "."
+				}
+				name += decodeFieldName(f.Name)
+			}
+			panic(tc.errorf(ident, "cannot use promoted field %s in struct literal of type %s", name, node.Type))
+		}
+
+		valueTi := tc.checkExpr(kv.Value)
+		if err := tc.isAssignableTo(valueTi, kv.Value, field.Type); err != nil {
+			if _, ok := err.(invalidTypeInAssignment); ok {
+				panic(tc.errorf(node, "%s in field value", err))
+			}
+			panic(tc.errorf(node, "%s", err))
+		}
+		if valueTi.Nil() {
+			valueTi = tc.nilOf(field.Type)
+			tc.compilation.typeInfos[kv.Value] = valueTi
+		} else {
+			valueTi.setValue(field.Type)
+		}
+
+		ident.Name = encodedName
+
+	}
+
+}
+
+// checkValuedStructLiteral checks a valued composite struct literal.
+func (tc *typechecker) checkValuedStructLiteral(typ reflect.Type, node *ast.CompositeLiteral) {
+
+	if len(node.KeyValues) < typ.NumField() {
+		panic(tc.errorf(node, "too few values in %s{...}", typ))
+	}
+	if len(node.KeyValues) > typ.NumField() {
+		panic(tc.errorf(node, "too many values in %s{...}", typ))
+	}
+
+	for i, kv := range node.KeyValues {
+
+		valueTi := tc.checkExpr(kv.Value)
+
+		f := typ.Field(i)
+		accessible := tc.structDeclPkg[typ] == tc.path
+		if !accessible {
+			r, _ := utf8.DecodeRuneInString(f.Name)
+			accessible = unicode.Is(unicode.Lu, r)
+		}
+		if !accessible {
+			name := decodeFieldName(f.Name)
+			panic(tc.errorf(kv.Value, "implicit assignment of unexported field '%s' in %s literal", name, node.Type))
+		}
+
+		if err := tc.isAssignableTo(valueTi, kv.Value, f.Type); err != nil {
+			if _, ok := err.(invalidTypeInAssignment); ok {
+				panic(tc.errorf(node, "%s in field value", err))
+			}
+			panic(tc.errorf(node, "%s", err))
+		}
+		if valueTi.Nil() {
+			valueTi = tc.nilOf(f.Type)
+			tc.compilation.typeInfos[kv.Value] = valueTi
+		} else {
+			valueTi.setValue(f.Type)
+		}
+
+		node.KeyValues[i].Key = ast.NewIdentifier(node.Pos(), f.Name)
+
+	}
+
 }
 
 // builtinCallName returns the name of the builtin function in a call
