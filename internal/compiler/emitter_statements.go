@@ -444,14 +444,19 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				break
 			}
 			varType := em.typ(v)
+			// Local variable.
+			if em.fb.declaredInFunc(v.Name) {
+				reg := em.fb.scopeLookup(v.Name)
+				addresses[i] = em.addressLocalVar(reg, varType, pos, node.Type)
+				break
+			}
 			// Package/closure/imported variable.
 			if index, ok := em.varStore.nonLocalVarIndex(v); ok {
 				addresses[i] = em.addressNonLocalVar(int16(index), varType, pos, node.Type)
 				break
 			}
-			// Local variable.
-			reg := em.fb.scopeLookup(v.Name)
-			addresses[i] = em.addressLocalVar(reg, varType, pos, node.Type)
+			panic("BUG")
+
 		case *ast.Index:
 			exprType := em.typ(v.Expr)
 			expr := em.emitExpr(v.Expr, exprType)

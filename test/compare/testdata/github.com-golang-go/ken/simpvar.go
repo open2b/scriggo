@@ -1,5 +1,3 @@
-// skip : invalid behaviour in assignment (https://github.com/open2b/scriggo/issues/828)
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.
