@@ -1,5 +1,3 @@
-// skip : invalid behaviour when slicing strings (https://github.com/open2b/scriggo/issues/831)
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -104,13 +102,14 @@ func main() {
 		panic("create int array " + c)
 	}
 
-	/* create string with byte array pointer */
-	z3 := new([3]byte)
-	z3[0] = 'a'
-	z3[1] = 'b'
-	z3[2] = 'c'
-	c = string(z3[0:])
-	if c != "abc" {
-		panic("create array pointer " + c)
-	}
+	// https://github.com/open2b/scriggo/issues/827
+	// /* create string with byte array pointer */
+	// z3 := new([3]byte)
+	// z3[0] = 'a'
+	// z3[1] = 'b'
+	// z3[2] = 'c'
+	// c = string(z3[0:])
+	// if c != "abc" {
+	// 	panic("create array pointer " + c)
+	// }
 }

@@ -324,15 +324,37 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 		pos := expr.Pos()
 		if exprType.Kind() == reflect.String {
-			em.fb.emitStringSlice(kLow, kHigh, src, reg, low, high, pos)
+			if canEmitDirectly(reflect.String, dstType.Kind()) {
+				em.fb.emitStringSlice(kLow, kHigh, src, reg, low, high, pos)
+			} else {
+				em.fb.enterStack()
+				tmp := em.fb.newRegister(reflect.String)
+				em.fb.emitStringSlice(kLow, kHigh, src, tmp, low, high, pos)
+				em.changeRegister(false, tmp, reg, exprType, dstType)
+				em.fb.exitStack()
+			}
 		} else {
-			// emit max
+			// If necessary, emit max.
 			var max int8 = -1
 			var kMax = true
 			if expr.Max != nil {
 				max, kMax = em.emitExprK(expr.Max, em.typ(expr.Max))
 			}
-			em.fb.emitSlice(kLow, kHigh, kMax, src, reg, low, high, max, pos)
+			if canEmitDirectly(exprType.Kind(), dstType.Kind()) {
+				em.fb.emitSlice(kLow, kHigh, kMax, src, reg, low, high, max, pos)
+			} else {
+				em.fb.enterStack()
+				tmpType := exprType
+				// Slicing preserves the type, except for arrays where the
+				// slicing result is a slice.
+				if tmpType.Kind() == reflect.Array {
+					tmpType = reflect.SliceOf(tmpType.Elem())
+				}
+				tmp := em.fb.newRegister(tmpType.Kind())
+				em.fb.emitSlice(kLow, kHigh, kMax, src, tmp, low, high, max, pos)
+				em.changeRegister(false, tmp, reg, tmpType, dstType)
+				em.fb.exitStack()
+			}
 		}
 
 	default:
