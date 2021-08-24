@@ -814,6 +814,9 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		// Field selector.
 		field, newName, err := tc.fieldByName(t, expr.Ident)
 		if err != nil {
+			if newName != "" && structFieldExists(t.Type, newName) {
+				panic(tc.errorf(expr, "ambiguous selector %s", expr))
+			}
 			panic(tc.errorf(expr, "%v undefined (%s)", expr, err))
 		}
 		expr.Ident = newName

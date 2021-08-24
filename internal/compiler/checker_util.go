@@ -313,7 +313,7 @@ func (tc *typechecker) fieldByName(t *typeInfo, name string) (*typeInfo, string,
 
 	field, ok := typ.FieldByName(innerName)
 	if !ok {
-		return nil, "", fmt.Errorf("type %s has no field or method %s", t.Type, name)
+		return nil, innerName, fmt.Errorf("type %s has no field or method %s", t.Type, name)
 	}
 
 	// Create the type info of the field.
@@ -749,4 +749,32 @@ func (tc *typechecker) errTypeAssertion(typ reflect.Type, iface reflect.Type) er
 		}
 	}
 	panic("unexpected")
+}
+
+// structFieldExists reports whether the struct s has a field named name. It
+// considers the fields in s and in any embedded structs. name is the encoded
+// name of the field. If returns true also for multiple fields at the same
+// depth.
+func structFieldExists(s reflect.Type, name string) bool {
+	if s.Kind() == reflect.Ptr {
+		s = s.Elem()
+	}
+	n := s.NumField()
+	for i := 0; i < n; i++ {
+		f := s.Field(i)
+		if f.Name == name {
+			return true
+		}
+		if !f.Anonymous {
+			continue
+		}
+		t := f.Type
+		if t.Kind() == reflect.Ptr {
+			t = t.Elem()
+		}
+		if t.Kind() == reflect.Struct && structFieldExists(t, name) {
+			return true
+		}
+	}
+	return false
 }
