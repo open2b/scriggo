@@ -16,13 +16,6 @@ import (
 	"github.com/open2b/scriggo/native"
 )
 
-// Sync with scriggo.Package.
-type scriggoPackage interface {
-	Name() string
-	Lookup(declName string) interface{}
-	DeclarationNames() []string
-}
-
 // parseNumericCost parses an expression representing an untyped number
 // constant and return the represented constant, it type.
 func parseNumericConst(s string) (constant, reflect.Type, error) {
@@ -106,7 +99,7 @@ func toTypeCheckerScope(pkg native.Package, mod checkingMod, global bool, depth 
 				}
 				ti.Type = rv.Type()
 			}
-		case scriggoPackage:
+		case native.Package:
 			// Import an auto-imported package. This is supported in scripts and templates only.
 			if mod == programMod {
 				panic(fmt.Errorf("scriggo: auto-imported packages are supported only for scripts and templates"))
