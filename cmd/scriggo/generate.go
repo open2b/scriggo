@@ -241,7 +241,7 @@ func init() {
 		"GOOS":              goos,
 		"BaseVersion":       goBaseVersion(runtime.Version()),
 		"NextGoVersion":     nextGoVersion(runtime.Version()),
-		"Name":           sf.pkgName,
+		"Name":              sf.pkgName,
 		"ExplicitImports":   explicitImports,
 		"MustImportReflect": mustImportReflect,
 		"Variable":          sf.variable,
