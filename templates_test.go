@@ -694,7 +694,7 @@ var templateMultiFileCases = map[string]struct {
 	expectedBuildErr string                      // default to empty string (no build error). Mutually exclusive with expectedOut.
 	expectedOut      string                      // default to "". Mutually exclusive with expectedBuildErr.
 	main             *native.DeclarationsPackage // default to nil
-	vars             native.Declarations         // default to nil
+	vars             map[string]interface{}      // default to nil
 	entryPoint       string                      // default to "index.html"
 	packages         native.PackageLoader        // default to nil
 	noParseShow      bool
@@ -857,7 +857,7 @@ var templateMultiFileCases = map[string]struct {
 				"initMainVar": (*int)(nil),
 			},
 		},
-		vars: native.Declarations{
+		vars: map[string]interface{}{
 			"initMainVar": 42,
 		},
 		expectedOut: `42`,
@@ -888,7 +888,7 @@ var templateMultiFileCases = map[string]struct {
 				"lowercase": (*func(string) string)(nil),
 			},
 		},
-		vars: native.Declarations{
+		vars: map[string]interface{}{
 			"lowercase": func(s string) string {
 				return strings.ToLower(s)
 			},
@@ -907,7 +907,7 @@ var templateMultiFileCases = map[string]struct {
 				"b": (*string)(nil),
 			},
 		},
-		vars: native.Declarations{
+		vars: map[string]interface{}{
 			"a": "AAA",
 			"b": "BBB",
 		},

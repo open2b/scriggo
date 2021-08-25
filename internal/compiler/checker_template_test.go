@@ -620,7 +620,7 @@ func TestCheckerTemplatesStatements(t *testing.T) {
 	var S = "s"
 	p := &pkg{
 		PkgName:      "p",
-		Declarations: map[string]interface{}{},
+		Declarations: native.Declarations{},
 	}
 	options := Options{
 		FormatTypes: formatTypes,

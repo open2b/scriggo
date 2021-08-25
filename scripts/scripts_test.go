@@ -159,8 +159,8 @@ func TestInitGlobalsNilPointerError(t *testing.T) {
 }
 
 func TestCombinedPackage(t *testing.T) {
-	pkg1 := &native.DeclarationsPackage{"main", map[string]interface{}{"a": 1, "b": 2}}
-	pkg2 := &native.DeclarationsPackage{"main2", map[string]interface{}{"b": 3, "c": 4, "d": 5}}
+	pkg1 := &native.DeclarationsPackage{"main", native.Declarations{"a": 1, "b": 2}}
+	pkg2 := &native.DeclarationsPackage{"main2", native.Declarations{"b": 3, "c": 4, "d": 5}}
 	pkg := native.CombinedPackage{pkg1, pkg2}
 	expected := []string{"a", "b", "c", "d"}
 	// Test Name.

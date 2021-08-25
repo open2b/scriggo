@@ -1826,7 +1826,7 @@ func (t T) EnvVar(env native.Env, a ...int) {}
 func TestCheckerRemoveEnv(t *testing.T) {
 	p := &pkg{
 		PkgName: "p",
-		Declarations: map[string]interface{}{
+		Declarations: native.Declarations{
 			"T":      reflect.TypeOf(T(0)),
 			"F0":     func() {},
 			"F1":     func(a int) {},
@@ -1876,14 +1876,14 @@ type pkg struct {
 	// Package name.
 	PkgName string
 	// Package declarations.
-	Declarations map[string]interface{}
+	Declarations native.Declarations
 }
 
 func (p *pkg) Name() string {
 	return p.PkgName
 }
 
-func (p *pkg) Lookup(declName string) interface{} {
+func (p *pkg) Lookup(declName string) native.Declaration {
 	return p.Declarations[declName]
 }
 

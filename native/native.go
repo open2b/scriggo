@@ -14,11 +14,7 @@ import (
 	"reflect"
 )
 
-// Declarations represents a set of variables, constants, functions, types and
-// packages declarations and can be used for template globals and package
-// declarations.
-//
-// The key is the declaration's name and the element is its value
+// Declaration represents a declaration.
 //
 //  for a variable: a pointer to the value of the variable
 //  for a function: the function
@@ -27,7 +23,14 @@ import (
 //  for an untyped constant: an UntypedStringConst, UntypedBooleanConst or UntypedNumericConst value
 //  for a package: a Package value (used only for template globals)
 //
-type Declarations map[string]interface{}
+type Declaration interface{}
+
+// Declarations represents a set of variables, constants, functions, types and
+// packages declarations and can be used for template globals and package
+// declarations.
+//
+// The key is the declaration's name and the element is its value.
+type Declarations map[string]Declaration
 
 type (
 	// UntypedStringConst represents an untyped string constant.

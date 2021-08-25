@@ -12,14 +12,9 @@ type Package interface {
 	// Name returns the package's name.
 	Name() string
 
-	// Lookup searches for an exported declaration, named declName, in the
+	// Lookup searches for an exported declaration, named name, in the
 	// package. If the declaration does not exist, it returns nil.
-	//
-	// For a variable returns a pointer to the variable, for a function
-	// returns the function, for a type returns its reflect.Type value, for a
-	// typed constant returns its value and for an untyped constant returns a
-	// UntypedStringConst, UntypedBooleanConst or UntypedNumericConst value.
-	Lookup(declName string) interface{}
+	Lookup(name string) Declaration
 
 	// DeclarationNames returns the exported declaration names in the package.
 	DeclarationNames() []string
@@ -73,10 +68,10 @@ func (p *DeclarationsPackage) Name() string {
 	return p.PkgName
 }
 
-// Lookup returns the declaration declName in the package or nil if no such
+// Lookup returns the declaration named name in the package or nil if no such
 // declaration exists.
-func (p *DeclarationsPackage) Lookup(declName string) interface{} {
-	return p.Declarations[declName]
+func (p *DeclarationsPackage) Lookup(name string) Declaration {
+	return p.Declarations[name]
 }
 
 // DeclarationNames returns all package declaration names.
@@ -106,9 +101,9 @@ func (packages CombinedPackage) Name() string {
 
 // Lookup calls the Lookup methods of each package in order and returns as
 // soon as a combined package returns a declaration.
-func (packages CombinedPackage) Lookup(declName string) interface{} {
+func (packages CombinedPackage) Lookup(name string) Declaration {
 	for _, pkg := range packages {
-		if decl := pkg.Lookup(declName); decl != nil {
+		if decl := pkg.Lookup(name); decl != nil {
 			return decl
 		}
 	}

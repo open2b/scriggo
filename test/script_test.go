@@ -248,7 +248,7 @@ func TestScriptsChainMessages(t *testing.T) {
 			"Message": (*string)(nil),
 		},
 	}
-	init := native.Declarations{"Message": &Message}
+	init := map[string]interface{}{"Message": &Message}
 	script1, err := scripts.Build(strings.NewReader(src1), options)
 	if err != nil {
 		t.Fatalf("unable to load script 1: %s", err)

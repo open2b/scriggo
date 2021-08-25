@@ -515,7 +515,7 @@ var testJSONEnvStringerValue = &testJSONEnvStringer{}
 
 var envStringerCases = map[string]struct {
 	sources map[string]string
-	globals map[string]interface{}
+	globals native.Declarations
 	format  Format
 	want    string
 }{
@@ -523,7 +523,7 @@ var envStringerCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": "value read from env is {{ v }}",
 		},
-		globals: map[string]interface{}{
+		globals: native.Declarations{
 			"v": &testEnvStringerValue,
 		},
 		format: FormatText,
@@ -533,7 +533,7 @@ var envStringerCases = map[string]struct {
 		sources: map[string]string{
 			"index.html": "value read from env is {{ v }}",
 		},
-		globals: map[string]interface{}{
+		globals: native.Declarations{
 			"v": &testHTMLEnvStringerValue,
 		},
 		format: FormatHTML,
@@ -543,7 +543,7 @@ var envStringerCases = map[string]struct {
 		sources: map[string]string{
 			"index.css": "border-radius: {{ v }};",
 		},
-		globals: map[string]interface{}{
+		globals: native.Declarations{
 			"v": &testCSSEnvStringerValue,
 		},
 		format: FormatCSS,
@@ -553,7 +553,7 @@ var envStringerCases = map[string]struct {
 		sources: map[string]string{
 			"index.js": "var x = {{ v }};",
 		},
-		globals: map[string]interface{}{
+		globals: native.Declarations{
 			"v": &testJSEnvStringerValue,
 		},
 		format: FormatJS,
@@ -563,7 +563,7 @@ var envStringerCases = map[string]struct {
 		sources: map[string]string{
 			"index.json": "var x = {{ v }};",
 		},
-		globals: map[string]interface{}{
+		globals: native.Declarations{
 			"v": &testJSONEnvStringerValue,
 		},
 		format: FormatJSON,

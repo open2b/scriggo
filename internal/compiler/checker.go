@@ -403,7 +403,7 @@ func (p *mapPackage) Name() string {
 	return p.PkgName
 }
 
-func (p *mapPackage) Lookup(declName string) interface{} {
+func (p *mapPackage) Lookup(declName string) native.Declaration {
 	return p.Declarations[declName]
 }
 
