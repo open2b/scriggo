@@ -92,7 +92,7 @@ func (p DeclarationsPackage) DeclarationNames() []string {
 // returns as soon as a package returns a not nil value.
 type CombinedPackage []Package
 
-// Name returns the name of the first combined package.
+// PackageName returns the package name of the first combined package.
 func (packages CombinedPackage) PackageName() string {
 	if len(packages) == 0 {
 		return ""
