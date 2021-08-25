@@ -95,7 +95,7 @@ func toTypeCheckerScope(pkg native.Package, mod checkingMod, global bool, depth 
 				// Import a typed constant.
 				ti.Constant = convertToConstant(rv)
 				if ti.Constant == nil {
-					panic(fmt.Errorf("scriggo: invalid constant v %v for %s.%s", v, pkg.Name(), ident))
+					panic(fmt.Errorf("scriggo: loading package %s, declaration %q is not valid", pkg.Name(), ident))
 				}
 				ti.Type = rv.Type()
 			}
