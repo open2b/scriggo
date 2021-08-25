@@ -618,7 +618,7 @@ var checkerTemplateStmts = []struct {
 func TestCheckerTemplatesStatements(t *testing.T) {
 	var I = 3
 	var S = "s"
-	p := &native.DeclarationsPackage{
+	p := native.DeclarationsPackage{
 		PkgName:      "p",
 		Declarations: native.Declarations{},
 	}

@@ -64,18 +64,18 @@ type DeclarationsPackage struct {
 }
 
 // Name returns the package name.
-func (p *DeclarationsPackage) Name() string {
+func (p DeclarationsPackage) Name() string {
 	return p.PkgName
 }
 
 // Lookup returns the declaration named name in the package or nil if no such
 // declaration exists.
-func (p *DeclarationsPackage) Lookup(name string) Declaration {
+func (p DeclarationsPackage) Lookup(name string) Declaration {
 	return p.Declarations[name]
 }
 
 // DeclarationNames returns all package declaration names.
-func (p *DeclarationsPackage) DeclarationNames() []string {
+func (p DeclarationsPackage) DeclarationNames() []string {
 	declarations := make([]string, 0, len(p.Declarations))
 	for name := range p.Declarations {
 		declarations = append(declarations, name)

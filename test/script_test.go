@@ -52,7 +52,7 @@ var scriptTests = map[string]struct {
 			pkg.F()
 		`,
 		pkgs: native.Packages{
-			"pkg": &native.DeclarationsPackage{
+			"pkg": native.DeclarationsPackage{
 				PkgName: "pkg",
 				Declarations: native.Declarations{
 					"F": func() {
@@ -91,7 +91,7 @@ var scriptTests = map[string]struct {
 	//		Print(A)
 	//	`,
 	//	pkgs: native.Packages{
-	//		"main": &native.DeclarationsPackage{
+	//		"main": native.DeclarationsPackage{
 	//			PkgName: "main",
 	//			Declarations: native.Declarations{
 	//				"A": (*int)(nil),
@@ -127,13 +127,13 @@ var scriptTests = map[string]struct {
 		`,
 		globals: native.Declarations{
 
-			"strings": &native.DeclarationsPackage{
+			"strings": native.DeclarationsPackage{
 				PkgName: "strings",
 				Declarations: native.Declarations{
 					"ToLower": strings.ToLower,
 				},
 			},
-			"math": &native.DeclarationsPackage{
+			"math": native.DeclarationsPackage{
 				PkgName: "math",
 				Declarations: native.Declarations{
 					"MaxInt8": math.MaxInt8,
