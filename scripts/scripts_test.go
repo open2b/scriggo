@@ -164,8 +164,8 @@ func TestCombinedPackage(t *testing.T) {
 	pkg := native.CombinedPackage{pkg1, pkg2}
 	expected := []string{"a", "b", "c", "d"}
 	// Test Name.
-	if pkg.Name() != pkg1.Name() {
-		t.Fatalf("unexpected name %s, expecting %s", pkg.Name(), pkg1.Name())
+	if pkg.PackageName() != pkg1.PackageName() {
+		t.Fatalf("unexpected name %s, expecting %s", pkg.PackageName(), pkg1.PackageName())
 	}
 	// Test Lookup.
 	for _, name := range expected {

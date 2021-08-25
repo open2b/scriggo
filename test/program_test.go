@@ -29,7 +29,7 @@ func TestIssue403(t *testing.T) {
 		packages := native.CombinedLoader{
 			native.Packages{
 				"pkg": native.DeclarationsPackage{
-					PkgName: "pkg",
+					Name: "pkg",
 					Declarations: native.Declarations{
 						"Value": &TypeStruct{},
 					},
@@ -58,7 +58,7 @@ func TestIssue403(t *testing.T) {
 		packages := native.CombinedLoader{
 			native.Packages{
 				"pkg": native.DeclarationsPackage{
-					PkgName: "pkg",
+					Name: "pkg",
 					Declarations: native.Declarations{
 						"Type": reflect.TypeOf(new(TypeStruct)).Elem(),
 					},
@@ -88,7 +88,7 @@ func TestIssue403(t *testing.T) {
 		packages := native.CombinedLoader{
 			native.Packages{
 				"pkg": native.DeclarationsPackage{
-					PkgName: "pkg",
+					Name: "pkg",
 					Declarations: native.Declarations{
 						"F": func(s struct{}) {},
 					},
@@ -120,7 +120,7 @@ func TestIssue403(t *testing.T) {
 		packages := native.CombinedLoader{
 			native.Packages{
 				"pkg": native.DeclarationsPackage{
-					PkgName: "pkg",
+					Name: "pkg",
 					Declarations: native.Declarations{
 						"F": func(s [3]int) {},
 					},
@@ -157,7 +157,7 @@ func TestIssue309(t *testing.T) {
 		packages := native.CombinedLoader{
 			native.Packages{
 				"pkg": native.DeclarationsPackage{
-					PkgName: "pkg",
+					Name: "pkg",
 					Declarations: native.Declarations{
 						"Value": &TypeStruct{},
 					},

@@ -70,7 +70,7 @@ func toTypeCheckerScope(pkg native.Package, mod checkingMod, global bool, depth 
 	declarations := pkg.DeclarationNames()
 	scope := make(map[string]scopeName, len(declarations))
 	for _, ident := range declarations {
-		ti := &typeInfo{NativePackageName: pkg.Name()}
+		ti := &typeInfo{NativePackageName: pkg.PackageName()}
 		if global {
 			ti.Properties = propertyGlobal
 		}
@@ -95,7 +95,7 @@ func toTypeCheckerScope(pkg native.Package, mod checkingMod, global bool, depth 
 				// Import a typed constant.
 				ti.Constant = convertToConstant(rv)
 				if ti.Constant == nil {
-					panic(fmt.Errorf("scriggo: loading package %s, declaration %q is not valid", pkg.Name(), ident))
+					panic(fmt.Errorf("scriggo: loading package %s, declaration %q is not valid", pkg.PackageName(), ident))
 				}
 				ti.Type = rv.Type()
 			}
@@ -108,7 +108,7 @@ func toTypeCheckerScope(pkg native.Package, mod checkingMod, global bool, depth 
 				panic(fmt.Errorf("scriggo: cannot have an auto-imported package inside another auto-imported package"))
 			}
 			pkg := &packageInfo{
-				Name:         v.Name(),
+				Name:         v.PackageName(),
 				Declarations: map[string]*typeInfo{},
 			}
 			for n, d := range toTypeCheckerScope(v, mod, global, depth+1) {
@@ -136,7 +136,7 @@ func toTypeCheckerScope(pkg native.Package, mod checkingMod, global bool, depth 
 			var err error
 			ti.Constant, ti.Type, err = parseNumericConst(string(v))
 			if err != nil {
-				panic(fmt.Errorf("scriggo: invalid untyped constant %q for %s.%s", v, pkg.Name(), ident))
+				panic(fmt.Errorf("scriggo: invalid untyped constant %q for %s.%s", v, pkg.PackageName(), ident))
 			}
 			ti.Properties |= propertyUntyped
 		}

@@ -963,7 +963,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		if pkg == nil {
 			return tc.errorf(impor, "cannot find package %q", impor.Path)
 		}
-		if pkg.Name() == "main" {
+		if pkg.PackageName() == "main" {
 			return tc.programImportError(impor)
 		}
 
@@ -973,7 +973,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		for n, d := range toTypeCheckerScope(pkg, tc.opts.mod, false, 0) {
 			imported.Declarations[n] = d.ti
 		}
-		imported.Name = pkg.Name()
+		imported.Name = pkg.PackageName()
 
 		// 'import _ "pkg"': nothing to do.
 		if isBlankImport(impor) {

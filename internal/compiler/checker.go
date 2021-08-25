@@ -56,7 +56,7 @@ func typecheck(tree *ast.Tree, packages native.PackageLoader, opts checkerOption
 	var globalScope map[string]scopeName
 	if opts.globals != nil {
 		globals := native.DeclarationsPackage{
-			PkgName:      "main",
+			Name:         "main",
 			Declarations: opts.globals,
 		}
 		globalScope = toTypeCheckerScope(globals, opts.mod, true, 0)

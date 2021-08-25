@@ -9,8 +9,9 @@ package native
 // Package represents a native package.
 type Package interface {
 
-	// Name returns the package's name.
-	Name() string
+	// PackageName returns the name of the package.
+	// It must be a Go identifier and cannot be the black identifier.
+	PackageName() string
 
 	// Lookup searches for an exported declaration, named name, in the
 	// package. If the declaration does not exist, it returns nil.
@@ -55,17 +56,17 @@ func (pp Packages) Load(path string) (Package, error) {
 	return nil, nil
 }
 
-// DeclarationsPackage implements Package given its name and Declarations.
+// DeclarationsPackage implements Package given its name and declarations.
 type DeclarationsPackage struct {
-	// Package name.
-	PkgName string
-	// Package declarations.
+	// Name of the package.
+	Name string
+	// Declarations of the package.
 	Declarations Declarations
 }
 
-// Name returns the package name.
-func (p DeclarationsPackage) Name() string {
-	return p.PkgName
+// PackageName returns the name of the package.
+func (p DeclarationsPackage) PackageName() string {
+	return p.Name
 }
 
 // Lookup returns the declaration named name in the package or nil if no such
@@ -92,11 +93,11 @@ func (p DeclarationsPackage) DeclarationNames() []string {
 type CombinedPackage []Package
 
 // Name returns the name of the first combined package.
-func (packages CombinedPackage) Name() string {
+func (packages CombinedPackage) PackageName() string {
 	if len(packages) == 0 {
 		return ""
 	}
-	return packages[0].Name()
+	return packages[0].PackageName()
 }
 
 // Lookup calls the Lookup methods of each package in order and returns as

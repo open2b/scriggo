@@ -1825,7 +1825,7 @@ func (t T) EnvVar(env native.Env, a ...int) {}
 
 func TestCheckerRemoveEnv(t *testing.T) {
 	p := native.DeclarationsPackage{
-		PkgName: "p",
+		Name: "p",
 		Declarations: native.Declarations{
 			"T":      reflect.TypeOf(T(0)),
 			"F0":     func() {},

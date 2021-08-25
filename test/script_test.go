@@ -53,7 +53,7 @@ var scriptTests = map[string]struct {
 		`,
 		pkgs: native.Packages{
 			"pkg": native.DeclarationsPackage{
-				PkgName: "pkg",
+				Name: "pkg",
 				Declarations: native.Declarations{
 					"F": func() {
 						scriptsStdout.WriteString("pkg.F called!")
@@ -92,7 +92,7 @@ var scriptTests = map[string]struct {
 	//	`,
 	//	pkgs: native.Packages{
 	//		"main": native.DeclarationsPackage{
-	//			PkgName: "main",
+	//			Name: "main",
 	//			Declarations: native.Declarations{
 	//				"A": (*int)(nil),
 	//			},
@@ -128,13 +128,13 @@ var scriptTests = map[string]struct {
 		globals: native.Declarations{
 
 			"strings": native.DeclarationsPackage{
-				PkgName: "strings",
+				Name: "strings",
 				Declarations: native.Declarations{
 					"ToLower": strings.ToLower,
 				},
 			},
 			"math": native.DeclarationsPackage{
-				PkgName: "math",
+				Name: "math",
 				Declarations: native.Declarations{
 					"MaxInt8": math.MaxInt8,
 				},

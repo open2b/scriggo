@@ -65,7 +65,7 @@ func Test_renderPackages(t *testing.T) {
 				decs["State"] = reflect.TypeOf((*fmt.State)(nil)).Elem()
 				decs["Stringer"] = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
 				packages["custom/fmt/path"] = native.DeclarationsPackage{
-					PkgName: "fmt",
+					Name: "fmt",
 					Declarations: decs,
 				}
 			}`,
@@ -120,7 +120,7 @@ func Test_renderPackages(t *testing.T) {
 				decs["TypeXHeader"] = native.UntypedNumericConst("120")
 				decs["Writer"] = reflect.TypeOf((*tar.Writer)(nil)).Elem()
 				packages["archive/tar"] = native.DeclarationsPackage{
-					PkgName: "tar",
+					Name: "tar",
 					Declarations: decs,
 				}
 			}`,
@@ -171,7 +171,7 @@ func Test_renderPackages(t *testing.T) {
 				decs["State"] = reflect.TypeOf((*fmt.State)(nil)).Elem()
 				decs["Stringer"] = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
 				packages["fmt"] = native.DeclarationsPackage{
-					PkgName: "fmt",
+					Name: "fmt",
 					Declarations: decs,
 				}
 			}`,
@@ -202,7 +202,7 @@ func Test_renderPackages(t *testing.T) {
 				decs = make(native.Declarations, 1)
 				decs["Println"] = fmt.Println
 				packages["fmt"] = native.DeclarationsPackage{
-					PkgName:      "fmt",
+					Name:      "fmt",
 					Declarations: decs,
 				}
 			}`,

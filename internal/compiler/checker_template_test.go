@@ -619,7 +619,7 @@ func TestCheckerTemplatesStatements(t *testing.T) {
 	var I = 3
 	var S = "s"
 	p := native.DeclarationsPackage{
-		PkgName:      "p",
+		Name:         "p",
 		Declarations: native.Declarations{},
 	}
 	options := Options{
