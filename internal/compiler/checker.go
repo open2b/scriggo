@@ -55,7 +55,7 @@ func typecheck(tree *ast.Tree, packages native.PackageLoader, opts checkerOption
 	// Prepare the type checking for scripts and templates.
 	var globalScope map[string]scopeName
 	if opts.globals != nil {
-		globals := &mapPackage{
+		globals := &native.DeclarationsPackage{
 			PkgName:      "main",
 			Declarations: opts.globals,
 		}
@@ -390,27 +390,4 @@ func checkError(path string, nodeOrPos interface{}, format string, args ...inter
 		err: fmt.Errorf(format, args...),
 	}
 	return err
-}
-
-type mapPackage struct {
-	// Package name.
-	PkgName string
-	// Package declarations.
-	Declarations native.Declarations
-}
-
-func (p *mapPackage) Name() string {
-	return p.PkgName
-}
-
-func (p *mapPackage) Lookup(declName string) native.Declaration {
-	return p.Declarations[declName]
-}
-
-func (p *mapPackage) DeclarationNames() []string {
-	declarations := make([]string, 0, len(p.Declarations))
-	for name := range p.Declarations {
-		declarations = append(declarations, name)
-	}
-	return declarations
 }
