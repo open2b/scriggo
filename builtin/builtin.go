@@ -496,7 +496,7 @@ func ParseFloat(s string) (float64, error) {
 // It returns an error if value cannot be parsed.
 func ParseTime(layout, value string) (Time, error) {
 	if layout == "" {
-		for _, layout = range timeLayouts {
+		for _, layout = range thirdparties.TimeLayouts {
 			t, err := time.Parse(layout, value)
 			if err == nil {
 				return NewTime(t), nil
