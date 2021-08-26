@@ -160,7 +160,7 @@ func (fb *functionBuilder) emitCallPredefined(f int8, numVariadic int8, shift ru
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
 
-// Assert appends a new "cap" instruction to the function body.
+// emitCap appends a new "cap" instruction to the function body.
 //
 //     z = cap(s)
 //
