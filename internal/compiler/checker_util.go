@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"unicode"
 
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/compiler/types"
@@ -700,4 +701,63 @@ func (tc *typechecker) errTypeAssertion(typ reflect.Type, iface reflect.Type) er
 		}
 	}
 	panic("unexpected")
+}
+
+// isValidIdentifier reports whether name is a valid identifier in the
+// modality mod.
+func isValidIdentifier(name string, mod checkingMod) bool {
+	if name == "" || name == "_" {
+		return false
+	}
+	for i, r := range name {
+		if r != '_' && !unicode.IsLetter(r) && (i == 0 || !unicode.IsDigit(r)) {
+			return false
+		}
+	}
+	switch name {
+	case
+		"break",
+		"case",
+		"chan",
+		"const",
+		"continue",
+		"default",
+		"defer",
+		"else",
+		"fallthrough",
+		"for",
+		"func",
+		"go",
+		"goto",
+		"if",
+		"import",
+		"interface",
+		"map",
+		"package",
+		"range",
+		"return",
+		"struct",
+		"select",
+		"switch",
+		"type",
+		"var":
+		return false
+	case
+		"end",
+		"extends",
+		"in",
+		"macro",
+		"raw",
+		"render",
+		"show",
+		"using":
+		return mod != templateMod
+	case
+		"and",
+		"contains",
+		"or",
+		"not":
+		return mod == programMod
+	}
+	return true
 }

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strings"
 
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/compiler/types"
@@ -273,20 +274,22 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 	return &tc
 }
 
-// assignScope assigns value to name in the current scope. If there are no
-// scopes, value is assigned to the file/package block.
+// assignScope assigns value to name in the current scope.
+//
+// node is an *ast.Import value for packages and imported names, otherwise an
+// *ast.Identifier value for all other names.
 //
 // assignScope panics a type checking error "redeclared in this block" if name
 // is already defined in the current scope.
-func (tc *typechecker) assignScope(name string, value *typeInfo, declNode *ast.Identifier) {
-	ok := tc.scopes.Declare(name, value, declNode)
-	if !ok {
+func (tc *typechecker) assignScope(name string, value *typeInfo, node ast.Node) {
+	ok := tc.scopes.Declare(name, value, node)
+	if !ok && (isValidIdentifier(name, tc.opts.mod) || strings.HasPrefix(name, "$")) {
 		s := name + " redeclared in this block"
 		_, ident, _ := tc.scopes.Lookup(name)
 		if pos := ident.Pos(); pos != nil {
 			s += "\n\tprevious declaration at " + pos.String()
 		}
-		panic(tc.errorf(declNode, s))
+		panic(tc.errorf(node, s))
 	}
 }
 

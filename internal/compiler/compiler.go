@@ -210,7 +210,7 @@ func BuildTemplate(fsys fs.FS, name string, opts Options) (*Code, error) {
 
 	// Parse the source code.
 	var err error
-	tree, err = ParseTemplate(fsys, name, opts.Packages, opts.NoParseShortShowStmt, opts.DollarIdentifier)
+	tree, err = ParseTemplate(fsys, name, opts.NoParseShortShowStmt, opts.DollarIdentifier)
 	if err != nil {
 		return nil, err
 	}

@@ -9,6 +9,7 @@ package test
 import (
 	"io/fs"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/open2b/scriggo"
@@ -335,5 +336,83 @@ func TestStructFieldSelector(t *testing.T) {
 				t.Fatalf("expected error %q, got error %q", cas.err, err)
 			}
 		}
+	}
+}
+
+var importPackageNameTests = []struct {
+	ident string
+	name  string
+	msg   string
+}{
+	{``, ``, ``},
+	{``, `_`, ``},
+	{``, `foo`, ``},
+	{``, `Foo`, ``},
+	{``, `for`, ``},
+	{``, `i n v a l i d`, ``},
+	{``, `main`, `import "a.b/p" is a program, not an importable package`},
+	{``, `init`, `cannot import package as init - init must be a func`},
+	{`main`, `foo`, `main redeclared in this block`},
+	{`init`, `foo`, `cannot import package as init - init must be a func`},
+}
+
+// TestNativePackageName tests the name of a native package in a import statement.
+// defined in another package.
+func TestImportPackageName(t *testing.T) {
+	fsys := fstest.Files{}
+	options := &scriggo.BuildOptions{}
+	for _, cas := range importPackageNameTests {
+		if cas.ident == "" {
+			fsys["main.go"] = `package main; import "a.b/p"; func main() { }`
+		} else {
+			fsys["main.go"] = `package main; import ` + cas.ident + ` "a.b/p"; func main() { }`
+		}
+		options.Packages = native.Packages{
+			"a.b/p": native.DeclarationsPackage{Name: cas.name},
+		}
+		_, err := scriggo.Build(fsys, options)
+		if err == nil {
+			t.Fatalf("expected error %q, got no error", cas.msg)
+		}
+		if cas.msg == "" {
+			if !strings.Contains(err.Error(), "imported and not used") {
+				t.Fatalf("unexpected error: %q", err)
+			}
+		} else {
+			if err, ok := err.(*scriggo.BuildError); ok {
+				if cas.msg != err.Message() {
+					t.Fatalf("expected error %q, got error %q", cas.msg, err.Message())
+				}
+			} else {
+				t.Fatalf("expected a *scriggo.BuildError, got %T", err)
+			}
+		}
+	}
+}
+
+// TestImportPackageName2 tests that a double import of a native package with
+// an invalid package name results in an "imported and not used" error.
+func TestImportPackageName2(t *testing.T) {
+	fsys := fstest.Files{
+		"main.go": `package main; import ( "a.b/p"; "a.b/p" ); func main() { }`,
+	}
+	options := &scriggo.BuildOptions{
+		Packages: native.Packages{
+			"a.b/p": native.DeclarationsPackage{Name: "$"},
+		},
+	}
+	_, err := scriggo.Build(fsys, options)
+	if err == nil {
+		t.Fatalf("expected error, got no error")
+	}
+	if err, ok := err.(*scriggo.BuildError); ok {
+		const expected = "imported and not used: \"a.b/p\""
+		if msg := err.Message(); msg == "" {
+			t.Fatalf("expected error %q, got no error", expected)
+		} else if msg != expected {
+			t.Fatalf("expected error %q, got error %q", expected, msg)
+		}
+	} else {
+		t.Fatalf("expected a *scriggo.BuildError, got %T", err)
 	}
 }

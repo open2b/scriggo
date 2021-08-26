@@ -12,11 +12,9 @@ import (
 	"io/fs"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/native"
 )
 
 // FormatFS is the interface implemented by a file system that can determine
@@ -35,7 +33,7 @@ type FormatFS interface {
 //
 // ParseTemplate expands the nodes Extends, Import and Render parsing the
 // relative trees.
-func ParseTemplate(fsys fs.FS, name string, packages native.PackageLoader, noParseShow, dollarIdentifier bool) (*ast.Tree, error) {
+func ParseTemplate(fsys fs.FS, name string, noParseShow, dollarIdentifier bool) (*ast.Tree, error) {
 
 	if name == "." || strings.HasSuffix(name, "/") {
 		return nil, os.ErrInvalid
@@ -48,7 +46,6 @@ func ParseTemplate(fsys fs.FS, name string, packages native.PackageLoader, noPar
 
 	pp := &templateExpansion{
 		fsys:             fsys,
-		packages:         packages,
 		trees:            map[string]parsedTree{},
 		paths:            []string{},
 		noParseShow:      noParseShow,
@@ -72,7 +69,6 @@ func ParseTemplate(fsys fs.FS, name string, packages native.PackageLoader, noPar
 type templateExpansion struct {
 	fsys             fs.FS
 	trees            map[string]parsedTree
-	packages         native.PackageLoader
 	paths            []string
 	noParseShow      bool
 	dollarIdentifier bool
@@ -248,35 +244,19 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 		case *ast.Import:
 			// import "path"
 
-			if ext := filepath.Ext(n.Path); ext == "" {
-				// Import a precompiled package (the path has no extension).
-				if pp.packages == nil {
-					return syntaxError(n.Pos(), "cannot find package %q", n.Path)
-				}
-				pkg, err := pp.packages.Load(n.Path)
-				if err != nil {
-					return err
-				}
-				if pkg == nil {
-					return syntaxError(n.Pos(), "cannot find package %q", n.Path)
-				}
-			} else {
-				// Import a template file (the path has an extension).
-				var err error
-				n.Tree, err = pp.parseNodeFile(n)
-				if err != nil {
+			// Try to import the path as a template file
+			var err error
+			n.Tree, err = pp.parseNodeFile(n)
+			if err != nil && !errors.Is(err, os.ErrNotExist) {
+				if e, ok := err.(*CycleError); ok {
 					parent := pp.paths[len(pp.paths)-1]
 					rootedPath, _ := rooted(parent, n.Path)
-					if errors.Is(err, os.ErrNotExist) {
-						err = syntaxError(n.Pos(), "import path %q does not exist", rootedPath)
-					} else if e, ok := err.(*CycleError); ok {
-						e.msg = "\n\timports " + rootedPath + e.msg
-						if e.path == pp.paths[len(pp.paths)-1] {
-							e.pos = *(n.Pos())
-						}
+					e.msg = "\n\timports " + rootedPath + e.msg
+					if e.path == pp.paths[len(pp.paths)-1] {
+						e.pos = *(n.Pos())
 					}
-					return err
 				}
+				return err
 			}
 
 		default:

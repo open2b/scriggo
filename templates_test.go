@@ -1431,7 +1431,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt": `{% import "mypackage" %}{{ mypackage.F() }}`,
 		},
 		packages:         testPackages,
-		expectedBuildErr: "index.txt:1:11: syntax error: cannot find package \"mypackage\"",
+		expectedBuildErr: "index.txt:1:11: cannot find package \"mypackage\"",
 	},
 
 	"Trying to access a precompiled function 'SuperPrint' that is not available in the package 'fmt'": {

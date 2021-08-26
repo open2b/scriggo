@@ -950,7 +950,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	}
 
 	// Import a native package.
-	if isNative := impor.Tree == nil; isNative {
+	if impor.Tree == nil {
 
 		// Load the native package.
 		if tc.pkgLoader == nil {
@@ -963,8 +963,10 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		if pkg == nil {
 			return tc.errorf(impor, "cannot find package %q", impor.Path)
 		}
-		if pkg.PackageName() == "main" {
-			return tc.programImportError(impor)
+
+		// 'import _ "pkg"': nothing to do.
+		if isBlankImport(impor) {
+			return nil
 		}
 
 		// Read the declarations from the native package.
@@ -974,11 +976,6 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 			imported.Declarations[n] = d.ti
 		}
 		imported.Name = pkg.PackageName()
-
-		// 'import _ "pkg"': nothing to do.
-		if isBlankImport(impor) {
-			return nil
-		}
 
 		// 'import . "pkg"': add every declaration to the file package block.
 		if isPeriodImport(impor) {
@@ -991,13 +988,24 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		// Determine the package name.
 		var pkgName string
 		if impor.Ident == nil {
-			pkgName = imported.Name // import "pkg"
+			// import "pkg"
+			pkgName = imported.Name
+			if pkgName == "main" {
+				return tc.errorf(impor, `import "%s" is a program, not an importable package`, impor.Path)
+			}
+			// Don't allow '$' as first character because used for Scriggo special names.
+			if len(pkgName) > 0 && pkgName[0] == '$' {
+				pkgName = ""
+			}
 		} else {
 			pkgName = impor.Ident.Name // import pkgName "pkg"
 		}
+		if pkgName == "init" {
+			return tc.errorf(impor, "cannot import package as init - init must be a func")
+		}
 
 		// Add the package to the file/package block.
-		tc.scopes.Declare(pkgName, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}, impor)
+		tc.assignScope(pkgName, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}, impor)
 
 		return nil
 	}
