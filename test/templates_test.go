@@ -4,12 +4,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package scriggo
+package test
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/open2b/scriggo"
 	"io"
 	"math"
 	"path"
@@ -315,7 +316,7 @@ func TestRenderExpressions(t *testing.T) {
 	for _, cas := range rendererExprTests {
 		t.Run(cas.src, func(t *testing.T) {
 			fsys := fstest.Files{"index.html": "{{" + cas.src + "}}"}
-			template, err := BuildTemplate(fsys, "index.html", nil)
+			template, err := scriggo.BuildTemplate(fsys, "index.html", nil)
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
@@ -538,7 +539,7 @@ func TestRenderStatements(t *testing.T) {
 	for _, cas := range rendererStmtTests {
 		t.Run(cas.src, func(t *testing.T) {
 			fsys := fstest.Files{"index.html": cas.src}
-			template, err := BuildTemplate(fsys, "index.html", nil)
+			template, err := scriggo.BuildTemplate(fsys, "index.html", nil)
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
@@ -3654,14 +3655,14 @@ func TestMultiFileTemplate(t *testing.T) {
 			for k, v := range cas.main.Declarations {
 				globals[k] = v
 			}
-			opts := &BuildOptions{
+			opts := &scriggo.BuildOptions{
 				Globals:              globals,
 				Packages:             cas.packages,
 				MarkdownConverter:    markdownConverter,
 				NoParseShortShowStmt: cas.noParseShow,
 				DollarIdentifier:     cas.dollarIdentifier,
 			}
-			template, err := BuildTemplate(fsys, entryPoint, opts)
+			template, err := scriggo.BuildTemplate(fsys, entryPoint, opts)
 			switch {
 			case err == nil && cas.expectedBuildErr == "":
 				// Ok, no errors expected: continue with the test.
@@ -3678,7 +3679,7 @@ func TestMultiFileTemplate(t *testing.T) {
 				}
 			}
 			w := &bytes.Buffer{}
-			err = template.Run(w, cas.vars, &RunOptions{Print: printFunc(w)})
+			err = template.Run(w, cas.vars, &scriggo.RunOptions{Print: printFunc(w)})
 			if err != nil {
 				t.Fatalf("rendering error: %s", err)
 			}
@@ -3692,7 +3693,7 @@ func TestMultiFileTemplate(t *testing.T) {
 // printFunc returns a function that print its argument to the writer w with
 // the same format used by the builtin print to print to the standard error.
 // The returned function can be used for the PrintFunc option.
-func printFunc(w io.Writer) PrintFunc {
+func printFunc(w io.Writer) scriggo.PrintFunc {
 	return func(v interface{}) {
 		r := reflect.ValueOf(v)
 		switch r.Kind() {
@@ -3736,10 +3737,10 @@ func TestVars(t *testing.T) {
 		"f": f,
 		"g": g,
 	}
-	opts := &BuildOptions{
+	opts := &scriggo.BuildOptions{
 		Globals: globals,
 	}
-	template, err := BuildTemplate(fsys, "example.txt", opts)
+	template, err := scriggo.BuildTemplate(fsys, "example.txt", opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -3818,10 +3819,10 @@ func Test_envFilePath(t *testing.T) {
 			for p, src := range cas.sources {
 				fsys[p] = src
 			}
-			opts := &BuildOptions{
+			opts := &scriggo.BuildOptions{
 				Globals: globals,
 			}
-			template, err := BuildTemplate(fsys, "index.html", opts)
+			template, err := scriggo.BuildTemplate(fsys, "index.html", opts)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3840,7 +3841,7 @@ func Test_envFilePath(t *testing.T) {
 func Test_treeTransformer(t *testing.T) {
 	stdout := &strings.Builder{}
 	fsys := fstest.Files{"index.html": `{% w := "hi, " %}{{ w }}world!`}
-	loadOpts := &BuildOptions{
+	loadOpts := &scriggo.BuildOptions{
 		TreeTransformer: func(tree *ast.Tree) error {
 			assignment := tree.Nodes[0].(*ast.Assignment)
 			assignment.Rhs[0].(*ast.BasicLiteral).Value = `"hello, "`
@@ -3849,7 +3850,7 @@ func Test_treeTransformer(t *testing.T) {
 			return nil
 		},
 	}
-	template, err := BuildTemplate(fsys, "index.html", loadOpts)
+	template, err := scriggo.BuildTemplate(fsys, "index.html", loadOpts)
 	if err != nil {
 		t.Fatal(err)
 	}

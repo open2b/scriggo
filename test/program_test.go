@@ -416,3 +416,16 @@ func TestImportPackageName2(t *testing.T) {
 		t.Fatalf("expected a *scriggo.BuildError, got %T", err)
 	}
 }
+
+func TestIssue523(t *testing.T) {
+	// See https://github.com/open2b/scriggo/issues/523.
+	src := `package main
+
+	import "fmt"
+
+	func main() {
+		fmt.Println("hello")
+	}`
+	fsys := fstest.Files{"main.go": src}
+	_, _ = scriggo.Build(fsys, nil)
+}

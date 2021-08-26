@@ -4,12 +4,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package scriggo
+package test
 
 import (
 	"strings"
 	"testing"
 
+	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/internal/fstest"
 	"github.com/open2b/scriggo/native"
 )
@@ -30,7 +31,7 @@ var htmlEscapeCases = []struct {
 
 func TestHTMLEscape(t *testing.T) {
 	for _, cas := range htmlEscapeCases {
-		got := HTMLEscape(cas.src)
+		got := scriggo.HTMLEscape(cas.src)
 		if got != cas.expected {
 			t.Fatalf("src: %q: expecting %q, got %q", cas.src, cas.expected, got)
 		}
@@ -204,10 +205,10 @@ func TestURLEscape(t *testing.T) {
 	for _, cas := range urlEscapeCases {
 		t.Run("", func(t *testing.T) {
 			fsys := fstest.Files{"index.html": cas.src}
-			opts := &BuildOptions{
+			opts := &scriggo.BuildOptions{
 				Globals: globals(),
 			}
-			template, err := BuildTemplate(fsys, "index.html", opts)
+			template, err := scriggo.BuildTemplate(fsys, "index.html", opts)
 			if err != nil {
 				t.Fatalf("compilation error: %s", err)
 			}
