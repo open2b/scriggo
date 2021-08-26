@@ -14,35 +14,6 @@ import (
 	"reflect"
 )
 
-// Declaration represents a declaration.
-//
-//  for a variable: a pointer to the value of the variable
-//  for a function: the function
-//  for a type: its reflect.Type value
-//  for a typed constant: its value as a string, boolean or numeric value
-//  for an untyped constant: an UntypedStringConst, UntypedBooleanConst or UntypedNumericConst value
-//  for a package: a Package value (used only for template globals)
-//
-type Declaration interface{}
-
-// Declarations represents a set of variables, constants, functions, types and
-// packages declarations and can be used for template globals and package
-// declarations.
-//
-// The key is the declaration's name and the element is its value.
-type Declarations map[string]Declaration
-
-type (
-	// UntypedStringConst represents an untyped string constant.
-	UntypedStringConst string
-
-	// UntypedBooleanConst represents an untyped boolean constant.
-	UntypedBooleanConst bool
-
-	// UntypedNumericConst represents an untyped numeric constant.
-	UntypedNumericConst string
-)
-
 type (
 
 	// HTML is the html type in templates.
@@ -60,6 +31,43 @@ type (
 	// Markdown is the markdown type in templates.
 	Markdown string
 )
+
+// Env represents an execution environment.
+//
+// Each execution creates an Env value. This value is passed as the first
+// argument to calls to native functions and methods that have Env as the type
+// of the first parameter.
+type Env interface {
+
+	// Context returns the context of the execution.
+	// It is the context passed as an option for execution.
+	Context() context.Context
+
+	// Exit exits the execution with the given status code. If the code is not
+	// zero, the execution returns a scriggo.ExitError error with this code.
+	// Deferred functions are not called and started goroutines are not
+	// terminated.
+	Exit(code int)
+
+	// Fatal exits the execution and then panics with value v. Deferred
+	// functions are not called and started goroutines are not terminated.
+	Fatal(v interface{})
+
+	// FilePath returns the path, relative to the root, of the current
+	// executed file. If it is not called by the main goroutine, the
+	// returned value is not significant.
+	FilePath() string
+
+	// Print calls the print built-in function with args as argument.
+	Print(args ...interface{})
+
+	// Println calls the println built-in function with args as argument.
+	Println(args ...interface{})
+
+	// TypeOf is like reflect.TypeOf but if v has a Scriggo type it returns
+	// its Scriggo reflect type instead of the reflect type of the proxy.
+	TypeOf(v reflect.Value) reflect.Type
+}
 
 type (
 
@@ -128,39 +136,31 @@ type (
 	}
 )
 
-// Env represents an execution environment.
+// Declaration represents a declaration.
 //
-// Each execution creates an Env value. This value is passed as the first
-// argument to calls to native functions and methods that have Env as the type
-// of the first parameter.
-type Env interface {
+//  for a variable: a pointer to the value of the variable
+//  for a function: the function
+//  for a type: its reflect.Type value
+//  for a typed constant: its value as a string, boolean or numeric value
+//  for an untyped constant: an UntypedStringConst, UntypedBooleanConst or UntypedNumericConst value
+//  for a package: a Package value (used only for template globals)
+//
+type Declaration interface{}
 
-	// Context returns the context of the execution.
-	// It is the context passed as an option for execution.
-	Context() context.Context
+// Declarations represents a set of variables, constants, functions, types and
+// packages declarations and can be used for template globals and package
+// declarations.
+//
+// The key is the declaration's name and the element is its value.
+type Declarations map[string]Declaration
 
-	// Exit exits the execution with the given status code. If the code is not
-	// zero, the execution returns a scriggo.ExitError error with this code.
-	// Deferred functions are not called and started goroutines are not
-	// terminated.
-	Exit(code int)
+type (
+	// UntypedStringConst represents an untyped string constant.
+	UntypedStringConst string
 
-	// Fatal exits the execution and then panics with value v. Deferred
-	// functions are not called and started goroutines are not terminated.
-	Fatal(v interface{})
+	// UntypedBooleanConst represents an untyped boolean constant.
+	UntypedBooleanConst bool
 
-	// FilePath returns the path, relative to the root, of the current
-	// executed file. If it is not called by the main goroutine, the
-	// returned value is not significant.
-	FilePath() string
-
-	// Print calls the print built-in function with args as argument.
-	Print(args ...interface{})
-
-	// Println calls the println built-in function with args as argument.
-	Println(args ...interface{})
-
-	// TypeOf is like reflect.TypeOf but if v has a Scriggo type it returns
-	// its Scriggo reflect type instead of the reflect type of the proxy.
-	TypeOf(v reflect.Value) reflect.Type
-}
+	// UntypedNumericConst represents an untyped numeric constant.
+	UntypedNumericConst string
+)
