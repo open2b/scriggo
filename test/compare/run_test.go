@@ -13,6 +13,12 @@ import (
 
 func Test_errorcheck(t *testing.T) {
 
+	// Build the executable 'cmd/cmd', that is going to be used in this test.
+	err := buildCmd()
+	if err != nil {
+		t.Fatalf("cannot build cmd: %s", err)
+	}
+
 	mustPass := []struct {
 		src string
 		ext string

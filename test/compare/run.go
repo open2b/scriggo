@@ -257,6 +257,7 @@ func cmd(stdin []byte, opts []string, args ...string) (int, []byte, []byte) {
 		if ee, ok := err.(*exec.ExitError); ok {
 			return ee.ProcessState.ExitCode(), stdout.Bytes(), stderr.Bytes()
 		}
+		panic(err)
 	}
 	return 0, stdout.Bytes(), stderr.Bytes()
 }
