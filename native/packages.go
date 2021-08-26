@@ -22,7 +22,7 @@ type LookupFunc func(name string, decl Declaration) error
 type Package interface {
 
 	// PackageName returns the name of the package.
-	// It must be a Go identifier and cannot be the black identifier.
+	// It is a Go identifier but not the empty identifier.
 	PackageName() string
 
 	// Lookup searches for an exported declaration, named name, in the
