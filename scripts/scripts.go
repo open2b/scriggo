@@ -130,6 +130,8 @@ var emptyInit = map[string]interface{}{}
 
 // initGlobalVariables initializes the global variables and returns their
 // values. It panics if init is not valid.
+//
+// This function is a copy of the function in the scriggo package.
 func initGlobalVariables(variables []compiler.Global, init map[string]interface{}) []reflect.Value {
 	n := len(variables)
 	if n == 0 {
