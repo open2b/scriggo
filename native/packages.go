@@ -119,8 +119,8 @@ func (packages CombinedPackage) PackageName() string {
 	return packages[0].PackageName()
 }
 
-// Lookup calls the Lookup methods of each package in order and returns as
-// soon as a combined package returns a declaration.
+// Lookup calls the Lookup method of each package in order and returns as soon
+// as a combined package returns a declaration.
 func (packages CombinedPackage) Lookup(name string) Declaration {
 	for _, pkg := range packages {
 		if decl := pkg.Lookup(name); decl != nil {
@@ -130,8 +130,9 @@ func (packages CombinedPackage) Lookup(name string) Declaration {
 	return nil
 }
 
-// LookupFunc calls f for each package declaration stopping if f returns an
-// error. Lookup order is undefined.
+// LookupFunc calls the LookupFunc method of each package in order. As soon as
+// f returns StopLookup, LookupFunc returns. If the same declaration name is
+// in multiple packages, f is only called with its first occurrence.
 func (packages CombinedPackage) LookupFunc(f LookupFunc) error {
 	var err error
 	names := map[string]struct{}{}
