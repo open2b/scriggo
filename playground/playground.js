@@ -46,11 +46,11 @@
         source = document.getElementById("Source");
 
         refreshLineNumbers();
-        source.addEventListener('scroll', refreshLineNumbers);
-        window.addEventListener('resize', refreshLineNumbers);
+        source.addEventListener("scroll", refreshLineNumbers);
+        window.addEventListener("resize", refreshLineNumbers);
 
-        function loadProgram() {
-            Scriggo.load(source.value, function (prog, error) {
+        function buildProgram() {
+            Scriggo.build(source.value, function (prog, error) {
                 if (program != null) {
                     program.release();
                 }
@@ -110,10 +110,10 @@
             });
             source.addEventListener("keyup", function () {
                 output.innerHTML = "";
-                loadProgram();
+                buildProgram();
 
             });
-            loadProgram();
+            buildProgram();
         });
 
     };

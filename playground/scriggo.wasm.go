@@ -53,7 +53,7 @@ func main() {
 
 	Scriggo := js.ValueOf(map[string]interface{}{})
 
-	Scriggo.Set("load", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	Scriggo.Set("build", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		var src string
 		var cb js.Value
 		if len(args) > 0 {
