@@ -149,11 +149,11 @@ func (fb *functionBuilder) emitCallIndirect(f int8, numVariadic int8, shift runt
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
 
-// emitCallPredefined appends a new "CallPredefined" instruction to the function body.
+// emitCallNative appends a new "CallNative" instruction to the function body.
 //
 //     p.F()
 //
-func (fb *functionBuilder) emitCallPredefined(f int8, numVariadic int8, shift runtime.StackShift, pos *ast.Position) {
+func (fb *functionBuilder) emitCallNative(f int8, numVariadic int8, shift runtime.StackShift, pos *ast.Position) {
 	fb.addPosAndPath(pos)
 	fn := fb.fn
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpCallNative, A: f, C: numVariadic})
@@ -465,10 +465,10 @@ func (fb *functionBuilder) emitLen(s, l int8, t reflect.Type) {
 //
 //     z = p.f
 //
-func (fb *functionBuilder) emitLoadFunc(predefined bool, f int8, z int8) {
+func (fb *functionBuilder) emitLoadFunc(native bool, f int8, z int8) {
 	fn := fb.fn
 	var a int8
-	if predefined {
+	if native {
 		a = 1
 	}
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpLoadFunc, A: a, B: f, C: z})

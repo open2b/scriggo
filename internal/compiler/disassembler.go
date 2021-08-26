@@ -550,7 +550,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 				s += " " + packageName(f.Pkg) + "." + f.Name
 				s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 			}
-		} else { // LoadFunc (predefined).
+		} else { // LoadFunc (native).
 			f := fn.NativeFunctions[uint8(b)]
 			s += " " + packageName(f.Package()) + "." + f.Name()
 			s += " " + disassembleOperand(fn, c, reflect.Interface, false)

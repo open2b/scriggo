@@ -6,7 +6,7 @@ import "fmt"
 
 func main() {
 
-	// Testing predefined function literals.
+	// Testing native function literals.
 	p := fmt.Println
 	p("a")
 	p("a", "b")

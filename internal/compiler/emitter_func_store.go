@@ -118,7 +118,7 @@ func (fs *functionStore) predefFunc(fn ast.Expression, allowMethod bool) (int8, 
 	if index, ok := fs.predefFuncIndexes[currFn][fnRv]; ok {
 		return index, true
 	}
-	f := newPredefinedFunction(ti.NativePackageName, name, fnRv.Interface())
+	f := newNativeFunction(ti.NativePackageName, name, fnRv.Interface())
 	index := int8(len(currFn.NativeFunctions))
 	currFn.NativeFunctions = append(currFn.NativeFunctions, f)
 	if fs.predefFuncIndexes[currFn] == nil {

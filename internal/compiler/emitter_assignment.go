@@ -264,7 +264,7 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 		em.changeRegister(false, b, c1, typ, typ)
 		em.changeRegister(false, c, c2, typ, typ)
 		index := em.fb.complexOperationIndex(operatorFromAssignmentType(addr.operator), false)
-		em.fb.emitCallPredefined(index, 0, stackShift, addr.pos)
+		em.fb.emitCallNative(index, 0, stackShift, addr.pos)
 		em.changeRegister(false, ret, c, typ, typ)
 		em.fb.exitScope()
 		addr.assign(false, c, typ)

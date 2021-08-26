@@ -3065,7 +3065,7 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: `42`,
 	},
 
-	"Macro called as predefined": {
+	"Macro called as native": {
 		sources: map[string]string{
 			"index.html": `{% macro a %}hey{% end %}{% var s = func() html { return a() }() %}{{ s }}`,
 		},

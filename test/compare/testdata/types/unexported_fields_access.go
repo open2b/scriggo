@@ -9,7 +9,7 @@ var _ = time.Now
 func main() {
 
 	{
-		// time.Time is a struct type declared in a predeclared package, so its
+		// time.Time is a struct type declared in a native package, so its
 		// unexported fields cannot be accessed.
 
 		_ = time.Now().loc // ERROR `time.Now().loc undefined (cannot refer to unexported field or method loc)`

@@ -19,7 +19,7 @@ func main() {
 	f2("a", []int{}...)
 	f2("b", []int{10, 20, 30}...)
 
-	// Predefined functions.
+	// Native functions.
 	s1 := []interface{}{1, 2, 3}
 	fmt.Println(s1...)
 	s2 := []interface{}{}

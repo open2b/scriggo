@@ -636,7 +636,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool, toF
 			em.fb.emitDefer(reg, int8(numVar), stackShift, args, funTi.Type)
 			return regs, types
 		}
-		em.fb.emitCallPredefined(index, int8(numVar), stackShift, call.Pos())
+		em.fb.emitCallNative(index, int8(numVar), stackShift, call.Pos())
 		return regs, types
 	}
 
@@ -1179,7 +1179,7 @@ func (em *emitter) emitComplexOperation(exprType reflect.Type, expr1 ast.Express
 	em.fb.enterScope()
 	em.emitExprR(expr2, exprType, c2)
 	em.fb.exitScope()
-	em.fb.emitCallPredefined(index, 0, stackShift, expr1.Pos())
+	em.fb.emitCallNative(index, 0, stackShift, expr1.Pos())
 	em.changeRegister(false, ret, reg, exprType, dstType)
 	em.fb.exitScope()
 }

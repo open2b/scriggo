@@ -863,7 +863,7 @@ func (em *emitter) emitUnaryOp(expr *ast.UnaryOperator, reg int8, regType reflec
 		em.fb.enterScope()
 		em.emitExprR(operand, exprType, arg)
 		em.fb.exitScope()
-		em.fb.emitCallPredefined(index, 0, stackShift, expr.Pos())
+		em.fb.emitCallNative(index, 0, stackShift, expr.Pos())
 		em.changeRegister(false, src, reg, exprType, regType)
 		em.fb.exitScope()
 		return

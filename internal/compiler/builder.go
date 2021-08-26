@@ -19,11 +19,11 @@ import (
 // Define some constants that define limits of the implementation.
 const (
 	// Functions.
-	maxRegistersCount           = 127
-	maxPredefinedFunctionsCount = 256
-	maxScriggoFunctionsCount    = 256
-	maxFieldIndexesCount        = 256
-	maxSelectCasesCount         = 65536
+	maxRegistersCount        = 127
+	maxNativeFunctionsCount  = 256
+	maxScriggoFunctionsCount = 256
+	maxFieldIndexesCount     = 256
+	maxSelectCasesCount      = 65536
 
 	// Types.
 	maxTypesCount = 256
@@ -158,9 +158,9 @@ func newMacro(pkg, name string, typ reflect.Type, format ast.Format, file string
 	return &fn
 }
 
-// newPredefinedFunction returns a new predefined function with a given
-// package, name and implementation. fn must be a function type.
-func newPredefinedFunction(pkg, name string, fn interface{}) *runtime.NativeFunction {
+// newNativeFunction returns a new native function with a given package, name
+// and implementation. fn must be a function type.
+func newNativeFunction(pkg, name string, fn interface{}) *runtime.NativeFunction {
 	return runtime.NewNativeFunction(pkg, name, fn)
 }
 
@@ -340,8 +340,8 @@ func (fb *functionBuilder) addOperandKinds(a, b, c reflect.Kind) {
 
 // addFunctionType adds the type to the next function call instruction as a
 // debug information. Note that it's not necessary to call this method for Call
-// and CallPredefined instructions because the type of the function is already
-// stored into the Functions and Predefined slices.
+// and CallNative instructions because the type of the function is already
+// stored into the Functions and NativeFunctions slices.
 func (fb *functionBuilder) addFunctionType(typ reflect.Type) {
 	pc := runtime.Addr(len(fb.fn.Body))
 	if fb.fn.DebugInfo == nil {
@@ -394,12 +394,12 @@ func (fb *functionBuilder) addType(typ reflect.Type, preserveType bool) int {
 	return index
 }
 
-// addPredefinedFunction adds a predefined function to the builder's function.
-func (fb *functionBuilder) addPredefinedFunction(f *runtime.NativeFunction) int8 {
+// addNativeFunction adds a native function to the builder's function.
+func (fb *functionBuilder) addNativeFunction(f *runtime.NativeFunction) int8 {
 	fn := fb.fn
 	r := len(fn.NativeFunctions)
-	if r == maxPredefinedFunctionsCount {
-		panic(newLimitExceededError(fb.fn.Pos, fb.path, "predefined functions count exceeded %d", maxPredefinedFunctionsCount))
+	if r == maxNativeFunctionsCount {
+		panic(newLimitExceededError(fb.fn.Pos, fb.path, "native functions count exceeded %d", maxNativeFunctionsCount))
 	}
 	fn.NativeFunctions = append(fn.NativeFunctions, f)
 	return int8(r)
@@ -603,8 +603,8 @@ func (fb *functionBuilder) complexOperationIndex(op ast.OperatorType, unary bool
 		if fb.complexUnaryOpIndex != -1 {
 			return fb.complexUnaryOpIndex
 		}
-		fn := newPredefinedFunction("scriggo.complex", "neg", negComplex)
-		index := fb.addPredefinedFunction(fn)
+		fn := newNativeFunction("scriggo.complex", "neg", negComplex)
+		index := fb.addNativeFunction(fn)
 		fb.complexUnaryOpIndex = index
 		return index
 	}
@@ -628,8 +628,8 @@ func (fb *functionBuilder) complexOperationIndex(op ast.OperatorType, unary bool
 		n = "div"
 	}
 	_ = n
-	fn := newPredefinedFunction("scriggo.complex", n, f)
-	index := fb.addPredefinedFunction(fn)
+	fn := newNativeFunction("scriggo.complex", n, f)
+	index := fb.addNativeFunction(fn)
 	fb.complexBinaryOpIndexes[op] = index
 	return index
 }
