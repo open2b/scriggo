@@ -9,7 +9,6 @@ package scriggo
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io/fs"
 	"reflect"
 
@@ -183,14 +182,4 @@ func initPackageLevelVariables(globals []compiler.Global) []reflect.Value {
 		}
 	}
 	return values
-}
-
-// Errorf formats according to a format specifier, and returns the string as a
-// value that satisfies error.
-//
-// Unlike the function fmt.Errorf, Errorf does not recognize the %w verb in
-// format.
-func Errorf(env native.Env, format string, a ...interface{}) error {
-	err := fmt.Sprintf(format, a...)
-	return errors.New(err)
 }
