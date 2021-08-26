@@ -176,22 +176,29 @@ func TestCombinedPackage(t *testing.T) {
 	if decl := pkg.Lookup("notExistent"); decl != nil {
 		t.Fatalf("unexpected %#v for non-existent declaration, expecting nil", decl)
 	}
-	// Test DeclarationNames.
-	names := pkg.DeclarationNames()
-	if len(names) != len(expected) {
-		t.Fatalf("unexpected %d declarations, expecting %d", len(names), len(expected))
-	}
-	has := map[string]bool{}
-	for _, name := range names {
-		if has[name] {
+	// Test LookupFunc.
+	has := map[string]struct{}{}
+	err := pkg.LookupFunc(func(name string, decls native.Declaration) error {
+		if _, ok := has[name]; ok {
 			t.Fatalf("unexpected duplicated name %s", name)
 		}
-		has[name] = true
+		has[name] = struct{}{}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
 	}
-
 	for _, name := range expected {
-		if !has[name] {
+		if _, ok := has[name]; !ok {
 			t.Fatalf("missing name %s from declarations", name)
 		}
+		delete(has, name)
+	}
+	if len(has) > 0 {
+		var name string
+		for name = range has {
+			break
+		}
+		t.Fatalf("unexpected name %s", name)
 	}
 }

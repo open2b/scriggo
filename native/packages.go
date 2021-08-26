@@ -6,6 +6,18 @@
 
 package native
 
+import "errors"
+
+// StopLookup is used as return value from a LookupFunc function to indicate
+// that the lookup should be stopped.
+var StopLookup = errors.New("stop lookup")
+
+// LookupFunc is the type of the function called by Package.LookupFunc to read
+// each package declaration. If the function returns an error,
+// Package.LookupFunc stops and returns the error or nil if the error is
+// StopLookup.
+type LookupFunc func(name string, decl Declaration) error
+
 // Package represents a native package.
 type Package interface {
 
@@ -17,8 +29,9 @@ type Package interface {
 	// package. If the declaration does not exist, it returns nil.
 	Lookup(name string) Declaration
 
-	// DeclarationNames returns the exported declaration names in the package.
-	DeclarationNames() []string
+	// LookupFunc calls f for each package declaration stopping if f returns
+	// an error. Lookup order is undefined.
+	LookupFunc(f LookupFunc) error
 }
 
 // PackageLoader represents a package loader; Load returns the native package
@@ -75,13 +88,19 @@ func (p DeclarationsPackage) Lookup(name string) Declaration {
 	return p.Declarations[name]
 }
 
-// DeclarationNames returns all package declaration names.
-func (p DeclarationsPackage) DeclarationNames() []string {
-	declarations := make([]string, 0, len(p.Declarations))
-	for name := range p.Declarations {
-		declarations = append(declarations, name)
+// LookupFunc calls f for each package declaration stopping if f returns an
+// error. Lookup order is undefined.
+func (p DeclarationsPackage) LookupFunc(f LookupFunc) error {
+	var err error
+	for n, d := range p.Declarations {
+		if err := f(n, d); err != nil {
+			break
+		}
 	}
-	return declarations
+	if err == StopLookup {
+		err = nil
+	}
+	return err
 }
 
 // CombinedPackage implements a Package by combining multiple packages into
@@ -111,29 +130,26 @@ func (packages CombinedPackage) Lookup(name string) Declaration {
 	return nil
 }
 
-// DeclarationNames returns all declaration names in all packages.
-func (packages CombinedPackage) DeclarationNames() []string {
-	if len(packages) == 0 {
-		return []string{}
-	}
-	var names []string
-	for i, pkg := range packages {
-		if i == 0 {
-			names = pkg.DeclarationNames()
-			continue
+// LookupFunc calls f for each package declaration stopping if f returns an
+// error. Lookup order is undefined.
+func (packages CombinedPackage) LookupFunc(f LookupFunc) error {
+	var err error
+	names := map[string]struct{}{}
+	w := func(name string, decl Declaration) error {
+		if _, ok := names[name]; !ok {
+			err = f(name, decl)
+			names[name] = struct{}{}
 		}
-		for _, name := range pkg.DeclarationNames() {
-			exists := false
-			for _, n := range names {
-				if n == name {
-					exists = true
-					break
-				}
-			}
-			if !exists {
-				names = append(names, name)
-			}
+		return err
+	}
+	for _, pkg := range packages {
+		_ = pkg.LookupFunc(w)
+		if err != nil {
+			break
 		}
 	}
-	return names
+	if err == StopLookup {
+		err = nil
+	}
+	return err
 }

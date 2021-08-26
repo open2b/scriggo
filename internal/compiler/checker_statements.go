@@ -971,7 +971,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 
 		// Read the declarations from the native package.
 		imported := &packageInfo{}
-		imported.Declarations = make(map[string]*typeInfo, len(pkg.DeclarationNames()))
+		imported.Declarations = map[string]*typeInfo{}
 		for n, d := range toTypeCheckerScope(pkg, tc.opts.mod, false, 0) {
 			imported.Declarations[n] = d.ti
 		}
