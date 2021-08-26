@@ -7,7 +7,6 @@
 package compiler
 
 import (
-	"path"
 	"testing"
 
 	"github.com/open2b/scriggo/ast"
@@ -190,25 +189,4 @@ func TestCyclicTemplates(t *testing.T) {
 			}
 		})
 	}
-}
-
-type mapStringReader map[string]string
-
-func (r mapStringReader) ReadFile(name string) ([]byte, ast.Format, error) {
-	src, ok := r[name]
-	if !ok {
-		panic("not existing")
-	}
-	format := ast.FormatText
-	switch path.Ext(name) {
-	case ".html":
-		format = ast.FormatHTML
-	case ".css":
-		format = ast.FormatCSS
-	case ".js":
-		format = ast.FormatJS
-	case ".json":
-		format = ast.FormatJSON
-	}
-	return []byte(src), format, nil
 }
