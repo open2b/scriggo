@@ -1,5 +1,3 @@
-// skip : panics the emitter (https://github.com/open2b/scriggo/issues/812)
-
 // errorcheck
 
 // TODO: this test have been changed to not use "unsafe"
