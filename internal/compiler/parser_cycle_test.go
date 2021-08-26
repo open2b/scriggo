@@ -12,8 +12,6 @@ import (
 
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/fstest"
-
-	"github.com/google/go-cmp/cmp"
 )
 
 var cycleProgramTests = []struct {
@@ -68,8 +66,8 @@ func TestCyclicPrograms(t *testing.T) {
 			if !ok {
 				t.Fatalf("expecting *CycleError value, got %T value", err)
 			}
-			if diff := cmp.Diff(test.msg, e.Error()); diff != "" {
-				t.Fatalf("unexpected error message (-want, +got):\n%s", diff)
+			if test.msg != e.Error() {
+				t.Fatalf("expecting error message %q, got %q", test.msg, e.Error())
 			}
 			if e.path != test.path {
 				t.Fatalf(`expecting path %q, got %q`, test.path, e.path)
@@ -181,8 +179,8 @@ func TestCyclicTemplates(t *testing.T) {
 			if !ok {
 				t.Fatalf("expecting *CycleError value, got %T value", err)
 			}
-			if diff := cmp.Diff(test.msg, e.Error()); diff != "" {
-				t.Fatalf("unexpected error message (-want, +got):\n%s", diff)
+			if test.msg != e.Error() {
+				t.Fatalf("expecting error message %q, got %q", test.msg, e.Error())
 			}
 			if e.path != test.path {
 				t.Fatalf(`expecting path %q, got %q`, test.path, e.path)
