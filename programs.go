@@ -26,13 +26,6 @@ type BuildOptions struct {
 
 	// Packages is a package loader that makes native packages available
 	// in programs and templates through the import statement.
-	//
-	// For templates, an import statement refers to a native package read from
-	// Packages if its path has no extension. For example
-	//
-	//   import a template file:   {% import "my/file.html" %}
-	//   import a native package:  {% import "my/package" %}
-	//
 	Packages native.PackageLoader
 
 	// TreeTransformer is a function that transforms a tree. If it is not nil,
