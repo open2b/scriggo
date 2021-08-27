@@ -69,11 +69,11 @@ func main() {
 
 	Println("Method values (1)")
 	{
-		// TODO.
+		// See "testdata/misc/method_values.go".
 	}
 
 	Println("Method values (2)")
 	{
-		// TODO.
+		// See "testdata/misc/method_values.go".
 	}
 }
