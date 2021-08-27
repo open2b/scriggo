@@ -784,28 +784,9 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		if expr.Ident == "_" {
 			panic(tc.errorf(expr, "cannot refer to blank field or method"))
 		}
-		method, trans, ok := tc.methodByName(t, expr.Ident)
-		if ok {
-			// Method value.
-			switch trans {
-			case receiverAddAddress:
-				if t.Addressable() {
-					_, decl, _ := tc.scopes.Lookup(expr.Expr.(*ast.Identifier).Name)
-					tc.compilation.indirectVars[decl] = true
-					expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorAddress, expr.Expr)
-					tc.compilation.typeInfos[expr.Expr] = &typeInfo{
-						Type:       tc.types.PtrTo(t.Type),
-						MethodType: t.MethodType,
-					}
-				}
-			case receiverAddIndirect:
-				expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorPointer, expr.Expr)
-				tc.compilation.typeInfos[expr.Expr] = &typeInfo{
-					Type:       t.Type.Elem(),
-					MethodType: t.MethodType,
-				}
-			}
-			return method
+		// Method value.
+		if mv, ok := tc.checkMethodValue(t, expr); ok {
+			return mv
 		}
 		// Field selector.
 		return tc.checkFieldSelector(t, expr)
@@ -2566,6 +2547,54 @@ func (tc *typechecker) checkMethodExpression(t *typeInfo, expr *ast.Selector) *t
 	}
 
 	return ti
+}
+
+// checkMethodValue checks a method value. If the type has the method, it
+// returns the type info and true, otherwise returns nil and false.
+func (tc *typechecker) checkMethodValue(t *typeInfo, expr *ast.Selector) (*typeInfo, bool) {
+
+	name := expr.Ident
+	typ := t.Type
+	kind := typ.Kind()
+
+	method, ok := t.Type.MethodByName(name)
+	if !ok {
+		if kind == reflect.Interface || kind == reflect.Ptr || !t.Addressable() {
+			return nil, false
+		}
+		// Transform t.Mp into (&t).Mp.
+		typ = tc.types.PtrTo(typ)
+		method, ok = typ.MethodByName(name)
+		if !ok {
+			return nil, false
+		}
+		if ident, ok := expr.Expr.(*ast.Identifier); ok {
+			if _, decl, ok := tc.scopes.LookupInFunc(ident.Name); ok {
+				tc.compilation.indirectVars[decl] = true
+			}
+		}
+		expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorAddress, expr.Expr)
+		tc.compilation.typeInfos[expr.Expr] = &typeInfo{
+			Type:       typ,
+			MethodType: methodValueConcrete,
+		}
+	}
+
+	if kind == reflect.Interface {
+		return &typeInfo{
+			Type:       removeEnvArg(method.Type, true),
+			value:      name,
+			MethodType: methodValueInterface,
+			Properties: propertyIsNative | propertyHasValue,
+		}, true
+	}
+
+	return &typeInfo{
+		Type:       removeEnvArg(tc.types.Zero(typ).MethodByName(name).Type(), false),
+		value:      method.Func, // the function value has the receiver as first parameter.
+		MethodType: methodValueConcrete,
+		Properties: propertyIsNative | propertyHasValue,
+	}, true
 }
 
 // checkFieldSelector checks a field selector.

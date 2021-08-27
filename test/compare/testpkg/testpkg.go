@@ -142,3 +142,18 @@ type St struct{ F int }
 type Sp *St
 
 var Sv St
+
+// These types are used to test method values.
+
+type Tv int
+
+func (t Tv) Mv(a int) int  { return int(t) + a }
+
+type Tp int
+
+func (tp *Tp) Mp(a int) int {
+	if tp == nil {
+		return 0
+	}
+	return int(*tp) + a
+}

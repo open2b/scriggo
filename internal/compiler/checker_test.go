@@ -52,8 +52,8 @@ func (nr noRead3) Read(...byte) (int, error) { return 0, nil }
 
 type Me int
 
-func (me Me) M()   {}
-func (me *Me) PM() {}
+func (mv Me) Mv()  {}
+func (mp *Me) Mp() {}
 
 type Mei interface {
 	M()
@@ -1104,14 +1104,24 @@ var checkerStmts = map[string]string{
 	`nil.SetZ()`:                `use of untyped nil`,
 
 	// Method expressions.
-	`_ = Me.M`:     ok,
+	`_ = Me.Mv`:    ok,
 	`_ = Me.N`:     `Me.N undefined (type compiler.Me has no method N)`,
-	`_ = (*Me).PM`: ok,
-	`_ = (*Me).M`:  ok,
-	`_ = Me.PM`:    `invalid method expression Me.PM (needs pointer receiver: (*Me).PM)`,
+	`_ = (*Me).Mp`: ok,
+	`_ = (*Me).Mv`: ok,
+	`_ = Me.Mp`:    `invalid method expression Me.Mp (needs pointer receiver: (*Me).Mp)`,
 	`_ = Mei.M`:    ok,
 	`_ = Mei.N`:    `Mei.N undefined (type compiler.Mei has no method N)`,
 	`_ = (*Mei).M`: `*Mei.M undefined (type *compiler.Mei has no method M)`,
+
+	// Method values.
+	`x := Me(0); _ = x.Mv`:            ok,
+	`x := Me(0); _ = x.Mp`:            ok,
+	`x := Me(0); _ = x.N`:             `x.N undefined (type compiler.Me has no field or method N`,
+	`v := Me(0); x := &v; _ = x.Mv`:   ok,
+	`v := Me(0); x := &v; _ = x.Mp`:   ok,
+	`v := Me(0); x := &v; _ = x.N`:    `x.N undefined (type *compiler.Me has no field or method N)`,
+	`x := Mei(nil); _ = x.M`:          ok,
+	`v := Mei(nil); x := &v; _ = x.M`: `undefined (type *compiler.Mei has no field or method M)`,
 
 	// Interfaces.
 	`_ = interface{}(0)`:                ok,
@@ -1844,6 +1854,17 @@ func (t T) Env1(env native.Env, a int)      {}
 func (t T) Env2(env native.Env, a, b int)   {}
 func (t T) EnvVar(env native.Env, a ...int) {}
 
+type MvEnv int
+
+func (mv MvEnv) Mv(env native.Env, a int)  {}
+func (mp *MvEnv) Mp(env native.Env, a int) {}
+func (mp *MvEnv) MpNil(env native.Env, a, b int) int {
+	if mp != nil {
+		panic("mp is not nil")
+	}
+	return a * b
+}
+
 func TestCheckerRemoveEnv(t *testing.T) {
 	p := native.DeclarationsPackage{
 		Name: "p",
@@ -1856,27 +1877,53 @@ func TestCheckerRemoveEnv(t *testing.T) {
 			"Env1":   func(env native.Env, a int) {},
 			"Env2":   func(env native.Env, a, b int) {},
 			"EnvVar": func(env native.Env, a ...int) {},
+			"Mv":     reflect.TypeOf(MvEnv(0)),
 		},
 	}
 	main := `
 	package main
-	import "p"
+
+	import . "p"
+
 	func main() {
-		v := p.T(0)
-		vp := new(p.T)
-		p.F0()
-		p.F1(1)
-		p.F2(1,2)
+		v := T(0)
+		vp := new(T)
+		F0()
+		F1(1)
+		F2(1,2)
 		v.M0()
 		v.M1(1)
 		v.M2(1,2)	
 		vp.M0()
 		vp.M1(1)
 		vp.M2(1,2)
-		p.Env0()
-		p.Env1(1)
-		p.EnvVar(1,2,3,4,5)
-	}`
+		Env0()
+		Env1(1)
+		EnvVar(1,2,3,4,5)
+		methodValues()
+	}
+
+	func methodValues() {
+
+		x1 := Mv(3)
+		m1v := x1.Mv
+		m1v(2)
+		m1p := x1.Mp
+		m1p(2)
+
+		v := Mv(7)
+		x2 := &v
+		m2v := x2.Mv
+		m2v(1)
+		m2p := x2.Mp
+		m2p(1)
+
+		var x5 *Mv
+		m5 := x5.MpNil
+		m5(2, 3)
+
+	}
+	`
 	tree, err := ParseProgram(fstest.Files{"main.go": main})
 	if err != nil {
 		t.Errorf("TestCheckerRemoveEnv returned parser error: %s", err)
