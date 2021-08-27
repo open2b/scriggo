@@ -12,7 +12,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -52,7 +51,7 @@ func run() {
 		os.Exit(1)
 	}
 
-	main, err := ioutil.ReadFile(absFile)
+	main, err := os.ReadFile(absFile)
 	if err != nil {
 		panic(err)
 	}

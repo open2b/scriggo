@@ -13,7 +13,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	_path "path"
@@ -411,7 +410,7 @@ func _build(cmd string, path string, flags buildFlags) error {
 	// Create a temporary work directory with the sources of the interpreter.
 	// If the options "work" is given, the work directory name will be printed
 	// and it will not be deleted after the installation.
-	workDir, err := ioutil.TempDir("", "scriggo-build")
+	workDir, err := os.MkdirTemp("", "scriggo-build")
 	if err != nil {
 		return err
 	}
@@ -510,7 +509,7 @@ func _build(cmd string, path string, flags buildFlags) error {
 
 	// Parse the go.mod file.
 	file := filepath.Join(modDir, "go.mod")
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return err
 	}
@@ -584,7 +583,7 @@ func _build(cmd string, path string, flags buildFlags) error {
 	if err != nil {
 		return fmt.Errorf("scriggo: can't create go.mod: %s", err)
 	}
-	err = ioutil.WriteFile(filepath.Join(dir, "go.mod"), data, 0666)
+	err = os.WriteFile(filepath.Join(dir, "go.mod"), data, 0666)
 	if err != nil {
 		return fmt.Errorf("scriggo: %s", err)
 	}
@@ -711,7 +710,7 @@ func downloadModule(path, version, workDir string, flags buildFlags) (string, st
 	if flags.x {
 		_, _ = fmt.Fprintf(os.Stderr, "cat >$WORK%sdownload%sgo.mod << 'EOF'\n%s\nEOF\n", sep, sep, goModData)
 	}
-	err = ioutil.WriteFile(goModPath, []byte(goModData), 0666)
+	err = os.WriteFile(goModPath, []byte(goModData), 0666)
 	if err != nil {
 		return "", "", err
 	}

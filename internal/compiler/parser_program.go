@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"strings"
 
 	"github.com/open2b/scriggo/ast"
@@ -150,7 +149,7 @@ func parsePackage(fsys fs.FS, dir string) (*ast.Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	src, err := ioutil.ReadAll(fi)
+	src, err := io.ReadAll(fi)
 	_ = fi.Close()
 	if err != nil {
 		return nil, err
@@ -167,7 +166,7 @@ func parsePackage(fsys fs.FS, dir string) (*ast.Tree, error) {
 func ParseScript(src io.Reader, packages native.PackageLoader) (*ast.Tree, error) {
 
 	// Parse the source.
-	buf, err := ioutil.ReadAll(src)
+	buf, err := io.ReadAll(src)
 	if r, ok := src.(io.Closer); ok {
 		_ = r.Close()
 	}
@@ -213,7 +212,7 @@ func readModulePath(fsys fs.FS) (string, error) {
 		}
 		return "", err
 	}
-	src, err := ioutil.ReadAll(fi)
+	src, err := io.ReadAll(fi)
 	_ = fi.Close()
 	if err != nil {
 		return "", err

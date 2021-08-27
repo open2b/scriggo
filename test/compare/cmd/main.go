@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -121,7 +120,7 @@ func main() {
 		var fsys fs.FS
 		switch cmd {
 		case "build", "run":
-			src, err := ioutil.ReadAll(os.Stdin)
+			src, err := io.ReadAll(os.Stdin)
 			if err != nil {
 				panic(err)
 			}
@@ -181,13 +180,13 @@ type dirLoader string
 
 func (dl dirLoader) Load(path string) (interface{}, error) {
 	if path == "main" {
-		main, err := ioutil.ReadFile(filepath.Join(string(dl), "main.go"))
+		main, err := os.ReadFile(filepath.Join(string(dl), "main.go"))
 		if err != nil {
 			return nil, err
 		}
 		return bytes.NewReader(main), nil
 	}
-	data, err := ioutil.ReadFile(filepath.Join(string(dl), path+".go"))
+	data, err := os.ReadFile(filepath.Join(string(dl), path+".go"))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil

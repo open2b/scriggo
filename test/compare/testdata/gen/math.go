@@ -8,7 +8,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 )
 
@@ -98,7 +98,7 @@ func main() {
 	}
 	fmt.Fprintf(w, "}\n")
 
-	err := ioutil.WriteFile("../misc/math-generated.go", w.Bytes(), 0755)
+	err := os.WriteFile("../misc/math-generated.go", w.Bytes(), 0755)
 	if err != nil {
 		panic(err)
 	}

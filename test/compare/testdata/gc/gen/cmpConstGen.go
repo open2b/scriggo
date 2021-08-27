@@ -16,9 +16,9 @@ import (
 	"bytes"
 	"fmt"
 	"go/format"
-	"io/ioutil"
 	"log"
 	"math/big"
+	"os"
 	"sort"
 )
 
@@ -243,7 +243,7 @@ func main() {
 	}
 
 	// write to file
-	err = ioutil.WriteFile("../cmpConst.go", src, 0666)
+	err = os.WriteFile("../cmpConst.go", src, 0666)
 	if err != nil {
 		log.Fatalf("can't write output: %v\n", err)
 	}

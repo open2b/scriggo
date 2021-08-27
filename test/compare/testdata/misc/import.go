@@ -9,7 +9,7 @@ import p "encoding/base64"
 
 import ( "errors" )
 import ( "fmt"; )
-import ( "io/ioutil"
+import ( "io"
 )
 import ( "log";
 )
@@ -26,7 +26,7 @@ func main() {
 	_ = p.StdPadding
 	_ = errors.New
 	_ = fmt.Errorf
-	_ = ioutil.Discard
+	_ = io.Discard
 	_ = log.Ldate
 	_ = math.E
 	_ = rand.ExpFloat64

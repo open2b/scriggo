@@ -2,9 +2,11 @@
 
 package main
 
-import "io/ioutil"
+import (
+	"os"
+)
 
 func main() {
-	ioutil.ReadFile("test.txt", nil) // ERROR `too many arguments in call to ioutil.ReadFile`
-	_ = ioutil.Discard
+	os.ReadFile("test.txt", nil) // ERROR `too many arguments in call to os.ReadFile`
+	_ = os.ReadFile
 }

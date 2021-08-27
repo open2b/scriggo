@@ -11,7 +11,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
 	"os/exec"
@@ -132,7 +131,7 @@ func main() {
 		go func(path string) {
 			queue <- true
 			atomic.AddInt64(&countTotal, 1)
-			src, err := ioutil.ReadFile(path)
+			src, err := os.ReadFile(path)
 			if err != nil {
 				panic(err)
 			}
@@ -369,7 +368,7 @@ func filePaths(pattern string) ([]string, error) {
 func goldenCompare(testPath string, got []byte) error {
 	ext := filepath.Ext(testPath)
 	goldenPath := strings.TrimSuffix(testPath, ext) + ".golden"
-	goldenData, err := ioutil.ReadFile(goldenPath)
+	goldenData, err := os.ReadFile(goldenPath)
 	if err != nil {
 		return err
 	}
@@ -504,7 +503,7 @@ func runGc(path string) (int, []byte, []byte, error) {
 	if ext := filepath.Ext(path); ext != ".go" {
 		return 0, nil, nil, errors.New("unsupported ext " + ext)
 	}
-	tmpDir, err := ioutil.TempDir("", "scriggo-gc")
+	tmpDir, err := os.MkdirTemp("", "scriggo-gc")
 	if err != nil {
 		return 0, nil, nil, err
 	}
@@ -517,11 +516,11 @@ func runGc(path string) (int, []byte, []byte, error) {
 		_ = os.RemoveAll(tmpDir)
 	}()
 	// Copy the test source into the temporary directory.
-	src, err := ioutil.ReadFile(path)
+	src, err := os.ReadFile(path)
 	if err != nil {
 		return 0, nil, nil, err
 	}
-	err = ioutil.WriteFile(filepath.Join(tmpDir, "main.go"), src, 0664)
+	err = os.WriteFile(filepath.Join(tmpDir, "main.go"), src, 0664)
 	if err != nil {
 		return 0, nil, nil, err
 	}
@@ -531,7 +530,7 @@ func runGc(path string) (int, []byte, []byte, error) {
 	}
 	// Copy the "testpkg" module into the directory.
 	{
-		data, err := ioutil.ReadFile("testpkg/testpkg.go")
+		data, err := os.ReadFile("testpkg/testpkg.go")
 		if err != nil {
 			return 0, nil, nil, err
 		}
@@ -539,7 +538,7 @@ func runGc(path string) (int, []byte, []byte, error) {
 		if err != nil {
 			return 0, nil, nil, err
 		}
-		err = ioutil.WriteFile(filepath.Join(tmpDir, "testpkg", "testpkg.go"), data, 0664)
+		err = os.WriteFile(filepath.Join(tmpDir, "testpkg", "testpkg.go"), data, 0664)
 		if err != nil {
 			return 0, nil, nil, err
 		}
@@ -548,7 +547,7 @@ func runGc(path string) (int, []byte, []byte, error) {
 			`replace github.com/open2b/scriggo => ` + scriggoAbsPath,
 			`require github.com/open2b/scriggo v0.0.0`,
 		}, "\n")
-		err = ioutil.WriteFile(filepath.Join(tmpDir, "testpkg", "go.mod"), []byte(goMod), 0664)
+		err = os.WriteFile(filepath.Join(tmpDir, "testpkg", "go.mod"), []byte(goMod), 0664)
 		if err != nil {
 			return 0, nil, nil, err
 		}
@@ -560,7 +559,7 @@ func runGc(path string) (int, []byte, []byte, error) {
 			`replace github.com/open2b/scriggo/test/compare/testpkg => ./testpkg`,
 			`replace github.com/open2b/scriggo => ` + scriggoAbsPath,
 		}, "\n")
-		err := ioutil.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(data), 0664)
+		err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(data), 0664)
 		if err != nil {
 			return 0, nil, nil, err
 		}

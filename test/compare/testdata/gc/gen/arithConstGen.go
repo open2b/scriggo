@@ -16,8 +16,8 @@ import (
 	"bytes"
 	"fmt"
 	"go/format"
-	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 	"text/template"
 )
@@ -342,7 +342,7 @@ func main() {
 	}
 
 	// write to file
-	err = ioutil.WriteFile("../arithConst.go", src, 0666)
+	err = os.WriteFile("../arithConst.go", src, 0666)
 	if err != nil {
 		log.Fatalf("can't write output: %v\n", err)
 	}
