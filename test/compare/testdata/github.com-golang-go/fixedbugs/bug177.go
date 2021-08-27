@@ -1,4 +1,4 @@
-// skip : Scriggo and gc returned two different stdout/stderr
+// skip : the output differs because this test uses the package 'reflect'
 
 // run
 
