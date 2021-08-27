@@ -1723,7 +1723,7 @@ func (p *parsing) parseImport(tok token, end tokenTyp) (*ast.Import, token) {
 			}
 			name := string(tok.txt)
 			if r, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, r) {
-				panic(syntaxError(tok.pos, "cannot enable access to unexported name %s", name))
+				panic(syntaxError(tok.pos, "cannot refer to unexported name %s", name))
 			}
 			forIdents = append(forIdents, ast.NewIdentifier(tok.pos, name))
 			pos = pos.WithEnd(tok.pos.End)

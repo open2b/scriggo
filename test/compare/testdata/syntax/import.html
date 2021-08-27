@@ -5,5 +5,5 @@
 {% import boo "foo" for A %}  // ERROR `unexpected for, expecting %}`
 {% import "foo" A %}          // ERROR `unexpected A, expecting %}`
 {% import "foo" for A, %}     // ERROR `unexpected %}, expecting name`
-{% import "foo" for a %}      // ERROR `cannot enable access to unexported name a`
-{% import "foo" for _ %}      // ERROR `cannot enable access to unexported name _`
+{% import "foo" for a %}      // ERROR `cannot refer to unexported name a`
+{% import "foo" for _ %}      // ERROR `cannot refer to unexported name _`

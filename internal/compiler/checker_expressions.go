@@ -2403,7 +2403,7 @@ func (tc *typechecker) checkRender(render *ast.Render) *typeInfo {
 		// The same 'import' statement may be shared by different template
 		// files that 'render' the same file. This is the expected and intended
 		// behavior.
-		importt := ast.NewImport(nil, nil, "/"+render.Path, nil)
+		importt := ast.NewImport(nil, ast.NewIdentifier(nil, "."), "/"+render.Path, nil)
 		importt.Tree = tree
 		importt.Tree.Nodes = []ast.Node{macroDecl}
 		stored.Macro = macroDecl
