@@ -779,11 +779,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		}
 		if t.IsType() {
 			// Method expression.
-			method, _, ok := tc.methodByName(t, expr.Ident)
-			if !ok {
-				panic(tc.errorf(expr, "%v undefined (type %s has no method %s)", expr, t, expr.Ident))
-			}
-			return method
+			return tc.checkMethodExpression(t, expr)
 		}
 		if expr.Ident == "_" {
 			panic(tc.errorf(expr, "cannot refer to blank field or method"))
@@ -2525,6 +2521,51 @@ func (tc *typechecker) checkExplicitField(field *ast.Field, i int, blank *int) r
 		Tag:  reflect.StructTag(field.Tag),
 	}
 	return f
+}
+
+// checkMethodExpression checks a method expression.
+func (tc *typechecker) checkMethodExpression(t *typeInfo, expr *ast.Selector) *typeInfo {
+
+	name := expr.Ident
+
+	method, ok := t.Type.MethodByName(name)
+	if !ok {
+		// Return a different error message if T is a defined non-pointer type
+		// and *T has the method.
+		if t.Type.Name() != "" && t.Type.Kind() != reflect.Ptr && t.Type.Kind() != reflect.Interface {
+			if _, ok := tc.types.PtrTo(t.Type).MethodByName(name); ok {
+				panic(tc.errorf(expr, "invalid method expression %s (needs pointer receiver: (*%s).%s)",
+					expr, expr.Expr, expr.Ident))
+			}
+		}
+		panic(tc.errorf(expr, "%v undefined (type %s has no method %s)", expr, t, expr.Ident))
+	}
+
+	ti := &typeInfo{Properties: propertyIsNative | propertyHasValue}
+
+	if t.Type.Kind() == reflect.Interface {
+		mt := method.Type
+		in := make([]reflect.Type, mt.NumIn()+1)
+		in[0] = t.Type
+		for i := 0; i < mt.NumIn(); i++ {
+			in[i+1] = mt.In(i)
+		}
+		out := make([]reflect.Type, mt.NumOut())
+		for i := 0; i < mt.NumOut(); i++ {
+			out[i] = mt.Out(i)
+		}
+		f := func(args []reflect.Value) []reflect.Value {
+			return args[0].MethodByName(method.Name).Call(args[1:])
+		}
+		methExpr := reflect.MakeFunc(reflect.FuncOf(in, out, mt.IsVariadic()), f)
+		ti.Type = removeEnvArg(methExpr.Type(), false)
+		ti.value = methExpr
+	} else {
+		ti.Type = removeEnvArg(method.Type, true)
+		ti.value = method.Func
+	}
+
+	return ti
 }
 
 // checkFieldSelector checks a field selector.

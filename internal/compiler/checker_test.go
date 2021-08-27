@@ -50,6 +50,15 @@ type noRead3 struct{}
 
 func (nr noRead3) Read(...byte) (int, error) { return 0, nil }
 
+type Me int
+
+func (me Me) M()   {}
+func (me *Me) PM() {}
+
+type Mei interface {
+	M()
+}
+
 var structTypeInfo = &typeInfo{Type: reflect.StructOf([]reflect.StructField{
 	{Name: "F", Type: reflect.TypeOf(0)},
 	{Name: "f", Type: reflect.TypeOf(0), PkgPath: "foo"},
@@ -1094,6 +1103,16 @@ var checkerStmts = map[string]string{
 	`(pointInt{0,0}).SetZ(10)`:  `pointInt{...}.SetZ undefined (type compiler.pointInt has no field or method SetZ)`,   // TODO (Gianluca): 'pointInt{...}' should be '(compiler.pointInt{...})'
 	`nil.SetZ()`:                `use of untyped nil`,
 
+	// Method expressions.
+	`_ = Me.M`:     ok,
+	`_ = Me.N`:     `Me.N undefined (type compiler.Me has no method N)`,
+	`_ = (*Me).PM`: ok,
+	`_ = (*Me).M`:  ok,
+	`_ = Me.PM`:    `invalid method expression Me.PM (needs pointer receiver: (*Me).PM)`,
+	`_ = Mei.M`:    ok,
+	`_ = Mei.N`:    `Mei.N undefined (type compiler.Mei has no method N)`,
+	`_ = (*Mei).M`: `*Mei.M undefined (type *compiler.Mei has no method M)`,
+
 	// Interfaces.
 	`_ = interface{}(0)`:                ok,
 	`_ = []interface{}{}`:               ok,
@@ -1759,6 +1778,8 @@ func (p *pointInt) SetX(newX int) {
 
 func TestCheckerStatements(t *testing.T) {
 	names := map[string]*typeInfo{
+		"Me":         {Properties: propertyIsType, Type: reflect.TypeOf(Me(0))},
+		"Mei":        {Properties: propertyIsType, Type: reflect.TypeOf((*Mei)(nil)).Elem()},
 		"boolType":   {Properties: propertyIsType, Type: reflect.TypeOf(definedBool(false))},
 		"aString":    {Type: reflect.TypeOf(definedString(""))},
 		"stringType": {Properties: propertyIsType, Type: reflect.TypeOf(definedString(""))},

@@ -403,47 +403,7 @@ const (
 
 // methodByName returns a function type that describe the method with that
 // name and a boolean indicating if the method was found.
-//
-// Only for type classes, the returned function type has the method's
-// receiver as first argument.
 func (tc *typechecker) methodByName(t *typeInfo, name string) (*typeInfo, receiverTransformation, bool) {
-
-	if t.IsType() {
-		// Method expression on interface type.
-		if t.Type.Kind() == reflect.Interface {
-			if method, ok := t.Type.MethodByName(name); ok {
-				in := make([]reflect.Type, method.Type.NumIn()+1)
-				in[0] = t.Type
-				for i := 0; i < method.Type.NumIn(); i++ {
-					in[i+1] = method.Type.In(i)
-				}
-				out := make([]reflect.Type, method.Type.NumOut())
-				for i := 0; i < method.Type.NumOut(); i++ {
-					out[i] = method.Type.Out(i)
-				}
-				f := func(args []reflect.Value) []reflect.Value {
-					return args[0].MethodByName(method.Name).Call(args[1:])
-				}
-				methExpr := reflect.MakeFunc(reflect.FuncOf(in, out, method.Type.IsVariadic()), f)
-				ti := &typeInfo{
-					Type:       removeEnvArg(methExpr.Type(), false),
-					value:      methExpr,
-					Properties: propertyIsNative | propertyHasValue,
-				}
-				return ti, receiverNoTransform, true
-			}
-		}
-
-		// Method expression on concrete type.
-		if method, ok := t.Type.MethodByName(name); ok {
-			return &typeInfo{
-				Type:       removeEnvArg(method.Type, true),
-				value:      method.Func,
-				Properties: propertyIsNative | propertyHasValue,
-			}, receiverNoTransform, true
-		}
-		return nil, receiverNoTransform, false
-	}
 
 	// Method calls and method values on interfaces.
 	if t.Type.Kind() == reflect.Interface {
