@@ -1,6 +1,6 @@
 SET VARIABLE packages
 
-IMPORT testpkg
+IMPORT github.com/open2b/scriggo/test/compare/testpkg
 
 IMPORT archive/tar
 IMPORT bufio

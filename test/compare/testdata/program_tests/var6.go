@@ -2,7 +2,7 @@
 
 package main
 
-import "testpkg"
+import "github.com/open2b/scriggo/test/compare/testpkg"
 
 func main() {
 	testpkg.PrintInt(testpkg.B)

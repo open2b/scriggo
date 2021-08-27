@@ -2,7 +2,7 @@
 
 package main
 
-import "testpkg"
+import "github.com/open2b/scriggo/test/compare/testpkg"
 
 func swap(a, b int) (int, int) {
 	return b, a

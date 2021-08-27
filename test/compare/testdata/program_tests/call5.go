@@ -2,8 +2,11 @@
 
 package main
 
-import "testpkg"
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/open2b/scriggo/test/compare/testpkg"
+)
 
 func main() {
 	var i1, i2 int

@@ -544,7 +544,7 @@ func runGc(path string) (int, []byte, []byte, error) {
 			return 0, nil, nil, err
 		}
 		goMod := strings.Join([]string{
-			`module testpkg`,
+			`module github.com/open2b/scriggo/test/compare/testpkg`,
 			`replace github.com/open2b/scriggo => ` + scriggoAbsPath,
 			`require github.com/open2b/scriggo v0.0.0`,
 		}, "\n")
@@ -557,7 +557,7 @@ func runGc(path string) (int, []byte, []byte, error) {
 	{
 		data := strings.Join([]string{
 			`module scriggo-gc-test`,
-			`replace testpkg => ./testpkg`,
+			`replace github.com/open2b/scriggo/test/compare/testpkg => ./testpkg`,
 			`replace github.com/open2b/scriggo => ` + scriggoAbsPath,
 		}, "\n")
 		err := ioutil.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(data), 0664)
