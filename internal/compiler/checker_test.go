@@ -1778,6 +1778,12 @@ var checkerStmts = map[string]string{
 	`for { { L: _ = 5 }; continue L }`: `invalid continue label L`,
 	`L: for { { continue L } }`:        ok,
 	`L: ; for { continue L }`:          `invalid continue label L`,
+
+	// Packages.
+	`pkg = 5`:                           `use of package pkg without selector`,
+	`var s []int; for pkg = range s {}`: `use of package pkg without selector`,
+	`_ = pkg`:                           `use of package pkg without selector`,
+	`_ = pkg + 2`:                       `use of package pkg without selector`,
 }
 
 type pointInt struct{ X, Y int }
@@ -1788,6 +1794,7 @@ func (p *pointInt) SetX(newX int) {
 
 func TestCheckerStatements(t *testing.T) {
 	names := map[string]*typeInfo{
+		"pkg":        {Properties: propertyIsPackage | propertyHasValue, value: &packageInfo{Name: "pkg"}},
 		"Me":         {Properties: propertyIsType, Type: reflect.TypeOf(Me(0))},
 		"Mei":        {Properties: propertyIsType, Type: reflect.TypeOf((*Mei)(nil)).Elem()},
 		"boolType":   {Properties: propertyIsType, Type: reflect.TypeOf(definedBool(false))},

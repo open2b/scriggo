@@ -30,6 +30,10 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
 	}
 
+	if ti.IsPackage() {
+		panic(tc.errorf(ident, "use of package %s without selector", ident))
+	}
+
 	// Check if the identifier is the builtin 'iota'.
 	if ti == universe["iota"].ti {
 		// Check if iota is defined in the current expression evaluation.
@@ -456,11 +460,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		return tc.checkDollarIdentifier(expr)
 
 	case *ast.Identifier:
-		t := tc.checkIdentifier(expr, true)
-		if t.IsPackage() {
-			panic(tc.errorf(expr, "use of package %s without selector", expr))
-		}
-		return t
+		return tc.checkIdentifier(expr, true)
 
 	case *ast.StructType:
 		n := len(expr.Fields)
