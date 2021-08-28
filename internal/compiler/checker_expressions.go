@@ -2538,6 +2538,9 @@ func (tc *typechecker) checkMethodExpression(t *typeInfo, expr *ast.Selector) *t
 	ti := &typeInfo{Properties: propertyIsNative | propertyHasValue}
 
 	if t.Type.Kind() == reflect.Interface {
+		if !isExported(name) {
+			panic(tc.errorf(expr, "%s undefined (cannot refer to unexported field or method %s)", expr, name))
+		}
 		mt := method.Type
 		in := make([]reflect.Type, mt.NumIn()+1)
 		in[0] = t.Type

@@ -1111,6 +1111,7 @@ var checkerStmts = map[string]string{
 	`_ = (*Me).Mv`: ok,
 	`_ = Me.Mp`:    `invalid method expression Me.Mp (needs pointer receiver: (*Me).Mp)`,
 	`_ = Mei.M`:    ok,
+	`_ = Mei.m`:    `Mei.m undefined (cannot refer to unexported field or method m)`,
 	`_ = Mei.N`:    `Mei.N undefined (type compiler.Mei has no method N)`,
 	`_ = (*Mei).M`: `*Mei.M undefined (type *compiler.Mei has no method M)`,
 
