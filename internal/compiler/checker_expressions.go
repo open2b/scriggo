@@ -734,44 +734,9 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		}
 
 	case *ast.Selector:
-		// Can be a package selector, a method expression, a method value or a field selector.
-		if ident, ok := expr.Expr.(*ast.Identifier); ok {
-			ti, _, ok := tc.scopes.Lookup(ident.Name)
-			if ok && ti.IsPackage() {
-				// Package selector.
-				tc.scopes.Use(ident.Name)
-				if !unicode.Is(unicode.Lu, []rune(expr.Ident)[0]) {
-					panic(tc.errorf(expr, "cannot refer to unexported name %s", expr))
-				}
-				pkg := ti.value.(*packageInfo)
-				v, ok := pkg.Declarations[expr.Ident]
-				if !ok {
-					panic(tc.errorf(expr, "undefined: %v", expr))
-				}
-				// v is a predefined variable.
-				if rv, ok := v.value.(*reflect.Value); v.Addressable() && ok {
-					upvar := ast.Upvar{
-						NativeName:      expr.Ident,
-						NativePkg:       ident.Name,
-						NativeValue:     rv,
-						NativeValueType: v.Type,
-					}
-					for _, fn := range tc.scopes.Functions() {
-						add := true
-						for _, uv := range fn.Upvars {
-							if uv.NativeValue == upvar.NativeValue {
-								add = false
-								break
-							}
-						}
-						if add {
-							fn.Upvars = append(fn.Upvars, upvar)
-						}
-					}
-				}
-				tc.compilation.typeInfos[expr] = v
-				return v
-			}
+		// Package selector.
+		if ti, ok := tc.checkPackageSelector(expr); ok {
+			return ti
 		}
 		t := tc.checkExprOrType(expr.Expr)
 		if t.Nil() {
@@ -2502,6 +2467,54 @@ func (tc *typechecker) checkExplicitField(field *ast.Field, i int, blank *int) r
 		Tag:  reflect.StructTag(field.Tag),
 	}
 	return f
+}
+
+// checkPackageSelector checks a package selector. If expr.Expr is a package,
+// it returns the type info and true, otherwise returns nil and false.
+func (tc *typechecker) checkPackageSelector(expr *ast.Selector) (*typeInfo, bool) {
+
+	ident, ok := expr.Expr.(*ast.Identifier)
+	if !ok {
+		return nil, false
+	}
+	pkg, _, ok := tc.scopes.Lookup(ident.Name)
+	if !ok || !pkg.IsPackage() {
+		return nil, false
+	}
+	if !isExported(expr.Ident) {
+		panic(tc.errorf(expr, "cannot refer to unexported name %s", expr))
+	}
+
+	ti, ok := pkg.value.(*packageInfo).Declarations[expr.Ident]
+	if !ok {
+		panic(tc.errorf(expr, "undefined: %v", expr))
+	}
+
+	if rv, ok := ti.value.(*reflect.Value); ok && ti.Addressable() {
+		// ti is a predefined variable.
+		upvar := ast.Upvar{
+			NativeName:      expr.Ident,
+			NativePkg:       ident.Name,
+			NativeValue:     rv,
+			NativeValueType: ti.Type,
+		}
+		for _, fn := range tc.scopes.Functions() {
+			add := true
+			for _, uv := range fn.Upvars {
+				if uv.NativeValue == upvar.NativeValue {
+					add = false
+					break
+				}
+			}
+			if add {
+				fn.Upvars = append(fn.Upvars, upvar)
+			}
+		}
+	}
+	tc.compilation.typeInfos[expr] = ti
+	tc.scopes.Use(ident.Name)
+
+	return ti, true
 }
 
 // checkMethodExpression checks a method expression.
