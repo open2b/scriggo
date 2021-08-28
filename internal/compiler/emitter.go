@@ -805,7 +805,7 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		em.changeRegister(false, tmp, reg, intType, dstType)
 		em.fb.exitStack()
 	case "delete":
-		mapp := em.emitExpr(args[0], emptyInterfaceType)
+		mapp := em.emitExpr(args[0], em.typ(args[0]))
 		key := em.emitExpr(args[1], emptyInterfaceType)
 		em.fb.emitDelete(mapp, key)
 	case "len":
