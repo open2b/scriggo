@@ -56,6 +56,7 @@ func (mv Me) Mv()  {}
 func (mp *Me) Mp() {}
 
 type Mei interface {
+	m()
 	M()
 }
 
@@ -1121,6 +1122,8 @@ var checkerStmts = map[string]string{
 	`v := Me(0); x := &v; _ = x.Mp`:   ok,
 	`v := Me(0); x := &v; _ = x.N`:    `x.N undefined (type *compiler.Me has no field or method N)`,
 	`x := Mei(nil); _ = x.M`:          ok,
+	`x := Mei(nil); _ = x.m`:          `x.m undefined (cannot refer to unexported field or method m)`,
+	`x := Mei(nil); _ = x.N`:          `x.N undefined (type compiler.Mei has no field or method N)`,
 	`v := Mei(nil); x := &v; _ = x.M`: `undefined (type *compiler.Mei has no field or method M)`,
 
 	// Interfaces.

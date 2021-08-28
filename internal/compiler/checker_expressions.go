@@ -2594,6 +2594,9 @@ func (tc *typechecker) checkMethodValue(t *typeInfo, expr *ast.Selector) (*typeI
 	}
 
 	if kind == reflect.Interface {
+		if !isExported(name) {
+			panic(tc.errorf(expr, "%s undefined (cannot refer to unexported field or method %s)", expr, name))
+		}
 		return &typeInfo{
 			Type:       removeEnvArg(method.Type, true),
 			value:      name,
