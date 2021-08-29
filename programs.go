@@ -120,7 +120,8 @@ func (p *Program) Disassemble(pkgPath string) ([]byte, error) {
 // Run starts the program and waits for it to complete.
 //
 // If the executed program panics or the Panic method of native.Env is called,
-// and the panic is not recovered, Run returns a *PanicError.
+// and the executed code does not recover the panic, Run returns a
+// *PanicError.
 //
 // If the Exit method of native.Env is called with a non-zero code, Run
 // returns a *ExitError with the exit code.

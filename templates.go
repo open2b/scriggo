@@ -110,7 +110,8 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildOptions) (*Template, e
 // the values of the global variables.
 //
 // If the executed template panics or the Panic method of native.Env is
-// called, and the panic is not recovered, Run returns a *PanicError.
+// called, and the executed code does not recover the panic, Run returns a
+// *PanicError.
 //
 // If the Exit method of native.Env is called with a non-zero code, Run
 // returns a *ExitError with the exit code.

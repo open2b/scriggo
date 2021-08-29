@@ -87,7 +87,8 @@ func (p *Script) Disassemble() []byte {
 // values of the global variables.
 //
 // If the executed script panics or the Panic method of native.Env is called,
-// and the panic is not recovered, Run returns a *PanicError.
+// and the executed code does not recover the panic, Run returns a
+// *PanicError.
 //
 // If the Exit method of native.Env is called with a non-zero code, Run
 // returns a *ExitError with the exit code.
