@@ -3915,3 +3915,29 @@ func TestOutError(t *testing.T) {
 		t.Fatalf("expecting out error, got error %q", err)
 	}
 }
+
+// TestRecoveredOutError tests that in case of an out error, it can be
+// recovered.
+func TestRecoveredOutError(t *testing.T) {
+	fsys := fstest.Files{"index.txt": "{% defer func() { recover() }() %}a"}
+	template, err := scriggo.BuildTemplate(fsys, "index.txt", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := testErrorWriter{errors.New("out error")}
+	panicked := true
+	var rec interface{}
+	func() {
+		defer func() {
+			rec = recover()
+		}()
+		err = template.Run(out, nil, nil)
+		panicked = false
+	}()
+	if panicked {
+		t.Fatalf("expecting no error, got panic: %v", rec)
+	}
+	if err != nil {
+		t.Fatalf("expecting no error, got error %v", err)
+	}
+}

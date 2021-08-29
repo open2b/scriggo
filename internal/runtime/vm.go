@@ -156,8 +156,10 @@ func (vm *VM) Run(fn *Function, typeof TypeOfFunc, globals []reflect.Value) (int
 	err := vm.runFunc(fn, globals)
 	if err != nil {
 		switch e := err.(type) {
-		case outError:
-			err = e.err
+		case *Panic:
+			if outErr, ok := e.message.(outError); ok {
+				err = outErr.err
+			}
 		case *fatalError:
 			panic(e.msg)
 		case exitError:
