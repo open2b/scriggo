@@ -29,11 +29,14 @@ var byteSliceType = reflect.TypeOf([]byte(nil))
 // renderer is used by te Show and Text instructions to render template files.
 type renderer struct {
 
+	// env is the execution environment.
+	env *env
+
 	// out is the io.Writer to write to.
 	out io.Writer
 
-	// Markdown converter.
-	converter Converter
+	// conv is the Markdown converter.
+	conv Converter
 
 	// inURL reports whether it is in a URL.
 	inURL bool
@@ -50,10 +53,9 @@ type renderer struct {
 	removeQuestionMark bool
 }
 
-// newRenderer returns a new renderer using markdownConverter, if not nil, to
-// convert Markdown to HTML.
-func newRenderer(out io.Writer, markdownConverter Converter) *renderer {
-	return &renderer{out: out, converter: markdownConverter}
+// newRenderer returns a new renderer.
+func newRenderer(env *env, out io.Writer, conv Converter) *renderer {
+	return &renderer{env: env, out: out, conv: conv}
 }
 
 func (r *renderer) Close() error {
@@ -65,7 +67,7 @@ func (r *renderer) Close() error {
 
 // Show shows v in the given context if r.out is not nil.
 // If r.out is nil, Show only does a type check and calls env.Fatal if it fails.
-func (r *renderer) Show(env native.Env, v interface{}, context Context) {
+func (r *renderer) Show(v interface{}, context Context) {
 
 	ctx, inURL, _ := decodeRenderContext(context)
 
@@ -78,7 +80,7 @@ func (r *renderer) Show(env native.Env, v interface{}, context Context) {
 	}
 
 	if inURL {
-		r.showInURL(env, v, ctx)
+		r.showInURL(v, ctx)
 		return
 	}
 
@@ -86,39 +88,39 @@ func (r *renderer) Show(env native.Env, v interface{}, context Context) {
 
 	switch ctx {
 	case ast.ContextText:
-		err = showInText(env, r.out, v)
+		err = showInText(r.env, r.out, v)
 	case ast.ContextHTML:
-		err = showInHTML(env, r.out, v)
+		err = showInHTML(r.env, r.out, v)
 	case ast.ContextTag:
-		err = showInTag(env, r.out, v)
+		err = showInTag(r.env, r.out, v)
 	case ast.ContextQuotedAttr:
-		err = showInAttribute(env, r.out, v, true)
+		err = showInAttribute(r.env, r.out, v, true)
 	case ast.ContextUnquotedAttr:
-		err = showInAttribute(env, r.out, v, false)
+		err = showInAttribute(r.env, r.out, v, false)
 	case ast.ContextCSS:
-		err = showInCSS(env, r.out, v)
+		err = showInCSS(r.env, r.out, v)
 	case ast.ContextCSSString:
-		err = showInCSSString(env, r.out, v)
+		err = showInCSSString(r.env, r.out, v)
 	case ast.ContextJS:
-		err = showInJS(env, r.out, v)
+		err = showInJS(r.env, r.out, v)
 	case ast.ContextJSString:
-		err = showInJSString(env, r.out, v)
+		err = showInJSString(r.env, r.out, v)
 	case ast.ContextJSON:
-		err = showInJSON(env, r.out, v)
+		err = showInJSON(r.env, r.out, v)
 	case ast.ContextJSONString:
-		err = showInJSONString(env, r.out, v)
+		err = showInJSONString(r.env, r.out, v)
 	case ast.ContextMarkdown:
-		err = showInMarkdown(env, r.out, v)
+		err = showInMarkdown(r.env, r.out, v)
 	case ast.ContextTabCodeBlock:
-		err = showInMarkdownCodeBlock(env, r.out, v, false)
+		err = showInMarkdownCodeBlock(r.env, r.out, v, false)
 	case ast.ContextSpacesCodeBlock:
-		err = showInMarkdownCodeBlock(env, r.out, v, true)
+		err = showInMarkdownCodeBlock(r.env, r.out, v, true)
 	default:
 		panic("scriggo: unknown context")
 	}
 
 	if err != nil {
-		env.Fatal(err)
+		r.env.Fatal(err)
 	}
 
 	return
@@ -130,7 +132,7 @@ func (r *renderer) Out() io.Writer {
 }
 
 // Text shows txt in the given context.
-func (r *renderer) Text(env native.Env, txt []byte, inURL, isSet bool) {
+func (r *renderer) Text(txt []byte, inURL, isSet bool) {
 
 	// Check and eventually change the URL state.
 	if r.inURL != inURL {
@@ -150,7 +152,7 @@ func (r *renderer) Text(env native.Env, txt []byte, inURL, isSet bool) {
 			if r.addAmpersand && len(txt) > 0 && txt[0] != '&' {
 				_, err := io.WriteString(r.out, "&amp;")
 				if err != nil {
-					env.Fatal(err)
+					r.env.Fatal(err)
 				}
 			}
 			r.removeQuestionMark = false
@@ -160,37 +162,37 @@ func (r *renderer) Text(env native.Env, txt []byte, inURL, isSet bool) {
 		}
 		_, err := r.out.Write(txt)
 		if err != nil {
-			env.Fatal(err)
+			r.env.Fatal(err)
 		}
 		return
 	}
 
 	_, err := r.out.Write(txt)
 	if err != nil {
-		env.Fatal(err)
+		r.env.Fatal(err)
 	}
 
 }
 
 func (r *renderer) WithConversion(from, to ast.Format) *renderer {
 	if from == ast.FormatMarkdown && to == ast.FormatHTML {
-		out := newMarkdownWriter(r.out, r.converter)
-		return newRenderer(out, nil)
+		out := newMarkdownWriter(r.out, r.conv)
+		return &renderer{env: r.env, out: out, conv: r.conv}
 	}
-	return newRenderer(r.out, r.converter)
+	return &renderer{env: r.env, out: r.out, conv: r.conv}
 }
 
 func (r *renderer) WithOut(out io.Writer) *renderer {
-	return newRenderer(out, r.converter)
+	return &renderer{env: r.env, out: out, conv: r.conv}
 }
 
 // showInURL shows v in a URL in the given context.
-func (r *renderer) showInURL(env native.Env, v interface{}, ctx ast.Context) {
+func (r *renderer) showInURL(v interface{}, ctx ast.Context) {
 
 	var b strings.Builder
-	err := showInHTML(env, &b, v)
+	err := showInHTML(r.env, &b, v)
 	if err != nil {
-		env.Fatal(err)
+		r.env.Fatal(err)
 		return
 	}
 
@@ -203,13 +205,13 @@ func (r *renderer) showInURL(env native.Env, v interface{}, ctx ast.Context) {
 			r.addAmpersand = c != '&'
 			_, err := pathEscape(out, s, ctx == ast.ContextQuotedAttr)
 			if err != nil {
-				env.Fatal(err)
+				r.env.Fatal(err)
 			}
 			return
 		}
 		_, err := queryEscape(out, s)
 		if err != nil {
-			env.Fatal(err)
+			r.env.Fatal(err)
 		}
 		return
 	}
@@ -223,7 +225,7 @@ func (r *renderer) showInURL(env native.Env, v interface{}, ctx ast.Context) {
 	}
 	_, err = pathEscape(out, s, ctx == ast.ContextQuotedAttr)
 	if err != nil {
-		env.Fatal(err)
+		r.env.Fatal(err)
 	}
 
 	return
@@ -283,7 +285,7 @@ func newStringWriter(wr io.Writer) strWriter {
 	return strWriterWrapper{wr}
 }
 
-func toString(env native.Env, i interface{}) (string, error) {
+func toString(env *env, i interface{}) (string, error) {
 	v := valueOf(env, i)
 	switch v.Kind() {
 	case reflect.Invalid:
@@ -341,7 +343,7 @@ func toString(env native.Env, i interface{}) (string, error) {
 }
 
 // showInText shows value in the Text context.
-func showInText(env native.Env, out io.Writer, value interface{}) error {
+func showInText(env *env, out io.Writer, value interface{}) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
@@ -363,7 +365,7 @@ func showInText(env native.Env, out io.Writer, value interface{}) error {
 }
 
 // showInHTML shows value in HTML context.
-func showInHTML(env native.Env, out io.Writer, value interface{}) error {
+func showInHTML(env *env, out io.Writer, value interface{}) error {
 	w := newStringWriter(out)
 	switch v := value.(type) {
 	case native.HTML:
@@ -394,7 +396,7 @@ func showInHTML(env native.Env, out io.Writer, value interface{}) error {
 }
 
 // showInTag show value in Tag context.
-func showInTag(env native.Env, out io.Writer, value interface{}) error {
+func showInTag(env *env, out io.Writer, value interface{}) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
@@ -436,7 +438,7 @@ func showInTag(env native.Env, out io.Writer, value interface{}) error {
 
 // showInAttribute shows value in the attribute context quoted or unquoted
 // depending on quoted value.
-func showInAttribute(env native.Env, out io.Writer, value interface{}, quoted bool) error {
+func showInAttribute(env *env, out io.Writer, value interface{}, quoted bool) error {
 	var s string
 	var escapeEntities bool
 	switch v := value.(type) {
@@ -467,7 +469,7 @@ func showInAttribute(env native.Env, out io.Writer, value interface{}, quoted bo
 }
 
 // showInCSS shows value in CSS context.
-func showInCSS(env native.Env, out io.Writer, value interface{}) error {
+func showInCSS(env *env, out io.Writer, value interface{}) error {
 	w := newStringWriter(out)
 	switch v := value.(type) {
 	case native.CSS:
@@ -510,7 +512,7 @@ func showInCSS(env native.Env, out io.Writer, value interface{}) error {
 }
 
 // showInCSSString shows value in CSSString context.
-func showInCSSString(env native.Env, out io.Writer, value interface{}) error {
+func showInCSSString(env *env, out io.Writer, value interface{}) error {
 	var s string
 	switch value := value.(type) {
 	case fmt.Stringer:
@@ -535,7 +537,7 @@ func showInCSSString(env native.Env, out io.Writer, value interface{}) error {
 }
 
 // showInJS shows value in JavaScript context.
-func showInJS(env native.Env, out io.Writer, value interface{}) error {
+func showInJS(env *env, out io.Writer, value interface{}) error {
 
 	w := newStringWriter(out)
 
@@ -732,7 +734,7 @@ func showInJS(env native.Env, out io.Writer, value interface{}) error {
 }
 
 // showInJSON shows value in JSON context.
-func showInJSON(env native.Env, out io.Writer, value interface{}) error {
+func showInJSON(env *env, out io.Writer, value interface{}) error {
 
 	w := newStringWriter(out)
 
@@ -934,7 +936,7 @@ func showInJSON(env native.Env, out io.Writer, value interface{}) error {
 }
 
 // showInJSString shows value in JSString context.
-func showInJSString(env native.Env, out io.Writer, value interface{}) error {
+func showInJSString(env *env, out io.Writer, value interface{}) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
@@ -954,12 +956,12 @@ func showInJSString(env native.Env, out io.Writer, value interface{}) error {
 }
 
 // showInJSONString shows value in JSONString context.
-func showInJSONString(env native.Env, out io.Writer, value interface{}) error {
+func showInJSONString(env *env, out io.Writer, value interface{}) error {
 	return showInJSString(env, out, value)
 }
 
 // showInMarkdown shows value in the Markdown context.
-func showInMarkdown(env native.Env, out io.Writer, value interface{}) error {
+func showInMarkdown(env *env, out io.Writer, value interface{}) error {
 	w := newStringWriter(out)
 	switch v := value.(type) {
 	case native.Markdown:
@@ -993,7 +995,7 @@ func showInMarkdown(env native.Env, out io.Writer, value interface{}) error {
 }
 
 // showInMarkdownCodeBlock shows value in the Markdown code block context.
-func showInMarkdownCodeBlock(env native.Env, out io.Writer, value interface{}, spaces bool) error {
+func showInMarkdownCodeBlock(env *env, out io.Writer, value interface{}, spaces bool) error {
 	var s string
 	switch v := value.(type) {
 	case fmt.Stringer:
@@ -1082,7 +1084,7 @@ func isEmptyValue(v reflect.Value) (empty bool) {
 
 // valueOf returns the reflect value of i. If i is a proxy, it returns the
 // underlying value.
-func valueOf(env native.Env, i interface{}) reflect.Value {
+func valueOf(env *env, i interface{}) reflect.Value {
 	if i == nil {
 		return reflect.Value{}
 	}

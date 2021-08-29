@@ -128,6 +128,7 @@ func (vm *VM) Reset() {
 	vm.vars = nil
 	vm.env = &env{}
 	vm.envArg = reflect.ValueOf(vm.env)
+	vm.renderer = nil
 	if vm.calls != nil {
 		vm.calls = vm.calls[:0]
 	}
@@ -172,18 +173,18 @@ func (vm *VM) SetContext(ctx context.Context) {
 	vm.env.ctx = ctx
 }
 
+// SetRenderer sets template output and markdown converter.
+//
+// SetRenderer must not be called after vm has been started.
+func (vm *VM) SetRenderer(out io.Writer, conv Converter) {
+	vm.renderer = newRenderer(vm.env, out, conv)
+}
+
 // SetPrint sets the "print" builtin function.
 //
 // SetPrint must not be called after vm has been started.
 func (vm *VM) SetPrint(p PrintFunc) {
 	vm.env.print = p
-}
-
-// SetOutput sets the output.
-//
-// SetOutput must not be called after vm has been started.
-func (vm *VM) SetOutput(out io.Writer, converter Converter) {
-	vm.renderer = newRenderer(out, converter)
 }
 
 // Stack returns the current stack trace.

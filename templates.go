@@ -130,7 +130,7 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 			vm.SetPrint(runtime.PrintFunc(options.Print))
 		}
 	}
-	vm.SetOutput(out, runtime.Converter(t.mdConverter))
+	vm.SetRenderer(out, runtime.Converter(t.mdConverter))
 	code, err := vm.Run(t.fn, t.typeof, initGlobalVariables(t.globals, vars))
 	if err != nil {
 		if p, ok := err.(*runtime.Panic); ok {
