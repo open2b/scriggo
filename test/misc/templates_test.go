@@ -3841,7 +3841,7 @@ func Test_envFilePath(t *testing.T) {
 func Test_treeTransformer(t *testing.T) {
 	stdout := &strings.Builder{}
 	fsys := fstest.Files{"index.html": `{% w := "hi, " %}{{ w }}world!`}
-	loadOpts := &scriggo.BuildOptions{
+	opts := &scriggo.BuildOptions{
 		TreeTransformer: func(tree *ast.Tree) error {
 			assignment := tree.Nodes[0].(*ast.Assignment)
 			assignment.Rhs[0].(*ast.BasicLiteral).Value = `"hello, "`
@@ -3850,7 +3850,7 @@ func Test_treeTransformer(t *testing.T) {
 			return nil
 		},
 	}
-	template, err := scriggo.BuildTemplate(fsys, "index.html", loadOpts)
+	template, err := scriggo.BuildTemplate(fsys, "index.html", opts)
 	if err != nil {
 		t.Fatal(err)
 	}
