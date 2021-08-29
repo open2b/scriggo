@@ -34,6 +34,16 @@ type runtimeError string
 func (err runtimeError) Error() string { return string(err) }
 func (err runtimeError) RuntimeError() {}
 
+// outError represents an error occurred calling the Write method of a
+// template output.
+type outError struct {
+	err error
+}
+
+func (err outError) Error() string {
+	return "out error: " + err.err.Error()
+}
+
 // errTypeAssertion returns a runtime error for a failed type assertion x.(T).
 // interfaceType is the type of x, dynamicType is dynamic type of x or nil if
 // x is nil and assertedType is the type T. If T is an interface type,
@@ -105,7 +115,10 @@ func (vm *VM) newPanic(msg interface{}) *Panic {
 
 // convertPanic converts a panic to an error.
 func (vm *VM) convertPanic(msg interface{}) error {
-	if err, ok := msg.(exitError); ok {
+	switch err := msg.(type) {
+	case exitError:
+		return err
+	case outError:
 		return err
 	}
 	switch op := vm.fn.Body[vm.pc-1].Op; op {

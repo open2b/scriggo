@@ -1717,7 +1717,10 @@ func (vm *VM) run() (Addr, bool) {
 			if rv.IsValid() {
 				v = rv.Interface()
 			}
-			vm.renderer.Show(v, Context(c))
+			err := vm.renderer.Show(v, Context(c))
+			if err != nil {
+				panic(outError{err})
+			}
 
 		// Slice
 		case OpSlice:
@@ -1848,7 +1851,10 @@ func (vm *VM) run() (Addr, bool) {
 		case OpText:
 			txt := vm.fn.Text[decodeUint16(a, b)]
 			inURL, isSet := c > 0, c == 2
-			vm.renderer.Text(txt, inURL, isSet)
+			err := vm.renderer.Text(txt, inURL, isSet)
+			if err != nil {
+				panic(outError{err})
+			}
 
 		// Typify
 		case OpTypify, -OpTypify:

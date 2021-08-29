@@ -117,6 +117,10 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildOptions) (*Template, e
 //
 // If the Fatal method of native.Env is called with argument v, Run panics
 // with the value v.
+//
+// If a call to out.Write returns an error, a panic occurs. If the executed
+// code does not recover the panic, Run returns the error returned by
+// out.Write.
 func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunOptions) error {
 	if out == nil {
 		return errors.New("invalid nil out")
@@ -141,7 +145,7 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 	if code != 0 {
 		return ExitError(code)
 	}
-	return err
+	return nil
 }
 
 // MustRun is like Run but panics with the returned error if the run fails.

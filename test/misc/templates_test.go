@@ -3880,3 +3880,38 @@ func markdownConverter(src []byte, out io.Writer) error {
 	}
 	return err
 }
+
+// testErrorWriter is a writer that always return an error.
+type testErrorWriter struct {
+	err error
+}
+
+func (t testErrorWriter) Write(p []byte) (int, error) { return 0, t.err }
+
+// TestOutError tests that in case of an out error, the Run method returns it.
+func TestOutError(t *testing.T) {
+	fsys := fstest.Files{"index.txt": "a"}
+	template, err := scriggo.BuildTemplate(fsys, "index.txt", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := testErrorWriter{errors.New("out error")}
+	panicked := true
+	var rec interface{}
+	func() {
+		defer func() {
+			rec = recover()
+		}()
+		err = template.Run(out, nil, nil)
+		panicked = false
+	}()
+	if panicked {
+		t.Fatalf("expecting error, got panic: %v", rec)
+	}
+	if err == nil {
+		t.Fatalf("expecting error, got no error")
+	}
+	if err != out.err {
+		t.Fatalf("expecting out error, got error %q", err)
+	}
+}

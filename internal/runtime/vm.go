@@ -156,12 +156,14 @@ func (vm *VM) Run(fn *Function, typeof TypeOfFunc, globals []reflect.Value) (int
 	err := vm.runFunc(fn, globals)
 	if err != nil {
 		switch e := err.(type) {
+		case outError:
+			err = e.err
 		case *fatalError:
 			panic(e.msg)
 		case exitError:
 			return int(e), nil
 		}
-		return 1, err
+		return 0, err
 	}
 	return 0, nil
 }

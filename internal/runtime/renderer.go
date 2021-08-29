@@ -65,9 +65,8 @@ func (r *renderer) Close() error {
 	return nil
 }
 
-// Show shows v in the given context if r.out is not nil.
-// If r.out is nil, Show only does a type check and calls env.Fatal if it fails.
-func (r *renderer) Show(v interface{}, context Context) {
+// Show shows v in the given context.
+func (r *renderer) Show(v interface{}, context Context) error {
 
 	ctx, inURL, _ := decodeRenderContext(context)
 
@@ -80,8 +79,7 @@ func (r *renderer) Show(v interface{}, context Context) {
 	}
 
 	if inURL {
-		r.showInURL(v, ctx)
-		return
+		return r.showInURL(v, ctx)
 	}
 
 	var err error
@@ -119,11 +117,7 @@ func (r *renderer) Show(v interface{}, context Context) {
 		panic("scriggo: unknown context")
 	}
 
-	if err != nil {
-		r.env.Fatal(err)
-	}
-
-	return
+	return err
 }
 
 // Out returns the out writer.
@@ -132,7 +126,7 @@ func (r *renderer) Out() io.Writer {
 }
 
 // Text shows txt in the given context.
-func (r *renderer) Text(txt []byte, inURL, isSet bool) {
+func (r *renderer) Text(txt []byte, inURL, isSet bool) error {
 
 	// Check and eventually change the URL state.
 	if r.inURL != inURL {
@@ -152,7 +146,7 @@ func (r *renderer) Text(txt []byte, inURL, isSet bool) {
 			if r.addAmpersand && len(txt) > 0 && txt[0] != '&' {
 				_, err := io.WriteString(r.out, "&amp;")
 				if err != nil {
-					r.env.Fatal(err)
+					return err
 				}
 			}
 			r.removeQuestionMark = false
@@ -161,17 +155,11 @@ func (r *renderer) Text(txt []byte, inURL, isSet bool) {
 			r.query = bytes.ContainsAny(txt, "?#")
 		}
 		_, err := r.out.Write(txt)
-		if err != nil {
-			r.env.Fatal(err)
-		}
-		return
+		return err
 	}
 
 	_, err := r.out.Write(txt)
-	if err != nil {
-		r.env.Fatal(err)
-	}
-
+	return err
 }
 
 func (r *renderer) WithConversion(from, to ast.Format) *renderer {
@@ -187,13 +175,12 @@ func (r *renderer) WithOut(out io.Writer) *renderer {
 }
 
 // showInURL shows v in a URL in the given context.
-func (r *renderer) showInURL(v interface{}, ctx ast.Context) {
+func (r *renderer) showInURL(v interface{}, ctx ast.Context) error {
 
 	var b strings.Builder
 	err := showInHTML(r.env, &b, v)
 	if err != nil {
-		r.env.Fatal(err)
-		return
+		return err
 	}
 
 	s := html.UnescapeString(b.String())
@@ -204,16 +191,10 @@ func (r *renderer) showInURL(v interface{}, ctx ast.Context) {
 			c := s[len(s)-1]
 			r.addAmpersand = c != '&'
 			_, err := pathEscape(out, s, ctx == ast.ContextQuotedAttr)
-			if err != nil {
-				r.env.Fatal(err)
-			}
-			return
+			return err
 		}
 		_, err := queryEscape(out, s)
-		if err != nil {
-			r.env.Fatal(err)
-		}
-		return
+		return err
 	}
 
 	if strings.Contains(s, "?") {
@@ -224,11 +205,8 @@ func (r *renderer) showInURL(v interface{}, ctx ast.Context) {
 		}
 	}
 	_, err = pathEscape(out, s, ctx == ast.ContextQuotedAttr)
-	if err != nil {
-		r.env.Fatal(err)
-	}
 
-	return
+	return err
 }
 
 // endURL is called when an URL ends.
