@@ -90,8 +90,8 @@ func (p *Script) Disassemble() []byte {
 // and the executed code does not recover the panic, Run returns a
 // *PanicError.
 //
-// If the Exit method of native.Env is called with a non-zero code, Run
-// returns a *ExitError with the exit code.
+// If the Exit method of native.Env is called, or the exit built-in is called,
+// with a non-zero code, Run returns a *ExitError with the exit code.
 //
 // If the Fatal method of native.Env is called with argument v, Run panics
 // with the value v.
