@@ -140,7 +140,7 @@ func (p *Program) Run(options *RunOptions) error {
 	}
 	code, err := vm.Run(p.fn, p.typeof, initPackageLevelVariables(p.globals))
 	if err != nil {
-		if p, ok := err.(*runtime.Panic); ok {
+		if p, ok := err.(*runtime.PanicError); ok {
 			err = &PanicError{p}
 		}
 		return err

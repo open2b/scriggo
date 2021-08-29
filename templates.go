@@ -138,7 +138,7 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 	vm.SetRenderer(out, t.conv)
 	code, err := vm.Run(t.fn, t.typeof, initGlobalVariables(t.globals, vars))
 	if err != nil {
-		if p, ok := err.(*runtime.Panic); ok {
+		if p, ok := err.(*runtime.PanicError); ok {
 			err = &PanicError{p}
 		}
 		return err

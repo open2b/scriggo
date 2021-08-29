@@ -71,7 +71,7 @@ func (err ExitError) Code() int {
 // template calls the panic built-in or the Panic method of native.Env is
 // called and the panic is not recovered.
 type PanicError struct {
-	p *runtime.Panic
+	p *runtime.PanicError
 }
 
 // Error returns all currently active panics as a string.

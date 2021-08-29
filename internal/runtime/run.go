@@ -23,7 +23,7 @@ func (vm *VM) runFunc(fn *Function, vars []reflect.Value) error {
 		if err == nil {
 			break
 		}
-		p, ok := err.(*Panic)
+		p, ok := err.(*PanicError)
 		if !ok {
 			return err
 		}

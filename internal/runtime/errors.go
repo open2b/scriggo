@@ -104,9 +104,9 @@ func (vm *VM) errIndexOutOfRange() runtimeError {
 	return runtimeError(s)
 }
 
-// newPanic returns a new *Panic with the given error message.
-func (vm *VM) newPanic(msg interface{}) *Panic {
-	return &Panic{
+// newPanic returns a new *PanicError with the given error message.
+func (vm *VM) newPanic(msg interface{}) *PanicError {
+	return &PanicError{
 		message:  msg,
 		path:     vm.fn.DebugInfo[vm.pc].Path,
 		position: vm.fn.DebugInfo[vm.pc].Position,
@@ -248,11 +248,11 @@ func (vm *VM) convertPanic(msg interface{}) error {
 	return &fatalError{msg: msg}
 }
 
-type Panic struct {
+type PanicError struct {
 	message    interface{}
 	recovered  bool
 	stackTrace []byte
-	next       *Panic
+	next       *PanicError
 	path       string
 	position   Position
 }
@@ -260,7 +260,7 @@ type Panic struct {
 // Error returns all currently active panics as a string.
 //
 // To print only the message, use the String method instead.
-func (p *Panic) Error() string {
+func (p *PanicError) Error() string {
 	var s string
 	for p != nil {
 		s = "\n" + s
@@ -277,32 +277,32 @@ func (p *Panic) Error() string {
 }
 
 // Message returns the message.
-func (p *Panic) Message() interface{} {
+func (p *PanicError) Message() interface{} {
 	return p.message
 }
 
 // Next returns the next panic in the chain.
-func (p *Panic) Next() *Panic {
+func (p *PanicError) Next() *PanicError {
 	return p.next
 }
 
 // Recovered reports whether it has been recovered.
-func (p *Panic) Recovered() bool {
+func (p *PanicError) Recovered() bool {
 	return p.recovered
 }
 
 // String returns the message as a string.
-func (p *Panic) String() string {
+func (p *PanicError) String() string {
 	return panicToString(p.message)
 }
 
 // Path returns the path of the file that panicked.
-func (p *Panic) Path() string {
+func (p *PanicError) Path() string {
 	return p.path
 }
 
 // Position returns the position.
-func (p *Panic) Position() Position {
+func (p *PanicError) Position() Position {
 	return p.position
 }
 

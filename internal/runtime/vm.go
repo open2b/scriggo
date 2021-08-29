@@ -104,7 +104,7 @@ type VM struct {
 	renderer *renderer            // renderer
 	calls    []callFrame          // call stack frame.
 	cases    []reflect.SelectCase // select cases.
-	panic    *Panic               // panic.
+	panic    *PanicError          // panic.
 	main     bool                 // reports whether this VM is executing the the main goroutine.
 }
 
@@ -156,7 +156,7 @@ func (vm *VM) Run(fn *Function, typeof TypeOfFunc, globals []reflect.Value) (int
 	err := vm.runFunc(fn, globals)
 	if err != nil {
 		switch e := err.(type) {
-		case *Panic:
+		case *PanicError:
 			if outErr, ok := e.message.(outError); ok {
 				err = outErr.err
 			}
@@ -914,7 +914,7 @@ func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 		}
 		err := nvm.runFunc(fn, vars)
 		if err != nil {
-			if p, ok := err.(*Panic); ok {
+			if p, ok := err.(*PanicError); ok {
 				var msg string
 				for ; p != nil; p = p.next {
 					msg = "\n" + msg
