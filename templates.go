@@ -149,14 +149,6 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 	return nil
 }
 
-// MustRun is like Run but panics with the returned error if the run fails.
-func (t *Template) MustRun(out io.Writer, vars map[string]interface{}, options *RunOptions) {
-	err := t.Run(out, vars, options)
-	if err != nil {
-		panic(err)
-	}
-}
-
 // Disassemble disassembles a template and returns its assembly code.
 //
 // n determines the maximum length, in runes, of a disassembled text:

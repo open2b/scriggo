@@ -151,15 +151,6 @@ func (p *Program) Run(options *RunOptions) error {
 	return nil
 }
 
-// MustRun is like Run but panics with the returned error if the run fails.
-func (p *Program) MustRun(options *RunOptions) {
-	err := p.Run(options)
-	if err != nil {
-		panic(err)
-	}
-	return
-}
-
 // initPackageLevelVariables initializes the package level variables and
 // returns the values.
 func initPackageLevelVariables(globals []compiler.Global) []reflect.Value {

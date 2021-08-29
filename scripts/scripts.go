@@ -118,15 +118,6 @@ func (p *Script) Run(vars map[string]interface{}, options *RunOptions) error {
 	return nil
 }
 
-// MustRun is like Run but panics with the returned error if the run fails.
-func (p *Script) MustRun(vars map[string]interface{}, options *RunOptions) {
-	err := p.Run(vars, options)
-	if err != nil {
-		panic(err)
-	}
-	return
-}
-
 var emptyInit = map[string]interface{}{}
 
 // initGlobalVariables initializes the global variables and returns their
