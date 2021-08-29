@@ -42,10 +42,10 @@ type Converter func(src []byte, out io.Writer) error
 
 // Template is a template compiled with the BuildTemplate function.
 type Template struct {
-	fn          *runtime.Function
-	typeof      runtime.TypeOfFunc
-	globals     []compiler.Global
-	mdConverter Converter
+	fn      *runtime.Function
+	typeof  runtime.TypeOfFunc
+	globals []compiler.Global
+	conv    runtime.Converter
 }
 
 // FormatFS is the interface implemented by a file system that can determine
@@ -85,7 +85,7 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildOptions) (*Template, e
 	co := compiler.Options{
 		FormatTypes: formatTypes,
 	}
-	var mdConverter Converter
+	var conv Converter
 	if options != nil {
 		co.Globals = options.Globals
 		co.TreeTransformer = options.TreeTransformer
@@ -94,7 +94,7 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildOptions) (*Template, e
 		co.DollarIdentifier = options.DollarIdentifier
 		co.Packages = options.Packages
 		co.MDConverter = compiler.Converter(options.MarkdownConverter)
-		mdConverter = options.MarkdownConverter
+		conv = options.MarkdownConverter
 	}
 	code, err := compiler.BuildTemplate(fsys, name, co)
 	if err != nil {
@@ -103,7 +103,7 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildOptions) (*Template, e
 		}
 		return nil, err
 	}
-	return &Template{fn: code.Main, typeof: code.TypeOf, globals: code.Globals, mdConverter: mdConverter}, nil
+	return &Template{fn: code.Main, typeof: code.TypeOf, globals: code.Globals, conv: runtime.Converter(conv)}, nil
 }
 
 // Run runs the template and write the rendered code to out. vars contains
@@ -130,7 +130,7 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 			vm.SetPrint(runtime.PrintFunc(options.Print))
 		}
 	}
-	vm.SetRenderer(out, runtime.Converter(t.mdConverter))
+	vm.SetRenderer(out, t.conv)
 	code, err := vm.Run(t.fn, t.typeof, initGlobalVariables(t.globals, vars))
 	if err != nil {
 		if p, ok := err.(*runtime.Panic); ok {
