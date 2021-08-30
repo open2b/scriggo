@@ -147,7 +147,7 @@ var Sv St
 
 type Tv int
 
-func (t Tv) Mv(a int) int  { return int(t) + a }
+func (t Tv) Mv(a int) int { return int(t) + a }
 
 type Tp int
 
