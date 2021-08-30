@@ -3640,6 +3640,13 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedBuildErr: "cannot refer to unexported name x",
 	},
+
+	"Show markdown in HTML context": {
+		sources: map[string]string{
+			"index.html": `{% md := markdown("# title") %}{{ md }}`,
+		},
+		expectedOut: "--- start Markdown ---\n# title--- end Markdown ---\n",
+	},
 }
 
 var structWithUnexportedFields = &struct {

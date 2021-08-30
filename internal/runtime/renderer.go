@@ -88,7 +88,7 @@ func (r *renderer) Show(v interface{}, context Context) error {
 	case ast.ContextText:
 		err = showInText(r.env, r.out, v)
 	case ast.ContextHTML:
-		err = showInHTML(r.env, r.out, v)
+		err = showInHTML(r.env, r.out, r.conv, v)
 	case ast.ContextTag:
 		err = showInTag(r.env, r.out, v)
 	case ast.ContextQuotedAttr:
@@ -178,7 +178,7 @@ func (r *renderer) WithOut(out io.Writer) *renderer {
 func (r *renderer) showInURL(v interface{}, ctx ast.Context) error {
 
 	var b strings.Builder
-	err := showInHTML(r.env, &b, v)
+	err := showInHTML(r.env, &b, r.conv, v)
 	if err != nil {
 		return err
 	}
@@ -343,7 +343,7 @@ func showInText(env *env, out io.Writer, value interface{}) error {
 }
 
 // showInHTML shows value in HTML context.
-func showInHTML(env *env, out io.Writer, value interface{}) error {
+func showInHTML(env *env, out io.Writer, conv Converter, value interface{}) error {
 	w := newStringWriter(out)
 	switch v := value.(type) {
 	case native.HTML:
@@ -364,13 +364,16 @@ func showInHTML(env *env, out io.Writer, value interface{}) error {
 		return err
 	case error:
 		return htmlEscape(w, v.Error())
-	default:
-		s, err := toString(env, value)
-		if err != nil {
-			return err
+	case native.Markdown:
+		if conv != nil {
+			return conv([]byte(v), out)
 		}
-		return htmlEscape(w, s)
 	}
+	s, err := toString(env, value)
+	if err != nil {
+		return err
+	}
+	return htmlEscape(w, s)
 }
 
 // showInTag show value in Tag context.
