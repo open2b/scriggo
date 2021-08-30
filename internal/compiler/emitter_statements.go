@@ -420,10 +420,15 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				addresses[i] = em.addressNewIndirectVar(varr, varType, pos, node.Type)
 				continue
 			}
-			// Declare a local variable.
-			varr := em.fb.newRegister(varType.Kind())
-			varsToBind[v.Name] = varr
-			addresses[i] = em.addressLocalVar(varr, varType, pos, node.Type)
+			// The identifier may already be declared in the current scope.
+			if reg, ok := em.fb.declaredInCurrentScope(v.Name); ok {
+				addresses[i] = em.addressLocalVar(reg, varType, pos, node.Type)
+			} else {
+				// Declare a local variable.
+				varr := em.fb.newRegister(varType.Kind())
+				varsToBind[v.Name] = varr
+				addresses[i] = em.addressLocalVar(varr, varType, pos, node.Type)
+			}
 		}
 		em.assignValuesToAddresses(addresses, node.Rhs)
 		for name, reg := range varsToBind {

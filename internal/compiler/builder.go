@@ -284,6 +284,14 @@ func (fb *functionBuilder) bindVarReg(name string, reg int8) {
 	fb.scopes[len(fb.scopes)-1][name] = reg
 }
 
+// declaredInCurrentScope returns the register where v is stored and true in
+// case of v is a variable declared in the current scope, else returns 0 and
+// false.
+func (fb *functionBuilder) declaredInCurrentScope(v string) (int8, bool) {
+	reg, ok := fb.scopes[len(fb.scopes)-1][v]
+	return reg, ok
+}
+
 // declaredInFunc reports whether v is a variable declared within a function.
 func (fb *functionBuilder) declaredInFunc(v string) bool {
 	for i := len(fb.scopes) - 1; i >= 0; i-- {
