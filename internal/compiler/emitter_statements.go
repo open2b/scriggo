@@ -298,8 +298,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 		case *ast.Show:
 			ctx := node.Context
 			for _, expr := range node.Expressions {
-				if call, ok := expr.(*ast.Call); ok && ctx <= ast.ContextMarkdown && em.ti(call.Func).IsMacroDeclaration() {
+				if em.canOptimizeShowMacro(expr, ctx) {
 					em.fb.enterStack()
+					call, _ := expr.(*ast.Call)
 					em.emitCallNode(call, false, false, ast.Format(ctx))
 					em.fb.exitStack()
 				} else {
@@ -396,6 +397,32 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 
 	}
 
+}
+
+// canOptimizeShowMacro reports whether expr used in a show statement in
+// context ctx, is a call to a macro, and it can be optimized.
+func (em *emitter) canOptimizeShowMacro(expr ast.Expression, ctx ast.Context) bool {
+	if ctx > ast.ContextMarkdown {
+		return false
+	}
+	call, ok := expr.(*ast.Call)
+	if !ok {
+		return false
+	}
+	fn := em.ti(call.Func)
+	if !fn.IsMacroDeclaration() {
+		return false
+	}
+	var from ast.Format
+	typ := fn.Type.Out(0)
+	for f, t := range em.formatTypes {
+		if t == typ {
+			from = f
+			break
+		}
+	}
+	to := ast.Format(ctx)
+	return from == to || from == ast.FormatMarkdown && to == ast.FormatHTML
 }
 
 // emitAssignmentNode emits the instructions for an assignment node.

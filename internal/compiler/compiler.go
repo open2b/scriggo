@@ -243,7 +243,7 @@ func BuildTemplate(fsys fs.FS, name string, opts Options) (*Code, error) {
 	}
 
 	// Emit the code.
-	code, err := emitTemplate(tree, typeInfos, tci["main"].IndirectVars)
+	code, err := emitTemplate(tree, typeInfos, tci["main"].IndirectVars, opts.FormatTypes)
 
 	return code, err
 }
@@ -312,7 +312,7 @@ func emitProgram(pkgMain *ast.Package, typeInfos map[ast.Node]*typeInfo, indirec
 			panic(r)
 		}
 	}()
-	e := newEmitter(typeInfos, indirectVars)
+	e := newEmitter(typeInfos, nil, indirectVars)
 	functions, _, _ := e.emitPackage(pkgMain, false, "main")
 	main, _ := e.fnStore.availableScriggoFn(pkgMain, "main")
 	pkg := &Code{
@@ -337,7 +337,7 @@ func emitScript(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars m
 			panic(err)
 		}
 	}()
-	e := newEmitter(typeInfos, indirectVars)
+	e := newEmitter(typeInfos, nil, indirectVars)
 	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false), tree.Path, tree.Pos()), tree.Path)
 	e.fb.enterScope()
 	e.emitNodes(tree.Nodes)
@@ -349,7 +349,7 @@ func emitScript(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars m
 // emitTemplate emits the code for a template given its tree, the type info and
 // indirect variables. emitTemplate returns a function that is the entry point
 // of the template and the global variables.
-func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool) (_ *Code, err error) {
+func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, formatTypes map[ast.Format]reflect.Type) (_ *Code, err error) {
 
 	// Recover and eventually return a LimitExceededError.
 	defer func() {
@@ -362,7 +362,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 		}
 	}()
 
-	e := newEmitter(typeInfos, indirectVars)
+	e := newEmitter(typeInfos, formatTypes, indirectVars)
 	e.pkg = &ast.Package{}
 	e.isTemplate = true
 	typ := reflect.FuncOf(nil, nil, false)

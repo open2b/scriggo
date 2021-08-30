@@ -32,6 +32,9 @@ type emitter struct {
 	// Should be accessed using method 'ti'.
 	typeInfos map[ast.Node]*typeInfo
 
+	// formatTypes maps a format to its type.
+	formatTypes map[ast.Format]reflect.Type
+
 	// isTemplate reports whether the emitter is currently emitting a template.
 	isTemplate bool
 
@@ -86,12 +89,13 @@ type emitter struct {
 	alreadyInitializedTemplatePkgs map[string]bool
 }
 
-// newEmitter returns a new emitter with the given type infos, indirect
-// variables and options.
-func newEmitter(typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool) *emitter {
+// newEmitter returns a new emitter with the given type infos, format types,
+// indirect variables and options.
+func newEmitter(typeInfos map[ast.Node]*typeInfo, formatTypes map[ast.Format]reflect.Type, indirectVars map[*ast.Identifier]bool) *emitter {
 	em := &emitter{
 		labels:                         make(map[*runtime.Function]map[string]label),
 		typeInfos:                      typeInfos,
+		formatTypes:                    formatTypes,
 		types:                          types.NewTypes(), // TODO: this is wrong: the instance should be taken from the type checker.
 		alreadyEmittedFuncs:            map[*ast.Func]*runtime.Function{},
 		alreadyInitializedVars:         map[*ast.Identifier]int16{},

@@ -3647,6 +3647,16 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "--- start Markdown ---\n# title--- end Markdown ---\n",
 	},
+
+	"Show string macro in HTML context": {
+		sources: map[string]string{
+			"index.html": `
+			{% macro M() string %}<b>ciao</b>{% end macro %}
+			{% show M() %}
+		`,
+		},
+		expectedOut: "\n\t\t\t\n\t\t\t&lt;b&gt;ciao&lt;/b&gt;\n\t\t",
+	},
 }
 
 var structWithUnexportedFields = &struct {
