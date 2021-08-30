@@ -977,6 +977,18 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		}
 		imported.Name = pkg.PackageName()
 
+		// {% import "path" for N1, N2 %}
+		//
+		// where "path" is a native package path.
+		for _, ident := range impor.For {
+			ti, ok := imported.Declarations[ident.Name]
+			if !ok {
+				return tc.errorf(impor, "undefined: %s", ident)
+			}
+			tc.scopes.Declare(ident.Name, ti, impor)
+			return nil
+		}
+
 		// 'import . "pkg"': add every declaration to the file package block.
 		if isPeriodImport(impor) {
 			for ident, ti := range imported.Declarations {
@@ -1035,16 +1047,23 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 
 	switch {
 
+	// {% import "path" for N1, N2 %}
+	case impor.For != nil:
+		for _, ident := range impor.For {
+			ti, ok := imported.Declarations[ident.Name]
+			if !ok {
+				return tc.errorf(impor, "undefined: %s", ident)
+			}
+			tc.scopes.Declare(ident.Name, ti, impor)
+		}
+
 	// import "path"
 	// {% import "path" %}
 	case impor.Ident == nil:
 
 		// {% import "path" %}
 		if tc.opts.mod == templateMod {
-			for ident, ti := range imported.Declarations {
-				tc.scopes.Declare(ident, ti, impor)
-			}
-			return nil
+			return tc.errorf(impor, `template file import requires name or "import for" form`)
 		}
 
 		// import "path"

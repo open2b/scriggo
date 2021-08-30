@@ -32,7 +32,7 @@ func ParseProgram(fsys fs.FS) (*ast.Tree, error) {
 	modPrefix := modPath + "/"
 
 	trees := map[string]*ast.Tree{}
-	main := ast.NewImport(nil, nil, "main")
+	main := ast.NewImport(nil, nil, "main", nil)
 	imports := []*ast.Import{main}
 
 	for len(imports) > 0 {

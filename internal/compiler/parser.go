@@ -1080,10 +1080,10 @@ LABEL:
 		if tok.typ == tokenLeftParenthesis && end != tokenEndStatement {
 			tok = p.next()
 			for tok.typ != tokenRightParenthesis {
-				node := p.parseImport(tok, end)
+				var node ast.Node
+				node, tok = p.parseImport(tok, end)
 				p.unexpanded = append(p.unexpanded, node)
 				p.addNode(node)
-				tok = p.next()
 				if tok.typ == tokenSemicolon {
 					tok = p.next()
 				} else if tok.typ != tokenRightParenthesis {
@@ -1096,10 +1096,10 @@ LABEL:
 			}
 			tok = p.next()
 		} else {
-			node := p.parseImport(tok, end)
+			var node ast.Node
+			node, tok = p.parseImport(tok, end)
 			p.unexpanded = append(p.unexpanded, node)
 			p.addNode(node)
-			tok = p.next()
 			tok = p.parseEnd(tok, tokenSemicolon, end)
 		}
 		p.cutSpacesToken = true
@@ -1689,8 +1689,8 @@ func lastImportOrExtends(nodes []ast.Node) bool {
 
 // parseImport parses an import declaration. tok if the first token of
 // ImportSpec and end is the argument passed to the parse method.
-// It returns the parsed node.
-func (p *parsing) parseImport(tok token, end tokenTyp) *ast.Import {
+// It returns the parsed node and the next not parsed token.
+func (p *parsing) parseImport(tok token, end tokenTyp) (*ast.Import, token) {
 	pos := tok.pos
 	var ident *ast.Identifier
 	switch tok.typ {
@@ -1713,7 +1713,27 @@ func (p *parsing) parseImport(tok token, end tokenTyp) *ast.Import {
 		}
 	}
 	pos = pos.WithEnd(tok.pos.End)
-	return ast.NewImport(pos, ident, path)
+	tok = p.next()
+	var forIdents []*ast.Identifier
+	if end != tokenEOF && ident == nil && tok.typ == tokenFor {
+		for {
+			tok = p.next()
+			if tok.typ != tokenIdentifier {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting name", tok))
+			}
+			name := string(tok.txt)
+			if r, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, r) {
+				panic(syntaxError(tok.pos, "cannot refer to unexported name %s", name))
+			}
+			forIdents = append(forIdents, ast.NewIdentifier(tok.pos, name))
+			pos = pos.WithEnd(tok.pos.End)
+			tok = p.next()
+			if tok.typ != tokenComma {
+				break
+			}
+		}
+	}
+	return ast.NewImport(pos, ident, path, forIdents), tok
 }
 
 // parseAssignment parses an assignment and returns an assignment or, if there
