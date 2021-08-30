@@ -488,7 +488,7 @@ func (vm *VM) run() (Addr, bool) {
 			} else {
 				var b bytes.Buffer
 				r1 := vm.renderer.WithOut(&b)
-				r2 := r1.WithConversion(5, 1)
+				r2 := r1.WithConversion(ast.FormatMarkdown, ast.FormatHTML)
 				_, _ = r2.Out().Write([]byte(v.String()))
 				_ = r2.Close()
 				_ = r1.Close()
