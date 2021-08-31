@@ -300,8 +300,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			for _, expr := range node.Expressions {
 				if em.canOptimizeShowMacro(expr, ctx) {
 					em.fb.enterStack()
-					call, _ := expr.(*ast.Call)
-					em.emitCallNode(call, false, false, ast.Format(ctx))
+					em.emitCallNode(expr.(*ast.Call), false, false, ast.Format(ctx))
 					em.fb.exitStack()
 				} else {
 					ti := em.ti(expr)
@@ -399,8 +398,8 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 
 }
 
-// canOptimizeShowMacro reports whether expr used in a show statement in
-// context ctx, is a call to a macro, and it can be optimized.
+// canOptimizeShowMacro reports whether expr is a call to a macro and if it
+// can be optimized if used in the show statement with context ctx.
 func (em *emitter) canOptimizeShowMacro(expr ast.Expression, ctx ast.Context) bool {
 	if ctx > ast.ContextMarkdown {
 		return false
