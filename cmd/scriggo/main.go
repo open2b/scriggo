@@ -18,6 +18,7 @@ import (
 	_path "path"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"strings"
 
 	"golang.org/x/mod/modfile"
@@ -279,9 +280,12 @@ var commands = map[string]func(){
 	},
 	"version": func() {
 		flag.Usage = commandsHelp["version"]
-		fmt.Printf("Scriggo module version:                (TODO) \n") // https://github.com/open2b/scriggo/issues/310
-		fmt.Printf("scriggo tool version:                  (TODO) \n") // https://github.com/open2b/scriggo/issues/310
-		fmt.Printf("Go version used to build scriggo:      %s\n", runtime.Version())
+		info, ok := debug.ReadBuildInfo()
+		version := "unknown"
+		if ok {
+			version = info.Main.Version
+		}
+		fmt.Printf("scriggo version %s (%s)\n", version, runtime.Version())
 	},
 }
 
