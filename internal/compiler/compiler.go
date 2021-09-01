@@ -350,7 +350,6 @@ func emitScript(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars m
 // indirect variables. emitTemplate returns a function that is the entry point
 // of the template and the global variables.
 func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool, formatTypes map[ast.Format]reflect.Type) (_ *Code, err error) {
-
 	// Recover and eventually return a LimitExceededError.
 	defer func() {
 		if r := recover(); r != nil {
@@ -361,71 +360,17 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 			panic(r)
 		}
 	}()
-
 	e := newEmitter(typeInfos, formatTypes, indirectVars)
 	e.pkg = &ast.Package{}
 	e.isTemplate = true
 	typ := reflect.FuncOf(nil, nil, false)
 	e.fb = newBuilder(newMacro("main", "main", typ, tree.Format, tree.Path, tree.Pos()), tree.Path)
 	e.fb.changePath(tree.Path)
-
-	// If the template file is a package it means that such file extends
-	// another file.
-	if len(tree.Nodes) == 1 {
-		if pkg, ok := tree.Nodes[0].(*ast.Package); ok {
-			mainBuilder := e.fb
-			// Macro declarations in the extending file must be accessed by the
-			// extended file.
-			for _, dec := range pkg.Declarations {
-				if fn, ok := dec.(*ast.Func); ok && fn.Type.Macro {
-					macro := newMacro("main", fn.Ident.Name, fn.Type.Reflect, fn.Format, e.fb.getPath(), fn.Pos())
-					e.fnStore.makeAvailableScriggoFn(e.pkg, fn.Ident.Name, macro)
-				}
-			}
-			// Emits extended file.
-			backupPath := e.fb.getPath()
-			extends := pkg.Declarations[0].(*ast.Extends)
-			e.fb.changePath(extends.Tree.Path)
-			e.fb.fn.Format = extends.Tree.Format
-			e.fb.enterScope()
-			// Reserves first index of Functions for the function that
-			// initializes package variables. There is no guarantee that such
-			// function will exist: it depends on the presence or the absence of
-			// package variables.
-			var initVarsIndex int8 = 0
-			e.fb.fn.Functions = append(e.fb.fn.Functions, nil)
-			e.fb.emitCallFunc(initVarsIndex, e.fb.currentStackShift(), nil)
-			e.emitNodes(extends.Tree.Nodes)
-			e.fb.end()
-			e.fb.exitScope()
-			e.fb.changePath(backupPath)
-			// Emits extending file as a package.
-			e.fb.changePath(tree.Path)
-			_, _, inits := e.emitPackage(pkg, true, tree.Path)
-			e.fb = mainBuilder
-			// Just one init is supported: the implicit one (the one that
-			// initializes variables).
-			if len(inits) == 1 {
-				e.fb.fn.Functions[0] = inits[0]
-			} else {
-				// If there are no variables to initialize, a nop function is
-				// created because space has already been reserved for it.
-				nopFunction := newFunction("main", "$nop", reflect.FuncOf(nil, nil, false), "", &ast.Position{})
-				nopBuilder := newBuilder(nopFunction, tree.Path)
-				nopBuilder.end()
-				e.fb.fn.Functions[0] = nopFunction
-			}
-			return &Code{Main: e.fb.fn, Globals: e.varStore.getGlobals()}, nil
-		}
-	}
-
-	// Default case: tree is a generic template file.
 	e.fb.enterScope()
 	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()
 	e.fb.end()
 	return &Code{Main: e.fb.fn, TypeOf: e.types.TypeOf, Globals: e.varStore.getGlobals()}, nil
-
 }
 
 // getExtends returns the 'extends' node contained in nodes, if exists. Note

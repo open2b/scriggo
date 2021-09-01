@@ -502,7 +502,10 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(compilation *compilation, pkg *ast.Package, path string, packages native.PackageLoader, opts checkerOptions) (err error) {
+//
+// extendingFile indicates whether the package pkg was originally a template
+// file that extended another template file.
+func checkPackage(compilation *compilation, pkg *ast.Package, path string, packages native.PackageLoader, opts checkerOptions, extendingFile bool) (err error) {
 
 	// If the package has already been checked just return.
 	if _, ok := compilation.pkgInfos[path]; ok {
@@ -608,6 +611,9 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 			ti := &typeInfo{Type: funcType}
 			if f.Type.Macro {
 				ti.Properties |= propertyIsMacroDeclaration
+				if extendingFile {
+					ti.Properties |= propertyMacroDeclaredInFileWithExtends
+				}
 			}
 			tc.scopes.Declare(f.Ident.Name, ti, f.Ident)
 		}

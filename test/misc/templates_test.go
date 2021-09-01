@@ -3657,6 +3657,28 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "\n\t\t\t\n\t\t\t&lt;b&gt;ciao&lt;/b&gt;\n\t\t",
 	},
+
+	// https://github.com/open2b/scriggo/issues/842
+	"Macro in extending file refers to a type defined in the same file": {
+		sources: map[string]string{
+			"index.html": `
+			{% extends "extended.html" %}
+			{% type T int %}
+			{% macro M(T) %}{% end macro %}
+		`,
+			"extended.html": ``,
+		},
+	},
+
+	"Changing the tree with extends does not impact paths of rendered and imported files": {
+		sources: map[string]string{
+			"index.html":           `{% extends "subdir/extended.html" %}`,
+			"subdir/extended.html": `{% import "i.html" for V %}{{ render "r.html" }}{{ V }}`,
+			"subdir/r.html":        ` rendered `,
+			"subdir/i.html":        `{% var V = " imported " %}`,
+		},
+		expectedOut: " rendered  imported ",
+	},
 }
 
 var structWithUnexportedFields = &struct {

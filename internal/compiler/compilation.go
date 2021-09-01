@@ -67,6 +67,11 @@ type compilation struct {
 
 	// globalScope is the global scope.
 	globalScope map[string]scopeName
+
+	// extendingTrees reports if a tree was extending another file.
+	// This information must be kept here because it becomes lost after
+	// transforming the tree in case of extends.
+	extendingTrees map[*ast.Tree]bool
 }
 
 type renderIR struct {
@@ -85,6 +90,7 @@ func newCompilation(globalScope map[string]scopeName) *compilation {
 		renderImportMacro: map[*ast.Tree]renderIR{},
 		currentIteaIndex:  -1,
 		globalScope:       globalScope,
+		extendingTrees:    map[*ast.Tree]bool{},
 	}
 }
 
