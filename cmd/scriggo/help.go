@@ -8,36 +8,32 @@ package main
 
 const helpScriggo = `
 Scriggo is an embeddable Go interpreter. The scriggo command is a tool that
-can be used to build and install stand alone interpreters and to generate Go
-source files useful to embed Scriggo in an application.
+can be used to initialize an interpreter and to generate Go source files useful
+to embed Scriggo in an application.
 
 It also provides a web server that serves a template rooted at the current
 directory, useful to learn Scriggo templates. See 'scriggo help serve'.
 
 The scriggo tool is not required to embed Scriggo in an application but it is
-useful to generate the code for a package loader used by the Scriggo Build
-functions to load the packages that can be imported during the execution of
-programs and scripts.
+useful to generate the code for a package loader used by the Scriggo Build and
+BuildTemplate functions to load the packages that can be imported during the
+execution of programs and templates.
 
 For more about the use of the scriggo command to embed Scriggo in an
 application, see 'scriggo help embed'.
 
-The scriggo command is also able to build and install stand alone interpreters
-without having to write any line of Go. 
+The scriggo command is also able to initialize an interpreter for Go programs.
 
-For more about to build interpreters, see 'scriggo help build' and
-'scriggo help install'.
+For more about to build interpreters, see 'scriggo help init'.
 
 The commands are:
+
+    init        initialize a interpreter for Go programs
 
     embed       make a Go file with the source of a package loader useful when
                 embedding Scriggo in an application
 
-    build       build an interpreter starting from a Scriggofile     
-
-    install     build and install an interpreter in the GOBIN directory
-
-    serve       runs a web server and serves the template rooted at the current
+    serve       run a web server and serves the template rooted at the current
                 directory
 
     version     print Scriggo and scriggo version
@@ -55,87 +51,55 @@ Additional help topics:
     
 `
 
-const helpBuild = `
-usage: scriggo build [-f Scriggofile] [-w] [-v] [-x] [-work] [-o output] [module]
+const helpInit = `
+usage: scriggo init [dir]
 
-Build compiles an interpreter for Go programs and Scriggo scripts from a
-Scriggofile in a module.
+Init initializes an interpreter for Go programs creating the files in the
+directory dir. If no argument is given, the files are created in the current
+directory.
 
-Executables are created in the current directory. To install the executables in
-the directory GOBIN, see the command: scriggo install.
+It creates in the directory:
 
-If an argument is given, it can be a module path or a directory path.
+* a go.mod file, if it does not already exist, with the directory name as
+  module path
 
-If the argument is a module path, the module is downloaded from its repository
-and the build command looks for a Scriggofile named 'Scriggofile' in its root.
-A module argument can have a version as in 'foo.boo@v2.1.0'. If no version is
-given the latest version of the module is downloaded.
+* a packages.go file with the native packages that can be imported with the
+  import statement in the interpreted code
 
-If the argument is a directory path, it must be rooted or must begin with
-a . or .. element and the directory must be the root of a module. The build
-command looks for a Scriggofile named 'Scriggofile' in that directory.
+* a main.go file with the 'main' function
 
-If no argument is given, the action applies to the current directory.
+* a Scriggofile named 'Scriggofile', if it does not already exist
 
-The name of the executable is the last element of the module's path or
-directory path. For example if the module's path is 'boo/foo' the name of the
-executable will be 'foo' or 'foo.exe'.
+then it calls the 'go mod tidy' command.
 
-The interpreter is build from the instructions in the Scriggofile. For example:
+The interpreter can then be compiled with the 'go build' command or installed
+with the 'go install' command.
 
-    scriggo build github.com/example/foo
+The native packages are built with the instructions in the Scriggofile. If the
+directory does not contain a file named 'Scriggofile', it creates the file for
+the Go standard library.
 
-will build an interpreter named 'foo' or 'foo.exe' from the instructions in
-the file at 'github.com/example/foo/Scriggofile'.
+For example:
 
-In this other example:
+    scriggo init ./example
 
-	scriggo build ./boo
+will initialize an interpreter in the directory 'example'.
 
-the command will build an interpreter named 'boo' or 'boo.exe' from the
-instructions in the Scriggofile './boo/Scriggofile'.
+In the directory 'example', executing the command
+
+    go install
+
+an executable interpreter is installed in the 'bin' directory of the GOPATH with
+name 'example' ('example.exe' on Windows).
+
+To execute a Go source file called 'program.go' with the 'example' interpreter,
+execute the command:
+
+    example program.go
 
 For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
 
-The -f flag forces build to read the given Scriggofile instead of the
-Scriggofile of the module. For example:
-
-    scriggo build -f boo.Scriggofile github.com/example/foo
-
-will build an interpreter named 'foo' or 'foo.exe' from the instructions in
-the file at 'boo.Scriggofile'.
-
-The -w flag omits the DWARF symbol table.
-
-The -v flag prints the imported packages as defined in the Scriggofile.
-
-The -x flag prints the executed commands.
-
-The -work flag prints the name of a temporary directory containing a work
-module used to build the interpreter. The directory will not be deleted
-after the build.
-
-The -o flag forces build to write the resulting executable to the named output
-file, instead in the current directory.
-
-See also: scriggo install and scriggo embed.
-`
-
-const helpInstall = `
-usage: scriggo install [-f Scriggofile] [-w] [-v] [-x] [-work] [module]
-
-Install compiles and installs an interpreter for Go programs and Scriggo
-scripts from a Scriggofile in a module.
-
-Executables are installed in the directory GOBIN as for the go install
-command.
-
-For more about the GOBIN directory, see 'go help install'.
-
-With the exception of the flag -o, install has the same parameters as build.
-For more about the parameters, see 'scriggo help build'.
-
-See also: scriggo build and scriggo embed.
+See also: scriggo embed.
 `
 
 const helpEmbed = `
@@ -217,7 +181,7 @@ The --metrics flags prints metrics about execution time.
 
 const helpScriggofile = `
 A Scriggofile is a file with a specific format used by the scriggo command.
-The scriggo command uses the instructions in a Scriggofile to build an
+The scriggo command uses the instructions in a Scriggofile to initialize an
 interpreter or a Go source file used in an application that embeds Scriggo.
 
 A Scriggofile defines which packages an interpreted program and script can
@@ -295,7 +259,7 @@ The instructions are:
 
         Specifies the operating systems that will be supported by the built
         interpreter. If the GOOS at the time the Scriggofile is parsed is not
-        listed in the GOOS instruction, the 'build' and 'install' commands
+        listed in the GOOS instruction, the 'init' and 'embed' commands
         fail. If there is no GOOS instruction, all the operating systems are
         supported. 
 
@@ -349,7 +313,7 @@ Limitations due to maintain the interoperability with Go official compiler 'gc'
 
     * Native packages can be imported only if they have been precompiled into
       the Scriggo interpreter/execution environment.
-      Also see the commands 'scriggo embed' and 'scriggo build'.
+      Also see the commands 'scriggo embed' and 'scriggo init'.
 
     * types are not garbage collected.
       See Go issue #28783 (https://github.com/golang/go/issues/28783).

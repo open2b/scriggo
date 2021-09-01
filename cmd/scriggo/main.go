@@ -8,26 +8,28 @@ package main
 
 import (
 	"bytes"
-	_embed "embed"
+	_ "embed"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
-	_path "path"
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
+	"strconv"
 	"strings"
 
 	"golang.org/x/mod/modfile"
-	"golang.org/x/mod/module"
-	"golang.org/x/mod/semver"
 )
 
-//go:embed generate.go help.go main.go parser.go run.go serve.go util.go
-var sources _embed.FS
+//go:embed run.go
+var runSource []byte
+
+var simpleScriggofileContent = []byte("\nIMPORT STANDARD LIBRARY\n")
 
 func main() {
 
@@ -41,34 +43,18 @@ func main() {
 	}
 
 	cmdArg := os.Args[1]
-
-	// Check if the first argument is a sub-command.
-	subcmd := true
-	last := len(cmdArg)
-	for i, c := range cmdArg {
-		if (c < 'a' || c > 'z') && (i == 0 || i == last || c != '-') {
-			subcmd = false
-			break
-		}
-	}
-
-	if subcmd {
-		// Used by flag.Parse.
-		os.Args = append(os.Args[:1], os.Args[2:]...)
-		cmd, ok := commands[cmdArg]
-		if !ok {
-			stderr(
-				fmt.Sprintf("scriggo %s: unknown command", cmdArg),
-				`Run 'scriggo help' for usage.`,
-			)
-			exit(1)
-			return
-		}
-		cmd()
+	// Used by flag.Parse.
+	os.Args = append(os.Args[:1], os.Args[2:]...)
+	cmd, ok := commands[cmdArg]
+	if !ok {
+		stderr(
+			fmt.Sprintf("scriggo %s: unknown command", cmdArg),
+			`Run 'scriggo help' for usage.`,
+		)
+		exit(1)
 		return
 	}
-
-	run()
+	cmd()
 
 	return
 }
@@ -123,11 +109,8 @@ var commandsHelp = map[string]func(){
 	"embed": func() {
 		txtToHelp(helpEmbed)
 	},
-	"build": func() {
-		txtToHelp(helpBuild)
-	},
-	"install": func() {
-		txtToHelp(helpInstall)
+	"init": func() {
+		txtToHelp(helpInit)
 	},
 	"serve": func() {
 		txtToHelp(helpServe)
@@ -161,14 +144,10 @@ var commands = map[string]func(){
 		flag.Usage = commandsHelp["bug"]
 		panic("BUG: not implemented") // remove.
 	},
-	"build": func() {
-		flag.Usage = commandsHelp["install"]
-		work := flag.Bool("work", false, "print the name of the temporary work directory and do not delete it when exiting.")
+	"init": func() {
+		flag.Usage = commandsHelp["init"]
 		f := flag.String("f", "", "path of the Scriggofile.")
-		v := flag.Bool("v", false, "print the names of packages as the are imported.")
 		x := flag.Bool("x", false, "print the commands.")
-		o := flag.String("o", "", "output file.")
-		w := flag.Bool("w", false, "omit the DWARF symbol table.")
 		flag.Parse()
 		var path string
 		switch n := len(flag.Args()); n {
@@ -179,30 +158,7 @@ var commands = map[string]func(){
 			flag.Usage()
 			exitError(`bad number of arguments`)
 		}
-		err := _build("build", path, buildFlags{f: *f, work: *work, v: *v, x: *x, o: *o, w: *w})
-		if err != nil {
-			exitError("%s", err)
-		}
-		exit(0)
-	},
-	"install": func() {
-		flag.Usage = commandsHelp["install"]
-		work := flag.Bool("work", false, "print the name of the temporary work directory and do not delete it when exiting.")
-		f := flag.String("f", "", "path of the Scriggofile.")
-		v := flag.Bool("v", false, "print the names of packages as the are imported.")
-		x := flag.Bool("x", false, "print the commands.")
-		w := flag.Bool("w", false, "omit the DWARF symbol table.")
-		flag.Parse()
-		var path string
-		switch n := len(flag.Args()); n {
-		case 0:
-		case 1:
-			path = flag.Arg(0)
-		default:
-			flag.Usage()
-			exitError(`bad number of arguments`)
-		}
-		err := _build("install", path, buildFlags{f: *f, work: *work, v: *v, x: *x, w: *w})
+		err := _init(path, buildFlags{f: *f, x: *x})
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -397,50 +353,15 @@ type buildFlags struct {
 	f, o          string
 }
 
-// build executes the commands "build" and "install".
-func _build(cmd string, path string, flags buildFlags) error {
+// _init executes the sub commands "init":
+//
+//		scriggo init
+//
+func _init(path string, flags buildFlags) error {
 
-	_, err := exec.LookPath("go")
-	if err != nil {
-		return fmt.Errorf("scriggo: \"go\" executable file not found in $PATH\nIf not installed, " +
-			"download and install Go: https://golang.org/dl/\n")
-	}
+	var err error
 
-	goos := os.Getenv("GOOS")
-	if goos == "" {
-		goos = runtime.GOOS
-	}
-
-	// Create a temporary work directory with the sources of the interpreter.
-	// If the options "work" is given, the work directory name will be printed
-	// and it will not be deleted after the installation.
-	workDir, err := os.MkdirTemp("", "scriggo-build")
-	if err != nil {
-		return err
-	}
-	if flags.work || flags.x {
-		_, _ = fmt.Fprintf(os.Stderr, "WORK=%s\n", workDir)
-	}
-	if !flags.work {
-		defer func() {
-			err = os.RemoveAll(workDir)
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: can't delete the temporary work directory:\n\t%s", err)
-			}
-		}()
-	}
-
-	// Run in module-aware mode.
-	if flags.x {
-		_, _ = fmt.Fprintln(os.Stderr, "export GO111MODULE=on")
-	}
-	if err := os.Setenv("GO111MODULE", "on"); err != nil {
-		return fmt.Errorf("scriggo: can't set environment variable \"GO111MODULE\" to \"on\": %s", err)
-	}
-
-	var modPath string // modPath is the module's path, it is empty it is local.
-	var modVer string  // modVer is the module's version.
-	var modDir string  // modDir is the directory of the module's sources.
+	var modDir string
 
 	if path == "" {
 		// path is current directory.
@@ -465,23 +386,27 @@ func _build(cmd string, path string, flags buildFlags) error {
 			return fmt.Errorf("scriggo: %s is not a directory:\n\t%s", path, modDir)
 		}
 	} else {
-		// path is a module path.
-		parts := strings.SplitN(path, "@", 2)
-		if err := module.CheckPath(parts[0]); err != nil {
-			return fmt.Errorf("scriggo: %s", err)
-		}
-		modPath = parts[0]
-		version := "latest"
-		if len(parts) == 2 {
-			if !semver.IsValid(parts[1]) {
-				return fmt.Errorf("scriggo: invalid module version %s", parts[1])
+		return fmt.Errorf("scriggo: path, if not empty, must be rooted or must start with '.%c' or '..%c'",
+			os.PathSeparator, os.PathSeparator)
+	}
+
+	// Verify that module dir does not contain Go files or a vendor directory.
+	entries, err := os.ReadDir(modDir)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".go") {
+			if path == "" {
+				return fmt.Errorf("scriggo: current directory contains Go files")
 			}
-			version = parts[1]
+			return fmt.Errorf("scriggo: directory %q contains Go files", modDir)
 		}
-		// Download the module.
-		modDir, modVer, err = downloadModule(modPath, version, workDir, flags)
-		if err != nil {
-			return err
+		if entry.IsDir() && entry.Name() == "vendor" {
+			if path == "" {
+				return fmt.Errorf("scriggo: current directory contains a vendor directory")
+			}
+			return fmt.Errorf("scriggo: directory %q contains a vendor directory", path)
 		}
 	}
 
@@ -496,189 +421,56 @@ func _build(cmd string, path string, flags buildFlags) error {
 		}
 	}
 
-	// Parse the Scriggofile.
-	fi, err := os.Open(sfPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			err = fmt.Errorf("scriggo: can't find Scriggofile at:\n\t%s", sfPath)
-		}
-		return err
-	}
-	defer fi.Close()
-	sf, err := parseScriggofile(fi, goos)
-	if err != nil {
-		return err
-	}
-	_ = fi.Close()
-
-	// Parse the go.mod file.
-	file := filepath.Join(modDir, "go.mod")
-	data, err := os.ReadFile(file)
-	if err != nil {
-		return err
-	}
-	goMod, err := modfile.Parse(file, data, nil)
-	if err != nil {
-		return err
-	}
-	// Make the replace paths as absolute paths.
-	for _, replace := range goMod.Replace {
-		if newPath := replace.New.Path; modfile.IsDirectoryPath(newPath) && !filepath.IsAbs(newPath) {
-			old := replace.Old
-			err = goMod.DropReplace(old.Path, old.Version)
-			if err != nil {
-				return fmt.Errorf("scriggo: can't remove rewrite from go.mod: %s", err)
-			}
-			var p string
-			if modPath == "" {
-				p = filepath.Join(modDir, newPath)
-			} else {
-				p = _path.Join(modPath, newPath)
-			}
-			err = goMod.AddReplace(old.Path, old.Version, p, modVer)
-			if err != nil {
-				return fmt.Errorf("scriggo: can't add rewrite to go.mod: %s", err)
-			}
-		}
-	}
-	if modPath == "" {
-		// Add a replace for the main module.
-		mod := goMod.Module.Mod
-		err = goMod.AddReplace(mod.Path, mod.Version, modDir, "")
-		if err != nil {
-			return fmt.Errorf("scriggo: can't add rewrite to go.mod: %s", err)
-		}
-	}
-	goMod.Cleanup()
-
-	var base string
-	if modPath == "" {
-		base = filepath.Base(modDir)
-	} else {
-		base = filepath.Base(modPath)
-	}
-
-	dir := filepath.Join(workDir, base)
-
-	if flags.x {
-		_, _ = fmt.Fprintf(os.Stderr, "mkdir $WORK%c%s\n", os.PathSeparator, base)
-		_, _ = fmt.Fprintf(os.Stderr, "chdir $WORK%c%s\n", os.PathSeparator, base)
-	}
-	err = os.Mkdir(dir, 0777)
-	if err != nil {
-		return fmt.Errorf("scriggo: can't make directory %s: %s", dir, err)
-	}
-
-	// Create the go.mod file.
-	goMod.AddModuleStmt("open2b.scriggo/" + base)
-	{
-		// TODO(marco): remove this block when Scriggo has the definitive path.
-		goPaths := strings.Split(os.Getenv("GOPATH"), string(os.PathListSeparator))
-		if len(goPaths) == 0 {
-			panic("scriggo: empty gopath not supported")
-		}
-		scriggoPath := filepath.Join(goPaths[0], "src/scriggo")
-		err = goMod.AddReplace("github.com/open2b/scriggo", "", scriggoPath, "")
-		if err != nil {
-			panic("scriggo: can't create go.mod: %s")
-		}
-	}
-	data, err = goMod.Format()
-	if err != nil {
-		return fmt.Errorf("scriggo: can't create go.mod: %s", err)
-	}
-	err = os.WriteFile(filepath.Join(dir, "go.mod"), data, 0666)
-	if err != nil {
-		return fmt.Errorf("scriggo: %s", err)
-	}
-
-	// Execute 'go mod tidy'.
-	if flags.x {
-		_, _ = fmt.Fprintln(os.Stderr, "go mod tidy")
-	}
-	_, err = execGoCommand(dir, "mod", "tidy")
-	if err != nil {
-		return fmt.Errorf("go %s: %s", cmd, err)
-	}
-
-	// Create the package declarations file.
-	packagesPath := filepath.Join(dir, "run-packages.go")
-	fi, err = os.OpenFile(packagesPath, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0666)
-	if err != nil {
-		return err
-	}
-	defer fi.Close()
-	err = renderPackages(fi, dir, sf, goos, flags)
-	if err != nil {
-		return fmt.Errorf("scriggo: can't render packages: %s", err)
-	}
-	err = fi.Close()
-	if err != nil {
-		return fmt.Errorf("scriggo: can't render packages: %s", err)
-	}
-
-	// Create the other files.
-	files, _ := sources.ReadDir(".")
-	for _, file := range files {
-		path := filepath.Join(dir, file.Name())
-		dst, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0666)
-		if err != nil {
-			return fmt.Errorf("scriggo: can't open file %s: %s", path, err)
-		}
-		src, _ := sources.Open(file.Name())
-		_, err = io.Copy(dst, src)
+	// Create the go.mod file if it does not exist.
+	modPath := filepath.Base(modDir)
+	modFile := filepath.Join(modDir, "go.mod")
+	fi, err := os.OpenFile(modFile, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0666)
+	if err == nil {
+		// Write the go.mod file.
+		_, err = fmt.Fprintf(fi, "module %s\n\ngo 1.17\n", strconv.Quote(modPath))
 		if err == nil {
-			err = dst.Close()
+			err = fi.Close()
 		}
-		src.Close()
-		if err != nil {
-			return fmt.Errorf("scriggo: can't write file %s: %s", path, err)
+	}
+	if err != nil && !errors.Is(err, fs.ErrExist) {
+		return err
+	}
+
+	// Create the Scriggofile it does not exist.
+	fi, err = os.OpenFile(sfPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0666)
+	if err == nil {
+		// Write the Scriggofile.
+		_, err = fi.Write(simpleScriggofileContent)
+		if err == nil {
+			err = fi.Close()
 		}
+	}
+	if err != nil && !errors.Is(err, fs.ErrExist) {
+		return err
+	}
+
+	// Create the main.go file.
+	mainPath := filepath.Join(modDir, "main.go")
+	mainSource := bytes.Replace(runSource, []byte("func run() {"), []byte("func main() {"), 1)
+	err = os.WriteFile(mainPath, mainSource, 0666)
+	if err != nil {
+		return err
+	}
+
+	// Embed the packages.go file.
+	flags.o = filepath.Join(modDir, "packages.go")
+	err = embed(path, flags)
+	if err != nil {
+		return err
 	}
 
 	// Execute 'go mod tidy'.
 	if flags.x {
 		_, _ = fmt.Fprintln(os.Stderr, "go mod tidy")
 	}
-	_, err = execGoCommand(dir, "mod", "tidy")
+	_, err = execGoCommand(modDir, "mod", "tidy")
 	if err != nil {
-		return fmt.Errorf("go %s: %s", cmd, err)
-	}
-
-	// Build or install the package.
-	var args []string
-	if cmd == "build" {
-		args = []string{"build", "-o", ""}
-		if flags.o == "" {
-			args[2], err = filepath.Abs(base)
-			if err != nil {
-				return fmt.Errorf("scriggo: can't get absolute path of %s: %s", base, err)
-			}
-			if runtime.GOOS == "windows" {
-				args[2] += ".exe"
-			}
-		} else {
-			args[2], err = filepath.Abs(flags.o)
-			if err != nil {
-				return fmt.Errorf("scriggo: can't get absolute path of %s: %s", flags.o, err)
-			}
-		}
-	} else {
-		args = []string{"install"}
-	}
-	if flags.w {
-		args = append(args, "-ldflags", "-w")
-	}
-	if flags.x {
-		_, _ = fmt.Fprint(os.Stderr, "go")
-		for _, arg := range args {
-			_, _ = fmt.Fprint(os.Stderr, " ", arg)
-		}
-		_, _ = fmt.Fprintln(os.Stderr)
-	}
-	_, err = execGoCommand(dir, args...)
-	if err != nil {
-		return fmt.Errorf("go %s: %s", cmd, err)
+		return fmt.Errorf("go init: %s", err)
 	}
 
 	return nil
