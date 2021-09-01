@@ -46,7 +46,7 @@ func typecheck(tree *ast.Tree, packages native.PackageLoader, opts checkerOption
 			return nil, &CheckingError{path: tree.Path, pos: *pkg.Pos(), err: errors.New("package name must be main")}
 		}
 		compilation := newCompilation(nil)
-		err := checkPackage(compilation, pkg, tree.Path, packages, opts)
+		err := checkPackage(compilation, pkg, tree.Path, packages, opts, false)
 		if err != nil {
 			return nil, err
 		}
@@ -76,65 +76,27 @@ func typecheck(tree *ast.Tree, packages native.PackageLoader, opts checkerOption
 	compilation := newCompilation(globalScope)
 	tc := newTypechecker(compilation, tree.Path, opts, packages)
 
-	// Type check a template file which extends another file.
+	// If tree extends another template file, transform it swapping the files
+	// and adding a dummy 'import' statement that imports the extending file.
+	var extending bool
 	if extends, ok := getExtends(tree.Nodes); ok {
-		// First: all macro definitions in extending files are declared but not
-		// initialized. This is necessary because the extended file can refer
-		// to macro defined in the extending one, but these macro can contain
-		// references to variables defined outside them.
-		for _, d := range tree.Nodes[1:] {
-			if m, ok := d.(*ast.Func); ok && m.Type.Macro {
-				tc.makeMacroResultExplicit(m)
-				ti := &typeInfo{
-					Type:       tc.checkType(m.Type).Type,
-					Properties: propertyIsMacroDeclaration | propertyMacroDeclaredInFileWithExtends,
-				}
-				tc.scopes.Declare(m.Ident.Name, ti, m.Ident)
-			}
-		}
-		// Second: type check the extended file in a new scope.
-		currentPath := tc.path
+		dummyImport := ast.NewImport(nil, ast.NewIdentifier(nil, "."), tree.Path, nil)
+		dummyImport.Tree = ast.NewTree(tree.Path, tree.Nodes, tree.Format)
+		compilation.extendingTrees[dummyImport.Tree] = true
+		tree.Nodes = append([]ast.Node{dummyImport}, extends.Tree.Nodes...)
+		tree.Path = extends.Tree.Path
 		tc.path = extends.Tree.Path
-		tc.inExtendedFile = true
-		var err error
-		extends.Tree.Nodes, err = tc.checkNodesInNewScopeError(extends.Tree, extends.Tree.Nodes)
-		if err != nil {
-			return nil, err
-		}
-		tc.inExtendedFile = false
-		tc.path = currentPath
-		// Third: extending file is converted to a "package", that means that
-		// out of order initialization is allowed.
-		tc.templateFileToPackage(tree)
-		err = checkPackage(compilation, tree.Nodes[0].(*ast.Package), tree.Path, packages, opts)
-		if err != nil {
-			return nil, err
-		}
-		// Collect data from the type checker and return it.
-		mainPkgInfo := &packageInfo{}
-		mainPkgInfo.IndirectVars = tc.compilation.indirectVars
-		mainPkgInfo.TypeInfos = tc.compilation.typeInfos
-		for _, pkgInfo := range compilation.pkgInfos {
-			for k, v := range pkgInfo.TypeInfos {
-				mainPkgInfo.TypeInfos[k] = v
-			}
-			for k, v := range pkgInfo.IndirectVars {
-				mainPkgInfo.IndirectVars[k] = v
-			}
-		}
-		err = compilation.finalizeUsingStatements(tc)
-		if err != nil {
-			return nil, err
-		}
-		return map[string]*packageInfo{"main": mainPkgInfo}, nil
+		extending = true
 	}
 
 	// Type check a template file or a script.
 	var err error
+	tc.inExtendedFile = extending // if tree was "extending", after the swap it becomes "extended"
 	tree.Nodes, err = tc.checkNodesInNewScopeError(tree, tree.Nodes)
 	if err != nil {
 		return nil, err
 	}
+	tc.inExtendedFile = false
 	mainPkgInfo := &packageInfo{}
 	mainPkgInfo.IndirectVars = tc.compilation.indirectVars
 	mainPkgInfo.TypeInfos = tc.compilation.typeInfos

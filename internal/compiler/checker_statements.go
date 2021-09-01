@@ -1032,7 +1032,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	}
 
 	// Check the package and retrieve the package infos.
-	err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, tc.pkgLoader, tc.opts)
+	err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, tc.pkgLoader, tc.opts, tc.compilation.extendingTrees[impor.Tree])
 	if err != nil {
 		return err
 	}
