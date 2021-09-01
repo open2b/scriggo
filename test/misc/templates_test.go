@@ -3679,6 +3679,14 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: " rendered  imported ",
 	},
+
+	"Extended file accessing to variables declared in extending file": {
+		sources: map[string]string{
+			"index.html":    `{% extends "extended.html" %}{% var V = 42 %}`,
+			"extended.html": `{{ V }}`,
+		},
+		expectedOut: "42",
+	},
 }
 
 var structWithUnexportedFields = &struct {
