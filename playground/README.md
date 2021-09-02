@@ -5,7 +5,7 @@
 ```
 export GOOS=js
 export GOARCH=wasm
-scriggo embed -v -o packages.go
+scriggo import -v -o packages.go
 go build -tags osusergo,netgo -trimpath -o scriggo.wasm
 cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" .
 ```
@@ -15,7 +15,7 @@ cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" .
 ```
 SET GOOS=js
 SET GOARCH=wasm
-scriggo embed -v -o packages.go
+scriggo import -v -o packages.go
 go build -tags osusergo,netgo -trimpath -o scriggo.wasm
 copy "C:\Program Files\Go\misc\wasm\wasm_exec.js" .
 ```

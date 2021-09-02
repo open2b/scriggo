@@ -20,7 +20,7 @@ and BuildTemplate functions to import the packages that can be imported during
 the execution of programs and templates.
 
 For more about the use of the scriggo command to embed Scriggo in an
-application, see 'scriggo help embed'.
+application, see 'scriggo help import'.
 
 The scriggo command is also able to initialize an interpreter for Go programs.
 
@@ -30,7 +30,7 @@ The commands are:
 
     init        initialize a interpreter for Go programs
 
-    embed       make a Go file with the source of a package importer useful
+    import      make a Go file with the source of a package importer useful
                 when embedding Scriggo in an application
 
     serve       run a web server and serves the template rooted at the current
@@ -99,26 +99,26 @@ execute the command:
 
 For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
 
-See also: scriggo embed.
+See also: scriggo import.
 `
 
-const helpEmbed = `
-usage: scriggo embed [-f Scriggofile] [-v] [-x] [-o output] [module]
+const helpImport = `
+usage: scriggo import [-f Scriggofile] [-v] [-x] [-o output] [module]
 
-Embed makes a Go source file from a Scriggofile in a module, containing the
+Import makes a Go source file from a Scriggofile in a module, containing the
 exported declarations of the packages imported in the Scriggofile. The
 generated file is useful when embedding Scriggo in an application.
 
-Embed prints the generated source to the standard output. Use the flag -o
+Import prints the generated source to the standard output. Use the flag -o
 to redirect the source to a named output file.
 
 If an argument is given, it must be a local rooted path or must begin with
-a . or .. element and it must be a module root directory. embed looks for
+a . or .. element and it must be a module root directory. import looks for
 a Scriggofile named 'Scriggofile' in that directory.
 
 If no argument is given, the action applies to the current directory.
 
-The -f flag forces embed to read the given Scriggofile instead of the
+The -f flag forces import to read the given Scriggofile instead of the
 Scriggofile of the module.
 
 The declarations in the generated Go file have type scriggo.PackageImporter and
@@ -247,20 +247,20 @@ The instructions are:
 
         Set the name of the variable to witch is assigned the value of type
         scriggo.PackageImporter with the packages to import. By default the
-        name is 'packages'. This instruction is only read by the 'embed'
+        name is 'packages'. This instruction is only read by the 'import'
         command. 
 
     SET PACKAGE <name>
 
         Set the name of the package of the generated Go source file. By default
         the name of the package is 'main'. This instruction is read only by the
-        command 'scriggo embed'.
+        command 'scriggo import'.
 
     GOOS linux windows
 
         Specifies the operating systems that will be supported by the built
         interpreter. If the GOOS at the time the Scriggofile is parsed is not
-        listed in the GOOS instruction, the 'init' and 'embed' commands
+        listed in the GOOS instruction, the 'init' and 'import' commands
         fail. If there is no GOOS instruction, all the operating systems are
         supported. 
 
@@ -314,7 +314,7 @@ Limitations due to maintain the interoperability with Go official compiler 'gc'
 
     * Native packages can be imported only if they have been precompiled into
       the Scriggo interpreter/execution environment.
-      Also see the commands 'scriggo embed' and 'scriggo init'.
+      Also see the commands 'scriggo import' and 'scriggo init'.
 
     * types are not garbage collected.
       See Go issue #28783 (https://github.com/golang/go/issues/28783).

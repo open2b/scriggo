@@ -106,8 +106,8 @@ var commandsHelp = map[string]func(){
 			`The report includes useful system information.`,
 		)
 	},
-	"embed": func() {
-		txtToHelp(helpEmbed)
+	"import": func() {
+		txtToHelp(helpImport)
 	},
 	"init": func() {
 		txtToHelp(helpInit)
@@ -164,8 +164,8 @@ var commands = map[string]func(){
 		}
 		exit(0)
 	},
-	"embed": func() {
-		flag.Usage = commandsHelp["embed"]
+	"import": func() {
+		flag.Usage = commandsHelp["import"]
 		f := flag.String("f", "", "path of the Scriggofile.")
 		v := flag.Bool("v", false, "print the names of packages as the are imported.")
 		x := flag.Bool("x", false, "print the commands.")
@@ -180,7 +180,7 @@ var commands = map[string]func(){
 			flag.Usage()
 			exitError(`bad number of arguments`)
 		}
-		err := embed(path, buildFlags{f: *f, v: *v, x: *x, o: *o})
+		err := _import(path, buildFlags{f: *f, v: *v, x: *x, o: *o})
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -245,11 +245,11 @@ var commands = map[string]func(){
 	},
 }
 
-// embed executes the sub commands "embed":
+// _import executes the sub commands "import":
 //
-//		scriggo embed
+//		scriggo import
 //
-func embed(path string, flags buildFlags) (err error) {
+func _import(path string, flags buildFlags) (err error) {
 
 	_, err = exec.LookPath("go")
 	if err != nil {
@@ -459,7 +459,7 @@ func _init(path string, flags buildFlags) error {
 
 	// Embed the packages.go file.
 	flags.o = filepath.Join(modDir, "packages.go")
-	err = embed(path, flags)
+	err = _import(path, flags)
 	if err != nil {
 		return err
 	}

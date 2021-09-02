@@ -19,7 +19,7 @@ import (
 	"github.com/open2b/scriggo/scripts"
 )
 
-//go:generate scriggo embed -v -o packages.go
+//go:generate scriggo import -v -o packages.go
 var packages native.Packages
 
 var globals = native.Declarations{

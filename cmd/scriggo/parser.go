@@ -17,7 +17,7 @@ import (
 type Command int
 
 const (
-	commandEmbed Command = iota
+	commandImport Command = iota
 	commandGenerate
 	commandInstall
 )
@@ -25,7 +25,7 @@ const (
 // scriggofile represents the content of a Scriggofile.
 type scriggofile struct {
 	pkgName  string           // name of the package to be generated.
-	variable string           // variable name for embedded packages.
+	variable string           // variable name for imported packages.
 	goos     []string         // target GOOSs.
 	imports  []*importCommand // list of imports defined in file.
 }
