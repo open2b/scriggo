@@ -11,8 +11,8 @@ import (
 )
 
 func TestCombinedPackage(t *testing.T) {
-	pkg1 := DeclarationsPackage{"main", Declarations{"a": 1, "b": 2}}
-	pkg2 := DeclarationsPackage{"main2", Declarations{"b": 3, "c": 4, "d": 5}}
+	pkg1 := Package{"main", Declarations{"a": 1, "b": 2}}
+	pkg2 := Package{"main2", Declarations{"b": 3, "c": 4, "d": 5}}
 	pkg := CombinedPackage{pkg1, pkg2}
 	expected := []string{"a", "b", "c", "d"}
 	// Test Name.

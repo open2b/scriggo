@@ -30,7 +30,7 @@ type BuildOptions struct {
 
 	// Packages is a package importer that makes native packages available
 	// in scripts through the import statement.
-	Packages native.PackageImporter
+	Packages native.Importer
 
 	// Globals declares constants, types, variables, functions and packages
 	// that are accessible from the code in the script.

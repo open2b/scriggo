@@ -163,7 +163,7 @@ func parsePackage(fsys fs.FS, dir string) (*ast.Tree, error) {
 
 // ParseScript parses a script reading its source from src and the imported
 // packages form the importer.
-func ParseScript(src io.Reader, importer native.PackageImporter) (*ast.Tree, error) {
+func ParseScript(src io.Reader, importer native.Importer) (*ast.Tree, error) {
 
 	// Parse the source.
 	buf, err := io.ReadAll(src)
@@ -193,7 +193,7 @@ func ParseScript(src io.Reader, importer native.PackageImporter) (*ast.Tree, err
 			return nil, err
 		}
 		switch pkg := pkg.(type) {
-		case native.Package:
+		case native.ImportablePackage:
 		case nil:
 			return nil, syntaxError(imp.Pos(), "cannot find package %q", imp.Path)
 		default:

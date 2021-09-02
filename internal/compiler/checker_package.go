@@ -66,7 +66,7 @@ func parseNumericConst(s string) (constant, reflect.Type, error) {
 
 // toTypeCheckerScope generates a type checker scope given a native package.
 // depth must be 0 unless toTypeCheckerScope is called recursively.
-func toTypeCheckerScope(pkg native.Package, mod checkingMod, global bool, depth int) map[string]scopeName {
+func toTypeCheckerScope(pkg native.ImportablePackage, mod checkingMod, global bool, depth int) map[string]scopeName {
 	scope := map[string]scopeName{}
 	_ = pkg.LookupFunc(func(ident string, decl native.Declaration) error {
 		ti := &typeInfo{NativePackageName: pkg.PackageName()}
@@ -98,7 +98,7 @@ func toTypeCheckerScope(pkg native.Package, mod checkingMod, global bool, depth 
 				}
 				ti.Type = rv.Type()
 			}
-		case native.Package:
+		case native.ImportablePackage:
 			// Import an auto-imported package. This is supported in scripts and templates only.
 			if mod == programMod {
 				panic(fmt.Errorf("scriggo: auto-imported packages are supported only for scripts and templates"))
@@ -505,7 +505,7 @@ varsLoop:
 //
 // extendingFile indicates whether the package pkg was originally a template
 // file that extended another template file.
-func checkPackage(compilation *compilation, pkg *ast.Package, path string, importer native.PackageImporter, opts checkerOptions, extendingFile bool) (err error) {
+func checkPackage(compilation *compilation, pkg *ast.Package, path string, importer native.Importer, opts checkerOptions, extendingFile bool) (err error) {
 
 	// If the package has already been checked just return.
 	if _, ok := compilation.pkgInfos[path]; ok {

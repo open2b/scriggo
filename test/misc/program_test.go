@@ -29,7 +29,7 @@ func TestIssue403(t *testing.T) {
 	t.Run("Method call on predefined variable", func(t *testing.T) {
 		packages := native.CombinedImporter{
 			native.Packages{
-				"pkg": native.DeclarationsPackage{
+				"pkg": native.Package{
 					Name: "pkg",
 					Declarations: native.Declarations{
 						"Value": &TypeStruct{},
@@ -58,7 +58,7 @@ func TestIssue403(t *testing.T) {
 	t.Run("Method call on not-predefined variable", func(t *testing.T) {
 		packages := native.CombinedImporter{
 			native.Packages{
-				"pkg": native.DeclarationsPackage{
+				"pkg": native.Package{
 					Name: "pkg",
 					Declarations: native.Declarations{
 						"Type": reflect.TypeOf(new(TypeStruct)).Elem(),
@@ -88,7 +88,7 @@ func TestIssue403(t *testing.T) {
 	t.Run("Function that takes a struct as argument", func(t *testing.T) {
 		packages := native.CombinedImporter{
 			native.Packages{
-				"pkg": native.DeclarationsPackage{
+				"pkg": native.Package{
 					Name: "pkg",
 					Declarations: native.Declarations{
 						"F": func(s struct{}) {},
@@ -120,7 +120,7 @@ func TestIssue403(t *testing.T) {
 	t.Run("Function taking an array", func(t *testing.T) {
 		packages := native.CombinedImporter{
 			native.Packages{
-				"pkg": native.DeclarationsPackage{
+				"pkg": native.Package{
 					Name: "pkg",
 					Declarations: native.Declarations{
 						"F": func(s [3]int) {},
@@ -157,7 +157,7 @@ func TestIssue309(t *testing.T) {
 	t.Run("Add right position to 'imported and not used' errors", func(t *testing.T) {
 		packages := native.CombinedImporter{
 			native.Packages{
-				"pkg": native.DeclarationsPackage{
+				"pkg": native.Package{
 					Name: "pkg",
 					Declarations: native.Declarations{
 						"Value": &TypeStruct{},
@@ -368,7 +368,7 @@ func TestImportPackageName(t *testing.T) {
 			fsys["main.go"] = `package main; import ` + cas.ident + ` "a.b/p"; func main() { }`
 		}
 		options.Packages = native.Packages{
-			"a.b/p": native.DeclarationsPackage{Name: cas.name},
+			"a.b/p": native.Package{Name: cas.name},
 		}
 		_, err := scriggo.Build(fsys, options)
 		if err == nil {
@@ -398,7 +398,7 @@ func TestImportPackageName2(t *testing.T) {
 	}
 	options := &scriggo.BuildOptions{
 		Packages: native.Packages{
-			"a.b/p": native.DeclarationsPackage{Name: "$"},
+			"a.b/p": native.Package{Name: "$"},
 		},
 	}
 	_, err := scriggo.Build(fsys, options)

@@ -1877,7 +1877,7 @@ func (mp *MvEnv) MpNil(env native.Env, a, b int) int {
 }
 
 func TestCheckerRemoveEnv(t *testing.T) {
-	p := native.DeclarationsPackage{
+	p := native.Package{
 		Name: "p",
 		Declarations: native.Declarations{
 			"T":      reflect.TypeOf(T(0)),

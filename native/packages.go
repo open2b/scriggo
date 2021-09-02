@@ -12,14 +12,14 @@ import "errors"
 // that the lookup should be stopped.
 var StopLookup = errors.New("stop lookup")
 
-// LookupFunc is the type of the function called by Package.LookupFunc to read
-// each package declaration. If the function returns an error,
-// Package.LookupFunc stops and returns the error or nil if the error is
-// StopLookup.
+// LookupFunc is the type of the function called by
+// ImportablePackage.LookupFunc to read each package declaration. If the
+// function returns an error, ImportablePackage.LookupFunc stops and returns
+// the error or nil if the error is StopLookup.
 type LookupFunc func(name string, decl Declaration) error
 
-// Package represents a native package.
-type Package interface {
+// ImportablePackage represents an importable package.
+type ImportablePackage interface {
 
 	// PackageName returns the name of the package.
 	// It is a Go identifier but not the empty identifier.
@@ -34,21 +34,21 @@ type Package interface {
 	LookupFunc(f LookupFunc) error
 }
 
-// PackageImporter represents a package importer; Import returns the native
-// package with the given package path.
+// Importer represents a package importer; Import returns the native package
+// with the given package path.
 //
 // If an error occurs it returns the error, if the package does not exist it
 // returns nil and nil.
-type PackageImporter interface {
-	Import(path string) (Package, error)
+type Importer interface {
+	Import(path string) (ImportablePackage, error)
 }
 
 // CombinedImporter combines multiple importers into one importer.
-type CombinedImporter []PackageImporter
+type CombinedImporter []Importer
 
 // Import calls the Import method of each importer and returns as soon as an
 // importer returns a package.
-func (importers CombinedImporter) Import(path string) (Package, error) {
+func (importers CombinedImporter) Import(path string) (ImportablePackage, error) {
 	for _, importer := range importers {
 		p, err := importer.Import(path)
 		if p != nil || err != nil {
@@ -58,19 +58,19 @@ func (importers CombinedImporter) Import(path string) (Package, error) {
 	return nil, nil
 }
 
-// Packages implements PackageImporter using a map of Package.
-type Packages map[string]Package
+// Packages implements Importer using a map of ImportablePackage.
+type Packages map[string]ImportablePackage
 
-// Import returns a Package.
-func (pp Packages) Import(path string) (Package, error) {
+// Import returns an ImportablePackage.
+func (pp Packages) Import(path string) (ImportablePackage, error) {
 	if p, ok := pp[path]; ok {
 		return p, nil
 	}
 	return nil, nil
 }
 
-// DeclarationsPackage implements Package given its name and declarations.
-type DeclarationsPackage struct {
+// Package implements ImportablePackage given its name and declarations.
+type Package struct {
 	// Name of the package.
 	Name string
 	// Declarations of the package.
@@ -78,19 +78,19 @@ type DeclarationsPackage struct {
 }
 
 // PackageName returns the name of the package.
-func (p DeclarationsPackage) PackageName() string {
+func (p Package) PackageName() string {
 	return p.Name
 }
 
 // Lookup returns the declaration named name in the package or nil if no such
 // declaration exists.
-func (p DeclarationsPackage) Lookup(name string) Declaration {
+func (p Package) Lookup(name string) Declaration {
 	return p.Declarations[name]
 }
 
 // LookupFunc calls f for each package declaration stopping if f returns an
 // error. Lookup order is undefined.
-func (p DeclarationsPackage) LookupFunc(f LookupFunc) error {
+func (p Package) LookupFunc(f LookupFunc) error {
 	var err error
 	for n, d := range p.Declarations {
 		if err := f(n, d); err != nil {
@@ -103,13 +103,13 @@ func (p DeclarationsPackage) LookupFunc(f LookupFunc) error {
 	return err
 }
 
-// CombinedPackage implements a Package by combining multiple packages into
-// one package with name the name of the first package and as declarations the
-// declarations of all packages.
+// CombinedPackage implements an ImportablePackage by combining multiple
+// packages into one package with name the name of the first package and as
+// declarations the declarations of all packages.
 //
 // The Lookup method calls the Lookup methods of each package in order and
 // returns as soon as a package returns a not nil value.
-type CombinedPackage []Package
+type CombinedPackage []ImportablePackage
 
 // PackageName returns the package name of the first combined package.
 func (packages CombinedPackage) PackageName() string {

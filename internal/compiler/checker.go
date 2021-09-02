@@ -33,7 +33,7 @@ const (
 // typecheck makes a type check on tree.
 // This is the entry point for the type checker.
 // Note that tree may be altered during the type checking.
-func typecheck(tree *ast.Tree, importer native.PackageImporter, opts checkerOptions) (map[string]*packageInfo, error) {
+func typecheck(tree *ast.Tree, importer native.Importer, opts checkerOptions) (map[string]*packageInfo, error) {
 
 	if opts.mod == 0 {
 		panic("unspecified modality")
@@ -56,7 +56,7 @@ func typecheck(tree *ast.Tree, importer native.PackageImporter, opts checkerOpti
 	// Prepare the type checking for scripts and templates.
 	var globalScope map[string]scopeName
 	if opts.globals != nil {
-		globals := native.DeclarationsPackage{
+		globals := native.Package{
 			Name:         "main",
 			Declarations: opts.globals,
 		}
@@ -135,7 +135,7 @@ type typechecker struct {
 
 	path string
 
-	importer native.PackageImporter
+	importer native.Importer
 
 	// scopes holds the universe block, global block, file/package block,
 	// and function scopes.
@@ -215,7 +215,7 @@ type usingCheck struct {
 
 // newTypechecker creates a new type checker. A global scope may be provided
 // for scripts and templates.
-func newTypechecker(compilation *compilation, path string, opts checkerOptions, importer native.PackageImporter) *typechecker {
+func newTypechecker(compilation *compilation, path string, opts checkerOptions, importer native.Importer) *typechecker {
 	tt := types.NewTypes()
 	tc := typechecker{
 		compilation:   compilation,

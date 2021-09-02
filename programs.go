@@ -26,7 +26,7 @@ type BuildOptions struct {
 
 	// Packages is a package importer that makes native packages available
 	// in programs and templates through the import statement.
-	Packages native.PackageImporter
+	Packages native.Importer
 
 	// TreeTransformer is a function that transforms a tree. If it is not nil,
 	// it is called before the type checking.

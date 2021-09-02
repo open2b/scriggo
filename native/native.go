@@ -143,7 +143,7 @@ type (
 //  for a type: its reflect.Type value
 //  for a typed constant: its value as a string, boolean or numeric value
 //  for an untyped constant: an UntypedStringConst, UntypedBooleanConst or UntypedNumericConst value
-//  for a package: a Package value (used only for template globals)
+//  for a package: an ImportablePackage value (used only for template globals)
 //
 type Declaration interface{}
 

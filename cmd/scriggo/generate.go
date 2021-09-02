@@ -231,7 +231,7 @@ func init() {
 	{{- range .Declarations}}
 	decs["{{.Name}}"] = {{.Value}}
 	{{- end}}
-	{{.Variable}}[{{.Path}}] = native.DeclarationsPackage{
+	{{.Variable}}[{{.Path}}] = native.Package{
 		Name:         {{.Name}},
 		Declarations: decs,
 	}

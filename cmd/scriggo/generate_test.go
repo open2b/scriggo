@@ -64,7 +64,7 @@ func Test_renderPackages(t *testing.T) {
 				decs["Sscanln"] = fmt.Sscanln
 				decs["State"] = reflect.TypeOf((*fmt.State)(nil)).Elem()
 				decs["Stringer"] = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
-				packages["custom/fmt/path"] = native.DeclarationsPackage{
+				packages["custom/fmt/path"] = native.Package{
 					Name: "fmt",
 					Declarations: decs,
 				}
@@ -119,7 +119,7 @@ func Test_renderPackages(t *testing.T) {
 				decs["TypeXGlobalHeader"] = native.UntypedNumericConst("103")
 				decs["TypeXHeader"] = native.UntypedNumericConst("120")
 				decs["Writer"] = reflect.TypeOf((*tar.Writer)(nil)).Elem()
-				packages["archive/tar"] = native.DeclarationsPackage{
+				packages["archive/tar"] = native.Package{
 					Name: "tar",
 					Declarations: decs,
 				}
@@ -170,7 +170,7 @@ func Test_renderPackages(t *testing.T) {
 				decs["Sscanln"] = fmt.Sscanln
 				decs["State"] = reflect.TypeOf((*fmt.State)(nil)).Elem()
 				decs["Stringer"] = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
-				packages["fmt"] = native.DeclarationsPackage{
+				packages["fmt"] = native.Package{
 					Name: "fmt",
 					Declarations: decs,
 				}
@@ -201,7 +201,7 @@ func Test_renderPackages(t *testing.T) {
 				// "fmt"
 				decs = make(native.Declarations, 1)
 				decs["Println"] = fmt.Println
-				packages["fmt"] = native.DeclarationsPackage{
+				packages["fmt"] = native.Package{
 					Name:      "fmt",
 					Declarations: decs,
 				}

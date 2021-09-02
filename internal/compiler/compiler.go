@@ -74,7 +74,7 @@ type Options struct {
 	Globals     native.Declarations
 
 	// Importer imports the native packages.
-	Importer native.PackageImporter
+	Importer native.Importer
 
 	// MDConverter converts a Markdown source code to HTML.
 	MDConverter Converter
