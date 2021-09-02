@@ -215,7 +215,7 @@ func TestURLEscape(t *testing.T) {
 			out := &strings.Builder{}
 			err = template.Run(out, nil, nil)
 			if err != nil {
-				t.Fatalf("rendering error: %s", err)
+				t.Fatalf("run error: %s", err)
 			}
 			got := out.String()
 			if got != cas.expected {

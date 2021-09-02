@@ -228,7 +228,7 @@ func TestScriptSum(t *testing.T) {
 	}
 	script, err := scripts.Build(strings.NewReader(src), options)
 	if err != nil {
-		t.Fatalf("unable to load script: %s", err)
+		t.Fatalf("unable to build script: %s", err)
 	}
 	err = script.Run(init, nil)
 	if err != nil {
@@ -251,11 +251,11 @@ func TestScriptsChainMessages(t *testing.T) {
 	init := map[string]interface{}{"Message": &Message}
 	script1, err := scripts.Build(strings.NewReader(src1), options)
 	if err != nil {
-		t.Fatalf("unable to load script 1: %s", err)
+		t.Fatalf("unable to build script 1: %s", err)
 	}
 	script2, err := scripts.Build(strings.NewReader(src2), options)
 	if err != nil {
-		t.Fatalf("unable to load script 2: %s", err)
+		t.Fatalf("unable to build script 2: %s", err)
 	}
 	err = script1.Run(init, nil)
 	if err != nil {

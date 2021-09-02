@@ -318,12 +318,12 @@ func TestRenderExpressions(t *testing.T) {
 			fsys := fstest.Files{"index.html": "{{" + cas.src + "}}"}
 			template, err := scriggo.BuildTemplate(fsys, "index.html", nil)
 			if err != nil {
-				t.Fatalf("source %q: loading error: %s", cas.src, err)
+				t.Fatalf("source %q: build error: %s", cas.src, err)
 			}
 			b := &bytes.Buffer{}
 			err = template.Run(b, nil, nil)
 			if err != nil {
-				t.Fatalf("source %q: rendering error: %s", cas.src, err)
+				t.Fatalf("source %q: run error: %s", cas.src, err)
 			}
 			if cas.expected != b.String() {
 				t.Fatalf("source %q: expecting %q, got %q", cas.src, cas.expected, b)
@@ -541,12 +541,12 @@ func TestRenderStatements(t *testing.T) {
 			fsys := fstest.Files{"index.html": cas.src}
 			template, err := scriggo.BuildTemplate(fsys, "index.html", nil)
 			if err != nil {
-				t.Fatalf("source %q: loading error: %s", cas.src, err)
+				t.Fatalf("source %q: build error: %s", cas.src, err)
 			}
 			b := &bytes.Buffer{}
 			err = template.Run(b, nil, nil)
 			if err != nil {
-				t.Fatalf("source %q: rendering error: %s", cas.src, err)
+				t.Fatalf("source %q: run error: %s", cas.src, err)
 			}
 			if cas.expected != b.String() {
 				t.Fatalf("source %q: expecting %q, got %q", cas.src, cas.expected, b)
@@ -3795,7 +3795,7 @@ func TestMultiFileTemplate(t *testing.T) {
 			case err == nil && cas.expectedBuildErr == "":
 				// Ok, no errors expected: continue with the test.
 			case err != nil && cas.expectedBuildErr == "":
-				t.Fatalf("unexpected loading error: %q", err)
+				t.Fatalf("unexpected build error: %q", err)
 			case err == nil && cas.expectedBuildErr != "":
 				t.Fatalf("expected error %q but not errors have been returned by Build", cas.expectedBuildErr)
 			case err != nil && cas.expectedBuildErr != "":
@@ -3809,7 +3809,7 @@ func TestMultiFileTemplate(t *testing.T) {
 			w := &bytes.Buffer{}
 			err = template.Run(w, cas.vars, &scriggo.RunOptions{Print: printFunc(w)})
 			if err != nil {
-				t.Fatalf("rendering error: %s", err)
+				t.Fatalf("run error: %s", err)
 			}
 			if cas.expectedOut != w.String() {
 				t.Fatalf("expecting %q, got %q", cas.expectedOut, w.String())
