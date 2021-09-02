@@ -178,6 +178,18 @@ var tests = []struct {
 	{sp(ParseInt("-12", 10)), "-12 <nil>"},
 	{sp(ParseInt("f6b", 16)), "3947 <nil>"},
 
+	// pow
+	{sp(Pow(0, 0)), "1"},
+	{sp(Pow(0, 1)), "0"},
+	{sp(Pow(1, 1)), "1"},
+	{sp(Pow(5, 3)), "125"},
+	{sp(Pow(-7, 4)), "2401"},
+	{sp(Pow(12, 7)), "3.5831808e+07"},
+	{sp(Pow(1<<31, 2)), "4.611686018427388e+18"},
+	{sp(Pow(5.3, 2.8)), "106.65284254249674"},
+	{sp(Pow(-2.89, 4.11)), "NaN"},
+	{sp(Pow(12.6, 7.85)), "4.3441896761340076e+08"},
+
 	// regexp
 	{spf("%t", RegExp("(scriggo){2}").Match("scriggo")), "false"},
 	{spf("%t", RegExp("(scriggo){2}").Match("scriggoscriggo")), "true"},

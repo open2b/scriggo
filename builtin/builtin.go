@@ -59,6 +59,7 @@
 //  	"abs": builtin.Abs,
 //  	"max": builtin.Max,
 //  	"min": builtin.Min,
+//      "pow": builtin.Pow,
 //
 //  	// net
 //  	"File":        reflect.TypeOf((*builtin.File)(nil)).Elem(),
@@ -511,7 +512,13 @@ func ParseTime(layout, value string) (Time, error) {
 	return NewTime(t), nil
 }
 
-// QueryEscape escapes the string so it can be safely placed
+// Pow returns x**y.
+// See https://pkg.go.dev/math#Pow.
+func Pow(x, y float64) float64 {
+	return math.Pow(x, y)
+}
+
+// QueryEscape escapes the string, so it can be safely placed
 // inside a URL query.
 func QueryEscape(s string) string {
 	const hexchars = "0123456789abcdef"
