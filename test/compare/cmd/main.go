@@ -7,14 +7,12 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"io/fs"
 	"os"
-	"path/filepath"
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/native"
@@ -173,25 +171,4 @@ func markdownConverter(src []byte, out io.Writer) error {
 		_, err = out.Write(mdEnd)
 	}
 	return err
-}
-
-// dirLoader implements the scriggo.PackageLoader interface.
-type dirLoader string
-
-func (dl dirLoader) Load(path string) (interface{}, error) {
-	if path == "main" {
-		main, err := os.ReadFile(filepath.Join(string(dl), "main.go"))
-		if err != nil {
-			return nil, err
-		}
-		return bytes.NewReader(main), nil
-	}
-	data, err := os.ReadFile(filepath.Join(string(dl), path+".go"))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return bytes.NewReader(data), nil
 }
