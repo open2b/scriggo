@@ -94,7 +94,7 @@ func toTypeCheckerScope(pkg native.Package, mod checkingMod, global bool, depth 
 				// Import a typed constant.
 				ti.Constant = convertToConstant(rv)
 				if ti.Constant == nil {
-					panic(fmt.Errorf("scriggo: loading package %s, declaration %q is not valid", pkg.PackageName(), ident))
+					panic(fmt.Errorf("scriggo: importing package %s, declaration %q is not valid", pkg.PackageName(), ident))
 				}
 				ti.Type = rv.Type()
 			}
@@ -505,7 +505,7 @@ varsLoop:
 //
 // extendingFile indicates whether the package pkg was originally a template
 // file that extended another template file.
-func checkPackage(compilation *compilation, pkg *ast.Package, path string, packages native.PackageLoader, opts checkerOptions, extendingFile bool) (err error) {
+func checkPackage(compilation *compilation, pkg *ast.Package, path string, importer native.PackageImporter, opts checkerOptions, extendingFile bool) (err error) {
 
 	// If the package has already been checked just return.
 	if _, ok := compilation.pkgInfos[path]; ok {
@@ -522,7 +522,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, packa
 		}
 	}()
 
-	tc := newTypechecker(compilation, path, opts, packages)
+	tc := newTypechecker(compilation, path, opts, importer)
 
 	// Check package level names for "init" and "main"
 	// and check that constant declarations are balanced.

@@ -73,8 +73,8 @@ type Options struct {
 	FormatTypes map[ast.Format]reflect.Type
 	Globals     native.Declarations
 
-	// Packages loads the native packages.
-	Packages native.PackageLoader
+	// Importer imports the native packages.
+	Importer native.PackageImporter
 
 	// MDConverter converts a Markdown source code to HTML.
 	MDConverter Converter
@@ -110,7 +110,7 @@ func (e *GoModError) Position() ast.Position {
 }
 
 // BuildProgram builds a Go program from the package in the root of fsys with
-// the given options, loading the imported packages from packages.
+// the given options, importing the imported packages from packages.
 //
 // Current limitation: fsys can contain only one Go file in its root.
 //
@@ -137,7 +137,7 @@ func BuildProgram(fsys fs.FS, opts Options) (*Code, error) {
 		allowGoStmt: opts.AllowGoStmt,
 		globals:     opts.Globals,
 	}
-	tci, err := typecheck(tree, opts.Packages, checkerOpts)
+	tci, err := typecheck(tree, opts.Importer, checkerOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +164,7 @@ func BuildScript(r io.Reader, opts Options) (*Code, error) {
 
 	// Parse the source code.
 	var err error
-	tree, err = ParseScript(r, opts.Packages)
+	tree, err = ParseScript(r, opts.Importer)
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +183,7 @@ func BuildScript(r io.Reader, opts Options) (*Code, error) {
 		allowGoStmt: opts.AllowGoStmt,
 		globals:     opts.Globals,
 	}
-	tci, err := typecheck(tree, opts.Packages, checkerOpts)
+	tci, err := typecheck(tree, opts.Importer, checkerOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -231,7 +231,7 @@ func BuildTemplate(fsys fs.FS, name string, opts Options) (*Code, error) {
 		mdConverter: opts.MDConverter,
 		mod:         templateMod,
 	}
-	tci, err := typecheck(tree, opts.Packages, checkerOpts)
+	tci, err := typecheck(tree, opts.Importer, checkerOpts)
 	if err != nil {
 		return nil, err
 	}

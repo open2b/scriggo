@@ -34,23 +34,23 @@ type Package interface {
 	LookupFunc(f LookupFunc) error
 }
 
-// PackageLoader represents a package loader; Load returns the native package
-// with the given path.
+// PackageImporter represents a package importer; Import returns the native
+// package with the given package path.
 //
 // If an error occurs it returns the error, if the package does not exist it
-// returns a nil package.
-type PackageLoader interface {
-	Load(path string) (Package, error)
+// returns nil and nil.
+type PackageImporter interface {
+	Import(path string) (Package, error)
 }
 
-// CombinedLoader combines multiple loaders into one loader.
-type CombinedLoader []PackageLoader
+// CombinedImporter combines multiple importers into one importer.
+type CombinedImporter []PackageImporter
 
-// Load calls each loader's Load methods and returns as soon as a loader
-// returns a package.
-func (loaders CombinedLoader) Load(path string) (Package, error) {
-	for _, loader := range loaders {
-		p, err := loader.Load(path)
+// Import calls the Import method of each importer and returns as soon as an
+// importer returns a package.
+func (importers CombinedImporter) Import(path string) (Package, error) {
+	for _, importer := range importers {
+		p, err := importer.Import(path)
 		if p != nil || err != nil {
 			return p, err
 		}
@@ -58,11 +58,11 @@ func (loaders CombinedLoader) Load(path string) (Package, error) {
 	return nil, nil
 }
 
-// Packages implements PackageLoader using a map of Package.
+// Packages implements PackageImporter using a map of Package.
 type Packages map[string]Package
 
-// Load returns a Package.
-func (pp Packages) Load(path string) (Package, error) {
+// Import returns a Package.
+func (pp Packages) Import(path string) (Package, error) {
 	if p, ok := pp[path]; ok {
 		return p, nil
 	}

@@ -15,9 +15,9 @@ It also provides a web server that serves a template rooted at the current
 directory, useful to learn Scriggo templates. See 'scriggo help serve'.
 
 The scriggo tool is not required to embed Scriggo in an application but it is
-useful to generate the code for a package loader used by the Scriggo Build and
-BuildTemplate functions to load the packages that can be imported during the
-execution of programs and templates.
+useful to generate the code for a package importer used by the Scriggo Build
+and BuildTemplate functions to import the packages that can be imported during
+the execution of programs and templates.
 
 For more about the use of the scriggo command to embed Scriggo in an
 application, see 'scriggo help embed'.
@@ -30,8 +30,8 @@ The commands are:
 
     init        initialize a interpreter for Go programs
 
-    embed       make a Go file with the source of a package loader useful when
-                embedding Scriggo in an application
+    embed       make a Go file with the source of a package importer useful
+                when embedding Scriggo in an application
 
     serve       run a web server and serves the template rooted at the current
                 directory
@@ -121,7 +121,7 @@ If no argument is given, the action applies to the current directory.
 The -f flag forces embed to read the given Scriggofile instead of the
 Scriggofile of the module.
 
-The declarations in the generated Go file have type scriggo.PackageLoader and
+The declarations in the generated Go file have type scriggo.PackageImporter and
 they are assigned to a variable named 'packages'. The variable can be used as
 an argument to the Build functions in the scriggo package.
 
@@ -246,8 +246,9 @@ The instructions are:
     SET VARIABLE <name> 
 
         Set the name of the variable to witch is assigned the value of type
-        scriggo.PackageLoader with the packages to import. By default the name
-        is 'packages'. This instruction is only read by the 'embed' command. 
+        scriggo.PackageImporter with the packages to import. By default the
+        name is 'packages'. This instruction is only read by the 'embed'
+        command. 
 
     SET PACKAGE <name>
 

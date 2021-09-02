@@ -261,7 +261,7 @@ func init() {
 // and its exported declarations.
 //
 // refToImport reports whether at least one declaration refers to the import
-// path directly; for example when loading a package with no declarations or
+// path directly; for example when importing a package with no declarations or
 // where all declarations are constant literals refToImport is false.
 //
 // refToScriggo reports whether at least one of the declarations refers to the

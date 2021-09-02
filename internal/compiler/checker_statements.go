@@ -952,11 +952,11 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	// Import a native package.
 	if impor.Tree == nil {
 
-		// Load the native package.
-		if tc.pkgLoader == nil {
+		// Import the native package.
+		if tc.importer == nil {
 			return tc.errorf(impor, "cannot find package %q", impor.Path)
 		}
-		pkg, err := tc.pkgLoader.Load(impor.Path)
+		pkg, err := tc.importer.Import(impor.Path)
 		if err != nil {
 			return tc.errorf(impor, "%s", err)
 		}
@@ -1032,7 +1032,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 	}
 
 	// Check the package and retrieve the package infos.
-	err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, tc.pkgLoader, tc.opts, tc.compilation.extendingTrees[impor.Tree])
+	err := checkPackage(tc.compilation, impor.Tree.Nodes[0].(*ast.Package), impor.Tree.Path, tc.importer, tc.opts, tc.compilation.extendingTrees[impor.Tree])
 	if err != nil {
 		return err
 	}

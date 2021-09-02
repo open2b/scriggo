@@ -162,8 +162,8 @@ func parsePackage(fsys fs.FS, dir string) (*ast.Tree, error) {
 }
 
 // ParseScript parses a script reading its source from src and the imported
-// packages form the loader.
-func ParseScript(src io.Reader, packages native.PackageLoader) (*ast.Tree, error) {
+// packages form the importer.
+func ParseScript(src io.Reader, importer native.PackageImporter) (*ast.Tree, error) {
 
 	// Parse the source.
 	buf, err := io.ReadAll(src)
@@ -184,11 +184,11 @@ func ParseScript(src io.Reader, packages native.PackageLoader) (*ast.Tree, error
 		if !ok {
 			break
 		}
-		// Load the package.
-		if packages == nil {
+		// Import the package.
+		if importer == nil {
 			return nil, syntaxError(imp.Pos(), "cannot find package %q", imp.Path)
 		}
-		pkg, err := packages.Load(imp.Path)
+		pkg, err := importer.Import(imp.Path)
 		if err != nil {
 			return nil, err
 		}
@@ -197,7 +197,7 @@ func ParseScript(src io.Reader, packages native.PackageLoader) (*ast.Tree, error
 		case nil:
 			return nil, syntaxError(imp.Pos(), "cannot find package %q", imp.Path)
 		default:
-			return nil, fmt.Errorf("scriggo: unexpected type %T returned by the package loader", pkg)
+			return nil, fmt.Errorf("scriggo: unexpected type %T returned by the package importer", pkg)
 		}
 	}
 

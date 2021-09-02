@@ -33,7 +33,7 @@ const (
 // typecheck makes a type check on tree.
 // This is the entry point for the type checker.
 // Note that tree may be altered during the type checking.
-func typecheck(tree *ast.Tree, packages native.PackageLoader, opts checkerOptions) (map[string]*packageInfo, error) {
+func typecheck(tree *ast.Tree, importer native.PackageImporter, opts checkerOptions) (map[string]*packageInfo, error) {
 
 	if opts.mod == 0 {
 		panic("unspecified modality")
@@ -46,7 +46,7 @@ func typecheck(tree *ast.Tree, packages native.PackageLoader, opts checkerOption
 			return nil, &CheckingError{path: tree.Path, pos: *pkg.Pos(), err: errors.New("package name must be main")}
 		}
 		compilation := newCompilation(nil)
-		err := checkPackage(compilation, pkg, tree.Path, packages, opts, false)
+		err := checkPackage(compilation, pkg, tree.Path, importer, opts, false)
 		if err != nil {
 			return nil, err
 		}
@@ -74,7 +74,7 @@ func typecheck(tree *ast.Tree, packages native.PackageLoader, opts checkerOption
 	}
 
 	compilation := newCompilation(globalScope)
-	tc := newTypechecker(compilation, tree.Path, opts, packages)
+	tc := newTypechecker(compilation, tree.Path, opts, importer)
 
 	// If tree extends another template file, transform it swapping the files
 	// and adding a dummy 'import' statement that imports the extending file.
@@ -135,7 +135,7 @@ type typechecker struct {
 
 	path string
 
-	pkgLoader native.PackageLoader
+	importer native.PackageImporter
 
 	// scopes holds the universe block, global block, file/package block,
 	// and function scopes.
@@ -215,7 +215,7 @@ type usingCheck struct {
 
 // newTypechecker creates a new type checker. A global scope may be provided
 // for scripts and templates.
-func newTypechecker(compilation *compilation, path string, opts checkerOptions, pkgLoader native.PackageLoader) *typechecker {
+func newTypechecker(compilation *compilation, path string, opts checkerOptions, importer native.PackageImporter) *typechecker {
 	tt := types.NewTypes()
 	tc := typechecker{
 		compilation:   compilation,
@@ -227,7 +227,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 		types:         tt,
 		mdConverter:   opts.mdConverter,
 		structDeclPkg: map[reflect.Type]string{},
-		pkgLoader:     pkgLoader,
+		importer:      importer,
 		toBeEmitted:   true,
 	}
 	if tc.opts.mod == templateMod {

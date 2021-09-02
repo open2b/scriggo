@@ -697,7 +697,7 @@ var templateMultiFileCases = map[string]struct {
 	main             native.DeclarationsPackage // default to nil
 	vars             map[string]interface{}     // default to nil
 	entryPoint       string                     // default to "index.html"
-	packages         native.PackageLoader       // default to nil
+	importer         native.PackageImporter     // default to nil
 	noParseShow      bool
 	dollarIdentifier bool // default to false
 }{
@@ -1398,7 +1398,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% import "fmt" %}{{ fmt.Sprint(10, 20) }}`,
 		},
-		packages:    testPackages,
+		importer:    testPackages,
 		expectedOut: "10 20",
 	},
 
@@ -1407,7 +1407,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt":    `{% extends "extended.txt" %}{% import "fmt" %}{% macro M %}{{ fmt.Sprint(321, 11) }}{% end macro %}`,
 			"extended.txt": `{% show M() %}`,
 		},
-		packages:    testPackages,
+		importer:    testPackages,
 		expectedOut: "321 11",
 	},
 
@@ -1415,7 +1415,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% import "fmt" %}{% import m "math" %}{{ fmt.Sprint(-42, m.Abs(-42)) }}`,
 		},
-		packages:    testPackages,
+		importer:    testPackages,
 		expectedOut: "-42 42",
 	},
 
@@ -1423,15 +1423,15 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% import . "fmt" %}{{ Sprint(50, 70) }}`,
 		},
-		packages:    testPackages,
+		importer:    testPackages,
 		expectedOut: "50 70",
 	},
 
-	"Trying to import a precompiled package that is not available in the loader": {
+	"Trying to import a precompiled package that is not available in the importer": {
 		sources: map[string]string{
 			"index.txt": `{% import "mypackage" %}{{ mypackage.F() }}`,
 		},
-		packages:         testPackages,
+		importer:         testPackages,
 		expectedBuildErr: "index.txt:1:11: cannot find package \"mypackage\"",
 	},
 
@@ -1439,7 +1439,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% import "fmt" %}{{ fmt.SuperPrint(42) }}`,
 		},
-		packages:         testPackages,
+		importer:         testPackages,
 		expectedBuildErr: "index.txt:1:25: undefined: fmt.SuperPrint",
 	},
 
@@ -1447,7 +1447,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{{ fmt.Sprint(10, 20) }}`,
 		},
-		packages:         testPackages,
+		importer:         testPackages,
 		expectedBuildErr: "index.txt:1:4: undefined: fmt",
 	},
 
@@ -2159,7 +2159,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt":    `{%% extends "extended.txt" %%}{% import "fmt" %}{% macro M %}{{ fmt.Sprint(321, 11) }}{% end macro %}`,
 			"extended.txt": `{% show M() %}`,
 		},
-		packages:    testPackages,
+		importer:    testPackages,
 		expectedOut: "321 11",
 	},
 
@@ -2171,7 +2171,7 @@ var templateMultiFileCases = map[string]struct {
 			%%}
 			{{ fmt.Sprint(-42, m.Abs(-42)) }}`,
 		},
-		packages:    testPackages,
+		importer:    testPackages,
 		expectedOut: "\t\t\t-42 42",
 	},
 
@@ -2543,7 +2543,7 @@ var templateMultiFileCases = map[string]struct {
 			"index.txt":    `{% import . "imported.txt" %}{{ A }}, len is {{ len(A) }}`,
 			"imported.txt": `{% import "fmt" %}{% var A = fmt.Sprint(42) %}`,
 		},
-		packages:    testPackages,
+		importer:    testPackages,
 		expectedOut: "42, len is 2",
 	},
 
@@ -2551,7 +2551,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% import "fmt" %}that's ok`,
 		},
-		packages:    testPackages,
+		importer:    testPackages,
 		expectedOut: "that's ok",
 	},
 
@@ -3613,7 +3613,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: map[string]string{
 			"index.txt": `{% import "fmt" for Sprint %}{{ Sprint(10, 20) }}`,
 		},
-		packages:    testPackages,
+		importer:    testPackages,
 		expectedOut: "10 20",
 	},
 
@@ -3785,7 +3785,7 @@ func TestMultiFileTemplate(t *testing.T) {
 			}
 			opts := &scriggo.BuildOptions{
 				Globals:              globals,
-				Packages:             cas.packages,
+				Packages:             cas.importer,
 				MarkdownConverter:    markdownConverter,
 				NoParseShortShowStmt: cas.noParseShow,
 				DollarIdentifier:     cas.dollarIdentifier,

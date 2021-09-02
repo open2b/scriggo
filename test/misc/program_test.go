@@ -27,7 +27,7 @@ func (t TypeStruct) Method() {}
 // hard to reproduce without writing host code
 func TestIssue403(t *testing.T) {
 	t.Run("Method call on predefined variable", func(t *testing.T) {
-		packages := native.CombinedLoader{
+		packages := native.CombinedImporter{
 			native.Packages{
 				"pkg": native.DeclarationsPackage{
 					Name: "pkg",
@@ -56,7 +56,7 @@ func TestIssue403(t *testing.T) {
 		}
 	})
 	t.Run("Method call on not-predefined variable", func(t *testing.T) {
-		packages := native.CombinedLoader{
+		packages := native.CombinedImporter{
 			native.Packages{
 				"pkg": native.DeclarationsPackage{
 					Name: "pkg",
@@ -86,7 +86,7 @@ func TestIssue403(t *testing.T) {
 		}
 	})
 	t.Run("Function that takes a struct as argument", func(t *testing.T) {
-		packages := native.CombinedLoader{
+		packages := native.CombinedImporter{
 			native.Packages{
 				"pkg": native.DeclarationsPackage{
 					Name: "pkg",
@@ -118,7 +118,7 @@ func TestIssue403(t *testing.T) {
 		}
 	})
 	t.Run("Function taking an array", func(t *testing.T) {
-		packages := native.CombinedLoader{
+		packages := native.CombinedImporter{
 			native.Packages{
 				"pkg": native.DeclarationsPackage{
 					Name: "pkg",
@@ -155,7 +155,7 @@ func TestIssue403(t *testing.T) {
 // https://github.com/open2b/scriggo/issues/309.
 func TestIssue309(t *testing.T) {
 	t.Run("Add right position to 'imported and not used' errors", func(t *testing.T) {
-		packages := native.CombinedLoader{
+		packages := native.CombinedImporter{
 			native.Packages{
 				"pkg": native.DeclarationsPackage{
 					Name: "pkg",

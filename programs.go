@@ -24,9 +24,9 @@ type BuildOptions struct {
 	// AllowGoStmt, when true, allows the use of the go statement.
 	AllowGoStmt bool
 
-	// Packages is a package loader that makes native packages available
+	// Packages is a package importer that makes native packages available
 	// in programs and templates through the import statement.
-	Packages native.PackageLoader
+	Packages native.PackageImporter
 
 	// TreeTransformer is a function that transforms a tree. If it is not nil,
 	// it is called before the type checking.
@@ -94,7 +94,7 @@ func Build(fsys fs.FS, options *BuildOptions) (*Program, error) {
 	co := compiler.Options{}
 	if options != nil {
 		co.AllowGoStmt = options.AllowGoStmt
-		co.Packages = options.Packages
+		co.Importer = options.Packages
 	}
 	code, err := compiler.BuildProgram(fsys, co)
 	if err != nil {
