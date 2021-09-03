@@ -9,7 +9,7 @@ and templates.
 * Secure by default. No access to packages unless explicitly enabled.
 * Modern and powerful Template Engine with Go as scripting language.
 * Native support for Markdown in templates.
-* Easy to embed and fully interoperable with any Go application.
+* Easy to embed and to interop with any Go application.
 
 ## Get Started with Programs
 
