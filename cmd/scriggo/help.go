@@ -8,21 +8,9 @@ package main
 
 const helpScriggo = `
 Scriggo is an embeddable Go interpreter. The scriggo command is a tool that
-can be used to initialize an interpreter and to generate Go source files useful
-to embed Scriggo in an application.
-
-It also provides a web server that serves a template rooted at the current
-directory, useful to learn Scriggo templates. See 'scriggo help serve'.
-
-The scriggo tool is not required to embed Scriggo in an application but it is
-useful to generate the code for a package importer used by the Scriggo Build
-and BuildTemplate functions to import the packages that can be imported during
-the execution of programs and templates.
-
-For more about the use of the scriggo command to embed Scriggo in an
-application, see 'scriggo help import'.
-
-The scriggo command is also able to initialize an interpreter for Go programs.
+can be used to initialize an interpreter, generate the source files for a
+package importer and also provides a web server that serves a template rooted
+at the current directory, useful to learn Scriggo templates.
 
 For more about to build interpreters, see 'scriggo help init'.
 
@@ -30,13 +18,13 @@ The commands are:
 
     init        initialize a interpreter for Go programs
 
-    import      make a Go file with the source of a package importer useful
-                when embedding Scriggo in an application
+    import      generate the source for an importer used by Scriggo to import 
+                a package when an 'import' statement is executed.
 
     serve       run a web server and serves the template rooted at the current
-                directory
+                directory. The served files can be HTML and Markdown.
 
-    version     print Scriggo and scriggo version
+    version     print the scriggo command version
 
     stdlib      print the packages imported by the instruction
                 'IMPORT STANDARD LIBRARY' in the Scriggofile
@@ -46,9 +34,9 @@ Use 'scriggo help <command>' for more information about a command.
 Additional help topics:
 
     Scriggofile     syntax of the Scriggofile
-    
+
     limitations     limitations of the Scriggo compiler/runtime.
-    
+
 `
 
 const helpInit = `
@@ -105,9 +93,11 @@ See also: scriggo import.
 const helpImport = `
 usage: scriggo import [-f Scriggofile] [-v] [-x] [-o output] [module]
 
-Import makes a Go source file from a Scriggofile in a module, containing the
-exported declarations of the packages imported in the Scriggofile. The
-generated file is useful when embedding Scriggo in an application.
+Import generate the code for a package importer. An importer is used by Scriggo
+to import a package when an 'import' statement is executed.
+
+The code for the importer is generated from the instructions in a Scriggofile.
+The Scriggofile should be in a Go module.
 
 Import prints the generated source to the standard output. Use the flag -o
 to redirect the source to a named output file.
@@ -157,15 +147,19 @@ It renders HTML and Markdown files based on file extension.
 
 For example:
 
-    http://localhost:8080/article.html
+    http://localhost:8080/article
 
-renders the template file named 'article.html' as HTML and
+it renders the file 'article.html' as HTML if exists, otherwise renders the
+file 'article.md' as Markdown.
 
-    http://localhost:8080/blog.md
+Serving a URL terminating with a slash:
 
-renders the template file named 'blog.md' as Markdown. Markdown is converted to
-HTML with the Goldmark parser with the options html.WithUnsafe and
-parser.WithAutoHeadingID.
+    http://localhost:8080/blog/
+
+it renders 'blog/index.html' or 'blog/index.md'.
+
+Markdown is converted to HTML with the Goldmark parser with the options
+html.WithUnsafe and parser.WithAutoHeadingID.
 
 Templates are automatically rebuilt when a file changes.
 
