@@ -111,9 +111,9 @@ If no argument is given, the action applies to the current directory.
 The -f flag forces import to read the given Scriggofile instead of the
 Scriggofile of the module.
 
-The declarations in the generated Go file have type scriggo.PackageImporter and
-they are assigned to a variable named 'packages'. The variable can be used as
-an argument to the Build functions in the scriggo package.
+The importer in the generated Go file have type native.Importer and it is
+assigned to a variable named 'packages'. The variable can be used as an
+argument to the Build and BuildTemplate functions in the scriggo package.
 
 To give a different name to the variable use the instruction SET VARIABLE in
 the Scriggofile:
