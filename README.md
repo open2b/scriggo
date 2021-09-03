@@ -11,7 +11,7 @@ and templates.
 * Native support for Markdown in templates.
 * Easy to embed and fully interoperable with any Go application.
 
-## Get Started
+## Get Started with Programs
 
 Execute a Go program embedded in your application:
 
@@ -49,7 +49,7 @@ func main() {
 }
 ```
 
-### Scriggo templates
+## Get Started with Templates
 
 Scriggo is also a modern and powerful template engine for Go, supporting inheritance,
 macros, partials, imports and contextual autoescaping but most of all it uses the
@@ -71,7 +71,7 @@ Go language as the template scripting language.
 
 Scriggo template files can be written in plain text, HTML, Markdown, CSS, JavaScript and JSON.
 
-#### Execute a Scriggo template in your application:
+### Execute a Scriggo template in your application
 
 ```go
 // Build and run a Scriggo template.
