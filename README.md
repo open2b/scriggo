@@ -1,14 +1,13 @@
 # Scriggo
 
-Scriggo is the fast and safe open-source Go runtime to embed the Go language as a scripting language in Go applications
-and templates.
+The fastest, modern and secure Go template engine and embeddable Go runtime.
 
 ## Features
 
-* Fast, the fastest pure Go language runtime.
-* Secure by default. No access to packages unless explicitly enabled.
+* Fast, the fastest embeddable pure Go language runtime.
 * Modern and powerful Template Engine with Go as scripting language.
 * Native support for Markdown in templates.
+* Secure by default. No access to packages unless explicitly enabled.
 * Easy to embed and to interop with any Go application.
 
 ## Get Started with Programs
