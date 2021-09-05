@@ -67,8 +67,8 @@ func (e *CycleError) Path() string {
 	return e.path
 }
 
-// Position returns the position of the statements extends and import or the
-// expression render referring the second file in the cycle.
+// Position returns the position of the extends and import declarations or the
+// render expression referring the second file in the cycle.
 func (e *CycleError) Position() ast.Position {
 	return e.pos
 }

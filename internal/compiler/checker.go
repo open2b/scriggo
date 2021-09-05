@@ -77,7 +77,7 @@ func typecheck(tree *ast.Tree, importer native.Importer, opts checkerOptions) (m
 	tc := newTypechecker(compilation, tree.Path, opts, importer)
 
 	// If tree extends another template file, transform it swapping the files
-	// and adding a dummy 'import' statement that imports the extending file.
+	// and adding a dummy 'import' declaration that imports the extending file.
 	var extending bool
 	if extends, ok := getExtends(tree.Nodes); ok {
 		dummyImport := ast.NewImport(nil, ast.NewIdentifier(nil, "."), tree.Path, nil)

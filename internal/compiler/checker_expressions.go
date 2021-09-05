@@ -2400,7 +2400,7 @@ func (tc *typechecker) checkRender(render *ast.Render) *typeInfo {
 			false,
 			tree.Format,
 		)
-		// The same 'import' statement may be shared by different template
+		// The same 'import' declaration may be shared by different template
 		// files that 'render' the same file. This is the expected and intended
 		// behavior.
 		importt := ast.NewImport(nil, ast.NewIdentifier(nil, "."), "/"+render.Path, nil)
@@ -2414,7 +2414,7 @@ func (tc *typechecker) checkRender(render *ast.Render) *typeInfo {
 	render.IR.Call = ast.NewCall(render.Pos(), stored.Macro.Ident, nil, false)
 	render.IR.Import = stored.Import
 
-	// The same 'import' statement may be type checked more than once per file.
+	// The same 'import' declaration may be type checked more than once per file.
 	// This is the expected and intended behavior.
 	tc.checkNodes([]ast.Node{stored.Import})
 

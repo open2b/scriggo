@@ -943,7 +943,7 @@ nodesLoop:
 
 }
 
-// checkImport type checks the import statement.
+// checkImport type checks the import declaration.
 func (tc *typechecker) checkImport(impor *ast.Import) error {
 	if tc.opts.mod == scriptMod && impor.Tree != nil {
 		panic("BUG: native packages only can be imported in script")

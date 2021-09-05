@@ -706,7 +706,7 @@ func (n *DollarIdentifier) String() string {
 	return "$" + n.Ident.String()
 }
 
-// Extends node represents an "extends" statement.
+// Extends node represents an "extends" declaration.
 type Extends struct {
 	*Position        // position in the source.
 	Path      string // path to extend.
@@ -956,7 +956,7 @@ func NewIf(pos *Position, init Node, cond Expression, then *Block, els Node) *If
 	return &If{pos, init, cond, then, els}
 }
 
-// Import node represents a "import" statement.
+// Import node represents a "import" declaration.
 type Import struct {
 	*Position               // position in the source.
 	Ident     *Identifier   // name (including "." and "_") or nil.
@@ -1160,7 +1160,7 @@ type Render struct {
 	// 'render' expression into a macro call, where the macro body is the
 	// rendered file.
 	IR struct {
-		// Import is the 'import' statement that imports the dummy file
+		// Import is the 'import' declaration that imports the dummy file
 		// declaring the dummy macro.
 		Import *Import
 		// Call is the call to the dummy macro.
