@@ -1424,94 +1424,22 @@ func (vm *VM) run() (Addr, bool) {
 
 		// Receive
 		case OpReceive:
-			channel := vm.general(a)
-			switch ch := channel.Interface().(type) {
-			case chan bool:
-				var v bool
-				if done == nil {
-					v, vm.ok = <-ch
-				} else {
-					select {
-					case v, vm.ok = <-ch:
-					case <-done:
-						return vm.stop()
-					}
+			ch := vm.general(a)
+			var v reflect.Value
+			if done == nil {
+				v, vm.ok = ch.Recv()
+			} else {
+				var chosen int
+				cas := reflect.SelectCase{Dir: reflect.SelectRecv, Chan: ch}
+				vm.cases = append(vm.cases, cas, vm.env.doneCase)
+				chosen, v, vm.ok = reflect.Select(vm.cases)
+				if chosen == 1 {
+					return vm.stop()
 				}
-				if c != 0 {
-					vm.setBool(c, v)
-				}
-			case chan int:
-				var v int
-				if done == nil {
-					v, vm.ok = <-ch
-				} else {
-					select {
-					case v, vm.ok = <-ch:
-					case <-done:
-						return vm.stop()
-					}
-				}
-				if c != 0 {
-					vm.setInt(c, int64(v))
-				}
-			case chan rune:
-				var v rune
-				if done == nil {
-					v, vm.ok = <-ch
-				} else {
-					select {
-					case v, vm.ok = <-ch:
-					case <-done:
-						return vm.stop()
-					}
-				}
-				if c != 0 {
-					vm.setInt(c, int64(v))
-				}
-			case chan string:
-				var v string
-				if done == nil {
-					v, vm.ok = <-ch
-				} else {
-					select {
-					case v, vm.ok = <-ch:
-					case <-done:
-						return vm.stop()
-					}
-				}
-				if c != 0 {
-					vm.setString(c, v)
-				}
-			case chan struct{}:
-				if done == nil {
-					_, vm.ok = <-ch
-				} else {
-					select {
-					case _, vm.ok = <-ch:
-					case <-done:
-						return vm.stop()
-					}
-				}
-				if c != 0 {
-					vm.setGeneral(c, reflect.ValueOf(struct{}{}))
-				}
-			default:
-				var v reflect.Value
-				if done == nil {
-					v, vm.ok = reflect.ValueOf(ch).Recv()
-				} else {
-					var chosen int
-					cas := reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ch)}
-					vm.cases = append(vm.cases, cas, vm.env.doneCase)
-					chosen, v, vm.ok = reflect.Select(vm.cases)
-					if chosen == 1 {
-						return vm.stop()
-					}
-					vm.cases = vm.cases[:0]
-				}
-				if c != 0 {
-					vm.setFromReflectValue(c, v)
-				}
+				vm.cases = vm.cases[:0]
+			}
+			if c != 0 {
+				vm.setFromReflectValue(c, v)
 			}
 			if b != 0 {
 				vm.setBool(b, vm.ok)
@@ -1645,74 +1573,20 @@ func (vm *VM) run() (Addr, bool) {
 
 		// Send
 		case OpSend, -OpSend:
-			k := op < 0
-			channel := vm.generalk(c, k)
-			switch ch := channel.Interface().(type) {
-			case chan bool:
-				if done == nil {
-					ch <- vm.boolk(a, k)
-				} else {
-					select {
-					case ch <- vm.boolk(a, k):
-					case <-done:
-						return vm.stop()
-					}
+			ch := vm.generalk(c, op < 0)
+			elemType := ch.Type().Elem()
+			v := reflect.New(elemType).Elem()
+			vm.getIntoReflectValue(a, v, op < 0)
+			if done == nil {
+				ch.Send(v)
+			} else {
+				cas := reflect.SelectCase{Dir: reflect.SelectSend, Chan: ch, Send: v}
+				vm.cases = append(vm.cases, cas, vm.env.doneCase)
+				chosen, _, _ := reflect.Select(vm.cases)
+				if chosen == 1 {
+					return vm.stop()
 				}
-			case chan int:
-				if done == nil {
-					ch <- int(vm.intk(a, k))
-				} else {
-					select {
-					case ch <- int(vm.intk(a, k)):
-					case <-done:
-						return vm.stop()
-					}
-				}
-			case chan rune:
-				if done == nil {
-					ch <- rune(vm.intk(a, k))
-				} else {
-					select {
-					case ch <- rune(vm.intk(a, k)):
-					case <-done:
-						return vm.stop()
-					}
-				}
-			case chan string:
-				if done == nil {
-					ch <- vm.stringk(a, k)
-				} else {
-					select {
-					case ch <- vm.stringk(a, k):
-					case <-done:
-						return vm.stop()
-					}
-				}
-			case chan struct{}:
-				if done == nil {
-					ch <- struct{}{}
-				} else {
-					select {
-					case ch <- struct{}{}:
-					case <-done:
-						return vm.stop()
-					}
-				}
-			default:
-				elemType := channel.Type().Elem()
-				v := reflect.New(elemType).Elem()
-				vm.getIntoReflectValue(a, v, k)
-				if done == nil {
-					channel.Send(v)
-				} else {
-					cas := reflect.SelectCase{Dir: reflect.SelectSend, Chan: reflect.ValueOf(ch), Send: v}
-					vm.cases = append(vm.cases, cas, vm.env.doneCase)
-					chosen, _, _ := reflect.Select(vm.cases)
-					if chosen == 1 {
-						return vm.stop()
-					}
-					vm.cases = vm.cases[:0]
-				}
+				vm.cases = vm.cases[:0]
 			}
 
 		// SetField
