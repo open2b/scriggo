@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/native"
@@ -105,7 +106,7 @@ type VM struct {
 	calls    []callFrame          // call stack frame.
 	cases    []reflect.SelectCase // select cases.
 	panic    *PanicError          // panic.
-	main     bool                 // reports whether this VM is executing the the main goroutine.
+	main     bool                 // reports whether this VM is executing the main goroutine.
 }
 
 // NewVM returns a new virtual machine.
@@ -136,6 +137,13 @@ func (vm *VM) Reset() {
 		vm.cases = vm.cases[:0]
 	}
 	vm.panic = nil
+}
+
+// stop is called in the vm.run method to stop the execution.
+func (vm *VM) stop() (Addr, bool) {
+	const maxAddr = 1<<32 - 1
+	atomic.StoreInt32(&vm.env.done, 1)
+	return maxAddr, false
 }
 
 // Run starts the execution of the function fn with the given global variables
@@ -175,6 +183,18 @@ func (vm *VM) Run(fn *Function, typeof TypeOfFunc, globals []reflect.Value) (int
 // SetContext must not be called after vm has been started.
 func (vm *VM) SetContext(ctx context.Context) {
 	vm.env.ctx = ctx
+	if ctx != nil {
+		if done := ctx.Done(); done != nil {
+			vm.env.doneChan = done
+			vm.env.doneCase = reflect.SelectCase{
+				Dir:  reflect.SelectRecv,
+				Chan: reflect.ValueOf(done),
+			}
+			return
+		}
+	}
+	vm.env.doneChan = nil
+	vm.env.doneCase = reflect.SelectCase{}
 }
 
 // SetRenderer sets template output and markdown converter.
@@ -610,7 +630,6 @@ func create(env *env) *VM {
 	if env != nil {
 		vm.env = env
 		vm.envArg = reflect.ValueOf(env)
-		vm.SetContext(env.ctx)
 	}
 	return vm
 }

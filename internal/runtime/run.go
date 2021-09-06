@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"unicode"
 
 	"github.com/open2b/scriggo/ast"
@@ -18,6 +19,17 @@ import (
 func (vm *VM) runFunc(fn *Function, vars []reflect.Value) error {
 	vm.fn = fn
 	vm.vars = vars
+	var exit chan struct{}
+	if vm.env.doneChan != nil {
+		exit = make(chan struct{})
+		go func() {
+			select {
+			case <-exit:
+			case <-vm.env.ctx.Done():
+				atomic.StoreInt32(&vm.env.done, 1)
+			}
+		}()
+	}
 	for {
 		err := vm.runRecoverable()
 		if err == nil {
@@ -25,6 +37,9 @@ func (vm *VM) runFunc(fn *Function, vars []reflect.Value) error {
 		}
 		p, ok := err.(*PanicError)
 		if !ok {
+			if exit != nil {
+				close(exit)
+			}
 			return err
 		}
 		p.next = vm.panic
@@ -34,6 +49,12 @@ func (vm *VM) runFunc(fn *Function, vars []reflect.Value) error {
 		}
 		vm.calls = append(vm.calls, callFrame{cl: callable{fn: vm.fn}, renderer: vm.renderer, fp: vm.fp, status: panicked})
 		vm.fn = nil
+	}
+	if exit != nil {
+		close(exit)
+		if atomic.LoadInt32(&vm.env.done) == 1 {
+			return vm.env.ctx.Err()
+		}
 	}
 	if vm.panic != nil {
 		return vm.panic
@@ -58,12 +79,15 @@ func (vm *VM) runRecoverable() (err error) {
 
 func (vm *VM) run() (Addr, bool) {
 
+	var hasDefaultCase bool
 	var startNativeGoroutine bool
 
 	var op Operation
 	var a, b, c int8
 
-	for {
+	done := vm.env.doneChan
+
+	for done == nil || atomic.LoadInt32(&vm.env.done) == 0 {
 
 		in := vm.fn.Body[vm.pc]
 
@@ -1404,36 +1428,87 @@ func (vm *VM) run() (Addr, bool) {
 			switch ch := channel.Interface().(type) {
 			case chan bool:
 				var v bool
-				v, vm.ok = <-ch
+				if done == nil {
+					v, vm.ok = <-ch
+				} else {
+					select {
+					case v, vm.ok = <-ch:
+					case <-done:
+						return vm.stop()
+					}
+				}
 				if c != 0 {
 					vm.setBool(c, v)
 				}
 			case chan int:
 				var v int
-				v, vm.ok = <-ch
+				if done == nil {
+					v, vm.ok = <-ch
+				} else {
+					select {
+					case v, vm.ok = <-ch:
+					case <-done:
+						return vm.stop()
+					}
+				}
 				if c != 0 {
 					vm.setInt(c, int64(v))
 				}
 			case chan rune:
 				var v rune
-				v, vm.ok = <-ch
+				if done == nil {
+					v, vm.ok = <-ch
+				} else {
+					select {
+					case v, vm.ok = <-ch:
+					case <-done:
+						return vm.stop()
+					}
+				}
 				if c != 0 {
 					vm.setInt(c, int64(v))
 				}
 			case chan string:
 				var v string
-				v, vm.ok = <-ch
+				if done == nil {
+					v, vm.ok = <-ch
+				} else {
+					select {
+					case v, vm.ok = <-ch:
+					case <-done:
+						return vm.stop()
+					}
+				}
 				if c != 0 {
 					vm.setString(c, v)
 				}
 			case chan struct{}:
-				_, vm.ok = <-ch
+				if done == nil {
+					_, vm.ok = <-ch
+				} else {
+					select {
+					case _, vm.ok = <-ch:
+					case <-done:
+						return vm.stop()
+					}
+				}
 				if c != 0 {
 					vm.setGeneral(c, reflect.ValueOf(struct{}{}))
 				}
 			default:
 				var v reflect.Value
-				v, vm.ok = channel.Recv()
+				if done == nil {
+					v, vm.ok = reflect.ValueOf(ch).Recv()
+				} else {
+					var chosen int
+					cas := reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ch)}
+					vm.cases = append(vm.cases, cas, vm.env.doneCase)
+					chosen, v, vm.ok = reflect.Select(vm.cases)
+					if chosen == 1 {
+						return vm.stop()
+					}
+					vm.cases = vm.cases[:0]
+				}
 				if c != 0 {
 					vm.setFromReflectValue(c, v)
 				}
@@ -1531,7 +1606,18 @@ func (vm *VM) run() (Addr, bool) {
 		// Select
 		case OpSelect:
 			numCase := len(vm.cases)
-			chosen, recv, recvOK := reflect.Select(vm.cases)
+			var chosen int
+			var recv reflect.Value
+			var recvOK bool
+			if done == nil || hasDefaultCase {
+				chosen, recv, recvOK = reflect.Select(vm.cases)
+			} else {
+				vm.cases = append(vm.cases, vm.env.doneCase)
+				chosen, recv, recvOK = reflect.Select(vm.cases)
+				if chosen == numCase {
+					return vm.stop()
+				}
+			}
 			step := numCase - chosen
 			var pc Addr
 			if step > 0 {
@@ -1553,6 +1639,7 @@ func (vm *VM) run() (Addr, bool) {
 					c.Chan = reflect.Value{}
 				}
 			}
+			hasDefaultCase = false
 			vm.cases = vm.cases[:0]
 			vm.pc = pc
 
@@ -1562,20 +1649,70 @@ func (vm *VM) run() (Addr, bool) {
 			channel := vm.generalk(c, k)
 			switch ch := channel.Interface().(type) {
 			case chan bool:
-				ch <- vm.boolk(a, k)
+				if done == nil {
+					ch <- vm.boolk(a, k)
+				} else {
+					select {
+					case ch <- vm.boolk(a, k):
+					case <-done:
+						return vm.stop()
+					}
+				}
 			case chan int:
-				ch <- int(vm.intk(a, k))
+				if done == nil {
+					ch <- int(vm.intk(a, k))
+				} else {
+					select {
+					case ch <- int(vm.intk(a, k)):
+					case <-done:
+						return vm.stop()
+					}
+				}
 			case chan rune:
-				ch <- rune(vm.intk(a, k))
+				if done == nil {
+					ch <- rune(vm.intk(a, k))
+				} else {
+					select {
+					case ch <- rune(vm.intk(a, k)):
+					case <-done:
+						return vm.stop()
+					}
+				}
 			case chan string:
-				ch <- vm.stringk(a, k)
+				if done == nil {
+					ch <- vm.stringk(a, k)
+				} else {
+					select {
+					case ch <- vm.stringk(a, k):
+					case <-done:
+						return vm.stop()
+					}
+				}
 			case chan struct{}:
-				ch <- struct{}{}
+				if done == nil {
+					ch <- struct{}{}
+				} else {
+					select {
+					case ch <- struct{}{}:
+					case <-done:
+						return vm.stop()
+					}
+				}
 			default:
 				elemType := channel.Type().Elem()
 				v := reflect.New(elemType).Elem()
 				vm.getIntoReflectValue(a, v, k)
-				channel.Send(v)
+				if done == nil {
+					channel.Send(v)
+				} else {
+					cas := reflect.SelectCase{Dir: reflect.SelectSend, Chan: reflect.ValueOf(ch), Send: v}
+					vm.cases = append(vm.cases, cas, vm.env.doneCase)
+					chosen, _, _ := reflect.Select(vm.cases)
+					if chosen == 1 {
+						return vm.stop()
+					}
+					vm.cases = vm.cases[:0]
+				}
 			}
 
 		// SetField
@@ -1928,4 +2065,5 @@ func (vm *VM) run() (Addr, bool) {
 
 	}
 
+	return Addr(0), false
 }

@@ -7,10 +7,12 @@
 package misc
 
 import (
+	"context"
 	"io/fs"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/internal/fstest"
@@ -428,4 +430,50 @@ func TestIssue523(t *testing.T) {
 	}`
 	fsys := fstest.Files{"main.go": src}
 	_, _ = scriggo.Build(fsys, nil)
+}
+
+var ctxCancellationTests = []string{
+	`
+		package main
+		func main() {
+			for {}
+		}`,
+	`
+		package main
+		func main() {
+			select {}
+		}`,
+	`
+		package main
+		func main() {
+			ch := make(chan int)
+			ch <- 1
+		}`,
+	`
+		package main
+		func main() {
+			ch := make(chan int)
+			_ = <-ch
+		}`,
+}
+
+// TestContextCancellation tests the cancellation of the context.
+func TestContextCancellation(t *testing.T) {
+	for _, src := range ctxCancellationTests {
+		fsys := fstest.Files{"main.go": src}
+		program, err := scriggo.Build(fsys, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+		defer cancel()
+		opts := &scriggo.RunOptions{Context: ctx}
+		err = program.Run(opts)
+		if err == nil {
+			t.Fatal("expected stop error, got no error", err)
+		}
+		if err != context.DeadlineExceeded {
+			t.Fatalf("expected deadline error, got %s", err)
+		}
+	}
 }

@@ -24,6 +24,10 @@ type env struct {
 	print   PrintFunc       // custom print builtin.
 	typeof  TypeOfFunc      // typeof function.
 
+	done     int32
+	doneChan <-chan struct{}
+	doneCase reflect.SelectCase
+
 	// Only the filePath field can be changed after the vm has been started
 	// and access to this field must be done with this mutex.
 	mu       sync.Mutex

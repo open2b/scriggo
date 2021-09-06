@@ -41,7 +41,8 @@ type BuildOptions struct {
 type RunOptions struct {
 
 	// Context is a context that can be read by native functions and methods
-	// via the Context method of native.Env.
+	// via the Context method of native.Env. Canceling the context, the
+	// execution is terminated and the Run method returns Context.Err().
 	Context context.Context
 
 	// Print is called by the print and println builtins to print values.
@@ -95,6 +96,9 @@ func (p *Script) Disassemble() []byte {
 //
 // If the Fatal method of native.Env is called with argument v, Run panics
 // with the value v.
+//
+// If the context has been canceled, Run returns the error returned by
+// options.Context.Err().
 func (p *Script) Run(vars map[string]interface{}, options *RunOptions) error {
 	vm := runtime.NewVM()
 	if options != nil {

@@ -119,6 +119,9 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildOptions) (*Template, e
 // If the Fatal method of native.Env is called with argument v, Run panics
 // with the value v.
 //
+// If the context has been canceled, Run returns the error returned by
+// options.Context.Err().
+//
 // If a call to out.Write returns an error, a panic occurs. If the executed
 // code does not recover the panic, Run returns the error returned by
 // out.Write.
