@@ -29,7 +29,11 @@ func newProgram(program *scriggo.Program) Program {
 				return
 			}
 			if err != nil {
-				cb.Invoke(err.Error())
+				msg := err.Error()
+				if _, ok := err.(*scriggo.PanicError); ok {
+					msg = "panic: " + msg
+				}
+				cb.Invoke(msg)
 				return
 			}
 			cb.Invoke(nil)
