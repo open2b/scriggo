@@ -87,7 +87,11 @@ func (vm *VM) run() (Addr, bool) {
 
 	done := vm.env.doneChan
 
-	for done == nil || atomic.LoadInt32(&vm.env.done) == 0 {
+	for {
+
+		if done != nil && atomic.LoadInt32(&vm.env.done) == 1 {
+			return vm.stop()
+		}
 
 		in := vm.fn.Body[vm.pc]
 
@@ -1938,6 +1942,4 @@ func (vm *VM) run() (Addr, bool) {
 		}
 
 	}
-
-	return Addr(0), false
 }
