@@ -1045,6 +1045,11 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		return nil
 	}
 
+	// {% import "path" %} is equivalent to {% import . "path" %}.
+	if impor.Ident == nil && tc.opts.mod == templateMod {
+		impor.Ident = ast.NewIdentifier(nil, ".")
+	}
+
 	switch {
 
 	// {% import "path" for N1, N2 %}
@@ -1058,15 +1063,10 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		}
 
 	// import "path"
-	// {% import "path" %}
 	case impor.Ident == nil:
 
-		// {% import "path" %}
-		if tc.opts.mod == templateMod {
-			return tc.errorf(impor, `template file import requires name or "import for" form`)
-		}
-
-		// import "path"
+		// This form of import in templates has been transformed above, so just
+		// handle programs and scripts here.
 		tc.scopes.Declare(imported.Name, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}, impor)
 		return nil
 
