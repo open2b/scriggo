@@ -3686,6 +3686,14 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "42",
 	},
+
+	"Taking the address of an imported variable": {
+		sources: fstest.Files{
+			"index.html":    `{% import "imported.html" %}{% pv := &V %}{% *pv = 32 %}{{ V }}`,
+			"imported.html": `{% var V int %}`,
+		},
+		expectedOut: "32",
+	},
 }
 
 var structWithUnexportedFields = &struct {
