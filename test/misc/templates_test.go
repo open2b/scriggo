@@ -3731,6 +3731,15 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedBuildErr: "undefined: T",
 	},
+
+	"Multiple extends": {
+		sources: fstest.Files{
+			"index.html":     `{% extends "extended1.html" %}`,
+			"extended1.html": `{% extends "extended2.html" %}`,
+			"extended2.html": `extends 2`,
+		},
+		expectedOut: "extends 2",
+	},
 }
 
 var structWithUnexportedFields = &struct {
