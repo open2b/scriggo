@@ -1,4 +1,5 @@
 {# render #}
+{% import "github.com/open2b/scriggo/test/compare/testpkg" %}
 
 ## AND
 
@@ -59,9 +60,36 @@
 []int{1, 2, 3}:       {{ not not []int{1, 2, 3} }}
 []string{"", "", ""}: {{ not not []string{"", "", ""} }}
 
+## MAPS
+
+map[string]int(nil):    {{ not not (map[string]int)(nil) }}
+map[string]int{}:       {{ not not map[string]int{} }}
+map[string]int{"a": 1}: {{ not not map[string]int{"a": 1} }}
+
 ## CHANNELS
 
 (chan int)(nil): {{ not not (chan int)(nil)}}
 (chan []int)(nil): {{ not not (chan []int)(nil)}}
-make(chan string, 0): {{ not not make(chan string, 0) }}
-make(chan string, 10): {{ not not make(chan string, 10) }} 
+make(chan string, 0): {{ not not make(chan string) }}
+make(chan string, 10): {{ not not make(chan string, 10) }}
+
+## STRUCT WITH IsTrue method
+
+testpkg.True{true}:      {{ not not testpkg.True{true} }}
+testpkg.True{false}:     {{ not not testpkg.True{false} }}
+(*testpkg.TruePtr)(nil): {{ not not (*testpkg.TruePtr)(nil) }}
+&testpkg.TruePtr{true}:  {{ not not &testpkg.TruePtr{true} }}
+&testpkg.TruePtr{false}: {{ not not &testpkg.TruePtr{false} }}
+
+## STRUCT WITH IsZero method
+
+testpkg.Zero{true}:      {{ not not testpkg.Zero{true} }}
+testpkg.Zero{false}:     {{ not not testpkg.Zero{false} }}
+(*testpkg.ZeroPtr)(nil): {{ not not (*testpkg.ZeroPtr)(nil) }}
+&testpkg.ZeroPtr{true}:  {{ not not &testpkg.ZeroPtr{true} }}
+&testpkg.ZeroPtr{false}: {{ not not &testpkg.ZeroPtr{false} }}
+
+## Functions
+
+var f func():      {% var f func() %}{{ not not f }}
+var f = func() {}: {% f = func() {} %}{{ not not f }}

@@ -1896,7 +1896,7 @@ func (vm *VM) run() (Addr, bool) {
 				a -= 10
 				not = true
 			}
-			zero := true
+			var zero bool
 			switch registerType(a) {
 			case intRegister:
 				zero = vm.int(b) == 0
@@ -1906,32 +1906,31 @@ func (vm *VM) run() (Addr, bool) {
 				zero = vm.string(b) == ""
 			case generalRegister:
 				rv := vm.general(b)
-				// rv is not valid when the register addressed by b stores the
-				// nil interface.
-				if rv.IsValid() {
-					// First of all check if the type of the value has a method
-					// 'IsZero() bool' defined on it; if so, call such method
-					// and use its return value to determine if rv is zero or
-					// not.
-					if rv.Type().Implements(isZeroType) {
-						isZero := rv.MethodByName("IsZero")
-						zero = isZero.Call(nil)[0].Bool()
-					} else {
-						// Note that rv.IsZero() also handles values that have
-						// static type interface because the interface is lost when
-						// the value is inserted into the register, so IsZero checks
-						// for the zero of the dynamic type.
-						zero = rv.IsZero()
-						// Not-nil channels and slices are zero if they contain
-						// zero elements.
-						if rv.Kind() == reflect.Slice || rv.Kind() == reflect.Chan {
-							// Note that rv.Len() == 0 also handles values that have
-							// static type interface because the interface is lost
-							// when the value is inserted into the register, so
-							// rv.Len() returns the number of elements of the
-							// dynamic value.
-							zero = zero || rv.Len() == 0
-						}
+				if !rv.IsValid() {
+					// rv is not valid: the register addressed by b stores the nil interface.
+					zero = true
+					break
+				}
+				zero = rv.IsZero()
+				switch rv.Kind() {
+				case reflect.Slice, reflect.Map:
+					zero = zero || rv.Len() == 0
+				case reflect.Ptr:
+					if zero {
+						break
+					}
+					if rv.Elem().Kind() != reflect.Struct {
+						break
+					}
+					fallthrough
+				case reflect.Struct:
+					switch v := rv.Interface().(type) {
+					case *callable:
+						zero = v.fn == nil
+					case interface{ IsTrue() bool }:
+						zero = !v.IsTrue()
+					case interface{ IsZero() bool }:
+						zero = v.IsZero()
 					}
 				}
 			}

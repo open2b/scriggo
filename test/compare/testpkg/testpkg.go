@@ -157,3 +157,37 @@ func (tp *Tp) Mp(a int) int {
 	}
 	return int(*tp) + a
 }
+
+// These types are used to test truthful values.
+
+type True struct {
+	T bool
+}
+
+func (t True) IsTrue() bool {
+	return t.T
+}
+
+type TruePtr struct {
+	T bool
+}
+
+func (t *TruePtr) IsTrue() bool {
+	return t.T
+}
+
+type Zero struct {
+	T bool
+}
+
+func (t Zero) IsZero() bool {
+	return t.T
+}
+
+type ZeroPtr struct {
+	T bool
+}
+
+func (t *ZeroPtr) IsZero() bool {
+	return t.T
+}

@@ -58,16 +58,6 @@ type ScriggoType interface {
 	GoType() reflect.Type
 }
 
-// isZeroType is the reflect.Type representing the interface:
-//
-//     interface {
-//         IsZero() bool
-//     }
-//
-// If a value implements this interface, the method 'IsZero() bool' is used by
-// the virtual machine to determine if a value is zero or not.
-var isZeroType = reflect.TypeOf((*interface{ IsZero() bool })(nil)).Elem()
-
 type StackShift [4]int8
 
 type Instruction struct {

@@ -57,9 +57,36 @@ false []int(nil)
 []int{1, 2, 3}:       true
 []string{"", "", ""}: true
 
+## MAPS
+
+map[string]int(nil):    false
+map[string]int{}:       false
+map[string]int{"a": 1}: true
+
 ## CHANNELS
 
 (chan int)(nil): false
 (chan []int)(nil): false
-make(chan string, 0): false
-make(chan string, 10): false
+make(chan string, 0): true
+make(chan string, 10): true
+
+## STRUCT WITH IsTrue method
+
+testpkg.True{true}:      true
+testpkg.True{false}:     false
+(*testpkg.TruePtr)(nil): false
+&testpkg.TruePtr{true}:  true
+&testpkg.TruePtr{false}: false
+
+## STRUCT WITH IsZero method
+
+testpkg.Zero{true}:      false
+testpkg.Zero{false}:     true
+(*testpkg.ZeroPtr)(nil): false
+&testpkg.ZeroPtr{true}:  false
+&testpkg.ZeroPtr{false}: true
+
+## Functions
+
+var f func():      false
+var f = func() {}: true
