@@ -46,6 +46,7 @@ func ParseTemplate(fsys fs.FS, name string, noParseShow, dollarIdentifier bool) 
 		fsys:             fsys,
 		trees:            map[string]parsedTree{},
 		paths:            []string{},
+		canExtend:        true,
 		noParseShow:      noParseShow,
 		dollarIdentifier: dollarIdentifier,
 	}
@@ -68,6 +69,7 @@ type templateExpansion struct {
 	fsys             fs.FS
 	trees            map[string]parsedTree
 	paths            []string
+	canExtend        bool
 	noParseShow      bool
 	dollarIdentifier bool
 }
@@ -193,6 +195,7 @@ func (pp *templateExpansion) parseSource(src []byte, path string, format ast.For
 	// Expand the nodes.
 	pp.paths = append(pp.paths, path)
 	err = pp.expand(unexpanded)
+	pp.canExtend = false
 	pp.paths = pp.paths[:len(pp.paths)-1]
 	if err != nil {
 		if e, ok := err.(*SyntaxError); ok && e.path == "" {
@@ -214,8 +217,8 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 		case *ast.Extends:
 			// extends "path"
 
-			if len(pp.paths) > 1 {
-				return syntaxError(n.Pos(), "extended, imported and rendered files can not have extends")
+			if !pp.canExtend {
+				return syntaxError(n.Pos(), "imported and rendered files can not have extends")
 			}
 			var err error
 			n.Tree, err = pp.parseNodeFile(n)
