@@ -1,4 +1,5 @@
 {# render #}
+{% import "time" %}
 {% import "github.com/open2b/scriggo/test/compare/testpkg" %}
 
 ## AND
@@ -81,15 +82,12 @@ testpkg.True{false}:     {{ not not testpkg.True{false} }}
 &testpkg.TruePtr{true}:  {{ not not &testpkg.TruePtr{true} }}
 &testpkg.TruePtr{false}: {{ not not &testpkg.TruePtr{false} }}
 
-## STRUCT WITH IsZero method
-
-testpkg.Zero{true}:      {{ not not testpkg.Zero{true} }}
-testpkg.Zero{false}:     {{ not not testpkg.Zero{false} }}
-(*testpkg.ZeroPtr)(nil): {{ not not (*testpkg.ZeroPtr)(nil) }}
-&testpkg.ZeroPtr{true}:  {{ not not &testpkg.ZeroPtr{true} }}
-&testpkg.ZeroPtr{false}: {{ not not &testpkg.ZeroPtr{false} }}
-
 ## Functions
 
 var f func():      {% var f func() %}{{ not not f }}
 var f = func() {}: {% f = func() {} %}{{ not not f }}
+
+## Time
+
+time.Time{}: {{ not not time.Time{} }}
+time.Now():  {{ not not time.Now() }}

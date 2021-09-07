@@ -78,15 +78,12 @@ testpkg.True{false}:     false
 &testpkg.TruePtr{true}:  true
 &testpkg.TruePtr{false}: false
 
-## STRUCT WITH IsZero method
-
-testpkg.Zero{true}:      false
-testpkg.Zero{false}:     true
-(*testpkg.ZeroPtr)(nil): false
-&testpkg.ZeroPtr{true}:  false
-&testpkg.ZeroPtr{false}: true
-
 ## Functions
 
 var f func():      false
 var f = func() {}: true
+
+## Time
+
+time.Time{}: false
+time.Now():  true

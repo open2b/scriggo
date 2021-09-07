@@ -1906,19 +1906,14 @@ func (vm *VM) run() (Addr, bool) {
 				zero = vm.string(b) == ""
 			case generalRegister:
 				rv := vm.general(b)
-				if !rv.IsValid() {
-					// rv is not valid: the register addressed by b stores the nil interface.
-					zero = true
+				zero = !rv.IsValid() || rv.IsZero()
+				if zero {
 					break
 				}
-				zero = rv.IsZero()
 				switch rv.Kind() {
 				case reflect.Slice, reflect.Map:
-					zero = zero || rv.Len() == 0
+					zero = rv.Len() == 0
 				case reflect.Ptr:
-					if zero {
-						break
-					}
 					if rv.Elem().Kind() != reflect.Struct {
 						break
 					}
@@ -1929,8 +1924,6 @@ func (vm *VM) run() (Addr, bool) {
 						zero = v.fn == nil
 					case interface{ IsTrue() bool }:
 						zero = !v.IsTrue()
-					case interface{ IsZero() bool }:
-						zero = v.IsZero()
 					}
 				}
 			}

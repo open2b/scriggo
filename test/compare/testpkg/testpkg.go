@@ -175,19 +175,3 @@ type TruePtr struct {
 func (t *TruePtr) IsTrue() bool {
 	return t.T
 }
-
-type Zero struct {
-	T bool
-}
-
-func (t Zero) IsZero() bool {
-	return t.T
-}
-
-type ZeroPtr struct {
-	T bool
-}
-
-func (t *ZeroPtr) IsZero() bool {
-	return t.T
-}

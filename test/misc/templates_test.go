@@ -1451,24 +1451,23 @@ var templateMultiFileCases = map[string]struct {
 		expectedBuildErr: "index.txt:1:4: undefined: fmt",
 	},
 
-	"Check if a value that has a method 'IsZero() bool' is zero or not": {
+	"Check if a value that has a method 'IsTrue() bool' is true or not": {
 		sources: fstest.Files{
-			"index.txt": "{% if (NeverZero{}) %}OK{% else %}BUG{% end %}\n" +
-				"{% if (AlwaysZero{}) %}BUG{% else %}OK{% end %}\n" +
+			"index.txt": "{% if (True{true}) %}OK{% else %}BUG{% end %}\n" +
+				"{% if (True{false}) %}BUG{% else %}OK{% end %}\n" +
 				"{% if (struct{}{}) %}BUG{% else %}OK{% end %}\n" +
 				"{% if (struct{Value int}{}) %}BUG{% else %}OK{% end %}\n" +
 				"{% if (struct{Value int}{Value: 42}) %}OK{% else %}BUG{% end %}\n" +
-				"{% if (ZeroIf42{}) %}OK{% else %}BUG{% end %}\n" +
-				"{% if (ZeroIf42{Value: 42}) %}BUG{% else %}OK{% end %}\n" +
-				"{% if (NotImplIsZero{}) %}BUG{% else %}OK{% end %}",
+				"{% if (TrueIf42{}) %}BUG{% else %}OK{% end %}\n" +
+				"{% if (TrueIf42{Value: 42}) %}OK{% else %}BUG{% end %}\n" +
+				"{% if (NotImplIsTrue{}) %}BUG{% else %}OK{% end %}",
 		},
 		main: native.Package{
 			Name: "main",
 			Declarations: native.Declarations{
-				"NeverZero":     reflect.TypeOf((*testNeverZero)(nil)).Elem(),
-				"AlwaysZero":    reflect.TypeOf((*testAlwaysZero)(nil)).Elem(),
-				"ZeroIf42":      reflect.TypeOf((*testZeroIf42)(nil)).Elem(),
-				"NotImplIsZero": reflect.TypeOf((*testNotImplementIsZero)(nil)).Elem(),
+				"True":          reflect.TypeOf((*testTrue)(nil)).Elem(),
+				"TrueIf42":      reflect.TypeOf((*testTrueIf42)(nil)).Elem(),
+				"NotImplIsTrue": reflect.TypeOf((*testNotImplementIsTrue)(nil)).Elem(),
 			},
 		},
 		expectedOut: "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK",
@@ -3697,36 +3696,31 @@ var structWithUnexportedFields = &struct {
 // See https://github.com/open2b/scriggo/issues/643
 var testGetValueCalled = false
 
-// testAlwaysZero is always considered zero.
-type testAlwaysZero struct{}
-
-func (testAlwaysZero) IsZero() bool {
-	return true
+// testTrue is true if the field Value is true.
+type testTrue struct {
+	Value bool
 }
 
-// testNeverZero is never considered zero.
-type testNeverZero struct{}
-
-func (testNeverZero) IsZero() bool {
-	return false
+func (tt testTrue) IsTrue() bool {
+	return tt.Value
 }
 
-// testZeroIf42 is zero only if its field Value is 42.
-type testZeroIf42 struct {
+// testTrueIf42 is true only if its field Value is 42.
+type testTrueIf42 struct {
 	Value int
 }
 
-func (s testZeroIf42) IsZero() bool {
+func (s testTrueIf42) IsTrue() bool {
 	return s.Value == 42
 }
 
-// testNotImplementIsZero has as method called 'IsZero', but its type is
-// 'IsZero() int' instead of 'IsZero() bool' so it cannot be used to check if a
-// value of its type is zero. This is not an error: simply such method will be
+// testNotImplementIsTrue has as method called 'IsTrue', but its type is
+// 'IsTrue() int' instead of 'IsTrue() bool' so it cannot be used to check if a
+// value of its type is true. This is not an error: simply such method will be
 // ignored by the Scriggo runtime.
-type testNotImplementIsZero struct{}
+type testNotImplementIsTrue struct{}
 
-func (testNotImplementIsZero) IsZero() int {
+func (testNotImplementIsTrue) IsTrue() int {
 	panic("BUG: this method should never be called")
 }
 
