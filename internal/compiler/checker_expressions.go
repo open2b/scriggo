@@ -80,8 +80,10 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 	// If ident is an upvar, add it as upvar for current function and for all
 	// nested functions and update all indexes.
 	if isUpVar {
-		tc.compilation.indirectVars[decl] = true
-		upvar := ast.Upvar{Declaration: decl}
+		// TODO: decl can have type *ast.Import but indirectVars only allows identifiers.
+		identDecl, _ := decl.(*ast.Identifier)
+		tc.compilation.indirectVars[identDecl] = true
+		upvar := ast.Upvar{Declaration: identDecl}
 		for _, fn := range tc.getNestedFuncs(ident.Name) {
 			add := true
 			for _, uv := range fn.Upvars {

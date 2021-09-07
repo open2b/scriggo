@@ -247,8 +247,10 @@ func (tc *typechecker) assignScope(name string, value *typeInfo, node ast.Node) 
 	ok := tc.scopes.Declare(name, value, node)
 	if !ok && (isValidIdentifier(name, tc.opts.mod) || strings.HasPrefix(name, "$")) {
 		s := name + " redeclared in this block"
-		_, ident, _ := tc.scopes.Lookup(name)
-		if pos := ident.Pos(); pos != nil {
+		_, decl, _ := tc.scopes.Lookup(name)
+		if pkg, ok := decl.(*ast.Import); ok {
+			s += fmt.Sprintf("\n\t%s:%s: previous declaration during %s", tc.path, pkg.Pos(), pkg)
+		} else if pos := decl.Pos(); pos != nil {
 			s += "\n\tprevious declaration at " + pos.String()
 		}
 		panic(tc.errorf(node, s))

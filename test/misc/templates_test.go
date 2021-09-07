@@ -3694,6 +3694,22 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "32",
 	},
+
+	"https://github.com/open2b/scriggo/issues/849": {
+		sources: fstest.Files{
+			"index.html":    `{% extends "extended.html" %}{% var V = 1 %}`,
+			"extended.html": `{% var V = 2 %}`,
+		},
+		expectedBuildErr: "V redeclared in this block\n\textended.html:<nil>: previous declaration during import . \"index.html\"",
+	},
+
+	"https://github.com/open2b/scriggo/issues/849 (2)": {
+		sources: fstest.Files{
+			"index.html":    `{% import "imported.html" %}{% var V = 32 %}`,
+			"imported.html": `{% var V = 2 %}`,
+		},
+		expectedBuildErr: "V redeclared in this block\n\tindex.html:1:11: previous declaration during import . \"imported.html\"",
+	},
 }
 
 var structWithUnexportedFields = &struct {

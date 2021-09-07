@@ -148,8 +148,8 @@ func (scopes *scopes) FilePackageNames() []string {
 	return names
 }
 
-// Declare declares name in with its type info and node and returns true. If
-// name is already declared in the current scope, it does nothing and returns
+// Declare declares name with its type info and node and returns true. If name
+// is already declared in the current scope, it does nothing and returns
 // false.
 //
 // node is an *ast.Import value for packages and imported names, otherwise nil
@@ -215,10 +215,18 @@ func (scopes *scopes) DeclareLabel(label *ast.Label) {
 }
 
 // Lookup lookups name in all scopes, and returns its type info, its
-// identifier and true. Otherwise it returns nil, nil and false.
-func (scopes *scopes) Lookup(name string) (*typeInfo, *ast.Identifier, bool) {
+// node and true. Otherwise, it returns nil, nil and false.
+//
+// node is an *ast.Import value for packages and imported names, otherwise nil
+// for predeclared names, otherwise an *ast.Identifier value for all other
+// names.
+func (scopes *scopes) Lookup(name string) (*typeInfo, ast.Node, bool) {
 	n, i := scopes.lookup(name, 0)
-	return n.ti, n.ident, i != -1
+	var node ast.Node = n.ident
+	if n.ident == nil {
+		node = n.impor
+	}
+	return n.ti, node, i != -1
 }
 
 // LookupInFunc lookups name in function scopes, including the main block in
