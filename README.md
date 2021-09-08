@@ -1,6 +1,6 @@
-# Scriggo
+<img src="https://scriggo-site.pages.dev/images/scriggo.svg" alt="Scriggo" title="Scriggo" width="575px" style="max-width: 100%">
 
-The fastest, modern and secure Go template engine and embeddable Go runtime.
+The fast, modern and secure Go template engine and embeddable Go runtime.
 
 ## Features
 
