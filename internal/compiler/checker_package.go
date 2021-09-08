@@ -649,23 +649,12 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, impor
 	}
 
 	// Create a package info and store it into the compilation.
-	pkgInfo := &packageInfo{
+	compilation.pkgInfos[path] = &packageInfo{
 		Name:         pkg.Name,
-		Declarations: make(map[string]*typeInfo, len(pkg.Declarations)),
+		Declarations: tc.scopes.ExportedDeclarations(),
+		IndirectVars: tc.compilation.indirectVars,
 		TypeInfos:    tc.compilation.typeInfos,
 	}
-	pkgInfo.Declarations = make(map[string]*typeInfo)
-	for _, name := range tc.scopes.FilePackageNames() {
-		if tc.scopes.ImportedInFilePackageBlock(name) {
-			continue
-		}
-		isDummyMacroForRender := strings.HasPrefix(name, `"`) && strings.HasSuffix(name, `"`)
-		if isExported(name) || isDummyMacroForRender {
-			pkgInfo.Declarations[name], _ = tc.scopes.FilePackage(name)
-		}
-	}
-	pkgInfo.IndirectVars = tc.compilation.indirectVars
-	compilation.pkgInfos[path] = pkgInfo
 
 	err = compilation.finalizeUsingStatements(tc)
 	if err != nil {

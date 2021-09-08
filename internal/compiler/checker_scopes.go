@@ -128,15 +128,6 @@ func (scopes *scopes) FilePackage(name string) (*typeInfo, bool) {
 	return n.ti, ok
 }
 
-// Imported reports whether name has been imported in the file/package block.
-func (scopes *scopes) ImportedInFilePackageBlock(name string) bool {
-	n, ok := scopes.s[3].names[name]
-	if !ok {
-		return false
-	}
-	return n.ident == nil
-}
-
 // Current returns the identifier of name as declared in the current scope and
 // true. Otherwise it returns nil and false.
 func (scopes *scopes) Current(name string) (*ast.Identifier, bool) {
@@ -144,15 +135,17 @@ func (scopes *scopes) Current(name string) (*ast.Identifier, bool) {
 	return n.ident, ok
 }
 
-// FilePackageNames returns the names declared in the file/package block.
-func (scopes *scopes) FilePackageNames() []string {
-	names := make([]string, len(scopes.s[3].names))
-	i := 0
-	for n := range scopes.s[3].names {
-		names[i] = n
-		i++
+// ExportedDeclarations returns the exported declarations in the file/package
+// block, as a name/type info map, that have not been imported from another
+// package.
+func (scopes *scopes) ExportedDeclarations() map[string]*typeInfo {
+	decls := map[string]*typeInfo{}
+	for name, n := range scopes.s[3].names {
+		if n.ident != nil && isExported(name) {
+			decls[name] = n.ti
+		}
 	}
-	return names
+	return decls
 }
 
 // Declare declares name with its type info and node and returns true. If name

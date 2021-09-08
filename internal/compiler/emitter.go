@@ -182,7 +182,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingFile bool, path string
 					continue
 				}
 				em.fnStore.makeAvailableScriggoFn(em.pkg, fun.Ident.Name, fn)
-				isDummyMacroForRender := strings.HasPrefix(fun.Ident.Name, `"`) && strings.HasSuffix(fun.Ident.Name, `"`)
+				isDummyMacroForRender := strings.HasPrefix(fun.Ident.Name, `M"`) && strings.HasSuffix(fun.Ident.Name, `"`)
 				if isExported(fun.Ident.Name) || isDummyMacroForRender {
 					functions[fun.Ident.Name] = fn
 				}

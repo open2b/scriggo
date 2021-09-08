@@ -2394,7 +2394,7 @@ func (tc *typechecker) checkRender(render *ast.Render) *typeInfo {
 	if !ok {
 		macroDecl := ast.NewFunc(
 			nil,
-			ast.NewIdentifier(nil, strconv.Quote(tree.Path)),
+			ast.NewIdentifier(nil, "M"+strconv.Quote(tree.Path)),
 			ast.NewFuncType(nil, true, nil, nil, false), // func()
 			ast.NewBlock(nil, tree.Nodes),
 			false,
