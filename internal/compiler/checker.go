@@ -91,7 +91,7 @@ func typecheck(tree *ast.Tree, importer native.Importer, opts checkerOptions) (m
 		}
 		dummyImport := ast.NewImport(nil, ast.NewIdentifier(nil, "."), tree.Path, nil)
 		dummyImport.Tree = ast.NewTree(tree.Path, tree.Nodes, tree.Format)
-		compilation.extendingTrees[dummyImport.Tree] = true
+		compilation.extendingTrees[dummyImport.Tree.Path] = true
 		compilation.extendedTrees[extends.Tree.Path] = true
 		tree.Nodes = append([]ast.Node{dummyImport}, extends.Tree.Nodes...)
 		tree.Path = extends.Tree.Path
