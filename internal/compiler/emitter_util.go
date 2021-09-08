@@ -7,8 +7,6 @@ package compiler
 import (
 	"fmt"
 	"reflect"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/runtime"
@@ -168,13 +166,6 @@ func stackDifference(a, b runtime.StackShift) runtime.StackShift {
 // isDefault reports whether the given case clause is the "default" case.
 func isDefault(clause *ast.Case) bool {
 	return clause.Expressions == nil
-}
-
-// isExported reports whether name is exported, according to
-// https://golang.org/ref/spec#Exported_identifiers.
-func isExported(name string) bool {
-	r, _ := utf8.DecodeRuneInString(name)
-	return unicode.Is(unicode.Lu, r)
 }
 
 // isPredeclNil reports whether expr is the predeclared nil.

@@ -19,6 +19,8 @@ import (
 	"io"
 	"io/fs"
 	"reflect"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/runtime"
@@ -369,6 +371,17 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 	e.fb.exitScope()
 	e.fb.end()
 	return &Code{Main: e.fb.fn, TypeOf: e.types.TypeOf, Globals: e.varStore.getGlobals()}, nil
+}
+
+// isExported reports whether name is exported, according to
+// https://golang.org/ref/spec#Exported_identifiers.
+// It panics if name is empty.
+func isExported(name string) bool {
+	if c := name[0]; c < utf8.RuneSelf {
+		return 'A' <= c && c <= 'Z'
+	}
+	r, _ := utf8.DecodeRuneInString(name)
+	return unicode.Is(unicode.Lu, r)
 }
 
 // getExtends returns the 'extends' node contained in nodes, if exists. Note
