@@ -3765,17 +3765,30 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "01234",
 	},
 
-	// "Multiple extends - many extended files (2)": {
-	// 	sources: fstest.Files{
-	// 		"index.html":     `{% extends "extended1.html" %}`,
-	// 		"extended1.html": `{% extends "extended2.html" %}`,
-	// 		"extended2.html": `{% extends "extended3.html" %}`,
-	// 		"extended3.html": `{% extends "extended4.html" %}{% var V3 = 3 %}`,
-	// 		"extended4.html": `{% extends "extended5.html" %}{% var V4 = 4 %}`,
-	// 		"extended5.html": `{{ V3 }}{{ V4 }}`,
-	// 	},
-	// 	expectedOut: "extends 5",
-	// },
+	"Multiple extends - error when referring to undefined name": {
+		sources: fstest.Files{
+			"index.html":     `{% extends "extended1.html" %}`,
+			"extended1.html": `{% extends "extended2.html" %}`,
+			"extended2.html": `{% extends "extended3.html" %}`,
+			"extended3.html": `{% extends "extended4.html" %}{% var V3 = 3 %}`,
+			"extended4.html": `{% extends "extended5.html" %}{% var V4 = 4 %}`,
+			"extended5.html": `{{ V3 }}{{ V4 }}`,
+		},
+		expectedBuildErr: "extended5.html:1:4: undefined: V3",
+	},
+
+	"Multiple extends - with imports": {
+		sources: fstest.Files{
+			"index.html":     `{% extends "extended1.html" %}{% import "imported.html" %}{% var S0 = "0" + I %}`,
+			"extended1.html": `{% extends "extended2.html" %}{% var S1 = S0 + "1" %}`,
+			"extended2.html": `{% extends "extended3.html" %}{% import "imported.html" %}{% var S2 = S1 + "2" + I %}`,
+			"extended3.html": `{% extends "extended4.html" %}{% var S3 = S2 + "3" %}`,
+			"extended4.html": `{% extends "extended5.html" %}{% var S4 = S3 + "4" %}`,
+			"extended5.html": `{% import "imported.html" %}{{ S4 }}{{ I }}`,
+			"imported.html":  `{% var I = "imported" %}`,
+		},
+		expectedOut: "0imported12imported34imported",
+	},
 }
 
 var structWithUnexportedFields = &struct {
