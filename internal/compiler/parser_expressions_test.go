@@ -265,23 +265,27 @@ var exprTests = []struct {
 	{"a.(int)", ast.NewTypeAssertion(p(1, 2, 0, 6), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 5), "int"))},
 	{"a.(bool)", ast.NewTypeAssertion(p(1, 2, 0, 7), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 6), "bool"))},
 	{"os.FileInfo", ast.NewSelector(p(1, 3, 0, 10), ast.NewIdentifier(p(1, 1, 0, 1), "os"), "FileInfo")},
-	{"{1,2,3}", ast.NewCompositeLiteral(p(1, 1, 0, 6), nil, []ast.KeyValue{
-		{nil, ast.NewBasicLiteral(p(1, 2, 1, 1), ast.IntLiteral, "1")},
-		{nil, ast.NewBasicLiteral(p(1, 4, 3, 3), ast.IntLiteral, "2")},
-		{nil, ast.NewBasicLiteral(p(1, 6, 5, 5), ast.IntLiteral, "3")},
-	})},
-	{`{a: "text", b: 3}`,
+	{"[]int{1,2,3}", ast.NewCompositeLiteral(p(1, 6, 0, 11),
+		ast.NewSliceType(p(1, 1, 0, 4), ast.NewIdentifier(p(1, 3, 2, 4), "int")),
+		[]ast.KeyValue{
+			{nil, ast.NewBasicLiteral(p(1, 7, 6, 6), ast.IntLiteral, "1")},
+			{nil, ast.NewBasicLiteral(p(1, 9, 8, 8), ast.IntLiteral, "2")},
+			{nil, ast.NewBasicLiteral(p(1, 11, 10, 10), ast.IntLiteral, "3")},
+		})},
+	{`map[int]interface{}{a: "text", b: 3}`,
 		ast.NewCompositeLiteral(
-			p(1, 1, 0, 16),
-			nil,
+			p(1, 20, 0, 35),
+			ast.NewMapType(p(1, 1, 0, 18),
+				ast.NewIdentifier(p(1, 5, 4, 6), "int"),
+				ast.NewInterface(p(1, 9, 8, 18))),
 			[]ast.KeyValue{
-				ast.KeyValue{
-					ast.NewIdentifier(p(1, 2, 1, 1), "a"),
-					ast.NewBasicLiteral(p(1, 5, 4, 9), ast.StringLiteral, `"text"`),
+				{
+					ast.NewIdentifier(p(1, 21, 20, 20), "a"),
+					ast.NewBasicLiteral(p(1, 24, 23, 28), ast.StringLiteral, `"text"`),
 				},
-				ast.KeyValue{
-					ast.NewIdentifier(p(1, 13, 12, 12), "b"),
-					ast.NewBasicLiteral(p(1, 16, 15, 15), ast.IntLiteral, "3"),
+				{
+					ast.NewIdentifier(p(1, 32, 31, 31), "b"),
+					ast.NewBasicLiteral(p(1, 35, 34, 34), ast.IntLiteral, "3"),
 				},
 			},
 		),
@@ -643,7 +647,7 @@ func TestExpressions(t *testing.T) {
 				lex:       lex,
 				ancestors: nil,
 			}
-			node, tok := p.parseExpr(p.next(), false, false, false)
+			node, tok := p.parseExpr(p.next(), false, false, false, false)
 			if node == nil {
 				t.Errorf("source: %q, unexpected %s, expecting expression\n", expr.src, tok)
 			} else {

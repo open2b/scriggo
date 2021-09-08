@@ -3717,6 +3717,13 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedBuildErr: "index.html:1:33: undefined: V2",
 	},
+
+	"https://github.com/open2b/scriggo/issues/851": {
+		sources: fstest.Files{
+			"index.html": `{% var x = { "one": 1, "two": 2, "three": 3 } %}`,
+		},
+		expectedBuildErr: "syntax error: unexpected {, expecting expression",
+	},
 }
 
 var structWithUnexportedFields = &struct {

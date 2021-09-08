@@ -587,7 +587,7 @@ func TestCheckerExpressions(t *testing.T) {
 				lex:       lex,
 				ancestors: nil,
 			}
-			node, tok := p.parseExpr(p.next(), false, false, false)
+			node, tok := p.parseExpr(p.next(), false, false, false, false)
 			if node == nil {
 				t.Errorf("source: %q, unexpected %s, expecting expression\n", expr.src, tok)
 				return
@@ -683,7 +683,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 				lex:       lex,
 				ancestors: nil,
 			}
-			node, tok := p.parseExpr(p.next(), false, false, false)
+			node, tok := p.parseExpr(p.next(), false, false, false, false)
 			if node == nil {
 				t.Errorf("source: %q, unexpected %s, expecting error %q\n", expr.src, tok, expr.err)
 				return

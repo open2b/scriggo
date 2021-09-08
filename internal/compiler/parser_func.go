@@ -124,7 +124,7 @@ func (p *parsing) parseFuncParameters(tok token, isMacro, isResult bool) ([]*ast
 		switch tok.typ {
 		case tokenLeftBracket, tokenFunc, tokenIdentifier, tokenInterface, tokenMap, tokenMultiplication, tokenStruct, tokenChan:
 			var expr ast.Expression
-			expr, tok = p.parseExpr(tok, false, true, true)
+			expr, tok = p.parseExpr(tok, false, false, true, true)
 			return []*ast.Parameter{ast.NewParameter(nil, expr)}, false, expr.Pos(), tok
 		}
 	}
@@ -148,7 +148,7 @@ func (p *parsing) parseFuncParameters(tok token, isMacro, isResult bool) ([]*ast
 
 	for {
 		param := ast.NewParameter(nil, nil)
-		param.Type, tok = p.parseExpr(tok, false, true, false)
+		param.Type, tok = p.parseExpr(tok, false, false, true, false)
 		if tok.typ == tokenEllipsis {
 			if ellipses.param == nil {
 				ellipses.param = param
@@ -156,7 +156,7 @@ func (p *parsing) parseFuncParameters(tok token, isMacro, isResult bool) ([]*ast
 			}
 			tok = p.next()
 		}
-		ide, tok = p.parseExpr(tok, false, true, false)
+		ide, tok = p.parseExpr(tok, false, false, true, false)
 		if ide != nil {
 			if param.Type != nil {
 				var ok bool

@@ -380,7 +380,7 @@ func ParseTemplateSource(src []byte, format ast.Format, imported, noParseShow, d
 			}
 			numTokenInLine++
 			var expr ast.Expression
-			expr, tok = p.parseExpr(p.next(), false, false, false)
+			expr, tok = p.parseExpr(p.next(), false, false, false, false)
 			if expr == nil {
 				return nil, nil, syntaxError(tok.pos, "unexpected %s, expecting expression", tok)
 			}
@@ -621,7 +621,7 @@ LABEL:
 				}
 			}
 			var expr ast.Expression
-			expr, tok = p.parseExpr(p.next(), false, false, true)
+			expr, tok = p.parseExpr(p.next(), false, false, false, true)
 			if expr == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
@@ -639,7 +639,7 @@ LABEL:
 				panic(syntaxError(tok.pos, "unexpected in, expecting {"))
 			}
 			var expr ast.Expression
-			expr, tok = p.parseExpr(p.next(), false, false, true)
+			expr, tok = p.parseExpr(p.next(), false, false, false, true)
 			if expr == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
@@ -719,7 +719,7 @@ LABEL:
 				if tok.typ == tokenArrow {
 					sendPos := tok.pos
 					var value ast.Expression
-					value, tok = p.parseExpr(p.next(), false, false, false)
+					value, tok = p.parseExpr(p.next(), false, false, false, false)
 					if value == nil {
 						panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 					}
@@ -875,7 +875,7 @@ LABEL:
 		var expr ast.Expression
 		init, tok = p.parseSimpleStatement(p.next(), false, true)
 		if tok.typ == tokenSemicolon {
-			expr, tok = p.parseExpr(p.next(), false, false, true)
+			expr, tok = p.parseExpr(p.next(), false, false, false, true)
 		} else if init != nil {
 			expr, _ = init.(ast.Expression)
 			if expr == nil {
@@ -1233,7 +1233,7 @@ LABEL:
 		keyword := tok.typ
 		tok = p.next()
 		var expr ast.Expression
-		expr, tok = p.parseExpr(tok, false, false, false)
+		expr, tok = p.parseExpr(tok, false, false, false, false)
 		if expr == nil {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
@@ -1356,7 +1356,7 @@ LABEL:
 			// Parse send.
 			channel := expressions[0]
 			var value ast.Expression
-			value, tok = p.parseExpr(p.next(), false, false, false)
+			value, tok = p.parseExpr(p.next(), false, false, false, false)
 			if value == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
@@ -1513,7 +1513,7 @@ func (p *parsing) parseSimpleStatement(tok token, canBeRange, nextIsBlockOpen bo
 		// Send statement.
 		channel := expressions[0]
 		var value ast.Expression
-		value, tok = p.parseExpr(p.next(), false, false, nextIsBlockOpen)
+		value, tok = p.parseExpr(p.next(), false, false, false, nextIsBlockOpen)
 		if value == nil {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
@@ -1555,7 +1555,7 @@ func (p *parsing) parseTypeDecl(tok token) (*ast.TypeDeclaration, token) {
 		tok = p.next()
 	}
 	var typ ast.Expression
-	typ, tok = p.parseExpr(tok, false, true, false)
+	typ, tok = p.parseExpr(tok, false, false, true, false)
 	if typ == nil {
 		panic(syntaxError(tok.pos, "unexpected %s in type declaration", tok))
 	}
@@ -1589,7 +1589,7 @@ func (p *parsing) parseVarOrConst(tok token, pos *ast.Position, decType tokenTyp
 		// var  a, b  int
 		// var/const  a     int  =  ...
 		// var/const  a, b  int  =  ...
-		typ, tok = p.parseExpr(tok, false, true, false)
+		typ, tok = p.parseExpr(tok, false, false, true, false)
 		if tok.typ != tokenSimpleAssignment && decType == tokenConst {
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
@@ -1765,7 +1765,7 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeRa
 		if typ != ast.AssignmentIncrement && typ != ast.AssignmentDecrement {
 			values = make([]ast.Expression, 1)
 			var expr ast.Expression
-			expr, tok = p.parseExpr(tok, false, false, nextIsBlockOpen)
+			expr, tok = p.parseExpr(tok, false, false, false, nextIsBlockOpen)
 			if expr == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}

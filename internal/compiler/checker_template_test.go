@@ -184,7 +184,7 @@ func TestCheckerTemplateExpressions(t *testing.T) {
 				ancestors: nil,
 			}
 			p.next() // discard tokenLeftBraces.
-			node, tok := p.parseExpr(p.next(), false, false, false)
+			node, tok := p.parseExpr(p.next(), false, false, false, false)
 			if node == nil {
 				t.Errorf("source: %q, unexpected %s, expecting expression\n", expr.src, tok)
 				return
@@ -261,7 +261,7 @@ func TestCheckerTemplateExpressionErrors(t *testing.T) {
 				ancestors: nil,
 			}
 			p.next() // discard tokenLeftBraces.
-			node, tok := p.parseExpr(p.next(), false, false, false)
+			node, tok := p.parseExpr(p.next(), false, false, false, false)
 			if node == nil {
 				t.Errorf("source: %q, unexpected %s, expecting expression\n", expr.src, tok)
 				return
