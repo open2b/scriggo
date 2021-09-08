@@ -334,6 +334,7 @@ var globals = native.Declarations{
 	"abs": builtin.Abs,
 	"max": builtin.Max,
 	"min": builtin.Min,
+	"pow": builtin.Pow,
 
 	// net
 	"File":        reflect.TypeOf((*builtin.File)(nil)).Elem(),
