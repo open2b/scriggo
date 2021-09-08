@@ -3724,6 +3724,13 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedBuildErr: "syntax error: unexpected {, expecting expression",
 	},
+
+	"https://github.com/open2b/scriggo/issues/850": {
+		sources: fstest.Files{
+			"index.txt": `{{ struct{T}{T{true}} }}`,
+		},
+		expectedBuildErr: "undefined: T",
+	},
 }
 
 var structWithUnexportedFields = &struct {

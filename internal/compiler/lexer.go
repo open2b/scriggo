@@ -1255,7 +1255,10 @@ LOOP:
 		case '}':
 			if end == tokenRightBraces {
 				if len(l.src) > 1 && l.src[1] == '}' {
-					if unclosedLeftBraces == 0 || len(l.src) == 2 || l.src[2] != '}' {
+					if unclosedLeftBraces == 0 {
+						return nil
+					}
+					if unclosedLeftBraces == 1 && !(len(l.src) > 2 && l.src[2] == '}') {
 						return nil
 					}
 				}
