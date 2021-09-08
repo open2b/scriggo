@@ -6,6 +6,7 @@ package runtime
 
 import (
 	"context"
+	"errors"
 	"io"
 	"reflect"
 	"strconv"
@@ -635,6 +636,9 @@ func (vm *VM) startGoroutine() bool {
 	case OpCallIndirect:
 		f := vm.general(call.A).Interface().(*callable)
 		if f.fn == nil {
+			if f.native.value.IsNil() {
+				panic(errors.New("fatal error: go of nil func value"))
+			}
 			return true
 		}
 		fn = f.fn

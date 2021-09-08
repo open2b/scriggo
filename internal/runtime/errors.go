@@ -181,6 +181,10 @@ func (vm *VM) convertPanic(msg interface{}) error {
 				return vm.newPanic(runtimeError(s))
 			}
 		}
+	case OpGo:
+		if err, ok := msg.(error); ok {
+			return err
+		}
 	case OpIf, -OpIf:
 		if err, ok := msg.(runtime.Error); ok {
 			if s := err.Error(); strings.HasPrefix(s, "runtime error: comparing uncomparable type ") {
