@@ -3794,7 +3794,7 @@ var templateMultiFileCases = map[string]struct {
 		sources: fstest.Files{
 			"index.html":     `{% extends "extended1.html" %}`,
 			"extended1.html": `{% extends "extended2.html" %}{% macro M %}{{ Undef() default "hello" }}{% end macro %}`,
-			"extended2.html": `M: {{ M }}`,
+			"extended2.html": `M: {{ M() }}`,
 		},
 		expectedOut: "M: hello",
 	},

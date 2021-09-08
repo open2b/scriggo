@@ -70,6 +70,11 @@ type compilation struct {
 	// This information must be kept here because it becomes lost after
 	// transforming the tree in case of extends.
 	extendingTrees map[*ast.Tree]bool
+
+	// extendedTrees reports if a tree with a certain path has been extended by
+	// another file. This information must be kept here because it becomes lost
+	// after transforming the tree in case of extends.
+	extendedTrees map[string]bool
 }
 
 type renderIR struct {
@@ -89,6 +94,7 @@ func newCompilation(globalScope map[string]scopeName) *compilation {
 		currentIteaIndex:  -1,
 		globalScope:       globalScope,
 		extendingTrees:    map[*ast.Tree]bool{},
+		extendedTrees:     map[string]bool{},
 	}
 }
 

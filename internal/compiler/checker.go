@@ -84,7 +84,6 @@ func typecheck(tree *ast.Tree, importer native.Importer, opts checkerOptions) (m
 	//
 	//    C --imports--> B --imports--> A
 	//
-	var extending bool
 	for {
 		extends, ok := getExtends(tree.Nodes)
 		if !ok {
@@ -93,20 +92,18 @@ func typecheck(tree *ast.Tree, importer native.Importer, opts checkerOptions) (m
 		dummyImport := ast.NewImport(nil, ast.NewIdentifier(nil, "."), tree.Path, nil)
 		dummyImport.Tree = ast.NewTree(tree.Path, tree.Nodes, tree.Format)
 		compilation.extendingTrees[dummyImport.Tree] = true
+		compilation.extendedTrees[extends.Tree.Path] = true
 		tree.Nodes = append([]ast.Node{dummyImport}, extends.Tree.Nodes...)
 		tree.Path = extends.Tree.Path
 		tc.path = extends.Tree.Path
-		extending = true
 	}
 
 	// Type check a template file or a script.
 	var err error
-	tc.inExtendedFile = extending // if tree was "extending", after the swap it becomes "extended"
 	tree.Nodes, err = tc.checkNodesInNewScopeError(tree, tree.Nodes)
 	if err != nil {
 		return nil, err
 	}
-	tc.inExtendedFile = false
 	mainPkgInfo := &packageInfo{}
 	mainPkgInfo.IndirectVars = tc.compilation.indirectVars
 	mainPkgInfo.TypeInfos = tc.compilation.typeInfos
@@ -191,10 +188,6 @@ type typechecker struct {
 	// a struct type is declared may be different from the package in which one
 	// of its fields have been declared.
 	structDeclPkg map[reflect.Type]string
-
-	// inExtendedFile reports whether the type checker is type checking an
-	// extended file.
-	inExtendedFile bool
 
 	// withinUsingAffectedStmt reports whether the type checker is currently
 	// checking the affected statement of a 'using' statement.

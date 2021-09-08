@@ -2307,7 +2307,7 @@ func (tc *typechecker) checkDefault(expr *ast.Default, show bool) typeInfoPair {
 		}
 
 	case *ast.Call:
-		if !tc.inExtendedFile {
+		if !tc.compilation.extendedTrees[tc.path] {
 			panic(tc.errorf(n, "use of default with call in non-extended file"))
 		}
 		ident := n.Func.(*ast.Identifier)
