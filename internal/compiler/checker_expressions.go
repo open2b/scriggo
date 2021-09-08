@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/compiler/types"
@@ -2074,11 +2073,7 @@ func (tc *typechecker) checkKeyedStructLiteral(typ reflect.Type, node *ast.Compo
 		}
 		hasField[ident.Name] = struct{}{}
 
-		accessible := tc.structDeclPkg[typ] == tc.path
-		if !accessible {
-			r, _ := utf8.DecodeRuneInString(ident.Name)
-			accessible = unicode.Is(unicode.Lu, r)
-		}
+		accessible := tc.structDeclPkg[typ] == tc.path || isExported(ident.Name)
 		if !accessible {
 			panic(tc.errorf(node, "unknown field '%s' in struct literal of type %s", kv.Key, typ))
 		}
@@ -2135,11 +2130,7 @@ func (tc *typechecker) checkValuedStructLiteral(typ reflect.Type, node *ast.Comp
 		valueTi := tc.checkExpr(kv.Value)
 
 		f := typ.Field(i)
-		accessible := tc.structDeclPkg[typ] == tc.path
-		if !accessible {
-			r, _ := utf8.DecodeRuneInString(f.Name)
-			accessible = unicode.Is(unicode.Lu, r)
-		}
+		accessible := tc.structDeclPkg[typ] == tc.path || isExported(f.Name)
 		if !accessible {
 			name := decodeFieldName(f.Name)
 			panic(tc.errorf(kv.Value, "implicit assignment of unexported field '%s' in %s literal", name, node.Type))
@@ -2732,7 +2723,7 @@ func (tc *typechecker) encodeFieldName(name string, blank *int) string {
 	if name == "_" {
 		name = "𝗽" + strconv.Itoa(*blank)
 		*blank++
-	} else if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
+	} else if !isExported(name) {
 		name = "𝗽" + strconv.Itoa(tc.compilation.UniqueIndex(tc.path)) + name
 	}
 	return name

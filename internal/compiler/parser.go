@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 
 	"github.com/open2b/scriggo/ast"
@@ -1639,10 +1638,10 @@ func (p *parsing) parseEndlessMacro(tok token, end tokenTyp) token {
 	if tok.typ != tokenIdentifier || !p.hasExtend || end != tokenEndStatement {
 		panic(syntaxError(tok.pos, "unexpected %s, expecting declaration statement", tok))
 	}
-	if fc, _ := utf8.DecodeRune(tok.txt); !unicode.Is(unicode.Lu, fc) {
+	ident := p.parseIdentifierNode(tok)
+	if !isExported(ident.Name) {
 		panic(syntaxError(tok.pos, "unexpected %s, expecting declaration statement", tok))
 	}
-	ident := p.parseIdentifierNode(tok)
 	tok = p.next()
 	if tok.typ != end {
 		panic(syntaxError(tok.pos, "unexpected %s, expecting declaration statement", ident))
@@ -1720,7 +1719,7 @@ func (p *parsing) parseImport(tok token, end tokenTyp) (*ast.Import, token) {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting name", tok))
 			}
 			name := string(tok.txt)
-			if r, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, r) {
+			if !isExported(name) {
 				panic(syntaxError(tok.pos, "cannot refer to unexported name %s", name))
 			}
 			forIdents = append(forIdents, ast.NewIdentifier(tok.pos, name))
