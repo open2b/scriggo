@@ -3708,6 +3708,15 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedBuildErr: "V redeclared in this block\n\tindex.html:1:11: previous declaration during import . \"imported.html\"",
 	},
+
+	"https://github.com/open2b/scriggo/issues/855": {
+		sources: fstest.Files{
+			"index.html":     `{% import "imported1.html" %}{{ V2 }}`,
+			"imported1.html": `{% import "imported2.html" %}`,
+			"imported2.html": `{% var V2 = 2 %}`,
+		},
+		expectedBuildErr: "index.html:1:33: undefined: V2",
+	},
 }
 
 var structWithUnexportedFields = &struct {

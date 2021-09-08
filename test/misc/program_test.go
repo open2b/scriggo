@@ -475,3 +475,41 @@ func TestContextCancellation(t *testing.T) {
 		}
 	}
 }
+
+// https://github.com/open2b/scriggo/issues/855
+func TestIssue855(t *testing.T) {
+	fsys := fstest.Files{
+		"index.go": `
+			package main
+
+			import . "test/imported1"
+
+			func main() {
+				_ = V2
+			}
+		`,
+		"imported1/imported1.go": `
+			package imported1
+
+			import . "test/imported2"
+
+			var _ = V2
+		`,
+		"imported2/imported2.go": `
+			package imported2
+
+			var V2 = 2
+		`,
+
+		"go.mod": `module test`,
+	}
+	var gotErr string
+	_, err := scriggo.Build(fsys, nil)
+	if err != nil {
+		gotErr = err.Error()
+	}
+	expectedErr := "main:7:9: undefined: V2"
+	if gotErr != expectedErr {
+		t.Fatalf("expected error %q, got %q", expectedErr, gotErr)
+	}
+}

@@ -128,6 +128,15 @@ func (scopes *scopes) FilePackage(name string) (*typeInfo, bool) {
 	return n.ti, ok
 }
 
+// Imported reports whether name has been imported in the file/package block.
+func (scopes *scopes) ImportedInFilePackageBlock(name string) bool {
+	n, ok := scopes.s[3].names[name]
+	if !ok {
+		return false
+	}
+	return n.ident == nil
+}
+
 // Current returns the identifier of name as declared in the current scope and
 // true. Otherwise it returns nil and false.
 func (scopes *scopes) Current(name string) (*ast.Identifier, bool) {
