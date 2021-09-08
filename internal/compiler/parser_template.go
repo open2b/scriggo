@@ -195,7 +195,6 @@ func (pp *templateExpansion) parseSource(src []byte, path string, format ast.For
 	// Expand the nodes.
 	pp.paths = append(pp.paths, path)
 	err = pp.expand(unexpanded)
-	pp.canExtend = false
 	pp.paths = pp.paths[:len(pp.paths)-1]
 	if err != nil {
 		if e, ok := err.(*SyntaxError); ok && e.path == "" {
@@ -247,6 +246,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 
 			// Try to import the path as a template file
 			var err error
+			pp.canExtend = false
 			n.Tree, err = pp.parseNodeFile(n)
 			if err != nil && !errors.Is(err, os.ErrNotExist) {
 				if e, ok := err.(*CycleError); ok {
@@ -277,6 +277,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 			}
 
 			var err error
+			pp.canExtend = false
 			r.Tree, err = pp.parseNodeFile(r)
 			if err != nil && (!special || !errors.Is(err, os.ErrNotExist)) {
 				parent := pp.paths[len(pp.paths)-1]

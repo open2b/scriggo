@@ -3798,6 +3798,25 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "M: hello",
 	},
+
+	"Import a file with an extends statement": {
+		sources: fstest.Files{
+			"index.html":    `{% import "imported.html" %}`,
+			"imported.html": `{% extends "extended.html" %}`,
+			"extended.html": ``,
+		},
+		expectedBuildErr: "imported and rendered files can not have extends",
+	},
+
+	"Render a file with an extends statement": {
+		sources: fstest.Files{
+			"index.html":    `{{ render "partial.html" }}`,
+			"partial.html":  `{% extends "extended.html" %}`,
+			"extended.html": ``,
+		},
+		expectedBuildErr: "imported and rendered files can not have extends",
+	},
+
 }
 
 var structWithUnexportedFields = &struct {
