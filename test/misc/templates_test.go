@@ -3753,19 +3753,6 @@ var templateMultiFileCases = map[string]struct {
 		expectedBuildErr: "extended4.html:1:38: V4 redeclared in this block\n\textended4.html:<nil>: previous declaration during import . \"extended3.html\"",
 	},
 
-	// REVIEW: this panics the compiler:
-	// 	"Multiple extends - many extended files": {
-	// 	sources: fstest.Files{
-	// 		"index.html":     `{% extends "extended1.html" %}`,
-	// 		"extended1.html": `{% extends "extended2.html" %}`,
-	// 		"extended2.html": `{% extends "extended3.html" %}`,
-	// 		"extended3.html": `{% extends "extended4.html" %}{% var V3 = 3 %}`,
-	// 		"extended4.html": `{% extends "extended5.html" %}{% var V4 = 4 %}`,
-	// 		"extended5.html": `{{ V3 }}{{ V4 }}`,
-	// 	},
-	// 	expectedOut: "extends 5",
-	// },
-
 	"Multiple extends - many extended files": {
 		sources: fstest.Files{
 			"index.html":     `{% extends "extended1.html" %}{% var S0 = "0" %}`,
@@ -3777,6 +3764,18 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "01234",
 	},
+
+	// "Multiple extends - many extended files (2)": {
+	// 	sources: fstest.Files{
+	// 		"index.html":     `{% extends "extended1.html" %}`,
+	// 		"extended1.html": `{% extends "extended2.html" %}`,
+	// 		"extended2.html": `{% extends "extended3.html" %}`,
+	// 		"extended3.html": `{% extends "extended4.html" %}{% var V3 = 3 %}`,
+	// 		"extended4.html": `{% extends "extended5.html" %}{% var V4 = 4 %}`,
+	// 		"extended5.html": `{{ V3 }}{{ V4 }}`,
+	// 	},
+	// 	expectedOut: "extends 5",
+	// },
 }
 
 var structWithUnexportedFields = &struct {
