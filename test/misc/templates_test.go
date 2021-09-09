@@ -3816,6 +3816,21 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedBuildErr: "imported and rendered files can not have extends",
 	},
+
+	"Cyclic extends is not allowed": {
+		sources: fstest.Files{
+			"index.html": `
+				{% extends "extended1.html" %}
+			`,
+			"extended1.html": `
+				{% extends "extended2.html" %}
+			`,
+			"extended2.html": `
+				{% extends "extended1.html" %}
+			`,
+		},
+		expectedBuildErr: "file index.html\n\textends extended1.html\n\textends extended2.html\n\textends extended1.html: cycle not allowed",
+	},
 }
 
 var structWithUnexportedFields = &struct {
