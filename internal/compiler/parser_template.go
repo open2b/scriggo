@@ -46,6 +46,7 @@ func ParseTemplate(fsys fs.FS, name string, noParseShow, dollarIdentifier bool) 
 		fsys:             fsys,
 		trees:            map[string]parsedTree{},
 		paths:            []string{},
+		canExtend:        true,
 		noParseShow:      noParseShow,
 		dollarIdentifier: dollarIdentifier,
 	}
@@ -68,6 +69,7 @@ type templateExpansion struct {
 	fsys             fs.FS
 	trees            map[string]parsedTree
 	paths            []string
+	canExtend        bool
 	noParseShow      bool
 	dollarIdentifier bool
 }
@@ -214,8 +216,8 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 		case *ast.Extends:
 			// extends "path"
 
-			if len(pp.paths) > 1 {
-				return syntaxError(n.Pos(), "extended, imported and rendered files can not have extends")
+			if !pp.canExtend {
+				return syntaxError(n.Pos(), "imported and rendered files can not have extends")
 			}
 			var err error
 			n.Tree, err = pp.parseNodeFile(n)
@@ -244,6 +246,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 
 			// Try to import the path as a template file
 			var err error
+			pp.canExtend = false
 			n.Tree, err = pp.parseNodeFile(n)
 			if err != nil && !errors.Is(err, os.ErrNotExist) {
 				if e, ok := err.(*CycleError); ok {
@@ -274,6 +277,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node) error {
 			}
 
 			var err error
+			pp.canExtend = false
 			r.Tree, err = pp.parseNodeFile(r)
 			if err != nil && (!special || !errors.Is(err, os.ErrNotExist)) {
 				parent := pp.paths[len(pp.paths)-1]

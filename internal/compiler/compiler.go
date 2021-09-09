@@ -390,6 +390,10 @@ func getExtends(nodes []ast.Node) (*ast.Extends, bool) {
 	for _, node := range nodes {
 		switch n := node.(type) {
 		case *ast.Comment, *ast.Text:
+		case *ast.Import:
+			// This is the import declaration added when transforming the tree
+			// in case of extends. It must be skipped because it is added
+			// before the 'extends' declaration.
 		case *ast.Extends:
 			return n, true
 		case *ast.Statements:
