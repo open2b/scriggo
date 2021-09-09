@@ -3816,7 +3816,6 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedBuildErr: "imported and rendered files can not have extends",
 	},
-
 }
 
 var structWithUnexportedFields = &struct {
