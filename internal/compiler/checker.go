@@ -241,22 +241,32 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 
 // assignScope assigns value to name in the current scope.
 //
-// node is an *ast.Import value for packages and imported names, otherwise an
-// *ast.Identifier value for all other names.
+// node is the identifier that declared the value, or nil if native.
+//
+// impor is the import node that imported the value, or nil if value has not
+// been imported.
 //
 // assignScope panics a type checking error "redeclared in this block" if name
 // is already defined in the current scope.
-func (tc *typechecker) assignScope(name string, value *typeInfo, node ast.Node) {
-	ok := tc.scopes.Declare(name, value, node)
+func (tc *typechecker) assignScope(name string, value *typeInfo, decl *ast.Identifier, impor *ast.Import) {
+	var ok bool
+	if impor != nil {
+		ok = tc.scopes.Import(name, value, decl, impor)
+	} else {
+		ok = tc.scopes.Declare(name, value, decl)
+	}
 	if !ok && (isValidIdentifier(name, tc.opts.mod) || strings.HasPrefix(name, "$")) {
 		s := name + " redeclared in this block"
-		_, decl, _ := tc.scopes.Lookup(name)
-		if pkg, ok := decl.(*ast.Import); ok {
-			s += fmt.Sprintf("\n\t%s:%s: previous declaration during %s", tc.path, pkg.Pos(), pkg)
-		} else if pos := decl.Pos(); pos != nil {
-			s += "\n\tprevious declaration at " + pos.String()
+		if i, ok := tc.scopes.GetImportNode(name); ok {
+			s += fmt.Sprintf("\n\t%s:%s: previous declaration during %s", tc.path, i.Pos(), i)
+		} else {
+			_, decl, _ := tc.scopes.Lookup(name)
+			pos := decl.Pos()
+			if pos != nil {
+				s += "\n\tprevious declaration at " + pos.String()
+			}
 		}
-		panic(tc.errorf(node, s))
+		panic(tc.errorf(decl, s))
 	}
 }
 

@@ -3838,6 +3838,86 @@ var templateMultiFileCases = map[string]struct {
 		},
 		importer: testPackages,
 	},
+
+	"https://github.com/open2b/scriggo/issues/852 (1)": {
+		sources: fstest.Files{
+			"index.html": `
+				{% import "imported.html" %}
+				{% macro M %}
+					{{ V }}
+				{% end macro %}
+			`,
+			"imported.html": `{% var V int %}`,
+		},
+		expectedOut: "\n\t\t\t",
+	},
+
+	"https://github.com/open2b/scriggo/issues/852 (2)": {
+		sources: fstest.Files{
+			"index.html": `
+				{% import pkg "imported.html" %}
+				{% macro M %}
+					{{ pkg.V }}
+				{% end macro %}
+			`,
+			"imported.html": `{% var V int %}`,
+		},
+		expectedOut: "\n\t\t\t",
+	},
+
+	"https://github.com/open2b/scriggo/issues/852 (3)": {
+		sources: fstest.Files{
+			"index.html": `
+				{% import "imported.html" %}
+				{% ref := &V %}
+				{% _ = ref %}
+			`,
+			"imported.html": `{% var V int %}`,
+		},
+		expectedOut: "\n\t\t\t",
+	},
+
+	"https://github.com/open2b/scriggo/issues/852 (4)": {
+		sources: fstest.Files{
+			"index.html": `
+				{% import pkg "imported.html" %}
+				{% ref := &pkg.V %}
+				{% _ = ref %}
+			`,
+			"imported.html": `{% var V int %}`,
+		},
+		expectedOut: "\n\t\t\t",
+	},
+
+	"https://github.com/open2b/scriggo/issues/852 (5)": {
+		sources: fstest.Files{
+			"index.html": `
+				{% import . "imported.html" %}
+				{% macro M %}
+					{{ V }}
+				{% end macro %}
+			`,
+			"imported.html": `{% var V int %}`,
+		},
+		expectedOut: "\n\t\t\t",
+	},
+
+	"https://github.com/open2b/scriggo/issues/852 (6)": {
+		sources: fstest.Files{
+			"index.html": `
+				{% import "imported.html" %}
+				{% macro M1 %}
+					{% macro M2 %}
+						{% macro M3 %}
+							{{ V }}
+						{% end macro %}
+					{% end macro %}
+				{% end macro %}
+			`,
+			"imported.html": `{% var V int %}`,
+		},
+		expectedOut: "\n\t\t\t",
+	},
 }
 
 var structWithUnexportedFields = &struct {

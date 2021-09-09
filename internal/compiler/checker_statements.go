@@ -666,7 +666,7 @@ nodesLoop:
 		case *ast.TypeDeclaration:
 			name, ti := tc.checkTypeDeclaration(node)
 			if ti != nil {
-				tc.assignScope(name, ti, node.Ident)
+				tc.assignScope(name, ti, node.Ident, nil)
 			}
 
 		case *ast.Show:
@@ -921,7 +921,7 @@ nodesLoop:
 			ti := tc.checkExpr(node)
 			if tc.opts.mod == templateMod {
 				if node, ok := node.(*ast.Func); ok && node.Ident != nil {
-					tc.assignScope(node.Ident.Name, ti, node.Ident)
+					tc.assignScope(node.Ident.Name, ti, node.Ident, nil)
 					i++
 					continue nodesLoop
 				}
@@ -984,7 +984,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 				if !ok {
 					return tc.errorf(impor, "undefined: %s", ident)
 				}
-				tc.scopes.Declare(ident.Name, ti, impor)
+				tc.scopes.Import(ident.Name, ti, nil, impor)
 			}
 			return nil
 		}
@@ -992,7 +992,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		// 'import . "pkg"': add every declaration to the file package block.
 		if isPeriodImport(impor) {
 			for ident, ti := range imported.Declarations {
-				tc.scopes.Declare(ident, ti, impor)
+				tc.scopes.Import(ident, ti, nil, impor)
 			}
 			return nil
 		}
@@ -1017,7 +1017,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		}
 
 		// Add the package to the file/package block.
-		tc.assignScope(pkgName, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}, impor)
+		tc.assignScope(pkgName, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}, nil, impor)
 
 		return nil
 	}
@@ -1059,7 +1059,11 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 			if !ok {
 				return tc.errorf(impor, "undefined: %s", ident)
 			}
-			tc.scopes.Declare(ident.Name, ti, impor)
+			decl, ok := imported.DeclarationNodes[ident.Name]
+			if !ok {
+				panic("BUG")
+			}
+			tc.scopes.Import(ident.Name, ti, decl, impor)
 		}
 
 	// import "path"
@@ -1067,14 +1071,18 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 
 		// This form of import in templates has been transformed above, so just
 		// handle programs and scripts here.
-		tc.scopes.Declare(imported.Name, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}, impor)
+		tc.scopes.Import(imported.Name, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}, nil, impor)
 		return nil
 
 	// import . "path"
 	// {% import . "path" %}
 	case isPeriodImport(impor):
 		for ident, ti := range imported.Declarations {
-			tc.scopes.Declare(ident, ti, impor)
+			decl, ok := imported.DeclarationNodes[ident]
+			if !ok {
+				panic("BUG")
+			}
+			tc.scopes.Import(ident, ti, decl, impor)
 		}
 		return nil
 
@@ -1085,7 +1093,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 			value:      imported,
 			Properties: propertyIsPackage | propertyHasValue,
 		}
-		tc.scopes.Declare(impor.Ident.Name, ti, impor)
+		tc.scopes.Import(impor.Ident.Name, ti, nil, impor)
 		// TODO: is the error "imported but not used" correctly reported for
 		// this case?
 	}
