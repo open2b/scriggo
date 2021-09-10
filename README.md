@@ -1,10 +1,10 @@
-<img src="https://scriggo-site.pages.dev/images/scriggo.svg" alt="Scriggo" title="Scriggo" width="575px" style="max-width: 100%">
+<img src="https://scriggo-site.pages.dev/images/scriggo.svg" alt="Scriggo" title="Scriggo" width="530px" style="max-width: 100%">
 
-The fast, modern and secure Go template engine and embeddable Go runtime.
+Fast, modern and secure Go template engine and embeddable [Go](https://golang.org/) runtime.
 
 ## Features
 
-* Fast, the fastest embeddable pure Go language runtime.
+* Fast, a very fast embeddable pure Go language runtime.
 * Modern and powerful Template Engine with Go as scripting language.
 * Native support for Markdown in templates.
 * Secure by default. No access to packages unless explicitly enabled.
