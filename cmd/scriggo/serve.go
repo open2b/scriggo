@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/builtin"
 	"github.com/open2b/scriggo/native"
 
@@ -58,8 +59,9 @@ func serve(asm int, metrics bool) error {
 		mdConverter: func(src []byte, out io.Writer) error {
 			return md.Convert(src, out)
 		},
-		templates: map[string]*scriggo.Template{},
-		asm:       asm,
+		templates:             map[string]*scriggo.Template{},
+		templatesDependencies: map[string]map[string]struct{}{},
+		asm:                   asm,
 	}
 	if metrics {
 		srv.metrics.active = true
@@ -69,7 +71,29 @@ func serve(asm int, metrics bool) error {
 		for {
 			select {
 			case name := <-fsys.Changed:
-				delete(srv.templates, name)
+				srv.Lock()
+				if _, ok := srv.templates[name]; ok {
+					delete(srv.templates, name)
+					for _, dependents := range srv.templatesDependencies {
+						delete(dependents, name)
+					}
+				} else {
+					var invalidatedFiles []string
+					for dependency, dependents := range srv.templatesDependencies {
+						if dependency == name {
+							for d := range dependents {
+								delete(srv.templates, d)
+								invalidatedFiles = append(invalidatedFiles, d)
+							}
+						}
+					}
+					for _, invalidated := range invalidatedFiles {
+						for _, dependents := range srv.templatesDependencies {
+							delete(dependents, invalidated)
+						}
+					}
+				}
+				srv.Unlock()
 			case err := <-fsys.Errors:
 				srv.logf("%v", err)
 			}
@@ -90,6 +114,47 @@ func serve(asm int, metrics bool) error {
 	return s.ListenAndServe()
 }
 
+func (srv *server) updateTemplateDependencies(tree *ast.Tree) error {
+
+	var treeNavigation func(*ast.Tree, bool) []string
+
+	treeNavigation = func(tree *ast.Tree, includeRoot bool) []string {
+		var dependencies []string
+		if includeRoot {
+			dependencies = []string{tree.Path}
+		}
+		for _, n := range tree.Nodes {
+			switch node := n.(type) {
+			case *ast.Show:
+				for _, e := range node.Expressions {
+					switch expr := e.(type) {
+					case *ast.Render:
+						dependencies = append(dependencies, treeNavigation(expr.Tree, true)...)
+					}
+				}
+			case *ast.Import:
+				dependencies = append(dependencies, treeNavigation(node.Tree, true)...)
+			case *ast.Extends:
+				dependencies = append(dependencies, treeNavigation(node.Tree, true)...)
+			default:
+			}
+		}
+		return dependencies
+	}
+
+	dependencies := treeNavigation(tree, false)
+	srv.Lock()
+	for _, dependency := range dependencies {
+		if _, ok := srv.templatesDependencies[dependency]; !ok {
+			srv.templatesDependencies[dependency] = map[string]struct{}{}
+		}
+		srv.templatesDependencies[dependency][tree.Path] = struct{}{}
+	}
+	srv.Unlock()
+
+	return nil
+}
+
 type server struct {
 	fsys        *templateFS
 	static      http.Handler
@@ -98,8 +163,9 @@ type server struct {
 	asm         int
 
 	sync.Mutex
-	templates map[string]*scriggo.Template
-	metrics   struct {
+	templates             map[string]*scriggo.Template
+	templatesDependencies map[string]map[string]struct{}
+	metrics               struct {
 		active bool
 		header bool
 	}
@@ -150,6 +216,7 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			AllowGoStmt:       true,
 			MarkdownConverter: srv.mdConverter,
 			Globals:           make(native.Declarations, len(globals)+1),
+			TreeTransformer:   srv.updateTemplateDependencies,
 		}
 		for n, v := range globals {
 			opts.Globals[n] = v
