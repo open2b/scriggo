@@ -134,7 +134,7 @@ func CloneNode(node ast.Node) ast.Node {
 			ident = ast.NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
 		}
 		typ := CloneExpression(n.Type).(*ast.FuncType)
-		return ast.NewFunc(ClonePosition(n.Position), ident, typ, CloneNode(n.Body).(*ast.Block), n.Endless, n.Format)
+		return ast.NewFunc(ClonePosition(n.Position), ident, typ, CloneNode(n.Body).(*ast.Block), n.DistFree, n.Format)
 
 	case *ast.Go:
 		return ast.NewGo(ClonePosition(n.Position), CloneExpression(n.Call))

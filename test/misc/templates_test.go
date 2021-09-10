@@ -2226,7 +2226,7 @@ var templateMultiFileCases = map[string]struct {
 		},
 	},
 
-	"Endless macro declaration": {
+	"Distraction free macro declaration": {
 		sources: fstest.Files{
 			"index.html":  `{% extends "layout.html" %}{% Article %}content`,
 			"layout.html": `{% show Article() %}`,
@@ -2234,7 +2234,7 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: `content`,
 	},
 
-	"Endless macro declaration (2)": {
+	"Distraction free macro declaration (2)": {
 		sources: fstest.Files{
 			"index.html":  `{% extends "layout.html" %}{% Article %}{% Content %}`,
 			"layout.html": `{% show Article() %}`,
@@ -2242,7 +2242,7 @@ var templateMultiFileCases = map[string]struct {
 		expectedBuildErr: `undefined: Content`,
 	},
 
-	"Endless macro declaration (3)": {
+	"Distraction free macro declaration (3)": {
 		sources: fstest.Files{
 			"index.html":  `{% extends "layout.html" %}{% Article %}{% end macro %}`,
 			"layout.html": `{% show Article() %}`,
@@ -2250,7 +2250,7 @@ var templateMultiFileCases = map[string]struct {
 		expectedBuildErr: `syntax error: unexpected end`,
 	},
 
-	"Endless macro declaration (4)": {
+	"Distraction free macro declaration (4)": {
 		sources: fstest.Files{
 			"index.html":  `{% extends "layout.html" %}{% article %}{% end %}`,
 			"layout.html": `{% show Article() %}`,
@@ -2258,7 +2258,7 @@ var templateMultiFileCases = map[string]struct {
 		expectedBuildErr: `syntax error: unexpected article, expecting declaration statement`,
 	},
 
-	"Endless macro declaration (5)": {
+	"Distraction free macro declaration (5)": {
 		sources: fstest.Files{
 			"index.html":    `{% import "imported.html" %}{% show Article() %}`,
 			"imported.html": `{% Article %}`,
@@ -2266,7 +2266,7 @@ var templateMultiFileCases = map[string]struct {
 		expectedBuildErr: `syntax error: unexpected Article, expecting declaration statement`,
 	},
 
-	"Endless macro declaration (6)": {
+	"Distraction free macro declaration (6)": {
 		sources: fstest.Files{
 			"index.html":   `{{ render "partial.html" }}`,
 			"partial.html": `{% Article %}`,

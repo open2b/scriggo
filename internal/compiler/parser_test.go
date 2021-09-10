@@ -2466,11 +2466,11 @@ func equals(n1, n2 ast.Node, p int) error {
 				return err
 			}
 		}
-		if nn1.Endless != nn2.Endless {
-			if nn1.Endless {
-				return fmt.Errorf("unexpected endless, expecting not endless")
+		if nn1.DistFree != nn2.DistFree {
+			if nn1.DistFree {
+				return fmt.Errorf("unexpected distraction free, expecting not distraction free")
 			}
-			return fmt.Errorf("unexpected not endless, expecting endless")
+			return fmt.Errorf("unexpected not distraction free, expecting distraction free")
 		}
 		if nn1.Format != nn2.Format {
 			return fmt.Errorf("unexpected format %s, expecting %s", nn1.Format, nn2.Format)

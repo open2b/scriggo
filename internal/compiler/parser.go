@@ -422,9 +422,9 @@ func ParseTemplateSource(src []byte, format ast.Format, imported, noParseShow, d
 
 	}
 
-	// If the ancestors are {Tree, Func, Block} check if Func is endless.
+	// If the ancestors are {Tree, Func, Block} check if Func is distraction free.
 	if len(p.ancestors) == 3 {
-		if fn, ok := p.ancestors[1].(*ast.Func); ok && fn.Endless {
+		if fn, ok := p.ancestors[1].(*ast.Func); ok && fn.DistFree {
 			fn.End = tok.pos.End
 			p.removeLastAncestor()
 			p.removeLastAncestor()
@@ -483,7 +483,7 @@ LABEL:
 			switch tok.typ {
 			case tokenExtends, tokenImport, tokenMacro, tokenVar, tokenConst, tokenType:
 			default:
-				return p.parseEndlessMacro(tok, end)
+				return p.parseDistFreeMacro(tok, end)
 			}
 		} else if p.isScript || end != tokenEOF {
 			if tok.typ == tokenReturn {
@@ -1132,7 +1132,7 @@ LABEL:
 			panic(syntaxError(tok.pos, "unexpected %s", tok))
 		case *ast.Block:
 			if len(p.ancestors) == 3 {
-				if fn, ok := p.ancestors[1].(*ast.Func); ok && fn.Endless {
+				if fn, ok := p.ancestors[1].(*ast.Func); ok && fn.DistFree {
 					panic(syntaxError(tok.pos, "unexpected %s", tok))
 				}
 			}
@@ -1633,8 +1633,8 @@ func (p *parsing) parseVarOrConst(tok token, pos *ast.Position, decType tokenTyp
 	return ast.NewConst(pos, idents, typ, exprs, iotaValue), tok
 }
 
-// parseEndlessMacro parses an endless macro declaration.
-func (p *parsing) parseEndlessMacro(tok token, end tokenTyp) token {
+// parseDistFreeMacro parses a distraction free macro declaration.
+func (p *parsing) parseDistFreeMacro(tok token, end tokenTyp) token {
 	if tok.typ != tokenIdentifier || !p.hasExtend || end != tokenEndStatement {
 		panic(syntaxError(tok.pos, "unexpected %s, expecting declaration statement", tok))
 	}

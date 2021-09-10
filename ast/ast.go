@@ -815,17 +815,17 @@ func NewForRange(pos *Position, assignment *Assignment, body []Node) *ForRange {
 type Func struct {
 	expression
 	*Position
-	Ident   *Identifier // name, nil for function literals.
-	Type    *FuncType   // type.
-	Body    *Block      // body.
-	Endless bool        // reports whether it is endless.
-	Upvars  []Upvar     // Upvars of func.
-	Format  Format      // macro format.
+	Ident    *Identifier // name, nil for function literals.
+	Type     *FuncType   // type.
+	Body     *Block      // body.
+	DistFree bool        // reports whether it is distraction free.
+	Upvars   []Upvar     // Upvars of func.
+	Format   Format      // macro format.
 }
 
 // NewFunc returns a new Func node.
-func NewFunc(pos *Position, name *Identifier, typ *FuncType, body *Block, endless bool, format Format) *Func {
-	return &Func{expression{}, pos, name, typ, body, endless, nil, format}
+func NewFunc(pos *Position, name *Identifier, typ *FuncType, body *Block, distFree bool, format Format) *Func {
+	return &Func{expression{}, pos, name, typ, body, distFree, nil, format}
 }
 
 // String returns the string representation of n.
