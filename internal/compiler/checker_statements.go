@@ -978,12 +978,14 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		// {% import "path" for N1, N2 %}
 		//
 		// where "path" is a native package path.
-		for _, ident := range impor.For {
-			ti, ok := imported.Declarations[ident.Name]
-			if !ok {
-				return tc.errorf(impor, "undefined: %s", ident)
+		if impor.For != nil {
+			for _, ident := range impor.For {
+				ti, ok := imported.Declarations[ident.Name]
+				if !ok {
+					return tc.errorf(impor, "undefined: %s", ident)
+				}
+				tc.scopes.Declare(ident.Name, ti, impor)
 			}
-			tc.scopes.Declare(ident.Name, ti, impor)
 			return nil
 		}
 

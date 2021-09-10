@@ -3831,6 +3831,13 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedBuildErr: "file index.html\n\textends extended1.html\n\textends extended2.html\n\textends extended1.html: cycle not allowed",
 	},
+
+	"https://github.com/open2b/scriggo/issues/857": {
+		sources: fstest.Files{
+			"index.html": `{% import "fmt" for Sprint, Fprint %}{% _ = Sprint %}{% _ = Fprint %}`,
+		},
+		importer: testPackages,
+	},
 }
 
 var structWithUnexportedFields = &struct {
@@ -3874,6 +3881,7 @@ var testPackages = native.Packages{
 		Name: "fmt",
 		Declarations: native.Declarations{
 			"Sprint": fmt.Sprint,
+			"Fprint": fmt.Fprint,
 		},
 	},
 	"math": native.Package{
