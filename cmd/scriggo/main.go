@@ -234,13 +234,16 @@ var commands = map[string]func(){
 	},
 	"version": func() {
 		flag.Usage = commandsHelp["version"]
-		info, ok := debug.ReadBuildInfo()
-		version := "unknown"
-		if ok {
-			version = info.Main.Version
-		}
-		fmt.Printf("scriggo version %s (%s)\n", version, runtime.Version())
+		fmt.Printf("scriggo version %s (%s)\n", version(), runtime.Version())
 	},
+}
+
+// version returns the scriggo command version.
+func version() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		return info.Main.Version
+	}
+	return "unknown"
 }
 
 // _import executes the sub commands "import":

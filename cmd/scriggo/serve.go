@@ -321,6 +321,9 @@ var globals = native.Declarations{
 	"sha1":       builtin.Sha1,
 	"sha256":     builtin.Sha256,
 
+	// debug
+	"version": version(),
+
 	// encoding
 	"base64":            builtin.Base64,
 	"hex":               builtin.Hex,
