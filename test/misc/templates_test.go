@@ -4030,7 +4030,7 @@ func TestVars(t *testing.T) {
 	}
 }
 
-var envFilePathCases = []struct {
+var envCallPathCases = []struct {
 	name    string
 	sources fstest.Files
 	want    string
@@ -4082,11 +4082,11 @@ var envFilePathCases = []struct {
 	},
 }
 
-func Test_envFilePath(t *testing.T) {
+func Test_envCallPath(t *testing.T) {
 	globals := native.Declarations{
-		"path": func(env native.Env) string { return env.FilePath() },
+		"path": func(env native.Env) string { return env.CallPath() },
 	}
-	for _, cas := range envFilePathCases {
+	for _, cas := range envCallPathCases {
 		t.Run(cas.name, func(t *testing.T) {
 			opts := &scriggo.BuildOptions{
 				Globals: globals,

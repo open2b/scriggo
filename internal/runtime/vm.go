@@ -339,7 +339,7 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 					if vm.main {
 						env := vm.env
 						env.mu.Lock()
-						env.filePath = vm.fn.DebugInfo[vm.pc-1].Path
+						env.callPath = vm.fn.DebugInfo[vm.pc-1].Path
 						env.mu.Unlock()
 					}
 					args[i].Set(vm.envArg)

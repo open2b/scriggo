@@ -37,6 +37,11 @@ type (
 // of the first parameter.
 type Env interface {
 
+	// CallPath returns the path, relative to the root, of the call site of
+	// the caller function. If it is not called by the main goroutine, the
+	// returned value is not significant.
+	CallPath() string
+
 	// Context returns the context of the execution.
 	// It is the context passed as an option for execution.
 	Context() context.Context
@@ -50,11 +55,6 @@ type Env interface {
 	// Fatal exits the execution and then panics with value v. Deferred
 	// functions are not called and started goroutines are not terminated.
 	Fatal(v interface{})
-
-	// FilePath returns the path, relative to the root, of the current
-	// executed file. If it is not called by the main goroutine, the
-	// returned value is not significant.
-	FilePath() string
 
 	// Print calls the print built-in function with args as argument.
 	Print(args ...interface{})
