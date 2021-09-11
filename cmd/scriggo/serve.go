@@ -55,12 +55,8 @@ func serve(asm int, metrics bool) error {
 	srv := &server{
 		fsys:   fsys,
 		static: http.FileServer(http.Dir(".")),
-		buildOptions: &scriggo.BuildOptions{
-			AllowGoStmt: true,
-			Globals:     globals,
-			MarkdownConverter: func(src []byte, out io.Writer) error {
-				return md.Convert(src, out)
-			},
+		mdConverter: func(src []byte, out io.Writer) error {
+			return md.Convert(src, out)
 		},
 		templates: map[string]*scriggo.Template{},
 		asm:       asm,
@@ -95,11 +91,11 @@ func serve(asm int, metrics bool) error {
 }
 
 type server struct {
-	fsys         *templateFS
-	static       http.Handler
-	buildOptions *scriggo.BuildOptions
-	runOptions   *scriggo.RunOptions
-	asm          int
+	fsys        *templateFS
+	static      http.Handler
+	mdConverter scriggo.Converter
+	runOptions  *scriggo.RunOptions
+	asm         int
 
 	sync.Mutex
 	templates map[string]*scriggo.Template
@@ -150,7 +146,16 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	srv.Unlock()
 	start := time.Now()
 	if !ok {
-		template, err = scriggo.BuildTemplate(srv.fsys, name, srv.buildOptions)
+		opts := scriggo.BuildOptions{
+			AllowGoStmt:       true,
+			MarkdownConverter: srv.mdConverter,
+			Globals:           make(native.Declarations, len(globals)+1),
+		}
+		for n, v := range globals {
+			opts.Globals[n] = v
+		}
+		opts.Globals["filepath"] = strings.TrimSuffix(name, path.Ext(name))
+		template, err = scriggo.BuildTemplate(srv.fsys, name, &opts)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				http.NotFound(w, r)
