@@ -113,4 +113,4 @@ func main() {
 }
 ```
 
-For a complete get started guide see the [Scriggo site](https://www.scriggo.com/).
+For a complete get started guide see the [Scriggo site](https://scriggo.com/).
