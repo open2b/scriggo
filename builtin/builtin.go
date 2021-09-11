@@ -266,6 +266,45 @@ func Date(year, month, day, hour, min, sec, nsec int, location string) (Time, er
 	return NewTime(time.Date(year, time.Month(month), day, hour, min, sec, nsec, loc)), nil
 }
 
+// FormatInt returns the string representation of i in the given base, for
+// 2 <= base <= 36. The result uses the lower-case letters 'a' to 'z' for
+// digit values >= 10.
+//
+// It panics if base is not in the range.
+func FormatInt(i int, base int) string {
+	if base < 2 || base > 36 {
+		panic("formatInt: invalid base " + strconv.Itoa(base))
+	}
+	return strconv.FormatInt(int64(i), base)
+}
+
+// FormatFloat converts the floating-point number f to a string, according to
+// the given format and precision. It can round the result.
+//
+// The format is one of "e", "f" or "g"
+//  "e": -d.dddde±dd, a decimal exponent
+//  "f": -ddd.dddd, no exponent
+//  "g": "e" for large exponents, "f" otherwises
+//
+// The precision, for -1 <= precision <= 1000, controls the number of digits
+// (excluding the exponent). The special precision -1 uses the smallest number
+// of digits necessary such that ParseFloat will return f exactly. For "e"
+// and "f" it is the number of digits after the decimal point. For "g" it is
+// the maximum number of significant digits (trailing zeros are removed).
+//
+// If the format or the precision is not valid, FormatFloat panics.
+func FormatFloat(f float64, format string, precision int) string {
+	switch format {
+	case "e", "f", "g":
+	default:
+		panic("formatFloat: invalid format " + strconv.Quote(format))
+	}
+	if precision < -1 || precision > 1000 {
+		panic("formatFloat: invalid precision " + strconv.Itoa(precision))
+	}
+	return strconv.FormatFloat(f, format[0], precision, 64)
+}
+
 // HasPrefix tests whether the string s begins with prefix.
 func HasPrefix(s, prefix string) bool {
 	return strings.HasPrefix(s, prefix)
@@ -318,45 +357,6 @@ func Index(s, substr string) int {
 // from chars in s, or -1 if no Unicode code point from chars is present in s.
 func IndexAny(s, chars string) int {
 	return strings.IndexAny(s, chars)
-}
-
-// FormatInt returns the string representation of i in the given base, for
-// 2 <= base <= 36. The result uses the lower-case letters 'a' to 'z' for
-// digit values >= 10.
-//
-// It panics if base is not in the range.
-func FormatInt(i int, base int) string {
-	if base < 2 || base > 36 {
-		panic("formatInt: invalid base " + strconv.Itoa(base))
-	}
-	return strconv.FormatInt(int64(i), base)
-}
-
-// FormatFloat converts the floating-point number f to a string, according to
-// the given format and precision. It can round the result.
-//
-// The format is one of "e", "f" or "g"
-//  "e": -d.dddde±dd, a decimal exponent
-//  "f": -ddd.dddd, no exponent
-//  "g": "e" for large exponents, "f" otherwises
-//
-// The precision, for -1 <= precision <= 1000, controls the number of digits
-// (excluding the exponent). The special precision -1 uses the smallest number
-// of digits necessary such that ParseFloat will return f exactly. For "e"
-// and "f" it is the number of digits after the decimal point. For "g" it is
-// the maximum number of significant digits (trailing zeros are removed).
-//
-// If the format or the precision is not valid, FormatFloat panics.
-func FormatFloat(f float64, format string, precision int) string {
-	switch format {
-	case "e", "f", "g":
-	default:
-		panic("formatFloat: invalid format " + strconv.Quote(format))
-	}
-	if precision < -1 || precision > 1000 {
-		panic("formatFloat: invalid precision " + strconv.Itoa(precision))
-	}
-	return strconv.FormatFloat(f, format[0], precision, 64)
 }
 
 // Join concatenates the elements of its first argument to create a single
