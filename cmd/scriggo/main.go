@@ -392,17 +392,20 @@ func _init(path string, flags buildFlags) error {
 			os.PathSeparator, os.PathSeparator)
 	}
 
-	// Verify that module dir does not contain Go files or a vendor directory.
+	// Verify that module dir does not contain "main.go", "packages.go", "Scriggofile" files or a vendor directory.
 	entries, err := os.ReadDir(modDir)
 	if err != nil {
 		return err
 	}
 	for _, entry := range entries {
-		if !entry.IsDir() && (entry.Name() == "main.go" || entry.Name() == "packages.go") {
-			if path == "" {
-				return fmt.Errorf("scriggo: current directory contains %q file", entry.Name())
+		if !entry.IsDir() {
+			switch entry.Name() {
+			case "main.go", "packages.go", "Scriggofile":
+				if path == "" {
+					return fmt.Errorf("scriggo: current directory already contains %q file", entry.Name())
+				}
+				return fmt.Errorf("scriggo: directory %q already contains %q file", path, entry.Name())
 			}
-			return fmt.Errorf("scriggo: directory %q contains %q file", path, entry.Name())
 		}
 		if entry.IsDir() && entry.Name() == "vendor" {
 			if path == "" {
@@ -438,16 +441,9 @@ func _init(path string, flags buildFlags) error {
 		return err
 	}
 
-	// Create the Scriggofile it does not exist.
-	fi, err = os.OpenFile(sfPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0666)
-	if err == nil {
-		// Write the Scriggofile.
-		_, err = fi.Write(simpleScriggofileContent)
-		if err == nil {
-			err = fi.Close()
-		}
-	}
-	if err != nil && !errors.Is(err, fs.ErrExist) {
+	// Create the Scriggofile.
+	err = os.WriteFile(sfPath, simpleScriggofileContent, 0666)
+	if err != nil {
 		return err
 	}
 
