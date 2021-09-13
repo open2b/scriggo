@@ -167,7 +167,8 @@ func (scopes *scopes) ExportedDeclarationNodes() map[string]*ast.Identifier {
 // true. If name is already declared in the current scope, it does nothing and
 // returns false.
 // decl is the identifier node that declared name, or nil if native.
-// impor is the node of the import declaration that imported name, if imported.
+// impor is the node of the import declaration that imported name, is nil if
+// not imported.
 func (scopes *scopes) Declare(name string, ti *typeInfo, decl *ast.Identifier, impor *ast.Import) bool {
 	c := len(scopes.s) - 1
 	n := scopeName{ti: ti}
