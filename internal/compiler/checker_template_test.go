@@ -196,7 +196,7 @@ func TestCheckerTemplateExpressions(t *testing.T) {
 			compilation := newCompilation(nil)
 			tc := newTypechecker(compilation, "", options, nil)
 			for name, ti := range expr.scope {
-				tc.scopes.Declare(name, ti, nil)
+				tc.scopes.Declare(name, ti, nil, nil)
 			}
 			tc.scopes.Enter(node)
 			ti := tc.checkExpr(node)
@@ -273,7 +273,7 @@ func TestCheckerTemplateExpressionErrors(t *testing.T) {
 			compilation := newCompilation(nil)
 			tc := newTypechecker(compilation, "", options, nil)
 			for name, ti := range expr.scope {
-				tc.scopes.Declare(name, ti, nil)
+				tc.scopes.Declare(name, ti, nil, nil)
 			}
 			tc.scopes.Enter(node)
 			ti := tc.checkExpr(node)

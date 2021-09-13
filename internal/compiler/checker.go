@@ -249,12 +249,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 // assignScope panics a type checking error "redeclared in this block" if name
 // is already defined in the current scope.
 func (tc *typechecker) assignScope(name string, value *typeInfo, decl *ast.Identifier, impor *ast.Import) {
-	var ok bool
-	if impor != nil {
-		ok = tc.scopes.Import(name, value, decl, impor)
-	} else {
-		ok = tc.scopes.Declare(name, value, decl)
-	}
+	ok := tc.scopes.Declare(name, value, decl, impor)
 	if !ok && (isValidIdentifier(name, tc.opts.mod) || strings.HasPrefix(name, "$")) {
 		s := name + " redeclared in this block"
 		if i, ok := tc.scopes.GetImportNode(name); ok {

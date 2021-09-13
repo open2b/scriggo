@@ -565,7 +565,7 @@ nodesLoop:
 				ident := a.Lhs[0].(*ast.Identifier)
 				name = ident.Name
 				ti = &typeInfo{Type: t.Type, Properties: propertyAddressable}
-				tc.scopes.Declare(name, ti, ident)
+				tc.scopes.Declare(name, ti, ident, nil)
 			}
 			var positionOfDefault *ast.Position
 			var positionOfNil *ast.Position
@@ -595,7 +595,7 @@ nodesLoop:
 					if name != "" && len(cas.Expressions) == 1 {
 						ti := &typeInfo{Type: t.Type, Properties: propertyAddressable}
 						ident := ast.NewIdentifier(cas.Expressions[0].Pos(), name)
-						tc.scopes.Declare(name, ti, ident)
+						tc.scopes.Declare(name, ti, ident, nil)
 					}
 					// Check duplicate.
 					if pos, ok := positionOf[t.Type]; ok {
@@ -604,7 +604,7 @@ nodesLoop:
 					positionOf[t.Type] = ex.Pos()
 				}
 				if name != "" && len(cas.Expressions) != 1 {
-					tc.scopes.Declare(name, ti, ast.NewIdentifier(cas.Position, name))
+					tc.scopes.Declare(name, ti, ast.NewIdentifier(cas.Position, name), nil)
 				}
 				cas.Body = tc.checkNodes(cas.Body)
 				used := name != "" && tc.scopes.Use(name)
@@ -984,7 +984,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 				if !ok {
 					return tc.errorf(impor, "undefined: %s", ident)
 				}
-				tc.scopes.Import(ident.Name, ti, nil, impor)
+				tc.scopes.Declare(ident.Name, ti, nil, impor)
 			}
 			return nil
 		}
@@ -992,7 +992,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		// 'import . "pkg"': add every declaration to the file package block.
 		if isPeriodImport(impor) {
 			for ident, ti := range imported.Declarations {
-				tc.scopes.Import(ident, ti, nil, impor)
+				tc.scopes.Declare(ident, ti, nil, impor)
 			}
 			return nil
 		}
@@ -1063,7 +1063,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 			if !ok {
 				panic("BUG")
 			}
-			tc.scopes.Import(ident.Name, ti, decl, impor)
+			tc.scopes.Declare(ident.Name, ti, decl, impor)
 		}
 
 	// import "path"
@@ -1071,7 +1071,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 
 		// This form of import in templates has been transformed above, so just
 		// handle programs and scripts here.
-		tc.scopes.Import(imported.Name, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}, nil, impor)
+		tc.scopes.Declare(imported.Name, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}, nil, impor)
 		return nil
 
 	// import . "path"
@@ -1082,7 +1082,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 			if !ok {
 				panic("BUG")
 			}
-			tc.scopes.Import(ident, ti, decl, impor)
+			tc.scopes.Declare(ident, ti, decl, impor)
 		}
 		return nil
 
@@ -1093,7 +1093,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 			value:      imported,
 			Properties: propertyIsPackage | propertyHasValue,
 		}
-		tc.scopes.Import(impor.Ident.Name, ti, nil, impor)
+		tc.scopes.Declare(impor.Ident.Name, ti, nil, impor)
 		// TODO: is the error "imported but not used" correctly reported for
 		// this case?
 	}
@@ -1129,7 +1129,7 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 	for i := 0; i < t.NumIn(); i++ {
 		param := node.Type.Parameters[i]
 		if param.Ident != nil && !isBlankIdentifier(param.Ident) {
-			tc.scopes.Declare(param.Ident.Name, &typeInfo{Type: t.In(i), Properties: propertyAddressable}, param.Ident)
+			tc.scopes.Declare(param.Ident.Name, &typeInfo{Type: t.In(i), Properties: propertyAddressable}, param.Ident, nil)
 			tc.scopes.Use(param.Ident.Name)
 		}
 	}
@@ -1160,7 +1160,7 @@ func (tc *typechecker) checkFunc(node *ast.Func) {
 			if isBlankIdentifier(ret.Ident) {
 				ret.Ident.Name = "$blank" + strconv.Itoa(i)
 			}
-			tc.scopes.Declare(ret.Ident.Name, &typeInfo{Type: t.Out(i), Properties: propertyAddressable}, ret.Ident)
+			tc.scopes.Declare(ret.Ident.Name, &typeInfo{Type: t.Out(i), Properties: propertyAddressable}, ret.Ident, nil)
 			tc.scopes.Use(ret.Ident.Name)
 			assignment := ast.NewAssignment(
 				ret.Ident.Position,

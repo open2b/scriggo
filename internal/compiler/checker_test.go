@@ -595,7 +595,7 @@ func TestCheckerExpressions(t *testing.T) {
 			compilation := newCompilation(nil)
 			tc := newTypechecker(compilation, "", checkerOptions{}, nil)
 			for name, ti := range expr.scope {
-				tc.scopes.Declare(name, ti, nil)
+				tc.scopes.Declare(name, ti, nil, nil)
 			}
 			tc.scopes.Enter(node)
 			ti := tc.checkExpr(node)
@@ -691,7 +691,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			compilation := newCompilation(nil)
 			tc := newTypechecker(compilation, "", checkerOptions{}, nil)
 			for name, ti := range expr.scope {
-				tc.scopes.Declare(name, ti, nil)
+				tc.scopes.Declare(name, ti, nil, nil)
 			}
 			tc.scopes.Enter(node)
 			ti := tc.checkExpr(node)
@@ -1839,7 +1839,7 @@ func TestCheckerStatements(t *testing.T) {
 			compilation := newCompilation(nil)
 			tc := newTypechecker(compilation, "", checkerOptions{allowGoStmt: true, mod: programMod}, nil)
 			for name, ti := range names {
-				tc.scopes.Declare(name, ti, nil)
+				tc.scopes.Declare(name, ti, nil, nil)
 			}
 			tc.scopes.Enter(tree)
 			tree.Nodes = tc.checkNodes(tree.Nodes)

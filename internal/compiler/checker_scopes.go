@@ -154,10 +154,12 @@ func (scopes *scopes) ExportedDeclarations() map[string]*typeInfo {
 // true. If name is already declared in the current scope, it does nothing and
 // returns false.
 // decl is the identifier node that declared name, or nil if native.
-func (scopes *scopes) Declare(name string, ti *typeInfo, decl *ast.Identifier) bool {
+// impor is the node of the import declaration that imported name, if imported.
+func (scopes *scopes) Declare(name string, ti *typeInfo, decl *ast.Identifier, impor *ast.Import) bool {
 	c := len(scopes.s) - 1
 	n := scopeName{ti: ti}
 	n.decl = decl
+	n.impor = impor
 	if names := scopes.s[c].names; names == nil {
 		scopes.s[c].names = map[string]scopeName{name: n}
 	} else if _, ok := names[name]; ok {
@@ -506,26 +508,6 @@ func (scopes *scopes) ExportedDeclarationNodes() map[string]*ast.Identifier {
 		}
 	}
 	return decls
-}
-
-// Import imports name with its type info and declaration node and returns
-// true. If name is already declared in the current scope, it does nothing and
-// returns false.
-// decl is the identifier node that declared name, or nil if native.
-// impor is the node of the import declaration that imported name.
-func (scopes *scopes) Import(name string, ti *typeInfo, decl *ast.Identifier, impor *ast.Import) bool {
-	c := len(scopes.s) - 1
-	n := scopeName{ti: ti}
-	n.decl = decl
-	n.impor = impor
-	if names := scopes.s[c].names; names == nil {
-		scopes.s[c].names = map[string]scopeName{name: n}
-	} else if _, ok := names[name]; ok {
-		return false
-	} else {
-		names[name] = n
-	}
-	return true
 }
 
 // ImportNode returns the import declaration that imported name and true, if

@@ -614,7 +614,7 @@ func checkPackage(compilation *compilation, pkg *ast.Package, path string, impor
 					ti.Properties |= propertyMacroDeclaredInFileWithExtends
 				}
 			}
-			tc.scopes.Declare(f.Ident.Name, ti, f.Ident)
+			tc.scopes.Declare(f.Ident.Name, ti, f.Ident, nil)
 		}
 	}
 
