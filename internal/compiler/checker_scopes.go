@@ -48,10 +48,12 @@ type scopeFunc struct {
 type scopeName struct {
 	// ti is the type info.
 	ti *typeInfo
-	// ident is the identifier in the declaration node.
-	// It is nil for predeclared identifiers (scopes 0, 1 and 2), packages and imported names (scope 3).
-	ident *ast.Identifier
+	// decl is the identifier in the declaration node.
+	// It is nil for native identifiers (scopes 0, 1 and 2), packages and
+	// native imported names (scope 3).
+	decl *ast.Identifier
 	// impor is the import declaration of a package or imported name (scope 3).
+	// It is nil for not-imported names
 	impor *ast.Import
 	// used indicates if it has been used.
 	used bool
@@ -132,7 +134,7 @@ func (scopes *scopes) FilePackage(name string) (*typeInfo, bool) {
 // true. Otherwise it returns nil and false.
 func (scopes *scopes) Current(name string) (*ast.Identifier, bool) {
 	n, ok := scopes.s[len(scopes.s)-1].names[name]
-	return n.ident, ok
+	return n.decl, ok
 }
 
 // ExportedDeclarations returns the exported declarations in the file/package
@@ -141,32 +143,37 @@ func (scopes *scopes) Current(name string) (*ast.Identifier, bool) {
 func (scopes *scopes) ExportedDeclarations() map[string]*typeInfo {
 	decls := map[string]*typeInfo{}
 	for name, n := range scopes.s[3].names {
-		if n.ident != nil && isExported(name) {
+		if n.impor == nil && isExported(name) {
 			decls[name] = n.ti
 		}
 	}
 	return decls
 }
 
-// Declare declares name with its type info and node and returns true. If name
-// is already declared in the current scope, it does nothing and returns
-// false.
-//
-// node is an *ast.Import value for packages and imported names, otherwise nil
-// for predeclared names, otherwise an *ast.Identifier value for all other
-// names.
-func (scopes *scopes) Declare(name string, ti *typeInfo, node ast.Node) bool {
+// ExportedDeclarationNodes returns the exported declarations nodes in the
+// file/package block, as a name/declaration's identifier map, that have not
+// been imported from another package.
+func (scopes *scopes) ExportedDeclarationNodes() map[string]*ast.Identifier {
+	decls := map[string]*ast.Identifier{}
+	for name, n := range scopes.s[3].names {
+		if n.impor == nil && isExported(name) {
+			decls[name] = n.decl
+		}
+	}
+	return decls
+}
+
+// Declare declares name with its type info and declaration node and returns
+// true. If name is already declared in the current scope, it does nothing and
+// returns false.
+// decl is the identifier node that declared name, or nil if native.
+// impor is the node of the import declaration that imported name, is nil if
+// not imported.
+func (scopes *scopes) Declare(name string, ti *typeInfo, decl *ast.Identifier, impor *ast.Import) bool {
 	c := len(scopes.s) - 1
 	n := scopeName{ti: ti}
-	switch node := node.(type) {
-	case nil:
-	case *ast.Identifier:
-		n.ident = node
-	case *ast.Import:
-		n.impor = node
-	default:
-		panic("scopes: invalid node type")
-	}
+	n.decl = decl
+	n.impor = impor
 	if names := scopes.s[c].names; names == nil {
 		scopes.s[c].names = map[string]scopeName{name: n}
 	} else if _, ok := names[name]; ok {
@@ -200,9 +207,9 @@ func (scopes *scopes) DeclareLabel(label *ast.Label) {
 		var v *ast.Identifier
 		s := g.pos.Start
 		for _, n := range current.names {
-			if n.ti.Addressable() && n.ident.Position.Start > s {
-				v = n.ident
-				s = n.ident.Position.Start
+			if n.ti.Addressable() && n.decl.Position.Start > s {
+				v = n.decl
+				s = n.decl.Position.Start
 			}
 		}
 		if v != nil {
@@ -222,11 +229,21 @@ func (scopes *scopes) DeclareLabel(label *ast.Label) {
 // names.
 func (scopes *scopes) Lookup(name string) (*typeInfo, ast.Node, bool) {
 	n, i := scopes.lookup(name, 0)
-	var node ast.Node = n.ident
-	if n.ident == nil {
+	var node ast.Node = n.decl
+	if n.decl == nil {
 		node = n.impor
 	}
 	return n.ti, node, i != -1
+}
+
+// LookupImport returns the import declaration that imported name and true, if
+// name has been imported, otherwise returns nil and false.
+func (scopes *scopes) LookupImport(name string) (*ast.Import, bool) {
+	n, _ := scopes.lookup(name, 3)
+	if n.impor == nil {
+		return nil, false
+	}
+	return n.impor, true
 }
 
 // LookupInFunc lookups name in function scopes, including the main block in
@@ -234,7 +251,7 @@ func (scopes *scopes) Lookup(name string) (*typeInfo, ast.Node, bool) {
 // returns nil, nil and false.
 func (scopes *scopes) LookupInFunc(name string) (*typeInfo, *ast.Identifier, bool) {
 	n, i := scopes.lookup(name, 4)
-	return n.ti, n.ident, i != -1
+	return n.ti, n.decl, i != -1
 }
 
 // LookupLabel lookups a label in the current function scope and returns the
@@ -434,8 +451,8 @@ func (scopes *scopes) Exit() {
 			if n.used || n.ti.IsConstant() || n.ti.IsType() {
 				continue
 			}
-			if ident == nil || n.ident.Position.Start < ident.Start {
-				ident = n.ident
+			if ident == nil || n.decl.Position.Start < ident.Start {
+				ident = n.decl
 			}
 		}
 		if ident != nil {

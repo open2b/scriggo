@@ -79,7 +79,7 @@ func (tc *typechecker) obsoleteForRangeAssign(node ast.Node, leftExpr, rightExpr
 			if right.Untyped() {
 				newRight.Properties = propertyUntyped
 			}
-			tc.assignScope(leftExpr.Name, newRight, nil)
+			tc.assignScope(leftExpr.Name, newRight, nil, nil)
 			return leftExpr.Name
 		}
 
@@ -98,7 +98,7 @@ func (tc *typechecker) obsoleteForRangeAssign(node ast.Node, leftExpr, rightExpr
 				return ""
 			}
 			newRight.Properties |= propertyAddressable
-			tc.assignScope(leftExpr.Name, newRight, leftExpr)
+			tc.assignScope(leftExpr.Name, newRight, leftExpr, nil)
 			return leftExpr.Name
 		}
 
