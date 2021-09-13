@@ -252,7 +252,7 @@ func (tc *typechecker) assignScope(name string, value *typeInfo, decl *ast.Ident
 	ok := tc.scopes.Declare(name, value, decl, impor)
 	if !ok && (isValidIdentifier(name, tc.opts.mod) || strings.HasPrefix(name, "$")) {
 		s := name + " redeclared in this block"
-		if i, ok := tc.scopes.GetImportNode(name); ok {
+		if i, ok := tc.scopes.LookupImport(name); ok {
 			s += fmt.Sprintf("\n\t%s:%s: previous declaration during %s", tc.path, i.Pos(), i)
 		} else {
 			_, decl, _ := tc.scopes.Lookup(name)

@@ -222,6 +222,16 @@ func (scopes *scopes) Lookup(name string) (*typeInfo, ast.Node, bool) {
 	return n.ti, node, i != -1
 }
 
+// LookupImport returns the import declaration that imported name and true, if
+// name has been imported, otherwise returns nil and false.
+func (scopes *scopes) LookupImport(name string) (*ast.Import, bool) {
+	n, _ := scopes.lookup(name, 3)
+	if n.impor == nil {
+		return nil, false
+	}
+	return n.impor, true
+}
+
 // LookupInFunc lookups name in function scopes, including the main block in
 // scripts, and returns its type info, its identifier and true. Otherwise it
 // returns nil, nil and false.
@@ -508,14 +518,4 @@ func (scopes *scopes) ExportedDeclarationNodes() map[string]*ast.Identifier {
 		}
 	}
 	return decls
-}
-
-// ImportNode returns the import declaration that imported name and true, if
-// name has been imported, otherwise returns nil and false.
-func (scopes *scopes) GetImportNode(name string) (*ast.Import, bool) {
-	n, _ := scopes.lookup(name, 0)
-	if n.impor == nil {
-		return nil, false
-	}
-	return n.impor, true
 }
