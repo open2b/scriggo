@@ -49,7 +49,7 @@ type scopeName struct {
 	// ti is the type info.
 	ti *typeInfo
 	// decl is the identifier in the declaration node.
-	// It is nil for predeclared identifiers (scopes 0, 1 and 2), packages and
+	// It is nil for native identifiers (scopes 0, 1 and 2), packages and
 	// native imported names (scope 3).
 	decl *ast.Identifier
 	// impor is the import declaration of a package or imported name (scope 3).
