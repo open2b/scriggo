@@ -287,7 +287,7 @@ func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Up
 			refs[i] = int16(index)
 			continue
 		}
-		panic(fmt.Sprintf("BUG: don't know how to handle identifier %s", ident))
+		panic(internalError("don't know how to handle identifier %s", ident))
 	}
 	fn.VarRefs = refs
 }
@@ -339,7 +339,7 @@ func (em *emitter) emitValueNotPredefined(ti *typeInfo, reg int8, dstType reflec
 	v := reflect.ValueOf(ti.value)
 	switch v.Kind() {
 	case reflect.Interface:
-		panic("BUG: not implemented") // remove.
+		panic(internalError("not implemented"))
 	case reflect.Array:
 		if canEmitDirectly(typ.Kind(), dstType.Kind()) {
 			em.fb.emitMakeArray(typ, reg)
@@ -370,7 +370,7 @@ func (em *emitter) emitValueNotPredefined(ti *typeInfo, reg int8, dstType reflec
 		c := em.fb.makeGeneralValue(v)
 		em.changeRegister(true, c, reg, typ, dstType)
 	case reflect.UnsafePointer:
-		panic("BUG: not implemented") // remove.
+		panic(internalError("not implemented"))
 	default:
 		panic(fmt.Errorf("unsupported value type %T", ti.value))
 	}

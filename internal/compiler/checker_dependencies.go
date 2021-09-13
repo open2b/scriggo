@@ -355,7 +355,7 @@ func (d *deps) nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 				}
 			}
 			if thisName == "" {
-				panic("BUG: unexpected")
+				panic(internalError("unexpected empty name"))
 			}
 			n.Name = thisName
 		}

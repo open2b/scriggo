@@ -63,7 +63,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 		tc.compilation.iteaToUsingCheck[ident.Name] = uc
 		ti, decl, ok = tc.scopes.Lookup(ident.Name)
 		if !ok {
-			panic("BUG: unexpected 'ti == nil'")
+			panic(internalError("unexpected"))
 		}
 	}
 

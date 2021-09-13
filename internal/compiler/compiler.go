@@ -408,3 +408,15 @@ func getExtends(nodes []ast.Node) (*ast.Extends, bool) {
 	}
 	return nil, false
 }
+
+// internalError returns a string that can be used as panic argument in case of
+// a Scriggo internal error.
+//
+// It may be used as:
+//
+//      panic(internalError(format, a...))
+//
+// Keep in sync with types.internalError.
+func internalError(format string, a ...interface{}) string {
+	return fmt.Sprintf("scriggo: internal error: "+format, a...)
+}

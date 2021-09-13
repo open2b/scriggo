@@ -306,7 +306,7 @@ func getKind(operand rune, fn *runtime.Function, addr runtime.Addr) reflect.Kind
 	case 'c':
 		return debugInfo.OperandKind[2]
 	default:
-		panic(fmt.Errorf("BUG: invalid operand %v", operand))
+		panic(internalError("invalid operand %v", operand))
 	}
 }
 
@@ -744,9 +744,9 @@ func funcNameType(fn *runtime.Function, index int8, addr runtime.Addr, op runtim
 	case runtime.OpCallIndirect, runtime.OpDefer:
 		return false, "", fn.DebugInfo[addr].FuncType
 	case runtime.OpTailCall:
-		panic("BUG: not implemented") // TODO.
+		panic(internalError("tail call optimization not implemented"))
 	default:
-		panic("BUG")
+		panic(internalError("unexpected operation %s", op))
 	}
 }
 

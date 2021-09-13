@@ -304,3 +304,15 @@ func assertNotScriggoType(t reflect.Type) {
 
 // TODO: every call to a reflect function in the compiler should be checked and
 //  eventually converted to a call to a function of this package.
+
+// internalError returns a string that can be used as panic argument in case of
+// a Scriggo internal error.
+//
+// It may be used as:
+//
+//      panic(internalError(format, a...))
+//
+// Keep in sync with compiler.internalError.
+func internalError(format string, a ...interface{}) string {
+	return fmt.Sprintf("scriggo: internal error: "+format, a...)
+}

@@ -143,7 +143,7 @@ func (compilation *compilation) finalizeUsingStatements(tc *typechecker) error {
 		}
 		if !uc.toBeEmitted {
 			if len(uc.itea.Lhs) != 1 || len(uc.itea.Rhs) != 1 {
-				panic("BUG: unexpected")
+				panic(internalError("unexpected"))
 			}
 			uc.itea.Lhs = []*ast.Identifier{ast.NewIdentifier(nil, "_")}
 			uc.itea.Rhs = []ast.Expression{ast.NewBasicLiteral(nil, ast.IntLiteral, "0")}

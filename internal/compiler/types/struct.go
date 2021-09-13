@@ -112,7 +112,7 @@ func (x structType) FieldByName(name string) (reflect.StructField, bool) {
 }
 
 func (x structType) FieldByNameFunc(match func(string) bool) (reflect.StructField, bool) {
-	panic("TODO: not implemented") // TODO(Gianluca): to implement.
+	panic(internalError("not implemented"))
 }
 
 func (x structType) Implements(y reflect.Type) bool {

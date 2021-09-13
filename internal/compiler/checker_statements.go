@@ -70,7 +70,7 @@ func (tc *typechecker) templateFileToPackage(tree *ast.Tree) {
 				iteaToDeclarations[iteaName] = n.Statement.(*ast.Var).Lhs
 			}
 		default:
-			panic(fmt.Sprintf("BUG: unexpected node %s", n))
+			panic(internalError("unexpected node %s", n))
 		}
 	}
 
@@ -929,7 +929,7 @@ nodesLoop:
 			panic(tc.errorf(node, "%s evaluated but not used", node))
 
 		default:
-			panic(fmt.Errorf("BUG: checkNodes not implemented for type: %T", node)) // remove.
+			panic(internalError("checkNodes not implemented for nodes with type %T", node))
 
 		}
 
@@ -944,7 +944,7 @@ nodesLoop:
 // checkImport type checks the import declaration.
 func (tc *typechecker) checkImport(impor *ast.Import) error {
 	if tc.opts.mod == scriptMod && impor.Tree != nil {
-		panic("BUG: native packages only can be imported in script")
+		panic(internalError("native packages only can be imported in script"))
 	}
 
 	// Import a native package.
@@ -1369,7 +1369,7 @@ func (tc *typechecker) explodeUsingStatement(using *ast.Using, iteaIdent string)
 	case *ast.FuncType:
 		itea = ast.NewFunc(nil, nil, typ, using.Body, false, using.Format)
 	default:
-		panic("BUG: the parser should not allow this")
+		panic(internalError("the parser should not allow this"))
 	}
 
 	iteaDeclaration := ast.NewVar(

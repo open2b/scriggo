@@ -231,7 +231,7 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 	c := em.fb.newRegister(typ.Kind())
 	switch addr.target {
 	case assignBlank, assignNewIndirectVar:
-		panic("Type checking BUG")
+		panic(internalError("unexpected, this is a type checking bug"))
 	case assignNonLocalVar:
 		em.fb.emitGetVar(int(decodeInt16(addr.op1, addr.op2)), c, addrTyp.Kind())
 	case assignLocalVar:

@@ -269,7 +269,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			return reg, false
 		}
 
-		panic(fmt.Errorf("BUG: none of the previous conditions matched identifier %v", expr)) // remove.
+		panic(internalError("none of the previous conditions matched identifier %v", expr))
 
 	case *ast.Index:
 
@@ -734,7 +734,7 @@ func (em *emitter) emitSelector(v *ast.Selector, reg int8, dstType reflect.Type)
 			s := em.fb.makeStringValue(v.Ident)
 			em.fb.emitMethodValue(s, rcvr, reg, v.Pos())
 		} else {
-			panic("not implemented")
+			panic(internalError("not implemented"))
 		}
 		return
 	}
@@ -911,7 +911,7 @@ func (em *emitter) emitUnaryOp(expr *ast.UnaryOperator, reg int8, regType reflec
 			// Address of a non-local variable.
 			index, ok := em.varStore.nonLocalVarIndex(operand)
 			if !ok {
-				panic("BUG")
+				panic(internalError("unexpected"))
 			}
 			em.fb.enterStack()
 			r := em.fb.newRegister(reflect.Ptr)

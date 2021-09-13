@@ -5,7 +5,6 @@
 package compiler
 
 import (
-	"fmt"
 	"path/filepath"
 	"reflect"
 
@@ -36,7 +35,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				em.fb.emitGoto(*em.breakLabel)
 			} else {
 				if node.Label != nil {
-					panic("TODO(Gianluca): not implemented")
+					panic(internalError("not implemented"))
 				}
 				em.fb.emitBreak(em.rangeLabels[len(em.rangeLabels)-1][0])
 				em.fb.emitGoto(em.rangeLabels[len(em.rangeLabels)-1][1])
@@ -50,7 +49,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 
 		case *ast.Continue:
 			if node.Label != nil {
-				panic("TODO(Gianluca): not implemented")
+				panic(internalError("not implemented"))
 			}
 			forHead := em.rangeLabels[len(em.rangeLabels)-1][0]
 			if em.inForRange {
@@ -388,7 +387,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.exitStack()
 
 		default:
-			panic(fmt.Sprintf("BUG: node %T not supported", node)) // remove.
+			panic(internalError("node %T not supported", node))
 
 		}
 
@@ -484,7 +483,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				addresses[i] = em.addressNonLocalVar(int16(index), varType, pos, node.Type)
 				break
 			}
-			panic("BUG")
+			panic(internalError("unexpected"))
 
 		case *ast.Index:
 			exprType := em.typ(v.Expr)
@@ -521,13 +520,13 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			break
 		case *ast.UnaryOperator:
 			if v.Operator() != ast.OperatorPointer {
-				panic("BUG.") // remove.
+				panic(internalError("unexpected operator %s", v.Operator()))
 			}
 			typ := em.typ(v.Expr)
 			reg := em.emitExpr(v.Expr, typ)
 			addresses[i] = em.addressPtrIndirect(reg, typ, pos, node.Type)
 		default:
-			panic("BUG.") // remove.
+			panic(internalError("unexpected"))
 		}
 	}
 	em.assignValuesToAddresses(addresses, node.Rhs)

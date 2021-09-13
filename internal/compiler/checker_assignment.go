@@ -29,7 +29,7 @@ func (p typeInfoPair) TypeInfo() *typeInfo {
 func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 
 	if node.Type != ast.AssignmentSimple {
-		panic("BUG: expected an assignment node with an '=' operator")
+		panic(internalError("expected an assignment node with operator '='"))
 	}
 
 	// In case of unbalanced assignments a 'fake' rhs must be used for the type
@@ -101,7 +101,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 func (tc *typechecker) checkAssignmentOperation(node *ast.Assignment) {
 
 	if !(ast.AssignmentAddition <= node.Type && node.Type <= ast.AssignmentRightShift) {
-		panic("BUG: expected an assignment operation")
+		panic(internalError("expected an assignment operation"))
 	}
 
 	lh := tc.checkExpr(node.Lhs[0])
@@ -250,7 +250,7 @@ func (tc *typechecker) checkGenericAssignmentNode(node *ast.Assignment) {
 func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 
 	if node.Type != ast.AssignmentIncrement && node.Type != ast.AssignmentDecrement {
-		panic("BUG: expected an IncDec statement")
+		panic(internalError("expected an IncDec statement"))
 	}
 
 	lh := tc.checkExpr(node.Lhs[0])
@@ -277,7 +277,7 @@ func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 
 	if node.Type != ast.AssignmentDeclaration {
-		panic("BUG: expected a short variable declaration")
+		panic(internalError("expected a short variable declaration"))
 	}
 
 	// In case of unbalanced short variable declarations a 'fake' rhs must be
@@ -561,7 +561,7 @@ func (tc *typechecker) rebalancedRightSide(node ast.Node) []ast.Expression {
 	}
 
 	if len(nodeLhs) == len(nodeRhs) {
-		panic("BUG: this method must be called only for multiple assignments")
+		panic(internalError("this method must be called only for multiple assignments"))
 	}
 
 	rhExpr := nodeRhs[0]

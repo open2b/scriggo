@@ -194,7 +194,7 @@ func (tc *typechecker) convert(ti *typeInfo, expr ast.Expression, t2 reflect.Typ
 		// right operand.
 
 		if !ti.IsNumeric() {
-			panic("BUG")
+			panic(internalError("unexpected %s", ti))
 		}
 
 		typ := t2
@@ -229,7 +229,7 @@ func (tc *typechecker) convert(ti *typeInfo, expr ast.Expression, t2 reflect.Typ
 			return tc.convert(tc.compilation.typeInfos[expr.Expr2], expr.Expr2, typ)
 
 		default:
-			panic(fmt.Errorf("BUG: unexpected expr %s (type %T) with type info %s", expr, expr, ti))
+			panic(internalError("unexpected expr %s (type %T) with type info %s", expr, expr, ti))
 
 		}
 

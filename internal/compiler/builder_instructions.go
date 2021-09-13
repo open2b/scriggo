@@ -357,7 +357,7 @@ func (fb *functionBuilder) emitGoto(lab label) {
 	in := runtime.Instruction{Op: runtime.OpGoto}
 	if lab > 0 {
 		if lab > label(len(fb.labelAddrs)) {
-			panic("BUG") // remove.
+			panic(internalError("invalid label"))
 		}
 		addr := fb.labelAddrs[lab-1]
 		if addr == 0 {
@@ -439,7 +439,7 @@ func (fb *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType reflec
 	case reflect.String:
 		op = runtime.OpIndexString
 	default:
-		panic(fmt.Errorf("BUG: invalid type %s", exprType))
+		panic(internalError("invalid type %s", exprType))
 	}
 	if ki {
 		op = -op
@@ -482,7 +482,7 @@ func (fb *functionBuilder) emitLoad(index int, dst int8, kind reflect.Kind) {
 // emitMakeArray appends a new "MakeArray" instruction to the function body.
 func (fb *functionBuilder) emitMakeArray(typ reflect.Type, dst int8) {
 	if typ.Kind() != reflect.Array {
-		panic("BUG: not an array type")
+		panic(internalError("%s is not an array type", typ))
 	}
 	// NOTE: the code of emitMakeArray, emitMakeStruct and emitNew is very
 	// similar. If you change this code remember to review/change the code of
@@ -550,7 +550,7 @@ func (fb *functionBuilder) emitMakeSlice(kLen, kCap bool, sliceType reflect.Type
 // emitMakeStruct appends a new "MakeStruct" instruction to the function body.
 func (fb *functionBuilder) emitMakeStruct(typ reflect.Type, dst int8) {
 	if typ.Kind() != reflect.Struct {
-		panic("BUG: not a struct type")
+		panic(internalError("%s is not a struct type", typ.Kind()))
 	}
 	// NOTE: the code of emitMakeArray, emitMakeStruct and emitNew is very
 	// similar. If you change this code remember to review/change the code of

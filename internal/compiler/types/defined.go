@@ -34,7 +34,7 @@ type definedType struct {
 // the type Int declared with 'type Int int'.
 func (types *Types) DefinedOf(name string, underlyingType reflect.Type) reflect.Type {
 	if name == "" {
-		panic("BUG: name cannot be empty")
+		panic(internalError("name cannot be empty"))
 	}
 	return definedType{Type: underlyingType, name: name, sign: new(byte)}
 }

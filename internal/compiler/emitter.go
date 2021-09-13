@@ -575,7 +575,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool, toF
 		// MethodValue reads receiver from general.
 		if kindToType(rcvrType.Kind()) != generalRegister {
 			// TODO(Gianluca): put rcvr in general
-			panic("BUG: not implemented") // remove.
+			panic(internalError("not implemented"))
 		}
 		method := em.fb.newRegister(reflect.Func)
 		name := call.Func.(*ast.Selector).Ident
@@ -594,7 +594,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool, toF
 			em.fb.emitGo()
 		}
 		if deferStmt {
-			panic("BUG: not implemented") // remove.
+			panic(internalError("not implemented"))
 		}
 		em.fb.emitCallIndirect(method, 0, stackShift, call.Pos(), funTi.Type, toFormat)
 		return regs, types
@@ -679,7 +679,7 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool, toF
 					em.fb.emitGo()
 				}
 				if deferStmt {
-					panic("BUG: not implemented") // remove.
+					panic(internalError("not implemented"))
 				}
 				if fun.Macro {
 					em.fb.emitCallMacro(index, stackShift, call.Pos(), toFormat)
@@ -957,7 +957,7 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 	case "recover":
 		em.fb.emitRecover(reg, false)
 	default:
-		panic("BUG: unknown builtin") // remove.
+		panic(internalError("unknown builtin"))
 	}
 }
 

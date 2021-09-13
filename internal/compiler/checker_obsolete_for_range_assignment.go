@@ -116,7 +116,7 @@ func (tc *typechecker) obsoleteForRangeAssign(node ast.Node, leftExpr, rightExpr
 		right.setValue(left.Type)
 		tc.compilation.typeInfos[leftExpr] = left
 	default:
-		panic(tc.errorf(node, "BUG"))
+		panic(internalError("unexpected"))
 	}
 
 	return ""
