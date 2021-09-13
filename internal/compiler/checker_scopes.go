@@ -150,6 +150,19 @@ func (scopes *scopes) ExportedDeclarations() map[string]*typeInfo {
 	return decls
 }
 
+// ExportedDeclarationNodes returns the exported declarations nodes in the
+// file/package block, as a name/declaration's identifier map, that have not
+// been imported from another package.
+func (scopes *scopes) ExportedDeclarationNodes() map[string]*ast.Identifier {
+	decls := map[string]*ast.Identifier{}
+	for name, n := range scopes.s[3].names {
+		if n.impor == nil && isExported(name) {
+			decls[name] = n.decl
+		}
+	}
+	return decls
+}
+
 // Declare declares name with its type info and declaration node and returns
 // true. If name is already declared in the current scope, it does nothing and
 // returns false.
@@ -505,17 +518,4 @@ var universe = map[string]scopeName{
 	"uint64":     {ti: &typeInfo{Type: reflect.TypeOf(uint64(0)), Properties: propertyIsType | propertyUniverse}},
 	"uint8":      {ti: &typeInfo{Type: uint8Type, Properties: propertyIsType | propertyUniverse}},
 	"uintptr":    {ti: &typeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: propertyIsType | propertyUniverse}},
-}
-
-// ExportedDeclarationNodes returns the exported declarations nodes in the
-// file/package block, as a name/declaration's identifier map, that have not
-// been imported from another package.
-func (scopes *scopes) ExportedDeclarationNodes() map[string]*ast.Identifier {
-	decls := map[string]*ast.Identifier{}
-	for name, n := range scopes.s[3].names {
-		if n.impor == nil && isExported(name) {
-			decls[name] = n.decl
-		}
-	}
-	return decls
 }
