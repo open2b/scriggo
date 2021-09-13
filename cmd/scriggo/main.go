@@ -432,7 +432,7 @@ func _init(path string, flags buildFlags) error {
 	fi, err := os.OpenFile(modFile, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0666)
 	if err == nil {
 		// Write the go.mod file.
-		_, err = fmt.Fprintf(fi, "module %s\n\ngo 1.17\n", strconv.Quote(modPath))
+		_, err = fmt.Fprintf(fi, "module %s\n", strconv.Quote(modPath))
 		if err == nil {
 			err = fi.Close()
 		}
