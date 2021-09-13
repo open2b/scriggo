@@ -140,7 +140,8 @@ var commandsHelp = map[string]func(){
 var commands = map[string]func(){
 	"bug": func() {
 		flag.Usage = commandsHelp["bug"]
-		panic("BUG: not implemented") // remove.
+		fmt.Fprintf(os.Stdout, "If you encountered an issue, report it at:\n\n\thttps://github.com/open2b/scriggo/issues/new\n\n")
+		exit(0)
 	},
 	"init": func() {
 		flag.Usage = commandsHelp["init"]
