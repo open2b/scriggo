@@ -857,7 +857,7 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 			chanType := em.typ(args[0])
 			em.fb.emitMakeChan(chanType, kCapacity, capacity, reg, call.Pos())
 		default:
-			panic("bug")
+			panic(internalError("unexpected type %s", typ))
 		}
 	case "new":
 		em.fb.emitNew(em.typ(args[0]), reg)

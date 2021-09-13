@@ -320,7 +320,7 @@ func (tc *typechecker) getNestedFuncs(name string) []*ast.Func {
 			return functions[i+1:]
 		}
 	}
-	panic("bug")
+	panic(internalError("unexpected"))
 }
 
 // errorf builds and returns a type checking error. This method is used
