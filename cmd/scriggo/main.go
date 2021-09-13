@@ -397,11 +397,11 @@ func _init(path string, flags buildFlags) error {
 		return err
 	}
 	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".go") {
+		if !entry.IsDir() && (entry.Name() == "main.go" || entry.Name() == "packages.go") {
 			if path == "" {
-				return fmt.Errorf("scriggo: current directory contains Go files")
+				return fmt.Errorf("scriggo: current directory contains %q file", entry.Name())
 			}
-			return fmt.Errorf("scriggo: directory %q contains Go files", modDir)
+			return fmt.Errorf("scriggo: directory %q contains %q file", path, entry.Name())
 		}
 		if entry.IsDir() && entry.Name() == "vendor" {
 			if path == "" {
