@@ -461,6 +461,7 @@ func _init(path string, flags buildFlags) error {
 
 	// Embed the packages.go file.
 	flags.o = filepath.Join(modDir, "packages.go")
+	flags.v = true
 	err = _import(path, flags)
 	if err != nil {
 		return err
