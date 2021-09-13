@@ -339,7 +339,7 @@ func newTemplateFS(root string) (*templateFS, error) {
 					return
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					dir.Changed <- event.Name
+					dir.Changed <- strings.ReplaceAll(event.Name, "\\", "/")
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
