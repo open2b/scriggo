@@ -1,11 +1,11 @@
-<img src="https://scriggo-site.pages.dev/images/scriggo.svg" alt="Scriggo" title="Scriggo" width="530px" style="max-width: 100%">
+<img src="https://scriggo-site.pages.dev/images/scriggo.svg" alt="Scriggo" title="Scriggo" width="500px" style="max-width: 100%">
 
-Fast, modern and secure Go template engine and embeddable [Go](https://golang.org/) runtime.
+The world’s powerful template engine and [Go](https://golang.org/) embeddable interpreter.
 
 ## Features
 
-* Fast, a very fast embeddable pure Go language runtime.
-* Modern and powerful Template Engine with Go as scripting language.
+* Fast, a very fast embeddable pure Go language interpreter.
+* Modern and powerful template engine with Go as scripting language.
 * Native support for Markdown in templates.
 * Secure by default. No access to packages unless explicitly enabled.
 * Easy to embed and to interop with any Go application.
@@ -50,9 +50,8 @@ func main() {
 
 ## Get Started with Templates
 
-Scriggo is also a modern and powerful template engine for Go, supporting inheritance,
-macros, partials, imports and contextual autoescaping but most of all it uses the
-Go language as the template scripting language.
+Scriggo, in templates, supports inheritance, macros, partials, imports and contextual autoescaping but most of all it
+uses the Go language as the template scripting language.
 
 ```
 {% extends "layout.html" %}
