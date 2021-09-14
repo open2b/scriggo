@@ -113,3 +113,7 @@ func main() {
 ```
 
 For a complete get started guide see the [Scriggo site](https://scriggo.com/).
+
+## Contributing
+
+Want to help contribute to Scriggo? See [CONTRIBUTING.md](CONTRIBUTING.md).
