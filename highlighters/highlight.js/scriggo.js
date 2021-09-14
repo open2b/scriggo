@@ -1,9 +1,9 @@
 /*
 Language: Scriggo
-Description: Scriggo Templates is the fast template engine that uses Go as a scripting language.
 Requires: xml.js
 Author: Marco Gazerro <gazerro@open2b.com>
 Contributors:
+Description: Scriggo is the world's powerful template engine with Go as scripting language.
 Website: https://scriggo.com
 Category: template
 */
@@ -12,14 +12,15 @@ export default function(hljs) {
 
   var KEYWORDS = {
     keyword:
-      'and break case chan const continue default defer else end extends ' +
+      'and break case chan const contains continue default defer else end extends ' +
       'if import in fallthrough for func go goto interface macro map not ' +
-      'or range return select show struct switch type var ',
+      'or range render return select show struct switch type using var ',
     type:
       'bool byte complex64 complex128 float32 float64 int int8 int16 ' +
-      'int32 int64 rune string uint uint8 uint16 uint32 uint64 uintptr',
+      'int32 int64 rune string uint uint8 uint16 uint32 uint64 uintptr ' +
+      'html markdown css js json',
     literal:
-      'iota false nil true',
+      'itea iota false nil true',
     builtin:
       'append cap close complex copy delete imag len make new panic print ' +
       'println real recover'
