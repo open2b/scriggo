@@ -9,7 +9,7 @@
     html { height: 100%; overflow: auto; }
     body { background: #132733; color: #fff; height: 100%; margin: 0; padding: 0; position: relative; }
     header { background: #132733; border-bottom: 1px solid #21333e; height: 50px; padding: 5px; }
-    header .logo { color: #ebb951; display: block; float: left; font-family: muli,avenir,helvetica neue,helvetica,ubuntu,roboto,noto,segoe ui,arial,sans-serif; font-size: 1.6rem; font-weight: bold; margin: 2px 36px 0 20px; }
+    header .logo { float: left; margin: 9px 36px 0 20px; width: 80px; }
     #Execute, #Disassemble { display: block; background-color: #ebb951; border: none; border-radius: 3px; color: #333; font-size: 15px; font-weight: bold; margin-top: 4px; outline: none; padding: 6px 20px; text-align: center; text-transform: uppercase; }
     #Disassemble { float: right; margin-right: 20px; }
     section.canvas { bottom: 25%; left: 0; line-height: 20px; position: absolute; right: 0; top: 50px; }
@@ -23,7 +23,6 @@
     section#Output { border-top: 1px solid #21333e; bottom: 0; left: 0; line-height: 20px; position: absolute; right: 0; top: 75%; padding: 10px; white-space: pre; }
     section.canvas, section.canvas textarea, section#Output { font-family: SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace; font-size: 14px; }
     section#Output .stderr { color: #f96f4e; }
-    .logo { width: 120px; padding: 0px; }
 
   </style>
   <script src="wasm_exec.js"></script>
