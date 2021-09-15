@@ -2,25 +2,26 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package scriggo
+package scriggo_test
 
 import (
 	"fmt"
 	"log"
 	"os"
 
+	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/native"
 )
 
 func ExampleBuild() {
-	fsys := Files{
+	fsys := scriggo.Files{
 		"main.go": []byte(`
 			package main
 
 			func main() { }
 		`),
 	}
-	_, err := Build(fsys, nil)
+	_, err := scriggo.Build(fsys, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,7 +29,7 @@ func ExampleBuild() {
 }
 
 func ExampleProgram_Run() {
-	fsys := Files{
+	fsys := scriggo.Files{
 		"main.go": []byte(`
 			package main
 
@@ -39,7 +40,7 @@ func ExampleProgram_Run() {
 			}
 		`),
 	}
-	opts := &BuildOptions{
+	opts := &scriggo.BuildOptions{
 		Packages: native.Packages{
 			"fmt": native.Package{
 				Name: "fmt",
@@ -49,7 +50,7 @@ func ExampleProgram_Run() {
 			},
 		},
 	}
-	program, err := Build(fsys, opts)
+	program, err := scriggo.Build(fsys, opts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -62,10 +63,10 @@ func ExampleProgram_Run() {
 }
 
 func ExampleBuildTemplate() {
-	fsys := Files{
+	fsys := scriggo.Files{
 		"index.html": []byte(`{% name := "Scriggo" %}Hello, {{ name }}!`),
 	}
-	_, err := BuildTemplate(fsys, "index.html", nil)
+	_, err := scriggo.BuildTemplate(fsys, "index.html", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -73,10 +74,10 @@ func ExampleBuildTemplate() {
 }
 
 func ExampleTemplate_Run() {
-	fsys := Files{
+	fsys := scriggo.Files{
 		"index.html": []byte(`{% name := "Scriggo" %}Hello, {{ name }}!`),
 	}
-	template, err := BuildTemplate(fsys, "index.html", nil)
+	template, err := scriggo.BuildTemplate(fsys, "index.html", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -89,20 +90,20 @@ func ExampleTemplate_Run() {
 }
 
 func ExampleHTMLEscape() {
-	fmt.Println(HTMLEscape("Rock & Roll!"))
+	fmt.Println(scriggo.HTMLEscape("Rock & Roll!"))
 	// Output:
 	// Rock &amp; Roll!
 }
 
 func ExampleBuildError() {
-	fsys := Files{
+	fsys := scriggo.Files{
 		"index.html": []byte(`{{ 42 + "hello" }}`),
 	}
-	_, err := BuildTemplate(fsys, "index.html", nil)
+	_, err := scriggo.BuildTemplate(fsys, "index.html", nil)
 	if err != nil {
 		fmt.Printf("Error has type %T\n", err)
-		fmt.Printf("Error message is: %s\n", err.(*BuildError).Message())
-		fmt.Printf("Error path is: %s\n", err.(*BuildError).Path())
+		fmt.Printf("Error message is: %s\n", err.(*scriggo.BuildError).Message())
+		fmt.Printf("Error path is: %s\n", err.(*scriggo.BuildError).Path())
 	}
 	// Output:
 	// Error has type *scriggo.BuildError
