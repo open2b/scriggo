@@ -62,7 +62,7 @@ uses the Go language as the template scripting language.
 {% import "banners.html" %}
 {% macro Body %}
     <ul>
-      {% for _, product := range products %}
+      {% for product in products %}
       <li><a href="{{ product.URL }}">{{ product.Name }}</a></li>
       {% end %}
     </ul>
