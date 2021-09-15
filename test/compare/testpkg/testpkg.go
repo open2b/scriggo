@@ -1,4 +1,4 @@
-// package testpkg is a package containing declarations used in tests.
+// Package testpkg is a package containing declarations used in tests.
 package testpkg
 
 import (
