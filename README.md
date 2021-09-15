@@ -2,6 +2,8 @@
 
 The world’s most powerful template engine and [Go](https://golang.org/) embeddable interpreter.
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/open2b/scriggo/.svg)](https://pkg.go.dev/github.com/open2b/scriggo/)
+
 [Website](https://scriggo.com/) | [Get Started](https://scriggo.com/get-started) | [Documentation](https://scriggo.com/what-is-scriggo) | [Community](https://github.com/open2b/scriggo/discussions) | [Contributing](https://github.com/open2b/scriggo/blob/main/CONTRIBUTING.md)
 
 ## Features
