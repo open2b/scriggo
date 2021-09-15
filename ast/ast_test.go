@@ -67,10 +67,10 @@ var expressionStringTests = []struct {
 		NewArrayType(nil, NewBasicLiteral(nil, IntLiteral, "2"), NewSliceType(nil, NewIdentifier(nil, "number"))),
 		[]KeyValue{
 			{nil, NewCompositeLiteral(nil, NewSliceType(nil, NewIdentifier(nil, "number")), []KeyValue{{nil, NewBasicLiteral(nil, IntLiteral, "1")}, {nil, NewBasicLiteral(nil, IntLiteral, "2")}})},
-			{nil, NewCompositeLiteral(nil, NewSliceType(nil, NewIdentifier(nil, "number")), []KeyValue{{nil, NewBasicLiteral(nil, IntLiteral, "3")}, {nil, NewBasicLiteral(nil, IntLiteral, "4")}, KeyValue{nil, NewBasicLiteral(nil, IntLiteral, "5")}})},
+			{nil, NewCompositeLiteral(nil, NewSliceType(nil, NewIdentifier(nil, "number")), []KeyValue{{nil, NewBasicLiteral(nil, IntLiteral, "3")}, {nil, NewBasicLiteral(nil, IntLiteral, "4")}, {nil, NewBasicLiteral(nil, IntLiteral, "5")}})},
 		})},
 	{"[...]int{1, 4, 9}",
-		NewCompositeLiteral(nil, NewArrayType(nil, nil, NewIdentifier(nil, "int")), []KeyValue{{nil, NewBasicLiteral(nil, IntLiteral, "1")}, {nil, NewBasicLiteral(nil, IntLiteral, "4")}, KeyValue{nil, NewBasicLiteral(nil, IntLiteral, "9")}})},
+		NewCompositeLiteral(nil, NewArrayType(nil, nil, NewIdentifier(nil, "int")), []KeyValue{{nil, NewBasicLiteral(nil, IntLiteral, "1")}, {nil, NewBasicLiteral(nil, IntLiteral, "4")}, {nil, NewBasicLiteral(nil, IntLiteral, "9")}})},
 	{"[]string{0: \"zero\", 1: \"one\"}",
 		NewCompositeLiteral(nil,
 			NewSliceType(nil, NewIdentifier(nil, "string")),
@@ -112,7 +112,7 @@ var expressionStringTests = []struct {
 	{`pkg.Struct{value1, "value2", 33}`, NewCompositeLiteral(nil,
 		NewSelector(nil, NewIdentifier(nil, "pkg"), "Struct"),
 		[]KeyValue{
-			KeyValue{nil, NewIdentifier(nil, "value1")},
+			{nil, NewIdentifier(nil, "value1")},
 			{nil, NewBasicLiteral(nil, StringLiteral, `"value2"`)},
 			{nil, NewBasicLiteral(nil, IntLiteral, "33")},
 		})},

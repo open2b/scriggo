@@ -315,8 +315,8 @@ var exprTests = []struct {
 	{`map[int]string{1: "uno", 2: "due"}`, ast.NewCompositeLiteral(p(1, 15, 0, 33),
 		ast.NewMapType(p(1, 1, 0, 13), ast.NewIdentifier(p(1, 5, 4, 6), "int"), ast.NewIdentifier(p(1, 9, 8, 13), "string")),
 		[]ast.KeyValue{
-			ast.KeyValue{ast.NewBasicLiteral(p(1, 16, 15, 15), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 19, 18, 22), ast.StringLiteral, `"uno"`)},
-			ast.KeyValue{ast.NewBasicLiteral(p(1, 26, 25, 25), ast.IntLiteral, "2"), ast.NewBasicLiteral(p(1, 29, 28, 32), ast.StringLiteral, `"due"`)},
+			{ast.NewBasicLiteral(p(1, 16, 15, 15), ast.IntLiteral, "1"), ast.NewBasicLiteral(p(1, 19, 18, 22), ast.StringLiteral, `"uno"`)},
+			{ast.NewBasicLiteral(p(1, 26, 25, 25), ast.IntLiteral, "2"), ast.NewBasicLiteral(p(1, 29, 28, 32), ast.StringLiteral, `"due"`)},
 		})},
 	{"[]int(s)", ast.NewCall(p(1, 6, 0, 7),
 		ast.NewSliceType(p(1, 1, 0, 4), ast.NewIdentifier(p(1, 3, 2, 4), "int")),
@@ -462,7 +462,7 @@ var exprTests = []struct {
 							ast.NewIdentifier(p(1, 14, 13, 16), "Type"),
 						),
 						[]ast.KeyValue{ // k1: *v1, k2: v2
-							ast.KeyValue{
+							{
 								ast.NewIdentifier(p(1, 19, 18, 19), "k1"), // k1
 								ast.NewUnaryOperator( // *v1
 									p(1, 23, 22, 24),
@@ -470,7 +470,7 @@ var exprTests = []struct {
 									ast.NewIdentifier(p(1, 24, 23, 24), "v1"),
 								),
 							},
-							ast.KeyValue{
+							{
 								ast.NewIdentifier(p(1, 28, 27, 28), "k2"), // k2
 								ast.NewIdentifier(p(1, 32, 31, 32), "v2"), // v2
 							},
@@ -538,9 +538,9 @@ var exprTests = []struct {
 			p(1, 11, 0, 49),
 			ast.NewSelector(p(1, 4, 0, 9), ast.NewIdentifier(p(1, 1, 0, 2), "pkg"), "Struct"),
 			[]ast.KeyValue{
-				ast.KeyValue{ast.NewIdentifier(p(1, 12, 11, 14), "Key1"), ast.NewIdentifier(p(1, 18, 17, 22), "value1")},
-				ast.KeyValue{ast.NewIdentifier(p(1, 26, 25, 28), "Key2"), ast.NewBasicLiteral(p(1, 32, 31, 38), ast.StringLiteral, `"value2"`)},
-				ast.KeyValue{ast.NewIdentifier(p(1, 42, 41, 44), "Key3"), ast.NewBasicLiteral(p(1, 48, 47, 48), ast.IntLiteral, "33")},
+				{ast.NewIdentifier(p(1, 12, 11, 14), "Key1"), ast.NewIdentifier(p(1, 18, 17, 22), "value1")},
+				{ast.NewIdentifier(p(1, 26, 25, 28), "Key2"), ast.NewBasicLiteral(p(1, 32, 31, 38), ast.StringLiteral, `"value2"`)},
+				{ast.NewIdentifier(p(1, 42, 41, 44), "Key3"), ast.NewBasicLiteral(p(1, 48, 47, 48), ast.IntLiteral, "33")},
 			},
 		),
 	},

@@ -508,7 +508,7 @@ var goContextTreeTests = []struct {
 					},
 				),
 				[]ast.KeyValue{
-					ast.KeyValue{
+					{
 						Key:   ast.NewIdentifier(p(1, 23, 22, 22), "A"),
 						Value: ast.NewBasicLiteral(p(1, 26, 25, 26), ast.IntLiteral, "10"),
 					},

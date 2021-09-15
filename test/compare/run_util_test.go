@@ -112,7 +112,7 @@ func Test_differentiateSources(t *testing.T) {
 				`line 3`,
 			}),
 			expected: []errorcheckTest{
-				errorcheckTest{
+				{
 					src: joinLines([]string{
 						`line 1`,
 						`line 2 // ERROR "something"`,
@@ -129,14 +129,14 @@ func Test_differentiateSources(t *testing.T) {
 				`line 3 // ERROR "something else"`,
 			}),
 			expected: []errorcheckTest{
-				errorcheckTest{
+				{
 					src: joinLines([]string{
 						`line 1`,
 						`line 2 // ERROR "something"`,
 					}),
 					err: "something",
 				},
-				errorcheckTest{
+				{
 					src: joinLines([]string{
 						`line 1`,
 						`line 3 // ERROR "something else"`,
@@ -152,7 +152,7 @@ func Test_differentiateSources(t *testing.T) {
 				`line 3 // ERROR "something else"`,
 			}),
 			expected: []errorcheckTest{
-				errorcheckTest{
+				{
 					src: joinLines([]string{
 						`line 1`,
 						`// line 2 // ERROR "something"`,
@@ -171,7 +171,7 @@ func Test_differentiateSources(t *testing.T) {
 				`line 5 // ERROR "another error message"`,
 			}),
 			expected: []errorcheckTest{
-				errorcheckTest{
+				{
 					src: joinLines([]string{
 						`line 1`,
 						`line 2 // ERROR "something"`,
@@ -179,7 +179,7 @@ func Test_differentiateSources(t *testing.T) {
 					}),
 					err: "something",
 				},
-				errorcheckTest{
+				{
 					src: joinLines([]string{
 						`line 1`,
 						`line 3 // ERROR "something else"`,
@@ -187,7 +187,7 @@ func Test_differentiateSources(t *testing.T) {
 					}),
 					err: "something else",
 				},
-				errorcheckTest{
+				{
 					src: joinLines([]string{
 						`line 1`,
 						`line 4`,
