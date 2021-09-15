@@ -657,7 +657,7 @@ type Default struct {
 	Expr2     Expression // right hand expression.
 }
 
-// NewDefault returns a new Defualt node.
+// NewDefault returns a new Default node.
 func NewDefault(pos *Position, expr1, expr2 Expression) *Default {
 	return &Default{Position: pos, Expr1: expr1, Expr2: expr2}
 }

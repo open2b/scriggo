@@ -316,7 +316,7 @@ func readFileAndFormat(fsys fs.FS, name string) ([]byte, ast.Format, error) {
 			return nil, 0, err
 		}
 		if format < ast.FormatText || format > ast.FormatMarkdown {
-			return nil, 0, fmt.Errorf("unkonwn format %d", format)
+			return nil, 0, fmt.Errorf("unknown format %d", format)
 		}
 	} else {
 		switch path.Ext(name) {

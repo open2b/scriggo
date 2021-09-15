@@ -704,10 +704,10 @@ func test(src []byte, mode, filePath string, opts []string, keepTestingOnFail bo
 				return formatError("scriggo and gc returned a non-zero exit code")
 			}
 			if scriggoExitCode != 0 {
-				return formatError("scriggo returned a non-zero exit code, while gc succeded")
+				return formatError("scriggo returned a non-zero exit code, while gc succeeded")
 			}
 			if gcExitCode != 0 {
-				return formatError("gc returned a non-zero exit code, while Scriggo succeded")
+				return formatError("gc returned a non-zero exit code, while Scriggo succeeded")
 			}
 			if bytes.Compare(scriggoStdout, gcStdout) != 0 || bytes.Compare(scriggoStderr, gcStderr) != 0 {
 				return formatError("Scriggo and gc returned two different stdout/stderr")

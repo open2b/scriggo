@@ -238,7 +238,7 @@ func checkGOOS(os string) error {
 		"freebsd", "nacl", "netbsd", "openbsd", "plan9", "windows", "aix":
 		return nil
 	}
-	return fmt.Errorf("unkown os %q", os)
+	return fmt.Errorf("unknown os %q", os)
 }
 
 // checkPackagePath checks that a given package path is valid.

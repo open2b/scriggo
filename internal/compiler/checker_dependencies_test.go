@@ -229,7 +229,7 @@ var cases = map[string]struct {
 		},
 	},
 
-	"function with a local variable (so has no depencencies)": {
+	"function with a local variable (so has no dependencies)": {
 		`package main
 
 			func F() {
