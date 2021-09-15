@@ -1,4 +1,5 @@
-<img src="https://scriggo-site.pages.dev/images/scriggo.svg" alt="Scriggo" title="Scriggo" width="535px" style="max-width: 100%">
+<img src="https://scriggo-site.pages.dev/images/scriggo-padded.svg" alt="Scriggo" title="Scriggo" width="535px" style="max-width: 100%">
+
 
 The world’s most powerful template engine and [Go](https://golang.org/) embeddable interpreter.
 
