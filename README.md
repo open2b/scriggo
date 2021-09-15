@@ -2,6 +2,8 @@
 
 The world’s powerful template engine and [Go](https://golang.org/) embeddable interpreter.
 
+[Website](https://scriggo.com/) | [Get Started](https://scriggo.com/get-started) | [Documentation](https://scriggo.com/what-is-scriggo) | [Community](https://github.com/open2b/scriggo/discussions) | [Contributing](https://github.com/open2b/scriggo/blob/main/CONTRIBUTING.md)
+
 ## Features
 
 * Fast, a very fast embeddable pure Go language interpreter.
