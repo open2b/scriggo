@@ -54,16 +54,13 @@ It creates in the directory:
 
 * a main.go file with the 'main' function
 
-* a Scriggofile named 'Scriggofile', if it does not already exist
+* a Scriggofile named 'Scriggofile' with the instructions to import the
+packages of the standard library
 
 then it calls the 'go mod tidy' command.
 
 The interpreter can then be compiled with the 'go build' command or installed
 with the 'go install' command.
-
-The native packages are built with the instructions in the Scriggofile. If the
-directory does not contain a file named 'Scriggofile', it creates the file for
-the Go standard library.
 
 For example:
 
@@ -82,6 +79,10 @@ To execute a Go source file called 'program.go' with the 'example' interpreter,
 execute the command:
 
     example program.go
+
+You can change the Scriggofile to import other packages and than use the
+scriggo import command to rebuild the packages.go file with the package
+importer.
 
 For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
 
