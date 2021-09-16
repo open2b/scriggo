@@ -509,6 +509,7 @@ type Call struct {
 	}
 }
 
+// NewCall returns a new Call node.
 func NewCall(pos *Position, fun Expression, args []Expression, isVariadic bool) *Call {
 	return &Call{expression: &expression{}, Position: pos, Func: fun, Args: args, IsVariadic: isVariadic}
 }

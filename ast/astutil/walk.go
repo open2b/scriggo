@@ -10,7 +10,7 @@ import (
 	"github.com/open2b/scriggo/ast"
 )
 
-// Visitor's visit method is invoked for every node encountered by Walk.
+// Visitor has a Visit method invoked for every node encountered by Walk.
 type Visitor interface {
 	Visit(node ast.Node) (w Visitor)
 }

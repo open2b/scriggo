@@ -13,6 +13,7 @@ import (
 	"github.com/open2b/scriggo/ast"
 )
 
+// BOM contains a Byte Order Mark.
 const BOM rune = 0xfeff
 const bomErrorMsg = "invalid BOM in the middle of the file"
 

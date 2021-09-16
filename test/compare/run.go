@@ -24,6 +24,7 @@ import (
 	"github.com/rogpeppe/go-internal/imports"
 )
 
+// BOM is a variable used in tests and contains a Byte Order Mark.
 var BOM = []byte("\ufeff")
 
 const (

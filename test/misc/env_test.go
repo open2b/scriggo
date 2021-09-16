@@ -22,7 +22,7 @@ import (
 type testEnvStringer struct{}
 
 func (*testEnvStringer) String(env native.Env) string {
-	return fmt.Sprint(env.Context().Value("forty-two"))
+	return fmt.Sprint(env.Context().Value(envTestCtxString("forty-two")))
 }
 
 var testEnvStringerValue = &testEnvStringer{}
@@ -32,7 +32,7 @@ var testEnvStringerValue = &testEnvStringer{}
 type testHTMLEnvStringer struct{}
 
 func (*testHTMLEnvStringer) HTML(env native.Env) native.HTML {
-	return native.HTML(fmt.Sprint(env.Context().Value("forty-two")))
+	return native.HTML(fmt.Sprint(env.Context().Value(envTestCtxString("forty-two"))))
 }
 
 var testHTMLEnvStringerValue = &testHTMLEnvStringer{}
@@ -42,7 +42,7 @@ var testHTMLEnvStringerValue = &testHTMLEnvStringer{}
 type testCSSEnvStringer struct{}
 
 func (*testCSSEnvStringer) CSS(env native.Env) native.CSS {
-	return native.CSS(fmt.Sprint(env.Context().Value("forty-two")))
+	return native.CSS(fmt.Sprint(env.Context().Value(envTestCtxString("forty-two"))))
 }
 
 var testCSSEnvStringerValue = &testCSSEnvStringer{}
@@ -52,7 +52,7 @@ var testCSSEnvStringerValue = &testCSSEnvStringer{}
 type testJSEnvStringer struct{}
 
 func (*testJSEnvStringer) JS(env native.Env) native.JS {
-	return native.JS(fmt.Sprint(env.Context().Value("forty-two")))
+	return native.JS(fmt.Sprint(env.Context().Value(envTestCtxString("forty-two"))))
 }
 
 var testJSEnvStringerValue = &testJSEnvStringer{}
@@ -62,7 +62,7 @@ var testJSEnvStringerValue = &testJSEnvStringer{}
 type testJSONEnvStringer struct{}
 
 func (*testJSONEnvStringer) JSON(env native.Env) native.JSON {
-	return native.JSON(fmt.Sprint(env.Context().Value("forty-two")))
+	return native.JSON(fmt.Sprint(env.Context().Value(envTestCtxString("forty-two"))))
 }
 
 var testJSONEnvStringerValue = &testJSONEnvStringer{}
@@ -127,6 +127,8 @@ var envStringerCases = map[string]struct {
 	},
 }
 
+type envTestCtxString string
+
 // TestEnvStringer tests these interfaces:
 //
 //  * EnvStringer
@@ -138,7 +140,7 @@ var envStringerCases = map[string]struct {
 func TestEnvStringer(t *testing.T) {
 	for name, cas := range envStringerCases {
 		t.Run(name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "forty-two", 42)
+			ctx := context.WithValue(context.Background(), envTestCtxString("forty-two"), 42)
 			fsys := fstest.Files{}
 			for p, src := range cas.sources {
 				fsys[p] = src

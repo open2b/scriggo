@@ -298,7 +298,7 @@ func (types *Types) TypeOf(v reflect.Value) reflect.Type {
 //  concluded.
 func assertNotScriggoType(t reflect.Type) {
 	if _, ok := t.(runtime.ScriggoType); ok {
-		panic(fmt.Errorf("%v is a Scriggo type!", t))
+		panic(fmt.Errorf("%v is a Scriggo type", t))
 	}
 }
 

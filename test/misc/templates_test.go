@@ -4027,9 +4027,8 @@ func TestMultiFileTemplate(t *testing.T) {
 				if strings.Contains(err.Error(), cas.expectedBuildErr) {
 					// Ok, the error returned by Build contains the expected error.
 					return // this test is end.
-				} else {
-					t.Fatalf("expected error %q, got %q", cas.expectedBuildErr, err)
 				}
+				t.Fatalf("expected error %q, got %q", cas.expectedBuildErr, err)
 			}
 			w := &bytes.Buffer{}
 			err = template.Run(w, cas.vars, &scriggo.RunOptions{Print: printFunc(w)})
