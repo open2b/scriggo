@@ -43,7 +43,7 @@ type Time struct {
 //
 // and once added to the declarations
 //
-//    scriggo.Declarations{
+//    native.Declarations{
 //        ...
 //        "now" : now,
 //        ...
