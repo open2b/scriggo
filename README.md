@@ -82,8 +82,11 @@ Scriggo template files can be written in plain text, HTML, Markdown, CSS, JavaSc
 package main
 
 import (
-    "os"
-    "github.com/open2b/scriggo"
+	"os"
+
+	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/builtin"
+	"github.com/open2b/scriggo/native"
 )
 
 func main() {
@@ -94,8 +97,7 @@ func main() {
     <html>
     <head>Hello</head> 
     <body>
-        {% who := "World" %}
-        Hello, {{ who }}!
+        Hello, {{ capitalize(who) }}!
     </body>
     </html>
     `)
@@ -103,8 +105,17 @@ func main() {
     // Create a file system with the file of the template to run.
     fsys := scriggo.Files{"index.html": content}
 
+    // Declare some globals.
+    var who = "world"
+    opts := &scriggo.BuildOptions{
+        Globals: native.Declarations{
+            "who":        &who,               // global variable
+            "capitalize": builtin.Capitalize, // global function
+        },
+    }
+
     // Build the template.
-    template, err := scriggo.BuildTemplate(fsys, "index.html", nil)
+    template, err := scriggo.BuildTemplate(fsys, "index.html", opts)
     if err != nil {
         panic(err)
     }
