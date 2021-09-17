@@ -43,3 +43,9 @@ Here are the steps to build a *highlight.js* file that supports Scriggo.
    ```bash
    cp build/highlight.js <destination directory>
    ```
+
+   or, if you want the minified version:
+
+   ```bash
+   cp build/highlight.min.js <destination directory>
+   ```
