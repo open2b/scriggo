@@ -92,7 +92,11 @@ func toTypeCheckerScope(pkg native.ImportablePackage, mod checkingMod, global bo
 				// Import a typed constant.
 				ti.Constant = convertToConstant(rv)
 				if ti.Constant == nil {
-					panic(fmt.Errorf("scriggo: importing package %s, declaration %q is not valid", pkg.PackageName(), ident))
+					name := ident
+					if p := pkg.PackageName(); p != "main" {
+						name = p + "." + name
+					}
+					panic(fmt.Errorf("scriggo: cannot import %s: to import a variable use a pointer to that variable", name))
 				}
 				ti.Type = rv.Type()
 			}

@@ -5,9 +5,11 @@
 package compiler
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/open2b/scriggo/ast"
+	"github.com/open2b/scriggo/native"
 )
 
 func TestInitializationLoop(t *testing.T) {
@@ -318,6 +320,51 @@ func TestPackageOrdering(t *testing.T) {
 			if cas.expected != got {
 				t.Fatalf("expecting %q, got %q", cas.expected, got)
 			}
+		})
+	}
+}
+
+var toTypeCheckerScopeCases = []struct {
+	name     string
+	pkg      native.Package
+	expected string
+}{
+	{
+		name: "main.c",
+		pkg: native.Package{
+			Name: "main",
+			Declarations: native.Declarations{
+				"c": []int{},
+			},
+		},
+		expected: "scriggo: cannot import c: to import a variable use a pointer to that variable",
+	},
+	{
+		name: "foo.A",
+		pkg: native.Package{
+			Name: "foo",
+			Declarations: native.Declarations{
+				"A": []int{},
+			},
+		},
+		expected: "scriggo: cannot import foo.A: to import a variable use a pointer to that variable",
+	},
+}
+
+// TestToTypeCheckerScope tests the toTypeCheckerScope function.
+func TestToTypeCheckerScope(t *testing.T) {
+	for _, c := range toTypeCheckerScopeCases {
+		t.Run(c.name, func(t *testing.T) {
+			defer func() {
+				err := recover()
+				if err == nil {
+					t.Fatalf("expected error, got nil")
+				}
+				if got := fmt.Sprintf("%s", err); c.expected != got {
+					t.Fatalf("expected %q, got %q", c.expected, got)
+				}
+			}()
+			_ = toTypeCheckerScope(c.pkg, templateMod, false, 0)
 		})
 	}
 }
