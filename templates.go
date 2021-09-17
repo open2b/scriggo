@@ -105,7 +105,8 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildOptions) (*Template, e
 }
 
 // Run runs the template and write the rendered code to out. vars contains
-// the values of the global variables.
+// the values of the global variables. It can be called concurrently by
+// multiple goroutines.
 //
 // If the executed template panics or the Panic method of native.Env is
 // called, and the executed code does not recover the panic, Run returns a

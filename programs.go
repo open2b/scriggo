@@ -116,7 +116,8 @@ func (p *Program) Disassemble(pkgPath string) ([]byte, error) {
 	return asm, nil
 }
 
-// Run starts the program and waits for it to complete.
+// Run starts the program and waits for it to complete. It can be called
+// concurrently by multiple goroutines.
 //
 // If the executed program panics or the Panic method of native.Env is called,
 // and the executed code does not recover the panic, Run returns a
