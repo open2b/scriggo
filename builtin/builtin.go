@@ -443,22 +443,6 @@ func ParseDuration(s string) (Duration, error) {
 	return d, nil
 }
 
-// ParseInt interprets a string s in the given base, for 2 <= base <= 36, and
-// returns the corresponding value. It returns 0 and an error if s is empty,
-// contains invalid digits or the value corresponding to s cannot be
-// represented by an int value.
-func ParseInt(s string, base int) (int, error) {
-	if base == 0 {
-		return 0, errors.New("parseInt: parsing " + strconv.Quote(s) + ": invalid base 0")
-	}
-	i, err := strconv.ParseInt(s, base, 0)
-	if err != nil {
-		e := err.(*strconv.NumError)
-		return 0, errors.New("parseInt: parsing " + strconv.Quote(s) + ": " + e.Err.Error())
-	}
-	return int(i), nil
-}
-
 // ParseFloat converts the string s to a float64 value.
 //
 // If s is well-formed and near a valid floating-point number, ParseFloat
@@ -477,6 +461,22 @@ func ParseFloat(s string) (float64, error) {
 		return 0, errors.New("parseFloat: parsing " + strconv.Quote(s) + ": invalid syntax")
 	}
 	return f, nil
+}
+
+// ParseInt interprets a string s in the given base, for 2 <= base <= 36, and
+// returns the corresponding value. It returns 0 and an error if s is empty,
+// contains invalid digits or the value corresponding to s cannot be
+// represented by an int value.
+func ParseInt(s string, base int) (int, error) {
+	if base == 0 {
+		return 0, errors.New("parseInt: parsing " + strconv.Quote(s) + ": invalid base 0")
+	}
+	i, err := strconv.ParseInt(s, base, 0)
+	if err != nil {
+		e := err.(*strconv.NumError)
+		return 0, errors.New("parseInt: parsing " + strconv.Quote(s) + ": " + e.Err.Error())
+	}
+	return int(i), nil
 }
 
 // ParseTime parses a formatted string and returns the time value it
