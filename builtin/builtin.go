@@ -481,7 +481,7 @@ func ParseInt(s string, base int) (int, error) {
 
 // ParseTime parses a formatted string and returns the time value it
 // represents. The layout defines the format by showing how the reference
-// time would be
+// time
 //	Mon Jan 2 15:04:05 -0700 MST 2006
 // would be interpreted if it were the value; it serves as an example of
 // the input format. The same interpretation will then be made to the

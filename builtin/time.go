@@ -106,7 +106,7 @@ func (t Time) Equal(u Time) bool {
 
 // Format returns a textual representation of the time value formatted
 // according to layout, which defines the format by showing how the reference
-// time, defined to be
+// time
 //	Mon Jan 2 15:04:05 -0700 MST 2006
 // would be displayed if it were the value; it serves as an example of the
 // desired output. The same display rules will then be applied to the time
