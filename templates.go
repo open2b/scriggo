@@ -108,8 +108,7 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildOptions) (*Template, e
 // the values of the global variables. It can be called concurrently by
 // multiple goroutines.
 //
-// If the executed template panics or the Panic method of native.Env is
-// called, and the executed code does not recover the panic, Run returns a
+// If the executed template panics, and it is not recovered, Run returns a
 // *PanicError.
 //
 // If the Exit method of native.Env is called with a non-zero code, Run
