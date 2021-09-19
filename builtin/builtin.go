@@ -557,7 +557,7 @@ func QueryEscape(s string) string {
 	return string(b)
 }
 
-// RegExp parses a regular expression and returns a Regexp object that can be
+// RegExp parses a regular expression and returns a Regexp value that can be
 // used to match against text. It panics if the expression cannot be parsed.
 func RegExp(expr string) Regexp {
 	r, err := regexp.Compile(expr)
