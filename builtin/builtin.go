@@ -266,18 +266,6 @@ func Date(year, month, day, hour, min, sec, nsec int, location string) (Time, er
 	return NewTime(time.Date(year, time.Month(month), day, hour, min, sec, nsec, loc)), nil
 }
 
-// FormatInt returns the string representation of i in the given base, for
-// 2 <= base <= 36. The result uses the lower-case letters 'a' to 'z' for
-// digit values >= 10.
-//
-// It panics if base is not in the range.
-func FormatInt(i int, base int) string {
-	if base < 2 || base > 36 {
-		panic("formatInt: invalid base " + strconv.Itoa(base))
-	}
-	return strconv.FormatInt(int64(i), base)
-}
-
 // FormatFloat converts the floating-point number f to a string, according to
 // the given format and precision. It can round the result.
 //
@@ -303,6 +291,18 @@ func FormatFloat(f float64, format string, precision int) string {
 		panic("formatFloat: invalid precision " + strconv.Itoa(precision))
 	}
 	return strconv.FormatFloat(f, format[0], precision, 64)
+}
+
+// FormatInt returns the string representation of i in the given base, for
+// 2 <= base <= 36. The result uses the lower-case letters 'a' to 'z' for
+// digit values >= 10.
+//
+// It panics if base is not in the range.
+func FormatInt(i int, base int) string {
+	if base < 2 || base > 36 {
+		panic("formatInt: invalid base " + strconv.Itoa(base))
+	}
+	return strconv.FormatInt(int64(i), base)
 }
 
 // HasPrefix tests whether the string s begins with prefix.
