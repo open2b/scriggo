@@ -272,7 +272,7 @@ func Date(year, month, day, hour, min, sec, nsec int, location string) (Time, er
 // The format is one of "e", "f" or "g"
 //  "e": -d.dddde±dd, a decimal exponent
 //  "f": -ddd.dddd, no exponent
-//  "g": "e" for large exponents, "f" otherwises
+//  "g": "e" for large exponents, "f" otherwise
 //
 // The precision, for -1 <= precision <= 1000, controls the number of digits
 // (excluding the exponent). The special precision -1 uses the smallest number
