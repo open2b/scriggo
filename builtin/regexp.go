@@ -55,20 +55,20 @@ func (re Regexp) FindSubmatch(s string) []string {
 	return re.r.FindStringSubmatch(s)
 }
 
-// ReplaceAll returns a copy of src, replacing matches of the Regexp with the
+// ReplaceAll returns a copy of s, replacing matches of the Regexp with the
 // replacement string repl. Inside repl, $ signs are interpreted as in Expand
 // method of the Go regexp package, so for instance $1 represents the text of
 // the first submatch.
-func (re Regexp) ReplaceAll(src, repl string) string {
-	return re.r.ReplaceAllString(src, repl)
+func (re Regexp) ReplaceAll(s, repl string) string {
+	return re.r.ReplaceAllString(s, repl)
 }
 
-// ReplaceAllFunc returns a copy of src in which all matches of the Regexp
+// ReplaceAllFunc returns a copy of s in which all matches of the Regexp
 // have been replaced by the return value of function repl applied to the
 // matched substring. The replacement returned by repl is substituted
 // directly, without expanding.
-func (re Regexp) ReplaceAllFunc(src string, repl func(string) string) string {
-	return re.r.ReplaceAllStringFunc(src, repl)
+func (re Regexp) ReplaceAllFunc(s string, repl func(string) string) string {
+	return re.r.ReplaceAllStringFunc(s, repl)
 }
 
 // Split slices s into substrings separated by the expression and returns a

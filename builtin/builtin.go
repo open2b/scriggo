@@ -209,30 +209,30 @@ func Base64(s string) string {
 	return base64.StdEncoding.EncodeToString([]byte(s))
 }
 
-// Capitalize returns a copy of the string src with the first non-separator in
+// Capitalize returns a copy of the string s with the first non-separator in
 // upper case.
-func Capitalize(src string) string {
-	for i, r := range src {
+func Capitalize(s string) string {
+	for i, r := range s {
 		if isSeparator(r) {
 			continue
 		}
 		if unicode.IsUpper(r) {
-			return src
+			return s
 		}
 		r = unicode.ToUpper(r)
 		b := strings.Builder{}
-		b.Grow(len(src))
-		b.WriteString(src[:i])
+		b.Grow(len(s))
+		b.WriteString(s[:i])
 		b.WriteRune(r)
-		b.WriteString(src[i+utf8.RuneLen(r):])
+		b.WriteString(s[i+utf8.RuneLen(r):])
 		return b.String()
 	}
-	return src
+	return s
 }
 
-// CapitalizeAll returns a copy of the string src with the first letter of
+// CapitalizeAll returns a copy of the string s with the first letter of
 // each word in upper case.
-func CapitalizeAll(src string) string {
+func CapitalizeAll(s string) string {
 	prev := ' '
 	return strings.Map(func(r rune) rune {
 		if isSeparator(prev) {
@@ -241,7 +241,7 @@ func CapitalizeAll(src string) string {
 		}
 		prev = r
 		return r
-	}, src)
+	}, s)
 }
 
 // Date returns the time corresponding to the given date with time zone
@@ -315,12 +315,12 @@ func HasSuffix(s, suffix string) bool {
 	return strings.HasPrefix(s, suffix)
 }
 
-// Hex returns the hexadecimal encoding of src.
-func Hex(src string) string {
-	if src == "" {
-		return src
+// Hex returns the hexadecimal encoding of s.
+func Hex(s string) string {
+	if s == "" {
+		return s
 	}
-	return hex.EncodeToString([]byte(src))
+	return hex.EncodeToString([]byte(s))
 }
 
 // HmacSHA1 returns the HMAC-SHA1 tag for the given message and key, as a
@@ -349,12 +349,16 @@ func HtmlEscape(s string) native.HTML {
 
 // Index returns the index of the first instance of substr in s, or -1 if
 // substr is not present in s.
+//
+// The returned index refers to the bytes and not the runes of s.
 func Index(s, substr string) int {
 	return strings.Index(s, substr)
 }
 
 // IndexAny returns the index of the first instance of any Unicode code point
 // from chars in s, or -1 if no Unicode code point from chars is present in s.
+//
+// The returned index refers to the bytes and not the runes of s.
 func IndexAny(s, chars string) int {
 	return strings.IndexAny(s, chars)
 }
@@ -368,6 +372,8 @@ func Join(elems []string, sep string) string {
 
 // LastIndex returns the index of the last instance of substr in s, or -1 if
 // substr is not present in s.
+//
+// The returned index refers to the bytes and not the runes of s.
 func LastIndex(s, substr string) int {
 	return strings.LastIndex(s, substr)
 }
@@ -410,10 +416,10 @@ func Max(x, y int) int {
 	return x
 }
 
-// Md5 returns the MD5 checksum of src as an hexadecimal encoded string.
-func Md5(src string) string {
+// Md5 returns the MD5 checksum of s as a hexadecimal encoded string.
+func Md5(s string) string {
 	h := md5.New()
-	h.Write([]byte(src))
+	h.Write([]byte(s))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
@@ -559,6 +565,8 @@ func QueryEscape(s string) string {
 
 // RegExp parses a regular expression and returns a Regexp value that can be
 // used to match against text. It panics if the expression cannot be parsed.
+//
+// For the syntax of regular expressions see https://pkg.go.dev/regexp/syntax.
 func RegExp(expr string) Regexp {
 	r, err := regexp.Compile(expr)
 	if err != nil {
@@ -569,9 +577,6 @@ func RegExp(expr string) Regexp {
 
 // Replace returns a copy of the string s with the first n
 // non-overlapping instances of old replaced by new.
-// If old is empty, it matches at the beginning of the string
-// and after each UTF-8 sequence, yielding up to k+1 replacements
-// for a k-rune string.
 // If n < 0, there is no limit on the number of replacements.
 func Replace(s, old, new string, n int) string {
 	return strings.Replace(s, old, new, n)
@@ -579,19 +584,17 @@ func Replace(s, old, new string, n int) string {
 
 // ReplaceAll returns a copy of the string s with all
 // non-overlapping instances of old replaced by new.
-// If old is empty, it matches at the beginning of the string
-// and after each UTF-8 sequence, yielding up to k+1 replacements
-// for a k-rune string.
 func ReplaceAll(s, old, new string) string {
 	return strings.ReplaceAll(s, old, new)
 }
 
-// Reverse returns the reverse order for data.
-func Reverse(data interface{}) {
-	if data == nil {
+// Reverse reverses the order of the elements of slice.
+// If slice is not a slice, it panics.
+func Reverse(slice interface{}) {
+	if slice == nil {
 		return
 	}
-	rv := reflect.ValueOf(data)
+	rv := reflect.ValueOf(slice)
 	if rv.Kind() != reflect.Slice {
 		panic("reverse: cannot reverse non-slice value of type " + rv.Type().String())
 	}
@@ -599,7 +602,7 @@ func Reverse(data interface{}) {
 	if l <= 1 {
 		return
 	}
-	swap := reflect.Swapper(data)
+	swap := reflect.Swapper(slice)
 	for i, j := 0, l-1; i < j; i, j = i+1, j-1 {
 		swap(i, j)
 	}
@@ -612,23 +615,28 @@ func RuneCount(s string) (n int) {
 	return utf8.RuneCountInString(s)
 }
 
-// Sha1 returns the SHA1 checksum of src as an hexadecimal encoded string.
-func Sha1(src string) string {
+// Sha1 returns the SHA1 checksum of s as a hexadecimal encoded string.
+func Sha1(s string) string {
 	h := sha1.New()
-	h.Write([]byte(src))
+	h.Write([]byte(s))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// Sha256 returns the SHA256 checksum of src as an hexadecimal encoded string.
+// Sha256 returns the SHA256 checksum of s as a hexadecimal encoded string.
 func Sha256(s string) string {
 	h := sha256.New()
 	h.Write([]byte(s))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// Sort sorts the provided slice given the provided less function.
+// Sort the elements of slice given the provided less function.
+// If slice is not a slice, it panics.
 //
-// The function panics if the provided interface is not a slice.
+// The less function reports whether slice[i] should be ordered before
+// slice[j]. If less is nil, the elements are sorted in a natural order based
+// on their type.
+//
+// The natural order can differ between different versions of Scriggo.
 func Sort(slice interface{}, less func(i, j int) bool) {
 	if slice == nil {
 		return
@@ -681,11 +689,9 @@ func Sort(slice interface{}, less func(i, j int) bool) {
 // Split slices s into all substrings separated by sep and returns a slice of
 // the substrings between those separators.
 //
-// If s does not contain sep and sep is not empty, Split returns a
-// slice of length 1 whose only element is s.
-//
-// If sep is empty, Split splits after each UTF-8 sequence. If both s
-// and sep are empty, Split returns an empty slice.
+// If s does not contain sep and sep is not empty, Split returns a slice of
+// length 1 whose only element is s. If sep is empty, Split splits after each
+// UTF-8 sequence. If both s and sep are empty, Split returns an empty slice.
 //
 // It is equivalent to SplitN with a count of -1.
 func Split(s, sep string) []string {
@@ -695,11 +701,10 @@ func Split(s, sep string) []string {
 // SplitAfter slices s into all substrings after each instance of sep and
 // returns a slice of those substrings.
 //
-// If s does not contain sep and sep is not empty, SplitAfter returns
-// a slice of length 1 whose only element is s.
-//
-// If sep is empty, SplitAfter splits after each UTF-8 sequence. If
-// both s and sep are empty, SplitAfter returns an empty slice.
+// If s does not contain sep and sep is not empty, SplitAfter returns a slice
+// of length 1 whose only element is s. If sep is empty, SplitAfter splits
+// after each UTF-8 sequence. If both s and sep are empty, SplitAfter returns
+// an empty slice.
 //
 // It is equivalent to SplitAfterN with a count of -1.
 func SplitAfter(s, sep string) []string {

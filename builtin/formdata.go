@@ -67,7 +67,7 @@ func (f formFile) Open() (io.ReadSeekCloser, error) {
 
 // FormData contains the form data from the query string and body of an HTTP
 // request. Values and files passed as multipart/form-data are only available
-// after ParseMultipart is called.
+// after ParseMultipart method is called.
 type FormData struct {
 	request   *http.Request
 	data      *formData
