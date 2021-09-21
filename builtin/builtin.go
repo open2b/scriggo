@@ -6,8 +6,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package builtin provides simple functions, types and constants that can be
-// used as globals in a Scriggo template.
+// Package builtin provides simple functions, types, constants and a package
+// that can be used as globals in a Scriggo template.
 //
 // For example, to use the Min and Max functions as global min and max
 // functions
@@ -121,6 +121,9 @@
 //  	"parseDuration": builtin.ParseDuration,
 //  	"parseTime":     builtin.ParseTime,
 //  	"unixTime":      builtin.UnixTime,
+//
+//  	// unsafeconv, uncomment the declaration below to allow to use unsafe conversions between string and native types
+//  	// "unsafeconv":    builtin.Unsafeconv,
 //
 //  }
 //
