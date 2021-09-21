@@ -164,6 +164,7 @@ func (t *Template) Disassemble(n int) []byte {
 }
 
 // UsedVars returns the names of the global variables used in the template.
+// A variable used in dead code may not be returned as used.
 func (t *Template) UsedVars() []string {
 	vars := make([]string, len(t.globals))
 	for i, global := range t.globals {
