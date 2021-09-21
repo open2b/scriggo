@@ -21,20 +21,20 @@ import (
 var Unsafeconv = native.Package{
 	Name: "unsafeconv",
 	Declarations: map[string]native.Declaration{
-		"ToHTML": func(str string) native.HTML {
-			return native.HTML(str)
+		"ToHTML": func(s string) native.HTML {
+			return native.HTML(s)
 		},
-		"ToCSS": func(str string) native.CSS {
-			return native.CSS(str)
+		"ToCSS": func(s string) native.CSS {
+			return native.CSS(s)
 		},
-		"ToJS": func(str string) native.JS {
-			return native.JS(str)
+		"ToJS": func(s string) native.JS {
+			return native.JS(s)
 		},
-		"ToJSON": func(str string) native.JSON {
-			return native.JSON(str)
+		"ToJSON": func(s string) native.JSON {
+			return native.JSON(s)
 		},
-		"ToMarkdown": func(str string) native.Markdown {
-			return native.Markdown(str)
+		"ToMarkdown": func(s string) native.Markdown {
+			return native.Markdown(s)
 		},
 	},
 }
