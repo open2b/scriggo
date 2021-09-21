@@ -15,6 +15,12 @@ import (
 var sp = fmt.Sprint
 var spf = fmt.Sprintf
 
+var toHTML = Unsafeconv.Declarations["ToHTML"].(func(string) native.HTML)
+var toCSS = Unsafeconv.Declarations["ToCSS"].(func(string) native.CSS)
+var toJS = Unsafeconv.Declarations["ToJS"].(func(string) native.JS)
+var toJSON = Unsafeconv.Declarations["ToJSON"].(func(string) native.JSON)
+var toMarkdown = Unsafeconv.Declarations["ToMarkdown"].(func(string) native.Markdown)
+
 var tests = []struct {
 	got      string
 	expected string
@@ -297,6 +303,13 @@ var tests = []struct {
 	{spf("%v", UnmarshalJSON("", (*int)(nil))), "unmarshalJSON: cannot unmarshal into a nil pointer of type *int"},
 	{spf("%v", UnmarshalJSON("", []int{})), "unmarshalJSON: cannot unmarshal into non-pointer value of type []int"},
 	{spf("%v", UnmarshalJSON("5", &[]int{})), "unmarshalJSON: cannot unmarshal number into value of type []int"},
+
+	// unsafeconv
+	{string(toHTML("<a>")), "<a>"},
+	{string(toCSS("#AAA")), "#AAA"},
+	{string(toJS("= undefined;")), "= undefined;"},
+	{string(toJSON("[ 1, 2, 3 ]")), "[ 1, 2, 3 ]"},
+	{string(toMarkdown("# a title")), "# a title"},
 }
 
 func TestBuiltins(t *testing.T) {
