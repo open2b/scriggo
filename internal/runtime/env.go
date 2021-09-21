@@ -43,10 +43,6 @@ func (env *env) Context() context.Context {
 	return env.ctx
 }
 
-func (env *env) Exit(code int) {
-	panic(exitError(code))
-}
-
 func (env *env) Fatal(v interface{}) {
 	panic(&fatalError{env: env, msg: v})
 }
@@ -65,6 +61,10 @@ func (env *env) Println(args ...interface{}) {
 		env.doPrint(arg)
 	}
 	env.doPrint("\n")
+}
+
+func (env *env) Stop(err error) {
+	panic(stopError{err})
 }
 
 func (env *env) TypeOf(v reflect.Value) reflect.Type {

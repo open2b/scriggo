@@ -35,8 +35,9 @@ func run() {
 		case *scriggo.PanicError:
 			// The program panicked.
 			panic(err)
-		case *scriggo.ExitError:
-			// A native function has called the Exit method of native.Env.
+		case scriggo.ExitError:
+			// A native function has called the Stop method of native.Env with
+			// a scriggo.ExitError value.
 			os.Exit(err.Code())
 		}
 		// Another error occurred.

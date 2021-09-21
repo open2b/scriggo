@@ -50,9 +50,9 @@ func (err *BuildError) Message() string {
 	return err.err.Message()
 }
 
-// ExitError represents an exit from an execution with a non-zero code. It is
-// returned by a Run method when the Exit method of native.Env is called with
-// a non-zero value.
+// ExitError represents an exit from an execution with a status code.
+// Conventionally, an ExitError value is passed to the Stop method of
+// native.Env.
 type ExitError int
 
 // Error returns a string representation of the error.
