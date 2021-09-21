@@ -1,0 +1,33 @@
+builds:
+  - env:
+      - CGO_ENABLED=0
+    tags:
+      - osusergo
+      - netgo
+    flags:
+      - -trimpath
+    targets:
+      - darwin_amd64
+      - darwin_arm64
+      - linux_amd64
+      - windows_amd64
+    main: ./cmd/scriggo
+
+checksum:
+  name_template: "checksums.txt"
+
+archives:
+  - files:
+      - LICENSE
+      - src: ./cmd/scriggo/README.md
+        # Put the ./cmd/scriggo/README.md into the main directory of the
+        # archive.
+        dst: ./
+        strip_parent: true
+
+    # Here we use the same naming convention used by https://golang.org/dl/.
+    name_template: "scriggo{{ .Version }}.{{ .Os }}-{{ .Arch }}"
+
+    format_overrides:
+      - goos: windows
+        format: zip
