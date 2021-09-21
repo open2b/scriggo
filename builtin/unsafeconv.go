@@ -8,16 +8,8 @@ import (
 	"github.com/open2b/scriggo/native"
 )
 
-// Unsafeconv provides a package that contains functions to make unsafe conversions between string values and native
-// types.
-//
-// Use these build options to use it in a template
-//    opts := &scriggo.BuildOptions{
-//        Globals: map[string]native.Declaration{
-//            "unsafeconv": builtin.Unsafeconv,
-//        },
-//    }
-//    template, err := scriggo.BuildTemplate(fsys, file, opts)
+// Unsafeconv provides a package that implements functions to make unsafe
+// conversions between string values and native types.
 var Unsafeconv = native.Package{
 	Name: "unsafeconv",
 	Declarations: map[string]native.Declaration{
