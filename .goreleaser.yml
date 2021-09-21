@@ -19,8 +19,8 @@ checksum:
 archives:
   - files:
       - LICENSE
-      - src: ./cmd/scriggo/README.md
-        # Put the ./cmd/scriggo/README.md into the main directory of the
+      - src: ./cmd/scriggo/README.txt
+        # Put the ./cmd/scriggo/README.txt into the main directory of the
         # archive.
         dst: ./
         strip_parent: true
