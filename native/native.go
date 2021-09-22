@@ -58,9 +58,6 @@ type Env interface {
 
 	// Stop stops the execution with the given error. Deferred functions are
 	// not called and started goroutines are not terminated.
-	//
-	// Conventionally, a scriggo.ExitError value represents an execution
-	// exited with a given status code.
 	Stop(err error)
 
 	// TypeOf is like reflect.TypeOf but if v has a Scriggo type it returns
