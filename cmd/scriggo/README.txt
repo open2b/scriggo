@@ -2,7 +2,7 @@
 Scriggo command
 ---------------
 
-The scriggo command is command line tool that allows to:
+The scriggo command is a command line tool that allows to:
 
   * serve templates with support for Markdown
   * initialize an interpreter for Go programs
