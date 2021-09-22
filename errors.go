@@ -51,7 +51,7 @@ func (err *BuildError) Message() string {
 }
 
 // ExitError represents an exit from an execution with a non-zero status code.
-// It may wrap the error than caused the exit.
+// It may wrap the error that caused the exit.
 //
 // An ExitError is conventionally passed to the Stop method of native.Env so
 // that the error code can be used as the process exit code.
