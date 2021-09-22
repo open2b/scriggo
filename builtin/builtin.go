@@ -123,7 +123,7 @@
 //  	"unixTime":      builtin.UnixTime,
 //
 //  	// unsafeconv, uncomment the declaration below to allow to use unsafe conversions between string and native types
-//  	// "unsafeconv":    builtin.Unsafeconv,
+//  	// "unsafeconv": builtin.Unsafeconv,
 //
 //  }
 //

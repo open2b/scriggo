@@ -475,4 +475,7 @@ var globals = native.Declarations{
 	"parseDuration": builtin.ParseDuration,
 	"parseTime":     builtin.ParseTime,
 	"unixTime":      builtin.UnixTime,
+
+	// unsafeconv
+	"unsafeconv": builtin.Unsafeconv,
 }
