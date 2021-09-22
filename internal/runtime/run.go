@@ -17,12 +17,12 @@ import (
 func (vm *VM) runFunc(fn *Function, vars []reflect.Value) error {
 	vm.fn = fn
 	vm.vars = vars
-	var exit chan struct{}
+	var stop chan struct{}
 	if vm.env.doneChan != nil {
-		exit = make(chan struct{})
+		stop = make(chan struct{})
 		go func() {
 			select {
-			case <-exit:
+			case <-stop:
 			case <-vm.env.ctx.Done():
 				atomic.StoreInt32(&vm.env.done, 1)
 			}
@@ -35,8 +35,8 @@ func (vm *VM) runFunc(fn *Function, vars []reflect.Value) error {
 		}
 		p, ok := err.(*PanicError)
 		if !ok {
-			if exit != nil {
-				close(exit)
+			if stop != nil {
+				close(stop)
 			}
 			return err
 		}
@@ -48,8 +48,8 @@ func (vm *VM) runFunc(fn *Function, vars []reflect.Value) error {
 		vm.calls = append(vm.calls, callFrame{cl: callable{fn: vm.fn}, renderer: vm.renderer, fp: vm.fp, status: panicked})
 		vm.fn = nil
 	}
-	if exit != nil {
-		close(exit)
+	if stop != nil {
+		close(stop)
 		if atomic.LoadInt32(&vm.env.done) == 1 {
 			return vm.env.ctx.Err()
 		}

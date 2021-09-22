@@ -46,12 +46,6 @@ type Env interface {
 	// It is the context passed as an option for execution.
 	Context() context.Context
 
-	// Exit exits the execution with the given status code. If the code is not
-	// zero, the execution returns a scriggo.ExitError error with this code.
-	// Deferred functions are not called and started goroutines are not
-	// terminated.
-	Exit(code int)
-
 	// Fatal exits the execution and then panics with value v. Deferred
 	// functions are not called and started goroutines are not terminated.
 	Fatal(v interface{})
@@ -61,6 +55,10 @@ type Env interface {
 
 	// Println calls the println built-in function with args as argument.
 	Println(args ...interface{})
+
+	// Stop stops the execution with the given error. Deferred functions are
+	// not called and started goroutines are not terminated.
+	Stop(err error)
 
 	// TypeOf is like reflect.TypeOf but if v has a Scriggo type it returns
 	// its Scriggo reflect type instead of the reflect type of the proxy.

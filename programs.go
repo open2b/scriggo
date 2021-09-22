@@ -122,14 +122,14 @@ func (p *Program) Disassemble(pkgPath string) ([]byte, error) {
 // If the executed program panics, and it is not recovered, Run returns a
 // *PanicError.
 //
-// If the Exit method of native.Env is called with a non-zero code, Run
-// returns a *ExitError with the exit code.
+// If the Stop method of native.Env is called, Run returns the argument passed
+// to Stop.
 //
-// If the Fatal method of native.Env is called with argument v, Run panics
-// with the value v.
+// If the Fatal method of native.Env is called, Run panics with the argument
+// passed to Fatal.
 //
-// If the context has been canceled, Run returns the error returned by
-// options.Context.Err().
+// If the context has been canceled, Run returns the error returned by the Err
+// method of the context.
 func (p *Program) Run(options *RunOptions) error {
 	vm := runtime.NewVM()
 	if options != nil {
@@ -140,15 +140,12 @@ func (p *Program) Run(options *RunOptions) error {
 			vm.SetPrint(runtime.PrintFunc(options.Print))
 		}
 	}
-	code, err := vm.Run(p.fn, p.typeof, initPackageLevelVariables(p.globals))
+	err := vm.Run(p.fn, p.typeof, initPackageLevelVariables(p.globals))
 	if err != nil {
 		if p, ok := err.(*runtime.PanicError); ok {
 			err = &PanicError{p}
 		}
 		return err
-	}
-	if code != 0 {
-		return ExitError(code)
 	}
 	return nil
 }

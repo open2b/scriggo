@@ -7,7 +7,9 @@ package misc
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/open2b/scriggo"
@@ -170,5 +172,50 @@ func TestEnvStringer(t *testing.T) {
 				t.Fatalf("(-want, +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+// TestStop tests the Stop method of native.Env.
+func TestStop(t *testing.T) {
+	errStop := errors.New("stopped")
+	fsys := fstest.Files{"index": "{% stop() %}"}
+	opts := &scriggo.BuildOptions{
+		Globals: native.Declarations{
+			"stop": func(env native.Env) { env.Stop(errStop) },
+		},
+	}
+	template, err := scriggo.BuildTemplate(fsys, "index", opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = template.Run(os.Stdout, nil, nil)
+	if err == nil {
+		t.Fatal("expected error, got no errors")
+	}
+	if err != errStop {
+		t.Fatalf("expected stop error, got %q", err)
+	}
+}
+
+// TestStopWithExit tests the Stop method of native.Env with an *ExitError as
+// argument.
+func TestStopWithExit(t *testing.T) {
+	errExit := scriggo.NewExitError(1, nil)
+	fsys := fstest.Files{"index": "{% exit() %}"}
+	opts := &scriggo.BuildOptions{
+		Globals: native.Declarations{
+			"exit": func(env native.Env) { env.Stop(errExit) },
+		},
+	}
+	template, err := scriggo.BuildTemplate(fsys, "index", opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = template.Run(os.Stdout, nil, nil)
+	if err == nil {
+		t.Fatal("expected error, got no errors")
+	}
+	if err != errExit {
+		t.Fatalf("expected exit error, got %q", err)
 	}
 }
