@@ -249,11 +249,28 @@ var commands = map[string]func(){
 	},
 }
 
+// Version holds the version of the scriggo command, or the empty string if it
+// has not been set when building.
+// It may be set at compile time by passing the 'ldflags' to 'go build' and
+// should have the form 'v<major>.<minor>.<patch>'.
+var Version string
+
 // version returns the scriggo command version.
 func version() string {
+	// First: read the version from 'runtime/debug', that holds a valid
+	// semantic version if the scriggo command is compiled through 'go
+	// install'.
 	if info, ok := debug.ReadBuildInfo(); ok {
-		return info.Main.Version
+		if v := info.Main.Version; v != "(devel)" {
+			return v
+		}
 	}
+	// Second: read the version from the package-level variable Version, that
+	// is set passing the ldflags to 'go build'.
+	if Version != "" {
+		return Version
+	}
+	// None of the versions above have been set.
 	return "unknown"
 }
 
