@@ -241,7 +241,7 @@ func newTypechecker(compilation *compilation, path string, opts checkerOptions, 
 
 // assignScope assigns value to name in the current scope.
 //
-// node is the identifier that declared the value, or nil if native.
+// decl is the identifier that declared the value, or nil if native.
 //
 // impor is the import node that imported the value, or nil if value has not
 // been imported.
