@@ -12,6 +12,8 @@ builds:
       - linux_amd64
       - windows_amd64
     main: ./cmd/scriggo
+    ldflags:
+      - -X main.Version=v{{ .Version }}
 
 checksum:
   name_template: "checksums.txt"
