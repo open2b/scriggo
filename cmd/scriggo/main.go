@@ -270,7 +270,7 @@ func version() string {
 	if Version != "" {
 		return Version
 	}
-	// None of the versions above has been set.
+	// None of the versions above have been set.
 	return "unknown"
 }
 
