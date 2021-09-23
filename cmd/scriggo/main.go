@@ -249,8 +249,8 @@ var commands = map[string]func(){
 	},
 }
 
-// Version holds the version of scriggo, or the empty string if it has not been
-// set when building.
+// Version holds the version of the scriggo command, or the empty string if it
+// has not been set when building.
 // It may be set at compile time by passing the 'ldflags' to 'go build' and
 // should have the form 'v<major>.<minor>.<patch>'.
 var Version string
