@@ -1028,7 +1028,7 @@ func parseTagValue(tag string) (name string, omitempty bool) {
 	if i == -1 {
 		return tag, false
 	}
-	name, tag = tag[:i], tag[:i+1]
+	name, tag = tag[:i], tag[i+1:]
 	for tag != "" {
 		i = strings.Index(tag, ",")
 		if i == -1 {
