@@ -114,6 +114,7 @@ const (
 // A Format represents a content format.
 type Format int
 
+// Formats.
 const (
 	FormatText Format = iota
 	FormatHTML
