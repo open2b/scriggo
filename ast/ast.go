@@ -49,6 +49,7 @@ var expandedPrint = false
 // OperatorType represents an operator type in a unary and binary expression.
 type OperatorType int
 
+// Operators.
 const (
 	OperatorEqual          OperatorType = iota // ==
 	OperatorNotEqual                           // !=
