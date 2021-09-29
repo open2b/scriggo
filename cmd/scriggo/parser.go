@@ -12,6 +12,7 @@ import (
 	"unicode/utf8"
 )
 
+// Command represents a command.
 type Command int
 
 const (
