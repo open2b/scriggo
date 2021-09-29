@@ -1,4 +1,4 @@
-// skip : defined type with underlying type complex (https://github.com/open2b/scriggo/issues/887)
+// skip : investigate
 
 // errorcheck
 
