@@ -1,4 +1,4 @@
-// skip : investigate
+// skip : this test doesn't pass because it compares values with defined types, that are proxies
 
 // run
 
