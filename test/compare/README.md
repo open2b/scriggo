@@ -1,28 +1,37 @@
-# Running tests
+# Comparison tests
 
-First of all, ensure that the latest version of the `scriggo` executable is installed and available in your system.
+This document covers the comparison tests, that are tests that are executed through
+the command line that compare the behavior of Scriggo with the behavior of gc.
 
-Then, to run the compare tests, run the following commands in the `test/compare` directory:
+- [Running existing tests](#running-existing-tests)
+- [Adding new tests](#adding-new-tests)
+  - [Specifying a testing mode](#specifying-a-testing-mode)
+  - [Available testing modes](#available-testing-modes)
+  - [Adding tests from gc](#adding-tests-from-gc)
+    - [License](#license)
 
-```bash
-$ cd ./cmd
-$ go generate
-$ cd ./..
-$ go build
-$ ./compare
-```
+## Running existing tests
 
-Run `./compare -h` to see the available options.
 
-# Adding new tests
+1. Ensure that the latest version of the `scriggo` command is installed and available
+   on your system.
+2. Enter `test/compare/cmd`
+3. Generate the sources with `go generate`
+4. Enter `test/compare`
+5. Build the `compare` command with `go build`
+6. Run the comparison tests with `./compare`; this step may take a while.
 
-A test consists in a text file containing source code, which can be put everywhere inside the directory `testdata`. Directory names has no special meaning, except for `test/compare/sources/github.com-golang-go` (see section **Go tests from https //github.com/golang/go/** for more information).
+You may want to run `./compare -h` to see the available options.
+
+## Adding new tests
+
+A test consists in a text file containing source code, which can be put everywhere inside the directory `testdata`. Directory names has no special meaning, except for `test/compare/sources/github.com-golang-go` (see the section [below](#adding-tests-from-gc)).
 
 Every test source code must specify a _testing mode_. See the section **Testing modes** for more information.
 
 **Warning**: when a new test is added or an existing one is modified, pay attention to not run formatting tools (as `go fmt`) on tests. Some of them test some special syntaxes that are changed by such tools.
 
-# Specifing a testing mode
+### Specifying a testing mode
 
 A testing mode can be specified using a comment at the first non-empty line of the test file.
 
@@ -44,7 +53,7 @@ The option that is currently available is:
 
 Note that in templates the line that specifies the mode cannot contain anything but the comment.
 
-# Testing modes
+### Available testing modes
 
 Testing modes are listed in the table below.
 If you want, for example, test a program source code with the mode **errorcheck**, the first non-empty line of the file must be
@@ -91,12 +100,17 @@ can be changed to
 ...test...
 ```
 
-# Go tests from https://github.com/golang/go/
+### Adding tests from gc
 
 The directory `testdata/github.com-golang-go` contains tests taken from
 [https://github.com/golang/go/tree/master/test](https://github.com/golang/go/tree/master/test).
-Such tests should be changed only when necessary to run the test with Scriggo successfully.
+Such tests should be changed only when necessary to run the test with Scriggo
+successfully.
 
-## License
+#### License
 
-Tests taken from [https://github.com/golang/go/tree/master/test](https://github.com/golang/go/tree/master/test) are covered by a license which can be found in the `LICENSE` file in the directory `github.com-golang-go/` ([github.com-golang-go/LICENSE](https://github.com/open2b/scriggo/blob/test/test/compare/sources/github.com-golang-go/LICENSE)).
+Tests taken from
+[https://github.com/golang/go/tree/master/test](https://github.com/golang/go/tree/master/test)
+are covered by a license which can be found in the `LICENSE` file in the directory
+`github.com-golang-go/`
+([github.com-golang-go/LICENSE](https://github.com/open2b/scriggo/blob/test/test/compare/sources/github.com-golang-go/LICENSE)).
