@@ -6,6 +6,8 @@ package compiler
 
 import (
 	"reflect"
+
+	"github.com/open2b/scriggo/internal/runtime"
 )
 
 type properties uint16
@@ -266,7 +268,11 @@ func (ti *typeInfo) setValue(typ reflect.Type) {
 		case complex128Type:
 			ti.value = c
 		default:
-			rv := reflect.New(ti.valueType).Elem()
+			typ := ti.valueType
+			if st, ok := typ.(runtime.ScriggoType); ok {
+				typ = st.GoType()
+			}
+			rv := reflect.New(typ).Elem()
 			rv.SetComplex(c)
 			ti.value = rv.Interface()
 		}
