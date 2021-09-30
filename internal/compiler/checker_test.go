@@ -36,6 +36,8 @@ type definedStringMap map[string]string
 type definedStruct struct{ F int }
 type definedStructPointer *struct{ F int }
 
+type Float64 float64
+
 type noRead1 struct{}
 
 func (nr noRead1) Read([]byte, int) (int, error) { return 0, nil }
@@ -1636,6 +1638,8 @@ var checkerStmts = map[string]string{
 	`_ = complex(2i, 0)`:                  `constant 2i truncated to real`,
 	`_ = complex(0, 3i)`:                  `constant 3i truncated to real`,
 	`_ = complex(int(0), float32(0))`:     `invalid operation: complex(int(0), float32(0)) (mismatched types int and float32)`,
+	`_ = complex(Float64(1), Float64(2))`: ok,
+	`_ = complex(Float64(1), float64(2))`: `invalid operation: complex(Float64(1), float64(2)) (mismatched types compiler.Float64 and float64)`,
 	`_ = complex(int(0), 0)`:              `invalid operation: complex(int(0), 0) (arguments have type int, expected floating-point)`,
 	`_ = complex(0, float32(0))`:          ok,
 	`_ = complex(float32(1), float32(2))`: ok,
@@ -1811,6 +1815,7 @@ func TestCheckerStatements(t *testing.T) {
 		"noRead1":    {Properties: propertyIsType, Type: reflect.TypeOf((*noRead1)(nil)).Elem()},
 		"noRead2":    {Properties: propertyIsType, Type: reflect.TypeOf((*noRead2)(nil)).Elem()},
 		"noRead3":    {Properties: propertyIsType, Type: reflect.TypeOf((*noRead3)(nil)).Elem()},
+		"Float64":    {Properties: propertyIsType, Type: reflect.TypeOf((*Float64)(nil)).Elem()},
 	}
 	for src, expectedError := range checkerStmts {
 		func() {

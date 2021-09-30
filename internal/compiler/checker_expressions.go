@@ -1263,9 +1263,9 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 		}
 		re := tc.checkExpr(expr.Args[0])
 		im := tc.checkExpr(expr.Args[1])
-		reKind := re.Type.Kind()
-		imKind := im.Type.Kind()
 		if re.IsUntypedConstant() && im.IsUntypedConstant() {
+			reKind := re.Type.Kind()
+			imKind := im.Type.Kind()
 			if !isNumeric(reKind) || !isNumeric(imKind) {
 				if reKind == imKind {
 					panic(tc.errorf(expr, "invalid operation: %s (arguments have type %s, expected floating-point)", expr, re))
@@ -1299,7 +1299,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 			}
 			im.setValue(re.Type)
 			im = &typeInfo{Type: re.Type, Constant: c}
-		} else if reKind != imKind {
+		} else if re.Type != im.Type {
 			panic(tc.errorf(expr, "invalid operation: %s (mismatched types %s and %s)", expr, re, im))
 		}
 		ti := &typeInfo{}
