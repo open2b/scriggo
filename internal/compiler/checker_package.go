@@ -15,7 +15,7 @@ import (
 )
 
 // parseNumericCost parses an expression representing an untyped number
-// constant and return the represented constant, it type.
+// constant and returns the represented constant and its type.
 func parseNumericConst(s string) (constant, reflect.Type, error) {
 	if s[0] == '\'' {
 		r, err := parseBasicLiteral(ast.RuneLiteral, s)
