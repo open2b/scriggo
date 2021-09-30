@@ -1,4 +1,4 @@
-// skip : investigate
+// skip : invalid behavior in assignments with slice indexing on left side (https://github.com/open2b/scriggo/issues/892)
 
 // run
 
