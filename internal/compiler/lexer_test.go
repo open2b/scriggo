@@ -212,6 +212,9 @@ var typeTestsText = map[string][]tokenTyp{
 	"<a {% if a %}b{% end %}>":      {tokenText, tokenStartStatement, tokenIf, tokenIdentifier, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement, tokenText},
 	"<a {% if a %}b=\"\"{% end %}>": {tokenText, tokenStartStatement, tokenIf, tokenIdentifier, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement, tokenText},
 	"<a {% if a %}b=''{% end %}>":   {tokenText, tokenStartStatement, tokenIf, tokenIdentifier, tokenEndStatement, tokenText, tokenStartStatement, tokenEnd, tokenEndStatement, tokenText},
+	"#! /usr/bin/scriggo\n{{ a }}":  {tokenShebangLine, tokenLeftBraces, tokenIdentifier, tokenRightBraces},
+	"#! /usr/bin/scriggo":           {tokenShebangLine},
+	"#! /usr/bin/scriggo\n":         {tokenShebangLine},
 }
 
 var tagWithURLTypes = []tokenTyp{tokenText, tokenStartURL, tokenText, tokenEndURL, tokenText}
@@ -594,9 +597,9 @@ TYPES:
 	for source, types := range test {
 		var lex *lexer
 		if isTemplate {
-			lex = scanTemplate([]byte(source), format, false, true)
+			lex = scanTemplate([]byte(source), format, true, false, true)
 		} else {
-			lex = scanProgram([]byte(source))
+			lex = scanScript([]byte(source))
 		}
 		var i int
 		for tok := range lex.Tokens() {
@@ -684,7 +687,7 @@ func TestLexerMacroOrUsingContexts(t *testing.T) {
 CONTEXTS:
 	for source, contexts := range macroAndUsingContextTests {
 		text := []byte(source)
-		lex := scanTemplate(text, ast.FormatText, false, false)
+		lex := scanTemplate(text, ast.FormatText, false, false, false)
 		var i int
 		for tok := range lex.Tokens() {
 			if tok.typ == tokenEOF {
@@ -714,7 +717,7 @@ CONTEXTS:
 
 func TestPositions(t *testing.T) {
 	for _, test := range positionTests {
-		var lex = scanTemplate([]byte(test.src), ast.FormatHTML, false, false)
+		var lex = scanTemplate([]byte(test.src), ast.FormatHTML, false, false, false)
 		var i int
 		for tok := range lex.Tokens() {
 			if tok.typ == tokenEOF {
@@ -847,7 +850,7 @@ func TestLexRawContent(t *testing.T) {
 }
 
 func TestNoParseShow(t *testing.T) {
-	var lex = scanTemplate([]byte("a{{ v }}b"), ast.FormatHTML, true, false)
+	var lex = scanTemplate([]byte("a{{ v }}b"), ast.FormatHTML, false, true, false)
 	tokens := lex.Tokens()
 	if tok := <-tokens; tok.typ != tokenText {
 		t.Errorf("unexpected token %s, expecting text", tok)

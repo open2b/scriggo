@@ -204,9 +204,6 @@ func parseSource(src []byte, script bool) (tree *ast.Tree, err error) {
 
 	tok := p.next()
 	if tok.typ == tokenShebangLine {
-		if !script {
-			return nil, syntaxError(tok.pos, "invalid character U+0023 '#'")
-		}
 		tok = p.next()
 	}
 
@@ -237,11 +234,12 @@ func parseSource(src []byte, script bool) (tree *ast.Tree, err error) {
 // and returns its tree and the unexpanded Extends, Import, Render and
 // Assignment nodes.
 //
+// If parseShebang is true, the shebang line is parsed.
 // If noParseShow is true, short show statements are not parsed.
 //
 // format can be Text, HTML, CSS, JS, JSON and Markdown. imported indicates
 // whether it is imported.
-func ParseTemplateSource(src []byte, format ast.Format, imported, noParseShow, dollarIdentifier bool) (tree *ast.Tree, unexpanded []ast.Node, err error) {
+func ParseTemplateSource(src []byte, format ast.Format, parseShebang, imported, noParseShow, dollarIdentifier bool) (tree *ast.Tree, unexpanded []ast.Node, err error) {
 
 	if format < ast.FormatText || format > ast.FormatMarkdown {
 		return nil, nil, errors.New("scriggo: invalid format")
@@ -250,7 +248,7 @@ func ParseTemplateSource(src []byte, format ast.Format, imported, noParseShow, d
 	tree = ast.NewTree("", nil, format)
 
 	var p = &parsing{
-		lex:        scanTemplate(src, format, noParseShow, dollarIdentifier),
+		lex:        scanTemplate(src, format, parseShebang, noParseShow, dollarIdentifier),
 		format:     format,
 		imported:   imported,
 		ancestors:  []ast.Node{tree},
@@ -282,6 +280,9 @@ func ParseTemplateSource(src []byte, format ast.Format, imported, noParseShow, d
 	var lastIndex = len(src) - 1
 
 	tok := p.next()
+	if tok.typ == tokenShebangLine {
+		tok = p.next()
+	}
 
 	for tok.typ != tokenEOF {
 

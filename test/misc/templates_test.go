@@ -3938,6 +3938,16 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "12345",
 	},
+
+	"Shebang": {
+		sources: fstest.Files{
+			"index.txt":  "#! /usr/bin/scriggo\n{% extends \"layout.txt\" %}{% import \"import.txt\" %}{% macro M %}{{ A() }}{% end %}",
+			"layout.txt": "#!/usr/bin/env scriggo\n{{ render \"render.txt\" }}{{ M() }}",
+			"import.txt": "{% macro A %}a{% end %}",
+			"render.txt": "#! /usr/bin/scriggo\n{{ \"b\" }}",
+		},
+		expectedOut: "#!/usr/bin/env scriggo\n#! /usr/bin/scriggo\nba",
+	},
 }
 
 var structWithUnexportedFields = &struct {

@@ -43,13 +43,14 @@ func scanScript(text []byte) *lexer {
 		ctx:            ast.ContextText,
 		tokens:         tokens,
 		extendedSyntax: true,
+		parseShebang:   true,
 	}
 	go lex.scan()
 	return lex
 }
 
 // scanTemplate scans a template file and returns a lexer.
-func scanTemplate(text []byte, format ast.Format, noParseShow, dollarIdentifier bool) *lexer {
+func scanTemplate(text []byte, format ast.Format, parseShebang, noParseShow, dollarIdentifier bool) *lexer {
 	tokens := make(chan token, 20)
 	lex := &lexer{
 		text:             text,
@@ -60,6 +61,7 @@ func scanTemplate(text []byte, format ast.Format, noParseShow, dollarIdentifier 
 		tokens:           tokens,
 		templateSyntax:   true,
 		extendedSyntax:   true,
+		parseShebang:     parseShebang,
 		dollarIdentifier: dollarIdentifier,
 		noParseShow:      noParseShow,
 	}
@@ -113,6 +115,7 @@ type lexer struct {
 	err              error      // error, reports whether there was an error
 	templateSyntax   bool       // support template syntax with tokens 'end', 'extends', 'in', 'macro', 'raw', 'render' and 'show'
 	extendedSyntax   bool       // support extended syntax with tokens 'and', 'or', 'not' and 'contains' (also support 'dollar' but only if 'dollarIdentifier' is true)
+	parseShebang     bool       // parse the shebang line.
 	dollarIdentifier bool       // support the dollar identifier, only if 'extendedSyntax' is true
 	noParseShow      bool       // do not parse the short show statement.
 }
@@ -201,6 +204,18 @@ var moduleType = []byte("module")
 // scan scans the text by placing the tokens on the tokens channel. If an
 // error occurs, it puts the error in err, closes the channel and returns.
 func (l *lexer) scan() {
+
+	if l.parseShebang && len(l.src) > 1 {
+		// Parse shebang line.
+		if l.src[0] == '#' && l.src[1] == '!' {
+			t := bytes.IndexByte(l.src, '\n')
+			if t == -1 {
+				t = len(l.src) - 1
+			}
+			l.emit(tokenShebangLine, t+1)
+			l.line++
+		}
+	}
 
 	if l.templateSyntax {
 
@@ -589,18 +604,6 @@ func (l *lexer) scan() {
 		}
 
 	} else {
-
-		if len(l.src) > 1 {
-			// Parse shebang line.
-			if l.src[0] == '#' && l.src[1] == '!' {
-				t := bytes.IndexByte(l.src, '\n')
-				if t == -1 {
-					t = len(l.src) - 1
-				}
-				l.emit(tokenShebangLine, t+1)
-				l.line++
-			}
-		}
 
 		err := l.lexCode(tokenEOF)
 		if err != nil {

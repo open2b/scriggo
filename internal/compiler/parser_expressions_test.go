@@ -631,7 +631,7 @@ var exprTests = []struct {
 
 func TestExpressions(t *testing.T) {
 	for _, expr := range exprTests {
-		var lex = scanTemplate([]byte("{{"+expr.src+"}}"), ast.FormatText, false, true)
+		var lex = scanTemplate([]byte("{{"+expr.src+"}}"), ast.FormatText, false, false, true)
 		<-lex.Tokens()
 		func() {
 			defer func() {
