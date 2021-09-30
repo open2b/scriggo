@@ -1,4 +1,4 @@
-// skip : investigate
+// skip : type checking error on builtin 'complex' not reported (https://github.com/open2b/scriggo/issues/891)
 
 // errorcheck
 
