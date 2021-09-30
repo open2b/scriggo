@@ -1,5 +1,3 @@
-// skip : panics
-
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.
