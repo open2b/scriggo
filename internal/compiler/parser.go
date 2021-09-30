@@ -239,8 +239,8 @@ func parseSource(src []byte, script bool) (tree *ast.Tree, err error) {
 //
 // If noParseShow is true, short show statements are not parsed.
 //
-// format can be Text, HTML, CSS, JavaScript, JSON and Markdown. imported
-// indicates whether it is imported.
+// format can be Text, HTML, CSS, JS, JSON and Markdown. imported indicates
+// whether it is imported.
 func ParseTemplateSource(src []byte, format ast.Format, imported, noParseShow, dollarIdentifier bool) (tree *ast.Tree, unexpanded []ast.Node, err error) {
 
 	if format < ast.FormatText || format > ast.FormatMarkdown {
