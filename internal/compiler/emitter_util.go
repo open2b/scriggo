@@ -73,8 +73,9 @@ func (em *emitter) _changeRegister(k bool, src, dst int8, srcType reflect.Type, 
 			em.fb.emitMove(true, src, tmp, srcKind)
 			em.fb.emitConvert(tmp, dstType, dst, srcKind)
 			em.fb.exitScope()
+		} else {
+			em.fb.emitConvert(src, dstType, dst, srcKind)
 		}
-		em.fb.emitConvert(src, dstType, dst, srcKind)
 		return
 	}
 

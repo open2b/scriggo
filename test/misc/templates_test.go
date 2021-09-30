@@ -3918,6 +3918,26 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "\n\t\t\t",
 	},
+
+	"https://github.com/open2b/scriggo/issues/888": {
+		// The emitter used to emit two Convert instructions for every
+		// conversion in this code before fixing #888.
+		sources: fstest.Files{
+			"index.html": `{%%
+				var s1 html     = "1"
+				var s2 css      = "2"
+				var s3 js       = "3"
+				var s4 json     = "4"
+				var s5 markdown = "5"
+				show string(s1)
+				show string(s2)
+				show string(s3)
+				show string(s4)
+				show string(s5)
+			%%}`,
+		},
+		expectedOut: "12345",
+	},
 }
 
 var structWithUnexportedFields = &struct {
