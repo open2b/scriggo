@@ -54,6 +54,17 @@ type FormatFS interface {
 	Format(name string) (Format, error)
 }
 
+// formatFS wraps a FormatFS value to conform to the FormatFS expected by the
+// compiler.
+type formatFS struct {
+	FormatFS
+}
+
+func (fsys formatFS) Format(name string) (ast.Format, error) {
+	format, err := fsys.FormatFS.Format(name)
+	return ast.Format(format), err
+}
+
 // formatTypes contains the format types added to the universe block.
 var formatTypes = map[ast.Format]reflect.Type{
 	ast.FormatHTML:     reflect.TypeOf((*native.HTML)(nil)).Elem(),
@@ -81,6 +92,9 @@ var formatTypes = map[ast.Format]reflect.Type{
 //
 // If a build error occurs, it returns a *BuildError.
 func BuildTemplate(fsys fs.FS, name string, options *BuildOptions) (*Template, error) {
+	if f, ok := fsys.(FormatFS); ok {
+		fsys = formatFS{f}
+	}
 	co := compiler.Options{
 		FormatTypes: formatTypes,
 	}

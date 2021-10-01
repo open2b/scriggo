@@ -5,10 +5,13 @@
 package scriggo
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
+	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/compiler"
+	"github.com/open2b/scriggo/internal/fstest"
 )
 
 func TestInitGlobals(t *testing.T) {
@@ -153,4 +156,34 @@ func TestInitGlobalsNilPointerError(t *testing.T) {
 	}
 	init := map[string]interface{}{"a": (*int)(nil)}
 	_ = initGlobalVariables([]compiler.Global{global}, init)
+}
+
+type testFormatFS struct {
+	fstest.Files
+	format Format
+}
+
+func (fsys testFormatFS) Format(_ string) (Format, error) {
+	return fsys.format, nil
+}
+
+// TestFormatFS tests that BuildTemplate gets the file format by calling the
+// Format method of FormatFS.
+func TestFormatFS(t *testing.T) {
+	fsys := testFormatFS{Files: fstest.Files{"index": ""}}
+	for _, format := range []Format{FormatText, FormatHTML, FormatCSS, FormatJS, FormatJSON, FormatMarkdown} {
+		fsys.format = format
+		options := BuildOptions{
+			TreeTransformer: func(tree *ast.Tree) error {
+				if tree.Format != ast.Format(format) {
+					return fmt.Errorf("expected format %s, got %s", format, tree.Format)
+				}
+				return nil
+			},
+		}
+		_, err := BuildTemplate(fsys, "index", &options)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 }
