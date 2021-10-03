@@ -14,13 +14,13 @@ For more about to build interpreters, see 'scriggo help init'.
 
 The commands are:
 
-    init        initialize a interpreter for Go programs
+    init        initialize an interpreter for Go programs
 
     import      generate the source for an importer used by Scriggo to import 
-                a package when an 'import' statement is executed.
+                a package when an 'import' statement is executed
 
-    serve       run a web server and serves the template rooted at the current
-                directory. The served files can be HTML and Markdown.
+    serve       run a web server and serve the template rooted at the current
+                directory. The served files can be HTML and Markdown
 
     version     print the scriggo command version
 
@@ -33,7 +33,7 @@ Additional help topics:
 
     Scriggofile     syntax of the Scriggofile
 
-    limitations     limitations of the Scriggo compiler/runtime.
+    limitations     limitations of the Scriggo compiler/runtime
 
 `
 
