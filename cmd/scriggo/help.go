@@ -158,7 +158,7 @@ Serving a URL terminating with a slash:
 it renders 'blog/index.html' or 'blog/index.md'.
 
 Markdown is converted to HTML with the Goldmark parser with the options
-html.WithUnsafe and parser.WithAutoHeadingID.
+html.WithUnsafe, parser.WithAutoHeadingID and extension.GFM.
 
 Templates are automatically rebuilt when a file changes.
 
