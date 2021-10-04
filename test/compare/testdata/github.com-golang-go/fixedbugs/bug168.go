@@ -1,5 +1,3 @@
-// skip : references and closure values: https://github.com/open2b/scriggo/issues/412
-
 // run
 
 // Copyright 2009 The Go Authors. All rights reserved.

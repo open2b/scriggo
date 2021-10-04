@@ -1,5 +1,3 @@
-// skip : type checker claims for function 'main' if package is 'main' https://github.com/open2b/scriggo/issues/417
-
 // errorcheck
 
 // Copyright 2009 The Go Authors. All rights reserved.
@@ -10,3 +8,5 @@ package main
 
 func f() int { }	// ERROR "return|control"
 func g() (foo int) { }	// ERROR "return|control"
+
+func main() { }

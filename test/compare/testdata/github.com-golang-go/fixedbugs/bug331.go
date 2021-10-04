@@ -1,5 +1,3 @@
-// skip : blank return parameter https://github.com/open2b/scriggo/issues/495
-
 // run
 
 // Copyright 2011 The Go Authors. All rights reserved.
