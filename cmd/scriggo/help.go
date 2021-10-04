@@ -184,7 +184,7 @@ Examples:
 
 	scriggo run index.html
 
-	scriggo run -const version=1.12 title="The ancient art of tea" index.md
+	scriggo run -const 'version=1.12 title="The ancient art of tea"' index.md
 
 	scriggo run -root . docs/article.html
 
