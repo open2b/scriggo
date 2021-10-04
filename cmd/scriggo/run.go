@@ -27,7 +27,7 @@ import (
 	"github.com/yuin/goldmark/renderer/html"
 )
 
-// run executes the sub commands "run":
+// run executes the sub command "run":
 //
 //		scriggo run
 //
