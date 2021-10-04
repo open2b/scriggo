@@ -77,8 +77,8 @@ func run(name string, flags buildFlags) (err error) {
 	opts.Globals["filepath"] = strings.TrimSuffix(name, path.Ext(name))
 
 	// Handle "-const" option.
-	if flags.consts != "" {
-		err = parseConstants(flags.consts, opts.Globals)
+	for _, consts := range flags.consts {
+		err = parseConstants(consts, opts.Globals)
 		if err != nil {
 			return err
 		}

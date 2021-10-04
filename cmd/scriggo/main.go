@@ -201,7 +201,11 @@ var commands = map[string]func(){
 	"run": func() {
 		flag.Usage = commandsHelp["run"]
 		root := flag.String("root", "", "set the root directory to named dir instead of the file's directory.")
-		consts := flag.String("const", "", "run with global constants with the given names and values.")
+		var consts []string
+		flag.Func("const", "run with global constants with the given names and values.", func(s string) error {
+			consts = append(consts, s)
+			return nil
+		})
 		format := flag.String("format", "", "force run to use the named file format.")
 		s := flag.Int("S", 0, "print assembly listing. n determines the length of Text instructions.")
 		metrics := flag.Bool("metrics", false, "print metrics about file execution.")
@@ -225,7 +229,7 @@ var commands = map[string]func(){
 		default:
 			exitError("%s", "too many file names")
 		}
-		err := run(name, buildFlags{consts: *consts, format: *format, metrics: *metrics, o: *o, root: *root, s: asm})
+		err := run(name, buildFlags{consts: consts, format: *format, metrics: *metrics, o: *o, root: *root, s: asm})
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -414,9 +418,10 @@ func _import(path string, flags buildFlags) (err error) {
 }
 
 type buildFlags struct {
-	metrics, work, v, x, w     bool
-	consts, f, format, o, root string
-	s                          int
+	metrics, work, v, x, w bool
+	f, format, o, root     string
+	consts                 []string
+	s                      int
 }
 
 // _init executes the sub commands "init":
