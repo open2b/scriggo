@@ -1,5 +1,3 @@
-// skip : named return parameter is a closure var https://github.com/open2b/scriggo/issues/278
-
 // run
 
 // Copyright 2010 The Go Authors. All rights reserved.
