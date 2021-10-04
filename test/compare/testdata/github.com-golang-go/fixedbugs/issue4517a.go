@@ -1,5 +1,3 @@
-// skip : type checking error not reported https://github.com/open2b/scriggo/issues/532
-
 // errorcheck
 
 // Copyright 2012 The Go Authors. All rights reserved.
