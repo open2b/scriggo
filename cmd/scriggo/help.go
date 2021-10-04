@@ -140,7 +140,7 @@ For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
 `
 
 const helpRun = `
-usage: scriggo run [ -o output ] [ run flags ] file
+usage: scriggo run [-o output] [run flags] file
 
 Run runs a template file and its extended, imported and rendered files.
 
