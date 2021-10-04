@@ -33,10 +33,6 @@ import (
 //
 func run(name string, flags buildFlags) (err error) {
 
-	if name == "" {
-		return errors.New("missing file name")
-	}
-
 	var fsys fs.FS
 	if flags.root == "" {
 		fsys = os.DirFS(filepath.Dir(name))

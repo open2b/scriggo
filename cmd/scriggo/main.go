@@ -217,8 +217,13 @@ var commands = map[string]func(){
 			}
 		})
 		var name string
-		if len(flag.Args()) > 0 {
+		switch len(flag.Args()) {
+		case 0:
+			exitError("%s", "missing file name")
+		case 1:
 			name = flag.Arg(0)
+		default:
+			exitError("%s", "too many file names")
 		}
 		err := run(name, buildFlags{consts: *consts, format: *format, metrics: *metrics, o: *o, root: *root, s: asm})
 		if err != nil {
