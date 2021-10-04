@@ -5,22 +5,25 @@
 package main
 
 const helpScriggo = `
-Scriggo is an embeddable Go interpreter. The scriggo command is a tool that
-can be used to initialize an interpreter, generate the source files for a
-package importer and also provides a web server that serves a template rooted
-at the current directory, useful to learn Scriggo templates.
+Scriggo is a template engine and Go interpreter. The scriggo command is a tool
+that can be used to execute a template, initialize an interpreter, generate
+the source files for a package importer and also provides a web server that
+serves a template rooted at the current directory, useful to learn Scriggo
+templates.
 
-For more about to build interpreters, see 'scriggo help init'.
+For more about executing a template, see 'scriggo help run'.
 
 The commands are:
+
+    run         run a template
+
+    serve       run a web server and serve the template rooted at the current
+                directory
 
     init        initialize an interpreter for Go programs
 
     import      generate the source for an importer used by Scriggo to import 
                 a package when an 'import' statement is executed
-
-    serve       run a web server and serve the template rooted at the current
-                directory. The served files can be HTML and Markdown
 
     version     print the scriggo command version
 
@@ -133,6 +136,61 @@ The -o flag writes the generated Go file to the named output file, instead to
 the standard output.
 
 For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
+
+`
+
+const helpRun = `
+usage: scriggo run [-o output] [run flags] file
+
+Run runs a template file and its extended, imported and rendered files.
+
+For example:
+
+    scriggo run article.html
+
+runs the file 'article.html' as HTML and prints the result to the standard
+output. Extended, imported and rendered file paths are relative to the
+directory of the executed file.
+
+The -o flag writes the result to the named output file or directory, instead to
+the standard output.
+
+Markdown is converted to HTML with the Goldmark parser with the options
+html.WithUnsafe, parser.WithAutoHeadingID and extension.GFM.
+
+The run flags are:
+
+	-root dir
+		set the root directory to dir instead of the file's directory.
+	-const name=value
+		run the template file with a global constant with the given name and
+		value. name should be a Go identifier and value should be a string
+		literal, a number literal, true or false. There can be multiple
+		name=value pairs.
+	-format format
+		use the named file format: Text, HTML, Markdown, CSS, JS or JSON.
+	-metrics
+		print metrics about execution time.
+	-S n
+		print the assembly code of the executed file to the standard error.
+		n determines the maximum length, in runes, of disassembled Text
+		instructions:
+
+		n > 0: at most n runes; leading and trailing white space are removed
+		n == 0: no text
+		n < 0: all text
+
+Examples:
+
+	scriggo run index.html
+
+	scriggo run -const 'version=1.12 title="The ancient art of tea"' index.md
+
+	scriggo run -root . docs/article.html
+
+	scriggo run -format Markdown index
+
+	scriggo run -o ./public ./sources/index.html
 
 `
 

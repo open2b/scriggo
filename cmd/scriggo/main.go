@@ -24,7 +24,7 @@ import (
 	"golang.org/x/mod/modfile"
 )
 
-//go:embed run.go
+//go:embed init_main.go
 var runSource []byte
 
 var simpleScriggofileContent = []byte("\nIMPORT STANDARD LIBRARY\n")
@@ -120,6 +120,9 @@ var commandsHelp = map[string]func(){
 	"init": func() {
 		txtToHelp(helpInit)
 	},
+	"run": func() {
+		txtToHelp(helpRun)
+	},
 	"serve": func() {
 		txtToHelp(helpServe)
 	},
@@ -190,6 +193,43 @@ var commands = map[string]func(){
 			exitError(`bad number of arguments`)
 		}
 		err := _import(path, buildFlags{f: *f, v: *v, x: *x, o: *o})
+		if err != nil {
+			exitError("%s", err)
+		}
+		exit(0)
+	},
+	"run": func() {
+		flag.Usage = commandsHelp["run"]
+		root := flag.String("root", "", "set the root directory to named dir instead of the file's directory.")
+		var consts []string
+		flag.Func("const", "run with global constants with the given names and values.", func(s string) error {
+			consts = append(consts, s)
+			return nil
+		})
+		format := flag.String("format", "", "force run to use the named file format.")
+		s := flag.Int("S", 0, "print assembly listing. n determines the length of Text instructions.")
+		metrics := flag.Bool("metrics", false, "print metrics about file execution.")
+		o := flag.String("o", "", "write the resulting code to the named file or directory instead of stdout.")
+		flag.Parse()
+		asm := -2 // -2: no assembler
+		flag.Visit(func(f *flag.Flag) {
+			if f.Name == "S" {
+				asm = *s
+				if asm < -1 {
+					asm = -1
+				}
+			}
+		})
+		var name string
+		switch len(flag.Args()) {
+		case 0:
+			exitError("%s", "missing file name")
+		case 1:
+			name = flag.Arg(0)
+		default:
+			exitError("%s", "too many file names")
+		}
+		err := run(name, buildFlags{consts: consts, format: *format, metrics: *metrics, o: *o, root: *root, s: asm})
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -378,8 +418,10 @@ func _import(path string, flags buildFlags) (err error) {
 }
 
 type buildFlags struct {
-	work, v, x, w bool
-	f, o          string
+	metrics, work, v, x, w bool
+	f, format, o, root     string
+	consts                 []string
+	s                      int
 }
 
 // _init executes the sub commands "init":
@@ -476,7 +518,7 @@ func _init(path string, flags buildFlags) error {
 
 	// Create the main.go file.
 	mainPath := filepath.Join(modDir, "main.go")
-	mainSource := bytes.Replace(runSource, []byte("func run() {"), []byte("func main() {"), 1)
+	mainSource := bytes.Replace(runSource, []byte("func _main() {"), []byte("func main() {"), 1)
 	err = os.WriteFile(mainPath, mainSource, 0666)
 	if err != nil {
 		return err
