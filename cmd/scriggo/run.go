@@ -5,6 +5,7 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -26,6 +27,9 @@ import (
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
 )
+
+// runBufSize is the size of the i/o buffer used by the run command.
+const runBufSize = 65536
 
 // run executes the sub command "run":
 //
@@ -119,18 +123,24 @@ func run(name string, flags buildFlags) (err error) {
 		out = fi
 	}
 
+	buf := bufio.NewWriterSize(out, runBufSize)
+
 	if flags.metrics {
 		start = time.Now()
 	}
 
 	// Run the template.
-	err = template.Run(out, nil, nil)
+	err = template.Run(buf, nil, nil)
 
 	if flags.metrics {
 		runTime := time.Since(start)
 		_, _ = fmt.Fprintf(os.Stderr, "\n     %12s  %12s  %12s  %s\n", "Build", "Run", "Total", "File")
 		_, _ = fmt.Fprintf(os.Stderr, "     %12s  %12s  %12s  %s\n", "-----", "---", "-----", "----")
 		_, _ = fmt.Fprintf(os.Stderr, "     %12s  %12s  %12s  %s\n", buildTime, runTime, buildTime+runTime, name)
+	}
+
+	if err == nil {
+		err = buf.Flush()
 	}
 
 	return err
