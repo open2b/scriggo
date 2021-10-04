@@ -474,7 +474,7 @@ func (c1 intConst) float64() float64 {
 		return float64(c1.i.Int64())
 	}
 	if c1.i.IsUint64() {
-		return float64(c1.i.Int64())
+		return float64(c1.i.Uint64())
 	}
 	f, _ := new(big.Float).SetInt(c1.i).Float64()
 	return f
