@@ -1,4 +1,4 @@
-// skip : investigate
+// skip : false positive 'cannot use ..' (https://github.com/open2b/scriggo/issues/896)
 
 // compile
 
