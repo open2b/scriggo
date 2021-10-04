@@ -1,5 +1,3 @@
-// skip : https://github.com/open2b/scriggo/issues/814
-
 // errorcheck
 
 // Copyright 2015 The Go Authors. All rights reserved.
