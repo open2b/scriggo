@@ -972,16 +972,13 @@ LOOP:
 			}
 			endLineAsSemicolon = true
 		case '.':
-			if len(l.src) == 1 {
-				return l.errorf("unexpected EOF")
-			}
-			if '0' <= l.src[1] && l.src[1] <= '9' {
+			if len(l.src) > 1 && '0' <= l.src[1] && l.src[1] <= '9' {
 				err := l.lexNumber()
 				if err != nil {
 					return err
 				}
 				endLineAsSemicolon = true
-			} else if l.src[1] == '.' && len(l.src) > 2 && l.src[2] == '.' {
+			} else if len(l.src) > 1 && l.src[1] == '.' && len(l.src) > 2 && l.src[2] == '.' {
 				l.emit(tokenEllipsis, 3)
 				l.column += 3
 				endLineAsSemicolon = false
@@ -1533,16 +1530,17 @@ var numberBaseName = map[int]string{
 func (l *lexer) lexNumber() error {
 	// Stops only if a character can not be part of the number.
 	var dot bool
-	var exponent bool
+	var exponent rune
+	var is0o bool
 	p := 0
 	base := 10
 	if c := l.src[0]; c == '0' && len(l.src) > 1 {
 		switch l.src[1] {
-		case '.':
 		case 'x', 'X':
 			base = 16
 			p = 2
 		case 'o', 'O':
+			is0o = true
 			base = 8
 			p = 2
 		case '_', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
@@ -1553,11 +1551,21 @@ func (l *lexer) lexNumber() error {
 			p = 2
 		}
 		if p < len(l.src) && l.src[p] == '_' {
+			if p+1 < len(l.src) && !isHexDigit(l.src[p+1]) {
+				return l.errorf("'_' must separate successive digits")
+			}
 			p++
 		}
-	} else if c == '.' {
+	}
+	if p < len(l.src) && l.src[p] == '.' {
+		if base == 8 && !is0o {
+			base = 10
+		}
+		if base < 10 {
+			return l.errorf("invalid radix point in " + numberBaseName[base] + " literal")
+		}
 		dot = true
-		p = 1
+		p++
 	}
 DIGITS:
 	for p < len(l.src) {
@@ -1568,27 +1576,27 @@ DIGITS:
 				break DIGITS
 			}
 		case 16:
-			if exponent && !isDecDigit(c) || !exponent && !isHexDigit(c) {
-				if dot && !exponent {
+			if exponent == 0 && !isHexDigit(c) || exponent != 0 && !isDecDigit(c) {
+				if dot && exponent == 0 {
 					return l.errorf("hexadecimal mantissa requires a 'p' exponent")
 				}
 				break DIGITS
 			}
 		case 8:
 			if !isOctDigit(c) {
-				if (c == '8' || c == '9') && l.src[0] == '0' && l.src[1] != 'o' && l.src[1] != 'O' {
+				if (c == '8' || c == '9') && !is0o {
 					// It could be an imaginary literal.
 					base = 10
-				} else if isHexDigit(c) {
-					return l.errorf("invalid digit '%d' in octal literal", c)
+				} else if isDecDigit(c) {
+					return l.errorf("invalid digit '%c' in octal literal", c)
 				} else {
 					break DIGITS
 				}
 			}
 		case 2:
 			if !isBinDigit(c) {
-				if isHexDigit(c) {
-					return l.errorf("invalid digit '%d' in binary literal", c)
+				if isDecDigit(c) {
+					return l.errorf("invalid digit '%c' in binary literal", c)
 				}
 				break DIGITS
 			}
@@ -1598,10 +1606,16 @@ DIGITS:
 			switch l.src[p] {
 			case '_':
 				p++
+				if p < len(l.src) && !isHexDigit(l.src[p]) {
+					break DIGITS
+				}
 				continue DIGITS
 			case '.':
-				if dot || exponent {
+				if dot || exponent != 0 {
 					break DIGITS
+				}
+				if base == 8 && !is0o {
+					base = 10
 				}
 				if base < 10 {
 					return l.errorf("invalid radix point in " + numberBaseName[base] + " literal")
@@ -1614,19 +1628,34 @@ DIGITS:
 			}
 			switch l.src[p] {
 			case 'e', 'E':
-				if exponent || base != 10 {
+				if base == 16 {
+					if dot {
+						return l.errorf("hexadecimal mantissa requires a 'p' exponent")
+					}
 					break
 				}
-				exponent = true
+				if base == 8 && !is0o {
+					base = 10
+				}
+				if base != 10 {
+					return l.errorf("'%c' exponent requires decimal mantissa", l.src[p])
+				}
+				if exponent != 0 {
+					break
+				}
+				exponent = 'e'
 				p++
 				if p < len(l.src) && (l.src[p] == '+' || l.src[p] == '-') {
 					p++
 				}
 			case 'p', 'P':
-				if exponent || base != 16 {
+				if base != 16 {
+					return l.errorf("'%c' exponent requires hexadecimal mantissa", l.src[p])
+				}
+				if exponent != 0 {
 					break
 				}
-				exponent = true
+				exponent = 'p'
 				p++
 				if p < len(l.src) && (l.src[p] == '+' || l.src[p] == '-') {
 					p++
@@ -1634,10 +1663,17 @@ DIGITS:
 			}
 		}
 	}
+	if p < len(l.src) && l.src[p] == '_' {
+		return l.errorf("'_' must separate successive digits")
+	}
 	switch l.src[p-1] {
 	case 'x', 'X', 'o', 'O', 'b', 'B':
 		if p == 2 {
 			return l.errorf(numberBaseName[base] + " literal has no digits")
+		}
+	case '.':
+		if p == 3 && base == 16 {
+			return l.errorf("hexadecimal literal has no digits")
 		}
 	case '_':
 		return l.errorf("'_' must separate successive digits")
@@ -1648,19 +1684,22 @@ DIGITS:
 	case 'p', 'P', '+', '-':
 		return l.errorf("exponent has no digits")
 	}
+	if base == 16 && dot && exponent != 'p' {
+		return l.errorf("hexadecimal mantissa requires a 'p' exponent")
+	}
 	imaginary := p < len(l.src) && l.src[p] == 'i'
 	if imaginary {
 		p++
-	} else if p > 0 && base == 10 && l.src[0] == '0' && !dot && !exponent {
+	} else if p > 0 && base == 10 && l.src[0] == '0' && !dot && exponent == 0 {
 		for _, c := range l.src[1:p] {
 			if c == '8' || c == '9' {
-				return l.errorf("invalid digit '%d' in octal literal", c)
+				return l.errorf("invalid digit '%c' in octal literal", c)
 			}
 		}
 	}
 	if imaginary {
 		l.emit(tokenImaginary, p)
-	} else if dot || exponent {
+	} else if dot || exponent != 0 {
 		l.emit(tokenFloat, p)
 	} else {
 		l.emit(tokenInt, p)
