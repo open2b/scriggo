@@ -577,8 +577,8 @@ func (fb *functionBuilder) end() {
 	// if len(fn.Body) == 0 || fn.Body[len(fn.Body)-1].Op != runtime.OpReturn {
 	// 	fb.emitReturn()
 	// }
-	if len(fn.Body) > math.MaxUint32 {
-		panic(newLimitExceededError(fn.Pos, fn.File, "instructions count exceeded %d", math.MaxUint32))
+	if int64(len(fn.Body)) > math.MaxUint32 {
+		panic(newLimitExceededError(fn.Pos, fn.File, "instructions count exceeded %d", uint32(math.MaxUint32)))
 	}
 	for addr, label := range fb.gotos {
 		i := fn.Body[addr]
