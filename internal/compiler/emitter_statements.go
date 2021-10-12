@@ -301,8 +301,10 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					em.fb.exitStack()
 				} else {
 					ti := em.ti(expr)
+					em.fb.enterStack()
 					r := em.emitExpr(expr, ti.Type)
 					em.fb.emitShow(ti.Type, r, ctx, em.inURL, em.isURLSet)
+					em.fb.exitStack()
 				}
 			}
 
