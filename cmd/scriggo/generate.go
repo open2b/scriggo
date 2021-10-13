@@ -30,6 +30,7 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 		name string
 		decl map[string]string
 	}
+	cache := newPackageNameCache()
 
 	// Import the packages of the Go standard library.
 	for i, imp := range sf.imports {
@@ -54,14 +55,11 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 		if flags.v {
 			_, _ = fmt.Fprintf(os.Stderr, "%s\n", imp.path)
 		}
-		if packageImported(imp.path) {
-			return fmt.Errorf("%q is already imported", imp.path)
-		}
-		pkgName, decls, refToImport, refToReflect, err := loadGoPackage(imp.path, dir, goos, flags, imp.including, imp.excluding)
+		pkgName, decls, refToImport, refToReflect, err := loadGoPackage(imp.path, dir, goos, flags, imp.including, imp.excluding, cache)
 		if err != nil {
 			return err
 		}
-		uniqueName := uniquePackageName(imp.path, pkgName)
+		uniqueName := cache.uniquePackageName(imp.path, pkgName)
 		if uniqueName != pkgName { // TODO: uniqueName should be compared to the package name and not to the package path.
 			explicitImports = append(explicitImports, struct{ Name, Path string }{uniqueName, imp.path})
 		} else {
@@ -265,7 +263,7 @@ func init() {
 // refToScriggo reports whether at least one of the declarations refers to the
 // package 'scriggo', while refToReflect reports whether at least one of the
 // declarations refers to the package 'reflect'.
-func loadGoPackage(path, dir, goos string, flags buildFlags, including, excluding []string) (name string, decl map[string]string, refToImport, refToReflect bool, err error) {
+func loadGoPackage(path, dir, goos string, flags buildFlags, including, excluding []string, cache packageNameCache) (name string, decl map[string]string, refToImport, refToReflect bool, err error) {
 
 	allowed := func(n string) bool {
 		if len(including) > 0 {
@@ -337,7 +335,7 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 
 	name = packages[0].Name
 	// TODO(marco): remove the global cache of package names.
-	pkgBase := uniquePackageName(path, name)
+	pkgBase := cache.uniquePackageName(path, name)
 
 	numUntyped := 0
 

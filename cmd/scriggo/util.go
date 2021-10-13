@@ -110,8 +110,6 @@ func txtToHelp(s string) {
 	stderr(strings.Split(s, "\n")...)
 }
 
-var uniquePackageNameCache = map[string]string{}
-
 var goKeywords = []string{
 	"break", "case", "chan", "const", "continue", "default", "defer", "else",
 	"fallthrough", "for", "func", "go", "goto", "if", "import", "interface", "map",
@@ -128,9 +126,19 @@ func isGoKeyword(s string) bool {
 	return false
 }
 
+type packageNameCache struct {
+	cache map[string]string
+}
+
+func newPackageNameCache() packageNameCache {
+	return packageNameCache{
+		cache: map[string]string{},
+	}
+}
+
 // packageNameUsed is a simple wrapper that determines if a package name is already in use
-func packageNameUsed(pkgName string) bool {
-	for _, v := range uniquePackageNameCache {
+func (u packageNameCache) packageNameUsed(pkgName string) bool {
+	for _, v := range u.cache {
 		if v == pkgName {
 			return true
 		}
@@ -139,28 +147,28 @@ func packageNameUsed(pkgName string) bool {
 }
 
 // packageImported is a simple helper to determine if we have already imported a given package
-func packageImported(pkgPath string) bool {
-	_, ok := uniquePackageNameCache[pkgPath]
+func (u packageNameCache) packageImported(pkgPath string) bool {
+	_, ok := u.cache[pkgPath]
+	fmt.Printf("%s\n\t+%v\n", pkgPath, u.cache)
 	return ok
 }
 
 // uniquePackageName generates an unique package name for every package path.
 // this will ensure that even if package names collide we return a valid unique package name
-func uniquePackageName(pkgPath, pkgName string) string {
+func (u packageNameCache) uniquePackageName(pkgPath, pkgName string) string {
 
 	//check if the package path has already been resolved
-	cachePath, ok := uniquePackageNameCache[pkgPath]
-	if ok {
+	if cachePath, ok := u.cache[pkgPath]; ok {
 		return cachePath //package path to name has already been set
 	}
 
 	//check if the package name is available
-	if packageNameUsed(pkgName) {
+	if u.packageNameUsed(pkgName) {
 		//iterate on the package name until we get a free package name
 		i := 2
 		for {
 			pkgNameTemp := fmt.Sprintf("%s_%d", pkgName, i)
-			if !packageNameUsed(pkgNameTemp) {
+			if !u.packageNameUsed(pkgNameTemp) {
 				pkgName = pkgNameTemp
 				break
 			}
@@ -170,7 +178,7 @@ func uniquePackageName(pkgPath, pkgName string) string {
 	if isGoKeyword(pkgName) {
 		pkgName = "_" + pkgName + "_"
 	}
-	uniquePackageNameCache[pkgPath] = pkgName
+	u.cache[pkgPath] = pkgName
 	return pkgName
 }
 
