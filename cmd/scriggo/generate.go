@@ -12,7 +12,6 @@ import (
 	"io"
 	"math/big"
 	"os"
-	"path/filepath"
 	"runtime"
 	"sort"
 	"strconv"
@@ -48,17 +47,6 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 
 	alreadyImportsReflect := false
 	explicitImports := []struct{ Name, Path string }{}
-	for _, imp := range sf.imports {
-		uniqueName := uniquePackageName(imp.path)
-		if uniqueName != imp.path { // TODO: uniqueName should be compared to the package name and not to the package path.
-			explicitImports = append(explicitImports, struct{ Name, Path string }{uniqueName, imp.path})
-		} else {
-			explicitImports = append(explicitImports, struct{ Name, Path string }{"", imp.path})
-		}
-		if imp.path == "reflect" {
-			alreadyImportsReflect = true
-		}
-	}
 
 	mustImportReflect := false
 	packages := map[string]*packageType{}
@@ -66,10 +54,23 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 		if flags.v {
 			_, _ = fmt.Fprintf(os.Stderr, "%s\n", imp.path)
 		}
+		if packageImported(imp.path) {
+			return fmt.Errorf("%q is already imported", imp.path)
+		}
 		pkgName, decls, refToImport, refToReflect, err := loadGoPackage(imp.path, dir, goos, flags, imp.including, imp.excluding)
 		if err != nil {
 			return err
 		}
+		uniqueName := uniquePackageName(imp.path, pkgName)
+		if uniqueName != pkgName { // TODO: uniqueName should be compared to the package name and not to the package path.
+			explicitImports = append(explicitImports, struct{ Name, Path string }{uniqueName, imp.path})
+		} else {
+			explicitImports = append(explicitImports, struct{ Name, Path string }{pkgName, imp.path})
+		}
+		if imp.path == "reflect" {
+			alreadyImportsReflect = true
+		}
+
 		mustImportReflect = mustImportReflect || refToReflect
 		if !refToImport {
 			explicitImports[i].Name = "_"
@@ -130,7 +131,6 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 				}
 				packages[path].decl[name] = decl
 				packages[path].name = pkgName
-				name = filepath.Base(path)
 			}
 		}
 
@@ -288,8 +288,6 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 	}
 
 	decl = map[string]string{}
-	// TODO(marco): remove the global cache of package names.
-	pkgBase := uniquePackageName(path)
 
 	conf := &pkgs.Config{
 		Mode: 1023,
@@ -338,6 +336,8 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 	}
 
 	name = packages[0].Name
+	// TODO(marco): remove the global cache of package names.
+	pkgBase := uniquePackageName(path, name)
 
 	numUntyped := 0
 

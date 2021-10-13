@@ -128,24 +128,49 @@ func isGoKeyword(s string) bool {
 	return false
 }
 
-// uniquePackageName generates an unique package name for every package path.
-func uniquePackageName(pkgPath string) string {
+// packageNameUsed is a simple wrapper that determines if a package name is already in use
+func packageNameUsed(pkgName string) bool {
+	for _, v := range uniquePackageNameCache {
+		if v == pkgName {
+			return true
+		}
+	}
+	return false
+}
 
-	pkgName := filepath.Base(pkgPath)
-	done := false
-	for !done {
-		done = true
-		cachePath, ok := uniquePackageNameCache[pkgName]
-		if ok && cachePath != pkgPath {
-			done = false
-			pkgName += "_"
+// packageImported is a simple helper to determine if we have already imported a given package
+func packageImported(pkgPath string) bool {
+	_, ok := uniquePackageNameCache[pkgPath]
+	return ok
+}
+
+// uniquePackageName generates an unique package name for every package path.
+// this will ensure that even if package names collide we return a valid unique package name
+func uniquePackageName(pkgPath, pkgName string) string {
+
+	//check if the package path has already been resolved
+	cachePath, ok := uniquePackageNameCache[pkgPath]
+	if ok {
+		return cachePath //package path to name has already been set
+	}
+
+	//check if the package name is available
+	if packageNameUsed(pkgName) {
+		//iterate on the package name until we get a free package name
+		i := 2
+		for {
+			pkgNameTemp := fmt.Sprintf("%s_%d", pkgName, i)
+			if !packageNameUsed(pkgNameTemp) {
+				pkgName = pkgNameTemp
+				break
+			}
+			i++
 		}
 	}
 	if isGoKeyword(pkgName) {
 		pkgName = "_" + pkgName + "_"
 	}
-	uniquePackageNameCache[pkgName] = pkgPath
-
+	uniquePackageNameCache[pkgPath] = pkgName
 	return pkgName
 }
 
