@@ -60,7 +60,7 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 			return err
 		}
 		uniqueName := cache.uniquePackageName(imp.path, pkgName)
-		if uniqueName != pkgName { // TODO: uniqueName should be compared to the package name and not to the package path.
+		if uniqueName != pkgName {
 			explicitImports = append(explicitImports, struct{ Name, Path string }{uniqueName, imp.path})
 		} else {
 			explicitImports = append(explicitImports, struct{ Name, Path string }{pkgName, imp.path})
@@ -334,7 +334,6 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 	}
 
 	name = packages[0].Name
-	// TODO(marco): remove the global cache of package names.
 	pkgBase := cache.uniquePackageName(path, name)
 
 	numUntyped := 0

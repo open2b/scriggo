@@ -136,7 +136,7 @@ func newPackageNameCache() packageNameCache {
 	}
 }
 
-// packageNameUsed is a simple wrapper that determines if a package name is already in use
+// packageNameUsed is a simple wrapper that determines if a package name is already in use.
 func (u packageNameCache) packageNameUsed(pkgName string) bool {
 	for _, v := range u.cache {
 		if v == pkgName {
@@ -146,15 +146,8 @@ func (u packageNameCache) packageNameUsed(pkgName string) bool {
 	return false
 }
 
-// packageImported is a simple helper to determine if we have already imported a given package
-func (u packageNameCache) packageImported(pkgPath string) bool {
-	_, ok := u.cache[pkgPath]
-	fmt.Printf("%s\n\t+%v\n", pkgPath, u.cache)
-	return ok
-}
-
-// uniquePackageName generates an unique package name for every package path.
-// this will ensure that even if package names collide we return a valid unique package name
+// uniquePackageName generates an unique package name for every package path,
+// this will ensure that even if package names collide we return a valid unique package name.
 func (u packageNameCache) uniquePackageName(pkgPath, pkgName string) string {
 
 	//check if the package path has already been resolved
@@ -174,9 +167,6 @@ func (u packageNameCache) uniquePackageName(pkgPath, pkgName string) string {
 			}
 			i++
 		}
-	}
-	if isGoKeyword(pkgName) {
-		pkgName = "_" + pkgName + "_"
 	}
 	u.cache[pkgPath] = pkgName
 	return pkgName
