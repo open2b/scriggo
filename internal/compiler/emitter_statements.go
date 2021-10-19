@@ -299,6 +299,12 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 					em.fb.enterStack()
 					em.emitCallNode(expr.(*ast.Call), false, false, ast.Format(ctx))
 					em.fb.exitStack()
+				} else if render, ok := expr.(*ast.Render); ok {
+					// Optimize {{ render "path" }}
+					em.fb.enterStack()
+					em.emitNodes([]ast.Node{render.IR.Import})
+					em.emitCallNode(render.IR.Call, false, false, ast.Format(ctx))
+					em.fb.exitStack()
 				} else {
 					ti := em.ti(expr)
 					em.fb.enterStack()
