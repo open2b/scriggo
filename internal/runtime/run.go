@@ -549,7 +549,10 @@ func (vm *VM) run() (Addr, bool) {
 
 		// Delete
 		case OpDelete:
-			vm.general(a).SetMapIndex(vm.general(b), reflect.Value{})
+			m := vm.general(a)
+			k := reflect.New(m.Type().Key()).Elem()
+			vm.getIntoReflectValue(b, k, false)
+			m.SetMapIndex(k, reflect.Value{})
 
 		// Div
 		case OpDiv, -OpDiv:
