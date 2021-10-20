@@ -1017,7 +1017,7 @@ func (tc *typechecker) checkImport(impor *ast.Import) error {
 		}
 
 		// Add the package to the file/package block.
-		tc.assignScope(pkgName, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}, nil, impor)
+		tc.declarePackageName(pkgName, &typeInfo{value: imported, Properties: propertyIsPackage | propertyHasValue}, impor)
 
 		return nil
 	}
