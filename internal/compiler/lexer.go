@@ -120,11 +120,14 @@ type lexer struct {
 	noParseShow      bool       // do not parse the short show statement.
 }
 
+// newline is called when the lexer encounters a new line.
 func (l *lexer) newline() {
 	l.line++
 	l.column = 1
 }
 
+// errorf returns a syntax error at the current lexer position with a message
+// formatted according to the format specifier.
 func (l *lexer) errorf(format string, a ...interface{}) *SyntaxError {
 	pos := ast.Position{
 		Line:   l.line,
@@ -1396,18 +1399,22 @@ func isAlpha(s byte) bool {
 	return 'a' <= s && s <= 'z' || 'A' <= s && s <= 'Z'
 }
 
+// isBinDigit reports whether c is a binary digit.
 func isBinDigit(c byte) bool {
 	return c == '0' || c == '1'
 }
 
+// isOctDigit reports whether c is an octal digit.
 func isOctDigit(c byte) bool {
 	return '0' <= c && c <= '7'
 }
 
+// isDecDigit reports whether c is a decimal digit.
 func isDecDigit(c byte) bool {
 	return '0' <= c && c <= '9'
 }
 
+// isHexDigit reports whether c is a hexadecimal digit.
 func isHexDigit(c byte) bool {
 	return '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F'
 }
