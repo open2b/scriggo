@@ -265,6 +265,23 @@ func (tc *typechecker) assignScope(name string, value *typeInfo, decl *ast.Ident
 	}
 }
 
+// declarePackageName declares the given package name declared with the import
+// declaration impor and with type info ti
+//
+// It panics if name is already declared.
+func (tc *typechecker) declarePackageName(name string, ti *typeInfo, impor *ast.Import) {
+	ok := tc.scopes.Declare(name, ti, nil, impor)
+	if !ok && (isValidIdentifier(name, tc.opts.mod) || strings.HasPrefix(name, "$")) {
+		s := name + " redeclared as imported package name"
+		i, ok := tc.scopes.LookupImport(name)
+		if !ok {
+			panic(internalError("unexpected failing LookupImport"))
+		}
+		s += fmt.Sprintf("\n\t%s:%s: previous declaration", tc.path, i.Pos())
+		panic(tc.errorf(impor, s))
+	}
+}
+
 // An ancestor is an AST node with a scope level associated. The type checker
 // holds a list of ancestors to keep track of the current position and depth
 // inside the full AST tree.

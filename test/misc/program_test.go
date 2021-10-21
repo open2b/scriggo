@@ -189,6 +189,39 @@ func TestIssue309(t *testing.T) {
 	})
 }
 
+// TestIssue881 executes a test for the issue
+// https://github.com/open2b/scriggo/issues/881.
+func TestIssue881(t *testing.T) {
+	packages := native.CombinedImporter{
+		native.Packages{
+			"pkg": native.Package{
+				Name:         "pkg",
+				Declarations: native.Declarations{"C": 5},
+			},
+		},
+	}
+	main := `
+		package main
+
+		import (
+			"pkg"
+			"pkg"
+		)
+
+		func main() {
+			_ = pkg.C
+		}`
+	fsys := fstest.Files{"main.go": main}
+	_, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
+	if err == nil {
+		t.Fatalf("expected build error, got no error")
+	}
+	const expected = "main:6:4: pkg redeclared as imported package name\n\tmain:5:4: previous declaration"
+	if s := err.Error(); s != expected {
+		t.Fatalf("expected error %q, got %q", expected, s)
+	}
+}
+
 var compositeStructLiteralTests = []struct {
 	fsys fs.FS
 	pass bool
