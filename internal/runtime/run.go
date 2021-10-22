@@ -598,7 +598,9 @@ func (vm *VM) run() (Addr, bool) {
 		// GetVar
 		case OpGetVar:
 			v := vm.vars[decodeInt16(a, b)]
-			vm.setFromReflectValue(c, v)
+			v2 := reflect.New(v.Type()).Elem()
+			v2.Set(v)
+			vm.setFromReflectValue(c, v2)
 
 		// GetVarAddr
 		case OpGetVarAddr:
