@@ -196,7 +196,8 @@ func Abbreviate(s string, n int) string {
 	return s + "..."
 }
 
-// Abs returns the absolute value of x.
+// Abs returns the absolute value of x. As a special case, if x is the
+// smallest negative integer, Abs returns x.
 func Abs(x int) int {
 	if x < 0 {
 		return -x

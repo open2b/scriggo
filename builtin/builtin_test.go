@@ -6,6 +6,8 @@ package builtin
 
 import (
 	"fmt"
+	"math"
+	"strconv"
 	"testing"
 	"time"
 
@@ -48,6 +50,8 @@ var tests = []struct {
 	{spf("%d", Abs(-1)), "1"},
 	{spf("%d", Abs(22)), "22"},
 	{spf("%d", Abs(-22)), "22"},
+	{spf("%d", Abs(math.MaxInt)), strconv.Itoa(math.MaxInt)},
+	{spf("%d", Abs(math.MinInt)), strconv.Itoa(math.MinInt)},
 
 	// base64
 	{Base64(``), ""},
