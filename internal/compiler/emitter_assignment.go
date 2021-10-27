@@ -21,20 +21,32 @@ type address struct {
 	op1, op2      int8               // two bytes for store addressing information (see the methods below).
 	pos           *ast.Position      // position of the addressed element in the source code.
 	operator      ast.AssignmentType // type of the assignment that involves this address.
+	nonLocal      int                // index of non-local vars. Not relevant if the assignment happens locally.
 }
 
 // assignmentTarget is the target of an assignment.
-type assignmentTarget int8
+type assignmentTarget int16
 
 const (
 	assignBlank          assignmentTarget = iota // Assign to a blank identifier.
-	assignLocalVar                               // Assign to a local variable.
-	assignMapIndex                               // Assign to a map index.
 	assignNewIndirectVar                         // Assign to a new indirect variable.
-	assignNonLocalVar                            // Assign to a non-local variable.
 	assignPtrIndirection                         // Assign to a pointer indirection.
-	assignSliceIndex                             // Assign to a slice index.
-	assignStructSelector                         // Assign to a struct selector.
+
+	// Assign to a variable.
+	assignLocalVar    // local.
+	assignNonLocalVar // non-local.
+
+	// Assign to a map index.
+	assignLocalMapIndex    // local.
+	assignNonLocalMapIndex // non-local.
+
+	// Assign to a slice index.
+	assignLocalSliceIndex    // local.
+	assignNonLocalSliceIndex // non-local.
+
+	// Assign to a struct selector.
+	assignLocalStructSelector    // local.
+	assignNonLocalStructSelector // non-local.
 )
 
 // addressBlankIdent returns a new address that addresses a blank identifier.
@@ -63,11 +75,11 @@ func (em *emitter) addressLocalVar(reg int8, typ reflect.Type, pos *ast.Position
 	}
 }
 
-// addressMapIndex returns a new address that addresses a map index expression,
-// with the map and key stored into the given registers.
-// op is the type of the assignment that involves this address, and pos is the
-// position of the assignment in the source code.
-func (em *emitter) addressMapIndex(mapReg int8, keyReg int8, mapType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+// addressLocalMapIndex returns a new address that addresses a local map index
+// expression, with the map and key stored into the given registers. op is the
+// type of the assignment that involves this address, and pos is the position
+// of the assignment in the source code.
+func (em *emitter) addressLocalMapIndex(mapReg int8, keyReg int8, mapType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
 	return address{
 		addressedType: mapType,
 		em:            em,
@@ -75,7 +87,25 @@ func (em *emitter) addressMapIndex(mapReg int8, keyReg int8, mapType reflect.Typ
 		op2:           keyReg,
 		operator:      op,
 		pos:           pos,
-		target:        assignMapIndex,
+		target:        assignLocalMapIndex,
+	}
+}
+
+// addressNonLocalMapIndex returns a new address that addresses a non-local map
+// index expression, with the evaluated map and key stored into the given
+// registers. nonLocalMap refers to the index of the non-local map. op is the
+// type of the assignment that involves this address, and pos is the position
+// of the assignment in the source code.
+func (em *emitter) addressNonLocalMapIndex(nonLocalMap int, mapReg int8, keyReg int8, mapType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	return address{
+		addressedType: mapType,
+		em:            em,
+		op1:           mapReg,
+		op2:           keyReg,
+		operator:      op,
+		pos:           pos,
+		target:        assignNonLocalMapIndex,
+		nonLocal:      nonLocalMap,
 	}
 }
 
@@ -108,6 +138,9 @@ func (em *emitter) addressNonLocalVar(index int16, typ reflect.Type, pos *ast.Po
 		operator:      op,
 		pos:           pos,
 		target:        assignNonLocalVar,
+		// TODO(Gianluca): use the 'nonLocal' field of 'address' instead of
+		// encoding the index into 'op1' and 'op2'.
+		// TODO(Gianluca): move this method under 'addressLocalVar'.
 	}
 }
 
@@ -126,10 +159,10 @@ func (em *emitter) addressPtrIndirect(reg int8, pointedType reflect.Type, pos *a
 	}
 }
 
-// addressSliceIndex returns a new address that addresses a slice index
-// expression. sliceReg is the register that holds the slice and indexReg is the
-// register that holds the index of the slice.
-// op is the type of the assignment that involves this address, and pos is the
+// addressSliceIndex returns a new address that addresses an index expression
+// of a slice stored in a local register. sliceReg is the register that holds
+// the slice and indexReg is the register that holds the index of the slice. op
+// is the type of the assignment that involves this address, and pos is the
 // position of the assignment in the source code.
 func (em *emitter) addressSliceIndex(sliceReg int8, indexReg int8, sliceType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
 	return address{
@@ -139,17 +172,36 @@ func (em *emitter) addressSliceIndex(sliceReg int8, indexReg int8, sliceType ref
 		op2:           indexReg,
 		operator:      op,
 		pos:           pos,
-		target:        assignSliceIndex,
+		target:        assignLocalSliceIndex,
 	}
 }
 
-// addressStructSelector returns a new address that addresses a struct field
-// expression. structReg is the register that holds the struct value and
-// kFieldIndex is the index of the integer constant that contains the encoded
-// slice of the field index.
-// op is the type of the assignment that involves this address, and pos is the
-// position of the assignment in the source code.
-func (em *emitter) addressStructSelector(structReg int8, kFieldIndex int8, structType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+// addressGlobalSliceIndex returns a new address that addresses an index
+// expression of a non-local slice. sliceReg is the register that holds the
+// evaluated slice and indexReg is the register that holds the index of the
+// slice. sliceIndex is the index of the non-local slice. op is the type of the
+// assignment that involves this address, and pos is the position of the
+// assignment in the source code.
+func (em *emitter) addressGlobalSliceIndex(sliceIndex int, sliceReg int8, indexReg int8, sliceType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	return address{
+		addressedType: sliceType,
+		em:            em,
+		op1:           sliceReg,
+		op2:           indexReg,
+		operator:      op,
+		pos:           pos,
+		target:        assignNonLocalSliceIndex,
+		nonLocal:      sliceIndex,
+	}
+}
+
+// addressLocalStructSelector returns a new address that addresses a local
+// struct field expression. structReg is the register that holds the struct
+// value and kFieldIndex is the index of the integer constant that contains the
+// encoded slice of the field index. op is the type of the assignment that
+// involves this address, and pos is the position of the assignment in the
+// source code.
+func (em *emitter) addressLocalStructSelector(structReg int8, kFieldIndex int8, structType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
 	return address{
 		addressedType: structType,
 		em:            em,
@@ -157,7 +209,26 @@ func (em *emitter) addressStructSelector(structReg int8, kFieldIndex int8, struc
 		op2:           kFieldIndex,
 		operator:      op,
 		pos:           pos,
-		target:        assignStructSelector,
+		target:        assignLocalStructSelector,
+	}
+}
+
+// addressNonLocalStructSelector returns a new address that addresses a
+// non-local struct (located at structIndex) field expression. localStructReg
+// is the register that holds the evaluated struct value and kFieldIndex is the
+// index of the integer constant that contains the encoded slice of the field
+// index. op is the type of the assignment that involves this address, and pos
+// is the position of the assignment in the source code.
+func (em *emitter) addressNonLocalStructSelector(structIndex int, localStructReg int8, kFieldIndex int8, structType reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	return address{
+		addressedType: structType,
+		em:            em,
+		op1:           localStructReg,
+		op2:           kFieldIndex,
+		operator:      op,
+		pos:           pos,
+		target:        assignNonLocalStructSelector,
+		nonLocal:      structIndex,
 	}
 }
 
@@ -176,12 +247,21 @@ func (a address) assign(k bool, value int8, valueType reflect.Type) {
 		a.em.changeRegister(k, value, a.op1, a.targetType(), a.addressedType)
 	case assignPtrIndirection:
 		a.em.changeRegister(k, value, -a.op1, a.targetType(), a.addressedType)
-	case assignSliceIndex:
+	case assignLocalSliceIndex:
 		a.em.fb.emitSetSlice(k, a.op1, value, a.op2, a.pos, valueType.Kind())
-	case assignMapIndex:
+	case assignNonLocalSliceIndex:
+		a.em.fb.emitSetSlice(k, a.op1, value, a.op2, a.pos, valueType.Kind())
+		a.em.fb.emitSetVar(false, a.op1, a.nonLocal, a.addressedType.Kind())
+	case assignLocalMapIndex:
 		a.em.fb.emitSetMap(k, a.op1, value, a.op2, a.addressedType, a.pos)
-	case assignStructSelector:
+	case assignNonLocalMapIndex:
+		a.em.fb.emitSetMap(k, a.op1, value, a.op2, a.addressedType, a.pos)
+		a.em.fb.emitSetVar(false, a.op1, a.nonLocal, a.addressedType.Kind())
+	case assignLocalStructSelector:
 		a.em.fb.emitSetField(k, a.op1, a.op2, value, valueType.Kind())
+	case assignNonLocalStructSelector:
+		a.em.fb.emitSetField(k, a.op1, a.op2, value, valueType.Kind())
+		a.em.fb.emitSetVar(false, a.op1, a.nonLocal, a.addressedType.Kind())
 	}
 }
 
@@ -199,13 +279,16 @@ func (a address) targetType() reflect.Type {
 		return a.addressedType
 	case assignLocalVar:
 		return a.addressedType
-	case assignMapIndex:
+	case assignLocalMapIndex,
+		assignNonLocalMapIndex:
 		return a.addressedType.Elem()
 	case assignPtrIndirection:
 		return a.addressedType.Elem()
-	case assignSliceIndex:
+	case assignLocalSliceIndex,
+		assignNonLocalSliceIndex:
 		return a.addressedType.Elem()
-	case assignStructSelector:
+	case assignLocalStructSelector,
+		assignNonLocalStructSelector:
 		index := a.em.fb.fn.FieldIndexes[a.op2]
 		typ := a.addressedType
 		if typ.Kind() == reflect.Ptr {
@@ -236,12 +319,15 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 		em.fb.emitGetVar(int(decodeInt16(addr.op1, addr.op2)), c, addrTyp.Kind())
 	case assignLocalVar:
 		em.changeRegister(false, addr.op1, c, addrTyp, typ)
-	case assignMapIndex,
-		assignSliceIndex:
+	case assignLocalMapIndex,
+		assignLocalSliceIndex,
+		assignNonLocalMapIndex,
+		assignNonLocalSliceIndex:
 		em.fb.emitIndex(false, addr.op1, addr.op2, c, addrTyp, addr.pos, false)
 	case assignPtrIndirection:
 		em.changeRegister(false, -addr.op1, c, addrTyp, addrTyp)
-	case assignStructSelector:
+	case assignLocalStructSelector,
+		assignNonLocalStructSelector:
 		em.fb.emitField(addr.op1, addr.op2, c, typ.Kind())
 	}
 

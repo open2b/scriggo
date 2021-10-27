@@ -598,6 +598,17 @@ func (vm *VM) run() (Addr, bool) {
 		// GetVar
 		case OpGetVar:
 			v := vm.vars[decodeInt16(a, b)]
+			k := v.Kind()
+			switch {
+			case reflect.Bool <= k && k <= reflect.Float64:
+			case k == reflect.String:
+			case k == reflect.Func:
+			case k == reflect.Interface:
+			default:
+				v2 := reflect.New(v.Type()).Elem()
+				v2.Set(v)
+				v = v2
+			}
 			vm.setFromReflectValue(c, v)
 
 		// GetVarAddr
