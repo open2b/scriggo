@@ -408,10 +408,11 @@ func (fb *functionBuilder) emitIf(ky bool, x int8, o runtime.Condition, y int8, 
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: op, A: x, B: int8(o), C: y})
 }
 
-// emitIndex appends a new "Index", "IndexRef" or "MapIndex" instruction to the
-// function body. If ref is set then the result of the indexing operation is a
-// reference to the index (i.e. is an addressable reflect.Value with the same
-// underlying index value); otherwise the index is copied.
+// emitIndex appends a new "Index", "IndexRef", "MapIndex", or "IndexString"
+// instruction to the function body. If ref is set then the result of the
+// indexing operation is a reference to the index (i.e. is an addressable
+// reflect.Value with the same underlying index value); otherwise the index is
+// copied.
 //
 //  dst = expr[i]
 //
