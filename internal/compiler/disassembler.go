@@ -591,6 +591,10 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 			s += " 0 0"
 		}
 		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
+	case runtime.OpMapIndex:
+		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
+		s += " " + disassembleOperand(fn, b, getKind('b', fn, addr), k)
+		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
 	case runtime.OpMethodValue:
 		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 		s += " " + disassembleOperand(fn, b, reflect.String, true)

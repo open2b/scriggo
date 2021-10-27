@@ -417,10 +417,10 @@ func (fb *functionBuilder) emitIf(ky bool, x int8, o runtime.Condition, y int8, 
 //
 // TODO: consider splitting emitIndex in two methods removing the 'ref bool'
 // argument.
-func (fb *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType reflect.Type, pos *ast.Position, ref bool) {
+func (fb *functionBuilder) emitIndex(ki bool, expr, i, dst int8, t reflect.Type, pos *ast.Position, ref bool) {
 	fb.addPosAndPath(pos)
 	fn := fb.fn
-	kind := exprType.Kind()
+	kind := t.Kind()
 	// TODO: re-enable this check?
 	// if ref && (kind != reflect.Array && kind != reflect.Slice) {
 	// 	panic(fmt.Errorf("BUG: cannot set the ref argument if the expression has kind %s", kind))
@@ -433,13 +433,14 @@ func (fb *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType reflec
 		} else {
 			op = runtime.OpIndex
 		}
-		fb.addOperandKinds(0, 0, exprType.Elem().Kind())
+		fb.addOperandKinds(0, 0, t.Elem().Kind())
 	case reflect.Map:
 		op = runtime.OpMapIndex
+		fb.addOperandKinds(0, t.Key().Kind(), t.Elem().Kind())
 	case reflect.String:
 		op = runtime.OpIndexString
 	default:
-		panic(internalError("invalid type %s", exprType))
+		panic(internalError("invalid type %s", t))
 	}
 	if ki {
 		op = -op
