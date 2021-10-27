@@ -968,7 +968,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		typ := t1.Type
 		if evalToBoolOperators[op] {
 			typ = boolType
-		} else if t1.Untyped() && t1.Type.Kind() < t2.Type.Kind() {
+		} else if !isShift && t1.Untyped() && t1.Type.Kind() < t2.Type.Kind() {
 			typ = t2.Type
 		}
 		ti := &typeInfo{Type: typ, Constant: c}

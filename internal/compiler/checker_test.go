@@ -296,6 +296,7 @@ var checkerExprs = []struct {
 	{`1 << a`, tiUntypedIntConst("2"), map[string]*typeInfo{"a": tiUntypedIntConst("1")}},
 	{`uint8(1) << a`, tiUint8Const(2), map[string]*typeInfo{"a": tiUntypedIntConst("1")}},
 	{`1 << 511`, tiUntypedIntConst("6703903964971298549787012499102923063739682910296196688861780721860882015036773488400937149083451713845015929093243025426876941405973284973216824503042048"), nil},
+	{`1 << '\x05'`, tiUntypedIntConst("32"), nil},
 
 	// Index.
 	{`"a"[0]`, tiByte(), nil},
