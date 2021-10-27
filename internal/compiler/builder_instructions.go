@@ -419,7 +419,6 @@ func (fb *functionBuilder) emitIf(ky bool, x int8, o runtime.Condition, y int8, 
 // argument.
 func (fb *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType reflect.Type, pos *ast.Position, ref bool) {
 	fb.addPosAndPath(pos)
-	fb.addOperandKinds(0, 0, exprType.Kind())
 	fn := fb.fn
 	kind := exprType.Kind()
 	// TODO: re-enable this check?
@@ -434,6 +433,7 @@ func (fb *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType reflec
 		} else {
 			op = runtime.OpIndex
 		}
+		fb.addOperandKinds(0, 0, exprType.Elem().Kind())
 	case reflect.Map:
 		op = runtime.OpMapIndex
 	case reflect.String:
