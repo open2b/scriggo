@@ -501,11 +501,30 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 
 	// Reserve space for the return parameters and eventually bind them.
 	for _, out := range fn.Type.Result {
-		kind := em.typ(out.Type).Kind()
+		t := em.typ(out.Type)
+		kind := t.Kind()
 		reg := em.fb.newRegister(kind)
 		if out.Ident != nil && !isBlankIdentifier(out.Ident) {
 			em.fb.bindVarReg(out.Ident.Name, reg)
 		}
+		// TODO(Gianluca): this code should be executed only if the function
+		// contains a 'defer' statement; otherwise it is useless.
+		var index int
+		switch kindToType(kind) {
+		case intRegister:
+			index = em.fb.makeIntValue(0)
+		case floatRegister:
+			index = em.fb.makeFloatValue(0)
+		case stringRegister:
+			index = int(em.fb.makeStringValue(""))
+		case generalRegister:
+			typ := t
+			if st, ok := t.(runtime.ScriggoType); ok {
+				typ = st.GoType()
+			}
+			index = int(em.fb.makeGeneralValue(reflect.Zero(typ)))
+		}
+		em.fb.emitLoad(index, reg, kind)
 	}
 
 	// Reserve space for the input parameters and eventually bind them.
