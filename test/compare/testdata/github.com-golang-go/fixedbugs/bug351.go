@@ -1,5 +1,3 @@
-// skip : non-name on left side error not reported (https://github.com/open2b/scriggo/issues/927)
-
 // errorcheck
 
 // Copyright 2011 The Go Authors. All rights reserved.

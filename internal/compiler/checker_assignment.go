@@ -290,8 +290,8 @@ func (tc *typechecker) checkShortVariableDeclaration(node *ast.Assignment) {
 	// Check that every operand on the left is an identifier.
 	for _, lhExpr := range node.Lhs {
 		_, isIdent := lhExpr.(*ast.Identifier)
-		if !isIdent {
-			panic(tc.errorf(node, "non-name %s on left side of :=", lhExpr))
+		if !isIdent || lhExpr.Parenthesis() > 0 {
+			panic(tc.errorf(node, "non-name %s on left side of :=", ast.StringWithParenthesis(lhExpr)))
 		}
 	}
 

@@ -314,6 +314,14 @@ func (e *expression) SetParenthesis(n int) {
 	e.parenthesis = n
 }
 
+// StringWithParenthesis returns the string representation of the given
+// expression, surrounding it by parenthesis if necessary.
+func StringWithParenthesis(expr Expression) string {
+	s := expr.String()
+	n := expr.Parenthesis()
+	return strings.Repeat("(", n) + s + strings.Repeat(")", n)
+}
+
 // Cut indicates, in a Text node, how many bytes should be cut from the left
 // and the right of the text before rendering the Text node.
 type Cut struct {
