@@ -488,7 +488,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			}
 			// Package/closure/imported variable.
 			if index, ok := em.varStore.nonLocalVarIndex(v); ok {
-				addresses[i] = em.addressNonLocalVar(int16(index), varType, pos, node.Type)
+				addresses[i] = em.addressNonLocalVar(index, varType, pos, node.Type)
 				break
 			}
 			panic(internalError("unexpected"))
@@ -517,7 +517,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			}
 		case *ast.Selector:
 			if index, ok := em.varStore.nonLocalVarIndex(v); ok {
-				addresses[i] = em.addressNonLocalVar(int16(index), em.typ(v), pos, node.Type)
+				addresses[i] = em.addressNonLocalVar(index, em.typ(v), pos, node.Type)
 				break
 			}
 			expr := v.Expr

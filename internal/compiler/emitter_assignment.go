@@ -128,18 +128,14 @@ func (em *emitter) addressNewIndirectVar(reg int8, typ reflect.Type, pos *ast.Po
 // variable with the given type that is indexed by index. op is the type of the
 // assignment that involves this address, and pos is the position of the
 // assignment in the source code.
-func (em *emitter) addressNonLocalVar(index int16, typ reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
-	msb, lsb := encodeInt16(index)
+func (em *emitter) addressNonLocalVar(index int, typ reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
 	return address{
 		addressedType: typ,
 		em:            em,
-		op1:           msb,
-		op2:           lsb,
 		operator:      op,
 		pos:           pos,
 		target:        assignNonLocalVar,
-		// TODO(Gianluca): use the 'nonLocal' field of 'address' instead of
-		// encoding the index into 'op1' and 'op2'.
+		nonLocal:      index,
 		// TODO(Gianluca): move this method under 'addressLocalVar'.
 	}
 }
@@ -237,7 +233,7 @@ func (em *emitter) addressNonLocalStructSelector(structIndex int, localStructReg
 func (a address) assign(k bool, value int8, valueType reflect.Type) {
 	switch a.target {
 	case assignNonLocalVar:
-		a.em.fb.emitSetVar(k, value, int(decodeInt16(a.op1, a.op2)), a.addressedType.Kind())
+		a.em.fb.emitSetVar(k, value, a.nonLocal, a.addressedType.Kind())
 	case assignBlank:
 		// Nothing to do.
 	case assignLocalVar:
@@ -316,7 +312,7 @@ func (em *emitter) emitAssignmentOperation(addr address, rh ast.Expression) {
 	case assignBlank, assignNewIndirectVar:
 		panic(internalError("unexpected, this is a type checking bug"))
 	case assignNonLocalVar:
-		em.fb.emitGetVar(int(decodeInt16(addr.op1, addr.op2)), c, addrTyp.Kind())
+		em.fb.emitGetVar(addr.nonLocal, c, addrTyp.Kind())
 	case assignLocalVar:
 		em.changeRegister(false, addr.op1, c, addrTyp, typ)
 	case assignLocalMapIndex,
