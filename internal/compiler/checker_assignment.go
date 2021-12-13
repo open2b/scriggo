@@ -89,7 +89,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		if ti.Nil() {
 			tc.compilation.typeInfos[nodeRhs[i]] = tc.nilOf(lhs[i].Type)
 		} else {
-			ti.setValue(nil)
+			ti.setValue(lhs[i].Type)
 		}
 	}
 
