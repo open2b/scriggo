@@ -1,4 +1,4 @@
-// skip : panic: reflect.Value.Slice3: slice of unaddressable array
+// skip : slice of unaddressable array (https://github.com/open2b/scriggo/issues/926)
 
 // run
 
