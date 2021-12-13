@@ -75,6 +75,21 @@ func (em *emitter) addressLocalVar(reg int8, typ reflect.Type, pos *ast.Position
 	}
 }
 
+// addressNonLocalVar returns a new address that addresses the non-local
+// variable with the given type that is indexed by index. op is the type of the
+// assignment that involves this address, and pos is the position of the
+// assignment in the source code.
+func (em *emitter) addressNonLocalVar(index int, typ reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
+	return address{
+		addressedType: typ,
+		em:            em,
+		operator:      op,
+		pos:           pos,
+		target:        assignNonLocalVar,
+		nonLocal:      index,
+	}
+}
+
 // addressLocalMapIndex returns a new address that addresses a local map index
 // expression, with the map and key stored into the given registers. op is the
 // type of the assignment that involves this address, and pos is the position
@@ -121,22 +136,6 @@ func (em *emitter) addressNewIndirectVar(reg int8, typ reflect.Type, pos *ast.Po
 		operator:      op,
 		pos:           pos,
 		target:        assignNewIndirectVar,
-	}
-}
-
-// addressNonLocalVar returns a new address that addresses the non-local
-// variable with the given type that is indexed by index. op is the type of the
-// assignment that involves this address, and pos is the position of the
-// assignment in the source code.
-func (em *emitter) addressNonLocalVar(index int, typ reflect.Type, pos *ast.Position, op ast.AssignmentType) address {
-	return address{
-		addressedType: typ,
-		em:            em,
-		operator:      op,
-		pos:           pos,
-		target:        assignNonLocalVar,
-		nonLocal:      index,
-		// TODO(Gianluca): move this method under 'addressLocalVar'.
 	}
 }
 
