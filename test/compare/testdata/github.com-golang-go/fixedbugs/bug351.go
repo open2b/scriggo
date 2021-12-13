@@ -1,4 +1,4 @@
-// skip : non-name on left side error not reported
+// skip : non-name on left side error not reported (https://github.com/open2b/scriggo/issues/927)
 
 // errorcheck
 
