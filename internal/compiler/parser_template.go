@@ -100,7 +100,7 @@ func rooted(parent, name string) (string, error) {
 	}
 	r := path.Join(path.Dir(parent), name)
 	if strings.HasPrefix(r, "..") {
-		return "", os.ErrInvalid
+		return "", os.ErrNotExist
 	}
 	return r, nil
 }

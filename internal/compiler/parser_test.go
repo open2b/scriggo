@@ -2642,7 +2642,7 @@ func TestRooted(t *testing.T) {
 		{"a/b/c", "../d/e", "a/d/e", nil},
 		{"a/b/c", "../../d/e", "d/e", nil},
 		{"a/b", "../c/d", "c/d", nil},
-		{"a/b", "../../c/d", "", os.ErrInvalid},
+		{"a/b", "../../c/d", "", os.ErrNotExist},
 	}
 	for _, test := range tests {
 		root, err := rooted(test.parent, test.name)
