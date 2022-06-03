@@ -1353,8 +1353,8 @@ func (vm *VM) run() (Addr, bool) {
 					}
 				}
 			default:
-				kind := v.Kind()
-				if kind == reflect.Map {
+				switch kind := v.Kind(); kind {
+				case reflect.Map:
 					iter := v.MapRange()
 					for iter.Next() {
 						if b != 0 {
@@ -1372,7 +1372,38 @@ func (vm *VM) run() (Addr, bool) {
 							break
 						}
 					}
-				} else {
+				case reflect.Chan:
+					var u reflect.Value
+					var ok bool
+					for {
+						if done == nil {
+							u, ok = v.Recv()
+						} else {
+							var chosen int
+							cas := reflect.SelectCase{Dir: reflect.SelectRecv, Chan: v}
+							vm.cases = append(vm.cases, cas, vm.env.doneCase)
+							chosen, u, ok = reflect.Select(vm.cases)
+							if chosen == 1 {
+								return vm.stop()
+							}
+							vm.cases = vm.cases[:0]
+						}
+						if !ok {
+							break
+						}
+						if b != 0 {
+							vm.setFromReflectValue(b, u)
+						}
+						vm.pc = bodyAddress
+						addr, breakOut = vm.run()
+						if addr != rangeAddress {
+							return addr, breakOut
+						}
+						if breakOut {
+							break
+						}
+					}
+				default:
 					if kind == reflect.Ptr {
 						v = v.Elem()
 					}

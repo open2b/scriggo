@@ -8,6 +8,21 @@
 
 package main
 
+// test range over channels
+
+func gen(c chan int, lo, hi int) {
+	for i := lo; i <= hi; i++ {
+		c <- i
+	}
+	close(c)
+}
+
+func seq(lo, hi int) chan int {
+	c := make(chan int)
+	go gen(c, lo, hi)
+	return c
+}
+
 const alphabet = "abcdefghijklmnopqrstuvwxyz"
 
 func testblankvars() {
@@ -49,6 +64,25 @@ func testblankvars() {
 	}
 	if r != 2847 {
 		println("for _, v := range: wrong sum", r, "want 2847")
+		panic("fail")
+	}
+}
+
+func testchan() {
+	s := ""
+	for i := range seq('a', 'z') {
+		s += string(i)
+	}
+	if s != alphabet {
+		println("Wanted lowercase alphabet; got", s)
+		panic("fail")
+	}
+	n := 0
+	for range seq('a', 'z') {
+		n++
+	}
+	if n != 26 {
+		println("testchan wrong count", n, "want 26")
 		panic("fail")
 	}
 }
@@ -140,9 +174,7 @@ func testarray2() {
 
 func main() {
 	testblankvars()
-	testslice()
-	testslice1()
-	testslice2()
+	testchan()
 	testarray()
 	testarray1()
 	testarray2()
