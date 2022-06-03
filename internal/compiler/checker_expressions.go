@@ -2182,15 +2182,6 @@ func (tc *typechecker) isCompileConstant(expr ast.Expression) bool {
 		switch tc.builtinCallName(expr) {
 		case "len", "cap":
 			return tc.isCompileConstant(expr.Args[0])
-		case "make":
-			switch len(expr.Args) {
-			case 1:
-				return true
-			case 2:
-				return tc.isCompileConstant(expr.Args[0])
-			case 3:
-				return tc.isCompileConstant(expr.Args[0]) && tc.isCompileConstant(expr.Args[1])
-			}
 		}
 		return false
 	case *ast.CompositeLiteral:
