@@ -24,9 +24,6 @@ L:
 }
 
 func t3() bool {
-	defer func() {
-		recover()
-	}()
 	panic(true)
 	var _ int // ERROR `missing return`
 }
@@ -45,23 +42,54 @@ func t5() bool {
 }
 
 func t6() bool {
+	if true {
+		return true
+		var _ int // ERROR `missing return`
+	} else {
+		return false
+		var _ int // ERROR `missing return`
+	}
+	var _ int // ERROR `missing return`
+}
+
+func t7() bool {
+	if true {
+		return true
+		var _ int // ERROR `missing return`
+	} else if false {
+		return false
+		var _ int // ERROR `missing return`
+	} else {
+		return true
+		var _ int // ERROR `missing return`
+	}
+	var _ int // ERROR `missing return`
+}
+
+func t8() bool {
+	return true
+	if true { return true } // ERROR `missing return`
+	if true { return true } else if false { return false }  // ERROR `missing return`
+}
+
+func t9() bool {
 	for {
 		break // ERROR `missing return`
 	}
 	var _ int // ERROR `missing return`
 }
 
-func t7() bool {
+func t10() bool {
 	return true
 	for false { } // ERROR `missing return`
 }
 
-func t8() bool {
+func t11() bool {
 	return true
 	for range "" { } // ERROR `missing return`
 }
 
-func t9() bool {
+func t12() bool {
 	for i := 0; ; i++ {
 		if i > 0 {
 			break // ERROR `missing return`
@@ -72,7 +100,7 @@ func t9() bool {
 	var _ int // ERROR `missing return`
 }
 
-func t10() bool {
+func t13() bool {
 	var i int
 	switch i {
 	case 0:
@@ -92,12 +120,12 @@ func t10() bool {
 	var _ int // ERROR `missing return`
 }
 
-func t11() bool {
+func t14() bool {
 	return true
 	switch { } // ERROR `missing return`
 }
 
-func t12() bool {
+func t15() bool {
 	ch := make(chan bool, 1)
 	select {
 	case ch <- true:
@@ -108,7 +136,7 @@ func t12() bool {
 	var _ int // ERROR `missing return`
 }
 
-func t13() bool {
+func t16() bool {
 	ch := make(chan bool)
 	select {
 	case ch <- true:
@@ -121,14 +149,14 @@ func t13() bool {
 	var _ int // ERROR `missing return`
 }
 
-func t14() bool {
+func t17() bool {
 	goto L
 L:
 	return true
 	var _ int // ERROR `missing return`
 }
 
-func t15() bool {
+func t18() bool {
 	return true
 	goto L; L: _ = 5 // ERROR `missing return`
 }
