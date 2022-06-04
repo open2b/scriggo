@@ -341,7 +341,6 @@ nodesLoop:
 			node.Body = tc.checkNodesInNewScope(node, node.Body)
 			tc.removeLastAncestor()
 			tc.scopes.Exit()
-			tc.terminating = !tc.hasBreak[node]
 
 		case *ast.Assignment:
 			tc.checkGenericAssignmentNode(node)
@@ -431,6 +430,7 @@ nodesLoop:
 			if outOfPlace {
 				panic(tc.errorf(node, "fallthrough statement out of place"))
 			}
+			tc.terminating = true
 
 		case *ast.Return:
 			assign := tc.checkReturn(node)
@@ -477,8 +477,7 @@ nodesLoop:
 				}
 			}
 			// Check the cases.
-			terminating := true
-			hasFallthrough := false
+			terminating := len(node.Cases) > 0
 			positionOf := map[interface{}]*ast.Position{}
 			var positionOfDefault *ast.Position
 			for _, cas := range node.Cases {
@@ -533,10 +532,7 @@ nodesLoop:
 				cas.Body = tc.checkNodes(cas.Body)
 				tc.removeLastAncestor()
 				tc.scopes.Exit()
-				if !hasFallthrough && len(cas.Body) > 0 {
-					_, hasFallthrough = cas.Body[len(cas.Body)-1].(*ast.Fallthrough)
-				}
-				terminating = terminating && (tc.terminating || hasFallthrough)
+				terminating = terminating && tc.terminating
 			}
 			tc.removeLastAncestor()
 			tc.scopes.Exit()
@@ -850,6 +846,7 @@ nodesLoop:
 
 		case *ast.Goto:
 			tc.scopes.UseLabel("goto", node.Label)
+			tc.terminating = true
 
 		case *ast.Label:
 			tc.scopes.DeclareLabel(node)
