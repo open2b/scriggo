@@ -36,10 +36,8 @@ type emitter struct {
 	// isTemplate reports whether the emitter is currently emitting a template.
 	isTemplate bool
 
-	// rangeLabels is a list of current active Ranges. First element is the
-	// Range address, second refers to the first instruction outside Range's
-	// body.
-	rangeLabels [][2]label
+	// rangeLabels contains the addresses of the current active Range instructions.
+	rangeLabels []label
 
 	// breakable is true if emitting a "breakable" statement (except ForRange,
 	// which implements his own "breaking" system).

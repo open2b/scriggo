@@ -37,8 +37,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				if node.Label != nil {
 					panic(internalError("not implemented"))
 				}
-				em.fb.emitBreak(em.rangeLabels[len(em.rangeLabels)-1][0])
-				em.fb.emitGoto(em.rangeLabels[len(em.rangeLabels)-1][1])
+				em.fb.emitBreak(em.rangeLabels[len(em.rangeLabels)-1])
 			}
 
 		case *ast.Comment:
@@ -51,7 +50,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			if node.Label != nil {
 				panic(internalError("not implemented"))
 			}
-			forHead := em.rangeLabels[len(em.rangeLabels)-1][0]
+			forHead := em.rangeLabels[len(em.rangeLabels)-1]
 			if em.inForRange {
 				em.fb.emitContinue(forHead)
 			} else {
@@ -119,7 +118,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				em.emitCondition(node.Condition)
 				endForLabel := em.fb.newLabel()
 				em.fb.emitGoto(endForLabel)
-				em.rangeLabels = append(em.rangeLabels, [2]label{forPost, endForLabel})
+				em.rangeLabels = append(em.rangeLabels, forPost)
 				em.emitNodes(node.Body)
 				em.rangeLabels = em.rangeLabels[:len(em.rangeLabels)-1]
 				em.fb.setLabelAddr(forPost)
@@ -132,7 +131,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				forLabel := em.fb.newLabel()
 				em.fb.setLabelAddr(forLabel)
 				endForLabel := em.fb.newLabel()
-				em.rangeLabels = append(em.rangeLabels, [2]label{forLabel, endForLabel})
+				em.rangeLabels = append(em.rangeLabels, forLabel)
 				em.emitNodes(node.Body)
 				if node.Post != nil {
 					em.emitNodes([]ast.Node{node.Post})
@@ -1076,7 +1075,7 @@ func (em *emitter) emitForRange(node *ast.ForRange) {
 	rangeLabel := em.fb.newLabel()
 	em.fb.setLabelAddr(rangeLabel)
 	endRange := em.fb.newLabel()
-	em.rangeLabels = append(em.rangeLabels, [2]label{rangeLabel, endRange})
+	em.rangeLabels = append(em.rangeLabels, rangeLabel)
 	em.fb.emitRange(kExpr, exprReg, index, elem, exprType.Kind())
 	em.fb.emitGoto(endRange)
 	em.fb.enterScope()
