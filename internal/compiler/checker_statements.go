@@ -281,7 +281,7 @@ nodesLoop:
 			}
 			assignment := ast.NewAssignment(aPos, lhs, ast.AssignmentDeclaration, []ast.Expression{expr})
 			assignment.End = node.Expr.Pos().End
-			nodes[i] = ast.NewForRange(node.Pos(), assignment, node.Body)
+			nodes[i] = ast.NewForRange(node.Pos(), assignment, node.Body, node.Else)
 			continue
 
 		case *ast.ForRange:
@@ -341,6 +341,9 @@ nodesLoop:
 			node.Body = tc.checkNodesInNewScope(node, node.Body)
 			tc.removeLastAncestor()
 			tc.scopes.Exit()
+			if node.Else != nil {
+				node.Else.Nodes = tc.checkNodesInNewScope(node.Else, node.Else.Nodes)
+			}
 
 		case *ast.Assignment:
 			tc.checkGenericAssignmentNode(node)

@@ -57,7 +57,7 @@ var goContextTreeTests = []struct {
 		ast.NewForRange(p(1, 1, 0, 25), ast.NewAssignment(p(1, 5, 4, 18), []ast.Expression{
 			ast.NewIdentifier(p(1, 5, 4, 4), "_"), ast.NewIdentifier(p(1, 8, 7, 7), "v")},
 			ast.AssignmentDeclaration, []ast.Expression{ast.NewIdentifier(p(1, 19, 18, 18), "e")}),
-			[]ast.Node{ast.NewIdentifier(p(2, 2, 23, 23), "b")})}, ast.FormatText)},
+			[]ast.Node{ast.NewIdentifier(p(2, 2, 23, 23), "b")}, nil)}, ast.FormatText)},
 	{"for _ = range []int(nil) { }", ast.NewTree("", []ast.Node{
 		ast.NewForRange(p(1, 1, 0, 27),
 			ast.NewAssignment(p(1, 5, 4, 23),
@@ -67,7 +67,7 @@ var goContextTreeTests = []struct {
 					ast.NewCall(p(1, 20, 14, 23),
 						ast.NewSliceType(p(1, 15, 14, 18), ast.NewIdentifier(p(1, 17, 16, 18), "int")),
 						[]ast.Expression{ast.NewIdentifier(p(1, 21, 20, 22), "nil")},
-						false)}), nil)}, ast.FormatText)},
+						false)}), nil, nil)}, ast.FormatText)},
 	{"switch {\n\tdefault:\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewSwitch(p(1, 1, 0, 19), nil, nil, nil, []*ast.Case{
 			ast.NewCase(p(2, 2, 10, 16), nil, nil)})}, ast.FormatText)},
@@ -101,7 +101,7 @@ var goContextTreeTests = []struct {
 								{nil, ast.NewBasicLiteral(p(1, 25, 24, 24), ast.IntLiteral, "1")},
 								{nil, ast.NewBasicLiteral(p(1, 27, 26, 26), ast.IntLiteral, "2")},
 								{nil, ast.NewBasicLiteral(p(1, 29, 28, 28), ast.IntLiteral, "3")},
-							})}), nil)},
+							})}), nil, nil)},
 			ast.FormatText)},
 	{"var a int",
 		ast.NewTree("", []ast.Node{
@@ -805,7 +805,7 @@ var treeTests = []struct {
 				p(1, 4, 3, 34),
 				ast.NewIdentifier(p(1, 8, 7, 13), "article"),
 				ast.NewIdentifier(p(1, 19, 18, 25), "articles"),
-				nil),
+				nil, nil),
 		}, ast.FormatHTML)},
 	{"{% for range articles %}{% end %}",
 		ast.NewTree("", []ast.Node{
@@ -813,7 +813,7 @@ var treeTests = []struct {
 				p(1, 4, 3, 29),
 				ast.NewAssignment(p(1, 8, 7, 20), nil,
 					ast.AssignmentSimple, []ast.Expression{ast.NewIdentifier(p(1, 14, 13, 20), "articles")}),
-				nil),
+				nil, nil),
 		}, ast.FormatHTML)},
 	{"{% for i := range articles %}{% end %}",
 		ast.NewTree("", []ast.Node{
@@ -822,7 +822,7 @@ var treeTests = []struct {
 				ast.NewAssignment(p(1, 8, 7, 25),
 					[]ast.Expression{ast.NewIdentifier(p(1, 8, 7, 7), "i")},
 					ast.AssignmentDeclaration, []ast.Expression{ast.NewIdentifier(p(1, 19, 18, 25), "articles")}),
-				nil),
+				nil, nil),
 		}, ast.FormatHTML)},
 	{"{% for i, article := range articles %}{% end %}",
 		ast.NewTree("", []ast.Node{
@@ -832,7 +832,7 @@ var treeTests = []struct {
 					ast.NewIdentifier(p(1, 8, 7, 7), "i"),
 					ast.NewIdentifier(p(1, 11, 10, 16), "article")},
 					ast.AssignmentDeclaration, []ast.Expression{ast.NewIdentifier(p(1, 28, 27, 34), "articles")}),
-				nil),
+				nil, nil),
 		}, ast.FormatHTML)},
 	{"{% for article in articles %}\n<div>{{ article.title }}</div>\n{% end %}",
 		ast.NewTree("articles.txt", []ast.Node{
@@ -853,8 +853,7 @@ var treeTests = []struct {
 								"title")},
 						ast.ContextHTML),
 					ast.NewText(p(2, 25, 54, 60), []byte("</div>\n"), ast.Cut{}),
-				},
-			),
+				}, nil),
 		}, ast.FormatHTML)},
 	{"{% for _, i := range []int{1,2,3} %}{% end %}",
 		ast.NewTree("", []ast.Node{
@@ -875,7 +874,7 @@ var treeTests = []struct {
 								{nil, ast.NewBasicLiteral(p(1, 28, 27, 27), ast.IntLiteral, "1")},
 								{nil, ast.NewBasicLiteral(p(1, 30, 29, 29), ast.IntLiteral, "2")},
 								{nil, ast.NewBasicLiteral(p(1, 32, 31, 31), ast.IntLiteral, "3")},
-							})}), nil)}, ast.FormatHTML)},
+							})}), nil, nil)}, ast.FormatHTML)},
 	{"{% switch x %}{% case 1 %}{% end %}",
 		ast.NewTree("", []ast.Node{
 			ast.NewSwitch(
@@ -1199,17 +1198,17 @@ var treeTests = []struct {
 		ast.NewForIn(p(1, 4, 3, 26),
 			ast.NewIdentifier(p(1, 8, 7, 7), "v"),
 			ast.NewIdentifier(p(1, 13, 12, 12), "e"),
-			[]ast.Node{ast.NewText(p(1, 17, 16, 16), []byte("b"), ast.Cut{})})}, ast.FormatHTML)},
+			[]ast.Node{ast.NewText(p(1, 17, 16, 16), []byte("b"), ast.Cut{})}, nil)}, ast.FormatHTML)},
 	{"{% for v in e %}{% break %}{% end %}", ast.NewTree("", []ast.Node{
 		ast.NewForIn(p(1, 4, 3, 32),
 			ast.NewIdentifier(p(1, 8, 7, 7), "v"),
 			ast.NewIdentifier(p(1, 13, 12, 12), "e"),
-			[]ast.Node{ast.NewBreak(p(1, 20, 19, 23), nil)})}, ast.FormatHTML)},
+			[]ast.Node{ast.NewBreak(p(1, 20, 19, 23), nil)}, nil)}, ast.FormatHTML)},
 	{"{% for v in e %}{% continue %}{% end %}", ast.NewTree("", []ast.Node{
 		ast.NewForIn(p(1, 4, 3, 35),
 			ast.NewIdentifier(p(1, 8, 7, 7), "v"),
 			ast.NewIdentifier(p(1, 13, 12, 12), "e"),
-			[]ast.Node{ast.NewContinue(p(1, 20, 19, 26), nil)})}, ast.FormatHTML)},
+			[]ast.Node{ast.NewContinue(p(1, 20, 19, 26), nil)}, nil)}, ast.FormatHTML)},
 	{"{% if a %}b{% end if %}", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 4, 3, 19), nil, ast.NewIdentifier(p(1, 7, 6, 6), "a"), ast.NewBlock(nil, []ast.Node{ast.NewText(p(1, 11, 10, 10), []byte("b"), ast.Cut{})}), nil)}, ast.FormatHTML)},
 	{"{% if a %}b{% else %}c{% end %}", ast.NewTree("", []ast.Node{
@@ -2137,6 +2136,10 @@ func equals(n1, n2 ast.Node, p int) error {
 			if err != nil {
 				return err
 			}
+		}
+		err = equals(nn1.Else, nn2.Else, p)
+		if err != nil {
+			return err
 		}
 
 	case *ast.ForRange:

@@ -628,7 +628,7 @@ LABEL:
 			assignment.Rhs = []ast.Expression{expr}
 			assignment.End = expr.Pos().End
 			pos.End = tok.pos.End
-			node = ast.NewForRange(pos, assignment, nil)
+			node = ast.NewForRange(pos, assignment, nil, nil)
 		case tokenIn:
 			// Parse: {% for id in expr %}
 			if init == nil {
@@ -643,7 +643,7 @@ LABEL:
 			if expr == nil {
 				panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 			}
-			node = ast.NewForIn(pos, ident, expr, nil)
+			node = ast.NewForIn(pos, ident, expr, nil, nil)
 		default:
 			panic(syntaxError(tok.pos, "unexpected %s, expecting expression", tok))
 		}
@@ -840,6 +840,34 @@ LABEL:
 
 	// else
 	case tokenElse:
+		if n, ok := p.parent().(*ast.ForIn); ok {
+			p.cutSpacesToken = true
+			tok = p.next()
+			if end == tokenEndStatement && tok.typ != tokenEndStatement || end != tokenEndStatement && tok.typ != tokenLeftBrace {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting %s", tok.typ, end))
+			}
+			var blockPos *ast.Position
+			if end != tokenEndStatement {
+				blockPos = tok.pos
+			}
+			n.Else = ast.NewBlock(blockPos, nil)
+			p.addToAncestors(n.Else)
+			return p.next()
+		}
+		if n, ok := p.parent().(*ast.ForRange); ok {
+			p.cutSpacesToken = true
+			tok = p.next()
+			if end == tokenEndStatement && tok.typ != tokenEndStatement || end != tokenEndStatement && tok.typ != tokenLeftBrace {
+				panic(syntaxError(tok.pos, "unexpected %s, expecting %s", tok.typ, end))
+			}
+			var blockPos *ast.Position
+			if end != tokenEndStatement {
+				blockPos = tok.pos
+			}
+			n.Else = ast.NewBlock(blockPos, nil)
+			p.addToAncestors(n.Else)
+			return p.next()
+		}
 		if end == tokenEndStatement {
 			// Close the "then" block.
 			if _, ok := p.parent().(*ast.Block); !ok {
