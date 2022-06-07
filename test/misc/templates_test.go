@@ -3948,6 +3948,21 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "#!/usr/bin/env scriggo\n#! /usr/bin/scriggo\nba",
 	},
+
+	"For-else -- else not executed": {
+		sources: fstest.Files{
+			"index.txt": `{% var xs = []int{10, 20, 30} %}
+			{% for x in xs %}{{ x }} {% else %}NOT EXPECTED (1){% end for %}`,
+		},
+		expectedOut: "\n\t\t\t10 20 30 ",
+	},
+	"For-else -- else executed": {
+		sources: fstest.Files{
+			"index.txt": `{% var xs = []int{} %}
+			{% for x in xs %}NOT EXPECTED{% else %}i'm the else block{% end for %}`,
+		},
+		expectedOut: "\n\t\t\ti'm the else block",
+	},
 }
 
 var structWithUnexportedFields = &struct {

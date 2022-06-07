@@ -1,0 +1,30 @@
+{# render #}
+
+{% var xs = []int{10, 20, 30} %}
+{% for x in xs %}{{ x }} {% else %}NOT EXPECTED (1){% end for %}
+
+{% xs = []int{} %}
+{% for x in xs %}NOT EXPECTED (2){% else %}expected{% end for %}
+
+{%%
+    var s = []int{40, 50, 60}
+    var f = func() []int {
+        toreturn := s
+        if len(s) > 0 {
+            s = nil
+        }
+        return toreturn
+    }
+%%}
+
+{% for _, v := range f() %}
+    {{ v }}
+{% else %}
+    i'm the else block
+{% end for %}
+
+{% for _, v := range f() %}
+    {{ v }}
+{% else %}
+    i'm the else block
+{% end for %}
