@@ -3963,6 +3963,27 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "\n\t\t\ti'm the else block",
 	},
+	"For-else on string -- else not executed": {
+		sources: fstest.Files{
+			"index.txt": `{% var xs = "this is a string" %}
+			{% for x in xs %}{{ x }} {% else %}NOT EXPECTED (1){% end for %}`,
+		},
+		expectedOut: "\n\t\t\t116 104 105 115 32 105 115 32 97 32 115 116 114 105 110 103 ",
+	},
+	"For-else on string -- else executed": {
+		sources: fstest.Files{
+			"index.txt": `{% var xs = "" %}
+			{% for x in xs %}NOT EXPECTED{% else %}i'm the else block{% end for %}`,
+		},
+		expectedOut: "\n\t\t\ti'm the else block",
+	},
+	"For-else -- else not executed (break)": {
+		sources: fstest.Files{
+			"index.txt": `{% var xs = []int{10, 20, 30} %}
+			{% for x in xs %}{% break %}{% else %}NOT EXPECTED (1){% end for %}`,
+		},
+		expectedOut: "\n\t\t\t",
+	},
 }
 
 var structWithUnexportedFields = &struct {
