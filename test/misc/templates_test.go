@@ -3984,6 +3984,30 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "\n\t\t\t",
 	},
+	// "For-else -- else not executed (multiline statement)": {
+	// 	sources: fstest.Files{
+	// 		"index.txt": `{% var xs = []int{10, 20, 30} %}
+	// 		{%%
+	// 			for x in xs {
+	// 				show x
+	// 			} else {
+	// 				show "NOT EXPECTED (1)"
+	// 			}
+	// 		%%}`,
+	// 	},
+	// 	expectedOut: "\n\t\t\t10 20 30 ",
+	// },
+	// "For-else -- else executed (multiline statement)": {
+	// 	sources: fstest.Files{
+	// 		"index.txt": `{% var xs = []int{} %}
+	// 		{%% for x in xs {
+	// 			show "NOT EXPECTED"
+	// 		} else {
+	// 			show "i'm the else block"
+	// 		}`,
+	// 	},
+	// 	expectedOut: "\n\t\t\ti'm the else block",
+	// },
 }
 
 var structWithUnexportedFields = &struct {
