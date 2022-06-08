@@ -556,6 +556,7 @@ var checkerTemplateStmts = []struct {
 	{src: `{%% for a in nil { } %%}`, expected: `cannot range over nil`},
 	{src: `{%% for a in _ { } %%}`, expected: `cannot use _ as value`},
 	{src: `{%% for a in make(chan<- int) { } %%}`, expected: `invalid operation: range make(chan<- int) (receive from send-only type chan<- int)`},
+	// {src: `{%% for a in ([]int{1,2,3}) { } else { } %%}`, expected: ok},
 
 	// 'show' statements.
 	{src: `{% show "a" %}`, expected: ok},
