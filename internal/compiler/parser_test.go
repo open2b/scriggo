@@ -875,6 +875,15 @@ var treeTests = []struct {
 								{nil, ast.NewBasicLiteral(p(1, 30, 29, 29), ast.IntLiteral, "2")},
 								{nil, ast.NewBasicLiteral(p(1, 32, 31, 31), ast.IntLiteral, "3")},
 							})}), nil, nil)}, ast.FormatHTML)},
+	{"{% for article in articles %}{% else %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewForIn(
+				p(1, 4, 3, 44),
+				ast.NewIdentifier(p(1, 8, 7, 13), "article"),
+				ast.NewIdentifier(p(1, 19, 18, 25), "articles"),
+				nil,
+				ast.NewBlock(nil, nil)),
+		}, ast.FormatHTML)},
 	{"{% switch x %}{% case 1 %}{% end %}",
 		ast.NewTree("", []ast.Node{
 			ast.NewSwitch(
