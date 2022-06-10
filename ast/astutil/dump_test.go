@@ -19,6 +19,7 @@ func ExampleDump() {
 		ast.FormatHTML: {
 			"{{ (4 + 5) * value() }}",
 			"{% var x = 10 %}",
+			"{% if true %} some text, blah blah {% end %}",
 			"{% for i in x %} some text, blah blah blah {% end %}",
 			"{% for i in x %} some very very very very very very very very long text, blah blah blah {% end %}",
 			`{{ render "ciao.txt" }}`,
@@ -69,6 +70,12 @@ func ExampleDump() {
 	// │    Var (1:4) var x = 10
 	// │    │    Identifier (1:8) x
 	// │    │    BasicLiteral (1:12) 10
+	//
+	// Tree: "":1:1
+	// │    If (1:4) true
+	// │    │    Identifier (1:7) true
+	// │    │    Block (-) block statement
+	// │    │    │    Text (1:14) " some text, blah blah "
 	//
 	// Tree: "":1:1
 	// │    ForIn (1:4) 1:4

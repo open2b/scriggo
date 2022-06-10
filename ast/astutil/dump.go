@@ -97,7 +97,10 @@ func (d *dumper) Visit(node ast.Node) Visitor {
 	// Determines the type by removing the prefix "*ast."
 	typeStr := fmt.Sprintf("%T", node)[5:]
 
-	posStr := node.Pos().String()
+	posStr := "-"
+	if pos := node.Pos(); pos != nil {
+		posStr = pos.String()
+	}
 
 	_, err := fmt.Fprintf(d.output, "%v (%v) %v\n", typeStr, posStr, text)
 	if err != nil {
