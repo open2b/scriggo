@@ -493,6 +493,11 @@ func NewBlock(pos *Position, nodes []Node) *Block {
 	return &Block{pos, nodes}
 }
 
+// String returns the string representation of n.
+func (n *Block) String() string {
+	return "block statement"
+}
+
 // Break node represents a "break" statement.
 type Break struct {
 	*Position             // position in the source.
