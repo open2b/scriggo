@@ -812,35 +812,53 @@ LABEL:
 		}
 		bracesEnd := tok.pos.End
 		p.parent().Pos().End = bracesEnd
-		p.removeLastAncestor()
 		tok = p.next()
-		switch tok.typ {
-		case tokenElse:
-		case tokenSemicolon:
-			tok = p.next()
-			fallthrough
-		case tokenRightBrace:
-			for {
-				if n, ok := p.parent().(*ast.If); ok {
-					n.Pos().End = bracesEnd
-					p.removeLastAncestor()
-				} else {
-					return tok
+		if tok.typ != tokenElse {
+			n := p.parent()
+			p.removeLastAncestor()
+			switch tok.typ {
+			case tokenSemicolon:
+				tok = p.next()
+				fallthrough
+			case tokenRightBrace:
+				switch nn := p.parent().(type) {
+				case *ast.ForIn:
+					if nn.Else == n {
+						n.Pos().End = bracesEnd
+						p.removeLastAncestor()
+					}
+				case *ast.ForRange:
+					if nn.Else == n {
+						n.Pos().End = bracesEnd
+						p.removeLastAncestor()
+					}
+				case *ast.If:
+					for {
+						if nn, ok := p.parent().(*ast.If); ok {
+							nn.Pos().End = bracesEnd
+							p.removeLastAncestor()
+						} else {
+							break
+						}
+					}
 				}
+			case tokenRightBraces, tokenEndStatement:
+			case tokenEOF:
+				// TODO(marco): check if it is correct.
+				tok = p.next()
+			default:
+				panic(syntaxError(tok.pos, "unexpected %s at end of statement", tok))
 			}
-		case tokenRightBraces, tokenEndStatement:
 			return tok
-		case tokenEOF:
-			// TODO(marco): check if it is correct.
-			return p.next()
-		default:
-			panic(syntaxError(tok.pos, "unexpected %s at end of statement", tok))
 		}
 		fallthrough
 
 	// else
 	case tokenElse:
 		if n, ok := p.parent().(*ast.ForIn); ok {
+			if end == tokenEOF {
+				panic(syntaxError(tok.pos, "unexpected else at end of statement"))
+			}
 			p.cutSpacesToken = true
 			tok = p.next()
 			if end == tokenEndStatement && tok.typ != tokenEndStatement || end != tokenEndStatement && tok.typ != tokenLeftBrace {
@@ -855,6 +873,9 @@ LABEL:
 			return p.next()
 		}
 		if n, ok := p.parent().(*ast.ForRange); ok {
+			if end == tokenEOF {
+				panic(syntaxError(tok.pos, "unexpected else at end of statement"))
+			}
 			p.cutSpacesToken = true
 			tok = p.next()
 			if end == tokenEndStatement && tok.typ != tokenEndStatement || end != tokenEndStatement && tok.typ != tokenLeftBrace {
@@ -868,13 +889,11 @@ LABEL:
 			p.addToAncestors(n.Else)
 			return p.next()
 		}
-		if end == tokenEndStatement {
-			// Close the "then" block.
-			if _, ok := p.parent().(*ast.Block); !ok {
-				panic(syntaxError(tok.pos, "unexpected else"))
-			}
-			p.removeLastAncestor()
+		// Close the "then" block.
+		if _, ok := p.parent().(*ast.Block); !ok {
+			panic(syntaxError(tok.pos, "unexpected else"))
 		}
+		p.removeLastAncestor()
 		if _, ok := p.parent().(*ast.If); !ok {
 			panic(syntaxError(tok.pos, "unexpected else at end of statement"))
 		}
