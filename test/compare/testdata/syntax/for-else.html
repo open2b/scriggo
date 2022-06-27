@@ -5,6 +5,7 @@
 {% for a := range "" %} {% else %} {% end %}
 {% for a in "" %} {% else %} {% end for %}
 {% for %} {% else %} {% end %}                     // ERROR `unexpected else`
+{% for false %} {% else %} {% end %}               // ERROR `unexpected else`
 {% for i := 0; i < 5; i++ %} {% else %} {% end %}  // ERROR `unexpected else`
 {% for a in "" %} {% else %} {% else %} {% end %}  // ERROR `unexpected else at end of statement`
 {% for a in "" %} {% else if %} {% end %}          // ERROR `unexpected if, expecting %}`
