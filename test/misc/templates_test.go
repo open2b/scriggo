@@ -3948,6 +3948,95 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "#!/usr/bin/env scriggo\n#! /usr/bin/scriggo\nba",
 	},
+
+	"For-else -- else not executed": {
+		sources: fstest.Files{
+			"index.txt": `{% var xs = []int{10, 20, 30} %}
+			{% for x in xs %}{{ x }} {% else %}NOT EXPECTED (1){% end for %}`,
+		},
+		expectedOut: "\n\t\t\t10 20 30 ",
+	},
+	"For-else -- else executed": {
+		sources: fstest.Files{
+			"index.txt": `{% var xs = []int{} %}
+			{% for x in xs %}NOT EXPECTED{% else %}i'm the else block{% end for %}`,
+		},
+		expectedOut: "\n\t\t\ti'm the else block",
+	},
+	"For-else on string -- else not executed": {
+		sources: fstest.Files{
+			"index.txt": `{% var xs = "this is a string" %}
+			{% for x in xs %}{{ x }} {% else %}NOT EXPECTED (1){% end for %}`,
+		},
+		expectedOut: "\n\t\t\t116 104 105 115 32 105 115 32 97 32 115 116 114 105 110 103 ",
+	},
+	"For-else on string -- else executed": {
+		sources: fstest.Files{
+			"index.txt": `{% var xs = "" %}
+			{% for x in xs %}NOT EXPECTED{% else %}i'm the else block{% end for %}`,
+		},
+		expectedOut: "\n\t\t\ti'm the else block",
+	},
+	"For-else -- else not executed (break)": {
+		sources: fstest.Files{
+			"index.txt": `{% var xs = []int{10, 20, 30} %}
+			{% for x in xs %}{% break %}{% else %}NOT EXPECTED (1){% end for %}`,
+		},
+		expectedOut: "\n\t\t\t",
+	},
+	"For-else -- else not executed (multiline statement)": {
+		sources: fstest.Files{
+			"index.txt": `{% var xs = []int{10, 20, 30} %}
+			{%%
+				for x in xs {
+					show x, " "
+				} else {
+					show "NOT EXPECTED (1)"
+				}
+			%%}`,
+		},
+		expectedOut: "\n\t\t\t10 20 30 ",
+	},
+	"For-else -- else executed (multiline statement)": {
+		sources: fstest.Files{
+			"index.txt": `{% var xs = []int{} %}
+			{%% for x in xs {
+				show "NOT EXPECTED"
+			} else {
+				show "i'm the else block"
+			} %%}`,
+		},
+		expectedOut: "\n\t\t\ti'm the else block",
+	},
+	"For-else channel -- else not executed": {
+		sources: fstest.Files{
+			"index.txt": `{%%
+            var ch = make(chan int, 1)
+            ch <- 5
+			close(ch)
+            for x in ch {
+                show x
+			} else {
+				show "NOT EXPECTED"
+			}
+            %%}`,
+		},
+		expectedOut: "5",
+	},
+	"For-else channel -- else executed": {
+		sources: fstest.Files{
+			"index.txt": `{%%
+            var ch = make(chan int)
+            close(ch)
+            for x in ch {
+                show "NOT EXPECTED"
+			} else {
+				show "i'm the else block"
+			}
+            %%}`,
+		},
+		expectedOut: "i'm the else block",
+	},
 }
 
 var structWithUnexportedFields = &struct {

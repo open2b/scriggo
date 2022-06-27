@@ -118,7 +118,11 @@ func CloneNode(node ast.Node) ast.Node {
 		for i, n2 := range n.Body {
 			body[i] = CloneNode(n2)
 		}
-		return ast.NewForIn(ClonePosition(n.Position), ident, expr, body)
+		var els *ast.Block
+		if n.Else != nil {
+			els = CloneNode(n.Else).(*ast.Block)
+		}
+		return ast.NewForIn(ClonePosition(n.Position), ident, expr, body, els)
 
 	case *ast.ForRange:
 		var body = make([]ast.Node, len(n.Body))
@@ -126,7 +130,11 @@ func CloneNode(node ast.Node) ast.Node {
 			body[i] = CloneNode(n2)
 		}
 		assignment := CloneNode(n.Assignment).(*ast.Assignment)
-		return ast.NewForRange(ClonePosition(n.Position), assignment, body)
+		var els *ast.Block
+		if n.Else != nil {
+			els = CloneNode(n.Else).(*ast.Block)
+		}
+		return ast.NewForRange(ClonePosition(n.Position), assignment, body, els)
 
 	case *ast.Func:
 		var ident *ast.Identifier

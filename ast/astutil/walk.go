@@ -134,6 +134,9 @@ func Walk(v Visitor, node ast.Node) {
 		for _, n := range n.Body {
 			Walk(v, n)
 		}
+		if n.Else != nil {
+			Walk(v, n.Else)
+		}
 
 	case *ast.ForRange:
 		if n.Assignment != nil {
@@ -141,6 +144,9 @@ func Walk(v Visitor, node ast.Node) {
 		}
 		for _, n := range n.Body {
 			Walk(v, n)
+		}
+		if n.Else != nil {
+			Walk(v, n.Else)
 		}
 
 	case *ast.Func:

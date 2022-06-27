@@ -1095,4 +1095,14 @@ func (em *emitter) emitForRange(node *ast.ForRange) {
 	em.fb.exitScope()
 	em.inForRange = inForRange
 
+	if node.Else != nil {
+		endForLabel := em.fb.newLabel()
+		em.fb.emitIf(false, 0, runtime.ConditionNotOK, 0, reflect.Interface, nil)
+		em.fb.emitGoto(endForLabel)
+		em.fb.enterScope()
+		em.emitNodes(node.Else.Nodes)
+		em.fb.exitScope()
+		em.fb.setLabelAddr(endForLabel)
+	}
+
 }

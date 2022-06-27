@@ -802,14 +802,15 @@ type ForIn struct {
 	Ident     *Identifier // identifier.
 	Expr      Expression  // range expression.
 	Body      []Node      // nodes of the body.
+	Else      *Block      // nodes to run if the body is not executed.
 }
 
 // NewForIn represents a new ForIn node.
-func NewForIn(pos *Position, ident *Identifier, expr Expression, body []Node) *ForIn {
+func NewForIn(pos *Position, ident *Identifier, expr Expression, body []Node, els *Block) *ForIn {
 	if body == nil {
 		body = []Node{}
 	}
-	return &ForIn{pos, ident, expr, body}
+	return &ForIn{pos, ident, expr, body, els}
 }
 
 // ForRange node represents the "for range" statement.
@@ -817,14 +818,15 @@ type ForRange struct {
 	*Position              // position in the source.
 	Assignment *Assignment // assignment.
 	Body       []Node      // nodes of the body.
+	Else       *Block      // nodes to run if the body is not executed.
 }
 
 // NewForRange returns a new ForRange node.
-func NewForRange(pos *Position, assignment *Assignment, body []Node) *ForRange {
+func NewForRange(pos *Position, assignment *Assignment, body []Node, els *Block) *ForRange {
 	if body == nil {
 		body = []Node{}
 	}
-	return &ForRange{pos, assignment, body}
+	return &ForRange{pos, assignment, body, els}
 }
 
 // Func node represents a function declaration or literal.

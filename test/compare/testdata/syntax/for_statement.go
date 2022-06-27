@@ -49,4 +49,8 @@ func main() {
 	for a range []int(nil) {} // ERROR `syntax error: unexpected range, expecting {`
 	for range {} // ERROR `syntax error: unexpected {, expecting expression`
 	for range for {} // ERROR `syntax error: unexpected for, expecting expression`
+	for { } else { } // ERROR `syntax error: unexpected else`
+	for true { _, _ = i, v } else { } // ERROR `syntax error: unexpected else`
+	for i, v := range []int(nil) { _, _ = i, v } else { } // ERROR `syntax error: unexpected else`
+	for i := 0; i < 10; i++ { } else {} // ERROR `syntax error: unexpected else`
 }

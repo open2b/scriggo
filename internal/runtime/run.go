@@ -1176,8 +1176,9 @@ func (vm *VM) run() (Addr, bool) {
 
 		// Range
 		case OpRange:
-			rangeAddress := vm.pc - 1
-			bodyAddress := vm.pc + 1
+			endAddress := vm.pc
+			rangeAddress := endAddress - 1
+			bodyAddress := endAddress + 1
 			v := vm.general(a)
 			switch s := v.Interface().(type) {
 			case []int:
@@ -1424,12 +1425,14 @@ func (vm *VM) run() (Addr, bool) {
 					}
 				}
 			}
-			vm.pc = rangeAddress + 1
+			vm.ok = vm.pc != endAddress
+			vm.pc = endAddress
 
 		// RangeString
 		case OpRangeString, -OpRangeString:
-			rangeAddress := vm.pc - 1
-			bodyAddress := vm.pc + 1
+			endAddress := vm.pc
+			rangeAddress := endAddress - 1
+			bodyAddress := endAddress + 1
 			s := vm.stringk(a, op < 0)
 			for i, e := range s {
 				if b != 0 {
@@ -1447,7 +1450,8 @@ func (vm *VM) run() (Addr, bool) {
 					break
 				}
 			}
-			vm.pc = rangeAddress + 1
+			vm.ok = vm.pc != endAddress
+			vm.pc = endAddress
 
 		// RealImag
 		case OpRealImag, -OpRealImag:
