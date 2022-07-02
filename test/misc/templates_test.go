@@ -4037,6 +4037,17 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "i'm the else block",
 	},
+	"Key selector": {
+		sources: fstest.Files{
+			"index.txt": `{%% 
+			m := map[string]interface{}{"a":6}
+			show m.a
+			m.a = 1
+			show m.a
+            %%}`,
+		},
+		expectedOut: "61",
+	},
 }
 
 var structWithUnexportedFields = &struct {

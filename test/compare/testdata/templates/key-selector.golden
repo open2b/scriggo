@@ -1,0 +1,7 @@
+m.c = 9
+m.d = 1
+n.c = ab
+n.d.x.y = true
+n.d.x.y.(T1).a = 12
+n.d.x.y.(*T1).a = 13
+n.d.x.y.(T2).a.b = false

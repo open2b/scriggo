@@ -752,6 +752,10 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		if mv, ok := tc.checkMethodValue(t, expr); ok {
 			return mv
 		}
+		// Key selector.
+		if ti, ok := tc.checkKeySelector(t, expr); ok {
+			return ti
+		}
 		// Field selector.
 		return tc.checkFieldSelector(t, expr)
 
@@ -2596,6 +2600,38 @@ func (tc *typechecker) checkMethodValue(t *typeInfo, expr *ast.Selector) (*typeI
 		MethodType: methodValueConcrete,
 		Properties: propertyIsNative | propertyHasValue,
 	}, true
+}
+
+// checkKeySelector checks a key selector.
+func (tc *typechecker) checkKeySelector(t *typeInfo, expr *ast.Selector) (*typeInfo, bool) {
+
+	if tc.opts.mod != templateMod {
+		return nil, false
+	}
+
+	var mapExpr ast.Expression
+
+	switch {
+	case t.Type.Kind() == reflect.Map:
+		// Type must be 'map[string]T'.
+		if t.Type.Name() != "" || t.Type.Key() != stringType {
+			panic(tc.errorf(expr, "invalid operation: cannot select %s (type %s does not support key selection)", expr, t.Type))
+		}
+		mapExpr = expr.Expr
+	case t.IsKeySelector() && t.Type == emptyInterfaceType:
+		// Remember to replace 'm.x.y' with 'm.x.(map[string]interface{}).y'.
+		mapExpr = ast.NewTypeAssertion(expr.Pos(), expr.Expr,
+			ast.NewMapType(expr.Pos(), ast.NewIdentifier(expr.Pos(), "string"), ast.NewInterface(expr.Pos())))
+		t = tc.checkExpr(mapExpr)
+	default:
+		return nil, false
+	}
+
+	// Remember to replace 'm.x' with 'm["x"]'.
+	n := ast.NewIndex(expr.Pos(), mapExpr, ast.NewBasicLiteral(expr.Pos(), ast.StringLiteral, "`"+expr.Ident+"`"))
+	tc.checkExpr(n)
+
+	return &typeInfo{Type: t.Type.Elem(), Properties: propertyKeySelector, replacement: n}, true
 }
 
 // checkFieldSelector checks a field selector.

@@ -53,7 +53,7 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 		} else {
 			lh = tc.checkExpr(lhExpr)
 		}
-		tc.checkAssignTo(lh, lhExpr)
+		node.Lhs[i] = tc.checkAssignTo(lh, lhExpr)
 		lhs[i] = lh
 	}
 
@@ -107,7 +107,7 @@ func (tc *typechecker) checkAssignmentOperation(node *ast.Assignment) {
 	lh := tc.checkExpr(node.Lhs[0])
 	rh := tc.checkExpr(node.Rhs[0])
 
-	tc.checkAssignTo(lh, node.Lhs[0])
+	node.Lhs[0] = tc.checkAssignTo(lh, node.Lhs[0])
 
 	op := operatorFromAssignmentType(node.Type)
 	_, err := tc.binaryOp(node.Lhs[0], op, node.Rhs[0])
@@ -254,7 +254,7 @@ func (tc *typechecker) checkIncDecStatement(node *ast.Assignment) {
 	}
 
 	lh := tc.checkExpr(node.Lhs[0])
-	tc.checkAssignTo(lh, node.Lhs[0])
+	node.Lhs[0] = tc.checkAssignTo(lh, node.Lhs[0])
 
 	if !isNumeric(lh.Type.Kind()) {
 		panic(tc.errorf(node, "invalid operation: %s (non-numeric type %s)", node, lh))
@@ -466,9 +466,13 @@ func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 }
 
 // checkAssignTo checks that it is possible to assign to the expression expr.
-func (tc *typechecker) checkAssignTo(ti *typeInfo, expr ast.Expression) {
+// The caller must replace expr in the AST with the returned expression.
+func (tc *typechecker) checkAssignTo(ti *typeInfo, expr ast.Expression) ast.Expression {
+	if ti.IsKeySelector() {
+		expr = ti.replacement.(ast.Expression)
+	}
 	if ti.Addressable() && !ti.IsMacroDeclaration() || tc.isMapIndexing(expr) {
-		return
+		return expr
 	}
 	format := "cannot assign to %s"
 	switch e := expr.(type) {
