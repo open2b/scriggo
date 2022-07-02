@@ -49,6 +49,7 @@ var stringToAnyMapTypeInfo = &typeInfo{Type: reflect.MapOf(stringType, emptyInte
 var stringToIntMapTypeInfo = &typeInfo{Type: reflect.MapOf(stringType, intType), Properties: propertyAddressable}
 var intToStringMapTypeInfo = &typeInfo{Type: reflect.MapOf(intType, stringType), Properties: propertyAddressable}
 var intToAnyMapTypeInfo = &typeInfo{Type: reflect.MapOf(intType, emptyInterfaceType), Properties: propertyAddressable}
+var anyToIntMapTypeInfo = &typeInfo{Type: reflect.MapOf(emptyInterfaceType, intType), Properties: propertyAddressable}
 var definedIntToStringMapTypeInfo = &typeInfo{Type: reflect.MapOf(definedIntTypeInfo.Type, stringType), Properties: propertyAddressable}
 
 var stringToStringToIntMapTypeInfo = &typeInfo{Type: reflect.MapOf(stringType, reflect.MapOf(stringType, intType)), Properties: propertyAddressable}
@@ -169,6 +170,7 @@ var checkerTemplateExprs = []struct {
 
 	// key selector
 	{`m.x`, tiInt(), map[string]*typeInfo{"m": stringToIntMapTypeInfo}},
+	{`m.x`, tiInt(), map[string]*typeInfo{"m": anyToIntMapTypeInfo}},
 	{`m.x.y`, tiInt(), map[string]*typeInfo{"m": stringToStringToIntMapTypeInfo}},
 	{`m.x.y`, tiInterface(), map[string]*typeInfo{"m": stringToAnyMapTypeInfo}},
 	{`m.x.y.z`, tiInterface(), map[string]*typeInfo{"m": stringToAnyMapTypeInfo}},
@@ -643,13 +645,18 @@ var checkerTemplateStmts = []struct {
 	// Key selector.
 	{src: `{% m := map[string]int{} %}{% m.x = 5 %}{% m.x += 1 %}{% m.x++ %}{{ m.x + 2 }}`, expected: ok},
 	{src: `{% m := map[string]bool{} %}{% m.nil = true %}{{ m.nil && false }}`, expected: ok},
+	{src: `{% m := map[interface{}]string{} %}{% m.x = "a" %}{{ m.a + "b" }}`, expected: ok},
 	{src: `{% m := map[string]interface{}{} %}{% m.x = 6.89 %}{{ m.x.(float64) - 1.4 }}`, expected: ok},
 	{src: `{% m := map[string]interface{}{} %}{% m.x = map[string]interface{}{} %}{% m.x.y = true %}{{ m.x.y.(bool) }}`, expected: ok},
+	{src: `{% m := map[interface{}]interface{}{} %}{% m.x = map[string]interface{}{} %}{% m.x.y = 'v' %}{{ m.x.y.(rune) }}`, expected: ok},
 	{src: `{% m := map[string]map[string]int{} %}{% m.x = map[string]int{} %}{% m.x.y = 3 %}{% m.x.y += 1 %}{% m.x.y++ %}{{ m.x.y * 2 }}`, expected: ok},
 	{src: `{% m := map[string]map[string]interface{}{} %}{% m.x = map[string]interface{}{} %}{% m.x.y = "a" %}{{ m.x.y.(string) + "b" }}`, expected: ok},
 	{src: `{% m := map[string]int{} %}{% m.x = "a" %}`, expected: `cannot use "a" (type untyped string) as type int in assignment`},
+	{src: `{% m := map[interface{}]int{} %}{% m.x = "a" %}`, expected: `cannot use "a" (type untyped string) as type int in assignment`},
 	{src: `{% m := map[string]int{} %}{% m.x := "a" %}`, expected: `non-name m.x on left side of :=`},
+	{src: `{% m := map[interface{}]int{} %}{% m.x := "a" %}`, expected: `non-name m.x on left side of :=`},
 	{src: `{% m := map[string]int{} %}{{ m.x + "a" }}`, expected: `invalid operation: m.x + "a" (cannot convert "a" (type untyped string) to type int)`},
+	{src: `{% m := map[interface{}]int{} %}{{ m.x + "a" }}`, expected: `invalid operation: m.x + "a" (cannot convert "a" (type untyped string) to type int)`},
 }
 
 func TestCheckerTemplatesStatements(t *testing.T) {

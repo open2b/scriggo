@@ -4044,9 +4044,13 @@ var templateMultiFileCases = map[string]struct {
 			show m.a
 			m.a = 1
 			show m.a
+			n := map[interface{}]interface{}{"a":3,'a':1}
+			show n.a
+			n.a = 2
+			show n.a
             %%}`,
 		},
-		expectedOut: "61",
+		expectedOut: "6132",
 	},
 }
 

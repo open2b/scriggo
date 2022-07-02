@@ -2613,8 +2613,8 @@ func (tc *typechecker) checkKeySelector(t *typeInfo, expr *ast.Selector) (*typeI
 
 	switch {
 	case t.Type.Kind() == reflect.Map:
-		// Type must be 'map[string]T'.
-		if t.Type.Name() != "" || t.Type.Key() != stringType {
+		// Type must be 'map[string]T' or 'map[interface{}]T'.
+		if t.Type.Name() != "" || (t.Type.Key() != stringType && t.Type.Key() != emptyInterfaceType) {
 			panic(tc.errorf(expr, "invalid operation: cannot select %s (type %s does not support key selection)", expr, t.Type))
 		}
 		mapExpr = expr.Expr

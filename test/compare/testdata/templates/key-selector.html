@@ -44,4 +44,11 @@
     n.d.x.y = T2{a: map[string]bool{"b": false}}
     show "n.d.x.y.(T2).a.b = ", n.d.x.y.(T2).a.b, "\n"
 
+    v := map[interface{}]string{}
+    v.a = "a"
+    show "v.a = ", v.a, "\n"
+
+    w := map[interface{}]interface{}{}
+    w.a = true
+    show "w.a = ", w.a, "\n"
 %%}
