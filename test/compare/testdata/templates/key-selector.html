@@ -9,6 +9,7 @@
     m.c += 2
     m.c--
     show "m.c = ", m.c, "\n"
+    show "m.n = ", m.n, "\n"
 
     f := func() map[string]int {
         return m
@@ -22,6 +23,30 @@
     n.b = "b"
     n.c = n.a.(string) + n.b.(string)
     show "n.c = ", n.c, "\n"
+    show "n.n = "
+    if n.n == nil {
+        show "nil\n"
+    }
+
+    n.d = map[string]bool{}
+    n.d.(map[string]bool).x = true
+    show "n.d.x = ", n.d.x.(bool), "\n"
+
+    type T1 struct{
+        a int
+    }
+
+    n.d = map[string]interface{}{"x": map[string]interface{}{"y": T1{a: 12}}}
+    show "n.d.x.y.(T1).a = ", n.d.x.y.(T1).a, "\n"
+
+    n.d = map[string]interface{}{"x": map[string]interface{}{"y": &T1{a: 13}}}
+    show "n.d.x.y.(*T1).a = ", n.d.x.y.(*T1).a, "\n"
+
+    type T2 struct{
+        a map[string]bool
+    }
+    n.d = map[string]interface{}{"x": map[string]interface{}{"y": T2{a: map[string]bool{"b": true}}}}
+    show "n.d.x.y.(T2).a.b = ", n.d.x.y.(T2).a.b, "\n"
 
     v := map[interface{}]string{}
     v.a = "a"

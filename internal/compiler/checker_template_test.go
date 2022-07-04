@@ -650,6 +650,8 @@ var checkerTemplateStmts = []struct {
 	{src: `{% m := map[string]bool{} %}{% m.nil = true %}{{ m.nil && false }}`, expected: ok},
 	{src: `{% m := map[interface{}]string{} %}{% m.x = "a" %}{{ m.a + "b" }}`, expected: ok},
 	{src: `{% m := map[string]interface{}{} %}{% m.x = 6.89 %}{{ m.x.(float64) - 1.4 }}`, expected: ok},
+	{src: `{% m := map[string]interface{}{} %}{% m.x = map[string]interface{}{} %}{% m.x.y = true %}`, expected: `cannot index m.x (map index expression of type interface{})`},
+	{src: `{% m := map[interface{}]interface{}{} %}{% m.x = map[string]interface{}{} %}{% m.x.y = 'v' %}`, expected: `cannot index m.x (map index expression of type interface{})`},
 	{src: `{% m := map[string]map[string]int{} %}{% m.x = map[string]int{} %}{% m.x.y = 3 %}{% m.x.y += 1 %}{% m.x.y++ %}{{ m.x.y * 2 }}`, expected: ok},
 	{src: `{% m := map[string]map[string]interface{}{} %}{% m.x = map[string]interface{}{} %}{% m.x.y = "a" %}{{ m.x.y.(string) + "b" }}`, expected: ok},
 	{src: `{% m := map[string]int{} %}{% m.x = "a" %}`, expected: `cannot use "a" (type untyped string) as type int in assignment`},
