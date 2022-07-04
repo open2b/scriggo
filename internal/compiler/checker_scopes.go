@@ -497,6 +497,7 @@ var universe = map[string]scopeName{
 	"println":    {ti: &typeInfo{Properties: propertyUniverse}},
 	"real":       {ti: &typeInfo{Properties: propertyUniverse}},
 	"recover":    {ti: &typeInfo{Properties: propertyUniverse}},
+	"any":        {ti: &typeInfo{Type: emptyInterfaceType, Alias: "any", Properties: propertyIsType | propertyUniverse}},
 	"byte":       {ti: &typeInfo{Type: uint8Type, Alias: "byte", Properties: propertyIsType | propertyUniverse}},
 	"bool":       {ti: &typeInfo{Type: boolType, Properties: propertyIsType | propertyUniverse}},
 	"complex128": {ti: &typeInfo{Type: complex128Type, Properties: propertyIsType | propertyUniverse}},
