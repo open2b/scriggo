@@ -1063,6 +1063,7 @@ func (vm *VM) run() (Addr, bool) {
 				vm.ok = false
 				vm.setGeneral(c, m)
 			} else {
+				// Type must be 'map[K]E' where K is a string type or the 'interface{}' type and E is any type.
 				if k := t.Key(); t.Name() != "" || k.Kind() != reflect.String && k != emptyInterfaceType {
 					panic(runtimeError("invalid operation: type " + t.String() + " does not support key indexing"))
 				}
