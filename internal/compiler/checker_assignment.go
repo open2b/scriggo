@@ -607,6 +607,14 @@ func (tc *typechecker) rebalancedRightSide(node ast.Node) []ast.Expression {
 			tc.compilation.typeInfos[v1] = &typeInfo{Type: ti.Type}
 			tc.compilation.typeInfos[v2] = untypedBoolTypeInfo
 			return []ast.Expression{v1, v2}
+		case *ast.Selector:
+			if ti := tc.checkExpr(rhExpr); ti.IsKeySelector() {
+				v1 := ast.NewSelector(v.Pos(), v.Expr, v.Ident)
+				v2 := ast.NewSelector(v.Pos(), v.Expr, v.Ident)
+				tc.compilation.typeInfos[v1] = &typeInfo{Type: ti.Type, Properties: ti.Properties, replacement: ti.replacement}
+				tc.compilation.typeInfos[v2] = untypedBoolTypeInfo
+				return []ast.Expression{v1, v2}
+			}
 		case *ast.Index:
 			v1 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			v2 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
