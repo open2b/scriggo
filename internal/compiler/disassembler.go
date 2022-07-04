@@ -601,7 +601,7 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpMethodValue:
 		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
-		s += " " + disassembleOperand(fn, b, reflect.String, k)
+		s += " " + disassembleOperand(fn, b, reflect.String, true)
 		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpMove:
 		switch registerType(a) {
