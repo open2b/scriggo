@@ -154,7 +154,7 @@ type typechecker struct {
 	// terminating reports whether current statement is terminating. In a
 	// context other than ContextGo, the type checker does not check the
 	// termination so the value of terminating is not significant. For
-	// further details see https://golang.org/ref/spec#Terminating_statements.
+	// further details see https://go.dev/ref/spec#Terminating_statements.
 	terminating bool
 
 	// hasBreak reports whether a given statement node has a 'break' that refers

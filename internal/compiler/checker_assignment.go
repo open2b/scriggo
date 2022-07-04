@@ -96,8 +96,8 @@ func (tc *typechecker) checkAssignment(node *ast.Assignment) {
 }
 
 // checkAssignmentOperation type checks an assignment operation x op= y.
-// See https://golang.org/ref/spec#assign_op and
-// https://golang.org/ref/spec#Assignments.
+// See https://go.dev/ref/spec#assign_op and
+// https://go.dev/ref/spec#Assignments.
 func (tc *typechecker) checkAssignmentOperation(node *ast.Assignment) {
 
 	if !(ast.AssignmentAddition <= node.Type && node.Type <= ast.AssignmentRightShift) {

@@ -323,7 +323,7 @@ func _import(path string, flags buildFlags) (err error) {
 	_, err = exec.LookPath("go")
 	if err != nil {
 		return fmt.Errorf("scriggo: \"go\" executable file not found in $PATH\nIf not installed, " +
-			"download and install Go: https://golang.org/dl/\n")
+			"download and install Go: https://go.dev/dl/\n")
 	}
 
 	goos := os.Getenv("GOOS")

@@ -415,7 +415,7 @@ func goldenCompare(testPath string, got []byte) error {
 }
 
 // isBuildConstraints reports whether line is a build contrain, as specified at
-// https://golang.org/pkg/go/build/#hdr-Build_Constraints.
+// https://pkg.go.dev/go/build#hdr-Build_Constraints.
 func isBuildConstraints(line string) bool {
 	line = strings.TrimSpace(line)
 	if !strings.HasPrefix(line, "//") {

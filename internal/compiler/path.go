@@ -14,7 +14,7 @@ import (
 )
 
 // validModulePath reports whether path is a valid module path.
-// See https://golang.org/ref/mod#go-mod-file-ident
+// See https://go.dev/ref/mod#go-mod-file-ident
 func validModulePath(path string) bool {
 	if len(path) == 0 || path[0] == '-' {
 		return false

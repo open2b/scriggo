@@ -374,7 +374,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 }
 
 // isExported reports whether name is exported, according to
-// https://golang.org/ref/spec#Exported_identifiers.
+// https://go.dev/ref/spec#Exported_identifiers.
 // It panics if name is empty.
 func isExported(name string) bool {
 	if c := name[0]; c < utf8.RuneSelf {

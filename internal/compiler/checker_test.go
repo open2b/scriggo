@@ -778,7 +778,7 @@ var checkerStmts = map[string]string{
 	`const a, b`:             `missing value in const declaration`,
 	`const a, b = 5`:         `missing value in const declaration`,
 
-	// Constants - from https://golang.org/ref/spec#Constant_expressions
+	// Constants - from https://go.dev/ref/spec#Constant_expressions
 	`const a = 2 + 3.0`:                      ok,
 	`const b = 15 / 4`:                       ok,
 	`const c = 15 / 4.0`:                     ok,
@@ -1358,24 +1358,24 @@ var checkerStmts = map[string]string{
 	`a := [5]int{1, 2, 3, 4, 5}; var _ []int = a[1:4]`:  ok,
 	`a := [5]int{1, 2, 3, 4, 5}; var _ [3]int = a[1:4]`: `cannot use a[1:4] (type []int) as type [3]int in assignment`,
 
-	// Terminating statements - https://golang.org/ref/spec#Terminating_statements (misc)
+	// Terminating statements - https://go.dev/ref/spec#Terminating_statements (misc)
 	`_ = func() int { a := 2; _ = a                                     }`: missingReturn,
 	`_ = func() int {                                                   }`: missingReturn,
 
-	// Terminating statements - https://golang.org/ref/spec#Terminating_statements (1)
+	// Terminating statements - https://go.dev/ref/spec#Terminating_statements (1)
 	`_ = func() int { return 1                                          }`: ok, // (1)
 
-	// Terminating statements - https://golang.org/ref/spec#Terminating_statements (3)
+	// Terminating statements - https://go.dev/ref/spec#Terminating_statements (3)
 	`_ = func() int { { return 0 }                                      }`: ok,
 	`_ = func() int { { }                                               }`: missingReturn,
 
-	// Terminating statements - https://golang.org/ref/spec#Terminating_statements (4)
+	// Terminating statements - https://go.dev/ref/spec#Terminating_statements (4)
 	`_ = func() int { if true { return 1 } else { return 2 }            }`: ok,
 	`_ = func() int { if true { return 1 } else { }                     }`: missingReturn,
 	`_ = func() int { if true { } else { }                              }`: missingReturn,
 	`_ = func() int { if true { } else { return 1 }                     }`: missingReturn,
 
-	// Terminating statements - https://golang.org/ref/spec#Terminating_statements (5)
+	// Terminating statements - https://go.dev/ref/spec#Terminating_statements (5)
 	`_ = func() int { for { }                                           }`: ok,
 	`_ = func() int { for { break }                                     }`: missingReturn,
 	`_ = func() int { for { { break } }                                 }`: missingReturn,
@@ -1383,7 +1383,7 @@ var checkerStmts = map[string]string{
 	`_ = func() int { for i := 0; i < 10; i++ { }                       }`: missingReturn,
 	`_ = func() int { for { for { break }  }                            }`: ok,
 
-	// Terminating statements - https://golang.org/ref/spec#Terminating_statements (6)
+	// Terminating statements - https://go.dev/ref/spec#Terminating_statements (6)
 	`_ = func() int { switch { case true: return 0; default: return 0 } }`: ok,
 	`_ = func() int { switch { case true: fallthrough; default: }       }`: missingReturn,
 	`_ = func() int { switch { }                                        }`: missingReturn,
@@ -2408,7 +2408,7 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 		T          reflect.Type
 		assignable bool
 	}{
-		// From https://golang.org/ref/spec#Assignability
+		// From https://go.dev/ref/spec#Assignability
 
 		// «x's type is identical to T»
 		{x: tiInt(), T: intType, assignable: true},

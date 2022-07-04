@@ -384,7 +384,7 @@ func LastIndex(s, substr string) int {
 
 // MarshalJSON returns the JSON encoding of v.
 //
-// See https://golang.org/pkg/encoding/json/#Marshal for details.
+// See https://pkg.go.dev/encoding/json#Marshal for details.
 func MarshalJSON(v interface{}) (native.JSON, error) {
 	b, err := json.Marshal(v)
 	if err != nil {
@@ -497,7 +497,7 @@ func ParseInt(s string, base int) (int, error) {
 // the input format. The same interpretation will then be made to the
 // input string.
 //
-// See https://golang.org/pkg/time/#Parse for more details.
+// See https://pkg.go.dev/time#Parse for more details.
 //
 // As a special case, if layout is an empty string, ParseTime parses a time
 // representation using a predefined list of layouts.
@@ -844,7 +844,7 @@ func UnixTime(sec int64, nsec int64) Time {
 // change the value pointed to by v but instantiates a new value and then
 // replaces the value pointed to by v, if no errors occur.
 //
-// See https://golang.org/pkg/encoding/json/#Unmarshal for details.
+// See https://pkg.go.dev/encoding/json#Unmarshal for details.
 func UnmarshalJSON(data string, v interface{}) error {
 	if v == nil {
 		return errors.New("unmarshalJSON: cannot unmarshal into nil")

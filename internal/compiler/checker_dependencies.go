@@ -11,7 +11,7 @@ import (
 )
 
 // Makes a dependency analysis after parsing and before the type checking. See
-// https://golang.org/ref/spec#Package_initialization for further information.
+// https://go.dev/ref/spec#Package_initialization for further information.
 
 // packageDeclsDeps is the result of a dependency analysis performed on a tree.
 type packageDeclsDeps map[*ast.Identifier][]*ast.Identifier
