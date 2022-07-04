@@ -27,7 +27,7 @@ archives:
         dst: ./
         strip_parent: true
 
-    # Here we use the same naming convention used by https://golang.org/dl/.
+    # Here we use the same naming convention used by https://go.dev/dl/.
     name_template: "scriggo{{ .Version }}.{{ .Os }}-{{ .Arch }}"
 
     format_overrides:
