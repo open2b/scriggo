@@ -50,6 +50,7 @@ var stringToIntMapTypeInfo = &typeInfo{Type: reflect.MapOf(stringType, intType),
 var intToStringMapTypeInfo = &typeInfo{Type: reflect.MapOf(intType, stringType), Properties: propertyAddressable}
 var intToAnyMapTypeInfo = &typeInfo{Type: reflect.MapOf(intType, emptyInterfaceType), Properties: propertyAddressable}
 var anyToIntMapTypeInfo = &typeInfo{Type: reflect.MapOf(emptyInterfaceType, intType), Properties: propertyAddressable}
+var definedStringToStringMapTypeInfo = &typeInfo{Type: reflect.MapOf(definedStringTypeInfo.Type, stringType), Properties: propertyAddressable}
 var definedIntToStringMapTypeInfo = &typeInfo{Type: reflect.MapOf(definedIntTypeInfo.Type, stringType), Properties: propertyAddressable}
 
 var stringToStringToIntMapTypeInfo = &typeInfo{Type: reflect.MapOf(stringType, reflect.MapOf(stringType, intType)), Properties: propertyAddressable}
@@ -170,6 +171,7 @@ var checkerTemplateExprs = []struct {
 
 	// key selector
 	{`m.x`, tiInt(), map[string]*typeInfo{"m": stringToIntMapTypeInfo}},
+	{`m.x`, tiString(), map[string]*typeInfo{"m": definedStringToStringMapTypeInfo}},
 	{`m.x`, tiInt(), map[string]*typeInfo{"m": anyToIntMapTypeInfo}},
 	{`m.x.y`, tiInt(), map[string]*typeInfo{"m": stringToStringToIntMapTypeInfo}},
 	{`m.x.y`, tiInterface(), map[string]*typeInfo{"m": stringToAnyMapTypeInfo}},
@@ -644,6 +646,7 @@ var checkerTemplateStmts = []struct {
 
 	// Key selector.
 	{src: `{% m := map[string]int{} %}{% m.x = 5 %}{% m.x += 1 %}{% m.x++ %}{{ m.x + 2 }}`, expected: ok},
+	{src: `{% m := map[DS]int{} %}{% m.x = 5 %}{% m.x += 1 %}{% m.x++ %}{{ m.x + 2 }}`, expected: ok},
 	{src: `{% m := map[string]bool{} %}{% m.nil = true %}{{ m.nil && false }}`, expected: ok},
 	{src: `{% m := map[interface{}]string{} %}{% m.x = "a" %}{{ m.a + "b" }}`, expected: ok},
 	{src: `{% m := map[string]interface{}{} %}{% m.x = 6.89 %}{{ m.x.(float64) - 1.4 }}`, expected: ok},
@@ -675,6 +678,7 @@ func TestCheckerTemplatesStatements(t *testing.T) {
 			"Ui": native.UntypedNumericConst("5"),
 			"Uf": native.UntypedNumericConst("5.0"),
 			"R":  'r',
+			"DS": reflect.TypeOf(definedString("")),
 		},
 	}
 	for _, cas := range checkerTemplateStmts {

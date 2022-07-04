@@ -1063,7 +1063,7 @@ func (vm *VM) run() (Addr, bool) {
 				vm.ok = false
 				vm.setGeneral(c, m)
 			} else {
-				if t.Name() != "" || (t.Key() != stringType && t.Key() != emptyInterfaceType) {
+				if k := t.Key(); t.Name() != "" || k.Kind() != reflect.String && k != emptyInterfaceType {
 					panic(runtimeError("invalid operation: type " + t.String() + " does not support key indexing"))
 				}
 				k := reflect.ValueOf(vm.stringk(b, op < 0))

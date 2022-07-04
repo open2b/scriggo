@@ -30,4 +30,9 @@
     w := map[interface{}]interface{}{}
     w.a = true
     show "w.a = ", w.a, "\n"
+
+    type S string
+    s := map[S]int{}
+    s.a = 5
+    show "s.a = ", s.a, "\n"
 %%}
