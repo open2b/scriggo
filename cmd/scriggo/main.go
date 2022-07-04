@@ -645,8 +645,17 @@ func execGoCommand(dir string, args ...string) (out io.Reader, err error) {
 // stdLibPaths returns a copy of stdlibPaths with the packages for the runtime
 // Go version.
 func stdLibPaths() []string {
-	paths := make([]string, len(stdlibPaths))
-	copy(paths, stdlibPaths)
+	version := goBaseVersion(runtime.Version())
+	paths := make([]string, 0, len(stdlibPaths))
+	for _, path := range stdlibPaths {
+		switch path {
+		case "debug/buildinfo", "net/netip":
+			if version != "go1.18" {
+				continue
+			}
+		}
+		paths = append(paths, path)
+	}
 	return paths
 }
 
@@ -686,6 +695,7 @@ var stdlibPaths = []string{
 	"crypto/tls",
 	"crypto/x509",
 	"crypto/x509/pkix",
+	"debug/buildinfo", // Go version 1.18
 	"debug/dwarf",
 	"debug/elf",
 	"debug/gosym",
@@ -758,6 +768,7 @@ var stdlibPaths = []string{
 	"net/http/httputil",
 	"net/http/pprof",
 	"net/mail",
+	"net/netip", // Go version 1.18
 	"net/rpc",
 	"net/rpc/jsonrpc",
 	"net/smtp",
