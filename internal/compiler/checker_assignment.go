@@ -469,15 +469,26 @@ func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 // The caller must replace expr in the AST with the returned expression.
 func (tc *typechecker) checkAssignTo(ti *typeInfo, expr ast.Expression) ast.Expression {
 	if ti.IsKeySelector() {
-		expr = ti.replacement.(ast.Expression)
-	}
-	if ti.Addressable() && !ti.IsMacroDeclaration() || tc.isMapIndexing(expr) {
+		if ti.replacement != nil {
+			expr = ti.replacement.(ast.Expression)
+			return expr
+		}
+	} else if ti.Addressable() && !ti.IsMacroDeclaration() || tc.isMapIndexing(expr) {
 		return expr
 	}
 	format := "cannot assign to %s"
 	switch e := expr.(type) {
 	case *ast.Selector:
-		if tc.isMapIndexing(e.Expr) {
+		if ti.IsKeySelector() {
+			for {
+				if t := tc.compilation.typeInfos[e.Expr]; t.replacement != nil {
+					break
+				}
+				e = e.Expr.(*ast.Selector)
+			}
+			expr = e.Expr
+			format = "cannot index %s (map index expression of type interface{})"
+		} else if tc.isMapIndexing(e.Expr) {
 			format = "cannot assign to struct field %s in map"
 		}
 	case *ast.Index:

@@ -23,27 +23,6 @@
     n.c = n.a.(string) + n.b.(string)
     show "n.c = ", n.c, "\n"
 
-    n.d = map[string]interface{}{}
-    n.d.x = map[string]interface{}{}
-    n.d.x.y = true
-    show "n.d.x.y = ", n.d.x.y.(bool), "\n"
-
-    type T1 struct{
-        a int
-    }
-
-    n.d.x.y = T1{a: 12}
-    show "n.d.x.y.(T1).a = ", n.d.x.y.(T1).a, "\n"
-
-    n.d.x.y = &T1{a: 13}
-    show "n.d.x.y.(*T1).a = ", n.d.x.y.(*T1).a, "\n"
-
-    type T2 struct{
-        a map[string]bool
-    }
-    n.d.x.y = T2{a: map[string]bool{"b": false}}
-    show "n.d.x.y.(T2).a.b = ", n.d.x.y.(T2).a.b, "\n"
-
     v := map[interface{}]string{}
     v.a = "a"
     show "v.a = ", v.a, "\n"

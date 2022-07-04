@@ -724,7 +724,21 @@ func (em *emitter) emitSelector(v *ast.Selector, reg int8, dstType reflect.Type)
 
 	ti := em.ti(v)
 
+	// Key selector.
 	if ti.IsKeySelector() {
+		// Key selector on the empty interface type.
+		if typ := em.typ(v.Expr); typ == emptyInterfaceType {
+			exprReg := em.emitExpr(v.Expr, typ)
+			keyReg := em.fb.makeStringValue(v.Ident)
+			pos := v.Pos()
+			em.fb.enterStack()
+			dst := em.fb.newRegister(reflect.Interface)
+			em.fb.emitIndex(true, exprReg, keyReg, dst, typ, pos, false)
+			em.changeRegister(false, dst, reg, typ, dstType)
+			em.fb.exitStack()
+			return
+		}
+		// Key selector on a map type.
 		em.emitIndex(ti.replacement.(*ast.Index), reg, dstType)
 		return
 	}

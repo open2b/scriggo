@@ -438,6 +438,9 @@ func (fb *functionBuilder) emitIndex(ki bool, expr, i, dst int8, t reflect.Type,
 	case reflect.Map:
 		op = runtime.OpMapIndex
 		fb.addOperandKinds(0, t.Key().Kind(), t.Elem().Kind())
+	case reflect.Interface:
+		op = runtime.OpMapIndexAny
+		fb.addPosAndPath(pos)
 	case reflect.String:
 		op = runtime.OpIndexString
 	default:

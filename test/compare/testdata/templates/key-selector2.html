@@ -16,11 +16,9 @@
 {% m.A, m.B, m.C = "a", "b", 3 %} // ERROR `cannot use "a" (type untyped string) as type int in assignment`
 {% n.A = 1 %}
 {% n.A += 1 %} // ERROR `invalid operation: n[`A`] += 1 (operator + not defined on interface)`
-{% n.M.A = true %}
 {% var a = n.M.A.(int) %}
 {% var a = n.M.A[5] %} // ERROR `invalid operation: n.M.A[5] (type interface {} does not support indexing)`
 {{ M(n.M.b) }}
 {{ M(n.M.b.(int)) }}
-{% n.V.P = n.X.Y.Z %}
 {% m.X = n.X.Y.Z %} // ERROR `cannot use n.X.Y.Z (type interface {}) as type int in assignment`
 {% append(m.X, 5) %} // ERROR `first argument to append must be slice; have int`
