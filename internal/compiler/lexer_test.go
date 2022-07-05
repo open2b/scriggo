@@ -174,7 +174,6 @@ var typeTestsText = map[string][]tokenTyp{
 		tokenAmpersand, tokenIdentifier, tokenLeftParenthesis, tokenInt, tokenRightParenthesis, tokenRightBraces},
 	"{{ *a }}":              {tokenLeftBraces, tokenMultiplication, tokenIdentifier, tokenRightBraces},
 	"{{ []*int{} }}":        {tokenLeftBraces, tokenLeftBracket, tokenRightBracket, tokenMultiplication, tokenIdentifier, tokenLeftBrace, tokenRightBrace, tokenRightBraces},
-	"{{ $a }}":              {tokenLeftBraces, tokenDollar, tokenIdentifier, tokenRightBraces},
 	"{{ a[\"5\"] }}":        {tokenLeftBraces, tokenIdentifier, tokenLeftBracket, tokenInterpretedString, tokenRightBracket, tokenRightBraces},
 	"{{ a[:] }}":            {tokenLeftBraces, tokenIdentifier, tokenLeftBracket, tokenColon, tokenRightBracket, tokenRightBraces},
 	"{{ a[:8] }}":           {tokenLeftBraces, tokenIdentifier, tokenLeftBracket, tokenColon, tokenInt, tokenRightBracket, tokenRightBraces},
@@ -595,7 +594,7 @@ TYPES:
 	for source, types := range test {
 		var lex *lexer
 		if isTemplate {
-			lex = scanTemplate([]byte(source), format, false, true)
+			lex = scanTemplate([]byte(source), format, false)
 		} else {
 			lex = scanProgram([]byte(source))
 		}
@@ -684,7 +683,7 @@ func TestLexerMacroOrUsingContexts(t *testing.T) {
 CONTEXTS:
 	for source, contexts := range macroAndUsingContextTests {
 		text := []byte(source)
-		lex := scanTemplate(text, ast.FormatText, false, false)
+		lex := scanTemplate(text, ast.FormatText, false)
 		var i int
 		for tok := range lex.Tokens() {
 			if tok.typ == tokenEOF {
@@ -714,7 +713,7 @@ CONTEXTS:
 
 func TestPositions(t *testing.T) {
 	for _, test := range positionTests {
-		var lex = scanTemplate([]byte(test.src), ast.FormatHTML, false, false)
+		var lex = scanTemplate([]byte(test.src), ast.FormatHTML, false)
 		var i int
 		for tok := range lex.Tokens() {
 			if tok.typ == tokenEOF {
@@ -847,7 +846,7 @@ func TestLexRawContent(t *testing.T) {
 }
 
 func TestNoParseShow(t *testing.T) {
-	var lex = scanTemplate([]byte("a{{ v }}b"), ast.FormatHTML, true, false)
+	var lex = scanTemplate([]byte("a{{ v }}b"), ast.FormatHTML, true)
 	tokens := lex.Tokens()
 	if tok := <-tokens; tok.typ != tokenText {
 		t.Errorf("unexpected token %s, expecting text", tok)

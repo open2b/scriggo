@@ -28,7 +28,7 @@ func ExampleDump() {
 	}
 
 	for _, c := range cases {
-		tree, _, err := compiler.ParseTemplateSource([]byte(c), ast.FormatHTML, false, false, false)
+		tree, _, err := compiler.ParseTemplateSource([]byte(c), ast.FormatHTML, false, false)
 		if err != nil {
 			panic(err)
 		}

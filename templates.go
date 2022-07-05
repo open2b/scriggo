@@ -104,7 +104,6 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildOptions) (*Template, e
 		co.TreeTransformer = options.TreeTransformer
 		co.AllowGoStmt = options.AllowGoStmt
 		co.NoParseShortShowStmt = options.NoParseShortShowStmt
-		co.DollarIdentifier = options.DollarIdentifier
 		co.Importer = options.Packages
 		co.MDConverter = compiler.Converter(options.MarkdownConverter)
 		conv = options.MarkdownConverter

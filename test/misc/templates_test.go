@@ -697,7 +697,6 @@ var templateMultiFileCases = map[string]struct {
 	entryPoint       string                 // default to "index.html"
 	importer         native.Importer        // default to nil
 	noParseShow      bool
-	dollarIdentifier bool // default to false
 }{
 
 	"Empty template": {
@@ -1713,145 +1712,6 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "\n\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\tm2\n\n\t\t\t",
 	},
 
-	"Dollar identifier - No longer supported": {
-		sources: fstest.Files{
-			"index.txt": `{% var _ interface{} = $notExisting %}{{ $notExisting2 == nil }}`,
-		},
-		expectedBuildErr: `index.txt:1:24: syntax error: invalid character U+0024 '$'`,
-	},
-
-	"Dollar identifier - Referencing to a global variable that does not exist": {
-		sources: fstest.Files{
-			"index.txt": `{% var _ interface{} = $notExisting %}{{ $notExisting2 == nil }}`,
-		},
-		dollarIdentifier: true,
-		expectedOut:      "true",
-	},
-
-	"Dollar identifier - Referencing to a global variable that exists": {
-		sources: fstest.Files{
-			"index.txt": `{{ $forthyTwo }}`,
-		},
-		main: native.Package{
-			Name: "main",
-			Declarations: native.Declarations{
-				"forthyTwo": &([]int8{42}[0]),
-			},
-		},
-		dollarIdentifier: true,
-		expectedOut:      "42",
-	},
-
-	"Dollar identifier - Type assertion on a global variable that exists (1)": {
-		sources: fstest.Files{
-			"index.txt": `{{ $forthyThree.(int) }}`,
-		},
-		main: native.Package{
-			Name: "main",
-			Declarations: native.Declarations{
-				"forthyThree": &([]int{43}[0]),
-			},
-		},
-		dollarIdentifier: true,
-		expectedOut:      "43",
-	},
-
-	"Dollar identifier - Type assertion on a global variable that exists (2)": {
-		sources: fstest.Files{
-			"index.txt": `{% var n, ok = $forthyThree.(int) %}{{ n * 32 }}{{ ok }}`,
-		},
-		main: native.Package{
-			Name: "main",
-			Declarations: native.Declarations{
-				"forthyThree": &([]int{42}[0]),
-			},
-		},
-		dollarIdentifier: true,
-		expectedOut:      "1344true",
-	},
-
-	"Dollar identifier - Cannot use an type": {
-		sources: fstest.Files{
-			"index.txt": `{% _ = $int %}`,
-		},
-		dollarIdentifier: true,
-		expectedBuildErr: `unexpected type in dollar identifier`,
-	},
-
-	"Dollar identifier - Cannot use a builtin": {
-		sources: fstest.Files{
-			"index.txt": `{% _ = $println %}`,
-		},
-		dollarIdentifier: true,
-		expectedBuildErr: `use of builtin println not in function call`,
-	},
-
-	"Dollar identifier - Cannot use a local identifier": {
-		sources: fstest.Files{
-			"index.txt": `{% var local = 10 %}{% _ = $local %}`,
-		},
-		dollarIdentifier: true,
-		expectedBuildErr: `use of local identifier within dollar identifier`,
-	},
-
-	"Dollar identifier - Cannot take the address (variable exists)": {
-		sources: fstest.Files{
-			"index.txt": `{% _ = &($fortyTwo) %}`,
-		},
-		main: native.Package{
-			Name: "main",
-			Declarations: native.Declarations{
-				"forthyTwo": &([]int8{42}[0]),
-			},
-		},
-		dollarIdentifier: true,
-		expectedBuildErr: `cannot take the address of $fortyTwo`,
-	},
-
-	"Dollar identifier - Cannot take the address (variable does not exist)": {
-		sources: fstest.Files{
-			"index.txt": `{% _ = &($notExisting) %}`,
-		},
-		dollarIdentifier: true,
-		expectedBuildErr: `cannot take the address of $notExisting`,
-	},
-
-	"Dollar identifier - Cannot assign to dollar identifier (variable exists)": {
-		sources: fstest.Files{
-			"index.txt": `{% $fortyTwo = 43 %}`,
-		},
-		main: native.Package{
-			Name: "main",
-			Declarations: native.Declarations{
-				"forthyTwo": &([]int8{42}[0]),
-			},
-		},
-		dollarIdentifier: true,
-		expectedBuildErr: `cannot assign to $fortyTwo`,
-	},
-
-	"Dollar identifier - Cannot assign to dollar identifier (variable does not exist)": {
-		sources: fstest.Files{
-			"index.txt": `{% $notExisting = 43 %}`,
-		},
-		dollarIdentifier: true,
-		expectedBuildErr: `cannot assign to $notExisting`,
-	},
-
-	"Dollar identifier - Referencing to a constant returns a non-constant": {
-		sources: fstest.Files{
-			"index.txt": `{% const _ = $constant %}`,
-		},
-		main: native.Package{
-			Name: "main",
-			Declarations: native.Declarations{
-				"constant": 42,
-			},
-		},
-		dollarIdentifier: true,
-		expectedBuildErr: `const initializer $constant is not a constant`,
-	},
-
 	"https://github.com/open2b/scriggo/issues/679 (1)": {
 		sources: fstest.Files{
 			"index.txt": `{% global := interface{}(global) %}ok`,
@@ -1891,40 +1751,6 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "ok",
 	},
 
-	"Dollar identifier referring to package declaration in imported file": {
-		sources: fstest.Files{
-			"index.txt":    `{% import "imported.txt" %}`,
-			"imported.txt": `{% var X = 10 %}{% var _ = $X %}`,
-		},
-		dollarIdentifier: true,
-		expectedBuildErr: `use of top-level identifier within dollar identifier`,
-	},
-
-	"Dollar identifier referring to package declaration in extending file": {
-		sources: fstest.Files{
-			"index.txt":    `{% extends "extended.txt" %}{% var X = 10 %}{% var _ = $X %}`,
-			"extended.txt": ``,
-		},
-		dollarIdentifier: true,
-		expectedBuildErr: `use of top-level identifier within dollar identifier`,
-	},
-
-	"https://github.com/open2b/scriggo/issues/680 - Import": {
-		sources: fstest.Files{
-			"index.txt":    `{% import "imported.txt" %}`,
-			"imported.txt": `{% var x = $global %}`,
-		},
-		dollarIdentifier: true,
-	},
-
-	"https://github.com/open2b/scriggo/issues/680 - Extends": {
-		sources: fstest.Files{
-			"index.txt":    `{% extends "extended.txt" %}{% var x = $global %}`,
-			"extended.txt": ``,
-		},
-		dollarIdentifier: true,
-	},
-
 	"Panic after importing file that declares a variable in general register (1)": {
 		sources: fstest.Files{
 			"index.txt":    `before{% import "imported.txt" %}after`,
@@ -1944,21 +1770,6 @@ var templateMultiFileCases = map[string]struct {
 
 	"https://github.com/open2b/scriggo/issues/686": {
 		sources: fstest.Files{
-			"index.txt":    `{% extends "extended.txt" %}{% var _ = $global %}`,
-			"extended.txt": `text`,
-		},
-		main: native.Package{
-			Name: "main",
-			Declarations: native.Declarations{
-				"global": (*int)(nil),
-			},
-		},
-		dollarIdentifier: true,
-		expectedOut:      "text",
-	},
-
-	"https://github.com/open2b/scriggo/issues/686 (2)": {
-		sources: fstest.Files{
 			"index.txt":    `{% extends "extended.txt" %}{% var _ = interface{}(global) %}`,
 			"extended.txt": `text`,
 		},
@@ -1968,8 +1779,7 @@ var templateMultiFileCases = map[string]struct {
 				"global": (*int)(nil),
 			},
 		},
-		dollarIdentifier: true,
-		expectedOut:      "text",
+		expectedOut: "text",
 	},
 
 	"https://github.com/open2b/scriggo/issues/687": {
@@ -1986,7 +1796,7 @@ var templateMultiFileCases = map[string]struct {
 				fef`,
 
 			"imported.html": `
-				{% var filters, _ = $filters.([]int) %}
+				{% var f, _ = interface{}(filters).([]int) %}
 			`,
 		},
 		main: native.Package{
@@ -1996,10 +1806,10 @@ var templateMultiFileCases = map[string]struct {
 					Base   string
 					Open2b string
 				}{},
+				"filters": &[]int{1, 2, 3},
 			},
 		},
-		expectedOut:      "\n\t\t\t\t<head>\n\t\t\t\t<script>....\n\t\t\t\t\"\"\t\t\n\t\t\t\t\"\"\t\t\n\t\t\t\tfef",
-		dollarIdentifier: true,
+		expectedOut: "\n\t\t\t\t<head>\n\t\t\t\t<script>....\n\t\t\t\t\"\"\t\t\n\t\t\t\t\"\"\t\t\n\t\t\t\tfef",
 	},
 
 	"https://github.com/open2b/scriggo/issues/655": {
@@ -2116,10 +1926,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: fstest.Files{
 			"index.txt": `{%%
 				extends "extended.txt"
-			%%}{% var x = $global %}`,
+			%%}{% var x = I %}`,
 			"extended.txt": ``,
 		},
-		dollarIdentifier: true,
 	},
 
 	"Multi line statements #2": {
@@ -2131,24 +1940,21 @@ var templateMultiFileCases = map[string]struct {
 				var a []int
 			%%}`,
 		},
-		dollarIdentifier: true,
 		expectedOut:      "beforeafter",
 	},
 
 	"Multi line statements #3": {
 		sources: fstest.Files{
 			"index.txt":    `{%% import "imported.txt" %%}`,
-			"imported.txt": `{% var x = $global %}`,
+			"imported.txt": `{% var x = I %}`,
 		},
-		dollarIdentifier: true,
 	},
 
 	"Multi line statements #4": {
 		sources: fstest.Files{
 			"index.txt":    `{% import "imported.txt" %}`,
-			"imported.txt": `{%% var x = $global %%}`,
+			"imported.txt": `{%% var x = I %%}`,
 		},
-		dollarIdentifier: true,
 	},
 
 	"Multiline statements #5": {
@@ -4132,7 +3938,6 @@ func TestMultiFileTemplate(t *testing.T) {
 				Packages:             cas.importer,
 				MarkdownConverter:    markdownConverter,
 				NoParseShortShowStmt: cas.noParseShow,
-				DollarIdentifier:     cas.dollarIdentifier,
 			}
 			template, err := scriggo.BuildTemplate(cas.sources, entryPoint, opts)
 			switch {

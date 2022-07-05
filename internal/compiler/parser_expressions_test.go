@@ -128,11 +128,6 @@ var exprTests = []struct {
 			ast.NewIdentifier(p(1, 10, 9, 9), "b"),
 		),
 	)},
-	{"$a", ast.NewDollarIdentifier(p(1, 1, 0, 1), ast.NewIdentifier(p(1, 2, 1, 1), "a"))},
-	{"$a.(string)", ast.NewTypeAssertion(p(1, 3, 0, 10),
-		ast.NewDollarIdentifier(p(1, 1, 0, 1), ast.NewIdentifier(p(1, 2, 1, 1), "a")),
-		ast.NewIdentifier(p(1, 5, 4, 9), "string")),
-	},
 	{"a contains b", ast.NewBinaryOperator(p(1, 3, 0, 11), ast.OperatorContains,
 		ast.NewIdentifier(p(1, 1, 0, 0), "a"),
 		ast.NewIdentifier(p(1, 12, 11, 11), "b")),
@@ -631,7 +626,7 @@ var exprTests = []struct {
 
 func TestExpressions(t *testing.T) {
 	for _, expr := range exprTests {
-		var lex = scanTemplate([]byte("{{"+expr.src+"}}"), ast.FormatText, false, true)
+		var lex = scanTemplate([]byte("{{"+expr.src+"}}"), ast.FormatText, false)
 		<-lex.Tokens()
 		func() {
 			defer func() {
