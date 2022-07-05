@@ -1470,26 +1470,22 @@ func TestGoContextTrees(t *testing.T) {
 
 var shebangTests = []struct {
 	src      string
-	script   bool
 	template bool
 	err      string
 }{
-	{"#! /usr/bin/scriggo", true, false, ""},
-	{"#! /usr/bin/scriggo\n=", true, false, ":2:1: syntax error: unexpected =, expected statement"},
-	{"a = 5\n#! /usr/bin/scriggo\n", true, false, ":2:1: syntax error: invalid character U+0023 '#'"},
-	{"#! /usr/bin/scriggo", false, false, ":1:1: syntax error: invalid character U+0023 '#'"},
-	{"#! /usr/bin/scriggo", false, true, ""},
-	{"#! /usr/bin/scriggo\n{% a }}", false, true, ":2:6: syntax error: unexpected }, expecting %}"},
-	{"{% extends \"layout.html\" %}\n#! /usr/bin/scriggo\n", false, true, ":2:1: syntax error: unexpected text in file with extends"},
+	{"#! /usr/bin/scriggo", false, ":1:1: syntax error: invalid character U+0023 '#'"},
+	{"#! /usr/bin/scriggo", true, ""},
+	{"#! /usr/bin/scriggo\n{% a }}", true, ":2:6: syntax error: unexpected }, expecting %}"},
+	{"{% extends \"layout.html\" %}\n#! /usr/bin/scriggo\n", true, ":2:1: syntax error: unexpected text in file with extends"},
 }
 
 func TestShebang(t *testing.T) {
 	for _, test := range shebangTests {
 		var err error
 		if test.template {
-			_, _, err = ParseTemplateSource([]byte(test.src), ast.FormatText, false, false, false, false)
+			_, _, err = ParseTemplateSource([]byte(test.src), ast.FormatText, false, false, false)
 		} else {
-			_, err = parseSource([]byte(test.src), test.script)
+			_, err = parseSource([]byte(test.src), false)
 		}
 		if err == nil {
 			if test.err != "" {
@@ -1506,7 +1502,7 @@ func TestShebang(t *testing.T) {
 
 func TestTrees(t *testing.T) {
 	for _, tree := range treeTests {
-		node, _, err := ParseTemplateSource([]byte(tree.src), ast.FormatHTML, false, false, false, true)
+		node, _, err := ParseTemplateSource([]byte(tree.src), ast.FormatHTML, false, false, true)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", tree.src, err)
 			continue

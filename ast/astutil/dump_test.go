@@ -7,7 +7,6 @@ package astutil_test
 import (
 	"bytes"
 	"fmt"
-	"strings"
 
 	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/ast/astutil"
@@ -15,47 +14,32 @@ import (
 )
 
 func ExampleDump() {
-	cases := map[ast.Format][]string{
-		ast.FormatHTML: {
-			"{{ (4 + 5) * value() }}",
-			"{% var x = 10 %}",
-			"{% if true %} some text, blah blah {% end %}",
-			"{% for i in x %} some text, blah blah blah {% end %}",
-			"{% for i in x %} some very very very very very very very very long text, blah blah blah {% end %}",
-			`{{ render "ciao.txt" }}`,
-			"{{5+6}}",
-			`{% var x = 10 %}`,
-			`{% y = 10 %}`,
-			`{% y = (4 + 5) %}`,
-		},
-		ast.FormatText: {
-			"5 + 6",
-			"map[string]([]interface{})",
-		},
+	cases := []string{
+		"{{ (4 + 5) * value() }}",
+		"{% var x = 10 %}",
+		"{% if true %} some text, blah blah {% end %}",
+		"{% for i in x %} some text, blah blah blah {% end %}",
+		"{% for i in x %} some very very very very very very very very long text, blah blah blah {% end %}",
+		`{{ render "ciao.txt" }}`,
+		"{{5+6}}",
+		`{% var x = 10 %}`,
+		`{% y = 10 %}`,
+		`{% y = (4 + 5) %}`,
 	}
 
-	for _, format := range []ast.Format{ast.FormatHTML, ast.FormatText} {
-		stringCases := cases[format]
-		for _, c := range stringCases {
-			var tree *ast.Tree
-			var err error
-			if format == ast.FormatText {
-				tree, err = compiler.ParseScript(strings.NewReader(c), nil)
-			} else {
-				tree, _, err = compiler.ParseTemplateSource([]byte(c), format, false, false, false, false)
-			}
-			if err != nil {
-				panic(err)
-			}
-			var buf bytes.Buffer
-			err = astutil.Dump(&buf, tree)
-			if err != nil {
-				panic(err)
-			}
-			got := buf.String()
-
-			fmt.Print(got)
+	for _, c := range cases {
+		tree, _, err := compiler.ParseTemplateSource([]byte(c), ast.FormatHTML, false, false, false)
+		if err != nil {
+			panic(err)
 		}
+		var buf bytes.Buffer
+		err = astutil.Dump(&buf, tree)
+		if err != nil {
+			panic(err)
+		}
+		got := buf.String()
+
+		fmt.Print(got)
 	}
 
 	// Output: Tree: "":1:1
@@ -115,16 +99,5 @@ func ExampleDump() {
 	// │    │    BinaryOperator (1:11) 4 + 5
 	// │    │    │    BasicLiteral (1:9) 4
 	// │    │    │    BasicLiteral (1:13) 5
-	//
-	// Tree: "":1:1
-	// │    BinaryOperator (1:3) 5 + 6
-	// │    │    BasicLiteral (1:1) 5
-	// │    │    BasicLiteral (1:5) 6
-	//
-	// Tree: "":1:1
-	// │    MapType (1:1) map[string][]interface{}
-	// │    │    Identifier (1:5) string
-	// │    │    SliceType (1:13) []interface{}
-	// │    │    │    Interface (1:15) interface{}
 
 }

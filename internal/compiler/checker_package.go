@@ -101,9 +101,9 @@ func toTypeCheckerScope(pkg native.ImportablePackage, mod checkingMod, global bo
 				ti.Type = rv.Type()
 			}
 		case native.ImportablePackage:
-			// Import an auto-imported package. This is supported in scripts and templates only.
+			// Import an auto-imported package. This is supported in templates only.
 			if mod == programMod {
-				panic(fmt.Errorf("scriggo: auto-imported packages are supported only for scripts and templates"))
+				panic(fmt.Errorf("scriggo: auto-imported packages are only supported for templates"))
 			}
 			if depth > 0 {
 				panic(fmt.Errorf("scriggo: cannot have an auto-imported package inside another auto-imported package"))

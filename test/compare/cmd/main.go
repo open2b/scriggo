@@ -14,7 +14,6 @@ import (
 
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/native"
-	"github.com/open2b/scriggo/scripts"
 )
 
 //go:generate scriggo import -v -o packages.go
@@ -57,7 +56,7 @@ func main() {
 	}
 	ext := flag.Arg(1)
 	switch ext {
-	case ".go", ".script":
+	case ".go":
 	case ".html", ".css", ".js", ".json", ".md":
 		if *disallowGoStmt {
 			_, _ = fmt.Fprint(os.Stderr, "disallow Go statement not supported for templates")
@@ -92,22 +91,6 @@ func main() {
 		}
 		if cmd != "build" {
 			err = program.Run(nil)
-			if err != nil {
-				panic(convertRunError(err))
-			}
-		}
-	case ".script":
-		opts := &scripts.BuildOptions{
-			AllowGoStmt: !*disallowGoStmt,
-			Packages:    packages,
-		}
-		script, err := scripts.Build(os.Stdin, opts)
-		if err != nil {
-			_, _ = fmt.Fprint(os.Stderr, err)
-			os.Exit(1)
-		}
-		if cmd == "run" {
-			err = script.Run(nil, nil)
 			if err != nil {
 				panic(convertRunError(err))
 			}

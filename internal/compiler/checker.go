@@ -24,7 +24,6 @@ type Converter func(src []byte, out io.Writer) error
 
 const (
 	programMod checkingMod = iota + 1
-	scriptMod
 	templateMod
 )
 
@@ -51,7 +50,7 @@ func typecheck(tree *ast.Tree, importer native.Importer, opts checkerOptions) (m
 		return compilation.pkgInfos, nil
 	}
 
-	// Prepare the type checking for scripts and templates.
+	// Prepare the type checking for templates.
 	var globalScope map[string]scopeName
 	if opts.globals != nil {
 		globals := native.Package{
@@ -59,16 +58,6 @@ func typecheck(tree *ast.Tree, importer native.Importer, opts checkerOptions) (m
 			Declarations: opts.globals,
 		}
 		globalScope = toTypeCheckerScope(globals, opts.mod, true, 0)
-	}
-
-	// Add the global "exit" to script global scope.
-	if opts.mod == scriptMod {
-		exit := scopeName{ti: &typeInfo{Properties: propertyUniverse}}
-		if globalScope == nil {
-			globalScope = map[string]scopeName{"exit": exit}
-		} else if _, ok := globalScope["exit"]; !ok {
-			globalScope["exit"] = exit
-		}
 	}
 
 	compilation := newCompilation(globalScope)
@@ -98,7 +87,7 @@ func typecheck(tree *ast.Tree, importer native.Importer, opts checkerOptions) (m
 		tc.path = extends.Tree.Path
 	}
 
-	// Type check a template file or a script.
+	// Type check a template file.
 	var err error
 	tree.Nodes, err = tc.checkNodesInNewScopeError(tree, tree.Nodes)
 	if err != nil {
@@ -217,7 +206,7 @@ type usingCheck struct {
 }
 
 // newTypechecker creates a new type checker. A global scope may be provided
-// for scripts and templates.
+// for templates.
 func newTypechecker(compilation *compilation, path string, opts checkerOptions, importer native.Importer) *typechecker {
 	tt := types.NewTypes()
 	tc := typechecker{

@@ -235,8 +235,8 @@ A Scriggofile is a file with a specific format used by the scriggo command.
 The scriggo command uses the instructions in a Scriggofile to initialize an
 interpreter or a Go source file used in an application that embeds Scriggo.
 
-A Scriggofile defines which packages an interpreted program and script can
-import, what exported declarations in a package are accessible and so on.
+A Scriggofile defines which packages an interpreted program can import, what
+exported declarations in a package are accessible and so on.
 
 The format of the Scriggofile is:
 
@@ -255,7 +255,7 @@ The instructions are:
     IMPORT STANDARD LIBRARY 
 
         Makes the packages in the Go standard library (almost all) importable
-        in a program or script executed by the interpreter.
+        in a program executed by the interpreter.
 
         To view all packages imported run 'scriggo stdlib'.
 
@@ -292,7 +292,7 @@ The instructions are:
 
         As for 'IMPORT <package> AS main' but the exported names in the package
         will be imported not capitalized. For example a name 'FooFoo' declared
-        in the package will be imported in the script as 'fooFoo'.
+        in the package will be imported in a template file as 'fooFoo'.
 
     SET VARIABLE <name> 
 

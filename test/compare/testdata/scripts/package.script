@@ -1,3 +1,0 @@
-// errorcheck
-
-package main  // ERROR `unexpected package, expecting statement`

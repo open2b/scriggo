@@ -32,25 +32,8 @@ func scanProgram(text []byte) *lexer {
 	return lex
 }
 
-// scanScript scans a script file and returns a lexer.
-func scanScript(text []byte) *lexer {
-	tokens := make(chan token, 20)
-	lex := &lexer{
-		text:           text,
-		src:            text,
-		line:           1,
-		column:         1,
-		ctx:            ast.ContextText,
-		tokens:         tokens,
-		extendedSyntax: true,
-		parseShebang:   true,
-	}
-	go lex.scan()
-	return lex
-}
-
 // scanTemplate scans a template file and returns a lexer.
-func scanTemplate(text []byte, format ast.Format, parseShebang, noParseShow, dollarIdentifier bool) *lexer {
+func scanTemplate(text []byte, format ast.Format, noParseShow, dollarIdentifier bool) *lexer {
 	tokens := make(chan token, 20)
 	lex := &lexer{
 		text:             text,
@@ -60,8 +43,6 @@ func scanTemplate(text []byte, format ast.Format, parseShebang, noParseShow, dol
 		ctx:              ast.Context(format),
 		tokens:           tokens,
 		templateSyntax:   true,
-		extendedSyntax:   true,
-		parseShebang:     parseShebang,
 		dollarIdentifier: dollarIdentifier,
 		noParseShow:      noParseShow,
 	}
@@ -113,10 +94,8 @@ type lexer struct {
 	lastTokenType    tokenTyp   // type of the last non-empty emitted token
 	totals           int        // total number of emitted tokens, excluding automatically inserted semicolons
 	err              error      // error, reports whether there was an error
-	templateSyntax   bool       // support template syntax with tokens 'end', 'extends', 'in', 'macro', 'raw', 'render' and 'show'
-	extendedSyntax   bool       // support extended syntax with tokens 'and', 'or', 'not' and 'contains' (also support 'dollar' but only if 'dollarIdentifier' is true)
-	parseShebang     bool       // parse the shebang line.
-	dollarIdentifier bool       // support the dollar identifier, only if 'extendedSyntax' is true
+	templateSyntax   bool       // support template syntax.
+	dollarIdentifier bool       // support the dollar identifier, only if 'templateSyntax' is true
 	noParseShow      bool       // do not parse the short show statement.
 }
 
@@ -208,7 +187,7 @@ var moduleType = []byte("module")
 // error occurs, it puts the error in err, closes the channel and returns.
 func (l *lexer) scan() {
 
-	if l.parseShebang && len(l.src) > 1 {
+	if l.templateSyntax && len(l.src) > 1 {
 		// Parse shebang line.
 		if l.src[0] == '#' && l.src[1] == '!' {
 			t := bytes.IndexByte(l.src, '\n')
@@ -1226,7 +1205,7 @@ LOOP:
 			}
 			endLineAsSemicolon = false
 		case '$':
-			if l.extendedSyntax && l.dollarIdentifier {
+			if l.templateSyntax && l.dollarIdentifier {
 				l.emit(tokenDollar, 1)
 				l.column++
 				endLineAsSemicolon = false
@@ -1491,14 +1470,22 @@ func (l *lexer) lexIdentifierOrKeyword(s int) (tokenTyp, string) {
 	}
 	if l.templateSyntax && typ == tokenIdentifier {
 		switch id {
+		case "and":
+			typ = tokenExtendedAnd
 		case "end":
 			typ = tokenEnd
+		case "contains":
+			typ = tokenContains
 		case "extends":
 			typ = tokenExtends
 		case "in":
 			typ = tokenIn
 		case "macro":
 			typ = tokenMacro
+		case "not":
+			typ = tokenExtendedNot
+		case "or":
+			typ = tokenExtendedOr
 		case "raw":
 			typ = tokenRaw
 		case "render":
@@ -1507,18 +1494,6 @@ func (l *lexer) lexIdentifierOrKeyword(s int) (tokenTyp, string) {
 			typ = tokenShow
 		case "using":
 			typ = tokenUsing
-		}
-	}
-	if l.extendedSyntax && typ == tokenIdentifier {
-		switch id {
-		case "and":
-			typ = tokenExtendedAnd
-		case "contains":
-			typ = tokenContains
-		case "or":
-			typ = tokenExtendedOr
-		case "not":
-			typ = tokenExtendedNot
 		}
 	}
 	l.emit(typ, p)

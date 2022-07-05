@@ -6,13 +6,11 @@ package compiler
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"io/fs"
 	"strings"
 
 	"github.com/open2b/scriggo/ast"
-	"github.com/open2b/scriggo/native"
 )
 
 var (
@@ -156,49 +154,6 @@ func parsePackage(fsys fs.FS, dir string) (*ast.Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	return tree, nil
-}
-
-// ParseScript parses a script reading its source from src and the imported
-// packages form the importer.
-func ParseScript(src io.Reader, importer native.Importer) (*ast.Tree, error) {
-
-	// Parse the source.
-	buf, err := io.ReadAll(src)
-	if r, ok := src.(io.Closer); ok {
-		_ = r.Close()
-	}
-	if err != nil {
-		return nil, err
-	}
-	tree, err := parseSource(buf, true)
-	if err != nil {
-		return nil, err
-	}
-
-	// Parse the import declarations in the tree.
-	for _, node := range tree.Nodes {
-		imp, ok := node.(*ast.Import)
-		if !ok {
-			break
-		}
-		// Import the package.
-		if importer == nil {
-			return nil, syntaxError(imp.Pos(), "cannot find package %q", imp.Path)
-		}
-		pkg, err := importer.Import(imp.Path)
-		if err != nil {
-			return nil, err
-		}
-		switch pkg := pkg.(type) {
-		case native.ImportablePackage:
-		case nil:
-			return nil, syntaxError(imp.Pos(), "cannot find package %q", imp.Path)
-		default:
-			return nil, fmt.Errorf("scriggo: unexpected type %T returned by the package importer", pkg)
-		}
-	}
-
 	return tree, nil
 }
 

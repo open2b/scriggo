@@ -3946,7 +3946,7 @@ var templateMultiFileCases = map[string]struct {
 			"import.txt": "{% macro A %}a{% end %}",
 			"render.txt": "#! /usr/bin/scriggo\n{{ \"b\" }}",
 		},
-		expectedOut: "#!/usr/bin/env scriggo\n#! /usr/bin/scriggo\nba",
+		expectedOut: "ba",
 	},
 
 	"For-else -- else not executed": {

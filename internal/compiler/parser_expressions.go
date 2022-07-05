@@ -442,7 +442,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, canElideType, mustBeTyp
 				tok = p.next()
 			case tokenDefault, // e default
 				tokenExtendedNot: // e not contains
-				if tok.typ == tokenDefault && p.lex.extendedSyntax {
+				if tok.typ == tokenDefault && p.lex.templateSyntax {
 					pos := tok.pos
 					pos.Start = operand.Pos().Start
 					node := ast.NewDefault(pos, operand, nil)

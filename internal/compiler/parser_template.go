@@ -51,7 +51,7 @@ func ParseTemplate(fsys fs.FS, name string, noParseShow, dollarIdentifier bool) 
 		dollarIdentifier: dollarIdentifier,
 	}
 
-	tree, err := pp.parseSource(src, name, format, true, false)
+	tree, err := pp.parseSource(src, name, format, false)
 	if err != nil {
 		if err2, ok := err.(*SyntaxError); ok && err2.path == "" {
 			err2.path = name
@@ -165,7 +165,7 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 		if err != nil {
 			return nil, err
 		}
-		tree, err = pp.parseSource(src, name, format, false, imported)
+		tree, err = pp.parseSource(src, name, format, imported)
 		if err != nil {
 			return nil, err
 		}
@@ -182,9 +182,9 @@ func (pp *templateExpansion) parseNodeFile(node ast.Node) (*ast.Tree, error) {
 // path is the path of the file, format is its content format, parseShebang
 // indicates whether the shebang line is parsed and imported indicates whether
 // the file is imported. path must be absolute and cleared.
-func (pp *templateExpansion) parseSource(src []byte, path string, format ast.Format, parseShebang, imported bool) (*ast.Tree, error) {
+func (pp *templateExpansion) parseSource(src []byte, path string, format ast.Format, imported bool) (*ast.Tree, error) {
 
-	tree, unexpanded, err := ParseTemplateSource(src, format, parseShebang, imported, pp.noParseShow, pp.dollarIdentifier)
+	tree, unexpanded, err := ParseTemplateSource(src, format, imported, pp.noParseShow, pp.dollarIdentifier)
 	if err != nil {
 		if se, ok := err.(*SyntaxError); ok {
 			se.path = path
