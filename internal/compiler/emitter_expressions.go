@@ -150,16 +150,6 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 		return em.emitCompositeLiteral(expr, reg, dstType)
 
-	case *ast.DollarIdentifier:
-
-		// The field expr.IR.Ident has been set by the type checker; it may be
-		// interface{}(x) if x is an existing global identifier, or
-		// interface{}(nil) otherwise.
-		//
-		// So, the emission of a dollar identifier can be done simply by
-		// emitting expr.IR.Ident.
-		return em._emitExpr(expr.IR.Ident, dstType, reg, useGivenReg, allowK)
-
 	case *ast.Default:
 		ex := expr.Expr1
 		if ti := em.ti(expr.Expr1); ti == nil {

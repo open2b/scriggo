@@ -95,8 +95,8 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, used bool) *typeIn
 		}
 	}
 
-	// Handle predeclared variables in templates and scripts.
-	if tc.opts.mod == templateMod || tc.opts.mod == scriptMod {
+	// Handle predeclared variables in templates.
+	if tc.opts.mod == templateMod {
 		// The identifier refers to a native value that is an up value for
 		// the current function.
 		if isUpVar && ti.IsNative() {
@@ -454,9 +454,6 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			panic(tc.errorf(expr, "invalid operation: %v (%s)", expr, err))
 		}
 		return t
-
-	case *ast.DollarIdentifier:
-		return tc.checkDollarIdentifier(expr)
 
 	case *ast.Identifier:
 		return tc.checkIdentifier(expr, true)
@@ -2210,51 +2207,6 @@ func (tc *typechecker) isCompileConstant(expr ast.Expression) bool {
 		return expr.Op != ast.OperatorReceive && tc.isCompileConstant(expr.Expr)
 	}
 	return true
-}
-
-// checkDollarIdentifier type checks a dollar identifier $x.
-func (tc *typechecker) checkDollarIdentifier(expr *ast.DollarIdentifier) *typeInfo {
-
-	// Check that x is a valid identifier.
-	if ti, _, ok := tc.scopes.Lookup(expr.Ident.Name); ok {
-		// Check that x is not a builtin function.
-		if ti.IsBuiltinFunction() {
-			panic(tc.errorf(expr.Ident, "use of builtin %s not in function call", expr.Ident))
-		}
-		// Check that x is not a type.
-		if ti.IsType() {
-			panic(tc.errorf(expr.Ident, "unexpected type in dollar identifier"))
-		}
-		// Check that x is not a local identifier.
-		if _, _, ok := tc.scopes.LookupInFunc(expr.Ident.Name); ok {
-			panic(tc.errorf(expr, "use of local identifier within dollar identifier"))
-		}
-		// Check that x is not declared in the file/package block, that
-		// contains, for example, the variable declarations at the top level of
-		// an imported or extending file.
-		if _, ok := tc.scopes.FilePackage(expr.Ident.Name); ok {
-			panic(tc.errorf(expr, "use of top-level identifier within dollar identifier"))
-		}
-	}
-
-	// Set the IR of the expression.
-	var arg *ast.Identifier
-	var pos = expr.Pos()
-	if _, ok := tc.scopes.Global(expr.Ident.Name); ok {
-		arg = expr.Ident // "x"
-	} else {
-		arg = ast.NewIdentifier(pos, "nil") // "nil"
-	}
-	// expr.IR.Ident is set to "interface{}(x)" or "interface{}(nil)".
-	expr.IR.Ident = ast.NewCall(
-		pos,
-		ast.NewInterface(pos), // "interface{}"
-		[]ast.Expression{arg}, // "x" or "nil"
-		false,
-	)
-
-	// Type check the IR of the expression and return its type info.
-	return tc.checkExpr(expr.IR.Ident)
 }
 
 // checkDefault type checks a default expression. show indicates if the

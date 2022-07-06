@@ -699,27 +699,6 @@ func (n *Defer) String() string {
 	return "defer " + n.Call.String()
 }
 
-// DollarIdentifier node represents a dollar identifier in the form  $id.
-type DollarIdentifier struct {
-	*expression
-	*Position             // position in the source.
-	Ident     *Identifier // identifier.
-
-	IR struct {
-		Ident Expression
-	}
-}
-
-// NewDollarIdentifier returns a new DollarIdentifier node.
-func NewDollarIdentifier(pos *Position, ident *Identifier) *DollarIdentifier {
-	return &DollarIdentifier{&expression{}, pos, ident, struct{ Ident Expression }{}}
-}
-
-// String returns the string representation of n.
-func (n *DollarIdentifier) String() string {
-	return "$" + n.Ident.String()
-}
-
 // Extends node represents an "extends" declaration.
 type Extends struct {
 	*Position        // position in the source.

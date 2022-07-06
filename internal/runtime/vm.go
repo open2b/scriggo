@@ -240,8 +240,8 @@ func (vm *VM) Stack(buf []byte, all bool) int {
 			write("???")
 		}
 		write(":")
-		if debugInfo, ok := fn.DebugInfo[ppc]; ok {
-			write(strconv.Itoa(debugInfo.Position.Line))
+		if info, ok := fn.InstructionInfo[ppc]; ok {
+			write(strconv.Itoa(info.Position.Line))
 		} else {
 			write("???")
 		}
@@ -340,7 +340,7 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 					if vm.main {
 						env := vm.env
 						env.mu.Lock()
-						env.callPath = vm.fn.DebugInfo[vm.pc-1].Path
+						env.callPath = vm.fn.InstructionInfo[vm.pc-1].Path
 						env.mu.Unlock()
 					}
 					args[i].Set(vm.envArg)
@@ -827,7 +827,7 @@ type Function struct {
 	NativeFunctions []*NativeFunction
 	Body            []Instruction
 	Text            [][]byte
-	DebugInfo       map[Addr]DebugInfo
+	InstructionInfo map[Addr]InstructionInfo
 }
 
 // Position represents a source position.
@@ -842,9 +842,9 @@ func (p Position) String() string {
 	return strconv.Itoa(p.Line) + ":" + strconv.Itoa(p.Column)
 }
 
-// DebugInfo represents a set of debug information associated to a given
+// InstructionInfo represents a set of information associated to a given
 // instruction. None of the fields below is mandatory.
-type DebugInfo struct {
+type InstructionInfo struct {
 	Position    Position        // position of the instruction in the source code.
 	Path        string          // path of the source code where the instruction is located in.
 	OperandKind [3]reflect.Kind // kind of operands A, B and C.

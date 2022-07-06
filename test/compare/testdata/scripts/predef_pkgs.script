@@ -1,6 +1,0 @@
-// run
-
-import "math"
-import "fmt"
-
-fmt.Print(math.MaxInt8)

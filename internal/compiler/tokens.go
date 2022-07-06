@@ -114,7 +114,6 @@ const (
 	tokenExtendedAnd                       // and
 	tokenExtendedNot                       // not
 	tokenExtendedOr                        // or
-	tokenDollar                            // $
 	tokenContains                          // contains
 	tokenRaw                               // raw
 	tokenUsing                             // using
@@ -221,7 +220,6 @@ var tokenString = map[tokenTyp]string{
 	tokenExtendedAnd:              "and",
 	tokenExtendedNot:              "not",
 	tokenExtendedOr:               "or",
-	tokenDollar:                   "$",
 	tokenContains:                 "contains",
 	tokenRaw:                      "raw",
 	tokenUsing:                    "using",

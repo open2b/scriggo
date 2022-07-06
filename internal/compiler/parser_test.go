@@ -743,13 +743,6 @@ var treeTests = []struct {
 					ast.NewBasicLiteral(p(1, 12, 11, 11), ast.IntLiteral, "5"),
 				), nil, nil),
 		}, ast.FormatHTML)},
-	{"{% if $x %}{% end %}",
-		ast.NewTree("", []ast.Node{
-			ast.NewIf(p(1, 4, 3, 16), nil,
-				ast.NewDollarIdentifier(p(1, 7, 6, 7),
-					ast.NewIdentifier(p(1, 8, 7, 7), "x"),
-				), nil, nil),
-		}, ast.FormatHTML)},
 	{"{% for %}{% end %}",
 		ast.NewTree("", []ast.Node{
 			ast.NewFor(p(1, 4, 3, 14), nil, nil, nil, nil),
@@ -1470,26 +1463,22 @@ func TestGoContextTrees(t *testing.T) {
 
 var shebangTests = []struct {
 	src      string
-	script   bool
 	template bool
 	err      string
 }{
-	{"#! /usr/bin/scriggo", true, false, ""},
-	{"#! /usr/bin/scriggo\n=", true, false, ":2:1: syntax error: unexpected =, expected statement"},
-	{"a = 5\n#! /usr/bin/scriggo\n", true, false, ":2:1: syntax error: invalid character U+0023 '#'"},
-	{"#! /usr/bin/scriggo", false, false, ":1:1: syntax error: invalid character U+0023 '#'"},
-	{"#! /usr/bin/scriggo", false, true, ""},
-	{"#! /usr/bin/scriggo\n{% a }}", false, true, ":2:6: syntax error: unexpected }, expecting %}"},
-	{"{% extends \"layout.html\" %}\n#! /usr/bin/scriggo\n", false, true, ":2:1: syntax error: unexpected text in file with extends"},
+	{"#! /usr/bin/scriggo", false, ":1:1: syntax error: invalid character U+0023 '#'"},
+	{"#! /usr/bin/scriggo", true, ""},
+	{"#! /usr/bin/scriggo\n{% a }}", true, ":2:6: syntax error: unexpected }, expecting %}"},
+	{"{% extends \"layout.html\" %}\n#! /usr/bin/scriggo\n", true, ":2:1: syntax error: unexpected text in file with extends"},
 }
 
 func TestShebang(t *testing.T) {
 	for _, test := range shebangTests {
 		var err error
 		if test.template {
-			_, _, err = ParseTemplateSource([]byte(test.src), ast.FormatText, false, false, false, false)
+			_, _, err = ParseTemplateSource([]byte(test.src), ast.FormatText, false, false)
 		} else {
-			_, err = parseSource([]byte(test.src), test.script)
+			_, err = parseSource([]byte(test.src), false)
 		}
 		if err == nil {
 			if test.err != "" {
@@ -1506,7 +1495,7 @@ func TestShebang(t *testing.T) {
 
 func TestTrees(t *testing.T) {
 	for _, tree := range treeTests {
-		node, _, err := ParseTemplateSource([]byte(tree.src), ast.FormatHTML, false, false, false, true)
+		node, _, err := ParseTemplateSource([]byte(tree.src), ast.FormatHTML, false, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", tree.src, err)
 			continue
@@ -1742,16 +1731,6 @@ func equals(n1, n2 ast.Node, p int) error {
 		}
 		if nn1.Name != nn2.Name {
 			return fmt.Errorf("unexpected %q, expecting %q", nn1.Name, nn2.Name)
-		}
-
-	case *ast.DollarIdentifier:
-		nn2, ok := n2.(*ast.DollarIdentifier)
-		if !ok {
-			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
-		}
-		err := equals(nn1.Ident, nn2.Ident, p)
-		if err != nil {
-			return err
 		}
 
 	case *ast.BasicLiteral:

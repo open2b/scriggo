@@ -16,7 +16,6 @@ package compiler
 
 import (
 	"fmt"
-	"io"
 	"io/fs"
 	"reflect"
 	"unicode"
@@ -62,13 +61,6 @@ type Error interface {
 type Options struct {
 	AllowGoStmt          bool
 	NoParseShortShowStmt bool
-
-	// DollarIdentifier, when true, keeps the backward compatibility by
-	// supporting the dollar identifier.
-	//
-	// NOTE: the dollar identifier is deprecated and will be removed in a
-	// future version of Scriggo.
-	DollarIdentifier bool
 
 	FormatTypes map[ast.Format]reflect.Type
 	Globals     native.Declarations
@@ -157,49 +149,6 @@ func BuildProgram(fsys fs.FS, opts Options) (*Code, error) {
 	return code, nil
 }
 
-// BuildScript builds a script.
-// Any error related to the compilation itself is returned as a CompilerError.
-func BuildScript(r io.Reader, opts Options) (*Code, error) {
-	var tree *ast.Tree
-
-	// Parse the source code.
-	var err error
-	tree, err = ParseScript(r, opts.Importer)
-	if err != nil {
-		return nil, err
-	}
-
-	// Transform the tree.
-	if opts.TreeTransformer != nil {
-		err := opts.TreeTransformer(tree)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// Type check the tree.
-	checkerOpts := checkerOptions{
-		mod:         scriptMod,
-		allowGoStmt: opts.AllowGoStmt,
-		globals:     opts.Globals,
-	}
-	tci, err := typecheck(tree, opts.Importer, checkerOpts)
-	if err != nil {
-		return nil, err
-	}
-	typeInfos := map[ast.Node]*typeInfo{}
-	for _, pkgInfos := range tci {
-		for node, ti := range pkgInfos.TypeInfos {
-			typeInfos[node] = ti
-		}
-	}
-
-	// Emit the code.
-	code, err := emitScript(tree, typeInfos, tci["main"].IndirectVars)
-
-	return code, err
-}
-
 // BuildTemplate builds the named template file rooted at the given file
 // system. If fsys implements FormatFS, the file format is read from its
 // Format method, otherwise it depends on the extension of the file name.
@@ -210,7 +159,7 @@ func BuildTemplate(fsys fs.FS, name string, opts Options) (*Code, error) {
 
 	// Parse the source code.
 	var err error
-	tree, err = ParseTemplate(fsys, name, opts.NoParseShortShowStmt, opts.DollarIdentifier)
+	tree, err = ParseTemplate(fsys, name, opts.NoParseShortShowStmt)
 	if err != nil {
 		return nil, err
 	}
@@ -324,28 +273,6 @@ func emitProgram(pkgMain *ast.Package, typeInfos map[ast.Node]*typeInfo, indirec
 	return pkg, nil
 }
 
-// emitScript emits the code for a script given its tree, the type info and
-// indirect variables. emitScript returns a function that is the entry point
-// of the script and the global variables.
-func emitScript(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars map[*ast.Identifier]bool) (_ *Code, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if e, ok := r.(*LimitExceededError); ok {
-				err = e
-				return
-			}
-			panic(err)
-		}
-	}()
-	e := newEmitter(typeInfos, nil, indirectVars)
-	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false), tree.Path, tree.Pos()), tree.Path)
-	e.fb.enterScope()
-	e.emitNodes(tree.Nodes)
-	e.fb.exitScope()
-	e.fb.end()
-	return &Code{Main: e.fb.fn, TypeOf: e.types.TypeOf, Globals: e.varStore.getGlobals()}, nil
-}
-
 // emitTemplate emits the code for a template given its tree, the type info and
 // indirect variables. emitTemplate returns a function that is the entry point
 // of the template and the global variables.
@@ -374,7 +301,7 @@ func emitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*typeInfo, indirectVars
 }
 
 // isExported reports whether name is exported, according to
-// https://golang.org/ref/spec#Exported_identifiers.
+// https://go.dev/ref/spec#Exported_identifiers.
 // It panics if name is empty.
 func isExported(name string) bool {
 	if c := name[0]; c < utf8.RuneSelf {

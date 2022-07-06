@@ -47,15 +47,6 @@ type BuildOptions struct {
 	//
 	// Used for templates only.
 	Globals native.Declarations
-
-	// DollarIdentifier, when true, keeps the backward compatibility by
-	// supporting the dollar identifier.
-	//
-	// NOTE: the dollar identifier is deprecated and will be removed in a
-	// future version of Scriggo.
-	//
-	// Used for templates only.
-	DollarIdentifier bool
 }
 
 // PrintFunc represents a function that prints the arguments of the print and

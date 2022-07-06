@@ -16,7 +16,7 @@ import (
 //   0, 1 are the universe block. 1 is for the format types.
 //   2    is the global block, empty for programs.
 //   3    is the file/package block.
-//   4+   are the scopes in functions. For templates and scripts, 4 is the main block.
+//   4+   are the scopes in functions. For templates, 4 is the main block.
 //
 type scopes struct {
 	s           []scope
@@ -37,10 +37,10 @@ type scope struct {
 // scopeFunc represents a function scope. Only scopes 4 onwards have a function scope.
 type scopeFunc struct {
 	// node is the node of the function.
-	// It is nil in scopes 0, 1, 2 and 3. It is also nil in scope 4 for scripts.
+	// It is nil in scopes 0, 1, 2 and 3.
 	node *ast.Func
 	// labels are the labels, declared or only used, in the scope of the function.
-	// It is nil if there are no labels and it is always nil in scopes 0, 1, 2 and 3.
+	// It is nil if there are no labels, and it is always nil in scopes 0, 1, 2 and 3.
 	labels map[string]scopeLabel
 }
 
@@ -246,9 +246,8 @@ func (scopes *scopes) LookupImport(name string) (*ast.Import, bool) {
 	return n.impor, true
 }
 
-// LookupInFunc lookups name in function scopes, including the main block in
-// scripts, and returns its type info, its identifier and true. Otherwise it
-// returns nil, nil and false.
+// LookupInFunc lookups name in function scopes and returns its type info, its
+// identifier and true. Otherwise, it returns nil, nil and false.
 func (scopes *scopes) LookupInFunc(name string) (*typeInfo, *ast.Identifier, bool) {
 	n, i := scopes.lookup(name, 4)
 	return n.ti, n.decl, i != -1
@@ -358,7 +357,7 @@ func (scopes *scopes) UnusedImport() *ast.Import {
 }
 
 // CurrentFunction returns the function of the current scope or nil if there
-// is no function. There is no function for the main block of scripts.
+// is no function.
 func (scopes *scopes) CurrentFunction() *ast.Func {
 	c := len(scopes.s) - 1
 	return scopes.s[c].fn.node
@@ -374,8 +373,7 @@ func (scopes *scopes) Function(name string) *ast.Func {
 }
 
 // Functions returns all the functions up to the function of the current
-// scope. If there is no function, it returns nil. There is no function for
-// the main block of scripts.
+// scope. If there is no function, it returns nil.
 func (scopes *scopes) Functions() []*ast.Func {
 	n := 0
 	for i, sc := range scopes.s {
@@ -497,6 +495,7 @@ var universe = map[string]scopeName{
 	"println":    {ti: &typeInfo{Properties: propertyUniverse}},
 	"real":       {ti: &typeInfo{Properties: propertyUniverse}},
 	"recover":    {ti: &typeInfo{Properties: propertyUniverse}},
+	"any":        {ti: &typeInfo{Type: emptyInterfaceType, Alias: "any", Properties: propertyIsType | propertyUniverse}},
 	"byte":       {ti: &typeInfo{Type: uint8Type, Alias: "byte", Properties: propertyIsType | propertyUniverse}},
 	"bool":       {ti: &typeInfo{Type: boolType, Properties: propertyIsType | propertyUniverse}},
 	"complex128": {ti: &typeInfo{Type: complex128Type, Properties: propertyIsType | propertyUniverse}},

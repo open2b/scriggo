@@ -33,7 +33,7 @@ Initialize an interpreter
 
 The Scriggo Init command initializes an interpreter for Go programs.
 
-Before using Init, download and install Go (https://golang.org/dl/).
+Before using Init, download and install Go (https://go.dev/dl/).
 
 For more details see the help with 'scriggo help init' or visit
 https://scriggo.com/scriggo-command#initialize-an-interpreter
@@ -49,7 +49,7 @@ declaration is executed.
 The code for the importer is generated from the instructions in a
 Scriggofile. The Scriggofile should be in a Go module.
 
-Before using Import, download and install Go (https://golang.org/dl/).
+Before using Import, download and install Go (https://go.dev/dl/).
 
 For more details see the help with 'scriggo help import' or visit
 https://scriggo.com/scriggo-command#generate-a-package-importer

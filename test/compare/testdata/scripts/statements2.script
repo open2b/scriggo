@@ -1,7 +1,0 @@
-// errorcheck
-
-case  // ERROR `syntax error: case is not in a switch or select`
-default  // ERROR `syntax error: default is not in a switch or select`
-
-func f() { case }  // ERROR `syntax error: unexpected case, expecting }`
-func f() { default }  // ERROR `syntax error: unexpected default, expecting }`

@@ -393,9 +393,6 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 	case *ast.Default:
 		expr2 = ast.NewDefault(ClonePosition(e.Position), CloneExpression(e.Expr1), CloneExpression(e.Expr2))
 
-	case *ast.DollarIdentifier:
-		expr2 = ast.NewDollarIdentifier(ClonePosition(e.Position), CloneExpression(e.Ident).(*ast.Identifier))
-
 	case *ast.Func:
 		var ident *ast.Identifier
 		if e.Ident != nil {

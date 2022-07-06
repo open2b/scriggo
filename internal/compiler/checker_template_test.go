@@ -190,7 +190,7 @@ func TestCheckerTemplateExpressions(t *testing.T) {
 	}
 	options := checkerOptions{mod: templateMod, formatTypes: formatTypes, mdConverter: mdConverter}
 	for _, expr := range checkerTemplateExprs {
-		var lex = scanTemplate([]byte("{{ "+expr.src+" }}"), ast.FormatText, false, false, false)
+		var lex = scanTemplate([]byte("{{ "+expr.src+" }}"), ast.FormatText, false)
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -271,7 +271,7 @@ var checkerTemplateExprErrors = []struct {
 func TestCheckerTemplateExpressionErrors(t *testing.T) {
 	options := checkerOptions{mod: templateMod, formatTypes: formatTypes}
 	for _, expr := range checkerTemplateExprErrors {
-		var lex = scanTemplate([]byte("{{ "+expr.src+" }}"), ast.FormatText, false, false, false)
+		var lex = scanTemplate([]byte("{{ "+expr.src+" }}"), ast.FormatText, false)
 		func() {
 			defer func() {
 				if r := recover(); r != nil {

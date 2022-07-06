@@ -116,8 +116,9 @@ type parsing struct {
 	// Tree content format.
 	format ast.Format
 
-	// Report whether it is a script.
-	isScript bool
+	// If true, it does not expect a package statement.
+	// It is used only in tests.
+	noPackage bool
 
 	// Report whether it is imported.
 	imported bool
@@ -174,20 +175,16 @@ func (p *parsing) next() token {
 	return tok
 }
 
-// parseSource parses a program or a script and returns its tree.
-// script reports whether it is a script.
-func parseSource(src []byte, script bool) (tree *ast.Tree, err error) {
+// parseSource parses a program and returns its tree.
+// If noPackage is true, it does not expect a package statement.
+func parseSource(src []byte, noPackage bool) (tree *ast.Tree, err error) {
 
 	tree = ast.NewTree("", nil, ast.FormatText)
 
 	var p = &parsing{
-		isScript:  script,
+		noPackage: noPackage,
 		ancestors: []ast.Node{tree},
-	}
-	if script {
-		p.lex = scanScript(src)
-	} else {
-		p.lex = scanProgram(src)
+		lex:       scanProgram(src),
 	}
 
 	defer func() {
@@ -212,7 +209,7 @@ func parseSource(src []byte, script bool) (tree *ast.Tree, err error) {
 	}
 
 	if len(p.ancestors) == 1 {
-		if !script && len(tree.Nodes) == 0 {
+		if !noPackage && len(tree.Nodes) == 0 {
 			panic(syntaxError(tok.pos, "expected 'package', found 'EOF'"))
 		}
 	} else {
@@ -239,7 +236,7 @@ func parseSource(src []byte, script bool) (tree *ast.Tree, err error) {
 //
 // format can be Text, HTML, CSS, JS, JSON and Markdown. imported indicates
 // whether it is imported.
-func ParseTemplateSource(src []byte, format ast.Format, parseShebang, imported, noParseShow, dollarIdentifier bool) (tree *ast.Tree, unexpanded []ast.Node, err error) {
+func ParseTemplateSource(src []byte, format ast.Format, imported, noParseShow bool) (tree *ast.Tree, unexpanded []ast.Node, err error) {
 
 	if format < ast.FormatText || format > ast.FormatMarkdown {
 		return nil, nil, errors.New("scriggo: invalid format")
@@ -248,7 +245,7 @@ func ParseTemplateSource(src []byte, format ast.Format, parseShebang, imported, 
 	tree = ast.NewTree("", nil, format)
 
 	var p = &parsing{
-		lex:        scanTemplate(src, format, parseShebang, noParseShow, dollarIdentifier),
+		lex:        scanTemplate(src, format, noParseShow),
 		format:     format,
 		imported:   imported,
 		ancestors:  []ast.Node{tree},
@@ -463,9 +460,9 @@ func ParseTemplateSource(src []byte, format ast.Format, parseShebang, imported, 
 
 // parse parses code.
 //
-// For a package, a script or a function body, tok is the first token of a
-// declaration or statement and end is EOF. The returned token is the first
-// token of the next statement or declaration, or it is EOF.
+// For a package or a function body, tok is the first token of a declaration
+// or statement and end is EOF. The returned token is the first token of the
+// next statement or declaration, or it is EOF.
 //
 // For templates, it parses the code between {% and %} or between {%% and %%}.
 // tok is the first token after {% or {%%, end is %} or %%} and the returned
@@ -486,7 +483,7 @@ LABEL:
 			default:
 				return p.parseDistFreeMacro(tok, end)
 			}
-		} else if p.isScript || end != tokenEOF {
+		} else if p.noPackage || end != tokenEOF {
 			if tok.typ == tokenReturn {
 				panic(syntaxError(tok.pos, "return statement outside function body"))
 			}
@@ -544,7 +541,7 @@ LABEL:
 	// package
 	case tokenPackage:
 		pos := tok.pos
-		if tree, ok := p.parent().(*ast.Tree); !ok || end != tokenEOF || p.isScript || len(tree.Nodes) > 0 {
+		if tree, ok := p.parent().(*ast.Tree); !ok || end != tokenEOF || p.noPackage || len(tree.Nodes) > 0 {
 			panic(syntaxError(tok.pos, "unexpected package, expecting statement"))
 		}
 		tok = p.next()
@@ -796,7 +793,7 @@ LABEL:
 		var unexpected bool
 		switch end {
 		case tokenEOF:
-			unexpected = p.isScript && len(p.ancestors) == 1
+			unexpected = p.noPackage && len(p.ancestors) == 1
 		case tokenEndStatement:
 			unexpected = true
 		case tokenEndStatements:

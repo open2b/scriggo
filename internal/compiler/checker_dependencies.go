@@ -11,7 +11,7 @@ import (
 )
 
 // Makes a dependency analysis after parsing and before the type checking. See
-// https://golang.org/ref/spec#Package_initialization for further information.
+// https://go.dev/ref/spec#Package_initialization for further information.
 
 // packageDeclsDeps is the result of a dependency analysis performed on a tree.
 type packageDeclsDeps map[*ast.Identifier][]*ast.Identifier
@@ -332,10 +332,6 @@ func (d *deps) nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 			deps = append(deps, d.nodeDeps(out.Type, scopes)...)
 		}
 		return deps
-	case *ast.DollarIdentifier:
-		// A valid dollar identifier can at most depend upon global
-		// identifiers, so it is not considered in the dependency analysis.
-		return nil
 	case *ast.Go:
 		return d.nodeDeps(n.Call, scopes)
 	case *ast.Goto:

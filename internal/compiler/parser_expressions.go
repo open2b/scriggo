@@ -162,18 +162,6 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, canElideType, mustBeTyp
 				panic(syntaxError(tok.pos, "unexpected %s, expecting type", tok.txt))
 			}
 			tok = p.next()
-		case tokenDollar: // $id
-			pos := tok.pos
-			tok = p.next()
-			if tok.typ != tokenIdentifier {
-				panic(syntaxError(tok.pos, "unexpected %s, expecting name", tok.txt))
-			}
-			if len(tok.txt) == 1 && tok.txt[0] == '_' {
-				panic(syntaxError(tok.pos, "cannot use _ as value"))
-			}
-			ident := p.parseIdentifierNode(tok)
-			operand = ast.NewDollarIdentifier(pos.WithEnd(tok.pos.End), ident)
-			tok = p.next()
 		case
 			tokenRune,      // '\x3c'
 			tokenInt,       // 18
@@ -442,7 +430,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, canElideType, mustBeTyp
 				tok = p.next()
 			case tokenDefault, // e default
 				tokenExtendedNot: // e not contains
-				if tok.typ == tokenDefault && p.lex.extendedSyntax {
+				if tok.typ == tokenDefault && p.lex.templateSyntax {
 					pos := tok.pos
 					pos.Start = operand.Pos().Start
 					node := ast.NewDefault(pos, operand, nil)

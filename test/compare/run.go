@@ -343,7 +343,7 @@ func filePaths(pattern string) ([]string, error) {
 			return nil
 		}
 		switch filepath.Ext(path) {
-		case ".go", ".script", ".html", ".css", ".js", ".json", ".md":
+		case ".go", ".html", ".css", ".js", ".json", ".md":
 		default:
 			return nil
 		}
@@ -415,7 +415,7 @@ func goldenCompare(testPath string, got []byte) error {
 }
 
 // isBuildConstraints reports whether line is a build contrain, as specified at
-// https://golang.org/pkg/go/build/#hdr-Build_Constraints.
+// https://pkg.go.dev/go/build#hdr-Build_Constraints.
 func isBuildConstraints(line string) bool {
 	line = strings.TrimSpace(line)
 	if !strings.HasPrefix(line, "//") {
@@ -428,8 +428,7 @@ func isBuildConstraints(line string) bool {
 
 // readMode reports the mode (and any options) associated to src.
 //
-// Mode is specified in programs and scripts using a comment line (starting with
-// "//"):
+// Mode is specified in programs using a comment line (starting with "//"):
 //
 //  // mode
 //
@@ -455,7 +454,7 @@ func readMode(src []byte, ext string) (string, []string, error) {
 		src = src[len(BOM):]
 	}
 	switch ext {
-	case ".go", ".script":
+	case ".go":
 		for _, l := range strings.Split(string(src), "\n") {
 			l = strings.TrimSpace(l)
 			if l == "" {
@@ -668,8 +667,6 @@ func test(src []byte, mode, filePath string, opts []string, keepTestingOnFail bo
 	case "paniccheck":
 		switch ext {
 		case ".go":
-		case ".script":
-			return fmt.Errorf("unsupported mode 'paniccheck' for scripts")
 		default:
 			return fmt.Errorf("unsupported mode 'paniccheck' for templates")
 		}
@@ -714,12 +711,6 @@ func test(src []byte, mode, filePath string, opts []string, keepTestingOnFail bo
 				return formatError("Scriggo and gc returned two different stdout/stderr")
 			}
 			return nil
-		case ".script":
-			out, err := unwrapStdout(cmd(src, opts, "run", ".script"))
-			if err != nil {
-				return err
-			}
-			return goldenCompare(filePath, out)
 		}
 	case "render":
 		out, err := unwrapStdout(cmd(src, opts, "run", ext))

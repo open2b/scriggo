@@ -108,9 +108,6 @@ func Walk(v Visitor, node ast.Node) {
 		Walk(v, n.Expr1)
 		Walk(v, n.Expr2)
 
-	case *ast.DollarIdentifier:
-		Walk(v, n.Ident)
-
 	case *ast.For:
 		if n.Init != nil {
 			Walk(v, n.Init)

@@ -298,7 +298,7 @@ var cases = map[string]struct {
 		},
 	},
 
-	"example from https://golang.org/ref/spec#Package_initialization": {
+	"example from https://go.dev/ref/spec#Package_initialization": {
 		`package pkg
 
 			var (

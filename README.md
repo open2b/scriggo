@@ -1,7 +1,7 @@
 <img src="https://scriggo-site.pages.dev/images/scriggo-padded.svg" alt="Scriggo" title="Scriggo" width="535px" style="max-width: 100%">
 
 
-The world’s most powerful template engine and [Go](https://golang.org/) embeddable interpreter.
+The world’s most powerful template engine and [Go](https://go.dev/) embeddable interpreter.
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/open2b/scriggo/.svg)](https://pkg.go.dev/github.com/open2b/scriggo/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/open2b/scriggo)](https://goreportcard.com/report/github.com/open2b/scriggo)
