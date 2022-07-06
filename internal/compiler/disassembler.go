@@ -294,17 +294,17 @@ func disassembleFunction(b *bytes.Buffer, globals []Global, fn *runtime.Function
 // the operands have not been added by the emitter/builder, then the
 // reflect.Invalid kind is returned.
 func getKind(operand rune, fn *runtime.Function, addr runtime.Addr) reflect.Kind {
-	debugInfo, ok := fn.DebugInfo[addr]
+	info, ok := fn.InstructionInfo[addr]
 	if !ok {
 		return reflect.Invalid
 	}
 	switch operand {
 	case 'a':
-		return debugInfo.OperandKind[0]
+		return info.OperandKind[0]
 	case 'b':
-		return debugInfo.OperandKind[1]
+		return info.OperandKind[1]
 	case 'c':
-		return debugInfo.OperandKind[2]
+		return info.OperandKind[2]
 	default:
 		panic(internalError("invalid operand %v", operand))
 	}
@@ -746,7 +746,7 @@ func funcNameType(fn *runtime.Function, index int8, addr runtime.Addr, op runtim
 		typ := reflect.TypeOf(fn.NativeFunctions[index].Func())
 		return false, name, typ
 	case runtime.OpCallIndirect, runtime.OpDefer:
-		return false, "", fn.DebugInfo[addr].FuncType
+		return false, "", fn.InstructionInfo[addr].FuncType
 	case runtime.OpTailCall:
 		panic(internalError("tail call optimization not implemented"))
 	default:

@@ -314,21 +314,21 @@ func (fb *functionBuilder) scopeLookup(n string) int8 {
 
 func (fb *functionBuilder) addPosAndPath(pos *ast.Position) {
 	pc := runtime.Addr(len(fb.fn.Body))
-	if fb.fn.DebugInfo == nil {
-		fb.fn.DebugInfo = map[runtime.Addr]runtime.DebugInfo{}
+	if fb.fn.InstructionInfo == nil {
+		fb.fn.InstructionInfo = map[runtime.Addr]runtime.InstructionInfo{}
 	}
-	debugInfo := fb.fn.DebugInfo[pc]
+	info := fb.fn.InstructionInfo[pc]
 	if pos == nil {
-		debugInfo.Position.Line = 1
-		debugInfo.Position.Column = 1
+		info.Position.Line = 1
+		info.Position.Column = 1
 	} else {
-		debugInfo.Position.Line = pos.Line
-		debugInfo.Position.Column = pos.Column
-		debugInfo.Position.Start = pos.Start
-		debugInfo.Position.End = pos.End
+		info.Position.Line = pos.Line
+		info.Position.Column = pos.Column
+		info.Position.Start = pos.Start
+		info.Position.End = pos.End
 	}
-	debugInfo.Path = fb.path
-	fb.fn.DebugInfo[pc] = debugInfo
+	info.Path = fb.path
+	fb.fn.InstructionInfo[pc] = info
 }
 
 // addOperandKinds adds the kind of the three operands of the next instruction.
@@ -336,26 +336,26 @@ func (fb *functionBuilder) addPosAndPath(pos *ast.Position) {
 // pass the zero of reflect.Kind for such operand.
 func (fb *functionBuilder) addOperandKinds(a, b, c reflect.Kind) {
 	pc := runtime.Addr(len(fb.fn.Body))
-	if fb.fn.DebugInfo == nil {
-		fb.fn.DebugInfo = map[runtime.Addr]runtime.DebugInfo{}
+	if fb.fn.InstructionInfo == nil {
+		fb.fn.InstructionInfo = map[runtime.Addr]runtime.InstructionInfo{}
 	}
-	debugInfo := fb.fn.DebugInfo[pc]
-	debugInfo.OperandKind = [3]reflect.Kind{a, b, c}
-	fb.fn.DebugInfo[pc] = debugInfo
+	info := fb.fn.InstructionInfo[pc]
+	info.OperandKind = [3]reflect.Kind{a, b, c}
+	fb.fn.InstructionInfo[pc] = info
 }
 
-// addFunctionType adds the type to the next function call instruction as a
-// debug information. Note that it's not necessary to call this method for Call
-// and CallNative instructions because the type of the function is already
-// stored into the Functions and NativeFunctions slices.
+// addFunctionType adds the type to the next function call instruction. Note
+// that it's not necessary to call this method for Call and CallNative
+// instructions because the type of the function is already stored into the
+// Functions and NativeFunctions slices.
 func (fb *functionBuilder) addFunctionType(typ reflect.Type) {
 	pc := runtime.Addr(len(fb.fn.Body))
-	if fb.fn.DebugInfo == nil {
-		fb.fn.DebugInfo = map[runtime.Addr]runtime.DebugInfo{}
+	if fb.fn.InstructionInfo == nil {
+		fb.fn.InstructionInfo = map[runtime.Addr]runtime.InstructionInfo{}
 	}
-	debugInfo := fb.fn.DebugInfo[pc]
-	debugInfo.FuncType = typ
-	fb.fn.DebugInfo[pc] = debugInfo
+	info := fb.fn.InstructionInfo[pc]
+	info.FuncType = typ
+	fb.fn.InstructionInfo[pc] = info
 }
 
 // changePath changes the current path. Note that the path is initially set at

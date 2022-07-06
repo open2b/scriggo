@@ -108,8 +108,8 @@ func (vm *VM) errIndexOutOfRange() runtimeError {
 func (vm *VM) newPanic(msg interface{}) *PanicError {
 	return &PanicError{
 		message:  msg,
-		path:     vm.fn.DebugInfo[vm.pc].Path,
-		position: vm.fn.DebugInfo[vm.pc].Position,
+		path:     vm.fn.InstructionInfo[vm.pc].Path,
+		position: vm.fn.InstructionInfo[vm.pc].Position,
 	}
 }
 
