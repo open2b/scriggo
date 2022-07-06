@@ -50,35 +50,6 @@ func (err *BuildError) Message() string {
 	return err.err.Message()
 }
 
-// ExitError represents an exit from an execution with a non-zero status code.
-// It may wrap the error that caused the exit.
-//
-// An ExitError is conventionally passed to the Stop method of native.Env so
-// that the error code can be used as the process exit code.
-type ExitError struct {
-	Code int
-	Err  error
-}
-
-// NewExitError returns an exit error with the given status code and error.
-// The status code should be in the range [1, 125] and err can be nil.
-// It panics if code is zero.
-func NewExitError(code int, err error) *ExitError {
-	if code == 0 {
-		panic("zero status code in NewExitError")
-	}
-	return &ExitError{Code: code, Err: err}
-}
-
-func (e *ExitError) Error() string {
-	if e.Err == nil {
-		return "exit code " + strconv.Itoa(e.Code)
-	}
-	return e.Err.Error()
-}
-
-func (e *ExitError) Unwrap() error { return e.Err }
-
 // PanicError represents the error that occurs when an executed program or
 // template calls the panic built-in and the panic is not recovered.
 type PanicError struct {

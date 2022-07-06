@@ -196,26 +196,3 @@ func TestStop(t *testing.T) {
 		t.Fatalf("expected stop error, got %q", err)
 	}
 }
-
-// TestStopWithExit tests the Stop method of native.Env with an *ExitError as
-// argument.
-func TestStopWithExit(t *testing.T) {
-	errExit := scriggo.NewExitError(1, nil)
-	fsys := fstest.Files{"index": "{% exit() %}"}
-	opts := &scriggo.BuildOptions{
-		Globals: native.Declarations{
-			"exit": func(env native.Env) { env.Stop(errExit) },
-		},
-	}
-	template, err := scriggo.BuildTemplate(fsys, "index", opts)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = template.Run(os.Stdout, nil, nil)
-	if err == nil {
-		t.Fatal("expected error, got no errors")
-	}
-	if err != errExit {
-		t.Fatalf("expected exit error, got %q", err)
-	}
-}
