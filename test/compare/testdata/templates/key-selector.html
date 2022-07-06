@@ -48,13 +48,12 @@
     n.d = map[string]interface{}{"x": map[string]interface{}{"y": T2{a: map[string]bool{"b": true}}}}
     show "n.d.x.y.(T2).a.b = ", n.d.x.y.(T2).a.b, "\n"
 
-    // TODO (implement the special form ao assignment)
-    //_, ok := n.d.x
-    //show "n.d.x ? ", ok, "\n"
-    //_, ok = n.d.x.y
-    //show "n.d.x.y ? ", ok, "\n"
-    //_, ok = n.d.x.z
-    //show "n.d.x.z ? ", ok, "\n"
+    _, ok := n.d.x
+    show "n.d.x ? ", ok, "\n"
+    _, ok = n.d.x.y
+    show "n.d.x.y ? ", ok, "\n"
+    _, ok = n.d.x.z
+    show "n.d.x.z ? ", ok, "\n"
 
     v := map[interface{}]string{}
     v.a = "a"

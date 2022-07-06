@@ -447,6 +447,21 @@ func (em *emitter) assignValuesToAddresses(addresses []address, values []ast.Exp
 		addresses[0].assign(false, value, valueType)
 		addresses[1].assign(false, okReg, okType)
 
+	case *ast.Selector: // key selector.
+		exprType := em.typ(valueExpr.Expr)
+		expr := em.emitExpr(valueExpr.Expr, exprType)
+		key := em.fb.makeStringValue(valueExpr.Ident)
+		value := em.fb.newRegister(reflect.Interface)
+		okType := addresses[1].addressedType
+		okReg := em.fb.newRegister(reflect.Bool)
+		pos := valueExpr.Pos()
+		em.fb.emitIndex(true, expr, key, value, exprType, pos, false)
+		em.fb.emitMove(true, 1, okReg, reflect.Bool)
+		em.fb.emitIf(false, 0, runtime.ConditionOK, 0, reflect.Interface, pos)
+		em.fb.emitMove(true, 0, okReg, reflect.Bool)
+		addresses[0].assign(false, value, emptyInterfaceType)
+		addresses[1].assign(false, okReg, okType)
+
 	case *ast.TypeAssertion:
 		typ := em.typ(valueExpr.Type)
 		expr := em.emitExpr(valueExpr.Expr, emptyInterfaceType)
