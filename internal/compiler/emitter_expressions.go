@@ -714,8 +714,8 @@ func (em *emitter) emitSelector(v *ast.Selector, reg int8, dstType reflect.Type)
 
 	ti := em.ti(v)
 
-	// Key selector.
-	if ti.IsKeySelector() {
+	// Map selector expression.
+	if ti.IsMapSelector() {
 		// Key selector on the empty interface type.
 		if typ := em.typ(v.Expr); typ == emptyInterfaceType {
 			exprReg := em.emitExpr(v.Expr, typ)

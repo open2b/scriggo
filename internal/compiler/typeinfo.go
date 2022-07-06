@@ -25,7 +25,7 @@ const (
 	propertyHasValue                                              // has a value
 	propertyIsMacroDeclaration                                    // is macro declaration
 	propertyMacroDeclaredInFileWithExtends                        // is macro declared in file with extends
-	propertyKeySelector                                           // is a key selector
+	propertyMapSelector                                           // is a map selector expression
 )
 
 // A typeInfo holds the type checking information. For example, every expression
@@ -134,9 +134,9 @@ func (ti *typeInfo) MacroDeclaredInExtendingFile() bool {
 	return ti.Properties&propertyMacroDeclaredInFileWithExtends != 0
 }
 
-// IsKeySelector reports whether it is a key selector.
-func (ti *typeInfo) IsKeySelector() bool {
-	return ti.Properties&propertyKeySelector != 0
+// IsMapSelector reports whether it is a map selector expression.
+func (ti *typeInfo) IsMapSelector() bool {
+	return ti.Properties&propertyMapSelector != 0
 }
 
 // TypeName returns the name of the type. If it is an alias, it returns the

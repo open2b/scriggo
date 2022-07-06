@@ -2570,8 +2570,8 @@ func (tc *typechecker) checkKeySelector(t *typeInfo, expr *ast.Selector) (*typeI
 		// Remember to replace 'm.x' with 'm["x"]'.
 		replacement := ast.NewIndex(expr.Pos(), expr.Expr, ast.NewBasicLiteral(expr.Pos(), ast.StringLiteral, "`"+expr.Ident+"`"))
 		tc.checkExpr(replacement)
-		return &typeInfo{Type: t.Type.Elem(), Properties: propertyKeySelector, replacement: replacement}, true
-	case t.IsKeySelector() && t.Type == emptyInterfaceType:
+		return &typeInfo{Type: t.Type.Elem(), Properties: propertyMapSelector, replacement: replacement}, true
+	case t.IsMapSelector() && t.Type == emptyInterfaceType:
 		return &typeInfo{Type: t.Type, Properties: t.Properties}, true
 	}
 

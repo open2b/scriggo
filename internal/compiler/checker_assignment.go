@@ -468,7 +468,7 @@ func (tc *typechecker) declareVariable(lh *ast.Identifier, typ reflect.Type) {
 // checkAssignTo checks that it is possible to assign to the expression expr.
 // The caller must replace expr in the AST with the returned expression.
 func (tc *typechecker) checkAssignTo(ti *typeInfo, expr ast.Expression) ast.Expression {
-	if ti.IsKeySelector() {
+	if ti.IsMapSelector() {
 		if ti.replacement != nil {
 			expr = ti.replacement.(ast.Expression)
 			return expr
@@ -479,7 +479,7 @@ func (tc *typechecker) checkAssignTo(ti *typeInfo, expr ast.Expression) ast.Expr
 	format := "cannot assign to %s"
 	switch e := expr.(type) {
 	case *ast.Selector:
-		if ti.IsKeySelector() {
+		if ti.IsMapSelector() {
 			for {
 				if t := tc.compilation.typeInfos[e.Expr]; t.replacement != nil {
 					break
@@ -608,7 +608,7 @@ func (tc *typechecker) rebalancedRightSide(node ast.Node) []ast.Expression {
 			tc.compilation.typeInfos[v2] = untypedBoolTypeInfo
 			return []ast.Expression{v1, v2}
 		case *ast.Selector:
-			if ti := tc.checkExpr(rhExpr); ti.IsKeySelector() {
+			if ti := tc.checkExpr(rhExpr); ti.IsMapSelector() {
 				v1 := ast.NewSelector(v.Pos(), v.Expr, v.Ident)
 				v2 := ast.NewSelector(v.Pos(), v.Expr, v.Ident)
 				tc.compilation.typeInfos[v1] = &typeInfo{Type: ti.Type, Properties: ti.Properties, replacement: ti.replacement}
