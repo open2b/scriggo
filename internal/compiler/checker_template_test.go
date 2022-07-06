@@ -44,10 +44,16 @@ var stringArrayTypeInfo = &typeInfo{Type: reflect.ArrayOf(2, stringType), Proper
 var boolSliceTypeInfo = &typeInfo{Type: reflect.SliceOf(boolType), Properties: propertyAddressable}
 var boolArrayTypeInfo = &typeInfo{Type: reflect.ArrayOf(2, boolType), Properties: propertyAddressable}
 var interfaceSliceTypeInfo = &typeInfo{Type: reflect.SliceOf(emptyInterfaceType), Properties: propertyAddressable}
+var stringToAnyMapTypeInfo = &typeInfo{Type: reflect.MapOf(stringType, emptyInterfaceType), Properties: propertyAddressable}
 
 var stringToIntMapTypeInfo = &typeInfo{Type: reflect.MapOf(stringType, intType), Properties: propertyAddressable}
 var intToStringMapTypeInfo = &typeInfo{Type: reflect.MapOf(intType, stringType), Properties: propertyAddressable}
+var intToAnyMapTypeInfo = &typeInfo{Type: reflect.MapOf(intType, emptyInterfaceType), Properties: propertyAddressable}
+var anyToIntMapTypeInfo = &typeInfo{Type: reflect.MapOf(emptyInterfaceType, intType), Properties: propertyAddressable}
+var definedStringToStringMapTypeInfo = &typeInfo{Type: reflect.MapOf(definedStringTypeInfo.Type, stringType), Properties: propertyAddressable}
 var definedIntToStringMapTypeInfo = &typeInfo{Type: reflect.MapOf(definedIntTypeInfo.Type, stringType), Properties: propertyAddressable}
+
+var stringToStringToIntMapTypeInfo = &typeInfo{Type: reflect.MapOf(stringType, reflect.MapOf(stringType, intType)), Properties: propertyAddressable}
 
 var definedIntTypeInfo = &typeInfo{Type: reflect.TypeOf(definedInt(0)), Properties: propertyAddressable}
 var definedIntSliceTypeInfo = &typeInfo{Type: reflect.SliceOf(definedIntTypeInfo.Type), Properties: propertyAddressable}
@@ -69,6 +75,12 @@ func tiMarkdownConst(s string) *typeInfo {
 func tiMarkdown() *typeInfo {
 	return &typeInfo{Type: formatTypes[ast.FormatMarkdown]}
 }
+
+type TF struct {
+	F int
+}
+
+var stringToTFMapTypeInfo = &typeInfo{Type: reflect.MapOf(stringType, reflect.TypeOf(TF{})), Properties: propertyAddressable}
 
 var checkerTemplateExprs = []struct {
 	src   string
@@ -156,6 +168,16 @@ var checkerTemplateExprs = []struct {
 	// conversion from markdown to html
 	{`html(a)`, tiHTMLConst("<h1>title</h1>"), map[string]*typeInfo{"a": tiMarkdownConst("# title")}},
 	{`html(a)`, tiHTML(), map[string]*typeInfo{"a": tiMarkdown()}},
+
+	// key selector
+	{`m.x`, tiInt(), map[string]*typeInfo{"m": stringToIntMapTypeInfo}},
+	{`m.x`, tiString(), map[string]*typeInfo{"m": definedStringToStringMapTypeInfo}},
+	{`m.x`, tiInt(), map[string]*typeInfo{"m": anyToIntMapTypeInfo}},
+	{`m.x.y`, tiInt(), map[string]*typeInfo{"m": stringToStringToIntMapTypeInfo}},
+	{`m.x.y`, tiInterface(), map[string]*typeInfo{"m": stringToAnyMapTypeInfo}},
+	{`m.x.y.z`, tiInterface(), map[string]*typeInfo{"m": stringToAnyMapTypeInfo}},
+	{`m.x.nil`, tiInterface(), map[string]*typeInfo{"m": stringToAnyMapTypeInfo}},
+	{`m.x.F`, tiInt(), map[string]*typeInfo{"m": stringToTFMapTypeInfo}},
 }
 
 func TestCheckerTemplateExpressions(t *testing.T) {
@@ -236,6 +258,14 @@ var checkerTemplateExprErrors = []struct {
 	// slicing of a format type
 	{`a[1:2]`, tierr(1, 5, `invalid operation a[1:2] (slice of compiler.html)`), map[string]*typeInfo{"a": tiHTMLConst("<b>a</b>")}},
 	{`a[1:2]`, tierr(1, 5, `invalid operation a[1:2] (slice of compiler.html)`), map[string]*typeInfo{"a": tiHTML()}},
+
+	// key selector
+	{`m.x`, tierr(1, 5, `invalid operation: cannot select m.x (type map[int]string does not support key selection)`), map[string]*typeInfo{"m": intToStringMapTypeInfo}},
+	{`m.x`, tierr(1, 5, `invalid operation: cannot select m.x (type map[int]interface {} does not support key selection)`), map[string]*typeInfo{"m": intToAnyMapTypeInfo}},
+	{`m.x.y`, tierr(1, 7, `m.x.y undefined (type int has no field or method y)`), map[string]*typeInfo{"m": stringToIntMapTypeInfo}},
+	{`m.x.y.z`, tierr(1, 7, `m.x.y undefined (type int has no field or method y)`), map[string]*typeInfo{"m": stringToIntMapTypeInfo}},
+	{`nil.x.y.z`, tierr(1, 4, `use of untyped nil`), nil},
+	{`m._`, tierr(1, 5, `cannot refer to blank field or method`), map[string]*typeInfo{"m": stringToAnyMapTypeInfo}},
 }
 
 func TestCheckerTemplateExpressionErrors(t *testing.T) {
@@ -613,6 +643,23 @@ var checkerTemplateStmts = []struct {
 	{src: `{% L: select %}{% default %}{% break L %}{% end %}`, expected: ok},
 	{src: `{% _ = func() { L: goto L } %}`, expected: ok},
 	{src: `{% L: for %}{% _ = func() { goto L } %}{% end %}`, expected: `label L not defined`},
+
+	// Key selector.
+	{src: `{% m := map[string]int{} %}{% m.x = 5 %}{% m.x += 1 %}{% m.x++ %}{{ m.x + 2 }}`, expected: ok},
+	{src: `{% m := map[DS]int{} %}{% m.x = 5 %}{% m.x += 1 %}{% m.x++ %}{{ m.x + 2 }}`, expected: ok},
+	{src: `{% m := map[string]bool{} %}{% m.nil = true %}{{ m.nil && false }}`, expected: ok},
+	{src: `{% m := map[interface{}]string{} %}{% m.x = "a" %}{{ m.a + "b" }}`, expected: ok},
+	{src: `{% m := map[string]interface{}{} %}{% m.x = 6.89 %}{{ m.x.(float64) - 1.4 }}`, expected: ok},
+	{src: `{% m := map[string]interface{}{} %}{% m.x = map[string]interface{}{} %}{% m.x.y = true %}`, expected: `cannot index m.x (map index expression of type interface{})`},
+	{src: `{% m := map[interface{}]interface{}{} %}{% m.x = map[string]interface{}{} %}{% m.x.y = 'v' %}`, expected: `cannot index m.x (map index expression of type interface{})`},
+	{src: `{% m := map[string]map[string]int{} %}{% m.x = map[string]int{} %}{% m.x.y = 3 %}{% m.x.y += 1 %}{% m.x.y++ %}{{ m.x.y * 2 }}`, expected: ok},
+	{src: `{% m := map[string]map[string]interface{}{} %}{% m.x = map[string]interface{}{} %}{% m.x.y = "a" %}{{ m.x.y.(string) + "b" }}`, expected: ok},
+	{src: `{% m := map[string]int{} %}{% m.x = "a" %}`, expected: `cannot use "a" (type untyped string) as type int in assignment`},
+	{src: `{% m := map[interface{}]int{} %}{% m.x = "a" %}`, expected: `cannot use "a" (type untyped string) as type int in assignment`},
+	{src: `{% m := map[string]int{} %}{% m.x := "a" %}`, expected: `non-name m.x on left side of :=`},
+	{src: `{% m := map[interface{}]int{} %}{% m.x := "a" %}`, expected: `non-name m.x on left side of :=`},
+	{src: `{% m := map[string]int{} %}{{ m.x + "a" }}`, expected: `invalid operation: m.x + "a" (cannot convert "a" (type untyped string) to type int)`},
+	{src: `{% m := map[interface{}]int{} %}{{ m.x + "a" }}`, expected: `invalid operation: m.x + "a" (cannot convert "a" (type untyped string) to type int)`},
 }
 
 func TestCheckerTemplatesStatements(t *testing.T) {
@@ -633,6 +680,7 @@ func TestCheckerTemplatesStatements(t *testing.T) {
 			"Ui": native.UntypedNumericConst("5"),
 			"Uf": native.UntypedNumericConst("5.0"),
 			"R":  'r',
+			"DS": reflect.TypeOf(definedString("")),
 		},
 	}
 	for _, cas := range checkerTemplateStmts {

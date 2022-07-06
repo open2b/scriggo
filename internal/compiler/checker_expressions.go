@@ -749,6 +749,10 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		if mv, ok := tc.checkMethodValue(t, expr); ok {
 			return mv
 		}
+		// Key selector.
+		if ti, ok := tc.checkKeySelector(t, expr); ok {
+			return ti
+		}
 		// Field selector.
 		return tc.checkFieldSelector(t, expr)
 
@@ -2548,6 +2552,30 @@ func (tc *typechecker) checkMethodValue(t *typeInfo, expr *ast.Selector) (*typeI
 		MethodType: methodValueConcrete,
 		Properties: propertyIsNative | propertyHasValue,
 	}, true
+}
+
+// checkKeySelector checks a key selector.
+func (tc *typechecker) checkKeySelector(t *typeInfo, expr *ast.Selector) (*typeInfo, bool) {
+
+	if tc.opts.mod != templateMod {
+		return nil, false
+	}
+
+	switch {
+	case t.Type.Kind() == reflect.Map:
+		// Type must be 'map[K]E' where K is a string type or the 'interface{}' type and E is any type.
+		if k := t.Type.Key(); t.Type.Name() != "" || k.Kind() != reflect.String && k != emptyInterfaceType {
+			panic(tc.errorf(expr, "invalid operation: cannot select %s (type %s does not support key selection)", expr, t.Type))
+		}
+		// Remember to replace 'm.x' with 'm["x"]'.
+		replacement := ast.NewIndex(expr.Pos(), expr.Expr, ast.NewBasicLiteral(expr.Pos(), ast.StringLiteral, "`"+expr.Ident+"`"))
+		tc.checkExpr(replacement)
+		return &typeInfo{Type: t.Type.Elem(), Properties: propertyKeySelector, replacement: replacement}, true
+	case t.IsKeySelector() && t.Type == emptyInterfaceType:
+		return &typeInfo{Type: t.Type, Properties: t.Properties}, true
+	}
+
+	return nil, false
 }
 
 // checkFieldSelector checks a field selector.

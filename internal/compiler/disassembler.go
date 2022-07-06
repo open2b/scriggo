@@ -595,6 +595,10 @@ func disassembleInstruction(fn *runtime.Function, globals []Global, addr runtime
 		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 		s += " " + disassembleOperand(fn, b, getKind('b', fn, addr), k)
 		s += " " + disassembleOperand(fn, c, getKind('c', fn, addr), false)
+	case runtime.OpMapIndexAny:
+		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
+		s += " " + disassembleOperand(fn, b, reflect.String, k)
+		s += " " + disassembleOperand(fn, c, reflect.Interface, false)
 	case runtime.OpMethodValue:
 		s += " " + disassembleOperand(fn, a, reflect.Interface, false)
 		s += " " + disassembleOperand(fn, b, reflect.String, true)
@@ -1067,7 +1071,8 @@ var operationName = [...]string{
 
 	runtime.OpMakeStruct: "MakeStruct",
 
-	runtime.OpMapIndex: "MapIndex",
+	runtime.OpMapIndex:    "MapIndex",
+	runtime.OpMapIndexAny: "MapIndex",
 
 	runtime.OpMethodValue: "MethodValue",
 

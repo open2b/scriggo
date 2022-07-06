@@ -1,0 +1,71 @@
+{# render #}
+
+{%%
+
+    m := map[string]int{}
+    m.a = 3
+    m.b = 5
+    m.c = m.a + m.b
+    m.c += 2
+    m.c--
+    show "m.c = ", m.c, "\n"
+    show "m.n = ", m.n, "\n"
+
+    f := func() map[string]int {
+        return m
+    }
+
+    (f()).d = 1
+    show "m.d = ", m.d, "\n"
+
+    n := map[string]interface{}{}
+    n.a = "a"
+    n.b = "b"
+    n.c = n.a.(string) + n.b.(string)
+    show "n.c = ", n.c, "\n"
+    show "n.n = "
+    if n.n == nil {
+        show "nil\n"
+    }
+
+    n.d = map[string]bool{}
+    n.d.(map[string]bool).x = true
+    show "n.d.x = ", n.d.x.(bool), "\n"
+
+    type T1 struct{
+        a int
+    }
+
+    n.d = map[string]interface{}{"x": map[string]interface{}{"y": T1{a: 12}}}
+    show "n.d.x.y.(T1).a = ", n.d.x.y.(T1).a, "\n"
+
+    n.d = map[string]interface{}{"x": map[string]interface{}{"y": &T1{a: 13}}}
+    show "n.d.x.y.(*T1).a = ", n.d.x.y.(*T1).a, "\n"
+
+    type T2 struct{
+        a map[string]bool
+    }
+    n.d = map[string]interface{}{"x": map[string]interface{}{"y": T2{a: map[string]bool{"b": true}}}}
+    show "n.d.x.y.(T2).a.b = ", n.d.x.y.(T2).a.b, "\n"
+
+    _, ok := n.d.x
+    show "n.d.x ? ", ok, "\n"
+    _, ok = n.d.x.y
+    show "n.d.x.y ? ", ok, "\n"
+    _, ok = n.d.x.z
+    show "n.d.x.z ? ", ok, "\n"
+
+    v := map[interface{}]string{}
+    v.a = "a"
+    show "v.a = ", v.a, "\n"
+
+    w := map[interface{}]interface{}{}
+    w.a = true
+    show "w.a = ", w.a, "\n"
+
+    type S string
+    s := map[S]int{}
+    s.a = 5
+    show "s.a = ", s.a, "\n"
+
+%%}

@@ -1,0 +1,16 @@
+{# errorcheck #}
+
+{%%
+    
+    m := map[string]interface{}{"a":6}
+
+    _ = &m      // this is valid
+
+    _ = &m.a    // ERROR `cannot take the address of m.a`
+    _ = &(m.a)  // ERROR `cannot take the address of m.a`
+    _ = (&m).a  // ERROR `&m.a undefined (type *map[string]interface {} has no field or method a)`
+    
+    _ = &m.a.x.y    // ERROR `cannot take the address of m.a.x.y`
+    _ = &(m.a.x.y)  // ERROR `cannot take the address of m.a.x.y`
+    _ = (&m).a.x.y  // ERROR `&m.a undefined (type *map[string]interface {} has no field or method a)`
+%%}

@@ -7,6 +7,7 @@ package compiler
 import (
 	"reflect"
 
+	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/runtime"
 )
 
@@ -24,6 +25,7 @@ const (
 	propertyHasValue                                              // has a value
 	propertyIsMacroDeclaration                                    // is macro declaration
 	propertyMacroDeclaredInFileWithExtends                        // is macro declared in file with extends
+	propertyKeySelector                                           // is a key selector
 )
 
 // A typeInfo holds the type checking information. For example, every expression
@@ -39,6 +41,7 @@ type typeInfo struct {
 	MethodType        methodType   // Method type.
 	value             interface{}  // value; for packages has type *Package.
 	valueType         reflect.Type // When value is a native type holds the original type of value.
+	replacement       ast.Node     // Replacement node.
 }
 
 // methodType represents the type of a method, intended as a combination of a
@@ -129,6 +132,11 @@ func (ti *typeInfo) Itea() bool {
 // with extends.
 func (ti *typeInfo) MacroDeclaredInExtendingFile() bool {
 	return ti.Properties&propertyMacroDeclaredInFileWithExtends != 0
+}
+
+// IsKeySelector reports whether it is a key selector.
+func (ti *typeInfo) IsKeySelector() bool {
+	return ti.Properties&propertyKeySelector != 0
 }
 
 // TypeName returns the name of the type. If it is an alias, it returns the

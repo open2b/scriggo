@@ -1,0 +1,15 @@
+m.c = 9
+m.n = 0
+m.d = 1
+n.c = ab
+n.n = nil
+n.d.x = true
+n.d.x.y.(T1).a = 12
+n.d.x.y.(*T1).a = 13
+n.d.x.y.(T2).a.b = true
+n.d.x ? true
+n.d.x.y ? true
+n.d.x.z ? false
+v.a = a
+w.a = true
+s.a = 5

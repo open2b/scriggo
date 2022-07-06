@@ -1056,6 +1056,21 @@ func (vm *VM) run() (Addr, bool) {
 				elem.Set(index)
 			}
 			vm.setFromReflectValue(c, elem)
+		case OpMapIndexAny, -OpMapIndexAny:
+			m := vm.general(a)
+			t := m.Type()
+			// Type must be 'map[K]E' where K is a string type or the 'interface{}' type and E is any type.
+			if k := t.Key(); t.Name() != "" || k.Kind() != reflect.String && k != emptyInterfaceType {
+				panic(runtimeError("invalid operation: type " + t.String() + " does not support key indexing"))
+			}
+			k := reflect.ValueOf(vm.stringk(b, op < 0))
+			index := m.MapIndex(k)
+			elem := reflect.New(emptyInterfaceType).Elem()
+			vm.ok = index.IsValid()
+			if vm.ok {
+				elem.Set(index)
+			}
+			vm.setFromReflectValue(c, elem)
 
 		// MethodValue
 		case OpMethodValue:
