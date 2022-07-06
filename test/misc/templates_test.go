@@ -1940,7 +1940,7 @@ var templateMultiFileCases = map[string]struct {
 				var a []int
 			%%}`,
 		},
-		expectedOut:      "beforeafter",
+		expectedOut: "beforeafter",
 	},
 
 	"Multi line statements #3": {
