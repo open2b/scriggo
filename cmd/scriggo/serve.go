@@ -401,8 +401,10 @@ var globals = native.Declarations{
 	"hex":               builtin.Hex,
 	"marshalJSON":       builtin.MarshalJSON,
 	"marshalJSONIndent": builtin.MarshalJSONIndent,
+	"marshalYAML":       builtin.MarshalYAML,
 	"md5":               builtin.Md5,
 	"unmarshalJSON":     builtin.UnmarshalJSON,
+	"unmarshalYAML":     builtin.UnmarshalYAML,
 
 	// html
 	"htmlEscape": builtin.HtmlEscape,
