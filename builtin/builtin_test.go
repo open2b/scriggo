@@ -142,6 +142,11 @@ var tests = []struct {
 	{(func() string { s, _ := MarshalJSONIndent(5, " ", "\t"); return string(s) })(), "5"},
 	{(func() string { s, _ := MarshalJSONIndent([]string{"red", "green"}, "\t", "  "); return string(s) })(), "[\n\t  \"red\",\n\t  \"green\"\n\t]"},
 
+	// marshalYAML
+	{(func() string { s, _ := MarshalYAML(nil); return s })(), "null\n"},
+	{(func() string { s, _ := MarshalYAML(5); return s })(), "5\n"},
+	{(func() string { s, _ := MarshalYAML([]string{"red", "green"}); return s })(), "- red\n- green\n"},
+
 	// max
 	{spf("%d", Max(0, 0)), "0"},
 	{spf("%d", Max(5, 0)), "5"},
@@ -307,6 +312,15 @@ var tests = []struct {
 	{spf("%v", UnmarshalJSON("", (*int)(nil))), "unmarshalJSON: cannot unmarshal into a nil pointer of type *int"},
 	{spf("%v", UnmarshalJSON("", []int{})), "unmarshalJSON: cannot unmarshal into non-pointer value of type []int"},
 	{spf("%v", UnmarshalJSON("5", &[]int{})), "unmarshalJSON: cannot unmarshal number into value of type []int"},
+
+	// unmarshalYAML
+	{spf("%#v", (func() interface{} { var v map[string]interface{}; _ = UnmarshalYAML("", &v); return v })()), "map[string]interface {}(nil)"},
+	{spf("%#v", (func() interface{} { var v map[string]interface{}; _ = UnmarshalYAML(`{"a":"b"}`, &v); return v })()), `map[string]interface {}{"a":"b"}`},
+	{spf("%#v", (func() interface{} { var v []int; _ = UnmarshalYAML("- 1\n- 2\n- 3\n", &v); return v })()), "[]int{1, 2, 3}"},
+	{spf("%v", UnmarshalYAML("", nil)), "unmarshalYAML: cannot unmarshal into nil"},
+	{spf("%v", UnmarshalYAML("", (*int)(nil))), "unmarshalYAML: cannot unmarshal into a nil pointer of type *int"},
+	{spf("%v", UnmarshalYAML("", []int{})), "unmarshalYAML: cannot unmarshal into non-pointer value of type []int"},
+	{spf("%v", UnmarshalYAML("5", &[]int{})), "unmarshalYAML: line 1: cannot unmarshal !!int `5` into []int"},
 
 	// unsafeconv
 	{string(toHTML("<a>")), "<a>"},

@@ -7,6 +7,7 @@ require (
 	github.com/yuin/goldmark v1.4.12
 	golang.org/x/mod v0.5.1
 	golang.org/x/tools v0.1.9
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

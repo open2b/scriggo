@@ -47,8 +47,10 @@
 //  	"hex":               builtin.Hex,
 //  	"marshalJSON":       builtin.MarshalJSON,
 //  	"marshalJSONIndent": builtin.MarshalJSONIndent,
+//      "marshalYAML":       builtin.MarshalYAML,
 //  	"md5":               builtin.Md5,
 //  	"unmarshalJSON":     builtin.UnmarshalJSON,
+//      "unmarshalYAML":     builtin.UnmarshalYAML,
 //
 //  	// html
 //  	"htmlEscape": builtin.HtmlEscape,
@@ -158,6 +160,8 @@ import (
 	"github.com/open2b/scriggo"
 	"github.com/open2b/scriggo/internal/thirdparties"
 	"github.com/open2b/scriggo/native"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Abbreviate abbreviates s to almost n runes. If s is longer than n runes,
@@ -410,6 +414,27 @@ func MarshalJSONIndent(v interface{}, prefix, indent string) (native.JSON, error
 		return "", errors.New(err.Error())
 	}
 	return native.JSON(b), nil
+}
+
+// MarshalYAML returns the YAML encoding of v.
+//
+// See https://pkg.go.dev/gopkg.in/yaml.v3#Marshal for details.
+func MarshalYAML(v interface{}) (_ string, err error) {
+	defer func() {
+		msg := recover()
+		if msg != nil {
+			if s, ok := msg.(string); ok {
+				err = errors.New("marshalYAML: " + s)
+			} else {
+				err = errors.New("marshalYAML: unknown error")
+			}
+		}
+	}()
+	b, err := yaml.Marshal(v)
+	if err != nil {
+		return "", errors.New("marshalYAML: " + err.Error())
+	}
+	return string(b), nil
 }
 
 // Max returns the larger of x or y.
@@ -867,6 +892,53 @@ func UnmarshalJSON(data string, v interface{}) error {
 			return errors.New("unmarshalJSON: cannot unmarshal " + e.Value + " into value of type " + e.Type.String())
 		}
 		return replacePrefix(err, "json", "unmarshalJSON")
+	}
+	rv.Elem().Set(vp.Elem())
+	return nil
+}
+
+// UnmarshalYAML parses the YAML-encoded data and stores the result in a new
+// value pointed to by v. If v is nil or not a pointer, UnmarshalYAML returns
+// an error.
+//
+// Unlike yaml.Unmarshal of the yaml package, UnmarshalYAML does not accept a
+// map value, use a pointer to a map value instead. UnmarshalYAM does not
+// change the value pointed to by v but instantiates a new value and then
+// replaces the value pointed to by v, if no errors occur.
+//
+// See https://pkg.go.dev/gopkg.in/yaml.v3#Unmarshal for details.
+func UnmarshalYAML(data string, v interface{}) (err error) {
+	if v == nil {
+		return errors.New("unmarshalYAML: cannot unmarshal into nil")
+	}
+	rv := reflect.ValueOf(v)
+	rt := rv.Type()
+	if rv.Kind() != reflect.Ptr {
+		return fmt.Errorf("unmarshalYAML: cannot unmarshal into non-pointer value of type " + rt.String())
+	}
+	if rv.IsZero() {
+		return errors.New("unmarshalYAML: cannot unmarshal into a nil pointer of type " + rt.String())
+	}
+	vp := reflect.New(rt.Elem())
+	defer func() {
+		msg := recover()
+		if msg != nil {
+			if s, ok := msg.(string); ok {
+				err = errors.New("unmarshalYAML: " + s)
+			} else {
+				err = errors.New("unmarshalYAML: unknown error")
+			}
+		}
+	}()
+	err = yaml.Unmarshal([]byte(data), vp.Interface())
+	if err != nil {
+		if e, ok := err.(*yaml.TypeError); ok {
+			if len(e.Errors) == 0 {
+				return errors.New("unmarshalYAML: unknown error")
+			}
+			return errors.New("unmarshalYAML: " + e.Errors[0])
+		}
+		return errors.New("unmarshalYAML: " + err.Error())
 	}
 	rv.Elem().Set(vp.Elem())
 	return nil
