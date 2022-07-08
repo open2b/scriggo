@@ -31,8 +31,17 @@ func _main() {
 	// Run the program.
 	err = program.Run(nil)
 	if err != nil {
-		if err, ok := err.(*scriggo.PanicError); ok {
+		switch err := err.(type) {
+		case *scriggo.PanicError:
+			// The program panicked.
 			panic(err)
+		case *scriggo.ExitError:
+			// A native function has called the Stop method of native.Env with
+			// a *scriggo.ExitError value.
+			if err.Err != nil {
+				_, _ = fmt.Fprintln(os.Stderr, err.Err.Error())
+			}
+			os.Exit(err.Code)
 		}
 		// Another error occurred.
 		_, _ = fmt.Fprintln(os.Stderr, err)
