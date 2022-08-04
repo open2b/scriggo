@@ -1,4 +1,4 @@
-//go:build go1.19
+//go:build go1.17 && !go1.19
 
 package main
 
@@ -40,10 +40,7 @@ func Test_renderPackages(t *testing.T) {
 				packages = make(native.Packages, 1)
 				var decs native.Declarations
 				// "custom/fmt/path"
-				decs = make(native.Declarations, 28)
-				decs["Append"] = fmt.Append
-				decs["Appendf"] = fmt.Appendf
-				decs["Appendln"] = fmt.Appendln
+				decs = make(native.Declarations, 25)
 				decs["Errorf"] = fmt.Errorf
 				decs["Formatter"] = reflect.TypeOf((*fmt.Formatter)(nil)).Elem()
 				decs["Fprint"] = fmt.Fprint
@@ -149,10 +146,7 @@ func Test_renderPackages(t *testing.T) {
 				packages = make(native.Packages, 1)
 				var decs native.Declarations
 				// "fmt"
-				decs = make(native.Declarations, 28)
-				decs["Append"] = fmt.Append
-				decs["Appendf"] = fmt.Appendf
-				decs["Appendln"] = fmt.Appendln
+				decs = make(native.Declarations, 25)
 				decs["Errorf"] = fmt.Errorf
 				decs["Formatter"] = reflect.TypeOf((*fmt.Formatter)(nil)).Elem()
 				decs["Fprint"] = fmt.Fprint
@@ -263,9 +257,6 @@ func Test_parseGoPackage(t *testing.T) {
 		"fmt": {
 			name: "fmt",
 			decls: map[string]string{
-				"Append":     "fmt.Append",
-				"Appendf":    "fmt.Appendf",
-				"Appendln":   "fmt.Appendln",
 				"Errorf":     "fmt.Errorf",
 				"Formatter":  "reflect.TypeOf((*fmt.Formatter)(nil)).Elem()",
 				"Fprint":     "fmt.Fprint",
