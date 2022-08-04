@@ -14,6 +14,7 @@ import "fmt"
 func main() {
 
 	os.Unsetenv("SCRIGGO")
+	os.Unsetenv("PWD")
 
 	// To set a key/value pair, use `os.Setenv`. To get a
 	// value for a key, use `os.Getenv`. This will return
