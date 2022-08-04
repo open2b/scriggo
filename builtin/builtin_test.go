@@ -145,6 +145,23 @@ var tests = []struct {
 	{HmacSHA256(``, `secret`), "+eZuF5tnR65UEI+C+K3os8Jddv0wr95sOVgixTAZYWk="},
 	{HmacSHA256(`hello world!`, `secret`), "cgaXMb8pG0Y67LIYvCJ6vOPUA9dtpn+u8tSNPLQ7L1Q="},
 
+	// indexAny
+	{sp(IndexAny("hello", "h")), "0"},
+	{sp(IndexAny("hello", "j")), "-1"},
+	{sp(IndexAny("aaaba", "b")), "3"},
+	{sp(IndexAny("-aaaba", "a")), "1"},
+	{sp(IndexAny("-aaèba", "è")), "3"},
+	{sp(IndexAny("-ààèba", "è")), "5"},
+
+	// join
+	{sp(Join([]string{"a", "b", "c"}, " ")), "a b c"},
+	{sp(Join([]string{"a", "b", "c"}, "")), "abc"},
+	{sp(Join([]string{"ab", "cd", "ef"}, "\n")), "ab\ncd\nef"},
+	{sp(Join([]string{}, "")), ""},
+	{sp(Join([]string{}, "something")), ""},
+	{sp(Join([]string(nil), "")), ""},
+	{sp(Join([]string(nil), "something")), ""},
+
 	// marshalJSON
 	{(func() string { s, _ := MarshalJSON(nil); return string(s) })(), "null"},
 	{(func() string { s, _ := MarshalJSON(5); return string(s) })(), "5"},
@@ -185,6 +202,12 @@ var tests = []struct {
 		t2 := NewTime(time.Now())
 		return (t.Equal(t1) || t.After(t1)) && (t.Equal(t2) || t.Before(t2))
 	}()), "true"},
+
+	// parseDuration
+	{sp(ParseDuration("300ms")), "300ms <nil>"},
+	{sp(ParseDuration("1h20m")), "1h20m0s <nil>"},
+	{sp(ParseDuration(" 1h20m")), "0s parseDuration: invalid duration \" 1h20m\""},
+	{sp(ParseDuration(" 1h 20m")), "0s parseDuration: invalid duration \" 1h 20m\""},
 
 	// parseFloat
 	{sp(ParseFloat("")), "0 parseFloat: parsing \"\": invalid syntax"},
@@ -259,6 +282,12 @@ var tests = []struct {
 	{func() string { s := []bool{false, false, true}; Reverse(s); return spf("%v", s) }(), "[true false false]"},
 	{func() string { s := []native.HTML{`<b>`, `<a>`, `<c>`}; Reverse(s); return spf("%v", s) }(), "[<c> <a> <b>]"},
 
+	// runeCount
+	{sp(RuneCount("a")), "1"},
+	{sp(RuneCount("abc")), "3"},
+	{sp(RuneCount("")), "0"},
+	{sp(RuneCount("eè")), "2"},
+
 	// sha1
 	{Sha1(``), "da39a3ee5e6b4b0d3255bfef95601890afd80709"},
 	{Sha1(`hello world!`), "430ce34d020724ed75a196dfc2ad67c77772d169"},
@@ -277,9 +306,29 @@ var tests = []struct {
 	{func() string { s := []string{"a"}; Sort(s, nil); return spf("%v", s) }(), "[a]"},
 	{func() string { s := []string{"b", "a"}; Sort(s, nil); return spf("%v", s) }(), "[a b]"},
 	{func() string { s := []string{"b", "a", "c"}; Sort(s, nil); return spf("%v", s) }(), "[a b c]"},
+	{func() string { s := []rune{'b', 'a', 'c'}; Sort(s, nil); return spf("%v", s) }(), "[97 98 99]"},
 	{func() string { s := []bool{true, false, true}; Sort(s, nil); return spf("%v", s) }(), "[false true true]"},
 	{func() string { s := []native.HTML{`<b>`, `<a>`, `<c>`}; Sort(s, nil); return spf("%v", s) }(), "[<a> <b> <c>]"},
 	{func() string { s := []interface{}{5, 8, 2}; Sort(s, nil); return spf("%v", s) }(), "[2 5 8]"},
+
+	// split
+	{sp(Split("a b c", " ")), "[a b c]"},
+	{sp(Split("a-b-c", "-")), "[a b c]"},
+	{sp(Split("ax-bx-cx", " ")), "[ax-bx-cx]"},
+	{sp(Split("", "-")), "[]"},
+
+	// splitAfter
+	{sp(SplitAfter("a b c", " ")), "[a  b  c]"},
+	{sp(SplitAfter("a-b-c", "-")), "[a- b- c]"},
+	{sp(SplitAfter("ax-bx-cx", " ")), "[ax-bx-cx]"},
+	{sp(SplitAfter("", "-")), "[]"},
+
+	// sprint
+	{Sprint("x"), "x"},
+	{Sprint(10), "10"},
+	{Sprint(20, 30), "20 30"},
+	{Sprint(20, 30, 'f'), "20 30 102"},
+	{Sprint(), ""},
 
 	// toKebab
 	{ToKebab(""), ""},
