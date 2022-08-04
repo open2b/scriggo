@@ -6,9 +6,9 @@
 //
 // For example, the source in a template file named "articles.html":
 //
-//    {% for article in articles %}
-//    <div>{{ article.Title }}</div>
-//    {% end %}
+//	{% for article in articles %}
+//	<div>{{ article.Title }}</div>
+//	{% end %}
 //
 // is represented with the tree:
 //
@@ -32,7 +32,6 @@
 //			},
 //		),
 //	}, ast.FormatHTML)
-//
 package ast
 
 import (

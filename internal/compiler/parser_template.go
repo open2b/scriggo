@@ -87,11 +87,10 @@ type parsedTree struct {
 //
 // Supposing that a/b/c is the parent path
 //
-//   if name is /d/e, the rooted path name is d/e
-//   if name is d/e, the rooted path name is a/b/d/e
-//   if name is ../d/e, the rooted path name is a/d/e
-//   if name is ../../d/e, the rooted path name is d/e
-//
+//	if name is /d/e, the rooted path name is d/e
+//	if name is d/e, the rooted path name is a/b/d/e
+//	if name is ../d/e, the rooted path name is a/d/e
+//	if name is ../../d/e, the rooted path name is d/e
 func rooted(parent, name string) (string, error) {
 	if path.IsAbs(name) {
 		return name[1:], nil

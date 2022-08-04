@@ -296,7 +296,7 @@ func (a address) targetType() reflect.Type {
 
 // emitAssignmentOperation emits an assignment operation
 //
-//      x op= rh
+//	x op= rh
 //
 // addr represents the address of x and rh is the right hand side of the
 // assignment operation.

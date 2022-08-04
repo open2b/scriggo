@@ -36,10 +36,9 @@ import (
 // asm determines the maximum length, in runes, of disassembled Text
 // instructions
 //
-//   asm > 0: at most asm runes; leading and trailing white space are removed
-//   asm == 0: no text
-//   asm == -1: all text
-//
+//	asm > 0: at most asm runes; leading and trailing white space are removed
+//	asm == 0: no text
+//	asm == -1: all text
 func serve(asm int, metrics bool) error {
 
 	fsys, err := newTemplateFS(".")

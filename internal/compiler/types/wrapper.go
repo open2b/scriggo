@@ -22,7 +22,7 @@ func wrap(t runtime.ScriggoType, v reflect.Value) reflect.Value {
 }
 
 // TODO: currently unwrap always returns an empty interface wrapper. This will
-//  change when methods declaration will be implemented in Scriggo.
+// change when methods declaration will be implemented in Scriggo.
 func unwrap(x runtime.ScriggoType, v reflect.Value) (reflect.Value, bool) {
 	p, ok := v.Interface().(emptyInterfaceProxy)
 	// Not a proxy.

@@ -295,7 +295,7 @@ func (types *Types) TypeOf(v reflect.Value) reflect.Type {
 }
 
 // TODO: this function will be removed when the development of this package is
-//  concluded.
+// concluded.
 func assertNotScriggoType(t reflect.Type) {
 	if _, ok := t.(runtime.ScriggoType); ok {
 		panic(fmt.Errorf("%v is a Scriggo type", t))
@@ -310,7 +310,7 @@ func assertNotScriggoType(t reflect.Type) {
 //
 // It may be used as:
 //
-//      panic(internalError(format, a...))
+//	panic(internalError(format, a...))
 //
 // Keep in sync with compiler.internalError.
 func internalError(format string, a ...interface{}) string {

@@ -35,24 +35,23 @@ type Time struct {
 // For example, a builtin that returns the current local time rounded to
 // milliseconds and with location "America/New_York" can be implemented as
 //
-//    func now() builtin.Time {
-//        l := time.LoadLocation("America/New_York")
-//        t := time.Now().Rounded(time.Millisecond).In(l)
-//        return builtin.NewTime(t)
-//    }
+//	func now() builtin.Time {
+//	    l := time.LoadLocation("America/New_York")
+//	    t := time.Now().Rounded(time.Millisecond).In(l)
+//	    return builtin.NewTime(t)
+//	}
 //
 // and once added to the declarations
 //
-//    native.Declarations{
-//        ...
-//        "now" : now,
-//        ...
-//    }
+//	native.Declarations{
+//	    ...
+//	    "now" : now,
+//	    ...
+//	}
 //
 // it can be used in a template
 //
-//    Current time: {{ now() }}
-//
+//	Current time: {{ now() }}
 func NewTime(t time.Time) Time {
 	return Time{t}
 }
@@ -107,7 +106,9 @@ func (t Time) Equal(u Time) bool {
 // Format returns a textual representation of the time value formatted
 // according to layout, which defines the format by showing how the reference
 // time
+//
 //	Mon Jan 2 15:04:05 -0700 MST 2006
+//
 // would be displayed if it were the value; it serves as an example of the
 // desired output. The same display rules will then be applied to the time
 // value.

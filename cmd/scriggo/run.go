@@ -33,8 +33,7 @@ const runBufSize = 65536
 
 // run executes the sub command "run":
 //
-//		scriggo run
-//
+//	scriggo run
 func run(name string, flags buildFlags) (err error) {
 
 	var fsys fs.FS

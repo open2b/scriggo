@@ -47,10 +47,9 @@ func getOutputFlag(output string) (io.WriteCloser, error) {
 
 // uncapitalize "uncapitalizes" n.
 //
-// 	Name        ->  name
+//	Name        ->  name
 //	DoubleWord  ->  doubleWord
-//  AbC         ->  abC
-//
+//	AbC         ->  abC
 func uncapitalize(n string) string {
 	isUp := unicode.IsUpper
 	toLow := unicode.ToLower
@@ -174,8 +173,7 @@ func (u packageNameCache) uniquePackageName(pkgPath, pkgName string) string {
 
 // goBaseVersion returns the go base version for v.
 //
-//		1.15.5 -> 1.15
-//
+//	1.15.5 -> 1.15
 func goBaseVersion(v string) string {
 	// When updating, also update test/compare/run.go.
 	if strings.HasPrefix(v, "devel ") {
@@ -223,8 +221,7 @@ func hasStdlibPrefix(path string) bool {
 
 // nextGoVersion returns the successive go version of v.
 //
-//		1.15.5 -> 1.16
-//
+//	1.15.5 -> 1.16
 func nextGoVersion(v string) string {
 	v = goBaseVersion(v)[4:]
 	f, err := strconv.ParseFloat(v, 32)

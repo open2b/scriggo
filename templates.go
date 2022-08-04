@@ -80,12 +80,12 @@ var formatTypes = map[ast.Format]reflect.Type{
 // If fsys implements FormatFS, file formats are read with its Format method,
 // otherwise it depends on the file name extension
 //
-//   HTML       : .html
-//   CSS        : .css
-//   JavaScript : .js
-//   JSON       : .json
-//   Markdown   : .md .mkd .mkdn .mdown .markdown
-//   Text       : all other extensions
+//	HTML       : .html
+//	CSS        : .css
+//	JavaScript : .js
+//	JSON       : .json
+//	Markdown   : .md .mkd .mkdn .mdown .markdown
+//	Text       : all other extensions
 //
 // If the named file does not exist, BuildTemplate returns an error satisfying
 // errors.Is(err, fs.ErrNotExist).
@@ -165,10 +165,9 @@ func (t *Template) Run(out io.Writer, vars map[string]interface{}, options *RunO
 //
 // n determines the maximum length, in runes, of a disassembled text:
 //
-//   n > 0: at most n runes; leading and trailing white space are removed
-//   n == 0: no text
-//   n < 0: all text
-//
+//	n > 0: at most n runes; leading and trailing white space are removed
+//	n == 0: no text
+//	n < 0: all text
 func (t *Template) Disassemble(n int) []byte {
 	assemblies := compiler.Disassemble(t.fn, t.globals, n)
 	return assemblies["main"]

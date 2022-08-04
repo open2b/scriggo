@@ -79,9 +79,10 @@ func (re Regexp) ReplaceAllFunc(s string, repl func(string) string) string {
 // expression that contains no metacharacters, it is equivalent to SplitN.
 //
 // The count determines the number of substrings to return:
-//   n > 0: at most n substrings; the last substring will be the unsplit remainder.
-//   n == 0: the result is nil (zero substrings)
-//   n < 0: all substrings
+//
+//	n > 0: at most n substrings; the last substring will be the unsplit remainder.
+//	n == 0: the result is nil (zero substrings)
+//	n < 0: all substrings
 func (re Regexp) Split(s string, n int) []string {
 	return re.r.Split(s, n)
 }

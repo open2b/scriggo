@@ -148,8 +148,7 @@ var commandsHelp = map[string]func(){
 // commands maps a command name to a function that executes that command.
 // Commands are called by command-line using:
 //
-//		scriggo command
-//
+//	scriggo command
 var commands = map[string]func(){
 	"bug": func() {
 		flag.Usage = commandsHelp["bug"]
@@ -316,8 +315,7 @@ func version() string {
 
 // _import executes the sub commands "import":
 //
-//		scriggo import
-//
+//	scriggo import
 func _import(path string, flags buildFlags) (err error) {
 
 	_, err = exec.LookPath("go")
@@ -426,8 +424,7 @@ type buildFlags struct {
 
 // _init executes the sub commands "init":
 //
-//		scriggo init
-//
+//	scriggo init
 func _init(path string, flags buildFlags) error {
 
 	var err error

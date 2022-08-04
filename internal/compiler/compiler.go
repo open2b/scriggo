@@ -10,8 +10,7 @@
 //
 // while a template is compiled through
 //
-//  BuildTemplate
-//
+//	BuildTemplate
 package compiler
 
 import (
@@ -44,12 +43,11 @@ const (
 // Error represents an error returned by the compiler. The types that
 // implement the Error interface are four types of the compiler package
 //
-//  *GoModError
-//  *SyntaxError
-//  *CycleError
-//  *CheckingError
-//  *LimitExceededError
-//
+//	*GoModError
+//	*SyntaxError
+//	*CycleError
+//	*CheckingError
+//	*LimitExceededError
 type Error interface {
 	error
 	Position() ast.Position
@@ -341,7 +339,7 @@ func getExtends(nodes []ast.Node) (*ast.Extends, bool) {
 //
 // It may be used as:
 //
-//      panic(internalError(format, a...))
+//	panic(internalError(format, a...))
 //
 // Keep in sync with types.internalError.
 func internalError(format string, a ...interface{}) string {

@@ -13,15 +13,13 @@ import (
 )
 
 // emitNop appends a new "Nop" instruction to the function body.
-//
 func (fb *functionBuilder) emitNop() {
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpNone})
 }
 
 // emitAdd appends a new "Add" instruction to the function body.
 //
-//     z = x + y
-//
+//	z = x + y
 func (fb *functionBuilder) emitAdd(k bool, x, y, z int8, kind reflect.Kind) {
 	var op runtime.Operation
 	switch kind {
@@ -44,9 +42,8 @@ func (fb *functionBuilder) emitAdd(k bool, x, y, z int8, kind reflect.Kind) {
 
 // emitAddr appends a new "Addr" instruction to the function body.
 //
-// 	   dest = &expr.Field
-// 	   dest = &expr[index]
-//
+//	dest = &expr.Field
+//	dest = &expr[index]
 func (fb *functionBuilder) emitAddr(expr, index, dest int8, pos *ast.Position) {
 	fb.addPosAndPath(pos)
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpAddr, A: expr, B: index, C: dest})
@@ -54,8 +51,7 @@ func (fb *functionBuilder) emitAddr(expr, index, dest int8, pos *ast.Position) {
 
 // emitAnd appends a new "And" instruction to the function body.
 //
-//     z = x & y
-//
+//	z = x & y
 func (fb *functionBuilder) emitAnd(k bool, x, y, z int8, kind reflect.Kind) {
 	op := runtime.OpAnd
 	if k {
@@ -66,8 +62,7 @@ func (fb *functionBuilder) emitAnd(k bool, x, y, z int8, kind reflect.Kind) {
 
 // emitAndNot appends a new "AndNot" instruction to the function body.
 //
-//     z = x &^ y
-//
+//	z = x &^ y
 func (fb *functionBuilder) emitAndNot(k bool, x, y, z int8, kind reflect.Kind) {
 	op := runtime.OpAndNot
 	if k {
@@ -77,7 +72,6 @@ func (fb *functionBuilder) emitAndNot(k bool, x, y, z int8, kind reflect.Kind) {
 }
 
 // emitAppend appends a new "Append" instruction to the function body.
-//
 func (fb *functionBuilder) emitAppend(start, end, s int8, elementsKind reflect.Kind) {
 	fb.addOperandKinds(elementsKind, elementsKind, 0)
 	fn := fb.fn
@@ -86,8 +80,7 @@ func (fb *functionBuilder) emitAppend(start, end, s int8, elementsKind reflect.K
 
 // emitAppendSlice appends a new "AppendSlice" instruction to the function body.
 //
-//     s = append(s, t)
-//
+//	s = append(s, t)
 func (fb *functionBuilder) emitAppendSlice(t, s int8, pos *ast.Position) {
 	fb.addPosAndPath(pos)
 	fn := fb.fn
@@ -96,8 +89,7 @@ func (fb *functionBuilder) emitAppendSlice(t, s int8, pos *ast.Position) {
 
 // emitAssert appends a new "assert" instruction to the function body.
 //
-//     z = e.(t)
-//
+//	z = e.(t)
 func (fb *functionBuilder) emitAssert(e int8, typ reflect.Type, z int8) {
 	t := fb.addType(typ, true)
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpAssert, A: e, B: int8(t), C: z})
@@ -105,8 +97,7 @@ func (fb *functionBuilder) emitAssert(e int8, typ reflect.Type, z int8) {
 
 // emitBreak appends a new "Break" instruction to the function body.
 //
-//     break addr
-//
+//	break addr
 func (fb *functionBuilder) emitBreak(lab label) {
 	addr := fb.labelAddrs[lab-1]
 	a, b, c := encodeUint24(uint32(addr))
@@ -115,8 +106,7 @@ func (fb *functionBuilder) emitBreak(lab label) {
 
 // emitCallFunc appends a new "CallFunc" instruction to the function body.
 //
-//     p.f()
-//
+//	p.f()
 func (fb *functionBuilder) emitCallFunc(f int8, shift runtime.StackShift, pos *ast.Position) {
 	fb.addPosAndPath(pos)
 	fn := fb.fn
@@ -126,8 +116,7 @@ func (fb *functionBuilder) emitCallFunc(f int8, shift runtime.StackShift, pos *a
 
 // emitCallMacro appends a new "CallMacro" instruction to the function body.
 //
-//     p.m()
-//
+//	p.m()
 func (fb *functionBuilder) emitCallMacro(f int8, shift runtime.StackShift, pos *ast.Position, toFormat ast.Format) {
 	fb.addPosAndPath(pos)
 	fn := fb.fn
@@ -137,8 +126,7 @@ func (fb *functionBuilder) emitCallMacro(f int8, shift runtime.StackShift, pos *
 
 // emitCallIndirect appends a new "CallIndirect" instruction to the function body.
 //
-//     f()
-//
+//	f()
 func (fb *functionBuilder) emitCallIndirect(f int8, numVariadic int8, shift runtime.StackShift, pos *ast.Position, funcType reflect.Type, toFormat ast.Format) {
 	fb.addPosAndPath(pos)
 	fb.addFunctionType(funcType)
@@ -149,8 +137,7 @@ func (fb *functionBuilder) emitCallIndirect(f int8, numVariadic int8, shift runt
 
 // emitCallNative appends a new "CallNative" instruction to the function body.
 //
-//     p.F()
-//
+//	p.F()
 func (fb *functionBuilder) emitCallNative(f int8, numVariadic int8, shift runtime.StackShift, pos *ast.Position) {
 	fb.addPosAndPath(pos)
 	fn := fb.fn
@@ -160,18 +147,16 @@ func (fb *functionBuilder) emitCallNative(f int8, numVariadic int8, shift runtim
 
 // emitCap appends a new "cap" instruction to the function body.
 //
-//     z = cap(s)
-//
+//	z = cap(s)
 func (fb *functionBuilder) emitCap(s, z int8) {
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpCap, A: s, C: z})
 }
 
 // emitCase appends a new "Case" instruction to the function body.
 //
-//     case ch <- value
-//     case value = <-ch
-//     default
-//
+//	case ch <- value
+//	case value = <-ch
+//	default
 func (fb *functionBuilder) emitCase(kvalue bool, dir reflect.SelectDir, value, ch int8) {
 	in := runtime.Instruction{Op: runtime.OpCase, A: int8(dir)}
 	if kvalue {
@@ -190,8 +175,7 @@ func (fb *functionBuilder) emitCase(kvalue bool, dir reflect.SelectDir, value, c
 
 // emitClose appends a new "Close" instruction to the function body.
 //
-//     close(ch)
-//
+//	close(ch)
 func (fb *functionBuilder) emitClose(ch int8, pos *ast.Position) {
 	fb.addPosAndPath(pos)
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpClose, A: ch})
@@ -200,7 +184,6 @@ func (fb *functionBuilder) emitClose(ch int8, pos *ast.Position) {
 // emitComplex appends a new "Complex" instruction to the function body.
 //
 //	z = complex(x, y)
-//
 func (fb *functionBuilder) emitComplex(x, y, z int8, kind reflect.Kind) {
 	op := runtime.OpComplex128
 	if kind == reflect.Complex64 {
@@ -211,8 +194,7 @@ func (fb *functionBuilder) emitComplex(x, y, z int8, kind reflect.Kind) {
 
 // emitConcat appends a new "concat" instruction to the function body.
 //
-//     z = concat(s, t)
-//
+//	z = concat(s, t)
 func (fb *functionBuilder) emitConcat(s, t, z int8) {
 	fn := fb.fn
 	fn.Body = append(fn.Body, runtime.Instruction{Op: runtime.OpConcat, A: s, B: t, C: z})
@@ -220,8 +202,7 @@ func (fb *functionBuilder) emitConcat(s, t, z int8) {
 
 // emitContinue appends a new "Continue" instruction to the function body.
 //
-//     continue label
-//
+//	continue label
 func (fb *functionBuilder) emitContinue(lab label) {
 	addr := fb.labelAddrs[lab-1]
 	a, b, c := encodeUint24(uint32(addr))
@@ -230,8 +211,7 @@ func (fb *functionBuilder) emitContinue(lab label) {
 
 // emitConvert appends a new "Convert" instruction to the function body.
 //
-// 	 dst = typ(src)
-//
+//	dst = typ(src)
 func (fb *functionBuilder) emitConvert(src int8, typ reflect.Type, dst int8, srcKind reflect.Kind) {
 	fn := fb.fn
 	regType := fb.addType(typ, false)
@@ -261,17 +241,15 @@ func (fb *functionBuilder) emitConvert(src int8, typ reflect.Type, dst int8, src
 
 // emitCopy appends a new "Copy" instruction to the function body.
 //
-//     n == 0:   copy(dst, src)
-// 	 n != 0:   n := copy(dst, src)
-//
+//	n == 0:   copy(dst, src)
+//	n != 0:   n := copy(dst, src)
 func (fb *functionBuilder) emitCopy(dst, src, n int8) {
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpCopy, A: src, B: n, C: dst})
 }
 
 // emitDefer appends a new "Defer" instruction to the function body.
 //
-//     defer
-//
+//	defer
 func (fb *functionBuilder) emitDefer(f int8, numVariadic int8, off, arg runtime.StackShift, funcType reflect.Type) {
 	fb.addFunctionType(funcType)
 	fn := fb.fn
@@ -282,16 +260,14 @@ func (fb *functionBuilder) emitDefer(f int8, numVariadic int8, off, arg runtime.
 
 // emitDelete appends a new "delete" instruction to the function body.
 //
-//     delete(m, k)
-//
+//	delete(m, k)
 func (fb *functionBuilder) emitDelete(m, k int8) {
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpDelete, A: m, B: k})
 }
 
 // emitDiv appends a new "div" instruction to the function body.
 //
-//     z = x / y
-//
+//	z = x / y
 func (fb *functionBuilder) emitDiv(ky bool, x, y, z int8, kind reflect.Kind, pos *ast.Position) {
 	var op runtime.Operation
 	switch kind {
@@ -315,8 +291,7 @@ func (fb *functionBuilder) emitDiv(ky bool, x, y, z int8, kind reflect.Kind, pos
 
 // emitField appends a new "Field" instruction to the function body.
 //
-//  c = a.field
-//
+//	c = a.field
 func (fb *functionBuilder) emitField(a, field, c int8, dstKind reflect.Kind) {
 	fb.addOperandKinds(0, 0, dstKind)
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpField, A: a, B: field, C: c})
@@ -324,8 +299,7 @@ func (fb *functionBuilder) emitField(a, field, c int8, dstKind reflect.Kind) {
 
 // emitGetVar appends a new "GetVar" instruction to the function body.
 //
-//     r = v
-//
+//	r = v
 func (fb *functionBuilder) emitGetVar(v int, r int8, varKind reflect.Kind) {
 	a, b := encodeInt16(int16(v))
 	fb.addOperandKinds(0, 0, varKind)
@@ -334,8 +308,7 @@ func (fb *functionBuilder) emitGetVar(v int, r int8, varKind reflect.Kind) {
 
 // emitGetVarAddr appends a new "GetVarAddr" instruction to the function body.
 //
-//	   r = &v
-//
+//	r = &v
 func (fb *functionBuilder) emitGetVarAddr(v int, r int8) {
 	a, b := encodeInt16(int16(v))
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpGetVarAddr, A: a, B: b, C: r})
@@ -343,16 +316,14 @@ func (fb *functionBuilder) emitGetVarAddr(v int, r int8) {
 
 // emitGo appends a new "Go" instruction to the function body.
 //
-//     go
-//
+//	go
 func (fb *functionBuilder) emitGo() {
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpGo})
 }
 
 // emitGoto appends a new "goto" instruction to the function body.
 //
-//     goto label
-//
+//	goto label
 func (fb *functionBuilder) emitGoto(lab label) {
 	in := runtime.Instruction{Op: runtime.OpGoto}
 	if lab > 0 {
@@ -371,24 +342,23 @@ func (fb *functionBuilder) emitGoto(lab label) {
 
 // emitIf appends a new "If" instruction to the function body.
 //
-//     x == 0
-//     x != 0
-//     x == y
-//     x != y
-//     x <  y
-//     x <= y
-//     x >  y
-//     x >= y
-//     x == nil
-//     x != nil
-//     len(x) == y
-//     len(x) != y
-//     len(x) <  y
-//     len(x) <= y
-//     len(x) >  y
-//     len(x) >= y
-//     x contains y
-//
+//	x == 0
+//	x != 0
+//	x == y
+//	x != y
+//	x <  y
+//	x <= y
+//	x >  y
+//	x >= y
+//	x == nil
+//	x != nil
+//	len(x) == y
+//	len(x) != y
+//	len(x) <  y
+//	len(x) <= y
+//	len(x) >  y
+//	len(x) >= y
+//	x contains y
 func (fb *functionBuilder) emitIf(ky bool, x int8, o runtime.Condition, y int8, kind reflect.Kind, pos *ast.Position) {
 	fb.addPosAndPath(pos)
 	var op runtime.Operation
@@ -414,7 +384,7 @@ func (fb *functionBuilder) emitIf(ky bool, x int8, o runtime.Condition, y int8, 
 // reflect.Value with the same underlying index value); otherwise the index is
 // copied.
 //
-//  dst = expr[i]
+//	dst = expr[i]
 //
 // TODO: consider splitting emitIndex in two methods removing the 'ref bool'
 // argument.
@@ -454,8 +424,7 @@ func (fb *functionBuilder) emitIndex(ki bool, expr, i, dst int8, t reflect.Type,
 
 // emitLen appends a new "len" instruction to the function body.
 //
-//     l = len(s)
-//
+//	l = len(s)
 func (fb *functionBuilder) emitLen(s, l int8, t reflect.Type) {
 	a := stringRegister
 	if t.Kind() != reflect.String {
@@ -466,8 +435,7 @@ func (fb *functionBuilder) emitLen(s, l int8, t reflect.Type) {
 
 // emitLoadFunc appends a new "LoadFunc" instruction to the function body.
 //
-//     z = p.f
-//
+//	z = p.f
 func (fb *functionBuilder) emitLoadFunc(native bool, f int8, z int8) {
 	fn := fb.fn
 	var a int8
@@ -478,7 +446,6 @@ func (fb *functionBuilder) emitLoadFunc(native bool, f int8, z int8) {
 }
 
 // emitLoad appends a new "Load" instruction to the function body.
-//
 func (fb *functionBuilder) emitLoad(index int, dst int8, kind reflect.Kind) {
 	a, b := encodeValueIndex(kindToType(kind), index)
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpLoad, A: a, B: b, C: dst})
@@ -499,8 +466,7 @@ func (fb *functionBuilder) emitMakeArray(typ reflect.Type, dst int8) {
 
 // emitMakeChan appends a new "MakeChan" instruction to the function body.
 //
-//     dst = make(typ, capacity)
-//
+//	dst = make(typ, capacity)
 func (fb *functionBuilder) emitMakeChan(typ reflect.Type, kCapacity bool, capacity int8, dst int8, pos *ast.Position) {
 	fb.addPosAndPath(pos)
 	fn := fb.fn
@@ -514,8 +480,7 @@ func (fb *functionBuilder) emitMakeChan(typ reflect.Type, kCapacity bool, capaci
 
 // emitMakeMap appends a new "MakeMap" instruction to the function body.
 //
-//     dst = make(typ, size)
-//
+//	dst = make(typ, size)
 func (fb *functionBuilder) emitMakeMap(typ reflect.Type, kSize bool, size int8, dst int8) {
 	fn := fb.fn
 	t := fb.addType(typ, false)
@@ -528,8 +493,7 @@ func (fb *functionBuilder) emitMakeMap(typ reflect.Type, kSize bool, size int8, 
 
 // emitMakeSlice appends a new "MakeSlice" instruction to the function body.
 //
-//     make(sliceType, len, cap)
-//
+//	make(sliceType, len, cap)
 func (fb *functionBuilder) emitMakeSlice(kLen, kCap bool, sliceType reflect.Type, len, cap, dst int8, pos *ast.Position) {
 	fb.addPosAndPath(pos)
 	fn := fb.fn
@@ -567,8 +531,7 @@ func (fb *functionBuilder) emitMakeStruct(typ reflect.Type, dst int8) {
 
 // emitMethodValue appends a new "MethodValue" instruction to the function body.
 //
-//     dst = receiver.name
-//
+//	dst = receiver.name
 func (fb *functionBuilder) emitMethodValue(name int8, receiver int8, dst int8, pos *ast.Position) {
 	fb.addPosAndPath(pos)
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpMethodValue, A: receiver, B: name, C: dst})
@@ -576,8 +539,7 @@ func (fb *functionBuilder) emitMethodValue(name int8, receiver int8, dst int8, p
 
 // emitMove appends a new "Move" instruction to the function body.
 //
-//     z = x
-//
+//	z = x
 func (fb *functionBuilder) emitMove(k bool, x, z int8, kind reflect.Kind) {
 	op := runtime.OpMove
 	if k {
@@ -589,8 +551,7 @@ func (fb *functionBuilder) emitMove(k bool, x, z int8, kind reflect.Kind) {
 
 // emitMul appends a new "mul" instruction to the function body.
 //
-//     z = x * y
-//
+//	z = x * y
 func (fb *functionBuilder) emitMul(ky bool, x, y, z int8, kind reflect.Kind) {
 	var op runtime.Operation
 	switch kind {
@@ -613,8 +574,7 @@ func (fb *functionBuilder) emitMul(ky bool, x, y, z int8, kind reflect.Kind) {
 
 // emitNeg appends a new "neg" instruction to the function body.
 //
-//     z = -y
-//
+//	z = -y
 func (fb *functionBuilder) emitNeg(y, z int8, kind reflect.Kind) {
 	x := int8(flattenIntegerKind(kind))
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpNeg, A: x, B: y, C: z})
@@ -622,8 +582,7 @@ func (fb *functionBuilder) emitNeg(y, z int8, kind reflect.Kind) {
 
 // emitNew appends a new "new" instruction to the function body.
 //
-//     z = new(t)
-//
+//	z = new(t)
 func (fb *functionBuilder) emitNew(typ reflect.Type, z int8) {
 	// NOTE: the code of emitMakeArray, emitMakeStruct and emitNew is very
 	// similar. If you change this code remember to review/change the code of
@@ -642,8 +601,7 @@ func (fb *functionBuilder) emitNotZero(kind reflect.Kind, dst, src int8) {
 
 // emitOr appends a new "Or" instruction to the function body.
 //
-//     z = x | y
-//
+//	z = x | y
 func (fb *functionBuilder) emitOr(k bool, x, y, z int8, kind reflect.Kind) {
 	op := runtime.OpOr
 	if k {
@@ -657,8 +615,7 @@ func (fb *functionBuilder) emitOr(k bool, x, y, z int8, kind reflect.Kind) {
 // of the type assertion, in order to provide additional information to the VM;
 // otherwise typ should be nil.
 //
-//     panic(v)
-//
+//	panic(v)
 func (fb *functionBuilder) emitPanic(v int8, typ reflect.Type, pos *ast.Position) {
 	fb.addPosAndPath(pos)
 	fn := fb.fn
@@ -671,8 +628,7 @@ func (fb *functionBuilder) emitPanic(v int8, typ reflect.Type, pos *ast.Position
 
 // emitPrint appends a new "Print" instruction to the function body.
 //
-//     print(arg)
-//
+//	print(arg)
 func (fb *functionBuilder) emitPrint(arg int8) {
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpPrint, A: arg})
 }
@@ -680,7 +636,6 @@ func (fb *functionBuilder) emitPrint(arg int8) {
 // emitRange appends a new "Range" instruction to the function body.
 //
 //	for i, e := range s
-//
 func (fb *functionBuilder) emitRange(k bool, s, i, e int8, kind reflect.Kind) {
 	fn := fb.fn
 	var op runtime.Operation
@@ -702,7 +657,6 @@ func (fb *functionBuilder) emitRange(k bool, s, i, e int8, kind reflect.Kind) {
 // emitRealImag appends a new "RealImag" instruction to the function body.
 //
 //	y, z = real(x), imag(x)
-//
 func (fb *functionBuilder) emitRealImag(k bool, x, y, z int8) {
 	op := runtime.OpRealImag
 	if k {
@@ -716,16 +670,14 @@ func (fb *functionBuilder) emitRealImag(k bool, x, y, z int8) {
 //	dst = <- ch
 //
 //	dst, ok = <- ch
-//
 func (fb *functionBuilder) emitReceive(ch, ok, dst int8) {
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpReceive, A: ch, B: ok, C: dst})
 }
 
 // emitRecover appends a new "Recover" instruction to the function body.
 //
-//     recover()
-//     defer recover()
-//
+//	recover()
+//	defer recover()
 func (fb *functionBuilder) emitRecover(r int8, down bool) {
 	var a int8
 	if down {
@@ -737,8 +689,7 @@ func (fb *functionBuilder) emitRecover(r int8, down bool) {
 
 // emitRem appends a new "Rem" instruction to the function body.
 //
-//     z = x % y
-//
+//	z = x % y
 func (fb *functionBuilder) emitRem(ky bool, x, y, z int8, kind reflect.Kind, pos *ast.Position) {
 	fb.addPosAndPath(pos)
 	var op runtime.Operation
@@ -760,16 +711,14 @@ func (fb *functionBuilder) emitRem(ky bool, x, y, z int8, kind reflect.Kind, pos
 
 // emitReturn appends a new "return" instruction to the function body.
 //
-//     return
-//
+//	return
 func (fb *functionBuilder) emitReturn() {
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpReturn})
 }
 
 // emitSelect appends a new "Select" instruction to the function body.
 //
-//     select
-//
+//	select
 func (fb *functionBuilder) emitSelect() {
 	fb.fn.Body = append(fb.fn.Body, runtime.Instruction{Op: runtime.OpSelect})
 }
@@ -777,7 +726,6 @@ func (fb *functionBuilder) emitSelect() {
 // emitSend appends a new "Send" instruction to the function body.
 //
 //	ch <- v
-//
 func (fb *functionBuilder) emitSend(ch, v int8, pos *ast.Position, chanElemKind reflect.Kind) {
 	fb.addPosAndPath(pos)
 	fb.addOperandKinds(chanElemKind, 0, 0)
@@ -786,8 +734,7 @@ func (fb *functionBuilder) emitSend(ch, v int8, pos *ast.Position, chanElemKind 
 
 // emitSetField appends a new "SetField" instruction to the function body.
 //
-//     s.field = v
-//
+//	s.field = v
 func (fb *functionBuilder) emitSetField(k bool, s, field, v int8, fieldKind reflect.Kind) {
 	fb.addOperandKinds(fieldKind, 0, 0)
 	op := runtime.OpSetField
@@ -800,7 +747,6 @@ func (fb *functionBuilder) emitSetField(k bool, s, field, v int8, fieldKind refl
 // emitSetMap appends a new "SetMap" instruction to the function body.
 //
 //	m[key] = value
-//
 func (fb *functionBuilder) emitSetMap(k bool, m, value, key int8, mapType reflect.Type, pos *ast.Position) {
 	keyType := mapType.Key()
 	valueType := mapType.Elem()
@@ -817,7 +763,6 @@ func (fb *functionBuilder) emitSetMap(k bool, m, value, key int8, mapType reflec
 // emitSetSlice appends a new "SetSlice" instruction to the function body.
 //
 //	slice[index] = value
-//
 func (fb *functionBuilder) emitSetSlice(k bool, slice, value, index int8, pos *ast.Position, sliceElemKind reflect.Kind) {
 	fb.addPosAndPath(pos)
 	fb.addOperandKinds(sliceElemKind, 0, 0)
@@ -830,8 +775,7 @@ func (fb *functionBuilder) emitSetSlice(k bool, slice, value, index int8, pos *a
 
 // emitSetVar appends a new "SetVar" instruction to the function body.
 //
-//     v = r
-//
+//	v = r
 func (fb *functionBuilder) emitSetVar(k bool, r int8, v int, dstKind reflect.Kind) {
 	fb.addOperandKinds(dstKind, 0, 0)
 	op := runtime.OpSetVar
@@ -843,8 +787,7 @@ func (fb *functionBuilder) emitSetVar(k bool, r int8, v int, dstKind reflect.Kin
 
 // emitShl appends a new "Shl" instruction to the function body.
 //
-//     z = x << y
-//
+//	z = x << y
 func (fb *functionBuilder) emitShl(k bool, x, y, z int8, kind reflect.Kind) {
 	var op runtime.Operation
 	switch kind {
@@ -865,8 +808,7 @@ func (fb *functionBuilder) emitShl(k bool, x, y, z int8, kind reflect.Kind) {
 
 // emitShow appends a new "Show" instruction to the function body.
 //
-//     show(type, value, ctx)
-//
+//	show(type, value, ctx)
 func (fb *functionBuilder) emitShow(typ reflect.Type, v int8, ctx ast.Context, inURL, isURLSet bool) {
 	t := fb.addType(typ, true)
 	c := encodeRenderContext(ctx, inURL, isURLSet)
@@ -875,8 +817,7 @@ func (fb *functionBuilder) emitShow(typ reflect.Type, v int8, ctx ast.Context, i
 
 // emitShr appends a new "Shr" instruction to the function body.
 //
-//     z = x >> y
-//
+//	z = x >> y
 func (fb *functionBuilder) emitShr(k bool, x, y, z int8, kind reflect.Kind) {
 	var op runtime.Operation
 	switch kind {
@@ -898,7 +839,6 @@ func (fb *functionBuilder) emitShr(k bool, x, y, z int8, kind reflect.Kind) {
 // emitSlice appends a new "Slice" instruction to the function body.
 //
 //	slice[low:high:max]
-//
 func (fb *functionBuilder) emitSlice(klow, khigh, kmax bool, src, dst, low, high, max int8, pos *ast.Position) {
 	fb.addPosAndPath(pos)
 	fn := fb.fn
@@ -919,7 +859,6 @@ func (fb *functionBuilder) emitSlice(klow, khigh, kmax bool, src, dst, low, high
 // emitStringSlice appends a new "StringSlice" instruction to the function body.
 //
 //	string[low:high]
-//
 func (fb *functionBuilder) emitStringSlice(klow, khigh bool, src, dst, low, high int8, pos *ast.Position) {
 	fb.addPosAndPath(pos)
 	fn := fb.fn
@@ -936,8 +875,7 @@ func (fb *functionBuilder) emitStringSlice(klow, khigh bool, src, dst, low, high
 
 // emitSub appends a new "Sub" instruction to the function body.
 //
-//     z = x - y
-//
+//	z = x - y
 func (fb *functionBuilder) emitSub(k bool, x, y, z int8, kind reflect.Kind) {
 	var op runtime.Operation
 	switch kind {
@@ -960,8 +898,7 @@ func (fb *functionBuilder) emitSub(k bool, x, y, z int8, kind reflect.Kind) {
 
 // emitSubInv appends a new "SubInv" instruction to the function body.
 //
-//     z = y - x
-//
+//	z = y - x
 func (fb *functionBuilder) emitSubInv(k bool, x, y, z int8, kind reflect.Kind) {
 	var op runtime.Operation
 	switch kind {
@@ -984,8 +921,7 @@ func (fb *functionBuilder) emitSubInv(k bool, x, y, z int8, kind reflect.Kind) {
 
 // emitText appends a new "Text" instruction to the function body.
 //
-//     text(txt, ctx)
-//
+//	text(txt, ctx)
 func (fb *functionBuilder) emitText(txt []byte, inURL, isURLSet bool) {
 	if len(fb.text.txt) > 0 {
 		addr := fb.currentAddr()
@@ -1020,8 +956,7 @@ func (fb *functionBuilder) emitText(txt []byte, inURL, isURLSet bool) {
 
 // emitTailCall appends a new "TailCall" instruction to the function body.
 //
-//     f()
-//
+//	f()
 func (fb *functionBuilder) emitTailCall(f int8, pos *ast.Position) {
 	fb.addPosAndPath(pos)
 	fn := fb.fn
@@ -1040,8 +975,7 @@ func (fb *functionBuilder) emitTypify(k bool, typ reflect.Type, x, z int8) {
 
 // emitXor appends a new "Xor" instruction to the function body.
 //
-//     z = x ^ y
-//
+//	z = x ^ y
 func (fb *functionBuilder) emitXor(k bool, x, y, z int8, kind reflect.Kind) {
 	op := runtime.OpXor
 	if k {

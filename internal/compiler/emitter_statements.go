@@ -559,7 +559,6 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 //
 // TODO: this function works correctly but its code looks very ugly and hard
 // to understand. Review and improve the code.
-//
 func (em *emitter) emitImport(node *ast.Import, isTemplate bool) []*runtime.Function {
 
 	// If the imported package is predefined the emitter does not have to do
@@ -660,7 +659,6 @@ func (em *emitter) emitImport(node *ast.Import, isTemplate bool) []*runtime.Func
 //
 // 4) Emission of the assignment node, in case of a case with assignment, and of
 // the body for every case.
-//
 func (em *emitter) emitSelect(selectNode *ast.Select) {
 
 	if len(selectNode.Cases) > maxSelectCasesCount {

@@ -13,11 +13,10 @@ import (
 // scopes represents the universe block, global block, file/package block and
 // function scopes.
 //
-//   0, 1 are the universe block. 1 is for the format types.
-//   2    is the global block, empty for programs.
-//   3    is the file/package block.
-//   4+   are the scopes in functions. For templates, 4 is the main block.
-//
+//	0, 1 are the universe block. 1 is for the format types.
+//	2    is the global block, empty for programs.
+//	3    is the file/package block.
+//	4+   are the scopes in functions. For templates, 4 is the main block.
 type scopes struct {
 	s           []scope
 	path        string

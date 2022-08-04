@@ -88,13 +88,12 @@ func (em *emitter) _changeRegister(k bool, src, dst int8, srcType reflect.Type, 
 // comparisonWithZeroInteger returns the non-constant integer expression if
 // cond is a binary operator expression with one of the following forms:
 //
-//    expr == 0
-//    0    == expr
-//    expr != 0
-//    0    != expr
+//	expr == 0
+//	0    == expr
+//	expr != 0
+//	0    != expr
 //
 // If the previous condition does not apply, nil is returned.
-//
 func (em *emitter) comparisonWithZeroInteger(cond *ast.BinaryOperator) ast.Expression {
 
 	// The operator must be a comparison between a constant and a non-constant

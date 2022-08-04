@@ -235,13 +235,12 @@ func (fb *functionBuilder) exitScope() {
 //
 // Usage:
 //
-// 		e.fb.enterStack()
-// 		tmp := e.fb.newRegister(..)
-// 		// use tmp in some way
-// 		// move tmp content to externally-defined reg
-// 		e.fb.exitStack()
+//		e.fb.enterStack()
+//		tmp := e.fb.newRegister(..)
+//		// use tmp in some way
+//		// move tmp content to externally-defined reg
+//		e.fb.exitStack()
 //	    // tmp location is now available for reusing
-//
 func (fb *functionBuilder) enterStack() {
 	scopeShift := fb.currentStackShift()
 	fb.scopeShifts = append(fb.scopeShifts, scopeShift)

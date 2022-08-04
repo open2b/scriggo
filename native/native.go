@@ -134,13 +134,12 @@ type (
 
 // Declaration represents a declaration.
 //
-//  for a variable: a pointer to the value of the variable
-//  for a function: the function
-//  for a type: its reflect.Type value
-//  for a typed constant: its value as a string, boolean or numeric value
-//  for an untyped constant: an UntypedStringConst, UntypedBooleanConst or UntypedNumericConst value
-//  for a package: an ImportablePackage value (used only for template globals)
-//
+//	for a variable: a pointer to the value of the variable
+//	for a function: the function
+//	for a type: its reflect.Type value
+//	for a typed constant: its value as a string, boolean or numeric value
+//	for an untyped constant: an UntypedStringConst, UntypedBooleanConst or UntypedNumericConst value
+//	for a package: an ImportablePackage value (used only for template globals)
 type Declaration interface{}
 
 // Declarations represents a set of variables, constants, functions, types and

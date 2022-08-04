@@ -239,10 +239,9 @@ func (ti *typeInfo) HasValue() bool {
 // non-constant expression or in a statement. The following examples clarify
 // the use of this method:
 //
-//   var i int64 = 20     call setValue on '20'    ctxType = int
-//   x + 3                call setValue on '3'     ctxType = typeof(x)
-//   x + y                no need to call setValue
-//
+//	var i int64 = 20     call setValue on '20'    ctxType = int
+//	x + 3                call setValue on '3'     ctxType = typeof(x)
+//	x + y                no need to call setValue
 func (ti *typeInfo) setValue(typ reflect.Type) {
 	if ti.Nil() {
 		panic("setValue called on the predeclared nil")

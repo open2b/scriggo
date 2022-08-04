@@ -43,7 +43,6 @@ func (em *emitter) emitExprR(expr ast.Expression, dstType reflect.Type, reg int8
 //
 // _emitExpr is an internal support method, and should be called by emitExpr,
 // emitExprK and emitExprR exclusively.
-//
 func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8, useGivenReg bool, allowK bool) (int8, bool) {
 
 	// Take the type info of the expression.

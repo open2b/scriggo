@@ -1873,13 +1873,13 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 // typ is the type of the composite literal, and it is taken in account only
 // when node does not have a type. For example, given the following expression:
 //
-//     []T{{}, {}, {}}
+//	[]T{{}, {}, {}}
 //
 // when checking the elements of the slice the typ argument passed to
 // checkCompositeLiteral is 'T', and it is considered because the elements do
 // not have an explicit type. In this other situation:
 //
-//     []T{T{}, T{}, T{}}
+//	[]T{T{}, T{}, T{}}
 //
 // every element specifies the type, so the argument 'typ' is simply ignored.
 //
@@ -2689,7 +2689,6 @@ func (tc *typechecker) findStructField(s reflect.Type, expr *ast.Selector) (typ 
 // For the struct{ _ int } type, the package identifier is not necessary
 // because blank identifiers are not considered for comparison. In its place a
 // number, different for each blank identifier in the struct, is used.
-//
 func (tc *typechecker) encodeFieldName(name string, blank *int) string {
 	if name == "_" {
 		name = "𝗽" + strconv.Itoa(*blank)

@@ -711,11 +711,11 @@ func (l *lexer) scanTag(p int) (string, int) {
 // returns the attribute name and the next position to scan.
 //
 // For example, if l.src[p:] is
-//    - `src="a"` it returns "src" and p+4
-//    - `src=a` it returns "src" and p+4
-//    - `src>` it returns "" and p+3
-//    - `src img` it returns "" and p+4.
-//    - `,` it returns "" and p.
+//   - `src="a"` it returns "src" and p+4
+//   - `src=a` it returns "src" and p+4
+//   - `src>` it returns "" and p+3
+//   - `src img` it returns "" and p+4.
+//   - `,` it returns "" and p.
 func (l *lexer) scanAttribute(p int) (string, int) {
 	// Reads the attribute name.
 	s := p
@@ -901,14 +901,13 @@ func (l *lexer) lexComment() error {
 // lexCode emits code tokens returning as soon as encounters a token based on
 // the given end parameter.
 //
-//   if end is tokenEOF, it returns when encounters tokenEOF
+//	if end is tokenEOF, it returns when encounters tokenEOF
 //
-//   if end is tokenEndStatement or tokenEndStatements, it returns when
-//   encounters tokenEOF, tokenEndStatement or tokenEndStatements
+//	if end is tokenEndStatement or tokenEndStatements, it returns when
+//	encounters tokenEOF, tokenEndStatement or tokenEndStatements
 //
-//   if end is tokenRightBraces, it returns when encounters tokenEOF,
-//   tokenEndStatement, tokenEndStatements or tokenRightBraces
-//
+//	if end is tokenRightBraces, it returns when encounters tokenEOF,
+//	tokenEndStatement, tokenEndStatements or tokenRightBraces
 func (l *lexer) lexCode(end tokenTyp) error {
 	if len(l.src) == 0 {
 		if end != tokenEOF {

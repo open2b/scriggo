@@ -304,16 +304,16 @@ func (tc *typechecker) programImportError(imp *ast.Import) error {
 //
 // For example, given the source code:
 //
-// 		func f() {
-// 			A := 10
-// 			func g() {
-// 				func h() {
-// 					_ = A
-// 				}
-// 			}
-// 		}
-// calling getNestedFuncs("A") returns [G, H].
+//	func f() {
+//		A := 10
+//		func g() {
+//			func h() {
+//				_ = A
+//			}
+//		}
+//	}
 //
+// calling getNestedFuncs("A") returns [G, H].
 func (tc *typechecker) getNestedFuncs(name string) []*ast.Func {
 	var fun *ast.Func
 	_, _, ok := tc.scopes.LookupInFunc(name)
@@ -342,10 +342,9 @@ func (tc *typechecker) getNestedFuncs(name string) []*ast.Func {
 //
 // For example:
 //
-//		if bad(node) {
-//			panic(tc.errorf(node, "bad node"))
-//		}
-//
+//	if bad(node) {
+//		panic(tc.errorf(node, "bad node"))
+//	}
 func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...interface{}) error {
 	return checkError(tc.path, nodeOrPos, format, args...)
 }

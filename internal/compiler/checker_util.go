@@ -378,7 +378,7 @@ func isOrdered(t *typeInfo) bool {
 
 // isMapIndexing reports whether the given expression has the form
 //
-//		m[key]
+//	m[key]
 //
 // where m is a map.
 func (tc *typechecker) isMapIndexing(node ast.Node) bool {

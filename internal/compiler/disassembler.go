@@ -52,10 +52,9 @@ func packageName(pkg string) string {
 // n determines the maximum length, in runes, of the disassembled text in a
 // Text instruction:
 //
-//   n > 0: at most n runes; leading and trailing white space are removed
-//   n == 0: no text
-//   n < 0: all text
-//
+//	n > 0: at most n runes; leading and trailing white space are removed
+//	n == 0: no text
+//	n < 0: all text
 func Disassemble(main *runtime.Function, globals []Global, n int) map[string][]byte {
 
 	functionsByPkg := map[string]map[*runtime.Function]int{}
@@ -169,10 +168,9 @@ func Disassemble(main *runtime.Function, globals []Global, n int) map[string][]b
 // n determines the maximum length, in runes, of the disassembled text in a
 // Text instruction:
 //
-//   n > 0: at most n runes; leading and trailing white space are removed
-//   n == 0: no text
-//   n < 0: all text
-//
+//	n > 0: at most n runes; leading and trailing white space are removed
+//	n == 0: no text
+//	n < 0: all text
 func DisassembleFunction(fn *runtime.Function, globals []Global, n int) []byte {
 	var b bytes.Buffer
 	if fn.Macro {

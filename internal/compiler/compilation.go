@@ -18,7 +18,6 @@ import (
 // package/template file.
 //
 // Currently the compilation is used only by the typechecker.
-//
 type compilation struct {
 	// pkgPathToIndex maps the path of a package to an unique int identifier.
 	pkgPathToIndex map[string]int
