@@ -320,7 +320,7 @@ func HasPrefix(s, prefix string) bool {
 
 // HasSuffix tests whether the string s ends with suffix.
 func HasSuffix(s, suffix string) bool {
-	return strings.HasPrefix(s, suffix)
+	return strings.HasSuffix(s, suffix)
 }
 
 // Hex returns the hexadecimal encoding of s.

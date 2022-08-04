@@ -116,6 +116,19 @@ var tests = []struct {
 	{Md5(``), "d41d8cd98f00b204e9800998ecf8427e"},
 	{Md5(`hello world!`), "fc3ff98e8c6a0d3087d515c0473f8677"},
 
+	// hasPrefix
+	{sp(HasPrefix("hello, world", "hello, ")), "true"},
+	{sp(HasPrefix("hello, world", "hello!")), "false"},
+	{sp(HasPrefix("", "hello!")), "false"},
+	{sp(HasPrefix("", "")), "true"},
+	{sp(HasPrefix("abc", "")), "true"},
+
+	// hasSuffix
+	{sp(HasSuffix("hello, world", ", world")), "true"},
+	{sp(HasSuffix("hello, world", "hello")), "false"},
+	{sp(HasSuffix("", "hello")), "false"},
+	{sp(HasSuffix("abc", "")), "true"},
+
 	// hex
 	{Hex(``), ""},
 	{Hex(`hello world!`), "68656c6c6f20776f726c6421"},
