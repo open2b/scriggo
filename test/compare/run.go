@@ -430,25 +430,24 @@ func isBuildConstraints(line string) bool {
 //
 // Mode is specified in programs using a comment line (starting with "//"):
 //
-//  // mode
+//	// mode
 //
 // templates must encapsulate mode in a line containing just a comment:
 //
-//  {# readMode #}
+//	{# readMode #}
 //
 // After the mode keyword, some arguments may be provided using the syntax
 // accepted by function flag.Parse.
 //
-// 	// run -time 10s
+//	// run -time 10s
 //
 // As a special case, the 'skip' comment can be followed by any sequence of
 // characters (after a whitespace character) that will be ignored. This is
 // useful to put an inline comment to the "skip" comment, explaining the reason
 // why a given test cannot be run. For example:
 //
-//  // skip because feature X is not supported
-//  // skip : enable when bug Y will be fixed
-//
+//	// skip because feature X is not supported
+//	// skip : enable when bug Y will be fixed
 func readMode(src []byte, ext string) (string, []string, error) {
 	if bytes.HasPrefix(src, BOM) {
 		src = src[len(BOM):]
@@ -615,8 +614,7 @@ func runGc(path string) (int, []byte, []byte, error) {
 
 // goBaseVersion returns the go base version for v.
 //
-//		1.15.5 -> 1.15
-//
+//	1.15.5 -> 1.15
 func goBaseVersion(v string) string {
 	// Taken from cmd/scriggo/util.go.
 	if strings.HasPrefix(v, "devel ") {

@@ -133,12 +133,11 @@ type envTestCtxString string
 
 // TestEnvStringer tests these interfaces:
 //
-//  * EnvStringer
-//  * HTMLEnvStringer
-//  * CSSEnvStringer
-//  * JSEnvStringer
-//  * JSONEnvStringer
-//
+//   - EnvStringer
+//   - HTMLEnvStringer
+//   - CSSEnvStringer
+//   - JSEnvStringer
+//   - JSONEnvStringer
 func TestEnvStringer(t *testing.T) {
 	for name, cas := range envStringerCases {
 		t.Run(name, func(t *testing.T) {
