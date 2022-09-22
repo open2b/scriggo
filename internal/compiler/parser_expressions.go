@@ -437,7 +437,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, canElideType, mustBeTyp
 					if _, ok := operand.(*ast.Render); ok {
 						// Replace the Render node with the Default node in the unexpanded
 						// slice because, when the tree is expanded, the parser needs to know
-						// if the render expression is used in an default expression.
+						// if the render expression is used in a default expression.
 						p.unexpanded[len(p.unexpanded)-1] = node
 					}
 					node.Expr2, tok = p.parseExpr(p.next(), false, false, false, nextIsBlockBrace)
