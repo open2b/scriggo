@@ -2720,6 +2720,13 @@ var templateMultiFileCases = map[string]struct {
 		expectedBuildErr: `const initializer render "partial.html" is not a constant`,
 	},
 
+	"Default with invalid left expression": {
+		sources: fstest.Files{
+			"index.txt": `{% if sortBy := sortBy.(html) default ""; sortBy %}{% end if %}`,
+		},
+		expectedBuildErr: `unexpected sortBy.(html), expecting identifier, call or render`,
+	},
+
 	"Removed special render assignment form": {
 		sources: fstest.Files{
 			"index.html":   `{% var s string %}{% var ok bool %}{% s, ok = render "partial.html" %}`,

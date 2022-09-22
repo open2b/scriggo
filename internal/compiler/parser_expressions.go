@@ -434,11 +434,16 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, canElideType, mustBeTyp
 					pos := tok.pos
 					pos.Start = operand.Pos().Start
 					node := ast.NewDefault(pos, operand, nil)
-					if _, ok := operand.(*ast.Render); ok {
+					switch operand.(type) {
+					case *ast.Identifier:
+					case *ast.Call:
+					case *ast.Render:
 						// Replace the Render node with the Default node in the unexpanded
 						// slice because, when the tree is expanded, the parser needs to know
 						// if the render expression is used in a default expression.
 						p.unexpanded[len(p.unexpanded)-1] = node
+					default:
+						panic(syntaxError(operand.Pos(), "unexpected %s, expecting identifier, call or render", operand))
 					}
 					node.Expr2, tok = p.parseExpr(p.next(), false, false, false, nextIsBlockBrace)
 					if node.Expr2 == nil {
