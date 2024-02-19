@@ -1,4 +1,4 @@
-//go:build go1.19
+//go:build go1.21
 
 package main
 
@@ -40,11 +40,12 @@ func Test_renderPackages(t *testing.T) {
 				packages = make(native.Packages, 1)
 				var decs native.Declarations
 				// "custom/fmt/path"
-				decs = make(native.Declarations, 28)
+				decs = make(native.Declarations, 29)
 				decs["Append"] = fmt.Append
 				decs["Appendf"] = fmt.Appendf
 				decs["Appendln"] = fmt.Appendln
 				decs["Errorf"] = fmt.Errorf
+				decs["FormatString"] = fmt.FormatString
 				decs["Formatter"] = reflect.TypeOf((*fmt.Formatter)(nil)).Elem()
 				decs["Fprint"] = fmt.Fprint
 				decs["Fprintf"] = fmt.Fprintf
@@ -94,9 +95,10 @@ func Test_renderPackages(t *testing.T) {
 				packages = make(native.Packages, 1)
 				var decs native.Declarations
 				// "archive/tar"
-				decs = make(native.Declarations, 29)
+				decs = make(native.Declarations, 30)
 				decs["ErrFieldTooLong"] = &tar.ErrFieldTooLong
 				decs["ErrHeader"] = &tar.ErrHeader
+				decs["ErrInsecurePath"] = &tar.ErrInsecurePath
 				decs["ErrWriteAfterClose"] = &tar.ErrWriteAfterClose
 				decs["ErrWriteTooLong"] = &tar.ErrWriteTooLong
 				decs["FileInfoHeader"] = tar.FileInfoHeader
@@ -149,11 +151,12 @@ func Test_renderPackages(t *testing.T) {
 				packages = make(native.Packages, 1)
 				var decs native.Declarations
 				// "fmt"
-				decs = make(native.Declarations, 28)
+				decs = make(native.Declarations, 29)
 				decs["Append"] = fmt.Append
 				decs["Appendf"] = fmt.Appendf
 				decs["Appendln"] = fmt.Appendln
 				decs["Errorf"] = fmt.Errorf
+				decs["FormatString"] = fmt.FormatString
 				decs["Formatter"] = reflect.TypeOf((*fmt.Formatter)(nil)).Elem()
 				decs["Fprint"] = fmt.Fprint
 				decs["Fprintf"] = fmt.Fprintf
@@ -263,34 +266,35 @@ func Test_parseGoPackage(t *testing.T) {
 		"fmt": {
 			name: "fmt",
 			decls: map[string]string{
-				"Append":     "fmt.Append",
-				"Appendf":    "fmt.Appendf",
-				"Appendln":   "fmt.Appendln",
-				"Errorf":     "fmt.Errorf",
-				"Formatter":  "reflect.TypeOf((*fmt.Formatter)(nil)).Elem()",
-				"Fprint":     "fmt.Fprint",
-				"Fprintf":    "fmt.Fprintf",
-				"Fprintln":   "fmt.Fprintln",
-				"Fscan":      "fmt.Fscan",
-				"Fscanf":     "fmt.Fscanf",
-				"Fscanln":    "fmt.Fscanln",
-				"GoStringer": "reflect.TypeOf((*fmt.GoStringer)(nil)).Elem()",
-				"Print":      "fmt.Print",
-				"Printf":     "fmt.Printf",
-				"Println":    "fmt.Println",
-				"Scan":       "fmt.Scan",
-				"ScanState":  "reflect.TypeOf((*fmt.ScanState)(nil)).Elem()",
-				"Scanf":      "fmt.Scanf",
-				"Scanln":     "fmt.Scanln",
-				"Scanner":    "reflect.TypeOf((*fmt.Scanner)(nil)).Elem()",
-				"Sprint":     "fmt.Sprint",
-				"Sprintf":    "fmt.Sprintf",
-				"Sprintln":   "fmt.Sprintln",
-				"Sscan":      "fmt.Sscan",
-				"Sscanf":     "fmt.Sscanf",
-				"Sscanln":    "fmt.Sscanln",
-				"State":      "reflect.TypeOf((*fmt.State)(nil)).Elem()",
-				"Stringer":   "reflect.TypeOf((*fmt.Stringer)(nil)).Elem()",
+				"Append":       "fmt.Append",
+				"Appendf":      "fmt.Appendf",
+				"Appendln":     "fmt.Appendln",
+				"Errorf":       "fmt.Errorf",
+				"FormatString": "fmt.FormatString",
+				"Formatter":    "reflect.TypeOf((*fmt.Formatter)(nil)).Elem()",
+				"Fprint":       "fmt.Fprint",
+				"Fprintf":      "fmt.Fprintf",
+				"Fprintln":     "fmt.Fprintln",
+				"Fscan":        "fmt.Fscan",
+				"Fscanf":       "fmt.Fscanf",
+				"Fscanln":      "fmt.Fscanln",
+				"GoStringer":   "reflect.TypeOf((*fmt.GoStringer)(nil)).Elem()",
+				"Print":        "fmt.Print",
+				"Printf":       "fmt.Printf",
+				"Println":      "fmt.Println",
+				"Scan":         "fmt.Scan",
+				"ScanState":    "reflect.TypeOf((*fmt.ScanState)(nil)).Elem()",
+				"Scanf":        "fmt.Scanf",
+				"Scanln":       "fmt.Scanln",
+				"Scanner":      "reflect.TypeOf((*fmt.Scanner)(nil)).Elem()",
+				"Sprint":       "fmt.Sprint",
+				"Sprintf":      "fmt.Sprintf",
+				"Sprintln":     "fmt.Sprintln",
+				"Sscan":        "fmt.Sscan",
+				"Sscanf":       "fmt.Sscanf",
+				"Sscanln":      "fmt.Sscanln",
+				"State":        "reflect.TypeOf((*fmt.State)(nil)).Elem()",
+				"Stringer":     "reflect.TypeOf((*fmt.Stringer)(nil)).Elem()",
 			},
 		},
 		"archive/tar": {
@@ -298,6 +302,7 @@ func Test_parseGoPackage(t *testing.T) {
 			decls: map[string]string{
 				"ErrFieldTooLong":    "&tar.ErrFieldTooLong",
 				"ErrHeader":          "&tar.ErrHeader",
+				"ErrInsecurePath":    "&tar.ErrInsecurePath",
 				"ErrWriteAfterClose": "&tar.ErrWriteAfterClose",
 				"ErrWriteTooLong":    "&tar.ErrWriteTooLong",
 				"FileInfoHeader":     "tar.FileInfoHeader",

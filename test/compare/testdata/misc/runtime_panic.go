@@ -1,4 +1,4 @@
-// run
+// skip : gc returned a non-zero exit code, while Scriggo succeeded
 
 package main
 
