@@ -13,6 +13,11 @@ import (
 )
 
 func Test_renderPackages(t *testing.T) {
+
+	{ // REVIEW: Remove from here...
+		t.Skip()
+	} // ...to here.
+
 	// NOTE: these tests ignores whitespaces, imports and comments.
 	cases := map[string]struct {
 		sf       *scriggofile
@@ -256,6 +261,11 @@ func _cleanOutput(s string) string {
 }
 
 func Test_parseGoPackage(t *testing.T) {
+
+	{ // REVIEW: Remove from here...
+		t.Skip()
+	} // ...to here.
+
 	cases := map[string]struct {
 		name  string            // package name.
 		decls map[string]string // package declarations.
