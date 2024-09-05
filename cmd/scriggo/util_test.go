@@ -105,6 +105,10 @@ func Test_goBaseVersion(t *testing.T) {
 			current: "go1.16rc1",
 			want:    "go1.16",
 		},
+		{
+			current: "go1.23.0 X:rangefunc",
+			want:    "go1.23",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.current, func(t *testing.T) {

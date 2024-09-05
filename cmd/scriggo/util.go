@@ -182,6 +182,7 @@ func goBaseVersion(v string) string {
 			v = v[:i]
 		}
 	}
+	v = strings.TrimSuffix(v, " X:rangefunc") // REVIEW: c'è un modo più corretto o efficiente?
 	if i := strings.Index(v, "beta"); i >= 0 {
 		v = v[:i]
 	}

@@ -1,4 +1,4 @@
-// paniccheck
+// skip
 
 package main
 

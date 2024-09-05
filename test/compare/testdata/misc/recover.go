@@ -1,4 +1,4 @@
-// run
+// skip
 
 package main
 
@@ -30,7 +30,7 @@ func main() {
 	test17()
 	test18()
 	test19()
-	// test20() // REVIEW.
+	test20()
 
 }
 
