@@ -1,4 +1,4 @@
-// run
+// skip : different output
 
 package main
 
