@@ -1,5 +1,7 @@
 //go:build go1.17 && !go1.19
 
+// REVIEW: rimuovere questo file?
+
 package main
 
 import (

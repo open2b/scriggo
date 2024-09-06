@@ -261,10 +261,6 @@ func _cleanOutput(s string) string {
 
 func Test_parseGoPackage(t *testing.T) {
 
-	{ // REVIEW: Remove from here...
-		t.Skip()
-	} // ...to here.
-
 	cases := map[string]struct {
 		name  string            // package name.
 		decls map[string]string // package declarations.
@@ -312,6 +308,7 @@ func Test_parseGoPackage(t *testing.T) {
 				"ErrWriteAfterClose": "&tar.ErrWriteAfterClose",
 				"ErrWriteTooLong":    "&tar.ErrWriteTooLong",
 				"FileInfoHeader":     "tar.FileInfoHeader",
+				"FileInfoNames":      "reflect.TypeOf((*tar.FileInfoNames)(nil)).Elem()",
 				"Format":             "reflect.TypeOf((*tar.Format)(nil)).Elem()",
 				"FormatGNU":          "tar.FormatGNU",
 				"FormatPAX":          "tar.FormatPAX",
@@ -350,10 +347,10 @@ func Test_parseGoPackage(t *testing.T) {
 				t.Fatalf("path %q: expecting name %q, got %q", path, expected.name, gotName)
 			}
 			if len(gotDecls) != len(expected.decls) {
-				t.Fatalf("path %q: expecting %#v, %#v", path, expected.decls, gotDecls)
+				t.Fatalf("path %q: expecting %#v, got %#v", path, expected.decls, gotDecls) // REVIEW: riportare questa modifica dei test sul main.
 			}
 			if !reflect.DeepEqual(gotDecls, expected.decls) {
-				t.Fatalf("path %q: expecting %#v, %#v", path, expected.decls, gotDecls)
+				t.Fatalf("path %q: expecting %#v, got %#v", path, expected.decls, gotDecls) // REVIEW: riportare questa modifica dei test sul main.
 			}
 		})
 	}
