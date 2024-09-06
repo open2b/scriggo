@@ -13,7 +13,6 @@ import (
 )
 
 func Test_renderPackages(t *testing.T) {
-
 	// NOTE: these tests ignores whitespaces, imports and comments.
 	cases := map[string]struct {
 		sf       *scriggofile
@@ -95,6 +94,7 @@ func Test_renderPackages(t *testing.T) {
 			func init() {
 				packages = make(native.Packages, 1)
 				var decs native.Declarations
+				// "archive/tar"
 				decs = make(native.Declarations, 31)
 				decs["ErrFieldTooLong"] = &tar.ErrFieldTooLong
 				decs["ErrHeader"] = &tar.ErrHeader
@@ -260,7 +260,6 @@ func _cleanOutput(s string) string {
 }
 
 func Test_parseGoPackage(t *testing.T) {
-
 	cases := map[string]struct {
 		name  string            // package name.
 		decls map[string]string // package declarations.
