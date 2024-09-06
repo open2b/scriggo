@@ -1,4 +1,4 @@
-// skip : the behavior of the Go compiler has changed over time (this test used to pass), so we need to review this behavior.
+// skip : this is related to the variables in for loops. See the issue https://github.com/open2b/scriggo/issues/952, in the section about Go 1.22.
 
 package main
 
