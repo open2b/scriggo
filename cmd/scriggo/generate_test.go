@@ -346,10 +346,10 @@ func Test_parseGoPackage(t *testing.T) {
 				t.Fatalf("path %q: expecting name %q, got %q", path, expected.name, gotName)
 			}
 			if len(gotDecls) != len(expected.decls) {
-				t.Fatalf("path %q: expecting %#v, got %#v", path, expected.decls, gotDecls) // REVIEW: riportare questa modifica dei test sul main.
+				t.Fatalf("path %q: expecting %#v, got %#v", path, expected.decls, gotDecls)
 			}
 			if !reflect.DeepEqual(gotDecls, expected.decls) {
-				t.Fatalf("path %q: expecting %#v, got %#v", path, expected.decls, gotDecls) // REVIEW: riportare questa modifica dei test sul main.
+				t.Fatalf("path %q: expecting %#v, got %#v", path, expected.decls, gotDecls)
 			}
 		})
 	}
