@@ -173,15 +173,31 @@ func (u packageNameCache) uniquePackageName(pkgPath, pkgName string) string {
 
 // goBaseVersion returns the go base version for v.
 //
-//	1.15.5 -> 1.15
+// For example:
+//
+// - "1.15.5" -> "go1.15"
+// - "go1.20.1" -> "go1.20"
+// - "go1.23.0 X:rangefunc" -> "go1.23.0"
 func goBaseVersion(v string) string {
-	// When updating, also update test/compare/run.go.
+
+	// IMPORTANT: keep in sync with the function 'goBaseVersion' in
+	// 'test/compare/run.go'.
+
 	if strings.HasPrefix(v, "devel ") {
 		v = v[len("devel "):]
 		if i := strings.Index(v, "-"); i >= 0 {
 			v = v[:i]
 		}
 	}
+
+	// The version returned by 'runtime.Version' may contain a string related to
+	// GOEXPERIMENTs, in the form 'X:<GOEXPERIMENT>'. This is documented in the
+	// (unexported) variable 'buildVersion', the value of which is returned by
+	// 'runtime.Version'.
+	if i := strings.Index(v, " X:"); i > 0 {
+		v = v[:i]
+	}
+
 	if i := strings.Index(v, "beta"); i >= 0 {
 		v = v[:i]
 	}
@@ -195,6 +211,7 @@ func goBaseVersion(v string) string {
 	}
 	f = math.Floor(f)
 	next := int(f)
+
 	return fmt.Sprintf("go1.%d", next)
 }
 
