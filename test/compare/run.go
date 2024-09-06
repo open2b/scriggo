@@ -9,7 +9,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"math"
 	"os"
 	"os/exec"
@@ -376,8 +375,6 @@ func goldenCompare(testPath string, got []byte) error {
 	goldenData = regexp.MustCompile(`(?m)^//.*$`).ReplaceAll(goldenData, []byte{})
 	expected := bytes.TrimSpace(goldenData)
 	got = bytes.TrimSpace(got)
-	log.Printf("[DEBUG] [run.go] expected: %q\n", expected) // REVIEW: remove.
-	log.Printf("[DEBUG] [run.go] got:      %q\n", got)      // REVIEW: remove.
 	// Compare all lines, finding all differences.
 	{
 		expectedLines := strings.Split(string(expected), "\n")
