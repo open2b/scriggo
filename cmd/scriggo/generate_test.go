@@ -14,10 +14,6 @@ import (
 
 func Test_renderPackages(t *testing.T) {
 
-	{ // REVIEW: Remove from here...
-		t.Skip()
-	} // ...to here.
-
 	// NOTE: these tests ignores whitespaces, imports and comments.
 	cases := map[string]struct {
 		sf       *scriggofile
@@ -99,14 +95,14 @@ func Test_renderPackages(t *testing.T) {
 			func init() {
 				packages = make(native.Packages, 1)
 				var decs native.Declarations
-				// "archive/tar"
-				decs = make(native.Declarations, 30)
+				decs = make(native.Declarations, 31)
 				decs["ErrFieldTooLong"] = &tar.ErrFieldTooLong
 				decs["ErrHeader"] = &tar.ErrHeader
 				decs["ErrInsecurePath"] = &tar.ErrInsecurePath
 				decs["ErrWriteAfterClose"] = &tar.ErrWriteAfterClose
 				decs["ErrWriteTooLong"] = &tar.ErrWriteTooLong
 				decs["FileInfoHeader"] = tar.FileInfoHeader
+				decs["FileInfoNames"] = reflect.TypeOf((*tar.FileInfoNames)(nil)).Elem()
 				decs["Format"] = reflect.TypeOf((*tar.Format)(nil)).Elem()
 				decs["FormatGNU"] = tar.FormatGNU
 				decs["FormatPAX"] = tar.FormatPAX
