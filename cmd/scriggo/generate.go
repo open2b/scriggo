@@ -348,7 +348,7 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 		if v.Parent() == nil || v.Parent().Parent() != types.Universe {
 			continue
 		}
-		// Ignore parametric functions.
+		// Skip the parametric functions, which are not supported by Scriggo.
 		if strings.HasPrefix(v.Type().String(), "func[") {
 			continue
 		}
