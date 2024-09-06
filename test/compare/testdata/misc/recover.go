@@ -30,7 +30,8 @@ func main() {
 	test17()
 	test18()
 	test19()
-	// test20() // TODO(Gianluca): investigate on this test.
+	// TODO: see the issue https://github.com/open2b/scriggo/issues/952.
+	// test20()
 
 }
 
