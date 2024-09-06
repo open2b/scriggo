@@ -2,8 +2,6 @@ module github.com/open2b/scriggo
 
 go 1.22.0
 
-toolchain go1.23.0
-
 require (
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/yuin/goldmark v1.4.13
