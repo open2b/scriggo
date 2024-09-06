@@ -1,4 +1,4 @@
-// skip
+// skip : the behavior of the Go compiler has changed over time (this test used to pass), so we need to review this behavior.
 
 package main
 
