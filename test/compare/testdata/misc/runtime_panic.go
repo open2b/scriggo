@@ -51,7 +51,7 @@ func main() {
 	test17d()
 	test18()
 	test19()
-	// test20() // REVIEW: there is a difference in the error messages
+	// test20() // TODO(Gianluca): there is a difference in the error messages.
 
 }
 
