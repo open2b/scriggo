@@ -352,6 +352,15 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 		if strings.HasPrefix(v.Type().String(), "func[") {
 			continue
 		}
+		// Skip general interface types, which are not supported by Scriggo.
+		if isGeneralInterface(v.Type()) {
+			continue
+		}
+		// Skip generic types, which are not supported by Scriggo.
+		if isGenericType(v.Type()) {
+			continue
+		}
+
 		if !allowed(v.Name()) {
 			continue
 		}
@@ -411,4 +420,16 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 	refToImport = len(decl) > numUntyped
 
 	return name, decl, refToImport, refToReflect, nil
+}
+
+// isGeneralInterface reports whether typ represents a general interface type.
+func isGeneralInterface(typ types.Type) bool {
+	u := typ.Underlying().String()
+	return strings.Contains(u, "interface{") && strings.Contains(u, "~")
+}
+
+// isGenericType reports whether typ represents a generic type.
+func isGenericType(typ types.Type) bool {
+	s := typ.String()
+	return strings.Contains(s, "[") && strings.HasSuffix(s, "]")
 }
