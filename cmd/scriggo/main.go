@@ -750,7 +750,6 @@ var stdlibPaths = []string{
 	"io",
 	"io/fs",
 	"io/ioutil",
-	"iter", // Go version 1.23
 	"log",
 	"log/slog",
 	"log/syslog",
