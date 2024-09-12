@@ -18,7 +18,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -654,7 +653,7 @@ func stdLibPaths() []string {
 		}
 		paths = append(paths, path)
 	}
-	return slices.Clone(stdlibPaths)
+	return paths
 }
 
 // stdlibPaths contains the paths of the packages of the Go standard library
