@@ -1,15 +1,18 @@
-//go:build go1.19
+//go:build go1.22
 
 package main
 
 import (
 	"bytes"
+	"go/types"
 	"os"
 	"reflect"
 	"regexp"
 	"runtime"
 	"strings"
 	"testing"
+
+	pkgs "golang.org/x/tools/go/packages"
 )
 
 func Test_renderPackages(t *testing.T) {
@@ -40,11 +43,12 @@ func Test_renderPackages(t *testing.T) {
 				packages = make(native.Packages, 1)
 				var decs native.Declarations
 				// "custom/fmt/path"
-				decs = make(native.Declarations, 28)
+				decs = make(native.Declarations, 29)
 				decs["Append"] = fmt.Append
 				decs["Appendf"] = fmt.Appendf
 				decs["Appendln"] = fmt.Appendln
 				decs["Errorf"] = fmt.Errorf
+				decs["FormatString"] = fmt.FormatString
 				decs["Formatter"] = reflect.TypeOf((*fmt.Formatter)(nil)).Elem()
 				decs["Fprint"] = fmt.Fprint
 				decs["Fprintf"] = fmt.Fprintf
@@ -94,12 +98,14 @@ func Test_renderPackages(t *testing.T) {
 				packages = make(native.Packages, 1)
 				var decs native.Declarations
 				// "archive/tar"
-				decs = make(native.Declarations, 29)
+				decs = make(native.Declarations, 31)
 				decs["ErrFieldTooLong"] = &tar.ErrFieldTooLong
 				decs["ErrHeader"] = &tar.ErrHeader
+				decs["ErrInsecurePath"] = &tar.ErrInsecurePath
 				decs["ErrWriteAfterClose"] = &tar.ErrWriteAfterClose
 				decs["ErrWriteTooLong"] = &tar.ErrWriteTooLong
 				decs["FileInfoHeader"] = tar.FileInfoHeader
+				decs["FileInfoNames"] = reflect.TypeOf((*tar.FileInfoNames)(nil)).Elem()
 				decs["Format"] = reflect.TypeOf((*tar.Format)(nil)).Elem()
 				decs["FormatGNU"] = tar.FormatGNU
 				decs["FormatPAX"] = tar.FormatPAX
@@ -149,11 +155,12 @@ func Test_renderPackages(t *testing.T) {
 				packages = make(native.Packages, 1)
 				var decs native.Declarations
 				// "fmt"
-				decs = make(native.Declarations, 28)
+				decs = make(native.Declarations, 29)
 				decs["Append"] = fmt.Append
 				decs["Appendf"] = fmt.Appendf
 				decs["Appendln"] = fmt.Appendln
 				decs["Errorf"] = fmt.Errorf
+				decs["FormatString"] = fmt.FormatString
 				decs["Formatter"] = reflect.TypeOf((*fmt.Formatter)(nil)).Elem()
 				decs["Fprint"] = fmt.Fprint
 				decs["Fprintf"] = fmt.Fprintf
@@ -263,34 +270,35 @@ func Test_parseGoPackage(t *testing.T) {
 		"fmt": {
 			name: "fmt",
 			decls: map[string]string{
-				"Append":     "fmt.Append",
-				"Appendf":    "fmt.Appendf",
-				"Appendln":   "fmt.Appendln",
-				"Errorf":     "fmt.Errorf",
-				"Formatter":  "reflect.TypeOf((*fmt.Formatter)(nil)).Elem()",
-				"Fprint":     "fmt.Fprint",
-				"Fprintf":    "fmt.Fprintf",
-				"Fprintln":   "fmt.Fprintln",
-				"Fscan":      "fmt.Fscan",
-				"Fscanf":     "fmt.Fscanf",
-				"Fscanln":    "fmt.Fscanln",
-				"GoStringer": "reflect.TypeOf((*fmt.GoStringer)(nil)).Elem()",
-				"Print":      "fmt.Print",
-				"Printf":     "fmt.Printf",
-				"Println":    "fmt.Println",
-				"Scan":       "fmt.Scan",
-				"ScanState":  "reflect.TypeOf((*fmt.ScanState)(nil)).Elem()",
-				"Scanf":      "fmt.Scanf",
-				"Scanln":     "fmt.Scanln",
-				"Scanner":    "reflect.TypeOf((*fmt.Scanner)(nil)).Elem()",
-				"Sprint":     "fmt.Sprint",
-				"Sprintf":    "fmt.Sprintf",
-				"Sprintln":   "fmt.Sprintln",
-				"Sscan":      "fmt.Sscan",
-				"Sscanf":     "fmt.Sscanf",
-				"Sscanln":    "fmt.Sscanln",
-				"State":      "reflect.TypeOf((*fmt.State)(nil)).Elem()",
-				"Stringer":   "reflect.TypeOf((*fmt.Stringer)(nil)).Elem()",
+				"Append":       "fmt.Append",
+				"Appendf":      "fmt.Appendf",
+				"Appendln":     "fmt.Appendln",
+				"Errorf":       "fmt.Errorf",
+				"FormatString": "fmt.FormatString",
+				"Formatter":    "reflect.TypeOf((*fmt.Formatter)(nil)).Elem()",
+				"Fprint":       "fmt.Fprint",
+				"Fprintf":      "fmt.Fprintf",
+				"Fprintln":     "fmt.Fprintln",
+				"Fscan":        "fmt.Fscan",
+				"Fscanf":       "fmt.Fscanf",
+				"Fscanln":      "fmt.Fscanln",
+				"GoStringer":   "reflect.TypeOf((*fmt.GoStringer)(nil)).Elem()",
+				"Print":        "fmt.Print",
+				"Printf":       "fmt.Printf",
+				"Println":      "fmt.Println",
+				"Scan":         "fmt.Scan",
+				"ScanState":    "reflect.TypeOf((*fmt.ScanState)(nil)).Elem()",
+				"Scanf":        "fmt.Scanf",
+				"Scanln":       "fmt.Scanln",
+				"Scanner":      "reflect.TypeOf((*fmt.Scanner)(nil)).Elem()",
+				"Sprint":       "fmt.Sprint",
+				"Sprintf":      "fmt.Sprintf",
+				"Sprintln":     "fmt.Sprintln",
+				"Sscan":        "fmt.Sscan",
+				"Sscanf":       "fmt.Sscanf",
+				"Sscanln":      "fmt.Sscanln",
+				"State":        "reflect.TypeOf((*fmt.State)(nil)).Elem()",
+				"Stringer":     "reflect.TypeOf((*fmt.Stringer)(nil)).Elem()",
 			},
 		},
 		"archive/tar": {
@@ -298,9 +306,11 @@ func Test_parseGoPackage(t *testing.T) {
 			decls: map[string]string{
 				"ErrFieldTooLong":    "&tar.ErrFieldTooLong",
 				"ErrHeader":          "&tar.ErrHeader",
+				"ErrInsecurePath":    "&tar.ErrInsecurePath",
 				"ErrWriteAfterClose": "&tar.ErrWriteAfterClose",
 				"ErrWriteTooLong":    "&tar.ErrWriteTooLong",
 				"FileInfoHeader":     "tar.FileInfoHeader",
+				"FileInfoNames":      "reflect.TypeOf((*tar.FileInfoNames)(nil)).Elem()",
 				"Format":             "reflect.TypeOf((*tar.Format)(nil)).Elem()",
 				"FormatGNU":          "tar.FormatGNU",
 				"FormatPAX":          "tar.FormatPAX",
@@ -345,5 +355,172 @@ func Test_parseGoPackage(t *testing.T) {
 				t.Fatalf("path %q: expecting %#v, got %#v", path, expected.decls, gotDecls)
 			}
 		})
+	}
+}
+
+var testpkgDecl map[string]types.Object
+
+// init populates 'testpkgDecl'.
+func init() {
+	conf := &pkgs.Config{
+		Mode: 1023, // this value has been taken from 'generate.go'.
+	}
+	packages, err := pkgs.Load(conf, "github.com/open2b/scriggo/cmd/scriggo/testpkg")
+	if err != nil {
+		panic(err)
+	}
+	testpkgDecl = map[string]types.Object{}
+	for _, def := range packages[0].TypesInfo.Defs {
+		if def == nil || !def.Exported() {
+			continue
+		}
+		if def.Parent() == nil || def.Parent().Parent() != types.Universe {
+			continue
+		}
+		testpkgDecl[def.Name()] = def
+	}
+}
+
+func Test_isGenericFunction(t *testing.T) {
+	tests := map[string]bool{
+		// Function declarations.
+		"F1": false,
+		"F2": true,
+
+		// Other declarations, which should be false.
+		"EmptyInterface": false,
+		"FunctionType1":  false,
+		"GeneralInter1":  false,
+		"GeneralInter2":  false,
+		"GeneralInter3":  false,
+		"GeneralInter4":  false,
+		"GeneralInter5":  false,
+		"GeneralInter6":  false,
+		"GenericList":    false,
+		"Int1":           false,
+		"Int2":           false,
+		"Interface1":     false,
+		"Interface2":     false,
+		"Interface3":     false,
+		"Receiver":       false,
+		"T1":             false,
+		"T2":             false,
+		"V1":             false,
+		"V2":             false,
+	}
+	if len(testpkgDecl) < 5 {
+		t.Fatal("it seems like 'testpkgDecl' has not been initialized. This is a bug in the tests")
+	}
+	for decl, typ := range testpkgDecl {
+		t.Run(decl, func(t *testing.T) {
+			expected, ok := tests[decl]
+			if !ok {
+				t.Fatalf("declaration %q, which is declared in 'testpkg', should also be added to this test", decl)
+			}
+			got := isGenericFunction(typ)
+			if got != expected {
+				t.Fatalf("%s: expected isGenericFunction = %t, got %t", decl, expected, got)
+			}
+		})
+		delete(tests, decl)
+	}
+	if len(tests) > 0 {
+		t.Fatalf("there are declarations in 'tests' that do not correspond to any declaration within 'testpkg': %v", tests)
+	}
+}
+
+func Test_isGeneralInterface(t *testing.T) {
+	tests := map[string]bool{
+		// Interface declarations.
+		"EmptyInterface": false,
+		"GeneralInter1":  true,
+		"GeneralInter2":  true,
+		"GeneralInter3":  true,
+		"GeneralInter4":  true,
+		"GeneralInter5":  true,
+		"GeneralInter6":  true,
+		"Interface1":     false,
+		"Interface2":     true,
+		"Interface3":     false,
+
+		// Other declarations, which should be false.
+		"F1":            false,
+		"F2":            false,
+		"FunctionType1": false,
+		"GenericList":   false,
+		"Int1":          false,
+		"Int2":          false,
+		"Receiver":      false,
+		"T1":            false,
+		"T2":            false,
+		"V1":            false,
+		"V2":            false,
+	}
+	if len(testpkgDecl) < 5 {
+		t.Fatal("it seems like 'testpkgDecl' has not been initialized. This is a bug in the tests")
+	}
+	for decl, typ := range testpkgDecl {
+		t.Run(decl, func(t *testing.T) {
+			expected, ok := tests[decl]
+			if !ok {
+				t.Fatalf("declaration %q, which is declared in 'testpkg', should also be added to this test", decl)
+			}
+			got := isGeneralInterface(typ)
+			if got != expected {
+				t.Fatalf("%s: expected isGeneralInterface = %t, got %t", decl, expected, got)
+			}
+		})
+		delete(tests, decl)
+	}
+	if len(tests) > 0 {
+		t.Fatalf("there are declarations in 'tests' that do not correspond to any declaration within 'testpkg': %v", tests)
+	}
+}
+
+func Test_isGenericType(t *testing.T) {
+	tests := map[string]bool{
+		// Type declarations.
+		"FunctionType1": false,
+		"GenericList":   true,
+		"Int1":          false,
+		"Int2":          false,
+		"Receiver":      false,
+		"T1":            false,
+		"T2":            true,
+
+		// Other declarations, which should be false.
+		"EmptyInterface": false,
+		"F1":             false,
+		"F2":             false,
+		"GeneralInter1":  false,
+		"GeneralInter2":  false,
+		"GeneralInter3":  false,
+		"GeneralInter4":  false,
+		"GeneralInter5":  false,
+		"GeneralInter6":  false,
+		"Interface1":     false,
+		"Interface2":     false,
+		"Interface3":     false,
+		"V1":             false,
+		"V2":             false,
+	}
+	if len(testpkgDecl) < 5 {
+		t.Fatal("it seems like 'testpkgDecl' has not been initialized. This is a bug in the tests")
+	}
+	for decl, typ := range testpkgDecl {
+		t.Run(decl, func(t *testing.T) {
+			expected, ok := tests[decl]
+			if !ok {
+				t.Fatalf("declaration %q, which is declared in 'testpkg', should also be added to this test", decl)
+			}
+			got := isGenericType(typ)
+			if got != expected {
+				t.Fatalf("%s: expected isGenericType = %t, got %t", decl, expected, got)
+			}
+		})
+		delete(tests, decl)
+	}
+	if len(tests) > 0 {
+		t.Fatalf("there are declarations in 'tests' that do not correspond to any declaration within 'testpkg': %v", tests)
 	}
 }

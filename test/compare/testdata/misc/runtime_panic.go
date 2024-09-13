@@ -51,7 +51,8 @@ func main() {
 	test17d()
 	test18()
 	test19()
-	test20()
+	// TODO: see the issue https://github.com/open2b/scriggo/issues/952, Go 1.20, about slice to array conversion.
+	// test20()
 
 }
 

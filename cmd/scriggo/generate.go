@@ -348,7 +348,12 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 		if v.Parent() == nil || v.Parent().Parent() != types.Universe {
 			continue
 		}
+		// Skip not allowed names.
 		if !allowed(v.Name()) {
+			continue
+		}
+		// Skip generic functions and types and general interfaces.
+		if isGenericFunction(v) || isGenericType(v) || isGeneralInterface(v) {
 			continue
 		}
 		switch v := v.(type) {
@@ -407,4 +412,29 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 	refToImport = len(decl) > numUntyped
 
 	return name, decl, refToImport, refToReflect, nil
+}
+
+// isGenericFunction reports whether obj is a 'types.Object' referring to a
+// generic function declaration.
+func isGenericFunction(obj types.Object) bool {
+	f, ok := obj.(*types.Func)
+	return ok && f.Type().(*types.Signature).TypeParams() != nil
+}
+
+// isGeneralInterface reports whether obj is a 'types.Object' referring to a
+// general interface declaration.
+func isGeneralInterface(obj types.Object) bool {
+	tm, ok := obj.(*types.TypeName)
+	if !ok {
+		return false
+	}
+	iface, ok := tm.Type().Underlying().(*types.Interface)
+	return ok && !iface.IsMethodSet()
+}
+
+// isGenericType reports whether obj is a 'types.Object' referring to a
+// generic type declaration.
+func isGenericType(obj types.Object) bool {
+	tm, ok := obj.(*types.TypeName)
+	return ok && tm.Type().(*types.Named).TypeParams() != nil
 }

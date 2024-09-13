@@ -646,8 +646,8 @@ func stdLibPaths() []string {
 	paths := make([]string, 0, len(stdlibPaths))
 	for _, path := range stdlibPaths {
 		switch path {
-		case "debug/buildinfo", "net/netip":
-			if version != "go1.18" {
+		case "structs", "unique":
+			if version != "go1.23" {
 				continue
 			}
 		}
@@ -678,7 +678,9 @@ var stdlibPaths = []string{
 	"crypto/cipher",
 	"crypto/des",
 	"crypto/dsa",
+	"crypto/ecdh",
 	"crypto/ecdsa",
+	"crypto/ed25519",
 	"crypto/elliptic",
 	"crypto/hmac",
 	"crypto/md5",
@@ -692,7 +694,7 @@ var stdlibPaths = []string{
 	"crypto/tls",
 	"crypto/x509",
 	"crypto/x509/pkix",
-	"debug/buildinfo", // Go version 1.18
+	"debug/buildinfo",
 	"debug/dwarf",
 	"debug/elf",
 	"debug/gosym",
@@ -717,8 +719,10 @@ var stdlibPaths = []string{
 	"fmt",
 	"go/ast",
 	"go/build",
+	"go/build/constraint",
 	"go/constant",
 	"go/doc",
+	"go/doc/comment",
 	"go/format",
 	"go/importer",
 	"go/parser",
@@ -726,6 +730,7 @@ var stdlibPaths = []string{
 	"go/scanner",
 	"go/token",
 	"go/types",
+	"go/version",
 	"hash",
 	"hash/adler32",
 	"hash/crc32",
@@ -746,12 +751,15 @@ var stdlibPaths = []string{
 	"io/fs",
 	"io/ioutil",
 	"log",
+	"log/slog",
 	"log/syslog",
+	"maps",
 	"math",
 	"math/big",
 	"math/bits",
 	"math/cmplx",
 	"math/rand",
+	"math/rand/v2",
 	"mime",
 	"mime/multipart",
 	"mime/quotedprintable",
@@ -765,7 +773,7 @@ var stdlibPaths = []string{
 	"net/http/httputil",
 	"net/http/pprof",
 	"net/mail",
-	"net/netip", // Go version 1.18
+	"net/netip",
 	"net/rpc",
 	"net/rpc/jsonrpc",
 	"net/smtp",
@@ -784,10 +792,13 @@ var stdlibPaths = []string{
 	"runtime/debug",
 	"runtime/metrics",
 	"runtime/pprof",
+	"runtime/race",
 	"runtime/trace",
+	"slices",
 	"sort",
 	"strconv",
 	"strings",
+	"structs", // Go version 1.23
 	"sync",
 	"sync/atomic",
 	"text/scanner",
@@ -799,4 +810,5 @@ var stdlibPaths = []string{
 	"unicode",
 	"unicode/utf16",
 	"unicode/utf8",
+	"unique", // Go version 1.23
 }
