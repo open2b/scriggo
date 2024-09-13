@@ -646,7 +646,7 @@ func stdLibPaths() []string {
 	paths := make([]string, 0, len(stdlibPaths))
 	for _, path := range stdlibPaths {
 		switch path {
-		case "iter", "structs", "unique":
+		case "structs", "unique":
 			if version != "go1.23" {
 				continue
 			}
