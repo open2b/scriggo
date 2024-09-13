@@ -4,12 +4,15 @@ package main
 
 import (
 	"bytes"
+	"go/types"
 	"os"
 	"reflect"
 	"regexp"
 	"runtime"
 	"strings"
 	"testing"
+
+	pkgs "golang.org/x/tools/go/packages"
 )
 
 func Test_renderPackages(t *testing.T) {
@@ -352,5 +355,163 @@ func Test_parseGoPackage(t *testing.T) {
 				t.Fatalf("path %q: expecting %#v, got %#v", path, expected.decls, gotDecls)
 			}
 		})
+	}
+}
+
+var testpkgDecl map[string]types.Object
+
+// init populates 'testpkgDecl'.
+func init() {
+	conf := &pkgs.Config{
+		Mode: 1023, // this value has been taken from 'generate.go'.
+	}
+	packages, err := pkgs.Load(conf, "github.com/open2b/scriggo/cmd/scriggo/testpkg")
+	if err != nil {
+		panic(err)
+	}
+	testpkgDecl = map[string]types.Object{}
+	for _, def := range packages[0].TypesInfo.Defs {
+		if def == nil || !def.Exported() {
+			continue
+		}
+		if def.Parent() == nil || def.Parent().Parent() != types.Universe {
+			continue
+		}
+		testpkgDecl[def.Name()] = def
+	}
+}
+
+func Test_isGenericFunction(t *testing.T) {
+	tests := map[string]bool{
+		// Function declarations.
+		"F1": false,
+		"F2": true,
+
+		// Other declarations, which should be false.
+		"EmptyInterface": false,
+		"FunctionType1":  false,
+		"GeneralInter1":  false,
+		"GeneralInter2":  false,
+		"GeneralInter3":  false,
+		"GeneralInter4":  false,
+		"GeneralInter5":  false,
+		"GenericList":    false,
+		"Int1":           false,
+		"Int2":           false,
+		"Interface1":     false,
+		"Interface2":     false,
+		"Interface3":     false,
+		"Receiver":       false,
+		"T1":             false,
+		"T2":             false,
+	}
+	if len(testpkgDecl) < 5 {
+		t.Fatal("it seems like 'testpkgDecl' has not been initialized. This is a bug in the tests")
+	}
+	for decl, typ := range testpkgDecl {
+		t.Run(decl, func(t *testing.T) {
+			expected, ok := tests[decl]
+			if !ok {
+				t.Fatalf("declaration %q, which is declared in 'testpkg', should also be added to this test", decl)
+			}
+			got := isGenericFunction(typ)
+			if got != expected {
+				t.Fatalf("%s: expected isGenericFunction = %t, got %t", decl, expected, got)
+			}
+		})
+		delete(tests, decl)
+	}
+	if len(tests) > 0 {
+		t.Fatalf("there are declarations in 'tests' that do not correspond to any declaration within 'testpkg': %v", tests)
+	}
+}
+
+func Test_isGeneralInterface(t *testing.T) {
+	tests := map[string]bool{
+		// Interface declarations.
+		"EmptyInterface": false,
+		"GeneralInter1":  true,
+		"GeneralInter2":  true,
+		"GeneralInter3":  true,
+		"GeneralInter4":  true,
+		"GeneralInter5":  true,
+		"Interface1":     false,
+		"Interface2":     true,
+		"Interface3":     false,
+
+		// Other declarations, which should be false.
+		"F1":            false,
+		"F2":            false,
+		"FunctionType1": false,
+		"GenericList":   false,
+		"Int1":          false,
+		"Int2":          false,
+		"Receiver":      false,
+		"T1":            false,
+		"T2":            false,
+	}
+	if len(testpkgDecl) < 5 {
+		t.Fatal("it seems like 'testpkgDecl' has not been initialized. This is a bug in the tests")
+	}
+	for decl, typ := range testpkgDecl {
+		t.Run(decl, func(t *testing.T) {
+			expected, ok := tests[decl]
+			if !ok {
+				t.Fatalf("declaration %q, which is declared in 'testpkg', should also be added to this test", decl)
+			}
+			got := isGeneralInterface(typ)
+			if got != expected {
+				t.Fatalf("%s: expected isGeneralInterface = %t, got %t", decl, expected, got)
+			}
+		})
+		delete(tests, decl)
+	}
+	if len(tests) > 0 {
+		t.Fatalf("there are declarations in 'tests' that do not correspond to any declaration within 'testpkg': %v", tests)
+	}
+}
+
+func Test_isGenericType(t *testing.T) {
+	tests := map[string]bool{
+		// Type declarations.
+		"FunctionType1": false,
+		"GenericList":   true,
+		"Int1":          false,
+		"Int2":          false,
+		"Receiver":      false,
+		"T1":            false,
+		"T2":            true,
+
+		// Other declarations, which should be false.
+		"EmptyInterface": false,
+		"F1":             false,
+		"F2":             false,
+		"GeneralInter1":  false,
+		"GeneralInter2":  false,
+		"GeneralInter3":  false,
+		"GeneralInter4":  false,
+		"GeneralInter5":  false,
+		"Interface1":     false,
+		"Interface2":     false,
+		"Interface3":     false,
+	}
+	if len(testpkgDecl) < 5 {
+		t.Fatal("it seems like 'testpkgDecl' has not been initialized. This is a bug in the tests")
+	}
+	for decl, typ := range testpkgDecl {
+		t.Run(decl, func(t *testing.T) {
+			expected, ok := tests[decl]
+			if !ok {
+				t.Fatalf("declaration %q, which is declared in 'testpkg', should also be added to this test", decl)
+			}
+			got := isGenericType(typ)
+			if got != expected {
+				t.Fatalf("%s: expected isGenericType = %t, got %t", decl, expected, got)
+			}
+		})
+		delete(tests, decl)
+	}
+	if len(tests) > 0 {
+		t.Fatalf("there are declarations in 'tests' that do not correspond to any declaration within 'testpkg': %v", tests)
 	}
 }

@@ -348,20 +348,12 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 		if v.Parent() == nil || v.Parent().Parent() != types.Universe {
 			continue
 		}
-		// Skip the parametric functions, which are not supported by Scriggo.
-		if strings.HasPrefix(v.Type().String(), "func[") {
-			continue
-		}
-		// Skip general interface types, which are not supported by Scriggo.
-		if isGeneralInterface(v.Type()) {
-			continue
-		}
-		// Skip generic types, which are not supported by Scriggo.
-		if isGenericType(v.Type()) {
-			continue
-		}
-
+		// Skip not allowed names.
 		if !allowed(v.Name()) {
+			continue
+		}
+		// Skip generic functions and types and general interfaces.
+		if isGenericFunction(v) || isGenericType(v) || isGeneralInterface(v) {
 			continue
 		}
 		switch v := v.(type) {
@@ -422,14 +414,27 @@ func loadGoPackage(path, dir, goos string, flags buildFlags, including, excludin
 	return name, decl, refToImport, refToReflect, nil
 }
 
-// isGeneralInterface reports whether typ represents a general interface type.
-func isGeneralInterface(typ types.Type) bool {
-	u := typ.Underlying().String()
-	return strings.Contains(u, "interface{") && strings.Contains(u, "~")
+// isGenericFunction reports whether obj is a 'types.Object' referring to a
+// generic function declaration.
+func isGenericFunction(obj types.Object) bool {
+	f, ok := obj.(*types.Func)
+	return ok && f.Type().(*types.Signature).TypeParams() != nil
 }
 
-// isGenericType reports whether typ represents a generic type.
-func isGenericType(typ types.Type) bool {
-	s := typ.String()
-	return strings.Contains(s, "[") && strings.HasSuffix(s, "]")
+// isGeneralInterface reports whether obj is a 'types.Object' referring to a
+// general interface declaration.
+func isGeneralInterface(obj types.Object) bool {
+	tm, ok := obj.(*types.TypeName)
+	if !ok {
+		return false
+	}
+	iface, ok := tm.Type().Underlying().(*types.Interface)
+	return ok && !iface.IsMethodSet()
+}
+
+// isGenericType reports whether obj is a 'types.Object' referring to a
+// generic type declaration.
+func isGenericType(obj types.Object) bool {
+	tm, ok := obj.(*types.TypeName)
+	return ok && tm.Type().(*types.Named).TypeParams() != nil
 }
