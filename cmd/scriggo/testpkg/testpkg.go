@@ -57,6 +57,18 @@ type GeneralInter5 interface {
 	FunctionType1
 }
 
+type GeneralInter6 interface {
+	F1(struct {
+		A int
+		B int
+	})
+	int | uint
+	F2(struct {
+		A int
+		B int
+	})
+}
+
 // Type declarations.
 
 type Int1 int
@@ -80,3 +92,9 @@ func F2[T any](T) {}
 type Receiver int
 
 func (Receiver) F3() {}
+
+// Variable declarations.
+
+var V1 int
+
+var V2 GenericList[string]

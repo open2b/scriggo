@@ -395,6 +395,7 @@ func Test_isGenericFunction(t *testing.T) {
 		"GeneralInter3":  false,
 		"GeneralInter4":  false,
 		"GeneralInter5":  false,
+		"GeneralInter6":  false,
 		"GenericList":    false,
 		"Int1":           false,
 		"Int2":           false,
@@ -404,6 +405,8 @@ func Test_isGenericFunction(t *testing.T) {
 		"Receiver":       false,
 		"T1":             false,
 		"T2":             false,
+		"V1":             false,
+		"V2":             false,
 	}
 	if len(testpkgDecl) < 5 {
 		t.Fatal("it seems like 'testpkgDecl' has not been initialized. This is a bug in the tests")
@@ -435,6 +438,7 @@ func Test_isGeneralInterface(t *testing.T) {
 		"GeneralInter3":  true,
 		"GeneralInter4":  true,
 		"GeneralInter5":  true,
+		"GeneralInter6":  true,
 		"Interface1":     false,
 		"Interface2":     true,
 		"Interface3":     false,
@@ -449,6 +453,8 @@ func Test_isGeneralInterface(t *testing.T) {
 		"Receiver":      false,
 		"T1":            false,
 		"T2":            false,
+		"V1":            false,
+		"V2":            false,
 	}
 	if len(testpkgDecl) < 5 {
 		t.Fatal("it seems like 'testpkgDecl' has not been initialized. This is a bug in the tests")
@@ -491,9 +497,12 @@ func Test_isGenericType(t *testing.T) {
 		"GeneralInter3":  false,
 		"GeneralInter4":  false,
 		"GeneralInter5":  false,
+		"GeneralInter6":  false,
 		"Interface1":     false,
 		"Interface2":     false,
 		"Interface3":     false,
+		"V1":             false,
+		"V2":             false,
 	}
 	if len(testpkgDecl) < 5 {
 		t.Fatal("it seems like 'testpkgDecl' has not been initialized. This is a bug in the tests")
