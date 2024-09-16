@@ -3,7 +3,7 @@ module github.com/open2b/scriggo
 go 1.22.0
 
 require (
-	github.com/fsnotify/fsnotify v1.5.4
+	github.com/fsnotify/fsnotify v1.7.0
 	github.com/yuin/goldmark v1.4.13
 	golang.org/x/mod v0.21.0
 	golang.org/x/tools v0.25.0
