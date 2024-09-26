@@ -1,4 +1,5 @@
-// +build 386 amd64p32 arm
+//go:build 386
+
 // errorcheck
 
 // Copyright 2011 The Go Authors. All rights reserved.

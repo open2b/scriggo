@@ -9,15 +9,12 @@
 // windows doesn't work, because Windows exception handling
 // delivers signals based on the current PC, and that current PC
 // doesn't go into the Go runtime.
-// +build !windows
 
 // wasm does not work, because the linear memory is not executable.
-// +build !wasm
 
 // This test doesn't work on gccgo/GoLLVM, because they will not find
 // any unwind information for the artificial function, and will not be
 // able to unwind past that point.
-// +build !gccgo
 
 package main
 

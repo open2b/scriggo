@@ -1,6 +1,5 @@
 // skip : calls system command 'go tool compile -S sinit.go' https://github.com/open2b/scriggo/issues/417
 
-// +build !nacl,!js
 // run
 
 // Copyright 2014 The Go Authors. All rights reserved.
