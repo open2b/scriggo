@@ -414,16 +414,11 @@ func goldenCompare(testPath string, got []byte) error {
 	return nil
 }
 
-// isBuildConstraints reports whether line is a build contrain, as specified at
+// isBuildConstraints reports whether line is a build constraint (also known as
+// 'build tag'), as specified at
 // https://pkg.go.dev/go/build#hdr-Build_Constraints.
 func isBuildConstraints(line string) bool {
-	line = strings.TrimSpace(line)
-	if !strings.HasPrefix(line, "//") {
-		return false
-	}
-	line = strings.TrimPrefix(line, "//")
-	line = strings.TrimSpace(line)
-	return strings.HasPrefix(line, "+build")
+	return strings.HasPrefix(line, "//go:build")
 }
 
 // readMode reports the mode (and any options) associated to src.
