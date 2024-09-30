@@ -1,5 +1,6 @@
 // skip : mode 'buildrun' is not supported
 
+// +build !nacl,!js,disabled_see_issue_18589
 // buildrun -t 10  -gcflags=-d=ssa/insert_resched_checks/on,ssa/check/on
 
 // Copyright 2016 The Go Authors. All rights reserved.

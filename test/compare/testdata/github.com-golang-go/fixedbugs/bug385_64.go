@@ -1,5 +1,6 @@
 // skip : cannot allocate a new general register
 
+// +build amd64
 // errorcheck
 
 // Copyright 2011 The Go Authors. All rights reserved.

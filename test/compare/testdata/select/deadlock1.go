@@ -1,4 +1,4 @@
-//go:build !cgo windows
+//+build !cgo windows
 
 // paniccheck
 

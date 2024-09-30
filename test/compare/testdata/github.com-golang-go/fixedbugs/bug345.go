@@ -1,5 +1,6 @@
 // skip : mode "errorcheckdir -n" not supported
 
+// +build !windows
 // errorcheckdir -n
 
 // Copyright 2011 The Go Authors. All rights reserved.

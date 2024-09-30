@@ -1,5 +1,6 @@
 // skip : calls the system command 'go'
 
+// +build !nacl,!js
 // run
 
 // Copyright 2014 The Go Authors. All rights reserved.
