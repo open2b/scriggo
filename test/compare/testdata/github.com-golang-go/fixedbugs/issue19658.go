@@ -1,6 +1,7 @@
 // skip : need to call system command 'go run ....' https://github.com/open2b/scriggo/issues/417
 
-// +build !nacl,!js
+//go:build !nacl,!js
+
 // run
 
 // Copyright 2017 The Go Authors. All rights reserved.
