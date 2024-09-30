@@ -414,11 +414,19 @@ func goldenCompare(testPath string, got []byte) error {
 	return nil
 }
 
-// isBuildConstraints reports whether line is a build constraint (also known as
-// 'build tag'), as specified at
-// https://pkg.go.dev/go/build#hdr-Build_Constraints.
+// isBuildConstraints reports whether line is a build constraint, as specified
+// at https://pkg.go.dev/go/build#hdr-Build_Constraints.
+//
+// TODO(Gianluca): this function still needs to support the old format of build
+// tags. Please refer to the issue https://github.com/open2b/scriggo/issues/956.
 func isBuildConstraints(line string) bool {
-	return strings.HasPrefix(line, "//go:build")
+	line = strings.TrimSpace(line)
+	if !strings.HasPrefix(line, "//") {
+		return false
+	}
+	line = strings.TrimPrefix(line, "//")
+	line = strings.TrimSpace(line)
+	return strings.HasPrefix(line, "+build")
 }
 
 // readMode reports the mode (and any options) associated to src.
