@@ -132,9 +132,13 @@ func (srv *server) updateTemplateDependencies(tree *ast.Tree) error {
 					}
 				}
 			case *ast.Import:
-				dependencies = append(dependencies, treeNavigation(node.Tree, true)...)
+				if node.Tree != nil {
+					dependencies = append(dependencies, treeNavigation(node.Tree, true)...)
+				}
 			case *ast.Extends:
-				dependencies = append(dependencies, treeNavigation(node.Tree, true)...)
+				if node.Tree != nil {
+					dependencies = append(dependencies, treeNavigation(node.Tree, true)...)
+				}
 			default:
 			}
 		}
