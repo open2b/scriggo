@@ -50,7 +50,8 @@ func serve(asm int, metrics bool) error {
 	md := goldmark.New(
 		goldmark.WithRendererOptions(html.WithUnsafe()),
 		goldmark.WithParserOptions(parser.WithAutoHeadingID()),
-		goldmark.WithExtensions(extension.GFM))
+		goldmark.WithExtensions(extension.GFM),
+		goldmark.WithExtensions(extension.Footnote))
 
 	srv := &server{
 		fsys:   fsys,
