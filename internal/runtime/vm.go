@@ -907,7 +907,7 @@ func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 	c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
 		nvm := create(env)
 		if fn.Macro {
-			renderer = renderer.WithOut(&macroOutBuffer{})
+			renderer = newRenderer(&macroOutBuffer{}, nil)
 		}
 		nvm.renderer = renderer
 		nOut := fn.Type.NumOut()

@@ -165,10 +165,6 @@ func (r *renderer) WithConversion(from, to ast.Format) *renderer {
 	return &renderer{out: r.out, conv: r.conv}
 }
 
-func (r *renderer) WithOut(out io.Writer) *renderer {
-	return &renderer{out: out}
-}
-
 // showInURL shows v in a URL in the given context.
 func (r *renderer) showInURL(env *env, v interface{}, ctx ast.Context) error {
 

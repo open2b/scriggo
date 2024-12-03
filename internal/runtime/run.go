@@ -291,7 +291,7 @@ func (vm *VM) run() (Addr, bool) {
 				if fn.Macro {
 					call.renderer = vm.renderer
 					if b == ReturnString {
-						vm.renderer = vm.renderer.WithOut(&macroOutBuffer{})
+						vm.renderer = newRenderer(&macroOutBuffer{}, nil)
 					} else if ast.Format(b) != fn.Format {
 						vm.renderer = vm.renderer.WithConversion(fn.Format, ast.Format(b))
 					}
@@ -322,7 +322,7 @@ func (vm *VM) run() (Addr, bool) {
 				vm.moreGeneralStack()
 			}
 			if b == ReturnString {
-				vm.renderer = vm.renderer.WithOut(&macroOutBuffer{})
+				vm.renderer = newRenderer(&macroOutBuffer{}, nil)
 			} else if ast.Format(b) != fn.Format {
 				vm.renderer = vm.renderer.WithConversion(fn.Format, ast.Format(b))
 			}
