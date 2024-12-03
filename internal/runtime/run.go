@@ -5,7 +5,6 @@
 package runtime
 
 import (
-	"bytes"
 	"reflect"
 	"strings"
 	"sync/atomic"
@@ -522,13 +521,8 @@ func (vm *VM) run() (Addr, bool) {
 			if t.Kind() == reflect.Slice {
 				vm.setGeneral(c, v.Convert(t))
 			} else {
-				var b bytes.Buffer
-				r1 := newRenderer(&b)
-				out := newMarkdownWriter(r1.out, vm.conv)
-				r2 := newRenderer(out)
-				_, _ = r2.Out().Write([]byte(v.String()))
-				_ = r2.Close()
-				_ = r1.Close()
+				var b strings.Builder
+				_ = vm.conv([]byte(v.String()), &b)
 				vm.setString(c, b.String())
 			}
 
