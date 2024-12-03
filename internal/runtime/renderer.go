@@ -27,9 +27,6 @@ var byteSliceType = reflect.TypeOf([]byte(nil))
 // renderer is used by te Show and Text instructions to render template files.
 type renderer struct {
 
-	// env is the execution environment.
-	env *env
-
 	// out is the io.Writer to write to.
 	out io.Writer
 
@@ -52,8 +49,8 @@ type renderer struct {
 }
 
 // newRenderer returns a new renderer.
-func newRenderer(env *env, out io.Writer, conv Converter) *renderer {
-	return &renderer{env: env, out: out, conv: conv}
+func newRenderer(out io.Writer, conv Converter) *renderer {
+	return &renderer{out: out, conv: conv}
 }
 
 func (r *renderer) Close() error {
@@ -64,7 +61,7 @@ func (r *renderer) Close() error {
 }
 
 // Show shows v in the given context.
-func (r *renderer) Show(v interface{}, context Context) error {
+func (r *renderer) Show(env *env, v interface{}, context Context) error {
 
 	ctx, inURL, _ := decodeRenderContext(context)
 
@@ -77,40 +74,40 @@ func (r *renderer) Show(v interface{}, context Context) error {
 	}
 
 	if inURL {
-		return r.showInURL(v, ctx)
+		return r.showInURL(env, v, ctx)
 	}
 
 	var err error
 
 	switch ctx {
 	case ast.ContextText:
-		err = showInText(r.env, r.out, v)
+		err = showInText(env, r.out, v)
 	case ast.ContextHTML:
-		err = showInHTML(r.env, r.out, r.conv, v)
+		err = showInHTML(env, r.out, r.conv, v)
 	case ast.ContextTag:
-		err = showInTag(r.env, r.out, v)
+		err = showInTag(env, r.out, v)
 	case ast.ContextQuotedAttr:
-		err = showInAttribute(r.env, r.out, v, true)
+		err = showInAttribute(env, r.out, v, true)
 	case ast.ContextUnquotedAttr:
-		err = showInAttribute(r.env, r.out, v, false)
+		err = showInAttribute(env, r.out, v, false)
 	case ast.ContextCSS:
-		err = showInCSS(r.env, r.out, v)
+		err = showInCSS(env, r.out, v)
 	case ast.ContextCSSString:
-		err = showInCSSString(r.env, r.out, v)
+		err = showInCSSString(env, r.out, v)
 	case ast.ContextJS:
-		err = showInJS(r.env, r.out, v)
+		err = showInJS(env, r.out, v)
 	case ast.ContextJSString:
-		err = showInJSString(r.env, r.out, v)
+		err = showInJSString(env, r.out, v)
 	case ast.ContextJSON:
-		err = showInJSON(r.env, r.out, v)
+		err = showInJSON(env, r.out, v)
 	case ast.ContextJSONString:
-		err = showInJSONString(r.env, r.out, v)
+		err = showInJSONString(env, r.out, v)
 	case ast.ContextMarkdown:
-		err = showInMarkdown(r.env, r.out, v)
+		err = showInMarkdown(env, r.out, v)
 	case ast.ContextTabCodeBlock:
-		err = showInMarkdownCodeBlock(r.env, r.out, v, false)
+		err = showInMarkdownCodeBlock(env, r.out, v, false)
 	case ast.ContextSpacesCodeBlock:
-		err = showInMarkdownCodeBlock(r.env, r.out, v, true)
+		err = showInMarkdownCodeBlock(env, r.out, v, true)
 	default:
 		panic("scriggo: unknown context")
 	}
@@ -163,20 +160,20 @@ func (r *renderer) Text(txt []byte, inURL, isSet bool) error {
 func (r *renderer) WithConversion(from, to ast.Format) *renderer {
 	if from == ast.FormatMarkdown && to == ast.FormatHTML {
 		out := newMarkdownWriter(r.out, r.conv)
-		return &renderer{env: r.env, out: out, conv: r.conv}
+		return &renderer{out: out, conv: r.conv}
 	}
-	return &renderer{env: r.env, out: r.out, conv: r.conv}
+	return &renderer{out: r.out, conv: r.conv}
 }
 
 func (r *renderer) WithOut(out io.Writer) *renderer {
-	return &renderer{env: r.env, out: out, conv: r.conv}
+	return &renderer{out: out, conv: r.conv}
 }
 
 // showInURL shows v in a URL in the given context.
-func (r *renderer) showInURL(v interface{}, ctx ast.Context) error {
+func (r *renderer) showInURL(env *env, v interface{}, ctx ast.Context) error {
 
 	var b strings.Builder
-	err := showInHTML(r.env, &b, r.conv, v)
+	err := showInHTML(env, &b, r.conv, v)
 	if err != nil {
 		return err
 	}

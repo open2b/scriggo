@@ -191,7 +191,7 @@ func (vm *VM) SetContext(ctx context.Context) {
 //
 // SetRenderer must not be called after vm has been started.
 func (vm *VM) SetRenderer(out io.Writer, conv Converter) {
-	vm.renderer = newRenderer(vm.env, out, conv)
+	vm.renderer = newRenderer(out, conv)
 }
 
 // SetPrint sets the "print" builtin function.

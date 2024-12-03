@@ -1786,7 +1786,7 @@ func (vm *VM) run() (Addr, bool) {
 			if rv.IsValid() {
 				v = rv.Interface()
 			}
-			err := vm.renderer.Show(v, Context(c))
+			err := vm.renderer.Show(vm.env, v, Context(c))
 			if err != nil {
 				panic(outError{err})
 			}
