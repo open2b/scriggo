@@ -291,13 +291,13 @@ func (vm *VM) run() (Addr, bool) {
 				if fn.Macro {
 					call.renderer = vm.renderer
 					if b == ReturnString {
-						vm.renderer = newRenderer(&macroOutBuffer{}, nil)
+						vm.renderer = newRenderer(&macroOutBuffer{})
 					} else if ast.Format(b) != fn.Format {
 						if fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
-							out := newMarkdownWriter(vm.renderer.out, vm.renderer.conv)
-							vm.renderer = newRenderer(out, vm.renderer.conv)
+							out := newMarkdownWriter(vm.renderer.out, vm.conv)
+							vm.renderer = newRenderer(out)
 						} else {
-							vm.renderer = newRenderer(vm.renderer.out, vm.renderer.conv)
+							vm.renderer = newRenderer(vm.renderer.out)
 						}
 					}
 				}
@@ -327,13 +327,13 @@ func (vm *VM) run() (Addr, bool) {
 				vm.moreGeneralStack()
 			}
 			if b == ReturnString {
-				vm.renderer = newRenderer(&macroOutBuffer{}, nil)
+				vm.renderer = newRenderer(&macroOutBuffer{})
 			} else if ast.Format(b) != fn.Format {
 				if fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
-					out := newMarkdownWriter(vm.renderer.out, vm.renderer.conv)
-					vm.renderer = newRenderer(out, vm.renderer.conv)
+					out := newMarkdownWriter(vm.renderer.out, vm.conv)
+					vm.renderer = newRenderer(out)
 				} else {
-					vm.renderer = newRenderer(vm.renderer.out, vm.renderer.conv)
+					vm.renderer = newRenderer(vm.renderer.out)
 				}
 			}
 			vm.fn = fn
@@ -523,9 +523,9 @@ func (vm *VM) run() (Addr, bool) {
 				vm.setGeneral(c, v.Convert(t))
 			} else {
 				var b bytes.Buffer
-				r1 := newRenderer(&b, vm.renderer.conv)
-				out := newMarkdownWriter(r1.out, r1.conv)
-				r2 := newRenderer(out, r1.conv)
+				r1 := newRenderer(&b)
+				out := newMarkdownWriter(r1.out, vm.conv)
+				r2 := newRenderer(out)
 				_, _ = r2.Out().Write([]byte(v.String()))
 				_ = r2.Close()
 				_ = r1.Close()
@@ -1797,7 +1797,7 @@ func (vm *VM) run() (Addr, bool) {
 			if rv.IsValid() {
 				v = rv.Interface()
 			}
-			err := vm.renderer.Show(vm.env, v, Context(c))
+			err := vm.renderer.Show(vm.env, v, Context(c), vm.conv)
 			if err != nil {
 				panic(outError{err})
 			}

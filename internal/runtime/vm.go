@@ -93,6 +93,7 @@ type VM struct {
 	env      *env                 // execution environment.
 	envArg   reflect.Value        // execution environment as argument.
 	renderer *renderer            // renderer
+	conv     Converter            // Markdown converter
 	calls    []callFrame          // call stack frame.
 	cases    []reflect.SelectCase // select cases.
 	panic    *PanicError          // panic.
@@ -120,6 +121,7 @@ func (vm *VM) Reset() {
 	vm.env = &env{}
 	vm.envArg = reflect.ValueOf(vm.env)
 	vm.renderer = nil
+	vm.conv = nil
 	if vm.calls != nil {
 		vm.calls = vm.calls[:0]
 	}
@@ -191,7 +193,8 @@ func (vm *VM) SetContext(ctx context.Context) {
 //
 // SetRenderer must not be called after vm has been started.
 func (vm *VM) SetRenderer(out io.Writer, conv Converter) {
-	vm.renderer = newRenderer(out, conv)
+	vm.renderer = newRenderer(out)
+	vm.conv = conv
 }
 
 // SetPrint sets the "print" builtin function.
@@ -907,7 +910,7 @@ func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 	c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
 		nvm := create(env)
 		if fn.Macro {
-			renderer = newRenderer(&macroOutBuffer{}, nil)
+			renderer = newRenderer(&macroOutBuffer{})
 		}
 		nvm.renderer = renderer
 		nOut := fn.Type.NumOut()

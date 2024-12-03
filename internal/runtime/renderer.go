@@ -30,9 +30,6 @@ type renderer struct {
 	// out is the io.Writer to write to.
 	out io.Writer
 
-	// conv is the Markdown converter.
-	conv Converter
-
 	// inURL reports whether it is in a URL.
 	inURL bool
 
@@ -49,8 +46,8 @@ type renderer struct {
 }
 
 // newRenderer returns a new renderer.
-func newRenderer(out io.Writer, conv Converter) *renderer {
-	return &renderer{out: out, conv: conv}
+func newRenderer(out io.Writer) *renderer {
+	return &renderer{out: out}
 }
 
 func (r *renderer) Close() error {
@@ -61,7 +58,7 @@ func (r *renderer) Close() error {
 }
 
 // Show shows v in the given context.
-func (r *renderer) Show(env *env, v interface{}, context Context) error {
+func (r *renderer) Show(env *env, v interface{}, context Context, conv Converter) error {
 
 	ctx, inURL, _ := decodeRenderContext(context)
 
@@ -74,7 +71,7 @@ func (r *renderer) Show(env *env, v interface{}, context Context) error {
 	}
 
 	if inURL {
-		return r.showInURL(env, v, ctx)
+		return r.showInURL(env, v, ctx, conv)
 	}
 
 	var err error
@@ -83,7 +80,7 @@ func (r *renderer) Show(env *env, v interface{}, context Context) error {
 	case ast.ContextText:
 		err = showInText(env, r.out, v)
 	case ast.ContextHTML:
-		err = showInHTML(env, r.out, r.conv, v)
+		err = showInHTML(env, r.out, conv, v)
 	case ast.ContextTag:
 		err = showInTag(env, r.out, v)
 	case ast.ContextQuotedAttr:
@@ -158,10 +155,10 @@ func (r *renderer) Text(txt []byte, inURL, isSet bool) error {
 }
 
 // showInURL shows v in a URL in the given context.
-func (r *renderer) showInURL(env *env, v interface{}, ctx ast.Context) error {
+func (r *renderer) showInURL(env *env, v interface{}, ctx ast.Context, conv Converter) error {
 
 	var b strings.Builder
-	err := showInHTML(env, &b, r.conv, v)
+	err := showInHTML(env, &b, conv, v)
 	if err != nil {
 		return err
 	}
