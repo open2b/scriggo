@@ -6,7 +6,6 @@ package runtime
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"html"
 	"io"
@@ -48,13 +47,6 @@ type renderer struct {
 // newRenderer returns a new renderer.
 func newRenderer(out io.Writer) *renderer {
 	return &renderer{out: out}
-}
-
-func (r *renderer) Close() error {
-	if w, ok := r.out.(*markdownWriter); ok {
-		return w.Close()
-	}
-	return nil
 }
 
 // Show shows v in the given context.
@@ -195,33 +187,6 @@ func (r *renderer) endURL() {
 	r.query = false
 	r.addAmpersand = false
 	r.removeQuestionMark = false
-}
-
-// markdownWriter implements an io.WriteCloser that writes to the buffer buf.
-// When the Close method is called, it converts the content in the buffer,
-// using converter, from Markdown to HTML and writes it to out.
-type markdownWriter struct {
-	buf     bytes.Buffer
-	convert Converter
-	out     io.Writer
-}
-
-// newMarkdownWriter returns a *markdownWriter value that writes to out the
-// Markdown code converted to HTML by converter.
-func newMarkdownWriter(out io.Writer, converter Converter) *markdownWriter {
-	var buf bytes.Buffer
-	return &markdownWriter{buf, converter, out}
-}
-
-func (w *markdownWriter) Write(p []byte) (int, error) {
-	return w.buf.Write(p)
-}
-
-func (w *markdownWriter) Close() error {
-	if w.convert == nil {
-		return errors.New("no Markdown convert available")
-	}
-	return w.convert(w.buf.Bytes(), w.out)
 }
 
 type strWriterWrapper struct {

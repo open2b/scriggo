@@ -293,8 +293,7 @@ func (vm *VM) run() (Addr, bool) {
 						vm.renderer = newRenderer(&macroOutBuffer{})
 					} else if ast.Format(b) != fn.Format {
 						if fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
-							out := newMarkdownWriter(vm.renderer.out, vm.conv)
-							vm.renderer = newRenderer(out)
+							vm.renderer = newRenderer(&markdownOutBuffer{})
 						} else {
 							vm.renderer = newRenderer(vm.renderer.out)
 						}
@@ -329,8 +328,7 @@ func (vm *VM) run() (Addr, bool) {
 				vm.renderer = newRenderer(&macroOutBuffer{})
 			} else if ast.Format(b) != fn.Format {
 				if fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
-					out := newMarkdownWriter(vm.renderer.out, vm.conv)
-					vm.renderer = newRenderer(out)
+					vm.renderer = newRenderer(&markdownOutBuffer{})
 				} else {
 					vm.renderer = newRenderer(vm.renderer.out)
 				}
@@ -1573,10 +1571,13 @@ func (vm *VM) run() (Addr, bool) {
 				if vm.fn.Macro {
 					if call.renderer != vm.renderer {
 						out := vm.renderer.Out()
-						if b, ok := out.(*macroOutBuffer); ok {
-							vm.setString(1, b.String())
+						var err error
+						switch out := out.(type) {
+						case *macroOutBuffer:
+							vm.setString(1, out.String())
+						case *markdownOutBuffer:
+							err = vm.conv(out.Bytes(), call.renderer.out)
 						}
-						err := vm.renderer.Close()
 						if err != nil {
 							panic(&fatalError{env: vm.env, msg: err})
 						}

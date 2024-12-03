@@ -5,6 +5,7 @@
 package runtime
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -743,6 +744,13 @@ type macroOutBuffer struct {
 	strings.Builder
 }
 
+// markdownOutBuffer is used in CallMacro and CallIndirect instructions to
+// buffer the out of a macro call and convert it from Markdown to HTML in Return
+// instructions.
+type markdownOutBuffer struct {
+	bytes.Buffer
+}
+
 type NativeFunction struct {
 	pkg         string        // package.
 	name        string        // name.
@@ -948,10 +956,6 @@ func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 		if fn.Macro {
 			b := renderer.Out().(*macroOutBuffer)
 			nvm.setString(1, b.String())
-			err := renderer.Close()
-			if err != nil {
-				panic(&fatalError{env: env, msg: err})
-			}
 		}
 		r = [4]int8{1, 1, 1, 1}
 		for _, result := range results {
