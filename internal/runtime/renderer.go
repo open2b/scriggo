@@ -166,7 +166,7 @@ func (r *renderer) WithConversion(from, to ast.Format) *renderer {
 }
 
 func (r *renderer) WithOut(out io.Writer) *renderer {
-	return &renderer{out: out, conv: r.conv}
+	return &renderer{out: out}
 }
 
 // showInURL shows v in a URL in the given context.

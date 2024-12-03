@@ -513,7 +513,7 @@ func (vm *VM) run() (Addr, bool) {
 				vm.setGeneral(c, v.Convert(t))
 			} else {
 				var b bytes.Buffer
-				r1 := vm.renderer.WithOut(&b)
+				r1 := newRenderer(&b, vm.renderer.conv)
 				r2 := r1.WithConversion(ast.FormatMarkdown, ast.FormatHTML)
 				_, _ = r2.Out().Write([]byte(v.String()))
 				_ = r2.Close()
