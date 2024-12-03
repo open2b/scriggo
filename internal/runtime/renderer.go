@@ -157,14 +157,6 @@ func (r *renderer) Text(txt []byte, inURL, isSet bool) error {
 	return err
 }
 
-func (r *renderer) WithConversion(from, to ast.Format) *renderer {
-	if from == ast.FormatMarkdown && to == ast.FormatHTML {
-		out := newMarkdownWriter(r.out, r.conv)
-		return &renderer{out: out, conv: r.conv}
-	}
-	return &renderer{out: r.out, conv: r.conv}
-}
-
 // showInURL shows v in a URL in the given context.
 func (r *renderer) showInURL(env *env, v interface{}, ctx ast.Context) error {
 

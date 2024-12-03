@@ -293,7 +293,12 @@ func (vm *VM) run() (Addr, bool) {
 					if b == ReturnString {
 						vm.renderer = newRenderer(&macroOutBuffer{}, nil)
 					} else if ast.Format(b) != fn.Format {
-						vm.renderer = vm.renderer.WithConversion(fn.Format, ast.Format(b))
+						if fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
+							out := newMarkdownWriter(vm.renderer.out, vm.renderer.conv)
+							vm.renderer = newRenderer(out, vm.renderer.conv)
+						} else {
+							vm.renderer = newRenderer(vm.renderer.out, vm.renderer.conv)
+						}
 					}
 				}
 				vm.fn = fn
@@ -324,7 +329,12 @@ func (vm *VM) run() (Addr, bool) {
 			if b == ReturnString {
 				vm.renderer = newRenderer(&macroOutBuffer{}, nil)
 			} else if ast.Format(b) != fn.Format {
-				vm.renderer = vm.renderer.WithConversion(fn.Format, ast.Format(b))
+				if fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
+					out := newMarkdownWriter(vm.renderer.out, vm.renderer.conv)
+					vm.renderer = newRenderer(out, vm.renderer.conv)
+				} else {
+					vm.renderer = newRenderer(vm.renderer.out, vm.renderer.conv)
+				}
 			}
 			vm.fn = fn
 			vm.vars = vm.env.globals
@@ -514,7 +524,8 @@ func (vm *VM) run() (Addr, bool) {
 			} else {
 				var b bytes.Buffer
 				r1 := newRenderer(&b, vm.renderer.conv)
-				r2 := r1.WithConversion(ast.FormatMarkdown, ast.FormatHTML)
+				out := newMarkdownWriter(r1.out, r1.conv)
+				r2 := newRenderer(out, r1.conv)
 				_, _ = r2.Out().Write([]byte(v.String()))
 				_ = r2.Close()
 				_ = r1.Close()
