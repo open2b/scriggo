@@ -520,9 +520,11 @@ func (vm *VM) run() (Addr, bool) {
 			if t.Kind() == reflect.Slice {
 				vm.setGeneral(c, v.Convert(t))
 			} else {
-				var b strings.Builder
-				_ = vm.env.conv([]byte(v.String()), &b)
-				vm.setString(c, b.String())
+				if vm.env.conv != nil {
+					var b strings.Builder
+					_ = vm.env.conv([]byte(v.String()), &b)
+					vm.setString(c, b.String())
+				}
 			}
 
 		// Concat
