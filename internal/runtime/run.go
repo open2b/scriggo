@@ -6,6 +6,7 @@ package runtime
 
 import (
 	"bytes"
+	"errors"
 	"reflect"
 	"strings"
 	"sync/atomic"
@@ -291,9 +292,16 @@ func (vm *VM) run() (Addr, bool) {
 				if fn.Macro {
 					call.renderer = vm.renderer
 					if b == ReturnString {
-						vm.renderer = vm.renderer.WithOut(&macroOutBuffer{})
+						vm.renderer = newRenderer(&strings.Builder{})
 					} else if ast.Format(b) != fn.Format {
-						vm.renderer = vm.renderer.WithConversion(fn.Format, ast.Format(b))
+						if fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
+							if vm.env.conv == nil {
+								panic(&fatalError{env: vm.env, msg: errors.New("no Markdown convert available")})
+							}
+							vm.renderer = newRenderer(&bytes.Buffer{})
+						} else {
+							vm.renderer = newRenderer(vm.renderer.out)
+						}
 					}
 				}
 				vm.fn = fn
@@ -322,9 +330,16 @@ func (vm *VM) run() (Addr, bool) {
 				vm.moreGeneralStack()
 			}
 			if b == ReturnString {
-				vm.renderer = vm.renderer.WithOut(&macroOutBuffer{})
+				vm.renderer = newRenderer(&strings.Builder{})
 			} else if ast.Format(b) != fn.Format {
-				vm.renderer = vm.renderer.WithConversion(fn.Format, ast.Format(b))
+				if fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
+					if vm.env.conv == nil {
+						panic(&fatalError{env: vm.env, msg: errors.New("no Markdown convert available")})
+					}
+					vm.renderer = newRenderer(&bytes.Buffer{})
+				} else {
+					vm.renderer = newRenderer(vm.renderer.out)
+				}
 			}
 			vm.fn = fn
 			vm.vars = vm.env.globals
@@ -512,13 +527,11 @@ func (vm *VM) run() (Addr, bool) {
 			if t.Kind() == reflect.Slice {
 				vm.setGeneral(c, v.Convert(t))
 			} else {
-				var b bytes.Buffer
-				r1 := vm.renderer.WithOut(&b)
-				r2 := r1.WithConversion(ast.FormatMarkdown, ast.FormatHTML)
-				_, _ = r2.Out().Write([]byte(v.String()))
-				_ = r2.Close()
-				_ = r1.Close()
-				vm.setString(c, b.String())
+				if vm.env.conv != nil {
+					var b strings.Builder
+					_ = vm.env.conv([]byte(v.String()), &b)
+					vm.setString(c, b.String())
+				}
 			}
 
 		// Concat
@@ -1564,16 +1577,20 @@ func (vm *VM) run() (Addr, bool) {
 				return maxUint32, false
 			}
 			call := vm.calls[i]
+			fn := call.cl.fn
 			if call.status == started {
 				if vm.fn.Macro {
 					if call.renderer != vm.renderer {
-						out := vm.renderer.Out()
-						if b, ok := out.(*macroOutBuffer); ok {
-							vm.setString(1, b.String())
-						}
-						err := vm.renderer.Close()
-						if err != nil {
-							panic(&fatalError{env: vm.env, msg: err})
+						b := fn.Body[call.pc-2].B
+						if b == ReturnString {
+							out := vm.renderer.Out().(*strings.Builder)
+							vm.setString(1, out.String())
+						} else if fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
+							out := vm.renderer.Out().(*bytes.Buffer)
+							err := vm.env.conv(out.Bytes(), call.renderer.out)
+							if err != nil {
+								panic(&fatalError{env: vm.env, msg: err})
+							}
 						}
 					}
 					vm.renderer = call.renderer
@@ -1582,7 +1599,7 @@ func (vm *VM) run() (Addr, bool) {
 				}
 				vm.calls = vm.calls[:i]
 				vm.fp = call.fp
-				vm.fn = call.cl.fn
+				vm.fn = fn
 				vm.vars = call.cl.vars
 				vm.pc = call.pc
 			} else if !vm.nextCall() {
@@ -1786,7 +1803,7 @@ func (vm *VM) run() (Addr, bool) {
 			if rv.IsValid() {
 				v = rv.Interface()
 			}
-			err := vm.renderer.Show(v, Context(c))
+			err := vm.renderer.Show(vm.env, v, Context(c))
 			if err != nil {
 				panic(outError{err})
 			}

@@ -191,7 +191,8 @@ func (vm *VM) SetContext(ctx context.Context) {
 //
 // SetRenderer must not be called after vm has been started.
 func (vm *VM) SetRenderer(out io.Writer, conv Converter) {
-	vm.renderer = newRenderer(vm.env, out, conv)
+	vm.renderer = newRenderer(out)
+	vm.env.conv = conv
 }
 
 // SetPrint sets the "print" builtin function.
@@ -734,12 +735,6 @@ type Registers struct {
 	General []reflect.Value
 }
 
-// macroOutBuffer is used in CallMacro and CallIndirect instructions to buffer
-// the out of a macro call and convert it to a string in Return instructions.
-type macroOutBuffer struct {
-	strings.Builder
-}
-
 type NativeFunction struct {
 	pkg         string        // package.
 	name        string        // name.
@@ -907,7 +902,7 @@ func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 	c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
 		nvm := create(env)
 		if fn.Macro {
-			renderer = renderer.WithOut(&macroOutBuffer{})
+			renderer = newRenderer(&strings.Builder{})
 		}
 		nvm.renderer = renderer
 		nOut := fn.Type.NumOut()
@@ -943,12 +938,8 @@ func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 			panic(err)
 		}
 		if fn.Macro {
-			b := renderer.Out().(*macroOutBuffer)
+			b := renderer.Out().(*strings.Builder)
 			nvm.setString(1, b.String())
-			err := renderer.Close()
-			if err != nil {
-				panic(&fatalError{env: env, msg: err})
-			}
 		}
 		r = [4]int8{1, 1, 1, 1}
 		for _, result := range results {

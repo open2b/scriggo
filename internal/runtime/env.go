@@ -21,6 +21,7 @@ type env struct {
 	globals []reflect.Value // global variables.
 	print   PrintFunc       // custom print builtin.
 	typeof  TypeOfFunc      // typeof function.
+	conv    Converter       // Markdown converter
 
 	done     int32
 	doneChan <-chan struct{}
