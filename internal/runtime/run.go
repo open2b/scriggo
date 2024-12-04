@@ -1568,14 +1568,15 @@ func (vm *VM) run() (Addr, bool) {
 				return maxUint32, false
 			}
 			call := vm.calls[i]
+			fn := call.cl.fn
 			if call.status == started {
 				if vm.fn.Macro {
 					if call.renderer != vm.renderer {
-						b := call.cl.fn.Body[call.pc-2].B
+						b := fn.Body[call.pc-2].B
 						if b == ReturnString {
 							out := vm.renderer.Out().(*strings.Builder)
 							vm.setString(1, out.String())
-						} else if ast.Format(b) != call.cl.fn.Format {
+						} else if fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
 							out := vm.renderer.Out().(*bytes.Buffer)
 							err := vm.env.conv(out.Bytes(), call.renderer.out)
 							if err != nil {
@@ -1589,7 +1590,7 @@ func (vm *VM) run() (Addr, bool) {
 				}
 				vm.calls = vm.calls[:i]
 				vm.fp = call.fp
-				vm.fn = call.cl.fn
+				vm.fn = fn
 				vm.vars = call.cl.vars
 				vm.pc = call.pc
 			} else if !vm.nextCall() {
