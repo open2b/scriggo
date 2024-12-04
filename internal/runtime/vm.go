@@ -29,7 +29,6 @@ const stackSize = 512
 var envType = reflect.TypeOf((*native.Env)(nil)).Elem()
 var emptyInterfaceType = reflect.TypeOf(&[]interface{}{nil}[0]).Elem()
 var emptyInterfaceNil = reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
-var stringType = reflect.TypeOf("")
 
 // Converter is implemented by format converters.
 type Converter func(src []byte, out io.Writer) error
