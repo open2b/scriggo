@@ -3769,6 +3769,7 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "\n\t\t\t10 20 30 ",
 	},
+
 	"For-else -- else executed": {
 		sources: fstest.Files{
 			"index.txt": `{% var xs = []int{} %}
@@ -3776,6 +3777,7 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "\n\t\t\ti'm the else block",
 	},
+
 	"For-else on string -- else not executed": {
 		sources: fstest.Files{
 			"index.txt": `{% var xs = "this is a string" %}
@@ -3783,6 +3785,7 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "\n\t\t\t116 104 105 115 32 105 115 32 97 32 115 116 114 105 110 103 ",
 	},
+
 	"For-else on string -- else executed": {
 		sources: fstest.Files{
 			"index.txt": `{% var xs = "" %}
@@ -3790,6 +3793,7 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "\n\t\t\ti'm the else block",
 	},
+
 	"For-else -- else not executed (break)": {
 		sources: fstest.Files{
 			"index.txt": `{% var xs = []int{10, 20, 30} %}
@@ -3797,6 +3801,7 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "\n\t\t\t",
 	},
+
 	"For-else -- else not executed (multiline statement)": {
 		sources: fstest.Files{
 			"index.txt": `{% var xs = []int{10, 20, 30} %}
@@ -3810,6 +3815,7 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "\n\t\t\t10 20 30 ",
 	},
+
 	"For-else -- else executed (multiline statement)": {
 		sources: fstest.Files{
 			"index.txt": `{% var xs = []int{} %}
@@ -3821,6 +3827,7 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "\n\t\t\ti'm the else block",
 	},
+
 	"For-else channel -- else not executed": {
 		sources: fstest.Files{
 			"index.txt": `{%%
@@ -3836,6 +3843,7 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "5",
 	},
+
 	"For-else channel -- else executed": {
 		sources: fstest.Files{
 			"index.txt": `{%%
@@ -3850,6 +3858,7 @@ var templateMultiFileCases = map[string]struct {
 		},
 		expectedOut: "i'm the else block",
 	},
+
 	"Key selector": {
 		sources: fstest.Files{
 			"index.txt": `{%% 
@@ -3864,6 +3873,35 @@ var templateMultiFileCases = map[string]struct {
             %%}`,
 		},
 		expectedOut: "6132",
+	},
+
+	"Render in an distraction free markdown macro that render a text partial": {
+		sources: fstest.Files{
+			"index.md": `
+{% extends "layout.html" %}
+{% Article %}
+{{ render "partial.svg" }}
+			`,
+			"layout.html": `{{ Article() }}`,
+			"partial.svg": `<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>`,
+		},
+		expectedOut: "--- start Markdown ---\n<svg xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"1\" height=\"1\"/></svg>\t\t\t--- end Markdown ---\n",
+	},
+
+	"Show the returned string of a text macro in Markdown context": {
+		sources: fstest.Files{
+			"index.md": `{% import "icon.svg" %}{{ Icon() }}`,
+			"icon.svg": `{% macro Icon %}<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>{% end %}`,
+		},
+		expectedOut: "\\<svg xmlns\\=\"http://www\\.w3\\.org/2000/svg\"\\>\\<rect width\\=\"1\" height\\=\"1\"/\\>\\</svg\\>",
+	},
+
+	"Show a markdown variable in an HTML context": {
+		sources: fstest.Files{
+			"partial.md": "# Title",
+			"index.html": `{% s := render "partial.md" %}{{ s }}`,
+		},
+		expectedOut: "--- start Markdown ---\n# Title--- end Markdown ---\n",
 	},
 }
 
