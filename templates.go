@@ -84,7 +84,7 @@ var formatTypes = map[ast.Format]reflect.Type{
 //	CSS        : .css
 //	JavaScript : .js
 //	JSON       : .json
-//	Markdown   : .md .mkd .mkdn .mdown .markdown
+//	Markdown   : .md .mdx .mkd .mkdn .mdown .markdown
 //	Text       : all other extensions
 //
 // If the named file does not exist, BuildTemplate returns an error satisfying
