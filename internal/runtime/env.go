@@ -48,6 +48,10 @@ func (env *env) Fatal(v interface{}) {
 	panic(&fatalError{env: env, msg: v})
 }
 
+func (env *env) MarkdownConverter() Converter {
+	return env.conv
+}
+
 func (env *env) Print(args ...interface{}) {
 	for _, arg := range args {
 		env.doPrint(arg)

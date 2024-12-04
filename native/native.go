@@ -9,6 +9,7 @@ package native
 
 import (
 	"context"
+	"io"
 	"reflect"
 )
 
@@ -30,6 +31,9 @@ type (
 	Markdown string
 )
 
+// Converter is implemented by format converters.
+type Converter = func(src []byte, out io.Writer) error
+
 // Env represents an execution environment.
 //
 // Each execution creates an Env value. This value is passed as the first
@@ -49,6 +53,10 @@ type Env interface {
 	// Fatal exits the execution and then panics with value v. Deferred
 	// functions are not called and started goroutines are not terminated.
 	Fatal(v interface{})
+
+	// MarkdownConverter returns the Markdown converter provided to the
+	// BuildTemplate function, if one was set.
+	MarkdownConverter() Converter
 
 	// Print calls the print built-in function with args as argument.
 	Print(args ...interface{})

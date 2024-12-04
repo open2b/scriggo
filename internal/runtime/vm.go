@@ -31,7 +31,7 @@ var emptyInterfaceType = reflect.TypeOf(&[]interface{}{nil}[0]).Elem()
 var emptyInterfaceNil = reflect.ValueOf(&[]interface{}{nil}[0]).Elem()
 
 // Converter is implemented by format converters.
-type Converter func(src []byte, out io.Writer) error
+type Converter = func(src []byte, out io.Writer) error
 
 // A TypeOfFunc function returns a type of a value.
 type TypeOfFunc func(reflect.Value) reflect.Type

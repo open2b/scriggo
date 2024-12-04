@@ -20,7 +20,7 @@ import (
 type checkingMod int
 
 // Converter is implemented by format converters.
-type Converter func(src []byte, out io.Writer) error
+type Converter = func(src []byte, out io.Writer) error
 
 const (
 	programMod checkingMod = iota + 1
