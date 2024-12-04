@@ -5,6 +5,7 @@
 package runtime
 
 import (
+	"bytes"
 	"reflect"
 	"strings"
 	"sync/atomic"
@@ -290,10 +291,10 @@ func (vm *VM) run() (Addr, bool) {
 				if fn.Macro {
 					call.renderer = vm.renderer
 					if b == ReturnString {
-						vm.renderer = newRenderer(&macroOutBuffer{})
+						vm.renderer = newRenderer(&strings.Builder{})
 					} else if ast.Format(b) != fn.Format {
 						if fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
-							vm.renderer = newRenderer(&markdownOutBuffer{})
+							vm.renderer = newRenderer(&bytes.Buffer{})
 						} else {
 							vm.renderer = newRenderer(vm.renderer.out)
 						}
@@ -325,10 +326,10 @@ func (vm *VM) run() (Addr, bool) {
 				vm.moreGeneralStack()
 			}
 			if b == ReturnString {
-				vm.renderer = newRenderer(&macroOutBuffer{})
+				vm.renderer = newRenderer(&strings.Builder{})
 			} else if ast.Format(b) != fn.Format {
 				if fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
-					vm.renderer = newRenderer(&markdownOutBuffer{})
+					vm.renderer = newRenderer(&bytes.Buffer{})
 				} else {
 					vm.renderer = newRenderer(vm.renderer.out)
 				}
@@ -1570,16 +1571,16 @@ func (vm *VM) run() (Addr, bool) {
 			if call.status == started {
 				if vm.fn.Macro {
 					if call.renderer != vm.renderer {
-						out := vm.renderer.Out()
-						var err error
-						switch out := out.(type) {
-						case *macroOutBuffer:
+						b := call.cl.fn.Body[call.pc-2].B
+						if b == ReturnString {
+							out := vm.renderer.Out().(*strings.Builder)
 							vm.setString(1, out.String())
-						case *markdownOutBuffer:
-							err = vm.env.conv(out.Bytes(), call.renderer.out)
-						}
-						if err != nil {
-							panic(&fatalError{env: vm.env, msg: err})
+						} else if ast.Format(b) != call.cl.fn.Format {
+							out := vm.renderer.Out().(*bytes.Buffer)
+							err := vm.env.conv(out.Bytes(), call.renderer.out)
+							if err != nil {
+								panic(&fatalError{env: vm.env, msg: err})
+							}
 						}
 					}
 					vm.renderer = call.renderer

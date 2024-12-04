@@ -5,7 +5,6 @@
 package runtime
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -736,19 +735,6 @@ type Registers struct {
 	General []reflect.Value
 }
 
-// macroOutBuffer is used in CallMacro and CallIndirect instructions to buffer
-// the out of a macro call and convert it to a string in Return instructions.
-type macroOutBuffer struct {
-	strings.Builder
-}
-
-// markdownOutBuffer is used in CallMacro and CallIndirect instructions to
-// buffer the out of a macro call and convert it from Markdown to HTML in Return
-// instructions.
-type markdownOutBuffer struct {
-	bytes.Buffer
-}
-
 type NativeFunction struct {
 	pkg         string        // package.
 	name        string        // name.
@@ -916,7 +902,7 @@ func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 	c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
 		nvm := create(env)
 		if fn.Macro {
-			renderer = newRenderer(&macroOutBuffer{})
+			renderer = newRenderer(&strings.Builder{})
 		}
 		nvm.renderer = renderer
 		nOut := fn.Type.NumOut()
@@ -952,7 +938,7 @@ func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 			panic(err)
 		}
 		if fn.Macro {
-			b := renderer.Out().(*macroOutBuffer)
+			b := renderer.Out().(*strings.Builder)
 			nvm.setString(1, b.String())
 		}
 		r = [4]int8{1, 1, 1, 1}
