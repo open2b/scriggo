@@ -6,6 +6,7 @@ package runtime
 
 import (
 	"bytes"
+	"errors"
 	"reflect"
 	"strings"
 	"sync/atomic"
@@ -294,6 +295,9 @@ func (vm *VM) run() (Addr, bool) {
 						vm.renderer = newRenderer(&strings.Builder{})
 					} else if ast.Format(b) != fn.Format {
 						if fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
+							if vm.env.conv == nil {
+								panic(&fatalError{env: vm.env, msg: errors.New("no Markdown convert available")})
+							}
 							vm.renderer = newRenderer(&bytes.Buffer{})
 						} else {
 							vm.renderer = newRenderer(vm.renderer.out)
@@ -329,6 +333,9 @@ func (vm *VM) run() (Addr, bool) {
 				vm.renderer = newRenderer(&strings.Builder{})
 			} else if ast.Format(b) != fn.Format {
 				if fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
+					if vm.env.conv == nil {
+						panic(&fatalError{env: vm.env, msg: errors.New("no Markdown convert available")})
+					}
 					vm.renderer = newRenderer(&bytes.Buffer{})
 				} else {
 					vm.renderer = newRenderer(vm.renderer.out)
