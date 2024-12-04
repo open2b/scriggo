@@ -520,7 +520,7 @@ func (vm *VM) run() (Addr, bool) {
 				vm.setGeneral(c, v.Convert(t))
 			} else {
 				var b strings.Builder
-				_ = vm.conv([]byte(v.String()), &b)
+				_ = vm.env.conv([]byte(v.String()), &b)
 				vm.setString(c, b.String())
 			}
 
@@ -1576,7 +1576,7 @@ func (vm *VM) run() (Addr, bool) {
 						case *macroOutBuffer:
 							vm.setString(1, out.String())
 						case *markdownOutBuffer:
-							err = vm.conv(out.Bytes(), call.renderer.out)
+							err = vm.env.conv(out.Bytes(), call.renderer.out)
 						}
 						if err != nil {
 							panic(&fatalError{env: vm.env, msg: err})
@@ -1792,7 +1792,7 @@ func (vm *VM) run() (Addr, bool) {
 			if rv.IsValid() {
 				v = rv.Interface()
 			}
-			err := vm.renderer.Show(vm.env, v, Context(c), vm.conv)
+			err := vm.renderer.Show(vm.env, v, Context(c))
 			if err != nil {
 				panic(outError{err})
 			}

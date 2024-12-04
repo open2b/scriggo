@@ -50,7 +50,7 @@ func newRenderer(out io.Writer) *renderer {
 }
 
 // Show shows v in the given context.
-func (r *renderer) Show(env *env, v interface{}, context Context, conv Converter) error {
+func (r *renderer) Show(env *env, v interface{}, context Context) error {
 
 	ctx, inURL, _ := decodeRenderContext(context)
 
@@ -63,7 +63,7 @@ func (r *renderer) Show(env *env, v interface{}, context Context, conv Converter
 	}
 
 	if inURL {
-		return r.showInURL(env, v, ctx, conv)
+		return r.showInURL(env, v, ctx)
 	}
 
 	var err error
@@ -72,7 +72,7 @@ func (r *renderer) Show(env *env, v interface{}, context Context, conv Converter
 	case ast.ContextText:
 		err = showInText(env, r.out, v)
 	case ast.ContextHTML:
-		err = showInHTML(env, r.out, conv, v)
+		err = showInHTML(env, r.out, v)
 	case ast.ContextTag:
 		err = showInTag(env, r.out, v)
 	case ast.ContextQuotedAttr:
@@ -147,10 +147,10 @@ func (r *renderer) Text(txt []byte, inURL, isSet bool) error {
 }
 
 // showInURL shows v in a URL in the given context.
-func (r *renderer) showInURL(env *env, v interface{}, ctx ast.Context, conv Converter) error {
+func (r *renderer) showInURL(env *env, v interface{}, ctx ast.Context) error {
 
 	var b strings.Builder
-	err := showInHTML(env, &b, conv, v)
+	err := showInHTML(env, &b, v)
 	if err != nil {
 		return err
 	}
@@ -288,7 +288,7 @@ func showInText(env *env, out io.Writer, value interface{}) error {
 }
 
 // showInHTML shows value in HTML context.
-func showInHTML(env *env, out io.Writer, conv Converter, value interface{}) error {
+func showInHTML(env *env, out io.Writer, value interface{}) error {
 	w := newStringWriter(out)
 	switch v := value.(type) {
 	case native.HTML:
@@ -310,8 +310,8 @@ func showInHTML(env *env, out io.Writer, conv Converter, value interface{}) erro
 	case error:
 		return htmlEscape(w, v.Error())
 	case native.Markdown:
-		if conv != nil {
-			return conv([]byte(v), out)
+		if env.conv != nil {
+			return env.conv([]byte(v), out)
 		}
 	}
 	s, err := toString(env, value)
