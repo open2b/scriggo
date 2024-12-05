@@ -83,13 +83,11 @@ func build(dir, o string) error {
 
 	dstBase := filepath.Base(dstDir)
 	publicBase := filepath.Base(publicDir)
-	println("dstBase:", dstBase)
 
 	err = fs.WalkDir(srcFS, ".", func(name string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		println(name, d.IsDir())
 		if name[0] == '.' {
 			return nil
 		}
