@@ -47,11 +47,12 @@ const helpBuild = `
 usage: scriggo build [-o output] [dir]
 
 Build processes the template rooted at the current directory and writes the
-generated files to the './public' directory by default. Non-template files, such
-as CSS and JavaScript, are copied as-is. If the './public' directory already
-exists, it is first deleted and then recreated empty. If a directory 'dir' is
-specified, the template rooted at that directory is built instead of the current
-directory.
+generated files to the 'public' directory by default. If the 'public' directory
+already exists, it is deleted along with all its content before writing the new
+files. If a directory 'dir' is specified, the template rooted at that directory
+is built instead of the current directory.
+
+Non-template files, such as CSS and JavaScript, are copied as-is.
 
 For example:
 
@@ -59,12 +60,12 @@ For example:
 
 generates a static version of the template rooted at the current directory,
 processing all template files (e.g., HTML, Markdown) and generating their final
-output in the './public' directory. Non-template files from the source
-directory, such as stylesheets and scripts, are copied without modification,
-resulting in a complete static site ready for deployment.
+output in the 'public' directory. Non-template files from the source directory,
+such as stylesheets and scripts, are copied without modification, resulting in a
+complete static site ready for deployment.
 
 The -o flag allows specifying an alternative output directory instead of the
-default './public'.
+default 'public'.
 
 Examples:
 
