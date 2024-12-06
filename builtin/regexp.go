@@ -26,8 +26,8 @@ func (re Regexp) Match(s string) bool {
 // Find returns a string holding the text of the leftmost match in s of the
 // regular expression. If there is no match, the return value is an empty
 // string, but it will also be empty if the regular expression successfully
-// matches an empty string. Use FindSubmatch if it is necessary to distinguish
-// these cases.
+// matches an empty string. Use [Regexp.FindSubmatch] if it is necessary to
+// distinguish these cases.
 func (re Regexp) Find(s string) string {
 	return re.r.FindString(s)
 }
@@ -39,8 +39,8 @@ func (re Regexp) FindAll(s string, n int) []string {
 	return re.r.FindAllString(s, n)
 }
 
-// FindAllSubmatch is the 'All' version of FindSubmatch; it returns a slice of
-// all successive matches of the expression, as defined by the 'All'
+// FindAllSubmatch is the 'All' version of [Regexp.FindSubmatch]; it returns a
+// slice of all successive matches of the expression, as defined by the 'All'
 // description in the Go regexp package comment. A return value of nil
 // indicates no match.
 func (re Regexp) FindAllSubmatch(s string, n int) [][]string {
@@ -63,7 +63,7 @@ func (re Regexp) ReplaceAll(s, repl string) string {
 	return re.r.ReplaceAllString(s, repl)
 }
 
-// ReplaceAllFunc returns a copy of s in which all matches of the Regexp
+// ReplaceAllFunc returns a copy of s in which all matches of the [Regexp]
 // have been replaced by the return value of function repl applied to the
 // matched substring. The replacement returned by repl is substituted
 // directly, without expanding.
@@ -75,7 +75,7 @@ func (re Regexp) ReplaceAllFunc(s string, repl func(string) string) string {
 // slice of the substrings between those expression matches.
 //
 // The slice returned by this method consists of all the substrings of s not
-// contained in the slice returned by FindAllString. When called on an
+// contained in the slice returned by [Regexp.FindAll]. When called on an
 // expression that contains no metacharacters, it is equivalent to SplitN.
 //
 // The count determines the number of substrings to return:

@@ -36,8 +36,8 @@ type Converter = func(src []byte, out io.Writer) error
 
 // Env represents an execution environment.
 //
-// Each execution creates an Env value. This value is passed as the first
-// argument to calls to native functions and methods that have Env as the type
+// Each execution creates an [Env] value. This value is passed as the first
+// argument to calls to native functions and methods that have [Env] as the type
 // of the first parameter.
 type Env interface {
 
@@ -75,7 +75,7 @@ type Env interface {
 
 type (
 
-	// EnvStringer is like fmt.Stringer where the String method takes an native.Env
+	// EnvStringer is like fmt.Stringer where the String method takes an [Env]
 	// parameter.
 	EnvStringer interface {
 		String(Env) string
@@ -86,8 +86,8 @@ type (
 		HTML() HTML
 	}
 
-	// HTMLEnvStringer is like HTMLStringer where the HTML method takes a
-	// native.Env parameter.
+	// HTMLEnvStringer is like [HTMLStringer] where the HTML method takes a
+	// [Env] parameter.
 	HTMLEnvStringer interface {
 		HTML(Env) HTML
 	}
@@ -97,7 +97,7 @@ type (
 		CSS() CSS
 	}
 
-	// CSSEnvStringer is like CSSStringer where the CSS method takes an Env
+	// CSSEnvStringer is like [CSSStringer] where the CSS method takes an [Env]
 	// parameter.
 	CSSEnvStringer interface {
 		CSS(Env) CSS
@@ -109,7 +109,7 @@ type (
 		JS() JS
 	}
 
-	// JSEnvStringer is like JSStringer where the JS method takes an Env
+	// JSEnvStringer is like [JSStringer] where the JS method takes an [Env]
 	// parameter.
 	JSEnvStringer interface {
 		JS(Env) JS
@@ -121,8 +121,8 @@ type (
 		JSON() JSON
 	}
 
-	// JSONEnvStringer is like JSONStringer where the JSON method takes an Env
-	// parameter.
+	// JSONEnvStringer is like [JSONStringer] where the JSON method takes an
+	// [Env] parameter.
 	JSONEnvStringer interface {
 		JSON(Env) JSON
 	}
@@ -133,8 +133,8 @@ type (
 		Markdown() Markdown
 	}
 
-	// MarkdownEnvStringer is like MarkdownStringer where the Markdown method
-	// takes a native.Env parameter.
+	// MarkdownEnvStringer is like [MarkdownStringer] where the Markdown method
+	// takes a [Env] parameter.
 	MarkdownEnvStringer interface {
 		Markdown(Env) Markdown
 	}
@@ -142,12 +142,12 @@ type (
 
 // Declaration represents a declaration.
 //
-//	for a variable: a pointer to the value of the variable
-//	for a function: the function
-//	for a type: its reflect.Type value
-//	for a typed constant: its value as a string, boolean or numeric value
-//	for an untyped constant: an UntypedStringConst, UntypedBooleanConst or UntypedNumericConst value
-//	for a package: an ImportablePackage value (used only for template globals)
+//   - for a variable: a pointer to the value of the variable
+//   - for a function: the function
+//   - for a type: its reflect.Type value
+//   - for a typed constant: its value as a string, boolean or numeric value
+//   - for an untyped constant: an [UntypedStringConst], [UntypedBooleanConst] or [UntypedNumericConst] value
+//   - for a package: an [ImportablePackage] value (used only for template globals)
 type Declaration interface{}
 
 // Declarations represents a set of variables, constants, functions, types and

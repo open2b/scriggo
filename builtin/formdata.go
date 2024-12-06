@@ -18,21 +18,21 @@ import (
 const maxInt = int64(^uint(0) >> 1)
 
 // ErrBadRequest is the error that occurs when parsing a malformed HTTP
-// request body or query string in FormData methods.
+// request body or query string in [FormData] methods.
 var ErrBadRequest = errors.New("form: bad request")
 
 // ErrRequestEntityTooLarge is the error that occurs when the HTTP
 // request's body is too large
 var ErrRequestEntityTooLarge = errors.New("form: request entity too large")
 
-// File represents a file. Files that can be opened also implement Opener.
+// File represents a file. Files that can be opened also implement [Opener].
 type File interface {
 	Name() string // name.
 	Type() string // type, as mime type.
 	Size() int    // size, in bytes.
 }
 
-// Opener is implemented by a File that can be opened. Opener is not intended
+// Opener is implemented by a [File] that can be opened. [Opener] is not intended
 // to be used as a builtin type but it can be used by builtins to open a file.
 type Opener interface {
 	// Open opens the file.
@@ -80,7 +80,7 @@ type formData struct {
 	files  map[string][]File
 }
 
-// NewFormData returns a new FormData value. maxMemory is passed as is to the
+// NewFormData returns a new [FormData] value. maxMemory is passed as is to the
 // r.ParseMultipartForm method.
 func NewFormData(r *http.Request, maxMemory int64) FormData {
 	return FormData{request: r, data: &formData{}, maxMemory: maxMemory}
@@ -88,10 +88,11 @@ func NewFormData(r *http.Request, maxMemory int64) FormData {
 
 // ParseMultipart parses a request body as multipart/form-data. If the body
 // is not multipart/form-data, it does nothing. It should be called before
-// calling the File and Files methods and can be called multiple times.
+// calling the [FormData.File] and [FormData.Files] methods and can be called
+// multiple times.
 //
-// It panics with ErrBadRequest if the request is not valid,
-// ErrRequestEntityTooLarge if the length of the body is too large or another
+// It panics with [ErrBadRequest] if the request is not valid,
+// [ErrRequestEntityTooLarge] if the length of the body is too large or another
 // error if another error occurs.
 func (form FormData) ParseMultipart() {
 	err := form.request.ParseMultipartForm(form.maxMemory)
@@ -128,8 +129,8 @@ func (form FormData) ParseMultipart() {
 // parse parses the body and query string of the request. It is called when
 // the Value and Values methods are called.
 //
-// It panics with ErrBadRequest if the request is not valid,
-// ErrRequestEntityTooLarge if the length of the body is too large or another
+// It panics with [ErrBadRequest] if the request is not valid,
+// [ErrRequestEntityTooLarge] if the length of the body is too large or another
 // error if another error occurs.
 func (form FormData) parse() {
 	err := form.request.ParseForm()
@@ -153,8 +154,8 @@ func (form FormData) parse() {
 // Value returns the first form data value associated with the given field. If
 // there are no files associated with the field, it returns an empty string.
 //
-// It panics with ErrBadRequest if the request is not valid,
-// ErrRequestEntityTooLarge if the length of the body is too large or another
+// It panics with [ErrBadRequest] if the request is not valid,
+// [ErrRequestEntityTooLarge] if the length of the body is too large or another
 // error if another error occurs.
 func (form FormData) Value(field string) string {
 	if form.data.values == nil {
@@ -166,8 +167,8 @@ func (form FormData) Value(field string) string {
 // Values returns the parsed form data, including both the URL field's query
 // parameters and the POST form data.
 //
-// It panics with ErrBadRequest if the request is not valid,
-// ErrRequestEntityTooLarge if the length of the body is too large or another
+// It panics with [ErrBadRequest] if the request is not valid,
+// [ErrRequestEntityTooLarge] if the length of the body is too large or another
 // error if another error occurs.
 func (form FormData) Values() map[string][]string {
 	if form.data.values == nil {
@@ -179,7 +180,7 @@ func (form FormData) Values() map[string][]string {
 // File returns the first file associated with the given field. It returns nil
 // if there are no values associated with the field.
 //
-// Call File only after ParseMultipart is called.
+// Call File only after [FormData.ParseMultipart] is called.
 func (form FormData) File(field string) File {
 	if form.data.files == nil {
 		return nil
@@ -194,7 +195,7 @@ func (form FormData) File(field string) File {
 // Files returns the parsed files of a multipart form. It returns a non nil
 // map, if ParseMultipart has been called.
 //
-// Call Files only after ParseMultipart is called.
+// Call Files only after [FormData.ParseMultipart] is called.
 func (form FormData) Files() map[string][]File {
 	return form.data.files
 }

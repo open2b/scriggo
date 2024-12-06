@@ -10,14 +10,14 @@ import (
 	"github.com/open2b/scriggo/ast"
 )
 
-// Visitor has a Visit method invoked for every node encountered by Walk.
+// Visitor has a Visit method invoked for every node encountered by [Walk].
 type Visitor interface {
 	Visit(node ast.Node) (w Visitor)
 }
 
 // Walk visits a tree in depth. Initially it calls v.Visit (node),
 // where node must not be nil. If the value w returned by v.Visit (node)
-// is different from nil, Walk is called recursively using w as the Visitor
+// is different from nil, Walk is called recursively using w as the [Visitor]
 // on all children other than nil of the tree. Finally, call w.Visit (nil).
 func Walk(v Visitor, node ast.Node) {
 
@@ -305,7 +305,7 @@ func Walk(v Visitor, node ast.Node) {
 
 }
 
-// Visit implements the Visitor interface for the f function.
+// Visit implements the [Visitor] interface for the f function.
 func (f inspector) Visit(node ast.Node) Visitor {
 	if f(node) {
 		return f
@@ -316,7 +316,7 @@ func (f inspector) Visit(node ast.Node) Visitor {
 type inspector func(ast.Node) bool
 
 // Inspect visits the tree by calling the function f on every node.
-// For more information, see the documentation of the Walk function.
+// For more information, see the documentation of the [Walk] function.
 func Inspect(node ast.Node, f func(ast.Node) bool) {
 	Walk(inspector(f), node)
 }

@@ -6,14 +6,14 @@ package native
 
 import "errors"
 
-// StopLookup is used as return value from a LookupFunc function to indicate
+// StopLookup is used as return value from a [LookupFunc] function to indicate
 // that the lookup should be stopped.
 var StopLookup = errors.New("stop lookup")
 
 // LookupFunc is the type of the function called by
 // ImportablePackage.LookupFunc to read each package declaration. If the
 // function returns an error, ImportablePackage.LookupFunc stops and returns
-// the error or nil if the error is StopLookup.
+// the error or nil if the error is [StopLookup].
 type LookupFunc func(name string, decl Declaration) error
 
 // ImportablePackage represents an importable package.
@@ -56,10 +56,10 @@ func (importers CombinedImporter) Import(path string) (ImportablePackage, error)
 	return nil, nil
 }
 
-// Packages implements Importer using a map of ImportablePackage.
+// Packages implements Importer using a map of [ImportablePackage].
 type Packages map[string]ImportablePackage
 
-// Import returns an ImportablePackage.
+// Import returns an [ImportablePackage].
 func (pp Packages) Import(path string) (ImportablePackage, error) {
 	if p, ok := pp[path]; ok {
 		return p, nil
@@ -67,7 +67,7 @@ func (pp Packages) Import(path string) (ImportablePackage, error) {
 	return nil, nil
 }
 
-// Package implements ImportablePackage given its name and declarations.
+// Package implements [ImportablePackage] given its name and declarations.
 type Package struct {
 	// Name of the package.
 	Name string
@@ -101,12 +101,12 @@ func (p Package) LookupFunc(f LookupFunc) error {
 	return err
 }
 
-// CombinedPackage implements an ImportablePackage by combining multiple
+// CombinedPackage implements an [ImportablePackage] by combining multiple
 // packages into one package with name the name of the first package and as
 // declarations the declarations of all packages.
 //
-// The Lookup method calls the Lookup methods of each package in order and
-// returns as soon as a package returns a not nil value.
+// The ImportablePackage.Lookup method calls the Lookup methods of each
+// package in order and returns as soon as a package returns a not nil value.
 type CombinedPackage []ImportablePackage
 
 // PackageName returns the package name of the first combined package.
@@ -129,7 +129,7 @@ func (packages CombinedPackage) Lookup(name string) Declaration {
 }
 
 // LookupFunc calls the LookupFunc method of each package in order. As soon as
-// f returns StopLookup, LookupFunc returns. If the same declaration name is
+// f returns [StopLookup], LookupFunc returns. If the same declaration name is
 // in multiple packages, f is only called with its first occurrence.
 func (packages CombinedPackage) LookupFunc(f LookupFunc) error {
 	var err error
