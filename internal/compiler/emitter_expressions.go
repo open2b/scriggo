@@ -38,8 +38,8 @@ func (em *emitter) emitExprR(expr ast.Expression, dstType reflect.Type, reg int8
 // emission; otherwise _emitExpr chooses the output register, returning it to
 // the caller.
 //
-// If allowK is true, then the returned register can be an immediante value and
-// the boolean return parameters is true.
+// If allowK is true, then the returned register can be an immediate value and
+// the boolean return parameter is true.
 //
 // _emitExpr is an internal support method, and should be called by emitExpr,
 // emitExprK and emitExprR exclusively.
