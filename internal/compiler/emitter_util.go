@@ -261,7 +261,7 @@ func canEmitDirectly(k1, k2 reflect.Kind) bool {
 }
 
 // setFunctionVarRefs sets the var refs of a function.
-// This method operates on the current function builder, so shall be called
+// This method operates on the current function builder, so must be called
 // before changing or saving it.
 func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Upvar) {
 	refs := make([]int16, len(closureVars))
