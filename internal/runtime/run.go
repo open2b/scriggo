@@ -7,6 +7,7 @@ package runtime
 import (
 	"bytes"
 	"errors"
+	"log"
 	"reflect"
 	"strings"
 	"sync/atomic"
@@ -989,6 +990,7 @@ func (vm *VM) run() (Addr, bool) {
 			} else {
 				fn := vm.fn.Functions[uint8(b)]
 				var vars []reflect.Value
+				log.Printf("[DEBUG] [run.go] fn.VarRefs: %v\n", fn.VarRefs) // REVIEW: remove.
 				if fn.VarRefs != nil {
 					vars = make([]reflect.Value, len(fn.VarRefs))
 					for i, ref := range fn.VarRefs {
