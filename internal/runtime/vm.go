@@ -803,13 +803,27 @@ func (fn *NativeFunction) Func() interface{} {
 
 // Function represents a function.
 type Function struct {
-	Pkg             string
-	Name            string
-	File            string
-	Pos             *Position // position of the function declaration.
-	Type            reflect.Type
-	Parent          *Function
-	VarRefs         []int16
+	Pkg    string
+	Name   string
+	File   string
+	Pos    *Position // position of the function declaration.
+	Type   reflect.Type
+	Parent *Function
+
+	// VarRefs contiene gli indici delle variabili non locali a questa funzione.
+	//
+	// Se VarRefs è nil, ciò indica che le variabili non locali di questa
+	// funzione sono le variabili globali passate attraverso l'env.
+	//
+	// Se l'indice è negativo, il VarRef si riferisce ad un valore indiretto che
+	// sta all'interno di un registro General, all'indice -VarRef. Tale valore è
+	// memorizzato come puntatore al valore, ed è pertanto necessario
+	// derefenziarlo quando si utilizza tale valore.
+	//
+	// Se l'indice è 0 o positivo, il VarRef si riferisce ad una variabile
+	// globale (oppure?), che sta dentro 'vm.vars'.
+	VarRefs []int16
+
 	Types           []reflect.Type
 	NumReg          [4]int8
 	FinalRegs       [][2]int8 // [indirect -> return parameter registers]
