@@ -553,7 +553,7 @@ func (tc *typechecker) errTypeAssertion(typ reflect.Type, iface reflect.Type) er
 		mi := iface.Method(i)
 		mt, ok := typ.MethodByName(mi.Name)
 		if !ok {
-			ptr := tc.types.PtrTo(typ)
+			ptr := tc.types.PointerTo(typ)
 			_, ok = ptr.MethodByName(mi.Name)
 			if ok {
 				return fmt.Errorf("%s (%s method has pointer receiver)", msg, mi.Name)

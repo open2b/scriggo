@@ -451,7 +451,7 @@ func TestCSSStringContext(t *testing.T) {
 func asDeclarations(vars Vars) native.Declarations {
 	declarations := globals()
 	for name, value := range vars {
-		declarations[name] = reflect.Zero(reflect.PtrTo(reflect.TypeOf(value))).Interface()
+		declarations[name] = reflect.Zero(reflect.PointerTo(reflect.TypeOf(value))).Interface()
 	}
 	return declarations
 }

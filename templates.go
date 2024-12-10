@@ -214,7 +214,7 @@ func initGlobalVariables(variables []compiler.Global, init map[string]interface{
 				} else {
 					if typ.Kind() != reflect.Ptr || typ.Elem() != variable.Type {
 						panic(fmt.Sprintf("variable initializer %q must have type %s or %s, but have %s",
-							variable.Name, variable.Type, reflect.PtrTo(variable.Type), typ))
+							variable.Name, variable.Type, reflect.PointerTo(variable.Type), typ))
 					}
 					if val.IsNil() {
 						panic(fmt.Sprintf("variable initializer %q cannot be a nil pointer", variable.Name))
