@@ -47,13 +47,15 @@ var htmlContextTests = []struct {
 	{`true`, "true", nil},
 	{`false`, "false", nil},
 	{`s["a"]`, "", Vars{"s": map[string]string{}}},
+	{`a`, "--- start Markdown ---\na--- end Markdown ---\n", Vars{"a": native.Markdown("a")}},
 }
 
 func TestHTMLContext(t *testing.T) {
 	for _, expr := range htmlContextTests {
 		fsys := fstest.Files{"index.html": "{{" + expr.src + "}}"}
 		opts := &scriggo.BuildOptions{
-			Globals: asDeclarations(expr.vars),
+			Globals:           asDeclarations(expr.vars),
+			MarkdownConverter: markdownConverter,
 		}
 		template, err := scriggo.BuildTemplate(fsys, "index.html", opts)
 		if err != nil {

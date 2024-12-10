@@ -3896,12 +3896,26 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "\\<svg xmlns\\=\"http://www\\.w3\\.org/2000/svg\"\\>\\<rect width\\=\"1\" height\\=\"1\"/\\>\\</svg\\>",
 	},
 
-	"Show a markdown variable in an HTML context": {
+	"Show a markdown partial in an HTML context": {
 		sources: fstest.Files{
 			"partial.md": "# Title",
 			"index.html": `{% s := render "partial.md" %}{{ s }}`,
 		},
 		expectedOut: "--- start Markdown ---\n# Title--- end Markdown ---\n",
+	},
+
+	"Show a markdown variable in an HTML context": {
+		sources: fstest.Files{
+			"index.html": `{{ a }}`,
+		},
+		main: native.Package{
+			Name: "main",
+			Declarations: native.Declarations{
+				"a": (*native.Markdown)(nil),
+			},
+		},
+		vars:        map[string]any{"a": native.Markdown("**bold**")},
+		expectedOut: "--- start Markdown ---\n**bold**--- end Markdown ---\n",
 	},
 }
 
