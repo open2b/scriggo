@@ -5,6 +5,7 @@
 package runtime
 
 import (
+	"fmt"
 	"reflect"
 )
 
@@ -237,6 +238,10 @@ func (vm *VM) generalIndirect(r int8) reflect.Value {
 }
 
 func (vm *VM) setGeneral(r int8, v reflect.Value) {
+	vv := v.Interface() // REVIEW
+	_ = vv
+	vv__String := fmt.Sprintf("%v", vv) // REVIEW: remove [DEBUG].
+	_ = vv__String                      // REVIEW: remove [DEBUG].
 	if r > 0 {
 		vm.regs.general[vm.fp[3]+Addr(r)] = v
 		return

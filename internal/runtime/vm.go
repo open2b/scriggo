@@ -7,6 +7,7 @@ package runtime
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 	"strconv"
@@ -911,6 +912,8 @@ func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 	if c.value.IsValid() {
 		return c.value
 	}
+	cnative__String := fmt.Sprintf("%v", c.native) // REVIEW: remove [DEBUG].
+	_ = cnative__String                            // REVIEW: remove [DEBUG].
 	if c.native != nil {
 		// It is a native function.
 		c.value = reflect.ValueOf(c.native.function)
