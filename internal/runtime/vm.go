@@ -905,7 +905,7 @@ func (c *callable) Native() *NativeFunction {
 	return c.native
 }
 
-// Value returns a reflect Value of a callable, so it can be called from a
+// Value returns a reflect.Value of a callable, so it can be called from a
 // native code and passed to a native code.
 func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 	if c.value.IsValid() {
