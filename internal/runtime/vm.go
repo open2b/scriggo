@@ -810,21 +810,19 @@ type Function struct {
 	Type   reflect.Type
 	Parent *Function
 
-	// VarRefs riferisce, in base all'indice, le variabili non locali riferite
-	// da questa funzione. Se è nil, significa che le variabili non locali sono
-	// le 'globals' passate attraverso l'env.
+	// VarRefs refers to the non-local variables referenced in this function.
 	//
-	// Ciascun indice di VarRef:
+	// If VarRefs is nil, it means that the non-local variables are the
+	// global variables passed through the env.
 	//
-	// * Se è positivo, esso fa riferimento ad una variabile non locale della
-	// funzione attualmente in esecuzione, contenuto quindi dentro 'vm.vars'.
-	// Pertanto, un VarRef N indica di prendere il riferimento della N-esima
-	// variabile non-locale della funzione in esecuzione.
+	// Otherwise, for each value Ref in VarRefs:
 	//
-	// * Se l'indice è negativo, esso fa riferimento (negandolo) ad un registro
-	// general della funzione attualmente in esecuzione. Tale registro contiene
-	// il valore indiretto della variabile a cui la funzione che si sta
-	// costruendo farà riferimento attraverso i suoi VarRefs.
+	// * if Ref >= 0, Ref refers to the non-local variable at index Ref of the
+	//   currently executing function
+	//
+	// * if Ref < 0, it refers to the general register -Ref of the currently
+	//   executing function, which will contain the value of that variable
+	//   (indirectly).
 	VarRefs []int16
 
 	Types           []reflect.Type

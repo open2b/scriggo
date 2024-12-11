@@ -1001,7 +1001,7 @@ func (vm *VM) run() (Addr, bool) {
 							log.Printf("[DEBUG] [run.go] var ref = %d, so retrieving var ref from general register %d", ref, -ref) // REVIEW: remove.
 							vars[i] = vm.general(int8(-ref)).Elem()
 						} else {
-							log.Printf("[DEBUG] [run.go] var ref = %d, so retrieving var ref from vm.vars[%d]", ref) // REVIEW: remove.
+							log.Printf("[DEBUG] [run.go] var ref = %d, so retrieving var ref from vm.vars[%d]", ref, ref) // REVIEW: remove.
 							vars[i] = vm.vars[ref]
 						}
 					}
