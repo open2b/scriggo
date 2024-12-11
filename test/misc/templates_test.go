@@ -3918,7 +3918,22 @@ var templateMultiFileCases = map[string]struct {
 	// 		expectedOut: "--- start Markdown ---\n**bold**--- end Markdown ---\n",
 	// 	},
 
-	// "Recursive macro": {
+	// "Recursive macro (simple case)": {
+	// 	sources: fstest.Files{
+	// 		"index.html": `
+	// 		{% macro m(i int) %}
+	// 			{{ i }}
+	// 			{% if i > 0 %}
+	// 				{{ m(i - 1) }}
+	// 			{% end if %}
+	// 		{% end macro %}
+
+	// 		{{ m(5) }}`,
+	// 	},
+	// 	expectedOut: "TODO",
+	// },
+
+	// "Recursive macro (caso più complesso, non funziona)": {
 	// 	sources: fstest.Files{
 	// 		"index.html": `a{% macro m(i int) %}aaaa{{ i }}{% if i > 0 %}{{ m(i - 1) }}{% end if %}{% end macro %}b{{ m(1) }}c`,
 	// 	},
@@ -3932,12 +3947,19 @@ var templateMultiFileCases = map[string]struct {
 	// 	expectedOut: "10",
 	// },
 
-	"Not recursive call to indirect macro": {
-		sources: fstest.Files{
-			"index.html": `{% macro m() %}Hello{% end macro %}{% _ = &m %}{{ m() }}`,
-		},
-		expectedOut: "Hello",
-	},
+	// "Not recursive call to indirect macro (fixed with assignment in show)": {
+	// 	sources: fstest.Files{
+	// 		"index.html": `{% macro m() %}Hello{% end macro %}{% _ = &m %}{{ "" + m() }}`,
+	// 	},
+	// 	expectedOut: "Hello",
+	// },
+
+	// "Not recursive call to indirect macro": {
+	// 	sources: fstest.Files{
+	// 		"index.html": `{% macro m() %}Hello{% end macro %}{% _ = &m %}{{ m() }}`,
+	// 	},
+	// 	expectedOut: "Hello",
+	// },
 
 	// "Not recursive macro with upvars": {
 	// 	sources: fstest.Files{
@@ -4056,6 +4078,10 @@ func TestMultiFileTemplate(t *testing.T) {
 				}
 				t.Fatalf("expected error %q, got %q", cas.expectedBuildErr, err)
 			}
+			{ // REVIEW: Remove from here...
+				d := template.Disassemble(-1)
+				t.Logf("test %q:\n%s", t.Name(), string(d))
+			} // ...to here.
 			w := &bytes.Buffer{}
 			err = template.Run(w, cas.vars, &scriggo.RunOptions{Print: printFunc(w)})
 			if err != nil {
