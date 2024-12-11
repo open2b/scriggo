@@ -7,8 +7,6 @@ package runtime
 import (
 	"bytes"
 	"errors"
-	"fmt"
-	"log"
 	"reflect"
 	"strings"
 	"sync/atomic"
@@ -991,7 +989,6 @@ func (vm *VM) run() (Addr, bool) {
 			} else {
 				fn := vm.fn.Functions[uint8(b)]
 				var vars []reflect.Value
-				log.Printf("[DEBUG] [run.go] fn.VarRefs: %v\n", fn.VarRefs) // REVIEW: remove.
 				if fn.VarRefs != nil {
 					vars = make([]reflect.Value, len(fn.VarRefs))
 					for i, ref := range fn.VarRefs {
@@ -1108,11 +1105,6 @@ func (vm *VM) run() (Addr, bool) {
 				vm.setString(c, vm.stringk(b, op < 0))
 			case generalRegister:
 				rv := vm.generalk(b, op < 0)
-				{ // REVIEW: Remove from here...
-					v := rv.Interface()
-					v__String := fmt.Sprintf("%v", v) // REVIEW: remove [DEBUG].
-					_ = v__String                     // REVIEW: remove [DEBUG].
-				} // ...to here.
 				if k := rv.Kind(); k == reflect.Array || k == reflect.Struct {
 					newRv := reflect.New(rv.Type()).Elem()
 					newRv.Set(reflect.ValueOf(rv.Interface()))
@@ -1953,16 +1945,11 @@ func (vm *VM) run() (Addr, bool) {
 		// Typify
 		case OpTypify, -OpTypify:
 			t := vm.fn.Types[uint8(a)]
-			t__String := fmt.Sprintf("%v", t) // REVIEW: remove [DEBUG].
-			_ = t__String                     // REVIEW: remove [DEBUG].
 			st, ok := t.(ScriggoType)
 			if ok {
 				t = st.GoType()
 			}
 			v := reflect.New(t).Elem()
-			vType := v.Type()
-			vType__String := fmt.Sprintf("%v", vType) // REVIEW: remove [DEBUG].
-			_ = vType__String                         // REVIEW: remove [DEBUG].
 			vm.getIntoReflectValue(b, v, op < 0)
 			if st != nil {
 				v = st.Wrap(v)

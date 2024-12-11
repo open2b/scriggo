@@ -4057,11 +4057,6 @@ func TestMultiFileTemplate(t *testing.T) {
 				t.Fatalf("expected error %q, got %q", cas.expectedBuildErr, err)
 			}
 			w := &bytes.Buffer{}
-			{ // REVIEW: Remove from here...
-				data := template.Disassemble(-1)
-				t.Log(t.Name())
-				t.Log(string(data))
-			} // ...to here.
 			err = template.Run(w, cas.vars, &scriggo.RunOptions{Print: printFunc(w)})
 			if err != nil {
 				t.Fatalf("run error: %s", err)

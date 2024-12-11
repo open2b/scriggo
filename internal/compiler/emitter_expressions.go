@@ -24,8 +24,6 @@ func (em *emitter) emitExpr(expr ast.Expression, dstType reflect.Type) int8 {
 // emitExprK emits expr into a register of a given type. The boolean return
 // parameter reports whether the returned int8 is a constant or not.
 func (em *emitter) emitExprK(expr ast.Expression, dstType reflect.Type) (int8, bool) {
-	expr__String := fmt.Sprintf("%v", expr) // REVIEW: remove [DEBUG].
-	_ = expr__String                        // REVIEW: remove [DEBUG].
 	return em._emitExpr(expr, dstType, 0, false, true)
 }
 
