@@ -6,6 +6,7 @@ package compiler
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 
 	"github.com/open2b/scriggo/ast"
@@ -270,14 +271,16 @@ func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Up
 		// v is predefined.
 		if v.Declaration == nil {
 			refs[i] = em.varStore.predefVarIndex(v.NativeValue, v.NativeValueType, v.NativePkg, v.NativeName)
+			log.Printf("[DEBUG] [emitter_util.go] refs[i] (v is predefined): %v\n", refs[i]) // REVIEW: remove.
 			em.varStore.setPredefVarRef(fn, v.NativeValue, int16(i))
 			continue
 		}
 		em.varStore.setClosureVar(fn, v.Declaration.(*ast.Identifier).Name, int16(i))
-		// v is a variable declared in function.
+		// v is a variable declared in a function.
 		ident := v.Declaration.(*ast.Identifier)
 		if em.fb.declaredInFunc(ident.Name) {
 			refs[i] = int16(em.fb.scopeLookup(ident.Name))
+			log.Printf("[DEBUG] [emitter_util.go] refs[i] (v is a variable declared in function): %v\n", refs[i]) // REVIEW: remove.
 			continue
 		}
 		// v is package-level variable. This happens when a function
@@ -285,11 +288,13 @@ func (em *emitter) setFunctionVarRefs(fn *runtime.Function, closureVars []ast.Up
 		// package-level variable.
 		if index, ok := em.varStore.nonLocalVarIndex(ident); ok {
 			refs[i] = int16(index)
+			log.Printf("[DEBUG] [emitter_util.go] refs[i] (pkg level variable): %v\n", refs[i]) // REVIEW: remove.
 			continue
 		}
 		panic(internalError("don't know how to handle identifier %s", ident))
 	}
 	fn.VarRefs = refs
+	log.Printf("[DEBUG] [emitter_util.go] fn.VarRefs: %v\n", fn.VarRefs) // REVIEW: remove.
 }
 
 func (em *emitter) emitValueNotPredefined(ti *typeInfo, reg int8, dstType reflect.Type) (int8, bool) {

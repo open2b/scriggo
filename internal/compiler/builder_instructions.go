@@ -436,10 +436,6 @@ func (fb *functionBuilder) emitLen(s, l int8, t reflect.Type) {
 // emitLoadFunc appends a new "LoadFunc" instruction to the function body.
 //
 //	z = p.f
-//
-// If native, l'operando "a" dell'operazione "OpLoadFunc" è impostato a 1,
-// altrimenti viene messo a 0. Ciò consente al runtime di distinguere le
-// funzioni native dalle altre.
 func (fb *functionBuilder) emitLoadFunc(native bool, f int8, z int8) {
 	fn := fb.fn
 	var a int8

@@ -7,6 +7,7 @@ package runtime
 import (
 	"bytes"
 	"errors"
+	"log"
 	"reflect"
 	"strings"
 	"sync/atomic"
@@ -991,13 +992,16 @@ func (vm *VM) run() (Addr, bool) {
 				var vars []reflect.Value
 				if fn.VarRefs != nil {
 					vars = make([]reflect.Value, len(fn.VarRefs))
+					log.Printf("[DEBUG] [run.go] fn.VarRefs: %v\n", fn.VarRefs) // REVIEW: remove.
 					for i, ref := range fn.VarRefs {
 						if ref < 0 {
 							// Calling Elem() is necessary because the general
 							// register contains an indirect value, that is
 							// stored as a pointer to a value.
+							log.Printf("[DEBUG] [run.go] var ref = %d, so retrieving var ref from general register %d", ref, -ref) // REVIEW: remove.
 							vars[i] = vm.general(int8(-ref)).Elem()
 						} else {
+							log.Printf("[DEBUG] [run.go] var ref = %d, so retrieving var ref from vm.vars[%d]", ref) // REVIEW: remove.
 							vars[i] = vm.vars[ref]
 						}
 					}
