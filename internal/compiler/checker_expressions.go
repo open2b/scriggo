@@ -279,7 +279,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 		t := tc.checkExprOrType(expr.Expr)
 		if t.IsType() {
 			if expr.Op == ast.OperatorPointer {
-				return &typeInfo{Properties: propertyIsType, Type: tc.types.PtrTo(t.Type)}
+				return &typeInfo{Properties: propertyIsType, Type: tc.types.PointerTo(t.Type)}
 			}
 			panic(tc.errorf(expr, "type %s is not an expression", t))
 		}
@@ -334,7 +334,7 @@ func (tc *typechecker) typeof(expr ast.Expression, typeExpected bool) *typeInfo 
 			if _, ok := expr.Expr.(*ast.CompositeLiteral); !ok && !t.Addressable() {
 				panic(tc.errorf(expr, "cannot take the address of %s", expr.Expr))
 			}
-			ti.Type = tc.types.PtrTo(t.Type)
+			ti.Type = tc.types.PointerTo(t.Type)
 			// When taking the address of a variable, such variable must be
 			// marked as "indirect".
 			if ident, ok := expr.Expr.(*ast.Identifier); ok {
@@ -1475,7 +1475,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*typeInfo {
 		if len(expr.Args) > 1 {
 			panic(tc.errorf(expr, "too many arguments to new(%s)", expr.Args[0]))
 		}
-		return []*typeInfo{{Type: tc.types.PtrTo(t.Type)}}
+		return []*typeInfo{{Type: tc.types.PointerTo(t.Type)}}
 
 	case "panic":
 		if len(expr.Args) == 0 {
@@ -2465,7 +2465,7 @@ func (tc *typechecker) checkMethodExpression(t *typeInfo, expr *ast.Selector) *t
 		// Return a different error message if T is a defined non-pointer type
 		// and *T has the method.
 		if t.Type.Name() != "" && t.Type.Kind() != reflect.Ptr && t.Type.Kind() != reflect.Interface {
-			if _, ok := tc.types.PtrTo(t.Type).MethodByName(name); ok {
+			if _, ok := tc.types.PointerTo(t.Type).MethodByName(name); ok {
 				panic(tc.errorf(expr, "invalid method expression %s (needs pointer receiver: (*%s).%s)",
 					expr, expr.Expr, expr.Ident))
 			}
@@ -2517,7 +2517,7 @@ func (tc *typechecker) checkMethodValue(t *typeInfo, expr *ast.Selector) (*typeI
 			return nil, false
 		}
 		// Transform t.Mp into (&t).Mp.
-		typ = tc.types.PtrTo(typ)
+		typ = tc.types.PointerTo(typ)
 		method, ok = typ.MethodByName(name)
 		if !ok {
 			return nil, false

@@ -10,16 +10,16 @@ import (
 	"github.com/open2b/scriggo/internal/runtime"
 )
 
-// PtrTo behaves like reflect.PtrTo except when it is a Scriggo type; in such
-// case a new Scriggo pointer type is created and returned as reflect.Type.
-func (types *Types) PtrTo(t reflect.Type) reflect.Type {
+// PointerTo behaves like reflect.PointerTo except when it is a Scriggo type; in
+// such case a new Scriggo pointer type is created and returned as reflect.Type.
+func (types *Types) PointerTo(t reflect.Type) reflect.Type {
 	if st, ok := t.(runtime.ScriggoType); ok {
 		return ptrType{
-			Type: reflect.PtrTo(st.GoType()),
+			Type: reflect.PointerTo(st.GoType()),
 			elem: st,
 		}
 	}
-	return reflect.PtrTo(t)
+	return reflect.PointerTo(t)
 }
 
 // ptrType represents a composite pointer type where the element is a Scriggo

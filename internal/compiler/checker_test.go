@@ -64,7 +64,7 @@ var structTypeInfo = &typeInfo{Type: reflect.StructOf([]reflect.StructField{
 	{Name: "F", Type: reflect.TypeOf(0)},
 	{Name: "f", Type: reflect.TypeOf(0), PkgPath: "foo"},
 })}
-var structPointerTypeInfo = &typeInfo{Type: reflect.PtrTo(structTypeInfo.Type)}
+var structPointerTypeInfo = &typeInfo{Type: reflect.PointerTo(structTypeInfo.Type)}
 var definedStructTypeInfo = &typeInfo{Type: reflect.TypeOf(definedStruct{})}
 var definedStructPointerTypeInfo = &typeInfo{Type: reflect.TypeOf(definedStructPointer(nil))}
 
@@ -163,9 +163,9 @@ var checkerExprs = []struct {
 	{`^a`, tiInt(), map[string]*typeInfo{"a": tiInt()}},
 	{`*a`, tiAddrInt(), map[string]*typeInfo{"a": tiIntPtr()}},
 	{`&a`, tiIntPtr(), map[string]*typeInfo{"a": tiAddrInt()}},
-	{`&[]int{}`, &typeInfo{Type: reflect.PtrTo(reflect.SliceOf(intType))}, nil},
-	{`&[...]int{}`, &typeInfo{Type: reflect.PtrTo(reflect.ArrayOf(0, intType))}, nil},
-	{`&map[int]int{}`, &typeInfo{Type: reflect.PtrTo(reflect.MapOf(intType, intType))}, nil},
+	{`&[]int{}`, &typeInfo{Type: reflect.PointerTo(reflect.SliceOf(intType))}, nil},
+	{`&[...]int{}`, &typeInfo{Type: reflect.PointerTo(reflect.ArrayOf(0, intType))}, nil},
+	{`&map[int]int{}`, &typeInfo{Type: reflect.PointerTo(reflect.MapOf(intType, intType))}, nil},
 	{`1 + a`, &typeInfo{Type: intType}, map[string]*typeInfo{"a": intVariable()}},
 
 	// Operations ( untyped + untyped ).
@@ -2326,7 +2326,7 @@ func tiUintptrConst(n uint) *typeInfo {
 }
 
 func tiIntPtr() *typeInfo {
-	return &typeInfo{Type: reflect.PtrTo(intType)}
+	return &typeInfo{Type: reflect.PointerTo(intType)}
 }
 
 var tiDefinedIntSlice = &typeInfo{Type: reflect.TypeOf(definedIntSlice{})}
