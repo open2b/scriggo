@@ -3932,11 +3932,11 @@ var templateMultiFileCases = map[string]struct {
 	// 	expectedOut: "10",
 	// },
 
-	"Not recursive macro, macro is indirect": {
+	"Not recursive call to indirect macro": {
 		sources: fstest.Files{
 			"index.html": `{% macro m() %}Hello{% end macro %}{% _ = &m %}{{ m() }}`,
 		},
-		expectedOut: "10",
+		expectedOut: "Hello",
 	},
 
 	// "Not recursive macro with upvars": {
