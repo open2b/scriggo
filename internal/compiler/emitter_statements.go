@@ -405,7 +405,6 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 // canOptimizeShowMacro reports whether expr is a call to a macro and if it
 // can be optimized if used in the show statement with context ctx.
 func (em *emitter) canOptimizeShowMacro(expr ast.Expression, ctx ast.Context) bool {
-	return false // REVIEW
 	if ctx > ast.ContextMarkdown {
 		return false
 	}
@@ -417,6 +416,16 @@ func (em *emitter) canOptimizeShowMacro(expr ast.Expression, ctx ast.Context) bo
 	if !fn.IsMacroDeclaration() {
 		return false
 	}
+
+	if ident, ok := call.Func.(*ast.Identifier); ok {
+		if em.fb.declaredInFunc(ident.Name) {
+			reg := em.fb.scopeLookup(ident.Name)
+			if reg < 0 {
+				return false
+			}
+		}
+	}
+
 	var from ast.Format
 	typ := fn.Type.Out(0)
 	for f, t := range em.formatTypes {
