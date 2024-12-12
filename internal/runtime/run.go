@@ -6,6 +6,7 @@ package runtime
 
 import (
 	"bytes"
+	"errors"
 	"reflect"
 	"strings"
 	"sync/atomic"
@@ -61,17 +62,17 @@ func (vm *VM) runFunc(fn *Function, vars []reflect.Value) error {
 }
 
 func (vm *VM) runRecoverable() (err error) {
-	// panicking := true
-	// defer func() {
-	// 	if panicking {
-	// 		msg := recover()
-	// 		err = vm.convertPanic(msg)
-	// 	}
-	// }()
+	panicking := true
+	defer func() {
+		if panicking {
+			msg := recover()
+			err = vm.convertPanic(msg)
+		}
+	}()
 	if vm.fn != nil || vm.nextCall() {
 		vm.run()
 	}
-	// panicking = false
+	panicking = false
 	return nil
 }
 
@@ -238,30 +239,29 @@ func (vm *VM) run() (Addr, bool) {
 
 		// Call
 		case OpCallFunc:
-			panic("DEBUG PANIC af1fab") // REVIEW: remove.
-			// call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
-			// fn := vm.fn.Functions[uint8(a)]
-			// off := vm.fn.Body[vm.pc]
-			// vm.fp[0] += Addr(off.Op)
-			// if vm.fp[0]+Addr(fn.NumReg[0]) > vm.st[0] {
-			// 	vm.moreIntStack()
-			// }
-			// vm.fp[1] += Addr(off.A)
-			// if vm.fp[1]+Addr(fn.NumReg[1]) > vm.st[1] {
-			// 	vm.moreFloatStack()
-			// }
-			// vm.fp[2] += Addr(off.B)
-			// if vm.fp[2]+Addr(fn.NumReg[2]) > vm.st[2] {
-			// 	vm.moreStringStack()
-			// }
-			// vm.fp[3] += Addr(off.C)
-			// if vm.fp[3]+Addr(fn.NumReg[3]) > vm.st[3] {
-			// 	vm.moreGeneralStack()
-			// }
-			// vm.fn = fn
-			// vm.vars = vm.env.globals
-			// vm.calls = append(vm.calls, call)
-			// vm.pc = 0
+			call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
+			fn := vm.fn.Functions[uint8(a)]
+			off := vm.fn.Body[vm.pc]
+			vm.fp[0] += Addr(off.Op)
+			if vm.fp[0]+Addr(fn.NumReg[0]) > vm.st[0] {
+				vm.moreIntStack()
+			}
+			vm.fp[1] += Addr(off.A)
+			if vm.fp[1]+Addr(fn.NumReg[1]) > vm.st[1] {
+				vm.moreFloatStack()
+			}
+			vm.fp[2] += Addr(off.B)
+			if vm.fp[2]+Addr(fn.NumReg[2]) > vm.st[2] {
+				vm.moreStringStack()
+			}
+			vm.fp[3] += Addr(off.C)
+			if vm.fp[3]+Addr(fn.NumReg[3]) > vm.st[3] {
+				vm.moreGeneralStack()
+			}
+			vm.fn = fn
+			vm.vars = vm.env.globals
+			vm.calls = append(vm.calls, call)
+			vm.pc = 0
 		case OpCallIndirect:
 			f := vm.general(a).Interface().(*callable)
 			if f.fn == nil {
@@ -270,84 +270,81 @@ func (vm *VM) run() (Addr, bool) {
 				startNativeGoroutine = false
 				vm.pc++
 			} else {
-				panic("DEBUG PANIC 7be07e") // REVIEW: remove.
-				// call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
-				// fn := f.fn
-				// off := vm.fn.Body[vm.pc]
-				// vm.fp[0] += Addr(off.Op)
-				// if vm.fp[0]+Addr(fn.NumReg[0]) > vm.st[0] {
-				// 	vm.moreIntStack()
-				// }
-				// vm.fp[1] += Addr(off.A)
-				// if vm.fp[1]+Addr(fn.NumReg[1]) > vm.st[1] {
-				// 	vm.moreFloatStack()
-				// }
-				// vm.fp[2] += Addr(off.B)
-				// if vm.fp[2]+Addr(fn.NumReg[2]) > vm.st[2] {
-				// 	vm.moreStringStack()
-				// }
-				// vm.fp[3] += Addr(off.C)
-				// if vm.fp[3]+Addr(fn.NumReg[3]) > vm.st[3] {
-				// 	vm.moreGeneralStack()
-				// }
-				// if fn.Macro {
-				// 	panic("DEBUG PANIC 184c78") // REVIEW: remove.
-				// 	// call.renderer = vm.renderer
-				// 	// if b == ReturnString {
-				// 	// 	vm.renderer = newRenderer(&strings.Builder{})
-				// 	// } else if ast.Format(b) != fn.Format {
-				// 	// 	if fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
-				// 	// 		if vm.env.conv == nil {
-				// 	// 			panic(&fatalError{env: vm.env, msg: errors.New("no Markdown convert available")})
-				// 	// 		}
-				// 	// 		vm.renderer = newRenderer(&bytes.Buffer{})
-				// 	// 	} else {
-				// 	// 		vm.renderer = newRenderer(vm.renderer.out)
-				// 	// 	}
-				// 	// }
-				// }
-				// vm.fn = fn
-				// vm.vars = f.vars
-				// vm.calls = append(vm.calls, call)
-				// vm.pc = 0
+				call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
+				fn := f.fn
+				off := vm.fn.Body[vm.pc]
+				vm.fp[0] += Addr(off.Op)
+				if vm.fp[0]+Addr(fn.NumReg[0]) > vm.st[0] {
+					vm.moreIntStack()
+				}
+				vm.fp[1] += Addr(off.A)
+				if vm.fp[1]+Addr(fn.NumReg[1]) > vm.st[1] {
+					vm.moreFloatStack()
+				}
+				vm.fp[2] += Addr(off.B)
+				if vm.fp[2]+Addr(fn.NumReg[2]) > vm.st[2] {
+					vm.moreStringStack()
+				}
+				vm.fp[3] += Addr(off.C)
+				if vm.fp[3]+Addr(fn.NumReg[3]) > vm.st[3] {
+					vm.moreGeneralStack()
+				}
+				if fn.Macro {
+					call.renderer = vm.renderer
+					if b == ReturnString {
+						vm.renderer = newRenderer(&strings.Builder{})
+					} else if ast.Format(b) != fn.Format {
+						if fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
+							if vm.env.conv == nil {
+								panic(&fatalError{env: vm.env, msg: errors.New("no Markdown convert available")})
+							}
+							vm.renderer = newRenderer(&bytes.Buffer{})
+						} else {
+							vm.renderer = newRenderer(vm.renderer.out)
+						}
+					}
+				}
+				vm.fn = fn
+				vm.vars = f.vars
+				vm.calls = append(vm.calls, call)
+				vm.pc = 0
 			}
 		case OpCallMacro:
-			panic("DEBUG PANIC fdac54") // REVIEW: remove.
-			// call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, renderer: vm.renderer, fp: vm.fp, pc: vm.pc + 1}
-			// fn := vm.fn.Functions[uint8(a)]
-			// off := vm.fn.Body[vm.pc]
-			// vm.fp[0] += Addr(off.Op)
-			// if vm.fp[0]+Addr(fn.NumReg[0]) > vm.st[0] {
-			// 	vm.moreIntStack()
-			// }
-			// vm.fp[1] += Addr(off.A)
-			// if vm.fp[1]+Addr(fn.NumReg[1]) > vm.st[1] {
-			// 	vm.moreFloatStack()
-			// }
-			// vm.fp[2] += Addr(off.B)
-			// if vm.fp[2]+Addr(fn.NumReg[2]) > vm.st[2] {
-			// 	vm.moreStringStack()
-			// }
-			// vm.fp[3] += Addr(off.C)
-			// if vm.fp[3]+Addr(fn.NumReg[3]) > vm.st[3] {
-			// 	vm.moreGeneralStack()
-			// }
-			// if b == ReturnString {
-			// 	vm.renderer = newRenderer(&strings.Builder{})
-			// } else if ast.Format(b) != fn.Format {
-			// 	if fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
-			// 		if vm.env.conv == nil {
-			// 			panic(&fatalError{env: vm.env, msg: errors.New("no Markdown convert available")})
-			// 		}
-			// 		vm.renderer = newRenderer(&bytes.Buffer{})
-			// 	} else {
-			// 		vm.renderer = newRenderer(vm.renderer.out)
-			// 	}
-			// }
-			// vm.fn = fn
-			// vm.vars = vm.env.globals
-			// vm.calls = append(vm.calls, call)
-			// vm.pc = 0
+			call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, renderer: vm.renderer, fp: vm.fp, pc: vm.pc + 1}
+			fn := vm.fn.Functions[uint8(a)]
+			off := vm.fn.Body[vm.pc]
+			vm.fp[0] += Addr(off.Op)
+			if vm.fp[0]+Addr(fn.NumReg[0]) > vm.st[0] {
+				vm.moreIntStack()
+			}
+			vm.fp[1] += Addr(off.A)
+			if vm.fp[1]+Addr(fn.NumReg[1]) > vm.st[1] {
+				vm.moreFloatStack()
+			}
+			vm.fp[2] += Addr(off.B)
+			if vm.fp[2]+Addr(fn.NumReg[2]) > vm.st[2] {
+				vm.moreStringStack()
+			}
+			vm.fp[3] += Addr(off.C)
+			if vm.fp[3]+Addr(fn.NumReg[3]) > vm.st[3] {
+				vm.moreGeneralStack()
+			}
+			if b == ReturnString {
+				vm.renderer = newRenderer(&strings.Builder{})
+			} else if ast.Format(b) != fn.Format {
+				if fn.Format == ast.FormatMarkdown && ast.Format(b) == ast.FormatHTML {
+					if vm.env.conv == nil {
+						panic(&fatalError{env: vm.env, msg: errors.New("no Markdown convert available")})
+					}
+					vm.renderer = newRenderer(&bytes.Buffer{})
+				} else {
+					vm.renderer = newRenderer(vm.renderer.out)
+				}
+			}
+			vm.fn = fn
+			vm.vars = vm.env.globals
+			vm.calls = append(vm.calls, call)
+			vm.pc = 0
 		case OpCallNative:
 			fn := vm.fn.NativeFunctions[uint8(a)]
 			off := vm.fn.Body[vm.pc]
@@ -531,7 +528,6 @@ func (vm *VM) run() (Addr, bool) {
 				vm.setGeneral(c, v.Convert(t))
 			} else {
 				if vm.env.conv != nil {
-					panic("DEBUG PANIC 37086c") // REVIEW: remove.
 					var b strings.Builder
 					_ = vm.env.conv([]byte(v.String()), &b)
 					vm.setString(c, b.String())
@@ -1584,7 +1580,6 @@ func (vm *VM) run() (Addr, bool) {
 			fn := call.cl.fn
 			if call.status == started {
 				if vm.fn.Macro {
-					panic("DEBUG PANIC cae92f") // REVIEW: remove.
 					if call.renderer != vm.renderer {
 						b := fn.Body[call.pc-2].B
 						if b == ReturnString {
@@ -1600,17 +1595,14 @@ func (vm *VM) run() (Addr, bool) {
 					}
 					vm.renderer = call.renderer
 				} else if regs := vm.fn.FinalRegs; regs != nil {
-					panic("DEBUG PANIC acb45d") // REVIEW: remove.s
 					vm.finalize(vm.fn.FinalRegs)
 				}
-				panic("DEBUG PANIC 3bd55f") // REVIEW: remove.
 				vm.calls = vm.calls[:i]
 				vm.fp = call.fp
 				vm.fn = fn
 				vm.vars = call.cl.vars
 				vm.pc = call.pc
 			} else if !vm.nextCall() {
-				panic("DEBUG PANIC 810352") // REVIEW: remove.
 				return maxUint32, false
 			}
 
