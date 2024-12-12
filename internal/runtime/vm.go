@@ -374,7 +374,7 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 				case reflect.Func:
 					for j := 0; j < int(numVariadic); j++ {
 						f := vm.general(int8(j + 1)).Interface().(*callable)
-						slice.Index(j).Set(f.Value(vm.renderer, vm.env))
+						slice.Index(j).Set(f.Value(vm.env))
 					}
 				case reflect.String:
 					for j := 0; j < int(numVariadic); j++ {
@@ -910,7 +910,7 @@ func (c *callable) Native() *NativeFunction {
 
 // Value returns a reflect.Value of a callable, so it can be called from a
 // native code and passed to a native code.
-func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
+func (c *callable) Value(env *env) reflect.Value {
 	if c.value.IsValid() {
 		panic("DEBUG PANIC 8334b7") // REVIEW: remove.
 		return c.value
@@ -926,9 +926,8 @@ func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 	c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
 		nvm := create(env)
 		if fn.Macro {
-			renderer = newRenderer(&strings.Builder{})
+			nvm.renderer = newRenderer(&strings.Builder{})
 		}
-		nvm.renderer = renderer
 		nOut := fn.Type.NumOut()
 		results := make([]reflect.Value, nOut)
 		var r = [4]int8{1, 1, 1, 1}
@@ -965,7 +964,7 @@ func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 			panic("DEBUG PANIC 481e6c") // REVIEW: remove.
 		}
 		if fn.Macro {
-			b := renderer.Out().(*strings.Builder)
+			b := nvm.renderer.Out().(*strings.Builder)
 			nvm.setString(1, b.String())
 		}
 		r = [4]int8{1, 1, 1, 1}
