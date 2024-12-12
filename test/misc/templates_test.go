@@ -791,7 +791,7 @@ var templateMultiFileCases = map[string]struct {
 	"Multi rows": {
 		sources: fstest.Files{
 			"index.txt": `{%
-		print(3) %}`,
+	print(3) %}`,
 		},
 		expectedOut: `3`,
 	},
@@ -799,8 +799,8 @@ var templateMultiFileCases = map[string]struct {
 	"Multi rows 2": {
 		sources: fstest.Files{
 			"index.txt": `{%
-		print(3)
-	%}`,
+	print(3)
+%}`,
 		},
 		expectedOut: `3`,
 	},
@@ -808,13 +808,13 @@ var templateMultiFileCases = map[string]struct {
 	"Multi rows with comments": {
 		sources: fstest.Files{
 			"index.txt": `{%
-	// pre comment
-	/* pre comment */
-		print(3)
-	/* post comment */
-	// post comment
+// pre comment
+/* pre comment */
+	print(3)
+/* post comment */
+// post comment
 
-	%}`,
+%}`,
 		},
 		expectedOut: `3`,
 	},
@@ -1060,9 +1060,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: fstest.Files{
 			"index.txt": `{% import "/file.txt" %}{% show M() %}{% show M() %}`,
 			"file.txt": `
-					{% macro M2 %}macro 2!{% end %}
-					{% macro M %}{% show M2() %}{% end %}
-				`,
+				{% macro M2 %}macro 2!{% end %}
+				{% macro M %}{% show M2() %}{% end %}
+			`,
 		},
 		expectedOut: "macro 2!macro 2!",
 	},
@@ -1071,9 +1071,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: fstest.Files{
 			"index.txt": `{% import "/file.txt" %}{% show M() %}{% show M() %}`,
 			"file.txt": `
-					{% macro M %}{% show M2() %}{% end %}
-					{% macro M2 %}macro 2!{% end %}
-				`,
+				{% macro M %}{% show M2() %}{% end %}
+				{% macro M2 %}macro 2!{% end %}
+			`,
 		},
 		expectedOut: "macro 2!macro 2!",
 	},
@@ -1193,7 +1193,7 @@ var templateMultiFileCases = map[string]struct {
 	"https://github.com/open2b/scriggo/issues/392": {
 		sources: fstest.Files{
 			"product.html": `{{ "" }}{{ render "partials/products.html" }}
-	`, // this newline is intentional
+`, // this newline is intentional
 			"partials/products.html": `{% macro M(s []int) %}{% end %}`,
 		},
 		expectedOut: "\n",
@@ -1217,7 +1217,7 @@ var templateMultiFileCases = map[string]struct {
 	"https://github.com/open2b/scriggo/issues/393": {
 		sources: fstest.Files{
 			"product.html": `{{ render "partials/products.html" }}
-	`, // this newline is intentional
+`, // this newline is intentional
 			"partials/products.html": `{% macro M(s []int) %}{% end %}`,
 		},
 		expectedOut: "",
@@ -1561,7 +1561,7 @@ var templateMultiFileCases = map[string]struct {
 	"Can access to unexported struct field declared in the same file - struct literal": {
 		sources: fstest.Files{
 			"index.txt": `{% var s struct { a int } %}{% s.a = 42 %}{{ s.a }}
-				{% s2 := &s %}{{ s2.a }}`,
+			{% s2 := &s %}{{ s2.a }}`,
 		},
 		expectedOut: "42\n\t\t\t42",
 	},
@@ -1569,7 +1569,7 @@ var templateMultiFileCases = map[string]struct {
 	"Can access to unexported struct field declared in the same file - defined type": {
 		sources: fstest.Files{
 			"index.txt": `{% type t struct { a int } %}{% var s t %}{% s.a = 84 %}{{ s.a }}
-				{% s2 := &s %}{{ s2.a }}`,
+			{% s2 := &s %}{{ s2.a }}`,
 		},
 		expectedOut: "84\n\t\t\t84",
 	},
@@ -1645,9 +1645,9 @@ var templateMultiFileCases = map[string]struct {
 	"https://github.com/open2b/scriggo/issues/661": {
 		sources: fstest.Files{
 			"index.txt": `{% extends "extended.txt" %}
-	{% macro M %}
-	{{ render "/partial.txt" }}
-	{% end macro %}`,
+{% macro M %}
+{{ render "/partial.txt" }}
+{% end macro %}`,
 			"extended.txt": `{{ render "/partial.txt" }}`,
 			"partial.txt":  `{% var v int %}`,
 		},
@@ -1663,10 +1663,10 @@ var templateMultiFileCases = map[string]struct {
 	"Accessing global variable from function literal's body": {
 		sources: fstest.Files{
 			"index.txt": `{%
-					func(){
-						_ = globalVariable
-					}()
-				%}`,
+				func(){
+					_ = globalVariable
+				}() 
+			%}`,
 		},
 		main: native.Package{
 			Name: "main",
@@ -1680,14 +1680,14 @@ var templateMultiFileCases = map[string]struct {
 	"Accessing global variable from function literal's body - nested": {
 		sources: fstest.Files{
 			"index.txt": `{%
-					func(){
+				func(){
+					func() {
 						func() {
-							func() {
-								_ = globalVariable
-							}()
+							_ = globalVariable
 						}()
 					}()
-				%}`,
+				}()
+			%}`,
 		},
 		main: native.Package{
 			Name: "main",
@@ -1700,14 +1700,14 @@ var templateMultiFileCases = map[string]struct {
 	"Macro declaration inside implicit blocks": {
 		sources: fstest.Files{
 			"index.txt": `
-					{% macro M1 %}
-						{% if true %}
-							{% macro M2 %}m2{% end macro %}
-							{% show M2() %}
-						{% end %}
-					{% end macro %}
-					{% show M1() %}
-				`,
+				{% macro M1 %}
+					{% if true %}
+						{% macro M2 %}m2{% end macro %}
+						{% show M2() %}
+					{% end %}
+				{% end macro %}
+				{% show M1() %}
+			`,
 		},
 		expectedOut: "\n\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\tm2\n\n\t\t\t",
 	},
@@ -1785,19 +1785,19 @@ var templateMultiFileCases = map[string]struct {
 	"https://github.com/open2b/scriggo/issues/687": {
 		sources: fstest.Files{
 			"index.html": `{% extends "extended.html" %}
-
-					{% import "imported.html" %}`,
+			
+				{% import "imported.html" %}`,
 
 			"extended.html": `
-					<head>
-					<script>....
-					{{ design.Base }}
-					{{ design.Open2b }}
-					fef`,
+				<head>
+				<script>....
+				{{ design.Base }}		
+				{{ design.Open2b }}		
+				fef`,
 
 			"imported.html": `
-					{% var f, _ = interface{}(filters).([]int) %}
-				`,
+				{% var f, _ = interface{}(filters).([]int) %}
+			`,
 		},
 		main: native.Package{
 			Name: "main",
@@ -1925,8 +1925,8 @@ var templateMultiFileCases = map[string]struct {
 	"Multi line statements #1": {
 		sources: fstest.Files{
 			"index.txt": `{%%
-					extends "extended.txt"
-				%%}{% var x = I %}`,
+				extends "extended.txt"
+			%%}{% var x = I %}`,
 			"extended.txt": ``,
 		},
 	},
@@ -1934,11 +1934,11 @@ var templateMultiFileCases = map[string]struct {
 	"Multi line statements #2": {
 		sources: fstest.Files{
 			"index.txt": `before{%%
-		import "imported.txt"
-		%%}after`,
+	import "imported.txt"
+	%%}after`,
 			"imported.txt": `{%%
-					var a []int
-				%%}`,
+				var a []int
+			%%}`,
 		},
 		expectedOut: "beforeafter",
 	},
@@ -1969,10 +1969,10 @@ var templateMultiFileCases = map[string]struct {
 	"Multiline statements #6": {
 		sources: fstest.Files{
 			"index.txt": `{%%
-					import "fmt"
-					import m "math"
-				%%}
-				{{ fmt.Sprint(-42, m.Abs(-42)) }}`,
+				import "fmt"
+				import m "math"
+			%%}
+			{{ fmt.Sprint(-42, m.Abs(-42)) }}`,
 		},
 		importer:    testPackages,
 		expectedOut: "\t\t\t-42 42",
@@ -2148,12 +2148,12 @@ var templateMultiFileCases = map[string]struct {
 	"Convert a markdown value to an html value - Indirect": {
 		sources: fstest.Files{
 			"index.txt": `{%%
-					var m markdown = "# title"
-					var h html
-					var hRef *html = &h
-					h = html(m)
-					show string(h)
-				%%}`,
+				var m markdown = "# title"
+				var h html
+				var hRef *html = &h
+				h = html(m)
+				show string(h)
+			%%}`,
 		},
 		expectedOut: "--- start Markdown ---\n# title--- end Markdown ---\n",
 	},
@@ -2161,11 +2161,11 @@ var templateMultiFileCases = map[string]struct {
 	"Convert a markdown value to an html value - Interface": {
 		sources: fstest.Files{
 			"index.txt": `{%%
-					var m markdown = "# title"
-					var i interface{}
-					i = html(m)
-					show string(i.(html))
-				%%}`,
+				var m markdown = "# title"
+				var i interface{}
+				i = html(m)
+				show string(i.(html))
+			%%}`,
 		},
 		expectedOut: "--- start Markdown ---\n# title--- end Markdown ---\n",
 	},
@@ -2173,13 +2173,13 @@ var templateMultiFileCases = map[string]struct {
 	"Convert a markdown value to an html value - Closure": {
 		sources: fstest.Files{
 			"index.txt": `{%%
-					var m markdown = "# title"
-					var h html
-					func () {
-						h = html(m)
-					}()
-					show string(h)
-				%%}`,
+				var m markdown = "# title"
+				var h html
+				func () {
+					h = html(m)
+				}()
+				show string(h)
+			%%}`,
 		},
 		expectedOut: "--- start Markdown ---\n# title--- end Markdown ---\n",
 	},
@@ -2194,20 +2194,20 @@ var templateMultiFileCases = map[string]struct {
 	"Macro declarations inside macro declarations": {
 		sources: fstest.Files{
 			"index.html": `
-				{% macro External1() %}
-					{% macro internal1 %}internal1 (1){% end %}
-					{% macro internal2 string %}internal2 (1){% end %}
-					External1's body: {{ internal1() }} {{ internal2() }}
-				{% end %}
+			{% macro External1() %}
+				{% macro internal1 %}internal1 (1){% end %}
+				{% macro internal2 string %}internal2 (1){% end %}
+				External1's body: {{ internal1() }} {{ internal2() }}
+			{% end %}
 
-				{% macro External2() %}
-					{% macro internal1 %}internal1 (2){% end %}
-					{% macro internal2 string %}internal2 (2){% end %}
-					External2's body: {{ internal1() }} {{ internal2() }}
-				{% end %}
-
-				External1: {{ External1() }}
-				External2: {{ External2() }}`,
+			{% macro External2() %}
+				{% macro internal1 %}internal1 (2){% end %}
+				{% macro internal2 string %}internal2 (2){% end %}
+				External2's body: {{ internal1() }} {{ internal2() }}
+			{% end %}
+			
+			External1: {{ External1() }}
+			External2: {{ External2() }}`,
 		},
 		expectedOut: "\n\n\t\t\t\n\t\t\tExternal1: \t\t\t\t\n\t\t\t\t\n\t\t\t\tExternal1's body: internal1 (1) internal2 (1)\n\n\t\t\tExternal2: \t\t\t\t\n\t\t\t\t\n\t\t\t\tExternal2's body: internal1 (2) internal2 (2)\n",
 	},
@@ -2215,12 +2215,12 @@ var templateMultiFileCases = map[string]struct {
 	"Internal function declaration accessing a variable declared in the external function declaration": {
 		sources: fstest.Files{
 			"index.html": `
-			{%% External := func() string {
-				var n int = 42
-				internal := func() string { return sprintf("n has value: %d", n) }
-				return internal()
-			} %%}
-			{{ External() }}`,
+		{%% External := func() string {
+			var n int = 42
+			internal := func() string { return sprintf("n has value: %d", n) }
+			return internal()
+		} %%}
+		{{ External() }}`,
 		},
 		expectedOut: "\n\t\tn has value: 42",
 	},
@@ -2228,9 +2228,9 @@ var templateMultiFileCases = map[string]struct {
 	"Trying to assign to a macro declared in the file/package block": {
 		sources: fstest.Files{
 			"index.html": `
-						{% macro M %}{% end %}
-						{% M = func() string { return "" } %}
-					`,
+					{% macro M %}{% end %}
+					{% M = func() string { return "" } %}
+				`,
 		},
 		expectedBuildErr: "cannot assign to M",
 	},
@@ -2238,11 +2238,11 @@ var templateMultiFileCases = map[string]struct {
 	"Trying to assign to a macro declared inside another macro": {
 		sources: fstest.Files{
 			"index.html": `
-				{% macro External %}
-					{% macro M %}{% end %}
-					{% M = func() string { return "" } %}
-				{% end macro %}
-			`,
+			{% macro External %}
+				{% macro M %}{% end %}
+				{% M = func() string { return "" } %}
+			{% end macro %}
+		`,
 		},
 		expectedBuildErr: "cannot assign to M",
 	},
@@ -2250,9 +2250,9 @@ var templateMultiFileCases = map[string]struct {
 	"When a macro is assigned to a variable, such variable can be reassigned without returning error 'cannot assign to'": {
 		sources: fstest.Files{
 			"index.txt": `
-				{% macro M %}{% end %}
-				{% var N = M %}
-				{% N = func() string { return "hi" } %}`,
+			{% macro M %}{% end %}
+			{% var N = M %}
+			{% N = func() string { return "hi" } %}`,
 		},
 		expectedOut: "\n\t\t\t\n\t\t\t\n\t\t\t",
 	},
@@ -2260,13 +2260,13 @@ var templateMultiFileCases = map[string]struct {
 	"Internal macro accessing a variable declared in the external macro": {
 		sources: fstest.Files{
 			"index.html": `
-				{% macro External %}
-					This is External
-					{% var n int = 42 %}
-					{% macro internal %}n has value: {{ n }}{% end %}
-					internal: {{ internal() }}
-				{% end %}
-				Showing External: {{ External() }}`,
+			{% macro External %}
+				This is External
+				{% var n int = 42 %}
+				{% macro internal %}n has value: {{ n }}{% end %}
+				internal: {{ internal() }}
+			{% end %}
+			Showing External: {{ External() }}`,
 		},
 		expectedOut: "\n\t\t\tShowing External: \t\t\t\tThis is External\n\t\t\t\t\n\t\t\t\t\n\t\t\t\tinternal: n has value: 42\n",
 	},
@@ -2281,10 +2281,10 @@ var templateMultiFileCases = map[string]struct {
 	"Redeclaration of a macro within the same scope": {
 		sources: fstest.Files{
 			"index.html": `
-				{% macro M %}
-					{% macro Inner %}{% end %}
-					{% macro Inner %}{% end %}
-				{% end macro %}`,
+			{% macro M %}
+				{% macro Inner %}{% end %}
+				{% macro Inner %}{% end %}
+			{% end macro %}`,
 		},
 		expectedBuildErr: "4:14: Inner redeclared in this block\n\tprevious declaration at 3:14",
 	},
@@ -2292,10 +2292,10 @@ var templateMultiFileCases = map[string]struct {
 	"Redeclaration of an identifier within the same scope": {
 		sources: fstest.Files{
 			"index.html": `
-				{% macro M %}
-					{% macro Inner %}{% end %}
-					{% var Inner = 2 %}
-				{% end macro %}`,
+			{% macro M %}
+				{% macro Inner %}{% end %}
+				{% var Inner = 2 %}
+			{% end macro %}`,
 		},
 		expectedBuildErr: "4:12: Inner redeclared in this block\n\tprevious declaration at 3:14",
 	},
@@ -2327,10 +2327,10 @@ var templateMultiFileCases = map[string]struct {
 	"https://github.com/open2b/scriggo/issues/741 - non pointer": {
 		sources: fstest.Files{
 			"index.txt": `{%%
-					t := T{}
-					t.A = "hello"
-					show t.A
-				%%}`,
+				t := T{}
+				t.A = "hello"
+				show t.A
+			%%}`,
 		},
 		main: native.Package{
 			Name: "main",
@@ -2361,11 +2361,11 @@ var templateMultiFileCases = map[string]struct {
 	"https://github.com/open2b/scriggo/issues/727 - Macro (1)": {
 		sources: fstest.Files{
 			"index.html": `
-				{% macro M(param int) %}
-					{% macro localMacro %}
-						{{ param }}
-					{% end %}
-				{% end %}`,
+			{% macro M(param int) %}
+				{% macro localMacro %}
+					{{ param }}
+				{% end %}
+			{% end %}`,
 		},
 		expectedOut: "\n",
 	},
@@ -2373,11 +2373,11 @@ var templateMultiFileCases = map[string]struct {
 	"https://github.com/open2b/scriggo/issues/727 - Macro (2)": {
 		sources: fstest.Files{
 			"index.html": `
-				{% macro M(param int) %}
-					{% macro localMacro %}{{ param }}{% end %}
-					{{ localMacro() }}
-				{% end %}
-				{{ M(42) }}`,
+			{% macro M(param int) %}
+				{% macro localMacro %}{{ param }}{% end %}
+				{{ localMacro() }}
+			{% end %}
+			{{ M(42) }}`,
 		},
 		expectedOut: "\n\t\t\t\t\t\t\t\n\t\t\t\t42\n",
 	},
@@ -2385,14 +2385,14 @@ var templateMultiFileCases = map[string]struct {
 	"https://github.com/open2b/scriggo/issues/727 - Function literal (1)": {
 		sources: fstest.Files{
 			"index.html": `
-				{%%
-					M := func(param int) int {
-						localFunc := func() int {
-							return param
-						}
-						return 0
+			{%%
+				M := func(param int) int {
+					localFunc := func() int {
+						return param
 					}
-				%%}`,
+					return 0
+				}
+			%%}`,
 		},
 		expectedOut: "\n\t\t\t",
 	},
@@ -2400,15 +2400,15 @@ var templateMultiFileCases = map[string]struct {
 	"https://github.com/open2b/scriggo/issues/727 - Function literal (2)": {
 		sources: fstest.Files{
 			"index.html": `
-				{%%
-					M := func(param int) int {
-						localFunc := func() int {
-							return param
-						}
-						return localFunc()
+			{%%
+				M := func(param int) int {
+					localFunc := func() int {
+						return param
 					}
-				%%}
-				{{ M(439) }}`,
+					return localFunc()
+				}
+			%%}
+			{{ M(439) }}`,
 		},
 		expectedOut: "\n\t\t\t439",
 	},
@@ -2615,9 +2615,9 @@ var templateMultiFileCases = map[string]struct {
 	"Use of default with call in non-extended file": {
 		sources: fstest.Files{
 			"index.html": `
-					{% extends "extended.html" %}
-					{% macro M %}{% end %}
-					{% macro N %}{{ M() default "" }}{% end macro %}`,
+				{% extends "extended.html" %}
+				{% macro M %}{% end %}
+				{% macro N %}{{ M() default "" }}{% end macro %}`,
 			"extended.html": ``,
 		},
 		expectedBuildErr: "use of default with call in non-extended file",
@@ -2822,9 +2822,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: fstest.Files{
 			"index.html": `{% import "imported.html" %}{% M() %}`,
 			"imported.html": `{% var M = func() {
-					f := func() { _ = global }
-					f()
-				} %}`,
+				f := func() { _ = global }
+				f()
+			} %}`,
 		},
 		main: native.Package{
 			Name: "main",
@@ -2886,14 +2886,14 @@ var templateMultiFileCases = map[string]struct {
 		sources: fstest.Files{
 			"index.html": `
 
-			{% macro M1(m macro() html) %}{{ m() }}{% end %}
-			{% macro M2(title, buttonText string) %}
-				{% macro content %}
-				{% end %}
-				{{ M1(content) }}
+		{% macro M1(m macro() html) %}{{ m() }}{% end %}
+		{% macro M2(title, buttonText string) %}
+			{% macro content %}
 			{% end %}
-
-			{{ M2("Press the button dialog", "Play") }}`,
+			{{ M1(content) }}
+		{% end %}
+		
+		{{ M2("Press the button dialog", "Play") }}`,
 		},
 		expectedOut: "\n\n\t\t\n\t\t\n\t\t\t\t\t\n",
 	},
@@ -2950,9 +2950,9 @@ var templateMultiFileCases = map[string]struct {
 	"Using - assignment with 'var'": {
 		sources: fstest.Files{
 			"index.html": `{% var date, days = itea, 5; using html %}
-				<span>{{ now() }}</span>
-			  {% end using %}
-			  Date is {{ date }}`,
+			<span>{{ now() }}</span>
+		  {% end using %}
+		  Date is {{ date }}`,
 		},
 		expectedOut: "\t\t  Date is \n\t\t\t<span>1999-01-19</span>\n",
 		main: native.Package{
@@ -3025,11 +3025,11 @@ var templateMultiFileCases = map[string]struct {
 	"Using - package level var declaration (5)": {
 		sources: fstest.Files{
 			"index.html": `
-					{% extends "extended.html" %}
-					{% var itea = "shadowed" %}
-					{% var V = itea; using %}content...{% end using %}
-					{% macro M %}V is {{ V }}{% end macro %}
-				`,
+				{% extends "extended.html" %}
+				{% var itea = "shadowed" %}
+				{% var V = itea; using %}content...{% end using %}
+				{% macro M %}V is {{ V }}{% end macro %}
+			`,
 			"extended.html": `{{ M () }}`,
 		},
 		expectedBuildErr: "predeclared identifier itea not used",
@@ -3038,10 +3038,10 @@ var templateMultiFileCases = map[string]struct {
 	"Using - package level var declaration (5) - simplified": {
 		sources: fstest.Files{
 			"index.html": `
-					{% extends "extended.html" %}
-					{% var itea = "shadowed" %}
-					{% var _ = itea; using %}{% end using %}
-				`,
+				{% extends "extended.html" %}
+				{% var itea = "shadowed" %}
+				{% var _ = itea; using %}{% end using %}
+			`,
 			"extended.html": ``,
 		},
 		expectedBuildErr: "predeclared identifier itea not used",
@@ -3050,11 +3050,11 @@ var templateMultiFileCases = map[string]struct {
 	"Using - itea shadowed by a package name at package level": {
 		sources: fstest.Files{
 			"index.html": `
-					{% extends "extended.html" %}
-					{% import itea "imported.html" %}
-					{% var V = itea.A; using %}content...{% end using %}
-					{% macro M %}V is {{ V }}{% end macro %}
-				`,
+				{% extends "extended.html" %}
+				{% import itea "imported.html" %}
+				{% var V = itea.A; using %}content...{% end using %}
+				{% macro M %}V is {{ V }}{% end macro %}
+			`,
 			"extended.html": `{{ M () }}`,
 			"imported.html": `{% var A = 5 %}`,
 		},
@@ -3064,17 +3064,17 @@ var templateMultiFileCases = map[string]struct {
 	"Using - itea shadowed by a 'var' declaration inside a multiline statement": {
 		sources: fstest.Files{
 			"index.html": `
-					{% extends "extended.html" %}
-					{%%
-						var (
-							something = 43982
-							itea = "shadowed"
-							somethingElse = 43289
-						)
-					%%}
-					{% var V = itea; using %}content...{% end using %}
-					{% macro M %}V is {{ V }}{% end macro %}
-				`,
+				{% extends "extended.html" %}
+				{%%
+					var (
+						something = 43982
+						itea = "shadowed"
+						somethingElse = 43289
+					)
+				%%}
+				{% var V = itea; using %}content...{% end using %}
+				{% macro M %}V is {{ V }}{% end macro %}
+			`,
 			"extended.html": `{{ M () }}`,
 		},
 		expectedBuildErr: "predeclared identifier itea not used",
@@ -3083,12 +3083,12 @@ var templateMultiFileCases = map[string]struct {
 	"Using - assigning from using body": {
 		sources: fstest.Files{
 			"index.html": `
-		            {% f := func() html { return html("") } %}
-		            {% _ = itea; using %}
-		        		{% f = itea; using macro() html %}x{% end %}
-		            {% end %}
-					{{ f() }}
-				`,
+	            {% f := func() html { return html("") } %}
+	            {% _ = itea; using %}
+	        		{% f = itea; using macro() html %}x{% end %}
+	            {% end %}
+				{{ f() }}
+			`,
 		},
 		expectedOut: "\n\t\t\t\tx\n\t\t\t",
 	},
@@ -3096,11 +3096,11 @@ var templateMultiFileCases = map[string]struct {
 	"Nested using statements": {
 		sources: fstest.Files{
 			"index.html": `
-		           {% var f func(html) html %}
-		           {% show f(itea); using %}
-		           2 {% f = itea; using macro(s html) html %}1 {{ s }} 4{% end %} 3
-		           {% end %}
-				`,
+	           {% var f func(html) html %}
+	           {% show f(itea); using %}
+	           2 {% f = itea; using macro(s html) html %}1 {{ s }} 4{% end %} 3
+	           {% end %}
+			`,
 		},
 		expectedOut: "\n\t           \n\t           1 \n\t           2  3\n 4\t\t\t",
 	},
@@ -3108,10 +3108,10 @@ var templateMultiFileCases = map[string]struct {
 	"Using - nested using statements (1)": {
 		sources: fstest.Files{
 			"index.html": `
-		            {% _ = itea; using %}
-		      	    	{% _ = itea; using %}{% end %}
-		            {% end %}
-				`,
+	            {% _ = itea; using %}
+	      	    	{% _ = itea; using %}{% end %}
+	            {% end %}
+			`,
 		},
 		expectedOut: "\n\t\t\t",
 	},
@@ -3119,12 +3119,12 @@ var templateMultiFileCases = map[string]struct {
 	"Using - nested using statements (2)": {
 		sources: fstest.Files{
 			"index.html": `
-		            {% show itea; using %}
-						External using-start
-		      	    	{% show itea; using %}internal using{% end %}
-						External using-end
-		            {% end %}
-				`,
+	            {% show itea; using %}
+					External using-start
+	      	    	{% show itea; using %}internal using{% end %}
+					External using-end
+	            {% end %}
+			`,
 		},
 		expectedOut: "\n\t            \n\t\t\t\t\tExternal using-start\n\t      \t    \tinternal using\n\t\t\t\t\tExternal using-end\n\t\t\t",
 	},
@@ -3132,21 +3132,21 @@ var templateMultiFileCases = map[string]struct {
 	"Using - nested using statements (3)": {
 		sources: fstest.Files{
 			"index.html": `
-		            {% _ = itea; using %}
-		      	    	{% _ = itea; using %}{% end %}
-						{% _ = itea; using %}{% end %}
-		            {% end %}
-					{% _ = itea; using %}
-		      	    	{% _ = itea; using %}
-						  {% _ = itea; using %}{% end %}
-						  {% _ = itea; using %}{% end %}
-						{% end %}
-						{% _ = itea; using %}{% end %}
-		            {% end %}
-					{% _ = itea; using %}
-		      	    	{% _ = itea; using %}{% end %}
-		            {% end %}
-				`,
+	            {% _ = itea; using %}
+	      	    	{% _ = itea; using %}{% end %}
+					{% _ = itea; using %}{% end %}
+	            {% end %}
+				{% _ = itea; using %}
+	      	    	{% _ = itea; using %}
+					  {% _ = itea; using %}{% end %}
+					  {% _ = itea; using %}{% end %}
+					{% end %}
+					{% _ = itea; using %}{% end %}
+	            {% end %}
+				{% _ = itea; using %}
+	      	    	{% _ = itea; using %}{% end %}
+	            {% end %}
+			`,
 		},
 		expectedOut: "\n\t\t\t",
 	},
@@ -3155,9 +3155,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: fstest.Files{
 			"index.html": `{% import "imported.html" %}{{ A }}`,
 			"imported.html": `
-					{% type html int %}
-					{% var A = itea; using html %}OPS{% end %}
-				`,
+				{% type html int %}
+				{% var A = itea; using html %}OPS{% end %}
+			`,
 		},
 		expectedBuildErr: `invalid using type html`,
 	},
@@ -3165,11 +3165,11 @@ var templateMultiFileCases = map[string]struct {
 	"Using - expression statement": {
 		sources: fstest.Files{
 			"index.txt": `
-					{% var V int %}
-					{% f := func(s string) { V = len(s) } %}
-					{% f(itea); using %}hello{% end using %}
-					V is {{ V }}
-				`,
+				{% var V int %}
+				{% f := func(s string) { V = len(s) } %}
+				{% f(itea); using %}hello{% end using %}
+				V is {{ V }}
+			`,
 		},
 		expectedOut: "\n\t\t\t\t\n\t\t\t\t\n\t\t\t\tV is 5\n\t\t\t",
 	},
@@ -3177,10 +3177,10 @@ var templateMultiFileCases = map[string]struct {
 	"Using - send statement": {
 		sources: fstest.Files{
 			"index.txt": `
-					{% ch := make(chan string, 1) %}
-					{% ch <- itea; using %}how are you?{% end %}
-					Message is: {{ <-ch }}
-				`,
+				{% ch := make(chan string, 1) %}
+				{% ch <- itea; using %}how are you?{% end %}
+				Message is: {{ <-ch }}
+			`,
 		},
 		expectedOut: "\n\t\t\t\t\n\t\t\t\tMessage is: how are you?\n\t\t\t",
 	},
@@ -3195,11 +3195,11 @@ var templateMultiFileCases = map[string]struct {
 	"Using - in macro": {
 		sources: fstest.Files{
 			"index.html": `
-					{% extends "layout.html" %}
-					{% macro Body %}
-						{% var a = itea; using %}a{% end using %}
-					{% end macro %}
-				`,
+				{% extends "layout.html" %}
+				{% macro Body %}
+					{% var a = itea; using %}a{% end using %}
+				{% end macro %}
+			`,
 			"layout.html": `{{ Body() }}`,
 		},
 		expectedOut: "\t\t\t\t\t\n",
@@ -3208,12 +3208,12 @@ var templateMultiFileCases = map[string]struct {
 	"Using - in macro (2)": {
 		sources: fstest.Files{
 			"index.html": `
-					{% extends "imported.html" %}
-					{% macro M %}
-						{% var a = itea; using %}content{% end using %}
-						{{ a }}
-					{% end macro %}
-				`,
+				{% extends "imported.html" %}
+				{% macro M %}
+					{% var a = itea; using %}content{% end using %}
+					{{ a }}
+				{% end macro %}
+			`,
 			"imported.html": `{{ M() }}`,
 		},
 		expectedOut: "\t\t\t\t\t\n\t\t\t\t\tcontent\n",
@@ -3222,8 +3222,8 @@ var templateMultiFileCases = map[string]struct {
 	"Using - error if 'itea' is unused": {
 		sources: fstest.Files{
 			"index.html": `
-					{% show 4; using %}Something{% end using %}
-				`,
+				{% show 4; using %}Something{% end using %}
+			`,
 		},
 		expectedBuildErr: "index.html:2:16: predeclared identifier itea not used",
 	},
@@ -3232,8 +3232,8 @@ var templateMultiFileCases = map[string]struct {
 		sources: fstest.Files{
 			"index.html": `{% import "imported.html" %}`,
 			"imported.html": `
-					{% var _ = 4; using %}Something{% end using %}
-				`,
+				{% var _ = 4; using %}Something{% end using %}
+			`,
 		},
 		expectedBuildErr: "imported.html:2:19: predeclared identifier itea not used",
 	},
@@ -3263,11 +3263,11 @@ var templateMultiFileCases = map[string]struct {
 	"Using - taking address of 'itea'": {
 		sources: fstest.Files{
 			"index.html": `
-					{% var ref1, ref2, ref3, ref4 *html %}
-					{% func() { ref1, ref2 = &itea, &itea }(); using %}content..{% end %}
-					{% func() { ref3, ref4 = &itea, &itea }(); using %}content..{% end %}
-					{{ ref1 == ref2 }}{{ ref2 == ref3 }}{{ ref3 == ref4 }}
-				`,
+				{% var ref1, ref2, ref3, ref4 *html %}
+				{% func() { ref1, ref2 = &itea, &itea }(); using %}content..{% end %}
+				{% func() { ref3, ref4 = &itea, &itea }(); using %}content..{% end %}
+				{{ ref1 == ref2 }}{{ ref2 == ref3 }}{{ ref3 == ref4 }}
+			`,
 		},
 		expectedOut: "\n\t\t\t\t\n\t\t\t\t\n\t\t\t\t\n\t\t\t\ttruefalsetrue\n\t\t\t",
 	},
@@ -3311,9 +3311,9 @@ var templateMultiFileCases = map[string]struct {
 	"Using - bad type (is a variable instead of a format type) (block)": {
 		sources: fstest.Files{
 			"index.html": `
-					{% var html = 32 %}
-					{% var _ = itea; using html %}...{% end using %}
-				`,
+				{% var html = 32 %}
+				{% var _ = itea; using html %}...{% end using %}
+			`,
 		},
 		expectedBuildErr: "html is not a type",
 	},
@@ -3322,9 +3322,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: fstest.Files{
 			"index.html": `{% import "imported.html" %}`,
 			"imported.html": `
-					{% var html = 32 %}
-					{% var _ = itea; using html %}...{% end using %}
-				`,
+				{% var html = 32 %}
+				{% var _ = itea; using html %}...{% end using %}
+			`,
 		},
 		expectedBuildErr: "html is not a type",
 	},
@@ -3332,9 +3332,9 @@ var templateMultiFileCases = map[string]struct {
 	"Using - bad type (is a type but not a format type) (block)": {
 		sources: fstest.Files{
 			"index.html": `
-					{% type html int %}
-					{% var _ = itea; using html %}...{% end using %}
-				`,
+				{% type html int %}
+				{% var _ = itea; using html %}...{% end using %}
+			`,
 		},
 		expectedBuildErr: `index.html:3:28: invalid using type html`,
 	},
@@ -3343,9 +3343,9 @@ var templateMultiFileCases = map[string]struct {
 		sources: fstest.Files{
 			"index.html": `{% import "imported.html" %}`,
 			"imported.html": `
-					{% type html int %}
-					{% var _ = itea; using html %}...{% end using %}
-				`,
+				{% type html int %}
+				{% var _ = itea; using html %}...{% end using %}
+			`,
 		},
 		expectedBuildErr: `imported.html:3:28: invalid using type html`,
 	},
@@ -3461,9 +3461,9 @@ var templateMultiFileCases = map[string]struct {
 	"Show string macro in HTML context": {
 		sources: fstest.Files{
 			"index.html": `
-				{% macro M() string %}<b>ciao</b>{% end macro %}
-				{% show M() %}
-			`,
+			{% macro M() string %}<b>ciao</b>{% end macro %}
+			{% show M() %}
+		`,
 		},
 		expectedOut: "\n\t\t\t\n\t\t\t&lt;b&gt;ciao&lt;/b&gt;\n\t\t",
 	},
@@ -3472,10 +3472,10 @@ var templateMultiFileCases = map[string]struct {
 	"Macro in extending file refers to a type defined in the same file": {
 		sources: fstest.Files{
 			"index.html": `
-				{% extends "extended.html" %}
-				{% type T int %}
-				{% macro M(T) %}{% end macro %}
-			`,
+			{% extends "extended.html" %}
+			{% type T int %}
+			{% macro M(T) %}{% end macro %}
+		`,
 			"extended.html": ``,
 		},
 	},
@@ -3633,14 +3633,14 @@ var templateMultiFileCases = map[string]struct {
 	"Cyclic extends is not allowed": {
 		sources: fstest.Files{
 			"index.html": `
-					{% extends "extended1.html" %}
-				`,
+				{% extends "extended1.html" %}
+			`,
 			"extended1.html": `
-					{% extends "extended2.html" %}
-				`,
+				{% extends "extended2.html" %}
+			`,
 			"extended2.html": `
-					{% extends "extended1.html" %}
-				`,
+				{% extends "extended1.html" %}
+			`,
 		},
 		expectedBuildErr: "file index.html\n\textends extended1.html\n\textends extended2.html\n\textends extended1.html: cycle not allowed",
 	},
@@ -3655,11 +3655,11 @@ var templateMultiFileCases = map[string]struct {
 	"https://github.com/open2b/scriggo/issues/852 (1)": {
 		sources: fstest.Files{
 			"index.html": `
-					{% import "imported.html" %}
-					{% macro M %}
-						{{ V }}
-					{% end macro %}
-				`,
+				{% import "imported.html" %}
+				{% macro M %}
+					{{ V }}
+				{% end macro %}
+			`,
 			"imported.html": `{% var V int %}`,
 		},
 		expectedOut: "\n\t\t\t",
@@ -3668,11 +3668,11 @@ var templateMultiFileCases = map[string]struct {
 	"https://github.com/open2b/scriggo/issues/852 (2)": {
 		sources: fstest.Files{
 			"index.html": `
-					{% import pkg "imported.html" %}
-					{% macro M %}
-						{{ pkg.V }}
-					{% end macro %}
-				`,
+				{% import pkg "imported.html" %}
+				{% macro M %}
+					{{ pkg.V }}
+				{% end macro %}
+			`,
 			"imported.html": `{% var V int %}`,
 		},
 		expectedOut: "\n\t\t\t",
@@ -3681,10 +3681,10 @@ var templateMultiFileCases = map[string]struct {
 	"https://github.com/open2b/scriggo/issues/852 (3)": {
 		sources: fstest.Files{
 			"index.html": `
-					{% import "imported.html" %}
-					{% ref := &V %}
-					{% _ = ref %}
-				`,
+				{% import "imported.html" %}
+				{% ref := &V %}
+				{% _ = ref %}
+			`,
 			"imported.html": `{% var V int %}`,
 		},
 		expectedOut: "\n\t\t\t",
@@ -3693,10 +3693,10 @@ var templateMultiFileCases = map[string]struct {
 	"https://github.com/open2b/scriggo/issues/852 (4)": {
 		sources: fstest.Files{
 			"index.html": `
-					{% import pkg "imported.html" %}
-					{% ref := &pkg.V %}
-					{% _ = ref %}
-				`,
+				{% import pkg "imported.html" %}
+				{% ref := &pkg.V %}
+				{% _ = ref %}
+			`,
 			"imported.html": `{% var V int %}`,
 		},
 		expectedOut: "\n\t\t\t",
@@ -3705,11 +3705,11 @@ var templateMultiFileCases = map[string]struct {
 	"https://github.com/open2b/scriggo/issues/852 (5)": {
 		sources: fstest.Files{
 			"index.html": `
-					{% import . "imported.html" %}
-					{% macro M %}
-						{{ V }}
-					{% end macro %}
-				`,
+				{% import . "imported.html" %}
+				{% macro M %}
+					{{ V }}
+				{% end macro %}
+			`,
 			"imported.html": `{% var V int %}`,
 		},
 		expectedOut: "\n\t\t\t",
@@ -3718,15 +3718,15 @@ var templateMultiFileCases = map[string]struct {
 	"https://github.com/open2b/scriggo/issues/852 (6)": {
 		sources: fstest.Files{
 			"index.html": `
-					{% import "imported.html" %}
-					{% macro M1 %}
-						{% macro M2 %}
-							{% macro M3 %}
-								{{ V }}
-							{% end macro %}
+				{% import "imported.html" %}
+				{% macro M1 %}
+					{% macro M2 %}
+						{% macro M3 %}
+							{{ V }}
 						{% end macro %}
 					{% end macro %}
-				`,
+				{% end macro %}
+			`,
 			"imported.html": `{% var V int %}`,
 		},
 		expectedOut: "\n\t\t\t",
@@ -3737,17 +3737,17 @@ var templateMultiFileCases = map[string]struct {
 		// conversion in this code before fixing #888.
 		sources: fstest.Files{
 			"index.html": `{%%
-					var s1 html     = "1"
-					var s2 css      = "2"
-					var s3 js       = "3"
-					var s4 json     = "4"
-					var s5 markdown = "5"
-					show string(s1)
-					show string(s2)
-					show string(s3)
-					show string(s4)
-					show string(s5)
-				%%}`,
+				var s1 html     = "1"
+				var s2 css      = "2"
+				var s3 js       = "3"
+				var s4 json     = "4"
+				var s5 markdown = "5"
+				show string(s1)
+				show string(s2)
+				show string(s3)
+				show string(s4)
+				show string(s5)
+			%%}`,
 		},
 		expectedOut: "12345",
 	},
@@ -3765,7 +3765,7 @@ var templateMultiFileCases = map[string]struct {
 	"For-else -- else not executed": {
 		sources: fstest.Files{
 			"index.txt": `{% var xs = []int{10, 20, 30} %}
-				{% for x in xs %}{{ x }} {% else %}NOT EXPECTED (1){% end for %}`,
+			{% for x in xs %}{{ x }} {% else %}NOT EXPECTED (1){% end for %}`,
 		},
 		expectedOut: "\n\t\t\t10 20 30 ",
 	},
@@ -3773,7 +3773,7 @@ var templateMultiFileCases = map[string]struct {
 	"For-else -- else executed": {
 		sources: fstest.Files{
 			"index.txt": `{% var xs = []int{} %}
-				{% for x in xs %}NOT EXPECTED{% else %}i'm the else block{% end for %}`,
+			{% for x in xs %}NOT EXPECTED{% else %}i'm the else block{% end for %}`,
 		},
 		expectedOut: "\n\t\t\ti'm the else block",
 	},
@@ -3781,7 +3781,7 @@ var templateMultiFileCases = map[string]struct {
 	"For-else on string -- else not executed": {
 		sources: fstest.Files{
 			"index.txt": `{% var xs = "this is a string" %}
-				{% for x in xs %}{{ x }} {% else %}NOT EXPECTED (1){% end for %}`,
+			{% for x in xs %}{{ x }} {% else %}NOT EXPECTED (1){% end for %}`,
 		},
 		expectedOut: "\n\t\t\t116 104 105 115 32 105 115 32 97 32 115 116 114 105 110 103 ",
 	},
@@ -3789,7 +3789,7 @@ var templateMultiFileCases = map[string]struct {
 	"For-else on string -- else executed": {
 		sources: fstest.Files{
 			"index.txt": `{% var xs = "" %}
-				{% for x in xs %}NOT EXPECTED{% else %}i'm the else block{% end for %}`,
+			{% for x in xs %}NOT EXPECTED{% else %}i'm the else block{% end for %}`,
 		},
 		expectedOut: "\n\t\t\ti'm the else block",
 	},
@@ -3797,7 +3797,7 @@ var templateMultiFileCases = map[string]struct {
 	"For-else -- else not executed (break)": {
 		sources: fstest.Files{
 			"index.txt": `{% var xs = []int{10, 20, 30} %}
-				{% for x in xs %}{% break %}{% else %}NOT EXPECTED (1){% end for %}`,
+			{% for x in xs %}{% break %}{% else %}NOT EXPECTED (1){% end for %}`,
 		},
 		expectedOut: "\n\t\t\t",
 	},
@@ -3805,13 +3805,13 @@ var templateMultiFileCases = map[string]struct {
 	"For-else -- else not executed (multiline statement)": {
 		sources: fstest.Files{
 			"index.txt": `{% var xs = []int{10, 20, 30} %}
-				{%%
-					for x in xs {
-						show x, " "
-					} else {
-						show "NOT EXPECTED (1)"
-					}
-				%%}`,
+			{%%
+				for x in xs {
+					show x, " "
+				} else {
+					show "NOT EXPECTED (1)"
+				}
+			%%}`,
 		},
 		expectedOut: "\n\t\t\t10 20 30 ",
 	},
@@ -3819,11 +3819,11 @@ var templateMultiFileCases = map[string]struct {
 	"For-else -- else executed (multiline statement)": {
 		sources: fstest.Files{
 			"index.txt": `{% var xs = []int{} %}
-				{%% for x in xs {
-					show "NOT EXPECTED"
-				} else {
-					show "i'm the else block"
-				} %%}`,
+			{%% for x in xs {
+				show "NOT EXPECTED"
+			} else {
+				show "i'm the else block"
+			} %%}`,
 		},
 		expectedOut: "\n\t\t\ti'm the else block",
 	},
@@ -3831,15 +3831,15 @@ var templateMultiFileCases = map[string]struct {
 	"For-else channel -- else not executed": {
 		sources: fstest.Files{
 			"index.txt": `{%%
-	            var ch = make(chan int, 1)
-	            ch <- 5
-				close(ch)
-	            for x in ch {
-	                show x
-				} else {
-					show "NOT EXPECTED"
-				}
-	            %%}`,
+            var ch = make(chan int, 1)
+            ch <- 5
+			close(ch)
+            for x in ch {
+                show x
+			} else {
+				show "NOT EXPECTED"
+			}
+            %%}`,
 		},
 		expectedOut: "5",
 	},
@@ -3847,30 +3847,30 @@ var templateMultiFileCases = map[string]struct {
 	"For-else channel -- else executed": {
 		sources: fstest.Files{
 			"index.txt": `{%%
-	            var ch = make(chan int)
-	            close(ch)
-	            for x in ch {
-	                show "NOT EXPECTED"
-				} else {
-					show "i'm the else block"
-				}
-	            %%}`,
+            var ch = make(chan int)
+            close(ch)
+            for x in ch {
+                show "NOT EXPECTED"
+			} else {
+				show "i'm the else block"
+			}
+            %%}`,
 		},
 		expectedOut: "i'm the else block",
 	},
 
 	"Key selector": {
 		sources: fstest.Files{
-			"index.txt": `{%%
-				m := map[string]interface{}{"a":6}
-				show m.a
-				m.a = 1
-				show m.a
-				n := map[interface{}]interface{}{"a":3,'a':1}
-				show n.a
-				n.a = 2
-				show n.a
-	            %%}`,
+			"index.txt": `{%% 
+			m := map[string]interface{}{"a":6}
+			show m.a
+			m.a = 1
+			show m.a
+			n := map[interface{}]interface{}{"a":3,'a':1}
+			show n.a
+			n.a = 2
+			show n.a
+            %%}`,
 		},
 		expectedOut: "6132",
 	},
@@ -3878,10 +3878,10 @@ var templateMultiFileCases = map[string]struct {
 	"Render in an distraction free markdown macro that render a text partial": {
 		sources: fstest.Files{
 			"index.md": `
-	{% extends "layout.html" %}
-	{% Article %}
-	{{ render "partial.svg" }}
-				`,
+{% extends "layout.html" %}
+{% Article %}
+{{ render "partial.svg" }}
+			`,
 			"layout.html": `{{ Article() }}`,
 			"partial.svg": `<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>`,
 		},
@@ -3916,63 +3916,6 @@ var templateMultiFileCases = map[string]struct {
 		},
 		vars:        map[string]any{"a": native.Markdown("**bold**")},
 		expectedOut: "--- start Markdown ---\n**bold**--- end Markdown ---\n",
-	},
-
-	"Recursive macro (simple case)": {
-		sources: fstest.Files{
-			"index.html": `
-			{% macro m(i int) %}
-				{{ i }}
-				{% if i > 0 %}
-					{{ m(i - 1) }}
-				{% end if %}
-			{% end macro %}
-
-			{{ m(5) }}`,
-		},
-		expectedOut: "TODO",
-	},
-
-	"Recursive macro (caso più complesso, non funziona)": {
-		sources: fstest.Files{
-			"index.html": `a{% macro m(i int) %}aaaa{{ i }}{% if i > 0 %}{{ m(i - 1) }}{% end if %}{% end macro %}b{{ m(1) }}c`,
-		},
-		expectedOut: "10",
-	},
-
-	"Not recursive macro": {
-		sources: fstest.Files{
-			"index.html": `a{% macro m(i int) %}aaaa{{ i }}{% if i > 0 %}{{ i - 1 }}{% end if %}{% end macro %}b{{ m(1) }}c`,
-		},
-		expectedOut: "10",
-	},
-
-	"Not recursive call to indirect macro (fixed with assignment in show)": {
-		sources: fstest.Files{
-			"index.html": `{% macro m() %}Hello{% end macro %}{% _ = &m %}{{ "" + m() }}`,
-		},
-		expectedOut: "Hello",
-	},
-
-	"Not recursive call to indirect macro": {
-		sources: fstest.Files{
-			"index.html": `{% macro m() %}Hello{% end macro %}{% _ = &m %}{{ m() }}`,
-		},
-		expectedOut: "Hello",
-	},
-
-	"Not recursive macro with upvars": {
-		sources: fstest.Files{
-			"index.html": `{% var x = 10 %}a{% macro m(i int) %}aaaa{{ i * x }}{% end macro %}b{{ m(42) }}c`,
-		},
-		expectedOut: "10",
-	},
-
-	"Problematic macro": {
-		sources: fstest.Files{
-			"index.html": `{% macro m(i int) %}Iterazione {{ i }}{% if i < 5 %}{{ m(i + 1) }}{% end if %}{% end macro %}{{ m(3) }}`,
-		},
-		expectedOut: "TODO",
 	},
 }
 
@@ -4085,10 +4028,6 @@ func TestMultiFileTemplate(t *testing.T) {
 				}
 				t.Fatalf("expected error %q, got %q", cas.expectedBuildErr, err)
 			}
-			// { // REVIEW: Remove from here...
-			// 	d := template.Disassemble(-1)
-			// 	t.Logf("test %q:\n%s", t.Name(), string(d))
-			// } // ...to here.
 			w := &bytes.Buffer{}
 			err = template.Run(w, cas.vars, &scriggo.RunOptions{Print: printFunc(w)})
 			if err != nil {
