@@ -803,13 +803,28 @@ func (fn *NativeFunction) Func() interface{} {
 
 // Function represents a function.
 type Function struct {
-	Pkg             string
-	Name            string
-	File            string
-	Pos             *Position // position of the function declaration.
-	Type            reflect.Type
-	Parent          *Function
-	VarRefs         []int16
+	Pkg    string
+	Name   string
+	File   string
+	Pos    *Position // position of the function declaration.
+	Type   reflect.Type
+	Parent *Function
+
+	// VarRefs refers to the non-local variables referenced in this function.
+	//
+	// If VarRefs is nil, it means that the non-local variables are the global
+	// variables passed through the env.
+	//
+	// Otherwise, for each var Ref in VarRefs:
+	//
+	// * if Ref >= 0, Ref refers to the non-local variable at index Ref of the
+	//   currently executing function
+	//
+	// * if Ref < 0, it refers to the general register -Ref of the currently
+	//   executing function, which will contain the value of that variable
+	//   (indirectly).
+	VarRefs []int16
+
 	Types           []reflect.Type
 	NumReg          [4]int8
 	FinalRegs       [][2]int8 // [indirect -> return parameter registers]
@@ -884,7 +899,7 @@ func (c *callable) Native() *NativeFunction {
 	return c.native
 }
 
-// Value returns a reflect Value of a callable, so it can be called from a
+// Value returns a reflect.Value of a callable, so it can be called from a
 // native code and passed to a native code.
 func (c *callable) Value(env *env) reflect.Value {
 	if c.value.IsValid() {
