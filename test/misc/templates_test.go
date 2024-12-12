@@ -3932,6 +3932,13 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "abaaaa1aaaa0c",
 	},
 
+	"Recursive macro (3)": {
+		sources: fstest.Files{
+			"index.html": `{% macro m(i int) %}Iteration {{ i }},{% if i < 5 %}{{ m(i + 1) }}{% end if %}{% end macro %}{{ m(0) }}`,
+		},
+		expectedOut: "Iteration 1,Iteration 2,Iteration 3,Iteration 4,Iteration 5,",
+	},
+
 	"Call to 'indirect' macro": {
 		sources: fstest.Files{
 			"index.html": `{% macro m() %}Hello{% end macro %}{% _ = &m %}{{ m() }}`,
@@ -3946,19 +3953,12 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "Hello",
 	},
 
-	// "Not recursive macro with upvars": {
-	// 	sources: fstest.Files{
-	// 		"index.html": `{% var x = 10 %}a{% macro m(i int) %}aaaa{{ i * x }}{% end macro %}b{{ m(42) }}c`,
-	// 	},
-	// 	expectedOut: "10",
-	// },
-
-	// "Problematic macro": {
-	// 	sources: fstest.Files{
-	// 		"index.html": `{% macro m(i int) %}Iterazione {{ i }}{% if i < 5 %}{{ m(i + 1) }}{% end if %}{% end macro %}{{ m(3) }}`,
-	// 	},
-	// 	expectedOut: "TODO",
-	// },
+	"Not recursive macro with upvars": {
+		sources: fstest.Files{
+			"index.html": `{% var x = 10 %}a{% macro m(i int) %}aaaa{{ i * x }}{% end macro %}b{{ m(42) }}c`,
+		},
+		expectedOut: "abaaaa420c",
+	},
 }
 
 var structWithUnexportedFields = &struct {
