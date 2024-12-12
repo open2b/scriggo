@@ -912,6 +912,7 @@ func (c *callable) Native() *NativeFunction {
 // native code and passed to a native code.
 func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 	if c.value.IsValid() {
+		panic("DEBUG PANIC 8334b7") // REVIEW: remove.
 		return c.value
 	}
 	if c.native != nil {
@@ -924,12 +925,10 @@ func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 	vars := c.vars
 	c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
 		nvm := create(env)
-		// nvm.renderer = renderer
 		if fn.Macro {
-			nvm.renderer = newRenderer(&strings.Builder{})
-		} else {
-			nvm.renderer = renderer
+			renderer = newRenderer(&strings.Builder{})
 		}
+		nvm.renderer = renderer
 		nOut := fn.Type.NumOut()
 		results := make([]reflect.Value, nOut)
 		var r = [4]int8{1, 1, 1, 1}
