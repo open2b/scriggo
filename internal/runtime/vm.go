@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -275,39 +276,40 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 
 	// Call the function without the reflect.
 	if !fn.reflectCall {
-		if asGoroutine {
-			switch f := fn.function.(type) {
-			case func(string) int:
-				go f(vm.string(1))
-			case func(string) string:
-				go f(vm.string(2))
-			case func(string, string) int:
-				go f(vm.string(1), vm.string(2))
-			case func(string, int) string:
-				go f(vm.string(2), int(vm.int(1)))
-			case func(string, string) bool:
-				go f(vm.string(1), vm.string(2))
-			default:
-				panic("unexpected")
-			}
-		} else {
-			switch f := fn.function.(type) {
-			case func(string) int:
-				vm.setInt(1, int64(f(vm.string(1))))
-			case func(string) string:
-				vm.setString(1, f(vm.string(2)))
-			case func(string, string) int:
-				vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
-			case func(string, int) string:
-				vm.setString(1, f(vm.string(2), int(vm.int(1))))
-			case func(string, string) bool:
-				vm.setBool(1, f(vm.string(1), vm.string(2)))
-			default:
-				panic("unexpected")
-			}
-		}
-		vm.fp = fp
-		return
+		panic("DEBUG PANIC df0a94") // REVIEW: remove.
+		// if asGoroutine {
+		// 	switch f := fn.function.(type) {
+		// 	case func(string) int:
+		// 		go f(vm.string(1))
+		// 	case func(string) string:
+		// 		go f(vm.string(2))
+		// 	case func(string, string) int:
+		// 		go f(vm.string(1), vm.string(2))
+		// 	case func(string, int) string:
+		// 		go f(vm.string(2), int(vm.int(1)))
+		// 	case func(string, string) bool:
+		// 		go f(vm.string(1), vm.string(2))
+		// 	default:
+		// 		panic("unexpected")
+		// 	}
+		// } else {
+		// 	switch f := fn.function.(type) {
+		// 	case func(string) int:
+		// 		vm.setInt(1, int64(f(vm.string(1))))
+		// 	case func(string) string:
+		// 		vm.setString(1, f(vm.string(2)))
+		// 	case func(string, string) int:
+		// 		vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
+		// 	case func(string, int) string:
+		// 		vm.setString(1, f(vm.string(2), int(vm.int(1))))
+		// 	case func(string, string) bool:
+		// 		vm.setBool(1, f(vm.string(1), vm.string(2)))
+		// 	default:
+		// 		panic("unexpected")
+		// 	}
+		// }
+		// vm.fp = fp
+		// return
 	}
 
 	// Call the function with reflect.
@@ -421,9 +423,16 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 		// Call the function and get the results.
 		var out []reflect.Value
 		if variadic {
+			panic("DEBUG PANIC a5544d") // REVIEW: remove.
 			out = fn.value.CallSlice(args)
 		} else {
 			out = fn.value.Call(args)
+			{ // REVIEW: Remove from here...
+				log.Printf("[DEBUG] [vm.go] len(out): %v\n", len(out)) // REVIEW: remove.
+				for _, v := range out {
+					log.Printf("[DEBUG] [vm.go] v: %v\n", v) // REVIEW: remove.
+				}
+			} // ...to here.
 		}
 		for _, arg := range out {
 			r := vm.setFromReflectValue(1, arg)
@@ -915,10 +924,10 @@ func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 	vars := c.vars
 	c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
 		nvm := create(env)
-		if fn.Macro {
-			renderer = newRenderer(&strings.Builder{})
-		}
 		nvm.renderer = renderer
+		if fn.Macro {
+			nvm.renderer = newRenderer(&strings.Builder{})
+		}
 		nOut := fn.Type.NumOut()
 		results := make([]reflect.Value, nOut)
 		var r = [4]int8{1, 1, 1, 1}
@@ -950,6 +959,9 @@ func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 				err = &fatalError{msg: msg}
 			}
 			panic(err)
+		}
+		if !fn.Macro {
+			panic("DEBUG PANIC 481e6c") // REVIEW: remove.
 		}
 		if fn.Macro {
 			b := renderer.Out().(*strings.Builder)

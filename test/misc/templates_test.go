@@ -3967,6 +3967,13 @@ var templateMultiFileCases = map[string]struct {
 	// 	},
 	// 	expectedOut: "10",
 	// },
+
+	"Problematic macro": {
+		sources: fstest.Files{
+			"index.html": `{% macro m(i int) %}Iterazione {{ i }}{% if i < 5 %}{{ m(i + 1) }}{% end if %}{% end macro %}{{ m(3) }}`,
+		},
+		expectedOut: "TODO",
+	},
 }
 
 var structWithUnexportedFields = &struct {
