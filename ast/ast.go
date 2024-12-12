@@ -815,14 +815,8 @@ type Func struct {
 	Type     *FuncType   // type.
 	Body     *Block      // body.
 	DistFree bool        // reports whether it is distraction free.
-
-	// Upvars holds the upvars of the function. This field is not set during
-	// parsing, but is instead an additional piece of information calculated by
-	// the type checker that will be used by the subsequent stages of
-	// compilation (as the emitter).
-	Upvars []Upvar
-
-	Format Format // macro format.
+	Upvars   []Upvar     // Upvars of func.
+	Format   Format      // macro format.
 }
 
 // NewFunc returns a new [Func] node.
