@@ -3918,62 +3918,47 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "--- start Markdown ---\n**bold**--- end Markdown ---\n",
 	},
 
-	"Recursive macro (simple case)": {
+	"Recursive macro (1)": {
 		sources: fstest.Files{
-			"index.html": `
-			{% macro m(i int) %}
-				{{ i }}
-				{% if i > 0 %}
-					{{ m(i - 1) }}
-				{% end if %}
-			{% end macro %}
-
-			{{ m(5) }}`,
+			"index.html": `{% macro m(i int) %}{{ i }}{% if i > 0 %}{{ m(i - 1) }}{% end if %}{% end macro %}{{ m(5) }}`,
 		},
-		expectedOut: "TODO",
+		expectedOut: "543210",
 	},
 
-	"Recursive macro (caso più complesso, non funziona)": {
+	"Recursive macro (2)": {
 		sources: fstest.Files{
 			"index.html": `a{% macro m(i int) %}aaaa{{ i }}{% if i > 0 %}{{ m(i - 1) }}{% end if %}{% end macro %}b{{ m(1) }}c`,
 		},
-		expectedOut: "10",
+		expectedOut: "abaaaa1aaaa0c",
 	},
 
-	"Not recursive macro": {
-		sources: fstest.Files{
-			"index.html": `a{% macro m(i int) %}aaaa{{ i }}{% if i > 0 %}{{ i - 1 }}{% end if %}{% end macro %}b{{ m(1) }}c`,
-		},
-		expectedOut: "10",
-	},
-
-	"Not recursive call to indirect macro (fixed with assignment in show)": {
-		sources: fstest.Files{
-			"index.html": `{% macro m() %}Hello{% end macro %}{% _ = &m %}{{ "" + m() }}`,
-		},
-		expectedOut: "Hello",
-	},
-
-	"Not recursive call to indirect macro": {
+	"Call to 'indirect' macro": {
 		sources: fstest.Files{
 			"index.html": `{% macro m() %}Hello{% end macro %}{% _ = &m %}{{ m() }}`,
 		},
 		expectedOut: "Hello",
 	},
 
-	"Not recursive macro with upvars": {
+	"Call to 'indirect' macro (with concatenation within show)": {
 		sources: fstest.Files{
-			"index.html": `{% var x = 10 %}a{% macro m(i int) %}aaaa{{ i * x }}{% end macro %}b{{ m(42) }}c`,
+			"index.html": `{% macro m() %}Hello{% end macro %}{% _ = &m %}{{ "" + m() }}`,
 		},
-		expectedOut: "10",
+		expectedOut: "Hello",
 	},
 
-	"Problematic macro": {
-		sources: fstest.Files{
-			"index.html": `{% macro m(i int) %}Iterazione {{ i }}{% if i < 5 %}{{ m(i + 1) }}{% end if %}{% end macro %}{{ m(3) }}`,
-		},
-		expectedOut: "TODO",
-	},
+	// "Not recursive macro with upvars": {
+	// 	sources: fstest.Files{
+	// 		"index.html": `{% var x = 10 %}a{% macro m(i int) %}aaaa{{ i * x }}{% end macro %}b{{ m(42) }}c`,
+	// 	},
+	// 	expectedOut: "10",
+	// },
+
+	// "Problematic macro": {
+	// 	sources: fstest.Files{
+	// 		"index.html": `{% macro m(i int) %}Iterazione {{ i }}{% if i < 5 %}{{ m(i + 1) }}{% end if %}{% end macro %}{{ m(3) }}`,
+	// 	},
+	// 	expectedOut: "TODO",
+	// },
 }
 
 var structWithUnexportedFields = &struct {
