@@ -924,9 +924,11 @@ func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 	vars := c.vars
 	c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
 		nvm := create(env)
-		nvm.renderer = renderer
+		// nvm.renderer = renderer
 		if fn.Macro {
 			nvm.renderer = newRenderer(&strings.Builder{})
+		} else {
+			nvm.renderer = renderer
 		}
 		nOut := fn.Type.NumOut()
 		results := make([]reflect.Value, nOut)
