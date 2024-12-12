@@ -812,10 +812,10 @@ type Function struct {
 
 	// VarRefs refers to the non-local variables referenced in this function.
 	//
-	// If VarRefs is nil, it means that the non-local variables are the
-	// global variables passed through the env.
+	// If VarRefs is nil, it means that the non-local variables are the global
+	// variables passed through the env.
 	//
-	// Otherwise, for each value Ref in VarRefs:
+	// Otherwise, for each var Ref in VarRefs:
 	//
 	// * if Ref >= 0, Ref refers to the non-local variable at index Ref of the
 	//   currently executing function
