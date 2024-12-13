@@ -418,15 +418,28 @@ func (em *emitter) canOptimizeShowMacro(expr ast.Expression, ctx ast.Context) bo
 	}
 
 	// If the show statement {{ M() }} refers to a macro M contained in a
-	// register indirectly, and therefore in the form of a native function in
-	// Go, the optimization is not possible because the macro call is a generic
-	// call to a native function that returns a string, and therefore the return
-	// value of that function must explicitly be written to the renderer.
+	// register indirectly or to a non local variable (the case of a recursive
+	// macro call), and therefore in the form of a native function in Go, the
+	// optimization is not possible because the macro call is a generic call to
+	// a native function that returns a string, and therefore the return value
+	// of that function must explicitly be written to the renderer.
 	if macroIdent, ok := call.Func.(*ast.Identifier); ok {
+		// Case of a macro contained in a register indirectly, for example
+		// because it is a macro whose reference is taken from somewhere and
+		// therefore must be stored as indirect.
 		if em.fb.declaredInFunc(macroIdent.Name) {
 			if reg := em.fb.scopeLookup(macroIdent.Name); reg < 0 {
 				return false
 			}
+		}
+		// Case in which the macro is contained in a non-local variable, as in
+		// the case of recursive macro calls (because we rewrite macro
+		// declarations in the type checker as variable declarations +
+		// assignment of a function literal to that variable, and therefore
+		// recursive references result in references to variables defined
+		// externally to the function).
+		if _, ok := em.varStore.nonLocalVarIndex(macroIdent); ok {
+			return false
 		}
 	}
 

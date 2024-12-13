@@ -4026,6 +4026,11 @@ var functionReturningErrorPackage = native.Package{
 
 func TestMultiFileTemplate(t *testing.T) {
 	for name, cas := range templateMultiFileCases {
+		// { // REVIEW: Remove from here...
+		// 	if name != "Recursive macro (1)" {
+		// 		continue
+		// 	}
+		// } // ...to here.
 		if cas.expectedOut != "" && cas.expectedBuildErr != "" {
 			panic("invalid test: " + name)
 		}
@@ -4063,6 +4068,10 @@ func TestMultiFileTemplate(t *testing.T) {
 				}
 				t.Fatalf("expected error %q, got %q", cas.expectedBuildErr, err)
 			}
+			// { // REVIEW: Remove from here...
+			// 	data := template.Disassemble(-1)
+			// 	t.Log(string(data))
+			// } // ...to here.
 			w := &bytes.Buffer{}
 			err = template.Run(w, cas.vars, &scriggo.RunOptions{Print: printFunc(w)})
 			if err != nil {
