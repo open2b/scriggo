@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/open2b/scriggo"
-	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/builtin"
 	"github.com/open2b/scriggo/native"
 
@@ -112,51 +111,6 @@ func serve(asm int, metrics bool) error {
 	return s.ListenAndServe()
 }
 
-func (srv *server) updateTemplateDependencies(tree *ast.Tree) error {
-
-	var treeNavigation func(*ast.Tree, bool) []string
-
-	treeNavigation = func(tree *ast.Tree, includeRoot bool) []string {
-		var dependencies []string
-		if includeRoot {
-			dependencies = []string{tree.Path}
-		}
-		for _, n := range tree.Nodes {
-			switch node := n.(type) {
-			case *ast.Show:
-				for _, e := range node.Expressions {
-					switch expr := e.(type) {
-					case *ast.Render:
-						dependencies = append(dependencies, treeNavigation(expr.Tree, true)...)
-					}
-				}
-			case *ast.Import:
-				if node.Tree != nil {
-					dependencies = append(dependencies, treeNavigation(node.Tree, true)...)
-				}
-			case *ast.Extends:
-				if node.Tree != nil {
-					dependencies = append(dependencies, treeNavigation(node.Tree, true)...)
-				}
-			default:
-			}
-		}
-		return dependencies
-	}
-
-	dependencies := treeNavigation(tree, false)
-	srv.Lock()
-	for _, dependency := range dependencies {
-		if _, ok := srv.templatesDependencies[dependency]; !ok {
-			srv.templatesDependencies[dependency] = map[string]struct{}{}
-		}
-		srv.templatesDependencies[dependency][tree.Path] = struct{}{}
-	}
-	srv.Unlock()
-
-	return nil
-}
-
 type server struct {
 	fsys        *templateFS
 	static      http.Handler
@@ -214,17 +168,17 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	srv.Unlock()
 	start := time.Now()
 	if !ok {
+		fs := newRecFS(srv.fsys)
 		opts := scriggo.BuildOptions{
 			AllowGoStmt:       true,
 			MarkdownConverter: srv.mdConverter,
 			Globals:           make(native.Declarations, len(globals)+1),
-			TreeTransformer:   srv.updateTemplateDependencies,
 		}
 		for n, v := range globals {
 			opts.Globals[n] = v
 		}
 		opts.Globals["filepath"] = strings.TrimSuffix(name, path.Ext(name))
-		template, err = scriggo.BuildTemplate(srv.fsys, name, &opts)
+		template, err = scriggo.BuildTemplate(fs, name, &opts)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				http.NotFound(w, r)
@@ -243,6 +197,12 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		buildTime = time.Since(start)
 		srv.Lock()
 		srv.templates[name] = template
+		for _, dependency := range fs.RecordedNames() {
+			if _, ok := srv.templatesDependencies[dependency]; !ok {
+				srv.templatesDependencies[dependency] = map[string]struct{}{}
+			}
+			srv.templatesDependencies[dependency][name] = struct{}{}
+		}
 		srv.Unlock()
 		start = time.Now()
 	}

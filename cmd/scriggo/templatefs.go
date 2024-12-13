@@ -7,6 +7,7 @@ package main
 import (
 	"io/fs"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 
@@ -42,7 +43,7 @@ func newTemplateFS(root string) (*templateFS, error) {
 				if !ok {
 					return
 				}
-				if event.Op&fsnotify.Write == fsnotify.Write {
+				if event.Has(fsnotify.Write) {
 					dir.changed <- strings.ReplaceAll(event.Name, "\\", "/")
 				}
 			case err, ok := <-watcher.Errors:
@@ -92,4 +93,47 @@ func (t *templateFS) watch(name string) error {
 	}
 	t.Unlock()
 	return nil
+}
+
+// recFS is a file system that reads files from a templateFS and records the
+// names of the read files. The names of the read files can be retrieved by
+// calling the RecordedNames method.
+type recFS struct {
+	*templateFS
+
+	mu    sync.Mutex
+	names []string
+}
+
+func newRecFS(fs *templateFS) *recFS {
+	return &recFS{templateFS: fs}
+}
+
+func (fs *recFS) ReadFile(name string) ([]byte, error) {
+	fs.append(name)
+	return fs.templateFS.ReadFile(name)
+}
+
+func (fs *recFS) Open(name string) (fs.File, error) {
+	fs.append(name)
+	return fs.templateFS.Open(name)
+}
+
+func (fs *recFS) RecordedNames() []string {
+	fs.mu.Lock()
+	names := fs.names
+	fs.names = nil
+	fs.mu.Unlock()
+	if names == nil {
+		names = []string{}
+	}
+	return names
+}
+
+func (fs *recFS) append(name string) {
+	fs.mu.Lock()
+	if !slices.Contains(fs.names, name) {
+		fs.names = append(fs.names, name)
+	}
+	fs.mu.Unlock()
 }
