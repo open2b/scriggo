@@ -429,7 +429,7 @@ func (em *emitter) canOptimizeShowMacro(expr ast.Expression, ctx ast.Context) bo
 		// because it is a macro whose reference is taken from somewhere and
 		// therefore must be stored as indirect.
 		if em.fb.declaredInFunc(macroIdent.Name) {
-			if reg := em.fb.scopeLookup(macroIdent.Name); reg < 0 {
+			if indirect := em.fb.scopeLookup(macroIdent.Name) < 0; indirect {
 				return false
 			}
 		}
@@ -439,7 +439,7 @@ func (em *emitter) canOptimizeShowMacro(expr ast.Expression, ctx ast.Context) bo
 		// assignment of a function literal to that variable, and therefore
 		// recursive references result in references to variables defined
 		// externally to the function).
-		if _, ok := em.varStore.nonLocalVarIndex(macroIdent); ok {
+		if _, nonLocal := em.varStore.nonLocalVarIndex(macroIdent); nonLocal {
 			return false
 		}
 	}
