@@ -3918,6 +3918,34 @@ var templateMultiFileCases = map[string]struct {
 		expectedOut: "--- start Markdown ---\n**bold**--- end Markdown ---\n",
 	},
 
+	"Recursive macro (1)": {
+		sources: fstest.Files{
+			"index.html": `{% macro m(i int) %}{{ i }}{% if i > 0 %}{{ m(i - 1) }}{% end if %}{% end macro %}{{ m(5) }}`,
+		},
+		expectedOut: "543210",
+	},
+
+	"Recursive macro (2)": {
+		sources: fstest.Files{
+			"index.html": `a{% macro m(i int) %}aaaa{{ i }}{% if i > 0 %}{{ m(i - 1) }}{% end if %}{% end macro %}b{{ m(1) }}c`,
+		},
+		expectedOut: "abaaaa1aaaa0c",
+	},
+
+	"Recursive macro (3)": {
+		sources: fstest.Files{
+			"index.html": `{% macro m(i int) %}Iteration {{ i }},{% if i < 5 %}{{ m(i + 1) }}{% end if %}{% end macro %}{{ m(1) }}`,
+		},
+		expectedOut: "Iteration 1,Iteration 2,Iteration 3,Iteration 4,Iteration 5,",
+	},
+
+	"Call to 'indirect' macro": {
+		sources: fstest.Files{
+			"index.html": `{% macro m() %}Hello{% end macro %}{% _ = &m %}{{ m() }}`,
+		},
+		expectedOut: "Hello",
+	},
+
 	"Call to 'direct' macro": {
 		sources: fstest.Files{
 			"index.html": `{% macro m() %}Hello{% end macro %}{{ m() }}`,
