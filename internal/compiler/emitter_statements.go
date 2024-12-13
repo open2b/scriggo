@@ -405,6 +405,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 // canOptimizeShowMacro reports whether expr is a call to a macro and if it
 // can be optimized if used in the show statement with context ctx.
 func (em *emitter) canOptimizeShowMacro(expr ast.Expression, ctx ast.Context) bool {
+
 	if ctx > ast.ContextMarkdown {
 		return false
 	}
@@ -452,6 +453,7 @@ func (em *emitter) canOptimizeShowMacro(expr ast.Expression, ctx ast.Context) bo
 		}
 	}
 	to := ast.Format(ctx)
+
 	return from == to || from == ast.FormatMarkdown && to == ast.FormatHTML
 }
 
