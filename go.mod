@@ -5,7 +5,7 @@ go 1.22.0
 require (
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/yuin/goldmark v1.7.8
-	golang.org/x/mod v0.21.0
+	golang.org/x/mod v0.22.0
 	golang.org/x/tools v0.25.0
 	gopkg.in/yaml.v3 v3.0.1
 )
