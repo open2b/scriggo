@@ -3917,6 +3917,34 @@ var templateMultiFileCases = map[string]struct {
 		vars:        map[string]any{"a": native.Markdown("**bold**")},
 		expectedOut: "--- start Markdown ---\n**bold**--- end Markdown ---\n",
 	},
+
+	"Recursive macro call (1)": {
+		sources: fstest.Files{
+			"index.html": `{% macro m(i int) %}{{ i }}{% if i > 0 %}{{ m(i - 1) }}{% end if %}{% end macro %}{{ m(5) }}`,
+		},
+		expectedOut: "543210",
+	},
+
+	"Recursive macro call (2)": {
+		sources: fstest.Files{
+			"index.html": `a{% macro m(i int) %}aaaa{{ i }}{% if i > 0 %}{{ m(i - 1) }}{% end if %}{% end macro %}b{{ m(1) }}c`,
+		},
+		expectedOut: "abaaaa1aaaa0c",
+	},
+
+	"Recursive macro call (3)": {
+		sources: fstest.Files{
+			"index.html": `{% macro m(i int) %}Iteration {{ i }},{% if i < 5 %}{{ m(i + 1) }}{% end if %}{% end macro %}{{ m(1) }}`,
+		},
+		expectedOut: "Iteration 1,Iteration 2,Iteration 3,Iteration 4,Iteration 5,",
+	},
+
+	"Call to a macro stored in indirect register": {
+		sources: fstest.Files{
+			"index.html": `{% macro m() %}Hello{% end macro %}{% _ = &m %}{{ m() }}`,
+		},
+		expectedOut: "Hello",
+	},
 }
 
 var structWithUnexportedFields = &struct {
