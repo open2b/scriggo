@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"os"
 	"path"
@@ -23,7 +22,6 @@ import (
 	"github.com/open2b/scriggo/builtin"
 	"github.com/open2b/scriggo/native"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
@@ -70,7 +68,7 @@ func serve(asm int, metrics bool) error {
 	go func() {
 		for {
 			select {
-			case name := <-fsys.Changed:
+			case name := <-fsys.Changed():
 				srv.Lock()
 				if _, ok := srv.templates[name]; ok {
 					delete(srv.templates, name)
@@ -311,83 +309,6 @@ func (srv *server) logf(format string, a ...interface{}) {
 	fmt.Fprintf(os.Stderr, format, a...)
 	println()
 	srv.metrics.header = true
-}
-
-// templateFS implements a file system that reads the files in a directory.
-type templateFS struct {
-	fsys    fs.FS
-	watcher *fsnotify.Watcher
-	watched map[string]bool
-	Errors  chan error
-
-	sync.Mutex
-	Changed chan string
-}
-
-func newTemplateFS(root string) (*templateFS, error) {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return nil, err
-	}
-	dir := &templateFS{
-		fsys:    os.DirFS(root),
-		watcher: watcher,
-		watched: map[string]bool{},
-		Changed: make(chan string),
-	}
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
-				}
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					dir.Changed <- strings.ReplaceAll(event.Name, "\\", "/")
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				dir.Errors <- err
-			}
-		}
-	}()
-	return dir, nil
-}
-
-func (t *templateFS) Open(name string) (fs.File, error) {
-	err := t.watch(name)
-	if err != nil {
-		return nil, err
-	}
-	return t.fsys.Open(name)
-}
-
-func (t *templateFS) ReadFile(name string) ([]byte, error) {
-	err := t.watch(name)
-	if err != nil {
-		return nil, err
-	}
-	return fs.ReadFile(t.fsys, name)
-}
-
-func (t *templateFS) Close() error {
-	return t.watcher.Close()
-}
-
-func (t *templateFS) watch(name string) error {
-	t.Lock()
-	if !t.watched[name] {
-		err := t.watcher.Add(name)
-		if err != nil {
-			t.Unlock()
-			return err
-		}
-		t.watched[name] = true
-	}
-	t.Unlock()
-	return nil
 }
 
 var globals = native.Declarations{
