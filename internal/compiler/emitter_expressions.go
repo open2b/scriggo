@@ -6,7 +6,6 @@ package compiler
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"reflect"
 
@@ -225,8 +224,6 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 	case *ast.Identifier:
 
-		log.Print("[DEBUG] emitter_expressions.go: DEBUG POINT 4fb0a6") // REVIEW: remove.
-
 		// An identifier evaluation cannot have side effects.
 		if reg == 0 {
 			return reg, false
@@ -235,16 +232,13 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		typ := ti.Type
 
 		if em.fb.declaredInFunc(expr.Name) {
-			log.Print("[DEBUG] emitter_expressions.go: DEBUG POINT a69f39") // REVIEW: remove.
 			ident := em.fb.scopeLookup(expr.Name)
-			log.Printf("[DEBUG] [emitter_expressions.go] ident: %v\n", ident) // REVIEW: remove.
 			em.changeRegister(false, ident, reg, typ, dstType)
 			return reg, false
 		}
 
 		// Scriggo variables and closure variables.
 		if index, ok := em.varStore.nonLocalVarIndex(expr); ok {
-			log.Print("[DEBUG] emitter_expressions.go: DEBUG POINT e64483") // REVIEW: remove.
 			if canEmitDirectly(typ.Kind(), dstType.Kind()) {
 				em.fb.emitGetVar(index, reg, dstType.Kind())
 				return reg, false

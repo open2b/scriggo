@@ -417,10 +417,14 @@ func (em *emitter) canOptimizeShowMacro(expr ast.Expression, ctx ast.Context) bo
 		return false
 	}
 
-	if ident, ok := call.Func.(*ast.Identifier); ok {
-		if em.fb.declaredInFunc(ident.Name) {
-			reg := em.fb.scopeLookup(ident.Name)
-			if reg < 0 {
+	// If the show statement {{ M() }} refers to a macro M contained in a
+	// register indirectly, and therefore in the form of a native function in
+	// Go, the optimization is not possible because the macro call is a generic
+	// call to a native function that returns a string, and therefore the return
+	// value of that function must explicitly be written to the renderer.
+	if macroIdent, ok := call.Func.(*ast.Identifier); ok {
+		if em.fb.declaredInFunc(macroIdent.Name) {
+			if reg := em.fb.scopeLookup(macroIdent.Name); reg < 0 {
 				return false
 			}
 		}
