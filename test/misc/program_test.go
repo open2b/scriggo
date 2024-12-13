@@ -412,9 +412,9 @@ func TestImportPackageName(t *testing.T) {
 				t.Fatalf("unexpected error: %q", err)
 			}
 		} else {
-			if err, ok := err.(*scriggo.BuildError); ok {
-				if cas.msg != err.Message() {
-					t.Fatalf("expected error %q, got error %q", cas.msg, err.Message())
+			if err2, ok := err.(*scriggo.BuildError); ok {
+				if cas.msg != err2.Message() {
+					t.Fatalf("expected error %q, got error %q", cas.msg, err2.Message())
 				}
 			} else {
 				t.Fatalf("expected a *scriggo.BuildError, got %T", err)
@@ -438,9 +438,9 @@ func TestImportPackageName2(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error, got no error")
 	}
-	if err, ok := err.(*scriggo.BuildError); ok {
+	if err2, ok := err.(*scriggo.BuildError); ok {
 		const expected = "imported and not used: \"a.b/p\""
-		if msg := err.Message(); msg == "" {
+		if msg := err2.Message(); msg == "" {
 			t.Fatalf("expected error %q, got no error", expected)
 		} else if msg != expected {
 			t.Fatalf("expected error %q, got error %q", expected, msg)
