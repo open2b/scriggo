@@ -30,12 +30,12 @@ import (
 // directory. metrics reports whether print the metrics. If asm is -1 or
 // greater, serve prints the assembly code of the served file and the value of
 // asm determines the maximum length, in runes, of disassembled Text
-// instructions
+// instructions. If disableLiveReload is true, it disables LiveReload.
 //
 //	asm > 0: at most asm runes; leading and trailing white space are removed
 //	asm == 0: no text
 //	asm == -1: all text
-func serve(asm int, metrics bool) error {
+func serve(asm int, metrics bool, disableLiveReload bool) error {
 
 	fsys, err := newTemplateFS(".")
 	if err != nil {
@@ -59,6 +59,9 @@ func serve(asm int, metrics bool) error {
 		templatesDependencies: map[string]map[string]struct{}{},
 		asm:                   asm,
 	}
+	if !disableLiveReload {
+		srv.liveReloads = map[*liveReload]struct{}{}
+	}
 	if metrics {
 		srv.metrics.active = true
 		srv.metrics.header = true
@@ -68,24 +71,32 @@ func serve(asm int, metrics bool) error {
 			select {
 			case name := <-fsys.Changed():
 				srv.Lock()
+				invalidated := map[string]bool{}
 				if _, ok := srv.templates[name]; ok {
 					delete(srv.templates, name)
 					for _, dependents := range srv.templatesDependencies {
 						delete(dependents, name)
 					}
+					invalidated[name] = true
 				} else {
-					var invalidatedFiles []string
 					for dependency, dependents := range srv.templatesDependencies {
 						if dependency == name {
 							for d := range dependents {
 								delete(srv.templates, d)
-								invalidatedFiles = append(invalidatedFiles, d)
+								invalidated[d] = true
 							}
 						}
 					}
-					for _, invalidated := range invalidatedFiles {
+					for invalidated := range invalidated {
 						for _, dependents := range srv.templatesDependencies {
 							delete(dependents, invalidated)
+						}
+					}
+				}
+				if len(invalidated) > 0 {
+					for r := range srv.liveReloads {
+						if invalidated[r.file+".html"] || invalidated[r.file+".md"] {
+							go func() { r.reload() }()
 						}
 					}
 				}
@@ -120,6 +131,7 @@ type server struct {
 	sync.Mutex
 	templates             map[string]*scriggo.Template
 	templatesDependencies map[string]map[string]struct{}
+	liveReloads           map[*liveReload]struct{}
 	metrics               struct {
 		active bool
 		header bool
@@ -127,6 +139,75 @@ type server struct {
 }
 
 func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Accept") == "text/event-stream" {
+		srv.serveLiveReload(w, r)
+		return
+	}
+	srv.serveTemplate(w, r)
+}
+
+type liveReload struct {
+	file string // file path without extension
+
+	sync.Mutex
+	w io.Writer
+}
+
+var reload = []byte("data: reload\n\n")
+
+func (lr *liveReload) reload() {
+	lr.Lock()
+	_, _ = lr.w.Write(reload)
+	lr.w.(http.Flusher).Flush()
+	lr.Unlock()
+}
+
+func (srv *server) serveLiveReload(w http.ResponseWriter, r *http.Request) {
+
+	if _, ok := w.(http.Flusher); !ok || srv.liveReloads == nil {
+		http.Error(w, "Live reload is not supported", http.StatusUnsupportedMediaType)
+		return
+	}
+
+	file := r.URL.Path[1:]
+	if file == "" || strings.HasSuffix(file, "/") {
+		file += "index"
+	}
+	if ext := path.Ext(file); ext != "" {
+		file = file[:len(file)-len(ext)]
+	}
+
+	lr := &liveReload{
+		file: file,
+		w:    w,
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.WriteHeader(200)
+
+	srv.Lock()
+	srv.liveReloads[lr] = struct{}{}
+	_, ok := srv.templates[file+".html"]
+	if !ok {
+		_, ok = srv.templates[file+".md"]
+	}
+	srv.Unlock()
+
+	if !ok {
+		lr.reload()
+	}
+
+	<-r.Context().Done()
+
+	srv.Lock()
+	delete(srv.liveReloads, lr)
+	srv.Unlock()
+
+}
+
+func (srv *server) serveTemplate(w http.ResponseWriter, r *http.Request) {
 
 	name := r.URL.Path[1:]
 	if name == "" || strings.HasSuffix(name, "/") {
@@ -221,10 +302,32 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	runTime := time.Since(start)
 
+	s := b.Bytes()
+	i := indexEndBody(s)
+	if i == -1 {
+		i = len(s)
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, err = b.WriteTo(w)
-	if err != nil {
-		srv.logf("%s", err)
+	if srv.liveReloads == nil {
+		_, _ = w.Write(s)
+	} else {
+		_, _ = w.Write(s[:i])
+		_, _ = io.WriteString(w, `<script>
+	// Scriggo 	LiveReload.
+	(function () {
+		if (typeof EventSource !== 'function') return;
+		const es = new EventSource('`)
+		jsStringEscape(w, r.URL.Path)
+		_, _ = io.WriteString(w, `');
+		es.onmessage = function(e) {
+			if (e.data === 'reload') {
+				es.close();
+				location.reload();
+			}
+		};
+	})();
+</script>`)
+		_, _ = w.Write(s[i:])
 	}
 
 	if srv.metrics.active {
@@ -268,4 +371,55 @@ func (srv *server) logf(format string, a ...interface{}) {
 	fmt.Fprintf(os.Stderr, format, a...)
 	println()
 	srv.metrics.header = true
+}
+
+// indexEndBody locates the closing "</body>" tag in s, ignoring case and
+// permitting spaces before '>'. If the tag is found, the function returns its
+// index, unless the tag's line contains only whitespaces before it; in that
+// case, it returns the index of the newline ('\n') at the start of the line.
+// If no closing tag is found, it returns -1.
+func indexEndBody(s []byte) int {
+	for {
+		i := bytes.LastIndex(s, []byte("</"))
+		if i == -1 {
+			return -1
+		}
+		if isBodyTag(s[i+2:]) {
+			for j := i - 1; j >= 0; j-- {
+				switch s[j] {
+				case ' ', '\t', '\r':
+					continue
+				case '\n':
+					if j > 0 && s[j-1] == '\r' {
+						j--
+					}
+					return j
+				}
+				break
+			}
+			return i
+		}
+		s = s[:i]
+	}
+}
+
+// isBodyTag checks if s starts with "body>", ignoring case and allowing spaces
+// before '>'.
+func isBodyTag(s []byte) bool {
+	if len(s) < 5 {
+		return false
+	}
+	if !bytes.EqualFold(s[:4], []byte("body")) {
+		return false
+	}
+	for i := 4; i < len(s); i++ {
+		switch s[i] {
+		case '>':
+			return true
+		case ' ', '\t', '\n', '\r':
+			continue
+		}
+		break
+	}
+	return false
 }
