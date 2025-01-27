@@ -586,10 +586,7 @@ func TestIssue967(t *testing.T) {
 		import "com/interop"
 
 		func main() {
-			p := interop.GetPrinter()
-			p.Print(interop.Value)  // this does not work
-			//pp := p.Print         // this works
-			//pp(interop.Value)
+			interop.GetPrinter().Print(interop.Value)
 		}`
 		fsys := fstest.Files{"main.go": main}
 		program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
