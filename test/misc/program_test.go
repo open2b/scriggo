@@ -5,7 +5,9 @@
 package misc
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"io/fs"
 	"reflect"
 	"strings"
@@ -551,4 +553,60 @@ func TestIssue855(t *testing.T) {
 	if gotErr != expectedErr {
 		t.Fatalf("expected error %q, got %q", expectedErr, gotErr)
 	}
+}
+
+var printBuf bytes.Buffer
+
+type PrintSomething struct{}
+
+func (t *PrintSomething) Print(v any) {
+	fmt.Fprintf(&printBuf, "%v (%T)", v, v)
+}
+
+type IPrinter interface {
+	Print(any)
+}
+
+// TestIssue967 executes a test the issue
+// https://github.com/open2b/scriggo/issues/967.
+func TestIssue967(t *testing.T) {
+	t.Run("Add right position to 'imported and not used' errors", func(t *testing.T) {
+		packages := native.Packages{
+			"com/interop": native.Package{
+				Name: "interop",
+				Declarations: native.Declarations{
+					"GetPrinter": func() IPrinter { return &PrintSomething{} },
+					"Value":      15,
+				},
+			},
+		}
+		main := `
+		package main
+
+		import "com/interop"
+
+		func main() {
+			p := interop.GetPrinter()
+			p.Print(interop.Value)  // this does not work
+			//pp := p.Print         // this works
+			//pp(interop.Value)
+		}`
+		fsys := fstest.Files{"main.go": main}
+		program, err := scriggo.Build(fsys, &scriggo.BuildOptions{Packages: packages})
+		if err != nil {
+			t.Fatalf("unexpected build error: %s ", err)
+		}
+		buf, err := program.Disassemble("main")
+		if err != nil {
+			t.Fatalf("unexpected disasseble error: %s ", err)
+		}
+		fmt.Println(string(buf))
+		err = program.Run(nil)
+		if err != nil {
+			t.Fatalf("unexpected run error: %s ", err)
+		}
+		if got := printBuf.String(); got != "15" {
+			t.Fatalf(`expected %q, got "15 (int)"`, got)
+		}
+	})
 }
