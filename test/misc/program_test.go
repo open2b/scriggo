@@ -555,6 +555,16 @@ func TestIssue855(t *testing.T) {
 	}
 }
 
+type ICopier interface {
+	CopyFrom(v Container)
+}
+
+type ValueHold struct{}
+
+func (t *ValueHold) CopyFrom(v Container) {}
+
+type Container struct{}
+
 var printBuf bytes.Buffer
 
 type PrintSomething struct{}
@@ -570,7 +580,36 @@ type IPrinter interface {
 // TestIssue967 executes a test the issue
 // https://github.com/open2b/scriggo/issues/967.
 func TestIssue967(t *testing.T) {
-	t.Run("Add right position to 'imported and not used' errors", func(t *testing.T) {
+	t.Run("Case 1", func(t *testing.T) {
+		src := `
+		package main
+	
+		import "com/interop"
+	
+		func main() {
+			interop.GetHolder().CopyFrom(interop.Container{})
+		}
+	
+		`
+		prog, err := scriggo.Build(scriggo.Files{"main.go": []byte(src)}, &scriggo.BuildOptions{
+			Packages: native.Packages{
+				"com/interop": native.Package{
+					Name: "interop",
+					Declarations: native.Declarations{
+						"GetHolder": func() ICopier { return &ValueHold{} },
+						"Container": reflect.TypeOf(Container{}),
+					},
+				},
+			},
+		})
+		if err != nil {
+			t.Fatalf("unexpected build error: %s", err)
+		}
+		if err := prog.Run(&scriggo.RunOptions{}); err != nil {
+			t.Fatalf("unexpected run error: %s", err)
+		}
+	})
+	t.Run("Case 2", func(t *testing.T) {
 		packages := native.Packages{
 			"com/interop": native.Package{
 				Name: "interop",
