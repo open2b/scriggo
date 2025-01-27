@@ -605,8 +605,9 @@ func TestIssue967(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected run error: %s ", err)
 		}
-		if got := printBuf.String(); got != "15" {
-			t.Fatalf(`expected %q, got "15 (int)"`, got)
+		const expected = "15 (int)"
+		if got := printBuf.String(); got != expected {
+			t.Fatalf(`expected %q, got %q`, expected, got)
 		}
 	})
 }
