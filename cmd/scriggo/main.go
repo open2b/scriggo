@@ -114,6 +114,9 @@ var commandsHelp = map[string]func(){
 			`The report includes useful system information.`,
 		)
 	},
+	"build": func() {
+		txtToHelp(helpBuild)
+	},
 	"import": func() {
 		txtToHelp(helpImport)
 	},
@@ -153,6 +156,25 @@ var commands = map[string]func(){
 	"bug": func() {
 		flag.Usage = commandsHelp["bug"]
 		fmt.Fprintf(os.Stdout, "If you encountered an issue, report it at:\n\n\thttps://github.com/open2b/scriggo/issues/new\n\n")
+		exit(0)
+	},
+	"build": func() {
+		flag.Usage = commandsHelp["build"]
+		o := flag.String("o", "", "write the resulting files to the named directory instead of './public'.")
+		flag.Parse()
+		var dir string
+		switch n := len(flag.Args()); n {
+		case 0:
+		case 1:
+			dir = flag.Arg(0)
+		default:
+			flag.Usage()
+			exitError(`bad number of arguments`)
+		}
+		err := build(dir, *o)
+		if err != nil {
+			exitError("%s", err)
+		}
 		exit(0)
 	},
 	"init": func() {
