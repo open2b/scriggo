@@ -80,6 +80,7 @@ func build(dir, o string) error {
 	}
 
 	srcFS := os.DirFS(srcDir)
+	outputSources := map[string]string{}
 
 	dstBase := filepath.Base(dstDir)
 	publicBase := filepath.Base(publicDir)
@@ -126,6 +127,11 @@ func build(dir, o string) error {
 			fallthrough
 		case ".md":
 			fpath := strings.TrimSuffix(name, ext)
+			// Reject multiple templates that would render to the same HTML file.
+			if prev, ok := outputSources[fpath]; ok {
+				return fmt.Errorf("scriggo: templates %q and %q both render to %q", prev, name, fpath+".html")
+			}
+			outputSources[fpath] = name
 			buildOptions.Globals["filepath"] = fpath
 			template, err := scriggo.BuildTemplate(srcFS, name, buildOptions)
 			if err != nil {
