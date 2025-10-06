@@ -143,14 +143,15 @@ func build(dir, o string) error {
 				return err
 			}
 			err = template.Run(fi, nil, nil)
-			if err == nil {
-				err = fi.Close()
+			if errCode := fi.Close(); errCode != nil && err == nil {
+				err = errCode
 			}
 		default:
 			src, err := srcFS.Open(name)
 			if err != nil {
 				return err
 			}
+			defer src.Close()
 			name := filepath.Join(dstDir, name)
 			err = os.MkdirAll(filepath.Dir(name), 0700)
 			if err != nil {
@@ -161,9 +162,8 @@ func build(dir, o string) error {
 				return err
 			}
 			_, err = io.Copy(dst, src)
-			if err == nil {
-				_ = src.Close()
-				err = dst.Close()
+			if errClose := dst.Close(); errClose != nil && err == nil {
+				err = errClose
 			}
 		}
 		return err
