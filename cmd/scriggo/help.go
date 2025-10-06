@@ -53,6 +53,8 @@ files. If a directory 'dir' is specified, the template rooted at that directory
 is built instead of the current directory.
 
 Non-template files, such as CSS and JavaScript, are copied as-is.
+Directories whose names start with an underscore (_), and files or directories
+whose names start with a dot (.), are skipped.
 
 For example:
 
