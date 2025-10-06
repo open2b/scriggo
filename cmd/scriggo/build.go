@@ -85,18 +85,18 @@ func build(dir, o string) error {
 	dstBase := filepath.Base(dstDir)
 	publicBase := filepath.Base(publicDir)
 
-	err = fs.WalkDir(srcFS, ".", func(name string, d fs.DirEntry, err error) error {
+	err = fs.WalkDir(srcFS, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if name[0] == '.' {
+		if path[0] == '.' {
 			return nil
 		}
 		if d.IsDir() {
 			// If it is a directory with the same base name as the public directory name,
 			// skip it if it is effectively the public directory. It is considered the public
 			// directory if the corresponding destination temporary directory also exists.
-			if name == publicBase {
+			if path == publicBase {
 				st, err := srcFS.(fs.StatFS).Stat(dstBase)
 				if !errors.Is(err, fs.ErrNotExist) {
 					if err != nil {
@@ -108,31 +108,31 @@ func build(dir, o string) error {
 				}
 			}
 			// If it is the destination temporary directory, skip it.
-			if name == dstBase {
+			if path == dstBase {
 				return fs.SkipAll
 			}
 			// Skip directories starting with an underscore.
-			if strings.HasPrefix(filepath.Base(name), "_") {
+			if strings.HasPrefix(filepath.Base(path), "_") {
 				return fs.SkipDir
 			}
-			return os.MkdirAll(filepath.Join(dstDir, name), 0700)
+			return os.MkdirAll(filepath.Join(dstDir, path), 0700)
 		}
-		ext := filepath.Ext(name)
+		ext := filepath.Ext(path)
 		switch ext {
 		case ".md", ".html":
-			fpath := strings.TrimSuffix(name, ext)
+			fpath := strings.TrimSuffix(path, ext)
 			// Reject multiple templates that would render to the same HTML file.
 			if prev, ok := outputSources[fpath]; ok {
-				return fmt.Errorf("scriggo: templates %q and %q both render to %q", prev, name, fpath+".html")
+				return fmt.Errorf("scriggo: templates %q and %q both render to %q", prev, path, fpath+".html")
 			}
-			outputSources[fpath] = name
+			outputSources[fpath] = path
 			buildOptions.Globals["filepath"] = fpath
-			template, err := scriggo.BuildTemplate(srcFS, name, buildOptions)
+			template, err := scriggo.BuildTemplate(srcFS, path, buildOptions)
 			if err != nil {
 				return err
 			}
-			name := filepath.Join(dstDir, fpath) + ".html"
-			fi, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE, 0600)
+			path := filepath.Join(dstDir, fpath) + ".html"
+			fi, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, 0600)
 			if err != nil {
 				return err
 			}
@@ -141,17 +141,17 @@ func build(dir, o string) error {
 				err = errCode
 			}
 		default:
-			src, err := srcFS.Open(name)
+			src, err := srcFS.Open(path)
 			if err != nil {
 				return err
 			}
 			defer src.Close()
-			name := filepath.Join(dstDir, name)
-			err = os.MkdirAll(filepath.Dir(name), 0700)
+			path := filepath.Join(dstDir, path)
+			err = os.MkdirAll(filepath.Dir(path), 0700)
 			if err != nil {
 				return err
 			}
-			dst, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE, 0600)
+			dst, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, 0600)
 			if err != nil {
 				return err
 			}
