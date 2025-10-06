@@ -435,5 +435,5 @@ func isGeneralInterface(obj types.Object) bool {
 // generic type declaration.
 func isGenericType(obj types.Object) bool {
 	tm, ok := obj.(*types.TypeName)
-	return ok && tm.Type().(*types.Named).TypeParams() != nil
+	return ok && types.Unalias(tm.Type()).(*types.Named).TypeParams() != nil
 }

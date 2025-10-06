@@ -53,7 +53,7 @@ func (err *BuildError) Message() string {
 // ExitError represents an exit from an execution with a non-zero status code.
 // It may wrap the error that caused the exit.
 //
-// An ExitError is conventionally passed to the Stop method of native.Env so
+// An ExitError is conventionally passed to the Stop method of [native.Env so
 // that the error code can be used as the process exit code.
 type ExitError struct {
 	Code int
@@ -87,7 +87,7 @@ type PanicError struct {
 
 // Error returns all currently active panics as a string.
 //
-// To print only the message, use the String method instead.
+// To print only the message, use the [PanicError.String] method instead.
 func (p *PanicError) Error() string {
 	return p.p.Error()
 }

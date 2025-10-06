@@ -254,7 +254,7 @@ func (p *Position) WithEnd(end int) *Position {
 }
 
 // Operator represents an operator expression. It is implemented by the
-// UnaryOperator and BinaryOperator nodes.
+// [UnaryOperator] and [BinaryOperator] nodes.
 type Operator interface {
 	Expression
 	Operator() OperatorType
@@ -321,8 +321,8 @@ func StringWithParenthesis(expr Expression) string {
 	return strings.Repeat("(", n) + s + strings.Repeat(")", n)
 }
 
-// Cut indicates, in a Text node, how many bytes should be cut from the left
-// and the right of the text before rendering the Text node.
+// Cut indicates, in a [Text] node, how many bytes should be cut from the left
+// and the right of the text before rendering the [Text] node.
 type Cut struct {
 	Left  int
 	Right int
@@ -336,7 +336,7 @@ type ArrayType struct {
 	ElementType Expression // element type.
 }
 
-// NewArrayType returns a new ArrayType node.
+// NewArrayType returns a new [ArrayType] node.
 func NewArrayType(pos *Position, len Expression, elementType Expression) *ArrayType {
 	return &ArrayType{&expression{}, pos, len, elementType}
 }
@@ -361,7 +361,7 @@ type Assignment struct {
 	Rhs       []Expression   // assigned values (nil for increment and decrement).
 }
 
-// NewAssignment returns a new Assignment node.
+// NewAssignment returns a new [Assignment] node.
 func NewAssignment(pos *Position, lhs []Expression, typ AssignmentType, rhs []Expression) *Assignment {
 	return &Assignment{pos, lhs, typ, rhs}
 }
@@ -415,7 +415,7 @@ type BasicLiteral struct {
 	Value     string      // value.
 }
 
-// NewBasicLiteral returns a new BasicLiteral node.
+// NewBasicLiteral returns a new [BasicLiteral] node.
 func NewBasicLiteral(pos *Position, typ LiteralType, value string) *BasicLiteral {
 	return &BasicLiteral{expression{}, pos, typ, value}
 }
@@ -487,7 +487,7 @@ type Block struct {
 	Nodes []Node
 }
 
-// NewBlock returns a new block statement.
+// NewBlock returns a new [Block] node.
 func NewBlock(pos *Position, nodes []Node) *Block {
 	return &Block{pos, nodes}
 }
@@ -503,7 +503,7 @@ type Break struct {
 	Label     *Identifier // label.
 }
 
-// NewBreak returns a new Break node.
+// NewBreak returns a new [Break] node.
 func NewBreak(pos *Position, label *Identifier) *Break {
 	return &Break{pos, label}
 }
@@ -523,7 +523,7 @@ type Call struct {
 	}
 }
 
-// NewCall returns a new Call node.
+// NewCall returns a new [Call] node.
 func NewCall(pos *Position, fun Expression, args []Expression, isVariadic bool) *Call {
 	return &Call{expression: &expression{}, Position: pos, Func: fun, Args: args, IsVariadic: isVariadic}
 }
@@ -564,7 +564,7 @@ type Case struct {
 	Body        []Node
 }
 
-// NewCase returns a new Case node.
+// NewCase returns a new [Case] node.
 func NewCase(pos *Position, expressions []Expression, body []Node) *Case {
 	return &Case{pos, expressions, body}
 }
@@ -577,7 +577,7 @@ type ChanType struct {
 	ElementType Expression    // type of chan elements.
 }
 
-// NewChanType returns a new ChanType node.
+// NewChanType returns a new [ChanType] node.
 func NewChanType(pos *Position, direction ChanDirection, elementType Expression) *ChanType {
 	return &ChanType{&expression{}, pos, direction, elementType}
 }
@@ -601,7 +601,7 @@ type Comment struct {
 	Text      string // comment text.
 }
 
-// NewComment returns a new Comment node.
+// NewComment returns a new [Comment] node.
 func NewComment(pos *Position, text string) *Comment {
 	return &Comment{pos, text}
 }
@@ -648,7 +648,7 @@ type Const struct {
 	Index     int           // index of the declaration in the constant declaration group or 0 if not in a group.
 }
 
-// NewConst returns a new Const node.
+// NewConst returns a new [Const] node.
 func NewConst(pos *Position, lhs []*Identifier, typ Expression, rhs []Expression, index int) *Const {
 	return &Const{pos, lhs, typ, rhs, index}
 }
@@ -659,7 +659,7 @@ type Continue struct {
 	Label     *Identifier // label.
 }
 
-// NewContinue returns a new Continue node.
+// NewContinue returns a new [Continue] node.
 func NewContinue(pos *Position, label *Identifier) *Continue {
 	return &Continue{pos, label}
 }
@@ -672,7 +672,7 @@ type Default struct {
 	Expr2     Expression // right hand expression.
 }
 
-// NewDefault returns a new Default node.
+// NewDefault returns a new [Default] node.
 func NewDefault(pos *Position, expr1, expr2 Expression) *Default {
 	return &Default{Position: pos, Expr1: expr1, Expr2: expr2}
 }
@@ -688,7 +688,7 @@ type Defer struct {
 	Call      Expression // function or method call (should be a Call node).
 }
 
-// NewDefer returns a new Defer node.
+// NewDefer returns a new [Defer] node.
 func NewDefer(pos *Position, call Expression) *Defer {
 	return &Defer{pos, call}
 }
@@ -706,7 +706,7 @@ type Extends struct {
 	Tree      *Tree  // expanded tree of extends.
 }
 
-// NewExtends returns a new Extends node.
+// NewExtends returns a new [Extends] node.
 func NewExtends(pos *Position, path string, format Format) *Extends {
 	return &Extends{Position: pos, Path: path, Format: format}
 }
@@ -721,7 +721,7 @@ type Fallthrough struct {
 	*Position
 }
 
-// NewFallthrough returns a new Fallthrough node.
+// NewFallthrough returns a new [Fallthrough] node.
 func NewFallthrough(pos *Position) *Fallthrough {
 	return &Fallthrough{pos}
 }
@@ -735,7 +735,7 @@ type Field struct {
 	Tag    string
 }
 
-// NewField returns a new Field node.
+// NewField returns a new [Field] node.
 func NewField(idents []*Identifier, typ Expression, tag string) *Field {
 	return &Field{idents, typ, tag}
 }
@@ -766,7 +766,7 @@ type For struct {
 	Body      []Node     // nodes of the body.
 }
 
-// NewFor returns a new For node.
+// NewFor returns a new [For] node.
 func NewFor(pos *Position, init Node, condition Expression, post Node, body []Node) *For {
 	if body == nil {
 		body = []Node{}
@@ -783,7 +783,7 @@ type ForIn struct {
 	Else      *Block      // nodes to run if the body is not executed.
 }
 
-// NewForIn represents a new ForIn node.
+// NewForIn represents a new [ForIn] node.
 func NewForIn(pos *Position, ident *Identifier, expr Expression, body []Node, els *Block) *ForIn {
 	if body == nil {
 		body = []Node{}
@@ -799,7 +799,7 @@ type ForRange struct {
 	Else       *Block      // nodes to run if the body is not executed.
 }
 
-// NewForRange returns a new ForRange node.
+// NewForRange returns a new [ForRange] node.
 func NewForRange(pos *Position, assignment *Assignment, body []Node, els *Block) *ForRange {
 	if body == nil {
 		body = []Node{}
@@ -819,7 +819,7 @@ type Func struct {
 	Format   Format      // macro format.
 }
 
-// NewFunc returns a new Func node.
+// NewFunc returns a new [Func] node.
 func NewFunc(pos *Position, name *Identifier, typ *FuncType, body *Block, distFree bool, format Format) *Func {
 	return &Func{expression{}, pos, name, typ, body, distFree, nil, format}
 }
@@ -846,7 +846,7 @@ type FuncType struct {
 	Reflect    reflect.Type // reflect type.
 }
 
-// NewFuncType returns a new FuncType node.
+// NewFuncType returns a new [FuncType] node.
 func NewFuncType(pos *Position, macro bool, parameters []*Parameter, result []*Parameter, isVariadic bool) *FuncType {
 	return &FuncType{expression{}, pos, macro, parameters, result, isVariadic, nil}
 }
@@ -887,7 +887,7 @@ type Go struct {
 	Call      Expression // function or method call (should be a Call node).
 }
 
-// NewGo returns a new Go node.
+// NewGo returns a new [Go] node.
 func NewGo(pos *Position, call Expression) *Go {
 	return &Go{pos, call}
 }
@@ -903,7 +903,7 @@ type Goto struct {
 	Label     *Identifier // label.
 }
 
-// NewGoto returns a new Goto node.
+// NewGoto returns a new [Goto] node.
 func NewGoto(pos *Position, label *Identifier) *Goto {
 	return &Goto{pos, label}
 }
@@ -920,7 +920,7 @@ type Identifier struct {
 	Name      string // name.
 }
 
-// NewIdentifier returns a new Identifier node.
+// NewIdentifier returns a new [Identifier] node.
 func NewIdentifier(pos *Position, name string) *Identifier {
 	return &Identifier{expression{}, pos, name}
 }
@@ -942,7 +942,7 @@ type If struct {
 	Else      Node       // nodes to run if the expression is evaluated to false. Can be Block or If.
 }
 
-// NewIf returns a new If node.
+// NewIf returns a new [If] node.
 func NewIf(pos *Position, init Node, cond Expression, then *Block, els Node) *If {
 	if then == nil {
 		then = NewBlock(nil, []Node{})
@@ -959,7 +959,7 @@ type Import struct {
 	Tree      *Tree         // expanded tree of import.
 }
 
-// NewImport returns a new Import node.
+// NewImport returns a new [Import] node.
 func NewImport(pos *Position, ident *Identifier, path string, forIdents []*Identifier) *Import {
 	return &Import{Position: pos, Ident: ident, Path: path, For: forIdents}
 }
@@ -1009,7 +1009,7 @@ type Interface struct {
 	*Position // position in the source.
 }
 
-// NewInterface returns a new Interface node.
+// NewInterface returns a new [Interface] node.
 func NewInterface(pos *Position) *Interface {
 	return &Interface{&expression{}, pos}
 }
@@ -1040,7 +1040,7 @@ type Label struct {
 	Statement Node        // statement.
 }
 
-// NewLabel returns a new Label node.
+// NewLabel returns a new [Label] node.
 func NewLabel(pos *Position, ident *Identifier, statement Node) *Label {
 	return &Label{pos, ident, statement}
 }
@@ -1053,7 +1053,7 @@ type MapType struct {
 	ValueType Expression // type of map values.
 }
 
-// NewMapType returns a new MapType node.
+// NewMapType returns a new [MapType] node.
 func NewMapType(pos *Position, keyType, valueType Expression) *MapType {
 	return &MapType{&expression{}, pos, keyType, valueType}
 }
@@ -1086,7 +1086,7 @@ type Package struct {
 	}
 }
 
-// NewPackage returns a new Package node.
+// NewPackage returns a new [Package] node.
 func NewPackage(pos *Position, name string, nodes []Node) *Package {
 	return &Package{Position: pos, Name: name, Declarations: nodes}
 }
@@ -1098,7 +1098,7 @@ type Parameter struct {
 	Type  Expression  // type.
 }
 
-// NewParameter returns a new Parameter node.
+// NewParameter returns a new [Parameter] node.
 func NewParameter(ident *Identifier, typ Expression) *Parameter {
 	return &Parameter{ident, typ}
 }
@@ -1120,7 +1120,7 @@ type Placeholder struct {
 	*Position // position in the source.
 }
 
-// NewPlaceholder returns a new Placeholder node.
+// NewPlaceholder returns a new [Placeholder] node.
 func NewPlaceholder() *Placeholder {
 	return &Placeholder{&expression{}, nil}
 }
@@ -1138,7 +1138,7 @@ type Raw struct {
 	Text      *Text  // text.
 }
 
-// NewRaw returns a new Raw node.
+// NewRaw returns a new [Raw] node.
 func NewRaw(pos *Position, marker, tag string, text *Text) *Raw {
 	return &Raw{pos, marker, tag, text}
 }
@@ -1162,7 +1162,7 @@ type Render struct {
 	}
 }
 
-// NewRender returns a new Render node.
+// NewRender returns a new [Render] node.
 func NewRender(pos *Position, path string) *Render {
 	return &Render{Position: pos, Path: path}
 }
@@ -1178,7 +1178,7 @@ type Return struct {
 	Values []Expression // return values.
 }
 
-// NewReturn returns a new Return node.
+// NewReturn returns a new [Return] node.
 func NewReturn(pos *Position, values []Expression) *Return {
 	return &Return{pos, values}
 }
@@ -1190,7 +1190,7 @@ type Select struct {
 	Cases       []*SelectCase
 }
 
-// NewSelect returns a new Select node.
+// NewSelect returns a new [Select] node.
 func NewSelect(pos *Position, leadingText *Text, cases []*SelectCase) *Select {
 	return &Select{pos, leadingText, cases}
 }
@@ -1202,7 +1202,7 @@ type SelectCase struct {
 	Body []Node
 }
 
-// NewSelectCase returns a new SelectCase node.
+// NewSelectCase returns a new [SelectCase] node.
 func NewSelectCase(pos *Position, comm Node, body []Node) *SelectCase {
 	return &SelectCase{pos, comm, body}
 }
@@ -1215,7 +1215,7 @@ type Selector struct {
 	Ident     string     // identifier.
 }
 
-// NewSelector returns a new Selector node.
+// NewSelector returns a new [Selector] node.
 func NewSelector(pos *Position, expr Expression, ident string) *Selector {
 	return &Selector{&expression{}, pos, expr, ident}
 }
@@ -1232,7 +1232,7 @@ type Send struct {
 	Value     Expression // value to send on the channel.
 }
 
-// NewSend returns a new Send node.
+// NewSend returns a new [Send] node.
 func NewSend(pos *Position, channel Expression, value Expression) *Send {
 	return &Send{pos, channel, value}
 }
@@ -1250,7 +1250,7 @@ type Show struct {
 	Context     Context      // context.
 }
 
-// NewShow returns a new Show node.
+// NewShow returns a new [Show] node.
 func NewShow(pos *Position, expressions []Expression, ctx Context) *Show {
 	return &Show{pos, expressions, ctx}
 }
@@ -1275,7 +1275,7 @@ type SliceType struct {
 	ElementType Expression // element type.
 }
 
-// NewSliceType returns a new SliceType node.
+// NewSliceType returns a new [SliceType] node.
 func NewSliceType(pos *Position, elementType Expression) *SliceType {
 	return &SliceType{&expression{}, pos, elementType}
 }
@@ -1296,7 +1296,7 @@ type Slicing struct {
 	IsFull    bool       // reports whether is a full expression.
 }
 
-// NewSlicing returns a new Slicing node.
+// NewSlicing returns a new [Slicing] node.
 func NewSlicing(pos *Position, expr, low, high Expression, max Expression, isFull bool) *Slicing {
 	return &Slicing{&expression{}, pos, expr, low, high, max, isFull}
 }
@@ -1325,7 +1325,7 @@ type Statements struct {
 	Nodes []Node // nodes.
 }
 
-// NewStatements returns a new Statements node.
+// NewStatements returns a new [Statements] node.
 func NewStatements(pos *Position, nodes []Node) *Statements {
 	if nodes == nil {
 		nodes = []Node{}
@@ -1340,7 +1340,7 @@ type StructType struct {
 	Fields []*Field
 }
 
-// NewStructType returns a new StructType node.
+// NewStructType returns a new [StructType] node.
 func NewStructType(pos *Position, fields []*Field) *StructType {
 	return &StructType{&expression{}, pos, fields}
 }
@@ -1367,7 +1367,7 @@ type Switch struct {
 	Cases       []*Case
 }
 
-// NewSwitch returns a new Switch node.
+// NewSwitch returns a new [Switch] node.
 func NewSwitch(pos *Position, init Node, expr Expression, leadingText *Text, cases []*Case) *Switch {
 	return &Switch{pos, init, expr, leadingText, cases}
 }
@@ -1379,7 +1379,7 @@ type Text struct {
 	Cut       Cut    // cut.
 }
 
-// NewText returns a new Text node.
+// NewText returns a new [Text] node.
 func NewText(pos *Position, text []byte, cut Cut) *Text {
 	return &Text{pos, text, cut}
 }
@@ -1397,7 +1397,7 @@ type Tree struct {
 	Format Format // content format.
 }
 
-// NewTree returns a new Tree node.
+// NewTree returns a new [Tree] node.
 func NewTree(path string, nodes []Node, format Format) *Tree {
 	if nodes == nil {
 		nodes = []Node{}
@@ -1419,7 +1419,7 @@ type TypeAssertion struct {
 	Type      Expression // type, is nil if it is a type switch assertion ".(type)".
 }
 
-// NewTypeAssertion returns a new TypeAssertion node.
+// NewTypeAssertion returns a new [TypeAssertion] node.
 func NewTypeAssertion(pos *Position, expr Expression, typ Expression) *TypeAssertion {
 	return &TypeAssertion{&expression{}, pos, expr, typ}
 }
@@ -1441,7 +1441,7 @@ type TypeDeclaration struct {
 	IsAliasDeclaration bool        // reports whether it is an alias declaration or a type definition.
 }
 
-// NewTypeDeclaration returns a new TypeDeclaration node.
+// NewTypeDeclaration returns a new [TypeDeclaration] node.
 func NewTypeDeclaration(pos *Position, ident *Identifier, typ Expression, isAliasDeclaration bool) *TypeDeclaration {
 	return &TypeDeclaration{pos, ident, typ, isAliasDeclaration}
 }
@@ -1463,7 +1463,7 @@ type TypeSwitch struct {
 	Cases       []*Case
 }
 
-// NewTypeSwitch returns a new TypeSwitch node.
+// NewTypeSwitch returns a new [TypeSwitch] node.
 func NewTypeSwitch(pos *Position, init Node, assignment *Assignment, leadingText *Text, cases []*Case) *TypeSwitch {
 	return &TypeSwitch{pos, init, assignment, leadingText, cases}
 }
@@ -1476,7 +1476,7 @@ type UnaryOperator struct {
 	Expr      Expression   // expression.
 }
 
-// NewUnaryOperator returns a new UnaryOperator node.
+// NewUnaryOperator returns a new [UnaryOperator] node.
 func NewUnaryOperator(pos *Position, op OperatorType, expr Expression) *UnaryOperator {
 	return &UnaryOperator{&expression{}, pos, op, expr}
 }
@@ -1515,7 +1515,7 @@ type URL struct {
 	Value     []Node // value nodes.
 }
 
-// NewURL returns a new URL node.
+// NewURL returns a new [URL] node.
 func NewURL(pos *Position, tag, attribute string, value []Node) *URL {
 	return &URL{pos, tag, attribute, value}
 }
@@ -1529,7 +1529,7 @@ type Using struct {
 	Format    Format     // using content format.
 }
 
-// NewUsing returns a new Using node.
+// NewUsing returns a new [Using] node.
 func NewUsing(pos *Position, stmt Node, typ Expression, body *Block, format Format) *Using {
 	return &Using{pos, stmt, typ, body, format}
 }
@@ -1542,7 +1542,7 @@ type Var struct {
 	Rhs       []Expression  // nil for non-initialized variable declarations.
 }
 
-// NewVar returns a new Var node.
+// NewVar returns a new [Var] node.
 func NewVar(pos *Position, lhs []*Identifier, typ Expression, rhs []Expression) *Var {
 	return &Var{pos, lhs, typ, rhs}
 }

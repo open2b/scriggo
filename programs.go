@@ -67,7 +67,7 @@ type RunOptions struct {
 	Print PrintFunc
 }
 
-// Program is a program compiled with the Build function.
+// Program is a program compiled with the [Build] function.
 type Program struct {
 	fn      *runtime.Function
 	typeof  runtime.TypeOfFunc
@@ -79,7 +79,7 @@ type Program struct {
 //
 // Current limitation: fsys can contain only one Go file in its root.
 //
-// If a build error occurs, it returns a *BuildError.
+// If a build error occurs, it returns a [*BuildError].
 func Build(fsys fs.FS, options *BuildOptions) (*Program, error) {
 	co := compiler.Options{}
 	if options != nil {
@@ -111,7 +111,7 @@ func (p *Program) Disassemble(pkgPath string) ([]byte, error) {
 // concurrently by multiple goroutines.
 //
 // If the executed program panics, and it is not recovered, Run returns a
-// *PanicError.
+// [*PanicError].
 //
 // If the Stop method of native.Env is called, Run returns the argument passed
 // to Stop.

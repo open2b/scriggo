@@ -9,7 +9,7 @@
 // Package builtin provides simple functions, types, constants and a package
 // that can be used as globals in a Scriggo template.
 //
-// For example, to use the Min and Max functions as global min and max
+// For example, to use the [Min] and [Max] functions as global min and max
 // functions
 //
 //	globals := native.Declarations{
@@ -284,7 +284,7 @@ func Date(year, month, day, hour, min, sec, nsec int, location string) (Time, er
 //
 // The precision, for -1 <= precision <= 1000, controls the number of digits
 // (excluding the exponent). The special precision -1 uses the smallest number
-// of digits necessary such that ParseFloat will return f exactly. For "e"
+// of digits necessary such that [ParseFloat] will return f exactly. For "e"
 // and "f" it is the number of digits after the decimal point. For "g" it is
 // the maximum number of significant digits (trailing zeros are removed).
 //
@@ -397,7 +397,7 @@ func MarshalJSON(v interface{}) (native.JSON, error) {
 	return native.JSON(b), nil
 }
 
-// MarshalJSONIndent is like MarshalJSON but indents the output. Each JSON
+// MarshalJSONIndent is like [MarshalJSON] but indents the output. Each JSON
 // element in the output will begin on a new line beginning with prefix
 // followed by one or more copies of indent according to the indentation
 // nesting. prefix and indent can only contain whitespace: ' ', '\t', '\n' and
@@ -737,7 +737,7 @@ func Split(s, sep string) []string {
 // after each UTF-8 sequence. If both s and sep are empty, SplitAfter returns
 // an empty slice.
 //
-// It is equivalent to SplitAfterN with a count of -1.
+// It is equivalent to [SplitAfterN] with a count of -1.
 func SplitAfter(s, sep string) []string {
 	return strings.SplitAfter(s, sep)
 }
@@ -752,7 +752,7 @@ func SplitAfter(s, sep string) []string {
 //	n < 0: all substrings
 //
 // Edge cases for s and sep (for example, empty strings) are handled
-// as described in the documentation for SplitAfter.
+// as described in the documentation for [SplitAfter].
 func SplitAfterN(s, sep string, n int) []string {
 	return strings.SplitAfterN(s, sep, n)
 }
@@ -767,7 +767,7 @@ func SplitAfterN(s, sep string, n int) []string {
 //	n < 0: all substrings
 //
 // Edge cases for s and sep (for example, empty strings) are handled
-// as described in the documentation for Split.
+// as described in the documentation for [Split].
 func SplitN(s, sep string, n int) []string {
 	return strings.SplitN(s, sep, n)
 }
@@ -831,7 +831,7 @@ func Trim(s, cutset string) string {
 // TrimLeft returns a slice of the string s with all leading
 // Unicode code points contained in cutset removed.
 //
-// To remove a prefix, use TrimPrefix instead.
+// To remove a prefix, use [TrimPrefix] instead.
 func TrimLeft(s, cutset string) string {
 	return strings.TrimLeft(s, cutset)
 }
@@ -845,7 +845,7 @@ func TrimPrefix(s, prefix string) string {
 // TrimRight returns a slice of the string s, with all trailing
 // Unicode code points contained in cutset removed.
 //
-// To remove a suffix, use TrimSuffix instead.
+// To remove a suffix, use [TrimSuffix] instead.
 func TrimRight(s, cutset string) string {
 	return strings.TrimRight(s, cutset)
 }
@@ -856,7 +856,7 @@ func TrimSuffix(s, suffix string) string {
 	return strings.TrimSuffix(s, suffix)
 }
 
-// UnixTime returns the local Time corresponding to the given Unix time, sec
+// UnixTime returns the local [Time] corresponding to the given Unix time, sec
 // seconds and nsec nanoseconds since January 1, 1970 UTC. It is valid to pass
 // nsec outside the range [0, 999999999]. Not all sec values have a
 // corresponding time value. One such value is 1<<63-1 (the largest int64

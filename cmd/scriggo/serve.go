@@ -9,21 +9,17 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"os"
 	"path"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/open2b/scriggo"
-	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/builtin"
 	"github.com/open2b/scriggo/native"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
@@ -34,12 +30,12 @@ import (
 // directory. metrics reports whether print the metrics. If asm is -1 or
 // greater, serve prints the assembly code of the served file and the value of
 // asm determines the maximum length, in runes, of disassembled Text
-// instructions
+// instructions. If disableLiveReload is true, it disables LiveReload.
 //
 //	asm > 0: at most asm runes; leading and trailing white space are removed
 //	asm == 0: no text
 //	asm == -1: all text
-func serve(asm int, metrics bool) error {
+func serve(asm int, metrics bool, disableLiveReload bool) error {
 
 	fsys, err := newTemplateFS(".")
 	if err != nil {
@@ -63,6 +59,9 @@ func serve(asm int, metrics bool) error {
 		templatesDependencies: map[string]map[string]struct{}{},
 		asm:                   asm,
 	}
+	if !disableLiveReload {
+		srv.liveReloads = map[*liveReload]struct{}{}
+	}
 	if metrics {
 		srv.metrics.active = true
 		srv.metrics.header = true
@@ -70,26 +69,34 @@ func serve(asm int, metrics bool) error {
 	go func() {
 		for {
 			select {
-			case name := <-fsys.Changed:
+			case name := <-fsys.Changed():
 				srv.Lock()
+				invalidated := map[string]bool{}
 				if _, ok := srv.templates[name]; ok {
 					delete(srv.templates, name)
 					for _, dependents := range srv.templatesDependencies {
 						delete(dependents, name)
 					}
+					invalidated[name] = true
 				} else {
-					var invalidatedFiles []string
 					for dependency, dependents := range srv.templatesDependencies {
 						if dependency == name {
 							for d := range dependents {
 								delete(srv.templates, d)
-								invalidatedFiles = append(invalidatedFiles, d)
+								invalidated[d] = true
 							}
 						}
 					}
-					for _, invalidated := range invalidatedFiles {
+					for invalidated := range invalidated {
 						for _, dependents := range srv.templatesDependencies {
 							delete(dependents, invalidated)
+						}
+					}
+				}
+				if len(invalidated) > 0 {
+					for r := range srv.liveReloads {
+						if invalidated[r.file+".html"] || invalidated[r.file+".md"] {
+							go func() { r.reload() }()
 						}
 					}
 				}
@@ -114,51 +121,6 @@ func serve(asm int, metrics bool) error {
 	return s.ListenAndServe()
 }
 
-func (srv *server) updateTemplateDependencies(tree *ast.Tree) error {
-
-	var treeNavigation func(*ast.Tree, bool) []string
-
-	treeNavigation = func(tree *ast.Tree, includeRoot bool) []string {
-		var dependencies []string
-		if includeRoot {
-			dependencies = []string{tree.Path}
-		}
-		for _, n := range tree.Nodes {
-			switch node := n.(type) {
-			case *ast.Show:
-				for _, e := range node.Expressions {
-					switch expr := e.(type) {
-					case *ast.Render:
-						dependencies = append(dependencies, treeNavigation(expr.Tree, true)...)
-					}
-				}
-			case *ast.Import:
-				if node.Tree != nil {
-					dependencies = append(dependencies, treeNavigation(node.Tree, true)...)
-				}
-			case *ast.Extends:
-				if node.Tree != nil {
-					dependencies = append(dependencies, treeNavigation(node.Tree, true)...)
-				}
-			default:
-			}
-		}
-		return dependencies
-	}
-
-	dependencies := treeNavigation(tree, false)
-	srv.Lock()
-	for _, dependency := range dependencies {
-		if _, ok := srv.templatesDependencies[dependency]; !ok {
-			srv.templatesDependencies[dependency] = map[string]struct{}{}
-		}
-		srv.templatesDependencies[dependency][tree.Path] = struct{}{}
-	}
-	srv.Unlock()
-
-	return nil
-}
-
 type server struct {
 	fsys        *templateFS
 	static      http.Handler
@@ -169,6 +131,7 @@ type server struct {
 	sync.Mutex
 	templates             map[string]*scriggo.Template
 	templatesDependencies map[string]map[string]struct{}
+	liveReloads           map[*liveReload]struct{}
 	metrics               struct {
 		active bool
 		header bool
@@ -176,6 +139,75 @@ type server struct {
 }
 
 func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Accept") == "text/event-stream" {
+		srv.serveLiveReload(w, r)
+		return
+	}
+	srv.serveTemplate(w, r)
+}
+
+type liveReload struct {
+	file string // file path without extension
+
+	sync.Mutex
+	w io.Writer
+}
+
+var reload = []byte("data: reload\n\n")
+
+func (lr *liveReload) reload() {
+	lr.Lock()
+	_, _ = lr.w.Write(reload)
+	lr.w.(http.Flusher).Flush()
+	lr.Unlock()
+}
+
+func (srv *server) serveLiveReload(w http.ResponseWriter, r *http.Request) {
+
+	if _, ok := w.(http.Flusher); !ok || srv.liveReloads == nil {
+		http.Error(w, "Live reload is not supported", http.StatusUnsupportedMediaType)
+		return
+	}
+
+	file := r.URL.Path[1:]
+	if file == "" || strings.HasSuffix(file, "/") {
+		file += "index"
+	}
+	if ext := path.Ext(file); ext != "" {
+		file = file[:len(file)-len(ext)]
+	}
+
+	lr := &liveReload{
+		file: file,
+		w:    w,
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.WriteHeader(200)
+
+	srv.Lock()
+	srv.liveReloads[lr] = struct{}{}
+	_, ok := srv.templates[file+".html"]
+	if !ok {
+		_, ok = srv.templates[file+".md"]
+	}
+	srv.Unlock()
+
+	if !ok {
+		lr.reload()
+	}
+
+	<-r.Context().Done()
+
+	srv.Lock()
+	delete(srv.liveReloads, lr)
+	srv.Unlock()
+
+}
+
+func (srv *server) serveTemplate(w http.ResponseWriter, r *http.Request) {
 
 	name := r.URL.Path[1:]
 	if name == "" || strings.HasSuffix(name, "/") {
@@ -216,17 +248,17 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	srv.Unlock()
 	start := time.Now()
 	if !ok {
+		fs := newRecFS(srv.fsys)
 		opts := scriggo.BuildOptions{
 			AllowGoStmt:       true,
 			MarkdownConverter: srv.mdConverter,
 			Globals:           make(native.Declarations, len(globals)+1),
-			TreeTransformer:   srv.updateTemplateDependencies,
 		}
 		for n, v := range globals {
 			opts.Globals[n] = v
 		}
 		opts.Globals["filepath"] = strings.TrimSuffix(name, path.Ext(name))
-		template, err = scriggo.BuildTemplate(srv.fsys, name, &opts)
+		template, err = scriggo.BuildTemplate(fs, name, &opts)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				http.NotFound(w, r)
@@ -245,6 +277,12 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		buildTime = time.Since(start)
 		srv.Lock()
 		srv.templates[name] = template
+		for _, dependency := range fs.RecordedNames() {
+			if _, ok := srv.templatesDependencies[dependency]; !ok {
+				srv.templatesDependencies[dependency] = map[string]struct{}{}
+			}
+			srv.templatesDependencies[dependency][name] = struct{}{}
+		}
 		srv.Unlock()
 		start = time.Now()
 	}
@@ -264,10 +302,32 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	runTime := time.Since(start)
 
+	s := b.Bytes()
+	i := indexEndBody(s)
+	if i == -1 {
+		i = len(s)
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, err = b.WriteTo(w)
-	if err != nil {
-		srv.logf("%s", err)
+	if srv.liveReloads == nil {
+		_, _ = w.Write(s)
+	} else {
+		_, _ = w.Write(s[:i])
+		_, _ = io.WriteString(w, `<script>
+	// Scriggo 	LiveReload.
+	(function () {
+		if (typeof EventSource !== 'function') return;
+		const es = new EventSource('`)
+		jsStringEscape(w, r.URL.Path)
+		_, _ = io.WriteString(w, `');
+		es.onmessage = function(e) {
+			if (e.data === 'reload') {
+				es.close();
+				location.reload();
+			}
+		};
+	})();
+</script>`)
+		_, _ = w.Write(s[i:])
 	}
 
 	if srv.metrics.active {
@@ -313,175 +373,53 @@ func (srv *server) logf(format string, a ...interface{}) {
 	srv.metrics.header = true
 }
 
-// templateFS implements a file system that reads the files in a directory.
-type templateFS struct {
-	fsys    fs.FS
-	watcher *fsnotify.Watcher
-	watched map[string]bool
-	Errors  chan error
-
-	sync.Mutex
-	Changed chan string
-}
-
-func newTemplateFS(root string) (*templateFS, error) {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return nil, err
-	}
-	dir := &templateFS{
-		fsys:    os.DirFS(root),
-		watcher: watcher,
-		watched: map[string]bool{},
-		Changed: make(chan string),
-	}
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
+// indexEndBody locates the closing "</body>" tag in s, ignoring case and
+// permitting spaces before '>'. If the tag is found, the function returns its
+// index, unless the tag's line contains only whitespaces before it; in that
+// case, it returns the index of the newline ('\n') at the start of the line.
+// If no closing tag is found, it returns -1.
+func indexEndBody(s []byte) int {
+	for {
+		i := bytes.LastIndex(s, []byte("</"))
+		if i == -1 {
+			return -1
+		}
+		if isBodyTag(s[i+2:]) {
+			for j := i - 1; j >= 0; j-- {
+				switch s[j] {
+				case ' ', '\t', '\r':
+					continue
+				case '\n':
+					if j > 0 && s[j-1] == '\r' {
+						j--
+					}
+					return j
 				}
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					dir.Changed <- strings.ReplaceAll(event.Name, "\\", "/")
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				dir.Errors <- err
+				break
 			}
+			return i
 		}
-	}()
-	return dir, nil
-}
-
-func (t *templateFS) Open(name string) (fs.File, error) {
-	err := t.watch(name)
-	if err != nil {
-		return nil, err
+		s = s[:i]
 	}
-	return t.fsys.Open(name)
 }
 
-func (t *templateFS) ReadFile(name string) ([]byte, error) {
-	err := t.watch(name)
-	if err != nil {
-		return nil, err
+// isBodyTag checks if s starts with "body>", ignoring case and allowing spaces
+// before '>'.
+func isBodyTag(s []byte) bool {
+	if len(s) < 5 {
+		return false
 	}
-	return fs.ReadFile(t.fsys, name)
-}
-
-func (t *templateFS) Close() error {
-	return t.watcher.Close()
-}
-
-func (t *templateFS) watch(name string) error {
-	t.Lock()
-	if !t.watched[name] {
-		err := t.watcher.Add(name)
-		if err != nil {
-			t.Unlock()
-			return err
+	if !bytes.EqualFold(s[:4], []byte("body")) {
+		return false
+	}
+	for i := 4; i < len(s); i++ {
+		switch s[i] {
+		case '>':
+			return true
+		case ' ', '\t', '\n', '\r':
+			continue
 		}
-		t.watched[name] = true
+		break
 	}
-	t.Unlock()
-	return nil
-}
-
-var globals = native.Declarations{
-	// crypto
-	"hmacSHA1":   builtin.HmacSHA1,
-	"hmacSHA256": builtin.HmacSHA256,
-	"sha1":       builtin.Sha1,
-	"sha256":     builtin.Sha256,
-
-	// debug
-	"version": version(),
-
-	// encoding
-	"base64":            builtin.Base64,
-	"hex":               builtin.Hex,
-	"marshalJSON":       builtin.MarshalJSON,
-	"marshalJSONIndent": builtin.MarshalJSONIndent,
-	"marshalYAML":       builtin.MarshalYAML,
-	"md5":               builtin.Md5,
-	"unmarshalJSON":     builtin.UnmarshalJSON,
-	"unmarshalYAML":     builtin.UnmarshalYAML,
-
-	// html
-	"htmlEscape": builtin.HtmlEscape,
-
-	// math
-	"abs": builtin.Abs,
-	"max": builtin.Max,
-	"min": builtin.Min,
-	"pow": builtin.Pow,
-
-	// net
-	"File":        reflect.TypeOf((*builtin.File)(nil)).Elem(),
-	"FormData":    reflect.TypeOf(builtin.FormData{}),
-	"form":        (*builtin.FormData)(nil),
-	"queryEscape": builtin.QueryEscape,
-
-	// regexp
-	"Regexp": reflect.TypeOf(builtin.Regexp{}),
-	"regexp": builtin.RegExp,
-
-	// sort
-	"reverse": builtin.Reverse,
-	"sort":    builtin.Sort,
-
-	// strconv
-	"formatFloat": builtin.FormatFloat,
-	"formatInt":   builtin.FormatInt,
-	"parseFloat":  builtin.ParseFloat,
-	"parseInt":    builtin.ParseInt,
-
-	// strings
-	"abbreviate":    builtin.Abbreviate,
-	"capitalize":    builtin.Capitalize,
-	"capitalizeAll": builtin.CapitalizeAll,
-	"hasPrefix":     builtin.HasPrefix,
-	"hasSuffix":     builtin.HasSuffix,
-	"index":         builtin.Index,
-	"indexAny":      builtin.IndexAny,
-	"join":          builtin.Join,
-	"lastIndex":     builtin.LastIndex,
-	"replace":       builtin.Replace,
-	"replaceAll":    builtin.ReplaceAll,
-	"runeCount":     builtin.RuneCount,
-	"split":         builtin.Split,
-	"splitAfter":    builtin.SplitAfter,
-	"splitAfterN":   builtin.SplitAfterN,
-	"splitN":        builtin.SplitN,
-	"sprint":        builtin.Sprint,
-	"sprintf":       builtin.Sprintf,
-	"toKebab":       builtin.ToKebab,
-	"toLower":       builtin.ToLower,
-	"toUpper":       builtin.ToUpper,
-	"trim":          builtin.Trim,
-	"trimLeft":      builtin.TrimLeft,
-	"trimPrefix":    builtin.TrimPrefix,
-	"trimRight":     builtin.TrimRight,
-	"trimSuffix":    builtin.TrimSuffix,
-
-	// time
-	"Duration":      reflect.TypeOf(builtin.Duration(0)),
-	"Hour":          time.Hour,
-	"Microsecond":   time.Microsecond,
-	"Millisecond":   time.Millisecond,
-	"Minute":        time.Minute,
-	"Nanosecond":    time.Nanosecond,
-	"Second":        time.Second,
-	"Time":          reflect.TypeOf(builtin.Time{}),
-	"date":          builtin.Date,
-	"now":           builtin.Now,
-	"parseDuration": builtin.ParseDuration,
-	"parseTime":     builtin.ParseTime,
-	"unixTime":      builtin.UnixTime,
-
-	// unsafeconv
-	"unsafeconv": builtin.Unsafeconv,
+	return false
 }

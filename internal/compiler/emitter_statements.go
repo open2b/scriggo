@@ -405,6 +405,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 // canOptimizeShowMacro reports whether expr is a call to a macro and if it
 // can be optimized if used in the show statement with context ctx.
 func (em *emitter) canOptimizeShowMacro(expr ast.Expression, ctx ast.Context) bool {
+
 	if ctx > ast.ContextMarkdown {
 		return false
 	}
@@ -416,6 +417,33 @@ func (em *emitter) canOptimizeShowMacro(expr ast.Expression, ctx ast.Context) bo
 	if !fn.IsMacroDeclaration() {
 		return false
 	}
+
+	// If the show statement {{ M() }} refers to a macro M contained in a
+	// register indirectly or to a non local variable (the case of a recursive
+	// macro call), and therefore in the form of a native function in Go, the
+	// optimization is not possible because the macro call is a generic call to
+	// a native function that returns a string, and therefore the return value
+	// of that function must explicitly be written to the renderer.
+	if macroIdent, ok := call.Func.(*ast.Identifier); ok {
+		// Case of a macro contained in a register indirectly, for example
+		// because it is a macro whose reference is taken from somewhere and
+		// therefore must be stored as indirect.
+		if em.fb.declaredInFunc(macroIdent.Name) {
+			if indirect := em.fb.scopeLookup(macroIdent.Name) < 0; indirect {
+				return false
+			}
+		}
+		// Case in which the macro is contained in a non-local variable, as in
+		// the case of recursive macro calls (because we rewrite macro
+		// declarations in the type checker as variable declarations +
+		// assignment of a function literal to that variable, and therefore
+		// recursive references result in references to variables defined
+		// externally to the function).
+		if _, nonLocal := em.varStore.nonLocalVarIndex(macroIdent); nonLocal {
+			return false
+		}
+	}
+
 	var from ast.Format
 	typ := fn.Type.Out(0)
 	for f, t := range em.formatTypes {
@@ -425,6 +453,7 @@ func (em *emitter) canOptimizeShowMacro(expr ast.Expression, ctx ast.Context) bo
 		}
 	}
 	to := ast.Format(ctx)
+
 	return from == to || from == ast.FormatMarkdown && to == ast.FormatHTML
 }
 

@@ -372,7 +372,7 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 				case reflect.Func:
 					for j := 0; j < int(numVariadic); j++ {
 						f := vm.general(int8(j + 1)).Interface().(*callable)
-						slice.Index(j).Set(f.Value(vm.renderer, vm.env))
+						slice.Index(j).Set(f.Value(vm.env))
 					}
 				case reflect.String:
 					for j := 0; j < int(numVariadic); j++ {
@@ -803,13 +803,28 @@ func (fn *NativeFunction) Func() interface{} {
 
 // Function represents a function.
 type Function struct {
-	Pkg             string
-	Name            string
-	File            string
-	Pos             *Position // position of the function declaration.
-	Type            reflect.Type
-	Parent          *Function
-	VarRefs         []int16
+	Pkg    string
+	Name   string
+	File   string
+	Pos    *Position // position of the function declaration.
+	Type   reflect.Type
+	Parent *Function
+
+	// VarRefs refers to the non-local variables referenced in this function.
+	//
+	// If VarRefs is nil, it means that the non-local variables are the global
+	// variables passed through the env.
+	//
+	// Otherwise, for each var Ref in VarRefs:
+	//
+	// * if Ref >= 0, Ref refers to the non-local variable at index Ref of the
+	//   currently executing function
+	//
+	// * if Ref < 0, it refers to the general register -Ref of the currently
+	//   executing function, which will contain the value of that variable
+	//   (indirectly).
+	VarRefs []int16
+
 	Types           []reflect.Type
 	NumReg          [4]int8
 	FinalRegs       [][2]int8 // [indirect -> return parameter registers]
@@ -884,9 +899,9 @@ func (c *callable) Native() *NativeFunction {
 	return c.native
 }
 
-// Value returns a reflect Value of a callable, so it can be called from a
+// Value returns a reflect.Value of a callable, so it can be called from a
 // native code and passed to a native code.
-func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
+func (c *callable) Value(env *env) reflect.Value {
 	if c.value.IsValid() {
 		return c.value
 	}
@@ -901,9 +916,8 @@ func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 	c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
 		nvm := create(env)
 		if fn.Macro {
-			renderer = newRenderer(&strings.Builder{})
+			nvm.renderer = newRenderer(&strings.Builder{})
 		}
-		nvm.renderer = renderer
 		nOut := fn.Type.NumOut()
 		results := make([]reflect.Value, nOut)
 		var r = [4]int8{1, 1, 1, 1}
@@ -937,7 +951,7 @@ func (c *callable) Value(renderer *renderer, env *env) reflect.Value {
 			panic(err)
 		}
 		if fn.Macro {
-			b := renderer.Out().(*strings.Builder)
+			b := nvm.renderer.Out().(*strings.Builder)
 			nvm.setString(1, b.String())
 		}
 		r = [4]int8{1, 1, 1, 1}

@@ -28,7 +28,7 @@ type Time struct {
 	t time.Time
 }
 
-// NewTime returns a Time value at the time of t. It is not intended to be
+// NewTime returns a [Time] value at the time of t. It is not intended to be
 // used as a builtin but it can be used to implement builtins that return time
 // values.
 //
@@ -240,7 +240,7 @@ func (t Time) Unix() int64 {
 // January 1, 1970 UTC. The result is undefined if the Unix time in
 // nanoseconds cannot be represented by an int64 (a date before the year 1678
 // or after 2262). Note that this means the result of calling UnixNano on the
-// zero Time is undefined. The result does not depend on the location
+// zero [Time] is undefined. The result does not depend on the location
 // associated with t.
 func (t Time) UnixNano() int64 {
 	return t.t.UnixNano()

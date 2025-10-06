@@ -90,7 +90,7 @@ var formatTypes = map[ast.Format]reflect.Type{
 // If the named file does not exist, BuildTemplate returns an error satisfying
 // errors.Is(err, fs.ErrNotExist).
 //
-// If a build error occurs, it returns a *BuildError.
+// If a build error occurs, it returns a [*BuildError].
 func BuildTemplate(fsys fs.FS, name string, options *BuildOptions) (*Template, error) {
 	if f, ok := fsys.(FormatFS); ok {
 		fsys = formatFS{f}
@@ -123,7 +123,7 @@ func BuildTemplate(fsys fs.FS, name string, options *BuildOptions) (*Template, e
 // multiple goroutines.
 //
 // If the executed template panics, and it is not recovered, Run returns a
-// *PanicError.
+// [*PanicError].
 //
 // If the Stop method of native.Env is called, Run returns the argument passed
 // to Stop.
@@ -214,7 +214,7 @@ func initGlobalVariables(variables []compiler.Global, init map[string]interface{
 				} else {
 					if typ.Kind() != reflect.Ptr || typ.Elem() != variable.Type {
 						panic(fmt.Sprintf("variable initializer %q must have type %s or %s, but have %s",
-							variable.Name, variable.Type, reflect.PtrTo(variable.Type), typ))
+							variable.Name, variable.Type, reflect.PointerTo(variable.Type), typ))
 					}
 					if val.IsNil() {
 						panic(fmt.Sprintf("variable initializer %q cannot be a nil pointer", variable.Name))

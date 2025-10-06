@@ -579,11 +579,10 @@ func (em *emitter) emitCallNode(call *ast.Call, goStmt bool, deferStmt bool, toF
 		name := call.Func.(*ast.Selector).Ident
 		s := em.fb.makeStringValue(name)
 		em.fb.emitMethodValue(s, rcvr, method, call.Func.Pos())
-		call.Args = append([]ast.Expression{rcvrExpr}, call.Args...)
 		stackShift := em.fb.currentStackShift()
 		opts := callOptions{
 			predefined:    true,
-			receiverAsArg: true,
+			receiverAsArg: false,
 			callHasDots:   call.IsVariadic,
 		}
 		regs, types := em.prepareCallParameters(funTi.Type, call.Args, opts)

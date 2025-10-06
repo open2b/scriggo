@@ -38,8 +38,8 @@ func (em *emitter) emitExprR(expr ast.Expression, dstType reflect.Type, reg int8
 // emission; otherwise _emitExpr chooses the output register, returning it to
 // the caller.
 //
-// If allowK is true, then the returned register can be an immediante value and
-// the boolean return parameters is true.
+// If allowK is true, then the returned register can be an immediate value and
+// the boolean return parameter is true.
 //
 // _emitExpr is an internal support method, and should be called by emitExpr,
 // emitExprK and emitExprR exclusively.
@@ -917,7 +917,7 @@ func (em *emitter) emitUnaryOp(expr *ast.UnaryOperator, reg int8, regType reflec
 		case *ast.Identifier:
 			if em.fb.declaredInFunc(operand.Name) {
 				r := em.fb.scopeLookup(operand.Name)
-				em.fb.emitNew(em.types.PtrTo(exprType), reg)
+				em.fb.emitNew(em.types.PointerTo(exprType), reg)
 				em.fb.emitMove(false, -r, reg, regType.Kind())
 				return
 			}
@@ -929,7 +929,7 @@ func (em *emitter) emitUnaryOp(expr *ast.UnaryOperator, reg int8, regType reflec
 			em.fb.enterStack()
 			r := em.fb.newRegister(reflect.Ptr)
 			em.fb.emitGetVarAddr(index, r)
-			em.changeRegister(false, r, reg, em.types.PtrTo(operandType), regType)
+			em.changeRegister(false, r, reg, em.types.PointerTo(operandType), regType)
 			em.fb.exitStack()
 
 		// &*a
@@ -987,14 +987,14 @@ func (em *emitter) emitUnaryOp(expr *ast.UnaryOperator, reg int8, regType reflec
 			}
 			index := em.fb.makeFieldIndex(field.Index)
 			pos := operand.Expr.Pos()
-			if canEmitDirectly(em.types.PtrTo(field.Type).Kind(), regType.Kind()) {
+			if canEmitDirectly(em.types.PointerTo(field.Type).Kind(), regType.Kind()) {
 				em.fb.emitAddr(exprReg, index, reg, pos)
 				return
 			}
 			em.fb.enterStack()
 			dest := em.fb.newRegister(reflect.Ptr)
 			em.fb.emitAddr(exprReg, index, dest, pos)
-			em.changeRegister(false, dest, reg, em.types.PtrTo(field.Type), regType)
+			em.changeRegister(false, dest, reg, em.types.PointerTo(field.Type), regType)
 			em.fb.exitStack()
 
 		// &T{..}

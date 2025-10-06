@@ -260,6 +260,7 @@ var commands = map[string]func(){
 		flag.Usage = commandsHelp["serve"]
 		s := flag.Int("S", 0, "print assembly listing. n determines the length of Text instructions.")
 		metrics := flag.Bool("metrics", false, "print metrics about file executions.")
+		disableLiveReload := flag.Bool("disable-livereload", false, "disable LiveReload.")
 		flag.Parse()
 		asm := -2 // -2: no assembler
 		flag.Visit(func(f *flag.Flag) {
@@ -270,7 +271,7 @@ var commands = map[string]func(){
 				}
 			}
 		})
-		err := serve(asm, *metrics)
+		err := serve(asm, *metrics, *disableLiveReload)
 		if err != nil {
 			exitError("%s", err)
 		}

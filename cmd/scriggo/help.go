@@ -232,7 +232,7 @@ Examples:
 `
 
 const helpServe = `
-usage: scriggo serve [-S n] [--metrics]
+usage: scriggo serve [-S n] [--metrics] [--disable-livereload]
 
 Serve runs a web server and serves the template rooted at the current
 directory. It is useful to learn Scriggo templates.
@@ -255,7 +255,8 @@ it renders 'blog/index.html' or 'blog/index.md'.
 Markdown is converted to HTML with the Goldmark parser with the options
 html.WithUnsafe, parser.WithAutoHeadingID and extension.GFM.
 
-Templates are automatically rebuilt when a file changes.
+When a file is modified, the server automatically rebuilds templates, and the
+browser reloads the page.
 
 The -S flag prints the assembly code of the served file and n determines the
 maximum length, in runes, of disassembled Text instructions
@@ -265,6 +266,9 @@ maximum length, in runes, of disassembled Text instructions
     n < 0: all text
 
 The --metrics flags prints metrics about execution time.
+
+The --disable-livereload flag disables LiveReload, preventing automatic page
+reloads in the browser.
 `
 
 const helpScriggofile = `
