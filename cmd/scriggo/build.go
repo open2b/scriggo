@@ -92,40 +92,34 @@ func build(dir, o string) error {
 		if name[0] == '.' {
 			return nil
 		}
-		// If it is a directory with the same base name as the public directory name,
-		// skip it if it is effectively the public directory. It is considered the public
-		// directory if the corresponding destination temporary directory also exists.
-		if name == publicBase && d.IsDir() {
-			st, err := srcFS.(fs.StatFS).Stat(dstBase)
-			if !errors.Is(err, fs.ErrNotExist) {
-				if err != nil {
-					return err
-				}
-				if st.IsDir() {
-					return fs.SkipAll
+		if d.IsDir() {
+			// If it is a directory with the same base name as the public directory name,
+			// skip it if it is effectively the public directory. It is considered the public
+			// directory if the corresponding destination temporary directory also exists.
+			if name == publicBase {
+				st, err := srcFS.(fs.StatFS).Stat(dstBase)
+				if !errors.Is(err, fs.ErrNotExist) {
+					if err != nil {
+						return err
+					}
+					if st.IsDir() {
+						return fs.SkipAll
+					}
 				}
 			}
-		}
-		// If it is the destination temporary directory, skip it.
-		if name == dstBase && d.IsDir() {
-			return fs.SkipAll
-		}
-		if d.IsDir() {
+			// If it is the destination temporary directory, skip it.
+			if name == dstBase {
+				return fs.SkipAll
+			}
+			// Skip directories starting with an underscore.
+			if strings.HasPrefix(filepath.Base(name), "_") {
+				return fs.SkipDir
+			}
 			return os.MkdirAll(filepath.Join(dstDir, name), 0700)
 		}
 		ext := filepath.Ext(name)
 		switch ext {
-		case ".html":
-			var dir string
-			if p := strings.Index(name, "/"); p > 0 {
-				dir = name[0:p]
-			}
-			switch dir {
-			case "imports", "layouts", "partials":
-				return nil
-			}
-			fallthrough
-		case ".md":
+		case ".md", ".html":
 			fpath := strings.TrimSuffix(name, ext)
 			// Reject multiple templates that would render to the same HTML file.
 			if prev, ok := outputSources[fpath]; ok {
