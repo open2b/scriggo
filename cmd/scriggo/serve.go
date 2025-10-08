@@ -21,9 +21,6 @@ import (
 	"github.com/open2b/scriggo/native"
 
 	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/extension"
-	"github.com/yuin/goldmark/parser"
-	"github.com/yuin/goldmark/renderer/html"
 )
 
 // serve runs a web server and serves the template rooted at the current
@@ -43,11 +40,7 @@ func serve(asm int, metrics bool, disableLiveReload bool) error {
 	}
 	defer fsys.Close()
 
-	md := goldmark.New(
-		goldmark.WithRendererOptions(html.WithUnsafe()),
-		goldmark.WithParserOptions(parser.WithAutoHeadingID()),
-		goldmark.WithExtensions(extension.GFM),
-		goldmark.WithExtensions(extension.Footnote))
+	md := goldmark.New(goldmarkOptions...)
 
 	srv := &server{
 		fsys:   fsys,
