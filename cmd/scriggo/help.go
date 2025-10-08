@@ -58,11 +58,11 @@ whose names start with a dot (.), are skipped.
 
 For example:
 
-    scriggo build
+    scriggo build -o dist src
 
-generates a static version of the template rooted at the current directory,
+generates a static version of the template rooted at the 'src' directory,
 processing all template files (e.g., HTML, Markdown) and generating their final
-output in the 'public' directory. Non-template files from the source directory,
+output in the 'dist' directory. Non-template files from the source directory,
 such as stylesheets and scripts, are copied without modification, resulting in a
 complete static site ready for deployment.
 
