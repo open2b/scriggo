@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -26,6 +27,11 @@ import (
 	"github.com/yuin/goldmark/renderer/html"
 )
 
+const (
+	defaultHost  = "localhost"
+	defaultHPort = "8080"
+)
+
 // serve runs a web server and serves the template rooted at the current
 // directory. metrics reports whether print the metrics. If asm is -1 or
 // greater, serve prints the assembly code of the served file and the value of
@@ -35,7 +41,7 @@ import (
 //	asm > 0: at most asm runes; leading and trailing white space are removed
 //	asm == 0: no text
 //	asm == -1: all text
-func serve(asm int, metrics bool, disableLiveReload bool) error {
+func serve(asm int, metrics bool, disableLiveReload bool, httpValue string, httpFlagSet bool) error {
 
 	fsys, err := newTemplateFS(".")
 	if err != nil {
@@ -107,15 +113,25 @@ func serve(asm int, metrics bool, disableLiveReload bool) error {
 		}
 	}()
 
+	var addr string
+	if httpFlagSet {
+		addr, err = parseAddr(httpValue)
+		if err != nil {
+			return err
+		}
+	} else {
+		addr = defaultHost + ":" + defaultHPort
+	}
+
 	s := &http.Server{
-		Addr:           ":8080",
+		Addr:           addr,
 		Handler:        srv,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	fmt.Fprintln(os.Stderr, "Web server is available at http://localhost:8080/")
+	fmt.Fprintf(os.Stderr, "Web server is available at http://%s/\n", addr)
 	fmt.Fprintf(os.Stderr, "Press Ctrl+C to stop\n\n")
 
 	return s.ListenAndServe()
@@ -160,6 +176,49 @@ func (lr *liveReload) reload() {
 	_, _ = lr.w.Write(reload)
 	lr.w.(http.Flusher).Flush()
 	lr.Unlock()
+}
+
+// parseAddr returns listen addr or an error.
+// Empty host => defaultHost, empty port => defaultPort.
+func parseAddr(s string) (string, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return "", fmt.Errorf("invalid -http value: missing host and port")
+	}
+	if strings.Count(s, ":") > 1 {
+		return "", fmt.Errorf("invalid -http value %q: too many ':' characters", s)
+	}
+
+	host, port, found := strings.Cut(s, ":")
+	if found {
+		host = strings.TrimSpace(host)
+		port = strings.TrimSpace(port)
+	} else {
+		host = s
+	}
+
+	if host == "" && port == "" {
+		return "", fmt.Errorf("invalid -http value: missing host and port")
+	}
+	if host == "" {
+		host = defaultHost
+	}
+	if port == "" {
+		return host + ":" + defaultHPort, nil
+	}
+
+	for _, r := range port {
+		if '0' <= r && r <= '9' {
+			continue
+		}
+		return "", fmt.Errorf("invalid -http port %q: must be numeric", port)
+	}
+	p, err := strconv.Atoi(port)
+	if err != nil || p < 1 || p > 65535 {
+		return "", fmt.Errorf("invalid -http port %q: must be between 1 and 65535", port)
+	}
+
+	return host + ":" + port, nil
 }
 
 func (srv *server) serveLiveReload(w http.ResponseWriter, r *http.Request) {

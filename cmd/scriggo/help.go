@@ -195,7 +195,7 @@ Examples:
 `
 
 const helpServe = `
-usage: scriggo serve [-S n] [--metrics] [--disable-livereload]
+usage: scriggo serve [-S n] [--metrics] [--disable-livereload] [-http host[:port]]
 
 Serve runs a web server and serves the template rooted at the current
 directory. It is useful to learn Scriggo templates.
@@ -232,6 +232,18 @@ The --metrics flags prints metrics about execution time.
 
 The --disable-livereload flag disables LiveReload, preventing automatic page
 reloads in the browser.
+
+The -http flag configures the address the server listens on:
+
+	-http host[:port]   listen address (default "localhost:8080")
+
+Examples:
+
+	scriggo serve -http example.com:80
+
+	scriggo serve -http example.com
+
+	scriggo serve -http :80
 `
 
 const helpScriggofile = `

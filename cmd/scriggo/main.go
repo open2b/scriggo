@@ -239,17 +239,22 @@ var commands = map[string]func(){
 		s := flag.Int("S", 0, "print assembly listing. n determines the length of Text instructions.")
 		metrics := flag.Bool("metrics", false, "print metrics about file executions.")
 		disableLiveReload := flag.Bool("disable-livereload", false, "disable LiveReload.")
+		httpValue := flag.String("http", "", "set the listen address of the HTTP server.")
 		flag.Parse()
 		asm := -2 // -2: no assembler
+		httpFlagSet := false
 		flag.Visit(func(f *flag.Flag) {
-			if f.Name == "S" {
+			switch f.Name {
+			case "S":
 				asm = *s
 				if asm < -1 {
 					asm = -1
 				}
+			case "http":
+				httpFlagSet = true
 			}
 		})
-		err := serve(asm, *metrics, *disableLiveReload)
+		err := serve(asm, *metrics, *disableLiveReload, *httpValue, httpFlagSet)
 		if err != nil {
 			exitError("%s", err)
 		}
