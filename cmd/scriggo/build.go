@@ -96,13 +96,13 @@ func build(dir, o string) error {
 						return err
 					}
 					if st.IsDir() {
-						return fs.SkipAll
+						return fs.SkipDir
 					}
 				}
 			}
 			// If it is the destination temporary directory, skip it.
 			if path == dstBase {
-				return fs.SkipAll
+				return fs.SkipDir
 			}
 			// Skip directories starting with an underscore.
 			if strings.HasPrefix(filepath.Base(path), "_") {
