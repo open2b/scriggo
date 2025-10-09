@@ -33,18 +33,13 @@ func build(dir, o string) error {
 
 	publicDir := "public"
 	if o != "" {
-		st, err := os.Stat(o)
-		if !errors.Is(err, fs.ErrNotExist) {
-			if err != nil {
-				return fmt.Errorf("cannot stat output directory %q: %s", o, err)
-			}
-			if !st.IsDir() {
-				return fmt.Errorf("path %q exists but is not a directory", o)
-			}
-		}
 		publicDir = o
 	}
 	publicDir, err := filepath.Abs(publicDir)
+	if err != nil {
+		return err
+	}
+	err = checkOutDirectory(publicDir)
 	if err != nil {
 		return err
 	}
@@ -159,7 +154,7 @@ func build(dir, o string) error {
 		return err
 	}
 
-	err = os.RemoveAll(publicDir)
+	err = checkOutDirectory(publicDir)
 	if err != nil {
 		return err
 	}
@@ -172,4 +167,19 @@ func build(dir, o string) error {
 	_, _ = fmt.Fprintf(os.Stderr, "Build took %s\n", buildTime)
 
 	return nil
+}
+
+// Check that the output directory does not already exist.
+func checkOutDirectory(path string) error {
+	st, err := os.Stat(path)
+	if err != nil && errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("stat %q: %s", path, err)
+	}
+	if st.IsDir() {
+		return fmt.Errorf("output directory %q already exists", path)
+	}
+	return fmt.Errorf("path %q exists and is not a directory", path)
 }

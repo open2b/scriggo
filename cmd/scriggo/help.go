@@ -48,23 +48,24 @@ usage: scriggo build [-o output] [dir]
 
 Build processes the template rooted at the current directory and writes the
 generated files to the 'public' directory by default. If the 'public' directory
-already exists, it is deleted along with all its content before writing the new
-files. If a directory 'dir' is specified, the template rooted at that directory
-is built instead of the current directory.
+already exists, it does nothing and returns an error. If a directory 'dir' is
+specified, the template rooted at that directory is built instead of the current
+directory.
 
-Non-template files, such as CSS and JavaScript, are copied as-is.
 Directories whose names start with an underscore (_), and files or directories
-whose names start with a dot (.), are skipped.
+whose names start with a dot (.), are skipped. Only files with extension '.md'
+and '.html' are built, non-template files, such as CSS and JavaScript files are
+copied as-is. 
 
 For example:
 
     scriggo build -o dist src
 
 generates a static version of the template rooted at the 'src' directory,
-processing all template files (e.g., HTML, Markdown) and generating their final
-output in the 'dist' directory. Non-template files from the source directory,
-such as stylesheets and scripts, are copied without modification, resulting in a
-complete static site ready for deployment.
+processing Markdown and HTML files and generating their final output in the
+'dist' directory. Non-template files from the source directory are copied
+without modification, resulting in a complete static site ready for deployment.
+If 'dist' already exists, the command returns an error.
 
 The -o flag allows specifying an alternative output directory instead of the
 default 'public'.
