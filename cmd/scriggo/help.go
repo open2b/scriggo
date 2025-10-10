@@ -20,6 +20,9 @@ The commands are:
     serve       run a web server and serve the template rooted at the current
                 directory
 
+    build       generate static files from the template rooted at the current 
+                directory, writing them to './public' by default
+
     init        initialize an interpreter for Go programs
 
     import      generate the source for an importer used by Scriggo to import 
@@ -37,6 +40,43 @@ Additional help topics:
     Scriggofile     syntax of the Scriggofile
 
     limitations     limitations of the Scriggo compiler/runtime
+
+`
+
+const helpBuild = `
+usage: scriggo build [-o output] [dir]
+
+Build processes the template rooted at the current directory and writes the
+generated files to the 'public' directory by default. If the 'public' directory
+already exists, it does nothing and returns an error. If a directory 'dir' is
+specified, the template rooted at that directory is built instead of the current
+directory.
+
+Directories whose names start with an underscore (_), and files or directories
+whose names start with a dot (.), are skipped. Only files with extension '.md'
+and '.html' are built, non-template files, such as CSS and JavaScript files are
+copied as-is. 
+
+For example:
+
+    scriggo build -o dist src
+
+generates a static version of the template rooted at the 'src' directory,
+processing Markdown and HTML files and generating their final output in the
+'dist' directory. Non-template files from the source directory are copied
+without modification, resulting in a complete static site ready for deployment.
+If 'dist' already exists, the command returns an error.
+
+The -o flag allows specifying an alternative output directory instead of the
+default 'public'.
+
+Examples:
+
+	scriggo build src
+
+	scriggo build -o ../public
+
+	scriggo build -o /var/www site
 
 `
 

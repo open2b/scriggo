@@ -23,9 +23,6 @@ import (
 	"github.com/open2b/scriggo/native"
 
 	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/extension"
-	"github.com/yuin/goldmark/parser"
-	"github.com/yuin/goldmark/renderer/html"
 )
 
 // runBufSize is the size of the i/o buffer used by the run command.
@@ -65,10 +62,7 @@ func run(name string, flags buildFlags) (err error) {
 		fsys = formatFS{FS: fsys, format: format}
 	}
 
-	md := goldmark.New(
-		goldmark.WithRendererOptions(html.WithUnsafe()),
-		goldmark.WithParserOptions(parser.WithAutoHeadingID()),
-		goldmark.WithExtensions(extension.GFM))
+	md := goldmark.New(goldmarkOptions...)
 
 	opts := &scriggo.BuildOptions{
 		AllowGoStmt: true,
