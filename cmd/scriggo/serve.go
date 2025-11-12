@@ -240,11 +240,20 @@ func (srv *server) serveLiveReload(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 
 	srv.Lock()
-	srv.liveReloads[lr] = struct{}{}
 	_, ok := srv.templates[file+".html"]
 	if !ok {
 		_, ok = srv.templates[file+".md"]
 	}
+	if !ok {
+		_, ok = srv.templates[file+"/index.html"]
+		if !ok {
+			_, ok = srv.templates[file+"/index.md"]
+		}
+		if ok {
+			lr.file += "/index"
+		}
+	}
+	srv.liveReloads[lr] = struct{}{}
 	srv.Unlock()
 
 	if !ok {
@@ -267,26 +276,15 @@ func (srv *server) serveTemplate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if ext := path.Ext(name); ext == "" {
-		fi, err := srv.fsys.Open(name + ".html")
-		if err == nil {
-			name += ".html"
-			_ = fi.Close()
-		} else {
-			if !errors.Is(err, os.ErrNotExist) {
+		var err error
+		name, err = srv.resolvePath(name, true)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				http.NotFound(w, r)
+			} else {
 				http.Error(w, "Internal Server Error", 500)
-				return
 			}
-			fi, err = srv.fsys.Open(name + ".md")
-			if err != nil {
-				if errors.Is(err, os.ErrNotExist) {
-					http.NotFound(w, r)
-				} else {
-					http.Error(w, "Internal Server Error", 500)
-				}
-				return
-			}
-			name += ".md"
-			_ = fi.Close()
+			return
 		}
 	} else if ext != ".html" && ext != ".md" {
 		srv.static.ServeHTTP(w, r)
@@ -423,6 +421,32 @@ func (srv *server) logf(format string, a ...interface{}) {
 	fmt.Fprintf(os.Stderr, format, a...)
 	println()
 	srv.metrics.header = true
+}
+
+// resolvePath resolves a URL path to a local filesystem path. If descend is
+// true and the target is a directory, it also checks for an "index" file within
+// that directory.
+func (srv *server) resolvePath(name string, descend bool) (string, error) {
+	fi, err := srv.fsys.Open(name + ".html")
+	if err == nil {
+		_ = fi.Close()
+		return name + ".html", nil
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		return "", err
+	}
+	fi, err = srv.fsys.Open(name + ".md")
+	if err == nil {
+		_ = fi.Close()
+		return name + ".md", nil
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		return "", err
+	}
+	if !descend {
+		return "", os.ErrNotExist
+	}
+	return srv.resolvePath(name+"/index", false)
 }
 
 // indexEndBody locates the closing "</body>" tag in s, ignoring case and
