@@ -153,6 +153,16 @@ var tests = []struct {
 	{sp(IndexAny("-aaèba", "è")), "3"},
 	{sp(IndexAny("-ààèba", "è")), "5"},
 
+	// indentJSON
+	{string(IndentJSON("null", "", "")), "null"},
+	{string(IndentJSON("\t\n 5\t \r\n", "", "")), "5"},
+	{string(IndentJSON("\t\n true\t \r\n", " ", "\t")), "true"},
+	{string(IndentJSON(`{ "a": true }`, "", "\t")), "{\n\t\"a\": true\n}"},
+	{
+		string(IndentJSON(`{ "a": true, "b": {"c":false, "d":[1,2, 3]}}`, " ", "\t")),
+		"{\n \t\"a\": true,\n \t\"b\": {\n \t\t\"c\": false,\n \t\t\"d\": [\n \t\t\t1,\n \t\t\t2,\n \t\t\t3\n \t\t]\n \t}\n }",
+	},
+
 	// join
 	{sp(Join([]string{"a", "b", "c"}, " ")), "a b c"},
 	{sp(Join([]string{"a", "b", "c"}, "")), "abc"},

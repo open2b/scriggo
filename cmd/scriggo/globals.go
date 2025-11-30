@@ -25,6 +25,7 @@ var globals = native.Declarations{
 	// encoding
 	"base64":            builtin.Base64,
 	"hex":               builtin.Hex,
+	"indentJSON":        builtin.IndentJSON,
 	"marshalJSON":       builtin.MarshalJSON,
 	"marshalJSONIndent": builtin.MarshalJSONIndent,
 	"marshalYAML":       builtin.MarshalYAML,
