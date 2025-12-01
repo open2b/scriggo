@@ -996,7 +996,8 @@ func isSeparator(r rune) bool {
 	return unicode.IsSpace(r)
 }
 
-// lookupJSONSpace is used by the JSONWhitespace and trimJSONSpace functions.
+// lookupJSONSpace is used by the onlyJSONWhitespace and trimJSONSpace
+// functions.
 var lookupJSONSpace = [255]uint8{'\t': 1, '\n': 1, '\r': 1, ' ': 1}
 
 // onlyJSONWhitespace reports if s contains only JSON whitespace.
