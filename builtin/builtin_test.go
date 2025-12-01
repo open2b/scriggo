@@ -409,3 +409,43 @@ func TestBuiltins(t *testing.T) {
 		}
 	}
 }
+
+// TestOnlyJSONWhitespace tests the onlyJSONWhitespace function.
+func TestOnlyJSONWhitespace(t *testing.T) {
+	tests := []struct {
+		in       string
+		expected bool
+	}{
+		{"", true},
+		{" \t\r\n", true},
+		{"\n \t\r  \n", true},
+		{" a", false},
+		{"è ", false},
+		{"\t\n\r x \t", false},
+		{"\U0001F680", false},
+	}
+	for _, test := range tests {
+		if got := onlyJSONWhitespace(test.in); got != test.expected {
+			t.Errorf("onlyJSONWhitespace(%q): expected %v, got %v", test.in, test.expected, got)
+		}
+	}
+}
+
+// TestTrimJSONSpace tests the trimJSONSpace function.
+func TestTrimJSONSpace(t *testing.T) {
+	tests := []struct {
+		in       native.JSON
+		expected native.JSON
+	}{
+		{"", ""},
+		{"\n\t {\"a\": 1}\r\t", "{\"a\": 1}"},
+		{"\t{\"a\": [1,2,3]}", "{\"a\": [1,2,3]}"},
+		{"{\"è\":true}\n\n", "{\"è\":true}"},
+		{"\U0001F680{\"a\":1}\u00a0", "\U0001F680{\"a\":1}\u00a0"},
+	}
+	for _, test := range tests {
+		if got := trimJSONSpace(test.in); got != test.expected {
+			t.Errorf("trimJSONSpace(%q): expected %q, got %q", string(test.in), string(test.expected), string(got))
+		}
+	}
+}
