@@ -360,7 +360,7 @@ func HtmlEscape(s string) native.HTML {
 // It panics if data is not valid JSON or if prefix or indent contain characters
 // other than ' ' or '\t'.
 func IndentJSON(data native.JSON, prefix, indent string) native.JSON {
-	if !onlyJSONWhitespace(indent) {
+	if !onlyJSONWhitespace(prefix) {
 		panic("indentJSON: prefix does not contain only whitespace")
 	}
 	if !onlyJSONWhitespace(indent) {
