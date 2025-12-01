@@ -153,6 +153,16 @@ var tests = []struct {
 	{sp(IndexAny("-aaèba", "è")), "3"},
 	{sp(IndexAny("-ààèba", "è")), "5"},
 
+	// indentJSON
+	{string(IndentJSON("null", "", "")), "null"},
+	{string(IndentJSON("\t\n 5\t \r\n", "", "")), "5"},
+	{string(IndentJSON("\t\n true\t \r\n", " ", "\t")), "true"},
+	{string(IndentJSON(`{ "a": true }`, "", "\t")), "{\n\t\"a\": true\n}"},
+	{
+		string(IndentJSON(`{ "a": true, "b": {"c":false, "d":[1,2, 3]}}`, " ", "\t")),
+		"{\n \t\"a\": true,\n \t\"b\": {\n \t\t\"c\": false,\n \t\t\"d\": [\n \t\t\t1,\n \t\t\t2,\n \t\t\t3\n \t\t]\n \t}\n }",
+	},
+
 	// join
 	{sp(Join([]string{"a", "b", "c"}, " ")), "a b c"},
 	{sp(Join([]string{"a", "b", "c"}, "")), "abc"},
@@ -396,6 +406,46 @@ func TestBuiltins(t *testing.T) {
 	for _, expr := range tests {
 		if expr.got != expr.expected {
 			t.Errorf("source: %q, got %q, expecting %q\n", "", expr.got, expr.expected)
+		}
+	}
+}
+
+// TestOnlyJSONWhitespace tests the onlyJSONWhitespace function.
+func TestOnlyJSONWhitespace(t *testing.T) {
+	tests := []struct {
+		in       string
+		expected bool
+	}{
+		{"", true},
+		{" \t\r\n", true},
+		{"\n \t\r  \n", true},
+		{" a", false},
+		{"è ", false},
+		{"\t\n\r x \t", false},
+		{"\U0001F680", false},
+	}
+	for _, test := range tests {
+		if got := onlyJSONWhitespace(test.in); got != test.expected {
+			t.Errorf("onlyJSONWhitespace(%q): expected %v, got %v", test.in, test.expected, got)
+		}
+	}
+}
+
+// TestTrimJSONSpace tests the trimJSONSpace function.
+func TestTrimJSONSpace(t *testing.T) {
+	tests := []struct {
+		in       native.JSON
+		expected native.JSON
+	}{
+		{"", ""},
+		{"\n\t {\"a\": 1}\r\t", "{\"a\": 1}"},
+		{"\t{\"a\": [1,2,3]}", "{\"a\": [1,2,3]}"},
+		{"{\"è\":true}\n\n", "{\"è\":true}"},
+		{"\U0001F680{\"a\":1}\u00a0", "\U0001F680{\"a\":1}\u00a0"},
+	}
+	for _, test := range tests {
+		if got := trimJSONSpace(test.in); got != test.expected {
+			t.Errorf("trimJSONSpace(%q): expected %q, got %q", string(test.in), string(test.expected), string(got))
 		}
 	}
 }

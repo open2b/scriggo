@@ -136,6 +136,7 @@
 package builtin
 
 import (
+	"bytes"
 	"crypto/hmac"
 	"crypto/md5"
 	"crypto/sha1"
@@ -353,6 +354,24 @@ func HmacSHA256(message, key string) string {
 // the escaped string as native.HTML type.
 func HtmlEscape(s string) native.HTML {
 	return scriggo.HTMLEscape(s)
+}
+
+// IndentJSON returns the JSON data indented while preserving object key order.
+// It panics if data is not valid JSON or if prefix or indent contain characters
+// other than ' ' or '\t'.
+func IndentJSON(data native.JSON, prefix, indent string) native.JSON {
+	if !onlyJSONWhitespace(prefix) {
+		panic("indentJSON: prefix does not contain only whitespace")
+	}
+	if !onlyJSONWhitespace(indent) {
+		panic("indentJSON: indent does not contain only whitespace")
+	}
+	var b bytes.Buffer
+	err := json.Indent(&b, []byte(trimJSONSpace(data)), prefix, indent)
+	if err != nil {
+		panic(replacePrefix(err, "json", "indentJSON"))
+	}
+	return native.JSON(b.String())
 }
 
 // Index returns the index of the first instance of substr in s, or -1 if
@@ -977,12 +996,14 @@ func isSeparator(r rune) bool {
 	return unicode.IsSpace(r)
 }
 
+// lookupJSONSpace is used by the onlyJSONWhitespace and trimJSONSpace
+// functions.
+var lookupJSONSpace = [255]uint8{'\t': 1, '\n': 1, '\r': 1, ' ': 1}
+
 // onlyJSONWhitespace reports if s contains only JSON whitespace.
 func onlyJSONWhitespace(s string) bool {
-	for _, c := range s {
-		switch c {
-		case ' ', '\t', '\n', '\r':
-		default:
+	for i := 0; i < len(s); i++ {
+		if lookupJSONSpace[s[i]] == 0 {
 			return false
 		}
 	}
@@ -992,4 +1013,18 @@ func onlyJSONWhitespace(s string) bool {
 // replacePrefix returns err with the prefix old replaced with new.
 func replacePrefix(err error, old, new string) error {
 	return errors.New(new + ": " + strings.TrimPrefix(err.Error(), old+": "))
+}
+
+// trimJSONSpace returns a subslice of data with all leading and trailing
+// whitespace removed.
+func trimJSONSpace(data native.JSON) native.JSON {
+	if len(data) == 0 {
+		return data
+	}
+	i, j := 0, len(data)-1
+	for ; lookupJSONSpace[data[i]] == 1; i++ {
+	}
+	for ; lookupJSONSpace[data[j]] == 1; j-- {
+	}
+	return data[i : j+1]
 }
