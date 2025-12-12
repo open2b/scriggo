@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"math"
 	"path"
 	"reflect"
@@ -20,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/open2b/scriggo"
+	"github.com/open2b/scriggo/ast"
 	"github.com/open2b/scriggo/internal/fstest"
 	"github.com/open2b/scriggo/native"
 )
@@ -27,7 +29,7 @@ import (
 func TestMultiFileTemplate(t *testing.T) {
 
 	templateMultiFileCases := map[string]struct {
-		sources          fstest.Files
+		sources          fs.FS                  // can be fstest.Files or fstest.FormatFiles
 		expectedBuildErr string                 // default to empty string (no build error). Mutually exclusive with expectedOut.
 		expectedOut      string                 // default to "". Mutually exclusive with expectedBuildErr.
 		main             native.Package         // default to nil
@@ -2773,6 +2775,31 @@ func TestMultiFileTemplate(t *testing.T) {
 			expectedOut: "hello, world!",
 		},
 
+		// Tests for extension-less imports using FormatFiles (FormatFS interface)
+		"import with 'for' - macro without file extension": {
+			sources: fstest.FormatFiles{
+				Files: fstest.Files{
+					"index":  `{% import "macros" for M %}{{ M("hello") }}`,
+					"macros": `{% macro M(s string) %}{{ s }}, world!{% end macro %}`,
+				},
+				Fmt: ast.FormatText,
+			},
+			entryPoint:  "index",
+			expectedOut: "hello, world!",
+		},
+
+		"import with 'for' - variable without file extension": {
+			sources: fstest.FormatFiles{
+				Files: fstest.Files{
+					"index":    `{% import "imported" for V %}{{ V }}`,
+					"imported": `{% var V = 42 %}`,
+				},
+				Fmt: ast.FormatText,
+			},
+			entryPoint:  "index",
+			expectedOut: "42",
+		},
+
 		"import with 'for' - trying to import a not exported declaration": {
 			sources: fstest.Files{
 				"index.html":    `{% import "imported.html" for x %}{{ x }}`,
@@ -3292,9 +3319,18 @@ func TestMultiFileTemplate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			entryPoint := cas.entryPoint
 			if entryPoint == "" {
-				for p := range cas.sources {
-					if strings.TrimSuffix(p, path.Ext(p)) == "index" {
-						entryPoint = p
+				// Type assert to fstest.Files to find entry point
+				if files, ok := cas.sources.(fstest.Files); ok {
+					for p := range files {
+						if strings.TrimSuffix(p, path.Ext(p)) == "index" {
+							entryPoint = p
+						}
+					}
+				} else if ff, ok := cas.sources.(fstest.FormatFiles); ok {
+					for p := range ff.Files {
+						if strings.TrimSuffix(p, path.Ext(p)) == "index" {
+							entryPoint = p
+						}
 					}
 				}
 			}
