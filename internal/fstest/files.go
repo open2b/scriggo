@@ -12,6 +12,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/open2b/scriggo/ast"
 )
 
 // Files implements a file system that read the files from a map.
@@ -129,3 +131,32 @@ func (i *filesFileInfo) Mode() os.FileMode  { return i.mode }
 func (i *filesFileInfo) ModTime() time.Time { return time.Time{} }
 func (i *filesFileInfo) IsDir() bool        { return i.mode&fs.ModeDir == fs.ModeDir }
 func (i *filesFileInfo) Sys() interface{}   { return nil }
+
+// FormatFiles wraps Files and implements the compiler's FormatFS interface.
+// This allows testing templates without file extensions by explicitly
+// specifying the format for all files.
+type FormatFiles struct {
+	Files  Files
+	Fmt    ast.Format
+}
+
+// Open implements fs.FS interface by delegating to the wrapped Files.
+func (f FormatFiles) Open(name string) (fs.File, error) {
+	return f.Files.Open(name)
+}
+
+// Format implements the FormatFS interface (compiler/parser_template.go).
+// Returns the configured format for all files in the filesystem.
+func (f FormatFiles) Format(name string) (ast.Format, error) {
+	if _, ok := f.Files[name]; !ok {
+		// Check if it's a directory
+		prefix := name + "/"
+		for n := range f.Files {
+			if strings.HasPrefix(n, prefix) {
+				return 0, nil // Directories don't have a format
+			}
+		}
+		return 0, fs.ErrNotExist
+	}
+	return f.Fmt, nil
+}

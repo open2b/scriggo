@@ -5,7 +5,6 @@
 package compiler
 
 import (
-	"path/filepath"
 	"reflect"
 
 	"github.com/open2b/scriggo/ast"
@@ -86,7 +85,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 				// Import a template file.
 				// Precompiled packages have been already handled by the type
 				// checker and should be ignored by the emitter.
-				if ext := filepath.Ext(node.Path); ext != "" {
+				// node.Tree != nil indicates a template import (parsed AST exists),
+				// while node.Tree == nil indicates a native package import.
+				if node.Tree != nil {
 					inits := em.emitImport(node, true)
 					if len(inits) > 0 && !em.alreadyInitializedTemplatePkgs[node.Tree.Path] {
 						for _, initFunc := range inits {
@@ -610,6 +611,23 @@ func (em *emitter) emitImport(node *ast.Import, isTemplate bool) []*runtime.Func
 	// Emit the package and collect functions, variables and init functions.
 	pkg := node.Tree.Nodes[0].(*ast.Package)
 	funcs, vars, inits := em.emitPackage(pkg, false, node.Tree.Path)
+
+	// If importing specific identifiers with "for" clause, filter to only those.
+	// Example: {% import "macros" for Hello, World %} only imports Hello and World.
+	if node.For != nil {
+		filteredFuncs := make(map[string]*runtime.Function)
+		filteredVars := make(map[string]int16)
+		for _, ident := range node.For {
+			if fn, ok := funcs[ident.Name]; ok {
+				filteredFuncs[ident.Name] = fn
+			}
+			if v, ok := vars[ident.Name]; ok {
+				filteredVars[ident.Name] = v
+			}
+		}
+		funcs = filteredFuncs
+		vars = filteredVars
+	}
 
 	blankImport := false
 
